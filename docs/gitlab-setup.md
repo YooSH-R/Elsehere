@@ -11,6 +11,42 @@
 
 아래 항목은 적용 목표와 확인 절차입니다. 실제 적용 여부는 GitLab 화면에서 확인해야 합니다.
 
+## 현재 적용 현황
+
+| 항목 | 상태 | 근거 또는 다음 조치 |
+| --- | --- | --- |
+| 협업 문서와 MR 템플릿 | 로컬 작성 완료 | README, 협업 규칙, 초기 설정 안내, 일반·릴리스 MR 템플릿 |
+| 로컬 `main`, `dev` | 생성 완료 | 두 브랜치가 동일한 초기 커밋에서 시작 |
+| 원격 업로드 | GitLab 권한으로 차단 | Developer는 비어 있는 프로젝트의 최초 기본 브랜치를 생성할 수 없음 |
+| 원격 `main`, `dev` | 생성 대기 | Maintainer의 최초 업로드 필요 |
+| 기본 브랜치 및 브랜치 보호 | 적용 대기 | Maintainer 설정 필요 |
+| MR 병합 방식 및 논의 해결 조건 | 적용 대기 | Maintainer 설정 필요 |
+| 웹에서 MR 템플릿 확인 및 동료 리뷰 | 검증 대기 | 원격 브랜치 생성과 문서 업로드 후 진행 |
+
+최초 `main` Push에서 GitLab은 다음 이유로 업로드를 거절했습니다.
+
+```text
+A default branch (e.g. main) does not yet exist for s15-final/S15P31A305
+Ask a project Owner or Maintainer to create a default branch
+```
+
+### 재개 절차
+
+1. 프로젝트 Maintainer가 `rexsung` 계정에 Maintainer 역할을 부여하거나, 준비된 초기 커밋을 직접 업로드합니다.
+2. 권한 변경 뒤 원격 브랜치를 다시 확인합니다. 여전히 비어 있다면 준비된 `main`, `dev`를 업로드합니다.
+3. 기본 브랜치를 `main`으로 설정하고, 아래의 브랜치 보호와 MR 설정을 적용합니다.
+4. 원격 초기 브랜치가 준비되면 첫 문서 작업 MR을 `dev` 대상으로 생성해 템플릿을 확인합니다.
+5. 실제 팀원의 리뷰와 병합을 거쳐 협업 흐름을 검증합니다.
+
+아래 명령은 원격 저장소가 여전히 비어 있고 현재 인증 계정이 Maintainer인 경우에만 사용합니다.
+
+```sh
+git push --set-upstream origin main
+git push --set-upstream origin dev
+```
+
+다른 담당자가 웹에서 별도 초기 커밋을 만들었다면 원격 이력을 먼저 가져와 통합합니다. 기존 커밋을 덮어쓰는 force push는 사용하지 않습니다.
+
 ## 1. 초기 브랜치와 문서
 
 - 초기 협업 문서와 MR 템플릿을 `main`에 반영합니다.

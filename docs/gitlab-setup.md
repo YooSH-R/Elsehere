@@ -6,10 +6,48 @@
 - 제공 방식: SSAFY 설치형 GitLab
 - 초기 확인일: 2026-10-07
 - 최초 확인 당시 원격 저장소에는 커밋과 브랜치가 없었습니다.
-- 브라우저에서 현재 로그인 계정 `rexsung`의 프로젝트 역할은 Developer로 확인했습니다.
-- Developer 계정에는 프로젝트 Settings 메뉴가 표시되지 않았습니다. 기본 브랜치 변경, 브랜치 보호, 멤버 권한, MR 병합 설정에는 Maintainer의 적용이 필요합니다.
+- 최초 확인 당시 `rexsung` 계정은 Developer였습니다. 이후 Maintainer 권한을 확보하고 초기 업로드와 설정 적용을 진행했습니다.
 
 아래 항목은 적용 목표와 확인 절차입니다. 실제 적용 여부는 GitLab 화면에서 확인해야 합니다.
+
+## 현재 적용 현황
+
+| 항목 | 상태 | 근거 또는 다음 조치 |
+| --- | --- | --- |
+| 협업 문서와 MR 템플릿 | 원격 업로드 완료 | 초기 문서는 `main`, `dev`에 반영. 최신 폴더 구조와 진행 현황은 작업 브랜치에서 MR로 검토 |
+| 로컬 `main`, `dev` | 생성 완료 | 두 브랜치가 동일한 초기 커밋에서 시작 |
+| 원격 업로드 | 완료 | `main`, `dev`, `chore/initial-collaboration-setup` 업로드 성공 |
+| 원격 `main`, `dev` | 생성 완료 | 기본 브랜치는 `main` |
+| 브랜치 보호 | 적용 완료 | 두 브랜치 모두 직접 Push와 force push 금지. `main`은 Maintainer만, `dev`는 Developer와 Maintainer가 MR 병합 가능 |
+| MR 병합 방식 및 논의 해결 조건 | 확인 및 적용 완료 | Merge commit, squash 기본 해제, 모든 논의 해결 필수. CI 성공 조건은 CI 구성 전이므로 비활성화 |
+| 웹에서 MR 템플릿 확인 및 동료 리뷰 | MR 생성 완료, 동료 리뷰 대기 | Default 자동 입력과 Default·Release 선택 목록 확인. 초기 설정 MR !1은 `dev` 대상이며 미병합 |
+| Jira 연동 | 미설정 | GitLab 활성 연동 없음, 웹훅 0개. 현재 Jira 계정은 프로젝트 설정 편집 불가 |
+
+첫 검토 대상은 [초기 폴더 구조와 GitLab 협업 설정 정리 MR !1](https://lab.ssafy.com/s15-final/S15P31A305/-/merge_requests/1)입니다. 작성자 외 팀원의 리뷰를 받은 뒤 병합합니다. 현재 설정에서 MR 승인은 선택 사항이므로 병합 담당자가 팀 규칙을 확인해야 합니다.
+
+최초 `main` Push는 다음 이유로 거절됐지만, Maintainer 권한 확보 후 재시도에 성공했습니다.
+
+```text
+A default branch (e.g. main) does not yet exist for s15-final/S15P31A305
+Ask a project Owner or Maintainer to create a default branch
+```
+
+### 초기 권한 차단 해결 방법
+
+1. 프로젝트 Maintainer가 `rexsung` 계정에 Maintainer 역할을 부여하거나, 준비된 초기 커밋을 직접 업로드합니다.
+2. 권한 변경 뒤 원격 브랜치를 다시 확인합니다. 여전히 비어 있다면 준비된 `main`, `dev`를 업로드합니다.
+3. 기본 브랜치를 `main`으로 설정하고, 아래의 브랜치 보호와 MR 설정을 적용합니다.
+4. 원격 초기 브랜치가 준비되면 첫 문서 작업 MR을 `dev` 대상으로 생성해 템플릿을 확인합니다.
+5. 실제 팀원의 리뷰와 병합을 거쳐 협업 흐름을 검증합니다.
+
+아래 명령은 원격 저장소가 여전히 비어 있고 현재 인증 계정이 Maintainer인 경우에만 사용합니다.
+
+```sh
+git push --set-upstream origin main
+git push --set-upstream origin dev
+```
+
+다른 담당자가 웹에서 별도 초기 커밋을 만들었다면 원격 이력을 먼저 가져와 통합합니다. 기존 커밋을 덮어쓰는 force push는 사용하지 않습니다.
 
 ## 1. 초기 브랜치와 문서
 
@@ -64,13 +102,13 @@
 
 ## 완료 기준
 
-- [ ] 원격 `main`, `dev` 브랜치 생성
-- [ ] 기본 브랜치 `main` 설정
-- [ ] 협업 문서와 두 MR 템플릿을 기본 브랜치에 반영
-- [ ] 유지관리 담당자와 팀원 역할 확인
-- [ ] `main`, `dev` 직접 Push 및 force push 차단
-- [ ] Merge commit과 미해결 논의 차단 설정
-- [ ] 실제 GitLab에서 일반 MR과 릴리스 MR 템플릿 확인
+- [x] 원격 `main`, `dev` 브랜치 생성
+- [x] 기본 브랜치 `main` 확인
+- [x] 협업 문서와 두 MR 템플릿을 기본 브랜치에 반영
+- [ ] 팀 내 유지관리 담당자 2명 이상 확보 및 팀원 역할 확정
+- [x] `main`, `dev` 직접 Push 및 force push 차단
+- [x] Merge commit 확인과 미해결 논의 차단 설정
+- [x] 실제 GitLab에서 Default 자동 입력 및 Default·Release 템플릿 선택 목록 확인
 - [ ] 작성자 외 팀원의 리뷰를 거쳐 일반 MR 병합
 
 ## 공식 참고 자료

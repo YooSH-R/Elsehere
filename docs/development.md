@@ -36,7 +36,7 @@ chore/S15P31A305-125-mr-template
 
 ## 커밋
 
-형식은 `<유형>(<영역>): <이슈키> <변경 목적>`으로 통일합니다.
+형식은 `<유형>(<영역>): <변경 목적> <이슈키>`로 통일합니다.
 
 - 유형: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 - 영역: `frontend`, `backend`, `ai`, `infra`, `docs`, `repo`
@@ -45,9 +45,9 @@ chore/S15P31A305-125-mr-template
 - 초기 저장소 설정처럼 아직 Jira 작업이 없는 경우에는 이슈 키를 생략할 수 있습니다. 예시 키를 실제 이슈처럼 사용하지 않습니다.
 
 ```text
-feat(ai): S15P31A305-123 카페 주문 대화 구현
-fix(backend): S15P31A305-124 대화 요청 시간 초과 처리
-chore(infra): S15P31A305-125 MR 템플릿 추가
+feat(ai): 카페 주문 대화 구현 S15P31A305-123
+fix(backend): 대화 요청 시간 초과 처리 S15P31A305-124
+chore(infra): MR 템플릿 추가 S15P31A305-125
 chore(repo): 초기 협업 문서와 MR 템플릿 추가
 ```
 
@@ -59,7 +59,7 @@ chore(repo): 초기 협업 문서와 MR 템플릿 추가
 git config --local core.hooksPath .githooks
 ```
 
-`.githooks/commit-msg`가 브랜치의 Jira 이슈 키를 읽어 커밋 제목에 넣습니다. Git for Windows에서도 사용할 수 있습니다. 설정은 개인 PC에만 적용되므로 각 팀원이 직접 실행해야 합니다. 기존 `core.hooksPath`나 별도 Git 훅이 있다면 먼저 함께 사용할 방법을 확인합니다.
+`.githooks/commit-msg`가 브랜치의 Jira 이슈 키를 읽어 커밋 제목 끝에 넣습니다. Git for Windows에서도 사용할 수 있습니다. 설정은 개인 PC에만 적용되므로 각 팀원이 직접 실행해야 합니다. 기존 `core.hooksPath`나 별도 Git 훅이 있다면 먼저 함께 사용할 방법을 확인합니다.
 
 예를 들어 `feat/S15P31A305-123-cafe-order` 브랜치에서:
 
@@ -67,7 +67,7 @@ git config --local core.hooksPath .githooks
 git commit -m "feat(frontend): 카페 주문 화면 추가"
 ```
 
-실제 커밋 제목은 `feat(frontend): S15P31A305-123 카페 주문 화면 추가`가 됩니다. 일반 제목은 `S15P31A305-123 카페 주문 화면 추가`처럼 이슈 키가 앞에 붙습니다.
+실제 커밋 제목은 `feat(frontend): 카페 주문 화면 추가 S15P31A305-123`이 됩니다. 일반 제목도 `카페 주문 화면 추가 S15P31A305-123`처럼 이슈 키가 끝에 붙습니다.
 
 - 제목에 이슈 키가 이미 있으면 중복으로 넣거나 바꾸지 않습니다.
 - 이슈 키가 없는 브랜치와 detached HEAD에서는 수정하지 않습니다.

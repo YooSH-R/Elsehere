@@ -44,6 +44,7 @@ AI의 독립 서버 여부는 실제 실행 환경과 기술 스택을 정한 �
 
 - [개발 및 협업 규칙](docs/development.md)
 - [GitLab 초기 설정과 확인 절차](docs/gitlab-setup.md)
+- [Jira와 GitLab 연동](docs/jira-integration.md)
 - [일반 MR 템플릿](.gitlab/merge_request_templates/Default.md)
 - [릴리스 MR 템플릿](.gitlab/merge_request_templates/Release.md)
 

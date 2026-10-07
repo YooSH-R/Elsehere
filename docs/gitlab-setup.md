@@ -20,8 +20,10 @@
 | 원격 `main`, `dev` | 생성 완료 | 기본 브랜치는 `main` |
 | 브랜치 보호 | 적용 완료 | 두 브랜치 모두 직접 Push와 force push 금지. `main`은 Maintainer만, `dev`는 Developer와 Maintainer가 MR 병합 가능 |
 | MR 병합 방식 및 논의 해결 조건 | 확인 및 적용 완료 | Merge commit, squash 기본 해제, 모든 논의 해결 필수. CI 성공 조건은 CI 구성 전이므로 비활성화 |
-| 웹에서 MR 템플릿 확인 및 동료 리뷰 | 검증 진행 중 | 초기 설정 MR 작성 후 실제 팀원의 리뷰와 병합 필요 |
+| 웹에서 MR 템플릿 확인 및 동료 리뷰 | MR 생성 완료, 동료 리뷰 대기 | Default 자동 입력과 Default·Release 선택 목록 확인. 초기 설정 MR !1은 `dev` 대상이며 미병합 |
 | Jira 연동 | 미설정 | GitLab 활성 연동 없음, 웹훅 0개. 현재 Jira 계정은 프로젝트 설정 편집 불가 |
+
+첫 검토 대상은 [초기 폴더 구조와 GitLab 협업 설정 정리 MR !1](https://lab.ssafy.com/s15-final/S15P31A305/-/merge_requests/1)입니다. 작성자 외 팀원의 리뷰를 받은 뒤 병합합니다. 현재 설정에서 MR 승인은 선택 사항이므로 병합 담당자가 팀 규칙을 확인해야 합니다.
 
 최초 `main` Push는 다음 이유로 거절됐지만, Maintainer 권한 확보 후 재시도에 성공했습니다.
 
@@ -106,7 +108,7 @@ git push --set-upstream origin dev
 - [ ] 팀 내 유지관리 담당자 2명 이상 확보 및 팀원 역할 확정
 - [x] `main`, `dev` 직접 Push 및 force push 차단
 - [x] Merge commit 확인과 미해결 논의 차단 설정
-- [ ] 실제 GitLab에서 일반 MR과 릴리스 MR 템플릿 확인
+- [x] 실제 GitLab에서 Default 자동 입력 및 Default·Release 템플릿 선택 목록 확인
 - [ ] 작성자 외 팀원의 리뷰를 거쳐 일반 MR 병합
 
 ## 공식 참고 자료

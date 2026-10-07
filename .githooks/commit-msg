@@ -41,7 +41,7 @@ awk -v issue_key="$issue_key" '
         sub(/\r$/, "")
 
         sub(/[[:space:]]*$/, "")
-        print $0 " " issue_key
+        print $0 " [" issue_key "]"
         next
     }
 

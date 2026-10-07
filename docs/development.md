@@ -51,6 +51,33 @@ chore(infra): S15P31A305-125 MR 템플릿 추가
 chore(repo): 초기 협업 문서와 MR 템플릿 추가
 ```
 
+### 브랜치 이슈 키 자동 입력
+
+저장소를 받은 뒤 프로젝트 최상위 폴더에서 한 번 실행합니다.
+
+```sh
+git config --local core.hooksPath .githooks
+```
+
+`.githooks/commit-msg`가 브랜치의 Jira 이슈 키를 읽어 커밋 제목에 넣습니다. Git for Windows에서도 사용할 수 있습니다. 설정은 개인 PC에만 적용되므로 각 팀원이 직접 실행해야 합니다. 기존 `core.hooksPath`나 별도 Git 훅이 있다면 먼저 함께 사용할 방법을 확인합니다.
+
+예를 들어 `feat/S15P31A305-123-cafe-order` 브랜치에서:
+
+```sh
+git commit -m "feat(frontend): 카페 주문 화면 추가"
+```
+
+실제 커밋 제목은 `feat(frontend): S15P31A305-123 카페 주문 화면 추가`가 됩니다. 일반 제목은 `S15P31A305-123 카페 주문 화면 추가`처럼 이슈 키가 앞에 붙습니다.
+
+- 제목에 이슈 키가 이미 있으면 중복으로 넣거나 바꾸지 않습니다.
+- 이슈 키가 없는 브랜치와 detached HEAD에서는 수정하지 않습니다.
+- 병합·체리픽·리베이스와 `fixup!`, `squash!`, `amend!`, `Revert` 메시지는 유지합니다.
+- 커밋 본문은 유지합니다. 이 훅은 입력을 마친 뒤 실행되므로 커밋 결과는 `git log -1 --format=%s`로 확인할 수 있습니다.
+- GitLab 웹에서 생성하는 커밋에는 로컬 훅이 실행되지 않으므로 이슈 키를 직접 적습니다.
+- `git commit --no-verify`를 사용하면 자동 입력을 건너뜁니다.
+
+자동 입력은 이슈 번호의 존재 여부를 확인하지 않습니다. 실제 Jira 이슈로 브랜치를 만들고, GitLab에 Push한 뒤 Jira의 커밋 링크·댓글을 확인합니다.
+
 ## 일반 작업 흐름
 
 1. Jira에서 작업과 완료 조건을 확인합니다.

@@ -12,7 +12,7 @@
 
 ```text
 브랜치: feat/S15P31A305-123-cafe-order
-커밋: feat(frontend): S15P31A305-123 카페 주문 화면 추가
+커밋: feat(frontend): 카페 주문 화면 추가 [S15P31A305-123]
 MR 제목: [S15P31A305-123] 카페 주문 화면 추가
 ```
 

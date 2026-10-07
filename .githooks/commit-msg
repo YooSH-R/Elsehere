@@ -40,15 +40,8 @@ awk -v issue_key="$issue_key" '
     NR == 1 {
         sub(/\r$/, "")
 
-        if (match($0, /^[a-z]+(\([^)]*\))?!?:[[:space:]]*/)) {
-            commit_prefix = substr($0, 1, RLENGTH)
-            commit_subject = substr($0, RLENGTH + 1)
-            sub(/[[:space:]]*$/, "", commit_prefix)
-            print commit_prefix " " issue_key " " commit_subject
-        } else {
-            print issue_key " " $0
-        }
-
+        sub(/[[:space:]]*$/, "")
+        print $0 " [" issue_key "]"
         next
     }
 

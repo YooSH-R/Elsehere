@@ -132,7 +132,8 @@ git switch -c feat/S15P31A305-123-cafe-conversation
 3. 검증 이후 `dev`에 변경이 추가되면 포함 범위와 검증 결과를 다시 확인합니다.
 4. 리뷰 후 Maintainer가 Merge commit으로 병합합니다. `dev`는 삭제하지 않습니다.
 5. 배포 과정은 CI/CD 구성 이후 운영 문서에 따릅니다.
-6. `main → dev` MR로 릴리스 이력을 동기화합니다. 이 MR에서도 squash와 브랜치 삭제를 해제합니다.
+
+`main → dev` MR은 긴급 수정, 버전 정보, 배포 설정 등 `main`에만 반영되어 `dev`에 없는 실제 변경이 생긴 경우에 생성합니다. 일반 릴리스 병합으로 병합 커밋만 추가되고 파일 내용이 같다면 별도의 동기화 MR을 만들지 않습니다. `main → dev` MR에서도 squash와 브랜치 삭제를 해제합니다.
 
 운영 긴급 수정은 최신 `main`에서 `hotfix` 브랜치를 생성하고 `main` 대상 MR로 반영합니다. 이후 `main → dev` MR로 수정 내용을 반드시 개발 브랜치에도 반영합니다.
 

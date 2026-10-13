@@ -1,80 +1,55 @@
-# GitLab 초기 설정과 확인 절차
+# GitLab 운영 정책
 
-## 확인한 환경
+[프로젝트 저장소](https://lab.ssafy.com/s15-final/S15P31A305)는 기능 개발, 코드 리뷰, 릴리스 이력을 관리합니다. 작업은 Jira 이슈 단위로 진행하고, 변경 사항은 MR을 통해 통합합니다.
 
-- 프로젝트: [s15-final / S15P31A305](https://lab.ssafy.com/s15-final/S15P31A305)
-- 제공 방식: SSAFY 설치형 GitLab
-- 초기 확인일: 2026-10-07
-- 최초 확인 당시 원격 저장소에는 커밋과 브랜치가 없었습니다.
-- 브라우저에서 현재 로그인 계정 `rexsung`의 프로젝트 역할은 Developer로 확인했습니다.
-- Developer 계정에는 프로젝트 Settings 메뉴가 표시되지 않았습니다. 기본 브랜치 변경, 브랜치 보호, 멤버 권한, MR 병합 설정에는 Maintainer의 적용이 필요합니다.
+## 브랜치 관리
 
-아래 항목은 적용 목표와 확인 절차입니다. 실제 적용 여부는 GitLab 화면에서 확인해야 합니다.
-
-## 1. 초기 브랜치와 문서
-
-- 초기 협업 문서와 MR 템플릿을 `main`에 반영합니다.
-- 같은 초기 커밋에서 `dev`를 생성합니다.
-- GitLab 기본 브랜치를 `main`으로 설정합니다.
-- 초기 Push가 역할 또는 그룹 보호 정책으로 차단되면 Maintainer가 초기 브랜치를 생성하거나 준비된 커밋을 업로드해야 합니다.
-- 템플릿은 기본 브랜치에도 존재해야 GitLab에서 인식됩니다.
-
-## 2. 팀원 역할
-
-- 기존 학교 운영진과 상속된 그룹 권한은 그대로 둡니다.
-- 프로젝트 유지관리 담당자를 확인해 팀 내 Maintainer를 2명 이상 확보합니다.
-- 일반 개발 팀원은 Developer 역할을 사용합니다.
-- 팀원과 담당자의 확정 없이 권한을 임의로 변경하지 않습니다.
-
-## 3. 브랜치 보호
-
-설정 위치는 GitLab 버전에 따라 `Settings → Repository → Branch rules` 또는 `Protected branches`입니다.
-
-| 항목 | `main` | `dev` |
+| 브랜치 | 역할 | 변경 방식 |
 | --- | --- | --- |
-| Allowed to merge | Maintainers | Developers + Maintainers |
-| Allowed to push and merge 또는 Allowed to push | No one | No one |
-| Force push | 비활성화 | 비활성화 |
+| `main` | 릴리스 및 운영 배포 기준 | 검증된 `dev` 또는 긴급 수정 MR 병합 |
+| `dev` | 기능 통합 및 개발 환경 검증 | 작업 브랜치 MR 병합 |
+| 작업 브랜치 | Jira 이슈 단위 개발 | 최신 `dev`에서 생성, 병합 후 삭제 |
+| `hotfix` | 운영 긴급 수정 | 최신 `main`에서 생성, 반영 후 `dev`에 동기화 |
 
-직접 Push 권한은 빈 값 대신 `No one`으로 명시합니다. 기존 그룹 보호 정책과 와일드카드 규칙이 있다면 더 넓은 권한이 적용되지 않는지도 확인합니다.
+브랜치와 커밋의 명명 규칙은 [개발 및 협업 규칙](development.md)을 따릅니다.
 
-## 4. MR 설정
+## 접근 권한
 
-설정 위치는 GitLab 버전에 따라 `Settings → Merge requests` 또는 `Settings → General`의 Merge requests 항목입니다.
+- Developer는 기능 개발과 코드 리뷰를 담당합니다.
+- Maintainer는 저장소 설정, 접근 권한, 릴리스 병합을 관리합니다.
+- 학교 운영진과 그룹에서 상속된 권한은 프로젝트 팀의 역할과 구분합니다.
 
-- Merge method: Merge commit.
-- 모든 논의가 해결되어야 병합하도록 설정합니다.
-- 필수 승인 기능이 제공되면 작성자 외 승인 1명을 요구합니다. 제공되지 않으면 병합 담당자가 팀 규칙으로 확인합니다.
-- 모든 MR에 squash를 강제하지 않습니다. `dev ↔ main` MR은 squash하지 않습니다.
-- 일반 작업 브랜치는 병합 후 삭제하되 `main`, `dev`는 유지합니다. 릴리스 MR의 Delete source branch를 반드시 해제합니다.
-- CI가 정상 실행되기 전에는 Pipelines must succeed를 활성화하지 않습니다.
+| 보호 설정 | `main` | `dev` |
+| --- | --- | --- |
+| 직접 Push | 금지 | 금지 |
+| MR 병합 권한 | Maintainer | Developer·Maintainer |
+| Force push | 금지 | 금지 |
 
-## 5. MR 흐름 검증
+## 코드 리뷰와 병합
 
-1. `dev`에서 문서 작업 브랜치를 생성하고 의미 있는 문서 변경을 커밋합니다.
-2. `dev` 대상으로 MR을 생성합니다.
-3. Default 템플릿을 선택하고 내용이 표시되는지 확인합니다.
-4. 작성자 외 팀원에게 리뷰를 받고 의견을 반영합니다.
-5. 미해결 논의가 있으면 병합이 차단되는지 확인합니다.
-6. 조건을 만족한 MR을 병합하고 작업 브랜치를 정리합니다.
-7. `dev → main` MR에서 Release 템플릿을 확인합니다.
-8. 릴리스 MR에서는 squash와 소스 브랜치 삭제를 해제합니다.
+- 작성자 외 팀원 최소 1명의 리뷰를 거쳐 병합합니다.
+- 변경 목적, 동작에 미치는 영향, 검증 결과를 MR에 기록합니다.
+- 모든 리뷰 논의와 병합 충돌을 해결합니다.
+- 기본 병합 방식은 Merge commit입니다.
+- 일반 MR은 [Default 템플릿](../.gitlab/merge_request_templates/Default.md), 릴리스 MR은 [Release 템플릿](../.gitlab/merge_request_templates/Release.md)을 사용합니다.
+- 일반 작업 브랜치는 병합 후 삭제합니다. `dev ↔ main` MR에서는 squash와 소스 브랜치 삭제를 해제합니다.
+- GitLab의 승인 기능과 관계없이 팀의 리뷰 기준을 적용합니다.
 
-직접 Push 제한은 우선 GitLab의 보호 설정 화면으로 확인합니다. 실제 Push로 검증하려면 문서 전용 커밋을 사용하고, 설정 오류로 Push가 성공할 수 있다는 점을 알고 진행해야 합니다.
+## 품질 관리
 
-## 완료 기준
+코드 작성과 검사 도구 적용은 [공통 코드 규약](code-conventions.md)을 따릅니다. 작성자는 변경 범위에 맞는 검사와 테스트를 수행하고, 결과와 제한 사항을 MR에 기록합니다.
 
-- [ ] 원격 `main`, `dev` 브랜치 생성
-- [ ] 기본 브랜치 `main` 설정
-- [ ] 협업 문서와 두 MR 템플릿을 기본 브랜치에 반영
-- [ ] 유지관리 담당자와 팀원 역할 확인
-- [ ] `main`, `dev` 직접 Push 및 force push 차단
-- [ ] Merge commit과 미해결 논의 차단 설정
-- [ ] 실제 GitLab에서 일반 MR과 릴리스 MR 템플릿 확인
-- [ ] 작성자 외 팀원의 리뷰를 거쳐 일반 MR 병합
+CI 도입 전에는 작성자의 검증 결과와 동료 리뷰를 병합 기준으로 사용합니다. 서비스별 검사·테스트·빌드 파이프라인을 구성한 뒤에는 CI 성공을 필수 병합 조건으로 적용합니다.
 
-## 공식 참고 자료
+## 작업 추적
 
-- [보호 브랜치](https://docs.gitlab.com/user/project/repository/branches/protected/)
-- [MR 설명 템플릿](https://docs.gitlab.com/user/project/description_templates/)
-- [MR 승인과 요금제별 차이](https://docs.gitlab.com/user/project/merge_requests/approvals/)
+- 브랜치·커밋·MR에 실제 Jira 이슈 키를 포함합니다.
+- GitLab의 Jira issues 연동으로 관련 커밋·MR 링크와 댓글을 기록합니다.
+- 담당자는 이슈의 완료 조건을 충족한 뒤 상태를 변경합니다.
+- 커밋 Push나 MR 병합만으로 상위 기능을 완료 처리하지 않습니다.
+
+연동 설정과 사용 방법은 [Jira와 GitLab 연동](jira-integration.md)을 참고합니다.
+
+## 설정 변경 관리
+
+Maintainer는 브랜치 보호, 병합 조건, 연동 설정을 관리합니다. 설정 변경은 팀과 공유하고 관련 운영 문서를 함께 갱신합니다. API 토큰과 인증값은 GitLab 설정 또는 CI/CD 변수에서 관리하며 저장소에 기록하지 않습니다.

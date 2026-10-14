@@ -7,11 +7,13 @@
 | 영역 | 현재 결정 |
 | --- | --- |
 | 백엔드 | Java + Spring Boot |
-| 프론트엔드 | 언어와 프레임워크 미정 |
+| 프론트엔드 | Unity + C#, WebGL 기반 브라우저 실행 |
 | AI | 언어, 실행 방식, 독립 서버 여부 미정 |
 | 개발 도구 | 각 영역의 프로젝트 초기화 시 호환 버전을 정하고 고정 |
 
 이 문서는 코드 작성·리뷰 기준과 린터·포매터 적용 방침을 정의합니다. 검사 도구는 각 영역의 프로젝트 초기화 때 구성하고, 실행 명령은 해당 프로젝트의 사용 문서에 명시합니다.
+
+Unity의 Scene·Prefab·Inspector 작성 기준은 [Unity 개발 규약 초안](unity-conventions.md)에서 관리합니다. 규약 초안은 팀 리뷰를 거쳐 확정합니다.
 
 ## 1. 사람이 이해할 수 있는 코드
 
@@ -33,6 +35,7 @@
 | 언어를 선택한 경우 | 함수·변수 | 클래스·타입 |
 | --- | --- | --- |
 | Java | `startMission`, `missionId` | `MissionService` |
+| C# | 메서드 `StartMission`, 필드·변수 `missionId` | `DialoguePanel` |
 | JavaScript / TypeScript | `startMission`, `missionId` | `MissionResult` |
 | Python | `start_mission`, `mission_id` | `MissionResult` |
 

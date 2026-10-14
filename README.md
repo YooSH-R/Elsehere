@@ -11,11 +11,11 @@
 | 영역 | 기술 및 선정 기준 |
 | --- | --- |
 | 백엔드 | Java + Spring Boot |
-| 프론트엔드 | 화면·3D 상호작용 설계에 따라 언어와 프레임워크 선정 |
+| 프론트엔드 | Unity 6.3 LTS `6000.3.26f1` + C#, URP, WebGL 기반 브라우저 실행 |
 | AI | PoC와 처리 흐름 설계에 따라 모델·언어·실행 방식 선정 |
 | 개발 도구 | 프로젝트 초기화 시 JDK·빌드 도구·의존성 버전 고정 |
 
-프론트엔드와 AI의 미정 기술은 설계 결정 후 반영합니다. 영역별 실행 방법은 각 프로젝트에서 관리합니다.
+Unity 클라이언트는 `frontend/UnityClient`에서 관리합니다. 시작 Scene은 개발 환경 확인용 샘플이며, 서비스 기능과 음성·API 연동은 별도 구현 범위입니다. AI의 미정 기술은 설계 결정 후 반영합니다. 영역별 실행 방법은 각 프로젝트 문서에서 관리합니다.
 
 ## 담당 영역
 
@@ -60,6 +60,8 @@ AI의 독립 서버 여부는 실제 실행 환경과 기술 스택을 정한 �
 
 - [개발 및 협업 규칙](docs/development.md)
 - [공통 코드 규약](docs/code-conventions.md)
+- [Unity 개발 환경과 Web 실행](docs/unity-setup.md)
+- [Unity 개발 규약 초안](docs/unity-conventions.md)
 - [AI 코드·문서 작성 지침](AGENTS.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
 - [Jira와 GitLab 연동](docs/jira-integration.md)

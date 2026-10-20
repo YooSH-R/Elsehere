@@ -50,7 +50,10 @@ AI의 독립 서버 여부는 실제 실행 환경과 기술 스택을 정한 �
 │   └── merge_request_templates/
 │       ├── Default.md
 │       └── Release.md
-├── AGENTS.md                    # AI 코드·문서 작성 지침
+├── .agents/skills/              # Codex용 AI 작업 절차(스킬)
+├── .claude/skills/              # Claude Code용 AI 작업 절차(스킬)
+├── AGENTS.md                    # AI 코드·문서 작성 지침, 영역별 지침은 각 폴더의 AGENTS.md
+├── CLAUDE.md                    # Claude Code가 AGENTS.md를 읽도록 연결
 └── README.md
 ```
 

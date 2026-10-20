@@ -152,3 +152,31 @@ git switch -c feat/S15P31A305-123-cafe-conversation
 - 예제 설정에는 필요한 변수 이름과 비밀이 아닌 예시만 기록합니다.
 - 브랜치, 커밋, MR에는 실제 Jira 이슈 키를 포함합니다. GitLab의 Jira issues 연동으로 관련 커밋·MR 링크와 댓글을 기록합니다.
 - 커밋 Push나 MR 병합만으로 상위 기능 이슈를 완료 처리하지 않습니다. 상위 기능의 완료 조건은 통합 검증으로 확인합니다.
+
+## AI 코딩 도구
+
+Claude Code와 Codex가 같은 지침을 따르도록 지침과 스킬을 저장소에서 공유합니다. 저장소를 받으면 별도 설정 없이 적용됩니다.
+
+| 파일 | 내용 | 읽는 도구 |
+| --- | --- | --- |
+| `AGENTS.md`, `backend/AGENTS.md`, `frontend/AGENTS.md` | 공통·영역별 작성 지침 | Codex, Claude Code(`CLAUDE.md`를 통해) |
+| 각 폴더의 `CLAUDE.md` | 같은 폴더의 `AGENTS.md`를 불러오는 연결 파일 | Claude Code |
+| `.claude/skills/<스킬 이름>/SKILL.md` | 작업 절차 | Claude Code |
+| `.agents/skills/<스킬 이름>/SKILL.md` | 작업 절차 | Codex |
+
+- 스킬은 작업 내용과 맞으면 자동으로 사용됩니다. 직접 호출할 때는 Claude Code에서 `/tdd`, Codex에서 `$tdd`처럼 입력합니다.
+- 공통 지침은 `AGENTS.md`에 작성하고, `CLAUDE.md`에는 Claude Code에만 필요한 내용을 둡니다.
+- 같은 스킬은 두 폴더에 같은 내용으로 둡니다. Git for Windows는 심볼릭 링크가 기본으로 꺼져 있어 링크 대신 파일을 복사합니다. 한쪽을 수정하면 같은 MR에서 다른 쪽도 수정합니다.
+- 지침과 스킬을 바꾸면 팀의 작업 기준이 바뀌므로 다른 변경과 같이 MR 리뷰를 거칩니다.
+
+### 개인 설정
+
+개인 설정은 저장소에 커밋하지 않습니다.
+
+| 도구 | 개인 설정 위치 |
+| --- | --- |
+| Claude Code | `~/.claude/CLAUDE.md`(모든 프로젝트), 저장소의 `CLAUDE.local.md`와 `.claude/settings.local.json`(이 프로젝트) |
+| Codex | `~/.codex/AGENTS.md` |
+
+- `CLAUDE.local.md`와 `.claude/settings.local.json`은 저장소의 `.gitignore`에 포함되어 있습니다.
+- Codex는 `AGENTS.override.md`가 있는 폴더에서 같은 폴더의 `AGENTS.md`를 읽지 않습니다. 팀 지침이 빠지지 않도록 저장소 안에 `AGENTS.override.md`를 만들지 않습니다.

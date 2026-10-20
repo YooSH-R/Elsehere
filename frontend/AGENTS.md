@@ -1,6 +1,6 @@
 # 프론트엔드 개발 지침
 
-루트 [AGENTS.md](../AGENTS.md), [공통 코드 규약](../docs/code-conventions.md), [Unity 개발 규약 초안](../docs/unity-conventions.md)을 기본으로 적용합니다. 이 문서는 Unity 클라이언트(`UnityClient/`)의 테스트 우선 개발 기준과 AI 에이전트의 작업 범위를 정합니다. 진행 절차는 `tdd` 스킬을 따릅니다.
+루트 [AGENTS.md](../AGENTS.md), [공통 코드 규약](../docs/code-conventions.md), [Unity 개발 규약](../docs/unity/conventions.md)을 기본으로 적용합니다. 이 문서는 Unity 클라이언트(`UnityClient/`)의 테스트 우선 개발 기준과 AI 에이전트의 작업 범위를 정합니다. 진행 절차는 `tdd` 스킬을 따릅니다.
 
 ## 에이전트 작업 범위
 

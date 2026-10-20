@@ -41,6 +41,7 @@ AI의 독립 서버 여부는 실제 실행 환경과 기술 스택을 정한 �
 │   └── scripts/                 # 배포, 상태 확인, 복구 스크립트
 ├── docs/
 │   ├── api/                     # API·스트리밍 메시지 규격
+│   ├── unity/                   # Unity 개발 환경과 규약
 │   ├── code-conventions.md      # 공통 코드 규약과 검사 도구 적용 방침
 │   ├── development.md           # 개발 및 협업 규칙
 │   ├── gitlab-setup.md          # GitLab 운영 정책
@@ -63,8 +64,8 @@ AI의 독립 서버 여부는 실제 실행 환경과 기술 스택을 정한 �
 
 - [개발 및 협업 규칙](docs/development.md)
 - [공통 코드 규약](docs/code-conventions.md)
-- [Unity 개발 환경과 Web 실행](docs/unity-setup.md)
-- [Unity 개발 규약 초안](docs/unity-conventions.md)
+- [Unity 개발 환경과 Web 실행](docs/unity/setup.md)
+- [Unity 개발 규약](docs/unity/conventions.md)
 - [AI 코드·문서 작성 지침](AGENTS.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
 - [Jira와 GitLab 연동](docs/jira-integration.md)

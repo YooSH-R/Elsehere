@@ -24,7 +24,7 @@ Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Pack
 5. 같은 Editor 버전으로 열고 패키지 복원과 에셋 가져오기가 끝날 때까지 기다립니다.
 6. Project 창에서 `Assets/_Project/Scenes/SampleScene`을 엽니다.
 
-협업 브랜치와 Git 훅 설정은 [개발 및 협업 규칙](development.md)을 따릅니다.
+협업 브랜치와 Git 훅 설정은 [개발 및 협업 규칙](../development.md)을 따릅니다.
 
 ## 실행과 Web 빌드
 
@@ -102,4 +102,4 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 - [Unity Web 오디오 지원](https://docs.unity3d.com/6000.3/Documentation/Manual/webgl-audio.html)
 - [Unity Web 네트워킹](https://docs.unity3d.com/6000.3/Documentation/Manual/webgl-networking.html)
 - [브라우저 마이크 접근 조건](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
-- [Unity 규약 초안](unity-conventions.md)
+- [Unity 개발 규약](conventions.md)

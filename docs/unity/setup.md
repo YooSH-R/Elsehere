@@ -38,6 +38,47 @@ Play를 실행하면 Scene에 배치된 `DemoCube` 프리팹이 회전합니다.
 
 Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을 직접 더블클릭하는 방식 대신 Build And Run이나 웹 서버를 통해 실행합니다. 로컬 빌드 성공과 외부 서버 배포 성공은 각각 검증합니다.
 
+## C# 포맷과 규칙 검사
+
+직접 작성한 `Assets/_Project` 아래의 C# 코드에 공통 검사 명령을 사용합니다. 이 경로에 추가되는 Editor 코드와 테스트 코드도 대상입니다. 외부 템플릿·패키지와 생성 파일은 포맷·규칙 검사 대상에서 제외하며, 컴파일에 필요한 참조로는 사용합니다.
+
+### 준비
+
+- Unity 프로젝트를 같은 Editor 버전으로 열어 패키지 복원과 컴파일을 마칩니다.
+- **Assets → Open C# Project**로 프로젝트·솔루션 파일을 생성하거나 갱신합니다. Visual Studio Editor 패키지가 생성한 SDK 형식의 `.csproj`와 `.slnx` 또는 `.sln`을 사용합니다. 스크립트나 Assembly Definition을 추가·이동·삭제한 뒤에도 갱신합니다.
+- 별도로 .NET SDK `10.0.401` 또는 같은 기능 버전의 최신 패치를 설치합니다. Unity의 C# 런타임·언어 버전을 변경하는 설정이 아니라 로컬 검사 도구의 실행 환경입니다. SDK 선택은 Unity 폴더의 `global.json`을 따릅니다.
+
+| 역할 | 고정 버전 | 설정 위치 |
+| --- | --- | --- |
+| 포맷 정리·확인 | CSharpier `1.3.0` | `.config/dotnet-tools.json` |
+| Unity 규칙 검사 | Microsoft.Unity.Analyzers `1.28.0` | `Directory.Build.targets` |
+| 형식·대상별 규칙 | UTF-8·LF·공백 4칸·다음 줄 중괄호 | `.editorconfig` |
+
+### 실행
+
+저장소 최상위에서 PowerShell로 실행합니다. 첫 실행에는 고정 도구와 패키지를 받기 위한 NuGet 연결이 필요합니다.
+
+```powershell
+# C# 포맷 적용
+./infra/scripts/unity-code-quality.ps1 -Action format
+
+# 파일을 자동 수정하지 않고 포맷·컴파일·Unity 규칙 검사
+./infra/scripts/unity-code-quality.ps1 -Action check
+```
+
+`format`은 C# 포맷만 수정합니다. `check`는 포맷 위반, 컴파일 오류, 선택한 Unity 규칙 위반이 있으면 실패 코드로 종료합니다. 새 스크립트가 생성된 프로젝트에 포함되지 않았으면 누락된 파일을 알리고 실패하므로 Unity에서 프로젝트 파일을 갱신한 뒤 다시 실행합니다. 검사 실행 중에는 프로젝트 구성과 소스 파일을 변경하지 않습니다.
+
+검사 범위는 `Assets/_Project/**/*.cs`이며, `.g.cs`·`.generated.cs`·`.designer.cs`와 자동 생성 표시가 있는 파일은 도구의 생성 코드 제외 기준을 따릅니다. Scene·Prefab·`.meta`는 수정하지 않습니다. `Assets/TutorialInfo`, `Packages`, `Library`, `Temp`, 빌드 결과와 생성 `.csproj`·`.sln`·`.slnx`도 포맷 대상에서 제외합니다.
+
+CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCodeQuality=true`일 때만 고정 분석기를 연결합니다. PC의 Visual Studio 분석기 참조는 그 실행에서만 고정 버전으로 대체하며 Unity 소스 생성기는 유지합니다. 생성 프로젝트 파일을 직접 수정하거나 저장소에 추가하지 않습니다. 검사 결과와 Unity Editor의 실제 컴파일·Play 동작은 각각 확인합니다.
+
+### 편집기와 CI
+
+- 편집기 내장 포맷과 CSharpier가 동시에 저장 시 포맷을 수행하지 않도록 설정합니다. 자동 포맷을 사용할 경우 저장소 버전의 CSharpier와 같은 결과인지 확인합니다.
+- 이름 변경이나 규칙 자동 수정은 `format`에 포함하지 않습니다. 특히 직렬화된 필드 이름은 Scene·Prefab의 저장값에 영향을 줄 수 있으므로 별도 검토합니다.
+- 최종 기준은 저장소의 `check` 명령입니다. IDE가 표시하는 분석기 경고는 설치 버전에 따라 다를 수 있습니다.
+- GitLab CI에서는 Unity 프로젝트 생성·참조가 준비된 환경에서 같은 `check` 명령을 연결합니다. Web 빌드·실행 검증은 C# 정적 검사와 별도로 수행합니다.
+
 ## 팀 공유 파일
 
 | 공유 | 제외 |

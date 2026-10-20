@@ -111,6 +111,7 @@ Unity의 폴더, Scene, Prefab, 데이터 에셋, Inspector 작성 기준은 [Un
 | 적용 조건 | 코드 규칙 검사 | 포맷 정리 | 적용 방침 |
 | --- | --- | --- | --- |
 | Java + Spring Boot 백엔드 | Checkstyle | Spotless + google-java-format | 프로젝트 초기화 시 구성 |
+| Unity + C# 프론트엔드 | Microsoft.Unity.Analyzers | CSharpier | [Unity 실행 문서](unity/setup.md)의 공통 명령 사용 |
 | JavaScript / TypeScript를 선택한 영역 | ESLint | Prettier | 해당 언어 선택 시 적용 후보 |
 | Python을 선택한 영역 | Ruff 검사 | Ruff 포매터 | 해당 언어 선택 시 적용 후보 |
 

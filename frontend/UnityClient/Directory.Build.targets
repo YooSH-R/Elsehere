@@ -1,0 +1,24 @@
+<Project>
+  <!-- Unity regenerates its projects. Keep CLI-only checks outside those files. -->
+  <PropertyGroup Condition="'$(UnityCodeQuality)' == 'true' and '$(UnityProjectGenerator)' != ''">
+    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <WarningsAsErrors>$(WarningsAsErrors);AD0001;CS8032;CS8033;CS8034;CS8784;CS8785;CS9057</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UnityCodeQuality)' == 'true' and '$(UnityProjectGenerator)' != ''">
+    <PackageReference Include="Microsoft.Unity.Analyzers" Version="[1.28.0]"
+                      PrivateAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <Target Name="UsePinnedUnityAnalyzer" BeforeTargets="CoreCompile"
+          Condition="'$(UnityCodeQuality)' == 'true' and '$(UnityProjectGenerator)' != ''">
+    <Error Condition="!Exists('$(PkgMicrosoft_Unity_Analyzers)/analyzers/dotnet/cs/Microsoft.Unity.Analyzers.dll')"
+           Text="Microsoft.Unity.Analyzers 1.28.0 was not restored. Run the shared Unity check command again." />
+    <ItemGroup>
+      <!-- Replace the IDE-dependent copy, keeping Unity's source generators. -->
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Analyzer.Filename)' == 'Microsoft.Unity.Analyzers'" />
+      <Analyzer Include="$(PkgMicrosoft_Unity_Analyzers)/analyzers/dotnet/cs/Microsoft.Unity.Analyzers.dll" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,2 +1,3 @@
 .githooks/* text eol=lf
+infra/scripts/*.ps1 text eol=lf
 frontend/UnityClient/** text=auto eol=lf

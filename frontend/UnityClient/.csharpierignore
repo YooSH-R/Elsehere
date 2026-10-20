@@ -1,0 +1,16 @@
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+Build/
+Builds/
+Packages/
+Assets/TutorialInfo/
+*.csproj
+*.sln
+*.slnx
+**/*.g.cs
+**/*.generated.cs
+**/*.designer.cs
+**/*.Designer.cs

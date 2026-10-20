@@ -7,8 +7,7 @@ public class DemoCubeRotator : MonoBehaviour
 
     private void Update()
     {
-        float rotationAngle =
-            rotationSpeedDegreesPerSecond * Time.deltaTime;
+        float rotationAngle = rotationSpeedDegreesPerSecond * Time.deltaTime;
 
         transform.Rotate(0f, rotationAngle, 0f, Space.Self);
     }

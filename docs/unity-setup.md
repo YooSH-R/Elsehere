@@ -61,4 +61,4 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 - [Unity Web 오디오 지원](https://docs.unity3d.com/6000.3/Documentation/Manual/webgl-audio.html)
 - [Unity Web 네트워킹](https://docs.unity3d.com/6000.3/Documentation/Manual/webgl-networking.html)
 - [브라우저 마이크 접근 조건](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
-- [Unity 규약 초안](unity-conventions.md)
+- [Unity 개발 규약](unity-conventions.md)

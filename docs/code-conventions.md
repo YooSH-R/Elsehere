@@ -13,7 +13,7 @@
 
 이 문서는 코드 작성·리뷰 기준과 린터·포매터 적용 방침을 정의합니다. 검사 도구는 각 영역의 프로젝트 초기화 때 구성하고, 실행 명령은 해당 프로젝트의 사용 문서에 명시합니다.
 
-Unity의 폴더, Scene, Prefab, 데이터 에셋, Inspector 작성 기준은 [Unity 개발 규약](unity-conventions.md)에서 관리합니다.
+Unity의 폴더, Scene, Prefab, 데이터 에셋, Inspector 작성 기준은 [Unity 개발 규약](unity/conventions.md)에서 관리합니다.
 
 ## 1. 사람이 이해할 수 있는 코드
 

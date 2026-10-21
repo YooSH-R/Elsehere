@@ -11,7 +11,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 프로젝트 템플릿 | Universal 3D |
 | 그래픽 구성 | URP `17.3.0` |
 | 스크립트 | C# |
-| 시작 Scene | `Assets/_Project/Scenes/SampleScene.unity` |
+| 시작 Scene | `Assets/Scenes/SampleScene.unity` |
 
 Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR 리뷰를 거쳐 공유합니다. 대상 브라우저와 모바일 브라우저 지원 범위는 서비스 요구사항에 따라 결정합니다.
 
@@ -22,17 +22,17 @@ Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Pack
 3. 설치 모듈에서 **Web Build Support**를 선택합니다. 기존 Editor에는 **Manage → Add modules**로 추가하고 Editor를 재시작합니다.
 4. GitLab 저장소를 받은 뒤 **Projects → Add → Add project from disk**에서 `frontend/UnityClient`를 선택합니다. 팀 프로젝트를 사용할 때 새 프로젝트를 별도로 생성하지 않습니다.
 5. 같은 Editor 버전으로 열고 패키지 복원과 에셋 가져오기가 끝날 때까지 기다립니다.
-6. Project 창에서 `Assets/_Project/Scenes/SampleScene`을 엽니다.
+6. Project 창에서 `Assets/Scenes/SampleScene`을 엽니다.
 
 협업 브랜치와 Git 훅 설정은 [개발 및 협업 규칙](../development.md)을 따릅니다.
 
 ## 실행과 Web 빌드
 
-Play를 실행하면 Scene에 배치된 `DemoCube` 프리팹이 회전합니다. 회전 기능은 `Assets/_Project/Scripts/DemoCubeRotator.cs`가 담당합니다. 공유할 회전 속도는 Play를 종료하고 프리팹 원본의 **Demo Cube Rotator → Rotation Speed Degrees Per Second**를 수정한 뒤 저장합니다.
+Play를 실행하면 Scene에 배치된 `DemoCube` 프리팹이 회전합니다. 회전 기능은 `Assets/Scripts/DemoCubeRotator.cs`가 담당합니다. 공유할 회전 속도는 Play를 종료하고 프리팹 원본의 **Demo Cube Rotator → Rotation Speed Degrees Per Second**를 수정한 뒤 저장합니다.
 
 1. Scene과 프리팹 변경을 저장하고 Console에 컴파일 오류가 없는지 확인합니다.
 2. **File → Build Profiles → Platforms → Web**을 선택하고 **Switch Platform**으로 전환합니다. 사용자 정의 Web 프로파일에서는 **Switch Profile**을 사용합니다.
-3. **Scene List**에 `Assets/_Project/Scenes/SampleScene`이 포함되고 체크되어 있는지 확인합니다. 없으면 해당 Scene을 연 뒤 **Add Open Scenes**로 추가합니다.
+3. **Scene List**에 `Assets/Scenes/SampleScene`이 포함되고 체크되어 있는지 확인합니다. 없으면 해당 Scene을 연 뒤 **Add Open Scenes**로 추가합니다.
 4. **Build And Run**을 선택하고 프로젝트 내부의 `Builds/Web` 또는 저장소 밖의 별도 빌드 폴더에 저장합니다. `Assets` 안에는 빌드 결과를 저장하지 않습니다.
 5. 브라우저에서 Scene 로딩과 큐브 회전을 확인하고 브라우저 Console에서도 오류를 확인합니다.
 
@@ -40,7 +40,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 ## C# 포맷과 규칙 검사
 
-직접 작성한 `Assets/_Project`와 `Assets/_Sandbox` 아래의 C# 코드에 공통 검사 명령을 사용합니다. 두 경로에 추가되는 Editor 코드와 테스트 코드, Sandbox의 시험용 코드도 대상입니다. Sandbox 폴더가 아직 없으면 해당 경로는 건너뜁니다. 외부 템플릿·패키지와 생성 파일은 포맷·규칙 검사 대상에서 제외하며, 컴파일에 필요한 참조로는 사용합니다.
+직접 작성한 `Assets/Scripts`와 `Assets/Tests` 아래의 C# 코드에 공통 검사 명령을 사용합니다. `Scripts/Editor`의 Editor 코드도 대상입니다. 폴더가 아직 없으면 해당 경로는 건너뜁니다. 외부 템플릿·패키지와 생성 파일은 포맷·규칙 검사 대상에서 제외하며, 컴파일에 필요한 참조로는 사용합니다.
 
 ### 준비
 
@@ -68,7 +68,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 `format`은 C# 포맷만 수정합니다. `check`는 포맷 위반, 컴파일 오류, 선택한 Unity 규칙 위반이 있으면 실패 코드로 종료합니다. 새 스크립트가 생성된 프로젝트에 포함되지 않았으면 누락된 파일을 알리고 실패하므로 Unity에서 프로젝트 파일을 갱신한 뒤 다시 실행합니다. 검사 실행 중에는 프로젝트 구성과 소스 파일을 변경하지 않습니다.
 
-검사 범위는 `Assets/_Project/**/*.cs`와 `Assets/_Sandbox/**/*.cs`이며, `.g.cs`·`.generated.cs`·`.designer.cs`와 자동 생성 표시가 있는 파일은 도구의 생성 코드 제외 기준을 따릅니다. Scene·Prefab·`.meta`는 수정하지 않습니다. `Assets/ThirdParty`, `Assets/TutorialInfo`, `Packages`, `Library`, `Temp`, 빌드 결과와 생성 `.csproj`·`.sln`·`.slnx`도 포맷 대상에서 제외합니다.
+검사 범위는 `Assets/Scripts/**/*.cs`와 `Assets/Tests/**/*.cs`이며, `.g.cs`·`.generated.cs`·`.designer.cs`와 자동 생성 표시가 있는 파일은 도구의 생성 코드 제외 기준을 따릅니다. Scene·Prefab·`.meta`는 수정하지 않습니다. `Assets/ThirdParty`, `Assets/TutorialInfo`, `Packages`, `Library`, `Temp`, 빌드 결과와 생성 `.csproj`·`.sln`·`.slnx`도 포맷 대상에서 제외합니다.
 
 CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCodeQuality=true`일 때만 고정 분석기를 연결합니다. PC의 Visual Studio 분석기 참조는 그 실행에서만 고정 버전으로 대체하며 Unity 소스 생성기는 유지합니다. 생성 프로젝트 파일을 직접 수정하거나 저장소에 추가하지 않습니다. 검사 결과와 Unity Editor의 실제 컴파일·Play 동작은 각각 확인합니다.
 

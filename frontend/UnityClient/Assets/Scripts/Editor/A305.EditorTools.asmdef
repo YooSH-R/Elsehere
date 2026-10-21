@@ -1,0 +1,20 @@
+{
+    "name": "A305.EditorTools",
+    "rootNamespace": "A305.EditorTools",
+    "references": [
+        "Unity.InputSystem",
+        "A305.Player",
+        "A305.Characters"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

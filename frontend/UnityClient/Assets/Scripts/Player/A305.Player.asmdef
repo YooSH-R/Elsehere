@@ -1,0 +1,17 @@
+{
+    "name": "A305.Player",
+    "rootNamespace": "A305.Player",
+    "references": [
+        "Unity.InputSystem",
+        "A305.Characters"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

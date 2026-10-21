@@ -57,6 +57,7 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 
 | API | 설명 |
 | --- | --- |
+| `PlayerMover.IsMoving` | 이번 프레임에 수평으로 움직였는지. 이동 중에 사물 툴팁을 숨길 때 씁니다. |
 | `PlayerMover.SetMovementLocked(bool)` | 대화처럼 움직이면 안 되는 동안 이동과 점프를 막습니다. 중력은 계속 적용합니다. |
 | `PlayerCameraRig.EnterDialogueView(Transform)` | 대상(보통 NPC 머리 위치)을 바라보는 대화 시점으로 바꿉니다. 회전·줌·시점 전환 입력을 받지 않습니다. |
 | `PlayerCameraRig.ExitDialogueView()` | 대화 직전의 시점으로 돌아갑니다. |

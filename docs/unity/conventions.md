@@ -60,7 +60,7 @@ frontend/UnityClient/Assets/
 - `<기능>` 폴더는 `Npc`, `Dialogue`, `Player`, `UI`처럼 실제 책임을 기준으로 정하고, 종류별 폴더에서 같은 이름을 사용합니다. 한 기능의 스크립트·프리팹·데이터·아트·테스트를 같은 이름으로 찾을 수 있게 하기 위함입니다. 여러 기능이 함께 쓰는 에셋은 `Common` 폴더에 둡니다.
 - 씬은 기능별 폴더 대신 `Scenes/Production`(배포용)과 `Scenes/Sandbox`(개발·확인용)로 나눕니다.
 - 테스트 폴더와 테스트용 Assembly Definition은 [프론트엔드 개발 지침](../../frontend/AGENTS.md)에 따라 기능의 첫 테스트를 추가하는 작업에서 만듭니다.
-- `Assets/Settings/`와 `Assets/InputSystem_Actions.inputactions`는 Unity 템플릿이 만든 프로젝트 전체 설정입니다. 위치를 유지하고 [공유 설정](#공유-설정-파일) 규칙에 따라 수정합니다.
+- `Assets/Settings/`와 `Assets/InputSystem_Actions.inputactions`는 Unity 템플릿이 만든 프로젝트 전체 설정이고, `Assets/TextMesh Pro/`는 TextMeshPro 기본 리소스입니다. 위치를 유지하고 [공유 설정](#공유-설정-파일) 규칙에 따라 수정합니다.
 - `SampleScene`, `DemoCube`, `DemoCubeRotator`는 개발 환경 확인용 샘플입니다. 서비스 기능에 맞는 책임과 이름을 정해 구현합니다.
 
 ### 에셋별 위치와 이름
@@ -88,7 +88,7 @@ frontend/UnityClient/Assets/
 | 폴더 이름 | Unity 동작 | 팀 규칙 |
 | --- | --- | --- |
 | `Editor` | Editor에서만 사용하고 빌드에서 제외 | 에디터 확장 스크립트만 둡니다. Assembly Definition이 있는 폴더 안에서는 이 동작이 적용되지 않으므로 `Scripts/Editor/`에 Editor 전용 Assembly Definition을 둡니다. |
-| `Resources` | 참조 여부와 관계없이 안의 에셋을 모두 빌드에 포함 | 사용하지 않고 Inspector 참조로 연결합니다. 필요하면 먼저 팀과 합의합니다. |
+| `Resources` | 참조 여부와 관계없이 안의 에셋을 모두 빌드에 포함 | 사용하지 않고 Inspector 참조로 연결합니다. 필요하면 먼저 팀과 합의합니다. TextMeshPro가 설정과 기본 리소스를 읽는 `Assets/TextMesh Pro/Resources`는 예외로 둡니다. |
 | `StreamingAssets` | 파일을 변환 없이 빌드에 복사 | 필요할 때 팀과 합의한 뒤 사용합니다. |
 | `Plugins` | 안의 스크립트를 다른 스크립트보다 먼저 컴파일되는 별도 어셈블리로 분리 | 직접 작성한 C# 스크립트를 두지 않고, 브라우저 JavaScript 연동 파일 등 플러그인이 필요할 때 사용합니다. |
 
@@ -162,7 +162,8 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 
 - Builder는 `Scripts/Editor/<기능>/<대상>Builder.cs`에 두고, `public static` 메서드에 `[MenuItem("Tools/A305/<기능>/<동작>")]`을 붙입니다. 예: `Tools/A305/Player/Build Sandbox`
 - 씬은 `EditorSceneManager`, 프리팹은 `PrefabUtility.SaveAsPrefabAsset`, 데이터 에셋·머티리얼은 `AssetDatabase.CreateAsset`으로 만들고 저장합니다. 생성 결과와 `.meta`를 함께 커밋합니다.
-- Editor가 프로젝트를 열고 있지 않으면 명령줄로도 실행할 수 있습니다. 저장소 최상위에서 실행합니다.
+- 처음 만들 때는 앞의 Builder가 만든 에셋을 뒤에서 쓰므로 **Player → Build Sandbox**, **UI → Set Up Fonts**, **ObjectHover → Build**, **World → Build Spaces** 순서로 실행합니다.
+- Editor가 프로젝트를 열고 있지 않으면 명령줄로도 실행할 수 있습니다. 저장소 최상위에서 실행합니다. **UI → Set Up Fonts**는 TMP 기본 리소스를 가져오는 동안 기다렸다가 스스로 종료하므로 `-quit` 없이 실행합니다.
 
 ```powershell
 & "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Player.PlayerSandboxBuilder.Build -quit -logFile <저장소 밖 경로>\Builder.log
@@ -342,9 +343,17 @@ namespace A305.Npc
 | `Packages/manifest.json`, `Packages/packages-lock.json` | 패키지 추가·삭제·버전 변경 |
 | `Assets/Settings/` | URP 렌더링 설정 변경 |
 | `Assets/InputSystem_Actions.inputactions` | 입력 키와 액션 변경 |
+| `Assets/TextMesh Pro/Resources/TMP Settings.asset`, `Assets/Art/UI/Fonts/` | UI 기본 글꼴과 글꼴 에셋 설정 변경 |
 
 - Unity가 Editor 버전 업그레이드를 제안해도 버전을 바꾸지 않습니다. 버전 변경은 [Unity 개발 환경](setup.md)의 기준에 따라 호환성을 검증하고 MR 리뷰를 거칩니다.
 - 작업과 관계없이 Unity가 수정한 설정 파일은 커밋하지 않고 되돌립니다.
+
+### UI 글자와 글꼴
+
+- 화면 UI는 uGUI(Canvas)와 TextMeshPro로 만듭니다.
+- 브라우저(WebGL)에는 운영체제 글꼴이 없어 Unity 기본 글꼴과 TMP 기본 글꼴(LiberationSans)로는 한국어가 보이지 않습니다. 한국어가 나오는 글자는 Pretendard 글꼴 에셋(`Assets/Art/UI/Fonts/Pretendard-Regular SDF`, `Pretendard-Bold SDF`)을 씁니다. TMP 기본 글꼴도 Pretendard Regular로 지정되어 있습니다.
+- 글꼴 원본과 라이선스는 `Assets/ThirdParty/Pretendard/`에 있습니다. 글꼴 에셋과 TMP 기본 글꼴 설정은 **Tools → A305 → UI → Set Up Fonts**(`Scripts/Editor/UI/UiFontBuilder.cs`)로 만들고 바꿉니다.
+- 글꼴 에셋은 쓰는 글자만 채우는 동적 글꼴입니다. Editor에서 글자가 화면에 나올 때마다 채운 내용은 사람마다 달라 커밋 충돌을 만들므로, `DynamicFontSaveGuard`가 저장에서 뺍니다. 빌드에서도 비운 채로 시작해 실행 중에 채웁니다.
 
 ### 외부 에셋
 

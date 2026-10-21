@@ -8,7 +8,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $unityProjectPath = Join-Path $repositoryPath 'frontend/UnityClient'
-$sourcePath = Join-Path $unityProjectPath 'Assets/_Project'
+$sourcePaths = @('Assets/_Project', 'Assets/_Sandbox') |
+    ForEach-Object { Join-Path $unityProjectPath $_ } |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Container }
 
 try {
     Push-Location -LiteralPath $unityProjectPath
@@ -18,9 +20,11 @@ try {
         throw 'Could not restore the pinned CSharpier version. Check the .NET SDK and NuGet access.'
     }
 
-    & dotnet csharpier $Action $sourcePath
-    if ($LASTEXITCODE -ne 0) {
-        throw 'C# formatting failed. Run the format command, then run check again.'
+    foreach ($sourcePath in $sourcePaths) {
+        & dotnet csharpier $Action $sourcePath
+        if ($LASTEXITCODE -ne 0) {
+            throw 'C# formatting failed. Run the format command, then run check again.'
+        }
     }
 
     if ($Action -eq 'format') {
@@ -75,7 +79,7 @@ try {
         }
     }
 
-    $missingSources = @(Get-ChildItem -LiteralPath $sourcePath -Filter '*.cs' -Recurse |
+    $missingSources = @(Get-ChildItem -LiteralPath $sourcePaths -Filter '*.cs' -Recurse |
         Where-Object { -not $includedSources.ContainsKey($_.FullName) })
     if ($missingSources.Count -gt 0) {
         $missingPaths = $missingSources.FullName -join [Environment]::NewLine

@@ -40,7 +40,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 ## C# 포맷과 규칙 검사
 
-직접 작성한 `Assets/_Project` 아래의 C# 코드에 공통 검사 명령을 사용합니다. 이 경로에 추가되는 Editor 코드와 테스트 코드도 대상입니다. 외부 템플릿·패키지와 생성 파일은 포맷·규칙 검사 대상에서 제외하며, 컴파일에 필요한 참조로는 사용합니다.
+직접 작성한 `Assets/_Project`와 `Assets/_Sandbox` 아래의 C# 코드에 공통 검사 명령을 사용합니다. 두 경로에 추가되는 Editor 코드와 테스트 코드, Sandbox의 시험용 코드도 대상입니다. Sandbox 폴더가 아직 없으면 해당 경로는 건너뜁니다. 외부 템플릿·패키지와 생성 파일은 포맷·규칙 검사 대상에서 제외하며, 컴파일에 필요한 참조로는 사용합니다.
 
 ### 준비
 
@@ -68,7 +68,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 `format`은 C# 포맷만 수정합니다. `check`는 포맷 위반, 컴파일 오류, 선택한 Unity 규칙 위반이 있으면 실패 코드로 종료합니다. 새 스크립트가 생성된 프로젝트에 포함되지 않았으면 누락된 파일을 알리고 실패하므로 Unity에서 프로젝트 파일을 갱신한 뒤 다시 실행합니다. 검사 실행 중에는 프로젝트 구성과 소스 파일을 변경하지 않습니다.
 
-검사 범위는 `Assets/_Project/**/*.cs`이며, `.g.cs`·`.generated.cs`·`.designer.cs`와 자동 생성 표시가 있는 파일은 도구의 생성 코드 제외 기준을 따릅니다. Scene·Prefab·`.meta`는 수정하지 않습니다. `Assets/TutorialInfo`, `Packages`, `Library`, `Temp`, 빌드 결과와 생성 `.csproj`·`.sln`·`.slnx`도 포맷 대상에서 제외합니다.
+검사 범위는 `Assets/_Project/**/*.cs`와 `Assets/_Sandbox/**/*.cs`이며, `.g.cs`·`.generated.cs`·`.designer.cs`와 자동 생성 표시가 있는 파일은 도구의 생성 코드 제외 기준을 따릅니다. Scene·Prefab·`.meta`는 수정하지 않습니다. `Assets/ThirdParty`, `Assets/TutorialInfo`, `Packages`, `Library`, `Temp`, 빌드 결과와 생성 `.csproj`·`.sln`·`.slnx`도 포맷 대상에서 제외합니다.
 
 CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCodeQuality=true`일 때만 고정 분석기를 연결합니다. PC의 Visual Studio 분석기 참조는 그 실행에서만 고정 버전으로 대체하며 Unity 소스 생성기는 유지합니다. 생성 프로젝트 파일을 직접 수정하거나 저장소에 추가하지 않습니다. 검사 결과와 Unity Editor의 실제 컴파일·Play 동작은 각각 확인합니다.
 

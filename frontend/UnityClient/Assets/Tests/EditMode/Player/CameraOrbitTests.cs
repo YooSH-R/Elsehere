@@ -197,6 +197,39 @@ namespace A305.Player.Tests
         }
 
         [Test]
+        public void SetYaw_PlacesThirdPersonCameraBehindGivenDirection()
+        {
+            orbit.SetYaw(90f);
+            Vector3 pivot = Vector3.zero;
+
+            Pose pose = orbit.GetThirdPersonPose(pivot);
+
+            // 오른쪽(+x)을 보는 플레이어의 뒤쪽 위에서 같은 방향을 바라본다.
+            Assert.That(orbit.YawDegrees, Is.EqualTo(90f).Within(Tolerance));
+            AssertVector(
+                new Vector3(
+                    -5f * Mathf.Cos(30f * Mathf.Deg2Rad),
+                    5f * Mathf.Sin(30f * Mathf.Deg2Rad),
+                    0f
+                ),
+                pose.position
+            );
+        }
+
+        [Test]
+        public void SetYaw_KeepsPitchDistanceAndViewMode()
+        {
+            orbit.ToggleFirstPerson();
+
+            orbit.SetYaw(-45f);
+
+            Assert.That(orbit.YawDegrees, Is.EqualTo(-45f).Within(Tolerance));
+            Assert.That(orbit.PitchDegrees, Is.EqualTo(30f).Within(Tolerance));
+            Assert.That(orbit.DistanceMeters, Is.EqualTo(5f).Within(Tolerance));
+            Assert.That(orbit.ViewMode, Is.EqualTo(CameraViewMode.FirstPerson));
+        }
+
+        [Test]
         public void GetDialoguePose_StaysAtEyeAndFacesTarget()
         {
             Vector3 eye = new Vector3(0f, 1.6f, 0f);

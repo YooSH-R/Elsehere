@@ -1,0 +1,16 @@
+{
+    "name": "A305.World",
+    "rootNamespace": "A305.World",
+    "references": [
+        "A305.Player"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

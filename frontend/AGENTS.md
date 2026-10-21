@@ -28,8 +28,8 @@
 
 테스트 어셈블리는 기능별로 둡니다. 기능 모듈의 구성은 [Unity 개발 규약의 기능 모듈](../docs/unity/conventions.md#기능-모듈)을 따릅니다.
 
-- Assembly Definition을 사용하는 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없습니다. 테스트할 코드에 Assembly Definition을 두고 테스트 어셈블리에서 참조합니다. 기능 모듈은 `A305.<기능>`, 게임 전용 코드는 `A305.Runtime`입니다.
-- 테스트는 `Assets/_Project/Tests/EditMode/<기능>/`, `Assets/_Project/Tests/PlayMode/<기능>/`에 두고 테스트 어셈블리 이름은 `A305.<기능>.Tests`로 합니다. 예: `Tests/EditMode/Player/A305.Player.Tests.asmdef`
+- Assembly Definition을 사용하는 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없습니다. 테스트할 코드에 Assembly Definition을 두고 테스트 어셈블리에서 참조합니다. 기능 코드는 Sandbox에서 개발하는 동안에도 `A305.<기능>` 어셈블리에 둡니다.
+- 테스트 어셈블리 이름은 `A305.<기능>.Tests`로 합니다. 개발 중에는 `Assets/_Sandbox/<기능>/Tests/EditMode/`에 두고, 기능을 `_Project`로 옮길 때 `Assets/_Project/Tests/EditMode/<기능>/`로 함께 옮깁니다. PlayMode 테스트도 같은 구조입니다. 예: `_Sandbox/Player/Tests/EditMode/A305.Player.Tests.asmdef`
 - 테스트용 Assembly Definition은 Test Runner 창의 생성 기능이 만드는 설정(Editor 전용, `nunit.framework.dll`, `UNITY_INCLUDE_TESTS`)과 같게 두고, 테스트할 기능 어셈블리를 References에 추가합니다.
 
 ## 실행 방법

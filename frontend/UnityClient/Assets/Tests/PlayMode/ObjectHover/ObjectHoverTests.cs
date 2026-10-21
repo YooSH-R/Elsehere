@@ -38,8 +38,9 @@ namespace A305.ObjectHover.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator PointingAtTv_NearPlayer_ShowsWordAndMeaning()
+        public IEnumerator PointingAtSavedWord_NearPlayer_ShowsWordMeaningAndExample()
         {
+            // 확인용 단어 목록에서 TV는 단어장에 저장된 단어다.
             HoverableObject tv = FindHoverable("tv");
             yield return StandPlayerAt(new Vector3(-1.5f, 0f, 2.5f));
 
@@ -48,6 +49,21 @@ namespace A305.ObjectHover.PlayModeTests
             Assert.That(tooltip.IsVisible, Is.True);
             Assert.That(tooltip.WordText, Is.EqualTo("TV"));
             Assert.That(tooltip.MeaningText, Is.EqualTo("텔레비전"));
+            Assert.That(tooltip.IsExampleVisible, Is.True);
+            Assert.That(tooltip.ExampleText, Is.EqualTo("Let's watch TV together."));
+        }
+
+        [UnityTest]
+        public IEnumerator PointingAtUnsavedWord_ShowsMeaningWithoutExample()
+        {
+            HoverableObject airConditioner = FindHoverable("air_conditioner");
+            yield return StandPlayerAt(new Vector3(-1.5f, 0f, 2.5f));
+
+            hover.Refresh(ScreenPointOf(airConditioner), LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsVisible, Is.True);
+            Assert.That(tooltip.MeaningText, Is.EqualTo("에어컨"));
+            Assert.That(tooltip.IsExampleVisible, Is.False);
         }
 
         [UnityTest]

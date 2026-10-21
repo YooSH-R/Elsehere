@@ -39,16 +39,23 @@ namespace A305.EditorTools.ObjectHover
         };
 
         // 서버 연동 전 확인용 단어. 서버 마스터 데이터(ERD vocabularies)가 준비되면 서버 값을 쓴다.
-        private static readonly (string UnityKey, string Text, string MeaningKo, string Example)[] MockWords =
+        // 예문은 단어장에 저장한 단어만 보이므로, 두 경우를 모두 확인할 수 있게 TV만 저장한 단어로 둔다.
+        private static readonly (
+            string UnityKey,
+            string Text,
+            string MeaningKo,
+            string Example,
+            bool IsSaved
+        )[] MockWords =
         {
-            ("tv", "TV", "텔레비전", "Let's watch TV together."),
-            ("refrigerator", "refrigerator", "냉장고", "The milk is in the refrigerator."),
-            ("air_conditioner", "air conditioner", "에어컨", "Can you turn on the air conditioner?"),
-            ("sofa", "sofa", "소파", "He is sitting on the sofa."),
-            ("bookshelf", "bookshelf", "책장", "The bookshelf is full of books."),
-            ("bed", "bed", "침대", "I make my bed every morning."),
-            ("counter", "counter", "계산대", "Please order at the counter."),
-            ("menu", "menu", "메뉴", "Can I see the menu, please?"),
+            ("tv", "TV", "텔레비전", "Let's watch TV together.", true),
+            ("refrigerator", "refrigerator", "냉장고", "The milk is in the refrigerator.", false),
+            ("air_conditioner", "air conditioner", "에어컨", "Can you turn on the air conditioner?", false),
+            ("sofa", "sofa", "소파", "He is sitting on the sofa.", false),
+            ("bookshelf", "bookshelf", "책장", "The bookshelf is full of books.", false),
+            ("bed", "bed", "침대", "I make my bed every morning.", false),
+            ("counter", "counter", "계산대", "Please order at the counter.", false),
+            ("menu", "menu", "메뉴", "Can I see the menu, please?", false),
         };
 
         [MenuItem(MenuPath)]
@@ -168,7 +175,7 @@ namespace A305.EditorTools.ObjectHover
             var mockWords = ScriptableObject.CreateInstance<MockObjectWordSource>();
             var fields = new SerializedObject(mockWords);
             SerializedProperty entries = fields.FindProperty("entries");
-            foreach ((string unityKey, string text, string meaningKo, string example) in MockWords)
+            foreach ((string unityKey, string text, string meaningKo, string example, bool isSaved) in MockWords)
             {
                 entries.InsertArrayElementAtIndex(entries.arraySize);
                 SerializedProperty entry = entries.GetArrayElementAtIndex(entries.arraySize - 1);
@@ -176,6 +183,7 @@ namespace A305.EditorTools.ObjectHover
                 entry.FindPropertyRelative("text").stringValue = text;
                 entry.FindPropertyRelative("meaningKo").stringValue = meaningKo;
                 entry.FindPropertyRelative("example").stringValue = example;
+                entry.FindPropertyRelative("isSaved").boolValue = isSaved;
             }
 
             fields.ApplyModifiedPropertiesWithoutUndo();

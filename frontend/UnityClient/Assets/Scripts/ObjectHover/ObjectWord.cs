@@ -10,6 +10,20 @@ namespace A305.ObjectHover
             Example = example;
         }
 
+        /// <summary>
+        /// 호버 툴팁에 보여 줄 표현을 만든다. 예문은 사용자가 단어장에 저장한 단어만 보인다(ERD vocabularies.example).
+        /// </summary>
+        public static ObjectWord ForHover(
+            string text,
+            string meaningKo,
+            string example,
+            bool isSavedToVocabulary
+        )
+        {
+            string visibleExample = isSavedToVocabulary && example != null ? example : string.Empty;
+            return new ObjectWord(text, meaningKo, visibleExample);
+        }
+
         public string Text { get; }
 
         public string MeaningKo { get; }

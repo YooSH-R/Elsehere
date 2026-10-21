@@ -17,31 +17,39 @@ MonoBehaviour:
     text: TV
     meaningKo: "\uD154\uB808\uBE44\uC804"
     example: Let's watch TV together.
+    isSaved: 1
   - unityKey: refrigerator
     text: refrigerator
     meaningKo: "\uB0C9\uC7A5\uACE0"
     example: The milk is in the refrigerator.
+    isSaved: 0
   - unityKey: air_conditioner
     text: air conditioner
     meaningKo: "\uC5D0\uC5B4\uCEE8"
     example: Can you turn on the air conditioner?
+    isSaved: 0
   - unityKey: sofa
     text: sofa
     meaningKo: "\uC18C\uD30C"
     example: He is sitting on the sofa.
+    isSaved: 0
   - unityKey: bookshelf
     text: bookshelf
     meaningKo: "\uCC45\uC7A5"
     example: The bookshelf is full of books.
+    isSaved: 0
   - unityKey: bed
     text: bed
     meaningKo: "\uCE68\uB300"
     example: I make my bed every morning.
+    isSaved: 0
   - unityKey: counter
     text: counter
     meaningKo: "\uACC4\uC0B0\uB300"
     example: Please order at the counter.
+    isSaved: 0
   - unityKey: menu
     text: menu
     meaningKo: "\uBA54\uB274"
     example: Can I see the menu, please?
+    isSaved: 0

@@ -43,6 +43,10 @@ namespace A305.ObjectHover
 
         public string MeaningText => meaningLabel.text;
 
+        public bool IsExampleVisible => exampleLabel.gameObject.activeSelf;
+
+        public string ExampleText => exampleLabel.text;
+
         /// <param name="screenAnchor">툴팁을 붙일 사물 위쪽의 화면 좌표(픽셀)</param>
         public void Show(ObjectWord word, Vector2 screenAnchor)
         {

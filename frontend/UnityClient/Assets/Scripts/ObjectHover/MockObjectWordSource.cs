@@ -20,7 +20,10 @@ namespace A305.ObjectHover
         {
             table ??= new ObjectWordTable(
                 entries.Select(entry =>
-                    (entry.unityKey, new ObjectWord(entry.text, entry.meaningKo, entry.example))
+                    (
+                        entry.unityKey,
+                        ObjectWord.ForHover(entry.text, entry.meaningKo, entry.example, entry.isSaved)
+                    )
                 )
             );
             return table.TryGetWord(unityKey, out word);
@@ -44,8 +47,11 @@ namespace A305.ObjectHover
             [Tooltip("ERD vocabularies.meaning_ko")]
             public string meaningKo;
 
-            [Tooltip("ERD vocabularies.example")]
+            [Tooltip("ERD vocabularies.example. 단어장에 저장한 단어만 호버에 보인다.")]
             public string example;
+
+            [Tooltip("사용자가 단어장에 저장했는지(ERD user_vocab). 서버 연동 전 확인용 값이다.")]
+            public bool isSaved;
         }
     }
 }

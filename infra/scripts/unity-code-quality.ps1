@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $unityProjectPath = Join-Path $repositoryPath 'frontend/UnityClient'
-$sourcePaths = @('Assets/_Project', 'Assets/_Sandbox') |
+$sourcePaths = @('Assets/Scripts', 'Assets/Tests') |
     ForEach-Object { Join-Path $unityProjectPath $_ } |
     Where-Object { Test-Path -LiteralPath $_ -PathType Container }
 

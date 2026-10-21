@@ -13,6 +13,7 @@ namespace A305.World.PlayModeTests
     /// <summary>배포용 공간 씬을 실제로 불러와 출입구 연결과 도착 위치를 확인한다.</summary>
     public class SpaceTravelTests
     {
+        private const string ProductionSceneFolder = "Assets/Scenes/Production/";
         private const float ArrivalTimeoutSeconds = 5f;
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
@@ -101,13 +102,16 @@ namespace A305.World.PlayModeTests
             }
         }
 
+        // Test Runner가 실행 중에 넣는 임시 씬은 빼고, Scene List의 배포용 씬만 확인한다.
         private static IEnumerable<string> SceneListNames()
         {
             for (int index = 0; index < SceneManager.sceneCountInBuildSettings; index++)
             {
-                yield return Path.GetFileNameWithoutExtension(
-                    SceneUtility.GetScenePathByBuildIndex(index)
-                );
+                string scenePath = SceneUtility.GetScenePathByBuildIndex(index);
+                if (scenePath.StartsWith(ProductionSceneFolder))
+                {
+                    yield return Path.GetFileNameWithoutExtension(scenePath);
+                }
             }
         }
 

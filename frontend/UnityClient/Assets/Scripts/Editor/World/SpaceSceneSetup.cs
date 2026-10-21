@@ -54,6 +54,7 @@ namespace A305.EditorTools.World
                 PlayerSandboxBuilder.MenuPath
             );
             SceneGroups groups = BuilderTools.EnsureGroups(scene);
+            WarnUngroupedRoots(scene);
 
             var player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
             if (player == null)
@@ -98,6 +99,23 @@ namespace A305.EditorTools.World
             BuilderTools.RequireReferences(arrival);
 
             EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        // 루트에 놓인 디자인 객체가 어느 그룹에 속하는지는 알 수 없으므로 옮기지 않고 알린다.
+        private static void WarnUngroupedRoots(Scene scene)
+        {
+            string[] ungroupedNames = scene
+                .GetRootGameObjects()
+                .Select(root => root.name)
+                .Where(rootName => !BuilderTools.GroupNames.Contains(rootName))
+                .ToArray();
+            if (ungroupedNames.Length > 0)
+            {
+                Debug.LogWarning(
+                    $"{scene.name} 씬 루트에 그룹 밖 객체가 있습니다: {string.Join(", ", ungroupedNames)}. "
+                        + "지형·건물·소품은 Environment, NPC는 Characters처럼 규약 그룹 아래로 옮깁니다."
+                );
+            }
         }
 
         private static Pose FindPlayerStart(Scene scene)

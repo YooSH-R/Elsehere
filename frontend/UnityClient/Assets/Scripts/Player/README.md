@@ -34,7 +34,7 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | V | 1인칭·3인칭 전환 |
 | T | `DialogueTarget`을 바라보는 대화 시점과 이동 잠금 전환 |
 
-씬·프리팹·데이터 에셋·입력 액션은 Editor 메뉴 **Tools → A305 → Player → Build Sandbox**(`Scripts/Editor/Player/PlayerSandboxBuilder.cs`)로 다시 만들 수 있습니다. 씬과 프리팹은 덮어쓰고, 이미 있는 데이터 에셋의 수치는 유지합니다.
+씬·프리팹·데이터 에셋·입력 액션은 Editor 메뉴 **Tools → A305 → Player → Build Sandbox**(`Scripts/Editor/Player/PlayerSandboxBuilder.cs`)로 다시 만들 수 있습니다. Sandbox 씬은 덮어씁니다. `Player`·`PlayerCamera` 프리팹은 컴포넌트와 연결만 다시 맞추고, `Player`의 `Visual` 아래 모델과 모델에 맞춰 바꾼 `CharacterController` 크기는 유지합니다. 이미 있는 머티리얼과 데이터 에셋의 값도 유지합니다.
 
 ## 사용 방법
 

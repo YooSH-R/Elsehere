@@ -1,8 +1,7 @@
-using A305.Player;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace A305.Tests.Player
+namespace A305.Player.Tests
 {
     public class PlayerMotorTests
     {

@@ -1,10 +1,10 @@
 {
-    "name": "A305.Tests.EditMode",
-    "rootNamespace": "A305.Tests",
+    "name": "A305.Player.Tests",
+    "rootNamespace": "A305.Player.Tests",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.Runtime"
+        "A305.Player"
     ],
     "includePlatforms": [
         "Editor"

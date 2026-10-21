@@ -1,11 +1,15 @@
 using System.Linq;
+using A305.Dialogue;
+using A305.EditorTools.Npc;
 using A305.EditorTools.World;
+using A305.Npc;
 using A305.ObjectHover;
 using A305.Player;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 namespace A305.World.Tests
@@ -83,6 +87,35 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_AddsDialogueOfferAndUiInputConnectedToPlayer()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            DialogueController dialogue = Single<DialogueController>();
+            Assert.That(dialogue.transform.parent, Is.EqualTo(Root("Systems")));
+            Assert.That(Single<DialoguePanelView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Single<PasserbyOfferView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Single<EventSystem>().transform.parent, Is.EqualTo(Root("Systems")));
+            Assert.That(Reference(dialogue, "player"), Is.EqualTo(Single<PlayerMover>()));
+            Assert.That(Reference(dialogue, "cameraRig"), Is.EqualTo(Single<PlayerCameraRig>()));
+            Assert.That(Reference(dialogue, "panel"), Is.EqualTo(Single<DialoguePanelView>()));
+        }
+
+        [Test]
+        public void Apply_ConnectsPlacedPasserbyToPlayerDialogueAndOffer()
+        {
+            var passerbyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcBuilder.PasserbyPrefabPath);
+            var placed = (GameObject)PrefabUtility.InstantiatePrefab(passerbyPrefab, scene);
+
+            SpaceSceneSetup.Apply(scene);
+
+            var passerby = placed.GetComponent<Passerby>();
+            Assert.That(Reference(passerby, "player"), Is.EqualTo(Single<PlayerMover>()));
+            Assert.That(Reference(passerby, "dialogue"), Is.EqualTo(Single<DialogueController>()));
+            Assert.That(Reference(passerby, "offerView"), Is.EqualTo(Single<PasserbyOfferView>()));
+        }
+
+        [Test]
         public void Apply_ReplacesDefaultCameraWithPlayerCamera()
         {
             SpaceSceneSetup.Apply(scene);
@@ -104,6 +137,9 @@ namespace A305.World.Tests
             Assert.That(FindAll<SpaceArrival>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<ObjectHoverController>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<WordTooltipView>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<DialogueController>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<PasserbyOfferView>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<EventSystem>(), Has.Length.EqualTo(1));
         }
 
         [Test]

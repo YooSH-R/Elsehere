@@ -7,6 +7,8 @@
         "A305.Characters",
         "A305.World",
         "A305.ObjectHover",
+        "A305.Dialogue",
+        "A305.Npc",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

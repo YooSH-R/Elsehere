@@ -1,5 +1,7 @@
 using System;
 using A305.EditorTools.Common;
+using A305.EditorTools.Dialogue;
+using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.EditorTools.Player;
 using A305.World;
@@ -57,6 +59,8 @@ namespace A305.EditorTools.World
             GameObject doorwayPrefab = BuildDoorwayPrefab();
             // 공간 씬에 붙일 사물 호버 툴팁을 먼저 준비한다.
             ObjectHoverBuilder.PrepareAssets();
+            DialogueBuilder.PrepareAssets();
+            NpcBuilder.PrepareAssets();
 
             string[] scenePaths =
             {
@@ -89,6 +93,7 @@ namespace A305.EditorTools.World
             // 첫 번째 씬(방)에서 시작한다. 디자인하며 추가한 다른 공간 씬은 그 뒤에 그대로 둔다.
             BuilderTools.PutFirstInSceneList(scenePaths);
             ObjectHoverBuilder.AddWordKeysToSpacePrefabs();
+            NpcBuilder.PlacePasserbysInTown();
 
             AssetDatabase.SaveAssets();
             Debug.Log($"공간 씬을 준비했습니다: {string.Join(", ", scenePaths)}");

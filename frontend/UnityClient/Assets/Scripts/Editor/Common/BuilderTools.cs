@@ -5,7 +5,9 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -81,6 +83,20 @@ namespace A305.EditorTools.Common
             }
 
             return sceneGroups;
+        }
+
+        /// <summary>버튼 같은 화면 UI가 마우스 입력을 받도록 Input System용 EventSystem을 Systems 그룹에 둔다.</summary>
+        public static EventSystem EnsureEventSystem(SceneGroups groups)
+        {
+            var eventSystem = FindSingleInScene<EventSystem>(groups.Scene);
+            if (eventSystem == null)
+            {
+                eventSystem = CreateEmpty("EventSystem", groups.Systems, Vector3.zero, Quaternion.identity)
+                    .gameObject.AddComponent<EventSystem>();
+            }
+
+            GetOrAddComponent<InputSystemUIInputModule>(eventSystem.gameObject);
+            return eventSystem;
         }
 
         /// <summary>씬 안의 <typeparamref name="T"/>를 찾는다. 없으면 null, 둘 이상이면 어느 것을 쓸지 몰라 실패한다.</summary>

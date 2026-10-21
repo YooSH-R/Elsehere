@@ -6,7 +6,9 @@
         "A305.Player",
         "A305.Characters",
         "A305.World",
-        "Unity.TextMeshPro"
+        "A305.ObjectHover",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

@@ -1,5 +1,6 @@
 using System.Linq;
 using A305.EditorTools.World;
+using A305.ObjectHover;
 using A305.Player;
 using NUnit.Framework;
 using UnityEditor;
@@ -65,6 +66,23 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_AddsObjectHoverConnectedToPlayerCameraAndTooltip()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            ObjectHoverController hover = Single<ObjectHoverController>();
+            WordTooltipView tooltip = Single<WordTooltipView>();
+            Assert.That(hover.transform.parent, Is.EqualTo(Root("Systems")));
+            Assert.That(tooltip.transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Reference(hover, "player"), Is.EqualTo(Single<PlayerMover>()));
+            Assert.That(
+                Reference(hover, "viewCamera"),
+                Is.EqualTo(Single<PlayerCameraRig>().GetComponent<Camera>())
+            );
+            Assert.That(Reference(hover, "tooltip"), Is.EqualTo(tooltip));
+        }
+
+        [Test]
         public void Apply_ReplacesDefaultCameraWithPlayerCamera()
         {
             SpaceSceneSetup.Apply(scene);
@@ -84,6 +102,8 @@ namespace A305.World.Tests
             Assert.That(FindAll<PlayerMover>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<PlayerCameraRig>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<SpaceArrival>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<ObjectHoverController>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<WordTooltipView>(), Has.Length.EqualTo(1));
         }
 
         [Test]

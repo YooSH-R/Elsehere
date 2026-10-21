@@ -124,6 +124,7 @@ GameObject:
   - component: {fileID: 1522804475169751295}
   - component: {fileID: 7160758506706990913}
   - component: {fileID: 3401099843761096424}
+  - component: {fileID: 5828645695294904596}
   m_Layer: 0
   m_Name: Counter
   m_TagString: Untagged
@@ -224,6 +225,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5828645695294904596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 601819901320929632}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: counter
 --- !u!1 &1298484482701746896
 GameObject:
   m_ObjectHideFlags: 0
@@ -457,6 +471,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4421573177454143269}
+  - component: {fileID: 6045533949966487598}
   m_Layer: 0
   m_Name: SignMenu
   m_TagString: Untagged
@@ -481,6 +496,19 @@ Transform:
   - {fileID: 6286995111965814697}
   m_Father: {fileID: 7961916530696526713}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6045533949966487598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2519973291910483770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: menu
 --- !u!1 &2566272599107319103
 GameObject:
   m_ObjectHideFlags: 0
@@ -820,6 +848,7 @@ GameObject:
   - component: {fileID: 3866346555290560938}
   - component: {fileID: 4140733508152326715}
   - component: {fileID: 1407883941001387614}
+  - component: {fileID: 138902841805583222}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -899,6 +928,27 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &138902841805583222
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4170844293449542352}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4371265625367290894
 GameObject:
   m_ObjectHideFlags: 0

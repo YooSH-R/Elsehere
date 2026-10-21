@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65b834032c34b3b489e1684ffeab8aae, type: 3}
+  m_Name: MockObjectWords
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.MockObjectWordSource
+  entries:
+  - unityKey: tv
+    text: TV
+    meaningKo: "\uD154\uB808\uBE44\uC804"
+    example: Let's watch TV together.
+  - unityKey: refrigerator
+    text: refrigerator
+    meaningKo: "\uB0C9\uC7A5\uACE0"
+    example: The milk is in the refrigerator.
+  - unityKey: air_conditioner
+    text: air conditioner
+    meaningKo: "\uC5D0\uC5B4\uCEE8"
+    example: Can you turn on the air conditioner?
+  - unityKey: sofa
+    text: sofa
+    meaningKo: "\uC18C\uD30C"
+    example: He is sitting on the sofa.
+  - unityKey: bookshelf
+    text: bookshelf
+    meaningKo: "\uCC45\uC7A5"
+    example: The bookshelf is full of books.
+  - unityKey: bed
+    text: bed
+    meaningKo: "\uCE68\uB300"
+    example: I make my bed every morning.
+  - unityKey: counter
+    text: counter
+    meaningKo: "\uACC4\uC0B0\uB300"
+    example: Please order at the counter.
+  - unityKey: menu
+    text: menu
+    meaningKo: "\uBA54\uB274"
+    example: Can I see the menu, please?

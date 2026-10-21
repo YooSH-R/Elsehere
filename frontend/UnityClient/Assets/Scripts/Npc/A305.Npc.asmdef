@@ -1,0 +1,20 @@
+{
+    "name": "A305.Npc",
+    "rootNamespace": "A305.Npc",
+    "references": [
+        "A305.Player",
+        "A305.Characters",
+        "A305.Dialogue",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

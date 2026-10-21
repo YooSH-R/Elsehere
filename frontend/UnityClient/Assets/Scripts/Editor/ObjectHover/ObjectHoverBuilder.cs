@@ -196,20 +196,7 @@ namespace A305.EditorTools.ObjectHover
         /// </summary>
         private static void SetUpTooltip(GameObject root)
         {
-            if (!root.TryGetComponent(out Canvas canvas))
-            {
-                canvas = root.AddComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = 100;
-            }
-
-            if (!root.TryGetComponent(out CanvasScaler scaler))
-            {
-                scaler = root.AddComponent<CanvasScaler>();
-                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(1920f, 1080f);
-                scaler.matchWidthOrHeight = 0.5f;
-            }
+            UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 100, receivesClicks: false);
 
             var view = BuilderTools.GetOrAddComponent<WordTooltipView>(root);
 
@@ -219,28 +206,22 @@ namespace A305.EditorTools.ObjectHover
                 panel = CreatePanel(root.transform);
             }
 
-            var bold = BuilderTools.LoadRequiredAsset<TMP_FontAsset>(
-                UiFontBuilder.BoldFontAssetPath,
-                UiFontBuilder.MenuPath
-            );
-            var regular = BuilderTools.LoadRequiredAsset<TMP_FontAsset>(
-                UiFontBuilder.RegularFontAssetPath,
-                UiFontBuilder.MenuPath
-            );
+            TMP_FontAsset bold = UiBuilderTools.BoldFont();
+            TMP_FontAsset regular = UiBuilderTools.RegularFont();
 
             BuilderTools.SetReference(view, "canvasRect", root.GetComponent<RectTransform>());
             BuilderTools.SetReference(view, "panel", panel);
             BuilderTools.SetReference(view, "panelGroup", panel.GetComponent<CanvasGroup>());
-            BuilderTools.SetReference(view, "wordLabel", FindOrCreateLabel(panel, "Word", bold, 34f, Color.white));
+            BuilderTools.SetReference(view, "wordLabel", UiBuilderTools.FindOrCreateText(panel, "Word", bold, 34f, Color.white));
             BuilderTools.SetReference(
                 view,
                 "meaningLabel",
-                FindOrCreateLabel(panel, "Meaning", regular, 28f, new Color(1f, 0.88f, 0.55f))
+                UiBuilderTools.FindOrCreateText(panel, "Meaning", regular, 28f, new Color(1f, 0.88f, 0.55f))
             );
             BuilderTools.SetReference(
                 view,
                 "exampleLabel",
-                FindOrCreateLabel(panel, "Example", regular, 22f, new Color(0.8f, 0.82f, 0.86f))
+                UiBuilderTools.FindOrCreateText(panel, "Example", regular, 22f, new Color(0.8f, 0.82f, 0.86f))
             );
             BuilderTools.RequireReferences(view);
         }
@@ -276,30 +257,6 @@ namespace A305.EditorTools.ObjectHover
             var fitter = panel.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             return rect;
-        }
-
-        private static TMP_Text FindOrCreateLabel(
-            Transform panel,
-            string labelName,
-            TMP_FontAsset font,
-            float fontSize,
-            Color color
-        )
-        {
-            Transform existing = panel.Find(labelName);
-            if (existing != null && existing.TryGetComponent(out TMP_Text existingLabel))
-            {
-                return existingLabel;
-            }
-
-            var labelObject = new GameObject(labelName, typeof(RectTransform));
-            labelObject.transform.SetParent(panel, false);
-            var label = labelObject.AddComponent<TextMeshProUGUI>();
-            label.font = font;
-            label.fontSize = fontSize;
-            label.color = color;
-            label.raycastTarget = false;
-            return label;
         }
     }
 }

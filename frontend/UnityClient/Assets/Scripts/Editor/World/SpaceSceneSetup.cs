@@ -1,6 +1,9 @@
 using System;
 using System.Linq;
+using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.Dialogue;
+using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.EditorTools.Player;
 using A305.Player;
@@ -13,7 +16,8 @@ using UnityEngine.SceneManagement;
 namespace A305.EditorTools.World
 {
     /// <summary>
-    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁을 붙이고 서로 연결한다.
+    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁·대화 처리·행인 제안 화면을 붙이고 서로 연결한다.
+    /// 씬에 놓인 행인도 플레이어·대화 처리와 연결한다.
     /// 디자인한 씬이든 대체 공간 씬이든 같은 방식으로 적용하며, 여러 번 실행해도 기능 객체를 다시 만들지 않는다.
     /// Environment에 놓인 디자인과 이미 놓인 플레이어 위치는 건드리지 않는다.
     /// </summary>
@@ -100,6 +104,8 @@ namespace A305.EditorTools.World
             BuilderTools.RequireReferences(arrival);
 
             ObjectHoverBuilder.ConnectToScene(groups, player, cameraRig);
+            DialogueController dialogue = DialogueBuilder.ConnectToScene(groups, player, cameraRig);
+            NpcBuilder.ConnectToScene(groups, player, dialogue);
 
             EditorSceneManager.MarkSceneDirty(scene);
         }

@@ -13,6 +13,7 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. |
 | `PlayerCameraRig` | 카메라가 플레이어를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. |
 | `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. |
+| `DialogueViewProbe` | Sandbox 씬에서 T 키로 대화 시점과 이동 잠금을 확인하는 확인용 컴포넌트입니다. 배포용 프리팹에는 붙이지 않습니다. |
 
 ## 의존성
 
@@ -20,6 +21,20 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | --- | --- |
 | Unity Input System | 키보드·마우스 입력 |
 | `A305.Characters` | 모델 Animator에 이동 상태 전달. 연결하지 않아도 동작합니다. |
+
+## Sandbox 씬에서 확인
+
+`Assets/Scenes/Sandbox/PlayerSandbox.unity`를 열고 Play합니다. 바닥·장애물·경사로와 대화 상대 대신 쓰는 `DialogueTarget`이 배치되어 있습니다.
+
+| 조작 | 동작 |
+| --- | --- |
+| WASD·방향키, Shift, Space | 이동, 달리기, 점프 |
+| 마우스 오른쪽 버튼을 누른 채 이동 | 카메라 회전 |
+| 마우스 휠 | 3인칭 거리 조절 |
+| V | 1인칭·3인칭 전환 |
+| T | `DialogueTarget`을 바라보는 대화 시점과 이동 잠금 전환 |
+
+씬·프리팹·데이터 에셋·입력 액션은 Editor 메뉴 **Tools → A305 → Player → Build Sandbox**(`Scripts/Editor/Player/PlayerSandboxBuilder.cs`)로 다시 만들 수 있습니다. 씬과 프리팹은 덮어쓰고, 이미 있는 데이터 에셋의 수치는 유지합니다.
 
 ## 사용 방법
 
@@ -49,4 +64,4 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 
 ## 테스트
 
-`A305.Player.Tests` 어셈블리의 EditMode 테스트가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙을 검증합니다. 개발 중에는 `_Sandbox/Player/Tests/EditMode/`에 있고, 기능을 `_Project`로 옮길 때 `_Project/Tests/EditMode/Player/`로 함께 옮깁니다. 실행 방법은 [프론트엔드 개발 지침](../../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Play로 확인합니다.
+`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다.

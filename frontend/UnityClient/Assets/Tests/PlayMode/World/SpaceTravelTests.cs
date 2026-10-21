@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using A305.Player;
 using NUnit.Framework;
@@ -15,14 +16,6 @@ namespace A305.World.PlayModeTests
         private const float ArrivalTimeoutSeconds = 5f;
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
-
-        private static readonly string[] SpaceScenes =
-        {
-            "HomeScene",
-            "TownScene",
-            "CafeScene",
-            "HotelScene",
-        };
 
         [UnityTest]
         public IEnumerator TryTravel_HomeToTown_PlacesPlayerAtTownHomeDoor()
@@ -65,10 +58,24 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator EverySceneInSceneList_HasOnePlayerCameraAndArrival()
+        {
+            // 디자인해서 추가한 공간 씬도 Scene List에 오르면 같은 기준으로 확인한다.
+            foreach (string sceneName in SceneListNames())
+            {
+                yield return LoadSpace(sceneName);
+
+                Assert.That(FindAll<PlayerMover>(), Has.Length.EqualTo(1), $"{sceneName}의 PlayerMover");
+                Assert.That(FindAll<PlayerCameraRig>(), Has.Length.EqualTo(1), $"{sceneName}의 PlayerCameraRig");
+                Assert.That(FindAll<SpaceArrival>(), Has.Length.EqualTo(1), $"{sceneName}의 SpaceArrival");
+            }
+        }
+
+        [UnityTest]
         public IEnumerator EveryDoorway_LeadsToDoorwayThatLeadsBack()
         {
             var doorways = new List<DoorwayLink>();
-            foreach (string sceneName in SpaceScenes)
+            foreach (string sceneName in SceneListNames())
             {
                 yield return LoadSpace(sceneName);
                 doorways.AddRange(
@@ -92,6 +99,22 @@ namespace A305.World.PlayModeTests
                 Assert.That(destinations[0].DestinationScene, Is.EqualTo(doorway.SceneName));
                 Assert.That(destinations[0].DestinationDoorwayId, Is.EqualTo(doorway.DoorwayId));
             }
+        }
+
+        private static IEnumerable<string> SceneListNames()
+        {
+            for (int index = 0; index < SceneManager.sceneCountInBuildSettings; index++)
+            {
+                yield return Path.GetFileNameWithoutExtension(
+                    SceneUtility.GetScenePathByBuildIndex(index)
+                );
+            }
+        }
+
+        private static T[] FindAll<T>()
+            where T : Object
+        {
+            return Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         }
 
         private static IEnumerator LoadSpace(string sceneName)

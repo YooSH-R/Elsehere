@@ -13,7 +13,8 @@ namespace A305.EditorTools.Player
 {
     /// <summary>
     /// 플레이어 이동·카메라를 확인하는 PlayerSandbox 씬과 Player·PlayerCamera 프리팹, 데이터 에셋,
-    /// 카메라 입력 액션을 만든다. 씬·프리팹·머티리얼은 덮어쓰고, 이미 있는 데이터 에셋의 수치는 유지한다.
+    /// 카메라 입력 액션을 만든다. Sandbox 씬은 덮어쓴다. 프리팹은 기능 구성만 맞추고 Visual 아래 모델을 유지하며,
+    /// 이미 있는 머티리얼과 데이터 에셋의 값도 유지한다.
     /// </summary>
     public static class PlayerSandboxBuilder
     {
@@ -139,24 +140,57 @@ namespace A305.EditorTools.Player
             return true;
         }
 
+        /// <summary>
+        /// Player 프리팹의 기능 구성(컴포넌트와 연결)만 맞춘다. 모델은 Visual 아래에 두며,
+        /// Visual이 없을 때만 도형으로 된 대체 모양을 만든다. 모델에 맞춰 바꾼 CharacterController 크기도 유지한다.
+        /// </summary>
         private static GameObject BuildPlayerPrefab(PlayerMovementSettings movementSettings)
         {
-            var root = new GameObject("Player");
-            var characterController = root.AddComponent<CharacterController>();
-            characterController.height = BodyHeightMeters;
-            characterController.radius = BodyRadiusMeters;
-            characterController.center = new Vector3(0f, BodyHeightMeters / 2f, 0f);
+            return BuilderTools.UpdateOrCreatePrefab(
+                PlayerPrefabPath,
+                "Player",
+                root => SetUpPlayer(root, movementSettings)
+            );
+        }
 
-            var animationDriver = root.AddComponent<CharacterAnimationDriver>();
-            var mover = root.AddComponent<PlayerMover>();
+        private static void SetUpPlayer(GameObject root, PlayerMovementSettings movementSettings)
+        {
+            if (!root.TryGetComponent(out CharacterController characterController))
+            {
+                characterController = root.AddComponent<CharacterController>();
+                characterController.height = BodyHeightMeters;
+                characterController.radius = BodyRadiusMeters;
+                characterController.center = new Vector3(0f, BodyHeightMeters / 2f, 0f);
+            }
+
+            var animationDriver = BuilderTools.GetOrAddComponent<CharacterAnimationDriver>(root);
+            var mover = BuilderTools.GetOrAddComponent<PlayerMover>(root);
 
             // 모델로 바꿀 때는 Visual 아래만 교체한다. 콜라이더는 루트의 CharacterController가 맡는다.
-            var visual = new GameObject("Visual");
-            visual.transform.SetParent(root.transform, false);
+            if (root.transform.Find("Visual") == null)
+            {
+                CreatePlaceholderVisual(root.transform);
+            }
+
+            BuilderTools.SetReference(mover, "movementSettings", movementSettings);
+            BuilderTools.SetReference(mover, "moveAction", ActionReference("Move"));
+            BuilderTools.SetReference(mover, "sprintAction", ActionReference("Sprint"));
+            BuilderTools.SetReference(mover, "jumpAction", ActionReference("Jump"));
+            BuilderTools.SetReference(mover, "animationDriver", animationDriver);
+        }
+
+        private static void CreatePlaceholderVisual(Transform root)
+        {
+            Transform visual = BuilderTools.CreateEmpty(
+                "Visual",
+                root,
+                Vector3.zero,
+                Quaternion.identity
+            );
             BuilderTools.CreateShape(
                 PrimitiveType.Capsule,
                 "Body",
-                visual.transform,
+                visual,
                 new Vector3(0f, BodyHeightMeters / 2f, 0f),
                 new Vector3(BodyRadiusMeters * 2f, BodyHeightMeters / 2f, BodyRadiusMeters * 2f),
                 ArtMaterial("PlayerBody", new Color(0.25f, 0.45f, 0.85f)),
@@ -166,37 +200,36 @@ namespace A305.EditorTools.Player
             BuilderTools.CreateShape(
                 PrimitiveType.Cube,
                 "FrontMarker",
-                visual.transform,
+                visual,
                 new Vector3(0f, 1.5f, BodyRadiusMeters),
                 new Vector3(0.2f, 0.1f, 0.15f),
                 ArtMaterial("PlayerFront", new Color(0.95f, 0.95f, 0.95f)),
                 keepCollider: false
             );
-
-            BuilderTools.SetReference(mover, "movementSettings", movementSettings);
-            BuilderTools.SetReference(mover, "moveAction", ActionReference("Move"));
-            BuilderTools.SetReference(mover, "sprintAction", ActionReference("Sprint"));
-            BuilderTools.SetReference(mover, "jumpAction", ActionReference("Jump"));
-            BuilderTools.SetReference(mover, "animationDriver", animationDriver);
-
-            return BuilderTools.SavePrefab(root, PlayerPrefabPath);
         }
 
+        /// <summary>PlayerCamera 프리팹의 기능 구성만 맞춘다. 카메라의 화면 설정은 유지한다.</summary>
         private static GameObject BuildCameraPrefab(PlayerCameraSettings cameraSettings)
         {
-            var root = new GameObject("PlayerCamera");
+            return BuilderTools.UpdateOrCreatePrefab(
+                CameraPrefabPath,
+                "PlayerCamera",
+                root => SetUpCamera(root, cameraSettings)
+            );
+        }
+
+        private static void SetUpCamera(GameObject root, PlayerCameraSettings cameraSettings)
+        {
             root.tag = "MainCamera";
-            root.AddComponent<Camera>();
-            root.AddComponent<AudioListener>();
-            var rig = root.AddComponent<PlayerCameraRig>();
+            BuilderTools.GetOrAddComponent<Camera>(root);
+            BuilderTools.GetOrAddComponent<AudioListener>(root);
+            var rig = BuilderTools.GetOrAddComponent<PlayerCameraRig>(root);
 
             BuilderTools.SetReference(rig, "cameraSettings", cameraSettings);
             BuilderTools.SetReference(rig, "lookAction", ActionReference("Look"));
             BuilderTools.SetReference(rig, "rotateHoldAction", ActionReference("CameraRotate"));
             BuilderTools.SetReference(rig, "zoomAction", ActionReference("CameraZoom"));
             BuilderTools.SetReference(rig, "toggleViewAction", ActionReference("ToggleView"));
-
-            return BuilderTools.SavePrefab(root, CameraPrefabPath);
         }
 
         private static void BuildScene(GameObject playerPrefab, GameObject cameraPrefab)

@@ -20,6 +20,12 @@ namespace A305.EditorTools.UI
         public const string RegularFontAssetPath = "Assets/Art/UI/Fonts/Pretendard-Regular SDF.asset";
         public const string BoldFontAssetPath = "Assets/Art/UI/Fonts/Pretendard-Bold SDF.asset";
 
+        /// <summary>Editor 사용 중 채워진 글자를 저장하지 않을 동적 글꼴 에셋</summary>
+        public static readonly string[] DynamicFontAssetPaths = { RegularFontAssetPath, BoldFontAssetPath };
+
+        /// <summary>이 Builder가 글꼴 설정을 저장하는 동안에만 true. 그 밖의 저장에서는 동적 글꼴 에셋을 뺀다.</summary>
+        public static bool IsSavingFontSettings { get; private set; }
+
         private const string SourceFontFolder = "Assets/ThirdParty/Pretendard";
         private const string TmpSettingsPath = "Assets/TextMesh Pro/Resources/TMP Settings.asset";
         private const string TmpEssentialsPackage = "Package Resources/TMP Essential Resources.unitypackage";
@@ -87,7 +93,16 @@ namespace A305.EditorTools.UI
             var settings = AssetDatabase.LoadAssetAtPath<TMP_Settings>(TmpSettingsPath);
             BuilderTools.SetReference(settings, "m_defaultFontAsset", regular);
 
-            AssetDatabase.SaveAssets();
+            IsSavingFontSettings = true;
+            try
+            {
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                IsSavingFontSettings = false;
+            }
+
             Debug.Log($"UI 글꼴을 준비했습니다: {RegularFontAssetPath}");
         }
 

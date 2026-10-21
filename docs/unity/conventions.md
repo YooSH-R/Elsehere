@@ -100,7 +100,7 @@ frontend/UnityClient/Assets/
 | --- | --- | --- |
 | 코드와 Assembly Definition | `Scripts/<기능>/` | `A305.<기능>.asmdef`, namespace `A305.<기능>` |
 | 설명 | 코드와 같은 폴더의 `README.md` | 역할, 의존성, 사용 방법, 다른 기능에서 쓰는 API, 테스트 어셈블리 |
-| 테스트 | `Tests/EditMode/<기능>/` | `A305.<기능>.Tests.asmdef` |
+| 테스트 | `Tests/EditMode/<기능>/`, `Tests/PlayMode/<기능>/` | `A305.<기능>.Tests.asmdef`, PlayMode는 `A305.<기능>.PlayModeTests.asmdef` |
 
 | 구분 | 예 | 참조 기준 |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ frontend/UnityClient/Assets/
 
 ### 배포용 씬
 
-- 배포용 씬은 `Scenes/Production/`에 두고 Build Profile의 Scene List에 등록합니다. 현재 `Scenes/SampleScene`은 개발 환경 확인용 샘플이며, 서비스 씬을 만들면 Scene List를 함께 정리합니다.
+- 배포용 씬은 `Scenes/Production/`에 두고 Build Profile의 Scene List에 등록합니다. 첫 번째 씬(`HomeScene`)에서 시작합니다. `Scenes/SampleScene`은 개발 환경 확인용 샘플이라 Scene List에 넣지 않습니다.
 - 씬에는 프리팹 인스턴스의 배치, 위치, 씬 단위 참조 연결, 조명과 환경 설정을 둡니다. 기능의 구성과 동작은 프리팹에서 만듭니다.
 - 씬에서 GameObject를 직접 조합해 기능을 만들지 않습니다. 프리팹으로 만든 뒤 배치합니다.
 - 최상위 객체는 다음 그룹으로 정리합니다. 그룹 객체는 위치·회전 0, 크기 1로 두고 컴포넌트를 붙이지 않습니다. Sandbox 씬도 같은 그룹을 사용합니다.

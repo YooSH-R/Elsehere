@@ -61,6 +61,8 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | `PlayerCameraRig.EnterDialogueView(Transform)` | 대상(보통 NPC 머리 위치)을 바라보는 대화 시점으로 바꿉니다. 회전·줌·시점 전환 입력을 받지 않습니다. |
 | `PlayerCameraRig.ExitDialogueView()` | 대화 직전의 시점으로 돌아갑니다. |
 | `PlayerCameraRig.ViewMode` | 현재 시점(`ThirdPerson`, `FirstPerson`, `Dialogue`) |
+| `PlayerMover.Teleport(Vector3, Quaternion)` | 플레이어를 바로 옮깁니다. 공간을 옮긴 뒤 출입구 앞에 세울 때 씁니다. |
+| `PlayerCameraRig.SnapBehindTarget()` | 카메라를 플레이어가 보는 방향 뒤로 돌려 바로 그 자리에 놓습니다. `Teleport` 다음에 호출합니다. 카메라는 시작할 때도 플레이어 뒤에서 시작합니다. |
 
 ## 테스트
 

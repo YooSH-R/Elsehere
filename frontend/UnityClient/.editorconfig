@@ -13,7 +13,7 @@ csharp_new_line_before_open_brace = all
 dotnet_analyzer_diagnostic.severity = none
 dotnet_diagnostic.AD0001.severity = error
 
-[Assets/_Project/**.cs]
+[Assets/{_Project,_Sandbox}/**.cs]
 dotnet_diagnostic.UNT0001.severity = error
 dotnet_diagnostic.UNT0006.severity = error
 dotnet_diagnostic.UNT0007.severity = error

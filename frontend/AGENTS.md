@@ -26,11 +26,11 @@
 
 ## 테스트 어셈블리 구성
 
-아직 테스트 어셈블리가 없습니다. 첫 테스트를 추가하는 작업에서 아래 구성을 제안하고 Unity 담당자의 리뷰를 받습니다.
+테스트 어셈블리는 기능별로 둡니다. 기능 모듈의 구성은 [Unity 개발 규약의 기능 모듈](../docs/unity/conventions.md#기능-모듈)을 따릅니다.
 
-- Assembly Definition을 사용하는 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없습니다. 테스트할 코드에 Assembly Definition을 두고 테스트 어셈블리에서 참조합니다.
-- 테스트 폴더와 테스트용 Assembly Definition은 Test Runner 창의 생성 기능으로 만들어 Unity가 생성한 설정을 사용합니다.
-- 테스트 폴더는 `Assets/_Project/Tests/EditMode`, `Assets/_Project/Tests/PlayMode`를 기본안으로 합니다.
+- Assembly Definition을 사용하는 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없습니다. 테스트할 코드에 Assembly Definition을 두고 테스트 어셈블리에서 참조합니다. 기능 모듈은 `A305.<기능>`, 게임 전용 코드는 `A305.Runtime`입니다.
+- 테스트는 `Assets/_Project/Tests/EditMode/<기능>/`, `Assets/_Project/Tests/PlayMode/<기능>/`에 두고 테스트 어셈블리 이름은 `A305.<기능>.Tests`로 합니다. 예: `Tests/EditMode/Player/A305.Player.Tests.asmdef`
+- 테스트용 Assembly Definition은 Test Runner 창의 생성 기능이 만드는 설정(Editor 전용, `nunit.framework.dll`, `UNITY_INCLUDE_TESTS`)과 같게 두고, 테스트할 기능 어셈블리를 References에 추가합니다.
 
 ## 실행 방법
 

@@ -6,18 +6,19 @@ Unity 클라이언트의 폴더, Scene, Prefab, 데이터 에셋, C# 스크립�
 
 ## 핵심 원칙
 
-1. 기능 개발과 실험은 자신의 **Sandbox 씬**에서 합니다. **배포용 씬**은 완성된 프리팹을 배치하고 연결할 때만 수정합니다.
-2. 조절할 수치와 콘텐츠 설정은 프리팹에 흩어 두지 않고 **데이터 에셋(ScriptableObject)** 으로 분리합니다. 프리팹은 데이터 에셋을 참조합니다.
-3. 기능의 구성과 동작은 프리팹에 담고, 씬에는 배치와 연결만 남깁니다.
-4. 배포용 씬, 프로젝트 설정, 패키지처럼 모두가 사용하는 파일은 한 번에 한 명만 수정합니다.
-5. 에셋의 이동·이름 변경·삭제는 Unity Project 창에서 하고, `.meta` 파일을 에셋과 함께 커밋합니다.
-6. 씬과 프리팹의 Git 충돌은 텍스트로 직접 합치지 않습니다.
+1. 폴더는 **기능(책임) 단위**로 나눕니다. 개발자 이름으로 폴더를 만들지 않습니다.
+2. 기능 개발과 실험은 기능별 **Sandbox 씬**에서 합니다. **배포용 씬**은 완성된 프리팹을 배치하고 연결할 때만 수정합니다.
+3. 조절할 수치와 콘텐츠 설정은 프리팹에 흩어 두지 않고 **데이터 에셋(ScriptableObject)** 으로 분리합니다. 프리팹은 데이터 에셋을 참조합니다.
+4. 기능의 구성과 동작은 프리팹에 담고, 씬에는 배치와 연결만 남깁니다.
+5. 배포용 씬, 프로젝트 설정, 패키지처럼 모두가 사용하는 파일은 한 번에 한 명만 수정합니다.
+6. 에셋의 이동·이름 변경·삭제는 Unity Project 창에서 하고, `.meta` 파일을 에셋과 함께 커밋합니다.
+7. 씬과 프리팹의 Git 충돌은 텍스트로 직접 합치지 않습니다.
 
 ## 기능 개발 흐름
 
 ```text
 작업 브랜치 생성
-→ 내 Sandbox 씬에서 프리팹·데이터 에셋 개발과 Play 확인
+→ 기능 Sandbox 씬에서 프리팹·데이터 에셋 개발과 Play 확인
 → 프리팹 완성 기준 확인
 → 배포용 씬 수정 선언 후 프리팹 배치·연결
 → 커밋 전 변경 파일 확인
@@ -25,7 +26,7 @@ Unity 클라이언트의 폴더, Scene, Prefab, 데이터 에셋, C# 스크립�
 ```
 
 1. Jira 작업을 확인하고 최신 `dev`에서 작업 브랜치를 만듭니다.
-2. `Assets/_Sandbox/<영문이름>/`에 작업용 씬을 만듭니다.
+2. `Assets/_Sandbox/<기능>/`에 작업용 씬을 만듭니다.
 3. 배포에 사용할 스크립트·프리팹·데이터 에셋은 처음부터 `Assets/_Project`의 기능 폴더에 만들고, 시험용 임시 에셋만 Sandbox 폴더에 둡니다.
 4. Sandbox 씬에 프리팹을 배치하고 Play로 동작을 확인합니다. 수치는 데이터 에셋에서 조정합니다.
 5. [프리팹 완성 기준](#프리팹-완성-기준)을 확인합니다.
@@ -42,15 +43,16 @@ frontend/UnityClient/Assets/
 │   ├── Prefabs/<기능>/          # 완성 단위 객체
 │   ├── Data/<기능>/             # 데이터 에셋(.asset)
 │   ├── Scripts/<기능>/          # 직접 작성한 C# 스크립트
-│   ├── Tests/                   # EditMode·PlayMode 테스트
+│   ├── Tests/EditMode/<기능>/   # 기능별 테스트(PlayMode도 같은 구조)
 │   ├── Art/                     # 모델·머티리얼·텍스처·애니메이션
 │   └── Audio/                   # 효과음·배경음
-├── _Sandbox/<영문이름>/          # 개인 개발 씬과 시험용 에셋
+├── _Sandbox/<기능>/             # 기능별 개발·확인 씬과 시험용 에셋
 └── ThirdParty/<에셋 이름>/       # 외부에서 가져온 에셋 원본
 ```
 
-- 테스트 폴더와 테스트용 Assembly Definition은 [프론트엔드 개발 지침](../../frontend/AGENTS.md)에 따라 첫 테스트를 추가하는 작업에서 만듭니다.
-- `<기능>` 폴더는 `Npc`, `Dialogue`, `Player`, `UI`처럼 실제 책임을 기준으로 정하고, `Scripts`·`Prefabs`·`Data`에서 같은 이름을 사용합니다. 한 기능의 스크립트·프리팹·데이터를 같은 이름으로 찾을 수 있게 하기 위함입니다.
+- 폴더는 기능 단위로 나누고 개발자 이름으로 나누지 않습니다. 담당자가 바뀌거나 여러 사람이 같은 기능을 맡아도 그 기능의 코드·씬·에셋을 한곳에서 찾을 수 있게 하기 위함입니다.
+- `<기능>` 폴더는 `Npc`, `Dialogue`, `Player`, `UI`처럼 실제 책임을 기준으로 정하고, `Scripts`·`Prefabs`·`Data`·`Tests`·`_Sandbox`에서 같은 이름을 사용합니다. 한 기능의 스크립트·프리팹·데이터·테스트·확인용 씬을 같은 이름으로 찾을 수 있게 하기 위함입니다.
+- 테스트 폴더와 테스트용 Assembly Definition은 [프론트엔드 개발 지침](../../frontend/AGENTS.md)에 따라 기능의 첫 테스트를 추가하는 작업에서 만듭니다.
 - 폴더 이름 앞의 `_`는 Project 창에서 팀 폴더를 위쪽에 모아 보여 주기 위한 표시입니다.
 - `Assets/Settings/`와 `Assets/InputSystem_Actions.inputactions`는 Unity 템플릿이 만든 프로젝트 전체 설정입니다. 위치를 유지하고 [공유 설정](#공유-설정-파일) 규칙에 따라 수정합니다.
 - `SampleScene`, `DemoCube`, `DemoCubeRotator`는 개발 환경 확인용 샘플입니다. 서비스 기능에 맞는 책임과 이름을 정해 구현합니다.
@@ -64,11 +66,12 @@ frontend/UnityClient/Assets/
 | 프리팹 Variant | 원본과 같은 폴더 | 원본과 구분되는 대상 이름 | `Npc/Pedestrian.prefab` → `Npc/JoggingPedestrian.prefab` |
 | 데이터 에셋 | `_Project/Data/<기능>/` | 사용 대상 + 내용 | `Npc/BaristaMovement.asset` |
 | 스크립트 | `_Project/Scripts/<기능>/` | 주 클래스 이름과 동일 | `Npc/NpcWalker.cs` |
+| 기능 모듈의 Assembly Definition·설명 | `_Project/Scripts/<기능>/` | `A305.<기능>.asmdef`, `README.md` | `Player/A305.Player.asmdef` |
 | 에디터 확장 스크립트 | `_Project/Scripts/Editor/` | 주 클래스 이름과 동일 | `Editor/SceneReferenceChecker.cs` |
-| 테스트 | `_Project/Tests/EditMode/`, `_Project/Tests/PlayMode/` | 검증 대상 + `Tests` | `EditMode/DialogueStateTests.cs` |
+| 테스트 | `_Project/Tests/EditMode/<기능>/`, `_Project/Tests/PlayMode/<기능>/` | 검증 대상 + `Tests` | `EditMode/Player/PlayerMotorTests.cs` |
 | 모델·머티리얼·텍스처·애니메이션 | `_Project/Art/<종류>/` | 대상 + 용도 | `Art/Materials/CafeFloor.mat` |
 | 소리 | `_Project/Audio/` | 대상 + 용도 | `Audio/CafeDoorBell.wav` |
-| Sandbox 씬 | `_Sandbox/<영문이름>/` | 작업 내용 | `_Sandbox/Minsu/NpcGreeting.unity` |
+| Sandbox 씬 | `_Sandbox/<기능>/` | 작업 내용 | `_Sandbox/Npc/NpcGreeting.unity` |
 | 외부 에셋 | `ThirdParty/<에셋 이름>/` | 가져온 원본 이름 유지 | `ThirdParty/KenneyCityKit/` |
 
 - 파일·폴더 이름에는 공백과 한글을 넣지 않습니다.
@@ -83,23 +86,39 @@ frontend/UnityClient/Assets/
 | `StreamingAssets` | 파일을 변환 없이 빌드에 복사 | 필요할 때 팀과 합의한 뒤 사용합니다. |
 | `Plugins` | 안의 스크립트를 다른 스크립트보다 먼저 컴파일되는 별도 어셈블리로 분리 | 직접 작성한 C# 스크립트를 두지 않고, 브라우저 JavaScript 연동 파일 등 플러그인이 필요할 때 사용합니다. |
 
+## 기능 모듈
+
+여러 곳에서 재사용하거나 다른 프로젝트에서도 쓸 수 있는 기능은 모듈로 경계를 지킵니다. MVP 동안은 `Assets/_Project` 안에서 관리하고, 기능이 안정되면 UPM(Unity Package Manager) 패키지로 옮깁니다.
+
+| 구성 | 위치 | 이름 |
+| --- | --- | --- |
+| 코드와 Assembly Definition | `_Project/Scripts/<기능>/` | `A305.<기능>.asmdef`, namespace `A305.<기능>` |
+| 설명 | `_Project/Scripts/<기능>/README.md` | 역할, 의존성, 사용 방법, 게임 코드에서 쓰는 API, 테스트 위치 |
+| 테스트 | `_Project/Tests/EditMode/<기능>/` | `A305.<기능>.Tests.asmdef` |
+
+- 모듈은 게임 전용 코드와 서버 연동을 참조하지 않습니다. 의존 방향은 게임 코드 → 모듈입니다. 대화 시작 시 이동 잠금처럼 게임 진행이 정하는 동작은 모듈의 공개 API로 요청합니다.
+- 모듈끼리 참조가 필요하면 Assembly Definition의 References에 명시하고 README의 의존성에 적습니다. 서로 참조하는 순환 구조를 만들지 않습니다.
+- 게임에서만 쓰는 흐름, 서버 연동, 화면 코드는 `_Project/Scripts/`의 `A305.Runtime` 어셈블리에 둡니다. 별도 Assembly Definition이 없는 `Scripts/<기능>/` 폴더는 이 어셈블리에 포함됩니다.
+- 프리팹·데이터 에셋·씬은 모듈 폴더에 넣지 않고 `_Project/Prefabs/<기능>/`, `_Project/Data/<기능>/`, `_Project/Scenes/`에 둡니다.
+- 기능이 안정되면 모듈 폴더를 `.meta`와 함께 `frontend/UnityClient/Packages/com.a305.<기능>/`으로 옮기고 `package.json`·CHANGELOG를 추가해 UPM 패키지로 만듭니다. 옮길 때 [공통 검사 명령](setup.md#c-포맷과-규칙-검사)과 `.editorconfig`의 검사 범위도 함께 조정합니다.
+
 ## Sandbox 씬과 배포용 씬
 
 | 구분 | 위치 | 수정하는 사람 | Build Profile Scene List | 용도 |
 | --- | --- | --- | --- | --- |
-| Sandbox 씬 | `_Sandbox/<영문이름>/` | 폴더 주인 | 등록하지 않음 | 기능 개발, 실험, 프리팹 단독 확인 |
+| Sandbox 씬 | `_Sandbox/<기능>/` | 씬을 만든 사람 | 등록하지 않음 | 기능 개발, 실험, 프리팹 단독 확인 |
 | 배포용 씬 | `_Project/Scenes/` | 수정을 선언한 한 명 | 등록 | 사용자에게 제공하는 실제 화면과 공간 |
 
 ### Sandbox 씬
 
-- 처음 작업할 때 `Assets/_Sandbox/<영문이름>/` 폴더를 만듭니다. 영문 이름은 PascalCase로 적습니다. 예: `_Sandbox/Minsu/`
-- 작업용 씬은 **File → New Scene**으로 만들고 개인 폴더에 저장합니다. 필요한 프리팹만 배치해 기능을 확인합니다.
-- 다른 사람의 Sandbox 씬은 열어 볼 수 있지만 저장하거나 커밋하지 않습니다. 실수로 변경했다면 [되돌립니다](#커밋-전-확인).
-- Sandbox 폴더는 Git에 커밋합니다. 리뷰어가 같은 씬에서 기능을 확인할 수 있고, 개인 작업 기록을 잃지 않기 위함입니다.
+- 기능 작업을 시작할 때 `Assets/_Sandbox/<기능>/` 폴더를 만듭니다. `<기능>`은 `Scripts`·`Prefabs`·`Data`와 같은 이름을 씁니다. 예: `_Sandbox/Npc/`
+- 작업용 씬은 **File → New Scene**으로 만들고 기능 폴더에 작업 내용을 드러내는 이름으로 저장합니다. 필요한 프리팹만 배치해 기능을 확인합니다.
+- 같은 기능을 여러 사람이 작업하면 작업 내용별로 씬을 나눕니다. 다른 사람이 만든 Sandbox 씬은 열어 볼 수 있지만 저장하거나 커밋하지 않습니다. 실수로 변경했다면 [되돌립니다](#커밋-전-확인).
+- Sandbox 폴더는 Git에 커밋합니다. 리뷰어가 같은 씬에서 기능을 확인할 수 있고, 작업 기록을 잃지 않기 위함입니다.
 - Sandbox의 시험용 C# 코드도 `_Project`와 같은 이름·포맷·린터 규칙을 따릅니다. 커밋 전에 [공통 포맷·검사 명령](setup.md#c-포맷과-규칙-검사)을 실행합니다.
 - Sandbox 씬은 Build Profile의 Scene List에 추가하지 않습니다.
 - Sandbox 씬과 에셋은 `_Project`의 에셋을 자유롭게 참조할 수 있습니다. 반대로 `_Project`의 씬·프리팹·데이터 에셋은 `_Sandbox`의 에셋을 참조하지 않습니다. 시험용 에셋을 배포에 쓰게 되면 `_Project`의 해당 폴더로 옮긴 뒤 연결합니다.
-- 끝난 실험과 사용하지 않는 시험용 에셋은 폴더 주인이 정리합니다.
+- 끝난 실험과 사용하지 않는 시험용 에셋은 만든 사람이 정리합니다.
 
 ### 배포용 씬
 
@@ -165,11 +184,14 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 | 값의 종류 | 위치 | 예시 |
 | --- | --- | --- |
 | 기획·난이도 조정 대상 수치, 여러 객체가 공유하는 설정 | 데이터 에셋 | NPC 이동 속도, 말을 거는 거리, 다시 말을 걸기까지의 대기 시간 |
-| 빌드에 포함하는 콘텐츠 설정 | 데이터 에셋 | NPC 이름·직업, 장소 이름과 설명 |
+| Unity 배치·연출에만 쓰는 콘텐츠 설정 | 데이터 에셋 | NPC 순찰 경로, 장소의 출입·도착 지점 |
 | 해당 프리팹의 구성에만 의미 있는 값 | 프리팹의 Inspector 필드 | 자식 객체 참조, 콜라이더 크기, Animator 연결 |
 | 실행 중 바뀌는 상태 | 컴포넌트·일반 C# 클래스의 필드 | 현재 대화 차례, 남은 대기 시간 |
+| 서버가 관리하는 마스터 데이터 | API 응답. Unity에는 연결 키만 둠 | NPC 이름·성격, 장소 이름, 사물의 단어·뜻, 미션 내용 |
 | 서버·AI가 결정하는 값 | API 응답 | NPC 응답 문장, 학습 피드백, 저장된 학습 기록 |
 | 비밀값 | Unity 프로젝트에 두지 않음 | API 키, 토큰 |
+
+데이터 에셋은 Unity에서 배치·개수·수치를 조정하는 값이고, [ERD](../erd.dbml)의 데이터는 서버가 저장하고 API로 주고받는 값입니다. 두 곳은 ERD의 연결 키로 같은 대상을 가리킵니다. 장면은 `scenes.unity_key`, NPC는 `npcs.code`, 사물은 `world_objects.unity_key`를 프리팹·데이터 에셋에 둡니다. 이름·뜻처럼 서버가 관리하는 값은 데이터 에셋에 복사하지 않습니다. 같은 값을 두 곳에 두면 서로 어긋나기 때문입니다.
 
 WebGL 빌드에 포함된 코드와 데이터 에셋은 사용자가 내려받아 확인할 수 있습니다. 비밀값과 공개하면 안 되는 정보는 클라이언트에 넣지 않습니다.
 
@@ -253,7 +275,7 @@ namespace A305.Npc
 | 스크립트 파일 | 주 클래스 이름과 일치 | `NpcWalker.cs` |
 | namespace | `A305.<기능 폴더>` | `A305.Npc`, `A305.Dialogue` |
 
-- 서비스명이 정해지지 않았으므로 namespace의 최상위 이름은 팀 코드 `A305`를 사용합니다. Sandbox 폴더의 시험용 스크립트는 `A305.Sandbox.<영문이름>`을 사용합니다. 여러 사람이 `PlayerController`처럼 같은 클래스 이름을 만들어도 병합 후 컴파일 오류가 나지 않게 하기 위함입니다.
+- 서비스명이 정해지지 않았으므로 namespace의 최상위 이름은 팀 코드 `A305`를 사용합니다. Sandbox 폴더의 시험용 스크립트는 `A305.Sandbox.<기능>`을 사용합니다. 시험용 클래스가 `_Project`의 같은 이름 클래스와 부딪혀 병합 후 컴파일 오류가 나지 않게 하기 위함입니다.
 - `MonoBehaviour`·`ScriptableObject` 클래스 이름은 파일 이름과 같아야 Unity가 컴포넌트와 에셋을 연결합니다. 클래스 이름을 바꿀 때는 파일 이름도 Project 창에서 함께 바꿉니다.
 - 들여쓰기는 공백 4칸, 중괄호는 다음 줄에 배치합니다.
 - 컴포넌트로 연결할 클래스는 `MonoBehaviour`를 상속합니다. 값 계산·데이터 표현처럼 Unity 객체 기능이 필요 없는 코드는 일반 C# 클래스로 작성할 수 있습니다.
@@ -303,7 +325,7 @@ namespace A305.Npc
 2. Console에 컴파일 오류가 없는지 확인합니다.
 3. `git status`로 변경된 파일을 확인합니다.
    - 새로 만들거나 옮긴 에셋의 `.meta` 파일이 함께 있는지 확인합니다. `.meta`가 빠지면 다른 사람의 환경에서 참조가 Missing으로 바뀝니다.
-   - 열어 보기만 한 씬, 다른 사람의 Sandbox, 작업과 관계없는 설정 파일 변경이 없는지 확인합니다.
+   - 열어 보기만 한 씬, 다른 사람이 만든 Sandbox 씬, 작업과 관계없는 설정 파일 변경이 없는지 확인합니다.
 4. 의도하지 않은 변경은 Unity에서 해당 씬을 닫거나 Editor를 종료한 뒤 되돌립니다.
 
 ```sh

@@ -2,7 +2,7 @@ using A305.Player;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace A305.Sandbox.Eunji
+namespace A305.Sandbox.Player
 {
     /// <summary>대화 시점 전환 확인용. T를 누르면 대상을 바라보는 대화 시점과 탐험 시점을 오가고, 대화 중에는 이동을 잠근다.</summary>
     public class DialogueViewProbe : MonoBehaviour

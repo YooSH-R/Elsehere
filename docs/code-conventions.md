@@ -13,7 +13,7 @@
 
 이 문서는 코드 작성·리뷰 기준과 린터·포매터 적용 방침을 정의합니다. 검사 도구는 각 영역의 프로젝트 초기화 때 구성하고, 실행 명령은 해당 프로젝트의 사용 문서에 명시합니다.
 
-Unity의 폴더, Scene, Prefab, 데이터 에셋, Inspector 작성 기준은 [Unity 개발 규약](unity/conventions.md)에서 관리합니다.
+Unity의 C# 명명·포맷과 폴더, Scene, Prefab, 데이터 에셋, Inspector 작성 기준은 [Unity 개발 규약](unity/conventions.md)에서 관리합니다. 공통 원칙은 이 문서에서, Unity에만 적용하는 세부 기준은 Unity 개발 규약에서 관리합니다.
 
 ## 1. 사람이 이해할 수 있는 코드
 
@@ -28,18 +28,17 @@ Unity의 폴더, Scene, Prefab, 데이터 에셋, Inspector 작성 기준은 [Un
 
 - 함수는 수행하는 행동, 변수는 담긴 값의 의미가 드러나게 이름을 짓습니다.
 - boolean은 상태나 질문처럼 읽히게 작성합니다. 예: `completed`, `canStartMission`, `is_completed`.
-- `data`, `temp`, `manager`, `util`처럼 의미가 모호한 이름과 팀에서 합의하지 않은 축약을 피합니다. 작은 반복문의 인덱스처럼 문맥이 명확한 이름까지 길게 만들지는 않습니다.
+- `data`, `temp`, `manager`, `util`, `test`, `new`처럼 의미가 모호한 이름과 팀에서 합의하지 않은 축약을 피합니다. 작은 반복문의 인덱스처럼 문맥이 명확한 이름까지 길게 만들지는 않습니다.
 - 관련 개념에는 같은 용어를 사용합니다. 같은 미션을 어떤 곳에서는 `mission`, 다른 곳에서는 `quest`로 부르지 않도록 API와 데이터 용어를 맞춥니다.
 - 대소문자와 파일명은 각 언어·프레임워크의 일반적인 관례와 기존 프로젝트 구조를 따릅니다.
 
 | 언어를 선택한 경우 | 함수·변수 | 클래스·타입 |
 | --- | --- | --- |
 | Java | `startMission`, `missionId` | `MissionService` |
-| C# | 메서드 `StartMission`, 필드·변수 `missionId` | `DialoguePanel` |
 | JavaScript / TypeScript | `startMission`, `missionId` | `MissionResult` |
 | Python | `start_mission`, `mission_id` | `MissionResult` |
 
-이름의 의미는 공통으로 맞추고, 모든 언어에 같은 대소문자나 문법을 강제하지 않습니다. API 필드명과 내부 변수명이 다르면 변환하는 위치를 명확히 합니다.
+Unity C#의 명명 형식은 [Unity 개발 규약의 C# 스크립트 기준](unity/conventions.md#c-스크립트)을 따릅니다. 이름의 의미는 공통으로 맞추고, 모든 언어에 같은 대소문자나 문법을 강제하지 않습니다. API 필드명과 내부 변수명이 다르면 변환하는 위치를 명확히 합니다.
 
 ## 3. 함수, 모듈, 추상화
 

@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "A305.World",
         "A305.Player",
-        "A305.EditorTools"
+        "A305.EditorTools",
+        "A305.ObjectHover"
     ],
     "includePlatforms": [
         "Editor"

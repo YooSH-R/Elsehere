@@ -36,6 +36,9 @@ namespace A305.Player
 
         public bool IsMovementLocked => motor != null && motor.IsMovementLocked;
 
+        /// <summary>이번 프레임에 수평으로 움직였는지. 점프·낙하만 하는 경우는 포함하지 않는다.</summary>
+        public bool IsMoving { get; private set; }
+
         /// <summary>대화처럼 캐릭터가 움직이면 안 되는 동안 이동과 점프를 막는다.</summary>
         public void SetMovementLocked(bool isLocked)
         {
@@ -94,6 +97,7 @@ namespace A305.Player
             characterController.Move(velocity * Time.deltaTime);
 
             Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+            IsMoving = horizontalVelocity.sqrMagnitude > 0.0001f;
             TurnToward(horizontalVelocity);
 
             if (animationDriver != null)

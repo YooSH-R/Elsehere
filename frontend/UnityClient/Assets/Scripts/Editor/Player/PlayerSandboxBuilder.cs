@@ -1,6 +1,4 @@
-using System;
 using System.IO;
-using System.Linq;
 using A305.Characters;
 using A305.EditorTools.Common;
 using A305.Player;
@@ -26,7 +24,7 @@ namespace A305.EditorTools.Player
         private const string MovementSettingsPath = "Assets/Data/Player/PlayerMovementSettings.asset";
         private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const string ArtFolder = "Assets/Art/Player";
-        private const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
+        private const string InputActionsPath = BuilderTools.InputActionsPath;
         private const string PlayerActionMap = "Player";
         private const string KeyboardMouseGroup = "Keyboard&Mouse";
 
@@ -361,23 +359,7 @@ namespace A305.EditorTools.Player
 
         private static InputActionReference ActionReference(string actionName)
         {
-            InputActionReference reference = AssetDatabase
-                .LoadAllAssetsAtPath(InputActionsPath)
-                .OfType<InputActionReference>()
-                .FirstOrDefault(candidate =>
-                    candidate.action != null
-                    && candidate.action.actionMap.name == PlayerActionMap
-                    && candidate.action.name == actionName
-                );
-
-            if (reference == null)
-            {
-                throw new InvalidOperationException(
-                    $"입력 액션 {PlayerActionMap}/{actionName}의 참조를 찾지 못했습니다."
-                );
-            }
-
-            return reference;
+            return BuilderTools.ActionReference(PlayerActionMap, actionName);
         }
     }
 }

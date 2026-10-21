@@ -124,6 +124,7 @@ GameObject:
   - component: {fileID: 5425490342192190082}
   - component: {fileID: 4367706826504970481}
   - component: {fileID: 2777804131075293682}
+  - component: {fileID: 4109691243706668567}
   m_Layer: 0
   m_Name: Bookshelf
   m_TagString: Untagged
@@ -224,6 +225,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &4109691243706668567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1547616146981460545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: bookshelf
 --- !u!1 &2099445161094571581
 GameObject:
   m_ObjectHideFlags: 0
@@ -236,6 +250,7 @@ GameObject:
   - component: {fileID: 8608126731166736634}
   - component: {fileID: 4759580036012081086}
   - component: {fileID: 583111447273482765}
+  - component: {fileID: 6256206918252353736}
   m_Layer: 0
   m_Name: Fridge
   m_TagString: Untagged
@@ -336,6 +351,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6256206918252353736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2099445161094571581}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: refrigerator
 --- !u!1 &3432657637585055376
 GameObject:
   m_ObjectHideFlags: 0
@@ -348,6 +376,7 @@ GameObject:
   - component: {fileID: 9167794485801472154}
   - component: {fileID: 4382142936309915333}
   - component: {fileID: 6505619970140831414}
+  - component: {fileID: 3786991393967182071}
   m_Layer: 0
   m_Name: Tv
   m_TagString: Untagged
@@ -448,6 +477,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3786991393967182071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3432657637585055376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: tv
 --- !u!1 &3948721608000818252
 GameObject:
   m_ObjectHideFlags: 0
@@ -572,6 +614,7 @@ GameObject:
   - component: {fileID: 1010141554542574945}
   - component: {fileID: 1828391992607455046}
   - component: {fileID: 6256996375503047491}
+  - component: {fileID: 3986670978620332946}
   m_Layer: 0
   m_Name: Sofa
   m_TagString: Untagged
@@ -672,6 +715,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3986670978620332946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4395354067630511376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: sofa
 --- !u!1 &4499562000071477299
 GameObject:
   m_ObjectHideFlags: 0
@@ -684,6 +740,7 @@ GameObject:
   - component: {fileID: 3147573673386172930}
   - component: {fileID: 4247547984618417526}
   - component: {fileID: 7854669847641261772}
+  - component: {fileID: 7368863291923205934}
   m_Layer: 0
   m_Name: AirConditioner
   m_TagString: Untagged
@@ -784,6 +841,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7368863291923205934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4499562000071477299}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: air_conditioner
 --- !u!1 &5454937031824008558
 GameObject:
   m_ObjectHideFlags: 0
@@ -1176,6 +1246,7 @@ GameObject:
   - component: {fileID: 1266695036736554788}
   - component: {fileID: 7652300722129301820}
   - component: {fileID: 2376774820943275207}
+  - component: {fileID: 249834129653308911}
   m_Layer: 0
   m_Name: Bed
   m_TagString: Untagged
@@ -1276,6 +1347,19 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &249834129653308911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8712257397721531719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  unityKey: bed
 --- !u!1 &8906876473592350125
 GameObject:
   m_ObjectHideFlags: 0

@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -16,6 +17,8 @@ namespace A305.EditorTools.Common
     /// </summary>
     public static class BuilderTools
     {
+        public const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
+
         /// <summary>규약의 최상위 그룹 이름. 씬 루트에 이 순서로 둔다.</summary>
         public static readonly string[] GroupNames =
         {
@@ -257,6 +260,54 @@ namespace A305.EditorTools.Common
             }
 
             return SavePrefab(build(), path);
+        }
+
+        /// <summary>프리팹이 있으면 열어서 <paramref name="edit"/>로 고쳐 저장한다. 없으면 아무것도 하지 않고 false.</summary>
+        public static bool UpdatePrefabIfExists(string path, Action<GameObject> edit)
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
+            {
+                return false;
+            }
+
+            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                edit(contents);
+                PrefabUtility.SaveAsPrefabAsset(contents, path, out bool isSaved);
+                if (!isSaved)
+                {
+                    throw new InvalidOperationException($"프리팹을 저장하지 못했습니다: {path}");
+                }
+
+                return true;
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        /// <summary>프로젝트 입력 액션(Assets/InputSystem_Actions.inputactions)의 액션 참조를 찾는다.</summary>
+        public static InputActionReference ActionReference(string mapName, string actionName)
+        {
+            InputActionReference reference = AssetDatabase
+                .LoadAllAssetsAtPath(InputActionsPath)
+                .OfType<InputActionReference>()
+                .FirstOrDefault(candidate =>
+                    candidate.action != null
+                    && candidate.action.actionMap.name == mapName
+                    && candidate.action.name == actionName
+                );
+
+            if (reference == null)
+            {
+                throw new InvalidOperationException(
+                    $"입력 액션 {mapName}/{actionName}의 참조를 찾지 못했습니다."
+                );
+            }
+
+            return reference;
         }
 
         /// <summary>

@@ -5,8 +5,9 @@
 ## 에이전트 작업 범위
 
 - C# 스크립트와 테스트 코드는 직접 작성하고 수정합니다.
-- Scene(`.unity`), Prefab(`.prefab`), 에셋(`.asset`), `.meta` 파일은 직접 만들거나 수정하지 않습니다. Unity가 관리하는 직렬화 파일이므로 객체 배치, 컴포넌트 추가, Inspector 참조 연결 같은 Editor 작업을 단계별로 안내합니다.
-- `Assets` 아래에 새 파일을 만들면 Unity Editor가 `.meta`를 생성합니다. 사용자가 Editor에서 가져오기를 마친 뒤 생성된 `.meta`를 함께 커밋해야 한다고 알립니다.
+- 씬(`.unity`)·프리팹(`.prefab`)·데이터 에셋(`.asset`)은 직렬화 파일을 텍스트로 직접 쓰지 않고, [Unity 개발 규약의 에셋 Builder](../docs/unity/conventions.md#에셋-builder)로 만듭니다. Builder를 작성해 batchmode `-executeMethod`로 실행하고, 생성된 파일을 커밋해 사용자가 Editor에서 바로 열어 확인할 수 있게 합니다. 코드만 작성하고 씬·프리팹 구성을 사용자에게 넘기지 않습니다.
+- Editor가 프로젝트를 열고 있어 batchmode를 실행할 수 없으면, Editor의 `Tools/A305/...` 메뉴로 Builder를 실행하도록 안내하고 결과를 받아 진행합니다.
+- `.meta` 파일은 직접 만들거나 수정하지 않습니다. batchmode 실행이나 Editor 가져오기로 Unity가 생성한 `.meta`를 에셋과 함께 커밋합니다.
 - `Packages/manifest.json`의 패키지 추가와 변경은 필요성을 설명하고 확인을 받은 뒤 진행합니다.
 
 ## 테스트 대상과 방식
@@ -26,10 +27,10 @@
 
 ## 테스트 어셈블리 구성
 
-테스트 어셈블리는 기능별로 둡니다. 기능 모듈의 구성은 [Unity 개발 규약의 기능 모듈](../docs/unity/conventions.md#기능-모듈)을 따릅니다.
+테스트 어셈블리는 기능별로 둡니다. 기능 어셈블리 구성은 [Unity 개발 규약의 기능 모듈](../docs/unity/conventions.md#기능-모듈)을 따릅니다.
 
-- Assembly Definition을 사용하는 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없습니다. 테스트할 코드에 Assembly Definition을 두고 테스트 어셈블리에서 참조합니다. 기능 코드는 Sandbox에서 개발하는 동안에도 `A305.<기능>` 어셈블리에 둡니다.
-- 테스트 어셈블리 이름은 `A305.<기능>.Tests`로 합니다. 개발 중에는 `Assets/_Sandbox/<기능>/Tests/EditMode/`에 두고, 기능을 `_Project`로 옮길 때 `Assets/_Project/Tests/EditMode/<기능>/`로 함께 옮깁니다. PlayMode 테스트도 같은 구조입니다. 예: `_Sandbox/Player/Tests/EditMode/A305.Player.Tests.asmdef`
+- Assembly Definition을 사용하는 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없습니다. 테스트할 코드에 Assembly Definition(`A305.<기능>`)을 두고 테스트 어셈블리에서 참조합니다.
+- 테스트는 `Assets/_Project/Tests/EditMode/<기능>/`, `Assets/_Project/Tests/PlayMode/<기능>/`에 두고 테스트 어셈블리 이름은 `A305.<기능>.Tests`로 합니다. 예: `Tests/EditMode/Player/A305.Player.Tests.asmdef`
 - 테스트용 Assembly Definition은 Test Runner 창의 생성 기능이 만드는 설정(Editor 전용, `nunit.framework.dll`, `UNITY_INCLUDE_TESTS`)과 같게 두고, 테스트할 기능 어셈블리를 References에 추가합니다.
 
 ## 실행 방법

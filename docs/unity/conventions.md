@@ -7,59 +7,58 @@ Unity 클라이언트의 폴더, Scene, Prefab, 데이터 에셋, C# 스크립�
 ## 핵심 원칙
 
 1. 폴더는 **기능(책임) 단위**로 나눕니다. 개발자 이름으로 폴더를 만들지 않습니다.
-2. 기능은 **`_Sandbox/<기능>/`에서 개발**하고, 완성되면 **`_Project`로 옮깁니다**. Sandbox에서도 처음부터 최종 namespace·Assembly Definition 이름을 씁니다. **배포용 씬**은 `_Project`로 옮긴 프리팹을 배치하고 연결할 때만 수정합니다.
+2. 기능은 `Scenes/Sandbox`의 기능별 **Sandbox 씬**에서 개발하고 확인합니다. 완성된 결과는 프리팹으로 만들어 `Scenes/Production`의 **배포용 씬**에 배치합니다.
 3. 조절할 수치와 콘텐츠 설정은 프리팹에 흩어 두지 않고 **데이터 에셋(ScriptableObject)** 으로 분리합니다. 프리팹은 데이터 에셋을 참조합니다.
 4. 기능의 구성과 동작은 프리팹에 담고, 씬에는 배치와 연결만 남깁니다.
-5. 배포용 씬, 프로젝트 설정, 패키지처럼 모두가 사용하는 파일은 한 번에 한 명만 수정합니다.
-6. 에셋의 이동·이름 변경·삭제는 Unity Project 창에서 하고, `.meta` 파일을 에셋과 함께 커밋합니다.
-7. 씬과 프리팹의 Git 충돌은 텍스트로 직접 합치지 않습니다.
+5. 씬·프리팹·데이터 에셋은 Unity Editor나 [Builder 스크립트](#에셋-builder)로 만듭니다. 직렬화 파일(YAML)을 텍스트로 직접 작성하지 않습니다.
+6. 배포용 씬, 프로젝트 설정, 패키지처럼 모두가 사용하는 파일은 한 번에 한 명만 수정합니다.
+7. 에셋의 이동·이름 변경·삭제는 Unity Project 창에서 하고, `.meta` 파일을 에셋과 함께 커밋합니다.
+8. 씬과 프리팹의 Git 충돌은 텍스트로 직접 합치지 않습니다.
 
 ## 기능 개발 흐름
 
 ```text
 작업 브랜치 생성
-→ _Sandbox/<기능>/에서 스크립트·테스트·프리팹·데이터 에셋 개발과 Play 확인
+→ Scripts/<기능>에 코드와 테스트 작성
+→ Builder 또는 Editor로 프리팹·데이터 에셋과 <기능>Sandbox 씬 구성
+→ Sandbox 씬에서 Play 확인과 수치 조정
 → 프리팹 완성 기준 확인
-→ _Project로 옮기기
-→ 배포용 씬 수정 선언 후 프리팹 배치·연결
+→ 배포용 씬 수정 선언 후 Production 씬에 프리팹 배치·연결
 → 커밋 전 변경 파일 확인
 → MR 리뷰와 dev 병합, 배포용 씬 수정 해제 알림
 ```
 
 1. Jira 작업을 확인하고 최신 `dev`에서 작업 브랜치를 만듭니다.
-2. `Assets/_Sandbox/<기능>/` 폴더와 작업용 씬을 만듭니다.
-3. 스크립트·테스트·프리팹·데이터 에셋을 [Sandbox 기능 폴더](#sandbox-기능-폴더)에 만듭니다. namespace와 Assembly Definition은 처음부터 최종 이름(`A305.<기능>`)을 씁니다.
-4. Sandbox 씬에 프리팹을 배치하고 Play로 동작을 확인합니다. 수치는 데이터 에셋에서 조정합니다.
+2. 기능의 스크립트·프리팹·데이터 에셋은 처음부터 `_Project`의 기능 폴더(`Scripts/<기능>/`, `Prefabs/<기능>/`, `Data/<기능>/`)에 만듭니다. 테스트는 `Tests/EditMode/<기능>/`에 둡니다.
+3. `_Project/Scenes/Sandbox/<기능>Sandbox.unity`를 만들고 필요한 프리팹만 배치합니다. Sandbox 씬에서만 쓰는 확인용 스크립트와 임시 에셋은 각 종류 폴더의 `Sandbox/<기능>/`에 둡니다.
+4. Sandbox 씬에서 Play로 동작을 확인합니다. 수치는 데이터 에셋에서 조정합니다.
 5. [프리팹 완성 기준](#프리팹-완성-기준)을 확인합니다.
-6. [_Project로 옮기기](#_project로-옮기기) 절차에 따라 기능을 옮깁니다.
-7. 작업 브랜치에 최신 `dev`를 반영하고, 팀 채널에 배포용 씬 수정을 선언한 뒤 프리팹을 배치합니다.
-8. [커밋 전 확인](#커밋-전-확인)을 거쳐 MR을 만듭니다. MR에는 동작을 확인할 Sandbox 씬 경로와 확인 방법을 적습니다.
-9. MR이 병합되면 팀 채널에 배포용 씬 수정 해제를 알립니다.
+6. 작업 브랜치에 최신 `dev`를 반영하고, 팀 채널에 배포용 씬 수정을 선언한 뒤 프리팹을 배치합니다.
+7. [커밋 전 확인](#커밋-전-확인)을 거쳐 MR을 만듭니다. MR에는 동작을 확인할 Sandbox 씬 경로와 확인 방법을 적습니다.
+8. MR이 병합되면 팀 채널에 배포용 씬 수정 해제를 알립니다.
 
 ## 폴더 구조
 
 ```text
 frontend/UnityClient/Assets/
-├── _Project/                    # 배포에 포함하는 팀 에셋
-│   ├── Scenes/                  # 배포용 씬
-│   ├── Prefabs/<기능>/          # 완성 단위 객체
-│   ├── Data/<기능>/             # 데이터 에셋(.asset)
-│   ├── Scripts/<기능>/          # 직접 작성한 C# 스크립트
-│   ├── Tests/EditMode/<기능>/   # 기능별 테스트(PlayMode도 같은 구조)
-│   ├── Art/                     # 모델·머티리얼·텍스처·애니메이션
-│   └── Audio/                   # 효과음·배경음
-├── _Sandbox/<기능>/             # 개발 중인 기능과 확인용 씬
-│   ├── Scripts/                 # 완성되면 _Project/Scripts/<기능>/로 이동
-│   ├── Tests/EditMode/          # 완성되면 _Project/Tests/EditMode/<기능>/로 이동
-│   ├── Prefabs/                 # 완성되면 _Project/Prefabs/<기능>/로 이동
-│   ├── Data/                    # 완성되면 _Project/Data/<기능>/로 이동
-│   ├── Probes/                  # 확인용 스크립트. 옮기지 않음
-│   └── <작업 내용>.unity         # 확인용 씬. 옮기지 않음
-└── ThirdParty/<에셋 이름>/       # 외부에서 가져온 에셋 원본
+├── _Project/                        # 팀이 만드는 에셋
+│   ├── Scenes/
+│   │   ├── Production/              # 배포용 씬
+│   │   └── Sandbox/                 # 기능 개발·확인용 씬(<기능>Sandbox.unity)
+│   ├── Scripts/
+│   │   ├── <기능>/                  # 기능 코드, A305.<기능>.asmdef, README.md
+│   │   ├── Sandbox/<기능>/          # Sandbox 씬에서만 쓰는 확인용 스크립트
+│   │   └── Editor/<기능>/           # Editor 확장과 에셋 Builder
+│   ├── Prefabs/<기능>/              # 완성 단위 객체(Sandbox 임시 프리팹은 Prefabs/Sandbox/<기능>/)
+│   ├── Data/<기능>/                 # 데이터 에셋(.asset)
+│   ├── Tests/EditMode/<기능>/       # 기능별 테스트(PlayMode도 같은 구조)
+│   ├── Art/                         # 모델·머티리얼·텍스처·애니메이션
+│   └── Audio/                       # 효과음·배경음
+└── ThirdParty/<에셋 이름>/           # 외부에서 가져온 에셋 원본
 ```
 
 - 폴더는 기능 단위로 나누고 개발자 이름으로 나누지 않습니다. 담당자가 바뀌거나 여러 사람이 같은 기능을 맡아도 그 기능의 코드·씬·에셋을 한곳에서 찾을 수 있게 하기 위함입니다.
-- `<기능>` 폴더는 `Npc`, `Dialogue`, `Player`, `UI`처럼 실제 책임을 기준으로 정하고, `Scripts`·`Prefabs`·`Data`·`Tests`·`_Sandbox`에서 같은 이름을 사용합니다. 한 기능의 스크립트·프리팹·데이터·테스트·확인용 씬을 같은 이름으로 찾을 수 있게 하기 위함입니다.
+- `<기능>` 폴더는 `Npc`, `Dialogue`, `Player`, `UI`처럼 실제 책임을 기준으로 정하고, `Scripts`·`Prefabs`·`Data`·`Tests`와 각 `Sandbox` 하위 폴더에서 같은 이름을 사용합니다. 한 기능의 스크립트·프리팹·데이터·테스트를 같은 이름으로 찾을 수 있게 하기 위함입니다.
 - 테스트 폴더와 테스트용 Assembly Definition은 [프론트엔드 개발 지침](../../frontend/AGENTS.md)에 따라 기능의 첫 테스트를 추가하는 작업에서 만듭니다.
 - 폴더 이름 앞의 `_`는 Project 창에서 팀 폴더를 위쪽에 모아 보여 주기 위한 표시입니다.
 - `Assets/Settings/`와 `Assets/InputSystem_Actions.inputactions`는 Unity 템플릿이 만든 프로젝트 전체 설정입니다. 위치를 유지하고 [공유 설정](#공유-설정-파일) 규칙에 따라 수정합니다.
@@ -69,17 +68,18 @@ frontend/UnityClient/Assets/
 
 | 에셋 | 위치 | 이름 기준 | 예시 |
 | --- | --- | --- | --- |
-| 배포용 씬 | `_Project/Scenes/` | 장소·화면 + `Scene` | `CafeScene.unity` |
+| 배포용 씬 | `_Project/Scenes/Production/` | 장소·화면 + `Scene` | `CafeScene.unity` |
+| Sandbox 씬 | `_Project/Scenes/Sandbox/` | `<기능>Sandbox`. 같은 기능의 씬이 여러 개면 `<기능><작업 내용>Sandbox` | `PlayerSandbox.unity`, `NpcGreetingSandbox.unity` |
 | 프리팹 | `_Project/Prefabs/<기능>/` | 대상을 드러내는 PascalCase | `Npc/Barista.prefab`, `UI/DialoguePanel.prefab` |
 | 프리팹 Variant | 원본과 같은 폴더 | 원본과 구분되는 대상 이름 | `Npc/Pedestrian.prefab` → `Npc/JoggingPedestrian.prefab` |
 | 데이터 에셋 | `_Project/Data/<기능>/` | 사용 대상 + 내용 | `Npc/BaristaMovement.asset` |
 | 스크립트 | `_Project/Scripts/<기능>/` | 주 클래스 이름과 동일 | `Npc/NpcWalker.cs` |
-| 기능 모듈의 Assembly Definition·설명 | `_Project/Scripts/<기능>/` | `A305.<기능>.asmdef`, `README.md` | `Player/A305.Player.asmdef` |
-| 에디터 확장 스크립트 | `_Project/Scripts/Editor/` | 주 클래스 이름과 동일 | `Editor/SceneReferenceChecker.cs` |
+| 기능 Assembly Definition·설명 | `_Project/Scripts/<기능>/` | `A305.<기능>.asmdef`, `README.md` | `Player/A305.Player.asmdef` |
+| Sandbox 확인용 스크립트·임시 에셋 | `_Project/<종류>/Sandbox/<기능>/` | 주 클래스·대상 이름 | `Scripts/Sandbox/Player/DialogueViewProbe.cs` |
+| 에디터 확장·에셋 Builder | `_Project/Scripts/Editor/<기능>/` | 주 클래스 이름. Builder는 `<대상>Builder` | `Editor/Player/PlayerSandboxBuilder.cs` |
 | 테스트 | `_Project/Tests/EditMode/<기능>/`, `_Project/Tests/PlayMode/<기능>/` | 검증 대상 + `Tests` | `EditMode/Player/PlayerMotorTests.cs` |
 | 모델·머티리얼·텍스처·애니메이션 | `_Project/Art/<종류>/` | 대상 + 용도 | `Art/Materials/CafeFloor.mat` |
 | 소리 | `_Project/Audio/` | 대상 + 용도 | `Audio/CafeDoorBell.wav` |
-| Sandbox 씬 | `_Sandbox/<기능>/` | 작업 내용 | `_Sandbox/Npc/NpcGreeting.unity` |
 | 외부 에셋 | `ThirdParty/<에셋 이름>/` | 가져온 원본 이름 유지 | `ThirdParty/KenneyCityKit/` |
 
 - 파일·폴더 이름에는 공백과 한글을 넣지 않습니다.
@@ -89,20 +89,20 @@ frontend/UnityClient/Assets/
 
 | 폴더 이름 | Unity 동작 | 팀 규칙 |
 | --- | --- | --- |
-| `Editor` | Editor에서만 사용하고 빌드에서 제외 | 에디터 확장 스크립트만 둡니다. |
+| `Editor` | Editor에서만 사용하고 빌드에서 제외 | 에디터 확장 스크립트만 둡니다. Assembly Definition이 있는 폴더 안에서는 이 동작이 적용되지 않으므로 `Scripts/Editor/`에 Editor 전용 Assembly Definition을 둡니다. |
 | `Resources` | 참조 여부와 관계없이 안의 에셋을 모두 빌드에 포함 | 사용하지 않고 Inspector 참조로 연결합니다. 필요하면 먼저 팀과 합의합니다. |
 | `StreamingAssets` | 파일을 변환 없이 빌드에 복사 | 필요할 때 팀과 합의한 뒤 사용합니다. |
 | `Plugins` | 안의 스크립트를 다른 스크립트보다 먼저 컴파일되는 별도 어셈블리로 분리 | 직접 작성한 C# 스크립트를 두지 않고, 브라우저 JavaScript 연동 파일 등 플러그인이 필요할 때 사용합니다. |
 
 ## 기능 모듈
 
-기능마다 Assembly Definition·README·테스트를 두어 기능 사이의 경계를 지킵니다. 개발 중에는 `_Sandbox/<기능>/`, 완성 후에는 `_Project`에서 관리하고, 다른 프로젝트에서도 쓸 재사용 모듈은 MVP 이후 기능이 안정되면 UPM(Unity Package Manager) 패키지로 옮깁니다.
+기능마다 Assembly Definition·README·테스트를 두어 기능 사이의 경계를 지킵니다. 다른 프로젝트에서도 쓸 재사용 모듈은 MVP 이후 기능이 안정되면 UPM(Unity Package Manager) 패키지로 옮깁니다.
 
-| 구성 | 완성 후 위치(개발 중 위치) | 이름 |
+| 구성 | 위치 | 이름 |
 | --- | --- | --- |
-| 코드와 Assembly Definition | `_Project/Scripts/<기능>/` (`_Sandbox/<기능>/Scripts/`) | `A305.<기능>.asmdef`, namespace `A305.<기능>` |
+| 코드와 Assembly Definition | `_Project/Scripts/<기능>/` | `A305.<기능>.asmdef`, namespace `A305.<기능>` |
 | 설명 | 코드와 같은 폴더의 `README.md` | 역할, 의존성, 사용 방법, 다른 기능에서 쓰는 API, 테스트 어셈블리 |
-| 테스트 | `_Project/Tests/EditMode/<기능>/` (`_Sandbox/<기능>/Tests/EditMode/`) | `A305.<기능>.Tests.asmdef` |
+| 테스트 | `_Project/Tests/EditMode/<기능>/` | `A305.<기능>.Tests.asmdef` |
 
 | 구분 | 예 | 참조 기준 |
 | --- | --- | --- |
@@ -110,53 +110,34 @@ frontend/UnityClient/Assets/
 | 게임 전용 기능 | 튜토리얼, 미션, 대화 화면, 서버 연동 | 재사용 모듈과 다른 게임 전용 기능을 참조할 수 있습니다. |
 
 - 기능끼리 참조가 필요하면 Assembly Definition의 References에 명시하고 README의 의존성에 적습니다. 서로 참조하는 순환 구조를 만들지 않습니다.
+- `Scripts/Sandbox/`는 `A305.Sandbox`, `Scripts/Editor/`는 Editor 전용 `A305.EditorTools` 어셈블리로 둡니다. 기능 어셈블리는 이 두 어셈블리를 참조하지 않습니다.
 - `_Project/Scripts/` 바로 아래의 `A305.Runtime` 어셈블리에는 기능 폴더에 속하지 않는 스크립트만 둡니다. 현재는 개발 환경 확인용 샘플만 있습니다.
-- 프리팹·데이터 에셋·씬은 코드 폴더에 넣지 않고 `Prefabs/`·`Data/`(개발 중에는 `_Sandbox/<기능>/` 안)와 `_Project/Scenes/`에 둡니다.
+- 프리팹·데이터 에셋·씬은 코드 폴더에 넣지 않고 `Prefabs/<기능>/`, `Data/<기능>/`, `Scenes/`에 둡니다.
 - 재사용 모듈이 안정되면 코드 폴더를 `.meta`와 함께 `frontend/UnityClient/Packages/com.a305.<기능>/`으로 옮기고 `package.json`·CHANGELOG를 추가해 UPM 패키지로 만듭니다. 옮길 때 [공통 검사 명령](setup.md#c-포맷과-규칙-검사)과 `.editorconfig`의 검사 범위도 함께 조정합니다.
 
 ## Sandbox 씬과 배포용 씬
 
 | 구분 | 위치 | 수정하는 사람 | Build Profile Scene List | 용도 |
 | --- | --- | --- | --- | --- |
-| Sandbox 씬 | `_Sandbox/<기능>/` | 씬을 만든 사람 | 등록하지 않음 | 개발 중인 기능 확인, 실험, 프리팹 단독 확인 |
-| 배포용 씬 | `_Project/Scenes/` | 수정을 선언한 한 명 | 등록 | 사용자에게 제공하는 실제 화면과 공간 |
+| Sandbox 씬 | `_Project/Scenes/Sandbox/` | 씬을 만든 사람 | 등록하지 않음 | 기능 개발·확인, 실험, 프리팹 단독 확인 |
+| 배포용 씬 | `_Project/Scenes/Production/` | 수정을 선언한 한 명 | 등록 | 사용자에게 제공하는 실제 화면과 공간 |
 
-### Sandbox 기능 폴더
+### Sandbox 씬
 
-- 기능 작업을 시작할 때 `Assets/_Sandbox/<기능>/` 폴더를 만듭니다. `<기능>`은 완성 후 옮길 `_Project`의 `Scripts`·`Prefabs`·`Data` 폴더와 같은 이름을 씁니다. 예: `_Sandbox/Npc/`
-- 개발 중인 기능은 `Scripts/`, `Tests/EditMode/`, `Prefabs/`, `Data/`에 만들고, 옮기지 않을 확인용 스크립트는 `Probes/`에 둡니다. [폴더 구조](#폴더-구조)를 참고합니다.
-- 개발 중인 코드도 처음부터 최종 namespace `A305.<기능>`과 Assembly Definition `A305.<기능>`을 씁니다. `_Project`로 옮길 때 코드를 고치지 않고, 테스트 어셈블리의 참조도 그대로 유지하기 위함입니다. 테스트 어셈블리는 Assembly Definition이 없는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없으므로, 테스트 우선 개발을 하려면 Sandbox에서도 기능 어셈블리가 필요합니다.
-- 확인용 스크립트(`Probes/`)는 Assembly Definition 없이 두고 namespace `A305.Sandbox.<기능>`을 씁니다.
-- 이미 `_Project`에 있는 기능을 고칠 때는 `_Project`에서 바로 수정하고, 확인용 씬과 `Probes/`만 Sandbox에 둡니다. 같은 기능을 Sandbox에 다시 만들면 같은 이름의 Assembly Definition이 두 개가 되어 컴파일되지 않습니다.
-- 작업용 씬은 **File → New Scene**으로 만들고 기능 폴더에 작업 내용을 드러내는 이름으로 저장합니다. 필요한 프리팹만 배치해 기능을 확인합니다.
+- 기능을 개발할 때 `_Project/Scenes/Sandbox/<기능>Sandbox.unity`를 만들고 필요한 프리팹만 배치해 기능을 확인합니다. Builder로 만들거나 **File → New Scene**으로 만듭니다.
 - 같은 기능을 여러 사람이 작업하면 작업 내용별로 씬을 나눕니다. 다른 사람이 만든 Sandbox 씬은 열어 볼 수 있지만 저장하거나 커밋하지 않습니다. 실수로 변경했다면 [되돌립니다](#커밋-전-확인).
-- Sandbox 폴더는 Git에 커밋합니다. 리뷰어가 같은 씬에서 기능을 확인할 수 있고, 작업 기록을 잃지 않기 위함입니다.
-- Sandbox의 C# 코드도 `_Project`와 같은 이름·포맷·린터 규칙을 따릅니다. 커밋 전에 [공통 포맷·검사 명령](setup.md#c-포맷과-규칙-검사)을 실행합니다.
+- Sandbox 씬은 Git에 커밋합니다. 리뷰어가 같은 씬에서 기능을 확인할 수 있고, 작업 기록을 잃지 않기 위함입니다.
+- Sandbox 씬에서만 쓰는 확인용 스크립트는 `Scripts/Sandbox/<기능>/`, 임시 프리팹·데이터 에셋은 `Prefabs/Sandbox/<기능>/`, `Data/Sandbox/<기능>/`에 둡니다. 확인용 C# 코드도 같은 이름·포맷·린터 규칙을 따르며, 커밋 전에 [공통 포맷·검사 명령](setup.md#c-포맷과-규칙-검사)을 실행합니다.
 - Sandbox 씬은 Build Profile의 Scene List에 추가하지 않습니다.
-- Sandbox의 씬·에셋·코드는 `_Project`를 참조할 수 있습니다. 반대로 `_Project`의 씬·프리팹·데이터 에셋·코드는 `_Sandbox`를 참조하지 않습니다. 개발 중인 기능을 배포에 쓰려면 먼저 `_Project`로 옮깁니다.
-- 끝난 실험과 사용하지 않는 확인용 씬·스크립트는 만든 사람이 정리합니다.
-
-### _Project로 옮기기
-
-기능이 [프리팹 완성 기준](#프리팹-완성-기준)을 만족하면 Unity Project 창에서 다음과 같이 옮깁니다. `.meta`가 함께 움직여 GUID가 유지되므로 씬·프리팹의 스크립트·에셋 참조가 끊기지 않습니다.
-
-| Sandbox 기능 폴더 | 옮길 위치 |
-| --- | --- |
-| `_Sandbox/<기능>/Scripts/` | `_Project/Scripts/<기능>/` |
-| `_Sandbox/<기능>/Tests/EditMode/` | `_Project/Tests/EditMode/<기능>/` |
-| `_Sandbox/<기능>/Prefabs/` | `_Project/Prefabs/<기능>/` |
-| `_Sandbox/<기능>/Data/` | `_Project/Data/<기능>/` |
-
-- 확인용 씬과 `Probes/`는 Sandbox에 남깁니다. 옮긴 뒤에도 확인용 씬에서 기능을 다시 확인할 수 있습니다.
-- 옮긴 뒤 Console에 컴파일 오류가 없는지, 프리팹에 Missing Script·Missing Reference가 없는지 확인하고 Play로 동작을 확인합니다.
-- namespace와 Assembly Definition 이름은 바꾸지 않습니다. `[SerializeReference]` 필드, 직접 만든 타입을 인자로 받는 UnityEvent, `Type.GetType` 등 타입을 이름으로 저장하는 기능은 이름이 바뀌면 연결이 끊깁니다. 이름을 꼭 바꿔야 한다면 `[MovedFrom]` 특성을 붙이고 사용처를 확인합니다.
+- Sandbox 씬과 `Sandbox` 폴더의 에셋은 기능 폴더의 에셋을 참조할 수 있습니다. 반대로 기능 폴더의 코드·프리팹·데이터 에셋과 배포용 씬은 `Sandbox` 폴더의 씬·스크립트·에셋을 참조하지 않습니다. 임시 에셋을 배포에 쓰게 되면 Project 창에서 기능 폴더로 옮긴 뒤 연결합니다.
+- 끝난 실험과 사용하지 않는 임시 에셋은 만든 사람이 정리합니다.
 
 ### 배포용 씬
 
-- 배포용 씬은 `_Project/Scenes/`에 두고 Build Profile의 Scene List에 등록합니다. 현재 `SampleScene`은 개발 환경 확인용 샘플이며, 서비스 씬을 만들면 Scene List를 함께 정리합니다.
+- 배포용 씬은 `_Project/Scenes/Production/`에 두고 Build Profile의 Scene List에 등록합니다. 현재 `_Project/Scenes/SampleScene`은 개발 환경 확인용 샘플이며, 서비스 씬을 만들면 Scene List를 함께 정리합니다.
 - 씬에는 프리팹 인스턴스의 배치, 위치, 씬 단위 참조 연결, 조명과 환경 설정을 둡니다. 기능의 구성과 동작은 프리팹에서 만듭니다.
 - 씬에서 GameObject를 직접 조합해 기능을 만들지 않습니다. 프리팹으로 만든 뒤 배치합니다.
-- 최상위 객체는 다음 그룹으로 정리합니다. 그룹 객체는 위치·회전 0, 크기 1로 두고 컴포넌트를 붙이지 않습니다.
+- 최상위 객체는 다음 그룹으로 정리합니다. 그룹 객체는 위치·회전 0, 크기 1로 두고 컴포넌트를 붙이지 않습니다. Sandbox 씬도 같은 그룹을 사용합니다.
 
 ```text
 CafeScene
@@ -176,6 +157,21 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 3. 다른 사람이 같은 씬을 수정 중이면 MR 병합을 기다리거나 그 작업자에게 배치를 요청합니다.
 4. 프리팹 완성 후 배치·연결만 짧게 진행합니다. 씬을 수정한 상태로 다른 개발을 오래 이어 가지 않습니다.
 5. MR이 `dev`에 병합되면 `[씬 해제] CafeScene`을 알립니다.
+
+## 에셋 Builder
+
+씬·프리팹·데이터 에셋·머티리얼처럼 구성 요소가 많거나 다시 만들 일이 있는 에셋은 Builder 스크립트로 만듭니다. Builder는 Unity API로 에셋을 생성하므로, 결과를 커밋하면 받은 사람이 Editor에서 바로 열어 확인할 수 있고 같은 메뉴로 다시 만들 수 있습니다.
+
+- Builder는 `_Project/Scripts/Editor/<기능>/<대상>Builder.cs`에 두고, `public static` 메서드에 `[MenuItem("Tools/A305/<기능>/<동작>")]`을 붙입니다. 예: `Tools/A305/Player/Build Sandbox`
+- 씬은 `EditorSceneManager`, 프리팹은 `PrefabUtility.SaveAsPrefabAsset`, 데이터 에셋·머티리얼은 `AssetDatabase.CreateAsset`으로 만들고 저장합니다. 생성 결과와 `.meta`를 함께 커밋합니다.
+- Editor가 프로젝트를 열고 있지 않으면 명령줄로도 실행할 수 있습니다. 저장소 최상위에서 실행합니다.
+
+```powershell
+& "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Player.PlayerSandboxBuilder.Build -quit -logFile <저장소 밖 경로>\Builder.log
+```
+
+- Builder는 만든 파일을 덮어씁니다. Editor에서 직접 고친 씬·프리팹을 다시 만들기 전에 변경 내용을 확인하고, 계속 쓸 수정은 Builder 코드에도 반영합니다.
+- 배포용 씬과 [공유 설정 파일](#공유-설정-파일)을 바꾸는 Builder도 수정 선언 규칙을 따릅니다.
 
 ## 프리팹
 
@@ -197,13 +193,13 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 
 ### 프리팹 완성 기준
 
-`_Project`로 옮기기 전과 배포용 씬에 배치하기 전에 다음을 확인합니다.
+배포용 씬에 배치하기 전에 다음을 확인합니다.
 
 - [ ] 필요한 프리팹만 둔 Sandbox 씬에서 Play했을 때 Console에 오류가 없습니다.
 - [ ] 기능의 EditMode 테스트가 모두 통과합니다.
 - [ ] 조절할 수치와 콘텐츠 설정이 데이터 에셋으로 분리되어 있습니다.
 - [ ] 필수 참조가 모두 연결되어 있고 Missing Script·Missing Reference가 없습니다.
-- [ ] 옮길 프리팹이 같은 기능 폴더 밖의 Sandbox 에셋이나 `Probes/` 스크립트를 참조하지 않습니다. Project 창에서 프리팹을 우클릭한 뒤 **Select Dependencies**로 선택되는 에셋의 경로를 확인합니다.
+- [ ] `Sandbox` 폴더의 스크립트·에셋을 참조하지 않습니다. Project 창에서 프리팹을 우클릭한 뒤 **Select Dependencies**로 선택되는 에셋의 경로를 확인합니다.
 - [ ] 플레이어·카메라처럼 프리팹 밖의 객체가 필요하면 Inspector 참조로 드러나 있습니다.
 - [ ] 이름과 위치가 이 규약을 따릅니다.
 
@@ -307,8 +303,9 @@ namespace A305.Npc
 | 스크립트 파일 | 주 클래스 이름과 일치 | `NpcWalker.cs` |
 | namespace | `A305.<기능 폴더>` | `A305.Npc`, `A305.Dialogue` |
 
-- 서비스명이 정해지지 않았으므로 namespace의 최상위 이름은 팀 코드 `A305`를 사용합니다. Sandbox에서 개발 중인 기능 코드도 완성 후와 같은 `A305.<기능>`을 사용합니다. 옮기지 않는 확인용 스크립트(`Probes/`)만 `A305.Sandbox.<기능>`을 사용해 기능 클래스와 이름이 부딪히지 않게 합니다.
+- 서비스명이 정해지지 않았으므로 namespace의 최상위 이름은 팀 코드 `A305`를 사용합니다. Sandbox 씬 전용 스크립트(`Scripts/Sandbox/<기능>/`)는 `A305.Sandbox.<기능>`, Editor 스크립트(`Scripts/Editor/<기능>/`)는 `A305.EditorTools.<기능>`을 사용합니다. 확인용·Editor 클래스가 기능 클래스와 이름이 부딪혀 컴파일 오류가 나지 않게 하기 위함입니다.
 - `MonoBehaviour`·`ScriptableObject` 클래스 이름은 파일 이름과 같아야 Unity가 컴포넌트와 에셋을 연결합니다. 클래스 이름을 바꿀 때는 파일 이름도 Project 창에서 함께 바꿉니다.
+- 씬·프리팹은 스크립트를 `.meta`의 GUID로 참조하므로 namespace를 바꿔도 연결이 유지됩니다. 다만 `[SerializeReference]` 필드, 직접 만든 타입을 인자로 받는 UnityEvent, `Type.GetType` 등 타입을 이름으로 저장하는 기능은 namespace·어셈블리 이름이 바뀌면 끊깁니다. 이런 타입의 이름을 바꿀 때는 `[MovedFrom]` 특성을 붙이고 사용처를 확인합니다.
 - 들여쓰기는 공백 4칸, 중괄호는 다음 줄에 배치합니다.
 - 컴포넌트로 연결할 클래스는 `MonoBehaviour`를 상속합니다. 값 계산·데이터 표현처럼 Unity 객체 기능이 필요 없는 코드는 일반 C# 클래스로 작성할 수 있습니다.
 - 사용하는 생명주기 함수만 작성합니다. 비어 있는 `Start`, `Update`를 남기지 않습니다.
@@ -374,7 +371,7 @@ git checkout --theirs -- <충돌한 씬 또는 프리팹 경로>
 git add <충돌한 씬 또는 프리팹 경로>
 ```
 
-- Unity에서 해당 파일을 열어 내 변경을 다시 적용하고, 참조 연결과 Missing Script 여부, 화면 배치를 확인한 뒤 Play로 동작을 검증합니다.
+- Unity에서 해당 파일을 열어 내 변경을 다시 적용하고, 참조 연결과 Missing Script 여부, 화면 배치를 확인한 뒤 Play로 동작을 검증합니다. Builder로 만든 에셋이면 Builder를 다시 실행해 만들 수 있습니다.
 - 충돌을 줄이려면 배포용 씬 수정 선언, Nested Prefab으로 작업 범위 나누기, 씬 수정 시간을 짧게 유지하기를 지킵니다.
 - 버전 관리 설정은 `Visible Meta Files`, 직렬화는 `Force Text`를 유지합니다.
 
@@ -382,7 +379,7 @@ git add <충돌한 씬 또는 프리팹 경로>
 
 | 증상 | 주요 원인 | 조치 |
 | --- | --- | --- |
-| 다른 사람의 화면에서 프리팹·머티리얼 참조가 Missing | `.meta` 누락, `_Sandbox` 에셋 참조, Unity 밖에서 파일 이동 | `.meta`를 커밋하고, 에셋을 `_Project`로 옮긴 뒤 참조를 다시 연결합니다. |
+| 다른 사람의 화면에서 프리팹·머티리얼 참조가 Missing | `.meta` 누락, `Sandbox` 폴더 에셋 참조, Unity 밖에서 파일 이동 | `.meta`를 커밋하고, 에셋을 기능 폴더로 옮긴 뒤 참조를 다시 연결합니다. |
 | 컴포넌트에 Missing Script가 표시됨 | 클래스·파일 이름 불일치, 컴파일 오류, 스크립트 삭제 | 클래스 이름과 파일 이름을 맞추고 Console의 컴파일 오류를 해결합니다. |
 | 최신 `dev` 반영 후 컴파일 오류 | 같은 namespace의 같은 클래스 이름, 삭제·변경된 클래스 사용 | namespace를 확인하고 오류가 난 파일의 작업자와 조율합니다. |
 | Play를 종료하니 바꾼 값이 사라짐 | Play 중 씬·프리팹 값 변경은 종료 시 복원 | Play 종료 후 다시 입력하고 저장합니다. |
@@ -396,7 +393,7 @@ git add <충돌한 씬 또는 프리팹 경로>
 - 배포용 씬에 프리팹을 통합한 뒤에는 Sandbox 씬뿐 아니라 배포용 씬에서도 Play로 확인합니다.
 - API 호출과 마이크 연결은 성공뿐 아니라 권한 거부, 취소, 시간 초과와 오류 전달도 검증합니다.
 - 테스트 작성 기준은 [공통 코드 규약의 주석과 검증](../code-conventions.md#6-주석과-검증)을, Unity 테스트 구성과 실행은 [프론트엔드 개발 지침](../../frontend/AGENTS.md)을 따릅니다.
-- 검사 대상은 `Assets/_Project`와 `Assets/_Sandbox`의 C# 코드이며, Editor 코드와 테스트 코드도 포함합니다. 도구 선택은 [공통 코드 규약의 린터·포매터 적용 방침](../code-conventions.md#8-린터포매터-적용-방침)을, 고정 버전과 실행 명령은 [Unity 실행 문서](setup.md#c-포맷과-규칙-검사)를 따릅니다.
+- 검사 대상은 `Assets/_Project`의 C# 코드이며, Sandbox·Editor·테스트 코드도 포함합니다. 도구 선택은 [공통 코드 규약의 린터·포매터 적용 방침](../code-conventions.md#8-린터포매터-적용-방침)을, 고정 버전과 실행 명령은 [Unity 실행 문서](setup.md#c-포맷과-규칙-검사)를 따릅니다.
 - 린터는 빈 생명주기 메서드, 잘못된 Unity 콜백 선언·대소문자, 잘못된 객체 생성·직렬화 특성, Unity 객체의 잘못된 null 처리 등 선택한 규칙을 검사합니다.
 - GitLab CI 연결은 별도 작업입니다. 편집기 경고와 Unity 컴파일만으로 공통 검사 명령을 대신하지 않습니다.
 
@@ -405,6 +402,9 @@ git add <충돌한 씬 또는 프리팹 경로>
 - [Unity 프로젝트 구성 가이드](https://unity.com/how-to/organizing-your-project)
 - [ScriptableObject](https://docs.unity3d.com/6000.3/Documentation/Manual/class-ScriptableObject.html)
 - [CreateAssetMenu](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/CreateAssetMenuAttribute.html)
+- [MenuItem](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/MenuItem.html)
+- [PrefabUtility.SaveAsPrefabAsset](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/PrefabUtility.SaveAsPrefabAsset.html)
+- [명령줄 인수](https://docs.unity3d.com/6000.3/Documentation/Manual/EditorCommandLineArguments.html)
 - [Prefab 생성](https://docs.unity3d.com/6000.3/Documentation/Manual/CreatingPrefabs.html)
 - [Prefab Mode 편집](https://docs.unity3d.com/6000.3/Documentation/Manual/EditingInPrefabMode.html)
 - [Nested Prefab](https://docs.unity3d.com/6000.3/Documentation/Manual/NestedPrefabs.html)

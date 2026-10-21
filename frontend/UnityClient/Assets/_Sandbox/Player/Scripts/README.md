@@ -49,4 +49,4 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 
 ## 테스트
 
-`Assets/_Project/Tests/EditMode/Player/`의 EditMode 테스트가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Play로 확인합니다.
+`A305.Player.Tests` 어셈블리의 EditMode 테스트가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙을 검증합니다. 개발 중에는 `_Sandbox/Player/Tests/EditMode/`에 있고, 기능을 `_Project`로 옮길 때 `_Project/Tests/EditMode/Player/`로 함께 옮깁니다. 실행 방법은 [프론트엔드 개발 지침](../../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Play로 확인합니다.

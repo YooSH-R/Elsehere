@@ -100,7 +100,7 @@ frontend/UnityClient/Assets/
 | --- | --- | --- |
 | 코드와 Assembly Definition | `Scripts/<기능>/` | `A305.<기능>.asmdef`, namespace `A305.<기능>` |
 | 설명 | 코드와 같은 폴더의 `README.md` | 역할, 의존성, 사용 방법, 다른 기능에서 쓰는 API, 테스트 어셈블리 |
-| 테스트 | `Tests/EditMode/<기능>/` | `A305.<기능>.Tests.asmdef` |
+| 테스트 | `Tests/EditMode/<기능>/`, `Tests/PlayMode/<기능>/` | `A305.<기능>.Tests.asmdef`, PlayMode는 `A305.<기능>.PlayModeTests.asmdef` |
 
 | 구분 | 예 | 참조 기준 |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ frontend/UnityClient/Assets/
 
 ### 배포용 씬
 
-- 배포용 씬은 `Scenes/Production/`에 두고 Build Profile의 Scene List에 등록합니다. 현재 `Scenes/SampleScene`은 개발 환경 확인용 샘플이며, 서비스 씬을 만들면 Scene List를 함께 정리합니다.
+- 배포용 씬은 `Scenes/Production/`에 두고 Build Profile의 Scene List에 등록합니다. 첫 번째 씬(`HomeScene`)에서 시작합니다. `Scenes/SampleScene`은 개발 환경 확인용 샘플이라 Scene List에 넣지 않습니다.
 - 씬에는 프리팹 인스턴스의 배치, 위치, 씬 단위 참조 연결, 조명과 환경 설정을 둡니다. 기능의 구성과 동작은 프리팹에서 만듭니다.
 - 씬에서 GameObject를 직접 조합해 기능을 만들지 않습니다. 프리팹으로 만든 뒤 배치합니다.
 - 최상위 객체는 다음 그룹으로 정리합니다. 그룹 객체는 위치·회전 0, 크기 1로 두고 컴포넌트를 붙이지 않습니다. Sandbox 씬도 같은 그룹을 사용합니다.
@@ -168,7 +168,17 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 & "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Player.PlayerSandboxBuilder.Build -quit -logFile <저장소 밖 경로>\Builder.log
 ```
 
-- Builder는 만든 파일을 덮어씁니다. Editor에서 직접 고친 씬·프리팹을 다시 만들기 전에 변경 내용을 확인하고, 계속 쓸 수정은 Builder 코드에도 반영합니다.
+- 디자인 에셋으로 바꾼 뒤에도 Builder를 다시 실행할 수 있도록, 디자인 작업이 들어가는 에셋은 덮어쓰지 않습니다.
+
+| 대상 | Builder 동작 |
+| --- | --- |
+| 대체 에셋(도형으로 만든 공간 프리팹·머티리얼) | 없을 때만 만듭니다. 이미 있으면 디자인한 내용을 그대로 둡니다. |
+| 기능 프리팹(플레이어, 출입구처럼 컴포넌트가 있는 프리팹) | 루트에 기능 컴포넌트를, `Visual` 아래에 모델을 둡니다. Builder는 컴포넌트와 참조 연결만 다시 맞추고 `Visual` 아래와 모델에 맞춰 바꾼 값은 유지합니다. `Visual`이 없을 때만 도형으로 된 대체 모양을 만듭니다. |
+| 배포용 씬 | 없을 때만 대체 공간으로 만들고, 있으면 열어서 기능 연결만 다시 맞춥니다. |
+| Sandbox 씬 | 확인용이라 다시 만들 때 덮어씁니다. |
+| 데이터 에셋 | 없을 때만 기본값으로 만들고, 있으면 수치를 그대로 둡니다. |
+
+- 배포용 공간 씬의 기능 연결(규약 그룹, 플레이어·카메라·도착 처리, Scene List 등록)은 대체 공간이든 디자인한 씬이든 **Tools → A305 → World → Set Up Open Scene**이 같은 방식으로 적용합니다. 절차는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#새-공간-씬-만들기)을 따릅니다.
 - 배포용 씬과 [공유 설정 파일](#공유-설정-파일)을 바꾸는 Builder도 수정 선언 규칙을 따릅니다.
 
 ## 프리팹

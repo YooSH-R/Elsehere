@@ -48,6 +48,15 @@ namespace A305.Player
             motor.SetMovementLocked(isLocked);
         }
 
+        /// <summary>플레이어를 바로 옮긴다. 다른 공간에 들어온 뒤 출입구 앞에 세울 때 쓴다.</summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
+            // CharacterController가 켜진 채 옮기면 다음 Move에서 이전 위치로 돌아갈 수 있어 잠시 끈다.
+            characterController.enabled = false;
+            transform.SetPositionAndRotation(position, rotation);
+            characterController.enabled = true;
+        }
+
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();

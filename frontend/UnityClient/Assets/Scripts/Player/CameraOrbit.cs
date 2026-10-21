@@ -66,6 +66,12 @@ namespace A305.Player
             );
         }
 
+        /// <summary>카메라가 바라보는 수평 방향을 정한다. 순간 이동한 플레이어의 뒤로 카메라를 돌릴 때 쓴다.</summary>
+        public void SetYaw(float yawDegrees)
+        {
+            YawDegrees = yawDegrees;
+        }
+
         public void ToggleFirstPerson()
         {
             if (ViewMode == CameraViewMode.Dialogue)

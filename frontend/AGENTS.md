@@ -6,6 +6,7 @@
 
 - C# 스크립트와 테스트 코드는 직접 작성하고 수정합니다.
 - 씬(`.unity`)·프리팹(`.prefab`)·데이터 에셋(`.asset`)은 직렬화 파일을 텍스트로 직접 쓰지 않고, [Unity 개발 규약의 에셋 Builder](../docs/unity/conventions.md#에셋-builder)로 만듭니다. Builder를 작성해 batchmode `-executeMethod`로 실행하고, 생성된 파일을 커밋해 사용자가 Editor에서 바로 열어 확인할 수 있게 합니다. 코드만 작성하고 씬·프리팹 구성을 사용자에게 넘기지 않습니다.
+- Builder는 규약의 [Builder 동작 기준](../docs/unity/conventions.md#에셋-builder)에 따라 디자인 작업이 들어가는 에셋을 덮어쓰지 않습니다. 대체 에셋은 없을 때만 만들고, 기능 프리팹은 컴포넌트와 연결만 맞춥니다.
 - Editor가 프로젝트를 열고 있어 batchmode를 실행할 수 없으면, Editor의 `Tools/A305/...` 메뉴로 Builder를 실행하도록 안내하고 결과를 받아 진행합니다.
 - `.meta` 파일은 직접 만들거나 수정하지 않습니다. batchmode 실행이나 Editor 가져오기로 Unity가 생성한 `.meta`를 에셋과 함께 커밋합니다.
 - `Packages/manifest.json`의 패키지 추가와 변경은 필요성을 설명하고 확인을 받은 뒤 진행합니다.
@@ -30,8 +31,8 @@
 테스트 어셈블리는 기능별로 둡니다. 기능 어셈블리 구성은 [Unity 개발 규약의 기능 모듈](../docs/unity/conventions.md#기능-모듈)을 따릅니다.
 
 - Assembly Definition을 사용하는 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참조할 수 없습니다. 테스트할 코드에 Assembly Definition(`A305.<기능>`)을 두고 테스트 어셈블리에서 참조합니다.
-- 테스트는 `Assets/Tests/EditMode/<기능>/`, `Assets/Tests/PlayMode/<기능>/`에 두고 테스트 어셈블리 이름은 `A305.<기능>.Tests`로 합니다. 예: `Tests/EditMode/Player/A305.Player.Tests.asmdef`
-- 테스트용 Assembly Definition은 Test Runner 창의 생성 기능이 만드는 설정(Editor 전용, `nunit.framework.dll`, `UNITY_INCLUDE_TESTS`)과 같게 두고, 테스트할 기능 어셈블리를 References에 추가합니다.
+- 테스트는 `Assets/Tests/EditMode/<기능>/`, `Assets/Tests/PlayMode/<기능>/`에 두고 테스트 어셈블리 이름은 `A305.<기능>.Tests`로 합니다. 같은 기능에 PlayMode 테스트도 있으면 `A305.<기능>.PlayModeTests`로 구분합니다. 예: `Tests/EditMode/Player/A305.Player.Tests.asmdef`, `Tests/PlayMode/World/A305.World.PlayModeTests.asmdef`
+- 테스트용 Assembly Definition은 Test Runner 창의 생성 기능이 만드는 설정(`nunit.framework.dll`, `UNITY_INCLUDE_TESTS`, EditMode는 Editor 전용·PlayMode는 모든 플랫폼)과 같게 두고, 테스트할 기능 어셈블리를 References에 추가합니다.
 
 ## 실행 방법
 

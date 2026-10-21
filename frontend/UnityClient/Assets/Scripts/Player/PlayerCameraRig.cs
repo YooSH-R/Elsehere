@@ -56,6 +56,14 @@ namespace A305.Player
             dialogueLookTarget = null;
         }
 
+        /// <summary>카메라를 플레이어 뒤로 돌려 바로 그 자리에 놓는다. 플레이어를 순간 이동시킨 뒤 호출한다.</summary>
+        public void SnapBehindTarget()
+        {
+            orbit.SetYaw(followTarget.eulerAngles.y);
+            Pose pose = GetDesiredPose();
+            transform.SetPositionAndRotation(pose.position, pose.rotation);
+        }
+
         private void Awake()
         {
             if (!HasRequiredReferences())
@@ -65,8 +73,7 @@ namespace A305.Player
             }
 
             orbit = cameraSettings.CreateOrbit();
-            Pose startPose = GetDesiredPose();
-            transform.SetPositionAndRotation(startPose.position, startPose.rotation);
+            SnapBehindTarget();
         }
 
         private void OnEnable()

@@ -2,12 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using A305.Characters;
+using A305.EditorTools.Common;
 using A305.Player;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.Player
@@ -18,9 +17,11 @@ namespace A305.EditorTools.Player
     /// </summary>
     public static class PlayerSandboxBuilder
     {
+        public const string PlayerPrefabPath = "Assets/Prefabs/Player/Player.prefab";
+        public const string CameraPrefabPath = "Assets/Prefabs/Player/PlayerCamera.prefab";
+        public const string MenuPath = "Tools/A305/Player/Build Sandbox";
+
         private const string ScenePath = "Assets/Scenes/Sandbox/PlayerSandbox.unity";
-        private const string PlayerPrefabPath = "Assets/Prefabs/Player/Player.prefab";
-        private const string CameraPrefabPath = "Assets/Prefabs/Player/PlayerCamera.prefab";
         private const string MovementSettingsPath = "Assets/Data/Player/PlayerMovementSettings.asset";
         private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const string ArtFolder = "Assets/Art/Player";
@@ -32,22 +33,21 @@ namespace A305.EditorTools.Player
         private const float BodyHeightMeters = 1.8f;
         private const float BodyRadiusMeters = 0.3f;
 
-        [MenuItem("Tools/A305/Player/Build Sandbox")]
+        [MenuItem(MenuPath)]
         public static void Build()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode)
-            {
-                throw new InvalidOperationException("Play Mode를 끝낸 뒤 PlayerSandbox를 만듭니다.");
-            }
-
-            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (!BuilderTools.CanBuild())
             {
                 return;
             }
 
             AddCameraInputActions();
-            var movementSettings = LoadOrCreateAsset<PlayerMovementSettings>(MovementSettingsPath);
-            var cameraSettings = LoadOrCreateAsset<PlayerCameraSettings>(CameraSettingsPath);
+            var movementSettings = BuilderTools.LoadOrCreateAsset<PlayerMovementSettings>(
+                MovementSettingsPath
+            );
+            var cameraSettings = BuilderTools.LoadOrCreateAsset<PlayerCameraSettings>(
+                CameraSettingsPath
+            );
 
             GameObject playerPrefab = BuildPlayerPrefab(movementSettings);
             GameObject cameraPrefab = BuildCameraPrefab(cameraSettings);
@@ -55,6 +55,25 @@ namespace A305.EditorTools.Player
 
             AssetDatabase.SaveAssets();
             Debug.Log($"PlayerSandbox를 만들었습니다: {ScenePath}");
+        }
+
+        /// <summary>
+        /// 씬에 놓인 플레이어와 카메라를 서로 연결한다. 이동 방향은 카메라를, 카메라는 플레이어를 기준으로 한다.
+        /// </summary>
+        public static void ConnectPlayerAndCamera(GameObject player, GameObject playerCamera)
+        {
+            BuilderTools.SetReference(
+                player.GetComponent<PlayerMover>(),
+                "cameraTransform",
+                playerCamera.transform
+            );
+            BuilderTools.SetReference(
+                playerCamera.GetComponent<PlayerCameraRig>(),
+                "followTarget",
+                player.transform
+            );
+            BuilderTools.RequireReferences(player.GetComponent<PlayerMover>());
+            BuilderTools.RequireReferences(playerCamera.GetComponent<PlayerCameraRig>());
         }
 
         /// <summary>카메라 회전·줌·시점 전환 액션이 Player 맵에 없으면 추가한다. 이미 있으면 그대로 둔다.</summary>
@@ -134,35 +153,33 @@ namespace A305.EditorTools.Player
             // 모델로 바꿀 때는 Visual 아래만 교체한다. 콜라이더는 루트의 CharacterController가 맡는다.
             var visual = new GameObject("Visual");
             visual.transform.SetParent(root.transform, false);
-            CreateShape(
+            BuilderTools.CreateShape(
                 PrimitiveType.Capsule,
                 "Body",
                 visual.transform,
                 new Vector3(0f, BodyHeightMeters / 2f, 0f),
                 new Vector3(BodyRadiusMeters * 2f, BodyHeightMeters / 2f, BodyRadiusMeters * 2f),
-                GetOrCreateMaterial("PlayerBody", new Color(0.25f, 0.45f, 0.85f)),
+                ArtMaterial("PlayerBody", new Color(0.25f, 0.45f, 0.85f)),
                 keepCollider: false
             );
             // 몸이 어느 쪽을 보는지 알 수 있게 앞쪽에 표시를 단다.
-            CreateShape(
+            BuilderTools.CreateShape(
                 PrimitiveType.Cube,
                 "FrontMarker",
                 visual.transform,
                 new Vector3(0f, 1.5f, BodyRadiusMeters),
                 new Vector3(0.2f, 0.1f, 0.15f),
-                GetOrCreateMaterial("PlayerFront", new Color(0.95f, 0.95f, 0.95f)),
+                ArtMaterial("PlayerFront", new Color(0.95f, 0.95f, 0.95f)),
                 keepCollider: false
             );
 
-            var moverFields = new SerializedObject(mover);
-            moverFields.FindProperty("movementSettings").objectReferenceValue = movementSettings;
-            moverFields.FindProperty("moveAction").objectReferenceValue = ActionReference("Move");
-            moverFields.FindProperty("sprintAction").objectReferenceValue = ActionReference("Sprint");
-            moverFields.FindProperty("jumpAction").objectReferenceValue = ActionReference("Jump");
-            moverFields.FindProperty("animationDriver").objectReferenceValue = animationDriver;
-            moverFields.ApplyModifiedPropertiesWithoutUndo();
+            BuilderTools.SetReference(mover, "movementSettings", movementSettings);
+            BuilderTools.SetReference(mover, "moveAction", ActionReference("Move"));
+            BuilderTools.SetReference(mover, "sprintAction", ActionReference("Sprint"));
+            BuilderTools.SetReference(mover, "jumpAction", ActionReference("Jump"));
+            BuilderTools.SetReference(mover, "animationDriver", animationDriver);
 
-            return SavePrefab(root, PlayerPrefabPath);
+            return BuilderTools.SavePrefab(root, PlayerPrefabPath);
         }
 
         private static GameObject BuildCameraPrefab(PlayerCameraSettings cameraSettings)
@@ -173,87 +190,54 @@ namespace A305.EditorTools.Player
             root.AddComponent<AudioListener>();
             var rig = root.AddComponent<PlayerCameraRig>();
 
-            var rigFields = new SerializedObject(rig);
-            rigFields.FindProperty("cameraSettings").objectReferenceValue = cameraSettings;
-            rigFields.FindProperty("lookAction").objectReferenceValue = ActionReference("Look");
-            rigFields.FindProperty("rotateHoldAction").objectReferenceValue = ActionReference(
-                "CameraRotate"
-            );
-            rigFields.FindProperty("zoomAction").objectReferenceValue = ActionReference("CameraZoom");
-            rigFields.FindProperty("toggleViewAction").objectReferenceValue = ActionReference(
-                "ToggleView"
-            );
-            rigFields.ApplyModifiedPropertiesWithoutUndo();
+            BuilderTools.SetReference(rig, "cameraSettings", cameraSettings);
+            BuilderTools.SetReference(rig, "lookAction", ActionReference("Look"));
+            BuilderTools.SetReference(rig, "rotateHoldAction", ActionReference("CameraRotate"));
+            BuilderTools.SetReference(rig, "zoomAction", ActionReference("CameraZoom"));
+            BuilderTools.SetReference(rig, "toggleViewAction", ActionReference("ToggleView"));
 
-            return SavePrefab(root, CameraPrefabPath);
+            return BuilderTools.SavePrefab(root, CameraPrefabPath);
         }
 
         private static void BuildScene(GameObject playerPrefab, GameObject cameraPrefab)
         {
-            Scene scene = EditorSceneManager.NewScene(
-                NewSceneSetup.DefaultGameObjects,
-                NewSceneMode.Single
+            SceneGroups groups = BuilderTools.NewSceneWithGroups();
+
+            BuildEnvironment(groups.Environment);
+
+            GameObject player = BuilderTools.InstantiatePrefab(
+                playerPrefab,
+                groups.Characters,
+                Vector3.zero,
+                Quaternion.identity
             );
-            Transform systems = CreateGroup("Systems");
-            Transform environment = CreateGroup("Environment");
-            Transform characters = CreateGroup("Characters");
-            Transform lighting = CreateGroup("Lighting");
-
-            // 기본 카메라는 PlayerCamera 프리팹으로 대신하고, 기본 조명은 Lighting 그룹으로 옮긴다.
-            foreach (GameObject defaultObject in scene.GetRootGameObjects())
-            {
-                if (defaultObject.GetComponent<Camera>() != null)
-                {
-                    Object.DestroyImmediate(defaultObject);
-                }
-                else if (defaultObject.GetComponent<Light>() != null)
-                {
-                    defaultObject.transform.SetParent(lighting, true);
-                }
-            }
-
-            BuildEnvironment(environment);
-
-            var player = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab, scene);
-            player.transform.SetParent(characters, false);
-
-            var playerCamera = (GameObject)PrefabUtility.InstantiatePrefab(cameraPrefab, scene);
-            playerCamera.transform.SetParent(systems, false);
-            playerCamera.transform.SetPositionAndRotation(
+            GameObject playerCamera = BuilderTools.InstantiatePrefab(
+                cameraPrefab,
+                groups.Systems,
                 new Vector3(0f, 2.5f, -5f),
                 Quaternion.Euler(20f, 0f, 0f)
             );
+            ConnectPlayerAndCamera(player, playerCamera);
 
-            Transform dialogueLookTarget = CreateDialogueTarget(characters);
+            Transform dialogueLookTarget = CreateDialogueTarget(groups.Characters);
 
-            SetReference(player.GetComponent<PlayerMover>(), "cameraTransform", playerCamera.transform);
-            SetReference(playerCamera.GetComponent<PlayerCameraRig>(), "followTarget", player.transform);
+            var probe = new GameObject("DialogueViewProbe").AddComponent<DialogueViewProbe>();
+            probe.transform.SetParent(groups.Systems, false);
+            BuilderTools.SetReference(probe, "cameraRig", playerCamera.GetComponent<PlayerCameraRig>());
+            BuilderTools.SetReference(probe, "playerMover", player.GetComponent<PlayerMover>());
+            BuilderTools.SetReference(probe, "lookTarget", dialogueLookTarget);
+            BuilderTools.RequireReferences(probe);
 
-            var probeObject = new GameObject("DialogueViewProbe");
-            probeObject.transform.SetParent(systems, false);
-            var probe = probeObject.AddComponent<DialogueViewProbe>();
-            SetReference(probe, "cameraRig", playerCamera.GetComponent<PlayerCameraRig>());
-            SetReference(probe, "playerMover", player.GetComponent<PlayerMover>());
-            SetReference(probe, "lookTarget", dialogueLookTarget);
-
-            RequireReferences(player.GetComponent<PlayerMover>());
-            RequireReferences(playerCamera.GetComponent<PlayerCameraRig>());
-            RequireReferences(probe);
-
-            EnsureFolder(Path.GetDirectoryName(ScenePath));
-            if (!EditorSceneManager.SaveScene(scene, ScenePath))
-            {
-                throw new InvalidOperationException($"씬을 저장하지 못했습니다: {ScenePath}");
-            }
+            BuilderTools.SaveScene(groups.Scene, ScenePath);
         }
 
         /// <summary>이동·충돌·경사로·계단·카메라 벽 당김을 확인할 수 있는 바닥과 장애물.</summary>
         private static void BuildEnvironment(Transform environment)
         {
-            Material ground = GetOrCreateMaterial("SandboxGround", new Color(0.55f, 0.62f, 0.5f));
-            Material obstacle = GetOrCreateMaterial("SandboxObstacle", new Color(0.8f, 0.68f, 0.5f));
+            Material ground = ArtMaterial("SandboxGround", new Color(0.55f, 0.62f, 0.5f));
+            Material obstacle = ArtMaterial("SandboxObstacle", new Color(0.8f, 0.68f, 0.5f));
 
-            CreateShape(
+            BuilderTools.CreateShape(
                 PrimitiveType.Plane,
                 "Ground",
                 environment,
@@ -261,7 +245,7 @@ namespace A305.EditorTools.Player
                 new Vector3(6f, 1f, 6f),
                 ground
             );
-            CreateShape(
+            BuilderTools.CreateShape(
                 PrimitiveType.Cube,
                 "Box",
                 environment,
@@ -269,7 +253,7 @@ namespace A305.EditorTools.Player
                 new Vector3(2f, 2f, 2f),
                 obstacle
             );
-            CreateShape(
+            BuilderTools.CreateShape(
                 PrimitiveType.Cube,
                 "Wall",
                 environment,
@@ -278,7 +262,7 @@ namespace A305.EditorTools.Player
                 obstacle
             );
 
-            Transform ramp = CreateShape(
+            Transform ramp = BuilderTools.CreateShape(
                 PrimitiveType.Cube,
                 "Ramp",
                 environment,
@@ -287,7 +271,7 @@ namespace A305.EditorTools.Player
                 obstacle
             );
             ramp.localRotation = Quaternion.Euler(-15f, 0f, 0f);
-            CreateShape(
+            BuilderTools.CreateShape(
                 PrimitiveType.Cube,
                 "RampTop",
                 environment,
@@ -300,7 +284,7 @@ namespace A305.EditorTools.Player
             for (int step = 1; step <= 4; step++)
             {
                 float height = step * 0.25f;
-                CreateShape(
+                BuilderTools.CreateShape(
                     PrimitiveType.Cube,
                     $"Step{step}",
                     environment,
@@ -314,92 +298,32 @@ namespace A305.EditorTools.Player
         /// <summary>NPC 대신 대화 시점을 확인할 대상. 카메라는 머리 높이의 LookTarget을 바라본다.</summary>
         private static Transform CreateDialogueTarget(Transform characters)
         {
-            var target = new GameObject("DialogueTarget");
-            target.transform.SetParent(characters, false);
-            target.transform.SetPositionAndRotation(
+            Transform target = BuilderTools.CreateEmpty(
+                "DialogueTarget",
+                characters,
                 new Vector3(0f, 0f, 6f),
                 Quaternion.Euler(0f, 180f, 0f)
             );
-            CreateShape(
+            BuilderTools.CreateShape(
                 PrimitiveType.Capsule,
                 "Body",
-                target.transform,
+                target,
                 new Vector3(0f, BodyHeightMeters / 2f, 0f),
                 new Vector3(BodyRadiusMeters * 2f, BodyHeightMeters / 2f, BodyRadiusMeters * 2f),
-                GetOrCreateMaterial("SandboxDialogueTarget", new Color(0.9f, 0.55f, 0.25f))
+                ArtMaterial("SandboxDialogueTarget", new Color(0.9f, 0.55f, 0.25f))
             );
 
-            var lookTarget = new GameObject("LookTarget");
-            lookTarget.transform.SetParent(target.transform, false);
-            lookTarget.transform.localPosition = new Vector3(0f, 1.6f, 0f);
-            return lookTarget.transform;
+            return BuilderTools.CreateEmpty(
+                "LookTarget",
+                target,
+                new Vector3(0f, 1.6f, 0f),
+                Quaternion.identity
+            );
         }
 
-        private static Transform CreateGroup(string groupName)
+        private static Material ArtMaterial(string materialName, Color color)
         {
-            return new GameObject(groupName).transform;
-        }
-
-        private static Transform CreateShape(
-            PrimitiveType type,
-            string shapeName,
-            Transform parent,
-            Vector3 localPosition,
-            Vector3 localScale,
-            Material material,
-            bool keepCollider = true
-        )
-        {
-            GameObject shape = GameObject.CreatePrimitive(type);
-            shape.name = shapeName;
-            shape.transform.SetParent(parent, false);
-            shape.transform.localPosition = localPosition;
-            shape.transform.localScale = localScale;
-            shape.GetComponent<MeshRenderer>().sharedMaterial = material;
-
-            if (!keepCollider)
-            {
-                Object.DestroyImmediate(shape.GetComponent<Collider>());
-            }
-
-            return shape.transform;
-        }
-
-        private static Material GetOrCreateMaterial(string materialName, Color color)
-        {
-            string path = $"{ArtFolder}/{materialName}.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material == null)
-            {
-                Shader litShader = Shader.Find("Universal Render Pipeline/Lit");
-                if (litShader == null)
-                {
-                    throw new InvalidOperationException("URP Lit 셰이더를 찾지 못했습니다.");
-                }
-
-                EnsureFolder(ArtFolder);
-                material = new Material(litShader);
-                AssetDatabase.CreateAsset(material, path);
-            }
-
-            material.SetColor("_BaseColor", color);
-            EditorUtility.SetDirty(material);
-            return material;
-        }
-
-        private static T LoadOrCreateAsset<T>(string path)
-            where T : ScriptableObject
-        {
-            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
-            if (asset != null)
-            {
-                return asset;
-            }
-
-            EnsureFolder(Path.GetDirectoryName(path));
-            asset = ScriptableObject.CreateInstance<T>();
-            AssetDatabase.CreateAsset(asset, path);
-            return asset;
+            return BuilderTools.GetOrCreateMaterial(ArtFolder, materialName, color);
         }
 
         private static InputActionReference ActionReference(string actionName)
@@ -421,61 +345,6 @@ namespace A305.EditorTools.Player
             }
 
             return reference;
-        }
-
-        private static GameObject SavePrefab(GameObject root, string path)
-        {
-            EnsureFolder(Path.GetDirectoryName(path));
-            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path, out bool isSaved);
-            Object.DestroyImmediate(root);
-
-            if (!isSaved)
-            {
-                throw new InvalidOperationException($"프리팹을 저장하지 못했습니다: {path}");
-            }
-
-            return prefab;
-        }
-
-        private static void SetReference(Object owner, string propertyName, Object value)
-        {
-            var fields = new SerializedObject(owner);
-            fields.FindProperty(propertyName).objectReferenceValue = value;
-            fields.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        /// <summary>참조 필드가 하나라도 비어 있으면 실패시켜, 연결이 빠진 씬을 만들지 않게 한다.</summary>
-        private static void RequireReferences(Object owner)
-        {
-            SerializedProperty property = new SerializedObject(owner).GetIterator();
-            bool enterChildren = true;
-            while (property.NextVisible(enterChildren))
-            {
-                enterChildren = false;
-                bool isEmptyReference =
-                    property.propertyType == SerializedPropertyType.ObjectReference
-                    && property.name != "m_Script"
-                    && property.objectReferenceValue == null;
-                if (isEmptyReference)
-                {
-                    throw new InvalidOperationException(
-                        $"{owner.GetType().Name}의 {property.name}가 연결되지 않았습니다."
-                    );
-                }
-            }
-        }
-
-        private static void EnsureFolder(string folderPath)
-        {
-            string normalizedPath = folderPath.Replace('\\', '/');
-            if (AssetDatabase.IsValidFolder(normalizedPath))
-            {
-                return;
-            }
-
-            string parentPath = Path.GetDirectoryName(normalizedPath).Replace('\\', '/');
-            EnsureFolder(parentPath);
-            AssetDatabase.CreateFolder(parentPath, Path.GetFileName(normalizedPath));
         }
     }
 }

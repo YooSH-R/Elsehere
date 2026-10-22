@@ -1,0 +1,114 @@
+"""AI 워커 설정. 역할별 모델·공급자 구성은 llm_profiles.json (프로토타입 prototype/mvp_web와 같은 파일)에서 이름 하나로 고른다.
+
+    LLM_PROFILE=gms-luna  → GMS 주소·키(GMS_KEY)·GPT-6 Luna로 (Spring은 그대로)
+
+그 위에 환경 변수로 덮어쓸 수 있다: LLM_BASE_URL·LLM_API_KEY(구성의 기본 공급자), MODEL_<역할>, MODEL_FALLBACK.
+"""
+import json
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]   # 저장소 최상위 (개발할 때 .env를 여기서 읽음)
+PROFILES_FILE = Path(os.environ.get("LLM_PROFILES") or Path(__file__).resolve().parents[1] / "llm_profiles.json")
+PROFILES = json.loads(PROFILES_FILE.read_text(encoding="utf-8"))
+MODEL_PARAMS: list[dict] = PROFILES.get("model_params", [])
+
+
+def profile_models(name: str) -> tuple[dict[str, str], dict[str, str]]:
+    """구성의 (역할 → 모델, 기본 공급자가 아닌 곳을 쓰는 역할 → 공급자 이름)."""
+    p = PROFILES["profiles"][name]
+    models, role_provider = {}, {}
+    for role, m in p["models"].items():
+        if isinstance(m, dict):
+            if m["provider"] != p["provider"]:
+                role_provider[role] = m["provider"]
+            m = m["model"]
+        models[role] = m
+    return models, role_provider
+
+
+# 역할별 기본 모델 (기본 구성, 2026-10-21부터 gms-luna). 프로토타입(prototype/mvp_web)에서 측정해 고른 것
+DEFAULT_PROFILE = PROFILES["default_profile"]
+DEFAULT_MODELS, DEFAULT_ROLE_PROVIDER = profile_models(DEFAULT_PROFILE)
+DEFAULT_FALLBACK = ",".join(f"{a}={b}" for a, b in PROFILES["profiles"][DEFAULT_PROFILE].get("fallback", {}).items())
+
+
+def load_dotenv(path: Path = ROOT / ".env"):
+    """개발용: 저장소 루트 .env를 읽어 비어 있는 환경 변수만 채운다 (배포에서는 컨테이너 환경 변수를 씀)."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        if "=" in line and not line.lstrip().startswith("#"):
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+def parse_pairs(text: str) -> dict[str, str]:
+    """'a=b,c=d' → {'a': 'b', 'c': 'd'}"""
+    return dict(p.split("=", 1) for p in (x.strip() for x in text.split(",")) if "=" in p)
+
+
+def provider_key(name: str, env=os.environ) -> str:
+    return next((env[k] for k in PROFILES["providers"][name]["key_env"] if env.get(k)), "")
+
+
+@dataclass
+class Settings:
+    token: str                                   # Spring과 공유하는 내부 토큰 (X-Internal-Token)
+    base_url: str = PROFILES["providers"][PROFILES["profiles"][DEFAULT_PROFILE]["provider"]]["base_url"]   # 구성의 기본 공급자
+    api_key: str = ""
+    profile: str = DEFAULT_PROFILE
+    models: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_MODELS))
+    fallback: dict[str, str] = field(default_factory=lambda: parse_pairs(DEFAULT_FALLBACK))
+    role_provider: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_ROLE_PROVIDER))   # 역할 → 다른 공급자 이름 (예: GMS 구성에서도 stt는 groq)
+    providers: dict[str, dict] = field(default_factory=dict)      # 다른 공급자 이름 → {"base_url", "api_key"}
+    model_params: list[dict] = field(default_factory=lambda: list(MODEL_PARAMS))
+    call_timeout_s: float = 8.0                  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
+    judge_budget_s: float = 5.0                  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 프로토타입 실측 1.2~2.9초
+    reply_first_budget_s: float = 5.0            # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
+    exhausted_skip_s: float = 600.0              # 하루 한도에 걸린 모델은 이만큼 건너뜀
+    retry_pause_s: float = 1.0                   # 429/5xx 뒤 재시도 전에 쉬는 시간 (retry-after가 있으면 그것, 최대 5초)
+    kokoro_model: str = ""                       # 비어 있으면 음성 합성 없음 (tts: false로 알림)
+    kokoro_voices: str = ""
+    tts_chunk_budget_s: float = 2.5              # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false
+    audio_ttl_s: float = 600.0                   # 스트림 음성 조각 보관 시간 (GET /v1/audio/{id})
+
+    @classmethod
+    def from_env(cls) -> "Settings":
+        load_dotenv()
+        e = os.environ
+        token = e.get("AI_WORKER_TOKEN", "")
+        if not token:
+            raise RuntimeError("AI_WORKER_TOKEN이 없습니다. Spring과 같은 값을 환경 변수(또는 저장소 루트 .env)에 넣으세요.")
+        profile = e.get("LLM_PROFILE") or DEFAULT_PROFILE
+        if profile not in PROFILES["profiles"]:
+            raise RuntimeError(f"없는 LLM_PROFILE {profile} (있는 것: {', '.join(PROFILES['profiles'])}, {PROFILES_FILE.name})")
+        p = PROFILES["profiles"][profile]
+        main = p["provider"]
+        models, role_provider = profile_models(profile)
+        api_key = e.get("LLM_API_KEY") or provider_key(main, e)
+        providers = {name: {"base_url": PROFILES["providers"][name]["base_url"], "api_key": provider_key(name, e)}
+                     for name in dict.fromkeys(role_provider.values())}
+        missing = [" 또는 ".join(PROFILES["providers"][n]["key_env"]) for n, v in providers.items() if not v["api_key"]]
+        if not api_key:
+            missing.insert(0, " 또는 ".join(["LLM_API_KEY", *PROFILES["providers"][main]["key_env"]]))
+        if missing:
+            raise RuntimeError(f"구성 {profile}에 필요한 모델 API 키가 없습니다: {', '.join(missing)} (환경 변수 또는 저장소 루트 .env)")
+        default_fallback = ",".join(f"{a}={b}" for a, b in p.get("fallback", {}).items())
+        return cls(
+            token=token,
+            base_url=e.get("LLM_BASE_URL", PROFILES["providers"][main]["base_url"]).rstrip("/"),
+            api_key=api_key,
+            profile=profile,
+            models={role: e.get(f"MODEL_{role.upper()}", m) for role, m in models.items()},
+            fallback=parse_pairs(e.get("MODEL_FALLBACK", default_fallback)),
+            role_provider=role_provider,
+            providers=providers,
+            call_timeout_s=float(e.get("CALL_TIMEOUT_S", cls.call_timeout_s)),
+            judge_budget_s=float(e.get("JUDGE_BUDGET_S", cls.judge_budget_s)),
+            reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),
+            kokoro_model=e.get("KOKORO_MODEL", ""),
+            kokoro_voices=e.get("KOKORO_VOICES", ""),
+            tts_chunk_budget_s=float(e.get("TTS_CHUNK_BUDGET_S", cls.tts_chunk_budget_s)),
+        )

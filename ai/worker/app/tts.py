@@ -28,6 +28,23 @@ def to_wav(audio, sr: int) -> bytes:
     return buf.getvalue()
 
 
+def join_wavs(wavs: list[bytes]) -> tuple[bytes, float]:
+    """같은 형식의 WAV 조각을 순서대로 이어 붙인다 (한 턴의 다시 듣기용 음성). 반환: (wav, 길이 초)."""
+    frames, params = [], None
+    for data in wavs:
+        with wave.open(io.BytesIO(data)) as w:
+            params = params or w.getparams()
+            frames.append(w.readframes(w.getnframes()))
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as out:
+        out.setnchannels(params.nchannels)
+        out.setsampwidth(params.sampwidth)
+        out.setframerate(params.framerate)
+        out.writeframes(b"".join(frames))
+    n = sum(len(f) for f in frames) // (params.sampwidth * params.nchannels)
+    return buf.getvalue(), n / params.framerate
+
+
 class Kokoro:
     """합성은 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 같은 문장(인사, 다시 듣기, 단어 발음)은 다시 만들지 않는다."""
 
@@ -74,16 +91,20 @@ class Kokoro:
 class AudioStore:
     """NPC 대답 스트림의 음성 조각. audio_id로 GET /v1/audio/{id}에서 가져간다 (보관 시간이 지나면 버림)."""
 
-    def __init__(self, ttl_s: float = 600, max_items: int = 2000):
-        self.ttl, self.max = ttl_s, max_items
+    def __init__(self, ttl_s: float = 600, max_items: int = 2000, max_bytes: int = 200_000_000):
+        self.ttl, self.max, self.max_bytes, self.total = ttl_s, max_items, max_bytes, 0
         self.items: OrderedDict[str, tuple[float, bytes]] = OrderedDict()
 
     def put(self, wav: bytes) -> str:
+        """보관 시간이 지난 것, 개수·전체 크기 상한을 넘는 것은 오래된 것부터 버린다 (방금 넣는 것은 커도 보관)."""
         now = time.time()
-        while self.items and (len(self.items) >= self.max or next(iter(self.items.values()))[0] < now):
-            self.items.popitem(last=False)
+        while self.items and (
+            len(self.items) >= self.max or self.total + len(wav) > self.max_bytes or next(iter(self.items.values()))[0] < now
+        ):
+            self.total -= len(self.items.popitem(last=False)[1][1])
         audio_id = secrets.token_hex(8)
         self.items[audio_id] = (now + self.ttl, wav)
+        self.total += len(wav)
         return audio_id
 
     def get(self, audio_id: str) -> bytes | None:

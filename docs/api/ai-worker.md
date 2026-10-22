@@ -1,10 +1,44 @@
-# AI 워커 API 계약 (Spring ↔ AI 워커)
+# AI API 명세 (Spring ↔ AI 워커)
+
+AI 기능 전용 명세입니다. 프론트엔드↔백엔드 API는 [MVP API 명세](mvp-api.md)가 기준이고, 이 문서는 그 문서를 바꾸지 않습니다.
+대신 백엔드 API의 각 기능이 어떤 AI API를 쓰는지(0절)와, 백엔드 명세에 없는 AI 쪽 규칙(0.1절)을 여기에 둡니다.
 
 이 문서는 `ai/worker`의 **현재 코드 기준** 계약입니다. 코드와 문서가 다르면 버그로 보고, 둘 중 하나를 고친 뒤 이 문서를 갱신합니다. 요청 형식의 원본은 [schemas.py](../../ai/worker/app/schemas.py)입니다.
 
 - AI 워커는 **상태를 저장하지 않습니다.** 게임 상태·전환 규칙·가격·크레딧·기록은 Spring이 갖고, 필요한 것을 매 요청에 담아 보냅니다.
 - AI가 돌려주는 의도는 **제안**입니다. 상태를 바꿀지는 Spring이 현재 상태에서 다시 검증해 정합니다.
 - Unity는 AI 워커를 직접 부르지 않습니다. 모든 호출은 Spring을 거칩니다.
+
+## 0. 백엔드 API와의 대응
+
+AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸는 것은 Spring이 합니다.
+
+| 백엔드 API | AI API | 대응 |
+|---|---|---|
+| ONB-08·09 난이도, CONV-01 `levelApplied` | 모든 대화 요청의 `level` | 그대로 넘김 (MVP는 `1`) |
+| CONV-01 대화 시작 · 첫 인사 | (백엔드 `[미정]`) | 미리 작성한 인사를 쓰면 AI 호출 없음. AI로 만들면 `/v1/npc/reply`에 인사 지시(`instruction`)와 `suggest_words: true` |
+| CONV-01·03 `suggestWords` | `/v1/npc/reply`의 `words` 이벤트 (또는 `/v1/suggest`) | `words` 그대로. 작별 대사 턴은 부르지 않음(`null`) |
+| CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH` |
+| CONV-03 발화 전송 | `POST /v1/judge` → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). `npcTurn.text` ← `done.text` |
+| CONV-03 `npcTurn.speech` | `done.audio_full_id` → `GET /v1/audio/{id}` | 턴 전체 음성 하나를 받아 저장(`npc_audio_key`). `null`이면 `speech.status: FAILED` |
+| CONV-04 뜻 보기 | `POST /v1/meaning` | `meaningKo` ← `meaning_ko`, `glossary[].meaningKo` ← `glossary[].meaning_ko` |
+| CONV-05 힌트 | `POST /v1/hint` | `hintText` ← `say_this[0].en` (`say_this[0].ko`·`keywords`는 3단계 힌트용으로 남음) |
+| CONV-06 다시 듣기 | (없음) | CONV-03에서 저장한 턴 전체 음성 |
+| CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← `npc.tts_speed` × 난이도 배율(1.1절) |
+| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함 |
+| FB-04 모범 음성 | `POST /v1/tts` | |
+| 1.5 오류 응답 | 워커 오류 코드 | `provider_limit` → `AI_RATE_LIMITED`, `provider_unavailable`·`timeout` → `AI_TEMPORARILY_UNAVAILABLE`, `invalid_output` → `AI_RESPONSE_INVALID` |
+
+## 0.1 AI 쪽 규칙 (백엔드 명세에 없는 것)
+
+- **무례 판정**: `/v1/judge`의 `guard.abusive`가 `true`면 무례, `false`면 정상, **`null`이면 판정 못 함**(무례로 세지 않음, 2.2절). 무례를 몇 번에 어떻게 제재할지는 Spring 규칙이 정합니다. NPC가 먼저 잘못한 장면의 맞대응(정당방위)은 자동 제재에서 빼 주세요.
+- **번역 카드**: 학습자 말에 한글이 섞이면 `translation.english`를 줍니다. `show: true`일 때만(무례가 아님이 확정) 화면에 보여 줍니다.
+- **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
+- **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
+- **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
+  - 음성은 두 가지입니다. 문장 조각(`audio` 이벤트)은 바로 재생용이고, 다시 듣기용은 `done`의 턴 전체 음성(`audio_full_id`) 하나입니다.
+  - 추천 단어는 `suggest_words: true`면 대답이 끝난 뒤 남은 음성 합성과 동시에 만들어 `words` 이벤트로 옵니다. Spring이 따로 부르지 않아도 됩니다.
+  - 전송: Spring이 `done`까지 받은 뒤 한 번에 응답(REST)해도 되고, `delta`·`audio`·`words`를 Unity로 바로 중계(스트리밍)해도 됩니다. 워커 계약은 같습니다. 첫 음성까지의 시간은 스트리밍이 짧습니다.
 
 ## 1. 공통
 
@@ -33,7 +67,7 @@
 | `method_not_allowed` | 405 | 주소는 있지만 HTTP 메서드가 다름 | 호출 코드 오류 |
 | `internal_error` | 500 | 워커 프로그램 오류 (원인은 워커 로그) | 재시도 안내, 워커 로그 확인 |
 
-**부분 실패** — `/v1/judge`와 `/v1/conversation/end`는 일부가 실패해도 **HTTP 200**으로 돌려주고, 실패한 칸에 오류를 적습니다(2.2, 2.6절). NPC 대답은 SSE `error` 이벤트로 알립니다(2.3절).
+**부분 실패** — `/v1/judge`는 일부가 실패해도 **HTTP 200**으로 돌려주고 실패한 칸에 오류를 적습니다(2.2절). `/v1/feedback`은 실패도 200 안의 `feedback.status: failed`로 알립니다(2.7절). NPC 대답은 SSE `error` 이벤트로 알립니다(2.3절).
 
 **시간 상한** (워커 환경 변수, 재시도·대체 모델 포함)
 
@@ -41,6 +75,8 @@
 |---|---|---|
 | `CALL_TIMEOUT_S` | 8초 | 모델 호출 **한 번**. 넘으면 끊고 재시도·대체 모델 |
 | `HEDGE_AFTER_S` | 3초 | 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (NPC 스트림은 제외). 공급자가 혼잡할 때 응답 없이 멈춘 호출을 기다리지 않기 위함. 평소 응답(gms-luna 판정 p99 약 2.5~3.9초)보다 길게 잡아 평소에는 거의 더 보내지 않음 |
+| `STREAM_HEDGE_AFTER_S` | 2.5초 | NPC 대답 스트림의 **첫 글자**가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀(진 쪽은 닫음). GMS 스트리밍이 가끔 첫 글자를 10초 넘게 늦게 보내는 것 대비. 평소 첫 글자는 1.7초 안 |
+| `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5초 | 판정의 의도·무례·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
 | `REPLY_FIRST_BUDGET_S` | 5초 | NPC 대답 **첫 글자까지**. 넘으면 SSE `error`(`timeout`). 말하기 시작한 대답은 끊지 않음 |
 
@@ -58,6 +94,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `facts` | 문자열 | 메뉴·가격·성격 등 NPC가 아는 사실 |
 | `scene` | 문자열 | 장면 설명 (요청의 `scene`이 비면 이것) |
 | `tts_voice` | 문자열 (기본 `af_heart`) | Kokoro 목소리 이름 |
+| `tts_speed` | 수 0.5~2.0 (기본 1.0) | 이 NPC의 타고난 말 속도. 실제 속도는 여기에 난이도 배율을 곱함 |
 
 `history`의 한 줄
 
@@ -67,6 +104,16 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `text` | 문자열 (필수, 최대 1000자) | 말한 내용 |
 | `english` | 문자열 또는 `null` | 학습자 줄의 영어 번역 (판정의 `translation.english`) |
 | `rude` | 불 (기본 `false`) | 학습자 줄의 무례 판정이 `true`였는지 (`null`은 `false`로) |
+
+### 1.1 대화 난이도 `level`
+
+`level` — 대화 난이도(백엔드 `levelApplied`). `1`·`2`·`3` 중 하나이고 기본은 `2`입니다. MVP는 `1`만 보냅니다. 판정(`/v1/judge`)에는 영향이 없습니다.
+
+| 단계 | NPC 대답 | 말 속도 배율 | 힌트·추천 단어·단어 풀이 수준 |
+|---|---|---|---|
+| `1` | 초보자에게 말하듯 천천히, 쉬운 일상 단어. 한 문장(많아야 두 문장), 문장마다 14단어 미만, 속어·관용구 없음 | ×0.85 | 아주 쉽고 짧게 (CEFR A1-A2) |
+| `2` | 자연스러운 일상 미국 영어(줄임말·흔한 관용구). 한두 문장, 모두 25단어 미만 | ×1.0 | 쉽고 자연스럽게 (CEFR A2-B1) |
+| `3` | 원래 말투 그대로(속어·관용구·구동사). 두세 문장, 45단어 미만 | ×1.06 | 자연스럽게, 흔한 관용구 가능 (CEFR B1-B2) |
 
 ## 2. 엔드포인트
 
@@ -141,31 +188,33 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`).
+요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
 
 응답은 `text/event-stream`이며 이벤트 순서는 다음과 같습니다.
 
 ```
-delta*  →  audio*  →  done | error
+delta*  →  audio*  →  words?  →  done | error
 ```
 
-`delta`와 `audio`는 섞여서 옵니다. 마지막은 항상 `done` 또는 `error` 중 하나입니다.
+`delta`와 `audio`는 섞여서 옵니다. `words`는 `suggest_words: true`이고 대답이 성공했을 때만 `done` 바로 앞에 한 번 옵니다. 마지막은 항상 `done` 또는 `error` 중 하나입니다.
 
 | 이벤트 | data | 뜻 |
 |---|---|---|
 | `delta` | `{"text": "Got"}` | 글자 조각. 받는 대로 자막에 붙임 |
 | `audio` | `{"seq": 0, "text": "Got it, one latte for you.", "audio_id": "9f3a...", "duration_s": 1.8, "tts": true}` | 읽을 조각. `seq` 순서대로 재생. **WAV가 아니라 `audio_id`** — `GET /v1/audio/{audio_id}`로 받음. `tts: false`면 `audio_id: null`(합성 실패·늦음) → 그 조각은 자막만 |
-| `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문 |
+| `words` | `{"words": ["for here", "to go", "please"], "error": null}` | 추천 단어 (`/v1/suggest`와 같은 규칙). 실패하면 `words: null`, `error`에 `provider_unavailable`·`provider_limit`·`timeout`(`WORDS_BUDGET_S` 초과)·`invalid_output`·`internal_error`. 대답은 그대로 성공. **대답이 `error`로 끝나면 `words`는 오지 않음** |
+| `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성하지 못했거나 `tts: false`면 `null` → `/v1/tts`로 다시 만듦. `usage`에 추천 단어(`suggest`)도 포함 |
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
 - 대답은 한 줄입니다. 모델이 줄을 바꿔 다른 사람 대사를 쓰면 버립니다.
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.
 - 조각 하나의 합성이 `TTS_CHUNK_BUDGET_S`(기본 2.5초)를 넘으면 그 조각은 `tts: false`입니다.
+- 턴 전체 음성도 워커 메모리에 보관 시간(600초) 동안만 있으니, Spring은 `done`을 받은 뒤 바로 받아 저장합니다.
 
 ### 2.4 `GET /v1/audio/{audio_id}`
 
-`audio/wav`를 돌려줍니다. 보관 시간은 600초(설정 `audio_ttl_s`, 환경 변수로는 아직 못 바꿈)이며 **워커 프로세스 메모리**에 있습니다. 워커를 여러 대 띄우면 같은 대답의 음성은 그 대답을 만든 워커에서 받아야 합니다. 없으면 404 `not_found`입니다.
+`audio/wav`를 돌려줍니다. 보관 시간은 600초(설정 `audio_ttl_s`, 환경 변수로는 아직 못 바꿈)이며 **워커 프로세스 메모리**에 있습니다. 전체 크기가 `AUDIO_MAX_MB`(기본 200MB)를 넘으면 오래된 것부터 버립니다. 워커를 여러 대 띄우면 같은 대답의 음성은 그 대답을 만든 워커에서 받아야 합니다. 없으면 404 `not_found`입니다.
 
 Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아 중계합니다.
 
@@ -184,26 +233,61 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ### 2.6 `POST /v1/hint`
 
-요청: `npc`, `scene`, `goal`, `history`. 응답: `{"say_this": [{"en", "ko"} 최대 2개], "keywords": [{"en", "ko"} 최대 3개], "usage": [...]}`. 공급자 실패는 429/503, 출력이 이 형식이 아니면 502 `invalid_output`입니다.
+요청: `npc`, `scene`, `goal`, `history`, `level`(기본 `2`). 응답: `{"say_this": [{"en", "ko"} 최대 2개], "keywords": [{"en", "ko"} 최대 3개], "usage": [...]}`. 공급자 실패는 429/503, 출력이 이 형식이 아니면 502 `invalid_output`입니다.
 
-### 2.7 `POST /v1/conversation/end` — 피드백과 기억 카드
+### 2.6.1 `POST /v1/suggest` — 추천 단어 (백엔드 `suggestWords`)
 
-요청: `npc`, `scenario_title`, `goal_reached`, `outcome`, `history`(최대 200줄, 학습자 줄의 `english`·`rude` 포함), `memory_card`(이전 카드).
+학습자가 다음 대답에 쓸 만한 영어 단어·짧은 구를 3개까지 만듭니다. NPC 대답이 끝난 뒤(`done`의 `text`를 `history` 끝에 붙여) 부릅니다.
+
+요청: `npc`, `scene`(비면 `npc.scene`), `goal`(지금 상태에서 학습자가 할 일, 비면 자연스러운 대답, 최대 300자), `history`(마지막 NPC 줄이 대답할 대상, 최대 40줄), `level`(기본 `2`).
+
+응답: `{"words": ["for here", "to go", "please"], "usage": [...]}`
+
+- 단어 또는 1~3단어 구, 문자열 목록, 한국어 없음. 앞뒤 공백을 지우고 대소문자를 무시한 중복을 뺀 뒤 3개까지.
+- 출력에 쓸 단어가 하나도 없으면 502 `invalid_output`. 공급자 실패는 429/503.
+- 토큰이 떨어져 작별 대사로 끝나는 턴처럼 추천 단어가 필요 없으면 부르지 않습니다(백엔드는 `suggestWords: null`).
+
+### 2.6.2 `POST /v1/meaning` — NPC 대사 뜻과 단어 풀이 (백엔드 CONV-04)
+
+요청: `npc`, `text`(NPC가 한 말, 최대 1000자, 공백만이면 400), `level`(기본 `2`, 단어 풀이에 무엇을 고를지).
 
 응답:
 
 ```json
-{"feedback": {"good": "...", "improve": {"line": 3, "better": "...", "why": "..."}, "lines": [...]},
- "memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []},
- "errors": {"feedback": null, "memory": null}, "usage": [...]}
+{"meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?", "glossary": [{"text": "to go", "meaning_ko": "포장"}], "usage": [...]}
 ```
 
-- `feedback.lines`: 고칠 만한 학습자 줄마다 `{"line": 번호, "better": "더 나은 표현", "note": "짧은 설명"}`
+- `meaning_ko`: 말투를 살린 한국어 뜻 (가게 직원은 해요체, 친구 같은 말투는 반말). 괄호 풀이 없이 번역만.
+- `glossary`: 대사에서 학습자가 모를 만한 말(속어·관용구·구동사·핵심 단어) **최대 3개**. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 쉬운 대사면 빈 목록.
+- 출력이 이 형식이 아니거나 `meaning_ko`가 비면 502 `invalid_output`. 같은 대사는 Spring이 저장해 다시 부르지 않습니다.
+
+### 2.7 `POST /v1/feedback` — 대화 종료 피드백 (ai/feedback 계약 0.3.0)
+
+대화가 끝나면 학습 피드백을 만듭니다. **요청·응답 형식은 `ai/feedback` 모듈의 계약(0.3.0)을 그대로 따릅니다.**
+워커는 그 모듈(`generate_feedback`)을 부르고, 모델 호출만 워커 구성의 `feedback` 역할(재시도·대체 모델 포함)로 합니다.
+
+- 요청 본문: 모듈의 입력(`ai/feedback/schemas/feedback.input.schema.json`) — `schema_version: "0.3.0"`, `request_id`, `scope`, `turns[]`, `context` 등. 계약과 다르면 400 `invalid_request`.
+- 응답: `{"feedback": <모듈 출력>, "usage": [...]}`. 모듈 출력 형식은 `ai/feedback/schemas/feedback.output.schema.json`이며 `status`로 나뉩니다.
+
+| `feedback.status` | 뜻 | Spring 처리 |
+|---|---|---|
+| `completed` | `result`에 요약·의사소통 평가·리뷰 태그·발화별 평가·단어장 후보 | 백엔드 형식으로 변환해 저장 (아래) |
+| `insufficient_evidence` | 평가할 확정 학습자 발화가 없음 (모델을 부르지 않음) | 피드백 없이 종료 |
+| `failed` | `problem.code`: `AI_TIMEOUT`·`AI_PROVIDER_ERROR`·`INVALID_MODEL_OUTPUT` | `feedback.status: FAILED`, `errorCode`에 그대로 |
+
+- 공급자 실패·출력 형식 오류도 HTTP는 200이고 `feedback.status: failed`입니다(모듈이 판단). 사용량 한도는 Spring이 먼저 확인하고 부릅니다.
+- 시간 상한은 `FEEDBACK_TIMEOUT_S`(기본 60초)이며 **재시도·대체 모델을 포함한 전체 시간**입니다. 넘으면 `feedback.status: failed`, `problem.code: AI_TIMEOUT`. 길게 생성하는 호출이라 같은 요청 더 보내기(`HEDGE_AFTER_S`)를 쓰지 않습니다.
+- 백엔드 CONV-08 형식으로의 변환(예: `summary` ← `result.conversation_summary.text_ko`, `reviews.good`·`improve` ← `result.review_tags`의 `label_ko`, `suggestion` ← `result.summary_suggestion_id`가 가리키는 제안)은 `ai/feedback` 담당과 백엔드가 정합니다.
+
+### 2.7.1 `POST /v1/memory` — NPC 기억 카드
+
+요청: `npc`, `outcome`(대화 결과 한 줄), `history`(최대 200줄, 학습자 줄의 `english`·`rude` 포함), `memory_card`(이전 카드).
+
+응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}, "usage": [...]}`
+
 - `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다.
-
-하나가 실패하면(공급자 실패, 출력이 JSON 객체가 아님 등) 그 칸만 `null`이고 `errors`에 이유가 들어갑니다. 기억 카드가 `null`이면 **이전 카드를 그대로 둡니다.**
-
-`history`의 `rude`는 판정이 `abusive: true`였던 줄에만 `true`로 보냅니다(`null`은 `false`).
+- 공급자 실패는 429/503, 출력이 JSON 객체가 아니면 502 `invalid_output`. **실패하면 이전 카드를 그대로 둡니다.**
+- `history`의 `rude`는 판정이 `abusive: true`였던 줄에만 `true`로 보냅니다(`null`은 `false`).
 
 ### 2.8 `POST /v1/tts` — 한 문장 합성
 
@@ -215,10 +299,10 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 | 칸 | 뜻 |
 |---|---|
-| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`feedback`·`memory`·`stt` |
+| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`feedback`·`memory`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
-| `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음. 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |
+| `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음(NPC 대답은 첫 글자 기준). 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |
 | `input_tokens`, `output_tokens` | 공급자가 알려 준 토큰 수 (STT는 없음, 대신 `audio_s`) |
 | `latency_s` | 그 호출에 걸린 시간 |
 | `first_token_s` | NPC 대답만: 첫 글자까지 |

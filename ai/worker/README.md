@@ -3,7 +3,7 @@
 Spring만 부르는 내부 서버입니다. **게임 상태를 바꾸는 권한은 Spring에만 있고**, AI 워커는 판단 재료(판정)와 말(NPC 대답)·소리(음성)만 만듭니다.
 상태를 저장하지 않으므로 필요한 것(NPC·지금 상태·최근 대화·기억 카드)은 Spring이 매 요청에 담아 보냅니다.
 
-- API 계약(요청·응답·오류): [docs/api/ai-worker.md](../../docs/api/ai-worker.md)
+- AI API 명세(요청·응답·오류, 백엔드 API와의 대응): [docs/api/ai-worker.md](../../docs/api/ai-worker.md)
 - 배포: Spring과 같은 서버에서 **별도 프로세스(컨테이너)** 로 실행합니다. 포트(기본 8020)는 외부에 열지 않고 Spring만 부릅니다.
   Java인 Spring 안에 넣지 않는 이유는 음성 합성(Kokoro)과 로컬 무례 판정기가 Python 라이브러리이고, CPU·메모리를 많이 써서 따로 두는 편이 Spring에 영향을 주지 않기 때문입니다.
 - 프롬프트와 판정 규칙은 웹 프로토타입(브랜치 `prototype/S15P31A305-55-leejunghoon`의 `prototype/mvp_web`)에서 회귀 테스트로 다듬은 것을 옮겼습니다.
@@ -20,6 +20,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 ```
 
 키는 환경 변수 또는 저장소 루트 `.env`(Git 제외)에서 읽습니다. 배포에서는 컨테이너 환경 변수로 넣습니다.
+대화 종료 피드백은 같은 저장소의 `ai/feedback` 모듈을 불러 쓰므로, 배포할 때 `ai/worker`와 `ai/feedback`을 함께 둡니다 (추가 의존성은 pydantic뿐이고 워커 의존성에 이미 들어 있음).
 
 | 환경 변수 | 기본값 | 뜻 |
 |---|---|---|
@@ -32,6 +33,10 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `LLM_PROFILES` | `llm_profiles.json` | 구성 파일 경로 |
 | `CALL_TIMEOUT_S` | 8 | 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델 |
 | `HEDGE_AFTER_S` | 3 | 한 번에 받는 호출(판정·번역·힌트 등, NPC 스트림 제외)이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀. 0이면 끔. 측정은 [`ai/tools/llm_latency.py`](../tools/llm_latency.py) |
+| `STREAM_HEDGE_AFTER_S` | 2.5 | NPC 대답 스트림의 첫 글자가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀. 0이면 끔. 측정은 `ai/tools/llm_latency.py --mode stream` |
+| `FEEDBACK_TIMEOUT_S` | 60 | 대화 종료 피드백의 전체 상한 (재시도·대체 모델 포함, 같은 요청 더 보내기 없음). 넘으면 `AI_TIMEOUT` |
+| `AUDIO_MAX_MB` | 200 | 음성 조각·턴 전체 음성 보관소의 전체 크기 상한 (넘으면 오래된 것부터 버림) |
+| `WORDS_BUDGET_S` | 3 | NPC 대답 스트림 안 추천 단어의 상한. 넘으면 `words: null`(timeout)로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5 | 판정의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함) |
 | `REPLY_FIRST_BUDGET_S` | 5 | NPC 대답 첫 글자까지의 상한 |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
@@ -44,12 +49,15 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | API | 언제 | 응답 |
 |---|---|---|
 | `POST /v1/judge` | 한 턴의 처음: 번역·무례·의도를 동시에 판정 (상태는 안 바꿈) | JSON |
-| `POST /v1/npc/reply` | Spring이 상태를 바꾼 뒤 NPC 대답 | SSE: `delta` → `audio`(seq 순서) → `done` / `error` |
+| `POST /v1/npc/reply` | Spring이 상태를 바꾼 뒤 NPC 대답 | SSE: `delta` → `audio`(seq 순서) → (`words`) → `done`(턴 전체 음성 `audio_full_id`) / `error` |
 | `GET /v1/audio/{id}` | 스트림의 음성 조각 (10분 보관) | audio/wav |
 | `POST /v1/tts` | 모범 발화·단어 발음 같은 단독 합성 | audio/wav |
 | `POST /v1/stt` | 녹음 인식 (multipart `file`, 선택 `scene_words`) | JSON |
 | `POST /v1/hint` | 학습자가 💡를 누른 때 | JSON |
-| `POST /v1/conversation/end` | 대화가 끝났을 때: 피드백 + 기억 카드 | JSON |
+| `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 쓸 추천 단어 3개 | JSON |
+| `POST /v1/meaning` | [뜻 보기]: NPC 대사의 한국어 뜻과 단어 풀이 | JSON |
+| `POST /v1/feedback` | 대화가 끝났을 때: 학습 피드백 (`ai/feedback` 계약 0.3.0, 그 모듈을 부름) | JSON |
+| `POST /v1/memory` | 대화가 끝났을 때: NPC 기억 카드 갱신 | JSON |
 | `GET /health` | 상태 확인 (토큰 없이) | JSON |
 
 - 모든 응답(스트림은 마지막 `done`)에 `usage`: 단계·실제로 쓴 모델·입출력 토큰·시간·대체 여부. Spring은 이걸로 크레딧을 차감합니다.
@@ -111,6 +119,11 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
+- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 3개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·말 속도·힌트 수준
+- `tests/test_feedback.py`: `ai/feedback`의 예시 입력·출력으로 피드백 계약(완료·발화 없음·공급자 실패·출력 오류·입력 오류), 피드백 전용 시간 상한과 같은 요청 더 보내기 끔
+- `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
+- `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
+- `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, GPT-5 요청 칸
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

@@ -67,6 +67,23 @@ class BaseEntityTest {
     assertThat(found.getUpdatedAt()).isEqualTo(UPDATED_TIME);
   }
 
+  @Test
+  @DisplayName("시드 SQL처럼 시각을 빼고 행을 넣으면 DB 기본값으로 생성 시각과 수정 시각이 채워진다")
+  void insertWithoutTimestamps_fillsTimestampsWithDbDefault() {
+    entityManager
+        .createNativeQuery("insert into audited_records (name) values ('seed')")
+        .executeUpdate();
+
+    Object[] timestamps =
+        (Object[])
+            entityManager
+                .createNativeQuery(
+                    "select created_at, updated_at from audited_records where name = 'seed'")
+                .getSingleResult();
+
+    assertThat(timestamps).doesNotContainNull();
+  }
+
   @TestConfiguration(proxyBeanMethods = false)
   static class ClockTestConfiguration {
 

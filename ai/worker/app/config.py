@@ -65,6 +65,8 @@ class Settings:
     providers: dict[str, dict] = field(default_factory=dict)      # 다른 공급자 이름 → {"base_url", "api_key"}
     model_params: list[dict] = field(default_factory=lambda: list(MODEL_PARAMS))
     call_timeout_s: float = 8.0                  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
+    hedge_after_s: float = 3.0                   # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
+                                                 # 2026-10-22 gms-luna: 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초, 평소 p99 2.5~3.9초
     judge_budget_s: float = 5.0                  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 프로토타입 실측 1.2~2.9초
     reply_first_budget_s: float = 5.0            # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
     exhausted_skip_s: float = 600.0              # 하루 한도에 걸린 모델은 이만큼 건너뜀
@@ -117,6 +119,7 @@ class Settings:
             role_provider=role_provider,
             providers=providers,
             call_timeout_s=float(e.get("CALL_TIMEOUT_S", cls.call_timeout_s)),
+            hedge_after_s=float(e.get("HEDGE_AFTER_S", cls.hedge_after_s)),
             judge_budget_s=float(e.get("JUDGE_BUDGET_S", cls.judge_budget_s)),
             reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),
             kokoro_model=e.get("KOKORO_MODEL", ""),

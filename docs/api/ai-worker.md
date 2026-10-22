@@ -37,6 +37,7 @@
 | 변수 | 기본 | 적용 |
 |---|---|---|
 | `CALL_TIMEOUT_S` | 8초 | 모델 호출 **한 번**. 넘으면 끊고 재시도·대체 모델 |
+| `HEDGE_AFTER_S` | 3초 | 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (NPC 스트림은 제외). 2026-10-22 gms-luna가 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초에 돌아왔음. 평소 응답은 p99 2.5~3.9초라 거의 더 보내지 않음 |
 | `JUDGE_BUDGET_S` | 5초 | 판정의 의도·무례·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
 | `REPLY_FIRST_BUDGET_S` | 5초 | NPC 대답 **첫 글자까지**. 넘으면 SSE `error`(`timeout`). 말하기 시작한 대답은 끊지 않음 |
 
@@ -189,6 +190,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 | `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`feedback`·`memory`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
+| `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음. 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |
 | `input_tokens`, `output_tokens` | 공급자가 알려 준 토큰 수 (STT는 없음, 대신 `audio_s`) |
 | `latency_s` | 그 호출에 걸린 시간 |
 | `first_token_s` | NPC 대답만: 첫 글자까지 |

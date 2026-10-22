@@ -8,6 +8,9 @@ using A305.EditorTools.Mission;
 using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.EditorTools.Player;
+using A305.EditorTools.Tutorial;
+using A305.Learning;
+using A305.Mission;
 using A305.Player;
 using A305.World;
 using UnityEditor;
@@ -18,7 +21,7 @@ using UnityEngine.SceneManagement;
 namespace A305.EditorTools.World
 {
     /// <summary>
-    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁·대화 처리·행인 제안 화면·피드백·단어장·미션 창을 붙이고 서로 연결한다.
+    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁·대화 처리·행인 제안 화면·피드백·단어장·미션 창·튜토리얼 안내를 붙이고 서로 연결한다.
     /// 씬에 놓인 행인도 플레이어·대화 처리와 연결한다.
     /// 디자인한 씬이든 대체 공간 씬이든 같은 방식으로 적용하며, 여러 번 실행해도 기능 객체를 다시 만들지 않는다.
     /// Environment에 놓인 디자인과 이미 놓인 플레이어 위치는 건드리지 않는다.
@@ -57,6 +60,7 @@ namespace A305.EditorTools.World
             NpcBuilder.PrepareAssets();
             LearningBuilder.PrepareAssets();
             MissionBuilder.PrepareAssets();
+            TutorialBuilder.PrepareAssets();
         }
 
         /// <summary>
@@ -121,8 +125,9 @@ namespace A305.EditorTools.World
             ObjectHoverBuilder.ConnectToScene(groups, player, cameraRig);
             DialogueController dialogue = DialogueBuilder.ConnectToScene(groups, player, cameraRig);
             NpcBuilder.ConnectToScene(groups, player, dialogue);
-            LearningBuilder.ConnectToScene(groups, player, dialogue);
-            MissionBuilder.ConnectToScene(groups, dialogue);
+            LearningController learning = LearningBuilder.ConnectToScene(groups, player, dialogue);
+            MissionController mission = MissionBuilder.ConnectToScene(groups, dialogue);
+            TutorialBuilder.ConnectToScene(groups, player, dialogue, learning, mission);
 
             EditorSceneManager.MarkSceneDirty(scene);
         }

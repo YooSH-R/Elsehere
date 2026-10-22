@@ -11,6 +11,7 @@
         "A305.Npc",
         "A305.Learning",
         "A305.Mission",
+        "A305.Tutorial",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

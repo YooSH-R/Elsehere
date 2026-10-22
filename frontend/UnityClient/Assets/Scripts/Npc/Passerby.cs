@@ -43,6 +43,12 @@ namespace A305.Npc
 
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
 
+        /// <summary>
+        /// 다가와 말을 걸어도 되는지. 튜토리얼처럼 진행 흐름이 정하며, false면 플레이어가 바쁠 때처럼 다가오지 않는다.
+        /// 이미 제안 중이면 제안을 거두지 않는다.
+        /// </summary>
+        public bool IsApproachAllowed { get; set; } = true;
+
         private static double Now => Time.realtimeSinceStartupAsDouble;
 
         private void Awake()
@@ -89,8 +95,10 @@ namespace A305.Npc
         {
             Vector3 toPlayer = player.transform.position - transform.position;
             toPlayer.y = 0f;
+            // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다.
             bool isPlayerBusy =
-                dialogue.IsTalking
+                !IsApproachAllowed
+                || dialogue.IsTalking
                 || player.IsMovementLocked
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
 

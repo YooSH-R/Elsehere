@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using A305.Dialogue;
 using A305.Player;
+using A305.Tutorial;
 using A305.World;
 using NUnit.Framework;
 using UnityEngine;
@@ -19,9 +20,11 @@ namespace A305.Npc.PlayModeTests
         private const float WaitTimeoutSeconds = 15f;
 
         [SetUp]
-        public void ForgetRestTimes()
+        public void ResetCrossSceneRecords()
         {
             PasserbyRestRecord.Clear();
+            // 튜토리얼 행인은 튜토리얼의 이웃 만나기 단계에서만 다가오므로, 튜토리얼도 처음부터 시작한다.
+            TutorialState.Clear();
         }
 
         [UnityTest]

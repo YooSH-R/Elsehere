@@ -7,6 +7,7 @@ using A305.Mission;
 using A305.Npc;
 using A305.ObjectHover;
 using A305.Player;
+using A305.Tutorial;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -148,6 +149,41 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_AddsTutorialDirectorConnectedToFlowFeatures()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            TutorialDirector tutorial = Single<TutorialDirector>();
+            Assert.That(tutorial.transform.parent, Is.EqualTo(Root("Systems")));
+            Assert.That(Single<TutorialGuideView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Reference(tutorial, "guideView"), Is.EqualTo(Single<TutorialGuideView>()));
+            Assert.That(Reference(tutorial, "player"), Is.EqualTo(Single<PlayerMover>()));
+            Assert.That(Reference(tutorial, "wordTooltip"), Is.EqualTo(Single<WordTooltipView>()));
+            Assert.That(Reference(tutorial, "dialogue"), Is.EqualTo(Single<DialogueController>()));
+            Assert.That(Reference(tutorial, "offerView"), Is.EqualTo(Single<PasserbyOfferView>()));
+            Assert.That(Reference(tutorial, "learning"), Is.EqualTo(Single<LearningController>()));
+            Assert.That(Reference(tutorial, "mission"), Is.EqualTo(Single<MissionController>()));
+            Assert.That(Reference(tutorial, "guide"), Is.Not.Null);
+        }
+
+        [Test]
+        public void Apply_GivesTutorialDirectorEveryPlacedPasserby()
+        {
+            // 튜토리얼이 단계에 따라 행인이 다가와도 되는지 정하므로, 씬에 놓인 행인을 모두 알아야 한다.
+            var passerbyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcBuilder.PasserbyPrefabPath);
+            var placed = (GameObject)PrefabUtility.InstantiatePrefab(passerbyPrefab, scene);
+
+            SpaceSceneSetup.Apply(scene);
+
+            SerializedProperty passersby = new SerializedObject(Single<TutorialDirector>()).FindProperty("passersby");
+            Assert.That(passersby.arraySize, Is.EqualTo(1));
+            Assert.That(
+                passersby.GetArrayElementAtIndex(0).objectReferenceValue,
+                Is.EqualTo(placed.GetComponent<Passerby>())
+            );
+        }
+
+        [Test]
         public void Apply_ReplacesDefaultCameraWithPlayerCamera()
         {
             SpaceSceneSetup.Apply(scene);
@@ -178,6 +214,8 @@ namespace A305.World.Tests
             Assert.That(FindAll<LearningHudView>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<MissionController>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<MissionPanelView>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<TutorialDirector>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<TutorialGuideView>(), Has.Length.EqualTo(1));
         }
 
         [Test]

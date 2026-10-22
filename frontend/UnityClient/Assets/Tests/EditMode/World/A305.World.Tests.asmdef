@@ -10,6 +10,9 @@
         "A305.ObjectHover",
         "A305.Dialogue",
         "A305.Npc",
+        "A305.Learning",
+        "A305.Mission",
+        "A305.Tutorial",
         "UnityEngine.UI"
     ],
     "includePlatforms": [

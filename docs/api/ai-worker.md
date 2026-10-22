@@ -60,7 +60,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | `unauthorized` | 401 | 내부 토큰 틀림 | 설정 오류. 재시도하지 않음 |
 | `invalid_request` | 400 | 요청 형식 오류 (메시지에 어느 칸인지) | 재시도하지 않음 |
 | `provider_limit` | 429 | 공급자 한도 (대체 모델까지 소진) | 잠시 뒤 재시도 안내 |
-| `provider_unavailable` | 503 | 공급자 오류·응답 없음 (대체 모델까지 실패) | 재시도 안내 |
+| `provider_unavailable` | 503 | 공급자 오류·응답 없음 (대체 모델까지 실패), 공급자 응답 형식이 다름(JSON 아님·`choices` 없음, 스트림 data 줄이 깨짐) | 재시도 안내 |
 | `invalid_output` | 502 | 모델 출력이 정해진 형식이 아님 (힌트 등) | 응답 형식 오류로 안내 (`AI_RESPONSE_INVALID`) |
 | `tts_unavailable` | 503 | 음성 합성 모델 없음 | 자막만 |
 | `not_found` | 404 | 음성 조각 없음·보관 시간 지남, 없는 주소 | 음성이면 자막만 |

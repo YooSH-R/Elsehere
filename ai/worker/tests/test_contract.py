@@ -95,3 +95,43 @@ def test_wrong_method_uses_error_format(client):
 def test_action_only_text_is_still_dropped(client, provider):
     r = client.post("/v1/judge", json=judge_body("*waves*")).json()
     assert r["dropped"] is True and provider.calls == []
+
+
+# ---------------------------------------------------------------------
+# 공급자가 200에 예상과 다른 본문을 줄 때 (코드 리뷰 #3·#4)
+# ---------------------------------------------------------------------
+@pytest.mark.parametrize("bad", [{"error": {"message": "x"}}, {"choices": []}, {"choices": [{"message": None}]}])
+def test_provider_200_with_unexpected_body_is_partial_failure(provider, bad):
+    """판정은 그 칸만 실패 (200). 공급자 탓이므로 의도는 unclear + error, 무례는 null + provider_unavailable."""
+    provider.answers["intent"] = lambda b: httpx.Response(200, json=bad)
+    provider.answers["guard"] = lambda b: httpx.Response(200, json=bad)
+    with quiet_client(provider) as c:
+        r = c.post("/v1/judge", json=judge_body())
+    assert r.status_code == 200
+    assert r.json()["intent"]["id"] == "unclear" and r.json()["intent"]["error"]
+    assert r.json()["guard"]["abusive"] is None and r.json()["guard"]["error_code"] == "provider_unavailable"
+
+
+def test_provider_200_that_is_not_json_is_503(provider):
+    provider.answers["hint"] = lambda b: httpx.Response(200, text="<html>oops</html>")
+    with quiet_client(provider) as c:
+        r = c.post("/v1/hint", json={"npc": NPC, "goal": "order a drink"})
+    assert r.status_code == 503 and r.json()["error"]["code"] == "provider_unavailable"
+
+
+def test_stt_200_that_is_not_json_is_503(provider):
+    provider.answers["stt"] = lambda b: httpx.Response(200, text="oops")
+    with quiet_client(provider) as c:
+        r = c.post("/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")})
+    assert r.status_code == 503 and r.json()["error"]["code"] == "provider_unavailable"
+
+
+def test_broken_stream_line_ends_with_error_event(provider):
+    """스트림 data 줄이 JSON이 아니면 스트림이 끊기지 않고 error 이벤트로 끝난다."""
+    body = 'data: {"choices": [{"delta": {"content": "Hi "}}]}\n\ndata: {broken\n\ndata: [DONE]\n\n'
+    provider.answers["npc"] = lambda b: httpx.Response(200, content=body.encode())
+    with quiet_client(provider) as c:
+        r = c.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "tts": False})
+    names = [line.split(": ", 1)[1] for line in r.text.splitlines() if line.startswith("event: ")]
+    assert names[-1] == "error"
+    assert '"code": "provider_unavailable"' in r.text

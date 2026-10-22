@@ -3,7 +3,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Npc(BaseModel):
@@ -65,6 +65,13 @@ class JudgeRequest(BaseModel):
     state: State
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)
+
+    @field_validator("text")
+    @classmethod
+    def text_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("빈 문장입니다")
+        return v
 
 
 class Memory(BaseModel):

@@ -7,23 +7,28 @@ import re
 
 from . import prompts as P
 from .guard_local import HANGUL, LocalGuard
-from .llm import LLM, ProviderError, Usage
+from .llm import LLM, ModelOutputError, ProviderError, Usage
 from .schemas import EndRequest, HintRequest, JudgeRequest, State
 
 log = logging.getLogger("ai_worker")
 
 
-def clean_intent(raw: dict, state: State) -> dict:
-    """모델 출력을 요청 범위 안으로 (형식 강제가 풀린 json_object 대체 모드에서도 엉뚱한 값이 나가지 않게)."""
+def clean_intent(raw: object, state: State) -> dict:
+    """모델 출력을 요청 범위 안으로 (형식 강제가 풀린 json_object 대체 모드에서도 엉뚱한 값이 나가지 않게).
+    JSON 객체가 아니면 ModelOutputError — 판정에서는 의도 칸만 실패(unclear + error)로 처리된다."""
+    if not isinstance(raw, dict):
+        raise ModelOutputError(f"의도 판정 출력이 JSON 객체가 아님: {type(raw).__name__}")
     allowed = {i.id for i in state.intents + state.more_intents}
     got = raw.get("intents") if isinstance(raw.get("intents"), list) else [raw.get("intent")]  # 대체 모드는 intent 하나로 올 수 있음
-    ids = [i for i in dict.fromkeys(got) if i in allowed][:3] or ["unclear"]
+    ids = [i for i in dict.fromkeys(i for i in got if isinstance(i, str)) if i in allowed][:3] or ["unclear"]
     # id: 첫 행동 (예전 형식과 호환), ids: 말한 순서대로 전부 — Spring은 ids를 차례로 적용한다
     out = {"id": ids[0], "ids": ids, "slots": {}, "error": None}
     s = state.slots
     if s.items:
         items = []
         for it in raw.get("items") or []:
+            if not isinstance(it, dict):
+                continue
             name = it.get("name")
             if name not in s.items.catalog:
                 continue
@@ -141,8 +146,15 @@ async def hint(llm: LLM, req: HintRequest) -> dict:
     out = await llm.chat(
         "hint", "hint", P.hint_messages(req.npc, req.scene or req.npc.scene, req.goal, req.history), usage, 0.3, 300, P.HINT_SCHEMA
     )
-    res = json.loads(out)
-    return {"say_this": res["say_this"][:2], "keywords": res["keywords"][:3], "usage": usage.items}
+    try:
+        res = json.loads(out)
+    except ValueError as e:
+        raise ModelOutputError("힌트 출력이 JSON이 아님") from e
+    say_this = res.get("say_this") if isinstance(res, dict) else None
+    keywords = res.get("keywords") if isinstance(res, dict) else None
+    if not (isinstance(say_this, list) and isinstance(keywords, list)):
+        raise ModelOutputError("힌트 출력에 say_this·keywords 목록이 없음")
+    return {"say_this": say_this[:2], "keywords": keywords[:3], "usage": usage.items}
 
 
 async def end_conversation(llm: LLM, req: EndRequest) -> dict:
@@ -159,7 +171,10 @@ async def end_conversation(llm: LLM, req: EndRequest) -> dict:
             900,
             P.FEEDBACK_SCHEMA,
         )
-        return json.loads(out)
+        fb = json.loads(out)
+        if not isinstance(fb, dict):
+            raise ModelOutputError("피드백 출력이 JSON 객체가 아님")
+        return fb
 
     async def memory():
         out = await llm.chat(

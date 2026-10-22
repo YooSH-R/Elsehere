@@ -4,6 +4,7 @@
 import json
 import re
 
+from .llm import ModelOutputError
 from .schemas import Line, Memory, Npc, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
@@ -300,8 +301,10 @@ def memory_messages(npc: Npc, old: dict | None, outcome: str, history: list[Line
     return [{"role": "system", "content": MEMORY_SYSTEM}, {"role": "user", "content": user}]
 
 
-def clean_card(card: dict) -> dict:
-    """기억 카드 정리: 칸 수·길이 제한, 정해진 태도 값, 연락처 제거."""
+def clean_card(card: object) -> dict:
+    """기억 카드 정리: 칸 수·길이 제한, 정해진 태도 값, 연락처 제거. JSON 객체가 아니면 ModelOutputError (그 칸만 실패)."""
+    if not isinstance(card, dict):
+        raise ModelOutputError("기억 카드 출력이 JSON 객체가 아님")
     out = {
         "name": str(card.get("name") or "").strip()[:40],
         "attitude": card.get("attitude") if card.get("attitude") in ("friendly", "neutral", "wary") else "neutral",

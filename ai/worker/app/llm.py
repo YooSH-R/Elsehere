@@ -18,6 +18,11 @@ from .config import Settings
 RETRY_CODES = (429, 500, 502, 503)
 
 
+class ModelOutputError(ValueError):
+    """모델 출력이 정해진 형식이 아님 (재시도·대체 모델로도 고칠 수 없음).
+    판정·대화 종료에서는 그 칸만 실패로 처리하고, 칸이 하나뿐인 힌트는 502 invalid_output."""
+
+
 class ProviderError(Exception):
     """모델 공급자가 대체 모델까지 모두 실패. code는 API 오류 코드 (provider_unavailable / provider_limit)."""
 

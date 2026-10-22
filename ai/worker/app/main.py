@@ -17,11 +17,12 @@ import httpx
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import services
 from .config import Settings
 from .guard_local import LocalGuard
-from .llm import LLM, ProviderError
+from .llm import LLM, ModelOutputError, ProviderError
 from .npc import reply_events
 from .schemas import EndRequest, HintRequest, JudgeRequest, ReplyRequest, TtsRequest
 from .tts import AudioStore, Kokoro
@@ -129,6 +130,21 @@ def create_app(
     @app.exception_handler(ApiError)
     async def api_failed(_: Request, e: ApiError):
         return error(e.code, e.message, e.http)
+
+    @app.exception_handler(ModelOutputError)
+    async def output_invalid(_: Request, e: ModelOutputError):
+        return error("invalid_output", str(e), 502)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_failed(_: Request, e: StarletteHTTPException):
+        code = {404: "not_found", 405: "method_not_allowed"}.get(e.status_code, f"http_{e.status_code}")
+        return error(code, str(e.detail), e.status_code)
+
+    @app.exception_handler(Exception)
+    async def internal_failed(request: Request, e: Exception):
+        # 프로그램 오류: 원인은 로그에만 남기고 Spring에는 정해진 형식으로
+        log.error(json.dumps({"event": "internal_error", "path": request.url.path}), exc_info=e)
+        return error("internal_error", "AI 워커 내부 오류", 500)
 
     @app.get("/health")
     async def health(request: Request):

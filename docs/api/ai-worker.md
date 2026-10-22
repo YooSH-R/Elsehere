@@ -27,8 +27,11 @@
 | `invalid_request` | 400 | 요청 형식 오류 (메시지에 어느 칸인지) | 재시도하지 않음 |
 | `provider_limit` | 429 | 공급자 한도 (대체 모델까지 소진) | 잠시 뒤 재시도 안내 |
 | `provider_unavailable` | 503 | 공급자 오류·응답 없음 (대체 모델까지 실패) | 재시도 안내 |
+| `invalid_output` | 502 | 모델 출력이 정해진 형식이 아님 (힌트 등) | 응답 형식 오류로 안내 (`AI_RESPONSE_INVALID`) |
 | `tts_unavailable` | 503 | 음성 합성 모델 없음 | 자막만 |
-| `not_found` | 404 | 음성 조각 없음·보관 시간 지남 | 자막만 |
+| `not_found` | 404 | 음성 조각 없음·보관 시간 지남, 없는 주소 | 음성이면 자막만 |
+| `method_not_allowed` | 405 | 주소는 있지만 HTTP 메서드가 다름 | 호출 코드 오류 |
+| `internal_error` | 500 | 워커 프로그램 오류 (원인은 워커 로그) | 재시도 안내, 워커 로그 확인 |
 
 **부분 실패** — `/v1/judge`와 `/v1/conversation/end`는 일부가 실패해도 **HTTP 200**으로 돌려주고, 실패한 칸에 오류를 적습니다(2.2, 2.6절). NPC 대답은 SSE `error` 이벤트로 알립니다(2.3절).
 
@@ -42,6 +45,28 @@
 | `REPLY_FIRST_BUDGET_S` | 5초 | NPC 대답 **첫 글자까지**. 넘으면 SSE `error`(`timeout`). 말하기 시작한 대답은 끊지 않음 |
 
 Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다. 워커 상한보다 길게 잡아야 워커의 오류 응답을 받을 수 있습니다.
+
+**공통 객체** — 여러 요청에 같은 형식으로 들어갑니다.
+
+`npc`
+
+| 칸 | 형식 | 뜻 |
+|---|---|---|
+| `id` | 문자열 (필수) | NPC 코드 |
+| `name` | 문자열 (필수) | 이름 (프롬프트에 씀) |
+| `role` | 문자열 (필수) | 역할 한 줄 (예: "the barista at Maple Cafe.") |
+| `facts` | 문자열 | 메뉴·가격·성격 등 NPC가 아는 사실 |
+| `scene` | 문자열 | 장면 설명 (요청의 `scene`이 비면 이것) |
+| `tts_voice` | 문자열 (기본 `af_heart`) | Kokoro 목소리 이름 |
+
+`history`의 한 줄
+
+| 칸 | 형식 | 뜻 |
+|---|---|---|
+| `who` | `npc` 또는 `me` (필수) | 말한 사람 (`me`는 학습자) |
+| `text` | 문자열 (필수, 최대 1000자) | 말한 내용 |
+| `english` | 문자열 또는 `null` | 학습자 줄의 영어 번역 (판정의 `translation.english`) |
+| `rude` | 불 (기본 `false`) | 학습자 줄의 무례 판정이 `true`였는지 (`null`은 `false`로) |
 
 ## 2. 엔드포인트
 
@@ -57,7 +82,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 학습자 한 줄을 받아 의도·무례 판정·번역(한글이 있을 때만)을 **동시에** 돌립니다.
 
-요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`), `history`(최대 40줄), `text`(최대 500자).
+요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
 
 응답:
 
@@ -116,7 +141,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `history`, `text`(학습자 원문), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`).
+요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`).
 
 응답은 `text/event-stream`이며 이벤트 순서는 다음과 같습니다.
 
@@ -159,7 +184,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ### 2.6 `POST /v1/hint`
 
-요청: `npc`, `scene`, `goal`, `history`. 응답: `{"say_this": [최대 2], "keywords": [최대 3], "usage": [...]}`. 실패하면 429/503입니다.
+요청: `npc`, `scene`, `goal`, `history`. 응답: `{"say_this": [{"en", "ko"} 최대 2개], "keywords": [{"en", "ko"} 최대 3개], "usage": [...]}`. 공급자 실패는 429/503, 출력이 이 형식이 아니면 502 `invalid_output`입니다.
 
 ### 2.7 `POST /v1/conversation/end` — 피드백과 기억 카드
 
@@ -173,7 +198,10 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
  "errors": {"feedback": null, "memory": null}, "usage": [...]}
 ```
 
-하나가 실패하면 그 칸만 `null`이고 `errors`에 이유가 들어갑니다. 기억 카드가 `null`이면 **이전 카드를 그대로 둡니다.** 기억 카드에 연락처는 저장하지 않습니다.
+- `feedback.lines`: 고칠 만한 학습자 줄마다 `{"line": 번호, "better": "더 나은 표현", "note": "짧은 설명"}`
+- `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다.
+
+하나가 실패하면(공급자 실패, 출력이 JSON 객체가 아님 등) 그 칸만 `null`이고 `errors`에 이유가 들어갑니다. 기억 카드가 `null`이면 **이전 카드를 그대로 둡니다.**
 
 `history`의 `rude`는 판정이 `abusive: true`였던 줄에만 `true`로 보냅니다(`null`은 `false`).
 
@@ -199,6 +227,6 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ## 4. 알려진 한계
 
-- 힌트의 모델 출력이 JSON으로 읽히지 않으면 현재 500을 돌려줍니다(형식 강제 모드라 드묾).
+- 오류 응답(429·502·503 등)에는 `usage`가 없습니다. 실패 전에 쓴 토큰은 공급자 사용량 화면과 대조합니다.
 - 판정은 Spring이 연결을 끊어도 끝까지 실행됩니다(NPC 대답만 멈춤).
 - 같은 요청을 두 번 보내면 모델도 두 번 부릅니다. 중복 반영 방지는 Spring이 요청 id로 합니다.

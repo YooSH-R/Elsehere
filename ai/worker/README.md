@@ -49,6 +49,8 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `POST /v1/tts` | 모범 발화·단어 발음 같은 단독 합성 | audio/wav |
 | `POST /v1/stt` | 녹음 인식 (multipart `file`, 선택 `scene_words`) | JSON |
 | `POST /v1/hint` | 학습자가 💡를 누른 때 | JSON |
+| `POST /v1/suggest` | NPC 대답이 끝난 뒤: 학습자가 쓸 추천 단어 3개 | JSON |
+| `POST /v1/meaning` | [뜻 보기]: NPC 대사의 한국어 뜻과 단어 풀이 | JSON |
 | `POST /v1/conversation/end` | 대화가 끝났을 때: 피드백 + 기억 카드 | JSON |
 | `GET /health` | 상태 확인 (토큰 없이) | JSON |
 
@@ -111,6 +113,7 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
+- `tests/test_learning_aids.py`: 뜻·단어 풀이(대사에 없는 말 버리기, 3개 제한), 추천 단어(정리·중복·3개), 형식 오류 502, 난이도별 NPC 지시문·대답 길이·말 속도·힌트 수준
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, GPT-5 요청 칸
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

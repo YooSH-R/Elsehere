@@ -58,6 +58,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `facts` | 문자열 | 메뉴·가격·성격 등 NPC가 아는 사실 |
 | `scene` | 문자열 | 장면 설명 (요청의 `scene`이 비면 이것) |
 | `tts_voice` | 문자열 (기본 `af_heart`) | Kokoro 목소리 이름 |
+| `tts_speed` | 수 0.5~2.0 (기본 1.0) | 이 NPC의 타고난 말 속도. 실제 속도는 여기에 난이도 배율을 곱함 |
 
 `history`의 한 줄
 
@@ -67,6 +68,14 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `text` | 문자열 (필수, 최대 1000자) | 말한 내용 |
 | `english` | 문자열 또는 `null` | 학습자 줄의 영어 번역 (판정의 `translation.english`) |
 | `rude` | 불 (기본 `false`) | 학습자 줄의 무례 판정이 `true`였는지 (`null`은 `false`로) |
+
+`level` — 대화 난이도(백엔드 `levelApplied`). `1`·`2`·`3` 중 하나이고 기본은 `2`입니다. MVP는 `1`만 보냅니다. 판정(`/v1/judge`)에는 영향이 없습니다.
+
+| 단계 | NPC 대답 | 말 속도 배율 | 힌트·추천 단어·단어 풀이 수준 |
+|---|---|---|---|
+| `1` | 초보자에게 말하듯 천천히, 쉬운 일상 단어. 한 문장(많아야 두 문장), 문장마다 14단어 미만, 속어·관용구 없음 | ×0.85 | 아주 쉽고 짧게 (CEFR A1-A2) |
+| `2` | 자연스러운 일상 미국 영어(줄임말·흔한 관용구). 한두 문장, 모두 25단어 미만 | ×1.0 | 쉽고 자연스럽게 (CEFR A2-B1) |
+| `3` | 원래 말투 그대로(속어·관용구·구동사). 두세 문장, 45단어 미만 | ×1.06 | 자연스럽게, 흔한 관용구 가능 (CEFR B1-B2) |
 
 ## 2. 엔드포인트
 
@@ -141,7 +150,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`).
+요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`), `level`(기본 `2`). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
 
 응답은 `text/event-stream`이며 이벤트 순서는 다음과 같습니다.
 
@@ -184,7 +193,33 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ### 2.6 `POST /v1/hint`
 
-요청: `npc`, `scene`, `goal`, `history`. 응답: `{"say_this": [{"en", "ko"} 최대 2개], "keywords": [{"en", "ko"} 최대 3개], "usage": [...]}`. 공급자 실패는 429/503, 출력이 이 형식이 아니면 502 `invalid_output`입니다.
+요청: `npc`, `scene`, `goal`, `history`, `level`(기본 `2`). 응답: `{"say_this": [{"en", "ko"} 최대 2개], "keywords": [{"en", "ko"} 최대 3개], "usage": [...]}`. 공급자 실패는 429/503, 출력이 이 형식이 아니면 502 `invalid_output`입니다.
+
+### 2.6.1 `POST /v1/suggest` — 추천 단어 (백엔드 `suggestWords`)
+
+학습자가 다음 대답에 쓸 만한 영어 단어·짧은 구를 3개까지 만듭니다. NPC 대답이 끝난 뒤(`done`의 `text`를 `history` 끝에 붙여) 부릅니다.
+
+요청: `npc`, `scene`(비면 `npc.scene`), `goal`(지금 상태에서 학습자가 할 일, 비면 자연스러운 대답, 최대 300자), `history`(마지막 NPC 줄이 대답할 대상, 최대 40줄), `level`(기본 `2`).
+
+응답: `{"words": ["for here", "to go", "please"], "usage": [...]}`
+
+- 단어 또는 1~3단어 구, 문자열 목록, 한국어 없음. 앞뒤 공백을 지우고 대소문자를 무시한 중복을 뺀 뒤 3개까지.
+- 출력에 쓸 단어가 하나도 없으면 502 `invalid_output`. 공급자 실패는 429/503.
+- 토큰이 떨어져 작별 대사로 끝나는 턴처럼 추천 단어가 필요 없으면 부르지 않습니다(백엔드는 `suggestWords: null`).
+
+### 2.6.2 `POST /v1/meaning` — NPC 대사 뜻과 단어 풀이 (백엔드 CONV-04)
+
+요청: `npc`, `text`(NPC가 한 말, 최대 1000자, 공백만이면 400), `level`(기본 `2`, 단어 풀이에 무엇을 고를지).
+
+응답:
+
+```json
+{"meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?", "glossary": [{"text": "to go", "meaning_ko": "포장"}], "usage": [...]}
+```
+
+- `meaning_ko`: 말투를 살린 한국어 뜻 (가게 직원은 해요체, 친구 같은 말투는 반말). 괄호 풀이 없이 번역만.
+- `glossary`: 대사에서 학습자가 모를 만한 말(속어·관용구·구동사·핵심 단어) **최대 3개**. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 쉬운 대사면 빈 목록.
+- 출력이 이 형식이 아니거나 `meaning_ko`가 비면 502 `invalid_output`. 같은 대사는 Spring이 저장해 다시 부르지 않습니다.
 
 ### 2.7 `POST /v1/conversation/end` — 피드백과 기억 카드
 
@@ -215,7 +250,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 | 칸 | 뜻 |
 |---|---|
-| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`feedback`·`memory`·`stt` |
+| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`feedback`·`memory`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
 | `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음. 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |

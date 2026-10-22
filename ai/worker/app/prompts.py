@@ -147,27 +147,58 @@ def memory_note(m: Memory | None) -> str:
     return "\n".join(lines)
 
 
-def npc_system(n: Npc, memory: str, note: str) -> str:
+# 난이도별 말투 (웹 프로토타입에서 다듬은 문장 그대로). 판정·무례 분류는 영향 없음
+LEVEL_RULES = {
+    1: (
+        "Speak the way you would to a nervous beginner: slowly, clearly, with simple everyday words. One sentence, two at most, "
+        "each under 14 words. No slang or idioms, except one of your own signature expressions now and then. "
+        "Still sound like yourself through your warmth, humor, and what you choose to talk about."
+    ),
+    2: (
+        "Speak natural everyday American English: contractions, common idioms, and your own expressions. "
+        "One or two sentences, under 25 words in total. Skip the heavy slang."
+    ),
+    3: (
+        "Talk exactly the way you really talk, at full speed: your slang, idioms, phrasal verbs, regional expressions, running jokes. "
+        "Two or three sentences, under 45 words. Do not slow down or simplify for them. "
+        "If they clearly did not understand, rephrase it the way a friend would, still in your own voice."
+    ),
+}
+LEVEL_MAX_TOKENS = {1: 90, 2: 120, 3: 170}  # NPC 대답 출력 상한 (문장 수·길이 규칙에 맞춰)
+LEVEL_SPEED = {1: 0.85, 2: 1.0, 3: 1.06}  # 말 속도 배율: npc.tts_speed에 곱한다 (쉬움은 느리게, 어려움은 조금 빠르게)
+LEVEL_LEARNER = {  # 힌트·추천 단어·단어 풀이에서 학습자 수준을 알려 주는 말
+    1: "very simple (CEFR A1-A2), short",
+    2: "simple and natural (CEFR A2-B1)",
+    3: "natural, can use a common idiom (CEFR B1-B2)",
+}
+
+
+def npc_speed(n: Npc, level: int) -> float:
+    return round(n.tts_speed * LEVEL_SPEED[level], 2)
+
+
+def npc_system(n: Npc, memory: str, note: str, level: int = 2) -> str:
     return f"""You are {n.name}, {n.role}
 Place: {TOWN} {n.scene}
 What you know: {n.facts}{chr(10) + memory if memory else ""}
+Level for this conversation: {LEVEL_RULES[level]}
 
-You are talking with a Korean person practicing English (CEFR A2-B1). Their words come from speech recognition and may be broken English, Korean, or a mix.
+You are talking with a Korean person practicing English. Their words come from speech recognition and may be broken English, Korean, or a mix.
 Understand Korean too (including slang and insults), but always reply in English.
 
 How to reply:
-- Answer what they just said, like a real person here. 1-2 short, simple sentences (max 25 words).
+- Answer what they just said, like a real person here.
 - If their English has mistakes or Korean words, understand the meaning and naturally use the correct English words in your reply. Never explain grammar.
 - If they ask about something your facts don't cover, answer like a real person in your job would, with small realistic details. Never invent menu items, prices, discounts, or free things.
 - Never repeat a sentence you already said. Do not push them to order in every reply.
-- Stay in character. Never mention English lessons, practice, or that you are an AI.
+- Stay in character. Never mention English lessons, practice, difficulty levels, or that you are an AI.
 - Plain spoken words only: no emojis, lists, or stage directions.
 
 IMPORTANT for your next reply: {note or "Just reply naturally."}"""
 
 
-def npc_messages(n: Npc, memory: Memory | None, history: list[Line], text: str, instruction: str) -> list[dict]:
-    msgs = [{"role": "system", "content": npc_system(n, memory_note(memory), instruction)}]
+def npc_messages(n: Npc, memory: Memory | None, history: list[Line], text: str, instruction: str, level: int = 2) -> list[dict]:
+    msgs = [{"role": "system", "content": npc_system(n, memory_note(memory), instruction, level)}]
     for h in history[-12:]:
         msgs.append({"role": "assistant" if h.who == "npc" else "user", "content": h.text})
     msgs.append({"role": "user", "content": text})
@@ -200,10 +231,72 @@ HINT_SCHEMA = {
 }
 
 
-def hint_messages(npc: Npc, scene: str, goal: str, history: list[Line]) -> list[dict]:
-    convo = "\n".join(f"{'Learner' if h.who == 'me' else 'Partner'}: {h.english or h.text}" for h in history[-6:])
-    user = f"Place: {scene}\nPartner: {npc.name}, {npc.role}\n\nConversation so far:\n{convo}\n\nGoal for the learner's next line: {goal}"
+def convo_lines(history: list[Line]) -> str:
+    return "\n".join(f"{'Learner' if h.who == 'me' else 'Partner'}: {h.english or h.text}" for h in history[-6:])
+
+
+def hint_messages(npc: Npc, scene: str, goal: str, history: list[Line], level: int = 2) -> list[dict]:
+    user = (
+        f"Place: {scene}\nPartner: {npc.name}, {npc.role}\n\nConversation so far:\n{convo_lines(history)}\n\n"
+        f"Goal for the learner's next line: {goal}\nKeep the sentences {LEVEL_LEARNER[level]}."
+    )
     return [{"role": "system", "content": HINT_SYSTEM}, {"role": "user", "content": user}]
+
+
+# ---------- 뜻 보기 · 추천 단어 ----------
+# 번역 규칙은 웹 프로토타입의 'NPC 말 번역'(NPC_KO_SYSTEM) 그대로. 프로토타입은 모르는 말을 괄호로 풀었고,
+# 여기서는 화면이 단어에 뜻을 붙일 수 있게 glossary로 따로 받는다
+MEANING_SYSTEM = """You translate one line said by a character in an English role-play into natural Korean for a Korean learner.
+Keep the character's tone (casual, slangy, warm, grumpy...) in Korean: friendly service workers use 해요체, a teenager or a close-feeling friend may use 반말.
+Translate idioms by meaning. Keep it short.
+
+Return JSON:
+- "meaning_ko": the Korean translation only (no notes, no parentheses).
+- "glossary": up to 3 words or phrases from the line that a learner at the given level may not know (slang, idioms, phrasal verbs, key words),
+  each copied exactly as it appears in the line, with "meaning_ko": its short Korean meaning in this line. Empty if every word is easy."""
+MEANING_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "meaning_ko": {"type": "string"},
+        "glossary": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"text": {"type": "string"}, "meaning_ko": {"type": "string"}},
+                "required": ["text", "meaning_ko"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["meaning_ko", "glossary"],
+    "additionalProperties": False,
+}
+
+
+def meaning_messages(npc: Npc, text: str, level: int = 2) -> list[dict]:
+    user = f"Character: {npc.name}, {npc.role}\nLearner level: {LEVEL_LEARNER[level]}\nLine: {text}"
+    return [{"role": "system", "content": MEANING_SYSTEM}, {"role": "user", "content": user}]
+
+
+SUGGEST_SYSTEM = """You suggest words for a Korean learner of English in a role-play. The learner is about to reply to the partner's latest line.
+Give exactly 3 English words or short phrases (1-3 words each) the learner can use in that reply:
+the options the partner just offered, and the words needed for the goal. Choose words a learner at the given level can say.
+No full sentences, no Korean, no punctuation."""
+SUGGEST_SCHEMA = {
+    "type": "object",
+    "properties": {"words": {"type": "array", "items": {"type": "string"}}},
+    "required": ["words"],
+    "additionalProperties": False,
+}
+
+
+def suggest_messages(npc: Npc, scene: str, goal: str, history: list[Line], level: int = 2) -> list[dict]:
+    user = (
+        f"Place: {scene}\nPartner: {npc.name}, {npc.role}\n\nConversation so far:\n{convo_lines(history)}\n\n"
+        f"Partner's latest line: {last_npc(history)}\nGoal for the learner's next line: {goal or 'reply naturally'}\n"
+        f"Learner level: {LEVEL_LEARNER[level]}"
+    )
+    return [{"role": "system", "content": SUGGEST_SYSTEM}, {"role": "user", "content": user}]
 
 
 # ---------- 대화 종료: 피드백 + 기억 카드 ----------

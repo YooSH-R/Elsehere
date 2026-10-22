@@ -71,14 +71,15 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
     def schedule(text: str):
         task = None
         if use_tts:
-            task = asyncio.create_task(tts.asynth(text, req.npc.tts_voice))
+            task = asyncio.create_task(tts.asynth(text, req.npc.tts_voice, P.npc_speed(req.npc, req.level)))
             task.add_done_callback(_quiet)
         chunks.put_nowait((st["seq"], text, task, time.perf_counter()))
         st["seq"] += 1
 
     async def run_llm():
         sp = Splitter()
-        gen = llm.stream("npc", "npc", P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction), usage)
+        msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level)
+        gen = llm.stream("npc", "npc", msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level])
         stopped, finished = False, False
 
         def finish():

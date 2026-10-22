@@ -24,7 +24,7 @@ from .config import Settings
 from .guard_local import LocalGuard
 from .llm import LLM, ModelOutputError, ProviderError
 from .npc import reply_events
-from .schemas import EndRequest, HintRequest, JudgeRequest, ReplyRequest, TtsRequest
+from .schemas import EndRequest, HintRequest, JudgeRequest, MeaningRequest, ReplyRequest, SuggestRequest, TtsRequest
 from .tts import AudioStore, Kokoro
 
 log = logging.getLogger("ai_worker")
@@ -209,6 +209,14 @@ def create_app(
     @app.post("/v1/hint")
     async def hint(req: HintRequest, request: Request):
         return await services.hint(request.app.state.llm, req)
+
+    @app.post("/v1/meaning")
+    async def meaning(req: MeaningRequest, request: Request):
+        return await services.meaning(request.app.state.llm, req)
+
+    @app.post("/v1/suggest")
+    async def suggest(req: SuggestRequest, request: Request):
+        return await services.suggest(request.app.state.llm, req)
 
     @app.post("/v1/conversation/end")
     async def conversation_end(req: EndRequest, request: Request):

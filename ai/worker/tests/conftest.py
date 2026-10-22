@@ -21,6 +21,8 @@ STEPS = {
     "You help a Korean learner of English (CEFR A2-B1) who is stuck": "hint",
     "You give short, kind feedback": "feedback",
     "You keep the memory": "memory",
+    "You translate one line said by a character": "meaning",
+    "You suggest words": "suggest",
 }
 
 
@@ -63,10 +65,11 @@ class Provider:
 
 class FakeTts:
     def __init__(self, delay: float = 0.0):
-        self.delay, self.texts = delay, []
+        self.delay, self.texts, self.speeds = delay, [], []
 
     async def asynth(self, text, voice, speed=1.0):
         self.texts.append(text)
+        self.speeds.append(speed)
         await asyncio.sleep(self.delay)
         return b"RIFF" + text.encode(), len(text) / 15, False
 

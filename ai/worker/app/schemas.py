@@ -5,6 +5,16 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+# 대화 난이도 1~3 (백엔드 levelApplied). 1: 천천히 쉬운 단어·짧은 문장, 2: 자연스러운 일상 영어, 3: 원래 말투 그대로.
+# NPC 대답의 문장 수·길이·어휘, 말 속도, 힌트·추천 단어 수준이 바뀐다 (판정은 영향 없음). 규칙은 prompts.LEVEL_RULES
+Level = Literal[1, 2, 3]
+
+
+def not_blank(v: str) -> str:
+    if not v.strip():
+        raise ValueError("빈 문장입니다")
+    return v
+
 
 class Npc(BaseModel):
     id: str
@@ -13,6 +23,7 @@ class Npc(BaseModel):
     facts: str = ""
     scene: str = ""
     tts_voice: str = "af_heart"
+    tts_speed: float = Field(default=1.0, ge=0.5, le=2.0)  # 이 NPC의 타고난 말 속도. 난이도 배율을 곱한다
 
 
 class Line(BaseModel):
@@ -66,12 +77,7 @@ class JudgeRequest(BaseModel):
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)
 
-    @field_validator("text")
-    @classmethod
-    def text_not_blank(cls, v: str) -> str:
-        if not v.strip():
-            raise ValueError("빈 문장입니다")
-        return v
+    check_text = field_validator("text")(not_blank)
 
 
 class Memory(BaseModel):
@@ -87,6 +93,7 @@ class ReplyRequest(BaseModel):
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     instruction: str = Field(default="", max_length=1000)  # Spring 규칙이 정한 이번 대답에서 할 일
     tts: bool = True
+    level: Level = 2
 
 
 class TtsRequest(BaseModel):
@@ -100,6 +107,27 @@ class HintRequest(BaseModel):
     scene: str = ""
     goal: str
     history: list[Line] = Field(default=[], max_length=40)
+    level: Level = 2
+
+
+class MeaningRequest(BaseModel):
+    """NPC 대사 한 줄의 한국어 뜻과 단어 풀이 (백엔드 CONV-04 뜻 보기)."""
+
+    npc: Npc
+    text: str = Field(max_length=1000)  # NPC가 한 말
+    level: Level = 2  # 단어 풀이에 어떤 말을 고를지 (쉬운 단계일수록 기본 단어도)
+
+    check_text = field_validator("text")(not_blank)
+
+
+class SuggestRequest(BaseModel):
+    """학습자가 다음에 쓸 만한 단어 3개 (백엔드 CONV-01·03 suggestWords). history의 마지막 NPC 줄에 대한 대답용."""
+
+    npc: Npc
+    scene: str = ""  # 비면 npc.scene
+    goal: str = Field(default="", max_length=300)  # 지금 상태에서 학습자가 할 일 (없으면 자연스러운 대답)
+    history: list[Line] = Field(default=[], max_length=40)
+    level: Level = 2
 
 
 class EndRequest(BaseModel):

@@ -3,6 +3,7 @@ using System.Linq;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.Dialogue;
+using A305.EditorTools.Learning;
 using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.EditorTools.Player;
@@ -16,7 +17,7 @@ using UnityEngine.SceneManagement;
 namespace A305.EditorTools.World
 {
     /// <summary>
-    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁·대화 처리·행인 제안 화면을 붙이고 서로 연결한다.
+    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁·대화 처리·행인 제안 화면·피드백·단어장을 붙이고 서로 연결한다.
     /// 씬에 놓인 행인도 플레이어·대화 처리와 연결한다.
     /// 디자인한 씬이든 대체 공간 씬이든 같은 방식으로 적용하며, 여러 번 실행해도 기능 객체를 다시 만들지 않는다.
     /// Environment에 놓인 디자인과 이미 놓인 플레이어 위치는 건드리지 않는다.
@@ -42,6 +43,18 @@ namespace A305.EditorTools.World
             BuilderTools.SaveScene(scene, scene.path);
             BuilderTools.AddToSceneList(scene.path);
             Debug.Log($"{scene.path}에 공간 기능을 연결했습니다.");
+        }
+
+        /// <summary>
+        /// <see cref="Apply"/>가 씬에 붙이는 기능의 프리팹·데이터 에셋을 준비한다.
+        /// Apply는 이 에셋들을 불러오기만 하므로, 씬을 준비하는 Builder는 먼저 이 메서드를 실행한다.
+        /// </summary>
+        public static void PrepareFeatureAssets()
+        {
+            ObjectHoverBuilder.PrepareAssets();
+            DialogueBuilder.PrepareAssets();
+            NpcBuilder.PrepareAssets();
+            LearningBuilder.PrepareAssets();
         }
 
         /// <summary>
@@ -106,6 +119,7 @@ namespace A305.EditorTools.World
             ObjectHoverBuilder.ConnectToScene(groups, player, cameraRig);
             DialogueController dialogue = DialogueBuilder.ConnectToScene(groups, player, cameraRig);
             NpcBuilder.ConnectToScene(groups, player, dialogue);
+            LearningBuilder.ConnectToScene(groups, player, dialogue);
 
             EditorSceneManager.MarkSceneDirty(scene);
         }

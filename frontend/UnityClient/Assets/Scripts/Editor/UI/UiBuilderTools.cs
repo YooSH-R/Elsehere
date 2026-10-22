@@ -40,6 +40,21 @@ namespace A305.EditorTools.UI
         /// <summary>화면 아래 가운데에 붙는 패널. 너비는 고정하고 내용에 맞춰 높이를 늘린다.</summary>
         public static RectTransform FindOrCreateBottomPanel(Transform root, string panelName, float width, float bottomMargin)
         {
+            return FindOrCreateAnchoredPanel(root, panelName, new Vector2(0.5f, 0f), width, new Vector2(0f, bottomMargin));
+        }
+
+        /// <summary>
+        /// 화면의 한 지점에 붙는 패널. anchor는 붙을 지점(왼쪽 아래 (0,0) ~ 오른쪽 위 (1,1))이고, offset만큼 떨어뜨린다.
+        /// 너비는 고정하고 내용에 맞춰 높이를 늘린다.
+        /// </summary>
+        public static RectTransform FindOrCreateAnchoredPanel(
+            Transform root,
+            string panelName,
+            Vector2 anchor,
+            float width,
+            Vector2 offset
+        )
+        {
             Transform existing = root.Find(panelName);
             if (existing != null)
             {
@@ -47,10 +62,10 @@ namespace A305.EditorTools.UI
             }
 
             RectTransform panel = CreateRect(panelName, root);
-            panel.anchorMin = new Vector2(0.5f, 0f);
-            panel.anchorMax = new Vector2(0.5f, 0f);
-            panel.pivot = new Vector2(0.5f, 0f);
-            panel.anchoredPosition = new Vector2(0f, bottomMargin);
+            panel.anchorMin = anchor;
+            panel.anchorMax = anchor;
+            panel.pivot = anchor;
+            panel.anchoredPosition = offset;
             panel.sizeDelta = new Vector2(width, 0f);
 
             var background = panel.gameObject.AddComponent<Image>();

@@ -162,7 +162,7 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 
 - Builder는 `Scripts/Editor/<기능>/<대상>Builder.cs`에 두고, `public static` 메서드에 `[MenuItem("Tools/A305/<기능>/<동작>")]`을 붙입니다. 예: `Tools/A305/Player/Build Sandbox`
 - 씬은 `EditorSceneManager`, 프리팹은 `PrefabUtility.SaveAsPrefabAsset`, 데이터 에셋·머티리얼은 `AssetDatabase.CreateAsset`으로 만들고 저장합니다. 생성 결과와 `.meta`를 함께 커밋합니다.
-- 처음 만들 때는 앞의 Builder가 만든 에셋을 뒤에서 쓰므로 **Player → Build Sandbox**, **UI → Set Up Fonts**, **World → Build Spaces** 순서로 실행합니다. **World → Build Spaces**는 사물 호버·대화·행인 에셋도 준비하고 마을에 행인을 둡니다. 각 기능만 다시 만들 때는 **ObjectHover → Build**, **Dialogue → Build**, **Npc → Build**를 실행합니다.
+- 처음 만들 때는 앞의 Builder가 만든 에셋을 뒤에서 쓰므로 **Player → Build Sandbox**, **UI → Set Up Fonts**, **World → Build Spaces** 순서로 실행합니다. **World → Build Spaces**는 공간 씬에 붙이는 기능(사물 호버·대화·행인·피드백·단어장)의 에셋을 `SpaceSceneSetup.PrepareFeatureAssets`로 함께 준비하고 마을에 행인을 둡니다. 새 기능을 공간 씬에 붙일 때는 그 기능의 `PrepareAssets`를 이 메서드에, 연결을 `SpaceSceneSetup.Apply`에 함께 추가합니다. 각 기능만 다시 만들 때는 **ObjectHover → Build**, **Dialogue → Build**, **Npc → Build**, **Learning → Build**를 실행합니다.
 - Editor가 프로젝트를 열고 있지 않으면 명령줄로도 실행할 수 있습니다. 저장소 최상위에서 실행합니다. **UI → Set Up Fonts**는 TMP 기본 리소스를 가져오는 동안 기다렸다가 스스로 종료하므로 `-quit` 없이 실행합니다.
 
 ```powershell

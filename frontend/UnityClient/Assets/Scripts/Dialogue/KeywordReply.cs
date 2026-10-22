@@ -1,5 +1,3 @@
-using System;
-
 namespace A305.Dialogue
 {
     /// <summary>
@@ -16,18 +14,9 @@ namespace A305.Dialogue
         public string[] Keywords { get; }
         public DialogueLine Reply { get; }
 
-        /// <summary>대소문자를 구분하지 않고, 키워드가 단어의 일부여도 맞는 것으로 본다(예: desserts).</summary>
         public bool Matches(string utterance)
         {
-            foreach (string keyword in Keywords)
-            {
-                if (utterance.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
-                {
-                    return false;
-                }
-            }
-
-            return Keywords.Length > 0;
+            return KeywordMatcher.ContainsAll(utterance, Keywords);
         }
     }
 }

@@ -2,7 +2,6 @@ using System.Linq;
 using A305.Characters;
 using A305.Dialogue;
 using A305.EditorTools.Common;
-using A305.EditorTools.Dialogue;
 using A305.EditorTools.UI;
 using A305.EditorTools.World;
 using A305.Npc;
@@ -55,8 +54,8 @@ namespace A305.EditorTools.Npc
                 return;
             }
 
-            DialogueBuilder.PrepareAssets();
-            PrepareAssets();
+            // 행인을 놓은 씬에 공간 기능 연결을 다시 적용하므로, 연결에 쓰는 다른 기능의 프리팹도 함께 준비한다.
+            SpaceSceneSetup.PrepareFeatureAssets();
             PlacePasserbysInTown();
             AssetDatabase.SaveAssets();
             Debug.Log($"행인을 준비했습니다: {PasserbyPrefabPath}");

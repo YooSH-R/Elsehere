@@ -2,6 +2,7 @@ using System.Linq;
 using A305.Dialogue;
 using A305.EditorTools.Npc;
 using A305.EditorTools.World;
+using A305.Learning;
 using A305.Npc;
 using A305.ObjectHover;
 using A305.Player;
@@ -116,6 +117,23 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_AddsLearningScreensConnectedToDialogueAndPlayer()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            LearningController learning = Single<LearningController>();
+            Assert.That(learning.transform.parent, Is.EqualTo(Root("Systems")));
+            Assert.That(Single<FeedbackView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Single<VocabularyView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Single<LearningHudView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Reference(learning, "player"), Is.EqualTo(Single<PlayerMover>()));
+            Assert.That(Reference(learning, "dialogue"), Is.EqualTo(Single<DialogueController>()));
+            Assert.That(Reference(learning, "feedbackView"), Is.EqualTo(Single<FeedbackView>()));
+            Assert.That(Reference(learning, "vocabularyView"), Is.EqualTo(Single<VocabularyView>()));
+            Assert.That(Reference(learning, "hudView"), Is.EqualTo(Single<LearningHudView>()));
+        }
+
+        [Test]
         public void Apply_ReplacesDefaultCameraWithPlayerCamera()
         {
             SpaceSceneSetup.Apply(scene);
@@ -140,6 +158,10 @@ namespace A305.World.Tests
             Assert.That(FindAll<DialogueController>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<PasserbyOfferView>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<EventSystem>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<LearningController>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<FeedbackView>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<VocabularyView>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<LearningHudView>(), Has.Length.EqualTo(1));
         }
 
         [Test]

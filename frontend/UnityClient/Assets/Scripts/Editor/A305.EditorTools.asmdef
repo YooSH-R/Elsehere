@@ -9,6 +9,7 @@
         "A305.ObjectHover",
         "A305.Dialogue",
         "A305.Npc",
+        "A305.Learning",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

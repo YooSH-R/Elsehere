@@ -1,0 +1,222 @@
+using A305.Dialogue;
+using A305.EditorTools.Common;
+using A305.EditorTools.UI;
+using A305.Learning;
+using A305.Player;
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace A305.EditorTools.Learning
+{
+    /// <summary>
+    /// 피드백·단어장 화면, [단어장] 버튼, 확인용 참고 표현 규칙을 준비하고 공간 씬에 학습 처리를 붙인다.
+    /// 화면은 없는 요소만 만들고, 이미 있는 요소의 디자인은 유지한다.
+    /// </summary>
+    public static class LearningBuilder
+    {
+        public const string MenuPath = "Tools/A305/Learning/Build";
+
+        private const string FeedbackPrefabPath = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
+        private const string VocabularyPrefabPath = "Assets/Prefabs/Learning/VocabularyScreen.prefab";
+        private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
+        private const string MockExamplesPath = "Assets/Data/Learning/MockFeedbackExamples.asset";
+
+        // 다른 화면 위에 열리도록 대화 화면(120)보다 위에 둔다. 단어장은 피드백에서도 열 수 있어 그 위에 둔다.
+        private const int FeedbackSortingOrder = 130;
+        private const int VocabularySortingOrder = 135;
+        private const int HudSortingOrder = 95;
+
+        private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
+
+        [MenuItem(MenuPath)]
+        public static void Build()
+        {
+            if (!BuilderTools.CanBuild())
+            {
+                return;
+            }
+
+            PrepareAssets();
+            AssetDatabase.SaveAssets();
+            Debug.Log("피드백·단어장 화면을 준비했습니다.");
+        }
+
+        /// <summary>확인용 참고 표현 규칙(없을 때만)과 화면 프리팹의 기능 구성을 맞춘다. 디자인은 유지한다.</summary>
+        public static void PrepareAssets()
+        {
+            BuilderTools.LoadOrCreateAsset<MockFeedbackExampleSource>(MockExamplesPath);
+            BuilderTools.UpdateOrCreatePrefab(FeedbackPrefabPath, "FeedbackScreen", SetUpFeedbackScreen);
+            BuilderTools.UpdateOrCreatePrefab(VocabularyPrefabPath, "VocabularyScreen", SetUpVocabularyScreen);
+            BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
+        }
+
+        /// <summary>씬에 피드백·단어장 화면과 학습 처리가 없으면 붙이고 플레이어·대화 처리와 연결한다.</summary>
+        public static LearningController ConnectToScene(
+            SceneGroups groups,
+            PlayerMover player,
+            DialogueController dialogue
+        )
+        {
+            var feedbackView = FindOrPlaceView<FeedbackView>(groups, FeedbackPrefabPath);
+            var vocabularyView = FindOrPlaceView<VocabularyView>(groups, VocabularyPrefabPath);
+            var hudView = FindOrPlaceView<LearningHudView>(groups, HudPrefabPath);
+
+            var learning = BuilderTools.FindSingleInScene<LearningController>(groups.Scene);
+            if (learning == null)
+            {
+                learning = BuilderTools
+                    .CreateEmpty("Learning", groups.Systems, Vector3.zero, Quaternion.identity)
+                    .gameObject.AddComponent<LearningController>();
+            }
+
+            BuilderTools.SetReference(learning, "player", player);
+            BuilderTools.SetReference(learning, "dialogue", dialogue);
+            BuilderTools.SetReference(
+                learning,
+                "exampleSource",
+                BuilderTools.LoadRequiredAsset<MockFeedbackExampleSource>(MockExamplesPath, MenuPath)
+            );
+            BuilderTools.SetReference(learning, "feedbackView", feedbackView);
+            BuilderTools.SetReference(learning, "vocabularyView", vocabularyView);
+            BuilderTools.SetReference(learning, "hudView", hudView);
+            BuilderTools.RequireReferences(learning);
+            return learning;
+        }
+
+        private static T FindOrPlaceView<T>(SceneGroups groups, string prefabPath)
+            where T : Component
+        {
+            var view = BuilderTools.FindSingleInScene<T>(groups.Scene);
+            if (view != null)
+            {
+                return view;
+            }
+
+            return BuilderTools
+                .InstantiatePrefab(
+                    BuilderTools.LoadRequiredAsset<GameObject>(prefabPath, MenuPath),
+                    groups.UI,
+                    Vector3.zero,
+                    Quaternion.identity
+                )
+                .GetComponent<T>();
+        }
+
+        private static void SetUpFeedbackScreen(GameObject root)
+        {
+            UiBuilderTools.EnsureOverlayCanvas(root, FeedbackSortingOrder, receivesClicks: true);
+            var view = BuilderTools.GetOrAddComponent<FeedbackView>(root);
+
+            RectTransform panel = UiBuilderTools.FindOrCreateAnchoredPanel(
+                root.transform,
+                "Panel",
+                new Vector2(0.5f, 0.5f),
+                900f,
+                Vector2.zero
+            );
+            TMP_FontAsset bold = UiBuilderTools.BoldFont();
+            TMP_FontAsset regular = UiBuilderTools.RegularFont();
+            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white, "오늘도 한 걸음 가까워졌어요");
+            TMP_Text summary = UiBuilderTools.FindOrCreateText(panel, "Summary", regular, 22f, SubTextColor);
+            TMP_Text body = UiBuilderTools.FindOrCreateText(panel, "Body", regular, 24f, Color.white);
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            Button saveButton = UiBuilderTools.FindOrCreateButton(buttons, "SaveButton", "표현 저장", bold, 180f);
+            Button detailButton = UiBuilderTools.FindOrCreateButton(buttons, "DetailButton", "상세 보기", bold, 180f);
+            Button vocabularyButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "VocabularyButton",
+                "단어장 보기",
+                bold,
+                180f
+            );
+            Button closeButton = UiBuilderTools.FindOrCreateButton(buttons, "CloseButton", "닫기", bold, 180f);
+
+            BuilderTools.SetReference(view, "panel", panel.gameObject);
+            BuilderTools.SetReference(view, "summaryText", summary);
+            BuilderTools.SetReference(view, "bodyText", body);
+            BuilderTools.SetReference(view, "saveButton", saveButton);
+            BuilderTools.SetReference(view, "detailButton", detailButton);
+            BuilderTools.SetReference(view, "detailButtonLabel", detailButton.GetComponentInChildren<TMP_Text>(true));
+            BuilderTools.SetReference(view, "vocabularyButton", vocabularyButton);
+            BuilderTools.SetReference(view, "closeButton", closeButton);
+            BuilderTools.RequireReferences(view);
+
+            // 대화가 끝난 뒤에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
+            panel.gameObject.SetActive(false);
+        }
+
+        private static void SetUpVocabularyScreen(GameObject root)
+        {
+            UiBuilderTools.EnsureOverlayCanvas(root, VocabularySortingOrder, receivesClicks: true);
+            var view = BuilderTools.GetOrAddComponent<VocabularyView>(root);
+
+            RectTransform panel = UiBuilderTools.FindOrCreateAnchoredPanel(
+                root.transform,
+                "Panel",
+                new Vector2(0.5f, 0.5f),
+                900f,
+                Vector2.zero
+            );
+            TMP_FontAsset bold = UiBuilderTools.BoldFont();
+            TMP_FontAsset regular = UiBuilderTools.RegularFont();
+            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white, "조금씩 모아둔, 나의 표현들");
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Hint",
+                regular,
+                20f,
+                SubTextColor,
+                "뜻을 떠올려 본 뒤 [외웠어요]로 표시해요. 자동 채점이나 점수는 없어요."
+            );
+            TMP_Text list = UiBuilderTools.FindOrCreateText(panel, "List", regular, 24f, Color.white);
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            Button previousButton = UiBuilderTools.FindOrCreateButton(buttons, "PreviousButton", "이전", bold, 150f);
+            Button nextButton = UiBuilderTools.FindOrCreateButton(buttons, "NextButton", "다음", bold, 150f);
+            Button learnedButton = UiBuilderTools.FindOrCreateButton(buttons, "LearnedButton", "외웠어요", bold, 150f);
+            Button deleteButton = UiBuilderTools.FindOrCreateButton(buttons, "DeleteButton", "삭제", bold, 150f);
+            Button closeButton = UiBuilderTools.FindOrCreateButton(buttons, "CloseButton", "닫기", bold, 150f);
+
+            BuilderTools.SetReference(view, "panel", panel.gameObject);
+            BuilderTools.SetReference(view, "listText", list);
+            BuilderTools.SetReference(view, "previousButton", previousButton);
+            BuilderTools.SetReference(view, "nextButton", nextButton);
+            BuilderTools.SetReference(view, "learnedButton", learnedButton);
+            BuilderTools.SetReference(view, "learnedButtonLabel", learnedButton.GetComponentInChildren<TMP_Text>(true));
+            BuilderTools.SetReference(view, "deleteButton", deleteButton);
+            BuilderTools.SetReference(view, "closeButton", closeButton);
+            BuilderTools.RequireReferences(view);
+
+            panel.gameObject.SetActive(false);
+        }
+
+        private static void SetUpHud(GameObject root)
+        {
+            UiBuilderTools.EnsureOverlayCanvas(root, HudSortingOrder, receivesClicks: true);
+            var view = BuilderTools.GetOrAddComponent<LearningHudView>(root);
+
+            RectTransform panel = UiBuilderTools.FindOrCreateAnchoredPanel(
+                root.transform,
+                "Panel",
+                new Vector2(1f, 1f),
+                360f,
+                new Vector2(-24f, -24f)
+            );
+            TMP_FontAsset bold = UiBuilderTools.BoldFont();
+            TMP_FontAsset regular = UiBuilderTools.RegularFont();
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            Button vocabularyButton = UiBuilderTools.FindOrCreateButton(buttons, "VocabularyButton", "단어장 0", bold, 200f);
+            TMP_Text message = UiBuilderTools.FindOrCreateText(panel, "Message", regular, 20f, SubTextColor);
+
+            BuilderTools.SetReference(view, "vocabularyButton", vocabularyButton);
+            BuilderTools.SetReference(
+                view,
+                "vocabularyButtonLabel",
+                vocabularyButton.GetComponentInChildren<TMP_Text>(true)
+            );
+            BuilderTools.SetReference(view, "messageText", message);
+            BuilderTools.RequireReferences(view);
+        }
+    }
+}

@@ -9,7 +9,7 @@
 import asyncio
 import json
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 
 import httpx
@@ -98,6 +98,41 @@ def stream_piece(data: dict) -> str:
     return delta.get("content") or ""
 
 
+async def race(start: Callable[[], Awaitable], after: float, ok: Callable[[object], bool], discard: Callable[[object], Awaitable]):
+    """start()로 시작한 작업이 after초 안에 끝나지 않으면 같은 작업을 하나 더 시작해 먼저 ok인 결과를 쓴다 (after가 0이면 하나만).
+    ok가 아닌 결과(예: 503 응답)는 남은 쪽을 기다리고, 둘 다 ok가 아니면 마지막 결과를, 결과 없이 둘 다 실패하면 마지막 오류를 낸다.
+    반환: (결과, 하나 더 시작했나). 쓰지 않은 결과는 discard로 정리하고 끝나지 않은 작업은 취소한다 —
+    위에서 취소돼 나갈 때도 같다 (취소 직전에 끝난 응답이 열린 채 남지 않게)."""
+    tasks, winner = [asyncio.ensure_future(start())], None
+    try:
+        done, _ = await asyncio.wait(tasks, timeout=after or None)
+        if not done:
+            tasks.append(asyncio.ensure_future(start()))
+        pending, last_error, last_bad = set(tasks), None, None
+        while pending:
+            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for t in sorted(done, key=tasks.index):
+                if t.exception() is not None:
+                    last_error = t.exception()
+                elif ok(t.result()):
+                    winner = t
+                    return t.result(), len(tasks) > 1
+                else:
+                    last_bad = t
+        if last_bad is not None:
+            winner = last_bad
+            return last_bad.result(), len(tasks) > 1
+        raise last_error
+    finally:
+        for t in tasks:
+            if t is winner:
+                continue
+            if not t.done():
+                t.cancel()
+            elif not t.cancelled() and t.exception() is None:
+                await discard(t.result())
+
+
 def model_body(body: dict, params: list[dict]) -> dict:
     """모델 계열마다 다른 요청 칸 (llm_profiles.json model_params): 생각(reasoning) 끄기·줄이기,
     gpt-oss는 생각에도 토큰을 써서 출력 상한을 넉넉히, GPT-5 계열은 max_completion_tokens·temperature 없음."""
@@ -145,41 +180,9 @@ class LLM:
     ) -> tuple[httpx.Response, bool]:
         """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다.
         반환: (응답, 더 보냈나). 둘 다 실패하면 마지막 오류를 던진다. 스트림은 응답 머리가 먼저 와서 늦음을 알 수 없어 그대로."""
-        send = lambda: asyncio.ensure_future(
-            client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
-        )
-        first = send()
-        if stream or not hedge or not self.s.hedge_after_s:
-            return await first, False
-        tasks = [first]
-        try:
-            done, _ = await asyncio.wait({first}, timeout=self.s.hedge_after_s)
-            if done:
-                return first.result(), False
-            tasks.append(send())
-            pending, last, failed = set(tasks), None, []  # failed: 오류 상태 코드로 끝난 응답 (남은 쪽을 기다림)
-            while pending:
-                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-                got = [t.result() for t in done if t.exception() is None]
-                last = next((t.exception() for t in done if t.exception() is not None), last)
-                win = next((r for r in got if r.status_code < 400), None)
-                failed += [r for r in got if r is not win and r.status_code >= 400]
-                for r in got:
-                    if win and r is not win:  # 같이 끝난 다른 응답은 닫는다
-                        await r.aclose()
-                if win:
-                    for r in failed:
-                        await r.aclose()
-                    return win, True
-            if failed:  # 둘 다 안 됐으면 오류 응답을 돌려줘 _open이 상태 코드대로 재시도·대체 모델을 정하게
-                for r in failed[:-1]:
-                    await r.aclose()
-                return failed[-1], True
-            raise last
-        finally:  # 이긴 쪽이 정해졌거나 위에서 취소되면(판정 시간 상한 등) 남은 요청은 끊는다
-            for t in tasks:
-                if not t.done():
-                    t.cancel()
+        start = lambda: client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
+        after = 0 if stream or not hedge else self.s.hedge_after_s
+        return await race(start, after, lambda r: r.status_code < 400, lambda r: r.aclose())
 
     async def _open(
         self, body: dict, stream: bool = False, role: str = "", timeout_s: float | None = None, hedge: bool = True
@@ -330,29 +333,10 @@ class LLM:
         """첫 글자가 stream_hedge_after_s 안에 안 오면 같은 요청 스트림을 하나 더 열어, 먼저 첫 글자를 낸 쪽을 쓴다.
         GMS는 첫 글자가 나올 때 응답 머리를 보내므로 머리가 늦은 경우도 같이 잡힌다. 진 쪽은 닫는다.
         반환: _first_text의 값 + 하나 더 보냈는지."""
-        first = asyncio.ensure_future(self._first_text(body, role))
-        if not self.s.stream_hedge_after_s:
-            return (*await first, False)
-        tasks = [first]
-        try:
-            done, _ = await asyncio.wait({first}, timeout=self.s.stream_hedge_after_s)
-            if done:
-                return (*first.result(), False)
-            tasks.append(asyncio.ensure_future(self._first_text(body, role)))
-            pending, last = set(tasks), None
-            while pending:
-                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-                won = [d for d in done if d.exception() is None]
-                last = next((d.exception() for d in done if d.exception() is not None), last)
-                if won:
-                    for extra in won[1:]:  # 같이 끝난 다른 스트림은 닫는다
-                        await extra.result()[0].aclose()
-                    return (*won[0].result(), True)
-            raise last
-        finally:  # 이긴 쪽이 정해졌거나 위에서 취소되면(첫 글자 상한 등) 남은 스트림은 끊는다
-            for task in tasks:
-                if not task.done():
-                    task.cancel()
+        res, hedged = await race(
+            lambda: self._first_text(body, role), self.s.stream_hedge_after_s, lambda _: True, lambda res: res[0].aclose()
+        )
+        return (*res, hedged)
 
     async def transcribe(self, audio: bytes, filename: str, mime: str, prompt: str, usage: Usage) -> dict:
         """음성 인식 (Whisper). 대체 모델 없음: 실패하면 바로 오류."""

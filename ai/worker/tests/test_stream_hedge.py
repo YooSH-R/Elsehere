@@ -118,3 +118,65 @@ def test_first_stream_error_after_hedge_waits_for_second(provider):
     provider.answers["npc"] = handler
     ev = run(provider, stream_hedge_after_s=0.1, retry_pause_s=0.0)
     assert ev[-1][0] == "done" and ev[-1][1]["text"] == "From second."
+
+
+# ---------------------------------------------------------------------
+# 코드 리뷰 #4·#8·#10
+# ---------------------------------------------------------------------
+def test_broken_first_line_ends_with_error_event(provider):
+    """첫 글자 전에 data 줄이 깨져도(_first_text) 스트림은 error 이벤트로 끝난다."""
+    provider.answers["npc"] = lambda b: httpx.Response(200, content=b"data: {broken\n\ndata: [DONE]\n\n")
+    ev = run(provider, stream_hedge_after_s=0.1)
+    assert ev[-1][0] == "error" and ev[-1][1]["code"] == "provider_unavailable"
+
+
+async def _race_cancelled_after_finish():
+    from app.llm import race
+
+    gate, closed = asyncio.Event(), []
+
+    async def start():
+        await gate.wait()
+        return "response"
+
+    async def discard(result):
+        closed.append(result)
+
+    task = asyncio.ensure_future(race(start, 0, lambda r: True, discard))
+    await asyncio.sleep(0)  # race가 작업을 시작하고 기다리는 중
+    gate.set()
+    await asyncio.sleep(0)  # 작업은 끝났지만 race는 아직 깨어나지 않음
+    task.cancel()  # 이 틈에 위에서 취소 (예: 첫 글자 상한)
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    return closed
+
+
+def test_race_closes_a_result_that_finished_just_before_cancel():
+    """취소가 닿기 직전에 끝난 결과도 버리지 말고 닫는다 (열린 응답이 남지 않게)."""
+    assert asyncio.run(_race_cancelled_after_finish()) == ["response"]
+
+
+async def _race_not_ok_then_ok():
+    from app.llm import race
+
+    results, closed = iter([("bad", 0.2), ("good", 0.3)]), []
+
+    async def start():
+        value, delay = next(results)
+        await asyncio.sleep(delay)
+        return value
+
+    async def discard(result):
+        closed.append(result)
+
+    got = await race(start, 0.1, lambda r: r == "good", discard)
+    return got, closed
+
+
+def test_race_waits_past_a_not_ok_result_and_discards_it():
+    """먼저 끝났어도 쓸 수 없는 결과(예: 503)는 남은 쪽을 기다리고, 버린 결과는 닫는다."""
+    got, closed = asyncio.run(_race_not_ok_then_ok())
+    assert got == ("good", True) and closed == ["bad"]

@@ -1,5 +1,5 @@
 # 선택: 로컬 무례 판정기 (GUARD_LOCAL_MODEL, app/guard_local.py). 없으면 판정은 전부 LLM
-# CPU 판 torch (GPU 판보다 훨씬 작다). 버전은 학습·평가(prototype/stt_finetune/.venv)와 같게
+# CPU 판 torch (GPU 판보다 훨씬 작다). 버전은 학습·평가 환경과 같게 (점수가 달라지지 않도록)
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.11.0+cpu
 transformers==4.57.6

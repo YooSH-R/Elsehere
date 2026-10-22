@@ -1,4 +1,4 @@
-"""AI 워커 설정. 역할별 모델·공급자 구성은 llm_profiles.json (프로토타입 prototype/mvp_web와 같은 파일)에서 이름 하나로 고른다.
+"""AI 워커 설정. 역할별 모델·공급자 구성은 llm_profiles.json에서 이름 하나로 고른다.
 
     LLM_PROFILE=gms-luna  → GMS 주소·키(GMS_KEY)·GPT-6 Luna로 (Spring은 그대로)
 
@@ -28,7 +28,7 @@ def profile_models(name: str) -> tuple[dict[str, str], dict[str, str]]:
     return models, role_provider
 
 
-# 역할별 기본 모델 (기본 구성, 2026-10-21부터 gms-luna). 프로토타입(prototype/mvp_web)에서 측정해 고른 것
+# 역할별 기본 모델 (기본 구성 gms-luna). 고른 근거는 llm_profiles.json 각 구성의 _note
 DEFAULT_PROFILE = PROFILES["default_profile"]
 DEFAULT_MODELS, DEFAULT_ROLE_PROVIDER = profile_models(DEFAULT_PROFILE)
 DEFAULT_FALLBACK = ",".join(f"{a}={b}" for a, b in PROFILES["profiles"][DEFAULT_PROFILE].get("fallback", {}).items())
@@ -67,7 +67,7 @@ class Settings:
     call_timeout_s: float = 8.0                  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
     hedge_after_s: float = 3.0                   # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
                                                  # 2026-10-22 gms-luna: 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초, 평소 p99 2.5~3.9초
-    judge_budget_s: float = 5.0                  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 프로토타입 실측 1.2~2.9초
+    judge_budget_s: float = 5.0                  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
     reply_first_budget_s: float = 5.0            # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
     exhausted_skip_s: float = 600.0              # 하루 한도에 걸린 모델은 이만큼 건너뜀
     retry_pause_s: float = 1.0                   # 429/5xx 뒤 재시도 전에 쉬는 시간 (retry-after가 있으면 그것, 최대 5초)
@@ -77,7 +77,7 @@ class Settings:
     audio_ttl_s: float = 600.0                   # 스트림 음성 조각 보관 시간 (GET /v1/audio/{id})
     guard_local_model: str = ""                  # 로컬 무례 판정기 폴더. 비어 있으면 끔 (기본, 판정은 전부 LLM) — app/guard_local.py
     guard_t_lo: float = 0.0                      # 로컬 점수 ≤ t_lo → 아님, ≥ t_hi → 무례, 그 사이는 LLM
-    guard_t_hi: float = 1.0                      # (모델을 켜면 둘 다 반드시 정함. 보정용 데이터에서 cascade_eval.py로 고른 값)
+    guard_t_hi: float = 1.0                      # (모델을 켜면 둘 다 반드시 정함. 학습에 쓰지 않은 보정용 데이터에서 고른 값)
 
     @classmethod
     def from_env(cls) -> "Settings":

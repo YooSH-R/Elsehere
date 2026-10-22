@@ -1,6 +1,6 @@
 """NPC 대답 스트림. 이벤트: delta(글자 조각) → audio(읽을 조각의 음성, seq 순서) → done 또는 error.
 
-조각 나누기는 프로토타입 화면(static/index.html)과 같다: 문장이 끝날 때마다 한 조각, 첫 조각만 12자 이상이면 쉼표에서도 끊어
+조각 나누기는 웹 프로토타입 화면(prototype/mvp_web/static/index.html)과 같다: 문장이 끝날 때마다 한 조각, 첫 조각만 12자 이상이면 쉼표에서도 끊어
 첫 소리를 당긴다. 한 조각 합성이 상한(기본 2.5초)을 넘기면 그 조각은 tts: false (화면이 자막만 또는 브라우저 음성).
 """
 import asyncio

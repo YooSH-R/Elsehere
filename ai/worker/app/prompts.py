@@ -1,5 +1,5 @@
-"""프롬프트와 출력 형식. 프로토타입(prototype/mvp_web/server.py)에서 회귀 테스트로 다듬은 문장을 그대로 옮겼다.
-문장을 바꾸면 프로토타입 회귀 테스트(tests/replay.py)로 먼저 확인할 것. 테스트 문장을 예시로 넣지 않는다 (과적합)."""
+"""프롬프트와 출력 형식. 웹 프로토타입(프로토타입 브랜치의 prototype/mvp_web/server.py)에서 회귀 테스트로 다듬은 문장을 옮겼다.
+문장을 바꾸면 그 회귀 테스트(prototype/mvp_web/tests/replay.py)로 먼저 확인할 것. 테스트 문장을 예시로 넣지 않는다 (과적합)."""
 import json
 import re
 

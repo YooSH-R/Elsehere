@@ -4,8 +4,9 @@
 켜면 한글이 든 입력만 점수 s를 낸다 (한국어 모델). s ≥ t_hi면 무례, s ≤ t_lo면 아님으로 판정용 LLM을 부르지 않고,
 그 사이·영어·로컬 실패는 LLM이 판정한다.
 
-점수는 prototype/guard_clf/cascade_eval.py와 같은 방식(softmax의 무례 칸, 같은 토큰화·한글 판별)으로 낸다.
-그래야 거기서 고른 t_lo·t_hi를 그대로 쓸 수 있다. 모델 폴더는 train_clf.py가 남긴 best/ (threshold.json의
+점수는 학습·평가 스크립트(프로토타입 브랜치의 prototype/guard_clf: train_clf.py·cascade_eval.py)와 같은 방식
+(softmax의 무례 칸, 같은 토큰화·한글 판별)으로 낸다. 그래야 평가에서 고른 t_lo·t_hi를 그대로 쓸 수 있다.
+모델 폴더는 train_clf.py가 남긴 best/ (threshold.json의
 context가 true면 바로 앞 NPC 대사를 문장 쌍으로 함께 넣는다).
 """
 import json

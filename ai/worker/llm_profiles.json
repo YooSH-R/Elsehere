@@ -1,5 +1,5 @@
 {
-  "_설명": "역할별 모델·공급자 구성과 단가표. AI 워커(LLM_PROFILE 환경 변수)와 프로토타입(prototype/mvp_web: --profile)이 같이 읽는다. 키 값은 여기 넣지 말고 key_env에 적힌 환경 변수(저장소 루트 .env)로.",
+  "_설명": "역할별 모델·공급자 구성과 단가표. AI 워커가 LLM_PROFILE 환경 변수로 고른다 (웹 프로토타입도 같은 형식의 파일을 --profile로 읽음). 키 값은 여기 넣지 말고 key_env에 적힌 환경 변수(저장소 루트 .env)로.",
   "default_profile": "gms-luna",
   "providers": {
     "groq": {"base_url": "https://api.groq.com/openai/v1", "key_env": ["GROQ_API_KEY", "GROK_API_KEY"]},

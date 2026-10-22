@@ -10,7 +10,7 @@
 
 | 영역 | 기술 및 선정 기준 |
 | --- | --- |
-| 백엔드 | Java + Spring Boot |
+| 백엔드 | Java 21 + Spring Boot 4.1.1, Gradle ([백엔드 README](backend/README.md)) |
 | 프론트엔드 | Unity 6.3 LTS `6000.3.26f1` + C#, URP, WebGL 기반 브라우저 실행 |
 | AI | PoC와 처리 흐름 설계에 따라 모델·언어·실행 방식 선정 |
 | 개발 도구 | 프로젝트 초기화 시 JDK·빌드 도구·의존성 버전 고정 |

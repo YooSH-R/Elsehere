@@ -1,0 +1,39 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "필요한 물건을 that으로 표현했지만 어떤 물건인지는 확인되지 않았어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I need that."
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "unclear",
+      "explanation_ko": "필요한 것이 무엇인지 대화만으로는 알기 어려워요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I need that."
+        }
+      ]
+    },
+    "review_tags": [],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "I need that.",
+        "verdict": "needs_clarification",
+        "explanation_ko": "that이 가리키는 물건이 드러나지 않아 대상 확인이 필요해요.",
+        "assisted": false,
+        "suggestions": []
+      }
+    ],
+    "summary_suggestion_id": null,
+    "vocab_candidates": []
+  }
+}

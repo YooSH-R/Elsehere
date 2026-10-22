@@ -1,0 +1,315 @@
+[
+  {
+    "case_id": "voice_surface",
+    "input_file": "samples/robustness/voice_surface.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "appropriate"
+        ],
+        "t04": [
+          "appropriate"
+        ],
+        "t06": [
+          "appropriate"
+        ],
+        "t08": [
+          "appropriate"
+        ]
+      },
+      "max_suggestions": 1,
+      "forbid_suggestion_kinds": [
+        "grammar_error",
+        "vocabulary_error"
+      ]
+    }
+  },
+  {
+    "case_id": "mixed_korean",
+    "input_file": "samples/robustness/mixed_korean.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "appropriate",
+          "improvement_suggested"
+        ],
+        "t04": [
+          "appropriate"
+        ]
+      },
+      "forbid_suggestion_kinds": [
+        "grammar_error"
+      ]
+    }
+  },
+  {
+    "case_id": "korean_only",
+    "input_file": "samples/robustness/korean_only.json",
+    "expect": {
+      "statuses": [
+        "completed",
+        "insufficient_evidence"
+      ],
+      "verdicts": {
+        "t02": [
+          "not_assessable"
+        ],
+        "t04": [
+          "not_assessable"
+        ]
+      },
+      "max_suggestions": 0,
+      "max_vocab": 0
+    }
+  },
+  {
+    "case_id": "unclear_reference",
+    "input_file": "samples/robustness/unclear_reference.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "needs_clarification"
+        ]
+      },
+      "max_suggestions": 0,
+      "max_vocab": 0
+    }
+  },
+  {
+    "case_id": "role_injection",
+    "input_file": "samples/robustness/role_injection.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "needs_clarification",
+          "not_assessable"
+        ]
+      },
+      "max_suggestions": 0,
+      "max_vocab": 0
+    }
+  },
+  {
+    "case_id": "cancel_negation",
+    "input_file": "samples/robustness/cancel_negation.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "appropriate"
+        ],
+        "t04": [
+          "appropriate"
+        ]
+      },
+      "forbid_suggestion_kinds": [
+        "grammar_error",
+        "vocabulary_error"
+      ]
+    }
+  },
+  {
+    "case_id": "polite_complaint",
+    "input_file": "samples/robustness/polite_complaint.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "appropriate"
+        ]
+      },
+      "forbid_suggestion_kinds": [
+        "grammar_error",
+        "vocabulary_error",
+        "context_fit"
+      ]
+    }
+  },
+  {
+    "case_id": "unicode_quotes",
+    "input_file": "samples/robustness/unicode_quotes.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "appropriate"
+        ],
+        "t04": [
+          "appropriate"
+        ]
+      },
+      "forbid_suggestion_kinds": [
+        "grammar_error",
+        "vocabulary_error"
+      ]
+    }
+  },
+  {
+    "case_id": "clear_grammar",
+    "input_file": "samples/robustness/clear_grammar.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "improvement_suggested"
+        ],
+        "t04": [
+          "appropriate"
+        ]
+      },
+      "required_suggestion_kinds": {
+        "t02": [
+          "grammar_error"
+        ]
+      }
+    }
+  },
+  {
+    "case_id": "long_twenty",
+    "input_file": "samples/robustness/long_twenty.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "appropriate"
+        ],
+        "t04": [
+          "appropriate"
+        ],
+        "t06": [
+          "appropriate"
+        ],
+        "t08": [
+          "appropriate"
+        ],
+        "t10": [
+          "appropriate"
+        ],
+        "t12": [
+          "appropriate"
+        ],
+        "t14": [
+          "appropriate"
+        ],
+        "t16": [
+          "appropriate"
+        ],
+        "t18": [
+          "appropriate"
+        ],
+        "t20": [
+          "appropriate"
+        ],
+        "t22": [
+          "appropriate"
+        ],
+        "t24": [
+          "appropriate"
+        ],
+        "t26": [
+          "appropriate"
+        ],
+        "t28": [
+          "appropriate"
+        ],
+        "t30": [
+          "appropriate"
+        ],
+        "t32": [
+          "appropriate"
+        ],
+        "t34": [
+          "appropriate"
+        ],
+        "t36": [
+          "appropriate"
+        ],
+        "t38": [
+          "appropriate"
+        ],
+        "t40": [
+          "appropriate"
+        ]
+      },
+      "max_suggestions": 1
+    }
+  },
+  {
+    "case_id": "tutorial_assisted",
+    "input_file": "samples/inputs/tutorial_assisted.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {}
+    }
+  },
+  {
+    "case_id": "stt_corrected",
+    "input_file": "samples/inputs/stt_corrected.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {}
+    }
+  },
+  {
+    "case_id": "mixed_five_turns",
+    "input_file": "samples/inputs/mixed_five_turns.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {
+        "t02": [
+          "appropriate"
+        ],
+        "t04": [
+          "appropriate"
+        ],
+        "t06": [
+          "improvement_suggested"
+        ],
+        "t08": [
+          "needs_clarification"
+        ],
+        "t10": [
+          "not_assessable"
+        ]
+      }
+    }
+  },
+  {
+    "case_id": "instruction_in_dialogue",
+    "input_file": "samples/inputs/instruction_in_dialogue.json",
+    "expect": {
+      "statuses": [
+        "completed"
+      ],
+      "verdicts": {}
+    }
+  }
+]

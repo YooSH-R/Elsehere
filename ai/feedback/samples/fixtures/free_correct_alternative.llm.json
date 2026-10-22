@@ -1,0 +1,78 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "카페에서 커피를 정중하게 요청했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "Can I have a coffee, please?"
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "clear",
+      "explanation_ko": "정중하게 커피를 요청했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "Can I have a coffee, please?"
+        }
+      ]
+    },
+    "review_tags": [
+      {
+        "tag_id": "tag01",
+        "kind": "strength",
+        "label_ko": "정중하게 요청했어요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "Can I have a coffee, please?"
+          }
+        ],
+        "assisted": false
+      }
+    ],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "Can I have a coffee, please?",
+        "verdict": "appropriate",
+        "explanation_ko": "원래 문장도 맞아요. 주문할 때 사용할 수 있는 다른 표현이에요.",
+        "assisted": false,
+        "suggestions": [
+          {
+            "suggestion_id": "suggestion_t02",
+            "kind": "natural_alternative",
+            "source": {
+              "turn_id": "t02",
+              "quote": "Can I have a coffee, please?"
+            },
+            "suggested_expression": "I'd like a coffee, please.",
+            "explanation_ko": "원래 문장도 맞아요. 주문할 때 사용할 수 있는 다른 표현이에요."
+          }
+        ]
+      }
+    ],
+    "summary_suggestion_id": "suggestion_t02",
+    "vocab_candidates": [
+      {
+        "candidate_id": "candidate01",
+        "kind": "sentence",
+        "expression": "I'd like a coffee, please.",
+        "meaning_ko": "커피 한 잔 주세요.",
+        "example_en": "I'd like a coffee, please.",
+        "example_ko": "커피 한 잔 주세요.",
+        "source": {
+          "type": "suggestion",
+          "review_id": "review_t02",
+          "suggestion_id": "suggestion_t02",
+          "quote": "I'd like a coffee, please."
+        }
+      }
+    ]
+  }
+}

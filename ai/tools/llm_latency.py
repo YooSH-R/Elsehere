@@ -2,6 +2,7 @@
 
     ai/worker/.venv/Scripts/python ai/tools/llm_latency.py --profile gms-luna --n 30
     ... --mode pair      의도·무례를 게임처럼 동시에 (기본: 하나씩)
+    ... --mode stream    NPC 대답 스트리밍: 응답 머리가 온 시각과 첫 글자가 온 시각을 따로
     ... --env <저장소>/.env  키를 읽을 .env (기본: 이 저장소 루트)
 
 재시도·대체 모델 없이 호출 하나의 실제 지연을 잰다 (시간 제한 --timeout, 기본 30초). 그래야 응답이 늦은 호출이
@@ -98,6 +99,44 @@ async def call(client: httpx.AsyncClient, s: config.Settings, role: str, text: s
     return out
 
 
+async def call_stream(client: httpx.AsyncClient, s: config.Settings, text: str, timeout: float) -> list[dict]:
+    """NPC 대답 스트림 하나: 응답 머리(headers)·첫 글자(first)·끝(total) 시각. 재시도·대체 모델 없이."""
+    msgs = P.npc_messages(NPC, None, HISTORY, text, "Just reply naturally.", 1)
+    body = {
+        "model": s.models["npc"],
+        "temperature": 0.6,
+        "max_tokens": P.LEVEL_MAX_TOKENS[1],
+        "messages": msgs,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    b = model_body(body, s.model_params)
+    t, head, first = time.perf_counter(), None, None
+    try:
+        req = client.build_request("POST", "/chat/completions", json=b, timeout=httpx.Timeout(timeout, connect=10.0))
+        r = await client.send(req, stream=True)
+        head = time.perf_counter() - t
+        try:
+            if r.status_code >= 400:
+                return [{"role": "headers", "status": r.status_code, "s": round(head, 3), "error": (await r.aread())[:120].decode()}]
+            async for line in r.aiter_lines():
+                if not line.startswith("data:") or line[5:].strip() == "[DONE]":
+                    continue
+                choices = json.loads(line[5:]).get("choices") or []
+                if first is None and choices and (choices[0].get("delta", {}).get("content") or "").strip():
+                    first = time.perf_counter() - t
+        finally:
+            await r.aclose()
+    except (httpx.TimeoutException, httpx.TransportError) as e:
+        return [{"role": "first", "status": None, "s": round(time.perf_counter() - t, 3), "error": type(e).__name__}]
+    total = time.perf_counter() - t
+    return [
+        {"role": "headers", "status": 200, "s": round(head, 3)},
+        {"role": "first", "status": 200 if first else None, "s": round(first or total, 3), "error": None if first else "no text"},
+        {"role": "total", "status": 200, "s": round(total, 3)},
+    ]
+
+
 def report(rows: list[dict], label: str):
     ok = [r["s"] for r in rows if r["status"] == 200]
     bad = [r for r in rows if r["status"] != 200]
@@ -116,7 +155,7 @@ async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--profile", default="gms-luna")
     ap.add_argument("--n", type=int, default=30, help="역할마다 호출 수 (pair면 쌍 수)")
-    ap.add_argument("--mode", choices=["single", "pair"], default="single")
+    ap.add_argument("--mode", choices=["single", "pair", "stream"], default="single")
     ap.add_argument("--timeout", type=float, default=30.0)
     ap.add_argument("--fresh", action="store_true", help="호출마다 새 연결 (프로토타입 server.py의 urllib처럼)")
     ap.add_argument("--env", default=str(ROOT / ".env"))
@@ -132,7 +171,9 @@ async def main():
     for i in range(a.n):
         text = LINES[i % len(LINES)]
         client = mk() if a.fresh else shared
-        if a.mode == "pair":
+        if a.mode == "stream":
+            rows += await call_stream(client, s, text, a.timeout)
+        elif a.mode == "pair":
             got = await asyncio.gather(call(client, s, "intent", text, a.timeout), call(client, s, "guard", text, a.timeout))
             for g in got:
                 g["pair"] = i
@@ -143,7 +184,7 @@ async def main():
             await client.aclose()
     await shared.aclose()
     tag = f"{a.profile} {a.mode}{' fresh' if a.fresh else ''}"
-    for role in ("guard", "intent"):
+    for role in ("headers", "first", "total") if a.mode == "stream" else ("guard", "intent"):
         report([r for r in rows if r["role"] == role], f"{tag} {role}")
     if a.mode == "pair":
         worst = [max(r["s"] for r in rows if r.get("pair") == i) for i in range(a.n)]

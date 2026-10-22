@@ -70,6 +70,8 @@ class Settings:
     call_timeout_s: float = 8.0  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
     hedge_after_s: float = 3.0  # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
     # 2026-10-22 gms-luna: 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초, 평소 p99 2.5~3.9초
+    stream_hedge_after_s: float = 2.5  # NPC 대답 스트림의 첫 글자가 이만큼 안 오면 같은 요청 스트림을 하나 더 (0이면 끔).
+    # gms-luna 첫 글자 40번 p50 0.98s·최대 1.66s, 가끔 11s+ 멈춤. 다시 보낸 쪽이 ~1s라 첫 글자 상한(5s) 안에 든다
     feedback_timeout_s: float = 60.0  # 대화 종료 피드백 호출 하나의 상한 (길게 생성해서 따로, 같은 요청 더 보내기 없음)
     words_budget_s: float = 3.0  # NPC 대답 스트림 안 추천 단어(words)의 상한. 넘으면 words: null(timeout)로 넘기고 done을 보낸다
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
@@ -128,6 +130,7 @@ class Settings:
             providers=providers,
             call_timeout_s=float(e.get("CALL_TIMEOUT_S", cls.call_timeout_s)),
             hedge_after_s=float(e.get("HEDGE_AFTER_S", cls.hedge_after_s)),
+            stream_hedge_after_s=float(e.get("STREAM_HEDGE_AFTER_S", cls.stream_hedge_after_s)),
             feedback_timeout_s=float(e.get("FEEDBACK_TIMEOUT_S", cls.feedback_timeout_s)),
             words_budget_s=float(e.get("WORDS_BUDGET_S", cls.words_budget_s)),
             judge_budget_s=float(e.get("JUDGE_BUDGET_S", cls.judge_budget_s)),

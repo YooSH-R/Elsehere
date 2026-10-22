@@ -1,4 +1,5 @@
 """가짜 모델 공급자: 진짜 Groq를 부르지 않고 시스템 프롬프트로 단계를 알아본 뒤 정해 둔 답을 돌려준다."""
+
 import asyncio
 import json
 import sys
@@ -9,13 +10,18 @@ import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.config import PROFILES, Settings, profile_models  # noqa: E402
-from app.main import create_app  # noqa: E402
+from app.config import PROFILES, Settings, profile_models
+from app.main import create_app
 
 TOKEN = "test-token"
-STEPS = {"You moderate": "guard", "You label": "intent", "You help a Korean learner of English in a role-play": "translate",
-         "You help a Korean learner of English (CEFR A2-B1) who is stuck": "hint", "You give short, kind feedback": "feedback",
-         "You keep the memory": "memory"}
+STEPS = {
+    "You moderate": "guard",
+    "You label": "intent",
+    "You help a Korean learner of English in a role-play": "translate",
+    "You help a Korean learner of English (CEFR A2-B1) who is stuck": "hint",
+    "You give short, kind feedback": "feedback",
+    "You keep the memory": "memory",
+}
 
 
 def step_of(body: dict) -> str:
@@ -24,8 +30,9 @@ def step_of(body: dict) -> str:
 
 
 def ok(content: str, usage=(100, 5)) -> httpx.Response:
-    return httpx.Response(200, json={"choices": [{"message": {"content": content}}],
-                                     "usage": {"prompt_tokens": usage[0], "completion_tokens": usage[1]}})
+    return httpx.Response(
+        200, json={"choices": [{"message": {"content": content}}], "usage": {"prompt_tokens": usage[0], "completion_tokens": usage[1]}}
+    )
 
 
 def stream(pieces: list[str]) -> httpx.Response:
@@ -51,7 +58,7 @@ class Provider:
         if step not in self.answers:
             raise AssertionError(f"정하지 않은 단계 호출: {step}")
         res = self.answers[step](body)
-        return await res if asyncio.iscoroutine(res) else res   # async 함수면 늦게 답하는 공급자
+        return await res if asyncio.iscoroutine(res) else res  # async 함수면 늦게 답하는 공급자
 
 
 class FakeTts:
@@ -71,8 +78,13 @@ def provider():
 
 def make_client(provider: Provider, tts=None, guard_local=None, **kw) -> TestClient:
     # 재시도·대체 모델 사슬은 groq 구성(qwen → gpt-oss-20b → 120b)으로 확인한다. 기본 구성(gms-luna)과 상관없이 고정
-    kw = {"profile": "groq", "models": profile_models("groq")[0], "role_provider": {},
-          "fallback": dict(PROFILES["profiles"]["groq"]["fallback"]), **kw}
+    kw = {
+        "profile": "groq",
+        "models": profile_models("groq")[0],
+        "role_provider": {},
+        "fallback": dict(PROFILES["profiles"]["groq"]["fallback"]),
+        **kw,
+    }
     s = Settings(token=TOKEN, base_url="http://fake/v1", api_key="x", call_timeout_s=1.0, retry_pause_s=0.0, **kw)
     return TestClient(create_app(s, httpx.MockTransport(provider.handler), tts, guard_local), headers={"X-Internal-Token": TOKEN})
 

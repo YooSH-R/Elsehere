@@ -91,6 +91,14 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - 응답 `intent.slots`는 이 범위 안으로 정리됩니다: 목록에 없는 상품은 버리고, `iced_ok`가 아닌 상품의 `iced`는 `false`, 선택지는 `labels` 또는 `"none"`.
   수량 상한·가격 계산은 Spring 규칙이 합니다.
 
+## 검사
+
+```bash
+.venv/Scripts/python -m pip install -r requirements-dev.txt
+.venv/Scripts/ruff check . ../tools --config pyproject.toml          # 규칙 검사 (Ruff 기본 권장 규칙 + import 정렬)
+.venv/Scripts/ruff format --check . ../tools --config pyproject.toml # 포맷 확인 (고칠 때는 --check 빼고)
+```
+
 ## 테스트
 
 ```bash

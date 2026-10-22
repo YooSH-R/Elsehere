@@ -1,4 +1,5 @@
 """AI 워커 API 테스트 (모델 호출 없음, 몇 초 안에 끝남).   pytest -q   (ai/worker 에서)"""
+
 import asyncio
 import json
 
@@ -6,19 +7,29 @@ import httpx
 
 from app.npc import Splitter
 from app.services import guard_result, is_prompt_echo, stt_prompt
-from conftest import TOKEN, FakeTts, make_client, ok, stream
+from conftest import FakeTts, make_client, ok, stream
 
 NPC = {"id": "emma", "name": "Emma", "role": "the barista at Maple Cafe.", "facts": "Menu: latte $5.", "scene": "Inside Maple Cafe."}
 CAFE_STATE = {
-    "id": "ordering", "desc": "The barista is waiting for the order.",
+    "id": "ordering",
+    "desc": "The barista is waiting for the order.",
     "intents": [{"id": "order_items", "desc": "orders"}, {"id": "unclear", "desc": "cannot tell"}],
-    "slots": {"items": {"catalog": ["americano", "latte", "muffin"], "iced_ok": ["americano", "latte"],
-                        "catalog_word": "menu", "vague_words": "'coffee' or 'drink'"},
-              "option": {"slot": "choice", "labels": ["here", "to_go"], "prompt": "where they will have it"}},
+    "slots": {
+        "items": {
+            "catalog": ["americano", "latte", "muffin"],
+            "iced_ok": ["americano", "latte"],
+            "catalog_word": "menu",
+            "vague_words": "'coffee' or 'drink'",
+        },
+        "option": {"slot": "choice", "labels": ["here", "to_go"], "prompt": "where they will have it"},
+    },
 }
-PHARMACY_STATE = {"id": "ordering", "desc": "The pharmacist is asking what they need.",
-                  "intents": [{"id": "order_items", "desc": "buys"}, {"id": "describe_symptom", "desc": "symptom"}, {"id": "unclear", "desc": "?"}],
-                  "slots": {"items": {"catalog": ["pain reliever", "cough syrup"], "catalog_word": "products"}}}
+PHARMACY_STATE = {
+    "id": "ordering",
+    "desc": "The pharmacist is asking what they need.",
+    "intents": [{"id": "order_items", "desc": "buys"}, {"id": "describe_symptom", "desc": "symptom"}, {"id": "unclear", "desc": "?"}],
+    "slots": {"items": {"catalog": ["pain reliever", "cough syrup"], "catalog_word": "products"}},
+}
 
 
 def judge_body(text, state=CAFE_STATE, **kw):
@@ -54,14 +65,29 @@ def test_request_id_echoed_and_bad_request_format(client):
 # 판정
 # ---------------------------------------------------------------------
 def test_judge_cleans_items_to_catalog(client, provider):
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "order_items", "choice": "to_go", "items": [
-        {"name": "latte", "iced": True, "qty": 2}, {"name": "muffin", "iced": True, "qty": 1}, {"name": "pizza", "iced": False, "qty": 1}]}))
+    provider.answers["intent"] = lambda b: ok(
+        json.dumps(
+            {
+                "intent": "order_items",
+                "choice": "to_go",
+                "items": [
+                    {"name": "latte", "iced": True, "qty": 2},
+                    {"name": "muffin", "iced": True, "qty": 1},
+                    {"name": "pizza", "iced": False, "qty": 1},
+                ],
+            }
+        )
+    )
     provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("two iced lattes and a muffin to go")).json()
-    assert r["intent"] == {"id": "order_items", "ids": ["order_items"], "error": None, "slots": {
-        "items": [{"name": "latte", "iced": True, "qty": 2}, {"name": "muffin", "iced": False, "qty": 1}], "choice": "to_go"}}
+    assert r["intent"] == {
+        "id": "order_items",
+        "ids": ["order_items"],
+        "error": None,
+        "slots": {"items": [{"name": "latte", "iced": True, "qty": 2}, {"name": "muffin", "iced": False, "qty": 1}], "choice": "to_go"},
+    }
     assert r["guard"] == {"abusive": False, "error": None, "error_code": None}
-    assert r["translation"] is None                        # 한국어가 없으면 번역을 부르지 않음
+    assert r["translation"] is None  # 한국어가 없으면 번역을 부르지 않음
     assert {u["step"] for u in r["usage"]} == {"intent", "guard"}
     assert all(u["input_tokens"] == 100 for u in r["usage"])
 
@@ -74,6 +100,7 @@ def test_intent_schema_follows_place_slots(client, provider):
         seen["schema"] = b["response_format"]["json_schema"]["schema"]
         seen["prompt"] = b["messages"][1]["content"]
         return ok(json.dumps({"intent": "describe_symptom", "items": []}))
+
     provider.answers["intent"] = intent
     provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("I have a headache", PHARMACY_STATE)).json()
@@ -91,12 +118,17 @@ def test_several_actions_in_one_line(client, provider):
     def intent(b):
         seen["schema"] = b["response_format"]["json_schema"]["schema"]
         return ok(json.dumps({"intents": ["choose_here_or_to_go", "pay", "fly"], "items": [], "choice": "to_go"}))
+
     provider.answers["intent"] = intent
     provider.answers["guard"] = lambda b: ok("no")
-    state = {**CAFE_STATE, "id": "paying", "intents": [{"id": "choose_here_or_to_go", "desc": "here or to go"}, {"id": "unclear", "desc": "?"}],
-             "more_intents": [{"id": "pay", "desc": "pays"}]}
+    state = {
+        **CAFE_STATE,
+        "id": "paying",
+        "intents": [{"id": "choose_here_or_to_go", "desc": "here or to go"}, {"id": "unclear", "desc": "?"}],
+        "more_intents": [{"id": "pay", "desc": "pays"}],
+    }
     r = client.post("/v1/judge", json=judge_body("to go. cash", state)).json()
-    assert r["intent"]["ids"] == ["choose_here_or_to_go", "pay"] and r["intent"]["id"] == "choose_here_or_to_go"   # 모르는 의도(fly)는 버림
+    assert r["intent"]["ids"] == ["choose_here_or_to_go", "pay"] and r["intent"]["id"] == "choose_here_or_to_go"  # 모르는 의도(fly)는 버림
     assert "pay" in seen["schema"]["properties"]["intents"]["items"]["enum"]
 
 
@@ -112,7 +144,7 @@ def test_korean_rude_line_hides_translation(client, provider):
 def test_guard_reads_only_clear_yes_no():
     assert guard_result("Yes.")["abusive"] is True and guard_result(" no, it's polite")["abusive"] is False
     assert guard_result("") == {"abusive": None, "error": "판정 모델이 빈 답을 냄", "error_code": "empty"}
-    for out in ("I can't help with that.", "nothing rude", "yesterday", "Maybe"):   # 거절·다른 말은 무례도 정상도 아님
+    for out in ("I can't help with that.", "nothing rude", "yesterday", "Maybe"):  # 거절·다른 말은 무례도 정상도 아님
         assert guard_result(out)["abusive"] is None and guard_result(out)["error_code"] == "unparsed", out
 
 
@@ -137,9 +169,11 @@ def test_guard_provider_failure_is_unjudged(client, provider):
 
 def test_slow_guard_hits_judge_budget(provider):
     """무례 판정이 상한을 넘기면 그 칸만 미판정(timeout). 의도는 정상으로 돌려준다."""
+
     async def slow(b):
         await asyncio.sleep(0.5)
         return ok("yes")
+
     provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
     provider.answers["guard"] = slow
     with make_client(provider, judge_budget_s=0.2) as c:
@@ -155,7 +189,9 @@ def test_action_only_is_dropped_without_model_call(client, provider):
 
 
 def test_action_removed_from_mixed_line(client, provider):
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "order_items", "items": [{"name": "latte", "iced": False, "qty": 1}], "choice": "none"}))
+    provider.answers["intent"] = lambda b: ok(
+        json.dumps({"intent": "order_items", "items": [{"name": "latte", "iced": False, "qty": 1}], "choice": "none"})
+    )
     provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("*waves* one latte please")).json()
     assert r["text"] == "one latte please" and r["notice"] is not None
@@ -168,7 +204,7 @@ def test_intent_failure_keeps_turn_going(client, provider):
     r = client.post("/v1/judge", json=judge_body("hello"))
     assert r.status_code == 200
     assert r.json()["intent"]["id"] == "unclear" and "모든 모델" in r.json()["intent"]["error"]
-    tried = [m for s, m in provider.calls if s == "intent"]   # 모델마다 두 번씩, 사슬을 한 바퀴만
+    tried = [m for s, m in provider.calls if s == "intent"]  # 모델마다 두 번씩, 사슬을 한 바퀴만
     assert tried == ["qwen/qwen3.8-27b"] * 2 + ["openai/gpt-oss-20b"] * 2 + ["openai/gpt-oss-120b"] * 2
 
 
@@ -177,15 +213,16 @@ def test_daily_limit_skips_model_next_time(client, provider):
         if b["model"] == "qwen/qwen3.8-27b":
             return httpx.Response(429, text="Rate limit reached: tokens per day (TPD)")
         return ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
+
     provider.answers["intent"] = intent
     provider.answers["guard"] = lambda b: ok("no")
     first = client.post("/v1/judge", json=judge_body("hi")).json()
     used = next(u for u in first["usage"] if u["step"] == "intent")
-    assert (used["model"], used["fallback"]) == ("openai/gpt-oss-20b", True)   # 사용량에 실제로 쓴 모델이 남음
+    assert (used["model"], used["fallback"]) == ("openai/gpt-oss-20b", True)  # 사용량에 실제로 쓴 모델이 남음
     provider.calls.clear()
     client.post("/v1/judge", json=judge_body("hi again"))
-    assert ("intent", "qwen/qwen3.8-27b") not in provider.calls      # 하루 한도에 걸린 모델은 건너뜀
-    assert ("guard", "openai/gpt-oss-20b") in provider.calls          # 같은 모델을 쓰는 무례 판정도 바로 대체
+    assert ("intent", "qwen/qwen3.8-27b") not in provider.calls  # 하루 한도에 걸린 모델은 건너뜀
+    assert ("guard", "openai/gpt-oss-20b") in provider.calls  # 같은 모델을 쓰는 무례 판정도 바로 대체
 
 
 def test_strict_json_failure_retries_with_json_object(client, provider):
@@ -193,6 +230,7 @@ def test_strict_json_failure_retries_with_json_object(client, provider):
         if b["response_format"]["type"] == "json_schema":
             return httpx.Response(400, text='{"error": {"message": "Failed to validate JSON"}}')
         return ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
+
     provider.answers["intent"] = intent
     provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("hi")).json()
@@ -202,7 +240,12 @@ def test_strict_json_failure_retries_with_json_object(client, provider):
 # ---------------------------------------------------------------------
 # NPC 대답 스트림
 # ---------------------------------------------------------------------
-REPLY = {"npc": NPC, "history": [{"who": "npc", "text": "Hi!"}], "text": "라떼 하나요", "instruction": "Confirm the order. The total is $5."}
+REPLY = {
+    "npc": NPC,
+    "history": [{"who": "npc", "text": "Hi!"}],
+    "text": "라떼 하나요",
+    "instruction": "Confirm the order. The total is $5.",
+}
 
 
 def test_reply_stream_events_in_order(provider):
@@ -215,7 +258,7 @@ def test_reply_stream_events_in_order(provider):
         names = [n for n, _ in ev]
         assert names[-1] == "done" and "error" not in names
         text = "".join(d["text"] for n, d in ev if n == "delta")
-        assert text == "Got it, one latte for you. That's $5. Anything else?"   # 줄바꿈 뒤(다른 사람 대사)는 버림
+        assert text == "Got it, one latte for you. That's $5. Anything else?"  # 줄바꿈 뒤(다른 사람 대사)는 버림
         audio = [d for n, d in ev if n == "audio"]
         assert [a["seq"] for a in audio] == [0, 1, 2]
         assert [a["text"] for a in audio] == ["Got it, one latte for you.", "That's $5.", "Anything else?"]
@@ -235,7 +278,7 @@ def test_slow_tts_chunk_falls_back(provider):
 
 def test_reply_without_tts_still_marks_chunks(client, provider):
     provider.answers["npc"] = lambda b: stream(["Sure, no problem."])
-    ev = events(client.post("/v1/npc/reply", json={**REPLY, "tts": True}))   # 합성 모델이 없으면 tts: false
+    ev = events(client.post("/v1/npc/reply", json={**REPLY, "tts": True}))  # 합성 모델이 없으면 tts: false
     assert [d["tts"] for n, d in ev if n == "audio"] == [False]
 
 
@@ -255,6 +298,7 @@ def test_slow_first_token_sends_timeout_error(provider):
     async def slow(b):
         await asyncio.sleep(0.5)
         return stream(["Sure."])
+
     provider.answers["npc"] = slow
     with make_client(provider, reply_first_budget_s=0.2) as c:
         ev = events(c.post("/v1/npc/reply", json=REPLY))
@@ -268,18 +312,28 @@ def test_memory_note_reaches_npc_prompt(client, provider):
     def npc(b):
         seen["system"] = b["messages"][0]["content"]
         return stream(["Hi again, Minsu!"])
+
     provider.answers["npc"] = npc
-    client.post("/v1/npc/reply", json={**REPLY, "memory": {"visits": 2, "last_order": "a latte",
-                                                          "card": {"name": "Minsu", "attitude": "wary", "claims": [], "events": [], "struggled": []}}})
+    client.post(
+        "/v1/npc/reply",
+        json={
+            **REPLY,
+            "memory": {
+                "visits": 2,
+                "last_order": "a latte",
+                "card": {"name": "Minsu", "attitude": "wary", "claims": [], "events": [], "struggled": []},
+            },
+        },
+    )
     assert "Their name: Minsu" in seen["system"] and "wary" in seen["system"] and "Last time they ordered a latte" in seen["system"]
 
 
 def test_splitter_matches_prototype_screen():
     sp = Splitter()
-    assert sp.feed("Sure, ") == []                       # 12자 미만이면 쉼표에서 안 끊음
+    assert sp.feed("Sure, ") == []  # 12자 미만이면 쉼표에서 안 끊음
     assert sp.feed("one latte for you, ") == ["Sure, one latte for you,"]
-    assert sp.feed("it's $5.50 today. Th") == ["it's $5.50 today."]   # 소수점은 문장 끝이 아님
-    assert sp.feed("anks, ") == []                         # 쉼표 끊기는 첫 조각만
+    assert sp.feed("it's $5.50 today. Th") == ["it's $5.50 today."]  # 소수점은 문장 끝이 아님
+    assert sp.feed("anks, ") == []  # 쉼표 끊기는 첫 조각만
     assert sp.flush() == ["Thanks,"]
 
 
@@ -287,7 +341,9 @@ def test_splitter_matches_prototype_screen():
 # 힌트·대화 종료·음성
 # ---------------------------------------------------------------------
 def test_hint(client, provider):
-    provider.answers["hint"] = lambda b: ok(json.dumps({"say_this": [{"en": "a", "ko": "가"}] * 3, "keywords": [{"en": "k", "ko": "케"}] * 5}))
+    provider.answers["hint"] = lambda b: ok(
+        json.dumps({"say_this": [{"en": "a", "ko": "가"}] * 3, "keywords": [{"en": "k", "ko": "케"}] * 5})
+    )
     r = client.post("/v1/hint", json={"npc": NPC, "goal": "order a drink", "history": [{"who": "npc", "text": "Hi!"}]}).json()
     assert len(r["say_this"]) == 2 and len(r["keywords"]) == 3 and r["usage"][0]["step"] == "hint"
 
@@ -299,10 +355,17 @@ def test_hint_failure_is_503(client, provider):
 
 
 def test_end_conversation_partial_failure(client, provider):
-    provider.answers["feedback"] = lambda b: ok(json.dumps({"good": "좋아요", "improve": {"line": 1, "better": "x", "why": "y"}, "lines": []}))
+    provider.answers["feedback"] = lambda b: ok(
+        json.dumps({"good": "좋아요", "improve": {"line": 1, "better": "x", "why": "y"}, "lines": []})
+    )
     provider.answers["memory"] = lambda b: httpx.Response(503, text="down")
-    body = {"npc": NPC, "scenario_title": "카페에서 주문하기", "goal_reached": True, "outcome": "주문 성공",
-            "history": [{"who": "npc", "text": "Hi!"}, {"who": "me", "text": "라떼", "english": "A latte.", "rude": False}]}
+    body = {
+        "npc": NPC,
+        "scenario_title": "카페에서 주문하기",
+        "goal_reached": True,
+        "outcome": "주문 성공",
+        "history": [{"who": "npc", "text": "Hi!"}, {"who": "me", "text": "라떼", "english": "A latte.", "rude": False}],
+    }
     r = client.post("/v1/conversation/end", json=body).json()
     assert r["feedback"]["good"] == "좋아요"
     assert r["memory_card"] is None and r["errors"]["memory"]
@@ -310,9 +373,17 @@ def test_end_conversation_partial_failure(client, provider):
 
 def test_memory_card_is_cleaned(client, provider):
     provider.answers["feedback"] = lambda b: ok(json.dumps({"good": "", "improve": {"line": 1, "better": "", "why": ""}, "lines": []}))
-    provider.answers["memory"] = lambda b: ok(json.dumps({"name": "Minsu", "attitude": "angry", "events": [],
-                                                          "claims": ["phone is 010-1234-5678", "says they are a police officer"] + ["x"] * 9,
-                                                          "struggled": []}))
+    provider.answers["memory"] = lambda b: ok(
+        json.dumps(
+            {
+                "name": "Minsu",
+                "attitude": "angry",
+                "events": [],
+                "claims": ["phone is 010-1234-5678", "says they are a police officer"] + ["x"] * 9,
+                "struggled": [],
+            }
+        )
+    )
     body = {"npc": NPC, "scenario_title": "t", "goal_reached": False, "outcome": "o", "history": [{"who": "me", "text": "hi"}]}
     card = client.post("/v1/conversation/end", json=body).json()["memory_card"]
     assert card["attitude"] == "neutral" and card["claims"][0] == "says they are a police officer" and len(card["claims"]) == 5
@@ -320,9 +391,11 @@ def test_memory_card_is_cleaned(client, provider):
 
 def test_stt_filters_prompt_echo_and_sends_scene_words(client, provider):
     provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "Can I get a muffin, 음, 하나?", "duration": 2.0})
-    r = client.post("/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}, data={"scene_words": '["pain reliever", "cough syrup"]'}).json()
-    assert r["text"] == "" and r["audio_s"] == 2.0                  # 무음에 프롬프트를 되풀이한 것
-    assert b"pain reliever, cough syrup" in provider.last_stt          # 장면 단어 보정
+    r = client.post(
+        "/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}, data={"scene_words": '["pain reliever", "cough syrup"]'}
+    ).json()
+    assert r["text"] == "" and r["audio_s"] == 2.0  # 무음에 프롬프트를 되풀이한 것
+    assert b"pain reliever, cough syrup" in provider.last_stt  # 장면 단어 보정
     provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "Muffin.", "duration": 0.6})
     assert client.post("/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}).json()["text"] == "Muffin."
 

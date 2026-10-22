@@ -1,5 +1,6 @@
 """프롬프트와 출력 형식. 웹 프로토타입(프로토타입 브랜치의 prototype/mvp_web/server.py)에서 회귀 테스트로 다듬은 문장을 옮겼다.
 문장을 바꾸면 그 회귀 테스트(prototype/mvp_web/tests/replay.py)로 먼저 확인할 것. 테스트 문장을 예시로 넣지 않는다 (과적합)."""
+
 import json
 import re
 
@@ -56,9 +57,14 @@ Example: partner asked "For here or to go?", learner said "여기서 먹고 가�
 
 def guard_messages(npc: Npc, history: list[Line], text: str) -> list[dict]:
     recent = "\n".join(f"{'Learner' if h.who == 'me' else npc.name}: {h.text}" for h in history[-4:])
-    return [{"role": "system", "content": GUARD_SYSTEM},
-            {"role": "user", "content": f"The person: {npc.name}, {npc.role}\nAbout them: {npc.facts}\nRecent conversation:\n{recent}\n\n"
-                                        f"Learner's latest message: {text}"}]
+    return [
+        {"role": "system", "content": GUARD_SYSTEM},
+        {
+            "role": "user",
+            "content": f"The person: {npc.name}, {npc.role}\nAbout them: {npc.facts}\nRecent conversation:\n{recent}\n\n"
+            f"Learner's latest message: {text}",
+        },
+    ]
 
 
 def intent_schema(state: State) -> dict:
@@ -66,9 +72,15 @@ def intent_schema(state: State) -> dict:
     props = {"intents": {"type": "array", "items": {"type": "string", "enum": [i.id for i in state.intents + state.more_intents]}}}
     s = state.slots
     if s.items:
-        item = {"name": {"type": "string", "enum": s.items.catalog}} | ({"iced": {"type": "boolean"}} if s.items.iced_ok else {}) \
+        item = (
+            {"name": {"type": "string", "enum": s.items.catalog}}
+            | ({"iced": {"type": "boolean"}} if s.items.iced_ok else {})
             | {"qty": {"type": "integer"}}
-        props["items"] = {"type": "array", "items": {"type": "object", "properties": item, "required": list(item), "additionalProperties": False}}
+        )
+        props["items"] = {
+            "type": "array",
+            "items": {"type": "object", "properties": item, "required": list(item), "additionalProperties": False},
+        }
     if s.option:
         props[s.option.slot] = {"type": "string", "enum": [*s.option.labels, "none"]}
     return {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}
@@ -80,21 +92,26 @@ def intent_messages(npc: Npc, state: State, history: list[Line], text: str) -> l
     extra, s = "", state.slots
     if s.items:
         it = s.items
-        iced = "; \"iced\" true only if they said iced/ice/cold or accepted an iced drink" if it.iced_ok else ""
-        extra = (f"\nCurrent order: {state.current.get('order') or 'nothing yet'}."
-                 "\nFor order_items fill \"items\" with the COMPLETE order after this line (keep earlier items unless they change or remove them; "
-                 f"{it.catalog_word}: " + ", ".join(it.catalog) + iced + "). "
-                 "Use the item their words clearly mean, even with another word or a shorter name, when only one item fits; "
-                 "words like 'that', 'it' or 'yes' mean the item the partner just offered. "
-                 f"A general word like {it.vague_words} that could mean more than one item is not enough: choose unclear. "
-                 "For every other intent, \"items\": [].")
+        iced = '; "iced" true only if they said iced/ice/cold or accepted an iced drink' if it.iced_ok else ""
+        extra = (
+            f"\nCurrent order: {state.current.get('order') or 'nothing yet'}."
+            '\nFor order_items fill "items" with the COMPLETE order after this line (keep earlier items unless they change or remove them; '
+            f"{it.catalog_word}: " + ", ".join(it.catalog) + iced + "). "
+            "Use the item their words clearly mean, even with another word or a shorter name, when only one item fits; "
+            "words like 'that', 'it' or 'yes' mean the item the partner just offered. "
+            f"A general word like {it.vague_words} that could mean more than one item is not enough: choose unclear. "
+            'For every other intent, "items": [].'
+        )
     if s.option:
         o = s.option
-        extra += f"\nFill \"{o.slot}\" with " + " or ".join(f'"{k}"' for k in o.labels) + f" if they said {o.prompt}, otherwise \"none\"."
-    user = (f"Partner: {npc.name}, {npc.role}\nSituation now: {state.desc}\n"
-            f"Partner's last line: {last_npc(history)}\nLearner's line: {text}\n\n"
-            f"List in \"intents\" what the line does, in the order they say it. Usually one; more only when the line clearly does several things. Choose from:\n{lines}"
-            + (f"\nIf the same line goes on to do more, these can come after the first one:\n{later}" if later else "") + extra)
+        extra += f'\nFill "{o.slot}" with ' + " or ".join(f'"{k}"' for k in o.labels) + f' if they said {o.prompt}, otherwise "none".'
+    user = (
+        f"Partner: {npc.name}, {npc.role}\nSituation now: {state.desc}\n"
+        f"Partner's last line: {last_npc(history)}\nLearner's line: {text}\n\n"
+        f'List in "intents" what the line does, in the order they say it. Usually one; more only when the line clearly does several things. Choose from:\n{lines}'
+        + (f"\nIf the same line goes on to do more, these can come after the first one:\n{later}" if later else "")
+        + extra
+    )
     return [{"role": "system", "content": INTENT_SYSTEM}, {"role": "user", "content": user}]
 
 
@@ -121,7 +138,9 @@ def memory_note(m: Memory | None) -> str:
     elif c.get("attitude") == "friendly":
         lines.append("- You like this customer.")
     if c.get("struggled"):
-        lines.append("- English they found hard last time: " + "; ".join(c["struggled"]) + " (use one of these naturally if it fits; never teach)")
+        lines.append(
+            "- English they found hard last time: " + "; ".join(c["struggled"]) + " (use one of these naturally if it fits; never teach)"
+        )
     if m.last_order:
         lines.append(f"- Last time they ordered {m.last_order}.")
     return "\n".join(lines)
@@ -130,7 +149,7 @@ def memory_note(m: Memory | None) -> str:
 def npc_system(n: Npc, memory: str, note: str) -> str:
     return f"""You are {n.name}, {n.role}
 Place: {TOWN} {n.scene}
-What you know: {n.facts}{chr(10) + memory if memory else ''}
+What you know: {n.facts}{chr(10) + memory if memory else ""}
 
 You are talking with a Korean person practicing English (CEFR A2-B1). Their words come from speech recognition and may be broken English, Korean, or a mix.
 Understand Korean too (including slang and insults), but always reply in English.
@@ -143,7 +162,7 @@ How to reply:
 - Stay in character. Never mention English lessons, practice, or that you are an AI.
 - Plain spoken words only: no emojis, lists, or stage directions.
 
-IMPORTANT for your next reply: {note or 'Just reply naturally.'}"""
+IMPORTANT for your next reply: {note or "Just reply naturally."}"""
 
 
 def npc_messages(n: Npc, memory: Memory | None, history: list[Line], text: str, instruction: str) -> list[dict]:
@@ -163,10 +182,21 @@ Return JSON:
   Make the first very simple and the second a little more natural.
 - "keywords": 2-3 useful English words or phrases from your sentences, with "ko".
 Never write what the partner would say."""
-_PAIR = {"type": "array", "items": {"type": "object", "properties": {"en": {"type": "string"}, "ko": {"type": "string"}},
-                                    "required": ["en", "ko"], "additionalProperties": False}}
-HINT_SCHEMA = {"type": "object", "properties": {"say_this": _PAIR, "keywords": _PAIR},
-               "required": ["say_this", "keywords"], "additionalProperties": False}
+_PAIR = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {"en": {"type": "string"}, "ko": {"type": "string"}},
+        "required": ["en", "ko"],
+        "additionalProperties": False,
+    },
+}
+HINT_SCHEMA = {
+    "type": "object",
+    "properties": {"say_this": _PAIR, "keywords": _PAIR},
+    "required": ["say_this", "keywords"],
+    "additionalProperties": False,
+}
 
 
 def hint_messages(npc: Npc, scene: str, goal: str, history: list[Line]) -> list[dict]:
@@ -193,14 +223,29 @@ Return JSON:
 - "good": one sentence in Korean about what the learner did well (specific to this conversation).
 - "improve": the single most useful fix: "line" (the L number), "better" (English), "why" (one short Korean sentence).
 - "lines": for every learner line in order: "line", "better", "note" (one short Korean sentence or "")."""
-FEEDBACK_SCHEMA = {"type": "object", "properties": {
-    "good": {"type": "string"},
-    "improve": {"type": "object", "properties": {"line": {"type": "integer"}, "better": {"type": "string"}, "why": {"type": "string"}},
-                "required": ["line", "better", "why"], "additionalProperties": False},
-    "lines": {"type": "array", "items": {"type": "object", "properties": {
-        "line": {"type": "integer"}, "better": {"type": "string"}, "note": {"type": "string"}},
-        "required": ["line", "better", "note"], "additionalProperties": False}}},
-    "required": ["good", "improve", "lines"], "additionalProperties": False}
+FEEDBACK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "good": {"type": "string"},
+        "improve": {
+            "type": "object",
+            "properties": {"line": {"type": "integer"}, "better": {"type": "string"}, "why": {"type": "string"}},
+            "required": ["line", "better", "why"],
+            "additionalProperties": False,
+        },
+        "lines": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"line": {"type": "integer"}, "better": {"type": "string"}, "note": {"type": "string"}},
+                "required": ["line", "better", "note"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["good", "improve", "lines"],
+    "additionalProperties": False,
+}
 
 MEMORY_SYSTEM = """You keep the memory a character in a role-play game has about one customer (a Korean learner of English) across visits.
 You get what the character remembered before and the conversation that just ended. Return the updated memory.
@@ -211,13 +256,20 @@ You get what the character remembered before and the conversation that just ende
 - attitude: how the character feels about them now: friendly, neutral, or wary (wary after rudeness or threats; it can soften if they were kind later).
 - struggled: English expressions the customer clearly had trouble with in this conversation (short phrases). Max 5.
 Only write what the conversation shows. Do not invent. Each item is a short English phrase (max 12 words)."""
-MEMORY_SCHEMA = {"type": "object", "properties": {
-    "name": {"type": "string"}, "claims": {"type": "array", "items": {"type": "string"}},
-    "events": {"type": "array", "items": {"type": "string"}}, "attitude": {"type": "string", "enum": ["friendly", "neutral", "wary"]},
-    "struggled": {"type": "array", "items": {"type": "string"}}},
-    "required": ["name", "claims", "events", "attitude", "struggled"], "additionalProperties": False}
+MEMORY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "claims": {"type": "array", "items": {"type": "string"}},
+        "events": {"type": "array", "items": {"type": "string"}},
+        "attitude": {"type": "string", "enum": ["friendly", "neutral", "wary"]},
+        "struggled": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["name", "claims", "events", "attitude", "struggled"],
+    "additionalProperties": False,
+}
 CARD_LISTS = {"claims": 5, "events": 5, "struggled": 5}
-CONTACT = re.compile(r"\d{2,4}[-. ]?\d{3,4}[-. ]?\d{4}|[\w.]+@[\w.]+")   # 연락처는 저장하지 않는다
+CONTACT = re.compile(r"\d{2,4}[-. ]?\d{3,4}[-. ]?\d{4}|[\w.]+@[\w.]+")  # 연락처는 저장하지 않는다
 
 
 def said_line(h: Line) -> str:
@@ -232,22 +284,28 @@ def feedback_messages(npc: Npc, title: str, goal_reached: bool, outcome: str, hi
             rows.append(f"L{k} Learner: {said_line(h)}")
         else:
             rows.append(f"{npc.name}: {h.text}")
-    user = (f"Situation: {title} — talking with {npc.name}, {npc.role}\n"
-            f"Goal reached: {'yes' if goal_reached else 'no'} ({outcome})\n\nConversation:\n" + "\n".join(rows))
+    user = (
+        f"Situation: {title} — talking with {npc.name}, {npc.role}\n"
+        f"Goal reached: {'yes' if goal_reached else 'no'} ({outcome})\n\nConversation:\n" + "\n".join(rows)
+    )
     return [{"role": "system", "content": FEEDBACK_SYSTEM}, {"role": "user", "content": user}]
 
 
 def memory_messages(npc: Npc, old: dict | None, outcome: str, history: list[Line]) -> list[dict]:
     rows = [("Customer: " + said_line(h)) if h.who == "me" else f"{npc.name}: {h.text}" for h in history]
-    user = (f"Character: {npc.name}, {npc.role}\nWhat {npc.name} remembered before: {json.dumps(old or {}, ensure_ascii=False)}\n"
-            f"How this conversation ended: {outcome}\n\nConversation:\n" + "\n".join(rows))
+    user = (
+        f"Character: {npc.name}, {npc.role}\nWhat {npc.name} remembered before: {json.dumps(old or {}, ensure_ascii=False)}\n"
+        f"How this conversation ended: {outcome}\n\nConversation:\n" + "\n".join(rows)
+    )
     return [{"role": "system", "content": MEMORY_SYSTEM}, {"role": "user", "content": user}]
 
 
 def clean_card(card: dict) -> dict:
     """기억 카드 정리: 칸 수·길이 제한, 정해진 태도 값, 연락처 제거."""
-    out = {"name": str(card.get("name") or "").strip()[:40],
-           "attitude": card.get("attitude") if card.get("attitude") in ("friendly", "neutral", "wary") else "neutral"}
+    out = {
+        "name": str(card.get("name") or "").strip()[:40],
+        "attitude": card.get("attitude") if card.get("attitude") in ("friendly", "neutral", "wary") else "neutral",
+    }
     if CONTACT.search(out["name"]):
         out["name"] = ""
     for k, n in CARD_LISTS.items():

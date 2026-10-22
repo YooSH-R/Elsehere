@@ -1,4 +1,5 @@
 """무례 판정 단계적 구조 (로컬 판정기 + LLM) 테스트. 가짜 판정기라 torch·모델 파일 없이 돈다."""
+
 import json
 
 import httpx
@@ -10,18 +11,26 @@ from app.guard_local import LocalGuard
 from conftest import TOKEN, make_client, ok
 
 NPC = {"id": "emma", "name": "Emma", "role": "the barista at Maple Cafe.", "facts": "Menu: latte $5.", "scene": "Inside Maple Cafe."}
-STATE = {"id": "ordering", "desc": "The barista is waiting for the order.",
-         "intents": [{"id": "order_items", "desc": "orders"}, {"id": "unclear", "desc": "cannot tell"}]}
+STATE = {
+    "id": "ordering",
+    "desc": "The barista is waiting for the order.",
+    "intents": [{"id": "order_items", "desc": "orders"}, {"id": "unclear", "desc": "cannot tell"}],
+}
 TH = {"guard_t_lo": 0.05, "guard_t_hi": 0.95}
 
 
 def body(text, history=None):
-    return {"npc": NPC, "state": STATE, "text": text,
-            "history": history if history is not None else [{"who": "npc", "text": "Hi! What can I get for you?"}]}
+    return {
+        "npc": NPC,
+        "state": STATE,
+        "text": text,
+        "history": history if history is not None else [{"who": "npc", "text": "Hi! What can I get for you?"}],
+    }
 
 
 class FakeLocal:
     """score: 문장 → 점수 (예외를 던지면 로컬 고장)."""
+
     name, context = "fake", False
 
     def __init__(self, score):
@@ -61,8 +70,8 @@ def test_confident_rude_skips_llm(answers):
     r = judge(answers, "닥치고 커피 내놔", local)
     assert r["guard"] == {"abusive": True, "error": None, "error_code": None, "source": "local", "score": 0.99, "local_error": None}
     assert guard_calls(answers) == [] and "guard" not in {u["step"] for u in r["usage"]}
-    assert r["translation"]["show"] is False                 # 무례면 번역 카드를 숨기는 규칙은 그대로
-    assert local.seen == [("닥치고 커피 내놔", "Hi! What can I get for you?")]   # 바로 앞 NPC 대사를 함께 넘김
+    assert r["translation"]["show"] is False  # 무례면 번역 카드를 숨기는 규칙은 그대로
+    assert local.seen == [("닥치고 커피 내놔", "Hi! What can I get for you?")]  # 바로 앞 NPC 대사를 함께 넘김
 
 
 def test_confident_polite_skips_llm(answers):
@@ -102,6 +111,7 @@ def test_vowel_jamo_counts_as_hangul(answers):
 def test_local_failure_falls_back_to_llm(answers):
     def broken(t):
         raise RuntimeError("model gone")
+
     r = judge(answers, "커피 주세요", FakeLocal(broken))
     assert r["guard"]["abusive"] is False and r["guard"]["source"] == "llm" and r["guard"]["score"] is None
     assert r["guard"]["local_error"] == "RuntimeError: model gone" and len(guard_calls(answers)) == 1

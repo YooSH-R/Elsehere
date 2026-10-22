@@ -8,6 +8,7 @@
 결국 언제 돌아오는지(느린 것인지, 멈춘 것인지) 보인다. 문장은 직접 지어낸 것만 쓴다 (팀원 기록·AI Hub 데이터 금지).
 공용 키라 순서대로 보낸다 (pair도 한 번에 둘까지). 결과는 집계만 찍고, 줄마다의 기록은 --out jsonl로.
 """
+
 import argparse
 import asyncio
 import json
@@ -19,39 +20,70 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "ai/worker"))
-import httpx  # noqa: E402
+import httpx
 
-from app import config  # noqa: E402
-from app import prompts as P  # noqa: E402
-from app.llm import model_body  # noqa: E402
-from app.schemas import Line, Npc, State  # noqa: E402
+from app import config
+from app import prompts as P
+from app.llm import model_body
+from app.schemas import Line, Npc, State
 
-NPC = Npc(id="emma", name="Emma", role="the barista at Maple Cafe.", facts="Menu: americano $4, latte $5, muffin $3.",
-          scene="Inside Maple Cafe, a cozy coffee shop.")
-STATE = State.model_validate({
-    "id": "ordering", "desc": "The barista is waiting for the order.",
-    "intents": [{"id": "order_items", "desc": "orders one or more menu items"}, {"id": "ask_menu", "desc": "asks what is on the menu"},
-                {"id": "small_talk", "desc": "chats about something else"}, {"id": "unclear", "desc": "cannot tell"}],
-    "slots": {"items": {"catalog": ["americano", "latte", "muffin"], "iced_ok": ["americano", "latte"],
-                        "catalog_word": "menu", "vague_words": "'coffee' or 'drink'"},
-              "option": {"slot": "choice", "labels": ["here", "to_go"], "prompt": "where they will have it"}}})
+NPC = Npc(
+    id="emma",
+    name="Emma",
+    role="the barista at Maple Cafe.",
+    facts="Menu: americano $4, latte $5, muffin $3.",
+    scene="Inside Maple Cafe, a cozy coffee shop.",
+)
+STATE = State.model_validate(
+    {
+        "id": "ordering",
+        "desc": "The barista is waiting for the order.",
+        "intents": [
+            {"id": "order_items", "desc": "orders one or more menu items"},
+            {"id": "ask_menu", "desc": "asks what is on the menu"},
+            {"id": "small_talk", "desc": "chats about something else"},
+            {"id": "unclear", "desc": "cannot tell"},
+        ],
+        "slots": {
+            "items": {
+                "catalog": ["americano", "latte", "muffin"],
+                "iced_ok": ["americano", "latte"],
+                "catalog_word": "menu",
+                "vague_words": "'coffee' or 'drink'",
+            },
+            "option": {"slot": "choice", "labels": ["here", "to_go"], "prompt": "where they will have it"},
+        },
+    }
+)
 HISTORY = [Line(who="npc", text="Hi there! Welcome to Maple Cafe. What can I get for you today?")]
-LINES = ["one iced latte please", "can I get a muffin and an americano to go", "what do you recommend?",
-         "hurry up, I don't have all day", "you are so slow, are you new here?", "uh... latte, hot, for here",
-         "nice weather today, right?", "give me the cheapest thing, now"]
+LINES = [
+    "one iced latte please",
+    "can I get a muffin and an americano to go",
+    "what do you recommend?",
+    "hurry up, I don't have all day",
+    "you are so slow, are you new here?",
+    "uh... latte, hot, for here",
+    "nice weather today, right?",
+    "give me the cheapest thing, now",
+]
 
 
 def pct(v: list[float], q: float) -> float:
     v = sorted(v)
-    return v[min(len(v) - 1, int(round(q * (len(v) - 1))))]
+    return v[min(len(v) - 1, round(q * (len(v) - 1)))]
 
 
 async def call(client: httpx.AsyncClient, s: config.Settings, role: str, text: str, timeout: float) -> dict:
     if role == "guard":
         body = {"model": s.models["guard"], "temperature": 0.0, "max_tokens": 5, "messages": P.guard_messages(NPC, HISTORY, text)}
     else:
-        body = {"model": s.models["intent"], "temperature": 0.0, "max_tokens": 200, "messages": P.intent_messages(NPC, STATE, HISTORY, text),
-                "response_format": {"type": "json_schema", "json_schema": {"name": "out", "schema": P.intent_schema(STATE), "strict": True}}}
+        body = {
+            "model": s.models["intent"],
+            "temperature": 0.0,
+            "max_tokens": 200,
+            "messages": P.intent_messages(NPC, STATE, HISTORY, text),
+            "response_format": {"type": "json_schema", "json_schema": {"name": "out", "schema": P.intent_schema(STATE), "strict": True}},
+        }
     b = model_body(body, s.model_params)
     t = time.perf_counter()
     try:
@@ -73,9 +105,11 @@ def report(rows: list[dict], label: str):
         print(label, "성공 없음", bad[:3])
         return
     slow = {th: sum(1 for x in ok if x > th) for th in (3, 5, 8)}
-    print(f"{label}: n {len(rows)}, 성공 {len(ok)}, p50 {statistics.median(ok):.2f}s, p90 {pct(ok, .9):.2f}s, "
-          f"p99 {pct(ok, .99):.2f}s, 최대 {max(ok):.2f}s, 3·5·8초 초과 {slow[3]}·{slow[5]}·{slow[8]}, 실패 {len(bad)}"
-          + (f" {sorted({b.get('error', '')[:40] for b in bad})}" if bad else ""))
+    print(
+        f"{label}: n {len(rows)}, 성공 {len(ok)}, p50 {statistics.median(ok):.2f}s, p90 {pct(ok, 0.9):.2f}s, "
+        f"p99 {pct(ok, 0.99):.2f}s, 최대 {max(ok):.2f}s, 3·5·8초 초과 {slow[3]}·{slow[5]}·{slow[8]}, 실패 {len(bad)}"
+        + (f" {sorted({b.get('error', '')[:40] for b in bad})}" if bad else "")
+    )
 
 
 async def main():
@@ -113,8 +147,10 @@ async def main():
         report([r for r in rows if r["role"] == role], f"{tag} {role}")
     if a.mode == "pair":
         worst = [max(r["s"] for r in rows if r.get("pair") == i) for i in range(a.n)]
-        print(f"{tag} 쌍(둘 중 느린 쪽, 게임의 판정 단계): p50 {statistics.median(worst):.2f}s, p90 {pct(worst, .9):.2f}s, 최대 {max(worst):.2f}s, "
-              f"5초 초과 {sum(1 for w in worst if w > 5)}/{a.n}")
+        print(
+            f"{tag} 쌍(둘 중 느린 쪽, 게임의 판정 단계): p50 {statistics.median(worst):.2f}s, p90 {pct(worst, 0.9):.2f}s, 최대 {max(worst):.2f}s, "
+            f"5초 초과 {sum(1 for w in worst if w > 5)}/{a.n}"
+        )
     if a.out:
         Path(a.out).write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
 

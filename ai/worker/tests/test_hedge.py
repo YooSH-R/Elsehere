@@ -1,4 +1,5 @@
 """답이 늦은 호출에 같은 요청을 하나 더 보내기 (2026-10-22 gms-luna 혼잡 대응). 가짜 공급자라 진짜 호출 없음."""
+
 import asyncio
 import json
 import time
@@ -27,6 +28,7 @@ def nth_slow(delays, answer="no"):
         seen.append(i)
         await asyncio.sleep(delays[i] if i < len(delays) else 0)
         return ok(answer)
+
     return handler, seen
 
 
@@ -66,6 +68,7 @@ def test_failed_first_waits_for_second(provider):
             return httpx.Response(503, text="down")
         await asyncio.sleep(0.4)
         return ok("yes")
+
     provider.answers["intent"] = lambda b: ok(json.dumps({"intents": ["unclear"]}))
     provider.answers["guard"] = handler
     r, _ = judge(provider, hedge_after_s=0.1)
@@ -88,7 +91,9 @@ def test_npc_stream_is_not_hedged(provider):
         seen.append(1)
         await asyncio.sleep(0.3)
         from conftest import stream
+
         return stream(["Sure", "."])
+
     provider.answers["npc"] = handler
     with make_client(provider, hedge_after_s=0.1) as c:
         c.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "tts": False})

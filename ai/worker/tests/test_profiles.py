@@ -1,4 +1,5 @@
 """모델 구성 (llm_profiles.json): LLM_PROFILE 하나로 공급자 주소·키·역할별 모델이 바뀌는지 (모델 호출 없음)."""
+
 import json
 
 import httpx
@@ -45,7 +46,7 @@ def test_gms_profile_by_one_variable(env):
     env.update({"LLM_PROFILE": "gms-luna", "GMS_KEY": "g", "GROQ_API_KEY": "q", "MODEL_FEEDBACK": "gpt-6.1-sol"})
     s = Settings.from_env()
     assert (s.base_url, s.api_key) == (GMS_URL, "g")
-    assert s.models["npc"] == "gpt-6-luna" and s.models["feedback"] == "gpt-6.1-sol"   # 역할 하나만 덮어쓰기
+    assert s.models["npc"] == "gpt-6-luna" and s.models["feedback"] == "gpt-6.1-sol"  # 역할 하나만 덮어쓰기
     assert s.role_provider == {"stt": "groq"} and s.providers == {"groq": {"base_url": GROQ_URL, "api_key": "q"}}
 
 
@@ -69,9 +70,18 @@ def test_requests_go_to_role_provider():
         return ok(json.dumps({"say_this": [{"en": "a", "ko": "가"}] * 2, "keywords": [{"en": "k", "ko": "케"}]}))
 
     models, role_provider = config.profile_models("gms-sol")
-    s = Settings(token=TOKEN, base_url="http://gms.test/v1", api_key="g", profile="gms-sol", models=models, fallback={},
-                 role_provider=role_provider, providers={"groq": {"base_url": "http://groq.test/v1", "api_key": "q"}},
-                 call_timeout_s=1.0, retry_pause_s=0.0)
+    s = Settings(
+        token=TOKEN,
+        base_url="http://gms.test/v1",
+        api_key="g",
+        profile="gms-sol",
+        models=models,
+        fallback={},
+        role_provider=role_provider,
+        providers={"groq": {"base_url": "http://groq.test/v1", "api_key": "q"}},
+        call_timeout_s=1.0,
+        retry_pause_s=0.0,
+    )
     with TestClient(create_app(s, httpx.MockTransport(handler), False), headers={"X-Internal-Token": TOKEN}) as c:
         r = c.post("/v1/hint", json={"npc": NPC, "goal": "order a drink", "history": [{"who": "npc", "text": "Hi!"}]}).json()
         assert r["usage"][0]["model"] == "gpt-6.1-sol"

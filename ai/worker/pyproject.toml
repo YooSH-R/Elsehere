@@ -1,0 +1,15 @@
+# 코드 검사·포맷 (공통 코드 규약 8절: Python은 Ruff). 실행 방법은 README의 '검사'
+[tool.ruff]
+line-length = 140
+target-version = "py312"
+
+[tool.ruff.lint]
+# 기본 규칙(명확한 실수: 문법·미사용 import·정의 안 된 이름 등)에 import 정렬만 더한다
+extend-select = ["I"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI 요청 칸 선언(File(...), Form(""))은 기본값 자리에 두는 것이 프레임워크 관례
+extend-immutable-calls = ["fastapi.File", "fastapi.Form"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "conftest"]

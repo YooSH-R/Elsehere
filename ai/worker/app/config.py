@@ -4,12 +4,13 @@
 
 그 위에 환경 변수로 덮어쓸 수 있다: LLM_BASE_URL·LLM_API_KEY(구성의 기본 공급자), MODEL_<역할>, MODEL_FALLBACK.
 """
+
 import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]   # 저장소 최상위 (개발할 때 .env를 여기서 읽음)
+ROOT = Path(__file__).resolve().parents[3]  # 저장소 최상위 (개발할 때 .env를 여기서 읽음)
 PROFILES_FILE = Path(os.environ.get("LLM_PROFILES") or Path(__file__).resolve().parents[1] / "llm_profiles.json")
 PROFILES = json.loads(PROFILES_FILE.read_text(encoding="utf-8"))
 MODEL_PARAMS: list[dict] = PROFILES.get("model_params", [])
@@ -55,29 +56,31 @@ def provider_key(name: str, env=os.environ) -> str:
 
 @dataclass
 class Settings:
-    token: str                                   # Spring과 공유하는 내부 토큰 (X-Internal-Token)
-    base_url: str = PROFILES["providers"][PROFILES["profiles"][DEFAULT_PROFILE]["provider"]]["base_url"]   # 구성의 기본 공급자
+    token: str  # Spring과 공유하는 내부 토큰 (X-Internal-Token)
+    base_url: str = PROFILES["providers"][PROFILES["profiles"][DEFAULT_PROFILE]["provider"]]["base_url"]  # 구성의 기본 공급자
     api_key: str = ""
     profile: str = DEFAULT_PROFILE
     models: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_MODELS))
     fallback: dict[str, str] = field(default_factory=lambda: parse_pairs(DEFAULT_FALLBACK))
-    role_provider: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_ROLE_PROVIDER))   # 역할 → 다른 공급자 이름 (예: GMS 구성에서도 stt는 groq)
-    providers: dict[str, dict] = field(default_factory=dict)      # 다른 공급자 이름 → {"base_url", "api_key"}
+    role_provider: dict[str, str] = field(
+        default_factory=lambda: dict(DEFAULT_ROLE_PROVIDER)
+    )  # 역할 → 다른 공급자 이름 (예: GMS 구성에서도 stt는 groq)
+    providers: dict[str, dict] = field(default_factory=dict)  # 다른 공급자 이름 → {"base_url", "api_key"}
     model_params: list[dict] = field(default_factory=lambda: list(MODEL_PARAMS))
-    call_timeout_s: float = 8.0                  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
-    hedge_after_s: float = 3.0                   # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
-                                                 # 2026-10-22 gms-luna: 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초, 평소 p99 2.5~3.9초
-    judge_budget_s: float = 5.0                  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
-    reply_first_budget_s: float = 5.0            # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
-    exhausted_skip_s: float = 600.0              # 하루 한도에 걸린 모델은 이만큼 건너뜀
-    retry_pause_s: float = 1.0                   # 429/5xx 뒤 재시도 전에 쉬는 시간 (retry-after가 있으면 그것, 최대 5초)
-    kokoro_model: str = ""                       # 비어 있으면 음성 합성 없음 (tts: false로 알림)
+    call_timeout_s: float = 8.0  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
+    hedge_after_s: float = 3.0  # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
+    # 2026-10-22 gms-luna: 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초, 평소 p99 2.5~3.9초
+    judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
+    reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
+    exhausted_skip_s: float = 600.0  # 하루 한도에 걸린 모델은 이만큼 건너뜀
+    retry_pause_s: float = 1.0  # 429/5xx 뒤 재시도 전에 쉬는 시간 (retry-after가 있으면 그것, 최대 5초)
+    kokoro_model: str = ""  # 비어 있으면 음성 합성 없음 (tts: false로 알림)
     kokoro_voices: str = ""
-    tts_chunk_budget_s: float = 2.5              # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false
-    audio_ttl_s: float = 600.0                   # 스트림 음성 조각 보관 시간 (GET /v1/audio/{id})
-    guard_local_model: str = ""                  # 로컬 무례 판정기 폴더. 비어 있으면 끔 (기본, 판정은 전부 LLM) — app/guard_local.py
-    guard_t_lo: float = 0.0                      # 로컬 점수 ≤ t_lo → 아님, ≥ t_hi → 무례, 그 사이는 LLM
-    guard_t_hi: float = 1.0                      # (모델을 켜면 둘 다 반드시 정함. 학습에 쓰지 않은 보정용 데이터에서 고른 값)
+    tts_chunk_budget_s: float = 2.5  # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false
+    audio_ttl_s: float = 600.0  # 스트림 음성 조각 보관 시간 (GET /v1/audio/{id})
+    guard_local_model: str = ""  # 로컬 무례 판정기 폴더. 비어 있으면 끔 (기본, 판정은 전부 LLM) — app/guard_local.py
+    guard_t_lo: float = 0.0  # 로컬 점수 ≤ t_lo → 아님, ≥ t_hi → 무례, 그 사이는 LLM
+    guard_t_hi: float = 1.0  # (모델을 켜면 둘 다 반드시 정함. 학습에 쓰지 않은 보정용 데이터에서 고른 값)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -93,8 +96,10 @@ class Settings:
         main = p["provider"]
         models, role_provider = profile_models(profile)
         api_key = e.get("LLM_API_KEY") or provider_key(main, e)
-        providers = {name: {"base_url": PROFILES["providers"][name]["base_url"], "api_key": provider_key(name, e)}
-                     for name in dict.fromkeys(role_provider.values())}
+        providers = {
+            name: {"base_url": PROFILES["providers"][name]["base_url"], "api_key": provider_key(name, e)}
+            for name in dict.fromkeys(role_provider.values())
+        }
         missing = [" 또는 ".join(PROFILES["providers"][n]["key_env"]) for n, v in providers.items() if not v["api_key"]]
         if not api_key:
             missing.insert(0, " 또는 ".join(["LLM_API_KEY", *PROFILES["providers"][main]["key_env"]]))
@@ -103,7 +108,7 @@ class Settings:
         default_fallback = ",".join(f"{a}={b}" for a, b in p.get("fallback", {}).items())
         guard_model = e.get("GUARD_LOCAL_MODEL", "")
         t_lo, t_hi = cls.guard_t_lo, cls.guard_t_hi
-        if guard_model:   # 기준값을 기본값으로 두면 조용히 아무것도 안 하므로, 켤 때는 반드시 정하게 한다
+        if guard_model:  # 기준값을 기본값으로 두면 조용히 아무것도 안 하므로, 켤 때는 반드시 정하게 한다
             if not (e.get("GUARD_LOCAL_T_LO") and e.get("GUARD_LOCAL_T_HI")):
                 raise RuntimeError("GUARD_LOCAL_MODEL을 켜면 GUARD_LOCAL_T_LO·GUARD_LOCAL_T_HI도 정해야 합니다 (예: 0.05, 0.95)")
             t_lo, t_hi = float(e["GUARD_LOCAL_T_LO"]), float(e["GUARD_LOCAL_T_HI"])

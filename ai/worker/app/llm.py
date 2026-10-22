@@ -5,6 +5,7 @@
 - 하루 한도("per day")에 걸린 모델은 한동안 시도하지 않고 바로 대체 모델로 (매번 쉬고 재시도하느라 턴이 6~12초 걸렸음).
 - 형식 강제(json_schema) 출력이 깨져 400이 나면 json_object 모드로 한 번 더 (욕설이 든 대화에서 빈 응답 등).
 """
+
 import asyncio
 import json
 import time
@@ -32,13 +33,22 @@ class ProviderError(Exception):
 @dataclass
 class Usage:
     """요청 하나가 쓴 모델 호출 기록. 모든 응답의 usage로 Spring에 보낸다 (크레딧 차감·원장)."""
+
     items: list[dict] = field(default_factory=list)
 
     def add(self, step: str, model: str, requested: str, data: dict | None, latency_s: float, **extra):
         u = (data or {}).get("usage") or (data or {}).get("x_groq", {}).get("usage") or {}
-        self.items.append({"step": step, "model": model, "input_tokens": u.get("prompt_tokens", 0),
-                           "output_tokens": u.get("completion_tokens", 0), "latency_s": round(latency_s, 2),
-                           "fallback": model != requested, **extra})
+        self.items.append(
+            {
+                "step": step,
+                "model": model,
+                "input_tokens": u.get("prompt_tokens", 0),
+                "output_tokens": u.get("completion_tokens", 0),
+                "latency_s": round(latency_s, 2),
+                "fallback": model != requested,
+                **extra,
+            }
+        )
 
 
 def model_body(body: dict, params: list[dict]) -> dict:
@@ -64,11 +74,13 @@ class LLM:
         self.s = settings
 
         def client(base_url: str, key: str) -> httpx.AsyncClient:
-            return httpx.AsyncClient(base_url=base_url, transport=transport,
-                                     headers={"Authorization": f"Bearer {key}", "User-Agent": "ai-worker/0.1"})
-        self.client = client(settings.base_url, settings.api_key)   # 구성의 기본 공급자
+            return httpx.AsyncClient(
+                base_url=base_url, transport=transport, headers={"Authorization": f"Bearer {key}", "User-Agent": "ai-worker/0.1"}
+            )
+
+        self.client = client(settings.base_url, settings.api_key)  # 구성의 기본 공급자
         self.others = {name: client(p["base_url"], p["api_key"]) for name, p in settings.providers.items()}
-        self.exhausted: dict[str, float] = {}   # 모델 → 이 시각까지 건너뜀
+        self.exhausted: dict[str, float] = {}  # 모델 → 이 시각까지 건너뜀
 
     async def aclose(self):
         for c in (self.client, *self.others.values()):
@@ -84,7 +96,9 @@ class LLM:
     async def _send(self, client: httpx.AsyncClient, b: dict, timeout: httpx.Timeout, stream: bool) -> tuple[httpx.Response, bool]:
         """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다.
         반환: (응답, 더 보냈나). 둘 다 실패하면 마지막 오류를 던진다. 스트림은 응답 머리가 먼저 와서 늦음을 알 수 없어 그대로."""
-        send = lambda: asyncio.ensure_future(client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream))
+        send = lambda: asyncio.ensure_future(
+            client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
+        )
         first = send()
         if stream or not self.s.hedge_after_s:
             return await first, False
@@ -94,7 +108,7 @@ class LLM:
             if done:
                 return first.result(), False
             tasks.append(send())
-            pending, last, failed = set(tasks), None, []   # failed: 오류 상태 코드로 끝난 응답 (남은 쪽을 기다림)
+            pending, last, failed = set(tasks), None, []  # failed: 오류 상태 코드로 끝난 응답 (남은 쪽을 기다림)
             while pending:
                 done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
                 got = [t.result() for t in done if t.exception() is None]
@@ -102,18 +116,18 @@ class LLM:
                 win = next((r for r in got if r.status_code < 400), None)
                 failed += [r for r in got if r is not win and r.status_code >= 400]
                 for r in got:
-                    if win and r is not win:   # 같이 끝난 다른 응답은 닫는다
+                    if win and r is not win:  # 같이 끝난 다른 응답은 닫는다
                         await r.aclose()
                 if win:
                     for r in failed:
                         await r.aclose()
                     return win, True
-            if failed:   # 둘 다 안 됐으면 오류 응답을 돌려줘 _open이 상태 코드대로 재시도·대체 모델을 정하게
+            if failed:  # 둘 다 안 됐으면 오류 응답을 돌려줘 _open이 상태 코드대로 재시도·대체 모델을 정하게
                 for r in failed[:-1]:
                     await r.aclose()
                 return failed[-1], True
             raise last
-        finally:   # 이긴 쪽이 정해졌거나 위에서 취소되면(판정 시간 상한 등) 남은 요청은 끊는다
+        finally:  # 이긴 쪽이 정해졌거나 위에서 취소되면(판정 시간 상한 등) 남은 요청은 끊는다
             for t in tasks:
                 if not t.done():
                     t.cancel()
@@ -123,7 +137,7 @@ class LLM:
         model, last, limited, tried = body["model"], "", False, set()
         client = self.client_for(role)
         timeout = httpx.Timeout(self.s.call_timeout_s, connect=5.0)
-        while model and model not in tried:   # 대체 모델끼리 서로를 가리켜도(20b ↔ 120b) 한 번씩만
+        while model and model not in tried:  # 대체 모델끼리 서로를 가리켜도(20b ↔ 120b) 한 번씩만
             tried.add(model)
             if self.exhausted.get(model, 0) > time.time():
                 last, limited = last or f"{model} 하루 한도 소진", True
@@ -149,7 +163,7 @@ class LLM:
                     raise ProviderError("provider_unavailable", f"모델 서버 오류 {last}")
                 if r.status_code == 429:
                     limited = True
-                    if "per day" in msg:   # 하루 한도: 재시도해도 소용없음
+                    if "per day" in msg:  # 하루 한도: 재시도해도 소용없음
                         self.exhausted[model] = time.time() + self.s.exhausted_skip_s
                         break
                 if attempt == 0:
@@ -157,8 +171,16 @@ class LLM:
             model = self.s.fallback.get(model)
         raise ProviderError("provider_limit" if limited else "provider_unavailable", f"모든 모델이 응답하지 않음 ({last})")
 
-    async def chat(self, step: str, role: str, messages: list[dict], usage: Usage, temperature: float = 0.0,
-                   max_tokens: int = 200, schema: dict | None = None) -> str:
+    async def chat(
+        self,
+        step: str,
+        role: str,
+        messages: list[dict],
+        usage: Usage,
+        temperature: float = 0.0,
+        max_tokens: int = 200,
+        schema: dict | None = None,
+    ) -> str:
         """한 번에 받는 호출. 반환: 모델 출력 문자열 (schema가 있으면 JSON 문자열)."""
         requested = self.model(role)
         body = {"model": requested, "temperature": temperature, "max_tokens": max_tokens, "messages": messages}
@@ -171,19 +193,29 @@ class LLM:
             if not schema or "validate JSON" not in e.message:
                 raise
             body["response_format"] = {"type": "json_object"}
-            body["messages"] = [{**messages[0], "content": messages[0]["content"]
-                                 + "\n\nReply with only a JSON object matching this schema:\n" + json.dumps(schema)}, *messages[1:]]
+            body["messages"] = [
+                {
+                    **messages[0],
+                    "content": messages[0]["content"] + "\n\nReply with only a JSON object matching this schema:\n" + json.dumps(schema),
+                },
+                *messages[1:],
+            ]
             r, used, hedged = await self._open(body, role=role)
         data = r.json()
-        usage.add(step, used, requested, data, time.perf_counter() - t, **({"hedged": True} if hedged else {}))   # 늦은 쪽 토큰은 모름
+        usage.add(step, used, requested, data, time.perf_counter() - t, **({"hedged": True} if hedged else {}))  # 늦은 쪽 토큰은 모름
         return (data["choices"][0]["message"]["content"] or "").strip()
 
-    async def stream(self, step: str, role: str, messages: list[dict], usage: Usage, temperature: float = 0.6,
-                     max_tokens: int = 120):
+    async def stream(self, step: str, role: str, messages: list[dict], usage: Usage, temperature: float = 0.6, max_tokens: int = 120):
         """글자 조각을 받는 대로 내보낸다. 대체 모델은 첫 응답 전에만 (이미 보낸 글자를 바꿀 수 없으니)."""
         requested = self.model(role)
-        body = {"model": requested, "temperature": temperature, "max_tokens": max_tokens, "messages": messages,
-                "stream": True, "stream_options": {"include_usage": True}}
+        body = {
+            "model": requested,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "messages": messages,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
         t, first, last_data = time.perf_counter(), None, None
         r, used, _ = await self._open(body, stream=True, role=role)
         try:
@@ -204,23 +236,30 @@ class LLM:
             raise ProviderError("provider_unavailable", f"대답 도중 끊김: {type(e).__name__}") from None
         finally:
             await r.aclose()
-            usage.add(step, used, requested, last_data, time.perf_counter() - t,
-                      first_token_s=round(first, 2) if first is not None else None)
+            usage.add(
+                step, used, requested, last_data, time.perf_counter() - t, first_token_s=round(first, 2) if first is not None else None
+            )
 
     async def transcribe(self, audio: bytes, filename: str, mime: str, prompt: str, usage: Usage) -> dict:
         """음성 인식 (Whisper). 대체 모델 없음: 실패하면 바로 오류."""
         model = self.model("stt")
         t = time.perf_counter()
         try:
-            r = await self.client_for("stt").post("/audio/transcriptions", timeout=httpx.Timeout(30.0, connect=5.0),
-                                       files={"file": (filename, audio, mime)},
-                                       data={"model": model, "response_format": "verbose_json", "temperature": "0", "prompt": prompt})
+            r = await self.client_for("stt").post(
+                "/audio/transcriptions",
+                timeout=httpx.Timeout(30.0, connect=5.0),
+                files={"file": (filename, audio, mime)},
+                data={"model": model, "response_format": "verbose_json", "temperature": "0", "prompt": prompt},
+            )
         except (httpx.TimeoutException, httpx.TransportError) as e:
             raise ProviderError("provider_unavailable", f"음성 인식 응답 없음: {type(e).__name__}") from None
         if r.status_code >= 400:
-            raise ProviderError("provider_limit" if r.status_code == 429 else "provider_unavailable",
-                                f"음성 인식 오류 {r.status_code}: {r.text[:160]}")
+            raise ProviderError(
+                "provider_limit" if r.status_code == 429 else "provider_unavailable", f"음성 인식 오류 {r.status_code}: {r.text[:160]}"
+            )
         data = r.json()
         latency = time.perf_counter() - t
-        usage.items.append({"step": "stt", "model": model, "audio_s": data.get("duration"), "latency_s": round(latency, 2), "fallback": False})
+        usage.items.append(
+            {"step": "stt", "model": model, "audio_s": data.get("duration"), "latency_s": round(latency, 2), "fallback": False}
+        )
         return {"text": (data.get("text") or "").strip(), "audio_s": data.get("duration"), "latency_s": round(latency, 2)}

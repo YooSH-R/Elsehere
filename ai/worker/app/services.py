@@ -1,4 +1,5 @@
 """판정·힌트·대화 종료·음성 인식. 상태는 바꾸지 않는다 (상태 전환은 Spring 규칙)."""
+
 import asyncio
 import json
 import logging
@@ -15,7 +16,7 @@ log = logging.getLogger("ai_worker")
 def clean_intent(raw: dict, state: State) -> dict:
     """모델 출력을 요청 범위 안으로 (형식 강제가 풀린 json_object 대체 모드에서도 엉뚱한 값이 나가지 않게)."""
     allowed = {i.id for i in state.intents + state.more_intents}
-    got = raw.get("intents") if isinstance(raw.get("intents"), list) else [raw.get("intent")]   # 대체 모드는 intent 하나로 올 수 있음
+    got = raw.get("intents") if isinstance(raw.get("intents"), list) else [raw.get("intent")]  # 대체 모드는 intent 하나로 올 수 있음
     ids = [i for i in dict.fromkeys(got) if i in allowed][:3] or ["unclear"]
     # id: 첫 행동 (예전 형식과 호환), ids: 말한 순서대로 전부 — Spring은 ids를 차례로 적용한다
     out = {"id": ids[0], "ids": ids, "slots": {}, "error": None}
@@ -73,13 +74,14 @@ async def judge(llm: LLM, req: JudgeRequest, local: LocalGuard | None = None) ->
     local(로컬 무례 판정기)이 있으면 단계적 구조: 확신 구간은 로컬이 판정하고 판정용 LLM을 부르지 않는다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
-    if not text:   # 행동만 있었으면 모델을 부르지 않는다. Spring은 턴으로 세지 않음
+    if not text:  # 행동만 있었으면 모델을 부르지 않는다. Spring은 턴으로 세지 않음
         return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "guard": None, "translation": None, "usage": []}
     scene = req.scene or req.npc.scene
 
     async def intent():
-        out = await llm.chat("intent", "intent", P.intent_messages(req.npc, req.state, req.history, text), usage,
-                             0.0, 200, P.intent_schema(req.state))
+        out = await llm.chat(
+            "intent", "intent", P.intent_messages(req.npc, req.state, req.history, text), usage, 0.0, 200, P.intent_schema(req.state)
+        )
         return clean_intent(json.loads(out), req.state)
 
     # 로컬 판정기를 켰을 때만 guard에 붙는 칸: 누가 판정했나·로컬 점수·로컬 실패 (LLM이 실패해도 남도록 밖에 둔다)
@@ -90,9 +92,9 @@ async def judge(llm: LLM, req: JudgeRequest, local: LocalGuard | None = None) ->
             prev = next((h.text for h in reversed(req.history) if h.who == "npc"), "")
             try:
                 s = await asyncio.to_thread(local.score, text, prev)
-            except Exception as e:   # 로컬이 고장 나도 판정은 LLM으로 이어 간다
+            except Exception as e:  # 로컬이 고장 나도 판정은 LLM으로 이어 간다
                 trace["local_error"] = f"{type(e).__name__}: {e}"[:160]
-                log.warning(json.dumps({"event": "guard_local_error", "error": trace["local_error"]}, ensure_ascii=False))
+                log.warning(json.dumps({"event": "guard_local_error", "error": trace["local_error"]}, ensure_ascii=False), exc_info=True)
             else:
                 trace["score"] = round(s, 4)
                 if s >= llm.s.guard_t_hi or s <= llm.s.guard_t_lo:
@@ -115,19 +117,30 @@ async def judge(llm: LLM, req: JudgeRequest, local: LocalGuard | None = None) ->
         english = "" if isinstance(res[2], BaseException) else res[2]
         english = "" if english == "-" else english
         # 무례한 말은 번역 카드를 보여 주지 않는다 (욕을 영어로 가르치는 꼴). 판정 못 한 말도 보여 주지 않음
-        translation = {"english": english or None, "show": bool(english) and gd["abusive"] is False,
-                       "error": str(res[2])[:160] if isinstance(res[2], BaseException) else None}
-    for r in res:   # 프로그램 오류(버그)는 숨기지 않는다
+        translation = {
+            "english": english or None,
+            "show": bool(english) and gd["abusive"] is False,
+            "error": str(res[2])[:160] if isinstance(res[2], BaseException) else None,
+        }
+    for r in res:  # 프로그램 오류(버그)는 숨기지 않는다
         if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
             raise r
-    return {"text": text, "dropped": False, "notice": P.ACTION_PART_KO if had_action else None,
-            "intent": it, "guard": gd, "translation": translation, "usage": usage.items}
+    return {
+        "text": text,
+        "dropped": False,
+        "notice": P.ACTION_PART_KO if had_action else None,
+        "intent": it,
+        "guard": gd,
+        "translation": translation,
+        "usage": usage.items,
+    }
 
 
 async def hint(llm: LLM, req: HintRequest) -> dict:
     usage = Usage()
-    out = await llm.chat("hint", "hint", P.hint_messages(req.npc, req.scene or req.npc.scene, req.goal, req.history), usage,
-                         0.3, 300, P.HINT_SCHEMA)
+    out = await llm.chat(
+        "hint", "hint", P.hint_messages(req.npc, req.scene or req.npc.scene, req.goal, req.history), usage, 0.3, 300, P.HINT_SCHEMA
+    )
     res = json.loads(out)
     return {"say_this": res["say_this"][:2], "keywords": res["keywords"][:3], "usage": usage.items}
 
@@ -137,13 +150,21 @@ async def end_conversation(llm: LLM, req: EndRequest) -> dict:
     usage = Usage()
 
     async def feedback():
-        out = await llm.chat("feedback", "feedback", P.feedback_messages(req.npc, req.scenario_title, req.goal_reached, req.outcome, req.history),
-                             usage, 0.2, 900, P.FEEDBACK_SCHEMA)
+        out = await llm.chat(
+            "feedback",
+            "feedback",
+            P.feedback_messages(req.npc, req.scenario_title, req.goal_reached, req.outcome, req.history),
+            usage,
+            0.2,
+            900,
+            P.FEEDBACK_SCHEMA,
+        )
         return json.loads(out)
 
     async def memory():
-        out = await llm.chat("memory", "memory", P.memory_messages(req.npc, req.memory_card, req.outcome, req.history),
-                             usage, 0.0, 500, P.MEMORY_SCHEMA)
+        out = await llm.chat(
+            "memory", "memory", P.memory_messages(req.npc, req.memory_card, req.outcome, req.history), usage, 0.0, 500, P.MEMORY_SCHEMA
+        )
         return P.clean_card(json.loads(out))
 
     fb, mem = await asyncio.gather(feedback(), memory(), return_exceptions=True)
@@ -151,8 +172,12 @@ async def end_conversation(llm: LLM, req: EndRequest) -> dict:
         if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
             raise r
     err = lambda r: str(r)[:160] if isinstance(r, BaseException) else None
-    return {"feedback": None if err(fb) else fb, "memory_card": None if err(mem) else mem,
-            "errors": {"feedback": err(fb), "memory": err(mem)}, "usage": usage.items}
+    return {
+        "feedback": None if err(fb) else fb,
+        "memory_card": None if err(mem) else mem,
+        "errors": {"feedback": err(fb), "memory": err(mem)},
+        "usage": usage.items,
+    }
 
 
 # ---------- 음성 인식 ----------

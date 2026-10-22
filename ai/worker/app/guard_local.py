@@ -9,27 +9,29 @@
 모델 폴더는 train_clf.py가 남긴 best/ (threshold.json의
 context가 true면 바로 앞 NPC 대사를 문장 쌍으로 함께 넣는다).
 """
+
 import json
 import re
 import threading
 from pathlib import Path
 
-HANGUL = re.compile(r"[가-힣ㄱ-ㅎㅏ-ㅣ]")   # cascade_eval.py의 라우팅과 같게 (prompts.HANGUL은 번역용이라 모음 자모가 없음)
+HANGUL = re.compile(r"[가-힣ㄱ-ㅎㅏ-ㅣ]")  # cascade_eval.py의 라우팅과 같게 (prompts.HANGUL은 번역용이라 모음 자모가 없음)
 
 
 class LocalGuard:
     """점수는 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 한 문장 약 26ms (i7-13700H, v2-mix)."""
 
     def __init__(self, path: str):
-        import torch   # 선택 의존성 (requirements-guard.txt): 없으면 load()가 None을 돌려줌
+        import torch  # 선택 의존성 (requirements-guard.txt): 없으면 load()가 None을 돌려줌
         from transformers import AutoTokenizer, ElectraForSequenceClassification
+
         d = Path(path)
         meta = json.loads((d / "threshold.json").read_text(encoding="utf-8")) if (d / "threshold.json").exists() else {}
         self.torch = torch
         self.tok = AutoTokenizer.from_pretrained(d)
         self.model = ElectraForSequenceClassification.from_pretrained(d).eval()
         self.context = bool(meta.get("context"))
-        self.name = d.parent.name if d.name == "best" else d.name   # runs/v2-mix/best → v2-mix
+        self.name = d.parent.name if d.name == "best" else d.name  # runs/v2-mix/best → v2-mix
         self.lock = threading.Lock()
 
     @classmethod
@@ -40,7 +42,7 @@ class LocalGuard:
             g = cls(path)
         except ImportError:
             return None
-        g.score("준비", "")   # 첫 호출 준비 시간을 미리 써 둔다
+        g.score("준비", "")  # 첫 호출 준비 시간을 미리 써 둔다
         return g
 
     def score(self, text: str, prev: str) -> float:
@@ -48,6 +50,9 @@ class LocalGuard:
         with self.lock, self.torch.no_grad():
             # 목록으로 넘긴다: tok(text, "")는 빈 대사를 '쌍 없음'으로 봐 [SEP]이 하나뿐인데, 학습·평가는 배치라
             # 빈 대사도 [CLS] 문장 [SEP] [SEP]으로 봤다 (그대로 두면 v2-mix-ctx 점수가 최대 0.17 어긋남)
-            enc = (self.tok([text], [prev or ""], truncation="longest_first", max_length=128, return_tensors="pt") if self.context
-                   else self.tok(text, truncation=True, max_length=128, return_tensors="pt"))
+            enc = (
+                self.tok([text], [prev or ""], truncation="longest_first", max_length=128, return_tensors="pt")
+                if self.context
+                else self.tok(text, truncation=True, max_length=128, return_tensors="pt")
+            )
             return float(self.torch.softmax(self.model(**enc).logits.float(), -1)[0, 1])

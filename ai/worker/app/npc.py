@@ -3,7 +3,10 @@
 조각 나누기는 웹 프로토타입 화면(prototype/mvp_web/static/index.html)과 같다: 문장이 끝날 때마다 한 조각, 첫 조각만 12자 이상이면 쉼표에서도 끊어
 첫 소리를 당긴다. 한 조각 합성이 상한(기본 2.5초)을 넘기면 그 조각은 tts: false (화면이 자막만 또는 브라우저 음성).
 """
+
 import asyncio
+import json
+import logging
 import re
 import time
 
@@ -12,6 +15,8 @@ from .config import Settings
 from .llm import LLM, ProviderError, Usage
 from .schemas import ReplyRequest
 from .tts import AudioStore, Kokoro
+
+log = logging.getLogger("ai_worker")
 
 SENTENCE = re.compile(r"^.*?[.!?]\s")
 FIRST = re.compile(r"^.{12,}?[,;:]\s")
@@ -27,7 +32,7 @@ class Splitter:
         out = []
         while m := (SENTENCE.match(self.buf) or (FIRST.match(self.buf) if self.first else None)):
             out.append(m.group(0).strip())
-            self.buf, self.first = self.buf[m.end():], False
+            self.buf, self.first = self.buf[m.end() :], False
         return [c for c in out if c]
 
     def flush(self) -> list[str]:
@@ -81,18 +86,18 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
             if finished:
                 return
             finished = True
-            for c in sp.flush():   # 오류로 끊겨도 이미 보낸 글자는 읽어 준다
+            for c in sp.flush():  # 오류로 끊겨도 이미 보낸 글자는 읽어 준다
                 schedule(c)
             chunks.put_nowait(None)
 
         try:
             try:
                 async for piece in first_within(gen, s.reply_first_budget_s, t0):
-                    if stopped:   # 끝까지 읽어야 마지막에 오는 사용량(토큰 수)을 받는다 (크레딧 차감)
+                    if stopped:  # 끝까지 읽어야 마지막에 오는 사용량(토큰 수)을 받는다 (크레딧 차감)
                         continue
                     if not st["full"]:
                         piece = piece.lstrip().lstrip('"')
-                    stopped = "\n" in piece   # 한 줄만 (모델이 줄을 바꿔 다른 사람 대사를 이어 쓰는 경우)
+                    stopped = "\n" in piece  # 한 줄만 (모델이 줄을 바꿔 다른 사람 대사를 이어 쓰는 경우)
                     piece = piece.split("\n")[0]
                     if piece:
                         if st["first"] is None:
@@ -102,7 +107,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                         for c in sp.feed(piece):
                             schedule(c)
                     if stopped and st["full"].strip():
-                        finish()   # 마지막 조각의 합성은 바로 시작
+                        finish()  # 마지막 조각의 합성은 바로 시작
             except ProviderError as e:
                 st["error"] = e
             finally:
@@ -125,8 +130,10 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 try:
                     wav, dur, _ = await asyncio.wait_for(asyncio.shield(task), max(left, 0.01))
                     ev.update(audio_id=store.put(wav), duration_s=round(dur, 2), tts=True)
-                except Exception:
-                    pass
+                except TimeoutError:  # 늦은 조각은 자막만 (tts: false)
+                    log.info(json.dumps({"event": "tts_chunk_late", "seq": seq}))
+                except Exception:  # 합성 실패도 그 조각만 자막으로 (대답 스트림은 이어 감)
+                    log.warning(json.dumps({"event": "tts_chunk_failed", "seq": seq}), exc_info=True)
             prev_done = time.perf_counter()
             await out.put(("audio", ev))
         await out.put(("_end", None))
@@ -139,8 +146,15 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         if st["error"]:
             yield "error", {"code": st["error"].code, "message": st["error"].message, "usage": usage.items}
         else:
-            yield "done", {"text": st["full"].strip().strip('"'), "first_token_s": st["first"],
-                           "total_s": round(time.perf_counter() - t0, 2), "usage": usage.items}
+            yield (
+                "done",
+                {
+                    "text": st["full"].strip().strip('"'),
+                    "first_token_s": st["first"],
+                    "total_s": round(time.perf_counter() - t0, 2),
+                    "usage": usage.items,
+                },
+            )
     finally:
-        for w in workers:   # Spring이 중간에 끊으면 모델 호출도 멈춘다
+        for w in workers:  # Spring이 중간에 끊으면 모델 호출도 멈춘다
             w.cancel()

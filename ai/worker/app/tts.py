@@ -4,6 +4,7 @@
 /v1/tts는 tts_unavailable(503)을 돌려준다. 화면은 자막만 보여 주거나 브라우저 음성으로 읽는다.
 측정 (i7-13700H): 한 문장 0.44~1.16초. 같은 PC에서 3D 화면이 CPU를 많이 쓰면 몇 배 느려진다 (2026-10-14).
 """
+
 import asyncio
 import io
 import secrets
@@ -16,6 +17,7 @@ from pathlib import Path
 
 def to_wav(audio, sr: int) -> bytes:
     import numpy as np
+
     pcm = (np.clip(audio, -1, 1) * 32767).astype("<i2").tobytes()
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
@@ -28,10 +30,12 @@ def to_wav(audio, sr: int) -> bytes:
 
 class Kokoro:
     """합성은 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 같은 문장(인사, 다시 듣기, 단어 발음)은 다시 만들지 않는다."""
+
     CACHE_MAX = 300
 
     def __init__(self, model_path: str, voices_path: str):
-        from kokoro_onnx import Kokoro as Engine   # 선택 의존성: 없으면 load()가 None을 돌려줌
+        from kokoro_onnx import Kokoro as Engine  # 선택 의존성: 없으면 load()가 None을 돌려줌
+
         self.engine = Engine(model_path, voices_path)
         self.name = Path(model_path).name
         self.lock = threading.Lock()
@@ -45,7 +49,7 @@ class Kokoro:
             k = cls(model_path, voices_path)
         except ImportError:
             return None
-        k.synth("Ready.", "af_heart", 1.0)   # 첫 호출 준비 시간을 미리 써 둔다
+        k.synth("Ready.", "af_heart", 1.0)  # 첫 호출 준비 시간을 미리 써 둔다
         return k
 
     def synth(self, text: str, voice: str, speed: float) -> tuple[bytes, float, bool]:

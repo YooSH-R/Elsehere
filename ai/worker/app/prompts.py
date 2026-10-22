@@ -299,48 +299,7 @@ def suggest_messages(npc: Npc, scene: str, goal: str, history: list[Line], level
     return [{"role": "system", "content": SUGGEST_SYSTEM}, {"role": "user", "content": user}]
 
 
-# ---------- 대화 종료: 피드백 + 기억 카드 ----------
-FEEDBACK_SYSTEM = """You give short, kind feedback in Korean to a Korean learner of English (CEFR A2-B1) after a role-play conversation.
-You get the situation, whether the goal was reached (decided by the game, trust it), and the conversation. Learner lines are numbered L1, L2, ...
-Learner lines come from speech recognition and may mix Korean.
-
-Rules:
-- Judge communication and naturalness separately. If the meaning got across, say so even if the English was not perfect.
-- Do not judge pronunciation (you only see text).
-- "better" must keep exactly what the learner meant, in natural, simple English (CEFR A2-B1). Never change it into a different answer or add things they did not say
-  (if they said goodbye, "better" is still a goodbye). If the line was already natural, return it unchanged and leave "note" empty.
-- Lines marked [RUDE] were insulting or threatening: "better" is a polite way to say the same feeling or need (drop the insult), and "note" says briefly in Korean why it was rude. Never call a [RUDE] line natural. Prefer a [RUDE] line for "improve".
-- Pick "improve" only from lines that really need a fix. If every line was natural, pick the line that could sound a little more natural.
-- Korean text: short, friendly, polite (해요체). No long grammar lectures.
-
-Return JSON:
-- "good": one sentence in Korean about what the learner did well (specific to this conversation).
-- "improve": the single most useful fix: "line" (the L number), "better" (English), "why" (one short Korean sentence).
-- "lines": for every learner line in order: "line", "better", "note" (one short Korean sentence or "")."""
-FEEDBACK_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "good": {"type": "string"},
-        "improve": {
-            "type": "object",
-            "properties": {"line": {"type": "integer"}, "better": {"type": "string"}, "why": {"type": "string"}},
-            "required": ["line", "better", "why"],
-            "additionalProperties": False,
-        },
-        "lines": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {"line": {"type": "integer"}, "better": {"type": "string"}, "note": {"type": "string"}},
-                "required": ["line", "better", "note"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["good", "improve", "lines"],
-    "additionalProperties": False,
-}
-
+# ---------- 대화 종료: NPC 기억 카드 (피드백은 ai/feedback 모듈, feedback_bridge.py) ----------
 MEMORY_SYSTEM = """You keep the memory a character in a role-play game has about one customer (a Korean learner of English) across visits.
 You get what the character remembered before and the conversation that just ended. Return the updated memory.
 - name: the name the customer gave for themselves. If none this time, keep the old one. Unknown: "".
@@ -368,21 +327,6 @@ CONTACT = re.compile(r"\d{2,4}[-. ]?\d{3,4}[-. ]?\d{4}|[\w.]+@[\w.]+")  # 연락
 
 def said_line(h: Line) -> str:
     return h.text + (f"  (meant: {h.english})" if h.english and h.english != h.text else "") + (" [RUDE]" if h.rude else "")
-
-
-def feedback_messages(npc: Npc, title: str, goal_reached: bool, outcome: str, history: list[Line]) -> list[dict]:
-    rows, k = [], 0
-    for h in history:
-        if h.who == "me":
-            k += 1
-            rows.append(f"L{k} Learner: {said_line(h)}")
-        else:
-            rows.append(f"{npc.name}: {h.text}")
-    user = (
-        f"Situation: {title} — talking with {npc.name}, {npc.role}\n"
-        f"Goal reached: {'yes' if goal_reached else 'no'} ({outcome})\n\nConversation:\n" + "\n".join(rows)
-    )
-    return [{"role": "system", "content": FEEDBACK_SYSTEM}, {"role": "user", "content": user}]
 
 
 def memory_messages(npc: Npc, old: dict | None, outcome: str, history: list[Line]) -> list[dict]:

@@ -33,7 +33,7 @@
 | `method_not_allowed` | 405 | 주소는 있지만 HTTP 메서드가 다름 | 호출 코드 오류 |
 | `internal_error` | 500 | 워커 프로그램 오류 (원인은 워커 로그) | 재시도 안내, 워커 로그 확인 |
 
-**부분 실패** — `/v1/judge`와 `/v1/conversation/end`는 일부가 실패해도 **HTTP 200**으로 돌려주고, 실패한 칸에 오류를 적습니다(2.2, 2.6절). NPC 대답은 SSE `error` 이벤트로 알립니다(2.3절).
+**부분 실패** — `/v1/judge`는 일부가 실패해도 **HTTP 200**으로 돌려주고 실패한 칸에 오류를 적습니다(2.2절). `/v1/feedback`은 실패도 200 안의 `feedback.status: failed`로 알립니다(2.7절). NPC 대답은 SSE `error` 이벤트로 알립니다(2.3절).
 
 **시간 상한** (워커 환경 변수, 재시도·대체 모델 포함)
 
@@ -221,24 +221,33 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 - `glossary`: 대사에서 학습자가 모를 만한 말(속어·관용구·구동사·핵심 단어) **최대 3개**. `text`는 대사에 **그대로 있는** 말만 남깁니다(대소문자 무시). 쉬운 대사면 빈 목록.
 - 출력이 이 형식이 아니거나 `meaning_ko`가 비면 502 `invalid_output`. 같은 대사는 Spring이 저장해 다시 부르지 않습니다.
 
-### 2.7 `POST /v1/conversation/end` — 피드백과 기억 카드
+### 2.7 `POST /v1/feedback` — 대화 종료 피드백 (ai/feedback 계약 0.3.0)
 
-요청: `npc`, `scenario_title`, `goal_reached`, `outcome`, `history`(최대 200줄, 학습자 줄의 `english`·`rude` 포함), `memory_card`(이전 카드).
+대화가 끝나면 학습 피드백을 만듭니다. **요청·응답 형식은 `ai/feedback` 모듈의 계약(0.3.0)을 그대로 따릅니다.**
+워커는 그 모듈(`generate_feedback`)을 부르고, 모델 호출만 워커 구성의 `feedback` 역할(재시도·대체 모델 포함)로 합니다.
 
-응답:
+- 요청 본문: 모듈의 입력(`ai/feedback/schemas/feedback.input.schema.json`) — `schema_version: "0.3.0"`, `request_id`, `scope`, `turns[]`, `context` 등. 계약과 다르면 400 `invalid_request`.
+- 응답: `{"feedback": <모듈 출력>, "usage": [...]}`. 모듈 출력 형식은 `ai/feedback/schemas/feedback.output.schema.json`이며 `status`로 나뉩니다.
 
-```json
-{"feedback": {"good": "...", "improve": {"line": 3, "better": "...", "why": "..."}, "lines": [...]},
- "memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []},
- "errors": {"feedback": null, "memory": null}, "usage": [...]}
-```
+| `feedback.status` | 뜻 | Spring 처리 |
+|---|---|---|
+| `completed` | `result`에 요약·의사소통 평가·리뷰 태그·발화별 평가·단어장 후보 | 백엔드 형식으로 변환해 저장 (아래) |
+| `insufficient_evidence` | 평가할 확정 학습자 발화가 없음 (모델을 부르지 않음) | 피드백 없이 종료 |
+| `failed` | `problem.code`: `AI_TIMEOUT`·`AI_PROVIDER_ERROR`·`INVALID_MODEL_OUTPUT` | `feedback.status: FAILED`, `errorCode`에 그대로 |
 
-- `feedback.lines`: 고칠 만한 학습자 줄마다 `{"line": 번호, "better": "더 나은 표현", "note": "짧은 설명"}`
+- 공급자 실패·출력 형식 오류도 HTTP는 200이고 `feedback.status: failed`입니다(모듈이 판단). 사용량 한도는 Spring이 먼저 확인하고 부릅니다.
+- 시간 상한은 `FEEDBACK_TIMEOUT_S`(기본 60초)이며, 길게 생성하는 호출이라 같은 요청 더 보내기(`HEDGE_AFTER_S`)를 쓰지 않습니다.
+- 백엔드 CONV-08 형식으로의 변환(예: `summary` ← `result.conversation_summary.text_ko`, `reviews.good`·`improve` ← `result.review_tags`의 `label_ko`, `suggestion` ← `result.summary_suggestion_id`가 가리키는 제안)은 `ai/feedback` 담당과 백엔드가 정합니다.
+
+### 2.7.1 `POST /v1/memory` — NPC 기억 카드
+
+요청: `npc`, `outcome`(대화 결과 한 줄), `history`(최대 200줄, 학습자 줄의 `english`·`rude` 포함), `memory_card`(이전 카드).
+
+응답: `{"memory_card": {"name": "", "claims": [], "events": [], "attitude": "neutral", "struggled": []}, "usage": [...]}`
+
 - `memory_card`: `name`(최대 40자), `claims`·`events`·`struggled`(각 최대 5개, 항목당 100자), `attitude`(`friendly`·`neutral`·`wary`). 연락처(전화번호·이메일)는 지웁니다.
-
-하나가 실패하면(공급자 실패, 출력이 JSON 객체가 아님 등) 그 칸만 `null`이고 `errors`에 이유가 들어갑니다. 기억 카드가 `null`이면 **이전 카드를 그대로 둡니다.**
-
-`history`의 `rude`는 판정이 `abusive: true`였던 줄에만 `true`로 보냅니다(`null`은 `false`).
+- 공급자 실패는 429/503, 출력이 JSON 객체가 아니면 502 `invalid_output`. **실패하면 이전 카드를 그대로 둡니다.**
+- `history`의 `rude`는 판정이 `abusive: true`였던 줄에만 `true`로 보냅니다(`null`은 `false`).
 
 ### 2.8 `POST /v1/tts` — 한 문장 합성
 

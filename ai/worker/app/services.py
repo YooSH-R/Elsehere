@@ -8,7 +8,7 @@ import re
 from . import prompts as P
 from .guard_local import HANGUL, LocalGuard
 from .llm import LLM, ModelOutputError, ProviderError, Usage
-from .schemas import EndRequest, HintRequest, JudgeRequest, MeaningRequest, State, SuggestRequest
+from .schemas import HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, State, SuggestRequest
 
 log = logging.getLogger("ai_worker")
 
@@ -207,42 +207,13 @@ async def suggest(llm: LLM, req: SuggestRequest) -> dict:
     return {"words": words[:3], "usage": usage.items}
 
 
-async def end_conversation(llm: LLM, req: EndRequest) -> dict:
-    """피드백과 기억 카드를 동시에. 하나가 실패하면 그 칸만 null + errors (Spring은 이전 카드를 그대로 둠)."""
+async def memory(llm: LLM, req: MemoryRequest) -> dict:
+    """NPC 기억 카드 갱신. 실패하면 HTTP 오류이고 Spring은 이전 카드를 그대로 둔다."""
     usage = Usage()
-
-    async def feedback():
-        out = await llm.chat(
-            "feedback",
-            "feedback",
-            P.feedback_messages(req.npc, req.scenario_title, req.goal_reached, req.outcome, req.history),
-            usage,
-            0.2,
-            900,
-            P.FEEDBACK_SCHEMA,
-        )
-        fb = json.loads(out)
-        if not isinstance(fb, dict):
-            raise ModelOutputError("피드백 출력이 JSON 객체가 아님")
-        return fb
-
-    async def memory():
-        out = await llm.chat(
-            "memory", "memory", P.memory_messages(req.npc, req.memory_card, req.outcome, req.history), usage, 0.0, 500, P.MEMORY_SCHEMA
-        )
-        return P.clean_card(json.loads(out))
-
-    fb, mem = await asyncio.gather(feedback(), memory(), return_exceptions=True)
-    for r in (fb, mem):
-        if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
-            raise r
-    err = lambda r: str(r)[:160] if isinstance(r, BaseException) else None
-    return {
-        "feedback": None if err(fb) else fb,
-        "memory_card": None if err(mem) else mem,
-        "errors": {"feedback": err(fb), "memory": err(mem)},
-        "usage": usage.items,
-    }
+    out = await llm.chat(
+        "memory", "memory", P.memory_messages(req.npc, req.memory_card, req.outcome, req.history), usage, 0.0, 500, P.MEMORY_SCHEMA
+    )
+    return {"memory_card": P.clean_card(load_object(out, "기억 카드")), "usage": usage.items}
 
 
 # ---------- 음성 인식 ----------

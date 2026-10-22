@@ -14,17 +14,18 @@ import time
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI, File, Form, Request, UploadFile
+from fastapi import Body, FastAPI, File, Form, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import services
+from . import feedback_bridge, services
 from .config import Settings
 from .guard_local import LocalGuard
 from .llm import LLM, ModelOutputError, ProviderError
 from .npc import reply_events
-from .schemas import EndRequest, HintRequest, JudgeRequest, MeaningRequest, ReplyRequest, SuggestRequest, TtsRequest
+from .schemas import HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, ReplyRequest, SuggestRequest, TtsRequest
 from .tts import AudioStore, Kokoro
 
 log = logging.getLogger("ai_worker")
@@ -218,9 +219,18 @@ def create_app(
     async def suggest(req: SuggestRequest, request: Request):
         return await services.suggest(request.app.state.llm, req)
 
-    @app.post("/v1/conversation/end")
-    async def conversation_end(req: EndRequest, request: Request):
-        return await services.end_conversation(request.app.state.llm, req)
+    @app.post("/v1/feedback")
+    async def feedback(request: Request, payload: dict = Body(...)):
+        # 입력·출력은 ai/feedback 계약 0.3.0 (검증도 그 모듈이 한다)
+        try:
+            return await feedback_bridge.feedback(request.app.state.llm, payload)
+        except ValidationError as e:
+            where = "; ".join(f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()[:5])
+            raise ApiError("invalid_request", f"피드백 요청이 ai/feedback 계약과 다름 ({where})", 400) from None
+
+    @app.post("/v1/memory")
+    async def memory(req: MemoryRequest, request: Request):
+        return await services.memory(request.app.state.llm, req)
 
     return app
 

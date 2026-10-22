@@ -354,25 +354,19 @@ def test_hint_failure_is_503(client, provider):
     assert r.status_code == 503 and r.json()["error"]["code"] == "provider_unavailable"
 
 
-def test_end_conversation_partial_failure(client, provider):
-    provider.answers["feedback"] = lambda b: ok(
-        json.dumps({"good": "좋아요", "improve": {"line": 1, "better": "x", "why": "y"}, "lines": []})
-    )
+def test_memory_failure_is_503(client, provider):
+    """기억 카드 하나만 만드는 요청이라 공급자 실패는 503 (Spring은 이전 카드를 그대로 둠)."""
     provider.answers["memory"] = lambda b: httpx.Response(503, text="down")
     body = {
         "npc": NPC,
-        "scenario_title": "카페에서 주문하기",
-        "goal_reached": True,
         "outcome": "주문 성공",
         "history": [{"who": "npc", "text": "Hi!"}, {"who": "me", "text": "라떼", "english": "A latte.", "rude": False}],
     }
-    r = client.post("/v1/conversation/end", json=body).json()
-    assert r["feedback"]["good"] == "좋아요"
-    assert r["memory_card"] is None and r["errors"]["memory"]
+    r = client.post("/v1/memory", json=body)
+    assert r.status_code == 503 and r.json()["error"]["code"] == "provider_unavailable"
 
 
 def test_memory_card_is_cleaned(client, provider):
-    provider.answers["feedback"] = lambda b: ok(json.dumps({"good": "", "improve": {"line": 1, "better": "", "why": ""}, "lines": []}))
     provider.answers["memory"] = lambda b: ok(
         json.dumps(
             {
@@ -384,9 +378,11 @@ def test_memory_card_is_cleaned(client, provider):
             }
         )
     )
-    body = {"npc": NPC, "scenario_title": "t", "goal_reached": False, "outcome": "o", "history": [{"who": "me", "text": "hi"}]}
-    card = client.post("/v1/conversation/end", json=body).json()["memory_card"]
+    body = {"npc": NPC, "outcome": "o", "history": [{"who": "me", "text": "hi"}]}
+    r = client.post("/v1/memory", json=body).json()
+    card = r["memory_card"]
     assert card["attitude"] == "neutral" and card["claims"][0] == "says they are a police officer" and len(card["claims"]) == 5
+    assert [u["step"] for u in r["usage"]] == ["memory"]
 
 
 def test_stt_filters_prompt_echo_and_sends_scene_words(client, provider):

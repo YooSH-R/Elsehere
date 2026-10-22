@@ -98,14 +98,16 @@ class LLM:
         """역할이 쓰는 공급자 (예: GMS 구성에서도 stt는 Groq)."""
         return self.others.get(self.s.role_provider.get(role, ""), self.client)
 
-    async def _send(self, client: httpx.AsyncClient, b: dict, timeout: httpx.Timeout, stream: bool) -> tuple[httpx.Response, bool]:
+    async def _send(
+        self, client: httpx.AsyncClient, b: dict, timeout: httpx.Timeout, stream: bool, hedge: bool = True
+    ) -> tuple[httpx.Response, bool]:
         """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다.
         반환: (응답, 더 보냈나). 둘 다 실패하면 마지막 오류를 던진다. 스트림은 응답 머리가 먼저 와서 늦음을 알 수 없어 그대로."""
         send = lambda: asyncio.ensure_future(
             client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
         )
         first = send()
-        if stream or not self.s.hedge_after_s:
+        if stream or not hedge or not self.s.hedge_after_s:
             return await first, False
         tasks = [first]
         try:
@@ -137,11 +139,14 @@ class LLM:
                 if not t.done():
                     t.cancel()
 
-    async def _open(self, body: dict, stream: bool = False, role: str = "") -> tuple[httpx.Response, str, bool]:
+    async def _open(
+        self, body: dict, stream: bool = False, role: str = "", timeout_s: float | None = None, hedge: bool = True
+    ) -> tuple[httpx.Response, str, bool]:
         """대체 모델 사슬을 따라 첫 성공 응답을 연다. 반환: (응답, 실제로 쓴 모델, 같은 요청을 더 보냈나)."""
         model, last, limited, tried = body["model"], "", False, set()
         client = self.client_for(role)
-        timeout = httpx.Timeout(self.s.call_timeout_s, connect=5.0)
+        timeout_s = timeout_s or self.s.call_timeout_s
+        timeout = httpx.Timeout(timeout_s, connect=5.0)
         while model and model not in tried:  # 대체 모델끼리 서로를 가리켜도(20b ↔ 120b) 한 번씩만
             tried.add(model)
             if self.exhausted.get(model, 0) > time.time():
@@ -151,10 +156,10 @@ class LLM:
             b = model_body({**body, "model": model}, self.s.model_params)
             for attempt in range(2):
                 try:
-                    r, hedged = await self._send(client, b, timeout, stream)
+                    r, hedged = await self._send(client, b, timeout, stream, hedge)
                 except httpx.TimeoutException as e:
                     # 오류 없이 30초 넘게 멈춘 호출이 있었다 (2026-10-13). 짧게 끊고 다시 보낸다
-                    last = f"응답 없음({self.s.call_timeout_s}s): {type(e).__name__}"
+                    last = f"응답 없음({timeout_s}s): {type(e).__name__}"
                     continue
                 except httpx.TransportError as e:
                     last = f"연결 오류: {type(e).__name__}: {str(e)[:80]}"
@@ -185,15 +190,18 @@ class LLM:
         temperature: float = 0.0,
         max_tokens: int = 200,
         schema: dict | None = None,
+        timeout_s: float | None = None,
+        hedge: bool = True,
     ) -> str:
-        """한 번에 받는 호출. 반환: 모델 출력 문자열 (schema가 있으면 JSON 문자열)."""
+        """한 번에 받는 호출. 반환: 모델 출력 문자열 (schema가 있으면 JSON 문자열).
+        timeout_s: 이 호출의 상한 (없으면 CALL_TIMEOUT_S), hedge: 늦을 때 같은 요청 하나 더 보내기 (길게 생성하는 호출은 끔)."""
         requested = self.model(role)
         body = {"model": requested, "temperature": temperature, "max_tokens": max_tokens, "messages": messages}
         if schema:
             body["response_format"] = {"type": "json_schema", "json_schema": {"name": "out", "schema": schema, "strict": True}}
         t = time.perf_counter()
         try:
-            r, used, hedged = await self._open(body, role=role)
+            r, used, hedged = await self._open(body, role=role, timeout_s=timeout_s, hedge=hedge)
         except ProviderError as e:
             if not schema or "validate JSON" not in e.message:
                 raise
@@ -205,7 +213,7 @@ class LLM:
                 },
                 *messages[1:],
             ]
-            r, used, hedged = await self._open(body, role=role)
+            r, used, hedged = await self._open(body, role=role, timeout_s=timeout_s, hedge=hedge)
         data = r.json()
         usage.add(step, used, requested, data, time.perf_counter() - t, **({"hedged": True} if hedged else {}))  # 늦은 쪽 토큰은 모름
         return (data["choices"][0]["message"]["content"] or "").strip()

@@ -62,16 +62,12 @@ def test_hint_output_that_breaks_format_is_invalid_output(provider, out):
     assert r.status_code == 502 and r.json()["error"]["code"] == "invalid_output"
 
 
-def test_memory_card_that_is_not_an_object_is_partial_failure(provider):
-    provider.answers["feedback"] = lambda b: ok('{"good": "g", "improve": {"line": 1, "better": "b", "why": "w"}, "lines": []}')
-    provider.answers["memory"] = lambda b: ok("[]")
+@pytest.mark.parametrize("out", ["[]", "not json"])
+def test_memory_card_that_is_not_an_object_is_invalid_output(provider, out):
+    provider.answers["memory"] = lambda b: ok(out)
     with quiet_client(provider) as c:
-        r = c.post(
-            "/v1/conversation/end",
-            json={"npc": NPC, "scenario_title": "t", "goal_reached": True, "outcome": "o", "history": [{"who": "me", "text": "hi"}]},
-        )
-    assert r.status_code == 200
-    assert r.json()["memory_card"] is None and r.json()["errors"]["memory"]
+        r = c.post("/v1/memory", json={"npc": NPC, "outcome": "o", "history": [{"who": "me", "text": "hi"}]})
+    assert r.status_code == 502 and r.json()["error"]["code"] == "invalid_output"
 
 
 def test_unexpected_error_uses_error_format(provider, monkeypatch):

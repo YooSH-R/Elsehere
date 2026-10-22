@@ -19,7 +19,7 @@ STEPS = {
     "You label": "intent",
     "You help a Korean learner of English in a role-play": "translate",
     "You help a Korean learner of English (CEFR A2-B1) who is stuck": "hint",
-    "You give short, kind feedback": "feedback",
+    "# 대화 피드백": "feedback",  # ai/feedback 모듈의 지시문
     "You keep the memory": "memory",
     "You translate one line said by a character": "meaning",
     "You suggest words": "suggest",
@@ -88,7 +88,7 @@ def make_client(provider: Provider, tts=None, guard_local=None, **kw) -> TestCli
         "fallback": dict(PROFILES["profiles"]["groq"]["fallback"]),
         **kw,
     }
-    s = Settings(token=TOKEN, base_url="http://fake/v1", api_key="x", call_timeout_s=1.0, retry_pause_s=0.0, **kw)
+    s = Settings(token=TOKEN, base_url="http://fake/v1", api_key="x", **{"call_timeout_s": 1.0, "retry_pause_s": 0.0, **kw})
     return TestClient(create_app(s, httpx.MockTransport(provider.handler), tts, guard_local), headers={"X-Internal-Token": TOKEN})
 
 

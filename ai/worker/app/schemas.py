@@ -130,10 +130,10 @@ class SuggestRequest(BaseModel):
     level: Level = 2
 
 
-class EndRequest(BaseModel):
+class MemoryRequest(BaseModel):
+    """대화가 끝난 뒤 NPC 기억 카드 갱신. 피드백은 /v1/feedback (ai/feedback 계약)."""
+
     npc: Npc
-    scenario_title: str
-    goal_reached: bool
-    outcome: str
+    outcome: str  # 대화 결과 한 줄 (예: "주문 성공")
     history: list[Line] = Field(max_length=200)
-    memory_card: dict | None = None
+    memory_card: dict | None = None  # 이전 카드

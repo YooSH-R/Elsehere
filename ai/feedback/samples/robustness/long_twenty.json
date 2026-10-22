@@ -1,0 +1,663 @@
+{
+  "schema_version": "0.3.0",
+  "request_id": "robust_long_twenty",
+  "scope": {
+    "user_id": "user_sample",
+    "npc_id": "npc_cafe_sample",
+    "conversation_id": "robust_long_twenty"
+  },
+  "conversation_revision": 40,
+  "analysis_config_version": "feedback_stub_v03",
+  "context": {
+    "scene_id": "cafe_sample",
+    "mode": "free_chat",
+    "scene_description": "가상 카페에서 직원과 자유롭게 대화한다.",
+    "target_language": "en-US",
+    "explanation_language": "ko-KR",
+    "end_reason": "user_end",
+    "tutorial_goal": null
+  },
+  "turns": [
+    {
+      "turn_id": "t01",
+      "sequence": 1,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "What would you like?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t02",
+      "sequence": 2,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "I'd like a tea, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t03",
+      "sequence": 3,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Hot or iced?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t04",
+      "sequence": 4,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Hot, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t05",
+      "sequence": 5,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "What size?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t06",
+      "sequence": 6,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "A small one, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t07",
+      "sequence": 7,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Any milk?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t08",
+      "sequence": 8,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "No milk, thank you.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t09",
+      "sequence": 9,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Any sugar?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t10",
+      "sequence": 10,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "One sugar, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t11",
+      "sequence": 11,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "For here or to go?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t12",
+      "sequence": 12,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "For here, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t13",
+      "sequence": 13,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Would you like a snack?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t14",
+      "sequence": 14,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "What do you recommend?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t15",
+      "sequence": 15,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "The lemon cake is popular.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t16",
+      "sequence": 16,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "I'll have a slice, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t17",
+      "sequence": 17,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Any allergies?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t18",
+      "sequence": 18,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "I'm allergic to peanuts.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t19",
+      "sequence": 19,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "The cake has no peanuts. Anything else?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t20",
+      "sequence": 20,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Could I have some water?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t21",
+      "sequence": 21,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Still or sparkling?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t22",
+      "sequence": 22,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Still water, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t23",
+      "sequence": 23,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Would you like ice in the water?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t24",
+      "sequence": 24,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "No ice, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t25",
+      "sequence": 25,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Where would you like to sit?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t26",
+      "sequence": 26,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "I'd like to sit by the window.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t27",
+      "sequence": 27,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "That table is free.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t28",
+      "sequence": 28,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Can I charge my phone there?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t29",
+      "sequence": 29,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Yes. There is an outlet.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t30",
+      "sequence": 30,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Great, thank you.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t31",
+      "sequence": 31,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Do you need the Wi-Fi password?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t32",
+      "sequence": 32,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Yes, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t33",
+      "sequence": 33,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "It is printed on your receipt.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t34",
+      "sequence": 34,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "How much is everything?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t35",
+      "sequence": 35,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Eight dollars in total.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t36",
+      "sequence": 36,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Can I pay by card?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t37",
+      "sequence": 37,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Of course. Tap your card here.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t38",
+      "sequence": 38,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Could I have the receipt?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t39",
+      "sequence": 39,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Here you are. Enjoy your visit.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t40",
+      "sequence": 40,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Thank you for your help.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    }
+  ],
+  "assistance_events": []
+}

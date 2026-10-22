@@ -1,0 +1,78 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "커피를 가지고 나가고 싶다고 요청했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I'd like to take my coffee with me."
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "clear",
+      "explanation_ko": "커피를 가지고 나가려는 뜻이 전달됐어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I'd like to take my coffee with me."
+        }
+      ]
+    },
+    "review_tags": [
+      {
+        "tag_id": "tag01",
+        "kind": "strength",
+        "label_ko": "원하는 이용 방식을 전달했어요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "I'd like to take my coffee with me."
+          }
+        ],
+        "assisted": false
+      }
+    ],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "I'd like to take my coffee with me.",
+        "verdict": "appropriate",
+        "explanation_ko": "원래 표현도 뜻이 전달돼요. 포장 주문에 자주 쓰는 다른 표현도 익혀 보세요.",
+        "assisted": false,
+        "suggestions": [
+          {
+            "suggestion_id": "suggestion_t02",
+            "kind": "idiomatic_expression",
+            "source": {
+              "turn_id": "t02",
+              "quote": "I'd like to take my coffee with me."
+            },
+            "suggested_expression": "Could I get my coffee to go?",
+            "explanation_ko": "to go는 음식이나 음료를 포장해 가져갈 때 자주 쓰는 표현이에요. 원래 문장도 맞아요."
+          }
+        ]
+      }
+    ],
+    "summary_suggestion_id": "suggestion_t02",
+    "vocab_candidates": [
+      {
+        "candidate_id": "candidate01",
+        "kind": "idiom",
+        "expression": "to go",
+        "meaning_ko": "(음식·음료를) 포장해서 가져가는",
+        "example_en": "Could I get this to go?",
+        "example_ko": "이거 포장해 주실 수 있나요?",
+        "source": {
+          "type": "suggestion",
+          "review_id": "review_t02",
+          "suggestion_id": "suggestion_t02",
+          "quote": "to go"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,106 @@
+[
+  {
+    "case_id": "tutorial_assisted",
+    "title": "튜토리얼: 추천 문장을 사용한 길 안내",
+    "input_file": "samples/inputs/tutorial_assisted.json",
+    "fixture_file": "samples/fixtures/tutorial_assisted.llm.json",
+    "rubric_file": "samples/rubrics/tutorial_assisted.json",
+    "fixture_input_sha256": "cc30c27e3a5194464dee8040ed5281b59b73c2a510979ed3163a6526a02f7741"
+  },
+  {
+    "case_id": "tutorial_alternate",
+    "title": "튜토리얼: 다른 올바른 표현도 인정",
+    "input_file": "samples/inputs/tutorial_alternate.json",
+    "fixture_file": "samples/fixtures/tutorial_alternate.llm.json",
+    "rubric_file": "samples/rubrics/tutorial_alternate.json",
+    "fixture_input_sha256": "48d866ed7fd05066fe8e75c5d463c457b8119826cf73b2b8b4a1f1d628c1d14d"
+  },
+  {
+    "case_id": "tutorial_grammar",
+    "title": "튜토리얼: 뜻은 전달되지만 문법 개선",
+    "input_file": "samples/inputs/tutorial_grammar.json",
+    "fixture_file": "samples/fixtures/tutorial_grammar.llm.json",
+    "rubric_file": "samples/rubrics/tutorial_grammar.json",
+    "fixture_input_sha256": "f663e16c32d8301fdf31f531ecc193ad418c6e64a0cf08561d45f4c17a844c49"
+  },
+  {
+    "case_id": "free_order",
+    "title": "자유 대화: 자연스러운 주문",
+    "input_file": "samples/inputs/free_order.json",
+    "fixture_file": "samples/fixtures/free_order.llm.json",
+    "rubric_file": "samples/rubrics/free_order.json",
+    "fixture_input_sha256": "4237da60057c3a883ae387fd96777cd54b7f391b286affc8b7101d350740f801"
+  },
+  {
+    "case_id": "free_grammar",
+    "title": "자유 대화: want 뒤 to 누락",
+    "input_file": "samples/inputs/free_grammar.json",
+    "fixture_file": "samples/fixtures/free_grammar.llm.json",
+    "rubric_file": "samples/rubrics/free_grammar.json",
+    "fixture_input_sha256": "cadc8b78483669638f42ab76dda3d6cf94d15291f37c8806bd8ec1ac7ffdba4e"
+  },
+  {
+    "case_id": "free_correct_alternative",
+    "title": "자유 대화: 올바른 문장에 자연스러운 대안",
+    "input_file": "samples/inputs/free_correct_alternative.json",
+    "fixture_file": "samples/fixtures/free_correct_alternative.llm.json",
+    "rubric_file": "samples/rubrics/free_correct_alternative.json",
+    "fixture_input_sha256": "7cca3b634b1aeb905044886af9eb5f9272e238b6c2427d90b8873363226ebeda"
+  },
+  {
+    "case_id": "ambiguous",
+    "title": "의미 불명확: that의 대상 미상",
+    "input_file": "samples/inputs/ambiguous.json",
+    "fixture_file": "samples/fixtures/ambiguous.llm.json",
+    "rubric_file": "samples/rubrics/ambiguous.json",
+    "fixture_input_sha256": "feb6b7c2f5d86dbf6e94a999dec692f85d08ec535848dadccc2b53dcffe8ab42"
+  },
+  {
+    "case_id": "no_user_turns",
+    "title": "사용자 발화 없이 종료",
+    "input_file": "samples/inputs/no_user_turns.json",
+    "fixture_file": "samples/fixtures/no_user_turns.llm.json",
+    "rubric_file": "samples/rubrics/no_user_turns.json",
+    "fixture_input_sha256": "6dad07098ab697eb3f21d3ed585708ba6533ba48920c69a621c9d74f7938e4d5"
+  },
+  {
+    "case_id": "stt_corrected",
+    "title": "STT 오인식을 사용자가 수정",
+    "input_file": "samples/inputs/stt_corrected.json",
+    "fixture_file": "samples/fixtures/stt_corrected.llm.json",
+    "rubric_file": "samples/rubrics/stt_corrected.json",
+    "fixture_input_sha256": "a66cd3e53dc316f427435f62529a8a0d8c57d8821d829e59ed90b7ee54be758f"
+  },
+  {
+    "case_id": "unconfirmed_only",
+    "title": "미확정 사용자 전사만 존재",
+    "input_file": "samples/inputs/unconfirmed_only.json",
+    "fixture_file": "samples/fixtures/unconfirmed_only.llm.json",
+    "rubric_file": "samples/rubrics/unconfirmed_only.json",
+    "fixture_input_sha256": "1fa3aee719a27d60f8183b7d10b70fbbecc7ecefbb7e448b8d9b187d020373e4"
+  },
+  {
+    "case_id": "instruction_in_dialogue",
+    "title": "대화 안의 출력 지시를 데이터로 취급",
+    "input_file": "samples/inputs/instruction_in_dialogue.json",
+    "fixture_file": "samples/fixtures/instruction_in_dialogue.llm.json",
+    "rubric_file": "samples/rubrics/instruction_in_dialogue.json",
+    "fixture_input_sha256": "96d999026789aed8512a84d8e635fbf9ee6dc78824873fc4b836f1319624fc24"
+  },
+  {
+    "case_id": "mixed_five_turns",
+    "title": "다섯 발화: 적절함·개선·의미 확인·평가 불가 모두 포함",
+    "input_file": "samples/inputs/mixed_five_turns.json",
+    "fixture_file": "samples/fixtures/mixed_five_turns.llm.json",
+    "rubric_file": "samples/rubrics/mixed_five_turns.json",
+    "fixture_input_sha256": "a7ba692e033ec1f6f8c37cd7932e20b6bb06ef0febc32df18f3c5199b5a6b5e0"
+  },
+  {
+    "case_id": "idiomatic_takeaway",
+    "title": "올바른 요청에 초급 상용 표현 to go 제안",
+    "input_file": "samples/inputs/idiomatic_takeaway.json",
+    "fixture_file": "samples/fixtures/idiomatic_takeaway.llm.json",
+    "rubric_file": "samples/rubrics/idiomatic_takeaway.json",
+    "fixture_input_sha256": "822e1659faa6c15be04409208120cba9b98b124bcf0f2e2c92b0a3495890fa61"
+  }
+]

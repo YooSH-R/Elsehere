@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.3.0",
+  "request_id": "req_tutorial_assisted",
+  "scope": {
+    "user_id": "user_sample",
+    "npc_id": "npc_passerby_sample",
+    "conversation_id": "conv_tutorial_assisted"
+  },
+  "conversation_revision": 1,
+  "analysis_config_version": "feedback_stub_v03",
+  "context": {
+    "scene_id": "street_sample",
+    "mode": "tutorial",
+    "scene_description": "가상 튜토리얼 거리. 현재 위치에서 직진 후 모퉁이에서 좌회전하면 카페가 있다. 실제 게임 지도 확정값이 아니다.",
+    "target_language": "en-US",
+    "explanation_language": "ko-KR",
+    "end_reason": "user_end",
+    "tutorial_goal": "길을 묻는 행인에게 카페 가는 길을 영어로 안내하기"
+  },
+  "turns": [
+    {
+      "turn_id": "t01",
+      "sequence": 1,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Do you know how to get to the cafe?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "tutorial_guided"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t02",
+      "sequence": 2,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Go straight and turn left at the corner.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "tutorial_guided"
+      },
+      "assistance_ids": [
+        "help01"
+      ]
+    },
+    {
+      "turn_id": "t03",
+      "sequence": 3,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Thank you!",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "tutorial_guided"
+      },
+      "assistance_ids": []
+    }
+  ],
+  "assistance_events": [
+    {
+      "assistance_id": "help01",
+      "kind": "full_example",
+      "content": "Go straight and turn left at the corner."
+    }
+  ]
+}

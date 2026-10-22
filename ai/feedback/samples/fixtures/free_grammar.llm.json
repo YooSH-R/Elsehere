@@ -1,0 +1,94 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "역에 가고 싶다고 말하고 직진 안내를 받았어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I want go to the station."
+        },
+        {
+          "turn_id": "t03",
+          "quote": "The station is straight ahead."
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "clear",
+      "explanation_ko": "역에 가고 싶다는 뜻이 전달됐어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I want go to the station."
+        }
+      ]
+    },
+    "review_tags": [
+      {
+        "tag_id": "tag01",
+        "kind": "strength",
+        "label_ko": "목적지를 전달했어요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "I want go to the station."
+          }
+        ],
+        "assisted": false
+      },
+      {
+        "tag_id": "tag02",
+        "kind": "improvement",
+        "label_ko": "동사 형태를 연습해 보세요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "I want go to the station."
+          }
+        ],
+        "assisted": false
+      }
+    ],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "I want go to the station.",
+        "verdict": "improvement_suggested",
+        "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요.",
+        "assisted": false,
+        "suggestions": [
+          {
+            "suggestion_id": "suggestion_t02",
+            "kind": "grammar_error",
+            "source": {
+              "turn_id": "t02",
+              "quote": "I want go to the station."
+            },
+            "suggested_expression": "I want to go to the station.",
+            "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요."
+          }
+        ]
+      }
+    ],
+    "summary_suggestion_id": "suggestion_t02",
+    "vocab_candidates": [
+      {
+        "candidate_id": "candidate01",
+        "kind": "sentence",
+        "expression": "I want to go to the station.",
+        "meaning_ko": "역에 가고 싶어요.",
+        "example_en": "I want to go to the station.",
+        "example_ko": "역에 가고 싶어요.",
+        "source": {
+          "type": "suggestion",
+          "review_id": "review_t02",
+          "suggestion_id": "suggestion_t02",
+          "quote": "I want to go to the station."
+        }
+      }
+    ]
+  }
+}

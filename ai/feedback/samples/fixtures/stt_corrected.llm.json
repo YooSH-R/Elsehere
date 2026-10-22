@@ -1,0 +1,66 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "확정한 발화로 차 한 잔을 정중하게 요청했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I'd like a cup of tea, please."
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "clear",
+      "explanation_ko": "확정한 발화에서 차 한 잔을 정중하게 요청했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I'd like a cup of tea, please."
+        }
+      ]
+    },
+    "review_tags": [
+      {
+        "tag_id": "tag01",
+        "kind": "strength",
+        "label_ko": "원하는 음료를 표현했어요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "I'd like a cup of tea, please."
+          }
+        ],
+        "assisted": false
+      }
+    ],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "I'd like a cup of tea, please.",
+        "verdict": "appropriate",
+        "explanation_ko": "상황에 맞는 표현이에요.",
+        "assisted": false,
+        "suggestions": []
+      }
+    ],
+    "summary_suggestion_id": null,
+    "vocab_candidates": [
+      {
+        "candidate_id": "candidate01",
+        "kind": "word",
+        "expression": "cup of tea",
+        "meaning_ko": "차 한 잔",
+        "example_en": "I'd like a cup of tea, please.",
+        "example_ko": "차 한 잔 주세요.",
+        "source": {
+          "type": "user_turn",
+          "turn_id": "t02",
+          "quote": "cup of tea"
+        }
+      }
+    ]
+  }
+}

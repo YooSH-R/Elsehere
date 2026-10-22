@@ -1,0 +1,24 @@
+{
+  "case_id": "tutorial_alternate",
+  "title": "튜토리얼: 다른 올바른 표현도 인정",
+  "expectations": [
+    "예문과 문자열이 달라도 적절한 표현 인정",
+    "명시되지 않은 도움 사용을 추정하지 않기",
+    "완료 시 확정 사용자 발화를 순서대로 빠짐없이 한 번씩 평가"
+  ],
+  "prohibited": [
+    "정해진 추천 문장과 다르다는 이유로 오답 처리"
+  ],
+  "accepted_statuses": [
+    "completed"
+  ],
+  "accepted_judgements": [
+    "clear"
+  ],
+  "forbidden_item_kinds": [
+    "grammar_error",
+    "vocabulary_error"
+  ],
+  "human_review_status": "pending",
+  "real_model_test_status": "not_run"
+}

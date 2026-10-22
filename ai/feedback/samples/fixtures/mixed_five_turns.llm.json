@@ -1,0 +1,150 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "커피 크기와 샌드위치를 이야기했지만 추가 요청의 대상은 확인되지 않았어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I'd like a coffee, please."
+        },
+        {
+          "turn_id": "t04",
+          "quote": "Small, please."
+        },
+        {
+          "turn_id": "t06",
+          "quote": "I want eat a sandwich."
+        },
+        {
+          "turn_id": "t08",
+          "quote": "I need that."
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "partially_clear",
+      "explanation_ko": "주문 일부는 전달됐지만 추가 요청은 확인이 필요해요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "I'd like a coffee, please."
+        },
+        {
+          "turn_id": "t04",
+          "quote": "Small, please."
+        },
+        {
+          "turn_id": "t06",
+          "quote": "I want eat a sandwich."
+        },
+        {
+          "turn_id": "t08",
+          "quote": "I need that."
+        }
+      ]
+    },
+    "review_tags": [
+      {
+        "tag_id": "tag01",
+        "kind": "strength",
+        "label_ko": "정중하게 요청했어요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "I'd like a coffee, please."
+          }
+        ],
+        "assisted": false
+      },
+      {
+        "tag_id": "tag02",
+        "kind": "improvement",
+        "label_ko": "동사 연결을 연습해 보세요",
+        "evidence": [
+          {
+            "turn_id": "t06",
+            "quote": "I want eat a sandwich."
+          }
+        ],
+        "assisted": false
+      }
+    ],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "I'd like a coffee, please.",
+        "verdict": "appropriate",
+        "explanation_ko": "상황에 맞는 표현이에요.",
+        "assisted": false,
+        "suggestions": []
+      },
+      {
+        "review_id": "review_t04",
+        "turn_id": "t04",
+        "original_text": "Small, please.",
+        "verdict": "appropriate",
+        "explanation_ko": "상황에 맞는 표현이에요.",
+        "assisted": false,
+        "suggestions": []
+      },
+      {
+        "review_id": "review_t06",
+        "turn_id": "t06",
+        "original_text": "I want eat a sandwich.",
+        "verdict": "improvement_suggested",
+        "explanation_ko": "want 뒤 동작에는 to를 사용해요.",
+        "assisted": false,
+        "suggestions": [
+          {
+            "suggestion_id": "suggestion_t06",
+            "kind": "grammar_error",
+            "source": {
+              "turn_id": "t06",
+              "quote": "I want eat a sandwich."
+            },
+            "suggested_expression": "I want to eat a sandwich.",
+            "explanation_ko": "want 뒤에는 to와 동사원형을 사용해요."
+          }
+        ]
+      },
+      {
+        "review_id": "review_t08",
+        "turn_id": "t08",
+        "original_text": "I need that.",
+        "verdict": "needs_clarification",
+        "explanation_ko": "that이 가리키는 물건을 확인해야 해요.",
+        "assisted": false,
+        "suggestions": []
+      },
+      {
+        "review_id": "review_t10",
+        "turn_id": "t10",
+        "original_text": "...",
+        "verdict": "not_assessable",
+        "explanation_ko": "이 입력만으로는 영어 표현을 평가하기 어려워요.",
+        "assisted": false,
+        "suggestions": []
+      }
+    ],
+    "summary_suggestion_id": "suggestion_t06",
+    "vocab_candidates": [
+      {
+        "candidate_id": "candidate01",
+        "kind": "word",
+        "expression": "sandwich",
+        "meaning_ko": "샌드위치",
+        "example_en": "I'd like a sandwich, please.",
+        "example_ko": "샌드위치 하나 주세요.",
+        "source": {
+          "type": "suggestion",
+          "review_id": "review_t06",
+          "suggestion_id": "suggestion_t06",
+          "quote": "sandwich"
+        }
+      }
+    ]
+  }
+}

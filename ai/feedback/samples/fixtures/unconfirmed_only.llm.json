@@ -1,0 +1,8 @@
+{
+  "outcome": "insufficient_evidence",
+  "result": null,
+  "problem": {
+    "code": "NO_USABLE_USER_TURNS",
+    "message_ko": "평가할 사용자 발화가 없어요."
+  }
+}

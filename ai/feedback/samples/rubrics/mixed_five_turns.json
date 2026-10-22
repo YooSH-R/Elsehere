@@ -1,0 +1,22 @@
+{
+  "accepted_statuses": [
+    "completed"
+  ],
+  "accepted_judgements": [
+    "partially_clear"
+  ],
+  "forbidden_item_kinds": [],
+  "expectations": [
+    "사용자 5개 발화를 모두 한 번씩 순서대로 평가",
+    "모호함·평가 불가도 누락하지 않고 사유 표시",
+    "맞는 두 발화는 억지 교정하지 않기"
+  ],
+  "prohibited": [
+    "모호한 발화를 제외하고 3개만 평가",
+    "...에 가상의 정답 표현 부여"
+  ],
+  "case_id": "mixed_five_turns",
+  "title": "다섯 발화: 적절함·개선·의미 확인·평가 불가 모두 포함",
+  "human_review_status": "pending",
+  "real_model_test_status": "not_run"
+}

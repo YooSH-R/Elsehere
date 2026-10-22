@@ -34,7 +34,9 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `CALL_TIMEOUT_S` | 8 | 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델 |
 | `HEDGE_AFTER_S` | 3 | 한 번에 받는 호출(판정·번역·힌트 등, NPC 스트림 제외)이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀. 0이면 끔. 측정은 [`ai/tools/llm_latency.py`](../tools/llm_latency.py) |
 | `STREAM_HEDGE_AFTER_S` | 2.5 | NPC 대답 스트림의 첫 글자가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀. 0이면 끔. 측정은 `ai/tools/llm_latency.py --mode stream` |
-| `FEEDBACK_TIMEOUT_S` | 60 | 대화 종료 피드백 호출 하나의 상한 (같은 요청 더 보내기 없음) |
+| `FEEDBACK_TIMEOUT_S` | 60 | 대화 종료 피드백의 전체 상한 (재시도·대체 모델 포함, 같은 요청 더 보내기 없음). 넘으면 `AI_TIMEOUT` |
+| `AUDIO_MAX_MB` | 200 | 음성 조각·턴 전체 음성 보관소의 전체 크기 상한 (넘으면 오래된 것부터 버림) |
+| `WORDS_BUDGET_S` | 3 | NPC 대답 스트림 안 추천 단어의 상한. 넘으면 `words: null`(timeout)로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5 | 판정의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함) |
 | `REPLY_FIRST_BUDGET_S` | 5 | NPC 대답 첫 글자까지의 상한 |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
@@ -121,6 +123,7 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - `tests/test_feedback.py`: `ai/feedback`의 예시 입력·출력으로 피드백 계약(완료·발화 없음·공급자 실패·출력 오류·입력 오류), 피드백 전용 시간 상한과 같은 요청 더 보내기 끔
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
+- `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, GPT-5 요청 칸
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

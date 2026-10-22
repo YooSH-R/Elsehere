@@ -127,12 +127,16 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
 
     async def suggest_words(said: str) -> dict:
         history = [*req.history, Line(who="me", text=req.text), Line(who="npc", text=said)][-40:]
-        try:
-            res = await services.suggest(llm, SuggestRequest(npc=req.npc, goal=req.goal, history=history, level=req.level))
+        call = services.suggest(llm, SuggestRequest(npc=req.npc, goal=req.goal, history=history, level=req.level))
+        try:  # 상한 안에 못 끝내면 timeout: done(대답·턴 전체 음성)을 추천 단어 때문에 늦추지 않는다
+            res = await services.within(call, s.words_budget_s)
         except ProviderError as e:
             return {"words": None, "error": e.code}
         except ModelOutputError:
             return {"words": None, "error": "invalid_output"}
+        except Exception:  # 덤으로 붙는 기능이라 어떤 실패든 대답은 끝까지 보낸다 (원인은 로그)
+            log.warning(json.dumps({"event": "words_failed"}), exc_info=True)
+            return {"words": None, "error": "internal_error"}
         usage.items.extend(res["usage"])
         return {"words": res["words"], "error": None}
 
@@ -173,7 +177,9 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         while (ev := await out.get())[0] != "_end":
             yield ev
         await asyncio.gather(*workers)
-        if st["words"]:
+        if st["words"] and st["error"]:  # 대답이 실패하면 이미 시작한 추천 단어도 보내지 않는다
+            st["words"].cancel()
+        elif st["words"]:
             yield "words", await st["words"]
         if st["error"]:
             yield "error", {"code": st["error"].code, "message": st["error"].message, "usage": usage.items}

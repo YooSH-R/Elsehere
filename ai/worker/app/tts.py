@@ -91,16 +91,20 @@ class Kokoro:
 class AudioStore:
     """NPC 대답 스트림의 음성 조각. audio_id로 GET /v1/audio/{id}에서 가져간다 (보관 시간이 지나면 버림)."""
 
-    def __init__(self, ttl_s: float = 600, max_items: int = 2000):
-        self.ttl, self.max = ttl_s, max_items
+    def __init__(self, ttl_s: float = 600, max_items: int = 2000, max_bytes: int = 200_000_000):
+        self.ttl, self.max, self.max_bytes, self.total = ttl_s, max_items, max_bytes, 0
         self.items: OrderedDict[str, tuple[float, bytes]] = OrderedDict()
 
     def put(self, wav: bytes) -> str:
+        """보관 시간이 지난 것, 개수·전체 크기 상한을 넘는 것은 오래된 것부터 버린다 (방금 넣는 것은 커도 보관)."""
         now = time.time()
-        while self.items and (len(self.items) >= self.max or next(iter(self.items.values()))[0] < now):
-            self.items.popitem(last=False)
+        while self.items and (
+            len(self.items) >= self.max or self.total + len(wav) > self.max_bytes or next(iter(self.items.values()))[0] < now
+        ):
+            self.total -= len(self.items.popitem(last=False)[1][1])
         audio_id = secrets.token_hex(8)
         self.items[audio_id] = (now + self.ttl, wav)
+        self.total += len(wav)
         return audio_id
 
     def get(self, audio_id: str) -> bytes | None:

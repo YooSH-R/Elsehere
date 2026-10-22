@@ -74,3 +74,43 @@ def test_feedback_is_not_hedged_or_cut_at_short_timeout(provider):
         r = c.post("/v1/feedback", json=sample("inputs/free_grammar.json"))
     assert r.json()["feedback"]["status"] == "completed"
     assert len([x for x in provider.calls if x[0] == "feedback"]) == 1
+
+
+# ---------------------------------------------------------------------
+# 코드 리뷰 #5·#6: 피드백 상한은 전체 시간이고, 피드백은 자기 스레드에서 돈다
+# ---------------------------------------------------------------------
+def test_feedback_timeout_is_whole_call_and_reported_as_ai_timeout(provider):
+    """재시도·대체 모델을 거쳐도 FEEDBACK_TIMEOUT_S 안에 끝내고, 시간 초과는 AI_TIMEOUT."""
+    import time
+
+    from conftest import make_client
+
+    async def stuck(b):
+        await asyncio.sleep(2.0)
+        return ok("{}")
+
+    provider.answers["feedback"] = stuck
+    with make_client(provider, feedback_timeout_s=0.3) as c:
+        t = time.perf_counter()
+        r = c.post("/v1/feedback", json=sample("inputs/free_grammar.json"))
+        spent = time.perf_counter() - t
+    fb = r.json()["feedback"]
+    assert fb["status"] == "failed" and fb["problem"]["code"] == "AI_TIMEOUT"
+    assert spent < 1.2
+
+
+def test_feedback_runs_in_its_own_threads(client, monkeypatch):
+    """피드백(길게 걸림)이 음성 합성·로컬 판정기가 쓰는 기본 스레드 묶음을 차지하지 않는다."""
+    import threading
+
+    from app import feedback_bridge
+
+    seen = {}
+
+    def fake_generate(payload, model, *, ai_allowed):
+        seen["thread"] = threading.current_thread().name
+        return {"status": "completed"}
+
+    monkeypatch.setattr(feedback_bridge, "generate_feedback", fake_generate)
+    r = client.post("/v1/feedback", json=sample("inputs/free_grammar.json"))
+    assert r.status_code == 200 and seen["thread"].startswith("feedback")

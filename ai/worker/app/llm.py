@@ -19,19 +19,6 @@ from .config import Settings
 RETRY_CODES = (429, 500, 502, 503)
 
 
-def stream_data(line: str) -> dict | None:
-    """SSE 한 줄 → data 객체 (data 줄이 아니거나 [DONE]이면 None)."""
-    line = line.strip()
-    if not line.startswith("data:") or line[5:].strip() == "[DONE]":
-        return None
-    return json.loads(line[5:])
-
-
-def stream_piece(data: dict) -> str:
-    choices = data.get("choices") or []
-    return (choices[0].get("delta", {}).get("content") or "") if choices else ""
-
-
 class ModelOutputError(ValueError):
     """모델 출력이 정해진 형식이 아님 (재시도·대체 모델로도 고칠 수 없음).
     판정·대화 종료에서는 그 칸만 실패로 처리하고, 칸이 하나뿐인 힌트는 502 invalid_output."""
@@ -68,6 +55,47 @@ class Usage:
                 **extra,
             }
         )
+
+
+def response_json(r: httpx.Response) -> dict:
+    """공급자 응답 본문(JSON 객체). JSON이 아니거나 객체가 아니면 공급자 오류 (판정에서는 그 칸만 실패)."""
+    try:
+        data = r.json()
+    except ValueError:
+        raise ProviderError("provider_unavailable", f"공급자 응답이 JSON이 아님: {r.text[:80]!r}") from None
+    if not isinstance(data, dict):
+        raise ProviderError("provider_unavailable", "공급자 응답이 JSON 객체가 아님")
+    return data
+
+
+def message_text(data: dict) -> str:
+    """chat 응답의 choices[0].message.content. 칸이 없으면 공급자 오류 (content가 null이면 빈 답)."""
+    choices = data.get("choices")
+    message = choices[0].get("message") if isinstance(choices, list) and choices and isinstance(choices[0], dict) else None
+    if not isinstance(message, dict):
+        raise ProviderError("provider_unavailable", f"공급자 응답에 choices[0].message가 없음: {str(data)[:80]}")
+    return (message.get("content") or "").strip()
+
+
+def stream_data(line: str) -> dict | None:
+    """SSE 한 줄 → data 객체 (data 줄이 아니거나 [DONE]이면 None). data가 JSON 객체가 아니면 공급자 오류."""
+    line = line.strip()
+    if not line.startswith("data:") or line[5:].strip() == "[DONE]":
+        return None
+    try:
+        data = json.loads(line[5:])
+    except ValueError:
+        raise ProviderError("provider_unavailable", "스트림 data 줄이 JSON이 아님") from None
+    if not isinstance(data, dict):
+        raise ProviderError("provider_unavailable", "스트림 data 줄이 JSON 객체가 아님")
+    return data
+
+
+def stream_piece(data: dict) -> str:
+    choices = data.get("choices")
+    first = choices[0] if isinstance(choices, list) and choices and isinstance(choices[0], dict) else {}
+    delta = first.get("delta") if isinstance(first.get("delta"), dict) else {}
+    return delta.get("content") or ""
 
 
 def model_body(body: dict, params: list[dict]) -> dict:
@@ -228,9 +256,9 @@ class LLM:
                 *messages[1:],
             ]
             r, used, hedged = await self._open(body, role=role, timeout_s=timeout_s, hedge=hedge)
-        data = r.json()
+        data = response_json(r)
         usage.add(step, used, requested, data, time.perf_counter() - t, **({"hedged": True} if hedged else {}))  # 늦은 쪽 토큰은 모름
-        return (data["choices"][0]["message"]["content"] or "").strip()
+        return message_text(data)
 
     async def stream(self, step: str, role: str, messages: list[dict], usage: Usage, temperature: float = 0.6, max_tokens: int = 120):
         """글자 조각을 받는 대로 내보낸다. 대체 모델은 첫 응답 전에만 (이미 보낸 글자를 바꿀 수 없으니)."""
@@ -343,7 +371,7 @@ class LLM:
             raise ProviderError(
                 "provider_limit" if r.status_code == 429 else "provider_unavailable", f"음성 인식 오류 {r.status_code}: {r.text[:160]}"
             )
-        data = r.json()
+        data = response_json(r)
         latency = time.perf_counter() - t
         usage.items.append(
             {"step": "stt", "model": model, "audio_s": data.get("duration"), "latency_s": round(latency, 2), "fallback": False}

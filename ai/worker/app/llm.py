@@ -9,6 +9,7 @@
 import asyncio
 import json
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 
 import httpx
@@ -16,6 +17,19 @@ import httpx
 from .config import Settings
 
 RETRY_CODES = (429, 500, 502, 503)
+
+
+def stream_data(line: str) -> dict | None:
+    """SSE 한 줄 → data 객체 (data 줄이 아니거나 [DONE]이면 None)."""
+    line = line.strip()
+    if not line.startswith("data:") or line[5:].strip() == "[DONE]":
+        return None
+    return json.loads(line[5:])
+
+
+def stream_piece(data: dict) -> str:
+    choices = data.get("choices") or []
+    return (choices[0].get("delta", {}).get("content") or "") if choices else ""
 
 
 class ModelOutputError(ValueError):
@@ -230,17 +244,21 @@ class LLM:
             "stream_options": {"include_usage": True},
         }
         t, first, last_data = time.perf_counter(), None, None
-        r, used, _ = await self._open(body, stream=True, role=role)
+        r, used, got, lines, hedged = await self._open_stream(body, role)
+
+        async def datas():
+            for data in got:  # 첫 글자까지 이미 읽은 것
+                yield data
+            async for line in lines:
+                data = stream_data(line)
+                if data is not None:
+                    yield data
+
         try:
-            async for line in r.aiter_lines():
-                line = line.strip()
-                if not line.startswith("data:") or line[5:].strip() == "[DONE]":
-                    continue
-                data = json.loads(line[5:])
+            async for data in datas():
                 if data.get("usage") or data.get("x_groq", {}).get("usage"):
                     last_data = data
-                choices = data.get("choices") or []
-                piece = (choices[0].get("delta", {}).get("content") or "") if choices else ""
+                piece = stream_piece(data)
                 if piece:
                     if first is None:
                         first = time.perf_counter() - t
@@ -250,8 +268,63 @@ class LLM:
         finally:
             await r.aclose()
             usage.add(
-                step, used, requested, last_data, time.perf_counter() - t, first_token_s=round(first, 2) if first is not None else None
+                step,
+                used,
+                requested,
+                last_data,
+                time.perf_counter() - t,
+                first_token_s=round(first, 2) if first is not None else None,
+                **({"hedged": True} if hedged else {}),
             )
+
+    async def _first_text(self, body: dict, role: str) -> tuple[httpx.Response, str, list[dict], AsyncIterator[str]]:
+        """스트림을 열고 첫 글자 조각이 올 때까지 읽는다. 반환: (응답, 실제로 쓴 모델, 그때까지의 data, 남은 줄).
+        중간에 취소되면(다른 쪽이 이김) 응답을 닫는다."""
+        r, used, _ = await self._open(body, stream=True, role=role)
+        lines, got = r.aiter_lines(), []
+        try:
+            async for line in lines:
+                data = stream_data(line)
+                if data is None:
+                    continue
+                got.append(data)
+                if stream_piece(data):
+                    break
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            await r.aclose()
+            raise ProviderError("provider_unavailable", f"대답 첫 글자 전에 끊김: {type(e).__name__}") from None
+        except BaseException:
+            await r.aclose()
+            raise
+        return r, used, got, lines
+
+    async def _open_stream(self, body: dict, role: str) -> tuple[httpx.Response, str, list[dict], AsyncIterator[str], bool]:
+        """첫 글자가 stream_hedge_after_s 안에 안 오면 같은 요청 스트림을 하나 더 열어, 먼저 첫 글자를 낸 쪽을 쓴다.
+        GMS는 첫 글자가 나올 때 응답 머리를 보내므로 머리가 늦은 경우도 같이 잡힌다. 진 쪽은 닫는다.
+        반환: _first_text의 값 + 하나 더 보냈는지."""
+        first = asyncio.ensure_future(self._first_text(body, role))
+        if not self.s.stream_hedge_after_s:
+            return (*await first, False)
+        tasks = [first]
+        try:
+            done, _ = await asyncio.wait({first}, timeout=self.s.stream_hedge_after_s)
+            if done:
+                return (*first.result(), False)
+            tasks.append(asyncio.ensure_future(self._first_text(body, role)))
+            pending, last = set(tasks), None
+            while pending:
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                won = [d for d in done if d.exception() is None]
+                last = next((d.exception() for d in done if d.exception() is not None), last)
+                if won:
+                    for extra in won[1:]:  # 같이 끝난 다른 스트림은 닫는다
+                        await extra.result()[0].aclose()
+                    return (*won[0].result(), True)
+            raise last
+        finally:  # 이긴 쪽이 정해졌거나 위에서 취소되면(첫 글자 상한 등) 남은 스트림은 끊는다
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
 
     async def transcribe(self, audio: bytes, filename: str, mime: str, prompt: str, usage: Usage) -> dict:
         """음성 인식 (Whisper). 대체 모델 없음: 실패하면 바로 오류."""

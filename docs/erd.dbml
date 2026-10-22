@@ -1,13 +1,13 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3 (MVP 기준) · PostgreSQL 16 + pgvector
-  회의 보드 결정 + MVP 프로토타입 기준 (2026-10-20). W3 사건 · 세계 사실 테이블은 제외
+  ELSEHERE ERD v3.1 (MVP 기준) · PostgreSQL 16 + pgvector
+  회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
+  API: docs/api/mvp-api.md
 
   DBML로 표현하지 못해 DDL에서 직접 만들 것
   - CREATE EXTENSION IF NOT EXISTS vector;
-  - user_missions: UNIQUE NULLS NOT DISTINCT (user_id, mission_id, mission_date)
-  - 부분 인덱스: user_vocab, npc_memories (각 인덱스 note 참고)
+  - 부분 인덱스: npc_memories (인덱스 note 참고)
   '''
 }
 
@@ -19,7 +19,7 @@ Table users [headercolor: #3D4A5C] {
   email varchar(255) [note: '제공자가 줄 때만']
   nickname varchar(30) [not null, note: 'NPC가 부르는 이름']
   avatar_type varchar(10) [not null, note: 'F / M 캐릭터 기본형']
-  onboarding_step varchar(20) [not null, note: 'LANG→LEVEL→TUTORIAL→DONE · 튜토리얼 시작 가능 여부의 기준']
+  onboarding_step varchar(20) [not null, note: 'LANG→LEVEL→TUTORIAL→DONE · 튜토리얼 완료·건너뛰기 시 DONE (튜토리얼 기록은 이 값만 사용)']
   current_language varchar(10) [not null, note: 'en-US']
   last_scene_id bigint [note: '재접속 위치']
   created_at timestamptz [not null, default: `now()`]
@@ -100,6 +100,10 @@ Table npcs [headercolor: #2F4A7A] {
   persona jsonb [not null, note: '직업 · 성격 · 메뉴 등']
   voice_id varchar(30) [not null, note: 'TTS 보이스']
   can_initiate boolean [not null, default: false, note: 'NPC가 먼저 말을 거는지 (사용자→NPC 대화와 무관)']
+  approach_line text [note: '먼저 말을 걸 때의 첫 말 (can_initiate NPC)']
+  approach_audio_key varchar(100) [note: '첫 말 음성 파일 키 (미리 생성)']
+  farewell_line text [note: '대화 중 AI 사용량이 떨어졌을 때의 작별 대사']
+  farewell_audio_key varchar(100) [note: '작별 대사 음성 파일 키 (미리 생성)']
 
   Note: 'NPC'
 }
@@ -120,7 +124,9 @@ Table vocabularies [headercolor: #227C88] {
   type varchar(10) [not null, note: 'WORD · IDIOM · SENTENCE']
   text text [not null]
   meaning_ko text [not null]
-  example text [note: '저장 후 호버에 표시']
+  example text [note: '예문 · 사물 카드에 표시하는 시점(저장 전/후) [미정]']
+  example_ko text [note: '예문 뜻']
+  pronunciation_audio_key varchar(100) [note: '사물 어휘 등록 시 TTS로 만든 발음 파일 키']
   source varchar(20) [not null, note: 'MASTER · NPC · FEEDBACK']
 
   indexes {
@@ -136,14 +142,13 @@ Table user_vocab [headercolor: #227C88] {
   vocab_id bigint [not null]
   source_type varchar(20) [not null, note: 'OBJECT · NPC_LINE · FEEDBACK']
   source_turn_id bigint [note: '저장한 대화 턴']
-  importance smallint [not null, default: 1, note: '중복 저장 시 +1']
-  custom_meaning text [note: '사용자가 수정한 뜻']
+  memo text [note: '사용자 메모']
   memorized_at timestamptz [note: '외웠어요 → 목록에서 정리']
   saved_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, vocab_id) [unique]
-    (user_id, `importance DESC`) [note: '부분 인덱스: WHERE memorized_at IS NULL']
+    (user_id, `saved_at DESC`) [note: '단어장 목록(최근 저장순)']
   }
 
   Note: '단어장'
@@ -167,10 +172,10 @@ Table conversations [headercolor: #2E6B4F] {
   id bigint [pk, increment]
   user_id bigint [not null]
   npc_id bigint [not null]
-  mode varchar(10) [not null, note: 'TUTORIAL · FREE']
   initiated_by varchar(10) [not null, note: 'USER · NPC']
   level_applied smallint [not null, note: '적용 난이도']
   status varchar(20) [not null, note: 'ACTIVE · ENDED_BY_USER · ENDED_BY_NPC · EXPIRED(이탈·시간 초과)']
+  end_reason varchar(20) [note: 'USER_ENDED · NPC_ENDED · QUOTA_EXHAUSTED · EXPIRED']
   started_at timestamptz [not null, default: `now()`]
   ended_at timestamptz
 
@@ -178,7 +183,7 @@ Table conversations [headercolor: #2E6B4F] {
     (user_id, npc_id, `started_at DESC`)
   }
 
-  Note: '대화 세션'
+  Note: 'NPC 자유 대화 세션 (튜토리얼 대본 대화는 기록하지 않음)'
 }
 
 Table turns [headercolor: #2E6B4F] {
@@ -195,7 +200,8 @@ Table turns [headercolor: #2E6B4F] {
   suggest_words jsonb [note: '추천 단어 3개']
   hint_text text [note: '힌트 추천 문장']
   hint_opened_at timestamptz [note: '힌트 사용 기록']
-  audio_path varchar(255) [note: '내 음성 · 보관 정책 [미정]']
+  audio_path varchar(255) [note: '내 음성 · MVP에서는 저장하지 않음 (보관 정책 [미정])']
+  npc_audio_key varchar(100) [note: 'NPC 턴 TTS 음성 파일 키 · 다시 듣기용, 보관 기간 [미정]']
   created_at timestamptz [not null, default: `now()`]
 
   indexes {
@@ -209,7 +215,7 @@ Table conversation_feedback [headercolor: #2E6B4F] {
   conversation_id bigint [pk]
   status varchar(20) [not null, note: 'DONE · FAILED · SKIPPED']
   summary text [note: '대화 요약']
-  reviews jsonb [note: '잘했어요 / 아쉬워요 칩']
+  reviews jsonb [note: '{ good: [잘했어요], improve: [아쉬워요], suggestion: { userText, betterText } }']
   model varchar(50)
   created_at timestamptz [not null, default: `now()`]
 
@@ -222,6 +228,7 @@ Table turn_feedback [headercolor: #2E6B4F] {
   better_text text [not null, note: '더 자연스러운 표현']
   reason text [not null, note: '이유 (한국어)']
   idiom text [note: '숙어 추천']
+  idiom_meaning_ko text [note: '숙어 뜻']
   model_audio_key varchar(100) [note: '모범 TTS 캐시']
 
   Note: '상세 피드백'
@@ -275,32 +282,30 @@ Table npc_memories [headercolor: #C8642A] {
 // ===== 미션 =====
 Table missions [headercolor: #5B4B9A] {
   id bigint [pk, increment]
-  type varchar(10) [not null, note: 'TUTORIAL · DAILY']
   npc_id bigint [not null, note: '대상 NPC']
   title varchar(100) [not null]
   description text [not null]
   keywords jsonb [not null, note: '완료 판정 키워드']
   intent_rule text [not null, note: 'AI 의도 판정 기준']
 
-  Note: '미션 정의'
+  Note: '일일 미션 정의 (튜토리얼 미션은 Unity 대본 콘텐츠)'
 }
 
 Table user_missions [headercolor: #5B4B9A] {
   id bigint [pk, increment]
   user_id bigint [not null]
   mission_id bigint [not null]
-  mission_date date [note: 'DAILY만 날짜(자정 갱신) · TUTORIAL은 NULL']
-  status varchar(10) [not null, note: 'IDLE · RUN · DONE (포기→IDLE)']
-  accepted_at timestamptz
+  mission_date date [not null, note: '자정 갱신']
+  status varchar(10) [not null, note: 'RUN · DONE']
   completed_at timestamptz
-  conversation_id bigint [note: '완료된 대화']
+  conversation_id bigint [note: '완료된 대화 (한 대화에서 여러 미션 완료 가능)']
 
   indexes {
-    (user_id, mission_id, mission_date) [unique, note: 'UNIQUE NULLS NOT DISTINCT로 생성 → TUTORIAL(날짜 NULL)은 유저당 미션 1행']
+    (user_id, mission_id, mission_date) [unique]
     (user_id, mission_date)
   }
 
-  Note: '미션 진행. TUTORIAL은 유저당 1회: 중간 이탈 시 같은 행을 IDLE로 되돌려 처음부터 진행하고, DONE 이후에는 다시 시작하지 않음'
+  Note: '미션 진행. 수락 없이 그날 첫 미션 조회 때 RUN으로 자동 생성'
 }
 
 Table ai_candidates [headercolor: #5B4B9A] {

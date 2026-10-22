@@ -5,8 +5,9 @@
 ## 현재 상태
 
 - 기술 구성과 실행 방법은 [백엔드 README](README.md)에 있습니다. Java 21, Spring Boot 4.1.1, Gradle(Groovy DSL)이며 기본 패키지는 `com.elsehere`입니다.
-- 포함된 의존성: Spring Web MVC, Validation, Security, OAuth2 Client, Lombok, PostgreSQL 드라이버
-- 아직 넣지 않은 것: Spring Data JPA와 스키마 마이그레이션 도구, 테스트 DB 구성. DB를 쓰는 첫 기능을 만들 때 함께 추가하고 이 문서를 갱신합니다.
+- 포함된 의존성: Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Lombok, PostgreSQL 드라이버
+- 아직 넣지 않은 것: 스키마 마이그레이션 도구. 정하기 전까지 테스트의 테이블은 Hibernate `ddl-auto`로 만듭니다.
+- 엔티티는 `com.elsehere.common.entity.BaseEntity`를 상속합니다. 생성·수정 시각(`created_at`, `updated_at`)은 JPA Auditing이 `Clock` 빈 기준으로 기록하며, 식별자는 각 엔티티에서 선언합니다.
 - 데이터 구조는 [ERD](../docs/erd.dbml), API는 [MVP API 명세](../docs/api/mvp-api.md)를 따릅니다.
 - 정하지 않은 기술을 코드 작성 중에 임의로 확정하지 않습니다. 필요하면 선택지와 영향을 설명하고 사용자 확인을 받습니다.
 
@@ -16,14 +17,15 @@
 | --- | --- | --- |
 | 도메인 규칙·서비스 로직 | Spring 컨텍스트 없는 JUnit 5 단위 테스트 | 미션 판정, 상태 변경, 사용량 차단 등 핵심 규칙 |
 | 컨트롤러 | `@WebMvcTest` + `MockMvc` | 요청 검증, 응답 형식, 상태 코드, 오류 응답 |
-| 리포지토리 | JPA를 추가할 때 결정 | 직접 작성한 쿼리와 매핑 |
+| 리포지토리·엔티티 매핑 | `@DataJpaTest` + Testcontainers PostgreSQL | 직접 작성한 쿼리, 매핑, 시각 자동 기록 |
 | 여러 계층을 잇는 흐름 | `@SpringBootTest` | 핵심 사용자 흐름에 한해 소수만 작성 |
 
 - Spring Boot 테스트 스타터에 포함된 JUnit 5, AssertJ, Mockito를 사용합니다. 다른 테스트 라이브러리는 필요성을 설명하고 확인을 받은 뒤 추가합니다.
 - 가장 가벼운 방식부터 선택합니다. 단위 테스트로 검증할 수 있는 규칙을 `@SpringBootTest`로 검증하지 않습니다.
 - Mock은 외부 AI 서비스, 시간, 난수처럼 테스트에서 통제해야 하는 경계에 사용합니다. 협력 객체를 모두 Mock으로 바꿔 호출 여부만 검증하지 않습니다.
 - Spring 빈을 대체할 때는 `@MockitoBean`을 사용합니다. `@MockBean`은 Spring Boot 3.4에서 지원 중단되었고 4.0에서 제거되었습니다.
-- DB는 PostgreSQL입니다. H2로는 `jsonb`, 부분 인덱스, `vector` 타입을 검증할 수 없으므로, 리포지토리 테스트를 시작할 때 실제 PostgreSQL로 테스트하는 방법(Testcontainers 등)을 정합니다.
+- DB는 PostgreSQL입니다. H2로는 `jsonb`, 부분 인덱스, `vector` 타입을 검증할 수 없으므로 Testcontainers로 실제 PostgreSQL에서 테스트합니다. 테스트를 실행하는 PC에 Docker가 필요합니다.
+- DB가 필요한 테스트는 `com.elsehere.TestcontainersConfiguration`을 `@Import`합니다. `@DataJpaTest`는 `@AutoConfigureTestDatabase(replace = Replace.NONE)`과 함께 씁니다.
 
 ## 테스트 작성 기준
 

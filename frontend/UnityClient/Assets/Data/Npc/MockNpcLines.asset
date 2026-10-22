@@ -17,3 +17,5 @@ MonoBehaviour:
     greeting: Excuse me! Could you help me? I'm looking for the cafe.
   - npcCode: TOWN_PASSERBY
     greeting: Hi there! Nice weather today, isn't it?
+  - npcCode: CAFE_STAFF
+    greeting: "Hi there! Welcome to the corner caf\xE9. Would you like to order?"

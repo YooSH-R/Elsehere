@@ -43,6 +43,9 @@
 | --- | --- | --- | --- | --- | --- |
 | `TUTORIAL_PASSERBY` | 마을 집 앞 큰길 | `TutorialPasserbySettings` | 8m | 15초 | 불가 |
 | `TOWN_PASSERBY` | 마을 동서 길 서쪽 | `TownPasserbySettings` | 6m | 60초 | 가능 |
+| `CAFE_STAFF` | 카페 카운터 뒤 | `CafeStaffSettings` | 3.5m | 20초 | 가능 |
+
+- 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0으로 제자리에 서 있다가 플레이어가 카운터 앞(제안 거리 2.5m)까지 오면 대화를 제안합니다. 제안 화면의 안내 문구("행인이 말을 걸었어요")는 직원에게 맞지 않으므로 화면 문구 작업에서 NPC 종류에 맞게 바꿉니다.
 
 - NPC 키는 ERD `npcs.code`와 같아야 하므로 서버 시드 데이터와 맞춥니다. 이름·성격·대사는 서버 데이터입니다.
 - 튜토리얼 진행 상태와 연결하는 일(튜토리얼 중에만 튜토리얼 행인이 다가오게 하기)은 튜토리얼 작업(S15P31A305-191)에서 합니다.
@@ -59,9 +62,10 @@
 
 **Tools → A305 → Npc → Build**(`Scripts/Editor/Npc/NpcBuilder.cs`)가 다음을 준비합니다. 공간 Builder(**World → Build Spaces**)도 함께 실행합니다.
 
-- 설정·확인용 인사말(`Data/Npc/`): 없을 때만 만들고, 있으면 값을 유지합니다.
+- 설정(`Data/Npc/`): 없을 때만 만들고, 있으면 값을 유지합니다.
+- 확인용 인사말(`Data/Npc/MockNpcLines.asset`): 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙입니다. 이미 있는 인사말은 바꾸지 않습니다.
 - 행인 프리팹 `Prefabs/Npc/Passerby.prefab`과 제안 화면 `Prefabs/Npc/PasserbyOffer.prefab`: 컴포넌트와 연결만 맞추고 모델·디자인을 유지합니다.
-- 마을(`TownScene`)에 튜토리얼 행인과 일반 행인을 둡니다. 같은 NPC 키의 행인이 이미 있으면 위치를 바꾸지 않습니다.
+- 마을(`TownScene`)에 튜토리얼 행인과 일반 행인을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다.
 
 ## 테스트
 

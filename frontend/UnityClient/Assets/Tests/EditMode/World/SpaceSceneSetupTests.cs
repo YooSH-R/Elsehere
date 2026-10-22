@@ -3,6 +3,7 @@ using A305.Dialogue;
 using A305.EditorTools.Npc;
 using A305.EditorTools.World;
 using A305.Learning;
+using A305.Mission;
 using A305.Npc;
 using A305.ObjectHover;
 using A305.Player;
@@ -134,6 +135,19 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_AddsMissionPanelConnectedToDialogue()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            MissionController mission = Single<MissionController>();
+            Assert.That(mission.transform.parent, Is.EqualTo(Root("Systems")));
+            Assert.That(Single<MissionPanelView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Reference(mission, "dialogue"), Is.EqualTo(Single<DialogueController>()));
+            Assert.That(Reference(mission, "panelView"), Is.EqualTo(Single<MissionPanelView>()));
+            Assert.That(Reference(mission, "missionSource"), Is.Not.Null);
+        }
+
+        [Test]
         public void Apply_ReplacesDefaultCameraWithPlayerCamera()
         {
             SpaceSceneSetup.Apply(scene);
@@ -162,6 +176,8 @@ namespace A305.World.Tests
             Assert.That(FindAll<FeedbackView>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<VocabularyView>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<LearningHudView>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<MissionController>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<MissionPanelView>(), Has.Length.EqualTo(1));
         }
 
         [Test]

@@ -28,12 +28,15 @@ namespace A305.EditorTools.Npc
         private const string OfferPrefabPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
         private const string TutorialSettingsPath = "Assets/Data/Npc/TutorialPasserbySettings.asset";
         private const string TownSettingsPath = "Assets/Data/Npc/TownPasserbySettings.asset";
+        private const string CafeStaffSettingsPath = "Assets/Data/Npc/CafeStaffSettings.asset";
         private const string MockLinesPath = "Assets/Data/Npc/MockNpcLines.asset";
         private const string TownScenePath = "Assets/Scenes/Production/TownScene.unity";
+        private const string CafeScenePath = "Assets/Scenes/Production/CafeScene.unity";
 
         // NPC 키는 ERD npcs.code 값으로 쓴다. 서버 시드 데이터와 같아야 한다.
         private const string TutorialPasserbyCode = "TUTORIAL_PASSERBY";
         private const string TownPasserbyCode = "TOWN_PASSERBY";
+        private const string CafeStaffCode = "CAFE_STAFF";
 
         // CharacterController와 도형 크기를 맞춘 사람 키(m)
         private const float BodyHeightMeters = 1.8f;
@@ -44,6 +47,7 @@ namespace A305.EditorTools.Npc
         {
             (TutorialPasserbyCode, "Excuse me! Could you help me? I'm looking for the cafe."),
             (TownPasserbyCode, "Hi there! Nice weather today, isn't it?"),
+            (CafeStaffCode, "Hi there! Welcome to the corner café. Would you like to order?"),
         };
 
         [MenuItem(MenuPath)]
@@ -57,6 +61,7 @@ namespace A305.EditorTools.Npc
             // 행인을 놓은 씬에 공간 기능 연결을 다시 적용하므로, 연결에 쓰는 다른 기능의 프리팹도 함께 준비한다.
             SpaceSceneSetup.PrepareFeatureAssets();
             PlacePasserbysInTown();
+            PlaceStaffInCafe();
             AssetDatabase.SaveAssets();
             Debug.Log($"행인을 준비했습니다: {PasserbyPrefabPath}");
         }
@@ -67,7 +72,16 @@ namespace A305.EditorTools.Npc
             // 튜토리얼 행인은 집 앞에서 바로 다가오고 거절할 수 없다. 무시하고 멀어지면 잠시 뒤 다시 다가온다.
             CreateSettingsIfMissing(TutorialSettingsPath, detectRadiusMeters: 8f, restSeconds: 15f, canDecline: false);
             CreateSettingsIfMissing(TownSettingsPath, detectRadiusMeters: 6f, restSeconds: 60f, canDecline: true);
-            CreateMockLinesIfMissing();
+            // 카페 직원은 카운터 뒤에 서 있다가, 카운터 앞까지 오면 걷지 않고 그 자리에서 대화를 제안한다.
+            CreateSettingsIfMissing(
+                CafeStaffSettingsPath,
+                detectRadiusMeters: 3.5f,
+                restSeconds: 20f,
+                canDecline: true,
+                offerDistanceMeters: 2.5f,
+                walkSpeedMetersPerSecond: 0f
+            );
+            PrepareMockLines();
             BuilderTools.UpdateOrCreatePrefab(PasserbyPrefabPath, "Passerby", SetUpPasserby);
             BuilderTools.UpdateOrCreatePrefab(OfferPrefabPath, "PasserbyOffer", SetUpOffer);
         }
@@ -103,6 +117,33 @@ namespace A305.EditorTools.Npc
 
             SpaceSceneSetup.Apply(town);
             BuilderTools.SaveScene(town, TownScenePath);
+        }
+
+        /// <summary>
+        /// 카페 카운터 뒤에 카페 직원을 둔다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않는다.
+        /// 직원은 행인과 같은 프리팹을 쓰고, 걷지 않는 설정으로 그 자리에서 대화를 제안한다.
+        /// </summary>
+        public static void PlaceStaffInCafe()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(CafeScenePath) == null)
+            {
+                return;
+            }
+
+            Scene cafe = EditorSceneManager.OpenScene(CafeScenePath, OpenSceneMode.Single);
+            SceneGroups groups = BuilderTools.EnsureGroups(cafe);
+            bool isPlaced = BuilderTools
+                .FindAllInScene<NpcIdentity>(cafe)
+                .Any(identity => identity.Code == CafeStaffCode);
+
+            if (!isPlaced)
+            {
+                // 카운터(z 3.3~4.3) 뒤에서 입구를 바라본다. 카운터 앞에 선 플레이어와 약 2m 떨어진다.
+                Place(groups, CafeStaffCode, "CafeStaff", CafeStaffSettingsPath, new Vector3(0f, 0f, 5f), 180f);
+            }
+
+            SpaceSceneSetup.Apply(cafe);
+            BuilderTools.SaveScene(cafe, CafeScenePath);
         }
 
         /// <summary>
@@ -257,7 +298,9 @@ namespace A305.EditorTools.Npc
             string path,
             float detectRadiusMeters,
             float restSeconds,
-            bool canDecline
+            bool canDecline,
+            float offerDistanceMeters = 2f,
+            float walkSpeedMetersPerSecond = 1.6f
         )
         {
             if (AssetDatabase.LoadAssetAtPath<PasserbySettings>(path) != null)
@@ -271,23 +314,34 @@ namespace A305.EditorTools.Npc
             fields.FindProperty("detectRadiusMeters").floatValue = detectRadiusMeters;
             fields.FindProperty("restSeconds").floatValue = restSeconds;
             fields.FindProperty("canDecline").boolValue = canDecline;
+            fields.FindProperty("offerDistanceMeters").floatValue = offerDistanceMeters;
+            fields.FindProperty("walkSpeedMetersPerSecond").floatValue = walkSpeedMetersPerSecond;
             fields.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.CreateAsset(settings, path);
         }
 
-        private static void CreateMockLinesIfMissing()
+        /// <summary>
+        /// 확인용 인사말 에셋이 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙인다. 이미 있는 인사말은 바꾸지 않는다.
+        /// </summary>
+        private static void PrepareMockLines()
         {
-            if (AssetDatabase.LoadAssetAtPath<MockNpcLineSource>(MockLinesPath) != null)
+            var lines = AssetDatabase.LoadAssetAtPath<MockNpcLineSource>(MockLinesPath);
+            if (lines == null)
             {
-                return;
+                BuilderTools.EnsureFolder(System.IO.Path.GetDirectoryName(MockLinesPath));
+                lines = ScriptableObject.CreateInstance<MockNpcLineSource>();
+                AssetDatabase.CreateAsset(lines, MockLinesPath);
             }
 
-            BuilderTools.EnsureFolder(System.IO.Path.GetDirectoryName(MockLinesPath));
-            var lines = ScriptableObject.CreateInstance<MockNpcLineSource>();
             var fields = new SerializedObject(lines);
             SerializedProperty entries = fields.FindProperty("entries");
             foreach ((string npcCode, string greeting) in MockGreetings)
             {
+                if (lines.TryGetGreeting(npcCode, out _))
+                {
+                    continue;
+                }
+
                 entries.InsertArrayElementAtIndex(entries.arraySize);
                 SerializedProperty entry = entries.GetArrayElementAtIndex(entries.arraySize - 1);
                 entry.FindPropertyRelative("npcCode").stringValue = npcCode;
@@ -295,7 +349,7 @@ namespace A305.EditorTools.Npc
             }
 
             fields.ApplyModifiedPropertiesWithoutUndo();
-            AssetDatabase.CreateAsset(lines, MockLinesPath);
+            EditorUtility.SetDirty(lines);
         }
 
         private static PasserbySettings LoadSettings(string path)

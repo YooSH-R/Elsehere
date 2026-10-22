@@ -11,6 +11,7 @@
         "A305.Dialogue",
         "A305.Npc",
         "A305.Learning",
+        "A305.Mission",
         "UnityEngine.UI"
     ],
     "includePlatforms": [

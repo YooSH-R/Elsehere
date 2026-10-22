@@ -91,6 +91,7 @@ namespace A305.EditorTools.World
             BuilderTools.PutFirstInSceneList(scenePaths);
             ObjectHoverBuilder.AddWordKeysToSpacePrefabs();
             NpcBuilder.PlacePasserbysInTown();
+            NpcBuilder.PlaceStaffInCafe();
 
             AssetDatabase.SaveAssets();
             Debug.Log($"공간 씬을 준비했습니다: {string.Join(", ", scenePaths)}");

@@ -9,12 +9,14 @@ import json
 import logging
 import re
 import time
+import wave
 
 from . import prompts as P
+from . import services
 from .config import Settings
-from .llm import LLM, ProviderError, Usage
-from .schemas import ReplyRequest
-from .tts import AudioStore, Kokoro
+from .llm import LLM, ModelOutputError, ProviderError, Usage
+from .schemas import Line, ReplyRequest, SuggestRequest
+from .tts import AudioStore, Kokoro, join_wavs
 
 log = logging.getLogger("ai_worker")
 
@@ -65,7 +67,8 @@ def _quiet(task: asyncio.Task):
 async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Settings, req: ReplyRequest):
     usage, out, chunks = Usage(), asyncio.Queue(), asyncio.Queue()
     t0 = time.perf_counter()
-    st = {"full": "", "first": None, "error": None, "seq": 0}
+    st = {"full": "", "first": None, "error": None, "seq": 0, "words": None}
+    wavs: dict[int, bytes | None] = {}  # 조각 번호 → 합성한 음성 (실패·늦음은 None). 턴 전체 음성을 만든다
     use_tts = req.tts and tts is not None
 
     def schedule(text: str):
@@ -90,6 +93,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
             for c in sp.flush():  # 오류로 끊겨도 이미 보낸 글자는 읽어 준다
                 schedule(c)
             chunks.put_nowait(None)
+            if req.suggest_words and not st["error"] and st["full"].strip():  # 추천 단어는 남은 음성 합성과 동시에
+                st["words"] = asyncio.create_task(suggest_words(st["full"].strip().strip('"')))
 
         try:
             try:
@@ -120,6 +125,17 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         finally:
             finish()
 
+    async def suggest_words(said: str) -> dict:
+        history = [*req.history, Line(who="me", text=req.text), Line(who="npc", text=said)][-40:]
+        try:
+            res = await services.suggest(llm, SuggestRequest(npc=req.npc, goal=req.goal, history=history, level=req.level))
+        except ProviderError as e:
+            return {"words": None, "error": e.code}
+        except ModelOutputError:
+            return {"words": None, "error": "invalid_output"}
+        usage.items.extend(res["usage"])
+        return {"words": res["words"], "error": None}
+
     async def run_audio():
         prev_done = time.perf_counter()
         while (item := await chunks.get()) is not None:
@@ -131,6 +147,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 try:
                     wav, dur, _ = await asyncio.wait_for(asyncio.shield(task), max(left, 0.01))
                     ev.update(audio_id=store.put(wav), duration_s=round(dur, 2), tts=True)
+                    wavs[seq] = wav
                 except TimeoutError:  # 늦은 조각은 자막만 (tts: false)
                     log.info(json.dumps({"event": "tts_chunk_late", "seq": seq}))
                 except Exception:  # 합성 실패도 그 조각만 자막으로 (대답 스트림은 이어 감)
@@ -139,11 +156,25 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
             await out.put(("audio", ev))
         await out.put(("_end", None))
 
+    def whole_turn_audio() -> dict:
+        """다시 듣기용 턴 전체 음성: 모든 조각을 합성했을 때만 (하나라도 빠지면 Spring이 /v1/tts로 다시 만든다)."""
+        parts = [wavs.get(i) for i in range(st["seq"])]
+        if not parts or None in parts:
+            return {"audio_full_id": None, "audio_full_s": None}
+        try:
+            wav, dur = join_wavs(parts)
+        except (wave.Error, EOFError):  # 이어 붙일 수 없는 조각: 턴 전체 음성만 없이 대답은 끝까지
+            log.warning(json.dumps({"event": "audio_full_failed", "chunks": len(parts)}), exc_info=True)
+            return {"audio_full_id": None, "audio_full_s": None}
+        return {"audio_full_id": store.put(wav), "audio_full_s": round(dur, 2)}
+
     workers = [asyncio.create_task(run_llm()), asyncio.create_task(run_audio())]
     try:
         while (ev := await out.get())[0] != "_end":
             yield ev
         await asyncio.gather(*workers)
+        if st["words"]:
+            yield "words", await st["words"]
         if st["error"]:
             yield "error", {"code": st["error"].code, "message": st["error"].message, "usage": usage.items}
         else:
@@ -153,9 +184,11 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                     "text": st["full"].strip().strip('"'),
                     "first_token_s": st["first"],
                     "total_s": round(time.perf_counter() - t0, 2),
+                    **whole_turn_audio(),
                     "usage": usage.items,
                 },
             )
     finally:
-        for w in workers:  # Spring이 중간에 끊으면 모델 호출도 멈춘다
-            w.cancel()
+        for w in [*workers, st["words"]]:  # Spring이 중간에 끊으면 모델 호출도 멈춘다
+            if w:
+                w.cancel()

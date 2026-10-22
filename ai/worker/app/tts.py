@@ -28,6 +28,23 @@ def to_wav(audio, sr: int) -> bytes:
     return buf.getvalue()
 
 
+def join_wavs(wavs: list[bytes]) -> tuple[bytes, float]:
+    """같은 형식의 WAV 조각을 순서대로 이어 붙인다 (한 턴의 다시 듣기용 음성). 반환: (wav, 길이 초)."""
+    frames, params = [], None
+    for data in wavs:
+        with wave.open(io.BytesIO(data)) as w:
+            params = params or w.getparams()
+            frames.append(w.readframes(w.getnframes()))
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as out:
+        out.setnchannels(params.nchannels)
+        out.setsampwidth(params.sampwidth)
+        out.setframerate(params.framerate)
+        out.writeframes(b"".join(frames))
+    n = sum(len(f) for f in frames) // (params.sampwidth * params.nchannels)
+    return buf.getvalue(), n / params.framerate
+
+
 class Kokoro:
     """합성은 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 같은 문장(인사, 다시 듣기, 단어 발음)은 다시 만들지 않는다."""
 

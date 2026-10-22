@@ -94,6 +94,8 @@ class ReplyRequest(BaseModel):
     instruction: str = Field(default="", max_length=1000)  # Spring 규칙이 정한 이번 대답에서 할 일
     tts: bool = True
     level: Level = 2
+    suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
+    goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일
 
 
 class TtsRequest(BaseModel):

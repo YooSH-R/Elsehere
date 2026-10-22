@@ -7,6 +7,8 @@
 
 import asyncio
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 
 FEEDBACK_DIR = Path(__file__).resolve().parents[2] / "feedback"  # ai/feedback
@@ -17,10 +19,13 @@ from feedback import generate_feedback
 from feedback.clients import ProviderCallError
 from feedback.gms import feedback_response_format
 
+from . import services
 from .llm import LLM, ProviderError, Usage
 
 MAX_OUTPUT_TOKENS = 6000  # 모듈의 GmsSettings.max_output_tokens와 같게
 TEMPERATURE = 1.0  # 모듈의 GMS 호출은 temperature를 보내지 않는다 (= 공급자 기본값 1.0)
+# 피드백은 수십 초 걸리는 동기 호출이라 기본 스레드 묶음(Kokoro 합성·로컬 판정기가 씀)을 차지하지 않게 따로 둔다
+FEEDBACK_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="feedback")
 
 
 class WorkerModel:
@@ -44,9 +49,13 @@ class WorkerModel:
             timeout_s=self.llm.s.feedback_timeout_s,
             hedge=False,
         )
+        # 재시도·대체 모델을 거쳐도 전체를 FEEDBACK_TIMEOUT_S 안에 (호출 한 번의 상한만으로는 최대 약 4배까지 늘어남)
+        whole = services.within(call, self.llm.s.feedback_timeout_s)
         try:
-            return asyncio.run_coroutine_threadsafe(call, self.loop).result()
-        except ProviderError as e:  # 모듈은 이것을 failed / AI_PROVIDER_ERROR로 돌려준다
+            return asyncio.run_coroutine_threadsafe(whole, self.loop).result()
+        except ProviderError as e:  # 모듈은 TimeoutError를 AI_TIMEOUT, ProviderCallError를 AI_PROVIDER_ERROR로 돌려준다
+            if e.code == "timeout":
+                raise TimeoutError(e.message) from e
             raise ProviderCallError(e.code) from e
 
 
@@ -55,5 +64,5 @@ async def feedback(llm: LLM, payload: dict) -> dict:
     공급자 실패·출력 형식 오류는 모듈이 status: failed로 돌려준다 (HTTP는 200). 사용량 한도 판단은 Spring이 먼저 한다."""
     usage = Usage()
     model = WorkerModel(llm, asyncio.get_running_loop(), usage)
-    result = await asyncio.to_thread(generate_feedback, payload, model, ai_allowed=True)
+    result = await asyncio.get_running_loop().run_in_executor(FEEDBACK_POOL, partial(generate_feedback, payload, model, ai_allowed=True))
     return {"feedback": result, "usage": usage.items}

@@ -71,6 +71,7 @@ class Settings:
     hedge_after_s: float = 3.0  # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
     # 2026-10-22 gms-luna: 혼잡한 때 8초 멈춘 호출이 다시 보내면 1~2초, 평소 p99 2.5~3.9초
     feedback_timeout_s: float = 60.0  # 대화 종료 피드백 호출 하나의 상한 (길게 생성해서 따로, 같은 요청 더 보내기 없음)
+    words_budget_s: float = 3.0  # NPC 대답 스트림 안 추천 단어(words)의 상한. 넘으면 words: null(timeout)로 넘기고 done을 보낸다
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
     exhausted_skip_s: float = 600.0  # 하루 한도에 걸린 모델은 이만큼 건너뜀
@@ -78,6 +79,7 @@ class Settings:
     kokoro_model: str = ""  # 비어 있으면 음성 합성 없음 (tts: false로 알림)
     kokoro_voices: str = ""
     tts_chunk_budget_s: float = 2.5  # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false
+    audio_max_mb: float = 200.0  # 음성 조각·턴 전체 음성 보관소의 전체 크기 상한 (넘으면 오래된 것부터 버림)
     audio_ttl_s: float = 600.0  # 스트림 음성 조각 보관 시간 (GET /v1/audio/{id})
     guard_local_model: str = ""  # 로컬 무례 판정기 폴더. 비어 있으면 끔 (기본, 판정은 전부 LLM) — app/guard_local.py
     guard_t_lo: float = 0.0  # 로컬 점수 ≤ t_lo → 아님, ≥ t_hi → 무례, 그 사이는 LLM
@@ -127,7 +129,9 @@ class Settings:
             call_timeout_s=float(e.get("CALL_TIMEOUT_S", cls.call_timeout_s)),
             hedge_after_s=float(e.get("HEDGE_AFTER_S", cls.hedge_after_s)),
             feedback_timeout_s=float(e.get("FEEDBACK_TIMEOUT_S", cls.feedback_timeout_s)),
+            words_budget_s=float(e.get("WORDS_BUDGET_S", cls.words_budget_s)),
             judge_budget_s=float(e.get("JUDGE_BUDGET_S", cls.judge_budget_s)),
+            audio_max_mb=float(e.get("AUDIO_MAX_MB", cls.audio_max_mb)),
             reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),
             kokoro_model=e.get("KOKORO_MODEL", ""),
             kokoro_voices=e.get("KOKORO_VOICES", ""),

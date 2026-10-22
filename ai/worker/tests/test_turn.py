@@ -99,3 +99,55 @@ def test_no_words_when_reply_failed(provider):
     with make_client(provider, FakeTts()) as c:
         ev = events(c.post("/v1/npc/reply", json={"npc": NPC, "history": HISTORY, "text": "hi", "suggest_words": True}))
     assert [name for name, _ in ev] == ["error"]
+
+
+# ---------------------------------------------------------------------
+# 코드 리뷰 #1·#2·#7: 추천 단어가 대답을 늦추거나 끊거나, 실패한 대답에 붙지 않게
+# ---------------------------------------------------------------------
+def test_slow_words_do_not_hold_done(provider):
+    """추천 단어 호출이 멈춰도 WORDS_BUDGET_S가 지나면 words: null(timeout)로 넘기고 done을 보낸다."""
+    import asyncio
+    import time
+
+    async def slow(b):
+        await asyncio.sleep(1.5)
+        return ok(json.dumps({"words": ["late"]}))
+
+    provider.answers["suggest"] = slow
+    provider.answers["npc"] = lambda b: stream(["Sure! ", "One latte."])
+    with make_client(provider, FakeTts(), words_budget_s=0.2) as c:
+        t = time.perf_counter()
+        ev = events(c.post("/v1/npc/reply", json={"npc": NPC, "history": HISTORY, "text": "one latte", "suggest_words": True}))
+        spent = time.perf_counter() - t
+    assert dict(ev)["words"] == {"words": None, "error": "timeout"} and ev[-1][0] == "done"
+    assert spent < 1.0
+
+
+def test_unexpected_words_error_still_ends_with_done(provider, monkeypatch):
+    from app import services
+
+    async def broken(*a, **kw):
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(services, "suggest", broken)
+    ev, done, _ = reply(provider, FakeTts(), suggest_words=True)
+    assert dict(ev)["words"] == {"words": None, "error": "internal_error"}
+    assert done is not None and done["text"] == "Sure! One latte. Anything else?"
+
+
+class BreaksAfterLine(httpx.AsyncByteStream):
+    """첫 줄(줄바꿈으로 끝남)을 보낸 뒤 연결이 끊기는 스트림."""
+
+    async def __aiter__(self):
+        yield (f"data: {json.dumps({'choices': [{'delta': {'content': 'Sure, one latte.' + chr(10) + 'Bob:'}}]})}\n\n").encode()
+        raise httpx.ReadError("connection reset")
+
+
+def test_no_words_when_reply_fails_after_text(provider):
+    """줄바꿈으로 글자가 멈춘 뒤 스트림이 끊기면 대답은 error — 이미 시작한 추천 단어도 보내지 않는다."""
+    provider.answers["npc"] = lambda b: httpx.Response(200, stream=BreaksAfterLine())
+    provider.answers["suggest"] = lambda b: ok(json.dumps({"words": ["thanks"]}))
+    with make_client(provider, FakeTts()) as c:
+        ev = events(c.post("/v1/npc/reply", json={"npc": NPC, "history": HISTORY, "text": "one latte", "suggest_words": True}))
+    names = [name for name, _ in ev]
+    assert names[-1] == "error" and "words" not in names

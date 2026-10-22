@@ -72,7 +72,7 @@ def create_app(
                     ensure_ascii=False,
                 )
             )
-        app.state.audio = AudioStore(s.audio_ttl_s)
+        app.state.audio = AudioStore(s.audio_ttl_s, max_bytes=int(s.audio_max_mb * 1_000_000))
         gl = app.state.guard_local
         log.info(
             json.dumps(

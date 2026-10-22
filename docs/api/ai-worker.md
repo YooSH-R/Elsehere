@@ -75,6 +75,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 |---|---|---|
 | `CALL_TIMEOUT_S` | 8초 | 모델 호출 **한 번**. 넘으면 끊고 재시도·대체 모델 |
 | `HEDGE_AFTER_S` | 3초 | 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (NPC 스트림은 제외). 공급자가 혼잡할 때 응답 없이 멈춘 호출을 기다리지 않기 위함. 평소 응답(gms-luna 판정 p99 약 2.5~3.9초)보다 길게 잡아 평소에는 거의 더 보내지 않음 |
+| `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5초 | 판정의 의도·무례·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
 | `REPLY_FIRST_BUDGET_S` | 5초 | NPC 대답 **첫 글자까지**. 넘으면 SSE `error`(`timeout`). 말하기 시작한 대답은 끊지 않음 |
 
@@ -200,7 +201,7 @@ delta*  →  audio*  →  words?  →  done | error
 |---|---|---|
 | `delta` | `{"text": "Got"}` | 글자 조각. 받는 대로 자막에 붙임 |
 | `audio` | `{"seq": 0, "text": "Got it, one latte for you.", "audio_id": "9f3a...", "duration_s": 1.8, "tts": true}` | 읽을 조각. `seq` 순서대로 재생. **WAV가 아니라 `audio_id`** — `GET /v1/audio/{audio_id}`로 받음. `tts: false`면 `audio_id: null`(합성 실패·늦음) → 그 조각은 자막만 |
-| `words` | `{"words": ["for here", "to go", "please"], "error": null}` | 추천 단어 (`/v1/suggest`와 같은 규칙). 실패하면 `words: null`, `error`에 `provider_unavailable`·`provider_limit`·`timeout`·`invalid_output`. 대답은 그대로 성공 |
+| `words` | `{"words": ["for here", "to go", "please"], "error": null}` | 추천 단어 (`/v1/suggest`와 같은 규칙). 실패하면 `words: null`, `error`에 `provider_unavailable`·`provider_limit`·`timeout`(`WORDS_BUDGET_S` 초과)·`invalid_output`·`internal_error`. 대답은 그대로 성공. **대답이 `error`로 끝나면 `words`는 오지 않음** |
 | `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성하지 못했거나 `tts: false`면 `null` → `/v1/tts`로 다시 만듦. `usage`에 추천 단어(`suggest`)도 포함 |
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
@@ -212,7 +213,7 @@ delta*  →  audio*  →  words?  →  done | error
 
 ### 2.4 `GET /v1/audio/{audio_id}`
 
-`audio/wav`를 돌려줍니다. 보관 시간은 600초(설정 `audio_ttl_s`, 환경 변수로는 아직 못 바꿈)이며 **워커 프로세스 메모리**에 있습니다. 워커를 여러 대 띄우면 같은 대답의 음성은 그 대답을 만든 워커에서 받아야 합니다. 없으면 404 `not_found`입니다.
+`audio/wav`를 돌려줍니다. 보관 시간은 600초(설정 `audio_ttl_s`, 환경 변수로는 아직 못 바꿈)이며 **워커 프로세스 메모리**에 있습니다. 전체 크기가 `AUDIO_MAX_MB`(기본 200MB)를 넘으면 오래된 것부터 버립니다. 워커를 여러 대 띄우면 같은 대답의 음성은 그 대답을 만든 워커에서 받아야 합니다. 없으면 404 `not_found`입니다.
 
 Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아 중계합니다.
 
@@ -274,7 +275,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 | `failed` | `problem.code`: `AI_TIMEOUT`·`AI_PROVIDER_ERROR`·`INVALID_MODEL_OUTPUT` | `feedback.status: FAILED`, `errorCode`에 그대로 |
 
 - 공급자 실패·출력 형식 오류도 HTTP는 200이고 `feedback.status: failed`입니다(모듈이 판단). 사용량 한도는 Spring이 먼저 확인하고 부릅니다.
-- 시간 상한은 `FEEDBACK_TIMEOUT_S`(기본 60초)이며, 길게 생성하는 호출이라 같은 요청 더 보내기(`HEDGE_AFTER_S`)를 쓰지 않습니다.
+- 시간 상한은 `FEEDBACK_TIMEOUT_S`(기본 60초)이며 **재시도·대체 모델을 포함한 전체 시간**입니다. 넘으면 `feedback.status: failed`, `problem.code: AI_TIMEOUT`. 길게 생성하는 호출이라 같은 요청 더 보내기(`HEDGE_AFTER_S`)를 쓰지 않습니다.
 - 백엔드 CONV-08 형식으로의 변환(예: `summary` ← `result.conversation_summary.text_ko`, `reviews.good`·`improve` ← `result.review_tags`의 `label_ko`, `suggestion` ← `result.summary_suggestion_id`가 가리키는 제안)은 `ai/feedback` 담당과 백엔드가 정합니다.
 
 ### 2.7.1 `POST /v1/memory` — NPC 기억 카드

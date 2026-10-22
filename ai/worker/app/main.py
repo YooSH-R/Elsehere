@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from . import services
 from .config import Settings
+from .guard_local import LocalGuard
 from .llm import LLM, ProviderError
 from .npc import reply_events
 from .schemas import EndRequest, HintRequest, JudgeRequest, ReplyRequest, TtsRequest
@@ -43,8 +44,8 @@ def sse(name: str, data: dict) -> str:
 
 
 def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None,
-               tts: Kokoro | None | bool = True) -> FastAPI:
-    """settings·transport·tts는 테스트에서 바꿔 끼운다 (tts=True면 설정의 Kokoro 파일을 읽음, None이면 합성 없음)."""
+               tts: Kokoro | None | bool = True, guard_local: LocalGuard | None | bool = True) -> FastAPI:
+    """settings·transport·tts·guard_local은 테스트에서 바꿔 끼운다 (True면 설정의 모델 파일을 읽음, None이면 없음)."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -52,8 +53,15 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         app.state.settings = s
         app.state.llm = LLM(s, transport)
         app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices) if tts is True else tts
+        app.state.guard_local = await asyncio.to_thread(LocalGuard.load, s.guard_local_model) if guard_local is True else guard_local
+        if s.guard_local_model and not app.state.guard_local:
+            log.warning(json.dumps({"event": "guard_local_unavailable", "path": s.guard_local_model,
+                                    "why": "폴더가 없거나 torch·transformers 미설치 (requirements-guard.txt). 판정은 전부 LLM"}, ensure_ascii=False))
         app.state.audio = AudioStore(s.audio_ttl_s)
-        log.info(json.dumps({"event": "start", "profile": s.profile, "models": s.models, "tts": bool(app.state.tts)}, ensure_ascii=False))
+        gl = app.state.guard_local
+        log.info(json.dumps({"event": "start", "profile": s.profile, "models": s.models, "tts": bool(app.state.tts),
+                             "guard_local": gl and {"model": gl.name, "context": gl.context, "t_lo": s.guard_t_lo, "t_hi": s.guard_t_hi}},
+                            ensure_ascii=False))
         yield
         await app.state.llm.aclose()
 
@@ -91,11 +99,13 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @app.get("/health")
     async def health(request: Request):
         st = request.app.state
-        return {"ok": True, "tts": bool(st.tts), "profile": st.settings.profile, "models": st.settings.models}
+        gl = st.guard_local
+        return {"ok": True, "tts": bool(st.tts), "profile": st.settings.profile, "models": st.settings.models,
+                "guard_local": gl and {"model": gl.name, "t_lo": st.settings.guard_t_lo, "t_hi": st.settings.guard_t_hi}}
 
     @app.post("/v1/judge")
     async def judge(req: JudgeRequest, request: Request):
-        return await services.judge(request.app.state.llm, req)
+        return await services.judge(request.app.state.llm, req, request.app.state.guard_local)
 
     @app.post("/v1/npc/reply")
     async def npc_reply(req: ReplyRequest, request: Request):

@@ -69,12 +69,12 @@ def provider():
     return Provider()
 
 
-def make_client(provider: Provider, tts=None, **kw) -> TestClient:
+def make_client(provider: Provider, tts=None, guard_local=None, **kw) -> TestClient:
     # 재시도·대체 모델 사슬은 groq 구성(qwen → gpt-oss-20b → 120b)으로 확인한다. 기본 구성(gms-luna)과 상관없이 고정
     kw = {"profile": "groq", "models": profile_models("groq")[0], "role_provider": {},
           "fallback": dict(PROFILES["profiles"]["groq"]["fallback"]), **kw}
     s = Settings(token=TOKEN, base_url="http://fake/v1", api_key="x", call_timeout_s=1.0, retry_pause_s=0.0, **kw)
-    return TestClient(create_app(s, httpx.MockTransport(provider.handler), tts), headers={"X-Internal-Token": TOKEN})
+    return TestClient(create_app(s, httpx.MockTransport(provider.handler), tts, guard_local), headers={"X-Internal-Token": TOKEN})
 
 
 @pytest.fixture

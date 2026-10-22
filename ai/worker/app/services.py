@@ -1,11 +1,15 @@
 """판정·힌트·대화 종료·음성 인식. 상태는 바꾸지 않는다 (상태 전환은 Spring 규칙)."""
 import asyncio
 import json
+import logging
 import re
 
 from . import prompts as P
+from .guard_local import HANGUL, LocalGuard
 from .llm import LLM, ProviderError, Usage
 from .schemas import EndRequest, HintRequest, JudgeRequest, State
+
+log = logging.getLogger("ai_worker")
 
 
 def clean_intent(raw: dict, state: State) -> dict:
@@ -64,8 +68,9 @@ def guard_failure(e: BaseException) -> dict:
     return {"abusive": None, "error": str(e)[:160], "error_code": code}
 
 
-async def judge(llm: LLM, req: JudgeRequest) -> dict:
-    """번역(한국어가 섞였을 때)·무례·의도를 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear, 무례 → null 미판정)."""
+async def judge(llm: LLM, req: JudgeRequest, local: LocalGuard | None = None) -> dict:
+    """번역(한국어가 섞였을 때)·무례·의도를 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear, 무례 → null 미판정).
+    local(로컬 무례 판정기)이 있으면 단계적 구조: 확신 구간은 로컬이 판정하고 판정용 LLM을 부르지 않는다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
     if not text:   # 행동만 있었으면 모델을 부르지 않는다. Spring은 턴으로 세지 않음
@@ -77,7 +82,22 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
                              0.0, 200, P.intent_schema(req.state))
         return clean_intent(json.loads(out), req.state)
 
+    # 로컬 판정기를 켰을 때만 guard에 붙는 칸: 누가 판정했나·로컬 점수·로컬 실패 (LLM이 실패해도 남도록 밖에 둔다)
+    trace = {"source": "llm", "score": None, "local_error": None} if local else {}
+
     async def guard():
+        if local and HANGUL.search(text):
+            prev = next((h.text for h in reversed(req.history) if h.who == "npc"), "")
+            try:
+                s = await asyncio.to_thread(local.score, text, prev)
+            except Exception as e:   # 로컬이 고장 나도 판정은 LLM으로 이어 간다
+                trace["local_error"] = f"{type(e).__name__}: {e}"[:160]
+                log.warning(json.dumps({"event": "guard_local_error", "error": trace["local_error"]}, ensure_ascii=False))
+            else:
+                trace["score"] = round(s, 4)
+                if s >= llm.s.guard_t_hi or s <= llm.s.guard_t_lo:
+                    trace["source"] = "local"
+                    return {"abusive": s >= llm.s.guard_t_hi, "error": None, "error_code": None}
         # yes/no 한 단어로 받는다. JSON을 강제하면 욕설·위협에 빈 응답 → 400으로 턴이 죽었다
         out = await llm.chat("guard", "guard", P.guard_messages(req.npc, req.history, text), usage, 0.0, 5)
         return guard_result(out)
@@ -89,7 +109,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
     jobs = [intent(), guard()] + ([translate()] if P.HANGUL.search(text) else [])
     res = await asyncio.gather(*(within(j, llm.s.judge_budget_s) for j in jobs), return_exceptions=True)
     it = res[0] if not isinstance(res[0], BaseException) else {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
-    gd = res[1] if not isinstance(res[1], BaseException) else guard_failure(res[1])
+    gd = (res[1] if not isinstance(res[1], BaseException) else guard_failure(res[1])) | trace
     translation = None
     if len(res) == 3:
         english = "" if isinstance(res[2], BaseException) else res[2]

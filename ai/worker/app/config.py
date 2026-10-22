@@ -73,6 +73,9 @@ class Settings:
     kokoro_voices: str = ""
     tts_chunk_budget_s: float = 2.5              # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false
     audio_ttl_s: float = 600.0                   # 스트림 음성 조각 보관 시간 (GET /v1/audio/{id})
+    guard_local_model: str = ""                  # 로컬 무례 판정기 폴더. 비어 있으면 끔 (기본, 판정은 전부 LLM) — app/guard_local.py
+    guard_t_lo: float = 0.0                      # 로컬 점수 ≤ t_lo → 아님, ≥ t_hi → 무례, 그 사이는 LLM
+    guard_t_hi: float = 1.0                      # (모델을 켜면 둘 다 반드시 정함. 보정용 데이터에서 cascade_eval.py로 고른 값)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -96,6 +99,14 @@ class Settings:
         if missing:
             raise RuntimeError(f"구성 {profile}에 필요한 모델 API 키가 없습니다: {', '.join(missing)} (환경 변수 또는 저장소 루트 .env)")
         default_fallback = ",".join(f"{a}={b}" for a, b in p.get("fallback", {}).items())
+        guard_model = e.get("GUARD_LOCAL_MODEL", "")
+        t_lo, t_hi = cls.guard_t_lo, cls.guard_t_hi
+        if guard_model:   # 기준값을 기본값으로 두면 조용히 아무것도 안 하므로, 켤 때는 반드시 정하게 한다
+            if not (e.get("GUARD_LOCAL_T_LO") and e.get("GUARD_LOCAL_T_HI")):
+                raise RuntimeError("GUARD_LOCAL_MODEL을 켜면 GUARD_LOCAL_T_LO·GUARD_LOCAL_T_HI도 정해야 합니다 (예: 0.05, 0.95)")
+            t_lo, t_hi = float(e["GUARD_LOCAL_T_LO"]), float(e["GUARD_LOCAL_T_HI"])
+            if not 0.0 <= t_lo < t_hi <= 1.0:
+                raise RuntimeError(f"무례 판정 기준값은 0 ≤ T_LO < T_HI ≤ 1 이어야 합니다 (지금 {t_lo}, {t_hi})")
         return cls(
             token=token,
             base_url=e.get("LLM_BASE_URL", PROFILES["providers"][main]["base_url"]).rstrip("/"),
@@ -111,4 +122,7 @@ class Settings:
             kokoro_model=e.get("KOKORO_MODEL", ""),
             kokoro_voices=e.get("KOKORO_VOICES", ""),
             tts_chunk_budget_s=float(e.get("TTS_CHUNK_BUDGET_S", cls.tts_chunk_budget_s)),
+            guard_local_model=guard_model,
+            guard_t_lo=t_lo,
+            guard_t_hi=t_hi,
         )

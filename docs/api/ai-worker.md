@@ -47,10 +47,10 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 ### 2.1 `GET /health` (토큰 불필요)
 
 ```json
-{"ok": true, "tts": true, "profile": "groq", "models": {"intent": "...", "guard": "...", "npc": "...", "stt": "..."}}
+{"ok": true, "tts": true, "profile": "groq", "models": {"intent": "...", "guard": "...", "npc": "...", "stt": "..."}, "guard_local": null}
 ```
 
-`profile`은 수집 기록의 `profile` 칸에 그대로 남깁니다.
+`profile`은 수집 기록의 `profile` 칸에 그대로 남깁니다. `guard_local`은 로컬 무례 판정기를 켰을 때만 `{"model": "v2-mix", "t_lo": 0.05, "t_hi": 0.95}`이고, 끄면(기본) `null`입니다.
 
 ### 2.2 `POST /v1/judge` — 의도·무례·번역
 
@@ -94,6 +94,22 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `null` | `provider_unavailable` / `provider_limit` | 공급자 실패 | 위와 같음 |
 
 예전에는 빈 답·거절을 `true`, 공급자 실패를 `false`로 돌려줬습니다. 이제는 둘 다 `null`입니다. **`null`을 `false`처럼 다루지 마세요.** 수집 기록에는 `guard: null`과 `guard_error`로 남깁니다.
+
+**로컬 판정기를 켰을 때 (단계적 구조, 2026-10-22 추가, 기본 꺼짐)**
+
+워커에 `GUARD_LOCAL_MODEL`을 주면 한글이 든 입력은 로컬 KcELECTRA가 먼저 점수 `score`(0~1, 확률 아님)를 냅니다. `score ≥ t_hi`면 무례, `score ≤ t_lo`면 아님으로 **판정용 LLM을 부르지 않고** 끝납니다. 그 사이 점수, 한글이 없는 입력, 로컬 실패는 지금처럼 LLM이 판정합니다. 이때 `guard`에 칸 세 개가 붙습니다(꺼져 있으면 붙지 않음).
+
+```json
+"guard": {"abusive": true, "error": null, "error_code": null, "source": "local", "score": 0.9912, "local_error": null}
+```
+
+| 칸 | 뜻 |
+|---|---|
+| `source` | `local`(로컬이 판정, `usage`에 `guard` 단계 없음) 또는 `llm` |
+| `score` | 로컬 점수. 한글이 없거나 로컬이 실패했으면 `null`. LLM이 판정했어도 남김 |
+| `local_error` | 로컬 판정기 오류 (이때 판정은 LLM으로 이어 감) |
+
+`abusive`·`error_code`의 뜻과 Spring 처리는 위 표와 같습니다. 기록에는 `source`와 `score`를 함께 남겨 주세요(호출 감소와 자동 구간 품질을 이걸로 셉니다). 서비스에서 켜는 것은 개발 데이터로 `t_lo`·`t_hi`를 고르고 최종 평가 관문을 넘은 뒤입니다([AI 개발 계획](../ai-plan/README.md) 5·6절).
 
 이진 판정이라 위협·성희롱 같은 **세부 유형은 구분하지 않습니다.** 장면별 예외(라벨 가이드 5절의 정당방위)는 유형을 돌려주는 계약이 생기기 전까지 자동 제재에서 빼 주세요.
 

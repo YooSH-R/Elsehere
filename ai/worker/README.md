@@ -13,6 +13,7 @@ cd ai/worker
 python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt
 .venv/Scripts/python -m pip install -r requirements-tts.txt     # 선택: 음성 합성(Kokoro). 없으면 tts: false로 알림
+.venv/Scripts/python -m pip install -r requirements-guard.txt   # 선택: 로컬 무례 판정기(CPU torch). 켜는 것은 GUARD_LOCAL_MODEL
 AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:app --port 8020
 ```
 
@@ -28,6 +29,8 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `CALL_TIMEOUT_S` | 8 | 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델 |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 (받는 곳은 `prototype/mvp_web/README.md`) |
 | `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
+| `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (`train_clf.py`가 남긴 `runs/<이름>/best`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
+| `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. `prototype/guard_clf/cascade_eval.py`로 보정용 데이터에서 고른 값 |
 
 ## API
 
@@ -90,6 +93,7 @@ GPT-5·GPT-6 계열 요청 칸(`max_completion_tokens`, temperature 없음, `rea
 ```
 
 가짜 공급자(`tests/conftest.py`)가 시스템 프롬프트로 단계를 알아보고 정해 둔 답을 돌려줍니다.
+무례 판정 단계적 구조(`tests/test_guard_local.py`): 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎).
 구성 전환(`tests/test_profiles.py`): `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, GPT-5 요청 칸.
 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리, 음성 인식 프롬프트 되풀이 거르기를 봅니다.
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 프로토타입 회귀 테스트(`prototype/mvp_web/tests/replay.py`)가 봅니다. 프롬프트를 바꾸면 거기서 먼저 확인합니다.

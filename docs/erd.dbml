@@ -4,6 +4,7 @@ Project elsehere {
   ELSEHERE ERD v3.1 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
+  모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
 
   DBML로 표현하지 못해 DDL에서 직접 만들 것
   - CREATE EXTENSION IF NOT EXISTS vector;
@@ -38,6 +39,8 @@ Table user_consents [headercolor: #3D4A5C] {
   consent_type varchar(20) [not null, note: 'TERMS · PRIVACY · VOICE · AGE14']
   version varchar(20) [not null, note: '약관 버전']
   agreed_at timestamptz [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '약관 동의'
 }
@@ -49,6 +52,7 @@ Table user_language_profiles [headercolor: #3D4A5C] {
   selected_level smallint [not null, note: 'MVP는 1 고정']
   last_test_id bigint
   updated_at timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, language_code) [pk]
@@ -66,6 +70,8 @@ Table level_tests [headercolor: #3D4A5C] {
   result_level smallint
   started_at timestamptz [not null, default: `now()`]
   completed_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '레벨 테스트'
 }
@@ -76,6 +82,8 @@ Table level_test_answers [headercolor: #3D4A5C] {
   item_code varchar(50) [not null, note: '문항 ID']
   answer text [not null]
   is_correct boolean [not null, default: false]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '테스트 응답'
 }
@@ -87,6 +95,8 @@ Table scenes [headercolor: #2F4A7A] {
   name varchar(50) [not null]
   unity_key varchar(50) [not null]
   is_open boolean [not null, default: false, note: '호텔 = false (이후)']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '장면 · 장소'
 }
@@ -104,6 +114,8 @@ Table npcs [headercolor: #2F4A7A] {
   approach_audio_key varchar(100) [note: '첫 말 음성 파일 키 (미리 생성)']
   farewell_line text [note: '대화 중 AI 사용량이 떨어졌을 때의 작별 대사']
   farewell_audio_key varchar(100) [note: '작별 대사 음성 파일 키 (미리 생성)']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: 'NPC'
 }
@@ -113,6 +125,8 @@ Table world_objects [headercolor: #2F4A7A] {
   scene_id bigint [not null]
   unity_key varchar(50) [not null, unique, note: 'tv · sofa · menu ...']
   vocab_id bigint [not null, note: '호버 단어']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '사물'
 }
@@ -128,6 +142,8 @@ Table vocabularies [headercolor: #227C88] {
   example_ko text [note: '예문 뜻']
   pronunciation_audio_key varchar(100) [note: '사물 어휘 등록 시 TTS로 만든 발음 파일 키']
   source varchar(20) [not null, note: 'MASTER · NPC · FEEDBACK']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (language_code, text) [unique]
@@ -145,6 +161,8 @@ Table user_vocab [headercolor: #227C88] {
   memo text [note: '사용자 메모']
   memorized_at timestamptz [note: '외웠어요 → 목록에서 정리']
   saved_at timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, vocab_id) [unique]
@@ -159,6 +177,7 @@ Table user_object_prefs [headercolor: #227C88] {
   object_id bigint [not null]
   hover_hidden boolean [not null, default: false, note: '알아요 · 다음에 안 띄우기']
   updated_at timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, object_id) [pk]
@@ -178,6 +197,8 @@ Table conversations [headercolor: #2E6B4F] {
   end_reason varchar(20) [note: 'USER_ENDED · NPC_ENDED · QUOTA_EXHAUSTED · EXPIRED']
   started_at timestamptz [not null, default: `now()`]
   ended_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, npc_id, `started_at DESC`)
@@ -203,6 +224,7 @@ Table turns [headercolor: #2E6B4F] {
   audio_path varchar(255) [note: '내 음성 · MVP에서는 저장하지 않음 (보관 정책 [미정])']
   npc_audio_key varchar(100) [note: 'NPC 턴 TTS 음성 파일 키 · 다시 듣기용, 보관 기간 [미정]']
   created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (conversation_id, seq) [unique]
@@ -218,6 +240,7 @@ Table conversation_feedback [headercolor: #2E6B4F] {
   reviews jsonb [note: '{ good: [잘했어요], improve: [아쉬워요], suggestion: { userText, betterText } }']
   model varchar(50)
   created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '짧은 피드백'
 }
@@ -230,6 +253,8 @@ Table turn_feedback [headercolor: #2E6B4F] {
   idiom text [note: '숙어 추천']
   idiom_meaning_ko text [note: '숙어 뜻']
   model_audio_key varchar(100) [note: '모범 TTS 캐시']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '상세 피드백'
 }
@@ -241,6 +266,8 @@ Table user_npc_relations [headercolor: #C8642A] {
   affinity smallint [not null, default: 0, note: '0~5']
   talk_count int [not null, default: 0]
   last_talked_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, npc_id) [pk]
@@ -257,6 +284,7 @@ Table affinity_logs [headercolor: #C8642A] {
   reason varchar(30) [not null, note: 'MISSION_DONE · FEEDBACK_SKIPPED']
   ref_id bigint [note: '미션 · 대화 ID (reason에 따라 대상이 달라 FK 없음)']
   created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '호감도 변경 이력'
 }
@@ -271,6 +299,7 @@ Table npc_memories [headercolor: #C8642A] {
   embedding vector(1536) [note: '기억이 많아지면 관련 있는 것만 골라 찾는 데 사용. 차원은 임베딩 모델을 정한 뒤 확정']
   status varchar(20) [not null, note: 'ACTIVE · REPLACED (취향이 바뀌면 이전 기억을 대체)']
   created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, npc_id) [note: '부분 인덱스: WHERE status = \'ACTIVE\'']
@@ -287,6 +316,8 @@ Table missions [headercolor: #5B4B9A] {
   description text [not null]
   keywords jsonb [not null, note: '완료 판정 키워드']
   intent_rule text [not null, note: 'AI 의도 판정 기준']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: '일일 미션 정의 (튜토리얼 미션은 Unity 대본 콘텐츠)'
 }
@@ -299,6 +330,8 @@ Table user_missions [headercolor: #5B4B9A] {
   status varchar(10) [not null, note: 'RUN · DONE']
   completed_at timestamptz
   conversation_id bigint [note: '완료된 대화 (한 대화에서 여러 미션 완료 가능)']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, mission_id, mission_date) [unique]
@@ -315,6 +348,8 @@ Table ai_candidates [headercolor: #5B4B9A] {
   payload jsonb [not null, note: 'AI 제안']
   decision varchar(10) [not null, note: 'PENDING · APPROVED · REJECTED']
   decided_at timestamptz [note: '서버 확정']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 
   Note: 'AI 판정 후보 (AI 제안을 서버가 검증해 확정)'
 }
@@ -334,6 +369,7 @@ Table ai_requests [headercolor: #8A5A44] {
   charged_tokens int [not null, default: 0, note: '사용자 한도에서 차감한 토큰. 우리 쪽 실패면 0']
   created_at timestamptz [not null, default: `now()`]
   settled_at timestamptz [note: '정산 시각']
+  updated_at timestamptz [not null, default: `now()`]
 
   indexes {
     (request_id, kind) [unique]
@@ -349,6 +385,7 @@ Table user_ai_usage [headercolor: #8A5A44] {
   used_tokens int [not null, default: 0, note: '정산이 끝난 차감 토큰 합계']
   reserved_tokens int [not null, default: 0, note: '호출 중인 요청의 예약 토큰 합계']
   updated_at timestamptz [not null, default: `now()`]
+  created_at timestamptz [not null, default: `now()`]
 
   indexes {
     (user_id, period_start) [pk]

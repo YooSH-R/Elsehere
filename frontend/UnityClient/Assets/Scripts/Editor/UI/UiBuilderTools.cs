@@ -114,7 +114,67 @@ namespace A305.EditorTools.UI
             return text;
         }
 
-        public static Button FindOrCreateButton(Transform parent, string buttonName, string label, TMP_FontAsset font)
+        /// <summary>자식을 위에서 아래로 늘어놓는 묶음. 패널 안에서 한 기능의 요소를 함께 두거나 옮길 때 쓴다.</summary>
+        public static RectTransform FindOrCreateColumn(Transform parent, string columnName)
+        {
+            Transform existing = parent.Find(columnName);
+            if (existing != null)
+            {
+                return (RectTransform)existing;
+            }
+
+            RectTransform column = CreateRect(columnName, parent);
+            var layout = column.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.spacing = 10f;
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            return column;
+        }
+
+        /// <summary>한 줄 텍스트 입력창. 가로 줄 안에서 남은 너비를 채운다.</summary>
+        public static TMP_InputField FindOrCreateInputField(
+            Transform parent,
+            string fieldName,
+            TMP_FontAsset font,
+            string placeholderText
+        )
+        {
+            Transform existing = parent.Find(fieldName);
+            if (existing != null && existing.TryGetComponent(out TMP_InputField existingField))
+            {
+                return existingField;
+            }
+
+            GameObject created = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
+            created.name = fieldName;
+            created.transform.SetParent(parent, false);
+
+            var field = created.GetComponent<TMP_InputField>();
+            field.lineType = TMP_InputField.LineType.SingleLine;
+            field.textComponent.font = font;
+            field.textComponent.fontSize = 24f;
+            var placeholder = (TMP_Text)field.placeholder;
+            placeholder.font = font;
+            placeholder.fontSize = 24f;
+            placeholder.text = placeholderText;
+
+            var size = created.AddComponent<LayoutElement>();
+            size.flexibleWidth = 1f;
+            size.minWidth = 320f;
+            size.preferredHeight = 60f;
+            return field;
+        }
+
+        public static Button FindOrCreateButton(
+            Transform parent,
+            string buttonName,
+            string label,
+            TMP_FontAsset font,
+            float preferredWidth = 240f
+        )
         {
             Transform existing = parent.Find(buttonName);
             if (existing != null && existing.TryGetComponent(out Button existingButton))
@@ -129,7 +189,7 @@ namespace A305.EditorTools.UI
             button.targetGraphic = background;
 
             var size = rect.gameObject.AddComponent<LayoutElement>();
-            size.preferredWidth = 240f;
+            size.preferredWidth = preferredWidth;
             size.preferredHeight = 60f;
 
             TMP_Text text = FindOrCreateText(rect, "Label", font, 26f, Color.white, label);

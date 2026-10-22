@@ -1,0 +1,128 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c941ad8866de1f94dbe0f36910012d9c, type: 3}
+  m_Name: MockDialogueScripts
+  m_EditorClassIdentifier: A305.Dialogue::A305.Dialogue.MockDialogueScriptSource
+  entries:
+  - npcCode: TUTORIAL_PASSERBY
+    npcName: Alex
+    opening:
+      english: "Excuse me! Could you tell me how to get to the caf\xE9?"
+      korean: "\uC2E4\uB840\uD569\uB2C8\uB2E4! \uCE74\uD398\uC5D0 \uC5B4\uB5BB\uAC8C
+        \uAC00\uB294\uC9C0 \uC54C\uB824 \uC8FC\uC2E4 \uC218 \uC788\uB098\uC694?"
+    guidedTurns:
+    - suggestedEnglish: Go straight ahead.
+      suggestedKorean: "\uC55E\uC73C\uB85C \uACE7\uC7A5 \uAC00\uC138\uC694."
+      reply:
+        english: Straight ahead? And then where should I go?
+        korean: "\uACE7\uC7A5\uC774\uC694? \uADF8\uB2E4\uC74C\uC5D4 \uC5B4\uB514\uB85C
+          \uAC00\uBA74 \uB418\uB098\uC694?"
+    - suggestedEnglish: Turn left at the corner.
+      suggestedKorean: "\uBAA8\uD241\uC774\uC5D0\uC11C \uC67C\uCABD\uC73C\uB85C \uB3C4\uC138\uC694."
+      reply:
+        english: Got it. Is it far from here?
+        korean: "\uC54C\uACA0\uC5B4\uC694. \uC5EC\uAE30\uC11C \uBA3C\uAC00\uC694?"
+    - suggestedEnglish: No, it's just two minutes away.
+      suggestedKorean: "\uC544\uB2C8\uC694, 2\uBD84\uC774\uBA74 \uAC00\uC694."
+      reply:
+        english: Thank you so much. You're a lifesaver!
+        korean: "\uC815\uB9D0 \uACE0\uB9C8\uC6CC\uC694. \uB355\uBD84\uC5D0 \uC0B4\uC558\uC5B4\uC694!"
+    keywordReplies: []
+    defaultReply:
+      english: I see!
+      korean: "\uADF8\uB807\uAD70\uC694!"
+    exampleSentence: 
+  - npcCode: CAFE_STAFF
+    npcName: Emma
+    opening:
+      english: "Hi there! Welcome to our caf\xE9. What can I get for you?"
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uD76C \uCE74\uD398\uC5D0 \uC624\uC2E0
+        \uAC78 \uD658\uC601\uD574\uC694. \uBB34\uC5C7\uC744 \uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - soy
+      - latte
+      reply:
+        english: One soy latte, coming right up! Would you like anything else?
+        korean: "\uB450\uC720 \uB77C\uD14C \uD55C \uC794 \uBC14\uB85C \uC900\uBE44\uD560\uAC8C\uC694!
+          \uB354 \uD544\uC694\uD55C \uAC74 \uC5C6\uC73C\uC138\uC694?"
+    - keywords:
+      - latte
+      reply:
+        english: Sure! Would you like regular milk or soy milk?
+        korean: "\uBB3C\uB860\uC774\uC8E0! \uC77C\uBC18 \uC6B0\uC720\uB85C \uB4DC\uB9B4\uAE4C\uC694,
+          \uB450\uC720\uB85C \uB4DC\uB9B4\uAE4C\uC694?"
+    - keywords:
+      - dessert
+      reply:
+        english: Yes, we have cheesecake and cookies. The first cookie is on the
+          house!
+        korean: "\uB124, \uCE58\uC988\uCF00\uC774\uD06C\uC640 \uCFE0\uD0A4\uAC00
+          \uC788\uC5B4\uC694. \uCCAB \uBC88\uC9F8 \uCFE0\uD0A4\uB294 \uC11C\uBE44\uC2A4\uC608\uC694!"
+    - keywords:
+      - coffee
+      reply:
+        english: Of course. Hot or iced?
+        korean: "\uBB3C\uB860\uC774\uC8E0. \uB530\uB73B\uD55C \uAC78\uB85C \uB4DC\uB9B4\uAE4C\uC694,
+          \uC544\uC774\uC2A4\uB85C \uB4DC\uB9B4\uAE4C\uC694?"
+    - keywords:
+      - thank
+      reply:
+        english: You're welcome! Enjoy your day.
+        korean: "\uCC9C\uB9CC\uC5D0\uC694! \uC88B\uC740 \uD558\uB8E8 \uBCF4\uB0B4\uC138\uC694."
+    defaultReply:
+      english: I see. Is there anything else I can help you with?
+      korean: "\uADF8\uB807\uAD70\uC694. \uB354 \uB3C4\uC640\uB4DC\uB9B4 \uC77C\uC774
+        \uC788\uC744\uAE4C\uC694?"
+    exampleSentence: Could I have a soy latte, please?
+  - npcCode: TOWN_PASSERBY
+    npcName: Sam
+    opening:
+      english: Hey! Nice to see you. How's your day going?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uBC18\uAC00\uC6CC\uC694. \uC624\uB298
+        \uD558\uB8E8 \uC5B4\uB54C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - weather
+      reply:
+        english: It's a lovely day. Perfect for a walk!
+        korean: "\uB0A0\uC528\uAC00 \uC815\uB9D0 \uC88B\uB124\uC694. \uC0B0\uCC45\uD558\uAE30
+          \uB531\uC774\uC5D0\uC694!"
+    - keywords:
+      - cafe
+      reply:
+        english: "The corner caf\xE9 has great lattes. You should try one!"
+        korean: "\uBAA8\uD241\uC774 \uCE74\uD398 \uB77C\uD14C\uAC00 \uC815\uB9D0
+          \uB9DB\uC788\uC5B4\uC694. \uD55C\uBC88 \uB9C8\uC154 \uBD10\uC694!"
+    - keywords:
+      - thank
+      reply:
+        english: Anytime! See you around.
+        korean: "\uC5B8\uC81C\uB4E0\uC9C0\uC694! \uB610 \uBD10\uC694."
+    defaultReply:
+      english: Oh, really? Tell me more!
+      korean: "\uC544, \uC815\uB9D0\uC694? \uB354 \uC598\uAE30\uD574 \uC918\uC694!"
+    exampleSentence: It's a nice day today, isn't it?
+  fallback:
+    npcCode: 
+    npcName: Neighbor
+    opening:
+      english: Hello! Nice to meet you.
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uB9CC\uB098\uC11C \uBC18\uAC00\uC6CC\uC694."
+    guidedTurns: []
+    keywordReplies: []
+    defaultReply:
+      english: I see!
+      korean: "\uADF8\uB807\uAD70\uC694!"
+    exampleSentence: Nice to meet you, too.

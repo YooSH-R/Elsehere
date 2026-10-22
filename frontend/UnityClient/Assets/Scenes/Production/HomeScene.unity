@@ -481,6 +481,7 @@ MonoBehaviour:
   player: {fileID: 808809279}
   cameraRig: {fileID: 71672427}
   panel: {fileID: 931921737}
+  scriptSource: {fileID: 11400000, guid: 66499f5da1151c6479b4d007c3d57ab8, type: 2}
 --- !u!1001 &808809277
 PrefabInstance:
   m_ObjectHideFlags: 0

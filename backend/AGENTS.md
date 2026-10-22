@@ -6,10 +6,18 @@
 
 - 기술 구성과 실행 방법은 [백엔드 README](README.md)에 있습니다. Java 21, Spring Boot 4.1.1, Gradle(Groovy DSL)이며 기본 패키지는 `com.elsehere`입니다.
 - 포함된 의존성: Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Lombok, PostgreSQL 드라이버
-- 아직 넣지 않은 것: 스키마 마이그레이션 도구. 정하기 전까지 테스트의 테이블은 Hibernate `ddl-auto`로 만듭니다.
+- 아직 넣지 않은 것: 스키마 마이그레이션 도구. 정하기 전까지 테이블은 엔티티를 기준으로 Hibernate `ddl-auto`가 만듭니다.
 - 엔티티는 `com.elsehere.common.entity.BaseEntity`를 상속합니다. 생성·수정 시각(`created_at`, `updated_at`)은 JPA Auditing이 `Clock` 빈 기준으로 기록하며, 식별자는 각 엔티티에서 선언합니다.
 - 데이터 구조는 [ERD](../docs/erd.dbml), API는 [MVP API 명세](../docs/api/mvp-api.md)를 따릅니다.
 - 정하지 않은 기술을 코드 작성 중에 임의로 확정하지 않습니다. 필요하면 선택지와 영향을 설명하고 사용자 확인을 받습니다.
+
+## 패키지와 엔티티
+
+- 패키지는 `com.elsehere.<도메인>` 아래에 `controller`, `service`, `repository`, `entity`를 둡니다. 도메인별 테이블은 [백엔드 README](README.md#패키지-구조)에 있습니다.
+- 엔티티의 테이블·컬럼 이름, 길이, NOT NULL, 기본값, 유니크·인덱스를 ERD와 맞추고, 엔티티를 바꾸면 ERD도 함께 수정합니다.
+- 다른 담당 영역의 테이블(users, conversations, turns)은 연관관계 없이 `Long` ID로만 참조합니다.
+- `saved_at`, `started_at`처럼 업무에 쓰는 시각은 `created_at`과 별도 컬럼으로 두고, 값을 넣는 코드에서 `Clock` 기준으로 채웁니다.
+- 새 테이블의 엔티티를 만들면 `EntitySchemaTest`의 테이블 목록에 추가합니다.
 
 ## 테스트 구성
 

@@ -293,7 +293,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- 약관 버전과 문서 주소는 서버 설정값입니다. `VOICE` 동의의 필수 여부와 음성 보관 기간은 `[미정]`입니다.
+- 약관 버전과 문서 주소는 서버 설정값입니다. `VOICE` 동의의 필수 여부와 음성 보관 기간은 `[미정]`이며, 정해지기 전까지 선택 약관으로 둡니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -313,10 +313,12 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG" } }
 ```
 
-- 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다.
+- 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다. 로그인하면서 세션 ID를 새로 발급하고 가입 대기 정보를 지웁니다.
 - `nickname`은 NPC가 부르는 이름이며 최대 30자입니다. 금칙어 처리 여부는 `[미정]`입니다.
 - `avatarType`은 `F`, `M`입니다.
-- 필수 약관이 빠졌거나 버전이 현재 버전과 다르면 `VALIDATION_FAILED`이며 `details.missingConsents`에 빠진 약관을 담습니다.
+- 현재 버전과 다른 버전에 동의한 항목은 동의하지 않은 것으로 봅니다. 선택 약관도 현재 버전에 동의한 경우에만 저장합니다.
+- 필수 약관이 빠졌거나 버전이 현재 버전과 다르면 `VALIDATION_FAILED`이며 `details.missingConsents`에 빠진 약관을 담습니다(예: `["AGE14"]`).
+- 가입 대기 상태가 아니면 `401 UNAUTHENTICATED`, 이미 로그인한 사용자이거나 같은 Google 계정으로 이미 가입했으면 `409 ALREADY_SIGNED_UP`입니다.
 - `users.current_language`는 필수 컬럼이라 언어를 고르기 전에는 기본값 `en-US`로 저장합니다. 응답의 `currentLanguage`는 ONB-02 전까지 `null`로 보여줍니다. `[제안]`
 
 #### AUTH-05 `POST /api/v1/auth/logout`

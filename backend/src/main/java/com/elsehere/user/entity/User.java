@@ -27,6 +27,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
+  /** 학습 언어를 고르기 전(ONB-02 전)에 저장하는 기본 언어. current_language가 필수 컬럼이라 둔다. */
+  public static final String DEFAULT_LANGUAGE = "en-US";
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -60,4 +63,22 @@ public class User extends BaseEntity {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "last_scene_id")
   private Scene lastScene;
+
+  /** 가입한 사용자. 초기 설정은 학습 언어 선택(LANG)부터 시작한다. */
+  public static User signUp(
+      AuthProvider provider,
+      String providerUid,
+      String email,
+      String nickname,
+      AvatarType avatarType) {
+    User user = new User();
+    user.provider = provider;
+    user.providerUid = providerUid;
+    user.email = email;
+    user.nickname = nickname;
+    user.avatarType = avatarType;
+    user.onboardingStep = OnboardingStep.LANG;
+    user.currentLanguage = DEFAULT_LANGUAGE;
+    return user;
+  }
 }

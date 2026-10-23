@@ -8,6 +8,29 @@ ci:yaml:
     - pip install --disable-pip-version-check yamllint==1.37.1
     - yamllint -c .yamllint.yml .gitlab-ci.yml .gitlab/ci .yamllint.yml
 
+infra:deployment-plan-tests:
+  extends: .linux-job
+  stage: validate
+  image: python:3.12-alpine
+  timeout: 5m
+  script:
+    - apk add --no-cache git
+    - python -m pip install --disable-pip-version-check ruff==0.17.1
+    - python -m ruff check infra/scripts --target-version py312
+    - python -m ruff format --check infra/scripts --target-version py312
+    - PYTHONPATH=infra/scripts python -m unittest discover -s infra/scripts/tests -v
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &deployment_plan_change_paths
+          - infra/scripts/**/*
+          - .gitlab-ci.yml
+          - .gitlab/ci/**/*
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *deployment_plan_change_paths
+
 infra:compose-and-nginx:
   extends: .docker-job
   stage: validate

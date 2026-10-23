@@ -64,6 +64,27 @@ GitLab의 작업 규칙은 작업 실행 전에 평가됩니다. 선행 작업�
 
 검사 선택과 실제 배포 대상이 달라지는 경우를 CI 구현 시 시험합니다. 최소한 문서만 변경, 영역 하나 변경, 공통 API 변경, 이전 배포 실패 후 문서 변경의 네 경우를 확인합니다.
 
+### 누적 변경 판정 도구
+
+`infra/scripts/deployment_plan.py`는 마지막 성공 배포의 전체 커밋 SHA와 후보 SHA를 받아 필요한 검사(`checks`), 새 이미지(`builds`), 앱 반영 여부(`deploy`)를 JSON으로 출력합니다. 성공 기록은 배포 후 점검을 통과한 기록만 입력합니다. 이 도구 자체는 서버에 접속하거나 앱을 배포하거나 성공 기록을 갱신하지 않습니다. 자동 배포 작업에서 판정 결과를 후속 검사·빌드와 연결해야 합니다.
+
+```bash
+python infra/scripts/deployment_plan.py \
+  --base "$LAST_SUCCESSFUL_COMMIT" \
+  --candidate "$CI_COMMIT_SHA" \
+  --output dist/deployment-plan.json
+```
+
+첫 배포에는 `--base`를 생략합니다. 성공 기록의 Git 이력을 찾을 수 없거나 후보의 조상이 아니면 전체 앱의 검사와 이미지 빌드를 선택합니다. 후보 자체가 유효한 전체 SHA가 아니면 실패합니다. 전체 Git 이력을 준비하여 비교 이력이 누락되지 않게 합니다.
+
+일반 문서는 앱 빌드·배포를 생략합니다. 테스트만 바꾸면 해당 영역 검사만 선택하고, API 명세·공통 CI 변경은 관련 전체 검사를 선택합니다. Compose 변경은 기존 이미지를 유지하며 전체 검사와 실행 구성 반영을 선택합니다. Dockerfile·Web 응답 설정 변경은 해당 이미지의 빌드를 선택합니다. 공유 호스트 Nginx는 검사 대상으로만 처리하며 자동으로 덮어쓰지 않습니다.
+
+판정 도구는 `infra:deployment-plan-tests` 작업에서 임시 Git 저장소를 사용해 검증합니다. 로컬에서도 다음 명령으로 실행할 수 있습니다.
+
+```bash
+PYTHONPATH=infra/scripts python -m unittest discover -s infra/scripts/tests -v
+```
+
 ## 3. 공통 API 변경 판정과 검증
 
 ### 공통 API 변경으로 분류하는 경우

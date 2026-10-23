@@ -91,6 +91,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `AUDIO_TOO_LARGE` | 413 | 녹음 길이·크기 초과 |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
+| `VOCAB_SOURCE_MISMATCH` | 422 | 저장하려는 단어가 출처(사물 카드, 대사 단어 풀이, 피드백 단어장 후보)에 없음 |
 | `AI_QUOTA_EXHAUSTED` | 429 | 사용자 AI 한도 소진 |
 | `AI_RATE_LIMITED` | 429 | 요청 속도 제한 |
 | `AI_RESPONSE_INVALID` | 502 | 제한 횟수만큼 재시도해도 AI 응답 형식 오류 |
@@ -165,7 +166,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 토큰이 떨어지면 NPC 작별 대사로 대화 종료 | CONV-03 응답 |
 | 16 대화 후 짧은 피드백 | NPC·장소·발화 수, 미션 완료, 요약, 잘했어요·아쉬워요, 개선 표현 | CONV-08 응답, FB-01 |
 | | 생성 실패 시 [다시 만들기], [대화 기록 보기] | FB-02, CONV-10 |
-| | [상세 보기], 개선 표현 [단어장에 저장] | FB-03, VOCAB-02 |
+| | [상세 보기], 단어장 후보 단어 [단어장에 저장] | FB-03, VOCAB-02 |
 
 ### 2.4 피드백·단어장·상태
 
@@ -174,8 +175,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 17 상세 피드백 | 발화별 내 발화, 더 자연스러운 표현, 이유, 숙어와 뜻 | FB-03(처음), FB-01(다시 열 때) |
 | | [모범 음성 듣기] | FB-04 |
 | | [단어장에 저장] | VOCAB-02(`FEEDBACK`) |
-| 18 단어장 | 유형별 개수, 외운 표현 포함 여부, 최근 저장순 목록 | VOCAB-01 |
-| | 상세: 뜻·예문·유형·저장 출처·메모 | VOCAB-01 항목 |
+| 18 단어장 | 전체 개수, 외운 단어 포함 여부, 최근 저장순 목록 (유형 필터는 MVP에서 숨김) | VOCAB-01 |
+| | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
 | | 지난 대화 탭 | CONV-09, CONV-10 |
@@ -227,8 +228,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | FB-02 | `POST /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백 다시 만들기 | LLM | 16 |
 | FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 만들기 | LLM | 16, 17 |
 | FB-04 | `POST /api/v1/turn-feedback/{turnFeedbackId}/model-speech` | 모범 음성 | TTS | 17 |
-| VOCAB-01 | `GET /api/v1/vocab` | 단어장 목록·유형별 개수 | - | 18 |
-| VOCAB-02 | `POST /api/v1/vocab` | 표현 저장 | `[미정]` | 08, 16, 17 |
+| VOCAB-01 | `GET /api/v1/vocab` | 단어장 목록·개수 | - | 18 |
+| VOCAB-02 | `POST /api/v1/vocab` | 단어 저장 | - | 08, 15, 16, 17 |
 | VOCAB-03 | `PATCH /api/v1/vocab/{userVocabId}` | 메모, 외웠어요 표시 | - | 18 |
 | VOCAB-04 | `DELETE /api/v1/vocab/{userVocabId}` | 단어장에서 삭제 | - | 18 |
 | AI-01 | `GET /api/v1/ai/status` | AI 이용 상태·기능별 가능 여부 | - | 13, 19 |
@@ -469,6 +470,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `hoverHidden: true`인 사물은 호버로 카드를 띄우지 않고, 사물을 클릭하면 카드를 보여줍니다.
 - `exampleKo`(예문 뜻)는 `vocabularies.example_ko`입니다. 예문을 저장 전부터 보여줄지는 `[미정]`입니다(5.2).
 - `approachLine`(`npcs.approach_line`)은 튜토리얼 뒤 거리 행인의 말걸기 말풍선입니다. 대화를 시작하기 전에 보여주므로 미리 작성한 대사입니다. 말걸기 발동 조건(거리, 반복 간격, 횟수)은 클라이언트 콘텐츠 설정입니다.
+- `roleLabel`은 `npcs.role_label`입니다. 이름표 아래에 보여주는 역할 이름(행인, 카페 직원)입니다.
 - NPC의 `persona`, `voice_id`는 서버 내부 정보라 응답하지 않습니다.
 - 열리지 않은 장소는 `isOpen: false`이며, 그 장소의 NPC와 대화를 시작하면 `SCENE_CLOSED`입니다.
 
@@ -537,7 +539,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 미션 상세 화면(지도, 자세한 설명)은 MVP에 넣지 않습니다(7절).
 - 완료 판정 기준(`keywords`, `intent_rule`)은 서버 내부 정보라 응답하지 않습니다.
 - MVP의 미션 완료 행동은 대상 NPC와의 대화입니다. 대화 외 행동(장소 방문, 단어 저장 등)으로 완료하는 미션이 필요한지는 `[미정]`입니다.
-- 일일 미션의 날짜 기준 시간대는 `[미정]`입니다. `[제안]` `Asia/Seoul` 자정을 기준으로 합니다. 미션 보상은 `[미정]`입니다.
+- 일일 미션의 날짜는 MVP에서 `Asia/Seoul` 기준으로 고정하며, 자정에 바뀝니다. 미션 보상은 `[미정]`입니다.
 
 ### 4.6 대화
 
@@ -802,61 +804,74 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ### 4.8 단어장
 
+MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않으며 숙어는 이후 검토합니다(7절). 단어장에는 단어의 뜻과 함께, 그 단어를 저장한 **문장 전체와 문장 뜻**을 보여줍니다.
+
+예: Mia가 "Would you like an iced latte?"라고 했고 사용자가 `latte`를 저장하면, 단어장에는 `latte` = "라떼"와 함께 "Would you like an iced latte?" = "아이스 라떼 드릴까요?"가 보입니다.
+
 #### VOCAB-01 `GET /api/v1/vocab`
 
-`?type=&includeMemorized=false&cursor=&size=`
+`?includeMemorized=false&cursor=&size=`
 
 ```json
 {
-  "counts": { "all": 12, "word": 6, "idiom": 2, "sentence": 4 },
+  "counts": { "all": 12 },
   "items": [
     {
       "userVocabId": 21,
       "vocab": {
         "vocabId": 77,
-        "type": "SENTENCE",
-        "text": "I'd like an iced latte, please.",
-        "meaningKo": "아이스 라떼 주세요.",
-        "example": null
+        "type": "WORD",
+        "text": "latte",
+        "meaningKo": "라떼"
+      },
+      "context": {
+        "text": "Would you like an iced latte?",
+        "meaningKo": "아이스 라떼 드릴까요?"
       },
       "memo": "주문할 때 쓰기",
       "memorized": false,
       "savedAt": "2026-10-21T14:06:00+09:00",
-      "source": { "sourceType": "FEEDBACK", "npcName": "Mia", "conversationId": 58 }
+      "source": { "sourceType": "NPC_LINE", "npcName": "Mia", "conversationId": 58 }
     }
   ],
   "nextCursor": null
 }
 ```
 
-- 화면 18의 "전체 12 / 단어 / 숙어 / 문장" 필터는 `type`(`WORD`, `IDIOM`, `SENTENCE`)과 `counts`, "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다.
-- `counts`는 현재 `includeMemorized` 조건을 적용한 개수입니다.
-- 목록의 "문장 · 피드백" 같은 표시는 `vocab.type`과 `source.sourceType`, 상세의 "상세 피드백 · Mia와의 대화"는 `source.npcName`으로 그립니다. 출처 NPC는 `user_vocab.source_turn_id`로 찾으며, 사물에서 저장한 표현은 `npcName`, `conversationId`가 `null`입니다.
-- `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 사전 뜻(`meaningKo`)을 그대로 보여주고 수정하지 않습니다.
+- "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다. `counts.all`은 현재 `includeMemorized` 조건을 적용한 개수입니다.
+- 저장하는 것이 단어뿐이라 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocabularies.type`은 숙어를 검토할 때를 위해 그대로 둡니다.
+- `vocab.meaningKo`는 단어 하나의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
+- 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
+- `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 
 #### VOCAB-02 `POST /api/v1/vocab`
 
-저장 출처마다 요청 형식이 다릅니다.
+저장 출처마다 요청 형식이 다릅니다. `text`는 저장할 단어 하나입니다.
 
 ```json
 // 화면 08: 사물 카드에서 저장
 { "requestId": "...", "sourceType": "OBJECT", "objectKey": "sofa" }
 
-// NPC 대사에서 저장(대사 전체 또는 일부)
-{ "requestId": "...", "sourceType": "NPC_LINE", "turnId": 105, "text": "for here or to go" }
+// 화면 15: NPC 대사 뜻 보기(CONV-04)의 단어 풀이에서 저장
+{ "requestId": "...", "sourceType": "NPC_LINE", "turnId": 105, "text": "latte" }
 
-// 화면 16: 짧은 피드백의 개선 표현
-{ "requestId": "...", "sourceType": "FEEDBACK", "conversationId": 58, "text": "I'd like an iced latte, please." }
-
-// 화면 17: 상세 피드백의 개선 표현 또는 숙어
-{ "requestId": "...", "sourceType": "FEEDBACK", "conversationId": 58, "turnFeedbackId": 34, "text": "for here or to go" }
+// 화면 16·17: 피드백의 단어장 후보에서 저장
+{ "requestId": "...", "sourceType": "FEEDBACK", "conversationId": 58, "text": "order" }
 ```
 
-- 새로 저장하면 `201`, 이미 저장한 표현이면 저장된 항목을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
-- `FEEDBACK`의 `text`는 해당 대화의 피드백에 실제로 있는 표현이어야 하며, 서버가 저장된 피드백과 대조합니다. 화면 17에서 저장하면 `source_turn_id`에 평가 대상 사용자 턴을 기록합니다.
-- 사전에 없는 표현은 `vocabularies`에 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 유형(`WORD`, `IDIOM`, `SENTENCE`)은 서버가 정하며, 숙어(`idiom`)에서 저장하면 `IDIOM`입니다.
-- `meaning_ko`가 필수라 뜻이 없는 표현을 저장할 때 뜻을 AI로 만들지, 저장된 대사 뜻·숙어 뜻을 쓸지는 `[미정]`입니다. AI로 만들면 AI 사용량 검사 대상입니다.
-- 와이어프레임에는 NPC 대사에서 바로 저장하는 버튼이 없습니다. 화면 15에 배치할지는 `[미정]`입니다.
+저장할 수 있는 단어와 뜻·문장을 가져오는 곳은 출처마다 정해져 있습니다. 저장할 때 AI나 외부 번역 API를 호출하지 않습니다.
+
+| 출처 | 저장할 수 있는 단어 | 단어 뜻 | 문장 · 문장 뜻 |
+| --- | --- | --- | --- |
+| `OBJECT` | 사물 카드의 단어 | `vocabularies.meaning_ko` (시드) | 사물 카드 예문 `example` · `example_ko` (없으면 `null`) |
+| `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`) 중 한 단어인 것 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
+| `FEEDBACK` | 그 대화 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`인 것 | 후보의 `meaning_ko` | 후보의 `example_en` · `example_ko` |
+
+- 표에 없는 단어, 두 단어 이상인 표현, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
+- 새로 저장하면 `201`, 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
+- 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다.
+- `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
+- 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
 
 #### VOCAB-03·04 메모·외웠어요·삭제
 
@@ -908,6 +923,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 숙어 뜻 | FB-03 | `turn_feedback.idiom_meaning_ko`를 추가했습니다. |
 | 짧은 피드백 개선 표현 | CONV-08 | `conversation_feedback.reviews` JSON을 `{ good, improve, suggestion }` 구조로 정했습니다. |
 | NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관 기간은 `[미정]`입니다. |
+| NPC 역할 이름 | WORLD-02, CONV | `npcs.role_label`을 추가했습니다. `persona`는 AI 프롬프트용이라 화면 표시용 값을 따로 둡니다. |
+| 단어장 출처 대화 | VOCAB-01, 02 | `user_vocab.source_conversation_id`를 추가했습니다. 짧은 피드백(화면 16)은 턴 없이 대화 단위로 저장하므로 `source_turn_id`만으로는 출처 대화를 찾을 수 없습니다. |
+| 단어장 문장 | VOCAB-01, 02 | `user_vocab.context_text`, `context_meaning_ko`를 추가했습니다. 단어를 저장한 문장과 문장 뜻입니다. |
 
 ### 5.2 아직 정할 사항
 
@@ -938,11 +956,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 피드백 건너뛰기 버튼 | CONV-08 | 배치 여부 |
 | 사용자 발화 없는 대화의 피드백 | CONV-08 | 만들지 않음 / 만듦 |
 | 대화 중 새로고침 | CONV-11 | 이어서 진행 / 종료 처리 |
-| 뜻 없는 표현 저장 | VOCAB-02 | 저장 시 AI로 뜻 생성 / 대사 뜻·숙어 뜻 재사용 |
 | NPC 대사 저장 버튼 | VOCAB-02 | 화면 15에 배치 여부 |
 | 미션 완료 행동 | MIS-01 | 대화만(초안) / 장소 방문·단어 저장 등 추가 |
 | 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 문항 단위 건너뛰기 여부 |
-| 일일 미션 날짜 기준·보상 | MIS-01 | `Asia/Seoul` 자정 `[제안]`, 보상 여부 |
+| 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
 | 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `objectKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
 | 사용량 소진 HTTP 상태 코드 | 1.5 | 429 `[제안]` / 403 |
 | 설정 화면 | AUTH-05 | 로그아웃, 프로필 수정, 음성 동의 변경 등 화면 설계 |
@@ -957,5 +974,6 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 상세 피드백의 내 음성 듣기 | 17 | 음성 보관 정책과 함께 이후 검토 |
 | 상세 피드백의 다시 말하기 | 17 | 이후 검토 |
 | 단어장 중요도 | 18 | 목록은 최근 저장순 |
+| 숙어·문장 저장, 단어장 유형 필터 | 15~18 | MVP는 단어 하나만 저장. 숙어 저장 방식(뜻 출처, 문장 표시)은 이후 검토 |
 | 회상 복습 | 18 | 요구사항명세서 REQ-17·18(정답 기록, 5회 정답 시 카드 숨김)과 다른 점으로 기록 |
 | NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음 |

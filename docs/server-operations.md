@@ -85,6 +85,20 @@ systemctl list-timers --all '*certbot*' --no-pager
 
 `all simulated renewals succeeded`가 나오면 갱신 시험이 성공한 것입니다. 예약 목록에서는 Certbot 갱신 타이머의 다음 실행 시각을 확인합니다.
 
+## 웹 파일 읽기 권한 오류
+
+웹 컨테이너가 `unhealthy`이고 `/version.json`이 403을 반환하면 웹 로그에서 `Permission denied`를 확인합니다. 압축 파일로 옮긴 WebGL 산출물에 소유자만 읽을 수 있는 권한이 남으면 Nginx 작업 프로세스가 파일을 읽지 못할 수 있습니다.
+
+```bash
+sudo docker logs --tail 60 a305-dev-web-1
+sudo docker inspect --format '{{json .State.Health}}' a305-dev-web-1
+sudo docker exec a305-dev-web-1 ls -ld /usr/share/nginx/html /usr/share/nginx/html/version.json
+```
+
+웹 Dockerfile은 산출물을 복사한 뒤 이미지 내부의 정적 파일 디렉터리를 755, 파일을 644로 설정합니다. 수정한 Dockerfile로 새 태그의 웹 이미지를 만들고 개발 `deploy.env`의 `WEB_IMAGE`를 갱신한 다음, 앱 Compose에서 `up -d --no-deps --force-recreate --wait --pull never web`으로 웹 컨테이너만 교체합니다. 기존 DB·AI·백엔드는 유지합니다.
+
+호스트의 `/home`이나 시스템 디렉터리 권한을 일괄 변경하지 않습니다. 실행 중인 컨테이너에서만 권한을 고치면 다음 컨테이너 생성 때 사라지므로 이미지에 반영합니다. 기동 후 루프백 `/version.json`과 `/api/health`, 개발 HTTPS 응답을 확인합니다. CI의 앱 실행 검사도 제한된 입력 권한을 사용해 같은 오류를 검증합니다.
+
 ## 장애 점검 순서
 
 1. `ps`·로그와 루프백 주소의 `/health`로 컨테이너 상태와 포트를 확인합니다.

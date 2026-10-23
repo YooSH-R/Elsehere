@@ -26,6 +26,11 @@ def create_http_fixture(directory):
             gzip.compress(b"HTTP fixture")
         )
 
+    # Reproduce restrictive archive permissions; Nginx workers must still read the image.
+    directory.chmod(0o700)
+    for entry in directory.rglob("*"):
+        entry.chmod(0o700 if entry.is_dir() else 0o600)
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

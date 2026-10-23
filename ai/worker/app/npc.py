@@ -14,7 +14,7 @@ import wave
 from . import prompts as P
 from . import services
 from .config import Settings
-from .llm import LLM, ModelOutputError, ProviderError, Usage
+from .llm import LLM, ModelOutputError, ProviderError, Usage, within
 from .schemas import Line, ReplyRequest, SuggestRequest
 from .tts import AudioStore, Kokoro, join_wavs
 
@@ -129,7 +129,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         history = [*req.history, Line(who="me", text=req.text), Line(who="npc", text=said)][-40:]
         call = services.suggest(llm, SuggestRequest(npc=req.npc, goal=req.goal, history=history, level=req.level))
         try:  # 상한 안에 못 끝내면 timeout: done(대답·턴 전체 음성)을 추천 단어 때문에 늦추지 않는다
-            res = await services.within(call, s.words_budget_s)
+            res = await within(call, s.words_budget_s)
         except ProviderError as e:
             return {"words": None, "error": e.code}
         except ModelOutputError:

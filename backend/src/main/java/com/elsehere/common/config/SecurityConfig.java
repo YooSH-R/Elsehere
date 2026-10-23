@@ -8,10 +8,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
@@ -60,8 +63,21 @@ public class SecurityConfig {
                     // 가입(AUTH-03·04)은 로그인 전 단계다. 가입 대기 여부는 컨트롤러가 확인한다.
                     .requestMatchers("/api/v1/auth/signup")
                     .permitAll()
+                    // 접속 상태 조회(BOOT-01)는 가입 대기 사용자도 호출한다. 로그인 상태는 컨트롤러가 구분한다.
+                    .requestMatchers(HttpMethod.GET, "/api/v1/bootstrap")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
+        // AUTH-05. 세션을 끝내고 204로 응답한다. 가입 대기 중에 다른 계정으로 바꾸려는 사용자도 쓸 수 있도록 로그인 여부를 묻지 않는다.
+        .logout(
+            logout ->
+                logout
+                    .logoutRequestMatcher(
+                        PathPatternRequestMatcher.withDefaults()
+                            .matcher(HttpMethod.POST, "/api/v1/auth/logout"))
+                    .logoutSuccessHandler(
+                        new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT))
+                    .deleteCookies("JSESSIONID"))
         .exceptionHandling(
             exceptions -> exceptions.authenticationEntryPoint(loginRequiredEntryPoint));
     return http.build();

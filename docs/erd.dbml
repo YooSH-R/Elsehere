@@ -1,7 +1,7 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3.1 (MVP 기준) · PostgreSQL 16 + pgvector
+  ELSEHERE ERD v3.2 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
   모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
@@ -194,7 +194,8 @@ Table conversations [headercolor: #2E6B4F] {
   initiated_by varchar(10) [not null, note: 'USER · NPC']
   level_applied smallint [not null, note: '적용 난이도']
   status varchar(20) [not null, note: 'ACTIVE · ENDED_BY_USER · ENDED_BY_NPC · EXPIRED(이탈·시간 초과)']
-  end_reason varchar(20) [note: 'USER_ENDED · NPC_ENDED · QUOTA_EXHAUSTED · EXPIRED']
+  end_reason varchar(20) [note: 'USER_ENDED · NPC_ENDED · QUOTA_EXHAUSTED · RUDE(무례 누적으로 NPC가 끝냄) · EXPIRED']
+  rude_count smallint [not null, default: 0, note: '이 대화에서 무례로 센 턴 수 · 한도(서버 설정값, 3)에 닿으면 NPC가 대화를 끝냄']
   started_at timestamptz [not null, default: `now()`]
   ended_at timestamptz
   created_at timestamptz [not null, default: `now()`]
@@ -216,6 +217,9 @@ Table turns [headercolor: #2E6B4F] {
   input_type varchar(10) [note: 'VOICE · TEXT']
   stt_raw_text text [note: 'STT 원본']
   text text [not null, note: '보낸 문장 / NPC 대사']
+  translation_en text [note: '학습자 말의 영어 번역 · 번역 카드·다음 요청의 history·피드백에 씀 (사용자 턴만)']
+  guard_abusive boolean [note: '무례 판정 · true 무례, false 아님, null 판정 실패(무례로 세지 않음) · 사용자 턴만']
+  guard_error_code varchar(30) [note: '판정 실패 이유 · empty · unparsed · timeout · provider_unavailable · provider_limit']
   meaning_ko text [note: '뜻 보기']
   glossary jsonb [note: '단어 호버 뜻']
   suggest_words jsonb [note: '추천 단어 3개']
@@ -360,11 +364,12 @@ Table ai_requests [headercolor: #8A5A44] {
   request_id uuid [not null, note: '클라이언트 요청 ID · 재전송 시 이전 결과 반환, 한 번만 차감']
   user_id bigint [not null]
   conversation_id bigint
-  kind varchar(20) [not null, note: 'STT · LLM · TTS · FEEDBACK']
+  kind varchar(20) [not null, note: 'AI 워커 기능 단위 · STT · GUARD · JUDGE · NPC · TTS · HINT · MEANING · FEEDBACK (새 호출 종류가 생기면 추가)']
   model varchar(50) [note: '호출한 모델']
   status varchar(20) [not null, note: 'RESERVED · OK · FAILED · BLOCKED']
   input_tokens int [not null, default: 0, note: '공급자가 집계한 입력 토큰']
   output_tokens int [not null, default: 0, note: '공급자가 집계한 출력 토큰']
+  audio_ms int [note: 'STT 음성 길이 · 비용 근거. 한도 차감은 초당 토큰 환산(서버 설정값)']
   reserved_tokens int [not null, default: 0, note: '호출 전 예약한 토큰']
   charged_tokens int [not null, default: 0, note: '사용자 한도에서 차감한 토큰. 우리 쪽 실패면 0']
   created_at timestamptz [not null, default: `now()`]
@@ -376,7 +381,7 @@ Table ai_requests [headercolor: #8A5A44] {
     (user_id, `created_at DESC`)
   }
 
-  Note: 'AI 호출 기록. input·output_tokens는 비용 근거, charged_tokens는 사용자 한도 차감량'
+  Note: 'AI 호출 기록. 호출 한 번이 한 행 (한 턴의 무례 판정·의도 판정·NPC 대답은 같은 request_id에 kind가 다른 행). input·output_tokens·audio_ms는 비용 근거, charged_tokens는 사용자 한도 차감량. 한도 예약은 턴 단위로 user_ai_usage에 한 번 하고 행별로 정산'
 }
 
 Table user_ai_usage [headercolor: #8A5A44] {

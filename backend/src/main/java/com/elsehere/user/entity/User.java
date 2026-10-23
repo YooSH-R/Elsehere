@@ -81,4 +81,24 @@ public class User extends BaseEntity {
     user.currentLanguage = DEFAULT_LANGUAGE;
     return user;
   }
+
+  /** 학습 언어를 바꾼다. 처음 고를 때만 초기 설정을 레벨 테스트 단계로 넘긴다(ONB-02). */
+  public void chooseLanguage(String languageCode) {
+    this.currentLanguage = languageCode;
+    if (onboardingStep == OnboardingStep.LANG) {
+      this.onboardingStep = OnboardingStep.LEVEL;
+    }
+  }
+
+  /** 대화 난이도 설정(ONB-09)을 마쳐 튜토리얼 이후 단계에 있는지. */
+  public boolean hasCompletedLevelSetting() {
+    return onboardingStep == OnboardingStep.TUTORIAL || onboardingStep == OnboardingStep.DONE;
+  }
+
+  /** 대화 난이도 설정을 마친다. 레벨 테스트 단계에서만 튜토리얼 단계로 넘긴다(ONB-09). */
+  public void completeLevelSetting() {
+    if (onboardingStep == OnboardingStep.LEVEL) {
+      this.onboardingStep = OnboardingStep.TUTORIAL;
+    }
+  }
 }

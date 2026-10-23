@@ -1,6 +1,6 @@
 # MVP API 명세 초안
 
-MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.1](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
+MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.2](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
 - MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능(설정, 프로필 수정, NPC 호감도 조회)도 API를 만들지 않았습니다.
@@ -44,7 +44,10 @@ AI를 호출하는 요청과 중복 반영되면 안 되는 요청은 본문(mul
 
 - 서버 쪽 실패로 결과를 전달하지 못하면 사용자 한도에서 차감하지 않고, 실제 쓴 토큰은 비용 근거로 기록합니다.
 - 클라이언트의 버튼 활성화와 관계없이 최종 허용 여부는 서버가 판단합니다.
-- 한 턴의 예상 토큰, 피드백 예약량, 한도 수치, 갱신 주기는 서버 설정값이며 `[미정]`입니다.
+- AI 호출 기록(`ai_requests`)은 호출 한 번이 한 행입니다. 한 턴에서 같은 `requestId`로 무례 판정·의도 판정·NPC 대답을 부르므로 `kind`(`STT`, `GUARD`, `JUDGE`, `NPC`, `TTS`, `HINT`, `MEANING`, `FEEDBACK`)로 구분합니다. 한도 예약은 턴 단위로 한 번 하고, 행별 실제 사용량으로 정산합니다.
+- 음성 인식(STT)은 토큰이 아니라 음성 길이로 사용량이 나옵니다. 길이는 `ai_requests.audio_ms`에 기록하고, 사용자 한도에서는 초당 토큰으로 환산해 차감합니다.
+- 튜토리얼 음성 인식(CONV-02 `purpose: TUTORIAL`)은 사용자 한도에서 차감하지 않고 비용 근거만 기록합니다.
+- 한 턴의 예상 토큰, 피드백 예약량, 한도 수치, 갱신 주기, STT의 초당 토큰 환산 비율은 서버 설정값이며 `[미정]`입니다.
 
 ### 1.5 오류 응답
 
@@ -88,7 +91,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `CONVERSATION_NOT_ACTIVE` | 409 | 이미 끝난 대화에 발화 전송 |
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
 | `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 단계가 아닌 사용자의 튜토리얼 완료·건너뛰기 |
-| `AUDIO_TOO_LARGE` | 413 | 녹음 길이·크기 초과 |
+| `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
 | `AI_QUOTA_EXHAUSTED` | 429 | 사용자 AI 한도 소진 |
@@ -100,7 +103,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 지원하지 않는 메서드(405)·형식(415)처럼 표에 없는 요청 오류는 그 HTTP 상태와 상태 이름을 `code`로 돌려줍니다(예: `METHOD_NOT_ALLOWED`). 클라이언트 구현 오류이므로 화면에 따로 안내하지 않습니다.
 - `INTERNAL_ERROR`의 `message`에는 내부 오류 내용을 담지 않습니다. 원인은 서버 로그에만 남깁니다.
 - 화면 19의 세 상황은 서로 다른 코드로 구분합니다. 사용량 소진은 `AI_QUOTA_EXHAUSTED`, 응답 실패는 `AI_TEMPORARILY_UNAVAILABLE`·`AI_RESPONSE_INVALID`이며, 마이크 권한 거부와 장치 없음은 브라우저에서 판단하므로 서버 오류 코드가 없습니다.
-- 대화 도중 토큰이 떨어진 경우는 오류가 아니라 NPC의 작별 대사로 끝납니다(1.4, CONV-03).
+- 대화 도중 토큰이 떨어지거나 무례한 말이 쌓인 경우는 오류가 아니라 NPC 대사로 대화가 끝나는 정상 응답입니다(1.4, CONV-03). `AI_RESTRICTED`는 무례 누적에 쓰지 않습니다.
 - 무음·인식 실패(`STT_NO_SPEECH`)는 응답 실패와 별도로 "다시 녹음" 안내를 보여줍니다.
 - 사용량 소진의 HTTP 상태 코드는 `[미정]`입니다. `[제안]` 429를 쓰고 `code`로 속도 제한과 구분합니다.
 
@@ -268,6 +271,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
 - `aiStatus`의 형식은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다.
+- 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
+- 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
 
 #### AUTH-01·02 소셜 로그인
 
@@ -324,6 +329,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### AUTH-05 `POST /api/v1/auth/logout`
 
 - 세션을 끝내고 `204 No Content`를 돌려줍니다. 와이어프레임에는 로그아웃 버튼이 없으며 설정 화면을 설계할 때 배치합니다.
+- 로그인 여부와 관계없이 `204`입니다. 가입 대기 중인 사용자가 다른 Google 계정으로 바꾸려 할 때도 이 API로 가입 대기 정보를 지웁니다.
+- POST만 받습니다. 다른 상태 변경 요청처럼 `X-Requested-With` 헤더가 필요합니다.
 
 ### 4.2 초기 설정
 
@@ -341,6 +348,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - `user_language_profiles`를 만들고 `users.current_language`를 바꿉니다. 처음 선택하면 `onboardingStep`이 `LEVEL`로 넘어갑니다.
 - 응답은 `{ "languageCode": "en-US", "onboardingStep": "LEVEL" }`입니다.
+- ONB-01 목록에 없거나 `available: false`인 언어는 `VALIDATION_FAILED`입니다.
+- 이미 고른 적 있는 언어를 다시 고르면 학습 설정(추천·선택 난이도)을 새로 만들지 않고 학습 언어만 바꿉니다. 언어 선택 단계를 지난 사용자의 `onboardingStep`은 바뀌지 않습니다.
 
 #### ONB-03~07 레벨 테스트
 
@@ -392,6 +401,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 05의 "레벨 테스트 추천" 배지는 `recommendedLevel`이 있을 때만 보여줍니다.
 - `available: false`인 단계는 "추후 제공" 카드입니다. 단계 수와 설명은 서버 설정값이며 `[미정]`입니다.
 - `selectedLevel`은 ONB-09 전까지 `null`입니다. DB에는 `selected_level`이 필수라 프로필을 만들 때 1로 저장하고, ONB-09 처리 여부는 `onboardingStep`으로 판단합니다. `[제안]`
+- 레벨 테스트 기록이 없으면 `levelTest`는 응답에 담지 않습니다.
+- 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
 
 #### ONB-09 `PUT /api/v1/me/languages/{languageCode}/level`
 
@@ -400,7 +411,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - MVP는 1단계만 허용합니다. 다른 값은 `VALIDATION_FAILED`입니다.
-- 처음 설정하면 `onboardingStep`이 `TUTORIAL`로 넘어가고 응답에 `onboardingStep`을 담습니다.
+- 처음 설정하면 `onboardingStep`이 `TUTORIAL`로 넘어가고 응답에 `onboardingStep`을 담습니다. 응답은 `{ "languageCode": "en-US", "selectedLevel": 1, "onboardingStep": "TUTORIAL" }`입니다.
+- 튜토리얼 단계 이후에 다시 설정하면 난이도만 바꾸고 `onboardingStep`은 그대로 둡니다. 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
 
 ### 4.3 튜토리얼
 
@@ -593,8 +605,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 화면 15의 전사 확인에 `sttRawText`를 보여줍니다. 인식이 틀렸으면 [다시 녹음]으로 다시 말하고, 맞으면 [보내기]로 CONV-03에 보냅니다. 전사 내용을 직접 고치는 기능은 넣지 않았습니다(6절).
-- 화면 11의 튜토리얼에서는 결과를 대본의 대사와 비교하는 데 씁니다. 튜토리얼 음성 인식도 AI 사용량에 포함할지는 `[미정]`입니다.
-- 무음·인식 실패는 `STT_NO_SPEECH`입니다. 녹음 형식과 최대 길이는 `[미정]`이며 STT 벤더 입력 형식에 맞춰 정합니다.
+- 화면 11의 튜토리얼에서는 결과를 대본의 대사와 비교하는 데 씁니다. 튜토리얼 음성 인식은 사용자 한도에서 차감하지 않습니다(1.4).
+- 무음·인식 실패는 `STT_NO_SPEECH`입니다.
+- 인식 대상은 영어입니다. 한국어로 말하면 거르거나 번역하지 않고 한글 그대로 전사합니다. 그 문장의 번역은 CONV-03이 맡습니다.
+- 녹음 형식은 `webm`, `ogg`, `mp4`, `wav`, `mpeg`이며 Unity는 16kHz 모노 16비트 WAV로 보냅니다. `audio` 파일 부분에 `Content-Type`(예: `audio/wav`)을 붙입니다.
+- 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 15초, 무음이 3초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
 - 받은 음성은 전사 후 보관하지 않습니다. `VOICE` 동의를 받은 경우의 보관 여부·기간은 `[미정]`입니다.
 
 #### CONV-03 `POST /api/v1/conversations/{conversationId}/turns`
@@ -610,7 +625,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 // 응답 200
 {
-  "userTurn": { "turnId": 104, "seq": 4, "speaker": "USER", "text": "Medium size, please" },
+  "userTurn": {
+    "turnId": 104,
+    "seq": 4,
+    "speaker": "USER",
+    "text": "Medium size, please",
+    "rude": false,
+    "translation": null
+  },
   "npcTurn": {
     "turnId": 105,
     "seq": 5,
@@ -619,7 +641,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": ["for here", "to go", "please"],
     "speech": { "status": "READY", "url": "/api/v1/turns/105/speech" }
   },
-  "conversation": { "status": "ACTIVE", "endReason": null },
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3 },
   "missionUpdates": []
 }
 ```
@@ -630,6 +652,22 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 같은 `requestId`로 다시 보내면 턴을 새로 만들지 않고 이전 응답을 그대로 돌려줍니다(`turns.request_id`). 화면 19의 [다시 시도]가 이 규칙을 씁니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
+- 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다.
+
+**학습자 말 번역** — `userTurn.translation`은 학습자 말의 영어 번역 `{ "english": "Medium size, please." }`입니다. 번역이 있고 무례로 판정되지 않은 턴에만 담고, 그 밖에는 `null`입니다. 한국어나 한영 혼용으로 말했을 때 "영어로는 이렇게 말해요" 카드에 씁니다. 표시 위치는 Unity와 정합니다.
+
+**무례 판정** — 학습자 말이 무례한지(욕설·위협·모욕·조롱·하대) 턴마다 판정하고, 대화 하나 안에서 셉니다.
+
+| 판정 | 이번 턴 | NPC 대답 | 대화 |
+| --- | --- | --- | --- |
+| 무례, `rudeCount`가 `rudeLimit`보다 작음 | `rude: true`, `rudeCount` +1. 미션·대화 상태에 반영하지 않음 | 무례하다고 차분하게 지적 | 계속 |
+| 무례, `rudeCount`가 `rudeLimit`에 닿음 | 위와 같음 | 더는 이야기하지 않겠다고 말함 | `ENDED_BY_NPC`, `endReason: RUDE` |
+| 무례 아님 | `rude: false` | 평소대로 | 계속 |
+| 판정 실패 | `rude: false`. 무례로 세지 않고 평소대로 처리 | 평소대로 | 계속 |
+
+- `rudeLimit`은 서버 설정값(3)입니다. 새 대화는 0부터 셉니다.
+- 판정 결과와 실패 이유는 `turns.guard_abusive`, `turns.guard_error_code`에 남깁니다. 판정 실패를 무례나 무례 아님으로 바꿔 저장하지 않습니다.
+- NPC가 먼저 잘못한 장면(정당방위)의 예외는 사건 장면을 만들 때 정합니다(6절).
 
 ```json
 "missionUpdates": [
@@ -642,7 +680,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 {
-  "userTurn": { "turnId": 110, "seq": 10, "speaker": "USER", "text": "Can I also get a muffin?" },
+  "userTurn": {
+    "turnId": 110,
+    "seq": 10,
+    "speaker": "USER",
+    "text": "Can I also get a muffin?",
+    "rude": false,
+    "translation": null
+  },
   "npcTurn": {
     "turnId": 111,
     "seq": 11,
@@ -651,13 +696,37 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/111/speech" }
   },
-  "conversation": { "status": "ENDED_BY_NPC", "endReason": "QUOTA_EXHAUSTED" },
+  "conversation": {
+    "status": "ENDED_BY_NPC",
+    "endReason": "QUOTA_EXHAUSTED",
+    "rudeCount": 0,
+    "rudeLimit": 3
+  },
   "missionUpdates": []
 }
 ```
 
 - 작별 대사와 음성은 NPC마다 미리 만들어 둡니다(`npcs.farewell_line`, `npcs.farewell_audio_key`). 클라이언트는 대사를 보여준 뒤 CONV-08로 피드백을 받습니다.
-- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(AI가 제안한 자연스러운 종료) 또는 `QUOTA_EXHAUSTED`입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
+
+무례한 말이 `rudeLimit`만큼 쌓이면 NPC가 대화를 끝냅니다. 이것도 오류가 아니라 정상 응답입니다.
+
+```json
+{
+  "userTurn": { "turnId": 120, "seq": 6, "speaker": "USER", "text": "...", "rude": true, "translation": null },
+  "npcTurn": {
+    "turnId": 121,
+    "seq": 7,
+    "speaker": "NPC",
+    "text": "I don't want to talk like this anymore. Please leave.",
+    "suggestWords": null,
+    "speech": { "status": "READY", "url": "/api/v1/turns/121/speech" }
+  },
+  "conversation": { "status": "ENDED_BY_NPC", "endReason": "RUDE", "rudeCount": 3, "rudeLimit": 3 },
+  "missionUpdates": []
+}
+```
+
+- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(AI가 제안한 자연스러운 종료), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
 
 #### CONV-04 `POST /api/v1/turns/{turnId}/meaning`
 
@@ -895,7 +964,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ## 5. ERD와의 관계
 
-### 5.1 이 명세에 맞춰 ERD v3.1에 반영한 사항
+### 5.1 이 명세에 맞춰 ERD v3.1·v3.2에 반영한 사항
 
 | 항목 | 관련 API | ERD 변경 |
 | --- | --- | --- |
@@ -910,6 +979,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 숙어 뜻 | FB-03 | `turn_feedback.idiom_meaning_ko`를 추가했습니다. |
 | 짧은 피드백 개선 표현 | CONV-08 | `conversation_feedback.reviews` JSON을 `{ good, improve, suggestion }` 구조로 정했습니다. |
 | NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관 기간은 `[미정]`입니다. |
+| 무례 판정 (v3.2) | CONV-03 | `turns.guard_abusive`(null이면 판정 실패), `turns.guard_error_code`, `conversations.rude_count`를 추가하고 `end_reason`에 `RUDE`를 더했습니다. |
+| 학습자 말 번역 (v3.2) | CONV-03 | `turns.translation_en`을 추가했습니다. 번역 카드와 다음 요청의 대화 기록, 피드백에 씁니다. |
+| AI 호출 기록 단위 (v3.2) | 1.4, CONV-02·03 | `ai_requests.kind`를 기능 단위(`STT`, `GUARD`, `JUDGE`, `NPC`, `TTS`, `HINT`, `MEANING`, `FEEDBACK`)로 나눴습니다. 한 턴의 여러 AI 호출이 같은 `request_id`를 써도 겹치지 않습니다. |
+| STT 사용량 (v3.2) | 1.4, CONV-02 | `ai_requests.audio_ms`를 추가했습니다. 한도는 초당 토큰으로 환산해 차감합니다. |
 
 ### 5.2 아직 정할 사항
 
@@ -925,16 +998,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 | 항목 | 관련 API | 선택지 |
 | --- | --- | --- |
-| 한 턴 예상 토큰·피드백 예약량·한도·갱신 주기 | CONV-01, 03, 08, AI-01 | 서버 설정값으로 두고 정책 결정 후 반영 |
+| 한 턴 예상 토큰·피드백 예약량·한도·갱신 주기·STT 초당 토큰 환산 비율 | CONV-01, 02, 03, 08, AI-01 | 서버 설정값으로 두고 정책 결정 후 반영 |
 | 작별 대사 내용 | CONV-03 | NPC별 대사와 음성 |
-| 튜토리얼 음성 인식의 사용량 포함 | CONV-02 | 포함 / 제외 |
+| 번역 카드 표시 위치 | CONV-03 | 화면 15의 어디에 "영어로는 이렇게 말해요" 카드를 둘지 Unity와 정함 |
+| 무례 판정의 정당방위 예외 | CONV-03 | NPC가 먼저 잘못한 사건 장면에서는 무례로 세지 않음. 사건 장면을 만들 때 장소 데이터에 표시 |
 | 튜토리얼 다시 보기 | TUT-02 | 건너뛴 사용자에게 제공 여부 |
 | 전사 직접 수정 | CONV-02, 03 | 다시 녹음만(초안) / 수정 허용. 요구사항명세서 REQ-12는 텍스트 수정을 포함합니다. |
 | 내 발화 다시 듣기 | CONV-06 | 내가 보낸 문장을 TTS로 들려줄지 |
 | 대화 턴 통신 방식 | CONV-03 | REST(초안) / 스트리밍 |
 | 직원 첫 인사 생성 방식 | CONV-01 | 미리 작성 / AI 생성 |
 | NPC 음성 응답 방식 | CONV-03, 06 | 파일 주소(초안) / 본문 포함 |
-| 녹음 형식·최대 길이 | CONV-02 | STT 벤더 입력 형식에 맞춰 결정 |
 | 음성 보관 동의·기간 | CONV-02, AUTH-04 | 보관 안 함 / 동의 시 기간 한정 보관 |
 | 상세 평가 생성 시점 | CONV-08, FB-03 | 종료 시 / 상세 보기 선택 시(초안) |
 | 피드백 건너뛰기 버튼 | CONV-08 | 배치 여부 |

@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: TownBlockoutSettings
   m_EditorClassIdentifier: A305.World::A305.World.TownBlockoutSettings
   characterHeightMeters: 1.4
-  groundFloorHeightMeters: 3
-  upperFloorHeightMeters: 2.4
+  groundFloorHeightMeters: 4
+  upperFloorHeightMeters: 3
+  shopFootprintMeters: 8
+  hotelFootprintMeters: 10
+  homeFootprintMeters: 8
   parapetHeightMeters: 0.4
   doorwayWidthMeters: 2
   doorwayHeightMeters: 2.2

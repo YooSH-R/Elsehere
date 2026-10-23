@@ -25,6 +25,25 @@ namespace A305.EditorTools.World
         public const string MovementSettingsPath =
             "Assets/Data/World/MainstreetBlockout/MovementSettings.asset";
 
+        [MenuItem("Tools/A305/World/Build And Verify Larger Mainstreet Sandbox")]
+        public static void BuildLargerAndVerify()
+        {
+            if (!BuilderTools.CanBuild())
+            {
+                return;
+            }
+            var settings = BuilderTools.LoadOrCreateAsset<TownBlockoutSettings>(SettingsPath);
+            var values = new SerializedObject(settings);
+            values.FindProperty("groundFloorHeightMeters").floatValue = 4f;
+            values.FindProperty("upperFloorHeightMeters").floatValue = 3f;
+            values.FindProperty("shopFootprintMeters").floatValue = 8f;
+            values.FindProperty("hotelFootprintMeters").floatValue = 10f;
+            values.FindProperty("homeFootprintMeters").floatValue = 8f;
+            values.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+            TownMainstreetVerification.BuildAndVerify();
+        }
+
         [MenuItem("Tools/A305/World/Build Mainstreet Sandbox")]
         public static void Build()
         {
@@ -57,7 +76,7 @@ namespace A305.EditorTools.World
             GameObject player = BuilderTools.InstantiatePrefab(
                 playerPrefab,
                 groups.Characters,
-                new Vector3(6.5f, 0.1f, -17f),
+                new Vector3(6.5f, 0.1f, -11f - settings.HomeFootprintMeters),
                 Quaternion.Euler(0f, -15f, 0f)
             );
             player.name = "BlockoutPlayer";
@@ -220,6 +239,7 @@ namespace A305.EditorTools.World
             Material pavement = Material("Pavement", "#E8CFA8");
             Material extension = Material("ExtensionPavement", "#D5D9CE");
             float end = 30f + settings.NorthExtensionMeters;
+            float cafeDoorZ = 5f - 2f * settings.ShopFootprintMeters;
             Box(
                 "SiteGround",
                 streets,
@@ -251,7 +271,10 @@ namespace A305.EditorTools.World
                         );
                     }
                 }
-                if ((z < 6f || z >= 14f) && (z < -10f || z >= -6f))
+                if (
+                    (z < 6f || z >= 14f)
+                    && (z + length <= cafeDoorZ - 1.5f || z >= cafeDoorZ + 1.5f)
+                )
                 {
                     Box(
                         "CentreLine",
@@ -315,7 +338,7 @@ namespace A305.EditorTools.World
                 Box(
                     "CrosswalkStripe",
                     streets,
-                    new Vector3(x + 0.325f, 0.008f, -8.5f),
+                    new Vector3(x + 0.325f, 0.008f, cafeDoorZ),
                     new Vector3(0.65f, 0.01f, 3f),
                     Material("Stripe", "#FFF8E8"),
                     false
@@ -331,8 +354,8 @@ namespace A305.EditorTools.World
             Box(
                 "HousePorch",
                 streets,
-                new Vector3(8f, 0.025f, -16f),
-                new Vector3(2f, 0.15f, 6f),
+                new Vector3(8f, 0.025f, -13f - settings.HomeFootprintMeters / 2f),
+                new Vector3(2f, 0.15f, settings.HomeFootprintMeters),
                 pavement
             );
             Transform boundaries = Group("MovableSandboxBoundary", environment, Vector3.zero);
@@ -369,28 +392,47 @@ namespace A305.EditorTools.World
         private static void BuildBuildings(Transform environment, TownBlockoutSettings settings)
         {
             Transform buildings = Group("BuildingFootprints", environment, Vector3.zero);
+            float homeSize = settings.HomeFootprintMeters;
+            float shopSize = settings.ShopFootprintMeters;
+            float hotelSize = settings.HotelFootprintMeters;
             Building(
                 "Home",
                 buildings,
-                new Vector3(9f, 0.1f, -16f),
-                6f,
-                6f,
+                new Vector3(9f, 0.1f, -13f - homeSize / 2f),
+                homeSize,
+                homeSize,
                 270f,
                 settings,
                 house: true
             );
-            Building("Cafe", buildings, new Vector3(-7f, 0.1f, -8f), 6f, 6f, 90f, settings);
+            Building(
+                "Cafe",
+                buildings,
+                new Vector3(-7f, 0.1f, 3f - 1.5f * shopSize),
+                shopSize,
+                shopSize,
+                90f,
+                settings
+            );
             Building(
                 "GeneralStore",
                 buildings,
-                new Vector3(-7f, 0.1f, -2f),
-                6f,
-                6f,
+                new Vector3(-7f, 0.1f, 3f - shopSize / 2f),
+                shopSize,
+                shopSize,
                 90f,
                 settings,
                 enterable: false
             );
-            Building("Hotel", buildings, new Vector3(7f, 0.1f, -1f), 8f, 8f, 270f, settings);
+            Building(
+                "Hotel",
+                buildings,
+                new Vector3(7f, 0.1f, 3f - hotelSize / 2f),
+                hotelSize,
+                hotelSize,
+                270f,
+                settings
+            );
             Material background = Material("Background", "#B1BAB0");
             for (int side = -1; side <= 1; side += 2)
             {
@@ -403,23 +445,27 @@ namespace A305.EditorTools.World
                 );
             }
             Transform future = Group("FutureBuildingSlots", environment, Vector3.zero);
-            for (float z = 35f; z + 6f < 30f + settings.NorthExtensionMeters; z += 12f)
+            for (
+                float z = 35f;
+                z + shopSize < 30f + settings.NorthExtensionMeters;
+                z += shopSize + 4f
+            )
             {
                 for (int side = -1; side <= 1; side += 2)
                 {
                     Box(
-                        "Future6x6Lot",
+                        "FutureBuildingLot",
                         future,
-                        new Vector3(side * 10f, -0.02f, z + 3f),
-                        new Vector3(6f, 0.04f, 6f),
+                        new Vector3(side * (7f + shopSize / 2f), -0.02f, z + shopSize / 2f),
+                        new Vector3(shopSize, 0.04f, shopSize),
                         background,
                         false
                     );
                     Label(
                         "FutureLotLabel",
-                        "6 × 6m\n확장 부지",
+                        $"{shopSize:0.#} × {shopSize:0.#}m\n확장 부지",
                         future,
-                        new Vector3(side * 10f, 0.05f, z + 3f),
+                        new Vector3(side * (7f + shopSize / 2f), 0.05f, z + shopSize / 2f),
                         new Vector3(90f, 0f, 0f),
                         0.55f
                     );
@@ -434,12 +480,20 @@ namespace A305.EditorTools.World
             Box(
                 "HeightGauge",
                 markers,
-                new Vector3(3.8f, 1.6f, -21.5f),
-                new Vector3(0.06f, 3f, 0.06f),
+                new Vector3(3.8f, 0.1f + settings.GroundFloorHeightMeters / 2f, -21.5f),
+                new Vector3(0.06f, settings.GroundFloorHeightMeters, 0.06f),
                 mark,
                 false
             );
-            foreach (float height in new[] { 0.56f, 1.4f, 2.2f, 3f })
+            foreach (
+                float height in new[]
+                {
+                    0.56f,
+                    1.4f,
+                    settings.DoorwayHeightMeters,
+                    settings.GroundFloorHeightMeters,
+                }
+            )
             {
                 Box(
                     "HeightTick",

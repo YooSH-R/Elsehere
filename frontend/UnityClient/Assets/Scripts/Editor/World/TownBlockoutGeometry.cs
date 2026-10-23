@@ -258,8 +258,12 @@ namespace A305.EditorTools.World
                     Box(
                         "UpperWindow",
                         building,
-                        new Vector3(x, settings.GroundFloorHeightMeters + 1.1f, 0.025f),
-                        new Vector3(1.15f, 1.35f, 0.08f),
+                        new Vector3(
+                            x,
+                            settings.GroundFloorHeightMeters + settings.UpperFloorHeightMeters / 2f,
+                            0.025f
+                        ),
+                        new Vector3(1.15f, settings.UpperFloorHeightMeters * 0.56f, 0.08f),
                         glass,
                         false
                     );
@@ -285,11 +289,13 @@ namespace A305.EditorTools.World
             );
             if (name == "Hotel")
             {
+                float signHeight =
+                    settings.GroundFloorHeightMeters + settings.UpperFloorHeightMeters / 2f;
                 Box(
                     "VerticalSign",
                     building,
-                    new Vector3(frontage / 2f - 0.6f, 4.2f, 0.3f),
-                    new Vector3(0.7f, 2f, 0.25f),
+                    new Vector3(frontage / 2f - 0.6f, signHeight, 0.3f),
+                    new Vector3(0.7f, settings.UpperFloorHeightMeters * 0.8f, 0.25f),
                     Material("Navy", "#293E57"),
                     false
                 );
@@ -297,7 +303,7 @@ namespace A305.EditorTools.World
                     "HotelLandmark",
                     "H\nO\nT\nE\nL",
                     building,
-                    new Vector3(frontage / 2f - 0.6f, 4.2f, 0.45f),
+                    new Vector3(frontage / 2f - 0.6f, signHeight, 0.45f),
                     new Vector3(0f, 180f, 0f),
                     0.3f
                 );

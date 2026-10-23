@@ -10,10 +10,19 @@ namespace A305.World
         private float characterHeightMeters = 1.4f;
 
         [SerializeField, Min(2.4f)]
-        private float groundFloorHeightMeters = 3f;
+        private float groundFloorHeightMeters = 4f;
 
         [SerializeField, Min(2f)]
-        private float upperFloorHeightMeters = 2.4f;
+        private float upperFloorHeightMeters = 3f;
+
+        [SerializeField, Min(6f)]
+        private float shopFootprintMeters = 8f;
+
+        [SerializeField, Min(8f)]
+        private float hotelFootprintMeters = 10f;
+
+        [SerializeField, Min(6f)]
+        private float homeFootprintMeters = 8f;
 
         [SerializeField, Min(0.1f)]
         private float parapetHeightMeters = 0.4f;
@@ -31,6 +40,9 @@ namespace A305.World
         public float CharacterHeightMeters => characterHeightMeters;
         public float GroundFloorHeightMeters => groundFloorHeightMeters;
         public float UpperFloorHeightMeters => upperFloorHeightMeters;
+        public float ShopFootprintMeters => shopFootprintMeters;
+        public float HotelFootprintMeters => hotelFootprintMeters;
+        public float HomeFootprintMeters => homeFootprintMeters;
         public float ParapetHeightMeters => parapetHeightMeters;
         public float DoorwayWidthMeters => doorwayWidthMeters;
         public float DoorwayHeightMeters => doorwayHeightMeters;

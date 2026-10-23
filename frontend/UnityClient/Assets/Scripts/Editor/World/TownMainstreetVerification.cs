@@ -123,6 +123,9 @@ namespace A305.EditorTools.World
             PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
             PlayerCameraRig rig = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
             Camera camera = rig.GetComponent<Camera>();
+            var settings = AssetDatabase.LoadAssetAtPath<A305.World.TownBlockoutSettings>(
+                TownMainstreetBuilder.SettingsPath
+            );
             switch (stage++)
             {
                 case 0:
@@ -147,7 +150,10 @@ namespace A305.EditorTools.World
                     CheckDoorway(scene, player, "Cafe", Vector3.left);
                     CheckDoorway(scene, player, "Hotel", Vector3.right);
                     CheckDoorway(scene, player, "Home", Vector3.right);
-                    player.Teleport(new Vector3(-4.5f, 0.1f, -9f), Quaternion.Euler(0f, 270f, 0f));
+                    player.Teleport(
+                        FindDoor(scene, "Cafe").position + Vector3.right * 2.5f,
+                        Quaternion.Euler(0f, 270f, 0f)
+                    );
                     rig.SnapBehindTarget();
                     break;
                 case 2:
@@ -164,11 +170,16 @@ namespace A305.EditorTools.World
                     break;
                 case 4:
                     Capture(camera, "05-layout-overview.png");
-                    player.Teleport(new Vector3(-5.5f, 0.1f, -8f), Quaternion.Euler(0f, 90f, 0f));
+                    float cafeCentreZ = FindDoor(scene, "Cafe").parent.position.z;
+                    float viewCentreY = 0.1f + settings.ShopHeightMeters / 2f;
+                    player.Teleport(
+                        new Vector3(-5.5f, 0.1f, cafeCentreZ),
+                        Quaternion.Euler(0f, 90f, 0f)
+                    );
                     camera.orthographic = true;
-                    camera.orthographicSize = 3.5f;
-                    camera.transform.position = new Vector3(-0.2f, 3.1f, -8f);
-                    camera.transform.LookAt(new Vector3(-7f, 3.1f, -8f));
+                    camera.orthographicSize = (settings.ShopHeightMeters + 1.2f) / 2f;
+                    camera.transform.position = new Vector3(-0.2f, viewCentreY, cafeCentreZ);
+                    camera.transform.LookAt(new Vector3(-7f, viewCentreY, cafeCentreZ));
                     break;
                 case 5:
                     Capture(camera, "06-character-building-scale.png");
@@ -242,11 +253,7 @@ namespace A305.EditorTools.World
             Vector3 inward
         )
         {
-            Transform door = scene
-                .GetRootGameObjects()
-                .SelectMany(root => root.GetComponentsInChildren<Transform>())
-                .Single(item => item.name == buildingName)
-                .Find("DoorCenter");
+            Transform door = FindDoor(scene, buildingName);
             Quaternion rotation = Quaternion.LookRotation(inward);
             Vector3 start = door.position - inward * 1.8f;
             player.Teleport(start, rotation);
@@ -272,6 +279,15 @@ namespace A305.EditorTools.World
                 Vector3.Dot(player.transform.position - door.position, inward) > 1f,
                 $"{buildingName} 문: CharacterController 실제 통과와 머리 여유 확인"
             );
+        }
+
+        private static Transform FindDoor(Scene scene, string buildingName)
+        {
+            return scene
+                .GetRootGameObjects()
+                .SelectMany(root => root.GetComponentsInChildren<Transform>())
+                .Single(item => item.name == buildingName)
+                .Find("DoorCenter");
         }
 
         private static void CheckNorthWalk(PlayerMover player)

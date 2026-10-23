@@ -1,0 +1,23 @@
+services:
+  environment-check:
+    image: nginx:1.30.6-alpine
+    restart: unless-stopped
+    environment:
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:?DEPLOYMENT_ENVIRONMENT is required}"
+    ports:
+      - "127.0.0.1:${BACKEND_HOST_PORT:?BACKEND_HOST_PORT is required}:80"
+    volumes:
+      - ../nginx/bootstrap-response.conf.template:/etc/nginx/templates/default.conf.template:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    cpus: 0.25
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

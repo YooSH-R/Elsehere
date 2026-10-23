@@ -345,6 +345,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - `user_language_profiles`를 만들고 `users.current_language`를 바꿉니다. 처음 선택하면 `onboardingStep`이 `LEVEL`로 넘어갑니다.
 - 응답은 `{ "languageCode": "en-US", "onboardingStep": "LEVEL" }`입니다.
+- ONB-01 목록에 없거나 `available: false`인 언어는 `VALIDATION_FAILED`입니다.
+- 이미 고른 적 있는 언어를 다시 고르면 학습 설정(추천·선택 난이도)을 새로 만들지 않고 학습 언어만 바꿉니다. 언어 선택 단계를 지난 사용자의 `onboardingStep`은 바뀌지 않습니다.
 
 #### ONB-03~07 레벨 테스트
 
@@ -396,6 +398,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 05의 "레벨 테스트 추천" 배지는 `recommendedLevel`이 있을 때만 보여줍니다.
 - `available: false`인 단계는 "추후 제공" 카드입니다. 단계 수와 설명은 서버 설정값이며 `[미정]`입니다.
 - `selectedLevel`은 ONB-09 전까지 `null`입니다. DB에는 `selected_level`이 필수라 프로필을 만들 때 1로 저장하고, ONB-09 처리 여부는 `onboardingStep`으로 판단합니다. `[제안]`
+- 레벨 테스트 기록이 없으면 `levelTest`는 응답에 담지 않습니다.
+- 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
 
 #### ONB-09 `PUT /api/v1/me/languages/{languageCode}/level`
 
@@ -404,7 +408,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - MVP는 1단계만 허용합니다. 다른 값은 `VALIDATION_FAILED`입니다.
-- 처음 설정하면 `onboardingStep`이 `TUTORIAL`로 넘어가고 응답에 `onboardingStep`을 담습니다.
+- 처음 설정하면 `onboardingStep`이 `TUTORIAL`로 넘어가고 응답에 `onboardingStep`을 담습니다. 응답은 `{ "languageCode": "en-US", "selectedLevel": 1, "onboardingStep": "TUTORIAL" }`입니다.
+- 튜토리얼 단계 이후에 다시 설정하면 난이도만 바꾸고 `onboardingStep`은 그대로 둡니다. 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
 
 ### 4.3 튜토리얼
 

@@ -161,7 +161,7 @@ def create_app(
 
     @app.post("/v1/judge")
     async def judge(req: JudgeRequest, request: Request):
-        return await services.judge(request.app.state.llm, req, request.app.state.guard_local)
+        return await services.judge(request.app.state.llm, req)
 
     @app.post("/v1/guard")
     async def guard_line(req: GuardRequest, request: Request):

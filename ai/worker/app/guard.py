@@ -1,4 +1,4 @@
-"""무례 판정 (/v1/guard). /v1/judge도 Spring이 /v1/guard로 옮길 때까지 같은 판정을 guard 칸에 채운다.
+"""무례 판정 (/v1/guard). Spring은 한 턴에서 /v1/judge(의도·번역)와 동시에 부른다.
 명세: docs/api/ai-worker.md"""
 
 import asyncio

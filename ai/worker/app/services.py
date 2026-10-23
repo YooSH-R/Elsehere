@@ -5,8 +5,6 @@ import json
 import logging
 
 from . import prompts as P
-from .guard import guard_failure, judge_rudeness
-from .guard_local import LocalGuard
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
 from .schemas import HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, State, SuggestRequest
 
@@ -44,13 +42,13 @@ def clean_intent(raw: object, state: State) -> dict:
     return out
 
 
-async def judge(llm: LLM, req: JudgeRequest, local: LocalGuard | None = None) -> dict:
-    """번역(한국어가 섞였을 때)·무례·의도를 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear, 무례 → null 미판정).
-    무례 판정은 /v1/guard와 같은 함수(guard.judge_rudeness)다. Spring이 /v1/guard로 옮기면 여기서 뺀다."""
+async def judge(llm: LLM, req: JudgeRequest) -> dict:
+    """의도와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear, 번역 → error).
+    무례 판정은 /v1/guard가 따로 한다. 번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 그 결과로 Spring이 정한다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
     if not text:  # 행동만 있었으면 모델을 부르지 않는다. Spring은 턴으로 세지 않음
-        return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "guard": None, "translation": None, "usage": []}
+        return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "translation": None, "usage": []}
     scene = req.scene or req.npc.scene
 
     async def intent():
@@ -64,22 +62,16 @@ async def judge(llm: LLM, req: JudgeRequest, local: LocalGuard | None = None) ->
         return out.split("\n")[0].strip().strip('"')
 
     budget = llm.s.judge_budget_s
-    jobs = [within(intent(), budget), judge_rudeness(llm, req.npc, req.history, text, usage, local, budget)]
+    jobs = [within(intent(), budget)]
     if P.HANGUL.search(text):
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
     it = res[0] if not isinstance(res[0], BaseException) else {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
-    gd = res[1] if not isinstance(res[1], BaseException) else guard_failure(res[1])  # 예외는 프로그램 오류뿐 (아래에서 다시 던짐)
     translation = None
-    if len(res) == 3:
-        english = "" if isinstance(res[2], BaseException) else res[2]
+    if len(res) == 2:
+        english = "" if isinstance(res[1], BaseException) else res[1]
         english = "" if english == "-" else english
-        # 무례한 말은 번역 카드를 보여 주지 않는다 (욕을 영어로 가르치는 꼴). 판정 못 한 말도 보여 주지 않음
-        translation = {
-            "english": english or None,
-            "show": bool(english) and gd["abusive"] is False,
-            "error": str(res[2])[:160] if isinstance(res[2], BaseException) else None,
-        }
+        translation = {"english": english or None, "error": str(res[1])[:160] if isinstance(res[1], BaseException) else None}
     for r in res:  # 프로그램 오류(버그)는 숨기지 않는다
         if isinstance(r, BaseException) and not isinstance(r, (ProviderError, ValueError)):
             raise r
@@ -88,7 +80,6 @@ async def judge(llm: LLM, req: JudgeRequest, local: LocalGuard | None = None) ->
         "dropped": False,
         "notice": P.ACTION_PART_KO if had_action else None,
         "intent": it,
-        "guard": gd,
         "translation": translation,
         "usage": usage.items,
     }

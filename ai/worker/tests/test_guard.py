@@ -63,31 +63,18 @@ def test_guard_budget_from_env(monkeypatch):
     assert Settings.from_env().guard_budget_s == 2.5
 
 
+def test_unclear_answer_is_not_counted_as_abusive(client, provider):
+    """빈 답·거절은 미판정 (예전에는 무례로 셌다). Spring은 무례로 세지 않고 번역 카드도 보여 주지 않는다."""
+    provider.answers["guard"] = lambda b: ok("")
+    r = client.post("/v1/guard", json=guard_body("커피 줘")).json()
+    assert r["guard"]["abusive"] is None and r["guard"]["error_code"] == "empty"
+
+
 def test_provider_failure_is_unjudged(client, provider):
     provider.answers["guard"] = lambda b: httpx.Response(503, text="down")
     r = client.post("/v1/guard", json=guard_body("hello"))
     assert r.status_code == 200
     assert r.json()["guard"]["abusive"] is None and r.json()["guard"]["error_code"] == "provider_unavailable"
-
-
-class FakeLocal:
-    name, context = "fake", False
-
-    def __init__(self, score):
-        self.fn, self.seen = score, []
-
-    def score(self, text, prev):
-        self.seen.append((text, prev))
-        return self.fn
-
-
-def test_confident_local_guard_skips_llm(provider):
-    local = FakeLocal(0.99)
-    with make_client(provider, guard_local=local, guard_t_lo=0.05, guard_t_hi=0.95) as c:
-        r = c.post("/v1/guard", json=guard_body("닥치고 커피 내놔")).json()
-    assert r["guard"] == {"abusive": True, "error": None, "error_code": None, "source": "local", "score": 0.99, "local_error": None}
-    assert provider.calls == [] and r["usage"] == []
-    assert local.seen == [("닥치고 커피 내놔", "Hi! What can I get for you?")]  # 바로 앞 NPC 대사를 함께 넘김
 
 
 def test_guard_reads_only_clear_yes_no():

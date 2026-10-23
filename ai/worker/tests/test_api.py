@@ -77,7 +77,6 @@ def test_judge_cleans_items_to_catalog(client, provider):
             }
         )
     )
-    provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("two iced lattes and a muffin to go")).json()
     assert r["intent"] == {
         "id": "order_items",
@@ -85,9 +84,9 @@ def test_judge_cleans_items_to_catalog(client, provider):
         "error": None,
         "slots": {"items": [{"name": "latte", "iced": True, "qty": 2}, {"name": "muffin", "iced": False, "qty": 1}], "choice": "to_go"},
     }
-    assert r["guard"] == {"abusive": False, "error": None, "error_code": None}
+    assert "guard" not in r  # 무례 판정은 /v1/guard가 맡는다
     assert r["translation"] is None  # 한국어가 없으면 번역을 부르지 않음
-    assert {u["step"] for u in r["usage"]} == {"intent", "guard"}
+    assert [u["step"] for u in r["usage"]] == ["intent"]
     assert all(u["input_tokens"] == 100 for u in r["usage"])
 
 
@@ -101,7 +100,6 @@ def test_intent_schema_follows_place_slots(client, provider):
         return ok(json.dumps({"intent": "describe_symptom", "items": []}))
 
     provider.answers["intent"] = intent
-    provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("I have a headache", PHARMACY_STATE)).json()
     assert r["intent"]["id"] == "describe_symptom"
     props = seen["schema"]["properties"]
@@ -119,7 +117,6 @@ def test_several_actions_in_one_line(client, provider):
         return ok(json.dumps({"intents": ["choose_here_or_to_go", "pay", "fly"], "items": [], "choice": "to_go"}))
 
     provider.answers["intent"] = intent
-    provider.answers["guard"] = lambda b: ok("no")
     state = {
         **CAFE_STATE,
         "id": "paying",
@@ -131,47 +128,13 @@ def test_several_actions_in_one_line(client, provider):
     assert "pay" in seen["schema"]["properties"]["intents"]["items"]["enum"]
 
 
-def test_korean_rude_line_hides_translation(client, provider):
+def test_korean_line_gets_translation_without_guard(client, provider):
+    """번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 /v1/guard 결과로 Spring이 정한다. judge는 번역만."""
     provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
-    provider.answers["guard"] = lambda b: ok("yes")
     provider.answers["translate"] = lambda b: ok("Shut up and give me coffee.")
     r = client.post("/v1/judge", json=judge_body("닥치고 커피 내놔")).json()
-    assert r["guard"]["abusive"] is True
-    assert r["translation"] == {"english": "Shut up and give me coffee.", "show": False, "error": None}
-
-
-def test_unclear_guard_answer_is_not_counted_as_abusive(client, provider):
-    """빈 답·거절은 미판정 (예전에는 무례로 셌다). 번역 카드도 보여 주지 않는다."""
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
-    provider.answers["guard"] = lambda b: ok("")
-    provider.answers["translate"] = lambda b: ok("Give me coffee.")
-    r = client.post("/v1/judge", json=judge_body("커피 줘")).json()
-    assert r["guard"]["abusive"] is None and r["guard"]["error_code"] == "empty"
-    assert r["translation"]["show"] is False
-
-
-def test_guard_provider_failure_is_unjudged(client, provider):
-    """판정 모델이 대체 모델까지 모두 실패해도 '무례 아님'이 아니라 미판정 + 공급자 오류 코드."""
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
-    provider.answers["guard"] = lambda b: httpx.Response(503, text="down")
-    r = client.post("/v1/judge", json=judge_body("hello"))
-    assert r.status_code == 200
-    assert r.json()["guard"]["abusive"] is None and r.json()["guard"]["error_code"] == "provider_unavailable"
-
-
-def test_slow_guard_hits_judge_budget(provider):
-    """무례 판정이 상한을 넘기면 그 칸만 미판정(timeout). 의도는 정상으로 돌려준다."""
-
-    async def slow(b):
-        await asyncio.sleep(0.5)
-        return ok("yes")
-
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
-    provider.answers["guard"] = slow
-    with make_client(provider, judge_budget_s=0.2) as c:
-        r = c.post("/v1/judge", json=judge_body("hello")).json()
-    assert r["guard"]["abusive"] is None and r["guard"]["error_code"] == "timeout"
-    assert r["intent"]["id"] == "unclear" and r["intent"]["error"] is None
+    assert r["translation"] == {"english": "Shut up and give me coffee.", "error": None}
+    assert sorted(step for step, _ in provider.calls) == ["intent", "translate"]
 
 
 def test_action_only_is_dropped_without_model_call(client, provider):
@@ -184,7 +147,6 @@ def test_action_removed_from_mixed_line(client, provider):
     provider.answers["intent"] = lambda b: ok(
         json.dumps({"intent": "order_items", "items": [{"name": "latte", "iced": False, "qty": 1}], "choice": "none"})
     )
-    provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("*waves* one latte please")).json()
     assert r["text"] == "one latte please" and r["notice"] is not None
 
@@ -192,7 +154,6 @@ def test_action_removed_from_mixed_line(client, provider):
 def test_intent_failure_keeps_turn_going(client, provider):
     """모델이 대체 모델까지 모두 실패해도 판정은 200: 의도는 unclear + error (턴은 이어 감)."""
     provider.answers["intent"] = lambda b: httpx.Response(503, text="down")
-    provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("hello"))
     assert r.status_code == 200
     assert r.json()["intent"]["id"] == "unclear" and "모든 모델" in r.json()["intent"]["error"]
@@ -214,7 +175,8 @@ def test_daily_limit_skips_model_next_time(client, provider):
     provider.calls.clear()
     client.post("/v1/judge", json=judge_body("hi again"))
     assert ("intent", "qwen/qwen3.8-27b") not in provider.calls  # 하루 한도에 걸린 모델은 건너뜀
-    assert ("guard", "openai/gpt-oss-20b") in provider.calls  # 같은 모델을 쓰는 무례 판정도 바로 대체
+    client.post("/v1/guard", json={"npc": NPC, "text": "hi"})
+    assert ("guard", "openai/gpt-oss-20b") in provider.calls  # 같은 모델을 쓰는 무례 판정(/v1/guard)도 바로 대체
 
 
 def test_strict_json_failure_retries_with_json_object(client, provider):
@@ -224,7 +186,6 @@ def test_strict_json_failure_retries_with_json_object(client, provider):
         return ok(json.dumps({"intent": "unclear", "items": [], "choice": "none"}))
 
     provider.answers["intent"] = intent
-    provider.answers["guard"] = lambda b: ok("no")
     r = client.post("/v1/judge", json=judge_body("hi")).json()
     assert r["intent"]["error"] is None
 

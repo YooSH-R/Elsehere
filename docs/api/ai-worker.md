@@ -19,7 +19,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | CONV-01 대화 시작 · 첫 인사 | (백엔드 `[미정]`) | 미리 작성한 인사를 쓰면 AI 호출 없음. AI로 만들면 `/v1/npc/reply`에 인사 지시(`instruction`)와 `suggest_words: true` |
 | CONV-01·03 `suggestWords` | `/v1/npc/reply`의 `words` 이벤트 (또는 `/v1/suggest`) | `words` 그대로. 작별 대사 턴은 부르지 않음(`null`) |
 | CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
-| CONV-03 발화 전송 | `POST /v1/judge` → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). `npcTurn.text` ← `done.text`. 무례 판정은 `/v1/judge`의 `guard` 또는 `POST /v1/guard`(2.2.1절) 중 하나만 씀 |
+| CONV-03 발화 전송 | `POST /v1/judge`와 `POST /v1/guard`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). `npcTurn.text` ← `done.text` |
 | CONV-03 `npcTurn.speech` | `done.audio_full_id` → `GET /v1/audio/{id}` | 턴 전체 음성 하나를 받아 저장(`npc_audio_key`). `null`이면 `speech.status: FAILED` |
 | CONV-04 뜻 보기 | `POST /v1/meaning` | `meaningKo` ← `meaning_ko`, `glossary[].meaningKo` ← `glossary[].meaning_ko` |
 | CONV-05 힌트 | `POST /v1/hint` | `hintText` ← `say_this[0].en` (`say_this[0].ko`·`keywords`는 3단계 힌트용으로 남음) |
@@ -31,8 +31,8 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 
 ## 0.1 AI 쪽 규칙 (백엔드 명세에 없는 것)
 
-- **무례 판정**: `/v1/judge`의 `guard.abusive`(또는 `/v1/guard`의 같은 칸)가 `true`면 무례, `false`면 정상, **`null`이면 판정 못 함**(무례로 세지 않음, 2.2절). 무례를 몇 번에 어떻게 제재할지는 Spring 규칙이 정합니다. NPC가 먼저 잘못한 장면의 맞대응(정당방위)은 자동 제재에서 빼 주세요.
-- **번역 카드**: 학습자 말에 한글이 섞이면 `translation.english`를 줍니다. `show: true`일 때만(무례가 아님이 확정) 화면에 보여 줍니다.
+- **무례 판정**: `/v1/guard`의 `guard.abusive`가 `true`면 무례, `false`면 정상, **`null`이면 판정 못 함**(무례로 세지 않음, 2.2.1절). 무례를 몇 번에 어떻게 제재할지는 Spring 규칙이 정합니다. NPC가 먼저 잘못한 장면의 맞대응(정당방위)은 자동 제재에서 빼 주세요.
+- **번역 카드**: 학습자 말에 한글이 섞이면 `/v1/judge`가 `translation.english`를 줍니다. 화면에는 `english`가 있고 `/v1/guard`의 `abusive`가 `false`(무례가 아님이 확정)일 때만 보여 줍니다. 무례하거나 판정 못 한(`null`) 말은 보여 주지 않습니다(욕을 영어로 가르치지 않도록).
 - **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
 - **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
 - **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
@@ -79,7 +79,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | `HEDGE_AFTER_S` | 3초 | 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (NPC 스트림은 제외). 공급자가 혼잡할 때 응답 없이 멈춘 호출을 기다리지 않기 위함. 평소 응답(gms-luna 판정 p99 약 2.5~3.9초)보다 길게 잡아 평소에는 거의 더 보내지 않음 |
 | `STREAM_HEDGE_AFTER_S` | 2.5초 | NPC 대답 스트림의 **첫 글자**가 이만큼 안 오면 같은 요청 스트림을 하나 더 열어 먼저 글자를 낸 쪽을 씀(진 쪽은 닫음). GMS 스트리밍이 가끔 첫 글자를 10초 넘게 늦게 보내는 것 대비. 평소 첫 글자는 1.7초 안 |
 | `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
-| `JUDGE_BUDGET_S` | 5초 | 판정의 의도·무례·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
+| `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
 | `GUARD_BUDGET_S` | 5초 | `/v1/guard` 무례 판정 (로컬 판정기 + LLM). 넘으면 `abusive: null`, `error_code: timeout` |
 | `REPLY_FIRST_BUDGET_S` | 5초 | NPC 대답 **첫 글자까지**. 넘으면 SSE `error`(`timeout`). 말하기 시작한 대답은 끊지 않음 |
 
@@ -128,9 +128,9 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 `profile`은 수집 기록의 `profile` 칸에 그대로 남깁니다. `guard_local`은 로컬 무례 판정기를 켰을 때만 `{"model": "v2-mix", "t_lo": 0.05, "t_hi": 0.95}`이고, 끄면(기본) `null`입니다.
 
-### 2.2 `POST /v1/judge` — 의도·무례·번역
+### 2.2 `POST /v1/judge` — 의도·번역
 
-학습자 한 줄을 받아 의도·무례 판정·번역(한글이 있을 때만)을 **동시에** 돌립니다.
+학습자 한 줄을 받아 의도와 번역(한글이 있을 때만)을 **동시에** 돌립니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
 
 요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
 
@@ -142,7 +142,6 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
   "dropped": false,
   "notice": null,
   "intent": {"id": "order_items", "ids": ["order_items"], "slots": {"items": [{"name": "latte", "iced": false, "qty": 1}], "choice": "none"}, "error": null},
-  "guard": {"abusive": false, "error": null, "error_code": null},
   "translation": null,
   "usage": [{"step": "intent", "model": "...", "input_tokens": 512, "output_tokens": 20, "latency_s": 0.41, "fallback": false}]
 }
@@ -151,12 +150,30 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | 칸 | 규칙 |
 |---|---|
 | `text` | 행동 묘사(`*...*`)를 지운 말. 판정·대답·기록에는 이것을 씀 |
-| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않았고 `intent`·`guard`·`translation`은 `null`. **턴으로 세지 않고** `notice`를 보여 줌 |
+| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않았고 `intent`·`translation`은 `null`. **턴으로 세지 않고** `notice`를 보여 줌 |
 | `notice` | 학습자에게 보여 줄 한국어 안내 (행동 묘사를 지웠을 때) |
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만 |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
-| `translation` | 한글이 섞였을 때만 `{"english", "show", "error"}`. `show`는 무례가 아님이 **확정**(`abusive: false`)일 때만 `true` |
+| `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
+
+### 2.2.1 `POST /v1/guard` — 무례 판정만
+
+학습자 한 줄의 무례 여부를 판정합니다. 한 턴에서 `/v1/judge`와 같은 `text`·`history`로 **동시에** 부릅니다.
+
+요청: `npc`, `history`(최대 40줄, 판정은 마지막 4줄·로컬 판정기는 마지막 NPC 줄만 봄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+
+응답:
+
+```json
+{"text": "you idiot, hurry up", "dropped": false, "guard": {"abusive": true, "error": null, "error_code": null}, "usage": [{"step": "guard", "model": "...", "input_tokens": 230, "output_tokens": 1, "latency_s": 0.9, "fallback": false}]}
+```
+
+| 칸 | 규칙 |
+|---|---|
+| `text` | 행동 묘사(`*...*`)를 지운 말. `/v1/judge`의 `text`와 같은 값 |
+| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않고 `guard: null`, `usage: []` |
+| `guard` | 아래 표. 판정 실패·시간 초과(`GUARD_BUDGET_S`)도 **HTTP 200**에 `abusive: null`과 `error_code` |
 
 **`guard` — 무례 판정**
 
@@ -166,7 +183,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `false` | `null` | 무례 아님 | — |
 | `null` | `empty` | 판정 모델이 빈 답을 냄 | **무례로 세지 않음.** 대화 계속. 기록에 남김 |
 | `null` | `unparsed` | yes/no가 아닌 답 (거절 등) | 위와 같음. 심한 말에 모델이 거절하는 경우가 있어 건수를 따로 봄 |
-| `null` | `timeout` | `JUDGE_BUDGET_S`(`/v1/guard`는 `GUARD_BUDGET_S`) 초과 | 위와 같음 |
+| `null` | `timeout` | `GUARD_BUDGET_S` 초과 | 위와 같음 |
 | `null` | `provider_unavailable` / `provider_limit` | 공급자 실패 | 위와 같음 |
 
 판정 모델의 빈 답·거절과 공급자 장애는 무례도 정상도 아닌 `null`입니다. **`null`을 `false`나 `true`처럼 다루지 마세요.** 턴 기록에는 `null`과 `error_code`를 그대로 남깁니다.
@@ -188,24 +205,6 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 `abusive`·`error_code`의 뜻과 Spring 처리는 위 표와 같습니다. 기록에는 `source`와 `score`를 함께 남겨 주세요(호출 감소와 자동 구간 품질을 이걸로 셉니다). 서비스에서 켜는 것은 학습에 쓰지 않은 보정 데이터로 `t_lo`·`t_hi`를 고르고, 미리 정한 평가 기준(품질은 LLM 단독과 비슷하면서 판정용 LLM 호출 감소)을 넘은 뒤입니다. 그 전에는 켜지 않습니다.
 
 이진 판정이라 위협·성희롱 같은 **세부 유형은 구분하지 않습니다.** NPC가 먼저 잘못한 장면에서의 맞대응(정당방위)처럼 장면에 따라 봐줘야 하는 경우는, 유형을 돌려주는 계약이 생기기 전까지 Spring 규칙에서 자동 제재를 빼 주세요.
-
-### 2.2.1 `POST /v1/guard` — 무례 판정만
-
-학습자 한 줄의 무례 여부만 판정합니다. `/v1/judge`의 `guard`와 **같은 판정 함수**이고 결과 형식도 같습니다(위 표와 로컬 판정기 칸). 한 턴에서는 `/v1/judge`의 `guard`와 `/v1/guard` 중 **하나만** 씁니다. 둘 다 부르면 판정 모델이 두 번 불립니다.
-
-요청: `npc`, `history`(최대 40줄, 판정은 마지막 4줄·로컬 판정기는 마지막 NPC 줄만 봄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
-
-응답:
-
-```json
-{"text": "you idiot, hurry up", "dropped": false, "guard": {"abusive": true, "error": null, "error_code": null}, "usage": [{"step": "guard", "model": "...", "input_tokens": 230, "output_tokens": 1, "latency_s": 0.9, "fallback": false}]}
-```
-
-| 칸 | 규칙 |
-|---|---|
-| `text` | 행동 묘사(`*...*`)를 지운 말. `/v1/judge`의 `text`와 같은 값 |
-| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않고 `guard: null`, `usage: []` |
-| `guard` | 2.2절 `guard` 표와 같음. 판정 실패·시간 초과(`GUARD_BUDGET_S`)도 **HTTP 200**에 `abusive: null`과 `error_code` |
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)
 

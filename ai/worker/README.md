@@ -37,7 +37,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `FEEDBACK_TIMEOUT_S` | 60 | 대화 종료 피드백의 전체 상한 (재시도·대체 모델 포함, 같은 요청 더 보내기 없음). 넘으면 `AI_TIMEOUT` |
 | `AUDIO_MAX_MB` | 200 | 음성 조각·턴 전체 음성 보관소의 전체 크기 상한 (넘으면 오래된 것부터 버림) |
 | `WORDS_BUDGET_S` | 3 | NPC 대답 스트림 안 추천 단어의 상한. 넘으면 `words: null`(timeout)로 넘기고 `done`을 보냄 |
-| `JUDGE_BUDGET_S` | 5 | 판정의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함) |
+| `JUDGE_BUDGET_S` | 5 | `/v1/judge`의 의도·번역 각각의 상한 (재시도·대체 모델 포함) |
 | `GUARD_BUDGET_S` | 5 | `/v1/guard` 무례 판정의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함). 넘으면 `abusive: null`(timeout) |
 | `REPLY_FIRST_BUDGET_S` | 5 | NPC 대답 첫 글자까지의 상한 |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
@@ -49,8 +49,8 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 
 | API | 언제 | 응답 |
 |---|---|---|
-| `POST /v1/judge` | 한 턴의 처음: 번역·무례·의도를 동시에 판정 (상태는 안 바꿈) | JSON |
-| `POST /v1/guard` | 한 턴의 처음: 무례 판정만 (`/v1/judge`의 `guard`와 같은 판정) | JSON |
+| `POST /v1/judge` | 한 턴의 처음: 의도·번역을 동시에 판정 (상태는 안 바꿈) | JSON |
+| `POST /v1/guard` | 한 턴의 처음: 무례 판정 (`/v1/judge`와 동시에) | JSON |
 | `POST /v1/npc/reply` | Spring이 상태를 바꾼 뒤 NPC 대답 | SSE: `delta` → `audio`(seq 순서) → (`words`) → `done`(턴 전체 음성 `audio_full_id`) / `error` |
 | `GET /v1/audio/{id}` | 스트림의 음성 조각 (10분 보관) | audio/wav |
 | `POST /v1/tts` | 모범 발화·단어 발음 같은 단독 합성 | audio/wav |

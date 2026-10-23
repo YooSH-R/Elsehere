@@ -70,6 +70,14 @@ class State(BaseModel):
     # 판정은 말한 순서대로 여러 개를 돌려주고, Spring이 차례로 적용한다
 
 
+class GuardRequest(BaseModel):
+    npc: Npc
+    history: list[Line] = Field(default=[], max_length=40)  # 판정은 마지막 4줄, 로컬 판정기는 마지막 NPC 줄만 본다
+    text: str = Field(max_length=500)
+
+    check_text = field_validator("text")(not_blank)
+
+
 class JudgeRequest(BaseModel):
     npc: Npc
     scene: str = ""  # 비면 npc.scene

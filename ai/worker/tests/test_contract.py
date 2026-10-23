@@ -38,12 +38,10 @@ def quiet_client(provider) -> TestClient:
 def test_intent_output_that_is_not_an_object_is_unclear(provider, out):
     """의도 판정 출력이 JSON 객체가 아니면 판정 전체가 아니라 의도 칸만 실패 (200, unclear + error)."""
     provider.answers["intent"] = lambda b: ok(out)
-    provider.answers["guard"] = lambda b: ok("no")
     with quiet_client(provider) as c:
         r = c.post("/v1/judge", json=judge_body())
     assert r.status_code == 200
     assert r.json()["intent"]["id"] == "unclear" and r.json()["intent"]["error"]
-    assert r.json()["guard"]["abusive"] is False
 
 
 @pytest.mark.parametrize("text", ["", "   "])
@@ -102,14 +100,16 @@ def test_action_only_text_is_still_dropped(client, provider):
 # ---------------------------------------------------------------------
 @pytest.mark.parametrize("bad", [{"error": {"message": "x"}}, {"choices": []}, {"choices": [{"message": None}]}])
 def test_provider_200_with_unexpected_body_is_partial_failure(provider, bad):
-    """판정은 그 칸만 실패 (200). 공급자 탓이므로 의도는 unclear + error, 무례는 null + provider_unavailable."""
+    """판정은 실패해도 200. 공급자 탓이므로 의도는 unclear + error, 무례(/v1/guard)는 null + provider_unavailable."""
     provider.answers["intent"] = lambda b: httpx.Response(200, json=bad)
     provider.answers["guard"] = lambda b: httpx.Response(200, json=bad)
     with quiet_client(provider) as c:
         r = c.post("/v1/judge", json=judge_body())
+        g = c.post("/v1/guard", json={"npc": judge_body()["npc"], "text": "hello"})
     assert r.status_code == 200
     assert r.json()["intent"]["id"] == "unclear" and r.json()["intent"]["error"]
-    assert r.json()["guard"]["abusive"] is None and r.json()["guard"]["error_code"] == "provider_unavailable"
+    assert g.status_code == 200
+    assert g.json()["guard"]["abusive"] is None and g.json()["guard"]["error_code"] == "provider_unavailable"
 
 
 def test_provider_200_that_is_not_json_is_503(provider):

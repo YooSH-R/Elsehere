@@ -19,8 +19,7 @@ from feedback import generate_feedback
 from feedback.clients import ProviderCallError
 from feedback.gms import feedback_response_format
 
-from . import services
-from .llm import LLM, ProviderError, Usage
+from .llm import LLM, ProviderError, Usage, within
 
 MAX_OUTPUT_TOKENS = 6000  # 모듈의 GmsSettings.max_output_tokens와 같게
 TEMPERATURE = 1.0  # 모듈의 GMS 호출은 temperature를 보내지 않는다 (= 공급자 기본값 1.0)
@@ -50,7 +49,7 @@ class WorkerModel:
             hedge=False,
         )
         # 재시도·대체 모델을 거쳐도 전체를 FEEDBACK_TIMEOUT_S 안에 (호출 한 번의 상한만으로는 최대 약 4배까지 늘어남)
-        whole = services.within(call, self.llm.s.feedback_timeout_s)
+        whole = within(call, self.llm.s.feedback_timeout_s)
         try:
             return asyncio.run_coroutine_threadsafe(whole, self.loop).result()
         except ProviderError as e:  # 모듈은 TimeoutError를 AI_TIMEOUT, ProviderCallError를 AI_PROVIDER_ERROR로 돌려준다

@@ -25,6 +25,21 @@ namespace A305.EditorTools.World
         public const string MovementSettingsPath =
             "Assets/Data/World/MainstreetBlockout/MovementSettings.asset";
 
+        [MenuItem("Tools/A305/World/Build And Verify Reference Look")]
+        public static void BuildReferenceLookAndVerify()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            var values = new SerializedObject(PrepareCameraSettings());
+            values.FindProperty("pivotHeightMeters").floatValue = 2.5f;
+            values.FindProperty("startDistanceMeters").floatValue = 6.2f;
+            values.FindProperty("startPitchDegrees").floatValue = 6f;
+            MainstreetAtmosphere.ConfigureReferenceColor();
+            values.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+            TownMainstreetVerification.BuildAndVerify();
+        }
+
         [MenuItem("Tools/A305/World/Build And Verify Character 160cm")]
         public static void BuildCharacter160AndVerify() => BuildCharacterHeightAndVerify(1.6f);
 
@@ -103,8 +118,8 @@ namespace A305.EditorTools.World
             GameObject player = BuilderTools.InstantiatePrefab(
                 playerPrefab,
                 groups.Characters,
-                new Vector3(6.5f, 0.1f, -11f - settings.HomeFootprintMeters),
-                Quaternion.Euler(0f, -15f, 0f)
+                new Vector3(4.8f, 0.1f, -10.5f - settings.HomeFootprintMeters),
+                Quaternion.Euler(0f, 12f, 0f)
             );
             player.name = "BlockoutPlayer";
             float scale = settings.CharacterHeightMeters / 1.4f;
@@ -140,6 +155,7 @@ namespace A305.EditorTools.World
             camera.farClipPlane = 180f;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.65f, 0.81f, 0.9f);
+            MainstreetAtmosphere.Apply(groups.Environment, groups.Lighting, camera);
             CameraOrbit orbit = cameraSettings.CreateOrbit();
             orbit.SetYaw(player.transform.eulerAngles.y);
             Pose pose = orbit.GetThirdPersonPose(
@@ -189,10 +205,10 @@ namespace A305.EditorTools.World
             if (isNew)
             {
                 var values = new SerializedObject(settings);
-                values.FindProperty("pivotHeightMeters").floatValue = 0.9f * 1.6f / 1.4f;
+                values.FindProperty("pivotHeightMeters").floatValue = 2.5f;
                 values.FindProperty("eyeHeightMeters").floatValue = 0.94f * 1.6f / 1.4f;
-                values.FindProperty("startDistanceMeters").floatValue = 4f;
-                values.FindProperty("startPitchDegrees").floatValue = 25f;
+                values.FindProperty("startDistanceMeters").floatValue = 6.2f;
+                values.FindProperty("startPitchDegrees").floatValue = 6f;
                 values.ApplyModifiedPropertiesWithoutUndo();
             }
             return settings;

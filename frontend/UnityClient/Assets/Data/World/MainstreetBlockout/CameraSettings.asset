@@ -12,17 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4659f956dd7faa84b8c2e1d1421aa877, type: 3}
   m_Name: CameraSettings
   m_EditorClassIdentifier: A305.Player::A305.Player.PlayerCameraSettings
-  startDistanceMeters: 4
+  startDistanceMeters: 6.2
   minDistanceMeters: 2
   maxDistanceMeters: 9
   zoomStepMeters: 0.75
-  startPitchDegrees: 25
+  startPitchDegrees: 6
   thirdPersonMinPitchDegrees: 0
   thirdPersonMaxPitchDegrees: 70
   firstPersonMinPitchDegrees: -70
   firstPersonMaxPitchDegrees: 70
   rotateDegreesPerPixel: 0.2
-  pivotHeightMeters: 1.0285715
+  pivotHeightMeters: 2.5
   eyeHeightMeters: 1.0742857
   followSharpness: 15
   collisionRadiusMeters: 0.2

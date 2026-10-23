@@ -81,6 +81,24 @@ namespace A305.EditorTools.World
             );
         }
 
+        internal static Transform SmoothBall(
+            string name,
+            Transform parent,
+            Vector3 position,
+            Vector3 size,
+            Material material
+        )
+        {
+            return MeshObject(
+                name,
+                parent,
+                position,
+                size,
+                LoadMesh("SmoothSphereV2", () => Sphere(24, 16)),
+                material
+            );
+        }
+
         internal static Transform Post(
             string name,
             Transform parent,
@@ -544,7 +562,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        private static Transform MeshObject(
+        internal static Transform MeshObject(
             string name,
             Transform parent,
             Vector3 position,
@@ -560,7 +578,7 @@ namespace A305.EditorTools.World
             return transform;
         }
 
-        private static Mesh LoadMesh(string name, Func<Mesh> create)
+        internal static Mesh LoadMesh(string name, Func<Mesh> create)
         {
             string path = $"{ArtFolder}/Meshes/{name}.asset";
             Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);

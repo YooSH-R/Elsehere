@@ -22,6 +22,7 @@ namespace A305.EditorTools.World
             BuildPaving(streets);
             BuildStreetFurniture(streets);
             BuildTruck(streets);
+            MainstreetStreetDressing.Apply(environment, settings);
             // Scale guides remain available in the hierarchy without covering the art review.
             environment.Find("ScaleAndDistanceMarkers").gameObject.SetActive(false);
         }
@@ -62,129 +63,163 @@ namespace A305.EditorTools.World
         {
             bool store = building.name == "GeneralStore";
             bool hotel = building.name == "Hotel";
-            Material wall = store
-                ? Color("ButterStucco", "#E6C998")
-                : Color("CoralBrick", "#CC795E");
-            PrepareFacade(building, wall);
+            PrepareFacade(
+                building,
+                store ? Color("ButterStuccoV2", "#F0D29C") : MainstreetReferenceKit.Brick
+            );
             Transform art = Group("FacadeArt", building, Vector3.zero);
             float height = settings.ShopHeightMeters;
             float upperY = settings.GroundFloorHeightMeters + settings.UpperFloorHeightMeters / 2f;
             float doorX = building.Find("DoorCenter").localPosition.x;
-
-            foreach (float y in new[] { settings.GroundFloorHeightMeters, height - 0.14f })
+            foreach (float y in new[] { settings.GroundFloorHeightMeters - 0.18f, height - 0.14f })
             {
                 Block(
                     "CorniceFront",
                     art,
-                    new Vector3(0f, y, 0.13f),
-                    new Vector3(width + 0.25f, 0.24f, 0.38f),
+                    new Vector3(0, y, .13f),
+                    new Vector3(width + .25f, .25f, .38f),
                     Cream
                 );
                 foreach (int side in new[] { -1, 1 })
                     Block(
                         "CorniceSide",
                         art,
-                        new Vector3(side * width / 2f, y, -width / 2f),
-                        new Vector3(0.3f, 0.24f, width),
+                        new Vector3(side * width / 2, y, -width / 2),
+                        new Vector3(.3f, .25f, width),
                         Cream
                     );
             }
-            for (float x = -width / 2f + 1f; x < width / 2f; x += 2f)
+            float[] upperXs = hotel ? new[] { -1.7f, 1.5f } : new[] { -1.8f, 1.8f };
+            foreach (float x in upperXs)
             {
-                if (!(hotel && x > width / 2f - 2f))
-                {
-                    Place("UpperWindow", art, new Vector3(x, upperY, 0.12f), Window);
-                    Place(
-                        "WindowFlowerBox",
-                        art,
-                        new Vector3(x, upperY - 1.04f, 0.36f),
-                        () => Planter(true)
-                    );
-                }
-                if (Mathf.Abs(x - doorX) > 1.8f)
-                    Place("ShopWindow", art, new Vector3(x, 1.42f, 0.12f), ShopWindow);
-            }
-            for (int side = -1; side <= 1; side += 2)
-            {
-                for (float z = -1.4f; z > -width; z -= 2.6f)
-                {
-                    Place(
-                        "UpperWindow",
-                        art,
-                        new Vector3(side * (width / 2f + 0.08f), upperY, z),
-                        Window,
-                        side * 90f
-                    );
-                    Place(
-                        "UpperWindow",
-                        art,
-                        new Vector3(side * (width / 2f + 0.08f), 1.6f, z),
-                        Window,
-                        side * 90f
-                    );
-                }
-                for (float y = 0.35f; y < height - 0.4f; y += 0.52f)
-                    Block(
-                        "CornerStone",
-                        art,
-                        new Vector3(side * (width / 2f - 0.18f), y, 0.04f),
-                        new Vector3(0.42f, 0.32f, 0.16f),
-                        store ? Cream : Color("BrickLight", "#D89073")
-                    );
-            }
-            if (!store)
-                AddBrickAccents(art, width, height);
-
-            float canopyWidth = hotel ? 3.4f : width - 0.3f;
-            float canopyX = hotel ? doorX : 0f;
-            BuildAwning(art, canopyX, canopyWidth, store);
-            string sign =
-                hotel ? "MAPLE HOTEL"
-                : store ? "GENERAL STORE"
-                : "ELSEHERE CAFE";
-            Block(
-                "SignBoard",
-                art,
-                new Vector3(0f, 3.55f, 0.14f),
-                new Vector3(width - 0.9f, 0.62f, 0.18f),
-                Cream
-            );
-            Text("ShopName", sign, art, new Vector3(0f, 3.55f, 0.25f), 0.3f, Cream);
-            if (hotel)
-            {
-                Vector3 signPosition = new Vector3(width / 2f - 1f, upperY - 0.05f, 0.35f);
-                Block(
-                    "HotelSignBorder",
+                Place(
+                    "TallWindowV2",
                     art,
-                    signPosition,
-                    new Vector3(1.05f, 2.7f, 0.32f),
-                    Color("Gold", "#E0B456"),
-                    0.12f
+                    new Vector3(x, upperY, .12f),
+                    MainstreetReferenceKit.TallWindow
+                );
+                Place(
+                    "WindowFlowerBox",
+                    art,
+                    new Vector3(x, upperY - 1.18f, .36f),
+                    () => Planter(true)
+                );
+            }
+            for (float x = -width / 2 + 1f; x < width / 2; x += 2f)
+                if (Mathf.Abs(x - doorX) > 1.8f)
+                    Place(
+                        "WarmShopWindowV2",
+                        art,
+                        new Vector3(x, 1.42f, .12f),
+                        MainstreetReferenceKit.WarmShopWindow
+                    );
+            foreach (int side in new[] { -1, 1 })
+            {
+                for (float z = -2f; z > -width; z -= 3.5f)
+                {
+                    Place(
+                        "TallWindowV2",
+                        art,
+                        new Vector3(side * (width / 2 + .08f), upperY, z),
+                        MainstreetReferenceKit.TallWindow,
+                        side * 90f
+                    );
+                    Place(
+                        "TallWindowV2",
+                        art,
+                        new Vector3(side * (width / 2 + .08f), 1.6f, z),
+                        MainstreetReferenceKit.TallWindow,
+                        side * 90f
+                    );
+                }
+                Block(
+                    "CornerPier",
+                    art,
+                    new Vector3(side * (width / 2 - .14f), height / 2, .035f),
+                    new Vector3(.28f, height, .12f),
+                    store ? Cream : MainstreetReferenceKit.Brick
                 );
                 Block(
-                    "HotelSignFace",
+                    "CornerCap",
                     art,
-                    signPosition + Vector3.forward * 0.18f,
-                    new Vector3(0.9f, 2.53f, 0.08f),
+                    new Vector3(side * (width / 2 - .14f), height + .05f, .035f),
+                    new Vector3(.55f, .16f, .5f),
+                    Cream
+                );
+            }
+            if (hotel)
+            {
+                MainstreetReferenceKit.HotelCanopy(art, doorX);
+                Transform sign = Group(
+                    "HotelCornerSign",
+                    art,
+                    new Vector3(-width / 2 + .5f, upperY, .5f)
+                );
+                sign.localEulerAngles = new Vector3(0, -30, 0);
+                Block(
+                    "GoldBorder",
+                    sign,
+                    Vector3.zero,
+                    new Vector3(1.05f, 3.05f, .32f),
+                    Color("Gold", "#E0B456"),
+                    .12f
+                );
+                Block(
+                    "SignFace",
+                    sign,
+                    Vector3.forward * .18f,
+                    new Vector3(.92f, 2.92f, .08f),
                     Navy,
-                    0.1f
+                    .1f
                 );
                 var letters = Text(
                     "HotelLetters",
                     "H\nO\nT\nE\nL",
-                    art,
-                    signPosition + Vector3.forward * 0.24f,
-                    0.27f
+                    sign,
+                    Vector3.forward * .24f,
+                    .31f
                 );
-                letters.rectTransform.sizeDelta = new Vector2(1f, 3f);
+                letters.rectTransform.sizeDelta = new Vector2(1f, 3.1f);
             }
-            foreach (float x in new[] { doorX - 1.75f, doorX + 1.75f })
+            else
             {
-                if (Mathf.Abs(x) < width / 2f - 0.45f)
-                    Place("FlowerPlanter", art, new Vector3(x, 0f, 0.55f), () => Planter());
+                MainstreetReferenceKit.Awning(art, 0, width - .5f, store, "CAFE");
+                if (store)
+                    Text("ShopName", "GENERAL STORE", art, new Vector3(0, 3.55f, .2f), .39f, Cream);
+                for (float x = -width / 2 + 1f; x < width / 2; x += 2.8f)
+                    AddWallLamp(art, x, 3.6f);
             }
+            foreach (float x in new[] { doorX - 1.8f, doorX + 1.8f })
+                if (Mathf.Abs(x) < width / 2 - .4f)
+                    Place("FlowerPlanter", art, new Vector3(x, 0, .55f), () => Planter());
             if (!hotel && !store)
-                Place("CafeTable", art, new Vector3(-1.8f, 0f, 1.15f), CafeTable, 90f);
+            {
+                Place("CafeTable", art, new Vector3(-2.4f, 0, 1.0f), CafeTable, 90);
+                Place(
+                    "ChalkboardV2",
+                    art,
+                    new Vector3(-.3f, 0, .9f),
+                    MainstreetReferenceKit.Chalkboard
+                );
+            }
+            if (store)
+            {
+                Place(
+                    "MarketCrateV2",
+                    art,
+                    new Vector3(-2.9f, 0, .7f),
+                    MainstreetReferenceKit.MarketCrate
+                );
+                Place(
+                    "MarketCrateV2",
+                    art,
+                    new Vector3(-1.65f, 0, .7f),
+                    MainstreetReferenceKit.MarketCrate
+                );
+            }
+            if (hotel)
+                foreach (float x in new[] { doorX - 1.5f, doorX + 1.5f })
+                    AddWallLamp(art, x, 2.1f);
             AddInteriorBackdrop(
                 art,
                 width,
@@ -194,69 +229,26 @@ namespace A305.EditorTools.World
             );
         }
 
-        private static void AddBrickAccents(Transform parent, float width, float height)
+        private static void AddWallLamp(Transform parent, float x, float y)
         {
-            // A shared sparse brick panel suggests masonry without a full brick mesh wall.
-            for (float x = -width / 2f + 1f; x < width / 2f; x += 2f)
-            {
-                Transform panel = Place(
-                    "BrickAccentPanel",
-                    parent,
-                    new Vector3(x, height - 0.8f, 0.015f),
-                    () =>
-                    {
-                        var root = new GameObject("BrickAccentPanel");
-                        Block(
-                            "BrickA",
-                            root.transform,
-                            new Vector3(-0.52f, 0f, 0f),
-                            new Vector3(0.42f, 0.2f, 0.025f),
-                            Color("BrickLight", "#D89073"),
-                            0.01f
-                        );
-                        Block(
-                            "BrickB",
-                            root.transform,
-                            new Vector3(0.2f, -0.22f, 0f),
-                            new Vector3(0.42f, 0.2f, 0.025f),
-                            Color("BrickShade", "#BA6A52"),
-                            0.01f
-                        );
-                        return root;
-                    }
-                );
-                panel.name = "BrickAccents";
-            }
-        }
-
-        private static void BuildAwning(Transform parent, float centreX, float width, bool striped)
-        {
-            int strips = Mathf.CeilToInt(width / 0.55f);
-            float stripWidth = width / strips;
-            for (int index = 0; index < strips; index++)
-            {
-                float x = centreX - width / 2f + stripWidth * (index + 0.5f);
-                Material fabric = striped
-                    ? (index % 2 == 0 ? Cream : Color("AwningRed", "#C46F57"))
-                    : Green;
-                Transform roof = Block(
-                    "AwningSlope",
-                    parent,
-                    new Vector3(x, 2.94f, 0.66f),
-                    new Vector3(stripWidth + 0.005f, 0.08f, 1.48f),
-                    fabric,
-                    0.02f
-                );
-                roof.localEulerAngles = new Vector3(22f, 0f, 0f);
-                Block(
-                    "AwningScallop",
-                    parent,
-                    new Vector3(x, 2.53f, 1.32f),
-                    new Vector3(stripWidth, 0.32f, 0.1f),
-                    fabric,
-                    0.045f
-                );
-            }
+            Transform lamp = Group("WallLamp", parent, new Vector3(x, y, .15f));
+            Block("Mount", lamp, Vector3.zero, new Vector3(.12f, .25f, .12f), Navy);
+            Transform arm = Post("Arm", lamp, new Vector3(0, .1f, .15f), .025f, .35f, Navy);
+            arm.localEulerAngles = new Vector3(65, 0, 0);
+            SmoothBall(
+                "Shade",
+                lamp,
+                new Vector3(0, .13f, .29f),
+                new Vector3(.35f, .15f, .35f),
+                Navy
+            );
+            SmoothBall(
+                "Bulb",
+                lamp,
+                new Vector3(0, .04f, .29f),
+                Vector3.one * .15f,
+                MainstreetReferenceKit.Glow
+            );
         }
 
         private static void AddInteriorBackdrop(Transform parent, float width, string sign)
@@ -287,7 +279,7 @@ namespace A305.EditorTools.World
 
         private static void DecorateHome(Transform building, TownBlockoutSettings settings)
         {
-            PrepareFacade(building, Color("HomeBlue", "#89A9B3"));
+            PrepareFacade(building, Color("HomeCreamV2", "#E8DFBF"));
             building.Find("Roof").gameObject.SetActive(false);
             building.Find("RoofRidge").gameObject.SetActive(false);
             Transform art = Group("HomeArt", building, Vector3.zero);
@@ -304,7 +296,7 @@ namespace A305.EditorTools.World
                         art,
                         new Vector3(0f, y, 0.025f),
                         new Vector3(width, 0.035f, 0.035f),
-                        Color("HomeSiding", "#A6BEC3"),
+                        Color("HomeSidingV2", "#CDBF9E"),
                         0.01f
                     );
                 foreach (int side in new[] { -1, 1 })
@@ -313,7 +305,7 @@ namespace A305.EditorTools.World
                         art,
                         new Vector3(side * width / 2f, y, -width / 2f),
                         new Vector3(0.035f, 0.035f, width),
-                        Color("HomeSiding", "#A6BEC3"),
+                        Color("HomeSidingV2", "#CDBF9E"),
                         0.01f
                     );
             }
@@ -404,9 +396,14 @@ namespace A305.EditorTools.World
         {
             foreach (int side in new[] { -1, 1 })
             {
-                foreach (float z in new[] { -21.5f, 1.5f, 19f, 27f })
+                foreach (float z in new[] { -28f, 2.5f, 20f, 30f })
                 {
-                    Place("RoundTree", parent, new Vector3(side * 3.65f, 0.12f, z), Tree);
+                    Place(
+                        "GardenTreeV2",
+                        parent,
+                        new Vector3(side * 3.65f, 0.12f, z),
+                        MainstreetReferenceKit.GardenTree
+                    );
                     Block(
                         "TreeBed",
                         parent,
@@ -415,8 +412,13 @@ namespace A305.EditorTools.World
                         Color("Soil", "#776951")
                     );
                 }
-                foreach (float z in new[] { -18f, -8f, 5f, 16f, 24f })
-                    Place("StreetLamp", parent, new Vector3(side * 3.45f, 0.12f, z), Lamp);
+                foreach (float z in new[] { -27f, -7.5f, 15f, 27f })
+                    Place(
+                        "StreetLampV2",
+                        parent,
+                        new Vector3(side * 3.45f, 0.12f, z),
+                        MainstreetReferenceKit.StreetLamp
+                    );
             }
             Place("ParkBench", parent, new Vector3(11f, 0.1f, -12.4f), Bench);
             Place("FlowerPlanter", parent, new Vector3(12.5f, 0.1f, -11.5f), () => Planter());

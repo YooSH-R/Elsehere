@@ -45,12 +45,12 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 
 - **Player Settings → Web → Resolution and Presentation → Web Template**에서 `A305Responsive`를 선택합니다. **Tools → A305 → Web → Configure Responsive Template**으로도 적용할 수 있습니다.
-- **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용할 수 있습니다.
+- **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 먼저 Build Profiles에서 Web을 활성 플랫폼으로 전환합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용하며, 새 환경에서도 Web용 렌더링 설정이 포함되도록 `-buildTarget WebGL`을 명시합니다.
 - 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
 - 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
 
 ```powershell
-& "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Common.WebBuildBuilder.Build -quit -logFile <저장소 밖 경로>\WebBuild.log
+& "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -buildTarget WebGL -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Common.WebBuildBuilder.Build -quit -logFile <저장소 밖 경로>\WebBuild.log
 ```
 
 ## C# 포맷과 규칙 검사

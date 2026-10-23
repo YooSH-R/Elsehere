@@ -84,7 +84,10 @@ namespace A305.Dialogue
         {
             if (player == null || cameraRig == null || panel == null || scriptSource == null)
             {
-                Debug.LogError("DialogueController의 player·cameraRig·panel·scriptSource가 연결되지 않았습니다.", this);
+                Debug.LogError(
+                    "DialogueController의 player·cameraRig·panel·scriptSource가 연결되지 않았습니다.",
+                    this
+                );
                 enabled = false;
                 return;
             }

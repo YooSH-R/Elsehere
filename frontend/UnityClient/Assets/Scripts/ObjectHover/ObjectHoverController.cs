@@ -41,20 +41,25 @@ namespace A305.ObjectHover
         /// <summary>포인터 위치로 툴팁을 갱신한다. 매 프레임 Update에서 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.</summary>
         public void Refresh(Vector2 pointerScreenPosition, float deltaTimeSeconds)
         {
-            HoverableObject target = FindPointedObject(pointerScreenPosition, out Vector3 pointedPosition);
+            HoverableObject target = FindPointedObject(
+                pointerScreenPosition,
+                out Vector3 pointedPosition
+            );
             ObjectWord word = default;
             bool canShow =
                 target != null
                 && !player.IsMoving
                 && !player.IsMovementLocked
-                && Vector3.Distance(player.transform.position, pointedPosition) <= settings.MaxDistanceMeters
+                && Vector3.Distance(player.transform.position, pointedPosition)
+                    <= settings.MaxDistanceMeters
                 && TryGetWord(target.UnityKey, out word);
 
             state.Update(target != null ? target.UnityKey : null, canShow, deltaTimeSeconds);
 
-            Vector3 screenAnchor = state.VisibleKey != null
-                ? viewCamera.WorldToScreenPoint(target.GetTopCenter())
-                : Vector3.zero;
+            Vector3 screenAnchor =
+                state.VisibleKey != null
+                    ? viewCamera.WorldToScreenPoint(target.GetTopCenter())
+                    : Vector3.zero;
             // 툴팁 자리가 카메라 뒤에 있으면 보이지 않는다.
             if (state.VisibleKey == null || screenAnchor.z <= 0f)
             {
@@ -95,7 +100,10 @@ namespace A305.ObjectHover
         }
 
         /// <summary>포인터 방향의 가장 가까운 물체가 호버 사물이면 돌려준다. 플레이어 자신은 가리지 않는다.</summary>
-        private HoverableObject FindPointedObject(Vector2 pointerScreenPosition, out Vector3 pointedPosition)
+        private HoverableObject FindPointedObject(
+            Vector2 pointerScreenPosition,
+            out Vector3 pointedPosition
+        )
         {
             pointedPosition = Vector3.zero;
             Ray ray = viewCamera.ScreenPointToRay(pointerScreenPosition);

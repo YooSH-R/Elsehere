@@ -1,9 +1,10 @@
 """GMS 없이 실행하는 고정 응답 데모. python demo.py --help"""
+
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from feedback.clients import FixtureClient
 from feedback.prompt import build_messages
@@ -48,11 +49,16 @@ def main():
             parser.error(f"{case['case_id']}: 입력이 변경됐습니다. 고정 응답은 원래 샘플 전용입니다.")
         client = FixtureClient(read_json(ROOT / case["fixture_file"]))
         response = generate_feedback(request, client, ai_allowed=not args.quota_exhausted)
-        records.append({
-            "case_id": case["case_id"], "execution_mode": "stub",
-            "model_called": False, "semantic_quality_verified": False,
-            "fixture_client_calls": client.calls, "response": response,
-        })
+        records.append(
+            {
+                "case_id": case["case_id"],
+                "execution_mode": "stub",
+                "model_called": False,
+                "semantic_quality_verified": False,
+                "fixture_client_calls": client.calls,
+                "response": response,
+            }
+        )
     result = records if args.case == "all" else records[0]
     content = json.dumps(result, ensure_ascii=False, indent=2)
     if args.output:

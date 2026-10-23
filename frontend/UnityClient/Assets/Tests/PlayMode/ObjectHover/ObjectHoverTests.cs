@@ -107,7 +107,9 @@ namespace A305.ObjectHover.PlayModeTests
 
             Assert.That(
                 keys,
-                Is.SupersetOf(new[] { "tv", "refrigerator", "air_conditioner", "sofa", "bookshelf", "bed" })
+                Is.SupersetOf(
+                    new[] { "tv", "refrigerator", "air_conditioner", "sofa", "bookshelf", "bed" }
+                )
             );
         }
 

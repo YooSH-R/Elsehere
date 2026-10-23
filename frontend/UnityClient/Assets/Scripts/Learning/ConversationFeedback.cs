@@ -37,7 +37,10 @@ namespace A305.Learning
         /// <summary>다음 대화에서 활용할 표현. 대화에서 마지막으로 찾은 참고 표현이며, 없으면 null.</summary>
         public ReferenceExpression NextExpression { get; }
 
-        private static ReferenceExpression FindReference(string utterance, IReadOnlyList<ReferenceRule> rules)
+        private static ReferenceExpression FindReference(
+            string utterance,
+            IReadOnlyList<ReferenceRule> rules
+        )
         {
             foreach (ReferenceRule rule in rules)
             {

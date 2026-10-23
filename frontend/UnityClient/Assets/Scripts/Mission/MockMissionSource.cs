@@ -64,7 +64,9 @@ namespace A305.Mission
             [Tooltip("미션을 완료할 수 있는 대화 상대(ERD npcs.code)")]
             public string npcCode;
 
-            [Tooltip("대화에서 내가 말한 문장에 모두 들어 있어야 하는 키워드. 대소문자를 구분하지 않는다.")]
+            [Tooltip(
+                "대화에서 내가 말한 문장에 모두 들어 있어야 하는 키워드. 대소문자를 구분하지 않는다."
+            )]
             public string[] keywords;
 
             public Entry() { }

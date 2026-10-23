@@ -26,7 +26,11 @@ namespace A305.EditorTools.ObjectHover
         private const string CafeInteriorPath = "Assets/Prefabs/Cafe/CafeInterior.prefab";
 
         // 대체 공간 프리팹의 사물 이름과 사물 키(ERD world_objects.unity_key)
-        private static readonly (string PrefabPath, string ObjectName, string UnityKey)[] PlaceholderKeys =
+        private static readonly (
+            string PrefabPath,
+            string ObjectName,
+            string UnityKey
+        )[] PlaceholderKeys =
         {
             (HomeRoomPath, "Tv", "tv"),
             (HomeRoomPath, "Fridge", "refrigerator"),
@@ -50,7 +54,13 @@ namespace A305.EditorTools.ObjectHover
         {
             ("tv", "TV", "텔레비전", "Let's watch TV together.", true),
             ("refrigerator", "refrigerator", "냉장고", "The milk is in the refrigerator.", false),
-            ("air_conditioner", "air conditioner", "에어컨", "Can you turn on the air conditioner?", false),
+            (
+                "air_conditioner",
+                "air conditioner",
+                "에어컨",
+                "Can you turn on the air conditioner?",
+                false
+            ),
             ("sofa", "sofa", "소파", "He is sitting on the sofa.", false),
             ("bookshelf", "bookshelf", "책장", "The bookshelf is full of books.", false),
             ("bed", "bed", "침대", "I make my bed every morning.", false),
@@ -104,9 +114,16 @@ namespace A305.EditorTools.ObjectHover
         /// <summary>
         /// 씬에 사물 호버 처리와 툴팁이 없으면 붙이고 플레이어·카메라와 연결한다. 이미 있으면 연결만 맞춘다.
         /// </summary>
-        public static void ConnectToScene(SceneGroups groups, PlayerMover player, PlayerCameraRig cameraRig)
+        public static void ConnectToScene(
+            SceneGroups groups,
+            PlayerMover player,
+            PlayerCameraRig cameraRig
+        )
         {
-            var tooltipPrefab = BuilderTools.LoadRequiredAsset<GameObject>(TooltipPrefabPath, MenuPath);
+            var tooltipPrefab = BuilderTools.LoadRequiredAsset<GameObject>(
+                TooltipPrefabPath,
+                MenuPath
+            );
 
             var tooltip = BuilderTools.FindSingleInScene<WordTooltipView>(groups.Scene);
             if (tooltip == null)
@@ -137,21 +154,28 @@ namespace A305.EditorTools.ObjectHover
             BuilderTools.SetReference(hover, "viewCamera", cameraRig.GetComponent<Camera>());
             BuilderTools.SetReference(hover, "player", player);
             BuilderTools.SetReference(hover, "tooltip", tooltip);
-            BuilderTools.SetReference(hover, "pointAction", BuilderTools.ActionReference("UI", "Point"));
+            BuilderTools.SetReference(
+                hover,
+                "pointAction",
+                BuilderTools.ActionReference("UI", "Point")
+            );
             BuilderTools.RequireReferences(hover);
         }
 
         private static void AddWordKey(GameObject root, string objectName, string unityKey)
         {
-            Transform target = root
-                .GetComponentsInChildren<Transform>(true)
+            Transform target = root.GetComponentsInChildren<Transform>(true)
                 .FirstOrDefault(candidate => candidate.name == objectName);
             if (target == null || target.TryGetComponent(out HoverableObject _))
             {
                 return;
             }
 
-            BuilderTools.SetText(target.gameObject.AddComponent<HoverableObject>(), "unityKey", unityKey);
+            BuilderTools.SetText(
+                target.gameObject.AddComponent<HoverableObject>(),
+                "unityKey",
+                unityKey
+            );
 
             // 간판처럼 콜라이더가 없는 모양은 가리킬 수 있도록 모양에 맞춘 상자 콜라이더를 붙인다.
             if (target.GetComponentInChildren<Collider>() == null)
@@ -175,7 +199,15 @@ namespace A305.EditorTools.ObjectHover
             var mockWords = ScriptableObject.CreateInstance<MockObjectWordSource>();
             var fields = new SerializedObject(mockWords);
             SerializedProperty entries = fields.FindProperty("entries");
-            foreach ((string unityKey, string text, string meaningKo, string example, bool isSaved) in MockWords)
+            foreach (
+                (
+                    string unityKey,
+                    string text,
+                    string meaningKo,
+                    string example,
+                    bool isSaved
+                ) in MockWords
+            )
             {
                 entries.InsertArrayElementAtIndex(entries.arraySize);
                 SerializedProperty entry = entries.GetArrayElementAtIndex(entries.arraySize - 1);
@@ -212,16 +244,32 @@ namespace A305.EditorTools.ObjectHover
             BuilderTools.SetReference(view, "canvasRect", root.GetComponent<RectTransform>());
             BuilderTools.SetReference(view, "panel", panel);
             BuilderTools.SetReference(view, "panelGroup", panel.GetComponent<CanvasGroup>());
-            BuilderTools.SetReference(view, "wordLabel", UiBuilderTools.FindOrCreateText(panel, "Word", bold, 34f, Color.white));
+            BuilderTools.SetReference(
+                view,
+                "wordLabel",
+                UiBuilderTools.FindOrCreateText(panel, "Word", bold, 34f, Color.white)
+            );
             BuilderTools.SetReference(
                 view,
                 "meaningLabel",
-                UiBuilderTools.FindOrCreateText(panel, "Meaning", regular, 28f, new Color(1f, 0.88f, 0.55f))
+                UiBuilderTools.FindOrCreateText(
+                    panel,
+                    "Meaning",
+                    regular,
+                    28f,
+                    new Color(1f, 0.88f, 0.55f)
+                )
             );
             BuilderTools.SetReference(
                 view,
                 "exampleLabel",
-                UiBuilderTools.FindOrCreateText(panel, "Example", regular, 22f, new Color(0.8f, 0.82f, 0.86f))
+                UiBuilderTools.FindOrCreateText(
+                    panel,
+                    "Example",
+                    regular,
+                    22f,
+                    new Color(0.8f, 0.82f, 0.86f)
+                )
             );
             BuilderTools.RequireReferences(view);
         }

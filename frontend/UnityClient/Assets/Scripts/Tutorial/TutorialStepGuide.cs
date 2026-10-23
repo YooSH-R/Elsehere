@@ -27,7 +27,13 @@ namespace A305.Tutorial
 
         public TutorialStepGuide() { }
 
-        public TutorialStepGuide(TutorialStep step, string title, string body, string task, string buttonLabel)
+        public TutorialStepGuide(
+            TutorialStep step,
+            string title,
+            string body,
+            string task,
+            string buttonLabel
+        )
         {
             this.step = step;
             this.title = title;

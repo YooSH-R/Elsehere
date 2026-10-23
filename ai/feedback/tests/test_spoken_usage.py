@@ -1,11 +1,12 @@
 """고정 모델 응답으로 교정과 선택적 회화 설명의 연결을 검증한다. 실모델 품질 검사가 아니다."""
+
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 from feedback.clients import FixtureClient
-from feedback.models import validate_pair
 from feedback.gms import feedback_response_format
+from feedback.models import validate_pair
 from feedback.prompt import build_messages
 from feedback.service import generate_feedback
 from feedback.spoken_usage import load_catalog
@@ -44,10 +45,13 @@ class SpokenUsageTests(unittest.TestCase):
                 self.assertEqual(candidate["usage_mode"] == "understanding_only", entry["priority"] == "이해용")
 
     def test_empty_or_irrelevant_selection_keeps_correction_without_extra_calls(self):
-        for selection in (None, {"catalog_id": "unknown", "turn_id": "t02", "quote": "I forgot pay you back."},
-                          {"catalog_id": "C01", "turn_id": "t02", "quote": "I forgot pay you back."},
-                          {"catalog_id": "C06", "turn_id": "t01", "quote": "Where would you like to go?"},
-                          {"catalog_id": "C06", "turn_id": "t02", "quote": "invented quote"}):
+        for selection in (
+            None,
+            {"catalog_id": "unknown", "turn_id": "t02", "quote": "I forgot pay you back."},
+            {"catalog_id": "C01", "turn_id": "t02", "quote": "I forgot pay you back."},
+            {"catalog_id": "C06", "turn_id": "t01", "quote": "Where would you like to go?"},
+            {"catalog_id": "C06", "turn_id": "t02", "quote": "invented quote"},
+        ):
             with self.subTest(selection=selection):
                 request, body = scenario()
                 body["spoken_usage_selection"] = selection
@@ -83,6 +87,7 @@ class SpokenUsageTests(unittest.TestCase):
         request, _ = scenario("Hello.")
         schema = feedback_response_format(build_messages(request))["json_schema"]["schema"]
         self.assertEqual(schema["properties"]["spoken_usage_selection"], {"type": "null"})
+
         def walk(node):
             if isinstance(node, dict):
                 if node.get("type") == "object":
@@ -93,6 +98,7 @@ class SpokenUsageTests(unittest.TestCase):
             elif isinstance(node, list):
                 for child in node:
                     walk(child)
+
         walk(schema)
 
     def test_does_not_interpret_good_at_as_declining_offer(self):
@@ -111,8 +117,17 @@ class SpokenUsageTests(unittest.TestCase):
         request["turns"].append(turn)
         body["result"]["conversation_summary"]["evidence"] = [{"turn_id": "t02", "quote": "I'm good."}]
         body["result"]["turn_reviews"][0]["suggestions"][0]["kind"] = "context_fit"
-        body["result"]["turn_reviews"].append({"review_id": "r4", "turn_id": "t04", "original_text": turn["final_text"],
-            "verdict": "appropriate", "explanation_ko": "수락 의도를 분명히 했어요.", "assisted": False, "suggestions": []})
+        body["result"]["turn_reviews"].append(
+            {
+                "review_id": "r4",
+                "turn_id": "t04",
+                "original_text": turn["final_text"],
+                "verdict": "appropriate",
+                "explanation_ko": "수락 의도를 분명히 했어요.",
+                "assisted": False,
+                "suggestions": [],
+            }
+        )
         body["spoken_usage_selection"]["catalog_id"] = "C01"
         response = generate_feedback(request, FixtureClient(body), ai_allowed=True)
         self.assertEqual(response["status"], "completed")

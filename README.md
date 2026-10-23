@@ -67,15 +67,18 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 
 - [개발 및 협업 규칙](docs/development.md)
 - [공통 코드 규약](docs/code-conventions.md)
+- [변경 영역별 CI/CD와 운영 통합 검증 기준](docs/ci-cd.md)
 - [Unity 개발 환경과 Web 실행](docs/unity/setup.md)
 - [Unity 개발 규약](docs/unity/conventions.md)
 - [AI 코드·문서 작성 지침](AGENTS.md)
+- [AI 공통 검사와 테스트](ai/README.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
 - [Jira와 GitLab 연동](docs/jira-integration.md)
 - [단일 서버의 개발·운영 구성](docs/deployment.md)
 - [개발·운영 서버 운영 방법](docs/server-operations.md)
 - [일반 MR 템플릿](.gitlab/merge_request_templates/Default.md)
 - [릴리스 MR 템플릿](.gitlab/merge_request_templates/Release.md)
+- [검사 파이프라인과 Runner 연결](docs/ci-runner.md)
 
 ## 브랜치 흐름
 
@@ -96,4 +99,4 @@ dev에서 작업 브랜치 생성
 
 - [GitLab 저장소](https://lab.ssafy.com/s15-final/S15P31A305)
 - [Jira 보드](https://ssafy.atlassian.net/jira/software/c/projects/S15P31A305/boards/16635)
-- Jira 이슈 키의 접두사는 `S15P31A305`입니다. GitLab의 Jira 기본 연동으로 커밋·MR 링크와 댓글을 기록하며, 작업 상태는 자동 완료되지 않습니다.
+- Jira 이슈 키의 접두사는 `S15P31A305`입니다. GitLab for Jira Cloud 앱으로 개발 탭에서 브랜치·커밋·MR을 확인하며, 작업 상태는 완료 조건에 따라 관리합니다.

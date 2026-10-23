@@ -86,7 +86,10 @@ namespace A305.EditorTools.Tutorial
             BuilderTools.SetReference(
                 tutorial,
                 "guide",
-                BuilderTools.LoadRequiredAsset<TutorialGuideDefinition>(GuideDefinitionPath, MenuPath)
+                BuilderTools.LoadRequiredAsset<TutorialGuideDefinition>(
+                    GuideDefinitionPath,
+                    MenuPath
+                )
             );
             BuilderTools.SetReference(tutorial, "guideView", guideView);
             BuilderTools.SetReference(tutorial, "player", player);
@@ -134,12 +137,36 @@ namespace A305.EditorTools.Tutorial
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            TMP_Text title = UiBuilderTools.FindOrCreateText(panel, "Title", bold, 26f, Color.white);
-            TMP_Text body = UiBuilderTools.FindOrCreateText(panel, "Body", regular, 22f, SubTextColor);
+            TMP_Text title = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                26f,
+                Color.white
+            );
+            TMP_Text body = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Body",
+                regular,
+                22f,
+                SubTextColor
+            );
             TMP_Text task = UiBuilderTools.FindOrCreateText(panel, "Task", regular, 20f, TaskColor);
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button skipButton = UiBuilderTools.FindOrCreateButton(buttons, "SkipButton", "튜토리얼 건너뛰기", bold, 240f);
-            Button continueButton = UiBuilderTools.FindOrCreateButton(buttons, "ContinueButton", "다음으로", bold, 240f);
+            Button skipButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "SkipButton",
+                "튜토리얼 건너뛰기",
+                bold,
+                240f
+            );
+            Button continueButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "ContinueButton",
+                "다음으로",
+                bold,
+                240f
+            );
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "titleText", title);

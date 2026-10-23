@@ -1,4 +1,5 @@
 """독립 실행 피드백 처리. 재시도·DB·사용량 차감·Redis 처리는 호출 측 책임."""
+
 import json
 
 from pydantic import ValidationError
@@ -24,8 +25,7 @@ def _reject_constant(value):
 
 def _base(request):
     return {
-        name: getattr(request, name)
-        for name in ("schema_version", "request_id", "conversation_revision", "analysis_config_version")
+        name: getattr(request, name) for name in ("schema_version", "request_id", "conversation_revision", "analysis_config_version")
     } | {"scope": request.scope.model_dump()}
 
 
@@ -36,10 +36,16 @@ def _response(request, *, status, result=None, problem=None):
 
 
 def _failed(request, code, message):
-    return _response(request, status="failed", problem={
-        # 이미 승인된 한 번의 호출과 새 재시도 예산 승인은 다르다.
-        "code": code, "message_ko": message, "retryable_now": False,
-    })
+    return _response(
+        request,
+        status="failed",
+        problem={
+            # 이미 승인된 한 번의 호출과 새 재시도 예산 승인은 다르다.
+            "code": code,
+            "message_ko": message,
+            "retryable_now": False,
+        },
+    )
 
 
 def generate_feedback(payload, client: ModelClient, *, ai_allowed: bool):
@@ -52,14 +58,24 @@ def generate_feedback(payload, client: ModelClient, *, ai_allowed: bool):
         raise TypeError("ai_allowed에는 서버가 확인한 bool 값을 전달해야 한다")
     request = INPUT.validate_python(payload)
     if not usable_turns(request):
-        return _response(request, status="insufficient_evidence", problem={
-            "code": "NO_USABLE_USER_TURNS", "message_ko": "평가할 수 있는 확정 사용자 발화가 없어요.",
-        })
+        return _response(
+            request,
+            status="insufficient_evidence",
+            problem={
+                "code": "NO_USABLE_USER_TURNS",
+                "message_ko": "평가할 수 있는 확정 사용자 발화가 없어요.",
+            },
+        )
     if not ai_allowed:
-        return _response(request, status="blocked_by_quota", problem={
-            "code": "AI_QUOTA_EXHAUSTED", "message_ko": "AI 이용량이 부족해 새 피드백을 만들지 못했어요.",
-            "retryable_now": False,
-        })
+        return _response(
+            request,
+            status="blocked_by_quota",
+            problem={
+                "code": "AI_QUOTA_EXHAUSTED",
+                "message_ko": "AI 이용량이 부족해 새 피드백을 만들지 못했어요.",
+                "retryable_now": False,
+            },
+        )
     messages = build_messages(request)
     try:
         raw = client.complete(messages)

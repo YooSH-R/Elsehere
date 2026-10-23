@@ -46,7 +46,10 @@ namespace A305.Dialogue.Tests
 
             Assert.That(isSent, Is.True);
             Assert.That(conversation.Lines[1].IsNpc, Is.False);
-            Assert.That(conversation.Lines[1].English, Is.EqualTo("Could I have a SOY latte, please?"));
+            Assert.That(
+                conversation.Lines[1].English,
+                Is.EqualTo("Could I have a SOY latte, please?")
+            );
             Assert.That(conversation.Lines[2].English, Is.EqualTo(SoyLatteReply.English));
         }
 
@@ -117,7 +120,10 @@ namespace A305.Dialogue.Tests
         {
             var conversation = new DialogueConversation(CafeStaffCode, CreateCafeScript());
 
-            Assert.That(conversation.ExampleSentence, Is.EqualTo("Could I have a soy latte, please?"));
+            Assert.That(
+                conversation.ExampleSentence,
+                Is.EqualTo("Could I have a soy latte, please?")
+            );
         }
 
         [Test]
@@ -151,7 +157,10 @@ namespace A305.Dialogue.Tests
 
             Assert.That(record.NpcCode, Is.EqualTo(TutorialPasserbyCode));
             Assert.That(record.NpcName, Is.EqualTo("Alex"));
-            Assert.That(record.UserUtterances, Is.EqualTo(new[] { "Go straight ahead.", "Turn left at the corner." }));
+            Assert.That(
+                record.UserUtterances,
+                Is.EqualTo(new[] { "Go straight ahead.", "Turn left at the corner." })
+            );
             Assert.That(record.Lines.Count, Is.EqualTo(5));
             Assert.That(record.IsGuidedCompleted, Is.True);
         }
@@ -187,7 +196,10 @@ namespace A305.Dialogue.Tests
         {
             return new DialogueScript(
                 "Alex",
-                DialogueLine.FromNpc("Excuse me! Where is the café?", "실례합니다! 카페가 어디예요?"),
+                DialogueLine.FromNpc(
+                    "Excuse me! Where is the café?",
+                    "실례합니다! 카페가 어디예요?"
+                ),
                 new List<GuidedTurn>
                 {
                     new GuidedTurn(

@@ -8,10 +8,14 @@ namespace A305.Learning
     /// 서버·AI 연동 전에 쓰는 확인용 참고 표현 규칙. 위에서부터 확인해 발화에 키워드가 모두 들어 있는 첫 규칙을 쓴다.
     /// 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 한다.
     /// </summary>
-    [CreateAssetMenu(menuName = "A305/Learning/Mock Feedback Examples", fileName = "MockFeedbackExamples")]
+    [CreateAssetMenu(
+        menuName = "A305/Learning/Mock Feedback Examples",
+        fileName = "MockFeedbackExamples"
+    )]
     public class MockFeedbackExampleSource : FeedbackExampleSource
     {
-        private const string PoliteRequestReason = "Could I have…?는 카페에서 원하는 것을 정중하게 요청할 때 쓸 수 있어요.";
+        private const string PoliteRequestReason =
+            "Could I have…?는 카페에서 원하는 것을 정중하게 요청할 때 쓸 수 있어요.";
 
         [SerializeField]
         private List<Entry> entries = new List<Entry>
@@ -22,7 +26,12 @@ namespace A305.Learning
                 "두유 카페라테 한 잔 주시겠어요?",
                 PoliteRequestReason
             ),
-            new Entry(new[] { "latte" }, "Could I have a latte, please?", "라테 한 잔 주시겠어요?", PoliteRequestReason),
+            new Entry(
+                new[] { "latte" },
+                "Could I have a latte, please?",
+                "라테 한 잔 주시겠어요?",
+                PoliteRequestReason
+            ),
             new Entry(
                 new[] { "coffee" },
                 "Could I have an iced americano, please?",

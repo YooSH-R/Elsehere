@@ -45,7 +45,10 @@ namespace A305.Mission
         /// 진행 중인 미션의 대화 상대와 끝난 대화의 상대가 같고, 내가 말한 문장들에 키워드가 모두 있으면 완료한다.
         /// </summary>
         /// <returns>이번에 완료한 미션. 완료하지 않았으면 null.</returns>
-        public MissionContent CompleteIfMatched(string npcCode, IReadOnlyList<string> userUtterances)
+        public MissionContent CompleteIfMatched(
+            string npcCode,
+            IReadOnlyList<string> userUtterances
+        )
         {
             if (ActiveMission == null || ActiveMission.NpcCode != npcCode)
             {

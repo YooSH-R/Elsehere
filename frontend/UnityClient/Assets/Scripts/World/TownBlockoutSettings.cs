@@ -7,7 +7,7 @@ namespace A305.World
     public class TownBlockoutSettings : ScriptableObject
     {
         [SerializeField, Min(0.5f)]
-        private float characterHeightMeters = 1.4f;
+        private float characterHeightMeters = 1.6f;
 
         [SerializeField, Min(2.4f)]
         private float groundFloorHeightMeters = 4f;

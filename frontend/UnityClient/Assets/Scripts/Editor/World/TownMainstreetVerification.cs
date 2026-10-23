@@ -183,9 +183,24 @@ namespace A305.EditorTools.World
                     break;
                 case 5:
                     Capture(camera, "06-character-building-scale.png");
-                    PrepareHeightComparison(scene, player, camera);
+                    player.Teleport(new Vector3(5f, 0.1f, -11f), Quaternion.Euler(0f, 180f, 0f));
+                    camera.orthographic = false;
+                    camera.fieldOfView = 55f;
+                    camera.transform.position = new Vector3(0f, 13f, -29f);
+                    camera.transform.LookAt(new Vector3(0f, 2f, -3f));
                     break;
                 case 6:
+                    Capture(camera, "08-art-street.png");
+                    camera.transform.position = new Vector3(3f, 6.8f, -16f);
+                    camera.transform.LookAt(new Vector3(-7.5f, 3f, -5.5f));
+                    player.Teleport(new Vector3(-5.3f, 0.1f, -11f), Quaternion.Euler(0f, 90f, 0f));
+                    break;
+                case 7:
+                    Capture(camera, "09-art-cafe.png");
+                    camera.orthographic = true;
+                    PrepareHeightComparison(scene, player, camera);
+                    break;
+                case 8:
                     Capture(camera, "07-character-height-comparison.png");
                     Finish();
                     break;

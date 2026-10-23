@@ -14,4 +14,6 @@ PASS 북쪽 보도 연속 통행 39.0m / 도착 Z=68.00
 CAPTURE 04-north-extension.png
 CAPTURE 05-layout-overview.png
 CAPTURE 06-character-building-scale.png
+CAPTURE 08-art-street.png
+CAPTURE 09-art-cafe.png
 CAPTURE 07-character-height-comparison.png

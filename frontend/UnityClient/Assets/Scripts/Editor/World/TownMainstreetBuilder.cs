@@ -97,6 +97,7 @@ namespace A305.EditorTools.World
             BuildStreet(groups.Environment, settings);
             BuildBuildings(groups.Environment, settings);
             BuildMarkers(groups.Environment, settings);
+            MainstreetArtBuilder.Apply(groups.Environment, settings);
             BuildLighting(groups.Lighting);
 
             GameObject player = BuilderTools.InstantiatePrefab(
@@ -188,8 +189,8 @@ namespace A305.EditorTools.World
             if (isNew)
             {
                 var values = new SerializedObject(settings);
-                values.FindProperty("pivotHeightMeters").floatValue = 0.9f;
-                values.FindProperty("eyeHeightMeters").floatValue = 0.94f;
+                values.FindProperty("pivotHeightMeters").floatValue = 0.9f * 1.6f / 1.4f;
+                values.FindProperty("eyeHeightMeters").floatValue = 0.94f * 1.6f / 1.4f;
                 values.FindProperty("startDistanceMeters").floatValue = 4f;
                 values.FindProperty("startPitchDegrees").floatValue = 25f;
                 values.ApplyModifiedPropertiesWithoutUndo();
@@ -594,7 +595,7 @@ namespace A305.EditorTools.World
         {
             Light sun = parent.GetComponentInChildren<Light>();
             sun.transform.rotation = Quaternion.Euler(45f, -35f, 0f);
-            sun.intensity = 1.5f;
+            sun.intensity = 1.2f;
             sun.shadows = LightShadows.Soft;
             RenderSettings.ambientMode = AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.65f, 0.7f, 0.75f);
@@ -632,7 +633,7 @@ namespace A305.EditorTools.World
             text.color = new Color(0.1f, 0.15f, 0.2f);
             text.raycastTarget = false;
             text.text =
-                "메인스트리트 블록아웃 · 리틀 멍 v7 비율 대체물\nWASD 이동 · Shift 달리기 · Space 점프\n마우스 왼쪽 드래그 회전 · 휠 줌 · V 시점 · T 대화 시야\n북쪽 회색 보도: 확장 거리 시험 / 문 안쪽: 통행 확인용 빈 공간";
+                "메인스트리트 아트 · 리틀 멍 v7 비율 대체물\nWASD 이동 · Shift 달리기 · Space 점프\n마우스 왼쪽 드래그 회전 · 휠 줌 · V 시점 · T 대화 시야\n북쪽 회색 보도: 확장 거리 시험 / 문 안쪽: 통행 확인용 임시 공간";
         }
     }
 }

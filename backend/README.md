@@ -24,7 +24,11 @@ ELSEHERE 서비스 API 서버입니다. API는 [MVP API 명세](../docs/api/mvp-
 
 ```
 com.elsehere
-├── common          여러 도메인이 함께 쓰는 BaseEntity와 설정(Clock, JPA Auditing)
+├── common          여러 도메인이 함께 쓰는 코드
+│   ├── auth        로그인 사용자(LoginUser), 로그인 세션 저장, 요청 위조 방지 헤더 검사
+│   ├── config      보안·Clock·JPA Auditing 설정
+│   ├── entity      BaseEntity
+│   └── error       공통 오류 응답(ErrorCode, BusinessException)
 └── <도메인>
     ├── controller
     ├── service
@@ -34,6 +38,7 @@ com.elsehere
 
 | 도메인 | 테이블 |
 | --- | --- |
+| `auth` | 아직 없음 (개발용 로그인) |
 | `world` | scenes, npcs, world_objects, user_object_prefs |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions |
@@ -54,6 +59,22 @@ com.elsehere
 - `update`는 없는 테이블·컬럼·인덱스를 추가할 뿐, 기존 컬럼의 타입과 제약은 바꾸지 않습니다. enum 컬럼에는 허용 값 CHECK 제약이 생성되므로, enum에 값을 추가하거나 컬럼 정의를 바꾸면 로컬 DB에서 해당 테이블을 지우고 다시 만들어야 반영됩니다.
 - ERD 상단에 "DDL에서 직접 만들 것"으로 적은 항목(pgvector 확장, 부분 인덱스)은 JPA가 만들지 않습니다. 해당 기능을 구현할 때 생성 방법을 정합니다.
 - `EntitySchemaTest`가 모든 엔티티의 DDL이 PostgreSQL에서 오류 없이 실행되는지 확인합니다.
+
+## 인증과 오류 응답
+
+- 로그인 상태는 서버 세션에 두고 세션 쿠키(HttpOnly, `SameSite=Lax`)로 유지합니다. 로그인 없이 `/api/v1` API를 호출하면 `401 UNAUTHENTICATED`입니다.
+- POST·PUT·PATCH·DELETE 요청에는 `X-Requested-With` 헤더(값은 자유)를 붙여야 합니다. 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
+- 오류 응답 형식과 코드는 [MVP API 명세](../docs/api/mvp-api.md)의 1.5절을 따릅니다.
+
+### 개발용 로그인
+
+소셜 로그인 없이 사용자별 데이터를 개발할 때 씁니다. local 프로필에서만 켜지며, 다른 환경에는 이 API가 없습니다.
+
+1. local 프로필로 서버를 실행합니다. PowerShell에서는 `$env:SPRING_PROFILES_ACTIVE="local"`을 지정한 뒤 같은 창에서 `.\gradlew.bat bootRun`을 실행합니다.
+2. `POST /api/v1/dev/login`에 `X-Requested-With` 헤더와 본문 `{ "userId": 1 }`을 보내면 그 사용자로 로그인한 세션 쿠키를 받습니다.
+3. 이후 요청은 같은 세션 쿠키로 보냅니다.
+
+사용자가 실제로 있는지는 확인하지 않습니다.
 
 ## 명령
 

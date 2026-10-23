@@ -1,6 +1,6 @@
 # Player 모듈
 
-PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합니다. 탐험 중에는 3인칭·1인칭을 오가고, NPC와 대화할 때는 상대를 바라보는 1인칭으로 고정한 뒤 대화가 끝나면 직전 시점으로 돌아갑니다.
+PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동과 카메라 시점을 조작합니다. 탐험 중에는 3인칭·1인칭을 오가고, NPC와 대화할 때는 상대를 바라보는 1인칭으로 고정한 뒤 대화가 끝나면 직전 시점으로 돌아갑니다.
 
 다른 프로젝트에서도 쓸 수 있도록 게임 진행, 서버 연동, NPC·미션 같은 게임 코드를 참조하지 않습니다. 대화 시작·종료처럼 게임이 정하는 일은 아래 공개 API로 요청받습니다.
 
@@ -12,6 +12,9 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | `CameraOrbit` | 3인칭·1인칭·대화 시점 상태와 회전·줌 범위를 관리하고 카메라 위치를 계산합니다. |
 | `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. |
 | `PlayerCameraRig` | 카메라가 플레이어를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. |
+| `TouchDragInput` | 손가락별 드래그 소유권, 조이스틱 방향과 한 번만 적용할 카메라 이동량을 관리합니다. |
+| `PlayerTouchControls`, `TouchDragArea` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력을 전달합니다. |
+| `PlayerTouchSettings` | 조이스틱 중앙 무시 영역과 터치 회전 감도를 설정합니다. |
 | `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. |
 | `DialogueViewProbe` | Sandbox 씬에서 T 키로 대화 시점과 이동 잠금을 확인하는 확인용 컴포넌트입니다. 배포용 프리팹에는 붙이지 않습니다. |
 
@@ -19,7 +22,8 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 
 | 대상 | 용도 |
 | --- | --- |
-| Unity Input System | 키보드·마우스 입력 |
+| Unity Input System | 키보드·마우스·다중 터치 입력 |
+| Unity UI | 모바일 조이스틱과 드래그 영역 |
 | `A305.Characters` | 모델 Animator에 이동 상태 전달. 연결하지 않아도 동작합니다. |
 
 ## Sandbox 씬에서 확인
@@ -33,6 +37,14 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | 마우스 휠 | 3인칭 거리 조절 |
 | V | 1인칭·3인칭 전환 |
 | T | `DialogueTarget`을 바라보는 대화 시점과 이동 잠금 전환 |
+
+### 모바일 터치 조작
+
+터치 장치에서는 화면 왼쪽 아래 조이스틱을 밀어 이동하고, 화면 오른쪽 빈 영역을 드래그해 카메라를 돌립니다. 두 손가락으로 이동과 회전을 동시에 조작할 수 있습니다. 손을 떼거나 앱을 전환하면 입력이 초기화됩니다. 대화 중에는 기존 이동·회전 잠금이 적용됩니다. 점프·달리기·시점 전환의 터치 버튼은 제공하지 않습니다.
+
+**Tools → A305 → Player → Build Touch Controls**는 `Prefabs/Player/TouchControls.prefab`, `Data/Player/PlayerTouchSettings.asset`을 준비하고 Player 프리팹에 터치 UI를 연결하며 `Scenes/Sandbox/TouchControlsSandbox.unity`를 만듭니다. 기존 디자인과 설정값은 유지합니다. Production 씬을 직접 수정할 필요 없이 기존 Player 프리팹 인스턴스에도 적용됩니다.
+
+`TouchControlsSandbox`는 터치 가능한 장치에서 이동·회전을 단독 확인하는 씬이며 Scene List에는 넣지 않습니다. Web 빌드와 휴대폰 확인 방법은 [Unity 실행 문서](../../../../../docs/unity/setup.md)를 따릅니다.
 
 씬·프리팹·데이터 에셋·입력 액션은 Editor 메뉴 **Tools → A305 → Player → Build Sandbox**(`Scripts/Editor/Player/PlayerSandboxBuilder.cs`)로 다시 만들 수 있습니다. Sandbox 씬은 덮어씁니다. `Player`·`PlayerCamera` 프리팹은 컴포넌트와 연결만 다시 맞추고, `Player`의 `Visual` 아래 모델과 모델에 맞춰 바꾼 `CharacterController` 크기는 유지합니다. 이미 있는 머티리얼과 데이터 에셋의 값도 유지합니다.
 

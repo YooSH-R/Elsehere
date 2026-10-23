@@ -42,6 +42,10 @@ def select_deployment_work(changed_paths):
             runtime_configuration_changed = True
         elif path.startswith("infra/"):
             checks.add("infra")
+        elif path.startswith("ai/feedback/prompts/"):
+            # Markdown prompts are runtime assets, so the document rule cannot skip them.
+            checks.add("ai")
+            builds.add("ai")
         elif path.endswith(".md"):
             continue
         elif path.startswith("backend/"):

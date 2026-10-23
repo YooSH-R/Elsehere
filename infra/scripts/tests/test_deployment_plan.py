@@ -38,6 +38,13 @@ class DeploymentPlanTest(unittest.TestCase):
         self.assertEqual(plan["checks"], ["ai"])
         self.assertEqual(plan["builds"], ["ai"])
 
+    def test_feedback_prompt_changes_rebuild_ai_instead_of_skipping_markdown(self):
+        plan = select_deployment_work(["ai/feedback/prompts/feedback_system.ko.md"])
+
+        self.assertEqual(plan["checks"], ["ai"])
+        self.assertEqual(plan["builds"], ["ai"])
+        self.assertTrue(plan["deploy"])
+
     def test_unity_build_script_change_rebuilds_only_the_web_image(self):
         plan = select_deployment_work(["infra/scripts/run-unity-ci.ps1"])
 

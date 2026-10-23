@@ -8,18 +8,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.elsehere.auth.service.PendingSignup;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.auth.LoginUserTestController;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.user.entity.AuthProvider;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.util.UriComponents;
@@ -38,6 +43,20 @@ class SecurityConfigTest {
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"))
         .andExpect(jsonPath("$.error.message").value(ErrorCode.UNAUTHENTICATED.getMessage()));
+  }
+
+  @Test
+  @DisplayName("가입 대기 중인 사용자가 다른 API를 호출하면 403 SIGNUP_REQUIRED로 응답한다")
+  void pendingSignupRequest_respondsSignupRequired() throws Exception {
+    MockHttpSession pendingSession = new MockHttpSession();
+    pendingSession.setAttribute(
+        PendingSignup.SESSION_ATTRIBUTE,
+        new PendingSignup(AuthProvider.GOOGLE, "google-sub-new", "sun@example.com"));
+
+    mockMvc
+        .perform(get("/api/v1/test/me").session(pendingSession))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.error.code").value("SIGNUP_REQUIRED"));
   }
 
   @Test
@@ -96,6 +115,46 @@ class SecurityConfigTest {
         .perform(get("/api/v1/auth/callback/google").param("code", "code").param("state", "state"))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl("/?loginError=true"));
+  }
+
+  @Test
+  @DisplayName("로그아웃(AUTH-05)하면 204로 응답하고 세션을 끝내 이후 요청은 로그인하지 않은 상태가 된다")
+  void logout_endsSession() throws Exception {
+    MockHttpSession session = new MockHttpSession();
+    session.setAttribute(
+        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+        new SecurityContextImpl(loggedIn(7L)));
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/logout")
+                .session(session)
+                .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient"))
+        .andExpect(status().isNoContent());
+
+    assertThat(session.isInvalid()).isTrue();
+    mockMvc.perform(get("/api/v1/test/me").session(session)).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("가입 대기 중인 사용자도 로그아웃하면 가입 대기 정보가 지워져 다른 계정으로 다시 로그인할 수 있다")
+  void pendingSignupLogout_clearsPendingSignup() throws Exception {
+    MockHttpSession pendingSession = new MockHttpSession();
+    pendingSession.setAttribute(
+        PendingSignup.SESSION_ATTRIBUTE,
+        new PendingSignup(AuthProvider.GOOGLE, "google-sub-new", "sun@example.com"));
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/logout")
+                .session(pendingSession)
+                .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient"))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(get("/api/v1/test/me").session(pendingSession))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
   }
 
   private static Authentication loggedIn(Long userId) {

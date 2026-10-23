@@ -1,5 +1,6 @@
 package com.elsehere.common.config;
 
+import com.elsehere.auth.handler.LoginRequiredEntryPoint;
 import com.elsehere.auth.handler.SocialLoginFailureHandler;
 import com.elsehere.auth.handler.SocialLoginSuccessHandler;
 import com.elsehere.auth.service.SocialLoginService;
@@ -27,7 +28,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   SecurityConfig.class,
   LoginSessionService.class,
   SocialLoginSuccessHandler.class,
-  SocialLoginFailureHandler.class
+  SocialLoginFailureHandler.class,
+  LoginRequiredEntryPoint.class
 })
 @MockitoBean(types = SocialLoginService.class)
 public @interface SecuredWebMvcTest {

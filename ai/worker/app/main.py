@@ -20,12 +20,12 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import feedback_bridge, services
+from . import feedback_bridge, guard, services, stt
 from .config import Settings
 from .guard_local import LocalGuard
 from .llm import LLM, ModelOutputError, ProviderError
 from .npc import reply_events
-from .schemas import HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, ReplyRequest, SuggestRequest, TtsRequest
+from .schemas import GuardRequest, HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, ReplyRequest, SuggestRequest, TtsRequest
 from .tts import AudioStore, Kokoro
 
 log = logging.getLogger("ai_worker")
@@ -161,7 +161,11 @@ def create_app(
 
     @app.post("/v1/judge")
     async def judge(req: JudgeRequest, request: Request):
-        return await services.judge(request.app.state.llm, req, request.app.state.guard_local)
+        return await services.judge(request.app.state.llm, req)
+
+    @app.post("/v1/guard")
+    async def guard_line(req: GuardRequest, request: Request):
+        return await guard.guard(request.app.state.llm, req, request.app.state.guard_local)
 
     @app.post("/v1/npc/reply")
     async def npc_reply(req: ReplyRequest, request: Request):
@@ -195,17 +199,20 @@ def create_app(
         )
 
     @app.post("/v1/stt")
-    async def stt(request: Request, file: UploadFile = File(...), scene_words: str = Form("")):
-        audio = await file.read(services.STT_MAX_BYTES + 1)
+    async def transcribe(request: Request, file: UploadFile = File(...), scene_words: str = Form("")):
+        mime = (file.content_type or "").split(";")[0].strip()  # "audio/webm;codecs=opus" → "audio/webm"
+        if mime not in stt.AUDIO_EXT:
+            raise ApiError("audio_format_unsupported", f"지원하지 않는 녹음 형식입니다 ({file.content_type})", 415)
+        audio = await file.read(stt.STT_MAX_BYTES + 1)
         if not audio:
             raise ApiError("invalid_request", "녹음이 비어 있습니다", 400)
-        if len(audio) > services.STT_MAX_BYTES:
-            raise ApiError("invalid_request", "녹음이 3MB를 넘습니다", 400)
+        if len(audio) > stt.STT_MAX_BYTES:
+            raise ApiError("audio_too_large", "녹음이 3MB를 넘습니다", 413)
         try:  # JSON 배열 또는 쉼표로 구분한 글
             words = json.loads(scene_words) if scene_words.strip().startswith("[") else scene_words.split(",")
         except ValueError:
             raise ApiError("invalid_request", "scene_words는 JSON 배열이나 쉼표로 구분한 글이어야 합니다", 400) from None
-        return await services.stt(request.app.state.llm, audio, file.content_type or "audio/webm", [str(w) for w in words])
+        return await stt.stt(request.app.state.llm, audio, mime, [str(w) for w in words])
 
     @app.post("/v1/hint")
     async def hint(req: HintRequest, request: Request):

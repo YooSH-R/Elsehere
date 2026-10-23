@@ -38,14 +38,17 @@ com.elsehere
 
 | 도메인 | 테이블 |
 | --- | --- |
-| `auth` | 없음 (로그인 처리, 개발용 로그인) |
-| `user` | users |
+| `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
+| `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
+| `user` | users, user_consents |
 | `world` | scenes, npcs, world_objects, user_object_prefs |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions |
+| `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정) |
 
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
-- Spring Security가 호출하는 로그인 성공·실패 처리기는 `auth/handler`에 둡니다.
+- 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
+- Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.
 - 다른 담당 영역의 테이블(users, conversations, turns)은 JPA 연관관계 없이 ID 값으로만 참조합니다. 이 컬럼에는 외래 키 제약이 생기지 않습니다.
 
 ## 준비
@@ -64,7 +67,8 @@ com.elsehere
 
 ## 인증과 오류 응답
 
-- 로그인 상태는 서버 세션에 두고 세션 쿠키(HttpOnly, `SameSite=Lax`)로 유지합니다. 로그인 없이 `/api/v1` API를 호출하면 `401 UNAUTHENTICATED`입니다.
+- 로그인 상태는 서버 세션에 두고 세션 쿠키(HttpOnly, `SameSite=Lax`)로 유지합니다. 로그인 없이 `/api/v1` API를 호출하면 `401 UNAUTHENTICATED`, Google 로그인만 하고 가입 정보를 내지 않았으면 `403 SIGNUP_REQUIRED`입니다.
+- 가입(AUTH-03·04)은 Google 로그인이 세션에 남긴 가입 대기 정보로 진행합니다. 받는 약관과 현재 버전은 `ConsentCatalog`에 있으며, 약관 문서를 바꾸면 이 클래스의 버전과 주소를 함께 바꿉니다.
 - POST·PUT·PATCH·DELETE 요청에는 `X-Requested-With` 헤더(값은 자유)를 붙여야 합니다. 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 오류 응답 형식과 코드는 [MVP API 명세](../docs/api/mvp-api.md)의 1.5절을 따릅니다.
 

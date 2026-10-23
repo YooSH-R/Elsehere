@@ -36,6 +36,15 @@ class ProviderError(Exception):
         return 429 if self.code == "provider_limit" else 503
 
 
+async def within(coro, budget_s: float):
+    """요청 하나의 시간 상한. call_timeout_s는 호출 한 번의 상한이라 재시도·대체 모델을 거치면 훨씬 길어진다.
+    넘으면 그 작업만 timeout 오류 (끊긴 호출의 사용량은 기록되지 않을 수 있음)."""
+    try:
+        return await asyncio.wait_for(coro, budget_s)
+    except TimeoutError:
+        raise ProviderError("timeout", f"{budget_s:g}초 안에 끝나지 않음") from None
+
+
 @dataclass
 class Usage:
     """요청 하나가 쓴 모델 호출 기록. 모든 응답의 usage로 Spring에 보낸다 (크레딧 차감·원장)."""

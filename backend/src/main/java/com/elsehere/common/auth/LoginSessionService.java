@@ -20,7 +20,11 @@ public class LoginSessionService {
   private final SecurityContextRepository contextRepository =
       new HttpSessionSecurityContextRepository();
 
+  /** 로그인 전에 쓰던 세션이 있으면 ID를 바꿔, 로그인 전에 노출된 세션 ID로 로그인 세션을 쓰지 못하게 한다(세션 고정 방지). */
   public void login(LoginUser loginUser, HttpServletRequest request, HttpServletResponse response) {
+    if (request.getSession(false) != null) {
+      request.changeSessionId();
+    }
     SecurityContext context = contextHolderStrategy.createEmptyContext();
     context.setAuthentication(
         UsernamePasswordAuthenticationToken.authenticated(loginUser, null, List.of()));

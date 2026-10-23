@@ -1,10 +1,9 @@
 package com.elsehere.common.config;
 
+import com.elsehere.auth.handler.LoginRequiredEntryPoint;
 import com.elsehere.auth.handler.SocialLoginFailureHandler;
 import com.elsehere.auth.handler.SocialLoginSuccessHandler;
 import com.elsehere.common.auth.CsrfHeaderFilter;
-import com.elsehere.common.error.BusinessException;
-import com.elsehere.common.error.ErrorCode;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,7 +33,8 @@ public class SecurityConfig {
       HttpSecurity http,
       @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
       SocialLoginSuccessHandler socialLoginSuccessHandler,
-      SocialLoginFailureHandler socialLoginFailureHandler)
+      SocialLoginFailureHandler socialLoginFailureHandler,
+      LoginRequiredEntryPoint loginRequiredEntryPoint)
       throws Exception {
     http.httpBasic(AbstractHttpConfigurer::disable)
         .formLogin(AbstractHttpConfigurer::disable)
@@ -54,17 +54,13 @@ public class SecurityConfig {
                     // 개발용 로그인. 컨트롤러가 local 프로필에만 있어 다른 환경에서는 404다.
                     .requestMatchers(HttpMethod.POST, "/api/v1/dev/login")
                     .permitAll()
+                    // 가입(AUTH-03·04)은 로그인 전 단계다. 가입 대기 여부는 컨트롤러가 확인한다.
+                    .requestMatchers("/api/v1/auth/signup")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
-            exceptions ->
-                exceptions.authenticationEntryPoint(
-                    (request, response, authenticationException) ->
-                        exceptionResolver.resolveException(
-                            request,
-                            response,
-                            null,
-                            new BusinessException(ErrorCode.UNAUTHENTICATED))));
+            exceptions -> exceptions.authenticationEntryPoint(loginRequiredEntryPoint));
     return http.build();
   }
 }

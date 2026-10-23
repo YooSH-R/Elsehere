@@ -8,16 +8,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.elsehere.auth.service.PendingSignup;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.auth.LoginUserTestController;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.user.entity.AuthProvider;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +41,20 @@ class SecurityConfigTest {
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"))
         .andExpect(jsonPath("$.error.message").value(ErrorCode.UNAUTHENTICATED.getMessage()));
+  }
+
+  @Test
+  @DisplayName("가입 대기 중인 사용자가 다른 API를 호출하면 403 SIGNUP_REQUIRED로 응답한다")
+  void pendingSignupRequest_respondsSignupRequired() throws Exception {
+    MockHttpSession pendingSession = new MockHttpSession();
+    pendingSession.setAttribute(
+        PendingSignup.SESSION_ATTRIBUTE,
+        new PendingSignup(AuthProvider.GOOGLE, "google-sub-new", "sun@example.com"));
+
+    mockMvc
+        .perform(get("/api/v1/test/me").session(pendingSession))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.error.code").value("SIGNUP_REQUIRED"));
   }
 
   @Test

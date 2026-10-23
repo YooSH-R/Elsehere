@@ -6,7 +6,7 @@
 
 현재 서버에는 Docker Engine·Compose, 환경 확인용 서비스 두 개와 호스트 Nginx가 구성되어 있습니다. 확인용 서비스는 환경 이름과 상태를 응답하며, 실제 애플리케이션의 기동이나 통합 동작을 보장하지 않습니다.
 
-백엔드와 Unity WebGL 소스는 각 프로젝트에서 관리합니다. 앱용 이미지·Compose, DB·AI 실행 환경, 브랜치 병합에 따른 자동 배포는 별도 구현 범위입니다. GPU 서버의 연결 방식도 제공 조건과 AI 실행 방식이 정해진 뒤 반영합니다.
+백엔드·AI 워커·웹 이미지와 앱용 Compose는 저장소에서 관리합니다. 실제 서버는 앱 전환과 자동 배포 연결 전까지 확인용 서비스를 유지합니다. Unity 빌드 환경과 dev 자동 배포는 아직 연결 단계이며, [EC2 Unity 빌드 조건](unity/server-build.md)을 확인합니다. GPU 서버 연결은 제공 조건과 AI 실행 방식이 정해진 뒤 반영합니다.
 
 ## 서버와 환경 구분
 
@@ -71,12 +71,43 @@
 
 ## 실제 앱으로 교체하는 기준
 
+### 앱 실행 구성
+
+`infra/compose/compose.app.yaml`은 `database`(PostgreSQL 16), `ai-worker`, `backend`, `web`을 같은 환경의 내부 네트워크에서 실행합니다. 외부로 게시하는 포트는 웹 서버의 루프백 주소 하나입니다. API 요청은 웹 서버에서 `backend:8080`으로 전달하고 DB·AI 포트는 게시하지 않습니다. 프로젝트 이름으로 네트워크와 DB 볼륨을 분리합니다.
+
+```text
+호스트 Nginx /dev/ 또는 /dev/api/
+  → 127.0.0.1:8081 (web)
+      ├─ 정적 WebGL 파일
+      └─ /api/ → backend:8080 → database:5432
+                              → ai-worker:8020 (연동 주소)
+```
+
+기능 API와 게임의 서버 연동은 각 기능의 구현 상태를 따릅니다. 컨테이너 기동만으로 학습·대화 기능이 완성되었다고 판단하지 않습니다. 기본 AI 이미지는 원격 모델 호출과 STT에 필요한 실행 의존성을 포함합니다. Kokoro·로컬 판정 모델과 관련 선택 의존성은 포함하지 않으므로 TTS·로컬 판정 활성화는 모델 준비와 별도 검증이 필요합니다.
+
+| 설정 | 역할 |
+| --- | --- |
+| `infra/docker/backend.Dockerfile` | 검사에 통과한 `backend/build/libs/app.jar` 실행. 서버에서 다시 빌드하지 않음 |
+| `infra/docker/ai-worker.Dockerfile` | 워커와 공유 피드백 모듈 실행 |
+| `infra/docker/web.Dockerfile` | WebGL 산출물과 내부 API 프록시 제공 |
+| `infra/nginx/web.conf` | WebAssembly MIME·gzip 헤더, 백엔드 교체 후 DNS 재조회 |
+| `infra/compose/deploy.*.env.example` | 환경별 DB·AI·포트·이미지 변수 예제 |
+| `infra/nginx/a305.dev-webgl.locations.conf` | 기존 HTTPS 서버에 수동으로 추가할 개발 WebGL 경로 예제 |
+
+실제 `deploy.env`에는 DB 비밀번호, 내부 토큰, GMS·Groq 키와 검증한 이미지 참조가 필요합니다. 예제의 빈 값은 사용자가 서버에서 채우며 저장소에 넣지 않습니다. 새 운영 DB는 스키마 준비 후 `JPA_DDL_AUTO=validate`로 검증해야 하므로 개발의 `update` 설정으로 운영 초기화를 대신하지 않습니다.
+
+개발 서비스의 초기 상한은 DB 0.5 CPU·512MiB, AI 0.5 CPU·512MiB, 백엔드 0.75 CPU·1GiB, 웹 0.25 CPU·128MiB입니다. 부하 측정 전의 시작값이며 Unity 빌드 자원과는 별도로 관리합니다. 백엔드 `/api/health`는 DB 상태를 포함한 `UP`/`DOWN`을 반환하고 세부 연결 정보는 노출하지 않습니다. 웹 `/version.json`은 WebGL 산출물의 커밋을 표시합니다.
+
+### 전환 순서
+
 1. 영역별 실행·검사·빌드 명령, 상태 확인 API, 필수 환경변수와 이미지 버전을 정합니다.
 2. 앱용 Compose를 작성하고 개발·운영 설정 조합을 모두 검사합니다. DB·AI 실행 방식은 확정된 기술 결정에 맞춥니다.
 3. 개발 확인용 서비스만 중지한 뒤 개발 포트를 앱에 연결합니다. 개발에서 Nginx 경로와 앱 통합 동작을 검증합니다.
 4. 운영 후보의 코드·이미지·설정을 고정하고 검증 결과와 복구 절차를 릴리스 MR에 기록합니다.
 5. 운영 확인용 서비스를 앱으로 교체하고 HTTPS 응답과 대표 요청을 확인합니다. 변경된 앱과 호환되는 이전 이미지·설정을 보관합니다.
 
-Unity WebGL의 정적 파일 경로·압축 응답과 브라우저 API 연결은 실제 빌드 배포 시 추가합니다. 현재 Nginx의 루트 응답은 연결 확인용이며 WebGL을 제공하지 않습니다. 확인용 서비스의 `healthy` 상태를 앱 배포 성공으로 사용하지 않습니다.
+WebGL 이미지를 준비한 후 기존 HTTPS 서버의 `/dev/` location을 추가하고, 하위 파일 요청에서 `/dev`가 제거되어 웹 컨테이너로 전달되는지 확인합니다. `a305.dev-webgl.locations.conf`는 location 예제이며 Certbot이 수정한 전체 서버 설정 위에 덮어쓰지 않습니다. 현재 서버의 루트 응답은 연결 확인용이며 아직 WebGL을 제공하지 않습니다. 확인용 서비스의 `healthy` 상태를 앱 배포 성공으로 사용하지 않습니다.
+
+`infra:app-runtime` 검사는 격리된 일회용 Compose에서 실제 백엔드·PostgreSQL·AI 워커와 웹 설정을 확인합니다. 외부 모델 호출은 하지 않으며, 작은 정적 fixture로 확인한 HTTP 압축·MIME 검증을 Unity 게임 실행 검증과 구분합니다.
 
 일상적인 명령과 장애 점검은 [서버 운영 방법](server-operations.md)을 따릅니다. 브랜치·리뷰·릴리스는 [협업 규칙](development.md)을 따르며, CI/CD 실행 작업은 별도로 구현합니다.

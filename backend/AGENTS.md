@@ -5,7 +5,7 @@
 ## 현재 상태
 
 - 기술 구성과 실행 방법은 [백엔드 README](README.md)에 있습니다. Java 21, Spring Boot 4.1.1, Gradle(Groovy DSL)이며 기본 패키지는 `com.elsehere`입니다.
-- 포함된 의존성: Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Lombok, PostgreSQL 드라이버
+- 포함된 의존성: Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Actuator, Lombok, PostgreSQL 드라이버
 - 아직 넣지 않은 것: 스키마 마이그레이션 도구. 정하기 전까지 테이블은 엔티티를 기준으로 Hibernate `ddl-auto`가 만듭니다.
 - 엔티티는 `com.elsehere.common.entity.BaseEntity`를 상속합니다. 생성·수정 시각(`created_at`, `updated_at`)은 JPA Auditing이 `Clock` 빈 기준으로 기록하며, 식별자는 각 엔티티에서 선언합니다.
 - 데이터 구조는 [ERD](../docs/erd.dbml), API는 [MVP API 명세](../docs/api/mvp-api.md)를 따릅니다.

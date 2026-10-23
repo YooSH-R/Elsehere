@@ -13,3 +13,4 @@ ai/feedback/local_results/
 
 # CI reports and dependency caches
 .gradle/
+/dist/

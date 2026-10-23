@@ -89,6 +89,12 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 
 제외 기준은 프로젝트의 `.gitignore`를 따릅니다. Unity 프로젝트의 텍스트 파일은 저장소의 `.gitattributes`에 따라 LF로 공유합니다. 새로 저장소를 받은 팀원도 Editor 실행과 Web 빌드를 확인한 뒤 초기 환경 공유를 완료합니다.
 
+## 자동 빌드 진입점
+
+`A305.EditorTools.Deployment.WebGlBuild.Build`는 활성화된 Scene List를 WebGL로 빌드하고 gzip 응답에 맞는 산출물과 `version.json`을 만듭니다. `WEBGL_BUILD_DIRECTORY`에 `Assets` 밖의 출력 폴더를 지정합니다. `CI_COMMIT_SHA`가 있으면 전체 커밋 SHA를 기록하고, 로컬 검증에서는 `local`을 기록합니다.
+
+EC2의 Editor·라이선스·자원 조건과 시험 순서는 [서버에서 Unity 빌드하기](server-build.md)를 따릅니다. 빌드 스크립트가 있다는 사실과 해당 서버의 Runner 연결·자동 배포 완료는 구분합니다.
+
 ## 후속 검증 범위
 
 - 마이크: Unity Web의 기본 `Microphone` API는 지원되지 않으므로 브라우저 API 연결 방식을 검증합니다. 권한 허용·거부, 녹음과 재생을 실제 브라우저에서 확인합니다.

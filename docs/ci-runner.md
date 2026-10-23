@@ -7,11 +7,13 @@
 | 작업 | 실행 조건 | 검증·산출물 |
 | --- | --- | --- |
 | `ci:yaml` | 생성된 모든 파이프라인 | CI YAML 문법·형식 검사 |
-| `backend:check-and-build` | 백엔드, API 명세, ERD 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·JAR·커밋 식별자 |
+| `backend:check-and-build` | 백엔드, API 명세, ERD, 앱 실행 설정 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·`app.jar`·커밋 식별자 |
 | `unity:format` | 프론트, API 명세, Unity 검사·규약 또는 공통 CI 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
+| `infra:deployment-plan-tests` | 인프라 스크립트 또는 공통 CI 변경 | Ruff·임시 Git 저장소 기반 누적 배포 범위 판정 테스트 |
+| `infra:app-runtime` | 앱용 Dockerfile·Compose·환경 예제·웹 설정·실행 점검 코드, API 명세 또는 공통 CI 변경 | 검사된 JAR를 받아 실제 앱 이미지를 빌드하고, 일회용 Compose에서 DB·백엔드 health·AI 인증·웹 gzip/MIME 검증 |
 
 일반 문서 변경은 빠른 YAML 검사만 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치에 MR이 있으면 MR 파이프라인을 사용해 Push 파이프라인과의 중복 실행을 줄입니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI 검사를 모두 수행하고, 확인용 Compose가 있으면 인프라 검사도 수행합니다.
 
@@ -26,8 +28,10 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | `frontend/` | `ci:yaml`, `unity:format` |
 | `ai/worker/` 또는 `ai/tools/` | `ci:yaml`, `ai:check-and-test` |
 | `ai/feedback/` | `ci:yaml`, `ai:check-and-test`, `ai:panel-tests` |
-| `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, 두 AI 작업 |
-| `infra/compose/` 또는 `infra/nginx/` | `ci:yaml`, `infra:compose-and-nginx` |
+| `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, 두 AI 작업, `infra:app-runtime` |
+| 확인용 `infra/compose/` 또는 호스트 `infra/nginx/` | `ci:yaml`, `infra:compose-and-nginx` |
+| 앱용 Dockerfile·Compose·환경 예제·웹 응답 설정 | `ci:yaml`, `backend:check-and-build`, `infra:app-runtime`, 해당 경로의 인프라 문법 검사 |
+| `infra/scripts/` | `ci:yaml`, `infra:deployment-plan-tests`. 앱 실행 점검 코드는 백엔드 빌드·실행 검사도 선택 |
 | `.gitlab-ci.yml` 또는 `.gitlab/ci/` | 적용 가능한 모든 작업 |
 | 웹에서 수동 실행 | 적용 가능한 모든 작업 |
 
@@ -38,6 +42,8 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 현재 Unity 작업은 **포맷 검사**입니다. Unity Editor의 컴파일·EditMode·PlayMode·WebGL 빌드 검증을 대신하지 않습니다. Editor·Web Build Support·라이선스를 사용할 실행 환경을 연결한 뒤 기존 Unity 검사 명령과 테스트·빌드를 추가합니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
 
 이 설정에는 자동 배포·운영 통합 테스트가 포함되지 않습니다. 실제 앱의 실행 설정과 이미지, 배포 후 상태 검사 및 복구 절차를 검증한 뒤 배포 작업을 연결합니다. 마지막 성공 배포 이후 누적 변경 판정은 배포 구현의 책임이며 CI의 `rules:changes`만으로 해결했다고 간주하지 않습니다.
+
+`infra:app-runtime`은 Runner의 rootless Docker 안에 `a305-check-*` 프로젝트를 만들고 종료 시 그 프로젝트의 컨테이너·네트워크·DB 볼륨만 정리합니다. 테스트용 네트워크의 외부 통신을 차단하고 공급자 키는 가짜 값을 사용하므로 실제 모델을 호출하지 않습니다. 웹 응답에는 작은 HTTP fixture를 사용하며 실제 Unity 게임 화면이나 외부 HTTPS 경로를 검증한 것으로 표시하지 않습니다. 실행 구성은 [서버 구성](deployment.md), Unity 실행 환경은 [EC2 빌드 검토](unity/server-build.md)를 따릅니다.
 
 ## 동일 서버의 실행 구조와 제한
 

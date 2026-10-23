@@ -39,6 +39,7 @@ class EntitySchemaTest {
         .contains(
             "users",
             "user_consents",
+            "user_language_profiles",
             "scenes",
             "npcs",
             "world_objects",

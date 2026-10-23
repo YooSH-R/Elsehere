@@ -34,6 +34,7 @@ namespace A305.Player
 
         private CameraOrbit orbit;
         private Transform dialogueLookTarget;
+        private PlayerTouchControls touchControls;
 
         public CameraViewMode ViewMode => orbit.ViewMode;
 
@@ -73,6 +74,7 @@ namespace A305.Player
             }
 
             orbit = cameraSettings.CreateOrbit();
+            touchControls = followTarget.GetComponentInChildren<PlayerTouchControls>(true);
             SnapBehindTarget();
         }
 
@@ -99,7 +101,16 @@ namespace A305.Player
 
         private void ApplyInput()
         {
-            if (rotateHoldAction.action.IsPressed())
+            if (touchControls != null)
+            {
+                orbit.Rotate(touchControls.ConsumeLookDelta());
+            }
+
+            // 터치가 마우스 입력으로도 전달되는 브라우저에서 회전을 중복 적용하지 않는다.
+            if (
+                (touchControls == null || !touchControls.IsInteracting)
+                && rotateHoldAction.action.IsPressed()
+            )
             {
                 orbit.Rotate(lookAction.action.ReadValue<Vector2>());
             }

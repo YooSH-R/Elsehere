@@ -104,6 +104,7 @@ def make_client(provider: Provider, tts=None, guard_local=None, **kw) -> TestCli
         "models": profile_models("groq")[0],
         "role_provider": {},
         "fallback": dict(PROFILES["profiles"]["groq"]["fallback"]),
+        "stt_fallback": {},
         **kw,
     }
     s = Settings(token=TOKEN, base_url="http://fake/v1", api_key="x", **{"call_timeout_s": 1.0, "retry_pause_s": 0.0, **kw})

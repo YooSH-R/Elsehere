@@ -22,7 +22,12 @@ namespace A305.ObjectHover
                 entries.Select(entry =>
                     (
                         entry.unityKey,
-                        ObjectWord.ForHover(entry.text, entry.meaningKo, entry.example, entry.isSaved)
+                        ObjectWord.ForHover(
+                            entry.text,
+                            entry.meaningKo,
+                            entry.example,
+                            entry.isSaved
+                        )
                     )
                 )
             );

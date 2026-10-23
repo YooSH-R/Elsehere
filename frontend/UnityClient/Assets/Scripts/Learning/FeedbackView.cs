@@ -74,7 +74,8 @@ namespace A305.Learning
 
         private void Refresh()
         {
-            summaryText.text = $"{feedback.NpcName}와 나눈 대화 · 내 발화 {feedback.UtteranceCount}개\n{feedback.Summary}";
+            summaryText.text =
+                $"{feedback.NpcName}와 나눈 대화 · 내 발화 {feedback.UtteranceCount}개\n{feedback.Summary}";
             bodyText.text = isDetailShown ? FormatDetail() : FormatShort();
             detailButtonLabel.text = isDetailShown ? "요약 보기" : "상세 보기";
             saveButton.interactable = feedback.NextExpression != null;
@@ -101,7 +102,9 @@ namespace A305.Learning
             ReferenceExpression expression = feedback.NextExpression;
             if (expression == null)
             {
-                text.AppendLine("이번 대화에서는 따로 권할 표현이 없어요. 지금처럼 말해도 자연스러워요.");
+                text.AppendLine(
+                    "이번 대화에서는 따로 권할 표현이 없어요. 지금처럼 말해도 자연스러워요."
+                );
             }
             else
             {
@@ -128,7 +131,9 @@ namespace A305.Learning
                 }
                 else
                 {
-                    text.AppendLine($"참고 표현 · <b>{review.Reference.English}</b> ({review.Reference.Korean})");
+                    text.AppendLine(
+                        $"참고 표현 · <b>{review.Reference.English}</b> ({review.Reference.Korean})"
+                    );
                     text.AppendLine(review.Reference.Reason);
                 }
 

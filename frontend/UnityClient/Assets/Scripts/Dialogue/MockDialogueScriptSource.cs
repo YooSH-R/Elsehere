@@ -9,7 +9,10 @@ namespace A305.Dialogue
     /// 목록에 없는 NPC는 <see cref="fallback"/> 대본으로 대화한다.
     /// 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 한다.
     /// </summary>
-    [CreateAssetMenu(menuName = "A305/Dialogue/Mock Dialogue Scripts", fileName = "MockDialogueScripts")]
+    [CreateAssetMenu(
+        menuName = "A305/Dialogue/Mock Dialogue Scripts",
+        fileName = "MockDialogueScripts"
+    )]
     public class MockDialogueScriptSource : DialogueScriptSource
     {
         [SerializeField]
@@ -28,7 +31,10 @@ namespace A305.Dialogue
                     new GuidedTurnEntry(
                         "Go straight ahead.",
                         "앞으로 곧장 가세요.",
-                        new LineEntry("Straight ahead? And then where should I go?", "곧장이요? 그다음엔 어디로 가면 되나요?")
+                        new LineEntry(
+                            "Straight ahead? And then where should I go?",
+                            "곧장이요? 그다음엔 어디로 가면 되나요?"
+                        )
                     ),
                     new GuidedTurnEntry(
                         "Turn left at the corner.",
@@ -38,7 +44,10 @@ namespace A305.Dialogue
                     new GuidedTurnEntry(
                         "No, it's just two minutes away.",
                         "아니요, 2분이면 가요.",
-                        new LineEntry("Thank you so much. You're a lifesaver!", "정말 고마워요. 덕분에 살았어요!")
+                        new LineEntry(
+                            "Thank you so much. You're a lifesaver!",
+                            "정말 고마워요. 덕분에 살았어요!"
+                        )
                     ),
                 },
                 defaultReply = new LineEntry("I see!", "그렇군요!"),
@@ -76,11 +85,17 @@ namespace A305.Dialogue
                     ),
                     new KeywordReplyEntry(
                         new[] { "coffee" },
-                        new LineEntry("Of course. Hot or iced?", "물론이죠. 따뜻한 걸로 드릴까요, 아이스로 드릴까요?")
+                        new LineEntry(
+                            "Of course. Hot or iced?",
+                            "물론이죠. 따뜻한 걸로 드릴까요, 아이스로 드릴까요?"
+                        )
                     ),
                     new KeywordReplyEntry(
                         new[] { "thank" },
-                        new LineEntry("You're welcome! Enjoy your day.", "천만에요! 좋은 하루 보내세요.")
+                        new LineEntry(
+                            "You're welcome! Enjoy your day.",
+                            "천만에요! 좋은 하루 보내세요."
+                        )
                     ),
                 },
                 defaultReply = new LineEntry(
@@ -101,7 +116,10 @@ namespace A305.Dialogue
                 {
                     new KeywordReplyEntry(
                         new[] { "weather" },
-                        new LineEntry("It's a lovely day. Perfect for a walk!", "날씨가 정말 좋네요. 산책하기 딱이에요!")
+                        new LineEntry(
+                            "It's a lovely day. Perfect for a walk!",
+                            "날씨가 정말 좋네요. 산책하기 딱이에요!"
+                        )
                     ),
                     new KeywordReplyEntry(
                         new[] { "cafe" },
@@ -115,7 +133,10 @@ namespace A305.Dialogue
                         new LineEntry("Anytime! See you around.", "언제든지요! 또 봐요.")
                     ),
                 },
-                defaultReply = new LineEntry("Oh, really? Tell me more!", "아, 정말요? 더 얘기해 줘요!"),
+                defaultReply = new LineEntry(
+                    "Oh, really? Tell me more!",
+                    "아, 정말요? 더 얘기해 줘요!"
+                ),
                 exampleSentence = "It's a nice day today, isn't it?",
             },
         };
@@ -172,7 +193,13 @@ namespace A305.Dialogue
                 var turns = new List<GuidedTurn>();
                 foreach (GuidedTurnEntry turn in guidedTurns)
                 {
-                    turns.Add(new GuidedTurn(turn.suggestedEnglish, turn.suggestedKorean, turn.reply.ToLine()));
+                    turns.Add(
+                        new GuidedTurn(
+                            turn.suggestedEnglish,
+                            turn.suggestedKorean,
+                            turn.reply.ToLine()
+                        )
+                    );
                 }
 
                 var replies = new List<KeywordReply>();
@@ -181,7 +208,14 @@ namespace A305.Dialogue
                     replies.Add(new KeywordReply(reply.keywords, reply.reply.ToLine()));
                 }
 
-                return new DialogueScript(npcName, opening.ToLine(), turns, replies, defaultReply.ToLine(), exampleSentence);
+                return new DialogueScript(
+                    npcName,
+                    opening.ToLine(),
+                    turns,
+                    replies,
+                    defaultReply.ToLine(),
+                    exampleSentence
+                );
             }
         }
 

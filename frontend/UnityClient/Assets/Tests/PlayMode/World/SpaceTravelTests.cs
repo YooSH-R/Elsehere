@@ -66,9 +66,21 @@ namespace A305.World.PlayModeTests
             {
                 yield return LoadSpace(sceneName);
 
-                Assert.That(FindAll<PlayerMover>(), Has.Length.EqualTo(1), $"{sceneName}의 PlayerMover");
-                Assert.That(FindAll<PlayerCameraRig>(), Has.Length.EqualTo(1), $"{sceneName}의 PlayerCameraRig");
-                Assert.That(FindAll<SpaceArrival>(), Has.Length.EqualTo(1), $"{sceneName}의 SpaceArrival");
+                Assert.That(
+                    FindAll<PlayerMover>(),
+                    Has.Length.EqualTo(1),
+                    $"{sceneName}의 PlayerMover"
+                );
+                Assert.That(
+                    FindAll<PlayerCameraRig>(),
+                    Has.Length.EqualTo(1),
+                    $"{sceneName}의 PlayerCameraRig"
+                );
+                Assert.That(
+                    FindAll<SpaceArrival>(),
+                    Has.Length.EqualTo(1),
+                    $"{sceneName}의 SpaceArrival"
+                );
             }
         }
 
@@ -118,7 +130,10 @@ namespace A305.World.PlayModeTests
         private static T[] FindAll<T>()
             where T : Object
         {
-            return Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            return Object.FindObjectsByType<T>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
         }
 
         private static IEnumerator LoadSpace(string sceneName)
@@ -157,7 +172,10 @@ namespace A305.World.PlayModeTests
                 Is.LessThan(AngleToleranceDegrees)
             );
 
-            Vector3 cameraForward = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
+            Vector3 cameraForward = Vector3.ProjectOnPlane(
+                Camera.main.transform.forward,
+                Vector3.up
+            );
             Assert.That(
                 Vector3.Angle(cameraForward, player.forward),
                 Is.LessThan(AngleToleranceDegrees),

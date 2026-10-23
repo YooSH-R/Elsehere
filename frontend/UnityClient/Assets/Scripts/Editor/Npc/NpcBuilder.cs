@@ -26,7 +26,8 @@ namespace A305.EditorTools.Npc
         public const string PasserbyPrefabPath = "Assets/Prefabs/Npc/Passerby.prefab";
 
         private const string OfferPrefabPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
-        private const string TutorialSettingsPath = "Assets/Data/Npc/TutorialPasserbySettings.asset";
+        private const string TutorialSettingsPath =
+            "Assets/Data/Npc/TutorialPasserbySettings.asset";
         private const string TownSettingsPath = "Assets/Data/Npc/TownPasserbySettings.asset";
         private const string CafeStaffSettingsPath = "Assets/Data/Npc/CafeStaffSettings.asset";
         private const string MockLinesPath = "Assets/Data/Npc/MockNpcLines.asset";
@@ -70,8 +71,18 @@ namespace A305.EditorTools.Npc
         public static void PrepareAssets()
         {
             // 튜토리얼 행인은 집 앞에서 바로 다가오고 거절할 수 없다. 무시하고 멀어지면 잠시 뒤 다시 다가온다.
-            CreateSettingsIfMissing(TutorialSettingsPath, detectRadiusMeters: 8f, restSeconds: 15f, canDecline: false);
-            CreateSettingsIfMissing(TownSettingsPath, detectRadiusMeters: 6f, restSeconds: 60f, canDecline: true);
+            CreateSettingsIfMissing(
+                TutorialSettingsPath,
+                detectRadiusMeters: 8f,
+                restSeconds: 15f,
+                canDecline: false
+            );
+            CreateSettingsIfMissing(
+                TownSettingsPath,
+                detectRadiusMeters: 6f,
+                restSeconds: 60f,
+                canDecline: true
+            );
             // 카페 직원은 카운터 뒤에 서 있다가, 카운터 앞까지 오면 걷지 않고 그 자리에서 대화를 제안한다.
             CreateSettingsIfMissing(
                 CafeStaffSettingsPath,
@@ -106,13 +117,27 @@ namespace A305.EditorTools.Npc
             if (!placedCodes.Contains(TutorialPasserbyCode))
             {
                 // 집 문 앞(-3.5, 0, -16)에서 6.7m 떨어진 큰길 위. 집을 바라본다.
-                Place(groups, TutorialPasserbyCode, "TutorialPasserby", TutorialSettingsPath, new Vector3(2.5f, 0f, -13f), -90f);
+                Place(
+                    groups,
+                    TutorialPasserbyCode,
+                    "TutorialPasserby",
+                    TutorialSettingsPath,
+                    new Vector3(2.5f, 0f, -13f),
+                    -90f
+                );
             }
 
             if (!placedCodes.Contains(TownPasserbyCode))
             {
                 // 출입구에서 떨어진 동서 길 서쪽. 건물에서 나오자마자 붙잡지 않는다.
-                Place(groups, TownPasserbyCode, "TownPasserby", TownSettingsPath, new Vector3(-14f, 0f, 10f), 90f);
+                Place(
+                    groups,
+                    TownPasserbyCode,
+                    "TownPasserby",
+                    TownSettingsPath,
+                    new Vector3(-14f, 0f, 10f),
+                    90f
+                );
             }
 
             SpaceSceneSetup.Apply(town);
@@ -139,7 +164,14 @@ namespace A305.EditorTools.Npc
             if (!isPlaced)
             {
                 // 카운터(z 3.3~4.3) 뒤에서 입구를 바라본다. 카운터 앞에 선 플레이어와 약 2m 떨어진다.
-                Place(groups, CafeStaffCode, "CafeStaff", CafeStaffSettingsPath, new Vector3(0f, 0f, 5f), 180f);
+                Place(
+                    groups,
+                    CafeStaffCode,
+                    "CafeStaff",
+                    CafeStaffSettingsPath,
+                    new Vector3(0f, 0f, 5f),
+                    180f
+                );
             }
 
             SpaceSceneSetup.Apply(cafe);
@@ -149,7 +181,11 @@ namespace A305.EditorTools.Npc
         /// <summary>
         /// 씬에 대화 제안 화면이 없으면 붙이고, 씬에 놓인 모든 행인을 플레이어·대화 처리·제안 화면과 연결한다.
         /// </summary>
-        public static void ConnectToScene(SceneGroups groups, PlayerMover player, DialogueController dialogue)
+        public static void ConnectToScene(
+            SceneGroups groups,
+            PlayerMover player,
+            DialogueController dialogue
+        )
         {
             var offer = BuilderTools.FindSingleInScene<PasserbyOfferView>(groups.Scene);
             if (offer == null)
@@ -240,14 +276,23 @@ namespace A305.EditorTools.Npc
 
         private static void CreatePlaceholderVisual(Transform root)
         {
-            Transform visual = BuilderTools.CreateEmpty("Visual", root, Vector3.zero, Quaternion.identity);
+            Transform visual = BuilderTools.CreateEmpty(
+                "Visual",
+                root,
+                Vector3.zero,
+                Quaternion.identity
+            );
             BuilderTools.CreateShape(
                 PrimitiveType.Capsule,
                 "Body",
                 visual,
                 new Vector3(0f, BodyHeightMeters / 2f, 0f),
                 new Vector3(BodyRadiusMeters * 2f, BodyHeightMeters / 2f, BodyRadiusMeters * 2f),
-                BuilderTools.GetOrCreateMaterial("Assets/Art/Npc", "PasserbyBody", new Color(0.9f, 0.55f, 0.25f)),
+                BuilderTools.GetOrCreateMaterial(
+                    "Assets/Art/Npc",
+                    "PasserbyBody",
+                    new Color(0.9f, 0.55f, 0.25f)
+                ),
                 keepCollider: false
             );
             // 몸이 어느 쪽을 보는지 알 수 있게 앞쪽에 표시를 단다.
@@ -257,7 +302,11 @@ namespace A305.EditorTools.Npc
                 visual,
                 new Vector3(0f, 1.5f, BodyRadiusMeters),
                 new Vector3(0.2f, 0.1f, 0.15f),
-                BuilderTools.GetOrCreateMaterial("Assets/Art/Npc", "PasserbyFront", new Color(0.95f, 0.95f, 0.95f)),
+                BuilderTools.GetOrCreateMaterial(
+                    "Assets/Art/Npc",
+                    "PasserbyFront",
+                    new Color(0.95f, 0.95f, 0.95f)
+                ),
                 keepCollider: false
             );
         }
@@ -268,7 +317,12 @@ namespace A305.EditorTools.Npc
             UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 110, receivesClicks: true);
             var view = BuilderTools.GetOrAddComponent<PasserbyOfferView>(root);
 
-            RectTransform panel = UiBuilderTools.FindOrCreateBottomPanel(root.transform, "Panel", 760f, 80f);
+            RectTransform panel = UiBuilderTools.FindOrCreateBottomPanel(
+                root.transform,
+                "Panel",
+                760f,
+                80f
+            );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
             UiBuilderTools.FindOrCreateText(
@@ -279,10 +333,26 @@ namespace A305.EditorTools.Npc
                 new Color(0.8f, 0.82f, 0.86f),
                 "행인이 말을 걸었어요"
             );
-            TMP_Text greeting = UiBuilderTools.FindOrCreateText(panel, "Greeting", bold, 30f, Color.white);
+            TMP_Text greeting = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Greeting",
+                bold,
+                30f,
+                Color.white
+            );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button accept = UiBuilderTools.FindOrCreateButton(buttons, "AcceptButton", "대화하기", bold);
-            Button decline = UiBuilderTools.FindOrCreateButton(buttons, "DeclineButton", "지금은 안 할래요", bold);
+            Button accept = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "AcceptButton",
+                "대화하기",
+                bold
+            );
+            Button decline = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "DeclineButton",
+                "지금은 안 할래요",
+                bold
+            );
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "greetingLabel", greeting);
@@ -357,7 +427,11 @@ namespace A305.EditorTools.Npc
             return BuilderTools.LoadRequiredAsset<PasserbySettings>(path, MenuPath);
         }
 
-        private static void SetReferenceIfEmpty(Object owner, string propertyName, System.Func<Object> value)
+        private static void SetReferenceIfEmpty(
+            Object owner,
+            string propertyName,
+            System.Func<Object> value
+        )
         {
             var fields = new SerializedObject(owner);
             if (fields.FindProperty(propertyName).objectReferenceValue == null)

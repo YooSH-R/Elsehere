@@ -8,8 +8,10 @@ namespace A305.ObjectHover
     /// </summary>
     public sealed class ObjectWordTable
     {
-        private readonly Dictionary<string, ObjectWord> wordsByKey =
-            new Dictionary<string, ObjectWord>(System.StringComparer.Ordinal);
+        private readonly Dictionary<string, ObjectWord> wordsByKey = new Dictionary<
+            string,
+            ObjectWord
+        >(System.StringComparer.Ordinal);
 
         public ObjectWordTable(IEnumerable<(string UnityKey, ObjectWord Word)> entries)
         {

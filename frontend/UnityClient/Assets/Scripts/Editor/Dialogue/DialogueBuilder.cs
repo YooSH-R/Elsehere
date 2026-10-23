@@ -95,7 +95,12 @@ namespace A305.EditorTools.Dialogue
             UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 120, receivesClicks: true);
             var view = BuilderTools.GetOrAddComponent<DialoguePanelView>(root);
 
-            RectTransform panel = UiBuilderTools.FindOrCreateBottomPanel(root.transform, "Panel", 900f, 60f);
+            RectTransform panel = UiBuilderTools.FindOrCreateBottomPanel(
+                root.transform,
+                "Panel",
+                900f,
+                60f
+            );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
             UiBuilderTools.FindOrCreateText(panel, "Title", bold, 30f, Color.white, "대화 중");
@@ -113,7 +118,12 @@ namespace A305.EditorTools.Dialogue
             }
 
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button endButton = UiBuilderTools.FindOrCreateButton(buttons, "EndButton", "대화 종료", bold);
+            Button endButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "EndButton",
+                "대화 종료",
+                bold
+            );
 
             // 대화 내용은 [대화 종료] 줄 위에 둔다. 처음 만들 때만 자리를 정하고, 이후에는 디자인한 순서를 유지한다.
             bool isConversationNew = panel.Find("Conversation") == null;
@@ -123,8 +133,20 @@ namespace A305.EditorTools.Dialogue
                 conversation.SetSiblingIndex(buttons.GetSiblingIndex());
             }
 
-            TMP_Text lines = UiBuilderTools.FindOrCreateText(conversation, "Lines", regular, 24f, Color.white);
-            TMP_Text guide = UiBuilderTools.FindOrCreateText(conversation, "Guide", regular, 20f, SubTextColor);
+            TMP_Text lines = UiBuilderTools.FindOrCreateText(
+                conversation,
+                "Lines",
+                regular,
+                24f,
+                Color.white
+            );
+            TMP_Text guide = UiBuilderTools.FindOrCreateText(
+                conversation,
+                "Guide",
+                regular,
+                20f,
+                SubTextColor
+            );
             RectTransform inputRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "InputRow");
             TMP_InputField input = UiBuilderTools.FindOrCreateInputField(
                 inputRow,
@@ -132,11 +154,35 @@ namespace A305.EditorTools.Dialogue
                 regular,
                 "영어로 입력해 보세요 (Enter로 보내기)"
             );
-            Button sendButton = UiBuilderTools.FindOrCreateButton(inputRow, "SendButton", "보내기", bold, 160f);
-            Button exampleButton = UiBuilderTools.FindOrCreateButton(inputRow, "ExampleButton", "예시 문장", bold, 160f);
+            Button sendButton = UiBuilderTools.FindOrCreateButton(
+                inputRow,
+                "SendButton",
+                "보내기",
+                bold,
+                160f
+            );
+            Button exampleButton = UiBuilderTools.FindOrCreateButton(
+                inputRow,
+                "ExampleButton",
+                "예시 문장",
+                bold,
+                160f
+            );
             RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
-            Button meaningButton = UiBuilderTools.FindOrCreateButton(toolRow, "MeaningButton", "뜻 보기", bold, 160f);
-            Button saveButton = UiBuilderTools.FindOrCreateButton(toolRow, "SaveButton", "표현 저장", bold, 160f);
+            Button meaningButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "MeaningButton",
+                "뜻 보기",
+                bold,
+                160f
+            );
+            Button saveButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "SaveButton",
+                "표현 저장",
+                bold,
+                160f
+            );
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "endButton", endButton);

@@ -47,7 +47,10 @@ namespace A305.EditorTools.Mission
         }
 
         /// <summary>씬에 미션 창과 미션 처리가 없으면 붙이고 대화 처리와 연결한다.</summary>
-        public static MissionController ConnectToScene(SceneGroups groups, DialogueController dialogue)
+        public static MissionController ConnectToScene(
+            SceneGroups groups,
+            DialogueController dialogue
+        )
         {
             var panel = BuilderTools.FindSingleInScene<MissionPanelView>(groups.Scene);
             if (panel == null)
@@ -95,8 +98,21 @@ namespace A305.EditorTools.Mission
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            TMP_Text header = UiBuilderTools.FindOrCreateText(panel, "Header", bold, 26f, Color.white, "오늘의 작은 도전");
-            TMP_Text message = UiBuilderTools.FindOrCreateText(panel, "Message", regular, 18f, SubTextColor);
+            TMP_Text header = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Header",
+                bold,
+                26f,
+                Color.white,
+                "오늘의 작은 도전"
+            );
+            TMP_Text message = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Message",
+                regular,
+                18f,
+                SubTextColor
+            );
             RectTransform rows = UiBuilderTools.FindOrCreateColumn(panel, "Rows");
             MissionRowView rowTemplate = SetUpRowTemplate(rows, bold, regular);
 
@@ -109,15 +125,43 @@ namespace A305.EditorTools.Mission
         }
 
         // 미션 수는 서버 데이터에 따라 달라지므로 줄 하나를 템플릿으로 두고 실행 중에 복제한다.
-        private static MissionRowView SetUpRowTemplate(Transform rows, TMP_FontAsset bold, TMP_FontAsset regular)
+        private static MissionRowView SetUpRowTemplate(
+            Transform rows,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
         {
             RectTransform template = UiBuilderTools.FindOrCreateColumn(rows, "RowTemplate");
             var row = BuilderTools.GetOrAddComponent<MissionRowView>(template.gameObject);
-            TMP_Text title = UiBuilderTools.FindOrCreateText(template, "Title", regular, 22f, Color.white);
-            TMP_Text description = UiBuilderTools.FindOrCreateText(template, "Description", regular, 18f, SubTextColor);
-            TMP_Text status = UiBuilderTools.FindOrCreateText(template, "Status", regular, 18f, StatusColor);
+            TMP_Text title = UiBuilderTools.FindOrCreateText(
+                template,
+                "Title",
+                regular,
+                22f,
+                Color.white
+            );
+            TMP_Text description = UiBuilderTools.FindOrCreateText(
+                template,
+                "Description",
+                regular,
+                18f,
+                SubTextColor
+            );
+            TMP_Text status = UiBuilderTools.FindOrCreateText(
+                template,
+                "Status",
+                regular,
+                18f,
+                StatusColor
+            );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(template, "Buttons");
-            Button startButton = UiBuilderTools.FindOrCreateButton(buttons, "StartButton", "미션 시작", bold, 180f);
+            Button startButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "StartButton",
+                "미션 시작",
+                bold,
+                180f
+            );
 
             BuilderTools.SetReference(row, "titleText", title);
             BuilderTools.SetReference(row, "descriptionText", description);

@@ -33,7 +33,10 @@ namespace A305.Mission
         {
             if (dialogue == null || missionSource == null || panelView == null)
             {
-                Debug.LogError("MissionController의 dialogue·missionSource·panelView가 연결되지 않았습니다.", this);
+                Debug.LogError(
+                    "MissionController의 dialogue·missionSource·panelView가 연결되지 않았습니다.",
+                    this
+                );
                 enabled = false;
                 return;
             }
@@ -70,7 +73,10 @@ namespace A305.Mission
 
         private void CheckCompletion(DialogueRecord record)
         {
-            MissionContent completed = board.CompleteIfMatched(record.NpcCode, record.UserUtterances);
+            MissionContent completed = board.CompleteIfMatched(
+                record.NpcCode,
+                record.UserUtterances
+            );
             if (completed == null)
             {
                 return;

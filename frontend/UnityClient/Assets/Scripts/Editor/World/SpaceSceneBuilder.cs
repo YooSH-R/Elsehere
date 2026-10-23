@@ -77,7 +77,8 @@ namespace A305.EditorTools.World
                     CafeScene,
                     playerPrefab,
                     new Pose(new Vector3(0f, 0f, -3f), Quaternion.identity),
-                    () => new[] { new PrefabPlacement(CafeInterior(doorwayPrefab), Vector3.zero, 0f) }
+                    () =>
+                        new[] { new PrefabPlacement(CafeInterior(doorwayPrefab), Vector3.zero, 0f) }
                 ),
                 PrepareSpaceScene(
                     HotelScene,
@@ -148,7 +149,11 @@ namespace A305.EditorTools.World
         /// </summary>
         private static GameObject BuildDoorwayPrefab()
         {
-            return BuilderTools.UpdateOrCreatePrefab(DoorwayPrefabPath, "SpaceDoorway", SetUpDoorway);
+            return BuilderTools.UpdateOrCreatePrefab(
+                DoorwayPrefabPath,
+                "SpaceDoorway",
+                SetUpDoorway
+            );
         }
 
         private static void SetUpDoorway(GameObject root)
@@ -218,17 +223,71 @@ namespace A305.EditorTools.World
                     );
 
                     Material wood = ArtMaterial("Home", "HomeWood", new Color(0.5f, 0.33f, 0.2f));
-                    Material fabric = ArtMaterial("Home", "HomeFabric", new Color(0.35f, 0.45f, 0.6f));
-                    Material appliance = ArtMaterial("Home", "HomeAppliance", new Color(0.88f, 0.9f, 0.92f));
-                    Material screen = ArtMaterial("Home", "HomeScreen", new Color(0.08f, 0.08f, 0.1f));
+                    Material fabric = ArtMaterial(
+                        "Home",
+                        "HomeFabric",
+                        new Color(0.35f, 0.45f, 0.6f)
+                    );
+                    Material appliance = ArtMaterial(
+                        "Home",
+                        "HomeAppliance",
+                        new Color(0.88f, 0.9f, 0.92f)
+                    );
+                    Material screen = ArtMaterial(
+                        "Home",
+                        "HomeScreen",
+                        new Color(0.08f, 0.08f, 0.1f)
+                    );
 
-                    AddBox(root.transform, "TvStand", new Vector3(-1.5f, 0.25f, 4.7f), new Vector3(2f, 0.5f, 0.45f), wood);
-                    AddBox(root.transform, "Tv", new Vector3(-1.5f, 1.15f, 4.85f), new Vector3(1.6f, 0.9f, 0.08f), screen);
-                    AddBox(root.transform, "Sofa", new Vector3(-1.5f, 0.4f, 1f), new Vector3(2.4f, 0.8f, 0.9f), fabric);
-                    AddBox(root.transform, "Bookshelf", new Vector3(-4.75f, 1f, -2.5f), new Vector3(0.5f, 2f, 1.8f), wood);
-                    AddBox(root.transform, "Fridge", new Vector3(4.5f, 0.95f, 4.5f), new Vector3(0.8f, 1.9f, 0.75f), appliance);
-                    AddBox(root.transform, "AirConditioner", new Vector3(2f, 2.4f, 4.85f), new Vector3(1.2f, 0.35f, 0.3f), appliance);
-                    AddBox(root.transform, "Bed", new Vector3(3.8f, 0.25f, -1.5f), new Vector3(2f, 0.5f, 2.8f), fabric);
+                    AddBox(
+                        root.transform,
+                        "TvStand",
+                        new Vector3(-1.5f, 0.25f, 4.7f),
+                        new Vector3(2f, 0.5f, 0.45f),
+                        wood
+                    );
+                    AddBox(
+                        root.transform,
+                        "Tv",
+                        new Vector3(-1.5f, 1.15f, 4.85f),
+                        new Vector3(1.6f, 0.9f, 0.08f),
+                        screen
+                    );
+                    AddBox(
+                        root.transform,
+                        "Sofa",
+                        new Vector3(-1.5f, 0.4f, 1f),
+                        new Vector3(2.4f, 0.8f, 0.9f),
+                        fabric
+                    );
+                    AddBox(
+                        root.transform,
+                        "Bookshelf",
+                        new Vector3(-4.75f, 1f, -2.5f),
+                        new Vector3(0.5f, 2f, 1.8f),
+                        wood
+                    );
+                    AddBox(
+                        root.transform,
+                        "Fridge",
+                        new Vector3(4.5f, 0.95f, 4.5f),
+                        new Vector3(0.8f, 1.9f, 0.75f),
+                        appliance
+                    );
+                    AddBox(
+                        root.transform,
+                        "AirConditioner",
+                        new Vector3(2f, 2.4f, 4.85f),
+                        new Vector3(1.2f, 0.35f, 0.3f),
+                        appliance
+                    );
+                    AddBox(
+                        root.transform,
+                        "Bed",
+                        new Vector3(3.8f, 0.25f, -1.5f),
+                        new Vector3(2f, 0.5f, 2.8f),
+                        fabric
+                    );
                     return root;
                 }
             );
@@ -314,11 +373,27 @@ namespace A305.EditorTools.World
                 new PrefabPlacement(cafe, new Vector3(eastRowX + 4f, 0f, -4f), FacingWest),
                 new PrefabPlacement(restaurant, new Vector3(eastRowX + 4f, 0f, 22f), FacingWest),
                 // 동서 길 양쪽과 동쪽 끝 공항
-                new PrefabPlacement(house, new Vector3(-28f, 0f, crossRoadNorthZ + 3f), FacingSouth),
-                new PrefabPlacement(house, new Vector3(-22f, 0f, crossRoadNorthZ + 3f), FacingSouth),
+                new PrefabPlacement(
+                    house,
+                    new Vector3(-28f, 0f, crossRoadNorthZ + 3f),
+                    FacingSouth
+                ),
+                new PrefabPlacement(
+                    house,
+                    new Vector3(-22f, 0f, crossRoadNorthZ + 3f),
+                    FacingSouth
+                ),
                 new PrefabPlacement(house, new Vector3(17f, 0f, crossRoadNorthZ + 3f), FacingSouth),
-                new PrefabPlacement(house, new Vector3(-22f, 0f, crossRoadSouthZ - 3f), FacingNorth),
-                new PrefabPlacement(house, new Vector3(-15f, 0f, crossRoadSouthZ - 3f), FacingNorth),
+                new PrefabPlacement(
+                    house,
+                    new Vector3(-22f, 0f, crossRoadSouthZ - 3f),
+                    FacingNorth
+                ),
+                new PrefabPlacement(
+                    house,
+                    new Vector3(-15f, 0f, crossRoadSouthZ - 3f),
+                    FacingNorth
+                ),
                 new PrefabPlacement(house, new Vector3(17f, 0f, crossRoadSouthZ - 3f), FacingNorth),
                 new PrefabPlacement(airport, new Vector3(26f, 0f, CrossRoadCenterZ), FacingWest),
             };
@@ -332,12 +407,26 @@ namespace A305.EditorTools.World
                 () =>
                 {
                     var root = new GameObject("TownStreets");
-                    Material ground = ArtMaterial("Town", "TownGround", new Color(0.5f, 0.63f, 0.42f));
+                    Material ground = ArtMaterial(
+                        "Town",
+                        "TownGround",
+                        new Color(0.5f, 0.63f, 0.42f)
+                    );
                     Material road = ArtMaterial("Town", "TownRoad", new Color(0.3f, 0.3f, 0.32f));
-                    Material boundary = ArtMaterial("Town", "TownBoundary", new Color(0.6f, 0.55f, 0.5f));
+                    Material boundary = ArtMaterial(
+                        "Town",
+                        "TownBoundary",
+                        new Color(0.6f, 0.55f, 0.5f)
+                    );
                     float size = TownHalfSize * 2f;
 
-                    AddBox(root.transform, "Ground", new Vector3(0f, -0.1f, 0f), new Vector3(size, 0.2f, size), ground);
+                    AddBox(
+                        root.transform,
+                        "Ground",
+                        new Vector3(0f, -0.1f, 0f),
+                        new Vector3(size, 0.2f, size),
+                        ground
+                    );
                     // 도로는 바닥 위에 얇게 덮어 색만 구분한다. 충돌은 바닥이 맡는다.
                     BuilderTools.CreateShape(
                         PrimitiveType.Cube,
@@ -360,10 +449,34 @@ namespace A305.EditorTools.World
                     );
 
                     float wallOffset = TownHalfSize + 0.25f;
-                    AddBox(root.transform, "BoundaryNorth", new Vector3(0f, 1.25f, wallOffset), new Vector3(size + 1f, 2.5f, 0.5f), boundary);
-                    AddBox(root.transform, "BoundarySouth", new Vector3(0f, 1.25f, -wallOffset), new Vector3(size + 1f, 2.5f, 0.5f), boundary);
-                    AddBox(root.transform, "BoundaryEast", new Vector3(wallOffset, 1.25f, 0f), new Vector3(0.5f, 2.5f, size), boundary);
-                    AddBox(root.transform, "BoundaryWest", new Vector3(-wallOffset, 1.25f, 0f), new Vector3(0.5f, 2.5f, size), boundary);
+                    AddBox(
+                        root.transform,
+                        "BoundaryNorth",
+                        new Vector3(0f, 1.25f, wallOffset),
+                        new Vector3(size + 1f, 2.5f, 0.5f),
+                        boundary
+                    );
+                    AddBox(
+                        root.transform,
+                        "BoundarySouth",
+                        new Vector3(0f, 1.25f, -wallOffset),
+                        new Vector3(size + 1f, 2.5f, 0.5f),
+                        boundary
+                    );
+                    AddBox(
+                        root.transform,
+                        "BoundaryEast",
+                        new Vector3(wallOffset, 1.25f, 0f),
+                        new Vector3(0.5f, 2.5f, size),
+                        boundary
+                    );
+                    AddBox(
+                        root.transform,
+                        "BoundaryWest",
+                        new Vector3(-wallOffset, 1.25f, 0f),
+                        new Vector3(0.5f, 2.5f, size),
+                        boundary
+                    );
                     return root;
                 }
             );
@@ -405,7 +518,12 @@ namespace A305.EditorTools.World
 
                     if (entrance.HasValue)
                     {
-                        AddDoorway(doorwayPrefab, root.transform, new Vector3(0f, 0f, front), entrance.Value);
+                        AddDoorway(
+                            doorwayPrefab,
+                            root.transform,
+                            new Vector3(0f, 0f, front),
+                            entrance.Value
+                        );
                     }
                     else
                     {
@@ -457,10 +575,26 @@ namespace A305.EditorTools.World
                     );
 
                     Material wood = ArtMaterial("Cafe", "CafeWood", new Color(0.42f, 0.28f, 0.18f));
-                    Material chair = ArtMaterial("Cafe", "CafeChair", new Color(0.3f, 0.45f, 0.35f));
+                    Material chair = ArtMaterial(
+                        "Cafe",
+                        "CafeChair",
+                        new Color(0.3f, 0.45f, 0.35f)
+                    );
 
-                    AddBox(root.transform, "Counter", new Vector3(0f, 0.55f, 3.8f), new Vector3(6f, 1.1f, 1f), wood);
-                    AddSign(root.transform, "MENU", new Vector3(0f, 2.4f, 6f), facingYawDegrees: 180f, new Vector2(3f, 1f));
+                    AddBox(
+                        root.transform,
+                        "Counter",
+                        new Vector3(0f, 0.55f, 3.8f),
+                        new Vector3(6f, 1.1f, 1f),
+                        wood
+                    );
+                    AddSign(
+                        root.transform,
+                        "MENU",
+                        new Vector3(0f, 2.4f, 6f),
+                        facingYawDegrees: 180f,
+                        new Vector2(3f, 1f)
+                    );
 
                     Vector3[] tablePositions =
                     {
@@ -480,8 +614,20 @@ namespace A305.EditorTools.World
                             new Vector3(1f, 0.375f, 1f),
                             wood
                         );
-                        AddBox(root.transform, $"Table{index + 1}ChairLeft", table + new Vector3(-0.95f, 0.225f, 0f), new Vector3(0.45f, 0.45f, 0.45f), chair);
-                        AddBox(root.transform, $"Table{index + 1}ChairRight", table + new Vector3(0.95f, 0.225f, 0f), new Vector3(0.45f, 0.45f, 0.45f), chair);
+                        AddBox(
+                            root.transform,
+                            $"Table{index + 1}ChairLeft",
+                            table + new Vector3(-0.95f, 0.225f, 0f),
+                            new Vector3(0.45f, 0.45f, 0.45f),
+                            chair
+                        );
+                        AddBox(
+                            root.transform,
+                            $"Table{index + 1}ChairRight",
+                            table + new Vector3(0.95f, 0.225f, 0f),
+                            new Vector3(0.45f, 0.45f, 0.45f),
+                            chair
+                        );
                     }
 
                     return root;
@@ -511,33 +657,112 @@ namespace A305.EditorTools.World
                     );
 
                     Material wood = ArtMaterial("Hotel", "HotelWood", new Color(0.4f, 0.27f, 0.2f));
-                    Material fabric = ArtMaterial("Hotel", "HotelFabric", new Color(0.55f, 0.25f, 0.3f));
-                    Material metal = ArtMaterial("Hotel", "HotelMetal", new Color(0.7f, 0.72f, 0.75f));
+                    Material fabric = ArtMaterial(
+                        "Hotel",
+                        "HotelFabric",
+                        new Color(0.55f, 0.25f, 0.3f)
+                    );
+                    Material metal = ArtMaterial(
+                        "Hotel",
+                        "HotelMetal",
+                        new Color(0.7f, 0.72f, 0.75f)
+                    );
 
-                    AddBox(root.transform, "FrontDesk", new Vector3(0f, 0.55f, 4.6f), new Vector3(6f, 1.1f, 1.2f), wood);
-                    AddSign(root.transform, "RECEPTION", new Vector3(0f, 2.8f, 7f), facingYawDegrees: 180f, new Vector2(4f, 0.9f));
-                    AddBox(root.transform, "SofaLeft", new Vector3(-5.5f, 0.4f, -1f), new Vector3(1f, 0.8f, 2.6f), fabric);
-                    AddBox(root.transform, "SofaRight", new Vector3(5.5f, 0.4f, -1f), new Vector3(1f, 0.8f, 2.6f), fabric);
-                    AddBox(root.transform, "ElevatorDoorLeft", new Vector3(-5.5f, 1.2f, 6.95f), new Vector3(1.6f, 2.4f, 0.1f), metal);
-                    AddBox(root.transform, "ElevatorDoorRight", new Vector3(5.5f, 1.2f, 6.95f), new Vector3(1.6f, 2.4f, 0.1f), metal);
+                    AddBox(
+                        root.transform,
+                        "FrontDesk",
+                        new Vector3(0f, 0.55f, 4.6f),
+                        new Vector3(6f, 1.1f, 1.2f),
+                        wood
+                    );
+                    AddSign(
+                        root.transform,
+                        "RECEPTION",
+                        new Vector3(0f, 2.8f, 7f),
+                        facingYawDegrees: 180f,
+                        new Vector2(4f, 0.9f)
+                    );
+                    AddBox(
+                        root.transform,
+                        "SofaLeft",
+                        new Vector3(-5.5f, 0.4f, -1f),
+                        new Vector3(1f, 0.8f, 2.6f),
+                        fabric
+                    );
+                    AddBox(
+                        root.transform,
+                        "SofaRight",
+                        new Vector3(5.5f, 0.4f, -1f),
+                        new Vector3(1f, 0.8f, 2.6f),
+                        fabric
+                    );
+                    AddBox(
+                        root.transform,
+                        "ElevatorDoorLeft",
+                        new Vector3(-5.5f, 1.2f, 6.95f),
+                        new Vector3(1.6f, 2.4f, 0.1f),
+                        metal
+                    );
+                    AddBox(
+                        root.transform,
+                        "ElevatorDoorRight",
+                        new Vector3(5.5f, 1.2f, 6.95f),
+                        new Vector3(1.6f, 2.4f, 0.1f),
+                        metal
+                    );
                     return root;
                 }
             );
         }
 
         /// <summary>바닥과 네 벽. 카메라가 안을 볼 수 있게 천장은 두지 않는다. 안쪽 면이 원점 기준 ±size/2에 온다.</summary>
-        private static void AddRoomShell(Transform parent, Vector3 size, Material floor, Material wall)
+        private static void AddRoomShell(
+            Transform parent,
+            Vector3 size,
+            Material floor,
+            Material wall
+        )
         {
             const float Thickness = 0.3f;
             float halfWidth = size.x / 2f;
             float halfDepth = size.z / 2f;
             float wallCenterY = size.y / 2f;
 
-            AddBox(parent, "Floor", new Vector3(0f, -0.1f, 0f), new Vector3(size.x, 0.2f, size.z), floor);
-            AddBox(parent, "WallNorth", new Vector3(0f, wallCenterY, halfDepth + Thickness / 2f), new Vector3(size.x + Thickness * 2f, size.y, Thickness), wall);
-            AddBox(parent, "WallSouth", new Vector3(0f, wallCenterY, -halfDepth - Thickness / 2f), new Vector3(size.x + Thickness * 2f, size.y, Thickness), wall);
-            AddBox(parent, "WallEast", new Vector3(halfWidth + Thickness / 2f, wallCenterY, 0f), new Vector3(Thickness, size.y, size.z), wall);
-            AddBox(parent, "WallWest", new Vector3(-halfWidth - Thickness / 2f, wallCenterY, 0f), new Vector3(Thickness, size.y, size.z), wall);
+            AddBox(
+                parent,
+                "Floor",
+                new Vector3(0f, -0.1f, 0f),
+                new Vector3(size.x, 0.2f, size.z),
+                floor
+            );
+            AddBox(
+                parent,
+                "WallNorth",
+                new Vector3(0f, wallCenterY, halfDepth + Thickness / 2f),
+                new Vector3(size.x + Thickness * 2f, size.y, Thickness),
+                wall
+            );
+            AddBox(
+                parent,
+                "WallSouth",
+                new Vector3(0f, wallCenterY, -halfDepth - Thickness / 2f),
+                new Vector3(size.x + Thickness * 2f, size.y, Thickness),
+                wall
+            );
+            AddBox(
+                parent,
+                "WallEast",
+                new Vector3(halfWidth + Thickness / 2f, wallCenterY, 0f),
+                new Vector3(Thickness, size.y, size.z),
+                wall
+            );
+            AddBox(
+                parent,
+                "WallWest",
+                new Vector3(-halfWidth - Thickness / 2f, wallCenterY, 0f),
+                new Vector3(Thickness, size.y, size.z),
+                wall
+            );
         }
 
         /// <summary>출입구 프리팹을 놓고 이름과 이어지는 공간을 정한다. 앞쪽(+z)이 플레이어가 서는 쪽이다.</summary>
@@ -575,7 +800,12 @@ namespace A305.EditorTools.World
         )
         {
             Quaternion facing = Quaternion.Euler(0f, facingYawDegrees, 0f);
-            Transform sign = BuilderTools.CreateEmpty($"Sign{FirstWord(text)}", parent, mountPosition, facing);
+            Transform sign = BuilderTools.CreateEmpty(
+                $"Sign{FirstWord(text)}",
+                parent,
+                mountPosition,
+                facing
+            );
 
             BuilderTools.CreateShape(
                 PrimitiveType.Cube,
@@ -622,7 +852,9 @@ namespace A305.EditorTools.World
             Shader shader = Shader.Find("A305/World/SignText");
             if (shader == null)
             {
-                throw new InvalidOperationException("Assets/Art/World/SignText.shader를 찾지 못했습니다.");
+                throw new InvalidOperationException(
+                    "Assets/Art/World/SignText.shader를 찾지 못했습니다."
+                );
             }
 
             material = new Material(shader) { mainTexture = font.material.mainTexture };
@@ -638,7 +870,14 @@ namespace A305.EditorTools.World
             Material material
         )
         {
-            BuilderTools.CreateShape(PrimitiveType.Cube, boxName, parent, localPosition, size, material);
+            BuilderTools.CreateShape(
+                PrimitiveType.Cube,
+                boxName,
+                parent,
+                localPosition,
+                size,
+                material
+            );
         }
 
         private static Material ArtMaterial(string feature, string materialName, Color color)
@@ -670,7 +909,11 @@ namespace A305.EditorTools.World
 
         private readonly struct DoorwayTarget
         {
-            public DoorwayTarget(string doorwayId, string destinationScene, string destinationDoorwayId)
+            public DoorwayTarget(
+                string doorwayId,
+                string destinationScene,
+                string destinationDoorwayId
+            )
             {
                 DoorwayId = doorwayId;
                 DestinationScene = destinationScene;

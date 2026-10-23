@@ -69,7 +69,10 @@ namespace A305.World
 
             if (arrivalPoint == null)
             {
-                Debug.LogError($"SpaceDoorway {doorwayId}의 arrivalPoint가 연결되지 않았습니다.", this);
+                Debug.LogError(
+                    $"SpaceDoorway {doorwayId}의 arrivalPoint가 연결되지 않았습니다.",
+                    this
+                );
                 isConfigured = false;
             }
 

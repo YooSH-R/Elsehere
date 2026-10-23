@@ -1,9 +1,9 @@
 import copy
 import json
-from pathlib import Path
 import subprocess
 import sys
 import unittest
+from pathlib import Path
 
 from pydantic import ValidationError
 
@@ -61,8 +61,10 @@ class FeedbackTests(unittest.TestCase):
         req, body = sample("mixed_five_turns")
         result = self.run_body(body, req)["result"]
         self.assertEqual(len(result["turn_reviews"]), 5)
-        self.assertEqual([r["verdict"] for r in result["turn_reviews"]],
-                         ["appropriate", "appropriate", "improvement_suggested", "needs_clarification", "not_assessable"])
+        self.assertEqual(
+            [r["verdict"] for r in result["turn_reviews"]],
+            ["appropriate", "appropriate", "improvement_suggested", "needs_clarification", "not_assessable"],
+        )
         for index in (0, 1, 3, 4):
             self.assertEqual(result["turn_reviews"][index]["suggestions"], [])
 
@@ -80,6 +82,7 @@ class FeedbackTests(unittest.TestCase):
             row = copy.deepcopy(result["turn_reviews"][0])
             row["review_id"] = "different_review_id"
             result["turn_reviews"].append(row)
+
         self.assert_invalid(mutate, "free_order")
 
     def test_wrong_review_order_rejected(self):
@@ -89,6 +92,7 @@ class FeedbackTests(unittest.TestCase):
         def mutate(result):
             row = result["turn_reviews"][0]
             row["turn_id"], row["original_text"] = "t01", "Where would you like to go?"
+
         self.assert_invalid(mutate)
 
     def test_unconfirmed_review_rejected(self):
@@ -104,6 +108,7 @@ class FeedbackTests(unittest.TestCase):
     def test_suggestion_cannot_reference_another_turn(self):
         def mutate(result):
             result["turn_reviews"][0]["suggestions"][0]["source"] = {"turn_id": "t01", "quote": "Where would you like to go?"}
+
         self.assert_invalid(mutate)
 
     def test_suggestion_quote_must_exist(self):
@@ -118,6 +123,7 @@ class FeedbackTests(unittest.TestCase):
     def test_tag_requires_actual_user_evidence(self):
         def mutate(result):
             result["review_tags"][0]["evidence"] = [{"turn_id": "t01", "quote": "Where would you like to go?"}]
+
         self.assert_invalid(mutate)
 
     def test_empty_or_duplicate_tags_rejected(self):
@@ -141,7 +147,9 @@ class FeedbackTests(unittest.TestCase):
     def test_summary_cannot_use_system_notice(self):
         req, body = sample()
         turn = copy.deepcopy(req["turns"][-1])
-        turn.update(turn_id="system01", sequence=4, speaker="system", input_type="system", text_status="system_notice", final_text="System message")
+        turn.update(
+            turn_id="system01", sequence=4, speaker="system", input_type="system", text_status="system_notice", final_text="System message"
+        )
         req["turns"].append(turn)
         body["result"]["conversation_summary"]["evidence"] = [{"turn_id": "system01", "quote": "System message"}]
         self.assertEqual(self.run_body(body, req)["status"], "failed")
@@ -156,10 +164,17 @@ class FeedbackTests(unittest.TestCase):
 
     def test_unclear_review_cannot_have_definite_suggestion(self):
         def mutate(result):
-            result["turn_reviews"][0]["suggestions"] = [{
-                "suggestion_id": "wrong", "kind": "natural_alternative", "source": {"turn_id": "t02", "quote": "I need that."},
-                "suggested_expression": "I need a coffee.", "explanation_ko": "추측한 뜻"}]
+            result["turn_reviews"][0]["suggestions"] = [
+                {
+                    "suggestion_id": "wrong",
+                    "kind": "natural_alternative",
+                    "source": {"turn_id": "t02", "quote": "I need that."},
+                    "suggested_expression": "I need a coffee.",
+                    "explanation_ko": "추측한 뜻",
+                }
+            ]
             result["summary_suggestion_id"] = "wrong"
+
         self.assert_invalid(mutate, "ambiguous")
 
     def test_improvement_requires_suggestion(self):
@@ -167,6 +182,7 @@ class FeedbackTests(unittest.TestCase):
             result["turn_reviews"][0]["suggestions"] = []
             result["summary_suggestion_id"] = None
             result["vocab_candidates"] = []
+
         self.assert_invalid(mutate)
 
     def test_summary_suggestion_must_exist(self):
@@ -196,6 +212,7 @@ class FeedbackTests(unittest.TestCase):
         def mutate(result):
             result["vocab_candidates"][0]["expression"] = "invented phrase"
             result["vocab_candidates"][0]["source"]["quote"] = "invented phrase"
+
         self.assert_invalid(mutate)
 
     def test_vocab_user_quote_must_come_from_user(self):
@@ -203,8 +220,17 @@ class FeedbackTests(unittest.TestCase):
 
     def test_vocab_does_not_invent_meaning_of_ambiguous_turn(self):
         req, body = sample("ambiguous")
-        body["result"]["vocab_candidates"] = [{"candidate_id": "c1", "kind": "word", "expression": "that", "meaning_ko": "커피",
-            "example_en": "I need that.", "example_ko": "저 커피가 필요해요.", "source": {"type": "user_turn", "turn_id": "t02", "quote": "that"}}]
+        body["result"]["vocab_candidates"] = [
+            {
+                "candidate_id": "c1",
+                "kind": "word",
+                "expression": "that",
+                "meaning_ko": "커피",
+                "example_en": "I need that.",
+                "example_ko": "저 커피가 필요해요.",
+                "source": {"type": "user_turn", "turn_id": "t02", "quote": "that"},
+            }
+        ]
         self.assertEqual(self.run_body(body, req)["status"], "failed")
 
     def test_duplicate_vocab_expression_rejected(self):
@@ -212,6 +238,7 @@ class FeedbackTests(unittest.TestCase):
             item = copy.deepcopy(result["vocab_candidates"][0])
             item["candidate_id"] = "different_id"
             result["vocab_candidates"].append(item)
+
         self.assert_invalid(mutate)
 
     def test_vocab_requires_meaning_and_example(self):
@@ -252,8 +279,10 @@ class FeedbackTests(unittest.TestCase):
     def test_provider_failures_are_sanitized_without_retry_approval(self):
         for exception, code in ((TimeoutError, "AI_TIMEOUT"), (ProviderCallError, "AI_PROVIDER_ERROR")):
             with self.subTest(code=code):
+
                 def fail(_):
                     raise exception("SECRET_PROVIDER_DETAIL")
+
                 response = generate_feedback(sample()[0], CallableClient(fail), ai_allowed=True)
                 self.assertEqual(response["problem"]["code"], code)
                 self.assertFalse(response["problem"]["retryable_now"])
@@ -291,8 +320,11 @@ class FeedbackTests(unittest.TestCase):
             OUTPUT.validate_python(response)
 
     def test_invalid_input_never_calls_model(self):
-        for mutation in (lambda r: r.update(schema_version="0.2.0"), lambda r: r["turns"].reverse(),
-                         lambda r: r["turns"][1].update(assistance_ids=["missing"])):
+        for mutation in (
+            lambda r: r.update(schema_version="0.2.0"),
+            lambda r: r["turns"].reverse(),
+            lambda r: r["turns"][1].update(assistance_ids=["missing"]),
+        ):
             req, body = sample()
             mutation(req)
             client = FixtureClient(body)
@@ -337,10 +369,12 @@ class FeedbackTests(unittest.TestCase):
         # 실제 모델의 지시문 저항성 검증은 아니다.
 
     def test_exported_schema_matches_models_and_resolves_refs(self):
-        from feedback.models import INPUT, OUTPUT, LLM_OUTPUT
+        from feedback.models import INPUT, LLM_OUTPUT, OUTPUT
+
         for name, adapter in (("input", INPUT), ("output", OUTPUT), ("llm-output", LLM_OUTPUT)):
             schema = read(f"schemas/feedback.{name}.schema.json")
             self.assertEqual(schema, adapter.json_schema())
+
             def walk(value):
                 if isinstance(value, dict):
                     if "$ref" in value:
@@ -353,6 +387,7 @@ class FeedbackTests(unittest.TestCase):
                 elif isinstance(value, list):
                     for child in value:
                         walk(child)
+
             walk(schema)
 
     def test_cli_provenance_and_real_mode_rejection(self):

@@ -1,8 +1,9 @@
 """형식을 변경하면 스키마를 함께 다시 생성한다."""
+
 import json
 from pathlib import Path
 
-from feedback.models import INPUT, OUTPUT, LLM_OUTPUT
+from feedback.models import INPUT, LLM_OUTPUT, OUTPUT
 
 root = Path(__file__).resolve().parent / "schemas"
 root.mkdir(exist_ok=True)

@@ -89,7 +89,10 @@ namespace A305.Mission.Tests
         {
             board.Start(SoyLatte.Code);
 
-            MissionContent completed = board.CompleteIfMatched("TOWN_PASSERBY", new[] { "soy latte" });
+            MissionContent completed = board.CompleteIfMatched(
+                "TOWN_PASSERBY",
+                new[] { "soy latte" }
+            );
 
             Assert.That(completed, Is.Null);
             Assert.That(board.ActiveMission, Is.SameAs(SoyLatte));
@@ -100,7 +103,10 @@ namespace A305.Mission.Tests
         {
             board.Start(SoyLatte.Code);
 
-            MissionContent completed = board.CompleteIfMatched(CafeStaffCode, new[] { "A latte, please." });
+            MissionContent completed = board.CompleteIfMatched(
+                CafeStaffCode,
+                new[] { "A latte, please." }
+            );
 
             Assert.That(completed, Is.Null);
             Assert.That(board.IsCompleted(SoyLatte.Code), Is.False);
@@ -110,7 +116,10 @@ namespace A305.Mission.Tests
         public void CompleteIfMatched_WithoutActiveMission_CompletesNothing()
         {
             // 미션을 시작하지 않고 키워드를 말해도 완료되지 않는다.
-            MissionContent completed = board.CompleteIfMatched(CafeStaffCode, new[] { "soy latte" });
+            MissionContent completed = board.CompleteIfMatched(
+                CafeStaffCode,
+                new[] { "soy latte" }
+            );
 
             Assert.That(completed, Is.Null);
             Assert.That(board.CompletedCount, Is.EqualTo(0));

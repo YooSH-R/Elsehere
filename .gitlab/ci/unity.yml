@@ -1,0 +1,26 @@
+unity:format:
+  extends: .linux-job
+  stage: verify
+  image: mcr.microsoft.com/dotnet/sdk:10.0.401
+  timeout: 10m
+  script:
+    - cd frontend/UnityClient
+    - dotnet tool restore
+    - dotnet csharpier check Assets/Scripts
+    - dotnet csharpier check Assets/Tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &unity_change_paths
+          - frontend/**/*
+          - docs/api/**/*
+          - infra/scripts/unity-code-quality.ps1
+          - .gitlab-ci.yml
+          - .gitlab/ci/**/*
+          - AGENTS.md
+          - docs/code-conventions.md
+          - docs/unity/**/*
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *unity_change_paths

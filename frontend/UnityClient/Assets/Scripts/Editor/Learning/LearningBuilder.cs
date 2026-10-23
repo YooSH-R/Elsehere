@@ -19,7 +19,8 @@ namespace A305.EditorTools.Learning
         public const string MenuPath = "Tools/A305/Learning/Build";
 
         private const string FeedbackPrefabPath = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
-        private const string VocabularyPrefabPath = "Assets/Prefabs/Learning/VocabularyScreen.prefab";
+        private const string VocabularyPrefabPath =
+            "Assets/Prefabs/Learning/VocabularyScreen.prefab";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string MockExamplesPath = "Assets/Data/Learning/MockFeedbackExamples.asset";
 
@@ -47,8 +48,16 @@ namespace A305.EditorTools.Learning
         public static void PrepareAssets()
         {
             BuilderTools.LoadOrCreateAsset<MockFeedbackExampleSource>(MockExamplesPath);
-            BuilderTools.UpdateOrCreatePrefab(FeedbackPrefabPath, "FeedbackScreen", SetUpFeedbackScreen);
-            BuilderTools.UpdateOrCreatePrefab(VocabularyPrefabPath, "VocabularyScreen", SetUpVocabularyScreen);
+            BuilderTools.UpdateOrCreatePrefab(
+                FeedbackPrefabPath,
+                "FeedbackScreen",
+                SetUpFeedbackScreen
+            );
+            BuilderTools.UpdateOrCreatePrefab(
+                VocabularyPrefabPath,
+                "VocabularyScreen",
+                SetUpVocabularyScreen
+            );
             BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
         }
 
@@ -76,7 +85,10 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(
                 learning,
                 "exampleSource",
-                BuilderTools.LoadRequiredAsset<MockFeedbackExampleSource>(MockExamplesPath, MenuPath)
+                BuilderTools.LoadRequiredAsset<MockFeedbackExampleSource>(
+                    MockExamplesPath,
+                    MenuPath
+                )
             );
             BuilderTools.SetReference(learning, "feedbackView", feedbackView);
             BuilderTools.SetReference(learning, "vocabularyView", vocabularyView);
@@ -118,12 +130,43 @@ namespace A305.EditorTools.Learning
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white, "오늘도 한 걸음 가까워졌어요");
-            TMP_Text summary = UiBuilderTools.FindOrCreateText(panel, "Summary", regular, 22f, SubTextColor);
-            TMP_Text body = UiBuilderTools.FindOrCreateText(panel, "Body", regular, 24f, Color.white);
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                32f,
+                Color.white,
+                "오늘도 한 걸음 가까워졌어요"
+            );
+            TMP_Text summary = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Summary",
+                regular,
+                22f,
+                SubTextColor
+            );
+            TMP_Text body = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Body",
+                regular,
+                24f,
+                Color.white
+            );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button saveButton = UiBuilderTools.FindOrCreateButton(buttons, "SaveButton", "표현 저장", bold, 180f);
-            Button detailButton = UiBuilderTools.FindOrCreateButton(buttons, "DetailButton", "상세 보기", bold, 180f);
+            Button saveButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "SaveButton",
+                "표현 저장",
+                bold,
+                180f
+            );
+            Button detailButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "DetailButton",
+                "상세 보기",
+                bold,
+                180f
+            );
             Button vocabularyButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
                 "VocabularyButton",
@@ -131,14 +174,24 @@ namespace A305.EditorTools.Learning
                 bold,
                 180f
             );
-            Button closeButton = UiBuilderTools.FindOrCreateButton(buttons, "CloseButton", "닫기", bold, 180f);
+            Button closeButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "CloseButton",
+                "닫기",
+                bold,
+                180f
+            );
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "summaryText", summary);
             BuilderTools.SetReference(view, "bodyText", body);
             BuilderTools.SetReference(view, "saveButton", saveButton);
             BuilderTools.SetReference(view, "detailButton", detailButton);
-            BuilderTools.SetReference(view, "detailButtonLabel", detailButton.GetComponentInChildren<TMP_Text>(true));
+            BuilderTools.SetReference(
+                view,
+                "detailButtonLabel",
+                detailButton.GetComponentInChildren<TMP_Text>(true)
+            );
             BuilderTools.SetReference(view, "vocabularyButton", vocabularyButton);
             BuilderTools.SetReference(view, "closeButton", closeButton);
             BuilderTools.RequireReferences(view);
@@ -161,7 +214,14 @@ namespace A305.EditorTools.Learning
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white, "조금씩 모아둔, 나의 표현들");
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                32f,
+                Color.white,
+                "조금씩 모아둔, 나의 표현들"
+            );
             UiBuilderTools.FindOrCreateText(
                 panel,
                 "Hint",
@@ -170,20 +230,60 @@ namespace A305.EditorTools.Learning
                 SubTextColor,
                 "뜻을 떠올려 본 뒤 [외웠어요]로 표시해요. 자동 채점이나 점수는 없어요."
             );
-            TMP_Text list = UiBuilderTools.FindOrCreateText(panel, "List", regular, 24f, Color.white);
+            TMP_Text list = UiBuilderTools.FindOrCreateText(
+                panel,
+                "List",
+                regular,
+                24f,
+                Color.white
+            );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button previousButton = UiBuilderTools.FindOrCreateButton(buttons, "PreviousButton", "이전", bold, 150f);
-            Button nextButton = UiBuilderTools.FindOrCreateButton(buttons, "NextButton", "다음", bold, 150f);
-            Button learnedButton = UiBuilderTools.FindOrCreateButton(buttons, "LearnedButton", "외웠어요", bold, 150f);
-            Button deleteButton = UiBuilderTools.FindOrCreateButton(buttons, "DeleteButton", "삭제", bold, 150f);
-            Button closeButton = UiBuilderTools.FindOrCreateButton(buttons, "CloseButton", "닫기", bold, 150f);
+            Button previousButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "PreviousButton",
+                "이전",
+                bold,
+                150f
+            );
+            Button nextButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "NextButton",
+                "다음",
+                bold,
+                150f
+            );
+            Button learnedButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "LearnedButton",
+                "외웠어요",
+                bold,
+                150f
+            );
+            Button deleteButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "DeleteButton",
+                "삭제",
+                bold,
+                150f
+            );
+            Button closeButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "CloseButton",
+                "닫기",
+                bold,
+                150f
+            );
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "listText", list);
             BuilderTools.SetReference(view, "previousButton", previousButton);
             BuilderTools.SetReference(view, "nextButton", nextButton);
             BuilderTools.SetReference(view, "learnedButton", learnedButton);
-            BuilderTools.SetReference(view, "learnedButtonLabel", learnedButton.GetComponentInChildren<TMP_Text>(true));
+            BuilderTools.SetReference(
+                view,
+                "learnedButtonLabel",
+                learnedButton.GetComponentInChildren<TMP_Text>(true)
+            );
             BuilderTools.SetReference(view, "deleteButton", deleteButton);
             BuilderTools.SetReference(view, "closeButton", closeButton);
             BuilderTools.RequireReferences(view);
@@ -206,8 +306,20 @@ namespace A305.EditorTools.Learning
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button vocabularyButton = UiBuilderTools.FindOrCreateButton(buttons, "VocabularyButton", "단어장 0", bold, 200f);
-            TMP_Text message = UiBuilderTools.FindOrCreateText(panel, "Message", regular, 20f, SubTextColor);
+            Button vocabularyButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "VocabularyButton",
+                "단어장 0",
+                bold,
+                200f
+            );
+            TMP_Text message = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Message",
+                regular,
+                20f,
+                SubTextColor
+            );
 
             BuilderTools.SetReference(view, "vocabularyButton", vocabularyButton);
             BuilderTools.SetReference(

@@ -1,15 +1,16 @@
 """가상 샘플 한 건으로 GMS를 한 번 호출하는 수동 검증 도구."""
+
 import argparse
-from datetime import datetime, timezone
 import hashlib
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from feedback.clients import ModelNotConfigured
 from feedback.gms import GmsClient, GmsSettings
 from feedback.models import INPUT
-from feedback.prompt import build_messages, PROMPT_VERSION
+from feedback.prompt import PROMPT_VERSION, build_messages
 from feedback.service import generate_feedback
 
 ROOT = Path(__file__).resolve().parent
@@ -33,6 +34,7 @@ def load_settings(env_file):
 
 class SampleRecorder:
     """수동 검증의 가상 데이터만 저장. 운영 대화 로그로 사용하지 않는다."""
+
     def __init__(self, client):
         self.client = client
         self.content = None
@@ -59,11 +61,21 @@ def main():
     payload = INPUT.validate_python(payload).model_dump(mode="json")
     messages = build_messages(payload)
     if not args.execute_real:
-        print(json.dumps({"network_called": False, "key_configured": bool(settings.api_key.strip()),
-                          "model": settings.model, "case_id": args.case,
-                          "prompt_characters": sum(len(m["content"]) for m in messages)}, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    "network_called": False,
+                    "key_configured": bool(settings.api_key.strip()),
+                    "model": settings.model,
+                    "case_id": args.case,
+                    "prompt_characters": sum(len(m["content"]) for m in messages),
+                },
+                ensure_ascii=False,
+            )
+        )
         return 0
     from run_evaluation import require_local_checks
+
     require_local_checks()
     client = GmsClient(settings)
     recorder = SampleRecorder(client)
@@ -73,11 +85,16 @@ def main():
     except ModelNotConfigured as error:
         parser.error(str(error))
     report = {
-        "execution_mode": "real", "synthetic_sample": True, "case_id": args.case,
-        "started_at_utc": started_at, "finished_at_utc": datetime.now(timezone.utc).isoformat(),
-        "automatic_retries": 0, "prompt_version": PROMPT_VERSION,
+        "execution_mode": "real",
+        "synthetic_sample": True,
+        "case_id": args.case,
+        "started_at_utc": started_at,
+        "finished_at_utc": datetime.now(timezone.utc).isoformat(),
+        "automatic_retries": 0,
+        "prompt_version": PROMPT_VERSION,
         "prompt_sha256": hashlib.sha256(json.dumps(messages, ensure_ascii=False).encode()).hexdigest(),
-        "call": client.last_call, "response": response,
+        "call": client.last_call,
+        "response": response,
         "raw_model_output": recorder.content,
         "credit_note": "토큰 수와 GMS 크레딧은 다릅니다. 실제 차감량은 GMS 사용량 화면 등에서 별도로 확인합니다.",
         "semantic_review": "pending",
@@ -87,8 +104,7 @@ def main():
     output = args.output or ROOT / "local_results" / ("gms_" + args.case + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content + "\n", encoding="utf-8")
-    summary = json.dumps({"saved": str(output.resolve()), "status": response["status"],
-                          "call": client.last_call}, ensure_ascii=False)
+    summary = json.dumps({"saved": str(output.resolve()), "status": response["status"], "call": client.last_call}, ensure_ascii=False)
     print(summary.replace(settings.api_key, "[REDACTED]"))
     return 0 if response["status"] == "completed" else 1
 

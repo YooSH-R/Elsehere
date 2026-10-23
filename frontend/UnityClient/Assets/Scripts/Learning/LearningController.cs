@@ -95,7 +95,11 @@ namespace A305.Learning
 
             feedbackRecord = record;
             feedbackView.Show(
-                new ConversationFeedback(record.NpcName, record.UserUtterances, exampleSource.GetRules())
+                new ConversationFeedback(
+                    record.NpcName,
+                    record.UserUtterances,
+                    exampleSource.GetRules()
+                )
             );
             UpdateMovementLock();
         }
@@ -145,7 +149,9 @@ namespace A305.Learning
             }
 
             hudView.SetVocabularyCount(LearningRecord.Vocabulary.Entries.Count);
-            hudView.ShowMessage($"단어장에 저장했어요 · {entry.English} (저장 {entry.SaveCount}회)");
+            hudView.ShowMessage(
+                $"단어장에 저장했어요 · {entry.English} (저장 {entry.SaveCount}회)"
+            );
         }
 
         private void ToggleLearned(VocabularyEntry entry)

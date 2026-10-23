@@ -110,7 +110,9 @@ namespace A305.Tutorial
                 return;
             }
 
-            Step = isGuidedCompleted ? TutorialStep.NeighborFeedback : TutorialStep.NeighborApproach;
+            Step = isGuidedCompleted
+                ? TutorialStep.NeighborFeedback
+                : TutorialStep.NeighborApproach;
         }
 
         public void CloseFeedback(string npcCode)
@@ -142,7 +144,8 @@ namespace A305.Tutorial
         {
             if (npcCode == tutorialNpcCode)
             {
-                return Step == TutorialStep.NeighborApproach || Step == TutorialStep.NeighborDialogue;
+                return Step == TutorialStep.NeighborApproach
+                    || Step == TutorialStep.NeighborDialogue;
             }
 
             if (npcCode == missionNpcCode)

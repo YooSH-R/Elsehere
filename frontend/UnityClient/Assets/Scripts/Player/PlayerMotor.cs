@@ -40,7 +40,11 @@ namespace A305.Player
             IsMovementLocked = isLocked;
         }
 
-        public Vector3 ComputeVelocity(PlayerMoveInput input, bool isGrounded, float deltaTimeSeconds)
+        public Vector3 ComputeVelocity(
+            PlayerMoveInput input,
+            bool isGrounded,
+            float deltaTimeSeconds
+        )
         {
             Vector3 horizontalVelocity = IsMovementLocked
                 ? Vector3.zero
@@ -73,9 +77,7 @@ namespace A305.Player
             Vector2 move = Vector2.ClampMagnitude(input.Move, 1f);
             Vector3 cameraRelativeDirection =
                 Quaternion.Euler(0f, input.CameraYawDegrees, 0f) * new Vector3(move.x, 0f, move.y);
-            float speed = input.IsSprinting
-                ? sprintSpeedMetersPerSecond
-                : walkSpeedMetersPerSecond;
+            float speed = input.IsSprinting ? sprintSpeedMetersPerSecond : walkSpeedMetersPerSecond;
 
             return cameraRelativeDirection * speed;
         }

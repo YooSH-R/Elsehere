@@ -23,6 +23,7 @@ namespace A305.EditorTools.World
             BuildStreetFurniture(streets);
             BuildTruck(streets);
             MainstreetStreetDressing.Apply(environment, settings);
+            MainstreetCafeKitBuilder.Apply(environment, settings);
             // Scale guides remain available in the hierarchy without covering the art review.
             environment.Find("ScaleAndDistanceMarkers").gameObject.SetActive(false);
         }

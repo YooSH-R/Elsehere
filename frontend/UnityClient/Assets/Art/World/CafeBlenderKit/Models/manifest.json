@@ -1,0 +1,190 @@
+{
+  "palette": [
+    {
+      "name": "Brick",
+      "hex": "C97557"
+    },
+    {
+      "name": "Trim",
+      "hex": "F4E3C4"
+    },
+    {
+      "name": "Fabric",
+      "hex": "23675E"
+    },
+    {
+      "name": "FabricEdge",
+      "hex": "398579"
+    },
+    {
+      "name": "Wood",
+      "hex": "9E6C43"
+    },
+    {
+      "name": "DarkWood",
+      "hex": "594634"
+    },
+    {
+      "name": "Metal",
+      "hex": "253A43"
+    },
+    {
+      "name": "Glass",
+      "hex": "66A5B7"
+    },
+    {
+      "name": "Reflection",
+      "hex": "ABD8DC"
+    },
+    {
+      "name": "WarmGlass",
+      "hex": "D4A05B"
+    },
+    {
+      "name": "Glow",
+      "hex": "FFE3A0"
+    },
+    {
+      "name": "Foliage",
+      "hex": "639B35"
+    },
+    {
+      "name": "Flower",
+      "hex": "FFF0CF"
+    },
+    {
+      "name": "FlowerGold",
+      "hex": "EBC456"
+    },
+    {
+      "name": "Soil",
+      "hex": "5D5136"
+    },
+    {
+      "name": "Paver",
+      "hex": "DDCCB1"
+    }
+  ],
+  "modules": [
+    {
+      "name": "WallGround2m",
+      "triangles": 108,
+      "material_slots": 1,
+      "width_m": 2.0,
+      "height_m": 4.0,
+      "depth_m": 0.22
+    },
+    {
+      "name": "WallUpper2m",
+      "triangles": 108,
+      "material_slots": 1,
+      "width_m": 2.0,
+      "height_m": 3.0,
+      "depth_m": 0.22
+    },
+    {
+      "name": "Entrance4m",
+      "triangles": 864,
+      "material_slots": 3,
+      "width_m": 4.0,
+      "height_m": 4.0,
+      "depth_m": 0.44
+    },
+    {
+      "name": "Cornice2m",
+      "triangles": 324,
+      "material_slots": 1,
+      "width_m": 2.0,
+      "height_m": 0.3,
+      "depth_m": 0.41
+    },
+    {
+      "name": "RoofEdge2m",
+      "triangles": 216,
+      "material_slots": 2,
+      "width_m": 2.0,
+      "height_m": 0.4,
+      "depth_m": 0.48
+    },
+    {
+      "name": "WindowUpper2m",
+      "triangles": 1712,
+      "material_slots": 6,
+      "width_m": 1.72,
+      "height_m": 2.385,
+      "depth_m": 0.48
+    },
+    {
+      "name": "WindowShop2m",
+      "triangles": 1516,
+      "material_slots": 8,
+      "width_m": 1.84,
+      "height_m": 2.77,
+      "depth_m": 0.46
+    },
+    {
+      "name": "Awning2m",
+      "triangles": 2264,
+      "material_slots": 2,
+      "width_m": 2.023,
+      "height_m": 0.9022,
+      "depth_m": 1.4284
+    },
+    {
+      "name": "FlowerPlanter1m",
+      "triangles": 2492,
+      "material_slots": 5,
+      "width_m": 1.25,
+      "height_m": 0.9381,
+      "depth_m": 0.73
+    },
+    {
+      "name": "WindowBox1p6m",
+      "triangles": 2670,
+      "material_slots": 5,
+      "width_m": 1.7,
+      "height_m": 0.6516,
+      "depth_m": 0.49
+    },
+    {
+      "name": "GardenTree4m",
+      "triangles": 1602,
+      "material_slots": 2,
+      "width_m": 3.304,
+      "height_m": 4.4616,
+      "depth_m": 2.2681
+    },
+    {
+      "name": "CafeTable",
+      "triangles": 264,
+      "material_slots": 2,
+      "width_m": 0.86,
+      "height_m": 0.625,
+      "depth_m": 0.86
+    },
+    {
+      "name": "CafeChair",
+      "triangles": 708,
+      "material_slots": 2,
+      "width_m": 0.38,
+      "height_m": 0.6152,
+      "depth_m": 0.3914
+    },
+    {
+      "name": "WallLamp",
+      "triangles": 632,
+      "material_slots": 2,
+      "width_m": 0.44,
+      "height_m": 0.4676,
+      "depth_m": 0.72
+    },
+    {
+      "name": "Paving2m",
+      "triangles": 432,
+      "material_slots": 1,
+      "width_m": 1.986,
+      "height_m": 0.07,
+      "depth_m": 1.986
+    }
+  ]
+}

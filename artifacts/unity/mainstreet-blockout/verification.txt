@@ -17,3 +17,4 @@ CAPTURE 06-character-building-scale.png
 CAPTURE 08-art-street.png
 CAPTURE 09-art-cafe.png
 CAPTURE 07-character-height-comparison.png
+CAPTURE 10-floor-prefabs.png

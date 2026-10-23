@@ -202,6 +202,13 @@ namespace A305.EditorTools.World
                     break;
                 case 8:
                     Capture(camera, "07-character-height-comparison.png");
+                    if (MainstreetCafeKitBuilder.IsReady)
+                        MainstreetCafeKitBuilder.PrepareFloorPreview(scene, camera);
+                    else
+                        Finish();
+                    break;
+                case 9:
+                    Capture(camera, "10-floor-prefabs.png");
                     Finish();
                     break;
             }

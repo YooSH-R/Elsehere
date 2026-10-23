@@ -68,6 +68,8 @@ Unity 렌더 확인: [시작 시야](../../artifacts/unity/mainstreet-blockout/0
 
 ## 수치 조정과 다시 만들기
 
+카페는 [Blender 모듈 프리팹](cafe-blender-kit.md)으로 구성한다. 기본 Sandbox에는 2층을 배치하며, 같은 층 부품을 사용하는 1·3층 예시도 저장되어 있다. **Build And Verify Blender Cafe**에서 가져오기·층 연결·높이와 Play 화면을 함께 검수한다. `10-floor-prefabs.png`는 검수 중에만 배치한 층수 비교 화면이다.
+
 | 에셋 | 조정할 것 | 적용 |
 | --- | --- | --- |
 | `Data/World/MainstreetBlockout/TownBlockoutSettings` | 키, 건물별 평면 크기, 층고, 문 크기, 북쪽 확장 길이 | 수정 후 Build Mainstreet Sandbox |

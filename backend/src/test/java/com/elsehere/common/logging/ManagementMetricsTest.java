@@ -3,22 +3,32 @@ package com.elsehere.common.logging;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.TestcontainersConfiguration;
+import com.elsehere.user.entity.AuthProvider;
+import com.elsehere.user.entity.AvatarType;
+import com.elsehere.user.entity.User;
+import com.elsehere.user.repository.UserRepository;
+import java.net.CookieManager;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {"management.server.port=0", "monitoring.password=metrics-test-password"})
 @Import(TestcontainersConfiguration.class)
+@ActiveProfiles("local")
 class ManagementMetricsTest {
+
+  @Autowired private UserRepository userRepository;
 
   @LocalServerPort private int applicationPort;
 
@@ -29,7 +39,29 @@ class ManagementMetricsTest {
   void metrics_areCollectedOnSeparateManagementPort() throws Exception {
     assertThat(managementPort).isPositive().isNotEqualTo(applicationPort);
 
-    assertThat(get(applicationPort, "/api/v1/bootstrap?token=private-token").statusCode())
+    User user =
+        userRepository.save(
+            User.signUp(
+                AuthProvider.GOOGLE,
+                "metrics-user",
+                "metrics@example.invalid",
+                "Metrics",
+                AvatarType.F));
+    HttpClient signedInClient = signIn(user.getId());
+    HttpRequest bootstrapRequest =
+        HttpRequest.newBuilder(
+                URI.create(
+                    "http://127.0.0.1:"
+                        + applicationPort
+                        + "/api/v1/bootstrap?token=private-token"))
+            .timeout(Duration.ofSeconds(10))
+            .GET()
+            .build();
+
+    assertThat(
+            signedInClient
+                .send(bootstrapRequest, HttpResponse.BodyHandlers.ofString())
+                .statusCode())
         .isEqualTo(200);
     HttpResponse<String> metrics = get(managementPort, "/actuator/prometheus");
 
@@ -80,6 +112,21 @@ class ManagementMetricsTest {
 
   private HttpResponse<String> get(int port, String path) throws Exception {
     return get(port, path, true);
+  }
+
+  private HttpClient signIn(Long userId) throws Exception {
+    HttpClient client = HttpClient.newBuilder().cookieHandler(new CookieManager()).build();
+    HttpRequest request =
+        HttpRequest.newBuilder(
+                URI.create("http://127.0.0.1:" + applicationPort + "/api/v1/dev/login"))
+            .timeout(Duration.ofSeconds(10))
+            .header("Content-Type", "application/json")
+            .header("X-Requested-With", "metrics-test")
+            .POST(HttpRequest.BodyPublishers.ofString("{\"userId\":" + userId + "}"))
+            .build();
+    assertThat(client.send(request, HttpResponse.BodyHandlers.ofString()).statusCode())
+        .isEqualTo(204);
+    return client;
   }
 
   private HttpResponse<String> get(int port, String path, boolean authenticate) throws Exception {

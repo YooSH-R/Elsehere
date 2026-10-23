@@ -183,9 +183,50 @@ namespace A305.EditorTools.World
                     break;
                 case 5:
                     Capture(camera, "06-character-building-scale.png");
+                    PrepareHeightComparison(scene, player, camera);
+                    break;
+                case 6:
+                    Capture(camera, "07-character-height-comparison.png");
                     Finish();
                     break;
             }
+        }
+
+        private static void PrepareHeightComparison(Scene scene, PlayerMover player, Camera camera)
+        {
+            player.gameObject.SetActive(false);
+            Transform parent = scene
+                .GetRootGameObjects()
+                .Single(root => root.name == "Characters")
+                .transform;
+            GameObject visual = AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"{TownBlockoutGeometry.PrefabFolder}/LittleMungV7Visual.prefab"
+            );
+            float centreZ = FindDoor(scene, "Cafe").parent.position.z;
+            float[] heights = { 1.4f, 1.6f, 1.7f };
+            for (int index = 0; index < heights.Length; index++)
+            {
+                float height = heights[index];
+                float z = centreZ + (index - 1) * 2.4f;
+                GameObject reference = Object.Instantiate(visual, parent);
+                reference.name = $"HeightReference_{height:F1}";
+                reference.transform.SetPositionAndRotation(
+                    new Vector3(-5.5f, 0.1f, z),
+                    Quaternion.Euler(0f, 90f, 0f)
+                );
+                reference.transform.localScale = Vector3.one * (height / 1.4f);
+                TownBlockoutGeometry.Label(
+                    "HeightComparisonLabel",
+                    $"{height:F1}m",
+                    parent,
+                    new Vector3(-5.5f, height + 0.45f, z),
+                    new Vector3(0f, 270f, 0f),
+                    0.3f
+                );
+            }
+            camera.orthographicSize = 2.2f;
+            camera.transform.position = new Vector3(0f, 1.3f, centreZ);
+            camera.transform.LookAt(new Vector3(-7f, 1.3f, centreZ));
         }
 
         private static void CheckGeometry(Scene scene, PlayerMover player)
@@ -258,26 +299,27 @@ namespace A305.EditorTools.World
             Vector3 start = door.position - inward * 1.8f;
             player.Teleport(start, rotation);
             CharacterController controller = player.GetComponent<CharacterController>();
+            float characterScale = player.transform.lossyScale.x;
             for (int step = 0; step <= 16; step++)
             {
                 Vector3 sample = start + inward * (step * 0.2f);
                 Collider[] overlaps = Physics.OverlapBox(
-                    sample + Vector3.up * 0.98f,
-                    new Vector3(0.7f, 0.41f, 0.5f),
+                    sample + Vector3.up * (0.98f * characterScale),
+                    new Vector3(0.7f, 0.41f, 0.5f) * characterScale,
                     rotation,
                     ~0,
                     QueryTriggerInteraction.Ignore
                 );
                 Require(
                     overlaps.All(collider => collider.transform.IsChildOf(player.transform)),
-                    $"{buildingName} 문 통과 시 최대 헤어 폭 1.4m의 간섭 없음",
+                    $"{buildingName} 문 통과 시 최대 헤어 폭 {1.4f * characterScale:F2}m의 간섭 없음",
                     record: false
                 );
                 controller.Move(inward * 0.2f);
             }
             Require(
                 Vector3.Dot(player.transform.position - door.position, inward) > 1f,
-                $"{buildingName} 문: CharacterController 실제 통과와 머리 여유 확인"
+                $"{buildingName} 문: CharacterController 실제 통과와 최대 헤어 폭 {1.4f * characterScale:F2}m 여유 확인"
             );
         }
 

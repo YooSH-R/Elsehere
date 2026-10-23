@@ -25,6 +25,32 @@ namespace A305.EditorTools.World
         public const string MovementSettingsPath =
             "Assets/Data/World/MainstreetBlockout/MovementSettings.asset";
 
+        [MenuItem("Tools/A305/World/Build And Verify Character 160cm")]
+        public static void BuildCharacter160AndVerify() => BuildCharacterHeightAndVerify(1.6f);
+
+        [MenuItem("Tools/A305/World/Build And Verify Character 170cm")]
+        public static void BuildCharacter170AndVerify() => BuildCharacterHeightAndVerify(1.7f);
+
+        private static void BuildCharacterHeightAndVerify(float height)
+        {
+            if (!BuilderTools.CanBuild())
+            {
+                return;
+            }
+            var settings = BuilderTools.LoadOrCreateAsset<TownBlockoutSettings>(SettingsPath);
+            var values = new SerializedObject(settings);
+            values.FindProperty("characterHeightMeters").floatValue = height;
+            values.ApplyModifiedPropertiesWithoutUndo();
+
+            // Match the eye and orbit pivot to the uniformly scaled character.
+            var cameraValues = new SerializedObject(PrepareCameraSettings());
+            cameraValues.FindProperty("pivotHeightMeters").floatValue = 0.9f * height / 1.4f;
+            cameraValues.FindProperty("eyeHeightMeters").floatValue = 0.94f * height / 1.4f;
+            cameraValues.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+            TownMainstreetVerification.BuildAndVerify();
+        }
+
         [MenuItem("Tools/A305/World/Build And Verify Larger Mainstreet Sandbox")]
         public static void BuildLargerAndVerify()
         {
@@ -488,8 +514,8 @@ namespace A305.EditorTools.World
             foreach (
                 float height in new[]
                 {
-                    0.56f,
-                    1.4f,
+                    settings.CharacterHeightMeters * 0.4f,
+                    settings.CharacterHeightMeters,
                     settings.DoorwayHeightMeters,
                     settings.GroundFloorHeightMeters,
                 }

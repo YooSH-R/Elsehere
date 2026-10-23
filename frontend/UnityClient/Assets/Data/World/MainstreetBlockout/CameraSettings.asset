@@ -22,8 +22,8 @@ MonoBehaviour:
   firstPersonMinPitchDegrees: -70
   firstPersonMaxPitchDegrees: 70
   rotateDegreesPerPixel: 0.2
-  pivotHeightMeters: 0.9
-  eyeHeightMeters: 0.94
+  pivotHeightMeters: 1.0285715
+  eyeHeightMeters: 1.0742857
   followSharpness: 15
   collisionRadiusMeters: 0.2
   collisionLayers:

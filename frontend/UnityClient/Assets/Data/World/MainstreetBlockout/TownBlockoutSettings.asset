@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: acfb7444ace9b9547b92da31600d15ee, type: 3}
   m_Name: TownBlockoutSettings
   m_EditorClassIdentifier: A305.World::A305.World.TownBlockoutSettings
-  characterHeightMeters: 1.4
+  characterHeightMeters: 1.6
   groundFloorHeightMeters: 4
   upperFloorHeightMeters: 3
   shopFootprintMeters: 8

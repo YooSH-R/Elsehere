@@ -1,4 +1,4 @@
-PASS 캐릭터 시각 높이 1.400m
+PASS 캐릭터 시각 높이 1.600m
 PASS 플레이 카메라 하나
 PASS Sandbox가 Production Scene List에 없음
 PASS 규약의 다섯 루트 그룹
@@ -6,11 +6,12 @@ PASS Missing Script 없음
 CAPTURE 01-start-view.png
 PASS 대화 시점과 이동 잠금
 CAPTURE 02-dialogue-view.png
-PASS Cafe 문: CharacterController 실제 통과와 머리 여유 확인
-PASS Hotel 문: CharacterController 실제 통과와 머리 여유 확인
-PASS Home 문: CharacterController 실제 통과와 머리 여유 확인
+PASS Cafe 문: CharacterController 실제 통과와 최대 헤어 폭 1.60m 여유 확인
+PASS Hotel 문: CharacterController 실제 통과와 최대 헤어 폭 1.60m 여유 확인
+PASS Home 문: CharacterController 실제 통과와 최대 헤어 폭 1.60m 여유 확인
 CAPTURE 03-cafe-scale.png
 PASS 북쪽 보도 연속 통행 39.0m / 도착 Z=68.00
 CAPTURE 04-north-extension.png
 CAPTURE 05-layout-overview.png
 CAPTURE 06-character-building-scale.png
+CAPTURE 07-character-height-comparison.png

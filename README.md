@@ -71,6 +71,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [Unity 개발 규약](docs/unity/conventions.md)
 - [AI 코드·문서 작성 지침](AGENTS.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
+- [HTTPS와 인증서 운영](docs/https.md)
 - [Jira와 GitLab 연동](docs/jira-integration.md)
 - [일반 MR 템플릿](.gitlab/merge_request_templates/Default.md)
 - [릴리스 MR 템플릿](.gitlab/merge_request_templates/Release.md)

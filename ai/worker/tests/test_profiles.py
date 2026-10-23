@@ -50,6 +50,41 @@ def test_gms_profile_by_one_variable(env):
     assert s.role_provider == {"stt": "groq"} and s.providers == {"groq": {"base_url": GROQ_URL, "api_key": "q"}}
 
 
+def test_stt_fallback_from_profile(env):
+    # GMS 구성: 음성 인식이 Groq에서 실패하면 GMS whisper-1로 (GMS는 기본 공급자라 공급자를 따로 더하지 않음)
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
+    s = Settings.from_env()
+    assert s.stt_fallback == {"provider": "gms", "model": "whisper-1"} and set(s.providers) == {"groq"}
+    env["LLM_PROFILE"] = "gms-sol"
+    assert Settings.from_env().stt_fallback == {"provider": "gms", "model": "whisper-1"}
+    env["LLM_PROFILE"] = "groq"
+    assert Settings.from_env().stt_fallback == {}
+
+
+def test_stt_fallback_by_env(env):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_FALLBACK": ""})  # 끄기
+    assert Settings.from_env().stt_fallback == {}
+    env.update({"LLM_PROFILE": "groq", "STT_FALLBACK": "gms:whisper-1", "STT_FIRST_TIMEOUT_S": "5"})
+    s = Settings.from_env()
+    assert s.stt_fallback == {"provider": "gms", "model": "whisper-1"} and s.stt_first_timeout_s == 5.0
+    assert s.providers["gms"] == {"base_url": GMS_URL, "api_key": "g"}  # 기본 공급자가 아니면 공급자를 더함
+
+
+@pytest.mark.parametrize("value", ["whisper-1", "nope:whisper-1", "gms:"])
+def test_stt_fallback_bad_value(env, value):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_FALLBACK": value})
+    with pytest.raises(RuntimeError) as e:
+        Settings.from_env()
+    assert "STT_FALLBACK" in str(e.value)
+
+
+def test_stt_fallback_key_required(env):
+    env.update({"LLM_PROFILE": "groq", "GROQ_API_KEY": "q", "STT_FALLBACK": "gms:whisper-1"})
+    with pytest.raises(RuntimeError) as e:
+        Settings.from_env()
+    assert "GMS_KEY" in str(e.value)
+
+
 def test_missing_keys_named(env):
     env["LLM_PROFILE"] = "gms-sol"
     with pytest.raises(RuntimeError) as e:

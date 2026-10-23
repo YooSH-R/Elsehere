@@ -1,5 +1,7 @@
 package com.elsehere.common.config;
 
+import com.elsehere.auth.handler.SocialLoginFailureHandler;
+import com.elsehere.auth.handler.SocialLoginSuccessHandler;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -21,16 +23,31 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfig {
 
+  /** AUTH-01. 뒤에 제공자 이름이 붙는다(예: /api/v1/auth/login/google). */
+  private static final String SOCIAL_LOGIN_START_PATH = "/api/v1/auth/login";
+
+  /** AUTH-02. 제공자 인증을 마치고 돌아오는 주소다(예: /api/v1/auth/callback/google). */
+  private static final String SOCIAL_LOGIN_CALLBACK_PATH = "/api/v1/auth/callback/*";
+
   @Bean
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http,
-      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver)
+      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
+      SocialLoginSuccessHandler socialLoginSuccessHandler,
+      SocialLoginFailureHandler socialLoginFailureHandler)
       throws Exception {
     http.httpBasic(AbstractHttpConfigurer::disable)
         .formLogin(AbstractHttpConfigurer::disable)
         // CSRF는 Spring의 토큰 방식 대신 사용자 정의 헤더 검사로 막는다(CsrfHeaderFilter).
         .csrf(AbstractHttpConfigurer::disable)
         .addFilterAt(new CsrfHeaderFilter(exceptionResolver), CsrfFilter.class)
+        .oauth2Login(
+            oauth2 ->
+                oauth2
+                    .authorizationEndpoint(endpoint -> endpoint.baseUri(SOCIAL_LOGIN_START_PATH))
+                    .redirectionEndpoint(endpoint -> endpoint.baseUri(SOCIAL_LOGIN_CALLBACK_PATH))
+                    .successHandler(socialLoginSuccessHandler)
+                    .failureHandler(socialLoginFailureHandler))
         .authorizeHttpRequests(
             authorize ->
                 authorize

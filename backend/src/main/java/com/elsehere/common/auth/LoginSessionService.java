@@ -27,4 +27,11 @@ public class LoginSessionService {
     contextHolderStrategy.setContext(context);
     contextRepository.saveContext(context, request, response);
   }
+
+  /** 세션의 로그인 상태를 비운다. 세션 자체와 다른 세션 값은 그대로 둔다. */
+  public void clearLogin(HttpServletRequest request, HttpServletResponse response) {
+    SecurityContext emptyContext = contextHolderStrategy.createEmptyContext();
+    contextHolderStrategy.setContext(emptyContext);
+    contextRepository.saveContext(emptyContext, request, response);
+  }
 }

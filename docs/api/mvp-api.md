@@ -271,10 +271,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### AUTH-01·02 소셜 로그인
 
-- AUTH-01은 제공자 로그인 화면으로 리다이렉트합니다. Spring Security OAuth2 Login을 쓰면 기본 경로(`/oauth2/authorization/{provider}`)로 대신할 수 있습니다.
-- AUTH-02는 `(provider, providerUid)`로 사용자를 찾습니다.
+- AUTH-01 `GET /api/v1/auth/login/google`은 Google 로그인 화면으로 리다이렉트합니다. 클라이언트는 API 호출이 아니라 페이지 이동으로 엽니다.
+- AUTH-02 `GET /api/v1/auth/callback/google`은 Google이 인증을 마치고 돌려보내는 주소입니다. Google 콘솔의 승인된 리디렉션 URI에 환경마다 이 주소를 등록합니다. `(provider, providerUid)`로 사용자를 찾으며, `providerUid`는 Google 계정 고유 ID(OIDC `sub`)입니다.
   - 가입한 사용자: 로그인 처리 후 클라이언트로 리다이렉트합니다.
-  - 처음 로그인한 사용자: 사용자를 만들지 않고 제공자 정보(`provider`, `providerUid`, 이메일)를 가입 대기 상태로 세션에 보관한 뒤 클라이언트로 리다이렉트합니다. `users.nickname`, `users.avatar_type`이 필수라 가입 정보를 받기 전에는 사용자를 만들 수 없습니다.
+  - 처음 로그인한 사용자: 사용자를 만들지 않고 제공자 정보(`provider`, `providerUid`, 이메일)를 가입 대기 상태로 세션에 보관한 뒤 클라이언트로 리다이렉트합니다. `users.nickname`, `users.avatar_type`이 필수라 가입 정보를 받기 전에는 사용자를 만들 수 없습니다. 가입 대기 상태는 로그인 상태가 아닙니다.
+- 리다이렉트할 클라이언트 주소는 서버 설정값(`CLIENT_URL`, 기본값 `/`)입니다. 로그인이 실패하거나 사용자가 Google 동의를 취소하면 같은 주소에 `?loginError=true`를 붙여 보냅니다. 클라이언트는 그 뒤 BOOT-01로 다음 화면을 정합니다.
 
 #### AUTH-03 `GET /api/v1/auth/signup`
 

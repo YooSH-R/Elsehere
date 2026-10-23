@@ -38,12 +38,14 @@ com.elsehere
 
 | 도메인 | 테이블 |
 | --- | --- |
-| `auth` | 아직 없음 (개발용 로그인) |
+| `auth` | 없음 (로그인 처리, 개발용 로그인) |
+| `user` | users |
 | `world` | scenes, npcs, world_objects, user_object_prefs |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions |
 
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
+- Spring Security가 호출하는 로그인 성공·실패 처리기는 `auth/handler`에 둡니다.
 - 다른 담당 영역의 테이블(users, conversations, turns)은 JPA 연관관계 없이 ID 값으로만 참조합니다. 이 컬럼에는 외래 키 제약이 생기지 않습니다.
 
 ## 준비
@@ -65,6 +67,20 @@ com.elsehere
 - 로그인 상태는 서버 세션에 두고 세션 쿠키(HttpOnly, `SameSite=Lax`)로 유지합니다. 로그인 없이 `/api/v1` API를 호출하면 `401 UNAUTHENTICATED`입니다.
 - POST·PUT·PATCH·DELETE 요청에는 `X-Requested-With` 헤더(값은 자유)를 붙여야 합니다. 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 오류 응답 형식과 코드는 [MVP API 명세](../docs/api/mvp-api.md)의 1.5절을 따릅니다.
+
+### Google 로그인
+
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-01·02입니다. 브라우저에서 `/api/v1/auth/login/google`을 열면 Google 로그인 후 `/api/v1/auth/callback/google`로 돌아오고, 서버가 로그인 또는 가입 대기 상태를 만든 뒤 클라이언트 주소로 보냅니다.
+
+| 환경변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `GOOGLE_CLIENT_ID` | `not-configured` | Google OAuth 클라이언트 ID |
+| `GOOGLE_CLIENT_SECRET` | `not-configured` | Google OAuth 클라이언트 보안 비밀번호. 코드와 Git에 넣지 않습니다. |
+| `CLIENT_URL` | `/` | 로그인을 마친 뒤 돌아갈 클라이언트 주소 |
+
+- 값이 없어도 서버는 실행되지만 Google 로그인은 실패합니다. 개발용 로그인만 쓸 때는 지정하지 않아도 됩니다.
+- Google 콘솔의 OAuth 클라이언트에 환경별 리디렉션 URI(`http://localhost:8080/api/v1/auth/callback/google` 등)를 등록하고, 앱이 테스트 상태이면 로그인할 계정을 테스트 사용자로 추가합니다.
+- nginx 뒤에서는 `X-Forwarded-Proto`, `X-Forwarded-Host` 헤더로 원래 주소를 알아내 콜백 주소를 만듭니다(`server.forward-headers-strategy=native`).
 
 ### 개발용 로그인
 

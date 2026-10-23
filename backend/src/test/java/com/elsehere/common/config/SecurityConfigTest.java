@@ -1,27 +1,31 @@
 package com.elsehere.common.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.auth.LoginUserTestController;
 import com.elsehere.common.error.ErrorCode;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
 
-@WebMvcTest(controllers = LoginUserTestController.class)
-@Import(SecurityConfig.class)
+@SecuredWebMvcTest(controllers = LoginUserTestController.class)
 class SecurityConfigTest {
 
   @Autowired private MockMvc mockMvc;
@@ -64,6 +68,34 @@ class SecurityConfigTest {
                 .with(authentication(loggedIn(7L))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.userId").value(7));
+  }
+
+  @Test
+  @DisplayName("Google 로그인 시작(AUTH-01)은 Google 인증 화면으로 보내고 콜백 주소로 AUTH-02 경로를 알려 준다")
+  void googleLoginStart_redirectsToGoogleWithCallbackPath() throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(get("/api/v1/auth/login/google"))
+            .andExpect(status().is3xxRedirection())
+            .andReturn();
+
+    UriComponents redirect =
+        UriComponentsBuilder.fromUriString(result.getResponse().getRedirectedUrl()).build();
+    String callbackUri =
+        URLDecoder.decode(
+            redirect.getQueryParams().getFirst("redirect_uri"), StandardCharsets.UTF_8);
+    assertThat(redirect.getHost()).isEqualTo("accounts.google.com");
+    assertThat(callbackUri).isEqualTo("http://localhost/api/v1/auth/callback/google");
+  }
+
+  @Test
+  @DisplayName("Google 로그인이 실패하거나 취소되면 클라이언트 주소로 실패 표시를 붙여 돌려보낸다")
+  void googleLoginFailure_redirectsToClientWithError() throws Exception {
+    // 로그인 시작(AUTH-01) 없이 콜백만 오면 인증 요청 정보가 없어 실패한다. 사용자가 동의를 취소해도 같은 처리기로 간다.
+    mockMvc
+        .perform(get("/api/v1/auth/callback/google").param("code", "code").param("state", "state"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/?loginError=true"));
   }
 
   private static Authentication loggedIn(Long userId) {

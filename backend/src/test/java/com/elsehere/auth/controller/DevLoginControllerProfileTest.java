@@ -5,19 +5,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.elsehere.common.auth.CsrfHeaderFilter;
-import com.elsehere.common.auth.LoginSessionService;
-import com.elsehere.common.config.SecurityConfig;
+import com.elsehere.common.config.SecuredWebMvcTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 // local 프로필을 켜지 않은 환경(개발 서버·운영)을 흉내 낸다.
-@WebMvcTest(controllers = DevLoginController.class)
-@Import({SecurityConfig.class, LoginSessionService.class})
+@SecuredWebMvcTest(controllers = DevLoginController.class)
 class DevLoginControllerProfileTest {
 
   @Autowired private MockMvc mockMvc;

@@ -1,0 +1,79 @@
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+  security_opt:
+    - no-new-privileges:true
+  group_add:
+    - "${MONITORING_SECRET_GID:?Set the group ID that can read the secret files}"
+
+services:
+  prometheus:
+    <<: *service-defaults
+    image: prom/prometheus:v3.13.5
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=14d
+      - --storage.tsdb.retention.size=1GB
+    ports:
+      - "127.0.0.1:9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    secrets:
+      - dev-monitoring-password
+      - prod-monitoring-password
+    networks:
+      - monitoring
+      - development
+      - production
+    cpus: 0.50
+    mem_limit: 512m
+
+  grafana:
+    <<: *service-defaults
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana-admin-password
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    secrets:
+      - grafana-admin-password
+    networks:
+      - monitoring
+    cpus: 0.50
+    mem_limit: 256m
+
+networks:
+  monitoring:
+    internal: true
+  development:
+    external: true
+    name: a305-dev_default
+  production:
+    external: true
+    name: a305-prod_default
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+secrets:
+  dev-monitoring-password:
+    file: ${MONITORING_SECRETS_DIRECTORY:?Set the server secret directory}/dev-monitoring-password
+  prod-monitoring-password:
+    file: ${MONITORING_SECRETS_DIRECTORY:?Set the server secret directory}/prod-monitoring-password
+  grafana-admin-password:
+    file: ${MONITORING_SECRETS_DIRECTORY:?Set the server secret directory}/grafana-admin-password

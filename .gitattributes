@@ -7,4 +7,8 @@ infra/scripts/*.ps1 text eol=lf
 *.toml text eol=lf
 backend/**/*.java text eol=lf
 infra/runner/*.toml text eol=lf
+infra/nginx/*.conf text eol=lf
+infra/compose/*.yaml text eol=lf
+infra/monitoring/** text=auto eol=lf
+docs/observability.md text eol=lf
 frontend/UnityClient/** text=auto eol=lf

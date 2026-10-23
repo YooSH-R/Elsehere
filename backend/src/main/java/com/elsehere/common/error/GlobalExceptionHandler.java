@@ -1,5 +1,6 @@
 package com.elsehere.common.error;
 
+import java.util.Arrays;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -46,7 +47,11 @@ public class GlobalExceptionHandler {
       return ResponseEntity.status(status)
           .body(ErrorResponse.of(httpStatus.name(), REQUEST_REJECTED_MESSAGE));
     }
-    log.error("처리하지 못한 예외", exception);
+    // 예외 메시지에는 외부 응답이나 사용자 입력이 섞일 수 있어 타입과 코드 위치만 기록한다.
+    log.error(
+        "처리하지 못한 예외 type={} stack={}",
+        exception.getClass().getName(),
+        Arrays.toString(exception.getStackTrace()));
     return respond(ErrorCode.INTERNAL_ERROR, null);
   }
 

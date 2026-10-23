@@ -1,6 +1,6 @@
 # EC2에서 Unity WebGL 빌드하기
 
-개인 PC를 켜 두지 않고 WebGL 산출물을 만들려면, EC2의 Unity 전용 실행 환경에서 프로젝트와 같은 Editor로 빌드합니다. 이 문서는 적용 조건과 시험 절차입니다. 현재 서버에 Unity Runner가 설치되었거나 WebGL 자동 빌드가 연결되었다는 의미는 아닙니다.
+Unity 자동화의 기본 실행 환경은 [Windows 노트북 전용 Runner](windows-runner.md)입니다. 이 문서는 EC2에서 빌드하는 대안의 적용 조건과 시험 절차입니다. 현재 서버에 Unity Runner가 설치되었거나 WebGL 자동 빌드가 연결되었다는 의미는 아닙니다.
 
 ## 지원 조건
 

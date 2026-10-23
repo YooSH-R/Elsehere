@@ -9,6 +9,7 @@
 | `ci:yaml` | 생성된 모든 파이프라인 | CI YAML 문법·형식 검사 |
 | `backend:check-and-build` | 백엔드, API 명세, ERD, 앱 실행 설정 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·`app.jar`·커밋 식별자 |
 | `unity:format` | 프론트, API 명세, Unity 검사·규약 또는 공통 CI 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
+| `unity:editor-and-webgl` | 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
@@ -39,11 +40,11 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 
-현재 Unity 작업은 **포맷 검사**입니다. Unity Editor의 컴파일·EditMode·PlayMode·WebGL 빌드 검증을 대신하지 않습니다. Editor·Web Build Support·라이선스를 사용할 실행 환경을 연결한 뒤 기존 Unity 검사 명령과 테스트·빌드를 추가합니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
+일반 MR의 Unity 작업은 **포맷 검사**입니다. Unity Editor의 컴파일·EditMode·PlayMode·WebGL 빌드 검증을 대신하지 않습니다. 보호된 후보의 수동 CI 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
 
 이 설정에는 자동 배포·운영 통합 테스트가 포함되지 않습니다. 실제 앱의 실행 설정과 이미지, 배포 후 상태 검사 및 복구 절차를 검증한 뒤 배포 작업을 연결합니다. 마지막 성공 배포 이후 누적 변경 판정은 배포 구현의 책임이며 CI의 `rules:changes`만으로 해결했다고 간주하지 않습니다.
 
-`infra:app-runtime`은 Runner의 rootless Docker 안에 `a305-check-*` 프로젝트를 만들고 종료 시 그 프로젝트의 컨테이너·네트워크·DB 볼륨만 정리합니다. 테스트용 네트워크의 외부 통신을 차단하고 공급자 키는 가짜 값을 사용하므로 실제 모델을 호출하지 않습니다. 웹 응답에는 작은 HTTP fixture를 사용하며 실제 Unity 게임 화면이나 외부 HTTPS 경로를 검증한 것으로 표시하지 않습니다. 실행 구성은 [서버 구성](deployment.md), Unity 실행 환경은 [EC2 빌드 검토](unity/server-build.md)를 따릅니다.
+`infra:app-runtime`은 Runner의 rootless Docker 안에 `a305-check-*` 프로젝트를 만들고 종료 시 그 프로젝트의 컨테이너·네트워크·DB 볼륨만 정리합니다. 테스트용 네트워크의 외부 통신을 차단하고 공급자 키는 가짜 값을 사용하므로 실제 모델을 호출하지 않습니다. 웹 응답에는 작은 HTTP fixture를 사용하며 실제 Unity 게임 화면이나 외부 HTTPS 경로를 검증한 것으로 표시하지 않습니다. 실행 구성은 [서버 구성](deployment.md), Unity 실행 환경은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다.
 
 ## 동일 서버의 실행 구조와 제한
 

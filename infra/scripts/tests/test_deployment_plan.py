@@ -38,6 +38,13 @@ class DeploymentPlanTest(unittest.TestCase):
         self.assertEqual(plan["checks"], ["ai"])
         self.assertEqual(plan["builds"], ["ai"])
 
+    def test_unity_build_script_change_rebuilds_only_the_web_image(self):
+        plan = select_deployment_work(["infra/scripts/run-unity-ci.ps1"])
+
+        self.assertEqual(plan["checks"], ["infra", "unity"])
+        self.assertEqual(plan["builds"], ["web"])
+        self.assertTrue(plan["deploy"])
+
     def test_api_contract_requires_all_service_checks_without_new_images(self):
         plan = select_deployment_work(["docs/api/mvp-api.md"])
 

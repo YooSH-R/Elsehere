@@ -19,6 +19,7 @@ def select_deployment_work(changed_paths):
         "infra/docker/ai-worker.Dockerfile": ("ai", "ai"),
         "infra/docker/web.Dockerfile": ("unity", "web"),
         "infra/nginx/web.conf": ("unity", "web"),
+        "infra/scripts/run-unity-ci.ps1": ("unity", "web"),
     }
 
     for path in changed_paths:

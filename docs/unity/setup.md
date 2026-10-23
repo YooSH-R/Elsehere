@@ -108,7 +108,7 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 
 `A305.EditorTools.Deployment.WebGlBuild.Build`는 활성화된 Scene List를 WebGL로 빌드하고 gzip 응답에 맞는 산출물과 `version.json`을 만듭니다. `WEBGL_BUILD_DIRECTORY`에 `Assets` 밖의 출력 폴더를 지정합니다. `CI_COMMIT_SHA`가 있으면 전체 커밋 SHA를 기록하고, 로컬 검증에서는 `local`을 기록합니다.
 
-EC2의 Editor·라이선스·자원 조건과 시험 순서는 [서버에서 Unity 빌드하기](server-build.md)를 따릅니다. 빌드 스크립트가 있다는 사실과 해당 서버의 Runner 연결·자동 배포 완료는 구분합니다.
+자동화의 기본 실행 환경은 [Windows 노트북의 Unity 전용 Runner](windows-runner.md)입니다. EC2의 Editor·라이선스·자원 조건은 [EC2 빌드 검토](server-build.md)에 남깁니다. 빌드 스크립트, Runner 연결, 실제 CI 빌드와 서버 배포 성공은 각각 확인합니다.
 
 ## 후속 검증 범위
 

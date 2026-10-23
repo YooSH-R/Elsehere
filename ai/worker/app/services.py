@@ -238,9 +238,9 @@ def is_prompt_echo(text: str, prompt: str) -> bool:
 
 
 async def stt(llm: LLM, audio: bytes, mime: str, scene_words: list[str]) -> dict:
+    """mime은 AUDIO_EXT에 있는 형식만 받는다 (라우트가 매개변수를 떼고 걸러 415로 돌려줌)."""
     usage = Usage()
-    mime = (mime or "audio/webm").split(";")[0].strip()
     prompt = stt_prompt(scene_words)
-    out = await llm.transcribe(audio, f"speech.{AUDIO_EXT.get(mime, 'webm')}", mime, prompt, usage)
+    out = await llm.transcribe(audio, f"speech.{AUDIO_EXT[mime]}", mime, prompt, usage)
     text = "" if is_prompt_echo(out["text"], prompt) else out["text"]
     return {"text": text, "latency_s": out["latency_s"], "audio_s": out["audio_s"], "usage": usage.items}

@@ -18,7 +18,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | ONB-08·09 난이도, CONV-01 `levelApplied` | 모든 대화 요청의 `level` | 그대로 넘김 (MVP는 `1`) |
 | CONV-01 대화 시작 · 첫 인사 | (백엔드 `[미정]`) | 미리 작성한 인사를 쓰면 AI 호출 없음. AI로 만들면 `/v1/npc/reply`에 인사 지시(`instruction`)와 `suggest_words: true` |
 | CONV-01·03 `suggestWords` | `/v1/npc/reply`의 `words` 이벤트 (또는 `/v1/suggest`) | `words` 그대로. 작별 대사 턴은 부르지 않음(`null`) |
-| CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH` |
+| CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
 | CONV-03 발화 전송 | `POST /v1/judge` → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). `npcTurn.text` ← `done.text` |
 | CONV-03 `npcTurn.speech` | `done.audio_full_id` → `GET /v1/audio/{id}` | 턴 전체 음성 하나를 받아 저장(`npc_audio_key`). `null`이면 `speech.status: FAILED` |
 | CONV-04 뜻 보기 | `POST /v1/meaning` | `meaningKo` ← `meaning_ko`, `glossary[].meaningKo` ← `glossary[].meaning_ko` |
@@ -59,6 +59,8 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 |---|---|---|---|
 | `unauthorized` | 401 | 내부 토큰 틀림 | 설정 오류. 재시도하지 않음 |
 | `invalid_request` | 400 | 요청 형식 오류 (메시지에 어느 칸인지) | 재시도하지 않음 |
+| `audio_too_large` | 413 | 녹음이 3MB를 넘음 (`/v1/stt`) | `AUDIO_TOO_LARGE` |
+| `audio_format_unsupported` | 415 | 지원하지 않는 녹음 형식 (`/v1/stt`) | `AUDIO_FORMAT_UNSUPPORTED` |
 | `provider_limit` | 429 | 공급자 한도 (대체 모델까지 소진) | 잠시 뒤 재시도 안내 |
 | `provider_unavailable` | 503 | 공급자 오류·응답 없음 (대체 모델까지 실패), 공급자 응답 형식이 다름(JSON 아님·`choices` 없음, 스트림 data 줄이 깨짐) | 재시도 안내 |
 | `invalid_output` | 502 | 모델 출력이 정해진 형식이 아님 (힌트 등) | 응답 형식 오류로 안내 (`AI_RESPONSE_INVALID`) |
@@ -222,7 +224,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 | 칸 | 내용 |
 |---|---|
-| `file` | 녹음 (최대 3MB, 비면 400). `audio/webm`·`ogg`·`mp4`·`wav`·`mpeg` |
+| `file` | 녹음. 파일 부분의 `Content-Type`이 `audio/webm`·`audio/ogg`·`audio/mp4`·`audio/wav`·`audio/x-wav`·`audio/mpeg` 중 하나여야 합니다(`;codecs=...` 같은 매개변수는 붙어도 됨). 그 밖의 형식이나 `Content-Type`이 없으면(`application/octet-stream` 포함) 415 `audio_format_unsupported`, 3MB를 넘으면 413 `audio_too_large`, 비면 400 `invalid_request`입니다. 형식이 맞지 않으면 STT 공급자를 부르지 않습니다 |
 | `scene_words` | 장면 단어(메뉴·상품 이름). JSON 배열 또는 쉼표로 구분한 글. 최대 30개 사용 |
 
 응답: `{"text": "...", "latency_s": 0.41, "audio_s": 2.9, "usage": [{"step": "stt", "model": "...", "audio_s": 2.9, "latency_s": 0.41, "fallback": false}]}`

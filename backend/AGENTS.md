@@ -19,6 +19,12 @@
 - `saved_at`, `started_at`처럼 업무에 쓰는 시각은 `created_at`과 별도 컬럼으로 두고, 값을 넣는 코드에서 `Clock` 기준으로 채웁니다.
 - 새 테이블의 엔티티를 만들면 `EntitySchemaTest`의 테이블 목록에 추가합니다.
 
+## 인증과 오류
+
+- 컨트롤러는 현재 사용자를 `@AuthenticationPrincipal LoginUser`로 받습니다. 요청 본문이나 경로로 받은 사용자 ID를 믿지 않습니다.
+- 업무 오류는 `BusinessException`에 `ErrorCode`를 담아 던지면 `GlobalExceptionHandler`가 공통 오류 응답으로 바꿉니다. 명세 오류 표의 코드가 처음 필요해질 때 `ErrorCode`에 추가하고, 표에 없는 코드를 만들면 명세에도 추가합니다.
+- 컨트롤러 테스트는 `@SecuredWebMvcTest(controllers = ...)`로 실제 보안 설정과 함께 검증합니다. `@WebMvcTest`에 보안 설정과 로그인 처리 빈을 등록하고, DB가 필요한 소셜 로그인 사용자 조회만 Mock으로 둔 테스트용 애너테이션입니다. 로그인 상태는 `SecurityMockMvcRequestPostProcessors.authentication(...)`에 `LoginUser`를 담아 만들고, 상태를 바꾸는 요청에는 `X-Requested-With` 헤더를 붙입니다.
+
 ## 테스트 구성
 
 | 대상 | 테스트 방식 | 확인할 내용 |

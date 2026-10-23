@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>{{{ PRODUCT_NAME }}}</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main id="unity-viewport">
+      <div id="unity-container">
+        <div id="unity-frame">
+          <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1" aria-label="{{{ PRODUCT_NAME }}}"></canvas>
+          <div id="unity-loading" role="status">
+            <span>화면을 불러오는 중입니다.</span>
+            <progress id="unity-progress" max="1" value="0"></progress>
+          </div>
+          <div id="unity-warning" role="alert" hidden></div>
+        </div>
+        <footer id="unity-footer">
+          <span>{{{ PRODUCT_NAME }}}</span>
+          <button id="unity-fullscreen" type="button" hidden>전체 화면</button>
+        </footer>
+      </div>
+    </main>
+    <script>
+      const canvas = document.querySelector("#unity-canvas");
+      const loading = document.querySelector("#unity-loading");
+      const warning = document.querySelector("#unity-warning");
+
+      function showBanner(message, type) {
+        const entry = document.createElement("div");
+        entry.textContent = message;
+        warning.appendChild(entry);
+        warning.hidden = false;
+        if (type !== "error") {
+          setTimeout(() => {
+            entry.remove();
+            warning.hidden = warning.children.length === 0;
+          }, 5000);
+        }
+      }
+
+      function showLoadError(message) {
+        loading.hidden = true;
+        showBanner(message, "error");
+      }
+
+      const buildUrl = "Build";
+      const config = {
+        arguments: [],
+        dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+        frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+        workerUrl: buildUrl + "/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+        codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+        symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        showBanner,
+      };
+
+      const loader = document.createElement("script");
+      loader.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+      loader.onerror = () => showLoadError("화면을 불러오지 못했습니다. 연결을 확인한 뒤 새로고침해 주세요.");
+      loader.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress").value = progress;
+        }).then(() => {
+          loading.hidden = true;
+          const fullscreen = document.querySelector("#unity-fullscreen");
+          fullscreen.hidden = !document.fullscreenEnabled;
+          fullscreen.onclick = () => {
+            // 캔버스 비율과 안전 영역을 유지하도록 페이지 전체를 확대한다.
+            document.querySelector("#unity-viewport").requestFullscreen().catch((error) => {
+              showBanner(error.message, "warning");
+            });
+          };
+        }).catch(showLoadError);
+      };
+      document.body.appendChild(loader);
+    </script>
+  </body>
+</html>

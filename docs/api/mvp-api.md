@@ -18,8 +18,10 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 
 ### 1.2 인증
 
-- 소셜 로그인으로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 제공자 목록은 `[미정]`입니다.
-- 인증 유지 방식은 `[미정]`입니다. `[제안]` HttpOnly 세션 쿠키를 사용하고, nginx로 Unity Web 빌드와 API를 같은 출처에서 제공합니다. 이때 `SameSite=Lax` 쿠키와 CSRF 토큰 또는 사용자 정의 헤더 검사로 요청 위조를 막습니다.
+- 소셜 로그인으로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 제공자는 Google 하나이며, 경로의 `{provider}`는 `google`입니다.
+- 로그인 상태는 서버 세션에 두고 HttpOnly 세션 쿠키로 유지합니다. nginx로 Unity Web 빌드와 API를 같은 출처에서 제공하며, 세션 쿠키는 `SameSite=Lax`입니다.
+- 요청 위조를 막기 위해 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)에는 `X-Requested-With` 헤더를 붙입니다. 값은 자유이며, 헤더가 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
+- 개발 환경(local 프로필)에서는 소셜 로그인 없이 `POST /api/v1/dev/login`에 `{ "userId": 1 }`을 보내 그 사용자로 로그인할 수 있습니다. 다른 환경에는 이 API가 없습니다.
 - 처음 로그인한 사용자는 가입 정보(닉네임, 캐릭터, 약관)를 제출해야 사용자 계정이 만들어집니다. 그 전까지는 가입 관련 API와 BOOT-01만 호출할 수 있고, 나머지는 `403 SIGNUP_REQUIRED`입니다.
 - 인증이 필요한 API를 인증 없이 호출하면 `401 UNAUTHENTICATED`입니다.
 - 서버는 모든 조회·변경에서 요청한 사용자의 데이터인지 검사합니다. 다른 사용자의 데이터는 존재 여부를 드러내지 않도록 `404 NOT_FOUND`로 응답합니다.
@@ -77,6 +79,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `VALIDATION_FAILED` | 400 | 필수값 누락, 길이·형식 오류 |
 | `UNAUTHENTICATED` | 401 | 로그인 필요 |
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
+| `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
@@ -94,6 +97,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `AI_TEMPORARILY_UNAVAILABLE` | 503 | 외부 AI 장애·시간 초과 |
 | `INTERNAL_ERROR` | 500 | 그 밖의 서버 오류 |
 
+- 지원하지 않는 메서드(405)·형식(415)처럼 표에 없는 요청 오류는 그 HTTP 상태와 상태 이름을 `code`로 돌려줍니다(예: `METHOD_NOT_ALLOWED`). 클라이언트 구현 오류이므로 화면에 따로 안내하지 않습니다.
+- `INTERNAL_ERROR`의 `message`에는 내부 오류 내용을 담지 않습니다. 원인은 서버 로그에만 남깁니다.
 - 화면 19의 세 상황은 서로 다른 코드로 구분합니다. 사용량 소진은 `AI_QUOTA_EXHAUSTED`, 응답 실패는 `AI_TEMPORARILY_UNAVAILABLE`·`AI_RESPONSE_INVALID`이며, 마이크 권한 거부와 장치 없음은 브라우저에서 판단하므로 서버 오류 코드가 없습니다.
 - 대화 도중 토큰이 떨어진 경우는 오류가 아니라 NPC의 작별 대사로 끝납니다(1.4, CONV-03).
 - 무음·인식 실패(`STT_NO_SPEECH`)는 응답 실패와 별도로 "다시 녹음" 안내를 보여줍니다.
@@ -109,7 +114,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | --- | --- | --- |
 | 01 사이트 접속 | 접속 직후 로그인·가입·초기 설정 상태로 다음 화면 결정 | BOOT-01 |
 | | [시작하기], [로그인] | AUTH-01 |
-| 02 회원가입·로그인 | [소셜 로그인 제공자]로 계속하기 | AUTH-01, AUTH-02 |
+| 02 회원가입·로그인 | [Google로 계속하기] | AUTH-01, AUTH-02 |
 | | 처음 가입: 약관 목록·버전 | AUTH-03 |
 | | 닉네임, 캐릭터 기본형(F/M), 약관 동의 → [계속하기] | AUTH-04 |
 | 03 배울 언어 선택 | 언어 카드(선택 가능·준비 중) | ONB-01 |
@@ -266,10 +271,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### AUTH-01·02 소셜 로그인
 
-- AUTH-01은 제공자 로그인 화면으로 리다이렉트합니다. Spring Security OAuth2 Login을 쓰면 기본 경로(`/oauth2/authorization/{provider}`)로 대신할 수 있습니다.
-- AUTH-02는 `(provider, providerUid)`로 사용자를 찾습니다.
+- AUTH-01 `GET /api/v1/auth/login/google`은 Google 로그인 화면으로 리다이렉트합니다. 클라이언트는 API 호출이 아니라 페이지 이동으로 엽니다.
+- AUTH-02 `GET /api/v1/auth/callback/google`은 Google이 인증을 마치고 돌려보내는 주소입니다. Google 콘솔의 승인된 리디렉션 URI에 환경마다 이 주소를 등록합니다. `(provider, providerUid)`로 사용자를 찾으며, `providerUid`는 Google 계정 고유 ID(OIDC `sub`)입니다.
   - 가입한 사용자: 로그인 처리 후 클라이언트로 리다이렉트합니다.
-  - 처음 로그인한 사용자: 사용자를 만들지 않고 제공자 정보(`provider`, `providerUid`, 이메일)를 가입 대기 상태로 세션에 보관한 뒤 클라이언트로 리다이렉트합니다. `users.nickname`, `users.avatar_type`이 필수라 가입 정보를 받기 전에는 사용자를 만들 수 없습니다.
+  - 처음 로그인한 사용자: 사용자를 만들지 않고 제공자 정보(`provider`, `providerUid`, 이메일)를 가입 대기 상태로 세션에 보관한 뒤 클라이언트로 리다이렉트합니다. `users.nickname`, `users.avatar_type`이 필수라 가입 정보를 받기 전에는 사용자를 만들 수 없습니다. 가입 대기 상태는 로그인 상태가 아닙니다.
+- 리다이렉트할 클라이언트 주소는 서버 설정값(`CLIENT_URL`, 기본값 `/`)입니다. 로그인이 실패하거나 사용자가 Google 동의를 취소하면 같은 주소에 `?loginError=true`를 붙여 보냅니다. 클라이언트는 그 뒤 BOOT-01로 다음 화면을 정합니다.
 
 #### AUTH-03 `GET /api/v1/auth/signup`
 
@@ -287,7 +293,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- 약관 버전과 문서 주소는 서버 설정값입니다. `VOICE` 동의의 필수 여부와 음성 보관 기간은 `[미정]`입니다.
+- 약관 버전과 문서 주소는 서버 설정값입니다. `VOICE` 동의의 필수 여부와 음성 보관 기간은 `[미정]`이며, 정해지기 전까지 선택 약관으로 둡니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -307,10 +313,12 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG" } }
 ```
 
-- 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다.
+- 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다. 로그인하면서 세션 ID를 새로 발급하고 가입 대기 정보를 지웁니다.
 - `nickname`은 NPC가 부르는 이름이며 최대 30자입니다. 금칙어 처리 여부는 `[미정]`입니다.
 - `avatarType`은 `F`, `M`입니다.
-- 필수 약관이 빠졌거나 버전이 현재 버전과 다르면 `VALIDATION_FAILED`이며 `details.missingConsents`에 빠진 약관을 담습니다.
+- 현재 버전과 다른 버전에 동의한 항목은 동의하지 않은 것으로 봅니다. 선택 약관도 현재 버전에 동의한 경우에만 저장합니다.
+- 필수 약관이 빠졌거나 버전이 현재 버전과 다르면 `VALIDATION_FAILED`이며 `details.missingConsents`에 빠진 약관을 담습니다(예: `["AGE14"]`).
+- 가입 대기 상태가 아니면 `401 UNAUTHENTICATED`, 이미 로그인한 사용자이거나 같은 Google 계정으로 이미 가입했으면 `409 ALREADY_SIGNED_UP`입니다.
 - `users.current_language`는 필수 컬럼이라 언어를 고르기 전에는 기본값 `en-US`로 저장합니다. 응답의 `currentLanguage`는 ONB-02 전까지 `null`로 보여줍니다. `[제안]`
 
 #### AUTH-05 `POST /api/v1/auth/logout`
@@ -917,8 +925,6 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 | 항목 | 관련 API | 선택지 |
 | --- | --- | --- |
-| 소셜 로그인 제공자 | AUTH-01, 02 | 제공자 목록 |
-| 인증 유지 방식 | 전체 | 세션 쿠키 `[제안]` / 토큰 |
 | 한 턴 예상 토큰·피드백 예약량·한도·갱신 주기 | CONV-01, 03, 08, AI-01 | 서버 설정값으로 두고 정책 결정 후 반영 |
 | 작별 대사 내용 | CONV-03 | NPC별 대사와 음성 |
 | 튜토리얼 음성 인식의 사용량 포함 | CONV-02 | 포함 / 제외 |

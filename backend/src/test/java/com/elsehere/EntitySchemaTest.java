@@ -37,6 +37,8 @@ class EntitySchemaTest {
 
     assertThat(tableNames)
         .contains(
+            "users",
+            "user_consents",
             "scenes",
             "npcs",
             "world_objects",

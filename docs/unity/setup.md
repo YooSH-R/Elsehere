@@ -13,7 +13,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 스크립트 | C# |
 | 시작 Scene | `Assets/Scenes/Production/HomeScene.unity` |
 
-Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR 리뷰를 거쳐 공유합니다. 대상 브라우저와 모바일 브라우저 지원 범위는 서비스 요구사항에 따라 결정합니다.
+Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR 리뷰를 거쳐 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다.
 
 ## 설치와 프로젝트 열기
 
@@ -37,6 +37,21 @@ Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소�
 5. 브라우저에서 방 로딩, 이동, 문을 통한 공간 전환을 확인하고 브라우저 Console에서도 오류를 확인합니다.
 
 Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을 직접 더블클릭하는 방식 대신 Build And Run이나 웹 서버를 통해 실행합니다. 로컬 빌드 성공과 외부 서버 배포 성공은 각각 검증합니다.
+
+### 모바일 화면과 Web 템플릿
+
+`Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 빌드 설정의 캔버스 비율을 유지하며 화면 안에 맞춥니다. 기본 캔버스 크기는 960×600입니다. 세로 화면에는 위아래 여백이 생기며, 가로로 돌리면 더 크게 볼 수 있습니다. 화면을 채우기 위해 게임 화면을 자르거나 늘리지 않습니다. 노치·홈 표시줄의 안전 영역과 브라우저 주소창에 따른 높이 변화도 반영합니다.
+
+Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
+
+- **Player Settings → Web → Resolution and Presentation → Web Template**에서 `A305Responsive`를 선택합니다. **Tools → A305 → Web → Configure Responsive Template**으로도 적용할 수 있습니다.
+- **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 먼저 Build Profiles에서 Web을 활성 플랫폼으로 전환합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용하며, 새 환경에서도 Web용 렌더링 설정이 포함되도록 `-buildTarget WebGL`을 명시합니다.
+- 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
+- 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
+
+```powershell
+& "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -buildTarget WebGL -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Common.WebBuildBuilder.Build -quit -logFile <저장소 밖 경로>\WebBuild.log
+```
 
 ## C# 포맷과 규칙 검사
 

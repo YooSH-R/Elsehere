@@ -76,6 +76,15 @@ PC 브라우저에서 다음 주소를 열어 각각의 환경 이름을 확인�
 
 프로젝트 예제에서 개발 경로는 외부 접근을 허용합니다. 기존 서버에서 개발 주소가 403이면 해당 location의 `allow`·`deny` 제한 여부를 확인합니다. TLS 항목을 보존하며 개발 경로만 반영한 뒤 양쪽 환경을 다시 확인합니다.
 
+Certbot이 발급한 HTTPS 인증서는 예약 작업으로 자동 갱신합니다. 실제 인증서를 교체하지 않는 갱신 시험과 예약 확인은 다음과 같습니다.
+
+```bash
+sudo /snap/bin/certbot renew --dry-run
+systemctl list-timers --all '*certbot*' --no-pager
+```
+
+`all simulated renewals succeeded`가 나오면 갱신 시험이 성공한 것입니다. 예약 목록에서는 Certbot 갱신 타이머의 다음 실행 시각을 확인합니다.
+
 ## 장애 점검 순서
 
 1. `ps`·로그와 루프백 주소의 `/health`로 컨테이너 상태와 포트를 확인합니다.

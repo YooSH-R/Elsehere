@@ -11,7 +11,7 @@
 - 개발 배포 대상: `dev`, Compose 프로젝트 `a305-dev`.
 - 운영 배포 대상: `main`, Compose 프로젝트 `a305-prod`.
 - 초기 운영 배포는 필수 검증 성공 후 Maintainer가 수동 실행합니다.
-- 브랜치·리뷰·릴리스 절차는 [협업 규칙](development.md)을 따릅니다. 서버 운영 문서와 CI 실행 설정은 관련 인프라 이슈에서 관리합니다.
+- 환경 분리와 앱 교체는 [배포 문서](deployment.md), 서버 점검은 [운영 문서](server-operations.md)를 따릅니다. 브랜치·리뷰·릴리스 절차는 [협업 규칙](development.md)을 따릅니다.
 
 ## 1. 변경 영역별 기본 검증과 배포
 

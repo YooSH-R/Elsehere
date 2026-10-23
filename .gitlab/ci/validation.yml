@@ -84,6 +84,17 @@ infra:compose-and-nginx:
         docker start --attach "$container"
         test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
       done
+    - |
+      mkdir -p dist
+      {
+        printf 'server { listen 80; server_name k15a305.p.ssafy.io;\n'
+        cat infra/nginx/a305.dev-webgl.locations.conf
+        printf '\n}\n'
+      } > dist/a305-dev-webgl-check.conf
+    - docker create --name nginx-webgl-route-check nginx:1.30.6-alpine nginx -t
+    - docker cp dist/a305-dev-webgl-check.conf nginx-webgl-route-check:/etc/nginx/conf.d/default.conf
+    - docker start --attach nginx-webgl-route-check
+    - test "$(docker inspect --format '{{.State.ExitCode}}' nginx-webgl-route-check)" = 0
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
       exists:

@@ -44,6 +44,7 @@
 ```bash
 export WEBGL_BUILD_DIRECTORY="${WEBGL_BUILD_DIRECTORY:?Set the output directory}"
 export CI_COMMIT_SHA="${CI_COMMIT_SHA:?Set the exact candidate SHA}"
+mkdir -p "$(dirname "$WEBGL_BUILD_DIRECTORY")"
 /usr/bin/time -v "${UNITY_EDITOR_PATH:?Set the Editor executable}" \
   -batchmode -nographics -quit -buildTarget WebGL -job-worker-count 2 \
   -projectPath "${UNITY_PROJECT_PATH:?Set the build project path}" \

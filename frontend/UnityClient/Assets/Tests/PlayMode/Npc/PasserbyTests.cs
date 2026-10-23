@@ -33,7 +33,9 @@ namespace A305.Npc.PlayModeTests
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
             Assert.That(SpaceTravel.TryTravel("TownScene", "HomeDoor"), Is.True);
-            yield return WaitUntil(() => SceneManager.GetActiveScene().name == "TownScene" && !SpaceTravel.IsTraveling);
+            yield return WaitUntil(() =>
+                SceneManager.GetActiveScene().name == "TownScene" && !SpaceTravel.IsTraveling
+            );
 
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
@@ -41,8 +43,15 @@ namespace A305.Npc.PlayModeTests
             Passerby tutorial = FindPasserby(TutorialPasserbyCode);
             Assert.That(tutorial.Phase, Is.EqualTo(PasserbyPhase.Offering));
             Assert.That(offer.IsDeclineShown, Is.False, "튜토리얼 행인은 거절할 수 없습니다.");
-            Assert.That(HorizontalDistance(tutorial.transform, Single<PlayerMover>().transform), Is.LessThan(3f));
-            Assert.That(Single<PlayerMover>().IsMovementLocked, Is.False, "제안 중에는 이동을 잠그지 않습니다.");
+            Assert.That(
+                HorizontalDistance(tutorial.transform, Single<PlayerMover>().transform),
+                Is.LessThan(3f)
+            );
+            Assert.That(
+                Single<PlayerMover>().IsMovementLocked,
+                Is.False,
+                "제안 중에는 이동을 잠그지 않습니다."
+            );
         }
 
         [UnityTest]
@@ -71,7 +80,10 @@ namespace A305.Npc.PlayModeTests
             Assert.That(cameraRig.ViewMode, Is.EqualTo(CameraViewMode.ThirdPerson));
             Assert.That(player.IsMovementLocked, Is.False);
             Assert.That(panel.IsVisible, Is.False);
-            Assert.That(FindPasserby(TutorialPasserbyCode).Phase, Is.EqualTo(PasserbyPhase.Resting));
+            Assert.That(
+                FindPasserby(TutorialPasserbyCode).Phase,
+                Is.EqualTo(PasserbyPhase.Resting)
+            );
         }
 
         [UnityTest]
@@ -99,7 +111,10 @@ namespace A305.Npc.PlayModeTests
             Passerby passerby = FindPasserby(TownPasserbyCode);
 
             PlayerMover player = Single<PlayerMover>();
-            player.Teleport(passerby.transform.position + new Vector3(0f, 0f, -12f), Quaternion.identity);
+            player.Teleport(
+                passerby.transform.position + new Vector3(0f, 0f, -12f),
+                Quaternion.identity
+            );
             yield return null;
             yield return null;
 
@@ -117,7 +132,10 @@ namespace A305.Npc.PlayModeTests
 
             Passerby passerby = FindPasserby(passerbyCode);
             PlayerMover player = Single<PlayerMover>();
-            player.Teleport(passerby.transform.position + passerby.transform.forward * 4f, Quaternion.identity);
+            player.Teleport(
+                passerby.transform.position + passerby.transform.forward * 4f,
+                Quaternion.identity
+            );
             yield return null;
         }
 
@@ -137,10 +155,13 @@ namespace A305.Npc.PlayModeTests
 
         private static void Click(Component view, string buttonName)
         {
-            Button button = view
-                .GetComponentsInChildren<Button>(true)
+            Button button = view.GetComponentsInChildren<Button>(true)
                 .Single(candidate => candidate.name == buttonName);
-            Assert.That(button.gameObject.activeInHierarchy, Is.True, $"{buttonName}이 보이지 않습니다.");
+            Assert.That(
+                button.gameObject.activeInHierarchy,
+                Is.True,
+                $"{buttonName}이 보이지 않습니다."
+            );
             button.onClick.Invoke();
         }
 

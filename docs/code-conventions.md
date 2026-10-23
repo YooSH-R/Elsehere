@@ -55,7 +55,7 @@ Unity C#의 명명 형식은 [Unity 개발 규약의 C# 스크립트 기준](uni
 - 기존 프로젝트의 폴더 구조, 명명 규칙, 프레임워크 관례를 따릅니다.
 - 관련 코드를 가까운 위치에서 찾을 수 있게 구성합니다. 기능별 구조와 계층별 구조 중 어떤 방식을 쓸지는 각 영역의 프로젝트 초기화 때 정합니다.
 - 공통 모듈은 여러 기능에서 함께 사용하는 책임이 확인된 경우에 만듭니다.
-- 하나의 변경에는 하나의 명확한 작업 목적을 담습니다. 기능 수정과 무관한 리팩터링이나 전체 포맷 변경은 별도 MR로 분리합니다.
+- 하나의 변경에는 하나의 명확한 스토리 목적을 담습니다. 스토리의 구현·검증에 필요한 설정과 포맷 정리는 함께 반영하고, 목적과 무관한 리팩터링이나 전체 포맷 변경은 별도 스토리와 MR로 분리합니다.
 - API, 데이터 구조, 환경변수, 실행 방법을 바꾸면 관련 문서와 예제 설정도 함께 수정합니다.
 
 ## 5. 오류, 비동기 처리, 로그
@@ -109,10 +109,10 @@ Unity C#의 명명 형식은 [Unity 개발 규약의 C# 스크립트 기준](uni
 
 | 적용 조건 | 코드 규칙 검사 | 포맷 정리 | 적용 방침 |
 | --- | --- | --- | --- |
-| Java + Spring Boot 백엔드 | Checkstyle | Spotless + google-java-format | 프로젝트 초기화 시 구성 |
+| Java + Spring Boot 백엔드 | Checkstyle | Spotless + google-java-format | [백엔드 실행 문서](../backend/README.md)의 고정 버전·공통 명령 사용 |
 | Unity + C# 프론트엔드 | Microsoft.Unity.Analyzers | CSharpier | [Unity 실행 문서](unity/setup.md)의 공통 명령 사용 |
 | JavaScript / TypeScript를 선택한 영역 | ESLint | Prettier | 해당 언어 선택 시 적용 후보 |
-| Python을 선택한 영역 | Ruff 검사 | Ruff 포매터 | 해당 언어 선택 시 적용 후보 |
+| Python AI | Ruff 검사 | Ruff 포매터 | [AI 검사 문서](../ai/README.md)의 고정 버전·공통 명령 사용 |
 
 ### 모든 영역에 적용할 운영 기준
 
@@ -128,15 +128,14 @@ Unity C#의 명명 형식은 [Unity 개발 규약의 C# 스크립트 기준](uni
 - 편집기 확장은 작성 중 문제를 확인하는 보조 수단입니다. 최종 기준은 저장소에 정의된 검사 결과로 맞춥니다.
 - 저장 시 자동 포맷은 팀 설정과 같은 결과를 내는 연동을 확인한 뒤 활성화합니다. 서로 다른 포매터가 동시에 파일을 수정하지 않게 합니다.
 
-### 확정한 Java 백엔드의 적용 계획
+### Java 백엔드 검사 구성
 
 - Checkstyle은 이름 형식, wildcard import 금지, 조건문·반복문 중괄호, 불필요한 빈 문장 등을 검사하도록 최소 설정합니다.
 - 들여쓰기, import 순서, 공백, 강제 줄 길이 검사는 포매터와 중복되지 않도록 Checkstyle에서 제외합니다.
 - Spotless에 google-java-format의 기본 Google 스타일을 연결합니다. Java 블록 들여쓰기는 공백 2칸이며, 줄바꿈과 정렬은 포매터 결과를 따릅니다.
-- JDK와 Gradle/Maven을 선택하면 실행 환경과 호환되는 Checkstyle·Spotless·포매터 버전을 고정하고, 운영 코드와 테스트 코드를 함께 검사하도록 설정합니다.
-- Gradle을 선택하면 `spotlessApply`로 포맷을 적용하고, `check`에 `spotlessCheck`, `checkstyleMain`, `checkstyleTest`와 테스트를 연결합니다.
-- Maven을 선택하면 `spotless:apply`로 포맷을 적용하고, `verify`에서 Spotless 검사, Checkstyle 검사와 테스트가 함께 실행되도록 설정합니다. Checkstyle의 테스트 소스 검사도 활성화합니다.
-- 프로젝트와 플러그인을 구성한 뒤 해당 명령을 사용합니다. 프로젝트 사용 문서에는 선택한 빌드 도구의 포맷·검사·테스트 명령을 명시합니다.
+- Java 21·Gradle 9.8.2에서 Spotless 8.9.0·google-java-format 1.28.0·Checkstyle 14.3.0을 사용하며 운영 코드와 테스트 코드를 함께 검사합니다.
+- `spotlessApply`로 포맷을 적용하고, `check`에서 `spotlessCheck`, `checkstyleMain`, `checkstyleTest`와 테스트를 실행합니다.
+- 버전과 로컬 명령, Docker가 필요한 DB 테스트 조건은 [백엔드 실행 문서](../backend/README.md)를 따릅니다.
 
 ## 참고 자료
 

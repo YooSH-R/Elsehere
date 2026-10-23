@@ -46,7 +46,8 @@ namespace A305.Mission
             for (int i = 0; i < board.Missions.Count; i++)
             {
                 MissionContent mission = board.Missions[i];
-                rows[i].Show(mission, board.ActiveMission == mission, board.IsCompleted(mission.Code));
+                rows[i]
+                    .Show(mission, board.ActiveMission == mission, board.IsCompleted(mission.Code));
             }
         }
 

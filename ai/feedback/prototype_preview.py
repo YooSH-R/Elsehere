@@ -1,14 +1,16 @@
 """별도 Maple Town 복사본에서 GPT-5.4 피드백을 플레이로 검증한다."""
+
 import argparse
 import importlib.util
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from urllib.parse import urlsplit
+
+from run_gms import load_settings
 
 from feedback.gms import GmsClient
 from feedback.prototype_bridge import generate_prototype_feedback
-from run_gms import load_settings
 
 ROOT = Path(__file__).resolve().parent
 
@@ -18,14 +20,26 @@ def render_preview_html(source, voice_available):
     if source.count(marker) != 1:
         raise ValueError("프로토타입의 피드백 화면 구조가 달라 연결 위치를 확인해야 합니다.")
     source = source.replace(marker, marker + '\n  if (r?.feedback?.schema_version === "0.3.0") { renderFeedbackV3(r); return; }', 1)
-    source = source.replace("const SET = (() =>", 'SETTINGS_DEF.translate.options = [["off", "검증판에서 끔"]];\nSETTINGS_DEF.suggest.options = [["off", "검증판에서 끔"]];\nconst SET = (() =>', 1)
+    source = source.replace(
+        "const SET = (() =>",
+        'SETTINGS_DEF.translate.options = [["off", "검증판에서 끔"]];\nSETTINGS_DEF.suggest.options = [["off", "검증판에서 끔"]];\nconst SET = (() =>',
+        1,
+    )
     source = source.replace("function applySettings() {", 'function applySettings() {\n  SET.translate = "off"; SET.suggest = "off";', 1)
-    source = source.replace("function setMicText(state, msg) {", 'function setMicText(state, msg) {\n  if (!PREVIEW_VOICE_AVAILABLE) { $("mic").disabled = true; $("micText").textContent = "지금은 타자로 테스트하세요. 음성은 본인 Groq 키 설정 후 사용할 수 있어요."; return; }', 1)
-    source = source.replace("function toggleMic() {", 'function toggleMic() {\n  if (!PREVIEW_VOICE_AVAILABLE) return;', 1)
+    source = source.replace(
+        "function setMicText(state, msg) {",
+        'function setMicText(state, msg) {\n  if (!PREVIEW_VOICE_AVAILABLE) { $("mic").disabled = true; $("micText").textContent = "지금은 타자로 테스트하세요. 음성은 본인 Groq 키 설정 후 사용할 수 있어요."; return; }',
+        1,
+    )
+    source = source.replace("function toggleMic() {", "function toggleMic() {\n  if (!PREVIEW_VOICE_AVAILABLE) return;", 1)
     banner = '<aside style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:10;background:#fff8e7;color:#403321;padding:12px 16px;border-radius:14px;box-shadow:0 3px 15px #0002;font:14px sans-serif;max-width:420px">피드백 검증판 · 피드백 GPT-5.4<br><small>수집용과 별도 저장 · 추천·번역 끔</small><br><button id="previewCafe" style="margin-top:8px;padding:8px">카페 Emma와 대화</button></aside>'
-    banner = banner.replace("</aside>", '<br><a href="/feedback-demo" target="_blank" rel="noopener">과금 없는 피드백 표시 예시</a></aside>')
+    banner = banner.replace(
+        "</aside>", '<br><a href="/feedback-demo" target="_blank" rel="noopener">과금 없는 피드백 표시 예시</a></aside>'
+    )
     source = source.replace("<body>", "<body>" + banner, 1)
-    panel = f"\nconst PREVIEW_VOICE_AVAILABLE = {'true' if voice_available else 'false'};\n" + (ROOT / "prototype_panel.js").read_text(encoding="utf-8")
+    panel = f"\nconst PREVIEW_VOICE_AVAILABLE = {'true' if voice_available else 'false'};\n" + (ROOT / "prototype_panel.js").read_text(
+        encoding="utf-8"
+    )
     ending = source.rfind("</script>")
     return source[:ending] + panel + source[ending:]
 
@@ -42,7 +56,8 @@ def prepare_server(prototype_root, settings):
     server.TTS_CHECK["auto"] = False
     voice_available = bool(server.PROVIDERS.get("groq", {}).get("key"))
     server.feedback = lambda conv, outcome: generate_prototype_feedback(
-        conv, server.NPCS[conv["npc"]], server.SCENARIOS[conv["scenario"]], GmsClient(settings))
+        conv, server.NPCS[conv["npc"]], server.SCENARIOS[conv["scenario"]], GmsClient(settings)
+    )
     original_add_turn = server.add_turn
 
     def add_turn(conv, text, judgement, reply):
@@ -108,7 +123,10 @@ def main():
             if separator and name in ("GROQ_API_KEY", "GROK_API_KEY"):
                 os.environ.setdefault(name, value.strip().strip("\"'"))
     server, handler, voice_available = prepare_server(args.prototype_root.resolve(), settings)
-    print(f"피드백 검증판: http://localhost:{args.port}/?at=cafe&play=normal · GPT-5.4 · 음성 {'가능' if voice_available else '미설정: 타자 사용'}", flush=True)
+    print(
+        f"피드백 검증판: http://localhost:{args.port}/?at=cafe&play=normal · GPT-5.4 · 음성 {'가능' if voice_available else '미설정: 타자 사용'}",
+        flush=True,
+    )
     server.ThreadingHTTPServer(("127.0.0.1", args.port), handler).serve_forever()
 
 

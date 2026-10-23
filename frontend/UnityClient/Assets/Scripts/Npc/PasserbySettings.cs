@@ -23,7 +23,9 @@ namespace A305.Npc
 
         [SerializeField]
         [Min(0f)]
-        [Tooltip("거절·무시·대화가 끝난 뒤 다시 다가오기까지 쉬는 시간(실제 시간). 다른 공간에 있어도 흐른다.")]
+        [Tooltip(
+            "거절·무시·대화가 끝난 뒤 다시 다가오기까지 쉬는 시간(실제 시간). 다른 공간에 있어도 흐른다."
+        )]
         private float restSeconds = 60f;
 
         [SerializeField]

@@ -180,9 +180,12 @@ class LLM:
     ) -> tuple[httpx.Response, bool]:
         """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다.
         반환: (응답, 더 보냈나). 둘 다 실패하면 마지막 오류를 던진다. 스트림은 응답 머리가 먼저 와서 늦음을 알 수 없어 그대로."""
-        start = lambda: client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
+
+        def start_request():
+            return client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
+
         after = 0 if stream or not hedge else self.s.hedge_after_s
-        return await race(start, after, lambda r: r.status_code < 400, lambda r: r.aclose())
+        return await race(start_request, after, lambda r: r.status_code < 400, lambda r: r.aclose())
 
     async def _open(
         self, body: dict, stream: bool = False, role: str = "", timeout_s: float | None = None, hedge: bool = True

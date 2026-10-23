@@ -1,5 +1,5 @@
-import unittest
 import json
+import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,15 +12,28 @@ class PrototypeBridgeTests(unittest.TestCase):
     def test_prototype_end_returns_validated_feedback_and_usage(self):
         class SampleClient(FixtureClient):
             settings = SimpleNamespace(model="gpt-5.4")
-            last_call = {"elapsed_s": 1.0, "requested_model": "gpt-5.4", "returned_model": "gpt-5.4-test",
-                         "usage": {"input_tokens": 100, "output_tokens": 20, "cached_input_tokens": 0}}
+            last_call = {
+                "elapsed_s": 1.0,
+                "requested_model": "gpt-5.4",
+                "returned_model": "gpt-5.4-test",
+                "usage": {"input_tokens": 100, "output_tokens": 20, "cached_input_tokens": 0},
+            }
+
         root = Path(__file__).resolve().parent.parent
         body = json.loads((root / "samples/fixtures/free_grammar.llm.json").read_text(encoding="utf-8"))
         client = SampleClient(body)
-        conv = {"id": "conv_example", "uid": "user_example", "npc": "alex", "level": 2, "closed": True,
-                "history": [{"who": "npc", "text": "Where would you like to go?"},
-                            {"who": "me", "text": "I want go to the station."},
-                            {"who": "npc", "text": "The station is straight ahead."}]}
+        conv = {
+            "id": "conv_example",
+            "uid": "user_example",
+            "npc": "alex",
+            "level": 2,
+            "closed": True,
+            "history": [
+                {"who": "npc", "text": "Where would you like to go?"},
+                {"who": "me", "text": "I want go to the station."},
+                {"who": "npc", "text": "The station is straight ahead."},
+            ],
+        }
         result = generate_prototype_feedback(conv, {"scene": "a street"}, {"place": "street", "title_ko": "길 안내"}, client)
         self.assertEqual(result["status"], "completed")
         self.assertEqual(result["result"]["turn_reviews"][0]["original_text"], "I want go to the station.")
@@ -30,7 +43,10 @@ class PrototypeBridgeTests(unittest.TestCase):
 
     def test_original_learner_text_and_order_are_preserved(self):
         conversation = {
-            "id": "conv_example", "uid": "user_example", "npc": "emma", "level": 2,
+            "id": "conv_example",
+            "uid": "user_example",
+            "npc": "emma",
+            "level": 2,
             "history": [
                 {"who": "npc", "text": "What would you like?"},
                 {"who": "me", "text": "I want drink a coffee.", "english": "I want to drink a coffee.", "input_mode": "voice"},

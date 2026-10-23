@@ -35,7 +35,8 @@ namespace A305.EditorTools.Common
         public static bool CanBuild()
         {
             ThrowIfPlaying();
-            return Application.isBatchMode || EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
+            return Application.isBatchMode
+                || EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
         }
 
         public static void ThrowIfPlaying()
@@ -63,7 +64,14 @@ namespace A305.EditorTools.Common
         public static SceneGroups EnsureGroups(Scene scene)
         {
             Transform[] groups = GroupNames.Select(name => FindOrCreateRoot(scene, name)).ToArray();
-            var sceneGroups = new SceneGroups(scene, groups[0], groups[1], groups[2], groups[3], groups[4]);
+            var sceneGroups = new SceneGroups(
+                scene,
+                groups[0],
+                groups[1],
+                groups[2],
+                groups[3],
+                groups[4]
+            );
 
             foreach (GameObject root in scene.GetRootGameObjects())
             {
@@ -91,7 +99,12 @@ namespace A305.EditorTools.Common
             var eventSystem = FindSingleInScene<EventSystem>(groups.Scene);
             if (eventSystem == null)
             {
-                eventSystem = CreateEmpty("EventSystem", groups.Systems, Vector3.zero, Quaternion.identity)
+                eventSystem = CreateEmpty(
+                    "EventSystem",
+                    groups.Systems,
+                    Vector3.zero,
+                    Quaternion.identity
+                )
                     .gameObject.AddComponent<EventSystem>();
             }
 
@@ -347,7 +360,11 @@ namespace A305.EditorTools.Common
             try
             {
                 setUp(contents);
-                GameObject prefab = PrefabUtility.SaveAsPrefabAsset(contents, path, out bool isSaved);
+                GameObject prefab = PrefabUtility.SaveAsPrefabAsset(
+                    contents,
+                    path,
+                    out bool isSaved
+                );
                 if (!isSaved)
                 {
                     throw new InvalidOperationException($"프리팹을 저장하지 못했습니다: {path}");

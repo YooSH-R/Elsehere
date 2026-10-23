@@ -8,7 +8,9 @@ namespace A305.ObjectHover
     {
         [SerializeField]
         [Min(0f)]
-        [Tooltip("같은 사물을 이만큼 가리키면 툴팁을 보인다. 마우스가 스쳐 지나갈 때 깜박이지 않게 한다.")]
+        [Tooltip(
+            "같은 사물을 이만큼 가리키면 툴팁을 보인다. 마우스가 스쳐 지나갈 때 깜박이지 않게 한다."
+        )]
         private float showDelaySeconds = 0.15f;
 
         [SerializeField]

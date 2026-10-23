@@ -14,7 +14,11 @@ namespace A305.EditorTools.UI
         private static readonly Color ButtonColor = new Color(0.24f, 0.42f, 0.85f, 1f);
 
         /// <summary>1920×1080 기준으로 크기를 맞추는 화면 오버레이 캔버스. 버튼을 누를 수 있으면 클릭을 받게 한다.</summary>
-        public static void EnsureOverlayCanvas(GameObject root, int sortingOrder, bool receivesClicks)
+        public static void EnsureOverlayCanvas(
+            GameObject root,
+            int sortingOrder,
+            bool receivesClicks
+        )
         {
             if (!root.TryGetComponent(out Canvas canvas))
             {
@@ -38,9 +42,20 @@ namespace A305.EditorTools.UI
         }
 
         /// <summary>화면 아래 가운데에 붙는 패널. 너비는 고정하고 내용에 맞춰 높이를 늘린다.</summary>
-        public static RectTransform FindOrCreateBottomPanel(Transform root, string panelName, float width, float bottomMargin)
+        public static RectTransform FindOrCreateBottomPanel(
+            Transform root,
+            string panelName,
+            float width,
+            float bottomMargin
+        )
         {
-            return FindOrCreateAnchoredPanel(root, panelName, new Vector2(0.5f, 0f), width, new Vector2(0f, bottomMargin));
+            return FindOrCreateAnchoredPanel(
+                root,
+                panelName,
+                new Vector2(0.5f, 0f),
+                width,
+                new Vector2(0f, bottomMargin)
+            );
         }
 
         /// <summary>
@@ -163,7 +178,9 @@ namespace A305.EditorTools.UI
                 return existingField;
             }
 
-            GameObject created = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
+            GameObject created = TMP_DefaultControls.CreateInputField(
+                new TMP_DefaultControls.Resources()
+            );
             created.name = fieldName;
             created.transform.SetParent(parent, false);
 

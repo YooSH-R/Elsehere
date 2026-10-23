@@ -165,12 +165,15 @@ async def main():
     os.environ.setdefault("AI_WORKER_TOKEN", "latency-test")
     os.environ["LLM_PROFILE"] = a.profile
     s = config.Settings.from_env()
-    mk = lambda: httpx.AsyncClient(base_url=s.base_url, headers={"Authorization": f"Bearer {s.api_key}", "User-Agent": "ai-worker/0.1"})
-    shared = mk()
+
+    def create_client():
+        return httpx.AsyncClient(base_url=s.base_url, headers={"Authorization": f"Bearer {s.api_key}", "User-Agent": "ai-worker/0.1"})
+
+    shared = create_client()
     rows = []
     for i in range(a.n):
         text = LINES[i % len(LINES)]
-        client = mk() if a.fresh else shared
+        client = create_client() if a.fresh else shared
         if a.mode == "stream":
             rows += await call_stream(client, s, text, a.timeout)
         elif a.mode == "pair":

@@ -3,8 +3,8 @@ import json
 import unittest
 from urllib.error import HTTPError, URLError
 
-from feedback.gms import GmsClient, GmsSettings
 from feedback.clients import ModelNotConfigured, ProviderCallError
+from feedback.gms import GmsClient, GmsSettings
 
 
 class FakeResponse(io.BytesIO):
@@ -16,22 +16,32 @@ class FakeResponse(io.BytesIO):
 
 class GmsTests(unittest.TestCase):
     def test_refusal_never_becomes_usable_model_json(self):
-        client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=lambda *a, **kw: FakeResponse({
-            "choices": [{"finish_reason": "stop", "message": {"content": "{}", "refusal": "unit-test-only"}}],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 2},
-        }))
+        client = GmsClient(
+            GmsSettings(api_key="unit-test-only"),
+            opener=lambda *a, **kw: FakeResponse(
+                {
+                    "choices": [{"finish_reason": "stop", "message": {"content": "{}", "refusal": "unit-test-only"}}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 2},
+                }
+            ),
+        )
         with self.assertRaises(ProviderCallError) as error:
             client.complete([])
-        self.assertNotIn('unit-test-only', str(error.exception))
-        self.assertEqual(client.last_call['usage']['input_tokens'], 10)
+        self.assertNotIn("unit-test-only", str(error.exception))
+        self.assertEqual(client.last_call["usage"]["input_tokens"], 10)
 
     def test_invalid_token_counts_are_rejected_not_displayed_as_cost(self):
         for value in (-1, True, "100", 2.5):
             with self.subTest(value=value):
-                client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=lambda *a, **kw: FakeResponse({
-                    "choices": [{"finish_reason": "stop", "message": {"content": "{}"}}],
-                    "usage": {"prompt_tokens": value},
-                }))
+                client = GmsClient(
+                    GmsSettings(api_key="unit-test-only"),
+                    opener=lambda *a, **kw: FakeResponse(
+                        {
+                            "choices": [{"finish_reason": "stop", "message": {"content": "{}"}}],
+                            "usage": {"prompt_tokens": value},
+                        }
+                    ),
+                )
                 with self.assertRaises(ProviderCallError):
                     client.complete([])
 
@@ -49,19 +59,26 @@ class GmsTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
 
     def test_malformed_usage_details_cannot_crash_feedback(self):
-        client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=lambda *a, **kw: FakeResponse({
-            "choices": [{"finish_reason": "stop", "message": {"content": "{}"}}],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 2, "prompt_tokens_details": ["bad"]},
-        }))
+        client = GmsClient(
+            GmsSettings(api_key="unit-test-only"),
+            opener=lambda *a, **kw: FakeResponse(
+                {
+                    "choices": [{"finish_reason": "stop", "message": {"content": "{}"}}],
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 2, "prompt_tokens_details": ["bad"]},
+                }
+            ),
+        )
         with self.assertRaises(ProviderCallError):
             client.complete([])
         self.assertIsNotNone(client.last_call.get("elapsed_s"))
 
     def test_user_assessment_schema_only_accepts_user_turn_ids(self):
         requests = []
+
         def opener(request, timeout):
             requests.append(json.loads(request.data))
             return FakeResponse({"choices": [{"finish_reason": "stop", "message": {"content": "{}"}}]})
+
         messages = [{"role": "user", "content": json.dumps({"required_review_turn_ids": ["u1", "u2"]})}]
         GmsClient(GmsSettings(api_key="unit-test-only"), opener=opener).complete(messages)
         definitions = requests[0]["response_format"]["json_schema"]["schema"]["$defs"]
@@ -73,9 +90,11 @@ class GmsTests(unittest.TestCase):
 
     def test_gpt54_uses_planned_profile_parameters(self):
         requests = []
+
         def opener(request, timeout):
             requests.append(json.loads(request.data))
             return FakeResponse({"choices": [{"finish_reason": "stop", "message": {"content": "{}"}}]})
+
         GmsClient(GmsSettings(api_key="unit-test-only", model="gpt-5.4"), opener=opener).complete([])
         body = requests[0]
         self.assertEqual(body["model"], "gpt-5.4")
@@ -89,6 +108,7 @@ class GmsTests(unittest.TestCase):
             response = io.BytesIO(b"unit-test-only: not JSON")
             response.status = 200
             return response
+
         client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=opener)
         with self.assertRaises(ProviderCallError) as error:
             client.complete([])
@@ -97,9 +117,11 @@ class GmsTests(unittest.TestCase):
 
     def test_timeout_records_elapsed_and_does_not_retry(self):
         calls = []
+
         def opener(request, timeout):
             calls.append(request)
             raise TimeoutError("unit-test-only")
+
         client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=opener)
         with self.assertRaises(TimeoutError) as error:
             client.complete([])
@@ -109,9 +131,11 @@ class GmsTests(unittest.TestCase):
 
     def test_api_receives_strict_feedback_schema(self):
         requests = []
+
         def opener(request, timeout):
             requests.append(json.loads(request.data))
             return FakeResponse({"choices": [{"finish_reason": "stop", "message": {"content": "{}"}}]})
+
         GmsClient(GmsSettings(api_key="unit-test-only"), opener=opener).complete([])
         output_format = requests[0]["response_format"]
         self.assertEqual(output_format["type"], "json_schema")
@@ -123,20 +147,28 @@ class GmsTests(unittest.TestCase):
         self.assertEqual(set(evidence["properties"]), {"turn_id", "quote"})
 
     def test_invalid_http_body_is_sanitized(self):
-        for body in [{}, {"choices": []}, {"choices": [{"finish_reason": "stop", "message": {}}]},
-                     {"choices": [{"finish_reason": "stop", "message": {"content": None}}]},
-                     {"choices": [{"finish_reason": "stop", "message": {"content": "{}"}}], "usage": []}]:
+        for body in [
+            {},
+            {"choices": []},
+            {"choices": [{"finish_reason": "stop", "message": {}}]},
+            {"choices": [{"finish_reason": "stop", "message": {"content": None}}]},
+            {"choices": [{"finish_reason": "stop", "message": {"content": "{}"}}], "usage": []},
+        ]:
             with self.subTest(body=body):
-                client = GmsClient(GmsSettings(api_key="unit-test-only"),
-                                   opener=lambda *a, **kw: FakeResponse(body))
+                client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=lambda *a, **kw: FakeResponse(body))
                 with self.assertRaises(ProviderCallError):
                     client.complete([])
 
     def test_truncated_response_keeps_usage_but_is_not_success(self):
-        client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=lambda *a, **kw: FakeResponse({
-            "choices": [{"finish_reason": "length", "message": {"content": '{}'}}],
-            "usage": {"prompt_tokens": 50, "completion_tokens": 2000, "total_tokens": 2050},
-        }))
+        client = GmsClient(
+            GmsSettings(api_key="unit-test-only"),
+            opener=lambda *a, **kw: FakeResponse(
+                {
+                    "choices": [{"finish_reason": "length", "message": {"content": "{}"}}],
+                    "usage": {"prompt_tokens": 50, "completion_tokens": 2000, "total_tokens": 2050},
+                }
+            ),
+        )
         with self.assertRaises(ProviderCallError):
             client.complete([])
         self.assertEqual(client.last_call["usage"]["total_tokens"], 2050)
@@ -156,14 +188,17 @@ class GmsTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
 
     def test_invalid_endpoint_or_missing_key_is_rejected_before_network(self):
-        for key, base in [("", "https://gms.ssafy.io/gmsapi/api.openai.com/v1"),
-                          ("unit-test-only", "https://other.example/v1"),
-                          ("unit-test-only", "http://gms.ssafy.io/v1"),
-                          ("unit-test-only", "https://gms.ssafy.io/v1?key=secret")]:
+        for key, base in [
+            ("", "https://gms.ssafy.io/gmsapi/api.openai.com/v1"),
+            ("unit-test-only", "https://other.example/v1"),
+            ("unit-test-only", "http://gms.ssafy.io/v1"),
+            ("unit-test-only", "https://gms.ssafy.io/v1?key=secret"),
+        ]:
             with self.subTest(base=base):
                 with self.assertRaises(ModelNotConfigured):
-                    GmsClient(GmsSettings(api_key=key, base_url=base),
-                              opener=lambda *a, **kw: self.fail("network must not run")).complete([])
+                    GmsClient(GmsSettings(api_key=key, base_url=base), opener=lambda *a, **kw: self.fail("network must not run")).complete(
+                        []
+                    )
 
     def test_http_error_is_sanitized_and_not_retried(self):
         calls = []
@@ -185,12 +220,19 @@ class GmsTests(unittest.TestCase):
         def opener(request, timeout):
             captured.append(request)
             self.assertGreater(timeout, 0)
-            return FakeResponse({
-                "id": "test-response", "model": "gpt-4o-mini-test",
-                "choices": [{"finish_reason": "stop", "message": {"content": '{"outcome":"usable"}'}}],
-                "usage": {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120,
-                          "prompt_tokens_details": {"cached_tokens": 0}},
-            })
+            return FakeResponse(
+                {
+                    "id": "test-response",
+                    "model": "gpt-4o-mini-test",
+                    "choices": [{"finish_reason": "stop", "message": {"content": '{"outcome":"usable"}'}}],
+                    "usage": {
+                        "prompt_tokens": 100,
+                        "completion_tokens": 20,
+                        "total_tokens": 120,
+                        "prompt_tokens_details": {"cached_tokens": 0},
+                    },
+                }
+            )
 
         client = GmsClient(GmsSettings(api_key="unit-test-only"), opener=opener)
         self.assertEqual(json.loads(client.complete([{"role": "user", "content": "JSON"}]))["outcome"], "usable")

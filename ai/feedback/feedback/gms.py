@@ -1,11 +1,12 @@
 """SSAFY GMS Chat Completions 어댑터. 자동 재시도와 대체 모델 호출 없음."""
-from dataclasses import dataclass, field
-from copy import deepcopy
+
 import json
 import time
-from urllib.parse import urlsplit
-from urllib.request import Request, build_opener, HTTPRedirectHandler
+from copy import deepcopy
+from dataclasses import dataclass, field
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from feedback.clients import ModelNotConfigured, ProviderCallError
 from feedback.models import LLM_OUTPUT
@@ -48,14 +49,16 @@ def feedback_response_format(messages):
         definitions.pop("SpokenUsageSelection")
         selection_schema = {"type": "null"}
     schema = {
-        "type": "object", "additionalProperties": False,
+        "type": "object",
+        "additionalProperties": False,
         "properties": {
             "outcome": {"type": "string", "enum": ["usable", "insufficient_evidence"]},
             "result": {"anyOf": [{"$ref": "#/$defs/FeedbackData"}, {"type": "null"}]},
             "problem": {"anyOf": [{"$ref": "#/$defs/DataIssue"}, {"type": "null"}]},
             "spoken_usage_selection": selection_schema,
         },
-        "required": ["outcome", "result", "problem", "spoken_usage_selection"], "$defs": definitions,
+        "required": ["outcome", "result", "problem", "spoken_usage_selection"],
+        "$defs": definitions,
     }
 
     def normalize(node):
@@ -70,9 +73,14 @@ def feedback_response_format(messages):
             result["anyOf" if key == "oneOf" else key] = normalize(value)
         return result
 
-    return {"type": "json_schema", "json_schema": {
-        "name": "conversation_feedback", "strict": True, "schema": normalize(schema),
-    }}
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "conversation_feedback",
+            "strict": True,
+            "schema": normalize(schema),
+        },
+    }
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -99,12 +107,19 @@ class GmsClient:
     def complete(self, messages):
         self.last_call = None
         endpoint = urlsplit(self.settings.base_url)
-        if (not self.settings.api_key.strip() or endpoint.scheme != "https"
-                or endpoint.netloc != "gms.ssafy.io" or endpoint.query or endpoint.fragment):
+        if (
+            not self.settings.api_key.strip()
+            or endpoint.scheme != "https"
+            or endpoint.netloc != "gms.ssafy.io"
+            or endpoint.query
+            or endpoint.fragment
+        ):
             raise ModelNotConfigured("로컬 GMS 키 또는 HTTPS GMS 주소 설정을 확인하세요.")
         body = {
-            "model": self.settings.model, "messages": messages,
-            "response_format": feedback_response_format(messages), "stream": False,
+            "model": self.settings.model,
+            "messages": messages,
+            "response_format": feedback_response_format(messages),
+            "stream": False,
         }
         if self.settings.model == "gpt-5.4":
             # 저장소 gms-high 프로필과 같은 설정. 대체 모델은 호출하지 않는다.
@@ -115,13 +130,11 @@ class GmsClient:
         request = Request(
             self.settings.base_url.rstrip("/") + "/chat/completions",
             data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-            headers={"Authorization": "Bearer " + self.settings.api_key,
-                     "Content-Type": "application/json"},
+            headers={"Authorization": "Bearer " + self.settings.api_key, "Content-Type": "application/json"},
             method="POST",
         )
         started = time.monotonic()
-        self.last_call = {"requested_model": self.settings.model,
-                          "http_status": None, "actual_gms_credits": None}
+        self.last_call = {"requested_model": self.settings.model, "http_status": None, "actual_gms_credits": None}
         try:
             opener = self.opener or build_opener(_NoRedirect()).open
             with opener(request, timeout=self.settings.timeout_s) as response:

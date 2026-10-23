@@ -1,3 +1,10 @@
 .githooks/* text eol=lf
 infra/scripts/*.ps1 text eol=lf
+.gitlab-ci.yml text eol=lf
+.gitlab/ci/*.yml text eol=lf
+.yamllint.yml text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+backend/**/*.java text eol=lf
+infra/runner/*.toml text eol=lf
 frontend/UnityClient/** text=auto eol=lf

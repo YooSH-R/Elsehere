@@ -37,7 +37,13 @@ namespace A305.Npc
         }
 
         /// <param name="requester">제안하는 행인. 같은 행인만 닫을 수 있다.</param>
-        public void Show(object requester, string greeting, bool canDecline, Action accept, Action decline)
+        public void Show(
+            object requester,
+            string greeting,
+            bool canDecline,
+            Action accept,
+            Action decline
+        )
         {
             owner = requester;
             onAccept = accept;

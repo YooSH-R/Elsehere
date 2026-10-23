@@ -67,3 +67,7 @@ com.elsehere
 | 테스트만 실행 | `./gradlew test` |
 
 MR을 만들기 전에 `spotlessApply`로 포맷을 적용하고 `check`가 통과하는지 확인합니다. 포맷이 맞지 않으면 `check`가 실패합니다.
+
+검사 대상은 `src/main/java`와 `src/test/java`의 직접 작성한 Java 소스입니다. `build/`의 생성 코드·산출물은 대상에서 제외합니다. 소스는 UTF-8·LF를 사용하며 `.gitattributes`가 Java 파일의 LF를 유지합니다.
+
+IDE의 프로젝트 JDK·Gradle JVM은 Java 21, 파일 인코딩은 UTF-8, 줄바꿈은 LF로 맞춥니다. IDE 기본 포맷과 결과가 다르면 저장 후 `spotlessApply`를 실행하고 `spotlessCheck`로 확인합니다. CI에서는 `check`가 같은 포맷·규칙을 검사하며 파일을 자동 수정하지 않습니다.

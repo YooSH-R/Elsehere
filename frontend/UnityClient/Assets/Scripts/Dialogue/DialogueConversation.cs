@@ -47,7 +47,9 @@ namespace A305.Dialogue
         public DialogueLine LastNpcLine { get; private set; }
 
         private GuidedTurn? CurrentGuidedTurn =>
-            IsGuided && !IsGuidedCompleted ? script.GuidedTurns[guidedTurnIndex] : (GuidedTurn?)null;
+            IsGuided && !IsGuidedCompleted
+                ? script.GuidedTurns[guidedTurnIndex]
+                : (GuidedTurn?)null;
 
         /// <returns>문장을 보내 NPC가 답했으면 true. 빈 문장이거나 정해진 흐름을 마쳤으면 false.</returns>
         public bool Send(string text)

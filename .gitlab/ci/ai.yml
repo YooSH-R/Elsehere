@@ -31,7 +31,7 @@ ai:check-and-test:
       tar --exclude=__pycache__ --exclude='*.pyc' -czf dist/ai-source.tar.gz
       ai/worker/app ai/worker/llm_profiles.json ai/worker/requirements.txt
       ai/worker/requirements-tts.txt ai/worker/requirements-guard.txt
-      ai/feedback/feedback ai/feedback/content ai/feedback/schemas ai/feedback/requirements.txt
+      ai/feedback/feedback ai/feedback/content ai/feedback/prompts ai/feedback/schemas ai/feedback/requirements.txt
   artifacts:
     when: always
     name: ai-$CI_COMMIT_SHA

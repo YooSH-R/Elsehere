@@ -12,6 +12,7 @@ COPY --chown=app:app ai/worker/app ai/worker/app
 COPY --chown=app:app ai/worker/llm_profiles.json ai/worker/llm_profiles.json
 COPY --chown=app:app ai/feedback/feedback ai/feedback/feedback
 COPY --chown=app:app ai/feedback/content ai/feedback/content
+COPY --chown=app:app ai/feedback/prompts ai/feedback/prompts
 COPY --chown=app:app ai/feedback/schemas ai/feedback/schemas
 USER app
 WORKDIR /app/ai/worker

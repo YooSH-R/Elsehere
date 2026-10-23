@@ -3,8 +3,11 @@
 import gzip
 import json
 import os
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+
+FEEDBACK_PROMPT_PATH = Path("/app/ai/feedback/prompts/feedback_system.ko.md")
 
 
 def fetch(url, expected_status=200, headers=None):
@@ -32,6 +35,8 @@ def main():
     body, _ = fetch("http://127.0.0.1:8020/health")
     if json.loads(body).get("ok") is not True:
         raise AssertionError("AI worker is not ready.")
+    # Health does not load feedback assets, so verify the packaged prompt separately.
+    FEEDBACK_PROMPT_PATH.read_text(encoding="utf-8")
     fetch("http://127.0.0.1:8020/v1/judge", expected_status=401)
     fetch(
         "http://127.0.0.1:8020/v1/judge",

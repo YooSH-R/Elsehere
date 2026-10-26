@@ -101,7 +101,42 @@
 
 ## 외부 에셋과 Tripo
 
-도입한 외부 에셋은 [Kenney Car Kit 3.1](https://kenney.nl/assets/car-kit)의 `truck-flat.fbx` 한 개와 `colormap.png`다. 공식 라이선스는 **CC0**이며 원본 `License.txt`와 함께 `Assets/ThirdParty/KenneyCarKit/`에 둔다. 원본 파일을 보존하고 팀용 프리팹에서 크기·URP 머티리얼·Collider를 연결한다. 차량 주행 기능은 포함하지 않는다.
+차량은 [Kenney Car Kit 3.1](https://kenney.nl/assets/car-kit)의 `truck-flat.fbx`와 `colormap.png`를 사용한다. 공식 라이선스는 **CC0**이며 원본 `License.txt`와 함께 `Assets/ThirdParty/KenneyCarKit/`에 둔다. 원본 파일을 보존하고 팀용 프리팹에서 크기·URP 머티리얼·Collider를 연결한다. 차량 주행 기능은 포함하지 않는다.
+
+### 도입한 무료 소품
+
+Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현재 마을의 무광 재질과 조합하기 쉬워 우선 사용한다. 아래 수량은 팩 전체 수량이 아니라 프로젝트에 가져온 모델 수다. 공식 무료판과 동봉 라이선스가 모두 CC0인 모델만 사용하며, 유료 `.blend` 원본과 데모는 가져오지 않는다.
+
+| 원본 팩 | 가져온 모델 | 사용 위치 |
+| --- | --- | --- |
+| [Bakery Interior 1.1](https://tinytreats.itch.io/bakery-interior) | 12개: 커피 머신·계산대·컵·머그·카운터·진열장·테이블·의자·트레이·접시·케이크 받침·가격표 | 카페 집기와 테이블 |
+| [Baked Goods 1.0](https://tinytreats.itch.io/baked-goods) | 5개: 빵·크루아상·머핀·초콜릿 케이크·도넛 | 진열대와 단어 학습용 소품 후보 |
+| [House Plants 1.0](https://tinytreats.itch.io/house-plants) | 3개: 몬스테라·산세베리아·다육이 화분 | 상점 입구·창가·카운터 |
+| [Pretty Park 1.0](https://tinytreats.itch.io/pretty-park) | 5개: 분수·벤치·직선/모서리 생울타리·휴지통 | 향후 광장·보행 공간 |
+
+**Project → Assets/Prefabs/World/TinyTreats/**에서 원하는 프리팹을 씬으로 드래그한다. 개별 소품 25개와 `CafeCounterDisplay.prefab` 조합 예시가 있다. 카운터 예시는 개별 프리팹 8개를 중첩해 재사용한다. `Assets/Scenes/Sandbox/WorldPropsSandbox.unity`에서 팩별 실물을 비교할 수 있다. 마을 메인스트리트에 자동 배치하거나 기존 건물을 교체하지 않는다.
+
+원본 FBX·텍스처·라이선스는 `Assets/ThirdParty/TinyTreats/<팩>/`, 조절용 URP 재질은 `Assets/Art/World/TinyTreats/`에 둔다. 출처는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 모델은 원본 연결을 유지한 자식으로 두고 크기와 위치만 조절한다. 프리팹 루트 Scale은 1, 피벗은 바닥 중앙이며 BoxCollider가 있다. 빵 등 학습 대상은 아직 ObjectHover 단어 데이터에 연결하지 않았다. 분수 물은 정적 메시이며 물 흐름 효과는 없다.
+
+기준 크기는 카운터 높이 0.9m, 테이블 높이 0.65m, 의자 전체 높이 0.8m, 커피 머신 높이 0.5m, 분수 폭 2.6m, 생울타리 높이 0.9m다. 음식·화분은 대두 캐릭터 옆에서도 읽히도록 조금 크게 잡은 시작값이다. 앉기·손에 잡기·NPC 도달 범위는 아직 검증하지 않았다. 각 프리팹의 실제 XYZ 치수와 삼각형 수는 [검수 목록](../../artifacts/unity/free-props/verification.txt)에 있다.
+
+**Tools → A305 → World → Build And Preview Tiny Treats Props**는 없는 재질·프리팹만 만들고 비교용 Sandbox를 재생성한다. 기존 프리팹과 조합 예시의 수동 편집은 유지한다. 유리 재질은 투명 URP/Lit, 나머지는 Metallic 0·Smoothness 0.18이다. [카운터 조합](../../artifacts/unity/free-props/CafeCounterDisplay.png), [공원 소품](../../artifacts/unity/free-props/PrettyPark.png)은 실제 Unity Editor 렌더이며 생성형 이미지가 아니다. 검수는 25개 모델의 URP 참조·바닥 피벗·콜라이더·실측 치수와 화면을 확인한다. WebGL 성능·기능 연결 완료를 의미하지 않는다.
+
+### 나머지 후보의 적용 순서
+
+아래는 미도입 후보에 대한 디자인 판단이다. 건물은 미국 소도시의 벽돌 상가·크림색 몰딩·녹색 차양과 반복 층 구조를 유지하고, 필요한 소품부터 보강한다.
+
+| 후보 | 적용 판단 |
+| --- | --- |
+| [Styloo Village](https://styloo.itch.io/vil) | 무료 건물 7개와 CC0는 확인했다. 원경 건물 후보로 남기고, 기존 층고·문 폭·재질을 맞추기 전에는 메인 상가를 교체하지 않는다. |
+| [Tiny Treats Homely House](https://tinytreats.itch.io/homely-house) | 주택 구역을 확장할 때 검토한다. 상가 층 반복 모듈을 대체하는 용도로 사용하지 않는다. |
+| [Kenney Fantasy Town](https://kenney.nl/assets/fantasy-town-kit), [Quaternius Medieval Village](https://quaternius.com/packs/medievalvillagemegakit.html), [Slavic Medieval Village](https://assetstore.unity.com/packages/3d/environments/fantasy/slavic-medieval-village-free-modular-environment-kit-167010) | 중세 테마 건물은 현재 미국 소도시 상가 외관의 우선순위에서 제외한다. 모듈 조합 구조만 참고할 수 있다. |
+| [KayKit Forest Nature](https://kaylousberg.itch.io/kaykit-forest) | 북쪽 확장 구간의 녹지가 필요할 때 추가한다. 현재 가로수 교체보다 반복 배치 수와 성능을 먼저 확인한다. |
+| [Styloo Cozy Farm](https://styloo.itch.io/farm) | 농장 건물보다 우편함·상자 등 부족한 거리 소품을 선택한다. |
+| Cloudy Creates [Street Essentials](https://cloudycreates.itch.io/street-props-vol01-street-essentials), [Garden Props](https://cloudycreates.itch.io/lowpoly-garden-props), [Cafe Essentials](https://cloudycreates.itch.io/cafe-essentials-vol2) | 필요한 소품이 기존 프리팹에 없을 때 Starter에서 선택한다. 무료/상업 이용 표기와 CC0는 같지 않으므로 도입할 파일의 동봉 라이선스를 확인한다. 현재 미도입이다. |
+| Tiny Treats [Fun Playground](https://tinytreats.itch.io/fun-playground), [Pleasant Picnic](https://tinytreats.itch.io/pleasant-picnic) | 놀이터·피크닉 구역의 배치가 정해지면 같은 계열 소품으로 확장한다. |
+| KayKit [Furniture Bits](https://kaylousberg.itch.io/furniture-bits), [Restaurant Bits](https://kaylousberg.itch.io/restaurant-bits), Tiny Treats [Charming Kitchen](https://tinytreats.itch.io/charming-kitchen) | 카페 실내 좌석·주방을 구현할 때 부족한 구성만 추가한다. |
+| [Cozy Cartoon Pack 2](https://assetstore.unity.com/packages/3d/props/interior/interiors-free-cozy-cartoon-pack-2-366624), [Synty Coffee Shop](https://syntystore.com/products/polygon-coffee-shop) | 현재 집기와 역할이 겹쳐 후순위다. 공식 무료 제공은 확인했으나 각각 별도 Asset Store/스토어 라이선스이며 CC0 원본으로 취급하지 않는다. |
 
 건물 전체나 규격 벽·창문을 Tripo로 반복 생성하지 않는다. 이 모듈들은 Unity에서 치수와 재질을 조절할 수 있어 이번 외관 제작에 **Tripo 생성 크레딧은 0**이다. 추가 계정 연결이나 유료 패키지 없이 현재 씬을 열 수 있다.
 

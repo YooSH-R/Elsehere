@@ -115,3 +115,22 @@ def make_client(provider: Provider, tts=None, guard_local=None, **kw) -> TestCli
 def client(provider):
     with make_client(provider) as c:
         yield c
+
+
+NPC_EXAMPLES = Path(__file__).resolve().parents[3] / "docs/api/npc-ai-contracts/npc_configuration_examples_v2.json"
+
+
+def load_npc_examples() -> list[dict]:
+    """공통 인격 스키마의 계약 예시 NPC 3명 (카페 점원·호텔리어·행인). 부를 때마다 새로 읽어서 고쳐도 다른 테스트에 번지지 않는다."""
+    return json.loads(NPC_EXAMPLES.read_text(encoding="utf-8"))
+
+
+def cafe_with(path: str, value) -> dict:
+    """계약 예시의 카페 점원 설정에서 path(점으로 구분한 키) 한 곳만 value로 바꾼 것."""
+    cafe = load_npc_examples()[0]
+    *parents, key = path.split(".")
+    target = cafe
+    for name in parents:
+        target = target[name]
+    target[key] = value
+    return cafe

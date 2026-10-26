@@ -1,5 +1,7 @@
 # Elsehere 마을 디자인 비교 v1
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 세 가지 미국 소도시 방향을 비교하기 위한 콘셉트 이미지다. 선택이 확정된 디자인은 아니다.
 
 ## 공통 비교 기준
@@ -38,7 +40,7 @@
 
 ### 브릭 메인스트리트 v1
 
-이미지: [town-overview.png](../../../../artifacts/village/brick-mainstreet-v1/town-overview.png)
+이미지: town-overview.png (`artifacts/village/brick-mainstreet-v1/town-overview.png`, 로컬 보관)
 
 별도 프롬프트: [generation-prompt.txt](brick-mainstreet-v1/generation-prompt.txt)
 
@@ -59,7 +61,7 @@ Small unobtrusive bottom caption: "01 / BRICK MAINSTREET v1". No other presentat
 
 ### 포치 그린 v1
 
-이미지: [town-overview.png](../../../../artifacts/village/porch-green-v1/town-overview.png)
+이미지: town-overview.png (`artifacts/village/porch-green-v1/town-overview.png`, 로컬 보관)
 
 별도 프롬프트: [generation-prompt.txt](porch-green-v1/generation-prompt.txt)
 
@@ -81,7 +83,7 @@ Small unobtrusive bottom caption: "02 / PORCH GREEN v1". No other presentation g
 
 ### 어도비 크로싱 v1
 
-이미지: [town-overview.png](../../../../artifacts/village/adobe-crossing-v1/town-overview.png)
+이미지: town-overview.png (`artifacts/village/adobe-crossing-v1/town-overview.png`, 로컬 보관)
 
 별도 프롬프트: [generation-prompt.txt](adobe-crossing-v1/generation-prompt.txt)
 

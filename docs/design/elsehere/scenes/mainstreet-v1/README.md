@@ -1,8 +1,10 @@
 # Elsehere 메인스트리트 씬 디자인 v1
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 집 앞에서 행인을 만나고, 횡단보도 건너 카페나 같은 보도 끝의 호텔로 이동하는 마을 배치 제안이다. **브릭 메인스트리트 v3-B의 건축과 리틀 멍 v7의 비율**을 사용한다. 기존 미술 방향을 유지하고 건물은 확대안, 캐릭터는 확정 키 1.6m를 적용한다. 실제 아트 검토 씬은 `Assets/Scenes/Sandbox/TownMainstreetSandbox.unity`이며, 배포용 `TownScene` 적용은 별도 검증 대상이다.
 
-![집 앞에서 바라본 메인스트리트 콘셉트](../../../../../artifacts/scenes/elsehere/mainstreet-v1/street-view.png)
+집 앞에서 바라본 메인스트리트 콘셉트 (`artifacts/scenes/elsehere/mainstreet-v1/street-view.png`, 로컬 보관)
 
 이미지는 거리 분위기와 시선 구도를 보여주는 생성 콘셉트다. 평면도 이미지는 확대 전 기록이다. 현재 위치·치수는 아래 갱신된 표를 따른다. Production TownScene의 실제 화면과 이용 장소·닫힌 배경 건물 구분, 북동쪽 공원과 북쪽 확장 배치는 [Unity 아트 문서](../../../../unity/mainstreet-art.md)를 따른다.
 
@@ -14,7 +16,7 @@
 
 ## 2. 배치와 크기
 
-![메인스트리트 평면도](../../../../../artifacts/scenes/elsehere/mainstreet-v1/layout-plan.png)
+메인스트리트 평면도 (`artifacts/scenes/elsehere/mainstreet-v1/layout-plan.png`, 로컬 보관)
 
 북쪽을 +Z, 동쪽을 +X로 둔다. 도면은 X=-20~20m, Z=-24~30m의 **40×54m** 범위다. 이는 이번 검토 구간이며 마을 전체 크기를 제한하지 않는다. 건물 크기는 [B안 제작 규격](../../village/production-v2/art-spec.md)을 따른다. 아래 좌표는 확대안의 건물 외곽과 지면상의 위치다. Sandbox는 북쪽 보도를 Z=70까지 연장한다.
 
@@ -86,7 +88,7 @@
 
 ## 산출물
 
-- [거리 콘셉트 PNG](../../../../../artifacts/scenes/elsehere/mainstreet-v1/street-view.png): 내장 이미지 생성 도구 사용.
-- [치수 평면도 PNG](../../../../../artifacts/scenes/elsehere/mainstreet-v1/layout-plan.png): 좌표 기반 도식.
+- 거리 콘셉트 PNG (`artifacts/scenes/elsehere/mainstreet-v1/street-view.png`, 로컬 보관): 내장 이미지 생성 도구 사용.
+- 치수 평면도 PNG (`artifacts/scenes/elsehere/mainstreet-v1/layout-plan.png`, 로컬 보관): 좌표 기반 도식.
 - [이미지 생성 프롬프트](street-view-prompt.txt): 사용한 참조 이미지의 역할과 생성 조건.
-- [평면도 생성 소스](../../../../../artifacts/scenes/elsehere/mainstreet-v1/render-layout.py): 좌표·라벨 수정 후 같은 폴더에 다시 렌더.
+- 평면도 생성 소스 (`artifacts/scenes/elsehere/mainstreet-v1/render-layout.py`, 로컬 보관): 좌표·라벨 수정 후 같은 폴더에 다시 렌더.

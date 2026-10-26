@@ -4,7 +4,7 @@
 
 [제작 규격](art-spec.md) · [에셋 목록과 ID](asset-list.md) · [캐릭터 v7 기준](../../mascot/little-mung-v7/README.md)
 
-[메인스트리트 씬 디자인 v1](../../scenes/mainstreet-v1/README.md)은 집·앞마당·카페·호텔을 연결하는 배치 초안이다. 거리 콘셉트와 좌표가 있는 평면도를 크기 시험과 MVP 조립에 참고한다. 확대 배치와 1.6m 비율 대체물은 `Assets/Scenes/Sandbox/TownMainstreetSandbox.unity`에서 확인한다. 제작한 외관·조명과 무료 소품 프리팹의 사용법은 [Unity 아트 문서](../../../../unity/mainstreet-art.md)를 따른다. Production 씬 연결은 후속 단계다.
+[메인스트리트 씬 디자인 v1](../../scenes/mainstreet-v1/README.md)은 집·앞마당·카페·호텔을 연결하는 배치 기준이다. 크기 시험은 `Assets/Scenes/Sandbox/TownMainstreetSandbox.unity`에서, 실제 이용 장소와 배경 주거동을 구분한 배치는 `Assets/Scenes/Production/TownScene.unity`에서 확인한다. TownScene은 1.6m 비율 대체물과 집·카페·호텔의 기존 왕복 연결을 사용한다. 제작한 외관·조명·무료 소품 프리팹과 확장 방법은 [Unity 아트 문서](../../../../unity/mainstreet-art.md)를 따른다. 실내 아트와 최종 캐릭터, Web 성능 검증은 후속 단계다.
 
 ## 1. 현재 프로젝트에 맞출 기준
 

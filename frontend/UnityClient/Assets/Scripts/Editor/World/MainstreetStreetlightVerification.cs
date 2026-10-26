@@ -172,12 +172,17 @@ namespace A305.EditorTools.World
                 MainstreetArtKit.ArtFolder + "/LanternAmberV2.mat"
             );
             if (
-                !bulb.IsKeywordEnabled("_EMISSION")
-                || (bulb.globalIlluminationFlags & MaterialGlobalIlluminationFlags.EmissiveIsBlack)
-                    != 0
+                bulb.shader.name != "Elsehere/WarmLamp"
+                && (
+                    !bulb.IsKeywordEnabled("_EMISSION")
+                    || (
+                        bulb.globalIlluminationFlags
+                        & MaterialGlobalIlluminationFlags.EmissiveIsBlack
+                    ) != 0
+                )
             )
                 throw new InvalidOperationException("전구의 발광 재질이 비활성 상태입니다.");
-            Results.Add("PASS bulb emission keyword remains enabled after asset import.");
+            Results.Add("PASS bulb uses a luminous shader after asset import.");
             Results.Add(
                 "PASS "
                     + lights.Length

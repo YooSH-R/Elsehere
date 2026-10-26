@@ -24,6 +24,7 @@ namespace A305.EditorTools.World
             BuildTruck(streets);
             MainstreetStreetDressing.Apply(environment, settings);
             MainstreetCafeKitBuilder.Apply(environment, settings);
+            MainstreetFixtureLighting.PreparePrefabs();
             // Scale guides remain available in the hierarchy without covering the art review.
             environment.Find("ScaleAndDistanceMarkers").gameObject.SetActive(false);
         }
@@ -232,24 +233,7 @@ namespace A305.EditorTools.World
 
         private static void AddWallLamp(Transform parent, float x, float y)
         {
-            Transform lamp = Group("WallLamp", parent, new Vector3(x, y, .15f));
-            Block("Mount", lamp, Vector3.zero, new Vector3(.12f, .25f, .12f), Navy);
-            Transform arm = Post("Arm", lamp, new Vector3(0, .1f, .15f), .025f, .35f, Navy);
-            arm.localEulerAngles = new Vector3(65, 0, 0);
-            SmoothBall(
-                "Shade",
-                lamp,
-                new Vector3(0, .13f, .29f),
-                new Vector3(.35f, .15f, .35f),
-                Navy
-            );
-            SmoothBall(
-                "Bulb",
-                lamp,
-                new Vector3(0, .04f, .29f),
-                Vector3.one * .15f,
-                MainstreetReferenceKit.Glow
-            );
+            MainstreetFixtureLighting.PlaceWallLamp(parent, x, y);
         }
 
         private static void AddInteriorBackdrop(Transform parent, float width, string sign)

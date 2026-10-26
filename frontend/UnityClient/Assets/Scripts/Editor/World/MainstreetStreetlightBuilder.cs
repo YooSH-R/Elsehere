@@ -36,7 +36,11 @@ namespace A305.EditorTools.World
 
         internal static void EnableBulbEmission(Material material)
         {
-            if (material == null || material.GetColor("_EmissionColor").maxColorComponent <= 0f)
+            if (
+                material == null
+                || material.shader.name == "Elsehere/WarmLamp"
+                || material.GetColor("_EmissionColor").maxColorComponent <= 0f
+            )
                 return;
             // URP requires an AnyEmissive flag to preserve the emission keyword on import.
             material.globalIlluminationFlags &= ~MaterialGlobalIlluminationFlags.EmissiveIsBlack;

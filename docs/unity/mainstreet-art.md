@@ -56,9 +56,9 @@
 
 일반 머티리얼은 URP/Lit, Metallic 0, Smoothness 0.18로 시작한다. 벽돌·수관·도로는 `Elsehere/SoftMasonry`의 확산광·그림자·환경광·안개를 사용한다. 셰이더의 색·그림자·깊이 패스는 같은 머티리얼 상수 버퍼를 공유한다. 구름은 Unlit, 하늘은 `Elsehere/SummerSky` 그라데이션으로 표현한다.
 
-기본 낮 조명은 Directional Light 하나(회전 48°, -35°, 0°; 강도 1.7)와 하늘·수평·지면의 환경광이며, 가로등의 Point Light를 더한다. Sandbox 전용 Volume은 exposure 0, contrast 10, saturation 8, bloom 0.15, tonemapping None이다. 선형 안개는 42~125m이며 피사계심도는 사용하지 않는다. 이 수치는 이미지에서 측정한 물성값이나 Web 성능 검증값이 아닌 Unity 아트 시작값이다.
+기본 낮 조명은 Directional Light 하나(회전 48°, -35°, 0°; 강도 1.7)와 하늘·수평·지면의 환경광이며, 가로등과 매장의 Point Light를 더한다. Sandbox 전용 Volume은 exposure 0, contrast 10, saturation 8, bloom 0.15, tonemapping None이다. 선형 안개는 42~125m이며 피사계심도는 사용하지 않는다. 이 수치는 이미지에서 측정한 물성값이나 Web 성능 검증값이 아닌 Unity 아트 시작값이다.
 
-## 가로등 조명
+## 가로등과 매장 조명
 
 `Assets/Prefabs/World/MainstreetArt/StreetLampV2.prefab`의 `LanternLight`가 주변을 비추며, 전구의 `LanternAmberV2` 재질이 발광한다. 같은 프리팹을 배치하면 외형과 광원을 함께 재사용한다.
 
@@ -68,13 +68,24 @@
 | 위치 | 프리팹 바닥에서 Y=2.88m |
 | 색상 / 강도 / 범위 | #FFE1B3 / 4 / 5m |
 | 그림자 | 개별 가로등 그림자 끔 |
-| 현재 Sandbox | 가로등 8개 |
+| 현재 Sandbox | 가로등 8개, 활성 매장 조명 15개 |
 
 `LanternLight`의 Light Inspector에서 색·강도·범위를 조절한다. **Tools → A305 → World → Apply And Verify Streetlights**는 기존 외형을 유지하면서 누락된 광원을 추가하고, 전구 발광을 활성화한 뒤 Play에서 검수한다. 이미 있는 광원의 조절값은 덮어쓰지 않는다. 일반 Sandbox Builder로 다시 만들 때도 같은 공통 프리팹을 사용한다.
 
 도로·벽·수관의 `Elsehere/SoftMasonry`는 URP Forward/Forward+의 추가 광원을 받아 거리와 표면 방향에 따라 밝아진다. 가로등마다 그림자 맵을 만들지 않으므로 사물의 가림까지 정확하게 표현하지는 않는다. Web 프레임 시간은 별도로 측정해야 한다.
 
-[낮의 점등 화면](../../artifacts/unity/mainstreet-streetlights/02-day-light-on.png)과 [어두운 검수 화면](../../artifacts/unity/mainstreet-streetlights/04-dim-diagnostic-on.png)은 같은 카메라의 실제 Unity 렌더다. 검수 폴더의 OFF/ON은 **주변을 비추는 Point Light만** 끄고 켠 비교이며, 전구 발광 재질은 계속 켜져 있다. 어두운 화면은 빛의 도달 범위를 보기 위해 검수 중에만 햇빛을 낮춘 것이며 저장된 마을의 시간대나 조명 설정을 바꾸지 않는다.
+가로등·카페 벽등·펜던트는 `Elsehere/WarmLamp`를 사용한다. 중심 밝기 1.2, 가장자리 0.45, 색상 RGB (1, 0.73, 0.3)으로 둥근 노란 테두리가 남도록 표현한다. 전구 내부 Point Light가 전구 표면을 다시 비춰 하얗게 날아가는 현상을 막는다. 창 배경의 `WindowAmberGlow`는 약한 발광을 유지한다. 상층 창과 원경 창에는 광원을 반복 추가하지 않는다.
+
+| 대상 | 재사용 프리팹 | 광원 강도 / 범위 |
+| --- | --- | --- |
+| 일반 상가·호텔 벽등 | `MainstreetArt/WallLampWarm` | 0.35 / 2.8m |
+| Blender 카페 벽등 | `CafeBlenderKit/Parts/WallLamp` | 0.35 / 2.8m |
+| 카페 쇼윈도 | `CafeBlenderKit/Parts/WindowShop2m` | 0.1 / 1.8m |
+| 일반 상가 쇼윈도 | `MainstreetArt/WarmShopWindowV2` | 0.1 / 1.8m |
+
+매장 조명의 색상은 RGB (1, 0.88, 0.65)이며 모두 실시간 Point Light, 그림자 없음이다. `FixtureLight`를 Inspector에서 조절한다. 일반 씬 Builder는 이미 조절한 광원 값을 유지한다. **Tools → A305 → World → Apply And Verify All Fixture Lights**는 위 강도·범위·위치 프리셋을 명시적으로 다시 적용하고 기존 Sandbox의 벽등을 공통 프리팹으로 연결한다. 이 메뉴는 수동으로 조절한 매장 광원 값을 프리셋으로 덮어쓴다. 건물 크기와 배치는 유지한다.
+
+[낮의 전체 조명](../../artifacts/unity/mainstreet-fixtures/01-day-fixtures.png), [카페 조명 검수](../../artifacts/unity/mainstreet-fixtures/03-cafe-fixtures-on.png), [호텔 입구 조명 검수](../../artifacts/unity/mainstreet-fixtures/05-hotel-fixtures-on.png)는 실제 Unity Play 렌더다. 검수 폴더의 OFF/ON은 **매장 Point Light만** 끄고 켠 비교이며, 가로등과 전구 발광은 계속 켜져 있다. 어두운 화면은 빛의 도달 범위를 보기 위해 검수 중에만 햇빛을 낮춘 것이며 저장된 마을의 시간대나 조명 설정을 바꾸지 않는다.
 
 검수는 광원 개수·전구 발광 상태, 도로와 보도 표본의 점등 전후 밝기 변화를 확인한다. Mobile 렌더 검수는 Editor에서 Mobile URP 에셋을 임시 적용하는 것이며 실제 모바일 기기·WebGL 브라우저 성능 검증과는 구분한다. 조명·셰이더 시각 변경은 단위 테스트 대신 Play 렌더 비교로 확인한다.
 

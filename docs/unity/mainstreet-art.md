@@ -1,10 +1,12 @@
 # 메인스트리트 외관 아트
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 `Assets/Scenes/Production/TownScene.unity`에 미국 소도시의 벽돌 상점과 주택을 단순한 3D 게임 형태로 배치한다. `Assets/Scenes/Sandbox/TownMainstreetSandbox.unity`는 아트와 크기 시험용으로 유지한다. 캐릭터 전체 키는 **1.6m로 확정**한다. 리틀 멍 v7의 머리 60%·몸 40%를 유지하며, 현재 캐릭터는 완성 모델이 아닌 비율 확인용 대체물이다.
 
-![Production TownScene 플레이 시작 화면](../../artifacts/unity/production-town/01-player-start.png)
+Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/01-player-start.png`, 로컬 보관)
 
-위 이미지는 Production 씬을 Play로 실행한 Unity 카메라 렌더다. [카페와 닫힌 빈 건물](../../artifacts/unity/production-town/05-cafe-and-closed-building.png), [배치 전체](../../artifacts/unity/production-town/04-layout-overview.png), [주거 구간과 공원](../../artifacts/unity/production-town/07-residential-park.png), [치수·검수 방법](mainstreet-sandbox.md)도 참고한다. 목표는 따뜻한 낮의 작은 미국 마을이다. 코럴 벽·크림색 몰딩·초록 차양·둥근 수목을 공유하고, 영업을 나타내는 진열창과 조명은 실제 이용 장소에만 둔다.
+해당 로컬 이미지는 Production 씬을 Play로 실행한 Unity 카메라 렌더다. 카페와 닫힌 빈 건물 (`artifacts/unity/production-town/05-cafe-and-closed-building.png`, 로컬 보관), 배치 전체 (`artifacts/unity/production-town/04-layout-overview.png`, 로컬 보관), 주거 구간과 공원 (`artifacts/unity/production-town/07-residential-park.png`, 로컬 보관), [치수·검수 방법](mainstreet-sandbox.md)도 참고한다. 목표는 따뜻한 낮의 작은 미국 마을이다. 코럴 벽·크림색 몰딩·초록 차양·둥근 수목을 공유하고, 영업을 나타내는 진열창과 조명은 실제 이용 장소에만 둔다.
 
 ## Production 장소 구분과 편집
 
@@ -106,7 +108,7 @@
 
 매장 조명의 색상은 RGB (1, 0.88, 0.65)이며 모두 실시간 Point Light, 그림자 없음이다. `FixtureLight`를 Inspector에서 조절한다. 일반 씬 Builder는 이미 조절한 광원 값을 유지한다. **Tools → A305 → World → Apply And Verify All Fixture Lights**는 위 강도·범위·위치 프리셋을 명시적으로 다시 적용하고 기존 Sandbox의 벽등을 공통 프리팹으로 연결한다. 이 메뉴는 수동으로 조절한 매장 광원 값을 프리셋으로 덮어쓴다. 건물 크기와 배치는 유지한다.
 
-[낮의 전체 조명](../../artifacts/unity/mainstreet-fixtures/01-day-fixtures.png), [카페 조명 검수](../../artifacts/unity/mainstreet-fixtures/03-cafe-fixtures-on.png), [호텔 입구 조명 검수](../../artifacts/unity/mainstreet-fixtures/05-hotel-fixtures-on.png)는 실제 Unity Play 렌더다. 검수 폴더의 OFF/ON은 **매장 Point Light만** 끄고 켠 비교이며, 가로등과 전구 발광은 계속 켜져 있다. 어두운 화면은 빛의 도달 범위를 보기 위해 검수 중에만 햇빛을 낮춘 것이며 저장된 마을의 시간대나 조명 설정을 바꾸지 않는다.
+낮의 전체 조명 (`artifacts/unity/mainstreet-fixtures/01-day-fixtures.png`, 로컬 보관), 카페 조명 검수 (`artifacts/unity/mainstreet-fixtures/03-cafe-fixtures-on.png`, 로컬 보관), 호텔 입구 조명 검수 (`artifacts/unity/mainstreet-fixtures/05-hotel-fixtures-on.png`, 로컬 보관)는 실제 Unity Play 렌더다. 검수 폴더의 OFF/ON은 **매장 Point Light만** 끄고 켠 비교이며, 가로등과 전구 발광은 계속 켜져 있다. 어두운 화면은 빛의 도달 범위를 보기 위해 검수 중에만 햇빛을 낮춘 것이며 저장된 마을의 시간대나 조명 설정을 바꾸지 않는다.
 
 검수는 광원 개수·전구 발광 상태, 도로와 보도 표본의 점등 전후 밝기 변화를 확인한다. Mobile 렌더 검수는 Editor에서 Mobile URP 에셋을 임시 적용하는 것이며 실제 모바일 기기·WebGL 브라우저 성능 검증과는 구분한다. 조명·셰이더 시각 변경은 단위 테스트 대신 Play 렌더 비교로 확인한다.
 
@@ -139,9 +141,9 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 원본 FBX·텍스처·라이선스는 `Assets/ThirdParty/TinyTreats/<팩>/`, 조절용 URP 재질은 `Assets/Art/World/TinyTreats/`에 둔다. 출처는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 모델은 원본 연결을 유지한 자식으로 두고 크기와 위치만 조절한다. 프리팹 루트 Scale은 1, 피벗은 바닥 중앙이며 BoxCollider가 있다. 빵 등 학습 대상은 아직 ObjectHover 단어 데이터에 연결하지 않았다. 분수 물은 정적 메시이며 물 흐름 효과는 없다.
 
-기준 크기는 카운터 높이 0.9m, 테이블 높이 0.65m, 의자 전체 높이 0.8m, 커피 머신 높이 0.5m, 분수 폭 2.6m, 생울타리 높이 0.9m다. 음식·화분은 대두 캐릭터 옆에서도 읽히도록 조금 크게 잡은 시작값이다. 앉기·손에 잡기·NPC 도달 범위는 아직 검증하지 않았다. 각 프리팹의 실제 XYZ 치수와 삼각형 수는 [검수 목록](../../artifacts/unity/free-props/verification.txt)에 있다.
+기준 크기는 카운터 높이 0.9m, 테이블 높이 0.65m, 의자 전체 높이 0.8m, 커피 머신 높이 0.5m, 분수 폭 2.6m, 생울타리 높이 0.9m다. 음식·화분은 대두 캐릭터 옆에서도 읽히도록 조금 크게 잡은 시작값이다. 앉기·손에 잡기·NPC 도달 범위는 아직 검증하지 않았다. 각 프리팹의 실제 XYZ 치수와 삼각형 수는 검수 목록 (`artifacts/unity/free-props/verification.txt`, 로컬 보관)에 있다.
 
-**Tools → A305 → World → Build And Preview Tiny Treats Props**는 없는 재질·프리팹만 만들고 비교용 Sandbox를 재생성한다. 기존 프리팹과 조합 예시의 수동 편집은 유지한다. 유리 재질은 투명 URP/Lit, 나머지는 Metallic 0·Smoothness 0.18이다. [카운터 조합](../../artifacts/unity/free-props/CafeCounterDisplay.png), [공원 소품](../../artifacts/unity/free-props/PrettyPark.png)은 실제 Unity Editor 렌더이며 생성형 이미지가 아니다. 검수는 25개 모델의 URP 참조·바닥 피벗·콜라이더·실측 치수와 화면을 확인한다. WebGL 성능·기능 연결 완료를 의미하지 않는다.
+**Tools → A305 → World → Build And Preview Tiny Treats Props**는 없는 재질·프리팹만 만들고 비교용 Sandbox를 재생성한다. 기존 프리팹과 조합 예시의 수동 편집은 유지한다. 유리 재질은 투명 URP/Lit, 나머지는 Metallic 0·Smoothness 0.18이다. 카운터 조합 (`artifacts/unity/free-props/CafeCounterDisplay.png`, 로컬 보관), 공원 소품 (`artifacts/unity/free-props/PrettyPark.png`, 로컬 보관)은 실제 Unity Editor 렌더이며 생성형 이미지가 아니다. 검수는 25개 모델의 URP 참조·바닥 피벗·콜라이더·실측 치수와 화면을 확인한다. WebGL 성능·기능 연결 완료를 의미하지 않는다.
 
 ### 나머지 후보의 적용 순서
 

@@ -59,5 +59,6 @@
       ]
     }
   ],
-  "superseded_by": "docs/design/elsehere/mascot/little-mung-v7/tripo-turnaround-v1/manifest.json"
+  "superseded_by": "docs/design/elsehere/mascot/little-mung-v7/tripo-turnaround-v1/manifest.json",
+  "artifact_storage": "local-only; artifacts/ is excluded from Git"
 }

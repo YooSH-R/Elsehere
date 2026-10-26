@@ -1,8 +1,10 @@
 # Elsehere B안 제작 규격 v2
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 브릭 메인스트리트 v3-B의 공간감을 구현하기 위한 제작 규격이다. **캐릭터 키는 1.6m로 확정하며, 건물은 폭·깊이·높이를 키운 확대안을 적용한다.** 캐릭터는 리틀 멍 v7의 현재 `tripo-turnaround-v1` 4방향 이미지를 기준으로 제작한다.
 
-- [B안 기준 이미지](../../../../../artifacts/village/brick-mainstreet-v3/b-3p0m/street-height.png) · [전체 배치와 재질 참고](../../../../../artifacts/village/brick-mainstreet-v2/town-overview.png)
+- B안 기준 이미지 (`artifacts/village/brick-mainstreet-v3/b-3p0m/street-height.png`, 로컬 보관) · 전체 배치와 재질 참고 (`artifacts/village/brick-mainstreet-v2/town-overview.png`, 로컬 보관)
 - [리틀 멍 v7 비율과 시트](../../mascot/little-mung-v7/README.md) · [에셋 목록](asset-list.md) · [Unity 적용 순서](unity-application-plan.md)
 
 이 규격은 production-v1을 대체한다. 이전 2m 층고·1.8m 문·4.4m 상점 건물과 이전 치수도는 현재 제작에 사용하지 않는다. **마을 B안과 캐릭터 B/Cluster는 서로 다른 선택 항목**이다.

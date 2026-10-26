@@ -113,6 +113,15 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 
 생성 모델은 스키마 규칙 중 활성 NPC의 `voiceId` 필수(조건 규칙), 목록 중복 금지, 생략할 수 있는 칸의 `null` 금지를 검사하지 않고, `"1"` 같은 글을 숫자·참거짓으로 바꿔 받습니다. 그래서 NPC 설정은 [`ai/tools/npc_configs.py`](../tools/npc_configs.py)의 `schema_errors()`로 원본 스키마 그대로 한 번 더 검사합니다. 어긴 곳마다 위치(`$.npcProfile.values`)와 이유를 모두 돌려줍니다.
 
+NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`NpcConfigurationList`)로 합칠 때는 같은 도구를 명령줄로 씁니다.
+
+```bash
+.venv/Scripts/python ../tools/npc_configs.py <NPC 설정 폴더>                                # 검사만
+.venv/Scripts/python ../tools/npc_configs.py <NPC 설정 폴더> --out npc_configurations.json  # 검사하고 합친 배열 저장
+```
+
+파일마다 스키마 검사, 파일끼리 `npcId` 중복, NPC 수(스키마의 1~1000)를 보고, 문제가 있으면 배열을 저장하지 않고 실패 코드 1로 끝납니다. 결과는 셸의 `>` 대신 `--out`으로 저장합니다. Windows PowerShell 5.1의 `>`는 파일 앞에 BOM을 붙여 JSON을 읽을 때 오류가 납니다.
+
 ## 검사
 
 ```bash
@@ -142,6 +151,6 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`), GPT-5 요청 칸
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
-- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에
+- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

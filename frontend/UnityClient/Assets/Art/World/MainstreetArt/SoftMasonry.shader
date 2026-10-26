@@ -32,9 +32,11 @@ Shader "Elsehere/SoftMasonry"
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fog
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
-            struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; half3 normalWS : TEXCOORD1; half fog : TEXCOORD2; };
+            struct Varyings { float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; half3 normalWS : TEXCOORD1; half fog : TEXCOORD2; half3 vertexLighting : TEXCOORD3; };
             float Hash(float2 p) { return frac(sin(dot(p,float2(127.1,311.7))) * 43758.5453); }
             Varyings Vert(Attributes input)
             {
@@ -44,6 +46,7 @@ Shader "Elsehere/SoftMasonry"
                 output.positionWS = position.positionWS;
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.fog = ComputeFogFactor(position.positionCS.z);
+                output.vertexLighting = VertexLighting(position.positionWS, output.normalWS);
                 return output;
             }
             half4 Frag(Varyings input) : SV_Target
@@ -61,7 +64,23 @@ Shader "Elsehere/SoftMasonry"
                 Light light = GetMainLight(TransformWorldToShadowCoord(input.positionWS));
                 half diffuse = saturate(dot(normal,light.direction));
                 half3 ambient = SampleSH(normal);
-                half3 color = albedo * (ambient + light.color * diffuse * light.shadowAttenuation);
+                half3 illumination = ambient + light.color * diffuse * light.shadowAttenuation;
+                #if defined(_ADDITIONAL_LIGHTS_VERTEX)
+                    illumination += input.vertexLighting;
+                #endif
+                #if defined(_ADDITIONAL_LIGHTS)
+                    // URP's loop supports both Forward and clustered Forward+ rendering.
+                    InputData inputData = (InputData)0;
+                    inputData.positionWS = input.positionWS;
+                    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+                    uint lightCount = GetAdditionalLightsCount();
+                    LIGHT_LOOP_BEGIN(lightCount)
+                        Light localLight = GetAdditionalLight(lightIndex, input.positionWS);
+                        illumination += localLight.color * saturate(dot(normal, localLight.direction))
+                            * localLight.distanceAttenuation * localLight.shadowAttenuation;
+                    LIGHT_LOOP_END
+                #endif
+                half3 color = albedo * illumination;
                 return half4(MixFog(color,input.fog),1);
             }
             ENDHLSL

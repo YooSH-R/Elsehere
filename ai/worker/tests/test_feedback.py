@@ -2,6 +2,7 @@
 입력·기대 출력은 그 모듈의 예시(ai/feedback/samples)를 그대로 쓴다. 가짜 공급자라 진짜 호출 없음."""
 
 import asyncio
+import copy
 import json
 from pathlib import Path
 
@@ -40,6 +41,37 @@ def test_feedback_without_user_turns_does_not_call_model(client, provider):
     r = client.post("/v1/feedback", json=sample("inputs/no_user_turns.json"))
     assert r.status_code == 200 and r.json()["feedback"]["status"] == "insufficient_evidence"
     assert provider.calls == [] and r.json()["usage"] == []
+
+
+def test_feedback_blocked_turns_do_not_create_a_model_call(client, provider):
+    payload = sample("inputs/free_grammar.json")
+    payload["turns"][1]["text_status"] = "blocked"
+    response = client.post("/v1/feedback", json=payload)
+    assert response.status_code == 200
+    assert response.json()["feedback"]["status"] == "insufficient_evidence"
+    assert response.json()["usage"] == []
+    assert provider.calls == []
+
+
+def test_feedback_mixed_history_reviews_only_final_user_turns(client, provider):
+    seen = {}
+
+    def answer(body):
+        seen["prompt"] = body["messages"][1]["content"]
+        return ok(json.dumps(sample("fixtures/free_grammar.llm.json"), ensure_ascii=False))
+
+    provider.answers["feedback"] = answer
+    payload = sample("inputs/free_grammar.json")
+    blocked = copy.deepcopy(payload["turns"][1])
+    blocked.update(turn_id="t04", sequence=4, text_status="blocked", final_text="BLOCKED_MARKER")
+    payload["turns"].append(blocked)
+    response = client.post("/v1/feedback", json=payload)
+    assert response.status_code == 200
+    result = response.json()["feedback"]
+    assert result["schema_version"] == "0.3.0" and result["status"] == "completed"
+    assert [review["turn_id"] for review in result["result"]["turn_reviews"]] == ["t02"]
+    assert "BLOCKED_MARKER" not in seen["prompt"]
+    assert [step for step, _ in provider.calls] == ["feedback"]
 
 
 def test_feedback_provider_failure_is_failed_status(client, provider):

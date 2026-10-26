@@ -155,6 +155,13 @@ async def memory(llm: LLM, req: MemoryRequest) -> dict:
     """NPC 기억 카드 갱신. 실패하면 HTTP 오류이고 Spring은 이전 카드를 그대로 둔다."""
     usage = Usage()
     out = await llm.chat(
-        "memory", "memory", P.memory_messages(req.npc, req.memory_card, req.outcome, req.history), usage, 0.0, 500, P.MEMORY_SCHEMA
+        "memory",
+        "memory",
+        P.memory_messages(req.npc, req.memory_card, req.outcome, req.history),
+        usage,
+        0.0,
+        500,
+        P.MEMORY_SCHEMA,
+        hedge=False,
     )
-    return {"memory_card": P.clean_card(load_object(out, "기억 카드")), "usage": usage.items}
+    return {"memory_card": P.parse_memory_card(out), "usage": usage.items}

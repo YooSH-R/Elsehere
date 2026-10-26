@@ -1,0 +1,366 @@
+{
+  "$defs": {
+    "ActiveValue": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "in_game_preference",
+            "in_game_profile",
+            "past_interaction"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "content": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "content"
+      ],
+      "title": "ActiveValue",
+      "type": "object"
+    },
+    "ChangeTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "add",
+            "replace",
+            "retract"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "fact_key": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Fact Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "fact_key"
+      ],
+      "title": "ChangeTarget",
+      "type": "object"
+    },
+    "CurrentState": {
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/MemorySnapshot"
+        },
+        "conversation_revision": {
+          "minimum": 0,
+          "title": "Conversation Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scope",
+        "snapshot",
+        "conversation_revision"
+      ],
+      "title": "CurrentState",
+      "type": "object"
+    },
+    "ExpectedError": {
+      "additionalProperties": false,
+      "properties": {
+        "error_code": {
+          "enum": [
+            "INVALID_CONTRACT",
+            "INVALID_REVISION",
+            "SCOPE_MISMATCH",
+            "SNAPSHOT_MISMATCH",
+            "KEY_OR_KIND_NOT_ALLOWED",
+            "LIMIT_EXCEEDED"
+          ],
+          "title": "Error Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "error_code"
+      ],
+      "title": "ExpectedError",
+      "type": "object"
+    },
+    "ExpectedPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "ready",
+            "no_change",
+            "stale",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "next_memory_version": {
+          "minimum": 0,
+          "title": "Next Memory Version",
+          "type": "integer"
+        },
+        "active_values": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ActiveValue"
+          },
+          "title": "Active Values",
+          "type": "object"
+        },
+        "change_targets": {
+          "items": {
+            "$ref": "#/$defs/ChangeTarget"
+          },
+          "title": "Change Targets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "next_memory_version",
+        "active_values",
+        "change_targets"
+      ],
+      "title": "ExpectedPlan",
+      "type": "object"
+    },
+    "MemorySnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "description": "조회한 사용자·NPC 기억 집합의 버전. 저장 시 최신 버전과 비교한다.",
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/StoredFact"
+          },
+          "title": "Facts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "version",
+        "facts"
+      ],
+      "title": "MemorySnapshot",
+      "type": "object"
+    },
+    "Rubric": {
+      "additionalProperties": false,
+      "properties": {
+        "must": {
+          "items": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Must",
+          "type": "array"
+        },
+        "must_not": {
+          "items": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Must Not",
+          "type": "array"
+        }
+      },
+      "required": [
+        "must",
+        "must_not"
+      ],
+      "title": "Rubric",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "description": "서버가 인증·확인한 사용자 ID. LLM이 생성하거나 선택하지 않는다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "User Id",
+          "type": "string"
+        },
+        "npc_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Npc Id",
+          "type": "string"
+        },
+        "conversation_id": {
+          "description": "특정 NPC와의 1회 대화. 로그인 세션과 구분한다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Conversation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "npc_id",
+        "conversation_id"
+      ],
+      "title": "Scope",
+      "type": "object"
+    },
+    "StoredFact": {
+      "additionalProperties": false,
+      "properties": {
+        "memory_id": {
+          "description": "기존 DB 식별자. 서버에서 조회한 값만 제공한다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Memory Id",
+          "type": "string"
+        },
+        "fact_key": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_.]*$",
+          "title": "Fact Key",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "in_game_preference",
+            "in_game_profile",
+            "past_interaction"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "content": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "memory_id",
+        "fact_key",
+        "kind",
+        "content"
+      ],
+      "title": "StoredFact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "dataset_version": {
+      "const": "memory-regression-1.0",
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "case_id": {
+      "pattern": "^[A-Z][A-Z0-9_-]{1,63}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "case_type": {
+      "enum": [
+        "semantic_reference",
+        "policy_regression"
+      ],
+      "title": "Case Type",
+      "type": "string"
+    },
+    "title_ko": {
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Title Ko",
+      "type": "string"
+    },
+    "source": {
+      "const": "synthetic",
+      "title": "Source",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "minLength": 1,
+        "pattern": "\\S",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Tags",
+      "type": "array"
+    },
+    "rubric": {
+      "$ref": "#/$defs/Rubric"
+    },
+    "request": {
+      "additionalProperties": true,
+      "title": "Request",
+      "type": "object"
+    },
+    "fixture_response": {
+      "additionalProperties": true,
+      "title": "Fixture Response",
+      "type": "object"
+    },
+    "current": {
+      "$ref": "#/$defs/CurrentState"
+    },
+    "policy": {
+      "additionalProperties": true,
+      "title": "Policy",
+      "type": "object"
+    },
+    "expected": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExpectedPlan"
+        },
+        {
+          "$ref": "#/$defs/ExpectedError"
+        }
+      ],
+      "title": "Expected"
+    }
+  },
+  "required": [
+    "dataset_version",
+    "case_id",
+    "case_type",
+    "title_ko",
+    "source",
+    "tags",
+    "rubric",
+    "request",
+    "fixture_response",
+    "current",
+    "policy",
+    "expected"
+  ],
+  "title": "MemoryCase",
+  "type": "object"
+}

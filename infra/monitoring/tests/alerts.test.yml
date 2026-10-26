@@ -1,0 +1,122 @@
+rule_files:
+  - /etc/prometheus/alerts.yml
+evaluation_interval: 1m
+
+tests:
+  - name: availability waits two minutes and resolves after recovery
+    interval: 1m
+    input_series:
+      - series: up{job="elsehere-api",environment="dev"}
+        values: "0 0 0 1 1"
+      - series: probe_success{job="https-probe",environment="dev"}
+        values: "0 0 0 1 1"
+      - series: up{job="https-probe",environment="dev"}
+        values: "0 0 0 1 1"
+    promql_expr_test:
+      - expr: count(ALERTS{alertstate="firing",severity="critical"})
+        eval_time: 1m
+        exp_samples: []
+      - expr: count by (environment) (ALERTS{alertstate="firing",severity="critical"})
+        eval_time: 2m
+        exp_samples:
+          - labels: '{environment="dev"}'
+            value: 3
+      - expr: count(ALERTS{alertstate="firing",severity="critical"})
+        eval_time: 3m
+        exp_samples: []
+
+  - name: certificate warning waits one hour and resolves after renewal
+    interval: 1m
+    input_series:
+      - series: probe_ssl_earliest_cert_expiry{job="https-probe",environment="dev"}
+        values: "604800+0x61 2592000+0x5"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname="TLSCertificateExpiring",alertstate="firing"})
+        eval_time: 59m
+        exp_samples: []
+      - expr: count by (environment) (ALERTS{alertname="TLSCertificateExpiring",alertstate="firing"})
+        eval_time: 60m
+        exp_samples:
+          - labels: '{environment="dev"}'
+            value: 1
+      - expr: count(ALERTS{alertname="TLSCertificateExpiring",alertstate="firing"})
+        eval_time: 62m
+        exp_samples: []
+
+  - name: sustained five percent errors fire and recover
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/example",status="200"}
+        values: "0+90x20"
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/example",status="500"}
+        values: "0+10x10 100+0x10"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname="APIErrorRateHigh",alertstate="firing"})
+        eval_time: 5m
+        exp_samples: []
+      - expr: count by (environment) (ALERTS{alertname="APIErrorRateHigh",alertstate="firing"})
+        eval_time: 6m
+        exp_samples:
+          - labels: '{environment="dev"}'
+            value: 1
+      - expr: count(ALERTS{alertname="APIErrorRateHigh",alertstate="firing"})
+        eval_time: 17m
+        exp_samples: []
+
+  - name: latency waits ten minutes and resolves after fast responses return
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/example",status="200"}
+        values: "0+100x23"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="3"}
+        values: "0+0x11 1200+100x11"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="6"}
+        values: "0+100x23"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="+Inf"}
+        values: "0+100x23"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname="APILatencyHigh",alertstate="firing"})
+        eval_time: 10m
+        exp_samples: []
+      - expr: count by (environment) (ALERTS{alertname="APILatencyHigh",alertstate="firing"})
+        eval_time: 11m
+        exp_samples:
+          - labels: '{environment="dev"}'
+            value: 1
+      - expr: count(ALERTS{alertname="APILatencyHigh",alertstate="firing"})
+        eval_time: 18m
+        exp_samples: []
+
+  - name: sparse traffic and health checks do not raise performance alerts
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/example",status="500"}
+        values: "0+0.1x30"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="3"}
+        values: "0+0x30"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="6"}
+        values: "0+0.1x30"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="+Inf"}
+        values: "0+0.1x30"
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/health",status="500"}
+        values: "0+1000x30"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname=~"APIErrorRateHigh|APILatencyHigh",alertstate="firing"})
+        eval_time: 20m
+        exp_samples: []
+
+  - name: healthy collection and long lived certificate remain quiet
+    interval: 1m
+    input_series:
+      - series: up{job="elsehere-api",environment="dev"}
+        values: "1+0x80"
+      - series: up{job="https-probe",environment="dev"}
+        values: "1+0x80"
+      - series: probe_success{job="https-probe",environment="dev"}
+        values: "1+0x80"
+      - series: probe_ssl_earliest_cert_expiry{job="https-probe",environment="dev"}
+        values: "2592000+0x80"
+    promql_expr_test:
+      - expr: count(ALERTS{alertstate="firing"})
+        eval_time: 60m
+        exp_samples: []

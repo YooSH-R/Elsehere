@@ -94,28 +94,27 @@ def check_prometheus(container):
         "config",
         "/etc/prometheus/prometheus.yml",
     )
-    dashboard = json.loads(
-        (MONITORING / "grafana/dashboards/api.json").read_text(encoding="utf-8")
-    )
-    for panel in dashboard["panels"]:
-        for target in panel["targets"]:
-            expression = (
-                target["expr"]
-                .replace("$__rate_interval", "1m")
-                .replace("$__range", "1h")
-                .replace("$environment", ".*")
-            )
-            docker(
-                "exec",
-                container,
-                "/bin/promtool",
-                "--experimental",
-                "promql",
-                "format",
-                expression,
-            )
+    for dashboard_file in (MONITORING / "grafana/dashboards").glob("*.json"):
+        dashboard = json.loads(dashboard_file.read_text(encoding="utf-8"))
+        for panel in dashboard["panels"]:
+            for target in panel["targets"]:
+                expression = (
+                    target["expr"]
+                    .replace("$__rate_interval", "1m")
+                    .replace("$__range", "1h")
+                    .replace("$environment", ".*")
+                )
+                docker(
+                    "exec",
+                    container,
+                    "/bin/promtool",
+                    "--experimental",
+                    "promql",
+                    "format",
+                    expression,
+                )
     print(
-        "Prometheus: configuration and all six dashboard queries passed official validation.",
+        "Prometheus: configuration and all dashboard queries passed official validation.",
         flush=True,
     )
 
@@ -137,6 +136,13 @@ def check_grafana(client):
         datasource.returncode == 0
         and json.loads(datasource.stdout)["url"] == "http://prometheus:9090"
     )
+    availability = http(
+        client,
+        "http://grafana:3000/api/dashboards/uid/a305-availability",
+        [f"Authorization: Basic {credentials}"],
+    )
+    assert availability.returncode == 0
+    assert len(json.loads(availability.stdout)["dashboard"]["panels"]) == 3
     print(
         "Grafana: provisioned datasource/dashboard and authenticated access passed.",
         flush=True,
@@ -146,9 +152,9 @@ def check_grafana(client):
 def main():
     prefix = f"a305-observability-check-{uuid.uuid4().hex[:8]}"
     containers = [
-        f"{prefix}-{service}" for service in ("nginx", "prometheus", "grafana")
+        f"{prefix}-{service}" for service in ("nginx", "prometheus", "grafana", "inner")
     ]
-    nginx, prometheus, grafana = containers
+    nginx, prometheus, grafana, inner = containers
     docker("network", "create", "--internal", prefix)
     try:
         docker(
@@ -183,6 +189,43 @@ def main():
         docker(
             "create",
             "--name",
+            inner,
+            "--network",
+            prefix,
+            "--memory",
+            "64m",
+            "--cpus",
+            "0.25",
+            "nginx:1.30.6-alpine",
+        )
+        copy_to(
+            inner,
+            MONITORING / "tests/nginx-inner.conf",
+            "/etc/nginx/conf.d/default.conf",
+        )
+        copy_to(
+            inner,
+            REPOSITORY / "infra/nginx/observability-web.conf",
+            "/etc/nginx/conf.d/00-observability.conf",
+        )
+        docker("start", inner)
+        wait_for_http(inner, "http://127.0.0.1/")
+        result = http(
+            inner,
+            "http://127.0.0.1/private-inner-path?token=private-inner-query",
+            ["X-Request-ID: inner-fixture-id"],
+        )
+        assert json.loads(result.stdout)["request_id"] == "inner-fixture-id"
+        inner_logs = docker("logs", inner)
+        assert "private-inner" not in inner_logs.stdout + inner_logs.stderr
+        print(
+            "Inner Nginx: request header preserved and raw URL logging disabled.",
+            flush=True,
+        )
+
+        docker(
+            "create",
+            "--name",
             prometheus,
             "--network",
             prefix,
@@ -198,6 +241,8 @@ def main():
         copy_to(
             prometheus, MONITORING / "prometheus.yml", "/etc/prometheus/prometheus.yml"
         )
+        copy_to(prometheus, MONITORING / "alerts.yml", "/etc/prometheus/alerts.yml")
+        copy_to(prometheus, MONITORING / "targets", "/etc/prometheus/targets")
         with tempfile.TemporaryDirectory() as temporary_directory:
             runtime = Path(temporary_directory) / "run"
             secrets = runtime / "secrets"

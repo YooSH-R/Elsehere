@@ -1,0 +1,61 @@
+groups:
+  - name: elsehere-availability
+    rules:
+      - alert: APIMetricsUnavailable
+        expr: up{job=~"elsehere-api.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: API 관리 지표 수집 실패
+          description: '환경 {{ $labels.environment }}의 API 지표를 2분 이상 수집하지 못했습니다. 앱 상태와 관리 포트 인증을 확인하세요.'
+      - alert: HTTPSUnavailable
+        expr: probe_success{job="https-probe"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: HTTPS API 응답 실패
+          description: '환경 {{ $labels.environment }}의 공개 HTTPS health 요청이 2분 이상 실패했습니다. Nginx·TLS·앱 상태를 확인하세요.'
+      - alert: HTTPSProbeCollectionFailed
+        expr: up{job="https-probe"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: HTTPS 검사 지표 수집 실패
+          description: '환경 {{ $labels.environment }}의 HTTPS 검사 지표를 2분 이상 수집하지 못했습니다. Blackbox 실행과 연결을 확인하세요.'
+      - alert: TLSCertificateExpiring
+        expr: probe_ssl_earliest_cert_expiry{job="https-probe"} - time() < 14 * 24 * 60 * 60
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: HTTPS 인증서 만료 임박
+          description: '환경 {{ $labels.environment }}의 인증서 잔여 기간이 14일 미만입니다. 인증서 자동 갱신 상태를 확인하세요.'
+  - name: elsehere-api-performance
+    rules:
+      - alert: APIErrorRateHigh
+        expr: >-
+          (sum by (environment) (rate(http_server_requests_seconds_count{job=~"elsehere-api.*",uri!="/api/health",status=~"5.."}[5m]))
+          / sum by (environment) (rate(http_server_requests_seconds_count{job=~"elsehere-api.*",uri!="/api/health"}[5m])) > 0.05)
+          and on (environment)
+          (sum by (environment) (increase(http_server_requests_seconds_count{job=~"elsehere-api.*",uri!="/api/health"}[5m])) >= 20)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: API 5xx 오류율 증가
+          description: '환경 {{ $labels.environment }}의 5xx 비율이 5분 이상 5%를 넘었습니다. 최근 5분 요청이 20건 이상일 때만 평가합니다.'
+      - alert: APILatencyHigh
+        expr: >-
+          (histogram_quantile(0.95, sum by (le, environment)
+          (rate(http_server_requests_seconds_bucket{job=~"elsehere-api.*",uri!="/api/health"}[5m]))) > 3)
+          and on (environment)
+          (sum by (environment) (increase(http_server_requests_seconds_count{job=~"elsehere-api.*",uri!="/api/health"}[5m])) >= 20)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: API p95 응답 지연
+          description: '환경 {{ $labels.environment }}의 p95 응답 시간이 10분 이상 3초를 넘었습니다. 최근 5분 요청이 20건 이상일 때만 평가합니다.'

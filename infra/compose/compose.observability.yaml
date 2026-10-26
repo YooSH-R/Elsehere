@@ -4,3 +4,6 @@ services:
     environment:
       MANAGEMENT_ADDRESS: 0.0.0.0
       MONITORING_PASSWORD: ${MONITORING_PASSWORD:?Set an environment-specific monitoring password}
+  web:
+    volumes:
+      - ${OBSERVABILITY_WEB_LOG_CONFIG:?Set the absolute web logging configuration path}:/etc/nginx/conf.d/00-observability.conf:ro

@@ -23,6 +23,8 @@ services:
       - "127.0.0.1:9091:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./targets:/etc/prometheus/targets:ro
       - prometheus-data:/prometheus
     secrets:
       - dev-monitoring-password
@@ -56,6 +58,36 @@ services:
     cpus: 0.50
     mem_limit: 256m
 
+  alertmanager:
+    <<: *service-defaults
+    image: prom/alertmanager:v0.34.1
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --cluster.listen-address=
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - monitoring
+    cpus: 0.25
+    mem_limit: 128m
+
+  blackbox:
+    <<: *service-defaults
+    image: prom/blackbox-exporter:v0.29.1
+    command:
+      - --config.file=/etc/blackbox_exporter/config.yml
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - monitoring
+      - probe-egress
+    cpus: 0.25
+    mem_limit: 64m
+
 networks:
   monitoring:
     internal: true
@@ -65,10 +97,12 @@ networks:
   production:
     external: true
     name: a305-prod_default
+  probe-egress: {}
 
 volumes:
   prometheus-data:
   grafana-data:
+  alertmanager-data:
 
 secrets:
   dev-monitoring-password:

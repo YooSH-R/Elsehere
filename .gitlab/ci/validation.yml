@@ -6,7 +6,7 @@ ci:yaml:
     - |
       printf 'source=%s commit=%s target=%s diff_base=%s\n' "$CI_PIPELINE_SOURCE" "$CI_COMMIT_SHA" "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
     - pip install --disable-pip-version-check yamllint==1.37.1
-    - yamllint -c .yamllint.yml .gitlab-ci.yml .gitlab/ci .yamllint.yml infra/monitoring infra/compose/compose.backend-monitoring.yaml
+    - yamllint -c .yamllint.yml .gitlab-ci.yml .gitlab/ci .yamllint.yml infra/monitoring infra/compose/compose.observability.yaml
 
 infra:compose-and-nginx:
   extends: .docker-job
@@ -57,6 +57,7 @@ infra:observability:
   script:
     - apk add --no-cache python3
     - python3 infra/scripts/check_observability.py
+    - python3 infra/scripts/check_alerting.py
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -66,6 +67,7 @@ infra:observability:
           - infra/monitoring/**/*
           - infra/nginx/**/*
           - infra/scripts/check_observability.py
+          - infra/scripts/check_alerting.py
           - .gitlab-ci.yml
           - .gitlab/ci/**/*
     - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'

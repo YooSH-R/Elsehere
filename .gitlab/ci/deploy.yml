@@ -49,7 +49,7 @@ dev:deliver:
     - python3 infra/scripts/dev_pipeline.py deliver
   environment:
     name: development
-    url: https://k15a305.p.ssafy.io/dev/api/health
+    url: https://dev.elsehere.kr/
   artifacts:
     when: always
     expire_in: 14 days

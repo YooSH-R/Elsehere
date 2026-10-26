@@ -1,8 +1,10 @@
 # 리틀 멍 v7 캐릭터 기준
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 현재 캐릭터 작업 기준은 **리틀 멍 v7**이다. v4 B의 대두 비율과 모인 얼굴 배치를 바탕으로, 눈동자를 더 둥글게 표현하고 중앙 이동 전 B의 눈동자 위치를 복원한 디자인이다. 가장 최근 제작한 정면·양쪽 측면·후면 4장을 v7의 기준 이미지로 사용한다. `tripo-turnaround-v1`의 v1은 4방향 입력 묶음의 버전이며 캐릭터 디자인 버전 v7과 구분한다. 마을 기준은 별도로 브릭 메인스트리트 v3-B를 유지한다.
 
-[현재 정면 기준](../../../../../artifacts/mascot/little-mung-v7/tripo-turnaround-v1/front.png) · [현재 4방향 이미지 ZIP](../../../../../artifacts/mascot/little-mung-v7/tripo-turnaround-v1/little-mung-v7-four-views.zip)
+현재 정면 기준 (`artifacts/mascot/little-mung-v7/tripo-turnaround-v1/front.png`, 로컬 보관) · 현재 4방향 이미지 ZIP (`artifacts/mascot/little-mung-v7/tripo-turnaround-v1/little-mung-v7-four-views.zip`, 로컬 보관)
 
 ## 현재 버전의 디자인 기준
 
@@ -17,11 +19,11 @@
 
 ## 원본과 수정 계보
 
-[디자인 출발 원본 — 오른쪽 B](../../../../../artifacts/mascot/little-mung-v4/reference.png) · [원본 B만 자른 참고 이미지](../../../../../artifacts/mascot/little-mung-v4/reference-b-crop.png) · [기존 외형 시트 — 아래 두 줄 B](../../../../../artifacts/mascot/little-mung-v4/roster-ab-v1.png)
+디자인 출발 원본 — 오른쪽 B (`artifacts/mascot/little-mung-v4/reference.png`, 로컬 보관) · 원본 B만 자른 참고 이미지 (`artifacts/mascot/little-mung-v4/reference-b-crop.png`, 로컬 보관) · 기존 외형 시트 — 아래 두 줄 B (`artifacts/mascot/little-mung-v4/roster-ab-v1.png`, 로컬 보관)
 
 v4 B는 비율·얼굴 배치의 출발점이고 현재 디자인 버전은 v7이다. 기존 시트의 A는 비교 기록이며 현재 제작 기준이 아니다. 과거 원본은 수정 의도를 확인하는 자료이며 후속 작업의 직접 입력은 위의 v7 정면 이미지다.
 
-[4방향 생성에 사용한 시선 복원 이미지](../../../../../artifacts/mascot/little-mung-v4/b-round-pupils-original-gaze-v2.png) · [시선 출처 — 중앙 이동 전 B 시트의 여성 플레이어](../../../../../artifacts/mascot/little-mung-v4/reference-roster-b-player-f.png) · [복원 이미지 생성 프롬프트](../little-mung-v4/b-round-pupils-original-gaze-prompt-v2.txt)
+4방향 생성에 사용한 시선 복원 이미지 (`artifacts/mascot/little-mung-v4/b-round-pupils-original-gaze-v2.png`, 로컬 보관) · 시선 출처 — 중앙 이동 전 B 시트의 여성 플레이어 (`artifacts/mascot/little-mung-v4/reference-roster-b-player-f.png`, 로컬 보관) · [복원 이미지 생성 프롬프트](../little-mung-v4/b-round-pupils-original-gaze-prompt-v2.txt)
 
 눈동자 위치는 **중앙 이동 전 `roster-ab-v1.png`의 아래 두 줄 B**를 기준으로 한다. 화면 왼쪽 눈의 검은 눈동자는 흰자 안에서 오른쪽, 화면 오른쪽 눈의 눈동자는 왼쪽에 놓여 각각 코 쪽에 조금 붙는다. 코 쪽 흰자 여백이 바깥쪽보다 좁은 원래 시선을 유지한다. 눈동자 모양을 둥글게 바꾸더라도 중심 위치를 흰자 중앙으로 옮기지 않는다.
 
@@ -44,12 +46,12 @@ v2 이미지는 이 시선을 다시 반영해 현재 4방향 이미지를 만�
 
 | 방향 | 이미지 | 생성 프롬프트 |
 | --- | --- | --- |
-| 정면 | [front.png](../../../../../artifacts/mascot/little-mung-v7/tripo-turnaround-v1/front.png) | [정면 프롬프트](tripo-turnaround-v1/front-prompt.txt) |
-| 왼쪽을 보는 측면 | [left-profile.png](../../../../../artifacts/mascot/little-mung-v7/tripo-turnaround-v1/left-profile.png) | [왼쪽 측면 프롬프트](tripo-turnaround-v1/left-profile-prompt.txt) |
-| 오른쪽을 보는 측면 | [right-profile.png](../../../../../artifacts/mascot/little-mung-v7/tripo-turnaround-v1/right-profile.png) | [오른쪽 측면 프롬프트](tripo-turnaround-v1/right-profile-prompt.txt) |
-| 후면 | [back.png](../../../../../artifacts/mascot/little-mung-v7/tripo-turnaround-v1/back.png) | [후면 프롬프트](tripo-turnaround-v1/back-prompt.txt) |
+| 정면 | front.png (`artifacts/mascot/little-mung-v7/tripo-turnaround-v1/front.png`, 로컬 보관) | [정면 프롬프트](tripo-turnaround-v1/front-prompt.txt) |
+| 왼쪽을 보는 측면 | left-profile.png (`artifacts/mascot/little-mung-v7/tripo-turnaround-v1/left-profile.png`, 로컬 보관) | [왼쪽 측면 프롬프트](tripo-turnaround-v1/left-profile-prompt.txt) |
+| 오른쪽을 보는 측면 | right-profile.png (`artifacts/mascot/little-mung-v7/tripo-turnaround-v1/right-profile.png`, 로컬 보관) | [오른쪽 측면 프롬프트](tripo-turnaround-v1/right-profile-prompt.txt) |
+| 후면 | back.png (`artifacts/mascot/little-mung-v7/tripo-turnaround-v1/back.png`, 로컬 보관) | [후면 프롬프트](tripo-turnaround-v1/back-prompt.txt) |
 
-[개별 PNG 4장 ZIP](../../../../../artifacts/mascot/little-mung-v7/tripo-turnaround-v1/little-mung-v7-four-views.zip) · [파일 정보](tripo-turnaround-v1/manifest.json)
+개별 PNG 4장 ZIP (`artifacts/mascot/little-mung-v7/tripo-turnaround-v1/little-mung-v7-four-views.zip`, 로컬 보관) · [파일 정보](tripo-turnaround-v1/manifest.json)
 
 생성 프롬프트는 실제 사용한 원문을 보존한다. 원문 속 `v4 B`는 당시의 이름이며, 해당 프롬프트로 생성한 네 이미지의 현재 관리 버전은 v7이다. 후속 생성은 v7 정면 이미지를 입력으로 사용한다.
 

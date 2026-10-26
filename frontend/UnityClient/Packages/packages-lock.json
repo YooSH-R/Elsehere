@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.github.kou-yeung.webglinput": {
+      "version": "https://github.com/kou-yeung/WebGLInput.git?path=Assets/WebGLSupport#1.5.0",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0~"
+      },
+      "hash": "ed85e3ab3bdbb29f972d22feb587ced44975c457"
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.15",
       "depth": 0,
@@ -90,6 +99,13 @@
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.6",
       "depth": 3,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.2",
+      "depth": 0,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"

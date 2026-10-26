@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pydantic import ValidationError
-from run_gms import SampleRecorder, load_settings
+from run_gms import SampleRecorder, load_settings, require_manual_gms_unlocked
 
 from feedback.gms import GmsClient
 from feedback.models import INPUT, LLM_OUTPUT, validate_pair
@@ -84,6 +84,8 @@ def main():
         parser.error("실호출은 한 번에 한 사례, 1회만 허용합니다. 먼저 로컬 검증 결과를 확인하세요.")
     if not 1 <= args.repeat <= 3:
         parser.error("repeat은 1~3회입니다. 자동 재시도가 아닌 명시적 반복 평가입니다.")
+    if args.execute_real:
+        require_manual_gms_unlocked(parser)
     cases = json.loads((ROOT / "samples/robustness/index.json").read_text(encoding="utf-8"))
     if args.case:
         unknown = set(args.case) - {case["case_id"] for case in cases}

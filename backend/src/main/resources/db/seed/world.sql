@@ -8,7 +8,7 @@ VALUES
   ('HOME', '집', 'HomeScene', true),
   ('TOWN', '마을', 'TownScene', true),
   ('CAFE', '모퉁이 카페', 'CafeScene', true),
-  ('HOTEL', '호텔', 'HotelScene', false)
+  ('HOTEL', '호텔', 'HotelScene', true)
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name,
     unity_key = EXCLUDED.unity_key,
@@ -66,6 +66,9 @@ FROM (
      'af_heart', true, 'Hi there! Nice weather today, isn''t it?'),
     ('CAFE', 'CAFE_STAFF', 'Mia', 'STAFF', '카페 직원',
      '{"role": "the barista at the corner cafe.", "facts": "", "scene": "The counter of the corner cafe."}',
+     'af_heart', false, NULL),
+    ('HOTEL', 'HOTEL_STAFF', 'Emma', 'STAFF', '호텔 직원',
+     '{"role": "the front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
      'af_heart', false, NULL)
 ) AS seed (scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
@@ -80,7 +83,7 @@ SET scene_id = EXCLUDED.scene_id,
     approach_line = EXCLUDED.approach_line,
     updated_at = now();
 
--- 일일 미션. code는 Unity 미션 콘텐츠와 같은 키다. 튜토리얼 미션은 Unity 대본 콘텐츠라 넣지 않는다.
+-- 일일 미션. 카페와 호텔에 하나씩 둔다. code는 Unity 미션 콘텐츠와 같은 키다. 튜토리얼 미션은 Unity 대본 콘텐츠라 넣지 않는다.
 -- intent_rule은 임시값이다. AI 의도 판정에 쓰는 실제 기준은 대화 담당이 채운다.
 INSERT INTO missions (npc_id, code, title, description, keywords, intent_rule)
 SELECT npc.id, seed.code, seed.title, seed.description, seed.keywords::jsonb, seed.intent_rule
@@ -89,9 +92,9 @@ FROM (
     ('CAFE_STAFF', 'CAFE_SOY_LATTE', '나만의 카페라테 주문하기',
      '우유 대신 두유를 넣은 카페라테를 주문해 보세요.', '["soy", "latte"]',
      'The learner orders a cafe latte made with soy milk instead of regular milk.'),
-    ('CAFE_STAFF', 'CAFE_DESSERT', '달콤한 디저트 찾기',
-     '카페 직원에게 디저트를 파는지 물어보세요.', '["dessert"]',
-     'The learner asks the barista whether the cafe sells desserts.')
+    ('HOTEL_STAFF', 'HOTEL_CHECK_IN', '호텔에 체크인하기',
+     '호텔 직원에게 예약을 확인하고 체크인해 보세요.', '["check in"]',
+     'The learner asks the front desk clerk to check in to the hotel.')
 ) AS seed (npc_code, code, title, description, keywords, intent_rule)
 JOIN npcs npc ON npc.code = seed.npc_code
 ON CONFLICT (code) DO UPDATE

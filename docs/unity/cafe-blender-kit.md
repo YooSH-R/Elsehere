@@ -1,10 +1,12 @@
 # Blender 카페 모듈 사용 방법
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 카페 한 동과 앞 보도에 사용하는 부품 세트다. 벽·창·차양을 각각 수정하고, 공통 층을 쌓아 건물 높이를 바꾼다. 미국 소도시의 코럴 벽돌, 크림 창틀, 초록 천 차양과 둥근 식재를 사용한다.
 
-![공통 층으로 조립한 건물](../../artifacts/unity/mainstreet-blockout/10-floor-prefabs.png)
+공통 층으로 조립한 건물 (`artifacts/unity/mainstreet-blockout/10-floor-prefabs.png`, 로컬 보관)
 
-[거리 속 카페](../../artifacts/unity/mainstreet-blockout/09-art-cafe.png)와 위 이미지는 Unity 카메라 렌더다. 리틀 멍 v7 캐릭터는 높이 1.6m·머리 60%·몸 40%를 확인하는 대체물이며 완성 캐릭터 모델은 아니다.
+거리 속 카페 (`artifacts/unity/mainstreet-blockout/09-art-cafe.png`, 로컬 보관)와 공통 층 조립 이미지는 Unity 카메라 렌더다. 리틀 멍 v7 캐릭터는 높이 1.6m·머리 60%·몸 40%를 확인하는 대체물이며 완성 캐릭터 모델은 아니다.
 
 ## 파일과 조립 구조
 

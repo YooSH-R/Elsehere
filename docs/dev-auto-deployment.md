@@ -6,7 +6,7 @@
 
 1. 보호된 `dev` Push 또는 명시적인 보호 후보 시험에서 `dev:plan`이 서버의 마지막 성공 기록을 읽습니다.
 2. `deployment_plan.py`가 마지막 성공 커밋부터 후보까지 누적 변경을 비교합니다. 첫 자동 배포는 전체 검사·빌드를 수행합니다. 이전 수동 배포의 혼합 이미지 상태를 하나의 검증 커밋으로 간주하지 않습니다.
-3. 생성한 자식 파이프라인이 필요한 백엔드·AI·Unity·인프라 검사만 실행합니다. 일반 MR은 기존 변경 영역 검사를 유지하며 서버 배포 수신기를 호출하지 않습니다.
+3. 생성한 자식 파이프라인이 필요한 백엔드·AI·Unity·인프라 검사만 실행합니다. 백엔드 또는 인프라 검사가 필요한 배포는 모니터링 구성·알림 검사도 통과해야 이미지 전달로 진행합니다. 일반 MR은 기존 변경 영역 검사를 유지하며 서버 배포 수신기를 호출하지 않습니다.
 4. Unity 검사가 필요하면 노트북 Runner에서 EditMode·PlayMode를 실행합니다. `web` 이미지 빌드가 필요한 경우에만 WebGL도 빌드합니다. API 명세 변경처럼 검사만 필요한 경우에는 WebGL 빌드를 생략합니다.
 5. `dev:deliver`가 통과한 JAR·WebGL 산출물의 커밋을 확인하고 선택된 이미지만 만듭니다. 변경 없는 이미지 참조·ID·소스 커밋은 성공 기록에서 재사용합니다.
 6. 검증한 이미지와 Compose를 SSH로 전달합니다. 별도 컨테이너 레지스트리와 부모 산출물 다운로드용 유료 기능에 의존하지 않습니다. 부모→자식 설정에는 비밀값이 없는 계획·이미지 메타데이터만 넣습니다.
@@ -41,7 +41,7 @@ cp infra/deploy/dev-server.example.json "$HOME/apps/a305/dev/server-config.json"
 nano "$HOME/apps/a305/dev/server-config.json"
 ```
 
-설정의 `minimum_backend_commit`과 `bootstrap_sources`를 실제 실행 중인 백엔드·AI·WebGL의 전체 소스 SHA로 바꿉니다. 웹 소스는 실제 `/version.json`의 값입니다. 초기 Compose와 모니터링 추가 Compose 경로도 서버의 현재 실행 경로와 맞춥니다. 설정에는 비밀번호·API 키를 넣지 않습니다. 환경 파일은 배포를 실행하는 `ubuntu` 계정만 읽고 쓸 수 있어야 합니다. 내용 대신 소유자와 권한만 확인합니다.
+설정의 `minimum_backend_commit`과 `bootstrap_sources`를 실제 실행 중인 백엔드·AI·WebGL의 전체 소스 SHA로 바꿉니다. 웹 소스는 실제 `/version.json`의 값입니다. 초기 Compose와 모니터링 추가 Compose 경로도 서버의 현재 실행 경로와 맞춥니다. `public_health_url`은 개발 대표 주소의 `https://dev.elsehere.kr/api/health`를 사용합니다. SSH 접속 주소는 기존 `k15a305.p.ssafy.io`를 유지합니다. 설정에는 비밀번호·API 키를 넣지 않습니다. 환경 파일은 배포를 실행하는 `ubuntu` 계정만 읽고 쓸 수 있어야 합니다. 내용 대신 소유자와 권한만 확인합니다.
 
 ```bash
 stat -c '%U %a %n' "$HOME/apps/a305/dev/deploy.env"
@@ -122,7 +122,7 @@ cat "$HOME/apps/a305/dev/deployments/last-success.json"
 cat "$HOME/apps/a305/dev/deployments/last-failure.json"
 sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 curl --fail http://127.0.0.1:8081/version.json
-curl --fail https://k15a305.p.ssafy.io/dev/api/health
+curl --fail https://dev.elsehere.kr/api/health
 ```
 
 기본 CI와 Runner 운영은 [검사 파이프라인](ci-runner.md), 구성 정책은 [CI/CD 기준](ci-cd.md), 환경 구분은 [배포 구성](deployment.md)을 따릅니다.

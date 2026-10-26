@@ -1,5 +1,7 @@
 # Elsehere 3D 제작 규격 v1
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 **보관용 이전안. 현재 제작에는 [B안 제작 규격 v2](../production-v2/art-spec.md)를 사용한다.** 아래 내용은 당시 초안이며, 최신 에셋 목록과 적용 순서도 production-v2에서 관리한다.
 
 상태: **이 문서는 v2 기준으로 만든 이전 제작 초안이다. 최신 시각 기준은 브릭 메인스트리트 v3-B다.** 공통 재질·캐릭터 재사용 원칙은 유지하고 건물 높이·문 규격은 최신 선택에 맞춰 검토한다.
@@ -7,10 +9,10 @@
 
 **B 선택 반영:** [v3 층고 비교의 B](../brick-mainstreet-v3/height-comparison.md)를 채택했다. Unity 검증 시작값은 캐릭터 1.4m·1층 층고 3.0m다. 아래 2m 벽 높이·1.8m 문·4.4m 건물 높이 및 기존 치수도는 이전안이므로 그대로 적용하지 않는다. B 생성 시 사용한 2층 2.4m·파라펫 0.4m·총높이 5.8m와 문 2.0×2.2m는 추가 검토값이다. 2m 수평 격자에 문틀까지 포함한 개구부가 들어가는지 등 모듈 접합은 별도로 맞춘다.
 
-- 최신 기준 이미지: [브릭 메인스트리트 v3-B](../../../../../artifacts/village/brick-mainstreet-v3/b-3p0m/street-height.png)
-- 전체 배치·재질 참고: [브릭 메인스트리트 v2](../../../../../artifacts/village/brick-mainstreet-v2/town-overview.png)
+- 최신 기준 이미지: 브릭 메인스트리트 v3-B (`artifacts/village/brick-mainstreet-v3/b-3p0m/street-height.png`, 로컬 보관)
+- 전체 배치·재질 참고: 브릭 메인스트리트 v2 (`artifacts/village/brick-mainstreet-v2/town-overview.png`, 로컬 보관)
 - 인물 기준: [리틀 멍 v7 비율과 시트](../../mascot/little-mung-v7/README.md)
-- [이전 치수 도식 — 현재 높이 기준으로 사용하지 않음](../../../../../artifacts/village/production-v1/scale-guide.png) · [제작 에셋 목록](asset-list.md)
+- 이전 치수 도식 — 현재 높이 기준으로 사용하지 않음 (`artifacts/village/production-v1/scale-guide.png`, 로컬 보관) · [제작 에셋 목록](asset-list.md)
 
 ## 1. 무엇을 유지하는가
 

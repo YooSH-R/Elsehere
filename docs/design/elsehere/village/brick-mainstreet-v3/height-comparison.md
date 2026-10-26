@@ -1,5 +1,7 @@
 # 브릭 메인스트리트 v3 — 층고 분위기 비교
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 **선택 결과: 브릭 메인스트리트 v3-B 채택.** v2의 재질과 건축 스타일을 유지하면서 B의 더 높은 1층 공간감을 최신 기준으로 사용한다. A/C는 비교 기록이다.
 
 사용자 피드백: 제작 규격의 1층 높이와 캐릭터 키가 너무 비슷해 현실감이 떨어진다. 이에 인물 전체 키 1.4m를 목표로 유지하면서 1층 층고를 달리한 세 이미지를 생성했다. 이는 캐릭터 키 1.4m와 1.6m 자체를 비교한 이미지가 아니다.
@@ -22,8 +24,8 @@
 
 내장 image_gen으로 A를 생성한 뒤, A를 기준 이미지로 B와 C를 각각 편집했다. 총 3회. 기존 v2 이미지는 변경하지 않았다.
 
-- [A 이미지](../../../../../artifacts/village/brick-mainstreet-v3/a-2p4m/street-height.png) / [A 프롬프트](a-2p4m/generation-prompt.txt)
-- [B 이미지](../../../../../artifacts/village/brick-mainstreet-v3/b-3p0m/street-height.png) / [B 프롬프트](b-3p0m/generation-prompt.txt)
-- [C 이미지](../../../../../artifacts/village/brick-mainstreet-v3/c-3p6m/street-height.png) / [C 프롬프트](c-3p6m/generation-prompt.txt)
+- A 이미지 (`artifacts/village/brick-mainstreet-v3/a-2p4m/street-height.png`, 로컬 보관) / [A 프롬프트](a-2p4m/generation-prompt.txt)
+- B 이미지 (`artifacts/village/brick-mainstreet-v3/b-3p0m/street-height.png`, 로컬 보관) / [B 프롬프트](b-3p0m/generation-prompt.txt)
+- C 이미지 (`artifacts/village/brick-mainstreet-v3/c-3p6m/street-height.png`, 로컬 보관) / [C 프롬프트](c-3p6m/generation-prompt.txt)
 
 최신 [B안 제작 규격 v2](../production-v2/art-spec.md), [에셋 목록](../production-v2/asset-list.md), [Unity 적용 순서](../production-v2/unity-application-plan.md)에서 B안의 수치를 제작 시작값으로 정리한다. 기존 제작 규격 v1의 낮은 층고와 치수도는 이전안이다. B 선택만으로 모델 치수·카메라·문 충돌이 검증됐다고 판단하지 않는다.

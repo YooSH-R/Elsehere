@@ -28,6 +28,7 @@ com.elsehere
 │   ├── auth        로그인 사용자(LoginUser), 로그인 세션 저장, 요청 위조 방지 헤더 검사
 │   ├── config      보안·Clock·JPA Auditing 설정
 │   ├── entity      BaseEntity
+│   ├── logging     요청 ID와 민감 정보를 제외한 요청 요약
 │   ├── error       공통 오류 응답(ErrorCode, BusinessException)
 │   └── seed        장소·NPC·사물·어휘·미션 시드 실행(WorldSeedLoader)
 └── <도메인>
@@ -126,3 +127,13 @@ MR을 만들기 전에 `spotlessApply`로 포맷을 적용하고 `check`가 통�
 검사 대상은 `src/main/java`와 `src/test/java`의 직접 작성한 Java 소스입니다. `build/`의 생성 코드·산출물은 대상에서 제외합니다. 소스는 UTF-8·LF를 사용하며 `.gitattributes`가 Java 파일의 LF를 유지합니다.
 
 IDE의 프로젝트 JDK·Gradle JVM은 Java 21, 파일 인코딩은 UTF-8, 줄바꿈은 LF로 맞춥니다. IDE 기본 포맷과 결과가 다르면 저장 후 `spotlessApply`를 실행하고 `spotlessCheck`로 확인합니다. CI에서는 `check`가 같은 포맷·규칙을 검사하며 파일을 자동 수정하지 않습니다.
+
+## 요청 추적과 관리 지표
+
+모든 요청은 응답의 `X-Request-ID`와 로그의 `request_id`로 연결합니다. 이 값은 API 본문의 중복 방지용 `requestId`와 구분합니다. 요청 요약에는 경로 패턴·상태·처리 시간만 남기며, 쿼리·인증값·본문과 원본 예외 메시지는 기록하지 않습니다.
+
+Actuator·Micrometer Prometheus를 사용하며, histogram으로 p95를 조회합니다. 기본 관리 주소는 `127.0.0.1:9090`이고 공개 앱 포트와 분리합니다. `MONITORING_PASSWORD`를 설정해야 사용자 `monitoring`으로 관리용 HTTP Basic 인증을 사용할 수 있습니다. 값이 없으면 관리 접근을 거절합니다. 컨테이너 내부 수집에만 `MANAGEMENT_ADDRESS=0.0.0.0`을 사용하고 관리 포트를 호스트에 게시하지 않습니다.
+
+관리 경로는 `/actuator/health`, `/actuator/prometheus`만 노출합니다. Nginx 전달, 보관 정책, Prometheus·Grafana 실행과 검증은 [관측성 운영 문서](../docs/observability.md)를 따릅니다.
+
+기존 컨테이너와 프록시의 `GET /api/health`는 앱 포트에서 유지합니다. 내부 연결 상세 없이 `status`만 반환하며, 필수 연결이 비정상이면 HTTP 503으로 응답합니다. 이 공개 상태 확인과 인증이 필요한 관리 지표를 구분합니다.

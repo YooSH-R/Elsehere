@@ -132,7 +132,7 @@ frontend/UnityClient/Assets/
 
 ### 배포용 씬
 
-- 배포용 씬은 `Scenes/Production/`에 두고 Build Profile의 Scene List에 등록합니다. 첫 번째 씬(`HomeScene`)에서 시작합니다. `Scenes/SampleScene`은 개발 환경 확인용 샘플이라 Scene List에 넣지 않습니다.
+- 배포용 씬은 `Scenes/Production/`에 두고 Build Profile의 Scene List에 등록합니다. 첫 번째 씬인 입구 화면(`EntryScene`)에서 시작하고, 초기 설정을 마치면 공간 씬(`HomeScene` 등)으로 이동합니다. `Scenes/SampleScene`은 개발 환경 확인용 샘플이라 Scene List에 넣지 않습니다.
 - 씬에는 프리팹 인스턴스의 배치, 위치, 씬 단위 참조 연결, 조명과 환경 설정을 둡니다. 기능의 구성과 동작은 프리팹에서 만듭니다.
 - 씬에서 GameObject를 직접 조합해 기능을 만들지 않습니다. 프리팹으로 만든 뒤 배치합니다.
 - 최상위 객체는 다음 그룹으로 정리합니다. 그룹 객체는 위치·회전 0, 크기 1로 두고 컴포넌트를 붙이지 않습니다. Sandbox 씬도 같은 그룹을 사용합니다.
@@ -162,7 +162,7 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 
 - Builder는 `Scripts/Editor/<기능>/<대상>Builder.cs`에 두고, `public static` 메서드에 `[MenuItem("Tools/A305/<기능>/<동작>")]`을 붙입니다. 예: `Tools/A305/Player/Build Sandbox`
 - 씬은 `EditorSceneManager`, 프리팹은 `PrefabUtility.SaveAsPrefabAsset`, 데이터 에셋·머티리얼은 `AssetDatabase.CreateAsset`으로 만들고 저장합니다. 생성 결과와 `.meta`를 함께 커밋합니다.
-- 처음 만들 때는 앞의 Builder가 만든 에셋을 뒤에서 쓰므로 **Player → Build Sandbox**, **UI → Set Up Fonts**, **World → Build Spaces** 순서로 실행합니다. **World → Build Spaces**는 공간 씬에 붙이는 기능(사물 호버·대화·행인·피드백·단어장·미션·튜토리얼)의 에셋을 `SpaceSceneSetup.PrepareFeatureAssets`로 함께 준비하고 마을에 행인을, 카페에 카페 직원을 둡니다. 새 기능을 공간 씬에 붙일 때는 그 기능의 `PrepareAssets`를 이 메서드에, 연결을 `SpaceSceneSetup.Apply`에 함께 추가합니다. 각 기능만 다시 만들 때는 **ObjectHover → Build**, **Dialogue → Build**, **Npc → Build**, **Learning → Build**, **Mission → Build**, **Tutorial → Build**를 실행합니다.
+- 처음 만들 때는 앞의 Builder가 만든 에셋을 뒤에서 쓰므로 **Player → Build Sandbox**, **UI → Set Up Fonts**, **World → Build Spaces** 순서로 실행합니다. **World → Build Spaces**는 공간 씬에 붙이는 기능(사물 호버·대화·행인·피드백·단어장·미션·튜토리얼)의 에셋을 `SpaceSceneSetup.PrepareFeatureAssets`로 함께 준비하고 마을에 행인을, 카페에 카페 직원을 둡니다. 새 기능을 공간 씬에 붙일 때는 그 기능의 `PrepareAssets`를 이 메서드에, 연결을 `SpaceSceneSetup.Apply`에 함께 추가합니다. 입구 화면은 **UI → Set Up Fonts** 다음에 **Onboarding → Build**로 만들며, `EntryScene`을 Scene List 맨 앞에 둡니다. **World → Build Spaces**를 다시 실행해도 `EntryScene`이 있으면 맨 앞에 남깁니다. 각 기능만 다시 만들 때는 **ObjectHover → Build**, **Dialogue → Build**, **Npc → Build**, **Learning → Build**, **Mission → Build**, **Tutorial → Build**를 실행합니다.
 - Editor가 프로젝트를 열고 있지 않으면 명령줄로도 실행할 수 있습니다. 저장소 최상위에서 실행합니다. **UI → Set Up Fonts**는 TMP 기본 리소스를 가져오는 동안 기다렸다가 스스로 종료하므로 `-quit` 없이 실행합니다.
 
 ```powershell

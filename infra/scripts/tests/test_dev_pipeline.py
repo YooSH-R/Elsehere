@@ -60,6 +60,16 @@ class ChildPipelineTests(unittest.TestCase):
         self.assertEqual(pipeline["variables"]["A305_BUILD_WEB"], "false")
         self.assertEqual(json.loads(pipeline["variables"]["A305_DEPLOY_STATE"]), state)
 
+    def test_backend_and_infrastructure_releases_wait_for_monitoring_checks(self):
+        for area in ["backend", "infra"]:
+            with self.subTest(area=area):
+                pipeline = create_child_pipeline(
+                    {"checks": [area], "builds": [], "deploy": False}, "123"
+                )
+
+                jobs = [need["job"] for need in pipeline["dev:deliver"]["needs"]]
+                self.assertEqual(jobs.count("infra:observability"), 1)
+
     def test_shared_api_change_checks_all_services_without_rebuilding_webgl(self):
         pipeline = create_child_pipeline(
             {

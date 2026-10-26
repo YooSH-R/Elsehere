@@ -52,6 +52,8 @@ def create_child_pipeline(plan, parent_pipeline_id, state=None):
     for area, selected_jobs in selections.items():
         if area in checks:
             jobs.extend(selected_jobs)
+    if checks & {"backend", "infra"}:
+        jobs.append("infra:observability")
     variables = {
         "A305_DEPLOY_CHILD": "true",
         "A305_PARENT_PIPELINE_ID": str(parent_pipeline_id),

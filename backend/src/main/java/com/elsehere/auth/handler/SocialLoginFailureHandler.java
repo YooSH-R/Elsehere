@@ -26,7 +26,7 @@ public class SocialLoginFailureHandler implements AuthenticationFailureHandler {
   public void onAuthenticationFailure(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)
       throws IOException {
-    log.info("소셜 로그인 실패: {}", exception.getMessage());
+    log.info("소셜 로그인 실패 type={}", exception.getClass().getSimpleName());
     response.sendRedirect(failureRedirectUrl);
   }
 }

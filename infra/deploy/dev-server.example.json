@@ -5,7 +5,7 @@
   "overlays": [
     "/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml"
   ],
-  "public_health_url": "https://k15a305.p.ssafy.io/dev/api/health",
+  "public_health_url": "https://dev.elsehere.kr/api/health",
   "minimum_backend_commit": "REPLACE_WITH_DEPLOYED_MONITORING_COMMIT",
   "bootstrap_sources": {
     "backend": "REPLACE_WITH_RUNNING_BACKEND_SOURCE_COMMIT",

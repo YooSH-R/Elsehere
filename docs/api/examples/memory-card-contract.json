@@ -1,0 +1,228 @@
+{
+  "synthetic": true,
+  "provider_mode": "mock",
+  "actual_model_evaluated": false,
+  "usage_is_mock": true,
+  "cases": [
+    {
+      "id": "first_visit",
+      "request": {
+        "npc": {
+          "id": "emma",
+          "name": "Emma",
+          "role": "the barista.",
+          "scene": "Cafe."
+        },
+        "outcome": "Conversation ended normally.",
+        "history": [
+          {
+            "who": "me",
+            "text": "My name is Alex. My favorite drink is coffee.",
+            "english": null,
+            "rude": false
+          }
+        ],
+        "memory_card": null
+      },
+      "response_http_status": 200,
+      "response": {
+        "memory_card": {
+          "name": "Alex",
+          "attitude": "neutral",
+          "claims": [
+            "says coffee is their favorite drink"
+          ],
+          "events": [],
+          "struggled": []
+        },
+        "usage": [
+          {
+            "step": "memory",
+            "model": "openai/gpt-oss-120b",
+            "input_tokens": 100,
+            "output_tokens": 5,
+            "latency_s": 0.0,
+            "fallback": false
+          }
+        ]
+      },
+      "backend_action": "replace stored card after success",
+      "next_reply_memory": {
+        "visits": 1,
+        "last_order": null,
+        "card": {
+          "name": "Alex",
+          "attitude": "neutral",
+          "claims": [
+            "says coffee is their favorite drink"
+          ],
+          "events": [],
+          "struggled": []
+        }
+      }
+    },
+    {
+      "id": "changed_preference",
+      "request": {
+        "npc": {
+          "id": "emma",
+          "name": "Emma",
+          "role": "the barista.",
+          "scene": "Cafe."
+        },
+        "outcome": "Conversation ended normally.",
+        "history": [
+          {
+            "who": "me",
+            "text": "I now prefer tea.",
+            "english": null,
+            "rude": false
+          }
+        ],
+        "memory_card": {
+          "name": "Alex",
+          "claims": [
+            "says coffee is their favorite drink"
+          ],
+          "events": [],
+          "attitude": "neutral",
+          "struggled": []
+        }
+      },
+      "response_http_status": 200,
+      "response": {
+        "memory_card": {
+          "name": "Alex",
+          "attitude": "neutral",
+          "claims": [
+            "says tea is their favorite drink"
+          ],
+          "events": [],
+          "struggled": []
+        },
+        "usage": [
+          {
+            "step": "memory",
+            "model": "openai/gpt-oss-120b",
+            "input_tokens": 100,
+            "output_tokens": 5,
+            "latency_s": 0.0,
+            "fallback": false
+          }
+        ]
+      },
+      "backend_action": "replace stored card after success",
+      "next_reply_memory": {
+        "visits": 2,
+        "last_order": null,
+        "card": {
+          "name": "Alex",
+          "attitude": "neutral",
+          "claims": [
+            "says tea is their favorite drink"
+          ],
+          "events": [],
+          "struggled": []
+        }
+      }
+    },
+    {
+      "id": "forget_profile",
+      "request": {
+        "npc": {
+          "id": "emma",
+          "name": "Emma",
+          "role": "the barista.",
+          "scene": "Cafe."
+        },
+        "outcome": "Conversation ended normally.",
+        "history": [
+          {
+            "who": "me",
+            "text": "Please forget what I told you about myself.",
+            "english": null,
+            "rude": false
+          }
+        ],
+        "memory_card": {
+          "name": "Alex",
+          "claims": [
+            "says tea is their favorite drink"
+          ],
+          "events": [],
+          "attitude": "neutral",
+          "struggled": []
+        }
+      },
+      "response_http_status": 200,
+      "response": {
+        "memory_card": {
+          "name": "",
+          "attitude": "neutral",
+          "claims": [],
+          "events": [],
+          "struggled": []
+        },
+        "usage": [
+          {
+            "step": "memory",
+            "model": "openai/gpt-oss-120b",
+            "input_tokens": 100,
+            "output_tokens": 5,
+            "latency_s": 0.0,
+            "fallback": false
+          }
+        ]
+      },
+      "backend_action": "replace stored card after success",
+      "next_reply_memory": {
+        "visits": 3,
+        "last_order": null,
+        "card": {
+          "name": "",
+          "attitude": "neutral",
+          "claims": [],
+          "events": [],
+          "struggled": []
+        }
+      }
+    },
+    {
+      "id": "invalid_model_output",
+      "request": {
+        "npc": {
+          "id": "emma",
+          "name": "Emma",
+          "role": "the barista.",
+          "scene": "Cafe."
+        },
+        "outcome": "Conversation ended normally.",
+        "history": [
+          {
+            "who": "me",
+            "text": "I now prefer tea.",
+            "english": null,
+            "rude": false
+          }
+        ],
+        "memory_card": {
+          "name": "Alex",
+          "claims": [
+            "says coffee is their favorite drink"
+          ],
+          "events": [],
+          "attitude": "neutral",
+          "struggled": []
+        }
+      },
+      "response_http_status": 502,
+      "response": {
+        "error": {
+          "code": "invalid_output",
+          "message": "기억 카드 필드가 계약과 다름"
+        }
+      },
+      "backend_action": "keep old card; do not overwrite"
+    }
+  ]
+}

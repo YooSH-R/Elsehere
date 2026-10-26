@@ -54,7 +54,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             authorize ->
                 authorize
-                    // Container health checks must work before a user logs in.
+                    // 관리 포트가 분리돼도 기존 컨테이너·프록시 상태 확인 경로는 유지한다.
                     .requestMatchers(HttpMethod.GET, "/api/health")
                     .permitAll()
                     // 개발용 로그인. 컨트롤러가 local 프로필에만 있어 다른 환경에서는 404다.

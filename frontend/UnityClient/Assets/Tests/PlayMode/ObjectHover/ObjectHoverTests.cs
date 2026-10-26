@@ -74,9 +74,15 @@ namespace A305.ObjectHover.PlayModeTests
             hover.Refresh(ScreenPointOf(tv), LongerThanShowDelaySeconds);
             Assert.That(tooltip.IsVisible, Is.True);
 
-            // 화면 구석에는 새로 배치한 가구가 들어올 수 있어 TV 위쪽 벽을 가리킨다.
-            Vector3 wallPoint = VisibleBounds(tv).center + Vector3.up * 2.1f;
-            hover.Refresh(Camera.main.WorldToScreenPoint(wallPoint), LongerThanShowDelaySeconds);
+            // 벽도 공용 단어를 가지므로, 씬 위쪽의 빈 공간을 바라보며 무대상 상태를 확인한다.
+            Camera.main.transform.SetPositionAndRotation(
+                new Vector3(0f, 100f, 0f),
+                Quaternion.LookRotation(Vector3.up, Vector3.forward)
+            );
+            hover.Refresh(
+                new Vector2(Screen.width / 2f, Screen.height / 2f),
+                LongerThanShowDelaySeconds
+            );
 
             Assert.That(tooltip.IsVisible, Is.False);
         }
@@ -113,6 +119,31 @@ namespace A305.ObjectHover.PlayModeTests
                     new[] { "tv", "refrigerator", "air_conditioner", "sofa", "bookshelf", "bed" }
                 )
             );
+        }
+
+        [UnityTest]
+        public IEnumerator PointingAtAnotherInstanceOfSameWord_RestartsShowDelay()
+        {
+            HoverableObject original = FindHoverable("tv");
+            yield return StandPlayerNear(original);
+            Vector2 pointer = ScreenPointOf(original);
+            hover.Refresh(pointer, LongerThanShowDelaySeconds);
+            Assert.That(tooltip.IsVisible, Is.True);
+
+            // 같은 위치의 다른 인스턴스로 바꿔 단어 키가 같아도 새 사물을 가리키는 경우를 만든다.
+            GameObject replacement = Object.Instantiate(
+                original.gameObject,
+                original.transform.position,
+                original.transform.rotation
+            );
+            replacement.transform.localScale = original.transform.lossyScale;
+            original.gameObject.SetActive(false);
+            Physics.SyncTransforms();
+            hover.Refresh(pointer, 0.01f);
+            Assert.That(tooltip.IsVisible, Is.False);
+            hover.Refresh(pointer, LongerThanShowDelaySeconds);
+            Assert.That(tooltip.IsVisible, Is.True);
+            Object.Destroy(replacement);
         }
 
         private IEnumerator StandPlayerNear(HoverableObject target)

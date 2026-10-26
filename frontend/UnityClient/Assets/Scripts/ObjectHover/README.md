@@ -10,6 +10,9 @@
 | --- | --- |
 | `HoverTooltipState` | 가리킨 사물과 표시 가능 여부로 툴팁에 보여 줄 사물을 정합니다. Unity 객체 없이 테스트합니다. |
 | `ObjectWordTable` | 사물 키로 영어 표현을 찾습니다. |
+| `ObjectWordCatalog`, `ObjectWordDetails` | 공용 단어 키로 뜻·영문 예문·해석·발음 파일 키를 조회하고 누락·중복 키를 거부합니다. |
+| `CatalogObjectWordSource` | 서버 원본에서 생성한 JSON을 읽는 씬 검수용 데이터 소스입니다. |
+| `ObjectHoverRaycast`, `ObjectHoverHitArea` | 이동 충돌과 별개인 시각 영역으로 사물을 가리킵니다. 일반 Trigger는 무시합니다. |
 | `TooltipPlacement` | 툴팁을 사물 위에 두되 화면 밖으로 나가지 않게 자리를 정합니다. |
 | `HoverableObject` | 학습할 사물에 붙여 사물 키를 정합니다. 자식을 포함해 콜라이더가 있어야 가리킬 수 있습니다. |
 | `ObjectHoverController` | 포인터 방향의 사물을 찾아 툴팁을 보이거나 숨깁니다. 플레이어 자신은 가리지 않습니다. |
@@ -42,32 +45,27 @@ S15P31A305-166(호버 표시·자동 숨김 정책)이 정해지기 전의 기�
 
 ## 단어 데이터
 
-사물과 단어는 서버 마스터 데이터입니다. Unity는 ERD `world_objects.unity_key`에 해당하는 사물 키만 사물에 붙이고, 영어 표현·뜻·예문(ERD `vocabularies`의 `text`·`meaning_ko`·`example`)은 서버에서 받습니다.
+프리팹에는 공용 단어 키만 연결합니다. 같은 단어를 사용하는 프리팹과 모든 배치가 키를 공유하며 배치마다 식별자를 등록하지 않습니다. 예를 들어 여러 벤치가 모두 `bench`를 참조합니다.
 
-서버 API가 준비되기 전에는 `Assets/Data/ObjectHover/MockObjectWords.asset`의 확인용 목록을 씁니다. 단어마다 `Is Saved`(단어장에 저장했는지)를 두어, 저장한 단어만 예문을 보입니다. 이 규칙은 `ObjectWord.ForHover`가 맡습니다.
+편집 원본은 저장소 루트의 `backend/src/main/resources/content/object-words.json`입니다. `key`, `languageCode`, `text`, `meaningKo`, `example`, `exampleKo`, `pronunciationAudioKey`를 관리합니다. 발음 파일이 없으면 키를 비워 두며, DB에서는 NULL로 적재합니다.
 
-서버 연동 작업에서 `ObjectWordSource`를 서버에서 받은 단어로 바꾸고, 확인용 목록은 개발 확인에만 씁니다. 그때 사용자별 상태도 함께 반영합니다.
+저장소 루트에서 `./infra/scripts/sync-object-words.ps1`을 실행하면 서버 SQL의 어휘 구간과 Unity의 `Assets/Data/ObjectHover/ObjectWords.json`을 생성합니다. `-Check`는 원본과 사본이 일치하는지 검사합니다. `SharedObjectWords.asset`이 JSON을 읽으며, 기존 검수 조건에 맞춰 TV만 저장된 단어로 미리 표시합니다. 사용자별 저장 여부는 원본에 넣지 않습니다. 예문 표시 규칙은 `ObjectWord.ForHover`가 맡습니다.
+
+Unity의 서버 조회와 공용 키의 여러 씬 연결은 아직 적용하지 않았습니다. 서버 연동 작업에서 `ObjectWordSource`를 서버 응답으로 바꾸고 사용자별 상태도 함께 반영합니다.
 
 - 저장 여부: ERD `user_vocab`에 단어가 있으면 저장한 단어로 보고 예문을 보입니다.
 - 사용자가 고친 뜻: ERD `user_vocab.custom_meaning`을 툴팁에 보일지는 단어장 작업에서 정합니다.
 - 호버 숨김: ERD `user_object_prefs.hover_hidden`("알아요 · 다음에 안 띄우기")인 사물은 단어가 없는 것으로 처리해 툴팁을 띄우지 않습니다.
 
-| 사물 키 | 사물 | 영어 표현 | 뜻 | 저장됨 |
-| --- | --- | --- | --- | --- |
-| `tv` | 방 TV | TV | 텔레비전 | 예 (예문이 보이는 경우 확인용) |
-| `refrigerator` | 방 냉장고 | refrigerator | 냉장고 | 아니요 |
-| `air_conditioner` | 방 에어컨 | air conditioner | 에어컨 | 아니요 |
-| `sofa` | 방 소파 | sofa | 소파 | 아니요 |
-| `bookshelf` | 방 책장 | bookshelf | 책장 | 아니요 |
-| `bed` | 방 침대 | bed | 침대 | 아니요 |
-| `counter` | 카페 카운터 | counter | 계산대 | 아니요 |
-| `menu` | 카페 메뉴판 | menu | 메뉴 | 아니요 |
+전체 단어 내용은 공용 JSON에서 확인합니다. 확인용 목록을 문서나 프리팹에 중복 작성하지 않습니다.
 
 ## 사물 추가
 
-1. 사물 루트에 `HoverableObject`를 붙이고 `Unity Key`에 서버와 같은 사물 키를 입력합니다. 자식을 포함해 콜라이더가 있어야 합니다.
-2. 서버 연동 전에는 `MockObjectWords.asset`에 같은 키의 단어를 추가합니다. 예문이 보이는 모습을 확인하려면 `Is Saved`를 켭니다.
-3. 디자인 모델로 바꿀 때도 사물 루트의 `HoverableObject`와 키는 유지합니다.
+1. 기존 공용 단어를 재사용합니다. 새 단어라면 원본에 뜻·영문 예문·해석을 등록합니다.
+2. `Scripts/Editor/ObjectHover/ObjectWordBindings.json`에 프리팹 또는 의미 있는 사물 루트의 이름을 연결합니다. 이 연결표가 알려진 이름의 키를 정합니다.
+3. `BuilderTools`로 프리팹과 씬을 저장하면 알려진 사물에 키와 호버 전용 Trigger를 연결합니다. 모델을 합쳐 만든 프리팹은 하나의 사물 단위로 연결하고, 별도 하위 프리팹은 각각 연결합니다.
+4. **Tools → A305 → ObjectHover → Register All Scene Words**로 배포용 집·카페·호텔·마을의 누락 검사를 통과시킵니다. 보고서 경로는 `A305_WORD_REPORTS` 환경변수 또는 임시 폴더의 `A305ObjectWords/registration.txt`입니다.
+5. `sync-object-words.ps1`을 실행해 서버 SQL을 갱신하고 `-Check`를 통과시킵니다. 원본·연결표·생성 데이터·프리팹·씬·새 `.meta`를 함께 반영합니다.
 
 공간 씬의 호버 처리와 툴팁은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 붙이므로 씬마다 직접 배치하지 않습니다.
 
@@ -75,7 +73,7 @@ S15P31A305-166(호버 표시·자동 숨김 정책)이 정해지기 전의 기�
 
 **Tools → A305 → ObjectHover → Build**(`Scripts/Editor/ObjectHover/ObjectHoverBuilder.cs`)가 다음을 준비합니다.
 
-- 설정 `Data/ObjectHover/ObjectHoverSettings.asset`과 확인용 단어 `Data/ObjectHover/MockObjectWords.asset`: 없을 때만 만들고, 있으면 값을 유지합니다.
+- 설정 `Data/ObjectHover/ObjectHoverSettings.asset`: 없을 때만 만듭니다. 공용 목록 원본을 가져와 `SharedObjectWords.asset`에 연결합니다.
 - 툴팁 프리팹 `Prefabs/ObjectHover/WordTooltip.prefab`: 컴포넌트와 연결만 맞추고, 색·크기·글꼴 같은 디자인은 유지합니다.
 - 대체 공간 프리팹(`Prefabs/Home/HomeRoom`, `Prefabs/Cafe/CafeInterior`)의 가구에 사물 키: 키가 없는 가구에만 붙이고, 콜라이더가 없는 간판에는 상자 콜라이더를 붙입니다.
 

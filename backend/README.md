@@ -70,8 +70,10 @@ com.elsehere
 ## 시드 데이터
 
 - 장소·NPC·사물·어휘·미션처럼 모든 환경에 같이 있어야 하는 기본 데이터는 [`src/main/resources/db/seed/world.sql`](src/main/resources/db/seed/world.sql)에 있습니다.
-- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `unity_key`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 기본 데이터는 SQL 파일에서 고칩니다.
+- 사물 단어·한국어 뜻·영문 예문·예문 해석·발음 파일 키의 편집 원본은 [`content/object-words.json`](src/main/resources/content/object-words.json)입니다. 저장소 루트의 `./infra/scripts/sync-object-words.ps1`로 SQL의 `GENERATED OBJECT WORDS` 구간과 Unity 미리보기 JSON을 생성하고, `-Check`로 일치 여부를 검사합니다. 발음 파일 키가 빈 항목은 DB에 NULL로 적재합니다.
+- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `unity_key`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 공용 JSON에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다.
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
+- 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. 기존 `world_objects`의 8개 시드와 WORLD-02의 씬별 사물 조회는 별도입니다. 공용 키 하나를 여러 씬에서 사용하는 연결과 Unity의 서버 조회는 아직 적용하지 않았으며, 현재 씬 검수에서는 원본에서 생성한 공용 목록을 사용합니다.
 - Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답

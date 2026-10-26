@@ -19,6 +19,7 @@
 - `saved_at`, `started_at`처럼 업무에 쓰는 시각은 `created_at`과 별도 컬럼으로 두고, 값을 넣는 코드에서 `Clock` 기준으로 채웁니다.
 - 새 테이블의 엔티티를 만들면 `EntitySchemaTest`의 테이블 목록에 추가합니다.
 - 장소·NPC·사물·어휘·미션 같은 기본 데이터는 `src/main/resources/db/seed/world.sql`에 추가합니다. 방식은 [백엔드 README](README.md#시드-데이터)를 따릅니다.
+- 공용 사물 어휘는 `src/main/resources/content/object-words.json`에서 수정하고 `infra/scripts/sync-object-words.ps1`로 SQL과 Unity 사본을 생성합니다. SQL의 `GENERATED OBJECT WORDS` 구간은 직접 편집하지 않습니다. `-Check`로 일치 여부를 검사합니다.
 
 ## 인증과 오류
 

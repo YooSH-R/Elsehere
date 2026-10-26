@@ -11,13 +11,13 @@ namespace A305.ObjectHover
     /// </summary>
     public class ObjectHoverController : MonoBehaviour
     {
-        private const int MaxRaycastHits = 16;
-
         [SerializeField]
         private ObjectHoverSettings settings;
 
         [SerializeField]
-        [Tooltip("사물 키로 영어 표현을 찾는 곳. 서버 연동 전에는 MockObjectWords")]
+        [Tooltip(
+            "프리팹의 공용 단어 키로 뜻·예문을 조회하는 곳. 서버 연동 전에는 SharedObjectWords"
+        )]
         private ObjectWordSource wordSource;
 
         [SerializeField]
@@ -34,7 +34,8 @@ namespace A305.ObjectHover
         [Tooltip("UI/Point. 화면의 포인터 위치")]
         private InputActionReference pointAction;
 
-        private readonly RaycastHit[] raycastHits = new RaycastHit[MaxRaycastHits];
+        private readonly ObjectHoverRaycast raycast = new ObjectHoverRaycast();
+        private HoverableObject previousTarget;
         private readonly HashSet<string> keysWithoutWord = new HashSet<string>();
         private HoverTooltipState state;
 
@@ -45,6 +46,11 @@ namespace A305.ObjectHover
                 pointerScreenPosition,
                 out Vector3 pointedPosition
             );
+            if (target != previousTarget)
+            {
+                state.Update(null, false, 0f);
+                previousTarget = target;
+            }
             ObjectWord word = default;
             bool canShow =
                 target != null
@@ -105,34 +111,14 @@ namespace A305.ObjectHover
             out Vector3 pointedPosition
         )
         {
-            pointedPosition = Vector3.zero;
             Ray ray = viewCamera.ScreenPointToRay(pointerScreenPosition);
-            int hitCount = Physics.RaycastNonAlloc(
+            return raycast.Find(
                 ray,
-                raycastHits,
                 settings.RayLengthMeters,
                 settings.HoverLayers,
-                QueryTriggerInteraction.Ignore
+                player.transform,
+                out pointedPosition
             );
-
-            RaycastHit? nearest = null;
-            for (int index = 0; index < hitCount; index++)
-            {
-                RaycastHit hit = raycastHits[index];
-                bool isPlayer = hit.transform.IsChildOf(player.transform);
-                if (!isPlayer && (nearest == null || hit.distance < nearest.Value.distance))
-                {
-                    nearest = hit;
-                }
-            }
-
-            if (nearest == null)
-            {
-                return null;
-            }
-
-            pointedPosition = nearest.Value.point;
-            return nearest.Value.collider.GetComponentInParent<HoverableObject>();
         }
 
         private bool TryGetWord(string unityKey, out ObjectWord word)

@@ -138,6 +138,7 @@ namespace A305.EditorTools.Common
 
         public static void SaveScene(Scene scene, string path)
         {
+            A305.EditorTools.ObjectHover.ObjectWordRegistration.ApplyToScene(scene);
             EnsureFolder(Path.GetDirectoryName(path));
             if (!EditorSceneManager.SaveScene(scene, path))
             {
@@ -384,6 +385,7 @@ namespace A305.EditorTools.Common
         /// </summary>
         public static GameObject SavePrefab(GameObject root, string path)
         {
+            A305.EditorTools.ObjectHover.ObjectWordRegistration.ApplyToPrefab(root, path);
             EnsureFolder(Path.GetDirectoryName(path));
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path, out bool isSaved);
             Object.DestroyImmediate(root);

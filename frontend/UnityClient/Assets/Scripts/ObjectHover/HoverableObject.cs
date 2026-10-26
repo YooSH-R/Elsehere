@@ -9,7 +9,7 @@ namespace A305.ObjectHover
     public class HoverableObject : MonoBehaviour
     {
         [SerializeField]
-        [Tooltip("ERD world_objects.unity_key와 같은 값 (예: tv, sofa)")]
+        [Tooltip("공용 단어 키. 같은 단어를 쓰는 프리팹과 모든 배치가 같은 키를 공유합니다.")]
         private string unityKey;
 
         public string UnityKey => unityKey;

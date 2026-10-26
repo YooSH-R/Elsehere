@@ -1,0 +1,73 @@
+# HotelScene 로비 디자인
+
+**Maple House v1**은 메인스트리트 호텔의 로비다. 크림색 벽과 밝은 석재 바닥, 남색 패널, 황동 장식, 세이지색 소파를 사용한다. 입구에서 아치 장식의 프런트를 바라보며 접근하고, 양옆 대기 좌석과 수하물 공간은 중앙 통로 밖에 둔다.
+
+## 열어 보기
+
+- 배포용 공간: `Assets/Scenes/Production/HotelScene.unity`
+- 외형 검수용 복사본: `Assets/Scenes/Sandbox/HotelInteriorSandbox.unity`
+- 호텔 프리팹: `Assets/Prefabs/Hotel/MapleHouse/`
+- 호텔 재질: `Assets/Art/Hotel/MapleHouse/`
+- 카메라·직원 설정·색 보정: `Assets/Data/Hotel/`
+
+Production에서 대화와 마을 왕복을 확인한다. Sandbox는 배포 Scene List에 추가하지 않는다.
+
+## 크기와 배치
+
+Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런트다.
+
+| 항목 | 기준 |
+| --- | --- |
+| 실내 바닥 / 천장 높이 | 16 × 14m / 4.6m |
+| 플레이어·호텔리어 | 리틀 멍 v7 비율의 1.6m 대체 모델 |
+| 프런트 | 폭 5.85m, 깊이 1.22m, 상판 높이 0.77m, 중심 z=4.6m |
+| 직원 위치 | (0, 0.05, 5.7), 입구 방향 |
+| 대화 접근 위치 | (0, 0.05, 3.45) 부근 |
+| 대기 좌석 | 좌우 각 1조. 소파 폭 2.65m, 테이블·러그·탁상등 포함 |
+| 출입문 | (0, 0, -7), `TownDoor` → `TownScene/HotelDoor` |
+| 3인칭 시작 거리 / 조절 범위 | 3.8m / 1.5~5.2m |
+| 시야각 / 아래 기울기 | 65° / 15° |
+| 카메라 기준 높이 / 대화 눈높이 | 1.5m / 1.074m |
+
+프런트는 큰 머리와 낮은 얼굴 중심을 가진 캐릭터의 입을 가리지 않도록 낮췄다. 데스크 위 벨과 방명록은 양 끝에 둔다. 수하물 카트는 왼쪽 뒤편에 배치한다. 엘리베이터 두 개는 닫힌 장식 외형이며 객실 이동 기능은 없다.
+
+## 프리팹 편집과 재사용
+
+| 프리팹 | 구성 |
+| --- | --- |
+| `LobbyShell`, `LobbyWindow` | 바닥·벽·천장과 커튼 창 |
+| `LobbyDecoration` | 프런트·대기 좌석·수하물·식물을 배치한 중첩 프리팹 |
+| `ReceptionDesk`, `ReceptionBackdrop` | 낮은 데스크와 아치·호텔 이름 패널 |
+| `KeyCabinet`, `LobbyClock` | 키 보관함, 장식 시계 |
+| `LoungeSet` | 집의 소파·테이블·탁상등을 재사용한 좌석 조합 |
+| `Suitcase`, `LuggageCart` | 복제해서 사용할 수 있는 수하물 소품 |
+| `LiftFacade` | 닫힌 엘리베이터 문 장식과 Collider |
+| `LobbyChandelier`, `GlobeSconce` | 조명 외형과 실제 Point Light |
+| `ConciergeVisual` | 기존 NPC 기능 루트에 붙이는 직원 대체 외형 |
+
+가구 원본은 Prefab Mode에서 편집한다. 장소마다 다른 색·구성을 만들 때는 Variant를 사용하고, 집에서도 사용하는 원본 가구·공통 재질을 직접 바꾸지 않는다. 식물은 기존 `TinyTreats/HousePlants/Monstera` 프리팹을 재사용하며 출처·라이선스는 `Assets/ThirdParty/CREDITS.md`를 따른다.
+
+**Tools → A305 → Hotel → Apply Maple House Design**은 최초 적용용이다. `Environment/MapleHouse`가 이미 있으면 배치를 덮어쓰지 않는다. 프리팹·설정도 없을 때만 생성한다. 확장할 때는 중첩 프리팹을 복제하고 중앙 접근로와 직원 뒤 공간을 확보한다.
+
+## 기능 연결
+
+`HOTEL_STAFF`는 기존 `Passerby` 프리팹을 사용하는 고정 직원이다. `HotelStaffSettings`의 감지 거리는 3.5m, 대화 제안 거리는 2.5m, 걷는 속도는 0, 재제안 대기는 20초다. 튜토리얼의 대화 허용 조건과 기존 대화 시작·종료 흐름을 따른다.
+
+`MockHotelLines`는 로컬 검수용 인사말이며 서버의 NPC 이름·성격이나 호텔 체크인 미션을 구현한 데이터가 아니다. 예약·결제·객실 이동·앉기·수하물 조작은 별도 기능이다. 호텔 가구에는 서버의 단어 키를 새로 부여하지 않았으므로 호버 툴팁이 나오지 않는다. 기존 출입문과 도착 지점은 유지한다.
+
+## 조명과 화면 검수
+
+| 대상 | 설정 |
+| --- | --- |
+| 방향광 | intensity 1.4, 부드러운 그림자 strength 0.6 |
+| `Lighting/LobbyBounce` | intensity 2.1, range 15m |
+| 샹들리에 2개 | 각 Point Light intensity 2.1, range 7m |
+| 벽등 2개 | 각 intensity 1.2, range 4.2m |
+| 좌석 탁상등 2개 | 각 intensity 1.8, range 3.6m |
+| `HotelColor.asset` | 노출 +0.2, 대비 +6, 채도 +6, Bloom 0.12 |
+
+천장은 방향광 그림자를 만들지 않는 스타일 조명이다. 창은 색면으로 표현하며 실제 마을 조망은 연결하지 않는다. 전역 조명 베이크는 사용하지 않는다.
+
+**Verify Maple House Design**은 실제 Production Play에서 주요 이동 경로, 직원 대화와 시점 복원, 장식에 단어가 잘못 표시되지 않는지, 문 접촉을 통한 마을 왕복을 검수한다. 직원 대화는 기존 튜토리얼 건너뛰기로 대화 허용 조건을 충족한 상태에서 확인한다.
+
+결과와 이미지는 `artifacts/unity/hotel-interior/`에 로컬로 보관하고 Git에 넣지 않는다. `04-cutaway-layout.png`만 검수 중 천장과 두 벽을 숨긴 단면이며 저장된 실내는 닫혀 있다. 이미지는 실제 카메라 렌더이고 HUD 합성은 포함하지 않는다. 최종 캐릭터 리깅과 Web 빌드 성능은 별도 검증 대상이다.

@@ -642,6 +642,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 71f95e68df82d204398ac0ef10e5914f, type: 2}
   unityKey: lamp
 --- !u!1 &8166826077234006877
 GameObject:

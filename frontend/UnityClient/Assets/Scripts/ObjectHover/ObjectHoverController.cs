@@ -58,7 +58,7 @@ namespace A305.ObjectHover
                 && !player.IsMovementLocked
                 && Vector3.Distance(player.transform.position, pointedPosition)
                     <= settings.MaxDistanceMeters
-                && TryGetWord(target.UnityKey, out word);
+                && TryGetWord(target, out word);
 
             state.Update(target != null ? target.UnityKey : null, canShow, deltaTimeSeconds);
 
@@ -121,9 +121,14 @@ namespace A305.ObjectHover
             );
         }
 
-        private bool TryGetWord(string unityKey, out ObjectWord word)
+        private bool TryGetWord(HoverableObject target, out ObjectWord word)
         {
-            if (wordSource.TryGetWord(unityKey, out word))
+            string unityKey = target.UnityKey;
+            bool found =
+                target.Word != null
+                    ? wordSource.TryGetWord(target.Word, out word)
+                    : wordSource.TryGetWord(unityKey, out word);
+            if (found)
             {
                 return true;
             }

@@ -126,6 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 4693346c98f5ff749bc9e629470e29e0, type: 2}
   unityKey: floor
 --- !u!1 &1086863206840671529
 GameObject:
@@ -319,6 +320,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
   unityKey: wall
 --- !u!1 &1404511652565103407
 GameObject:
@@ -999,6 +1001,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a63fbd8e32e5682409155fbb71b75ea9, type: 2}
   unityKey: elevator
 --- !u!1 &4882046592584715026
 GameObject:
@@ -1169,6 +1172,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: f36f3289327304d43bd8d5a2e1f1d881, type: 2}
   unityKey: sofa
 --- !u!1 &5715075893255029840
 GameObject:
@@ -1296,6 +1300,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: a63fbd8e32e5682409155fbb71b75ea9, type: 2}
   unityKey: elevator
 --- !u!1 &5950955237692726350
 GameObject:
@@ -1423,6 +1428,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
   unityKey: wall
 --- !u!1 &6004561705375314244
 GameObject:
@@ -1682,6 +1688,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 8b7c728059feba34d846351e0fba8e11, type: 2}
   unityKey: reception_desk
 --- !u!1 &6409541261673179865
 GameObject:
@@ -1809,6 +1816,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
   unityKey: wall
 --- !u!1 &6986743571193498094
 GameObject:
@@ -2172,6 +2180,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: f36f3289327304d43bd8d5a2e1f1d881, type: 2}
   unityKey: sofa
 --- !u!1 &8622889710317107773
 GameObject:
@@ -2219,6 +2228,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
   unityKey: sign
 --- !u!1 &8976081598596679548
 GameObject:
@@ -2346,6 +2356,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
   unityKey: wall
 --- !u!1001 &424875726934432046
 PrefabInstance:
@@ -2439,6 +2450,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 47f7a70e31c1404499a050698facdf9e, type: 2}
   unityKey: door
 --- !u!4 &8060427732432085683 stripped
 Transform:

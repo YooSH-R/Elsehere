@@ -133,6 +133,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
   unityKey: tree
 --- !u!1 &9132251119204069500
 GameObject:
@@ -283,6 +284,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
   unityKey: tree
 --- !u!4 &4157962736509505928 stripped
 Transform:

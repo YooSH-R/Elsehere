@@ -104,6 +104,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
   unityKey: rug
 --- !u!1 &1192363779124633429
 GameObject:
@@ -209,6 +210,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
   unityKey: rug
 --- !u!1 &1340181313512160678
 GameObject:
@@ -380,6 +382,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
   unityKey: rug
 --- !u!1 &2046971553964170949
 GameObject:
@@ -602,6 +605,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
   unityKey: rug
 --- !u!1 &2986990140458453619
 GameObject:
@@ -839,6 +843,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
   unityKey: rug
 --- !u!1 &4243210940901239507
 GameObject:
@@ -1076,6 +1081,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
   unityKey: rug
 --- !u!1 &5164193055410206502
 GameObject:
@@ -1379,6 +1385,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: feb0619d70d0a024d8c43f70155b6ebe, type: 2}
   unityKey: bell
 --- !u!1 &6525215930717372956
 GameObject:
@@ -1616,6 +1623,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 943cfb2ff8f158e439037c54321dbc39, type: 2}
   unityKey: guestbook
 --- !u!1 &7774565157592262847
 GameObject:
@@ -1721,6 +1729,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
   unityKey: rug
 --- !u!1 &7806191693816671873
 GameObject:
@@ -1826,6 +1835,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 943cfb2ff8f158e439037c54321dbc39, type: 2}
   unityKey: guestbook
 --- !u!1 &8742026666282357136
 GameObject:
@@ -1931,6 +1941,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: feb0619d70d0a024d8c43f70155b6ebe, type: 2}
   unityKey: bell
 --- !u!1001 &285580636113283849
 PrefabInstance:

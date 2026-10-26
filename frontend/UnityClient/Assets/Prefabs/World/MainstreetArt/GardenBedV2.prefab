@@ -318,6 +318,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
   unityKey: flowerbed
 --- !u!1 &2429120234444183560
 GameObject:

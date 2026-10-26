@@ -1551,6 +1551,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 9e5bf4086c6b2244cad8673e1882f403, type: 2}
   unityKey: key_cabinet
 --- !u!1 &3776205821311769419
 GameObject:

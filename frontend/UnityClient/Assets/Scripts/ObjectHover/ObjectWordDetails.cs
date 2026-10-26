@@ -3,15 +3,15 @@ using UnityEngine;
 
 namespace A305.ObjectHover
 {
-    /// <summary>서버 공용 단어 목록의 콘텐츠. 사용자별 저장·숨김 상태는 포함하지 않는다.</summary>
+    /// <summary>Unity 공용 단어와 서버 전달 데이터. 사용자별 저장·숨김 상태는 포함하지 않는다.</summary>
     [Serializable]
     public sealed class ObjectWordDetails
     {
-        [SerializeField]
+        [SerializeField, HideInInspector]
         private string key;
 
         [SerializeField]
-        private string languageCode;
+        private string languageCode = "en-US";
 
         [SerializeField]
         private string text;

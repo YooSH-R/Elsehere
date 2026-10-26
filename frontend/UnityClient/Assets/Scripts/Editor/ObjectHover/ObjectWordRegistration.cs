@@ -18,11 +18,10 @@ namespace A305.EditorTools.ObjectHover
     public static class ObjectWordRegistration
     {
         public const string SourceAssetPath = "Assets/Data/ObjectHover/SharedObjectWords.asset";
-        private const string PreviewPath = "Assets/Data/ObjectHover/ObjectWords.json";
         private const string BindingsPath =
             "Assets/Scripts/Editor/ObjectHover/ObjectWordBindings.json";
         private static Dictionary<string, string> keysByName;
-        private static ObjectWordCatalog catalog;
+        private static Dictionary<string, ObjectWordDefinition> catalog;
 
         [MenuItem("Tools/A305/ObjectHover/Register All Scene Words")]
         public static void Build()
@@ -42,9 +41,7 @@ namespace A305.EditorTools.ObjectHover
                 BuilderTools.UpdatePrefabIfExists(path, root => Apply(root));
             }
             AssetDatabase.SaveAssets();
-            foreach (
-                string sceneName in new[] { "HomeScene", "CafeScene", "HotelScene", "TownScene" }
-            )
+            foreach (string sceneName in ObjectWordAuthoring.SceneNames)
             {
                 string path = "Assets/Scenes/Production/" + sceneName + ".unity";
                 Scene scene = EditorSceneManager.OpenScene(path);
@@ -59,6 +56,7 @@ namespace A305.EditorTools.ObjectHover
                 throw new InvalidOperationException(
                     "공용 단어가 빠진 사물이 있습니다. registration.txt를 확인하세요."
                 );
+            ObjectWordAuthoring.Export();
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
             Debug.Log(report.ToString());
         }
@@ -90,25 +88,10 @@ namespace A305.EditorTools.ObjectHover
 
         public static void PrepareSource()
         {
-            string sourcePath = Path.GetFullPath(
-                Path.Combine(
-                    Application.dataPath,
-                    "../../../backend/src/main/resources/content/object-words.json"
-                )
-            );
-            string json = File.ReadAllText(sourcePath);
-            catalog = ObjectWordCatalog.Parse(json);
+            var source = ObjectWordAuthoring.RefreshSource();
+            catalog = source.Words.ToDictionary(word => word.Key, StringComparer.Ordinal);
             keysByName = null;
             LoadBindings();
-            BuilderTools.EnsureFolder("Assets/Data/ObjectHover");
-            File.WriteAllText(PreviewPath, json, new UTF8Encoding(false));
-            AssetDatabase.ImportAsset(PreviewPath, ImportAssetOptions.ForceSynchronousImport);
-            var source = BuilderTools.LoadOrCreateAsset<CatalogObjectWordSource>(SourceAssetPath);
-            BuilderTools.SetReference(
-                source,
-                "catalogJson",
-                AssetDatabase.LoadAssetAtPath<TextAsset>(PreviewPath)
-            );
         }
 
         /// <summary>씬 디자인 Builder에서 프리팹 저장 직전에 호출한다.</summary>
@@ -126,7 +109,7 @@ namespace A305.EditorTools.ObjectHover
             BindingFile file = JsonUtility.FromJson<BindingFile>(File.ReadAllText(BindingsPath));
             foreach (Binding binding in file.bindings)
             {
-                if (catalog != null && !catalog.TryGetDetails(binding.key, out _))
+                if (catalog != null && !catalog.TryGetValue(binding.key, out _))
                     throw new InvalidOperationException(
                         "프리팹 연결표에 없는 단어 키가 있습니다: " + binding.key
                     );
@@ -137,6 +120,8 @@ namespace A305.EditorTools.ObjectHover
 
         private static void Apply(GameObject root)
         {
+            if (catalog == null)
+                PrepareSource();
             LoadBindings();
             BindTree(root.transform, null);
             foreach (HoverableObject target in root.GetComponentsInChildren<HoverableObject>(true))
@@ -187,8 +172,6 @@ namespace A305.EditorTools.ObjectHover
                     parentTarget.UnityKey
                 );
             string key = FindKey(node.name);
-            if (target != null && key != null && target.UnityKey != key)
-                BuilderTools.SetText(target, "unityKey", key);
             if (
                 target == null
                 && key != null
@@ -197,6 +180,16 @@ namespace A305.EditorTools.ObjectHover
             {
                 target = node.gameObject.AddComponent<HoverableObject>();
                 BuilderTools.SetText(target, "unityKey", key);
+            }
+            if (target != null && target.Word == null)
+            {
+                string wordKey = string.IsNullOrEmpty(target.UnityKey) ? key : target.UnityKey;
+                if (
+                    wordKey == null
+                    || !catalog.TryGetValue(wordKey, out ObjectWordDefinition definition)
+                )
+                    throw new InvalidOperationException("공용 단어 에셋이 없습니다: " + wordKey);
+                BuilderTools.SetReference(target, "word", definition);
             }
             foreach (Transform child in node.Cast<Transform>().ToArray())
                 BindTree(child, target != null ? target : parentTarget);
@@ -279,7 +272,7 @@ namespace A305.EditorTools.ObjectHover
                     + " words"
             );
             foreach (HoverableObject target in targets)
-                if (!catalog.TryGetDetails(target.UnityKey, out _))
+                if (!catalog.TryGetValue(target.UnityKey, out _))
                     throw new InvalidOperationException("Unknown word: " + target.UnityKey);
             foreach (MeshRenderer renderer in environment.GetComponentsInChildren<MeshRenderer>())
             {

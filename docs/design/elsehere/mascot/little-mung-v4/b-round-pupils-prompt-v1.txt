@@ -1,0 +1,35 @@
+Use case: precise-object-edit.
+Asset type: Elsehere Little Mung v4 B character roster, round-pupil shape trial.
+
+Edit the original B/CLUSTER design into a clean B-only 2-row by 5-column character sheet. Change ONLY the shape of the dark pupils from vertical ovals into small ROUND circles. The approved baseline is the ORIGINAL B design, never the A design.
+
+INPUT ROLES:
+Image 1 is the authoritative character identity, face-layout, body-proportion, material reference. Use ONLY its TOP RIGHT character labeled B · CLUSTER. Ignore its top-left A · WIDE character and the bottom mouth diagrams.
+Image 2 is the ten-person clothing/hair/skin roster reference. Use ONLY its B / CLUSTER BOTTOM TWO ROWS. Completely exclude the A / WIDE TOP TWO ROWS.
+
+CRITICAL B FACE GEOMETRY:
+Reproduce the tightly grouped eyes/nose/mouth of image 1's top-right B. Broad empty cheeks to both sides. The eye centers are only approximately 31% of the exposed face width apart, NOT the roughly 50% of A. The entire pair of eye openings occupies only the central roughly 44% of face width. Keep the original B eye opening shapes, small brows, slender understated nose, tiny relaxed smile, eyelashes, face silhouette and expression. Do not spread the eye openings apart. All ten characters must retain that B/CLUSTER family geometry.
+
+PUPILS ONLY:
+Dark cocoa-black circular pupils, round rather than tall. Preserve the original B pupil-center positions and the soft original gaze. Do not move the pupils to the geometric centers of the whites, and do not balance white margins by relocating pupils. Reshape the oval around its existing center into a modest round circle of similar visual area, retaining the small highlight. Keep original eye-opening height and relaxed lids. No larger eyeballs, no wide-eyed stare, no enormous black circles, no flat dot eyes without whites.
+
+V4 PROPORTIONS:
+Keep enormous head, very tiny body, short legs and small hands. Crown-to-chin approximately 60% of full height; chin-to-soles 40%. Identical compact rig-friendly proportions across ten people. Match reference 1's B body, not a taller adult body. Preserve matte softly shaded stylized 3D game-asset finish, simple chunky hair, gentle cheek blush. No photorealism.
+
+ROSTER in reading order, same outfits as original bottom B rows:
+1 PLAYER F: cocoa scalloped bob, periwinkle jacket, ivory tee, aqua shorts, cream sneakers.
+2 PLAYER M: cocoa side-part crop, periwinkle jacket, ivory tee, aqua shorts, cream sneakers.
+3 WHITE AMERICAN M: sandy short hair, sage overshirt, cream tee, taupe shorts.
+4 WHITE AMERICAN F: copper short bob, coral cardigan, cream top, dusty blue trousers.
+5 BLACK AMERICAN M: deep brown skin, compact dark curls, blue jacket, cocoa trousers.
+6 BLACK AMERICAN F: deep brown skin, twist bob, mustard cardigan, sage trousers.
+7 BARISTA: medium brown skin, dark hair gathered low to the side, terracotta shirt, cream apron, sage trousers.
+8 HOTELIER: dark side-part, navy suit, ivory shirt, muted gold tie.
+9 OLDER M: gray short hair, sage vest, cream shirt, taupe trousers.
+10 OLDER F: silver bob, thin oval glasses, plum cardigan, taupe trousers.
+
+Composition: ten full bodies only, front view neutral arms relaxed, equal scale, 5 across and 2 down, comfortably separated, plain white background and very subtle ground shadows. Large clear faces for comparing the pupils. Landscape high-resolution sheet.
+Header exactly: "LITTLE MUNG v4 B"
+Small subtitle: "ROUND PUPILS"
+Small simple gray role labels beneath each character using the ten uppercase labels above.
+No A row, no comparison panels, no props, no environment, no accessories beyond existing older woman's glasses. Existing B feature spacing and v4 proportion are higher priority than decorative details.

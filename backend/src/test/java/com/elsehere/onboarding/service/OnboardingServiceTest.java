@@ -12,6 +12,9 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.onboarding.dto.LanguageProfileResponse;
 import com.elsehere.onboarding.dto.LanguageSelectionResponse;
 import com.elsehere.onboarding.dto.LevelSelectionResponse;
+import com.elsehere.onboarding.dto.LevelTestSummary;
+import com.elsehere.onboarding.entity.LevelTest;
+import com.elsehere.onboarding.entity.LevelTestStatus;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -20,6 +23,7 @@ import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.User;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,6 +116,49 @@ class OnboardingServiceTest {
     assertThat(response.levels())
         .extracting(ConversationLevel::level, ConversationLevel::available)
         .containsExactly(tuple(1, true), tuple(2, false), tuple(3, false));
+  }
+
+  @Test
+  @DisplayName("난이도 단계는 초급·중급·고급 이름으로 보여준다")
+  void getLanguageProfile_namesLevelsBeginnerIntermediateAdvanced() {
+    User user = persistNewUser();
+    onboardingService.chooseLanguage(user.getId(), "en-US");
+
+    LanguageProfileResponse response = onboardingService.getLanguageProfile(user.getId(), "en-US");
+
+    assertThat(response.levels())
+        .extracting(ConversationLevel::name)
+        .containsExactly("초급", "중급", "고급");
+  }
+
+  @Test
+  @DisplayName("레벨 테스트 기록이 없으면 학습 설정 조회에 마지막 테스트를 담지 않는다")
+  void getLanguageProfileWithoutLevelTest_hasNoLastLevelTest() {
+    User user = persistNewUser();
+    onboardingService.chooseLanguage(user.getId(), "en-US");
+
+    LanguageProfileResponse response = onboardingService.getLanguageProfile(user.getId(), "en-US");
+
+    assertThat(response.levelTest()).isNull();
+  }
+
+  @Test
+  @DisplayName("마지막 레벨 테스트가 있으면 학습 설정 조회에 그 테스트의 ID와 상태를 담는다")
+  void getLanguageProfileAfterLevelTest_hasLastLevelTest() {
+    User user = persistNewUser();
+    onboardingService.chooseLanguage(user.getId(), "en-US");
+    LevelTest skipped =
+        LevelTest.skip(user.getId(), "en-US", Instant.parse("2026-10-26T03:00:00Z"));
+    entityManager.persist(skipped);
+    profileRepository
+        .findById(new UserLanguageProfileId(user.getId(), "en-US"))
+        .orElseThrow()
+        .recordLastTest(skipped.getId());
+
+    LanguageProfileResponse response = onboardingService.getLanguageProfile(user.getId(), "en-US");
+
+    assertThat(response.levelTest())
+        .isEqualTo(new LevelTestSummary(skipped.getId(), LevelTestStatus.SKIPPED));
   }
 
   @Test

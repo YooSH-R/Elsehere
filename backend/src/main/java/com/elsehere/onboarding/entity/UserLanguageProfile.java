@@ -37,6 +37,9 @@ public class UserLanguageProfile extends BaseEntity {
   @Column(nullable = false, columnDefinition = "smallint")
   private Integer selectedLevel;
 
+  // 마지막으로 시작하거나 건너뛴 레벨 테스트. ONB-08이 이 테스트의 상태로 화면 04·05를 나눈다.
+  private Long lastTestId;
+
   public static UserLanguageProfile start(User user, String languageCode) {
     UserLanguageProfile profile = new UserLanguageProfile();
     profile.id = new UserLanguageProfileId(user.getId(), languageCode);
@@ -47,5 +50,13 @@ public class UserLanguageProfile extends BaseEntity {
 
   public void selectLevel(int level) {
     this.selectedLevel = level;
+  }
+
+  public void recordLastTest(Long testId) {
+    this.lastTestId = testId;
+  }
+
+  public void recommendLevel(int level) {
+    this.recommendedLevel = level;
   }
 }

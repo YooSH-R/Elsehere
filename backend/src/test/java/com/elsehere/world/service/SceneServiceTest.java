@@ -43,7 +43,7 @@ class SceneServiceTest {
             new SceneSummaryResponse("HOME", "집", "HomeScene", true),
             new SceneSummaryResponse("TOWN", "마을", "TownScene", true),
             new SceneSummaryResponse("CAFE", "모퉁이 카페", "CafeScene", true),
-            new SceneSummaryResponse("HOTEL", "호텔", "HotelScene", false));
+            new SceneSummaryResponse("HOTEL", "호텔", "HotelScene", true));
   }
 
   @Test
@@ -176,16 +176,35 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("닫힌 장소(호텔)도 조회할 수 있으며 isOpen이 false다")
-  void getScene_closedScene_returnsNotOpen() {
+  @DisplayName("호텔 상세는 호텔 직원 Emma를 돌려준다")
+  void getScene_hotel_returnsHotelStaff() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
     SceneDetailResponse hotel = sceneService.getScene("HOTEL", userId);
 
-    assertThat(hotel.sceneCode()).isEqualTo("HOTEL");
-    assertThat(hotel.isOpen()).isFalse();
-    assertThat(hotel.npcs()).isEmpty();
-    assertThat(hotel.objects()).isEmpty();
+    assertThat(hotel.isOpen()).isTrue();
+    assertThat(hotel.npcs())
+        .containsExactly(
+            new NpcResponse("HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null));
+  }
+
+  @Test
+  @DisplayName("닫힌 장소도 조회할 수 있으며 isOpen이 false다")
+  void getScene_closedScene_returnsNotOpen() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    // MVP 시드에는 닫힌 장소가 없어 테스트에서 만든다.
+    entityManager
+        .createNativeQuery(
+            "insert into scenes (code, name, unity_key, is_open)"
+                + " values ('LIBRARY', '도서관', 'LibraryScene', false)")
+        .executeUpdate();
+
+    SceneDetailResponse library = sceneService.getScene("LIBRARY", userId);
+
+    assertThat(library.sceneCode()).isEqualTo("LIBRARY");
+    assertThat(library.isOpen()).isFalse();
+    assertThat(library.npcs()).isEmpty();
+    assertThat(library.objects()).isEmpty();
   }
 
   @Test

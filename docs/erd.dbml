@@ -94,7 +94,7 @@ Table scenes [headercolor: #2F4A7A] {
   code varchar(30) [not null, unique, note: 'HOME · TOWN · CAFE']
   name varchar(50) [not null]
   unity_key varchar(50) [not null, note: 'Unity 씬 이름 (HomeScene · CafeScene)']
-  is_open boolean [not null, default: false, note: '호텔 = false (이후)']
+  is_open boolean [not null, default: false, note: 'MVP는 집·마을·카페·호텔 모두 true. 이후 준비 중인 장소만 false']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 

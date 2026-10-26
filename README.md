@@ -41,6 +41,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 ├── infra/
 │   ├── compose/                 # 로컬·개발·운영 실행 구성
 │   ├── nginx/                   # 프록시 설정
+│   ├── monitoring/              # Prometheus·Grafana 설정과 API 대시보드
 │   └── scripts/                 # 배포, 상태 확인, 복구 스크립트
 ├── docs/
 │   ├── api/                     # API·스트리밍 메시지 규격
@@ -77,6 +78,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [일반 MR 템플릿](.gitlab/merge_request_templates/Default.md)
 - [릴리스 MR 템플릿](.gitlab/merge_request_templates/Release.md)
 - [검사 파이프라인과 Runner 연결](docs/ci-runner.md)
+- [요청 추적과 API 모니터링](docs/observability.md)
 
 ## 브랜치 흐름
 

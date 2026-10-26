@@ -146,7 +146,8 @@ class SceneServiceTest {
   @DisplayName("다른 사용자가 저장하거나 숨긴 사물은 내 사물 카드에 반영되지 않는다")
   void getScene_ignoresOtherUsersSettings() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
-    Long otherUserId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2");
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
     saveWord(otherUserId, "sofa");
     setHoverHidden(otherUserId, "tv", true);
 

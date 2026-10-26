@@ -1,0 +1,11 @@
+Use case: precise-object-edit.
+Edit target: the attached LITTLE MUNG v4 roster, 5 columns by 4 rows, twenty full-body characters on white.
+Task: one extremely localized correction ONLY to the dark iris/pupil positions of all TEN B / CLUSTER characters in the BOTTOM TWO ROWS. Produce the same complete sheet.
+
+For each B eye, translate the ENTIRE dark iris/pupil oval and its existing highlight to the CENTER OF THAT EYE'S OWN IVORY SCLERA OPENING. The pupil centroid should be at 50% of the visible eye opening's width and near 50% of its height. There should be balanced exposed ivory sclera on the left and right sides of EACH pupil. Both eyes look straight forward at the viewer, with parallel forward gaze. The present B pupils tend toward the nasal/inner sides: correct that. This is NOT bringing the two pupils together at the center of the face. Never make a convergent/cross-eyed or divergent gaze. Keep the oval pupil size, shape, color and tiny highlight exactly as original; only translate them inside their existing eye openings.
+
+LOCK the white eye openings themselves in their original positions, shapes and sizes. Preserve the B clustered eye-to-eye spacing and every existing brow, eyelash, eyelid, nose, mouth, face contour, cheek, head and ear. No eye enlargement, no moving whole eyes outward, no new facial expression.
+LOCK the entire TOP TWO ROWS, all A / WIDE characters: unchanged.
+LOCK every body, head-to-body ratio, pose, clothing, hairstyle, skin color, material, light, contact shadow and composition throughout. V4 remains ~60% crown-to-chin head and ~40% chin-to-sole body. Keep all 20 characters and their exact order. Do not redesign or regenerate their identities.
+LOCK every title/role label, font and label position exactly as supplied: "LITTLE MUNG v4", "A / WIDE", "B / CLUSTER", all twenty role labels. Same white backdrop and canvas framing. No new title suffix, captions, marks, arrows or insets.
+The only intentional image difference should be centered forward-looking iris/pupils in the existing B eye openings of the lower ten people, including the older woman behind her glasses.

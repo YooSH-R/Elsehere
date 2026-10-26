@@ -103,6 +103,20 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - 응답 `intent.slots`는 이 범위 안으로 정리됩니다: 목록에 없는 상품은 버리고, `iced_ok`가 아닌 상품의 `iced`는 `false`, 선택지는 `labels` 또는 `"none"`.
   수량 상한·가격 계산은 Spring 규칙이 합니다.
 
+## NPC와 터미널에서 대화해 보기
+
+프롬프트나 NPC 설정을 고친 뒤 실제 모델과 바로 주고받아 볼 때 씁니다. 서비스와 같은 NPC 대답 흐름(`app/npc.py`)을 서버 없이 부르고,
+턴마다 입력·출력 토큰, 크레딧, 첫 글자·전체 시간, 실제로 쓴 모델을 보여 줍니다. 끝내면(`/quit` 또는 Ctrl+Z, Enter) 대화 전체 합계가 나옵니다.
+
+```bash
+.venv/Scripts/python ../tools/npc_chat.py                         # 확인용 바리스타, 난이도 1(초급)
+.venv/Scripts/python ../tools/npc_chat.py --npc npc.json --greeting "Hi!" --level 2
+```
+
+- 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 키는 GMS 키(`GMS_KEY` 또는 `GMS_API_KEY`, 환경 변수 또는 저장소 루트 `.env`)만 있으면 되고, 음성 인식용 Groq 키는 필요 없습니다.
+- `--npc`는 `app/schemas.py`의 `Npc` 형식 JSON입니다. 크레딧은 `llm_profiles.json`의 단가로 계산하며, 같은 요청을 하나 더 보낸 턴은 진 쪽 토큰이 빠져 실제 차감이 더 클 수 있다고 표시합니다.
+- 입력을 파이프로 넘기면 줄마다 한 턴씩 말합니다 (`Get-Content lines.txt | .venv/Scripts/python ../tools/npc_chat.py`).
+
 ## 검사
 
 ```bash
@@ -131,5 +145,6 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`), GPT-5 요청 칸
+- `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 한 턴 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

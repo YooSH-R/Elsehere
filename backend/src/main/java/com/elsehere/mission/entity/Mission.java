@@ -27,6 +27,10 @@ public class Mission extends BaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  // 시드와 Unity에서 미션을 가리키는 고정 키 (예: CAFE_SOY_LATTE)
+  @Column(nullable = false, unique = true, length = 50)
+  private String code;
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "npc_id", nullable = false)
   private Npc npc;

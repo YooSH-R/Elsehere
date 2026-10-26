@@ -1,0 +1,14 @@
+PASS Blender 5.2.3 LTS source saved with 15 editable module collections.
+PASS Saved .blend -> FBX re-export: all 15 world-space bounding boxes match within 0.0001m.
+PASS Re-exported module triangle counts and manifest dimensions match.
+PASS Unity 6000.3.26f1 imported 15 module dimensions within 0.015m.
+PASS 21 nested prefabs saved: 15 parts, 3 floors, 3 building examples.
+PASS Cafe1F/2F/3F top heights: 4.4m / 7.4m / 10.4m.
+PASS Building children reference shared floor prefab assets.
+PASS Re-running the builder leaves all 21 saved prefab SHA-256 hashes unchanged.
+PASS Unity Play verification: 0 errors; see verification.txt.
+PASS CSharpier and Unity C# compilation/lint: exit 0, 0 errors.
+NOTE 7 existing CS0649 warnings in MockObjectWordSource and MockNpcLineSource.
+NOTE Modeling and Scene/Prefab assembly are exempt from test-first unit tests under frontend/AGENTS.md; verified through imports, nested references, actual Play movement and camera renders.
+NOTE Web build/performance, final v7 mesh/rig, seating animations and production scene integration are not verified.
+

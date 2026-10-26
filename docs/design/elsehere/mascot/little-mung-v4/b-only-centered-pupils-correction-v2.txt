@@ -1,0 +1,13 @@
+PRECISE LOCAL IMAGE EDIT. Do NOT regenerate or restyle this sheet. Keep all ten figures, all positions, body proportions, every hairstyle, outfit, text and all white eye outlines exactly as in the input.
+
+The input still looks CROSS-EYED. Correct EVERY black iris/pupil on the sheet by shifting it a small distance TOWARD ITS OWN TEMPLE, until centered inside its existing white opening. Both the dark oval and its tiny highlight move together. NO change to pupil size, no change to eye size, no change to the positions of the white eyes.
+
+Concrete correction example on the first woman at top-left, in this 1536 x 1024 image:
+Her screen-left white eye opening is around x=99..136. Its pupil is currently near x=124, too close to her nose. Move that black oval center LEFT to about x=117.
+Her screen-right white eye opening is around x=217..253. Its pupil is currently near x=228, too close to her nose. Move that black oval center RIGHT to about x=235.
+Keep vertical center at the existing eye center, about y=266.
+Apply the SAME PRINCIPLE to each of the other nine people: screen-left dark oval moves LEFT roughly 5-8 pixels; screen-right dark oval moves RIGHT roughly 5-8 pixels, adjusted to exactly HALF the white opening's width. This is only a quarter of an eye-width movement, not widening the whole eyes.
+For each individual eye separately, the distance between white left edge and dark oval left edge must EQUAL the distance between dark oval right edge and white right edge. Balance the actual exposed WHITE, not the eyelash silhouette. Both dark ovals face directly forward. Do not move the pupils together toward the middle of the FACE; center each inside its OWN EYE. Not cross-eyed, not looking off to the side, not wall-eyed.
+The old woman's glasses must stay exactly unchanged; center both dark ovals behind them as well.
+
+CRITICAL: change visible pupil placement rather than repeating the input's nasal-biased arrangement. Work as a localized retouch, NOT a new drawing. Output this same B-only 5-column 2-row sheet with title "LITTLE MUNG v4 · B", all original labels, matte 3D aesthetic and white background. All non-eye pixels should be preserved as closely as possible.

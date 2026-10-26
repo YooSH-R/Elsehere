@@ -14,6 +14,8 @@ import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.onboarding.dto.LanguageProfileResponse;
 import com.elsehere.onboarding.dto.LanguageSelectionResponse;
 import com.elsehere.onboarding.dto.LevelSelectionResponse;
+import com.elsehere.onboarding.dto.LevelTestSummary;
+import com.elsehere.onboarding.entity.LevelTestStatus;
 import com.elsehere.onboarding.service.ConversationLevel;
 import com.elsehere.onboarding.service.LanguageCatalog;
 import com.elsehere.onboarding.service.OnboardingService;
@@ -75,9 +77,10 @@ class OnboardingControllerTest {
                 "en-US",
                 1,
                 null,
+                null,
                 List.of(
-                    new ConversationLevel(1, true, "천천히, 쉬운 단어와 짧은 문장으로 말해요."),
-                    new ConversationLevel(2, false, null))));
+                    new ConversationLevel(1, "초급", true, "천천히, 쉬운 단어와 짧은 문장으로 말해요."),
+                    new ConversationLevel(2, "중급", false, null))));
 
     mockMvc
         .perform(get("/api/v1/me/languages/en-US").with(authentication(loggedIn(1L))))
@@ -88,6 +91,45 @@ class OnboardingControllerTest {
         .andExpect(jsonPath("$.levels[0].available").value(true))
         .andExpect(jsonPath("$.levels[1].available").value(false))
         .andExpect(jsonPath("$.levels[1].description").value(nullValue()));
+  }
+
+  @Test
+  @DisplayName("학습 설정 조회(ONB-08)는 마지막 레벨 테스트와 난이도 단계 이름을 담는다")
+  void getLanguageProfile_includesLastLevelTestAndLevelNames() throws Exception {
+    given(onboardingService.getLanguageProfile(1L, "en-US"))
+        .willReturn(
+            new LanguageProfileResponse(
+                "en-US",
+                null,
+                null,
+                new LevelTestSummary(10L, LevelTestStatus.SKIPPED),
+                List.of(new ConversationLevel(1, "초급", true, "천천히 말해요."))));
+
+    mockMvc
+        .perform(get("/api/v1/me/languages/en-US").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.levelTest.testId").value(10))
+        .andExpect(jsonPath("$.levelTest.status").value("SKIPPED"))
+        .andExpect(jsonPath("$.levels[0].name").value("초급"));
+  }
+
+  @Test
+  @DisplayName("레벨 테스트 기록이 없으면 학습 설정 조회(ONB-08) 응답에 levelTest를 담지 않는다")
+  void getLanguageProfileWithoutLevelTest_omitsLevelTest() throws Exception {
+    given(onboardingService.getLanguageProfile(1L, "en-US"))
+        .willReturn(
+            new LanguageProfileResponse(
+                "en-US",
+                null,
+                null,
+                null,
+                List.of(new ConversationLevel(1, "초급", true, "천천히 말해요."))));
+
+    mockMvc
+        .perform(get("/api/v1/me/languages/en-US").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.levelTest").doesNotExist())
+        .andExpect(jsonPath("$.recommendedLevel").value(nullValue()));
   }
 
   @Test

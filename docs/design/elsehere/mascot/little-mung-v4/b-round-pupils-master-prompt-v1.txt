@@ -1,0 +1,7 @@
+Use case: precise-object-edit.
+Edit target: the supplied image is the ORIGINAL approved Little Mung v4 B/CLUSTER character, cropped from the original master. This is the sole reference.
+Make one extremely local change: reshape the two dark vertical oval pupils into round circles of similar visual area, keeping each pupil's existing CENTER POSITION and the tiny white highlight. The circles should be approximately as wide as they are tall. The present pupils are taller than wide; slightly widen and shorten each pupil around its current center, for a gentle cute round appearance.
+
+Preserve the entire rest of this exact character: the two eye openings and their very CLOSE spacing, the nose, mouth, eyebrows, lashes, expression, huge broad face, short bob, hair scallops, small body, outfit, pose, and head-to-body ratio. Keep the eye centers only about one third of the face width apart, with large empty cheek areas outside the eyes. Do not move the eyes outward or enlarge the eye openings. Do not recenter the pupils in the whites. Preserve the existing gaze direction. Preserve ivory sclera and small cocoa-black pupils. Do not make a staring expression.
+
+Output one large full-body character on plain white, the same frontal pose and same matte stylized 3D render. Remove the partial stray text in the upper left corner. No new text, no other characters, no alternate versions, no layout redesign. This is a round-pupil-only revision of the exact reference, not a new character design.

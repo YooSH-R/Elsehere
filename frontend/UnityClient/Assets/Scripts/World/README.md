@@ -21,7 +21,7 @@
 
 ## 공간과 출입구
 
-씬은 `Assets/Scenes/Production/`에 있고 Scene List에 이 순서로 등록되어 `HomeScene`에서 시작합니다. 출입구 이름은 이어지는 공간 + `Door`로 짓습니다.
+씬은 `Assets/Scenes/Production/`에 있고 Scene List에서 입구 화면(`EntryScene`) 다음에 이 순서로 등록됩니다. 튜토리얼은 `HomeScene`에서 시작합니다. 출입구 이름은 이어지는 공간 + `Door`로 짓습니다.
 
 | 씬 | 출입구 | 이어지는 곳 |
 | --- | --- | --- |

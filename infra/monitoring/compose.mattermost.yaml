@@ -1,0 +1,17 @@
+# Enabling this file and preparing its webhook requires explicit channel approval.
+services:
+  alertmanager:
+    volumes:
+      - ./alertmanager.mattermost.yml:/etc/alertmanager/alertmanager.yml:ro
+    secrets:
+      - mattermost-webhook-url
+    networks:
+      - monitoring
+      - notification-egress
+
+networks:
+  notification-egress: {}
+
+secrets:
+  mattermost-webhook-url:
+    file: ${MONITORING_SECRETS_DIRECTORY:?Set the server secret directory}/mattermost-webhook-url

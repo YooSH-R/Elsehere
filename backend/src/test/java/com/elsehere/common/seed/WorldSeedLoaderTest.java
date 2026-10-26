@@ -51,7 +51,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("장소 4개를 코드·이름·Unity 씬 이름·열림 여부와 함께 넣고, 호텔만 닫아 둔다")
+  @DisplayName("장소 4개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
   void load_insertsScenes() {
     worldSeedLoader.load();
 
@@ -61,7 +61,7 @@ class WorldSeedLoaderTest {
             tuple("HOME", "집", "HomeScene", true),
             tuple("TOWN", "마을", "TownScene", true),
             tuple("CAFE", "모퉁이 카페", "CafeScene", true),
-            tuple("HOTEL", "호텔", "HotelScene", false));
+            tuple("HOTEL", "호텔", "HotelScene", true));
   }
 
   @Test
@@ -104,7 +104,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("NPC 2명을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName("NPC 3명(행인·카페 직원·호텔 직원)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -126,11 +126,12 @@ class WorldSeedLoaderTest {
                 "행인",
                 true,
                 "Hi there! Nice weather today, isn't it?"),
-            tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null));
+            tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null),
+            tuple("HOTEL", "HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null));
   }
 
   @Test
-  @DisplayName("미션 2개를 코드와 함께 카페 직원에게 연결하고 완료 키워드를 넣는다")
+  @DisplayName("미션 2개를 코드와 함께 카페 직원·호텔 직원에게 하나씩 연결하고 완료 키워드를 넣는다")
   void load_insertsMissions() {
     worldSeedLoader.load();
 
@@ -142,7 +143,7 @@ class WorldSeedLoaderTest {
             Mission::getKeywords)
         .containsExactlyInAnyOrder(
             tuple("CAFE_SOY_LATTE", "CAFE_STAFF", "나만의 카페라테 주문하기", "[\"soy\", \"latte\"]"),
-            tuple("CAFE_DESSERT", "CAFE_STAFF", "달콤한 디저트 찾기", "[\"dessert\"]"));
+            tuple("HOTEL_CHECK_IN", "HOTEL_STAFF", "호텔에 체크인하기", "[\"check in\"]"));
   }
 
   @Test
@@ -154,7 +155,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(4);
     assertThat(vocabularyRepository.count()).isEqualTo(8);
     assertThat(worldObjectRepository.count()).isEqualTo(8);
-    assertThat(npcRepository.count()).isEqualTo(2);
+    assertThat(npcRepository.count()).isEqualTo(3);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 

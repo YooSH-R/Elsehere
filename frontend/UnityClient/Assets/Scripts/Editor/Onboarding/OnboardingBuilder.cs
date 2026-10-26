@@ -1,0 +1,685 @@
+using System.Collections.Generic;
+using System.Linq;
+using A305.Api;
+using A305.EditorTools.Common;
+using A305.EditorTools.UI;
+using A305.Onboarding;
+using TMPro;
+using UnityEditor;
+using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using BrowserImeInput = WebGLSupport.WebGLInput;
+
+namespace A305.EditorTools.Onboarding
+{
+    /// <summary>
+    /// 입구 화면(01~05) 프리팹과 설정 에셋, 확인용 Sandbox 씬, 배포용 EntryScene을 만든다.
+    /// 화면은 없는 요소만 만들고 이미 있는 요소의 디자인은 유지한다. EntryScene은 Scene List의 첫 씬으로 둔다.
+    /// </summary>
+    public static class OnboardingBuilder
+    {
+        public const string MenuPath = "Tools/A305/Onboarding/Build";
+        public const string EntryScenePath = "Assets/Scenes/Production/EntryScene.unity";
+
+        private const string ScreensPrefabPath = "Assets/Prefabs/Onboarding/EntryScreens.prefab";
+        private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
+        private const string OnboardingSettingsPath =
+            "Assets/Data/Onboarding/OnboardingSettings.asset";
+        private const string SandboxScenePath = "Assets/Scenes/Sandbox/OnboardingSandbox.unity";
+        private const string ImeCheckScenePath =
+            "Assets/Scenes/Sandbox/OnboardingImeCheckSandbox.unity";
+
+        private const float PanelWidth = 820f;
+        private const int NicknameCharacterLimit = 16;
+
+        private static readonly Color BackgroundColor = new Color(0.06f, 0.07f, 0.1f, 1f);
+        private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
+        private static readonly Color HintColor = new Color(0.62f, 0.8f, 1f);
+        private static readonly Color BadgeColor = new Color(1f, 0.82f, 0.4f);
+        private static readonly Color CardColor = new Color(0.16f, 0.18f, 0.24f, 1f);
+        private static readonly Color SecondaryButtonColor = new Color(0.3f, 0.32f, 0.38f, 1f);
+
+        [MenuItem(MenuPath)]
+        public static void Build()
+        {
+            if (!BuilderTools.CanBuild())
+            {
+                return;
+            }
+
+            PrepareAssets();
+            BuildSandbox();
+            PrepareEntryScene();
+            AssetDatabase.SaveAssets();
+            Debug.Log($"입구 화면을 준비했습니다: {ScreensPrefabPath}, {EntryScenePath}");
+        }
+
+        /// <summary>
+        /// 한글 입력(IME) 확인용 Web 빌드. 가입 화면은 Google 가입 대기 세션이 있어야 열리므로, 닉네임 입력창과 같은 설정의 입력창 하나만
+        /// 둔 Sandbox 씬을 Builds/ImeCheck로 빌드한다. 브라우저에서 열어 한글을 입력해 확인한다.
+        /// </summary>
+        [MenuItem("Tools/A305/Onboarding/Build Ime Check Web")]
+        public static void BuildImeCheckWeb()
+        {
+            if (!BuilderTools.CanBuild())
+            {
+                return;
+            }
+
+            SceneGroups groups = BuilderTools.NewSceneWithGroups();
+            BuilderTools.EnsureEventSystem(groups);
+            EnsureCamera(groups);
+            var canvas = new GameObject("ImeCheckCanvas");
+            canvas.transform.SetParent(groups.UI, false);
+            UiBuilderTools.EnsureOverlayCanvas(canvas, 0, receivesClicks: true);
+            RectTransform panel = CenterPanel(canvas.transform, "Panel");
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Guide",
+                UiBuilderTools.BoldFont(),
+                28f,
+                Color.white,
+                "입력창을 누르고 한글을 입력해 보세요."
+            );
+            CreateNicknameInput(panel, UiBuilderTools.RegularFont());
+            BuilderTools.SaveScene(groups.Scene, ImeCheckScenePath);
+
+            BuildReport report = BuildPipeline.BuildPlayer(
+                new[] { ImeCheckScenePath },
+                "Builds/ImeCheck",
+                BuildTarget.WebGL,
+                BuildOptions.None
+            );
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                throw new System.InvalidOperationException(
+                    $"한글 입력 확인 빌드 실패: {report.summary.result}"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Scene List 앞에 둘 씬 목록 맨 앞에 EntryScene을 붙인다. EntryScene이 아직 없으면 그대로 돌려준다.
+        /// 다른 Builder가 Scene List 순서를 다시 맞출 때도 입구 화면에서 시작하게 하기 위함이다.
+        /// </summary>
+        public static IReadOnlyCollection<string> WithEntrySceneFirst(
+            IEnumerable<string> leadingScenePaths
+        )
+        {
+            List<string> paths = leadingScenePaths.Where(path => path != EntryScenePath).ToList();
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(EntryScenePath) != null)
+            {
+                paths.Insert(0, EntryScenePath);
+            }
+
+            return paths;
+        }
+
+        private static void PrepareAssets()
+        {
+            BuilderTools.LoadOrCreateAsset<ApiSettings>(ApiSettingsPath);
+            BuilderTools.LoadOrCreateAsset<OnboardingSettings>(OnboardingSettingsPath);
+            BuilderTools.UpdateOrCreatePrefab(ScreensPrefabPath, "EntryScreens", SetUpScreens);
+        }
+
+        // Sandbox 씬은 확인용이라 다시 만들 때 덮어쓴다.
+        private static void BuildSandbox()
+        {
+            SceneGroups groups = BuilderTools.NewSceneWithGroups();
+            ConnectToScene(groups);
+            BuilderTools.SaveScene(groups.Scene, SandboxScenePath);
+        }
+
+        // 배포용 씬은 없을 때만 만들고, 있으면 열어서 연결만 맞춘다.
+        private static void PrepareEntryScene()
+        {
+            bool exists = AssetDatabase.LoadAssetAtPath<SceneAsset>(EntryScenePath) != null;
+            Scene scene = exists
+                ? EditorSceneManager.OpenScene(EntryScenePath, OpenSceneMode.Single)
+                : EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            ConnectToScene(BuilderTools.EnsureGroups(scene));
+            BuilderTools.SaveScene(scene, EntryScenePath);
+            BuilderTools.PutFirstInSceneList(WithEntrySceneFirst(new string[0]));
+        }
+
+        private static void ConnectToScene(SceneGroups groups)
+        {
+            BuilderTools.EnsureEventSystem(groups);
+            EnsureCamera(groups);
+            if (BuilderTools.FindSingleInScene<OnboardingScreen>(groups.Scene) == null)
+            {
+                BuilderTools.InstantiatePrefab(
+                    BuilderTools.LoadRequiredAsset<GameObject>(ScreensPrefabPath, MenuPath),
+                    groups.UI,
+                    Vector3.zero,
+                    Quaternion.identity
+                );
+            }
+        }
+
+        // 입구 화면에는 공간이 없어 화면 UI 뒤를 채울 카메라만 둔다.
+        private static void EnsureCamera(SceneGroups groups)
+        {
+            if (BuilderTools.FindSingleInScene<Camera>(groups.Scene) != null)
+            {
+                return;
+            }
+
+            var camera = BuilderTools
+                .CreateEmpty("EntryCamera", groups.Environment, Vector3.zero, Quaternion.identity)
+                .gameObject.AddComponent<Camera>();
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = BackgroundColor;
+        }
+
+        private static void SetUpScreens(GameObject root)
+        {
+            UiBuilderTools.EnsureOverlayCanvas(root, 0, receivesClicks: true);
+            var inputGroup = BuilderTools.GetOrAddComponent<CanvasGroup>(root);
+            var screen = BuilderTools.GetOrAddComponent<OnboardingScreen>(root);
+            TMP_FontAsset bold = UiBuilderTools.BoldFont();
+            TMP_FontAsset regular = UiBuilderTools.RegularFont();
+
+            EnsureBackground(root.transform);
+            bool isNewMessage = root.transform.Find("Message") == null;
+            TMP_Text message = UiBuilderTools.FindOrCreateText(
+                root.transform,
+                "Message",
+                regular,
+                22f,
+                BadgeColor
+            );
+            if (isNewMessage)
+            {
+                AnchorBottom((RectTransform)message.transform);
+            }
+
+            BuilderTools.SetReference(
+                screen,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(ApiSettingsPath, MenuPath)
+            );
+            BuilderTools.SetReference(
+                screen,
+                "settings",
+                BuilderTools.LoadRequiredAsset<OnboardingSettings>(OnboardingSettingsPath, MenuPath)
+            );
+            BuilderTools.SetReference(screen, "inputGroup", inputGroup);
+            BuilderTools.SetReference(screen, "messageText", message);
+            BuilderTools.SetReference(screen, "loginPanel", SetUpLoginPanel(root, bold, regular));
+            BuilderTools.SetReference(screen, "signupPanel", SetUpSignupPanel(root, bold, regular));
+            BuilderTools.SetReference(
+                screen,
+                "languagePanel",
+                SetUpLanguagePanel(root, bold, regular)
+            );
+            BuilderTools.SetReference(
+                screen,
+                "levelTestPanel",
+                SetUpLevelTestPanel(root, bold, regular)
+            );
+            BuilderTools.SetReference(
+                screen,
+                "levelSettingPanel",
+                SetUpLevelSettingPanel(root, bold, regular)
+            );
+            BuilderTools.RequireReferences(screen);
+        }
+
+        private static LoginPanelView SetUpLoginPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "LoginPanel");
+            var view = BuilderTools.GetOrAddComponent<LoginPanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 48f, Color.white, "Elsehere");
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Subtitle",
+                regular,
+                24f,
+                SubTextColor,
+                "3D 마을에서 NPC와 영어로 대화해요."
+            );
+            Button google = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "GoogleButton",
+                "Google로 계속하기",
+                bold,
+                PanelWidth
+            );
+            Button devLogin = FindOrCreateSecondaryButton(
+                panel,
+                "DevLoginButton",
+                "개발용 로그인",
+                regular,
+                PanelWidth
+            );
+            TMP_Text notice = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Notice",
+                regular,
+                20f,
+                BadgeColor
+            );
+
+            BuilderTools.SetReference(view, "googleButton", google);
+            BuilderTools.SetReference(view, "devLoginButton", devLogin);
+            BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        private static SignupPanelView SetUpSignupPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "SignupPanel");
+            var view = BuilderTools.GetOrAddComponent<SignupPanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                36f,
+                Color.white,
+                "가입 정보 입력"
+            );
+
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "NicknameLabel",
+                bold,
+                22f,
+                Color.white,
+                "닉네임"
+            );
+            RectTransform nicknameRow = UiBuilderTools.FindOrCreateButtonRow(panel, "NicknameRow");
+            TMP_InputField nickname = CreateNicknameInput(nicknameRow, regular);
+            Button checkNickname = UiBuilderTools.FindOrCreateButton(
+                nicknameRow,
+                "CheckNicknameButton",
+                "중복 확인",
+                regular,
+                180f
+            );
+            TMP_Text hint = UiBuilderTools.FindOrCreateText(
+                panel,
+                "NicknameHint",
+                regular,
+                20f,
+                HintColor
+            );
+
+            UiBuilderTools.FindOrCreateText(panel, "AvatarLabel", bold, 22f, Color.white, "캐릭터");
+            RectTransform avatarRow = UiBuilderTools.FindOrCreateButtonRow(panel, "AvatarRow");
+            Button female = UiBuilderTools.FindOrCreateButton(
+                avatarRow,
+                "FemaleButton",
+                "여성",
+                regular
+            );
+            Button male = UiBuilderTools.FindOrCreateButton(
+                avatarRow,
+                "MaleButton",
+                "남성",
+                regular
+            );
+
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "ConsentsLabel",
+                bold,
+                22f,
+                Color.white,
+                "약관 동의"
+            );
+            RectTransform consents = UiBuilderTools.FindOrCreateColumn(panel, "Consents");
+            ConsentRowView consentTemplate = SetUpConsentTemplate(consents, regular);
+
+            Button submit = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "SubmitButton",
+                "가입하기",
+                bold,
+                PanelWidth
+            );
+
+            BuilderTools.SetReference(view, "nicknameInput", nickname);
+            BuilderTools.SetReference(view, "checkNicknameButton", checkNickname);
+            BuilderTools.SetReference(view, "nicknameHintText", hint);
+            BuilderTools.SetReference(view, "femaleButton", female);
+            BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "consentsParent", consents);
+            BuilderTools.SetReference(view, "consentTemplate", consentTemplate);
+            BuilderTools.SetReference(view, "submitButton", submit);
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        private static TMP_InputField CreateNicknameInput(Transform parent, TMP_FontAsset regular)
+        {
+            TMP_InputField nickname = UiBuilderTools.FindOrCreateInputField(
+                parent,
+                "NicknameInput",
+                regular,
+                "NPC가 부를 이름"
+            );
+            nickname.characterLimit = NicknameCharacterLimit;
+            // Web 빌드의 입력창은 한글 조합(IME)을 받지 못해 브라우저 입력창을 겹쳐 받는다.
+            BuilderTools.GetOrAddComponent<BrowserImeInput>(nickname.gameObject);
+            return nickname;
+        }
+
+        // 약관 수는 서버 데이터에 따라 달라지므로 한 줄을 템플릿으로 두고 실행 중에 복제한다.
+        private static ConsentRowView SetUpConsentTemplate(
+            Transform consents,
+            TMP_FontAsset regular
+        )
+        {
+            bool isNew = consents.Find("ConsentRowTemplate") == null;
+            RectTransform template = UiBuilderTools.FindOrCreateButtonRow(
+                consents,
+                "ConsentRowTemplate"
+            );
+            if (isNew)
+            {
+                template.GetComponent<HorizontalLayoutGroup>().childAlignment =
+                    TextAnchor.MiddleLeft;
+            }
+
+            var row = BuilderTools.GetOrAddComponent<ConsentRowView>(template.gameObject);
+            Toggle toggle = FindOrCreateToggle(template, "Toggle");
+            TMP_Text label = UiBuilderTools.FindOrCreateText(
+                template,
+                "Label",
+                regular,
+                22f,
+                Color.white
+            );
+            if (isNew)
+            {
+                BuilderTools.GetOrAddComponent<LayoutElement>(label.gameObject).flexibleWidth = 1f;
+            }
+
+            Button view = FindOrCreateSecondaryButton(
+                template,
+                "ViewButton",
+                "보기",
+                regular,
+                100f
+            );
+
+            BuilderTools.SetReference(row, "toggle", toggle);
+            BuilderTools.SetReference(row, "labelText", label);
+            BuilderTools.SetReference(row, "viewButton", view);
+            BuilderTools.RequireReferences(row);
+            return row;
+        }
+
+        private static LanguagePanelView SetUpLanguagePanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "LanguagePanel");
+            var view = BuilderTools.GetOrAddComponent<LanguagePanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                36f,
+                Color.white,
+                "배울 언어를 골라 주세요"
+            );
+            RectTransform cards = UiBuilderTools.FindOrCreateColumn(panel, "Cards");
+
+            BuilderTools.SetReference(view, "cardsParent", cards);
+            BuilderTools.SetReference(
+                view,
+                "cardTemplate",
+                SetUpCardTemplate(cards, bold, regular)
+            );
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        private static LevelTestPanelView SetUpLevelTestPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "LevelTestPanel");
+            var view = BuilderTools.GetOrAddComponent<LevelTestPanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 36f, Color.white, "레벨 테스트");
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Body",
+                regular,
+                24f,
+                SubTextColor,
+                "대화 난이도를 정하기 위해 간단한 문제를 풀어 볼 수 있어요."
+            );
+            Button start = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "StartButton",
+                "레벨 테스트 진행하기 (준비 중)",
+                bold,
+                PanelWidth
+            );
+            Button skip = FindOrCreateSecondaryButton(
+                panel,
+                "SkipButton",
+                "건너뛰기",
+                regular,
+                PanelWidth
+            );
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "SkipNote",
+                regular,
+                20f,
+                SubTextColor,
+                "건너뛰면 초급으로 시작해요."
+            );
+
+            BuilderTools.SetReference(view, "startButton", start);
+            BuilderTools.SetReference(view, "skipButton", skip);
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        private static LevelSettingPanelView SetUpLevelSettingPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "LevelSettingPanel");
+            var view = BuilderTools.GetOrAddComponent<LevelSettingPanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                36f,
+                Color.white,
+                "대화 난이도를 설정하세요"
+            );
+            RectTransform cards = UiBuilderTools.FindOrCreateColumn(panel, "Cards");
+            ChoiceCardView cardTemplate = SetUpCardTemplate(cards, bold, regular);
+            Button confirm = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "ConfirmButton",
+                "설정 완료",
+                bold,
+                PanelWidth
+            );
+
+            BuilderTools.SetReference(view, "cardsParent", cards);
+            BuilderTools.SetReference(view, "cardTemplate", cardTemplate);
+            BuilderTools.SetReference(view, "confirmButton", confirm);
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        // 언어·난이도 카드. 개수가 서버 데이터에 따라 달라지므로 템플릿으로 두고 실행 중에 복제한다.
+        private static ChoiceCardView SetUpCardTemplate(
+            Transform cards,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            bool isNew = cards.Find("CardTemplate") == null;
+            RectTransform template = UiBuilderTools.FindOrCreateColumn(cards, "CardTemplate");
+            var background = BuilderTools.GetOrAddComponent<Image>(template.gameObject);
+            if (isNew)
+            {
+                template.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(
+                    24,
+                    24,
+                    16,
+                    16
+                );
+                background.color = CardColor;
+            }
+
+            var button = BuilderTools.GetOrAddComponent<Button>(template.gameObject);
+            button.targetGraphic = background;
+            var card = BuilderTools.GetOrAddComponent<ChoiceCardView>(template.gameObject);
+
+            TMP_Text title = UiBuilderTools.FindOrCreateText(
+                template,
+                "Title",
+                bold,
+                28f,
+                Color.white
+            );
+            TMP_Text description = UiBuilderTools.FindOrCreateText(
+                template,
+                "Description",
+                regular,
+                20f,
+                SubTextColor
+            );
+            TMP_Text badge = UiBuilderTools.FindOrCreateText(
+                template,
+                "Badge",
+                bold,
+                18f,
+                BadgeColor
+            );
+
+            BuilderTools.SetReference(card, "button", button);
+            BuilderTools.SetReference(card, "background", background);
+            BuilderTools.SetReference(card, "titleText", title);
+            BuilderTools.SetReference(card, "descriptionText", description);
+            BuilderTools.SetReference(card, "badgeText", badge);
+            BuilderTools.RequireReferences(card);
+            return card;
+        }
+
+        private static RectTransform CenterPanel(Transform root, string panelName)
+        {
+            return UiBuilderTools.FindOrCreateAnchoredPanel(
+                root,
+                panelName,
+                new Vector2(0.5f, 0.5f),
+                PanelWidth + 80f,
+                Vector2.zero
+            );
+        }
+
+        private static void EnsureBackground(Transform root)
+        {
+            if (root.Find("Background") != null)
+            {
+                return;
+            }
+
+            var background = new GameObject("Background", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)background.transform;
+            rect.SetParent(root, false);
+            rect.SetAsFirstSibling();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            background.GetComponent<Image>().color = BackgroundColor;
+        }
+
+        private static void AnchorBottom(RectTransform rect)
+        {
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(0f, 40f);
+            rect.sizeDelta = new Vector2(PanelWidth, 40f);
+            rect.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.Center;
+        }
+
+        // 보조 동작 버튼은 처음 만들 때만 회색으로 칠한다. 이미 있으면 바꾼 디자인을 유지한다.
+        private static Button FindOrCreateSecondaryButton(
+            Transform parent,
+            string buttonName,
+            string label,
+            TMP_FontAsset font,
+            float preferredWidth
+        )
+        {
+            bool isNew = parent.Find(buttonName) == null;
+            Button button = UiBuilderTools.FindOrCreateButton(
+                parent,
+                buttonName,
+                label,
+                font,
+                preferredWidth
+            );
+            if (isNew)
+            {
+                ((Image)button.targetGraphic).color = SecondaryButtonColor;
+            }
+
+            return button;
+        }
+
+        private static Toggle FindOrCreateToggle(Transform parent, string toggleName)
+        {
+            Transform existing = parent.Find(toggleName);
+            if (existing != null && existing.TryGetComponent(out Toggle existingToggle))
+            {
+                return existingToggle;
+            }
+
+            var toggleObject = new GameObject(toggleName, typeof(RectTransform), typeof(Image));
+            toggleObject.transform.SetParent(parent, false);
+            var box = toggleObject.GetComponent<Image>();
+            box.color = Color.white;
+            var size = toggleObject.AddComponent<LayoutElement>();
+            size.preferredWidth = 36f;
+            size.preferredHeight = 36f;
+
+            var checkmark = new GameObject("Checkmark", typeof(RectTransform), typeof(Image));
+            var checkmarkRect = (RectTransform)checkmark.transform;
+            checkmarkRect.SetParent(toggleObject.transform, false);
+            checkmarkRect.anchorMin = new Vector2(0.2f, 0.2f);
+            checkmarkRect.anchorMax = new Vector2(0.8f, 0.8f);
+            checkmarkRect.offsetMin = Vector2.zero;
+            checkmarkRect.offsetMax = Vector2.zero;
+            checkmark.GetComponent<Image>().color = new Color(0.24f, 0.42f, 0.85f, 1f);
+
+            var toggle = toggleObject.AddComponent<Toggle>();
+            toggle.targetGraphic = box;
+            toggle.graphic = checkmark.GetComponent<Image>();
+            toggle.isOn = false;
+            return toggle;
+        }
+    }
+}

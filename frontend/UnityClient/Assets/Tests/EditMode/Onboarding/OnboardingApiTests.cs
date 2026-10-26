@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
@@ -73,6 +74,25 @@ namespace A305.Onboarding.Tests
             );
             Assert.That(transport.LastRequest.JsonBody, Is.EqualTo("{\"selectedLevel\":1}"));
             Assert.That(response.OnboardingStep, Is.EqualTo(OnboardingStep.Tutorial));
+        }
+
+        [Test]
+        public async Task GetScenes_ReadsUnitySceneOfEachPlace()
+        {
+            transport.Reply(
+                "[{\"sceneCode\": \"CAFE\", \"name\": \"모퉁이 카페\", \"unityKey\": \"CafeScene\", \"isOpen\": true}]"
+            );
+
+            List<SceneSummary> scenes = await api.GetScenesAsync();
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("GET"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/scenes")
+            );
+            Assert.That(scenes[0].SceneCode, Is.EqualTo("CAFE"));
+            Assert.That(scenes[0].UnityKey, Is.EqualTo("CafeScene"));
+            Assert.That(scenes[0].IsOpen, Is.True);
         }
 
         private sealed class RecordingTransport : IApiTransport

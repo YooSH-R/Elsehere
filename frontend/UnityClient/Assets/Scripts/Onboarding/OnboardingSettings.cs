@@ -14,7 +14,7 @@ namespace A305.Onboarding
         private string tutorialSceneName = "HomeScene";
 
         [SerializeField]
-        [Tooltip("초기 설정을 마친 사용자가 들어가는 씬")]
+        [Tooltip("초기 설정을 마친 사용자가 재접속할 장소가 없을 때 들어가는 씬")]
         private string worldSceneName = "TownScene";
 
         [SerializeField]

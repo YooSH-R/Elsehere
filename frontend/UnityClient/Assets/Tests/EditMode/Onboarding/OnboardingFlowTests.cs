@@ -68,6 +68,46 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task StartWhenDoneWithLastScene_OpensUnitySceneOfThatPlace()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.LastSceneCode = "CAFE";
+
+            await flow.StartAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.World));
+            Assert.That(flow.LastSceneName, Is.EqualTo("CafeScene"));
+        }
+
+        [Test]
+        public async Task StartWhenDoneWithoutLastScene_OpensDefaultWorldWithoutAskingPlaces()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+
+            await flow.StartAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.World));
+            Assert.That(flow.LastSceneName, Is.Null);
+            Assert.That(api.ScenesRequested, Is.False);
+        }
+
+        // 닫힌 장소(HOTEL)이거나 목록에 없는 장소(AIRPORT)면 마을에서 시작한다.
+        [TestCase("HOTEL")]
+        [TestCase("AIRPORT")]
+        public async Task StartWhenLastSceneIsClosedOrUnknown_OpensDefaultWorld(
+            string lastSceneCode
+        )
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.LastSceneCode = lastSceneCode;
+
+            await flow.StartAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.World));
+            Assert.That(flow.LastSceneName, Is.Null);
+        }
+
+        [Test]
         public async Task CheckNickname_RecordsAvailabilityOfTypedNickname()
         {
             await StartAtSignup();
@@ -249,6 +289,30 @@ namespace A305.Onboarding.Tests
                     },
                 };
 
+            public List<SceneSummary> Scenes { get; } =
+                new List<SceneSummary>
+                {
+                    new SceneSummary
+                    {
+                        SceneCode = "TOWN",
+                        UnityKey = "TownScene",
+                        IsOpen = true,
+                    },
+                    new SceneSummary
+                    {
+                        SceneCode = "CAFE",
+                        UnityKey = "CafeScene",
+                        IsOpen = true,
+                    },
+                    new SceneSummary
+                    {
+                        SceneCode = "HOTEL",
+                        UnityKey = "HotelScene",
+                        IsOpen = false,
+                    },
+                };
+
+            public bool ScenesRequested { get; private set; }
             public string NicknameCheckedFor { get; private set; }
             public SignupRequest SignupSent { get; private set; }
             public string LanguageChosen { get; private set; }
@@ -334,6 +398,12 @@ namespace A305.Onboarding.Tests
                 return Task.FromResult(
                     new LevelTestResultResponse { Status = LevelTestStatus.Skipped }
                 );
+            }
+
+            public Task<List<SceneSummary>> GetScenesAsync()
+            {
+                ScenesRequested = true;
+                return Task.FromResult(Scenes);
             }
 
             public Task<LevelSelectionResponse> SelectLevelAsync(string languageCode, int level)

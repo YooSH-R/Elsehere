@@ -110,6 +110,15 @@ namespace A305.Onboarding
             Render();
         }
 
+        // 재접속할 장소가 없거나, 서버가 알려 준 씬이 이 빌드의 Scene List에 없으면 기본 마을로 간다.
+        private string WorldSceneName()
+        {
+            string lastScene = flow.LastSceneName;
+            return lastScene != null && Application.CanStreamedLevelBeLoaded(lastScene)
+                ? lastScene
+                : settings.WorldSceneName;
+        }
+
         private void Render()
         {
             messageText.text = flow.ErrorMessage ?? "";
@@ -119,7 +128,7 @@ namespace A305.Onboarding
                     SceneManager.LoadScene(settings.TutorialSceneName);
                     return;
                 case EntryScreen.World:
-                    SceneManager.LoadScene(settings.WorldSceneName);
+                    SceneManager.LoadScene(WorldSceneName());
                     return;
                 case EntryScreen.Login:
                     ShowOnly(loginPanel.gameObject);

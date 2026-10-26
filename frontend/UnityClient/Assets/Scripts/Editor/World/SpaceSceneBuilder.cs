@@ -2,6 +2,7 @@ using System;
 using A305.EditorTools.Common;
 using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
+using A305.EditorTools.Onboarding;
 using A305.EditorTools.Player;
 using A305.World;
 using UnityEditor;
@@ -88,8 +89,9 @@ namespace A305.EditorTools.World
                 ),
             };
 
-            // 첫 번째 씬(방)에서 시작한다. 디자인하며 추가한 다른 공간 씬은 그 뒤에 그대로 둔다.
-            BuilderTools.PutFirstInSceneList(scenePaths);
+            // 입구 화면(EntryScene)이 있으면 그 씬에서 시작하고, 이어서 첫 번째 공간(방)을 둔다.
+            // 디자인하며 추가한 다른 공간 씬은 그 뒤에 그대로 둔다.
+            BuilderTools.PutFirstInSceneList(OnboardingBuilder.WithEntrySceneFirst(scenePaths));
             ObjectHoverBuilder.AddWordKeysToSpacePrefabs();
             NpcBuilder.PlacePasserbysInTown();
             NpcBuilder.PlaceStaffInCafe();

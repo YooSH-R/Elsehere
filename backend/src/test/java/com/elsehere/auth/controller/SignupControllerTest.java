@@ -113,9 +113,9 @@ class SignupControllerTest {
   }
 
   @Test
-  @DisplayName("닉네임이 30자를 넘으면 400 VALIDATION_FAILED로 응답한다")
-  void tooLongNickname_isRejected() throws Exception {
-    String nickname31 = "a".repeat(31);
+  @DisplayName("닉네임을 한글 2, 영문·숫자 1로 센 합계가 16을 넘으면 400 VALIDATION_FAILED로 응답한다")
+  void nicknameWiderThanSixteen_isRejected() throws Exception {
+    String nickname17 = "a".repeat(17);
 
     mockMvc
         .perform(
@@ -125,8 +125,22 @@ class SignupControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     "{\"nickname\": \""
-                        + nickname31
+                        + nickname17
                         + "\", \"avatarType\": \"F\", \"consents\": []}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  @DisplayName("닉네임 규칙에 맞지 않는 글자가 있으면 400 VALIDATION_FAILED로 응답한다")
+  void nicknameBreakingRule_isRejected() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/auth/signup")
+                .session(pendingSession())
+                .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nickname\": \"Sun!\", \"avatarType\": \"F\", \"consents\": []}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
   }

@@ -80,6 +80,7 @@ def create_app(
                     "event": "start",
                     "profile": s.profile,
                     "models": s.models,
+                    "stt_fallback": s.stt_fallback,
                     "tts": bool(app.state.tts),
                     "guard_local": gl and {"model": gl.name, "context": gl.context, "t_lo": s.guard_t_lo, "t_hi": s.guard_t_hi},
                 },

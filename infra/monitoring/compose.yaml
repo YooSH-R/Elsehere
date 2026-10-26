@@ -54,7 +54,7 @@ services:
     networks:
       - monitoring
     cpus: 0.50
-    mem_limit: 256m
+    mem_limit: 512m
 
   alertmanager:
     <<: *service-defaults

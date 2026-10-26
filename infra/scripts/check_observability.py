@@ -266,7 +266,7 @@ def main():
             "--network-alias",
             "grafana",
             "--memory",
-            "256m",
+            "512m",
             "--cpus",
             "0.50",
             "--env",

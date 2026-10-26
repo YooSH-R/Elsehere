@@ -75,7 +75,7 @@ sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/deploy.env" -f i
 - Compose 프로젝트: `a305-monitoring`
 - 저장소: `prometheus-data`, `grafana-data` 전용 볼륨
 - Prometheus 보관 상한: 14일·1GB 설정. 디스크와 실제 사용량은 별도로 확인합니다.
-- 초기 자원 상한: Prometheus 0.5 CPU·512MiB, Grafana 0.5 CPU·256MiB, Alertmanager 0.25 CPU·128MiB, Blackbox와 관리 화면 프록시는 각각 0.25 CPU·64MiB. 실제 수집 부하에 따라 조정합니다.
+- 초기 자원 상한: Prometheus 0.5 CPU·512MiB, Grafana 0.5 CPU·512MiB, Alertmanager 0.25 CPU·128MiB, Blackbox와 관리 화면 프록시는 각각 0.25 CPU·64MiB. 로그인·대시보드 로딩을 포함한 실제 사용 중 메모리와 재시작 여부를 확인하고 수집 부하에 따라 조정합니다.
 
 설정 폴더에는 저장소의 `infra/monitoring/` 파일을 같은 상대 위치로 복사합니다. `monitoring.env.example`을 실행 폴더의 `monitoring.env`로 복사하고 그룹 ID는 서버에서 `id -g`로 확인합니다.
 

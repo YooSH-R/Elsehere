@@ -5,8 +5,10 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.onboarding.dto.LanguageProfileResponse;
 import com.elsehere.onboarding.dto.LanguageSelectionResponse;
 import com.elsehere.onboarding.dto.LevelSelectionResponse;
+import com.elsehere.onboarding.dto.LevelTestSummary;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
+import com.elsehere.onboarding.repository.LevelTestRepository;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
@@ -22,6 +24,7 @@ public class OnboardingService {
 
   private final UserRepository userRepository;
   private final UserLanguageProfileRepository profileRepository;
+  private final LevelTestRepository levelTestRepository;
   private final LanguageCatalog languageCatalog;
   private final LevelCatalog levelCatalog;
 
@@ -48,7 +51,21 @@ public class OnboardingService {
     Integer selectedLevel =
         profile.getUser().hasCompletedLevelSetting() ? profile.getSelectedLevel() : null;
     return new LanguageProfileResponse(
-        languageCode, profile.getRecommendedLevel(), selectedLevel, levelCatalog.levels());
+        languageCode,
+        profile.getRecommendedLevel(),
+        selectedLevel,
+        findLastLevelTest(profile),
+        levelCatalog.levels());
+  }
+
+  private LevelTestSummary findLastLevelTest(UserLanguageProfile profile) {
+    if (profile.getLastTestId() == null) {
+      return null;
+    }
+    return levelTestRepository
+        .findById(profile.getLastTestId())
+        .map(test -> new LevelTestSummary(test.getId(), test.getStatus()))
+        .orElse(null);
   }
 
   public LevelSelectionResponse selectLevel(Long userId, String languageCode, int level) {

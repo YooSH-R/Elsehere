@@ -31,4 +31,17 @@ public class UserObjectPref extends BaseEntity {
   @ColumnDefault("false")
   @Column(nullable = false)
   private boolean hoverHidden;
+
+  /** 사용자가 처음 설정을 바꾼 사물. 설정이 없는 사물은 자동 표시가 켜진 것으로 본다. */
+  public static UserObjectPref create(Long userId, WorldObject worldObject, boolean hoverHidden) {
+    UserObjectPref pref = new UserObjectPref();
+    pref.id = new UserObjectPrefId(userId, worldObject.getId());
+    pref.worldObject = worldObject;
+    pref.hoverHidden = hoverHidden;
+    return pref;
+  }
+
+  public void changeHoverHidden(boolean hoverHidden) {
+    this.hoverHidden = hoverHidden;
+  }
 }

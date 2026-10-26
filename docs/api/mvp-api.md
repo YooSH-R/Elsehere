@@ -537,10 +537,17 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### WORLD-03 `PUT /api/v1/me/object-prefs/{objectKey}`
 
 ```json
+// 요청
 { "hoverHidden": true }
+
+// 응답 200
+{ "objectKey": "sofa", "hoverHidden": true }
 ```
 
 - 화면 08의 [알아요 · 다시 안 띄우기]는 `true`입니다. 숨긴 뒤에는 사물을 클릭해야 카드가 보이며, 카드에서 자동 표시를 다시 켜면 `false`로 바꿉니다.
+- `objectKey`는 WORLD-02 사물 카드의 `objectKey`(`world_objects.unity_key`)입니다.
+- 설정은 사용자·사물마다 하나입니다. 처음 바꿀 때 만들고, 다시 보내면 값만 바꿉니다. 같은 값을 여러 번 보내도 결과가 같습니다.
+- `hoverHidden`이 없으면 `400 VALIDATION_FAILED`, 없는 사물이면 `404 NOT_FOUND`입니다.
 
 #### WORLD-04 `GET /api/v1/vocab/{vocabId}/pronunciation`
 

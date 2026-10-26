@@ -32,13 +32,13 @@
 | `CafeScene` | `TownDoor` | `TownScene`의 `CafeDoor` |
 | `HotelScene` | `TownDoor` | `TownScene`의 `HotelDoor` |
 
-- 마을의 식당·공항은 건물과 `COMING SOON` 간판만 있고 들어갈 수 없습니다.
+- 현재 TownScene의 이용 장소는 집·카페·호텔입니다. 빈 건물은 셔터가 닫힌 외관으로, 나머지는 배경 주거동으로 구분하며 출입 Trigger를 두지 않습니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.
 - 씬 이름은 ERD `scenes.unity_key` 값으로 사용합니다. 공간 이름·개방 여부 같은 서버 데이터는 Unity에 두지 않습니다.
-- 공간은 도형으로 만든 대체 공간입니다. 디자인 에셋이 정해지면 `Prefabs/Home`·`Prefabs/Town`·`Prefabs/Cafe`·`Prefabs/Hotel`의 공간 프리팹 안을 교체하거나, 씬의 `Environment` 그룹에서 다시 배치합니다. 아래 Builder를 다시 실행해도 덮어쓰지 않습니다.
+- TownScene 외관은 `Prefabs/World/TownProduction`과 `CafeBlenderKit`을 사용합니다. 집·카페·호텔의 실내는 도형 대체 공간을 유지합니다. 아래 Builder를 다시 실행해도 기존 디자인을 덮어쓰지 않습니다.
 
 ## 확인 방법
 
-`Assets/Scenes/Production/HomeScene.unity`를 열고 Play합니다. 방 남쪽 문으로 나가면 마을의 집 앞에 서고, 큰길 동쪽의 `CAFE`와 북서쪽의 `HOTEL` 건물 문으로 들어갈 수 있습니다. 실내 남쪽 문으로 나오면 그 건물 앞으로 돌아갑니다. 조작 방법은 [Player 모듈](../Player/README.md)을 따릅니다.
+`Assets/Scenes/Production/HomeScene.unity`를 열고 Play합니다. 방 남쪽 문으로 나가면 마을 남동쪽 집 앞에 서고, 큰길 서쪽의 `CAFE`와 동쪽의 `HOTEL` 건물 문으로 들어갈 수 있습니다. 실내 남쪽 문으로 나오면 그 건물 앞으로 돌아갑니다. 조작 방법은 [Player 모듈](../Player/README.md)을 따릅니다.
 
 공간 씬을 바로 열고 Play하면 씬에 놓인 플레이어 위치에서 시작합니다.
 

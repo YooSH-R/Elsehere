@@ -1,10 +1,31 @@
 # 메인스트리트 외관 아트
 
-`Assets/Scenes/Sandbox/TownMainstreetSandbox.unity`에서 미국 소도시의 벽돌 상점과 주택을 단순한 3D 게임 형태로 조립한다. 캐릭터 전체 키는 **1.6m로 확정**한다. 리틀 멍 v7의 머리 60%·몸 40%를 유지하며, 현재 캐릭터는 완성 모델이 아닌 비율 확인용 대체물이다.
+`Assets/Scenes/Production/TownScene.unity`에 미국 소도시의 벽돌 상점과 주택을 단순한 3D 게임 형태로 배치한다. `Assets/Scenes/Sandbox/TownMainstreetSandbox.unity`는 아트와 크기 시험용으로 유지한다. 캐릭터 전체 키는 **1.6m로 확정**한다. 리틀 멍 v7의 머리 60%·몸 40%를 유지하며, 현재 캐릭터는 완성 모델이 아닌 비율 확인용 대체물이다.
 
-![Unity 플레이 시작 화면](../../artifacts/unity/mainstreet-blockout/01-start-view.png)
+![Production TownScene 플레이 시작 화면](../../artifacts/unity/production-town/01-player-start.png)
 
-위 이미지는 생성 콘셉트가 아닌 Unity 카메라의 실제 렌더다. [카페 외관](../../artifacts/unity/mainstreet-blockout/09-art-cafe.png), [거리 전체](../../artifacts/unity/mainstreet-blockout/08-art-street.png), [치수·검수 방법](mainstreet-sandbox.md)도 참고한다. 목표는 따뜻한 낮의 작은 미국 마을이다. 낮게 내려다보는 거리 구도, 코럴 벽과 넓은 창 사이 여백, 초록 천 차양, 따뜻한 진열창, 풍성한 식재와 연속된 상점 외관으로 표현한다.
+위 이미지는 Production 씬을 Play로 실행한 Unity 카메라 렌더다. [카페와 닫힌 빈 건물](../../artifacts/unity/production-town/05-cafe-and-closed-building.png), [배치 전체](../../artifacts/unity/production-town/04-layout-overview.png), [주거 구간과 공원](../../artifacts/unity/production-town/07-residential-park.png), [치수·검수 방법](mainstreet-sandbox.md)도 참고한다. 목표는 따뜻한 낮의 작은 미국 마을이다. 코럴 벽·크림색 몰딩·초록 차양·둥근 수목을 공유하고, 영업을 나타내는 진열창과 조명은 실제 이용 장소에만 둔다.
+
+## Production 장소 구분과 편집
+
+| 구분 | 배치와 표현 | 기능 |
+| --- | --- | --- |
+| 이용 장소 | 남동쪽 집, 서쪽 카페, 동쪽 호텔. 집은 포치, 카페는 초록 CAFE 차양, 호텔은 세로 간판 | 기존 HomeDoor·CafeDoor·HotelDoor와 실내 왕복 연결 유지 |
+| 빈 건물 | 카페 북쪽 크림색 2층 건물. 셔터와 CLOSED 표시, 비발광 창 | 출입 Trigger·상품·영업 조명 없음 |
+| 배경 주거동 | 북쪽 거리와 남서쪽 주택. 코럴·버터·세이지 3색, 1~3층, 닫힌 주거 문 | 배경 외벽 Collider만 사용 |
+| 휴식 공간 | 집 앞 대화 마당, 북동쪽 8×8m 공원 | 기존 행인 2명의 ID와 대화 참조 유지. 벤치·분수는 장식이며 앉기·물 효과는 미구현 |
+
+`Environment/TownMainstreet` 아래에 공통 거리 프리팹과 `BackgroundBuildings`를 둔다. 기존 이용 건물 루트는 출입구의 참조를 보존하고, 도형 외관을 비활성화한 뒤 새 외관을 중첩한다. Systems·UI의 대화·사물 호버·학습·미션·튜토리얼 연결은 유지한다. 식당·공항의 임시 영업 간판은 현재 배치에서 제거하며 새 이동 장소를 추가하지 않는다.
+
+- `Assets/Prefabs/World/TownProduction/`: StreetBase·StreetFurnishing·NorthStreetDressing·StreetGardens, HomeExterior·HotelExterior, 배경 건물·공원·경계와 1.6m 캐릭터 외형을 저장한다.
+- 배경 건물의 `GroundFloor8m`은 4m, `UpperFloor8m`은 3m다. 상층을 Y=4, 7…에 중첩하고 RoofCap·RoofInset을 같은 높이만큼 올린다. 완성 건물을 세로로 늘리지 않는다. 1·2·3층 프리팹 높이는 4.4·7.4·10.4m다. 원점은 전면 바닥 중앙이며 +Z가 도로 방향이다.
+- 카페는 `CafeBlenderKit/Buildings/Cafe1F~3F`를 사용한다. 집과 호텔은 기존 외관 조립을 승격한 프리팹이며, 호텔의 층수 자동 조립은 아직 제공하지 않는다.
+- 북쪽 길은 Z=70까지 이어지고 경계 정원은 Z=69에 둔다. 확장할 때 경계 프리팹을 이동하고 도로·보도·건물 부지를 함께 연장한다. 동서 경계는 폭 14m 전용 프리팹을 써 수목 비율을 유지한다.
+- 카메라·색 보정은 `Assets/Data/World/TownProduction/`의 전용 에셋으로 조정한다. 1.6m 캐릭터 외형은 기존 이동·NPC 루트의 `TownVisual`에 중첩한다. 플레이어 외형 프리팹은 기존 시점별 가림 컴포넌트를 재사용한다.
+
+**Tools → A305 → World → Apply Production Town Design**은 초기 도형 씬에 디자인을 이식한다. 이미 `TownMainstreet`가 있으면 배치·외관을 덮어쓰지 않는다. 이후 편집은 Scene과 Prefab Mode에서 한다. **Verify Production Town Design**은 Play 카메라, 보행, 대화 시점, 세 장소의 출입구 왕복을 확인하고 `artifacts/unity/production-town`에 화면과 검수 결과를 저장한다. 검수 중 이동·카메라 변경은 Play 종료 시 버린다.
+
+실내 HomeScene·CafeScene·HotelScene의 아트 교체와 최종 캐릭터 리깅은 별도 작업이다. Editor 검수는 Web 빌드의 FPS·메모리 성능 보증이 아니다.
 
 ## 공통 규격
 
@@ -18,7 +39,7 @@
 | 카메라 | 거리 6.2m, 피벗 2.5m, 눈높이 약 1.074m, pitch 6°, 세로 FOV 55° |
 | 확장 | 6m 차도 + 양쪽 4m 보도, 북쪽 보행 구간 40m 추가 |
 
-카페는 [Blender 카페 모듈](cafe-blender-kit.md)의 공통 1층·상층·지붕 프리팹으로 조립한다. 나머지 건물은 기존 벽·바닥·문 개구부의 Collider를 유지하고 장식 외관을 덧붙인다. 창은 불투명한 유리·진열 면으로 표현하며 창 전체를 투명 재질로 만들지 않는다. 일반 상점은 닫힌 배경 외관이다. 건물 내부의 카운터는 입구 너머 빈 화면을 줄이는 임시 배경이며 실내 기능 완성을 의미하지 않는다.
+카페는 [Blender 카페 모듈](cafe-blender-kit.md)의 공통 1층·상층·지붕 프리팹으로 조립한다. 집·호텔은 기존 벽·바닥·문 개구부의 Collider를 유지하고 장식 외관을 덧붙인다. 창은 불투명한 유리·진열 면으로 표현한다. Sandbox의 GeneralStore·DistantShop 시안에는 진열창이 있으므로 Production의 빈 건물에는 사용하지 않는다. 이용 건물 입구 너머의 카운터는 임시 배경이며 실내 기능 완성을 의미하지 않는다.
 
 ## 재사용 모듈
 

@@ -1,0 +1,35 @@
+PASS Production TownScene loaded in Play
+PASS five scene groups
+PASS three functional doorways
+PASS both NPC identities preserved
+PASS no missing scripts
+PASS Little Mung v7 visual height 1.6m (actual 1.600)
+PASS background buildings have no lights
+PASS background buildings have no travel triggers
+PASS no shop displays in background buildings
+DOOR HomeDoor at (8.95, 0.10, -19.00) -> HomeScene/TownDoor, return (6.95, 0.10, -19.00)
+DOOR HotelDoor at (6.95, 0.10, -5.00) -> HotelScene/TownDoor, return (4.95, 0.10, -5.00)
+DOOR CafeDoor at (-6.95, 0.10, -11.00) -> CafeScene/TownDoor, return (-4.95, 0.10, -11.00)
+RENDERERS 1915
+CAPTURE 01-player-start.png
+PASS east sidewalk / north extension 82m clear (remaining 0.00m)
+PASS cafe crossing 10m clear (remaining 0.00m)
+PASS pocket park entry 6m clear (remaining 0.00m)
+CAPTURE 02-cafe-walk.png
+CAPTURE 03-hotel-walk.png
+CAPTURE 04-layout-overview.png
+CAPTURE 05-cafe-and-closed-building.png
+CAPTURE 06-hotel-home-courtyard.png
+CAPTURE 07-residential-park.png
+PASS player visual hidden during dialogue
+CAPTURE 08-dialogue-view.png
+PASS player visual restored after dialogue
+PASS HomeScene/TownDoor arrived at safe return point
+PASS return from HomeScene
+PASS TownScene/HomeDoor arrived at safe return point
+PASS CafeScene/TownDoor arrived at safe return point
+PASS return from CafeScene
+PASS TownScene/CafeDoor arrived at safe return point
+PASS HotelScene/TownDoor arrived at safe return point
+PASS return from HotelScene
+PASS TownScene/HotelDoor arrived at safe return point

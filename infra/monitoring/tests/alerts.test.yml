@@ -105,6 +105,22 @@ tests:
         eval_time: 20m
         exp_samples: []
 
+  - name: measured normal read latency envelope remains quiet with sufficient traffic
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/v1/bootstrap",status="200"}
+        values: "0+180x30"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/bootstrap",le="0.05"}
+        values: "0+179x30"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/bootstrap",le="0.1"}
+        values: "0+180x30"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/bootstrap",le="+Inf"}
+        values: "0+180x30"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname=~"APIErrorRateHigh|APILatencyHigh",alertstate="firing"})
+        eval_time: 20m
+        exp_samples: []
+
   - name: healthy collection and long lived certificate remain quiet
     interval: 1m
     input_series:

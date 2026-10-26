@@ -34,7 +34,7 @@
 | HotelArchV2 | 호텔의 곡선 차양 메시. 남색 세로 간판은 가까운 모서리에 배치 |
 | WindowFlowerBox / FlowerPlanter | 창 아래 화단 / 보도 화분. 같은 잎·꽃 메시 사용 |
 | GardenTreeV2 / GardenBedV2 | 약 4.35m 나무 / 0.95×1.5m 화단. 큰 수관과 꽃을 반복 조합, 나무 몸통 Collider 사용 |
-| StreetLampV2 | 약 3.4m. 실시간 Point Light 없이 발광 재질 사용 |
+| StreetLampV2 | 약 3.4m. 발광 전구와 범위 5m의 따뜻한 Point Light |
 | MarketCrateV2 / ChalkboardV2 | 상점 진열 상자 / 카페 입간판. 문 앞 비움 영역 밖에 배치 |
 | DistantShopV2 3종 | 폭 6m·깊이 5.2m, 높이 5.8~7.3m의 닫힌 배경 외관. 북쪽 확장부에 배치 |
 | ParkBench / CafeTable | 좌판 약 0.27~0.29m, 작은 몸 비율에 맞춘 가구. 앉기 동작은 미검증 |
@@ -56,7 +56,27 @@
 
 일반 머티리얼은 URP/Lit, Metallic 0, Smoothness 0.18로 시작한다. 벽돌·수관·도로는 `Elsehere/SoftMasonry`의 확산광·그림자·환경광·안개를 사용한다. 셰이더의 색·그림자·깊이 패스는 같은 머티리얼 상수 버퍼를 공유한다. 구름은 Unlit, 하늘은 `Elsehere/SummerSky` 그라데이션으로 표현한다.
 
-조명은 Directional Light 하나(회전 48°, -35°, 0°; 강도 1.7)와 하늘·수평·지면의 환경광을 사용한다. Sandbox 전용 Volume은 exposure 0, contrast 10, saturation 8, bloom 0.15, tonemapping None이다. 선형 안개는 42~125m이며 피사계심도는 사용하지 않는다. 이 수치는 이미지에서 측정한 물성값이나 Web 성능 검증값이 아닌 Unity 아트 시작값이다.
+기본 낮 조명은 Directional Light 하나(회전 48°, -35°, 0°; 강도 1.7)와 하늘·수평·지면의 환경광이며, 가로등의 Point Light를 더한다. Sandbox 전용 Volume은 exposure 0, contrast 10, saturation 8, bloom 0.15, tonemapping None이다. 선형 안개는 42~125m이며 피사계심도는 사용하지 않는다. 이 수치는 이미지에서 측정한 물성값이나 Web 성능 검증값이 아닌 Unity 아트 시작값이다.
+
+## 가로등 조명
+
+`Assets/Prefabs/World/MainstreetArt/StreetLampV2.prefab`의 `LanternLight`가 주변을 비추며, 전구의 `LanternAmberV2` 재질이 발광한다. 같은 프리팹을 배치하면 외형과 광원을 함께 재사용한다.
+
+| 항목 | 기본값 |
+| --- | --- |
+| 광원 | Realtime Point Light, 가로등마다 1개 |
+| 위치 | 프리팹 바닥에서 Y=2.88m |
+| 색상 / 강도 / 범위 | #FFE1B3 / 4 / 5m |
+| 그림자 | 개별 가로등 그림자 끔 |
+| 현재 Sandbox | 가로등 8개 |
+
+`LanternLight`의 Light Inspector에서 색·강도·범위를 조절한다. **Tools → A305 → World → Apply And Verify Streetlights**는 기존 외형을 유지하면서 누락된 광원을 추가하고, 전구 발광을 활성화한 뒤 Play에서 검수한다. 이미 있는 광원의 조절값은 덮어쓰지 않는다. 일반 Sandbox Builder로 다시 만들 때도 같은 공통 프리팹을 사용한다.
+
+도로·벽·수관의 `Elsehere/SoftMasonry`는 URP Forward/Forward+의 추가 광원을 받아 거리와 표면 방향에 따라 밝아진다. 가로등마다 그림자 맵을 만들지 않으므로 사물의 가림까지 정확하게 표현하지는 않는다. Web 프레임 시간은 별도로 측정해야 한다.
+
+[낮의 점등 화면](../../artifacts/unity/mainstreet-streetlights/02-day-light-on.png)과 [어두운 검수 화면](../../artifacts/unity/mainstreet-streetlights/04-dim-diagnostic-on.png)은 같은 카메라의 실제 Unity 렌더다. 검수 폴더의 OFF/ON은 **주변을 비추는 Point Light만** 끄고 켠 비교이며, 전구 발광 재질은 계속 켜져 있다. 어두운 화면은 빛의 도달 범위를 보기 위해 검수 중에만 햇빛을 낮춘 것이며 저장된 마을의 시간대나 조명 설정을 바꾸지 않는다.
+
+검수는 광원 개수·전구 발광 상태, 도로와 보도 표본의 점등 전후 밝기 변화를 확인한다. Mobile 렌더 검수는 Editor에서 Mobile URP 에셋을 임시 적용하는 것이며 실제 모바일 기기·WebGL 브라우저 성능 검증과는 구분한다. 조명·셰이더 시각 변경은 단위 테스트 대신 Play 렌더 비교로 확인한다.
 
 ## 제작과 변경
 

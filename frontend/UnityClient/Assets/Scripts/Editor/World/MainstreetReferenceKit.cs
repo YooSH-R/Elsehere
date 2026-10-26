@@ -17,10 +17,14 @@ namespace A305.EditorTools.World
         internal static GameObject StreetLamp()
         {
             GameObject root = Lamp();
+            MainstreetStreetlightBuilder.AddLightIfMissing(root);
             root.transform.Find("Glass").GetComponent<Renderer>().sharedMaterial = Emissive(
                 "LanternAmberV2",
                 "#FFE4A1",
                 2f
+            );
+            MainstreetStreetlightBuilder.EnableBulbEmission(
+                root.transform.Find("Glass").GetComponent<Renderer>().sharedMaterial
             );
             return root;
         }

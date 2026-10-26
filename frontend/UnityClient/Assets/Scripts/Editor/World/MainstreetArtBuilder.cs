@@ -395,6 +395,7 @@ namespace A305.EditorTools.World
 
         private static void BuildStreetFurniture(Transform parent)
         {
+            MainstreetStreetlightBuilder.PreparePrefab();
             foreach (int side in new[] { -1, 1 })
             {
                 foreach (float z in new[] { -28f, 2.5f, 20f, 30f })

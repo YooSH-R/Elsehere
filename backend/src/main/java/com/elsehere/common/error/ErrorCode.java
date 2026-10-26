@@ -14,6 +14,7 @@ public enum ErrorCode {
   CSRF_HEADER_REQUIRED(HttpStatus.FORBIDDEN, "요청 확인 헤더가 없습니다."),
   NOT_FOUND(HttpStatus.NOT_FOUND, "대상을 찾을 수 없습니다."),
   ALREADY_SIGNED_UP(HttpStatus.CONFLICT, "이미 가입한 계정입니다."),
+  LEVEL_TEST_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "이미 끝난 레벨 테스트입니다."),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
 
   private final HttpStatus status;

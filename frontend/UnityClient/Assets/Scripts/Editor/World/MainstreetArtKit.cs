@@ -717,7 +717,7 @@ namespace A305.EditorTools.World
             return mesh;
         }
 
-        private static void CombineParts(GameObject root, string name)
+        internal static void CombineParts(GameObject root, string name)
         {
             MeshFilter[] parts = root.GetComponentsInChildren<MeshFilter>();
             foreach (

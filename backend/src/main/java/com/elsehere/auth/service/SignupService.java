@@ -14,6 +14,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,15 +33,9 @@ public class SignupService {
   public UserResponse signUp(PendingSignup pendingSignup, SignupRequest request) {
     rejectIfAlreadySignedUp(pendingSignup);
     rejectIfRequiredConsentMissing(request);
+    rejectIfNicknameTaken(request.nickname());
 
-    User user =
-        userRepository.save(
-            User.signUp(
-                pendingSignup.provider(),
-                pendingSignup.providerUid(),
-                pendingSignup.email(),
-                request.nickname(),
-                request.avatarType()));
+    User user = saveNewUser(pendingSignup, request);
     saveAgreedConsents(user, request);
     return UserResponse.from(user);
   }
@@ -60,6 +56,38 @@ public class SignupService {
       throw new BusinessException(
           ErrorCode.VALIDATION_FAILED, Map.of("missingConsents", missingConsents));
     }
+  }
+
+  private void rejectIfNicknameTaken(String nickname) {
+    if (userRepository.existsByNickname(nickname)) {
+      throw new BusinessException(ErrorCode.NICKNAME_TAKEN);
+    }
+  }
+
+  /**
+   * 사전 검사(rejectIfNicknameTaken)와 저장 사이에 다른 요청이 같은 닉네임으로 먼저 가입하면 DB 제약이 저장을 막는다. 그 경우도 중복 닉네임으로
+   * 응답한다.
+   */
+  private User saveNewUser(PendingSignup pendingSignup, SignupRequest request) {
+    try {
+      return userRepository.save(
+          User.signUp(
+              pendingSignup.provider(),
+              pendingSignup.providerUid(),
+              pendingSignup.email(),
+              request.nickname(),
+              request.avatarType()));
+    } catch (DataIntegrityViolationException exception) {
+      if (violatesNicknameUnique(exception)) {
+        throw new BusinessException(ErrorCode.NICKNAME_TAKEN, exception);
+      }
+      throw exception;
+    }
+  }
+
+  private static boolean violatesNicknameUnique(DataIntegrityViolationException exception) {
+    return exception.getCause() instanceof ConstraintViolationException violation
+        && User.NICKNAME_UNIQUE_CONSTRAINT.equals(violation.getConstraintName());
   }
 
   private void saveAgreedConsents(User user, SignupRequest request) {

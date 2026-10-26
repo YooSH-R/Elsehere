@@ -1,7 +1,7 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3.2 (MVP 기준) · PostgreSQL 16 + pgvector
+  ELSEHERE ERD v3.3 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
   모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
@@ -18,7 +18,7 @@ Table users [headercolor: #3D4A5C] {
   provider varchar(20) [not null, note: '소셜 로그인 제공자']
   provider_uid varchar(100) [not null, note: '제공자가 주는 사용자 고유 ID']
   email varchar(255) [note: '제공자가 줄 때만']
-  nickname varchar(30) [not null, note: 'NPC가 부르는 이름']
+  nickname varchar(30) [not null, unique, note: 'NPC가 부르는 이름 · 중복 불가 · 한글 2, 영문·숫자 1로 세어 2자 이상 합계 16 이하 (API AUTH-04)']
   avatar_type varchar(10) [not null, note: 'F / M 캐릭터 기본형']
   onboarding_step varchar(20) [not null, note: 'LANG→LEVEL→TUTORIAL→DONE · 튜토리얼 완료·건너뛰기 시 DONE (튜토리얼 기록은 이 값만 사용)']
   current_language varchar(10) [not null, note: 'en-US']

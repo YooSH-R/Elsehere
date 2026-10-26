@@ -111,7 +111,7 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 .venv/Scripts/python ../tools/generate_npc_profile_models.py
 ```
 
-생성 모델은 스키마 규칙 중 활성 NPC의 `voiceId` 필수(조건 규칙), 목록 중복 금지, 생략할 수 있는 칸의 `null` 금지를 검사하지 않고, `"1"` 같은 글을 숫자·참거짓으로 바꿔 받습니다. 이 규칙을 원본 스키마로 검사하는 단계는 아직 없습니다.
+생성 모델은 스키마 규칙 중 활성 NPC의 `voiceId` 필수(조건 규칙), 목록 중복 금지, 생략할 수 있는 칸의 `null` 금지를 검사하지 않고, `"1"` 같은 글을 숫자·참거짓으로 바꿔 받습니다. 그래서 NPC 설정은 [`ai/tools/npc_configs.py`](../tools/npc_configs.py)의 `schema_errors()`로 원본 스키마 그대로 한 번 더 검사합니다. 어긴 곳마다 위치(`$.npcProfile.values`)와 이유를 모두 돌려줍니다.
 
 ## 검사
 
@@ -142,5 +142,6 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`), GPT-5 요청 칸
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
+- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

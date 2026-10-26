@@ -34,7 +34,7 @@
 
 - 현재 TownScene의 이용 장소는 집·카페·호텔입니다. 빈 건물은 셔터가 닫힌 외관으로, 나머지는 배경 주거동으로 구분하며 출입 Trigger를 두지 않습니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.
 - 씬 이름은 ERD `scenes.unity_key` 값으로 사용합니다. 공간 이름·개방 여부 같은 서버 데이터는 Unity에 두지 않습니다.
-- TownScene 외관은 `Prefabs/World/TownProduction`과 `CafeBlenderKit`을 사용합니다. 집·카페·호텔의 실내는 도형 대체 공간을 유지합니다. 아래 Builder를 다시 실행해도 기존 디자인을 덮어쓰지 않습니다.
+- TownScene 외관은 `Prefabs/World/TownProduction`과 `CafeBlenderKit`을 사용합니다. HomeScene은 `Prefabs/Home/CozyCottage`의 실내 외형을 사용하며 기존 가구 사물 키와 문 연결을 유지합니다. 카페·호텔의 실내는 도형 대체 공간을 유지합니다. 아래 Builder를 다시 실행해도 기존 디자인을 덮어쓰지 않습니다.
 
 ## 확인 방법
 

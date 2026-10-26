@@ -1,6 +1,6 @@
 # Unity 개발 환경과 Web 실행
 
-Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 웹 브라우저 실행을 대상으로 합니다. 시작 Scene은 튜토리얼을 시작하는 내 방(`HomeScene`)이며, 도형으로 만든 대체 공간입니다. 서비스 화면과 음성·서버 연동은 별도 기능 작업에서 구현합니다.
+Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 웹 브라우저 실행을 대상으로 합니다. 시작 Scene은 튜토리얼을 시작하는 내 방(`HomeScene`)이며, [집 실내 디자인](home-interior.md)을 적용합니다. 마을 외관은 [메인스트리트 디자인](mainstreet-art.md)을 따릅니다. 서비스 화면과 음성·서버 연동은 별도 기능 작업에서 구현합니다.
 
 ## 개발 환경
 

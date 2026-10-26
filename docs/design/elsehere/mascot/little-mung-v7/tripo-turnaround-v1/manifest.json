@@ -62,5 +62,6 @@
   ],
   "design_version": "v7",
   "base_design": "Little Mung v4 B",
-  "original_generation_design_name": "Little Mung v4 B"
+  "original_generation_design_name": "Little Mung v4 B",
+  "artifact_storage": "local-only; artifacts/ is excluded from Git"
 }

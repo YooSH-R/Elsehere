@@ -1,8 +1,10 @@
 # 메인스트리트 Sandbox 사용 방법
 
+> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+
 `Assets/Scenes/Sandbox/TownMainstreetSandbox.unity`는 리틀 멍 v7의 대두 비율, 건물 크기, 카메라 시야와 거리 확장을 확인하는 아트 검토 씬이다. 브릭 메인스트리트 v3-B를 출발점으로 건물의 폭·깊이·높이를 늘린 확대 검토안이다. 캐릭터는 완성 모델이 아닌 **높이 1.6m, 머리 60%·몸 40%의 비율 대체물**이다. **기준 키는 1.6m로 확정**한다. 1.4m·1.7m는 이전 비교값이다. 외관은 [공통 아트 모듈](mainstreet-art.md)로 조립한다.
 
-[목표 분위기 참고 이미지](../../artifacts/scenes/elsehere/mainstreet-v1/street-view.png)는 디자인 방향을 위한 콘셉트 이미지다. 아래 Unity 렌더는 실제 외관 모듈과 비율 대체물이 들어간 Sandbox 화면이다.
+목표 분위기 참고 이미지 (`artifacts/scenes/elsehere/mainstreet-v1/street-view.png`, 로컬 보관)는 디자인 방향을 위한 콘셉트 이미지다. 아래 Unity 렌더는 실제 외관 모듈과 비율 대체물이 들어간 Sandbox 화면이다.
 
 ## 열고 확인하기
 
@@ -10,7 +12,7 @@
 2. `Assets/Scenes/Sandbox/TownMainstreetSandbox`를 열고 Play한다.
 3. 집 앞에서 왼쪽 카페와 오른쪽 호텔의 크기를 비교한다. 앞마당의 대화 상대, 세 건물의 빈 출입구와 북쪽 상점 외관이 이어지는 보행 구간을 확인한다.
 
-Unity 렌더 확인: [시작 시야](../../artifacts/unity/mainstreet-blockout/01-start-view.png), [대화 시야](../../artifacts/unity/mainstreet-blockout/02-dialogue-view.png), [확장 포함 전체 배치](../../artifacts/unity/mainstreet-blockout/05-layout-overview.png), [캐릭터·건물 높이 비교](../../artifacts/unity/mainstreet-blockout/06-character-building-scale.png). 높이 비교만 원근에 따른 크기 차이를 없앤 정투영 검토 화면이며, 플레이 카메라는 원근 투영이다.
+Unity 렌더 확인: 시작 시야 (`artifacts/unity/mainstreet-blockout/01-start-view.png`, 로컬 보관), 대화 시야 (`artifacts/unity/mainstreet-blockout/02-dialogue-view.png`, 로컬 보관), 확장 포함 전체 배치 (`artifacts/unity/mainstreet-blockout/05-layout-overview.png`, 로컬 보관), 캐릭터·건물 높이 비교 (`artifacts/unity/mainstreet-blockout/06-character-building-scale.png`, 로컬 보관). 높이 비교만 원근에 따른 크기 차이를 없앤 정투영 검토 화면이며, 플레이 카메라는 원근 투영이다.
 
 | 조작 | 동작 |
 | --- | --- |
@@ -26,7 +28,7 @@ Unity 렌더 확인: [시작 시야](../../artifacts/unity/mainstreet-blockout/0
 
 ## 배치와 치수
 
-[확대 전 평면도](../../artifacts/scenes/elsehere/mainstreet-v1/layout-plan.png)는 최초 배치 참고용이다. 확대안의 실제 위치와 크기는 아래 표와 Unity 전체 배치 렌더를 따른다.
+확대 전 평면도 (`artifacts/scenes/elsehere/mainstreet-v1/layout-plan.png`, 로컬 보관)는 최초 배치 참고용이다. 확대안의 실제 위치와 크기는 아래 표와 Unity 전체 배치 렌더를 따른다.
 
 | 항목 | 최초 블록아웃 | 확대 검토안 |
 | --- | --- | --- |
@@ -45,7 +47,7 @@ Unity 렌더 확인: [시작 시야](../../artifacts/unity/mainstreet-blockout/0
 | **1.6m 확정** | 0.96 / 0.64m | 약 14.3% | **1.6m 확정** | 0.20m |
 | 1.7m | 1.02 / 0.68m | 약 21.4% | 1.7m | 0.15m |
 
-헤어 폭은 실제 대체물보다 넉넉하게 잡은 검수 범위다. 문 중앙으로 정면 통과할 때의 계산상 여유이며 실제 헤어 메시·애니메이션 통과를 보장하지 않는다. [같은 구도에서 신장 비교](../../artifacts/unity/mainstreet-blockout/07-character-height-comparison.png)는 세 대체물을 같은 깊이에 놓은 Unity 정투영 렌더다. [1.7m 플레이 시야](../../artifacts/unity/mainstreet-blockout/character-height-170/01-start-view.png)는 카메라 구도가 달라 현재 1.6m 시작 화면과 직접적인 키 비교에 사용하지 않는다.
+헤어 폭은 실제 대체물보다 넉넉하게 잡은 검수 범위다. 문 중앙으로 정면 통과할 때의 계산상 여유이며 실제 헤어 메시·애니메이션 통과를 보장하지 않는다. 같은 구도에서 신장 비교 (`artifacts/unity/mainstreet-blockout/07-character-height-comparison.png`, 로컬 보관)는 세 대체물을 같은 깊이에 놓은 Unity 정투영 렌더다. 1.7m 플레이 시야 (`artifacts/unity/mainstreet-blockout/character-height-170/01-start-view.png`, 로컬 보관)는 카메라 구도가 달라 현재 1.6m 시작 화면과 직접적인 키 비교에 사용하지 않는다.
 
 좌표는 동쪽 +X, 북쪽 +Z다. 원래 검토 구간은 X=-20~20, Z=-24~30이며, 기본 Sandbox는 북쪽 40m를 추가해 Z=70까지 연결한다. 경계 벽은 임시 추락 방지용이고 다음 블록을 붙일 때 옮긴다.
 

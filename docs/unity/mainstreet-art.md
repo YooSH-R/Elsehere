@@ -27,7 +27,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 **Tools → A305 → World → Apply Production Town Design**은 초기 도형 씬에 디자인을 이식한다. 이미 `TownMainstreet`가 있으면 배치·외관을 덮어쓰지 않는다. 이후 편집은 Scene과 Prefab Mode에서 한다. **Verify Production Town Design**은 Play 카메라, 보행, 대화 시점, 세 장소의 출입구 왕복을 확인하고 `artifacts/unity/production-town`에 화면과 검수 결과를 저장한다. 검수 중 이동·카메라 변경은 Play 종료 시 버린다.
 
-실내 HomeScene·CafeScene·HotelScene의 아트 교체와 최종 캐릭터 리깅은 별도 작업이다. Editor 검수는 Web 빌드의 FPS·메모리 성능 보증이 아니다.
+집 내부는 [HomeScene 실내 디자인](home-interior.md)을 적용한다. CafeScene·HotelScene의 실내 아트 교체와 최종 캐릭터 리깅은 별도 작업이다. Editor 검수는 Web 빌드의 FPS·메모리 성능 보증이 아니다.
 
 ## 공통 규격
 

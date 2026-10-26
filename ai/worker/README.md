@@ -103,6 +103,16 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - 응답 `intent.slots`는 이 범위 안으로 정리됩니다: 목록에 없는 상품은 버리고, `iced_ok`가 아닌 상품의 `iced`는 `false`, 선택지는 `labels` 또는 `"none"`.
   수량 상한·가격 계산은 Spring 규칙이 합니다.
 
+## NPC 인격 모델 (자동 생성)
+
+`app/npc_profile_models.py`는 백엔드와 함께 쓰는 공통 인격 스키마([`npc_shared_schemas_v2.json`](../../docs/api/npc-ai-contracts/npc_shared_schemas_v2.json))에서 만든 Pydantic 모델입니다. 직접 고치지 말고 스키마를 고친 뒤 다시 만듭니다. 커밋한 파일이 지금 스키마로 만든 결과와 다르면 테스트가 실패합니다.
+
+```bash
+.venv/Scripts/python ../tools/generate_npc_profile_models.py
+```
+
+생성 모델은 스키마 규칙 중 활성 NPC의 `voiceId` 필수(조건 규칙), 목록 중복 금지, 생략할 수 있는 칸의 `null` 금지를 검사하지 않고, `"1"` 같은 글을 숫자·참거짓으로 바꿔 받습니다. 이 규칙을 원본 스키마로 검사하는 단계는 아직 없습니다.
+
 ## 검사
 
 ```bash
@@ -131,5 +141,6 @@ Spring이 장소 데이터(상품 목록·선택지)로 만듭니다. 사는 장
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`), GPT-5 요청 칸
+- `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

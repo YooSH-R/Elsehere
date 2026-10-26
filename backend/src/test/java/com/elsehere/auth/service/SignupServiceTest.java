@@ -3,6 +3,9 @@ package com.elsehere.auth.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mockito.mock;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.auth.dto.ConsentAgreement;
@@ -10,6 +13,7 @@ import com.elsehere.auth.dto.SignupRequest;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.user.UserTestData;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
@@ -19,6 +23,7 @@ import com.elsehere.user.entity.User;
 import com.elsehere.user.entity.UserConsent;
 import com.elsehere.user.repository.UserConsentRepository;
 import com.elsehere.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -33,6 +38,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -54,6 +60,12 @@ class SignupServiceTest {
   @Autowired private UserRepository userRepository;
 
   @Autowired private UserConsentRepository userConsentRepository;
+
+  @Autowired private EntityManager entityManager;
+
+  @Autowired private ConsentCatalog consentCatalog;
+
+  @Autowired private Clock clock;
 
   @Test
   @DisplayName("가입하면 가입 대기 정보와 가입 정보로 사용자를 만들고 초기 설정을 언어 선택부터 시작한다")
@@ -168,6 +180,36 @@ class SignupServiceTest {
             BusinessException.class,
             exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.ALREADY_SIGNED_UP));
+  }
+
+  @Test
+  @DisplayName("다른 사용자가 쓰는 닉네임이면 NICKNAME_TAKEN으로 응답하고 사용자를 만들지 않는다")
+  void signUpWithTakenNickname_isRejected() {
+    UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-other");
+
+    assertThatThrownBy(() -> signupService.signUp(PENDING, request(requiredConsents())))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NICKNAME_TAKEN));
+    assertThat(userRepository.findByProviderAndProviderUid(AuthProvider.GOOGLE, "google-sub-new"))
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("동시에 가입해 중복 사전 검사를 지나쳐도 DB 제약이 막고 NICKNAME_TAKEN으로 응답한다")
+  void concurrentSignUpWithSameNickname_isRejectedByDatabase() {
+    UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-other");
+    // 다른 요청이 사전 검사와 저장 사이에 같은 닉네임으로 먼저 가입한 상황이다. 사전 검사만 중복을 보지 못하게 한다.
+    UserRepository racingUserRepository = mock(UserRepository.class, delegatesTo(userRepository));
+    willReturn(false).given(racingUserRepository).existsByNickname("Sun");
+    SignupService racingSignupService =
+        new SignupService(racingUserRepository, userConsentRepository, consentCatalog, clock);
+
+    assertThatThrownBy(() -> racingSignupService.signUp(PENDING, request(requiredConsents())))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NICKNAME_TAKEN))
+        .hasCauseInstanceOf(DataIntegrityViolationException.class);
   }
 
   private static SignupRequest request(List<ConsentAgreement> consents) {

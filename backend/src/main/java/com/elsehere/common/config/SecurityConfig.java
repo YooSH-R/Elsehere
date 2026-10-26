@@ -63,6 +63,9 @@ public class SecurityConfig {
                     // 접속 상태 조회(BOOT-01)는 가입 대기 사용자도 호출한다. 로그인 상태는 컨트롤러가 구분한다.
                     .requestMatchers(HttpMethod.GET, "/api/v1/bootstrap")
                     .permitAll()
+                    // 닉네임 중복 확인(AUTH-06)은 가입 대기 사용자도 호출한다. 호출 자격은 컨트롤러가 확인한다.
+                    .requestMatchers(HttpMethod.GET, "/api/v1/nicknames/availability")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         // AUTH-05. 세션을 끝내고 204로 응답한다. 가입 대기 중에 다른 계정으로 바꾸려는 사용자도 쓸 수 있도록 로그인 여부를 묻지 않는다.

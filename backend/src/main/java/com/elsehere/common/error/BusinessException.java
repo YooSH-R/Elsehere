@@ -11,12 +11,21 @@ public class BusinessException extends RuntimeException {
   private final Map<String, Object> details;
 
   public BusinessException(ErrorCode errorCode) {
-    this(errorCode, null);
+    this(errorCode, null, null);
   }
 
   /** 클라이언트가 화면 처리에 쓸 정보를 {@code details}에 담아 보낸다. */
   public BusinessException(ErrorCode errorCode, Map<String, Object> details) {
-    super(errorCode.getMessage());
+    this(errorCode, details, null);
+  }
+
+  /** 다른 예외를 업무 오류로 바꿀 때 원인을 함께 남긴다. */
+  public BusinessException(ErrorCode errorCode, Throwable cause) {
+    this(errorCode, null, cause);
+  }
+
+  private BusinessException(ErrorCode errorCode, Map<String, Object> details, Throwable cause) {
+    super(errorCode.getMessage(), cause);
     this.errorCode = errorCode;
     this.details = details;
   }

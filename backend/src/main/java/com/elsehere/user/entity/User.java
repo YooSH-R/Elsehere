@@ -22,13 +22,19 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
     name = "users",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_uid"}))
+    uniqueConstraints = {
+      @UniqueConstraint(columnNames = {"provider", "provider_uid"}),
+      @UniqueConstraint(name = User.NICKNAME_UNIQUE_CONSTRAINT, columnNames = "nickname")
+    })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
   /** 학습 언어를 고르기 전(ONB-02 전)에 저장하는 기본 언어. current_language가 필수 컬럼이라 둔다. */
   public static final String DEFAULT_LANGUAGE = "en-US";
+
+  /** 닉네임 중복을 막는 DB 제약 이름. 사전 검사를 지나친 동시 가입을 이 이름으로 알아본다. */
+  public static final String NICKNAME_UNIQUE_CONSTRAINT = "uk_users_nickname";
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

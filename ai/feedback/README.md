@@ -90,6 +90,8 @@ GMS에는 strict JSON Schema를 전달합니다. 반환 후에도 Pydantic 형�
 
 ## 공통 워커에서 호출
 
+Spring의 종료·저장·재조회 처리와 가상 요청·응답 6건은 [피드백 백엔드 연동](../../docs/api/feedback-integration.md)에 있습니다. 배포 전 `python -X utf8 check_runtime.py`로 필수 프롬프트·회화 콘텐츠의 누락·손상을 검사할 수 있습니다. 키와 외부 모델은 사용하지 않으며, 종료 코드 0은 정적 자원 검사 통과를 뜻합니다. 실제 이미지·서버·DB 연동 검증을 대신하지 않습니다.
+
 ### Maple Town 플레이 검증
 
 수집판과 다른 폴더에 둔 `prototype/S15P31A305-55-leejunghoon` 복사본을 지정해 실행합니다.
@@ -103,6 +105,8 @@ python -X utf8 prototype_preview.py --prototype-root <별도_프로토타입_루
 먼저 `render_spoken_examples.py`를 실행하면 `http://localhost:8011/feedback-demo`에서 수작업 가상 응답 3개의 화면을 볼 수 있습니다. 문법 교정, 적절한 안부 답변, 뒤에서 수락 의도를 직접 확인한 경우를 재생하며 GMS를 호출하거나 플레이 기록에 저장하지 않습니다. 실제 모델 평가 결과가 아닙니다. 코드·프롬프트·패널을 수정하면 검증용 서버를 재시작해야 합니다.
 
 검증판은 힌트·NPC 번역을 차단해 도움 사용 여부를 추정하지 않습니다. Groq 키가 없으면 음성 버튼을 끄고 타자 대화를 제공합니다. 음성도 확인하려면 본인 `GROQ_API_KEY`를 로컬 환경변수 또는 `.env.local`에 추가하고 검증 서버를 다시 실행합니다.
+
+검증판의 사용자 줄은 `history.rude is True`일 때만 `text_status: blocked`로 변환해 평가에서 제외합니다. null·false·누락은 final을 유지하며, 원문을 생성 영어 번역으로 교체하지 않습니다. 모든 사용자 줄이 제외되면 모델을 부르지 않고 근거 부족을 반환하며 이전 대화의 호출·토큰 정보를 재사용하지 않습니다. Spring에서 같은 입력을 만드는 규칙과 NPC 지적·종료 지시값은 [NPC 무례 대응 연동](../../docs/api/npc-moderation-integration.md)을 참고합니다.
 
 데이터는 지정한 별도 복사본에 저장됩니다. 이 검증판의 가상 테스트와 피드백 개선용 기록을 무례·STT 수집용 zip에 합치지 않습니다. 수집 동의는 대신 선택하지 않으며 기존 수집 zip을 자동으로 읽거나 GMS에 재전송하지 않습니다.
 
@@ -130,11 +134,13 @@ usage = client.last_call
 - `tests/`: 외부 호출 없는 처리·통신 경계 테스트
 - `run_evaluation.py`, `samples/robustness/`: 사례를 명시하는 수동 평가 도구와 합성 강건성 사례
 - `feedback/costs.py`: 이전 GMS 사용 내역의 관측식에 따른 비용 추정
+- `run_memory_regression.py`, `samples/memory_regression/`: 외부 호출 없는 사실별 기억 합성 자료와 고정 응답 검사기
+- `review_memory_results.py`, [MEMORY_REVIEW.md](MEMORY_REVIEW.md): 이미 저장된 사실별 기억 응답의 계약·누락 의심·중복 점검과 수동 검토 안내
 - `samples/inputs`, `samples/fixtures`, `samples/rubrics`: 가상 샘플, 수작업 응답, 기대·금지 판단
 - `schemas/`: 입력·서비스 출력·모델 출력 JSON Schema
 - `샘플대화_평가기준.md`, `결과미리보기.md`, `examples/`: 고정 응답 단계의 참고 자료
 - `검증결과.md`, `GMS_연결후_검토표.md`: 기존 고정 응답 단계 기록. 최신 실호출 결과를 대신하지 않음
 
-샘플은 가상 데이터입니다. 한 번씩의 소수 사례 검토는 운영 성능이나 전체 학습 효과 검증을 뜻하지 않습니다. NPC 기억 서비스는 이 패키지에서 구현하지 않습니다.
+샘플은 가상 데이터입니다. 한 번씩의 소수 사례 검토는 운영 성능이나 전체 학습 효과 검증을 뜻하지 않습니다. NPC 기억의 생성·저장·조회 서비스는 이 패키지에서 구현하지 않습니다. 사실별 참조 계약 0.1.0을 사용하는 저장 전 변경 계획은 [MEMORY_POLICY.md](MEMORY_POLICY.md), 평가 기준은 [NPC 기억 품질 점검표](../../docs/ai-memory-quality.md)에 있습니다. 이 모듈은 기존 카드형 `/v1/memory`나 피드백 0.3.0 계약에 연결하지 않았습니다.
 
 GMS의 OpenAI 호환 요청 형식은 [OpenAI Docs의 구조화 출력](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=chat)과 [GPT-5.4 모델 문서](https://developers.openai.com/api/docs/models/gpt-5.4)를 참고합니다. OpenAI 정가를 GMS 크레딧 차감량으로 간주하지 않습니다.

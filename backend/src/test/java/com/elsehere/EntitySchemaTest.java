@@ -40,6 +40,8 @@ class EntitySchemaTest {
             "users",
             "user_consents",
             "user_language_profiles",
+            "level_tests",
+            "level_test_answers",
             "scenes",
             "npcs",
             "world_objects",

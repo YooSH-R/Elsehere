@@ -87,6 +87,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
+| `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
 | `CONVERSATION_NOT_ACTIVE` | 409 | 이미 끝난 대화에 발화 전송 |
@@ -125,9 +126,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 닉네임, 캐릭터 기본형(F/M), 약관 동의 → [계속하기] | AUTH-04 |
 | 03 배울 언어 선택 | 언어 카드(선택 가능·준비 중) | ONB-01 |
 | | [다음] | ONB-02 |
-| 04 레벨 테스트 | 문항, "문항 3 / N" 진행률 | ONB-03 |
-| | [다음] (응답 저장), 마지막 문항 뒤 결과 | ONB-04, ONB-05 |
-| | [건너뛰기], [그만하기] | ONB-07, ONB-06 |
+| 04 레벨 테스트 | 첫 화면 [레벨 테스트 진행하기] (MVP는 클라이언트에서 비활성) | ONB-03 |
+| | 첫 화면 [건너뛰기] | ONB-07 |
+| | 문항, "문항 3 / N" 진행률, [다음] (응답 저장), 마지막 문항 뒤 결과 | ONB-04, ONB-05 |
+| | 문항을 푸는 도중 [그만하기] | ONB-06 |
 | 05 NPC AI 난이도 설정 | "레벨 테스트 추천" 배지, 단계 카드(선택 가능·추후 제공) | ONB-08 |
 | | [설정 완료] | ONB-09 |
 
@@ -206,9 +208,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | ONB-02 | `PUT /api/v1/me/languages/{languageCode}` | 학습 언어 선택 | - | 03 |
 | ONB-03 | `POST /api/v1/level-tests` | 레벨 테스트 시작, 문항 조회 | - | 04 |
 | ONB-04 | `PUT /api/v1/level-tests/{testId}/answers/{itemCode}` | 문항 응답 저장 | - | 04 |
-| ONB-05 | `POST /api/v1/level-tests/{testId}/complete` | 채점·추천 레벨 | `[미정]` | 04 |
+| ONB-05 | `POST /api/v1/level-tests/{testId}/complete` | 채점·추천 레벨 (MVP는 초급 고정) | - | 04 |
 | ONB-06 | `POST /api/v1/level-tests/{testId}/quit` | 테스트 그만하기 | - | 04 |
-| ONB-07 | `POST /api/v1/level-tests/{testId}/skip` | 테스트 건너뛰기 | - | 04 |
+| ONB-07 | `POST /api/v1/level-tests/skip` | 테스트 건너뛰기 | - | 04 |
 | ONB-08 | `GET /api/v1/me/languages/{languageCode}` | 추천 레벨과 선택 가능한 난이도 | - | 05 |
 | ONB-09 | `PUT /api/v1/me/languages/{languageCode}/level` | 대화 난이도 선택 | - | 05 |
 | TUT-01 | `POST /api/v1/me/tutorial/complete` | 튜토리얼 완료 | - | 12 |
@@ -376,20 +378,24 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### ONB-03~07 레벨 테스트
 
-레벨 테스트 방식과 문항은 `[미정]`입니다. 문항 원본을 둘 테이블이 ERD에 없으므로 초안은 서버 설정 데이터의 `itemCode`로 문항을 구분합니다.
+레벨 테스트 방식은 `[미정]`입니다. MVP는 흐름만 만들어 두고 실제 레벨 판정은 하지 않습니다.
+
+- 문항은 서버 설정 데이터의 en-US 예시 선택형 5개입니다. 문항 원본을 둘 테이블이 ERD에 없으므로 `itemCode`로 문항을 구분합니다.
+- 결과 레벨은 점수와 상관없이 초급(1)으로 고정합니다.
+- 화면 04의 첫 화면에는 [레벨 테스트 진행하기]와 [건너뛰기]를 둡니다. MVP에서는 클라이언트가 [진행하기]를 비활성("준비 중")으로 막아 두므로 실제로는 ONB-07만 씁니다. ONB-03~06은 막아 둔 버튼을 열면 바로 쓸 수 있게 만들어 둔 API입니다.
 
 ```json
-// ONB-03 POST /api/v1/level-tests  요청
+// ONB-03 POST /api/v1/level-tests  요청 ([진행하기]를 누를 때)
 { "languageCode": "en-US" }
 
 // 응답 201
 {
   "testId": 9,
   "status": "IN_PROGRESS",
-  "totalItems": 10,
+  "totalItems": 5,
   "items": [
     {
-      "itemCode": "EN_L1_003",
+      "itemCode": "EN_L1_001",
       "type": "CHOICE",
       "instruction": "빈칸에 알맞은 말을 고르세요.",
       "question": "Can I ______ a coffee, please?",
@@ -399,11 +405,25 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
+- ONB-03은 [진행하기]를 누를 때 새 테스트(`IN_PROGRESS`)를 만들고 학습 설정의 `last_test_id`를 이 테스트로 바꿉니다. 정답은 응답에 담지 않습니다.
+- 진행 중인 테스트가 있어도 다시 시작하면 새 테스트를 만듭니다. 중간에 나갔다 오면 이어서 풀지 않고 처음부터 다시 풉니다.
 - 화면 04의 "문항 3 / N"과 진행률은 `totalItems`와 현재 문항 순서로 그립니다.
-- ONB-04 `PUT /api/v1/level-tests/{testId}/answers/{itemCode}`는 `{ "answer": "have" }`를 저장하고 `204`를 돌려줍니다. 같은 문항에 다시 답하면 덮어씁니다.
-- ONB-05는 채점해 `{ "status": "DONE", "score": 7, "resultLevel": 1 }`을 돌려주고 `recommended_level`, `last_test_id`를 저장합니다. 말하기 문항처럼 AI 채점이 필요하면 AI 사용량 검사 대상입니다.
-- ONB-06 [그만하기]는 일부 응답 후 멈춘 기록(`QUIT`), ONB-07 [건너뛰기]는 테스트를 치르지 않고 넘어간 기록(`SKIPPED`)입니다. 둘 다 추천 레벨 없이 화면 05로 갑니다.
+- ONB-04 `PUT /api/v1/level-tests/{testId}/answers/{itemCode}`는 `{ "answer": "have" }`를 저장하고 `204`를 돌려줍니다. 정답 여부도 함께 기록하며, 같은 문항에 다시 답하면 덮어씁니다. 없는 문항이면 `404 NOT_FOUND`입니다.
+- ONB-05는 `{ "testId": 9, "status": "DONE", "score": 3, "resultLevel": 1 }`을 돌려주고 `recommended_level`을 1로 저장합니다. `score`는 맞힌 문항 수이며, 답하지 않은 문항은 틀린 것으로 셉니다. 말하기 문항처럼 AI 채점이 필요해지면 AI 사용량 검사 대상이 됩니다.
+- ONB-06 [그만하기]는 일부 응답 후 멈춘 기록(`QUIT`)입니다. `{ "testId": 9, "status": "QUIT" }`를 돌려주고 추천 레벨은 바꾸지 않습니다.
+- 응답·완료·그만하기는 진행 중인 테스트에만 할 수 있습니다. 이미 끝난 테스트면 `409 LEVEL_TEST_NOT_IN_PROGRESS`, 다른 사용자의 테스트면 `404 NOT_FOUND`입니다.
+- 고른 적 없는 언어로 시작하거나 건너뛰면 `404 NOT_FOUND`입니다.
 - 문항 하나만 건너뛰는 기능의 필요 여부는 `[미정]`입니다.
+
+```json
+// ONB-07 POST /api/v1/level-tests/skip  요청
+{ "languageCode": "en-US" }
+
+// 응답 201
+{ "testId": 10, "status": "SKIPPED" }
+```
+
+- ONB-07 [건너뛰기]는 테스트를 시작하기 전에 누르므로 테스트 ID 없이 학습 언어만 보냅니다. 테스트를 치르지 않고 넘어간 기록(`SKIPPED`)을 만들고 `last_test_id`를 이 기록으로 바꿉니다. 추천 레벨 없이 화면 05로 갑니다.
 
 #### ONB-08 `GET /api/v1/me/languages/{languageCode}`
 
@@ -414,15 +434,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "selectedLevel": null,
   "levelTest": { "testId": 9, "status": "DONE" },
   "levels": [
-    { "level": 1, "available": true, "description": "천천히, 쉬운 단어와 짧은 문장으로 말해요." },
-    { "level": 2, "available": false, "description": null },
-    { "level": 3, "available": false, "description": null }
+    { "level": 1, "name": "초급", "available": true, "description": "천천히, 쉬운 단어와 짧은 문장으로 말해요." },
+    { "level": 2, "name": "중급", "available": false, "description": null },
+    { "level": 3, "name": "고급", "available": false, "description": null }
   ]
 }
 ```
 
 - 화면 05의 "레벨 테스트 추천" 배지는 `recommendedLevel`이 있을 때만 보여줍니다.
-- `available: false`인 단계는 "추후 제공" 카드입니다. 단계 수와 설명은 서버 설정값이며 `[미정]`입니다.
+- 난이도는 초급·중급·고급 3단계이고 MVP는 초급만 고를 수 있습니다. `available: false`인 단계는 "추후 제공" 카드입니다. 단계 이름과 설명은 서버 설정값이며, 중급·고급의 설명과 단계별 차이는 `[미정]`입니다.
+- `levelTest`는 마지막으로 시작하거나 건너뛴 테스트(`last_test_id`)입니다. BOOT-01의 `onboardingStep: LEVEL` 사용자는 이 상태가 `DONE`, `QUIT`, `SKIPPED`면 화면 05, 없거나 `IN_PROGRESS`면 화면 04로 갑니다.
 - `selectedLevel`은 ONB-09 전까지 `null`입니다. DB에는 `selected_level`이 필수라 프로필을 만들 때 1로 저장하고, ONB-09 처리 여부는 `onboardingStep`으로 판단합니다. `[제안]`
 - 레벨 테스트 기록이 없으면 `levelTest`는 응답에 담지 않습니다.
 - 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
@@ -1031,8 +1052,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | --- | --- | --- |
 | 예문 표시 시점 | WORLD-02 | 사물 카드에 예문을 저장 전부터 보여줄지(와이어프레임), 저장 후에만 보여줄지 정합니다. |
 | 사물 저장 출처 | VOCAB-01 | 사물에서 저장한 표현은 어느 사물에서 저장했는지 기록하지 않습니다. 화면에 사물 이름이 필요하면 `user_vocab`에 사물 ID를 추가합니다. |
-| 레벨 테스트 문항 | ONB-03~05 | 문항 원본 테이블이 없어 서버 설정 데이터로 둡니다. |
-| 가입 전 필수 컬럼 | AUTH-04, ONB-08 | `users.current_language`, `user_language_profiles.selected_level`이 필수라 선택 전 기본값을 저장합니다. 컬럼을 NULL 허용으로 바꿀지 정합니다. |
+| 레벨 테스트 문항 | ONB-03~05 | 문항 원본 테이블이 없어 서버 설정 데이터로 둡니다. MVP는 en-US 예시 선택형 5문항입니다. |
 | 힌트 단계 | CONV-05 | 자유 대화 힌트는 추천 단어·추천 문장 2단계로 요구사항명세서의 3단계와 다릅니다. 요구사항명세서와 다른 점으로 기록합니다. |
 
 ## 6. 정할 사항
@@ -1056,7 +1076,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 대화 중 새로고침 | CONV-11 | 이어서 진행 / 종료 처리 |
 | NPC 대사 저장 버튼 | VOCAB-02 | 화면 15에 배치 여부 |
 | 미션 완료 행동 | MIS-01 | 대화만(초안) / 장소 방문·단어 저장 등 추가 |
-| 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 문항 단위 건너뛰기 여부 |
+| 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 채점 기준, 문항 단위 건너뛰기 여부. MVP는 예시 문항·초급 고정으로 흐름만 두고 [진행하기]를 막아 둡니다. |
 | 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
 | 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `objectKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
 | 사용량 소진 HTTP 상태 코드 | 1.5 | 429 `[제안]` / 403 |

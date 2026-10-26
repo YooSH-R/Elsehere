@@ -1,0 +1,7 @@
+Edit the provided B character sheet. The faces must stop looking cross-eyed. The only design change is the eyes' iris/pupil alignment.
+
+REBUILD EACH EXISTING EYE as TWO CONCENTRIC OVALS: the outer oval is the current ivory eye opening, the inner oval is the current dark iris/pupil. Both ovals have EXACTLY THE SAME CENTER. This is a centered bullseye construction with a dark inner oval and an evenly visible ivory border on its LEFT and RIGHT. The black oval is not offset toward the nose. Show visible white on BOTH sides of EVERY black oval. Do not copy the incorrect existing black oval positions. Erase those old positions and draw the dark ovals again at the centered locations. Keep the highlight inside each centered dark oval.
+
+The white eye openings keep their current size and facial positions. The black ovals keep their current size. Keep B's close spacing of whole eyes. Do NOT enlarge eye-to-eye distance. Do NOT make pupils look at each other. Each character's gaze is straight at a very distant viewer, with no convergence. This applies to every one of the ten characters, including behind glasses.
+
+All ten individuals and their hair, faces, cheeks, noses, mouths, bodies, clothing and poses remain recognizable and consistent with this sheet. Same head/body ratio, 2 rows, 5 columns, white background and title LITTLE MUNG v4 · B. Same English labels. No A version, no scenery, no new characters. The pupil alignment correction must be clearly visible; prioritize concentric eye/pupil geometry over copying the old pupils.

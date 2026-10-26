@@ -1,0 +1,5 @@
+Fixture lights: 15; all inherited from reusable prefabs.
+Dim views temporarily reduce sunlight; saved scene remains daytime.
+PASS Cafe and shop: 254024 pixels visibly brighter with fixture lights on.
+PASS Hotel entrance: 433577 pixels visibly brighter with fixture lights on.
+PASS Mobile URP in Editor: 420737 pixels visibly brighter with fixture lights on.

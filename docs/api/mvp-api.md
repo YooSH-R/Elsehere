@@ -482,15 +482,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### WORLD-01 `GET /api/v1/scenes`
 
-- `[{ "sceneCode": "CAFE", "name": "Cafe", "unityKey": "Cafe", "isOpen": true }]` 형식입니다. 화면 14에서 들어갈 수 있는 건물과 "준비 중" 건물(호텔)을 표시할 때 씁니다.
+- `[{ "sceneCode": "CAFE", "name": "모퉁이 카페", "unityKey": "CafeScene", "isOpen": true }]` 형식입니다. 화면 14에서 들어갈 수 있는 건물과 "준비 중" 건물(호텔)을 표시할 때 씁니다.
+- `unityKey`는 클라이언트가 불러올 Unity 씬 이름입니다. 목록은 집, 마을, 카페, 호텔 순입니다.
 
 #### WORLD-02 `GET /api/v1/scenes/{sceneCode}`
 
 ```json
 {
   "sceneCode": "HOME",
-  "name": "Home",
-  "unityKey": "Home",
+  "name": "집",
+  "unityKey": "HomeScene",
   "isOpen": true,
   "npcs": [],
   "objects": [
@@ -516,11 +517,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 "npcs": [
-  { "npcCode": "BEN", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Excuse me! Can you help me?" },
-  { "npcCode": "MIA", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
+  { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
+  { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
 
+- `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
+- `npcs`, `objects`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `objectKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 사물 카드를 한 번에 받습니다. MVP는 장소마다 사물이 10개 안팎이라 응답이 작습니다.
 - 맵이 커지면 사물을 한 번에 받지 않고 캐릭터 주변 사물만 받도록 바꿉니다. 사물 위치는 Unity 씬에 있으므로, 클라이언트가 주변 사물의 `objectKey`를 모아 요청하는 방식을 우선 검토합니다. `[제안]`
 - 화면 08의 사물 카드는 `vocab`과 `saved`, `hoverHidden`으로 그립니다. 미리 등록한 어휘라 AI를 호출하지 않습니다.
@@ -569,7 +572,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "title": "카페에서 음료 주문하기",
       "description": "카페 직원에게 원하는 음료를 영어로 주문해 보세요.",
       "sceneCode": "CAFE",
-      "npcCode": "MIA",
+      "npcCode": "CAFE_STAFF",
       "npcName": "Mia",
       "userMissionId": 12,
       "status": "RUN",
@@ -580,7 +583,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "title": "카페 직원에게 추천 메뉴 묻기",
       "description": "카페 직원에게 오늘의 추천 메뉴를 물어보세요.",
       "sceneCode": "CAFE",
-      "npcCode": "MIA",
+      "npcCode": "CAFE_STAFF",
       "npcName": "Mia",
       "userMissionId": 13,
       "status": "DONE",
@@ -604,14 +607,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "MIA", "initiatedBy": "USER" }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER" }
 
 // 응답 201
 {
   "conversationId": 58,
   "status": "ACTIVE",
   "levelApplied": 1,
-  "npc": { "npcCode": "MIA", "name": "Mia", "roleLabel": "카페 직원" },
+  "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
   "runningMissions": [{ "userMissionId": 12, "title": "카페에서 음료 주문하기" }],
   "openingTurn": {
     "turnId": 100,
@@ -823,7 +826,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "status": "ENDED_BY_USER",
   "endReason": "USER_ENDED",
   "endedAt": "2026-10-21T14:05:00+09:00",
-  "npc": { "npcCode": "MIA", "name": "Mia", "roleLabel": "카페 직원" },
+  "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
   "sceneCode": "CAFE",
   "userTurnCount": 4,
   "feedback": {
@@ -1045,6 +1048,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 단어장 출처 대화 (v3.2) | VOCAB-01, 02 | `user_vocab.source_conversation_id`를 추가했습니다. 짧은 피드백(화면 16)은 턴 없이 대화 단위로 저장하므로 `source_turn_id`만으로는 출처 대화를 찾을 수 없습니다. |
 | 단어장 문장 (v3.2) | VOCAB-01, 02 | `user_vocab.context_text`, `context_meaning_ko`를 추가했습니다. 단어를 저장한 문장과 문장 뜻입니다. |
 | 닉네임 중복 불가 (v3.3) | AUTH-04, 06 | `users.nickname`에 unique 제약을 추가했습니다. 확인 API를 거쳐도 동시에 가입하면 같은 닉네임이 들어갈 수 있어 DB 제약으로 막습니다. |
+| 미션 코드 (v3.3) | MIS-01 | `missions.code`를 추가했습니다. 시드를 반복 실행할 때 같은 미션을 찾는 고정 키이며, Unity 미션 콘텐츠의 키와 같습니다. |
 
 ### 5.2 아직 정할 사항
 

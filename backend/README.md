@@ -28,7 +28,8 @@ com.elsehere
 │   ├── auth        로그인 사용자(LoginUser), 로그인 세션 저장, 요청 위조 방지 헤더 검사
 │   ├── config      보안·Clock·JPA Auditing 설정
 │   ├── entity      BaseEntity
-│   └── error       공통 오류 응답(ErrorCode, BusinessException)
+│   ├── error       공통 오류 응답(ErrorCode, BusinessException)
+│   └── seed        장소·NPC·사물·어휘·미션 시드 실행(WorldSeedLoader)
 └── <도메인>
     ├── controller
     ├── service
@@ -64,6 +65,13 @@ com.elsehere
 - `update`는 없는 테이블·컬럼·인덱스를 추가할 뿐, 기존 컬럼의 타입과 제약은 바꾸지 않습니다. enum 컬럼에는 허용 값 CHECK 제약이 생성되므로, enum에 값을 추가하거나 컬럼 정의를 바꾸면 로컬 DB에서 해당 테이블을 지우고 다시 만들어야 반영됩니다.
 - ERD 상단에 "DDL에서 직접 만들 것"으로 적은 항목(pgvector 확장, 부분 인덱스)은 JPA가 만들지 않습니다. 해당 기능을 구현할 때 생성 방법을 정합니다.
 - `EntitySchemaTest`가 모든 엔티티의 DDL이 PostgreSQL에서 오류 없이 실행되는지 확인합니다.
+
+## 시드 데이터
+
+- 장소·NPC·사물·어휘·미션처럼 모든 환경에 같이 있어야 하는 기본 데이터는 [`src/main/resources/db/seed/world.sql`](src/main/resources/db/seed/world.sql)에 있습니다.
+- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `unity_key`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 기본 데이터는 SQL 파일에서 고칩니다.
+- `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
+- Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답
 

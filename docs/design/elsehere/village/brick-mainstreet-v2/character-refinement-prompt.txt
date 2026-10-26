@@ -1,0 +1,13 @@
+Use case: precise-object-edit.
+Edit reference image 1 (the simplified BRICK MAINSTREET v2 town render). The environment is approved for this edit. KEEP the complete environment, architecture, buildings, tree masses, street, truck, signs, shop interiors, framing, materials, colors, lighting and bottom caption unchanged. Change ONLY the five human characters in the scene.
+
+Reference image 2 is the authoritative character design sheet. Transfer its unmistakable HUGE-HEAD / TINY-BODY proportions, facial proportions and costume designs into the five matching people in image 1. The town render currently makes the characters into ordinary chibi children with relatively long bodies, which is wrong. They must have massive broad rounded-square heads, tiny torsos, tiny stubby legs and little hands as in the roster.
+
+For EACH of the 5 people in the environment:
+- Hold the feet at their current ground-contact location, maintain their pose/role and current full character height.
+- Enlarge the head width by roughly 35% within that full-height footprint. The head including hair must occupy 70% of their total height, with everything below chin occupying only 30%. Think an enormous head sitting directly on a short jacket and tiny shoes. No longer legs, no extra torso.
+- Copy the faces from the roster: very broad forehead and cheeks, widely spaced SMALL simple white eyes with tiny dark pupils, tiny narrow integrated nose, small curved smile, no large sparkly anime eyes. Preserve the roster's quirky placid cute expression.
+- Keep the brunette bob female player near the cafe in periwinkle jacket and aqua shorts, the short-haired male player by the store, navy hotelier at the hotel, dark-skinned curly-haired apron-wearing barista on the right sidewalk, and auburn-bob mustard-cardigan shopkeeper at the front intersection.
+- Keep hair as broad simple matte modeled locks. No strands or realism.
+
+Make the FIVE CHARACTERS match the giant-head roster proportions accurately and look native to this smooth simple 3D game scene. Do NOT compensate by enlarging bodies or changing environment scale. No new characters. No other changes to the environment. One complete landscape image, same 3:2 aspect ratio. Caption remains "BRICK MAINSTREET v2".

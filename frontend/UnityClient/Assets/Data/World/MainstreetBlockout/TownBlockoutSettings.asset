@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acfb7444ace9b9547b92da31600d15ee, type: 3}
+  m_Name: TownBlockoutSettings
+  m_EditorClassIdentifier: A305.World::A305.World.TownBlockoutSettings
+  characterHeightMeters: 1.6
+  groundFloorHeightMeters: 4
+  upperFloorHeightMeters: 3
+  shopFootprintMeters: 8
+  hotelFootprintMeters: 10
+  homeFootprintMeters: 8
+  parapetHeightMeters: 0.4
+  doorwayWidthMeters: 2
+  doorwayHeightMeters: 2.2
+  northExtensionMeters: 40

@@ -3,6 +3,8 @@
     "rootNamespace": "A305.EditorTools",
     "references": [
         "Unity.InputSystem",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
         "A305.Player",
         "A305.Characters",
         "A305.World",

@@ -82,6 +82,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
 | `GUARD_BUDGET_S` | 5초 | `/v1/guard` 무례 판정 (로컬 판정기 + LLM). 넘으면 `abusive: null`, `error_code: timeout` |
 | `REPLY_FIRST_BUDGET_S` | 5초 | NPC 대답 **첫 글자까지**. 넘으면 SSE `error`(`timeout`). 말하기 시작한 대답은 끊지 않음 |
+| `STT_FIRST_TIMEOUT_S` | 8초 | 음성 인식 대체가 있을 때 첫 공급자(Groq) 호출. 넘으면 대체(GMS `whisper-1`)로. 대체 쪽과 대체가 없을 때는 30초 |
 
 Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다. 워커 상한보다 길게 잡아야 워커의 오류 응답을 받을 수 있습니다.
 
@@ -248,8 +249,9 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 응답: `{"text": "...", "latency_s": 0.41, "audio_s": 2.9, "usage": [{"step": "stt", "model": "...", "audio_s": 2.9, "latency_s": 0.41, "fallback": false}]}`
 
 - 무음일 때 Whisper가 프롬프트를 되풀이한 결과는 `text: ""`로 거릅니다. 빈 결과면 다시 말하기를 안내합니다.
-- 대체 모델이 없습니다. 실패하면 바로 429/503입니다.
-- 음성은 외부 음성 인식 서비스(지금 Groq)로 전송됩니다. 사용자 동의 화면에 이 점을 알려야 합니다.
+- GMS 구성(기본 `gms-luna`)은 Groq Whisper(`whisper-large-v3-turbo`)로 인식하고, Groq가 한도(429)·서버 오류·키 오류·응답 없음이면 GMS `whisper-1`로 한 번 더 인식합니다. 이때 `usage`의 `model`은 `whisper-1`, `fallback: true`입니다. 녹음 자체를 공급자가 받지 않은 경우(400·413·415·422)는 넘기지 않습니다. 대체 쪽도 실패하면 429/503이고, 메시지에 두 오류가 함께 적힙니다.
+- 대체가 있으면 Groq 호출은 `STT_FIRST_TIMEOUT_S`(8초) 안에 답이 없을 때 넘깁니다. 응답의 `latency_s`는 실패한 첫 호출까지 포함한 전체 시간입니다. GMS `whisper-1`은 Groq보다 느립니다(6.5초 음성 기준 약 1.9초, Groq 약 0.4초).
+- 음성은 외부 음성 인식 서비스(Groq, 대체 시 SSAFY GMS를 거친 OpenAI)로 전송됩니다. 사용자 동의 화면에 이 점을 알려야 합니다.
 
 ### 2.6 `POST /v1/hint`
 

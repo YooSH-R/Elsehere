@@ -80,9 +80,16 @@ def main():
     prefix = f"a305-alert-check-{uuid.uuid4().hex[:8]}"
     containers = [
         f"{prefix}-{name}"
-        for name in ("receiver", "client", "blackbox", "alertmanager", "promtool")
+        for name in (
+            "receiver",
+            "client",
+            "blackbox",
+            "alertmanager",
+            "promtool",
+            "admin",
+        )
     ]
-    receiver, client, blackbox, alertmanager, promtool = containers
+    receiver, client, blackbox, alertmanager, promtool, admin = containers
     docker("network", "create", "--internal", prefix)
     try:
         create(
@@ -195,6 +202,12 @@ def main():
             copy_to(alertmanager, runtime / "run", "/")
             docker("start", alertmanager)
             wait_for_http(client, "http://alertmanager:9093/-/ready")
+            create(admin, prefix, "admin", "nginx:1.30.6-alpine", "64m")
+            copy_to(
+                admin, MONITORING / "admin-ui.conf", "/etc/nginx/conf.d/default.conf"
+            )
+            docker("start", admin)
+            wait_for_http(client, "http://admin:9093/-/ready")
             docker("exec", alertmanager, "/bin/amtool", "check-config", "/pending.yml")
             docker("exec", alertmanager, "/bin/amtool", "check-config", "/config.yml")
             post_alert(client, datetime.now(UTC) + timedelta(minutes=5))

@@ -75,7 +75,7 @@ sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/deploy.env" -f i
 - Compose 프로젝트: `a305-monitoring`
 - 저장소: `prometheus-data`, `grafana-data` 전용 볼륨
 - Prometheus 보관 상한: 14일·1GB 설정. 디스크와 실제 사용량은 별도로 확인합니다.
-- 초기 자원 상한: Prometheus 0.5 CPU·512MiB, Grafana 0.5 CPU·256MiB, Alertmanager 0.25 CPU·128MiB, Blackbox 0.25 CPU·64MiB. 실제 수집 부하에 따라 조정합니다.
+- 초기 자원 상한: Prometheus 0.5 CPU·512MiB, Grafana 0.5 CPU·256MiB, Alertmanager 0.25 CPU·128MiB, Blackbox와 관리 화면 프록시는 각각 0.25 CPU·64MiB. 실제 수집 부하에 따라 조정합니다.
 
 설정 폴더에는 저장소의 `infra/monitoring/` 파일을 같은 상대 위치로 복사합니다. `monitoring.env.example`을 실행 폴더의 `monitoring.env`로 복사하고 그룹 ID는 서버에서 `id -g`로 확인합니다.
 
@@ -97,6 +97,8 @@ sudo docker compose -p a305-monitoring --env-file monitoring.env -f compose.yaml
 ```
 
 UI 포트는 서버의 루프백에만 게시합니다. PC에서 SSH 터널을 유지한 상태로 접속합니다.
+
+Grafana와 Alertmanager는 내부 모니터링 네트워크만 사용합니다. 루프백의 관리 화면 프록시가 두 UI를 전달하므로 내부 서비스에 외부 연결을 추가하지 않아도 SSH 터널로 접근할 수 있습니다. Alertmanager의 실제 알림 전송용 연결은 수신 채널을 승인한 뒤 별도 추가 파일로 활성화합니다.
 
 ```powershell
 ssh -i "<PEM 경로>" -L 3000:127.0.0.1:3000 -L 9091:127.0.0.1:9091 -L 9093:127.0.0.1:9093 ubuntu@k15a305.p.ssafy.io

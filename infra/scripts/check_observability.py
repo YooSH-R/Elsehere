@@ -119,8 +119,8 @@ def check_prometheus(container):
     )
 
 
-def check_grafana(client):
-    url = "http://grafana:3000/api/dashboards/uid/a305-api"
+def check_grafana(client, base_url="http://grafana:3000"):
+    url = base_url + "/api/dashboards/uid/a305-api"
     assert "401" in http(client, url).stderr
     credentials = base64.b64encode(b"admin:observability-fixture-password").decode()
     result = http(client, url, [f"Authorization: Basic {credentials}"])
@@ -129,7 +129,7 @@ def check_grafana(client):
     assert dashboard["uid"] == "a305-api" and len(dashboard["panels"]) == 6
     datasource = http(
         client,
-        "http://grafana:3000/api/datasources/uid/a305-prometheus",
+        base_url + "/api/datasources/uid/a305-prometheus",
         [f"Authorization: Basic {credentials}"],
     )
     assert (
@@ -138,7 +138,7 @@ def check_grafana(client):
     )
     availability = http(
         client,
-        "http://grafana:3000/api/dashboards/uid/a305-availability",
+        base_url + "/api/dashboards/uid/a305-availability",
         [f"Authorization: Basic {credentials}"],
     )
     assert availability.returncode == 0
@@ -152,9 +152,10 @@ def check_grafana(client):
 def main():
     prefix = f"a305-observability-check-{uuid.uuid4().hex[:8]}"
     containers = [
-        f"{prefix}-{service}" for service in ("nginx", "prometheus", "grafana", "inner")
+        f"{prefix}-{service}"
+        for service in ("nginx", "prometheus", "grafana", "inner", "admin")
     ]
-    nginx, prometheus, grafana, inner = containers
+    nginx, prometheus, grafana, inner, admin = containers
     docker("network", "create", "--internal", prefix)
     try:
         docker(
@@ -287,6 +288,29 @@ def main():
         docker("start", grafana)
         wait_for_http(nginx, "http://grafana:3000/api/health")
         check_grafana(nginx)
+
+        docker(
+            "create",
+            "--name",
+            admin,
+            "--network",
+            prefix,
+            "--network-alias",
+            "admin",
+            "--memory",
+            "64m",
+            "--cpus",
+            "0.25",
+            "nginx:1.30.6-alpine",
+        )
+        copy_to(admin, MONITORING / "admin-ui.conf", "/etc/nginx/conf.d/default.conf")
+        docker("start", admin)
+        wait_for_http(nginx, "http://admin:3000/api/health")
+        check_grafana(nginx, "http://admin:3000")
+        print(
+            "Admin proxy: Grafana authentication and provisioned dashboards passed through the UI route.",
+            flush=True,
+        )
     finally:
         for container in containers:
             docker("rm", "-f", "-v", container, check=False)

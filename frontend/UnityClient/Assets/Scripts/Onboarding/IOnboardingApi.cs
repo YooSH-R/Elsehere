@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace A305.Onboarding
 {
-    /// <summary>입구 화면이 쓰는 서버 API(BOOT-01, AUTH, ONB). 실패하면 <see cref="A305.Api.ApiException"/>을 던진다.</summary>
+    /// <summary>입구 화면이 쓰는 서버 API(BOOT-01, AUTH, ONB, WORLD-01). 실패하면 <see cref="A305.Api.ApiException"/>을 던진다.</summary>
     public interface IOnboardingApi
     {
         /// <summary>AUTH-01. 페이지 이동으로 여는 Google 로그인 주소.</summary>
@@ -29,5 +29,8 @@ namespace A305.Onboarding
         Task<LevelTestResultResponse> SkipLevelTestAsync(string languageCode);
 
         Task<LevelSelectionResponse> SelectLevelAsync(string languageCode, int level);
+
+        /// <summary>WORLD-01. 재접속할 장소의 Unity 씬 이름을 찾는다.</summary>
+        Task<List<SceneSummary>> GetScenesAsync();
     }
 }

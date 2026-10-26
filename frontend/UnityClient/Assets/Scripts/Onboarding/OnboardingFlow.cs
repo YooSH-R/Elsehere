@@ -37,6 +37,9 @@ namespace A305.Onboarding
         /// <summary>지금 설정 중인 학습 언어.</summary>
         public string LanguageCode { get; private set; }
 
+        /// <summary>재접속할 장소의 Unity 씬 이름. 없거나 열리지 않은 장소면 null이며, 이때는 기본 마을 씬을 연다.</summary>
+        public string LastSceneName { get; private set; }
+
         /// <summary>마지막 요청이 실패한 이유. 다음 요청이 성공하면 지운다.</summary>
         public string ErrorMessage { get; private set; }
 
@@ -54,7 +57,13 @@ namespace A305.Onboarding
                     lastLevelTest = LanguageProfile.LevelTest?.Status;
                 }
 
-                await EnterAsync(EntryRouter.Route(boot, lastLevelTest));
+                EntryScreen screen = EntryRouter.Route(boot, lastLevelTest);
+                if (screen == EntryScreen.World && boot.LastSceneCode != null)
+                {
+                    LastSceneName = await FindOpenSceneAsync(boot.LastSceneCode);
+                }
+
+                await EnterAsync(screen);
             });
         }
 
@@ -123,6 +132,14 @@ namespace A305.Onboarding
                 await api.SelectLevelAsync(LanguageCode, level);
                 await EnterAsync(EntryScreen.Tutorial);
             });
+        }
+
+        // BOOT-01은 장소 코드만 주므로 장소 목록(WORLD-01)에서 Unity 씬 이름을 찾는다. 닫혔거나 목록에 없으면 null이다.
+        private async Task<string> FindOpenSceneAsync(string sceneCode)
+        {
+            List<SceneSummary> scenes = await api.GetScenesAsync();
+            SceneSummary scene = scenes.Find(candidate => candidate.SceneCode == sceneCode);
+            return scene != null && scene.IsOpen ? scene.UnityKey : null;
         }
 
         // 화면에 보여 줄 데이터를 먼저 불러 두고 화면을 바꾼다.

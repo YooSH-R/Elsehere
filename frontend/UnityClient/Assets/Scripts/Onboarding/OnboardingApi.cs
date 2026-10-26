@@ -75,6 +75,11 @@ namespace A305.Onboarding
             );
         }
 
+        public Task<List<SceneSummary>> GetScenesAsync()
+        {
+            return client.GetAsync<List<SceneSummary>>("/api/v1/scenes");
+        }
+
         private static string LanguagePath(string languageCode)
         {
             return "/api/v1/me/languages/" + Uri.EscapeDataString(languageCode);

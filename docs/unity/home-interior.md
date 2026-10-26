@@ -66,13 +66,9 @@ Sandbox의 씬 이름은 튜토리얼 시작 조건인 `HomeScene`과 다르다.
 - **Apply Soft Daylight**: 집의 조명과 색 보정을 위 기본값으로 다시 맞추고 Sandbox 복사본을 갱신한다. 조명을 직접 편집한 뒤에는 이 메뉴가 수치를 재설정한다는 점을 유의한다.
 - **Verify Cozy Cottage Design**: Production 씬을 Play하여 사물 호버, 주요 이동 동선, 문 접촉을 통한 마을 왕복을 확인하고 `artifacts/unity/home-interior/`에 결과를 저장한다. Play 검수용 이동과 카메라 변경은 저장 씬에 반영하지 않는다.
 
-## 실제 Unity 화면
+## 실제 Unity 화면의 로컬 보관
 
-아래 이미지는 Unity Play 중 카메라 렌더다. 첫 이미지는 기본 플레이어 시점이며 HUD 합성은 포함하지 않는다. 두 번째는 배치를 보기 위해 검수 중에만 천장·남쪽 벽·동쪽 벽을 숨긴 단면 시점이다. 저장된 씬에는 네 벽과 천장이 있다.
-
-![기본 플레이어 시점](../../artifacts/unity/home-interior/01-player-start.png)
-
-![배치 확인용 단면 시점](../../artifacts/unity/home-interior/04-cutaway-layout.png)
+검수 메뉴가 생성하는 카메라 렌더와 실행 기록은 `artifacts/unity/home-interior/`에 로컬로 보관하며 Git에 추가하지 않는다. `01-player-start.png`는 기본 플레이어 시점이고 HUD 합성은 포함하지 않는다. `04-cutaway-layout.png`는 배치를 보기 위해 검수 중에만 천장·남쪽 벽·동쪽 벽을 숨긴 단면 시점이다. 저장된 씬에는 네 벽과 천장이 있다.
 
 ## 재사용과 적용 범위
 

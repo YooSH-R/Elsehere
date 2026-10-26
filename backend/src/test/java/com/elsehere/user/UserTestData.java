@@ -10,12 +10,19 @@ public final class UserTestData {
 
   public static Long insertUser(
       EntityManager entityManager, AuthProvider provider, String providerUid) {
+    return insertUser(entityManager, provider, providerUid, "Sun");
+  }
+
+  /** 닉네임은 중복될 수 없으므로(users.nickname unique) 한 테스트에서 사용자를 여럿 만들 때 쓴다. */
+  public static Long insertUser(
+      EntityManager entityManager, AuthProvider provider, String providerUid, String nickname) {
     entityManager
         .createNativeQuery(
             "insert into users (provider, provider_uid, nickname, avatar_type, onboarding_step,"
-                + " current_language) values (?, ?, 'Sun', 'F', 'DONE', 'en-US')")
+                + " current_language) values (?, ?, ?, 'F', 'DONE', 'en-US')")
         .setParameter(1, provider.name())
         .setParameter(2, providerUid)
+        .setParameter(3, nickname)
         .executeUpdate();
     Number id =
         (Number)

@@ -190,6 +190,8 @@ namespace A305.EditorTools.World
                     .012f
                 );
             Solid(p, V(0, .45f, 0), V(7.3f, .9f, 1.2f));
+            // 낮은 얼굴 중심을 가진 v7 캐릭터의 입이 대화 시점에서 상판에 가리지 않게 한다.
+            root.transform.localScale = V(1, .78f, 1);
             return root;
         }
 
@@ -245,7 +247,11 @@ namespace A305.EditorTools.World
         internal static GameObject Display()
         {
             var root = new GameObject("PastryDisplay");
-            Prop("BakeryInterior/DisplayCase", root.transform, Vector3.zero, 180);
+            Prop("BakeryInterior/DisplayCase", root.transform, Vector3.zero, 180).localScale = V(
+                3,
+                1,
+                1.3f
+            );
             Prop("BakedGoods/Croissant", root.transform, V(-.27f, .12f, -.03f), -12);
             Prop("BakedGoods/Bread", root.transform, V(.2f, .13f, .03f), 10);
             Prop("BakedGoods/Muffin", root.transform, V(.02f, .13f, -.2f));
@@ -318,10 +324,10 @@ namespace A305.EditorTools.World
             Put(Save("BoothSet", Booth), root.transform, V(-6.15f, 0, .4f), 90);
             Put(Save("RoundTableSet", TableSet), root.transform, V(4.5f, 0, -3f));
             Put(Save("RoundTableSet", TableSet), root.transform, V(4.5f, 0, .3f));
-            Put(Save("PastryDisplay", Display), root.transform, V(-2.55f, .95f, 3.7f));
-            Prop("BakeryInterior/CashRegister", root.transform, V(.95f, .95f, 3.7f), 180);
-            Prop("BakeryInterior/ServingTray", root.transform, V(2.3f, .95f, 3.7f));
-            Prop("BakeryInterior/TakeawayCup", root.transform, V(2.3f, .98f, 3.7f));
+            Put(Save("PastryDisplay", Display), root.transform, V(-2.55f, .741f, 3.7f));
+            Prop("BakeryInterior/CashRegister", root.transform, V(.95f, .741f, 3.7f), 180);
+            Prop("BakeryInterior/ServingTray", root.transform, V(2.3f, .741f, 3.7f));
+            Prop("BakeryInterior/TakeawayCup", root.transform, V(2.3f, .771f, 3.7f));
             foreach (
                 Vector3 point in new[] { V(-6.2f, 0, 4.8f), V(6.1f, 0, 4.8f), V(6.1f, 0, -5.1f) }
             )

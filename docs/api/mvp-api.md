@@ -87,6 +87,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
+| `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
 | `CONVERSATION_NOT_ACTIVE` | 409 | 이미 끝난 대화에 발화 전송 |
@@ -125,9 +126,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 닉네임, 캐릭터 기본형(F/M), 약관 동의 → [계속하기] | AUTH-04 |
 | 03 배울 언어 선택 | 언어 카드(선택 가능·준비 중) | ONB-01 |
 | | [다음] | ONB-02 |
-| 04 레벨 테스트 | 문항, "문항 3 / N" 진행률 | ONB-03 |
-| | [다음] (응답 저장), 마지막 문항 뒤 결과 | ONB-04, ONB-05 |
-| | [건너뛰기], [그만하기] | ONB-07, ONB-06 |
+| 04 레벨 테스트 | 첫 화면 [레벨 테스트 진행하기] (MVP는 클라이언트에서 비활성) | ONB-03 |
+| | 첫 화면 [건너뛰기] | ONB-07 |
+| | 문항, "문항 3 / N" 진행률, [다음] (응답 저장), 마지막 문항 뒤 결과 | ONB-04, ONB-05 |
+| | 문항을 푸는 도중 [그만하기] | ONB-06 |
 | 05 NPC AI 난이도 설정 | "레벨 테스트 추천" 배지, 단계 카드(선택 가능·추후 제공) | ONB-08 |
 | | [설정 완료] | ONB-09 |
 
@@ -206,9 +208,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | ONB-02 | `PUT /api/v1/me/languages/{languageCode}` | 학습 언어 선택 | - | 03 |
 | ONB-03 | `POST /api/v1/level-tests` | 레벨 테스트 시작, 문항 조회 | - | 04 |
 | ONB-04 | `PUT /api/v1/level-tests/{testId}/answers/{itemCode}` | 문항 응답 저장 | - | 04 |
-| ONB-05 | `POST /api/v1/level-tests/{testId}/complete` | 채점·추천 레벨 | `[미정]` | 04 |
+| ONB-05 | `POST /api/v1/level-tests/{testId}/complete` | 채점·추천 레벨 (MVP는 초급 고정) | - | 04 |
 | ONB-06 | `POST /api/v1/level-tests/{testId}/quit` | 테스트 그만하기 | - | 04 |
-| ONB-07 | `POST /api/v1/level-tests/{testId}/skip` | 테스트 건너뛰기 | - | 04 |
+| ONB-07 | `POST /api/v1/level-tests/skip` | 테스트 건너뛰기 | - | 04 |
 | ONB-08 | `GET /api/v1/me/languages/{languageCode}` | 추천 레벨과 선택 가능한 난이도 | - | 05 |
 | ONB-09 | `PUT /api/v1/me/languages/{languageCode}/level` | 대화 난이도 선택 | - | 05 |
 | TUT-01 | `POST /api/v1/me/tutorial/complete` | 튜토리얼 완료 | - | 12 |
@@ -376,20 +378,24 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### ONB-03~07 레벨 테스트
 
-레벨 테스트 방식과 문항은 `[미정]`입니다. 문항 원본을 둘 테이블이 ERD에 없으므로 초안은 서버 설정 데이터의 `itemCode`로 문항을 구분합니다.
+레벨 테스트 방식은 `[미정]`입니다. MVP는 흐름만 만들어 두고 실제 레벨 판정은 하지 않습니다.
+
+- 문항은 서버 설정 데이터의 en-US 예시 선택형 5개입니다. 문항 원본을 둘 테이블이 ERD에 없으므로 `itemCode`로 문항을 구분합니다.
+- 결과 레벨은 점수와 상관없이 초급(1)으로 고정합니다.
+- 화면 04의 첫 화면에는 [레벨 테스트 진행하기]와 [건너뛰기]를 둡니다. MVP에서는 클라이언트가 [진행하기]를 비활성("준비 중")으로 막아 두므로 실제로는 ONB-07만 씁니다. ONB-03~06은 막아 둔 버튼을 열면 바로 쓸 수 있게 만들어 둔 API입니다.
 
 ```json
-// ONB-03 POST /api/v1/level-tests  요청
+// ONB-03 POST /api/v1/level-tests  요청 ([진행하기]를 누를 때)
 { "languageCode": "en-US" }
 
 // 응답 201
 {
   "testId": 9,
   "status": "IN_PROGRESS",
-  "totalItems": 10,
+  "totalItems": 5,
   "items": [
     {
-      "itemCode": "EN_L1_003",
+      "itemCode": "EN_L1_001",
       "type": "CHOICE",
       "instruction": "빈칸에 알맞은 말을 고르세요.",
       "question": "Can I ______ a coffee, please?",
@@ -399,11 +405,25 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
+- ONB-03은 [진행하기]를 누를 때 새 테스트(`IN_PROGRESS`)를 만들고 학습 설정의 `last_test_id`를 이 테스트로 바꿉니다. 정답은 응답에 담지 않습니다.
+- 진행 중인 테스트가 있어도 다시 시작하면 새 테스트를 만듭니다. 중간에 나갔다 오면 이어서 풀지 않고 처음부터 다시 풉니다.
 - 화면 04의 "문항 3 / N"과 진행률은 `totalItems`와 현재 문항 순서로 그립니다.
-- ONB-04 `PUT /api/v1/level-tests/{testId}/answers/{itemCode}`는 `{ "answer": "have" }`를 저장하고 `204`를 돌려줍니다. 같은 문항에 다시 답하면 덮어씁니다.
-- ONB-05는 채점해 `{ "status": "DONE", "score": 7, "resultLevel": 1 }`을 돌려주고 `recommended_level`, `last_test_id`를 저장합니다. 말하기 문항처럼 AI 채점이 필요하면 AI 사용량 검사 대상입니다.
-- ONB-06 [그만하기]는 일부 응답 후 멈춘 기록(`QUIT`), ONB-07 [건너뛰기]는 테스트를 치르지 않고 넘어간 기록(`SKIPPED`)입니다. 둘 다 추천 레벨 없이 화면 05로 갑니다.
+- ONB-04 `PUT /api/v1/level-tests/{testId}/answers/{itemCode}`는 `{ "answer": "have" }`를 저장하고 `204`를 돌려줍니다. 정답 여부도 함께 기록하며, 같은 문항에 다시 답하면 덮어씁니다. 없는 문항이면 `404 NOT_FOUND`입니다.
+- ONB-05는 `{ "testId": 9, "status": "DONE", "score": 3, "resultLevel": 1 }`을 돌려주고 `recommended_level`을 1로 저장합니다. `score`는 맞힌 문항 수이며, 답하지 않은 문항은 틀린 것으로 셉니다. 말하기 문항처럼 AI 채점이 필요해지면 AI 사용량 검사 대상이 됩니다.
+- ONB-06 [그만하기]는 일부 응답 후 멈춘 기록(`QUIT`)입니다. `{ "testId": 9, "status": "QUIT" }`를 돌려주고 추천 레벨은 바꾸지 않습니다.
+- 응답·완료·그만하기는 진행 중인 테스트에만 할 수 있습니다. 이미 끝난 테스트면 `409 LEVEL_TEST_NOT_IN_PROGRESS`, 다른 사용자의 테스트면 `404 NOT_FOUND`입니다.
+- 고른 적 없는 언어로 시작하거나 건너뛰면 `404 NOT_FOUND`입니다.
 - 문항 하나만 건너뛰는 기능의 필요 여부는 `[미정]`입니다.
+
+```json
+// ONB-07 POST /api/v1/level-tests/skip  요청
+{ "languageCode": "en-US" }
+
+// 응답 201
+{ "testId": 10, "status": "SKIPPED" }
+```
+
+- ONB-07 [건너뛰기]는 테스트를 시작하기 전에 누르므로 테스트 ID 없이 학습 언어만 보냅니다. 테스트를 치르지 않고 넘어간 기록(`SKIPPED`)을 만들고 `last_test_id`를 이 기록으로 바꿉니다. 추천 레벨 없이 화면 05로 갑니다.
 
 #### ONB-08 `GET /api/v1/me/languages/{languageCode}`
 
@@ -414,15 +434,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "selectedLevel": null,
   "levelTest": { "testId": 9, "status": "DONE" },
   "levels": [
-    { "level": 1, "available": true, "description": "천천히, 쉬운 단어와 짧은 문장으로 말해요." },
-    { "level": 2, "available": false, "description": null },
-    { "level": 3, "available": false, "description": null }
+    { "level": 1, "name": "초급", "available": true, "description": "천천히, 쉬운 단어와 짧은 문장으로 말해요." },
+    { "level": 2, "name": "중급", "available": false, "description": null },
+    { "level": 3, "name": "고급", "available": false, "description": null }
   ]
 }
 ```
 
 - 화면 05의 "레벨 테스트 추천" 배지는 `recommendedLevel`이 있을 때만 보여줍니다.
-- `available: false`인 단계는 "추후 제공" 카드입니다. 단계 수와 설명은 서버 설정값이며 `[미정]`입니다.
+- 난이도는 초급·중급·고급 3단계이고 MVP는 초급만 고를 수 있습니다. `available: false`인 단계는 "추후 제공" 카드입니다. 단계 이름과 설명은 서버 설정값이며, 중급·고급의 설명과 단계별 차이는 `[미정]`입니다.
+- `levelTest`는 마지막으로 시작하거나 건너뛴 테스트(`last_test_id`)입니다. BOOT-01의 `onboardingStep: LEVEL` 사용자는 이 상태가 `DONE`, `QUIT`, `SKIPPED`면 화면 05, 없거나 `IN_PROGRESS`면 화면 04로 갑니다.
 - `selectedLevel`은 ONB-09 전까지 `null`입니다. DB에는 `selected_level`이 필수라 프로필을 만들 때 1로 저장하고, ONB-09 처리 여부는 `onboardingStep`으로 판단합니다. `[제안]`
 - 레벨 테스트 기록이 없으면 `levelTest`는 응답에 담지 않습니다.
 - 고른 적 없는 언어면 `404 NOT_FOUND`입니다.
@@ -461,15 +482,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### WORLD-01 `GET /api/v1/scenes`
 
-- `[{ "sceneCode": "CAFE", "name": "Cafe", "unityKey": "Cafe", "isOpen": true }]` 형식입니다. 화면 14에서 들어갈 수 있는 건물과 "준비 중" 건물(호텔)을 표시할 때 씁니다.
+- `[{ "sceneCode": "CAFE", "name": "모퉁이 카페", "unityKey": "CafeScene", "isOpen": true }]` 형식입니다. 화면 14에서 들어갈 수 있는 건물을 표시할 때 씁니다. MVP는 카페·호텔을 포함해 모든 장소가 열려 있으며, 이후 준비 중인 건물은 `isOpen: false`로 내려갑니다.
+- `unityKey`는 클라이언트가 불러올 Unity 씬 이름입니다. 목록은 집, 마을, 카페, 호텔 순입니다.
 
 #### WORLD-02 `GET /api/v1/scenes/{sceneCode}`
 
 ```json
 {
   "sceneCode": "HOME",
-  "name": "Home",
-  "unityKey": "Home",
+  "name": "집",
+  "unityKey": "HomeScene",
   "isOpen": true,
   "npcs": [],
   "objects": [
@@ -495,11 +517,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 "npcs": [
-  { "npcCode": "BEN", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Excuse me! Can you help me?" },
-  { "npcCode": "MIA", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
+  { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
+  { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
 
+- `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
+- `npcs`, `objects`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `objectKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 사물 카드를 한 번에 받습니다. MVP는 장소마다 사물이 10개 안팎이라 응답이 작습니다.
 - 맵이 커지면 사물을 한 번에 받지 않고 캐릭터 주변 사물만 받도록 바꿉니다. 사물 위치는 Unity 씬에 있으므로, 클라이언트가 주변 사물의 `objectKey`를 모아 요청하는 방식을 우선 검토합니다. `[제안]`
 - 화면 08의 사물 카드는 `vocab`과 `saved`, `hoverHidden`으로 그립니다. 미리 등록한 어휘라 AI를 호출하지 않습니다.
@@ -548,7 +572,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "title": "카페에서 음료 주문하기",
       "description": "카페 직원에게 원하는 음료를 영어로 주문해 보세요.",
       "sceneCode": "CAFE",
-      "npcCode": "MIA",
+      "npcCode": "CAFE_STAFF",
       "npcName": "Mia",
       "userMissionId": 12,
       "status": "RUN",
@@ -559,7 +583,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "title": "카페 직원에게 추천 메뉴 묻기",
       "description": "카페 직원에게 오늘의 추천 메뉴를 물어보세요.",
       "sceneCode": "CAFE",
-      "npcCode": "MIA",
+      "npcCode": "CAFE_STAFF",
       "npcName": "Mia",
       "userMissionId": 13,
       "status": "DONE",
@@ -571,7 +595,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 오늘 처음 조회하면 서버가 오늘의 일일 미션을 `user_missions`에 `RUN` 상태로 만듭니다. 같은 날 다시 조회해도 새로 만들지 않습니다.
 - 화면 13의 미션 목록은 HUD의 [미션]으로 엽니다. 화면 위 미션 표시는 `status: RUN`인 미션의 제목입니다. 미션 이름과 내용은 예시입니다.
-- 열리지 않은 장소(호텔)의 미션은 목록에 넣지 않습니다. 튜토리얼 미션은 Unity 대본 콘텐츠라 DB에 없습니다.
+- 열리지 않은 장소의 미션은 목록에 넣지 않습니다. MVP의 일일 미션은 카페와 호텔에 하나씩입니다. 튜토리얼 미션은 Unity 대본 콘텐츠라 DB에 없습니다.
 - 미션 상세 화면(지도, 자세한 설명)은 MVP에 넣지 않습니다(7절).
 - 완료 판정 기준(`keywords`, `intent_rule`)은 서버 내부 정보라 응답하지 않습니다.
 - MVP의 미션 완료 행동은 대상 NPC와의 대화입니다. 대화 외 행동(장소 방문, 단어 저장 등)으로 완료하는 미션이 필요한지는 `[미정]`입니다.
@@ -583,14 +607,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "MIA", "initiatedBy": "USER" }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER" }
 
 // 응답 201
 {
   "conversationId": 58,
   "status": "ACTIVE",
   "levelApplied": 1,
-  "npc": { "npcCode": "MIA", "name": "Mia", "roleLabel": "카페 직원" },
+  "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
   "runningMissions": [{ "userMissionId": 12, "title": "카페에서 음료 주문하기" }],
   "openingTurn": {
     "turnId": 100,
@@ -802,7 +826,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "status": "ENDED_BY_USER",
   "endReason": "USER_ENDED",
   "endedAt": "2026-10-21T14:05:00+09:00",
-  "npc": { "npcCode": "MIA", "name": "Mia", "roleLabel": "카페 직원" },
+  "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
   "sceneCode": "CAFE",
   "userTurnCount": 4,
   "feedback": {
@@ -1024,6 +1048,8 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 단어장 출처 대화 (v3.2) | VOCAB-01, 02 | `user_vocab.source_conversation_id`를 추가했습니다. 짧은 피드백(화면 16)은 턴 없이 대화 단위로 저장하므로 `source_turn_id`만으로는 출처 대화를 찾을 수 없습니다. |
 | 단어장 문장 (v3.2) | VOCAB-01, 02 | `user_vocab.context_text`, `context_meaning_ko`를 추가했습니다. 단어를 저장한 문장과 문장 뜻입니다. |
 | 닉네임 중복 불가 (v3.3) | AUTH-04, 06 | `users.nickname`에 unique 제약을 추가했습니다. 확인 API를 거쳐도 동시에 가입하면 같은 닉네임이 들어갈 수 있어 DB 제약으로 막습니다. |
+| 미션 코드 (v3.3) | MIS-01 | `missions.code`를 추가했습니다. 시드를 반복 실행할 때 같은 미션을 찾는 고정 키이며, Unity 미션 콘텐츠의 키와 같습니다. |
+| 호텔 개방 (v3.3) | WORLD-01·02, MIS-01 | 기능명세서 F-21·F-22에 맞춰 호텔을 열고(`scenes.is_open = true`) 호텔 직원 NPC(`HOTEL_STAFF`)와 호텔 미션을 시드에 추가했습니다. 컬럼 변경은 없습니다. |
 
 ### 5.2 아직 정할 사항
 
@@ -1031,8 +1057,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | --- | --- | --- |
 | 예문 표시 시점 | WORLD-02 | 사물 카드에 예문을 저장 전부터 보여줄지(와이어프레임), 저장 후에만 보여줄지 정합니다. |
 | 사물 저장 출처 | VOCAB-01 | 사물에서 저장한 표현은 어느 사물에서 저장했는지 기록하지 않습니다. 화면에 사물 이름이 필요하면 `user_vocab`에 사물 ID를 추가합니다. |
-| 레벨 테스트 문항 | ONB-03~05 | 문항 원본 테이블이 없어 서버 설정 데이터로 둡니다. |
-| 가입 전 필수 컬럼 | AUTH-04, ONB-08 | `users.current_language`, `user_language_profiles.selected_level`이 필수라 선택 전 기본값을 저장합니다. 컬럼을 NULL 허용으로 바꿀지 정합니다. |
+| 레벨 테스트 문항 | ONB-03~05 | 문항 원본 테이블이 없어 서버 설정 데이터로 둡니다. MVP는 en-US 예시 선택형 5문항입니다. |
 | 힌트 단계 | CONV-05 | 자유 대화 힌트는 추천 단어·추천 문장 2단계로 요구사항명세서의 3단계와 다릅니다. 요구사항명세서와 다른 점으로 기록합니다. |
 
 ## 6. 정할 사항
@@ -1056,7 +1081,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 대화 중 새로고침 | CONV-11 | 이어서 진행 / 종료 처리 |
 | NPC 대사 저장 버튼 | VOCAB-02 | 화면 15에 배치 여부 |
 | 미션 완료 행동 | MIS-01 | 대화만(초안) / 장소 방문·단어 저장 등 추가 |
-| 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 문항 단위 건너뛰기 여부 |
+| 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 채점 기준, 문항 단위 건너뛰기 여부. MVP는 예시 문항·초급 고정으로 흐름만 두고 [진행하기]를 막아 둡니다. |
 | 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
 | 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `objectKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
 | 사용량 소진 HTTP 상태 코드 | 1.5 | 429 `[제안]` / 403 |

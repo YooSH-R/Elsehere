@@ -5,3 +5,9 @@
 | 에셋 | 위치 | 출처 | 라이선스 | 사용 |
 | --- | --- | --- | --- | --- |
 | Pretendard 1.3.9 (Regular, Bold) | `Pretendard/` | [orioncactus/pretendard](https://github.com/orioncactus/pretendard) | SIL Open Font License 1.1 (`Pretendard/OFL.txt`) | 한국어·영어 UI 글꼴. TMP 글꼴 에셋은 `Assets/Art/UI/Fonts/` |
+| Tiny Treats Bakery Interior 1.1 — Isa Lousberg | `TinyTreats/BakeryInterior/` | [공식 배포](https://tinytreats.itch.io/bakery-interior) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 12개와 원본 atlas 텍스처 |
+| Tiny Treats Baked Goods 1.0 — Isa Lousberg | `TinyTreats/BakedGoods/` | [공식 배포](https://tinytreats.itch.io/baked-goods) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 5개와 원본 atlas 텍스처 |
+| Tiny Treats House Plants 1.0 — Isa Lousberg | `TinyTreats/HousePlants/` | [공식 배포](https://tinytreats.itch.io/house-plants) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 3개와 원본 atlas 텍스처 |
+| Tiny Treats Pretty Park 1.0 — Isa Lousberg | `TinyTreats/PrettyPark/` | [공식 배포](https://tinytreats.itch.io/pretty-park) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 5개와 원본 atlas 텍스처 |
+
+Tiny Treats 원본 모델과 텍스처는 수정하지 않는다. Elsehere용 URP 재질은 `Assets/Art/World/TinyTreats/`, 크기·피벗·콜라이더를 조절한 중첩 프리팹은 `Assets/Prefabs/World/TinyTreats/`에 둔다. 무료 배포 모델을 사용하며 유료 Blender 원본이나 데모 프로젝트는 포함하지 않는다.

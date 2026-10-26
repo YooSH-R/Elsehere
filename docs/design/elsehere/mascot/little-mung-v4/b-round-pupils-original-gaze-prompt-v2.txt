@@ -1,0 +1,10 @@
+Use case: precise-object-edit.
+Edit target: the attached crop is the original LITTLE MUNG v4 B female from the B/CLUSTER rows of the original roster BEFORE the rejected pupil-centering changes.
+Preserve THIS precise character and THIS gaze. Output one full-body character, front view, plain white background, soft matte stylized 3D game-asset render. Remove the tiny cropped text remnants in the upper left.
+
+Required local change: only make the two dark oval pupils ROUNDER. Do not change pupil positions.
+The original gaze is intentionally slightly inward: the dark pupil in the viewer's LEFT eye sits toward that eye's RIGHT side, nearer the nose; the pupil in the viewer's RIGHT eye sits toward that eye's LEFT side, nearer the nose. Keep these clearly inward original positions, not centered in the white eye openings. The outer-side white margin is wider and the nose-side white margin is narrow. In normalized left-to-right coordinates inside each white eye opening, retain approximately x=0.70 for the left pupil and x=0.30 for the right pupil. Preserve their original vertical positions and small highlight. Keep a gentle silly-cute expression, no extreme crossed eyes.
+Change the vertical oval silhouette to a small rounded near-circle around each existing pupil center, keeping similar visual size. Small black-brown pupils, ivory eye whites, unchanged lashes and eyelids.
+
+Lock everything else to this exact reference: face silhouette, white eye opening size and separation, thin nose, tiny smile, brows, original slightly inward gaze, head/body proportions, hairstyle, outfit, pose and colors. Very large head and very tiny body, crown to chin about 60% of full height, chin to soles 40%. Cocoa scalloped bob, periwinkle jacket, ivory tee, aqua shorts, cream sneakers.
+No centered pupils, no wide eye spacing, no larger eyes, no enlarged body, no alternate character design, no additional characters, no props or labels. The attached crop is the sole source of truth.

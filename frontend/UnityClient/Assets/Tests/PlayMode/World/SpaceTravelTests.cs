@@ -14,6 +14,9 @@ namespace A305.World.PlayModeTests
     public class SpaceTravelTests
     {
         private const string ProductionSceneFolder = "Assets/Scenes/Production/";
+
+        // 입구 화면은 공간이 아니라 플레이어·카메라·출입구가 없다. Scene List 맨 앞에 있지만 공간 씬 검사에서 뺀다.
+        private const string EntrySceneName = "EntryScene";
         private const float ArrivalTimeoutSeconds = 5f;
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
@@ -120,9 +123,10 @@ namespace A305.World.PlayModeTests
             for (int index = 0; index < SceneManager.sceneCountInBuildSettings; index++)
             {
                 string scenePath = SceneUtility.GetScenePathByBuildIndex(index);
-                if (scenePath.StartsWith(ProductionSceneFolder))
+                string sceneName = Path.GetFileNameWithoutExtension(scenePath);
+                if (scenePath.StartsWith(ProductionSceneFolder) && sceneName != EntrySceneName)
                 {
-                    yield return Path.GetFileNameWithoutExtension(scenePath);
+                    yield return sceneName;
                 }
             }
         }

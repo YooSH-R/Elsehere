@@ -42,6 +42,10 @@ public class Npc extends BaseEntity {
   @Column(nullable = false, length = 20)
   private NpcType npcType;
 
+  // 화면에 보여주는 역할 이름(행인, 카페 직원). persona는 AI 프롬프트용이라 따로 둔다.
+  @Column(nullable = false, length = 30)
+  private String roleLabel;
+
   // JSON 문자열을 jsonb 컬럼에 저장한다. 쓰기 때 jsonb로 변환하지 않으면 PostgreSQL이 타입 오류를 낸다.
   @Column(nullable = false, columnDefinition = "jsonb")
   @ColumnTransformer(write = "?::jsonb")

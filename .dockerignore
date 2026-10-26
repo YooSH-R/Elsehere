@@ -12,3 +12,8 @@
 **/Logs
 **/UserSettings
 **/node_modules
+frontend/
+artifacts/
+docs/
+dist/deployment/
+dist/unity-ci/

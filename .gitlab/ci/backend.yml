@@ -33,6 +33,8 @@ backend:check-and-build:
       - backend/build/libs/*.jar
       - backend/build/commit.txt
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_BACKEND == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:

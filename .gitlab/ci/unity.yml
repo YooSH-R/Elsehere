@@ -9,6 +9,8 @@ unity:format:
     - dotnet csharpier check Assets/Scripts
     - dotnet csharpier check Assets/Tests
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
@@ -38,7 +40,11 @@ unity:editor-and-webgl:
     GIT_CLEAN_FLAGS: '-ffdx -e frontend/UnityClient/Library/'
   script:
     - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
-    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action build
+    - |
+      if ($env:CI_PIPELINE_SOURCE -ne 'parent_pipeline' -or $env:A305_BUILD_WEB -eq 'true') {
+        powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action build
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      }
   artifacts:
     when: always
     expire_in: 7 days
@@ -46,4 +52,6 @@ unity:editor-and-webgl:
       - dist/unity-ci/
       - dist/webgl/
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_PROTECTED == "true" && $RUN_UNITY_BUILD == "true"'

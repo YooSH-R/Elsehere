@@ -20,6 +20,8 @@ infra:deployment-plan-tests:
     - python -m ruff format --check infra/scripts --target-version py312
     - PYTHONPATH=infra/scripts python -m unittest discover -s infra/scripts/tests -v
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_INFRA == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
@@ -43,6 +45,8 @@ infra:app-runtime:
     - apk add --no-cache python3
     - python3 infra/scripts/check_runtime.py --project "a305-check-$CI_JOB_ID" --tag "runtime-check-$CI_JOB_ID"
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_BACKEND == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
@@ -96,6 +100,8 @@ infra:compose-and-nginx:
     - docker start --attach nginx-webgl-route-check
     - test "$(docker inspect --format '{{.State.ExitCode}}' nginx-webgl-route-check)" = 0
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_INFRA == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web"'
       exists:
         - infra/compose/compose.bootstrap.yaml

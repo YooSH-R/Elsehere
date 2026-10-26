@@ -3,14 +3,17 @@ include:
   - local: .gitlab/ci/backend.yml
   - local: .gitlab/ci/unity.yml
   - local: .gitlab/ci/ai.yml
+  - local: .gitlab/ci/deploy.yml
 
 stages:
   - validate
   - verify
   - integration
+  - deploy
 
 workflow:
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "main"'
@@ -20,6 +23,14 @@ workflow:
 
 default:
   interruptible: true
+
+# Deployment children select checks from the last successful release, not the last push.
+.deployment-parent-skips:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+      when: never
+    - if: '($CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev") || ($CI_PIPELINE_SOURCE == "web" && $RUN_DEV_DEPLOY == "true")'
+      when: never
 
 .linux-job:
   tags:

@@ -43,6 +43,8 @@ ai:check-and-test:
       - dist/ai-source.tar.gz
       - dist/ai-commit.txt
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_AI == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
@@ -65,6 +67,8 @@ ai:panel-tests:
   script:
     - node --test ai/feedback/tests/test_prototype_panel.cjs
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_AI == "true"'
+    - !reference [.deployment-parent-skips, rules]
     - if: '$CI_PIPELINE_SOURCE == "web"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:

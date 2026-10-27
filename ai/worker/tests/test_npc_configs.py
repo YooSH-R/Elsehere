@@ -35,7 +35,7 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
     configs, problems = npc_configs.bundle(npc_configs.ROOT / "ai/npcs")
 
     assert problems == []
-    assert "CAFE_STAFF" in [config["npcId"] for config in configs]
+    assert [config["npcId"] for config in configs] == ["CAFE_STAFF", "TOWN_PASSERBY"]
 
 
 def test_an_active_npc_needs_a_voice():

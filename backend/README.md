@@ -51,7 +51,6 @@ com.elsehere
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
 - Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.
-- 다른 담당 영역의 테이블(users, conversations, turns)은 JPA 연관관계 없이 ID 값으로만 참조합니다. 이 컬럼에는 외래 키 제약이 생기지 않습니다.
 
 ## 준비
 
@@ -80,8 +79,11 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 ## 시드 데이터
 
 - 장소·NPC·사물·어휘·미션처럼 모든 환경에 같이 있어야 하는 기본 데이터는 [`src/main/resources/db/seed/world.sql`](src/main/resources/db/seed/world.sql)에 있습니다.
-- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `unity_key`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 기본 데이터는 SQL 파일에서 고칩니다.
+- 사물 단어·한국어 뜻·영문 예문·예문 해석·발음 파일 키의 편집 원본은 [Unity 공용 단어 에셋](../frontend/UnityClient/Assets/Data/ObjectHover/Words/)입니다. Unity의 **Tools → A305 → ObjectHover → Export Backend Data**로 [단어 JSON](src/main/resources/content/object-words.json), [씬·프리팹 연결 JSON](src/main/resources/content/object-word-bindings.json), SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 발음 파일 키가 빈 항목은 DB에 NULL로 적재합니다.
+- Editor가 프로젝트를 닫은 상태에서는 저장소 루트의 `./infra/scripts/sync-object-words.ps1`로 내보내고 `-Check`로 에셋과 생성 파일의 일치를 검사합니다. 프로젝트 버전의 Unity Editor가 필요하며 다른 설치 위치는 `-UnityPath` 또는 `UNITY_EDITOR_PATH`로 지정합니다. 생성 JSON·SQL 구간은 직접 편집하지 않습니다.
+- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `unity_key`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 Unity 에셋에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다. 언어 코드나 영어 표현을 바꾸면 현재 DB에서는 새 어휘 행이 생기며 기존 행은 삭제하지 않습니다. 기존 사용자 학습 기록을 새 표현으로 옮겨야 한다면 별도 DB 마이그레이션이 필요합니다.
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
+- 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. 연결 JSON에는 씬별 공용 키·사물 수와 프리팹 GUID·경로·공용 키를 담습니다. 기존 `world_objects`의 8개 시드와 WORLD-02는 아직 이 JSON을 읽지 않습니다. 공용 키 하나를 여러 씬에서 사용하는 서버 연결과 Unity의 서버 조회는 별도 연동 작업이며, 현재 씬 검수는 Unity 에셋을 직접 읽습니다. 사용자별 저장·숨김 상태는 공용 에셋에 넣지 않습니다.
 - Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답
@@ -125,8 +127,10 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 | 포맷 적용 | `./gradlew spotlessApply` |
 | 포맷·규칙 검사·테스트 | `./gradlew check` |
 | 테스트만 실행 | `./gradlew test` |
+| 테스트 클래스 하나 실행 | `./gradlew test --tests "<패키지>.<클래스>"` |
+| 실행 JAR 빌드 | `./gradlew bootJar` |
 
-MR을 만들기 전에 `spotlessApply`로 포맷을 적용하고 `check`가 통과하는지 확인합니다. 포맷이 맞지 않으면 `check`가 실패합니다.
+MR을 만들기 전에 `spotlessApply`로 포맷을 적용하고 `check`가 통과하는지 확인합니다. `check`는 `spotlessCheck`, `checkstyleMain`, `checkstyleTest`와 테스트를 실행하며 포맷이 맞지 않으면 실패합니다.
 
 검사 대상은 `src/main/java`와 `src/test/java`의 직접 작성한 Java 소스입니다. `build/`의 생성 코드·산출물은 대상에서 제외합니다. 소스는 UTF-8·LF를 사용하며 `.gitattributes`가 Java 파일의 LF를 유지합니다.
 

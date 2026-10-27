@@ -1,11 +1,11 @@
 """터미널에서 NPC와 대화하며 턴마다 토큰·크레딧·시간을 본다 (실제 모델 호출, 팀 공용 GMS 크레딧을 쓴다).
 
-    ai/worker/.venv/Scripts/python ai/tools/npc_chat.py
-    ... --npc npc.json       NPC 설정 파일 (app.schemas.Npc 형식). 없으면 확인용 바리스타
-    ... --greeting "Hi!"     NPC의 첫 말 (대화 기록의 첫 줄). 확인용 바리스타는 기본 인사가 있다
-    ... --level 2            대화 난이도 1~3 (기본 1: MVP는 초급)
+    ai/.venv/Scripts/python ai/tools/npc_chat.py --npc <NPC 설정 파일> --scenario <상황 파일>
+    ... --level B1           학습 수준 A1~C2 (기본 A2: MVP는 초급)
 
-서비스와 같은 NPC 대답 흐름(app.npc.reply_events)을 서버 없이 부르므로 프롬프트를 고치면 바로 대화로 확인할 수 있다.
+NPC 설정 파일은 공통 인격 스키마의 NpcConfiguration(NPC마다 하나), 상황 파일은 추론 계약의 scenario
+({"scenarioId", "locationId", "situation", "facts"}). 프롬프트는 서비스와 같은 app.npc_prompt로 만들어
+계약의 추론 요청과 같은 모양으로 보낸다: NPC가 첫 대사(NPC_OPENING)를 먼저 하고, 이후 한 줄마다 대답(USER_MESSAGE).
 모델 구성은 Worker와 같이 LLM_PROFILE(기본 gms-luna), 키는 GMS_KEY (환경 변수 또는 저장소 루트 .env).
 크레딧은 llm_profiles.json의 단가로 계산한다. /quit 또는 입력 끝(Ctrl+Z, Enter)에서 대화 전체 합계를 보여 준다.
 입력을 파이프로 넘기면 줄마다 한 턴씩 말한다: Get-Content lines.txt | ...npc_chat.py
@@ -13,34 +13,26 @@
 
 import argparse
 import asyncio
+import json
 import os
 import sys
-from collections.abc import Callable
+import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from pydantic import ValidationError
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker"))  # 같은 저장소의 AI 워커(app)를 서버 없이 불러 쓴다
+
+from npc_configs import schema_errors
 
 from app import config
 from app.config import Settings
-from app.llm import LLM
-from app.npc import reply_events
-from app.schemas import Line, Npc, ReplyRequest
-from app.tts import AudioStore
+from app.llm import LLM, ProviderError, Usage
+from app.npc_prompt import npc_messages
 
-HISTORY_LIMIT = 40  # ReplyRequest.history 최대 길이 (프롬프트에는 그중 최근 12줄이 들어간다)
-
-# 확인용 NPC. 서비스 NPC의 역할 설정은 S15P31A305-121에서 정한다
-SAMPLE_NPC = Npc(
-    id="CAFE_STAFF",
-    name="Emma",
-    role="the barista at Maple Cafe.",
-    facts="Menu: americano $4, latte $5, cappuccino $5, muffin $3, cheesecake $5. Milk can be changed to soy or oat for free.",
-    scene="Inside Maple Cafe, a cozy coffee shop. It is a sunny morning.",
-)
-SAMPLE_GREETING = "Hi there! Welcome to Maple Cafe. What can I get for you today?"
+HISTORY_LIMIT = 20  # 계약의 conversationHistory 최대 발화 수
+MAX_REPLY_TOKENS = 150  # 대답 길이는 학습 수준 규칙이 정하고, 이 값은 넘치지 않게 막는 상한
+LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
 
 
 @dataclass
@@ -86,31 +78,48 @@ class Turn:
 
 
 class Conversation:
-    """NPC와의 대화 하나. 서비스와 같은 NPC 대답 흐름(app.npc.reply_events)을 서버 없이 불러
-    프롬프트·재시도·스트리밍이 Spring이 부를 때와 같다. 음성은 만들지 않는다."""
+    """NPC와의 대화 하나. 턴마다 계약의 추론 요청과 같은 모양을 만들어 app.npc_prompt로 메시지를 만들고 모델을 부른다.
+    history는 계약의 conversationHistory 항목({"speaker": "NPC"|"USER", "text"}). 음성은 만들지 않는다."""
 
-    def __init__(self, llm: LLM, settings: Settings, npc: Npc, level: int, prices: dict, greeting: str = ""):
-        self.llm, self.settings, self.npc, self.level, self.prices = llm, settings, npc, level, prices
-        self.history: list[Line] = [Line(who="npc", text=greeting)] if greeting else []
-        self.audio = AudioStore()  # 음성을 만들지 않아도 대답 흐름이 받는 자리
+    def __init__(self, llm: LLM, profile: dict, scenario: dict, level: str, prices: dict):
+        self.llm, self.profile, self.scenario, self.level, self.prices = llm, profile, scenario, level, prices
+        self.history: list[dict] = []
+
+    async def open(self, on_text: Callable[[str], None] | None = None) -> Turn:
+        """NPC가 대화를 먼저 연다 (NPC_OPENING)."""
+        return await self._turn("NPC_OPENING", None, on_text)
 
     async def say(self, text: str, on_text: Callable[[str], None] | None = None) -> Turn:
-        """학습자 말 한 줄에 NPC가 대답한다. on_text는 대답 글자 조각이 올 때마다 불린다.
-        실패하면 대화 기록을 바꾸지 않아 같은 말을 다시 해 볼 수 있다."""
-        request = ReplyRequest(npc=self.npc, history=self.history[-HISTORY_LIMIT:], text=text, tts=False, level=self.level)
-        reply, error, usage, first_token_s, total_s = "", None, [], None, None
-        async for kind, data in reply_events(self.llm, None, self.audio, self.settings, request):
-            if kind == "delta" and on_text:
-                on_text(data["text"])
-            elif kind == "done":
-                reply, usage = data["text"], data["usage"]
-                first_token_s, total_s = data["first_token_s"], data["total_s"]
-            elif kind == "error":
-                error, usage = data["code"], data["usage"]
+        """학습자 말 한 줄에 NPC가 대답한다 (USER_MESSAGE). on_text는 대답 글자 조각이 올 때마다 불린다."""
+        return await self._turn("USER_MESSAGE", text, on_text)
+
+    async def _turn(self, turn_type: str, user_text: str | None, on_text: Callable[[str], None] | None) -> Turn:
+        """실패하면 대화 기록을 바꾸지 않아 같은 말을 다시 해 볼 수 있다."""
+        request = {
+            "npcProfile": self.profile,
+            "scenario": self.scenario,
+            "userLevel": self.level,
+            "turnType": turn_type,
+            "userText": user_text,
+            "conversationHistory": self.history[-HISTORY_LIMIT:],
+        }
+        usage, pieces, error, started = Usage(), [], None, time.perf_counter()
+        try:
+            async for piece in self.llm.stream("npc", "npc", npc_messages(request), usage, max_tokens=MAX_REPLY_TOKENS):
+                pieces.append(piece)
+                if on_text:
+                    on_text(piece)
+        except ProviderError as e:
+            error = e.code
+        total_s = round(time.perf_counter() - started, 2)
+        reply = "" if error else "".join(pieces).strip()
         if error is None:
-            self.history += [Line(who="me", text=text), Line(who="npc", text=reply)]
-        models = sorted({item["model"] for item in usage})
-        return Turn(reply, error, models, turn_cost(usage, self.prices), first_token_s, total_s)
+            if user_text is not None:
+                self.history.append({"speaker": "USER", "text": user_text})
+            self.history.append({"speaker": "NPC", "text": reply})
+        first_token_s = next((item["first_token_s"] for item in usage.items if item.get("first_token_s") is not None), None)
+        models = sorted({item["model"] for item in usage.items})
+        return Turn(reply, error, models, turn_cost(usage.items, self.prices), first_token_s, total_s)
 
 
 UNUSED_KEY = "unused-by-npc-chat"
@@ -159,12 +168,19 @@ def summary(turns: list[Turn]) -> str:
     return f"대답 {answered}턴{failed_text} · 입력 {input_tokens:,} · 출력 {output_tokens:,} 토큰 · 합계 {credits_text(credits)}{per_turn}"
 
 
+async def npc_line(npc_name: str, reply: Callable[[Callable[[str], None]], Awaitable[Turn]]) -> Turn:
+    """NPC 대답 한 줄을 글자 조각이 오는 대로 찍고, 그 턴의 사용량 한 줄을 붙인다."""
+    print(f"{npc_name}> ", end="", flush=True)
+    turn = await reply(lambda piece: print(piece, end="", flush=True))
+    print()
+    print(f"  {describe(turn)}")
+    return turn
+
+
 async def chat(conversation: Conversation, npc_name: str):
     piped = not sys.stdin.isatty()
-    turns: list[Turn] = []
-    for line in conversation.history:
-        print(f"{npc_name}> {line.text}")
-    while True:
+    turns = [await npc_line(npc_name, conversation.open)]
+    while not turns[0].error:  # 첫 대사가 없으면 대답할 상대가 없다 (계약: 후속 응답의 이력은 NPC 대사로 끝남)
         try:
             text = input("나> ").strip()
         except EOFError:
@@ -173,32 +189,29 @@ async def chat(conversation: Conversation, npc_name: str):
             print(text)
         if text == "/quit":
             break
-        if not text:
-            continue
-        print(f"{npc_name}> ", end="", flush=True)
-        try:
-            turn = await conversation.say(text, on_text=lambda piece: print(piece, end="", flush=True))
-        except ValidationError as e:  # 너무 긴 말 등 요청 형식 오류: 대답 없이 다음 입력으로
-            print(f"\n  보낼 수 없는 말입니다: {e.errors()[0]['msg']}")
-            continue
-        print()
-        print(f"  {describe(turn)}")
-        turns.append(turn)
+        if text:
+            turns.append(await npc_line(npc_name, lambda on_text: conversation.say(text, on_text)))
     print(f"\n대화 합계: {summary(turns)}")
 
 
 async def main():
     ap = argparse.ArgumentParser(description="터미널에서 NPC와 대화하며 턴마다 토큰·크레딧·시간을 본다")
-    ap.add_argument("--npc", help="NPC 설정 JSON 파일 (app.schemas.Npc 형식). 없으면 확인용 바리스타")
-    ap.add_argument("--greeting", help="NPC의 첫 말")
-    ap.add_argument("--level", type=int, choices=[1, 2, 3], default=1, help="대화 난이도 (기본 1: 초급)")
+    ap.add_argument("--npc", required=True, help="NPC 설정 파일 (공통 인격 스키마의 NpcConfiguration, NPC마다 하나)")
+    ap.add_argument(
+        "--scenario", required=True, help='상황 파일 (추론 계약의 scenario: {"scenarioId", "locationId", "situation", "facts"})'
+    )
+    ap.add_argument("--level", choices=LEVELS, default="A2", help="학습 수준 (기본 A2: MVP는 초급)")
     a = ap.parse_args()
     # 파이프로 넘긴 한영 혼합 문장과 안내 글이 Windows 기본 인코딩으로 깨지지 않게
     for stream in (sys.stdin, sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8")
 
-    npc = Npc.model_validate_json(Path(a.npc).read_text(encoding="utf-8")) if a.npc else SAMPLE_NPC
-    greeting = a.greeting if a.greeting is not None else ("" if a.npc else SAMPLE_GREETING)
+    npc = json.loads(Path(a.npc).read_text(encoding="utf-8"))
+    problems = schema_errors(npc)  # 크레딧을 쓰기 전에 프로필이 스키마를 지키는지부터
+    if problems:
+        sys.exit("NPC 설정 파일이 스키마에 맞지 않습니다:\n" + "\n".join(f"{where}: {why}" for where, why in problems))
+    scenario = json.loads(Path(a.scenario).read_text(encoding="utf-8"))
+    name = npc["npcProfile"]["name"]
     config.load_dotenv()  # 구성 이름(LLM_PROFILE)도 .env에 있을 수 있어 먼저 읽는다
     os.environ.setdefault("AI_WORKER_TOKEN", "npc-chat")  # 서버로 띄우지 않으므로 Spring과 공유할 토큰은 쓰지 않는다
     profile = os.environ.get("LLM_PROFILE") or config.DEFAULT_PROFILE
@@ -209,11 +222,11 @@ async def main():
     except RuntimeError as e:  # 키가 없는 경우 등: 무엇을 넣어야 하는지 그대로 보여 준다
         sys.exit(str(e))
     prices = config.PROFILES["prices_per_1m_tokens_usd"]
-    print(f"대화 상대 {npc.name} (구성 {settings.profile}, NPC 모델 {settings.models['npc']}, 난이도 {a.level}). 끝내려면 /quit")
+    print(f"대화 상대 {name} (구성 {settings.profile}, NPC 모델 {settings.models['npc']}, 학습 수준 {a.level}). 끝내려면 /quit")
 
     llm = LLM(settings)
     try:
-        await chat(Conversation(llm, settings, npc, a.level, prices, greeting), npc.name)
+        await chat(Conversation(llm, npc["npcProfile"], scenario, a.level, prices), name)
     finally:
         await llm.aclose()
 

@@ -2,7 +2,9 @@
     "name": "A305.Dialogue",
     "rootNamespace": "A305.Dialogue",
     "references": [
+        "A305.Api",
         "A305.Player",
+        "A305.Voice",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2016593177592419580}
   - component: {fileID: 243021386724569151}
   - component: {fileID: 2020021086976758192}
+  - component: {fileID: 8715414942839257425}
   m_Layer: 0
   m_Name: Pickup
   m_TagString: Untagged
@@ -181,6 +182,21 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 243021386724569151}
   m_maskType: 0
+--- !u!114 &8715414942839257425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5140942182143019229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
+  parts: {fileID: 0}
+  unityKey: sign
 --- !u!1 &6721216853173741533
 GameObject:
   m_ObjectHideFlags: 0
@@ -238,6 +254,7 @@ GameObject:
   - component: {fileID: 7611457978379588297}
   - component: {fileID: 7269792831187939642}
   - component: {fileID: 9098540971568968021}
+  - component: {fileID: 7535303095970642063}
   m_Layer: 0
   m_Name: BrandSubtitle
   m_TagString: Untagged
@@ -408,6 +425,21 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 7269792831187939642}
   m_maskType: 0
+--- !u!114 &7535303095970642063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6773188571548961308}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
+  parts: {fileID: 0}
+  unityKey: sign
 --- !u!1 &8353271203211385993
 GameObject:
   m_ObjectHideFlags: 0
@@ -419,6 +451,7 @@ GameObject:
   - component: {fileID: 4146944315709083203}
   - component: {fileID: 3237082592849769015}
   - component: {fileID: 8720203419999495162}
+  - component: {fileID: 5762417028430504017}
   m_Layer: 0
   m_Name: Brand
   m_TagString: Untagged
@@ -589,6 +622,21 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 3237082592849769015}
   m_maskType: 0
+--- !u!114 &5762417028430504017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8353271203211385993}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba6843228191e24a87d6a7ca95a2942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
+  word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
+  parts: {fileID: 0}
+  unityKey: sign
 --- !u!1001 &1444444219653284562
 PrefabInstance:
   m_ObjectHideFlags: 0

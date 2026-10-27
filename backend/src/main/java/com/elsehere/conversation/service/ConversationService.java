@@ -2,6 +2,7 @@ package com.elsehere.conversation.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
@@ -20,6 +21,9 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.feedback.dto.FeedbackResponse;
+import com.elsehere.feedback.service.FeedbackService;
+import com.elsehere.memory.service.MemoryService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -56,6 +60,8 @@ public class ConversationService {
   private final ConversationSupport support;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final FeedbackService feedbackService;
+  private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
 
@@ -64,8 +70,9 @@ public class ConversationService {
         transactionTemplate.execute(status -> startContext(userId, request.npcCode()));
     NpcContext npc = context.npc();
 
+    // 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다. 직원처럼 말걸기 대사가 없으면 AI로 첫 인사를 만든다.
     Opening opening =
-        request.initiatedBy() == InitiatedBy.NPC
+        request.initiatedBy() == InitiatedBy.NPC && npc.approachLine() != null
             ? approachOpening(npc)
             : greetingOpening(new WorkerTrace(request.requestId(), userId, null), npc, context);
 
@@ -97,9 +104,19 @@ public class ConversationService {
         });
   }
 
-  /** 대화를 끝낸다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않는다. 종료 피드백은 아직 만들지 않는다. */
+  /** 대화를 끝내고 짧은 피드백을 만든다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않고 피드백만 만든다. 피드백 생성은 대화 종료를 확정한 뒤 트랜잭션 밖에서 한다. */
   public EndConversationResponse end(
       Long userId, Long conversationId, EndConversationRequest request) {
+    EndConversationResponse ended = endConversation(userId, conversationId);
+    // 기억 카드 갱신은 따로 실행되어 피드백 생성과 함께 진행된다. 실패해도 종료·피드백에 영향이 없다.
+    memoryService.updateAfterConversation(userId, conversationId, request.requestId());
+    FeedbackResponse feedback =
+        feedbackService.feedbackOnEnd(
+            userId, conversationId, request.requestId(), request.skipFeedback());
+    return ended.withFeedback(feedback);
+  }
+
+  private EndConversationResponse endConversation(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
           Conversation conversation = support.ownedConversation(userId, conversationId);
@@ -147,7 +164,8 @@ public class ConversationService {
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
-    return new StartContext(npc, selectedLevel(userId));
+    return new StartContext(
+        npc, selectedLevel(userId), memoryService.memoryFor(userId, npc.npcId()));
   }
 
   // 대화 난이도는 지금 학습 언어에서 고른 난이도다. 설정 전이면 기본값(초급)이다.
@@ -164,9 +182,6 @@ public class ConversationService {
 
   // 행인 말걸기에 응답하면 이미 보여 준 말걸기 대사를 첫 턴으로 저장하고 AI를 부르지 않는다.
   private Opening approachOpening(NpcContext npc) {
-    if (npc.approachLine() == null) {
-      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
-    }
     return new Opening(npc.approachLine(), null, npc.approachAudioKey());
   }
 
@@ -175,6 +190,7 @@ public class ConversationService {
         aiWorkerClient.reply(
             trace,
             npc.workerNpc(),
+            context.memory(),
             List.of(),
             GREETING_TEXT,
             GREETING_INSTRUCTION,
@@ -191,7 +207,10 @@ public class ConversationService {
         reply.text(), reply.suggestWords(), support.saveNpcAudio(trace, reply.audioFullId()));
   }
 
-  private record StartContext(NpcContext npc, int level) {}
+  /**
+   * @param memory 이 NPC와의 기억. 처음 만나면 null
+   */
+  private record StartContext(NpcContext npc, int level, WorkerMemory memory) {}
 
   private record Opening(String text, List<String> suggestWords, String npcAudioKey) {}
 }

@@ -94,12 +94,19 @@ namespace A305.Learning
             }
 
             feedbackRecord = record;
+            // 서버 AI와 나눈 대화는 서버가 만든 피드백을, 대본 대화는 키워드 규칙으로 만든 예시를 보여 준다.
             feedbackView.Show(
-                new ConversationFeedback(
-                    record.NpcName,
-                    record.UserUtterances,
-                    exampleSource.GetRules()
-                )
+                record.ServerFeedback != null
+                    ? ConversationFeedback.FromServer(
+                        record.NpcName,
+                        record.UserUtterances.Count,
+                        record.ServerFeedback
+                    )
+                    : new ConversationFeedback(
+                        record.NpcName,
+                        record.UserUtterances,
+                        exampleSource.GetRules()
+                    )
             );
             UpdateMovementLock();
         }

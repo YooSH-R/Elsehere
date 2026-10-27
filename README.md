@@ -10,12 +10,25 @@
 
 | 영역 | 기술 및 선정 기준 |
 | --- | --- |
-| 백엔드 | Java 21 + Spring Boot 4.1.1, Gradle ([백엔드 README](backend/README.md)) |
-| 프론트엔드 | Unity 6.3 LTS `6000.3.26f1` + C#, URP, WebGL 기반 브라우저 실행 |
+| 백엔드 | Java + Spring Boot, Gradle ([고정 버전과 실행 방법](backend/README.md)) |
+| 프론트엔드 | Unity + C#, URP, WebGL 기반 브라우저 실행 ([고정 버전과 실행 방법](docs/unity/setup.md)) |
 | AI | Python + FastAPI의 AI 워커(`ai/worker`): Spring만 부르는 별도 프로세스. 모델은 GMS·Groq API, 음성 합성은 Kokoro ([AI 워커 README](ai/worker/README.md)) |
 | 개발 도구 | 프로젝트 초기화 시 JDK·빌드 도구·의존성 버전 고정 |
 
-Unity 클라이언트는 `frontend/UnityClient`에서 관리합니다. 시작 Scene은 개발 환경 확인용 샘플이며, 서비스 기능과 음성·API 연동은 별도 구현 범위입니다. 영역별 실행 방법은 각 프로젝트 문서에서 관리합니다.
+Unity 클라이언트는 `frontend/UnityClient`에서 관리합니다. 저장소의 시작 Scene은 로그인·온보딩을 처리하는 `EntryScene`이며 이후 방·마을·카페·숙소로 이어집니다. 개별 기능 구현과 실제 배포 버전에서의 전체 사용자 흐름 검증은 구분합니다. 영역별 실행 방법은 각 프로젝트 문서에서 관리합니다.
+
+## 실행 환경과 접속 주소
+
+| 용도 | 주소 | 적용 범위 |
+| --- | --- | --- |
+| 개발 앱 | `https://dev.elsehere.kr/` | Unity WebGL·백엔드·AI 워커·DB를 수동 배포한 환경 |
+| 개발 상태 확인 | `https://dev.elsehere.kr/api/health` | HTTP 200과 `status: UP` 확인. 로그인·주요 기능의 정상 동작은 별도 검증 |
+| 운영 | `https://elsehere.kr/`, `https://www.elsehere.kr/` | 환경 확인용 응답. 실제 운영 앱 배포 전 |
+| 서버 접속 | `ubuntu@k15a305.p.ssafy.io` | 키를 사용하는 SSH 접속과 관리 화면 터널 |
+
+새 개발 주소에는 `/dev` 접두사를 붙이지 않습니다. 기존 `k15a305.p.ssafy.io`의 경로 기반 주소는 호환을 위해 유지하며 신규 접속 기준은 `dev.elsehere.kr`입니다.
+
+현재 개발 앱은 수동 배포본입니다. dev 자동 배포는 별도 연결·실행 검증 중이며, `dev` 병합만으로 서버가 최신이라고 판단하지 않습니다. 배포된 웹 커밋은 `/version.json`으로 확인하고 백엔드·AI 이미지도 함께 확인합니다. 검사·배포 기준은 [CI/CD 문서](docs/ci-cd.md), 서버 로그·관리 화면·경보는 [관측 운영 문서](docs/observability.md)를 따릅니다.
 
 ## 담당 영역
 
@@ -81,6 +94,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [릴리스 MR 템플릿](.gitlab/merge_request_templates/Release.md)
 - [검사 파이프라인과 Runner 연결](docs/ci-runner.md)
 - [요청 추적과 API 모니터링](docs/observability.md)
+- [독립 외부 HTTPS 감시](docs/external-monitoring.md)
 
 ## 브랜치 흐름
 
@@ -92,13 +106,10 @@ dev에서 작업 브랜치 생성
 → dev → main 릴리스 MR
 ```
 
-- `main`: 운영 배포를 위한 안정 버전이자 GitLab 기본 브랜치
-- `dev`: 기능 통합과 개발 환경 검증을 위한 브랜치
-- `main`, `dev` 변경은 MR로 반영합니다.
-- 작성자 외 팀원 최소 1명의 리뷰와 변경 범위에 맞는 검증을 병합 기준으로 사용합니다. CI 도입 후에는 파이프라인 성공도 요구합니다.
+브랜치 역할·리뷰·릴리스 기준은 [개발 및 협업 규칙](docs/development.md)에서 관리합니다.
 
 ## 프로젝트 도구
 
 - [GitLab 저장소](https://lab.ssafy.com/s15-final/S15P31A305)
 - [Jira 보드](https://ssafy.atlassian.net/jira/software/c/projects/S15P31A305/boards/16635)
-- Jira 이슈 키의 접두사는 `S15P31A305`입니다. GitLab for Jira Cloud 앱으로 개발 탭에서 브랜치·커밋·MR을 확인하며, 작업 상태는 완료 조건에 따라 관리합니다.
+- Jira 이슈 키의 접두사는 `S15P31A305`입니다. 개발 이력 연결과 상태 관리는 [Jira와 GitLab 연동](docs/jira-integration.md)을 따릅니다.

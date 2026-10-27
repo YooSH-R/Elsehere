@@ -33,6 +33,11 @@ namespace A305.Api
                 );
                 webRequest.SetRequestHeader("Content-Type", "application/json");
             }
+            else if (request.RawBody != null)
+            {
+                webRequest.uploadHandler = new UploadHandlerRaw(request.RawBody);
+                webRequest.SetRequestHeader("Content-Type", request.ContentType);
+            }
 
             foreach (KeyValuePair<string, string> header in request.Headers)
             {

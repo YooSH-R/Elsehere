@@ -2,10 +2,10 @@ using UnityEngine;
 
 namespace A305.ObjectHover
 {
-    /// <summary>툴팁을 사물 위에 두되 화면 밖으로 나가지 않게 자리를 정한다. 좌표는 캔버스 왼쪽 아래 기준이다.</summary>
+    /// <summary>툴팁을 포인터 위에 두되 화면 밖으로 나가지 않게 자리를 정한다. 좌표는 캔버스 왼쪽 아래 기준이다.</summary>
     public static class TooltipPlacement
     {
-        /// <param name="anchor">툴팁을 붙일 지점(사물 위쪽)</param>
+        /// <param name="anchor">마우스 포인터 위치</param>
         /// <param name="gap">지점과 툴팁 아래쪽 사이 간격</param>
         /// <param name="margin">캔버스 가장자리와 툴팁 사이에 남길 간격</param>
         /// <returns>툴팁의 왼쪽 아래 위치. 툴팁 아래 가운데가 지점 위에 오도록 두고 margin 안으로 당긴다.</returns>

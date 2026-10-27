@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c20f42c716c149e40919bc87000f87c0, type: 3}
+  m_Name: OakBookcase
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordPartsDefinition
+  parts:
+  - label: "\uCC45 1-1"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.55, y: 0.335, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.17500001, z: 0.185}
+  - label: "\uCC45 1-2"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.35000002, y: 0.3625, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.20250002, z: 0.185}
+  - label: "\uCC45 1-3"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.15, y: 0.39, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.23, z: 0.185}
+  - label: "\uCC45 1-4"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.049999997, y: 0.335, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.17500001, z: 0.185}
+  - label: "\uCC45 1-5"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.25, y: 0.3625, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.20250002, z: 0.185}
+  - label: "\uCC45 1-6"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.45, y: 0.39, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.23, z: 0.185}
+  - label: "\uCC45 2-1"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.55, y: 0.975, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.17500001, z: 0.185}
+  - label: "\uCC45 2-2"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.35000002, y: 1.0025, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.20250002, z: 0.185}
+  - label: "\uCC45 2-3"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.15, y: 1.03, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.23, z: 0.185}
+  - label: "\uCC45 2-4"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.049999997, y: 0.975, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.17500001, z: 0.185}
+  - label: "\uCC45 2-5"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.25, y: 1.0025, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.20250002, z: 0.185}
+  - label: "\uCC45 2-6"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.45, y: 1.03, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.23, z: 0.185}
+  - label: "\uCC45 3-1"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.55, y: 1.615, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.17500001, z: 0.185}
+  - label: "\uCC45 3-2"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.35000002, y: 1.6424999, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.20250002, z: 0.185}
+  - label: "\uCC45 3-3"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: -0.15, y: 1.67, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.23, z: 0.185}
+  - label: "\uCC45 3-4"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.049999997, y: 1.615, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.17500001, z: 0.185}
+  - label: "\uCC45 3-5"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.25, y: 1.6424999, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.20250002, z: 0.185}
+  - label: "\uCC45 3-6"
+    word: {fileID: 11400000, guid: 8b55d409ef6540f47adc224e75ebc67a, type: 2}
+    regions:
+    - m_Center: {x: 0.45, y: 1.67, z: 0.07}
+      m_Extent: {x: 0.08, y: 0.23, z: 0.185}

@@ -9,5 +9,6 @@ public enum AiRequestKind {
   TTS,
   HINT,
   MEANING,
-  FEEDBACK
+  FEEDBACK,
+  MEMORY
 }

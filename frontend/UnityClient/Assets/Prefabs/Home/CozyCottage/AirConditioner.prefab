@@ -227,6 +227,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 92bc99118588c4b4393e7ff9fdfa5cad, type: 2}
+  parts: {fileID: 0}
   unityKey: air_conditioner
 --- !u!1 &5701509089272425564
 GameObject:

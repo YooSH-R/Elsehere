@@ -272,6 +272,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 4524b334c20b00a4fa684a9d1f1b4feb, type: 2}
+  parts: {fileID: 0}
   unityKey: suitcase
 --- !u!1 &5488459622107209338
 GameObject:

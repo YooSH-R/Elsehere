@@ -68,6 +68,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 5ed1fff2591e1804ea5f059e66f7e986, type: 2}
+  parts: {fileID: 0}
   unityKey: tray
 --- !u!1 &8263262976221112559
 GameObject:

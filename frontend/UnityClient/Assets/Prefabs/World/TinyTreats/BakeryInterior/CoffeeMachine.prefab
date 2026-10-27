@@ -200,6 +200,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: e490c75fb1a697949beaba8f2f96f8b1, type: 2}
+  parts: {fileID: 0}
   unityKey: coffee_machine
 --- !u!1001 &5878420407599343509
 PrefabInstance:

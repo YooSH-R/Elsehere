@@ -159,6 +159,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 890dd0a671fad024b90d2de33a4a708d, type: 2}
+  parts: {fileID: 0}
   unityKey: fence
 --- !u!1 &5599843571060930656
 GameObject:

@@ -36,6 +36,7 @@ namespace A305.ObjectHover
 
         private readonly ObjectHoverRaycast raycast = new ObjectHoverRaycast();
         private HoverableObject previousTarget;
+        private int previousPart = -1;
         private readonly HashSet<string> keysWithoutWord = new HashSet<string>();
         private HoverTooltipState state;
 
@@ -46,34 +47,52 @@ namespace A305.ObjectHover
                 pointerScreenPosition,
                 out Vector3 pointedPosition
             );
-            if (target != previousTarget)
+            float distance = Vector3.Distance(player.transform.position, pointedPosition);
+            int partIndex =
+                target != null && target.Parts != null
+                    ? target.Parts.FindPart(
+                        target.transform.InverseTransformPoint(pointedPosition),
+                        distance,
+                        settings.DetailDistanceMeters
+                    )
+                    : -1;
+            ObjectWordDefinition definition = null;
+            if (target != null)
+            {
+                definition = partIndex < 0 ? target.Word : target.Parts.Parts[partIndex].Word;
+            }
+            if (target != previousTarget || partIndex != previousPart)
             {
                 state.Update(null, false, 0f);
                 previousTarget = target;
+                previousPart = partIndex;
             }
             ObjectWord word = default;
             bool canShow =
                 target != null
                 && !player.IsMoving
                 && !player.IsMovementLocked
-                && Vector3.Distance(player.transform.position, pointedPosition)
-                    <= settings.MaxDistanceMeters
-                && TryGetWord(target, out word);
+                && distance <= settings.MaxDistanceMeters
+                && TryGetWord(target, definition, out word);
 
-            state.Update(target != null ? target.UnityKey : null, canShow, deltaTimeSeconds);
+            string wordKey = null;
+            if (definition != null)
+            {
+                wordKey = definition.Key;
+            }
+            else if (target != null)
+            {
+                wordKey = target.UnityKey;
+            }
+            state.Update(wordKey, canShow, deltaTimeSeconds);
 
-            Vector3 screenAnchor =
-                state.VisibleKey != null
-                    ? viewCamera.WorldToScreenPoint(target.GetTopCenter())
-                    : Vector3.zero;
-            // 툴팁 자리가 카메라 뒤에 있으면 보이지 않는다.
-            if (state.VisibleKey == null || screenAnchor.z <= 0f)
+            if (state.VisibleKey == null)
             {
                 tooltip.Hide();
                 return;
             }
 
-            tooltip.Show(word, screenAnchor);
+            tooltip.Show(word, pointerScreenPosition, settings);
         }
 
         private void Awake()
@@ -121,12 +140,16 @@ namespace A305.ObjectHover
             );
         }
 
-        private bool TryGetWord(HoverableObject target, out ObjectWord word)
+        private bool TryGetWord(
+            HoverableObject target,
+            ObjectWordDefinition definition,
+            out ObjectWord word
+        )
         {
             string unityKey = target.UnityKey;
             bool found =
-                target.Word != null
-                    ? wordSource.TryGetWord(target.Word, out word)
+                definition != null
+                    ? wordSource.TryGetWord(definition, out word)
                     : wordSource.TryGetWord(unityKey, out word);
             if (found)
             {

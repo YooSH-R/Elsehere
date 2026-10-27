@@ -648,6 +648,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 2712ffdb378840b4db13582995ff84d2, type: 2}
+  parts: {fileID: 0}
   unityKey: clock
 --- !u!1 &1811853825522490896
 GameObject:

@@ -178,6 +178,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 3a3690c0caff0574da68f330b692c08c, type: 2}
+  parts: {fileID: 0}
   unityKey: roof
 --- !u!1001 &8476063918338451602
 PrefabInstance:
@@ -269,6 +270,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 3a3690c0caff0574da68f330b692c08c, type: 2}
+  parts: {fileID: 0}
   unityKey: roof
 --- !u!1 &6604010628693937610 stripped
 GameObject:
@@ -288,6 +290,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 3a3690c0caff0574da68f330b692c08c, type: 2}
+  parts: {fileID: 0}
   unityKey: roof
 --- !u!4 &7309299474038408795 stripped
 Transform:
@@ -317,6 +320,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 3a3690c0caff0574da68f330b692c08c, type: 2}
+  parts: {fileID: 0}
   unityKey: roof
 --- !u!4 &8863993984913594611 stripped
 Transform:

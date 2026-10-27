@@ -203,6 +203,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &7993500267508459226
 GameObject:

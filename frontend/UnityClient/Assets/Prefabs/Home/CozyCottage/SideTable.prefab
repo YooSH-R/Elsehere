@@ -118,8 +118,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.6, y: 0.56000006, z: 0.55}
-  m_Center: {x: 0, y: 0.32, z: 0}
+  m_Size: {x: 0.59999996, y: 0.56000006, z: 0.55}
+  m_Center: {x: -0.000000029802322, y: 0.32000002, z: 0}
 --- !u!114 &6557770959395161194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -475,6 +475,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ee0f2176525665145ac6d8a9023c40e3, type: 2}
+  parts: {fileID: 11400000, guid: 38f114bd31b50c2408b2176537c0ea0e, type: 2}
   unityKey: table
 --- !u!1 &8120039801813308495
 GameObject:

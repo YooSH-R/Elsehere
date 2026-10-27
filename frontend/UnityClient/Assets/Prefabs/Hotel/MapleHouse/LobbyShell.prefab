@@ -229,6 +229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &948224993528112394
 GameObject:
@@ -1373,6 +1374,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &3020440817795534597
 GameObject:
@@ -2729,6 +2731,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &5629752738451931386
 GameObject:
@@ -2804,6 +2807,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &5733443368675903783
 GameObject:
@@ -2875,6 +2879,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 4693346c98f5ff749bc9e629470e29e0, type: 2}
+  parts: {fileID: 0}
   unityKey: floor
 --- !u!1 &5967293537348809752
 GameObject:
@@ -4284,6 +4289,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: eae2202bc78d1b84fbb04755a869a15b, type: 2}
+  parts: {fileID: 0}
   unityKey: ceiling
 --- !u!1001 &4486217775338749816
 PrefabInstance:

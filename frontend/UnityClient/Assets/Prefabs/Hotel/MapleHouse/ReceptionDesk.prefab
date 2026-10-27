@@ -228,6 +228,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 8b7c728059feba34d846351e0fba8e11, type: 2}
+  parts: {fileID: 0}
   unityKey: reception_desk
 --- !u!1 &1950163043531346665
 GameObject:

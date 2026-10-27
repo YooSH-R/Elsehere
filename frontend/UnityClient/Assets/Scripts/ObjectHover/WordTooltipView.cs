@@ -29,14 +29,6 @@ namespace A305.ObjectHover
         [SerializeField]
         private TMP_Text exampleLabel;
 
-        [SerializeField]
-        [Tooltip("사물 위쪽과 툴팁 사이 간격(캔버스 단위)")]
-        private float gap = 16f;
-
-        [SerializeField]
-        [Tooltip("화면 가장자리와 툴팁 사이에 남길 간격(캔버스 단위)")]
-        private float screenMargin = 12f;
-
         public bool IsVisible { get; private set; }
 
         public string WordText => wordLabel.text;
@@ -47,8 +39,8 @@ namespace A305.ObjectHover
 
         public string ExampleText => exampleLabel.text;
 
-        /// <param name="screenAnchor">툴팁을 붙일 사물 위쪽의 화면 좌표(픽셀)</param>
-        public void Show(ObjectWord word, Vector2 screenAnchor)
+        /// <param name="screenAnchor">마우스 포인터의 화면 좌표(픽셀)</param>
+        public void Show(ObjectWord word, Vector2 screenAnchor, ObjectHoverSettings settings)
         {
             wordLabel.text = word.Text;
             meaningLabel.text = word.MeaningKo;
@@ -69,8 +61,8 @@ namespace A305.ObjectHover
                 anchorFromBottomLeft,
                 panel.rect.size,
                 canvasSize,
-                gap,
-                screenMargin
+                settings.PointerGap,
+                settings.ScreenMargin
             );
 
             panelGroup.alpha = 1f;

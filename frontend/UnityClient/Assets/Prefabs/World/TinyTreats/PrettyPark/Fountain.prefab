@@ -200,6 +200,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: a01fdc9479f827d46a6ccba791e1c32e, type: 2}
+  parts: {fileID: 0}
   unityKey: fountain
 --- !u!1 &9183605405435538803
 GameObject:

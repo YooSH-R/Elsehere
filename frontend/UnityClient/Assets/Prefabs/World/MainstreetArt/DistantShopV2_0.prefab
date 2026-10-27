@@ -648,6 +648,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: dd0eeaa544a196e46aa17df85966070b, type: 2}
+  parts: {fileID: 0}
   unityKey: window
 --- !u!1 &3731357516161677573
 GameObject:
@@ -889,6 +890,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 292d94fd1136697459fffaa9690c2350, type: 2}
+  parts: {fileID: 0}
   unityKey: shop
 --- !u!1 &5304390513209679860
 GameObject:
@@ -1183,6 +1185,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: dd0eeaa544a196e46aa17df85966070b, type: 2}
+  parts: {fileID: 0}
   unityKey: window
 --- !u!1 &6606052992884825197
 GameObject:
@@ -1295,6 +1298,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: dd0eeaa544a196e46aa17df85966070b, type: 2}
+  parts: {fileID: 0}
   unityKey: window
 --- !u!1 &7280020365870729931
 GameObject:
@@ -1432,6 +1436,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: dd0eeaa544a196e46aa17df85966070b, type: 2}
+  parts: {fileID: 0}
   unityKey: window
 --- !u!1 &7395175337502469966
 GameObject:

@@ -248,6 +248,9 @@ namespace A305.EditorTools.ObjectHover
                             sceneCode = name.Replace("Scene", "").ToUpperInvariant(),
                             unityKey = name,
                             objectCount = targets.Length,
+                            detailCount = targets.Sum(target =>
+                                target.Parts == null ? 0 : target.Parts.Parts.Count
+                            ),
                             wordKeys = WordKeys(targets, known, name),
                         }
                     );
@@ -266,16 +269,31 @@ namespace A305.EditorTools.ObjectHover
             string location
         )
         {
+            var words = new HashSet<string>(StringComparer.Ordinal);
             foreach (HoverableObject target in targets)
+            {
                 if (target.Word == null || !known.Contains(target.Word))
                     throw new InvalidOperationException(
                         location + ": 공용 단어 에셋 참조 누락 " + target.name
                     );
-            return targets
-                .Select(target => target.Word.Key)
-                .Distinct()
-                .OrderBy(key => key, StringComparer.Ordinal)
-                .ToArray();
+                words.Add(target.Word.Key);
+                if (target.Parts == null)
+                    continue;
+                foreach (ObjectWordPartsDefinition.Part part in target.Parts.Parts)
+                {
+                    if (part.Word == null || !known.Contains(part.Word) || part.Regions.Count == 0)
+                        throw new InvalidOperationException(
+                            location + ": 세부 단어·영역 누락 " + part.Label
+                        );
+                    foreach (Bounds region in part.Regions)
+                        if (region.size.x <= 0 || region.size.y <= 0 || region.size.z <= 0)
+                            throw new InvalidOperationException(
+                                location + ": 세부 영역 크기는 양수여야 합니다."
+                            );
+                    words.Add(part.Word.Key);
+                }
+            }
+            return words.OrderBy(key => key, StringComparer.Ordinal).ToArray();
         }
 
         [Serializable]
@@ -292,6 +310,7 @@ namespace A305.EditorTools.ObjectHover
             public string sceneCode;
             public string unityKey;
             public int objectCount;
+            public int detailCount;
             public string[] wordKeys;
         }
 

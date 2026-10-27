@@ -146,6 +146,90 @@ namespace A305.ObjectHover.PlayModeTests
             Object.Destroy(replacement);
         }
 
+        [UnityTest]
+        public IEnumerator Tooltip_FollowsPointerAboveItsPosition()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Camera camera = Camera.main;
+            Vector3 center = VisibleBounds(tv).center;
+            camera.transform.SetPositionAndRotation(
+                center + tv.transform.forward * 2f,
+                Quaternion.LookRotation(-tv.transform.forward)
+            );
+            var panel = tooltip.transform.Find("Panel").GetComponent<RectTransform>();
+            var canvas = tooltip.GetComponent<Canvas>();
+            Vector2 first = new Vector2(Screen.width / 2f - 8f, Screen.height / 2f);
+            Vector2 second = first + new Vector2(16f, 8f);
+            foreach (Vector2 pointer in new[] { first, second })
+            {
+                hover.Refresh(pointer, LongerThanShowDelaySeconds);
+                Assert.That(tooltip.IsVisible, Is.True);
+                var corners = new Vector3[4];
+                panel.GetWorldCorners(corners);
+                Vector2 bottomCenter = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    (corners[0] + corners[3]) * .5f
+                );
+                Assert.That(bottomCenter.x, Is.EqualTo(pointer.x).Within(1f));
+                Assert.That(
+                    bottomCenter.y,
+                    Is.EqualTo(pointer.y + 16f * canvas.scaleFactor).Within(1f)
+                );
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Tooltip_UsesSpacingFromDataAsset()
+        {
+            yield return null;
+            var settings = ScriptableObject.CreateInstance<ObjectHoverSettings>();
+            try
+            {
+                JsonUtility.FromJsonOverwrite("{\"pointerGap\":48}", settings);
+                Vector2 pointer = new Vector2(Screen.width / 2f, Screen.height / 3f);
+                tooltip.Show(ObjectWord.ForHover("pillow", "베개", "", false), pointer, settings);
+                var panel = tooltip.transform.Find("Panel").GetComponent<RectTransform>();
+                var corners = new Vector3[4];
+                panel.GetWorldCorners(corners);
+                Vector2 bottomCenter = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    (corners[0] + corners[3]) * .5f
+                );
+                Assert.That(
+                    bottomCenter.y,
+                    Is.EqualTo(pointer.y + 48f * tooltip.GetComponent<Canvas>().scaleFactor)
+                        .Within(1f)
+                );
+            }
+            finally
+            {
+                Object.Destroy(settings);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ApproachingBed_SwitchesFromBedToPillow_AndBack()
+        {
+            yield return null;
+            HoverableObject bed = FindHoverable("bed");
+            Vector3 point = bed.transform.TransformPoint(new Vector3(-.44f, .78f, -.9f));
+            Camera camera = Camera.main;
+            camera.transform.position = point + bed.transform.forward * 1.5f + Vector3.up * 2f;
+            camera.transform.LookAt(point);
+            Vector2 pointer = camera.WorldToScreenPoint(point);
+            foreach (float distance in new[] { 4f, 2f, 4f })
+            {
+                Vector3 standing = point + bed.transform.forward * distance;
+                standing.y = .05f;
+                player.Teleport(standing, Quaternion.identity);
+                Physics.SyncTransforms();
+                hover.Refresh(pointer, LongerThanShowDelaySeconds);
+                Assert.That(tooltip.IsVisible, Is.True);
+                Assert.That(tooltip.WordText, Is.EqualTo(distance < 3f ? "pillow" : "bed"));
+            }
+        }
+
         private IEnumerator StandPlayerNear(HoverableObject target)
         {
             Vector3 position = VisibleBounds(target).center + target.transform.forward * 2f;

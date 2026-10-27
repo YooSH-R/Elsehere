@@ -134,6 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d57d1cdcb8710424c82be4d6fc9af131, type: 2}
+  parts: {fileID: 0}
   unityKey: hedge
 --- !u!1001 &1153924459507320230
 PrefabInstance:

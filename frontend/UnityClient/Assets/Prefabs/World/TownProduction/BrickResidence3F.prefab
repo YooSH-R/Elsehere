@@ -105,6 +105,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 3a3690c0caff0574da68f330b692c08c, type: 2}
+  parts: {fileID: 0}
   unityKey: roof
 --- !u!1 &2801856832118031350
 GameObject:
@@ -277,6 +278,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 3a3690c0caff0574da68f330b692c08c, type: 2}
+  parts: {fileID: 0}
   unityKey: roof
 --- !u!1 &6772557320403621084
 GameObject:

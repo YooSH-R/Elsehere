@@ -749,4 +749,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 7618ee8f7c207e54b84d3255fd1677da, type: 2}
+  parts: {fileID: 0}
   unityKey: menu

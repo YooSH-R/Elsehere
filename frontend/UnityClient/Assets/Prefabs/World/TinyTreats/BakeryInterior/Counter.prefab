@@ -134,6 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 882c7e0f05bbd974e9e03060904e2a7e, type: 2}
+  parts: {fileID: 0}
   unityKey: counter
 --- !u!1001 &553578418528177598
 PrefabInstance:

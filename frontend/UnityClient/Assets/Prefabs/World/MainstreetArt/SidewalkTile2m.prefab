@@ -203,4 +203,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk

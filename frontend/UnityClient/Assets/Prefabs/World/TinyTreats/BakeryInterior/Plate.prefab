@@ -134,6 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 7f9aa229f0ce2524d96f6d8df3431ea2, type: 2}
+  parts: {fileID: 0}
   unityKey: plate
 --- !u!1001 &5162660947262648261
 PrefabInstance:

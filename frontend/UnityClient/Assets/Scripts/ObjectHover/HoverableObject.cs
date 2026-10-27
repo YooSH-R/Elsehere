@@ -12,6 +12,10 @@ namespace A305.ObjectHover
         private ObjectWordDefinition word;
         public ObjectWordDefinition Word => word;
 
+        [SerializeField, Tooltip("Data 폴더에서 관리하는 세부 영역·단어 연결")]
+        private ObjectWordPartsDefinition parts;
+        public ObjectWordPartsDefinition Parts => parts;
+
         [SerializeField, HideInInspector]
         private string unityKey;
 

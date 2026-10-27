@@ -5,26 +5,44 @@
             "sceneCode": "HOME",
             "unityKey": "HomeScene",
             "objectCount": 49,
+            "detailCount": 50,
             "wordKeys": [
                 "air_conditioner",
                 "bed",
+                "blanket",
+                "book",
                 "bookshelf",
                 "cabinet",
                 "ceiling",
                 "chair",
                 "cornice",
+                "curtain",
+                "cushion",
                 "door",
+                "drawer",
+                "duvet",
+                "faucet",
                 "floor",
+                "flowerpot",
+                "freezer",
+                "handle",
+                "headboard",
                 "jar",
                 "kitchen_counter",
                 "lamp",
+                "magnet",
+                "mattress",
                 "mug",
+                "note",
                 "picture",
+                "pillow",
                 "plant",
                 "refrigerator",
                 "rug",
                 "shelf",
+                "sink",
                 "sofa",
+                "stove",
                 "table",
                 "tv",
                 "wall",
@@ -35,6 +53,7 @@
             "sceneCode": "CAFE",
             "unityKey": "CafeScene",
             "objectCount": 63,
+            "detailCount": 8,
             "wordKeys": [
                 "bench",
                 "bread",
@@ -46,9 +65,11 @@
                 "cornice",
                 "counter",
                 "croissant",
+                "cushion",
                 "display_case",
                 "door",
                 "floor",
+                "flowerpot",
                 "menu",
                 "muffin",
                 "mug",
@@ -66,13 +87,18 @@
             "sceneCode": "HOTEL",
             "unityKey": "HotelScene",
             "objectCount": 48,
+            "detailCount": 14,
             "wordKeys": [
                 "bell",
+                "book",
                 "ceiling",
                 "clock",
+                "cushion",
                 "door",
+                "drawer",
                 "elevator",
                 "floor",
+                "flowerpot",
                 "guestbook",
                 "key_cabinet",
                 "lamp",
@@ -92,6 +118,7 @@
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
             "objectCount": 1130,
+            "detailCount": 0,
             "wordKeys": [
                 "awning",
                 "bench",
@@ -145,6 +172,7 @@
             "wordKeys": [
                 "cabinet",
                 "coffee_machine",
+                "flowerpot",
                 "mug",
                 "plant"
             ]
@@ -155,6 +183,8 @@
             "wordKeys": [
                 "bench",
                 "chair",
+                "cushion",
+                "flowerpot",
                 "mug",
                 "plant",
                 "table"
@@ -171,7 +201,9 @@
                 "chair",
                 "coffee_machine",
                 "croissant",
+                "cushion",
                 "display_case",
+                "flowerpot",
                 "muffin",
                 "mug",
                 "plant",
@@ -253,6 +285,7 @@
             "guid": "c83a022b67abe8442b7013083837640f",
             "path": "Assets/Prefabs/Home/CozyCottage/CoffeeTable.prefab",
             "wordKeys": [
+                "book",
                 "table"
             ]
         },
@@ -260,6 +293,7 @@
             "guid": "bdf84b6a6b8c1a54ba7b60ad784ee3be",
             "path": "Assets/Prefabs/Home/CozyCottage/CurtainedWindow.prefab",
             "wordKeys": [
+                "curtain",
                 "window"
             ]
         },
@@ -267,7 +301,11 @@
             "guid": "e514b87847d10db48b39264b25edbd31",
             "path": "Assets/Prefabs/Home/CozyCottage/KitchenCounter.prefab",
             "wordKeys": [
-                "kitchen_counter"
+                "cabinet",
+                "faucet",
+                "kitchen_counter",
+                "sink",
+                "stove"
             ]
         },
         {
@@ -288,6 +326,7 @@
             "guid": "d23ee2287aa2b494e99f47e4732bb156",
             "path": "Assets/Prefabs/Home/CozyCottage/OakBookcase.prefab",
             "wordKeys": [
+                "book",
                 "bookshelf"
             ]
         },
@@ -295,6 +334,10 @@
             "guid": "5f9c24a5faf69b34da593f43f980b88f",
             "path": "Assets/Prefabs/Home/CozyCottage/RetroRefrigerator.prefab",
             "wordKeys": [
+                "freezer",
+                "handle",
+                "magnet",
+                "note",
                 "refrigerator"
             ]
         },
@@ -302,8 +345,12 @@
             "guid": "2d546f7508211bd469ecc7e78395378f",
             "path": "Assets/Prefabs/Home/CozyCottage/RoomDecoration.prefab",
             "wordKeys": [
+                "book",
                 "cabinet",
                 "chair",
+                "drawer",
+                "faucet",
+                "flowerpot",
                 "jar",
                 "kitchen_counter",
                 "lamp",
@@ -312,6 +359,8 @@
                 "plant",
                 "rug",
                 "shelf",
+                "sink",
+                "stove",
                 "table"
             ]
         },
@@ -321,6 +370,7 @@
             "wordKeys": [
                 "ceiling",
                 "cornice",
+                "curtain",
                 "floor",
                 "wall",
                 "window"
@@ -330,13 +380,19 @@
             "guid": "1d871a7eb1f1fe04c807a8fbc72bf3d6",
             "path": "Assets/Prefabs/Home/CozyCottage/SageBed.prefab",
             "wordKeys": [
-                "bed"
+                "bed",
+                "blanket",
+                "duvet",
+                "headboard",
+                "mattress",
+                "pillow"
             ]
         },
         {
             "guid": "15f8fb11ef3cd8444978af57bcf3f89a",
             "path": "Assets/Prefabs/Home/CozyCottage/SageSofa.prefab",
             "wordKeys": [
+                "cushion",
                 "sofa"
             ]
         },
@@ -344,6 +400,7 @@
             "guid": "af60ceb6b4a361542aaa7c59f922b7f6",
             "path": "Assets/Prefabs/Home/CozyCottage/SideTable.prefab",
             "wordKeys": [
+                "drawer",
                 "table"
             ]
         },
@@ -430,8 +487,12 @@
             "path": "Assets/Prefabs/Hotel/MapleHouse/LobbyDecoration.prefab",
             "wordKeys": [
                 "bell",
+                "book",
                 "clock",
+                "cushion",
+                "drawer",
                 "elevator",
+                "flowerpot",
                 "guestbook",
                 "key_cabinet",
                 "lamp",
@@ -467,6 +528,9 @@
             "guid": "e6b5dda513e0b6048b1325a7fc7a5371",
             "path": "Assets/Prefabs/Hotel/MapleHouse/LoungeSet.prefab",
             "wordKeys": [
+                "book",
+                "cushion",
+                "drawer",
                 "lamp",
                 "rug",
                 "sofa",
@@ -1076,6 +1140,7 @@
             "guid": "ba14153509b6353449c907380f13d5b7",
             "path": "Assets/Prefabs/World/TinyTreats/HousePlants/Monstera.prefab",
             "wordKeys": [
+                "flowerpot",
                 "plant"
             ]
         },
@@ -1083,6 +1148,7 @@
             "guid": "5e17e94334d65c34c84cf2dcc3fa4b6d",
             "path": "Assets/Prefabs/World/TinyTreats/HousePlants/SnakePlant.prefab",
             "wordKeys": [
+                "flowerpot",
                 "plant"
             ]
         },
@@ -1090,6 +1156,7 @@
             "guid": "da801ccfd68b38d4d9bae12ec2a750e7",
             "path": "Assets/Prefabs/World/TinyTreats/HousePlants/Succulent.prefab",
             "wordKeys": [
+                "flowerpot",
                 "plant"
             ]
         },

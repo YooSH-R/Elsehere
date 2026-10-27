@@ -551,4 +551,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 54c5b1e22baabc84c9d2d981d4e8f18c, type: 2}
+  parts: {fileID: 0}
   unityKey: chalkboard

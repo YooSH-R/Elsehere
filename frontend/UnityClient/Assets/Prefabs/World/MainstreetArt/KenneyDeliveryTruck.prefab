@@ -666,6 +666,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 2cac0e3969d3cf7418ee7c3b027d0a31, type: 2}
+  parts: {fileID: 0}
   unityKey: truck
 --- !u!1 &7861027329235678455
 GameObject:

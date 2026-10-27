@@ -234,8 +234,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.6, y: 0.41999996, z: 0.82}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 2.6, y: 0.41999996, z: 0.82000005}
+  m_Center: {x: 0, y: 0, z: 0.000000029802322}
 --- !u!114 &1978695558741627777
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -300,8 +300,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.018, y: 0.55, z: 0.015}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.018, y: 0.5500001, z: 0.015}
+  m_Center: {x: 0, y: 0.000000029802322, z: 0}
 --- !u!114 &1639638041265652131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -569,6 +569,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: decaf67550aa18849bde80acbd74ed73, type: 2}
+  parts: {fileID: 11400000, guid: c0841a2dd2dac0a43921e6a6e530d434, type: 2}
   unityKey: bench
 --- !u!1 &4351571134933446011
 GameObject:
@@ -658,8 +659,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.6, y: 0.85, z: 0.18}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 2.5999997, y: 0.85, z: 0.18}
+  m_Center: {x: -0.00000011920929, y: 0, z: 0}
 --- !u!114 &7292664849379028723
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -815,8 +816,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.018, y: 0.55, z: 0.015}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.018, y: 0.5500001, z: 0.015}
+  m_Center: {x: 0, y: 0.000000029802322, z: 0}
 --- !u!114 &3602764919658261681
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1038,8 +1039,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.018, y: 0.55, z: 0.015}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.018, y: 0.5500001, z: 0.015}
+  m_Center: {x: 0, y: 0.000000029802322, z: 0}
 --- !u!114 &8050267017106360253
 MonoBehaviour:
   m_ObjectHideFlags: 0

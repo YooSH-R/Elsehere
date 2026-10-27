@@ -419,6 +419,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 624292e6ea4d30b48ae1f8bba324fc3b, type: 2}
+  parts: {fileID: 0}
   unityKey: jar
 --- !u!1 &3918419353448719615
 GameObject:
@@ -591,6 +592,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 4ea359159eb455e46a07f7258d25e790, type: 2}
+  parts: {fileID: 0}
   unityKey: shelf
 --- !u!1 &4514846068633289993
 GameObject:
@@ -854,6 +856,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 624292e6ea4d30b48ae1f8bba324fc3b, type: 2}
+  parts: {fileID: 0}
   unityKey: jar
 --- !u!1 &5647847525004072343
 GameObject:
@@ -1183,6 +1186,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 624292e6ea4d30b48ae1f8bba324fc3b, type: 2}
+  parts: {fileID: 0}
   unityKey: jar
 --- !u!1 &7215709718791812181
 GameObject:
@@ -1418,6 +1422,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6f0545c91252e3344952157b492c1bee, type: 2}
+  parts: {fileID: 0}
   unityKey: picture
 --- !u!1001 &1160599149640291668
 PrefabInstance:

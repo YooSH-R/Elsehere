@@ -46,6 +46,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: cfeecaf0c7beda24da34f3f3659284a4, type: 2}
+  parts: {fileID: 0}
   unityKey: awning
 --- !u!1 &5769586582489563613
 GameObject:

@@ -105,6 +105,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
+  parts: {fileID: 0}
   unityKey: rug
 --- !u!1 &4096938995762775453
 GameObject:
@@ -380,6 +381,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 0f960397d4cc696499e2b321269d80f4, type: 2}
+  parts: {fileID: 0}
   unityKey: rug
 --- !u!1001 &769494475651680654
 PrefabInstance:

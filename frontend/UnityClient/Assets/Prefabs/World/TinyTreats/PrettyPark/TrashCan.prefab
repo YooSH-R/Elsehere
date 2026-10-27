@@ -68,6 +68,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d8b552d701164084ab92095fec26567e, type: 2}
+  parts: {fileID: 0}
   unityKey: trash_can
 --- !u!1 &8546828485857311276
 GameObject:

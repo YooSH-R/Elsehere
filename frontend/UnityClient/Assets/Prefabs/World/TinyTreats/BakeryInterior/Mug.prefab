@@ -134,6 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ac559bbc27f517b4a94a40c8eaaf6ae9, type: 2}
+  parts: {fileID: 0}
   unityKey: mug
 --- !u!1001 &6264797322951784146
 PrefabInstance:

@@ -77,6 +77,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: a8ce01da8a9da344b9f641aea4a8524b, type: 2}
+  parts: {fileID: 0}
   unityKey: luggage_cart
 --- !u!1 &1759087018774372861
 GameObject:

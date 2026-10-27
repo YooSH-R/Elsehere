@@ -975,6 +975,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 7aa10689cfc3c774695e83618416ec85, type: 2}
+  parts: {fileID: 0}
   unityKey: cloud
 --- !u!1001 &241035873
 PrefabInstance:
@@ -1900,6 +1901,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 7aa10689cfc3c774695e83618416ec85, type: 2}
+  parts: {fileID: 0}
   unityKey: cloud
 --- !u!1001 &656957098
 PrefabInstance:
@@ -4268,6 +4270,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 7aa10689cfc3c774695e83618416ec85, type: 2}
+  parts: {fileID: 0}
   unityKey: cloud
 --- !u!1 &1280563801
 GameObject:

@@ -68,6 +68,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 66c091525841d9b47a15feb36b173cd0, type: 2}
+  parts: {fileID: 0}
   unityKey: donut
 --- !u!1 &9188370819660829377
 GameObject:

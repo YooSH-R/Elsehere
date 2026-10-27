@@ -127,6 +127,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1 &601819901320929632
 GameObject:
@@ -255,6 +256,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 882c7e0f05bbd974e9e03060904e2a7e, type: 2}
+  parts: {fileID: 0}
   unityKey: counter
 --- !u!1 &896960739528292348
 GameObject:
@@ -515,6 +517,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1 &1309485551904579926
 GameObject:
@@ -775,6 +778,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1 &1607123390641527585
 GameObject:
@@ -955,6 +959,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 7618ee8f7c207e54b84d3255fd1677da, type: 2}
+  parts: {fileID: 0}
   unityKey: menu
 --- !u!1 &2526405913184333948
 GameObject:
@@ -1253,6 +1258,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1 &2634459671946830000
 GameObject:
@@ -1447,6 +1453,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1 &4170844293449542352
 GameObject:
@@ -1690,6 +1697,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ee0f2176525665145ac6d8a9023c40e3, type: 2}
+  parts: {fileID: 0}
   unityKey: table
 --- !u!1 &4419025044464328627
 GameObject:
@@ -1818,6 +1826,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1 &4582868857060982959
 GameObject:
@@ -2012,6 +2021,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &4713145210006268034
 GameObject:
@@ -2142,6 +2152,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ee0f2176525665145ac6d8a9023c40e3, type: 2}
+  parts: {fileID: 0}
   unityKey: table
 --- !u!1 &5005017473401024860
 GameObject:
@@ -2453,6 +2464,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &5526925605172599705
 GameObject:
@@ -2715,6 +2727,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ee0f2176525665145ac6d8a9023c40e3, type: 2}
+  parts: {fileID: 0}
   unityKey: table
 --- !u!1 &6490289579216773237
 GameObject:
@@ -2843,6 +2856,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &6570869277202134685
 GameObject:
@@ -2971,6 +2985,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: d5456854272206b4b8732d40bac83bc8, type: 2}
+  parts: {fileID: 0}
   unityKey: wall
 --- !u!1 &7031399778281960279
 GameObject:
@@ -3165,6 +3180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 4693346c98f5ff749bc9e629470e29e0, type: 2}
+  parts: {fileID: 0}
   unityKey: floor
 --- !u!1 &7264991277097133160
 GameObject:
@@ -3295,6 +3311,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ee0f2176525665145ac6d8a9023c40e3, type: 2}
+  parts: {fileID: 0}
   unityKey: table
 --- !u!1 &7272015822904030657
 GameObject:
@@ -3753,6 +3770,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1 &9003167498978795213
 GameObject:
@@ -3947,6 +3965,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9f681c9f16b38db4bab69782d2334624, type: 2}
+  parts: {fileID: 0}
   unityKey: chair
 --- !u!1001 &1736856599262170872
 PrefabInstance:
@@ -4041,6 +4060,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 47f7a70e31c1404499a050698facdf9e, type: 2}
+  parts: {fileID: 0}
   unityKey: door
 --- !u!4 &7419644050888537348 stripped
 Transform:

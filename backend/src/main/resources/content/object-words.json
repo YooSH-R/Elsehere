@@ -271,6 +271,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "cushion",
+            "languageCode": "en-US",
+            "text": "cushion",
+            "meaningKo": "쿠션",
+            "example": "Put the cushion on the sofa.",
+            "exampleKo": "쿠션을 소파 위에 놓으세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "display_case",
             "languageCode": "en-US",
             "text": "display case",
@@ -295,6 +304,24 @@
             "meaningKo": "문",
             "example": "Please close the door quietly.",
             "exampleKo": "문을 조용히 닫아 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "drawer",
+            "languageCode": "en-US",
+            "text": "drawer",
+            "meaningKo": "서랍",
+            "example": "Open the drawer to find a pen.",
+            "exampleKo": "펜을 찾으려면 서랍을 여세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "duvet",
+            "languageCode": "en-US",
+            "text": "duvet",
+            "meaningKo": "이불",
+            "example": "Pull the duvet over you.",
+            "exampleKo": "이불을 덮으세요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -361,6 +388,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "flowerpot",
+            "languageCode": "en-US",
+            "text": "flowerpot",
+            "meaningKo": "화분",
+            "example": "The plant is growing in a flowerpot.",
+            "exampleKo": "식물이 화분에서 자라고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "fountain",
             "languageCode": "en-US",
             "text": "fountain",
@@ -370,12 +406,39 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "freezer",
+            "languageCode": "en-US",
+            "text": "freezer",
+            "meaningKo": "냉동실",
+            "example": "Keep the ice cream in the freezer.",
+            "exampleKo": "아이스크림은 냉동실에 보관하세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "guestbook",
             "languageCode": "en-US",
             "text": "guestbook",
             "meaningKo": "방명록",
             "example": "Please sign the guestbook.",
             "exampleKo": "방명록에 서명해 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "handle",
+            "languageCode": "en-US",
+            "text": "handle",
+            "meaningKo": "손잡이",
+            "example": "Pull the handle to open the door.",
+            "exampleKo": "손잡이를 당겨 문을 여세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "headboard",
+            "languageCode": "en-US",
+            "text": "headboard",
+            "meaningKo": "침대 머리판",
+            "example": "The bed has a wooden headboard.",
+            "exampleKo": "침대에 나무 머리판이 있어요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -469,6 +532,24 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "magnet",
+            "languageCode": "en-US",
+            "text": "magnet",
+            "meaningKo": "자석",
+            "example": "The magnet holds the note in place.",
+            "exampleKo": "자석이 메모를 고정하고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "mattress",
+            "languageCode": "en-US",
+            "text": "mattress",
+            "meaningKo": "매트리스",
+            "example": "This mattress is comfortable.",
+            "exampleKo": "이 매트리스는 편안해요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "menu",
             "languageCode": "en-US",
             "text": "menu",
@@ -502,6 +583,15 @@
             "meaningKo": "머그잔",
             "example": "I drink tea from this mug.",
             "exampleKo": "나는 이 머그잔으로 차를 마셔요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "note",
+            "languageCode": "en-US",
+            "text": "note",
+            "meaningKo": "메모",
+            "example": "There is a note on the refrigerator.",
+            "exampleKo": "냉장고에 메모가 붙어 있어요.",
             "pronunciationAudioKey": ""
         },
         {

@@ -319,6 +319,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &9200196402939515317
 GameObject:

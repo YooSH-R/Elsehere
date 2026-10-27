@@ -134,6 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: da35b9fe51c87024784f920aa6cd1a95, type: 2}
+  parts: {fileID: 0}
   unityKey: cake
 --- !u!1001 &2014319245555974694
 PrefabInstance:

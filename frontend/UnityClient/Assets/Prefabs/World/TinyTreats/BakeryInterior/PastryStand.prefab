@@ -134,6 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 0db0b19598296c342b61917cc88d7752, type: 2}
+  parts: {fileID: 0}
   unityKey: pastry_stand
 --- !u!1001 &6211796613230965
 PrefabInstance:

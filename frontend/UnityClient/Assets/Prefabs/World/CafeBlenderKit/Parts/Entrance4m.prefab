@@ -244,6 +244,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: eef5fd4a8f4089644ac05d000d95a83e, type: 2}
+  parts: {fileID: 0}
   unityKey: entrance
 --- !u!1 &3764401277764635040
 GameObject:
@@ -418,4 +419,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: eef5fd4a8f4089644ac05d000d95a83e, type: 2}
+  parts: {fileID: 0}
   unityKey: entrance

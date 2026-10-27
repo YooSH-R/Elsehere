@@ -22,6 +22,8 @@ namespace A305.EditorTools.ObjectHover
             "Assets/Scripts/Editor/ObjectHover/ObjectWordBindings.json";
         private static Dictionary<string, string> keysByName;
         private static Dictionary<string, ObjectWordDefinition> catalog;
+        private static readonly Dictionary<Mesh, Bounds[]> meshRegions =
+            new Dictionary<Mesh, Bounds[]>();
 
         [MenuItem("Tools/A305/ObjectHover/Register All Scene Words")]
         public static void Build()
@@ -88,6 +90,7 @@ namespace A305.EditorTools.ObjectHover
 
         public static void PrepareSource()
         {
+            meshRegions.Clear();
             var source = ObjectWordAuthoring.RefreshSource();
             catalog = source.Words.ToDictionary(word => word.Key, StringComparer.Ordinal);
             keysByName = null;
@@ -146,16 +149,49 @@ namespace A305.EditorTools.ObjectHover
                             Vector3.zero,
                             Quaternion.identity
                         );
-                    BoxCollider box = area.GetComponent<BoxCollider>();
-                    if (box == null)
-                        box = area.gameObject.AddComponent<BoxCollider>();
-                    Bounds bounds = filter.sharedMesh.bounds;
-                    box.center = bounds.center;
-                    box.size = Vector3.Max(bounds.size, Vector3.one * 0.015f);
-                    box.isTrigger = true;
-                    box.enabled = renderer.enabled;
-                    if (area.GetComponent<ObjectHoverHitArea>() == null)
-                        area.gameObject.AddComponent<ObjectHoverHitArea>();
+                    Bounds[] regions = new[] { filter.sharedMesh.bounds };
+                    if (target.Parts != null)
+                    {
+                        if (!meshRegions.TryGetValue(filter.sharedMesh, out regions))
+                        {
+                            regions = ObjectWordMeshRegions.Split(filter.sharedMesh);
+                            meshRegions.Add(filter.sharedMesh, regions);
+                        }
+                    }
+                    for (int index = 0; index < regions.Length; index++)
+                    {
+                        Transform section = area;
+                        if (index > 0)
+                        {
+                            string name = "__MeshPart_" + index;
+                            section = area.Find(name);
+                            if (section == null)
+                                section = BuilderTools.CreateEmpty(
+                                    name,
+                                    area,
+                                    Vector3.zero,
+                                    Quaternion.identity
+                                );
+                        }
+                        BoxCollider box = BuilderTools.GetOrAddComponent<BoxCollider>(
+                            section.gameObject
+                        );
+                        box.center = regions[index].center;
+                        box.size = Vector3.Max(regions[index].size, Vector3.one * .015f);
+                        box.isTrigger = true;
+                        box.enabled = renderer.enabled;
+                        BuilderTools.GetOrAddComponent<ObjectHoverHitArea>(section.gameObject);
+                    }
+                    foreach (Transform child in area.Cast<Transform>().ToArray())
+                        if (
+                            child.name.StartsWith("__MeshPart_")
+                            && int.TryParse(
+                                child.name.Substring("__MeshPart_".Length),
+                                out int index
+                            )
+                            && index >= regions.Length
+                        )
+                            Object.DestroyImmediate(child.gameObject);
                 }
             }
         }
@@ -269,7 +305,9 @@ namespace A305.EditorTools.ObjectHover
                     + targets.Length
                     + " objects, "
                     + targets.Select(target => target.UnityKey).Distinct().Count()
-                    + " words"
+                    + " overview words, "
+                    + targets.Sum(target => target.Parts == null ? 0 : target.Parts.Parts.Count)
+                    + " detail regions"
             );
             foreach (HoverableObject target in targets)
                 if (!catalog.TryGetValue(target.UnityKey, out _))

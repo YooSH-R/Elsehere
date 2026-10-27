@@ -134,6 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 05ac31390639c4e4e85b036e78406e97, type: 2}
+  parts: {fileID: 0}
   unityKey: price_card
 --- !u!1001 &4049747740645595514
 PrefabInstance:

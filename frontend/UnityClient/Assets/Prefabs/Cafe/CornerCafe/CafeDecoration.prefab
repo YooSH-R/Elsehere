@@ -195,6 +195,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
+  parts: {fileID: 0}
   unityKey: sign
 --- !u!1 &6721216853173741533
 GameObject:
@@ -437,6 +438,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
+  parts: {fileID: 0}
   unityKey: sign
 --- !u!1 &8353271203211385993
 GameObject:
@@ -633,6 +635,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
+  parts: {fileID: 0}
   unityKey: sign
 --- !u!1001 &1444444219653284562
 PrefabInstance:

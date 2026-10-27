@@ -520,6 +520,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6676e052268acea4c833c4b17c15a572, type: 2}
+  parts: {fileID: 0}
   unityKey: planter
 --- !u!1 &7096271517976460263
 GameObject:

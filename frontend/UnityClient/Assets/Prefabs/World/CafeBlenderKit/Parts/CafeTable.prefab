@@ -178,6 +178,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ee0f2176525665145ac6d8a9023c40e3, type: 2}
+  parts: {fileID: 0}
   unityKey: table
 --- !u!1001 &6733614999101889994
 PrefabInstance:
@@ -268,6 +269,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: ee0f2176525665145ac6d8a9023c40e3, type: 2}
+  parts: {fileID: 0}
   unityKey: table
 --- !u!4 &6555027015316584993 stripped
 Transform:

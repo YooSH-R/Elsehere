@@ -519,4 +519,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 737d2a04bf2e29c48bd02fae5451a0f6, type: 2}
+  parts: {fileID: 0}
   unityKey: crate

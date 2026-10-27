@@ -68,6 +68,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: e77479206a4c3be459e46f23f216f5fd, type: 2}
+  parts: {fileID: 0}
   unityKey: croissant
 --- !u!1 &7544370717556598946
 GameObject:

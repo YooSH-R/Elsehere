@@ -105,6 +105,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 9cf8ac364ba3a9b459f282c727a56936, type: 2}
+  parts: {fileID: 0}
   unityKey: road
 --- !u!1 &1215356448020491801
 GameObject:

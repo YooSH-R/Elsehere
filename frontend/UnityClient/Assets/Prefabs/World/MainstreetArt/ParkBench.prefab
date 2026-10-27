@@ -160,6 +160,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: decaf67550aa18849bde80acbd74ed73, type: 2}
+  parts: {fileID: 0}
   unityKey: bench
 --- !u!1 &7052692033314267205
 GameObject:

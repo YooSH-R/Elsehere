@@ -46,6 +46,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6845435468210693
 GameObject:
@@ -379,6 +380,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 890dd0a671fad024b90d2de33a4a708d, type: 2}
+  parts: {fileID: 0}
   unityKey: fence
 --- !u!1 &74046964928287913
 GameObject:
@@ -492,6 +494,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &135508995415478286
 GameObject:
@@ -630,6 +633,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &161785981477788475
 GameObject:
@@ -702,6 +706,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &195175697555671763
 GameObject:
@@ -808,6 +813,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &196584548773842164
 GameObject:
@@ -1071,6 +1077,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &214212716311082403
 GameObject:
@@ -1275,6 +1282,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &291815818311151531
 GameObject:
@@ -1642,6 +1650,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &382355424765594173
 GameObject:
@@ -1781,6 +1790,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &395834965332165703
 GameObject:
@@ -1828,6 +1838,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &409588939956289823
 GameObject:
@@ -2091,6 +2102,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &428280444312803752
 GameObject:
@@ -2138,6 +2150,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &434452442793067776
 GameObject:
@@ -2985,6 +2998,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &611405635630756588
 GameObject:
@@ -3032,6 +3046,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &641245716331439030
 GameObject:
@@ -3170,6 +3185,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &648843504692057610
 GameObject:
@@ -3374,6 +3390,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &738323379534066842
 GameObject:
@@ -3776,6 +3793,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &847082368894474541
 GameObject:
@@ -4014,6 +4032,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &880326763859314875
 GameObject:
@@ -4127,6 +4146,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &910895865167525920
 GameObject:
@@ -4365,6 +4385,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &984405690294019915
 GameObject:
@@ -4726,6 +4747,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1057824796284119308
 GameObject:
@@ -4881,6 +4903,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 483090dc99afb794abf2cdd26b1a3e12, type: 2}
+  parts: {fileID: 0}
   unityKey: sign
 --- !u!1 &1125163851616807373
 GameObject:
@@ -4928,6 +4951,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1185091343929765666
 GameObject:
@@ -5852,6 +5876,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &1326120553804322211
 GameObject:
@@ -5965,6 +5990,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1346245181997953441
 GameObject:
@@ -6012,6 +6038,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1352438054512466634
 GameObject:
@@ -6059,6 +6086,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1390815746262885831
 GameObject:
@@ -6106,6 +6134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1430585781653731405
 GameObject:
@@ -6336,6 +6365,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &1440143980232282697
 GameObject:
@@ -6755,6 +6785,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1541141768211962244
 GameObject:
@@ -7191,6 +7222,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1606255930873294945
 GameObject:
@@ -7370,6 +7402,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1675443577192951294
 GameObject:
@@ -7574,6 +7607,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &1710001529283521323
 GameObject:
@@ -7621,6 +7655,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1744986858620826148
 GameObject:
@@ -7668,6 +7703,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1753611207586639901
 GameObject:
@@ -7872,6 +7908,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1791934409768220600
 GameObject:
@@ -7978,6 +8015,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &1808838321987222723
 GameObject:
@@ -8091,6 +8129,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1859841180452526253
 GameObject:
@@ -8138,6 +8177,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &1901378783352506470
 GameObject:
@@ -8565,6 +8605,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2048311586902455569
 GameObject:
@@ -9075,6 +9116,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2109901492744220345
 GameObject:
@@ -9181,6 +9223,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2138385195533197839
 GameObject:
@@ -9468,6 +9511,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2158339093571262955
 GameObject:
@@ -9540,6 +9584,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &2161553357332519494
 GameObject:
@@ -9744,6 +9789,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2192493663563306454
 GameObject:
@@ -9850,6 +9896,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2218288995118108415
 GameObject:
@@ -9919,6 +9966,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 38ab98bb15b7e244d8217a8a81d6fb58, type: 2}
+  parts: {fileID: 0}
   unityKey: fire_hydrant
 --- !u!1 &2235322011512384018
 GameObject:
@@ -10182,6 +10230,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2299394286106442668
 GameObject:
@@ -10320,6 +10369,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2317274898143338017
 GameObject:
@@ -11350,6 +11400,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2512021998002577427
 GameObject:
@@ -11513,6 +11564,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &2526742475055565822
 GameObject:
@@ -11560,6 +11612,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2548956493765144034
 GameObject:
@@ -12332,6 +12385,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2633943233139979930
 GameObject:
@@ -12759,6 +12813,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2838101706550307058
 GameObject:
@@ -13113,6 +13168,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2912738372204175169
 GameObject:
@@ -13343,6 +13399,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &2963177990046091953
 GameObject:
@@ -13449,6 +13506,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &2965090604347752946
 GameObject:
@@ -13809,6 +13867,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3052324007425358882
 GameObject:
@@ -13856,6 +13915,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3059436688968571794
 GameObject:
@@ -13994,6 +14054,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3077175984332149637
 GameObject:
@@ -14067,6 +14128,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &3110612564093001647
 GameObject:
@@ -14585,6 +14647,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &3228564080591728752
 GameObject:
@@ -14921,6 +14984,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3336061857979430072
 GameObject:
@@ -14968,6 +15032,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3358569278763309796
 GameObject:
@@ -15074,6 +15139,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3379712026134262765
 GameObject:
@@ -15187,6 +15253,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3384919318744463774
 GameObject:
@@ -15450,6 +15517,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3414092572403635799
 GameObject:
@@ -15779,6 +15847,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &3463522419024047798
 GameObject:
@@ -15826,6 +15895,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3479431813602130586
 GameObject:
@@ -15873,6 +15943,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3481216061020860471
 GameObject:
@@ -16432,6 +16503,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3566195109912121316
 GameObject:
@@ -16884,6 +16956,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3636655492424735089
 GameObject:
@@ -17113,6 +17186,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3693583504532415471
 GameObject:
@@ -17383,6 +17457,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3760266967649340948
 GameObject:
@@ -17430,6 +17505,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3763282643437514077
 GameObject:
@@ -17634,6 +17710,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3794462325722242659
 GameObject:
@@ -17929,6 +18006,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3889473018813948255
 GameObject:
@@ -18042,6 +18120,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &3941964454029906584
 GameObject:
@@ -18305,6 +18384,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4022686098991507467
 GameObject:
@@ -18418,6 +18498,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4061134308129367486
 GameObject:
@@ -18747,6 +18828,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4105878390013736615
 GameObject:
@@ -18951,6 +19033,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4137243439167782517
 GameObject:
@@ -18998,6 +19081,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4144636932357521905
 GameObject:
@@ -19509,6 +19593,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4369048930455796244
 GameObject:
@@ -19782,6 +19867,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6676e052268acea4c833c4b17c15a572, type: 2}
+  parts: {fileID: 0}
   unityKey: planter
 --- !u!1 &4440327246435718365
 GameObject:
@@ -19829,6 +19915,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4442023773983549404
 GameObject:
@@ -20183,6 +20270,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4541119957233687109
 GameObject:
@@ -20446,6 +20534,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4620113330400030405
 GameObject:
@@ -20552,6 +20641,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4627959992806797585
 GameObject:
@@ -20778,6 +20868,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: decaf67550aa18849bde80acbd74ed73, type: 2}
+  parts: {fileID: 0}
   unityKey: bench
 --- !u!1 &4688629933656771837
 GameObject:
@@ -21048,6 +21139,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4718102432090637766
 GameObject:
@@ -21186,6 +21278,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4723969630215394243
 GameObject:
@@ -21299,6 +21392,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4741581726207297390
 GameObject:
@@ -21594,6 +21688,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4822508988385395476
 GameObject:
@@ -21766,6 +21861,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4852967416219725484
 GameObject:
@@ -21904,6 +22000,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4896452853402170308
 GameObject:
@@ -22068,6 +22165,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &4913669186809042478
 GameObject:
@@ -22240,6 +22338,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4945294664889654049
 GameObject:
@@ -22378,6 +22477,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &4984397028690944780
 GameObject:
@@ -22491,6 +22591,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5024565186258572077
 GameObject:
@@ -22942,6 +23043,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5124532729583482564
 GameObject:
@@ -23337,6 +23439,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5213547000020381461
 GameObject:
@@ -23443,6 +23546,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5241950280314325454
 GameObject:
@@ -23609,6 +23713,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 890dd0a671fad024b90d2de33a4a708d, type: 2}
+  parts: {fileID: 0}
   unityKey: fence
 --- !u!1 &5316971373682376447
 GameObject:
@@ -24409,6 +24514,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5488168827075664261
 GameObject:
@@ -24456,6 +24562,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5493697058924398976
 GameObject:
@@ -24562,6 +24669,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5581872724209573419
 GameObject:
@@ -24609,6 +24717,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5588124739887365075
 GameObject:
@@ -24656,6 +24765,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5599023175380594488
 GameObject:
@@ -24703,6 +24813,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5599589435220574884
 GameObject:
@@ -24875,6 +24986,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5622961156032242394
 GameObject:
@@ -24988,6 +25100,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5638853263809322193
 GameObject:
@@ -25094,6 +25207,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &5652516935556278513
 GameObject:
@@ -25480,6 +25594,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5743949409370194263
 GameObject:
@@ -25709,6 +25824,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5768188729795912869
 GameObject:
@@ -25815,6 +25931,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5781327718050024037
 GameObject:
@@ -26169,6 +26286,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5826383012241299016
 GameObject:
@@ -26282,6 +26400,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5833279174595107764
 GameObject:
@@ -26479,6 +26598,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5848769376428649427
 GameObject:
@@ -26805,6 +26925,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &5941153586582595111
 GameObject:
@@ -27043,6 +27164,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5965637668798551646
 GameObject:
@@ -27149,6 +27271,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &5993087788271479117
 GameObject:
@@ -27394,6 +27517,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6039724851398873471
 GameObject:
@@ -27623,6 +27747,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6087160281516094830
 GameObject:
@@ -27670,6 +27795,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6119321586404125357
 GameObject:
@@ -27776,6 +27902,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &6127359357062836128
 GameObject:
@@ -28039,6 +28166,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6192596804347291634
 GameObject:
@@ -28145,6 +28273,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &6202296320437959865
 GameObject:
@@ -28192,6 +28321,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6207139463487010821
 GameObject:
@@ -28239,6 +28369,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6208197257816581567
 GameObject:
@@ -28411,6 +28542,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6237137722186752004
 GameObject:
@@ -28458,6 +28590,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6250250400710234959
 GameObject:
@@ -29258,6 +29391,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &6428603822799001175
 GameObject:
@@ -29430,6 +29564,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6497881299055198320
 GameObject:
@@ -29810,6 +29945,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6676e052268acea4c833c4b17c15a572, type: 2}
+  parts: {fileID: 0}
   unityKey: planter
 --- !u!1 &6587246751851418105
 GameObject:
@@ -29857,6 +29993,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6600864167750655913
 GameObject:
@@ -29904,6 +30041,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6608560425355298084
 GameObject:
@@ -30649,6 +30787,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 890dd0a671fad024b90d2de33a4a708d, type: 2}
+  parts: {fileID: 0}
   unityKey: fence
 --- !u!1 &6712054323717919162
 GameObject:
@@ -31382,6 +31521,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &6865623255280279551
 GameObject:
@@ -31901,6 +32041,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &7044679671855467447
 GameObject:
@@ -32551,6 +32692,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7248273111800427195
 GameObject:
@@ -32620,6 +32762,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 2cac0e3969d3cf7418ee7c3b027d0a31, type: 2}
+  parts: {fileID: 0}
   unityKey: truck
 --- !u!1 &7258126190643436337
 GameObject:
@@ -32726,6 +32869,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7290470267065568003
 GameObject:
@@ -32923,6 +33067,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7341387185943672753
 GameObject:
@@ -33302,6 +33447,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7385022224224317433
 GameObject:
@@ -33408,6 +33554,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7394567786572918660
 GameObject:
@@ -33762,6 +33909,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7432652092127905770
 GameObject:
@@ -33900,6 +34048,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7451910140452993102
 GameObject:
@@ -34319,6 +34468,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7504429716257055553
 GameObject:
@@ -34714,6 +34864,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: c53704e8b695cf6479ad9e6abca0c2f8, type: 2}
+  parts: {fileID: 0}
   unityKey: flowerbed
 --- !u!1 &7608981748232722607
 GameObject:
@@ -34943,6 +35094,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7722583799493455926
 GameObject:
@@ -35238,6 +35390,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7758792465558723885
 GameObject:
@@ -35417,6 +35570,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7790024803131650721
 GameObject:
@@ -35959,6 +36113,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7887113781999384757
 GameObject:
@@ -36006,6 +36161,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7892057234639521685
 GameObject:
@@ -36053,6 +36209,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7924586315086709041
 GameObject:
@@ -36166,6 +36323,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &7935051393302963213
 GameObject:
@@ -36822,6 +36980,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8046511002748499779
 GameObject:
@@ -36891,6 +37050,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 890dd0a671fad024b90d2de33a4a708d, type: 2}
+  parts: {fileID: 0}
   unityKey: fence
 --- !u!1 &8076765228733464314
 GameObject:
@@ -37178,6 +37338,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8134874115151710700
 GameObject:
@@ -37347,6 +37508,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &8252290234192320477
 GameObject:
@@ -37485,6 +37647,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8269019038925210232
 GameObject:
@@ -37623,6 +37786,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8359690952415570825
 GameObject:
@@ -37670,6 +37834,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8379922154190898772
 GameObject:
@@ -37842,6 +38007,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8383664842667265718
 GameObject:
@@ -38294,6 +38460,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8466084380408537317
 GameObject:
@@ -38564,6 +38731,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8503741533993551253
 GameObject:
@@ -38637,6 +38805,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &8556363563400014428
 GameObject:
@@ -38925,6 +39094,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8595855155836855613
 GameObject:
@@ -39038,6 +39208,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8621679175350695040
 GameObject:
@@ -39242,6 +39413,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8640281984519434812
 GameObject:
@@ -39348,6 +39520,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8652548397747813206
 GameObject:
@@ -39420,6 +39593,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6ac76f5c1a3bbe94e83aa1d9a5c05b71, type: 2}
+  parts: {fileID: 0}
   unityKey: tree
 --- !u!1 &8661376838459572322
 GameObject:
@@ -39467,6 +39641,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8675804604990801908
 GameObject:
@@ -39935,6 +40110,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8770972805173993036
 GameObject:
@@ -40139,6 +40315,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8792375552449724083
 GameObject:
@@ -40186,6 +40363,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8805006279799469968
 GameObject:
@@ -40745,6 +40923,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &8937526253480617405
 GameObject:
@@ -41385,6 +41564,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &9064445293768989391
 GameObject:
@@ -41498,6 +41678,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &9092188708071645172
 GameObject:
@@ -41636,6 +41817,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &9160277363507368327
 GameObject:
@@ -41775,6 +41957,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 6b8095f5ed4bb1b4f8c59ec566c300c5, type: 2}
+  parts: {fileID: 0}
   unityKey: streetlight
 --- !u!1 &9199399703664681618
 GameObject:
@@ -41822,6 +42005,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.HoverableObject
   word: {fileID: 11400000, guid: 17710cb56101e7d4b982cce0c0acf27a, type: 2}
+  parts: {fileID: 0}
   unityKey: sidewalk
 --- !u!1 &9218794873323550716
 GameObject:

@@ -51,7 +51,6 @@ com.elsehere
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
 - Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.
-- 다른 담당 영역의 테이블(users, conversations, turns)은 JPA 연관관계 없이 ID 값으로만 참조합니다. 이 컬럼에는 외래 키 제약이 생기지 않습니다.
 
 ## 준비
 
@@ -115,8 +114,10 @@ com.elsehere
 | 포맷 적용 | `./gradlew spotlessApply` |
 | 포맷·규칙 검사·테스트 | `./gradlew check` |
 | 테스트만 실행 | `./gradlew test` |
+| 테스트 클래스 하나 실행 | `./gradlew test --tests "<패키지>.<클래스>"` |
+| 실행 JAR 빌드 | `./gradlew bootJar` |
 
-MR을 만들기 전에 `spotlessApply`로 포맷을 적용하고 `check`가 통과하는지 확인합니다. 포맷이 맞지 않으면 `check`가 실패합니다.
+MR을 만들기 전에 `spotlessApply`로 포맷을 적용하고 `check`가 통과하는지 확인합니다. `check`는 `spotlessCheck`, `checkstyleMain`, `checkstyleTest`와 테스트를 실행하며 포맷이 맞지 않으면 실패합니다.
 
 검사 대상은 `src/main/java`와 `src/test/java`의 직접 작성한 Java 소스입니다. `build/`의 생성 코드·산출물은 대상에서 제외합니다. 소스는 UTF-8·LF를 사용하며 `.gitattributes`가 Java 파일의 LF를 유지합니다.
 

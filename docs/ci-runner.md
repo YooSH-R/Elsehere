@@ -12,8 +12,9 @@
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
+| `infra:observability` | 모니터링·Nginx·관측 검증 스크립트 또는 공통 CI 변경 | 요청 ID·로그의 민감 정보 제외, Prometheus·Grafana 구성, 경보 발동·복구와 가짜 수신기 전송 검사 |
 
-일반 문서 변경은 빠른 YAML 검사만 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치에 MR이 있으면 MR 파이프라인을 사용해 Push 파이프라인과의 중복 실행을 줄입니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI 검사를 모두 수행하고, 확인용 Compose가 있으면 인프라 검사도 수행합니다.
+일반 문서 변경은 빠른 YAML 검사만 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치에 MR이 있으면 MR 파이프라인을 사용해 Push 파이프라인과의 중복 실행을 줄입니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
 
 MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대상과의 최종 차이로 작업을 선택합니다. 같은 MR에서 문서만 추가로 고쳐도 백엔드 파일이 대상과 다르면 백엔드 검사가 다시 실행되고, 백엔드 변경을 완전히 되돌리면 선택 대상에서 빠집니다. MR이 없는 기존 작업 브랜치의 Push는 직전 커밋과 비교하며, 새 브랜치의 첫 Push에서는 변경 경로 조건이 모두 참이 될 수 있습니다. 작업 선택은 MR 파이프라인을 기준으로 확인합니다. [GitLab 비교 대상 지정](https://docs.gitlab.com/ci/yaml/#ruleschangescompare_to)
 
@@ -27,11 +28,13 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | `ai/worker/` 또는 `ai/tools/` | `ci:yaml`, `ai:check-and-test` |
 | `ai/feedback/` | `ci:yaml`, `ai:check-and-test`, `ai:panel-tests` |
 | `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, 두 AI 작업 |
-| `infra/compose/` 또는 `infra/nginx/` | `ci:yaml`, `infra:compose-and-nginx` |
+| `infra/compose/` | `ci:yaml`, 확인용 Compose가 있으면 `infra:compose-and-nginx` |
+| `infra/nginx/` | `ci:yaml`, `infra:observability`, 확인용 Compose가 있으면 `infra:compose-and-nginx` |
+| `infra/monitoring/`, `check_observability.py`, `check_alerting.py` | `ci:yaml`, `infra:observability` |
 | `.gitlab-ci.yml` 또는 `.gitlab/ci/` | 적용 가능한 모든 작업 |
 | 웹에서 수동 실행 | 적용 가능한 모든 작업 |
 
-인프라 작업은 모든 경우에 확인용 Compose가 존재해야 합니다. ERD 변경은 백엔드 검사, Unity 규약·검사 스크립트 변경은 Unity 검사, 공통 작성 지침 변경은 백엔드·Unity·AI 검사를 선택합니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
+`infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 규약·검사 스크립트 변경은 Unity 검사, 공통 작성 지침 변경은 백엔드·Unity·AI 검사를 선택합니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
 
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 
@@ -155,9 +158,9 @@ sudo apparmor_parser -r /etc/apparmor.d/usr.local.bin.rootlesskit
 
 ### CI 성공을 요구하는 병합 조건
 
-프로젝트의 `Settings → Merge requests → Merge checks`에서 `Pipelines must succeed`를 활성화합니다. `Skipped pipelines are considered successful`은 해제합니다. 최신 파이프라인이 실패하거나 아직 실행 중이면 병합할 수 없으며, 건너뛰기를 성공 근거로 사용하지 않습니다. 일반 문서 MR도 항상 실행되는 `ci:yaml` 검사를 통과해야 합니다.
+검사 성공을 요구하는 프로젝트 설정은 [GitLab 운영 정책의 병합 검사 설정](gitlab-setup.md#병합-검사-설정)을 따릅니다.
 
-검사 작업에는 `allow_failure`를 지정하지 않고, CI에서 자동 포맷이나 수정 커밋을 만들지 않습니다. 작성자 외 팀원 최소 1명 리뷰와 열린 리뷰 의견 해결은 [협업 규칙](development.md)에 따라 확인합니다. CI 성공만으로 리뷰나 실제 운영 통합 검증을 완료한 것으로 판단하지 않습니다.
+검사 작업에는 `allow_failure`를 지정하지 않고, CI에서 자동 포맷이나 수정 커밋을 만들지 않습니다. 리뷰·논의 해결과 최종 병합 판단은 [협업 규칙](development.md#병합-조건과-방식)을 따릅니다.
 
 오류 검증은 기존 검증 MR을 재사용할 수 있습니다. 의도한 포맷·규칙·테스트·빌드 오류는 검증 브랜치에만 넣고 해당 작업의 실패 로그와 병합 차단을 확인합니다. 결과를 기록한 뒤 오류를 제거하고 병합 없이 종료합니다.
 

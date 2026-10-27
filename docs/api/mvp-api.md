@@ -980,6 +980,8 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 ```
 
 - "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다. `counts.all`은 현재 `includeMemorized` 조건을 적용한 개수입니다.
+- 기본값은 `includeMemorized=false`, `size=20`입니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서는 `400 VALIDATION_FAILED`입니다.
+- `savedAt`은 한국 시각(`+09:00`)으로 보냅니다. 저장한 문장이 없으면 `context`는 `null`입니다.
 - 저장하는 것이 단어뿐이라 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocabularies.type`은 숙어를 검토할 때를 위해 그대로 둡니다.
 - `vocab.meaningKo`는 단어 하나의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
@@ -1013,11 +1015,15 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
+- 현재 구현은 `OBJECT`만 저장합니다. `NPC_LINE`·`FEEDBACK`은 단어 풀이·단어장 후보 연동 전까지 `422 VOCAB_SOURCE_MISMATCH`입니다.
+- `sourceType`이 없거나, `OBJECT`인데 `objectKey`가 비어 있으면 `400 VALIDATION_FAILED`, 없는 사물이면 `404 NOT_FOUND`입니다.
+- `requestId`는 형식을 맞추려고 받지만 쓰지 않습니다. 이미 저장한 단어는 처음 항목을 돌려주므로 같은 요청을 다시 보내도 결과가 같습니다.
 
 #### VOCAB-03·04 메모·외웠어요·삭제
 
-- VOCAB-03 `PATCH /api/v1/vocab/{userVocabId}`는 `{ "memo": "...", "memorized": true }` 중 보낸 필드만 바꿉니다. 화면 18의 [메모], [외웠어요]입니다. `memorized: true`면 `memorized_at`을 기록하고, `false`면 지웁니다. 메모는 최대 길이를 서버 설정값으로 둡니다.
+- VOCAB-03 `PATCH /api/v1/vocab/{userVocabId}`는 `{ "memo": "...", "memorized": true }` 중 보낸 필드만 바꿉니다. 화면 18의 [메모], [외웠어요]입니다. `memorized: true`면 `memorized_at`을 기록하고(이미 외운 단어면 처음 시각 유지), `false`면 지웁니다. 메모는 최대 200자이며 넘으면 `400 VALIDATION_FAILED`입니다. 응답은 바뀐 VOCAB-01 항목입니다.
 - VOCAB-04는 사용자 단어장에서만 지우고 공용 어휘(`vocabularies`)는 지우지 않습니다. 성공하면 `204 No Content`입니다.
+- VOCAB-03·04에서 다른 사용자의 항목이나 없는 항목은 `404 NOT_FOUND`입니다.
 
 ### 4.9 AI 이용 상태
 

@@ -19,13 +19,21 @@
 
 - 환경 파일: `/home/ubuntu/apps/a305/dev/deploy.env`.
 - 모니터링 추가 Compose: `/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml`.
-- `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다.
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다.
 - 웹 로그 설정의 읽기 전용 마운트, 백엔드 내부 관리 주소와 비공개 포트를 유지합니다.
 - NPC 음성은 백엔드의 쓰기 가능한 `/app/data/npc-audio`에 저장하고 환경별 `npc-audio-data` 볼륨으로 유지합니다. 백엔드의 AI 내부 주소는 `AI_WORKER_BASE_URL=http://ai-worker:8020`으로 연결합니다.
 - DB 컨테이너·볼륨은 자동 교체하지 않습니다. DB 실행 설정이 달라지면 별도 마이그레이션 절차를 요구합니다.
 - 호스트 Nginx·TLS·운영 확인용 서비스·모니터링 스택은 배포 대상에 포함하지 않습니다. 새 WebGL HTTPS 경로의 브라우저 검증은 HTTPS 운영 작업에서 진행합니다.
 
 현재 배포한 모니터링 백엔드의 소스 커밋을 `minimum_backend_commit`으로 지정합니다. 해당 커밋이 없는 후보로 백엔드를 새로 만들면 계획 단계에서 실패합니다. 모니터링 코드를 포함한 선행 MR이 `dev`에 반영된 뒤 자동 배포를 진행합니다.
+
+### Google 로그인 설정 유지
+
+개발 Google 웹 클라이언트의 두 값은 `~/apps/a305/dev/deploy.env`에서 관리합니다. 앱 Compose는 두 값을 백엔드에 필수 환경변수로 전달합니다. 배포 수신기는 이 서버 환경 파일과 릴리스의 `images.env`를 함께 읽고, 성공 시 이미지 변수만 갱신해 Google 설정을 보존합니다. 실패 복구에서도 배포 전 환경 파일을 복원합니다.
+
+수신기는 Google 값 누락·빈 값·`not-configured` 또는 기존 서버 설정과 다른 값이 해석되는 후보를 컨테이너 교체 전에 거절합니다. 클라이언트 값을 바꿀 때는 서버 `deploy.env`를 수정합니다. 후보와 이전 Compose 모두 같은 현재 환경 파일로 해석하므로 정상적인 값 교체는 가능합니다. 실제 값과 인증 JSON 파일은 소스·이미지·CI 변수·산출물에 넣지 않습니다.
+
+Google 콘솔에는 `https://dev.elsehere.kr/api/v1/auth/callback/google`을 승인된 리디렉션 URI로 등록합니다. 환경변수만 바꿀 때는 현재 배포의 Compose·모니터링 추가 파일·환경 파일 조합을 유지하고 백엔드만 `up -d --no-deps --no-build --pull never --force-recreate backend`으로 다시 만듭니다. 단순 `restart`는 바뀐 환경변수를 반영하지 않습니다. 적용 뒤 로그인 시작 응답의 클라이언트 ID와 콜백 주소를 확인하며 Secret과 OAuth 상태 값을 로그에 남기지 않습니다.
 
 ## 서버 수신기 설치
 

@@ -400,6 +400,28 @@ class ComposeRuntime:
             != "0.0.0.0"
         ):
             raise ValueError("The internal monitoring address must be preserved.")
+        backend_environment = services["backend"].get("environment", {})
+        previous_environment = previous["services"]["backend"].get("environment", {})
+        for key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
+            value = backend_environment.get(key)
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or value.strip() == "not-configured"
+            ):
+                raise ValueError(
+                    f"Google OAuth requires {key} in the backend environment."
+                )
+            previous_value = previous_environment.get(key)
+            # Both files resolve against the current server env, so rotations remain possible.
+            if (
+                previous_value
+                and previous_value != "not-configured"
+                and value != previous_value
+            ):
+                raise ValueError(
+                    f"Google OAuth must preserve the server value for {key}."
+                )
 
     def load_images(self, archive):
         self.docker("load", "--input", archive, timeout=600)

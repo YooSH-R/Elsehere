@@ -75,11 +75,13 @@ and on (instance)
 
 Contact point `elsehere-dev-external-mm`는 Grafana Alertmanager의 **Slack** 호환 연동을 사용합니다. 두 규칙에서 이 Contact point를 직접 선택하며 앱 서버를 알림의 중계점으로 사용하지 않습니다. [Mattermost 연동 안내](https://docs.mattermost.com/administration-guide/scale/performance-alerting), [Grafana Slack Contact point](https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/integrations/configure-slack/)
 
-승인된 수신 채널·문구의 변경과 웹훅 보관은 [공통 Mattermost 발송 승인 기준](observability.md#mattermost-발송-승인)을 따릅니다. 채널 제한 웹훅을 사용하며 Cloud에 비밀 URL을 입력하는 단계는 계정 소유자가 직접 진행합니다.
+수신 채널은 `ELSEHERE 운영 알림`(`elsehere-alerts`)입니다. 채널과 실제 문구를 보고하고 승인받은 범위에서 연결·시험 발송합니다. 다른 채널이나 멘션을 임의로 추가하지 않습니다. 채널 제한 웹훅을 사용하고 URL을 저장소·Jira·로그·채팅에 기록하지 않습니다. Cloud에 비밀 URL을 입력하는 단계는 계정 소유자가 직접 진행합니다.
 
 | 알림 설정 | 값 |
 | --- | --- |
-| Group wait·Group interval·Repeat interval | 공통 발송 승인 기준의 묶음 대기·변경·반복 주기 적용 |
+| Group wait | 30초 |
+| Group interval | 5분 |
+| Repeat interval | 4시간 |
 | Disable resolved message | 체크 해제 |
 | 사용자·그룹·채널 멘션 | 비움 |
 
@@ -101,7 +103,7 @@ Contact point `elsehere-dev-external-mm`는 Grafana Alertmanager의 **Slack** �
 
 정상값 `vector(1)`로 시험 규칙을 준비한 뒤, `vector(time() >= bool <자동 복구 Unix 시각>)`처럼 정해진 시각 전에는 `0`, 이후에는 `1`이 되는 시험 쿼리를 사용합니다. 복구 시각은 저장·첫 평가·Pending·발동 알림에 충분한 시간을 두고 정합니다. 저장 뒤 쿼리를 수정하지 않고 Pending→Alerting→Normal과 실제 FIRING·RESOLVED 수신을 확인합니다. 규칙 편집에 따른 상태 초기화를 정상 평가에 의한 복구와 혼동하지 않습니다.
 
-시험을 마치면 임시 규칙을 삭제하고 실제 경보 두 개와 체크를 유지합니다. 지표 누락·조회 오류의 설정 확인, 정상 상태의 인증서 평가, 시간 기반 발동·복구 시험과 실제 인증서 만료·서버 중단 재현을 구분해 기록합니다. 실행 결과는 Jira·MR에 남깁니다.
+시험을 마치면 임시 규칙을 삭제하고 실제 경보 두 개와 체크를 유지합니다. 지표 누락·조회 오류의 설정 확인, 정상 상태의 인증서 평가, 시간 기반 발동·복구 시험과 실제 인증서 만료·서버 중단 재현을 구분해 기록합니다. 실행 결과는 Jira·MR에 남기며 Mattermost 확인에 computer-use를 사용하지 않습니다.
 
 Cloud 체크를 중지하면 외부 감시도 중단됩니다. 계정·체크 정지나 무데이터를 장애 복구로 오인하지 않습니다. 임계값 조정 시에는 기존 조건·새 조건과 정상 이용 측정 근거를 기록합니다. 서버 내부 API 지표와 오류율·p95 기준의 근거는 [서비스 관측 운영](observability.md)을 따릅니다.
 

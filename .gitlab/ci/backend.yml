@@ -19,7 +19,7 @@ backend:check-and-build:
       - .gradle/wrapper/
   script:
     - cd backend
-    - sh gradlew --no-daemon --max-workers=2 check bootJar
+    - sh gradlew --no-daemon --max-workers=2 --build-cache check bootJar
     - printf '%s\n' "$CI_COMMIT_SHA" > build/commit.txt
   artifacts:
     when: always

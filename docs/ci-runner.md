@@ -53,7 +53,9 @@ GitLab → Runner 관리 컨테이너 → 검사 컨테이너
 
 Runner 관리 컨테이너만 호스트 Docker 소켓을 사용합니다. 일반 검사 컨테이너에는 소켓이나 앱의 환경 파일·인증서를 마운트하지 않습니다. Testcontainers는 검사 작업 전용 rootless Docker 서비스에 연결합니다. 프로젝트 Runner는 서버의 Docker를 제어하므로 팀 저장소의 신뢰하는 작업에만 사용합니다. [Runner 컨테이너 운영](https://docs.gitlab.com/runner/install/docker/)
 
-동시에 작업 하나만 실행하며 검사 컨테이너는 CPU 2개·메모리 3GiB, Docker 서비스는 CPU 1개·메모리 2GiB로 제한합니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 자원 제한은 서버 장애나 디스크 부족의 영향을 완전히 없애지는 않으므로 운영과 함께 사용량을 확인합니다.
+동시에 작업 두 개까지 실행하며 각 검사 컨테이너는 CPU 2개·메모리 3GiB, Docker 서비스는 CPU 1개·메모리 2GiB로 제한합니다. CPU 4개·메모리 16GiB 서버에서 앱과 모니터링의 자원을 함께 고려한 상한입니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 동시 실행 중 CPU 사용률·가용 메모리·앱 응답을 확인하고 서버 여유가 부족하면 `concurrent`와 `limit`를 함께 `1`로 낮춥니다.
+
+백엔드는 Gradle 의존성·Wrapper 캐시와 `--build-cache`의 작업 결과 캐시를 함께 사용합니다. 입력이 달라진 작업은 다시 실행하며 캐시가 없어도 검사·빌드를 수행합니다. 캐시 복원·저장 시간도 작업 실행 시간에 포함해 확인합니다.
 
 제한값과 허용 서비스는 `infra/runner/config.template.toml`을 따릅니다. 이 파일에는 토큰이 없으며 등록 완료 파일을 대체하는 완성본이 아닙니다. 등록된 항목의 인증 정보는 보존하고 제한값을 해당 항목에 병합합니다. [Runner 고급 설정](https://docs.gitlab.com/runner/configuration/advanced-configuration/)
 
@@ -102,7 +104,7 @@ sudo cp -a /srv/gitlab-runner/config/config.toml /srv/gitlab-runner/config/confi
 sudo nano /srv/gitlab-runner/config/config.toml
 ```
 
-최상위 `concurrent`를 `1`로 맞추고 등록된 `[[runners]]`의 id·token·URL·이름·토큰 시각을 유지합니다. 템플릿의 `limit`, `environment`와 `[runners.docker]` 설정을 그 항목에 적용합니다. 새 `[[runners]]`를 추가하거나 템플릿으로 파일 전체를 덮어쓰지 않습니다.
+최상위 `concurrent`와 등록된 `[[runners]]`의 `limit`를 `2`로 맞추고 id·token·URL·이름·토큰 시각을 유지합니다. 템플릿의 `environment`와 `[runners.docker]` 설정을 그 항목에 적용합니다. 새 `[[runners]]`를 추가하거나 템플릿으로 파일 전체를 덮어쓰지 않습니다.
 
 ```bash
 sudo docker restart gitlab-runner

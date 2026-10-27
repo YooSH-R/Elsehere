@@ -253,6 +253,15 @@ namespace A305.EditorTools.Onboarding
                 bold,
                 PanelWidth
             );
+            Button guest = FindOrCreateSecondaryButton(
+                panel,
+                "GuestButton",
+                "게스트로 시작하기",
+                regular,
+                PanelWidth
+            );
+            // 이미 만든 화면에 새로 붙이면 맨 아래에 생기므로 Google 버튼 바로 아래로 옮긴다.
+            guest.transform.SetSiblingIndex(google.transform.GetSiblingIndex() + 1);
             Button devLogin = FindOrCreateSecondaryButton(
                 panel,
                 "DevLoginButton",
@@ -269,6 +278,7 @@ namespace A305.EditorTools.Onboarding
             );
 
             BuilderTools.SetReference(view, "googleButton", google);
+            BuilderTools.SetReference(view, "guestButton", guest);
             BuilderTools.SetReference(view, "devLoginButton", devLogin);
             BuilderTools.SetReference(view, "noticeText", notice);
             BuilderTools.RequireReferences(view);

@@ -29,6 +29,34 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task GuestLogin_StartsAgainAsNewUserAtLanguageStep()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Language, currentLanguage: null);
+
+            await flow.GuestLoginAsync();
+
+            Assert.That(api.GuestLoginRequested, Is.True);
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Language));
+        }
+
+        [Test]
+        public async Task GuestLoginFailed_StaysAtLoginWithMessage()
+        {
+            api.BootstrapError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
+            await flow.StartAsync();
+            api.GuestLoginError = new ApiException(
+                "INTERNAL_ERROR",
+                500,
+                "잠시 후 다시 시도해 주세요."
+            );
+
+            await flow.GuestLoginAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Login));
+            Assert.That(flow.ErrorMessage, Is.EqualTo("잠시 후 다시 시도해 주세요."));
+        }
+
+        [Test]
         public async Task StartWhileSignupRequired_ShowsSignupWithTerms()
         {
             api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
@@ -245,6 +273,7 @@ namespace A305.Onboarding.Tests
         {
             public BootstrapResponse Bootstrap { get; set; }
             public ApiException BootstrapError { get; set; }
+            public ApiException GuestLoginError { get; set; }
             public ApiException SignupError { get; set; }
             public ApiException ChooseLanguageError { get; set; }
 
@@ -313,6 +342,7 @@ namespace A305.Onboarding.Tests
                 };
 
             public bool ScenesRequested { get; private set; }
+            public bool GuestLoginRequested { get; private set; }
             public string NicknameCheckedFor { get; private set; }
             public SignupRequest SignupSent { get; private set; }
             public string LanguageChosen { get; private set; }
@@ -332,6 +362,14 @@ namespace A305.Onboarding.Tests
             public Task DevLoginAsync(long userId)
             {
                 return Task.CompletedTask;
+            }
+
+            public Task GuestLoginAsync()
+            {
+                GuestLoginRequested = true;
+                return GuestLoginError != null
+                    ? Task.FromException(GuestLoginError)
+                    : Task.CompletedTask;
             }
 
             public Task<SignupFormResponse> GetSignupFormAsync()

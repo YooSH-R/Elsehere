@@ -77,6 +77,16 @@ namespace A305.Onboarding
             }
         }
 
+        /// <summary>게스트로 시작한 뒤 접속 상태를 다시 읽는다. 가입 화면 없이 언어 선택부터 이어진다.</summary>
+        public async Task GuestLoginAsync()
+        {
+            await RunAsync(() => api.GuestLoginAsync());
+            if (ErrorMessage == null)
+            {
+                await StartAsync();
+            }
+        }
+
         public Task CheckNicknameAsync()
         {
             string nickname = SignupForm.Nickname;

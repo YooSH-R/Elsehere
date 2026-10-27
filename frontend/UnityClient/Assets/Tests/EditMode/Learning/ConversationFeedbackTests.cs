@@ -212,12 +212,81 @@ namespace A305.Learning.Tests
                 feedback.Reviews[0].Reference.Reason,
                 Is.EqualTo("주문할 때는 I'd like가 더 공손해요.")
             );
-            Assert.That(
-                feedback.Reviews[1].Reference.Korean,
-                Is.EqualTo("for here or to go: 매장에서 드실 건가요, 가져가실 건가요?")
-            );
+            // 회화 표현은 개선 표현의 뜻 자리에 섞지 않고 따로 둔다(FromServer_Idiom_IsKeptApartFromBetterText).
+            Assert.That(feedback.Reviews[1].Reference.Korean, Is.Empty);
             Assert.That(feedback.Reviews[2].Utterance, Is.EqualTo("Thank you!"));
             Assert.That(feedback.Reviews[2].Reference, Is.Null);
+        }
+
+        [Test]
+        public void FromServer_ReviewWithoutBetterText_KeepsAiReasonAsComment()
+        {
+            // 고칠 표현이 없어도 AI는 그 발화를 평가한 설명을 준다. 뜻이 분명하지 않은 발화도 여기에 해당한다.
+            var details = new List<DetailedFeedbackItem>
+            {
+                new DetailedFeedbackItem
+                {
+                    UserText = "That one, the thing.",
+                    BetterText = null,
+                    Reason =
+                        "어떤 것을 가리키는지 분명하지 않아요. 원하는 메뉴 이름을 말해 보세요.",
+                },
+            };
+
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                1,
+                new ServerFeedback(DoneSummary(), details, null)
+            );
+
+            Assert.That(feedback.Reviews[0].Reference, Is.Null);
+            Assert.That(
+                feedback.Reviews[0].Comment,
+                Is.EqualTo("어떤 것을 가리키는지 분명하지 않아요. 원하는 메뉴 이름을 말해 보세요.")
+            );
+        }
+
+        [Test]
+        public void FromServer_Idiom_IsKeptApartFromBetterText()
+        {
+            // 회화 표현은 고칠 표현이 없는 적절한 발화에도 붙을 수 있다.
+            var details = new List<DetailedFeedbackItem>
+            {
+                new DetailedFeedbackItem
+                {
+                    UserText = "Medium size, please.",
+                    BetterText = "A medium, please.",
+                    Reason = "사이즈만 말할 때는 관사와 함께 짧게 말해요.",
+                    Idiom = new IdiomData
+                    {
+                        Text = "for here or to go",
+                        MeaningKo = "매장에서 드실 건가요, 가져가실 건가요?",
+                    },
+                },
+                new DetailedFeedbackItem
+                {
+                    UserText = "I'm good, thanks.",
+                    BetterText = null,
+                    Reason = "괜찮다는 뜻이 자연스럽게 전달됐어요.",
+                    Idiom = new IdiomData { Text = "I'm good", MeaningKo = "괜찮아요, 됐어요" },
+                },
+            };
+
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                2,
+                new ServerFeedback(DoneSummary(), details, null)
+            );
+
+            Assert.That(feedback.Reviews[0].Reference.Korean, Is.Empty);
+            Assert.That(feedback.Reviews[0].Idiom.English, Is.EqualTo("for here or to go"));
+            Assert.That(
+                feedback.Reviews[0].Idiom.Korean,
+                Is.EqualTo("매장에서 드실 건가요, 가져가실 건가요?")
+            );
+            Assert.That(feedback.Reviews[1].Reference, Is.Null);
+            Assert.That(feedback.Reviews[1].Idiom.English, Is.EqualTo("I'm good"));
+            Assert.That(feedback.Reviews[1].Idiom.Korean, Is.EqualTo("괜찮아요, 됐어요"));
         }
 
         [Test]

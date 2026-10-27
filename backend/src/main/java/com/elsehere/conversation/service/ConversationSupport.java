@@ -2,8 +2,8 @@ package com.elsehere.conversation.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.WorkerLine;
-import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
+import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.ConversationDetailResponse;
@@ -49,6 +49,7 @@ class ConversationSupport {
   private final TurnRepository turnRepository;
   private final AiWorkerClient aiWorkerClient;
   private final NpcAudioStore npcAudioStore;
+  private final WorkerNpcs workerNpcs;
   private final JsonMapper jsonMapper;
 
   NpcContext npcByCode(String npcCode) {
@@ -168,28 +169,15 @@ class ConversationSupport {
     return json == null ? null : jsonMapper.readValue(json, STRING_LIST);
   }
 
-  // persona는 {"role", "facts", "scene"} JSON이다(시드 world.sql). NPC 식별자는 콘텐츠 코드(npcs.code)를 쓴다.
   private NpcContext toContext(Npc npc) {
-    Persona persona = jsonMapper.readValue(npc.getPersona(), Persona.class);
-    WorkerNpc workerNpc =
-        new WorkerNpc(
-            npc.getCode(),
-            npc.getName(),
-            persona.role(),
-            persona.facts() == null ? "" : persona.facts(),
-            persona.scene() == null ? "" : persona.scene(),
-            npc.getVoiceId(),
-            1.0);
     return new NpcContext(
         npc.getId(),
         new NpcSummaryResponse(npc.getCode(), npc.getName(), npc.getRoleLabel()),
         npc.getScene().getCode(),
         npc.getScene().isOpen(),
-        workerNpc,
+        workerNpcs.of(npc),
         npc.getVoiceId(),
         npc.getApproachLine(),
         npc.getApproachAudioKey());
   }
-
-  private record Persona(String role, String facts, String scene) {}
 }

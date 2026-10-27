@@ -2,6 +2,7 @@ package com.elsehere.conversation.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
@@ -22,6 +23,7 @@ import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.service.FeedbackService;
+import com.elsehere.memory.service.MemoryService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -59,6 +61,7 @@ public class ConversationService {
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final FeedbackService feedbackService;
+  private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
 
@@ -104,6 +107,8 @@ public class ConversationService {
   public EndConversationResponse end(
       Long userId, Long conversationId, EndConversationRequest request) {
     EndConversationResponse ended = endConversation(userId, conversationId);
+    // 기억 카드 갱신은 따로 실행되어 피드백 생성과 함께 진행된다. 실패해도 종료·피드백에 영향이 없다.
+    memoryService.updateAfterConversation(userId, conversationId, request.requestId());
     FeedbackResponse feedback =
         feedbackService.feedbackOnEnd(
             userId, conversationId, request.requestId(), request.skipFeedback());
@@ -158,7 +163,8 @@ public class ConversationService {
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
-    return new StartContext(npc, selectedLevel(userId));
+    return new StartContext(
+        npc, selectedLevel(userId), memoryService.memoryFor(userId, npc.npcId()));
   }
 
   // 대화 난이도는 지금 학습 언어에서 고른 난이도다. 설정 전이면 기본값(초급)이다.
@@ -186,6 +192,7 @@ public class ConversationService {
         aiWorkerClient.reply(
             trace,
             npc.workerNpc(),
+            context.memory(),
             List.of(),
             GREETING_TEXT,
             GREETING_INSTRUCTION,
@@ -202,7 +209,10 @@ public class ConversationService {
         reply.text(), reply.suggestWords(), support.saveNpcAudio(trace, reply.audioFullId()));
   }
 
-  private record StartContext(NpcContext npc, int level) {}
+  /**
+   * @param memory 이 NPC와의 기억. 처음 만나면 null
+   */
+  private record StartContext(NpcContext npc, int level, WorkerMemory memory) {}
 
   private record Opening(String text, List<String> suggestWords, String npcAudioKey) {}
 }

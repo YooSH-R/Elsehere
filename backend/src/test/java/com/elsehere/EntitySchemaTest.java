@@ -54,6 +54,7 @@ class EntitySchemaTest {
             "turns",
             "ai_requests",
             "conversation_feedback",
-            "turn_feedback");
+            "turn_feedback",
+            "user_npc_relations");
   }
 }

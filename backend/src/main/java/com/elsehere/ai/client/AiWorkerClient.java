@@ -43,6 +43,7 @@ public class AiWorkerClient {
   private static final Duration TTS_TIMEOUT = Duration.ofSeconds(30);
   // 워커의 피드백 전체 상한(FEEDBACK_TIMEOUT_S, 기본 60초)보다 조금 길게 기다린다.
   private static final Duration FEEDBACK_TIMEOUT = Duration.ofSeconds(75);
+  private static final Duration MEMORY_TIMEOUT = Duration.ofSeconds(45);
 
   private final HttpClient httpClient =
       HttpClient.newBuilder()
@@ -82,11 +83,12 @@ public class AiWorkerClient {
   public NpcReply reply(
       WorkerTrace trace,
       WorkerNpc npc,
+      WorkerMemory memory,
       List<WorkerLine> history,
       String text,
       String instruction,
       int level) {
-    ReplyBody body = new ReplyBody(npc, history, text, instruction, true, level, true, "");
+    ReplyBody body = new ReplyBody(npc, memory, history, text, instruction, true, level, true, "");
     HttpResponse<Stream<String>> response =
         send(
             jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
@@ -135,6 +137,41 @@ public class AiWorkerClient {
   }
 
   /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
+  /**
+   * NPC 기억 카드 갱신. 이번 대화와 이전 카드로 새 카드 전체를 만든다. 실패(429·502·503)하면 오류로 던지며, 호출한 쪽은 이전 카드를 그대로 둔다.
+   *
+   * @param outcome 대화 결과 한 줄(영어)
+   * @param history 대화 전체(최대 200줄)
+   * @param previousCard 이전 카드. 없으면 null
+   */
+  public MemoryCardResult memoryCard(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      String outcome,
+      List<WorkerLine> history,
+      Object previousCard) {
+    HttpRequest request =
+        jsonRequest(
+            "/v1/memory",
+            trace,
+            MEMORY_TIMEOUT,
+            new MemoryBody(npc, outcome, history, previousCard));
+    HttpResponse<String> response = send(request, HttpResponse.BodyHandlers.ofString());
+    if (response.statusCode() != 200) {
+      throw toError(response.statusCode(), response.body());
+    }
+    try {
+      JsonNode card = jsonMapper.readTree(response.body()).path("memory_card");
+      if (!card.isObject()) {
+        throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+      }
+      MemoryEnvelope envelope = jsonMapper.readValue(response.body(), MemoryEnvelope.class);
+      return new MemoryCardResult(jsonMapper.writeValueAsString(card), usageOf(envelope.usage()));
+    } catch (JacksonException exception) {
+      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
+    }
+  }
+
   public WorkerFeedback feedback(WorkerTrace trace, FeedbackInput input) {
     HttpResponse<String> response =
         send(
@@ -318,6 +355,7 @@ public class AiWorkerClient {
 
   record ReplyBody(
       WorkerNpc npc,
+      WorkerMemory memory,
       List<WorkerLine> history,
       String text,
       String instruction,
@@ -327,6 +365,10 @@ public class AiWorkerClient {
       String goal) {}
 
   record TtsBody(String text, String voice, double speed) {}
+
+  record MemoryBody(WorkerNpc npc, String outcome, List<WorkerLine> history, Object memoryCard) {}
+
+  record MemoryEnvelope(List<WorkerUsage> usage) {}
 
   record DoneEvent(String text, String audioFullId, List<WorkerUsage> usage) {}
 

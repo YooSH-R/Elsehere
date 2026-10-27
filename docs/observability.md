@@ -128,14 +128,7 @@ ssh -i "<PEM 경로>" -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -
 
 ## 장애 감지와 발송 승인
 
-`blackbox.yml`은 유효한 TLS와 HTTP 200을 요구하며 리다이렉트를 따라가지 않습니다. [내부 HTTPS 대상 파일](../infra/monitoring/targets/https.json)에 등록한 실제 앱 health 주소를 검사합니다.
-
-| 검사 | 현재 대상 | 확인하는 범위 |
-| --- | --- | --- |
-| 서버 내부 Blackbox | `https://k15a305.p.ssafy.io/dev/api/health` | 유지 중인 기존 경로·SSAFY 도메인의 TLS |
-| 독립 Grafana Cloud | `https://dev.elsehere.kr/api/health` | 현재 개발 주소·`elsehere.kr` 도메인의 TLS |
-
-기존 경로의 성공만으로 새 도메인의 인증서·라우팅을 확인했다고 보지 않습니다. 내부 대상을 새 주소로 통일하려면 대상 파일과 서버 실행 설정을 함께 변경하고 대시보드·경보를 다시 확인합니다. 운영 앱을 배포한 뒤에는 실제 운영 주소도 검사 대상으로 추가합니다.
+`blackbox.yml`은 유효한 TLS와 HTTP 200을 요구하며 리다이렉트를 따라가지 않습니다. [내부 HTTPS 대상 파일](../infra/monitoring/targets/https.json)에 등록한 실제 앱 health 주소를 검사합니다. 개발 대상은 외부 감시와 같은 `https://dev.elsehere.kr/api/health`입니다. 운영 앱을 배포한 뒤에는 실제 운영 주소도 검사 대상으로 추가합니다.
 
 내부 검사기는 앱과 같은 서버에서 공개 주소로 접속합니다. Nginx·앱·TLS 오류는 감지하지만 서버 전체가 멈추거나 서버의 외부 연결이 끊어지면 이 구성 자체도 알림을 보낼 수 없습니다. 전체 서버 장애는 [독립 외부 감시](external-monitoring.md)로 확인합니다.
 

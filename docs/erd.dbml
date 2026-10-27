@@ -1,7 +1,7 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3.3 (MVP 기준) · PostgreSQL 16 + pgvector
+  ELSEHERE ERD v3.4 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
   모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
@@ -247,16 +247,18 @@ Table conversation_feedback [headercolor: #2E6B4F] {
   summary text [note: '대화 요약']
   reviews jsonb [note: '{ good: [잘했어요], improve: [아쉬워요], suggestion: { userText, betterText } }']
   model varchar(50)
+  error_code varchar(40) [note: 'FAILED·SKIPPED 이유 · 워커 problem 코드(AI_TIMEOUT, NO_USABLE_USER_TURNS 등) 또는 API 오류 코드 · 사용자가 건너뛰면 NULL']
+  result jsonb [note: '워커가 돌려준 검증된 피드백 결과 원본 · 평가 근거 보관']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  Note: '짧은 피드백'
+  Note: '짧은 피드백 · 대화 종료(CONV-08) 때 상세 평가(turn_feedback)와 함께 만든다'
 }
 
 Table turn_feedback [headercolor: #2E6B4F] {
   id bigint [pk, increment]
   turn_id bigint [not null, unique, note: 'USER 턴 1:1']
-  better_text text [not null, note: '더 자연스러운 표현']
+  better_text text [note: '더 자연스러운 표현 · 고칠 것이 없는 적절한 발화는 NULL']
   reason text [not null, note: '이유 (한국어)']
   idiom text [note: '숙어 추천']
   idiom_meaning_ko text [note: '숙어 뜻']
@@ -272,8 +274,10 @@ Table user_npc_relations [headercolor: #C8642A] {
   user_id bigint [not null]
   npc_id bigint [not null]
   affinity smallint [not null, default: 0, note: '0~5']
-  talk_count int [not null, default: 0]
+  talk_count int [not null, default: 0, note: '사용자 발화가 있었던 대화를 끝낸 횟수 · NPC 대답 요청의 memory.visits']
   last_talked_at timestamptz
+  memory_card jsonb [note: 'NPC 기억 카드 { name, claims, events, attitude, struggled } · AI 워커 /v1/memory가 만든 카드로 통째로 교체']
+  memory_conversation_id bigint [note: '기억에 마지막으로 반영한 대화 · 같은 대화의 종료를 두 번 반영하지 않음']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
@@ -281,7 +285,7 @@ Table user_npc_relations [headercolor: #C8642A] {
     (user_id, npc_id) [pk]
   }
 
-  Note: '호감도'
+  Note: '호감도 · 방문 수 · NPC 기억 카드 (docs/api/npc-memory-integration.md)'
 }
 
 Table affinity_logs [headercolor: #C8642A] {
@@ -313,7 +317,7 @@ Table npc_memories [headercolor: #C8642A] {
     (user_id, npc_id) [note: '부분 인덱스: WHERE status = \'ACTIVE\'']
   }
 
-  Note: 'NPC 기억'
+  Note: 'NPC 기억(사실별). MVP는 user_npc_relations.memory_card의 카드 방식을 쓰므로 이 테이블은 만들지 않음 · 기억이 많아져 검색이 필요해지면 다시 검토'
 }
 
 // ===== 미션 =====
@@ -369,7 +373,7 @@ Table ai_requests [headercolor: #8A5A44] {
   request_id uuid [not null, note: '클라이언트 요청 ID · 재전송 시 이전 결과 반환, 한 번만 차감']
   user_id bigint [not null]
   conversation_id bigint
-  kind varchar(20) [not null, note: 'AI 워커 기능 단위 · STT · GUARD · JUDGE · NPC · TTS · HINT · MEANING · FEEDBACK (새 호출 종류가 생기면 추가)']
+  kind varchar(20) [not null, note: 'AI 워커 기능 단위 · STT · GUARD · JUDGE · NPC · TTS · HINT · MEANING · FEEDBACK · MEMORY (새 호출 종류가 생기면 추가)']
   model varchar(50) [note: '호출한 모델']
   status varchar(20) [not null, note: 'RESERVED · OK · FAILED · BLOCKED']
   input_tokens int [not null, default: 0, note: '공급자가 집계한 입력 토큰']

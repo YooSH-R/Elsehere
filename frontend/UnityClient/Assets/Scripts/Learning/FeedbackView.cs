@@ -120,7 +120,10 @@ namespace A305.Learning
             {
                 text.AppendLine("다음 대화에서 활용할 표현");
                 text.AppendLine($"<b>{expression.English}</b>");
-                text.AppendLine(expression.Korean);
+                // 서버 피드백의 개선 표현은 뜻이 없어 대신 권하는 이유(내가 한 말)를 보여 준다.
+                text.AppendLine(
+                    string.IsNullOrEmpty(expression.Korean) ? expression.Reason : expression.Korean
+                );
             }
 
             text.AppendLine();

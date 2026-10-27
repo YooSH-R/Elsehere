@@ -1,6 +1,6 @@
 # MVP API 명세 초안
 
-MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.3](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
+MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.4](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
 - MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능(설정, 프로필 수정, NPC 호감도 조회)도 API를 만들지 않았습니다.
@@ -221,7 +221,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | WORLD-04 | `GET /api/v1/vocab/{vocabId}/pronunciation` | 미리 만든 사물 단어 발음 음성 | - | 08 |
 | WORLD-05 | `PUT /api/v1/me/last-scene` | 현재 장소 저장(재접속 위치) | - | 09, 14 |
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
-| CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | `[미정]` | 14 |
+| CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | LLM, TTS(말걸기 대사가 없는 NPC) | 14 |
 | CONV-02 | `POST /api/v1/speech/transcriptions` | 녹음 전사(STT) | STT | 11, 15 |
 | CONV-03 | `POST /api/v1/conversations/{conversationId}/turns` | 발화 전송, NPC 응답과 추천 단어 | LLM, TTS | 15 |
 | CONV-04 | `POST /api/v1/turns/{turnId}/meaning` | NPC 대사 한국어 뜻 | LLM | 15 |
@@ -234,7 +234,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | CONV-11 | `GET /api/v1/conversations/active` | 진행 중인 대화 조회 | - | 15 |
 | FB-01 | `GET /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백·상세 평가 조회 | - | 16, 17 |
 | FB-02 | `POST /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백 다시 만들기 | LLM | 16 |
-| FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 만들기 | LLM | 16, 17 |
+| FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 조회(종료 때 만든 평가) | - | 16, 17 |
 | FB-04 | `POST /api/v1/turn-feedback/{turnFeedbackId}/model-speech` | 모범 음성 | TTS | 17 |
 | VOCAB-01 | `GET /api/v1/vocab` | 단어장 목록·개수 | - | 18 |
 | VOCAB-02 | `POST /api/v1/vocab` | 단어 저장 | - | 08, 15, 16, 17 |
@@ -653,7 +653,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 14의 [E 대화하기]는 `initiatedBy: USER`, 튜토리얼 뒤 거리 행인의 말걸기에 응답하면 `initiatedBy: NPC`입니다. 행인 말걸기를 거절하거나 무시하면 서버를 호출하지 않습니다.
 - `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다.
-- `initiatedBy: USER`일 때 직원의 첫 인사를 미리 작성할지 AI로 만들지는 `[미정]`입니다.
+- 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
+- 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
 - `runningMissions`는 이 NPC가 대상인 진행 중인 미션이며 상단의 "미션 · …" 표시에 씁니다.
 - `levelApplied`는 사용자의 `selected_level`입니다.
 - 1.4의 규칙대로 한 턴과 피드백에 쓸 토큰이 남아 있어야 시작하며, 피드백용 토큰을 예약합니다. 부족하면 `AI_QUOTA_EXHAUSTED`입니다.
@@ -877,7 +878,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - NPC가 대화를 끝낸 경우(`ENDED_BY_NPC`)에도 피드백을 받으려면 호출합니다. 이때 상태는 바꾸지 않고 피드백만 만듭니다.
 - `skipFeedback: true`면 피드백을 만들지 않고 `feedback.status`를 `SKIPPED`로 기록하며 예약한 토큰을 풉니다. 와이어프레임에는 피드백 건너뛰기 버튼이 없으며 배치 여부는 `[미정]`입니다.
 - 피드백을 만들 수 없으면(생성 실패) 대화는 정상 종료하고 `feedback.status: FAILED`, `feedback.errorCode`에 원인 코드를 담습니다. 화면 16은 이때 가짜 피드백 대신 [다시 만들기]와 [대화 기록 보기]를 보여줍니다(FB-02, CONV-10).
-- 사용자 발화가 없는 대화의 피드백 생성 여부는 `[미정]`입니다.
+- 사용자 발화가 없는 대화는 AI를 호출하지 않고 `feedback.status: SKIPPED`, `errorCode: NO_USABLE_USER_TURNS`로 기록합니다. AI 워커가 평가할 근거가 부족하다고 판단한 경우도 워커가 준 이유 코드로 `SKIPPED`입니다.
+- 응답은 피드백 생성을 기다립니다(AI 워커 상한 60초). 짧은 피드백과 발화별 상세 평가(FB-03)를 AI 워커 `/v1/feedback` 한 번으로 함께 만들어 저장합니다([피드백 연동](feedback-integration.md)).
+- 같은 대화를 다시 종료하면 피드백을 새로 만들지 않고 저장된 피드백을 돌려줍니다.
+- 사용자가 말한 대화를 끝내면 NPC 기억 카드를 따로 갱신합니다. 응답은 카드 갱신을 기다리지 않으며, 갱신에 실패하면 이전 카드를 유지합니다([기억 연동](npc-memory-integration.md)).
 
 #### CONV-09·10 지난 대화
 
@@ -933,10 +937,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- 화면 16의 [상세 보기]에서 처음 호출하고 화면 17을 그립니다. 사용자 턴마다 한 항목이며, 이미 만들었으면 다시 만들지 않고 저장된 평가를 돌려줍니다.
+- 화면 16의 [상세 보기]에서 호출하고 화면 17을 그립니다. 대화 종료(CONV-08) 때 짧은 피드백과 함께 만든 평가를 돌려주며 AI를 다시 호출하지 않습니다. 피드백이 `FAILED`였다면 FB-02로 다시 만들 때 함께 만듭니다.
+- 사용자 턴마다 한 항목입니다. 고칠 것이 없는 적절한 발화는 `betterText`가 `null`입니다.
 - STT 오인식을 발음 오류로 평가하지 않습니다. 평가 기준은 사용자가 보낸 `text`입니다.
 - `idiom.text`는 `turn_feedback.idiom`, `idiom.meaningKo`는 `turn_feedback.idiom_meaning_ko`입니다.
-- 상세 평가를 대화 종료 때 함께 만들지 상세 보기를 누를 때 만들지는 `[미정]`이며, 초안은 상세 보기를 누를 때 만듭니다.
 
 #### FB-04 `POST /api/v1/turn-feedback/{turnFeedbackId}/model-speech`
 
@@ -1055,7 +1059,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 
 ## 5. ERD와의 관계
 
-### 5.1 이 명세에 맞춰 ERD v3.1~v3.3에 반영한 사항
+### 5.1 이 명세에 맞춰 ERD v3.1~v3.4에 반영한 사항
 
 | 항목 | 관련 API | ERD 변경 |
 | --- | --- | --- |
@@ -1080,6 +1084,8 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 닉네임 중복 불가 (v3.3) | AUTH-04, 06 | `users.nickname`에 unique 제약을 추가했습니다. 확인 API를 거쳐도 동시에 가입하면 같은 닉네임이 들어갈 수 있어 DB 제약으로 막습니다. |
 | 미션 코드 (v3.3) | MIS-01 | `missions.code`를 추가했습니다. 시드를 반복 실행할 때 같은 미션을 찾는 고정 키이며, Unity 미션 콘텐츠의 키와 같습니다. |
 | 호텔 개방 (v3.3) | WORLD-01·02, MIS-01 | 기능명세서 F-21·F-22에 맞춰 호텔을 열고(`scenes.is_open = true`) 호텔 직원 NPC(`HOTEL_STAFF`)와 호텔 미션을 시드에 추가했습니다. 컬럼 변경은 없습니다. |
+| 피드백 실패 이유·결과 원본 (v3.4) | CONV-08, FB-01~03 | `conversation_feedback.error_code`(실패·건너뜀 이유)와 `result`(AI 워커가 돌려준 검증된 결과 원본)를 추가했습니다. `turn_feedback.better_text`는 적절한 발화에 고칠 표현이 없어 NULL을 허용합니다. |
+| NPC 기억 카드 (v3.4) | CONV-01, 03, 08 | `user_npc_relations.memory_card`(기억 카드 JSON)와 `memory_conversation_id`(마지막으로 반영한 대화)를 추가하고 `ai_requests.kind`에 `MEMORY`를 더했습니다. 사실별 `npc_memories`는 만들지 않습니다. |
 
 ### 5.2 아직 정할 사항
 
@@ -1102,13 +1108,11 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 전사 직접 수정 | CONV-02, 03 | 다시 녹음만(초안) / 수정 허용. 요구사항명세서 REQ-12는 텍스트 수정을 포함합니다. |
 | 내 발화 다시 듣기 | CONV-06 | 내가 보낸 문장을 TTS로 들려줄지 |
 | 대화 턴 통신 방식 | CONV-03 | REST(초안) / 스트리밍 |
-| 직원 첫 인사 생성 방식 | CONV-01 | 미리 작성 / AI 생성 |
+| 직원 첫 인사 생성 방식 | CONV-01 | 미리 작성 / AI 생성(현재 구현) |
 | NPC 음성 응답 방식 | CONV-03, 06 | 파일 주소(초안) / 본문 포함 |
 | 음성 보관 동의·기간 | CONV-02, AUTH-04 | 보관 안 함 / 동의 시 기간 한정 보관 |
-| 상세 평가 생성 시점 | CONV-08, FB-03 | 종료 시 / 상세 보기 선택 시(초안) |
 | 피드백 건너뛰기 버튼 | CONV-08 | 배치 여부 |
-| 사용자 발화 없는 대화의 피드백 | CONV-08 | 만들지 않음 / 만듦 |
-| 대화 중 새로고침 | CONV-11 | 이어서 진행 / 종료 처리 |
+| 대화 중 새로고침 | CONV-11 | 이어서 진행 / 종료 처리. 현재 Unity는 대화를 시작할 때 `CONVERSATION_ALREADY_ACTIVE`를 받으면 남은 대화를 피드백 없이 끝내고(`skipFeedback: true`) 새로 시작합니다. |
 | NPC 대사 저장 버튼 | VOCAB-02 | 화면 15에 배치 여부 |
 | 미션 완료 행동 | MIS-01 | 대화만(초안) / 장소 방문·단어 저장 등 추가 |
 | 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 채점 기준, 문항 단위 건너뛰기 여부. MVP는 예시 문항·초급 고정으로 흐름만 두고 [진행하기]를 막아 둡니다. |

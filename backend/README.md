@@ -59,6 +59,8 @@ com.elsehere
 - 테스트 JVM 안에서는 PostgreSQL 서버 하나를 공유하고 Spring 테스트 환경마다 별도 DB를 만듭니다. 각 환경의 테이블 생성·삭제와 데이터는 서로 격리되며 컨테이너는 JVM 종료 후 Testcontainers가 정리합니다. 여러 환경이 DB 연결을 미리 점유하지 않도록 테스트용 Hikari 풀의 최소 유휴 연결은 `0`으로 둡니다. 로컬 앱이나 개발·운영 DB를 테스트에 사용하지 않습니다.
 - 로컬 실행(`bootRun`)은 PostgreSQL이 필요합니다. 접속 정보는 환경변수 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`로 지정하며, 없으면 `jdbc:postgresql://localhost:5432/elsehere`, 사용자 `elsehere`를 씁니다. 스키마 생성 방식은 `JPA_DDL_AUTO`로 지정하며 기본값은 `update`입니다.
 - 로컬에서는 환경변수 대신 `backend/.env`나 저장소 루트 `.env`에 `GOOGLE_CLIENT_ID=값`처럼 한 줄에 하나씩 적어도 됩니다. 값에 따옴표나 `export`를 붙이지 않으며, 같은 이름의 환경변수가 있으면 환경변수가 우선합니다. `.env`는 커밋하지 않습니다. 서버 컨테이너에는 `.env`가 없으므로 값은 Compose의 `environment`로 넘깁니다.
+- NPC 대화·피드백·기억 카드는 AI 워커([계약](../docs/api/ai-worker.md))를 부릅니다. 워커 주소는 `AI_WORKER_BASE_URL`(기본 `http://localhost:8020`), 내부 토큰은 `AI_WORKER_TOKEN`으로 지정하며 워커의 `AI_WORKER_TOKEN`과 같은 값이어야 합니다. 토큰은 비밀값이므로 저장소에 넣지 않습니다.
+- NPC 턴 음성(WAV)은 `NPC_AUDIO_DIR`(기본 `./data/npc-audio`) 폴더에 저장합니다. 컨테이너로 실행하면 재시작 뒤에도 남도록 컨테이너 밖 볼륨으로 연결합니다.
 - IDE에서 프로젝트를 열 때는 `backend/` 폴더를 Gradle 프로젝트로 엽니다.
 
 ## 스키마 관리
@@ -67,6 +69,7 @@ com.elsehere
 - `update`는 없는 테이블·컬럼·인덱스를 추가할 뿐, 기존 컬럼의 타입과 제약은 바꾸지 않습니다. enum 컬럼에는 허용 값 CHECK 제약이 생성되므로, enum에 값을 추가하거나 컬럼 정의를 바꾸면 로컬 DB에서 해당 테이블을 지우고 다시 만들어야 반영됩니다.
 - ERD 상단에 "DDL에서 직접 만들 것"으로 적은 항목(pgvector 확장, 부분 인덱스)은 JPA가 만들지 않습니다. 해당 기능을 구현할 때 생성 방법을 정합니다.
 - `EntitySchemaTest`가 모든 엔티티의 DDL이 PostgreSQL에서 오류 없이 실행되는지 확인합니다.
+- 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커를 Mock으로 바꾸고 실제 DB와 함께 실행합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
 
 ## 시드 데이터
 

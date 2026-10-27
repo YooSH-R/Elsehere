@@ -102,7 +102,8 @@ namespace A305.Dialogue
             }
 
             string requestId = utterance == failedText ? failedRequestId : NewRequestId();
-            bool isVoice = utterance == lastTranscript;
+            // 보낼 문장은 앞뒤 공백을 지우므로 전사 결과도 공백을 지우고 비교한다. 서버에는 전사 원문을 그대로 보낸다.
+            bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
             failedText = null;
 
             await RunAsync(
@@ -210,17 +211,24 @@ namespace A305.Dialogue
             try
             {
                 EndResult end = await api.EndAsync(conversationId, NewRequestId(), false);
+                FeedbackData summary = end?.Feedback;
                 IReadOnlyList<DetailedFeedbackItem> details = null;
-                if (end.Feedback?.Status == FeedbackDone)
+                if (summary?.Status == FeedbackDone)
                 {
                     details = await DetailsOrNullAsync(conversationId);
                 }
 
-                return new ServerFeedback(end.Feedback, details, null);
+                return new ServerFeedback(summary, details, null);
             }
             catch (ApiException exception)
             {
                 return new ServerFeedback(null, null, exception.Message);
+            }
+            catch (Exception exception)
+            {
+                // 응답을 읽지 못해도 피드백 대기에서 풀려야 대화창을 닫을 수 있다.
+                Debug.LogException(exception);
+                return new ServerFeedback(null, null, "피드백을 받는 중 문제가 생겼어요.");
             }
             finally
             {
@@ -289,6 +297,11 @@ namespace A305.Dialogue
             }
             catch (ApiException)
             {
+                return null;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
                 return null;
             }
         }

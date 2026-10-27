@@ -32,6 +32,46 @@ def create_http_fixture(directory):
         entry.chmod(0o700 if entry.is_dir() else 0o600)
 
 
+def check_backend_runtime(docker, compose, environment):
+    docker(
+        *compose,
+        "exec",
+        "--no-TTY",
+        "backend",
+        "sh",
+        "-ec",
+        'curl --fail --silent --show-error "$AI_WORKER_URL/health" >/dev/null; '
+        'probe=$(mktemp "$NPC_AUDIO_DIR/.ci-write-check.XXXXXX"); '
+        'printf audio-storage-check > "$probe"; rm "$probe"',
+        env=environment,
+    )
+    container_id = docker(
+        *compose,
+        "ps",
+        "--quiet",
+        "backend",
+        env=environment,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    mounts = json.loads(
+        docker(
+            "inspect",
+            "--format",
+            "{{json .Mounts}}",
+            container_id,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+    if not any(
+        mount["Type"] == "volume" and mount["Destination"] == "/app/data/npc-audio"
+        for mount in mounts
+    ):
+        raise AssertionError("NPC audio must use a writable persistent volume.")
+    print("Backend: internal AI worker health and writable NPC audio volume passed.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project", default=f"a305-check-{uuid.uuid4().hex[:8]}")
@@ -115,6 +155,7 @@ def main():
             "180",
             env=environment,
         )
+        check_backend_runtime(docker, compose, environment)
         docker(
             *compose,
             "exec",

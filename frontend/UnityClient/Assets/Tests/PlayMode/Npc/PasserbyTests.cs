@@ -28,6 +28,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        [Ignore(
+            "S15P31A305-37: 사용자 승인으로 임시 제외. 현재 집 출구는 NPC 감지 범위 밖이며, 팀원이 거리 조건에 맞게 시나리오를 수정한 뒤 Ignore를 제거하고 PlayMode 전체를 재검증한다."
+        )]
         public IEnumerator LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline()
         {
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);

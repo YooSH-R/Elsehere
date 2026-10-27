@@ -51,6 +51,35 @@ function Invoke-Unity {
     }
 }
 
+function Read-UnityTestResults {
+    param([string] $ResultPath, [string] $TestPlatform)
+
+    if (-not (Test-Path -LiteralPath $ResultPath)) {
+        throw "Unity produced no $TestPlatform test result."
+    }
+    [xml] $results = Get-Content -LiteralPath $ResultPath -Raw
+    $testRun = $results.'test-run'
+    $skippedTests = @($results.SelectNodes('//test-case[@result="Skipped"]'))
+    # S15P31A305-37: the user approved only this temporary exclusion pending the team fix.
+    $approvedTemporarySkip = (
+        $TestPlatform -eq 'PlayMode' -and
+        [int] $testRun.skipped -eq 1 -and
+        $skippedTests.Count -eq 1 -and
+        $skippedTests[0].fullname -eq 'A305.Npc.PlayModeTests.PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline'
+    )
+    $acceptedResult = (
+        $testRun.result -eq 'Passed' -or
+        ($testRun.result -eq 'Skipped:Ignored' -and $approvedTemporarySkip)
+    )
+    if (-not $testRun -or -not $acceptedResult -or
+        [int] $testRun.failed -ne 0 -or [int] $testRun.passed -lt 1 -or
+        [int] $testRun.skipped -ne $skippedTests.Count -or
+        ($skippedTests.Count -gt 0 -and -not $approvedTemporarySkip)) {
+        throw "Unity $TestPlatform tests did not pass. See the artifact XML."
+    }
+    return $testRun
+}
+
 if ($Action -eq 'test') {
     foreach ($testPlatform in @('EditMode', 'PlayMode')) {
         $resultPath = Join-Path $runPath "$testPlatform.xml"
@@ -59,17 +88,11 @@ if ($Action -eq 'test') {
                 '-runTests', '-testPlatform', $testPlatform,
                 '-testResults', ('"{0}"' -f $resultPath)
             )
-            if (-not (Test-Path -LiteralPath $resultPath)) {
-                throw "Unity produced no $testPlatform test result."
+            $testRun = Read-UnityTestResults -ResultPath $resultPath -TestPlatform $testPlatform
+            Write-Host "$testPlatform results: passed=$($testRun.passed), skipped=$($testRun.skipped), failed=$($testRun.failed)"
+            if ([int] $testRun.skipped -gt 0) {
+                Write-Warning 'S15P31A305-37: the approved tutorial PlayMode test is temporarily excluded; restore it after the team fix.'
             }
-
-            [xml] $results = Get-Content -LiteralPath $resultPath -Raw
-            $testRun = $results.'test-run'
-            if (-not $testRun -or $testRun.result -ne 'Passed' -or
-                [int] $testRun.failed -ne 0 -or [int] $testRun.passed -lt 1) {
-                throw "Unity $testPlatform tests did not pass. See the artifact XML."
-            }
-            Write-Host "$testPlatform passed: $($testRun.passed) tests."
         }
         finally {
             if (Test-Path -LiteralPath $resultPath) {

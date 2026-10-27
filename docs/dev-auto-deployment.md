@@ -21,6 +21,7 @@
 - 모니터링 추가 Compose: `/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml`.
 - `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다.
 - 웹 로그 설정의 읽기 전용 마운트, 백엔드 내부 관리 주소와 비공개 포트를 유지합니다.
+- NPC 음성은 백엔드의 쓰기 가능한 `/app/data/npc-audio`에 저장하고 환경별 `npc-audio-data` 볼륨으로 유지합니다. 백엔드의 AI 내부 주소는 `AI_WORKER_URL=http://ai-worker:8020`으로 연결합니다.
 - DB 컨테이너·볼륨은 자동 교체하지 않습니다. DB 실행 설정이 달라지면 별도 마이그레이션 절차를 요구합니다.
 - 호스트 Nginx·TLS·운영 확인용 서비스·모니터링 스택은 배포 대상에 포함하지 않습니다. 새 WebGL HTTPS 경로의 브라우저 검증은 HTTPS 운영 작업에서 진행합니다.
 

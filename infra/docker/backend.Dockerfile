@@ -3,6 +3,7 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache curl \
     && addgroup -S app && adduser -S -G app app
 WORKDIR /app
+RUN mkdir -p /app/data/npc-audio && chown app:app /app/data/npc-audio
 
 # Consume the JAR produced by the successful backend verification job.
 COPY --chown=app:app backend/build/libs/app.jar /app/app.jar

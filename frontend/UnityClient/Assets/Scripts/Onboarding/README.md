@@ -1,6 +1,6 @@
 # Onboarding 모듈
 
-접속 직후의 입구 화면(화면 01~05)입니다. 로그인, 가입 정보 입력, 배울 언어 선택, 레벨 테스트, NPC 대화 난이도 설정을 거쳐 튜토리얼(`HomeScene`)로 보내고, 초기 설정을 마친 사용자는 마을(`TownScene`)로 보냅니다. 배포용 씬 `EntryScene`이 Scene List의 첫 씬입니다.
+접속 직후의 입구 화면(화면 01~05)입니다. 로그인, 가입 정보 입력, 배울 언어 선택, 레벨 테스트, NPC 대화 난이도 설정을 거쳐 튜토리얼(`HomeScene`)로 보내고, 초기 설정을 마친 사용자는 마지막 장소(없으면 마을 `TownScene`)로 보냅니다. 배포용 씬 `EntryScene`이 Scene List의 첫 씬입니다.
 
 서버 연동이 있는 게임 전용 기능입니다. 진행 판단은 일반 C# 클래스에 두고, 패널은 입력 전달과 표시만 맡습니다.
 
@@ -11,7 +11,7 @@
 | `OnboardingFlow` | 접속 상태로 첫 화면을 정하고, 화면에 필요한 데이터를 불러 둔 뒤 다음 화면으로 넘깁니다. 요청이 실패하면 화면을 그대로 두고 서버 메시지를 담으며, 로그인이 풀렸으면 로그인 화면으로 돌아갑니다. |
 | `EntryRouter` | BOOT-01과 ONB-08의 마지막 레벨 테스트 상태로 화면을 정합니다. |
 | `SignupForm`, `NicknameRule` | 가입 정보 입력 상태와 닉네임 규칙. 서버(AUTH-04)와 같은 기준으로 입력 중에 바로 안내합니다. |
-| `IOnboardingApi`, `OnboardingApi` | BOOT-01, AUTH-01·03·04·06, ONB-01·02·07·08·09와 개발용 로그인의 경로와 본문 |
+| `IOnboardingApi`, `OnboardingApi` | BOOT-01, AUTH-01·03·04·06, ONB-01·02·07·08·09, WORLD-01과 개발용 로그인의 경로와 본문 |
 | `OnboardingScreen` | 패널 입력을 `OnboardingFlow`에 전달하고 결과 화면을 보여 줍니다. 튜토리얼·마을 단계가 되면 씬을 바꿉니다. |
 | `LoginPanelView` 외 패널 | 화면 01~05. 언어·난이도 카드와 약관 줄은 템플릿을 복제합니다(`TemplateClones`). |
 | `OnboardingSettings` | 튜토리얼·마을 씬 이름과 개발용 로그인 사용자(`Data/Onboarding/OnboardingSettings.asset`) |
@@ -36,7 +36,8 @@
 | `LEVEL` | ONB-08의 마지막 테스트가 없거나 진행 중이면 화면 04, 끝났으면 화면 05입니다. |
 | 화면 04 | MVP는 [레벨 테스트 진행하기]를 막아 두고 [건너뛰기](ONB-07)만 씁니다. |
 | 화면 05 | 고른 적이 없으면 고를 수 있는 첫 단계(초급)를 미리 골라 둡니다. 추천 단계에는 "레벨 테스트 추천" 배지가 붙습니다. |
-| `TUTORIAL` / `DONE` | `HomeScene` / `TownScene`을 엽니다. 마지막 장소(`lastSceneCode`) 복원은 공간 연동 작업에서 붙입니다. |
+| `TUTORIAL` | `HomeScene`을 엽니다. 튜토리얼은 처음부터 다시 진행합니다. |
+| `DONE` | 마지막 장소(`lastSceneCode`)가 있으면 장소 목록(WORLD-01)에서 그 장소의 Unity 씬(`unityKey`)을 찾아 엽니다. 값이 없거나, 닫혔거나, 목록이나 이 빌드의 Scene List에 없으면 `TownScene`을 엽니다. 장소 안의 위치는 씬에 놓인 플레이어 위치에서 시작합니다. |
 
 - Editor와 개발 빌드에서는 [개발용 로그인]이 보입니다. 백엔드를 local 프로필로 띄우고, `OnboardingSettings`의 사용자 ID가 DB에 있어야 합니다. Editor는 브라우저 쿠키를 쓰지 않으므로 Google 로그인 대신 이 버튼을 씁니다.
 - 가입 화면은 Google 가입 대기 세션이 있어야 열리므로 로컬에서는 Google 로그인 설정이 있어야 확인할 수 있습니다.

@@ -92,7 +92,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
 | `CONVERSATION_NOT_ACTIVE` | 409 | 이미 끝난 대화에 발화 전송 |
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
-| `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 단계가 아닌 사용자의 튜토리얼 완료·건너뛰기 |
+| `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 전 단계(`LANG`, `LEVEL`) 사용자의 튜토리얼 완료·건너뛰기 |
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
@@ -470,12 +470,20 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### TUT-01 `POST /api/v1/me/tutorial/complete`
 
-- 화면 12의 [마을로 가기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꾸고 `{ "onboardingStep": "DONE" }`을 돌려줍니다.
-- `onboardingStep`이 `TUTORIAL`이 아니면 `TUTORIAL_NOT_IN_PROGRESS`입니다. 이미 `DONE`인 사용자가 다시 호출하면 같은 응답을 돌려줍니다.
+```json
+// 요청 본문 없음
+
+// 응답 200
+{ "onboardingStep": "DONE" }
+```
+
+- 화면 12의 [마을로 가기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꿉니다.
+- 튜토리얼 전 단계(`LANG`, `LEVEL`)면 `409 TUTORIAL_NOT_IN_PROGRESS`이며 단계를 바꾸지 않습니다. 이미 `DONE`인 사용자가 다시 호출하면 같은 응답을 돌려줍니다.
+- 마지막 장소(`last_scene_id`)는 바꾸지 않습니다. BOOT-01에 `lastSceneCode`가 없으면 클라이언트가 마을에서 시작합니다.
 
 #### TUT-02 `POST /api/v1/me/tutorial/skip`
 
-- 화면 06의 [튜토리얼 건너뛰기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꾸고 마을에서 시작합니다.
+- 화면 06의 [튜토리얼 건너뛰기]에서 호출합니다. 요청·응답과 단계 규칙은 TUT-01과 같습니다. `onboardingStep`을 `DONE`으로 바꾸고 마을에서 시작합니다.
 - 건너뛴 사용자에게 튜토리얼을 다시 볼 방법을 줄지는 `[미정]`입니다.
 
 ### 4.4 장소·사물
@@ -537,10 +545,17 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### WORLD-03 `PUT /api/v1/me/object-prefs/{objectKey}`
 
 ```json
+// 요청
 { "hoverHidden": true }
+
+// 응답 200
+{ "objectKey": "sofa", "hoverHidden": true }
 ```
 
 - 화면 08의 [알아요 · 다시 안 띄우기]는 `true`입니다. 숨긴 뒤에는 사물을 클릭해야 카드가 보이며, 카드에서 자동 표시를 다시 켜면 `false`로 바꿉니다.
+- `objectKey`는 WORLD-02 사물 카드의 `objectKey`(`world_objects.unity_key`)입니다.
+- 설정은 사용자·사물마다 하나입니다. 처음 바꿀 때 만들고, 다시 보내면 값만 바꿉니다. 같은 값을 여러 번 보내도 결과가 같습니다.
+- `hoverHidden`이 없으면 `400 VALIDATION_FAILED`, 없는 사물이면 `404 NOT_FOUND`입니다.
 
 #### WORLD-04 `GET /api/v1/vocab/{vocabId}/pronunciation`
 
@@ -551,10 +566,15 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### WORLD-05 `PUT /api/v1/me/last-scene`
 
 ```json
+// 요청
+{ "sceneCode": "CAFE" }
+
+// 응답 200
 { "sceneCode": "CAFE" }
 ```
 
 - 화면 09의 외출, 화면 14의 건물 출입처럼 장소를 옮길 때 호출합니다. 재접속하면 BOOT-01의 `lastSceneCode`에서 시작합니다. 장소 안의 정확한 위치 복원은 `[미정]`입니다.
+- `sceneCode`가 없거나 비어 있으면 `400 VALIDATION_FAILED`, 없는 장소면 `404 NOT_FOUND`, 열리지 않은 장소(`is_open = false`)면 `409 SCENE_CLOSED`입니다. 오류가 나면 마지막 장소를 바꾸지 않습니다.
 
 ### 4.5 미션
 

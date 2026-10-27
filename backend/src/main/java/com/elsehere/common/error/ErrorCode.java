@@ -16,6 +16,8 @@ public enum ErrorCode {
   ALREADY_SIGNED_UP(HttpStatus.CONFLICT, "이미 가입한 계정입니다."),
   NICKNAME_TAKEN(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
   LEVEL_TEST_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "이미 끝난 레벨 테스트입니다."),
+  SCENE_CLOSED(HttpStatus.CONFLICT, "아직 열리지 않은 장소입니다."),
+  TUTORIAL_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "튜토리얼 단계가 아닙니다."),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
 
   private final HttpStatus status;

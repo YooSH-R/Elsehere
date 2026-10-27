@@ -14,6 +14,12 @@ from feedback.prompt import PROMPT_VERSION, build_messages
 from feedback.service import generate_feedback
 
 ROOT = Path(__file__).resolve().parent
+LOCAL_CALL_LOCK = ROOT.parents[1] / ".env.gms-call-lock"
+
+
+def require_manual_gms_unlocked(parser):
+    if LOCAL_CALL_LOCK.is_file():
+        parser.error("로컬 GMS 실호출이 잠겨 있습니다. 사용자 명시적 승인 전에는 해제하지 마세요.")
 
 
 def load_settings(env_file):
@@ -51,6 +57,8 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--execute-real", action="store_true", help="가상 샘플로 실제 과금 호출 1회")
     args = parser.parse_args()
+    if args.execute_real:
+        require_manual_gms_unlocked(parser)
     cases = json.loads((ROOT / "samples/index.json").read_text(encoding="utf-8"))
     case = next((item for item in cases if item["case_id"] == args.case), None)
     if case is None:

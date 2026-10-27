@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec28378ca8349b947981aad185a762cc, type: 3}
+  m_Name: VoiceRecorderSettings
+  m_EditorClassIdentifier: A305.Voice::A305.Voice.VoiceRecorderSettings
+  maxRecordingSeconds: 15
+  silenceSeconds: 3
+  silenceLevel: 0.02

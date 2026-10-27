@@ -2,12 +2,28 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from run_evaluation import check_expectations, require_local_checks
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_local_lock_blocks_both_manual_tools_before_credentials_are_read(self):
+        import run_evaluation
+        import run_gms
+
+        lock = Mock(spec=Path)
+        lock.is_file.return_value = True
+        for module, case in ((run_gms, "free_grammar"), (run_evaluation, "voice_surface")):
+            with self.subTest(tool=module.__name__):
+                with (
+                    patch.object(run_gms, "LOCAL_CALL_LOCK", lock),
+                    patch.object(module, "load_settings", side_effect=AssertionError("Credentials must not be read")),
+                    patch.object(sys, "argv", [module.__name__, "--case", case, "--execute-real"]),
+                ):
+                    with self.assertRaises(SystemExit):
+                        module.main()
+
     def test_failed_local_checks_block_real_evaluation(self):
         with patch("run_evaluation.subprocess.run", return_value=subprocess.CompletedProcess([], 1, "", "")):
             with self.assertRaises(RuntimeError):

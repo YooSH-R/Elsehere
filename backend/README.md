@@ -101,6 +101,12 @@ com.elsehere
 - Google 콘솔의 OAuth 클라이언트에 환경별 리디렉션 URI(`http://localhost:8080/api/v1/auth/callback/google` 등)를 등록하고, 앱이 테스트 상태이면 로그인할 계정을 테스트 사용자로 추가합니다.
 - nginx 뒤에서는 `X-Forwarded-Proto`, `X-Forwarded-Host` 헤더로 원래 주소를 알아내 콜백 주소를 만듭니다(`server.forward-headers-strategy=native`).
 
+### 게스트로 시작하기
+
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`를 부르면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `게스트` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 모든 환경에서 열려 있습니다.
+
+- `spring.jpa.hibernate.ddl-auto=update`는 이미 있는 `users.provider`의 CHECK 제약을 고치지 않습니다. `GUEST`를 더하기 전에 만든 DB에서는 제약을 다시 만들어야 게스트 사용자를 저장할 수 있습니다.
+
 ### 개발용 로그인
 
 소셜 로그인 없이 사용자별 데이터를 개발할 때 씁니다. local 프로필에서만 켜지며, 다른 환경에는 이 API가 없습니다.

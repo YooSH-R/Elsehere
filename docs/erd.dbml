@@ -15,8 +15,8 @@ Project elsehere {
 // ===== 가입 · 초기 설정 =====
 Table users [headercolor: #3D4A5C] {
   id bigint [pk, increment]
-  provider varchar(20) [not null, note: '소셜 로그인 제공자']
-  provider_uid varchar(100) [not null, note: '제공자가 주는 사용자 고유 ID']
+  provider varchar(20) [not null, note: '로그인 방식 · GOOGLE(소셜 로그인) · GUEST(게스트로 시작하기, API AUTH-07)']
+  provider_uid varchar(100) [not null, note: '제공자가 주는 사용자 고유 ID · 게스트는 서버가 만든 임의 값']
   email varchar(255) [note: '제공자가 줄 때만']
   nickname varchar(30) [not null, unique, note: 'NPC가 부르는 이름 · 중복 불가 · 한글 2, 영문·숫자 1로 세어 2자 이상 합계 16 이하 (API AUTH-04)']
   avatar_type varchar(10) [not null, note: 'F / M 캐릭터 기본형']

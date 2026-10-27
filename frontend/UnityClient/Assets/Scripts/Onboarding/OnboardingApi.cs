@@ -27,6 +27,11 @@ namespace A305.Onboarding
             return client.PostAsync("/api/v1/dev/login", new DevLoginRequest { UserId = userId });
         }
 
+        public Task GuestLoginAsync()
+        {
+            return client.PostAsync("/api/v1/auth/guest", null);
+        }
+
         public Task<SignupFormResponse> GetSignupFormAsync()
         {
             return client.GetAsync<SignupFormResponse>("/api/v1/auth/signup");

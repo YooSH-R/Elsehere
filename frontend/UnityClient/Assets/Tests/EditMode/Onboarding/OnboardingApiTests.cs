@@ -28,6 +28,20 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task GuestLogin_PostsToGuestStart()
+        {
+            transport.Reply("{\"user\": {\"userId\": 3, \"nickname\": \"게스트123456\"}}");
+
+            await api.GuestLoginAsync();
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("POST"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/auth/guest")
+            );
+        }
+
+        [Test]
         public async Task CheckNickname_EncodesKoreanNicknameInQuery()
         {
             transport.Reply("{\"nickname\": \"선종\", \"available\": true}");

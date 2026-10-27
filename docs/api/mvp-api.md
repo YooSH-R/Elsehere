@@ -18,7 +18,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 
 ### 1.2 인증
 
-- 소셜 로그인으로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 제공자는 Google 하나이며, 경로의 `{provider}`는 `google`입니다.
+- 소셜 로그인 또는 게스트로 시작하기(AUTH-07)로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 소셜 로그인 제공자는 Google 하나이며, 경로의 `{provider}`는 `google`입니다. 게스트는 `provider`가 `GUEST`입니다.
 - 로그인 상태는 서버 세션에 두고 HttpOnly 세션 쿠키로 유지합니다. nginx로 Unity Web 빌드와 API를 같은 출처에서 제공하며, 세션 쿠키는 `SameSite=Lax`입니다.
 - 요청 위조를 막기 위해 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)에는 `X-Requested-With` 헤더를 붙입니다. 값은 자유이며, 헤더가 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 개발 환경(local 프로필)에서는 소셜 로그인 없이 `POST /api/v1/dev/login`에 `{ "userId": 1 }`을 보내 그 사용자로 로그인할 수 있습니다. 다른 환경에는 이 API가 없습니다.
@@ -120,6 +120,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | --- | --- | --- |
 | 01 사이트 접속 | 접속 직후 로그인·가입·초기 설정 상태로 다음 화면 결정 | BOOT-01 |
 | | [시작하기], [로그인] | AUTH-01 |
+| | [게스트로 시작하기] | AUTH-07 |
 | 02 회원가입·로그인 | [Google로 계속하기] | AUTH-01, AUTH-02 |
 | | 처음 가입: 약관 목록·버전 | AUTH-03 |
 | | 닉네임 [중복 확인] | AUTH-06 |
@@ -204,6 +205,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | AUTH-04 | `POST /api/v1/auth/signup` | 가입 정보 제출, 사용자 생성 | - | 02 |
 | AUTH-05 | `POST /api/v1/auth/logout` | 로그아웃 | - | 화면 없음 |
 | AUTH-06 | `GET /api/v1/nicknames/availability` | 닉네임 사용 가능 여부 확인 | - | 02 |
+| AUTH-07 | `POST /api/v1/auth/guest` | 게스트로 시작하기, 사용자 생성·로그인 | - | 01 |
 | ONB-01 | `GET /api/v1/languages` | 학습 언어 목록 | - | 03 |
 | ONB-02 | `PUT /api/v1/me/languages/{languageCode}` | 학습 언어 선택 | - | 03 |
 | ONB-03 | `POST /api/v1/level-tests` | 레벨 테스트 시작, 문항 조회 | - | 04 |
@@ -356,6 +358,23 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 닉네임 규칙(AUTH-04)에 맞지 않으면 `VALIDATION_FAILED`입니다. 규칙에 맞고 다른 사용자가 쓰고 있지 않으면 `available: true`입니다.
 - 확인한 닉네임을 예약하지 않습니다. 확인한 뒤 제출하기 전에 다른 사용자가 먼저 가입하면 AUTH-04가 `409 NICKNAME_TAKEN`을 돌려줍니다.
 - 한글 닉네임은 URL 인코딩해 보냅니다.
+
+#### AUTH-07 `POST /api/v1/auth/guest`
+
+화면 01의 [게스트로 시작하기]입니다. Google 로그인과 가입 화면(02) 없이 새 사용자를 만들고 그 사용자로 로그인합니다.
+
+```json
+// 201 Created
+{
+  "user": { "userId": 3, "nickname": "게스트123456", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG" }
+}
+```
+
+- 요청 본문은 없습니다. 다른 상태 변경 요청처럼 `X-Requested-With` 헤더가 필요합니다. 응답 형식은 AUTH-04와 같습니다.
+- 부를 때마다 새 사용자를 만듭니다. `provider`는 `GUEST`, `providerUid`는 서버가 만든 임의 값이며 이메일은 없습니다. 로그아웃하거나 세션이 끝나면 같은 게스트로 다시 로그인할 수 없습니다.
+- 닉네임은 `게스트` 뒤에 겹치지 않는 여섯 자리 숫자를 붙이고, 캐릭터 기본형은 `F`입니다. 초기 설정은 언어 선택(LANG)부터 시작합니다.
+- 가입 화면을 거치지 않으므로 약관 동의 기록(`user_consents`)을 남기지 않습니다.
+- 모든 환경에서 열려 있습니다. 운영 공개 전에 유지 여부와 약관 처리를 다시 정합니다.
 
 ### 4.2 초기 설정
 
@@ -1084,6 +1103,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 닉네임 중복 불가 (v3.3) | AUTH-04, 06 | `users.nickname`에 unique 제약을 추가했습니다. 확인 API를 거쳐도 동시에 가입하면 같은 닉네임이 들어갈 수 있어 DB 제약으로 막습니다. |
 | 미션 코드 (v3.3) | MIS-01 | `missions.code`를 추가했습니다. 시드를 반복 실행할 때 같은 미션을 찾는 고정 키이며, Unity 미션 콘텐츠의 키와 같습니다. |
 | 호텔 개방 (v3.3) | WORLD-01·02, MIS-01 | 기능명세서 F-21·F-22에 맞춰 호텔을 열고(`scenes.is_open = true`) 호텔 직원 NPC(`HOTEL_STAFF`)와 호텔 미션을 시드에 추가했습니다. 컬럼 변경은 없습니다. |
+| 게스트로 시작하기 | AUTH-07 | `users.provider`에 `GUEST` 값을 더했습니다. 컬럼 변경은 없습니다. |
 | 피드백 실패 이유·결과 원본 (v3.4) | CONV-08, FB-01~03 | `conversation_feedback.error_code`(실패·건너뜀 이유)와 `result`(AI 워커가 돌려준 검증된 결과 원본)를 추가했습니다. `turn_feedback.better_text`는 적절한 발화에 고칠 표현이 없어 NULL을 허용합니다. |
 | NPC 기억 카드 (v3.4) | CONV-01, 03, 08 | `user_npc_relations.memory_card`(기억 카드 JSON)와 `memory_conversation_id`(마지막으로 반영한 대화)를 추가하고 `ai_requests.kind`에 `MEMORY`를 더했습니다. 사실별 `npc_memories`는 만들지 않습니다. |
 

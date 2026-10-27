@@ -7,8 +7,8 @@ using UnityEngine;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 서버 AI와 진행하는 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·종료(CONV-08)를 부르고, 화면에 그릴
-    /// 내용을 갖는다.
+    /// 서버 AI와 진행하는 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·
+    /// 종료(CONV-08)를 부르고, 화면에 그릴 내용을 갖는다.
     /// </summary>
     /// <remarks>
     /// 요청이 실패하면 상태 문구에 서버가 준 이유를 담는다. 실패한 문장을 그대로 다시 보내면 같은 요청 ID로 보내 서버가 턴을 중복으로 만들지
@@ -70,8 +70,10 @@ namespace A305.Dialogue
 
         public bool CanSend => ConversationId != null && !IsBusy && !IsEnded;
 
-        // 뜻 보기(CONV-04)는 아직 서버에 없다.
-        public bool HasMeaning => false;
+        public bool HasMeaning => true;
+        public IReadOnlyList<GlossaryData> LastNpcGlossary { get; private set; }
+        public bool HasHint => true;
+        public string HintText { get; private set; }
         public bool UsesVoice => true;
 
         public Task StartAsync()
@@ -192,6 +194,52 @@ namespace A305.Dialogue
                 }
             );
             return speech;
+        }
+
+        /// <summary>
+        /// 마지막 NPC 대사의 뜻과 단어 풀이를 받아 그 대사에 붙인다(CONV-04). 이미 받았으면 다시 요청하지 않는다.
+        /// </summary>
+        public Task RequestMeaningAsync()
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (turn == null || IsBusy || LastNpcLine.Korean != null)
+            {
+                return Task.CompletedTask;
+            }
+
+            return RunAsync(
+                "대사 뜻을 찾고 있어요...",
+                async () =>
+                {
+                    MeaningData meaning = await api.GetMeaningAsync(turn.TurnId, NewRequestId());
+                    // 대사는 바뀌지 않게 두고 뜻을 붙인 줄로 바꾼다. [표현 저장]도 이 뜻을 함께 저장한다.
+                    var withMeaning = DialogueLine.FromNpc(LastNpcLine.English, meaning.MeaningKo);
+                    lines[lines.IndexOf(LastNpcLine)] = withMeaning;
+                    LastNpcLine = withMeaning;
+                    LastNpcGlossary = meaning.Glossary;
+                }
+            );
+        }
+
+        /// <summary>
+        /// 마지막 NPC 대사에 대답할 추천 문장을 받는다(CONV-05). 이미 받았거나 지금 대답할 수 없으면(대화 종료 등) 요청하지 않는다.
+        /// </summary>
+        public Task RequestHintAsync()
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (turn == null || !CanSend || HintText != null)
+            {
+                return Task.CompletedTask;
+            }
+
+            return RunAsync(
+                "추천 문장을 만들고 있어요...",
+                async () =>
+                {
+                    HintData hint = await api.GetHintAsync(turn.TurnId, NewRequestId());
+                    HintText = hint.HintText;
+                }
+            );
         }
 
         /// <summary>
@@ -318,6 +366,9 @@ namespace A305.Dialogue
             LastNpcLine = line;
             LastNpcTurn = turn;
             SuggestWords = turn.SuggestWords;
+            // 단어 풀이와 힌트는 지난 대사의 것이므로 새 대사에서는 다시 받는다.
+            LastNpcGlossary = null;
+            HintText = null;
             NpcSpoke?.Invoke(turn);
         }
 

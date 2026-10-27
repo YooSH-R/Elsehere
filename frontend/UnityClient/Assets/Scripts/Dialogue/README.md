@@ -2,7 +2,7 @@
 
 NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바라보는 1인칭 시점으로 바꾸고 이동을 잠그며, 끝나면 직전 시점과 이동을 되돌립니다. 대화는 한 번에 하나만 진행합니다.
 
-대화 내용은 대본 소스로 진행합니다. 서버·AI 연동 전에는 확인용 대본(`MockDialogueScripts`)으로 튜토리얼 길 안내처럼 정해진 흐름과, 키워드로 답하는 자유 대화를 흉내 냅니다. 지금 화면은 흐름 확인용 초안이며, 음성 입력(STT)·NPC 음성(TTS)·다시 듣기·단계형 힌트·AI 오류 안내는 대화 작업(S15P31A305-168, 169, 170, 193)에서 붙입니다.
+튜토리얼 길 안내처럼 정해진 흐름이 있는 NPC는 확인용 대본(`MockDialogueScripts`)으로, 그 밖의 NPC는 서버 AI와 자유 대화로 진행합니다. 대화 화면 프리팹의 `DialogueServerLink`에서 서버를 끄면 모든 대화를 확인용 대본으로 진행하며, 이때 자유 대화는 키워드로 답하는 대본이 흉내 냅니다. 지금 화면은 흐름 확인용 초안입니다.
 
 ## 구성
 
@@ -13,8 +13,9 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 | `DialogueScript`, `GuidedTurn`, `KeywordReply`, `DialogueLine` | 대본과 대사. 정해진 턴이 있으면 정해진 흐름, 없으면 키워드 응답 규칙과 기본 응답으로 답합니다. |
 | `DialogueRecord` | 끝난 대화의 기록. 피드백·미션·튜토리얼이 대화 결과를 판단할 때 씁니다. |
 | `DialogueScriptSource`, `MockDialogueScriptSource` | NPC 키로 대본을 찾는 곳과 서버 연동 전 확인용 대본입니다. |
+| `ServerConversation`, `IConversationApi`, `ConversationApi` | 서버 AI 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·종료(CONV-08)를 부릅니다. 가짜 API로 Unity 객체 없이 테스트합니다. |
 | `DialogueController` | 대화 시작·종료 때 카메라 시점, 이동 잠금, 대화 화면을 바꾸고 대화 진행을 화면과 연결합니다. |
-| `DialoguePanelView` | 대화 중 화면. 최근 대사, 이번에 읽을 대사, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료]가 있습니다. |
+| `DialoguePanelView` | 대화 중 화면. 최근 대사, 이번에 읽을 대사, 추천 단어·추천 문장, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료], 서버 대화의 [누르고 말하기]·[다시 듣기]·[힌트]가 있습니다. |
 
 ## 의존성
 
@@ -33,7 +34,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 | `DialogueController.Started` | 대화가 시작되면 NPC 키를 알립니다. |
 | `DialogueController.Ended` | 대화가 끝나면 끝난 NPC 키를 알립니다. |
 | `DialogueController.ConversationEnded` | 대화가 끝나면 `DialogueRecord`를 알립니다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로, 받는 쪽이 화면을 열며 이동을 잠가도 풀리지 않습니다. |
-| `DialogueController.ExpressionSaveRequested` | [표현 저장]을 누르면 가장 최근 NPC 대사의 영어 문장과 한국어 뜻을 알립니다. 단어장 저장은 받는 쪽(Learning 모듈)이 합니다. |
+| `DialogueController.ExpressionSaveRequested` | [표현 저장]을 누르면 가장 최근 NPC 대사의 영어 문장과 한국어 뜻을 알립니다. 서버 대화는 [뜻 보기]로 뜻을 받기 전이면 뜻이 빈 문자열입니다. 단어장 저장은 받는 쪽(Learning 모듈)이 합니다. |
 
 ## 확인용 대본
 
@@ -55,6 +56,6 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Dialogue.Tests` | `Assets/Tests/EditMode/Dialogue/` | 대화 시작, 대화 중 두 번째 시작 거절, 종료 뒤 다시 시작. 첫 대사, 키워드 응답 순서, 기본 응답, 빈 입력 무시, 정해진 흐름의 턴 진행·완료, 예시 문장, 최근 NPC 대사의 뜻, 대화 기록 |
+| `A305.Dialogue.Tests` | `Assets/Tests/EditMode/Dialogue/` | 대화 시작, 대화 중 두 번째 시작 거절, 종료 뒤 다시 시작. 첫 대사, 키워드 응답 순서, 기본 응답, 빈 입력 무시, 정해진 흐름의 턴 진행·완료, 예시 문장, 최근 NPC 대사의 뜻, 대화 기록. 서버 대화의 뜻 보기·힌트(한 번만 요청, 실패 안내, 새 NPC 대사에서 비움, 대화가 끝난 뒤 힌트 요청 안 함) |
 
 대화 시점·이동 잠금·[대화 종료]는 Npc 모듈의 PlayMode 테스트에서 함께 확인합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

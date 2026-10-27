@@ -134,6 +134,8 @@ namespace A305.Dialogue
             panel.TalkPressed += StartRecording;
             panel.TalkReleased += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.MeaningRequested += RequestMeaning;
+            panel.HintRequested += RequestHint;
         }
 
         private void OnDestroy()
@@ -152,6 +154,8 @@ namespace A305.Dialogue
                 panel.TalkPressed -= StartRecording;
                 panel.TalkReleased -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.MeaningRequested -= RequestMeaning;
+                panel.HintRequested -= RequestHint;
             }
         }
 
@@ -229,6 +233,23 @@ namespace A305.Dialogue
             if (turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
+            }
+        }
+
+        // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).
+        private void RequestMeaning()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RequestMeaningAsync();
+            }
+        }
+
+        private void RequestHint()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RequestHintAsync();
             }
         }
 

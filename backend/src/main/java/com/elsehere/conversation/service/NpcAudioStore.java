@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 /**
  * NPC 턴 음성(WAV) 파일 보관. 워커는 음성을 10분만 들고 있으므로 받은 즉시 이 폴더에 저장한다.
  *
- * <p>보관 위치·기간은 [미정]이라 서버 폴더에 둔다. 배포에서는 컨테이너 밖 볼륨으로 연결해야 재시작 뒤에도 남는다.
+ * <p>저장 폴더는 elsehere.npc-audio.dir로 지정하며, 앱 배포에서는 환경별 영구 볼륨에 연결한다. 보관 기간과 삭제 정책은 아직 미정이다.
  */
 @Component
 public class NpcAudioStore {

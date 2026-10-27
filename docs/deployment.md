@@ -73,7 +73,9 @@
 
 ### 앱 실행 구성
 
-`infra/compose/compose.app.yaml`은 `database`(PostgreSQL 16), `ai-worker`, `backend`, `web`을 같은 환경의 내부 네트워크에서 실행합니다. 외부로 게시하는 포트는 웹 서버의 루프백 주소 하나입니다. API 요청은 웹 서버에서 `backend:8080`으로 전달하고 DB·AI 포트는 게시하지 않습니다. 프로젝트 이름으로 네트워크와 DB 볼륨을 분리합니다.
+`infra/compose/compose.app.yaml`은 `database`(PostgreSQL 16), `ai-worker`, `backend`, `web`을 같은 환경의 내부 네트워크에서 실행합니다. 외부로 게시하는 포트는 웹 서버의 루프백 주소 하나입니다. API 요청은 웹 서버에서 `backend:8080`으로 전달하고 DB·AI 포트는 게시하지 않습니다. 프로젝트 이름으로 네트워크와 DB·NPC 음성 볼륨을 분리합니다.
+
+NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 연결해 보존합니다. 이미지 교체와 롤백에서도 같은 프로젝트·볼륨을 유지하며, 권한·저장 검증과 보관 정책은 [NPC 음성 저장 운영 문서](npc-audio-storage.md)를 따릅니다.
 
 ```text
 호스트 Nginx /dev/ 또는 /dev/api/

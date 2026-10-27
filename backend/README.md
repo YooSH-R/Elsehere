@@ -66,6 +66,10 @@ com.elsehere
 
 `./gradlew check bootJar`가 검사·테스트와 실행 파일 `build/libs/app.jar`를 생성합니다. Docker 이미지는 이 파일을 받아 실행하며 이미지 생성 단계와 서버에서 JAR를 다시 빌드하지 않습니다.
 
+## NPC 음성 파일 저장
+
+NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
+
 ## 스키마 관리
 
 - 스키마는 [ERD](../docs/erd.dbml)를 기준으로 작성한 엔티티에서 JPA(`ddl-auto`)가 만듭니다. 엔티티를 바꾸면 ERD도 함께 수정합니다. 운영 환경에서는 `JPA_DDL_AUTO`를 `validate` 또는 `none`으로 지정합니다.

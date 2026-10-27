@@ -1,0 +1,115 @@
+{
+  "character_version": "Little Mung v7",
+  "tool": "built-in image_gen",
+  "background": "white",
+  "view_naming": "좌측면 = 코가 화면 왼쪽을 향함; 우측면 = 코가 화면 오른쪽을 향함",
+  "validation_limit": "생성된 개별 참고 이미지이며 같은 3D 메시의 회전 렌더가 아님. 시점별 미세한 형상 차이와 실제 모델·리그 호환성은 Tripo 변환 후 검증 필요.",
+  "images": [
+    {
+      "file": "frontend/design/캐릭터 행인(할머니) 정면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "054718d63039bbcd2d866719b5012622fb9131b2031b94f3bc14dd1a1bce3189",
+      "key": "elder-front",
+      "prompt": "Use case: stylized-concept. Create ONE single full-body FRONT VIEW reference image for the existing elsehere Little Mung v7 character family, for later Tripo modeling. Square canvas, plain white background, no text, no labels, no props, no other characters, no scenery. Input 1 is the EXACT current v7 body proportions, face construction, eye spacing and material style master. Input 2 is ONLY an outfit/hairstyle reference: the OLD WOMAN at bottom right in the B/CLUSTER row; ignore every other figure and ignore the old sheet's eye rendering.\nSubject: the elderly female pedestrian from that roster, rendered in the v7 style of input 1. Silver-gray softly side-parted bob tucked behind the ears, large smooth chunky sculpted hair locks, thin rounded warm-metal spectacles with clear nonreflective lenses, subtly silver eyebrows, tiny discreet smile lines near the mouth suggesting an elderly woman without realistic skin wrinkles. Warm light skin, sweet slightly vacant gentle smile. Muted plum cardigan over ivory crewneck shirt, taupe straight full-length trousers, cream rounded walking shoes. No bag, cane, hat or jewelry. Keep the reference's huge rounded-square broad cheek head, softly flat chin, very tiny narrow low-relief nose, tiny smiling mouth. Preserve EXACT v7 eye spacing, round dark pupils subtly shifted toward the nose inside each white eye, white outer margins wider than inner margins, tiny highlights and subtle outer lashes; do not widen the eye spacing and do not center pupils. Do not make realistic eyes or porcelain doll eyes.\nBody ratio is critical: hair crown to chin approximately 60% of total full-body height, chin to shoe soles 40%, huge head, very narrow tiny torso and stubby short limbs exactly like input 1; no adult body proportions, no enlarged body for age. Neutral standing reference pose, both arms relaxed slightly away from torso, hands visible, feet parallel a little apart, head level, facing camera straight on. Whole silhouette visible with white margin; top of hair at about 4% of canvas, shoe soles about 94%. Soft even studio illumination, smooth matte toy-like 3D game asset, same quality and material language as reference. ONE VIEW ONLY, no montage.",
+      "reference_images": [
+        "캐릭터 기본(여) 정면.png",
+        "roster-ab-v1.png"
+      ]
+    },
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 정면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "d0dfb706b9eaa29c554362f70be86dcaba5800e72cd9211a5a6abc02d9c7ed6d",
+      "key": "hotelier-front",
+      "prompt": "Use case: stylized-concept. Create ONE single full-body FRONT VIEW reference image for the existing elsehere Little Mung v7 character family, for later Tripo modeling. Square canvas, plain white background, no text, no labels, no handheld props, no extra characters, no scenery. Input 1 is the EXACT current v7 body proportions, face construction, eye spacing and material style master. Input 2 is ONLY an outfit/hairstyle reference: HOTELIER, the third character in the bottom B/CLUSTER row; ignore every other figure and ignore the old sheet's eye rendering.\nSubject: that male hotel receptionist rendered in input 1's v7 style. Neatly side-parted cocoa dark brown short hair made of smooth chunky sculpted locks, warm light skin, gently raised curved brows, friendly mildly vacant small closed smile. Navy two-button tailored jacket with simple rounded lapels, ivory collared shirt, buttery pale yellow necktie, navy full-length trousers and rounded dark-brown shoes. No hat, no badge text, no luggage, no bell, no elaborate decorative trim. Keep the reference's huge rounded-square broad cheek head, softly flat chin, very tiny narrow low-relief nose, tiny smiling mouth. Preserve EXACT v7 eye spacing and eye size, round dark pupils subtly shifted toward the nose inside each white eye, white outer margins wider than inner margins, tiny highlights; do not widen the eye spacing and do not center pupils. Do not make realistic eyes or a realistic adult face.\nBody ratio is critical: hair crown to chin approximately 60% of total full-body height, chin to shoe soles 40%, huge head, very narrow tiny torso and stubby short limbs exactly like input 1; no adult body proportions, no longer legs due to wearing suit. Neutral standing reference pose, both arms relaxed slightly away from torso, hands visible, feet parallel a little apart, head level, facing camera straight on. Whole silhouette visible with white margin; top of hair at about 4% of canvas, shoe soles about 94%. Soft even studio illumination, smooth matte toy-like 3D game asset, same quality and material language as input 1. ONE VIEW ONLY, no montage.",
+      "reference_images": [
+        "캐릭터 기본(남) 정면.png",
+        "roster-ab-v1.png"
+      ]
+    },
+    {
+      "file": "frontend/design/캐릭터 행인(할머니) 좌측면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "266c106d793e24cb4b62f841f56d7c1b379b2483de4265d423b732e87f0a001a",
+      "key": "elder-left",
+      "prompt": "Use case: identity-preserve. Asset type: single-view 3D character turnaround input for Tripo. Input image is the exact approved FRONT MASTER of the elderly female pedestrian for elsehere Little Mung v7. Produce ONE individual square image, not a sheet. Change ONLY the camera viewing direction to a strict 90-degree SIDE PROFILE with the nose pointing to the LEFT EDGE OF THE IMAGE. The entire character including head, torso, legs and shoes faces image-left. One eye is visible in true profile; the far eye is occluded. Preserve the glasses if present, hairstyle parting and garment handedness logically from the front master.\nPreserve identity, outfit, hair shape and color, material finish, bodily proportions, total height, neutral standing pose and vertical composition from the master. Details to preserve: silver-gray side-parted rounded bob, thin round warm-metal glasses resting around ears, muted plum knitted cardigan with patch pockets and ribbed cuffs/hem, ivory shirt, taupe full-length straight trousers, cream walking sneakers. Huge broad rounded-square head and extremely tiny body with short arms and short legs, small low-profile narrow nose. No realistic adult anatomy, no elongated neck, no tall legs. Keep the head as massive as the master even in profile; do not shrink the head or enlarge the body to fit adult clothes.\nMatch the FRONT MASTER's canvas scale: hair crown about 3% down from top, bottom of chin about 56% down, shoe soles about 95% down. Center the character horizontally. Full body completely in frame with white margins. The head and torso should rotate as one without tilting. Arms relaxed slightly separated from torso, hands unoccupied, parallel feet slightly apart as in front master. Orthographic-looking camera at neutral height; no perspective foreshortening, no three-quarter angle, no overhead view.\nSmooth matte stylized 3D game-asset appearance, soft uniform studio illumination, minimal pale contact shadow. PURE WHITE backdrop, no text, labels, border, watermark, scenery, props, ground plane horizon, extra figures. For visible facial features preserve the exact tiny eye/nose/mouth style rather than inventing a new character. A single faithfully consistent rotated view of the supplied front master.",
+      "reference_images": [
+        "exec-a19bc2fe-7818-4caa-9618-860dfab82728.png"
+      ]
+    },
+    {
+      "file": "frontend/design/캐릭터 행인(할머니) 우측면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "d2b268cd0c9a02e3d4277330775f89a515c4d6d9d059afd9c869d10249f8fed1",
+      "key": "elder-right",
+      "prompt": "Use case: identity-preserve. Asset type: single-view 3D character turnaround input for Tripo. Input image is the exact approved FRONT MASTER of the elderly female pedestrian for elsehere Little Mung v7. Produce ONE individual square image, not a sheet. Change ONLY the camera viewing direction to a strict 90-degree SIDE PROFILE with the nose pointing to the RIGHT EDGE OF THE IMAGE. The entire character including head, torso, legs and shoes faces image-right. One eye is visible in true profile; the far eye is occluded. This is the opposite side of the same character, not a mirror-flipped hair part or mirrored jacket closure. Preserve asymmetric hair part, glasses if present and garment handedness logically from the front master.\nPreserve identity, outfit, hair shape and color, material finish, bodily proportions, total height, neutral standing pose and vertical composition from the master. Details to preserve: silver-gray side-parted rounded bob, thin round warm-metal glasses resting around ears, muted plum knitted cardigan with patch pockets and ribbed cuffs/hem, ivory shirt, taupe full-length straight trousers, cream walking sneakers. Huge broad rounded-square head and extremely tiny body with short arms and short legs, small low-profile narrow nose. No realistic adult anatomy, no elongated neck, no tall legs. Keep the head as massive as the master even in profile; do not shrink the head or enlarge the body to fit adult clothes.\nMatch the FRONT MASTER's canvas scale: hair crown about 3% down from top, bottom of chin about 56% down, shoe soles about 95% down. Center the character horizontally. Full body completely in frame with white margins. The head and torso should rotate as one without tilting. Arms relaxed slightly separated from torso, hands unoccupied, parallel feet slightly apart as in front master. Orthographic-looking camera at neutral height; no perspective foreshortening, no three-quarter angle, no overhead view.\nSmooth matte stylized 3D game-asset appearance, soft uniform studio illumination, minimal pale contact shadow. PURE WHITE backdrop, no text, labels, border, watermark, scenery, props, ground plane horizon, extra figures. For visible facial features preserve the exact tiny eye/nose/mouth style rather than inventing a new character. A single faithfully consistent rotated view of the supplied front master.",
+      "reference_images": [
+        "exec-a19bc2fe-7818-4caa-9618-860dfab82728.png"
+      ]
+    },
+    {
+      "file": "frontend/design/캐릭터 행인(할머니) 후면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "c019e632e1804e5e27feacf457df0ce37a82e1678ebf0ab2fc681f18675a24ca",
+      "key": "elder-back",
+      "prompt": "Use case: identity-preserve. Asset type: single-view 3D character turnaround input for Tripo. Input image is the exact approved FRONT MASTER of the elderly female pedestrian for elsehere Little Mung v7. Produce ONE individual square image, not a sheet. Change ONLY the camera viewing direction to a strict 180-degree REAR VIEW looking at the BACK of the character. Head and body both face directly away from the camera, ears symmetrically visible where hairstyle allows, no face or eyes visible. Show the back of the SAME hairstyle and clothing. Shoes face away. Jacket/cardigan back is plain; front pockets, tie, lapels and face must NOT be drawn on the back.\nPreserve identity, outfit, hair shape and color, material finish, bodily proportions, total height, neutral standing pose and vertical composition from the master. Details to preserve: silver-gray side-parted rounded bob, thin round warm-metal glasses resting around ears, muted plum knitted cardigan with patch pockets and ribbed cuffs/hem, ivory shirt, taupe full-length straight trousers, cream walking sneakers. Huge broad rounded-square head and extremely tiny body with short arms and short legs, small low-profile narrow nose. No realistic adult anatomy, no elongated neck, no tall legs. Keep the head as massive as the master even in profile; do not shrink the head or enlarge the body to fit adult clothes.\nMatch the FRONT MASTER's canvas scale: hair crown about 3% down from top, bottom of chin about 56% down, shoe soles about 95% down. Center the character horizontally. Full body completely in frame with white margins. The head and torso should rotate as one without tilting. Arms relaxed slightly separated from torso, hands unoccupied, parallel feet slightly apart as in front master. Orthographic-looking camera at neutral height; no perspective foreshortening, no three-quarter angle, no overhead view.\nSmooth matte stylized 3D game-asset appearance, soft uniform studio illumination, minimal pale contact shadow. PURE WHITE backdrop, no text, labels, border, watermark, scenery, props, ground plane horizon, extra figures. For visible facial features preserve the exact tiny eye/nose/mouth style rather than inventing a new character. A single faithfully consistent rotated view of the supplied front master.",
+      "reference_images": [
+        "exec-a19bc2fe-7818-4caa-9618-860dfab82728.png"
+      ]
+    },
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 좌측면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "a7ca4c217bc5419e57d6428d01dc5793151031839e8ca4687bf0bdbbb26ee3cc",
+      "key": "hotelier-left",
+      "prompt": "Use case: identity-preserve. Asset type: single-view 3D character turnaround input for Tripo. Input image is the exact approved FRONT MASTER of the male hotel receptionist for elsehere Little Mung v7. Produce ONE individual square image, not a sheet. Change ONLY the camera viewing direction to a strict 90-degree SIDE PROFILE with the nose pointing to the LEFT EDGE OF THE IMAGE. The entire character including head, torso, legs and shoes faces image-left. One eye is visible in true profile; the far eye is occluded. Preserve the glasses if present, hairstyle parting and garment handedness logically from the front master.\nPreserve identity, outfit, hair shape and color, material finish, bodily proportions, total height, neutral standing pose and vertical composition from the master. Details to preserve: neatly side-parted dark cocoa short hair with a smooth side sweep, navy two-button jacket and matching full-length trousers, ivory collared shirt, pale yellow tie, dark brown rounded lace-up shoes. Huge broad rounded-square head and extremely tiny body with short arms and short legs, small low-profile narrow nose. No realistic adult anatomy, no elongated neck, no tall legs. Keep the head as massive as the master even in profile; do not shrink the head or enlarge the body to fit adult clothes.\nMatch the FRONT MASTER's canvas scale: hair crown about 3% down from top, bottom of chin about 54% down, shoe soles about 94% down. Center the character horizontally. Full body completely in frame with white margins. The head and torso should rotate as one without tilting. Arms relaxed slightly separated from torso, hands unoccupied, parallel feet slightly apart as in front master. Orthographic-looking camera at neutral height; no perspective foreshortening, no three-quarter angle, no overhead view.\nSmooth matte stylized 3D game-asset appearance, soft uniform studio illumination, minimal pale contact shadow. PURE WHITE backdrop, no text, labels, border, watermark, scenery, props, ground plane horizon, extra figures. For visible facial features preserve the exact tiny eye/nose/mouth style rather than inventing a new character. A single faithfully consistent rotated view of the supplied front master.",
+      "reference_images": [
+        "exec-ae924aa6-e4a0-4ea1-b580-59a6e330fabe.png"
+      ]
+    },
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 우측면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "87356429b33d2fa6c28c804faf1a49127608e222939ed6cd232e8c772786591b",
+      "key": "hotelier-right",
+      "prompt": "Use case: identity-preserve. Asset type: single-view 3D character turnaround input for Tripo. Input image is the exact approved FRONT MASTER of the male hotel receptionist for elsehere Little Mung v7. Produce ONE individual square image, not a sheet. Change ONLY the camera viewing direction to a strict 90-degree SIDE PROFILE with the nose pointing to the RIGHT EDGE OF THE IMAGE. The entire character including head, torso, legs and shoes faces image-right. One eye is visible in true profile; the far eye is occluded. This is the opposite side of the same character, not a mirror-flipped hair part or mirrored jacket closure. Preserve asymmetric hair part, glasses if present and garment handedness logically from the front master.\nPreserve identity, outfit, hair shape and color, material finish, bodily proportions, total height, neutral standing pose and vertical composition from the master. Details to preserve: neatly side-parted dark cocoa short hair with a smooth side sweep, navy two-button jacket and matching full-length trousers, ivory collared shirt, pale yellow tie, dark brown rounded lace-up shoes. Huge broad rounded-square head and extremely tiny body with short arms and short legs, small low-profile narrow nose. No realistic adult anatomy, no elongated neck, no tall legs. Keep the head as massive as the master even in profile; do not shrink the head or enlarge the body to fit adult clothes.\nMatch the FRONT MASTER's canvas scale: hair crown about 3% down from top, bottom of chin about 54% down, shoe soles about 94% down. Center the character horizontally. Full body completely in frame with white margins. The head and torso should rotate as one without tilting. Arms relaxed slightly separated from torso, hands unoccupied, parallel feet slightly apart as in front master. Orthographic-looking camera at neutral height; no perspective foreshortening, no three-quarter angle, no overhead view.\nSmooth matte stylized 3D game-asset appearance, soft uniform studio illumination, minimal pale contact shadow. PURE WHITE backdrop, no text, labels, border, watermark, scenery, props, ground plane horizon, extra figures. For visible facial features preserve the exact tiny eye/nose/mouth style rather than inventing a new character. A single faithfully consistent rotated view of the supplied front master.",
+      "reference_images": [
+        "exec-ae924aa6-e4a0-4ea1-b580-59a6e330fabe.png"
+      ]
+    },
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 후면.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "045989f73c886520d04105c059af089c6944ed670d0a545f75e0ed0c746ca0c3",
+      "key": "hotelier-back",
+      "prompt": "Use case: identity-preserve. Asset type: single-view 3D character turnaround input for Tripo. Input image is the exact approved FRONT MASTER of the male hotel receptionist for elsehere Little Mung v7. Produce ONE individual square image, not a sheet. Change ONLY the camera viewing direction to a strict 180-degree REAR VIEW looking at the BACK of the character. Head and body both face directly away from the camera, ears symmetrically visible where hairstyle allows, no face or eyes visible. Show the back of the SAME hairstyle and clothing. Shoes face away. Jacket/cardigan back is plain; front pockets, tie, lapels and face must NOT be drawn on the back.\nPreserve identity, outfit, hair shape and color, material finish, bodily proportions, total height, neutral standing pose and vertical composition from the master. Details to preserve: neatly side-parted dark cocoa short hair with a smooth side sweep, navy two-button jacket and matching full-length trousers, ivory collared shirt, pale yellow tie, dark brown rounded lace-up shoes. Huge broad rounded-square head and extremely tiny body with short arms and short legs, small low-profile narrow nose. No realistic adult anatomy, no elongated neck, no tall legs. Keep the head as massive as the master even in profile; do not shrink the head or enlarge the body to fit adult clothes.\nMatch the FRONT MASTER's canvas scale: hair crown about 3% down from top, bottom of chin about 54% down, shoe soles about 94% down. Center the character horizontally. Full body completely in frame with white margins. The head and torso should rotate as one without tilting. Arms relaxed slightly separated from torso, hands unoccupied, parallel feet slightly apart as in front master. Orthographic-looking camera at neutral height; no perspective foreshortening, no three-quarter angle, no overhead view.\nSmooth matte stylized 3D game-asset appearance, soft uniform studio illumination, minimal pale contact shadow. PURE WHITE backdrop, no text, labels, border, watermark, scenery, props, ground plane horizon, extra figures. For visible facial features preserve the exact tiny eye/nose/mouth style rather than inventing a new character. A single faithfully consistent rotated view of the supplied front master.",
+      "reference_images": [
+        "exec-ae924aa6-e4a0-4ea1-b580-59a6e330fabe.png"
+      ]
+    }
+  ]
+}

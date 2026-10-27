@@ -30,6 +30,14 @@ def test_contract_examples_pass_the_schema():
         assert npc_configs.schema_errors(config) == []
 
 
+def test_the_service_npc_files_pass_the_schema_and_merge():
+    """ai/npcs의 서비스 NPC 프로필(NPC마다 파일 하나)이 원본 스키마를 지키고 백엔드 전달용 배열로 합쳐진다."""
+    configs, problems = npc_configs.bundle(npc_configs.ROOT / "ai/npcs")
+
+    assert problems == []
+    assert "CAFE_STAFF" in [config["npcId"] for config in configs]
+
+
 def test_an_active_npc_needs_a_voice():
     """조건 규칙: isActive가 true면 voiceId가 있어야 한다. 계약 예시처럼 비활성 NPC는 null이어도 된다."""
     silent = cafe_with("isActive", True)  # 예시의 voiceId는 null

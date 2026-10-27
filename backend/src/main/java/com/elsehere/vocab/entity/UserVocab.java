@@ -51,6 +51,16 @@ public class UserVocab extends BaseEntity {
 
   private Long sourceTurnId;
 
+  // 저장한 대화(NPC_LINE · FEEDBACK). 짧은 피드백은 턴 없이 대화 단위로 저장하므로 턴과 따로 둔다.
+  private Long sourceConversationId;
+
+  // 단어를 저장한 문장과 그 문장의 뜻. 같은 단어라도 사용자마다 저장한 문장이 다르다.
+  @Column(columnDefinition = "text")
+  private String contextText;
+
+  @Column(columnDefinition = "text")
+  private String contextMeaningKo;
+
   @Column(columnDefinition = "text")
   private String memo;
 
@@ -60,4 +70,30 @@ public class UserVocab extends BaseEntity {
   @ColumnDefault("now()")
   @Column(nullable = false, updatable = false)
   private Instant savedAt;
+
+  /** 사물 카드에서 저장한 단어. 문장은 사물 카드 예문이며, 예문이 없으면 비워 둔다. */
+  public static UserVocab saveFromObject(Long userId, Vocabulary vocabulary, Instant savedAt) {
+    UserVocab userVocab = new UserVocab();
+    userVocab.userId = userId;
+    userVocab.vocabulary = vocabulary;
+    userVocab.sourceType = UserVocabSourceType.OBJECT;
+    userVocab.contextText = vocabulary.getExample();
+    userVocab.contextMeaningKo = vocabulary.getExampleKo();
+    userVocab.savedAt = savedAt;
+    return userVocab;
+  }
+
+  /** 사용자 메모를 바꾼다(VOCAB-03). */
+  public void changeMemo(String memo) {
+    this.memo = memo;
+  }
+
+  /** 외웠어요 표시(VOCAB-03). 켜면 외운 시각을 기록하고, 끄면 지운다. 이미 켜져 있으면 처음 외운 시각을 둔다. */
+  public void changeMemorized(boolean memorized, Instant now) {
+    if (!memorized) {
+      this.memorizedAt = null;
+    } else if (memorizedAt == null) {
+      this.memorizedAt = now;
+    }
+  }
 }

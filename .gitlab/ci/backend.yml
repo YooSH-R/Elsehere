@@ -1,6 +1,7 @@
 backend:check-and-build:
   extends: .docker-job
   stage: verify
+  needs: ["ci:yaml"]
   image: eclipse-temurin:21-jdk
   timeout: 20m
   variables:

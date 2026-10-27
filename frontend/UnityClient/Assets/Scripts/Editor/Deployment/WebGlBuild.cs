@@ -71,11 +71,14 @@ namespace A305.EditorTools.Deployment
             BuildPlayerOptions options = CreateOptions(outputDirectory, EditorBuildSettings.scenes);
             WebGLCompressionFormat originalCompression = PlayerSettings.WebGL.compressionFormat;
             bool originalFallback = PlayerSettings.WebGL.decompressionFallback;
+            bool originalHashedNames = PlayerSettings.WebGL.nameFilesAsHashes;
             try
             {
                 // Match the gzip response headers in infra/nginx/web.conf.
                 PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
                 PlayerSettings.WebGL.decompressionFallback = false;
+                // A cached file from another release must not share the same URL.
+                PlayerSettings.WebGL.nameFilesAsHashes = true;
                 BuildReport report = BuildPipeline.BuildPlayer(options);
                 if (report.summary.result != BuildResult.Succeeded)
                 {
@@ -91,6 +94,7 @@ namespace A305.EditorTools.Deployment
             {
                 PlayerSettings.WebGL.compressionFormat = originalCompression;
                 PlayerSettings.WebGL.decompressionFallback = originalFallback;
+                PlayerSettings.WebGL.nameFilesAsHashes = originalHashedNames;
             }
         }
     }

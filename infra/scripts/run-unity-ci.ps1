@@ -68,20 +68,37 @@ function Read-UnityTestResults {
 }
 
 if ($Action -eq 'test') {
-    foreach ($testPlatform in @('EditMode', 'PlayMode')) {
-        $resultPath = Join-Path $runPath "$testPlatform.xml"
-        try {
-            Invoke-Unity -RunName $testPlatform -AdditionalArguments @(
-                '-runTests', '-testPlatform', $testPlatform,
-                '-testResults', ('"{0}"' -f $resultPath)
-            )
-            $testRun = Read-UnityTestResults -ResultPath $resultPath -TestPlatform $testPlatform
-            Write-Host "$testPlatform results: passed=$($testRun.passed), skipped=$($testRun.skipped), failed=$($testRun.failed)"
-        }
-        finally {
-            if (Test-Path -LiteralPath $resultPath) {
-                Copy-Item -LiteralPath $resultPath -Destination $artifactPath
+    $inputDirectory = Join-Path $runPath 'Tripo'
+    try {
+        $testInputs = & "$PSScriptRoot/prepare-unity-test-inputs.ps1" `
+            -ProjectPath $projectPath -OutputPath $inputDirectory
+        $env:TRIPO_REVIEW_BLENDER = $testInputs.Blender
+        $env:TRIPO_REVIEW_MODEL = $testInputs.Model
+        $env:TRIPO_REVIEW_OUTPUT = $testInputs.Reports
+        $env:TRIPO_MATERIAL_TEST_FBX = $testInputs.MaterialModel
+        foreach ($testPlatform in @('EditMode', 'PlayMode')) {
+            $resultPath = Join-Path $runPath "$testPlatform.xml"
+            try {
+                Invoke-Unity -RunName $testPlatform -AdditionalArguments @(
+                    '-runTests', '-testPlatform', $testPlatform,
+                    '-testResults', ('"{0}"' -f $resultPath)
+                )
+                $testRun = Read-UnityTestResults -ResultPath $resultPath -TestPlatform $testPlatform
+                Write-Host "$testPlatform results: passed=$($testRun.passed), skipped=$($testRun.skipped), failed=$($testRun.failed)"
             }
+            finally {
+                if (Test-Path -LiteralPath $resultPath) {
+                    Copy-Item -LiteralPath $resultPath -Destination $artifactPath
+                }
+            }
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $inputDirectory) {
+            $inputArtifacts = Join-Path $artifactPath 'Tripo'
+            New-Item -ItemType Directory -Path $inputArtifacts -Force | Out-Null
+            Get-ChildItem -LiteralPath $inputDirectory |
+                Copy-Item -Destination $inputArtifacts -Recurse -Force
         }
     }
 }

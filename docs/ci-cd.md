@@ -81,6 +81,8 @@ python infra/scripts/deployment_plan.py \
 
 일반 문서는 앱 빌드·배포를 생략합니다. `ai/feedback/prompts/`의 Markdown은 AI 실행 자산이므로 AI 검사와 이미지 빌드를 선택합니다. 테스트만 바꾸면 해당 영역 검사만 선택하고, API 명세·공통 CI 변경은 관련 전체 검사를 선택합니다. Compose 변경은 기존 이미지를 유지하며 전체 검사와 실행 구성 반영을 선택합니다. Dockerfile·Web 응답 설정 변경은 해당 이미지의 빌드를 선택합니다. 공유 호스트 Nginx는 검사 대상으로만 처리하며 자동으로 덮어쓰지 않습니다.
 
+`infra/scripts/prepare-unity-test-inputs.ps1`과 `infra/tests/tripo/`는 Unity 테스트의 실행 입력이므로 인프라와 Unity 검사를 함께 선택합니다. 테스트 입력만 바뀌면 앱 이미지는 재빌드하지 않습니다. Blender·생성 FBX의 준비와 미실행 판정은 [Windows Unity Runner](unity/windows-runner.md#blender와-fbx-테스트-입력)를 따릅니다.
+
 판정 도구는 `infra:deployment-plan-tests` 작업에서 임시 Git 저장소를 사용해 검증합니다. 로컬에서도 다음 명령으로 실행할 수 있습니다.
 
 ```bash

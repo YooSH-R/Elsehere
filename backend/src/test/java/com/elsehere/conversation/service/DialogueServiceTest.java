@@ -46,6 +46,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   ConversationService.class,
   TurnService.class,
   SpeechService.class,
+  TurnHelpService.class,
   ConversationSupport.class,
   NpcAudioStore.class,
   WorkerNpcs.class,

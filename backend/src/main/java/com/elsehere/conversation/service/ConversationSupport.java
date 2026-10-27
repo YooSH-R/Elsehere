@@ -73,9 +73,32 @@ class ConversationSupport {
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
+  /** 다른 사용자의 턴과 사용자 턴은 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다. */
+  Turn ownedNpcTurn(Long userId, Long turnId) {
+    Turn turn =
+        turnRepository
+            .findById(turnId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (turn.getSpeaker() != Speaker.NPC || !turn.getConversation().getUserId().equals(userId)) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    return turn;
+  }
+
   /** 워커에 보낼 앞선 대화. 최근 줄만 보낸다. */
   List<WorkerLine> history(Long conversationId) {
-    List<Turn> turns = turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId);
+    return recentLines(turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId));
+  }
+
+  /** 워커에 보낼 앞선 대화 중 seq번째 턴까지. 힌트처럼 지난 NPC 대사에 대답할 말을 만들 때 쓴다. */
+  List<WorkerLine> historyUntil(Long conversationId, int seq) {
+    return recentLines(
+        turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId).stream()
+            .filter(turn -> turn.getSeq() <= seq)
+            .toList());
+  }
+
+  private static List<WorkerLine> recentLines(List<Turn> turns) {
     return turns.subList(Math.max(0, turns.size() - HISTORY_LIMIT), turns.size()).stream()
         .map(
             turn ->

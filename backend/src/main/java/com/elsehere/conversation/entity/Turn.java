@@ -131,4 +131,18 @@ public class Turn extends BaseEntity {
   public void attachNpcAudio(String npcAudioKey) {
     this.npcAudioKey = npcAudioKey;
   }
+
+  /**
+   * @param glossary 단어 풀이 JSON 배열
+   */
+  public void attachMeaning(String meaningKo, String glossary) {
+    this.meaningKo = meaningKo;
+    this.glossary = glossary;
+  }
+
+  /** 처음 연 힌트를 저장한다. 연 시각은 힌트 사용 기록이다. */
+  public void openHint(String hintText, Instant openedAt) {
+    this.hintText = hintText;
+    this.hintOpenedAt = openedAt;
+  }
 }

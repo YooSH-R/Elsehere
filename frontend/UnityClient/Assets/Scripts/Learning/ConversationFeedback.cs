@@ -73,7 +73,9 @@ namespace A305.Learning
             FeedbackData summary = server.Summary;
             if (summary == null)
             {
-                feedback.Summary = "피드백을 받지 못했어요. " + server.FailureMessage;
+                feedback.Summary = string.IsNullOrEmpty(server.FailureMessage)
+                    ? "피드백을 받지 못했어요."
+                    : "피드백을 받지 못했어요. " + server.FailureMessage;
                 return feedback;
             }
 
@@ -100,12 +102,13 @@ namespace A305.Learning
                 feedback.notes.Add("아쉬워요 · " + improve);
             }
 
+            // 서버는 개선 표현의 뜻을 주지 않는다. [표현 저장]이 뜻 자리에 내가 한 말을 저장하지 않도록 뜻은 비우고, 내가 한 말은 권하는 이유로 둔다.
             if (summary.Suggestion != null)
             {
                 feedback.NextExpression = new ReferenceExpression(
                     summary.Suggestion.BetterText,
-                    "내가 한 말 · " + summary.Suggestion.UserText,
-                    null
+                    "",
+                    "내가 한 말 · " + summary.Suggestion.UserText
                 );
             }
 

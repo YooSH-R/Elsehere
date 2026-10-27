@@ -17,6 +17,8 @@ import com.elsehere.world.repository.NpcRepository;
 import com.elsehere.world.repository.SceneRepository;
 import com.elsehere.world.repository.WorldObjectRepository;
 import jakarta.persistence.EntityManager;
+import java.io.IOException;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,8 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
+import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -88,11 +92,13 @@ class WorldSeedLoaderTest {
 
   @Test
   @DisplayName("사물 어휘는 미리 등록한 영어 단어이며 예문과 예문 뜻을 가진다")
-  void load_insertsMasterWordsWithExamples() {
+  void load_insertsMasterWordsWithExamples() throws IOException {
     worldSeedLoader.load();
+    var expectedWords = catalog().words();
+    var actualWords = vocabularyRepository.findAll();
 
-    assertThat(vocabularyRepository.findAll())
-        .hasSize(8)
+    assertThat(actualWords)
+        .hasSize(expectedWords.size())
         .allSatisfy(
             vocabulary -> {
               assertThat(vocabulary.getLanguageCode()).isEqualTo("en-US");
@@ -101,6 +107,25 @@ class WorldSeedLoaderTest {
               assertThat(vocabulary.getExample()).isNotBlank();
               assertThat(vocabulary.getExampleKo()).isNotBlank();
             });
+    for (CatalogWord word : expectedWords) {
+      assertThat(actualWords)
+          .filteredOn(
+              vocabulary ->
+                  vocabulary.getLanguageCode().equals(word.languageCode())
+                      && vocabulary.getText().equals(word.text()))
+          .singleElement()
+          .satisfies(
+              vocabulary -> {
+                assertThat(vocabulary.getMeaningKo()).isEqualTo(word.meaningKo());
+                assertThat(vocabulary.getExample()).isEqualTo(word.example());
+                assertThat(vocabulary.getExampleKo()).isEqualTo(word.exampleKo());
+                assertThat(vocabulary.getPronunciationAudioKey())
+                    .isEqualTo(
+                        word.pronunciationAudioKey().isBlank()
+                            ? null
+                            : word.pronunciationAudioKey());
+              });
+    }
   }
 
   @Test
@@ -148,12 +173,12 @@ class WorldSeedLoaderTest {
 
   @Test
   @DisplayName("서버를 다시 시작해 두 번 실행해도 행이 늘지 않는다")
-  void loadTwice_doesNotDuplicateRows() {
+  void loadTwice_doesNotDuplicateRows() throws IOException {
     worldSeedLoader.load();
     worldSeedLoader.load();
 
     assertThat(sceneRepository.count()).isEqualTo(4);
-    assertThat(vocabularyRepository.count()).isEqualTo(8);
+    assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(worldObjectRepository.count()).isEqualTo(8);
     assertThat(npcRepository.count()).isEqualTo(3);
     assertThat(missionRepository.count()).isEqualTo(2);
@@ -179,4 +204,21 @@ class WorldSeedLoaderTest {
               assertThat(cafe.isOpen()).isTrue();
             });
   }
+
+  private Catalog catalog() throws IOException {
+    try (var input = new ClassPathResource("content/object-words.json").getInputStream()) {
+      return new JsonMapper().readValue(input, Catalog.class);
+    }
+  }
+
+  private record Catalog(List<CatalogWord> words) {}
+
+  private record CatalogWord(
+      String key,
+      String languageCode,
+      String text,
+      String meaningKo,
+      String example,
+      String exampleKo,
+      String pronunciationAudioKey) {}
 }

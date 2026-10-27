@@ -224,13 +224,20 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 | Unity 배치·연출에만 쓰는 콘텐츠 설정 | 데이터 에셋 | NPC 순찰 경로, 장소의 출입·도착 지점 |
 | 해당 프리팹의 구성에만 의미 있는 값 | 프리팹의 Inspector 필드 | 자식 객체 참조, 콜라이더 크기, Animator 연결 |
 | 실행 중 바뀌는 상태 | 컴포넌트·일반 C# 클래스의 필드 | 현재 대화 차례, 남은 대기 시간 |
-| 서버가 관리하는 마스터 데이터 | API 응답. Unity에는 연결 키만 둠 | NPC 이름·성격, 장소 이름, 사물의 단어·뜻, 미션 내용 |
+| Unity에서 작성하는 공용 사물 콘텐츠 | 데이터 에셋에서 편집하고 백엔드로 내보냄 | 단어·뜻·예문, 가구별 세부 영역 |
+| 서버가 관리하는 마스터 데이터 | API 응답. Unity에는 연결 키만 둠 | NPC 이름·성격, 장소 이름, 미션 내용 |
 | 서버·AI가 결정하는 값 | API 응답 | NPC 응답 문장, 학습 피드백, 저장된 학습 기록 |
 | 비밀값 | Unity 프로젝트에 두지 않음 | API 키, 토큰 |
 
-데이터 에셋은 Unity에서 배치·개수·수치를 조정하는 값이고, [ERD](../erd.dbml)의 데이터는 서버가 저장하고 API로 주고받는 값입니다. 두 곳은 ERD의 연결 키로 같은 대상을 가리킵니다. 장면은 `scenes.unity_key`, NPC는 `npcs.code`, 사물은 `world_objects.unity_key`를 프리팹·데이터 에셋에 둡니다. 이름·뜻처럼 서버가 관리하는 값은 데이터 에셋에 복사하지 않습니다. 같은 값을 두 곳에 두면 서로 어긋나기 때문입니다.
+데이터 에셋은 Unity에서 배치·개수·수치와 공용 콘텐츠를 편집하는 곳이고, [ERD](../erd.dbml)의 데이터는 서버가 저장하고 API로 주고받는 값입니다. 장면은 `scenes.unity_key`, NPC는 `npcs.code`를 연결 키로 사용합니다. 사물 프리팹에는 `HoverableObject.Word`로 공용 `ObjectWordDefinition` 에셋을 연결합니다. 같은 단어를 사용하는 여러 프리팹과 배치가 에셋을 공유하며, 배치마다 식별자를 입력하지 않습니다.
+
+사물 단어의 편집 원본은 `Assets/Data/ObjectHover/Words/`의 공용 에셋입니다. Inspector에서 단어·뜻·영문 예문·예문 해석·발음 파일 키를 편집합니다. 내부 공용 키는 도구가 관리하고, 새 에셋을 복제하면 다른 키가 부여됩니다. `SharedObjectWords.asset`은 이 에셋들의 참조 목록입니다. **Tools → A305 → ObjectHover → Export Backend Data**로 백엔드의 `content/object-words.json`, `content/object-word-bindings.json`, SQL 어휘 구간을 생성합니다. **Check Backend Export**는 내용과 연결 누락을 검사합니다. Editor가 닫혀 있으면 `infra/scripts/sync-object-words.ps1`과 `-Check`를 사용할 수 있습니다. 생성 파일은 따로 편집하지 않습니다. 사용자별 저장·숨김 상태는 단어 원본에 포함하지 않으며, 현재 미리보기는 기존 검수 조건에 맞춰 TV만 저장된 단어로 표시합니다.
+
+새 사물을 배치할 때는 기존 공용 에셋을 재사용합니다. 새 단어는 **Assets → Create → A305 → Object Hover → Word**로 만들고 필수 내용을 채웁니다. 프리팹의 Word에 에셋을 지정하거나 `ObjectWordBindings.json`에 이름과 내부 공용 키를 등록하면 Builder가 연결합니다. `BuilderTools`로 저장할 때 이미 지정한 Word 참조는 유지하며 호버 전용 Trigger를 맞춥니다. 이동용 Collider와 메시·배치는 유지합니다. 디자인 완료 전 **Tools → A305 → ObjectHover → Register All Scene Words**를 실행합니다. 이 도구는 집·카페·호텔·마을의 활성 환경 MeshRenderer에 연결이 빠졌는지 검사하고 백엔드 파일을 내보냅니다. 같은 단어를 쓰는 다른 인스턴스로 포인터를 옮겨도 표시 대기 시간은 다시 시작합니다.
 
 WebGL 빌드에 포함된 코드와 데이터 에셋은 사용자가 내려받아 확인할 수 있습니다. 비밀값과 공개하면 안 되는 정보는 클라이언트에 넣지 않습니다.
+
+호버의 조절값은 `Data/ObjectHover/ObjectHoverSettings.asset`에 모읍니다. 가구별 세부 영역·단어 연결도 `Data/ObjectHover/Parts/` 에셋에 두며 프리팹에는 참조만 지정합니다. 큰 가구의 등록 여부만 확인하지 않고 베개·이불·화분·싱크대처럼 의미 있는 부분의 가까운 거리 호버도 검수합니다.
 
 ### 작성 규칙
 

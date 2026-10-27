@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.ObjectHover"
+        "A305.ObjectHover",
+        "A305.EditorTools"
     ],
     "includePlatforms": [
         "Editor"

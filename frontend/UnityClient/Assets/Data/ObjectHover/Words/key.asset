@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: key
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: key
+    languageCode: en-US
+    text: key
+    meaningKo: "\uC5F4\uC1E0"
+    example: May I have my room key?
+    exampleKo: "\uC81C \uAC1D\uC2E4 \uC5F4\uC1E0\uB97C \uBC1B\uC744 \uC218 \uC788\uC744\uAE4C\uC694?"
+    pronunciationAudioKey: 
+  assetGuid: 8d2ddc3d79b4ac44e80044fc90e74386

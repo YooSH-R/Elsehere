@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: shop
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: shop
+    languageCode: en-US
+    text: shop
+    meaningKo: "\uAC00\uAC8C"
+    example: The shop opens at nine.
+    exampleKo: "\uADF8 \uAC00\uAC8C\uB294 \uC544\uD649 \uC2DC\uC5D0 \uBB38\uC744
+      \uC5F4\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 292d94fd1136697459fffaa9690c2350

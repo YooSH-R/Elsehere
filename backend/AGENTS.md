@@ -17,6 +17,7 @@
 - `saved_at`, `started_at`처럼 업무에 쓰는 시각은 `created_at`과 별도 컬럼으로 두고, 값을 넣는 코드에서 `Clock` 기준으로 채웁니다.
 - 새 테이블의 엔티티를 만들면 `EntitySchemaTest`의 테이블 목록에 추가합니다.
 - 장소·NPC·사물·어휘·미션 같은 기본 데이터는 `src/main/resources/db/seed/world.sql`에 추가합니다. 방식은 [백엔드 README](README.md#시드-데이터)를 따릅니다.
+- 공용 사물 어휘의 편집 원본은 `frontend/UnityClient/Assets/Data/ObjectHover/Words/`의 Unity 에셋입니다. Unity의 `Tools/A305/ObjectHover/Export Backend Data` 또는 저장소 루트의 `infra/scripts/sync-object-words.ps1`로 `content/object-words.json`, `content/object-word-bindings.json`, SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 생성 파일은 직접 편집하지 않습니다. `-Check`는 Unity Editor로 에셋과 생성 결과를 비교합니다. 씬·프리팹 연결 JSON은 서버 연동용 전달 자료이며 현재 시드 로더가 읽는 파일은 SQL입니다.
 
 ## 인증과 오류
 

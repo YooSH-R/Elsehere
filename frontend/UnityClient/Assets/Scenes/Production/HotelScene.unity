@@ -679,7 +679,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectHoverController
   settings: {fileID: 11400000, guid: dd7aa012417d9a84eb6fcb9c5e3f6fd3, type: 2}
-  wordSource: {fileID: 11400000, guid: 9cf6140cdbc735e44b2f6e355f5a5c0c, type: 2}
+  wordSource: {fileID: 11400000, guid: 28105cb20c0019040978bef1a0462186, type: 2}
   viewCamera: {fileID: 831445373}
   player: {fileID: 739269365}
   tooltip: {fileID: 1805006425}

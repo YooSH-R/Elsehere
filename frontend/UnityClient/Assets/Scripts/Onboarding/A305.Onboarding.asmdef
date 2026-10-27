@@ -3,6 +3,7 @@
     "rootNamespace": "A305.Onboarding",
     "references": [
         "A305.Api",
+        "A305.Player",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

@@ -18,6 +18,17 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task BootstrapRetainsTheAccountCharacterForEnteringTheWorld()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.AvatarType = AvatarType.M;
+
+            await flow.StartAsync();
+
+            Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
         public async Task StartWithoutLogin_ShowsLogin()
         {
             api.BootstrapError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
@@ -250,6 +261,30 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Login));
         }
 
+        [Test]
+        public async Task SignupRetainsTheCharacterConfirmedByTheServer()
+        {
+            await StartAtSignup();
+            flow.SignupForm.SelectAvatar(AvatarType.M);
+            await flow.SubmitSignupAsync();
+            Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public async Task ExpiredSessionClearsThePreviousAccountsCharacter()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Language, null);
+            api.Bootstrap.User.AvatarType = AvatarType.M;
+            await flow.StartAsync();
+            api.ChooseLanguageError = new ApiException(
+                "UNAUTHENTICATED",
+                401,
+                "로그인이 필요합니다."
+            );
+            await flow.ChooseLanguageAsync("en-US");
+            Assert.That(flow.SelectedAvatar, Is.Null);
+        }
+
         private async Task StartAtSignup()
         {
             api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
@@ -396,7 +431,11 @@ namespace A305.Onboarding.Tests
                 return Task.FromResult(
                     new SignupResponse
                     {
-                        User = new OnboardingUser { OnboardingStep = OnboardingStep.Language },
+                        User = new OnboardingUser
+                        {
+                            OnboardingStep = OnboardingStep.Language,
+                            AvatarType = request.AvatarType,
+                        },
                     }
                 );
             }

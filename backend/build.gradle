@@ -46,6 +46,10 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+tasks.named('bootJar') {
+	archiveFileName = 'app.jar'
+}
+
 // 포맷은 Spotless(google-java-format)가 맡고, Checkstyle은 포매터가 다루지 않는 규칙만 검사한다.
 // 두 검사 모두 check 작업에 연결되어 ./gradlew check 한 번으로 포맷·규칙·테스트를 확인한다.
 spotless {

@@ -6,14 +6,14 @@
 
 개발 환경에는 실제 앱을 수동 배포했고 운영은 환경 확인용 서비스를 유지합니다. 접속 주소와 환경별 용도는 [프로젝트 README](../README.md#실행-환경과-접속-주소)를 따릅니다. Nginx·HTTPS와 서버 내부·독립 외부 감시를 운영합니다. 이 문서는 팀의 검사·배포 정책을 정의하며 자동 배포의 완료 기록을 대신하지 않습니다.
 
-저장소의 CI 설정과 연결된 Runner는 자동 검사를 실행합니다. dev 자동 배포는 별도 구현·연결 시험 중이며 실제 성공 배포를 확인하기 전까지 수동 배포 상태로 관리합니다. 앱 교체 시 [관측 운영 문서](observability.md)의 관리 포트·수집 인증·추가 Compose·로그 설정을 보존합니다.
+저장소의 CI 설정과 연결된 Runner는 자동 검사를 실행합니다. dev 자동 배포는 별도 구현·연결 시험 중이며 실제 성공 배포를 확인하기 전까지 수동 배포 상태로 관리합니다. 앱 교체 시 [관측 운영 문서](observability.md)의 관리 포트·수집 인증·추가 Compose·로그 설정을 보존합니다. 설치와 누적 판정·모니터링 보존·실패 복구·재실행은 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다.
 
-현재 자동 검사는 백엔드 검사·빌드, Unity 포맷, AI 코드 검사·단위 테스트와 적용 가능한 인프라 문법 검사를 수행합니다. 실행 조건과 산출물은 [검사 파이프라인 문서](ci-runner.md)를 따릅니다. Unity Editor·WebGL 빌드와 실제 앱용 Dockerfile·Compose·자동 배포는 해당 구현 범위에서 검증해 연결합니다.
+현재 검사 설정에는 백엔드 검사·빌드, Unity 포맷, AI 검사·단위 테스트, 인프라 문법·누적 배포 판정과 실제 앱 컨테이너 실행 검사가 포함됩니다. dev 배포용 자식 파이프라인은 마지막 성공 배포를 기준으로 검사를 선택하고, 필요한 Unity Editor 검사·WebGL 빌드는 Windows 노트북 전용 Runner에서 수행합니다. 일반 MR과 보호된 후보의 수동 시험도 유지합니다. 실행 조건과 산출물은 [검사 파이프라인 문서](ci-runner.md)를 따릅니다.
 
 - 개발 배포 대상: `dev`, Compose 프로젝트 `a305-dev`.
 - 운영 배포 대상: `main`, Compose 프로젝트 `a305-prod`.
 - 초기 운영 배포는 필수 검증 성공 후 Maintainer가 수동 실행합니다.
-- 브랜치·리뷰·릴리스 절차는 [협업 규칙](development.md)을 따릅니다. 서버 운영 문서와 CI 실행 설정은 관련 인프라 이슈에서 관리합니다.
+- 환경 분리와 앱 교체는 [배포 문서](deployment.md), 서버 점검은 [운영 문서](server-operations.md)를 따릅니다. 브랜치·리뷰·릴리스 절차는 [협업 규칙](development.md)을 따릅니다.
 
 ## 1. 변경 영역별 기본 검증과 배포
 
@@ -65,6 +65,27 @@ MR 작업 선택에는 GitLab의 `rules:changes`를 사용합니다. MR에서는
 GitLab의 작업 규칙은 작업 실행 전에 평가됩니다. 선행 작업이 만든 환경 변수로 이미 결정된 `rules`를 바꾸는 방식으로 구현하지 않습니다. 누적 판정 결과와 후속 작업의 연결 방식은 CI 구현에서 명시합니다. [GitLab 규칙 평가 시점](https://docs.gitlab.com/ci/jobs/job_rules/)
 
 검사 선택과 실제 배포 대상이 달라지는 경우를 CI 구현 시 시험합니다. 최소한 문서만 변경, 영역 하나 변경, 공통 API 변경, 이전 배포 실패 후 문서 변경의 네 경우를 확인합니다.
+
+### 누적 변경 판정 도구
+
+`infra/scripts/deployment_plan.py`는 마지막 성공 배포의 전체 커밋 SHA와 후보 SHA를 받아 필요한 검사(`checks`), 새 이미지(`builds`), 앱 반영 여부(`deploy`)를 JSON으로 출력합니다. 성공 기록은 배포 후 점검을 통과한 기록만 입력합니다. 이 도구 자체는 서버에 접속하거나 앱을 배포하거나 성공 기록을 갱신하지 않습니다. 자동 배포 작업에서 판정 결과를 후속 검사·빌드와 연결해야 합니다.
+
+```bash
+python infra/scripts/deployment_plan.py \
+  --base "$LAST_SUCCESSFUL_COMMIT" \
+  --candidate "$CI_COMMIT_SHA" \
+  --output dist/deployment-plan.json
+```
+
+첫 배포에는 `--base`를 생략합니다. 성공 기록의 Git 이력을 찾을 수 없거나 후보의 조상이 아니면 전체 앱의 검사와 이미지 빌드를 선택합니다. 후보 자체가 유효한 전체 SHA가 아니면 실패합니다. 전체 Git 이력을 준비하여 비교 이력이 누락되지 않게 합니다.
+
+일반 문서는 앱 빌드·배포를 생략합니다. `ai/feedback/prompts/`의 Markdown은 AI 실행 자산이므로 AI 검사와 이미지 빌드를 선택합니다. 테스트만 바꾸면 해당 영역 검사만 선택하고, API 명세·공통 CI 변경은 관련 전체 검사를 선택합니다. Compose 변경은 기존 이미지를 유지하며 전체 검사와 실행 구성 반영을 선택합니다. Dockerfile·Web 응답 설정 변경은 해당 이미지의 빌드를 선택합니다. 공유 호스트 Nginx는 검사 대상으로만 처리하며 자동으로 덮어쓰지 않습니다.
+
+판정 도구는 `infra:deployment-plan-tests` 작업에서 임시 Git 저장소를 사용해 검증합니다. 로컬에서도 다음 명령으로 실행할 수 있습니다.
+
+```bash
+PYTHONPATH=infra/scripts python -m unittest discover -s infra/scripts/tests -v
+```
 
 ## 3. 공통 API 변경 판정과 검증
 

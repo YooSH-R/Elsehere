@@ -88,6 +88,8 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [AI 공통 검사와 테스트](ai/README.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
 - [Jira와 GitLab 연동](docs/jira-integration.md)
+- [단일 서버의 개발·운영 구성](docs/deployment.md)
+- [개발·운영 서버 운영 방법](docs/server-operations.md)
 - [일반 MR 템플릿](.gitlab/merge_request_templates/Default.md)
 - [릴리스 MR 템플릿](.gitlab/merge_request_templates/Release.md)
 - [검사 파이프라인과 Runner 연결](docs/ci-runner.md)

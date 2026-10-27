@@ -9,7 +9,7 @@ ELSEHERE 서비스 API 서버입니다. API는 [MVP API 명세](../docs/api/mvp-
 | 언어 | Java 21 (Gradle 툴체인으로 고정) |
 | 프레임워크 | Spring Boot 4.1.1 |
 | 빌드 | Gradle 9.8.2 Wrapper, Groovy DSL |
-| 주요 의존성 | Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Lombok, PostgreSQL 드라이버 |
+| 주요 의존성 | Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Actuator, Lombok, PostgreSQL 드라이버 |
 | 테스트 DB | Testcontainers PostgreSQL 16 (Docker 필요) |
 | 포맷 | Spotless 8.9.0 + google-java-format 1.28.0 (Google Java Style, 들여쓰기 2칸) |
 | 규칙 검사 | Checkstyle 14.3.0 ([설정](config/checkstyle/checkstyle.xml)) |
@@ -62,6 +62,16 @@ com.elsehere
 - NPC 대화·피드백·기억 카드는 AI 워커([계약](../docs/api/ai-worker.md))를 부릅니다. 워커 주소는 `AI_WORKER_BASE_URL`(기본 `http://localhost:8020`), 내부 토큰은 `AI_WORKER_TOKEN`으로 지정하며 워커의 `AI_WORKER_TOKEN`과 같은 값이어야 합니다. 토큰은 비밀값이므로 저장소에 넣지 않습니다.
 - NPC 턴 음성(WAV)은 `NPC_AUDIO_DIR`(기본 `./data/npc-audio`) 폴더에 저장합니다. 컨테이너로 실행하면 재시작 뒤에도 남도록 컨테이너 밖 볼륨으로 연결합니다.
 - IDE에서 프로젝트를 열 때는 `backend/` 폴더를 Gradle 프로젝트로 엽니다.
+
+## 상태 확인과 배포 산출물
+
+`GET /api/health`는 인증 없이 앱과 DB 상태를 확인합니다. 정상 응답은 `{"status":"UP"}`이며 세부 연결 정보와 다른 관리 엔드포인트는 노출하지 않습니다. 다른 API 경로의 기존 인증 요구와 CSRF 설정은 유지합니다. 기능 담당자가 Security 설정을 추가할 때도 이 접근 경계를 보존하고 `HealthEndpointTest`로 확인합니다.
+
+`./gradlew check bootJar`가 검사·테스트와 실행 파일 `build/libs/app.jar`를 생성합니다. Docker 이미지는 이 파일을 받아 실행하며 이미지 생성 단계와 서버에서 JAR를 다시 빌드하지 않습니다.
+
+## NPC 음성 파일 저장
+
+NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
 
 ## 스키마 관리
 

@@ -63,6 +63,9 @@ public class SecurityConfig {
                     // 가입(AUTH-03·04)은 로그인 전 단계다. 가입 대기 여부는 컨트롤러가 확인한다.
                     .requestMatchers("/api/v1/auth/signup")
                     .permitAll()
+                    // 게스트로 시작하기(AUTH-07)는 로그인 전에 부른다.
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/guest")
+                    .permitAll()
                     // 접속 상태 조회(BOOT-01)는 가입 대기 사용자도 호출한다. 로그인 상태는 컨트롤러가 구분한다.
                     .requestMatchers(HttpMethod.GET, "/api/v1/bootstrap")
                     .permitAll()

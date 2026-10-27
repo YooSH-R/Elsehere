@@ -11,3 +11,4 @@
 | Tiny Treats Pretty Park 1.0 — Isa Lousberg | `TinyTreats/PrettyPark/` | [공식 배포](https://tinytreats.itch.io/pretty-park) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 5개와 원본 atlas 텍스처 |
 
 Tiny Treats 원본 모델과 텍스처는 수정하지 않는다. Elsehere용 URP 재질은 `Assets/Art/World/TinyTreats/`, 크기·피벗·콜라이더를 조절한 중첩 프리팹은 `Assets/Prefabs/World/TinyTreats/`에 둔다. 무료 배포 모델을 사용하며 유료 Blender 원본이나 데모 프로젝트는 포함하지 않는다.
+| Mixamo Walk, Run, Jump | `MixamoLocomotion/` | 기존 King Parade 프로젝트의 Mixamo 다운로드본. [Adobe 사용 안내](https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html) | 게임 내 상업·비상업 이용 가능. 원본을 독립 에셋 상품으로 재배포하지 않음 | Humanoid 이동. Idle은 Jump의 종료 자세에 호흡 변화를 추가한 파생 클립 |

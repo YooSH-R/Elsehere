@@ -1,6 +1,6 @@
 # Elsehere B안 제작 규격 v2
 
-> 이미지·ZIP·검수 기록은 Git에서 제외한 로컬 자료다. 아래 `artifacts/...` 경로는 로컬 보관본을 가리킨다.
+> 선택한 캐릭터 참고 PNG는 `frontend/design/`에서 관리한다. 과거 시안·ZIP·검수 기록의 `artifacts/...` 경로는 Git에서 제외한 로컬 보관본이다.
 
 브릭 메인스트리트 v3-B의 공간감을 구현하기 위한 제작 규격이다. **캐릭터 키는 1.6m로 확정하며, 건물은 폭·깊이·높이를 키운 확대안을 적용한다.** 캐릭터는 리틀 멍 v7의 현재 `tripo-turnaround-v1` 4방향 이미지를 기준으로 제작한다.
 
@@ -84,6 +84,7 @@
 - 원본 B/Cluster의 가운데 모인 이목구비와 양쪽 볼의 넓은 여백을 유지한다. 같은 공통 베이스에서 얼굴 인상·헤어·피부색·복장·표정을 변형하며, 인물마다 별도 전신 리그를 만들지 않는다. A/Wide는 현재 제작 기준이 아니다.
 - 현재 정면은 중앙 이동 전 B의 시선을 복원한 배치다. 둥근 느낌의 눈동자가 각 흰자 안에서 코 쪽에 조금 붙은 위치를 유지하며, 흰자 중앙으로 강제 이동하지 않는다. 후속 작업은 현재 `tripo-turnaround-v1/front.png`를 직접 참고한다. 실제 중립 시선과 시선 애니메이션은 메시와 대화 카메라에서 확인한다.
 - 얼굴 프리셋은 같은 토폴로지의 제한된 변형을 우선한다. 눈·코·입을 무조건 분리 메시로 만들지 않는다. 헤어는 Head 부착점, 움직이는 의상은 같은 베이스의 스킨과 바인드 포즈를 사용한다.
+- 호텔리어 명찰은 캐릭터 왼쪽 가슴의 글자·아이콘 없는 금색 판으로 제작한다. 이름과 직책은 Unity NPC 프리팹에서 TextMeshPro로 연결하고 가슴 본을 따라가는 부착점에 배치한다. 이름을 모델·텍스처에 굽지 않는다. [호텔리어 제작과 이름 연동 프롬프트](../../mascot/little-mung-v7/hotelier-tripo-handoff-prompt.md)
 - 초기 표정: 중립, MouthOpen, MouthRound, MouthWide, BlinkLeft, BlinkRight. 입 내부와 눈꺼풀 변형을 실제 메시에서 검사한다. 이 채널 구성만으로 음성 립싱크가 완성되는 것은 아니다. [Unity Blend Shapes](https://docs.unity3d.com/6000.3/Documentation/Manual/BlendShapes.html)
 - 초기 동작: Idle, Walk, Run, Talk, Wave. 기존 점프 입력을 유지하는 동안 Jump/Fall/Land도 확인한다. Sit은 가구 검증용으로 먼저 시험한다.
 - Humanoid 애니메이션 재사용은 유효한 Avatar가 전제이며, 짧은 팔다리에서 자연스럽게 움직이는지는 별도 확인한다. 본 이름이 같다는 이유만으로 스킨 교체 호환성을 보장하지 않는다. [Unity Retargeting](https://docs.unity3d.com/6000.3/Documentation/Manual/Retargeting.html)
@@ -124,6 +125,6 @@ Sandbox는 낮 Directional Light 하나(회전 48°, -35°, 0°, 강도 1.7)와 
 
 ## 7. 저장 위치와 적용 범위
 
-제작 문서·프롬프트는 `docs/design/elsehere/`, 생성 시안은 `artifacts/`에 둔다. Unity 원본 외부 에셋은 `Assets/ThirdParty/<에셋 이름>/`, 팀 가공 결과는 `Assets/Art/<기능>/`, 기능 프리팹은 `Assets/Prefabs/<기능>/`, 조절 설정은 `Assets/Data/<기능>/` 규약을 따른다. 공통 인물과 공유 건축은 `Assets/Art/Common/` 후보로 묶는다.
+제작 문서·프롬프트는 `docs/design/elsehere/`, 선택한 캐릭터 참고 PNG는 `frontend/design/`, Git에서 제외하는 생성 시안은 `artifacts/`에 둔다. Unity 원본 외부 에셋은 `Assets/ThirdParty/<에셋 이름>/`, 팀 가공 결과는 `Assets/Art/<기능>/`, 기능 프리팹은 `Assets/Prefabs/<기능>/`, 조절 설정은 `Assets/Data/<기능>/` 규약을 따른다. 공통 인물과 공유 건축은 `Assets/Art/Common/` 후보로 묶는다.
 
 최신 [MVP 기능 범위](../../../../A305_기획안/3D%20AI%20언어학습%20서비스%20—%20MVP%20기능%20범위.md)의 방 튜토리얼·행인 길 안내·카페·숙소 대화를 유지한다. 구체 적용은 [Unity 적용 순서](unity-application-plan.md)와 [Unity 개발 규약](../../../../unity/conventions.md)을 따른다. 메인스트리트는 별도 작업 브랜치의 Unity Sandbox에서 크기 대체물과 외관 모듈로 조립한다. 실제 v7 메시·리그·립싱크, Production 씬 연결과 Web 성능 검증은 별도 단계다.

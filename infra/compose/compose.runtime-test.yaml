@@ -1,0 +1,4 @@
+# Use only with a disposable a305-check-* project and fake provider credentials.
+networks:
+  default:
+    internal: true

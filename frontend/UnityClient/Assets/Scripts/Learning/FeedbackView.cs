@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -76,7 +75,9 @@ namespace A305.Learning
         {
             summaryText.text =
                 $"{feedback.NpcName}와 나눈 대화 · 내 발화 {feedback.UtteranceCount}개\n{feedback.Summary}";
-            bodyText.text = isDetailShown ? FormatDetail() : FormatShort();
+            bodyText.text = isDetailShown
+                ? FeedbackText.Detail(feedback)
+                : FeedbackText.Short(feedback);
             detailButtonLabel.text = isDetailShown ? "요약 보기" : "상세 보기";
             saveButton.interactable = feedback.NextExpression != null;
         }
@@ -94,72 +95,6 @@ namespace A305.Learning
         {
             isDetailShown = !isDetailShown;
             Refresh();
-        }
-
-        private string FormatShort()
-        {
-            var text = new StringBuilder();
-            foreach (string note in feedback.Notes)
-            {
-                text.AppendLine(note);
-            }
-
-            if (feedback.Notes.Count > 0)
-            {
-                text.AppendLine();
-            }
-
-            ReferenceExpression expression = feedback.NextExpression;
-            if (expression == null)
-            {
-                text.AppendLine(
-                    "이번 대화에서는 따로 권할 표현이 없어요. 지금처럼 말해도 자연스러워요."
-                );
-            }
-            else
-            {
-                text.AppendLine("다음 대화에서 활용할 표현");
-                text.AppendLine($"<b>{expression.English}</b>");
-                text.AppendLine(expression.Korean);
-            }
-
-            text.AppendLine();
-            text.Append(
-                feedback.IsFromServer
-                    ? "AI가 대화를 보고 만든 피드백이에요. 점수가 아니라 다음 대화를 위한 참고예요."
-                    : "피드백 예시 · 실제 AI 분석이나 실력 평가가 아니에요."
-            );
-            return text.ToString();
-        }
-
-        private string FormatDetail()
-        {
-            var text = new StringBuilder();
-            for (int i = 0; i < feedback.Reviews.Count; i++)
-            {
-                UtteranceReview review = feedback.Reviews[i];
-                text.AppendLine($"{i + 1:00} 내가 말한 문장 · <b>{review.Utterance}</b>");
-                if (review.Reference == null)
-                {
-                    text.AppendLine("참고 표현 없음 · 지금 문장 그대로도 자연스럽게 전달돼요.");
-                }
-                else
-                {
-                    string korean = string.IsNullOrEmpty(review.Reference.Korean)
-                        ? ""
-                        : $" ({review.Reference.Korean})";
-                    text.AppendLine($"참고 표현 · <b>{review.Reference.English}</b>{korean}");
-                    if (!string.IsNullOrEmpty(review.Reference.Reason))
-                    {
-                        text.AppendLine(review.Reference.Reason);
-                    }
-                }
-
-                text.AppendLine();
-            }
-
-            text.Append("문법 오류나 점수를 매기지 않아요. 상황에 맞는 참고 표현만 보여 드려요.");
-            return text.ToString();
         }
     }
 }

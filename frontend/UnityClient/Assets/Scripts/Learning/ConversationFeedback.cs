@@ -73,7 +73,9 @@ namespace A305.Learning
             FeedbackData summary = server.Summary;
             if (summary == null)
             {
-                feedback.Summary = "피드백을 받지 못했어요. " + server.FailureMessage;
+                feedback.Summary = string.IsNullOrEmpty(server.FailureMessage)
+                    ? "피드백을 받지 못했어요."
+                    : "피드백을 받지 못했어요. " + server.FailureMessage;
                 return feedback;
             }
 
@@ -100,12 +102,13 @@ namespace A305.Learning
                 feedback.notes.Add("아쉬워요 · " + improve);
             }
 
+            // 서버는 개선 표현의 뜻을 주지 않는다. [표현 저장]이 뜻 자리에 내가 한 말을 저장하지 않도록 뜻은 비우고, 내가 한 말은 권하는 이유로 둔다.
             if (summary.Suggestion != null)
             {
                 feedback.NextExpression = new ReferenceExpression(
                     summary.Suggestion.BetterText,
-                    "내가 한 말 · " + summary.Suggestion.UserText,
-                    null
+                    "",
+                    "내가 한 말 · " + summary.Suggestion.UserText
                 );
             }
 
@@ -114,16 +117,23 @@ namespace A305.Learning
                 ReferenceExpression better =
                     item.BetterText == null
                         ? null
-                        : new ReferenceExpression(item.BetterText, IdiomText(item), item.Reason);
-                feedback.reviews.Add(new UtteranceReview(item.UserText, better));
+                        : new ReferenceExpression(item.BetterText, "", item.Reason);
+                // 고칠 표현이 없는 발화도 AI가 평가한 이유를 준다. 그대로 두지 않으면 화면이 AI 평가와 다른 고정 문구를 보여 준다.
+                string comment = better == null ? item.Reason : null;
+                feedback.reviews.Add(
+                    new UtteranceReview(item.UserText, better, comment, IdiomOf(item))
+                );
             }
 
             return feedback;
         }
 
-        private static string IdiomText(DetailedFeedbackItem item)
+        // 회화 표현은 고칠 표현이 없는 발화에도 붙을 수 있어 개선 표현과 따로 둔다.
+        private static ReferenceExpression IdiomOf(DetailedFeedbackItem item)
         {
-            return item.Idiom == null ? "" : $"{item.Idiom.Text}: {item.Idiom.MeaningKo}";
+            return item.Idiom == null
+                ? null
+                : new ReferenceExpression(item.Idiom.Text, item.Idiom.MeaningKo, null);
         }
 
         private static ReferenceExpression FindReference(

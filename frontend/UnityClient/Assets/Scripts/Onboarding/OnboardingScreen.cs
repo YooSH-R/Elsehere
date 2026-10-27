@@ -63,6 +63,7 @@ namespace A305.Onboarding
         private void ConnectPanels()
         {
             loginPanel.GoogleLoginRequested += () => BrowserRedirect.GoTo(api.GoogleLoginUrl);
+            loginPanel.GuestLoginRequested += () => Run(() => flow.GuestLoginAsync());
             loginPanel.DevLoginRequested += () =>
                 Run(() => flow.DevLoginAsync(settings.DevLoginUserId));
 

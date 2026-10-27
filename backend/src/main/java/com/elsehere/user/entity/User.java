@@ -107,4 +107,14 @@ public class User extends BaseEntity {
       this.onboardingStep = OnboardingStep.TUTORIAL;
     }
   }
+
+  /** 튜토리얼을 마치거나 건너뛰어 초기 설정을 끝낸다(TUT-01·02). */
+  public void finishTutorial() {
+    this.onboardingStep = OnboardingStep.DONE;
+  }
+
+  /** 재접속할 장소를 바꾼다(WORLD-05). */
+  public void moveTo(Scene scene) {
+    this.lastScene = scene;
+  }
 }

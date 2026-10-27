@@ -46,7 +46,7 @@ com.elsehere
 | `world` | scenes, npcs, world_objects, user_object_prefs |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions |
-| `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정) |
+| `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
 
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.

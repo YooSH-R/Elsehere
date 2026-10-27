@@ -40,7 +40,7 @@ def check_backend_runtime(docker, compose, environment):
         "backend",
         "sh",
         "-ec",
-        'curl --fail --silent --show-error "$AI_WORKER_URL/health" >/dev/null; '
+        'curl --fail --silent --show-error "$AI_WORKER_BASE_URL/health" >/dev/null; '
         'probe=$(mktemp "$NPC_AUDIO_DIR/.ci-write-check.XXXXXX"); '
         'printf audio-storage-check > "$probe"; rm "$probe"',
         env=environment,

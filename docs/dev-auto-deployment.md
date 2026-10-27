@@ -21,7 +21,7 @@
 - 모니터링 추가 Compose: `/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml`.
 - `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다.
 - 웹 로그 설정의 읽기 전용 마운트, 백엔드 내부 관리 주소와 비공개 포트를 유지합니다.
-- NPC 음성은 백엔드의 쓰기 가능한 `/app/data/npc-audio`에 저장하고 환경별 `npc-audio-data` 볼륨으로 유지합니다. 백엔드의 AI 내부 주소는 `AI_WORKER_URL=http://ai-worker:8020`으로 연결합니다.
+- NPC 음성은 백엔드의 쓰기 가능한 `/app/data/npc-audio`에 저장하고 환경별 `npc-audio-data` 볼륨으로 유지합니다. 백엔드의 AI 내부 주소는 `AI_WORKER_BASE_URL=http://ai-worker:8020`으로 연결합니다.
 - DB 컨테이너·볼륨은 자동 교체하지 않습니다. DB 실행 설정이 달라지면 별도 마이그레이션 절차를 요구합니다.
 - 호스트 Nginx·TLS·운영 확인용 서비스·모니터링 스택은 배포 대상에 포함하지 않습니다. 새 WebGL HTTPS 경로의 브라우저 검증은 HTTPS 운영 작업에서 진행합니다.
 
@@ -62,6 +62,8 @@ python3 /usr/local/lib/a305-dev-deploy/deployment_server.py \
 ```
 
 초기화는 현재 앱·모니터링을 점검하고 `bootstrap.json`만 만듭니다. 아직 CI가 검증·배포한 버전이 아니므로 `last-success.json`을 만들지 않습니다. 이미 초기화된 디렉터리를 다시 초기화하면 실패합니다.
+
+수동으로 앱을 교체한 뒤 자동 배포를 재개할 때는 기존 설정과 상태 디렉터리를 보존합니다. 설치한 설정을 백업하고 `directory`에 새 상태 디렉터리, `initial_compose_file`에 현재 컨테이너의 Compose 실행 경로, `bootstrap_sources`에 실제 이미지의 검증한 소스 SHA를 지정합니다. 모니터링 추가 Compose는 그대로 유지하고 `minimum_backend_commit`도 현재 백엔드의 기준과 맞춥니다. 새 설정으로 `--initialize`와 제한된 SSH의 `state` 조회를 통과한 뒤 새 파이프라인을 실행합니다. 이 재등록은 앱을 교체하지 않으며 수동 배포를 CI 성공으로 기록하지 않습니다.
 
 ## 전용 SSH 키와 GitLab 변수
 

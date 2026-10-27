@@ -1,7 +1,7 @@
 {
   "directory": "/home/ubuntu/apps/a305/dev/deployments",
   "environment_file": "/home/ubuntu/apps/a305/dev/deploy.env",
-  "initial_compose_file": "/home/ubuntu/apps/a305/dev/app-release-495d486a/infra/compose/compose.app.yaml",
+  "initial_compose_file": "REPLACE_WITH_RUNNING_APP_COMPOSE_FILE",
   "overlays": [
     "/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml"
   ],

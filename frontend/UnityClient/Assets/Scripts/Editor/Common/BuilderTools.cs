@@ -19,6 +19,50 @@ namespace A305.EditorTools.Common
     /// </summary>
     public static class BuilderTools
     {
+        public static Vector3 GetCharacterViewDirection(GameObject model, int view)
+        {
+            Vector3 right = model.transform.right;
+            var animator = model.GetComponentInChildren<Animator>(true);
+            if (
+                animator != null
+                && animator.avatar != null
+                && animator.avatar.isValid
+                && animator.avatar.isHuman
+            )
+            {
+                Transform leftLeg = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+                Transform rightLeg = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+                if (leftLeg != null && rightLeg != null)
+                    right = rightLeg.position - leftLeg.position;
+            }
+            right = Vector3.ProjectOnPlane(right, Vector3.up).normalized;
+            if (right.sqrMagnitude < 0.001f)
+                right = Vector3.right;
+            Vector3 front = Vector3.Cross(right, Vector3.up).normalized;
+            switch (Mathf.Clamp(view, 0, 3))
+            {
+                case 1:
+                    return -right;
+                case 2:
+                    return right;
+                case 3:
+                    return -front;
+                default:
+                    return front;
+            }
+        }
+
+        public static float GetModelHeight(GameObject model)
+        {
+            var renderers = model.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0)
+                throw new InvalidOperationException("모델 높이를 계산할 메시가 없습니다.");
+            Bounds bounds = renderers[0].bounds;
+            foreach (var renderer in renderers)
+                bounds.Encapsulate(renderer.bounds);
+            return bounds.size.y;
+        }
+
         public const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
 
         /// <summary>규약의 최상위 그룹 이름. 씬 루트에 이 순서로 둔다.</summary>

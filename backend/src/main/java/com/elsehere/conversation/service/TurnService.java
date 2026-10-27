@@ -4,6 +4,7 @@ import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerLine;
+import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
@@ -16,6 +17,7 @@ import com.elsehere.conversation.dto.TurnResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.memory.service.MemoryService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +47,7 @@ public class TurnService {
   private final ConversationSupport support;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
@@ -72,7 +75,13 @@ public class TurnService {
 
     NpcReply reply =
         aiWorkerClient.reply(
-            trace, context.npc().workerNpc(), context.history(), judge.text(), "", context.level());
+            trace,
+            context.npc().workerNpc(),
+            context.memory(),
+            context.history(),
+            judge.text(),
+            "",
+            context.level());
     aiRequestRecorder.record(
         trace,
         AiRequestKind.NPC,
@@ -139,7 +148,8 @@ public class TurnService {
     return new TurnContext(
         support.npcById(conversation.getNpcId()),
         support.history(conversationId),
-        conversation.getLevelApplied());
+        conversation.getLevelApplied(),
+        memoryService.memoryFor(userId, conversation.getNpcId()));
   }
 
   private TurnResponse response(Conversation conversation, Turn userTurn, Turn npcTurn) {
@@ -150,5 +160,9 @@ public class TurnService {
         List.of());
   }
 
-  private record TurnContext(NpcContext npc, List<WorkerLine> history, int level) {}
+  /**
+   * @param memory 이 NPC와의 이전 대화 기억. 처음 만나면 null
+   */
+  private record TurnContext(
+      NpcContext npc, List<WorkerLine> history, int level, WorkerMemory memory) {}
 }

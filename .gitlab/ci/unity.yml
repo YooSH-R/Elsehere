@@ -1,6 +1,7 @@
 unity:format:
   extends: .linux-job
   stage: verify
+  needs: ["ci:yaml"]
   image: mcr.microsoft.com/dotnet/sdk:10.0.401
   timeout: 10m
   script:

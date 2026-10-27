@@ -13,6 +13,7 @@
 ai:check-and-test:
   extends: .ai-python
   stage: verify
+  needs: ["ci:yaml"]
   timeout: 10m
   script:
     - python -m pip install --disable-pip-version-check -r ai/requirements-dev.txt
@@ -62,6 +63,7 @@ ai:check-and-test:
 ai:panel-tests:
   extends: .linux-job
   stage: verify
+  needs: ["ci:yaml"]
   image: node:22-alpine
   timeout: 3m
   script:

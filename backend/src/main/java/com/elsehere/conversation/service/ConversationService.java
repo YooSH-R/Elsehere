@@ -20,6 +20,8 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.feedback.dto.FeedbackResponse;
+import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -56,6 +58,7 @@ public class ConversationService {
   private final ConversationSupport support;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final FeedbackService feedbackService;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
 
@@ -97,9 +100,17 @@ public class ConversationService {
         });
   }
 
-  /** 대화를 끝낸다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않는다. 종료 피드백은 아직 만들지 않는다. */
+  /** 대화를 끝내고 짧은 피드백을 만든다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않고 피드백만 만든다. 피드백 생성은 대화 종료를 확정한 뒤 트랜잭션 밖에서 한다. */
   public EndConversationResponse end(
       Long userId, Long conversationId, EndConversationRequest request) {
+    EndConversationResponse ended = endConversation(userId, conversationId);
+    FeedbackResponse feedback =
+        feedbackService.feedbackOnEnd(
+            userId, conversationId, request.requestId(), request.skipFeedback());
+    return ended.withFeedback(feedback);
+  }
+
+  private EndConversationResponse endConversation(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
           Conversation conversation = support.ownedConversation(userId, conversationId);

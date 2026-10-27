@@ -52,6 +52,8 @@ class EntitySchemaTest {
             "user_missions",
             "conversations",
             "turns",
-            "ai_requests");
+            "ai_requests",
+            "conversation_feedback",
+            "turn_feedback");
   }
 }

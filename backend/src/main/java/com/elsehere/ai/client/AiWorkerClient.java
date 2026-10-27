@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -40,6 +41,8 @@ public class AiWorkerClient {
   private static final Duration AUDIO_TIMEOUT = Duration.ofSeconds(10);
   private static final Duration STT_TIMEOUT = Duration.ofSeconds(45);
   private static final Duration TTS_TIMEOUT = Duration.ofSeconds(30);
+  // 워커의 피드백 전체 상한(FEEDBACK_TIMEOUT_S, 기본 60초)보다 조금 길게 기다린다.
+  private static final Duration FEEDBACK_TIMEOUT = Duration.ofSeconds(75);
 
   private final HttpClient httpClient =
       HttpClient.newBuilder()
@@ -129,6 +132,33 @@ public class AiWorkerClient {
     HttpRequest request =
         jsonRequest("/v1/tts", trace, TTS_TIMEOUT, new TtsBody(text, voice, speed));
     return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
+  }
+
+  /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
+  public WorkerFeedback feedback(WorkerTrace trace, FeedbackInput input) {
+    HttpResponse<String> response =
+        send(
+            jsonRequest("/v1/feedback", trace, FEEDBACK_TIMEOUT, input),
+            HttpResponse.BodyHandlers.ofString());
+    if (response.statusCode() != 200) {
+      throw toError(response.statusCode(), response.body());
+    }
+    try {
+      FeedbackEnvelope envelope = jsonMapper.readValue(response.body(), FeedbackEnvelope.class);
+      FeedbackBody body = envelope.feedback();
+      if (body == null) {
+        throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+      }
+      JsonNode result = jsonMapper.readTree(response.body()).path("feedback").path("result");
+      return new WorkerFeedback(
+          body.status(),
+          body.problem() == null ? null : body.problem().code(),
+          body.result(),
+          result.isObject() ? jsonMapper.writeValueAsString(result) : null,
+          usageOf(envelope.usage()));
+    } catch (JacksonException exception) {
+      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
+    }
   }
 
   /** 워커 오류 코드를 API 오류 코드로 바꾼다. 스트림 안의 오류 코드에도 쓴다. 명세 0절의 대응을 따른다. */
@@ -303,6 +333,12 @@ public class AiWorkerClient {
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
 
   record WordsEvent(List<String> words) {}
+
+  record FeedbackEnvelope(FeedbackBody feedback, List<WorkerUsage> usage) {}
+
+  record FeedbackBody(String status, WorkerFeedback.Result result, Problem problem) {}
+
+  record Problem(String code) {}
 
   record ErrorBody(ErrorDetail error) {}
 

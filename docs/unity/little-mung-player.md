@@ -6,7 +6,7 @@
 
 - `Assets/Scenes/Production/TownScene.unity`를 열고 Play하면 기본 F 리틀 멍을 조작할 수 있다. 집·카페·호텔도 같은 공용 `Assets/Prefabs/Player/Player.prefab`을 사용한다.
 - 실제 가입·재접속은 `EntryScene`에서 시작한다. 가입의 F/M 선택은 기존 계정 API가 저장하고, `OnboardingFlow`가 가입 응답·bootstrap의 `avatarType`을 보존한다. `OnboardingScreen`이 월드로 넘어가기 전에 `PlayerCharacterSelection`에 전달한다.
-- F는 `LittleMungStairPlayer.prefab`의 검증한 Visual 복사본, M은 기존 `LittleMungV7PlayerVisual.prefab`의 대체 외형 복사본이다. M에는 아직 남성 모델이나 몸 애니메이션이 없다. 이동·점프·카메라·상호작용은 기존대로 동작한다.
+- F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐 높이는 1.4m이므로 외형 크기를 바꿀 때 캡슐·시점·관통도 함께 검수해야 한다. 확대된 외형은 기존 크기의 동작 검증 결과를 그대로 적용할 수 없다. M은 기존 `LittleMungV7PlayerVisual.prefab`의 대체 외형 복사본이다. M에는 아직 남성 모델이나 몸 애니메이션이 없다. 이동·점프·카메라·상호작용은 기존대로 동작한다.
 - `Assets/Data/Player/Characters/Catalog.asset`이 선택 ID와 `F.asset`·`M.asset`을 연결한다. 각 정의는 Visual 프리팹, 이동 설정, 충돌 캡슐 크기를 갖는다. 남성 모델이 준비되면 M 정의의 외형·이동·캡슐 설정을 교체한다. 신규 ID는 서버에서 허용하는 선택값과 가입/설정 UI도 함께 확장해야 한다.
 - `PlayerCharacterAppearance`가 루트를 유지하고 선택 외형만 연결한다. F의 발 골격·신발 스킨·접지·계단·팔 관통 보정을 그대로 재사용한다. `PlayerCharacterVisibility`가 V키 1인칭 및 대화 시점에서 선택 외형만 숨기고 3인칭 복귀 시 다시 보여 준다.
 - 선택값은 씬 이동 동안 유지되며 재접속 때 서버에서 다시 읽는다. Entry 진입·인증 만료 시 이전 계정 선택을 비운다. 씬을 직접 실행해 선택값이 없거나 목록에 없는 ID이면 카탈로그 기본 캐릭터를 사용한다. 계정과 별개인 PlayerPrefs 저장은 하지 않는다.

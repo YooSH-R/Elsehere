@@ -5,6 +5,7 @@
     "profileVersion": 1,
     "name": "Ben",
     "occupation": "businessman in town for work",
+    "ageRange": "late twenties",
     "personality": {
       "traits": [
         {

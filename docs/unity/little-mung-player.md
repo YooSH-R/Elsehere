@@ -1,7 +1,19 @@
 # 리틀 멍 플레이어 확인
 
-이미 생성한 여성 캐릭터를 기존 `PlayerMover`와 `CharacterAnimationDriver`에 연결한 전용 검수 씬이다. 공용 Player 프리팹과 Production 씬에는 반영하지 않는다. 얼굴 표정·립싱크는 [후속 NPC 계획](character-integration-plan.md)에서 다룬다.
+이미 생성한 여성 캐릭터를 기존 `PlayerMover`와 `CharacterAnimationDriver`에 연결한다. 보정된 계단 대응 모델은 공용 Player 프리팹과 집·마을·카페·호텔 Production 씬에서 F 선택 외형으로 사용하며, 전용 Sandbox는 동작 비교용으로 유지한다. 얼굴 표정·립싱크는 [후속 NPC 계획](character-integration-plan.md)에서 다룬다.
 
+## 공용 플레이어와 캐릭터 선택
+
+- `Assets/Scenes/Production/TownScene.unity`를 열고 Play하면 기본 F 리틀 멍을 조작할 수 있다. 집·카페·호텔도 같은 공용 `Assets/Prefabs/Player/Player.prefab`을 사용한다.
+- 실제 가입·재접속은 `EntryScene`에서 시작한다. 가입의 F/M 선택은 기존 계정 API가 저장하고, `OnboardingFlow`가 가입 응답·bootstrap의 `avatarType`을 보존한다. `OnboardingScreen`이 월드로 넘어가기 전에 `PlayerCharacterSelection`에 전달한다.
+- F는 `LittleMungStairPlayer.prefab`의 검증한 Visual 복사본, M은 기존 `LittleMungV7PlayerVisual.prefab`의 대체 외형 복사본이다. M에는 아직 남성 모델이나 몸 애니메이션이 없다. 이동·점프·카메라·상호작용은 기존대로 동작한다.
+- `Assets/Data/Player/Characters/Catalog.asset`이 선택 ID와 `F.asset`·`M.asset`을 연결한다. 각 정의는 Visual 프리팹, 이동 설정, 충돌 캡슐 크기를 갖는다. 남성 모델이 준비되면 M 정의의 외형·이동·캡슐 설정을 교체한다. 신규 ID는 서버에서 허용하는 선택값과 가입/설정 UI도 함께 확장해야 한다.
+- `PlayerCharacterAppearance`가 루트를 유지하고 선택 외형만 연결한다. F의 발 골격·신발 스킨·접지·계단·팔 관통 보정을 그대로 재사용한다. `PlayerCharacterVisibility`가 V키 1인칭 및 대화 시점에서 선택 외형만 숨기고 3인칭 복귀 시 다시 보여 준다.
+- 선택값은 씬 이동 동안 유지되며 재접속 때 서버에서 다시 읽는다. Entry 진입·인증 만료 시 이전 계정 선택을 비운다. 씬을 직접 실행해 선택값이 없거나 목록에 없는 ID이면 카탈로그 기본 캐릭터를 사용한다. 계정과 별개인 PlayerPrefs 저장은 하지 않는다.
+- 새 캐릭터 설정 화면이나 플레이 도중 즉시 외형 변경 기능은 포함하지 않는다. 기존 가입 선택과 로그인 결과를 게임에 적용하는 연결이다.
+- 재연결 메뉴는 **Tools → A305 → Player → Connect Selected Character**다. 공용 Player와 네 공간 씬의 플레이어 연결만 갱신한다. 기존 배경·NPC·카메라 배치와 원본 모델을 유지하고, 이미 등록한 Visual·프로필 에셋을 덮어쓰지 않는다. 전체 월드 Builder를 실행할 필요는 없다.
+
+자동 검증은 F/M의 네 씬 이동, 플레이어·카메라·출입구 참조, 재연결 중복 방지, 걷기·달리기·점프, 이동 잠금, 1인칭/대화 시점의 외형 숨김을 확인한다. 리틀 멍의 팔·손 침범 검사는 스킨 정점과 몸통·머리 범위를 이용한 근사 판정이며 모든 외관 결함이 없다는 보증은 아니다. 실제 브라우저의 입력·프레임 성능과 최종 외관은 별도 확인한다.
 ## 열기와 조작
 
 1. 분리 프로젝트의 `frontend/UnityClient`를 Unity 6000.3.26f1로 연다.

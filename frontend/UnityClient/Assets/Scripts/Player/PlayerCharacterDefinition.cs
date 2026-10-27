@@ -27,6 +27,7 @@ namespace A305.Player
         private float skinWidthMeters = .02f;
 
         public string CharacterId => characterId;
+        public float HeightMeters => heightMeters;
         public GameObject VisualPrefab => visualPrefab;
         public PlayerMovementSettings MovementSettings => movementSettings;
 

@@ -189,8 +189,7 @@ namespace A305.EditorTools.World
                     break;
                 case 7:
                     Require(
-                        player
-                            .transform.Find("TownVisual")
+                        PlayerVisual(player)
                             .GetComponentsInChildren<Renderer>()
                             .All(renderer => renderer.forceRenderingOff),
                         "player visual hidden during dialogue"
@@ -200,8 +199,7 @@ namespace A305.EditorTools.World
                     break;
                 case 8:
                     Require(
-                        player
-                            .transform.Find("TownVisual")
+                        PlayerVisual(player)
                             .GetComponentsInChildren<Renderer>()
                             .All(renderer => !renderer.forceRenderingOff),
                         "player visual restored after dialogue"
@@ -361,6 +359,20 @@ namespace A305.EditorTools.World
             );
         }
 
+        private static Transform PlayerVisual(PlayerMover player)
+        {
+            var appearance = player.GetComponent<PlayerCharacterAppearance>();
+            return appearance != null ? appearance.VisualRoot : player.transform.Find("TownVisual");
+        }
+
+        private static float ExpectedVisualHeight(PlayerMover player)
+        {
+            var appearance = player.GetComponent<PlayerCharacterAppearance>();
+            return appearance != null && appearance.ActiveCharacter.CharacterId == "F"
+                ? 1.4f
+                : 1.6f;
+        }
+
         private static void Audit(Scene scene, PlayerMover player)
         {
             Require(
@@ -392,19 +404,12 @@ namespace A305.EditorTools.World
                     GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject)
                 );
             Require(missing == 0, "no missing scripts");
-            Bounds visual = player
-                .transform.Find("TownVisual")
-                .GetComponentsInChildren<Renderer>()[0]
-                .bounds;
-            foreach (
-                Renderer renderer in player
-                    .transform.Find("TownVisual")
-                    .GetComponentsInChildren<Renderer>()
-            )
+            Bounds visual = PlayerVisual(player).GetComponentsInChildren<Renderer>()[0].bounds;
+            foreach (Renderer renderer in PlayerVisual(player).GetComponentsInChildren<Renderer>())
                 visual.Encapsulate(renderer.bounds);
             Require(
-                Mathf.Abs(visual.size.y - 1.6f) < .04f,
-                "Little Mung v7 visual height 1.6m (actual " + visual.size.y.ToString("F3") + ")"
+                Mathf.Abs(visual.size.y - ExpectedVisualHeight(player)) < .04f,
+                "Selected player visual height (actual " + visual.size.y.ToString("F3") + ")"
             );
             Transform background = TownProductionBuilder
                 .Root(scene, "Environment")

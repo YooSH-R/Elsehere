@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Player;
 using A305.Npc;
 using A305.Player;
 using A305.World;
@@ -300,15 +301,11 @@ namespace A305.EditorTools.World
         {
             PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
             PlayerCameraRig rig = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
-            AttachVisual(player.transform, true);
+            PlayerCharacterBuilder.ConfigurePlayer(player.gameObject, rig);
             player.transform.SetPositionAndRotation(
                 new Vector3(4.8f, .12f, -18.5f),
                 Quaternion.Euler(0, 12, 0)
             );
-            Transform visual = player.transform.Find("TownVisual");
-            var visibility = visual.GetComponent<BlockoutPlayerVisibility>();
-            BuilderTools.SetReference(visibility, "cameraRig", rig);
-            BuilderTools.SetReference(visibility, "visualRoot", visual);
             foreach (NpcIdentity npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))
             {
                 AttachVisual(npc.transform);
@@ -336,18 +333,13 @@ namespace A305.EditorTools.World
             PrefabUtility.RecordPrefabInstancePropertyModifications(camera);
         }
 
-        private static void AttachVisual(Transform character, bool isPlayer = false)
+        private static void AttachVisual(Transform character)
         {
             Transform original = character.Find("Visual");
             if (original != null)
                 original.gameObject.SetActive(false);
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                TownBackgroundKit.Folder
-                    + (
-                        isPlayer
-                            ? "/LittleMungV7PlayerVisual.prefab"
-                            : "/LittleMungV7NpcVisual.prefab"
-                    )
+                TownBackgroundKit.Folder + "/LittleMungV7NpcVisual.prefab"
             );
             GameObject visual = BuilderTools.InstantiatePrefab(
                 prefab,

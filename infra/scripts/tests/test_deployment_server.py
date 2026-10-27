@@ -302,7 +302,7 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertFalse((self.root / "deployments/last-success.json").exists())
 
 
-class GoogleOAuthDeploymentTests(unittest.TestCase):
+class ComposeConfigurationTests(unittest.TestCase):
     def setUp(self):
         self.configuration = {
             "services": {
@@ -313,7 +313,15 @@ class GoogleOAuthDeploymentTests(unittest.TestCase):
                         "MANAGEMENT_ADDRESS": "0.0.0.0",
                         "GOOGLE_CLIENT_ID": "dev-test.apps.googleusercontent.com",
                         "GOOGLE_CLIENT_SECRET": "server-only-google-test-secret",
-                    }
+                        "NPC_AUDIO_DIR": "/app/data/npc-audio",
+                    },
+                    "volumes": [
+                        {
+                            "type": "volume",
+                            "source": "npc-audio-data",
+                            "target": "/app/data/npc-audio",
+                        }
+                    ],
                 },
                 "web": {
                     "ports": [
@@ -328,11 +336,33 @@ class GoogleOAuthDeploymentTests(unittest.TestCase):
                         }
                     ],
                 },
-            }
+            },
+            "volumes": {"npc-audio-data": {"name": "a305-dev_npc-audio-data"}},
         }
         self.runtime = ComposeRuntime({})
+        self.backend_mounts = [
+            {
+                "Type": "volume",
+                "Name": "a305-dev_npc-audio-data",
+                "Destination": "/app/data/npc-audio",
+                "RW": True,
+            }
+        ]
 
     def validate_candidate(self, candidate):
+        def inspect_service(service):
+            if service == "backend":
+                return {"mounts": self.backend_mounts}
+            return {
+                "mounts": [
+                    {
+                        "Type": "bind",
+                        "Source": "/srv/observability-web.conf",
+                        "Destination": "/etc/nginx/conf.d/00-observability.conf",
+                    }
+                ]
+            }
+
         with (
             patch.object(
                 self.runtime,
@@ -342,15 +372,7 @@ class GoogleOAuthDeploymentTests(unittest.TestCase):
             patch.object(
                 self.runtime,
                 "inspect",
-                return_value={
-                    "mounts": [
-                        {
-                            "Type": "bind",
-                            "Source": "/srv/observability-web.conf",
-                            "Destination": "/etc/nginx/conf.d/00-observability.conf",
-                        }
-                    ]
-                },
+                side_effect=inspect_service,
             ),
         ):
             self.runtime.validate("candidate.yaml", "images.env", "previous.yaml")
@@ -390,6 +412,63 @@ class GoogleOAuthDeploymentTests(unittest.TestCase):
 
     def test_server_google_credentials_allow_deployment_validation(self):
         self.validate_candidate(deepcopy(self.configuration))
+
+    def test_missing_audio_mount_rejects_deployment(self):
+        candidate = deepcopy(self.configuration)
+        candidate["services"]["backend"]["volumes"] = []
+
+        with self.assertRaisesRegex(ValueError, "NPC audio"):
+            self.validate_candidate(candidate)
+
+    def test_replaced_or_readonly_audio_mount_rejects_deployment(self):
+        for override in (
+            {"type": "tmpfs"},
+            {"source": "replacement-audio-data"},
+            {"read_only": True},
+        ):
+            with self.subTest(override=override):
+                candidate = deepcopy(self.configuration)
+                candidate["services"]["backend"]["volumes"][0].update(override)
+
+                with self.assertRaisesRegex(ValueError, "NPC audio"):
+                    self.validate_candidate(candidate)
+
+    def test_changed_resolved_audio_volume_rejects_deployment(self):
+        candidate = deepcopy(self.configuration)
+        candidate["volumes"]["npc-audio-data"]["name"] = "a305-prod_npc-audio-data"
+
+        with self.assertRaisesRegex(ValueError, "NPC audio"):
+            self.validate_candidate(candidate)
+
+    def test_changed_audio_directory_rejects_deployment(self):
+        for directory in (None, "/tmp/npc-audio"):
+            with self.subTest(directory=directory):
+                candidate = deepcopy(self.configuration)
+                candidate["services"]["backend"]["environment"]["NPC_AUDIO_DIR"] = (
+                    directory
+                )
+
+                with self.assertRaisesRegex(ValueError, "NPC audio"):
+                    self.validate_candidate(candidate)
+
+    def test_missing_installed_audio_mount_rejects_deployment(self):
+        self.backend_mounts = []
+
+        with self.assertRaisesRegex(ValueError, "NPC audio"):
+            self.validate_candidate(deepcopy(self.configuration))
+
+    def test_installed_audio_volume_must_match_the_candidate(self):
+        original_mount = deepcopy(self.backend_mounts[0])
+        for override in (
+            {"Type": "tmpfs"},
+            {"Name": "different-existing-audio"},
+            {"RW": False},
+        ):
+            with self.subTest(override=override):
+                self.backend_mounts = [{**original_mount, **override}]
+
+                with self.assertRaisesRegex(ValueError, "NPC audio"):
+                    self.validate_candidate(deepcopy(self.configuration))
 
 
 class MonitoringReadinessTests(unittest.TestCase):

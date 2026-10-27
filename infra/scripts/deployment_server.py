@@ -423,6 +423,45 @@ class ComposeRuntime:
                     f"Google OAuth must preserve the server value for {key}."
                 )
 
+        self.validate_npc_audio_storage(candidate)
+
+    def validate_npc_audio_storage(self, candidate):
+        directory = "/app/data/npc-audio"
+        backend = candidate["services"]["backend"]
+        if backend.get("environment", {}).get("NPC_AUDIO_DIR") != directory:
+            raise ValueError("NPC audio storage directory must be preserved.")
+        audio_mounts = [
+            mount
+            for mount in backend.get("volumes", [])
+            if mount.get("target") == directory
+        ]
+        if len(audio_mounts) != 1:
+            raise ValueError("NPC audio requires its persistent volume mount.")
+        mount = audio_mounts[0]
+        if (
+            mount.get("type") != "volume"
+            or mount.get("source") != "npc-audio-data"
+            or mount.get("read_only", False)
+        ):
+            raise ValueError("NPC audio requires its writable persistent volume.")
+        volume = candidate.get("volumes", {}).get("npc-audio-data", {})
+        if volume.get("name") != "a305-dev_npc-audio-data":
+            raise ValueError("NPC audio must retain the dev storage volume.")
+        installed_mounts = [
+            mount
+            for mount in self.inspect("backend")["mounts"]
+            if mount.get("Destination") == directory
+        ]
+        if len(installed_mounts) != 1:
+            raise ValueError("NPC audio requires an installed persistent volume.")
+        installed = installed_mounts[0]
+        if (
+            installed.get("Type") != "volume"
+            or installed.get("Name") != volume["name"]
+            or not installed.get("RW")
+        ):
+            raise ValueError("NPC audio deployment must preserve the installed volume.")
+
     def load_images(self, archive):
         self.docker("load", "--input", archive, timeout=600)
 

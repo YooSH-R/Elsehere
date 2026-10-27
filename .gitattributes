@@ -12,3 +12,4 @@ infra/compose/*.yaml text eol=lf
 infra/monitoring/** text=auto eol=lf
 docs/observability.md text eol=lf
 frontend/UnityClient/** text=auto eol=lf
+infra/tests/tripo/*.py text eol=lf

@@ -111,6 +111,18 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 - 배포: HTTPS, 압축 파일 응답 헤더, WebAssembly 파일 형식과 로딩을 외부 서버에서 검증합니다.
 - 자동화: 수동 빌드·배포 절차를 검증한 뒤 CI 검사와 Web 빌드·배포 자동화를 구성합니다.
 
+## Tripo 에셋 제작 작업대
+
+**Tools → A305 → Assets → Tripo Workbench**에서 API 생성, Studio·파일 가져오기, Blender 수정본 반영,
+표정·립싱크 미리보기, 부품·소켓 연결과 검수 프리팹 등록을 진행합니다.
+첫 화면에서 **API 생성 / 웹·파일 가져오기**를 선택합니다. API 생성은 키와 API 크레딧을 사용하며,
+웹·파일 가져오기와 로컬 검사에는 API 키가 필요하지 않습니다. 기존 작업은 **기존 작업 불러오기**에서 선택합니다.
+저장소 루트에서 `./infra/scripts/install-tripo-bridge.ps1`을 실행해 공식 Bridge를 설치하고,
+Blender 실행 파일은 각 개발 PC에서 설정합니다. Bridge 원본은 로컬 설치하며 Git에 넣지 않습니다.
+공통 골격·얼굴 Shape Keys를 갖춘 기준 모델 제작과 실제 모델 품질 검수는 별도 작업입니다.
+
+화면별 사용법, 파일 보존 방식과 자동 검증 범위는
+[Tripo Asset Workbench 안내](../../frontend/UnityClient/Assets/Scripts/Editor/Tripo/README.md)를 따릅니다.
 ## 참고 자료
 
 - [Unity Web 빌드 설정](https://docs.unity3d.com/6000.3/Documentation/Manual/web-build-settings.html)

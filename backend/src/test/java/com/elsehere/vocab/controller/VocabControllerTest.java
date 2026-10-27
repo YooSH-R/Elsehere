@@ -95,7 +95,7 @@ class VocabControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     "{\"requestId\": \"5b0c0a52-1c1e-4f7a-9a51-7f1d4c2e9b10\","
-                        + " \"sourceType\": \"OBJECT\", \"objectKey\": \"sofa\"}"))
+                        + " \"sourceType\": \"OBJECT\", \"wordKey\": \"sofa\"}"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.created").value(true))
         .andExpect(jsonPath("$.userVocabId").value(21))
@@ -112,7 +112,7 @@ class VocabControllerTest {
         .perform(
             stateChanging(post("/api/v1/vocab"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"sourceType\": \"OBJECT\", \"objectKey\": \"sofa\"}"))
+                .content("{\"sourceType\": \"OBJECT\", \"wordKey\": \"sofa\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.created").value(false))
         .andExpect(jsonPath("$.userVocabId").value(21));
@@ -163,11 +163,11 @@ class VocabControllerTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{\"objectKey\": \"sofa\"}",
+        "{\"wordKey\": \"sofa\"}",
         "{\"sourceType\": \"OBJECT\"}",
-        "{\"sourceType\": \"OBJECT\", \"objectKey\": \" \"}"
+        "{\"sourceType\": \"OBJECT\", \"wordKey\": \" \"}"
       })
-  @DisplayName("저장 출처가 없거나, 사물 저장인데 사물 키가 비어 있으면 400 VALIDATION_FAILED로 응답한다")
+  @DisplayName("저장 출처가 없거나, 사물 저장인데 단어 키가 비어 있으면 400 VALIDATION_FAILED로 응답한다")
   void saveWithoutRequiredField_isRejected(String body) throws Exception {
     mockMvc
         .perform(
@@ -197,7 +197,7 @@ class VocabControllerTest {
   }
 
   @Test
-  @DisplayName("없는 사물 키로 저장하면 404 NOT_FOUND 오류 응답을 돌려준다")
+  @DisplayName("없는 단어 키로 저장하면 404 NOT_FOUND 오류 응답을 돌려준다")
   void saveUnknownObject_respondsNotFound() throws Exception {
     given(vocabService.saveObjectWord(1L, "moon_rock"))
         .willThrow(new BusinessException(ErrorCode.NOT_FOUND));
@@ -206,7 +206,7 @@ class VocabControllerTest {
         .perform(
             stateChanging(post("/api/v1/vocab"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"sourceType\": \"OBJECT\", \"objectKey\": \"moon_rock\"}"))
+                .content("{\"sourceType\": \"OBJECT\", \"wordKey\": \"moon_rock\"}"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
   }
@@ -255,7 +255,7 @@ class VocabControllerTest {
             post("/api/v1/vocab")
                 .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"sourceType\": \"OBJECT\", \"objectKey\": \"sofa\"}"))
+                .content("{\"sourceType\": \"OBJECT\", \"wordKey\": \"sofa\"}"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
   }
@@ -267,7 +267,7 @@ class VocabControllerTest {
         .perform(
             post("/api/v1/vocab")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"sourceType\": \"OBJECT\", \"objectKey\": \"sofa\"}")
+                .content("{\"sourceType\": \"OBJECT\", \"wordKey\": \"sofa\"}")
                 .with(authentication(loggedIn(1L))))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.error.code").value("CSRF_HEADER_REQUIRED"));

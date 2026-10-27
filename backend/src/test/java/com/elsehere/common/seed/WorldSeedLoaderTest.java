@@ -12,13 +12,14 @@ import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.entity.NpcType;
 import com.elsehere.world.entity.Scene;
-import com.elsehere.world.entity.WorldObject;
 import com.elsehere.world.repository.NpcRepository;
 import com.elsehere.world.repository.SceneRepository;
-import com.elsehere.world.repository.WorldObjectRepository;
+import com.elsehere.world.repository.SceneWordRepository;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.util.List;
+import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +41,7 @@ class WorldSeedLoaderTest {
 
   @Autowired private SceneRepository sceneRepository;
 
-  @Autowired private WorldObjectRepository worldObjectRepository;
+  @Autowired private SceneWordRepository sceneWordRepository;
 
   @Autowired private VocabularyRepository vocabularyRepository;
 
@@ -69,25 +70,37 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("사물 8개를 집과 카페에 배치하고, 각 사물을 단어와 뜻이 있는 어휘에 연결한다")
-  void load_insertsObjectsLinkedToVocabularies() {
+  @DisplayName("장소마다 Unity가 내보낸 공용 단어 목록(object-word-bindings.json)을 장소별 단어로 넣는다")
+  void load_insertsSceneWordsFromBindings() throws IOException {
     worldSeedLoader.load();
 
-    assertThat(worldObjectRepository.findAll())
+    assertThat(sceneWordRepository.findAll())
         .extracting(
-            object -> object.getScene().getCode(),
-            WorldObject::getUnityKey,
-            object -> object.getVocabulary().getText(),
-            object -> object.getVocabulary().getMeaningKo())
-        .containsExactlyInAnyOrder(
-            tuple("HOME", "tv", "TV", "텔레비전"),
-            tuple("HOME", "refrigerator", "refrigerator", "냉장고"),
-            tuple("HOME", "air_conditioner", "air conditioner", "에어컨"),
-            tuple("HOME", "sofa", "sofa", "소파"),
-            tuple("HOME", "bookshelf", "bookshelf", "책장"),
-            tuple("HOME", "bed", "bed", "침대"),
-            tuple("CAFE", "counter", "counter", "계산대"),
-            tuple("CAFE", "menu", "menu", "메뉴"));
+            sceneWord -> sceneWord.getScene().getCode(),
+            sceneWord -> sceneWord.getVocabulary().getWordKey())
+        .containsExactlyInAnyOrderElementsOf(expectedSceneWords());
+  }
+
+  @Test
+  @DisplayName("Unity 연결 목록에서 빠진 장소별 단어는 다시 실행할 때 지운다")
+  void load_removesSceneWordsMissingFromBindings() throws IOException {
+    worldSeedLoader.load();
+    // 집에는 벤치가 없다. Unity에서 집의 벤치를 지운 상황을 만든다.
+    entityManager
+        .createNativeQuery(
+            "insert into scene_words (scene_id, vocab_id)"
+                + " select scene.id, vocabulary.id from scenes scene, vocabularies vocabulary"
+                + " where scene.code = 'HOME' and vocabulary.word_key = 'bench'")
+        .executeUpdate();
+
+    worldSeedLoader.load();
+    entityManager.clear();
+
+    assertThat(sceneWordRepository.findAll())
+        .extracting(
+            sceneWord -> sceneWord.getScene().getCode(),
+            sceneWord -> sceneWord.getVocabulary().getWordKey())
+        .containsExactlyInAnyOrderElementsOf(expectedSceneWords());
   }
 
   @Test
@@ -124,6 +137,24 @@ class WorldSeedLoaderTest {
                         word.pronunciationAudioKey().isBlank()
                             ? null
                             : word.pronunciationAudioKey());
+              });
+    }
+  }
+
+  @Test
+  @DisplayName("사물 어휘마다 Unity 공용 단어 키(object-words.json의 key)를 넣는다")
+  void load_setsWordKeysFromCatalog() throws IOException {
+    worldSeedLoader.load();
+    var actualWords = vocabularyRepository.findAll();
+
+    for (CatalogWord word : catalog().words()) {
+      assertThat(actualWords)
+          .filteredOn(vocabulary -> word.key().equals(vocabulary.getWordKey()))
+          .singleElement()
+          .satisfies(
+              vocabulary -> {
+                assertThat(vocabulary.getLanguageCode()).isEqualTo(word.languageCode());
+                assertThat(vocabulary.getText()).isEqualTo(word.text());
               });
     }
   }
@@ -179,7 +210,7 @@ class WorldSeedLoaderTest {
 
     assertThat(sceneRepository.count()).isEqualTo(4);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
-    assertThat(worldObjectRepository.count()).isEqualTo(8);
+    assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
     assertThat(npcRepository.count()).isEqualTo(3);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
@@ -211,7 +242,22 @@ class WorldSeedLoaderTest {
     }
   }
 
+  private List<Tuple> expectedSceneWords() throws IOException {
+    try (var input = new ClassPathResource("content/object-word-bindings.json").getInputStream()) {
+      return new JsonMapper()
+          .readValue(input, Bindings.class).scenes().stream()
+              .flatMap(scene -> scene.wordKeys().stream().map(key -> tuple(scene.sceneCode(), key)))
+              .toList();
+    }
+  }
+
   private record Catalog(List<CatalogWord> words) {}
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private record Bindings(List<BindingScene> scenes) {}
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private record BindingScene(String sceneCode, List<String> wordKeys) {}
 
   private record CatalogWord(
       String key,

@@ -1,4 +1,5 @@
--- 장소·NPC·사물·어휘·미션 시드. WorldSeedLoader가 서버 시작 때 실행한다.
+-- 장소·NPC·사물 어휘·미션 시드. WorldSeedLoader가 서버 시작 때 실행한다.
+-- 장소별 사물 단어(scene_words)와 단어 키(word_key)는 이 파일이 아니라 WorldSeedLoader가 content/*.json에서 넣는다.
 -- 고유 키(code, unity_key 등)가 같으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않는다.
 -- 코드와 unity_key는 Unity 씬·빌더에 쓴 값과 같아야 한다.
 
@@ -129,27 +130,6 @@ SET type = EXCLUDED.type,
     pronunciation_audio_key = EXCLUDED.pronunciation_audio_key,
     updated_at = now();
 -- END GENERATED OBJECT WORDS
-
--- 사물. unity_key는 Unity 씬의 HoverableObject에 넣은 키다.
-INSERT INTO world_objects (scene_id, unity_key, vocab_id)
-SELECT scene.id, seed.unity_key, vocabulary.id
-FROM (
-  VALUES
-    ('HOME', 'tv', 'TV'),
-    ('HOME', 'refrigerator', 'refrigerator'),
-    ('HOME', 'air_conditioner', 'air conditioner'),
-    ('HOME', 'sofa', 'sofa'),
-    ('HOME', 'bookshelf', 'bookshelf'),
-    ('HOME', 'bed', 'bed'),
-    ('CAFE', 'counter', 'counter'),
-    ('CAFE', 'menu', 'menu')
-) AS seed (scene_code, unity_key, word)
-JOIN scenes scene ON scene.code = seed.scene_code
-JOIN vocabularies vocabulary ON vocabulary.language_code = 'en-US' AND vocabulary.text = seed.word
-ON CONFLICT (unity_key) DO UPDATE
-SET scene_id = EXCLUDED.scene_id,
-    vocab_id = EXCLUDED.vocab_id,
-    updated_at = now();
 
 -- NPC. code는 Unity 씬의 NpcIdentity에 넣은 값이다. 튜토리얼 행인(TUTORIAL_PASSERBY)은 Unity 대본 콘텐츠라 넣지 않는다.
 -- persona·voice_id는 임시값이다. AI 워커 npc 형식(role, facts, scene)에 맞춘 실제 값은 대화 담당이 채운다.

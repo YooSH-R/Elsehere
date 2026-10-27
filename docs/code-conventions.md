@@ -92,7 +92,7 @@ Unity C#의 명명 형식은 [Unity 개발 규약의 C# 스크립트 기준](uni
   - 문서와 설정
   - Scene·Prefab 배치, 카메라 연출, 애니메이션 등 시각 요소
   - 서비스 코드에 병합하지 않는 탐색용 PoC
-- 영역별 테스트 방식과 실행 명령은 [백엔드 개발 지침](../backend/AGENTS.md)과 [프론트엔드 개발 지침](../frontend/AGENTS.md)에서 관리합니다.
+- 영역별 테스트 작성·실행 기준은 [백엔드 개발 지침](../backend/AGENTS.md)과 [프론트엔드 개발 지침](../frontend/AGENTS.md)을 따릅니다. 일반 실행 명령은 각 영역의 실행 문서에서 관리합니다.
 
 ## 7. AI로 코드를 작성할 때
 
@@ -132,10 +132,8 @@ Unity C#의 명명 형식은 [Unity 개발 규약의 C# 스크립트 기준](uni
 
 - Checkstyle은 이름 형식, wildcard import 금지, 조건문·반복문 중괄호, 불필요한 빈 문장 등을 검사하도록 최소 설정합니다.
 - 들여쓰기, import 순서, 공백, 강제 줄 길이 검사는 포매터와 중복되지 않도록 Checkstyle에서 제외합니다.
-- Spotless에 google-java-format의 기본 Google 스타일을 연결합니다. Java 블록 들여쓰기는 공백 2칸이며, 줄바꿈과 정렬은 포매터 결과를 따릅니다.
-- Java 21·Gradle 9.8.2에서 Spotless 8.9.0·google-java-format 1.28.0·Checkstyle 14.3.0을 사용하며 운영 코드와 테스트 코드를 함께 검사합니다.
-- `spotlessApply`로 포맷을 적용하고, `check`에서 `spotlessCheck`, `checkstyleMain`, `checkstyleTest`와 테스트를 실행합니다.
-- 버전과 로컬 명령, Docker가 필요한 DB 테스트 조건은 [백엔드 실행 문서](../backend/README.md)를 따릅니다.
+- Spotless에 google-java-format을 연결하고 줄바꿈과 정렬은 포매터 결과를 따릅니다.
+- 고정 버전·포맷 스타일, 로컬 명령과 Docker가 필요한 DB 테스트 조건은 [백엔드 실행 문서](../backend/README.md)를 따릅니다.
 
 ## 참고 자료
 

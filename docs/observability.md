@@ -1,8 +1,10 @@
 # 요청 추적과 API 모니터링
 
-Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus와 Grafana에서 API 요청량·오류율·지연, 공개 HTTPS 응답과 인증서 만료일을 확인합니다. Alertmanager는 장애 발동·복구를 관리합니다. 기본 설정은 알림 발송을 비활성화하며, Mattermost 수신 채널과 메시지를 운영 담당자에게 보고하고 명시적으로 승인받은 후 연결합니다.
+Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus와 Grafana에서 API 요청량·오류율·지연, 공개 HTTPS 응답과 인증서 만료일을 확인합니다. Alertmanager는 서버 내부 경보의 발동·복구를 관리하고, Grafana Cloud는 독립된 위치에서 공개 HTTPS를 감시합니다.
 
-이 문서의 설정은 검토 후 서버에 적용합니다. 실제 앱이 배포되기 전에는 환경 확인용 서비스의 정상 응답을 앱 지표 수집 성공으로 보지 않습니다.
+개발 앱에는 요청 로그·지표·대시보드와 승인된 Mattermost 경로를 적용합니다. 운영은 환경 확인용 서비스이므로 앱 지표 수집 대상에서 제외합니다. 접속 주소와 배포 상태는 [프로젝트 README](../README.md#실행-환경과-접속-주소), 외부 검사의 위치·대상·경보는 [독립 외부 감시 문서](external-monitoring.md)에서 관리합니다.
+
+저장소의 기본 알림 템플릿은 발송을 비활성화한 상태입니다. 새 수신 경로를 연결하거나 기존 채널을 바꿀 때는 [Mattermost 발송 승인](#mattermost-발송-승인)을 따릅니다.
 
 ## 요청 ID와 기록 범위
 
@@ -23,14 +25,14 @@ HTTPS 인증서와 기존 location을 보존합니다. 전체 사이트 설정�
 
 1. `infra/nginx/observability-http.conf`를 `/etc/nginx/conf.d/a305-observability.conf`에 설치합니다. 이 파일은 `http` 범위의 map과 로그 형식을 정의합니다.
 2. `infra/nginx/observability-server.conf`를 `/etc/nginx/snippets/a305-observability.conf`에 설치합니다.
-3. `/etc/nginx/sites-available/a305`의 A305 HTTP·HTTPS `server` 블록마다 아래 한 줄을 추가합니다.
+3. 활성 사이트의 A305 HTTP·HTTPS `server` 블록마다 아래 한 줄을 적용합니다. 현재 도메인별 사이트는 `/etc/nginx/sites-available/a305-elsehere`, 기존 SSAFY 주소 사이트는 `/etc/nginx/sites-available/a305`입니다. `/etc/nginx/sites-enabled/`의 연결을 확인하고 다른 사이트는 변경하지 않습니다.
 
 ```nginx
 include /etc/nginx/snippets/a305-observability.conf;
 ```
 
 4. 각 `location`에 별도 `proxy_set_header` 또는 `add_header`가 있으면 상위 설정의 상속 여부를 확인하고 요청 ID 전달·응답을 해당 위치에도 반영합니다. 내부 웹 프록시는 요청 ID를 재생성하지 않습니다.
-5. `sudo nginx -t` 성공 후 reload하고 개발·운영의 정상·오류 응답에서 헤더와 로그가 일치하는지 확인합니다.
+5. Certbot이 만든 HTTP 블록에서도 `return`보다 먼저 환경 구분과 include가 적용되게 합니다. `sudo nginx -t` 성공 후 reload하고 개발·운영의 정상·오류 응답에서 헤더와 로그가 일치하는지 확인합니다.
 
 새 요청 형식은 기존 `/var/log/nginx/access.log`를 사용합니다. 프로젝트의 HTTP 요청 오류는 안전한 access 요약과 백엔드 오류 로그로 확인합니다. Nginx 자체 error 로그는 URL을 가릴 수 없어 사이트의 기록 수준을 `crit`으로 제한합니다. Nginx 기동·설정 장애는 `nginx -t`와 서비스 journal도 함께 확인합니다. 기본 원본 error 메시지는 구조화된 요청 로그와 같은 개인정보 제거 기능을 제공하지 않으므로 접근 권한을 유지합니다.
 
@@ -40,8 +42,10 @@ include /etc/nginx/snippets/a305-observability.conf;
 
 ```bash
 sudo grep -F '"request_id":"<응답 헤더의 ID>"' /var/log/nginx/access.log
-sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/deploy.env" -f infra/compose/compose.app.yaml logs --since=10m backend | grep -F 'request_id=<같은 ID>'
+sudo docker logs --since=10m a305-dev-backend-1 2>&1 | grep -F 'request_id=<같은 ID>'
 ```
+
+서버에서 실행하는 예시입니다. 컨테이너 이름은 `sudo docker ps --format '{{.Names}}'`로 확인합니다. 로그 조회는 앱 Compose 파일의 설치 위치와 관계없이 실행할 수 있습니다.
 
 - Nginx 로그는 `www-data:adm`, `0640` 권한과 기존 `/etc/logrotate.d/nginx`를 유지합니다. 매일 확인하고 최대 14회분을 보관하며 압축은 한 회차 지연합니다. `notifempty`이므로 정확히 14일 보관과 같지는 않습니다.
 - 백엔드·웹·DB·AI 및 모니터링 컨테이너 로그는 `json-file`, 파일당 10MiB·최대 3개를 기준으로 관리합니다. Docker 로그 파일을 호스트 logrotate로 다시 순환시키지 않습니다.
@@ -61,7 +65,13 @@ sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/deploy.env" -f i
 
 기존 컨테이너·공개 프록시의 `GET /api/health`는 앱 포트에서 계속 사용할 수 있습니다. 같은 Actuator health 결과의 `status`만 반환하며 DB 등 필수 연결이 비정상이면 HTTP 503을 반환합니다. 하위 경로나 다른 관리 지표를 공개하지 않습니다. 관리 포트를 분리한 뒤에도 이 경로를 제거하거나 로그인 필수로 바꾸지 않습니다.
 
-검토된 앱 Compose와 `infra/compose/compose.observability.yaml`을 함께 사용합니다. 이 추가 파일은 백엔드 관리 주소·비밀번호와 웹의 로그 설정만 주입하며 포트를 게시하지 않습니다. `OBSERVABILITY_WEB_LOG_CONFIG`는 서버의 `observability-web.conf` 절대 경로입니다. 배포 명령과 자동화에서도 같은 추가 파일을 사용해야 합니다. 환경별 `deploy.env`의 비밀번호는 아래 수집용 비밀번호 파일과 일치해야 합니다.
+검토된 앱 Compose와 [관측 추가 파일](../infra/compose/compose.observability.yaml)을 함께 사용합니다. 현재 `dev`에는 관측 추가 파일만 있으며, 기반 앱 Compose는 앱 배포 구성에서 별도로 제공합니다. 저장소 최상위의 `infra/compose/compose.app.yaml`이 존재한다고 가정해 명령을 실행하지 않습니다. 서버에서 실행 중인 앱의 기반 Compose 위치는 다음 명령으로 확인합니다. 출력에 관측 추가 파일도 포함되어야 합니다.
+
+```bash
+sudo docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' a305-dev-backend-1
+```
+
+추가 파일의 서버 위치는 `~/apps/a305/monitoring/config/compose.observability.yaml`입니다. 이 파일은 백엔드 관리 주소·비밀번호와 웹의 로그 설정만 주입하며 포트를 게시하지 않습니다. `OBSERVABILITY_WEB_LOG_CONFIG`는 서버의 `observability-web.conf` 절대 경로입니다. 배포 명령과 자동화에서도 기반 파일 뒤에 이 추가 파일을 적용해 기존 수집·로그 설정을 보존합니다. 환경별 `deploy.env`의 비밀번호는 아래 수집용 비밀번호 파일과 일치해야 합니다.
 
 메트릭은 Spring의 경로 패턴·메서드·상태 코드 등을 사용합니다. 요청 ID, 사용자 ID, 원본 동적 URL을 라벨에 추가하지 않습니다. `http.server.requests` histogram으로 p95를 계산하며, 아직 없는 AI 클라이언트의 구간 지연이나 사용량을 수집한 것으로 보지 않습니다.
 
@@ -101,14 +111,16 @@ UI 포트는 서버의 루프백에만 게시합니다. PC에서 SSH 터널을 �
 Grafana와 Alertmanager는 내부 모니터링 네트워크만 사용합니다. 루프백의 관리 화면 프록시가 두 UI를 전달하므로 내부 서비스에 외부 연결을 추가하지 않아도 SSH 터널로 접근할 수 있습니다. Alertmanager의 실제 알림 전송용 연결은 수신 채널을 승인한 뒤 별도 추가 파일로 활성화합니다.
 
 ```powershell
-ssh -i "<PEM 경로>" -L 3000:127.0.0.1:3000 -L 9091:127.0.0.1:9091 -L 9093:127.0.0.1:9093 ubuntu@k15a305.p.ssafy.io
+ssh -i "<PEM 경로>" -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:13000:127.0.0.1:3000 -L 127.0.0.1:19091:127.0.0.1:9091 -L 127.0.0.1:19093:127.0.0.1:9093 ubuntu@k15a305.p.ssafy.io
 ```
 
-- Grafana: `http://localhost:3000`, 사용자 `admin`, 준비한 관리자 비밀번호
-- Prometheus: `http://localhost:9091`, Targets에서 환경별 수집 결과 확인
-- Alertmanager: `http://localhost:9093`, 발동 알림·묶음·일시 중지 상태 확인
+- Grafana: `http://127.0.0.1:13000`, 사용자 `admin`, 준비한 관리자 비밀번호
+- Prometheus: `http://127.0.0.1:19091`, Targets에서 환경별 수집 결과 확인
+- Alertmanager: `http://127.0.0.1:19093`, 발동 알림·묶음·일시 중지 상태 확인
 - 대시보드: A305 폴더의 `ELSEHERE API`, 환경·조회 기간 선택
 - HTTPS 대시보드: A305 폴더의 `ELSEHERE HTTPS`, 공개 응답·인증서 잔여 일수·발동 규칙 수 확인
+
+터널 명령이 실행 중인 창을 유지합니다. 로컬 포트를 이미 사용 중이면 `-L`의 첫 번째 포트와 브라우저 주소를 함께 바꿉니다. 서버 포트를 인터넷에 공개하지 않습니다.
 
 대시보드는 수집 상태, 선택 기간 요청 수, 초당 요청량, 4xx·5xx 비율과 p95를 표시합니다. 요청이 없거나 수집 시간이 짧으면 지연·비율이 비어 있을 수 있습니다. 요청 수·비율·지연은 같은 백엔드 요청 집합으로 계산하며 컨트롤러에 도달하기 전 거절된 요청도 포함합니다. 관리 포트의 수집 요청은 API 요청 통계에 포함되지 않는지 검증합니다.
 
@@ -116,9 +128,16 @@ ssh -i "<PEM 경로>" -L 3000:127.0.0.1:3000 -L 9091:127.0.0.1:9091 -L 9093:127.
 
 ## 장애 감지와 발송 승인
 
-`blackbox.yml`은 유효한 TLS와 HTTP 200을 요구하며 리다이렉트를 따라가지 않습니다. `targets/https.json`에 등록한 실제 앱 health 주소만 검사합니다. 기본 대상은 개발 앱의 공개 HTTPS 주소이며 운영 앱을 배포한 뒤 해당 주소를 추가합니다.
+`blackbox.yml`은 유효한 TLS와 HTTP 200을 요구하며 리다이렉트를 따라가지 않습니다. [내부 HTTPS 대상 파일](../infra/monitoring/targets/https.json)에 등록한 실제 앱 health 주소를 검사합니다.
 
-검사기는 앱과 같은 서버에서 공개 주소로 접속합니다. Nginx·앱·TLS 오류는 감지하지만 서버 전체가 멈추거나 서버의 외부 연결이 끊어지면 이 구성 자체도 알림을 보낼 수 없습니다. 전체 서버 장애까지 감시하려면 독립된 서버 또는 외부 가용성 서비스에 검사를 추가해야 합니다.
+| 검사 | 현재 대상 | 확인하는 범위 |
+| --- | --- | --- |
+| 서버 내부 Blackbox | `https://k15a305.p.ssafy.io/dev/api/health` | 유지 중인 기존 경로·SSAFY 도메인의 TLS |
+| 독립 Grafana Cloud | `https://dev.elsehere.kr/api/health` | 현재 개발 주소·`elsehere.kr` 도메인의 TLS |
+
+기존 경로의 성공만으로 새 도메인의 인증서·라우팅을 확인했다고 보지 않습니다. 내부 대상을 새 주소로 통일하려면 대상 파일과 서버 실행 설정을 함께 변경하고 대시보드·경보를 다시 확인합니다. 운영 앱을 배포한 뒤에는 실제 운영 주소도 검사 대상으로 추가합니다.
+
+내부 검사기는 앱과 같은 서버에서 공개 주소로 접속합니다. Nginx·앱·TLS 오류는 감지하지만 서버 전체가 멈추거나 서버의 외부 연결이 끊어지면 이 구성 자체도 알림을 보낼 수 없습니다. 전체 서버 장애는 [독립 외부 감시](external-monitoring.md)로 확인합니다.
 
 | 규칙 | 조건 | 지속 시간 |
 | --- | --- | --- |
@@ -144,29 +163,32 @@ ssh -i "<PEM 경로>" -L 3000:127.0.0.1:3000 -L 9091:127.0.0.1:9091 -L 9093:127.
 
 실제 이용량이 쌓이거나 목표 동시 사용자 수, API·DB 데이터 규모, 자원 상한 또는 AI 호출 경계가 바뀌면 다시 측정합니다. AI가 포함된 요청의 STT·LLM·TTS·전체 지연을 일반 조회 기준과 혼동하지 않습니다. 측정 환경·표본·분위수·오류율과 결정 근거는 Jira에 기록하고 경보값을 바꾸면 규칙의 대기·발동·복구와 정상 구간의 무알림을 검증합니다.
 
-서버 전체 장애를 위한 [독립 외부 감시 설정](external-monitoring.md)은 별도 Cloud 계정에서 수행합니다.
+## Mattermost 발송 승인
+
+서버 Alertmanager와 Grafana Cloud는 승인된 `ELSEHERE 운영 알림`(`elsehere-alerts`) 채널을 사용합니다. 수신 채널·문구·경보 조건을 유지하며 운영하고, 변경하거나 새 발송 경로를 연결할 때는 실제 채널명과 문구·규칙·반복 주기를 운영 담당자에게 보고하고 명시적으로 승인받습니다. 다른 채널이나 멘션을 임의로 추가하지 않습니다. 이 승인 기준은 내부·외부 감시에 공통으로 적용합니다.
+
+웹훅 URL은 비밀번호처럼 관리하며 저장소·Jira·MR·로그·채팅에 기록하지 않습니다. Mattermost 확인에 computer-use를 사용하지 않습니다. 기본 묶음 대기는 30초, 변경 알림 주기는 5분, 동일 장애 반복 주기는 4시간이며 복구도 통지합니다.
 
 기본 `alertmanager.yml`에는 발송 수신기가 없습니다. 네트워크도 내부 모니터링 연결로 제한합니다. 채널 승인 전에는 Mattermost 연결이나 시험 발송을 하지 않습니다.
 
 승인 후 적용 절차는 다음과 같습니다.
 
-1. 실제 채널명과 발송 문구·규칙·반복 주기를 운영 담당자에게 보고하고 명시적으로 승인받습니다. 다른 채널로 변경할 때도 다시 승인받습니다.
-2. 승인한 채널에 고정된 incoming webhook을 준비합니다. URL은 비밀번호와 같은 접근 기준으로 `secrets/mattermost-webhook-url`에 저장합니다. 채팅·MR·로그에 URL을 넣지 않습니다.
+1. 위 승인 기준에 따라 연결할 채널·문구·조건을 확정합니다.
+2. 승인한 채널에 고정된 incoming webhook을 준비하고 URL을 `secrets/mattermost-webhook-url`에 저장합니다.
 3. `alertmanager.mattermost.yml.example`을 실행 폴더의 `alertmanager.mattermost.yml`로 복사하고 `REQUIRES_USER_APPROVAL`을 승인된 채널의 내부 이름으로 바꿉니다. 기본 채널로 임의 발송하거나 채널을 우회해 덮어쓰지 않습니다.
 4. `compose.yaml`과 `compose.mattermost.yaml`을 함께 해석·검사한 후 Alertmanager만 교체합니다. 이 추가 파일을 사용해야 비밀 파일과 알림 전송용 외부 연결이 제공됩니다.
 5. 승인받은 시험 문구로 발동·복구를 확인하고 정상 알림 규칙으로 돌아갑니다. 확인 전에는 실제 수신까지 완료한 것으로 기록하지 않습니다.
 
-알림은 환경·규칙명·정해진 요약·시작 및 복구 시각·확인 위치만 포함합니다. 요청 URL·사용자 식별자·본문과 비밀값은 포함하지 않습니다. 기본 묶음 대기는 30초, 변경 알림 주기는 5분, 동일 장애 반복 주기는 4시간이며 복구도 통지합니다.
+알림은 환경·규칙명·정해진 요약·시작 및 복구 시각·확인 위치만 포함합니다. 사용자가 요청한 원본 URL·사용자 식별자·본문과 비밀값은 포함하지 않습니다.
 
 ## 저장소 검증
 
 ```bash
-cd backend
-./gradlew spotlessApply check bootJar
-cd ..
 python infra/scripts/check_observability.py
 python infra/scripts/check_alerting.py
 ```
+
+저장소 최상위에서 Python과 Docker가 실행 가능한 환경을 사용합니다. 백엔드 코드를 함께 변경하면 [백엔드 실행 문서](../backend/README.md#명령)의 검사와 빌드도 수행합니다.
 
 두 인프라 검사는 고정된 공식 이미지의 임시 컨테이너와 외부 통신이 차단된 전용 네트워크를 사용합니다. 공개 포트 없이 Nginx 요청 ID·오류·민감 정보 제외, Prometheus 설정·대시보드 쿼리 문법과 Grafana 데이터 소스·대시보드 등록·인증을 확인합니다. 알림 검사는 규칙의 대기·발동·복구와 저트래픽 제외, Blackbox 성공·실패·HTTPS 강제, Alertmanager의 Mattermost 발동·복구 형식 전송을 격리된 가짜 수신기로 확인합니다. 실제 Mattermost에는 접속하지 않고 검사 리소스만 정리합니다. 실제 서버 TLS·앱 배포, 독립된 위치의 가용성 검사와 승인한 채널의 수신 확인은 별도 검증합니다.
 

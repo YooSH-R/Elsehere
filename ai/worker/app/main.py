@@ -25,6 +25,7 @@ from .config import Settings
 from .guard_local import LocalGuard
 from .llm import LLM, ModelOutputError, ProviderError
 from .npc import reply_events
+from .npc_respond import ContractError, load_payload, parse_request, respond
 from .schemas import GuardRequest, HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, ReplyRequest, SuggestRequest, TtsRequest
 from .tts import AudioStore, Kokoro
 
@@ -178,6 +179,16 @@ def create_app(
 
         # nginx·Spring이 버퍼링하지 않게 (첫 글자가 바로 가야 함)
         return StreamingResponse(body(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.post("/internal/ai/npc/respond")
+    async def npc_respond(request: Request):
+        """계약 v2 추론 API: 첫 대사(NPC_OPENING)와 후속 대사(USER_MESSAGE)를 같은 경로로.
+        FastAPI 자동 검사는 Worker 공통 오류 형식(400)으로 나가므로, 본문을 직접 받아 계약 형식으로 검사한다."""
+        try:
+            req = parse_request(load_payload(await request.body()))
+            return (await respond(request.app.state.llm, req)).model_dump()
+        except ContractError as e:
+            return JSONResponse(e.body(), status_code=e.http)
 
     @app.get("/v1/audio/{audio_id}")
     async def audio(audio_id: str, request: Request):

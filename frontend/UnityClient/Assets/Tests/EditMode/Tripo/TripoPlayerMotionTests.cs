@@ -9,6 +9,89 @@ namespace A305.Tripo.Tests
 {
     public class TripoPlayerMotionTests
     {
+        [Test]
+        public void DownloadedTripoCopyUsesItsOwnAvatarWithEveryPlayerMotion()
+        {
+            string source = System.Environment.GetEnvironmentVariable("TRIPO_REVIEW_MODEL");
+            if (string.IsNullOrEmpty(source) || !System.IO.File.Exists(source))
+                Assert.Ignore(
+                    "Set TRIPO_REVIEW_MODEL to an existing downloaded FBX; no API is called."
+                );
+            const string folder = "Assets/__TripoMotionReviewTest";
+            Assert.That(
+                AssetDatabase.IsValidFolder(folder),
+                Is.False,
+                "Never overwrite another test or user asset."
+            );
+            byte[] original = System.IO.File.ReadAllBytes(source);
+            GameObject root = null;
+            var baked = new Mesh();
+            try
+            {
+                AssetDatabase.CreateFolder("Assets", "__TripoMotionReviewTest");
+                string path = folder + "/Source.fbx";
+                System.IO.File.Copy(source, path, false);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                var importer = (ModelImporter)AssetImporter.GetAtPath(path);
+                importer.animationType = ModelImporterAnimationType.Human;
+                importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+                importer.materialImportMode = ModelImporterMaterialImportMode.None;
+                importer.isReadable = true;
+                importer.SaveAndReimport();
+                root = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+                var report = TripoModelReview.InspectRig(root);
+                Assert.That(report.Errors, Is.Empty, string.Join("\n", report.Errors));
+                var skin = root.GetComponentInChildren<SkinnedMeshRenderer>();
+                using (var preview = new TripoMotionPreview(root))
+                    foreach (
+                        var motion in new[]
+                        {
+                            TripoReviewMotion.Walk,
+                            TripoReviewMotion.Run,
+                            TripoReviewMotion.Rise,
+                            TripoReviewMotion.Fall,
+                            TripoReviewMotion.Land,
+                        }
+                    )
+                    {
+                        preview.Apply(motion, 0.1f);
+                        skin.BakeMesh(baked);
+                        var first = baked.vertices;
+                        preview.Apply(motion, 0.7f);
+                        skin.BakeMesh(baked);
+                        var second = baked.vertices;
+                        Assert.That(
+                            first.Select((v, i) => Vector3.Distance(v, second[i])).Max(),
+                            Is.GreaterThan(0.001f),
+                            motion.ToString()
+                        );
+                        Assert.That(
+                            second.All(v =>
+                                !float.IsNaN(v.sqrMagnitude) && !float.IsInfinity(v.sqrMagnitude)
+                            ),
+                            Is.True,
+                            motion.ToString()
+                        );
+                        TestContext.WriteLine(
+                            motion
+                                + ": own-Avatar retarget and finite skin deformation confirmed; appearance needs review."
+                        );
+                    }
+                Assert.That(
+                    System.IO.File.ReadAllBytes(source),
+                    Is.EqualTo(original),
+                    "Downloaded source must remain byte-identical."
+                );
+            }
+            finally
+            {
+                if (root != null)
+                    Object.DestroyImmediate(root);
+                Object.DestroyImmediate(baked);
+                AssetDatabase.DeleteAsset(folder);
+            }
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public void SkinMustExistAndMatchItsBindPoseCount(bool removeSkin)

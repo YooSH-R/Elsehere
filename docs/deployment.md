@@ -93,10 +93,10 @@ NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 �
 | `infra/docker/ai-worker.Dockerfile` | 워커와 공유 피드백 모듈 실행 |
 | `infra/docker/web.Dockerfile` | WebGL 산출물과 내부 API 프록시 제공 |
 | `infra/nginx/web.conf` | WebAssembly MIME·gzip 헤더, 백엔드 교체 후 DNS 재조회 |
-| `infra/compose/deploy.*.env.example` | 환경별 DB·AI·포트·이미지 변수 예제 |
+| `infra/compose/deploy.*.env.example` | 환경별 DB·Google OAuth·AI·포트·이미지 변수 예제 |
 | `infra/nginx/a305.dev-webgl.locations.conf` | 기존 HTTPS 서버에 수동으로 추가할 개발 WebGL 경로 예제 |
 
-실제 `deploy.env`에는 DB 비밀번호, 내부 토큰, GMS·Groq 키와 검증한 이미지 참조가 필요합니다. 예제의 빈 값은 사용자가 서버에서 채우며 저장소에 넣지 않습니다. 새 운영 DB는 스키마 준비 후 `JPA_DDL_AUTO=validate`로 검증해야 하므로 개발의 `update` 설정으로 운영 초기화를 대신하지 않습니다.
+실제 `deploy.env`에는 DB 비밀번호, `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET`, 내부 토큰, GMS·Groq 키와 검증한 이미지 참조가 필요합니다. 예제의 빈 값은 사용자가 서버에서 채우며 저장소에 넣지 않습니다. 공통 앱 Compose는 Google 두 값을 백엔드의 `environment`에 명시적으로 전달하며 값이 없거나 비어 있으면 실행 전에 실패합니다. `--env-file`로 치환할 값을 읽는 것과 컨테이너에 전달하는 것은 별개입니다. 운영 앱을 활성화할 때도 운영용 Google 값을 운영 `deploy.env`에 준비합니다. 새 운영 DB는 스키마 준비 후 `JPA_DDL_AUTO=validate`로 검증해야 하므로 개발의 `update` 설정으로 운영 초기화를 대신하지 않습니다.
 
 개발 서비스의 초기 상한은 DB 0.5 CPU·512MiB, AI 0.5 CPU·512MiB, 백엔드 0.75 CPU·1GiB, 웹 0.25 CPU·128MiB입니다. 부하 측정 전의 시작값이며 Unity 빌드 자원과는 별도로 관리합니다. 백엔드 `/api/health`는 DB 상태를 포함한 `UP`/`DOWN`을 반환하고 세부 연결 정보는 노출하지 않습니다. 웹 `/version.json`은 WebGL 산출물의 커밋을 표시합니다.
 

@@ -3,6 +3,7 @@ import json
 import tarfile
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
@@ -65,7 +66,9 @@ class DeploymentServerTests(unittest.TestCase):
         self.root = Path(self.directory.name)
         self.environment = self.root / "deploy.env"
         self.environment.write_text(
-            "DB_PASSWORD=server-only-test-secret\nMONITORING_PASSWORD=private-test\n",
+            "DB_PASSWORD=server-only-test-secret\nMONITORING_PASSWORD=private-test\n"
+            "GOOGLE_CLIENT_ID=dev-test.apps.googleusercontent.com\n"
+            "GOOGLE_CLIENT_SECRET=server-only-google-test-secret\n",
             encoding="utf-8",
         )
         self.compose = self.root / "compose.app.yaml"
@@ -97,6 +100,7 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertEqual(result["minimum_backend_commit"], "b" * 40)
         self.assertNotIn("server-only-test-secret", json.dumps(result))
         self.assertNotIn("private-test", json.dumps(result))
+        self.assertNotIn("server-only-google-test-secret", json.dumps(result))
         self.assertFalse((self.root / "deployments/last-success.json").exists())
 
     def release_archive(
@@ -184,6 +188,15 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertIn(
             "DB_PASSWORD=server-only-test-secret\n", self.environment.read_text()
         )
+        self.assertIn(
+            "GOOGLE_CLIENT_ID=dev-test.apps.googleusercontent.com\n",
+            self.environment.read_text(),
+        )
+        self.assertIn(
+            "GOOGLE_CLIENT_SECRET=server-only-google-test-secret\n",
+            self.environment.read_text(),
+        )
+        self.assertNotIn("server-only-google-test-secret", json.dumps(result))
         self.assertIn(
             "BACKEND_IMAGE=a305/backend:" + "c" * 40, self.environment.read_text()
         )
@@ -287,6 +300,96 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertEqual(self.runtime.images, original_images)
         self.assertEqual(self.environment.read_bytes(), original_environment)
         self.assertFalse((self.root / "deployments/last-success.json").exists())
+
+
+class GoogleOAuthDeploymentTests(unittest.TestCase):
+    def setUp(self):
+        self.configuration = {
+            "services": {
+                "database": {},
+                "ai-worker": {},
+                "backend": {
+                    "environment": {
+                        "MANAGEMENT_ADDRESS": "0.0.0.0",
+                        "GOOGLE_CLIENT_ID": "dev-test.apps.googleusercontent.com",
+                        "GOOGLE_CLIENT_SECRET": "server-only-google-test-secret",
+                    }
+                },
+                "web": {
+                    "ports": [
+                        {"host_ip": "127.0.0.1", "published": "8081", "target": 80}
+                    ],
+                    "volumes": [
+                        {
+                            "type": "bind",
+                            "source": "/srv/observability-web.conf",
+                            "target": "/etc/nginx/conf.d/00-observability.conf",
+                            "read_only": True,
+                        }
+                    ],
+                },
+            }
+        }
+        self.runtime = ComposeRuntime({})
+
+    def validate_candidate(self, candidate):
+        with (
+            patch.object(
+                self.runtime,
+                "compose",
+                side_effect=[json.dumps(candidate), json.dumps(self.configuration)],
+            ),
+            patch.object(
+                self.runtime,
+                "inspect",
+                return_value={
+                    "mounts": [
+                        {
+                            "Type": "bind",
+                            "Source": "/srv/observability-web.conf",
+                            "Destination": "/etc/nginx/conf.d/00-observability.conf",
+                        }
+                    ]
+                },
+            ),
+        ):
+            self.runtime.validate("candidate.yaml", "images.env", "previous.yaml")
+
+    def test_missing_google_credentials_rejects_deployment_configuration(self):
+        for key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
+            with self.subTest(key=key):
+                candidate = deepcopy(self.configuration)
+                del candidate["services"]["backend"]["environment"][key]
+
+                with self.assertRaisesRegex(ValueError, "Google|GOOGLE"):
+                    self.validate_candidate(candidate)
+
+    def test_changed_google_credentials_cannot_replace_server_settings(self):
+        for key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
+            with self.subTest(key=key):
+                candidate = deepcopy(self.configuration)
+                candidate["services"]["backend"]["environment"][key] = "different-value"
+
+                with self.assertRaisesRegex(ValueError, "Google|GOOGLE") as raised:
+                    self.validate_candidate(candidate)
+
+                self.assertNotIn(
+                    "server-only-google-test-secret", str(raised.exception)
+                )
+                self.assertNotIn("different-value", str(raised.exception))
+
+    def test_empty_and_placeholder_google_credentials_are_rejected(self):
+        for key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
+            for value in ("", "   ", "not-configured"):
+                with self.subTest(key=key, value=value):
+                    candidate = deepcopy(self.configuration)
+                    candidate["services"]["backend"]["environment"][key] = value
+
+                    with self.assertRaisesRegex(ValueError, "Google|GOOGLE"):
+                        self.validate_candidate(candidate)
+
+    def test_server_google_credentials_allow_deployment_validation(self):
+        self.validate_candidate(deepcopy(self.configuration))
 
 
 class MonitoringReadinessTests(unittest.TestCase):

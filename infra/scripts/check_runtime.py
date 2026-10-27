@@ -115,6 +115,8 @@ def main():
         "DB_USERNAME": "a305_check",
         "DB_PASSWORD": "ci-only-database-password",
         "JPA_DDL_AUTO": "update",
+        "GOOGLE_CLIENT_ID": "ci-only-client.apps.googleusercontent.com",
+        "GOOGLE_CLIENT_SECRET": "ci-only-google-secret",
         "AI_WORKER_TOKEN": "ci-only-internal-token",
         "LLM_PROFILE": "gms-luna",
         "GMS_KEY": "ci-only-provider-key",

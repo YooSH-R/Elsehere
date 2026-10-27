@@ -82,7 +82,8 @@ namespace A305.Player.Tests
                 player.Teleport(new Vector3(4.8f, .12f, -18.5f), Quaternion.identity);
                 yield return Frames(30);
                 Assert.That(capsule.isGrounded, Is.True);
-                observer.Observe = () => body?.Record("Production locomotion");
+                string phase = "walk";
+                observer.Observe = () => body?.Record(phase);
                 Vector3 start = player.transform.position;
                 Quaternion leg =
                     animator != null
@@ -104,12 +105,15 @@ namespace A305.Player.Tests
                     );
                 }
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                phase = "walk stop";
                 player.Teleport(start, Quaternion.identity);
                 yield return Frames(10);
                 start = player.transform.position;
+                phase = "run";
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.LeftShift));
                 yield return Frames(39);
                 Assert.That(player.transform.position.z - start.z, Is.GreaterThan(walk * 1.3f));
+                phase = "jump";
                 float ground = player.transform.position.y;
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Space));
                 yield return null;
@@ -126,8 +130,19 @@ namespace A305.Player.Tests
                         animator.GetCurrentAnimatorStateInfo(0).IsName("Locomotion"),
                         Is.True
                     );
-                    Assert.That(body.MinimumHeadDistance, Is.GreaterThanOrEqualTo(.9f));
-                    Assert.That(body.MinimumTorsoDistance, Is.GreaterThanOrEqualTo(.9f));
+                    Debug.Log(
+                        $"Clearance {selected}: head={body.MinimumHeadDistance:F6} torso={body.MinimumTorsoDistance:F6}; {body.WorstPose}; {body.WorstTorsoPose}"
+                    );
+                    Assert.That(
+                        body.MinimumHeadDistance,
+                        Is.GreaterThanOrEqualTo(.9f),
+                        body.WorstPose
+                    );
+                    Assert.That(
+                        body.MinimumTorsoDistance,
+                        Is.GreaterThanOrEqualTo(.9f),
+                        body.WorstTorsoPose
+                    );
                 }
                 player.SetMovementLocked(true);
                 start = player.transform.position;

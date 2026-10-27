@@ -17,6 +17,7 @@ namespace A305.Player.Tests
         public float MinimumHeadDistance { get; private set; } = float.PositiveInfinity;
         public float MinimumTorsoDistance { get; private set; } = float.PositiveInfinity;
         public string WorstPose { get; private set; }
+        public string WorstTorsoPose { get; private set; }
         public Bounds Head { get; private set; }
         public Bounds Torso { get; private set; }
 
@@ -101,7 +102,12 @@ namespace A305.Player.Tests
                         MinimumHeadDistance = head;
                         WorstPose = phase + " group=" + group + " point=" + point + " head=" + Head;
                     }
-                    MinimumTorsoDistance = Mathf.Min(MinimumTorsoDistance, torso);
+                    if (torso < MinimumTorsoDistance)
+                    {
+                        MinimumTorsoDistance = torso;
+                        WorstTorsoPose =
+                            phase + " group=" + group + " point=" + point + " torso=" + Torso;
+                    }
                 }
         }
 

@@ -63,7 +63,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 
 공용 Player는 `PlayerCharacterAppearance`로 `PlayerCharacterCatalog`에서 선택 ID의 외형·이동 설정·캡슐 크기를 적용합니다. `PlayerCharacterSelection`은 서버가 확인한 ID를 씬 사이에 전달하며, 계정의 영구 저장은 Onboarding API가 맡습니다. F는 보정 리틀 멍, M은 기존 대체 외형입니다. `PlayerCharacterVisibility`는 선택된 Visual을 1인칭·대화 시점에서 숨깁니다.
 
-이동 루트, 입력 액션, 카메라 추적 대상과 상호작용 참조를 교체하지 않습니다. 새 모델은 Character Definition의 Visual Prefab에 등록하고, Animator가 있다면 `Speed`, `IsGrounded`, `VerticalSpeed` 파라미터를 갖춰야 합니다. 모델의 접지 보정은 해당 Visual 안에 함께 구성합니다. 등록 경로와 확인 순서는 [리틀 멍 플레이어](../../../../../docs/unity/little-mung-player.md)를 따릅니다.
+이동 루트, 입력 액션, 카메라 추적 대상과 상호작용 참조를 교체하지 않습니다. 새 모델은 Character Definition의 Visual Prefab에 등록하고, Animator가 있다면 `Speed`, `IsGrounded`, `VerticalSpeed` 파라미터를 갖춰야 합니다. 모델의 접지 보정은 해당 Visual 안에 함께 구성합니다. Character Definition의 카메라 눈높이·조준점이 0보다 크면 해당 캐릭터에 적용하고, 0이면 씬 카메라 데이터의 높이를 사용합니다. 거리·회전·줌 설정은 씬 데이터를 유지합니다. 등록 경로와 확인 순서는 [리틀 멍 플레이어](../../../../../docs/unity/little-mung-player.md)를 따릅니다.
 ## 사용 방법
 
 1. Project 창에서 **Create → A305 → Player**로 `Movement Settings`, `Camera Settings` 데이터 에셋을 만듭니다.

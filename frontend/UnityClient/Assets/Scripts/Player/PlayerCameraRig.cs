@@ -33,6 +33,7 @@ namespace A305.Player
         private InputActionReference toggleViewAction;
 
         private CameraOrbit orbit;
+        private PlayerCharacterDefinition character;
         private Transform dialogueLookTarget;
         private PlayerTouchControls touchControls;
 
@@ -73,6 +74,7 @@ namespace A305.Player
                 return;
             }
 
+            character = followTarget.GetComponent<PlayerCharacterAppearance>()?.ActiveCharacter;
             orbit = cameraSettings.CreateOrbit();
             touchControls = followTarget.GetComponentInChildren<PlayerTouchControls>(true);
             SnapBehindTarget();
@@ -130,7 +132,11 @@ namespace A305.Player
 
         private Pose GetDesiredPose()
         {
-            Vector3 eye = followTarget.position + Vector3.up * cameraSettings.EyeHeightMeters;
+            float eyeHeight =
+                character != null && character.CameraEyeHeightMeters > 0
+                    ? character.CameraEyeHeightMeters
+                    : cameraSettings.EyeHeightMeters;
+            Vector3 eye = followTarget.position + Vector3.up * eyeHeight;
 
             switch (orbit.ViewMode)
             {
@@ -145,7 +151,11 @@ namespace A305.Player
 
         private Pose GetThirdPersonPoseInFrontOfWalls()
         {
-            Vector3 pivot = followTarget.position + Vector3.up * cameraSettings.PivotHeightMeters;
+            float pivotHeight =
+                character != null && character.CameraPivotHeightMeters > 0
+                    ? character.CameraPivotHeightMeters
+                    : cameraSettings.PivotHeightMeters;
+            Vector3 pivot = followTarget.position + Vector3.up * pivotHeight;
             Pose pose = orbit.GetThirdPersonPose(pivot);
             Vector3 pivotToCamera = pose.position - pivot;
 

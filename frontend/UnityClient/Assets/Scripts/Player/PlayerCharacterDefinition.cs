@@ -26,6 +26,16 @@ namespace A305.Player
         [SerializeField]
         private float skinWidthMeters = .02f;
 
+        [SerializeField, Min(0)]
+        [Tooltip("0이면 씬 카메라 설정을 사용합니다. 발 기준 1인칭·대화 눈높이입니다.")]
+        private float cameraEyeHeightMeters;
+
+        [SerializeField, Min(0)]
+        [Tooltip("0이면 씬 카메라 설정을 사용합니다. 발 기준 3인칭 조준점 높이입니다.")]
+        private float cameraPivotHeightMeters;
+
+        public float CameraEyeHeightMeters => cameraEyeHeightMeters;
+        public float CameraPivotHeightMeters => cameraPivotHeightMeters;
         public string CharacterId => characterId;
         public float HeightMeters => heightMeters;
         public GameObject VisualPrefab => visualPrefab;

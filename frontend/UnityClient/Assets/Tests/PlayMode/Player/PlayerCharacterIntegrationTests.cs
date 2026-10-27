@@ -17,6 +17,14 @@ namespace A305.Player.Tests
     public sealed class PlayerCharacterIntegrationTests
     {
         private readonly string selected;
+        private float previousCaptureDelta;
+
+        [SetUp]
+        public void FixFrameInterval()
+        {
+            previousCaptureDelta = Time.captureDeltaTime;
+            Time.captureDeltaTime = 1f / 60f;
+        }
 
         public PlayerCharacterIntegrationTests(string selected)
         {
@@ -27,6 +35,163 @@ namespace A305.Player.Tests
         public void ResetSelection()
         {
             PlayerCharacterSelection.Reset();
+            Time.captureDeltaTime = previousCaptureDelta;
+        }
+
+        [UnityTest]
+        public IEnumerator StandingCapsuleAndCameraFitTheSelectedVisual()
+        {
+            PlayerCharacterSelection.Select(selected);
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                "Assets/Scenes/Production/TownScene.unity",
+                new LoadSceneParameters(LoadSceneMode.Single)
+            );
+            yield return null;
+            var player = Object.FindFirstObjectByType<PlayerMover>();
+            var appearance = player.GetComponent<PlayerCharacterAppearance>();
+            var capsule = player.GetComponent<CharacterController>();
+            var camera = player.CameraRig;
+            player.Teleport(new Vector3(4.8f, .12f, -18.5f), Quaternion.identity);
+            yield return Frames(30);
+            camera.SnapBehindTarget();
+            Vector3 direction = camera.transform.forward;
+            Vector3 planar = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+            float distance =
+                Vector3.Dot(player.transform.position - camera.transform.position, planar)
+                / Vector3.Dot(direction, planar);
+            float pivotHeight = (
+                camera.transform.position + direction * distance - player.transform.position
+            ).y;
+            CheckWallAvoidance(camera, player.transform.position + Vector3.up * pivotHeight);
+            var target = new GameObject("FitCheckLookTarget");
+            target.transform.position =
+                player.transform.position + Vector3.forward * 3 + Vector3.up;
+            try
+            {
+                camera.EnterDialogueView(target.transform);
+                camera.SnapBehindTarget();
+                float eyeHeight = camera.transform.position.y - player.transform.position.y;
+                if (selected == "F")
+                {
+                    var animator = appearance.VisualRoot.GetComponentInChildren<Animator>();
+                    using var body = new BodyClearanceProbe(animator, player.transform);
+                    body.Record("standing fit");
+                    Bounds bounds = SkinBounds(animator, player.transform);
+                    float headRadius = Mathf.Max(
+                        Mathf.Abs(body.Head.min.x),
+                        Mathf.Abs(body.Head.max.x),
+                        Mathf.Abs(body.Head.min.z),
+                        Mathf.Abs(body.Head.max.z)
+                    );
+                    Debug.Log(
+                        $"Standing fit: skin={bounds}, head={body.Head}, capsule={capsule.height:F4}/{capsule.radius:F4}, eye={eyeHeight:F4}, pivot={pivotHeight:F4}"
+                    );
+                    Assert.That(appearance.VisualRoot.localScale, Is.EqualTo(Vector3.one * 1.6f));
+                    Assert.That(
+                        capsule.center.y - capsule.height * .5f,
+                        Is.EqualTo(0).Within(.001f)
+                    );
+                    Assert.That(
+                        capsule.height,
+                        Is.InRange(bounds.max.y, bounds.max.y + .1f),
+                        "Capsule top must cover the standing mesh."
+                    );
+                    Assert.That(
+                        capsule.radius,
+                        Is.GreaterThanOrEqualTo(headRadius),
+                        "Capsule width must cover the large head."
+                    );
+                    Assert.That(
+                        eyeHeight,
+                        Is.InRange(
+                            body.Head.center.y - body.Head.size.y * .15f,
+                            body.Head.center.y + body.Head.size.y * .15f
+                        ),
+                        "Dialogue eye must be at face height."
+                    );
+                    Assert.That(
+                        pivotHeight,
+                        Is.InRange(bounds.size.y * .4f, bounds.size.y * .8f),
+                        "Third person must aim at the character."
+                    );
+                }
+                else
+                {
+                    var settings = (PlayerCameraSettings)
+                        new SerializedObject(camera)
+                            .FindProperty("cameraSettings")
+                            .objectReferenceValue;
+                    Assert.That(capsule.height, Is.EqualTo(1.6f).Within(.001f));
+                    Assert.That(capsule.radius, Is.EqualTo(.36f).Within(.001f));
+                    Assert.That(eyeHeight, Is.EqualTo(settings.EyeHeightMeters).Within(.001f));
+                    Assert.That(pivotHeight, Is.EqualTo(settings.PivotHeightMeters).Within(.001f));
+                }
+            }
+            finally
+            {
+                camera.ExitDialogueView();
+                Object.Destroy(target);
+            }
+        }
+
+        private static void CheckWallAvoidance(PlayerCameraRig camera, Vector3 pivot)
+        {
+            Vector3 unblocked = camera.transform.position;
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            try
+            {
+                wall.name = "CameraFitWall";
+                wall.transform.SetPositionAndRotation(
+                    Vector3.Lerp(pivot, unblocked, .5f),
+                    camera.transform.rotation
+                );
+                wall.transform.localScale = new Vector3(4, 4, .2f);
+                Physics.SyncTransforms();
+                camera.SnapBehindTarget();
+                Assert.That(
+                    Vector3.Distance(camera.transform.position, pivot),
+                    Is.LessThan(Vector3.Distance(unblocked, pivot) * .6f),
+                    "Camera must stay in front of a blocking wall."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(wall);
+                Physics.SyncTransforms();
+                camera.SnapBehindTarget();
+            }
+        }
+
+        private static Bounds SkinBounds(Animator animator, Transform space)
+        {
+            var mesh = new Mesh();
+            Bounds result = default;
+            bool first = true;
+            try
+            {
+                foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
+                {
+                    skin.BakeMesh(mesh, true);
+                    foreach (var vertex in mesh.vertices)
+                    {
+                        Vector3 point = space.InverseTransformPoint(
+                            skin.transform.TransformPoint(vertex)
+                        );
+                        if (first)
+                        {
+                            result = new Bounds(point, Vector3.zero);
+                            first = false;
+                        }
+                        else
+                            result.Encapsulate(point);
+                    }
+                }
+                return result;
+            }
+            finally
+            {
+                Object.Destroy(mesh);
+            }
         }
 
         [UnityTest]
@@ -250,7 +415,7 @@ namespace A305.Player.Tests
                     Assert.That(animator.GetComponent<LittleMungArmClearance>(), Is.Not.Null);
                     Assert.That(
                         players[0].GetComponent<CharacterController>().height,
-                        Is.EqualTo(1.4f).Within(.001f)
+                        Is.EqualTo(appearance.ActiveCharacter.HeightMeters).Within(.001f)
                     );
                 }
                 else

@@ -15,7 +15,9 @@ MonoBehaviour:
   characterId: F
   visualPrefab: {fileID: 891947555834214325, guid: d58f7796b10686a4e84963bc0bbb9109, type: 3}
   movementSettings: {fileID: 11400000, guid: 6f38c95ba5688a443a34c14bbb81aaac, type: 2}
-  heightMeters: 1.4
-  radiusMeters: 0.4420398
+  heightMeters: 1.61
+  radiusMeters: 0.68
   stepHeightMeters: 0.15
   skinWidthMeters: 0.025
+  cameraEyeHeightMeters: 1.1076486
+  cameraPivotHeightMeters: 0.966

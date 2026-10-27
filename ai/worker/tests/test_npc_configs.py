@@ -133,6 +133,72 @@ def test_cli_writes_the_merged_list_to_the_out_file(tmp_path):
     assert not out.read_bytes().startswith(b"\xef\xbb\xbf")
 
 
+CAFE_SCENARIO = {"scenarioId": "cafe_order", "locationId": "cafe", "situation": "At the counter.", "facts": ["Latte is $5."]}
+HOTEL_SCENARIO = {"scenarioId": "check_in", "locationId": "hotel", "situation": "At the front desk.", "facts": []}
+
+
+def scenario_folder(tmp_path: Path, links: dict[str, str], scenarios: dict[str, object]) -> Path:
+    """NPC 폴더 아래 scenarios/에 서비스 상황 연결(service_scenarios.json)과 상황 파일들을 둔다."""
+    folder = tmp_path / "npcs"
+    (folder / "scenarios").mkdir(parents=True)
+    write_files(folder / "scenarios", {"service_scenarios.json": links, **{f"{name}.json": s for name, s in scenarios.items()}})
+    return folder
+
+
+def test_service_scenarios_are_collected_by_npc_id(tmp_path):
+    cafe, hotel, _ = load_npc_examples()
+    folder = scenario_folder(
+        tmp_path,
+        {"npc_cafe_001": "cafe_order", "npc_hotel_001": "check_in"},
+        {"cafe_order": CAFE_SCENARIO, "check_in": HOTEL_SCENARIO},
+    )
+
+    assert npc_configs.service_scenarios(folder, [cafe, hotel]) == (
+        {"npc_cafe_001": CAFE_SCENARIO, "npc_hotel_001": HOTEL_SCENARIO},
+        [],
+    )
+
+
+@pytest.mark.parametrize(
+    ("links", "scenarios", "problem"),
+    [
+        (
+            {"npc_cafe_001": "cafe_order"},
+            {"cafe_order": CAFE_SCENARIO},
+            "npc_hotel_001: 서비스 상황 연결이 없음 (scenarios/service_scenarios.json)",
+        ),
+        (
+            {"npc_cafe_001": "cafe_order", "npc_hotel_001": "check_in", "npc_ghost": "check_in"},
+            {"cafe_order": CAFE_SCENARIO, "check_in": HOTEL_SCENARIO},
+            "scenarios/service_scenarios.json: 설정 파일에 없는 npcId 'npc_ghost'",
+        ),
+        (
+            {"npc_cafe_001": "cafe_order", "npc_hotel_001": "nowhere"},
+            {"cafe_order": CAFE_SCENARIO},
+            "npc_hotel_001: 상황 파일이 없음 (scenarios/nowhere.json)",
+        ),
+        (
+            {"npc_cafe_001": "cafe_order", "npc_hotel_001": "check_in"},
+            {"cafe_order": CAFE_SCENARIO, "check_in": {**HOTEL_SCENARIO, "mood": "busy"}},
+            "scenarios/check_in.json mood: Extra inputs are not permitted",
+        ),
+        (
+            {"npc_cafe_001": "check_in", "npc_hotel_001": "check_in"},
+            {"check_in": HOTEL_SCENARIO},
+            "npc_cafe_001: 상황 장소 'hotel'이 NPC 기본 장소 'cafe'와 다름",
+        ),
+    ],
+)
+def test_service_scenario_problems_are_reported_with_their_cause(tmp_path, links, scenarios, problem):
+    """상황은 Worker 추론 API가 받는 형식(app.npc_respond.Scenario)으로 검사한다. 백엔드가 보낸 상황을 Worker가 거절하지 않게."""
+    cafe, hotel, _ = load_npc_examples()
+    folder = scenario_folder(tmp_path, links, scenarios)
+
+    _, problems = npc_configs.service_scenarios(folder, [cafe, hotel])
+
+    assert problems == [problem]
+
+
 def test_cli_writes_nothing_when_there_is_a_problem(tmp_path, capsys):
     """문제가 있는 배열이 백엔드로 넘어가지 않도록 파일은 만들지 않고, 문제와 실패 코드만."""
     folder = npc_folder(tmp_path, {"bad.json": cafe_with("npcProfile.fears", None)})
@@ -141,3 +207,63 @@ def test_cli_writes_nothing_when_there_is_a_problem(tmp_path, capsys):
     assert npc_configs.main([str(folder), "--out", str(out)]) == 1
     assert not out.exists()
     assert capsys.readouterr().err == "bad.json $.npcProfile.fears: None is not of type 'array'\n"
+
+
+def test_cli_writes_the_service_scenarios_next_to_the_merged_list(tmp_path):
+    cafe, hotel, _ = load_npc_examples()
+    folder = scenario_folder(
+        tmp_path,
+        {"npc_cafe_001": "cafe_order", "npc_hotel_001": "check_in"},
+        {"cafe_order": CAFE_SCENARIO, "check_in": HOTEL_SCENARIO},
+    )
+    write_files(folder, {"cafe.json": cafe, "hotel.json": hotel})
+    out, scenarios_out = tmp_path / "npc-configurations.json", tmp_path / "npc-scenarios.json"
+
+    assert npc_configs.main([str(folder), "--out", str(out), "--scenarios-out", str(scenarios_out)]) == 0
+    assert json.loads(out.read_text(encoding="utf-8")) == [cafe, hotel]
+    assert json.loads(scenarios_out.read_text(encoding="utf-8")) == {"npc_cafe_001": CAFE_SCENARIO, "npc_hotel_001": HOTEL_SCENARIO}
+
+
+def test_cli_writes_neither_file_when_a_service_scenario_has_a_problem(tmp_path, capsys):
+    """설정은 맞아도 상황이 틀리면 백엔드가 대화를 시작할 수 없으므로 둘 다 쓰지 않는다."""
+    cafe, hotel, _ = load_npc_examples()
+    folder = scenario_folder(tmp_path, {"npc_cafe_001": "cafe_order"}, {"cafe_order": CAFE_SCENARIO})
+    write_files(folder, {"cafe.json": cafe, "hotel.json": hotel})
+    out, scenarios_out = tmp_path / "npc-configurations.json", tmp_path / "npc-scenarios.json"
+
+    assert npc_configs.main([str(folder), "--out", str(out), "--scenarios-out", str(scenarios_out)]) == 1
+    assert not out.exists() and not scenarios_out.exists()
+    assert capsys.readouterr().err == "npc_hotel_001: 서비스 상황 연결이 없음 (scenarios/service_scenarios.json)\n"
+
+
+BACKEND_CONTENT = npc_configs.ROOT / "backend/src/main/resources/content"
+REGENERATE = (
+    "ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs"
+    " --out backend/src/main/resources/content/npc-configurations.json"
+    " --scenarios-out backend/src/main/resources/content/npc-scenarios.json"
+)
+
+
+def service_npcs() -> tuple[list[dict], dict[str, dict]]:
+    configs, problems = npc_configs.bundle(npc_configs.ROOT / "ai/npcs")
+    scenarios, scenario_problems = npc_configs.service_scenarios(npc_configs.ROOT / "ai/npcs", configs)
+    assert problems + scenario_problems == []
+    return configs, scenarios
+
+
+def test_the_service_npcs_each_have_a_service_scenario():
+    _, scenarios = service_npcs()
+
+    assert {npc_id: s["scenarioId"] for npc_id, s in scenarios.items()} == {
+        "CAFE_STAFF": "cafe_counter",
+        "HOTEL_STAFF": "hotel_front_desk",
+        "TOWN_PASSERBY": "town_street",
+    }
+
+
+def test_the_backend_content_files_match_the_npc_sources():
+    """백엔드가 시작할 때 읽는 생성 파일(WorldSeedLoader). ai/npcs를 고쳤으면 저장소 최상위에서 REGENERATE 명령으로 다시 만든다."""
+    configs, scenarios = service_npcs()
+
+    assert json.loads((BACKEND_CONTENT / "npc-configurations.json").read_text(encoding="utf-8")) == configs, REGENERATE
+    assert json.loads((BACKEND_CONTENT / "npc-scenarios.json").read_text(encoding="utf-8")) == scenarios, REGENERATE

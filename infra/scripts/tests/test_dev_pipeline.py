@@ -1,9 +1,11 @@
+import json
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from dev_pipeline import create_child_pipeline, create_release_plan
+from dev_pipeline import create_child_pipeline, create_release_plan, server_request
 
 
 class ChildPipelineTests(unittest.TestCase):
@@ -97,6 +99,65 @@ class ChildPipelineTests(unittest.TestCase):
         self.assertNotIn("unity:editor-and-webgl", jobs)
 
 
+class ServerRequestTests(unittest.TestCase):
+    def test_ssh_failures_explain_the_category_without_revealing_stderr(self):
+        cases = [
+            (b'Load key "/tmp/deploy-key": error in libcrypto', "private key format"),
+            (b"Host key verification failed.", "host key verification"),
+            (b"Permission denied (publickey).", "authentication"),
+            (b"Could not resolve hostname example.invalid", "hostname resolution"),
+            (
+                b"ssh: connect to host example.invalid port 22: Connection refused",
+                "connection refused",
+            ),
+            (
+                b"ssh: connect to host example.invalid port 22: Connection timed out",
+                "connection timed out",
+            ),
+            (b"Unexpected SSH failure", "Deploy SSH connection failed"),
+        ]
+        for stderr, expected in cases:
+            with self.subTest(expected=expected):
+                result = subprocess.CompletedProcess(
+                    ["ssh"], 255, stdout=b"", stderr=stderr + b"\nfixture-secret-value"
+                )
+                with (
+                    patch("dev_pipeline.ssh_command", return_value=["ssh"]),
+                    patch("dev_pipeline.subprocess.run", return_value=result),
+                    self.assertRaises(RuntimeError) as raised,
+                ):
+                    server_request("state")
+
+                message = str(raised.exception)
+                self.assertIn(expected, message)
+                self.assertNotIn("fixture-secret-value", message)
+                self.assertNotIn("/tmp/deploy-key", message)
+
+    def test_successful_state_json_is_returned(self):
+        result = subprocess.CompletedProcess(
+            ["ssh"], 0, stdout=b'{"candidate_commit": null}', stderr=b""
+        )
+        with (
+            patch("dev_pipeline.ssh_command", return_value=["ssh"]),
+            patch("dev_pipeline.subprocess.run", return_value=result),
+        ):
+            self.assertEqual(server_request("state"), {"candidate_commit": None})
+
+    def test_server_json_error_keeps_the_server_failure_message(self):
+        result = subprocess.CompletedProcess(
+            ["ssh"],
+            1,
+            stdout=b'{"error": "Deployment state is already initialized."}',
+            stderr=b"",
+        )
+        with (
+            patch("dev_pipeline.ssh_command", return_value=["ssh"]),
+            patch("dev_pipeline.subprocess.run", return_value=result),
+            self.assertRaisesRegex(RuntimeError, "already initialized"),
+        ):
+            server_request("state")
+
+
 class MonitoringCompatibilityTests(unittest.TestCase):
     def test_backend_candidate_without_deployed_monitoring_code_is_rejected(self):
         with tempfile.TemporaryDirectory(prefix="a305-monitoring-plan-") as directory:
@@ -137,4 +198,3 @@ class MonitoringCompatibilityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-import json

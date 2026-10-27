@@ -101,6 +101,36 @@ def ssh_command():
     ]
 
 
+def ssh_failure_message(stderr):
+    # Report only known categories: stderr can contain file-variable values.
+    message = stderr.decode("utf-8", errors="replace").lower()
+    if "error in libcrypto" in message or "invalid format" in message:
+        return (
+            "Deploy SSH private key format is invalid; check the complete "
+            "DEV_DEPLOY_SSH_KEY content and its final LF newline."
+        )
+    if (
+        "host key verification failed" in message
+        or "remote host identification has changed" in message
+    ):
+        return (
+            "Deploy SSH host key verification failed; check the pinned "
+            "DEV_DEPLOY_KNOWN_HOSTS file."
+        )
+    if "permission denied (publickey" in message:
+        return (
+            "Deploy SSH authentication failed; check DEV_DEPLOY_SSH_KEY "
+            "and its restricted authorized_keys entry."
+        )
+    if "could not resolve hostname" in message:
+        return "Deploy SSH hostname resolution failed."
+    if "connection refused" in message:
+        return "Deploy SSH connection refused; check the SSH listener and route."
+    if "connection timed out" in message or "operation timed out" in message:
+        return "Deploy SSH connection timed out; check the network route and port 22."
+    return "Deploy SSH connection failed; check the restricted key and host key."
+
+
 def server_request(operation, archive=None):
     result = subprocess.run(
         [*ssh_command(), operation],
@@ -112,9 +142,7 @@ def server_request(operation, archive=None):
     try:
         response = json.loads(result.stdout)
     except (ValueError, UnicodeDecodeError) as error:
-        raise RuntimeError(
-            "Deploy SSH connection failed; check the restricted key and host key."
-        ) from error
+        raise RuntimeError(ssh_failure_message(result.stderr)) from error
     if result.returncode or "error" in response:
         raise RuntimeError(
             response.get("error", "Deployment server rejected the request.")

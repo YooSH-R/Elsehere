@@ -136,7 +136,6 @@ public class AiWorkerClient {
     return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
   }
 
-  /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
   /**
    * NPC 기억 카드 갱신. 이번 대화와 이전 카드로 새 카드 전체를 만든다. 실패(429·502·503)하면 오류로 던지며, 호출한 쪽은 이전 카드를 그대로 둔다.
    *
@@ -172,6 +171,7 @@ public class AiWorkerClient {
     }
   }
 
+  /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
   public WorkerFeedback feedback(WorkerTrace trace, FeedbackInput input) {
     HttpResponse<String> response =
         send(

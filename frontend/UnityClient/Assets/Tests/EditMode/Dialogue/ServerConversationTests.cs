@@ -1,0 +1,848 @@
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using A305.Api;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
+
+namespace A305.Dialogue.Tests
+{
+    public class ServerConversationTests
+    {
+        private const string CafeStaffCode = "CAFE_STAFF";
+        private const long ConversationId = 58;
+        private const long OpeningTurnId = 101;
+        private const string Opening = "Hi! What can I get for you?";
+        private const string Order = "I'd like an iced latte, please.";
+
+        private static readonly byte[] Wav = { 1, 2, 3 };
+
+        private FakeConversationApi api;
+        private ServerConversation conversation;
+
+        [SetUp]
+        public void CreateConversation()
+        {
+            api = new FakeConversationApi();
+            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api);
+        }
+
+        [Test]
+        public async Task Start_ShowsServerNpcNameAndOpeningLine()
+        {
+            NpcTurnData spokenTurn = null;
+            conversation.NpcSpoke += turn => spokenTurn = turn;
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(conversation.NpcName, Is.EqualTo("Mia"));
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+            Assert.That(conversation.Lines[0].IsNpc, Is.True);
+            Assert.That(conversation.Lines[0].English, Is.EqualTo(Opening));
+            Assert.That(conversation.LastNpcLine, Is.SameAs(conversation.Lines[0]));
+            Assert.That(conversation.LastNpcTurn, Is.SameAs(api.StartResponse.OpeningTurn));
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "latte", "menu" }));
+            Assert.That(spokenTurn, Is.SameAs(api.StartResponse.OpeningTurn));
+            Assert.That(conversation.IsBusy, Is.False);
+            Assert.That(conversation.StatusMessage, Is.Null);
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [Test]
+        public async Task Start_RequestsNpcInitiatedConversationWithNpcCode()
+        {
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts, Has.Count.EqualTo(1));
+            Assert.That(api.Starts[0].NpcCode, Is.EqualTo(CafeStaffCode));
+            Assert.That(api.Starts[0].InitiatedBy, Is.EqualTo("NPC"));
+            Assert.That(api.Starts[0].RequestId, Is.Not.Empty);
+        }
+
+        [Test]
+        public async Task Start_WithoutServerNpcName_KeepsGivenName()
+        {
+            api.StartResponse.Npc = null;
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.NpcName, Is.EqualTo(CafeStaffCode));
+        }
+
+        [Test]
+        public async Task Start_WhileWaiting_IsBusyWithMessage()
+        {
+            var busyStates = new List<bool>();
+            var messages = new List<string>();
+            conversation.Changed += () =>
+            {
+                busyStates.Add(conversation.IsBusy);
+                messages.Add(conversation.StatusMessage);
+            };
+
+            await conversation.StartAsync();
+
+            Assert.That(busyStates, Is.EqualTo(new[] { true, false }));
+            Assert.That(messages[0], Is.Not.Empty);
+            Assert.That(messages[1], Is.Null);
+        }
+
+        [Test]
+        public async Task Start_WhenStaleConversationIsActive_EndsItWithoutFeedbackAndStartsAgain()
+        {
+            // 새로고침 등으로 끝내지 못한 대화가 서버에 남아 있는 경우다.
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation { ConversationId = 41 };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Calls, Is.EqualTo(new[] { "Start", "GetActive", "End", "Start" }));
+            Assert.That(api.Ends[0].ConversationId, Is.EqualTo(41));
+            Assert.That(api.Ends[0].SkipFeedback, Is.True);
+            Assert.That(api.Starts[1].RequestId, Is.Not.EqualTo(api.Starts[0].RequestId));
+            Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+            Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task Start_WhenStaleConversationIsAlreadyGone_StartsAgainWithoutEnding()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = null;
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Calls, Is.EqualTo(new[] { "Start", "GetActive", "Start" }));
+            Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
+        }
+
+        [Test]
+        public async Task Start_WhenServerRejects_ShowsReasonAndCannotSend()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException("AI_RATE_LIMITED", 429, "요청이 많아 잠시 후 다시 시도해 주세요.")
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo("요청이 많아 잠시 후 다시 시도해 주세요.")
+            );
+            Assert.That(conversation.ConversationId, Is.Null);
+            Assert.That(conversation.CanSend, Is.False);
+            Assert.That(conversation.IsBusy, Is.False);
+            Assert.That(conversation.Lines, Is.Empty);
+            Assert.That(api.Calls, Is.EqualTo(new[] { "Start" }));
+        }
+
+        [Test]
+        public async Task Send_AddsUserAndNpcLinesAsTextInput()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(Order, "Sure! Hot or iced?", "ACTIVE");
+            NpcTurnData spokenTurn = null;
+            conversation.NpcSpoke += turn => spokenTurn = turn;
+
+            await conversation.SendAsync("  " + Order + "  ");
+
+            Assert.That(api.Turns, Has.Count.EqualTo(1));
+            Assert.That(api.Turns[0].ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(api.Turns[0].InputType, Is.EqualTo("TEXT"));
+            Assert.That(api.Turns[0].Text, Is.EqualTo(Order));
+            Assert.That(api.Turns[0].SttRawText, Is.Null);
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
+            Assert.That(conversation.Lines[1].IsNpc, Is.False);
+            Assert.That(conversation.Lines[1].English, Is.EqualTo(Order));
+            Assert.That(conversation.Lines[2].IsNpc, Is.True);
+            Assert.That(conversation.Lines[2].English, Is.EqualTo("Sure! Hot or iced?"));
+            Assert.That(conversation.LastNpcLine, Is.SameAs(conversation.Lines[2]));
+            Assert.That(conversation.LastNpcTurn, Is.SameAs(api.TurnResponse.NpcTurn));
+            Assert.That(spokenTurn, Is.SameAs(api.TurnResponse.NpcTurn));
+            Assert.That(conversation.StatusMessage, Is.Null);
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [Test]
+        public async Task Send_ShowsUserTextAsServerSavedIt()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("I'd like an iced latte.", "Sure!", "ACTIVE");
+
+            await conversation.SendAsync("i'd like an iced latte");
+
+            Assert.That(conversation.Lines[1].English, Is.EqualTo("I'd like an iced latte."));
+        }
+
+        [Test]
+        public async Task Send_BlankText_IsNotSent()
+        {
+            await conversation.StartAsync();
+
+            await conversation.SendAsync("");
+            await conversation.SendAsync("   ");
+            await conversation.SendAsync(null);
+
+            Assert.That(api.Turns, Is.Empty);
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Send_BeforeStart_IsNotSent()
+        {
+            await conversation.SendAsync(Order);
+
+            Assert.That(api.Turns, Is.Empty);
+            Assert.That(conversation.Lines, Is.Empty);
+        }
+
+        [Test]
+        public async Task Send_AfterStartFailed_IsNotSent()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException("AI_RATE_LIMITED", 429, "요청이 많아 잠시 후 다시 시도해 주세요.")
+            );
+            await conversation.StartAsync();
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(api.Turns, Is.Empty);
+        }
+
+        [Test]
+        public async Task Send_TranscriptAsIs_IsSentAsVoiceInput()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            string transcript = await conversation.TranscribeAsync(Wav);
+            await conversation.SendAsync(transcript);
+
+            Assert.That(transcript, Is.EqualTo(Order));
+            Assert.That(api.Transcriptions, Has.Count.EqualTo(1));
+            Assert.That(api.Transcriptions[0].ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(api.Transcriptions[0].Wav, Is.SameAs(Wav));
+            Assert.That(api.Turns[0].InputType, Is.EqualTo("VOICE"));
+            Assert.That(api.Turns[0].Text, Is.EqualTo(Order));
+            Assert.That(api.Turns[0].SttRawText, Is.EqualTo(Order));
+        }
+
+        [Test]
+        public async Task Send_TranscriptWithSurroundingSpaces_IsSentAsVoiceInput()
+        {
+            // 입력창의 문장은 앞뒤 공백을 지우고 보내므로, 전사 결과에 공백이 붙어 있어도 그대로 보내면 음성 입력이다.
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = " " + Order + " " };
+
+            string transcript = await conversation.TranscribeAsync(Wav);
+            await conversation.SendAsync(transcript);
+
+            Assert.That(api.Turns[0].InputType, Is.EqualTo("VOICE"));
+            Assert.That(api.Turns[0].Text, Is.EqualTo(Order));
+            Assert.That(api.Turns[0].SttRawText, Is.EqualTo(" " + Order + " "));
+        }
+
+        [Test]
+        public async Task Send_EditedTranscript_IsSentAsTextInput()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription
+            {
+                SttRawText = "I'd like and iced latte.",
+            };
+
+            await conversation.TranscribeAsync(Wav);
+            await conversation.SendAsync(Order);
+
+            Assert.That(api.Turns[0].InputType, Is.EqualTo("TEXT"));
+            Assert.That(api.Turns[0].Text, Is.EqualTo(Order));
+            Assert.That(api.Turns[0].SttRawText, Is.Null);
+        }
+
+        [Test]
+        public async Task Send_SameTextAgainAfterVoiceTurn_IsSentAsTextInput()
+        {
+            // 전사 결과는 한 번 보내면 쓰지 않는다. 같은 문장을 다시 입력하면 텍스트 입력이다.
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+            await conversation.TranscribeAsync(Wav);
+            await conversation.SendAsync(Order);
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(api.Turns[1].InputType, Is.EqualTo("TEXT"));
+            Assert.That(api.Turns[1].SttRawText, Is.Null);
+        }
+
+        [Test]
+        public async Task Transcribe_WhenServerHearsNothing_ReturnsNullWithReason()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionError = new ApiException(
+                "STT_NO_SPEECH",
+                422,
+                "말소리를 알아듣지 못했어요."
+            );
+
+            string transcript = await conversation.TranscribeAsync(Wav);
+
+            Assert.That(transcript, Is.Null);
+            Assert.That(conversation.StatusMessage, Is.EqualTo("말소리를 알아듣지 못했어요."));
+            Assert.That(conversation.IsBusy, Is.False);
+        }
+
+        [Test]
+        public async Task Transcribe_BeforeStart_ReturnsNullWithoutRequest()
+        {
+            string transcript = await conversation.TranscribeAsync(Wav);
+
+            Assert.That(transcript, Is.Null);
+            Assert.That(api.Transcriptions, Is.Empty);
+        }
+
+        [Test]
+        public async Task Send_WhenServerFails_ShowsReasonAndRestoresTextOnce()
+        {
+            await conversation.StartAsync();
+            api.TurnError = new ApiException(
+                "AI_TEMPORARILY_UNAVAILABLE",
+                503,
+                "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+            );
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo("AI가 잠시 응답하지 않습니다. 다시 시도해 주세요.")
+            );
+            Assert.That(conversation.Lines, Has.Count.EqualTo(1));
+            Assert.That(conversation.IsBusy, Is.False);
+            Assert.That(conversation.CanSend, Is.True);
+            Assert.That(conversation.TakeTextToRestore(), Is.EqualTo(Order));
+            Assert.That(conversation.TakeTextToRestore(), Is.Null);
+        }
+
+        [Test]
+        public async Task Send_SameTextAfterFailure_ReusesRequestId()
+        {
+            // 서버가 같은 요청 ID로 받은 턴을 다시 만들지 않도록 실패한 요청의 ID를 그대로 쓴다.
+            await conversation.StartAsync();
+            api.TurnError = new ApiException("NETWORK_ERROR", 0, "서버에 연결하지 못했어요.");
+            await conversation.SendAsync(Order);
+            api.TurnError = null;
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(api.Turns, Has.Count.EqualTo(2));
+            Assert.That(api.Turns[1].RequestId, Is.EqualTo(api.Turns[0].RequestId));
+            Assert.That(conversation.Lines, Has.Count.EqualTo(3));
+            Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task Send_DifferentTextAfterFailure_UsesNewRequestId()
+        {
+            await conversation.StartAsync();
+            api.TurnError = new ApiException("NETWORK_ERROR", 0, "서버에 연결하지 못했어요.");
+            await conversation.SendAsync(Order);
+            api.TurnError = null;
+
+            await conversation.SendAsync("Can I get a hot tea?");
+
+            Assert.That(api.Turns[1].RequestId, Is.Not.EqualTo(api.Turns[0].RequestId));
+        }
+
+        [Test]
+        public async Task Send_SameTextAgainAfterSuccess_UsesNewRequestId()
+        {
+            // "Yes." 같은 문장은 일부러 다시 말할 수 있어 성공한 요청의 ID를 다시 쓰지 않는다.
+            await conversation.StartAsync();
+            await conversation.SendAsync("Yes.");
+
+            await conversation.SendAsync("Yes.");
+
+            Assert.That(api.Turns[1].RequestId, Is.Not.EqualTo(api.Turns[0].RequestId));
+        }
+
+        [Test]
+        public async Task Send_WhenNpcEndsConversation_StopsAcceptingInput()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(
+                Order,
+                "Oh, something urgent just came up. Let's talk next time!",
+                "ENDED_BY_NPC"
+            );
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.IsEnded, Is.True);
+            Assert.That(conversation.CanSend, Is.False);
+            Assert.That(conversation.StatusMessage, Does.Contain("Mia"));
+            Assert.That(conversation.StatusMessage, Does.Contain("대화를 마쳤어요"));
+            Assert.That(
+                conversation.LastNpcLine.English,
+                Is.EqualTo("Oh, something urgent just came up. Let's talk next time!")
+            );
+        }
+
+        [Test]
+        public async Task Send_AfterNpcEndedConversation_IsNotSent()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(
+                Order,
+                "I don't want to talk like this anymore.",
+                "ENDED_BY_NPC"
+            );
+            await conversation.SendAsync(Order);
+
+            await conversation.SendAsync("Wait!");
+
+            Assert.That(api.Turns, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task End_WithDoneFeedback_IncludesDetailedFeedback()
+        {
+            await conversation.StartAsync();
+            api.EndResponse = Ended("DONE");
+            api.Detailed = new DetailedFeedback
+            {
+                Items = new List<DetailedFeedbackItem>
+                {
+                    new DetailedFeedbackItem
+                    {
+                        UserText = "I want 아이스 라떼.",
+                        BetterText = Order,
+                        Reason = "주문할 때는 I'd like가 더 공손해요.",
+                    },
+                },
+            };
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(api.Ends, Has.Count.EqualTo(1));
+            Assert.That(api.Ends[0].ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(api.Ends[0].SkipFeedback, Is.False);
+            Assert.That(api.DetailedRequestedFor, Is.EqualTo(new[] { ConversationId }));
+            Assert.That(feedback.Summary, Is.SameAs(api.EndResponse.Feedback));
+            Assert.That(feedback.Details, Is.EqualTo(api.Detailed.Items));
+            Assert.That(feedback.FailureMessage, Is.Null);
+            Assert.That(conversation.IsBusy, Is.False);
+        }
+
+        [TestCase("SKIPPED")]
+        [TestCase("FAILED")]
+        public async Task End_WithFeedbackNotDone_DoesNotRequestDetails(string feedbackStatus)
+        {
+            await conversation.StartAsync();
+            api.EndResponse = Ended(feedbackStatus);
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(api.DetailedRequestedFor, Is.Empty);
+            Assert.That(feedback.Summary, Is.SameAs(api.EndResponse.Feedback));
+            Assert.That(feedback.Details, Is.Empty);
+            Assert.That(feedback.FailureMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task End_WhenEndRequestFails_ReturnsFailureReason()
+        {
+            await conversation.StartAsync();
+            api.EndError = new ApiException(
+                "AI_TEMPORARILY_UNAVAILABLE",
+                503,
+                "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+            );
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback.Summary, Is.Null);
+            Assert.That(feedback.Details, Is.Empty);
+            Assert.That(
+                feedback.FailureMessage,
+                Is.EqualTo("AI가 잠시 응답하지 않습니다. 다시 시도해 주세요.")
+            );
+            Assert.That(api.DetailedRequestedFor, Is.Empty);
+            Assert.That(conversation.IsBusy, Is.False);
+        }
+
+        [Test]
+        public async Task End_WhenDetailedFeedbackFails_StillReturnsShortFeedback()
+        {
+            // 상세 평가는 다시 보기에서도 볼 수 있어 받지 못해도 짧은 피드백은 보여 준다.
+            await conversation.StartAsync();
+            api.EndResponse = Ended("DONE");
+            api.DetailedError = new ApiException(
+                "AI_RESPONSE_INVALID",
+                502,
+                "AI 응답을 처리하지 못했습니다. 다시 시도해 주세요."
+            );
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback.Summary, Is.SameAs(api.EndResponse.Feedback));
+            Assert.That(feedback.Details, Is.Empty);
+            Assert.That(feedback.FailureMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task End_WhenResponseCannotBeRead_ReturnsFailureAndStopsWaiting()
+        {
+            // 응답을 읽지 못해도 피드백 대기에서 풀려야 대화창을 닫을 수 있다.
+            await conversation.StartAsync();
+            api.EndError = new InvalidOperationException("응답 형식 오류");
+            LogAssert.Expect(LogType.Exception, new Regex("응답 형식 오류"));
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback.Summary, Is.Null);
+            Assert.That(feedback.FailureMessage, Is.Not.Empty);
+            Assert.That(conversation.IsBusy, Is.False);
+        }
+
+        [Test]
+        public async Task End_WhenResponseHasNoBody_ReturnsFeedbackWithoutSummary()
+        {
+            await conversation.StartAsync();
+            api.EndResponse = null;
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback.Summary, Is.Null);
+            Assert.That(api.DetailedRequestedFor, Is.Empty);
+            Assert.That(conversation.IsBusy, Is.False);
+        }
+
+        [Test]
+        public async Task End_WhenDetailedFeedbackCannotBeRead_StillReturnsShortFeedback()
+        {
+            await conversation.StartAsync();
+            api.EndResponse = Ended("DONE");
+            api.DetailedError = new InvalidOperationException("상세 평가 형식 오류");
+            LogAssert.Expect(LogType.Exception, new Regex("상세 평가 형식 오류"));
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback.Summary, Is.SameAs(api.EndResponse.Feedback));
+            Assert.That(feedback.Details, Is.Empty);
+        }
+
+        [Test]
+        public async Task End_BeforeStart_ReturnsNullWithoutRequest()
+        {
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback, Is.Null);
+            Assert.That(api.Ends, Is.Empty);
+        }
+
+        [Test]
+        public async Task RegenerateSpeech_ReplacesSpeechOfLastNpcTurn()
+        {
+            await conversation.StartAsync();
+            api.RegeneratedSpeech = new SpeechData
+            {
+                Status = "READY",
+                Url = "/api/v1/turns/101/speech",
+            };
+
+            SpeechData speech = await conversation.RegenerateSpeechAsync();
+
+            Assert.That(speech, Is.SameAs(api.RegeneratedSpeech));
+            Assert.That(conversation.LastNpcTurn.Speech, Is.SameAs(api.RegeneratedSpeech));
+            Assert.That(api.SpeechRegeneratedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
+        public async Task RegenerateSpeech_WhenServerFails_ReturnsNullWithReason()
+        {
+            await conversation.StartAsync();
+            SpeechData failedSpeech = conversation.LastNpcTurn.Speech;
+            api.SpeechError = new ApiException(
+                "AI_TEMPORARILY_UNAVAILABLE",
+                503,
+                "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+            );
+
+            SpeechData speech = await conversation.RegenerateSpeechAsync();
+
+            Assert.That(speech, Is.Null);
+            Assert.That(conversation.LastNpcTurn.Speech, Is.SameAs(failedSpeech));
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo("AI가 잠시 응답하지 않습니다. 다시 시도해 주세요.")
+            );
+        }
+
+        [Test]
+        public async Task RegenerateSpeech_WithoutNpcTurn_ReturnsNullWithoutRequest()
+        {
+            SpeechData speech = await conversation.RegenerateSpeechAsync();
+
+            Assert.That(speech, Is.Null);
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+        }
+
+        [Test]
+        public void ShowMessage_ShowsMessageAndRequestsRefresh()
+        {
+            int changedCount = 0;
+            conversation.Changed += () => changedCount++;
+
+            conversation.ShowMessage("마이크를 쓸 수 없어요. 대화는 텍스트로 입력해 주세요.");
+
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo("마이크를 쓸 수 없어요. 대화는 텍스트로 입력해 주세요.")
+            );
+            Assert.That(changedCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ToRecord_CarriesLinesUtterancesAndServerFeedback()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(Order, "Sure! Hot or iced?", "ACTIVE");
+            await conversation.SendAsync(Order);
+            var feedback = new ServerFeedback(null, null, "서버에 연결하지 못했어요.");
+
+            DialogueRecord record = conversation.ToRecord(feedback);
+
+            Assert.That(record.NpcCode, Is.EqualTo(CafeStaffCode));
+            Assert.That(record.NpcName, Is.EqualTo("Mia"));
+            Assert.That(record.Lines, Is.EqualTo(conversation.Lines));
+            Assert.That(record.UserUtterances, Is.EqualTo(new[] { Order }));
+            Assert.That(record.IsGuidedCompleted, Is.False);
+            Assert.That(record.ServerFeedback, Is.SameAs(feedback));
+        }
+
+        private static TurnResult Reply(string userText, string npcText, string status)
+        {
+            return new TurnResult
+            {
+                UserTurn = new UserTurnData { TurnId = 102, Text = userText },
+                NpcTurn = new NpcTurnData
+                {
+                    TurnId = 103,
+                    Text = npcText,
+                    SuggestWords = new List<string> { "hot", "iced" },
+                    Speech = new SpeechData { Status = "READY", Url = "/api/v1/turns/103/speech" },
+                },
+                Conversation = new ConversationState { Status = status },
+            };
+        }
+
+        private static EndResult Ended(string feedbackStatus)
+        {
+            return new EndResult
+            {
+                Status = "ENDED_BY_USER",
+                Feedback = new FeedbackData
+                {
+                    Status = feedbackStatus,
+                    Summary = "아이스 라떼 주문에 성공했어요",
+                },
+            };
+        }
+
+        private sealed class StartRequest
+        {
+            public StartRequest(string requestId, string npcCode, string initiatedBy)
+            {
+                RequestId = requestId;
+                NpcCode = npcCode;
+                InitiatedBy = initiatedBy;
+            }
+
+            public string RequestId { get; }
+            public string NpcCode { get; }
+            public string InitiatedBy { get; }
+        }
+
+        private sealed class TurnRequest
+        {
+            public TurnRequest(
+                long conversationId,
+                string requestId,
+                string inputType,
+                string text,
+                string sttRawText
+            )
+            {
+                ConversationId = conversationId;
+                RequestId = requestId;
+                InputType = inputType;
+                Text = text;
+                SttRawText = sttRawText;
+            }
+
+            public long ConversationId { get; }
+            public string RequestId { get; }
+            public string InputType { get; }
+            public string Text { get; }
+            public string SttRawText { get; }
+        }
+
+        private sealed class EndRequest
+        {
+            public EndRequest(long conversationId, bool skipFeedback)
+            {
+                ConversationId = conversationId;
+                SkipFeedback = skipFeedback;
+            }
+
+            public long ConversationId { get; }
+            public bool SkipFeedback { get; }
+        }
+
+        private sealed class TranscriptionRequest
+        {
+            public TranscriptionRequest(long conversationId, byte[] wav)
+            {
+                ConversationId = conversationId;
+                Wav = wav;
+            }
+
+            public long ConversationId { get; }
+            public byte[] Wav { get; }
+        }
+
+        /// <summary>테스트용 대화 API. 응답과 실패를 테스트가 정하고, 받은 요청을 순서대로 남긴다.</summary>
+        private sealed class FakeConversationApi : IConversationApi
+        {
+            public ConversationStart StartResponse { get; } =
+                new ConversationStart
+                {
+                    ConversationId = ConversationId,
+                    Npc = new NpcSummary { NpcCode = CafeStaffCode, Name = "Mia" },
+                    OpeningTurn = new NpcTurnData
+                    {
+                        TurnId = OpeningTurnId,
+                        Text = Opening,
+                        SuggestWords = new List<string> { "latte", "menu" },
+                        Speech = new SpeechData { Status = "FAILED" },
+                    },
+                };
+
+            /// <summary>대화 시작 요청이 차례로 던질 오류. 비면 <see cref="StartResponse"/>를 돌려준다.</summary>
+            public Queue<ApiException> StartErrors { get; } = new Queue<ApiException>();
+
+            public ActiveConversation Active { get; set; }
+            public TurnResult TurnResponse { get; set; } = Reply("Yes.", "Great!", "ACTIVE");
+            public ApiException TurnError { get; set; }
+            public EndResult EndResponse { get; set; } = Ended("DONE");
+            public Exception EndError { get; set; }
+            public DetailedFeedback Detailed { get; set; } = new DetailedFeedback();
+            public Exception DetailedError { get; set; }
+            public Transcription TranscriptionResponse { get; set; } = new Transcription();
+            public ApiException TranscriptionError { get; set; }
+            public SpeechData RegeneratedSpeech { get; set; }
+            public ApiException SpeechError { get; set; }
+
+            public List<string> Calls { get; } = new List<string>();
+            public List<StartRequest> Starts { get; } = new List<StartRequest>();
+            public List<TurnRequest> Turns { get; } = new List<TurnRequest>();
+            public List<EndRequest> Ends { get; } = new List<EndRequest>();
+            public List<long> DetailedRequestedFor { get; } = new List<long>();
+            public List<TranscriptionRequest> Transcriptions { get; } =
+                new List<TranscriptionRequest>();
+            public List<long> SpeechRegeneratedFor { get; } = new List<long>();
+
+            public Task<ConversationStart> StartAsync(
+                string requestId,
+                string npcCode,
+                string initiatedBy
+            )
+            {
+                Calls.Add("Start");
+                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy));
+                if (StartErrors.Count > 0)
+                {
+                    return Task.FromException<ConversationStart>(StartErrors.Dequeue());
+                }
+
+                return Task.FromResult(StartResponse);
+            }
+
+            public Task<TurnResult> SendTurnAsync(
+                long conversationId,
+                string requestId,
+                string inputType,
+                string text,
+                string sttRawText
+            )
+            {
+                Calls.Add("SendTurn");
+                Turns.Add(new TurnRequest(conversationId, requestId, inputType, text, sttRawText));
+                return TurnError != null
+                    ? Task.FromException<TurnResult>(TurnError)
+                    : Task.FromResult(TurnResponse);
+            }
+
+            public Task<EndResult> EndAsync(
+                long conversationId,
+                string requestId,
+                bool skipFeedback
+            )
+            {
+                Calls.Add("End");
+                Ends.Add(new EndRequest(conversationId, skipFeedback));
+                return EndError != null
+                    ? Task.FromException<EndResult>(EndError)
+                    : Task.FromResult(EndResponse);
+            }
+
+            public Task<DetailedFeedback> GetDetailedFeedbackAsync(
+                long conversationId,
+                string requestId
+            )
+            {
+                Calls.Add("GetDetailedFeedback");
+                DetailedRequestedFor.Add(conversationId);
+                return DetailedError != null
+                    ? Task.FromException<DetailedFeedback>(DetailedError)
+                    : Task.FromResult(Detailed);
+            }
+
+            public Task<ActiveConversation> GetActiveAsync()
+            {
+                Calls.Add("GetActive");
+                return Task.FromResult(Active);
+            }
+
+            public Task<Transcription> TranscribeAsync(
+                long conversationId,
+                string requestId,
+                byte[] wav
+            )
+            {
+                Calls.Add("Transcribe");
+                Transcriptions.Add(new TranscriptionRequest(conversationId, wav));
+                return TranscriptionError != null
+                    ? Task.FromException<Transcription>(TranscriptionError)
+                    : Task.FromResult(TranscriptionResponse);
+            }
+
+            public Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId)
+            {
+                Calls.Add("RegenerateSpeech");
+                SpeechRegeneratedFor.Add(turnId);
+                return SpeechError != null
+                    ? Task.FromException<SpeechData>(SpeechError)
+                    : Task.FromResult(RegeneratedSpeech);
+            }
+        }
+    }
+}

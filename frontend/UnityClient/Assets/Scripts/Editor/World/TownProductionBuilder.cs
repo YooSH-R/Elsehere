@@ -21,6 +21,36 @@ namespace A305.EditorTools.World
         internal const string DataFolder = "Assets/Data/World/TownProduction";
         private const string ArtRoot = "TownMainstreet";
 
+        [MenuItem("Tools/A305/World/Repair Tutorial Passerby Placement")]
+        public static void RepairTutorialPasserbyPlacement()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            Transform passerby = BuilderTools
+                .FindAllInScene<NpcIdentity>(scene)
+                .Single(npc => npc.Code == "TUTORIAL_PASSERBY")
+                .transform;
+            PlaceTutorialPasserby(scene, passerby);
+            BuilderTools.SaveScene(scene, ScenePath);
+            Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
+        }
+
+        private static void PlaceTutorialPasserby(Scene scene, Transform passerby)
+        {
+            SpaceDoorway homeDoor = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Single(door => door.DoorwayId == "HomeDoor");
+            // 집 도착 지점에서 보도 쪽으로 2m, 길을 따라 5m: 감지 반경 8m 안의 열린 보도.
+            Vector3 offset = homeDoor.transform.TransformDirection(new Vector3(5f, 0f, 2f));
+            passerby.SetPositionAndRotation(
+                homeDoor.ArrivalPoint.position + offset + Vector3.up * .02f,
+                Quaternion.LookRotation(-offset)
+            );
+            PrefabUtility.RecordPrefabInstancePropertyModifications(passerby);
+            Debug.Log($"Tutorial passerby placed {offset.magnitude:F2}m from HomeDoor arrival.");
+        }
+
         [MenuItem("Tools/A305/World/Apply Production Town Design")]
         public static void Build()
         {
@@ -282,11 +312,13 @@ namespace A305.EditorTools.World
             foreach (NpcIdentity npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))
             {
                 AttachVisual(npc.transform);
-                bool tutorial = npc.Code == "TUTORIAL_PASSERBY";
-                npc.transform.SetPositionAndRotation(
-                    tutorial ? new Vector3(9.3f, .12f, -10) : new Vector3(12.5f, .12f, 18.5f),
-                    Quaternion.Euler(0, 270, 0)
-                );
+                if (npc.Code == "TUTORIAL_PASSERBY")
+                    PlaceTutorialPasserby(scene, npc.transform);
+                else
+                    npc.transform.SetPositionAndRotation(
+                        new Vector3(12.5f, .12f, 18.5f),
+                        Quaternion.Euler(0, 270, 0)
+                    );
                 npc.LookTarget.localPosition = new Vector3(0, 1.075f, .49f);
                 PrefabUtility.RecordPrefabInstancePropertyModifications(npc.LookTarget);
             }

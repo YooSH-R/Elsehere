@@ -70,8 +70,9 @@ public class ConversationService {
         transactionTemplate.execute(status -> startContext(userId, request.npcCode()));
     NpcContext npc = context.npc();
 
+    // 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다. 직원처럼 말걸기 대사가 없으면 AI로 첫 인사를 만든다.
     Opening opening =
-        request.initiatedBy() == InitiatedBy.NPC
+        request.initiatedBy() == InitiatedBy.NPC && npc.approachLine() != null
             ? approachOpening(npc)
             : greetingOpening(new WorkerTrace(request.requestId(), userId, null), npc, context);
 
@@ -181,9 +182,6 @@ public class ConversationService {
 
   // 행인 말걸기에 응답하면 이미 보여 준 말걸기 대사를 첫 턴으로 저장하고 AI를 부르지 않는다.
   private Opening approachOpening(NpcContext npc) {
-    if (npc.approachLine() == null) {
-      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
-    }
     return new Opening(npc.approachLine(), null, npc.approachAudioKey());
   }
 

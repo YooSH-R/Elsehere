@@ -74,7 +74,8 @@ namespace A305.Player
                 return;
             }
 
-            character = followTarget.GetComponent<PlayerCharacterAppearance>()?.ActiveCharacter;
+            var appearance = followTarget.GetComponent<PlayerCharacterAppearance>();
+            character = appearance != null ? appearance.ActiveCharacter : null;
             orbit = cameraSettings.CreateOrbit();
             touchControls = followTarget.GetComponentInChildren<PlayerTouchControls>(true);
             SnapBehindTarget();

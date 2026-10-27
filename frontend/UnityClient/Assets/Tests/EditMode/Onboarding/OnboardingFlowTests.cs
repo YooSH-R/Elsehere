@@ -276,7 +276,11 @@ namespace A305.Onboarding.Tests
             api.Bootstrap = SignedIn(OnboardingStep.Language, null);
             api.Bootstrap.User.AvatarType = AvatarType.M;
             await flow.StartAsync();
-            api.ChooseLanguageError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
+            api.ChooseLanguageError = new ApiException(
+                "UNAUTHENTICATED",
+                401,
+                "로그인이 필요합니다."
+            );
             await flow.ChooseLanguageAsync("en-US");
             Assert.That(flow.SelectedAvatar, Is.Null);
         }
@@ -427,7 +431,11 @@ namespace A305.Onboarding.Tests
                 return Task.FromResult(
                     new SignupResponse
                     {
-                        User = new OnboardingUser { OnboardingStep = OnboardingStep.Language, AvatarType = request.AvatarType },
+                        User = new OnboardingUser
+                        {
+                            OnboardingStep = OnboardingStep.Language,
+                            AvatarType = request.AvatarType,
+                        },
                     }
                 );
             }

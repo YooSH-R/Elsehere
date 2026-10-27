@@ -1,0 +1,132 @@
+{
+  "dataset_version": "memory-regression-1.0",
+  "case_id": "G10",
+  "case_type": "semantic_reference",
+  "title_ko": "사용자 수정 전사 우선",
+  "source": "synthetic",
+  "tags": [
+    "cafe",
+    "stt_correction"
+  ],
+  "rubric": {
+    "must": [
+      "최종 수정된 tea를 근거로 사용한다."
+    ],
+    "must_not": [
+      "원전사의 coffee를 실제 확정 발화로 인용하지 않는다."
+    ]
+  },
+  "request": {
+    "schema_version": "0.1.0",
+    "request_id": "request_G10",
+    "scope": {
+      "user_id": "synthetic_user_01",
+      "npc_id": "npc_cafe",
+      "conversation_id": "conversation_G10"
+    },
+    "conversation_revision": 1,
+    "analysis_config_version": "memory_regression_v1",
+    "context": {
+      "scene_id": "cafe",
+      "mode": "free_chat",
+      "scene_description": "Synthetic conversation in cafe.",
+      "target_language": "en-US",
+      "explanation_language": "ko-KR",
+      "end_reason": "user_end"
+    },
+    "turns": [
+      {
+        "turn_id": "t1",
+        "sequence": 1,
+        "speaker": "user",
+        "input_type": "voice",
+        "text_status": "final",
+        "original_transcript": "My favorite drink is coffee.",
+        "final_text": "My favorite drink is tea.",
+        "difficulty": {
+          "settings_version": "s1",
+          "vocabulary_profile": "simple",
+          "speech_rate_multiplier": 1.0,
+          "hint_policy": "on_request"
+        },
+        "assistance_ids": []
+      }
+    ],
+    "assistance_events": [],
+    "memory_snapshot": {
+      "version": 0,
+      "facts": []
+    }
+  },
+  "fixture_response": {
+    "schema_version": "0.1.0",
+    "request_id": "request_G10",
+    "scope": {
+      "user_id": "synthetic_user_01",
+      "npc_id": "npc_cafe",
+      "conversation_id": "conversation_G10"
+    },
+    "conversation_revision": 1,
+    "analysis_config_version": "memory_regression_v1",
+    "status": "completed",
+    "base_memory_version": 0,
+    "result": {
+      "summary": null,
+      "changes": [
+        {
+          "action": "add",
+          "fact_key": "preference.favorite_drink",
+          "evidence": [
+            {
+              "turn_id": "t1",
+              "quote": "My favorite drink is tea."
+            }
+          ],
+          "kind": "in_game_preference",
+          "content": "Prefers tea."
+        }
+      ]
+    },
+    "problem": null
+  },
+  "current": {
+    "scope": {
+      "user_id": "synthetic_user_01",
+      "npc_id": "npc_cafe",
+      "conversation_id": "conversation_G10"
+    },
+    "snapshot": {
+      "version": 0,
+      "facts": []
+    },
+    "conversation_revision": 1
+  },
+  "policy": {
+    "allowed_keys": {
+      "preference.favorite_drink": "in_game_preference",
+      "profile.display_name": "in_game_profile",
+      "travel.room_preference": "in_game_preference",
+      "preference.clothing_material": "in_game_preference",
+      "travel.transport_preference": "in_game_preference"
+    },
+    "max_changes": 5,
+    "max_active_facts": 20,
+    "max_content_chars": 180
+  },
+  "expected": {
+    "status": "ready",
+    "next_memory_version": 1,
+    "active_values": {
+      "preference.favorite_drink": {
+        "kind": "in_game_preference",
+        "content": "Prefers tea."
+      }
+    },
+    "change_targets": [
+      {
+        "action": "add",
+        "fact_key": "preference.favorite_drink"
+      }
+    ]
+  }
+}

@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
@@ -67,7 +70,50 @@ namespace A305.Api
             return ApiJson.Deserialize<T>(responseBody);
         }
 
-        private async Task<string> SendAsync(string method, string path, object body)
+        /// <summary>
+        /// 파일 하나와 글자 칸을 multipart/form-data로 보낸다(예: 녹음 전사). 글자 칸은 UTF-8로 보낸다.
+        /// </summary>
+        public async Task<T> PostMultipartAsync<T>(
+            string path,
+            IReadOnlyDictionary<string, string> fields,
+            ApiFile file
+        )
+        {
+            string boundary = "elsehere-" + Guid.NewGuid().ToString("N");
+            var body = new MemoryStream();
+            foreach (KeyValuePair<string, string> field in fields)
+            {
+                WriteUtf8(
+                    body,
+                    $"--{boundary}\r\nContent-Disposition: form-data; name=\"{field.Key}\"\r\n\r\n{field.Value}\r\n"
+                );
+            }
+
+            WriteUtf8(
+                body,
+                $"--{boundary}\r\nContent-Disposition: form-data; name=\"{file.FieldName}\"; filename=\"{file.FileName}\"\r\nContent-Type: {file.ContentType}\r\n\r\n"
+            );
+            body.Write(file.Bytes, 0, file.Bytes.Length);
+            WriteUtf8(body, $"\r\n--{boundary}--\r\n");
+
+            var request = new ApiTransportRequest(
+                "POST",
+                UrlFor(path),
+                body.ToArray(),
+                "multipart/form-data; boundary=" + boundary,
+                WriteHeaders
+            );
+            string responseBody = await ReceiveAsync(request);
+            return ApiJson.Deserialize<T>(responseBody);
+        }
+
+        private static void WriteUtf8(Stream stream, string text)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private Task<string> SendAsync(string method, string path, object body)
         {
             bool isRead = method == "GET";
             var request = new ApiTransportRequest(
@@ -76,7 +122,11 @@ namespace A305.Api
                 body == null ? null : ApiJson.Serialize(body),
                 isRead ? ReadHeaders : WriteHeaders
             );
+            return ReceiveAsync(request);
+        }
 
+        private async Task<string> ReceiveAsync(ApiTransportRequest request)
+        {
             ApiTransportResponse response = await transport.SendAsync(request);
             if (response.IsNetworkFailure)
             {

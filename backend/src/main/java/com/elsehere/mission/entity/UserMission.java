@@ -55,4 +55,14 @@ public class UserMission extends BaseEntity {
   private Instant completedAt;
 
   private Long conversationId;
+
+  /** 그날 처음 미션을 조회할 때 진행 중(RUN)으로 시작한다. */
+  public static UserMission start(Long userId, Mission mission, LocalDate missionDate) {
+    UserMission userMission = new UserMission();
+    userMission.userId = userId;
+    userMission.mission = mission;
+    userMission.missionDate = missionDate;
+    userMission.status = UserMissionStatus.RUN;
+    return userMission;
+  }
 }

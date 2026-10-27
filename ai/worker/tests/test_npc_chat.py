@@ -1,4 +1,6 @@
-"""ai/tools/npc_chat.py: 터미널에서 NPC와 주고받는 도구의 크레딧 계산과 한 턴 처리 (가짜 공급자, 모델 호출 없음)."""
+"""ai/tools/npc_chat.py: 터미널에서 NPC와 주고받는 도구의 크레딧 계산과 한 턴 처리 (가짜 공급자, 모델 호출 없음).
+
+NPC는 공통 인격 스키마의 설정 파일, 프롬프트는 app.npc_prompt (계약의 추론 요청 형식으로 만든다)."""
 
 import asyncio
 import sys
@@ -9,34 +11,51 @@ import httpx
 from app import config
 from app.config import Settings
 from app.llm import LLM
-from app.schemas import Npc
-from conftest import stream
+from conftest import load_npc_examples, stream
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 import npc_chat
 
 LUNA_PRICES = {"gpt-6-luna": {"input": 1000, "output": 5000, "unit": "크레딧"}}
-BARISTA = Npc(id="CAFE_STAFF", name="Emma", role="the barista at Maple Cafe.")
-GREETING = "Hi! What can I get for you?"
+CAFE_ORDER = {
+    "scenarioId": "cafe_order",
+    "locationId": "cafe",
+    "situation": "The customer has just come up to the counter.",
+    "facts": ["Iced latte is on the menu."],
+}
+OPENING = "Hi! What can I get for you?"
 
 
 def usage_item(model: str, input_tokens: int, output_tokens: int, **extra) -> dict:
     return {"step": "npc", "model": model, "input_tokens": input_tokens, "output_tokens": output_tokens, **extra}
 
 
-def say_once(provider, text: str) -> tuple["npc_chat.Turn", "npc_chat.Conversation"]:
-    """기본 구성(gms-luna, NPC는 gpt-6-luna)으로 가짜 공급자에게 한 턴을 말한다. 대체 모델 없이."""
+def talk(provider, answers: list, lines: list[str]) -> tuple[list["npc_chat.Turn"], "npc_chat.Conversation", list[dict]]:
+    """계약 예시 카페 점원과 첫 대사를 받고 lines를 차례로 말한다. answers[i]()가 가짜 공급자의 i번째 답이고,
+    그 뒤 호출(오류 뒤 재시도 등)에는 마지막 답을 다시 만들어 준다.
+    반환: (턴들, 대화, 공급자가 받은 요청 본문들). 기본 구성(gms-luna, NPC는 gpt-6-luna), 대체 모델 없이."""
     settings = Settings(token="t", base_url="http://fake/v1", api_key="x", call_timeout_s=1.0, retry_pause_s=0.0, fallback={})
+    sent = []
+
+    def answer(body):
+        sent.append(body)
+        return answers[min(len(sent), len(answers)) - 1]()
+
+    provider.answers["npc"] = answer
 
     async def run():
         llm = LLM(settings, httpx.MockTransport(provider.handler))
         try:
-            conversation = npc_chat.Conversation(llm, settings, BARISTA, level=1, prices=LUNA_PRICES, greeting=GREETING)
-            return await conversation.say(text), conversation
+            conversation = npc_chat.Conversation(llm, load_npc_examples()[0]["npcProfile"], CAFE_ORDER, level="A2", prices=LUNA_PRICES)
+            turns = [await conversation.open()]
+            for line in lines:
+                turns.append(await conversation.say(line))
+            return turns, conversation
         finally:
             await llm.aclose()
 
-    return asyncio.run(run())
+    turns, conversation = asyncio.run(run())
+    return turns, conversation, sent
 
 
 def test_turn_cost_multiplies_input_and_output_tokens_by_their_credit_prices():
@@ -66,31 +85,42 @@ def test_turn_cost_marks_turns_that_sent_the_same_request_twice():
     assert hedged.hedged is True
 
 
-def test_say_returns_the_npc_reply_with_its_cost_and_remembers_both_lines(provider):
-    provider.answers["npc"] = lambda body: stream(["Sure! ", "One iced latte."])  # 사용량: 입력 300, 출력 20
+def test_open_asks_for_the_first_line_with_only_the_system_prompt_and_remembers_it(provider):
+    turns, conversation, sent = talk(provider, [lambda: stream(["Hi! ", "What can I get for you?"])], [])
 
-    turn, conversation = say_once(provider, "one iced latte please")
+    assert turns[0].reply == OPENING
+    assert [m["role"] for m in sent[0]["messages"]] == ["system"]  # 첫 대사는 가짜 사용자 메시지 없이 (계약 4.1)
+    assert sent[0]["messages"][0]["content"].startswith("## Rules")
+    assert conversation.history == [{"speaker": "NPC", "text": OPENING}]
 
+
+def test_say_sends_the_history_and_returns_the_reply_with_its_cost(provider):
+    answers = [lambda: stream([OPENING]), lambda: stream(["Sure! ", "One iced latte."])]  # 가짜 사용량: 입력 300, 출력 20
+
+    turns, conversation, sent = talk(provider, answers, ["one iced latte please"])
+
+    turn = turns[1]
     assert turn.reply == "Sure! One iced latte."
     assert turn.error is None
     assert turn.models == ["gpt-6-luna"]
     assert (turn.cost.input_tokens, turn.cost.output_tokens) == (300, 20)
     assert turn.cost.credits == 0.4  # 300 × 0.001 + 20 × 0.005
-    assert [(line.who, line.text) for line in conversation.history] == [
-        ("npc", GREETING),
-        ("me", "one iced latte please"),
-        ("npc", "Sure! One iced latte."),
+    assert sent[1]["messages"][1:] == [{"role": "assistant", "content": OPENING}, {"role": "user", "content": "one iced latte please"}]
+    assert conversation.history == [
+        {"speaker": "NPC", "text": OPENING},
+        {"speaker": "USER", "text": "one iced latte please"},
+        {"speaker": "NPC", "text": "Sure! One iced latte."},
     ]
 
 
 def test_say_reports_the_provider_error_and_keeps_the_history_for_a_retry(provider):
-    provider.answers["npc"] = lambda body: httpx.Response(500, json={"error": "down"})
+    answers = [lambda: stream([OPENING]), lambda: httpx.Response(500, json={"error": "down"})]
 
-    turn, conversation = say_once(provider, "one iced latte please")
+    turns, conversation, _ = talk(provider, answers, ["one iced latte please"])
 
-    assert turn.reply == ""
-    assert turn.error == "provider_unavailable"
-    assert [(line.who, line.text) for line in conversation.history] == [("npc", GREETING)]
+    assert turns[1].reply == ""
+    assert turns[1].error == "provider_unavailable"
+    assert conversation.history == [{"speaker": "NPC", "text": OPENING}]
 
 
 def test_a_gms_key_alone_is_enough_because_only_the_npc_role_is_called(monkeypatch):

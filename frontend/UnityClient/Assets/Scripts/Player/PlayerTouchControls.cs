@@ -53,7 +53,7 @@ namespace A305.Player
 
         private void OnEnable()
         {
-            surfaceCanvas.enabled = Touchscreen.current != null;
+            surfaceCanvas.enabled = ShouldShowControls();
         }
 
         public void ResetInputs()
@@ -96,12 +96,22 @@ namespace A305.Player
 
         private void Update()
         {
-            bool hasTouchscreen = Touchscreen.current != null;
-            if (surfaceCanvas.enabled != hasTouchscreen)
+            bool shouldShow = ShouldShowControls();
+            if (surfaceCanvas.enabled != shouldShow)
             {
-                surfaceCanvas.enabled = hasTouchscreen;
+                surfaceCanvas.enabled = shouldShow;
                 ResetInputs();
             }
+        }
+
+        private static bool ShouldShowControls()
+        {
+            return TouchControlsAvailability.ShouldShow(
+                isWebBrowser: Application.platform == RuntimePlatform.WebGLPlayer,
+                hasTouchscreen: Touchscreen.current != null,
+                isMobileBrowser: Application.isMobilePlatform,
+                isPrimaryPointerCoarse: BrowserPointer.IsPrimaryCoarse
+            );
         }
     }
 }

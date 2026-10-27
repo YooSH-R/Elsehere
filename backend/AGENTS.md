@@ -4,15 +4,13 @@
 
 ## 현재 상태
 
-- 기술 구성과 실행 방법은 [백엔드 README](README.md)에 있습니다. Java 21, Spring Boot 4.1.1, Gradle(Groovy DSL)이며 기본 패키지는 `com.elsehere`입니다.
-- 포함된 의존성: Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Lombok, PostgreSQL 드라이버
-- 아직 넣지 않은 것: 스키마 마이그레이션 도구. 정하기 전까지 테이블은 엔티티를 기준으로 Hibernate `ddl-auto`가 만듭니다.
-- 엔티티는 `com.elsehere.common.entity.BaseEntity`를 상속합니다. 생성·수정 시각(`created_at`, `updated_at`)은 JPA Auditing이 `Clock` 빈 기준으로 기록하며, 식별자는 각 엔티티에서 선언합니다.
+- 기술·의존성 버전과 스키마 생성 방식은 [백엔드 README](README.md)에서 관리합니다.
 - 데이터 구조는 [ERD](../docs/erd.dbml), API는 [MVP API 명세](../docs/api/mvp-api.md)를 따릅니다.
 - 정하지 않은 기술을 코드 작성 중에 임의로 확정하지 않습니다. 필요하면 선택지와 영향을 설명하고 사용자 확인을 받습니다.
 
 ## 패키지와 엔티티
 
+- 엔티티는 `com.elsehere.common.entity.BaseEntity`를 상속합니다. 생성·수정 시각(`created_at`, `updated_at`)은 JPA Auditing이 `Clock` 빈 기준으로 기록하며, 식별자는 각 엔티티에서 선언합니다.
 - 패키지는 `com.elsehere.<도메인>` 아래에 `controller`, `service`, `repository`, `entity`를 둡니다. 도메인별 테이블은 [백엔드 README](README.md#패키지-구조)에 있습니다.
 - 엔티티의 테이블·컬럼 이름, 길이, NOT NULL, 기본값, 유니크·인덱스를 ERD와 맞추고, 엔티티를 바꾸면 ERD도 함께 수정합니다.
 - 다른 담당 영역의 테이블(users, conversations, turns)은 연관관계 없이 `Long` ID로만 참조합니다.
@@ -54,13 +52,6 @@
 
 ## 실행 명령
 
-`backend/` 폴더에서 실행합니다. Windows PowerShell·명령 프롬프트에서는 `./gradlew` 대신 `.\gradlew.bat`을 사용합니다.
-
-| 목적 | 명령 |
-| --- | --- |
-| 테스트 클래스 하나 실행 | `./gradlew test --tests "<패키지>.<클래스>"` |
-| 전체 테스트 | `./gradlew test` |
-| 포맷 적용 | `./gradlew spotlessApply` |
-| 포맷·규칙 검사·테스트 | `./gradlew check` |
+실행 위치, OS별 Gradle Wrapper와 목적별 명령은 [백엔드 README의 명령](README.md#명령)을 따릅니다.
 
 Red-Green 반복 중에는 작성 중인 테스트를 실행하고, 작업을 마치기 전에 `spotlessApply`로 포맷을 적용한 뒤 `check`를 실행합니다.

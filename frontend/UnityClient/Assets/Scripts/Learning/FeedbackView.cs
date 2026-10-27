@@ -99,6 +99,16 @@ namespace A305.Learning
         private string FormatShort()
         {
             var text = new StringBuilder();
+            foreach (string note in feedback.Notes)
+            {
+                text.AppendLine(note);
+            }
+
+            if (feedback.Notes.Count > 0)
+            {
+                text.AppendLine();
+            }
+
             ReferenceExpression expression = feedback.NextExpression;
             if (expression == null)
             {
@@ -114,7 +124,11 @@ namespace A305.Learning
             }
 
             text.AppendLine();
-            text.Append("피드백 예시 · 실제 AI 분석이나 실력 평가가 아니에요.");
+            text.Append(
+                feedback.IsFromServer
+                    ? "AI가 대화를 보고 만든 피드백이에요. 점수가 아니라 다음 대화를 위한 참고예요."
+                    : "피드백 예시 · 실제 AI 분석이나 실력 평가가 아니에요."
+            );
             return text.ToString();
         }
 
@@ -131,10 +145,14 @@ namespace A305.Learning
                 }
                 else
                 {
-                    text.AppendLine(
-                        $"참고 표현 · <b>{review.Reference.English}</b> ({review.Reference.Korean})"
-                    );
-                    text.AppendLine(review.Reference.Reason);
+                    string korean = string.IsNullOrEmpty(review.Reference.Korean)
+                        ? ""
+                        : $" ({review.Reference.Korean})";
+                    text.AppendLine($"참고 표현 · <b>{review.Reference.English}</b>{korean}");
+                    if (!string.IsNullOrEmpty(review.Reference.Reason))
+                    {
+                        text.AppendLine(review.Reference.Reason);
+                    }
                 }
 
                 text.AppendLine();

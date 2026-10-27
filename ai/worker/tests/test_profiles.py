@@ -1,6 +1,7 @@
 """모델 구성 (llm_profiles.json): LLM_PROFILE 하나로 공급자 주소·키·역할별 모델이 바뀌는지 (모델 호출 없음)."""
 
 import json
+from pathlib import Path
 
 import httpx
 import pytest
@@ -32,6 +33,25 @@ def test_default_profile_is_gms_luna(env):
     assert (s.profile, s.base_url, s.api_key) == ("gms-luna", GMS_URL, "g")
     assert s.models["npc"] == "gpt-6-luna" and s.fallback == {"gpt-6-luna": "gpt-6.1-sol"}
     assert s.role_provider == {"stt": "groq"} and s.providers == {"groq": {"base_url": GROQ_URL, "api_key": "q"}}
+
+
+def test_dabin_role_example_overrides_only_owned_roles(env):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
+    before = Settings.from_env()
+    example = Path(__file__).resolve().parents[1] / "dabin-roles.env.example"
+    overrides = {}
+    for line in example.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            name, value = line.split("=", 1)
+            overrides[name] = value
+    assert set(overrides) == {"MODEL_MEMORY", "MODEL_FEEDBACK"}
+    env.update(overrides)
+    after = Settings.from_env()
+    assert all(after.models[role] == "gpt-5.4" for role in ("memory", "feedback"))
+    for role in before.models:
+        if role not in ("memory", "feedback"):
+            assert after.models[role] == before.models[role]
+    assert after.role_provider == before.role_provider and after.fallback == before.fallback
 
 
 def test_groq_profile(env):

@@ -26,6 +26,12 @@ namespace A305.Api
 
         public ApiClient CreateClient()
         {
+            return CreateClient(timeoutSeconds);
+        }
+
+        /// <param name="timeoutSeconds">AI 응답처럼 오래 걸리는 요청에 쓰는 대기 시간</param>
+        public ApiClient CreateClient(int timeoutSeconds)
+        {
             return new ApiClient(BaseUrl, new UnityWebRequestTransport(timeoutSeconds));
         }
     }

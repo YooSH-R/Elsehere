@@ -10,7 +10,8 @@ namespace A305.Dialogue
             string npcName,
             IReadOnlyList<DialogueLine> lines,
             IReadOnlyList<string> userUtterances,
-            bool isGuidedCompleted
+            bool isGuidedCompleted,
+            ServerFeedback serverFeedback = null
         )
         {
             NpcCode = npcCode;
@@ -18,6 +19,7 @@ namespace A305.Dialogue
             Lines = lines;
             UserUtterances = userUtterances;
             IsGuidedCompleted = isGuidedCompleted;
+            ServerFeedback = serverFeedback;
         }
 
         /// <summary>ERD npcs.code</summary>
@@ -31,5 +33,8 @@ namespace A305.Dialogue
 
         /// <summary>정해진 흐름의 마지막 턴까지 마쳤는지. 자유 대화는 항상 false다.</summary>
         public bool IsGuidedCompleted { get; }
+
+        /// <summary>서버 AI와 나눈 대화의 종료 피드백. 대본 대화이거나 서버 대화를 시작하지 못했으면 null이다.</summary>
+        public ServerFeedback ServerFeedback { get; }
     }
 }

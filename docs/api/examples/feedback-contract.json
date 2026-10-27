@@ -1,0 +1,809 @@
+{
+  "synthetic": true,
+  "provider_mode": "mock",
+  "actual_model_evaluated": false,
+  "usage_is_mock": true,
+  "latency_is_normalized": true,
+  "schema_version": "0.3.0",
+  "optional_extension": "spoken_usage_notes",
+  "cases": [
+    {
+      "id": "completed",
+      "request": {
+        "schema_version": "0.3.0",
+        "request_id": "handoff_completed",
+        "scope": {
+          "user_id": "user_sample",
+          "npc_id": "npc_cafe_sample",
+          "conversation_id": "conv_free_grammar"
+        },
+        "conversation_revision": 3,
+        "analysis_config_version": "authored_mock_feedback_v05",
+        "context": {
+          "scene_id": "street_sample",
+          "mode": "free_chat",
+          "scene_description": "가상 거리에서 행인에게 역 방향을 묻는다.",
+          "target_language": "en-US",
+          "explanation_language": "ko-KR",
+          "end_reason": "user_end",
+          "tutorial_goal": null
+        },
+        "turns": [
+          {
+            "turn_id": "t01",
+            "sequence": 1,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "Where would you like to go?",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t02",
+            "sequence": 2,
+            "speaker": "user",
+            "input_type": "text",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "I want go to the station.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t03",
+            "sequence": 3,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "The station is straight ahead.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          }
+        ],
+        "assistance_events": []
+      },
+      "mock_fixture": "fixtures/free_grammar.llm.json",
+      "mock_content_override": null,
+      "expected_model_calls": 1,
+      "response_http_status": 200,
+      "response": {
+        "feedback": {
+          "schema_version": "0.3.0",
+          "request_id": "handoff_completed",
+          "scope": {
+            "user_id": "user_sample",
+            "npc_id": "npc_cafe_sample",
+            "conversation_id": "conv_free_grammar"
+          },
+          "conversation_revision": 3,
+          "analysis_config_version": "authored_mock_feedback_v05",
+          "status": "completed",
+          "result": {
+            "conversation_summary": {
+              "text_ko": "역에 가고 싶다고 말하고 직진 안내를 받았어요.",
+              "evidence": [
+                {
+                  "turn_id": "t02",
+                  "quote": "I want go to the station."
+                },
+                {
+                  "turn_id": "t03",
+                  "quote": "The station is straight ahead."
+                }
+              ]
+            },
+            "communication": {
+              "judgement": "clear",
+              "explanation_ko": "역에 가고 싶다는 뜻이 전달됐어요.",
+              "evidence": [
+                {
+                  "turn_id": "t02",
+                  "quote": "I want go to the station."
+                }
+              ]
+            },
+            "review_tags": [
+              {
+                "tag_id": "tag01",
+                "kind": "strength",
+                "label_ko": "목적지를 전달했어요",
+                "evidence": [
+                  {
+                    "turn_id": "t02",
+                    "quote": "I want go to the station."
+                  }
+                ],
+                "assisted": false
+              },
+              {
+                "tag_id": "tag02",
+                "kind": "improvement",
+                "label_ko": "동사 형태를 연습해 보세요",
+                "evidence": [
+                  {
+                    "turn_id": "t02",
+                    "quote": "I want go to the station."
+                  }
+                ],
+                "assisted": false
+              }
+            ],
+            "turn_reviews": [
+              {
+                "review_id": "review_t02",
+                "turn_id": "t02",
+                "original_text": "I want go to the station.",
+                "verdict": "improvement_suggested",
+                "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요.",
+                "assisted": false,
+                "suggestions": [
+                  {
+                    "suggestion_id": "suggestion_t02",
+                    "kind": "grammar_error",
+                    "source": {
+                      "turn_id": "t02",
+                      "quote": "I want go to the station."
+                    },
+                    "suggested_expression": "I want to go to the station.",
+                    "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요."
+                  }
+                ]
+              }
+            ],
+            "summary_suggestion_id": "suggestion_t02",
+            "vocab_candidates": [
+              {
+                "candidate_id": "candidate01",
+                "kind": "sentence",
+                "expression": "I want to go to the station.",
+                "meaning_ko": "역에 가고 싶어요.",
+                "example_en": "I want to go to the station.",
+                "example_ko": "역에 가고 싶어요.",
+                "source": {
+                  "type": "suggestion",
+                  "review_id": "review_t02",
+                  "suggestion_id": "suggestion_t02",
+                  "quote": "I want to go to the station."
+                }
+              }
+            ],
+            "spoken_usage_notes": []
+          },
+          "problem": null
+        },
+        "usage": [
+          {
+            "step": "feedback",
+            "model": "openai/gpt-oss-120b",
+            "input_tokens": 100,
+            "output_tokens": 5,
+            "latency_s": 0.0,
+            "fallback": false
+          }
+        ]
+      },
+      "backend_action": "store_completed_feedback"
+    },
+    {
+      "id": "mixed_blocked",
+      "request": {
+        "schema_version": "0.3.0",
+        "request_id": "handoff_mixed_blocked",
+        "scope": {
+          "user_id": "user_sample",
+          "npc_id": "npc_cafe_sample",
+          "conversation_id": "conv_free_grammar"
+        },
+        "conversation_revision": 4,
+        "analysis_config_version": "authored_mock_feedback_v05",
+        "context": {
+          "scene_id": "street_sample",
+          "mode": "free_chat",
+          "scene_description": "가상 거리에서 행인에게 역 방향을 묻는다.",
+          "target_language": "en-US",
+          "explanation_language": "ko-KR",
+          "end_reason": "user_end",
+          "tutorial_goal": null
+        },
+        "turns": [
+          {
+            "turn_id": "t01",
+            "sequence": 1,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "Where would you like to go?",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t02",
+            "sequence": 2,
+            "speaker": "user",
+            "input_type": "text",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "I want go to the station.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t03",
+            "sequence": 3,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "The station is straight ahead.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t04",
+            "sequence": 4,
+            "speaker": "user",
+            "input_type": "text",
+            "text_status": "blocked",
+            "original_transcript": null,
+            "final_text": "SYNTHETIC_BLOCKED_MARKER",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          }
+        ],
+        "assistance_events": []
+      },
+      "mock_fixture": "fixtures/free_grammar.llm.json",
+      "mock_content_override": null,
+      "expected_model_calls": 1,
+      "response_http_status": 200,
+      "response": {
+        "feedback": {
+          "schema_version": "0.3.0",
+          "request_id": "handoff_mixed_blocked",
+          "scope": {
+            "user_id": "user_sample",
+            "npc_id": "npc_cafe_sample",
+            "conversation_id": "conv_free_grammar"
+          },
+          "conversation_revision": 4,
+          "analysis_config_version": "authored_mock_feedback_v05",
+          "status": "completed",
+          "result": {
+            "conversation_summary": {
+              "text_ko": "역에 가고 싶다고 말하고 직진 안내를 받았어요.",
+              "evidence": [
+                {
+                  "turn_id": "t02",
+                  "quote": "I want go to the station."
+                },
+                {
+                  "turn_id": "t03",
+                  "quote": "The station is straight ahead."
+                }
+              ]
+            },
+            "communication": {
+              "judgement": "clear",
+              "explanation_ko": "역에 가고 싶다는 뜻이 전달됐어요.",
+              "evidence": [
+                {
+                  "turn_id": "t02",
+                  "quote": "I want go to the station."
+                }
+              ]
+            },
+            "review_tags": [
+              {
+                "tag_id": "tag01",
+                "kind": "strength",
+                "label_ko": "목적지를 전달했어요",
+                "evidence": [
+                  {
+                    "turn_id": "t02",
+                    "quote": "I want go to the station."
+                  }
+                ],
+                "assisted": false
+              },
+              {
+                "tag_id": "tag02",
+                "kind": "improvement",
+                "label_ko": "동사 형태를 연습해 보세요",
+                "evidence": [
+                  {
+                    "turn_id": "t02",
+                    "quote": "I want go to the station."
+                  }
+                ],
+                "assisted": false
+              }
+            ],
+            "turn_reviews": [
+              {
+                "review_id": "review_t02",
+                "turn_id": "t02",
+                "original_text": "I want go to the station.",
+                "verdict": "improvement_suggested",
+                "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요.",
+                "assisted": false,
+                "suggestions": [
+                  {
+                    "suggestion_id": "suggestion_t02",
+                    "kind": "grammar_error",
+                    "source": {
+                      "turn_id": "t02",
+                      "quote": "I want go to the station."
+                    },
+                    "suggested_expression": "I want to go to the station.",
+                    "explanation_ko": "want 뒤에 동작을 말할 때는 to와 동사원형을 사용해요."
+                  }
+                ]
+              }
+            ],
+            "summary_suggestion_id": "suggestion_t02",
+            "vocab_candidates": [
+              {
+                "candidate_id": "candidate01",
+                "kind": "sentence",
+                "expression": "I want to go to the station.",
+                "meaning_ko": "역에 가고 싶어요.",
+                "example_en": "I want to go to the station.",
+                "example_ko": "역에 가고 싶어요.",
+                "source": {
+                  "type": "suggestion",
+                  "review_id": "review_t02",
+                  "suggestion_id": "suggestion_t02",
+                  "quote": "I want to go to the station."
+                }
+              }
+            ],
+            "spoken_usage_notes": []
+          },
+          "problem": null
+        },
+        "usage": [
+          {
+            "step": "feedback",
+            "model": "openai/gpt-oss-120b",
+            "input_tokens": 100,
+            "output_tokens": 5,
+            "latency_s": 0.0,
+            "fallback": false
+          }
+        ]
+      },
+      "backend_action": "store_only_final_turn_reviews"
+    },
+    {
+      "id": "all_blocked",
+      "request": {
+        "schema_version": "0.3.0",
+        "request_id": "handoff_all_blocked",
+        "scope": {
+          "user_id": "user_sample",
+          "npc_id": "npc_cafe_sample",
+          "conversation_id": "conv_free_grammar"
+        },
+        "conversation_revision": 3,
+        "analysis_config_version": "authored_mock_feedback_v05",
+        "context": {
+          "scene_id": "street_sample",
+          "mode": "free_chat",
+          "scene_description": "가상 거리에서 행인에게 역 방향을 묻는다.",
+          "target_language": "en-US",
+          "explanation_language": "ko-KR",
+          "end_reason": "user_end",
+          "tutorial_goal": null
+        },
+        "turns": [
+          {
+            "turn_id": "t01",
+            "sequence": 1,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "Where would you like to go?",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t02",
+            "sequence": 2,
+            "speaker": "user",
+            "input_type": "text",
+            "text_status": "blocked",
+            "original_transcript": null,
+            "final_text": "SYNTHETIC_BLOCKED_MARKER",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t03",
+            "sequence": 3,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "The station is straight ahead.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          }
+        ],
+        "assistance_events": []
+      },
+      "mock_fixture": "fixtures/free_grammar.llm.json",
+      "mock_content_override": null,
+      "expected_model_calls": 0,
+      "response_http_status": 200,
+      "response": {
+        "feedback": {
+          "schema_version": "0.3.0",
+          "request_id": "handoff_all_blocked",
+          "scope": {
+            "user_id": "user_sample",
+            "npc_id": "npc_cafe_sample",
+            "conversation_id": "conv_free_grammar"
+          },
+          "conversation_revision": 3,
+          "analysis_config_version": "authored_mock_feedback_v05",
+          "status": "insufficient_evidence",
+          "result": null,
+          "problem": {
+            "code": "NO_USABLE_USER_TURNS",
+            "message_ko": "평가할 수 있는 확정 사용자 발화가 없어요."
+          }
+        },
+        "usage": []
+      },
+      "backend_action": "show_insufficient_evidence_without_generation"
+    },
+    {
+      "id": "unconfirmed_only",
+      "request": {
+        "schema_version": "0.3.0",
+        "request_id": "handoff_unconfirmed_only",
+        "scope": {
+          "user_id": "user_sample",
+          "npc_id": "npc_cafe_sample",
+          "conversation_id": "conv_free_grammar"
+        },
+        "conversation_revision": 3,
+        "analysis_config_version": "authored_mock_feedback_v05",
+        "context": {
+          "scene_id": "street_sample",
+          "mode": "free_chat",
+          "scene_description": "가상 거리에서 행인에게 역 방향을 묻는다.",
+          "target_language": "en-US",
+          "explanation_language": "ko-KR",
+          "end_reason": "user_end",
+          "tutorial_goal": null
+        },
+        "turns": [
+          {
+            "turn_id": "t01",
+            "sequence": 1,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "Where would you like to go?",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t02",
+            "sequence": 2,
+            "speaker": "user",
+            "input_type": "text",
+            "text_status": "needs_review",
+            "original_transcript": null,
+            "final_text": "I want go to the station.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t03",
+            "sequence": 3,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "The station is straight ahead.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          }
+        ],
+        "assistance_events": []
+      },
+      "mock_fixture": "fixtures/free_grammar.llm.json",
+      "mock_content_override": null,
+      "expected_model_calls": 0,
+      "response_http_status": 200,
+      "response": {
+        "feedback": {
+          "schema_version": "0.3.0",
+          "request_id": "handoff_unconfirmed_only",
+          "scope": {
+            "user_id": "user_sample",
+            "npc_id": "npc_cafe_sample",
+            "conversation_id": "conv_free_grammar"
+          },
+          "conversation_revision": 3,
+          "analysis_config_version": "authored_mock_feedback_v05",
+          "status": "insufficient_evidence",
+          "result": null,
+          "problem": {
+            "code": "NO_USABLE_USER_TURNS",
+            "message_ko": "평가할 수 있는 확정 사용자 발화가 없어요."
+          }
+        },
+        "usage": []
+      },
+      "backend_action": "show_insufficient_evidence_without_generation"
+    },
+    {
+      "id": "invalid_model_output",
+      "request": {
+        "schema_version": "0.3.0",
+        "request_id": "handoff_invalid_model_output",
+        "scope": {
+          "user_id": "user_sample",
+          "npc_id": "npc_cafe_sample",
+          "conversation_id": "conv_free_grammar"
+        },
+        "conversation_revision": 3,
+        "analysis_config_version": "authored_mock_feedback_v05",
+        "context": {
+          "scene_id": "street_sample",
+          "mode": "free_chat",
+          "scene_description": "가상 거리에서 행인에게 역 방향을 묻는다.",
+          "target_language": "en-US",
+          "explanation_language": "ko-KR",
+          "end_reason": "user_end",
+          "tutorial_goal": null
+        },
+        "turns": [
+          {
+            "turn_id": "t01",
+            "sequence": 1,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "Where would you like to go?",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t02",
+            "sequence": 2,
+            "speaker": "user",
+            "input_type": "text",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "I want go to the station.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t03",
+            "sequence": 3,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "The station is straight ahead.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          }
+        ],
+        "assistance_events": []
+      },
+      "mock_fixture": "fixtures/free_grammar.llm.json",
+      "mock_content_override": "not JSON",
+      "expected_model_calls": 1,
+      "response_http_status": 200,
+      "response": {
+        "feedback": {
+          "schema_version": "0.3.0",
+          "request_id": "handoff_invalid_model_output",
+          "scope": {
+            "user_id": "user_sample",
+            "npc_id": "npc_cafe_sample",
+            "conversation_id": "conv_free_grammar"
+          },
+          "conversation_revision": 3,
+          "analysis_config_version": "authored_mock_feedback_v05",
+          "status": "failed",
+          "result": null,
+          "problem": {
+            "code": "INVALID_MODEL_OUTPUT",
+            "message_ko": "피드백 결과를 확인하지 못했어요.",
+            "retryable_now": false
+          }
+        },
+        "usage": [
+          {
+            "step": "feedback",
+            "model": "openai/gpt-oss-120b",
+            "input_tokens": 100,
+            "output_tokens": 5,
+            "latency_s": 0.0,
+            "fallback": false
+          }
+        ]
+      },
+      "backend_action": "record_failure_without_marking_completed"
+    },
+    {
+      "id": "invalid_request",
+      "request": {
+        "schema_version": "unsupported",
+        "request_id": "handoff_invalid_request",
+        "scope": {
+          "user_id": "user_sample",
+          "npc_id": "npc_cafe_sample",
+          "conversation_id": "conv_free_grammar"
+        },
+        "conversation_revision": 3,
+        "analysis_config_version": "authored_mock_feedback_v05",
+        "context": {
+          "scene_id": "street_sample",
+          "mode": "free_chat",
+          "scene_description": "가상 거리에서 행인에게 역 방향을 묻는다.",
+          "target_language": "en-US",
+          "explanation_language": "ko-KR",
+          "end_reason": "user_end",
+          "tutorial_goal": null
+        },
+        "turns": [
+          {
+            "turn_id": "t01",
+            "sequence": 1,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "Where would you like to go?",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t02",
+            "sequence": 2,
+            "speaker": "user",
+            "input_type": "text",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "I want go to the station.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          },
+          {
+            "turn_id": "t03",
+            "sequence": 3,
+            "speaker": "npc",
+            "input_type": "generated",
+            "text_status": "final",
+            "original_transcript": null,
+            "final_text": "The station is straight ahead.",
+            "difficulty": {
+              "settings_version": "settings_sample_1",
+              "vocabulary_profile": "everyday_sample",
+              "speech_rate_multiplier": null,
+              "hint_policy": "on_request"
+            },
+            "assistance_ids": []
+          }
+        ],
+        "assistance_events": []
+      },
+      "mock_fixture": "fixtures/free_grammar.llm.json",
+      "mock_content_override": null,
+      "expected_model_calls": 0,
+      "response_http_status": 400,
+      "response": {
+        "error": {
+          "code": "invalid_request",
+          "message": "피드백 요청이 ai/feedback 계약과 다름 (schema_version: Input should be '0.3.0')"
+        }
+      },
+      "backend_action": "fix_request_without_automatic_model_retry"
+    }
+  ]
+}

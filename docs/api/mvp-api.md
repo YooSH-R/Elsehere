@@ -92,7 +92,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
 | `CONVERSATION_NOT_ACTIVE` | 409 | 이미 끝난 대화에 발화 전송 |
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
-| `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 단계가 아닌 사용자의 튜토리얼 완료·건너뛰기 |
+| `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 전 단계(`LANG`, `LEVEL`) 사용자의 튜토리얼 완료·건너뛰기 |
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
@@ -470,12 +470,20 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### TUT-01 `POST /api/v1/me/tutorial/complete`
 
-- 화면 12의 [마을로 가기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꾸고 `{ "onboardingStep": "DONE" }`을 돌려줍니다.
-- `onboardingStep`이 `TUTORIAL`이 아니면 `TUTORIAL_NOT_IN_PROGRESS`입니다. 이미 `DONE`인 사용자가 다시 호출하면 같은 응답을 돌려줍니다.
+```json
+// 요청 본문 없음
+
+// 응답 200
+{ "onboardingStep": "DONE" }
+```
+
+- 화면 12의 [마을로 가기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꿉니다.
+- 튜토리얼 전 단계(`LANG`, `LEVEL`)면 `409 TUTORIAL_NOT_IN_PROGRESS`이며 단계를 바꾸지 않습니다. 이미 `DONE`인 사용자가 다시 호출하면 같은 응답을 돌려줍니다.
+- 마지막 장소(`last_scene_id`)는 바꾸지 않습니다. BOOT-01에 `lastSceneCode`가 없으면 클라이언트가 마을에서 시작합니다.
 
 #### TUT-02 `POST /api/v1/me/tutorial/skip`
 
-- 화면 06의 [튜토리얼 건너뛰기]에서 호출합니다. `onboardingStep`을 `DONE`으로 바꾸고 마을에서 시작합니다.
+- 화면 06의 [튜토리얼 건너뛰기]에서 호출합니다. 요청·응답과 단계 규칙은 TUT-01과 같습니다. `onboardingStep`을 `DONE`으로 바꾸고 마을에서 시작합니다.
 - 건너뛴 사용자에게 튜토리얼을 다시 볼 방법을 줄지는 `[미정]`입니다.
 
 ### 4.4 장소·사물
@@ -558,10 +566,15 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### WORLD-05 `PUT /api/v1/me/last-scene`
 
 ```json
+// 요청
+{ "sceneCode": "CAFE" }
+
+// 응답 200
 { "sceneCode": "CAFE" }
 ```
 
 - 화면 09의 외출, 화면 14의 건물 출입처럼 장소를 옮길 때 호출합니다. 재접속하면 BOOT-01의 `lastSceneCode`에서 시작합니다. 장소 안의 정확한 위치 복원은 `[미정]`입니다.
+- `sceneCode`가 없거나 비어 있으면 `400 VALIDATION_FAILED`, 없는 장소면 `404 NOT_FOUND`, 열리지 않은 장소(`is_open = false`)면 `409 SCENE_CLOSED`입니다. 오류가 나면 마지막 장소를 바꾸지 않습니다.
 
 ### 4.5 미션
 
@@ -575,33 +588,37 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "resetsAt": "2026-10-22T00:00:00+09:00",
   "missions": [
     {
-      "missionId": 3,
-      "title": "카페에서 음료 주문하기",
-      "description": "카페 직원에게 원하는 음료를 영어로 주문해 보세요.",
+      "missionId": 1,
+      "missionCode": "CAFE_SOY_LATTE",
+      "title": "나만의 카페라테 주문하기",
+      "description": "우유 대신 두유를 넣은 카페라테를 주문해 보세요.",
       "sceneCode": "CAFE",
       "npcCode": "CAFE_STAFF",
       "npcName": "Mia",
       "userMissionId": 12,
-      "status": "RUN",
-      "completedAt": null
-    },
-    {
-      "missionId": 5,
-      "title": "카페 직원에게 추천 메뉴 묻기",
-      "description": "카페 직원에게 오늘의 추천 메뉴를 물어보세요.",
-      "sceneCode": "CAFE",
-      "npcCode": "CAFE_STAFF",
-      "npcName": "Mia",
-      "userMissionId": 13,
       "status": "DONE",
       "completedAt": "2026-10-21T14:05:00+09:00"
+    },
+    {
+      "missionId": 2,
+      "missionCode": "HOTEL_CHECK_IN",
+      "title": "호텔에 체크인하기",
+      "description": "호텔 직원에게 예약을 확인하고 체크인해 보세요.",
+      "sceneCode": "HOTEL",
+      "npcCode": "HOTEL_STAFF",
+      "npcName": "Emma",
+      "userMissionId": 13,
+      "status": "RUN",
+      "completedAt": null
     }
   ]
 }
 ```
 
-- 오늘 처음 조회하면 서버가 오늘의 일일 미션을 `user_missions`에 `RUN` 상태로 만듭니다. 같은 날 다시 조회해도 새로 만들지 않습니다.
-- 화면 13의 미션 목록은 HUD의 [미션]으로 엽니다. 화면 위 미션 표시는 `status: RUN`인 미션의 제목입니다. 미션 이름과 내용은 예시입니다.
+- 오늘 처음 조회하면 서버가 오늘의 일일 미션을 `user_missions`에 `RUN` 상태로 만듭니다. 같은 날 다시 조회해도 새로 만들지 않고, 오늘 날짜로 아직 없는 미션만 시작합니다. 하루 중간에 미션이 추가되거나 장소가 열리면 다음 조회에 반영됩니다.
+- `missionCode`는 Unity 미션 콘텐츠와 같은 고정 키(`missions.code`)입니다. 클라이언트는 이 코드로 미션을 찾습니다.
+- `completedAt`과 `resetsAt`은 한국 시각(`+09:00`)으로 보냅니다. 진행 중인 미션의 `completedAt`은 `null`입니다.
+- 화면 13의 미션 목록은 HUD의 [미션]으로 엽니다. 화면 위 미션 표시는 `status: RUN`인 미션의 제목입니다. 미션 목록의 순서에는 의미가 없습니다.
 - 열리지 않은 장소의 미션은 목록에 넣지 않습니다. MVP의 일일 미션은 카페와 호텔에 하나씩입니다. 튜토리얼 미션은 Unity 대본 콘텐츠라 DB에 없습니다.
 - 미션 상세 화면(지도, 자세한 설명)은 MVP에 넣지 않습니다(7절).
 - 완료 판정 기준(`keywords`, `intent_rule`)은 서버 내부 정보라 응답하지 않습니다.

@@ -45,6 +45,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `JUDGE_BUDGET_S` | 5 | `/v1/judge`의 의도·번역 각각의 상한 (재시도·대체 모델 포함) |
 | `GUARD_BUDGET_S` | 5 | `/v1/guard` 무례 판정의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함). 넘으면 `abusive: null`(timeout) |
 | `REPLY_FIRST_BUDGET_S` | 5 | NPC 대답 첫 글자까지의 상한 |
+| `RESPOND_BUDGET_S` | 30 | NPC 추론 API(`/internal/ai/npc/respond`) 요청 하나의 상한 (재시도·대체 모델 포함, 계약 10절). 넘으면 504 `AI_TIMEOUT` |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
 | `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |

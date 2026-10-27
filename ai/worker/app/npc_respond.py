@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .llm import LLM, Usage
+from .llm import LLM, ProviderError, Usage, within
 from .npc_profile_models import NpcProfile
 from .npc_prompt import REPLY_FORMAT, npc_messages
 
@@ -137,11 +137,26 @@ def parse_request(payload: object) -> NpcRespondRequest:
         raise ContractError(422, "INVALID_REQUEST", f"요청 형식 오류 ({where})", False, readable_request_id(payload)) from e
 
 
-async def respond(llm: LLM, request: NpcRespondRequest) -> NpcRespondResponse:
-    """요청 하나로 NPC 대사 하나. ID 세 개는 모델이 아니라 요청에서 그대로 옮긴다 (계약 7절)."""
+def provider_failure(e: ProviderError, request_id: str) -> ContractError:
+    """Worker 공통 공급자 오류 → 계약 9절 오류. 처리량 한도는 429, 그 밖의 공급자 실패는 502이고
+    재시도 여부는 공급자가 요청 자체를 거절했는지(키·계정 오류)로 가른다."""
+    if e.code == "provider_limit":
+        return ContractError(429, "AI_RATE_LIMITED", e.message, True, request_id)
+    if e.code == "timeout":  # within()의 처리 제한 초과
+        return ContractError(504, "AI_TIMEOUT", e.message, True, request_id)
+    return ContractError(502, "AI_PROVIDER_ERROR", e.message, e.retryable, request_id)
+
+
+async def respond(llm: LLM, request: NpcRespondRequest, budget_s: float) -> NpcRespondResponse:
+    """요청 하나로 NPC 대사 하나. ID 세 개는 모델이 아니라 요청에서 그대로 옮긴다 (계약 7절).
+    budget_s: 재시도·대체 모델까지 합친 처리 제한 (계약 10절). 호출 한 번의 상한(call_timeout_s)과 별개다."""
     messages = npc_messages(request.model_dump(mode="json", by_alias=True))
     messages[0] = {"role": "system", "content": f"{messages[0]['content']}\n\n{REPLY_FORMAT}"}
-    out = await llm.chat("npc", "npc", messages, Usage(), temperature=REPLY_TEMPERATURE, max_tokens=MAX_REPLY_TOKENS, schema=REPLY_SCHEMA)
+    call = llm.chat("npc", "npc", messages, Usage(), temperature=REPLY_TEMPERATURE, max_tokens=MAX_REPLY_TOKENS, schema=REPLY_SCHEMA)
+    try:
+        out = await within(call, budget_s)
+    except ProviderError as e:  # 재시도·대체 모델까지 실패했거나 처리 제한을 넘긴 경우
+        raise provider_failure(e, request.requestId) from e
     try:
         reply = ModelReply.model_validate_json(out)
     except ValueError as e:  # JSON이 아니거나 칸이 틀림 (pydantic ValidationError도 ValueError)

@@ -3,14 +3,16 @@
 요청은 계약 예시(docs/api/npc-ai-contracts/npc_inference_examples_v2.json)를 그대로 쓴다. 가짜 공급자라 모델을 부르지 않는다.
 """
 
+import asyncio
 import copy
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 
 from app import npc_prompt, npc_respond
-from conftest import ok
+from conftest import make_client, ok
 
 RESPOND = "/internal/ai/npc/respond"
 EXAMPLES = json.loads(
@@ -168,3 +170,56 @@ def test_model_output_outside_the_reply_format_is_not_sent(client, provider, mod
 
     assert r.status_code == 502
     assert (r.json()["error"]["code"], r.json()["error"]["retryable"]) == ("INVALID_AI_OUTPUT", True)
+
+
+@pytest.mark.parametrize(
+    ("provider_status", "http", "code", "retryable"),
+    [
+        (429, 429, "AI_RATE_LIMITED", True),  # 처리량 한도: 잠시 뒤 다시
+        (503, 502, "AI_PROVIDER_ERROR", True),  # 공급자 일시 장애 (재시도·대체 모델까지 실패)
+        (401, 502, "AI_PROVIDER_ERROR", False),  # 공급자 키·계정 문제: 다시 보내도 같다 (계약 9절)
+    ],
+)
+def test_provider_failures_come_back_in_the_contract_error_form(client, provider, provider_status, http, code, retryable):
+    provider.answers["npc"] = lambda body: httpx.Response(provider_status, json={"error": {"message": "fake"}})
+    request = example_request("followup")
+
+    r = client.post(RESPOND, json=request)
+
+    assert r.status_code == http
+    body = r.json()
+    assert body["requestId"] == request["requestId"]
+    assert (body["error"]["code"], body["error"]["retryable"]) == (code, retryable)
+
+
+def test_a_reply_slower_than_the_processing_limit_is_a_timeout(provider):
+    async def slow_answer(body):
+        await asyncio.sleep(0.5)
+        return ok(json.dumps({"replyText": "Too late.", "endSignal": "NONE"}))
+
+    provider.answers["npc"] = slow_answer
+    request = example_request("followup")
+
+    with make_client(provider, respond_budget_s=0.1) as client:  # 계약의 AI 처리 제한(기본 30초)을 테스트에서 줄임
+        r = client.post(RESPOND, json=request)
+
+    assert r.status_code == 504
+    body = r.json()
+    assert body["requestId"] == request["requestId"]
+    assert (body["error"]["code"], body["error"]["retryable"]) == ("AI_TIMEOUT", True)
+
+
+def test_an_unexpected_error_still_answers_in_the_contract_form(client, provider, monkeypatch):
+    def broken_prompt(request):
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(npc_respond, "npc_messages", broken_prompt)  # 프로그램 오류를 흉내 냄
+    request = example_request("opening")
+
+    r = client.post(RESPOND, json=request)
+
+    assert r.status_code == 500
+    body = r.json()
+    assert body["requestId"] == request["requestId"]
+    assert (body["error"]["code"], body["error"]["retryable"]) == ("INTERNAL_ERROR", False)
+    assert "bug" not in body["error"]["message"]  # 내부 원인은 로그에만

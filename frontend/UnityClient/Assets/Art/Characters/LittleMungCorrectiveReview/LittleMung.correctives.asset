@@ -1,0 +1,143 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 529312b82db724a49a0653537fd41a5a, type: 3}
+  m_Name: LittleMung.correctives
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.PoseCorrectiveProfile
+  bindings:
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_KneeBend_Left_100
+    joint:
+      bonePath: Armature/Hips/Left_UpperLeg/Left_LowerLeg
+      referenceRotation: {x: 0.0024916136, y: 0.06389223, z: -0.06689897, w: 0.9957089}
+      axis: {x: 0.090452224, y: -0.045220017, z: -0.9948736}
+      startDegrees: 8.594367
+      fullDegrees: 100
+      magnitude: 1
+    gate:
+      bonePath: 
+      referenceRotation: {x: 0, y: 0, z: 0, w: 1}
+      axis: {x: 1, y: 0, z: 0}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 0
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_Shorts_Left_Forward
+    joint:
+      bonePath: Armature/Hips/Left_UpperLeg
+      referenceRotation: {x: 0.99930304, y: -0.021242246, z: -0.021237534, w: -0.022164669}
+      axis: {x: 0.043386016, y: 0.04339819, z: 0.9981153}
+      startDegrees: 0
+      fullDegrees: 60
+      magnitude: 0
+    gate:
+      bonePath: 
+      referenceRotation: {x: 0, y: 0, z: 0, w: 1}
+      axis: {x: 1, y: 0, z: 0}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 0
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_Shorts_Left_Backward
+    joint:
+      bonePath: Armature/Hips/Left_UpperLeg
+      referenceRotation: {x: 0.99930304, y: -0.021242246, z: -0.021237534, w: -0.022164669}
+      axis: {x: -0.043386076, y: -0.043397095, z: -0.9981154}
+      startDegrees: 0
+      fullDegrees: 50
+      magnitude: 0
+    gate:
+      bonePath: 
+      referenceRotation: {x: 0, y: 0, z: 0, w: 1}
+      axis: {x: 1, y: 0, z: 0}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 0
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_ShortsCrouch_Left
+    joint:
+      bonePath: Armature/Hips/Left_UpperLeg/Left_LowerLeg
+      referenceRotation: {x: 0.0024916136, y: 0.06389223, z: -0.06689897, w: 0.9957089}
+      axis: {x: 0.090452224, y: -0.045220017, z: -0.9948736}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 1
+    gate:
+      bonePath: Armature/Hips/Left_UpperLeg
+      referenceRotation: {x: 0.99930304, y: -0.021242246, z: -0.021237534, w: -0.022164669}
+      axis: {x: 0.043386016, y: 0.04339819, z: 0.9981153}
+      startDegrees: 0
+      fullDegrees: 60
+      magnitude: 0
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_KneeBend_Right_100
+    joint:
+      bonePath: Armature/Hips/Right_UpperLeg/Right_LowerLeg
+      referenceRotation: {x: 0.0006682478, y: 0.069816604, z: -0.066942, w: 0.995311}
+      axis: {x: 0.09043465, y: 0.045219835, z: -0.99487525}
+      startDegrees: 8.594367
+      fullDegrees: 100
+      magnitude: 1
+    gate:
+      bonePath: 
+      referenceRotation: {x: 0, y: 0, z: 0, w: 1}
+      axis: {x: 1, y: 0, z: 0}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 0
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_Shorts_Right_Forward
+    joint:
+      bonePath: Armature/Hips/Right_UpperLeg
+      referenceRotation: {x: 0.99928236, y: -0.022184959, z: -0.02218908, w: 0.021221036}
+      axis: {x: 0.04340564, y: -0.04339517, z: 0.9981146}
+      startDegrees: 0
+      fullDegrees: 60
+      magnitude: 0
+    gate:
+      bonePath: 
+      referenceRotation: {x: 0, y: 0, z: 0, w: 1}
+      axis: {x: 1, y: 0, z: 0}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 0
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_Shorts_Right_Backward
+    joint:
+      bonePath: Armature/Hips/Right_UpperLeg
+      referenceRotation: {x: 0.99928236, y: -0.022184959, z: -0.02218908, w: 0.021221036}
+      axis: {x: -0.043405656, y: 0.04339433, z: -0.9981147}
+      startDegrees: 0
+      fullDegrees: 50
+      magnitude: 0
+    gate:
+      bonePath: 
+      referenceRotation: {x: 0, y: 0, z: 0, w: 1}
+      axis: {x: 1, y: 0, z: 0}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 0
+  - rendererPath: tripo_node_e4d4c805
+    shapeName: Corrective_ShortsCrouch_Right
+    joint:
+      bonePath: Armature/Hips/Right_UpperLeg/Right_LowerLeg
+      referenceRotation: {x: 0.0006682478, y: 0.069816604, z: -0.066942, w: 0.995311}
+      axis: {x: 0.09043465, y: 0.045219835, z: -0.99487525}
+      startDegrees: 0
+      fullDegrees: 100
+      magnitude: 1
+    gate:
+      bonePath: Armature/Hips/Right_UpperLeg
+      referenceRotation: {x: 0.99928236, y: -0.022184959, z: -0.02218908, w: 0.021221036}
+      axis: {x: 0.04340564, y: -0.04339517, z: 0.9981146}
+      startDegrees: 0
+      fullDegrees: 60
+      magnitude: 0

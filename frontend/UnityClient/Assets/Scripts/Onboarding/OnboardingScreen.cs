@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Player;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -48,6 +49,7 @@ namespace A305.Onboarding
 
         private void Awake()
         {
+            PlayerCharacterSelection.Reset();
             api = new OnboardingApi(apiSettings.CreateClient());
             flow = new OnboardingFlow(api);
             ConnectPanels();
@@ -122,6 +124,7 @@ namespace A305.Onboarding
 
         private void Render()
         {
+            PlayerCharacterSelection.Select(flow.SelectedAvatar?.ToString());
             messageText.text = flow.ErrorMessage ?? "";
             switch (flow.Screen)
             {

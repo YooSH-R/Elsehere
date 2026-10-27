@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class UserObjectPrefId implements Serializable {
+public class UserWordPrefId implements Serializable {
 
   private Long userId;
 
-  private Long objectId;
+  private Long vocabId;
 }

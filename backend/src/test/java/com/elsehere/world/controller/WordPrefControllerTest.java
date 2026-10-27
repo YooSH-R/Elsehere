@@ -11,8 +11,8 @@ import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.world.dto.ObjectPrefResponse;
-import com.elsehere.world.service.ObjectPrefService;
+import com.elsehere.world.dto.WordPrefResponse;
+import com.elsehere.world.service.WordPrefService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,24 +24,24 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-// 저장 규칙은 ObjectPrefServiceTest에서 DB와 함께 검증하고, 여기서는 요청·응답 연결만 본다.
-@SecuredWebMvcTest(controllers = ObjectPrefController.class)
-class ObjectPrefControllerTest {
+// 저장 규칙은 WordPrefServiceTest에서 DB와 함께 검증하고, 여기서는 요청·응답 연결만 본다.
+@SecuredWebMvcTest(controllers = WordPrefController.class)
+class WordPrefControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockitoBean private ObjectPrefService objectPrefService;
+  @MockitoBean private WordPrefService wordPrefService;
 
   @Test
-  @DisplayName("PUT /api/v1/me/object-prefs/{objectKey}는 로그인한 사용자와 본문 값으로 처리하고 설정 결과를 돌려준다")
+  @DisplayName("PUT /api/v1/me/word-prefs/{wordKey}는 로그인한 사용자와 본문 값으로 처리하고 설정 결과를 돌려준다")
   void changeHoverHidden_respondsPref() throws Exception {
-    given(objectPrefService.changeHoverHidden(1L, "sofa", true))
-        .willReturn(new ObjectPrefResponse("sofa", true));
+    given(wordPrefService.changeHoverHidden(1L, "sofa", true))
+        .willReturn(new WordPrefResponse("sofa", true));
 
     mockMvc
         .perform(prefRequest("sofa", "{\"hoverHidden\": true}"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.objectKey").value("sofa"))
+        .andExpect(jsonPath("$.wordKey").value("sofa"))
         .andExpect(jsonPath("$.hoverHidden").value(true));
   }
 
@@ -55,9 +55,9 @@ class ObjectPrefControllerTest {
   }
 
   @Test
-  @DisplayName("없는 사물 키면 404 NOT_FOUND 오류 응답을 돌려준다")
-  void changeHoverHidden_unknownObject_respondsNotFound() throws Exception {
-    given(objectPrefService.changeHoverHidden(1L, "moon_rock", true))
+  @DisplayName("없는 단어 키면 404 NOT_FOUND 오류 응답을 돌려준다")
+  void changeHoverHidden_unknownWord_respondsNotFound() throws Exception {
+    given(wordPrefService.changeHoverHidden(1L, "moon_rock", true))
         .willThrow(new BusinessException(ErrorCode.NOT_FOUND));
 
     mockMvc
@@ -71,7 +71,7 @@ class ObjectPrefControllerTest {
   void notLoggedIn_respondsUnauthenticated() throws Exception {
     mockMvc
         .perform(
-            put("/api/v1/me/object-prefs/sofa")
+            put("/api/v1/me/word-prefs/sofa")
                 .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"hoverHidden\": true}"))
@@ -84,7 +84,7 @@ class ObjectPrefControllerTest {
   void withoutCsrfHeader_isRejected() throws Exception {
     mockMvc
         .perform(
-            put("/api/v1/me/object-prefs/sofa")
+            put("/api/v1/me/word-prefs/sofa")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"hoverHidden\": true}")
                 .with(authentication(loggedIn(1L))))
@@ -92,8 +92,8 @@ class ObjectPrefControllerTest {
         .andExpect(jsonPath("$.error.code").value("CSRF_HEADER_REQUIRED"));
   }
 
-  private static MockHttpServletRequestBuilder prefRequest(String objectKey, String body) {
-    return put("/api/v1/me/object-prefs/" + objectKey)
+  private static MockHttpServletRequestBuilder prefRequest(String wordKey, String body) {
+    return put("/api/v1/me/word-prefs/" + wordKey)
         .header(CsrfHeaderFilter.HEADER_NAME, "ElsehereClient")
         .contentType(MediaType.APPLICATION_JSON)
         .content(body)

@@ -13,7 +13,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 - 모든 API는 `/api/v1` 아래에 있으며, 이 문서의 경로는 `/api/v1`을 포함한 전체 경로로 적습니다.
 - 요청·응답 본문은 UTF-8 JSON이며 필드명은 camelCase입니다. DB 컬럼(snake_case)과의 변환은 백엔드 DTO에서 합니다.
 - 시각은 시간대를 포함한 ISO 8601(`2026-10-21T14:00:00+09:00`), 날짜는 `YYYY-MM-DD`입니다.
-- 장면·NPC·사물 같은 마스터 데이터는 환경마다 달라지지 않는 코드로 가리킵니다: `sceneCode`(`scenes.code`), `npcCode`(`npcs.code`), `objectKey`(`world_objects.unity_key`). 사용자 데이터는 서버가 발급한 숫자 ID로 가리킵니다.
+- 장면·NPC·사물 같은 마스터 데이터는 환경마다 달라지지 않는 코드로 가리킵니다: `sceneCode`(`scenes.code`), `npcCode`(`npcs.code`), `wordKey`(`vocabularies.word_key`, Unity 공용 단어 키). 사용자 데이터는 서버가 발급한 숫자 ID로 가리킵니다.
 - 목록은 커서 방식으로 나눕니다. 요청은 `?cursor=&size=`, 응답은 `{ "items": [...], "nextCursor": "..." }`이며 마지막 페이지의 `nextCursor`는 `null`입니다.
 
 ### 1.2 인증
@@ -218,8 +218,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | TUT-01 | `POST /api/v1/me/tutorial/complete` | 튜토리얼 완료 | - | 12 |
 | TUT-02 | `POST /api/v1/me/tutorial/skip` | 튜토리얼 건너뛰기 | - | 06 |
 | WORLD-01 | `GET /api/v1/scenes` | 장소 목록·개방 여부 | - | 14 |
-| WORLD-02 | `GET /api/v1/scenes/{sceneCode}` | 장소의 NPC와 사물 카드 | - | 08, 14 |
-| WORLD-03 | `PUT /api/v1/me/object-prefs/{objectKey}` | 사물 카드 자동 표시 끄기·다시 켜기 | - | 08 |
+| WORLD-02 | `GET /api/v1/scenes/{sceneCode}` | 장소의 NPC와 단어 카드 | - | 08, 14 |
+| WORLD-03 | `PUT /api/v1/me/word-prefs/{wordKey}` | 단어 카드 자동 표시 끄기·다시 켜기 | - | 08 |
 | WORLD-04 | `GET /api/v1/vocab/{vocabId}/pronunciation` | 미리 만든 사물 단어 발음 음성 | - | 08 |
 | WORLD-05 | `PUT /api/v1/me/last-scene` | 현재 장소 저장(재접속 위치) | - | 09, 14 |
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
@@ -521,16 +521,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "unityKey": "HomeScene",
   "isOpen": true,
   "npcs": [],
-  "objects": [
+  "words": [
     {
-      "objectKey": "sofa",
+      "wordKey": "sofa",
       "vocab": {
         "vocabId": 31,
         "type": "WORD",
         "text": "sofa",
         "meaningKo": "소파",
-        "example": "I'm sitting on the sofa.",
-        "exampleKo": "소파에 앉아 있어요."
+        "example": "He is sitting on the sofa.",
+        "exampleKo": "그는 소파에 앉아 있어요."
       },
       "hasPronunciation": true,
       "saved": false,
@@ -550,31 +550,33 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
-- `npcs`, `objects`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `objectKey`로 찾습니다.
-- 장소에 들어갈 때 그 장소의 사물 카드를 한 번에 받습니다. MVP는 장소마다 사물이 10개 안팎이라 응답이 작습니다.
-- 맵이 커지면 사물을 한 번에 받지 않고 캐릭터 주변 사물만 받도록 바꿉니다. 사물 위치는 Unity 씬에 있으므로, 클라이언트가 주변 사물의 `objectKey`를 모아 요청하는 방식을 우선 검토합니다. `[제안]`
+- `words`는 장소의 사물에 붙은 공용 단어 카드입니다. 여러 사물이 같은 단어를 쓰면 카드는 하나이며, Unity가 사물의 공용 단어 키(`wordKey`)로 카드를 찾습니다. 장소별 단어 목록은 Unity가 내보낸 `object-word-bindings.json`을 서버 시작 때 `scene_words`에 적재한 것입니다.
+- `npcs`, `words`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `wordKey`로 찾습니다.
+- 장소에 들어갈 때 그 장소의 단어 카드를 한 번에 받습니다. MVP는 장소마다 단어가 20~40개라 응답이 작습니다.
+- 맵이 커지면 단어 카드를 한 번에 받지 않고 캐릭터 주변 사물의 카드만 받도록 바꿉니다. 사물 위치는 Unity 씬에 있으므로, 클라이언트가 주변 사물의 `wordKey`를 모아 요청하는 방식을 우선 검토합니다. `[제안]`
 - 화면 08의 사물 카드는 `vocab`과 `saved`, `hoverHidden`으로 그립니다. 미리 등록한 어휘라 AI를 호출하지 않습니다.
-- `hoverHidden: true`인 사물은 호버로 카드를 띄우지 않고, 사물을 클릭하면 카드를 보여줍니다.
+- `saved`, `hoverHidden`은 단어 기준입니다. 한 장소에서 저장하거나 숨긴 단어는 그 단어를 쓰는 모든 장소에서 같은 값으로 보입니다.
+- `hoverHidden: true`인 단어의 사물은 호버로 카드를 띄우지 않고, 사물을 클릭하면 카드를 보여줍니다.
 - `exampleKo`(예문 뜻)는 `vocabularies.example_ko`입니다. 예문을 저장 전부터 보여줄지는 `[미정]`입니다(5.2).
 - `approachLine`(`npcs.approach_line`)은 튜토리얼 뒤 거리 행인의 말걸기 말풍선입니다. 대화를 시작하기 전에 보여주므로 미리 작성한 대사입니다. 말걸기 발동 조건(거리, 반복 간격, 횟수)은 클라이언트 콘텐츠 설정입니다.
 - `roleLabel`은 `npcs.role_label`입니다. 이름표 아래에 보여주는 역할 이름(행인, 카페 직원)입니다.
 - NPC의 `persona`, `voice_id`는 서버 내부 정보라 응답하지 않습니다.
 - 열리지 않은 장소는 `isOpen: false`이며, 그 장소의 NPC와 대화를 시작하면 `SCENE_CLOSED`입니다.
 
-#### WORLD-03 `PUT /api/v1/me/object-prefs/{objectKey}`
+#### WORLD-03 `PUT /api/v1/me/word-prefs/{wordKey}`
 
 ```json
 // 요청
 { "hoverHidden": true }
 
 // 응답 200
-{ "objectKey": "sofa", "hoverHidden": true }
+{ "wordKey": "sofa", "hoverHidden": true }
 ```
 
 - 화면 08의 [알아요 · 다시 안 띄우기]는 `true`입니다. 숨긴 뒤에는 사물을 클릭해야 카드가 보이며, 카드에서 자동 표시를 다시 켜면 `false`로 바꿉니다.
-- `objectKey`는 WORLD-02 사물 카드의 `objectKey`(`world_objects.unity_key`)입니다.
-- 설정은 사용자·사물마다 하나입니다. 처음 바꿀 때 만들고, 다시 보내면 값만 바꿉니다. 같은 값을 여러 번 보내도 결과가 같습니다.
-- `hoverHidden`이 없으면 `400 VALIDATION_FAILED`, 없는 사물이면 `404 NOT_FOUND`입니다.
+- `wordKey`는 WORLD-02 단어 카드의 `wordKey`(`vocabularies.word_key`)입니다.
+- 설정은 사용자·단어마다 하나(`user_word_prefs`)입니다. 그 단어를 쓰는 모든 장소의 사물에 적용됩니다. 처음 바꿀 때 만들고, 다시 보내면 값만 바꿉니다. 같은 값을 여러 번 보내도 결과가 같습니다.
+- `hoverHidden`이 없으면 `400 VALIDATION_FAILED`, 없는 단어 키면 `404 NOT_FOUND`입니다.
 
 #### WORLD-04 `GET /api/v1/vocab/{vocabId}/pronunciation`
 
@@ -1016,7 +1018,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 
 ```json
 // 화면 08: 사물 카드에서 저장
-{ "requestId": "...", "sourceType": "OBJECT", "objectKey": "sofa" }
+{ "requestId": "...", "sourceType": "OBJECT", "wordKey": "sofa" }
 
 // 화면 15: NPC 대사 뜻 보기(CONV-04)의 단어 풀이에서 저장
 { "requestId": "...", "sourceType": "NPC_LINE", "turnId": 105, "text": "latte" }
@@ -1039,7 +1041,8 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
 - 현재 구현은 `OBJECT`만 저장합니다. `NPC_LINE`·`FEEDBACK`은 단어 풀이·단어장 후보 연동 전까지 `422 VOCAB_SOURCE_MISMATCH`입니다.
-- `sourceType`이 없거나, `OBJECT`인데 `objectKey`가 비어 있으면 `400 VALIDATION_FAILED`, 없는 사물이면 `404 NOT_FOUND`입니다.
+- `OBJECT`의 `wordKey`는 WORLD-02 단어 카드의 `wordKey`입니다.
+- `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있으면 `400 VALIDATION_FAILED`, 없는 단어 키면 `404 NOT_FOUND`입니다.
 - `requestId`는 형식을 맞추려고 받지만 쓰지 않습니다. 이미 저장한 단어는 처음 항목을 돌려주므로 같은 요청을 다시 보내도 결과가 같습니다.
 
 #### VOCAB-03·04 메모·외웠어요·삭제
@@ -1106,6 +1109,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 게스트로 시작하기 | AUTH-07 | `users.provider`에 `GUEST` 값을 더했습니다. 컬럼 변경은 없습니다. |
 | 피드백 실패 이유·결과 원본 (v3.4) | CONV-08, FB-01~03 | `conversation_feedback.error_code`(실패·건너뜀 이유)와 `result`(AI 워커가 돌려준 검증된 결과 원본)를 추가했습니다. `turn_feedback.better_text`는 적절한 발화에 고칠 표현이 없어 NULL을 허용합니다. |
 | NPC 기억 카드 (v3.4) | CONV-01, 03, 08 | `user_npc_relations.memory_card`(기억 카드 JSON)와 `memory_conversation_id`(마지막으로 반영한 대화)를 추가하고 `ai_requests.kind`에 `MEMORY`를 더했습니다. 사실별 `npc_memories`는 만들지 않습니다. |
+| 공용 단어 카드 (v3.4) | WORLD-02·03, VOCAB-02 | Unity가 사물 카드를 사물별 단어에서 공용 단어로 바꾼 데 맞춰 `world_objects`·`user_object_prefs`를 `scene_words`(장소별 단어)·`user_word_prefs`(단어별 숨김)로 바꾸고 `vocabularies.word_key`를 추가했습니다. API의 `objectKey`는 `wordKey`로 바꿨습니다. |
 
 ### 5.2 아직 정할 사항
 
@@ -1137,7 +1141,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 미션 완료 행동 | MIS-01 | 대화만(초안) / 장소 방문·단어 저장 등 추가 |
 | 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 채점 기준, 문항 단위 건너뛰기 여부. MVP는 예시 문항·초급 고정으로 흐름만 두고 [진행하기]를 막아 둡니다. |
 | 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
-| 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `objectKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
+| 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `wordKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
 | 사용량 소진 HTTP 상태 코드 | 1.5 | 429 `[제안]` / 403 |
 | 설정 화면 | AUTH-05 | 로그아웃, 프로필 수정, 음성 동의 변경 등 화면 설계 |
 

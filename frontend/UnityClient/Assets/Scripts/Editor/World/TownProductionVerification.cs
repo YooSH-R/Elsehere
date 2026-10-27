@@ -2,14 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.Npc;
 using A305.Player;
+using A305.Tutorial;
 using A305.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.World
@@ -24,6 +27,7 @@ namespace A305.EditorTools.World
         private static int stage;
         private static int frames;
         private static double started;
+        private static double tutorialStarted;
         private static readonly string[] TravelDoors = { "HomeDoor", "CafeDoor", "HotelDoor" };
         private static readonly string[] TravelScenes = { "HomeScene", "CafeScene", "HotelScene" };
         internal static string OutputFolder =>
@@ -54,7 +58,7 @@ namespace A305.EditorTools.World
                 return;
             if (change == PlayModeStateChange.EnteredPlayMode)
             {
-                stage = 0;
+                stage = -6;
                 frames = 0;
                 started = EditorApplication.timeSinceStartup;
                 Results.Clear();
@@ -103,6 +107,11 @@ namespace A305.EditorTools.World
         private static void Advance()
         {
             Scene scene = SceneManager.GetActiveScene();
+            if (stage < 0)
+            {
+                CheckTutorialApproach(scene);
+                return;
+            }
             if (stage >= 9)
             {
                 CheckDoorTravel(scene);
@@ -198,6 +207,100 @@ namespace A305.EditorTools.World
                         "player visual restored after dialogue"
                     );
                     break;
+            }
+        }
+
+        private static void CheckTutorialApproach(Scene scene)
+        {
+            switch (stage)
+            {
+                case -6:
+                    PasserbyRestRecord.Clear();
+                    TutorialState.Clear();
+                    SceneManager.LoadSceneAsync("HomeScene");
+                    stage++;
+                    return;
+                case -5:
+                    if (scene.name != "HomeScene")
+                        return;
+                    Require(
+                        SpaceTravel.TryTravel("TownScene", "HomeDoor"),
+                        "leave home for tutorial"
+                    );
+                    stage++;
+                    return;
+                case -4:
+                    if (scene.name != "TownScene" || SpaceTravel.IsTraveling)
+                        return;
+                    CheckArrival(scene, "HomeDoor");
+                    tutorialStarted = EditorApplication.timeSinceStartup;
+                    stage++;
+                    return;
+            }
+
+            PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
+            Passerby passerby = BuilderTools
+                .FindAllInScene<Passerby>(scene)
+                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "TUTORIAL_PASSERBY");
+            PasserbyOfferView offer = BuilderTools.FindSingleInScene<PasserbyOfferView>(scene);
+            DialogueController dialogue = BuilderTools.FindSingleInScene<DialogueController>(scene);
+            switch (stage)
+            {
+                case -3:
+                    if (!offer.IsShownBy(passerby))
+                    {
+                        if (EditorApplication.timeSinceStartup - tutorialStarted > 15)
+                            throw new InvalidOperationException(
+                                "Tutorial passerby did not approach after leaving home."
+                            );
+                        return;
+                    }
+                    Vector3 offset = passerby.transform.position - player.transform.position;
+                    offset.y = 0;
+                    Require(
+                        passerby.Phase == PasserbyPhase.Offering && offset.magnitude < 3,
+                        "tutorial passerby approaches home arrival and offers within 3m"
+                    );
+                    Require(
+                        !offer.IsDeclineShown && !player.IsMovementLocked,
+                        "tutorial offer hides decline and leaves movement unlocked"
+                    );
+                    Capture(
+                        BuilderTools
+                            .FindSingleInScene<PlayerCameraRig>(scene)
+                            .GetComponent<Camera>(),
+                        "00-tutorial-approach.png"
+                    );
+                    Results.Add(
+                        $"TUTORIAL offer after {EditorApplication.timeSinceStartup - tutorialStarted:F2}s at {offset.magnitude:F2}m"
+                    );
+                    stage++;
+                    return;
+                case -2:
+                    offer
+                        .GetComponentsInChildren<Button>()
+                        .Single(button => button.name == "AcceptButton")
+                        .onClick.Invoke();
+                    Require(
+                        dialogue.IsTalking && passerby.Phase == PasserbyPhase.Talking,
+                        "accepting tutorial offer starts dialogue"
+                    );
+                    stage++;
+                    return;
+                case -1:
+                    Capture(
+                        BuilderTools
+                            .FindSingleInScene<PlayerCameraRig>(scene)
+                            .GetComponent<Camera>(),
+                        "00-tutorial-dialogue.png"
+                    );
+                    dialogue.End();
+                    Require(
+                        !dialogue.IsTalking && !player.IsMovementLocked,
+                        "ending tutorial dialogue restores movement"
+                    );
+                    stage++;
+                    return;
             }
         }
 

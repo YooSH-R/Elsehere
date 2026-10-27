@@ -49,12 +49,11 @@ public class VocabController {
     if (request.sourceType() != UserVocabSourceType.OBJECT) {
       throw new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH);
     }
-    // 사물 키는 사물 저장에서만 쓰는 값이라 어노테이션 대신 여기서 확인한다.
-    if (request.objectKey() == null || request.objectKey().isBlank()) {
+    // 단어 키는 사물 저장에서만 쓰는 값이라 어노테이션 대신 여기서 확인한다.
+    if (request.wordKey() == null || request.wordKey().isBlank()) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
-    VocabSaveResponse response =
-        vocabService.saveObjectWord(loginUser.userId(), request.objectKey());
+    VocabSaveResponse response = vocabService.saveObjectWord(loginUser.userId(), request.wordKey());
     return ResponseEntity.status(response.created() ? HttpStatus.CREATED : HttpStatus.OK)
         .body(response);
   }

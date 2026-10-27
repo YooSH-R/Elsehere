@@ -1,7 +1,7 @@
 Project elsehere {
   database_type: 'PostgreSQL'
   Note: '''
-  ELSEHERE ERD v3.3 (MVP 기준) · PostgreSQL 16 + pgvector
+  ELSEHERE ERD v3.4 (MVP 기준) · PostgreSQL 16 + pgvector
   회의 보드 결정 + MVP 와이어프레임 피드백 기준. W3 사건 · 세계 사실 테이블은 제외
   API: docs/api/mvp-api.md
   모든 테이블은 created_at · updated_at을 가진다 (백엔드 BaseEntity가 기록). started_at · saved_at 같은 업무 시각은 별도 컬럼으로 유지
@@ -121,15 +121,18 @@ Table npcs [headercolor: #2F4A7A] {
   Note: 'NPC'
 }
 
-Table world_objects [headercolor: #2F4A7A] {
+Table scene_words [headercolor: #2F4A7A] {
   id bigint [pk, increment]
   scene_id bigint [not null]
-  unity_key varchar(50) [not null, unique, note: 'tv · sofa · menu ...']
-  vocab_id bigint [not null, note: '호버 단어']
+  vocab_id bigint [not null, note: '장소의 사물에 붙은 공용 단어']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  Note: '사물'
+  indexes {
+    (scene_id, vocab_id) [unique]
+  }
+
+  Note: '장소별 사물 단어 (v3.4). Unity가 내보낸 object-word-bindings.json의 장소별 단어 키로 시드. 여러 사물이 같은 단어를 쓰면 한 행'
 }
 
 // ===== 어휘 · 단어장 =====
@@ -142,6 +145,7 @@ Table vocabularies [headercolor: #227C88] {
   example text [note: '예문 · 사물 카드에 표시하는 시점(저장 전/후) [미정]']
   example_ko text [note: '예문 뜻']
   pronunciation_audio_key varchar(100) [note: '사물 어휘 등록 시 TTS로 만든 발음 파일 키']
+  word_key varchar(50) [unique, note: 'Unity 공용 단어 키 (air_conditioner · sofa ...). 사물 단어만 값이 있다 (v3.4)']
   source varchar(20) [not null, note: 'MASTER · NPC · FEEDBACK']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
@@ -176,18 +180,18 @@ Table user_vocab [headercolor: #227C88] {
   Note: '단어장'
 }
 
-Table user_object_prefs [headercolor: #227C88] {
+Table user_word_prefs [headercolor: #227C88] {
   user_id bigint [not null]
-  object_id bigint [not null]
-  hover_hidden boolean [not null, default: false, note: '알아요 · 다음에 안 띄우기']
+  vocab_id bigint [not null]
+  hover_hidden boolean [not null, default: false, note: '알아요 · 다음에 안 띄우기. 같은 단어가 붙은 모든 사물에 적용']
   updated_at timestamptz [not null, default: `now()`]
   created_at timestamptz [not null, default: `now()`]
 
   indexes {
-    (user_id, object_id) [pk]
+    (user_id, vocab_id) [pk]
   }
 
-  Note: '호버 숨김'
+  Note: '사물 카드 호버 숨김 (v3.4: 사물 기준 user_object_prefs에서 단어 기준으로 변경)'
 }
 
 // ===== 대화 · 피드백 =====
@@ -416,13 +420,13 @@ TableGroup signup_onboarding {
 TableGroup world_master {
   scenes
   npcs
-  world_objects
+  scene_words
 }
 
 TableGroup vocabulary {
   vocabularies
   user_vocab
-  user_object_prefs
+  user_word_prefs
 }
 
 TableGroup dialogue {
@@ -457,13 +461,13 @@ Ref: user_language_profiles.last_test_id > level_tests.id
 Ref: level_tests.user_id > users.id
 Ref: level_test_answers.test_id > level_tests.id
 Ref: npcs.scene_id > scenes.id
-Ref: world_objects.scene_id > scenes.id
-Ref: world_objects.vocab_id > vocabularies.id
+Ref: scene_words.scene_id > scenes.id
+Ref: scene_words.vocab_id > vocabularies.id
 Ref: user_vocab.user_id > users.id
 Ref: user_vocab.vocab_id > vocabularies.id
 Ref: user_vocab.source_turn_id > turns.id
-Ref: user_object_prefs.user_id > users.id
-Ref: user_object_prefs.object_id > world_objects.id
+Ref: user_word_prefs.user_id > users.id
+Ref: user_word_prefs.vocab_id > vocabularies.id
 Ref: conversations.user_id > users.id
 Ref: conversations.npc_id > npcs.id
 Ref: turns.conversation_id > conversations.id

@@ -8,8 +8,7 @@ import com.elsehere.vocab.dto.VocabSaveResponse;
 import com.elsehere.vocab.entity.UserVocab;
 import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.repository.UserVocabRepository;
-import com.elsehere.world.entity.WorldObject;
-import com.elsehere.world.repository.WorldObjectRepository;
+import com.elsehere.vocab.repository.VocabularyRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -29,7 +28,7 @@ public class VocabService {
   /** 저장 시각을 보여주는 시간대. MVP는 한국 시간으로 고정한다. */
   private static final ZoneId DISPLAY_ZONE = ZoneId.of("Asia/Seoul");
 
-  private final WorldObjectRepository worldObjectRepository;
+  private final VocabularyRepository vocabularyRepository;
   private final UserVocabRepository userVocabRepository;
   private final Clock clock;
 
@@ -105,12 +104,11 @@ public class VocabService {
   }
 
   /** 사물 카드의 단어를 저장한다(VOCAB-02 OBJECT). 문장은 사물 카드 예문이다. */
-  public VocabSaveResponse saveObjectWord(Long userId, String objectKey) {
-    WorldObject worldObject =
-        worldObjectRepository
-            .findByUnityKey(objectKey)
+  public VocabSaveResponse saveObjectWord(Long userId, String wordKey) {
+    Vocabulary vocabulary =
+        vocabularyRepository
+            .findByWordKey(wordKey)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    Vocabulary vocabulary = worldObject.getVocabulary();
     // 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 돌려준다.
     Optional<UserVocab> existing =
         userVocabRepository.findByUserIdAndVocabularyId(userId, vocabulary.getId());

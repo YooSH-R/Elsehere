@@ -18,7 +18,7 @@ import com.elsehere.vocab.entity.UserVocabSourceType;
 import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.UserVocabRepository;
 import com.elsehere.vocab.repository.VocabularyRepository;
-import com.elsehere.world.dto.ObjectCardResponse;
+import com.elsehere.world.dto.WordCardResponse;
 import com.elsehere.world.service.SceneService;
 import jakarta.persistence.EntityManager;
 import java.time.Clock;
@@ -111,8 +111,8 @@ class VocabServiceTest {
   }
 
   @Test
-  @DisplayName("없는 사물 키로 저장하면 NOT_FOUND 오류를 내고 아무것도 저장하지 않는다")
-  void saveObjectWord_unknownObject_throwsNotFound() {
+  @DisplayName("없는 단어 키로 저장하면 NOT_FOUND 오류를 내고 아무것도 저장하지 않는다")
+  void saveObjectWord_unknownWord_throwsNotFound() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
     assertThatThrownBy(() -> vocabService.saveObjectWord(userId, "moon_rock"))
@@ -337,16 +337,16 @@ class VocabServiceTest {
     entityManager.clear();
   }
 
-  private void saveAt(Long userId, String objectKey, String savedAt) {
+  private void saveAt(Long userId, String wordKey, String savedAt) {
     clock.setInstant(Instant.parse(savedAt));
-    vocabService.saveObjectWord(userId, objectKey);
+    vocabService.saveObjectWord(userId, wordKey);
   }
 
-  private boolean savedOnObjectCard(Long userId, String objectKey) {
-    return sceneService.getScene("HOME", userId).objects().stream()
-        .filter(card -> card.objectKey().equals(objectKey))
+  private boolean savedOnObjectCard(Long userId, String wordKey) {
+    return sceneService.getScene("HOME", userId).words().stream()
+        .filter(card -> card.wordKey().equals(wordKey))
         .findFirst()
-        .map(ObjectCardResponse::saved)
+        .map(WordCardResponse::saved)
         .orElseThrow();
   }
 

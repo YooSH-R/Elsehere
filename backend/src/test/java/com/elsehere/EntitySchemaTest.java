@@ -49,6 +49,9 @@ class EntitySchemaTest {
             "vocabularies",
             "user_vocab",
             "missions",
-            "user_missions");
+            "user_missions",
+            "conversations",
+            "turns",
+            "ai_requests");
   }
 }

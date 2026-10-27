@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from app import npc_prompt, npc_respond
 from conftest import ok
 
 RESPOND = "/internal/ai/npc/respond"
@@ -21,13 +22,13 @@ def example_request(name: str) -> dict:
     return copy.deepcopy(EXAMPLES["requests"][name])
 
 
-def answer_with(provider, text: str) -> list[dict]:
-    """가짜 공급자가 NPC 대사로 text를 돌려주게 하고, 받은 요청 본문을 모아 돌려준다."""
+def answer_with(provider, text: str, end_signal: str = "NONE") -> list[dict]:
+    """가짜 공급자가 대사 text와 종료 신호를 모델 출력 JSON으로 돌려주게 하고, 받은 요청 본문을 모아 돌려준다."""
     sent = []
 
     def answer(body):
         sent.append(body)
-        return ok(text)
+        return ok(json.dumps({"replyText": text, "endSignal": end_signal}))
 
     provider.answers["npc"] = answer
     return sent
@@ -50,6 +51,8 @@ def test_opening_returns_the_model_line_with_the_request_ids_and_continue(client
     messages = sent[0]["messages"]
     assert [m["role"] for m in messages] == ["system"]  # 첫 대사는 가짜 사용자 메시지 없이 (계약 4.1)
     assert messages[0]["content"].startswith("## Rules")
+    assert messages[0]["content"].endswith(npc_prompt.REPLY_FORMAT)  # 대사와 종료 신호를 JSON으로 달라는 안내
+    assert sent[0]["response_format"]["json_schema"]["schema"] == npc_respond.REPLY_SCHEMA  # 형식 강제
 
 
 def test_followup_sends_the_history_and_the_user_line_last(client, provider):
@@ -61,6 +64,26 @@ def test_followup_sends_the_history_and_the_user_line_last(client, provider):
     assert r.status_code == 200
     expected = [{"role": "assistant" if m["speaker"] == "NPC" else "user", "content": m["text"]} for m in request["conversationHistory"]]
     assert sent[0]["messages"][1:] == [*expected, {"role": "user", "content": request["userText"]}]
+
+
+@pytest.mark.parametrize("reason", ["USER_END_INTENT", "NATURAL_WRAP_UP"])
+def test_followup_turns_the_model_end_signal_into_an_offer_to_end(client, provider, reason):
+    answer_with(provider, "See you! Have a great day.", reason)
+
+    r = client.post(RESPOND, json=example_request("followup"))
+
+    assert r.status_code == 200
+    assert r.json()["replyText"] == "See you! Have a great day."
+    assert r.json()["conversationControl"] == {"action": "OFFER_END", "reason": reason}
+
+
+def test_an_opening_line_always_continues_even_if_the_model_signals_an_end(client, provider):
+    answer_with(provider, "Hi there! What can I get for you?", "NATURAL_WRAP_UP")
+
+    r = client.post(RESPOND, json=example_request("opening"))
+
+    assert r.status_code == 200
+    assert r.json()["conversationControl"] == {"action": "CONTINUE", "reason": None}  # 첫 대사는 항상 CONTINUE (계약 7절)
 
 
 def opening_with_user_text(request: dict):
@@ -128,3 +151,20 @@ def test_a_blank_model_line_is_not_sent_as_a_reply(client, provider):
     body = r.json()
     assert body["requestId"] == request["requestId"]
     assert (body["error"]["code"], body["error"]["retryable"]) == ("INVALID_AI_OUTPUT", True)
+
+
+@pytest.mark.parametrize(
+    "model_output",
+    [
+        "Hi there!",  # JSON이 아님
+        json.dumps({"replyText": "Hi there!", "endSignal": "MAYBE"}),  # 정해지지 않은 종료 신호
+        json.dumps({"replyText": "Hi there!"}),  # 종료 신호 칸 없음
+    ],
+)
+def test_model_output_outside_the_reply_format_is_not_sent(client, provider, model_output):
+    provider.answers["npc"] = lambda body: ok(model_output)
+
+    r = client.post(RESPOND, json=example_request("followup"))
+
+    assert r.status_code == 502
+    assert (r.json()["error"]["code"], r.json()["error"]["retryable"]) == ("INVALID_AI_OUTPUT", True)

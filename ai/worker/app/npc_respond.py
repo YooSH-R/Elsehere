@@ -12,10 +12,23 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from .llm import LLM, Usage
 from .npc_profile_models import NpcProfile
-from .npc_prompt import npc_messages
+from .npc_prompt import REPLY_FORMAT, npc_messages
 
 MAX_REPLY_TOKENS = 150  # 대답 길이는 학습 수준 규칙이 정하고, 이 값은 넘치지 않게 막는 상한 (ai/tools/npc_chat.py와 같은 값)
 REPLY_TEMPERATURE = 0.6  # 같은 말에도 매번 똑같이 답하지 않게 (기존 NPC 스트림과 같은 값)
+
+# 모델 출력 형식. 계약의 action·reason 두 칸 대신 칸 하나로 받아 모델이 틀린 조합(CONTINUE + 이유 등)을 낼 수 없게 하고,
+# 계약 형식으로는 코드가 바꾼다 (to_control)
+EndSignal = Literal["NONE", "USER_END_INTENT", "NATURAL_WRAP_UP"]
+REPLY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "replyText": {"type": "string"},
+        "endSignal": {"type": "string", "enum": ["NONE", "USER_END_INTENT", "NATURAL_WRAP_UP"]},
+    },
+    "required": ["replyText", "endSignal"],
+    "additionalProperties": False,
+}
 
 # 계약의 문자열 규칙: 1자 이상, 공백만은 안 됨, 칸마다 길이 상한
 Identifier = Annotated[str, Field(min_length=1, max_length=128, pattern=r"\S")]
@@ -63,9 +76,23 @@ class NpcRespondRequest(ContractModel):
         return self
 
 
+class ModelReply(BaseModel):
+    """모델이 돌려준 JSON (REPLY_SCHEMA)."""
+
+    replyText: str
+    endSignal: EndSignal
+
+
 class ConversationControl(BaseModel):
     action: Literal["CONTINUE", "OFFER_END"]
     reason: Literal["USER_END_INTENT", "NATURAL_WRAP_UP"] | None
+
+
+def to_control(end_signal: EndSignal) -> ConversationControl:
+    """모델의 종료 신호 → 계약의 대화 제어 신호. 종료 '제안'일 뿐이고 실제 종료는 백엔드가 정한다 (계약 7절)."""
+    if end_signal == "NONE":
+        return ConversationControl(action="CONTINUE", reason=None)
+    return ConversationControl(action="OFFER_END", reason=end_signal)
 
 
 class NpcRespondResponse(BaseModel):
@@ -113,13 +140,20 @@ def parse_request(payload: object) -> NpcRespondRequest:
 async def respond(llm: LLM, request: NpcRespondRequest) -> NpcRespondResponse:
     """요청 하나로 NPC 대사 하나. ID 세 개는 모델이 아니라 요청에서 그대로 옮긴다 (계약 7절)."""
     messages = npc_messages(request.model_dump(mode="json", by_alias=True))
-    reply = await llm.chat("npc", "npc", messages, Usage(), temperature=REPLY_TEMPERATURE, max_tokens=MAX_REPLY_TOKENS)
-    if not reply.strip():  # 계약상 replyText는 공백만이면 안 된다. 틀린 출력을 정상 응답으로 보내지 않는다 (계약 7절)
+    messages[0] = {"role": "system", "content": f"{messages[0]['content']}\n\n{REPLY_FORMAT}"}
+    out = await llm.chat("npc", "npc", messages, Usage(), temperature=REPLY_TEMPERATURE, max_tokens=MAX_REPLY_TOKENS, schema=REPLY_SCHEMA)
+    try:
+        reply = ModelReply.model_validate_json(out)
+    except ValueError as e:  # JSON이 아니거나 칸이 틀림 (pydantic ValidationError도 ValueError)
+        raise ContractError(502, "INVALID_AI_OUTPUT", "모델 출력이 정해진 JSON 형식이 아닙니다", True, request.requestId) from e
+    if not reply.replyText.strip():  # 계약상 replyText는 공백만이면 안 된다. 틀린 출력을 정상 응답으로 보내지 않는다 (계약 7절)
         raise ContractError(502, "INVALID_AI_OUTPUT", "모델이 빈 대사를 돌려줬습니다", True, request.requestId)
+    # 첫 대사는 대화를 여는 말이라 종료 제안이 될 수 없다 (계약 7절). 모델이 신호를 내도 코드가 CONTINUE로 고정한다
+    end_signal = "NONE" if request.turnType == "NPC_OPENING" else reply.endSignal
     return NpcRespondResponse(
         requestId=request.requestId,
         sessionId=request.sessionId,
         npcId=request.npcId,
-        replyText=reply,
-        conversationControl=ConversationControl(action="CONTINUE", reason=None),
+        replyText=reply.replyText.strip(),
+        conversationControl=to_control(end_signal),
     )

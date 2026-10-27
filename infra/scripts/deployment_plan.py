@@ -40,6 +40,10 @@ def select_deployment_work(changed_paths):
         elif path.startswith("infra/compose/") and not path.endswith(".md"):
             checks.update(ALL_CHECKS)
             runtime_configuration_changed = True
+        elif path == "infra/scripts/prepare-unity-test-inputs.ps1" or path.startswith(
+            "infra/tests/tripo/"
+        ):
+            checks.update({"infra", "unity"})
         elif path.startswith("infra/"):
             checks.add("infra")
         elif path.startswith("ai/feedback/prompts/"):

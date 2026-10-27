@@ -52,6 +52,18 @@ class DeploymentPlanTest(unittest.TestCase):
         self.assertEqual(plan["builds"], ["web"])
         self.assertTrue(plan["deploy"])
 
+    def test_unity_test_input_changes_run_unity_without_rebuilding_images(self):
+        for path in [
+            "infra/scripts/prepare-unity-test-inputs.ps1",
+            "infra/tests/tripo/create_ci_fixtures.py",
+            "infra/tests/tripo/test_ci_fixtures.py",
+        ]:
+            with self.subTest(path=path):
+                plan = select_deployment_work([path])
+                self.assertEqual(plan["checks"], ["infra", "unity"])
+                self.assertEqual(plan["builds"], [])
+                self.assertFalse(plan["deploy"])
+
     def test_api_contract_requires_all_service_checks_without_new_images(self):
         plan = select_deployment_work(["docs/api/mvp-api.md"])
 

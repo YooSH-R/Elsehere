@@ -26,7 +26,7 @@ Tripo 계정, API 키, 생성 크레딧은 사용하지 않는다. 실제 Studio
 
 `TripoLocalWorkflowTests`는 자동 검사, 불합격 후보 유지·제외, 미검사 범위 표시를 확인한다.
 `TripoLocalRoundTripTests`는 실제 FBX를 새 테스트 폴더에 복사해 Blender 왕복을 수행한다.
-다음 환경 변수를 지정하지 않으면 실제 모델 테스트만 건너뛴다.
+직접 제작 모델을 검수할 때는 다음 환경 변수를 지정한다. 지정하지 않으면 해당 로컬 모델 테스트는 건너뛴다. 기본 CI에서는 [Windows Unity Runner](../../../docs/unity/windows-runner.md#blender와-fbx-테스트-입력)의 준비 스크립트가 고정 Blender와 전용 생성 FBX를 지정하므로 테스트가 미실행되지 않아야 한다.
 
 ```powershell
 $env:TRIPO_REVIEW_MODEL = '<로컬 FBX 절대 경로>'
@@ -45,3 +45,13 @@ Head 본이 있으면 좌우 귀 위치의 가상 소켓도 검사해 실제 후
 소켓 편차를 발견한 모델은 검사 시스템 검증에 성공하더라도 제작용 모델 합격이 아니다.
 실제 얼굴 변형이 없는 입력으로 표정 보존을 입증할 수 없으므로 기존 Blender fixture와
 Shape Key 누락·소켓 이동 회귀 테스트도 함께 실행한다.
+
+## CI 전용 입력
+
+`create_ci_fixtures.py`는 `Humanoid.fbx`와 잘못된 내장 텍스처·색상/노멀 중복 연결을 포함한 `MisnamedColor.fbx`를 지정한 임시 폴더에 만든다. 제작용 모델은 복사하거나 수정하지 않는다. `test_ci_fixtures.py`는 Blender에서 생성물을 다시 가져와 필요한 본·가중치·UV·실제 표정 변형과 원래의 잘못된 텍스처 조건이 보존되는지 확인한다.
+
+```text
+blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python infra/tests/tripo/test_ci_fixtures.py
+```
+
+기존 Unity 통합 검사의 기대값과 CI의 미실행 0개 기준은 유지한다. 개인 모델을 사용한 수동 검수와 CI 생성 모델을 사용한 회귀 검사는 각각의 입력과 결과를 구분해 기록한다.

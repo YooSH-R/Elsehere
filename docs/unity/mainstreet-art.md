@@ -25,7 +25,9 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 - 북쪽 길은 Z=70까지 이어지고 경계 정원은 Z=69에 둔다. 확장할 때 경계 프리팹을 이동하고 도로·보도·건물 부지를 함께 연장한다. 동서 경계는 폭 14m 전용 프리팹을 써 수목 비율을 유지한다.
 - 카메라·색 보정은 `Assets/Data/World/TownProduction/`의 전용 에셋으로 조정한다. 1.6m 캐릭터 외형은 기존 이동·NPC 루트의 `TownVisual`에 중첩한다. 플레이어 외형 프리팹은 기존 시점별 가림 컴포넌트를 재사용한다.
 
-**Tools → A305 → World → Apply Production Town Design**은 초기 도형 씬에 디자인을 이식한다. 이미 `TownMainstreet`가 있으면 배치·외관을 덮어쓰지 않는다. 이후 편집은 Scene과 Prefab Mode에서 한다. **Verify Production Town Design**은 Play 카메라, 보행, 대화 시점, 세 장소의 출입구 왕복을 확인하고 `artifacts/unity/production-town`에 화면과 검수 결과를 저장한다. 검수 중 이동·카메라 변경은 Play 종료 시 버린다.
+**Tools → A305 → World → Apply Production Town Design**은 초기 도형 씬에 디자인을 이식한다. 이미 `TownMainstreet`가 있으면 배치·외관을 덮어쓰지 않는다. 이후 편집은 Scene과 Prefab Mode에서 한다. **Verify Production Town Design**은 집 퇴장 후 튜토리얼 행인의 접근·제안·수락, Play 카메라, 보행, 대화 시점, 세 장소의 출입구 왕복을 확인하고 `artifacts/unity/production-town`에 화면과 검수 결과를 저장한다. 검수는 Play 중 튜토리얼 진행과 행인 휴식 기록을 초기화한다. 검수 중 이동·카메라 변경은 Play 종료 시 버린다.
+
+튜토리얼 행인은 집의 `HomeDoor/ArrivalPoint`에서 약 5.4m 떨어진 보도에 둔다. **Repair Tutorial Passerby Placement**는 집 도착 지점을 기준으로 바깥쪽 2m·문 기준 오른쪽 5m에 행인의 위치와 방향만 다시 저장한다. 집·보도를 이동하면 감지 반경 8m 안에 있는지뿐 아니라 행인과 도착 지점 사이에 장애물이 없는지도 Play에서 확인한다. 기존 `PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline`를 유지해 집에서 나온 플레이어에게 실제로 다가와 제안하는지 검증한다.
 
 집 내부는 [HomeScene 실내 디자인](home-interior.md), 호텔 로비는 [HotelScene 로비 디자인](hotel-interior.md)을 적용한다. CafeScene의 실내 아트 교체와 최종 캐릭터 리깅은 별도 작업이다. Editor 검수는 Web 빌드의 FPS·메모리 성능 보증이 아니다.
 

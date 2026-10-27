@@ -73,6 +73,13 @@ namespace A305.Player
             {
                 float sign = side == 0 ? -1f : 1f;
                 var hint = lower[side].position - upper[side].position + space.right * sign * .12f;
+                // 고정 반경은 외형 확대 시 실제 전완보다 작아져 턱 관통을 놓친다.
+                float forearmRadius = forearmSurface[side]
+                    .RadiusAroundAxis(
+                        space.InverseTransformPoint(lower[side].position),
+                        space.InverseTransformPoint(hands[side].position),
+                        space
+                    );
                 for (int iteration = 0; iteration < 8; iteration++)
                 {
                     var hand = handSurface[side].BoundsIn(space);
@@ -86,7 +93,7 @@ namespace A305.Player
                             torsoBounds
                         ) - hand.center;
                     Vector3 armShift =
-                        Outside(forearm.center, .025f, sign, headBounds, torsoBounds)
+                        Outside(forearm.center, forearmRadius, sign, headBounds, torsoBounds)
                         - forearm.center;
                     Vector3 shift = handShift + armShift * 1.5f;
                     if (shift.sqrMagnitude < .000001f)

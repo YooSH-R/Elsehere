@@ -85,6 +85,34 @@ namespace A305.Player
             return minimum;
         }
 
+        public float RadiusAroundAxis(Vector3 start, Vector3 end, Transform space)
+        {
+            Vector3 axis = (end - start).normalized;
+            float radiusSquared = 0;
+            foreach (var surface in surfaces)
+            {
+                for (int i = 0; i < surface.matrices.Length; i++)
+                    surface.matrices[i] =
+                        surface.bones[i].localToWorldMatrix * surface.bindPoses[i];
+                for (int i = 0; i < surface.vertices.Length; i++)
+                {
+                    var v = surface.vertices[i];
+                    var w = surface.weights[i];
+                    Vector3 point =
+                        surface.matrices[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0
+                        + surface.matrices[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1
+                        + surface.matrices[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2
+                        + surface.matrices[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3;
+                    Vector3 offset = space.InverseTransformPoint(point) - start;
+                    radiusSquared = Mathf.Max(
+                        radiusSquared,
+                        Vector3.ProjectOnPlane(offset, axis).sqrMagnitude
+                    );
+                }
+            }
+            return Mathf.Sqrt(radiusSquared);
+        }
+
         public Bounds BoundsIn(Transform space = null)
         {
             bool first = true;

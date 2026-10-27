@@ -38,21 +38,17 @@ namespace A305.Characters
 
         private void Awake()
         {
-            if (animator == null)
-            {
-                animator = GetComponentInChildren<Animator>();
-            }
+            BindAnimator(animator != null ? animator : GetComponentInChildren<Animator>());
+        }
 
+        public void BindAnimator(Animator modelAnimator)
+        {
+            animator = modelAnimator;
+            availableParameters.Clear();
             if (animator == null)
-            {
                 return;
-            }
-
             foreach (AnimatorControllerParameter parameter in animator.parameters)
-            {
                 availableParameters.Add(parameter.nameHash);
-            }
-
             WarnMissingParameter(SpeedParameter, "Speed");
             WarnMissingParameter(IsGroundedParameter, "IsGrounded");
             WarnMissingParameter(VerticalSpeedParameter, "VerticalSpeed");

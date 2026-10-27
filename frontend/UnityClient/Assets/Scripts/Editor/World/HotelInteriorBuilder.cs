@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.Npc;
+using A305.EditorTools.Player;
 using A305.Npc;
 using A305.ObjectHover;
 using A305.Player;
@@ -122,19 +123,7 @@ namespace A305.EditorTools.World
         {
             PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
             PlayerCameraRig rig = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
-            Transform oldVisual = player.transform.Find("Visual");
-            oldVisual.gameObject.SetActive(false);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(oldVisual.gameObject);
-            var avatar = BuilderTools.LoadRequiredAsset<GameObject>(
-                "Assets/Prefabs/World/TownProduction/LittleMungV7PlayerVisual.prefab",
-                "Town production design"
-            );
-            Transform model = Put(avatar, player.transform, Vector3.zero);
-            model.name = "HotelVisual";
-            BlockoutPlayerVisibility visibility = model.GetComponent<BlockoutPlayerVisibility>();
-            BuilderTools.SetReference(visibility, "cameraRig", rig);
-            BuilderTools.SetReference(visibility, "visualRoot", model);
-            SizeController(player.GetComponent<CharacterController>());
+            PlayerCharacterBuilder.ConfigurePlayer(player.gameObject, rig);
             player.transform.SetPositionAndRotation(V(0, .05f, -4.3f), Quaternion.identity);
             PrefabUtility.RecordPrefabInstancePropertyModifications(player.transform);
 

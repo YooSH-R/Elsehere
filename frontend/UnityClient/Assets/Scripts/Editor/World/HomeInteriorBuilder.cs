@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Player;
 using A305.ObjectHover;
 using A305.Player;
 using A305.World;
@@ -300,26 +301,9 @@ namespace A305.EditorTools.World
         {
             PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
             PlayerCameraRig rig = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
-            Transform original = player.transform.Find("Visual");
-            original.gameObject.SetActive(false);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(original.gameObject);
-            GameObject visual = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Prefabs/World/TownProduction/LittleMungV7PlayerVisual.prefab"
-            );
-            Transform model = Put(visual, player.transform, Vector3.zero);
-            model.name = "HomeVisual";
-            BlockoutPlayerVisibility visibility = model.GetComponent<BlockoutPlayerVisibility>();
-            BuilderTools.SetReference(visibility, "cameraRig", rig);
-            BuilderTools.SetReference(visibility, "visualRoot", model);
+            PlayerCharacterBuilder.ConfigurePlayer(player.gameObject, rig);
             player.transform.SetPositionAndRotation(V(0, .05f, -1.5f), Quaternion.Euler(0, -12, 0));
             PrefabUtility.RecordPrefabInstancePropertyModifications(player.transform);
-            CharacterController controller = player.GetComponent<CharacterController>();
-            controller.height = 1.6f;
-            controller.radius = .36f;
-            controller.center = V(0, .8f, 0);
-            controller.stepOffset = .15f;
-            controller.skinWidth = .02f;
-            PrefabUtility.RecordPrefabInstancePropertyModifications(controller);
             BuilderTools.EnsureFolder(DataFolder);
             string settingsPath = DataFolder + "/HomeCameraSettings.asset";
             PlayerCameraSettings settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(

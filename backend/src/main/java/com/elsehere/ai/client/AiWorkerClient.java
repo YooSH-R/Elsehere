@@ -1,0 +1,310 @@
+package com.elsehere.ai.client;
+
+import com.elsehere.common.error.BusinessException;
+import com.elsehere.common.error.ErrorCode;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * AI 워커(FastAPI) 호출. 같은 서버의 내부 주소로 부르며 모든 요청에 내부 토큰을 붙인다. 계약: docs/api/ai-worker.md
+ *
+ * <p>워커의 칸 이름은 snake_case라 전용 JSON 변환기를 쓴다. 워커 오류는 API 오류 코드로 바꿔 {@link BusinessException}으로 던진다.
+ */
+@Slf4j
+@Component
+public class AiWorkerClient {
+
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+  // 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을 따른다.
+  private static final Duration JUDGE_TIMEOUT = Duration.ofSeconds(15);
+  private static final Duration REPLY_TIMEOUT = Duration.ofSeconds(30);
+  private static final Duration AUDIO_TIMEOUT = Duration.ofSeconds(10);
+  private static final Duration STT_TIMEOUT = Duration.ofSeconds(45);
+  private static final Duration TTS_TIMEOUT = Duration.ofSeconds(30);
+
+  private final HttpClient httpClient =
+      HttpClient.newBuilder()
+          .connectTimeout(CONNECT_TIMEOUT)
+          .version(HttpClient.Version.HTTP_1_1)
+          .build();
+  private final JsonMapper jsonMapper =
+      JsonMapper.builder()
+          .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+          .build();
+  private final String baseUrl;
+  private final String token;
+
+  public AiWorkerClient(
+      @Value("${elsehere.ai-worker.url}") String baseUrl,
+      @Value("${elsehere.ai-worker.token}") String token) {
+    this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+    this.token = token;
+  }
+
+  /** 의도·번역 판정. 무례 판정(/v1/guard)은 따로 부른다. */
+  public JudgeResult judge(
+      WorkerTrace trace, WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {
+    HttpRequest request =
+        jsonRequest("/v1/judge", trace, JUDGE_TIMEOUT, new JudgeBody(npc, state, history, text));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), JudgeResult.class);
+  }
+
+  /**
+   * NPC 대답. 스트림을 끝까지 받아 대답 전문·턴 전체 음성 ID·추천 단어를 모은다. 생성이 실패해도 그때까지 쓴 사용량을 담아 돌려주며, 실패 여부는 {@link
+   * NpcReply#succeeded()}로 확인한다.
+   *
+   * @param text 학습자 원문(한국어가 섞여도 그대로)
+   * @param instruction 이번 대답에서 할 일. 없으면 빈 문자열
+   */
+  public NpcReply reply(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level) {
+    ReplyBody body = new ReplyBody(npc, history, text, instruction, true, level, true, "");
+    HttpResponse<Stream<String>> response =
+        send(
+            jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
+            HttpResponse.BodyHandlers.ofLines());
+    try (Stream<String> lines = response.body()) {
+      if (response.statusCode() != 200) {
+        throw toError(response.statusCode(), lines.collect(Collectors.joining("\n")));
+      }
+      return readReplyStream(lines);
+    }
+  }
+
+  /** 스트림이 만든 음성. 워커 메모리에 10분만 남으므로 대답을 받은 직후 부른다. */
+  public byte[] audio(WorkerTrace trace, String audioId) {
+    HttpRequest request = request("/v1/audio/" + audioId, trace, AUDIO_TIMEOUT).GET().build();
+    return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
+  }
+
+  /** 녹음 전사. 파일 부분의 형식이 워커가 받는 녹음 형식이어야 한다. */
+  public SttResult transcribe(WorkerTrace trace, byte[] audio, String contentType) {
+    String boundary = "elsehere-" + UUID.randomUUID();
+    ByteArrayOutputStream body = new ByteArrayOutputStream();
+    body.writeBytes(
+        ("--"
+                + boundary
+                + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"speech\""
+                + "\r\nContent-Type: "
+                + contentType
+                + "\r\n\r\n")
+            .getBytes(StandardCharsets.UTF_8));
+    body.writeBytes(audio);
+    body.writeBytes(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+    HttpRequest request =
+        request("/v1/stt", trace, STT_TIMEOUT)
+            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
+            .build();
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), SttResult.class);
+  }
+
+  /** 한 문장 음성 합성. WAV를 돌려준다. */
+  public byte[] synthesize(WorkerTrace trace, String text, String voice, double speed) {
+    HttpRequest request =
+        jsonRequest("/v1/tts", trace, TTS_TIMEOUT, new TtsBody(text, voice, speed));
+    return readBytes(send(request, HttpResponse.BodyHandlers.ofByteArray()));
+  }
+
+  /** 워커 오류 코드를 API 오류 코드로 바꾼다. 스트림 안의 오류 코드에도 쓴다. 명세 0절의 대응을 따른다. */
+  public static ErrorCode toErrorCode(String workerCode) {
+    if (workerCode == null) {
+      return ErrorCode.AI_TEMPORARILY_UNAVAILABLE;
+    }
+    return switch (workerCode) {
+      case "provider_limit" -> ErrorCode.AI_RATE_LIMITED;
+      case "provider_unavailable", "timeout", "tts_unavailable", "internal_error" ->
+          ErrorCode.AI_TEMPORARILY_UNAVAILABLE;
+      case "invalid_output" -> ErrorCode.AI_RESPONSE_INVALID;
+      case "audio_too_large" -> ErrorCode.AUDIO_TOO_LARGE;
+      case "audio_format_unsupported" -> ErrorCode.AUDIO_FORMAT_UNSUPPORTED;
+      // unauthorized·invalid_request·not_found는 호출 쪽 설정·코드 오류다.
+      default -> ErrorCode.INTERNAL_ERROR;
+    };
+  }
+
+  // SSE는 "event: 이름", "data: JSON", 빈 줄 순서로 이벤트 하나가 온다. delta·audio 조각은 스트리밍 재생용이라 쓰지 않는다.
+  private NpcReply readReplyStream(Stream<String> lines) {
+    ReplyCollector collector = new ReplyCollector();
+    String event = null;
+    StringBuilder data = new StringBuilder();
+    for (String line : (Iterable<String>) lines::iterator) {
+      if (line.isEmpty()) {
+        collector.accept(event, data.toString());
+        event = null;
+        data.setLength(0);
+      } else if (line.startsWith("event:")) {
+        event = line.substring("event:".length()).trim();
+      } else if (line.startsWith("data:")) {
+        data.append(line.substring("data:".length()).trim());
+      }
+    }
+    collector.accept(event, data.toString());
+    return collector.result();
+  }
+
+  private final class ReplyCollector {
+
+    private DoneEvent done;
+    private ErrorEvent error;
+    private List<String> words;
+
+    void accept(String event, String data) {
+      if (event == null || data.isEmpty()) {
+        return;
+      }
+      switch (event) {
+        case "done" -> done = parse(data, DoneEvent.class);
+        case "error" -> error = parse(data, ErrorEvent.class);
+        case "words" -> words = parse(data, WordsEvent.class).words();
+        default -> {
+          // delta·audio
+        }
+      }
+    }
+
+    NpcReply result() {
+      if (done != null) {
+        return new NpcReply(done.text(), done.audioFullId(), words, null, usageOf(done.usage()));
+      }
+      if (error != null) {
+        log.warn("AI 워커 NPC 대답 실패 code={}", error.code());
+        return new NpcReply(null, null, null, error.code(), usageOf(error.usage()));
+      }
+      // done·error 없이 끊긴 스트림
+      log.warn("AI 워커 NPC 대답 스트림이 끝나지 않고 끊겼습니다");
+      return new NpcReply(null, null, null, "provider_unavailable", List.of());
+    }
+
+    private <T> T parse(String data, Class<T> type) {
+      try {
+        return jsonMapper.readValue(data, type);
+      } catch (JacksonException exception) {
+        throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
+      }
+    }
+  }
+
+  private static List<WorkerUsage> usageOf(List<WorkerUsage> usage) {
+    return usage == null ? List.of() : usage;
+  }
+
+  private HttpRequest jsonRequest(String path, WorkerTrace trace, Duration timeout, Object body) {
+    return request(path, trace, timeout)
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(jsonMapper.writeValueAsString(body)))
+        .build();
+  }
+
+  // 워커 로그를 Spring 요청 로그와 같은 ID로 찾도록 HTTP 추적 ID를 우선 전달한다.
+  private HttpRequest.Builder request(String path, WorkerTrace trace, Duration timeout) {
+    String httpRequestId = MDC.get("requestId");
+    HttpRequest.Builder builder =
+        HttpRequest.newBuilder(URI.create(baseUrl + path))
+            .timeout(timeout)
+            .header("X-Internal-Token", token)
+            .header(
+                "X-Request-Id",
+                httpRequestId != null ? httpRequestId : trace.requestId().toString())
+            .header("X-User-Id", String.valueOf(trace.userId()));
+    if (trace.conversationId() != null) {
+      builder.header("X-Conv-Id", String.valueOf(trace.conversationId()));
+    }
+    return builder;
+  }
+
+  private <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> handler) {
+    try {
+      return httpClient.send(request, handler);
+    } catch (HttpTimeoutException exception) {
+      log.warn("AI 워커 응답 시간 초과 path={}", request.uri().getPath());
+      throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE, exception);
+    } catch (IOException exception) {
+      log.warn("AI 워커에 연결하지 못했습니다 path={}", request.uri().getPath());
+      throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE, exception);
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE, exception);
+    }
+  }
+
+  private <T> T readJson(HttpResponse<String> response, Class<T> type) {
+    if (response.statusCode() != 200) {
+      throw toError(response.statusCode(), response.body());
+    }
+    try {
+      return jsonMapper.readValue(response.body(), type);
+    } catch (JacksonException exception) {
+      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
+    }
+  }
+
+  private byte[] readBytes(HttpResponse<byte[]> response) {
+    if (response.statusCode() != 200) {
+      throw toError(response.statusCode(), new String(response.body(), StandardCharsets.UTF_8));
+    }
+    return response.body();
+  }
+
+  // 오류 본문은 {"error": {"code", "message"}}다. 메시지에는 사용자 입력이 섞일 수 있어 코드만 남긴다.
+  private BusinessException toError(int status, String body) {
+    String code = null;
+    try {
+      ErrorBody error = jsonMapper.readValue(body, ErrorBody.class);
+      code = error.error() == null ? null : error.error().code();
+    } catch (JacksonException exception) {
+      // 오류 형식이 아닌 본문(프록시 오류 등)
+    }
+    log.warn("AI 워커 오류 status={} code={}", status, code);
+    return new BusinessException(toErrorCode(code));
+  }
+
+  record JudgeBody(WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {}
+
+  record ReplyBody(
+      WorkerNpc npc,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      boolean tts,
+      int level,
+      boolean suggestWords,
+      String goal) {}
+
+  record TtsBody(String text, String voice, double speed) {}
+
+  record DoneEvent(String text, String audioFullId, List<WorkerUsage> usage) {}
+
+  record ErrorEvent(String code, List<WorkerUsage> usage) {}
+
+  record WordsEvent(List<String> words) {}
+
+  record ErrorBody(ErrorDetail error) {}
+
+  record ErrorDetail(String code) {}
+}

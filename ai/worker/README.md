@@ -112,11 +112,12 @@ NPC 설정이나 공통 시스템 프롬프트(`app/npc_prompt.py`)를 고친 �
 NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마다 입력·출력 토큰, 크레딧, 첫 글자·전체 시간, 실제로 쓴 모델을 보여 주고, 끝내면(`/quit` 또는 Ctrl+Z, Enter) 대화 전체 합계가 나옵니다.
 
 ```bash
-.venv/Scripts/python ../tools/npc_chat.py --npc <NPC 설정 파일> --scenario <상황 파일>            # 학습 수준 A2(초급)
-.venv/Scripts/python ../tools/npc_chat.py --npc <NPC 설정 파일> --scenario <상황 파일> --level B1
+.venv/Scripts/python ../tools/npc_chat.py --npc ../npcs/CAFE_STAFF.json --scenario ../npcs/scenarios/cafe_counter.json            # 학습 수준 A2(초급)
+.venv/Scripts/python ../tools/npc_chat.py --npc ../npcs/CAFE_STAFF.json --scenario ../npcs/scenarios/cafe_counter.json --level B1
 ```
 
-- `--npc`는 공통 인격 스키마의 `NpcConfiguration` JSON(NPC마다 하나)이고, 대화 전에 원본 스키마로 검사합니다. `--scenario`는 추론 계약의 `scenario`(`scenarioId`·`locationId`·`situation`·`facts`) JSON입니다.
+- `--npc`는 공통 인격 스키마의 `NpcConfiguration` JSON(NPC마다 하나)이고, 대화 전에 원본 스키마로 검사합니다. 서비스 NPC 설정은 `ai/npcs/<npcId>.json`에 둡니다.
+- `--scenario`는 추론 계약의 `scenario`(`scenarioId`·`locationId`·`situation`·`facts`) JSON입니다. 실제 상황은 백엔드가 추론 요청에 담아 보내고, `ai/npcs/scenarios/`의 파일은 대화 확인용입니다.
 - 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 키는 GMS 키(`GMS_KEY` 또는 `GMS_API_KEY`, 환경 변수 또는 저장소 루트 `.env`)만 있으면 되고, 음성 인식용 Groq 키는 필요 없습니다.
 - 크레딧은 `llm_profiles.json`의 단가로 계산하며, 같은 요청을 하나 더 보낸 턴은 진 쪽 토큰이 빠져 실제 차감이 더 클 수 있다고 표시합니다.
 - 입력을 파이프로 넘기면 줄마다 한 턴씩 말합니다 (`Get-Content lines.txt | .venv/Scripts/python ../tools/npc_chat.py`).
@@ -134,8 +135,8 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`NpcConfigurationList`)로 합칠 때는 같은 도구를 명령줄로 씁니다.
 
 ```bash
-.venv/Scripts/python ../tools/npc_configs.py <NPC 설정 폴더>                                # 검사만
-.venv/Scripts/python ../tools/npc_configs.py <NPC 설정 폴더> --out npc_configurations.json  # 검사하고 합친 배열 저장
+.venv/Scripts/python ../tools/npc_configs.py ../npcs                                # 검사만
+.venv/Scripts/python ../tools/npc_configs.py ../npcs --out npc_configurations.json  # 검사하고 합친 배열 저장
 ```
 
 파일마다 스키마 검사, 파일끼리 `npcId` 중복, NPC 수(스키마의 1~1000)를 보고, 문제가 있으면 배열을 저장하지 않고 실패 코드 1로 끝납니다. 결과는 셸의 `>` 대신 `--out`으로 저장합니다. Windows PowerShell 5.1의 `>`는 파일 앞에 BOM을 붙여 JSON을 읽을 때 오류가 납니다.
@@ -170,7 +171,7 @@ NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`), GPT-5 요청 칸
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
-- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함
+- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

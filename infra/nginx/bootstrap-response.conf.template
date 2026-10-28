@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name _;
+    default_type application/json;
+
+    location ~ ^/(api/)?health$ {
+        access_log off;
+        return 200 '{"service":"environment-check","environment":"${DEPLOYMENT_ENVIRONMENT}","status":"ok"}\n';
+    }
+
+    location / {
+        return 200 '{"service":"environment-check","environment":"${DEPLOYMENT_ENVIRONMENT}","message":"Application not deployed yet"}\n';
+    }
+}

@@ -1,0 +1,58 @@
+{
+  "character_version": "리틀 멍 v7",
+  "appearance_revision": "hotelier blank nameplate v3",
+  "tool": "built-in image_gen",
+  "source_commit": "f55c0fe1324aebcb9572736c92b78f3cda036c91",
+  "source_prompt_record": "../hotelier-turnaround-v2/prompts.json",
+  "badge_rule": "One blank gold plate on anatomical left chest. No name, role, icon or engraving. Unity supplies dynamic text.",
+  "view_naming": "좌측면 = 코가 화면 왼쪽을 향함; 우측면 = 코가 화면 오른쪽을 향함",
+  "validation_limit": "Generated front and left edits are visually reviewed, not guaranteed pixel-identical outside the badge. Right and rear are byte-identical to source. These are independent reference images, not renders of one verified mesh.",
+  "images": [
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 정면.png",
+      "view": "front",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "6aee16e705d25ea927f167ed85fedbafc5811b22a76c506c8aeb991170782647",
+      "operation": "image_gen localized edit",
+      "source_sha256": "ce8b0b2fcc84ba45a9d7bbc10361956f5fa99f2e8b209cee94709e582d60c9b5",
+      "prompt": "Use case: precise-object-edit. Perform a tiny localized edit of the supplied existing 1254x1254 character image. Edit target: ONLY the front surface of the rectangular gold chest name badge.\nRemove ALL black markings from the badge: the name \"ELI\", job title \"FRONT DESK\", the doorway/hotel emblem, every letter, icon and engraving. Fill those markings with the same continuous clean warm brushed-gold surface as the rest of the plate. Result is a completely BLANK gold nameplate, flat and unobstructed, ready for Unity to overlay changeable text. Keep the gold plate itself: exact existing position on anatomical left chest, size, rounded corners, thickness, perspective, edge highlights and shadow on the uniform.\nPreserve EVERYTHING ELSE from the input image: identical character identity, blond hairstyle and hair strands, hazel eyes/pupils and gaze, freckles, facial proportions and smile, giant-head/tiny-body ratio, exact pose and camera angle, navy uniform with gold piping and brass buttons, tie, cuffs, trousers, brown shoes, light and white background, canvas size and framing. Do NOT redesign, rotate, restyle, recolor, enlarge, crop or move the character. No additional writing anywhere. The only intended visible difference is removal of the markings inside the existing gold badge. Single full-body image matching the input view."
+    },
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 좌측면.png",
+      "view": "left",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "13f4adc0f591bc3a36f725486de2ec2d8bb941450ff95ad252fc95d95b8bb5e5",
+      "operation": "image_gen localized edit",
+      "source_sha256": "6650e4aa6a99d06729178501e695e57a0a45b64021ed9789401a56fafecec308",
+      "prompt": "Use case: precise-object-edit. Perform a tiny localized edit of the supplied existing 1254x1254 character image. Edit target: ONLY the front surface of the rectangular gold chest name badge.\nRemove ALL black markings from the badge: the name \"ELI\", job title \"FRONT DESK\", the doorway/hotel emblem, every letter, icon and engraving. Fill those markings with the same continuous clean warm brushed-gold surface as the rest of the plate. Result is a completely BLANK gold nameplate, flat and unobstructed, ready for Unity to overlay changeable text. Keep the gold plate itself: exact existing position on anatomical left chest, size, rounded corners, thickness, perspective, edge highlights and shadow on the uniform.\nPreserve EVERYTHING ELSE from the input image: identical character identity, blond hairstyle and hair strands, hazel eyes/pupils and gaze, freckles, facial proportions and smile, giant-head/tiny-body ratio, exact pose and camera angle, navy uniform with gold piping and brass buttons, tie, cuffs, trousers, brown shoes, light and white background, canvas size and framing. Do NOT redesign, rotate, restyle, recolor, enlarge, crop or move the character. No additional writing anywhere. The only intended visible difference is removal of the markings inside the existing gold badge. Single full-body image matching the input view."
+    },
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 우측면.png",
+      "view": "right",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "899628929c54b67928cc942150baac3ac4e64a19227e09f7f6f586187c056bef",
+      "operation": "retained unchanged",
+      "source_sha256": "899628929c54b67928cc942150baac3ac4e64a19227e09f7f6f586187c056bef"
+    },
+    {
+      "file": "frontend/design/캐릭터 호텔리어(남) 후면.png",
+      "view": "back",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "3e52c9c980e995b127022d50d465939757acfbf1c155be9264dde3139b6375a0",
+      "operation": "retained unchanged",
+      "source_sha256": "3e52c9c980e995b127022d50d465939757acfbf1c155be9264dde3139b6375a0"
+    }
+  ]
+}

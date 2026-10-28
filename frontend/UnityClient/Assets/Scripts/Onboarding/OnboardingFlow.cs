@@ -25,6 +25,8 @@ namespace A305.Onboarding
 
         public EntryScreen Screen { get; private set; } = EntryScreen.Login;
 
+        public AvatarType? SelectedAvatar { get; private set; }
+
         /// <summary>화면 02의 입력 상태. 가입 화면에 들어올 때 만든다.</summary>
         public SignupForm SignupForm { get; private set; }
 
@@ -49,6 +51,7 @@ namespace A305.Onboarding
             {
                 BootstrapResponse boot = await api.GetBootstrapAsync();
                 LanguageCode = boot.User?.CurrentLanguage;
+                SelectedAvatar = boot.User?.AvatarType;
 
                 LevelTestStatus? lastLevelTest = null;
                 if (boot.User?.OnboardingStep == OnboardingStep.Level)
@@ -103,7 +106,8 @@ namespace A305.Onboarding
             {
                 try
                 {
-                    await api.SignUpAsync(SignupForm.ToRequest());
+                    SignupResponse response = await api.SignUpAsync(SignupForm.ToRequest());
+                    SelectedAvatar = response.User?.AvatarType;
                 }
                 catch (ApiException exception) when (exception.Code == NicknameTakenCode)
                 {
@@ -181,6 +185,7 @@ namespace A305.Onboarding
             }
             catch (ApiException exception) when (exception.Code == UnauthenticatedCode)
             {
+                SelectedAvatar = null;
                 Screen = EntryScreen.Login;
             }
             catch (ApiException exception)

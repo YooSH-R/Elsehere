@@ -9,7 +9,7 @@ ELSEHERE 서비스 API 서버입니다. API는 [MVP API 명세](../docs/api/mvp-
 | 언어 | Java 21 (Gradle 툴체인으로 고정) |
 | 프레임워크 | Spring Boot 4.1.1 |
 | 빌드 | Gradle 9.8.2 Wrapper, Groovy DSL |
-| 주요 의존성 | Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Lombok, PostgreSQL 드라이버 |
+| 주요 의존성 | Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Actuator, Lombok, PostgreSQL 드라이버 |
 | 테스트 DB | Testcontainers PostgreSQL 16 (Docker 필요) |
 | 포맷 | Spotless 8.9.0 + google-java-format 1.28.0 (Google Java Style, 들여쓰기 2칸) |
 | 규칙 검사 | Checkstyle 14.3.0 ([설정](config/checkstyle/checkstyle.xml)) |
@@ -43,7 +43,7 @@ com.elsehere
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
 | `user` | users, user_consents |
-| `world` | scenes, npcs, world_objects, user_object_prefs |
+| `world` | scenes, npcs, scene_words, user_word_prefs |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
@@ -63,6 +63,16 @@ com.elsehere
 - NPC 턴 음성(WAV)은 `NPC_AUDIO_DIR`(기본 `./data/npc-audio`) 폴더에 저장합니다. 컨테이너로 실행하면 재시작 뒤에도 남도록 컨테이너 밖 볼륨으로 연결합니다.
 - IDE에서 프로젝트를 열 때는 `backend/` 폴더를 Gradle 프로젝트로 엽니다.
 
+## 상태 확인과 배포 산출물
+
+`GET /api/health`는 인증 없이 앱과 DB 상태를 확인합니다. 정상 응답은 `{"status":"UP"}`이며 세부 연결 정보와 다른 관리 엔드포인트는 노출하지 않습니다. 다른 API 경로의 기존 인증 요구와 CSRF 설정은 유지합니다. 기능 담당자가 Security 설정을 추가할 때도 이 접근 경계를 보존하고 `HealthEndpointTest`로 확인합니다.
+
+`./gradlew check bootJar`가 검사·테스트와 실행 파일 `build/libs/app.jar`를 생성합니다. Docker 이미지는 이 파일을 받아 실행하며 이미지 생성 단계와 서버에서 JAR를 다시 빌드하지 않습니다.
+
+## NPC 음성 파일 저장
+
+NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
+
 ## 스키마 관리
 
 - 스키마는 [ERD](../docs/erd.dbml)를 기준으로 작성한 엔티티에서 JPA(`ddl-auto`)가 만듭니다. 엔티티를 바꾸면 ERD도 함께 수정합니다. 운영 환경에서는 `JPA_DDL_AUTO`를 `validate` 또는 `none`으로 지정합니다.
@@ -76,9 +86,9 @@ com.elsehere
 - 장소·NPC·사물·어휘·미션처럼 모든 환경에 같이 있어야 하는 기본 데이터는 [`src/main/resources/db/seed/world.sql`](src/main/resources/db/seed/world.sql)에 있습니다.
 - 사물 단어·한국어 뜻·영문 예문·예문 해석·발음 파일 키의 편집 원본은 [Unity 공용 단어 에셋](../frontend/UnityClient/Assets/Data/ObjectHover/Words/)입니다. Unity의 **Tools → A305 → ObjectHover → Export Backend Data**로 [단어 JSON](src/main/resources/content/object-words.json), [씬·프리팹 연결 JSON](src/main/resources/content/object-word-bindings.json), SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 발음 파일 키가 빈 항목은 DB에 NULL로 적재합니다.
 - Editor가 프로젝트를 닫은 상태에서는 저장소 루트의 `./infra/scripts/sync-object-words.ps1`로 내보내고 `-Check`로 에셋과 생성 파일의 일치를 검사합니다. 프로젝트 버전의 Unity Editor가 필요하며 다른 설치 위치는 `-UnityPath` 또는 `UNITY_EDITOR_PATH`로 지정합니다. 생성 JSON·SQL 구간은 직접 편집하지 않습니다.
-- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `unity_key`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 Unity 에셋에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다. 언어 코드나 영어 표현을 바꾸면 현재 DB에서는 새 어휘 행이 생기며 기존 행은 삭제하지 않습니다. 기존 사용자 학습 기록을 새 표현으로 옮겨야 한다면 별도 DB 마이그레이션이 필요합니다.
+- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 Unity 에셋에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다. 언어 코드나 영어 표현을 바꾸면 현재 DB에서는 새 어휘 행이 생기며 기존 행은 삭제하지 않습니다. 기존 사용자 학습 기록을 새 표현으로 옮겨야 한다면 별도 DB 마이그레이션이 필요합니다.
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
-- 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. 연결 JSON에는 씬별 공용 키·사물 수와 프리팹 GUID·경로·공용 키를 담습니다. 기존 `world_objects`의 8개 시드와 WORLD-02는 아직 이 JSON을 읽지 않습니다. 공용 키 하나를 여러 씬에서 사용하는 서버 연결과 Unity의 서버 조회는 별도 연동 작업이며, 현재 씬 검수는 Unity 에셋을 직접 읽습니다. 사용자별 저장·숨김 상태는 공용 에셋에 넣지 않습니다.
+- 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. SQL을 실행한 뒤 `WorldSeedLoader`가 단어 JSON의 공용 키를 `vocabularies.word_key`에 넣고, 연결 JSON의 씬별 공용 키 목록으로 `scene_words`(장소별 단어)를 맞춥니다. 연결 JSON에서 빠진 단어는 그 장소의 `scene_words`에서 지웁니다. WORLD-02 단어 카드, WORLD-03 숨김, VOCAB-02 사물 저장은 모두 이 공용 키(`wordKey`)를 씁니다. 사용자별 저장·숨김 상태(`user_vocab`, `user_word_prefs`)는 공용 에셋에 넣지 않습니다.
 - Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답

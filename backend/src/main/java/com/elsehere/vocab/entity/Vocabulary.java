@@ -48,6 +48,10 @@ public class Vocabulary extends BaseEntity {
   @Column(length = 100)
   private String pronunciationAudioKey;
 
+  // Unity 공용 단어 키(예: air_conditioner). 사물 단어만 값이 있으며 시드가 object-words.json에서 채운다.
+  @Column(unique = true, length = 50)
+  private String wordKey;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private VocabularySource source;

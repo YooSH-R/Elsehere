@@ -49,7 +49,8 @@ default:
         - |
           # Keep outer ephemeral ports separate from rootless Docker's published ports.
           sysctl -w "net.ipv4.ip_local_port_range=15000 25000"
-          exec su -s /bin/sh -c 'exec dockerd-entrypoint.sh --tls=false' rootless
+          # A fresh test daemon has no host image cache; use the public cache first.
+          exec su -s /bin/sh -c 'exec dockerd-entrypoint.sh --tls=false --registry-mirror=https://mirror.gcr.io' rootless
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""

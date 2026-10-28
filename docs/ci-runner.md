@@ -116,6 +116,8 @@ sudo nano /srv/gitlab-runner/config/config.toml
 
 최상위 `concurrent`와 등록된 `[[runners]]`의 `limit`를 `2`로 맞추고 id·token·URL·이름·토큰 시각을 유지합니다. 템플릿의 `environment`와 `[runners.docker]` 설정을 그 항목에 적용합니다. 새 `[[runners]]`를 추가하거나 템플릿으로 파일 전체를 덮어쓰지 않습니다.
 
+프로젝트 전용 Docker Runner의 `pull_policy`는 `["always", "if-not-present"]`를 사용합니다. 새 이미지를 먼저 확인하고, 레지스트리 다운로드가 실패하면 로컬에 저장된 이미지로 작업을 시작합니다. Docker Hub의 `429 Too Many Requests`처럼 다운로드가 제한된 경우에도 기존 이미지가 있으면 코드 검사와 빌드를 계속할 수 있습니다. 로컬에 없는 이미지는 다운로드에 성공해야 사용할 수 있으며, 레지스트리가 정상화되면 다시 새 이미지를 확인합니다. [GitLab의 다중 이미지 가져오기 정책](https://docs.gitlab.com/runner/executors/docker/#set-multiple-pull-policies)
+
 ```bash
 sudo docker restart gitlab-runner
 sudo docker exec gitlab-runner gitlab-runner verify
@@ -127,6 +129,8 @@ sudo docker logs --tail=30 gitlab-runner
 ## Rootless Docker와 Testcontainers 연결
 
 백엔드 검사 컨테이너는 `DOCKER_HOST=tcp://docker:2375`로 작업 전용 Docker 서비스에 연결합니다. Testcontainers의 정리 컨테이너인 Ryuk는 그 서비스 내부의 Unix 소켓도 사용합니다. `docker:29.1.3-dind-rootless`는 UID 1000으로 실행하므로 `.gitlab/ci/backend.yml`에 `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/user/1000/docker.sock`을 지정합니다. 이 경로는 테스트 전용 서비스 내부의 소켓이며 호스트 Docker 소켓이 아닙니다. [Docker rootless 실행 경로](https://docs.docker.com/engine/security/rootless/tips/), [Testcontainers 소켓 설정](https://java.testcontainers.org/features/configuration/#customizing-docker-host-detection)
+
+작업마다 새로 만드는 검사용 Docker는 호스트의 이미지 캐시를 공유하지 않습니다. `.docker-job`의 서비스 시작 명령에 `--registry-mirror=https://mirror.gcr.io`를 지정해 Google이 관리하는 공개 Docker Hub 이미지 캐시를 먼저 확인합니다. 캐시에 없는 이미지는 Docker Hub에서 받습니다. 이 설정은 검사용 서비스에만 적용하고, 호스트 Docker 소켓·운영 앱 파일·인증 정보는 검사 컨테이너에 연결하지 않습니다. [Google 공개 이미지 캐시](https://docs.cloud.google.com/artifact-registry/docs/pull-cached-dockerhub-images)
 
 ### 테스트용 Docker의 임시 포트 범위
 

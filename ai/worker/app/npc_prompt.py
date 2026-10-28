@@ -100,6 +100,13 @@ MIDDLE = "Use natural everyday English with common expressions. Two or three sen
 ADVANCED = "Talk as you naturally would, including idioms. Three sentences at most."
 LEVEL_RULES = {"A1": BEGINNER, "A2": BEGINNER, "B1": MIDDLE, "B2": MIDDLE, "C1": ADVANCED, "C2": ADVANCED}
 
+# 추론 API(app.npc_respond)가 시스템 프롬프트 끝에 붙인다. 대사와 대화 종료 신호를 한 번의 호출로 함께 받기 위해서다
+REPLY_FORMAT = """## Reply format
+Reply with a JSON object. "replyText" is exactly what you say out loud. "endSignal" tells whether the whole conversation can end:
+- "USER_END_INTENT": the other person clearly wants to end the conversation (they say goodbye or that they have to go).
+- "NATURAL_WRAP_UP": the business is done and you are warmly closing the conversation in this reply.
+- "NONE": anything else. If you are not sure, use "NONE"."""
+
 TURN_INSTRUCTIONS = {
     "NPC_OPENING": "Start the conversation with your first line for this situation.",
     "USER_MESSAGE": "Reply to the other person's last line.",

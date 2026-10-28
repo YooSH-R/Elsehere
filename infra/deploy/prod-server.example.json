@@ -1,0 +1,17 @@
+{
+  "environment": "prod",
+  "directory": "/home/ubuntu/apps/a305/prod/deployments",
+  "environment_file": "/home/ubuntu/apps/a305/prod/deploy.env",
+  "initial_compose_file": "/home/ubuntu/apps/a305/prod/compose.app.yaml",
+  "overlays": [
+    "/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml"
+  ],
+  "public_health_url": "https://elsehere.kr/api/health",
+  "public_version_url": "https://elsehere.kr/version.json",
+  "minimum_backend_commit": "REPLACE_WITH_DEPLOYED_MONITORING_COMMIT",
+  "bootstrap_sources": {
+    "backend": "REPLACE_WITH_RUNNING_BACKEND_SOURCE_COMMIT",
+    "ai": "REPLACE_WITH_RUNNING_AI_SOURCE_COMMIT",
+    "web": "REPLACE_WITH_VERSION_JSON_COMMIT"
+  }
+}

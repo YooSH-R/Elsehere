@@ -30,6 +30,12 @@ class EntitySchemaTest {
 
   @Autowired private JdbcTemplate jdbcTemplate;
 
+  @Test
+  @DisplayName("마이그레이션으로 만든 PostgreSQL 스키마가 운영 validate 검사도 통과한다")
+  void createdSchema_passesProductionValidation() {
+    entityManagerFactory.unwrap(SessionFactory.class).getSchemaManager().validateMappedObjects();
+  }
+
   @AfterEach
   void dropEntitySchema() {
     jdbcTemplate.execute("drop schema if exists " + ENTITY_SCHEMA + " cascade");

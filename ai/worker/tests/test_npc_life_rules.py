@@ -78,10 +78,20 @@ def test_every_need_has_a_drop_rate():
         (("roles", "STAFF", "schedule"), [], None),
         (("roles", "STAFF", "schedule", 0, "from"), "8:00", None),  # HH:MM
         (("roles", "STAFF", "schedule", 0, "activity"), "SLEEP", None),
+        (("activities", "WORK", "canFill"), ["THIRST"], ("activities", "WORK", "canFill", 0)),
+        (("needs", "HUNGER", "start"), 101, None),
     ],
 )
 def test_values_the_rules_do_not_allow_are_reported_where_they_break(path, value, where):
     assert broken_places(rules_with(path, value)) == {json_path(where or path)}
+
+
+def test_staff_only_work_while_working_and_look_after_themselves_otherwise():
+    """근무 중에는 일만 해서, 자리를 못 비우는 직원의 다른 욕구는 부탁이 된다. 쉬는 시간·자유 시간에는 스스로 채운다."""
+    activities = load_world_rules()["activities"]
+
+    assert activities["WORK"]["canFill"] == ["WORK"]
+    assert set(activities["BREAK"]["canFill"]) == set(activities["FREE"]["canFill"]) == {"HUNGER", "ENERGY", "SOCIAL", "FUN"}
 
 
 def test_every_role_schedule_fills_the_whole_day_without_overlap():

@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0",
   "needs": {
-    "HUNGER": { "dropPerHour": 6 },
-    "ENERGY": { "dropPerHour": 5 },
-    "SOCIAL": { "dropPerHour": 4 },
-    "FUN": { "dropPerHour": 5 },
-    "WORK": { "dropPerHour": 8 }
+    "HUNGER": { "dropPerHour": 6, "start": 70 },
+    "ENERGY": { "dropPerHour": 5, "start": 70 },
+    "SOCIAL": { "dropPerHour": 4, "start": 70 },
+    "FUN": { "dropPerHour": 5, "start": 70 },
+    "WORK": { "dropPerHour": 8, "start": 70 }
   },
   "actions": [
     { "objectKey": "coffee_machine", "scene": "CAFE", "action": "MAKE_DRINK", "fills": { "WORK": 30 }, "minutes": 3, "onlyRole": "STAFF" },
@@ -43,6 +43,11 @@
     "recallAt": 0.5,
     "spacedRepeatFactor": 2,
     "sameDayFactor": 1.2
+  },
+  "activities": {
+    "WORK": { "canFill": ["WORK"] },
+    "BREAK": { "canFill": ["HUNGER", "ENERGY", "SOCIAL", "FUN"] },
+    "FREE": { "canFill": ["HUNGER", "ENERGY", "SOCIAL", "FUN"] }
   },
   "roles": {
     "STAFF": {

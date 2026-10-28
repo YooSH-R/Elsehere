@@ -139,6 +139,14 @@
     },
     "Scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
     "Role": { "type": "string", "enum": ["STAFF", "PASSERBY"], "description": "NPC 역할. 백엔드 시드의 NPC 유형(npc_type)과 같다." },
+    "ActivityRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canFill"],
+      "properties": {
+        "canFill": { "type": "array", "items": { "$ref": "#/$defs/NeedId" }, "minItems": 1, "uniqueItems": true }
+      }
+    },
     "RoleTemplate": {
       "type": "object",
       "additionalProperties": false,
@@ -273,9 +281,20 @@
     "WorldRules": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles"],
+      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles", "activities"],
       "properties": {
         "schemaVersion": { "const": "1.0" },
+        "activities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["WORK", "BREAK", "FREE"],
+          "properties": {
+            "WORK": { "$ref": "#/$defs/ActivityRule" },
+            "BREAK": { "$ref": "#/$defs/ActivityRule" },
+            "FREE": { "$ref": "#/$defs/ActivityRule" }
+          },
+          "description": "활동 중에 사물 행동으로 채울 수 있는 욕구. 근무 중에는 일만 해서, 자리를 못 비우는 직원의 다른 욕구는 부탁이 된다."
+        },
         "roles": {
           "type": "object",
           "additionalProperties": false,
@@ -397,8 +416,9 @@
     "NeedRule": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["dropPerHour"],
+      "required": ["dropPerHour", "start"],
       "properties": {
+        "start": { "type": "number", "minimum": 0, "maximum": 100, "description": "NPC가 하루를 시작할 때(퇴근 뒤 다시 나타날 때)의 값." },
         "dropPerHour": {
           "type": "number",
           "minimum": 0,

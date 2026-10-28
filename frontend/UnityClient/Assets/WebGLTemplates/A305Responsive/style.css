@@ -1,6 +1,4 @@
 :root {
-  --canvas-ratio: {{{ WIDTH / HEIGHT }}};
-  --footer-height: 38px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -20,29 +18,24 @@ body {
   margin: 0;
   width: 100%;
   height: 100%;
+  /* 게임 화면이 창을 꽉 채우므로 페이지 스크롤이 생기지 않게 한다. */
+  overflow: hidden;
 }
 
 #unity-viewport {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   height: 100vh;
   height: 100dvh;
+  /* 노치·홈 표시줄 영역만 비우고 나머지는 게임 화면으로 채운다. */
   padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   background: #17191f;
 }
 
-#unity-container {
-  /* 폭과 높이 중 먼저 닿는 쪽에 맞춰 빌드의 캔버스 비율을 유지한다. */
-  width: min(100%, {{{ WIDTH }}}px, calc((100vh - var(--safe-top) - var(--safe-bottom) - var(--footer-height)) * var(--canvas-ratio)));
-  width: min(100%, {{{ WIDTH }}}px, calc((100dvh - var(--safe-top) - var(--safe-bottom) - var(--footer-height)) * var(--canvas-ratio)));
-}
-
 #unity-frame {
+  /* 창 크기에 맞춰 캔버스를 채운다. Unity가 캔버스 크기에 맞춰 화면을 다시 그리고, UI는 화면 크기에 맞춰 늘고 준다. */
   position: relative;
   width: 100%;
-  aspect-ratio: var(--canvas-ratio);
+  height: 100%;
 }
 
 #unity-canvas {
@@ -82,34 +75,6 @@ body {
   font-size: 14px;
 }
 
-#unity-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: var(--footer-height);
-  font-size: 14px;
-}
-
-#unity-fullscreen {
-  padding: 6px 12px;
-  border: 1px solid #768296;
-  border-radius: 4px;
-  background: #272d38;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
 [hidden] {
   display: none !important;
-}
-
-@media (max-width: 600px), (pointer: coarse) {
-  :root {
-    --footer-height: 0px;
-  }
-
-  #unity-footer {
-    display: none;
-  }
 }

@@ -187,6 +187,17 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_ConnectsTutorialDirectorToApiSettingsForTutorialSaving()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            Assert.That(
+                Reference(Single<TutorialDirector>(), "apiSettings"),
+                Is.EqualTo(AssetDatabase.LoadAssetAtPath<ApiSettings>(ApiSettingsPath))
+            );
+        }
+
+        [Test]
         public void Apply_GivesTutorialDirectorEveryPlacedPasserby()
         {
             // 튜토리얼이 단계에 따라 행인이 다가와도 되는지 정하므로, 씬에 놓인 행인을 모두 알아야 한다.

@@ -1,6 +1,6 @@
 # MVP API 명세 초안
 
-MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.4](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
+MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.5](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
 - MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능(설정, 프로필 수정, NPC 호감도 조회)도 API를 만들지 않았습니다.
@@ -855,9 +855,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-06·07 NPC 음성
 
-- CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다.
-- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다.
-- NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 `[미정]`입니다.
+- CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키가 없거나 파일이 없으면 `404 NOT_FOUND`입니다.
+- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
+- NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다.
+- 보관 정책: 음성은 턴 생성 후 최대 30일, 환경 전체 5,000,000,000바이트까지 둡니다(서버 설정값). 새 음성을 저장할 때 상한을 넘으면 오래된 파일부터 지우고, 매일 04:00(Asia/Seoul) 정리에서 기간이 지난 음성, 파일이 없어진 키(DB 복원 등), 어떤 턴도 쓰지 않는 오래된 파일을 지웁니다. NPC 공용 음성(`npcs.approach_audio_key`)은 지우지 않습니다.
+- `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 지움, `turns.npc_audio_deleted_at`)입니다. `EXPIRED`는 CONV-07을 불러도 다시 만들지 않으며, 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
 - 내가 말한 문장을 TTS로 다시 들려주는 기능은 필요성을 함께 검토합니다(6절).
 
 #### CONV-08 `POST /api/v1/conversations/{conversationId}/end`
@@ -1081,7 +1083,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 
 ## 5. ERD와의 관계
 
-### 5.1 이 명세에 맞춰 ERD v3.1~v3.4에 반영한 사항
+### 5.1 이 명세에 맞춰 ERD v3.1~v3.5에 반영한 사항
 
 | 항목 | 관련 API | ERD 변경 |
 | --- | --- | --- |
@@ -1109,6 +1111,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 게스트로 시작하기 | AUTH-07 | `users.provider`에 `GUEST` 값을 더했습니다. 컬럼 변경은 없습니다. |
 | 피드백 실패 이유·결과 원본 (v3.4) | CONV-08, FB-01~03 | `conversation_feedback.error_code`(실패·건너뜀 이유)와 `result`(AI 워커가 돌려준 검증된 결과 원본)를 추가했습니다. `turn_feedback.better_text`는 적절한 발화에 고칠 표현이 없어 NULL을 허용합니다. |
 | NPC 기억 카드 (v3.4) | CONV-01, 03, 08 | `user_npc_relations.memory_card`(기억 카드 JSON)와 `memory_conversation_id`(마지막으로 반영한 대화)를 추가하고 `ai_requests.kind`에 `MEMORY`를 더했습니다. 사실별 `npc_memories`는 만들지 않습니다. |
+| NPC 음성 보관 정책 (v3.5) | CONV-01, 03, 06, 07, 10 | `turns.npc_audio_deleted_at`(보관 정책으로 음성을 지운 시각)을 추가했습니다. 처음 합성에 실패해 키가 없는 턴과 구분해, 지운 음성은 `speech.status: EXPIRED`로 알리고 다시 만들지 않습니다. |
 | 공용 단어 카드 (v3.4) | WORLD-02·03, VOCAB-02 | Unity가 사물 카드를 사물별 단어에서 공용 단어로 바꾼 데 맞춰 `world_objects`·`user_object_prefs`를 `scene_words`(장소별 단어)·`user_word_prefs`(단어별 숨김)로 바꾸고 `vocabularies.word_key`를 추가했습니다. API의 `objectKey`는 `wordKey`로 바꿨습니다. |
 
 ### 5.2 아직 정할 사항

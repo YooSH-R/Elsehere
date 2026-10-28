@@ -48,6 +48,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   SpeechService.class,
   ConversationSupport.class,
   NpcAudioStore.class,
+  NpcAudioRetention.class,
   WorkerNpcs.class,
   AiRequestRecorder.class,
   FeedbackService.class,

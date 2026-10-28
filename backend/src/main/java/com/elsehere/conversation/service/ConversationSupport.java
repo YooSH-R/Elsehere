@@ -48,7 +48,7 @@ class ConversationSupport {
   private final ConversationRepository conversationRepository;
   private final TurnRepository turnRepository;
   private final AiWorkerClient aiWorkerClient;
-  private final NpcAudioStore npcAudioStore;
+  private final NpcAudioRetention npcAudioRetention;
   private final WorkerNpcs workerNpcs;
   private final JsonMapper jsonMapper;
 
@@ -85,13 +85,13 @@ class ConversationSupport {
         .toList();
   }
 
-  /** 스트림이 만든 턴 전체 음성을 받아 저장한다. 받지 못하면 자막만 보여 주도록 null을 돌려준다. */
+  /** 스트림이 만든 턴 전체 음성을 받아 보관 상한 안에 저장한다. 받지 못하거나 저장하지 못하면 자막만 보여 주도록 null을 돌려준다. */
   String saveNpcAudio(WorkerTrace trace, String audioId) {
     if (audioId == null) {
       return null;
     }
     try {
-      return npcAudioStore.save(aiWorkerClient.audio(trace, audioId));
+      return npcAudioRetention.save(aiWorkerClient.audio(trace, audioId));
     } catch (BusinessException exception) {
       log.warn("NPC 음성을 받지 못했습니다 code={}", exception.getErrorCode());
       return null;
@@ -109,7 +109,7 @@ class ConversationSupport {
         Speaker.NPC,
         turn.getText(),
         readWords(turn.getSuggestWords()),
-        SpeechResponse.of(turn.getId(), turn.getNpcAudioKey()));
+        SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt()));
   }
 
   // 번역 카드는 무례가 아니라고 확정된 말에만 보여 준다. 무례 판정을 붙이기 전까지는 확정할 수 없어 보여 주지 않는다.
@@ -162,7 +162,9 @@ class ConversationSupport {
         readWords(turn.getSuggestWords()),
         turn.getMeaningKo(),
         turn.getHintText(),
-        npcTurn ? SpeechResponse.of(turn.getId(), turn.getNpcAudioKey()) : null);
+        npcTurn
+            ? SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt())
+            : null);
   }
 
   private List<String> readWords(String json) {

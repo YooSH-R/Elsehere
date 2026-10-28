@@ -131,7 +131,7 @@ def test_service_npcs_record_their_mbti_as_an_input_node():
     """성격 입력 노드. 생활 값은 이 값에서 공통 연결 규칙으로 계산한다 (ai/tools/npc_derive.py)."""
     mbti = {npc_id: load_life(npc_id)["mbti"] for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]}
 
-    assert mbti == {"CAFE_STAFF": "ESFJ-T", "HOTEL_STAFF": "ISTP-T", "TOWN_PASSERBY": "ESTJ-A"}
+    assert mbti == {"CAFE_STAFF": "ESFJ-T", "HOTEL_STAFF": "ISTP-T", "TOWN_PASSERBY": "ESFJ-T"}
 
 
 def test_service_npcs_stay_in_their_own_place_for_now():

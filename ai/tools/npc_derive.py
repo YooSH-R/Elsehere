@@ -4,6 +4,7 @@ MBTI는 입력하기 편한 앞문이고, 계산과 인격 스키마(personality
 MBTI를 성격의 정답으로 다루지 않고 캐릭터 재료로만 쓴다.
 """
 
+import random
 import re
 
 MBTI = re.compile(r"^([EI])([NS])([FT])([JP])(?:-([AT]))?$")
@@ -38,6 +39,71 @@ def derive_rates(dimensions: dict[str, float], rules: dict) -> dict:
         else:
             rates[group] = value
     return rates
+
+
+def npc_life_values(life: dict, rules: dict, library: dict) -> dict:
+    """생활 파일의 입력 노드(mbti)와 npcId에서 뽑힌 행동 조각과 최종 생활 값 배수를 계산한다.
+    성격 계산(derive_rates) × 뽑힌 조각 affects. npcId를 씨앗으로 써서 같은 NPC는 늘 같은 결과다."""
+    dimensions = mbti_to_dimensions(life["mbti"])
+    behaviors = pick_behaviors(dimensions, library, seed=life["npcId"])
+    rates = combine_rates(derive_rates(dimensions, rules), *(behavior.get("affects", {}) for behavior in behaviors))
+    return {"behaviors": [behavior["id"] for behavior in behaviors], "rates": rates}
+
+
+MAX_SALIENCE_BONUS = 2  # 기억 세기는 1~3
+
+
+def combine_rates(*parts: dict) -> dict:
+    """성격에서 계산한 배수와 행동 조각 affects들을 하나로 합친다. 배수는 곱하고, 기억 세기 보너스(salienceBonus)만 더한다."""
+    combined: dict = {}
+    for part in parts:
+        for key, value in part.items():
+            if key == "salienceBonus":
+                bonuses = combined.setdefault(key, {})
+                for event, bonus in value.items():
+                    bonuses[event] = min(bonuses.get(event, 0) + bonus, MAX_SALIENCE_BONUS)
+            elif isinstance(value, dict):
+                scales = combined.setdefault(key, {})
+                for name, scale in value.items():
+                    scales[name] = round(scales.get(name, 1) * scale, 2)
+            else:
+                combined[key] = round(combined.get(key, 1) * value, 2)
+    return combined
+
+
+BEHAVIORS_PER_NPC = 4
+
+
+def pick_behaviors(dimensions: dict[str, float], library: dict, seed: str, count: int = BEHAVIORS_PER_NPC) -> list[dict]:
+    """행동 조각 모음에서 이 성격 쪽에 맞는 조각을 뽑는다. 잘 맞을수록 뽑힐 확률이 높고(가중 추첨),
+    범주는 겹치지 않으며, 서로 충돌하는 조각은 함께 뽑지 않는다. seed(보통 npcId)가 같으면 언제나 같은 결과다."""
+    rng = random.Random(seed)
+    candidates = [(behavior, fit) for behavior in library["behaviors"] if (fit := _fit(behavior, dimensions)) > 0.5]
+    picked: list[dict] = []
+    while len(picked) < count:
+        eligible = [(behavior, fit) for behavior, fit in candidates if _can_join(behavior, picked)]
+        if not eligible:
+            break
+        picked.append(rng.choices([behavior for behavior, _ in eligible], weights=[fit for _, fit in eligible])[0])
+    return picked
+
+
+def _fit(behavior: dict, dimensions: dict[str, float]) -> float:
+    """조각이 성격에 맞는 정도 0~1. 조각이 기운 쪽(high/low)의 축 값을 평균한다. 0.5 이하면 그 성격 쪽이 아니다."""
+    sides = [dimensions[axis] if side == "high" else 1 - dimensions[axis] for axis, side in behavior["leans"].items()]
+    return sum(sides) / len(sides)
+
+
+def _can_join(behavior: dict, picked: list[dict]) -> bool:
+    """이미 뽑힌 조각과 범주가 겹치지 않고, 어느 쪽에서 적었든 충돌 표시가 없어야 함께 뽑힌다."""
+    picked_ids = {other["id"] for other in picked}
+    blocked_by_picked = {conflict for other in picked for conflict in other.get("conflictsWith", [])}
+    return (
+        behavior["id"] not in picked_ids
+        and behavior["category"] not in {other["category"] for other in picked}
+        and not set(behavior.get("conflictsWith", [])) & picked_ids
+        and behavior["id"] not in blocked_by_picked
+    )
 
 
 def _lean(high: bool) -> float:

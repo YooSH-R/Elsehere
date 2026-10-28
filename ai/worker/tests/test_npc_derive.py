@@ -61,9 +61,99 @@ def test_the_service_rules_turn_mia_into_life_rates():
     }
 
 
+# 행동 조각 뽑기: 성격 쪽에 맞는 조각을 NPC마다 고정된 결과로 뽑는다
+
+
+def service_behaviors() -> dict:
+    return json.loads(npc_life_rules.BEHAVIORS.read_text(encoding="utf-8"))
+
+
+def leans_toward(behavior: dict, dimensions: dict) -> bool:
+    return all((dimensions[axis] > 0.5) == (side == "high") and dimensions[axis] != 0.5 for axis, side in behavior["leans"].items())
+
+
+MIA = npc_derive.mbti_to_dimensions("ESFJ-T")
+
+
+def test_only_behaviors_on_the_npc_side_are_picked_one_per_category():
+    picked = npc_derive.pick_behaviors(MIA, service_behaviors(), seed="CAFE_STAFF")
+
+    assert len(picked) == npc_derive.BEHAVIORS_PER_NPC
+    assert all(leans_toward(behavior, MIA) for behavior in picked)
+    assert len({behavior["category"] for behavior in picked}) == len(picked)
+
+
+def test_the_same_npc_always_gets_the_same_behaviors():
+    """NPC id를 씨앗으로 써서, 실행할 때마다 성격이 바뀌지 않는다."""
+    first = npc_derive.pick_behaviors(MIA, service_behaviors(), seed="CAFE_STAFF")
+
+    assert npc_derive.pick_behaviors(MIA, service_behaviors(), seed="CAFE_STAFF") == first
+
+
+def behavior(behavior_id: str, category: str, **extra) -> dict:
+    return {"id": behavior_id, "text": "-", "ko": "-", "category": category, "leans": {"extraversion": "high"}, **extra}
+
+
+def test_conflicting_behaviors_are_never_picked_together():
+    library = {
+        "behaviors": [
+            behavior("loud", "habit", conflictsWith=["quiet"]),
+            behavior("quiet", "social", conflictsWith=["loud"]),
+            behavior("chatty", "speech"),
+        ]
+    }
+
+    for seed in range(30):
+        ids = {b["id"] for b in npc_derive.pick_behaviors(MIA, library, seed=str(seed))}
+        assert not {"loud", "quiet"} <= ids
+
+
+def test_fewer_behaviors_are_picked_when_few_fit():
+    library = {"behaviors": [behavior("chatty", "speech"), {**behavior("shy", "social"), "leans": {"extraversion": "low"}}]}
+
+    assert [b["id"] for b in npc_derive.pick_behaviors(MIA, library, seed="x")] == ["chatty"]
+
+
+def test_rates_from_personality_and_behaviors_multiply():
+    """성격에서 계산한 배수와 뽑힌 조각의 affects는 같은 모양이라 곱해서 합친다."""
+    base = {"needRates": {"SOCIAL": 1.2}, "eventScale": {"RUDE": 1.16}}
+    affects = [{"needRates": {"SOCIAL": 0.8, "FUN": 1.3}, "recognitionRate": 1.2}, {"eventScale": {"RUDE": 1.3}}]
+
+    assert npc_derive.combine_rates(base, *affects) == {
+        "needRates": {"SOCIAL": 0.96, "FUN": 1.3},
+        "eventScale": {"RUDE": 1.51},
+        "recognitionRate": 1.2,
+    }
+
+
+def test_salience_bonuses_add_up_to_at_most_two():
+    """기억 세기는 1~3이라 더하는 값은 최대 2."""
+    combined = npc_derive.combine_rates({"salienceBonus": {"TASK_DONE": 1}}, {"salienceBonus": {"TASK_DONE": 2}})
+
+    assert combined == {"salienceBonus": {"TASK_DONE": 2}}
+
+
+def load_life(npc_id: str) -> dict:
+    return json.loads((npc_life_rules.LIFE_FOLDER / f"{npc_id}.json").read_text(encoding="utf-8"))
+
+
+def test_an_npc_life_comes_from_its_mbti_and_npc_id():
+    """성격 계산 → 행동 조각 뽑기(npcId가 씨앗) → 배수 합치기를 한 번에."""
+    life = load_life("CAFE_STAFF")
+    dimensions = npc_derive.mbti_to_dimensions(life["mbti"])
+    behaviors = npc_derive.pick_behaviors(dimensions, service_behaviors(), seed="CAFE_STAFF")
+
+    values = npc_derive.npc_life_values(life, service_rules(), service_behaviors())
+
+    assert values["behaviors"] == [behavior["id"] for behavior in behaviors]
+    assert values["rates"] == npc_derive.combine_rates(
+        npc_derive.derive_rates(dimensions, service_rules()), *(behavior.get("affects", {}) for behavior in behaviors)
+    )
+
+
 def derived_from_life_file(npc_id: str) -> dict:
-    life = json.loads((npc_life_rules.LIFE_FOLDER / f"{npc_id}.json").read_text(encoding="utf-8"))
-    return npc_derive.derive_rates(npc_derive.mbti_to_dimensions(life["mbti"]), service_rules())
+    """세 NPC의 최종 배수(성격 계산 × 뽑힌 행동 조각)."""
+    return npc_derive.npc_life_values(load_life(npc_id), service_rules(), service_behaviors())["rates"]
 
 
 def test_mia_keeps_her_persona_direction():
@@ -71,6 +161,14 @@ def test_mia_keeps_her_persona_direction():
     rates = derived_from_life_file("CAFE_STAFF")
 
     assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["RUDE"] > 1
+
+
+def test_ben_keeps_his_persona_direction():
+    """인격: 단단하지만 정중하고 친절함, 무례한 말은 참지 않음."""
+    rates = derived_from_life_file("TOWN_PASSERBY")
+
     assert rates["recognitionRate"] > 1
     assert rates["eventScale"]["RUDE"] > 1
 

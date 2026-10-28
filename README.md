@@ -88,6 +88,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [AI 공통 검사와 테스트](ai/README.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
 - [HTTPS와 인증서 운영](docs/https.md)
+- [Nginx 요청 보호 정책과 이용량 측정](docs/traffic-protection.md)
 - [Jira와 GitLab 연동](docs/jira-integration.md)
 - [단일 서버의 개발·운영 구성](docs/deployment.md)
 - [개발·운영 서버 운영 방법](docs/server-operations.md)

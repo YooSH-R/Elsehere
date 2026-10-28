@@ -2,6 +2,8 @@ package com.elsehere.conversation.repository;
 
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,4 +23,11 @@ public interface TurnRepository extends JpaRepository<Turn, Long> {
 
   @Query("select coalesce(max(t.seq), 0) from Turn t where t.conversation.id = :conversationId")
   int findLastSeq(@Param("conversationId") Long conversationId);
+
+  List<Turn> findAllByNpcAudioKeyIn(Collection<String> npcAudioKeys);
+
+  List<Turn> findAllByNpcAudioKeyIsNotNullAndCreatedAtBefore(Instant createdAt);
+
+  @Query("select t.npcAudioKey from Turn t where t.npcAudioKey is not null")
+  List<String> findAllNpcAudioKeys();
 }

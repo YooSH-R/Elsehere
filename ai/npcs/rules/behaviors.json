@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "1.0",
+  "behaviors": [
+    {
+      "id": "talks_to_strangers",
+      "text": "Starts conversations with strangers easily.",
+      "ko": "낯선 사람에게도 쉽게 말을 건다",
+      "category": "social",
+      "leans": { "extraversion": "high" },
+      "affects": { "initiateTalkRate": 1.3 }
+    },
+    {
+      "id": "thinks_out_loud",
+      "text": "Thinks out loud and fills silences with chatter.",
+      "ko": "생각을 소리 내어 말하고 침묵을 못 견딘다",
+      "category": "speech",
+      "leans": { "extraversion": "high" }
+    },
+    {
+      "id": "recharges_alone",
+      "text": "Needs quiet time alone after a busy stretch.",
+      "ko": "바쁜 시간 뒤엔 혼자 조용히 쉬어야 한다",
+      "category": "habit",
+      "leans": { "extraversion": "low" },
+      "affects": { "needRates": { "SOCIAL": 0.8 } }
+    },
+    {
+      "id": "answers_briefly",
+      "text": "Answers in few words unless the topic interests them.",
+      "ko": "관심 없는 주제엔 몇 마디로 답한다",
+      "category": "speech",
+      "leans": { "extraversion": "low" },
+      "affects": { "eventScale": { "SMALL_TALK": 0.5 } }
+    },
+    {
+      "id": "asks_where_people_are_from",
+      "text": "Asks curious questions about where people come from.",
+      "ko": "어디서 왔는지, 왜 왔는지 궁금해서 묻는다",
+      "category": "social",
+      "leans": { "openness": "high" },
+      "affects": { "eventScale": { "SMALL_TALK": 1.3 } }
+    },
+    {
+      "id": "tries_new_things",
+      "text": "Likes trying new recipes and new ways of doing things.",
+      "ko": "새 레시피나 새 방식을 시도하길 좋아한다",
+      "category": "work",
+      "leans": { "openness": "high" }
+    },
+    {
+      "id": "notices_small_details",
+      "text": "Notices small details others miss, like a crooked sign.",
+      "ko": "남들이 놓치는 작은 것을 알아챈다 (삐뚤어진 간판 등)",
+      "category": "habit",
+      "leans": { "openness": "low" }
+    },
+    {
+      "id": "sticks_to_routine",
+      "text": "Sticks to the same routine and the usual order.",
+      "ko": "늘 하던 대로, 늘 먹던 것을 고집한다",
+      "category": "habit",
+      "leans": { "openness": "low" },
+      "affects": { "salienceBonus": { "TASK_DONE": 1 } }
+    },
+    {
+      "id": "remembers_names",
+      "text": "Makes a point of remembering people's names.",
+      "ko": "사람 이름을 꼭 기억하려 한다",
+      "category": "social",
+      "leans": { "agreeableness": "high" },
+      "affects": { "recognitionRate": 1.2 }
+    },
+    {
+      "id": "smooths_things_over",
+      "text": "Smooths things over quickly after a tense moment.",
+      "ko": "어색한 순간을 금방 풀려고 한다",
+      "category": "social",
+      "leans": { "agreeableness": "high" },
+      "affects": { "eventScale": { "APOLOGY": 1.5 } }
+    },
+    {
+      "id": "says_it_straight",
+      "text": "Says what they think directly, even if it stings.",
+      "ko": "듣기 불편해도 생각을 바로 말한다",
+      "category": "speech",
+      "leans": { "agreeableness": "low" }
+    },
+    {
+      "id": "keeps_distance",
+      "text": "Keeps strangers at arm's length until they earn trust.",
+      "ko": "신뢰가 쌓이기 전엔 거리를 둔다",
+      "category": "social",
+      "leans": { "agreeableness": "low" },
+      "affects": { "personalTalkScale": 1.3 }
+    },
+    {
+      "id": "plans_ahead",
+      "text": "Plans the day in detail and gets uneasy when plans change.",
+      "ko": "하루를 꼼꼼히 계획하고, 계획이 바뀌면 불편해한다",
+      "category": "habit",
+      "leans": { "conscientiousness": "high" }
+    },
+    {
+      "id": "double_checks",
+      "text": "Double-checks orders and details before acting.",
+      "ko": "행동하기 전에 주문·세부 사항을 다시 확인한다",
+      "category": "work",
+      "leans": { "conscientiousness": "high" }
+    },
+    {
+      "id": "drifts_to_phone",
+      "text": "Drifts off to their phone when nothing is happening.",
+      "ko": "할 일이 없으면 금방 휴대폰으로 딴짓한다",
+      "category": "habit",
+      "leans": { "conscientiousness": "low" },
+      "affects": { "needRates": { "FUN": 1.3 } }
+    },
+    {
+      "id": "improvises",
+      "text": "Improvises instead of following the manual.",
+      "ko": "매뉴얼보다 그때그때 즉흥으로 처리한다",
+      "category": "work",
+      "leans": { "conscientiousness": "low" }
+    },
+    {
+      "id": "replays_awkward_moments",
+      "text": "Replays awkward moments in their head long after.",
+      "ko": "어색했던 순간을 오래 곱씹는다",
+      "category": "inner",
+      "leans": { "neuroticism": "high" },
+      "affects": { "memoryStabilityScale": { "3": 1.5 } }
+    },
+    {
+      "id": "bristles_at_rudeness",
+      "text": "Bristles quickly at rude remarks.",
+      "ko": "무례한 말에 금방 날이 선다",
+      "category": "inner",
+      "leans": { "neuroticism": "high" },
+      "affects": { "eventScale": { "RUDE": 1.3 } },
+      "conflictsWith": ["shrugs_it_off"]
+    },
+    {
+      "id": "shrugs_it_off",
+      "text": "Shrugs off small slights and moves on.",
+      "ko": "사소한 기분 나쁜 일은 털고 넘어간다",
+      "category": "inner",
+      "leans": { "neuroticism": "low" },
+      "affects": { "eventScale": { "RUDE": 0.7 } },
+      "conflictsWith": ["bristles_at_rudeness"]
+    },
+    {
+      "id": "steady_under_pressure",
+      "text": "Stays calm and steady when it gets busy.",
+      "ko": "바빠도 침착하게 일한다",
+      "category": "work",
+      "leans": { "neuroticism": "low" }
+    }
+  ]
+}

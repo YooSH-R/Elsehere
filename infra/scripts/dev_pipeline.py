@@ -13,6 +13,10 @@ from pathlib import Path
 from deployment_plan import ALL_CHECKS, commit_exists, create_plan, run_git
 
 
+class SupersededCandidateError(ValueError):
+    """The candidate was replaced by a newer commit on its deployment branch."""
+
+
 def create_release_plan(repository, state, candidate):
     plan = create_plan(repository, state["candidate_commit"], candidate)
     required_monitoring = state["minimum_backend_commit"]
@@ -162,8 +166,10 @@ def server_request(operation, archive=None, environment="dev"):
 def verify_current_candidate(repository, branch, candidate):
     result = run_git(repository, "ls-remote", "origin", f"refs/heads/{branch}")
     head = result.stdout.decode().split()
-    if result.returncode or not head or head[0] != candidate:
-        raise ValueError(
+    if result.returncode or not head:
+        raise RuntimeError("Could not determine the deployment branch head.")
+    if head[0] != candidate:
+        raise SupersededCandidateError(
             "Candidate is no longer the branch head; run its newest pipeline."
         )
 
@@ -171,7 +177,10 @@ def verify_current_candidate(repository, branch, candidate):
 def plan_pipeline(
     repository, candidate, branch, pipeline_id, environment="dev", *, automatic=False
 ):
-    verify_current_candidate(repository, branch, candidate)
+    # Every dev commit is checked; deliver_pipeline still rejects superseded commits
+    # before building images and again immediately before the server request.
+    if environment == "prod":
+        verify_current_candidate(repository, branch, candidate)
     state = server_request("state", environment=environment)
     if state.get("environment", "dev") != environment:
         raise ValueError("The deployment key is connected to another environment.")
@@ -389,8 +398,21 @@ def main():
         else:
             plan_pipeline(repository, candidate, branch, pipeline_id, environment)
     else:
-        deliver_pipeline(repository, candidate, branch, pipeline_id, environment)
+        try:
+            deliver_pipeline(repository, candidate, branch, pipeline_id, environment)
+        except SupersededCandidateError:
+            if environment != "dev":
+                raise
+            result = {"result": "superseded", "candidate_commit": candidate}
+            directory = repository / "dist/deployment"
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / "result.json").write_text(
+                json.dumps(result, indent=2) + "\n", encoding="utf-8"
+            )
+            print(json.dumps(result))
+            # Keep the completed checks successful without recording a deployment.
+            return 78
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

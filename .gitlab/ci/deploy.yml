@@ -42,6 +42,8 @@ dev:deliver:
   image: docker:29.1.3-cli
   timeout: 30m
   interruptible: false
+  allow_failure:
+    exit_codes: 78
   variables:
     GIT_DEPTH: "0"
   script:

@@ -268,7 +268,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   },
   "lastSceneCode": "TOWN",
   "activeConversationId": null,
-  "aiStatus": { "status": "AI_AVAILABLE" },
+  "aiStatus": {
+    "status": "AI_AVAILABLE",
+    "capabilities": { "canStartConversation": true, "canUseSpeech": true, "canGenerateFeedback": true }
+  },
   "progress": { "savedVocabCount": 12, "runningMissionCount": 2 }
 }
 ```
@@ -282,7 +285,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `onboardingStep: DONE` | `lastSceneCode` 장소. 없으면 마을 |
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
-- `aiStatus`의 형식은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다.
+- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
@@ -1105,6 +1108,16 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - HUD의 "AI 사용 가능" 표시와 화면 19의 사용량 소진 안내에 씁니다. `canStartConversation`은 한 턴과 피드백에 쓸 토큰이 남아 있는지(1.4)를 반영합니다.
 - 클라이언트는 접속할 때(BOOT-01), 대화가 토큰 소진으로 끝났을 때, AI 요청이 거절됐을 때 상태를 갱신합니다. 소진 상태에서는 AI가 필요한 버튼을 비활성화하고, 탐험·사물 카드·단어장·지난 기록은 계속 제공합니다.
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
+- 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
+
+| 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` |
+| --- | --- | --- | --- | --- |
+| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` |
+| 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` |
+| 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` |
+
+- 게스트 한도는 새 대화 시작만 막습니다. 마지막으로 시작한 대화도 횟수에 들어가 그 대화 중에도 `AI_EXHAUSTED`이지만, 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
+- 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 
 ### 4.10 화면 테마
 

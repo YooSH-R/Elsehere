@@ -6,6 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.elsehere.ai.dto.AiStatus;
+import com.elsehere.ai.dto.AiStatusResponse;
+import com.elsehere.ai.dto.AiStatusResponse.Capabilities;
 import com.elsehere.auth.service.PendingSignup;
 import com.elsehere.bootstrap.dto.BootstrapResponse;
 import com.elsehere.bootstrap.service.BootstrapService;
@@ -43,8 +46,10 @@ class BootstrapControllerTest {
   void signedInUser_getsSignedInState() throws Exception {
     UserResponse user =
         new UserResponse(1L, "Sun", AvatarType.F, "en-US", OnboardingStep.DONE, UiTheme.STICKER);
+    AiStatusResponse aiStatus =
+        new AiStatusResponse(AiStatus.AI_AVAILABLE, new Capabilities(true, true, true));
     given(bootstrapService.findSignedIn(1L))
-        .willReturn(Optional.of(BootstrapResponse.signedIn(user, "TOWN")));
+        .willReturn(Optional.of(BootstrapResponse.signedIn(user, "TOWN", aiStatus)));
 
     mockMvc
         .perform(get("/api/v1/bootstrap").with(authentication(loggedIn(1L))))
@@ -53,7 +58,9 @@ class BootstrapControllerTest {
         .andExpect(jsonPath("$.user.userId").value(1))
         .andExpect(jsonPath("$.user.onboardingStep").value("DONE"))
         .andExpect(jsonPath("$.user.uiTheme").value("STICKER"))
-        .andExpect(jsonPath("$.lastSceneCode").value("TOWN"));
+        .andExpect(jsonPath("$.lastSceneCode").value("TOWN"))
+        .andExpect(jsonPath("$.aiStatus.status").value("AI_AVAILABLE"))
+        .andExpect(jsonPath("$.aiStatus.capabilities.canStartConversation").value(true));
   }
 
   @Test

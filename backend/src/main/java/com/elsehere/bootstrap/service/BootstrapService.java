@@ -1,5 +1,6 @@
 package com.elsehere.bootstrap.service;
 
+import com.elsehere.ai.service.AiStatusService;
 import com.elsehere.bootstrap.dto.BootstrapResponse;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.User;
@@ -17,12 +18,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class BootstrapService {
 
   private final UserRepository userRepository;
+  private final AiStatusService aiStatusService;
 
   /** 로그인한 사용자의 상태. 사용자가 없으면(탈퇴 등) 빈 값이다. */
   public Optional<BootstrapResponse> findSignedIn(Long userId) {
     return userRepository
         .findById(userId)
-        .map(user -> BootstrapResponse.signedIn(UserResponse.from(user), lastSceneCode(user)));
+        .map(
+            user ->
+                BootstrapResponse.signedIn(
+                    UserResponse.from(user), lastSceneCode(user), aiStatusService.statusOf(user)));
   }
 
   private static String lastSceneCode(User user) {

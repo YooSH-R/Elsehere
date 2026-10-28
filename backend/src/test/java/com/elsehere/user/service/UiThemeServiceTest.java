@@ -3,9 +3,11 @@ package com.elsehere.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.TestcontainersConfiguration;
+import com.elsehere.ai.service.AiStatusService;
 import com.elsehere.bootstrap.service.BootstrapService;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.dto.UiThemeResponse;
 import com.elsehere.user.entity.AuthProvider;
@@ -27,7 +29,9 @@ import org.springframework.context.annotation.Import;
   ClockConfig.class,
   JpaAuditingConfig.class,
   UiThemeService.class,
-  BootstrapService.class
+  BootstrapService.class,
+  AiStatusService.class,
+  GuestConversationLimit.class
 })
 class UiThemeServiceTest {
 

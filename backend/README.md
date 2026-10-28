@@ -42,6 +42,7 @@ com.elsehere
 | --- | --- |
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
+| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01) |
 | `user` | users, user_consents |
 | `world` | scenes, npcs, scene_words, user_word_prefs |
 | `vocab` | vocabularies, user_vocab |

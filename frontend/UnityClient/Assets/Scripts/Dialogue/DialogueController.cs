@@ -57,6 +57,22 @@ namespace A305.Dialogue
 
         public bool IsTalking => session.IsActive;
 
+        /// <summary>
+        /// 대본에 적힌 NPC 이름. 대화 제안처럼 대화를 시작하기 전에 누가 말을 거는지 보일 때 쓴다. 대본이 없으면 null이다.
+        /// </summary>
+        public string FindNpcName(string npcCode)
+        {
+            if (
+                scriptSource == null
+                || !scriptSource.TryGetScript(npcCode, out DialogueScript script)
+            )
+            {
+                return null;
+            }
+
+            return script.NpcName;
+        }
+
         /// <param name="npcCode">대화할 NPC 키(ERD npcs.code)</param>
         /// <param name="lookTarget">대화 시점에서 바라볼 NPC 머리 위치</param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>

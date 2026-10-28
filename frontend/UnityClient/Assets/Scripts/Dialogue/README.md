@@ -46,6 +46,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 | `DialogueController.End()` | 대화를 끝내고 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
 | `DialogueController.RegenerateFeedbackAsync(ServerFeedback)` | 만들지 못한 피드백을 다시 만듭니다. 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려줍니다. |
 | `DialogueController.IsTalking` | 대화 중인지 |
+| `DialogueController.FindNpcName(string npcCode)` | 대화 대본에 적힌 NPC 이름. 대본이 없으면 null입니다. 행인 제안 화면의 머리말에 씁니다. |
 | `DialogueController.Started` | 대화가 시작되면 NPC 키를 알립니다. |
 | `DialogueController.Ended` | 대화가 끝나면 끝난 NPC 키를 알립니다. |
 | `DialogueController.NpcResponded` | 서버가 NPC 턴을 확정하면 알립니다. 첫날 연계 미션 UI가 서버 진행을 다시 읽을 때 사용합니다. |

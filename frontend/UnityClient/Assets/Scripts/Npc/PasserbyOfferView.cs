@@ -6,13 +6,17 @@ using UnityEngine.UI;
 namespace A305.Npc
 {
     /// <summary>
-    /// 행인의 대화 제안 화면. 행인이 건넨 말과 [대화하기]·[지금은 안 할래요] 버튼을 보인다.
+    /// 행인의 대화 제안 화면. 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요] 버튼을 보인다.
     /// 한 번에 한 행인만 제안할 수 있으며, 거절할 수 없는 행인에게는 [지금은 안 할래요]를 숨긴다.
     /// </summary>
     public class PasserbyOfferView : MonoBehaviour
     {
         [SerializeField]
         private GameObject panel;
+
+        [SerializeField]
+        [Tooltip("누가 말을 걸었는지 알리는 머리말")]
+        private TMP_Text hintLabel;
 
         [SerializeField]
         private TMP_Text greetingLabel;
@@ -37,8 +41,10 @@ namespace A305.Npc
         }
 
         /// <param name="requester">제안하는 행인. 같은 행인만 닫을 수 있다.</param>
+        /// <param name="hint">누가 말을 걸었는지 알리는 머리말(<see cref="PasserbyOfferText.Hint"/>)</param>
         public void Show(
             object requester,
+            string hint,
             string greeting,
             bool canDecline,
             Action accept,
@@ -48,6 +54,7 @@ namespace A305.Npc
             owner = requester;
             onAccept = accept;
             onDecline = decline;
+            hintLabel.text = hint;
             greetingLabel.text = greeting;
             declineButton.gameObject.SetActive(canDecline);
             panel.SetActive(true);

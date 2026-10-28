@@ -51,6 +51,8 @@ namespace A305.EditorTools.Tripo
                 var skins = input.GetComponentsInChildren<SkinnedMeshRenderer>();
                 if (skins.Length == 0)
                     throw new InvalidOperationException("마스터에 연결할 스킨 메시가 없습니다.");
+                var sourceFeet = FootFrames(sourceAnimator);
+                var targetFeet = FootFrames(targetAnimator);
                 BuilderTools.EnsureFolder(folder);
                 for (int index = 0; index < skins.Length; index++)
                 {
@@ -68,7 +70,7 @@ namespace A305.EditorTools.Tripo
                             return mapped;
                         })
                         .ToArray();
-                    var mesh = CopySurface(skin, replacement, bodyScale);
+                    var mesh = CopySurface(skin, replacement, bodyScale, sourceFeet, targetFeet);
                     created.Add(mesh);
                     mesh.bindposes = replacement
                         .bones.Select(bone =>
@@ -138,10 +140,30 @@ namespace A305.EditorTools.Tripo
             );
         }
 
+        private static Dictionary<Transform, Matrix4x4> FootFrames(Animator animator)
+        {
+            var frames = new Dictionary<Transform, Matrix4x4>();
+            Quaternion bodyRotation = BodyFrame(animator).rotation;
+            foreach (var id in new[] { HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot })
+            {
+                var ankle = animator.GetBoneTransform(id);
+                if (ankle == null)
+                    throw new InvalidOperationException("발목 본이 없습니다: " + id);
+                // 발가락마다 다른 bone roll을 적용하면 단단한 밑창까지 휘어진다.
+                // 발 전체를 발목에 옮기고, 기준 방향은 공통 체형 축으로 보존한다.
+                var frame = Matrix4x4.TRS(ankle.position, bodyRotation, Vector3.one);
+                foreach (var bone in ankle.GetComponentsInChildren<Transform>())
+                    frames.Add(bone, frame);
+            }
+            return frames;
+        }
+
         private static Mesh CopySurface(
             SkinnedMeshRenderer source,
             SkinnedMeshRenderer target,
-            float bodyScale
+            float bodyScale,
+            Dictionary<Transform, Matrix4x4> sourceFeet,
+            Dictionary<Transform, Matrix4x4> targetFeet
         )
         {
             var original = source.sharedMesh;
@@ -155,8 +177,12 @@ namespace A305.EditorTools.Tripo
                 var to = target.bones[i];
                 // 메시의 각 관절 주변을 마스터의 기준 위치/축으로 옮긴 뒤 새 bind pose를 만든다.
                 // 전신만 정렬하고 bind pose를 바꾸면 손가락 메시와 실제 회전 중심이 어긋난다.
-                var sourceFrame = Matrix4x4.TRS(from.position, from.rotation, Vector3.one);
-                var targetFrame = Matrix4x4.TRS(to.position, to.rotation, Vector3.one * bodyScale);
+                var sourceFrame = sourceFeet.TryGetValue(from, out var sourceFoot)
+                    ? sourceFoot
+                    : Matrix4x4.TRS(from.position, from.rotation, Vector3.one);
+                var targetFrame = targetFeet.TryGetValue(to, out var targetFoot)
+                    ? targetFoot * Matrix4x4.Scale(Vector3.one * bodyScale)
+                    : Matrix4x4.TRS(to.position, to.rotation, Vector3.one * bodyScale);
                 transforms[i] =
                     target.transform.worldToLocalMatrix
                     * targetFrame

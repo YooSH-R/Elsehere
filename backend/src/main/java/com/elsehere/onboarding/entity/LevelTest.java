@@ -14,6 +14,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /** 레벨 테스트 한 번. 점수와 결과 레벨은 완료(DONE)했을 때만 있다. */
 @Entity
@@ -37,9 +39,11 @@ public class LevelTest extends BaseEntity {
   private LevelTestStatus status;
 
   @Column(columnDefinition = "smallint")
+  @JdbcTypeCode(SqlTypes.SMALLINT)
   private Integer score;
 
   @Column(columnDefinition = "smallint")
+  @JdbcTypeCode(SqlTypes.SMALLINT)
   private Integer resultLevel;
 
   @ColumnDefault("now()")

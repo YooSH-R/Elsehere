@@ -78,7 +78,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - 스키마는 [ERD](../docs/erd.dbml)를 기준으로 작성한 엔티티에서 JPA(`ddl-auto`)가 만듭니다. 엔티티를 바꾸면 ERD도 함께 수정합니다. 운영 환경에서는 `JPA_DDL_AUTO`를 `validate` 또는 `none`으로 지정합니다.
 - `update`는 없는 테이블·컬럼·인덱스를 추가할 뿐, 기존 컬럼의 타입과 제약은 바꾸지 않습니다. enum 컬럼에는 허용 값 CHECK 제약이 생성되므로, enum에 값을 추가하거나 컬럼 정의를 바꾸면 로컬 DB에서 해당 테이블을 지우고 다시 만들어야 반영됩니다.
 - ERD 상단에 "DDL에서 직접 만들 것"으로 적은 항목(pgvector 확장, 부분 인덱스)은 JPA가 만들지 않습니다. 해당 기능을 구현할 때 생성 방법을 정합니다.
-- `EntitySchemaTest`가 모든 엔티티의 DDL이 PostgreSQL에서 오류 없이 실행되는지 확인합니다.
+- `EntitySchemaTest`가 모든 엔티티의 DDL 생성과 운영 `validate` 검사를 PostgreSQL에서 확인합니다. Java `Integer`를 PostgreSQL `smallint`로 저장하는 필드는 `@JdbcTypeCode(SqlTypes.SMALLINT)`로 JDBC 자료형도 지정합니다. `columnDefinition`만 지정하면 생성한 컬럼과 검증 시 기대하는 자료형이 달라질 수 있습니다.
 - 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커를 Mock으로 바꾸고 실제 DB와 함께 실행합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
 
 ## 시드 데이터

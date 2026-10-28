@@ -35,7 +35,7 @@
 | 상태·버전 보관 | `/home/ubuntu/apps/a305/prod/deployments/` |
 | 대표 주소 | `https://elsehere.kr/` |
 
-`infra/compose/deploy.prod.env.example`의 필수 값을 운영 전용 값으로 채웁니다. DB 계정·비밀번호, Google OAuth, AI 내부 토큰과 모니터링 비밀번호를 개발과 분리합니다. 환경 파일은 `ubuntu` 소유·권한 `600`으로 유지하고, 모니터링의 `MONITORING_PASSWORD`·`OBSERVABILITY_WEB_LOG_CONFIG`도 서버 파일에 설정합니다. 실제 값은 소스·MR·Jira·CI 산출물에 넣지 않습니다.
+`infra/compose/deploy.prod.env.example`의 필수 값을 준비합니다. DB 계정·비밀번호, AI 내부 토큰과 모니터링 비밀번호는 개발과 분리합니다. Google OAuth 클라이언트는 개발·운영이 공용으로 사용하되 각각의 환경 파일에 연결하고 두 환경의 콜백을 등록합니다. 클라이언트 Secret을 교체할 때는 양쪽 환경에 함께 반영합니다. 환경 파일은 `ubuntu` 소유·권한 `600`으로 유지하고, 모니터링의 `MONITORING_PASSWORD`·`OBSERVABILITY_WEB_LOG_CONFIG`도 서버 파일에 설정합니다. 실제 값은 소스·MR·Jira·CI 산출물에 넣지 않습니다.
 
 Google에는 `https://elsehere.kr/api/v1/auth/callback/google`을 승인된 리디렉션 URI로 등록합니다. `www.elsehere.kr`은 대표 도메인으로 리다이렉트하거나 별도 사용 시 해당 콜백도 등록합니다. [Nginx·HTTPS 운영 기준](server-operations.md#nginx-변경과-외부-접속-확인)의 기존 TLS 설정과 개발 경로를 보존합니다.
 

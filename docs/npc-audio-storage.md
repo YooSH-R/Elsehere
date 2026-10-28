@@ -15,8 +15,11 @@ NPC가 생성한 턴 전체 WAV 파일은 백엔드가 저장하고, DB의 `turn
 | 개발 프로젝트·볼륨 | `a305-dev` · `a305-dev_npc-audio-data` |
 | 운영 프로젝트·볼륨 | `a305-prod` · `a305-prod_npc-audio-data` |
 | 파일 이름 | 백엔드가 생성한 UUID와 `.wav` 확장자 |
+| 모범 음성(FB-04) | 같은 볼륨의 하위 폴더 `model-speech/`. DB의 `turn_feedback.model_audio_key`에 파일 키를 기록 |
 
 [앱 Compose](../infra/compose/compose.app.yaml)는 백엔드 경로에 환경별 named volume을 연결합니다. 프로젝트 이름으로 볼륨을 분리하므로 개발·운영에서 전역 볼륨 이름을 공유하지 않습니다. 운영 앱이 배포되기 전에는 운영 볼륨·음성 API가 실제로 준비됐다고 판단하지 않습니다.
+
+상세 평가의 모범 음성은 처음 만들 때 백엔드가 `model-speech/` 폴더를 만듭니다. NPC 음성 정리는 볼륨 바로 아래 파일만 다루므로 모범 음성은 지우지 않습니다. 파일이 없어지면 다음 요청 때 다시 합성합니다.
 
 [백엔드 이미지](../infra/docker/backend.Dockerfile)는 저장 폴더를 만들고 실행 계정 `app`이 쓸 수 있도록 소유권을 설정합니다. 새 named volume은 이미지의 해당 경로를 바탕으로 초기화합니다. 이미 사용 중인 볼륨의 권한은 기존 데이터를 보존하면서 실제 실행 UID·GID와 함께 확인합니다.
 

@@ -985,7 +985,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### FB-04 `POST /api/v1/turn-feedback/{turnFeedbackId}/model-speech`
 
 - 화면 17의 [모범 음성 듣기]입니다. `{ "requestId": "..." }`로 `betterText`의 모범 음성을 만들고 `{ "url": "..." }`를 돌려줍니다.
-- 한 번 만든 음성은 `turn_feedback.model_audio_key`로 다시 사용하며 새로 만들지 않습니다.
+- 한 번 만든 음성은 `turn_feedback.model_audio_key`로 다시 사용하며 새로 만들지 않습니다. 저장한 파일이 없어졌으면 다시 만듭니다.
+- `url`은 같은 경로의 `GET /api/v1/turn-feedback/{turnFeedbackId}/model-speech`이며 WAV(`audio/wav`)를 돌려줍니다. 아직 만들지 않았으면 `404 NOT_FOUND`입니다.
+- 목소리는 사물 발음(WORLD-04)과 같은 `af_heart`, 속도 1.0으로 고정합니다(서버 설정값). 대화한 NPC의 목소리를 쓰지 않습니다.
+- 다른 사용자의 피드백, 없는 피드백, 고칠 표현이 없어 `betterText`가 `null`인 항목은 `404 NOT_FOUND`입니다. 클라이언트는 `betterText`가 있는 항목에만 [모범 음성 듣기]를 보여 줍니다.
+- 합성 호출은 `ai_requests`에 `kind: TTS`로 기록합니다. 워커 오류는 1.5 오류 응답으로 알립니다.
 
 ### 4.8 단어장
 

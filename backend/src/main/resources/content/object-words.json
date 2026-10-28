@@ -910,6 +910,33 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_0a8bd7882c5b7b04e84b90f02a9345c1",
+            "languageCode": "en-US",
+            "text": "game console",
+            "meaningKo": "게임기",
+            "example": "Where is the game console?",
+            "exampleKo": "게임기는 어디에 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_2ed81ce347fb9724d8df37ac679e41d9",
+            "languageCode": "en-US",
+            "text": "claw machine",
+            "meaningKo": "인형 뽑기 기계",
+            "example": "Can I try this claw machine?",
+            "exampleKo": "이 인형 뽑기 기계를 해 봐도 될까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_44f9cc0d067b770438b25673c21c1358",
+            "languageCode": "en-US",
+            "text": "toy",
+            "meaningKo": "장난감",
+            "example": "I like this toy.",
+            "exampleKo": "이 장난감이 마음에 들어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_a115a59d89b32af4bbbe5aa6c17f8273",
             "languageCode": "en-US",
             "text": "umbrella",

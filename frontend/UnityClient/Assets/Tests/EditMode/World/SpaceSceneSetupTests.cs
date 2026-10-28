@@ -156,6 +156,17 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_ConnectsLearningToApiSettingsForVocabulary()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            Assert.That(
+                Reference(Single<LearningController>(), "apiSettings"),
+                Is.EqualTo(AssetDatabase.LoadAssetAtPath<ApiSettings>(ApiSettingsPath))
+            );
+        }
+
+        [Test]
         public void Apply_AddsMissionPanelConnectedToDialogue()
         {
             SpaceSceneSetup.Apply(scene);
@@ -184,6 +195,17 @@ namespace A305.World.Tests
             Assert.That(Reference(tutorial, "learning"), Is.EqualTo(Single<LearningController>()));
             Assert.That(Reference(tutorial, "mission"), Is.EqualTo(Single<MissionController>()));
             Assert.That(Reference(tutorial, "guide"), Is.Not.Null);
+        }
+
+        [Test]
+        public void Apply_ConnectsTutorialDirectorToApiSettingsForTutorialSaving()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            Assert.That(
+                Reference(Single<TutorialDirector>(), "apiSettings"),
+                Is.EqualTo(AssetDatabase.LoadAssetAtPath<ApiSettings>(ApiSettingsPath))
+            );
         }
 
         [Test]

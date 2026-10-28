@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 208e5127bb4391f45a23b157191f073d, type: 3}
+  m_Name: 100e191da12a84145a71d737bcfd57c2
+  m_EditorClassIdentifier: A305.EditorTools::A305.EditorTools.Tripo.TripoAssetRecord
+  parts: []
+  faceBindings: []
+  contacts: []
+  contactTopologyFingerprint: 
+  requireFace: 0
+  requireHumanoid: 1
+  commonBody: {fileID: 919132149155446097, guid: 24bcad3e4156052479d66ad532a9b14f, type: 3}
+  masterPreparedPath: Assets/Art/Characters/Tripo/LittleMung_Cafe_Female_112b39c5/MasterRigHands/Visual.prefab
+  registeredPrefabPath: 
+  sourceModel: {fileID: 919132149155446097, guid: 100e191da12a84145a71d737bcfd57c2, type: 3}
+  profile: {fileID: 11400000, guid: 275c75d7bce844c49a12616766e5bcdf, type: 2}
+  kind: 0
+  attachment: 1
+  referenceHeightMeters: 0
+  uniformScale: 1
+  blenderSourcePath: ../ArtSources/Tripo/8672742b146d6944baa3c2f37419282e/Editable.blend
+  revision:
+    candidatePath: Assets/Art/Characters/Tripo/LittleMung_Cafe_Female_112b39c5/MasterRigHands/Visual.prefab
+    activePath: Assets/Art/Characters/Tripo/LittleMung_Cafe_Female_112b39c5/Source.fbx
+    previousPath: 
+    validatedFingerprint: 2ce028efd51a58965f9869007fd65680
+    validationPassed: 1
+    visuallyApproved: 0
+  validationErrors: []
+  manualChecks:
+  - "\uC5BC\uAD74 Shape Key \uC5C6\uC74C: \uD45C\uC815\xB7\uB9BD\uC2F1\uD06C \uBCC0\uD615\uC740
+    \uC900\uBE44\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uBCC4\uB3C4 \uC81C\uC791\uACFC
+    \uAC80\uC218\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4."
+  - "\uB300\uD654 \uAC70\uB9AC\uC640 \uC5BC\uAD74 \uD655\uB300\uC5D0\uC11C \uD2C8\xB7\uAD00\uD1B5\xB7\uC678\uD615\uC744
+    \uD655\uC778\uD558\uC138\uC694."
+  - "\uB300\uD45C \uD3EC\uC988, \uD45C\uC815, \uC804\uCCB4 \uD06C\uAE30 0.85/1/1.15\uC5D0\uC11C
+    \uD655\uC778\uD558\uC138\uC694."
+  - "\uC2E4\uC81C \uD074\uB9BD 5\uC885 \xD7 25\uD3EC\uC988 \uC790\uB3D9 \uAC80\uC0AC:
+    \uC2A4\uD0A8 \uC218\uCE58 \uBC0F \uC190\xB7\uD314/\uBA38\uB9AC\xB7\uBAB8\uD1B5
+    \uAC70\uB9AC. \uCD5C\uC18C \uBA38\uB9AC 1.024, \uBAB8\uD1B5 0.995."
+  - "\uC190\uAC00\uB77D\uB07C\uB9AC\uC758 \uAD50\uCC28\xB7\uC190 \uBAA8\uC591\xB7\uC190\uBAA9
+    \uAEBE\uC784, \uC9C0\uD615\xB7\uACC4\uB2E8 \uC811\uC9C0\uC640 \uC637 \uC804\uCCB4\uC758
+    \uC0BC\uAC01\uD615 \uAD50\uCC28, \uD45C\uC815\uC740 \uC774 \uAC80\uC0AC\uC5D0
+    \uD3EC\uD568\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC591\uC190\uC744 \uD655\uB300\uD558\uACE0
+    \uB9C8\uC2A4\uD130 \uAC80\uC218 \uC52C\uC5D0\uC11C \uBCC4\uB3C4 \uD655\uC778\uD558\uC138\uC694."
+  - "\uC811\uD569 \uC0D8\uD50C \uC5C6\uC74C: \uD2C8\xB7\uAD00\uD1B5 \uAC70\uB9AC\uB97C
+    \uCE21\uC815\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uD544\uC694\uD55C \uC0D8\uD50C\uC744
+    \uC9C0\uC815\uD558\uACE0 \uC7AC\uAC80\uC0AC\uD558\uC138\uC694."

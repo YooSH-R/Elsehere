@@ -29,5 +29,12 @@ namespace A305.Npc
             bool hasFinalConsonant = (last - '가') % 28 != 0;
             return hasFinalConsonant ? "이" : "가";
         }
+
+        /// <summary>플레이어가 먼저 말을 거는 버튼 문구. 이름 뒤 조사가 받침에 따라 바뀌지 않도록 '에게'를 쓴다.</summary>
+        /// <param name="npcName">대화 대본의 NPC 이름. 모르면 null.</param>
+        public static string TalkLabel(string npcName)
+        {
+            return string.IsNullOrEmpty(npcName) ? "말 걸기" : $"{npcName}에게 말 걸기";
+        }
     }
 }

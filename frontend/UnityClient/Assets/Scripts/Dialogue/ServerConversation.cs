@@ -33,6 +33,7 @@ namespace A305.Dialogue
             "[누르고 말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
 
         private readonly IConversationApi api;
+        private readonly ConversationInitiator initiatedBy;
         private readonly List<DialogueLine> lines = new List<DialogueLine>();
         private readonly List<string> userUtterances = new List<string>();
 
@@ -47,11 +48,18 @@ namespace A305.Dialogue
         private string lastTranscript;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
-        public ServerConversation(string npcCode, string npcName, IConversationApi api)
+        /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
+        public ServerConversation(
+            string npcCode,
+            string npcName,
+            IConversationApi api,
+            ConversationInitiator initiatedBy = ConversationInitiator.Npc
+        )
         {
             NpcCode = npcCode;
             NpcName = npcName;
             this.api = api;
+            this.initiatedBy = initiatedBy;
         }
 
         /// <summary>화면을 다시 그려야 할 때 알린다.</summary>
@@ -392,7 +400,7 @@ namespace A305.Dialogue
         {
             try
             {
-                return await api.StartAsync(startRequestId, NpcCode, "NPC");
+                return await api.StartAsync(startRequestId, NpcCode, InitiatedByCode);
             }
             catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
             {
@@ -402,9 +410,13 @@ namespace A305.Dialogue
                     await api.EndAsync(stale.ConversationId, NewRequestId(), true);
                 }
 
-                return await api.StartAsync(NewRequestId(), NpcCode, "NPC");
+                return await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode);
             }
         }
+
+        // 서버 값(ERD conversations.initiated_by)
+        private string InitiatedByCode =>
+            initiatedBy == ConversationInitiator.User ? "USER" : "NPC";
 
         private void AddNpcTurn(NpcTurnData turn)
         {

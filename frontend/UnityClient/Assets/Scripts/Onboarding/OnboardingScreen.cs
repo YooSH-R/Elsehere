@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
 using A305.Theme;
+using A305.Tutorial;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -160,6 +161,8 @@ namespace A305.Onboarding
                     SceneManager.LoadScene(settings.TutorialSceneName);
                     return;
                 case EntryScreen.World:
+                    // 서버 단계가 튜토리얼 이후면 장소에서 튜토리얼 안내를 다시 띄우지 않는다.
+                    TutorialState.MarkFinishedOnServer();
                     SceneManager.LoadScene(WorldSceneName());
                     return;
                 case EntryScreen.Login:

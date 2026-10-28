@@ -278,11 +278,19 @@ namespace A305.EditorTools.Tripo
                     GenerationModelNames
                 );
                 if (generationKind == TripoAssetKind.Character)
+                {
                     autoRig = EditorGUILayout.Toggle(FieldLabel("Tripo 자동 리깅 추가"), autoRig);
+                    EditorGUILayout.HelpBox(
+                        "서비스 마스터: 수정된 기본 여성 골격 / Female 부모 프리팹. 자동 리깅 결과는 로컬에서 마스터에 재연결합니다. 사용 승인은 검사·외관 검수 후 가능합니다.",
+                        MessageType.Info
+                    );
+                }
                 else
                     autoRig = false;
                 EditorGUILayout.LabelField(
-                    $"표준 텍스처·PBR·삼각형 / 목표 {faceLimit:N0} / 가져오기 높이 {heightMeters:0.##}m",
+                    generationKind == TripoAssetKind.Character && autoRig
+                        ? $"표준 텍스처·PBR·삼각형 / 목표 {faceLimit:N0} / 서비스 마스터 비율·배율 사용"
+                        : $"표준 텍스처·PBR·삼각형 / 목표 {faceLimit:N0} / 가져오기 높이 {heightMeters:0.##}m",
                     EditorStyles.wordWrappedMiniLabel
                 );
                 showGenerationOptions = EditorGUILayout.Foldout(
@@ -492,7 +500,13 @@ namespace A305.EditorTools.Tripo
                 );
                 DrawSavedPath("원본 다운로드", job.modelPath);
                 DrawSavedPath("Unity 모델", job.modelAssetPath);
-                DrawSavedPath("생성 프리팹", job.prefabPath);
+                string reviewPrefabPath =
+                    record != null
+                    && AssetDatabase.GetAssetPath(record.sourceModel) == job.modelAssetPath
+                    && Path.GetExtension(record.ModelPath) == ".prefab"
+                        ? record.ModelPath
+                        : job.prefabPath;
+                DrawSavedPath("현재 검수 프리팹", reviewPrefabPath);
                 if (GUILayout.Button("생성 결과 검수하기"))
                     RunEditorAction(() =>
                     {
@@ -519,10 +533,10 @@ namespace A305.EditorTools.Tripo
                     if (GUILayout.Button("생성 결과 폴더 열기"))
                         EditorUtility.RevealInFinder(Path.GetFullPath(job.modelAssetPath));
                 }
-                if (!string.IsNullOrEmpty(job.prefabPath) && File.Exists(job.prefabPath))
+                if (!string.IsNullOrEmpty(reviewPrefabPath) && File.Exists(reviewPrefabPath))
                 {
                     if (GUILayout.Button("생성 결과 프리팹 열기"))
-                        PrefabStageUtility.OpenPrefab(job.prefabPath);
+                        PrefabStageUtility.OpenPrefab(reviewPrefabPath);
                     DrawReview();
                 }
             }
@@ -795,6 +809,8 @@ namespace A305.EditorTools.Tripo
                 if (string.IsNullOrWhiteSpace(GetApiKey()))
                     throw new InvalidOperationException("Tripo API 키가 필요합니다.");
                 TripoMaterialImport.FindBlender();
+                if (generationKind == TripoAssetKind.Character)
+                    TripoMasterWorkflow.RequireMaster();
                 TripoJob created = TripoJob.Create(
                     assetName,
                     singleImage
@@ -912,7 +928,6 @@ namespace A305.EditorTools.Tripo
                     try
                     {
                         GameObject prefab = TripoModelImporter.Import(job);
-                        job.stage = TripoStage.Completed;
                         ResetPreview();
                         record = TripoWorkbenchAssets.CreateRecord(
                             AssetDatabase.LoadAssetAtPath<GameObject>(job.modelAssetPath),
@@ -933,12 +948,19 @@ namespace A305.EditorTools.Tripo
                             EditorUtility.SetDirty(record);
                             AssetDatabase.SaveAssets();
                         }
-                        TripoWorkbench.Validate(record);
+                        if (job.kind == TripoAssetKind.Character && job.autoRig)
+                        {
+                            prefab = TripoMasterWorkflow.Apply(record);
+                            job.prefabPath = AssetDatabase.GetAssetPath(prefab);
+                        }
+                        else
+                            TripoWorkbench.Validate(record);
+                        job.stage = TripoStage.Completed;
                         selectedTab = 5;
                         Selection.activeObject = prefab;
                         EditorGUIUtility.PingObject(prefab);
                         message =
-                            "프리팹을 만들었습니다. 직접 편집에서 형태와 움직임을 검수하세요.";
+                            "생성물을 가져왔습니다. 마스터 적용 결과와 동작 검사를 확인한 뒤 외관을 승인하세요.";
                     }
                     finally
                     {

@@ -313,7 +313,10 @@ namespace A305.EditorTools.Npc
             );
         }
 
-        /// <summary>대화 제안 화면. 화면 아래에 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요]를 둔다.</summary>
+        /// <summary>
+        /// 대화 제안 화면. 화면 아래에 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요]를 두고,
+        /// 같은 자리에 플레이어가 먼저 말을 거는 [말 걸기]와 키 안내(E)를 둔다.
+        /// </summary>
         private static void SetUpOffer(GameObject root)
         {
             UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 110, receivesClicks: true);
@@ -357,12 +360,45 @@ namespace A305.EditorTools.Npc
                 bold
             );
 
+            // 제안하지 않는 NPC 앞에서 플레이어가 먼저 말을 거는 [말 걸기](F-22). 제안 화면과 같은 자리이며 함께 뜨지 않는다.
+            RectTransform talkPrompt = UiBuilderTools.FindOrCreateBottomPanel(
+                root.transform,
+                "TalkPrompt",
+                420f,
+                80f
+            );
+            RectTransform talkRow = UiBuilderTools.FindOrCreateButtonRow(talkPrompt, "Buttons");
+            Button talk = UiBuilderTools.FindOrCreateButton(
+                talkRow,
+                "TalkButton",
+                PasserbyOfferText.TalkLabel(null),
+                bold,
+                preferredWidth: 300f
+            );
+            TMP_Text keyHint = UiBuilderTools.FindOrCreateText(
+                talkRow,
+                "KeyHint",
+                bold,
+                26f,
+                new Color(0.8f, 0.82f, 0.86f),
+                "E"
+            );
+
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "hintLabel", hint);
             BuilderTools.SetReference(view, "greetingLabel", greeting);
             BuilderTools.SetReference(view, "acceptButton", accept);
             BuilderTools.SetReference(view, "declineButton", decline);
+            BuilderTools.SetReference(view, "talkPromptPanel", talkPrompt.gameObject);
+            BuilderTools.SetReference(view, "talkButton", talk);
+            BuilderTools.SetReference(
+                view,
+                "talkLabel",
+                talk.transform.Find("Label").GetComponent<TMP_Text>()
+            );
+            BuilderTools.SetReference(view, "talkKeyHint", keyHint.gameObject);
             BuilderTools.RequireReferences(view);
+            talkPrompt.gameObject.SetActive(false);
 
             // 제안할 때만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);

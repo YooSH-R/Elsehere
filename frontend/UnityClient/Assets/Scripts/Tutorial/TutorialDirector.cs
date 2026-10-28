@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+using A305.Api;
 using A305.Dialogue;
 using A305.Learning;
 using A305.Mission;
@@ -11,6 +13,7 @@ namespace A305.Tutorial
     /// <summary>
     /// 공간 씬마다 하나씩 두는 튜토리얼 진행 처리. 걷기·사물 툴팁·공간 이동·대화·피드백·미션 신호를 튜토리얼 진행에 전하고,
     /// 단계에 맞게 안내 카드, 행인이 다가와도 되는지, 미션 창 표시를 바꾼다.
+    /// 튜토리얼을 끝내면 서버에 저장하고(TUT-01·02), 저장하지 못했으면 다음 장소에 들어갈 때 다시 보낸다.
     /// </summary>
     public class TutorialDirector : MonoBehaviour
     {
@@ -42,7 +45,14 @@ namespace A305.Tutorial
         [Tooltip("이 씬에 놓인 행인. 공간 기능 연결 도구가 채운다.")]
         private Passerby[] passersby = new Passerby[0];
 
+        [SerializeField]
+        [Tooltip(
+            "튜토리얼을 끝낸 기록을 저장할 API 서버 설정. 비우면 저장하지 않는다(서버 없이 씬만 확인할 때)."
+        )]
+        private ApiSettings apiSettings;
+
         private TutorialProgress progress;
+        private TutorialFinishRecorder finishRecorder;
         private TutorialStep appliedStep;
         private bool isCardShown;
         private TutorialStep cardStep;
@@ -67,6 +77,13 @@ namespace A305.Tutorial
             }
 
             progress = TutorialState.GetOrCreate(guide.TutorialNpcCode, guide.MissionNpcCode);
+            if (apiSettings != null)
+            {
+                finishRecorder = new TutorialFinishRecorder(
+                    new TutorialApi(apiSettings.CreateClient())
+                );
+            }
+
             if (gameObject.scene.name != guide.HomeSceneName)
             {
                 progress.LeaveHome();
@@ -134,6 +151,12 @@ namespace A305.Tutorial
         private void ApplyStep()
         {
             appliedStep = progress.Step;
+            // 튜토리얼을 끝낸 순간과, 저장하지 못한 채 다음 장소에 들어온 순간(Awake에서 적용) 모두 여기서 보낸다.
+            if (appliedStep == TutorialStep.Completed)
+            {
+                SaveFinish();
+            }
+
             foreach (Passerby passerby in passersby)
             {
                 string npcCode = passerby.GetComponent<NpcIdentity>().Code;
@@ -142,6 +165,30 @@ namespace A305.Tutorial
 
             mission.SetStoryAvailable(progress.Step == TutorialStep.Completed);
             mission.SetPanelVisible(progress.IsMissionPanelVisible);
+        }
+
+        private void SaveFinish()
+        {
+            if (finishRecorder != null && progress.NeedsFinishSave)
+            {
+                _ = SaveFinishAsync();
+            }
+        }
+
+        private async Task SaveFinishAsync()
+        {
+            TutorialFinishSaveStatus status = await finishRecorder.SaveAsync(progress);
+            if (
+                status == TutorialFinishSaveStatus.Failed
+                || status == TutorialFinishSaveStatus.Rejected
+            )
+            {
+                Debug.LogWarning(
+                    $"튜토리얼을 끝낸 기록을 저장하지 못했습니다({status}, {finishRecorder.LastError.Code}): "
+                        + finishRecorder.LastError.Message,
+                    this
+                );
+            }
         }
 
         // 대화 제안 화면과 대화 화면을 가리지 않도록 그동안에는 카드를 숨긴다. 내용이 바뀔 때만 다시 그린다.

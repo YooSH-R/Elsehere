@@ -86,6 +86,7 @@ namespace A305.Learning
         private bool isRegenerating;
         private Vector2 lastCanvasSize;
         private bool isTranscriptShown;
+        private bool isSaveAvailable = true;
 
         /// <summary>[닫기]를 누르면 알린다.</summary>
         public event Action CloseRequested;
@@ -100,6 +101,12 @@ namespace A305.Learning
         public event Action RegenerateRequested;
 
         public bool IsVisible => panel.activeSelf;
+
+        /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
+        public void SetSaveAvailable(bool available)
+        {
+            isSaveAvailable = available;
+        }
 
         /// <param name="conversationLines">[대화 기록 보기]로 보여 줄 방금 나눈 대화</param>
         public void Show(
@@ -172,7 +179,7 @@ namespace A305.Learning
                 sectionButtons[i].interactable = i != (int)section;
 
             // 받지 못한 피드백은 저장할 표현이나 상세 평가가 없으므로 그 버튼 대신 다시 만들기·대화 기록을 보여 준다.
-            saveButton.gameObject.SetActive(!feedback.IsFailed);
+            saveButton.gameObject.SetActive(isSaveAvailable && !feedback.IsFailed);
             saveButton.interactable = CurrentExpression != null;
             detailButton.gameObject.SetActive(false);
             regenerateButton.gameObject.SetActive(feedback.CanRegenerate);

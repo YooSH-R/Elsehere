@@ -40,7 +40,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 ### 모바일 화면과 Web 템플릿
 
-`Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 빌드 설정의 캔버스 비율을 유지하며 화면 안에 맞춥니다. 기본 캔버스 크기는 960×600입니다. 세로 화면에는 위아래 여백이 생기며, 가로로 돌리면 더 크게 볼 수 있습니다. 화면을 채우기 위해 게임 화면을 자르거나 늘리지 않습니다. 노치·홈 표시줄의 안전 영역과 브라우저 주소창에 따른 높이 변화도 반영합니다.
+`Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 게임 화면이 브라우저 창 전체를 채우게 합니다. 페이지에는 게임 화면만 두고 제품 이름·[전체 화면] 같은 줄을 두지 않으며, 브라우저 자체의 전체 화면(PC는 F11)을 씁니다. 캔버스 크기가 창에 따라 바뀌어도 Unity가 그 크기로 다시 그리므로 게임 화면을 자르거나 늘리지 않고, 화면 비율에 따라 보이는 범위가 달라집니다. UI는 1920×1080 기준으로 화면 크기에 맞춰 늘고 줄어듭니다(`UiBuilderTools.EnsureOverlayCanvas`). 노치·홈 표시줄의 안전 영역은 비우고, 브라우저 주소창에 따른 높이 변화도 반영합니다. 빌드 설정의 960×600은 처음 캔버스 크기일 뿐 화면 비율을 고정하지 않습니다.
 
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 
@@ -127,7 +127,7 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 웹·파일 가져오기와 로컬 검사에는 API 키가 필요하지 않습니다. 기존 작업은 **기존 작업 불러오기**에서 선택합니다.
 저장소 루트에서 `./infra/scripts/install-tripo-bridge.ps1`을 실행해 공식 Bridge를 설치하고,
 Blender 실행 파일은 각 개발 PC에서 설정합니다. Bridge 원본은 로컬 설치하며 Git에 넣지 않습니다.
-공통 골격·얼굴 Shape Keys를 갖춘 기준 모델 제작과 실제 모델 품질 검수는 별도 작업입니다.
+서비스 여성 캐릭터는 수정된 리틀 멍 골격과 Female 부모 프리팹을 재사용합니다. API 자동 리깅 결과를 로컬에서 마스터에 다시 연결하고 검사합니다. 얼굴 Shape Keys 제작과 실제 외관 승인은 별도 작업입니다.
 
 화면별 사용법, 파일 보존 방식과 자동 검증 범위는
 [Tripo Asset Workbench 안내](../../frontend/UnityClient/Assets/Scripts/Editor/Tripo/README.md)를 따릅니다.

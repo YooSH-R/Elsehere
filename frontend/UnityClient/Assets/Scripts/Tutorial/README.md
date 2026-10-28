@@ -37,15 +37,17 @@
 | 파일 | 역할 |
 | --- | --- |
 | `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지와 미션 창 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
-| `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비웁니다. |
+| `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비웁니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. |
+| `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | 튜토리얼을 끝낸 방법에 맞춰 완료(TUT-01 `POST /api/v1/me/tutorial/complete`)나 건너뛰기(TUT-02 `/skip`)를 한 번 저장합니다. 네트워크 실패면 기록을 남겨 다음 장소에 들어갈 때 다시 보내고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. Unity 객체 없이 테스트합니다. |
 | `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 안내 문구와, 방 씬 이름·튜토리얼 행인·미션 NPC 키. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
-| `TutorialDirector` | 공간 씬마다 하나. 걷기·사물 툴팁·공간 이동·대화·피드백·미션 신호를 진행에 전하고, 안내 카드·행인 허용·미션 창을 바꿉니다. |
+| `TutorialDirector` | 공간 씬마다 하나. 걷기·사물 툴팁·공간 이동·대화·피드백·미션 신호를 진행에 전하고, 안내 카드·행인 허용·미션 창을 바꿉니다. `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `TutorialGuideView` | 화면 위쪽 가운데의 안내 카드(정렬 순서 115) |
 
 ## 의존성
 
 | 대상 | 용도 |
 | --- | --- |
+| `A305.Api` | `ApiClient`, `ApiSettings`, `ApiException` |
 | `A305.Player` | `PlayerMover.IsMoving` |
 | `A305.ObjectHover` | `WordTooltipView.IsVisible` |
 | `A305.Dialogue` | `DialogueController.Started`·`ConversationEnded`·`IsTalking` |
@@ -59,16 +61,17 @@
 | API | 설명 |
 | --- | --- |
 | `TutorialState.Clear()` | 튜토리얼을 처음부터 다시 시작합니다. PlayMode 테스트에서 상태를 비울 때 씁니다. |
+| `TutorialState.MarkFinishedOnServer()` | 서버 단계가 튜토리얼 이후인 사용자로 표시합니다. 입구 화면(`OnboardingScreen`)이 장소로 보낼 때 부릅니다. |
 
 ## Builder
 
-**Tools → A305 → Tutorial → Build**(`Scripts/Editor/Tutorial/TutorialBuilder.cs`)가 `Prefabs/Tutorial/TutorialGuide.prefab`과 안내 문구 에셋을 준비합니다. 안내 문구는 없을 때만 만들고, 이후 수정은 에셋에서 합니다. 공간 씬에 붙이고 씬에 놓인 행인 목록을 채우는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다. 행인을 새로 놓았다면 연결 도구를 다시 실행합니다.
+**Tools → A305 → Tutorial → Build**(`Scripts/Editor/Tutorial/TutorialBuilder.cs`)가 `Prefabs/Tutorial/TutorialGuide.prefab`과 안내 문구 에셋을 준비합니다. 안내 문구는 없을 때만 만들고, 이후 수정은 에셋에서 합니다. 공간 씬에 붙이고 씬에 놓인 행인 목록을 채우는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다. 행인을 새로 놓았다면 연결 도구를 다시 실행합니다. 배포용 장소 씬 5개의 `TutorialDirector`에 `ApiSettings`만 다시 연결할 때는 **Tools → A305 → Tutorial → Connect Tutorial Saving**을 씁니다.
 
 ## 테스트
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 버튼으로 넘기는 단계, 걷기·호버는 그 단계에서 한 것만 인정, 방 밖 진입, 행인·미션 NPC 허용 단계, 길 안내 완료·중단, 피드백 닫기, 미션 시작, 미션 NPC 대화로 완료, 건너뛰기 |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 안내 카드와 튜토리얼 진행 처리를 한 번씩 붙이고, 흐름 기능과 씬에 놓인 행인을 연결하는지 |
+| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 버튼으로 넘기는 단계, 걷기·호버는 그 단계에서 한 것만 인정, 방 밖 진입, 행인·미션 NPC 허용 단계, 길 안내 완료·중단, 피드백 닫기, 미션 시작, 미션 NPC 대화로 완료, 건너뛰기, 끝낸 방법 기록과 서버 저장(완료·건너뛰기·재시도·409 거절·API 경로), 서버에서 이미 끝난 사용자 |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 안내 카드와 튜토리얼 진행 처리를 한 번씩 붙이고, 흐름 기능과 씬에 놓인 행인을 연결하는지, 배포 장소 씬의 `ApiSettings` 연결 |
 
 `A305.Npc.PlayModeTests`는 각 테스트 전에 `TutorialState.Clear()`로 튜토리얼을 처음부터 시작합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

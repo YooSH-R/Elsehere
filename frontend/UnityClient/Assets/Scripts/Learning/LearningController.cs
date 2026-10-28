@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using A305.Api;
 using A305.Dialogue;
 using A305.Player;
 using UnityEngine;
@@ -7,14 +8,12 @@ using UnityEngine;
 namespace A305.Learning
 {
     /// <summary>
-    /// 대화가 끝나면 피드백을 보이고, 대화·피드백에서 저장한 표현을 단어장에 모은다.
+    /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·03·04)과 잇는다.
     /// 피드백·단어장 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
+    /// 대화·피드백의 [표현 저장]은 서버가 그 출처의 저장을 열기 전까지 숨긴다.
     /// </summary>
     public class LearningController : MonoBehaviour
     {
-        private const string DialogueSource = "대화";
-        private const string FeedbackSource = "피드백";
-
         [SerializeField]
         private PlayerMover player;
 
@@ -32,6 +31,14 @@ namespace A305.Learning
 
         [SerializeField]
         private LearningHudView hudView;
+
+        [SerializeField]
+        [Tooltip(
+            "단어장을 읽고 저장할 API 서버 설정. 비우면 단어장을 열 수 없다(서버 없이 씬만 확인할 때)."
+        )]
+        private ApiSettings apiSettings;
+
+        private VocabularyBook vocabulary;
 
         private DialogueRecord feedbackRecord;
 
@@ -59,21 +66,32 @@ namespace A305.Learning
                 return;
             }
 
+            if (apiSettings != null)
+            {
+                vocabulary = new VocabularyBook(new VocabularyApi(apiSettings.CreateClient()));
+            }
+
+            // 서버가 대화·피드백 출처의 저장(NPC_LINE·FEEDBACK)을 아직 받지 않으므로 저장 버튼을 숨긴다.
+            dialogue.SetExpressionSaveAvailable(false);
+            feedbackView.SetSaveAvailable(false);
+
             dialogue.ConversationEnded += ShowFeedback;
-            dialogue.ExpressionSaveRequested += SaveFromDialogue;
             feedbackView.CloseRequested += CloseFeedback;
-            feedbackView.SaveRequested += SaveFromFeedback;
             feedbackView.VocabularyRequested += OpenVocabulary;
             feedbackView.RegenerateRequested += RegenerateFeedback;
             vocabularyView.CloseRequested += CloseVocabulary;
             vocabularyView.LearnedToggleRequested += ToggleLearned;
             vocabularyView.DeleteRequested += Delete;
+            vocabularyView.MemoSaveRequested += SaveMemo;
             hudView.VocabularyRequested += OpenVocabulary;
         }
 
         private void Start()
         {
-            hudView.SetVocabularyCount(LearningRecord.Vocabulary.Entries.Count);
+            if (vocabulary != null)
+            {
+                _ = LoadVocabularyAsync();
+            }
         }
 
         private void Update()
@@ -86,7 +104,6 @@ namespace A305.Learning
             if (dialogue != null)
             {
                 dialogue.ConversationEnded -= ShowFeedback;
-                dialogue.ExpressionSaveRequested -= SaveFromDialogue;
             }
         }
 
@@ -164,8 +181,33 @@ namespace A305.Learning
 
         private void OpenVocabulary()
         {
-            vocabularyView.Show(LearningRecord.Vocabulary);
+            if (vocabulary == null)
+            {
+                hudView.ShowMessage("단어장 서버가 연결되지 않았어요.");
+                return;
+            }
+
+            vocabularyView.Show(vocabulary);
+            vocabularyView.ShowStatus("단어장을 불러오는 중이에요…");
             UpdateMovementLock();
+            _ = LoadVocabularyAsync();
+        }
+
+        // 다른 기기나 이전 접속에서 바뀐 내용도 보이도록 단어장을 열 때마다 서버에서 다시 읽는다.
+        private async Task LoadVocabularyAsync()
+        {
+            bool loaded = await vocabulary.LoadAsync();
+            if (this == null)
+            {
+                return;
+            }
+
+            hudView.SetVocabularyCount(vocabulary.Entries.Count);
+            if (vocabularyView.IsVisible)
+            {
+                vocabularyView.Refresh();
+                vocabularyView.ShowStatus(loaded ? "" : vocabulary.LastFailureMessage);
+            }
         }
 
         private void CloseVocabulary()
@@ -174,41 +216,37 @@ namespace A305.Learning
             UpdateMovementLock();
         }
 
-        private void SaveFromDialogue(string english, string korean)
-        {
-            Save(english, korean, DialogueSource);
-        }
-
-        private void SaveFromFeedback(string english, string korean)
-        {
-            Save(english, korean, FeedbackSource);
-        }
-
-        private void Save(string english, string korean, string source)
-        {
-            VocabularyEntry entry = LearningRecord.Vocabulary.Save(english, korean, source);
-            if (entry == null)
-            {
-                return;
-            }
-
-            hudView.SetVocabularyCount(LearningRecord.Vocabulary.Entries.Count);
-            hudView.ShowMessage(
-                $"단어장에 저장했어요 · {entry.English} (저장 {entry.SaveCount}회)"
-            );
-        }
-
         private void ToggleLearned(VocabularyEntry entry)
         {
-            LearningRecord.Vocabulary.ToggleLearned(entry);
-            vocabularyView.Refresh();
+            _ = ApplyVocabularyChangeAsync(vocabulary.ToggleLearnedAsync(entry), "");
         }
 
         private void Delete(VocabularyEntry entry)
         {
-            LearningRecord.Vocabulary.Delete(entry);
+            _ = ApplyVocabularyChangeAsync(vocabulary.DeleteAsync(entry), "단어장에서 지웠어요.");
+        }
+
+        private void SaveMemo(VocabularyEntry entry, string memo)
+        {
+            _ = ApplyVocabularyChangeAsync(
+                vocabulary.SaveMemoAsync(entry, memo),
+                "메모를 저장했어요."
+            );
+        }
+
+        // 서버 저장이 끝난 뒤에 화면을 다시 그린다. 실패하면 값은 그대로이고 이유를 보여 준다.
+        private async Task ApplyVocabularyChangeAsync(Task<bool> change, string doneMessage)
+        {
+            vocabularyView.ShowStatus("저장하는 중이에요…");
+            bool saved = await change;
+            if (this == null || !vocabularyView.IsVisible)
+            {
+                return;
+            }
+
             vocabularyView.Refresh();
-            hudView.SetVocabularyCount(LearningRecord.Vocabulary.Entries.Count);
+            vocabularyView.ShowStatus(saved ? doneMessage : vocabulary.LastFailureMessage);
+            hudView.SetVocabularyCount(vocabulary.Entries.Count);
         }
 
         private void UpdateMovementLock()

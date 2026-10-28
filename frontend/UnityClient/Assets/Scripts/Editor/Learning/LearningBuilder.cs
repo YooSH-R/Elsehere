@@ -1,3 +1,5 @@
+using System;
+using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
@@ -5,7 +7,9 @@ using A305.Learning;
 using A305.Player;
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace A305.EditorTools.Learning
@@ -23,6 +27,16 @@ namespace A305.EditorTools.Learning
             "Assets/Prefabs/Learning/VocabularyScreen.prefab";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string MockExamplesPath = "Assets/Data/Learning/MockFeedbackExamples.asset";
+        private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
+
+        private static readonly string[] ProductionSpaceScenes =
+        {
+            "HomeScene",
+            "TownScene",
+            "CafeScene",
+            "HotelScene",
+            "ShopScene",
+        };
 
         // 다른 화면 위에 열리도록 대화 화면(120)보다 위에 둔다. 단어장은 피드백에서도 열 수 있어 그 위에 둔다.
         private const int FeedbackSortingOrder = 130;
@@ -93,8 +107,57 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(learning, "feedbackView", feedbackView);
             BuilderTools.SetReference(learning, "vocabularyView", vocabularyView);
             BuilderTools.SetReference(learning, "hudView", hudView);
+            ConnectToApi(learning);
             BuilderTools.RequireReferences(learning);
             return learning;
+        }
+
+        /// <summary>
+        /// 단어장 화면 프리팹에 메모·안내 요소를 맞추고, 배포용 장소 씬의 학습 처리에 API 서버 설정만 연결한다.
+        /// 디자인한 씬의 다른 객체는 건드리지 않는다.
+        /// </summary>
+        [MenuItem("Tools/A305/Learning/Connect Vocabulary Server")]
+        public static void ConnectVocabularyServer()
+        {
+            BuilderTools.ThrowIfPlaying();
+            // 테마를 입힌 다른 학습 화면은 건드리지 않도록 단어장 화면 프리팹만 맞춘다.
+            BuilderTools.UpdateOrCreatePrefab(
+                VocabularyPrefabPath,
+                "VocabularyScreen",
+                SetUpVocabularyScreen
+            );
+            foreach (string name in ProductionSpaceScenes)
+            {
+                string path = "Assets/Scenes/Production/" + name + ".unity";
+                Scene scene = EditorSceneManager.OpenScene(path);
+                var learning = BuilderTools.FindSingleInScene<LearningController>(scene);
+                if (learning == null)
+                {
+                    throw new InvalidOperationException(
+                        $"{path}에 LearningController가 없습니다. 공간 기능 연결을 먼저 실행합니다."
+                    );
+                }
+
+                ConnectToApi(learning);
+                BuilderTools.SaveScene(scene, path);
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log(
+                "단어장 화면을 맞추고 배포용 장소 씬 5개의 학습 처리를 단어장 서버와 연결했습니다."
+            );
+        }
+
+        private static void ConnectToApi(LearningController learning)
+        {
+            BuilderTools.SetReference(
+                learning,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(
+                    ApiSettingsPath,
+                    A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
+                )
+            );
         }
 
         private static T FindOrPlaceView<T>(SceneGroups groups, string prefabPath)
@@ -319,6 +382,31 @@ namespace A305.EditorTools.Learning
             );
             BuilderTools.SetReference(view, "deleteButton", deleteButton);
             BuilderTools.SetReference(view, "closeButton", closeButton);
+
+            RectTransform memoRow = UiBuilderTools.FindOrCreateButtonRow(panel, "MemoRow");
+            TMP_InputField memoInput = UiBuilderTools.FindOrCreateInputField(
+                memoRow,
+                "MemoInput",
+                regular,
+                "고른 단어에 메모를 남겨 보세요 (200자까지)"
+            );
+            Button memoSaveButton = UiBuilderTools.FindOrCreateButton(
+                memoRow,
+                "MemoSaveButton",
+                "메모 저장",
+                bold,
+                180f
+            );
+            TMP_Text status = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Status",
+                regular,
+                20f,
+                SubTextColor
+            );
+            BuilderTools.SetReference(view, "memoInput", memoInput);
+            BuilderTools.SetReference(view, "memoSaveButton", memoSaveButton);
+            BuilderTools.SetReference(view, "statusText", status);
             BuilderTools.RequireReferences(view);
 
             panel.gameObject.SetActive(false);

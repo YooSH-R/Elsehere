@@ -130,6 +130,12 @@ namespace A305.EditorTools.Tripo
 
         private void DrawGeneration()
         {
+            if (GUILayout.Button("공통 바디로 캐릭터 조합 · API 사용 없음"))
+                TripoCharacterWindow.Open();
+            EditorGUILayout.HelpBox(
+                "서비스 캐릭터는 검증된 바디·외형 부품 조합을 먼저 사용하세요. 아래 API 생성은 새 원본을 만드는 별도 작업이며 공통 메시를 보장하지 않습니다.",
+                MessageType.Info
+            );
             creationSource = GUILayout.SelectionGrid(
                 creationSource,
                 new[] { "API 생성", "웹·파일 가져오기" },

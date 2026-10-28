@@ -28,10 +28,10 @@ class HoldingUpstream(BaseHTTPRequestHandler):
         pass
 
 
-def request(path, port=80, headers=None):
-    connection = HTTPConnection("backend", port, timeout=15)
+def request(path, port=80, headers=None, *, host="backend", method="GET", body=None):
+    connection = HTTPConnection(host, port, timeout=15)
     try:
-        connection.request("GET", path, headers=headers or {})
+        connection.request(method, path, body=body, headers=headers or {})
         response = connection.getresponse()
         body = response.read()
         response_headers = {
@@ -48,6 +48,38 @@ def check_limit_response(response):
     assert json.loads(body)["error"]["code"] == "TOO_MANY_REQUESTS", body
     assert "application/json" in headers["content-type"], headers
     assert re.fullmatch("[a-f0-9]{32}", headers["x-request-id"]), headers
+
+
+def check_upload_limits():
+    boundary = "a305-upload-check"
+    prefix = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="fixture.wav"\r\n'
+        "Content-Type: audio/wav\r\n\r\n"
+    ).encode()
+    suffix = f"\r\n--{boundary}--\r\n".encode()
+    normal = prefix + bytes(3 * 1024 * 1024) + suffix
+    oversized = bytes(5 * 1024 * 1024 + 1)
+    for host in ("backend", "app-web"):
+        for body, expected_status in ((normal, 200), (oversized, 413)):
+            # Bytes retain embedded NULs; string-based wget POST can truncate them.
+            status, response_body, _ = request(
+                "/api/upload",
+                host=host,
+                method="POST",
+                body=body,
+                headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+            )
+            assert status == expected_status, (
+                f"{host}: {len(body)} bytes expected {expected_status}, got {status}"
+            )
+            if expected_status == 200:
+                assert json.loads(response_body)["content_length"] == str(len(body))
+    print(
+        "Upload proxies: binary 3 MiB audio multipart accepted with its full length; "
+        "requests above 5 MiB rejected with 413 at each layer.",
+        flush=True,
+    )
 
 
 def check_shared_ip_requests():
@@ -111,6 +143,7 @@ def check_connection_limit():
 
 
 def main():
+    check_upload_limits()
     check_shared_ip_requests()
     check_rate_and_observation()
     check_connection_limit()

@@ -7,7 +7,7 @@
     { "from": "07:00", "to": "11:30", "activity": "WORK", "scene": "CAFE", "canLeave": false },
     { "from": "11:30", "to": "12:00", "activity": "BREAK", "scene": "CAFE", "canLeave": false },
     { "from": "12:00", "to": "18:00", "activity": "WORK", "scene": "CAFE", "canLeave": false },
-    { "from": "18:00", "to": "19:00", "activity": "FREE", "scene": "TOWN", "canLeave": true },
+    { "from": "18:00", "to": "19:00", "activity": "FREE", "scene": "CAFE", "canLeave": false },
     { "from": "19:00", "to": "07:00", "activity": "OFF" }
   ],
   "eventOverrides": {

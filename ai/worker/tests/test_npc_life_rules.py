@@ -124,6 +124,15 @@ def test_values_a_life_file_does_not_allow_are_reported_where_they_break(path, v
     assert {where for where, _ in errors} == {json_path(where or path)}
 
 
+def test_service_npcs_stay_in_their_own_place_for_now():
+    """NPC가 적은 지금은 각자 기본 장소(인격 파일의 defaultLocationId) 밖으로 나가지 않는다."""
+    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]:
+        home = load_config(npc_id)["defaultLocationId"]
+        scenes = {block["scene"] for block in load_life(npc_id)["schedule"] if "scene" in block}
+
+        assert scenes == {home}, npc_id
+
+
 def test_the_service_schedules_fill_the_whole_day_without_overlap():
     for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]:
         assert npc_life_rules.schedule_problems(load_life(npc_id)["schedule"]) == []

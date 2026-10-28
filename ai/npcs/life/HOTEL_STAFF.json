@@ -5,7 +5,7 @@
   "relationshipRates": { "recognition": 0.6 },
   "schedule": [
     { "from": "08:00", "to": "12:00", "activity": "WORK", "scene": "HOTEL", "canLeave": false },
-    { "from": "12:00", "to": "12:30", "activity": "BREAK", "scene": "CAFE", "canLeave": true },
+    { "from": "12:00", "to": "12:30", "activity": "BREAK", "scene": "HOTEL", "canLeave": false },
     { "from": "12:30", "to": "17:00", "activity": "WORK", "scene": "HOTEL", "canLeave": false },
     { "from": "17:00", "to": "08:00", "activity": "OFF" }
   ],

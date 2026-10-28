@@ -9,19 +9,13 @@
   </head>
   <body>
     <main id="unity-viewport">
-      <div id="unity-container">
-        <div id="unity-frame">
-          <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1" aria-label="{{{ PRODUCT_NAME }}}"></canvas>
-          <div id="unity-loading" role="status">
-            <span>화면을 불러오는 중입니다.</span>
-            <progress id="unity-progress" max="1" value="0"></progress>
-          </div>
-          <div id="unity-warning" role="alert" hidden></div>
+      <div id="unity-frame">
+        <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1" aria-label="{{{ PRODUCT_NAME }}}"></canvas>
+        <div id="unity-loading" role="status">
+          <span>화면을 불러오는 중입니다.</span>
+          <progress id="unity-progress" max="1" value="0"></progress>
         </div>
-        <footer id="unity-footer">
-          <span>{{{ PRODUCT_NAME }}}</span>
-          <button id="unity-fullscreen" type="button" hidden>전체 화면</button>
-        </footer>
+        <div id="unity-warning" role="alert" hidden></div>
       </div>
     </main>
     <script>
@@ -76,14 +70,6 @@
           document.querySelector("#unity-progress").value = progress;
         }).then(() => {
           loading.hidden = true;
-          const fullscreen = document.querySelector("#unity-fullscreen");
-          fullscreen.hidden = !document.fullscreenEnabled;
-          fullscreen.onclick = () => {
-            // 캔버스 비율과 안전 영역을 유지하도록 페이지 전체를 확대한다.
-            document.querySelector("#unity-viewport").requestFullscreen().catch((error) => {
-              showBanner(error.message, "warning");
-            });
-          };
         }).catch(showLoadError);
       };
       document.body.appendChild(loader);

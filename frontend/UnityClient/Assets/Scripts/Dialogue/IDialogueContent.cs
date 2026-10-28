@@ -28,6 +28,12 @@ namespace A305.Dialogue
         /// <summary>기다림·오류·안내 문구. 없으면 null이다.</summary>
         string StatusMessage { get; }
 
+        /// <summary>오류나 대화 종료 뒤 사용자가 할 수 있는 일. 상태 문구 아래에 보이며, 없으면 null이다.</summary>
+        string RecoveryGuide { get; }
+
+        /// <summary>[다시 시도]를 보여 줄지. 일시적인 장애로 대화 시작이나 발화가 실패했을 때만 쓴다.</summary>
+        bool CanRetry { get; }
+
         /// <summary>NPC 대사 아래에 보여 줄 추천 단어. 없으면 null이다.</summary>
         IReadOnlyList<string> SuggestWords { get; }
 

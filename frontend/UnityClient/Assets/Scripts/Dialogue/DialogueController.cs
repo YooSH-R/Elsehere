@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using A305.Player;
 using A305.Voice;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace A305.Dialogue
 {
@@ -108,6 +109,32 @@ namespace A305.Dialogue
             Finish(conversation.ToRecord());
         }
 
+        /// <summary>
+        /// 만들지 못한 피드백을 다시 만든다(FB-02). 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려준다.
+        /// </summary>
+        public Task<ServerFeedback> RegenerateFeedbackAsync(ServerFeedback failed)
+        {
+            if (conversationApi == null || failed?.ConversationId == null)
+            {
+                return Task.FromResult(failed);
+            }
+
+            return new FeedbackRegenerator(conversationApi).RegenerateAsync(failed);
+        }
+
+        // 기능 명세 F-23의 [대화 종료 (Esc)]. 피드백을 기다리는 중에 다시 눌러도 End가 한 번만 처리한다.
+        private void Update()
+        {
+            if (
+                session.IsActive
+                && Keyboard.current != null
+                && Keyboard.current.escapeKey.wasPressedThisFrame
+            )
+            {
+                End();
+            }
+        }
+
         private void Awake()
         {
             if (player == null || cameraRig == null || panel == null || scriptSource == null)
@@ -139,6 +166,7 @@ namespace A305.Dialogue
             panel.ReplayRequested += ReplaySpeech;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
+            panel.RetryRequested += Retry;
         }
 
         private void OnDestroy()
@@ -159,6 +187,7 @@ namespace A305.Dialogue
                 panel.ReplayRequested -= ReplaySpeech;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
+                panel.RetryRequested -= Retry;
             }
         }
 
@@ -257,6 +286,14 @@ namespace A305.Dialogue
             }
         }
 
+        private void Retry()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RetryAsync();
+            }
+        }
+
         // 음성을 받아 둔 턴은 다시 재생하고, 합성에 실패한 턴은 음성을 다시 만든 뒤 재생한다(CONV-06·07).
         private void ReplaySpeech()
         {
@@ -289,6 +326,7 @@ namespace A305.Dialogue
             {
                 serverLink.StopSpeech();
                 serverLink.VoiceRecorder.StartRecording();
+                serverConversation.ShowListening(serverLink.VoiceRecorder.MaxRecordingSeconds);
             }
         }
 
@@ -302,18 +340,24 @@ namespace A305.Dialogue
 
         private void TranscribeRecording(RecordedVoice voice)
         {
-            // 마이크가 열리기 전에 버튼을 뗐으면 받은 소리가 없다.
-            if (serverConversation == null || voice.Samples.Length == 0)
+            if (serverConversation == null)
             {
                 return;
             }
 
-            _ = TranscribeAsync(serverConversation, voice.WavBytes);
+            // 마이크가 열리기 전에 버튼을 뗐으면 받은 소리가 없다.
+            if (voice.Samples.Length == 0)
+            {
+                serverConversation.ShowMessage(VoiceInputNotice.TooShort);
+                return;
+            }
+
+            _ = TranscribeAsync(serverConversation, voice);
         }
 
-        private async Task TranscribeAsync(ServerConversation target, byte[] wav)
+        private async Task TranscribeAsync(ServerConversation target, RecordedVoice voice)
         {
-            string transcript = await target.TranscribeAsync(wav);
+            string transcript = await target.TranscribeAsync(voice.WavBytes, voice.EndReason);
             if (this != null && !string.IsNullOrEmpty(transcript) && target == serverConversation)
             {
                 panel.SetInputText(transcript);
@@ -324,9 +368,7 @@ namespace A305.Dialogue
         {
             if (access != MicrophoneAccess.Granted)
             {
-                serverConversation?.ShowMessage(
-                    "마이크를 쓸 수 없어요. 대화는 텍스트로 입력해 주세요."
-                );
+                serverConversation?.ShowMessage(VoiceInputNotice.MicrophoneUnavailable(access));
             }
         }
 

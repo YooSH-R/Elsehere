@@ -1,5 +1,6 @@
 package com.elsehere.conversation.service;
 
+import com.elsehere.ai.dto.AiStatus;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.repository.ConversationRepository;
@@ -32,15 +33,18 @@ public class GuestConversationLimit {
     this.limit = limit;
   }
 
-  /** 게스트가 이미 정해진 횟수만큼 대화를 시작했으면 거절한다. 끝난 대화도 센다. */
+  /** 게스트가 이미 정해진 횟수만큼 대화를 시작했으면 거절한다. */
   public void check(User user) {
-    if (user.getProvider() != AuthProvider.GUEST) {
-      return;
-    }
-    if (conversationRepository.countByUserId(user.getId()) >= limit) {
+    if (isReached(user)) {
       throw new BusinessException(
           ErrorCode.AI_QUOTA_EXHAUSTED,
-          Map.of("aiStatus", "AI_EXHAUSTED", "allowedFeatures", ALLOWED_FEATURES));
+          Map.of("aiStatus", AiStatus.AI_EXHAUSTED.name(), "allowedFeatures", ALLOWED_FEATURES));
     }
+  }
+
+  /** 게스트가 정해진 횟수만큼 대화를 시작했는지. 끝난 대화도 센다. 가입 사용자는 항상 아니다. */
+  public boolean isReached(User user) {
+    return user.getProvider() == AuthProvider.GUEST
+        && conversationRepository.countByUserId(user.getId()) >= limit;
   }
 }

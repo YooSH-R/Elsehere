@@ -52,11 +52,11 @@ class WorldSeedLoaderTest {
   @Test
   @DisplayName("애플리케이션이 시작되면 따로 부르지 않아도 시드가 들어가 있다")
   void applicationStart_loadsSeed() {
-    assertThat(sceneRepository.count()).isEqualTo(4);
+    assertThat(sceneRepository.count()).isEqualTo(5);
   }
 
   @Test
-  @DisplayName("장소 4개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
+  @DisplayName("상점 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
   void load_insertsScenes() {
     worldSeedLoader.load();
 
@@ -66,7 +66,8 @@ class WorldSeedLoaderTest {
             tuple("HOME", "집", "HomeScene", true),
             tuple("TOWN", "마을", "TownScene", true),
             tuple("CAFE", "모퉁이 카페", "CafeScene", true),
-            tuple("HOTEL", "호텔", "HotelScene", true));
+            tuple("HOTEL", "호텔", "HotelScene", true),
+            tuple("SHOP", "마을 상점", "ShopScene", true));
   }
 
   @Test
@@ -160,7 +161,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("NPC 3명(행인·카페 직원·호텔 직원)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName("NPC 4명(행인·카페 직원·호텔 직원·상점 직원)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -183,7 +184,8 @@ class WorldSeedLoaderTest {
                 true,
                 "Hi there! Nice weather today, isn't it?"),
             tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null),
-            tuple("HOTEL", "HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null));
+            tuple("HOTEL", "HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null),
+            tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "상점 직원", false, null));
   }
 
   @Test
@@ -208,10 +210,10 @@ class WorldSeedLoaderTest {
     worldSeedLoader.load();
     worldSeedLoader.load();
 
-    assertThat(sceneRepository.count()).isEqualTo(4);
+    assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(3);
+    assertThat(npcRepository.count()).isEqualTo(4);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 

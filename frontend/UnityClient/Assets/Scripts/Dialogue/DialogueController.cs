@@ -42,6 +42,9 @@ namespace A305.Dialogue
         /// <summary>대화가 끝나면 끝난 NPC 키(ERD npcs.code)를 알린다.</summary>
         public event Action<string> Ended;
 
+        /// <summary>서버가 NPC 턴을 확정한 뒤 미션 등 읽기 전용 상태를 갱신할 때 쓴다.</summary>
+        public event Action NpcResponded;
+
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
         /// 받는 쪽이 피드백 화면을 열며 이동을 다시 잠가도 풀리지 않는다.
@@ -134,6 +137,8 @@ namespace A305.Dialogue
             panel.TalkPressed += StartRecording;
             panel.TalkReleased += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.MeaningRequested += RequestMeaning;
+            panel.HintRequested += RequestHint;
         }
 
         private void OnDestroy()
@@ -152,6 +157,8 @@ namespace A305.Dialogue
                 panel.TalkPressed -= StartRecording;
                 panel.TalkReleased -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.MeaningRequested -= RequestMeaning;
+                panel.HintRequested -= RequestHint;
             }
         }
 
@@ -226,9 +233,27 @@ namespace A305.Dialogue
 
         private void PlayNpcSpeech(NpcTurnData turn)
         {
+            NpcResponded?.Invoke();
             if (turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
+            }
+        }
+
+        // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).
+        private void RequestMeaning()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RequestMeaningAsync();
+            }
+        }
+
+        private void RequestHint()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RequestHintAsync();
             }
         }
 

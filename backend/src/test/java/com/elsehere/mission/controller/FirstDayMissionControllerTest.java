@@ -1,0 +1,67 @@
+package com.elsehere.mission.controller;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.elsehere.common.auth.LoginUser;
+import com.elsehere.common.config.SecuredWebMvcTest;
+import com.elsehere.mission.dto.FirstDayMissionResponse;
+import com.elsehere.mission.service.FirstDayMissionService;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+@SecuredWebMvcTest(controllers = FirstDayMissionController.class)
+class FirstDayMissionControllerTest {
+  @Autowired private MockMvc mvc;
+  @MockitoBean private FirstDayMissionService service;
+
+  @Test
+  void unauthenticatedUserCannotReadMission() throws Exception {
+    mvc.perform(get("/api/v1/missions/first-day"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+  }
+
+  @Test
+  void writesRequireCsrfHeaderAndUseAuthenticatedUser() throws Exception {
+    var auth =
+        UsernamePasswordAuthenticationToken.authenticated(new LoginUser(8L), null, List.of());
+    mvc.perform(post("/api/v1/missions/first-day/start").with(authentication(auth)))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.error.code").value("CSRF_HEADER_REQUIRED"));
+    when(service.start(8L))
+        .thenReturn(
+            new FirstDayMissionResponse(
+                true, 0, false, "HOME", false, false, 20, "호텔로 가세요", "예약 확인", List.of()));
+    mvc.perform(
+            post("/api/v1/missions/first-day/start")
+                .with(authentication(auth))
+                .header("X-Requested-With", "ElsehereClient"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.started").value(true))
+        .andExpect(jsonPath("$.stage").value(0));
+  }
+
+  @Test
+  void emptySceneIsValidationFailure() throws Exception {
+    var auth =
+        UsernamePasswordAuthenticationToken.authenticated(new LoginUser(8L), null, List.of());
+    mvc.perform(
+            post("/api/v1/missions/first-day/visit")
+                .with(authentication(auth))
+                .header("X-Requested-With", "ElsehereClient")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"scene\":\"\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+}

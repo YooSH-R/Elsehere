@@ -45,7 +45,7 @@ com.elsehere
 | `user` | users, user_consents |
 | `world` | scenes, npcs, scene_words, user_word_prefs |
 | `vocab` | vocabularies, user_vocab |
-| `mission` | missions, user_missions |
+| `mission` | missions, user_missions, first_day_missions |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
 
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.

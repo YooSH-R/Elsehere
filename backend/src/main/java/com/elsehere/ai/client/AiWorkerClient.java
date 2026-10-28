@@ -44,6 +44,8 @@ public class AiWorkerClient {
   // 워커의 피드백 전체 상한(FEEDBACK_TIMEOUT_S, 기본 60초)보다 조금 길게 기다린다.
   private static final Duration FEEDBACK_TIMEOUT = Duration.ofSeconds(75);
   private static final Duration MEMORY_TIMEOUT = Duration.ofSeconds(45);
+  // 뜻 보기·힌트는 짧은 모델 호출 한 번이다. 재시도·대체 모델까지 기다리도록 NPC 대답과 같게 둔다.
+  private static final Duration HELP_TIMEOUT = Duration.ofSeconds(30);
 
   private final HttpClient httpClient =
       HttpClient.newBuilder()
@@ -127,6 +129,27 @@ public class AiWorkerClient {
             .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
             .build();
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), SttResult.class);
+  }
+
+  /** NPC 대사 한 줄의 한국어 뜻과 단어 풀이(CONV-04 뜻 보기). */
+  public MeaningResult meaning(WorkerTrace trace, WorkerNpc npc, String text, int level) {
+    HttpRequest request =
+        jsonRequest("/v1/meaning", trace, HELP_TIMEOUT, new MeaningBody(npc, text, level));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), MeaningResult.class);
+  }
+
+  /**
+   * 학습자가 다음에 할 만한 말(CONV-05 힌트).
+   *
+   * @param history 대답할 NPC 줄까지의 앞선 대화
+   * @param goal 지금 학습자가 할 일. 없으면 빈 문자열
+   */
+  public HintResult hint(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String goal, int level) {
+    // 장소(scene)를 비우면 워커가 NPC의 장소를 쓴다.
+    HttpRequest request =
+        jsonRequest("/v1/hint", trace, HELP_TIMEOUT, new HintBody(npc, "", goal, history, level));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), HintResult.class);
   }
 
   /** 한 문장 음성 합성. WAV를 돌려준다. */
@@ -363,6 +386,10 @@ public class AiWorkerClient {
       int level,
       boolean suggestWords,
       String goal) {}
+
+  record MeaningBody(WorkerNpc npc, String text, int level) {}
+
+  record HintBody(WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
 
   record TtsBody(String text, String voice, double speed) {}
 

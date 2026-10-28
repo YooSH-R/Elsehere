@@ -12,7 +12,6 @@ import com.elsehere.conversation.dto.SpeechResponse;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
 import com.elsehere.conversation.dto.TranscriptionResponse;
 import com.elsehere.conversation.entity.Conversation;
-import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import java.io.IOException;
@@ -83,7 +82,8 @@ public class SpeechService {
   /** 저장해 둔 NPC 턴 음성(WAV). [다시 듣기]는 음성을 새로 만들지 않는다. */
   public byte[] npcSpeech(Long userId, Long turnId) {
     String key =
-        transactionTemplate.execute(status -> ownedNpcTurn(userId, turnId).getNpcAudioKey());
+        transactionTemplate.execute(
+            status -> support.ownedNpcTurn(userId, turnId).getNpcAudioKey());
     return npcAudioStore.load(key).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
@@ -95,7 +95,7 @@ public class SpeechService {
     SpeechTarget target =
         transactionTemplate.execute(
             status -> {
-              Turn turn = ownedNpcTurn(userId, turnId);
+              Turn turn = support.ownedNpcTurn(userId, turnId);
               Conversation conversation = turn.getConversation();
               NpcContext npc = support.npcById(conversation.getNpcId());
               return new SpeechTarget(
@@ -133,18 +133,6 @@ public class SpeechService {
     if (!active) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
-  }
-
-  // 다른 사용자의 턴과 사용자 턴은 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
-  private Turn ownedNpcTurn(Long userId, Long turnId) {
-    Turn turn =
-        turnRepository
-            .findById(turnId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    if (turn.getSpeaker() != Speaker.NPC || !turn.getConversation().getUserId().equals(userId)) {
-      throw new BusinessException(ErrorCode.NOT_FOUND);
-    }
-    return turn;
   }
 
   // "audio/webm;codecs=opus"처럼 매개변수가 붙어도 형식만 본다.

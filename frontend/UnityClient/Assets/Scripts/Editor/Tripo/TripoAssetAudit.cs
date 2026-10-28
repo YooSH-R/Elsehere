@@ -72,7 +72,7 @@ namespace A305.EditorTools.Tripo
                     "얼굴 Shape Key 없음: 표정·립싱크 변형은 준비되지 않았습니다. 별도 제작과 검수가 필요합니다."
                 );
             report.ManualChecks.Add(
-                "동작 검사 미실행: 현재 모델의 구조와 지정 접합 샘플을 검사했습니다. 걷기·뛰기·인사 중 변형 품질은 별도 검수해야 합니다."
+                "자동 동작 검사 미실행: 구조와 지정 접합 샘플 검사입니다. 실제 모션 미리보기에서 걷기·달리기·점프 변형을 수동 검수하세요. 인사 등 미확보 모션은 별도 검수가 필요합니다."
             );
             foreach (var renderer in model.GetComponentsInChildren<Renderer>(true))
             {

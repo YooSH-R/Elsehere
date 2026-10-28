@@ -93,6 +93,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `CONVERSATION_NOT_ACTIVE` | 409 | 이미 끝난 대화에 발화 전송 |
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
 | `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 전 단계(`LANG`, `LEVEL`) 사용자의 튜토리얼 완료·건너뛰기 |
+| `MISSION_NOT_READY` | 409 | 첫날 미션에서 카페 주문·대화 종료·현재 장소 등 휴식 조건 미충족 |
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
@@ -599,6 +600,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ### 4.5 미션
 
+첫날 7단계 연계 여정은 [첫날 연계 미션 계약](first-day-mission.md)의 `/api/v1/missions/first-day`를 사용한다. 사용자가 수첩에서 시작하고 서버가 진행을 영속화한다. 아래 일일 미션 API와 튜토리얼 기본 미션 경로는 유지한다.
+
 미션은 자동으로 시작됩니다. 수락 버튼이 없고, 사용자가 미션에 맞는 행동을 하면 서버가 완료로 판정합니다. 한 대화에서 여러 미션을 동시에 완료할 수 있습니다.
 
 #### MIS-01 `GET /api/v1/missions`
@@ -836,8 +839,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- 화면 15의 [뜻 보기]입니다. NPC 턴에만 요청할 수 있습니다.
-- 한 번 만든 뜻은 저장하고(`turns.meaning_ko`, `turns.glossary`) 다시 요청하면 AI를 호출하지 않습니다.
+- 화면 15의 [뜻 보기]입니다. NPC 턴에만 요청할 수 있습니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
+- 한 번 만든 뜻은 저장하고(`turns.meaning_ko`, `turns.glossary`) 다시 요청하면 AI를 호출하지 않습니다. `turns.glossary`는 응답의 `glossary`와 같은 `[{ text, meaningKo }]` JSON입니다.
+- 뜻과 단어 풀이는 AI 워커 `/v1/meaning`이 대화 난이도(`levelApplied`)에 맞춰 만듭니다. `glossary`는 대사에 그대로 있는 말만 최대 3개이며, 쉬운 대사면 빈 배열입니다.
+- AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고 아무것도 저장하지 않습니다. 다시 요청하면 새로 만듭니다.
 
 #### CONV-05 `POST /api/v1/turns/{turnId}/hint`
 
@@ -849,8 +854,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "turnId": 105, "hintText": "For here, please." }
 ```
 
-- 화면 15의 [힌트]를 누르면 추천 단어 아래에 추천 문장을 보여줍니다. 사용자가 답해야 하는 NPC 턴에 요청합니다.
-- 만든 문장은 저장해 다시 쓰고(`turns.hint_text`), 처음 열면 `hint_opened_at`을 기록합니다.
+- 화면 15의 [힌트]를 누르면 추천 단어 아래에 추천 문장을 보여줍니다. 사용자가 답해야 하는 NPC 턴에 요청합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
+- 만든 문장은 저장해 다시 쓰고(`turns.hint_text`), 처음 열면 `hint_opened_at`을 기록합니다. 다시 요청해도 처음 연 시각은 바꾸지 않습니다.
+- `hintText`는 AI 워커 `/v1/hint`가 주는 추천 문장 중 첫 문장(가장 쉬운 문장)입니다. 그 NPC 턴까지의 대화와 대화 난이도로 만듭니다. 장면별 목표는 아직 없어 워커에 목표를 비워 보냅니다.
+- AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 추천 문장이 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 자유 대화의 힌트는 추천 단어·추천 문장 2단계입니다. 요구사항명세서의 3단계 힌트(키워드 → 문장 시작 → 예문)와 다릅니다(5.2).
 
 #### CONV-06·07 NPC 음성
@@ -1042,7 +1049,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
-- 현재 구현은 `OBJECT`만 저장합니다. `NPC_LINE`·`FEEDBACK`은 단어 풀이·단어장 후보 연동 전까지 `422 VOCAB_SOURCE_MISMATCH`입니다.
+- 현재 구현은 `OBJECT`만 저장합니다. CONV-04는 단어 풀이를 저장하지만 `NPC_LINE` 저장은 아직 구현하지 않았고, `FEEDBACK`은 단어장 후보 연동 전입니다. 두 출처 모두 `422 VOCAB_SOURCE_MISMATCH`입니다.
 - `OBJECT`의 `wordKey`는 WORLD-02 단어 카드의 `wordKey`입니다.
 - `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있으면 `400 VALIDATION_FAILED`, 없는 단어 키면 `404 NOT_FOUND`입니다.
 - `requestId`는 형식을 맞추려고 받지만 쓰지 않습니다. 이미 저장한 단어는 처음 항목을 돌려주므로 같은 요청을 다시 보내도 결과가 같습니다.

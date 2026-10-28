@@ -48,7 +48,8 @@ class SceneServiceTest {
             new SceneSummaryResponse("HOME", "집", "HomeScene", true),
             new SceneSummaryResponse("TOWN", "마을", "TownScene", true),
             new SceneSummaryResponse("CAFE", "모퉁이 카페", "CafeScene", true),
-            new SceneSummaryResponse("HOTEL", "호텔", "HotelScene", true));
+            new SceneSummaryResponse("HOTEL", "호텔", "HotelScene", true),
+            new SceneSummaryResponse("SHOP", "마을 상점", "ShopScene", true));
   }
 
   @Test

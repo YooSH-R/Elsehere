@@ -1,6 +1,6 @@
 # World 모듈
 
-공간 사이 이동을 담당합니다. 튜토리얼을 시작하는 내 방(`HomeScene`)에서 마을(`TownScene`)로 나가고, 마을에서 카페(`CafeScene`)와 숙소(`HotelScene`)에 드나듭니다. 공간마다 씬을 하나씩 두고, 출입구에 닿으면 연결된 씬을 불러와 그 씬의 출입구 앞에 플레이어를 세웁니다.
+공간 사이 이동을 담당합니다. 튜토리얼을 시작하는 내 방(`HomeScene`)에서 마을(`TownScene`)로 나가고, 마을에서 카페(`CafeScene`)·숙소(`HotelScene`)·상점(`ShopScene`)에 드나듭니다. 공간마다 씬을 하나씩 두고, 출입구에 닿으면 연결된 씬을 불러와 그 씬의 출입구 앞에 플레이어를 세웁니다.
 
 이 서비스의 공간 구성을 다루는 게임 전용 기능입니다. 플레이어 이동·카메라는 재사용 모듈인 `A305.Player`의 공개 API로 요청합니다.
 
@@ -31,6 +31,10 @@
 | `TownScene` | `HotelDoor` | `HotelScene`의 `TownDoor` |
 | `CafeScene` | `TownDoor` | `TownScene`의 `CafeDoor` |
 | `HotelScene` | `TownDoor` | `TownScene`의 `HotelDoor` |
+| `TownScene` | `ShopDoor` | `ShopScene`의 `TownDoor` |
+| `ShopScene` | `TownDoor` | `TownScene`의 `ShopDoor` |
+
+상점 연결과 연계 미션은 **Tools → A305 → Mission → Build First Day Journey**로 준비합니다. 카페 옆 빈 건물 앞의 TOWN SHOP 간판에서 들어갑니다. 다른 기존 건물과 씬 아트는 유지합니다.
 
 - 현재 TownScene의 이용 장소는 집·카페·호텔입니다. 빈 건물은 셔터가 닫힌 외관으로, 나머지는 배경 주거동으로 구분하며 출입 Trigger를 두지 않습니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.
 - 씬 이름은 ERD `scenes.unity_key` 값으로 사용합니다. 공간 이름·개방 여부 같은 서버 데이터는 Unity에 두지 않습니다.

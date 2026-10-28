@@ -144,7 +144,7 @@ NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`
 
 ### 백엔드 시드로 내보내기
 
-백엔드는 시작할 때(`WorldSeedLoader`) 아래 두 생성 파일로 `npcs`의 인격·이름·목소리·상황을 채웁니다. 원본은 `ai/npcs`이고, 생성 파일은 직접 고치지 않습니다. `ai/npcs`를 고쳤으면 저장소 최상위에서 다시 만듭니다.
+아래 두 생성 파일은 백엔드가 `npcs`의 인격·이름·목소리·상황을 채울 때 쓸 내용 파일입니다. 백엔드가 이 파일을 읽는 연결은 아직 없고 별도 작업에서 붙입니다. 원본은 `ai/npcs`이고, 생성 파일은 직접 고치지 않습니다. `ai/npcs`를 고쳤으면 저장소 최상위에서 다시 만듭니다.
 
 ```bash
 ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src/main/resources/content/npc-configurations.json --scenarios-out backend/src/main/resources/content/npc-scenarios.json

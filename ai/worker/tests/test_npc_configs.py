@@ -262,7 +262,7 @@ def test_the_service_npcs_each_have_a_service_scenario():
 
 
 def test_the_backend_content_files_match_the_npc_sources():
-    """백엔드가 시작할 때 읽는 생성 파일(WorldSeedLoader). ai/npcs를 고쳤으면 저장소 최상위에서 REGENERATE 명령으로 다시 만든다."""
+    """백엔드 시드용 생성 파일(백엔드 연결은 별도 작업). ai/npcs를 고쳤으면 저장소 최상위에서 REGENERATE 명령으로 다시 만든다."""
     configs, scenarios = service_npcs()
 
     assert json.loads((BACKEND_CONTENT / "npc-configurations.json").read_text(encoding="utf-8")) == configs, REGENERATE

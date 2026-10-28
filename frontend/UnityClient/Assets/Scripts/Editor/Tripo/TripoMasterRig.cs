@@ -37,7 +37,9 @@ namespace A305.EditorTools.Tripo
                         "마스터 모델 루트에 Animator가 필요합니다."
                     );
                 var bones = BoneMap(targetAnimator);
-                Matrix4x4 alignment = BodyFrame(targetAnimator) * BodyFrame(sourceAnimator).inverse;
+                float bodyScale =
+                    BodyFrame(targetAnimator).MultiplyVector(Vector3.up).magnitude
+                    / BodyFrame(sourceAnimator).MultiplyVector(Vector3.up).magnitude;
                 foreach (var renderer in output.GetComponentsInChildren<Renderer>())
                     Object.DestroyImmediate(renderer);
                 foreach (var filter in output.GetComponentsInChildren<MeshFilter>())
@@ -56,12 +58,6 @@ namespace A305.EditorTools.Tripo
                     var holder = new GameObject("Surface" + index);
                     holder.transform.SetParent(output.transform, false);
                     var replacement = holder.AddComponent<SkinnedMeshRenderer>();
-                    Matrix4x4 transform =
-                        holder.transform.worldToLocalMatrix
-                        * alignment
-                        * skin.transform.localToWorldMatrix;
-                    var mesh = CopySurface(skin, transform);
-                    created.Add(mesh);
                     replacement.bones = skin
                         .bones.Select(bone =>
                         {
@@ -72,6 +68,8 @@ namespace A305.EditorTools.Tripo
                             return mapped;
                         })
                         .ToArray();
+                    var mesh = CopySurface(skin, replacement, bodyScale);
+                    created.Add(mesh);
                     mesh.bindposes = replacement
                         .bones.Select(bone =>
                             bone.worldToLocalMatrix * holder.transform.localToWorldMatrix
@@ -140,52 +138,90 @@ namespace A305.EditorTools.Tripo
             );
         }
 
-        private static Mesh CopySurface(SkinnedMeshRenderer source, Matrix4x4 transform)
+        private static Mesh CopySurface(
+            SkinnedMeshRenderer source,
+            SkinnedMeshRenderer target,
+            float bodyScale
+        )
         {
             var original = source.sharedMesh;
             if (original == null || !original.isReadable)
                 throw new InvalidOperationException("읽을 수 있는 스킨 메시가 필요합니다.");
+            var transforms = new Matrix4x4[source.bones.Length];
+            var normalTransforms = new Matrix4x4[transforms.Length];
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                var from = source.bones[i];
+                var to = target.bones[i];
+                // 메시의 각 관절 주변을 마스터의 기준 위치/축으로 옮긴 뒤 새 bind pose를 만든다.
+                // 전신만 정렬하고 bind pose를 바꾸면 손가락 메시와 실제 회전 중심이 어긋난다.
+                var sourceFrame = Matrix4x4.TRS(from.position, from.rotation, Vector3.one);
+                var targetFrame = Matrix4x4.TRS(to.position, to.rotation, Vector3.one * bodyScale);
+                transforms[i] =
+                    target.transform.worldToLocalMatrix
+                    * targetFrame
+                    * sourceFrame.inverse
+                    * from.localToWorldMatrix
+                    * original.bindposes[i];
+                normalTransforms[i] = transforms[i].inverse.transpose;
+            }
             var mesh = Object.Instantiate(original);
             mesh.name = original.name + "_MasterBound";
-            var baked = new Mesh();
-            try
+            var weights = original.boneWeights;
+            mesh.vertices = original
+                .vertices.Select((v, i) => TransformPoint(v, weights[i], transforms))
+                .ToArray();
+            mesh.normals = original
+                .normals.Select(
+                    (v, i) => TransformVector(v, weights[i], normalTransforms).normalized
+                )
+                .ToArray();
+            mesh.ClearBlendShapes();
+            var vertices = new Vector3[mesh.vertexCount];
+            var normals = new Vector3[mesh.vertexCount];
+            var tangents = new Vector3[mesh.vertexCount];
+            for (int shape = 0; shape < original.blendShapeCount; shape++)
+            for (int frame = 0; frame < original.GetBlendShapeFrameCount(shape); frame++)
             {
-                source.BakeMesh(baked);
-                mesh.vertices = baked.vertices.Select(transform.MultiplyPoint3x4).ToArray();
-                mesh.normals = baked
-                    .normals.Select(v => transform.MultiplyVector(v).normalized)
-                    .ToArray();
-                mesh.ClearBlendShapes();
-                var vertices = new Vector3[mesh.vertexCount];
-                var normals = new Vector3[mesh.vertexCount];
-                var tangents = new Vector3[mesh.vertexCount];
-                for (int shape = 0; shape < original.blendShapeCount; shape++)
-                for (int frame = 0; frame < original.GetBlendShapeFrameCount(shape); frame++)
+                original.GetBlendShapeFrameVertices(shape, frame, vertices, normals, tangents);
+                for (int i = 0; i < vertices.Length; i++)
                 {
-                    original.GetBlendShapeFrameVertices(shape, frame, vertices, normals, tangents);
-                    for (int i = 0; i < vertices.Length; i++)
-                    {
-                        vertices[i] = transform.MultiplyVector(vertices[i]);
-                        normals[i] = transform.rotation * normals[i];
-                        tangents[i] = transform.rotation * tangents[i];
-                    }
-                    mesh.AddBlendShapeFrame(
-                        original.GetBlendShapeName(shape),
-                        original.GetBlendShapeFrameWeight(shape, frame),
-                        vertices,
-                        normals,
-                        tangents
-                    );
+                    vertices[i] = TransformVector(vertices[i], weights[i], transforms);
+                    normals[i] = TransformVector(normals[i], weights[i], normalTransforms);
+                    tangents[i] = TransformVector(tangents[i], weights[i], transforms);
                 }
-                mesh.RecalculateBounds();
-                mesh.RecalculateTangents();
-                return mesh;
+                mesh.AddBlendShapeFrame(
+                    original.GetBlendShapeName(shape),
+                    original.GetBlendShapeFrameWeight(shape, frame),
+                    vertices,
+                    normals,
+                    tangents
+                );
             }
-            finally
-            {
-                Object.DestroyImmediate(baked);
-            }
+            mesh.RecalculateBounds();
+            mesh.RecalculateTangents();
+            return mesh;
         }
+
+        private static Vector3 TransformPoint(
+            Vector3 point,
+            BoneWeight weight,
+            Matrix4x4[] transforms
+        ) =>
+            transforms[weight.boneIndex0].MultiplyPoint3x4(point) * weight.weight0
+            + transforms[weight.boneIndex1].MultiplyPoint3x4(point) * weight.weight1
+            + transforms[weight.boneIndex2].MultiplyPoint3x4(point) * weight.weight2
+            + transforms[weight.boneIndex3].MultiplyPoint3x4(point) * weight.weight3;
+
+        private static Vector3 TransformVector(
+            Vector3 vector,
+            BoneWeight weight,
+            Matrix4x4[] transforms
+        ) =>
+            transforms[weight.boneIndex0].MultiplyVector(vector) * weight.weight0
+            + transforms[weight.boneIndex1].MultiplyVector(vector) * weight.weight1
+            + transforms[weight.boneIndex2].MultiplyVector(vector) * weight.weight2
+            + transforms[weight.boneIndex3].MultiplyVector(vector) * weight.weight3;
 
         private static Dictionary<string, Transform> BoneMap(Animator animator)
         {

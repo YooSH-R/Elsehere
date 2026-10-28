@@ -6,6 +6,14 @@
 자리를 못 비우는데 스스로 못 채우는 욕구가 기준 아래면 부탁이 생기고 → 욕구가 시간만큼 줄어든다.
 """
 
+import json
+import math
+import sys
+from pathlib import Path
+
+import npc_derive
+import npc_life_rules
+
 DAY_MINUTES = 24 * 60
 MIN_SCORE = 1.0  # 이보다 덜 급하면 아무것도 하지 않고 기다린다
 
@@ -101,3 +109,80 @@ def _minutes(clock: str) -> int:
 
 def _clock(minutes: int) -> str:
     return f"{minutes // 60 % 24:02d}:{minutes % 60:02d}"
+
+
+# 서비스 데이터와 관계·기억 곡선 (규칙 숫자가 의도대로인지 보는 용도)
+
+
+def simulate_service_day(npc_id: str) -> dict:
+    """저장소의 서비스 데이터(인격 파일의 기본 장소, 생활 파일의 MBTI·역할, 공통 규칙·행동 조각·부탁 틀)로 하루를 돌린다."""
+    return simulate_day(service_npc(npc_id), _load(npc_life_rules.WORLD_RULES), _load(npc_life_rules.REQUESTS))
+
+
+def service_npc(npc_id: str) -> dict:
+    """서비스 NPC 하나의 시뮬레이션 입력: npcId·role·place와 npc_derive가 계산한 behaviors·rates·schedule."""
+    life = _load(npc_life_rules.LIFE_FOLDER / f"{npc_id}.json")
+    place = _load(npc_life_rules.ROOT / "ai/npcs" / f"{npc_id}.json")["defaultLocationId"]
+    values = npc_derive.npc_life_values(life, _load(npc_life_rules.WORLD_RULES), _load(npc_life_rules.BEHAVIORS), place)
+    return {"npcId": npc_id, "role": life["role"], "place": place, **values}
+
+
+def conversations_to_reach(threshold: float, rate: float, rules: dict) -> int:
+    """정상 종료된 대화 몇 번째에 알아봄이 threshold에 닿는지. 한 번에 기본값 × (1 − 현재/100) × NPC 배수만큼 오른다."""
+    per_conversation = rules["relationship"]["recognitionPerConversation"]
+    recognition, conversations = 0.0, 0
+    while recognition < threshold:
+        conversations += 1
+        recognition += per_conversation * (1 - recognition / 100) * rate
+    return conversations
+
+
+def recall(salience: int, event_days: list[int], on_day: int, rules: dict) -> float:
+    """event_days에 일어난 같은 일을 on_day에 떠올리는 정도(망각 곡선). 유지 기간은 인상 세기로 시작해
+    날을 두고 다시 일어나면 spacedRepeatFactor배, 같은 날이면 sameDayFactor배가 된다."""
+    memory = rules["memory"]
+    stability, last = memory["stabilityDays"][str(salience)], event_days[0]
+    for day in event_days[1:]:
+        stability *= memory["spacedRepeatFactor"] if day - last >= 1 else memory["sameDayFactor"]
+        last = day
+    return math.exp(-(on_day - last) / stability)
+
+
+def _load(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+SERVICE_NPCS = ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]
+
+
+def main() -> int:
+    """서비스 NPC 3명의 하루(부탁·행동·정시 욕구)와 알아봄·기억 곡선을 표로 보여 준다."""
+    rules = _load(npc_life_rules.WORLD_RULES)
+    for npc_id in SERVICE_NPCS:
+        npc, day = service_npc(npc_id), simulate_service_day(npc_id)
+        counts: dict[str, int] = {}
+        for entry in day["actions"]:
+            counts[entry["action"]] = counts.get(entry["action"], 0) + 1
+        print(f"\n== {npc_id} ({npc['role']}, {npc['place']}) 행동 조각: {', '.join(npc['behaviors'])}")
+        print("부탁:", ", ".join(f"{request['time']} {request['id']}" for request in day["requests"]) or "없음")
+        print("행동:", ", ".join(f"{name}×{count}" for name, count in counts.items()) or "없음")
+        print("시각  " + " ".join(f"{need:>6}" for need in rules["needs"]))
+        for clock, needs in day["needsAt"].items():
+            print(f"{clock} " + " ".join(f"{value:6.1f}" for value in needs.values()))
+
+    relationship = rules["relationship"]
+    print("\n== 알아봄 (정상 종료된 대화 몇 번째에)")
+    for npc_id in SERVICE_NPCS:
+        rate = service_npc(npc_id)["rates"].get("recognitionRate", 1)
+        seen, regular = (conversations_to_reach(relationship[stage], rate, rules) for stage in ("seenBefore", "regular"))
+        print(f"{npc_id} (×{rate}): 본 적 있음 {seen}번째, 단골 {regular}번째")
+
+    print(f"\n== 기억 떠올림 (기준 {rules['memory']['recallAt']})")
+    print(f"평범한 주문 한 번 → 다음 날 {recall(1, [0], 1, rules):.2f}, 이틀 연속 → 셋째 날 {recall(1, [0, 1], 2, rules):.2f}")
+    print(f"무례 한 번 → 9일째 {recall(3, [0], 9, rules):.2f}, 10일째 {recall(3, [0], 10, rules):.2f}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows 터미널에서도 한글이 깨지지 않게
+    sys.exit(main())

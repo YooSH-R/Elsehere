@@ -31,16 +31,16 @@
     },
     {
       "id": "recommend_a_spot",
-      "need": "FUN",
-      "below": 30,
+      "need": "SOCIAL",
+      "below": 40,
       "role": "PASSERBY",
       "activities": ["FREE"],
-      "reason": "Is bored and new in town, so asks the learner for a place worth seeing.",
-      "ko": "심심하고 마을이 처음이라 학습자에게 구경할 만한 곳을 묻는다",
+      "reason": "Feels a bit lonely in a new town and wants someone to talk to, so asks the learner for a place worth seeing.",
+      "ko": "새 마을에서 말 상대가 그리워 학습자에게 구경할 만한 곳을 묻는다",
       "steps": [
         { "with": "requester", "goal": "Recommend a place in town worth seeing.", "languageFocus": ["recommending", "describing"] }
       ],
-      "reward": { "fills": { "FUN": 20 }, "impression": 8 }
+      "reward": { "fills": { "SOCIAL": 20 }, "impression": 8 }
     }
   ]
 }

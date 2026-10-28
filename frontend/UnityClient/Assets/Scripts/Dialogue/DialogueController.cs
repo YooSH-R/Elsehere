@@ -57,6 +57,12 @@ namespace A305.Dialogue
 
         public bool IsTalking => session.IsActive;
 
+        /// <summary>대화 화면의 [표현 저장]을 보여 줄지. 받을 곳(단어장)이 저장할 수 없으면 끈다.</summary>
+        public void SetExpressionSaveAvailable(bool available)
+        {
+            panel.IsSaveAvailable = available;
+        }
+
         /// <summary>
         /// 대본에 적힌 NPC 이름. 대화 제안처럼 대화를 시작하기 전에 누가 말을 거는지 보일 때 쓴다. 대본이 없으면 null이다.
         /// </summary>

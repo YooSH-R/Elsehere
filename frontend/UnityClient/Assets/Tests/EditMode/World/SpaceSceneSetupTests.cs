@@ -156,6 +156,17 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_ConnectsLearningToApiSettingsForVocabulary()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            Assert.That(
+                Reference(Single<LearningController>(), "apiSettings"),
+                Is.EqualTo(AssetDatabase.LoadAssetAtPath<ApiSettings>(ApiSettingsPath))
+            );
+        }
+
+        [Test]
         public void Apply_AddsMissionPanelConnectedToDialogue()
         {
             SpaceSceneSetup.Apply(scene);

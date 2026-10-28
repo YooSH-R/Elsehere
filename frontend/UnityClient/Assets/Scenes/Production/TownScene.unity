@@ -6175,6 +6175,7 @@ MonoBehaviour:
   feedbackView: {fileID: 58535817}
   vocabularyView: {fileID: 2040776643}
   hudView: {fileID: 710634027}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1 &388671850
 GameObject:
   m_ObjectHideFlags: 0

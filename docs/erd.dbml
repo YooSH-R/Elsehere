@@ -229,7 +229,7 @@ Table turns [headercolor: #2E6B4F] {
   text text [not null, note: '보낸 문장 / NPC 대사']
   translation_en text [note: '학습자 말의 영어 번역 · 번역 카드·다음 요청의 history·피드백에 씀 (사용자 턴만)']
   guard_abusive boolean [note: '무례 판정 · true 무례, false 아님, null 판정 실패(무례로 세지 않음) · 사용자 턴만']
-  guard_error_code varchar(30) [note: '판정 실패 이유 · empty · unparsed · timeout · provider_unavailable · provider_limit']
+  guard_error_code varchar(30) [note: '판정 실패 이유 · empty · unparsed · timeout · provider_unavailable · provider_limit · worker_unavailable(Spring이 워커에 닿지 못함)']
   meaning_ko text [note: '뜻 보기']
   glossary jsonb [note: '단어 호버 뜻']
   suggest_words jsonb [note: '추천 단어 3개']

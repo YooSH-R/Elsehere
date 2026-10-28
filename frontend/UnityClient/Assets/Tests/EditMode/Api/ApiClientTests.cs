@@ -74,6 +74,51 @@ namespace A305.Api.Tests
         }
 
         [Test]
+        public async Task Patch_AddsCsrfHeaderAndReadsBody()
+        {
+            transport.Reply(200, "{\"userId\": 3}");
+
+            Sample sample = await client.PatchAsync<Sample>(
+                "/api/v1/vocab/21",
+                new Sample { Nickname = "memo" }
+            );
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("PATCH"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/vocab/21")
+            );
+            Assert.That(
+                transport.LastRequest.Headers.ContainsKey(ApiClient.CsrfHeaderName),
+                Is.True
+            );
+            Assert.That(
+                transport.LastRequest.JsonBody,
+                Is.EqualTo("{\"userId\":0,\"nickname\":\"memo\"}")
+            );
+            Assert.That(sample.UserId, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task Delete_AddsCsrfHeaderWithoutBodyAndCompletesOnNoContent()
+        {
+            transport.Reply(204, "");
+
+            await client.DeleteAsync("/api/v1/vocab/21");
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("DELETE"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/vocab/21")
+            );
+            Assert.That(
+                transport.LastRequest.Headers.ContainsKey(ApiClient.CsrfHeaderName),
+                Is.True
+            );
+            Assert.That(transport.LastRequest.JsonBody, Is.Null);
+        }
+
+        [Test]
         public void ErrorResponse_ThrowsWithServerCodeStatusAndMessage()
         {
             transport.Reply(

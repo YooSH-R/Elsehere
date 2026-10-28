@@ -27,11 +27,12 @@ class ModelOutputError(ValueError):
 
 
 class ProviderError(Exception):
-    """모델 공급자가 대체 모델까지 모두 실패. code는 API 오류 코드 (provider_unavailable / provider_limit)."""
+    """모델 공급자가 대체 모델까지 모두 실패. code는 API 오류 코드 (provider_unavailable / provider_limit).
+    retryable: 다시 보내면 나아질 수 있는지. 공급자가 요청 자체를 거절하면(키·계정 오류 등) False (NPC 추론 계약 9절)."""
 
-    def __init__(self, code: str, message: str):
+    def __init__(self, code: str, message: str, retryable: bool = True):
         super().__init__(message)
-        self.code, self.message = code, message
+        self.code, self.message, self.retryable = code, message, retryable
 
     @property
     def http(self) -> int:
@@ -239,7 +240,7 @@ class LLM:
                 await r.aclose()
                 last = f"{r.status_code}: {msg[:160]}"
                 if r.status_code not in RETRY_CODES:
-                    raise ProviderError("provider_unavailable", f"모델 서버 오류 {last}")
+                    raise ProviderError("provider_unavailable", f"모델 서버 오류 {last}", retryable=False)
                 if r.status_code == 429:
                     limited = True
                     if "per day" in msg:  # 하루 한도: 재시도해도 소용없음

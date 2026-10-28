@@ -6,6 +6,7 @@ import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
+import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.world.entity.Npc;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +30,11 @@ final class FeedbackInputs {
         new FeedbackInput.Difficulty(level, level, null, "on_request");
     List<FeedbackInput.Turn> inputTurns =
         turns.stream().map(turn -> toInputTurn(turn, difficulty)).toList();
+    Integer missionStage = conversation.getFirstDayStage();
+    FirstDayStage quest =
+        missionStage != null && missionStage >= 0 && missionStage < FirstDayStage.values().length
+            ? FirstDayStage.values()[missionStage]
+            : null;
     return new FeedbackInput(
         SCHEMA_VERSION,
         requestId.toString(),
@@ -41,13 +47,15 @@ final class FeedbackInputs {
         ANALYSIS_CONFIG_VERSION,
         new FeedbackInput.Context(
             npc.getScene().getCode(),
-            "free_chat",
+            quest == null ? "free_chat" : "quest",
             npc.getScene().getName()
                 + " · "
                 + npc.getRoleLabel()
                 + " "
                 + npc.getName()
-                + " · 자유 대화",
+                + (quest == null
+                    ? " · 자유 대화"
+                    : " · " + quest.situation() + " " + quest.direction()),
             "en-US",
             "ko-KR",
             conversation.getStatus() == ConversationStatus.ENDED_BY_NPC ? "npc_end" : "user_end",

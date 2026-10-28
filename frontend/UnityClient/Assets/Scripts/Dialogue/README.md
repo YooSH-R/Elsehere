@@ -48,6 +48,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 | `DialogueController.IsTalking` | 대화 중인지 |
 | `DialogueController.Started` | 대화가 시작되면 NPC 키를 알립니다. |
 | `DialogueController.Ended` | 대화가 끝나면 끝난 NPC 키를 알립니다. |
+| `DialogueController.NpcResponded` | 서버가 NPC 턴을 확정하면 알립니다. 첫날 연계 미션 UI가 서버 진행을 다시 읽을 때 사용합니다. |
 | `DialogueController.ConversationEnded` | 대화가 끝나면 `DialogueRecord`를 알립니다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로, 받는 쪽이 화면을 열며 이동을 잠가도 풀리지 않습니다. |
 | `DialogueController.ExpressionSaveRequested` | [표현 저장]을 누르면 가장 최근 NPC 대사의 영어 문장과 한국어 뜻을 알립니다. 서버 대화는 [뜻 보기]로 뜻을 받기 전이면 뜻이 빈 문자열입니다. 단어장 저장은 받는 쪽(Learning 모듈)이 합니다. |
 

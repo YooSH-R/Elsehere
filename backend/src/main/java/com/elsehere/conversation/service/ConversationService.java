@@ -24,6 +24,7 @@ import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -40,8 +41,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 대화 시작(CONV-01)·종료(CONV-08)·조회(CONV-10·11).
  *
- * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 사용자 AI 한도 예약·차감, 미션 연결, 종료 피드백은 아직 하지
- * 않는다.
+ * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 게스트는 대화 횟수로 제한하고, 사용자 AI 한도 예약·차감, 미션 연결,
+ * 종료 피드백은 아직 하지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -64,6 +65,8 @@ public class ConversationService {
   private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
+  private final FirstDayMissionService firstDayMissionService;
+  private final GuestConversationLimit guestConversationLimit;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
     StartContext context =
@@ -72,7 +75,9 @@ public class ConversationService {
 
     // 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다. 직원처럼 말걸기 대사가 없으면 AI로 첫 인사를 만든다.
     Opening opening =
-        request.initiatedBy() == InitiatedBy.NPC && npc.approachLine() != null
+        context.mission().isEmpty()
+                && request.initiatedBy() == InitiatedBy.NPC
+                && npc.approachLine() != null
             ? approachOpening(npc)
             : greetingOpening(new WorkerTrace(request.requestId(), userId, null), npc, context);
 
@@ -86,6 +91,14 @@ public class ConversationService {
                       request.initiatedBy(),
                       context.level(),
                       clock.instant()));
+          context
+              .mission()
+              .ifPresent(
+                  value -> {
+                    if (value.state() != null) {
+                      conversation.attachFirstDayStage(value.stage());
+                    }
+                  });
           Turn openingTurn =
               turnRepository.save(
                   Turn.npc(
@@ -160,22 +173,26 @@ public class ConversationService {
                   ErrorCode.CONVERSATION_ALREADY_ACTIVE,
                   Map.of("activeConversationId", active.getId()));
             });
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    guestConversationLimit.check(user);
     NpcContext npc = support.npcByCode(npcCode);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
     return new StartContext(
-        npc, selectedLevel(userId), memoryService.memoryFor(userId, npc.npcId()));
+        npc,
+        selectedLevel(user),
+        memoryService.memoryFor(userId, npc.npcId()),
+        firstDayMissionService.context(userId, npcCode));
   }
 
   // 대화 난이도는 지금 학습 언어에서 고른 난이도다. 설정 전이면 기본값(초급)이다.
-  private int selectedLevel(Long userId) {
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  private int selectedLevel(User user) {
     return userLanguageProfileRepository
-        .findById(new UserLanguageProfileId(userId, user.getCurrentLanguage()))
+        .findById(new UserLanguageProfileId(user.getId(), user.getCurrentLanguage()))
         .map(UserLanguageProfile::getSelectedLevel)
         .orElse(UserLanguageProfile.DEFAULT_SELECTED_LEVEL);
   }
@@ -193,7 +210,13 @@ public class ConversationService {
             context.memory(),
             List.of(),
             GREETING_TEXT,
-            GREETING_INSTRUCTION,
+            context
+                .mission()
+                .map(
+                    value ->
+                        value.instruction()
+                            + " Greet the learner with one short sentence for this situation; do not assume their task is complete.")
+                .orElse(GREETING_INSTRUCTION),
             context.level());
     aiRequestRecorder.record(
         trace,
@@ -210,7 +233,11 @@ public class ConversationService {
   /**
    * @param memory 이 NPC와의 기억. 처음 만나면 null
    */
-  private record StartContext(NpcContext npc, int level, WorkerMemory memory) {}
+  private record StartContext(
+      NpcContext npc,
+      int level,
+      WorkerMemory memory,
+      Optional<FirstDayMissionService.Context> mission) {}
 
   private record Opening(String text, List<String> suggestWords, String npcAudioKey) {}
 }

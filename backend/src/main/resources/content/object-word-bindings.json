@@ -117,7 +117,7 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1130,
+            "objectCount": 1132,
             "detailCount": 0,
             "wordKeys": [
                 "awning",
@@ -149,6 +149,21 @@
                 "truck",
                 "wall",
                 "window"
+            ]
+        },
+        {
+            "sceneCode": "SHOP",
+            "unityKey": "ShopScene",
+            "objectCount": 13,
+            "detailCount": 0,
+            "wordKeys": [
+                "counter",
+                "door",
+                "floor",
+                "shelf",
+                "sign",
+                "wall",
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
         }
     ],

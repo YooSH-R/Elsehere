@@ -25,7 +25,7 @@ namespace A305.EditorTools.Tripo
             "리깅 가능 여부 검사",
             "자동 리깅",
             "FBX 다운로드",
-            "텍스처 준비·Unity 가져오기",
+            "로컬 가져오기·마스터 적용·자동 검사",
             "프리팹 생성 완료",
             "원격 작업 실패",
             "FBX 변환",
@@ -281,7 +281,7 @@ namespace A305.EditorTools.Tripo
                 {
                     autoRig = EditorGUILayout.Toggle(FieldLabel("Tripo 자동 리깅 추가"), autoRig);
                     EditorGUILayout.HelpBox(
-                        "서비스 마스터: 수정된 기본 여성 골격 / Female 부모 프리팹. 자동 리깅 결과는 로컬에서 마스터에 재연결합니다. 사용 승인은 검사·외관 검수 후 가능합니다.",
+                        "서비스 공통 마스터: LittleMungAdjusted / Female 부모 프리팹. 남녀 모두 같은 골격·동작을 사용하고 외형은 생성 모델을 유지합니다. 다운로드 후 로컬에서 재연결·검사하며 외관 승인은 별도입니다.",
                         MessageType.Info
                     );
                 }
@@ -489,7 +489,13 @@ namespace A305.EditorTools.Tripo
                     if (GUILayout.Button("기존 작업 ID 연결"))
                         Reconcile();
                 }
-                else if (GUILayout.Button("저장된 작업 재개"))
+                else if (
+                    GUILayout.Button(
+                        job.stage == TripoStage.ReadyToImport
+                            ? "로컬 마스터 적용·재검사 (API 사용 없음)"
+                            : "저장된 작업 재개"
+                    )
+                )
                     Resume();
             }
             if (job.stage == TripoStage.Completed)
@@ -927,40 +933,19 @@ namespace A305.EditorTools.Tripo
                 {
                     try
                     {
-                        GameObject prefab = TripoModelImporter.Import(job);
-                        ResetPreview();
-                        record = TripoWorkbenchAssets.CreateRecord(
-                            AssetDatabase.LoadAssetAtPath<GameObject>(job.modelAssetPath),
-                            job.kind,
-                            (
-                                job.kind == TripoAssetKind.Accessory
-                                || job.kind == TripoAssetKind.Hair
-                            )
-                                ? TripoAttachmentKind.Rigid
-                                : TripoAttachmentKind.Skinned
+                        record = TripoLocalImport.Complete(job);
+                        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                            record.ModelPath
                         );
-                        if (
-                            job.kind == TripoAssetKind.Character
-                            && record.referenceHeightMeters == 0f
-                        )
-                        {
-                            record.referenceHeightMeters = job.heightMeters;
-                            EditorUtility.SetDirty(record);
-                            AssetDatabase.SaveAssets();
-                        }
-                        if (job.kind == TripoAssetKind.Character && job.autoRig)
-                        {
-                            prefab = TripoMasterWorkflow.Apply(record);
-                            job.prefabPath = AssetDatabase.GetAssetPath(prefab);
-                        }
-                        else
-                            TripoWorkbench.Validate(record);
-                        job.stage = TripoStage.Completed;
+                        ResetPreview();
                         selectedTab = 5;
                         Selection.activeObject = prefab;
                         EditorGUIUtility.PingObject(prefab);
-                        message =
-                            "생성물을 가져왔습니다. 마스터 적용 결과와 동작 검사를 확인한 뒤 외관을 승인하세요.";
+                        messageIsError = !record.revision.validationPassed;
+                        message = messageIsError
+                            ? "다운로드 완료 · 자동 검사 실패. 재생성하지 말고 아래 문제를 확인하세요. 로컬 재검사에는 API 키·크레딧이 필요하지 않습니다.\n"
+                                + string.Join("\n", record.validationErrors)
+                            : "마스터 적용·자동 검사 통과. 전신과 실제 동작의 외관 검수 후 승인하세요.";
                     }
                     finally
                     {

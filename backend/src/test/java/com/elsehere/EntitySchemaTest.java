@@ -50,6 +50,7 @@ class EntitySchemaTest {
             "user_vocab",
             "missions",
             "user_missions",
+            "first_day_missions",
             "conversations",
             "turns",
             "ai_requests",

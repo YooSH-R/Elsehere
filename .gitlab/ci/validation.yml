@@ -142,6 +142,7 @@ infra:observability:
           - infra/compose/compose.observability.yaml
           - infra/nginx/**/*
           - infra/scripts/check_observability.py
+          - infra/scripts/traffic_probe.py
           - infra/scripts/check_alerting.py
           - .gitlab-ci.yml
           - .gitlab/ci/**/*

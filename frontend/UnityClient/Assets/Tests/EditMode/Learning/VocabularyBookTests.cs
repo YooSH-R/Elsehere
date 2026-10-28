@@ -15,7 +15,11 @@ namespace A305.Learning.Tests
         [Test]
         public void Save_NewExpression_AddsEntrySavedOnce()
         {
-            VocabularyEntry entry = book.Save("Could I have a soy latte, please?", "두유 라테 한 잔 주시겠어요?", "대화");
+            VocabularyEntry entry = book.Save(
+                "Could I have a soy latte, please?",
+                "두유 라테 한 잔 주시겠어요?",
+                "대화"
+            );
 
             Assert.That(book.Entries, Has.Count.EqualTo(1));
             Assert.That(entry.English, Is.EqualTo("Could I have a soy latte, please?"));

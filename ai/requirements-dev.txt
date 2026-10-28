@@ -1,0 +1,3 @@
+-r worker/requirements.txt
+-r worker/requirements-dev.txt
+-r feedback/requirements.txt

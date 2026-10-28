@@ -1,0 +1,10 @@
+# The user must approve the actual Mattermost channel before enabling delivery.
+route:
+  receiver: awaiting-user-approval
+  group_by: [alertname, environment]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: awaiting-user-approval

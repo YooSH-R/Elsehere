@@ -33,6 +33,10 @@ namespace A305.Player
 
         private CharacterController characterController;
         private PlayerMotor motor;
+        private PlayerTouchControls touchControls;
+
+        public PlayerCameraRig CameraRig =>
+            cameraTransform != null ? cameraTransform.GetComponent<PlayerCameraRig>() : null;
 
         public bool IsMovementLocked => motor != null && motor.IsMovementLocked;
 
@@ -49,6 +53,10 @@ namespace A305.Player
             }
 
             motor.SetMovementLocked(isLocked);
+            if (touchControls != null)
+            {
+                touchControls.SetInputLocked(isLocked);
+            }
         }
 
         /// <summary>플레이어를 바로 옮긴다. 다른 공간에 들어온 뒤 출입구 앞에 세울 때 쓴다.</summary>
@@ -63,6 +71,13 @@ namespace A305.Player
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
+            var appearance = GetComponent<PlayerCharacterAppearance>();
+            if (
+                appearance != null
+                && appearance.ActiveCharacter != null
+                && appearance.ActiveCharacter.MovementSettings != null
+            )
+                movementSettings = appearance.ActiveCharacter.MovementSettings;
             if (!HasRequiredReferences())
             {
                 enabled = false;
@@ -70,6 +85,7 @@ namespace A305.Player
             }
 
             motor = movementSettings.CreateMotor();
+            touchControls = GetComponentInChildren<PlayerTouchControls>(true);
         }
 
         private void OnEnable()
@@ -82,8 +98,14 @@ namespace A305.Player
 
         private void Update()
         {
+            Vector2 move = moveAction.action.ReadValue<Vector2>();
+            if (touchControls != null)
+            {
+                move = Vector2.ClampMagnitude(move + touchControls.Move, 1f);
+            }
+
             var input = new PlayerMoveInput(
-                moveAction.action.ReadValue<Vector2>(),
+                move,
                 cameraTransform.eulerAngles.y,
                 sprintAction.action.IsPressed(),
                 jumpAction.action.WasPressedThisFrame()

@@ -33,7 +33,9 @@ namespace A305.Player
         private InputActionReference toggleViewAction;
 
         private CameraOrbit orbit;
+        private PlayerCharacterDefinition character;
         private Transform dialogueLookTarget;
+        private PlayerTouchControls touchControls;
 
         public CameraViewMode ViewMode => orbit.ViewMode;
 
@@ -72,7 +74,10 @@ namespace A305.Player
                 return;
             }
 
+            var appearance = followTarget.GetComponent<PlayerCharacterAppearance>();
+            character = appearance != null ? appearance.ActiveCharacter : null;
             orbit = cameraSettings.CreateOrbit();
+            touchControls = followTarget.GetComponentInChildren<PlayerTouchControls>(true);
             SnapBehindTarget();
         }
 
@@ -99,7 +104,16 @@ namespace A305.Player
 
         private void ApplyInput()
         {
-            if (rotateHoldAction.action.IsPressed())
+            if (touchControls != null)
+            {
+                orbit.Rotate(touchControls.ConsumeLookDelta());
+            }
+
+            // 터치가 마우스 입력으로도 전달되는 브라우저에서 회전을 중복 적용하지 않는다.
+            if (
+                (touchControls == null || !touchControls.IsInteracting)
+                && rotateHoldAction.action.IsPressed()
+            )
             {
                 orbit.Rotate(lookAction.action.ReadValue<Vector2>());
             }
@@ -119,7 +133,11 @@ namespace A305.Player
 
         private Pose GetDesiredPose()
         {
-            Vector3 eye = followTarget.position + Vector3.up * cameraSettings.EyeHeightMeters;
+            float eyeHeight =
+                character != null && character.CameraEyeHeightMeters > 0
+                    ? character.CameraEyeHeightMeters
+                    : cameraSettings.EyeHeightMeters;
+            Vector3 eye = followTarget.position + Vector3.up * eyeHeight;
 
             switch (orbit.ViewMode)
             {
@@ -134,7 +152,11 @@ namespace A305.Player
 
         private Pose GetThirdPersonPoseInFrontOfWalls()
         {
-            Vector3 pivot = followTarget.position + Vector3.up * cameraSettings.PivotHeightMeters;
+            float pivotHeight =
+                character != null && character.CameraPivotHeightMeters > 0
+                    ? character.CameraPivotHeightMeters
+                    : cameraSettings.PivotHeightMeters;
+            Vector3 pivot = followTarget.position + Vector3.up * pivotHeight;
             Pose pose = orbit.GetThirdPersonPose(pivot);
             Vector3 pivotToCamera = pose.position - pivot;
 

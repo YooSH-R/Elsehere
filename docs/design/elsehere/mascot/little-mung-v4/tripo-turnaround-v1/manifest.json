@@ -1,0 +1,64 @@
+{
+  "source": "artifacts/mascot/little-mung-v4/b-round-pupils-original-gaze-v2.png",
+  "generation_method": "built-in image_gen, one call per view",
+  "side_naming": "left-profile: nose points image-left; right-profile: nose points image-right",
+  "status": "Archived naming and paths; use the Little Mung v7 reference set",
+  "current_design": "Historical generation label: Little Mung v4 B; current designation: Little Mung v7",
+  "tripo_generation_executed": false,
+  "views": [
+    {
+      "view": "front",
+      "file": "artifacts/mascot/little-mung-v4/tripo-turnaround-v1/front.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "approx_colored_subject_bounds": [
+        128,
+        37,
+        1083,
+        1186
+      ]
+    },
+    {
+      "view": "left-profile",
+      "file": "artifacts/mascot/little-mung-v4/tripo-turnaround-v1/left-profile.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "approx_colored_subject_bounds": [
+        276,
+        35,
+        1016,
+        1186
+      ]
+    },
+    {
+      "view": "right-profile",
+      "file": "artifacts/mascot/little-mung-v4/tripo-turnaround-v1/right-profile.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "approx_colored_subject_bounds": [
+        204,
+        33,
+        940,
+        1187
+      ]
+    },
+    {
+      "view": "back",
+      "file": "artifacts/mascot/little-mung-v4/tripo-turnaround-v1/back.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "approx_colored_subject_bounds": [
+        160,
+        37,
+        1087,
+        1186
+      ]
+    }
+  ],
+  "superseded_by": "docs/design/elsehere/mascot/little-mung-v7/tripo-turnaround-v1/manifest.json",
+  "artifact_storage": "local-only; artifacts/ is excluded from Git"
+}

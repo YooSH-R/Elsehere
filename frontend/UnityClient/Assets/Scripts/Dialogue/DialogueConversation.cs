@@ -6,7 +6,7 @@ namespace A305.Dialogue
     /// 대화 한 번의 진행. 사용자가 문장을 보내면 대본에 따라 NPC 대사를 덧붙인다.
     /// 서버·AI 연동 전에는 대본의 정해진 턴과 키워드 규칙으로 응답한다.
     /// </summary>
-    public sealed class DialogueConversation
+    public sealed class DialogueConversation : IDialogueContent
     {
         private readonly DialogueScript script;
         private readonly List<DialogueLine> lines = new List<DialogueLine>();
@@ -46,8 +46,18 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 대사. [뜻 보기]·[표현 저장]이 이 대사를 쓴다.</summary>
         public DialogueLine LastNpcLine { get; private set; }
 
+        // 대본 대화는 바로 답하고 음성을 쓰지 않는다.
+        public bool IsBusy => false;
+        public string StatusMessage => null;
+        public IReadOnlyList<string> SuggestWords => null;
+        public bool CanSend => !IsGuidedCompleted;
+        public bool HasMeaning => true;
+        public bool UsesVoice => false;
+
         private GuidedTurn? CurrentGuidedTurn =>
-            IsGuided && !IsGuidedCompleted ? script.GuidedTurns[guidedTurnIndex] : (GuidedTurn?)null;
+            IsGuided && !IsGuidedCompleted
+                ? script.GuidedTurns[guidedTurnIndex]
+                : (GuidedTurn?)null;
 
         /// <returns>문장을 보내 NPC가 답했으면 true. 빈 문장이거나 정해진 흐름을 마쳤으면 false.</returns>
         public bool Send(string text)

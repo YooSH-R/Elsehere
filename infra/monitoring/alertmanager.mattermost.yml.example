@@ -1,0 +1,23 @@
+# Copy only after approval; lock the incoming webhook to that same channel.
+route:
+  receiver: approved-mattermost
+  group_by: [alertname, environment]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: approved-mattermost
+    mattermost_configs:
+      - webhook_url_file: /run/secrets/mattermost-webhook-url
+        channel: REQUIRES_USER_APPROVAL
+        send_resolved: true
+        title: '[{{ .Status | toUpper }}][{{ .CommonLabels.environment }}] {{ .CommonLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}{{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          시작: {{ .StartsAt }}
+          {{ if eq .Status "resolved" }}복구: {{ .EndsAt }}{{ end }}
+          {{ end }}
+          확인: Grafana ELSEHERE API / Prometheus Alerts (SSH 터널)
+          운영 설정: https://lab.ssafy.com/s15-final/S15P31A305/-/merge_requests/56

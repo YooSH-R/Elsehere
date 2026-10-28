@@ -21,7 +21,8 @@ namespace A305.EditorTools.Player
         public const string MenuPath = "Tools/A305/Player/Build Sandbox";
 
         private const string ScenePath = "Assets/Scenes/Sandbox/PlayerSandbox.unity";
-        private const string MovementSettingsPath = "Assets/Data/Player/PlayerMovementSettings.asset";
+        private const string MovementSettingsPath =
+            "Assets/Data/Player/PlayerMovementSettings.asset";
         private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const string ArtFolder = "Assets/Art/Player";
         private const string InputActionsPath = BuilderTools.InputActionsPath;
@@ -80,7 +81,10 @@ namespace A305.EditorTools.Player
         {
             string fullPath = Path.GetFullPath(InputActionsPath);
             InputActionAsset actions = InputActionAsset.FromJson(File.ReadAllText(fullPath));
-            InputActionMap playerMap = actions.FindActionMap(PlayerActionMap, throwIfNotFound: true);
+            InputActionMap playerMap = actions.FindActionMap(
+                PlayerActionMap,
+                throwIfNotFound: true
+            );
             bool isChanged = false;
 
             isChanged |= AddActionIfMissing(
@@ -254,7 +258,11 @@ namespace A305.EditorTools.Player
 
             var probe = new GameObject("DialogueViewProbe").AddComponent<DialogueViewProbe>();
             probe.transform.SetParent(groups.Systems, false);
-            BuilderTools.SetReference(probe, "cameraRig", playerCamera.GetComponent<PlayerCameraRig>());
+            BuilderTools.SetReference(
+                probe,
+                "cameraRig",
+                playerCamera.GetComponent<PlayerCameraRig>()
+            );
             BuilderTools.SetReference(probe, "playerMover", player.GetComponent<PlayerMover>());
             BuilderTools.SetReference(probe, "lookTarget", dialogueLookTarget);
             BuilderTools.RequireReferences(probe);

@@ -213,7 +213,9 @@ namespace A305.Npc
 
         private void Stand()
         {
-            characterController.Move(Vector3.up * (GroundedDownwardSpeedMetersPerSecond * Time.deltaTime));
+            characterController.Move(
+                Vector3.up * (GroundedDownwardSpeedMetersPerSecond * Time.deltaTime)
+            );
             ReportLocomotion(0f);
         }
 

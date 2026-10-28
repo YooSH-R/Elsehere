@@ -37,13 +37,26 @@ class EntitySchemaTest {
 
     assertThat(tableNames)
         .contains(
+            "users",
+            "user_consents",
+            "user_language_profiles",
+            "level_tests",
+            "level_test_answers",
             "scenes",
             "npcs",
-            "world_objects",
-            "user_object_prefs",
+            "scene_words",
+            "user_word_prefs",
             "vocabularies",
             "user_vocab",
             "missions",
-            "user_missions");
+            "user_missions",
+            "conversations",
+            "turns",
+            "ai_requests",
+            "conversation_feedback",
+            "turn_feedback",
+            "user_npc_relations")
+        // 장소별 사물 단어로 바꾸면서 없앤 사물 단위 테이블은 다시 만들지 않는다.
+        .doesNotContain("world_objects", "user_object_prefs");
   }
 }

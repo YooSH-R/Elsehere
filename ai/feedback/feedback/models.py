@@ -1,4 +1,5 @@
 """v0.3: 대화 요약·리뷰 태그·전체 발화 평가·단어장 후보. 의미 품질 판정은 별도."""
+
 from typing import Annotated, Literal, Union
 
 from pydantic import Field, TypeAdapter, model_validator
@@ -141,8 +142,8 @@ class FeedbackData(core.Contract):
                 raise ValueError("저장할 표현은 출처 quote와 정확히 일치해야 한다")
             if item.source.type == "suggestion":
                 review = reviews.get(item.source.review_id)
-                suggestion = None if review is None else next(
-                    (s for s in review.suggestions if s.suggestion_id == item.source.suggestion_id), None
+                suggestion = (
+                    None if review is None else next((s for s in review.suggestions if s.suggestion_id == item.source.suggestion_id), None)
                 )
                 if suggestion is None or item.source.quote not in suggestion.suggested_expression:
                     raise ValueError("단어장 후보의 개선 표현 출처가 없거나 일치하지 않는다")

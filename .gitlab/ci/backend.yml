@@ -1,0 +1,60 @@
+backend:check-and-build:
+  extends: .docker-job
+  stage: verify
+  needs: ["ci:yaml"]
+  image: eclipse-temurin:21-jdk
+  timeout: 20m
+  variables:
+    GRADLE_USER_HOME: $CI_PROJECT_DIR/.gradle
+    GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Xmx1536m
+    # Ryuk mounts this socket from the job's rootless Docker service.
+    TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /run/user/1000/docker.sock
+  cache:
+    key:
+      prefix: gradle-java21
+      files:
+        - backend/gradle/wrapper/gradle-wrapper.properties
+        - backend/build.gradle
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+  script:
+    - cd backend
+    - sh gradlew --no-daemon --max-workers=2 --build-cache check bootJar
+    - printf '%s\n' "$CI_COMMIT_SHA" > build/commit.txt
+  artifacts:
+    when: always
+    name: backend-$CI_COMMIT_SHA
+    expire_in: 14 days
+    reports:
+      junit: backend/build/test-results/test/TEST-*.xml
+    paths:
+      - backend/build/reports/
+      - backend/build/test-results/
+      - backend/build/libs/*.jar
+      - backend/build/commit.txt
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_BACKEND == "true"'
+    - !reference [.deployment-parent-skips, rules]
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &backend_change_paths
+          - backend/**/*
+          - docs/api/**/*
+          - docs/erd.dbml
+          - .dockerignore
+          - infra/docker/**/*
+          - infra/compose/compose.app.yaml
+          - infra/compose/compose.runtime-test.yaml
+          - infra/compose/deploy.*.env.example
+          - infra/nginx/web.conf
+          - infra/scripts/check_runtime.py
+          - infra/scripts/runtime_probe.py
+          - .gitlab-ci.yml
+          - .gitlab/ci/**/*
+          - AGENTS.md
+          - docs/code-conventions.md
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *backend_change_paths

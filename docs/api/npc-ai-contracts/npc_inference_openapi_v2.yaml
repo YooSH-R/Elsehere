@@ -1,0 +1,671 @@
+openapi: 3.1.1
+info:
+  title: NPC 추론 API — 공통 NpcProfile v2 참조
+  version: 2.0.0-proposal
+  description: 백엔드→AI의 비스트리밍·무상태 추론 API 한 개. NPC 설정 저장은 별도 설정·관리 명세의 책임이다. 공통 프로필은 npc_shared_schemas_v2.json의
+    단일 정의를 참조한다. v1.2 프로필과 호환되지 않는다. 모든 첫 대사는 NPC가 생성하며 TTS는 Backend가 호출한다. 서버 주소·실제 구현은 포함하지 않는다.
+security:
+- ServiceBearer: []
+tags:
+- name: NPC Inference
+  description: NPC 첫 대사와 후속 응답 생성
+paths:
+  /internal/ai/npc/respond:
+    post:
+      operationId: respondNpc
+      tags:
+      - NPC Inference
+      summary: NPC 인격·상황에 맞는 다음 대사 생성
+      description: Backend 전용. NPC_OPENING 또는 USER_MESSAGE. AI는 DB/이력을 조회하지 않고 전달받은 입력만 사용한다. 요청 이력의 마지막
+        발화, 요청/응답 ID, NPC_OPENING의 CONTINUE 응답, UTF-8 본문 크기 제한은 애플리케이션에서도 검증한다.
+      x-proposed-limits:
+        maxBodyBytes: 131072
+        serviceTimeoutSeconds: 30
+        backendReadTimeoutSeconds: 35
+        automaticRetry: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NpcRespondRequest'
+            examples:
+              opening:
+                summary: 모든 NPC의 첫 발화
+                value:
+                  requestId: req_001
+                  sessionId: session_001
+                  npcId: npc_cafe_001
+                  turnType: NPC_OPENING
+                  userText: null
+                  userLevel: A2
+                  npcProfile:
+                    schemaVersion: '2.0'
+                    profileVersion: 1
+                    name: Emma
+                    occupation: barista
+                    ageRange: 20대 후반
+                    personality:
+                      traits:
+                      - name: 친근하지만 눈치를 살핌
+                        description: 먼저 인사하고 짧은 대화를 즐기지만 상대가 짧게 답하면 질문을 줄인다.
+                      - name: 정확함을 중시함
+                        description: 친절하게 응대하되 불명확한 주문을 확인 없이 넘기지 않는다.
+                      dimensions: null
+                    values:
+                    - 손님이 부담을 느끼지 않는 환대
+                    - 주문을 정확히 이해하는 것
+                    motivations:
+                    - 손님이 편하게 다시 찾는 카페를 만든다
+                    fears:
+                    - 친절하게 하려던 말이 상대에게 간섭으로 느껴지는 것
+                    socialBehavior:
+                      firstMeeting: 먼저 가볍게 인사하되 개인적인 질문은 서두르지 않는다.
+                      familiarityExpression: 현재 제공된 대화에서 취향이 드러나면 그 내용을 자연스럽게 이어 말한다.
+                      conflictResponse: 변경 요청을 탓하지 않고 필요한 부분을 차례로 확인한다.
+                      boundaries:
+                      - 상대가 원하지 않는 사적인 이야기를 캐묻지 않는다.
+                    speechStyle:
+                      tone: 따뜻하고 경쾌하지만 과하게 들뜨지 않음
+                      formality: casual
+                      verbosity: short
+                      humor: 상대가 여유 있을 때만 가벼운 상황 농담을 한다.
+                      directness: balanced
+                      catchphrases:
+                      - Take your time.
+                    background:
+                      summary: 동네 카페에서 일하며 쉬는 날에는 주변 풍경을 스케치한다.
+                      experiences:
+                      - event: 이전에 주문을 성급히 이해해 잘못 준비했던 경험이 있다.
+                        influence: 애매한 주문은 친절하게 한 번 더 확인한다.
+                      interests:
+                      - 커피 향 비교
+                      - 동네 풍경 스케치
+                    habits:
+                    - trigger: 상대가 여러 선택지 사이에서 고민할 때
+                      tendency: 설명을 길게 늘이기보다 선택지를 하나씩 정리해 준다.
+                    behaviorRules:
+                    - 친절함을 이유로 모든 응답에 새 질문을 붙이지 않는다.
+                    - 상대의 대답을 들은 뒤 필요한 확인 질문을 하나씩 한다.
+                  scenario:
+                    scenarioId: cafe_order
+                    locationId: cafe
+                    situation: 사용자가 카페 계산대에 왔고 아직 주문하지 않았다.
+                    facts:
+                    - 주문 가능한 메뉴에 아이스 라테가 포함되어 있다.
+                  conversationHistory: []
+              followup:
+                summary: 사용자 현재 발화에 응답
+                value:
+                  requestId: req_002
+                  sessionId: session_001
+                  npcId: npc_cafe_001
+                  turnType: USER_MESSAGE
+                  userText: Can I get an iced latte?
+                  userLevel: A2
+                  npcProfile:
+                    schemaVersion: '2.0'
+                    profileVersion: 1
+                    name: Emma
+                    occupation: barista
+                    ageRange: 20대 후반
+                    personality:
+                      traits:
+                      - name: 친근하지만 눈치를 살핌
+                        description: 먼저 인사하고 짧은 대화를 즐기지만 상대가 짧게 답하면 질문을 줄인다.
+                      - name: 정확함을 중시함
+                        description: 친절하게 응대하되 불명확한 주문을 확인 없이 넘기지 않는다.
+                      dimensions: null
+                    values:
+                    - 손님이 부담을 느끼지 않는 환대
+                    - 주문을 정확히 이해하는 것
+                    motivations:
+                    - 손님이 편하게 다시 찾는 카페를 만든다
+                    fears:
+                    - 친절하게 하려던 말이 상대에게 간섭으로 느껴지는 것
+                    socialBehavior:
+                      firstMeeting: 먼저 가볍게 인사하되 개인적인 질문은 서두르지 않는다.
+                      familiarityExpression: 현재 제공된 대화에서 취향이 드러나면 그 내용을 자연스럽게 이어 말한다.
+                      conflictResponse: 변경 요청을 탓하지 않고 필요한 부분을 차례로 확인한다.
+                      boundaries:
+                      - 상대가 원하지 않는 사적인 이야기를 캐묻지 않는다.
+                    speechStyle:
+                      tone: 따뜻하고 경쾌하지만 과하게 들뜨지 않음
+                      formality: casual
+                      verbosity: short
+                      humor: 상대가 여유 있을 때만 가벼운 상황 농담을 한다.
+                      directness: balanced
+                      catchphrases:
+                      - Take your time.
+                    background:
+                      summary: 동네 카페에서 일하며 쉬는 날에는 주변 풍경을 스케치한다.
+                      experiences:
+                      - event: 이전에 주문을 성급히 이해해 잘못 준비했던 경험이 있다.
+                        influence: 애매한 주문은 친절하게 한 번 더 확인한다.
+                      interests:
+                      - 커피 향 비교
+                      - 동네 풍경 스케치
+                    habits:
+                    - trigger: 상대가 여러 선택지 사이에서 고민할 때
+                      tendency: 설명을 길게 늘이기보다 선택지를 하나씩 정리해 준다.
+                    behaviorRules:
+                    - 친절함을 이유로 모든 응답에 새 질문을 붙이지 않는다.
+                    - 상대의 대답을 들은 뒤 필요한 확인 질문을 하나씩 한다.
+                  scenario:
+                    scenarioId: cafe_order
+                    locationId: cafe
+                    situation: 사용자가 카페 점원에게 음료를 주문하고 있다.
+                    facts:
+                    - 아이스 라테를 주문할 수 있다.
+                    - 음료 크기는 small과 large 중에서 선택한다.
+                  conversationHistory:
+                  - speaker: NPC
+                    text: Hi! What can I get for you?
+              offerEnd:
+                summary: 종료 의도 예시 발화에 응답
+                value:
+                  requestId: req_003
+                  sessionId: session_001
+                  npcId: npc_cafe_001
+                  turnType: USER_MESSAGE
+                  userText: I have to go. See you later!
+                  userLevel: A2
+                  npcProfile:
+                    schemaVersion: '2.0'
+                    profileVersion: 1
+                    name: Emma
+                    occupation: barista
+                    ageRange: 20대 후반
+                    personality:
+                      traits:
+                      - name: 친근하지만 눈치를 살핌
+                        description: 먼저 인사하고 짧은 대화를 즐기지만 상대가 짧게 답하면 질문을 줄인다.
+                      - name: 정확함을 중시함
+                        description: 친절하게 응대하되 불명확한 주문을 확인 없이 넘기지 않는다.
+                      dimensions: null
+                    values:
+                    - 손님이 부담을 느끼지 않는 환대
+                    - 주문을 정확히 이해하는 것
+                    motivations:
+                    - 손님이 편하게 다시 찾는 카페를 만든다
+                    fears:
+                    - 친절하게 하려던 말이 상대에게 간섭으로 느껴지는 것
+                    socialBehavior:
+                      firstMeeting: 먼저 가볍게 인사하되 개인적인 질문은 서두르지 않는다.
+                      familiarityExpression: 현재 제공된 대화에서 취향이 드러나면 그 내용을 자연스럽게 이어 말한다.
+                      conflictResponse: 변경 요청을 탓하지 않고 필요한 부분을 차례로 확인한다.
+                      boundaries:
+                      - 상대가 원하지 않는 사적인 이야기를 캐묻지 않는다.
+                    speechStyle:
+                      tone: 따뜻하고 경쾌하지만 과하게 들뜨지 않음
+                      formality: casual
+                      verbosity: short
+                      humor: 상대가 여유 있을 때만 가벼운 상황 농담을 한다.
+                      directness: balanced
+                      catchphrases:
+                      - Take your time.
+                    background:
+                      summary: 동네 카페에서 일하며 쉬는 날에는 주변 풍경을 스케치한다.
+                      experiences:
+                      - event: 이전에 주문을 성급히 이해해 잘못 준비했던 경험이 있다.
+                        influence: 애매한 주문은 친절하게 한 번 더 확인한다.
+                      interests:
+                      - 커피 향 비교
+                      - 동네 풍경 스케치
+                    habits:
+                    - trigger: 상대가 여러 선택지 사이에서 고민할 때
+                      tendency: 설명을 길게 늘이기보다 선택지를 하나씩 정리해 준다.
+                    behaviorRules:
+                    - 친절함을 이유로 모든 응답에 새 질문을 붙이지 않는다.
+                    - 상대의 대답을 들은 뒤 필요한 확인 질문을 하나씩 한다.
+                  scenario:
+                    scenarioId: cafe_order
+                    locationId: cafe
+                    situation: 사용자가 카페 점원에게 음료를 주문하고 있다.
+                    facts:
+                    - 아이스 라테를 주문할 수 있다.
+                    - 음료 크기는 small과 large 중에서 선택한다.
+                  conversationHistory:
+                  - speaker: NPC
+                    text: Hi! What can I get for you?
+                  - speaker: USER
+                    text: Can I get an iced latte?
+                  - speaker: NPC
+                    text: Sure! Would you like a small or a large?
+      responses:
+        '200':
+          description: 검증된 NPC 대사와 대화 제어 신호. 음성은 포함하지 않음.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpcRespondResponse'
+              examples:
+                opening:
+                  summary: 첫 대사
+                  value:
+                    requestId: req_001
+                    sessionId: session_001
+                    npcId: npc_cafe_001
+                    replyText: Hi! What can I get for you?
+                    conversationControl:
+                      action: CONTINUE
+                      reason: null
+                followup:
+                  summary: 후속 대사
+                  value:
+                    requestId: req_002
+                    sessionId: session_001
+                    npcId: npc_cafe_001
+                    replyText: Sure! Would you like a small or a large?
+                    conversationControl:
+                      action: CONTINUE
+                      reason: null
+                offerEnd:
+                  summary: 마무리 제안(종료 명령 아님)
+                  value:
+                    requestId: req_003
+                    sessionId: session_001
+                    npcId: npc_cafe_001
+                    replyText: See you! Have a great day.
+                    conversationControl:
+                      action: OFFER_END
+                      reason: USER_END_INTENT
+        '400':
+          description: JSON을 해석할 수 없습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: null
+                    error:
+                      code: INVALID_JSON
+                      message: JSON을 해석할 수 없습니다.
+                      retryable: false
+        '401':
+          description: 유효한 내부 서비스 인증이 필요합니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: null
+                    error:
+                      code: UNAUTHORIZED
+                      message: 유효한 내부 서비스 인증이 필요합니다.
+                      retryable: false
+        '413':
+          description: 요청 본문 크기가 제한을 초과했습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: null
+                    error:
+                      code: PAYLOAD_TOO_LARGE
+                      message: 요청 본문 크기가 제한을 초과했습니다.
+                      retryable: false
+        '415':
+          description: application/json 요청만 지원합니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: UNSUPPORTED_MEDIA_TYPE
+                      message: application/json 요청만 지원합니다.
+                      retryable: false
+        '422':
+          description: 요청 필드 또는 호출 유형 조건이 올바르지 않습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: INVALID_REQUEST
+                      message: 요청 필드 또는 호출 유형 조건이 올바르지 않습니다.
+                      retryable: false
+        '429':
+          description: 일시적인 AI 처리량 제한입니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: AI_RATE_LIMITED
+                      message: 일시적인 AI 처리량 제한입니다.
+                      retryable: true
+        '500':
+          description: AI 서비스 내부 오류가 발생했습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: INTERNAL_ERROR
+                      message: AI 서비스 내부 오류가 발생했습니다.
+                      retryable: false
+        '502':
+          description: AI 모델 호출에 실패했습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: AI_PROVIDER_ERROR
+                      message: AI 모델 호출에 실패했습니다.
+                      retryable: true
+                invalidOutput:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: INVALID_AI_OUTPUT
+                      message: 모델 출력이 응답 계약을 만족하지 못했습니다.
+                      retryable: true
+                persistentProviderError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: AI_PROVIDER_ERROR
+                      message: 모델 공급자 설정 오류로 호출할 수 없습니다.
+                      retryable: false
+        '503':
+          description: AI 서비스를 일시적으로 사용할 수 없습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: AI_UNAVAILABLE
+                      message: AI 서비스를 일시적으로 사용할 수 없습니다.
+                      retryable: true
+        '504':
+          description: NPC 응답 생성 시간이 초과되었습니다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                defaultError:
+                  value:
+                    requestId: req_002
+                    error:
+                      code: AI_TIMEOUT
+                      message: NPC 응답 생성 시간이 초과되었습니다.
+                      retryable: true
+components:
+  securitySchemes:
+    ServiceBearer:
+      type: http
+      scheme: bearer
+      description: 내부 서비스 토큰(제안). 사용자 토큰 아님. 서버에서만 관리하며 보호된 연결로 전송. 실제 발급 방식은 배포 전에 합의.
+  schemas:
+    Identifier:
+      $ref: ./npc_shared_schemas_v2.json#/$defs/Identifier
+    NpcProfile:
+      $ref: ./npc_shared_schemas_v2.json#/$defs/NpcProfile
+    Scenario:
+      type: object
+      additionalProperties: false
+      required:
+      - scenarioId
+      - locationId
+      - situation
+      - facts
+      properties:
+        scenarioId:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          pattern: \S
+          maxLength: 128
+        locationId:
+          $ref: '#/components/schemas/Identifier'
+        situation:
+          type: string
+          minLength: 1
+          pattern: \S
+          maxLength: 2000
+        facts:
+          type: array
+          minItems: 0
+          items:
+            type: string
+            minLength: 1
+            pattern: \S
+            maxLength: 500
+          maxItems: 30
+          uniqueItems: true
+      description: 읽기 전용 현재 상황. 별도 시나리오가 없으면 scenarioId는 null. facts 항목은 확정 사실이다.
+    HistoryMessage:
+      type: object
+      additionalProperties: false
+      required:
+      - speaker
+      - text
+      properties:
+        speaker:
+          type: string
+          enum:
+          - NPC
+          - USER
+        text:
+          type: string
+          minLength: 1
+          pattern: \S
+          maxLength: 2000
+    NpcRespondRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - requestId
+      - sessionId
+      - npcId
+      - turnType
+      - userText
+      - userLevel
+      - npcProfile
+      - scenario
+      - conversationHistory
+      properties:
+        requestId:
+          $ref: '#/components/schemas/Identifier'
+          description: 호출 시도 추적용. 멱등키가 아니며 재시도는 새 ID 사용.
+        sessionId:
+          $ref: '#/components/schemas/Identifier'
+        npcId:
+          $ref: '#/components/schemas/Identifier'
+        turnType:
+          type: string
+          enum:
+          - NPC_OPENING
+          - USER_MESSAGE
+        userText:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          pattern: \S
+          maxLength: 2000
+        userLevel:
+          type: string
+          enum:
+          - A1
+          - A2
+          - B1
+          - B2
+          - C1
+          - C2
+        npcProfile:
+          $ref: '#/components/schemas/NpcProfile'
+        scenario:
+          $ref: '#/components/schemas/Scenario'
+        conversationHistory:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/HistoryMessage'
+          description: 과거→최신, 현재 userText 제외. USER_MESSAGE에서는 마지막 발화가 NPC여야 함(서버 별도 검증).
+      allOf:
+      - if:
+          properties:
+            turnType:
+              const: NPC_OPENING
+          required:
+          - turnType
+        then:
+          properties:
+            userText:
+              type: 'null'
+            conversationHistory:
+              maxItems: 0
+        else:
+          properties:
+            userText:
+              type: string
+            conversationHistory:
+              minItems: 1
+      description: NpcProfile schemaVersion=2.0를 받는 계약. NPC_OPENING에는 null/[]가 필요. USER_MESSAGE의 마지막 이력
+        화자는 NPC(애플리케이션 검사).
+    ConversationControl:
+      type: object
+      additionalProperties: false
+      required:
+      - action
+      - reason
+      properties:
+        action:
+          type: string
+          enum:
+          - CONTINUE
+          - OFFER_END
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - null
+          - USER_END_INTENT
+          - NATURAL_WRAP_UP
+      oneOf:
+      - properties:
+          action:
+            const: CONTINUE
+          reason:
+            type: 'null'
+      - properties:
+          action:
+            const: OFFER_END
+          reason:
+            type: string
+            enum:
+            - USER_END_INTENT
+            - NATURAL_WRAP_UP
+      description: 종료 제안 신호일 뿐 세션 종료 명령이 아니다. NPC_OPENING 응답은 CONTINUE/null(요청과 대조해 별도 검증).
+    NpcRespondResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - requestId
+      - sessionId
+      - npcId
+      - replyText
+      - conversationControl
+      properties:
+        requestId:
+          $ref: '#/components/schemas/Identifier'
+        sessionId:
+          $ref: '#/components/schemas/Identifier'
+        npcId:
+          $ref: '#/components/schemas/Identifier'
+        replyText:
+          type: string
+          minLength: 1
+          pattern: \S
+          maxLength: 2000
+          description: 자막과 TTS에 사용하는 최종 영어 일반 텍스트. 마크다운·SSML·행동 지시문·내부 판단 설명 제외.
+        conversationControl:
+          $ref: '#/components/schemas/ConversationControl'
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required:
+      - code
+      - message
+      - retryable
+      properties:
+        code:
+          type: string
+          enum:
+          - INVALID_JSON
+          - UNAUTHORIZED
+          - PAYLOAD_TOO_LARGE
+          - UNSUPPORTED_MEDIA_TYPE
+          - INVALID_REQUEST
+          - AI_RATE_LIMITED
+          - AI_PROVIDER_ERROR
+          - INVALID_AI_OUTPUT
+          - AI_UNAVAILABLE
+          - AI_TIMEOUT
+          - INTERNAL_ERROR
+        message:
+          type: string
+          minLength: 1
+          pattern: \S
+          maxLength: 1000
+        retryable:
+          type: boolean
+          description: 재시도를 고려할 수 있는 일시적 실패 여부. 중복 실행·과금 방지 보장이 아님.
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - requestId
+      - error
+      properties:
+        requestId:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          pattern: \S
+          maxLength: 128
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+      description: 요청 ID를 읽을 수 없으면 requestId=null. API 서비스가 생성하는 오류 형식; 네트워크·프록시 오류는 이 형식을 보장하지 않음.
+x-contract-status: proposal
+x-reference-document: 02_npc_inference_api_spec_v2.md
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+x-shared-schema: npc_shared_schemas_v2.json

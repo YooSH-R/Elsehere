@@ -1,6 +1,6 @@
 # Player 모듈
 
-PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합니다. 탐험 중에는 3인칭·1인칭을 오가고, NPC와 대화할 때는 상대를 바라보는 1인칭으로 고정한 뒤 대화가 끝나면 직전 시점으로 돌아갑니다.
+PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동과 카메라 시점을 조작합니다. 탐험 중에는 3인칭·1인칭을 오가고, NPC와 대화할 때는 상대를 바라보는 1인칭으로 고정한 뒤 대화가 끝나면 직전 시점으로 돌아갑니다.
 
 다른 프로젝트에서도 쓸 수 있도록 게임 진행, 서버 연동, NPC·미션 같은 게임 코드를 참조하지 않습니다. 대화 시작·종료처럼 게임이 정하는 일은 아래 공개 API로 요청받습니다.
 
@@ -12,6 +12,11 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | `CameraOrbit` | 3인칭·1인칭·대화 시점 상태와 회전·줌 범위를 관리하고 카메라 위치를 계산합니다. |
 | `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. |
 | `PlayerCameraRig` | 카메라가 플레이어를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. |
+| `TouchDragInput` | 손가락별 드래그 소유권, 조이스틱 방향과 한 번만 적용할 카메라 이동량을 관리합니다. |
+| `PlayerTouchControls`, `TouchDragArea` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력을 전달합니다. |
+| `TouchControlsAvailability` | 조이스틱과 드래그 영역을 보일 기기인지 정합니다. Unity 객체 없이 테스트합니다. |
+| `BrowserPointer`, `Plugins/WebGL/BrowserPointer.jslib` | Web 빌드에서 브라우저의 주 입력 장치가 손가락인지(CSS `pointer: coarse`) 읽습니다. |
+| `PlayerTouchSettings` | 조이스틱 중앙 무시 영역과 터치 회전 감도를 설정합니다. |
 | `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. |
 | `DialogueViewProbe` | Sandbox 씬에서 T 키로 대화 시점과 이동 잠금을 확인하는 확인용 컴포넌트입니다. 배포용 프리팹에는 붙이지 않습니다. |
 
@@ -19,7 +24,8 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 
 | 대상 | 용도 |
 | --- | --- |
-| Unity Input System | 키보드·마우스 입력 |
+| Unity Input System | 키보드·마우스·다중 터치 입력 |
+| Unity UI | 모바일 조이스틱과 드래그 영역 |
 | `A305.Characters` | 모델 Animator에 이동 상태 전달. 연결하지 않아도 동작합니다. |
 
 ## Sandbox 씬에서 확인
@@ -34,8 +40,30 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 | V | 1인칭·3인칭 전환 |
 | T | `DialogueTarget`을 바라보는 대화 시점과 이동 잠금 전환 |
 
+### 모바일 터치 조작
+
+휴대폰·태블릿 브라우저에서는 화면 왼쪽 아래 조이스틱을 밀어 이동하고, 화면 오른쪽 빈 영역을 드래그해 카메라를 돌립니다. 두 손가락으로 이동과 회전을 동시에 조작할 수 있습니다. 손을 떼거나 앱을 전환하면 입력이 초기화됩니다. 대화 중에는 기존 이동·회전 잠금이 적용됩니다. 점프·달리기·시점 전환의 터치 버튼은 제공하지 않습니다.
+
+조이스틱과 드래그 영역을 보이는 기준은 다음과 같습니다.
+
+| 실행 환경 | 기준 | 예 |
+| --- | --- | --- |
+| Web 빌드 | 브라우저 UA가 휴대폰·태블릿이거나(`Application.isMobilePlatform`) 주 입력 장치가 손가락(CSS `pointer: coarse`)이면 표시 | 휴대폰·iPad는 표시. 터치 노트북처럼 마우스·터치패드가 주 입력이면 터치스크린이 있어도 숨김 |
+| Editor | Input System에 Touchscreen 장치가 있으면 표시 | Device Simulator, 터치 PlayMode 테스트 |
+
+Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어 Web 빌드에서는 장치 유무로 판단하지 않습니다. iPadOS Safari는 기본으로 Mac UA를 보내 `Application.isMobilePlatform`이 false이므로 주 입력 장치를 함께 확인합니다.
+
+**Tools → A305 → Player → Build Touch Controls**는 `Prefabs/Player/TouchControls.prefab`, `Data/Player/PlayerTouchSettings.asset`을 준비하고 Player 프리팹에 터치 UI를 연결하며 `Scenes/Sandbox/TouchControlsSandbox.unity`를 만듭니다. 기존 디자인과 설정값은 유지합니다. Production 씬을 직접 수정할 필요 없이 기존 Player 프리팹 인스턴스에도 적용됩니다.
+
+`TouchControlsSandbox`는 터치 가능한 장치에서 이동·회전을 단독 확인하는 씬이며 Scene List에는 넣지 않습니다. Web 빌드와 휴대폰 확인 방법은 [Unity 실행 문서](../../../../../docs/unity/setup.md)를 따릅니다.
+
 씬·프리팹·데이터 에셋·입력 액션은 Editor 메뉴 **Tools → A305 → Player → Build Sandbox**(`Scripts/Editor/Player/PlayerSandboxBuilder.cs`)로 다시 만들 수 있습니다. Sandbox 씬은 덮어씁니다. `Player`·`PlayerCamera` 프리팹은 컴포넌트와 연결만 다시 맞추고, `Player`의 `Visual` 아래 모델과 모델에 맞춰 바꾼 `CharacterController` 크기는 유지합니다. 이미 있는 머티리얼과 데이터 에셋의 값도 유지합니다.
 
+## 계정 캐릭터 적용
+
+공용 Player는 `PlayerCharacterAppearance`로 `PlayerCharacterCatalog`에서 선택 ID의 외형·이동 설정·캡슐 크기를 적용합니다. `PlayerCharacterSelection`은 서버가 확인한 ID를 씬 사이에 전달하며, 계정의 영구 저장은 Onboarding API가 맡습니다. F는 보정 리틀 멍, M은 기존 대체 외형입니다. `PlayerCharacterVisibility`는 선택된 Visual을 1인칭·대화 시점에서 숨깁니다.
+
+이동 루트, 입력 액션, 카메라 추적 대상과 상호작용 참조를 교체하지 않습니다. 새 모델은 Character Definition의 Visual Prefab에 등록하고, Animator가 있다면 `Speed`, `IsGrounded`, `VerticalSpeed` 파라미터를 갖춰야 합니다. 모델의 접지 보정은 해당 Visual 안에 함께 구성합니다. Character Definition의 카메라 눈높이·조준점이 0보다 크면 해당 캐릭터에 적용하고, 0이면 씬 카메라 데이터의 높이를 사용합니다. 거리·회전·줌 설정은 씬 데이터를 유지합니다. 등록 경로와 확인 순서는 [리틀 멍 플레이어](../../../../../docs/unity/little-mung-player.md)를 따릅니다.
 ## 사용 방법
 
 1. Project 창에서 **Create → A305 → Player**로 `Movement Settings`, `Camera Settings` 데이터 에셋을 만듭니다.
@@ -67,4 +95,4 @@ PC 웹에서 플레이어의 키보드 이동과 카메라 시점을 담당합�
 
 ## 테스트
 
-`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다.
+`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.

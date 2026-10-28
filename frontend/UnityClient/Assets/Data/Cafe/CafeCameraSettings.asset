@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4659f956dd7faa84b8c2e1d1421aa877, type: 3}
+  m_Name: CafeCameraSettings
+  m_EditorClassIdentifier: A305.Player::A305.Player.PlayerCameraSettings
+  startDistanceMeters: 3.8
+  minDistanceMeters: 1.5
+  maxDistanceMeters: 5.2
+  zoomStepMeters: 0.75
+  startPitchDegrees: 15
+  thirdPersonMinPitchDegrees: 0
+  thirdPersonMaxPitchDegrees: 70
+  firstPersonMinPitchDegrees: -70
+  firstPersonMaxPitchDegrees: 70
+  rotateDegreesPerPixel: 0.2
+  pivotHeightMeters: 1.5
+  eyeHeightMeters: 1.074
+  followSharpness: 15
+  collisionRadiusMeters: 0.2
+  collisionLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295

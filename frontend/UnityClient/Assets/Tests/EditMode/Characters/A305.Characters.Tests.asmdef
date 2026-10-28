@@ -1,0 +1,10 @@
+{
+    "name": "A305.Characters.Tests",
+    "rootNamespace": "A305.Characters.Tests",
+    "references": ["A305.Characters"],
+    "includePlatforms": ["Editor"],
+    "overrideReferences": true,
+    "precompiledReferences": ["nunit.framework.dll"],
+    "autoReferenced": false,
+    "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

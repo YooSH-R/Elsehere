@@ -1,0 +1,10 @@
+{
+  "scenarioId": "hotel_front_desk",
+  "locationId": "HOTEL",
+  "situation": "The guest is at the front desk of the hotel lobby.",
+  "facts": [
+    "Check-in is from 3 p.m. Check-out is by 11 a.m.",
+    "There is a reservation under the guest's name: a standard room for one night, already paid.",
+    "Their room is 305 on the third floor. The elevators are in the lobby."
+  ]
+}

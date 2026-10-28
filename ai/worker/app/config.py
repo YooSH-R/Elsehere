@@ -29,10 +29,28 @@ def profile_models(name: str) -> tuple[dict[str, str], dict[str, str]]:
     return models, role_provider
 
 
+def profile_stt_fallback(name: str) -> str:
+    """구성의 음성 인식 대체 '공급자:모델' (models.stt.fallback, 없으면 '')."""
+    m = PROFILES["profiles"][name]["models"].get("stt")
+    fb = m.get("fallback") if isinstance(m, dict) else None
+    return f"{fb['provider']}:{fb['model']}" if fb else ""
+
+
+def parse_stt_fallback(text: str) -> dict[str, str]:
+    """'gms:whisper-1' → {'provider': 'gms', 'model': 'whisper-1'}. 비어 있으면 {} (대체 없음)."""
+    if not text.strip():
+        return {}
+    provider, _, model = text.strip().partition(":")
+    if provider not in PROFILES["providers"] or not model:
+        raise RuntimeError(f"STT_FALLBACK은 '공급자:모델' (공급자는 {', '.join(PROFILES['providers'])}), 끄려면 빈 값: {text!r}")
+    return {"provider": provider, "model": model}
+
+
 # 역할별 기본 모델 (기본 구성 gms-luna). 고른 근거는 llm_profiles.json 각 구성의 _note
 DEFAULT_PROFILE = PROFILES["default_profile"]
 DEFAULT_MODELS, DEFAULT_ROLE_PROVIDER = profile_models(DEFAULT_PROFILE)
 DEFAULT_FALLBACK = ",".join(f"{a}={b}" for a, b in PROFILES["profiles"][DEFAULT_PROFILE].get("fallback", {}).items())
+DEFAULT_STT_FALLBACK = parse_stt_fallback(profile_stt_fallback(DEFAULT_PROFILE))
 
 
 def load_dotenv(path: Path = ROOT / ".env"):
@@ -66,6 +84,8 @@ class Settings:
         default_factory=lambda: dict(DEFAULT_ROLE_PROVIDER)
     )  # 역할 → 다른 공급자 이름 (예: GMS 구성에서도 stt는 groq)
     providers: dict[str, dict] = field(default_factory=dict)  # 다른 공급자 이름 → {"base_url", "api_key"}
+    stt_fallback: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_STT_FALLBACK))  # {"provider", "model"}, {}면 대체 없음
+    stt_first_timeout_s: float = 8.0  # 대체가 있을 때 첫 음성 인식 호출의 상한 (Groq 6.5초 음성 0.4초). 대체·대체 없음은 30초
     model_params: list[dict] = field(default_factory=lambda: list(MODEL_PARAMS))
     call_timeout_s: float = 8.0  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
     hedge_after_s: float = 3.0  # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
@@ -75,6 +95,7 @@ class Settings:
     feedback_timeout_s: float = 60.0  # 대화 종료 피드백 호출 하나의 상한 (길게 생성해서 따로, 같은 요청 더 보내기 없음)
     words_budget_s: float = 3.0  # NPC 대답 스트림 안 추천 단어(words)의 상한. 넘으면 words: null(timeout)로 넘기고 done을 보낸다
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
+    guard_budget_s: float = 5.0  # /v1/guard 무례 판정 하나의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함)
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
     exhausted_skip_s: float = 600.0  # 하루 한도에 걸린 모델은 이만큼 건너뜀
     retry_pause_s: float = 1.0  # 429/5xx 뒤 재시도 전에 쉬는 시간 (retry-after가 있으면 그것, 최대 5초)
@@ -101,9 +122,12 @@ class Settings:
         main = p["provider"]
         models, role_provider = profile_models(profile)
         api_key = e.get("LLM_API_KEY") or provider_key(main, e)
+        stt_fallback = parse_stt_fallback(e.get("STT_FALLBACK", profile_stt_fallback(profile)))
+        others = list(role_provider.values())
+        if stt_fallback and stt_fallback["provider"] != main:
+            others.append(stt_fallback["provider"])
         providers = {
-            name: {"base_url": PROFILES["providers"][name]["base_url"], "api_key": provider_key(name, e)}
-            for name in dict.fromkeys(role_provider.values())
+            name: {"base_url": PROFILES["providers"][name]["base_url"], "api_key": provider_key(name, e)} for name in dict.fromkeys(others)
         }
         missing = [" 또는 ".join(PROFILES["providers"][n]["key_env"]) for n, v in providers.items() if not v["api_key"]]
         if not api_key:
@@ -128,12 +152,15 @@ class Settings:
             fallback=parse_pairs(e.get("MODEL_FALLBACK", default_fallback)),
             role_provider=role_provider,
             providers=providers,
+            stt_fallback=stt_fallback,
+            stt_first_timeout_s=float(e.get("STT_FIRST_TIMEOUT_S", cls.stt_first_timeout_s)),
             call_timeout_s=float(e.get("CALL_TIMEOUT_S", cls.call_timeout_s)),
             hedge_after_s=float(e.get("HEDGE_AFTER_S", cls.hedge_after_s)),
             stream_hedge_after_s=float(e.get("STREAM_HEDGE_AFTER_S", cls.stream_hedge_after_s)),
             feedback_timeout_s=float(e.get("FEEDBACK_TIMEOUT_S", cls.feedback_timeout_s)),
             words_budget_s=float(e.get("WORDS_BUDGET_S", cls.words_budget_s)),
             judge_budget_s=float(e.get("JUDGE_BUDGET_S", cls.judge_budget_s)),
+            guard_budget_s=float(e.get("GUARD_BUDGET_S", cls.guard_budget_s)),
             audio_max_mb=float(e.get("AUDIO_MAX_MB", cls.audio_max_mb)),
             reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),
             kokoro_model=e.get("KOKORO_MODEL", ""),

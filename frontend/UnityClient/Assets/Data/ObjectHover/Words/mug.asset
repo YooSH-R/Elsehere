@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: mug
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: mug
+    languageCode: en-US
+    text: mug
+    meaningKo: "\uBA38\uADF8\uC794"
+    example: I drink tea from this mug.
+    exampleKo: "\uB098\uB294 \uC774 \uBA38\uADF8\uC794\uC73C\uB85C \uCC28\uB97C \uB9C8\uC154\uC694."
+    pronunciationAudioKey: 
+  assetGuid: ac559bbc27f517b4a94a40c8eaaf6ae9

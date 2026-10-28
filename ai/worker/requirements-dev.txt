@@ -1,2 +1,6 @@
 # 개발용: 코드 검사·포맷 (설정은 pyproject.toml)
 ruff==0.17.1
+# 개발용: 공통 인격 스키마에서 app/npc_profile_models.py 생성 (ai/tools/generate_npc_profile_models.py). 버전이 바뀌면 생성 결과도 바뀔 수 있어 고정
+datamodel-code-generator==0.86.0
+# 개발용: NPC 설정을 공통 인격 스키마 원본으로 검사 (ai/tools/npc_configs.py). 생성 모델이 놓치는 조건 규칙·중복 금지 등까지
+jsonschema==4.26.0

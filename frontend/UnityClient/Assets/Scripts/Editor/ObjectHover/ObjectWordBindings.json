@@ -1,0 +1,517 @@
+{
+  "bindings": [
+    {
+      "key": "tv",
+      "names": [
+        "Tv",
+        "Television"
+      ]
+    },
+    {
+      "key": "refrigerator",
+      "names": [
+        "Fridge",
+        "RetroRefrigerator",
+        "Refrigerator"
+      ]
+    },
+    {
+      "key": "air_conditioner",
+      "names": [
+        "AirConditioner"
+      ]
+    },
+    {
+      "key": "sofa",
+      "names": [
+        "SageSofa",
+        "Sofa",
+        "SofaLeft",
+        "SofaRight"
+      ]
+    },
+    {
+      "key": "bookshelf",
+      "names": [
+        "OakBookcase",
+        "Bookshelf",
+        "Bookcase"
+      ]
+    },
+    {
+      "key": "bed",
+      "names": [
+        "SageBed",
+        "Bed"
+      ]
+    },
+    {
+      "key": "counter",
+      "names": [
+        "Counter",
+        "ServiceCounter"
+      ]
+    },
+    {
+      "key": "menu",
+      "names": [
+        "MenuBoard",
+        "SignMenu"
+      ]
+    },
+    {
+      "key": "bench",
+      "names": [
+        "Bench",
+        "ParkBench"
+      ]
+    },
+    {
+      "key": "table",
+      "names": [
+        "CafeTable",
+        "CoffeeTable",
+        "SideTable",
+        "Table1",
+        "Table2",
+        "Table3",
+        "Table4"
+      ]
+    },
+    {
+      "key": "chair",
+      "names": [
+        "CafeChair",
+        "Table1ChairLeft",
+        "Table1ChairRight",
+        "Table2ChairLeft",
+        "Table2ChairRight",
+        "Table3ChairLeft",
+        "Table3ChairRight",
+        "Table4ChairLeft",
+        "Table4ChairRight"
+      ]
+    },
+    {
+      "key": "window",
+      "names": [
+        "CurtainedWindow",
+        "LobbyWindow",
+        "ClosedWindow",
+        "TallWindowV2",
+        "UpperWindow",
+        "WarmShopWindowV2",
+        "ShopWindow",
+        "WindowUpper2m",
+        "WindowShop2m",
+        "TallWindow",
+        "WarmShopWindow"
+      ]
+    },
+    {
+      "key": "lamp",
+      "names": [
+        "TableLamp",
+        "CeilingPendant",
+        "CafePendant",
+        "GlobeSconce",
+        "WallLamp",
+        "WallLampWarm"
+      ]
+    },
+    {
+      "key": "streetlight",
+      "names": [
+        "StreetLamp",
+        "StreetLampV2"
+      ]
+    },
+    {
+      "key": "chandelier",
+      "names": [
+        "LobbyChandelier"
+      ]
+    },
+    {
+      "key": "clock",
+      "names": [
+        "LobbyClock"
+      ]
+    },
+    {
+      "key": "cabinet",
+      "names": [
+        "MediaConsole",
+        "TvStand",
+        "BackBar"
+      ]
+    },
+    {
+      "key": "sink",
+      "names": []
+    },
+    {
+      "key": "rug",
+      "names": [
+        "LivingRug",
+        "RugBorder",
+        "RugCenter",
+        "RunnerBorder",
+        "Runner",
+        "RunnerStripe"
+      ]
+    },
+    {
+      "key": "picture",
+      "names": [
+        "EntryArtwork"
+      ]
+    },
+    {
+      "key": "sign",
+      "names": [
+        "SignReception",
+        "Brand",
+        "BrandSubtitle",
+        "Pickup",
+        "HotelName",
+        "Welcome",
+        "Reception",
+        "BuildingSign",
+        "VerticalSign",
+        "HotelLandmark",
+        "StreetSign",
+        "StatusPlate"
+      ]
+    },
+    {
+      "key": "key_cabinet",
+      "names": [
+        "KeyCabinet"
+      ]
+    },
+    {
+      "key": "elevator",
+      "names": [
+        "LiftFacade",
+        "ElevatorDoorLeft",
+        "ElevatorDoorRight"
+      ]
+    },
+    {
+      "key": "suitcase",
+      "names": [
+        "Suitcase"
+      ]
+    },
+    {
+      "key": "luggage_cart",
+      "names": [
+        "LuggageCart"
+      ]
+    },
+    {
+      "key": "reception_desk",
+      "names": [
+        "ReceptionDesk",
+        "FrontDesk"
+      ]
+    },
+    {
+      "key": "bell",
+      "names": [
+        "DeskBell",
+        "DeskBellBase"
+      ]
+    },
+    {
+      "key": "guestbook",
+      "names": [
+        "GuestBook",
+        "GuestBookCover"
+      ]
+    },
+    {
+      "key": "coffee_machine",
+      "names": [
+        "CoffeeMachine"
+      ]
+    },
+    {
+      "key": "cash_register",
+      "names": [
+        "CashRegister"
+      ]
+    },
+    {
+      "key": "display_case",
+      "names": [
+        "DisplayCase"
+      ]
+    },
+    {
+      "key": "pastry_stand",
+      "names": [
+        "PastryStand"
+      ]
+    },
+    {
+      "key": "price_card",
+      "names": [
+        "PriceCard"
+      ]
+    },
+    {
+      "key": "takeaway_cup",
+      "names": [
+        "TakeawayCup"
+      ]
+    },
+    {
+      "key": "mug",
+      "names": [
+        "Mug"
+      ]
+    },
+    {
+      "key": "plate",
+      "names": [
+        "Plate"
+      ]
+    },
+    {
+      "key": "tray",
+      "names": [
+        "ServingTray"
+      ]
+    },
+    {
+      "key": "bread",
+      "names": [
+        "Bread"
+      ]
+    },
+    {
+      "key": "muffin",
+      "names": [
+        "Muffin"
+      ]
+    },
+    {
+      "key": "donut",
+      "names": [
+        "Donut"
+      ]
+    },
+    {
+      "key": "croissant",
+      "names": [
+        "Croissant"
+      ]
+    },
+    {
+      "key": "cake",
+      "names": [
+        "ChocolateCake"
+      ]
+    },
+    {
+      "key": "plant",
+      "names": [
+        "Monstera",
+        "SnakePlant",
+        "Succulent"
+      ]
+    },
+    {
+      "key": "planter",
+      "names": [
+        "FlowerPlanter",
+        "FlowerPlanter1m",
+        "WindowFlowerBox",
+        "WindowBox1p6m"
+      ]
+    },
+    {
+      "key": "tree",
+      "names": [
+        "GardenTreeV2",
+        "RoundTree",
+        "GardenTree4m"
+      ]
+    },
+    {
+      "key": "flowerbed",
+      "names": [
+        "GardenBedV2",
+        "TreeBed"
+      ]
+    },
+    {
+      "key": "fountain",
+      "names": [
+        "Fountain"
+      ]
+    },
+    {
+      "key": "hedge",
+      "names": [
+        "HedgeStraight",
+        "HedgeCorner",
+        "Hedge"
+      ]
+    },
+    {
+      "key": "trash_can",
+      "names": [
+        "TrashCan"
+      ]
+    },
+    {
+      "key": "fire_hydrant",
+      "names": [
+        "FireHydrant"
+      ]
+    },
+    {
+      "key": "truck",
+      "names": [
+        "KenneyDeliveryTruck"
+      ]
+    },
+    {
+      "key": "crate",
+      "names": [
+        "MarketCrateV2"
+      ]
+    },
+    {
+      "key": "chalkboard",
+      "names": [
+        "ChalkboardV2"
+      ]
+    },
+    {
+      "key": "fence",
+      "names": [
+        "PicketFence2m"
+      ]
+    },
+    {
+      "key": "awning",
+      "names": [
+        "Awning2m",
+        "GreenAwningStripV2",
+        "StripedAwningStripV20",
+        "StripedAwningStripV21",
+        "HotelArchedCanopyV2"
+      ]
+    },
+    {
+      "key": "wall",
+      "names": [
+        "WallGround2m",
+        "WallUpper2m",
+        "BrickAccentPanel",
+        "ReceptionBackdrop",
+        "Skirting",
+        "GardenWall"
+      ]
+    },
+    {
+      "key": "roof",
+      "names": [
+        "RoofEdge2m"
+      ]
+    },
+    {
+      "key": "cornice",
+      "names": [
+        "Cornice2m"
+      ]
+    },
+    {
+      "key": "sidewalk",
+      "names": [
+        "SidewalkTile2m",
+        "Paving2m",
+        "Paving",
+        "Curb",
+        "SidewalkJunctionSouth",
+        "SidewalkJunctionNorth",
+        "MeetingForecourt"
+      ]
+    },
+    {
+      "key": "floor",
+      "names": [
+        "Floor",
+        "SiteGround",
+        "DistantGround"
+      ]
+    },
+    {
+      "key": "ceiling",
+      "names": [
+        "Ceiling"
+      ]
+    },
+    {
+      "key": "jar",
+      "names": [
+        "Jar"
+      ]
+    },
+    {
+      "key": "shelf",
+      "names": [
+        "KitchenShelf"
+      ]
+    },
+    {
+      "key": "shop",
+      "names": [
+        "DistantShopV2_0",
+        "DistantShopV2_1",
+        "DistantShopV2_2"
+      ]
+    },
+    {
+      "key": "entrance",
+      "names": [
+        "Entrance4m"
+      ]
+    },
+    {
+      "key": "porch",
+      "names": [
+        "HousePorch"
+      ]
+    },
+    {
+      "key": "door",
+      "names": [
+        "Handle"
+      ]
+    },
+    {
+      "key": "shutter",
+      "names": [
+        "ClosedShutter",
+        "ShutterSlat"
+      ]
+    },
+    {
+      "key": "cloud",
+      "names": [
+        "Cloud"
+      ]
+    },
+    {
+      "key": "kitchen_counter",
+      "names": [
+        "KitchenCounter"
+      ]
+    }
+  ]
+}

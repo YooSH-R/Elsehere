@@ -73,14 +73,18 @@ namespace A305.Learning
 
             int count = book.Entries.Count;
             selectedIndex = Mathf.Clamp(selectedIndex, 0, Mathf.Max(0, count - 1));
-            listText.text = count == 0 ? "아직 모은 표현이 없어요. 대화나 피드백에서 [표현 저장]을 눌러 보세요." : FormatList();
+            listText.text =
+                count == 0
+                    ? "아직 모은 표현이 없어요. 대화나 피드백에서 [표현 저장]을 눌러 보세요."
+                    : FormatList();
 
             bool hasEntries = count > 0;
             previousButton.interactable = hasEntries && selectedIndex > 0;
             nextButton.interactable = hasEntries && selectedIndex < count - 1;
             learnedButton.interactable = hasEntries;
             deleteButton.interactable = hasEntries;
-            learnedButtonLabel.text = hasEntries && SelectedEntry.IsLearned ? "다시 학습" : "외웠어요";
+            learnedButtonLabel.text =
+                hasEntries && SelectedEntry.IsLearned ? "다시 학습" : "외웠어요";
         }
 
         private VocabularyEntry SelectedEntry => book.Entries[selectedIndex];
@@ -104,14 +108,20 @@ namespace A305.Learning
         private string FormatList()
         {
             var text = new StringBuilder();
-            int firstIndex = Mathf.Clamp(selectedIndex - VisibleEntryCount / 2, 0, Mathf.Max(0, book.Entries.Count - VisibleEntryCount));
+            int firstIndex = Mathf.Clamp(
+                selectedIndex - VisibleEntryCount / 2,
+                0,
+                Mathf.Max(0, book.Entries.Count - VisibleEntryCount)
+            );
             int lastIndex = Mathf.Min(book.Entries.Count, firstIndex + VisibleEntryCount);
             for (int i = firstIndex; i < lastIndex; i++)
             {
                 VocabularyEntry entry = book.Entries[i];
                 string marker = i == selectedIndex ? "→ " : "    ";
                 string learned = entry.IsLearned ? " · 외웠어요" : "";
-                text.AppendLine($"{marker}<b>{entry.English}</b>  {entry.Korean} · 저장 {entry.SaveCount}회{learned}");
+                text.AppendLine(
+                    $"{marker}<b>{entry.English}</b>  {entry.Korean} · 저장 {entry.SaveCount}회{learned}"
+                );
             }
 
             text.Append($"\n{selectedIndex + 1} / {book.Entries.Count}");

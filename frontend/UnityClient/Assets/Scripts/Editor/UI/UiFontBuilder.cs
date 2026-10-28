@@ -17,18 +17,24 @@ namespace A305.EditorTools.UI
     public static class UiFontBuilder
     {
         public const string MenuPath = "Tools/A305/UI/Set Up Fonts";
-        public const string RegularFontAssetPath = "Assets/Art/UI/Fonts/Pretendard-Regular SDF.asset";
+        public const string RegularFontAssetPath =
+            "Assets/Art/UI/Fonts/Pretendard-Regular SDF.asset";
         public const string BoldFontAssetPath = "Assets/Art/UI/Fonts/Pretendard-Bold SDF.asset";
 
         /// <summary>Editor 사용 중 채워진 글자를 저장하지 않을 동적 글꼴 에셋</summary>
-        public static readonly string[] DynamicFontAssetPaths = { RegularFontAssetPath, BoldFontAssetPath };
+        public static readonly string[] DynamicFontAssetPaths =
+        {
+            RegularFontAssetPath,
+            BoldFontAssetPath,
+        };
 
         /// <summary>이 Builder가 글꼴 설정을 저장하는 동안에만 true. 그 밖의 저장에서는 동적 글꼴 에셋을 뺀다.</summary>
         public static bool IsSavingFontSettings { get; private set; }
 
         private const string SourceFontFolder = "Assets/ThirdParty/Pretendard";
         private const string TmpSettingsPath = "Assets/TextMesh Pro/Resources/TMP Settings.asset";
-        private const string TmpEssentialsPackage = "Package Resources/TMP Essential Resources.unitypackage";
+        private const string TmpEssentialsPackage =
+            "Package Resources/TMP Essential Resources.unitypackage";
 
         // 이전 프로젝트에서 한국어 표시를 확인한 동적 글꼴 설정
         private const int SamplingPointSize = 90;
@@ -62,7 +68,10 @@ namespace A305.EditorTools.UI
 
             AssetDatabase.importPackageCompleted += OnTmpEssentialsImported;
             AssetDatabase.importPackageFailed += OnTmpEssentialsFailed;
-            AssetDatabase.ImportPackage(Path.Combine(ugui.resolvedPath, TmpEssentialsPackage), false);
+            AssetDatabase.ImportPackage(
+                Path.Combine(ugui.resolvedPath, TmpEssentialsPackage),
+                false
+            );
         }
 
         private static void OnTmpEssentialsImported(string packageName)
@@ -87,7 +96,10 @@ namespace A305.EditorTools.UI
 
         private static void SetUpFonts()
         {
-            TMP_FontAsset regular = GetOrCreateFontAsset("Pretendard-Regular", RegularFontAssetPath);
+            TMP_FontAsset regular = GetOrCreateFontAsset(
+                "Pretendard-Regular",
+                RegularFontAssetPath
+            );
             GetOrCreateFontAsset("Pretendard-Bold", BoldFontAssetPath);
 
             var settings = AssetDatabase.LoadAssetAtPath<TMP_Settings>(TmpSettingsPath);

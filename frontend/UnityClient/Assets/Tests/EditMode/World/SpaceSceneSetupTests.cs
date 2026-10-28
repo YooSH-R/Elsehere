@@ -107,7 +107,9 @@ namespace A305.World.Tests
         [Test]
         public void Apply_ConnectsPlacedPasserbyToPlayerDialogueAndOffer()
         {
-            var passerbyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcBuilder.PasserbyPrefabPath);
+            var passerbyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                NpcBuilder.PasserbyPrefabPath
+            );
             var placed = (GameObject)PrefabUtility.InstantiatePrefab(passerbyPrefab, scene);
 
             SpaceSceneSetup.Apply(scene);
@@ -131,7 +133,10 @@ namespace A305.World.Tests
             Assert.That(Reference(learning, "player"), Is.EqualTo(Single<PlayerMover>()));
             Assert.That(Reference(learning, "dialogue"), Is.EqualTo(Single<DialogueController>()));
             Assert.That(Reference(learning, "feedbackView"), Is.EqualTo(Single<FeedbackView>()));
-            Assert.That(Reference(learning, "vocabularyView"), Is.EqualTo(Single<VocabularyView>()));
+            Assert.That(
+                Reference(learning, "vocabularyView"),
+                Is.EqualTo(Single<VocabularyView>())
+            );
             Assert.That(Reference(learning, "hudView"), Is.EqualTo(Single<LearningHudView>()));
         }
 
@@ -170,12 +175,16 @@ namespace A305.World.Tests
         public void Apply_GivesTutorialDirectorEveryPlacedPasserby()
         {
             // 튜토리얼이 단계에 따라 행인이 다가와도 되는지 정하므로, 씬에 놓인 행인을 모두 알아야 한다.
-            var passerbyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(NpcBuilder.PasserbyPrefabPath);
+            var passerbyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                NpcBuilder.PasserbyPrefabPath
+            );
             var placed = (GameObject)PrefabUtility.InstantiatePrefab(passerbyPrefab, scene);
 
             SpaceSceneSetup.Apply(scene);
 
-            SerializedProperty passersby = new SerializedObject(Single<TutorialDirector>()).FindProperty("passersby");
+            SerializedProperty passersby = new SerializedObject(
+                Single<TutorialDirector>()
+            ).FindProperty("passersby");
             Assert.That(passersby.arraySize, Is.EqualTo(1));
             Assert.That(
                 passersby.GetArrayElementAtIndex(0).objectReferenceValue,
@@ -230,7 +239,10 @@ namespace A305.World.Tests
 
             SpaceSceneSetup.Apply(scene);
 
-            Assert.That(Root("Environment").Find("DesignedBuilding"), Is.EqualTo(building.transform));
+            Assert.That(
+                Root("Environment").Find("DesignedBuilding"),
+                Is.EqualTo(building.transform)
+            );
             AssertPosition(new Vector3(3f, 1f, 4f), building.transform.position);
             AssertPosition(new Vector3(-2f, 0f, 5f), Single<PlayerMover>().transform.position);
         }
@@ -252,7 +264,10 @@ namespace A305.World.Tests
             Transform arrivalPoint = doorway.GetComponent<SpaceDoorway>().ArrivalPoint;
             Transform player = Single<PlayerMover>().transform;
             AssertPosition(arrivalPoint.position, player.position);
-            Assert.That(Quaternion.Angle(arrivalPoint.rotation, player.rotation), Is.LessThan(0.01f));
+            Assert.That(
+                Quaternion.Angle(arrivalPoint.rotation, player.rotation),
+                Is.LessThan(0.01f)
+            );
         }
 
         private Transform Root(string rootName)

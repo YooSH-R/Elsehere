@@ -1,4 +1,5 @@
 """피드백 모델 호출 경계와 외부 서비스 없는 고정 응답 구현."""
+
 import json
 from typing import Callable, Protocol
 
@@ -19,6 +20,7 @@ class ModelNotConfigured(RuntimeError):
 
 class FixtureClient:
     """직접 작성한 고정 응답 재생기. 새 대화를 이해하거나 AI를 호출하지 않는다."""
+
     def __init__(self, body: dict):
         self.body = body
         self.calls = 0
@@ -30,6 +32,7 @@ class FixtureClient:
 
 class CallableClient:
     """팀 GMS 호출 함수를 주입하는 연결점. callable(messages) -> JSON 문자열."""
+
     def __init__(self, call: Callable[[list[dict[str, str]]], str]):
         self.call = call
 
@@ -39,6 +42,4 @@ class CallableClient:
 
 class UnconfiguredClient:
     def complete(self, messages):
-        raise ModelNotConfigured(
-            "GMS 호출이 설정되지 않았습니다. 실제 모드는 stub으로 자동 대체하지 않습니다."
-        )
+        raise ModelNotConfigured("GMS 호출이 설정되지 않았습니다. 실제 모드는 stub으로 자동 대체하지 않습니다.")

@@ -1,0 +1,58 @@
+unity:format:
+  extends: .linux-job
+  stage: verify
+  needs: ["ci:yaml"]
+  image: mcr.microsoft.com/dotnet/sdk:10.0.401
+  timeout: 10m
+  script:
+    - cd frontend/UnityClient
+    - dotnet tool restore
+    - dotnet csharpier check Assets/Scripts
+    - dotnet csharpier check Assets/Tests
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
+    - !reference [.deployment-parent-skips, rules]
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &unity_change_paths
+          - frontend/**/*
+          - docs/api/**/*
+          - infra/scripts/unity-code-quality.ps1
+          - .gitlab-ci.yml
+          - .gitlab/ci/**/*
+          - AGENTS.md
+          - docs/code-conventions.md
+          - docs/unity/**/*
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *unity_change_paths
+
+# Only protected candidates reach the laptop's licensed Windows user session.
+unity:editor-and-webgl:
+  tags:
+    - a305-unity-windows
+  stage: verify
+  timeout: 1h
+  needs: []
+  resource_group: a305-unity-editor
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_CLEAN_FLAGS: '-ffdx -e frontend/UnityClient/Library/'
+  script:
+    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
+    - |
+      if ($env:CI_PIPELINE_SOURCE -ne 'parent_pipeline' -or $env:A305_BUILD_WEB -eq 'true') {
+        powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action build
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      }
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - dist/unity-ci/
+      - dist/webgl/
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
+    - !reference [.deployment-parent-skips, rules]
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_REF_PROTECTED == "true" && $RUN_UNITY_BUILD == "true"'

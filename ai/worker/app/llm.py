@@ -8,6 +8,7 @@
 
 import asyncio
 import json
+import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ import httpx
 
 from .config import Settings
 
+log = logging.getLogger("ai_worker")
 RETRY_CODES = (429, 500, 502, 503)
 
 
@@ -34,6 +36,22 @@ class ProviderError(Exception):
     @property
     def http(self) -> int:
         return 429 if self.code == "provider_limit" else 503
+
+
+class AudioRejected(ProviderError):
+    """음성 인식 공급자가 녹음 자체를 받지 않음 (AUDIO_REJECTED). 다른 공급자도 같은 답이라 대체로 넘기지 않는다."""
+
+
+AUDIO_REJECTED = (400, 413, 415, 422)
+
+
+async def within(coro, budget_s: float):
+    """요청 하나의 시간 상한. call_timeout_s는 호출 한 번의 상한이라 재시도·대체 모델을 거치면 훨씬 길어진다.
+    넘으면 그 작업만 timeout 오류 (끊긴 호출의 사용량은 기록되지 않을 수 있음)."""
+    try:
+        return await asyncio.wait_for(coro, budget_s)
+    except TimeoutError:
+        raise ProviderError("timeout", f"{budget_s:g}초 안에 끝나지 않음") from None
 
 
 @dataclass
@@ -180,9 +198,12 @@ class LLM:
     ) -> tuple[httpx.Response, bool]:
         """요청 하나. 한 번에 받는 호출이 hedge_after_s 안에 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 쓴다.
         반환: (응답, 더 보냈나). 둘 다 실패하면 마지막 오류를 던진다. 스트림은 응답 머리가 먼저 와서 늦음을 알 수 없어 그대로."""
-        start = lambda: client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
+
+        def start_request():
+            return client.send(client.build_request("POST", "/chat/completions", json=b, timeout=timeout), stream=stream)
+
         after = 0 if stream or not hedge else self.s.hedge_after_s
-        return await race(start, after, lambda r: r.status_code < 400, lambda r: r.aclose())
+        return await race(start_request, after, lambda r: r.status_code < 400, lambda r: r.aclose())
 
     async def _open(
         self, body: dict, stream: bool = False, role: str = "", timeout_s: float | None = None, hedge: bool = True
@@ -339,25 +360,50 @@ class LLM:
         return (*res, hedged)
 
     async def transcribe(self, audio: bytes, filename: str, mime: str, prompt: str, usage: Usage) -> dict:
-        """음성 인식 (Whisper). 대체 모델 없음: 실패하면 바로 오류."""
-        model = self.model("stt")
-        t = time.perf_counter()
+        """음성 인식 (Whisper). 구성에 대체(stt_fallback, GMS 구성은 GMS whisper-1)가 있으면 첫 공급자가 한도·오류·응답 없음일 때
+        대체로 한 번 더 — 배포하면 Groq 키 하나의 한도를 모든 사용자가 나눠 쓴다. 녹음 자체 문제(AudioRejected)는 넘기지 않는다."""
+        model, fb = self.model("stt"), self.s.stt_fallback
+        t = t_call = time.perf_counter()
+        call = (filename, audio, mime, prompt)
         try:
-            r = await self.client_for("stt").post(
+            data = await self._transcribe_once(self.client_for("stt"), model, self.s.stt_first_timeout_s if fb else 30.0, *call)
+            used = model
+        except AudioRejected:
+            raise
+        except ProviderError as first:
+            if not fb:
+                raise
+            log.warning(json.dumps({"event": "stt_fallback", "model": model, "to": fb["model"], "why": first.message}, ensure_ascii=False))
+            t_call = time.perf_counter()
+            try:
+                data = await self._transcribe_once(self.others.get(fb["provider"], self.client), fb["model"], 30.0, *call)
+            except ProviderError as e:
+                raise ProviderError(e.code, f"{first.message} / 대체 {fb['model']}: {e.message}") from None
+            used = fb["model"]
+        now = time.perf_counter()
+        usage.items.append(
+            {"step": "stt", "model": used, "audio_s": data.get("duration"), "latency_s": round(now - t_call, 2), "fallback": used != model}
+        )
+        # 응답의 latency_s는 실패한 첫 호출까지 포함한 전체 시간, usage는 성공한 호출 하나의 시간
+        return {"text": (data.get("text") or "").strip(), "audio_s": data.get("duration"), "latency_s": round(now - t, 2)}
+
+    async def _transcribe_once(
+        self, client: httpx.AsyncClient, model: str, timeout_s: float, filename: str, audio: bytes, mime: str, prompt: str
+    ) -> dict:
+        try:
+            r = await client.post(
                 "/audio/transcriptions",
-                timeout=httpx.Timeout(30.0, connect=5.0),
+                timeout=httpx.Timeout(timeout_s, connect=5.0),
                 files={"file": (filename, audio, mime)},
                 data={"model": model, "response_format": "verbose_json", "temperature": "0", "prompt": prompt},
             )
         except (httpx.TimeoutException, httpx.TransportError) as e:
-            raise ProviderError("provider_unavailable", f"음성 인식 응답 없음: {type(e).__name__}") from None
+            raise ProviderError("provider_unavailable", f"음성 인식 응답 없음 {model}: {type(e).__name__}") from None
+        if r.status_code in AUDIO_REJECTED:
+            raise AudioRejected("provider_unavailable", f"음성 인식 오류 {model} {r.status_code}: {r.text[:160]}")
         if r.status_code >= 400:
             raise ProviderError(
-                "provider_limit" if r.status_code == 429 else "provider_unavailable", f"음성 인식 오류 {r.status_code}: {r.text[:160]}"
+                "provider_limit" if r.status_code == 429 else "provider_unavailable",
+                f"음성 인식 오류 {model} {r.status_code}: {r.text[:160]}",
             )
-        data = response_json(r)
-        latency = time.perf_counter() - t
-        usage.items.append(
-            {"step": "stt", "model": model, "audio_s": data.get("duration"), "latency_s": round(latency, 2), "fallback": False}
-        )
-        return {"text": (data.get("text") or "").strip(), "audio_s": data.get("duration"), "latency_s": round(latency, 2)}
+        return response_json(r)

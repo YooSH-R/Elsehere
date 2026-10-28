@@ -3,7 +3,8 @@
     "rootNamespace": "A305.Player",
     "references": [
         "Unity.InputSystem",
-        "A305.Characters"
+        "A305.Characters",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

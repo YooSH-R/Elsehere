@@ -10,3 +10,10 @@ CLAUDE.local.md
 __pycache__/
 *.pyc
 ai/feedback/local_results/
+
+# CI reports and dependency caches
+.gradle/
+/dist/
+
+# Local design drafts, generated images, archives, and verification output
+/artifacts/

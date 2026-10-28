@@ -1,7 +1,5 @@
 """무례 판정 단계적 구조 (로컬 판정기 + LLM) 테스트. 가짜 판정기라 torch·모델 파일 없이 돈다."""
 
-import json
-
 import httpx
 import pytest
 
@@ -11,18 +9,12 @@ from app.guard_local import LocalGuard
 from conftest import TOKEN, make_client, ok
 
 NPC = {"id": "emma", "name": "Emma", "role": "the barista at Maple Cafe.", "facts": "Menu: latte $5.", "scene": "Inside Maple Cafe."}
-STATE = {
-    "id": "ordering",
-    "desc": "The barista is waiting for the order.",
-    "intents": [{"id": "order_items", "desc": "orders"}, {"id": "unclear", "desc": "cannot tell"}],
-}
 TH = {"guard_t_lo": 0.05, "guard_t_hi": 0.95}
 
 
 def body(text, history=None):
     return {
         "npc": NPC,
-        "state": STATE,
         "text": text,
         "history": history if history is not None else [{"who": "npc", "text": "Hi! What can I get for you?"}],
     }
@@ -43,15 +35,13 @@ class FakeLocal:
 
 @pytest.fixture
 def answers(provider):
-    provider.answers["intent"] = lambda b: ok(json.dumps({"intents": ["unclear"]}))
-    provider.answers["translate"] = lambda b: ok("Give me coffee.")
     provider.answers["guard"] = lambda b: ok("no")
     return provider
 
 
-def judge(provider, text, local, history=None, **kw):
+def guard(provider, text, local, history=None, **kw):
     with make_client(provider, guard_local=local, **{**TH, **kw}) as c:
-        return c.post("/v1/judge", json=body(text, history)).json()
+        return c.post("/v1/guard", json=body(text, history)).json()
 
 
 def guard_calls(provider):
@@ -60,36 +50,35 @@ def guard_calls(provider):
 
 def test_off_by_default_keeps_old_response(answers):
     """플래그가 꺼져 있으면(기본) 예전과 같은 응답: 판정은 LLM, guard에 새 칸 없음."""
-    r = judge(answers, "커피 주세요", None)
+    r = guard(answers, "커피 주세요", None)
     assert r["guard"] == {"abusive": False, "error": None, "error_code": None}
     assert len(guard_calls(answers)) == 1
 
 
 def test_confident_rude_skips_llm(answers):
     local = FakeLocal(lambda t: 0.99)
-    r = judge(answers, "닥치고 커피 내놔", local)
+    r = guard(answers, "닥치고 커피 내놔", local)
     assert r["guard"] == {"abusive": True, "error": None, "error_code": None, "source": "local", "score": 0.99, "local_error": None}
     assert guard_calls(answers) == [] and "guard" not in {u["step"] for u in r["usage"]}
-    assert r["translation"]["show"] is False  # 무례면 번역 카드를 숨기는 규칙은 그대로
     assert local.seen == [("닥치고 커피 내놔", "Hi! What can I get for you?")]  # 바로 앞 NPC 대사를 함께 넘김
 
 
 def test_confident_polite_skips_llm(answers):
-    r = judge(answers, "아이스 라떼 하나요", FakeLocal(lambda t: 0.01))
+    r = guard(answers, "아이스 라떼 하나요", FakeLocal(lambda t: 0.01))
     assert r["guard"]["abusive"] is False and r["guard"]["source"] == "local"
-    assert guard_calls(answers) == [] and r["translation"]["show"] is True
+    assert guard_calls(answers) == []
 
 
 def test_thresholds_are_inclusive(answers):
     """s ≥ t_hi → 무례, s ≤ t_lo → 아님 (cascade_eval.py와 같은 경계)."""
-    assert judge(answers, "가", FakeLocal(lambda t: 0.95))["guard"]["source"] == "local"
-    assert judge(answers, "가", FakeLocal(lambda t: 0.05))["guard"]["source"] == "local"
+    assert guard(answers, "가", FakeLocal(lambda t: 0.95))["guard"]["source"] == "local"
+    assert guard(answers, "가", FakeLocal(lambda t: 0.05))["guard"]["source"] == "local"
     assert guard_calls(answers) == []
 
 
 def test_unsure_goes_to_llm(answers):
     answers.answers["guard"] = lambda b: ok("yes")
-    r = judge(answers, "아 씨 또 틀렸네", FakeLocal(lambda t: 0.5))
+    r = guard(answers, "아 씨 또 틀렸네", FakeLocal(lambda t: 0.5))
     assert r["guard"] == {"abusive": True, "error": None, "error_code": None, "source": "llm", "score": 0.5, "local_error": None}
     assert len(guard_calls(answers)) == 1
 
@@ -97,7 +86,7 @@ def test_unsure_goes_to_llm(answers):
 def test_english_goes_to_llm_without_local(answers):
     """한글이 없으면 로컬 판정기(한국어 모델)는 보지 않는다."""
     local = FakeLocal(lambda t: 0.99)
-    r = judge(answers, "one latte please", local)
+    r = guard(answers, "one latte please", local)
     assert r["guard"] == {"abusive": False, "error": None, "error_code": None, "source": "llm", "score": None, "local_error": None}
     assert local.seen == [] and len(guard_calls(answers)) == 1
 
@@ -105,14 +94,14 @@ def test_english_goes_to_llm_without_local(answers):
 def test_vowel_jamo_counts_as_hangul(answers):
     """'ㅠㅠ'처럼 모음 자모만 있어도 로컬로 (cascade_eval.py 라우팅과 같게)."""
     local = FakeLocal(lambda t: 0.01)
-    assert judge(answers, "sorry ㅠㅠ", local)["guard"]["source"] == "local"
+    assert guard(answers, "sorry ㅠㅠ", local)["guard"]["source"] == "local"
 
 
 def test_local_failure_falls_back_to_llm(answers):
     def broken(t):
         raise RuntimeError("model gone")
 
-    r = judge(answers, "커피 주세요", FakeLocal(broken))
+    r = guard(answers, "커피 주세요", FakeLocal(broken))
     assert r["guard"]["abusive"] is False and r["guard"]["source"] == "llm" and r["guard"]["score"] is None
     assert r["guard"]["local_error"] == "RuntimeError: model gone" and len(guard_calls(answers)) == 1
 
@@ -120,14 +109,14 @@ def test_local_failure_falls_back_to_llm(answers):
 def test_llm_failure_after_unsure_keeps_score(answers):
     """중간 구간에서 LLM이 실패하면 미판정(null). 로컬 점수는 기록에 남는다."""
     answers.answers["guard"] = lambda b: httpx.Response(503, text="down")
-    r = judge(answers, "아 씨 또 틀렸네", FakeLocal(lambda t: 0.5))
+    r = guard(answers, "아 씨 또 틀렸네", FakeLocal(lambda t: 0.5))
     assert r["guard"]["abusive"] is None and r["guard"]["error_code"] == "provider_unavailable"
     assert r["guard"]["source"] == "llm" and r["guard"]["score"] == 0.5
 
 
 def test_no_npc_line_yet_passes_empty_prev(answers):
     local = FakeLocal(lambda t: 0.01)
-    judge(answers, "안녕하세요", local, history=[])
+    guard(answers, "안녕하세요", local, history=[])
     assert local.seen == [("안녕하세요", "")]
 
 

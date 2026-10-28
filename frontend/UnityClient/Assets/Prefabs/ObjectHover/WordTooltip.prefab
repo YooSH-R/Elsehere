@@ -510,8 +510,6 @@ MonoBehaviour:
   wordLabel: {fileID: 7850003471545699094}
   meaningLabel: {fileID: 2431454131457727320}
   exampleLabel: {fileID: 3808455641926479929}
-  gap: 16
-  screenMargin: 12
 --- !u!1 &7740961854740496613
 GameObject:
   m_ObjectHideFlags: 0

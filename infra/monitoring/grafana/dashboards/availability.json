@@ -1,0 +1,36 @@
+{
+  "uid": "a305-availability",
+  "title": "ELSEHERE HTTPS",
+  "tags": ["a305", "https"],
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "15s",
+  "time": {"from": "now-1h", "to": "now"},
+  "panels": [
+    {
+      "id": 1, "title": "공개 HTTPS health 응답", "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 7},
+      "datasource": {"type": "prometheus", "uid": "a305-prometheus"},
+      "targets": [{"refId": "A", "expr": "probe_success{job=\"https-probe\"}", "legendFormat": "{{environment}}", "instant": true}],
+      "fieldConfig": {"defaults": {"min": 0, "max": 1, "mappings": [{"type": "value", "options": {"0": {"text": "실패"}, "1": {"text": "정상"}}}]}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}}
+    },
+    {
+      "id": 2, "title": "인증서 잔여 일수", "type": "stat",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 7},
+      "datasource": {"type": "prometheus", "uid": "a305-prometheus"},
+      "targets": [{"refId": "A", "expr": "(probe_ssl_earliest_cert_expiry{job=\"https-probe\"} - time()) / 86400", "legendFormat": "{{environment}}", "instant": true}],
+      "fieldConfig": {"defaults": {"unit": "d", "decimals": 1}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}}
+    },
+    {
+      "id": 3, "title": "발동 중인 알림 규칙 수", "type": "stat",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 7},
+      "datasource": {"type": "prometheus", "uid": "a305-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (environment) (ALERTS{alertstate=\"firing\"}) or on (environment) (0 * max by (environment) (probe_success{job=\"https-probe\"}))", "legendFormat": "{{environment}}", "instant": true}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}}
+    }
+  ]
+}

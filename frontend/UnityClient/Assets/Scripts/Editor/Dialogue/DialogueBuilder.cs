@@ -1,11 +1,16 @@
+using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.Onboarding;
 using A305.EditorTools.UI;
+using A305.EditorTools.Voice;
 using A305.Player;
+using A305.Voice;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using BrowserImeInput = WebGLSupport.WebGLInput;
 
 namespace A305.EditorTools.Dialogue
 {
@@ -24,7 +29,12 @@ namespace A305.EditorTools.Dialogue
         private const string PlaceholderNotice =
             "대화 화면은 준비 중입니다. [대화 종료]를 누르면 대화를 끝내고 다시 움직일 수 있습니다.";
 
+        private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
+        private const string VoiceRecorderSettingsPath =
+            "Assets/Data/Voice/VoiceRecorderSettings.asset";
+
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
+        private static readonly Color StatusColor = new Color(1f, 0.85f, 0.45f);
 
         [MenuItem(MenuPath)]
         public static void Build()
@@ -95,7 +105,12 @@ namespace A305.EditorTools.Dialogue
             UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 120, receivesClicks: true);
             var view = BuilderTools.GetOrAddComponent<DialoguePanelView>(root);
 
-            RectTransform panel = UiBuilderTools.FindOrCreateBottomPanel(root.transform, "Panel", 900f, 60f);
+            RectTransform panel = UiBuilderTools.FindOrCreateBottomPanel(
+                root.transform,
+                "Panel",
+                900f,
+                60f
+            );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
             UiBuilderTools.FindOrCreateText(panel, "Title", bold, 30f, Color.white, "대화 중");
@@ -113,7 +128,12 @@ namespace A305.EditorTools.Dialogue
             }
 
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button endButton = UiBuilderTools.FindOrCreateButton(buttons, "EndButton", "대화 종료", bold);
+            Button endButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "EndButton",
+                "대화 종료",
+                bold
+            );
 
             // 대화 내용은 [대화 종료] 줄 위에 둔다. 처음 만들 때만 자리를 정하고, 이후에는 디자인한 순서를 유지한다.
             bool isConversationNew = panel.Find("Conversation") == null;
@@ -123,8 +143,20 @@ namespace A305.EditorTools.Dialogue
                 conversation.SetSiblingIndex(buttons.GetSiblingIndex());
             }
 
-            TMP_Text lines = UiBuilderTools.FindOrCreateText(conversation, "Lines", regular, 24f, Color.white);
-            TMP_Text guide = UiBuilderTools.FindOrCreateText(conversation, "Guide", regular, 20f, SubTextColor);
+            TMP_Text lines = UiBuilderTools.FindOrCreateText(
+                conversation,
+                "Lines",
+                regular,
+                24f,
+                Color.white
+            );
+            TMP_Text guide = UiBuilderTools.FindOrCreateText(
+                conversation,
+                "Guide",
+                regular,
+                20f,
+                SubTextColor
+            );
             RectTransform inputRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "InputRow");
             TMP_InputField input = UiBuilderTools.FindOrCreateInputField(
                 inputRow,
@@ -132,11 +164,69 @@ namespace A305.EditorTools.Dialogue
                 regular,
                 "영어로 입력해 보세요 (Enter로 보내기)"
             );
-            Button sendButton = UiBuilderTools.FindOrCreateButton(inputRow, "SendButton", "보내기", bold, 160f);
-            Button exampleButton = UiBuilderTools.FindOrCreateButton(inputRow, "ExampleButton", "예시 문장", bold, 160f);
+            Button sendButton = UiBuilderTools.FindOrCreateButton(
+                inputRow,
+                "SendButton",
+                "보내기",
+                bold,
+                160f
+            );
+            Button exampleButton = UiBuilderTools.FindOrCreateButton(
+                inputRow,
+                "ExampleButton",
+                "예시 문장",
+                bold,
+                160f
+            );
             RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
-            Button meaningButton = UiBuilderTools.FindOrCreateButton(toolRow, "MeaningButton", "뜻 보기", bold, 160f);
-            Button saveButton = UiBuilderTools.FindOrCreateButton(toolRow, "SaveButton", "표현 저장", bold, 160f);
+            Button meaningButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "MeaningButton",
+                "뜻 보기",
+                bold,
+                160f
+            );
+            Button saveButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "SaveButton",
+                "표현 저장",
+                bold,
+                160f
+            );
+
+            // 서버 AI 대화: 상태 문구, 추천 단어, 누르고 말하기, 다시 듣기
+            TMP_Text status = UiBuilderTools.FindOrCreateText(
+                conversation,
+                "Status",
+                regular,
+                20f,
+                StatusColor
+            );
+            TMP_Text suggest = UiBuilderTools.FindOrCreateText(
+                conversation,
+                "SuggestWords",
+                regular,
+                20f,
+                SubTextColor
+            );
+            Button talkButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "TalkButton",
+                "누르고 말하기",
+                bold,
+                200f
+            );
+            Button replayButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "ReplayButton",
+                "다시 듣기",
+                bold,
+                160f
+            );
+
+            // Web 빌드의 Unity 입력창은 한글 조합을 받지 못해 브라우저 입력창을 겹쳐 받는다(닉네임 입력창과 같은 방식).
+            BuilderTools.GetOrAddComponent<BrowserImeInput>(input.gameObject);
+            SetUpServerLink(root);
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "endButton", endButton);
@@ -147,10 +237,46 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "exampleButton", exampleButton);
             BuilderTools.SetReference(view, "meaningButton", meaningButton);
             BuilderTools.SetReference(view, "saveButton", saveButton);
+            BuilderTools.SetReference(view, "statusText", status);
+            BuilderTools.SetReference(view, "suggestText", suggest);
+            BuilderTools.SetReference(
+                view,
+                "talkButton",
+                BuilderTools.GetOrAddComponent<HoldButton>(talkButton.gameObject)
+            );
+            BuilderTools.SetReference(view, "replayButton", replayButton);
             BuilderTools.RequireReferences(view);
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+        }
+
+        // 서버 AI 대화 연결(API 주소, NPC 음성, 녹음)은 화면 프리팹에 두어 공간 씬을 다시 만들지 않아도 모든 씬에 붙는다.
+        private static void SetUpServerLink(GameObject root)
+        {
+            var link = BuilderTools.GetOrAddComponent<DialogueServerLink>(root);
+            var speech = BuilderTools.GetOrAddComponent<AudioSource>(root);
+            speech.playOnAwake = false;
+            var recorder = BuilderTools.GetOrAddComponent<VoiceRecorder>(root);
+            BuilderTools.SetReference(
+                recorder,
+                "settings",
+                BuilderTools.LoadRequiredAsset<VoiceRecorderSettings>(
+                    VoiceRecorderSettingsPath,
+                    VoiceBuilder.MenuPath
+                )
+            );
+            BuilderTools.SetReference(
+                link,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(
+                    ApiSettingsPath,
+                    OnboardingBuilder.MenuPath
+                )
+            );
+            BuilderTools.SetReference(link, "speechSource", speech);
+            BuilderTools.SetReference(link, "voiceRecorder", recorder);
+            BuilderTools.RequireReferences(link);
         }
     }
 }

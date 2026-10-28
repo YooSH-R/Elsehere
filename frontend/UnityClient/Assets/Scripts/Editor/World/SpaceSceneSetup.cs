@@ -85,7 +85,12 @@ namespace A305.EditorTools.World
             {
                 Pose start = FindPlayerStart(scene);
                 player = BuilderTools
-                    .InstantiatePrefab(playerPrefab, groups.Characters, start.position, start.rotation)
+                    .InstantiatePrefab(
+                        playerPrefab,
+                        groups.Characters,
+                        start.position,
+                        start.rotation
+                    )
                     .GetComponent<PlayerMover>();
             }
 
@@ -98,7 +103,8 @@ namespace A305.EditorTools.World
                     .InstantiatePrefab(
                         cameraPrefab,
                         groups.Systems,
-                        playerTransform.position + playerTransform.rotation * new Vector3(0f, 2.5f, -5f),
+                        playerTransform.position
+                            + playerTransform.rotation * new Vector3(0f, 2.5f, -5f),
                         playerTransform.rotation * Quaternion.Euler(20f, 0f, 0f)
                     )
                     .GetComponent<PlayerCameraRig>();

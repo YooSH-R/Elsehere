@@ -159,7 +159,10 @@ namespace A305.Tutorial
                 return;
             }
 
-            bool isChanged = !isCardShown || cardStep != progress.Step || cardCanContinue != progress.CanContinue;
+            bool isChanged =
+                !isCardShown
+                || cardStep != progress.Step
+                || cardCanContinue != progress.CanContinue;
             if (!isChanged)
             {
                 return;

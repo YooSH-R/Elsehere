@@ -1,0 +1,13 @@
+{
+  "scenarioId": "cafe_counter",
+  "locationId": "CAFE",
+  "situation": "The customer is at the counter of the corner cafe.",
+  "facts": [
+    "Menu: americano $4, latte $5, cappuccino $5, muffin $3.",
+    "Coffee drinks can be hot or iced at the same price.",
+    "Sizes are small or large. Large is $1 more.",
+    "Milk can be regular or soy at no extra cost.",
+    "The restroom is at the back of the cafe.",
+    "The hotel is right across the main street: cross at the crosswalk outside the cafe door, turn left, and it is a few steps up on the corner."
+  ]
+}

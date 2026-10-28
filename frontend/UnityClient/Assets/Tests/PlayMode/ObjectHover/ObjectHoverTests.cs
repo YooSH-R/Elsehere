@@ -42,7 +42,7 @@ namespace A305.ObjectHover.PlayModeTests
         {
             // 확인용 단어 목록에서 TV는 단어장에 저장된 단어다.
             HoverableObject tv = FindHoverable("tv");
-            yield return StandPlayerAt(new Vector3(-1.5f, 0f, 2.5f));
+            yield return StandPlayerNear(tv);
 
             hover.Refresh(ScreenPointOf(tv), LongerThanShowDelaySeconds);
 
@@ -57,7 +57,7 @@ namespace A305.ObjectHover.PlayModeTests
         public IEnumerator PointingAtUnsavedWord_ShowsMeaningWithoutExample()
         {
             HoverableObject airConditioner = FindHoverable("air_conditioner");
-            yield return StandPlayerAt(new Vector3(-1.5f, 0f, 2.5f));
+            yield return StandPlayerNear(airConditioner);
 
             hover.Refresh(ScreenPointOf(airConditioner), LongerThanShowDelaySeconds);
 
@@ -70,11 +70,19 @@ namespace A305.ObjectHover.PlayModeTests
         public IEnumerator PointingAwayFromTv_HidesTooltip()
         {
             HoverableObject tv = FindHoverable("tv");
-            yield return StandPlayerAt(new Vector3(-1.5f, 0f, 2.5f));
+            yield return StandPlayerNear(tv);
             hover.Refresh(ScreenPointOf(tv), LongerThanShowDelaySeconds);
+            Assert.That(tooltip.IsVisible, Is.True);
 
-            // 화면 왼쪽 아래 구석은 바닥이라 가리키는 사물이 없다.
-            hover.Refresh(new Vector2(5f, 5f), LongerThanShowDelaySeconds);
+            // 벽도 공용 단어를 가지므로, 씬 위쪽의 빈 공간을 바라보며 무대상 상태를 확인한다.
+            Camera.main.transform.SetPositionAndRotation(
+                new Vector3(0f, 100f, 0f),
+                Quaternion.LookRotation(Vector3.up, Vector3.forward)
+            );
+            hover.Refresh(
+                new Vector2(Screen.width / 2f, Screen.height / 2f),
+                LongerThanShowDelaySeconds
+            );
 
             Assert.That(tooltip.IsVisible, Is.False);
         }
@@ -83,7 +91,7 @@ namespace A305.ObjectHover.PlayModeTests
         public IEnumerator PointingAtTv_AfterPlayerMovesFarAway_HidesTooltip()
         {
             HoverableObject tv = FindHoverable("tv");
-            yield return StandPlayerAt(new Vector3(-1.5f, 0f, 2.5f));
+            yield return StandPlayerNear(tv);
             Vector2 pointer = ScreenPointOf(tv);
             hover.Refresh(pointer, LongerThanShowDelaySeconds);
             Assert.That(tooltip.IsVisible, Is.True);
@@ -107,21 +115,142 @@ namespace A305.ObjectHover.PlayModeTests
 
             Assert.That(
                 keys,
-                Is.SupersetOf(new[] { "tv", "refrigerator", "air_conditioner", "sofa", "bookshelf", "bed" })
+                Is.SupersetOf(
+                    new[] { "tv", "refrigerator", "air_conditioner", "sofa", "bookshelf", "bed" }
+                )
             );
         }
 
-        private IEnumerator StandPlayerAt(Vector3 position)
+        [UnityTest]
+        public IEnumerator PointingAtAnotherInstanceOfSameWord_RestartsShowDelay()
         {
-            player.Teleport(position, Quaternion.identity);
+            HoverableObject original = FindHoverable("tv");
+            yield return StandPlayerNear(original);
+            Vector2 pointer = ScreenPointOf(original);
+            hover.Refresh(pointer, LongerThanShowDelaySeconds);
+            Assert.That(tooltip.IsVisible, Is.True);
+
+            // 같은 위치의 다른 인스턴스로 바꿔 단어 키가 같아도 새 사물을 가리키는 경우를 만든다.
+            GameObject replacement = Object.Instantiate(
+                original.gameObject,
+                original.transform.position,
+                original.transform.rotation
+            );
+            replacement.transform.localScale = original.transform.lossyScale;
+            original.gameObject.SetActive(false);
+            Physics.SyncTransforms();
+            hover.Refresh(pointer, 0.01f);
+            Assert.That(tooltip.IsVisible, Is.False);
+            hover.Refresh(pointer, LongerThanShowDelaySeconds);
+            Assert.That(tooltip.IsVisible, Is.True);
+            Object.Destroy(replacement);
+        }
+
+        [UnityTest]
+        public IEnumerator Tooltip_FollowsPointerAboveItsPosition()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Camera camera = Camera.main;
+            Vector3 center = VisibleBounds(tv).center;
+            camera.transform.SetPositionAndRotation(
+                center + tv.transform.forward * 2f,
+                Quaternion.LookRotation(-tv.transform.forward)
+            );
+            var panel = tooltip.transform.Find("Panel").GetComponent<RectTransform>();
+            var canvas = tooltip.GetComponent<Canvas>();
+            Vector2 first = new Vector2(Screen.width / 2f - 8f, Screen.height / 2f);
+            Vector2 second = first + new Vector2(16f, 8f);
+            foreach (Vector2 pointer in new[] { first, second })
+            {
+                hover.Refresh(pointer, LongerThanShowDelaySeconds);
+                Assert.That(tooltip.IsVisible, Is.True);
+                var corners = new Vector3[4];
+                panel.GetWorldCorners(corners);
+                Vector2 bottomCenter = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    (corners[0] + corners[3]) * .5f
+                );
+                Assert.That(bottomCenter.x, Is.EqualTo(pointer.x).Within(1f));
+                Assert.That(
+                    bottomCenter.y,
+                    Is.EqualTo(pointer.y + 16f * canvas.scaleFactor).Within(1f)
+                );
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator Tooltip_UsesSpacingFromDataAsset()
+        {
+            yield return null;
+            var settings = ScriptableObject.CreateInstance<ObjectHoverSettings>();
+            try
+            {
+                JsonUtility.FromJsonOverwrite("{\"pointerGap\":48}", settings);
+                Vector2 pointer = new Vector2(Screen.width / 2f, Screen.height / 3f);
+                tooltip.Show(ObjectWord.ForHover("pillow", "베개", "", false), pointer, settings);
+                var panel = tooltip.transform.Find("Panel").GetComponent<RectTransform>();
+                var corners = new Vector3[4];
+                panel.GetWorldCorners(corners);
+                Vector2 bottomCenter = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    (corners[0] + corners[3]) * .5f
+                );
+                Assert.That(
+                    bottomCenter.y,
+                    Is.EqualTo(pointer.y + 48f * tooltip.GetComponent<Canvas>().scaleFactor)
+                        .Within(1f)
+                );
+            }
+            finally
+            {
+                Object.Destroy(settings);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ApproachingBed_SwitchesFromBedToPillow_AndBack()
+        {
+            yield return null;
+            HoverableObject bed = FindHoverable("bed");
+            Vector3 point = bed.transform.TransformPoint(new Vector3(-.44f, .78f, -.9f));
+            Camera camera = Camera.main;
+            camera.transform.position = point + bed.transform.forward * 1.5f + Vector3.up * 2f;
+            camera.transform.LookAt(point);
+            Vector2 pointer = camera.WorldToScreenPoint(point);
+            foreach (float distance in new[] { 4f, 2f, 4f })
+            {
+                Vector3 standing = point + bed.transform.forward * distance;
+                standing.y = .05f;
+                player.Teleport(standing, Quaternion.identity);
+                Physics.SyncTransforms();
+                hover.Refresh(pointer, LongerThanShowDelaySeconds);
+                Assert.That(tooltip.IsVisible, Is.True);
+                Assert.That(tooltip.WordText, Is.EqualTo(distance < 3f ? "pillow" : "bed"));
+            }
+        }
+
+        private IEnumerator StandPlayerNear(HoverableObject target)
+        {
+            Vector3 position = VisibleBounds(target).center + target.transform.forward * 2f;
+            position.y = .05f;
+            player.Teleport(position, Quaternion.LookRotation(-target.transform.forward));
             cameraRig.SnapBehindTarget();
             yield return null;
         }
 
         private static Vector2 ScreenPointOf(HoverableObject target)
         {
-            Bounds bounds = target.GetComponentInChildren<Renderer>().bounds;
-            return Camera.main.WorldToScreenPoint(bounds.center);
+            return Camera.main.WorldToScreenPoint(VisibleBounds(target).center);
+        }
+
+        private static Bounds VisibleBounds(HoverableObject target)
+        {
+            // 교체 전 도형의 비활성 Renderer 대신 실제 호버를 받는 새 외형을 사용한다.
+            return target
+                .GetComponentsInChildren<Collider>()
+                .First(collider => collider.enabled)
+                .bounds;
         }
 
         private static HoverableObject FindHoverable(string unityKey)

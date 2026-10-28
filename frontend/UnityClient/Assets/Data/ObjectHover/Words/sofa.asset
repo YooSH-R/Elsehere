@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: sofa
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: sofa
+    languageCode: en-US
+    text: sofa
+    meaningKo: "\uC18C\uD30C"
+    example: He is sitting on the sofa.
+    exampleKo: "\uADF8\uB294 \uC18C\uD30C\uC5D0 \uC549\uC544 \uC788\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: f36f3289327304d43bd8d5a2e1f1d881

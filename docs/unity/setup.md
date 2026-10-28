@@ -1,6 +1,6 @@
 # Unity 개발 환경과 Web 실행
 
-Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 웹 브라우저 실행을 대상으로 합니다. 시작 Scene은 튜토리얼을 시작하는 내 방(`HomeScene`)이며, 도형으로 만든 대체 공간입니다. 서비스 화면과 음성·서버 연동은 별도 기능 작업에서 구현합니다.
+Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 웹 브라우저 실행을 대상으로 합니다. 시작 Scene은 튜토리얼을 시작하는 내 방(`HomeScene`)이며, [집 실내 디자인](home-interior.md)을 적용합니다. 마을 외관은 [메인스트리트 디자인](mainstreet-art.md)을 따릅니다. 서비스 화면과 음성·서버 연동은 별도 기능 작업에서 구현합니다.
 
 ## 개발 환경
 
@@ -13,7 +13,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 스크립트 | C# |
 | 시작 Scene | `Assets/Scenes/Production/HomeScene.unity` |
 
-Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR 리뷰를 거쳐 공유합니다. 대상 브라우저와 모바일 브라우저 지원 범위는 서비스 요구사항에 따라 결정합니다.
+Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR 리뷰를 거쳐 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다.
 
 ## 설치와 프로젝트 열기
 
@@ -37,6 +37,21 @@ Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소�
 5. 브라우저에서 방 로딩, 이동, 문을 통한 공간 전환을 확인하고 브라우저 Console에서도 오류를 확인합니다.
 
 Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을 직접 더블클릭하는 방식 대신 Build And Run이나 웹 서버를 통해 실행합니다. 로컬 빌드 성공과 외부 서버 배포 성공은 각각 검증합니다.
+
+### 모바일 화면과 Web 템플릿
+
+`Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 빌드 설정의 캔버스 비율을 유지하며 화면 안에 맞춥니다. 기본 캔버스 크기는 960×600입니다. 세로 화면에는 위아래 여백이 생기며, 가로로 돌리면 더 크게 볼 수 있습니다. 화면을 채우기 위해 게임 화면을 자르거나 늘리지 않습니다. 노치·홈 표시줄의 안전 영역과 브라우저 주소창에 따른 높이 변화도 반영합니다.
+
+Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
+
+- **Player Settings → Web → Resolution and Presentation → Web Template**에서 `A305Responsive`를 선택합니다. **Tools → A305 → Web → Configure Responsive Template**으로도 적용할 수 있습니다.
+- **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 먼저 Build Profiles에서 Web을 활성 플랫폼으로 전환합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용하며, 새 환경에서도 Web용 렌더링 설정이 포함되도록 `-buildTarget WebGL`을 명시합니다.
+- 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
+- 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
+
+```powershell
+& "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -buildTarget WebGL -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Common.WebBuildBuilder.Build -quit -logFile <저장소 밖 경로>\WebBuild.log
+```
 
 ## C# 포맷과 규칙 검사
 
@@ -89,6 +104,14 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 
 제외 기준은 프로젝트의 `.gitignore`를 따릅니다. Unity 프로젝트의 텍스트 파일은 저장소의 `.gitattributes`에 따라 LF로 공유합니다. 새로 저장소를 받은 팀원도 Editor 실행과 Web 빌드를 확인한 뒤 초기 환경 공유를 완료합니다.
 
+## 자동 빌드 진입점
+
+`A305.EditorTools.Deployment.WebGlBuild.Build`는 활성화된 Scene List를 WebGL로 빌드하고 gzip 응답에 맞는 산출물과 `version.json`을 만듭니다. `WEBGL_BUILD_DIRECTORY`에 `Assets` 밖의 출력 폴더를 지정합니다. `CI_COMMIT_SHA`가 있으면 전체 커밋 SHA를 기록하고, 로컬 검증에서는 `local`을 기록합니다.
+
+배포 빌드는 내용 해시를 파일명으로 사용해 이전 릴리스의 JavaScript·WebAssembly·데이터가 섞이지 않게 합니다. 웹 컨테이너는 시작 페이지와 일반 정적 파일에 `Cache-Control: no-cache`를 적용해 브라우저가 현재 파일을 재검증하도록 합니다. 압축 산출물은 내용이 바뀌면 URL도 바뀝니다.
+
+자동화의 기본 실행 환경은 [Windows 노트북의 Unity 전용 Runner](windows-runner.md)입니다. EC2의 Editor·라이선스·자원 조건은 [EC2 빌드 검토](server-build.md)에 남깁니다. 빌드 스크립트, Runner 연결, 실제 CI 빌드와 서버 배포 성공은 각각 확인합니다.
+
 ## 후속 검증 범위
 
 - 마이크: Unity Web의 기본 `Microphone` API는 지원되지 않으므로 브라우저 API 연결 방식을 검증합니다. 권한 허용·거부, 녹음과 재생을 실제 브라우저에서 확인합니다.
@@ -96,6 +119,18 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 - 배포: HTTPS, 압축 파일 응답 헤더, WebAssembly 파일 형식과 로딩을 외부 서버에서 검증합니다.
 - 자동화: 수동 빌드·배포 절차를 검증한 뒤 CI 검사와 Web 빌드·배포 자동화를 구성합니다.
 
+## Tripo 에셋 제작 작업대
+
+**Tools → A305 → Assets → Tripo Workbench**에서 API 생성, Studio·파일 가져오기, Blender 수정본 반영,
+표정·립싱크 미리보기, 부품·소켓 연결과 검수 프리팹 등록을 진행합니다.
+첫 화면에서 **API 생성 / 웹·파일 가져오기**를 선택합니다. API 생성은 키와 API 크레딧을 사용하며,
+웹·파일 가져오기와 로컬 검사에는 API 키가 필요하지 않습니다. 기존 작업은 **기존 작업 불러오기**에서 선택합니다.
+저장소 루트에서 `./infra/scripts/install-tripo-bridge.ps1`을 실행해 공식 Bridge를 설치하고,
+Blender 실행 파일은 각 개발 PC에서 설정합니다. Bridge 원본은 로컬 설치하며 Git에 넣지 않습니다.
+공통 골격·얼굴 Shape Keys를 갖춘 기준 모델 제작과 실제 모델 품질 검수는 별도 작업입니다.
+
+화면별 사용법, 파일 보존 방식과 자동 검증 범위는
+[Tripo Asset Workbench 안내](../../frontend/UnityClient/Assets/Scripts/Editor/Tripo/README.md)를 따릅니다.
 ## 참고 자료
 
 - [Unity Web 빌드 설정](https://docs.unity3d.com/6000.3/Documentation/Manual/web-build-settings.html)

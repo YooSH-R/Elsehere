@@ -1,6 +1,7 @@
 """모델 구성 (llm_profiles.json): LLM_PROFILE 하나로 공급자 주소·키·역할별 모델이 바뀌는지 (모델 호출 없음)."""
 
 import json
+from pathlib import Path
 
 import httpx
 import pytest
@@ -34,6 +35,25 @@ def test_default_profile_is_gms_luna(env):
     assert s.role_provider == {"stt": "groq"} and s.providers == {"groq": {"base_url": GROQ_URL, "api_key": "q"}}
 
 
+def test_dabin_role_example_overrides_only_owned_roles(env):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
+    before = Settings.from_env()
+    example = Path(__file__).resolve().parents[1] / "dabin-roles.env.example"
+    overrides = {}
+    for line in example.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            name, value = line.split("=", 1)
+            overrides[name] = value
+    assert set(overrides) == {"MODEL_MEMORY", "MODEL_FEEDBACK"}
+    env.update(overrides)
+    after = Settings.from_env()
+    assert all(after.models[role] == "gpt-5.4" for role in ("memory", "feedback"))
+    for role in before.models:
+        if role not in ("memory", "feedback"):
+            assert after.models[role] == before.models[role]
+    assert after.role_provider == before.role_provider and after.fallback == before.fallback
+
+
 def test_groq_profile(env):
     env.update({"LLM_PROFILE": "groq", "GROQ_API_KEY": "q"})
     s = Settings.from_env()
@@ -48,6 +68,41 @@ def test_gms_profile_by_one_variable(env):
     assert (s.base_url, s.api_key) == (GMS_URL, "g")
     assert s.models["npc"] == "gpt-6-luna" and s.models["feedback"] == "gpt-6.1-sol"  # 역할 하나만 덮어쓰기
     assert s.role_provider == {"stt": "groq"} and s.providers == {"groq": {"base_url": GROQ_URL, "api_key": "q"}}
+
+
+def test_stt_fallback_from_profile(env):
+    # GMS 구성: 음성 인식이 Groq에서 실패하면 GMS whisper-1로 (GMS는 기본 공급자라 공급자를 따로 더하지 않음)
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
+    s = Settings.from_env()
+    assert s.stt_fallback == {"provider": "gms", "model": "whisper-1"} and set(s.providers) == {"groq"}
+    env["LLM_PROFILE"] = "gms-sol"
+    assert Settings.from_env().stt_fallback == {"provider": "gms", "model": "whisper-1"}
+    env["LLM_PROFILE"] = "groq"
+    assert Settings.from_env().stt_fallback == {}
+
+
+def test_stt_fallback_by_env(env):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_FALLBACK": ""})  # 끄기
+    assert Settings.from_env().stt_fallback == {}
+    env.update({"LLM_PROFILE": "groq", "STT_FALLBACK": "gms:whisper-1", "STT_FIRST_TIMEOUT_S": "5"})
+    s = Settings.from_env()
+    assert s.stt_fallback == {"provider": "gms", "model": "whisper-1"} and s.stt_first_timeout_s == 5.0
+    assert s.providers["gms"] == {"base_url": GMS_URL, "api_key": "g"}  # 기본 공급자가 아니면 공급자를 더함
+
+
+@pytest.mark.parametrize("value", ["whisper-1", "nope:whisper-1", "gms:"])
+def test_stt_fallback_bad_value(env, value):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_FALLBACK": value})
+    with pytest.raises(RuntimeError) as e:
+        Settings.from_env()
+    assert "STT_FALLBACK" in str(e.value)
+
+
+def test_stt_fallback_key_required(env):
+    env.update({"LLM_PROFILE": "groq", "GROQ_API_KEY": "q", "STT_FALLBACK": "gms:whisper-1"})
+    with pytest.raises(RuntimeError) as e:
+        Settings.from_env()
+    assert "GMS_KEY" in str(e.value)
 
 
 def test_missing_keys_named(env):

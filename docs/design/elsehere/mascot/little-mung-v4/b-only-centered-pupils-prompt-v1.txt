@@ -1,0 +1,14 @@
+Use case: precise-object-edit.
+Input: existing LITTLE MUNG v4 roster. Use ONLY the bottom two rows labeled B / CLUSTER. The top two A rows must NOT appear anywhere in the output.
+
+Create ONE clean B-only sheet with exactly TEN full-body characters in TWO rows and FIVE columns, enlarged enough that every pupil and the surrounding white of each eye can be inspected. White background. Small title "LITTLE MUNG v4 · B". No A characters, no inset, no extra people.
+Row 1 exact same individuals as the input B row: PLAYER F, PLAYER M, WHITE AMERICAN M, WHITE AMERICAN F, BLACK AMERICAN M.
+Row 2: BLACK AMERICAN F, BARISTA, HOTELIER, OLDER M, OLDER F.
+Preserve all the B faces, head contours, hair, skin, outfits, neutral small smiles, eyebrows, eyelashes, glasses, body proportions and poses from the lower two rows. Maintain v4 crown-to-chin head roughly 60%, chin-to-shoe body roughly 40%. No tiny-body proportion redesign. Keep B's existing CLOSELY SPACED WHOLE EYES exactly where they are relative to nose/mouth.
+
+THE SINGLE FACIAL EDIT, on all twenty eyes:
+Place the BLACK/DARK OVAL IRIS AND PUPIL at the EXACT GEOMETRIC CENTER OF ITS OWN VISIBLE WHITE EYE OPENING. Center the entire dark oval, not just its highlight. Equal visible white margin at the nasal side and temporal side of EACH individual eye. Vertically center as well. If an eye's white opening spans x=0 to x=100, the dark oval's center must be x=50, independently for that eye. Repeat independently for the left and right eyes, including behind the older woman's glasses.
+This must look calmly straight forward with parallel gaze, not inward toward the nose. In screen space for inward-looking eyes, move the left-on-image pupil leftward and the right-on-image pupil rightward within their UNMOVED white eye openings, only as far as the centers. DO NOT push pupils to outer edges and make wall-eyed characters. DO NOT move the whole eye openings apart. DO NOT enlarge or shrink the pupil. Retain existing dark oval shape/size, ivory eye size/shape, original small highlight, and upper eyelid shape.
+B means whole facial features are grouped at the center of the face; it MUST NOT mean the pupils converge toward the nose. Make the equal white margins clearly readable.
+
+This is a faithful localized edit and re-layout, not a fresh character design. Keep the same matte, softly lit stylized 3D game asset appearance, not photographic texture. Full hair and shoes uncropped, all ten at equal scale. Minimal original English role labels below each figure. Plain white background with subtle contact shadows only, no scenery or props. Prioritize accurately centered pupils and preserving the input B character designs.

@@ -2961,6 +2961,7 @@ MonoBehaviour:
   mission: {fileID: 1056793834}
   passersby:
   - {fileID: 662858914}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1001 &1963306629
 PrefabInstance:
   m_ObjectHideFlags: 0

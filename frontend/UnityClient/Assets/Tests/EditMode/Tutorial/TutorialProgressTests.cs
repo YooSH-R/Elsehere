@@ -220,6 +220,65 @@ namespace A305.Tutorial.Tests
             Assert.That(progress.IsApproachAllowed(TutorialNpcCode), Is.False);
         }
 
+        [Test]
+        public void NewProgress_HasNoFinishToSave()
+        {
+            Assert.That(progress.Finish, Is.Null);
+            Assert.That(progress.NeedsFinishSave, Is.False);
+        }
+
+        [Test]
+        public void Skip_RecordsSkippedFinishToSave()
+        {
+            progress.Skip();
+
+            Assert.That(progress.Finish, Is.EqualTo(TutorialFinish.Skipped));
+            Assert.That(progress.NeedsFinishSave, Is.True);
+        }
+
+        [Test]
+        public void StartMissionTalk_RecordsCompletedFinishToSave()
+        {
+            MoveTo(TutorialStep.MissionTalk);
+
+            progress.StartDialogue(MissionNpcCode);
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+            Assert.That(progress.Finish, Is.EqualTo(TutorialFinish.Completed));
+            Assert.That(progress.NeedsFinishSave, Is.True);
+        }
+
+        [Test]
+        public void MarkFinishSaved_StopsSavingAgain()
+        {
+            progress.Skip();
+
+            progress.MarkFinishSaved();
+
+            Assert.That(progress.NeedsFinishSave, Is.False);
+        }
+
+        [Test]
+        public void MarkFinishedOnServer_StartsCompletedWithoutSaving()
+        {
+            progress.MarkFinishedOnServer();
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+            Assert.That(progress.IsMissionPanelVisible, Is.True);
+            Assert.That(progress.Finish, Is.Null);
+            Assert.That(progress.NeedsFinishSave, Is.False);
+        }
+
+        [Test]
+        public void LeaveHome_AfterFinishedOnServer_KeepsCompleted()
+        {
+            progress.MarkFinishedOnServer();
+
+            progress.LeaveHome();
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+        }
+
         // 테스트하려는 단계까지 실제 진행 순서대로 넘긴다.
         private void MoveTo(TutorialStep target)
         {

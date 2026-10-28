@@ -17,6 +17,7 @@ namespace A305.EditorTools.Tripo
         public bool requireHumanoid;
         public GameObject commonBody;
         public string masterPreparedPath;
+        public TripoMasterBindingStamp masterBinding;
         public string registeredPrefabPath;
         public GameObject sourceModel;
         public TripoValidationProfile profile;
@@ -86,13 +87,14 @@ namespace A305.EditorTools.Tripo
             string settings = profile == null ? "missing-profile" : JsonUtility.ToJson(profile);
             return Hash128
                 .Compute(
-                    "validation:master-rig-v1\n"
+                    "validation:master-rig-v3\n"
                         + modelPath
                         + "\n"
                         + modelHash
                         + "\n"
                         + settings
                         + "\n"
+                        + JsonUtility.ToJson(masterBinding)
                         + masterPreparedPath
                         + kind
                         + "\n"

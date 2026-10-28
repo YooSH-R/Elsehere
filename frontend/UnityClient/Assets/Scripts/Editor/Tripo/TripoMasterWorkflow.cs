@@ -18,7 +18,7 @@ namespace A305.EditorTools.Tripo
             var master = AssetDatabase.LoadAssetAtPath<GameObject>(TripoMasterRig.MasterPath);
             TripoModelReview.RequireHumanoid(master);
             if (AssetDatabase.LoadAssetAtPath<GameObject>(VisualTemplate) == null)
-                throw new InvalidOperationException("서비스 마스터 여성 프리팹이 없습니다.");
+                throw new InvalidOperationException("서비스 공통 골격 부모 프리팹이 없습니다.");
             return master;
         }
 
@@ -33,7 +33,7 @@ namespace A305.EditorTools.Tripo
             var master = RequireMaster();
             if (record.commonBody != null && record.commonBody != master)
                 throw new InvalidOperationException(
-                    "선택한 마스터는 이 서비스 여성 템플릿과 다릅니다."
+                    "선택한 마스터는 이 서비스 공통 골격 템플릿과 다릅니다."
                 );
             string sourcePath = AssetDatabase.GetAssetPath(record.sourceModel);
             string folder = AssetDatabase.GenerateUniqueAssetPath(
@@ -46,6 +46,7 @@ namespace A305.EditorTools.Tripo
             record.uniformScale = 1;
             record.revision.candidatePath = AssetDatabase.GetAssetPath(visual);
             record.masterPreparedPath = record.revision.candidatePath;
+            record.masterBinding = TripoMasterBindingStamp.Capture(record);
             record.revision.Invalidate();
             EditorUtility.SetDirty(record);
             AssetDatabase.SaveAssets();
@@ -75,7 +76,7 @@ namespace A305.EditorTools.Tripo
                 {
                     if (!bones.TryGetValue(bone.name, out var replacement))
                         throw new InvalidOperationException(
-                            "여성 마스터 템플릿 본 누락: " + bone.name
+                            "공통 골격 부모 템플릿 본 누락: " + bone.name
                         );
                     replacement.localPosition = bone.localPosition;
                     replacement.localRotation = bone.localRotation;

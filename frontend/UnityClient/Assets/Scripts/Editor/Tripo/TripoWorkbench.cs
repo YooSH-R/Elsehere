@@ -81,6 +81,18 @@ namespace A305.EditorTools.Tripo
                     {
                         Merge(report, TripoMasterRig.Inspect(model, record.commonBody));
                         if (report.Passed)
+                            Merge(report, TripoMasterBindingStamp.Inspect(record));
+                        if (report.Passed)
+                            Merge(
+                                report,
+                                TripoMasterFootAudit.Inspect(
+                                    record.sourceModel,
+                                    AssetDatabase.LoadAssetAtPath<GameObject>(
+                                        record.masterPreparedPath
+                                    )
+                                )
+                            );
+                        if (report.Passed)
                         {
                             report.ManualChecks.RemoveAll(item =>
                                 item.StartsWith("자동 동작 검사 미실행")

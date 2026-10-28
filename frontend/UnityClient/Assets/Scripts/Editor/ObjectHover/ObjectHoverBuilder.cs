@@ -170,7 +170,8 @@ namespace A305.EditorTools.ObjectHover
         /// </summary>
         private static void SetUpTooltip(GameObject root)
         {
-            UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 100, receivesClicks: false);
+            // 고정한 카드의 버튼을 누를 수 있게 클릭을 받는다. 호버 중에는 패널이 클릭을 막지 않는다(WordTooltipView).
+            UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 100, receivesClicks: true);
 
             var view = BuilderTools.GetOrAddComponent<WordTooltipView>(root);
 
@@ -213,6 +214,35 @@ namespace A305.EditorTools.ObjectHover
                     new Color(0.8f, 0.82f, 0.86f)
                 )
             );
+            BuilderTools.SetReference(
+                view,
+                "pinHintLabel",
+                UiBuilderTools.FindOrCreateText(
+                    panel,
+                    "PinHint",
+                    regular,
+                    18f,
+                    new Color(0.62f, 0.65f, 0.72f),
+                    "클릭하면 카드가 고정돼요"
+                )
+            );
+            // 고정한 카드의 버튼 줄. 단어 저장·보이지 않기 버튼도 이 줄에 넣는다.
+            RectTransform actions = UiBuilderTools.FindOrCreateButtonRow(panel, "Actions");
+            BuilderTools.SetReference(view, "actionRow", actions.gameObject);
+            BuilderTools.SetReference(
+                view,
+                "closeButton",
+                UiBuilderTools.FindOrCreateButton(
+                    actions,
+                    "CloseButton",
+                    "닫기",
+                    UiBuilderTools.BoldFont(),
+                    preferredWidth: 120f
+                )
+            );
+            actions.gameObject.SetActive(false);
+            // 고정한 카드의 빈 곳을 눌러도 뒤의 사물이 클릭되지 않게 배경이 클릭을 받는다.
+            panel.GetComponent<Image>().raycastTarget = true;
             BuilderTools.RequireReferences(view);
         }
 
@@ -228,7 +258,6 @@ namespace A305.EditorTools.ObjectHover
 
             var background = panel.AddComponent<Image>();
             background.color = new Color(0.08f, 0.09f, 0.12f, 0.88f);
-            background.raycastTarget = false;
 
             var group = panel.AddComponent<CanvasGroup>();
             group.alpha = 0f;

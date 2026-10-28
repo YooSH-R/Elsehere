@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using A305.Player;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace A305.ObjectHover
@@ -8,6 +9,8 @@ namespace A305.ObjectHover
     /// <summary>
     /// 포인터가 가리키는 사물을 찾아 툴팁을 보이거나 숨긴다. 플레이어가 움직이거나, 멀리 있거나,
     /// 대화처럼 이동이 잠긴 상호작용 중이면 보이지 않는다. 툴팁은 하나만 보인다.
+    /// 사물을 클릭하면 카드를 그 자리에 고정해 커서가 벗어나도 카드 안 버튼을 누를 수 있게 하고,
+    /// [닫기]·빈 곳 클릭·Esc나 플레이어가 멀어지거나 대화가 시작되면 고정을 푼다.
     /// </summary>
     public class ObjectHoverController : MonoBehaviour
     {
@@ -40,27 +43,67 @@ namespace A305.ObjectHover
         private readonly HashSet<string> keysWithoutWord = new HashSet<string>();
         private HoverTooltipState state;
 
-        /// <summary>포인터 위치로 툴팁을 갱신한다. 매 프레임 Update에서 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.</summary>
-        public void Refresh(Vector2 pointerScreenPosition, float deltaTimeSeconds)
+        // 고정한 카드의 사물 위치. 플레이어가 이보다 최대 거리 넘게 멀어지면 고정을 푼다.
+        private Vector3 pinnedPosition;
+
+        // 사물 클릭을 판단하려고 누른 자리를 기억한다. UI 위에서 눌렀으면 비운다.
+        private Vector2? pressedAt;
+
+        /// <summary>
+        /// 포인터 위치를 클릭했다. 단어가 있는 가까운 사물이면 그 카드를 클릭한 자리에 고정하고, 아니면 고정을 푼다.
+        /// Update에서 클릭을 판단해 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.
+        /// </summary>
+        public void Click(Vector2 pointerScreenPosition)
         {
             HoverableObject target = FindPointedObject(
                 pointerScreenPosition,
                 out Vector3 pointedPosition
             );
             float distance = Vector3.Distance(player.transform.position, pointedPosition);
-            int partIndex =
-                target != null && target.Parts != null
-                    ? target.Parts.FindPart(
-                        target.transform.InverseTransformPoint(pointedPosition),
-                        distance,
-                        settings.DetailDistanceMeters
-                    )
-                    : -1;
-            ObjectWordDefinition definition = null;
-            if (target != null)
+            ObjectWordDefinition definition = DefinitionAt(
+                target,
+                pointedPosition,
+                distance,
+                out _
+            );
+            // 걷는 중이어도 고정할 수 있게 이동 여부는 보지 않는다.
+            ObjectWord word = default;
+            bool canPin =
+                target != null
+                && !player.IsMovementLocked
+                && distance <= settings.MaxDistanceMeters
+                && TryGetWord(target, definition, out word);
+            if (!canPin)
             {
-                definition = partIndex < 0 ? target.Word : target.Parts.Parts[partIndex].Word;
+                Unpin();
+                return;
             }
+
+            state.Pin(WordKeyOf(target, definition));
+            pinnedPosition = pointedPosition;
+            tooltip.ShowPinned(word, pointerScreenPosition, settings);
+        }
+
+        /// <summary>포인터 위치로 툴팁을 갱신한다. 매 프레임 Update에서 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.</summary>
+        public void Refresh(Vector2 pointerScreenPosition, float deltaTimeSeconds)
+        {
+            if (state.IsPinned)
+            {
+                KeepOrClosePinnedCard();
+                return;
+            }
+
+            HoverableObject target = FindPointedObject(
+                pointerScreenPosition,
+                out Vector3 pointedPosition
+            );
+            float distance = Vector3.Distance(player.transform.position, pointedPosition);
+            ObjectWordDefinition definition = DefinitionAt(
+                target,
+                pointedPosition,
+                distance,
+                out int partIndex
+            );
             if (target != previousTarget || partIndex != previousPart)
             {
                 state.Update(null, false, 0f);
@@ -75,16 +118,7 @@ namespace A305.ObjectHover
                 && distance <= settings.MaxDistanceMeters
                 && TryGetWord(target, definition, out word);
 
-            string wordKey = null;
-            if (definition != null)
-            {
-                wordKey = definition.Key;
-            }
-            else if (target != null)
-            {
-                wordKey = target.UnityKey;
-            }
-            state.Update(wordKey, canShow, deltaTimeSeconds);
+            state.Update(WordKeyOf(target, definition), canShow, deltaTimeSeconds);
 
             if (state.VisibleKey == null)
             {
@@ -104,6 +138,15 @@ namespace A305.ObjectHover
             }
 
             state = new HoverTooltipState(settings.ShowDelaySeconds);
+            tooltip.CloseRequested += Unpin;
+        }
+
+        private void OnDestroy()
+        {
+            if (tooltip != null)
+            {
+                tooltip.CloseRequested -= Unpin;
+            }
         }
 
         private void OnEnable()
@@ -113,6 +156,11 @@ namespace A305.ObjectHover
 
         private void OnDisable()
         {
+            if (state != null)
+            {
+                state.Unpin();
+            }
+
             if (tooltip != null)
             {
                 tooltip.Hide();
@@ -121,7 +169,101 @@ namespace A305.ObjectHover
 
         private void Update()
         {
-            Refresh(pointAction.action.ReadValue<Vector2>(), Time.deltaTime);
+            Vector2 pointer = pointAction.action.ReadValue<Vector2>();
+            DetectClick(pointer);
+            if (
+                state.IsPinned
+                && Keyboard.current != null
+                && Keyboard.current.escapeKey.wasPressedThisFrame
+            )
+            {
+                Unpin();
+            }
+
+            Refresh(pointer, Time.deltaTime);
+        }
+
+        // 누른 자리에서 거의 움직이지 않고 떼면 사물 클릭으로 본다. 시점을 돌린 드래그와,
+        // 카드의 [닫기]·HUD처럼 UI를 누른 것은 빼고 휴대폰 탭도 같은 방식으로 처리한다.
+        private void DetectClick(Vector2 pointer)
+        {
+            Pointer device = Pointer.current;
+            if (device == null)
+            {
+                return;
+            }
+
+            if (device.press.wasPressedThisFrame)
+            {
+                pressedAt = IsPointerOverUi() ? null : pointer;
+            }
+            else if (device.press.wasReleasedThisFrame && pressedAt.HasValue)
+            {
+                bool isClick = PointerClick.IsClick(pressedAt.Value, pointer);
+                pressedAt = null;
+                if (isClick)
+                {
+                    Click(pointer);
+                }
+            }
+        }
+
+        private static bool IsPointerOverUi()
+        {
+            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        }
+
+        // 대화처럼 이동이 잠기거나 플레이어가 멀어지면 고정을 푼다. 걷는 동안에는 그대로 둔다.
+        private void KeepOrClosePinnedCard()
+        {
+            float distance = Vector3.Distance(player.transform.position, pinnedPosition);
+            if (player.IsMovementLocked || distance > settings.MaxDistanceMeters)
+            {
+                Unpin();
+            }
+        }
+
+        private void Unpin()
+        {
+            state.Unpin();
+            tooltip.Hide();
+            // 고정을 푼 자리의 사물도 다시 지연 시간을 지나야 호버 카드가 보이게 한다.
+            previousTarget = null;
+            previousPart = -1;
+        }
+
+        /// <summary>가까이에서 가구의 세부 영역을 가리키면 그 부분의 단어, 아니면 사물 전체의 단어.</summary>
+        private ObjectWordDefinition DefinitionAt(
+            HoverableObject target,
+            Vector3 pointedPosition,
+            float distance,
+            out int partIndex
+        )
+        {
+            partIndex =
+                target != null && target.Parts != null
+                    ? target.Parts.FindPart(
+                        target.transform.InverseTransformPoint(pointedPosition),
+                        distance,
+                        settings.DetailDistanceMeters
+                    )
+                    : -1;
+            if (target == null)
+            {
+                return null;
+            }
+
+            return partIndex < 0 ? target.Word : target.Parts.Parts[partIndex].Word;
+        }
+
+        private static string WordKeyOf(HoverableObject target, ObjectWordDefinition definition)
+        {
+            if (definition != null)
+            {
+                return definition.Key;
+            }
+
+            return target != null ? target.UnityKey : null;
         }
 
         /// <summary>포인터 방향의 가장 가까운 물체가 호버 사물이면 돌려준다. 플레이어 자신은 가리지 않는다.</summary>

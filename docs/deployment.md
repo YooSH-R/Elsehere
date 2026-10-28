@@ -4,15 +4,16 @@
 
 ## 적용 범위
 
-현재 개발 환경은 PostgreSQL·백엔드·AI 워커·Unity WebGL 웹 컨테이너를 실행하며, 운영 환경은 환경 확인용 서비스를 유지합니다. 호스트 Nginx가 기존 HTTPS API 경로를 각 환경으로 전달합니다. 운영 확인용 응답은 실제 애플리케이션의 기동이나 통합 동작을 보장하지 않습니다.
+현재 개발 환경은 PostgreSQL·백엔드·AI 워커·Unity WebGL 웹 컨테이너를 실행하며, 운영 환경은 환경 확인용 서비스를 유지합니다. 호스트 Nginx가 도메인에 따라 각 환경으로 전달하고 기존 SSAFY 경로도 호환 제공합니다. 운영 확인용 응답은 실제 애플리케이션의 기동이나 통합 동작을 보장하지 않습니다.
 
-백엔드·AI 워커·웹 이미지와 앱용 Compose는 저장소에서 관리합니다. Unity 테스트·WebGL 빌드는 [Windows 노트북 전용 Runner](unity/windows-runner.md)에서 실행합니다. [dev 자동 배포](dev-auto-deployment.md)는 서버 수신기와 전용 키·변수 등록, 연결 시험을 마친 뒤 사용합니다. 운영 전환·전용 수신기·수동 배포와 복구는 [main 운영 배포](prod-deployment.md)를 따릅니다. GPU 서버 연결은 제공 조건과 AI 실행 방식이 정해진 뒤 반영합니다.
+백엔드·AI 워커·웹 이미지와 앱용 Compose는 저장소에서 관리합니다. Unity 테스트·WebGL 빌드는 [Windows 노트북 전용 Runner](unity/windows-runner.md)에서 실행합니다. 개발은 [dev 자동 배포](dev-auto-deployment.md)의 변경 영역 검사·이미지 전달·배포 후 점검을 사용합니다. 운영 전환·전용 수신기·수동 배포와 복구는 [main 운영 배포](prod-deployment.md)를 따릅니다. GPU 서버 연결은 제공 조건과 AI 실행 방식이 정해진 뒤 반영합니다.
 
 ## 서버와 환경 구분
 
 | 항목 | 구성 |
 | --- | --- |
-| 도메인 | `k15a305.p.ssafy.io` |
+| 앱 도메인 | 개발 `dev.elsehere.kr`, 운영 `elsehere.kr`·`www.elsehere.kr` |
+| 서버 관리·호환 주소 | `k15a305.p.ssafy.io` |
 | 접속 | PEM 인증키를 사용하는 `ubuntu` 계정의 SSH |
 | 운영체제·아키텍처 | Ubuntu 24.04 LTS, `x86_64` |
 | 서버 자원 | 논리 CPU 4개, 메모리 약 15GiB, 루트 디스크 약 309GiB, Swap 없음 |
@@ -27,8 +28,9 @@
 | 소스 폴더 | `~/apps/a305/dev/source` | `~/apps/a305/prod/source` |
 | 확인용 환경 파일 | `~/apps/a305/dev/bootstrap.env` | `~/apps/a305/prod/bootstrap.env` |
 | 앱용 환경 파일 위치 | `~/apps/a305/dev/deploy.env` | `~/apps/a305/prod/deploy.env` |
-| 확인용 호스트 포트 | `127.0.0.1:8081` | `127.0.0.1:8080` |
-| API 외부 경로 | `/dev/api/` | `/api/` |
+| 웹 호스트 포트 | `127.0.0.1:8081` | `127.0.0.1:8080` |
+| 도메인별 API 경로 | `https://dev.elsehere.kr/api/` | `https://elsehere.kr/api/` |
+| 기존 SSAFY API 경로 | `/dev/api/` | `/api/` |
 | 확인용 응답의 환경 이름 | `dev` | `prod` |
 
 `deploy.env`는 앱 설정을 둘 위치입니다. 백엔드는 PostgreSQL을 사용하며 연결 변수는 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`입니다. 서버에 앱과 DB를 배포할 때 환경별 연결값을 이 파일에 설정합니다. 확인용 컨테이너는 소스 폴더나 Git 브랜치를 읽지 않습니다.
@@ -36,14 +38,14 @@
 ## 요청 전달 구조
 
 ```text
-클라이언트 → 호스트 Nginx
-              ├─ /dev/api/ → 127.0.0.1:8081/api/ → 개발 웹 → 백엔드
-              └─ /api/     → 127.0.0.1:8080/api/ → 운영 확인용 서비스
+클라이언트 → 호스트 Nginx (TLS 종료)
+              ├─ dev.elsehere.kr /     → 127.0.0.1:8081 → 개발 웹·API
+              └─ elsehere.kr /, www / → 127.0.0.1:8080 → 운영 확인용 서비스
 ```
 
-개발 경로는 `/dev`를 제거하여 내부 `/api/`로 전달합니다. 두 컨테이너는 호스트의 루프백 주소에만 포트를 게시합니다. Nginx를 컨테이너로 옮기면 `127.0.0.1`의 대상이 달라지므로 연결 방식도 함께 바꿔야 합니다.
+신규 개발 주소에는 `/dev/`를 붙이지 않습니다. 기존 SSAFY 주소의 개발 경로에서만 `/dev`를 제거해 내부로 전달합니다. 두 환경은 호스트의 루프백 주소에만 포트를 게시합니다. Nginx를 컨테이너로 옮기면 `127.0.0.1`의 대상이 달라지므로 연결 방식도 함께 바꿔야 합니다.
 
-프로젝트의 Nginx 예제는 개발 API도 주소로 직접 접근할 수 있도록 정의합니다. 기존 서버에 접근 제한이 남아 있다면 TLS 설정을 보존하며 해당 location만 수정하고 외부 응답을 검증합니다. 경로 구분은 접근 인증을 대신하지 않으므로, 실제 앱에서는 개발·운영 자격 증명과 데이터를 분리합니다.
+개발 API도 주소로 직접 접근할 수 있습니다. 도메인·경로 구분은 접근 인증을 대신하지 않으므로 개발·운영 자격 증명과 데이터를 분리합니다. 인증서·리다이렉트·실제 브라우저 검증은 [HTTPS 운영](https.md)을 따릅니다.
 
 ## 설정 파일의 책임
 
@@ -54,7 +56,8 @@
 | `infra/compose/bootstrap.prod.env.example` | 운영 환경 이름과 포트 예제 |
 | `infra/nginx/bootstrap-response.conf.template` | 확인용 JSON 응답 |
 | `infra/nginx/a305.bootstrap.conf` | 최초 HTTP 연결용 프록시 예제 |
-| `/etc/nginx/sites-available/a305` | 서버에서 사용하는 Nginx 설정. Certbot 적용 후 TLS 항목 포함 |
+| `/etc/nginx/sites-available/a305-elsehere` | 개발·운영·www 도메인별 프록시와 Certbot TLS 설정 |
+| `/etc/nginx/sites-available/a305` | 기존 SSAFY 경로 호환과 해당 인증서 설정 |
 | `~/apps/a305/bootstrap/` | 확인용 Compose와 응답 템플릿을 함께 두는 서버 실행 경로 |
 
 저장소의 HTTP 예제를 이미 HTTPS가 적용된 서버 설정 위에 다시 복사하지 않습니다. 인증서와 개인 키, 실제 환경 파일은 서버에서 관리하고 저장소에 넣지 않습니다.
@@ -78,7 +81,7 @@
 NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 연결해 보존합니다. 이미지 교체와 롤백에서도 같은 프로젝트·볼륨을 유지하며, 권한·저장 검증과 보관 정책은 [NPC 음성 저장 운영 문서](npc-audio-storage.md)를 따릅니다.
 
 ```text
-호스트 Nginx /dev/ 또는 /dev/api/
+호스트 Nginx dev.elsehere.kr /
   → 127.0.0.1:8081 (web)
       ├─ 정적 WebGL 파일
       └─ /api/ → backend:8080 → database:5432
@@ -108,8 +111,8 @@ NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 �
 4. 운영 후보의 코드·이미지·설정을 고정하고 검증 결과와 복구 절차를 릴리스 MR에 기록합니다.
 5. 운영 확인용 서비스를 앱으로 교체하고 HTTPS 응답과 대표 요청을 확인합니다. 변경된 앱과 호환되는 이전 이미지·설정을 보관합니다.
 
-WebGL 이미지를 준비한 후 기존 HTTPS 서버의 `/dev/` location을 추가하고, 하위 파일 요청에서 `/dev`가 제거되어 웹 컨테이너로 전달되는지 확인합니다. `a305.dev-webgl.locations.conf`는 location 예제이며 Certbot이 수정한 전체 서버 설정 위에 덮어쓰지 않습니다. 현재 서버의 루트 응답은 연결 확인용이며 아직 WebGL을 제공하지 않습니다. 확인용 서비스의 `healthy` 상태를 앱 배포 성공으로 사용하지 않습니다.
+개발 WebGL은 `dev.elsehere.kr/`에서 제공합니다. 기존 SSAFY `/dev/`의 호환 경로를 수정할 때만 `a305.dev-webgl.locations.conf`를 참고하며, 하위 파일 요청에서 `/dev`가 제거되는지 확인합니다. location 예제로 Certbot이 수정한 전체 서버 설정을 덮어쓰지 않습니다. 운영 도메인의 루트는 실제 운영 앱 전환 전까지 확인용 서비스이며, 해당 서비스의 `healthy`를 앱 배포 성공으로 사용하지 않습니다.
 
 `infra:app-runtime` 검사는 격리된 일회용 Compose에서 실제 백엔드·PostgreSQL·AI 워커와 웹 설정을 확인합니다. 외부 모델 호출은 하지 않으며, 작은 정적 fixture로 확인한 HTTP 압축·MIME 검증을 Unity 게임 실행 검증과 구분합니다.
 
-일상적인 명령과 장애 점검은 [서버 운영 방법](server-operations.md)을 따릅니다. 브랜치·리뷰·릴리스는 [협업 규칙](development.md)을 따르며, CI/CD 실행 작업은 별도로 구현합니다.
+일상적인 명령과 장애 점검은 [서버 운영 방법](server-operations.md)을 따릅니다. 브랜치·리뷰·릴리스는 [협업 규칙](development.md), 개발 자동화는 [dev 자동 배포](dev-auto-deployment.md)를 따릅니다. main 운영 배포·복구 절차는 개발 자동 배포와 구분해 구성·검증합니다.

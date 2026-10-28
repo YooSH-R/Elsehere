@@ -33,6 +33,17 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task BootstrapRetainsTheAccountUiThemeForEnteringTheWorld()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.UiTheme = "CLOUD";
+
+            await flow.StartAsync();
+
+            Assert.That(flow.UiTheme, Is.EqualTo("CLOUD"));
+        }
+
+        [Test]
         public async Task StartWithoutLogin_ShowsLogin()
         {
             api.BootstrapError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");

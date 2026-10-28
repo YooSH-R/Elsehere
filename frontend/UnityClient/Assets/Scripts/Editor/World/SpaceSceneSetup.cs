@@ -8,6 +8,7 @@ using A305.EditorTools.Mission;
 using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.EditorTools.Player;
+using A305.EditorTools.Theme;
 using A305.EditorTools.Tutorial;
 using A305.Learning;
 using A305.Mission;
@@ -62,6 +63,9 @@ namespace A305.EditorTools.World
             MissionBuilder.PrepareAssets();
             FirstDayMissionBuilder.PrepareAssets();
             TutorialBuilder.PrepareAssets();
+            // 화면 테마는 위 기능 화면 프리팹이 준비된 뒤에 붙인다.
+            UiThemeBuilder.PrepareAssets();
+            UiThemeBuilder.StyleFeaturePrefabs();
         }
 
         /// <summary>
@@ -136,6 +140,9 @@ namespace A305.EditorTools.World
             MissionController mission = MissionBuilder.ConnectToScene(groups, dialogue);
             FirstDayMissionBuilder.ConnectToScene(groups, dialogue, player);
             TutorialBuilder.ConnectToScene(groups, player, dialogue, learning, mission);
+            // 화면 테마는 처음 시작하는 집에서만 고른다.
+            if (scene.name == "HomeScene")
+                UiThemeBuilder.ConnectPicker(groups);
 
             EditorSceneManager.MarkSceneDirty(scene);
         }

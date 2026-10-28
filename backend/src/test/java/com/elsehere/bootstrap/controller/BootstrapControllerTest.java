@@ -16,6 +16,7 @@ import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
+import com.elsehere.user.entity.UiTheme;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -40,7 +41,8 @@ class BootstrapControllerTest {
   @Test
   @DisplayName("로그인한 사용자면 SIGNED_IN과 사용자 정보, 재접속 장소를 돌려준다")
   void signedInUser_getsSignedInState() throws Exception {
-    UserResponse user = new UserResponse(1L, "Sun", AvatarType.F, "en-US", OnboardingStep.DONE);
+    UserResponse user =
+        new UserResponse(1L, "Sun", AvatarType.F, "en-US", OnboardingStep.DONE, UiTheme.STICKER);
     given(bootstrapService.findSignedIn(1L))
         .willReturn(Optional.of(BootstrapResponse.signedIn(user, "TOWN")));
 
@@ -50,6 +52,7 @@ class BootstrapControllerTest {
         .andExpect(jsonPath("$.authState").value("SIGNED_IN"))
         .andExpect(jsonPath("$.user.userId").value(1))
         .andExpect(jsonPath("$.user.onboardingStep").value("DONE"))
+        .andExpect(jsonPath("$.user.uiTheme").value("STICKER"))
         .andExpect(jsonPath("$.lastSceneCode").value("TOWN"));
   }
 

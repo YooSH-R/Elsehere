@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class UserTest {
 
@@ -50,6 +52,25 @@ class UserTest {
 
     assertThat(user.getCurrentLanguage()).isEqualTo("ja-JP");
     assertThat(user.getOnboardingStep()).isEqualTo(OnboardingStep.TUTORIAL);
+  }
+
+  @ParameterizedTest
+  @EnumSource(AuthProvider.class)
+  @DisplayName("새 사용자는 로그인 방식(게스트 포함)과 관계없이 기본 화면 테마 JELLY로 시작한다")
+  void signUp_startsWithJellyTheme(AuthProvider provider) {
+    User user = User.signUp(provider, "provider-uid-1", null, "Sun", AvatarType.F);
+
+    assertThat(user.getUiTheme()).isEqualTo(UiTheme.JELLY);
+  }
+
+  @Test
+  @DisplayName("화면 테마를 바꾸면 고른 테마가 된다")
+  void changeUiTheme_setsChosenTheme() {
+    User user = newUser();
+
+    user.changeUiTheme(UiTheme.STICKER);
+
+    assertThat(user.getUiTheme()).isEqualTo(UiTheme.STICKER);
   }
 
   private static User newUser() {

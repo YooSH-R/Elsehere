@@ -30,6 +30,9 @@ namespace A305.Onboarding
 
         public AvatarType? SelectedAvatar { get; private set; }
 
+        /// <summary>계정에 저장한 화면 테마 코드. 마을에 들어가기 전에 화면 테마를 맞추는 데 쓴다.</summary>
+        public string UiTheme { get; private set; }
+
         /// <summary>화면 02의 입력 상태. 가입 화면에 들어올 때 만든다.</summary>
         public SignupForm SignupForm { get; private set; }
 
@@ -59,6 +62,7 @@ namespace A305.Onboarding
                 BootstrapResponse boot = await api.GetBootstrapAsync();
                 LanguageCode = boot.User?.CurrentLanguage;
                 SelectedAvatar = boot.User?.AvatarType;
+                UiTheme = boot.User?.UiTheme;
 
                 LevelTestStatus? lastLevelTest = null;
                 if (boot.User?.OnboardingStep == OnboardingStep.Level)
@@ -150,6 +154,7 @@ namespace A305.Onboarding
                 {
                     SignupResponse response = await api.SignUpAsync(SignupForm.ToRequest());
                     SelectedAvatar = response.User?.AvatarType;
+                    UiTheme = response.User?.UiTheme;
                 }
                 catch (ApiException exception) when (exception.Code == NicknameTakenCode)
                 {
@@ -228,6 +233,7 @@ namespace A305.Onboarding
             catch (ApiException exception) when (exception.Code == UnauthenticatedCode)
             {
                 SelectedAvatar = null;
+                UiTheme = null;
                 Screen = EntryScreen.Login;
             }
             catch (ApiException exception)

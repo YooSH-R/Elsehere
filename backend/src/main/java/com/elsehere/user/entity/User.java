@@ -17,6 +17,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 /** 사용자. 소셜 로그인 계정({@code provider}, {@code providerUid}) 하나에 사용자 하나다. */
 @Entity
@@ -65,6 +66,12 @@ public class User extends BaseEntity {
   @Column(nullable = false, length = 10)
   private String currentLanguage;
 
+  // 마이그레이션 전에 가입한 사용자와 SQL로 넣는 행도 기본 테마로 채우도록 DB 기본값을 둔다.
+  @Enumerated(EnumType.STRING)
+  @ColumnDefault("'JELLY'")
+  @Column(nullable = false, length = 20)
+  private UiTheme uiTheme;
+
   // 재접속 위치
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "last_scene_id")
@@ -85,6 +92,7 @@ public class User extends BaseEntity {
     user.avatarType = avatarType;
     user.onboardingStep = OnboardingStep.LANG;
     user.currentLanguage = DEFAULT_LANGUAGE;
+    user.uiTheme = UiTheme.JELLY;
     return user;
   }
 
@@ -111,6 +119,11 @@ public class User extends BaseEntity {
   /** 튜토리얼을 마치거나 건너뛰어 초기 설정을 끝낸다(TUT-01·02). */
   public void finishTutorial() {
     this.onboardingStep = OnboardingStep.DONE;
+  }
+
+  /** 화면 테마를 바꾼다(USER-01). */
+  public void changeUiTheme(UiTheme uiTheme) {
+    this.uiTheme = uiTheme;
   }
 
   /** 재접속할 장소를 바꾼다(WORLD-05). */

@@ -16,6 +16,7 @@ import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
+import com.elsehere.user.entity.UiTheme;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class GuestLoginControllerTest {
 
   private static final UserResponse GUEST_USER =
-      new UserResponse(3L, "guest-123456", AvatarType.M, "en-US", OnboardingStep.TUTORIAL);
+      new UserResponse(
+          3L, "guest-123456", AvatarType.M, "en-US", OnboardingStep.TUTORIAL, UiTheme.JELLY);
 
   @Autowired private MockMvc mockMvc;
 

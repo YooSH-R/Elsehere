@@ -21,6 +21,7 @@ import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
+import com.elsehere.user.entity.UiTheme;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +41,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class SignupControllerTest {
 
   private static final UserResponse SIGNED_UP_USER =
-      new UserResponse(1L, "Sun", AvatarType.F, null, OnboardingStep.LANG);
+      new UserResponse(1L, "Sun", AvatarType.F, null, OnboardingStep.LANG, UiTheme.JELLY);
 
   @Autowired private MockMvc mockMvc;
 
@@ -82,7 +83,8 @@ class SignupControllerTest {
         .andExpect(jsonPath("$.user.nickname").value("Sun"))
         .andExpect(jsonPath("$.user.avatarType").value("F"))
         .andExpect(jsonPath("$.user.currentLanguage").value(nullValue()))
-        .andExpect(jsonPath("$.user.onboardingStep").value("LANG"));
+        .andExpect(jsonPath("$.user.onboardingStep").value("LANG"))
+        .andExpect(jsonPath("$.user.uiTheme").value("JELLY"));
   }
 
   @Test

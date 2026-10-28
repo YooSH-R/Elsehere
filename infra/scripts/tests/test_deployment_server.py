@@ -1,5 +1,7 @@
+import gzip
 import io
 import json
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -8,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+import deployment_server
 from deployment_server import ComposeRuntime, DeploymentServer
 
 
@@ -45,6 +48,9 @@ class FakeRuntime:
     def load_images(self, archive):
         for image in json.loads(Path(archive).read_text(encoding="utf-8")).values():
             self.registry[image["reference"]] = image
+
+    def retain_images(self, archive, images):
+        Path(archive).write_text(json.dumps(images), encoding="utf-8")
 
     def up(self, compose_file, images_file, services):
         image_names = {"backend": "BACKEND_IMAGE", "ai": "AI_IMAGE", "web": "WEB_IMAGE"}
@@ -104,7 +110,12 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertFalse((self.root / "deployments/last-success.json").exists())
 
     def release_archive(
-        self, builds=None, pipeline_id=10, candidate="c" * 40, branch="dev"
+        self,
+        builds=None,
+        pipeline_id=10,
+        candidate="c" * 40,
+        branch="dev",
+        environment="dev",
     ):
         builds = ["backend"] if builds is None else builds
         state = self.server.state()
@@ -123,6 +134,7 @@ class DeploymentServerTests(unittest.TestCase):
             "candidate_commit": candidate,
             "pipeline_id": pipeline_id,
             "branch": branch,
+            "environment": environment,
             "expected_state_token": state["state_token"],
             "minimum_backend_commit": state["minimum_backend_commit"],
             "builds": builds,
@@ -143,6 +155,135 @@ class DeploymentServerTests(unittest.TestCase):
                 archive.addfile(member, io.BytesIO(content))
         output.seek(0)
         return output
+
+    def test_production_receiver_accepts_main_and_rejects_development_releases(self):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        with self.assertRaisesRegex(ValueError, "environment|main"):
+            self.server.apply(self.release_archive())
+
+        result = self.server.apply(
+            self.release_archive(branch="main", environment="prod")
+        )
+        self.assertEqual(result["candidate_commit"], "c" * 40)
+        self.assertEqual(result["environment"], "prod")
+        self.assertTrue(
+            (Path(result["compose_file"]).parent / "images.tar.gz").is_file()
+        )
+
+    def test_production_rollback_restores_previous_version_without_touching_database(
+        self,
+    ):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        self.server.apply(self.release_archive(branch="main", environment="prod"))
+        previous_images = self.runtime.images.copy()
+        self.server.apply(
+            self.release_archive(
+                pipeline_id=11, candidate="d" * 40, branch="main", environment="prod"
+            )
+        )
+
+        with self.assertRaisesRegex(ValueError, "database"):
+            self.server.rollback("d" * 40)
+        with self.assertRaisesRegex(ValueError, "changed"):
+            self.server.rollback("e" * 40, database_compatible=True)
+        result = self.server.rollback("d" * 40, database_compatible=True)
+
+        self.assertEqual(result["result"], "rolled-back")
+        self.assertEqual(self.runtime.images, previous_images)
+        self.assertEqual(self.runtime.containers["database"], 1)
+        self.assertEqual(self.server.state()["candidate_commit"], "c" * 40)
+        self.assertEqual(self.server.state()["pipeline_id"], 11)
+        self.assertIn("server-only-test-secret", self.environment.read_text())
+
+    def test_first_production_release_can_restore_its_bootstrap_images(self):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        initial_images = self.runtime.images.copy()
+        self.server.apply(self.release_archive(branch="main", environment="prod"))
+
+        result = self.server.rollback("c" * 40, database_compatible=True)
+
+        self.assertEqual(result["result"], "rolled-back")
+        self.assertEqual(self.runtime.images, initial_images)
+        self.assertIsNone(self.server.state()["candidate_commit"])
+
+    def test_initial_image_export_failure_can_be_retried_without_a_false_success(self):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        with (
+            patch.object(
+                self.runtime,
+                "retain_images",
+                side_effect=RuntimeError("image export failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "image export"),
+        ):
+            self.server.initialize()
+        self.assertFalse((self.server.directory / "bootstrap.json").exists())
+
+        self.server.initialize()
+        self.assertTrue((self.server.directory / "bootstrap.json").is_file())
+        self.assertFalse((self.server.directory / "last-success.json").exists())
+
+    def test_failed_production_rollback_restores_current_release_and_keeps_success(
+        self,
+    ):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        self.server.apply(self.release_archive(branch="main", environment="prod"))
+        self.server.apply(
+            self.release_archive(
+                pipeline_id=11, candidate="d" * 40, branch="main", environment="prod"
+            )
+        )
+        current_images = self.runtime.images.copy()
+        current_success = (self.server.directory / "last-success.json").read_bytes()
+        self.runtime.fail_next_check = True
+
+        with self.assertRaisesRegex(RuntimeError, "previous release restored"):
+            self.server.rollback("d" * 40, database_compatible=True)
+
+        self.assertEqual(self.runtime.images, current_images)
+        self.assertEqual(
+            (self.server.directory / "last-success.json").read_bytes(), current_success
+        )
+        self.assertEqual(self.runtime.containers["database"], 1)
+
+    def test_record_failure_keeps_previous_production_recovery_target(self):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        self.server.apply(self.release_archive(branch="main", environment="prod"))
+        previous_file = self.server.directory / "previous-success.json"
+        previous_target = previous_file.read_bytes()
+        write_json = deployment_server.write_json
+
+        def fail_success_record(path, value):
+            if path.name == "last-success.json":
+                raise OSError("record storage unavailable")
+            write_json(path, value)
+
+        with (
+            patch("deployment_server.write_json", side_effect=fail_success_record),
+            self.assertRaisesRegex(RuntimeError, "previous release restored"),
+        ):
+            self.server.apply(
+                self.release_archive(
+                    pipeline_id=11,
+                    candidate="d" * 40,
+                    branch="main",
+                    environment="prod",
+                )
+            )
+
+        self.assertEqual(previous_file.read_bytes(), previous_target)
+        self.assertEqual(self.server.state()["candidate_commit"], "c" * 40)
 
     def test_failed_health_restores_images_and_keeps_secrets_and_success_record(self):
         self.server.initialize()
@@ -238,6 +379,18 @@ class DeploymentServerTests(unittest.TestCase):
 
         self.assertEqual(self.runtime.containers["backend"], 1)
         self.assertFalse((self.root / "deployments/last-success.json").exists())
+
+    def test_environment_change_invalidates_an_already_planned_release(self):
+        self.server.initialize()
+        archive = self.release_archive()
+        self.environment.write_text(
+            self.environment.read_text() + "LLM_PROFILE=changed\n"
+        )
+
+        with self.assertRaisesRegex(ValueError, "state changed"):
+            self.server.apply(archive)
+
+        self.assertEqual(self.runtime.containers["backend"], 1)
 
     def test_failed_release_can_be_retried_and_only_then_records_success(self):
         self.server.initialize()
@@ -413,6 +566,36 @@ class ComposeConfigurationTests(unittest.TestCase):
     def test_server_google_credentials_allow_deployment_validation(self):
         self.validate_candidate(deepcopy(self.configuration))
 
+    def test_production_configuration_uses_its_own_port_and_persistent_volume(self):
+        self.runtime = ComposeRuntime({"environment": "prod"})
+        self.configuration["services"]["web"]["ports"][0]["published"] = "8080"
+        self.configuration["services"]["backend"]["environment"]["JPA_DDL_AUTO"] = (
+            "validate"
+        )
+        self.configuration["volumes"]["database-data"] = {
+            "name": "a305-prod_database-data"
+        }
+        self.configuration["volumes"]["npc-audio-data"]["name"] = (
+            "a305-prod_npc-audio-data"
+        )
+        self.backend_mounts[0]["Name"] = "a305-prod_npc-audio-data"
+
+        self.validate_candidate(deepcopy(self.configuration))
+
+        for ddl_mode in ("update", "create", "none", None):
+            with self.subTest(ddl_mode=ddl_mode):
+                candidate = deepcopy(self.configuration)
+                candidate["services"]["backend"]["environment"]["JPA_DDL_AUTO"] = (
+                    ddl_mode
+                )
+                with self.assertRaisesRegex(ValueError, "validate"):
+                    self.validate_candidate(candidate)
+
+        candidate = deepcopy(self.configuration)
+        candidate["volumes"]["database-data"]["name"] = "a305-dev_database-data"
+        with self.assertRaisesRegex(ValueError, "database volume"):
+            self.validate_candidate(candidate)
+
     def test_missing_audio_mount_rejects_deployment(self):
         candidate = deepcopy(self.configuration)
         candidate["services"]["backend"]["volumes"] = []
@@ -469,6 +652,113 @@ class ComposeConfigurationTests(unittest.TestCase):
 
                 with self.assertRaisesRegex(ValueError, "NPC audio"):
                     self.validate_candidate(deepcopy(self.configuration))
+
+
+class ProductionRuntimeTests(unittest.TestCase):
+    def test_image_archive_is_complete_and_failed_export_preserves_the_existing_file(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "images.tar.gz"
+            runtime = ComposeRuntime(
+                {
+                    "environment": "prod",
+                    "docker_command": [
+                        sys.executable,
+                        "-c",
+                        "import sys; sys.stdout.buffer.write(b'image-archive')",
+                    ],
+                }
+            )
+            images = {"backend": {"reference": "a305/backend:fixture"}}
+            runtime.retain_images(archive, images)
+            self.assertEqual(gzip.decompress(archive.read_bytes()), b"image-archive")
+            retained = archive.read_bytes()
+            runtime.config["docker_command"] = [
+                sys.executable,
+                "-c",
+                "import sys; sys.exit(1)",
+            ]
+            with self.assertRaisesRegex(RuntimeError, "retain production images"):
+                runtime.retain_images(archive, images)
+            self.assertEqual(archive.read_bytes(), retained)
+
+    def test_restricted_ssh_cannot_initialize_or_start_operator_rollback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "config.json"
+            config.write_text(
+                json.dumps({"environment": "prod", "directory": directory})
+            )
+            for command in ("initialize", "rollback", "sh", "apply extra"):
+                with (
+                    self.subTest(command=command),
+                    patch(
+                        "sys.argv", ["deployment_server.py", "--config", str(config)]
+                    ),
+                    patch.dict("os.environ", {"SSH_ORIGINAL_COMMAND": command}),
+                    self.assertRaisesRegex(ValueError, "Only state and apply"),
+                ):
+                    deployment_server.main()
+
+    def test_production_commands_use_only_the_production_project_and_containers(self):
+        runtime = ComposeRuntime(
+            {
+                "environment": "prod",
+                "environment_file": "/prod/deploy.env",
+                "overlays": [],
+            }
+        )
+        with patch.object(runtime, "docker", return_value="{}") as docker:
+            runtime.compose("app.yaml", "images.env", "config")
+            self.assertEqual(docker.call_args.args[2], "a305-prod")
+            runtime.inspect("backend")
+            self.assertEqual(docker.call_args.args[-1], "a305-prod-backend-1")
+
+    def test_production_readiness_rejects_another_webgl_version_at_the_public_route(
+        self,
+    ):
+        runtime = ComposeRuntime(
+            {
+                "environment": "prod",
+                "public_health_url": "https://example.test/api/health",
+                "public_version_url": "https://example.test/version.json",
+            }
+        )
+        runtime.health_after = 100
+        images = {
+            name: {"reference": "test", "id": "test", "source_commit": "a" * 40}
+            for name in ["backend", "ai", "web"]
+        }
+        visited = []
+
+        def response(url, timeout):
+            visited.append(url)
+            if "/api/v1/query?" in url:
+                self.assertIn(
+                    'job="elsehere-api-prod"', parse_qs(urlparse(url).query)["query"][0]
+                )
+                payload = {"data": {"result": [{"value": [200, "110"]}]}}
+            elif url.endswith("version.json"):
+                payload = {
+                    "commit": "b" * 40 if url.startswith("https:") else "a" * 40,
+                    "build_type": "unity-webgl",
+                }
+            else:
+                payload = {"status": "UP"}
+            return io.BytesIO(json.dumps(payload).encode())
+
+        with (
+            patch.object(
+                runtime,
+                "inspect",
+                return_value={"health": "healthy", "reference": "test", "id": "test"},
+            ),
+            patch.object(runtime, "docker", return_value="401"),
+            patch("deployment_server.urlopen", side_effect=response),
+            self.assertRaisesRegex(RuntimeError, "WebGL"),
+        ):
+            runtime.check_once(images)
+        self.assertIn("http://127.0.0.1:8080/api/health", visited)
 
 
 class MonitoringReadinessTests(unittest.TestCase):

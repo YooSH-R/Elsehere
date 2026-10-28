@@ -20,7 +20,7 @@
 2. Project에서 `Assets/Scenes/Sandbox/LittleMungPosePlayerSandbox.unity`를 연다. 기존 골격/수정 발 골격만 비교하려면 아래의 별도 검수 씬을 사용한다.
 3. Play를 누르고 Game 화면을 한 번 클릭한다.
 4. WASD로 이동, Shift를 누른 채 이동하면 달리기, Space로 점프한다.
-5. 마우스 오른쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다.
+5. 마우스 왼쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다.
 6. 왼쪽 계단, 오른쪽 경사로, 앞쪽 벽에서 움직임을 확인한다.
 
 이 씬에는 생성/API 키 입력이 필요하지 않다. Builder는 저장소에 포함된 `Assets/Art/Player/LittleMung/LittleMung.fbx`와 `BaseColor.png`를 사용한다. 파일이 누락되면 저장소에서 복원하며 개인 Tripo 생성 폴더를 요구하지 않는다. 메뉴 `Tools → A305 → Player → Build Little Mung Sandbox`는 누락된 전용 에셋과 씬을 구성한다. 이미 있는 전용 프리팹·컨트롤러·씬은 보존한다.
@@ -41,6 +41,7 @@
 - `Speed`로 Idle/Walk/Run을 혼합하고, `IsGrounded`와 `VerticalSpeed`로 Rise/Fall/Land를 전환한다. 점프를 고정 재생 시간만으로 판단하지 않는다.
 - Humanoid가 정규화한 애니메이션 자세를 기준으로 +Z 정면과 발 높이를 맞춘다. 원본 FBX의 바인드 방향을 다시 회전시켜 이중 보정하지 않는다.
 - 모델과 기본 색 텍스처는 기존 재질 수정본의 별도 복사본이다. 셰이더는 URP Lit이며 색 텍스처를 Normal Map으로 사용하지 않는다.
+- 눈썹은 기준 외형 이미지에 맞춰 생성 원본의 꺾인 긴 눈썹을 없애고 짧은 둥근 호로 바꿨다. 생성 원본은 눈썹을 텍스처뿐 아니라 메시 돌기와 사용자 지정 법선으로도 표현하고 Unity는 FBX 법선을 그대로 쓰므로(`normalImportMode: 0`), `BaseColor.png`의 눈썹 그림, `AdjustedRig/LittleMungAdjusted.fbx`의 눈썹 부근 정점 위치·법선을 함께 고쳤다. 정점 수·UV·스킨 가중치·뼈는 그대로다. 같은 수정이 `frontend/ArtSources/Player/LittleMung/`의 Blender 원본에도 들어 있으며 FBX는 그 원본을 `export_player.py`로 내보낸 결과다.
 - 이동 설정 기본값은 걷기 0.8 m/s, 달리기 1.7 m/s, 점프 높이 0.45 m다. 짧은 다리의 현재 애니메이션 보폭에 맞춘 초기 조작값이며 최종 기획 수치가 아니다.
 - Walk.anim과 Run.anim은 변환된 FBX에서 가져온 클립의 복사본이다. 발목을 포함한 근육 곡선을 그대로 유지한다. 걷기·달리기·점프는 실제 휴식 골격으로 만든 Reference Avatar를 공유하며, 본 이름·부모·길이가 맞지 않으면 재연결을 거부한다.
 - Idle은 Mixamo Jump 종료 자세를 바탕으로 호흡 변화를 추가했다. 외부 모션 사용 조건은 `Assets/ThirdParty/CREDITS.md`를 따른다.

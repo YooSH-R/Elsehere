@@ -8,12 +8,12 @@
 
 | 파일 | 역할 |
 | --- | --- |
-| `OnboardingFlow` | 접속 상태로 첫 화면을 정하고, 화면에 필요한 데이터를 불러 둔 뒤 다음 화면으로 넘깁니다. 요청이 실패하면 화면을 그대로 두고 서버 메시지를 담으며, 로그인이 풀렸으면 로그인 화면으로 돌아갑니다. |
+| `OnboardingFlow` | 접속 상태로 첫 화면을 정하고, 화면에 필요한 데이터를 불러 둔 뒤 다음 화면으로 넘깁니다. 요청이 실패하면 화면을 그대로 두고 서버 메시지를 담으며, 로그인이 풀렸으면 로그인 화면으로, 접속 상태부터 읽지 못했으면 [다시 시도] 화면으로 갑니다. |
 | `EntryRouter` | BOOT-01과 ONB-08의 마지막 레벨 테스트 상태로 화면을 정합니다. |
 | `SignupForm`, `NicknameRule` | 가입 정보 입력 상태와 닉네임 규칙. 서버(AUTH-04)와 같은 기준으로 입력 중에 바로 안내합니다. |
 | `IOnboardingApi`, `OnboardingApi` | BOOT-01, AUTH-01·03·04·06·07, ONB-01·02·07·08·09, WORLD-01과 개발용 로그인의 경로와 본문 |
 | `OnboardingScreen` | 패널 입력을 `OnboardingFlow`에 전달하고 결과 화면을 보여 줍니다. 튜토리얼·마을 단계가 되면 씬을 바꿉니다. |
-| `LoginPanelView` 외 패널 | 화면 01~05와 게스트 캐릭터 선택(`GuestPanelView`). 언어·난이도 카드와 약관 줄은 템플릿을 복제합니다(`TemplateClones`). |
+| `LoginPanelView` 외 패널 | 화면 01~05, 게스트 캐릭터 선택(`GuestPanelView`), 접속 실패 화면(`ConnectionPanelView`). 언어·난이도 카드와 약관 줄은 템플릿을 복제합니다(`TemplateClones`). |
 | `OnboardingSettings` | 튜토리얼·마을 씬 이름과 개발용 로그인 사용자(`Data/Onboarding/OnboardingSettings.asset`) |
 | `BrowserRedirect`, `Plugins/WebGL/BrowserRedirect.jslib` | Google 로그인을 같은 탭에서 엽니다. |
 | 나머지 | API 요청·응답 DTO |
@@ -39,6 +39,9 @@
 | 화면 05 | 고른 적이 없으면 고를 수 있는 첫 단계(초급)를 미리 골라 둡니다. 추천 단계에는 "레벨 테스트 추천" 배지가 붙습니다. |
 | `TUTORIAL` | `HomeScene`을 엽니다. 튜토리얼은 처음부터 다시 진행합니다. |
 | `DONE` | 마지막 장소(`lastSceneCode`)가 있으면 장소 목록(WORLD-01)에서 그 장소의 Unity 씬(`unityKey`)을 찾아 엽니다. 값이 없거나, 닫혔거나, 목록이나 이 빌드의 Scene List에 없으면 `TownScene`을 엽니다. 장소 안의 위치는 씬에 놓인 플레이어 위치에서 시작합니다. |
+
+| 접속 상태를 읽지 못함 | 연결 실패, 서버 오류, 가입 대기 사용자의 약관 조회 실패처럼 첫 화면을 정하지 못하면 "접속하지 못했어요" 화면과 [다시 시도]를 보여 줍니다. 실패 이유는 화면 아래 안내 문구에 나옵니다. |
+| 요청을 기다리는 중 | 버튼을 막고 화면 아래에 "잠시만 기다려 주세요..."를 보여 줍니다. 서버 오류가 아닌 예외는 로그를 남기고 "문제가 생겼어요. 다시 시도해 주세요."로 안내합니다. |
 
 - Editor와 개발 빌드에서는 [개발용 로그인]이 보입니다. 백엔드를 local 프로필로 띄우고, `OnboardingSettings`의 사용자 ID가 DB에 있어야 합니다. Editor는 브라우저 쿠키를 쓰지 않으므로 Google 로그인 대신 이 버튼을 씁니다.
 - 가입 화면은 Google 가입 대기 세션이 있어야 열리므로 로컬에서는 Google 로그인 설정이 있어야 확인할 수 있습니다.

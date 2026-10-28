@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using A305.Dialogue;
 using A305.Player;
 using UnityEngine;
@@ -34,6 +35,9 @@ namespace A305.Learning
 
         private DialogueRecord feedbackRecord;
 
+        // 지금 피드백 화면에 보이는 서버 피드백. [다시 만들기]로 새로 받으면 바뀐다.
+        private ServerFeedback shownServerFeedback;
+
         /// <summary>피드백을 닫으면 그 대화의 NPC 키와, 정해진 흐름을 끝까지 마쳤는지를 알린다.</summary>
         public event Action<string, bool> FeedbackClosed;
 
@@ -60,6 +64,7 @@ namespace A305.Learning
             feedbackView.CloseRequested += CloseFeedback;
             feedbackView.SaveRequested += SaveFromFeedback;
             feedbackView.VocabularyRequested += OpenVocabulary;
+            feedbackView.RegenerateRequested += RegenerateFeedback;
             vocabularyView.CloseRequested += CloseVocabulary;
             vocabularyView.LearnedToggleRequested += ToggleLearned;
             vocabularyView.DeleteRequested += Delete;
@@ -94,6 +99,7 @@ namespace A305.Learning
             }
 
             feedbackRecord = record;
+            shownServerFeedback = record.ServerFeedback;
             // 서버 AI와 나눈 대화는 서버가 만든 피드백을, 대본 대화는 키워드 규칙으로 만든 예시를 보여 준다.
             feedbackView.Show(
                 record.ServerFeedback != null
@@ -106,9 +112,39 @@ namespace A305.Learning
                         record.NpcName,
                         record.UserUtterances,
                         exampleSource.GetRules()
-                    )
+                    ),
+                record.Lines
             );
             UpdateMovementLock();
+        }
+
+        private void RegenerateFeedback()
+        {
+            if (feedbackRecord != null && shownServerFeedback != null)
+            {
+                _ = RegenerateFeedbackAsync(feedbackRecord, shownServerFeedback);
+            }
+        }
+
+        private async Task RegenerateFeedbackAsync(DialogueRecord record, ServerFeedback failed)
+        {
+            feedbackView.ShowRegenerating();
+            ServerFeedback regenerated = await dialogue.RegenerateFeedbackAsync(failed);
+            // 기다리는 사이 씬을 떠났거나 피드백을 닫았으면 보여 주지 않는다.
+            if (this == null || feedbackRecord != record)
+            {
+                return;
+            }
+
+            shownServerFeedback = regenerated;
+            feedbackView.Show(
+                ConversationFeedback.FromServer(
+                    record.NpcName,
+                    record.UserUtterances.Count,
+                    regenerated
+                ),
+                record.Lines
+            );
         }
 
         private void CloseFeedback()
@@ -120,6 +156,7 @@ namespace A305.Learning
             }
 
             feedbackRecord = null;
+            shownServerFeedback = null;
             feedbackView.Hide();
             UpdateMovementLock();
             FeedbackClosed?.Invoke(closedRecord.NpcCode, closedRecord.IsGuidedCompleted);

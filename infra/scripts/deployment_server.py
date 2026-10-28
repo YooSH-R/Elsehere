@@ -1,6 +1,7 @@
-"""Receive protected dev CI releases through a restricted SSH command."""
+"""Receive protected CI releases through an environment-specific restricted SSH command."""
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -71,6 +72,9 @@ class DeploymentServer:
         self.config = config
         self.runtime = runtime
         self.directory = Path(config["directory"])
+        self.environment = config.get("environment", "dev")
+        if self.environment not in {"dev", "prod"}:
+            raise ValueError("Deployment environment must be dev or prod.")
 
     def initialize(self):
         directory = Path(self.config["directory"])
@@ -104,6 +108,7 @@ class DeploymentServer:
         self.runtime.check(images)
         record = {
             "schema_version": 1,
+            "environment": self.environment,
             "candidate_commit": None,
             "pipeline_id": 0,
             "images": images,
@@ -114,6 +119,16 @@ class DeploymentServer:
                 for filename in self.config["overlays"]
             },
         }
+        if self.environment == "prod":
+            bootstrap = directory / "bootstrap"
+            bootstrap.mkdir(parents=True, exist_ok=True, mode=0o700)
+            compose_file = bootstrap / "compose.app.yaml"
+            shutil.copyfile(self.config["initial_compose_file"], compose_file)
+            write_text(bootstrap / "images.env", image_environment(images))
+            self.runtime.validate(compose_file, bootstrap / "images.env", compose_file)
+            self.runtime.retain_images(bootstrap / "images.tar.gz", images)
+            record["compose_file"] = str(compose_file)
+            write_json(bootstrap / "record.json", record)
         write_json(directory / "bootstrap.json", record)
         return record
 
@@ -128,8 +143,6 @@ class DeploymentServer:
             images = manifest["images"]
             images_file = release / "images.env"
             write_text(images_file, image_environment(images))
-            previous_images_file = release / "previous-images.env"
-            write_text(previous_images_file, image_environment(previous["images"]))
             compose_file = release / "compose.app.yaml"
             self.runtime.validate(compose_file, images_file, previous["compose_file"])
             if manifest["builds"]:
@@ -141,60 +154,137 @@ class DeploymentServer:
             services = [service_names[name] for name in manifest["builds"]]
             if manifest["configuration_changed"]:
                 services = ["ai-worker", "backend", "web"]
-            environment_file = Path(self.config["environment_file"])
-            original_environment = environment_file.read_text(encoding="utf-8")
+            record = {
+                key: value
+                for key, value in previous.items()
+                if key not in {"state_token", "compose_digest", "rolled_back_from"}
+            }
+            record.update(
+                candidate_commit=manifest["candidate_commit"],
+                pipeline_id=manifest["pipeline_id"],
+                images=images,
+                compose_file=str(compose_file),
+            )
+            return self.activate_release(previous, record, services)
+        finally:
+            if self.environment != "prod":
+                image_archive.unlink(missing_ok=True)
+
+    def activate_release(self, previous, record, services):
+        release = Path(record["compose_file"]).parent
+        images_file = release / "images.env"
+        previous_images_file = release / "previous-images.env"
+        write_text(images_file, image_environment(record["images"]))
+        write_text(previous_images_file, image_environment(previous["images"]))
+        environment_file = Path(self.config["environment_file"])
+        original_environment = environment_file.read_text(encoding="utf-8")
+        previous_record_path = self.directory / "previous-success.json"
+        original_previous_record = (
+            previous_record_path.read_text(encoding="utf-8")
+            if previous_record_path.exists()
+            else None
+        )
+        try:
+            if services:
+                self.runtime.up(Path(record["compose_file"]), images_file, services)
+            self.runtime.check(record["images"])
+            if self.environment == "prod":
+                self.runtime.retain_images(release / "images.tar.gz", record["images"])
+            replacement = original_environment.splitlines()
+            for assignment in image_environment(record["images"]).splitlines():
+                name = assignment.split("=", 1)[0]
+                replacement = [
+                    line for line in replacement if not line.startswith(name + "=")
+                ]
+                replacement.append(assignment)
+            write_text(environment_file, "\n".join(replacement) + "\n")
+            write_json(release / "record.json", record)
+            if self.environment == "prod":
+                write_json(self.directory / "previous-success.json", previous)
+            write_json(self.directory / "last-success.json", record)
+            if "rolled_back_from" in record:
+                result = "rolled-back"
+            elif services:
+                result = "deployed"
+            else:
+                result = "unchanged"
+            return {"result": result, **record}
+        except Exception as failure:
+            failure_record = {
+                "candidate_commit": record["candidate_commit"],
+                "pipeline_id": record["pipeline_id"],
+                "restored": False,
+            }
             try:
+                write_text(environment_file, original_environment)
                 if services:
-                    self.runtime.up(compose_file, images_file, services)
-                self.runtime.check(images)
-                replacement = original_environment.splitlines()
-                for assignment in image_environment(images).splitlines():
-                    name = assignment.split("=", 1)[0]
-                    replacement = [
-                        line for line in replacement if not line.startswith(name + "=")
-                    ]
-                    replacement.append(assignment)
-                write_text(environment_file, "\n".join(replacement) + "\n")
-                record = {
-                    key: value
-                    for key, value in previous.items()
-                    if key != "state_token"
-                }
-                record.update(
-                    candidate_commit=manifest["candidate_commit"],
-                    pipeline_id=manifest["pipeline_id"],
-                    images=images,
-                    compose_file=str(compose_file),
-                )
-                write_json(self.directory / "last-success.json", record)
-                return {"result": "deployed" if services else "unchanged", **record}
-            except Exception as failure:
-                failure_record = {
-                    "candidate_commit": manifest["candidate_commit"],
-                    "pipeline_id": manifest["pipeline_id"],
-                    "restored": False,
-                }
-                try:
-                    write_text(environment_file, original_environment)
-                    if services:
-                        self.runtime.up(
-                            Path(previous["compose_file"]),
-                            previous_images_file,
-                            services,
-                        )
-                    self.runtime.check(previous["images"])
-                except Exception as rollback_failure:
-                    write_json(self.directory / "last-failure.json", failure_record)
-                    raise RuntimeError(
-                        "post-deploy check and rollback failed; manual recovery required"
-                    ) from rollback_failure
-                failure_record["restored"] = True
+                    self.runtime.up(
+                        Path(previous["compose_file"]), previous_images_file, services
+                    )
+                self.runtime.check(previous["images"])
+                if self.environment == "prod":
+                    if original_previous_record is None:
+                        previous_record_path.unlink(missing_ok=True)
+                    else:
+                        write_text(previous_record_path, original_previous_record)
+            except Exception as rollback_failure:
                 write_json(self.directory / "last-failure.json", failure_record)
                 raise RuntimeError(
-                    "post-deploy check failed; previous release restored"
-                ) from failure
-        finally:
-            image_archive.unlink(missing_ok=True)
+                    "post-deploy check and rollback failed; manual recovery required"
+                ) from rollback_failure
+            failure_record["restored"] = True
+            write_json(self.directory / "last-failure.json", failure_record)
+            raise RuntimeError(
+                "post-deploy check failed; previous release restored"
+            ) from failure
+
+    def rollback(self, expected_candidate, database_compatible=False):
+        if self.environment != "prod" or not database_compatible:
+            raise ValueError(
+                "Production rollback requires confirmed database compatibility."
+            )
+        current = self.state()
+        if (
+            not re.fullmatch(r"[0-9a-f]{40}", expected_candidate)
+            or current["candidate_commit"] != expected_candidate
+        ):
+            raise ValueError(
+                "Running candidate changed; inspect the current release first."
+            )
+        target = json.loads(
+            (self.directory / "previous-success.json").read_text(encoding="utf-8")
+        )
+        if (
+            target.get("environment") != "prod"
+            or target["overlays"] != current["overlays"]
+        ):
+            raise ValueError(
+                "Previous production configuration changed; manual recovery required."
+            )
+        release = Path(tempfile.mkdtemp(prefix="rollback-", dir=self.directory))
+        compose_file = release / "compose.app.yaml"
+        shutil.copyfile(target["compose_file"], compose_file)
+        images_file = release / "images.env"
+        write_text(images_file, image_environment(target["images"]))
+        self.runtime.validate(compose_file, images_file, current["compose_file"])
+        archive = Path(target["compose_file"]).parent / "images.tar.gz"
+        if not archive.is_file():
+            raise ValueError(
+                "Previous production image archive is missing; manual recovery required."
+            )
+        self.runtime.load_images(archive)
+        record = {
+            key: value
+            for key, value in target.items()
+            if key not in {"state_token", "compose_digest"}
+        }
+        # Preserve the high-water mark so an older queued pipeline cannot undo recovery.
+        record.update(
+            compose_file=str(compose_file),
+            pipeline_id=current["pipeline_id"],
+            rolled_back_from=expected_candidate,
+        )
+        return self.activate_release(current, record, ["ai-worker", "backend", "web"])
 
     def state(self):
         path = self.directory / "last-success.json"
@@ -213,6 +303,9 @@ class DeploymentServer:
                 "overlays",
             ]
         }
+        if stored.get("environment", "dev") != self.environment:
+            raise ValueError("Deployment record belongs to another environment.")
+        record["environment"] = self.environment
         actual = self.runtime.snapshot()["images"]
         for name, image in record["images"].items():
             if any(actual[name][key] != image[key] for key in ["reference", "id"]):
@@ -227,6 +320,9 @@ class DeploymentServer:
         record["compose_digest"] = hashlib.sha256(
             Path(record["compose_file"]).read_bytes()
         ).hexdigest()
+        record["environment_digest"] = hashlib.sha256(
+            Path(self.config["environment_file"]).read_bytes()
+        ).hexdigest()
         record["state_token"] = hashlib.sha256(
             json.dumps(record, sort_keys=True).encode()
         ).hexdigest()
@@ -237,11 +333,13 @@ class DeploymentServer:
             r"[0-9a-f]{40}", manifest.get("candidate_commit", "")
         ):
             raise ValueError("Invalid deployment candidate.")
-        allowed_branches = {"dev"}
-        if self.config.get("pilot_branch"):
+        allowed_branches = {"main" if self.environment == "prod" else "dev"}
+        if self.environment == "dev" and self.config.get("pilot_branch"):
             allowed_branches.add(self.config["pilot_branch"])
+        if manifest.get("environment", "dev") != self.environment:
+            raise ValueError("Deployment bundle belongs to another environment.")
         if manifest.get("branch") not in allowed_branches:
-            raise ValueError("Only dev or the configured protected pilot may deploy.")
+            raise ValueError(f"Only {', '.join(sorted(allowed_branches))} may deploy.")
         if (
             not isinstance(manifest.get("pipeline_id"), int)
             or manifest["pipeline_id"] <= previous["pipeline_id"]
@@ -273,10 +371,15 @@ class DeploymentServer:
 
 
 class ComposeRuntime:
-    """Run only the dev app Compose while retaining the installed monitoring overlay."""
+    """Run one environment's app while retaining its installed monitoring overlay."""
 
     def __init__(self, config):
         self.config = config
+        self.environment = config.get("environment", "dev")
+        if self.environment not in {"dev", "prod"}:
+            raise ValueError("Deployment environment must be dev or prod.")
+        self.project = f"a305-{self.environment}"
+        self.port = 8080 if self.environment == "prod" else 8081
         self.health_after = time.time() - 45
 
     def docker(self, *arguments, timeout=240):
@@ -292,7 +395,7 @@ class ComposeRuntime:
         if result.returncode:
             # Compose configuration can contain credentials; never echo its raw output.
             raise RuntimeError(
-                f"Docker {arguments[0]} failed; inspect dev containers locally."
+                f"Docker {arguments[0]} failed; inspect {self.environment} containers locally."
             )
         return result.stdout.decode("utf-8")
 
@@ -300,7 +403,7 @@ class ComposeRuntime:
         command = [
             "compose",
             "--project-name",
-            "a305-dev",
+            self.project,
             "--env-file",
             self.config["environment_file"],
             "--env-file",
@@ -319,7 +422,7 @@ class ComposeRuntime:
             '"mounts":{{json .Mounts}},"ports":{{json .HostConfig.PortBindings}}}'
         )
         return json.loads(
-            self.docker("inspect", "--format", template, f"a305-dev-{service}-1")
+            self.docker("inspect", "--format", template, f"{self.project}-{service}-1")
         )
 
     def snapshot(self):
@@ -365,10 +468,10 @@ class ComposeRuntime:
             if name == "web" and (
                 len(ports) != 1
                 or ports[0].get("host_ip") != "127.0.0.1"
-                or str(ports[0].get("published")) != "8081"
+                or str(ports[0].get("published")) != str(self.port)
                 or ports[0].get("target") != 80
             ):
-                raise ValueError("Dev web must remain on loopback port 8081.")
+                raise ValueError(f"Web must remain on loopback port {self.port}.")
             for volume in service.get("volumes", []):
                 if volume.get("type") == "bind" and (
                     name != "web"
@@ -401,6 +504,19 @@ class ComposeRuntime:
         ):
             raise ValueError("The internal monitoring address must be preserved.")
         backend_environment = services["backend"].get("environment", {})
+        if (
+            self.environment == "prod"
+            and backend_environment.get("JPA_DDL_AUTO") != "validate"
+        ):
+            raise ValueError(
+                "Production requires JPA_DDL_AUTO=validate and a prepared schema."
+            )
+        if (
+            self.environment == "prod"
+            and candidate.get("volumes", {}).get("database-data", {}).get("name")
+            != f"{self.project}_database-data"
+        ):
+            raise ValueError("Production must use its own database volume.")
         previous_environment = previous["services"]["backend"].get("environment", {})
         for key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
             value = backend_environment.get(key)
@@ -445,8 +561,8 @@ class ComposeRuntime:
         ):
             raise ValueError("NPC audio requires its writable persistent volume.")
         volume = candidate.get("volumes", {}).get("npc-audio-data", {})
-        if volume.get("name") != "a305-dev_npc-audio-data":
-            raise ValueError("NPC audio must retain the dev storage volume.")
+        if volume.get("name") != f"{self.project}_npc-audio-data":
+            raise ValueError("NPC audio must retain the environment's storage volume.")
         installed_mounts = [
             mount
             for mount in self.inspect("backend")["mounts"]
@@ -464,6 +580,30 @@ class ComposeRuntime:
 
     def load_images(self, archive):
         self.docker("load", "--input", archive, timeout=600)
+
+    def retain_images(self, archive, images):
+        temporary = archive.with_suffix(".pending")
+        try:
+            with temporary.open("wb") as destination:
+                temporary.chmod(0o600)
+                with subprocess.Popen(
+                    [
+                        *self.config.get("docker_command", ["sudo", "-n", "docker"]),
+                        "save",
+                        *[image["reference"] for image in images.values()],
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                ) as process:
+                    with gzip.GzipFile(fileobj=destination, mode="wb") as compressed:
+                        shutil.copyfileobj(process.stdout, compressed)
+                    if process.wait(timeout=600):
+                        raise RuntimeError(
+                            "Could not retain production images for recovery."
+                        )
+            os.replace(temporary, archive)
+        finally:
+            temporary.unlink(missing_ok=True)
 
     def up(self, compose_file, images_file, services):
         self.compose(
@@ -510,24 +650,28 @@ class ComposeRuntime:
         if self.inspect("database")["health"] != "healthy":
             raise RuntimeError("Database is not healthy.")
         for url in [
-            "http://127.0.0.1:8081/api/health",
+            f"http://127.0.0.1:{self.port}/api/health",
             self.config["public_health_url"],
         ]:
             with urlopen(url, timeout=10) as response:
                 if json.load(response) != {"status": "UP"}:
                     raise RuntimeError("Application/database health is not UP.")
-        with urlopen("http://127.0.0.1:8081/version.json", timeout=10) as response:
-            version = json.load(response)
-        if (
-            version.get("commit") != images["web"]["source_commit"]
-            or version.get("build_type") != "unity-webgl"
-        ):
-            raise RuntimeError(
-                "WebGL build metadata does not match the recorded source."
-            )
+        version_urls = [f"http://127.0.0.1:{self.port}/version.json"]
+        if self.environment == "prod":
+            version_urls.append(self.config["public_version_url"])
+        for url in version_urls:
+            with urlopen(url, timeout=10) as response:
+                version = json.load(response)
+            if (
+                version.get("commit") != images["web"]["source_commit"]
+                or version.get("build_type") != "unity-webgl"
+            ):
+                raise RuntimeError(
+                    "WebGL build metadata does not match the recorded source."
+                )
         status = self.docker(
             "exec",
-            "a305-dev-backend-1",
+            f"{self.project}-backend-1",
             "curl",
             "--silent",
             "--output",
@@ -539,7 +683,10 @@ class ComposeRuntime:
         if status.strip() != "401":
             raise RuntimeError("Monitoring endpoint must require authentication.")
         # Instant-query result timestamps are evaluation times, not scrape times.
-        query = urlencode({"query": 'timestamp(up{job="elsehere-api"} == 1)'})
+        monitoring_job = (
+            "elsehere-api-prod" if self.environment == "prod" else "elsehere-api"
+        )
+        query = urlencode({"query": f'timestamp(up{{job="{monitoring_job}"}} == 1)'})
         with urlopen(
             f"http://127.0.0.1:9091/api/v1/query?{query}", timeout=10
         ) as response:
@@ -547,24 +694,35 @@ class ComposeRuntime:
         if not samples or any(
             float(sample["value"][1]) < self.health_after for sample in samples
         ):
-            raise RuntimeError("Prometheus is not collecting the dev backend.")
+            raise RuntimeError(
+                f"Prometheus is not collecting the {self.environment} backend."
+            )
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--initialize", action="store_true")
+    parser.add_argument(
+        "--rollback-from", help="Expected currently running production SHA."
+    )
+    parser.add_argument("--confirm-database-compatible", action="store_true")
     arguments = parser.parse_args()
     config = json.loads(arguments.config.read_text(encoding="utf-8"))
     directory = Path(config["directory"])
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     server = DeploymentServer(config, ComposeRuntime(config))
     # The installed forced SSH command accepts no shell commands or file transfers.
-    operation = (
-        "initialize"
-        if arguments.initialize
-        else os.environ.get("SSH_ORIGINAL_COMMAND", "")
-    )
+    if arguments.initialize and arguments.rollback_from:
+        raise ValueError("Choose initialization or rollback, not both.")
+    if arguments.initialize:
+        operation = "initialize"
+    elif arguments.rollback_from:
+        operation = "rollback"
+    else:
+        operation = os.environ.get("SSH_ORIGINAL_COMMAND", "")
+        if operation not in {"state", "apply"}:
+            raise ValueError("Only state and apply SSH operations are accepted.")
     import fcntl
 
     with (directory / "deploy.lock").open("a") as lock:
@@ -575,6 +733,10 @@ def main():
             result = server.state()
         elif operation == "apply":
             result = server.apply(sys.stdin.buffer)
+        elif operation == "rollback":
+            result = server.rollback(
+                arguments.rollback_from, arguments.confirm_database_compatible
+            )
         else:
             raise ValueError("Only state and apply SSH operations are accepted.")
     print(json.dumps(result))

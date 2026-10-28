@@ -22,6 +22,9 @@ namespace A305.Dialogue
         /// <summary>CONV-08 대화 종료와 짧은 피드백.</summary>
         Task<EndResult> EndAsync(long conversationId, string requestId, bool skipFeedback);
 
+        /// <summary>FB-02 만들지 못한 짧은 피드백을 다시 만든다. 이미 만든 피드백이면 저장된 것을 돌려준다.</summary>
+        Task<FeedbackData> RegenerateFeedbackAsync(long conversationId, string requestId);
+
         /// <summary>FB-03 상세 평가. 종료 때 만든 평가를 돌려준다.</summary>
         Task<DetailedFeedback> GetDetailedFeedbackAsync(long conversationId, string requestId);
 

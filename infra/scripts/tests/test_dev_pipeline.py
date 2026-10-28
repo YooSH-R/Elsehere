@@ -10,6 +10,39 @@ from dev_pipeline import create_child_pipeline, create_release_plan, server_requ
 
 
 class ChildPipelineTests(unittest.TestCase):
+    def test_development_commit_keeps_its_checks_after_another_commit_is_pushed(self):
+        candidate = "a" * 40
+        plan = {
+            "candidate_commit": candidate,
+            "checks": ["backend"],
+            "builds": ["backend"],
+            "deploy": True,
+            "reason": "cumulative-diff",
+        }
+        newer_head = subprocess.CompletedProcess(
+            ["git"], 0, stdout=("b" * 40 + "\trefs/heads/dev\n").encode()
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            with (
+                patch("dev_pipeline.run_git", return_value=newer_head),
+                patch(
+                    "dev_pipeline.server_request", return_value={"environment": "dev"}
+                ),
+                patch("dev_pipeline.create_release_plan", return_value=plan),
+            ):
+                dev_pipeline.plan_pipeline(repository, candidate, "dev", "123")
+
+            child = json.loads(
+                (repository / "dist/deployment/dev-child.yml").read_text()
+            )
+
+        self.assertEqual(child["variables"]["A305_CHECK_BACKEND"], "true")
+        self.assertEqual(
+            json.loads(child["variables"]["A305_DEPLOY_PLAN"])["candidate_commit"],
+            candidate,
+        )
+
     def test_production_child_always_runs_all_release_checks_and_only_prod_delivery(
         self,
     ):
@@ -121,6 +154,128 @@ class ChildPipelineTests(unittest.TestCase):
         self.assertNotIn("unity:editor-and-webgl", jobs)
 
 
+class DevelopmentDeliveryTests(unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.repository = Path(directory.name)
+        self.candidate = "a" * 40
+        compose = self.repository / "infra/compose/compose.app.yaml"
+        compose.parent.mkdir(parents=True)
+        compose.write_text("services: {}\n", encoding="utf-8")
+        self.plan = {
+            "candidate_commit": self.candidate,
+            "builds": [],
+            "configuration_changed": False,
+        }
+        self.state = {
+            "environment": "dev",
+            "images": {},
+            "state_token": "fixture-state",
+            "minimum_backend_commit": self.candidate,
+        }
+        environment = patch.dict(
+            "os.environ",
+            {
+                "A305_DEPLOY_PLAN": json.dumps(self.plan),
+                "A305_DEPLOY_STATE": json.dumps(self.state),
+            },
+        )
+        environment.start()
+        self.addCleanup(environment.stop)
+
+    def branch_head(self, commit):
+        return subprocess.CompletedProcess(
+            ["git"], 0, stdout=f"{commit}\trefs/heads/dev\n".encode()
+        )
+
+    def test_superseded_commit_cannot_start_image_builds_or_contact_the_server(self):
+        with (
+            patch("dev_pipeline.run_git", return_value=self.branch_head("b" * 40)),
+            patch("dev_pipeline.docker") as docker,
+            patch("dev_pipeline.server_request") as server,
+            self.assertRaisesRegex(ValueError, "no longer the branch head"),
+        ):
+            dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
+
+        docker.assert_not_called()
+        server.assert_not_called()
+
+    def test_commit_superseded_while_preparing_the_bundle_cannot_be_applied(self):
+        with (
+            patch(
+                "dev_pipeline.run_git",
+                side_effect=[
+                    self.branch_head(self.candidate),
+                    self.branch_head("b" * 40),
+                ],
+            ),
+            patch("dev_pipeline.server_request") as server,
+            self.assertRaisesRegex(ValueError, "no longer the branch head"),
+        ):
+            dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
+
+        self.assertTrue((self.repository / "dist/deployment/release.tar").is_file())
+        server.assert_not_called()
+
+    def test_latest_verified_commit_can_be_applied_and_keeps_its_result(self):
+        expected_result = {"result": "applied", "candidate_commit": self.candidate}
+        with (
+            patch(
+                "dev_pipeline.run_git", return_value=self.branch_head(self.candidate)
+            ),
+            patch(
+                "dev_pipeline.server_request", return_value=expected_result
+            ) as server,
+        ):
+            dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
+
+        self.assertEqual(server.call_args.args[0], "apply")
+        self.assertEqual(
+            json.loads((self.repository / "dist/deployment/result.json").read_text()),
+            expected_result,
+        )
+
+    def test_superseded_development_delivery_has_a_distinct_non_deployment_result(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "dev",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": self.candidate,
+            "CI_PROJECT_DIR": str(self.repository),
+            "CI_PIPELINE_ID": "123",
+            "A305_DEPLOY_PLAN": json.dumps(self.plan),
+            "A305_DEPLOY_STATE": json.dumps(self.state),
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "deliver"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.run_git", return_value=self.branch_head("b" * 40)),
+            patch("dev_pipeline.server_request") as server,
+        ):
+            exit_code = dev_pipeline.main()
+
+        self.assertEqual(exit_code, 78)
+        self.assertEqual(
+            json.loads((self.repository / "dist/deployment/result.json").read_text()),
+            {"result": "superseded", "candidate_commit": self.candidate},
+        )
+        server.assert_not_called()
+
+    def test_branch_lookup_failure_cannot_be_treated_as_a_superseded_deployment(self):
+        failed_lookup = subprocess.CompletedProcess(
+            ["git"], 128, stdout=b"", stderr=b"fixture connection failure"
+        )
+        with (
+            patch("dev_pipeline.run_git", return_value=failed_lookup),
+            patch("dev_pipeline.server_request") as server,
+            self.assertRaisesRegex(RuntimeError, "Could not determine"),
+        ):
+            dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
+
+        server.assert_not_called()
+        self.assertFalse((self.repository / "dist/deployment/result.json").exists())
+
+
 class ServerRequestTests(unittest.TestCase):
     def test_production_ssh_uses_separate_protected_file_variables(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -199,6 +354,29 @@ class ServerRequestTests(unittest.TestCase):
 
 
 class ProductionEntryPointTests(unittest.TestCase):
+    def test_superseded_production_delivery_is_still_a_blocking_error(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "main",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "124",
+            "CI_PIPELINE_SOURCE": "parent_pipeline",
+            "A305_DEPLOY_CHILD": "true",
+            "A305_DEPLOY_ENVIRONMENT": "prod",
+            "A305_PROD_AUTOMATIC": "true",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "deliver", "--environment", "prod"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch(
+                "dev_pipeline.deliver_pipeline",
+                side_effect=dev_pipeline.SupersededCandidateError("superseded"),
+            ),
+            self.assertRaises(dev_pipeline.SupersededCandidateError),
+        ):
+            dev_pipeline.main()
+
     def test_automatic_delivery_requires_its_protected_production_child(self):
         environment = {
             "CI_COMMIT_BRANCH": "main",

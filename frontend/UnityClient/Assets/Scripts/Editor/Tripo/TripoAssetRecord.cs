@@ -16,6 +16,7 @@ namespace A305.EditorTools.Tripo
         public bool requireFace;
         public bool requireHumanoid;
         public GameObject commonBody;
+        public string masterPreparedPath;
         public string registeredPrefabPath;
         public GameObject sourceModel;
         public TripoValidationProfile profile;
@@ -69,6 +70,10 @@ namespace A305.EditorTools.Tripo
                 settings += AssetDatabase
                     .GetAssetDependencyHash(AssetDatabase.GetAssetPath(commonBody))
                     .ToString();
+            if (kind == TripoAssetKind.Character)
+                settings += AssetDatabase
+                    .GetAssetDependencyHash(TripoMasterWorkflow.VisualTemplate)
+                    .ToString();
             return settings;
         }
 
@@ -81,13 +86,14 @@ namespace A305.EditorTools.Tripo
             string settings = profile == null ? "missing-profile" : JsonUtility.ToJson(profile);
             return Hash128
                 .Compute(
-                    "validation:uv0-v1\n"
+                    "validation:master-rig-v1\n"
                         + modelPath
                         + "\n"
                         + modelHash
                         + "\n"
                         + settings
                         + "\n"
+                        + masterPreparedPath
                         + kind
                         + "\n"
                         + attachment

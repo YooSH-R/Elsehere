@@ -908,6 +908,15 @@
             "example": "Please open the window.",
             "exampleKo": "창문을 열어 주세요.",
             "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_a115a59d89b32af4bbbe5aa6c17f8273",
+            "languageCode": "en-US",
+            "text": "umbrella",
+            "meaningKo": "우산",
+            "example": "Where can I buy an umbrella?",
+            "exampleKo": "우산은 어디에서 살 수 있나요?",
+            "pronunciationAudioKey": ""
         }
     ]
 }

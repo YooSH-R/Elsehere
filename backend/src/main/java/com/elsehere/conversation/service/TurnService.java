@@ -18,6 +18,7 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.mission.service.FirstDayMissionService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,8 +29,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 발화 전송(CONV-03). 의도·번역 판정(/v1/judge) → NPC 대답(/v1/npc/reply) → 턴 전체 음성 저장 순서로 처리한다.
  *
- * <p>아직 하지 않는 것: 무례 판정(/v1/guard)과 누적·종료, 장면별 상태·의도 규칙과 미션 판정, 사용자 AI 한도 예약·차감. 장면 규칙이 없어 모든 NPC를
- * 자유 대화 상태 하나로 판정한다.
+ * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례 판정(/v1/guard)과 사용자 AI 한도
+ * 예약·차감은 별도 연동 영역이다.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,6 +50,7 @@ public class TurnService {
   private final AiRequestRecorder aiRequestRecorder;
   private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
+  private final FirstDayMissionService firstDayMissionService;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
     // 같은 요청 ID로 다시 보내면 턴을 새로 만들지 않고 저장된 결과를 돌려준다.
@@ -61,10 +63,16 @@ public class TurnService {
     TurnContext context =
         transactionTemplate.execute(status -> turnContext(userId, conversationId));
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
+    Optional<FirstDayMissionService.Context> mission =
+        firstDayMissionService.context(userId, context.npc().summary().npcCode());
 
     JudgeResult judge =
         aiWorkerClient.judge(
-            trace, context.npc().workerNpc(), FREE_TALK, context.history(), request.text());
+            trace,
+            context.npc().workerNpc(),
+            mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
+            context.history(),
+            request.text());
     aiRequestRecorder.record(trace, AiRequestKind.JUDGE, judge.usage(), AiRequestStatus.OK);
     if (judge.dropped()) {
       // 행동 묘사만 있는 말은 턴으로 세지 않는다. 응답 형식은 [미정]이라 안내 문구를 오류 정보로 돌려준다.
@@ -80,7 +88,7 @@ public class TurnService {
             context.memory(),
             context.history(),
             judge.text(),
-            "",
+            mission.map(value -> value.replyInstruction(judge.intent())).orElse(""),
             context.level());
     aiRequestRecorder.record(
         trace,
@@ -118,6 +126,10 @@ public class TurnService {
                       reply.text(),
                       support.writeWords(reply.suggestWords()),
                       npcAudioKey));
+          mission.ifPresent(
+              value ->
+                  firstDayMissionService.accept(
+                      userId, value.stage(), context.npc().summary().npcCode(), judge.intent()));
           return response(conversation, userTurn, npcTurn);
         });
   }

@@ -48,7 +48,8 @@ class SceneServiceTest {
             new SceneSummaryResponse("HOME", "집", "HomeScene", true),
             new SceneSummaryResponse("TOWN", "마을", "TownScene", true),
             new SceneSummaryResponse("CAFE", "모퉁이 카페", "CafeScene", true),
-            new SceneSummaryResponse("HOTEL", "호텔", "HotelScene", true));
+            new SceneSummaryResponse("HOTEL", "호텔", "HotelScene", true),
+            new SceneSummaryResponse("SHOP", "마을 상점", "ShopScene", true));
   }
 
   @Test
@@ -175,7 +176,8 @@ class SceneServiceTest {
   @DisplayName("미리 만든 발음 파일이 있는 단어의 카드만 hasPronunciation이 true다")
   void getScene_marksWordsWithPronunciation() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
-    setPronunciationAudioKey("sofa", "vocab/sofa.mp3");
+    clearPronunciationAudioKeys();
+    setPronunciationAudioKey("sofa", "sofa.wav");
 
     SceneDetailResponse home = sceneService.getScene("HOME", userId);
 
@@ -251,7 +253,13 @@ class SceneServiceTest {
         .executeUpdate();
   }
 
-  // 발음 파일은 시드에 아직 없어서 테스트에서 파일 키만 넣는다.
+  // 시드는 미리 만든 발음 파일이 있는 단어에 키를 넣으므로, 파일 개수와 상관없이 확인하려고 먼저 모두 비운다.
+  private void clearPronunciationAudioKeys() {
+    entityManager
+        .createNativeQuery("update vocabularies set pronunciation_audio_key = null")
+        .executeUpdate();
+  }
+
   private void setPronunciationAudioKey(String wordKey, String audioKey) {
     entityManager
         .createNativeQuery("update vocabularies set pronunciation_audio_key = ? where word_key = ?")

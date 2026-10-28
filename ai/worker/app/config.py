@@ -97,6 +97,7 @@ class Settings:
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
     guard_budget_s: float = 5.0  # /v1/guard 무례 판정 하나의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함)
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
+    respond_budget_s: float = 30.0  # NPC 추론 API(/internal/ai/npc/respond) 요청 하나의 상한. 계약 10절 'AI 처리 제한 30초'
     exhausted_skip_s: float = 600.0  # 하루 한도에 걸린 모델은 이만큼 건너뜀
     retry_pause_s: float = 1.0  # 429/5xx 뒤 재시도 전에 쉬는 시간 (retry-after가 있으면 그것, 최대 5초)
     kokoro_model: str = ""  # 비어 있으면 음성 합성 없음 (tts: false로 알림)
@@ -163,6 +164,7 @@ class Settings:
             guard_budget_s=float(e.get("GUARD_BUDGET_S", cls.guard_budget_s)),
             audio_max_mb=float(e.get("AUDIO_MAX_MB", cls.audio_max_mb)),
             reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),
+            respond_budget_s=float(e.get("RESPOND_BUDGET_S", cls.respond_budget_s)),
             kokoro_model=e.get("KOKORO_MODEL", ""),
             kokoro_voices=e.get("KOKORO_VOICES", ""),
             tts_chunk_budget_s=float(e.get("TTS_CHUNK_BUDGET_S", cls.tts_chunk_budget_s)),

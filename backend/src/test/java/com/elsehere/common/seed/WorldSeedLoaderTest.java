@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.mission.entity.Mission;
 import com.elsehere.mission.repository.MissionRepository;
+import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.entity.VocabularySource;
 import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.VocabularyRepository;
@@ -52,11 +53,11 @@ class WorldSeedLoaderTest {
   @Test
   @DisplayName("애플리케이션이 시작되면 따로 부르지 않아도 시드가 들어가 있다")
   void applicationStart_loadsSeed() {
-    assertThat(sceneRepository.count()).isEqualTo(4);
+    assertThat(sceneRepository.count()).isEqualTo(5);
   }
 
   @Test
-  @DisplayName("장소 4개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
+  @DisplayName("상점 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
   void load_insertsScenes() {
     worldSeedLoader.load();
 
@@ -66,7 +67,8 @@ class WorldSeedLoaderTest {
             tuple("HOME", "집", "HomeScene", true),
             tuple("TOWN", "마을", "TownScene", true),
             tuple("CAFE", "모퉁이 카페", "CafeScene", true),
-            tuple("HOTEL", "호텔", "HotelScene", true));
+            tuple("HOTEL", "호텔", "HotelScene", true),
+            tuple("SHOP", "마을 상점", "ShopScene", true));
   }
 
   @Test
@@ -133,12 +135,21 @@ class WorldSeedLoaderTest {
                 assertThat(vocabulary.getExample()).isEqualTo(word.example());
                 assertThat(vocabulary.getExampleKo()).isEqualTo(word.exampleKo());
                 assertThat(vocabulary.getPronunciationAudioKey())
-                    .isEqualTo(
-                        word.pronunciationAudioKey().isBlank()
-                            ? null
-                            : word.pronunciationAudioKey());
+                    .isEqualTo(expectedPronunciationAudioKey(word));
               });
     }
+  }
+
+  @Test
+  @DisplayName("Unity에 발음 키가 없어도 미리 만든 발음 파일({wordKey}.wav)이 있으면 그 파일 이름을 발음 키로 넣는다")
+  void load_setsPronunciationKeyFromAudioFile() {
+    worldSeedLoader.load();
+
+    // 테스트 리소스에 sofa.wav를 두었다.
+    assertThat(vocabularyRepository.findByWordKey("sofa"))
+        .get()
+        .extracting(Vocabulary::getPronunciationAudioKey)
+        .isEqualTo("sofa.wav");
   }
 
   @Test
@@ -160,7 +171,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("NPC 3명(행인·카페 직원·호텔 직원)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName("NPC 4명(행인·카페 직원·호텔 직원·상점 직원)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -183,7 +194,8 @@ class WorldSeedLoaderTest {
                 true,
                 "Hi there! Nice weather today, isn't it?"),
             tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null),
-            tuple("HOTEL", "HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null));
+            tuple("HOTEL", "HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null),
+            tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "상점 직원", false, null));
   }
 
   @Test
@@ -208,10 +220,10 @@ class WorldSeedLoaderTest {
     worldSeedLoader.load();
     worldSeedLoader.load();
 
-    assertThat(sceneRepository.count()).isEqualTo(4);
+    assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(3);
+    assertThat(npcRepository.count()).isEqualTo(4);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 
@@ -240,6 +252,15 @@ class WorldSeedLoaderTest {
     try (var input = new ClassPathResource("content/object-words.json").getInputStream()) {
       return new JsonMapper().readValue(input, Catalog.class);
     }
+  }
+
+  /** Unity에 적은 발음 키가 우선이고, 없으면 미리 만든 발음 파일이 있을 때 그 파일 이름이다. */
+  private static String expectedPronunciationAudioKey(CatalogWord word) {
+    if (!word.pronunciationAudioKey().isBlank()) {
+      return word.pronunciationAudioKey();
+    }
+    String fileName = word.key() + ".wav";
+    return new ClassPathResource("content/pronunciation/" + fileName).exists() ? fileName : null;
   }
 
   private List<Tuple> expectedSceneWords() throws IOException {

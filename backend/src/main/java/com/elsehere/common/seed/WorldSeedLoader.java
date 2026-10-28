@@ -1,5 +1,6 @@
 package com.elsehere.common.seed;
 
+import com.elsehere.world.service.PronunciationAudioStore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
  * 장소·NPC·사물·어휘·미션 시드를 애플리케이션이 시작될 때 넣는다.
  *
  * <p>시드 SQL은 고유 키가 겹치면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않는다. SQL 뒤에 Unity가 내보낸 공용 단어 JSON으로 어휘의 단어 키와
- * 장소별 단어를 채운다.
+ * 장소별 단어를 채우고, 미리 만든 발음 파일이 있는 단어에 발음 키를 채운다.
  *
  * <p>Spring의 SQL 초기화({@code spring.sql.init})를 쓰지 않는 이유: 그 기능은 {@code @DataJpaTest}에서도 실행되어, 테스트가
  * 직접 넣는 장소 데이터와 겹친다. 이 클래스는 빈으로 등록된 컨텍스트에서만 실행된다.
@@ -49,6 +50,7 @@ public class WorldSeedLoader implements ApplicationRunner {
     populator.execute(dataSource);
     JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
     loadWordKeys(jdbcTemplate);
+    loadPronunciationAudioKeys(jdbcTemplate);
     loadSceneWords(jdbcTemplate);
   }
 
@@ -66,6 +68,24 @@ public class WorldSeedLoader implements ApplicationRunner {
           word.key(),
           word.languageCode(),
           word.text());
+    }
+  }
+
+  /**
+   * 미리 만든 발음 파일({@code {wordKey}.wav})이 있는 단어에 그 파일 이름을 발음 키로 넣는다. Unity 에셋에 발음 키를 적은 단어는 SQL이 이미 그
+   * 값을 넣었으므로 바꾸지 않는다.
+   */
+  private static void loadPronunciationAudioKeys(JdbcTemplate jdbcTemplate) {
+    for (ObjectWord word : read(OBJECT_WORDS, ObjectWords.class).words()) {
+      String fileName = word.key() + ".wav";
+      if (!new ClassPathResource(PronunciationAudioStore.DIRECTORY + fileName).exists()) {
+        continue;
+      }
+      jdbcTemplate.update(
+          "update vocabularies set pronunciation_audio_key = ?"
+              + " where word_key = ? and pronunciation_audio_key is null",
+          fileName,
+          word.key());
     }
   }
 

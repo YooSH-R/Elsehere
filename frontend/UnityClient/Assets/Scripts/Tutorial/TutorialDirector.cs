@@ -140,6 +140,7 @@ namespace A305.Tutorial
                 passerby.IsApproachAllowed = progress.IsApproachAllowed(npcCode);
             }
 
+            mission.SetStoryAvailable(progress.Step == TutorialStep.Completed);
             mission.SetPanelVisible(progress.IsMissionPanelVisible);
         }
 

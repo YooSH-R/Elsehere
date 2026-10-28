@@ -2,6 +2,8 @@
     "name": "A305.Mission",
     "rootNamespace": "A305.Mission",
     "references": [
+        "A305.Api",
+        "A305.Player",
         "A305.Dialogue",
         "Unity.TextMeshPro",
         "UnityEngine.UI"

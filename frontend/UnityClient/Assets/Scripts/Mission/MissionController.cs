@@ -19,6 +19,17 @@ namespace A305.Mission
         [SerializeField]
         private MissionPanelView panelView;
 
+        [SerializeField, HideInInspector]
+        private FirstDayMissionController firstDayMission;
+        private bool storyAvailable;
+
+        public void SetStoryAvailable(bool available)
+        {
+            storyAvailable = available && firstDayMission != null;
+            if (firstDayMission != null)
+                firstDayMission.SetAvailable(storyAvailable);
+        }
+
         private MissionBoard board;
 
         /// <summary>미션을 시작하면 미션 키를 알린다.</summary>
@@ -26,7 +37,7 @@ namespace A305.Mission
 
         public void SetPanelVisible(bool isVisible)
         {
-            panelView.SetVisible(isVisible);
+            panelView.SetVisible(isVisible && !storyAvailable);
         }
 
         private void Awake()

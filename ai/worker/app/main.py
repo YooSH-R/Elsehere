@@ -25,6 +25,7 @@ from .config import Settings
 from .guard_local import LocalGuard
 from .llm import LLM, ModelOutputError, ProviderError
 from .npc import reply_events
+from .npc_respond import ContractError, load_payload, parse_request, readable_request_id, respond
 from .schemas import GuardRequest, HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, ReplyRequest, SuggestRequest, TtsRequest
 from .tts import AudioStore, Kokoro
 
@@ -178,6 +179,24 @@ def create_app(
 
         # nginx·Spring이 버퍼링하지 않게 (첫 글자가 바로 가야 함)
         return StreamingResponse(body(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.post("/internal/ai/npc/respond")
+    async def npc_respond(request: Request):
+        """계약 v2 추론 API: 첫 대사(NPC_OPENING)와 후속 대사(USER_MESSAGE)를 같은 경로로.
+        FastAPI 자동 검사는 Worker 공통 오류 형식(400)으로 나가므로, 본문을 직접 받아 계약 형식으로 검사한다.
+        오류는 모두 계약 9절 형식({requestId, error: {code, message, retryable}})으로 답한다."""
+        payload = None
+        try:
+            payload = load_payload(await request.body())
+            req = parse_request(payload)
+            st = request.app.state
+            return (await respond(st.llm, req, st.settings.respond_budget_s)).model_dump()
+        except ContractError as e:
+            return JSONResponse(e.body(), status_code=e.http)
+        except Exception:  # 프로그램 오류: 원인은 로그에만 남기고 백엔드에는 정해진 형식으로
+            log.error(json.dumps({"event": "internal_error", "path": request.url.path}), exc_info=True)
+            e = ContractError(500, "INTERNAL_ERROR", "NPC 추론 내부 오류", False, readable_request_id(payload))
+            return JSONResponse(e.body(), status_code=e.http)
 
     @app.get("/v1/audio/{audio_id}")
     async def audio(audio_id: str, request: Request):

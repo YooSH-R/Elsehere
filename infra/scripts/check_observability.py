@@ -173,6 +173,38 @@ def check_grafana(client, base_url="http://grafana:3000"):
     )
 
 
+def run_traffic_probe(container, network, *, restored_observation=False):
+    command = ["python", "/tmp/traffic_probe.py"]
+    alias = "traffic-restore" if restored_observation else "traffic-probe"
+    if restored_observation:
+        command.append("--restored-observation")
+    docker(
+        "create",
+        "--name",
+        container,
+        "--network",
+        network,
+        "--network-alias",
+        alias,
+        "--memory",
+        "256m",
+        "--cpus",
+        "0.50",
+        "python:3.12-alpine",
+        *command,
+    )
+    copy_to(
+        container,
+        REPOSITORY / "infra/scripts/traffic_probe.py",
+        "/tmp/traffic_probe.py",
+    )
+    result = docker("start", "--attach", container, check=False)
+    exit_code = docker("inspect", "--format", "{{.State.ExitCode}}", container)
+    if result.returncode != 0 or exit_code.stdout.strip() != "0":
+        raise AssertionError(result.stdout + result.stderr)
+    print(result.stdout, end="", flush=True)
+
+
 def main():
     prefix = f"a305-observability-check-{uuid.uuid4().hex[:8]}"
     containers = [
@@ -185,9 +217,19 @@ def main():
             "admin",
             "app-web",
             "traffic-probe",
+            "traffic-restore",
         )
     ]
-    nginx, prometheus, grafana, inner, admin, app_web, traffic_probe = containers
+    (
+        nginx,
+        prometheus,
+        grafana,
+        inner,
+        admin,
+        app_web,
+        traffic_probe,
+        traffic_restore,
+    ) = containers
     docker("network", "create", "--internal", prefix)
     try:
         docker(
@@ -218,6 +260,11 @@ def main():
             nginx,
             REPOSITORY / "infra/nginx/traffic-protection-server.conf",
             "/etc/nginx/a305-traffic-protection-server.conf",
+        )
+        copy_to(
+            nginx,
+            REPOSITORY / "infra/nginx/traffic-protection-enforce-location.conf",
+            "/etc/nginx/a305-traffic-dev-mode.conf",
         )
         copy_to(
             nginx, MONITORING / "tests/nginx.conf", "/etc/nginx/conf.d/default.conf"
@@ -295,32 +342,7 @@ def main():
         docker("start", app_web)
         wait_for_http(nginx, "http://app-web/")
 
-        docker(
-            "create",
-            "--name",
-            traffic_probe,
-            "--network",
-            prefix,
-            "--network-alias",
-            "traffic-probe",
-            "--memory",
-            "256m",
-            "--cpus",
-            "0.50",
-            "python:3.12-alpine",
-            "python",
-            "/tmp/traffic_probe.py",
-        )
-        copy_to(
-            traffic_probe,
-            REPOSITORY / "infra/scripts/traffic_probe.py",
-            "/tmp/traffic_probe.py",
-        )
-        probe_result = docker("start", "--attach", traffic_probe, check=False)
-        probe_exit = docker("inspect", "--format", "{{.State.ExitCode}}", traffic_probe)
-        if probe_result.returncode != 0 or probe_exit.stdout.strip() != "0":
-            raise AssertionError(probe_result.stdout + probe_result.stderr)
-        print(probe_result.stdout, end="", flush=True)
+        run_traffic_probe(traffic_probe, prefix)
         logs = docker("logs", nginx)
         events = [
             json.loads(line)
@@ -330,6 +352,26 @@ def main():
         assert any(event["rate_limit"] == "REJECTED_DRY_RUN" for event in events)
         assert any(event["rate_limit"] == "REJECTED" for event in events)
         assert any(event["connection_limit"] == "REJECTED" for event in events)
+
+        copy_to(
+            nginx,
+            REPOSITORY / "infra/nginx/traffic-protection-observe-location.conf",
+            "/etc/nginx/a305-traffic-dev-mode.conf",
+        )
+        docker("exec", nginx, "nginx", "-t")
+        docker("exec", nginx, "nginx", "-s", "reload")
+        # Let the previous workers finish before checking the restored mode.
+        time.sleep(1)
+        run_traffic_probe(traffic_restore, prefix, restored_observation=True)
+        restored_logs = docker("logs", nginx)
+        restored_events = [
+            json.loads(line)
+            for line in (restored_logs.stdout + restored_logs.stderr).splitlines()
+            if line.startswith("{")
+        ]
+        assert any(
+            event["connection_limit"] == "REJECTED_DRY_RUN" for event in restored_events
+        )
 
         docker(
             "create",

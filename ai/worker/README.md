@@ -158,6 +158,14 @@ ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src
 - `npc-scenarios.json`: `npcId` → 서비스 대화의 상황(추론 계약의 `scenario`). 인격과 따로 관리하므로 NPC마다 어느 상황 파일을 쓸지는 [`ai/npcs/scenarios/service_scenarios.json`](../npcs/scenarios/service_scenarios.json)에 적습니다. 상황은 이 Worker의 추론 요청 모델(`app/npc_respond.py`의 `Scenario`)로 검사하고, 상황 장소(`locationId`)가 NPC 기본 장소(`defaultLocationId`)와 같은지도 봅니다.
 - 생성 파일이 원본과 다르면 `tests/test_npc_configs.py`가 실패합니다.
 
+## NPC 생활 규칙과 하루 시뮬레이션
+
+NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI와 역할뿐이고, 행동·생활 값·일과는 `ai/npcs/rules/`의 공통 규칙으로 계산합니다(`ai/tools/npc_derive.py`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)). 규칙 숫자를 바꾼 뒤에는 LLM 없이 하루를 돌려 봅니다.
+
+```bash
+.venv/Scripts/python ../tools/npc_simulate.py   # 서비스 NPC 3명의 하루(행동 조각·부탁·행동·정시 욕구)와 알아봄·기억 곡선
+```
+
 ## 검사
 
 ```bash
@@ -190,6 +198,7 @@ ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
 - `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC 3명의 상황, 백엔드 생성 파일이 원본과 같은지
 - `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 역할의 일과 틀에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만), 세 NPC의 최종 값이 인격 글의 성격 방향을 재현하는지
+- `tests/test_npc_simulate.py`: 하루 시뮬레이션(`ai/tools/npc_simulate.py`) — 욕구 감소 배수, 가장 급한 욕구를 채울 행동, 근무 중에는 일만, 다른 역할의 행동 제외, 부탁 발생(하루 한 번)·자기 장소 심부름 제외·퇴근 중 제외. 서비스 데이터로 Jake의 근무 중 머핀 부탁·Mia는 부탁 없음·Ben의 오후 말 걸기, 알아봄 단계에 닿는 대화 수, 기억 떠올림, 명령줄 출력
 - `tests/test_npc_life_rules.py`: NPC 생활·관계 공통 규칙(`ai/npcs/rules/world-rules.json`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)) — 원본 스키마 통과, 빠진 욕구·없는 욕구·감정·사건, 범위 밖 값을 어긴 위치로 알려 주기, 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지, 역할별 일과 틀이 하루를 채우는지와 일과표의 빈 시간·겹침·자정 넘김. NPC별 생활 파일(`ai/npcs/life/<npcId>.json`) — 서비스 NPC 3명이 입력 노드(MBTI·역할)만 가짐, 스키마가 막는 값(손으로 적는 생활 값 포함), 파일 이름과 `npcId`, 인격 파일과의 짝, 스키마를 어긴 파일은 스키마 오류만. 행동 조각 모음(`ai/npcs/rules/behaviors.json`) — 원본 스키마 통과, 스키마가 막는 값, id 중복, 없는 조각·자기 자신과의 충돌 표시, 성격 축 양쪽마다 고를 조각 수
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 

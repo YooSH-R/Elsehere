@@ -92,6 +92,9 @@ public class Turn extends BaseEntity {
   @Column(length = 100)
   private String npcAudioKey;
 
+  // 보관 정책(기간 만료·용량 정리)으로 음성을 지운 시각. 처음 합성에 실패해 음성이 없는 턴과 구분해 다시 만들지 않는다.
+  private Instant npcAudioDeletedAt;
+
   public static Turn user(
       Conversation conversation,
       int seq,
@@ -130,5 +133,25 @@ public class Turn extends BaseEntity {
 
   public void attachNpcAudio(String npcAudioKey) {
     this.npcAudioKey = npcAudioKey;
+  }
+
+  /** 보관 정책으로 음성 파일을 지웠다. 키를 비우고 지운 시각을 남긴다. */
+  public void deleteNpcAudio(Instant deletedAt) {
+    this.npcAudioKey = null;
+    this.npcAudioDeletedAt = deletedAt;
+  }
+
+  /**
+   * @param glossary 단어 풀이 JSON 배열
+   */
+  public void attachMeaning(String meaningKo, String glossary) {
+    this.meaningKo = meaningKo;
+    this.glossary = glossary;
+  }
+
+  /** 처음 연 힌트를 저장한다. 연 시각은 힌트 사용 기록이다. */
+  public void openHint(String hintText, Instant openedAt) {
+    this.hintText = hintText;
+    this.hintOpenedAt = openedAt;
   }
 }

@@ -31,7 +31,11 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `LLM_PROFILE` | `gms-luna` | 모델 구성 이름 ([`llm_profiles.json`](llm_profiles.json): `gms-luna`(GPT-6 Luna), `gms-sol`(GPT-6.1 SOL), `groq`). 기본값은 json의 `default_profile`. 역할별 모델·공급자 주소·키 이름·대체 모델이 한 번에 바뀜 |
 | `GROQ_API_KEY` / `GMS_KEY` | (구성에 따라 필수) | 공급자 키 (이름은 json의 `key_env`). GMS 구성도 음성 인식은 Groq라 둘 다 필요. 배포하면 서버 키 하나의 한도를 모든 사용자가 나눠 씀 |
 | `STT_FALLBACK` | (구성 값, GMS 구성은 `gms:whisper-1`) | 음성 인식이 한도·오류·응답 없음일 때 한 번 더 부를 `공급자:모델`. 빈 값이면 끔. 녹음 자체 오류(400·413·415·422)는 넘기지 않음 |
-| `STT_FIRST_TIMEOUT_S` | 8 | 대체가 있을 때 첫 음성 인식 호출의 상한 (대체 쪽과 대체가 없을 때는 30초) |
+| `STT_FIRST_TIMEOUT_S` | 8 | 뒤에 다른 공급자가 있을 때 첫 음성 인식 호출의 상한 (마지막 공급자와 공급자가 하나뿐일 때는 30초) |
+| `STT_CHAIN` | (없음) | 음성 인식 공급자 순서 `공급자:모델,공급자:모델` (예: `gpu:turbo-lr1e4,gms:whisper-1,groq:whisper-large-v3-turbo`). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘김. 정하면 구성의 음성 인식과 `STT_FALLBACK` 대신 이 순서를 씀 |
+| `STT_GPU_BASE_URL` / `STT_GPU_TOKEN` | (`STT_CHAIN`에 `gpu`가 있으면 필수) | SSAFY GPU 서버에서 도는 자체 학습 STT의 주소와 토큰. 학원 방화벽 때문에 GPU 서버가 배포 서버로 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18431/v1`)를 가리킴 |
+| `STT_NEXT_TIMEOUT_S` | 8 | 순서 중간 공급자(처음·마지막 아님)의 상한 |
+| `STT_BREAKER_FAILURES` / `STT_BREAKER_SKIP_S` | 3 / 60 | 같은 음성 인식 공급자가 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 다음 공급자로 바로 감. 마지막 공급자는 건너뛰지 않음. 횟수가 0이면 끔 |
 | `LLM_API_KEY`, `LLM_BASE_URL` | (구성 값) | 구성의 기본 공급자 키·주소를 덮어쓰기 |
 | `MODEL_NPC` `MODEL_INTENT` `MODEL_GUARD` `MODEL_TRANSLATE` `MODEL_HINT` `MODEL_FEEDBACK` `MODEL_MEMORY` `MODEL_STT` | (구성 값) | 역할 하나만 모델 바꾸기 (그 역할의 공급자 그대로) |
 | `MODEL_FALLBACK` | (구성 값) | 대체 모델 사슬 `a=b,c=d` |
@@ -45,6 +49,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `JUDGE_BUDGET_S` | 5 | `/v1/judge`의 의도·번역 각각의 상한 (재시도·대체 모델 포함) |
 | `GUARD_BUDGET_S` | 5 | `/v1/guard` 무례 판정의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함). 넘으면 `abusive: null`(timeout) |
 | `REPLY_FIRST_BUDGET_S` | 5 | NPC 대답 첫 글자까지의 상한 |
+| `RESPOND_BUDGET_S` | 30 | NPC 추론 API(`/internal/ai/npc/respond`) 요청 하나의 상한 (재시도·대체 모델 포함, 계약 10절). 넘으면 504 `AI_TIMEOUT` |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
 | `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
@@ -141,6 +146,18 @@ NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`
 
 파일마다 스키마 검사, 파일끼리 `npcId` 중복, NPC 수(스키마의 1~1000)를 보고, 문제가 있으면 배열을 저장하지 않고 실패 코드 1로 끝납니다. 결과는 셸의 `>` 대신 `--out`으로 저장합니다. Windows PowerShell 5.1의 `>`는 파일 앞에 BOM을 붙여 JSON을 읽을 때 오류가 납니다.
 
+### 백엔드 시드로 내보내기
+
+아래 두 생성 파일은 백엔드가 `npcs`의 인격·이름·목소리·상황을 채울 때 쓸 내용 파일입니다. 백엔드가 이 파일을 읽는 연결은 아직 없고 별도 작업에서 붙입니다. 원본은 `ai/npcs`이고, 생성 파일은 직접 고치지 않습니다. `ai/npcs`를 고쳤으면 저장소 최상위에서 다시 만듭니다.
+
+```bash
+ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src/main/resources/content/npc-configurations.json --scenarios-out backend/src/main/resources/content/npc-scenarios.json
+```
+
+- `npc-configurations.json`: NPC 설정 배열(계약 `NpcConfigurationList`).
+- `npc-scenarios.json`: `npcId` → 서비스 대화의 상황(추론 계약의 `scenario`). 인격과 따로 관리하므로 NPC마다 어느 상황 파일을 쓸지는 [`ai/npcs/scenarios/service_scenarios.json`](../npcs/scenarios/service_scenarios.json)에 적습니다. 상황은 이 Worker의 추론 요청 모델(`app/npc_respond.py`의 `Scenario`)로 검사하고, 상황 장소(`locationId`)가 NPC 기본 장소(`defaultLocationId`)와 같은지도 봅니다.
+- 생성 파일이 원본과 다르면 `tests/test_npc_configs.py`가 실패합니다.
+
 ## 검사
 
 ```bash
@@ -159,7 +176,7 @@ NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`
 
 - `tests/test_api.py`: 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리
 - `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결
-- `tests/test_stt.py`: 음성 인식 — 프롬프트 되풀이 거르기·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한
+- `tests/test_stt.py`: 음성 인식 — 프롬프트 되풀이 거르기·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
@@ -168,10 +185,10 @@ NPC 설정 파일(NPC마다 하나)을 검사하고 백엔드 전달용 배열(`
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
-- `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`), GPT-5 요청 칸
+- `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, GPT-5 요청 칸
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
-- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함
+- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC 3명의 상황, 백엔드 생성 파일이 원본과 같은지
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

@@ -33,5 +33,11 @@ namespace A305.Dialogue
 
         /// <summary>CONV-07 NPC 음성 다시 만들기.</summary>
         Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId);
+
+        /// <summary>CONV-04 NPC 대사 뜻과 단어 풀이. 서버가 한 번 만든 뜻은 다시 만들지 않는다.</summary>
+        Task<MeaningData> GetMeaningAsync(long turnId, string requestId);
+
+        /// <summary>CONV-05 NPC 대사에 대답할 추천 문장. 서버가 한 번 만든 문장은 다시 만들지 않는다.</summary>
+        Task<HintData> GetHintAsync(long turnId, string requestId);
     }
 }

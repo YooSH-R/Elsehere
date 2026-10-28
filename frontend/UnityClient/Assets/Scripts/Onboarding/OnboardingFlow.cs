@@ -92,10 +92,40 @@ namespace A305.Onboarding
             }
         }
 
-        /// <summary>게스트로 시작한 뒤 접속 상태를 다시 읽는다. 가입 화면 없이 언어 선택부터 이어진다.</summary>
+        /// <summary>게스트 캐릭터 선택 화면에서 고른 캐릭터. 고르기 전에는 null이다.</summary>
+        public AvatarType? GuestAvatar { get; private set; }
+
+        /// <summary>화면 01의 [게스트로 시작하기]. 서버를 부르기 전에 캐릭터부터 고르게 한다.</summary>
+        public void ChooseGuest()
+        {
+            GuestAvatar = null;
+            Screen = EntryScreen.GuestCharacter;
+        }
+
+        public void SelectGuestAvatar(AvatarType avatar)
+        {
+            GuestAvatar = avatar;
+        }
+
+        /// <summary>캐릭터 선택 화면의 [뒤로]. 그 화면에서 실패한 안내는 로그인 화면에 남기지 않는다.</summary>
+        public void BackToLogin()
+        {
+            ErrorMessage = null;
+            Screen = EntryScreen.Login;
+        }
+
+        /// <summary>
+        /// 고른 캐릭터로 게스트를 시작한 뒤 접속 상태를 다시 읽는다. 서버가 언어·난이도를 정해 두므로 튜토리얼로 이어진다.
+        /// </summary>
         public async Task GuestLoginAsync()
         {
-            await RunAsync(() => api.GuestLoginAsync());
+            if (GuestAvatar == null)
+            {
+                return;
+            }
+
+            AvatarType avatar = GuestAvatar.Value;
+            await RunAsync(() => api.GuestLoginAsync(avatar));
             if (ErrorMessage == null)
             {
                 await StartAsync();

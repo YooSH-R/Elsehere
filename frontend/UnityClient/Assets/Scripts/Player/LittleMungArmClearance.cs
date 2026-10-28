@@ -20,10 +20,12 @@ namespace A305.Player
         private SkinnedVertexSamples[] handSurface;
         private SkinnedVertexSamples[] forearmSurface;
 
-        private void Awake()
+        private void Awake() => Initialize(GetComponentInParent<CharacterController>());
+
+        public void Initialize(CharacterController controller)
         {
             var animator = GetComponent<Animator>();
-            space = GetComponentInParent<CharacterController>().transform;
+            space = controller.transform;
             var headNames = Descendants(animator.GetBoneTransform(HumanBodyBones.Head));
             var torsoNames = new HashSet<string>();
             foreach (
@@ -65,7 +67,9 @@ namespace A305.Player
         private static HashSet<string> Descendants(Transform bone) =>
             new(bone.GetComponentsInChildren<Transform>().Select(t => t.name));
 
-        private void LateUpdate()
+        private void LateUpdate() => CorrectPose();
+
+        public void CorrectPose()
         {
             var headBounds = head.BoundsIn(space);
             var torsoBounds = torso.BoundsIn(space);

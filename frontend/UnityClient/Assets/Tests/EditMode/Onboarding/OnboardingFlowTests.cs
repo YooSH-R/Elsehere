@@ -40,21 +40,51 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
-        public async Task GuestLogin_StartsAgainAsNewUserAtLanguageStep()
+        public async Task ChooseGuest_ShowsCharacterChoiceWithoutCallingServer()
         {
-            api.Bootstrap = SignedIn(OnboardingStep.Language, currentLanguage: null);
+            await StartAtLogin();
 
-            await flow.GuestLoginAsync();
+            flow.ChooseGuest();
 
-            Assert.That(api.GuestLoginRequested, Is.True);
-            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Language));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.GuestCharacter));
+            Assert.That(flow.GuestAvatar, Is.Null);
+            Assert.That(api.GuestAvatarSent, Is.Null);
         }
 
         [Test]
-        public async Task GuestLoginFailed_StaysAtLoginWithMessage()
+        public async Task GuestLogin_SendsChosenCharacterAndMovesToTutorial()
         {
-            api.BootstrapError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
-            await flow.StartAsync();
+            await StartAtLogin();
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.M);
+            api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
+            api.Bootstrap.User.AvatarType = AvatarType.M;
+
+            await flow.GuestLoginAsync();
+
+            Assert.That(api.GuestAvatarSent, Is.EqualTo(AvatarType.M));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
+            Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public async Task GuestLoginWithoutCharacter_StaysWithoutCallingServer()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+
+            await flow.GuestLoginAsync();
+
+            Assert.That(api.GuestAvatarSent, Is.Null);
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.GuestCharacter));
+        }
+
+        [Test]
+        public async Task GuestLoginFailed_StaysAtCharacterChoiceWithMessage()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.F);
             api.GuestLoginError = new ApiException(
                 "INTERNAL_ERROR",
                 500,
@@ -63,8 +93,28 @@ namespace A305.Onboarding.Tests
 
             await flow.GuestLoginAsync();
 
-            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Login));
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.GuestCharacter));
+            Assert.That(flow.GuestAvatar, Is.EqualTo(AvatarType.F));
             Assert.That(flow.ErrorMessage, Is.EqualTo("잠시 후 다시 시도해 주세요."));
+        }
+
+        [Test]
+        public async Task BackFromGuestCharacter_ShowsLoginWithoutPreviousMessage()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.F);
+            api.GuestLoginError = new ApiException(
+                "INTERNAL_ERROR",
+                500,
+                "잠시 후 다시 시도해 주세요."
+            );
+            await flow.GuestLoginAsync();
+
+            flow.BackToLogin();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Login));
+            Assert.That(flow.ErrorMessage, Is.Null);
         }
 
         [Test]
@@ -285,6 +335,13 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.SelectedAvatar, Is.Null);
         }
 
+        private async Task StartAtLogin()
+        {
+            api.BootstrapError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
+            await flow.StartAsync();
+            api.BootstrapError = null;
+        }
+
         private async Task StartAtSignup()
         {
             api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
@@ -377,7 +434,7 @@ namespace A305.Onboarding.Tests
                 };
 
             public bool ScenesRequested { get; private set; }
-            public bool GuestLoginRequested { get; private set; }
+            public AvatarType? GuestAvatarSent { get; private set; }
             public string NicknameCheckedFor { get; private set; }
             public SignupRequest SignupSent { get; private set; }
             public string LanguageChosen { get; private set; }
@@ -399,9 +456,9 @@ namespace A305.Onboarding.Tests
                 return Task.CompletedTask;
             }
 
-            public Task GuestLoginAsync()
+            public Task GuestLoginAsync(AvatarType avatarType)
             {
-                GuestLoginRequested = true;
+                GuestAvatarSent = avatarType;
                 return GuestLoginError != null
                     ? Task.FromException(GuestLoginError)
                     : Task.CompletedTask;

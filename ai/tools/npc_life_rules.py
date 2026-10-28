@@ -98,7 +98,7 @@ def _clock(minutes: int) -> str:
 def life_problems(npc_folder: Path) -> list[str]:
     """NPC 폴더(ai/npcs)의 생활 파일(life/*.json)을 하나씩 검사하고, 인격 파일(*.json)과 짝이 맞는지 본다.
     스키마를 어긴 파일은 나머지를 믿을 수 없으니 스키마 오류만 알린다."""
-    problems, life_file_of, life_files = [], {}, set()
+    problems, life_file_of, life_files, guides = [], {}, set(), []
     for path in sorted((npc_folder / "life").glob("*.json")):
         name = f"life/{path.name}"
         life_files.add(path.stem)
@@ -110,7 +110,12 @@ def life_problems(npc_folder: Path) -> list[str]:
         npc_id = life["npcId"]
         if path.stem != npc_id:
             problems.append(f"{name}: 파일 이름이 npcId '{npc_id}'와 다름")
+        if life.get("tutorialGuide"):
+            guides.append(npc_id)
         life_file_of[npc_id] = name
+
+    if len(guides) > 1:  # 튜토리얼은 정해진 흐름 하나라 안내 NPC도 하나
+        problems.append(f"튜토리얼 안내 NPC가 둘 이상: {', '.join(guides)}")
 
     npc_ids = [json.loads(path.read_text(encoding="utf-8"))["npcId"] for path in sorted(npc_folder.glob("*.json"))]
     problems += [

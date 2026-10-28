@@ -150,6 +150,7 @@ def life_with(path: tuple, value) -> dict:
         (("mbti",), "ABCD", "$.mbti"),
         (("role",), "CHEF", "$.role"),  # 공통 규칙의 역할(백엔드 시드의 NPC 유형)만
         (("needRates",), {"SOCIAL": 1.2}, "$"),  # 손으로 적는 생활 값은 받지 않음 — 입력 노드에서 계산
+        (("tutorialGuide",), "yes", "$.tutorialGuide"),
     ],
 )
 def test_values_a_life_file_does_not_allow_are_reported_where_they_break(path, value, where):
@@ -167,7 +168,21 @@ def test_service_npc_life_files_hold_only_input_nodes():
         "HOTEL_STAFF": ("ISTP-T", "STAFF"),
         "TOWN_PASSERBY": ("ESFJ-T", "PASSERBY"),
     }
-    assert all(set(life) == {"schemaVersion", "npcId", "mbti", "role"} for life in lives.values())
+    assert all(set(life) - {"tutorialGuide"} == {"schemaVersion", "npcId", "mbti", "role"} for life in lives.values())
+
+
+def test_ben_is_the_only_tutorial_guide():
+    """튜토리얼 안내 NPC는 학습자가 튜토리얼을 마치기 전까지 정해진 흐름으로만 움직인다 (튜토리얼 모드)."""
+    guides = [npc_id for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"] if load_life(npc_id).get("tutorialGuide")]
+
+    assert guides == ["TOWN_PASSERBY"]
+
+
+def test_two_tutorial_guides_are_a_problem(tmp_path):
+    configs = {"CAFE_STAFF.json": load_config("CAFE_STAFF"), "TOWN_PASSERBY.json": load_config("TOWN_PASSERBY")}
+    lives = {"CAFE_STAFF.json": {**load_life("CAFE_STAFF"), "tutorialGuide": True}, "TOWN_PASSERBY.json": load_life("TOWN_PASSERBY")}
+
+    assert npc_life_rules.life_problems(npc_folder(tmp_path, configs, lives)) == ["튜토리얼 안내 NPC가 둘 이상: CAFE_STAFF, TOWN_PASSERBY"]
 
 
 STAFF_DAY = [

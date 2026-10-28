@@ -66,10 +66,29 @@ def test_every_need_has_a_drop_rate():
         (("memory", "recallAt"), 1.5, None),
         (("derivation", 0, "target"), "speed", None),  # 계산할 수 있는 생활 값만
         (("derivation", 0, "axis"), "humor", None),
+        (("roles", "CHEF"), {"schedule": []}, ("roles",)),  # 없는 역할 (백엔드 시드의 NPC 유형만)
+        (("roles", "STAFF", "schedule"), [], None),
+        (("roles", "STAFF", "schedule", 0, "from"), "8:00", None),  # HH:MM
+        (("roles", "STAFF", "schedule", 0, "activity"), "SLEEP", None),
     ],
 )
 def test_values_the_rules_do_not_allow_are_reported_where_they_break(path, value, where):
     assert broken_places(rules_with(path, value)) == {json_path(where or path)}
+
+
+def test_every_role_schedule_fills_the_whole_day_without_overlap():
+    """NPC 일과는 손으로 적지 않고 역할별 틀에서 계산한다. 백엔드 시드의 NPC 유형과 같은 역할."""
+    rules = load_world_rules()
+
+    assert set(rules["roles"]) == {"STAFF", "PASSERBY"}
+    assert npc_life_rules.role_schedule_problems(rules) == []
+
+
+def test_a_gap_in_a_role_schedule_is_reported_with_the_role():
+    rules = load_world_rules()
+    rules["roles"]["STAFF"]["schedule"] = [block for block in rules["roles"]["STAFF"]["schedule"] if block["activity"] != "BREAK"]
+
+    assert npc_life_rules.role_schedule_problems(rules) == ["roles.STAFF: 12:00~12:30에 일과가 없음"]
 
 
 def test_the_service_actions_use_objects_placed_in_their_scene():
@@ -108,55 +127,48 @@ def life_with(path: tuple, value) -> dict:
 @pytest.mark.parametrize(
     ("path", "value", "where"),
     [
-        (("schemaVersion",), "2.0", None),
-        (("npcId",), "cafe staff", None),  # 인격 파일·시드와 같은 대문자 코드
-        (("needRates",), {"THIRST": 1.0}, None),  # 없는 욕구
-        (("needRates", "SOCIAL"), 0, None),  # 배수는 0보다 커야 함 (0이면 욕구가 영영 줄지 않음)
-        (("relationshipRates", "recognition"), 0, None),
-        (("schedule",), [], None),
-        (("schedule", 0, "from"), "7:00", None),  # HH:MM
-        (("schedule", 0, "activity"), "SLEEP", None),
-        (("eventOverrides", "SHOUT"), {}, ("eventOverrides",)),  # 없는 사건
-        (("eventOverrides", "RUDE", "memorySalience"), 4, None),
-        (("mbti",), "ABCD", None),
+        (("schemaVersion",), "2.0", "$.schemaVersion"),
+        (("npcId",), "cafe staff", "$.npcId"),  # 인격 파일·시드와 같은 대문자 코드
+        (("mbti",), "ABCD", "$.mbti"),
+        (("role",), "CHEF", "$.role"),  # 공통 규칙의 역할(백엔드 시드의 NPC 유형)만
+        (("needRates",), {"SOCIAL": 1.2}, "$"),  # 손으로 적는 생활 값은 받지 않음 — 입력 노드에서 계산
     ],
 )
 def test_values_a_life_file_does_not_allow_are_reported_where_they_break(path, value, where):
     errors = npc_life_rules.life_errors(life_with(path, value))
 
-    assert {where for where, _ in errors} == {json_path(where or path)}
+    assert {where for where, _ in errors} == {where}
 
 
-def test_service_npcs_record_their_mbti_as_an_input_node():
-    """성격 입력 노드. 생활 값은 이 값에서 공통 연결 규칙으로 계산한다 (ai/tools/npc_derive.py)."""
-    mbti = {npc_id: load_life(npc_id)["mbti"] for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]}
+def test_service_npc_life_files_hold_only_input_nodes():
+    """NPC마다 정하는 것은 성격(MBTI)과 역할뿐. 생활 값과 일과는 공통 규칙으로 계산한다 (ai/tools/npc_derive.py)."""
+    lives = {npc_id: load_life(npc_id) for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]}
 
-    assert mbti == {"CAFE_STAFF": "ESFJ-T", "HOTEL_STAFF": "ISTP-T", "TOWN_PASSERBY": "ESFJ-T"}
-
-
-def test_service_npcs_stay_in_their_own_place_for_now():
-    """NPC가 적은 지금은 각자 기본 장소(인격 파일의 defaultLocationId) 밖으로 나가지 않는다."""
-    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]:
-        home = load_config(npc_id)["defaultLocationId"]
-        scenes = {block["scene"] for block in load_life(npc_id)["schedule"] if "scene" in block}
-
-        assert scenes == {home}, npc_id
+    assert {npc_id: (life["mbti"], life["role"]) for npc_id, life in lives.items()} == {
+        "CAFE_STAFF": ("ESFJ-T", "STAFF"),
+        "HOTEL_STAFF": ("ISTP-T", "STAFF"),
+        "TOWN_PASSERBY": ("ESFJ-T", "PASSERBY"),
+    }
+    assert all(set(life) == {"schemaVersion", "npcId", "mbti", "role"} for life in lives.values())
 
 
-def test_the_service_schedules_fill_the_whole_day_without_overlap():
-    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]:
-        assert npc_life_rules.schedule_problems(load_life(npc_id)["schedule"]) == []
+STAFF_DAY = [
+    {"from": "08:00", "to": "12:00", "activity": "WORK"},
+    {"from": "12:00", "to": "12:30", "activity": "BREAK"},
+    {"from": "12:30", "to": "17:00", "activity": "WORK"},
+    {"from": "17:00", "to": "08:00", "activity": "OFF"},
+]
 
 
 def test_a_gap_in_the_schedule_is_a_problem():
     """비는 시간에는 Unity가 NPC를 어디에 둘지 모른다."""
-    schedule = [block for block in load_life("CAFE_STAFF")["schedule"] if block["from"] != "18:00"]
+    schedule = [block for block in STAFF_DAY if block["activity"] != "BREAK"]
 
-    assert npc_life_rules.schedule_problems(schedule) == ["18:00~19:00에 일과가 없음"]
+    assert npc_life_rules.schedule_problems(schedule) == ["12:00~12:30에 일과가 없음"]
 
 
 def test_overlapping_blocks_are_a_problem():
-    schedule = load_life("HOTEL_STAFF")["schedule"]
+    schedule = [dict(block) for block in STAFF_DAY]
     schedule[1]["from"] = "11:30"  # 점심 휴식을 앞당겼는데 오전 근무를 그대로 둠
 
     assert npc_life_rules.schedule_problems(schedule) == ["11:30~12:00에 일과가 겹침"]
@@ -184,21 +196,9 @@ def npc_folder(tmp_path: Path, configs: dict[str, dict], lives: dict[str, dict])
     return tmp_path
 
 
-def test_problems_in_a_life_file_are_reported_with_its_name(tmp_path):
-    life = load_life("CAFE_STAFF")
-    life["schedule"] = [block for block in life["schedule"] if block["from"] != "18:00"]
-    life["schedule"][0]["scene"] = "BEACH"
-    folder = npc_folder(tmp_path, {"CAFE_STAFF.json": load_config("CAFE_STAFF")}, {"CAFE_STAFF.json": life})
-
-    assert npc_life_rules.life_problems(folder) == [
-        "life/CAFE_STAFF.json: 18:00~19:00에 일과가 없음",
-        "life/CAFE_STAFF.json $.schedule[0].scene: 없는 장소 'BEACH'",
-    ]
-
-
 def test_a_life_file_breaking_the_schema_is_reported_without_other_checks(tmp_path):
-    """스키마를 어긴 파일은 일과표·짝 맞추기를 믿을 수 없으니 스키마 오류만 알린다."""
-    life = changed(load_life("CAFE_STAFF"), ("needRates", "SOCIAL"), 0)
+    """스키마를 어긴 파일은 짝 맞추기를 믿을 수 없으니 파일 이름을 붙인 스키마 오류만 알린다."""
+    life = changed(load_life("CAFE_STAFF"), ("mbti",), "ABCD")
     folder = npc_folder(tmp_path, {"CAFE_STAFF.json": load_config("CAFE_STAFF")}, {"CAFE_STAFF.json": life})
     where, why = npc_life_rules.life_errors(life)[0]
 
@@ -282,11 +282,3 @@ def test_each_side_of_every_axis_has_enough_behaviors_to_draw_from():
     library["behaviors"] = [b for b in library["behaviors"] if b["leans"] != {"openness": "low"}]
 
     assert npc_life_rules.behavior_problems(library) == [f"openness low 쪽 조각이 {npc_life_rules.MIN_BEHAVIORS_PER_SIDE}개 미만 (0개)"]
-
-
-def test_an_npc_away_from_off_duty_needs_a_scene():
-    """퇴근(OFF)이 아니면 Unity가 NPC를 둘 장소가 있어야 한다."""
-    life = load_life("CAFE_STAFF")
-    del life["schedule"][0]["scene"]
-
-    assert npc_life_rules.life_errors(life) == [("$.schedule[0]", "'scene' is a required property")]

@@ -41,13 +41,25 @@ def derive_rates(dimensions: dict[str, float], rules: dict) -> dict:
     return rates
 
 
-def npc_life_values(life: dict, rules: dict, library: dict) -> dict:
-    """생활 파일의 입력 노드(mbti)와 npcId에서 뽑힌 행동 조각과 최종 생활 값 배수를 계산한다.
-    성격 계산(derive_rates) × 뽑힌 조각 affects. npcId를 씨앗으로 써서 같은 NPC는 늘 같은 결과다."""
+def npc_life_values(life: dict, rules: dict, library: dict, place: str) -> dict:
+    """생활 파일의 입력 노드(mbti·role)와 npcId, 인격 파일의 기본 장소(place)에서 NPC 생활 값을 계산한다.
+    - behaviors: 뽑힌 행동 조각 id. npcId를 씨앗으로 써서 같은 NPC는 늘 같은 결과다
+    - rates: 성격 계산(derive_rates) × 뽑힌 조각 affects
+    - schedule: 역할의 일과 틀에 기본 장소를 넣은 일과"""
     dimensions = mbti_to_dimensions(life["mbti"])
     behaviors = pick_behaviors(dimensions, library, seed=life["npcId"])
     rates = combine_rates(derive_rates(dimensions, rules), *(behavior.get("affects", {}) for behavior in behaviors))
-    return {"behaviors": [behavior["id"] for behavior in behaviors], "rates": rates}
+    return {
+        "behaviors": [behavior["id"] for behavior in behaviors],
+        "rates": rates,
+        "schedule": npc_schedule(rules["roles"][life["role"]]["schedule"], place),
+    }
+
+
+def npc_schedule(template: list[dict], place: str) -> list[dict]:
+    """역할의 일과 틀에 장소를 넣는다. NPC가 적은 지금은 각자 기본 장소 밖으로 나가지 않고 자리를 비우지 않는다
+    (canLeave false → 스스로 채우지 못하는 욕구는 모두 부탁이 된다). 퇴근(OFF)에는 마을에 없으니 장소가 없다."""
+    return [dict(block) if block["activity"] == "OFF" else {**block, "scene": place, "canLeave": False} for block in template]
 
 
 MAX_SALIENCE_BONUS = 2  # 기억 세기는 1~3

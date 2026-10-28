@@ -44,6 +44,22 @@
     "spacedRepeatFactor": 2,
     "sameDayFactor": 1.2
   },
+  "roles": {
+    "STAFF": {
+      "schedule": [
+        { "from": "08:00", "to": "12:00", "activity": "WORK" },
+        { "from": "12:00", "to": "12:30", "activity": "BREAK" },
+        { "from": "12:30", "to": "17:00", "activity": "WORK" },
+        { "from": "17:00", "to": "08:00", "activity": "OFF" }
+      ]
+    },
+    "PASSERBY": {
+      "schedule": [
+        { "from": "09:00", "to": "18:00", "activity": "FREE" },
+        { "from": "18:00", "to": "09:00", "activity": "OFF" }
+      ]
+    }
+  },
   "derivation": [
     { "target": "needRates.SOCIAL", "axis": "extraversion", "at0": 0.6, "at1": 1.4 },
     { "target": "needRates.FUN", "axis": "conscientiousness", "at0": 1.4, "at1": 0.6 },

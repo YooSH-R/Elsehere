@@ -79,6 +79,29 @@
       }
     },
     "Scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
+    "RoleTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schedule"],
+      "properties": {
+        "schedule": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TemplateBlock" },
+          "minItems": 1,
+          "description": "게임 시각 기준 하루 일과. 겹치지 않고 하루 24시간을 빈틈없이 채운다(검사 도구가 확인). 장소는 NPC의 기본 장소."
+        }
+      }
+    },
+    "TemplateBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "activity"],
+      "properties": {
+        "from": { "$ref": "#/$defs/Clock" },
+        "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다. 같으면 하루 전체." },
+        "activity": { "type": "string", "enum": ["WORK", "BREAK", "FREE", "OFF"], "description": "OFF는 퇴근해 마을에 없음." }
+      }
+    },
     "ConnectionRule": {
       "type": "object",
       "additionalProperties": false,
@@ -97,55 +120,22 @@
     "NpcLife": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "npcId", "schedule"],
+      "required": ["schemaVersion", "npcId", "mbti", "role"],
       "properties": {
         "schemaVersion": { "const": "1.0" },
-        "npcId": { "$ref": "#/$defs/Code", "description": "인격 파일(ai/npcs/<npcId>.json)·백엔드 시드와 같은 NPC 코드." },
+        "npcId": { "$ref": "#/$defs/Code", "description": "인격 파일(ai/npcs/<npcId>.json)·백엔드 시드와 같은 NPC 코드. 행동 조각 뽑기의 씨앗." },
         "mbti": {
           "type": "string",
           "pattern": "^[EI][NS][FT][JP](-[AT])?$",
           "description": "성격 입력 노드. 계산할 때 Big Five 5축으로 바꾼다(ai/tools/npc_derive.py). -T/-A는 신경성."
         },
-        "needRates": {
-          "type": "object",
-          "propertyNames": { "$ref": "#/$defs/NeedId" },
-          "additionalProperties": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
-          "description": "욕구가 줄어드는 속도 배수. 적지 않은 욕구는 1."
-        },
-        "relationshipRates": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "recognition": { "type": "number", "exclusiveMinimum": 0, "maximum": 5, "description": "손님 얼굴을 외우는 속도 배수. 생략하면 1." }
-          }
-        },
-        "schedule": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/ScheduleBlock" },
-          "minItems": 1,
-          "description": "게임 시각 기준 하루 일과. 겹치지 않고 하루 24시간을 빈틈없이 채운다(검사 도구가 확인)."
-        },
-        "eventOverrides": {
-          "type": "object",
-          "propertyNames": { "$ref": "#/$defs/EventId" },
-          "additionalProperties": { "$ref": "#/$defs/EventEffect" },
-          "description": "이 NPC만 다르게 반응하는 대화 사건. 적은 사건은 공통 효과 대신 이 효과를 쓴다."
+        "role": {
+          "type": "string",
+          "enum": ["STAFF", "PASSERBY"],
+          "description": "역할 입력 노드. 공통 규칙의 역할별 일과 틀을 고른다. 백엔드 시드의 NPC 유형과 같다."
         }
-      }
-    },
-    "ScheduleBlock": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["from", "to", "activity"],
-      "properties": {
-        "from": { "$ref": "#/$defs/Clock" },
-        "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다." },
-        "activity": { "type": "string", "enum": ["WORK", "BREAK", "FREE", "OFF"], "description": "OFF는 퇴근해 마을에 없음." },
-        "scene": { "$ref": "#/$defs/Code" },
-        "canLeave": { "type": "boolean", "description": "이 시간에 자리를 비우고 다른 장소로 갈 수 있는지. false면 스스로 못 채우는 욕구가 부탁이 된다." }
       },
-      "if": { "properties": { "activity": { "const": "OFF" } } },
-      "else": { "required": ["scene", "canLeave"] }
+      "description": "NPC마다 정하는 입력 노드만 둔다. 생활 값 배수·행동·일과는 손으로 적지 않고 공통 규칙으로 계산한다."
     },
     "Clock": {
       "type": "string",
@@ -230,9 +220,19 @@
     "WorldRules": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation"],
+      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles"],
       "properties": {
         "schemaVersion": { "const": "1.0" },
+        "roles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["STAFF", "PASSERBY"],
+          "properties": {
+            "STAFF": { "$ref": "#/$defs/RoleTemplate" },
+            "PASSERBY": { "$ref": "#/$defs/RoleTemplate" }
+          },
+          "description": "역할별 일과 틀. 역할은 백엔드 시드의 NPC 유형(npc_type)과 같다. NPC 일과는 손으로 적지 않고 이 틀에서 계산한다."
+        },
         "derivation": {
           "type": "array",
           "items": { "$ref": "#/$defs/ConnectionRule" },

@@ -2,11 +2,5 @@
   "schemaVersion": "1.0",
   "npcId": "TOWN_PASSERBY",
   "mbti": "ESFJ-T",
-  "needRates": { "ENERGY": 1.2, "SOCIAL": 0.9 },
-  "schedule": [
-    { "from": "08:00", "to": "10:00", "activity": "FREE", "scene": "TOWN", "canLeave": false },
-    { "from": "10:00", "to": "15:00", "activity": "WORK", "scene": "TOWN", "canLeave": false },
-    { "from": "15:00", "to": "18:00", "activity": "FREE", "scene": "TOWN", "canLeave": false },
-    { "from": "18:00", "to": "08:00", "activity": "OFF" }
-  ]
+  "role": "PASSERBY"
 }

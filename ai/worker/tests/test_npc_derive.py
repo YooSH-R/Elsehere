@@ -137,13 +137,23 @@ def load_life(npc_id: str) -> dict:
     return json.loads((npc_life_rules.LIFE_FOLDER / f"{npc_id}.json").read_text(encoding="utf-8"))
 
 
+def home_of(npc_id: str) -> str:
+    """인격 파일의 기본 장소."""
+    config = json.loads((npc_life_rules.ROOT / "ai/npcs" / f"{npc_id}.json").read_text(encoding="utf-8"))
+    return config["defaultLocationId"]
+
+
+def life_values(npc_id: str) -> dict:
+    return npc_derive.npc_life_values(load_life(npc_id), service_rules(), service_behaviors(), place=home_of(npc_id))
+
+
 def test_an_npc_life_comes_from_its_mbti_and_npc_id():
     """성격 계산 → 행동 조각 뽑기(npcId가 씨앗) → 배수 합치기를 한 번에."""
     life = load_life("CAFE_STAFF")
     dimensions = npc_derive.mbti_to_dimensions(life["mbti"])
     behaviors = npc_derive.pick_behaviors(dimensions, service_behaviors(), seed="CAFE_STAFF")
 
-    values = npc_derive.npc_life_values(life, service_rules(), service_behaviors())
+    values = life_values("CAFE_STAFF")
 
     assert values["behaviors"] == [behavior["id"] for behavior in behaviors]
     assert values["rates"] == npc_derive.combine_rates(
@@ -151,9 +161,26 @@ def test_an_npc_life_comes_from_its_mbti_and_npc_id():
     )
 
 
+def test_an_npc_schedule_comes_from_its_role_in_its_own_place():
+    """역할의 일과 틀에 NPC의 기본 장소를 넣는다. NPC가 적은 지금은 자리를 비우지 않아(canLeave false)
+    스스로 채우지 못하는 욕구는 모두 부탁이 된다. 퇴근(OFF)에는 장소가 없다."""
+    staff_day = service_rules()["roles"]["STAFF"]["schedule"]
+
+    assert life_values("CAFE_STAFF")["schedule"] == [
+        dict(block) if block["activity"] == "OFF" else {**block, "scene": "CAFE", "canLeave": False} for block in staff_day
+    ]
+
+
+def test_service_npcs_stay_in_their_own_place_for_now():
+    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]:
+        scenes = {block["scene"] for block in life_values(npc_id)["schedule"] if "scene" in block}
+
+        assert scenes == {home_of(npc_id)}, npc_id
+
+
 def derived_from_life_file(npc_id: str) -> dict:
     """세 NPC의 최종 배수(성격 계산 × 뽑힌 행동 조각)."""
-    return npc_derive.npc_life_values(load_life(npc_id), service_rules(), service_behaviors())["rates"]
+    return life_values(npc_id)["rates"]
 
 
 def test_mia_keeps_her_persona_direction():

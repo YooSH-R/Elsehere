@@ -47,6 +47,11 @@ def life_errors(life: dict) -> list[tuple[str, str]]:
     return _errors(LIFE_SCHEMA, life)
 
 
+def role_schedule_problems(rules: dict) -> list[str]:
+    """역할별 일과 틀마다 하루 24시간을 겹치지 않고 빈틈없이 채우는지."""
+    return [f"roles.{role}: {problem}" for role, template in rules["roles"].items() for problem in schedule_problems(template["schedule"])]
+
+
 DAY_MINUTES = 24 * 60
 
 
@@ -90,8 +95,7 @@ def _clock(minutes: int) -> str:
 
 def life_problems(npc_folder: Path) -> list[str]:
     """NPC 폴더(ai/npcs)의 생활 파일(life/*.json)을 하나씩 검사하고, 인격 파일(*.json)과 짝이 맞는지 본다.
-    스키마를 어긴 파일은 나머지를 믿을 수 없으니 스키마 오류만 알린다. 일과표의 장소는 사물 단어 배치의 장소 코드와 대조한다."""
-    places = _placed_words().keys()
+    스키마를 어긴 파일은 나머지를 믿을 수 없으니 스키마 오류만 알린다."""
     problems, life_file_of, life_files = [], {}, set()
     for path in sorted((npc_folder / "life").glob("*.json")):
         name = f"life/{path.name}"
@@ -104,12 +108,6 @@ def life_problems(npc_folder: Path) -> list[str]:
         npc_id = life["npcId"]
         if path.stem != npc_id:
             problems.append(f"{name}: 파일 이름이 npcId '{npc_id}'와 다름")
-        problems += [f"{name}: {problem}" for problem in schedule_problems(life["schedule"])]
-        problems += [
-            f"{name} $.schedule[{i}].scene: 없는 장소 '{block['scene']}'"
-            for i, block in enumerate(life["schedule"])
-            if "scene" in block and block["scene"] not in places
-        ]
         life_file_of[npc_id] = name
 
     npc_ids = [json.loads(path.read_text(encoding="utf-8"))["npcId"] for path in sorted(npc_folder.glob("*.json"))]

@@ -72,7 +72,7 @@ NPC 첫 인사와 매 턴 지시문에 현재 사건·남은 목표·캐리어�
 
 `first_day_missions`에 사용자당 한 행을 저장한다. 업데이트 시 행 잠금을 사용하며 버전도 기록한다. 새로 시작할 때는 사용자 행 잠금으로 중복 생성을 막는다. 자정 초기화·재시작·삭제 API는 제공하지 않는다. ERD는 `docs/erd.dbml`을 따른다.
 
-백엔드 시드에 SHOP·SHOP_STAFF가 추가되고 Unity Build Settings에 ShopScene이 추가된다. **백엔드와 WebGL을 같은 변경 묶음으로 배포**한다. 현재 개발 환경은 엔티티 기반 스키마 갱신을 사용한다. `JPA_DDL_AUTO=validate/none` 환경에서는 신규 테이블과 대화 컬럼을 먼저 반영해야 한다. 비밀 환경변수나 패키지 추가는 없다.
+백엔드 시드에 SHOP·SHOP_STAFF가 추가되고 Unity Build Settings에 ShopScene이 추가된다. **백엔드와 WebGL을 같은 변경 묶음으로 배포**한다. 신규 테이블과 대화 컬럼은 Flyway 마이그레이션(`V1__create_schema.sql`)에 들어 있어 백엔드가 시작할 때 반영된다. 비밀 환경변수나 패키지 추가는 없다.
 
 Unity 에셋은 **Tools → A305 → Mission → Build First Day Journey**로 생성·연결한다. 기존 씬 아트는 유지하고 없는 상점 실내만 만든다. 우산 공용 단어와 상점 단어 목록은 ObjectHover 내보내기로 생성한다.
 

@@ -11,6 +11,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 사용자와 NPC 사이의 관계. 방문 수(talk_count)와 NPC 기억 카드를 둔다. 사용자(users)와 NPC(npcs)는 ID만 보관한다.
@@ -28,7 +30,8 @@ public class UserNpcRelation extends BaseEntity {
 
   // 호감도(0~5). 아직 바꾸는 기능이 없다.
   @ColumnDefault("0")
-  @Column(nullable = false, columnDefinition = "smallint")
+  @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
   private Integer affinity;
 
   // 사용자 발화가 있었던 대화를 끝낸 횟수. NPC 대답 요청의 memory.visits로 쓴다.

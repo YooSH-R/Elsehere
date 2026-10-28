@@ -19,12 +19,13 @@ MonoBehaviour:
   requireFace: 0
   requireHumanoid: 1
   commonBody: {fileID: 919132149155446097, guid: 24bcad3e4156052479d66ad532a9b14f, type: 3}
-  masterPreparedPath: Assets/Art/Characters/Tripo/LittleMung_Casual_Male_41b6e942_Review/MasterRig/Visual.prefab
+  masterPreparedPath: Assets/Art/Characters/Tripo/LittleMung_Casual_Male_41b6e942_Review/MasterRig
+    2/Visual.prefab
   masterBinding:
-    version: 3
+    version: 4
     sourceHash: 446089108b934abc591f5ad0a7103271
     masterHash: 4d31694eec9668750368d93ba333cfeb
-    preparedHash: 3c0053fb4793fc3c915b2490e09df1a9
+    preparedHash: 88d50f82df4be6f6bd359c87499a02fd
   registeredPrefabPath: 
   sourceModel: {fileID: 919132149155446097, guid: 73242c318c367c941b29503ef7ec30dd, type: 3}
   profile: {fileID: 11400000, guid: 275c75d7bce844c49a12616766e5bcdf, type: 2}
@@ -34,10 +35,11 @@ MonoBehaviour:
   uniformScale: 1
   blenderSourcePath: 
   revision:
-    candidatePath: Assets/Art/Characters/Tripo/LittleMung_Casual_Male_41b6e942_Review/MasterRig/Visual.prefab
+    candidatePath: Assets/Art/Characters/Tripo/LittleMung_Casual_Male_41b6e942_Review/MasterRig
+      2/Visual.prefab
     activePath: Assets/Art/Characters/Tripo/LittleMung_Casual_Male_41b6e942_Review/Source.fbx
     previousPath: 
-    validatedFingerprint: 85bdf680e38113bff0de0ef675bca1d7
+    validatedFingerprint: 371793a03d550dae9278c24d15100a7a
     validationPassed: 1
     visuallyApproved: 0
   validationErrors: []
@@ -62,7 +64,7 @@ MonoBehaviour:
     \uACBD\uACC4 \uBC0F \uB3D9\uC791 \uC911 \uC811\uC9C0\uB294 \uBCC4\uB3C4 \uAC80\uC218\uD558\uC138\uC694."
   - "\uC2E4\uC81C \uD074\uB9BD 6\uC885 (Idle \uD3EC\uD568) \xD7 25\uD3EC\uC988 \uC790\uB3D9
     \uAC80\uC0AC: \uC2A4\uD0A8 \uC218\uCE58 \uBC0F \uC190\xB7\uD314/\uBA38\uB9AC\xB7\uBAB8\uD1B5
-    \uAC70\uB9AC. \uCD5C\uC18C \uBA38\uB9AC 1.045, \uBAB8\uD1B5 1.101."
+    \uAC70\uB9AC. \uCD5C\uC18C \uBA38\uB9AC 1.045, \uBAB8\uD1B5 1.008."
   - "Idle\uC758 \uC5B4\uAE68 \uB20C\uB9BC\xB7\uC637 \uC811\uD798, \uC190\uAC00\uB77D\uB07C\uB9AC\uC758
     \uAD50\uCC28\xB7\uC190 \uBAA8\uC591\xB7\uC190\uBAA9 \uAEBE\uC784, \uC9C0\uD615\xB7\uACC4\uB2E8
     \uC811\uC9C0\uC640 \uC637 \uC804\uCCB4\uC758 \uC0BC\uAC01\uD615 \uAD50\uCC28,

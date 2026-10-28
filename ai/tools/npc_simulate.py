@@ -18,10 +18,14 @@ DAY_MINUTES = 24 * 60
 MIN_SCORE = 1.0  # 이보다 덜 급하면 아무것도 하지 않고 기다린다
 
 
-def simulate_day(npc: dict, rules: dict, requests: dict, tick: int = 10) -> dict:
-    """npc: npcId·role·place·rates(npc_derive.npc_life_values의 rates)·schedule(장소가 들어간 일과).
-    돌려주는 것: needsAt(정시마다 욕구), actions(고른 행동과 시각), requests(생긴 부탁과 시각, 하루 한 번씩)."""
-    day = {"needsAt": {}, "actions": [], "requests": []}
+def simulate_day(npc: dict, rules: dict, requests: dict, tick: int = 10, tutorial_done: bool = True) -> dict:
+    """npc: npcId·role·place·rates(npc_derive.npc_life_values의 rates)·schedule(장소가 들어간 일과), 튜토리얼 안내 NPC면 tutorialGuide.
+    돌려주는 것: mode, needsAt(정시마다 욕구), actions(고른 행동과 시각), requests(생긴 부탁과 시각, 하루 한 번씩).
+    학습자가 튜토리얼을 마치기 전(tutorial_done False)의 안내 NPC는 튜토리얼 모드: 정해진 흐름(Unity 대본)만 따르므로
+    생활도 부탁도 하지 않는다."""
+    if npc.get("tutorialGuide") and not tutorial_done:
+        return {"mode": "TUTORIAL", "needsAt": {}, "actions": [], "requests": []}
+    day = {"mode": "NORMAL", "needsAt": {}, "actions": [], "requests": []}
     needs, busy_until, doing, asked = None, None, None, set()
     for minute in range(0, DAY_MINUTES, tick):
         block = _block_at(npc["schedule"], minute)
@@ -114,9 +118,9 @@ def _clock(minutes: int) -> str:
 # 서비스 데이터와 관계·기억 곡선 (규칙 숫자가 의도대로인지 보는 용도)
 
 
-def simulate_service_day(npc_id: str) -> dict:
+def simulate_service_day(npc_id: str, tutorial_done: bool = True) -> dict:
     """저장소의 서비스 데이터(인격 파일의 기본 장소, 생활 파일의 MBTI·역할, 공통 규칙·행동 조각·부탁 틀)로 하루를 돌린다."""
-    return simulate_day(service_npc(npc_id), _load(npc_life_rules.WORLD_RULES), _load(npc_life_rules.REQUESTS))
+    return simulate_day(service_npc(npc_id), _load(npc_life_rules.WORLD_RULES), _load(npc_life_rules.REQUESTS), tutorial_done=tutorial_done)
 
 
 def service_npc(npc_id: str) -> dict:
@@ -124,7 +128,7 @@ def service_npc(npc_id: str) -> dict:
     life = _load(npc_life_rules.LIFE_FOLDER / f"{npc_id}.json")
     place = _load(npc_life_rules.ROOT / "ai/npcs" / f"{npc_id}.json")["defaultLocationId"]
     values = npc_derive.npc_life_values(life, _load(npc_life_rules.WORLD_RULES), _load(npc_life_rules.BEHAVIORS), place)
-    return {"npcId": npc_id, "role": life["role"], "place": place, **values}
+    return {"npcId": npc_id, "role": life["role"], "place": place, "tutorialGuide": life.get("tutorialGuide", False), **values}
 
 
 def conversations_to_reach(threshold: float, rate: float, rules: dict) -> int:
@@ -164,6 +168,8 @@ def main() -> int:
         for entry in day["actions"]:
             counts[entry["action"]] = counts.get(entry["action"], 0) + 1
         print(f"\n== {npc_id} ({npc['role']}, {npc['place']}) 행동 조각: {', '.join(npc['behaviors'])}")
+        if npc["tutorialGuide"]:
+            print("튜토리얼 안내 NPC: 학습자가 튜토리얼을 마치기 전에는 정해진 흐름만 따른다. 아래는 마친 뒤의 하루")
         print("부탁:", ", ".join(f"{request['time']} {request['id']}" for request in day["requests"]) or "없음")
         print("행동:", ", ".join(f"{name}×{count}" for name, count in counts.items()) or "없음")
         print("시각  " + " ".join(f"{need:>6}" for need in rules["needs"]))

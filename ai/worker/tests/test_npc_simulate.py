@@ -147,6 +147,21 @@ def test_a_passerby_new_in_town_asks_the_learner_to_chat_in_the_afternoon():
     assert "13:00" <= ben[0]["time"] < "18:00"
 
 
+def test_the_tutorial_guide_only_follows_the_fixed_flow_until_the_tutorial_is_done():
+    """튜토리얼은 정해진 흐름(Unity 대본)대로 가야 해서, 학습자가 마치기 전까지 Ben은 생활도 부탁도 하지 않는다."""
+    during = npc_simulate.simulate_service_day("TOWN_PASSERBY", tutorial_done=False)
+    after = npc_simulate.simulate_service_day("TOWN_PASSERBY", tutorial_done=True)
+
+    assert (during["mode"], during["actions"], during["requests"]) == ("TUTORIAL", [], [])
+    assert after["mode"] == "NORMAL" and [request["id"] for request in after["requests"]] == ["recommend_a_spot"]
+
+
+def test_other_npcs_live_as_usual_during_the_tutorial():
+    mia = npc_simulate.simulate_service_day("CAFE_STAFF", tutorial_done=False)
+
+    assert mia["mode"] == "NORMAL" and mia["actions"]
+
+
 def service_rules() -> dict:
     return json.loads(npc_life_rules.WORLD_RULES.read_text(encoding="utf-8"))
 
@@ -184,3 +199,4 @@ def test_the_command_line_prints_each_service_npc_day_and_the_curves(capsys):
     assert all(npc_id in out for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
     assert "14:50 bring_muffin" in out
     assert "본 적 있음" in out and "단골" in out
+    assert "튜토리얼 안내 NPC" in out

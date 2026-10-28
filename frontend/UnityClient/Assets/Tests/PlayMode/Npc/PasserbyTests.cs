@@ -124,6 +124,34 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Single<PlayerCameraRig>().ViewMode, Is.EqualTo(CameraViewMode.ThirdPerson));
         }
 
+        [UnityTest]
+        public IEnumerator RestingTownPasserby_ShowsTalkButtonNearby_AndPressingItStartsConversation()
+        {
+            // 쉬는 동안 행인은 다가오지 않으므로 플레이어가 [말 걸기]로 먼저 다시 말을 건다(기능 명세 F-22).
+            yield return LoadTownWithPlayerNear(TownPasserbyCode);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "DeclineButton");
+            Passerby passerby = FindPasserby(TownPasserbyCode);
+            // 제자리로 돌아갈 때까지 기다린 뒤 바로 앞에 선다.
+            yield return new WaitForSeconds(3f);
+            Single<PlayerMover>()
+                .Teleport(
+                    passerby.transform.position + passerby.transform.forward * 1.5f,
+                    Quaternion.identity
+                );
+
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            Assert.That(offer.IsShowing, Is.False);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
+            Click(offer, "TalkButton");
+            yield return null;
+
+            Assert.That(Single<DialogueController>().IsTalking, Is.True);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(offer.IsTalkPromptShowing, Is.False);
+        }
+
         /// <summary>마을을 불러오고 다른 행인이 끼어들지 않게 한 뒤, 플레이어를 해당 행인 앞에 세운다.</summary>
         private static IEnumerator LoadTownWithPlayerNear(string passerbyCode)
         {

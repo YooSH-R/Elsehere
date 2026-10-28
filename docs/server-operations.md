@@ -23,47 +23,49 @@ ssh -i "<PEM 파일 경로>" ubuntu@k15a305.p.ssafy.io
 
 환경 파일은 소스 폴더 밖에 두고 소유자만 읽고 쓸 수 있게 관리합니다. 예제에는 비밀값을 넣지 않습니다.
 
-## 상태 확인과 재기동
+## 개발 앱 상태 확인
 
-먼저 개발 설정과 상태를 확인합니다.
+실행 중인 컨테이너와 개발 HTTPS 응답을 확인합니다. 컨테이너 이름은 실제 `docker ps` 결과와 대조합니다.
+
+```bash
+sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+curl --fail --silent --show-error -w '\n' https://dev.elsehere.kr/api/health
+curl --fail --silent --show-error -w '\n' https://dev.elsehere.kr/version.json
+sudo docker inspect --format '{{index .Config.Labels "com.docker.compose.project.config_files"}}' a305-dev-backend-1
+```
+
+개발 health의 정상 응답은 `status: UP`입니다. 버전 파일은 웹 소스 커밋을 표시하며, 변경 없는 이미지를 재사용하면 전체 배포 후보와 다를 수 있습니다. 이미지·서버 성공 기록과 함께 확인합니다. 앱 재생성은 현재 성공 기록의 Compose·서버 환경 파일·모니터링 추가 파일 조합을 유지하고 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다. 확인용 Compose로 실제 개발 앱을 다시 기동하지 않습니다.
+
+## 운영 확인용 서비스
+
+운영 앱 전환 전의 확인용 서비스만 아래 명령을 사용합니다. 개발 포트는 이미 실제 앱이 사용합니다.
 
 ```bash
 cd ~/apps/a305/bootstrap
-sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/bootstrap.env" -f compose/compose.bootstrap.yaml config --quiet
-sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/bootstrap.env" -f compose/compose.bootstrap.yaml ps
-curl --fail http://127.0.0.1:8081/health
-```
-
-운영은 프로젝트·환경 파일·포트를 함께 바꿔 확인합니다.
-
-```bash
 sudo docker compose -p a305-prod --env-file "$HOME/apps/a305/prod/bootstrap.env" -f compose/compose.bootstrap.yaml config --quiet
 sudo docker compose -p a305-prod --env-file "$HOME/apps/a305/prod/bootstrap.env" -f compose/compose.bootstrap.yaml ps
 curl --fail http://127.0.0.1:8080/health
 ```
 
-정상 응답은 `service`가 `environment-check`, `status`가 `ok`이고, `environment`가 각각 `dev`·`prod`입니다. 포트 `8001`·`800`은 이 구성에서 사용하지 않습니다.
+정상 응답은 `service: environment-check`, `status: ok`, `environment: prod`입니다. 포트 `8001`·`800`은 이 구성에서 사용하지 않습니다.
 
-기동 또는 설정 반영은 필요한 환경에만 실행합니다. 설정 검사가 실패하면 실행하지 않습니다.
+확인용 서비스 설정을 반영할 때는 검사가 성공한 경우에만 해당 프로젝트를 기동합니다.
 
 ```bash
-sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/bootstrap.env" -f compose/compose.bootstrap.yaml up -d --wait
+sudo docker compose -p a305-prod --env-file "$HOME/apps/a305/prod/bootstrap.env" -f compose/compose.bootstrap.yaml up -d --wait
 ```
 
-운영을 반영할 때는 위 명령의 프로젝트를 `a305-prod`, 환경 파일을 `$HOME/apps/a305/prod/bootstrap.env`로 지정합니다. 기동 후 해당 포트의 응답을 다시 확인합니다.
-
-로그와 중지는 개발 환경을 예로 들면 다음과 같습니다. `stop`은 해당 프로젝트의 컨테이너만 중지합니다.
+기동 후 해당 포트와 공개 HTTPS 응답을 확인합니다. 확인용 서비스의 로그 조회는 다음과 같습니다.
 
 ```bash
-sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/bootstrap.env" -f compose/compose.bootstrap.yaml logs --tail=100 environment-check
-sudo docker compose -p a305-dev --env-file "$HOME/apps/a305/dev/bootstrap.env" -f compose/compose.bootstrap.yaml stop
+sudo docker compose -p a305-prod --env-file "$HOME/apps/a305/prod/bootstrap.env" -f compose/compose.bootstrap.yaml logs --tail=100 environment-check
 ```
 
 일상적인 배포·정리에서 전체 프로젝트를 대상으로 한 `prune`이나 볼륨 삭제를 사용하지 않습니다. 앱 도입 후 데이터 삭제와 복구는 별도 절차로 관리합니다.
 
 ## Nginx 변경과 외부 접속 확인
 
-기존 HTTPS 설정은 `/etc/nginx/sites-available/a305`에서 필요한 부분만 수정합니다. 변경 전 파일을 백업하고 인증서 경로·443 리스너·HTTP 리다이렉트를 보존합니다. 문법 검사가 성공한 경우에만 reload합니다.
+도메인별 HTTPS 설정은 `/etc/nginx/sites-available/a305-elsehere`, 기존 SSAFY 경로는 `/etc/nginx/sites-available/a305`에서 관리합니다. 변경 전 해당 파일을 백업하고 인증서 경로·443 리스너·HTTP 리다이렉트·관측 include를 보존합니다. 문법 검사가 성공한 경우에만 reload합니다.
 
 ```bash
 sudo nginx -t
@@ -71,21 +73,22 @@ sudo systemctl reload nginx
 sudo systemctl status nginx --no-pager
 ```
 
-PC 브라우저에서 다음 주소를 열어 각각의 환경 이름을 확인합니다.
+PC 브라우저에서 다음 주소를 열어 환경에 맞는 응답을 확인합니다.
 
-- [운영 상태](https://k15a305.p.ssafy.io/api/health): `prod`
-- [개발 상태](https://k15a305.p.ssafy.io/dev/api/health): `dev`
+- [개발 앱](https://dev.elsehere.kr/): `/dev/` 없이 WebGL 접속
+- [개발 상태](https://dev.elsehere.kr/api/health): HTTP 200·`status: UP`
+- [운영 상태](https://elsehere.kr/api/health)·[www 상태](https://www.elsehere.kr/api/health): 운영 앱 전환 전의 `environment: prod` 확인용 응답
 
-프로젝트 예제에서 개발 경로는 외부 접근을 허용합니다. 기존 서버에서 개발 주소가 403이면 해당 location의 `allow`·`deny` 제한 여부를 확인합니다. TLS 항목을 보존하며 개발 경로만 반영한 뒤 양쪽 환경을 다시 확인합니다.
+기존 SSAFY `/dev/`·`/dev/api/`·`/api/`는 호환을 위해 유지합니다. 403이면 해당 location의 접근 제한과 웹 파일 권한을 확인합니다. 공유 Nginx를 수정한 뒤 새 도메인과 호환 경로를 모두 확인합니다.
 
 Certbot이 발급한 HTTPS 인증서는 예약 작업으로 자동 갱신합니다. 실제 인증서를 교체하지 않는 갱신 시험과 예약 확인은 다음과 같습니다.
 
 ```bash
-sudo /snap/bin/certbot renew --dry-run
+sudo /snap/bin/certbot renew --cert-name elsehere.kr --dry-run
 systemctl list-timers --all '*certbot*' --no-pager
 ```
 
-`all simulated renewals succeeded`가 나오면 갱신 시험이 성공한 것입니다. 예약 목록에서는 Certbot 갱신 타이머의 다음 실행 시각을 확인합니다.
+`all simulated renewals succeeded`가 나오면 모의 갱신 시험이 성공한 것입니다. 예약 목록에서는 타이머의 다음 실행 시각을 확인합니다. 기존 SSAFY 인증서까지 검사할 때는 `--cert-name elsehere.kr`을 제외합니다. 상세 절차와 실제 브라우저 검증은 [HTTPS 운영](https.md)을 따릅니다.
 
 ## 웹 파일 읽기 권한 오류
 
@@ -103,9 +106,9 @@ sudo docker exec a305-dev-web-1 ls -ld /usr/share/nginx/html /usr/share/nginx/ht
 
 ## 장애 점검 순서
 
-1. `ps`·로그와 루프백 주소의 `/health`로 컨테이너 상태와 포트를 확인합니다.
+1. `ps`·로그와 루프백 주소의 `/api/health`로 앱 상태와 포트를 확인합니다. 확인용 서비스의 `/health`와 구분합니다.
 2. 내부는 정상인데 외부가 실패하면 Nginx 문법·실행 상태·error 로그와 URI 전달 경로를 확인합니다.
-3. 도메인을 찾지 못하면 `k15a305.p.ssafy.io` 철자와 DNS를 확인합니다. 인증서 오류는 인증서 도메인·유효기간·체인과 Nginx 적용 경로를 확인합니다.
+3. 도메인을 찾지 못하면 `dev.elsehere.kr`·`elsehere.kr` 철자와 DNS를 확인합니다. SSH 주소는 `k15a305.p.ssafy.io`입니다. 인증서 오류는 도메인·유효기간·체인과 Nginx 적용 경로를 확인합니다.
 4. 접속이 끊기면 UFW 규칙, 서비스 리스너와 서버 자원을 점검합니다. SSH 접근 경로를 유지한 채 변경합니다.
 
 ```bash

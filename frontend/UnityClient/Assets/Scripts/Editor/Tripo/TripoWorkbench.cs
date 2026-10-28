@@ -41,7 +41,7 @@ namespace A305.EditorTools.Tripo
                     report.Errors.AddRange(structure.Errors);
                     report.ManualChecks.AddRange(structure.ManualChecks);
                     if (record.requireHumanoid)
-                        TripoModelReview.RequireHumanoid(model);
+                        Merge(report, TripoModelReview.InspectRig(model));
                     if (record.requireFace)
                         report.Errors.AddRange(
                             TripoFaceBindings.Validate(model, record.faceBindings)

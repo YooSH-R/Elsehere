@@ -57,6 +57,8 @@ namespace A305.EditorTools.Tripo
         private TripoModelPreview modelPreview;
         private TripoMotionPreview bodyMotion;
         private TripoReviewMotion bodyMotionKind;
+        private TripoAuditReport previewRigReport;
+        private bool showReviewBones;
         private bool bodyMotionPlaying;
         private float bodyMotionPhase;
         private double bodyMotionUpdated;
@@ -929,6 +931,7 @@ namespace A305.EditorTools.Tripo
             modelPreview?.Dispose();
             modelPreview = null;
             previewFingerprint = null;
+            previewRigReport = null;
         }
 
         private void UpdateBodyMotion()
@@ -942,7 +945,10 @@ namespace A305.EditorTools.Tripo
                 return;
             }
             bodyMotionPhase = Mathf.Repeat(
-                bodyMotionPhase + (float)(now - bodyMotionUpdated) * bodyMotionSpeed / 4f,
+                bodyMotionPhase
+                    + (float)(now - bodyMotionUpdated)
+                        * bodyMotionSpeed
+                        / Mathf.Max(bodyMotion?.Duration ?? 4f, 0.01f),
                 1f
             );
             bodyMotionUpdated = now;
@@ -961,28 +967,40 @@ namespace A305.EditorTools.Tripo
                 "좌우는 캐릭터 본인 기준입니다. Humanoid는 골격, 그 외 모델은 루트 축을 기준으로 봅니다.",
                 EditorStyles.wordWrappedMiniLabel
             );
-            var animator = modelPreview.Model.GetComponentInChildren<Animator>(true);
-            if (
-                animator == null
-                || animator.avatar == null
-                || !animator.avatar.isValid
-                || !animator.avatar.isHuman
-            )
-            {
-                EditorGUILayout.HelpBox(
-                    "동작 검수에는 유효한 Humanoid가 필요합니다. 모델·골격에서 Rig 본 매핑을 먼저 확인하세요.",
-                    MessageType.Warning
-                );
+            previewRigReport ??= TripoModelReview.InspectRig(modelPreview.Model);
+            foreach (string error in previewRigReport.Errors)
+                EditorGUILayout.HelpBox(error, MessageType.Error);
+            foreach (string check in previewRigReport.ManualChecks)
+                EditorGUILayout.HelpBox(check, MessageType.Warning);
+            if (!previewRigReport.Passed)
                 return;
-            }
+            EditorGUILayout.LabelField(
+                "골격·스킨 연결 확인 · 동작 외형은 검수 필요",
+                EditorStyles.wordWrappedMiniLabel
+            );
+            showReviewBones = EditorGUILayout.ToggleLeft("골격 연결 표시", showReviewBones);
+            modelPreview.ShowSkeleton = showReviewBones;
             var selected = (TripoReviewMotion)
                 EditorGUILayout.Popup(
                     FieldLabel("검수 동작"),
                     (int)bodyMotionKind,
-                    new[] { "기준 자세", "팔 올리기", "팔꿈치 굽히기", "무릎 굽히기" }
+                    new[]
+                    {
+                        "기준 자세",
+                        "팔 올리기",
+                        "팔꿈치 굽히기",
+                        "무릎 굽히기",
+                        "플레이어 걷기",
+                        "플레이어 달리기",
+                        "점프 · 상승",
+                        "점프 · 하강",
+                        "점프 · 착지",
+                    }
                 );
             if (selected != bodyMotionKind)
             {
+                bodyMotion?.Dispose();
+                bodyMotion = null;
                 bodyMotionKind = selected;
                 bodyMotionPhase = 0f;
                 bodyMotionPlaying = false;
@@ -1027,9 +1045,23 @@ namespace A305.EditorTools.Tripo
                 }
                 EndButtonRow();
                 bodyMotion?.Apply(bodyMotionKind, bodyMotionPhase);
+                if (bodyMotionKind >= TripoReviewMotion.Walk)
+                {
+                    using (new EditorGUI.DisabledScope(true))
+                        EditorGUILayout.ObjectField(
+                            FieldLabel("재사용 모션"),
+                            TripoMotionPreview.LoadPlayerClip(bodyMotionKind),
+                            typeof(AnimationClip),
+                            false
+                        );
+                    EditorGUILayout.LabelField(
+                        $"{bodyMotionPhase * bodyMotion.Duration:F2} / {bodyMotion.Duration:F2}초 · 모델 자체 Avatar 사용",
+                        EditorStyles.wordWrappedMiniLabel
+                    );
+                }
             }
             EditorGUILayout.HelpBox(
-                "복사본의 관절 변형을 보는 검수 동작입니다. 걷기·뛰기·인사 클립이나 옷 관통 자동 합격 판정은 아닙니다. 어깨·겨드랑이·팔꿈치·무릎·옷 안쪽을 각 방향에서 확대해 확인하세요.",
+                "로컬 복사본에 실제 플레이어 모션을 적용합니다. 발 뒤집힘·옷 틈·손/몸 관통을 각 방향에서 확인하세요. 평면은 기준 자세 발밑 가이드입니다. 실제 이동·점프 높이·접지 IK와 리틀 멍 전용 보정은 포함하지 않으며, 재생 성공만으로 외형을 승인하지 않습니다. API 크레딧은 사용하지 않습니다.",
                 MessageType.None
             );
         }
@@ -1047,6 +1079,7 @@ namespace A305.EditorTools.Tripo
                     modelPreview?.Dispose();
                     modelPreview = new TripoModelPreview(TripoWorkbench.CreateAssembly(record));
                     previewFingerprint = fingerprint;
+                    previewRigReport = null;
                 }
                 if (selectedTab == 5 || selectedTab == 1)
                     DrawBodyMotionControls();

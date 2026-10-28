@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: M
   m_EditorClassIdentifier: A305.Player::A305.Player.PlayerCharacterDefinition
   characterId: M
-  visualPrefab: {fileID: 3976242217364128659, guid: d124653ec138b4f479e032aadb0c2779, type: 3}
-  movementSettings: {fileID: 11400000, guid: 893f37dcf2506634bb602d5df09217fc, type: 2}
-  heightMeters: 1.6
-  radiusMeters: 0.36
+  visualPrefab: {fileID: 3069112996009032364, guid: da00c6f0916250a43b216d89e8726324, type: 3}
+  movementSettings: {fileID: 11400000, guid: 6f38c95ba5688a443a34c14bbb81aaac, type: 2}
+  heightMeters: 1.59
+  radiusMeters: 0.61
   stepHeightMeters: 0.15
   skinWidthMeters: 0.02
+  cameraEyeHeightMeters: 1.1323411
+  cameraPivotHeightMeters: 0.95400006

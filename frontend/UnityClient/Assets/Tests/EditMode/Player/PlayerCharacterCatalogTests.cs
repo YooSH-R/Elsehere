@@ -39,6 +39,27 @@ namespace A305.Player.Tests
             }
         }
 
+        [Test]
+        public void MaleSharesTheFemaleMasterRigAnimationAndMovement()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<PlayerCharacterCatalog>(
+                "Assets/Data/Player/Characters/Catalog.asset"
+            );
+            PlayerCharacterDefinition female = catalog.Resolve("F");
+            PlayerCharacterDefinition male = catalog.Resolve("M");
+            var femaleAnimator = female.VisualPrefab.GetComponentInChildren<Animator>();
+            var maleAnimator = male.VisualPrefab.GetComponentInChildren<Animator>();
+
+            Assert.That(male.CharacterId, Is.EqualTo("M"));
+            Assert.That(maleAnimator, Is.Not.Null, "M must use the animated male visual.");
+            Assert.That(maleAnimator.avatar, Is.SameAs(femaleAnimator.avatar));
+            Assert.That(
+                maleAnimator.runtimeAnimatorController,
+                Is.SameAs(femaleAnimator.runtimeAnimatorController)
+            );
+            Assert.That(male.MovementSettings, Is.SameAs(female.MovementSettings));
+        }
+
         private static void SetId(PlayerCharacterDefinition definition, string id)
         {
             var data = new SerializedObject(definition);

@@ -41,6 +41,14 @@ def test_the_service_world_rules_pass_the_schema():
     assert npc_life_rules.world_rules_errors(load_world_rules()) == []
 
 
+def test_actions_limit_who_can_do_them_by_role_not_by_npc():
+    """NPC마다 손으로 적지 않는다: 직원만 하는 행동(커피 만들기 등)은 NPC id가 아니라 역할로 제한한다."""
+    actions = load_world_rules()["actions"]
+
+    assert not any("onlyFor" in action for action in actions)
+    assert {action["action"] for action in actions if action.get("onlyRole") == "STAFF"} == {"MAKE_DRINK", "SERVE_GUEST"}
+
+
 def test_every_need_has_a_drop_rate():
     """Unity가 욕구 다섯 개를 모두 시간에 따라 줄이므로, 하나라도 빠지면 막는다."""
     rules = load_world_rules()
@@ -58,7 +66,7 @@ def test_every_need_has_a_drop_rate():
         (("actions", 0, "fills"), {"THIRST": 10}, None),  # 없는 욕구
         (("actions", 0, "fills", "WORK"), 0, None),  # 채우지 않는 행동은 적지 않음
         (("actions", 0, "minutes"), 0, None),
-        (("actions", 0, "onlyFor"), [], None),
+        (("actions", 0, "onlyRole"), "CHEF", None),  # 역할(백엔드 시드의 NPC 유형)만
         (("conversationEvents", "SHOUT"), {}, ("conversationEvents",)),  # 없는 사건
         (("conversationEvents", "RUDE", "mood", "ANGRY"), 2, ("conversationEvents", "RUDE", "mood")),  # 없는 감정
         (("conversationEvents", "RUDE", "memorySalience"), 4, None),  # 인상 세기는 1~3

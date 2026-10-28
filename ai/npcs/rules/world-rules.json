@@ -8,11 +8,11 @@
     "WORK": { "dropPerHour": 8 }
   },
   "actions": [
-    { "objectKey": "coffee_machine", "scene": "CAFE", "action": "MAKE_DRINK", "fills": { "WORK": 30 }, "minutes": 3, "onlyFor": ["CAFE_STAFF"] },
+    { "objectKey": "coffee_machine", "scene": "CAFE", "action": "MAKE_DRINK", "fills": { "WORK": 30 }, "minutes": 3, "onlyRole": "STAFF" },
     { "objectKey": "coffee_machine", "scene": "CAFE", "action": "DRINK_COFFEE", "fills": { "ENERGY": 25 }, "minutes": 5 },
     { "objectKey": "muffin", "scene": "CAFE", "action": "EAT", "fills": { "HUNGER": 40 }, "minutes": 10 },
     { "objectKey": "chair", "scene": "CAFE", "action": "REST", "fills": { "ENERGY": 15 }, "minutes": 15 },
-    { "objectKey": "reception_desk", "scene": "HOTEL", "action": "SERVE_GUEST", "fills": { "WORK": 30 }, "minutes": 5, "onlyFor": ["HOTEL_STAFF"] },
+    { "objectKey": "reception_desk", "scene": "HOTEL", "action": "SERVE_GUEST", "fills": { "WORK": 30 }, "minutes": 5, "onlyRole": "STAFF" },
     { "objectKey": "sofa", "scene": "HOTEL", "action": "REST", "fills": { "ENERGY": 20 }, "minutes": 15 },
     { "objectKey": "book", "scene": "HOTEL", "action": "READ", "fills": { "FUN": 25 }, "minutes": 20 },
     { "objectKey": "bench", "scene": "TOWN", "action": "REST", "fills": { "ENERGY": 20 }, "minutes": 15 },

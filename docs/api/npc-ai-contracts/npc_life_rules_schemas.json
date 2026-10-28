@@ -79,6 +79,7 @@
       }
     },
     "Scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
+    "Role": { "type": "string", "enum": ["STAFF", "PASSERBY"], "description": "NPC 역할. 백엔드 시드의 NPC 유형(npc_type)과 같다." },
     "RoleTemplate": {
       "type": "object",
       "additionalProperties": false,
@@ -129,11 +130,7 @@
           "pattern": "^[EI][NS][FT][JP](-[AT])?$",
           "description": "성격 입력 노드. 계산할 때 Big Five 5축으로 바꾼다(ai/tools/npc_derive.py). -T/-A는 신경성."
         },
-        "role": {
-          "type": "string",
-          "enum": ["STAFF", "PASSERBY"],
-          "description": "역할 입력 노드. 공통 규칙의 역할별 일과 틀을 고른다. 백엔드 시드의 NPC 유형과 같다."
-        }
+        "role": { "$ref": "#/$defs/Role", "description": "역할 입력 노드. 공통 규칙의 역할별 일과 틀을 고른다." }
       },
       "description": "NPC마다 정하는 입력 노드만 둔다. 생활 값 배수·행동·일과는 손으로 적지 않고 공통 규칙으로 계산한다."
     },
@@ -184,12 +181,9 @@
         "action": { "$ref": "#/$defs/Code" },
         "fills": { "$ref": "#/$defs/Fills" },
         "minutes": { "type": "integer", "minimum": 1, "maximum": 240, "description": "게임 시각 기준으로 걸리는 시간." },
-        "onlyFor": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/Code" },
-          "minItems": 1,
-          "uniqueItems": true,
-          "description": "이 행동을 할 수 있는 NPC. 생략하면 누구나."
+        "onlyRole": {
+          "$ref": "#/$defs/Role",
+          "description": "이 행동을 할 수 있는 역할(그 장소의 직원 등). 생략하면 누구나. NPC id로 제한하지 않는다."
         }
       }
     },

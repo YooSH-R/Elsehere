@@ -1,4 +1,5 @@
 using System.Linq;
+using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Npc;
 using A305.EditorTools.World;
@@ -32,6 +33,8 @@ namespace A305.World.Tests
             "UI",
             "Lighting",
         };
+
+        private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
 
         private Scene scene;
 
@@ -70,6 +73,18 @@ namespace A305.World.Tests
             Assert.That(Reference(cameraRig, "followTarget"), Is.EqualTo(player.transform));
             Assert.That(Reference(arrival, "player"), Is.EqualTo(player));
             Assert.That(Reference(arrival, "cameraRig"), Is.EqualTo(cameraRig));
+        }
+
+        [Test]
+        public void Apply_ConnectsArrivalToApiSettingsForLastSceneSaving()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            SpaceArrival arrival = Single<SpaceArrival>();
+            Assert.That(
+                Reference(arrival, "apiSettings"),
+                Is.EqualTo(AssetDatabase.LoadAssetAtPath<ApiSettings>(ApiSettingsPath))
+            );
         }
 
         [Test]
@@ -169,6 +184,17 @@ namespace A305.World.Tests
             Assert.That(Reference(tutorial, "learning"), Is.EqualTo(Single<LearningController>()));
             Assert.That(Reference(tutorial, "mission"), Is.EqualTo(Single<MissionController>()));
             Assert.That(Reference(tutorial, "guide"), Is.Not.Null);
+        }
+
+        [Test]
+        public void Apply_ConnectsTutorialDirectorToApiSettingsForTutorialSaving()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            Assert.That(
+                Reference(Single<TutorialDirector>(), "apiSettings"),
+                Is.EqualTo(AssetDatabase.LoadAssetAtPath<ApiSettings>(ApiSettingsPath))
+            );
         }
 
         [Test]

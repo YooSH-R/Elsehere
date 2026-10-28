@@ -268,7 +268,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   },
   "lastSceneCode": "TOWN",
   "activeConversationId": null,
-  "aiStatus": { "status": "AI_AVAILABLE" },
+  "aiStatus": {
+    "status": "AI_AVAILABLE",
+    "capabilities": { "canStartConversation": true, "canUseSpeech": true, "canGenerateFeedback": true }
+  },
   "progress": { "savedVocabCount": 12, "runningMissionCount": 2 }
 }
 ```
@@ -282,7 +285,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `onboardingStep: DONE` | `lastSceneCode` 장소. 없으면 마을 |
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
-- `aiStatus`의 형식은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다.
+- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
@@ -930,6 +933,30 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 #### CONV-09·10 지난 대화
 
 - CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 화면 18의 지난 대화 탭 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+
+```json
+{
+  "items": [
+    {
+      "conversationId": 58,
+      "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
+      "sceneCode": "CAFE",
+      "status": "ENDED_BY_USER",
+      "endReason": "USER_ENDED",
+      "startedAt": "2026-10-21T14:00:00+09:00",
+      "endedAt": "2026-10-21T14:05:00+09:00",
+      "userTurnCount": 4,
+      "feedbackStatus": "DONE"
+    }
+  ],
+  "nextCursor": null
+}
+```
+
+- 목록 규칙은 VOCAB-01과 같습니다. `size` 기본값은 20이고 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `conversationId`이며, 숫자가 아니거나 내 대화가 아닌 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다. 시작 시각이 같으면 나중에 만든 대화가 먼저입니다.
+- `npcCode`를 주면 그 NPC와 나눈 대화만 돌려줍니다. 없는 NPC 코드면 빈 목록입니다.
+- 진행 중(`ACTIVE`)이거나 시간이 지나 닫힌 대화도 상태 그대로 담습니다. `userTurnCount`는 사용자가 보낸 발화 수, `feedbackStatus`는 짧은 피드백 상태(`DONE`·`FAILED`·`SKIPPED`)이며 피드백을 만들기 전이면 `null`입니다. `npc`는 CONV-10의 NPC 이름표와 같은 형식입니다.
+- 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다. 항목을 누르면 CONV-10으로 대화 기록을 엽니다.
 - CONV-10은 대화 정보와 모든 턴(`seq` 순서)의 텍스트, 저장된 뜻·추천 단어·추천 문장을 돌려줍니다. 화면 15의 텍스트 대화 기록과 화면 16의 [대화 기록 보기]가 이 형식을 씁니다. 저장된 결과만 조회하므로 AI 사용량이 소진돼도 이용할 수 있습니다.
 
 #### CONV-11 `GET /api/v1/conversations/active`
@@ -1105,6 +1132,16 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - HUD의 "AI 사용 가능" 표시와 화면 19의 사용량 소진 안내에 씁니다. `canStartConversation`은 한 턴과 피드백에 쓸 토큰이 남아 있는지(1.4)를 반영합니다.
 - 클라이언트는 접속할 때(BOOT-01), 대화가 토큰 소진으로 끝났을 때, AI 요청이 거절됐을 때 상태를 갱신합니다. 소진 상태에서는 AI가 필요한 버튼을 비활성화하고, 탐험·사물 카드·단어장·지난 기록은 계속 제공합니다.
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
+- 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
+
+| 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` |
+| --- | --- | --- | --- | --- |
+| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` |
+| 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` |
+| 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` |
+
+- 게스트 한도는 새 대화 시작만 막습니다. 마지막으로 시작한 대화도 횟수에 들어가 그 대화 중에도 `AI_EXHAUSTED`이지만, 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
+- 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 
 ### 4.10 화면 테마
 

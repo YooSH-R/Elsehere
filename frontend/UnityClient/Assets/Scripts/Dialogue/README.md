@@ -42,7 +42,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 
 | API | 설명 |
 | --- | --- |
-| `DialogueController.TryStart(string npcCode, Transform lookTarget)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. |
+| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
 | `DialogueController.End()` | 대화를 끝내고 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
 | `DialogueController.RegenerateFeedbackAsync(ServerFeedback)` | 만들지 못한 피드백을 다시 만듭니다. 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려줍니다. |
 | `DialogueController.IsTalking` | 대화 중인지 |

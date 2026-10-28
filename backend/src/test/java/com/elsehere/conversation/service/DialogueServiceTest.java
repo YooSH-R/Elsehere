@@ -48,6 +48,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
   ConversationService.class,
+  ConversationHistoryService.class,
   TurnService.class,
   SpeechService.class,
   TurnHelpService.class,

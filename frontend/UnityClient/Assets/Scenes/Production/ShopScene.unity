@@ -1462,6 +1462,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.World::A305.World.SpaceArrival
   player: {fileID: 1418622016}
   cameraRig: {fileID: 2105076326}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1 &663584820
 GameObject:
   m_ObjectHideFlags: 0
@@ -2076,6 +2077,7 @@ MonoBehaviour:
   mission: {fileID: 1898709491}
   passersby:
   - {fileID: 1957822439}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1001 &925173569
 PrefabInstance:
   m_ObjectHideFlags: 0

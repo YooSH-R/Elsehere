@@ -166,10 +166,12 @@ namespace A305.Tripo.Tests
                         JsonUtility.ToJson(diagnostics, true)
                     );
                     Assert.That(
-                        report.Errors,
+                        report.Errors.Where(error => !error.Contains("마스터")),
                         Is.Empty,
-                        "수정하지 않은 왕복에서 소켓 연결이 달라지면 안 됩니다."
+                        "왕복 보존 오류는 없어야 하며 서비스 마스터 불일치는 별도로 검출해야 합니다."
                     );
+                    Assert.That(report.Errors, Has.Some.Contains("마스터"));
+                    Assert.That(record.revision.validationPassed, Is.False);
                     var measuredHead = diagnostics.bones.First(bone => bone.path == headPath);
                     Assert.That(
                         measuredHead.distance,

@@ -270,6 +270,16 @@ namespace A305.EditorTools.Tripo
 
         private void DrawModelPanel()
         {
+            if (
+                record.kind == TripoAssetKind.Character
+                && record.requireHumanoid
+                && GUILayout.Button("서비스 마스터 적용 · 새 복사본 만들기 (API 사용 없음)")
+            )
+                RunEditorAction(() =>
+                {
+                    TripoMasterWorkflow.Apply(record);
+                    ResetPreview();
+                });
             EditorGUI.BeginChangeCheck();
             record.uniformScale = EditorGUILayout.Slider(
                 FieldLabel("전체 확대·축소"),
@@ -460,8 +470,15 @@ namespace A305.EditorTools.Tripo
                 }
                 else
                 {
+                    if (
+                        Path.GetExtension(target.ModelPath)
+                            .Equals(".prefab", StringComparison.OrdinalIgnoreCase)
+                    )
+                        throw new InvalidOperationException(
+                            "현재 마스터 적용본은 Unity 자식 프리팹입니다. 이 프리팹을 FBX 원본으로 오인해 Blender에서 열 수 없습니다. 원본 FBX 작업 기록에서 외형을 편집한 뒤 서비스 마스터를 다시 적용하세요."
+                        );
                     await bridge.PrepareAsync(
-                        Path.GetFullPath(target.revision.activePath),
+                        Path.GetFullPath(target.ModelPath),
                         blend,
                         blenderCancellation.Token
                     );
@@ -746,6 +763,15 @@ namespace A305.EditorTools.Tripo
                 if (GUILayout.Button("검증값 Inspector에서 조정"))
                     Selection.activeObject = record.profile;
             }
+            if (
+                record.kind == TripoAssetKind.Character
+                && !string.IsNullOrEmpty(record.masterPreparedPath)
+                && GUILayout.Button("마스터 적용본 플레이 검수 씬 만들기")
+            )
+                RunEditorAction(() =>
+                {
+                    message = "검수 씬: " + TripoMasterSandbox.Build(record);
+                });
             if (GUILayout.Button("현재 모델·설정 검증"))
                 RunEditorAction(() =>
                 {

@@ -127,7 +127,7 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 웹·파일 가져오기와 로컬 검사에는 API 키가 필요하지 않습니다. 기존 작업은 **기존 작업 불러오기**에서 선택합니다.
 저장소 루트에서 `./infra/scripts/install-tripo-bridge.ps1`을 실행해 공식 Bridge를 설치하고,
 Blender 실행 파일은 각 개발 PC에서 설정합니다. Bridge 원본은 로컬 설치하며 Git에 넣지 않습니다.
-공통 골격·얼굴 Shape Keys를 갖춘 기준 모델 제작과 실제 모델 품질 검수는 별도 작업입니다.
+서비스 여성 캐릭터는 수정된 리틀 멍 골격과 Female 부모 프리팹을 재사용합니다. API 자동 리깅 결과를 로컬에서 마스터에 다시 연결하고 검사합니다. 얼굴 Shape Keys 제작과 실제 외관 승인은 별도 작업입니다.
 
 화면별 사용법, 파일 보존 방식과 자동 검증 범위는
 [Tripo Asset Workbench 안내](../../frontend/UnityClient/Assets/Scripts/Editor/Tripo/README.md)를 따릅니다.

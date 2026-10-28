@@ -32,6 +32,10 @@ namespace A305.EditorTools.Tripo
             record.requireHumanoid = kind == TripoAssetKind.Character;
             record.revision.activePath = modelPath;
             record.profile = EnsureProfile(folder);
+            if (kind == TripoAssetKind.Character)
+                record.commonBody = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    TripoMasterRig.MasterPath
+                );
             AssetDatabase.CreateAsset(record, recordPath);
             AssetDatabase.SaveAssets();
             return record;

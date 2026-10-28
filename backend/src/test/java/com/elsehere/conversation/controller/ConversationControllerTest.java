@@ -15,8 +15,10 @@ import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.ConversationDetailResponse;
+import com.elsehere.conversation.dto.ConversationListResponse;
 import com.elsehere.conversation.dto.ConversationStartResponse;
 import com.elsehere.conversation.dto.ConversationStateResponse;
+import com.elsehere.conversation.dto.ConversationSummaryResponse;
 import com.elsehere.conversation.dto.EndConversationRequest;
 import com.elsehere.conversation.dto.EndConversationResponse;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
@@ -31,10 +33,12 @@ import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.entity.Speaker;
+import com.elsehere.conversation.service.ConversationHistoryService;
 import com.elsehere.conversation.service.ConversationService;
 import com.elsehere.conversation.service.TurnService;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +66,54 @@ class ConversationControllerTest {
   @MockitoBean private ConversationService conversationService;
 
   @MockitoBean private TurnService turnService;
+
+  @MockitoBean private ConversationHistoryService conversationHistoryService;
+
+  @Test
+  @DisplayName("GET /api/v1/conversations는 NPC·커서·크기를 넘겨 지난 대화 목록 한 페이지를 돌려준다")
+  void list_respondsPage() throws Exception {
+    ConversationSummaryResponse item =
+        new ConversationSummaryResponse(
+            58L,
+            NPC,
+            "CAFE",
+            ConversationStatus.ENDED_BY_USER,
+            ConversationEndReason.USER_ENDED,
+            OffsetDateTime.parse("2026-10-21T14:00:00+09:00"),
+            OffsetDateTime.parse("2026-10-21T14:05:00+09:00"),
+            4,
+            FeedbackStatus.DONE);
+    given(conversationHistoryService.list(1L, "CAFE_STAFF", "60", 10))
+        .willReturn(new ConversationListResponse(List.of(item), "58"));
+
+    mockMvc
+        .perform(
+            get("/api/v1/conversations")
+                .param("npcCode", "CAFE_STAFF")
+                .param("cursor", "60")
+                .param("size", "10")
+                .with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items[0].conversationId").value(58))
+        .andExpect(jsonPath("$.items[0].npc.npcCode").value("CAFE_STAFF"))
+        .andExpect(jsonPath("$.items[0].startedAt").value("2026-10-21T14:00:00+09:00"))
+        .andExpect(jsonPath("$.items[0].userTurnCount").value(4))
+        .andExpect(jsonPath("$.items[0].feedbackStatus").value("DONE"))
+        .andExpect(jsonPath("$.nextCursor").value("58"));
+  }
+
+  @Test
+  @DisplayName("GET /api/v1/conversations에 조건이 없으면 전체 NPC의 첫 페이지를 20개씩 요청한다")
+  void list_withoutParams_usesDefaults() throws Exception {
+    given(conversationHistoryService.list(1L, null, null, 20))
+        .willReturn(new ConversationListResponse(List.of(), null));
+
+    mockMvc
+        .perform(get("/api/v1/conversations").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items").isEmpty())
+        .andExpect(jsonPath("$.nextCursor").doesNotExist());
+  }
 
   @Test
   @DisplayName("POST /api/v1/conversations는 201과 첫 NPC 턴·음성 주소를 돌려준다")

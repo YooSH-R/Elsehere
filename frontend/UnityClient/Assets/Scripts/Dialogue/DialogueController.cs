@@ -75,8 +75,13 @@ namespace A305.Dialogue
 
         /// <param name="npcCode">대화할 NPC 키(ERD npcs.code)</param>
         /// <param name="lookTarget">대화 시점에서 바라볼 NPC 머리 위치</param>
+        /// <param name="initiatedBy">누가 먼저 말을 걸었는지. NPC가 제안한 대화가 기본값이다.</param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
-        public bool TryStart(string npcCode, Transform lookTarget)
+        public bool TryStart(
+            string npcCode,
+            Transform lookTarget,
+            ConversationInitiator initiatedBy = ConversationInitiator.Npc
+        )
         {
             if (lookTarget == null || !session.TryStart(npcCode))
             {
@@ -90,7 +95,7 @@ namespace A305.Dialogue
             bool isGuided = hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
-                StartServerConversation(npcCode, hasScript ? script.NpcName : npcCode);
+                StartServerConversation(npcCode, hasScript ? script.NpcName : npcCode, initiatedBy);
             }
             else
             {
@@ -207,9 +212,18 @@ namespace A305.Dialogue
             }
         }
 
-        private void StartServerConversation(string npcCode, string npcName)
+        private void StartServerConversation(
+            string npcCode,
+            string npcName,
+            ConversationInitiator initiatedBy
+        )
         {
-            serverConversation = new ServerConversation(npcCode, npcName, conversationApi);
+            serverConversation = new ServerConversation(
+                npcCode,
+                npcName,
+                conversationApi,
+                initiatedBy
+            );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
             panel.Show(serverConversation);

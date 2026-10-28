@@ -1,3 +1,5 @@
+using System;
+using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
@@ -9,7 +11,9 @@ using A305.Player;
 using A305.Tutorial;
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace A305.EditorTools.Tutorial
@@ -21,6 +25,17 @@ namespace A305.EditorTools.Tutorial
     public static class TutorialBuilder
     {
         public const string MenuPath = "Tools/A305/Tutorial/Build";
+
+        private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
+
+        private static readonly string[] ProductionSpaceScenes =
+        {
+            "HomeScene",
+            "TownScene",
+            "CafeScene",
+            "HotelScene",
+            "ShopScene",
+        };
 
         private const string GuidePrefabPath = "Assets/Prefabs/Tutorial/TutorialGuide.prefab";
         private const string GuideDefinitionPath = "Assets/Data/Tutorial/TutorialGuide.asset";
@@ -107,7 +122,46 @@ namespace A305.EditorTools.Tutorial
             BuilderTools.SetReference(tutorial, "learning", learning);
             BuilderTools.SetReference(tutorial, "mission", mission);
             SetPassersby(tutorial, BuilderTools.FindAllInScene<Passerby>(groups.Scene));
+            ConnectToApi(tutorial);
             BuilderTools.RequireReferences(tutorial);
+        }
+
+        /// <summary>
+        /// 배포용 장소 씬의 튜토리얼 진행에 API 서버 설정만 연결한다. 디자인한 씬의 다른 객체는 건드리지 않는다.
+        /// </summary>
+        [MenuItem("Tools/A305/Tutorial/Connect Tutorial Saving")]
+        public static void ConnectTutorialSaving()
+        {
+            BuilderTools.ThrowIfPlaying();
+            foreach (string name in ProductionSpaceScenes)
+            {
+                string path = "Assets/Scenes/Production/" + name + ".unity";
+                Scene scene = EditorSceneManager.OpenScene(path);
+                var tutorial = BuilderTools.FindSingleInScene<TutorialDirector>(scene);
+                if (tutorial == null)
+                {
+                    throw new InvalidOperationException(
+                        $"{path}에 TutorialDirector가 없습니다. 공간 기능 연결을 먼저 실행합니다."
+                    );
+                }
+
+                ConnectToApi(tutorial);
+                BuilderTools.SaveScene(scene, path);
+            }
+
+            Debug.Log("배포용 장소 씬 5개의 튜토리얼 진행에 끝낸 기록 저장을 연결했습니다.");
+        }
+
+        private static void ConnectToApi(TutorialDirector tutorial)
+        {
+            BuilderTools.SetReference(
+                tutorial,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(
+                    ApiSettingsPath,
+                    A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
+                )
+            );
         }
 
         private static void SetPassersby(TutorialDirector tutorial, Passerby[] passersby)

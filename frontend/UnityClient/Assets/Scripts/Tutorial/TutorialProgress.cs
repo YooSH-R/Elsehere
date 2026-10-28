@@ -10,6 +10,7 @@ namespace A305.Tutorial
         private readonly string missionNpcCode;
         private bool hasWalked;
         private bool hasHovered;
+        private bool isFinishSaved;
 
         /// <param name="tutorialNpcCode">길을 묻는 튜토리얼 행인의 NPC 키(ERD npcs.code)</param>
         /// <param name="missionNpcCode">미션 안내에서 대화하러 가는 NPC 키</param>
@@ -20,6 +21,25 @@ namespace A305.Tutorial
         }
 
         public TutorialStep Step { get; private set; } = TutorialStep.Welcome;
+
+        /// <summary>이번 Play에서 튜토리얼을 끝낸 방법. 끝내지 않았거나 서버에서 이미 끝난 사용자면 null.</summary>
+        public TutorialFinish? Finish { get; private set; }
+
+        /// <summary>끝낸 기록을 아직 서버에 저장하지 않았는지.</summary>
+        public bool NeedsFinishSave => Finish != null && !isFinishSaved;
+
+        /// <summary>서버 저장을 마쳤거나 다시 보낼 필요가 없을 때 호출한다.</summary>
+        public void MarkFinishSaved()
+        {
+            isFinishSaved = true;
+        }
+
+        /// <summary>서버에서 이미 튜토리얼을 끝낸 사용자. 안내 없이 끝난 상태로 시작하며 서버에 다시 알리지 않는다.</summary>
+        public void MarkFinishedOnServer()
+        {
+            Step = TutorialStep.Completed;
+            Finish = null;
+        }
 
         /// <summary>안내 카드의 주 버튼으로 다음 단계로 넘어갈 수 있는지</summary>
         public bool CanContinue
@@ -96,6 +116,7 @@ namespace A305.Tutorial
             }
             else if (Step == TutorialStep.MissionTalk && npcCode == missionNpcCode)
             {
+                Finish = TutorialFinish.Completed;
                 Step = TutorialStep.Completed;
             }
         }
@@ -131,8 +152,15 @@ namespace A305.Tutorial
             }
         }
 
+        /// <summary>안내를 건너뛴다. 이미 끝난 튜토리얼은 끝낸 방법을 바꾸지 않는다.</summary>
         public void Skip()
         {
+            if (Step == TutorialStep.Completed)
+            {
+                return;
+            }
+
+            Finish = TutorialFinish.Skipped;
             Step = TutorialStep.Completed;
         }
 

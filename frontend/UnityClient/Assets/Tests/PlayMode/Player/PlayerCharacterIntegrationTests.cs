@@ -71,61 +71,44 @@ namespace A305.Player.Tests
                 camera.EnterDialogueView(target.transform);
                 camera.SnapBehindTarget();
                 float eyeHeight = camera.transform.position.y - player.transform.position.y;
-                if (selected == "F")
-                {
-                    var animator = appearance.VisualRoot.GetComponentInChildren<Animator>();
-                    using var body = new BodyClearanceProbe(animator, player.transform);
-                    body.Record("standing fit");
-                    Bounds bounds = SkinBounds(animator, player.transform);
-                    float headRadius = Mathf.Max(
-                        Mathf.Abs(body.Head.min.x),
-                        Mathf.Abs(body.Head.max.x),
-                        Mathf.Abs(body.Head.min.z),
-                        Mathf.Abs(body.Head.max.z)
-                    );
-                    Debug.Log(
-                        $"Standing fit: skin={bounds}, head={body.Head}, capsule={capsule.height:F4}/{capsule.radius:F4}, eye={eyeHeight:F4}, pivot={pivotHeight:F4}"
-                    );
-                    Assert.That(appearance.VisualRoot.localScale, Is.EqualTo(Vector3.one * 1.6f));
-                    Assert.That(
-                        capsule.center.y - capsule.height * .5f,
-                        Is.EqualTo(0).Within(.001f)
-                    );
-                    Assert.That(
-                        capsule.height,
-                        Is.InRange(bounds.max.y, bounds.max.y + .1f),
-                        "Capsule top must cover the standing mesh."
-                    );
-                    Assert.That(
-                        capsule.radius,
-                        Is.GreaterThanOrEqualTo(headRadius),
-                        "Capsule width must cover the large head."
-                    );
-                    Assert.That(
-                        eyeHeight,
-                        Is.InRange(
-                            body.Head.center.y - body.Head.size.y * .15f,
-                            body.Head.center.y + body.Head.size.y * .15f
-                        ),
-                        "Dialogue eye must be at face height."
-                    );
-                    Assert.That(
-                        pivotHeight,
-                        Is.InRange(bounds.size.y * .4f, bounds.size.y * .8f),
-                        "Third person must aim at the character."
-                    );
-                }
-                else
-                {
-                    var settings = (PlayerCameraSettings)
-                        new SerializedObject(camera)
-                            .FindProperty("cameraSettings")
-                            .objectReferenceValue;
-                    Assert.That(capsule.height, Is.EqualTo(1.6f).Within(.001f));
-                    Assert.That(capsule.radius, Is.EqualTo(.36f).Within(.001f));
-                    Assert.That(eyeHeight, Is.EqualTo(settings.EyeHeightMeters).Within(.001f));
-                    Assert.That(pivotHeight, Is.EqualTo(settings.PivotHeightMeters).Within(.001f));
-                }
+                var animator = appearance.VisualRoot.GetComponentInChildren<Animator>();
+                using var body = new BodyClearanceProbe(animator, player.transform);
+                body.Record("standing fit");
+                Bounds bounds = SkinBounds(animator, player.transform);
+                float headRadius = Mathf.Max(
+                    Mathf.Abs(body.Head.min.x),
+                    Mathf.Abs(body.Head.max.x),
+                    Mathf.Abs(body.Head.min.z),
+                    Mathf.Abs(body.Head.max.z)
+                );
+                Debug.Log(
+                    $"Standing fit {selected}: skin={bounds}, head={body.Head}, capsule={capsule.height:F4}/{capsule.radius:F4}, eye={eyeHeight:F4}, pivot={pivotHeight:F4}"
+                );
+                Assert.That(appearance.VisualRoot.localScale, Is.EqualTo(Vector3.one * 1.6f));
+                Assert.That(capsule.center.y - capsule.height * .5f, Is.EqualTo(0).Within(.001f));
+                Assert.That(
+                    capsule.height,
+                    Is.InRange(bounds.max.y, bounds.max.y + .1f),
+                    "Capsule top must cover the standing mesh."
+                );
+                Assert.That(
+                    capsule.radius,
+                    Is.GreaterThanOrEqualTo(headRadius),
+                    "Capsule width must cover the large head."
+                );
+                Assert.That(
+                    eyeHeight,
+                    Is.InRange(
+                        body.Head.center.y - body.Head.size.y * .15f,
+                        body.Head.center.y + body.Head.size.y * .15f
+                    ),
+                    "Dialogue eye must be at face height."
+                );
+                Assert.That(
+                    pivotHeight,
+                    Is.InRange(bounds.size.y * .4f, bounds.size.y * .8f),
+                    "Third person must aim at the character."
+                );
             }
             finally
             {
@@ -406,26 +389,15 @@ namespace A305.Player.Tests
                 );
                 Assert.That(players[0].transform.childCount, Is.GreaterThan(0));
                 var animator = appearance.VisualRoot.GetComponentInChildren<Animator>();
-                if (selected == "F")
-                {
-                    Assert.That(animator, Is.Not.Null);
-                    Assert.That(animator.avatar.isHuman && animator.avatar.isValid, Is.True);
-                    Assert.That(animator.GetComponent<LittleMungGroundContact>(), Is.Not.Null);
-                    Assert.That(animator.GetComponent<LittleMungStairLocomotion>(), Is.Not.Null);
-                    Assert.That(animator.GetComponent<LittleMungArmClearance>(), Is.Not.Null);
-                    Assert.That(
-                        players[0].GetComponent<CharacterController>().height,
-                        Is.EqualTo(appearance.ActiveCharacter.HeightMeters).Within(.001f)
-                    );
-                }
-                else
-                {
-                    Assert.That(
-                        animator,
-                        Is.Null,
-                        "M keeps the existing blockout until a male asset is available."
-                    );
-                }
+                Assert.That(animator, Is.Not.Null);
+                Assert.That(animator.avatar.isHuman && animator.avatar.isValid, Is.True);
+                Assert.That(animator.GetComponent<LittleMungGroundContact>(), Is.Not.Null);
+                Assert.That(animator.GetComponent<LittleMungStairLocomotion>(), Is.Not.Null);
+                Assert.That(animator.GetComponent<LittleMungArmClearance>(), Is.Not.Null);
+                Assert.That(
+                    players[0].GetComponent<CharacterController>().height,
+                    Is.EqualTo(appearance.ActiveCharacter.HeightMeters).Within(.001f)
+                );
                 Assert.That(PlayerCharacterSelection.SelectedId, Is.EqualTo(selected));
             }
         }

@@ -41,6 +41,7 @@ create table conversations (
     updated_at timestamp(6) with time zone default now() not null,
     end_reason varchar(20) check ((end_reason in ('USER_ENDED','NPC_ENDED','QUOTA_EXHAUSTED','RUDE','EXPIRED'))),
     ended_at timestamp(6) with time zone,
+    first_day_stage integer,
     initiated_by varchar(10) not null check ((initiated_by in ('USER','NPC'))),
     level_applied smallint not null,
     npc_id bigint not null,
@@ -49,6 +50,18 @@ create table conversations (
     status varchar(20) not null check ((status in ('ACTIVE','ENDED_BY_USER','ENDED_BY_NPC','EXPIRED'))),
     user_id bigint not null,
     primary key (id)
+);
+
+create table first_day_missions (
+    user_id bigint not null,
+    created_at timestamp(6) with time zone default now() not null,
+    updated_at timestamp(6) with time zone default now() not null,
+    balance integer not null,
+    objectives integer not null,
+    scene varchar(20) not null,
+    stage integer not null,
+    version bigint not null,
+    primary key (user_id)
 );
 
 create table level_test_answers (
@@ -158,6 +171,7 @@ create table turns (
     hint_text text,
     input_type varchar(10) check ((input_type in ('VOICE','TEXT'))),
     meaning_ko text,
+    npc_audio_deleted_at timestamp(6) with time zone,
     npc_audio_key varchar(100),
     request_id uuid,
     seq integer not null,

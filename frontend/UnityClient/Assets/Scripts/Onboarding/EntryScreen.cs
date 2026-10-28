@@ -23,5 +23,8 @@ namespace A305.Onboarding
 
         /// <summary>초기 설정을 마친 사용자의 마을</summary>
         World,
+
+        /// <summary>접속 상태를 확인하지 못해 [다시 시도]를 기다리는 화면</summary>
+        ConnectionFailed,
     }
 }

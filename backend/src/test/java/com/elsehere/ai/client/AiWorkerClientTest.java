@@ -206,6 +206,57 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("뜻 보기는 NPC·대사·난이도를 보내고 한국어 뜻·단어 풀이·사용량을 읽는다")
+  void meaning_sendsLineAndReadsMeaningAndGlossary() {
+    respond(
+        "/v1/meaning",
+        200,
+        "application/json",
+        """
+        {"meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?",
+         "glossary": [{"text": "to go", "meaning_ko": "포장"}],
+         "usage": [{"step": "translate", "model": "m1"}]}
+        """);
+
+    MeaningResult result = client.meaning(TRACE, NPC, "Great! For here or to go?", 1);
+
+    assertThat(result.meaningKo()).isEqualTo("좋아요! 매장에서 드실 건가요, 가져가실 건가요?");
+    assertThat(result.glossary())
+        .extracting(MeaningResult.Glossary::text, MeaningResult.Glossary::meaningKo)
+        .containsExactly(tuple("to go", "포장"));
+    assertThat(result.usage()).hasSize(1);
+    assertThat(received.get("/v1/meaning").body())
+        .contains("\"text\":\"Great! For here or to go?\"")
+        .contains("\"level\":1")
+        .contains("\"tts_voice\":\"af_heart\"");
+  }
+
+  @Test
+  @DisplayName("힌트는 앞선 대화·목표·난이도를 보내고 첫 추천 문장과 사용량을 읽는다")
+  void hint_sendsHistoryAndReadsFirstSentence() {
+    respond(
+        "/v1/hint",
+        200,
+        "application/json",
+        """
+        {"say_this": [{"en": "For here, please.", "ko": "여기서 먹을게요."},
+                      {"en": "I'll have it here.", "ko": "여기서 마실게요."}],
+         "keywords": [{"en": "for here", "ko": "매장에서"}],
+         "usage": [{"step": "hint", "model": "m1"}]}
+        """);
+
+    HintResult result =
+        client.hint(TRACE, NPC, List.of(WorkerLine.npc("For here or to go?")), "", 1);
+
+    assertThat(result.firstSentence()).isEqualTo("For here, please.");
+    assertThat(result.usage()).hasSize(1);
+    assertThat(received.get("/v1/hint").body())
+        .contains("\"goal\":\"\"")
+        .contains("\"history\":[{\"who\":\"npc\",\"text\":\"For here or to go?\"")
+        .contains("\"level\":1");
+  }
+
+  @Test
   @DisplayName("녹음은 file 부분에 받은 형식을 붙인 multipart로 보내고 전사 문장과 길이를 읽는다")
   void transcribe_sendsMultipartAndReadsText() {
     respond(

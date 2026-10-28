@@ -106,5 +106,21 @@ namespace A305.Dialogue
                 new RequestIdBody { RequestId = requestId }
             );
         }
+
+        public Task<MeaningData> GetMeaningAsync(long turnId, string requestId)
+        {
+            return client.PostAsync<MeaningData>(
+                $"/api/v1/turns/{turnId}/meaning",
+                new RequestIdBody { RequestId = requestId }
+            );
+        }
+
+        public Task<HintData> GetHintAsync(long turnId, string requestId)
+        {
+            return client.PostAsync<HintData>(
+                $"/api/v1/turns/{turnId}/hint",
+                new RequestIdBody { RequestId = requestId }
+            );
+        }
     }
 }

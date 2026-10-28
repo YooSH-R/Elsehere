@@ -166,7 +166,8 @@ namespace A305.EditorTools.Theme
         /// <summary>대화·피드백·단어장·미션·튜토리얼·단어 카드 화면 프리팹에 테마 역할을 붙이고 기본 테마로 칠한다.</summary>
         public static void StyleFeaturePrefabs()
         {
-            catalog ??= BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            if (catalog == null)
+                catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
             Style(HudPath, StyleHud);
             Style("Assets/Prefabs/Learning/FeedbackScreen.prefab", StyleFeedback);
             Style("Assets/Prefabs/Learning/VocabularyScreen.prefab", StyleVocabulary);
@@ -237,15 +238,16 @@ namespace A305.EditorTools.Theme
                 caption: true
             );
 
-            RectTransform card =
-                (RectTransform)panel.Find("MessageCard") ?? Rect("MessageCard", panel);
+            RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
             var cardLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(card.gameObject);
             cardLayout.padding = new RectOffset(24, 24, 16, 22);
             cardLayout.childControlWidth = cardLayout.childControlHeight = true;
             cardLayout.childForceExpandHeight = false;
             Role(card, UiThemeRole.Card);
-            Transform message = panel.Find("Message") ?? card.Find("Message");
+            Transform message = panel.Find("Message");
+            if (message == null)
+                message = card.Find("Message");
             if (message != null)
             {
                 message.SetParent(card, false);
@@ -562,9 +564,10 @@ namespace A305.EditorTools.Theme
         /// </summary>
         private static void AlignWithVocabularyButton(RectTransform open)
         {
-            var panel = (RectTransform)
-                AssetDatabase.LoadAssetAtPath<GameObject>(HudPath)?.transform.Find("Panel");
-            var vocabulary = panel?.Find("Buttons/VocabularyButton")?.GetComponent<LayoutElement>();
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            var panel = hud != null ? (RectTransform)hud.transform.Find("Panel") : null;
+            Transform button = panel != null ? panel.Find("Buttons/VocabularyButton") : null;
+            var vocabulary = button != null ? button.GetComponent<LayoutElement>() : null;
             if (vocabulary == null)
             {
                 Debug.LogWarning("테마 버튼을 맞출 단어장 버튼이 없습니다: " + HudPath);
@@ -833,7 +836,7 @@ namespace A305.EditorTools.Theme
             Transform oldIcon = button.Find("Icon");
             if (oldIcon != null)
                 Object.DestroyImmediate(oldIcon.gameObject);
-            RectTransform face = (RectTransform)button.Find("Face") ?? Rect("Face", button);
+            RectTransform face = FindOrCreateRect(button, "Face");
             face.SetAsFirstSibling();
             if (caption)
                 Place(face, new Vector2(0.5f, 1), Vector2.zero, new Vector2(66, 66));
@@ -845,16 +848,17 @@ namespace A305.EditorTools.Theme
             var clickable = button.GetComponent<Button>();
             if (clickable != null)
                 clickable.targetGraphic = faceImage;
-            RectTransform outline = (RectTransform)face.Find("Outline") ?? Rect("Outline", face);
+            RectTransform outline = FindOrCreateRect(face, "Outline");
             Stretch(outline);
             BuilderTools.GetOrAddComponent<Image>(outline.gameObject).raycastTarget = false;
-            RectTransform iconRect = (RectTransform)face.Find("Icon") ?? Rect("Icon", face);
+            RectTransform iconRect = FindOrCreateRect(face, "Icon");
             iconRect.anchorMin = new Vector2(0.19f, 0.19f);
             iconRect.anchorMax = new Vector2(0.81f, 0.81f);
             iconRect.offsetMin = iconRect.offsetMax = Vector2.zero;
             BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
 
-            var label = button.Find("Label")?.GetComponent<TMP_Text>();
+            Transform labelTransform = button.Find("Label");
+            var label = labelTransform != null ? labelTransform.GetComponent<TMP_Text>() : null;
             if (label != null)
             {
                 label.gameObject.SetActive(caption);
@@ -889,18 +893,18 @@ namespace A305.EditorTools.Theme
             size.preferredHeight = 58;
             // 알약 그림의 둥근 끝이 58px 높이 안에 들어가도록 9칸 나누기 모서리를 줄여 그린다.
             button.GetComponent<Image>().pixelsPerUnitMultiplier = 1.7f;
-            RectTransform outline =
-                (RectTransform)button.Find("Outline") ?? Rect("Outline", button);
+            RectTransform outline = FindOrCreateRect(button, "Outline");
             Stretch(outline);
             outline.SetAsFirstSibling();
             var outlineImage = BuilderTools.GetOrAddComponent<Image>(outline.gameObject);
             outlineImage.raycastTarget = false;
             outlineImage.pixelsPerUnitMultiplier = 1.7f;
-            RectTransform iconRect = (RectTransform)button.Find("Icon") ?? Rect("Icon", button);
+            RectTransform iconRect = FindOrCreateRect(button, "Icon");
             Place(iconRect, new Vector2(0, 0.5f), new Vector2(22, 2), new Vector2(30, 30));
             iconRect.pivot = new Vector2(0, 0.5f);
             BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
-            var label = button.Find("Label")?.GetComponent<TMP_Text>();
+            Transform labelTransform = button.Find("Label");
+            var label = labelTransform != null ? labelTransform.GetComponent<TMP_Text>() : null;
             if (label != null)
             {
                 var labelRect = (RectTransform)label.transform;
@@ -918,7 +922,7 @@ namespace A305.EditorTools.Theme
         /// <summary>아이콘 버튼 오른쪽 위의 숫자 배지. 숫자 글자를 돌려준다.</summary>
         private static TMP_Text Badge(Transform face, string name)
         {
-            RectTransform badge = (RectTransform)face.Find(name) ?? Rect(name, face);
+            RectTransform badge = FindOrCreateRect(face, name);
             Place(badge, new Vector2(1, 1), new Vector2(8, 8), new Vector2(32, 32));
             badge.pivot = new Vector2(1, 1);
             BuilderTools.GetOrAddComponent<Image>(badge.gameObject).raycastTarget = false;
@@ -1143,10 +1147,16 @@ namespace A305.EditorTools.Theme
 
         private static RectTransform Button(Transform parent, string name)
         {
-            RectTransform rect = (RectTransform)parent.Find(name) ?? Rect(name, parent);
+            RectTransform rect = FindOrCreateRect(parent, name);
             var image = BuilderTools.GetOrAddComponent<Image>(rect.gameObject);
             BuilderTools.GetOrAddComponent<Button>(rect.gameObject).targetGraphic = image;
             return rect;
+        }
+
+        private static RectTransform FindOrCreateRect(Transform parent, string name)
+        {
+            var existing = (RectTransform)parent.Find(name);
+            return existing != null ? existing : Rect(name, parent);
         }
 
         private static RectTransform Rect(string name, Transform parent)

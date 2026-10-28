@@ -237,9 +237,8 @@ namespace A305.EditorTools.Mission
             }
             fields.ApplyModifiedPropertiesWithoutUndo();
 
-            Image legendMark = view
-                .transform.parent.Find("Legend/DestinationIcon")
-                ?.GetComponent<Image>();
+            Transform legend = view.transform.parent.Find("Legend/DestinationIcon");
+            Image legendMark = legend != null ? legend.GetComponent<Image>() : null;
             ConnectTheme(
                 view.gameObject,
                 area.GetComponent<Image>(),

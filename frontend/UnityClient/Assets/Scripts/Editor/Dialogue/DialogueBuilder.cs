@@ -220,15 +220,18 @@ namespace A305.EditorTools.Dialogue
                 conversation.SetSiblingIndex(buttons.GetSiblingIndex());
             }
 
+            Transform history = conversation.Find("History/Viewport");
+            Transform help = root.transform.Find("HelpPanel/Viewport/Content");
+            Transform words = root.transform.Find("HelpPanel/Viewport/Content/WordsCard");
             TMP_Text lines = UiBuilderTools.FindOrCreateText(
-                conversation.Find("History/Viewport") ?? conversation,
+                history != null ? history : conversation,
                 "Lines",
                 regular,
                 24f,
                 Color.white
             );
             TMP_Text guide = UiBuilderTools.FindOrCreateText(
-                root.transform.Find("HelpPanel/Viewport/Content") ?? conversation,
+                help != null ? help : conversation,
                 "Guide",
                 regular,
                 20f,
@@ -280,7 +283,7 @@ namespace A305.EditorTools.Dialogue
                 StatusColor
             );
             TMP_Text suggest = UiBuilderTools.FindOrCreateText(
-                root.transform.Find("HelpPanel/Viewport/Content/WordsCard") ?? conversation,
+                words != null ? words : conversation,
                 "SuggestWords",
                 regular,
                 20f,

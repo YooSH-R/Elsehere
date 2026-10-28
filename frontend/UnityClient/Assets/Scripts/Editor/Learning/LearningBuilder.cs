@@ -208,7 +208,9 @@ namespace A305.EditorTools.Learning
                 22f,
                 SubTextColor
             );
-            Transform bodyParent = panel.Find("PageCard") ?? panel;
+            Transform bodyParent = panel.Find("PageCard");
+            if (bodyParent == null)
+                bodyParent = panel;
             TMP_Text body = UiBuilderTools.FindOrCreateText(
                 bodyParent,
                 "Body",

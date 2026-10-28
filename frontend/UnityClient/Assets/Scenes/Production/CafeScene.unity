@@ -119,68 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &7831765
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 662858913}
-    m_Modifications:
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1322838451957217820, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-      propertyPath: m_Name
-      value: BaristaVisual
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
---- !u!4 &7831766 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 672253703029518617, guid: 7682be225fd2e8b4bb90b08bede7461f, type: 3}
-  m_PrefabInstance: {fileID: 7831765}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &9224384
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1055,6 +993,10 @@ PrefabInstance:
       propertyPath: m_StepOffset
       value: 0.15
       objectReference: {fileID: 0}
+    - target: {fileID: 7306442443597707082, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 2029677268}
     - target: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Name
       value: CafeStaff
@@ -1064,7 +1006,7 @@ PrefabInstance:
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7831766}
+      addedObject: {fileID: 2029677267}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &662858913 stripped
@@ -3079,6 +3021,73 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 5869280220629242574, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
   m_PrefabInstance: {fileID: 1963306629}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2029677266
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 662858913}
+    m_Modifications:
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4839727589785826923, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+      propertyPath: m_Name
+      value: Barista
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+--- !u!4 &2029677267 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4586192576381687686, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+  m_PrefabInstance: {fileID: 2029677266}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &2029677268 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 7980234396551879275, guid: cfde81f1ee529014d8b811191a6f064c, type: 3}
+  m_PrefabInstance: {fileID: 2029677266}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2097214834
 PrefabInstance:

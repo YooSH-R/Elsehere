@@ -47,7 +47,7 @@ Google에는 `https://elsehere.kr/api/v1/auth/callback/google`을 승인된 리�
 
 운영 수신기의 초기화에는 실제 운영 앱 4개가 필요합니다. 확인용 컨테이너를 초기 성공 앱으로 등록할 수 없습니다. 최초 전환은 아래 순서로 담당자가 수행한 후 반복 배포를 연결합니다.
 
-1. 검증된 전체 `main` 커밋의 소스와 CI의 JAR·AI 소스·실제 WebGL 산출물을 빌드용 PC 또는 Runner에 준비합니다. JAR·AI의 `commit.txt`와 WebGL `version.json`이 해당 커밋을 가리키는지 확인합니다. [개발 배포의 이미지 빌드 기준](dev-auto-deployment.md)을 동일하게 적용하여 `infra/docker/`의 Dockerfile로 `a305/backend:<SHA>`, `a305/ai:<SHA>`, `a305/web:<SHA>`를 만들고 이미지 ID를 기록합니다. `docker save`로 운영 서버에 전달합니다. 검증되지 않은 최신 개발 이미지 태그로 대체하지 않습니다.
+1. 검증된 전체 `main` 커밋의 소스와 CI의 JAR·AI 소스·실제 WebGL 산출물을 빌드용 PC 또는 Runner에 준비합니다. 최초 설치에서는 수신기가 아직 초기화되지 않아 자동 배포 계획이 중단됩니다. 이때 보호된 `main`의 웹 파이프라인에서 `RUN_UNITY_BUILD=true`만 지정하고 `RUN_PROD_DEPLOY`는 생략하여 배포 없이 전체 검사·산출물 생성을 수행합니다. JAR·AI의 `commit.txt`와 WebGL `version.json`이 해당 커밋을 가리키는지 확인합니다. [개발 배포의 이미지 빌드 기준](dev-auto-deployment.md)을 동일하게 적용하여 `infra/docker/`의 Dockerfile로 `a305/backend:<SHA>`, `a305/ai:<SHA>`, `a305/web:<SHA>`를 만들고 이미지 ID를 기록합니다. `docker save`로 운영 서버에 전달합니다. 검증되지 않은 최신 개발 이미지 태그로 대체하지 않습니다.
 2. 운영 전용 `deploy.env`, 앱 Compose, 설치된 관측 추가 Compose의 해석을 점검합니다. DB와 음성 볼륨의 이름, DB·AI 비공개 포트, 루프백 `8080`, OAuth·내부 토큰과 관리 포트를 확인합니다. 이미지·설정·필수 변수와 브라우저 경로를 격리된 검증 환경에서 먼저 확인합니다.
 3. 운영 DB만 먼저 준비하고, 검토된 스키마와 초기 데이터를 적용합니다. 현재 저장소에는 운영 스키마 마이그레이션 도구가 연결되어 있지 않습니다. 적용할 SQL과 초기 데이터가 확정되기 전에는 앱 전환을 진행하지 않습니다. 개발 DB 복사나 운영 `update` 실행으로 이 절차를 대신하지 않습니다.
 4. 기존 운영 확인용 Compose와 환경 파일·Nginx 설정을 보관합니다. 전환 작업에서 `environment-check` 서비스만 중지한 뒤, 검증된 운영 앱 Compose와 관측 추가 Compose로 DB·AI·백엔드·웹을 기동합니다. 전체 프로젝트 `down`, `--remove-orphans`, 볼륨 삭제는 사용하지 않습니다. 최초 전환 실패 시 운영 앱만 중지하고 기존 확인용 서비스를 다시 기동합니다. 새 운영 DB·음성 볼륨은 보존합니다.

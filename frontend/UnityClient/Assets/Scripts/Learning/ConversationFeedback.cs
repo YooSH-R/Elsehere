@@ -14,6 +14,7 @@ namespace A305.Learning
     {
         private const string FeedbackDone = "DONE";
         private const string FeedbackSkipped = "SKIPPED";
+        private const string EncouragingTitle = "오늘도 한 걸음 가까워졌어요";
 
         private readonly List<UtteranceReview> reviews = new List<UtteranceReview>();
         private readonly List<string> notes = new List<string>();
@@ -48,6 +49,16 @@ namespace A305.Learning
 
         public string NpcName { get; }
         public int UtteranceCount { get; }
+
+        /// <summary>피드백 화면 제목. 피드백을 받지 못했으면 격려 대신 그 사실을 알린다.</summary>
+        public string Title { get; private set; } = EncouragingTitle;
+
+        /// <summary>피드백을 받지 못했거나 만들지 못했는지. 이때는 평가 내용을 지어내지 않고 대화 기록만 보여 준다.</summary>
+        public bool IsFailed { get; private set; }
+
+        /// <summary>서버가 피드백을 만들지 못해 [다시 만들기](FB-02)를 쓸 수 있는지.</summary>
+        public bool CanRegenerate { get; private set; }
+
         public string Summary { get; private set; }
         public IReadOnlyList<UtteranceReview> Reviews => reviews;
 
@@ -71,8 +82,11 @@ namespace A305.Learning
         {
             var feedback = new ConversationFeedback(npcName, utteranceCount);
             FeedbackData summary = server.Summary;
+            // 종료 요청이 실패하면 서버에 피드백 기록이 없어 다시 만들 수 없다.
             if (summary == null)
             {
+                feedback.Title = "피드백을 받지 못했어요";
+                feedback.IsFailed = true;
                 feedback.Summary = string.IsNullOrEmpty(server.FailureMessage)
                     ? "피드백을 받지 못했어요."
                     : "피드백을 받지 못했어요. " + server.FailureMessage;
@@ -81,13 +95,17 @@ namespace A305.Learning
 
             if (summary.Status == FeedbackSkipped)
             {
+                feedback.Title = "이번 대화는 피드백이 없어요";
                 feedback.Summary = "평가할 수 있는 내 발화가 없어 피드백을 만들지 않았어요.";
                 return feedback;
             }
 
             if (summary.Status != FeedbackDone)
             {
-                feedback.Summary = "피드백을 만들지 못했어요. 잠시 후 다시 대화해 보세요.";
+                feedback.Title = "피드백을 만들지 못했어요";
+                feedback.IsFailed = true;
+                feedback.CanRegenerate = server.ConversationId != null;
+                feedback.Summary = FailedSummary(server, feedback.CanRegenerate);
                 return feedback;
             }
 
@@ -126,6 +144,18 @@ namespace A305.Learning
             }
 
             return feedback;
+        }
+
+        private static string FailedSummary(ServerFeedback server, bool canRegenerate)
+        {
+            if (!string.IsNullOrEmpty(server.FailureMessage))
+            {
+                return "피드백을 만들지 못했어요. " + server.FailureMessage;
+            }
+
+            return canRegenerate
+                ? "피드백을 만들지 못했어요. [다시 만들기]를 눌러 보세요."
+                : "피드백을 만들지 못했어요. 잠시 후 다시 대화해 보세요.";
         }
 
         // 회화 표현은 고칠 표현이 없는 발화에도 붙을 수 있어 개선 표현과 따로 둔다.

@@ -46,9 +46,11 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 대사. [뜻 보기]·[표현 저장]이 이 대사를 쓴다.</summary>
         public DialogueLine LastNpcLine { get; private set; }
 
-        // 대본 대화는 바로 답하고 음성을 쓰지 않는다.
+        // 대본 대화는 바로 답하고 음성을 쓰지 않는다. 서버를 부르지 않으므로 실패도 없다.
         public bool IsBusy => false;
         public string StatusMessage => null;
+        public string RecoveryGuide => null;
+        public bool CanRetry => false;
         public IReadOnlyList<string> SuggestWords => null;
         public bool CanSend => !IsGuidedCompleted;
         public bool HasMeaning => true;

@@ -7,6 +7,30 @@ namespace A305.Learning.Tests
     public class FeedbackTextTests
     {
         [Test]
+        public void Transcript_ListsLinesWithSpeakerNames()
+        {
+            string text = FeedbackText.Transcript(
+                "Mia",
+                new[]
+                {
+                    DialogueLine.FromNpc("Hi! What can I get for you?", null),
+                    DialogueLine.FromUser("An iced latte, please."),
+                }
+            );
+
+            Assert.That(text, Does.Contain("<b>Mia</b>  Hi! What can I get for you?"));
+            Assert.That(text, Does.Contain("<b>나</b>  An iced latte, please."));
+        }
+
+        [Test]
+        public void Transcript_WithoutLines_SaysNothingWasExchanged()
+        {
+            string text = FeedbackText.Transcript("Mia", new List<DialogueLine>());
+
+            Assert.That(text, Is.EqualTo("주고받은 대화가 없어요."));
+        }
+
+        [Test]
         public void Detail_ExampleFeedback_ShowsExampleNotices()
         {
             // 대본 대화는 키워드 규칙으로 만든 예시라 오류를 판정하지 않는다는 안내를 유지한다.

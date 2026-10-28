@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,16 @@ import org.springframework.context.annotation.Import;
 class EntitySchemaTest {
 
   @Autowired private EntityManager entityManager;
+
+  @Test
+  @DisplayName("생성한 PostgreSQL 스키마가 운영 validate 검사도 통과한다")
+  void createdSchema_passesProductionValidation() {
+    entityManager
+        .getEntityManagerFactory()
+        .unwrap(SessionFactory.class)
+        .getSchemaManager()
+        .validateMappedObjects();
+  }
 
   @Test
   @DisplayName("엔티티 매핑으로 만든 테이블이 PostgreSQL에 오류 없이 생성된다")

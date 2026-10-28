@@ -81,6 +81,7 @@ def create_app(
                     "profile": s.profile,
                     "models": s.models,
                     "stt_fallback": s.stt_fallback,
+                    "stt_chain": [f"{provider}:{model}" for provider, model in app.state.llm.stt_steps()],
                     "tts": bool(app.state.tts),
                     "guard_local": gl and {"model": gl.name, "context": gl.context, "t_lo": s.guard_t_lo, "t_hi": s.guard_t_hi},
                 },

@@ -46,6 +46,25 @@ def parse_stt_fallback(text: str) -> dict[str, str]:
     return {"provider": provider, "model": model}
 
 
+def parse_stt_chain(text: str) -> list[dict[str, str]]:
+    """'gpu:turbo-lr1e4,gms:whisper-1' → 앞에서부터 부를 음성 인식 공급자 목록. 비어 있으면 [] (구성의 음성 인식 + STT_FALLBACK)."""
+    if not text.strip():
+        return []
+    chain = []
+    for item in text.split(","):
+        provider, _, model = item.strip().partition(":")
+        if provider not in PROFILES["providers"] or not model:
+            raise RuntimeError(f"STT_CHAIN은 '공급자:모델,공급자:모델' (공급자는 {', '.join(PROFILES['providers'])}): {text!r}")
+        chain.append({"provider": provider, "model": model})
+    return chain
+
+
+def provider_base_url(name: str, env=os.environ) -> str:
+    """공급자 주소. gpu처럼 배포마다 다른 공급자는 json의 base_url_env가 가리키는 환경 변수에서 읽는다 (없으면 '')."""
+    p = PROFILES["providers"][name]
+    return (env.get(p["base_url_env"], "") if "base_url_env" in p else p["base_url"]).rstrip("/")
+
+
 # 역할별 기본 모델 (기본 구성 gms-luna). 고른 근거는 llm_profiles.json 각 구성의 _note
 DEFAULT_PROFILE = PROFILES["default_profile"]
 DEFAULT_MODELS, DEFAULT_ROLE_PROVIDER = profile_models(DEFAULT_PROFILE)
@@ -86,6 +105,10 @@ class Settings:
     providers: dict[str, dict] = field(default_factory=dict)  # 다른 공급자 이름 → {"base_url", "api_key"}
     stt_fallback: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_STT_FALLBACK))  # {"provider", "model"}, {}면 대체 없음
     stt_first_timeout_s: float = 8.0  # 대체가 있을 때 첫 음성 인식 호출의 상한 (Groq 6.5초 음성 0.4초). 대체·대체 없음은 30초
+    stt_chain: list[dict[str, str]] = field(default_factory=list)  # 음성 인식 공급자 순서 [{"provider", "model"}]. 비면 위 두 칸으로
+    stt_next_timeout_s: float = 8.0  # 순서 중간 공급자(처음·마지막 아님)의 상한. GMS whisper-1 6.5초 음성 중앙 1.9초
+    stt_breaker_failures: int = 3  # 같은 음성 인식 공급자가 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔). 마지막 공급자는 건너뛰지 않음
+    stt_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도 (GPU 서버가 꺼졌을 때 매 턴 첫 상한만큼 기다리지 않게)
     model_params: list[dict] = field(default_factory=lambda: list(MODEL_PARAMS))
     call_timeout_s: float = 8.0  # 모델 호출 하나의 상한. 넘으면 끊고 재시도·대체 모델
     hedge_after_s: float = 3.0  # 한 번에 받는 호출이 이만큼 답이 없으면 같은 요청을 하나 더 보내 먼저 온 답을 씀 (0이면 끔).
@@ -123,13 +146,14 @@ class Settings:
         models, role_provider = profile_models(profile)
         api_key = e.get("LLM_API_KEY") or provider_key(main, e)
         stt_fallback = parse_stt_fallback(e.get("STT_FALLBACK", profile_stt_fallback(profile)))
+        stt_chain = parse_stt_chain(e.get("STT_CHAIN", ""))
         others = list(role_provider.values())
         if stt_fallback and stt_fallback["provider"] != main:
             others.append(stt_fallback["provider"])
-        providers = {
-            name: {"base_url": PROFILES["providers"][name]["base_url"], "api_key": provider_key(name, e)} for name in dict.fromkeys(others)
-        }
-        missing = [" 또는 ".join(PROFILES["providers"][n]["key_env"]) for n, v in providers.items() if not v["api_key"]]
+        others += [step["provider"] for step in stt_chain if step["provider"] != main]
+        providers = {name: {"base_url": provider_base_url(name, e), "api_key": provider_key(name, e)} for name in dict.fromkeys(others)}
+        missing = [PROFILES["providers"][n]["base_url_env"] for n, v in providers.items() if not v["base_url"]]
+        missing += [" 또는 ".join(PROFILES["providers"][n]["key_env"]) for n, v in providers.items() if not v["api_key"]]
         if not api_key:
             missing.insert(0, " 또는 ".join(["LLM_API_KEY", *PROFILES["providers"][main]["key_env"]]))
         if missing:
@@ -154,6 +178,10 @@ class Settings:
             providers=providers,
             stt_fallback=stt_fallback,
             stt_first_timeout_s=float(e.get("STT_FIRST_TIMEOUT_S", cls.stt_first_timeout_s)),
+            stt_chain=stt_chain,
+            stt_next_timeout_s=float(e.get("STT_NEXT_TIMEOUT_S", cls.stt_next_timeout_s)),
+            stt_breaker_failures=int(e.get("STT_BREAKER_FAILURES", cls.stt_breaker_failures)),
+            stt_breaker_skip_s=float(e.get("STT_BREAKER_SKIP_S", cls.stt_breaker_skip_s)),
             call_timeout_s=float(e.get("CALL_TIMEOUT_S", cls.call_timeout_s)),
             hedge_after_s=float(e.get("HEDGE_AFTER_S", cls.hedge_after_s)),
             stream_hedge_after_s=float(e.get("STREAM_HEDGE_AFTER_S", cls.stream_hedge_after_s)),

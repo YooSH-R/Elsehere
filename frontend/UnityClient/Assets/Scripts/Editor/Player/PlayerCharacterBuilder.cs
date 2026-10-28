@@ -18,6 +18,10 @@ namespace A305.EditorTools.Player
         private const string DataFolder = "Assets/Data/Player/Characters";
         private const string VisualFolder = "Assets/Prefabs/Player/Characters";
 
+        // Tripo 생성 메시를 마스터 골격에 다시 연결한 Female Variant다. 골격·애니메이션·배율은 Female을 따른다.
+        private const string MaleVisualPath = VisualFolder + "/Male.prefab";
+        private const string MovementPath = "Assets/Data/Player/LittleMung/Movement.asset";
+
         [MenuItem("Tools/A305/Player/Connect Selected Character")]
         public static void Build()
         {
@@ -112,22 +116,17 @@ namespace A305.EditorTools.Player
             );
         }
 
-        private static void BuildCatalog()
+        internal static void BuildCatalog()
         {
             BuilderTools.EnsureFolder(DataFolder);
             BuilderTools.EnsureFolder(VisualFolder);
-            GameObject femaleVisual = CreateVisual(
-                "Female",
-                LittleMungStairBuilder.PrefabPath,
-                true
+            GameObject femaleVisual = CreateVisual("Female", LittleMungStairBuilder.PrefabPath);
+            var maleVisual = BuilderTools.LoadRequiredAsset<GameObject>(
+                MaleVisualPath,
+                "Male master visual"
             );
-            GameObject maleVisual = CreateVisual(
-                "MalePlaceholder",
-                "Assets/Prefabs/World/TownProduction/LittleMungV7PlayerVisual.prefab",
-                false
-            );
-            PlayerCharacterDefinition female = CreateDefinition("F", femaleVisual, true);
-            PlayerCharacterDefinition male = CreateDefinition("M", maleVisual, false);
+            PlayerCharacterDefinition female = ConnectDefinition("F", femaleVisual);
+            PlayerCharacterDefinition male = ConnectDefinition("M", maleVisual);
             var catalog = AssetDatabase.LoadAssetAtPath<PlayerCharacterCatalog>(CatalogPath);
             if (catalog != null)
                 return;
@@ -142,7 +141,7 @@ namespace A305.EditorTools.Player
             AssetDatabase.CreateAsset(catalog, CatalogPath);
         }
 
-        private static GameObject CreateVisual(string name, string sourcePath, bool extractVisual)
+        private static GameObject CreateVisual(string name, string sourcePath)
         {
             string path = VisualFolder + "/" + name + ".prefab";
             GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -152,9 +151,7 @@ namespace A305.EditorTools.Player
             GameObject copy = null;
             try
             {
-                copy = Object.Instantiate(
-                    extractVisual ? source.transform.Find("Visual").gameObject : source
-                );
+                copy = Object.Instantiate(source.transform.Find("Visual").gameObject);
                 copy.name = name;
                 foreach (
                     var visibility in copy.GetComponentsInChildren<BlockoutPlayerVisibility>(true)
@@ -170,27 +167,23 @@ namespace A305.EditorTools.Player
             }
         }
 
-        private static PlayerCharacterDefinition CreateDefinition(
-            string id,
-            GameObject visual,
-            bool female
-        )
+        // 외형과 이동 설정 연결은 매번 맞춘다. 캡슐·시점 수치는 처음 만들 때만 정하고 이후에는 Fit 메뉴로 맞춘다.
+        private static PlayerCharacterDefinition ConnectDefinition(string id, GameObject visual)
         {
             string path = DataFolder + "/" + id + ".asset";
             var definition = AssetDatabase.LoadAssetAtPath<PlayerCharacterDefinition>(path);
-            if (definition != null)
-                return definition;
-            definition = ScriptableObject.CreateInstance<PlayerCharacterDefinition>();
+            bool created = definition == null;
+            if (created)
+                definition = ScriptableObject.CreateInstance<PlayerCharacterDefinition>();
             var data = new SerializedObject(definition);
             data.FindProperty("characterId").stringValue = id;
             data.FindProperty("visualPrefab").objectReferenceValue = visual;
             data.FindProperty("movementSettings").objectReferenceValue =
-                AssetDatabase.LoadAssetAtPath<PlayerMovementSettings>(
-                    female
-                        ? "Assets/Data/Player/LittleMung/Movement.asset"
-                        : "Assets/Data/Player/PlayerMovementSettings.asset"
+                BuilderTools.LoadRequiredAsset<PlayerMovementSettings>(
+                    MovementPath,
+                    "Little Mung movement settings"
                 );
-            if (female)
+            if (created)
             {
                 var source = AssetDatabase
                     .LoadAssetAtPath<GameObject>(LittleMungStairBuilder.PrefabPath)
@@ -201,7 +194,10 @@ namespace A305.EditorTools.Player
                 data.FindProperty("skinWidthMeters").floatValue = source.skinWidth;
             }
             data.ApplyModifiedPropertiesWithoutUndo();
-            AssetDatabase.CreateAsset(definition, path);
+            if (created)
+                AssetDatabase.CreateAsset(definition, path);
+            else
+                EditorUtility.SetDirty(definition);
             return definition;
         }
     }

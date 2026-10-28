@@ -11,15 +11,25 @@ namespace A305.EditorTools.Player
 {
     public static class PlayerCharacterFitBuilder
     {
-        [MenuItem("Tools/A305/Player/Fit Female Capsule And Camera")]
-        public static void FitFemale()
+        [MenuItem("Tools/A305/Player/Fit Character Capsules And Camera")]
+        public static void FitCharacters()
         {
             if (!BuilderTools.CanBuild())
                 return;
-            var definition = BuilderTools.LoadRequiredAsset<PlayerCharacterDefinition>(
-                "Assets/Data/Player/Characters/F.asset",
-                "Female character definition"
-            );
+            // 측정 전에 정의마다 현재 외형을 연결한다.
+            PlayerCharacterBuilder.BuildCatalog();
+            foreach (string id in new[] { "F", "M" })
+                Fit(
+                    BuilderTools.LoadRequiredAsset<PlayerCharacterDefinition>(
+                        "Assets/Data/Player/Characters/" + id + ".asset",
+                        id + " character definition"
+                    )
+                );
+            PlayerCharacterBuilder.Build();
+        }
+
+        private static void Fit(PlayerCharacterDefinition definition)
+        {
             var copy = Object.Instantiate(definition.VisualPrefab);
             try
             {
@@ -82,21 +92,20 @@ namespace A305.EditorTools.Player
                 var data = new SerializedObject(definition);
                 data.FindProperty("heightMeters").floatValue = height;
                 data.FindProperty("radiusMeters").floatValue = radius;
-                // 얼굴 중앙을 기본 눈높이로 둔다. 최종 눈 위치는 F 설정에서 미세 조정할 수 있다.
+                // 얼굴 중앙을 기본 눈높이로 둔다. 최종 눈 위치는 캐릭터 정의에서 미세 조정할 수 있다.
                 data.FindProperty("cameraEyeHeightMeters").floatValue = head.center.y - body.min.y;
                 data.FindProperty("cameraPivotHeightMeters").floatValue = height * .6f;
                 data.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(definition);
                 AssetDatabase.SaveAssets();
                 Debug.Log(
-                    $"Female fit: scale={copy.transform.localScale}, body={body}, head={head}, capsule={height:F3}/{radius:F3}"
+                    $"{definition.CharacterId} fit: scale={copy.transform.localScale}, body={body}, head={head}, capsule={height:F3}/{radius:F3}"
                 );
             }
             finally
             {
                 Object.DestroyImmediate(copy);
             }
-            PlayerCharacterBuilder.Build();
         }
     }
 }

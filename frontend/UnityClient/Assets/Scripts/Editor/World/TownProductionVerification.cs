@@ -365,12 +365,10 @@ namespace A305.EditorTools.World
             return appearance != null ? appearance.VisualRoot : player.transform.Find("TownVisual");
         }
 
+        // F·M은 같은 리틀 멍 체형을 쓴다. 선택 외형이 없으면 이전 TownVisual 높이를 기대한다.
         private static float ExpectedVisualHeight(PlayerMover player)
         {
-            var appearance = player.GetComponent<PlayerCharacterAppearance>();
-            return appearance != null && appearance.ActiveCharacter.CharacterId == "F"
-                ? 1.4f
-                : 1.6f;
+            return player.GetComponent<PlayerCharacterAppearance>() != null ? 1.4f : 1.6f;
         }
 
         private static void Audit(Scene scene, PlayerMover player)

@@ -2,12 +2,14 @@ package com.elsehere.conversation.controller;
 
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.conversation.dto.ConversationDetailResponse;
+import com.elsehere.conversation.dto.ConversationListResponse;
 import com.elsehere.conversation.dto.ConversationStartResponse;
 import com.elsehere.conversation.dto.EndConversationRequest;
 import com.elsehere.conversation.dto.EndConversationResponse;
 import com.elsehere.conversation.dto.StartConversationRequest;
 import com.elsehere.conversation.dto.TurnRequest;
 import com.elsehere.conversation.dto.TurnResponse;
+import com.elsehere.conversation.service.ConversationHistoryService;
 import com.elsehere.conversation.service.ConversationService;
 import com.elsehere.conversation.service.TurnService;
 import jakarta.validation.Valid;
@@ -19,16 +21,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** NPC 자유 대화: 시작(CONV-01), 발화(CONV-03), 종료(CONV-08), 상세(CONV-10), 진행 중인 대화(CONV-11). */
+/**
+ * NPC 자유 대화: 시작(CONV-01), 발화(CONV-03), 종료(CONV-08), 지난 대화 목록(CONV-09), 상세(CONV-10), 진행 중인
+ * 대화(CONV-11).
+ */
 @RestController
 @RequiredArgsConstructor
 public class ConversationController {
 
   private final ConversationService conversationService;
   private final TurnService turnService;
+  private final ConversationHistoryService conversationHistoryService;
 
   @PostMapping("/api/v1/conversations")
   @ResponseStatus(HttpStatus.CREATED)
@@ -52,6 +59,15 @@ public class ConversationController {
       @PathVariable Long conversationId,
       @Valid @RequestBody EndConversationRequest request) {
     return conversationService.end(loginUser.userId(), conversationId, request);
+  }
+
+  @GetMapping("/api/v1/conversations")
+  public ConversationListResponse list(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @RequestParam(required = false) String npcCode,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "20") int size) {
+    return conversationHistoryService.list(loginUser.userId(), npcCode, cursor, size);
   }
 
   @GetMapping("/api/v1/conversations/active")

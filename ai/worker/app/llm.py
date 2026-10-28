@@ -182,6 +182,9 @@ class LLM:
         self.client = client(settings.base_url, settings.api_key)  # 구성의 기본 공급자
         self.others = {name: client(p["base_url"], p["api_key"]) for name, p in settings.providers.items()}
         self.exhausted: dict[str, float] = {}  # 모델 → 이 시각까지 건너뜀
+        self.clock = time.monotonic  # 음성 인식 공급자 건너뛰기 시각 (테스트에서 바꿔 끼움)
+        self.stt_failures: dict[str, int] = {}  # 음성 인식 공급자 → 연속 실패 수
+        self.stt_skip_until: dict[str, float] = {}  # 음성 인식 공급자 → 이 시각(clock)까지 건너뜀
 
     async def aclose(self):
         for c in (self.client, *self.others.values()):
@@ -360,33 +363,74 @@ class LLM:
         )
         return (*res, hedged)
 
+    def stt_steps(self) -> list[tuple[str, str]]:
+        """음성 인식을 부를 (공급자, 모델) 순서. STT_CHAIN이 없으면 구성의 음성 인식 다음에 대체(stt_fallback) 하나."""
+        if self.s.stt_chain:
+            return [(step["provider"], step["model"]) for step in self.s.stt_chain]
+        steps = [(self.s.role_provider.get("stt", ""), self.model("stt"))]
+        if self.s.stt_fallback:
+            steps.append((self.s.stt_fallback["provider"], self.s.stt_fallback["model"]))
+        return steps
+
+    def stt_timeout(self, position: int, count: int) -> float:
+        """첫 공급자는 짧게(뒤가 있을 때), 중간은 stt_next_timeout_s, 마지막(또는 하나뿐)은 30초."""
+        if position == count - 1:
+            return 30.0
+        return self.s.stt_first_timeout_s if position == 0 else self.s.stt_next_timeout_s
+
+    def note_stt_failure(self, provider: str):
+        """연속 실패가 stt_breaker_failures에 닿으면 그 공급자를 stt_breaker_skip_s 동안 건너뛴다 (GMS 크레딧·턴 지연을 아끼려고)."""
+        if self.s.stt_breaker_failures <= 0:
+            return
+        count = self.stt_failures.get(provider, 0) + 1
+        if count >= self.s.stt_breaker_failures:
+            self.stt_skip_until[provider] = self.clock() + self.s.stt_breaker_skip_s
+            log.warning(json.dumps({"event": "stt_skip", "provider": provider, "skip_s": self.s.stt_breaker_skip_s}, ensure_ascii=False))
+            count = 0
+        self.stt_failures[provider] = count
+
     async def transcribe(self, audio: bytes, filename: str, mime: str, prompt: str, usage: Usage) -> dict:
-        """음성 인식 (Whisper). 구성에 대체(stt_fallback, GMS 구성은 GMS whisper-1)가 있으면 첫 공급자가 한도·오류·응답 없음일 때
-        대체로 한 번 더 — 배포하면 Groq 키 하나의 한도를 모든 사용자가 나눠 쓴다. 녹음 자체 문제(AudioRejected)는 넘기지 않는다."""
-        model, fb = self.model("stt"), self.s.stt_fallback
-        t = t_call = time.perf_counter()
+        """음성 인식 (Whisper). 공급자를 순서대로 부르고, 한도·오류·응답 없음이면 다음 공급자로 넘긴다
+        (예: GPU 서버 자체 모델 → GMS whisper-1 → Groq). 녹음 자체 문제(AudioRejected)는 다음도 같은 답이라 넘기지 않는다."""
+        steps = self.stt_steps()
+        t = time.perf_counter()
         call = (filename, audio, mime, prompt)
-        try:
-            data = await self._transcribe_once(self.client_for("stt"), model, self.s.stt_first_timeout_s if fb else 30.0, *call)
-            used = model
-        except AudioRejected:
-            raise
-        except ProviderError as first:
-            if not fb:
-                raise
-            log.warning(json.dumps({"event": "stt_fallback", "model": model, "to": fb["model"], "why": first.message}, ensure_ascii=False))
+        failures: list[str] = []
+        for position, (provider, model) in enumerate(steps):
+            is_last = position == len(steps) - 1
+            if not is_last and self.stt_skip_until.get(provider, 0.0) > self.clock():
+                continue
             t_call = time.perf_counter()
             try:
-                data = await self._transcribe_once(self.others.get(fb["provider"], self.client), fb["model"], 30.0, *call)
+                data = await self._transcribe_once(
+                    self.others.get(provider, self.client), model, self.stt_timeout(position, len(steps)), *call
+                )
+            except AudioRejected:
+                raise
             except ProviderError as e:
-                raise ProviderError(e.code, f"{first.message} / 대체 {fb['model']}: {e.message}") from None
-            used = fb["model"]
-        now = time.perf_counter()
-        usage.items.append(
-            {"step": "stt", "model": used, "audio_s": data.get("duration"), "latency_s": round(now - t_call, 2), "fallback": used != model}
-        )
-        # 응답의 latency_s는 실패한 첫 호출까지 포함한 전체 시간, usage는 성공한 호출 하나의 시간
-        return {"text": (data.get("text") or "").strip(), "audio_s": data.get("duration"), "latency_s": round(now - t, 2)}
+                self.note_stt_failure(provider)
+                failures.append(e.message if position == 0 else f"대체 {model}: {e.message}")
+                if is_last:
+                    raise ProviderError(e.code, " / ".join(failures)) from None
+                log.warning(
+                    json.dumps(
+                        {"event": "stt_fallback", "model": model, "to": steps[position + 1][1], "why": e.message}, ensure_ascii=False
+                    )
+                )
+                continue
+            self.stt_failures[provider] = 0
+            now = time.perf_counter()
+            usage.items.append(
+                {
+                    "step": "stt",
+                    "model": model,
+                    "audio_s": data.get("duration"),
+                    "latency_s": round(now - t_call, 2),
+                    "fallback": position > 0,
+                }
+            )
+            # 응답의 latency_s는 실패한 앞 호출까지 포함한 전체 시간, usage는 성공한 호출 하나의 시간
+            return {"text": (data.get("text") or "").strip(), "audio_s": data.get("duration"), "latency_s": round(now - t, 2)}
 
     async def _transcribe_once(
         self, client: httpx.AsyncClient, model: str, timeout_s: float, filename: str, audio: bytes, mime: str, prompt: str

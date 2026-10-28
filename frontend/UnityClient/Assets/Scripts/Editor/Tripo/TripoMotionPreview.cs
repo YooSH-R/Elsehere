@@ -20,6 +20,7 @@ namespace A305.EditorTools.Tripo
         Rise,
         Fall,
         Land,
+        Idle,
     }
 
     public sealed class TripoMotionPreview : IDisposable
@@ -102,7 +103,9 @@ namespace A305.EditorTools.Tripo
         {
             const string folder = "Assets/Art/Player/LittleMung/";
             string path =
-                motion == TripoReviewMotion.Walk || motion == TripoReviewMotion.Run
+                motion == TripoReviewMotion.Walk
+                || motion == TripoReviewMotion.Run
+                || motion == TripoReviewMotion.Idle
                     ? folder + motion + ".anim"
                     : folder + "Motions/Jump.fbx";
             var clip = AssetDatabase

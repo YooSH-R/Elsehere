@@ -14,6 +14,7 @@ namespace A305.EditorTools.Tripo
     {
         private static readonly TripoReviewMotion[] Motions =
         {
+            TripoReviewMotion.Idle,
             TripoReviewMotion.Walk,
             TripoReviewMotion.Run,
             TripoReviewMotion.Rise,
@@ -134,10 +135,10 @@ namespace A305.EditorTools.Tripo
                         );
                 }
                 report.ManualChecks.Add(
-                    $"실제 클립 5종 × 25포즈 자동 검사: 스킨 수치 및 손·팔/머리·몸통 거리. 최소 머리 {minimumHead:F3}, 몸통 {minimumTorso:F3}."
+                    $"실제 클립 {Motions.Length}종 (Idle 포함) × 25포즈 자동 검사: 스킨 수치 및 손·팔/머리·몸통 거리. 최소 머리 {minimumHead:F3}, 몸통 {minimumTorso:F3}."
                 );
                 report.ManualChecks.Add(
-                    "손가락끼리의 교차·손 모양·손목 꺾임, 지형·계단 접지와 옷 전체의 삼각형 교차, 표정은 이 검사에 포함되지 않습니다. 양손을 확대하고 마스터 검수 씬에서 별도 확인하세요."
+                    "Idle의 어깨 눌림·옷 접힘, 손가락끼리의 교차·손 모양·손목 꺾임, 지형·계단 접지와 옷 전체의 삼각형 교차, 표정은 이 검사에 포함되지 않습니다. 양손을 확대하고 마스터 검수 씬에서 별도 확인하세요."
                 );
             }
             catch (Exception exception)

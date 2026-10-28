@@ -1021,6 +1021,7 @@ namespace A305.EditorTools.Tripo
                         "점프 · 상승",
                         "점프 · 하강",
                         "점프 · 착지",
+                        "플레이어 정지 · Idle",
                     }
                 );
             if (selected != bodyMotionKind)

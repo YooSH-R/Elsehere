@@ -6,7 +6,7 @@
 
 현재 개발 환경은 PostgreSQL·백엔드·AI 워커·Unity WebGL 웹 컨테이너를 실행하며, 운영 환경은 환경 확인용 서비스를 유지합니다. 호스트 Nginx가 기존 HTTPS API 경로를 각 환경으로 전달합니다. 운영 확인용 응답은 실제 애플리케이션의 기동이나 통합 동작을 보장하지 않습니다.
 
-백엔드·AI 워커·웹 이미지와 앱용 Compose는 저장소에서 관리합니다. Unity 테스트·WebGL 빌드는 [Windows 노트북 전용 Runner](unity/windows-runner.md)에서 실행합니다. [dev 자동 배포](dev-auto-deployment.md)는 서버 수신기와 전용 키·변수 등록, 연결 시험을 마친 뒤 사용합니다. GPU 서버 연결은 제공 조건과 AI 실행 방식이 정해진 뒤 반영합니다.
+백엔드·AI 워커·웹 이미지와 앱용 Compose는 저장소에서 관리합니다. Unity 테스트·WebGL 빌드는 [Windows 노트북 전용 Runner](unity/windows-runner.md)에서 실행합니다. [dev 자동 배포](dev-auto-deployment.md)는 서버 수신기와 전용 키·변수 등록, 연결 시험을 마친 뒤 사용합니다. 운영 전환·전용 수신기·수동 배포와 복구는 [main 운영 배포](prod-deployment.md)를 따릅니다. GPU 서버 연결은 제공 조건과 AI 실행 방식이 정해진 뒤 반영합니다.
 
 ## 서버와 환경 구분
 

@@ -1,15 +1,16 @@
-"""Plan, verify and deliver protected dev releases without a container registry."""
+"""Plan, verify and deliver protected releases without a container registry."""
 
 import argparse
 import gzip
 import json
 import os
+import re
 import shutil
 import subprocess
 import tarfile
 from pathlib import Path
 
-from deployment_plan import commit_exists, create_plan, run_git
+from deployment_plan import ALL_CHECKS, commit_exists, create_plan, run_git
 
 
 def create_release_plan(repository, state, candidate):
@@ -40,8 +41,8 @@ def create_release_plan(repository, state, candidate):
     return plan
 
 
-def create_child_pipeline(plan, parent_pipeline_id, state=None):
-    checks = set(plan["checks"])
+def create_child_pipeline(plan, parent_pipeline_id, state=None, environment="dev"):
+    checks = ALL_CHECKS if environment == "prod" else set(plan["checks"])
     jobs = ["ci:yaml"]
     selections = {
         "backend": ["backend:check-and-build", "infra:app-runtime"],
@@ -56,6 +57,7 @@ def create_child_pipeline(plan, parent_pipeline_id, state=None):
         jobs.append("infra:observability")
     variables = {
         "A305_DEPLOY_CHILD": "true",
+        "A305_DEPLOY_ENVIRONMENT": environment,
         "A305_PARENT_PIPELINE_ID": str(parent_pipeline_id),
         "A305_DEPLOY_PLAN": json.dumps(
             {key: value for key, value in plan.items() if key != "changed_paths"}
@@ -70,13 +72,16 @@ def create_child_pipeline(plan, parent_pipeline_id, state=None):
     return {
         "include": [{"local": ".gitlab-ci.yml"}],
         "variables": variables,
-        "dev:deliver": {"needs": [{"job": job, "artifacts": True} for job in jobs]},
+        f"{environment}:deliver": {
+            "needs": [{"job": job, "artifacts": True} for job in jobs]
+        },
     }
 
 
-def ssh_command():
-    key = Path(os.environ["DEV_DEPLOY_SSH_KEY"])
-    known_hosts = Path(os.environ["DEV_DEPLOY_KNOWN_HOSTS"])
+def ssh_command(environment="dev"):
+    prefix = environment.upper()
+    key = Path(os.environ[f"{prefix}_DEPLOY_SSH_KEY"])
+    known_hosts = Path(os.environ[f"{prefix}_DEPLOY_KNOWN_HOSTS"])
     if not key.is_file() or not known_hosts.is_file():
         raise ValueError(
             "Deploy SSH credentials must be protected GitLab File variables."
@@ -101,13 +106,13 @@ def ssh_command():
     ]
 
 
-def ssh_failure_message(stderr):
+def ssh_failure_message(stderr, environment="dev"):
     # Report only known categories: stderr can contain file-variable values.
     message = stderr.decode("utf-8", errors="replace").lower()
     if "error in libcrypto" in message or "invalid format" in message:
         return (
             "Deploy SSH private key format is invalid; check the complete "
-            "DEV_DEPLOY_SSH_KEY content and its final LF newline."
+            f"{environment.upper()}_DEPLOY_SSH_KEY content and its final LF newline."
         )
     if (
         "host key verification failed" in message
@@ -115,11 +120,11 @@ def ssh_failure_message(stderr):
     ):
         return (
             "Deploy SSH host key verification failed; check the pinned "
-            "DEV_DEPLOY_KNOWN_HOSTS file."
+            f"{environment.upper()}_DEPLOY_KNOWN_HOSTS file."
         )
     if "permission denied (publickey" in message:
         return (
-            "Deploy SSH authentication failed; check DEV_DEPLOY_SSH_KEY "
+            f"Deploy SSH authentication failed; check {environment.upper()}_DEPLOY_SSH_KEY "
             "and its restricted authorized_keys entry."
         )
     if "could not resolve hostname" in message:
@@ -131,9 +136,9 @@ def ssh_failure_message(stderr):
     return "Deploy SSH connection failed; check the restricted key and host key."
 
 
-def server_request(operation, archive=None):
+def server_request(operation, archive=None, environment="dev"):
     result = subprocess.run(
-        [*ssh_command(), operation],
+        [*ssh_command(environment), operation],
         check=False,
         stdin=archive,
         capture_output=True,
@@ -142,7 +147,7 @@ def server_request(operation, archive=None):
     try:
         response = json.loads(result.stdout)
     except (ValueError, UnicodeDecodeError) as error:
-        raise RuntimeError(ssh_failure_message(result.stderr)) from error
+        raise RuntimeError(ssh_failure_message(result.stderr, environment)) from error
     if result.returncode or "error" in response:
         raise RuntimeError(
             response.get("error", "Deployment server rejected the request.")
@@ -159,16 +164,23 @@ def verify_current_candidate(repository, branch, candidate):
         )
 
 
-def plan_pipeline(repository, candidate, branch, pipeline_id):
+def plan_pipeline(repository, candidate, branch, pipeline_id, environment="dev"):
     verify_current_candidate(repository, branch, candidate)
-    state = server_request("state")
+    state = server_request("state", environment=environment)
+    if state.get("environment", "dev") != environment:
+        raise ValueError("The deployment key is connected to another environment.")
     plan = create_release_plan(repository, state, candidate)
+    if environment == "prod":
+        plan["checks"] = sorted(ALL_CHECKS)
     directory = repository / "dist/deployment"
     directory.mkdir(parents=True, exist_ok=True)
     for name, document in [
         ("state.json", state),
         ("plan.json", plan),
-        ("dev-child.yml", create_child_pipeline(plan, pipeline_id, state)),
+        (
+            f"{environment}-child.yml",
+            create_child_pipeline(plan, pipeline_id, state, environment),
+        ),
     ]:
         (directory / name).write_text(
             json.dumps(document, indent=2) + "\n", encoding="utf-8"
@@ -188,11 +200,13 @@ def docker(*arguments, **options):
     return subprocess.run(["docker", *map(str, arguments)], check=True, **options)
 
 
-def deliver_pipeline(repository, candidate, branch, pipeline_id):
+def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="dev"):
     directory = repository / "dist/deployment"
     directory.mkdir(parents=True, exist_ok=True)
     plan = json.loads(os.environ["A305_DEPLOY_PLAN"])
     state = json.loads(os.environ["A305_DEPLOY_STATE"])
+    if state.get("environment", "dev") != environment:
+        raise ValueError("The deployment state belongs to another environment.")
     if plan["candidate_commit"] != candidate:
         raise ValueError("Deployment plan belongs to another candidate.")
     verify_current_candidate(repository, branch, candidate)
@@ -272,6 +286,7 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id):
         "candidate_commit": candidate,
         "pipeline_id": int(pipeline_id),
         "branch": branch,
+        "environment": environment,
         "expected_state_token": state["state_token"],
         "minimum_backend_commit": state["minimum_backend_commit"],
         "builds": plan["builds"],
@@ -291,7 +306,7 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id):
     # A newer push during a long Unity/image build must not be replaced by this job.
     verify_current_candidate(repository, branch, candidate)
     with bundle.open("rb") as source:
-        result = server_request("apply", source)
+        result = server_request("apply", source, environment)
     (directory / "result.json").write_text(
         json.dumps(result, indent=2) + "\n", encoding="utf-8"
     )
@@ -305,22 +320,43 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["plan", "deliver"])
+    parser.add_argument("--environment", choices=["dev", "prod"], default="dev")
     arguments = parser.parse_args()
     branch = os.environ["CI_COMMIT_BRANCH"]
-    if os.environ.get("CI_COMMIT_REF_PROTECTED") != "true" or branch not in {
-        "dev",
-        "chore/S15P31A305-37-server-environments",
-    }:
-        raise ValueError(
-            "Only protected dev and the explicit story 37 pilot may deploy."
-        )
+    environment = arguments.environment
+    allowed_branches = (
+        {"main"}
+        if environment == "prod"
+        else {"dev", "chore/S15P31A305-37-server-environments"}
+    )
+    if (
+        os.environ.get("CI_COMMIT_REF_PROTECTED") != "true"
+        or branch not in allowed_branches
+    ):
+        raise ValueError("Only the protected deployment branch may deploy.")
     repository = Path(os.environ["CI_PROJECT_DIR"])
     candidate = os.environ["CI_COMMIT_SHA"]
+    if environment == "prod":
+        if os.environ.get("PROD_VERIFIED_COMMIT") != candidate:
+            raise ValueError(
+                "PROD_VERIFIED_COMMIT must match this candidate's integration-tested SHA."
+            )
+        if not re.fullmatch(
+            r"https://lab\.ssafy\.com/s15-final/S15P31A305/-/merge_requests/[1-9][0-9]*",
+            os.environ.get("PROD_RELEASE_MR", ""),
+        ):
+            raise ValueError(
+                "PROD_RELEASE_MR must identify the reviewed release and integration evidence."
+            )
+        if os.environ.get("PROD_DB_COMPATIBLE") != "true":
+            raise ValueError(
+                "Confirm database backup and application rollback compatibility with PROD_DB_COMPATIBLE=true."
+            )
     pipeline_id = os.environ["CI_PIPELINE_ID"]
     if arguments.action == "plan":
-        plan_pipeline(repository, candidate, branch, pipeline_id)
+        plan_pipeline(repository, candidate, branch, pipeline_id, environment)
     else:
-        deliver_pipeline(repository, candidate, branch, pipeline_id)
+        deliver_pipeline(repository, candidate, branch, pipeline_id, environment)
 
 
 if __name__ == "__main__":

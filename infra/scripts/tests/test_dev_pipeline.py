@@ -5,10 +5,32 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import dev_pipeline
 from dev_pipeline import create_child_pipeline, create_release_plan, server_request
 
 
 class ChildPipelineTests(unittest.TestCase):
+    def test_production_child_always_runs_all_release_checks_and_only_prod_delivery(
+        self,
+    ):
+        pipeline = create_child_pipeline(
+            {"checks": [], "builds": [], "deploy": False}, "123", environment="prod"
+        )
+
+        self.assertNotIn("dev:deliver", pipeline)
+        jobs = {need["job"] for need in pipeline["prod:deliver"]["needs"]}
+        self.assertTrue(
+            {
+                "backend:check-and-build",
+                "unity:editor-and-webgl",
+                "ai:check-and-test",
+                "infra:app-runtime",
+                "infra:observability",
+            }.issubset(jobs)
+        )
+        self.assertEqual(pipeline["variables"]["A305_DEPLOY_ENVIRONMENT"], "prod")
+        self.assertEqual(pipeline["variables"]["A305_CHECK_INFRA"], "true")
+
     def test_large_asset_change_keeps_child_variables_small_without_losing_builds(self):
         pipeline = create_child_pipeline(
             {
@@ -100,6 +122,24 @@ class ChildPipelineTests(unittest.TestCase):
 
 
 class ServerRequestTests(unittest.TestCase):
+    def test_production_ssh_uses_separate_protected_file_variables(self):
+        with tempfile.TemporaryDirectory() as directory:
+            key = Path(directory) / "key"
+            hosts = Path(directory) / "hosts"
+            key.write_text("fixture-key")
+            hosts.write_text("fixture-hosts")
+            with patch.dict(
+                "os.environ",
+                {
+                    "PROD_DEPLOY_SSH_KEY": str(key),
+                    "PROD_DEPLOY_KNOWN_HOSTS": str(hosts),
+                },
+                clear=True,
+            ):
+                command = dev_pipeline.ssh_command("prod")
+            self.assertIn(str(key), command)
+            self.assertIn(f"UserKnownHostsFile={hosts}", command)
+
     def test_ssh_failures_explain_the_category_without_revealing_stderr(self):
         cases = [
             (b'Load key "/tmp/deploy-key": error in libcrypto', "private key format"),
@@ -156,6 +196,40 @@ class ServerRequestTests(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "already initialized"),
         ):
             server_request("state")
+
+
+class ProductionEntryPointTests(unittest.TestCase):
+    def test_protected_main_requires_evidence_for_the_exact_candidate(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "main",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "123",
+            "PROD_VERIFIED_COMMIT": "a" * 40,
+            "PROD_RELEASE_MR": "https://lab.ssafy.com/s15-final/S15P31A305/-/merge_requests/123",
+            "PROD_DB_COMPATIBLE": "true",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "plan", "--environment", "prod"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.plan_pipeline") as plan,
+        ):
+            dev_pipeline.main()
+            self.assertEqual(plan.call_args.args[-1], "prod")
+            for override in (
+                {"PROD_VERIFIED_COMMIT": "b" * 40},
+                {"PROD_RELEASE_MR": ""},
+                {"PROD_DB_COMPATIBLE": "false"},
+                {"CI_COMMIT_BRANCH": "dev"},
+                {"CI_COMMIT_REF_PROTECTED": "false"},
+            ):
+                with (
+                    self.subTest(override=override),
+                    patch.dict("os.environ", override),
+                    self.assertRaises(ValueError),
+                ):
+                    dev_pipeline.main()
 
 
 class MonitoringCompatibilityTests(unittest.TestCase):

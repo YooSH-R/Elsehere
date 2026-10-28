@@ -349,18 +349,5 @@ namespace A305.EditorTools.World
                 label.transform.localRotation = Quaternion.identity;
             return root;
         }
-
-        internal static GameObject Barista()
-        {
-            var root = new GameObject("BaristaVisual");
-            var visual = BuilderTools.LoadRequiredAsset<GameObject>(
-                "Assets/Prefabs/World/TownProduction/LittleMungV7NpcVisual.prefab",
-                "Town production design"
-            );
-            Put(visual, root.transform, Vector3.zero);
-            Block("Apron", root.transform, V(0, .46f, .21f), V(.39f, .34f, .035f), Green, .04f);
-            Block("NameTag", root.transform, V(.1f, .55f, .235f), V(.1f, .055f, .01f), Ivory, .01f);
-            return root;
-        }
     }
 }

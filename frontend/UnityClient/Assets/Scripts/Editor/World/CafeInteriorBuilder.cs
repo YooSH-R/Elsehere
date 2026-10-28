@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using A305.Characters;
 using A305.EditorTools.Common;
 using A305.EditorTools.Player;
 using A305.Npc;
@@ -15,6 +16,7 @@ using UnityEngine.SceneManagement;
 using static A305.EditorTools.World.CafeInteriorKit;
 using static A305.EditorTools.World.HomeInteriorKit;
 using static A305.EditorTools.World.MainstreetArtKit;
+using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.World
 {
@@ -24,6 +26,9 @@ namespace A305.EditorTools.World
         internal const string ScenePath = "Assets/Scenes/Production/CafeScene.unity";
         internal const string SandboxPath = "Assets/Scenes/Sandbox/CafeInteriorSandbox.unity";
         private const string DataFolder = "Assets/Data/Cafe";
+
+        // Tripo 생성 메시를 마스터 골격에 연결한 Female Variant다. 골격·애니메이션·배율은 Female을 따른다.
+        private const string BaristaPath = "Assets/Prefabs/Npc/Barista.prefab";
 
         [MenuItem("Tools/A305/Cafe/Apply Corner Cafe Design")]
         public static void Build()
@@ -119,7 +124,7 @@ namespace A305.EditorTools.World
             Transform oldStaff = staff.transform.Find("Visual");
             oldStaff.gameObject.SetActive(false);
             PrefabUtility.RecordPrefabInstancePropertyModifications(oldStaff.gameObject);
-            Put(Save("BaristaVisual", Barista), staff.transform, Vector3.zero);
+            ConnectBarista(staff);
             SizeController(staff.GetComponent<CharacterController>());
             staff.transform.SetPositionAndRotation(V(0, .05f, 4.72f), Quaternion.Euler(0, 180, 0));
             PrefabUtility.RecordPrefabInstancePropertyModifications(staff.transform);
@@ -148,6 +153,51 @@ namespace A305.EditorTools.World
             camera.nearClipPlane = .04f;
             camera.farClipPlane = 90;
             PrefabUtility.RecordPrefabInstancePropertyModifications(camera);
+        }
+
+        [MenuItem("Tools/A305/Cafe/Connect Barista Character")]
+        public static void ConnectBaristaInScenes()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            foreach (string path in new[] { ScenePath, SandboxPath })
+            {
+                Scene scene = EditorSceneManager.OpenScene(path);
+                ConnectBarista(
+                    BuilderTools
+                        .FindAllInScene<NpcIdentity>(scene)
+                        .Single(npc => npc.Code == "CAFE_STAFF")
+                );
+                BuilderTools.SaveScene(scene, path);
+            }
+            Debug.Log("Cafe staff now uses the Tripo barista character.");
+        }
+
+        /// <summary>카페 직원에 Tripo 바리스타 캐릭터를 연결한다. 위치·대화·시선 대상·캡슐은 유지한다.</summary>
+        public static void ConnectBarista(NpcIdentity staff)
+        {
+            // 도형으로 만든 이전 임시 외형은 지우고 바리스타는 한 번만 붙인다.
+            Transform placeholder = staff.transform.Find("BaristaVisual");
+            if (placeholder != null)
+                Object.DestroyImmediate(placeholder.gameObject);
+            Transform barista = staff.transform.Find("Barista");
+            if (barista == null)
+            {
+                barista = Put(
+                    BuilderTools.LoadRequiredAsset<GameObject>(
+                        BaristaPath,
+                        "Cafe barista character"
+                    ),
+                    staff.transform,
+                    Vector3.zero
+                );
+                barista.name = "Barista";
+            }
+            BuilderTools.SetReference(
+                staff.GetComponent<CharacterAnimationDriver>(),
+                "animator",
+                barista.GetComponentInChildren<Animator>()
+            );
         }
 
         private static void SizeController(CharacterController controller)

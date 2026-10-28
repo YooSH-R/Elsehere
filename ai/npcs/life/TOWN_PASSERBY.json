@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "npcId": "TOWN_PASSERBY",
+  "needRates": { "ENERGY": 1.2, "SOCIAL": 0.9 },
+  "schedule": [
+    { "from": "08:00", "to": "10:00", "activity": "FREE", "scene": "TOWN", "canLeave": true },
+    { "from": "10:00", "to": "15:00", "activity": "WORK", "scene": "CAFE", "canLeave": true },
+    { "from": "15:00", "to": "18:00", "activity": "FREE", "scene": "TOWN", "canLeave": true },
+    { "from": "18:00", "to": "08:00", "activity": "OFF" }
+  ]
+}

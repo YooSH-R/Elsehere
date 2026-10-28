@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "npcId": "CAFE_STAFF",
+  "needRates": { "SOCIAL": 1.2 },
+  "relationshipRates": { "recognition": 1.2 },
+  "schedule": [
+    { "from": "07:00", "to": "11:30", "activity": "WORK", "scene": "CAFE", "canLeave": false },
+    { "from": "11:30", "to": "12:00", "activity": "BREAK", "scene": "CAFE", "canLeave": false },
+    { "from": "12:00", "to": "18:00", "activity": "WORK", "scene": "CAFE", "canLeave": false },
+    { "from": "18:00", "to": "19:00", "activity": "FREE", "scene": "TOWN", "canLeave": true },
+    { "from": "19:00", "to": "07:00", "activity": "OFF" }
+  ],
+  "eventOverrides": {
+    "PERSONAL_QUESTION": { "mood": { "ANNOYED": 2 }, "impression": -5 },
+    "RUDE": { "mood": { "ANNOYED": 3 }, "impression": -20, "memorySalience": 3 }
+  }
+}

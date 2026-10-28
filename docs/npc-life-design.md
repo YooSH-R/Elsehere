@@ -84,7 +84,13 @@ Unity, AI 워커, 백엔드가 같은 데이터를 읽습니다. 형식마다 JS
 | `ai/npcs/life/<npcId>.json` | 인격 파일과 같은 `npcId`. 욕구 속도 배수, 관계 속도 배수, 일과표(활동·장소·자리 비움 가능 여부), 사건 반응 덮어쓰기 |
 | `ai/npcs/requests/*.json` | 부탁 퀘스트 틀. 발동 조건, 단계, 학습 초점 |
 
-스키마는 계약 패키지의 [npc_life_rules_schemas.json](api/npc-ai-contracts/npc_life_rules_schemas.json)에 둡니다. 지금은 공통 규칙(`WorldRules`)만 정의했고, 검사는 `ai/tools/npc_life_rules.py`가 합니다(스키마 검사와 함께, 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지 대조). NPC별 생활 파일과 부탁 퀘스트 틀의 스키마는 다음 단계입니다. 합치기 도구가 백엔드 `backend/src/main/resources/content/`로 내보내고, 백엔드가 Unity에는 API로, AI에는 요청에 담아 전달하는 방식을 제안합니다. 내보내기 경로와 API는 백엔드와 정합니다.
+스키마는 계약 패키지의 [npc_life_rules_schemas.json](api/npc-ai-contracts/npc_life_rules_schemas.json)에 둡니다. 지금은 공통 규칙(`WorldRules`)과 NPC별 생활 파일(`NpcLife`)을 정의했고, 검사는 `ai/tools/npc_life_rules.py`가 합니다. 스키마 검사와 함께 스키마로 볼 수 없는 것을 대조합니다.
+
+- 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지
+- 일과표가 하루 24시간을 겹치지 않고 빈틈없이 채우는지, 일과표의 장소가 실제 장소 코드인지
+- 생활 파일 이름이 `npcId`와 같은지, 인격 파일과 생활 파일이 서로 짝이 맞는지
+
+부탁 퀘스트 틀의 스키마는 다음 단계입니다. 세 NPC의 일과표와 배수는 인격을 바탕으로 정한 초안입니다. 합치기 도구가 백엔드 `backend/src/main/resources/content/`로 내보내고, 백엔드가 Unity에는 API로, AI에는 요청에 담아 전달하는 방식을 제안합니다. 내보내기 경로와 API는 백엔드와 정합니다.
 
 ## 10. 함께 정할 것
 

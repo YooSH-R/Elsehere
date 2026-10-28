@@ -15,14 +15,18 @@ def load_world_rules() -> dict:
     return json.loads(npc_life_rules.WORLD_RULES.read_text(encoding="utf-8"))
 
 
-def rules_with(path: tuple, value) -> dict:
-    """서비스 공통 규칙에서 path(키·순번 차례) 한 곳만 value로 바꾼 사본."""
-    rules = load_world_rules()
-    target = rules
+def changed(data: dict, path: tuple, value) -> dict:
+    """data에서 path(키·순번 차례) 한 곳만 value로 바꾼다."""
+    target = data
     for key in path[:-1]:
         target = target[key]
     target[path[-1]] = value
-    return rules
+    return data
+
+
+def rules_with(path: tuple, value) -> dict:
+    """서비스 공통 규칙에서 한 곳만 바꾼 사본."""
+    return changed(load_world_rules(), path, value)
 
 
 def json_path(path: tuple) -> str:
@@ -79,3 +83,128 @@ def test_an_object_not_placed_in_the_scene_is_a_problem():
         "$.actions[0]: CAFE에 배치된 사물 단어가 아님 'pool'",
         "$.actions[1]: HOTEL에 배치된 사물 단어가 아님 'coffee_machine'",
     ]
+
+
+# NPC별 생활 파일 (ai/npcs/life/<npcId>.json, 인격 파일과 같은 npcId)
+NPCS = npc_life_rules.ROOT / "ai/npcs"
+
+
+def test_every_service_npc_has_a_life_file_without_problems():
+    assert sorted(path.stem for path in npc_life_rules.LIFE_FOLDER.glob("*.json")) == ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]
+    assert npc_life_rules.life_problems(NPCS) == []
+
+
+def load_life(npc_id: str) -> dict:
+    return json.loads((npc_life_rules.LIFE_FOLDER / f"{npc_id}.json").read_text(encoding="utf-8"))
+
+
+def life_with(path: tuple, value) -> dict:
+    """Mia 생활 파일에서 한 곳만 바꾼 사본."""
+    return changed(load_life("CAFE_STAFF"), path, value)
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "where"),
+    [
+        (("schemaVersion",), "2.0", None),
+        (("npcId",), "cafe staff", None),  # 인격 파일·시드와 같은 대문자 코드
+        (("needRates",), {"THIRST": 1.0}, None),  # 없는 욕구
+        (("needRates", "SOCIAL"), 0, None),  # 배수는 0보다 커야 함 (0이면 욕구가 영영 줄지 않음)
+        (("relationshipRates", "recognition"), 0, None),
+        (("schedule",), [], None),
+        (("schedule", 0, "from"), "7:00", None),  # HH:MM
+        (("schedule", 0, "activity"), "SLEEP", None),
+        (("eventOverrides", "SHOUT"), {}, ("eventOverrides",)),  # 없는 사건
+        (("eventOverrides", "RUDE", "memorySalience"), 4, None),
+    ],
+)
+def test_values_a_life_file_does_not_allow_are_reported_where_they_break(path, value, where):
+    errors = npc_life_rules.life_errors(life_with(path, value))
+
+    assert {where for where, _ in errors} == {json_path(where or path)}
+
+
+def test_the_service_schedules_fill_the_whole_day_without_overlap():
+    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]:
+        assert npc_life_rules.schedule_problems(load_life(npc_id)["schedule"]) == []
+
+
+def test_a_gap_in_the_schedule_is_a_problem():
+    """비는 시간에는 Unity가 NPC를 어디에 둘지 모른다."""
+    schedule = [block for block in load_life("CAFE_STAFF")["schedule"] if block["from"] != "18:00"]
+
+    assert npc_life_rules.schedule_problems(schedule) == ["18:00~19:00에 일과가 없음"]
+
+
+def test_overlapping_blocks_are_a_problem():
+    schedule = load_life("HOTEL_STAFF")["schedule"]
+    schedule[1]["from"] = "11:30"  # 점심 휴식을 앞당겼는데 오전 근무를 그대로 둠
+
+    assert npc_life_rules.schedule_problems(schedule) == ["11:30~12:00에 일과가 겹침"]
+
+
+def test_a_block_can_run_past_midnight():
+    whole_day = [{"from": "06:00", "to": "06:00", "activity": "OFF"}]
+    night_and_day = [{"from": "22:00", "to": "06:00", "activity": "OFF"}, {"from": "06:00", "to": "22:00", "activity": "OFF"}]
+
+    assert npc_life_rules.schedule_problems(whole_day) == []
+    assert npc_life_rules.schedule_problems(night_and_day) == []
+
+
+def load_config(npc_id: str) -> dict:
+    return json.loads((NPCS / f"{npc_id}.json").read_text(encoding="utf-8"))
+
+
+def npc_folder(tmp_path: Path, configs: dict[str, dict], lives: dict[str, dict]) -> Path:
+    """configs[파일 이름] = 인격 설정, lives[파일 이름] = 생활 파일. ai/npcs와 같은 모양으로 쓴다."""
+    (tmp_path / "life").mkdir()
+    for name, config in configs.items():
+        (tmp_path / name).write_text(json.dumps(config), encoding="utf-8")
+    for name, life in lives.items():
+        (tmp_path / "life" / name).write_text(json.dumps(life), encoding="utf-8")
+    return tmp_path
+
+
+def test_problems_in_a_life_file_are_reported_with_its_name(tmp_path):
+    life = load_life("CAFE_STAFF")
+    life["schedule"] = [block for block in life["schedule"] if block["from"] != "18:00"]
+    life["schedule"][0]["scene"] = "BEACH"
+    folder = npc_folder(tmp_path, {"CAFE_STAFF.json": load_config("CAFE_STAFF")}, {"CAFE_STAFF.json": life})
+
+    assert npc_life_rules.life_problems(folder) == [
+        "life/CAFE_STAFF.json: 18:00~19:00에 일과가 없음",
+        "life/CAFE_STAFF.json $.schedule[0].scene: 없는 장소 'BEACH'",
+    ]
+
+
+def test_a_life_file_breaking_the_schema_is_reported_without_other_checks(tmp_path):
+    """스키마를 어긴 파일은 일과표·짝 맞추기를 믿을 수 없으니 스키마 오류만 알린다."""
+    life = changed(load_life("CAFE_STAFF"), ("needRates", "SOCIAL"), 0)
+    folder = npc_folder(tmp_path, {"CAFE_STAFF.json": load_config("CAFE_STAFF")}, {"CAFE_STAFF.json": life})
+    where, why = npc_life_rules.life_errors(life)[0]
+
+    assert npc_life_rules.life_problems(folder) == [f"life/CAFE_STAFF.json {where}: {why}"]
+
+
+def test_the_life_file_name_is_its_npc_id(tmp_path):
+    folder = npc_folder(tmp_path, {"CAFE_STAFF.json": load_config("CAFE_STAFF")}, {"MIA.json": load_life("CAFE_STAFF")})
+
+    assert npc_life_rules.life_problems(folder) == ["life/MIA.json: 파일 이름이 npcId 'CAFE_STAFF'와 다름"]
+
+
+def test_every_npc_has_a_life_file_and_every_life_file_has_an_npc(tmp_path):
+    configs = {"CAFE_STAFF.json": load_config("CAFE_STAFF"), "HOTEL_STAFF.json": load_config("HOTEL_STAFF")}
+    lives = {"CAFE_STAFF.json": load_life("CAFE_STAFF"), "TOWN_PASSERBY.json": load_life("TOWN_PASSERBY")}
+
+    assert npc_life_rules.life_problems(npc_folder(tmp_path, configs, lives)) == [
+        "HOTEL_STAFF: 생활 파일이 없음 (life/HOTEL_STAFF.json)",
+        "life/TOWN_PASSERBY.json: 인격 파일이 없는 npcId 'TOWN_PASSERBY'",
+    ]
+
+
+def test_an_npc_away_from_off_duty_needs_a_scene():
+    """퇴근(OFF)이 아니면 Unity가 NPC를 둘 장소가 있어야 한다."""
+    life = load_life("CAFE_STAFF")
+    del life["schedule"][0]["scene"]
+
+    assert npc_life_rules.life_errors(life) == [("$.schedule[0]", "'scene' is a required property")]

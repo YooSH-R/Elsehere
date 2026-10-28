@@ -226,9 +226,17 @@ def main():
     prefix = f"a305-observability-check-{uuid.uuid4().hex[:8]}"
     containers = [
         f"{prefix}-{service}"
-        for service in ("nginx", "prometheus", "grafana", "inner", "admin", "app-web")
+        for service in (
+            "nginx",
+            "prometheus",
+            "grafana",
+            "inner",
+            "admin",
+            "app-web",
+            "traffic-probe",
+        )
     ]
-    nginx, prometheus, grafana, inner, admin, app_web = containers
+    nginx, prometheus, grafana, inner, admin, app_web, traffic_probe = containers
     docker("network", "create", "--internal", prefix)
     try:
         docker(
@@ -336,6 +344,42 @@ def main():
         docker("start", app_web)
         wait_for_http(nginx, "http://app-web/")
         check_upload_limits(nginx)
+
+        docker(
+            "create",
+            "--name",
+            traffic_probe,
+            "--network",
+            prefix,
+            "--network-alias",
+            "traffic-probe",
+            "--memory",
+            "256m",
+            "--cpus",
+            "0.50",
+            "python:3.12-alpine",
+            "python",
+            "/tmp/traffic_probe.py",
+        )
+        copy_to(
+            traffic_probe,
+            MONITORING / "tests/traffic_probe.py",
+            "/tmp/traffic_probe.py",
+        )
+        probe_result = docker("start", "--attach", traffic_probe, check=False)
+        probe_exit = docker("inspect", "--format", "{{.State.ExitCode}}", traffic_probe)
+        if probe_result.returncode != 0 or probe_exit.stdout.strip() != "0":
+            raise AssertionError(probe_result.stdout + probe_result.stderr)
+        print(probe_result.stdout, end="", flush=True)
+        logs = docker("logs", nginx)
+        events = [
+            json.loads(line)
+            for line in (logs.stdout + logs.stderr).splitlines()
+            if line.startswith("{")
+        ]
+        assert any(event["rate_limit"] == "REJECTED_DRY_RUN" for event in events)
+        assert any(event["rate_limit"] == "REJECTED" for event in events)
+        assert any(event["connection_limit"] == "REJECTED" for event in events)
 
         docker(
             "create",

@@ -333,13 +333,11 @@ class DeploymentServer:
             r"[0-9a-f]{40}", manifest.get("candidate_commit", "")
         ):
             raise ValueError("Invalid deployment candidate.")
-        allowed_branches = {"main" if self.environment == "prod" else "dev"}
-        if self.environment == "dev" and self.config.get("pilot_branch"):
-            allowed_branches.add(self.config["pilot_branch"])
+        deployment_branch = "main" if self.environment == "prod" else "dev"
         if manifest.get("environment", "dev") != self.environment:
             raise ValueError("Deployment bundle belongs to another environment.")
-        if manifest.get("branch") not in allowed_branches:
-            raise ValueError(f"Only {', '.join(sorted(allowed_branches))} may deploy.")
+        if manifest.get("branch") != deployment_branch:
+            raise ValueError(f"Only {deployment_branch} may deploy.")
         if (
             not isinstance(manifest.get("pipeline_id"), int)
             or manifest["pipeline_id"] <= previous["pipeline_id"]

@@ -198,6 +198,47 @@ class ServerRequestTests(unittest.TestCase):
             server_request("state")
 
 
+class DevelopmentEntryPointTests(unittest.TestCase):
+    def test_protected_dev_can_plan_a_development_release(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "dev",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "123",
+            "CI_PIPELINE_SOURCE": "push",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "plan"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.plan_pipeline") as plan,
+        ):
+            dev_pipeline.main()
+
+        plan.assert_called_once()
+        self.assertEqual(plan.call_args.args[2], "dev")
+        self.assertEqual(plan.call_args.args[-1], "dev")
+
+    def test_retired_deployment_branch_is_rejected_before_planning(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "chore/S15P31A305-37-server-environments",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "123",
+            "CI_PIPELINE_SOURCE": "web",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "plan"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.plan_pipeline") as plan,
+            self.assertRaisesRegex(ValueError, "protected deployment branch"),
+        ):
+            dev_pipeline.main()
+
+        plan.assert_not_called()
+
+
 class ProductionEntryPointTests(unittest.TestCase):
     def test_automatic_delivery_requires_its_protected_production_child(self):
         environment = {

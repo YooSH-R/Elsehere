@@ -2,11 +2,11 @@
 
 검증한 앱 이미지를 개발 환경에 전달하고, 배포 후 점검에 성공했을 때만 성공 기록을 갱신합니다. 운영 환경과 호스트 Nginx, 별도 모니터링 스택은 이 파이프라인에서 변경하지 않습니다. 서버 수신기·전용 SSH 키·CI 변수를 설치하고 연결 시험을 마친 뒤 사용합니다.
 
-같은 배포 도구의 운영 모드는 별도 수신기·키·`production` 범위 변수를 사용합니다. main 병합 후 운영 자동 배포와 복구는 [main 운영 배포 문서](prod-deployment.md)를 따릅니다. 개발 수신기의 환경 설정 기본값은 `dev`이며 기존 서버 설정은 유지할 수 있습니다.
+같은 배포 도구의 운영 모드는 별도 수신기·키·`production` 범위 변수를 사용합니다. main 병합 후 운영 자동 배포와 복구는 [main 운영 배포 문서](prod-deployment.md)를 따릅니다. 개발 수신기의 환경 설정 기본값은 `dev`이며 개발 배포는 보호된 `dev` 브랜치만 허용합니다.
 
 ## 실행 흐름
 
-1. 보호된 `dev` Push 또는 명시적인 보호 후보 시험에서 `dev:plan`이 서버의 마지막 성공 기록을 읽습니다.
+1. 보호된 `dev` 병합 후 Push 파이프라인 또는 `dev`의 수동 재실행에서 `dev:plan`이 서버의 마지막 성공 기록을 읽습니다.
 2. `deployment_plan.py`가 마지막 성공 커밋부터 후보까지 누적 변경을 비교합니다. 첫 자동 배포는 전체 검사·빌드를 수행합니다. 이전 수동 배포의 혼합 이미지 상태를 하나의 검증 커밋으로 간주하지 않습니다.
 3. 생성한 자식 파이프라인이 필요한 백엔드·AI·Unity·인프라 검사만 실행합니다. 백엔드 또는 인프라 검사가 필요한 배포는 모니터링 구성·알림 검사도 통과해야 이미지 전달로 진행합니다. 일반 MR은 기존 변경 영역 검사를 유지하며 서버 배포 수신기를 호출하지 않습니다.
 4. Unity 검사가 필요하면 노트북 Runner에서 EditMode·PlayMode를 실행합니다. `web` 이미지 빌드가 필요한 경우에만 WebGL도 빌드합니다. API 명세 변경처럼 검사만 필요한 경우에는 WebGL 빌드를 생략합니다.
@@ -43,7 +43,7 @@ Google 콘솔에는 `https://dev.elsehere.kr/api/v1/auth/callback/google`을 승
 아래 명령은 Ubuntu의 `ubuntu` 계정에서 실행합니다. 검증한 전체 커밋을 별도 `deploy-tools` 작업 폴더에 받습니다. 기존 앱 실행 폴더나 환경 파일을 새 소스로 덮어쓰지 않습니다.
 
 ```bash
-git -C "$HOME/apps/a305/dev/source" fetch origin chore/S15P31A305-37-server-environments
+git -C "$HOME/apps/a305/dev/source" fetch origin dev
 git -C "$HOME/apps/a305/dev/source" worktree add --detach \
   "$HOME/apps/a305/dev/deploy-tools" '<검증한 전체 커밋 SHA>'
 cd "$HOME/apps/a305/dev/deploy-tools"
@@ -110,16 +110,14 @@ GitLab Settings → CI/CD → Variables에 다음을 등록합니다. 두 항목
 
 개인 키는 채팅·MR·Jira·저장소에 붙이지 않습니다. CI는 호스트 키를 고정해 검증하며 실행 중 `ssh-keyscan`으로 새 키를 신뢰하지 않습니다. [GitLab SSH 키 안내](https://docs.gitlab.com/ci/jobs/ssh_keys/)
 
-## 병합 전 연결 시험
+## 수동 연결 확인과 재실행
 
-1. 선행 모니터링 코드가 반영됐는지 확인하고, 후보의 필수 MR 검사를 통과시킵니다.
-2. Windows 노트북 Runner를 켜고 빌드가 끝날 때까지 PC를 유지합니다. 기본 `dev`·`main` 보호와 Runner Protected는 유지합니다.
-3. 시험할 때만 정확한 `chore/S15P31A305-37-server-environments` 브랜치를 임시 보호합니다. 병합은 Maintainer, 직접 Push는 금지로 두고 force push를 허용하지 않습니다.
-4. 해당 브랜치에서 New pipeline을 열어 `RUN_DEV_DEPLOY=true`로 실행합니다. 수신기 설정의 `pilot_branch`도 같은 정확한 브랜치여야 합니다.
-5. 부모의 계획 작업, 자식의 선택된 검사·이미지 전달·실제 서버 점검과 성공 기록을 확인합니다. 첫 자동 시험은 모든 앱을 검증·빌드하므로 노트북에서 실제 WebGL을 새로 빌드합니다.
-6. 시험 뒤 임시 보호를 제거합니다. 수정이 필요하면 임시 보호를 먼저 해제하고 새 후보를 검증합니다.
+1. 변경을 필수 MR 검사와 팀원 리뷰를 거쳐 `dev`에 병합합니다. 선행 모니터링 코드와 서버 수신기·전용 SSH 키·CI 변수의 설치 상태를 확인합니다.
+2. Windows 노트북 Runner를 켜고 빌드가 끝날 때까지 PC를 유지합니다. `dev`·`main` 보호와 Runner Protected를 유지합니다.
+3. GitLab의 New pipeline에서 보호된 `dev`와 `RUN_DEV_DEPLOY=true`를 지정합니다.
+4. 부모의 계획 작업, 자식의 선택된 검사·이미지 전달·실제 서버 점검과 성공 기록을 확인합니다. 첫 자동 배포는 모든 앱을 검증·빌드하므로 노트북에서 실제 WebGL을 새로 빌드합니다.
 
-시험용 후보도 실제 개발 앱을 교체합니다. 운영을 배포하는 작업은 아닙니다. 후보 시험·서버 성공 확인·실패 복구 검증이 끝난 뒤 Draft를 해제하고 팀원 리뷰를 받습니다. 이 절차가 `dev` 병합이나 작성자 자신의 승인을 대신하지 않습니다.
+수동 실행도 실제 개발 앱을 교체하므로 이미 실행 중인 배포와 서버 상태를 먼저 확인합니다. MR 검사·팀원 리뷰는 병합 전에 수행하고, 병합 후 배포 성공과 실패 복구 검증은 별도로 기록합니다.
 
 ## 상태와 실패 후 재실행
 

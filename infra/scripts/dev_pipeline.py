@@ -332,14 +332,10 @@ def main():
     arguments = parser.parse_args()
     branch = os.environ["CI_COMMIT_BRANCH"]
     environment = arguments.environment
-    allowed_branches = (
-        {"main"}
-        if environment == "prod"
-        else {"dev", "chore/S15P31A305-37-server-environments"}
-    )
+    deployment_branch = "main" if environment == "prod" else "dev"
     if (
         os.environ.get("CI_COMMIT_REF_PROTECTED") != "true"
-        or branch not in allowed_branches
+        or branch != deployment_branch
     ):
         raise ValueError("Only the protected deployment branch may deploy.")
     repository = Path(os.environ["CI_PROJECT_DIR"])

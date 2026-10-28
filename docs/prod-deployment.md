@@ -76,7 +76,7 @@ cp infra/deploy/prod-server.example.json "$HOME/apps/a305/prod/server-config.jso
 nano "$HOME/apps/a305/prod/server-config.json"
 ```
 
-설정의 `minimum_backend_commit`에는 실제 배포 앱에 필요한 관측 코드의 전체 SHA를, `bootstrap_sources`에는 실행 중인 각 이미지의 검증된 소스 SHA를 적습니다. Compose·관측 경로는 현재 서버와 맞춥니다. 설정의 `environment`는 `prod`를 유지하고 개발 pilot을 추가하지 않습니다.
+설정의 `minimum_backend_commit`에는 실제 배포 앱에 필요한 관측 코드의 전체 SHA를, `bootstrap_sources`에는 실행 중인 각 이미지의 검증된 소스 SHA를 적습니다. Compose·관측 경로는 현재 서버와 맞춥니다. 설정의 `environment`는 `prod`를 유지하며 운영 배포는 보호된 `main` 브랜치만 허용합니다.
 
 ```bash
 sudo install -m 644 "$HOME/apps/a305/prod/server-config.json" /etc/a305-prod-deploy.json

@@ -19,7 +19,9 @@ namespace A305.World
         private PlayerCameraRig cameraRig;
 
         [SerializeField]
-        [Tooltip("재접속 위치를 저장할 API 서버 설정. 비우면 저장하지 않는다(서버 없이 씬만 확인할 때).")]
+        [Tooltip(
+            "재접속 위치를 저장할 API 서버 설정. 비우면 저장하지 않는다(서버 없이 씬만 확인할 때)."
+        )]
         private ApiSettings apiSettings;
 
         // 플레이어·카메라가 Awake에서 준비를 마친 뒤 첫 프레임 전에 옮긴다.

@@ -241,6 +241,20 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
+                "Panel/Buttons/RegenerateButton",
+                UiIcon.Retry,
+                UiTone.Neutral,
+                caption: true
+            );
+            IconButton(
+                root,
+                "Panel/Buttons/TranscriptButton",
+                UiIcon.Talk,
+                UiTone.Accent,
+                caption: true
+            );
+            IconButton(
+                root,
                 "Panel/Buttons/VocabularyButton",
                 UiIcon.Book,
                 UiTone.Secondary,
@@ -391,6 +405,13 @@ namespace A305.EditorTools.Theme
                 "Panel/Conversation/ToolRow/HintButton",
                 UiIcon.Hint,
                 UiTone.Positive,
+                caption: true
+            );
+            IconButton(
+                root,
+                "Panel/Buttons/RetryButton",
+                UiIcon.Retry,
+                UiTone.Neutral,
                 caption: true
             );
             IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);

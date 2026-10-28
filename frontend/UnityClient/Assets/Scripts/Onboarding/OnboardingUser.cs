@@ -8,5 +8,8 @@ namespace A305.Onboarding
         public AvatarType AvatarType { get; set; }
         public string CurrentLanguage { get; set; }
         public OnboardingStep OnboardingStep { get; set; }
+
+        /// <summary>계정에 저장한 화면 테마 코드(JELLY·STICKER·CLOUD). 서버가 보내지 않으면 null이다.</summary>
+        public string UiTheme { get; set; }
     }
 }

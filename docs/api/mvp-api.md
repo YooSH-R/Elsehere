@@ -1,9 +1,9 @@
 # MVP API 명세 초안
 
-MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.5](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
+MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.6](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
-- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능(설정, 프로필 수정, NPC 호감도 조회)도 API를 만들지 않았습니다.
+- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능(설정, 프로필 수정, NPC 호감도 조회)도 API를 만들지 않았습니다. 집에서 고르는 화면 테마(USER-01)는 와이어프레임 밖에서 추가한 기능입니다.
 - 대화 턴은 REST로 작성했습니다. 스트리밍을 선택하면 요청·응답의 의미와 식별자는 유지하고 전송 방식만 바꿉니다.
 
 ## 1. 공통 규칙
@@ -245,6 +245,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | VOCAB-03 | `PATCH /api/v1/vocab/{userVocabId}` | 메모, 외웠어요 표시 | - | 18 |
 | VOCAB-04 | `DELETE /api/v1/vocab/{userVocabId}` | 단어장에서 삭제 | - | 18 |
 | AI-01 | `GET /api/v1/ai/status` | AI 이용 상태·기능별 가능 여부 | - | 13, 19 |
+| USER-01 | `PUT /api/v1/me/ui-theme` | 화면 테마 저장 | - | 화면 없음(집에서 선택) |
 
 ## 4. API 상세
 
@@ -262,7 +263,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "nickname": "Sun",
     "avatarType": "F",
     "currentLanguage": "en-US",
-    "onboardingStep": "DONE"
+    "onboardingStep": "DONE",
+    "uiTheme": "JELLY"
   },
   "lastSceneCode": "TOWN",
   "activeConversationId": null,
@@ -281,6 +283,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
 - `aiStatus`의 형식은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다.
+- `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
 
@@ -325,7 +328,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 
 // 응답 201
-{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG" } }
+{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY" } }
 ```
 
 - 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다. 로그인하면서 세션 ID를 새로 발급하고 가입 대기 정보를 지웁니다.
@@ -336,6 +339,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   - 다른 사용자가 쓰고 있으면 `409 NICKNAME_TAKEN`입니다. 대소문자를 구분해 `Sun`과 `sun`은 다른 닉네임으로 봅니다. `[제안]`
   - 금칙어 처리 여부는 `[미정]`입니다.
 - `avatarType`은 `F`, `M`입니다.
+- 새 사용자의 화면 테마(`uiTheme`)는 기본값 `JELLY`입니다. 게스트(AUTH-07)도 같습니다.
 - 현재 버전과 다른 버전에 동의한 항목은 동의하지 않은 것으로 봅니다. 선택 약관도 현재 버전에 동의한 경우에만 저장합니다.
 - 필수 약관이 빠졌거나 버전이 현재 버전과 다르면 `VALIDATION_FAILED`이며 `details.missingConsents`에 빠진 약관을 담습니다(예: `["AGE14"]`).
 - 가입 대기 상태가 아니면 `401 UNAUTHENTICATED`, 이미 로그인한 사용자이거나 같은 Google 계정으로 이미 가입했으면 `409 ALREADY_SIGNED_UP`입니다.
@@ -371,7 +375,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 // 응답 201
 {
-  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL" }
+  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY" }
 }
 ```
 
@@ -1098,9 +1102,27 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - 클라이언트는 접속할 때(BOOT-01), 대화가 토큰 소진으로 끝났을 때, AI 요청이 거절됐을 때 상태를 갱신합니다. 소진 상태에서는 AI가 필요한 버튼을 비활성화하고, 탐험·사물 카드·단어장·지난 기록은 계속 제공합니다.
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
 
+### 4.10 화면 테마
+
+#### USER-01 `PUT /api/v1/me/ui-theme`
+
+```json
+// 요청
+{ "uiTheme": "STICKER" }
+
+// 응답 200
+{ "uiTheme": "STICKER" }
+```
+
+- 집에서 고른 화면 테마를 계정(`users.ui_theme`)에 저장합니다. 다른 기기에서 접속해도 BOOT-01의 `user.uiTheme`으로 같은 테마를 받습니다.
+- `uiTheme`은 `JELLY`, `STICKER`, `CLOUD`입니다. 가입·게스트로 만든 사용자와 이 기능을 넣기 전에 가입한 사용자는 `JELLY`입니다.
+- 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. 다른 상태 변경 요청처럼 `X-Requested-With` 헤더가 필요합니다.
+- `uiTheme`이 없거나 `null`이거나 세 값 중 하나가 아니면(대소문자 구분, 예: `sticker`) `400 VALIDATION_FAILED`이며 테마를 바꾸지 않습니다.
+- 같은 값을 여러 번 보내도 결과가 같습니다.
+
 ## 5. ERD와의 관계
 
-### 5.1 이 명세에 맞춰 ERD v3.1~v3.5에 반영한 사항
+### 5.1 이 명세에 맞춰 ERD v3.1~v3.6에 반영한 사항
 
 | 항목 | 관련 API | ERD 변경 |
 | --- | --- | --- |
@@ -1130,6 +1152,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | NPC 기억 카드 (v3.4) | CONV-01, 03, 08 | `user_npc_relations.memory_card`(기억 카드 JSON)와 `memory_conversation_id`(마지막으로 반영한 대화)를 추가하고 `ai_requests.kind`에 `MEMORY`를 더했습니다. 사실별 `npc_memories`는 만들지 않습니다. |
 | NPC 음성 보관 정책 (v3.5) | CONV-01, 03, 06, 07, 10 | `turns.npc_audio_deleted_at`(보관 정책으로 음성을 지운 시각)을 추가했습니다. 처음 합성에 실패해 키가 없는 턴과 구분해, 지운 음성은 `speech.status: EXPIRED`로 알리고 다시 만들지 않습니다. |
 | 공용 단어 카드 (v3.4) | WORLD-02·03, VOCAB-02 | Unity가 사물 카드를 사물별 단어에서 공용 단어로 바꾼 데 맞춰 `world_objects`·`user_object_prefs`를 `scene_words`(장소별 단어)·`user_word_prefs`(단어별 숨김)로 바꾸고 `vocabularies.word_key`를 추가했습니다. API의 `objectKey`는 `wordKey`로 바꿨습니다. |
+| 화면 테마 (v3.6) | BOOT-01, AUTH-04·07, USER-01 | `users.ui_theme`(`JELLY`·`STICKER`·`CLOUD`, 기본값 `JELLY`)을 추가했습니다. 이미 가입한 사용자는 마이그레이션(V3)에서 `JELLY`로 채웁니다. |
 
 ### 5.2 아직 정할 사항
 

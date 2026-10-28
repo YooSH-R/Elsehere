@@ -52,6 +52,28 @@ namespace A305.EditorTools.World
             Debug.Log($"Tutorial passerby placed {offset.magnitude:F2}m from HomeDoor arrival.");
         }
 
+        /// <summary>
+        /// 캐릭터보다 키가 큰 사람이 바로 뒤에 서서 내려다보는 높이로 3인칭 카메라를 맞춘다.
+        /// 몸 가운데를 4.2m 뒤에서 16도 내려다보면 카메라는 발 기준 약 2.1~2.5m 높이에 온다.
+        /// </summary>
+        [MenuItem("Tools/A305/World/Apply Town Follow Camera")]
+        public static void ApplyFollowCamera()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
+                DataFolder + "/CameraSettings.asset"
+            );
+            if (settings == null)
+                throw new InvalidOperationException("Town camera settings missing");
+            var fields = new SerializedObject(settings);
+            fields.FindProperty("startDistanceMeters").floatValue = 4.2f;
+            fields.FindProperty("startPitchDegrees").floatValue = 16f;
+            // 캐릭터가 따로 정하지 않았을 때 바라볼 몸 가운데 높이.
+            fields.FindProperty("pivotHeightMeters").floatValue = 1.3f;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
+        }
+
         [MenuItem("Tools/A305/World/Apply Production Town Design")]
         public static void Build()
         {

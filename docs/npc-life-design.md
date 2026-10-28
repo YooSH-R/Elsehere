@@ -83,16 +83,17 @@ Unity, AI 워커, 백엔드가 같은 데이터를 읽습니다. 형식마다 JS
 | `ai/npcs/rules/world-rules.json` | 욕구별 감소 속도, 사물별 행동과 채움 값, 대화 사건 효과(기분·인상·기억 세기), 관계·기억 상수, 성격 → 생활 값 연결 규칙, 역할별 일과 틀 |
 | `ai/npcs/life/<npcId>.json` | 인격 파일과 같은 `npcId`. NPC마다 정하는 입력 노드인 성격(`mbti`)과 역할(`role`)만 둡니다 |
 | `ai/npcs/rules/behaviors.json` | 행동 조각 모음. 행동마다 성격 축 쪽, 범주, 생활 값 연결(`affects`), 함께 뽑지 않는 조각 |
-| `ai/npcs/requests/*.json` | 부탁 퀘스트 틀. 발동 조건, 단계, 학습 초점 |
+| `ai/npcs/rules/requests.json` | 부탁 퀘스트 틀. 발동 조건(욕구·기준·부탁하는 역할·활동), 말을 거는 이유, 단계(누구와 무엇을 말할지·연습하는 말하기 기능), 보상(욕구 채움·인상) |
 
-스키마는 계약 패키지의 [npc_life_rules_schemas.json](api/npc-ai-contracts/npc_life_rules_schemas.json)에 둡니다. 지금은 공통 규칙(`WorldRules`), NPC별 생활 파일(`NpcLife`), 행동 조각 모음(`BehaviorLibrary`)을 정의했고, 검사는 `ai/tools/npc_life_rules.py`가 합니다. 스키마 검사와 함께 스키마로 볼 수 없는 것을 대조합니다.
+스키마는 계약 패키지의 [npc_life_rules_schemas.json](api/npc-ai-contracts/npc_life_rules_schemas.json)에 둡니다. 공통 규칙(`WorldRules`), NPC별 생활 파일(`NpcLife`), 행동 조각 모음(`BehaviorLibrary`), 부탁 퀘스트 틀(`RequestLibrary`)을 정의했고, 검사는 `ai/tools/npc_life_rules.py`가 합니다. 스키마 검사와 함께 스키마로 볼 수 없는 것을 대조합니다.
 
 - 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지
 - 역할별 일과 틀이 하루 24시간을 겹치지 않고 빈틈없이 채우는지
 - 생활 파일 이름이 `npcId`와 같은지, 인격 파일과 생활 파일이 서로 짝이 맞는지
 - 행동 조각의 id 중복, 충돌 표시, 성격 축 양쪽마다 고를 조각 수
+- 부탁의 id 중복, 들르는 장소에서 그 욕구를 채울 수 있는지, 부탁하는 역할의 일과에 그 활동이 있는지
 
-부탁 퀘스트 틀의 스키마는 다음 단계입니다. NPC가 적은 지금은 각자 기본 장소(인격 파일의 `defaultLocationId`) 밖으로 나가지 않고 자리를 비우지 않습니다(`canLeave: false`). 그래서 스스로 채우지 못하는 욕구는 모두 부탁이 됩니다. 합치기 도구가 백엔드 `backend/src/main/resources/content/`로 내보내고, 백엔드가 Unity에는 API로, AI에는 요청에 담아 전달하는 방식을 제안합니다. 내보내기 경로와 API는 백엔드와 정합니다.
+NPC가 적은 지금은 각자 기본 장소(인격 파일의 `defaultLocationId`) 밖으로 나가지 않고 자리를 비우지 않습니다(`canLeave: false`). 그래서 스스로 채우지 못하는 욕구는 모두 부탁이 됩니다. 합치기 도구가 백엔드 `backend/src/main/resources/content/`로 내보내고, 백엔드가 Unity에는 API로, AI에는 요청에 담아 전달하는 방식을 제안합니다. 내보내기 경로와 API는 백엔드와 정합니다.
 
 ## 10. 자동 파생과 행동 조각
 

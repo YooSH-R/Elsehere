@@ -284,6 +284,66 @@ def test_a_conflict_points_to_another_existing_behavior():
     ]
 
 
+# 부탁 퀘스트 틀 (ai/npcs/rules/requests.json): NPC가 스스로 채우지 못하는 욕구가 학습자에게 하는 부탁이 되고, 영어로 해결하는 퀘스트가 된다
+
+
+def load_requests() -> dict:
+    return json.loads(npc_life_rules.REQUESTS.read_text(encoding="utf-8"))
+
+
+def test_the_service_requests_pass_the_schema_without_problems():
+    library = load_requests()
+
+    assert [request["id"] for request in library["requests"]] == ["bring_coffee", "bring_muffin", "recommend_a_spot"]
+    assert npc_life_rules.request_errors(library) == []
+    assert npc_life_rules.request_problems(library, load_world_rules()) == []
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "where"),
+    [
+        (("requests", 0, "id"), "Bring Coffee", "$.requests[0].id"),
+        (("requests", 0, "need"), "THIRST", "$.requests[0].need"),
+        (("requests", 0, "below"), 100, "$.requests[0].below"),  # 다 찬 욕구로는 부탁하지 않음
+        (("requests", 0, "role"), "CHEF", "$.requests[0].role"),
+        (("requests", 0, "activities"), ["OFF"], "$.requests[0].activities[0]"),  # 퇴근한 NPC는 마을에 없음
+        (("requests", 0, "steps"), [], "$.requests[0].steps"),
+        (("requests", 0, "steps", 0, "languageFocus"), ["shouting"], "$.requests[0].steps[0].languageFocus[0]"),
+        (("requests", 0, "reward", "fills"), {"THIRST": 10}, "$.requests[0].reward.fills"),
+    ],
+)
+def test_values_a_request_does_not_allow_are_reported_where_they_break(path, value, where):
+    errors = npc_life_rules.request_errors(changed(load_requests(), path, value))
+
+    assert {where for where, _ in errors} == {where}
+
+
+def test_a_staff_step_needs_a_place():
+    """'그 장소의 직원에게 가서' 하는 단계라 장소가 없으면 학습자가 어디로 갈지 모른다."""
+    library = load_requests()
+    del library["requests"][0]["steps"][0]["place"]
+
+    assert npc_life_rules.request_errors(library) == [("$.requests[0].steps[0]", "'place' is a required property")]
+
+
+def test_a_request_must_be_solvable_and_askable():
+    """들르는 장소의 직원이 그 욕구를 채울 수 있어야 하고, 부탁하는 역할의 일과에 그 활동이 있어야 한다."""
+    library = load_requests()
+    library["requests"][1]["steps"][0]["place"] = "HOTEL"  # 호텔에는 머핀이 없음
+    library["requests"][2]["activities"] = ["WORK"]  # 행인 일과에는 근무가 없음
+
+    assert npc_life_rules.request_problems(library, load_world_rules()) == [
+        "$.requests[1].steps[0]: HOTEL에서는 HUNGER를 채울 수 없음",
+        "$.requests[2]: PASSERBY 일과에 WORK가 없음",
+    ]
+
+
+def test_a_request_id_is_used_once():
+    library = changed(load_requests(), ("requests", 1, "id"), "bring_coffee")
+
+    assert npc_life_rules.request_problems(library, load_world_rules()) == ["$.requests[1]: id 'bring_coffee'를 $.requests[0]에서 이미 씀"]
+
+
 def test_each_side_of_every_axis_has_enough_behaviors_to_draw_from():
     """성격이 어느 쪽이든 고를 조각이 있어야 같은 성격끼리도 조합이 달라진다."""
     library = load_behaviors()

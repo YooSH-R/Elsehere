@@ -3,6 +3,65 @@
   "title": "NPC 생활·관계 규칙 스키마 (제안)",
   "description": "$defs의 WorldRules(공통 규칙), NpcLife(NPC별 생활 파일), BehaviorLibrary(행동 조각 모음)를 명시적으로 선택해 검증한다. Unity·AI 워커·백엔드가 같이 읽는 규칙 데이터이며, 설계는 docs/npc-life-design.md. 숫자는 시뮬레이션으로 맞출 초기값이다.",
   "$defs": {
+    "RequestLibrary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "requests"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "requests": { "type": "array", "items": { "$ref": "#/$defs/RequestTemplate" }, "minItems": 1 }
+      },
+      "description": "부탁 퀘스트 틀. NPC가 스스로 채우지 못하는 욕구가 학습자에게 하는 부탁이 되고, 영어로 해결하는 퀘스트가 된다. 부탁하는 쪽과 들르는 곳은 NPC id가 아니라 역할·장소로 적어 자동 생성 NPC에도 쓴다."
+    },
+    "RequestTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "need", "below", "role", "activities", "reason", "ko", "steps", "reward"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
+        "need": { "$ref": "#/$defs/NeedId", "description": "이 욕구가 below 아래로 떨어지면 부탁한다." },
+        "below": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "role": { "$ref": "#/$defs/Role", "description": "부탁하는 NPC의 역할." },
+        "activities": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["WORK", "BREAK", "FREE"] },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "이 활동 중이고 자리를 비울 수 없을 때(canLeave false) 부탁한다."
+        },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "NPC가 말을 거는 이유. 첫 대사 요청에 담아 LLM이 자연스럽게 부탁하게 한다." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 150, "pattern": "\\S" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/RequestStep" }, "minItems": 1 },
+        "reward": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fills", "impression"],
+          "properties": {
+            "fills": { "$ref": "#/$defs/Fills", "description": "부탁을 들어주면 부탁한 NPC의 욕구가 채워지는 양." },
+            "impression": { "type": "integer", "minimum": 0, "maximum": 100, "description": "부탁한 NPC가 학습자에게 갖는 이번 대화 인상." }
+          }
+        }
+      }
+    },
+    "RequestStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["with", "goal", "languageFocus"],
+      "properties": {
+        "with": { "type": "string", "enum": ["requester", "staff"], "description": "requester: 부탁한 NPC, staff: place의 직원(STAFF)." },
+        "place": { "$ref": "#/$defs/Code" },
+        "goal": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S", "description": "학습자가 이 대화에서 할 일(영어)." },
+        "languageFocus": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["ordering", "polite_request", "giving_directions", "recommending", "describing", "thanking", "small_talk"] },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "이 대화에서 연습하는 말하기 기능."
+        }
+      },
+      "if": { "properties": { "with": { "const": "staff" } } },
+      "then": { "required": ["place"] }
+    },
     "BehaviorLibrary": {
       "type": "object",
       "additionalProperties": false,

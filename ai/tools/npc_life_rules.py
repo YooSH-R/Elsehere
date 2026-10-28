@@ -15,11 +15,13 @@ WORLD_RULES = ROOT / "ai/npcs/rules/world-rules.json"  # ai/npcs 바로 아래�
 OBJECT_WORD_BINDINGS = ROOT / "backend/src/main/resources/content/object-word-bindings.json"
 LIFE_FOLDER = ROOT / "ai/npcs/life"
 BEHAVIORS = ROOT / "ai/npcs/rules/behaviors.json"
+REQUESTS = ROOT / "ai/npcs/rules/requests.json"
 
 _schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
 WORLD_RULES_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/WorldRules"})
 LIFE_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/NpcLife"})
 BEHAVIOR_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/BehaviorLibrary"})
+REQUEST_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/RequestLibrary"})
 
 
 def _errors(validator: Draft202012Validator, data: dict) -> list[tuple[str, str]]:
@@ -147,6 +149,35 @@ def behavior_problems(library: dict) -> list[str]:
             if count < MIN_BEHAVIORS_PER_SIDE:
                 problems.append(f"{axis} {side} 쪽 조각이 {MIN_BEHAVIORS_PER_SIDE}개 미만 ({count}개)")
     return problems
+
+
+def request_errors(library: dict) -> list[tuple[str, str]]:
+    return _errors(REQUEST_SCHEMA, library)
+
+
+def request_problems(library: dict, rules: dict) -> list[str]:
+    """부탁 퀘스트 틀과 공통 규칙의 대조: id는 한 번만, 들르는 장소에서 그 욕구를 채울 수 있는지,
+    부탁하는 역할의 일과에 그 활동이 있는지."""
+    problems, first_at = [], {}
+    for i, request in enumerate(library["requests"]):
+        if request["id"] in first_at:
+            problems.append(f"$.requests[{i}]: id '{request['id']}'를 $.requests[{first_at[request['id']]}]에서 이미 씀")
+            continue
+        first_at[request["id"]] = i
+        for j, step in enumerate(request["steps"]):
+            if step["with"] == "staff" and not _can_fill_at(rules, step["place"], request["need"]):
+                problems.append(f"$.requests[{i}].steps[{j}]: {step['place']}에서는 {request['need']}를 채울 수 없음")
+        role_activities = {block["activity"] for block in rules["roles"][request["role"]]["schedule"]}
+        problems += [
+            f"$.requests[{i}]: {request['role']} 일과에 {activity}가 없음"
+            for activity in request["activities"]
+            if activity not in role_activities
+        ]
+    return problems
+
+
+def _can_fill_at(rules: dict, place: str, need: str) -> bool:
+    return any(action["scene"] == place and need in action["fills"] for action in rules["actions"])
 
 
 def _placed_words() -> dict[str, set[str]]:

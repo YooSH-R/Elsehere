@@ -17,7 +17,7 @@
 |---|---|
 | [npc_shared_schemas_v2.json](npc_shared_schemas_v2.json) | 인격과 설정 구조의 단일 정의 |
 | [npc_inference_openapi_v2.yaml](npc_inference_openapi_v2.yaml) | 공통 스키마를 참조하는 OpenAPI 3.1.1 추론 계약 |
-| [npc_life_rules_schemas.json](npc_life_rules_schemas.json) | NPC 생활·관계 규칙 데이터 스키마 제안(공통 규칙 `WorldRules`, NPC별 생활 파일 `NpcLife`, 행동 조각 모음 `BehaviorLibrary`). 설계는 [NPC 생활·관계 설계](../../npc-life-design.md) |
+| [npc_life_rules_schemas.json](npc_life_rules_schemas.json) | NPC 생활·관계 규칙 데이터 스키마 제안(공통 규칙 `WorldRules`, NPC별 생활 파일 `NpcLife`, 행동 조각 모음 `BehaviorLibrary`, 부탁 퀘스트 틀 `RequestLibrary`). 설계는 [NPC 생활·관계 설계](../../npc-life-design.md) |
 | [npc_configuration_examples_v2.json](npc_configuration_examples_v2.json) | 카페 점원·호텔리어·행인 설정 예시. 비활성·목소리 미연결 |
 | [npc_inference_examples_v2.json](npc_inference_examples_v2.json) | 완전한 첫 대사·후속·마무리 제안 요청/응답 예시 |
 | [validate_contracts.py](validate_contracts.py) | 로컬 계약 검사 및 일부 애플리케이션 검증의 참고 구현 |

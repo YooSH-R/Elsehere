@@ -29,6 +29,9 @@ namespace A305.EditorTools.Dialogue
         private const string PlaceholderNotice =
             "대화 화면은 준비 중입니다. [대화 종료]를 누르면 대화를 끝내고 다시 움직일 수 있습니다.";
 
+        private const string EndButtonLabel = "대화 종료 (Esc)";
+        private const string OldEndButtonLabel = "대화 종료";
+
         private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
         private const string VoiceRecorderSettingsPath =
             "Assets/Data/Voice/VoiceRecorderSettings.asset";
@@ -131,9 +134,29 @@ namespace A305.EditorTools.Dialogue
             Button endButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
                 "EndButton",
-                "대화 종료",
+                EndButtonLabel,
                 bold
             );
+            // Esc로도 끝낼 수 있음을 알린다(기능 명세 F-23). 예전 기본 문구일 때만 바꾸고 디자인에서 바꾼 문구는 둔다.
+            TMP_Text endLabel = endButton.GetComponentInChildren<TMP_Text>(true);
+            if (endLabel.text == OldEndButtonLabel)
+            {
+                endLabel.text = EndButtonLabel;
+            }
+
+            // 일시적인 장애로 시작이나 발화가 실패했을 때만 보인다. 새로 붙이면 [대화 종료] 앞에 둔다.
+            bool isRetryNew = buttons.Find("RetryButton") == null;
+            Button retryButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "RetryButton",
+                "다시 시도",
+                bold
+            );
+            if (isRetryNew)
+            {
+                retryButton.transform.SetSiblingIndex(endButton.transform.GetSiblingIndex());
+                retryButton.gameObject.SetActive(false);
+            }
 
             // 대화 내용은 [대화 종료] 줄 위에 둔다. 처음 만들 때만 자리를 정하고, 이후에는 디자인한 순서를 유지한다.
             bool isConversationNew = panel.Find("Conversation") == null;
@@ -194,7 +217,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
 
-            // 서버 AI 대화: 상태 문구, 추천 단어, 누르고 말하기, 다시 듣기
+            // 서버 AI 대화: 상태 문구, 추천 단어, 누르고 말하기, 다시 듣기, 힌트
             TMP_Text status = UiBuilderTools.FindOrCreateText(
                 conversation,
                 "Status",
@@ -223,6 +246,13 @@ namespace A305.EditorTools.Dialogue
                 bold,
                 160f
             );
+            Button hintButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "HintButton",
+                "힌트",
+                bold,
+                160f
+            );
 
             // Web 빌드의 Unity 입력창은 한글 조합을 받지 못해 브라우저 입력창을 겹쳐 받는다(닉네임 입력창과 같은 방식).
             BuilderTools.GetOrAddComponent<BrowserImeInput>(input.gameObject);
@@ -245,6 +275,8 @@ namespace A305.EditorTools.Dialogue
                 BuilderTools.GetOrAddComponent<HoldButton>(talkButton.gameObject)
             );
             BuilderTools.SetReference(view, "replayButton", replayButton);
+            BuilderTools.SetReference(view, "hintButton", hintButton);
+            BuilderTools.SetReference(view, "retryButton", retryButton);
             BuilderTools.RequireReferences(view);
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.

@@ -5,16 +5,21 @@ import com.elsehere.common.error.ErrorCode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * NPC 턴 음성(WAV) 파일 보관. 워커는 음성을 10분만 들고 있으므로 받은 즉시 이 폴더에 저장한다.
  *
- * <p>저장 폴더는 elsehere.npc-audio.dir로 지정하며, 앱 배포에서는 환경별 영구 볼륨에 연결한다. 보관 기간과 삭제 정책은 아직 미정이다.
+ * <p>저장 폴더는 elsehere.npc-audio.dir로 지정하며, 앱 배포에서는 환경별 영구 볼륨에 연결한다. 파일 읽기·쓰기만 맡고, 보관 기간과 용량 상한은
+ * {@link NpcAudioRetention}이 지킨다. 새 음성은 상한을 지키도록 NpcAudioRetention으로 저장한다.
  */
 @Component
 public class NpcAudioStore {
@@ -40,8 +45,7 @@ public class NpcAudioStore {
   }
 
   public Optional<byte[]> load(String key) {
-    // 키는 서버가 만든 값만 받는다. 경로 조작을 막기 위해 형식을 확인한다.
-    if (key == null || !KEY_PATTERN.matcher(key).matches()) {
+    if (!isKey(key)) {
       return Optional.empty();
     }
     Path file = directory.resolve(key);
@@ -54,4 +58,52 @@ public class NpcAudioStore {
       throw new BusinessException(ErrorCode.INTERNAL_ERROR, exception);
     }
   }
+
+  /** 음성 파일을 지운다. 이미 없으면 그대로 둔다. */
+  public void delete(String key) {
+    if (!isKey(key)) {
+      return;
+    }
+    try {
+      Files.deleteIfExists(directory.resolve(key));
+    } catch (IOException exception) {
+      throw new BusinessException(ErrorCode.INTERNAL_ERROR, exception);
+    }
+  }
+
+  /** 서버가 만든 음성 파일 목록. 배포 검사용 파일처럼 이름이 키 형식이 아닌 파일은 뺀다. 폴더가 없으면 빈 목록이다. */
+  public List<StoredAudio> files() {
+    if (!Files.isDirectory(directory)) {
+      return List.of();
+    }
+    List<StoredAudio> files = new ArrayList<>();
+    try (Stream<Path> paths = Files.list(directory)) {
+      for (Path file : (Iterable<Path>) paths::iterator) {
+        String name = file.getFileName().toString();
+        if (isKey(name)) {
+          files.add(
+              new StoredAudio(name, Files.size(file), Files.getLastModifiedTime(file).toInstant()));
+        }
+      }
+    } catch (IOException exception) {
+      throw new BusinessException(ErrorCode.INTERNAL_ERROR, exception);
+    }
+    return files;
+  }
+
+  public long usedBytes() {
+    return files().stream().mapToLong(StoredAudio::size).sum();
+  }
+
+  // 키는 서버가 만든 값만 받는다. 경로 조작을 막기 위해 형식을 확인한다.
+  private static boolean isKey(String key) {
+    return key != null && KEY_PATTERN.matcher(key).matches();
+  }
+
+  /**
+   * 폴더에 저장된 음성 파일 하나.
+   *
+   * @param modifiedAt 파일을 마지막으로 쓴 시각
+   */
+  public record StoredAudio(String key, long size, Instant modifiedAt) {}
 }

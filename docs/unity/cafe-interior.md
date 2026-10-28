@@ -19,7 +19,7 @@ Unity 1 unit = 1m이다. 남쪽이 입구, 북쪽이 주문대와 커피 준비�
 | 항목 | 기준 |
 | --- | --- |
 | 바닥 / 천장 높이 | 14 × 12m / 4.2m |
-| 플레이어·직원 | 리틀 멍 v7 비율의 1.6m 대체 모델 |
+| 플레이어·직원 | 리틀 멍 공용 마스터 골격과 배율 1.6. 직원은 Tripo로 만든 바리스타 캐릭터 |
 | 주문대 | 폭 7.3m, 깊이 1.2m, 상판 높이 약 0.74m. 대화 시점에서 직원의 입이 보이도록 낮춤 |
 | 커피 준비대 | 폭 8.6m, 깊이 0.8m, 상판 높이 0.94m |
 | 직원 위치 | (0, 0.05, 4.72), 입구 방향 |
@@ -44,11 +44,13 @@ Unity 1 unit = 1m이다. 남쪽이 입구, 북쪽이 주문대와 커피 준비�
 | `BoothSet`, `RoundTableSet` | 복제해서 늘릴 수 있는 좌석 조합 |
 | `PastryDisplay` | 진열장과 빵 조합 |
 | `CafePendant` | 조명 외형과 Point Light |
-| `BaristaVisual` | 기존 NPC 기능에 붙이는 대체 외형 |
+| `Npc/Barista` | 직원(`CAFE_STAFF`)에 붙이는 바리스타 캐릭터. 마스터 골격에 연결한 `Female` Variant |
 
 가구 원본은 Prefab Mode에서 편집한다. 장소마다 색·구성이 달라야 하면 Variant를 만든다. 다른 공간에서도 사용하는 Tiny Treats 원본과 공통 재질을 직접 변경하지 않는다. 둥근 메시와 원목·크림 재질은 마을·집 제작 키트를 재사용한다.
 
 기존 `HoverableObject` 루트와 `counter`, `menu` 키를 유지한다. 메뉴판과 주문대의 새 Collider로 호버를 판정한다. 컵·빵·식물 등 추가 소품은 장식이며 새 학습 단어로 연결하지 않았다. 기존 `CAFE_STAFF`의 대화·미션 연결과 감지 거리는 유지한다. 문과 `ArrivalPoint`도 기존 연결을 유지한다.
+
+**Tools → A305 → Cafe → Connect Barista Character**는 `CafeScene`과 `CafeInteriorSandbox`의 직원에 바리스타 캐릭터를 연결한다. 이전 도형 외형이 있으면 지우고, 직원 위치·대화·미션 연결·시선 대상·충돌 캡슐은 유지한다. 바리스타는 플레이어와 같은 이동 Animator와 접지·팔 관통 보정을 쓰며, 원본 FBX·메시·머티리얼·텍스처는 `Art/Npc/Barista/`에 둔다.
 
 ## 조명과 편집
 

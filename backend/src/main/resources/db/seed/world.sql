@@ -9,7 +9,8 @@ VALUES
   ('HOME', '집', 'HomeScene', true),
   ('TOWN', '마을', 'TownScene', true),
   ('CAFE', '모퉁이 카페', 'CafeScene', true),
-  ('HOTEL', '호텔', 'HotelScene', true)
+  ('HOTEL', '호텔', 'HotelScene', true),
+  ('SHOP', '편의점', 'ShopScene', true)
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name,
     unity_key = EXCLUDED.unity_key,
@@ -120,7 +121,8 @@ VALUES
   ('en-US', 'WORD', 'TV', '텔레비전', 'Let''s watch TV together.', '같이 TV 보자.', 'MASTER', NULL),
   ('en-US', 'WORD', 'vase', '꽃병', 'Put the flowers in the vase.', '꽃을 꽃병에 꽂으세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'wall', '벽', 'There is a clock on the wall.', '벽에 시계가 있어요.', 'MASTER', NULL),
-  ('en-US', 'WORD', 'window', '창문', 'Please open the window.', '창문을 열어 주세요.', 'MASTER', NULL)
+  ('en-US', 'WORD', 'window', '창문', 'Please open the window.', '창문을 열어 주세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'umbrella', '우산', 'Where can I buy an umbrella?', '우산은 어디에서 살 수 있나요?', 'MASTER', NULL)
 ON CONFLICT (language_code, text) DO UPDATE
 SET type = EXCLUDED.type,
     meaning_ko = EXCLUDED.meaning_ko,
@@ -145,6 +147,9 @@ FROM (
      'af_heart', false, NULL),
     ('HOTEL', 'HOTEL_STAFF', 'Emma', 'STAFF', '호텔 직원',
      '{"role": "the front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
+     'af_heart', false, NULL),
+    ('SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '편의점 직원',
+     '{"role": "the helpful clerk at the convenience store.", "facts": "The convenience store sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small convenience store on the town main street."}',
      'af_heart', false, NULL)
 ) AS seed (scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code

@@ -189,6 +189,20 @@ class SpeechServiceTest {
   }
 
   @Test
+  @DisplayName("보관 정책으로 음성을 지운 턴은 다시 합성하지 않고 EXPIRED를 돌려준다")
+  void regenerateSpeech_deletedByPolicy_returnsExpiredWithoutSynthesis() {
+    npcTurn.deleteNpcAudio(Instant.parse("2026-10-28T00:00:00Z"));
+    entityManager.flush();
+
+    SpeechResponse response =
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
+    assertThat(response.url()).isNull();
+    then(aiWorkerClient).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
+  }
+
+  @Test
   @DisplayName("음성 파일이 없는 턴, 사용자 턴, 다른 사용자의 턴은 다시 듣기에서 NOT_FOUND다")
   void npcSpeech_unavailableTurns_throwNotFound() {
     Turn userTurn = textTurn(entityManager, conversation, 2, "A latte, please.");

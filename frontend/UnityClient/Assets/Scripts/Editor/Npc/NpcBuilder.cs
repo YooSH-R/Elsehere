@@ -311,7 +311,7 @@ namespace A305.EditorTools.Npc
             );
         }
 
-        /// <summary>대화 제안 화면. 화면 아래에 행인이 건넨 말과 [대화하기]·[지금은 안 할래요]를 둔다.</summary>
+        /// <summary>대화 제안 화면. 화면 아래에 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요]를 둔다.</summary>
         private static void SetUpOffer(GameObject root)
         {
             UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 110, receivesClicks: true);
@@ -325,13 +325,14 @@ namespace A305.EditorTools.Npc
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            UiBuilderTools.FindOrCreateText(
+            // 머리말은 제안할 때 말을 건 NPC 이름으로 바꾼다. 여기 문구는 씬 화면에서 자리만 보여 준다.
+            TMP_Text hint = UiBuilderTools.FindOrCreateText(
                 panel,
                 "Hint",
                 regular,
                 22f,
                 new Color(0.8f, 0.82f, 0.86f),
-                "행인이 말을 걸었어요"
+                PasserbyOfferText.Hint(null)
             );
             TMP_Text greeting = UiBuilderTools.FindOrCreateText(
                 panel,
@@ -355,6 +356,7 @@ namespace A305.EditorTools.Npc
             );
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
+            BuilderTools.SetReference(view, "hintLabel", hint);
             BuilderTools.SetReference(view, "greetingLabel", greeting);
             BuilderTools.SetReference(view, "acceptButton", accept);
             BuilderTools.SetReference(view, "declineButton", decline);

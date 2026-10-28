@@ -5,6 +5,7 @@
         "A305.Api",
         "A305.Player",
         "A305.Voice",
+        "Unity.InputSystem",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

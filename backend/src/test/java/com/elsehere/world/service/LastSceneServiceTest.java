@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.elsehere.TestcontainersConfiguration;
+import com.elsehere.ai.service.AiStatusService;
 import com.elsehere.bootstrap.service.BootstrapService;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
+import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.world.dto.LastSceneResponse;
@@ -31,7 +33,9 @@ import org.springframework.context.annotation.Import;
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
   LastSceneService.class,
-  BootstrapService.class
+  BootstrapService.class,
+  AiStatusService.class,
+  GuestConversationLimit.class
 })
 class LastSceneServiceTest {
 

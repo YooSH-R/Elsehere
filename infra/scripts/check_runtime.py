@@ -114,7 +114,7 @@ def main():
         "DB_NAME": "a305_check",
         "DB_USERNAME": "a305_check",
         "DB_PASSWORD": "ci-only-database-password",
-        "JPA_DDL_AUTO": "update",
+        "JPA_DDL_AUTO": "validate",
         "GOOGLE_CLIENT_ID": "ci-only-client.apps.googleusercontent.com",
         "GOOGLE_CLIENT_SECRET": "ci-only-google-secret",
         "AI_WORKER_TOKEN": "ci-only-internal-token",
@@ -141,11 +141,7 @@ def main():
                 "infra/compose/compose.app.yaml",
                 "config",
                 "--quiet",
-                env={
-                    **environment,
-                    "BACKEND_HOST_PORT": port,
-                    "JPA_DDL_AUTO": "update" if example == "dev" else "validate",
-                },
+                env={**environment, "BACKEND_HOST_PORT": port},
             )
         docker(*compose, "config", "--quiet", env=environment)
         docker(

@@ -42,6 +42,7 @@ import com.elsehere.memory.service.MemoryService;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,6 +57,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 class ConversationServiceTest {
 
   private static final byte[] WAV = {82, 73, 70, 70};
+
+  // DialogueServiceTest에 설정한 elsehere.guest.conversation-limit
+  private static final int GUEST_CONVERSATION_LIMIT = 2;
 
   @Autowired private ConversationService conversationService;
 
@@ -72,6 +76,8 @@ class ConversationServiceTest {
   @Autowired private AiRequestRepository aiRequestRepository;
 
   @Autowired private EntityManager entityManager;
+
+  @Autowired private Clock clock;
 
   private Long userId;
 
@@ -211,6 +217,39 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("게스트는 정해진 횟수만큼 대화를 시작하면 더 시작할 수 없고 AI_QUOTA_EXHAUSTED로 거절된다")
+  void start_guestReachedLimit_throwsQuotaExhausted() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
+      startAndEndPasserby(guestId);
+    }
+
+    assertThatThrownBy(() -> startAndEndPasserby(guestId))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> {
+              assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_QUOTA_EXHAUSTED);
+              assertThat(exception.getDetails())
+                  .containsEntry("aiStatus", "AI_EXHAUSTED")
+                  .containsEntry(
+                      "allowedFeatures",
+                      List.of("WORLD_EXPLORE", "OBJECT_CARD", "VOCABULARY", "SAVED_RECORDS"));
+            });
+    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT);
+  }
+
+  @Test
+  @DisplayName("가입 사용자는 게스트 한도보다 많이 대화를 시작할 수 있다")
+  void start_memberBeyondGuestLimit_starts() {
+    for (int i = 0; i <= GUEST_CONVERSATION_LIMIT; i++) {
+      startAndEndPasserby(userId);
+    }
+
+    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT + 1);
+  }
+
+  @Test
   @DisplayName("대화를 끝내면 ENDED_BY_USER와 사용자 발화 수, 피드백을 돌려주고 NPC 기억을 갱신한다")
   void end_savesEndAndReturnsFeedback() {
     ConversationStartResponse started = startPasserby();
@@ -305,6 +344,18 @@ class ConversationServiceTest {
   private ConversationStartResponse startPasserby() {
     return conversationService.start(
         userId, new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
+  }
+
+  // 피드백·기억 갱신 없이 대화만 끝낸다. 대화 횟수 제한은 끝난 대화도 센다.
+  private void startAndEndPasserby(Long ownerId) {
+    ConversationStartResponse started =
+        conversationService.start(
+            ownerId,
+            new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
+    conversationRepository
+        .findById(started.conversationId())
+        .orElseThrow()
+        .endByUser(clock.instant());
   }
 
   private ConversationStartResponse startCafe() {

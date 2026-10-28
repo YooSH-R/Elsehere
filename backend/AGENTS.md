@@ -12,12 +12,12 @@
 
 - 엔티티는 `com.elsehere.common.entity.BaseEntity`를 상속합니다. 생성·수정 시각(`created_at`, `updated_at`)은 JPA Auditing이 `Clock` 빈 기준으로 기록하며, 식별자는 각 엔티티에서 선언합니다.
 - 패키지는 `com.elsehere.<도메인>` 아래에 `controller`, `service`, `repository`, `entity`를 둡니다. 도메인별 테이블은 [백엔드 README](README.md#패키지-구조)에 있습니다.
-- 엔티티의 테이블·컬럼 이름, 길이, NOT NULL, 기본값, 유니크·인덱스를 ERD와 맞추고, 엔티티를 바꾸면 ERD도 함께 수정합니다.
+- 엔티티의 테이블·컬럼 이름, 길이, NOT NULL, 기본값, 유니크·인덱스를 ERD와 맞추고, 엔티티를 바꾸면 ERD와 함께 `src/main/resources/db/migration`에 다음 순번의 마이그레이션 SQL을 추가합니다. 병합된 마이그레이션 파일은 고치지 않습니다. 작성 기준은 [백엔드 README](README.md#스키마-관리)를 따릅니다.
 - 다른 담당 영역의 테이블(users, conversations, turns)은 연관관계 없이 `Long` ID로만 참조합니다.
 - `saved_at`, `started_at`처럼 업무에 쓰는 시각은 `created_at`과 별도 컬럼으로 두고, 값을 넣는 코드에서 `Clock` 기준으로 채웁니다.
 - 새 테이블의 엔티티를 만들면 `EntitySchemaTest`의 테이블 목록에 추가합니다.
 - 장소·NPC·사물·어휘·미션 같은 기본 데이터는 `src/main/resources/db/seed/world.sql`에 추가합니다. 방식은 [백엔드 README](README.md#시드-데이터)를 따릅니다.
-- 공용 사물 어휘의 편집 원본은 `frontend/UnityClient/Assets/Data/ObjectHover/Words/`의 Unity 에셋입니다. Unity의 `Tools/A305/ObjectHover/Export Backend Data` 또는 저장소 루트의 `infra/scripts/sync-object-words.ps1`로 `content/object-words.json`, `content/object-word-bindings.json`, SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 생성 파일은 직접 편집하지 않습니다. `-Check`는 Unity Editor로 에셋과 생성 결과를 비교합니다. 씬·프리팹 연결 JSON은 서버 연동용 전달 자료이며 현재 시드 로더가 읽는 파일은 SQL입니다.
+- 공용 사물 어휘의 편집 원본은 `frontend/UnityClient/Assets/Data/ObjectHover/Words/`의 Unity 에셋입니다. Unity의 `Tools/A305/ObjectHover/Export Backend Data` 또는 저장소 루트의 `infra/scripts/sync-object-words.ps1`로 `content/object-words.json`, `content/object-word-bindings.json`, SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 생성 파일은 직접 편집하지 않습니다. `-Check`는 Unity Editor로 에셋과 생성 결과를 비교합니다. 시드 로더는 SQL을 실행한 뒤 단어 JSON으로 `vocabularies.word_key`를, 씬·프리팹 연결 JSON으로 `scene_words`를 채우고, `content/pronunciation/{공용 키}.wav` 파일이 있는 단어에 발음 키를 넣습니다.
 
 ## 인증과 오류
 

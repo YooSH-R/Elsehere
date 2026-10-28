@@ -21,14 +21,14 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리합니다. 저장소
 
 | 용도 | 주소 | 적용 범위 |
 | --- | --- | --- |
-| 개발 앱 | `https://dev.elsehere.kr/` | Unity WebGL·백엔드·AI 워커·DB를 수동 배포한 환경 |
+| 개발 앱 | `https://dev.elsehere.kr/` | Unity WebGL·백엔드·AI 워커·DB. `dev` 변경의 검사·자동 배포 대상 |
 | 개발 상태 확인 | `https://dev.elsehere.kr/api/health` | HTTP 200과 `status: UP` 확인. 로그인·주요 기능의 정상 동작은 별도 검증 |
 | 운영 | `https://elsehere.kr/`, `https://www.elsehere.kr/` | 환경 확인용 응답. 실제 운영 앱 배포 전 |
 | 서버 접속 | `ubuntu@k15a305.p.ssafy.io` | 키를 사용하는 SSH 접속과 관리 화면 터널 |
 
 새 개발 주소에는 `/dev` 접두사를 붙이지 않습니다. 기존 `k15a305.p.ssafy.io`의 경로 기반 주소는 호환을 위해 유지하며 신규 접속 기준은 `dev.elsehere.kr`입니다.
 
-현재 개발 앱은 수동 배포본입니다. dev 자동 배포는 별도 연결·실행 검증 중이며, `dev` 병합만으로 서버가 최신이라고 판단하지 않습니다. 배포된 웹 커밋은 `/version.json`으로 확인하고 백엔드·AI 이미지도 함께 확인합니다. 검사·배포 기준은 [CI/CD 문서](docs/ci-cd.md), 서버 로그·관리 화면·경보는 [관측 운영 문서](docs/observability.md)를 따릅니다.
+`dev` 변경은 필요한 영역의 검사·빌드가 통과하면 자동 배포하며, 배포 후 점검에 성공해야 성공 기록을 갱신합니다. 병합만으로 서버가 최신이라고 판단하지 않고 [배포 결과](docs/dev-auto-deployment.md)를 확인합니다. 웹 커밋은 `/version.json`으로 확인하고 백엔드·AI 이미지도 함께 대조합니다. 검사·배포 기준은 [CI/CD 문서](docs/ci-cd.md), HTTPS·갱신·브라우저 검증은 [HTTPS 운영 문서](docs/https.md), 서버 로그·관리 화면·경보는 [관측 운영 문서](docs/observability.md)를 따릅니다.
 
 ## 담당 영역
 
@@ -87,9 +87,12 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [AI 코드·문서 작성 지침](AGENTS.md)
 - [AI 공통 검사와 테스트](ai/README.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
+- [HTTPS와 인증서 운영](docs/https.md)
+- [Nginx 요청 보호 정책과 이용량 측정](docs/traffic-protection.md)
 - [Jira와 GitLab 연동](docs/jira-integration.md)
 - [단일 서버의 개발·운영 구성](docs/deployment.md)
 - [개발·운영 서버 운영 방법](docs/server-operations.md)
+- [main 운영 배포와 복구](docs/prod-deployment.md)
 - [일반 MR 템플릿](.gitlab/merge_request_templates/Default.md)
 - [릴리스 MR 템플릿](.gitlab/merge_request_templates/Release.md)
 - [검사 파이프라인과 Runner 연결](docs/ci-runner.md)

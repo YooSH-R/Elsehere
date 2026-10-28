@@ -28,17 +28,18 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
-        public async Task GuestLogin_PostsToGuestStart()
+        public async Task GuestLogin_PostsChosenCharacterToGuestStart()
         {
-            transport.Reply("{\"user\": {\"userId\": 3, \"nickname\": \"게스트123456\"}}");
+            transport.Reply("{\"user\": {\"userId\": 3, \"nickname\": \"guest-123456\"}}");
 
-            await api.GuestLoginAsync();
+            await api.GuestLoginAsync(AvatarType.M);
 
             Assert.That(transport.LastRequest.Method, Is.EqualTo("POST"));
             Assert.That(
                 transport.LastRequest.Url,
                 Is.EqualTo("http://localhost:8080/api/v1/auth/guest")
             );
+            Assert.That(transport.LastRequest.JsonBody, Is.EqualTo("{\"avatarType\":\"M\"}"));
         }
 
         [Test]

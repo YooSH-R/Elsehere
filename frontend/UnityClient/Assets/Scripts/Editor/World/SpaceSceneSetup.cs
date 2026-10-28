@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.Dialogue;
@@ -8,6 +9,7 @@ using A305.EditorTools.Mission;
 using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.EditorTools.Player;
+using A305.EditorTools.Theme;
 using A305.EditorTools.Tutorial;
 using A305.Learning;
 using A305.Mission;
@@ -29,6 +31,17 @@ namespace A305.EditorTools.World
     public static class SpaceSceneSetup
     {
         public const string MenuPath = "Tools/A305/World/Set Up Open Scene";
+
+        private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
+
+        private static readonly string[] ProductionSpaceScenes =
+        {
+            "HomeScene",
+            "TownScene",
+            "CafeScene",
+            "HotelScene",
+            "ShopScene",
+        };
 
         /// <summary>열려 있는 씬에 기능 연결을 적용하고 저장한 뒤 Scene List에 추가한다.</summary>
         [MenuItem(MenuPath)]
@@ -60,7 +73,11 @@ namespace A305.EditorTools.World
             NpcBuilder.PrepareAssets();
             LearningBuilder.PrepareAssets();
             MissionBuilder.PrepareAssets();
+            FirstDayMissionBuilder.PrepareAssets();
             TutorialBuilder.PrepareAssets();
+            // 화면 테마는 위 기능 화면 프리팹이 준비된 뒤에 붙인다.
+            UiThemeBuilder.PrepareAssets();
+            UiThemeBuilder.StyleFeaturePrefabs();
         }
 
         /// <summary>
@@ -126,6 +143,7 @@ namespace A305.EditorTools.World
 
             BuilderTools.SetReference(arrival, "player", player);
             BuilderTools.SetReference(arrival, "cameraRig", cameraRig);
+            ConnectArrivalToApi(arrival);
             BuilderTools.RequireReferences(arrival);
 
             ObjectHoverBuilder.ConnectToScene(groups, player, cameraRig);
@@ -133,9 +151,51 @@ namespace A305.EditorTools.World
             NpcBuilder.ConnectToScene(groups, player, dialogue);
             LearningController learning = LearningBuilder.ConnectToScene(groups, player, dialogue);
             MissionController mission = MissionBuilder.ConnectToScene(groups, dialogue);
+            FirstDayMissionBuilder.ConnectToScene(groups, dialogue, player);
             TutorialBuilder.ConnectToScene(groups, player, dialogue, learning, mission);
+            // 화면 테마는 처음 시작하는 집에서만 고른다.
+            if (scene.name == "HomeScene")
+                UiThemeBuilder.ConnectPicker(groups);
 
             EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        /// <summary>
+        /// 배포용 장소 씬의 도착 처리에 API 서버 설정만 연결한다. 디자인한 씬의 다른 객체는 건드리지 않는다.
+        /// </summary>
+        [MenuItem("Tools/A305/World/Connect Last Scene Saving")]
+        public static void ConnectLastSceneSaving()
+        {
+            BuilderTools.ThrowIfPlaying();
+            foreach (string name in ProductionSpaceScenes)
+            {
+                string path = "Assets/Scenes/Production/" + name + ".unity";
+                Scene scene = EditorSceneManager.OpenScene(path);
+                var arrival = BuilderTools.FindSingleInScene<SpaceArrival>(scene);
+                if (arrival == null)
+                {
+                    throw new InvalidOperationException(
+                        $"{path}에 SpaceArrival이 없습니다. {MenuPath}를 먼저 실행합니다."
+                    );
+                }
+
+                ConnectArrivalToApi(arrival);
+                BuilderTools.SaveScene(scene, path);
+            }
+
+            Debug.Log("배포용 장소 씬 5개의 도착 처리에 재접속 위치 저장을 연결했습니다.");
+        }
+
+        private static void ConnectArrivalToApi(SpaceArrival arrival)
+        {
+            BuilderTools.SetReference(
+                arrival,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(
+                    ApiSettingsPath,
+                    A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
+                )
+            );
         }
 
         // 루트에 놓인 디자인 객체가 어느 그룹에 속하는지는 알 수 없으므로 옮기지 않고 알린다.

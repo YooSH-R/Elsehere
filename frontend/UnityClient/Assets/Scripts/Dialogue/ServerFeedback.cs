@@ -10,13 +10,18 @@ namespace A305.Dialogue
         public ServerFeedback(
             FeedbackData summary,
             IReadOnlyList<DetailedFeedbackItem> details,
-            string failureMessage
+            string failureMessage,
+            long? conversationId = null
         )
         {
             Summary = summary;
             Details = details ?? new List<DetailedFeedbackItem>();
             FailureMessage = failureMessage;
+            ConversationId = conversationId;
         }
+
+        /// <summary>피드백을 만든 대화. [다시 만들기](FB-02)가 쓴다.</summary>
+        public long? ConversationId { get; }
 
         /// <summary>짧은 피드백. 종료 요청이 실패했으면 null이다.</summary>
         public FeedbackData Summary { get; }
@@ -24,7 +29,7 @@ namespace A305.Dialogue
         /// <summary>사용자 발화별 상세 평가. 받지 못했으면 빈 목록이다.</summary>
         public IReadOnlyList<DetailedFeedbackItem> Details { get; }
 
-        /// <summary>종료 요청이 실패한 이유. 성공했으면 null이다.</summary>
+        /// <summary>종료나 다시 만들기 요청이 실패한 이유. 성공했으면 null이다.</summary>
         public string FailureMessage { get; }
     }
 }

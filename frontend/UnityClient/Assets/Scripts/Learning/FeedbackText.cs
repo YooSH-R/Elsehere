@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Text;
+using A305.Dialogue;
 
 namespace A305.Learning
 {
@@ -9,6 +11,26 @@ namespace A305.Learning
     {
         private const string ServerNotice =
             "AI가 대화를 보고 만든 피드백이에요. 점수가 아니라 다음 대화를 위한 참고예요.";
+
+        /// <summary>
+        /// [대화 기록 보기]의 본문. 피드백을 받지 못했어도 방금 나눈 대화는 볼 수 있게 대화 화면과 같은 형식으로 보여 준다.
+        /// </summary>
+        public static string Transcript(string npcName, IReadOnlyList<DialogueLine> lines)
+        {
+            if (lines.Count == 0)
+            {
+                return "주고받은 대화가 없어요.";
+            }
+
+            var text = new StringBuilder();
+            foreach (DialogueLine line in lines)
+            {
+                string speaker = line.IsNpc ? npcName : "나";
+                text.AppendLine($"<b>{speaker}</b>  {line.English}");
+            }
+
+            return text.ToString().TrimEnd();
+        }
 
         public static string Short(ConversationFeedback feedback)
         {

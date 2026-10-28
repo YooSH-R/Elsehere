@@ -64,6 +64,15 @@ namespace A305.Dialogue
             );
         }
 
+        // 피드백을 새로 만들면 종료 때처럼 오래 걸릴 수 있어 대기 시간이 긴 클라이언트를 쓴다.
+        public Task<FeedbackData> RegenerateFeedbackAsync(long conversationId, string requestId)
+        {
+            return feedbackClient.PostAsync<FeedbackData>(
+                $"/api/v1/conversations/{conversationId}/feedback",
+                new RequestIdBody { RequestId = requestId }
+            );
+        }
+
         public Task<DetailedFeedback> GetDetailedFeedbackAsync(
             long conversationId,
             string requestId
@@ -103,6 +112,22 @@ namespace A305.Dialogue
         {
             return client.PostAsync<SpeechData>(
                 $"/api/v1/turns/{turnId}/speech",
+                new RequestIdBody { RequestId = requestId }
+            );
+        }
+
+        public Task<MeaningData> GetMeaningAsync(long turnId, string requestId)
+        {
+            return client.PostAsync<MeaningData>(
+                $"/api/v1/turns/{turnId}/meaning",
+                new RequestIdBody { RequestId = requestId }
+            );
+        }
+
+        public Task<HintData> GetHintAsync(long turnId, string requestId)
+        {
+            return client.PostAsync<HintData>(
+                $"/api/v1/turns/{turnId}/hint",
                 new RequestIdBody { RequestId = requestId }
             );
         }

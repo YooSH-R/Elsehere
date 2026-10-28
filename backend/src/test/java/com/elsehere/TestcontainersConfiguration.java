@@ -36,7 +36,7 @@ public class TestcontainersConfiguration {
             DriverManager.getConnection(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         Statement statement = connection.createStatement()) {
-      // DB를 나눠 각 환경의 Hibernate create-drop과 트랜잭션 밖의 쓰기를 서로 격리한다.
+      // DB를 나눠 각 환경의 스키마 생성(Flyway 마이그레이션, create-drop)과 트랜잭션 밖의 쓰기를 서로 격리한다.
       statement.execute("CREATE DATABASE " + databaseName);
     }
 

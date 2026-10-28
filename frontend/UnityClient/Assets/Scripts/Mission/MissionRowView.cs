@@ -30,20 +30,7 @@ namespace A305.Mission
             missionCode = mission.Code;
             titleText.text = $"{mission.PlaceName} · <b>{mission.Title}</b>";
             descriptionText.text = mission.Description;
-
-            if (isCompleted)
-            {
-                statusText.text = "미션 완료";
-            }
-            else if (isActive)
-            {
-                statusText.text = "진행 중 · 대화에서 해 보면 완료돼요";
-            }
-            else
-            {
-                statusText.text = "시작 전";
-            }
-
+            statusText.text = MissionText.Status(mission, isActive, isCompleted);
             startButton.gameObject.SetActive(!isActive && !isCompleted);
         }
 

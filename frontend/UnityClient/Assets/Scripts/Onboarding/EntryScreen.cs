@@ -9,6 +9,9 @@ namespace A305.Onboarding
         /// <summary>화면 02 가입 정보 입력</summary>
         Signup,
 
+        /// <summary>게스트로 시작하기 전 캐릭터 선택. 서버 상태와 관계없이 화면 01에서만 들어온다.</summary>
+        GuestCharacter,
+
         /// <summary>화면 03 배울 언어 선택</summary>
         Language,
 
@@ -23,5 +26,8 @@ namespace A305.Onboarding
 
         /// <summary>초기 설정을 마친 사용자의 마을</summary>
         World,
+
+        /// <summary>접속 상태를 확인하지 못해 [다시 시도]를 기다리는 화면</summary>
+        ConnectionFailed,
     }
 }

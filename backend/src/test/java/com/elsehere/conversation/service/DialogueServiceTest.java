@@ -8,7 +8,10 @@ import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.feedback.service.FeedbackService;
+import com.elsehere.feedback.service.ModelSpeechService;
+import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.mission.service.FirstDayMissionService;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -34,7 +37,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @DataJpaTest(
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "elsehere.npc-audio.dir=build/test-npc-audio"
+      "elsehere.npc-audio.dir=build/test-npc-audio",
+      "elsehere.guest.conversation-limit=2"
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @ImportAutoConfiguration(JacksonAutoConfiguration.class)
@@ -44,14 +48,21 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
   ConversationService.class,
+  ConversationHistoryService.class,
   TurnService.class,
   SpeechService.class,
+  TurnHelpService.class,
   ConversationSupport.class,
+  GuestConversationLimit.class,
   NpcAudioStore.class,
+  NpcAudioRetention.class,
   WorkerNpcs.class,
   AiRequestRecorder.class,
   FeedbackService.class,
-  MemoryService.class
+  ModelSpeechService.class,
+  ModelSpeechStore.class,
+  MemoryService.class,
+  FirstDayMissionService.class
 })
 @MockitoBean(types = AiWorkerClient.class)
 public @interface DialogueServiceTest {}

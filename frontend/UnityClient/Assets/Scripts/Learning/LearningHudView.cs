@@ -19,15 +19,31 @@ namespace A305.Learning
         private TMP_Text vocabularyButtonLabel;
 
         [SerializeField]
+        [Tooltip("아이콘 버튼 위 숫자 배지의 글자. 비워 두면 버튼 이름에 개수를 붙인다.")]
+        private TMP_Text vocabularyCountText;
+
+        [SerializeField]
         private TMP_Text messageText;
+
+        [SerializeField]
+        [Tooltip("알림과 함께 보이고 숨는 바탕. 비워 두면 알림 글자만 보이고 숨는다.")]
+        private GameObject messageBox;
 
         private float messageHideTime;
 
         public event Action VocabularyRequested;
 
+        /// <summary>숫자 배지가 있으면 버튼 이름은 그대로 두고 배지에 개수를 보인다. 모은 표현이 없으면 배지를 숨긴다.</summary>
         public void SetVocabularyCount(int count)
         {
-            vocabularyButtonLabel.text = $"단어장 {count}";
+            if (vocabularyCountText == null)
+            {
+                vocabularyButtonLabel.text = $"단어장 {count}";
+                return;
+            }
+            vocabularyButtonLabel.text = "단어장";
+            vocabularyCountText.text = count.ToString();
+            vocabularyCountText.transform.parent.gameObject.SetActive(count > 0);
         }
 
         /// <summary>대화 중에는 단어장을 열 수 없게 한다. 단어장의 이동 잠금이 대화의 이동 잠금을 풀지 않게 하기 위함이다.</summary>
@@ -39,21 +55,23 @@ namespace A305.Learning
         public void ShowMessage(string message)
         {
             messageText.text = message;
-            messageText.gameObject.SetActive(true);
+            MessageBox.SetActive(true);
             messageHideTime = Time.unscaledTime + MessageSeconds;
         }
 
         private void Awake()
         {
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
-            messageText.gameObject.SetActive(false);
+            MessageBox.SetActive(false);
         }
+
+        private GameObject MessageBox => messageBox != null ? messageBox : messageText.gameObject;
 
         private void Update()
         {
-            if (messageText.gameObject.activeSelf && Time.unscaledTime >= messageHideTime)
+            if (MessageBox.activeSelf && Time.unscaledTime >= messageHideTime)
             {
-                messageText.gameObject.SetActive(false);
+                MessageBox.SetActive(false);
             }
         }
     }

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using A305.Player;
 using A305.Voice;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace A305.Dialogue
 {
@@ -42,6 +43,9 @@ namespace A305.Dialogue
         /// <summary>대화가 끝나면 끝난 NPC 키(ERD npcs.code)를 알린다.</summary>
         public event Action<string> Ended;
 
+        /// <summary>서버가 NPC 턴을 확정한 뒤 미션 등 읽기 전용 상태를 갱신할 때 쓴다.</summary>
+        public event Action NpcResponded;
+
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
         /// 받는 쪽이 피드백 화면을 열며 이동을 다시 잠가도 풀리지 않는다.
@@ -52,6 +56,22 @@ namespace A305.Dialogue
         public event Action<string, string> ExpressionSaveRequested;
 
         public bool IsTalking => session.IsActive;
+
+        /// <summary>
+        /// 대본에 적힌 NPC 이름. 대화 제안처럼 대화를 시작하기 전에 누가 말을 거는지 보일 때 쓴다. 대본이 없으면 null이다.
+        /// </summary>
+        public string FindNpcName(string npcCode)
+        {
+            if (
+                scriptSource == null
+                || !scriptSource.TryGetScript(npcCode, out DialogueScript script)
+            )
+            {
+                return null;
+            }
+
+            return script.NpcName;
+        }
 
         /// <param name="npcCode">대화할 NPC 키(ERD npcs.code)</param>
         /// <param name="lookTarget">대화 시점에서 바라볼 NPC 머리 위치</param>
@@ -105,6 +125,32 @@ namespace A305.Dialogue
             Finish(conversation.ToRecord());
         }
 
+        /// <summary>
+        /// 만들지 못한 피드백을 다시 만든다(FB-02). 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려준다.
+        /// </summary>
+        public Task<ServerFeedback> RegenerateFeedbackAsync(ServerFeedback failed)
+        {
+            if (conversationApi == null || failed?.ConversationId == null)
+            {
+                return Task.FromResult(failed);
+            }
+
+            return new FeedbackRegenerator(conversationApi).RegenerateAsync(failed);
+        }
+
+        // 기능 명세 F-23의 [대화 종료 (Esc)]. 피드백을 기다리는 중에 다시 눌러도 End가 한 번만 처리한다.
+        private void Update()
+        {
+            if (
+                session.IsActive
+                && Keyboard.current != null
+                && Keyboard.current.escapeKey.wasPressedThisFrame
+            )
+            {
+                End();
+            }
+        }
+
         private void Awake()
         {
             if (player == null || cameraRig == null || panel == null || scriptSource == null)
@@ -134,6 +180,9 @@ namespace A305.Dialogue
             panel.TalkPressed += StartRecording;
             panel.TalkReleased += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.MeaningRequested += RequestMeaning;
+            panel.HintRequested += RequestHint;
+            panel.RetryRequested += Retry;
         }
 
         private void OnDestroy()
@@ -152,6 +201,9 @@ namespace A305.Dialogue
                 panel.TalkPressed -= StartRecording;
                 panel.TalkReleased -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.MeaningRequested -= RequestMeaning;
+                panel.HintRequested -= RequestHint;
+                panel.RetryRequested -= Retry;
             }
         }
 
@@ -226,9 +278,35 @@ namespace A305.Dialogue
 
         private void PlayNpcSpeech(NpcTurnData turn)
         {
+            NpcResponded?.Invoke();
             if (turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
+            }
+        }
+
+        // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).
+        private void RequestMeaning()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RequestMeaningAsync();
+            }
+        }
+
+        private void RequestHint()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RequestHintAsync();
+            }
+        }
+
+        private void Retry()
+        {
+            if (serverConversation != null)
+            {
+                _ = serverConversation.RetryAsync();
             }
         }
 
@@ -264,6 +342,7 @@ namespace A305.Dialogue
             {
                 serverLink.StopSpeech();
                 serverLink.VoiceRecorder.StartRecording();
+                serverConversation.ShowListening(serverLink.VoiceRecorder.MaxRecordingSeconds);
             }
         }
 
@@ -277,18 +356,24 @@ namespace A305.Dialogue
 
         private void TranscribeRecording(RecordedVoice voice)
         {
-            // 마이크가 열리기 전에 버튼을 뗐으면 받은 소리가 없다.
-            if (serverConversation == null || voice.Samples.Length == 0)
+            if (serverConversation == null)
             {
                 return;
             }
 
-            _ = TranscribeAsync(serverConversation, voice.WavBytes);
+            // 마이크가 열리기 전에 버튼을 뗐으면 받은 소리가 없다.
+            if (voice.Samples.Length == 0)
+            {
+                serverConversation.ShowMessage(VoiceInputNotice.TooShort);
+                return;
+            }
+
+            _ = TranscribeAsync(serverConversation, voice);
         }
 
-        private async Task TranscribeAsync(ServerConversation target, byte[] wav)
+        private async Task TranscribeAsync(ServerConversation target, RecordedVoice voice)
         {
-            string transcript = await target.TranscribeAsync(wav);
+            string transcript = await target.TranscribeAsync(voice.WavBytes, voice.EndReason);
             if (this != null && !string.IsNullOrEmpty(transcript) && target == serverConversation)
             {
                 panel.SetInputText(transcript);
@@ -299,9 +384,7 @@ namespace A305.Dialogue
         {
             if (access != MicrophoneAccess.Granted)
             {
-                serverConversation?.ShowMessage(
-                    "마이크를 쓸 수 없어요. 대화는 텍스트로 입력해 주세요."
-                );
+                serverConversation?.ShowMessage(VoiceInputNotice.MicrophoneUnavailable(access));
             }
         }
 

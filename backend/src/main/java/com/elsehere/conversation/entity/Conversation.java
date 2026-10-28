@@ -15,6 +15,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * NPC 자유 대화 세션. 튜토리얼 대본 대화는 기록하지 않는다.
@@ -46,7 +48,8 @@ public class Conversation extends BaseEntity {
   @Column(nullable = false, length = 10)
   private InitiatedBy initiatedBy;
 
-  @Column(nullable = false, columnDefinition = "smallint")
+  @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
   private Integer levelApplied;
 
   @Enumerated(EnumType.STRING)
@@ -58,7 +61,8 @@ public class Conversation extends BaseEntity {
   private ConversationEndReason endReason;
 
   @ColumnDefault("0")
-  @Column(nullable = false, columnDefinition = "smallint")
+  @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
   private Integer rudeCount;
 
   @ColumnDefault("now()")
@@ -66,6 +70,12 @@ public class Conversation extends BaseEntity {
   private Instant startedAt;
 
   private Instant endedAt;
+
+  private Integer firstDayStage;
+
+  public void attachFirstDayStage(Integer stage) {
+    this.firstDayStage = stage;
+  }
 
   public static Conversation start(
       Long userId, Long npcId, InitiatedBy initiatedBy, int level, Instant now) {

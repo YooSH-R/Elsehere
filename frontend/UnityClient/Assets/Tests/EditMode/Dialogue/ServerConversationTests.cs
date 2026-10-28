@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Voice;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -412,6 +413,179 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_WhenAiIsTemporarilyUnavailable_OffersRetry()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException(
+                    "AI_TEMPORARILY_UNAVAILABLE",
+                    503,
+                    "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+                )
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.CanRetry, Is.True);
+            Assert.That(conversation.RecoveryGuide, Does.Contain("[다시 시도]"));
+        }
+
+        [Test]
+        public async Task Retry_AfterStartFailed_StartsConversation()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException(ApiErrorCodes.NetworkError, 0, "서버에 연결하지 못했습니다.")
+            );
+            await conversation.StartAsync();
+
+            await conversation.RetryAsync();
+
+            Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.RecoveryGuide, Is.Null);
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public async Task Retry_AfterStartFailed_ReusesStartRequestId()
+        {
+            // 첫 요청이 서버에서는 처리됐는데 응답만 못 받았을 수 있어 같은 요청 ID로 다시 보낸다(API 명세 1.3).
+            api.StartErrors.Enqueue(
+                new ApiException(ApiErrorCodes.NetworkError, 0, "서버에 연결하지 못했습니다.")
+            );
+            await conversation.StartAsync();
+
+            await conversation.RetryAsync();
+
+            Assert.That(api.Starts[1].RequestId, Is.EqualTo(api.Starts[0].RequestId));
+        }
+
+        [Test]
+        public async Task Retry_AfterTurnFailed_ResendsSameTextWithSameRequestId()
+        {
+            await conversation.StartAsync();
+            api.TurnError = new ApiException(
+                "AI_RESPONSE_INVALID",
+                502,
+                "AI 응답을 처리하지 못했습니다."
+            );
+            await conversation.SendAsync(Order);
+            api.TurnError = null;
+
+            await conversation.RetryAsync();
+
+            Assert.That(api.Turns, Has.Count.EqualTo(2));
+            Assert.That(api.Turns[1].Text, Is.EqualTo(Order));
+            Assert.That(api.Turns[1].RequestId, Is.EqualTo(api.Turns[0].RequestId));
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.TakeTextToRestore(), Is.Null);
+        }
+
+        [Test]
+        public async Task Start_WhenQuotaIsExhausted_GuidesToEndInsteadOfRetry()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException(
+                    "AI_QUOTA_EXHAUSTED",
+                    429,
+                    "AI 사용량을 모두 사용했습니다. 마을 탐험, 사물 카드, 단어장은 계속할 수 있습니다."
+                )
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.RecoveryGuide, Does.Contain("[대화 종료]"));
+        }
+
+        [Test]
+        public async Task Transcribe_WhenNoSpeechIsHeard_GuidesToSpeakAgainOrType()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionError = new ApiException(
+                "STT_NO_SPEECH",
+                422,
+                "말소리를 알아듣지 못했어요."
+            );
+
+            await conversation.TranscribeAsync(Wav);
+
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.RecoveryGuide, Does.Contain("다시 말하거나"));
+        }
+
+        [Test]
+        public async Task Send_WhenQuotaRunsOutDuringConversation_ExplainsWhyNpcEnded()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(
+                Order,
+                "Oh, something urgent just came up. Let's talk next time!",
+                "ENDED_BY_NPC"
+            );
+            api.TurnResponse.Conversation.EndReason = "QUOTA_EXHAUSTED";
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("AI 사용량"));
+            Assert.That(conversation.StatusMessage, Does.Contain("[대화 종료]"));
+            Assert.That(conversation.RecoveryGuide, Does.Contain("단어장"));
+        }
+
+        [Test]
+        public void ShowListening_AsksToSpeakAndTellsMaximumLength()
+        {
+            conversation.ShowListening(15f);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("듣고 있어요"));
+            Assert.That(conversation.StatusMessage, Does.Contain("15초"));
+        }
+
+        [Test]
+        public async Task Transcribe_AfterButtonReleased_AsksToCheckSentenceBeforeSending()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            await conversation.TranscribeAsync(Wav, RecordingEndReason.UserStopped);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("[보내기]"));
+        }
+
+        [Test]
+        public async Task Transcribe_AfterRecordingTimeRanOut_SaysWhyRecordingStopped()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            await conversation.TranscribeAsync(Wav, RecordingEndReason.MaxDuration);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("녹음 시간이 다 되어"));
+            Assert.That(conversation.StatusMessage, Does.Contain("[보내기]"));
+        }
+
+        [Test]
+        public async Task Transcribe_AfterSilence_SaysWhyRecordingStopped()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            await conversation.TranscribeAsync(Wav, RecordingEndReason.Silence);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("말이 멈춰서"));
+        }
+
+        [Test]
+        public async Task End_KeepsConversationIdForRegeneratingFeedback()
+        {
+            await conversation.StartAsync();
+            api.EndResponse = Ended("FAILED");
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback.ConversationId, Is.EqualTo(ConversationId));
+        }
+
+        [Test]
         public async Task End_WithDoneFeedback_IncludesDetailedFeedback()
         {
             await conversation.StartAsync();
@@ -596,6 +770,163 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task RequestMeaning_ShowsMeaningAndGlossaryOfLastNpcLine()
+        {
+            await conversation.StartAsync();
+            api.Meaning = new MeaningData
+            {
+                TurnId = OpeningTurnId,
+                MeaningKo = "안녕하세요! 무엇을 드릴까요?",
+                Glossary = new List<GlossaryData>
+                {
+                    new GlossaryData { Text = "get", MeaningKo = "주다" },
+                },
+            };
+
+            await conversation.RequestMeaningAsync();
+
+            Assert.That(conversation.HasMeaning, Is.True);
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+            Assert.That(
+                conversation.LastNpcLine.Korean,
+                Is.EqualTo("안녕하세요! 무엇을 드릴까요?")
+            );
+            Assert.That(
+                conversation.Lines[conversation.Lines.Count - 1],
+                Is.SameAs(conversation.LastNpcLine)
+            );
+            Assert.That(conversation.LastNpcGlossary, Has.Count.EqualTo(1));
+            Assert.That(conversation.LastNpcGlossary[0].Text, Is.EqualTo("get"));
+            Assert.That(api.MeaningRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
+        public async Task RequestMeaning_AlreadyShown_DoesNotRequestAgain()
+        {
+            await conversation.StartAsync();
+            api.Meaning = new MeaningData
+            {
+                TurnId = OpeningTurnId,
+                MeaningKo = "안녕하세요! 무엇을 드릴까요?",
+                Glossary = new List<GlossaryData>(),
+            };
+            await conversation.RequestMeaningAsync();
+
+            await conversation.RequestMeaningAsync();
+
+            Assert.That(api.MeaningRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
+        public async Task RequestMeaning_WhenServerFails_ShowsReasonWithoutMeaning()
+        {
+            await conversation.StartAsync();
+            api.MeaningError = new ApiException(
+                "AI_TEMPORARILY_UNAVAILABLE",
+                503,
+                "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+            );
+
+            await conversation.RequestMeaningAsync();
+
+            Assert.That(conversation.LastNpcLine.Korean, Is.Null);
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo("AI가 잠시 응답하지 않습니다. 다시 시도해 주세요.")
+            );
+        }
+
+        [Test]
+        public async Task RequestMeaning_WithoutNpcTurn_DoesNotRequest()
+        {
+            await conversation.RequestMeaningAsync();
+
+            Assert.That(api.MeaningRequestedFor, Is.Empty);
+        }
+
+        [Test]
+        public async Task RequestHint_ShowsHintForLastNpcTurn()
+        {
+            await conversation.StartAsync();
+            api.Hint = new HintData { TurnId = OpeningTurnId, HintText = "An iced latte, please." };
+
+            await conversation.RequestHintAsync();
+
+            Assert.That(conversation.HasHint, Is.True);
+            Assert.That(conversation.HintText, Is.EqualTo("An iced latte, please."));
+            Assert.That(api.HintRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
+        public async Task RequestHint_AlreadyShown_DoesNotRequestAgain()
+        {
+            await conversation.StartAsync();
+            api.Hint = new HintData { TurnId = OpeningTurnId, HintText = "An iced latte, please." };
+            await conversation.RequestHintAsync();
+
+            await conversation.RequestHintAsync();
+
+            Assert.That(api.HintRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+        }
+
+        [Test]
+        public async Task RequestHint_WhenServerFails_ShowsReasonWithoutHint()
+        {
+            await conversation.StartAsync();
+            api.HintError = new ApiException(
+                "AI_RESPONSE_INVALID",
+                502,
+                "AI 응답을 처리하지 못했습니다. 다시 시도해 주세요."
+            );
+
+            await conversation.RequestHintAsync();
+
+            Assert.That(conversation.HintText, Is.Null);
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo("AI 응답을 처리하지 못했습니다. 다시 시도해 주세요.")
+            );
+        }
+
+        [Test]
+        public async Task RequestHint_AfterNpcEndedConversation_DoesNotRequest()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(Order, "See you next time!", "ENDED_BY_NPC");
+            await conversation.SendAsync(Order);
+
+            await conversation.RequestHintAsync();
+
+            Assert.That(api.HintRequestedFor, Is.Empty);
+        }
+
+        [Test]
+        public async Task NewNpcTurn_ClearsHintAndGlossaryOfPreviousLine()
+        {
+            await conversation.StartAsync();
+            api.Meaning = new MeaningData
+            {
+                TurnId = OpeningTurnId,
+                MeaningKo = "안녕하세요! 무엇을 드릴까요?",
+                Glossary = new List<GlossaryData>
+                {
+                    new GlossaryData { Text = "get", MeaningKo = "주다" },
+                },
+            };
+            api.Hint = new HintData { TurnId = OpeningTurnId, HintText = "An iced latte, please." };
+            await conversation.RequestMeaningAsync();
+            await conversation.RequestHintAsync();
+            api.TurnResponse = Reply(Order, "Sure! Hot or iced?", "ACTIVE");
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("Sure! Hot or iced?"));
+            Assert.That(conversation.LastNpcLine.Korean, Is.Null);
+            Assert.That(conversation.LastNpcGlossary, Is.Null);
+            Assert.That(conversation.HintText, Is.Null);
+        }
+
+        [Test]
         public void ShowMessage_ShowsMessageAndRequestsRefresh()
         {
             int changedCount = 0;
@@ -750,6 +1081,10 @@ namespace A305.Dialogue.Tests
             public ApiException TranscriptionError { get; set; }
             public SpeechData RegeneratedSpeech { get; set; }
             public ApiException SpeechError { get; set; }
+            public MeaningData Meaning { get; set; } = new MeaningData();
+            public ApiException MeaningError { get; set; }
+            public HintData Hint { get; set; } = new HintData();
+            public ApiException HintError { get; set; }
 
             public List<string> Calls { get; } = new List<string>();
             public List<StartRequest> Starts { get; } = new List<StartRequest>();
@@ -759,6 +1094,8 @@ namespace A305.Dialogue.Tests
             public List<TranscriptionRequest> Transcriptions { get; } =
                 new List<TranscriptionRequest>();
             public List<long> SpeechRegeneratedFor { get; } = new List<long>();
+            public List<long> MeaningRequestedFor { get; } = new List<long>();
+            public List<long> HintRequestedFor { get; } = new List<long>();
 
             public Task<ConversationStart> StartAsync(
                 string requestId,
@@ -835,6 +1172,12 @@ namespace A305.Dialogue.Tests
                     : Task.FromResult(TranscriptionResponse);
             }
 
+            public Task<FeedbackData> RegenerateFeedbackAsync(long conversationId, string requestId)
+            {
+                Calls.Add("RegenerateFeedback");
+                return Task.FromResult(EndResponse.Feedback);
+            }
+
             public Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId)
             {
                 Calls.Add("RegenerateSpeech");
@@ -842,6 +1185,24 @@ namespace A305.Dialogue.Tests
                 return SpeechError != null
                     ? Task.FromException<SpeechData>(SpeechError)
                     : Task.FromResult(RegeneratedSpeech);
+            }
+
+            public Task<MeaningData> GetMeaningAsync(long turnId, string requestId)
+            {
+                Calls.Add("GetMeaning");
+                MeaningRequestedFor.Add(turnId);
+                return MeaningError != null
+                    ? Task.FromException<MeaningData>(MeaningError)
+                    : Task.FromResult(Meaning);
+            }
+
+            public Task<HintData> GetHintAsync(long turnId, string requestId)
+            {
+                Calls.Add("GetHint");
+                HintRequestedFor.Add(turnId);
+                return HintError != null
+                    ? Task.FromException<HintData>(HintError)
+                    : Task.FromResult(Hint);
             }
         }
     }

@@ -17,6 +17,7 @@
         "A305.Voice",
         "A305.Api",
         "A305.Onboarding",
+        "A305.Theme",
         "WebGLInput",
         "Unity.TextMeshPro",
         "UnityEngine.UI",

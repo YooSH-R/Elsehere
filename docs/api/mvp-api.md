@@ -581,9 +581,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### WORLD-04 `GET /api/v1/vocab/{vocabId}/pronunciation`
 
-- 화면 08의 발음 듣기 버튼이 쓰는 음성 파일(`audio/mpeg` 등)을 돌려줍니다. `hasPronunciation: false`인 단어는 버튼을 숨깁니다.
-- 발음 음성은 사물 어휘를 등록할 때 TTS로 한 번 만들어 파일로 저장합니다. 요청할 때 AI를 호출하지 않으므로 AI 사용량이 소진돼도 들을 수 있습니다. `[제안]`
-- 음성 파일 자체는 DB가 아니라 파일 저장소(서버 디스크 또는 오브젝트 스토리지)에 두고, DB에는 파일 키(`vocabularies.pronunciation_audio_key`)만 저장합니다.
+- 화면 08의 발음 듣기 버튼이 쓰는 음성 파일을 `200`, `Content-Type: audio/wav`로 돌려줍니다. `vocabId`는 WORLD-02 카드의 `vocab.vocabId`입니다. `hasPronunciation: false`인 단어는 버튼을 숨깁니다.
+- 발음 음성은 AI 워커 TTS(`af_heart`, 속도 1.0)로 미리 만들어 저장소의 `backend/src/main/resources/content/pronunciation/{wordKey}.wav`에 두고 서버와 함께 배포합니다. 요청할 때 AI를 호출하지 않으므로 AI 워커가 꺼져 있거나 AI 사용량이 소진돼도 들을 수 있습니다. 파일이 없는 단어의 발음은 `ai/tools/generate_pronunciations.py`로 만듭니다.
+- DB에는 파일 이름(`vocabularies.pronunciation_audio_key`)만 저장합니다. Unity 단어 에셋에 발음 키가 있으면 그 값을, 없으면 서버가 시작할 때 `{wordKey}.wav` 파일이 있는 단어에 그 파일 이름을 넣습니다.
+- 없는 어휘이거나, 발음 키가 없거나, 키에 해당하는 파일이 없으면 `404 NOT_FOUND`입니다. 발음 키는 `{wordKey}.wav` 형식만 받으며 다른 형식이면 파일을 읽지 않고 `404 NOT_FOUND`입니다.
+- 단어가 늘어 미리 만들기가 번거로워지면 첫 요청 때 만들어 저장하는 방식으로 바꿀 수 있습니다. API는 바뀌지 않습니다. `[제안]`
 
 #### WORLD-05 `PUT /api/v1/me/last-scene`
 
@@ -1097,7 +1099,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 중요도 삭제 | VOCAB-01, 02 | `user_vocab.importance`와 중요도 인덱스를 지우고, 최근 저장순 인덱스(`user_id`, `saved_at DESC`)를 두었습니다. |
 | 뜻 수정 → 메모 | VOCAB-03 | `user_vocab.custom_meaning`을 `memo`로 바꿨습니다. |
 | 예문 뜻 | WORLD-02 | `vocabularies.example_ko`를 추가했습니다. |
-| 발음 음성 | WORLD-04 | `vocabularies.pronunciation_audio_key`를 추가했습니다. |
+| 발음 음성 | WORLD-04 | `vocabularies.pronunciation_audio_key`를 추가했습니다. 값은 미리 만든 발음 파일 이름(`{wordKey}.wav`)입니다. |
 | 행인 첫 말·작별 대사 | WORLD-02, CONV-03 | `npcs.approach_line`, `approach_audio_key`, `farewell_line`, `farewell_audio_key`를 추가했습니다. |
 | 대화 종료 이유 | CONV-03, 08 | `conversations.end_reason`(`USER_ENDED`, `NPC_ENDED`, `QUOTA_EXHAUSTED`, `EXPIRED`)을 추가했습니다. |
 | 숙어 뜻 | FB-03 | `turn_feedback.idiom_meaning_ko`를 추가했습니다. |

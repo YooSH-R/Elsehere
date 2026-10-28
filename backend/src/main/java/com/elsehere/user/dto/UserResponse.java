@@ -2,6 +2,7 @@ package com.elsehere.user.dto;
 
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
+import com.elsehere.user.entity.UiTheme;
 import com.elsehere.user.entity.User;
 
 /**
@@ -14,7 +15,8 @@ public record UserResponse(
     String nickname,
     AvatarType avatarType,
     String currentLanguage,
-    OnboardingStep onboardingStep) {
+    OnboardingStep onboardingStep,
+    UiTheme uiTheme) {
 
   public static UserResponse from(User user) {
     boolean languageChosen = user.getOnboardingStep() != OnboardingStep.LANG;
@@ -23,6 +25,7 @@ public record UserResponse(
         user.getNickname(),
         user.getAvatarType(),
         languageChosen ? user.getCurrentLanguage() : null,
-        user.getOnboardingStep());
+        user.getOnboardingStep(),
+        user.getUiTheme());
   }
 }

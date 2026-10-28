@@ -59,6 +59,12 @@ def check_nginx(container):
     assert re.fullmatch("[a-f0-9]{32}", request_id)
     assert request_id != supplied_id
     assert f"X-Request-ID: {request_id}" in result.stderr
+    static_response = http(container, "http://127.0.0.1/Build/fixture.wasm.gz")
+    assert static_response.returncode == 0, static_response.stderr
+    static_request_id = json.loads(static_response.stdout)["request_id"]
+    health_response = http(container, "http://127.0.0.1/api/health")
+    assert health_response.returncode == 0, health_response.stderr
+    health_request_id = json.loads(health_response.stdout)["request_id"]
     assert "500" in http(container, "http://127.0.0.1/api/failure").stderr
     assert (
         "502"
@@ -76,6 +82,24 @@ def check_nginx(container):
     events = [json.loads(line) for line in logs.splitlines() if line.startswith("{")]
     assert any(
         event["request_id"] == request_id and event["environment"] == "dev"
+        for event in events
+    )
+    assert any(
+        event["request_id"] == request_id
+        and event["rate_limit"] == "PASSED"
+        and event["connection_limit"] == "PASSED"
+        for event in events
+    )
+    assert any(
+        event["request_id"] == static_request_id
+        and event["rate_limit"] == ""
+        and event["connection_limit"] == ""
+        for event in events
+    )
+    assert any(
+        event["request_id"] == health_request_id
+        and event["rate_limit"] == "PASSED"
+        and event["connection_limit"] == "PASSED"
         for event in events
     )
     assert {200, 500, 502}.issubset({event["status"] for event in events})
@@ -174,6 +198,16 @@ def main():
             nginx,
             REPOSITORY / "infra/nginx/observability-http.conf",
             "/etc/nginx/conf.d/00-observability.conf",
+        )
+        copy_to(
+            nginx,
+            REPOSITORY / "infra/nginx/traffic-protection-http.conf",
+            "/etc/nginx/conf.d/10-traffic-protection.conf",
+        )
+        copy_to(
+            nginx,
+            REPOSITORY / "infra/nginx/traffic-protection-server.conf",
+            "/etc/nginx/a305-traffic-protection-server.conf",
         )
         copy_to(
             nginx, MONITORING / "tests/nginx.conf", "/etc/nginx/conf.d/default.conf"

@@ -64,6 +64,41 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_WhenPlayerTalksFirst_RequestsUserInitiatedConversation()
+        {
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                ConversationInitiator.User
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts[0].InitiatedBy, Is.EqualTo("USER"));
+        }
+
+        [Test]
+        public async Task Start_WhenPlayerTalksFirstAndOldConversationRemains_StartsAgainAsUser()
+        {
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                ConversationInitiator.User
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation { ConversationId = 41 };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+            Assert.That(api.Starts[1].InitiatedBy, Is.EqualTo("USER"));
+        }
+
+        [Test]
         public async Task Start_WithoutServerNpcName_KeepsGivenName()
         {
             api.StartResponse.Npc = null;

@@ -104,7 +104,8 @@ namespace A305.Player
             }
         }
 
-        private static bool ShouldShowControls()
+        /// <summary>이 기기에서 터치 조작을 보이는지. 다른 화면이 키보드 단축키 안내를 숨길 때도 쓴다.</summary>
+        public static bool ShouldShowControls()
         {
             return TouchControlsAvailability.ShouldShow(
                 isWebBrowser: Application.platform == RuntimePlatform.WebGLPlayer,

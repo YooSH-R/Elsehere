@@ -11,7 +11,23 @@ import java.util.List;
  * @param translation 학습자 말에 한글이 섞였을 때만 있는 영어 번역
  */
 public record JudgeResult(
-    String text, boolean dropped, String notice, Translation translation, List<WorkerUsage> usage) {
+    String text,
+    boolean dropped,
+    String notice,
+    Translation translation,
+    List<WorkerUsage> usage,
+    Intent intent) {
+
+  public JudgeResult(
+      String text,
+      boolean dropped,
+      String notice,
+      Translation translation,
+      List<WorkerUsage> usage) {
+    this(text, dropped, notice, translation, usage, null);
+  }
+
+  public record Intent(String id, List<String> ids, String error) {}
 
   /** 번역이 실패했으면 {@code english}가 null이고 {@code error}에 이유가 있다. */
   public record Translation(String english, String error) {}

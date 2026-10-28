@@ -60,6 +60,7 @@ namespace A305.EditorTools.World
             NpcBuilder.PrepareAssets();
             LearningBuilder.PrepareAssets();
             MissionBuilder.PrepareAssets();
+            FirstDayMissionBuilder.PrepareAssets();
             TutorialBuilder.PrepareAssets();
         }
 
@@ -133,6 +134,7 @@ namespace A305.EditorTools.World
             NpcBuilder.ConnectToScene(groups, player, dialogue);
             LearningController learning = LearningBuilder.ConnectToScene(groups, player, dialogue);
             MissionController mission = MissionBuilder.ConnectToScene(groups, dialogue);
+            FirstDayMissionBuilder.ConnectToScene(groups, dialogue, player);
             TutorialBuilder.ConnectToScene(groups, player, dialogue, learning, mission);
 
             EditorSceneManager.MarkSceneDirty(scene);

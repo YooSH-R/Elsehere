@@ -31,6 +31,7 @@ namespace A305.EditorTools.Theme
         private const string DataFolder = "Assets/Data/Theme";
         private const string CatalogPath = DataFolder + "/UiThemeCatalog.asset";
         private const string PickerPath = "Assets/Prefabs/Theme/ThemePicker.prefab";
+        private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string HomeScenePath = "Assets/Scenes/Production/HomeScene.unity";
         private const string FontFolder = "Assets/Art/UI/Fonts";
 
@@ -50,7 +51,21 @@ namespace A305.EditorTools.Theme
                 new[] { "#FFF8EC", "#FFCB52", "#FF8A5B", "#69B4F0", "#7CC48A" },
                 new[] { "#4A3B33", "#4A3B33", "#FFFFFF", "#FFFFFF", "#FFFFFF" },
                 "#E8453C",
-                outlinedIcons: false
+                outlinedIcons: false,
+                // 지도: 바탕·인도·도로·점선·이름·갈 곳, 그리고 집·카페·호텔·편의점 칸
+                map: new[]
+                {
+                    "#FFF3DC",
+                    "#F5DDB3",
+                    "#A9B4CF",
+                    "#FFFFFF",
+                    "#FFFFFF",
+                    "#FF5A4E",
+                    "#F2A65A",
+                    "#7CC48A",
+                    "#69B4F0",
+                    "#FF8A5B",
+                }
             ),
             new ThemeSpec(
                 UiThemeId.Sticker,
@@ -65,7 +80,20 @@ namespace A305.EditorTools.Theme
                 new[] { "#FFFFFF", "#FFD54A", "#FF7A59", "#5AA9E6", "#4CC9A6" },
                 new[] { "#2D3A5A", "#2D3A5A", "#2D3A5A", "#2D3A5A", "#2D3A5A" },
                 "#FF7A59",
-                outlinedIcons: true
+                outlinedIcons: true,
+                map: new[]
+                {
+                    "#FFFFFF",
+                    "#FFE8B0",
+                    "#6B7896",
+                    "#FFD54A",
+                    "#FFFFFF",
+                    "#FF4F5E",
+                    "#FFB547",
+                    "#4CC9A6",
+                    "#5AA9E6",
+                    "#FF7A59",
+                }
             ),
             new ThemeSpec(
                 UiThemeId.Cloud,
@@ -80,7 +108,20 @@ namespace A305.EditorTools.Theme
                 new[] { "#FFFFFF", "#3D8BD9", "#FF8F6B", "#DCEEFF", "#8FD6B5" },
                 new[] { "#24384F", "#FFFFFF", "#FFFFFF", "#24384F", "#24384F" },
                 "#FF8F6B",
-                outlinedIcons: false
+                outlinedIcons: false,
+                map: new[]
+                {
+                    "#EAF4FF",
+                    "#FFFFFF",
+                    "#BCD0EC",
+                    "#FFFFFF",
+                    "#FFFFFF",
+                    "#FF8F6B",
+                    "#F6A97C",
+                    "#6CC59A",
+                    "#6FA8E8",
+                    "#F48FA3",
+                }
             ),
         };
 
@@ -126,7 +167,7 @@ namespace A305.EditorTools.Theme
         public static void StyleFeaturePrefabs()
         {
             catalog ??= BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
-            Style("Assets/Prefabs/Learning/LearningHud.prefab", StyleHud);
+            Style(HudPath, StyleHud);
             Style("Assets/Prefabs/Learning/FeedbackScreen.prefab", StyleFeedback);
             Style("Assets/Prefabs/Learning/VocabularyScreen.prefab", StyleVocabulary);
             Style("Assets/Prefabs/Mission/MissionPanel.prefab", StyleMission);
@@ -176,6 +217,7 @@ namespace A305.EditorTools.Theme
         /// </summary>
         private static void StyleHud(Transform root)
         {
+            PillButton(root, "HomeButton", UiIcon.Home, UiTone.Neutral);
             Transform panel = root.Find("Panel");
             if (panel == null)
             {
@@ -221,10 +263,21 @@ namespace A305.EditorTools.Theme
 
         private static void StyleFeedback(Transform root)
         {
+            IconButton(root, "Panel/TopCloseButton", UiIcon.Close, UiTone.Neutral, caption: false);
             Role(root, "Panel", UiThemeRole.Panel);
             Role(root, "Panel/Title", UiThemeRole.Title);
             Role(root, "Panel/Summary", UiThemeRole.Muted);
-            Role(root, "Panel/Body", UiThemeRole.Body);
+            Role(root, "Panel/PageCard", UiThemeRole.Card);
+            Role(root, "Panel/PageCard/Body", UiThemeRole.Body);
+            Role(root, "Panel/PageTitle", UiThemeRole.Title);
+            Role(root, "Panel/Navigation/PageNumber", UiThemeRole.Caption);
+            Role(root, "Panel/Notice", UiThemeRole.Muted);
+            PillButton(root, "Panel/Sections/SummaryButton", UiIcon.Detail, UiTone.Primary);
+            PillButton(root, "Panel/Sections/CorrectionsButton", UiIcon.Check, UiTone.Secondary);
+            PillButton(root, "Panel/Sections/ConversationButton", UiIcon.Talk, UiTone.Accent);
+            PillButton(root, "Panel/Sections/ExpressionsButton", UiIcon.Save, UiTone.Positive);
+            PillButton(root, "Panel/Navigation/PreviousButton", UiIcon.Previous, UiTone.Neutral);
+            PillButton(root, "Panel/Navigation/NextButton", UiIcon.Next, UiTone.Neutral);
             IconButton(
                 root,
                 "Panel/Buttons/SaveButton",
@@ -353,10 +406,18 @@ namespace A305.EditorTools.Theme
             Role(root, "Panel", UiThemeRole.Panel);
             Role(root, "Panel/Title", UiThemeRole.Title);
             Role(root, "Panel/Notice", UiThemeRole.Muted);
-            Role(root, "Panel/Conversation/Lines", UiThemeRole.Body);
-            Role(root, "Panel/Conversation/Guide", UiThemeRole.Muted);
+            Role(root, "Panel/Conversation/History/Viewport/Lines", UiThemeRole.Body);
+            Role(root, "HelpPanel", UiThemeRole.Panel);
+            Role(root, "HelpPanel/Title", UiThemeRole.Title);
+            Role(root, "HelpPanel/Viewport/Content/Guide", UiThemeRole.Muted);
+            Role(root, "HelpPanel/Viewport/Content/WordsCard", UiThemeRole.Card);
+            Role(root, "HelpPanel/Viewport/Content/WordsCard/Title", UiThemeRole.Title);
+            Role(root, "HelpPanel/Viewport/Content/WordsCard/SuggestWords", UiThemeRole.Body);
+            Role(root, "HelpPanel/Viewport/Content/HintCard", UiThemeRole.Card);
+            Role(root, "HelpPanel/Viewport/Content/HintCard/Title", UiThemeRole.Title);
+            Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
+            PillButton(root, "HelpPanel/UseHintButton", UiIcon.Example, UiTone.Secondary);
             Role(root, "Panel/Conversation/Status", UiThemeRole.Accent);
-            Role(root, "Panel/Conversation/SuggestWords", UiThemeRole.Muted);
             Role(root, "Panel/Conversation/InputRow/Input", UiThemeRole.Input);
             IconButton(
                 root,
@@ -448,6 +509,7 @@ namespace A305.EditorTools.Theme
             var view = BuilderTools.GetOrAddComponent<ThemePickerView>(root);
             if (root.transform.Find("OpenButton") == null)
                 BuildPicker(root.transform);
+            AlignWithVocabularyButton((RectTransform)root.transform.Find("OpenButton"));
             BuilderTools.SetReference(
                 view,
                 "apiSettings",
@@ -493,13 +555,41 @@ namespace A305.EditorTools.Theme
             window.gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// 테마 버튼을 오른쪽 위 단어장 버튼 바로 왼쪽에 같은 크기·높이·간격으로 둔다.
+        /// 두 화면은 같은 기준 해상도의 캔버스라, 단어장 칸의 위치와 안쪽 여백으로 자리를 계산한다.
+        /// 단어장 버튼은 오른쪽 정렬한 버튼 줄의 맨 오른쪽 버튼이다.
+        /// </summary>
+        private static void AlignWithVocabularyButton(RectTransform open)
+        {
+            var panel = (RectTransform)
+                AssetDatabase.LoadAssetAtPath<GameObject>(HudPath)?.transform.Find("Panel");
+            var vocabulary = panel?.Find("Buttons/VocabularyButton")?.GetComponent<LayoutElement>();
+            if (vocabulary == null)
+            {
+                Debug.LogWarning("테마 버튼을 맞출 단어장 버튼이 없습니다: " + HudPath);
+                return;
+            }
+            RectOffset padding = panel.GetComponent<VerticalLayoutGroup>().padding;
+            float spacing = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>().spacing;
+            var size = new Vector2(vocabulary.preferredWidth, vocabulary.preferredHeight);
+            Place(
+                open,
+                new Vector2(1, 1),
+                new Vector2(
+                    panel.anchoredPosition.x - padding.right - size.x - spacing,
+                    panel.anchoredPosition.y - padding.top
+                ),
+                size
+            );
+        }
+
         private static void BuildPicker(Transform root)
         {
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            // 오른쪽 위 단어장 칸(너비 360) 바로 왼쪽.
+            // 자리는 SetUpPicker가 단어장 버튼에 맞춘다.
             RectTransform open = Button(root, "OpenButton");
-            Place(open, new Vector2(1, 1), new Vector2(-404, -24), new Vector2(96, 96));
             UiBuilderTools.FindOrCreateText(open, "Label", bold, 15, Color.black, "테마");
             IconButton(root, "OpenButton", UiIcon.Palette, UiTone.Neutral, caption: true);
 
@@ -978,9 +1068,31 @@ namespace A305.EditorTools.Theme
                 UiThemeArt.Part.Badge
             );
             fields.FindProperty("icons").objectReferenceValue = icons;
+            // 지도 색은 나중에 더한 값이라, 이미 만든 테마에도 비어 있을 때만 넣는다.
+            if (definition.TownMap.IsEmpty)
+                SetTownMapColors(fields.FindProperty("townMap"), spec.Map);
             fields.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(definition);
             return definition;
+        }
+
+        private static void SetTownMapColors(SerializedProperty map, string[] hexes)
+        {
+            string[] names =
+            {
+                "ground",
+                "pavement",
+                "road",
+                "roadLine",
+                "label",
+                "destination",
+                "home",
+                "cafe",
+                "hotel",
+                "shop",
+            };
+            for (int i = 0; i < names.Length; i++)
+                map.FindPropertyRelative(names[i]).colorValue = UiThemeArt.Hex(hexes[i]);
         }
 
         private static void SetColors(SerializedProperty list, string[] hexes)
@@ -1079,7 +1191,8 @@ namespace A305.EditorTools.Theme
                 string[] tones,
                 string[] toneInks,
                 string badge,
-                bool outlinedIcons
+                bool outlinedIcons,
+                string[] map
             )
             {
                 Id = id;
@@ -1095,6 +1208,7 @@ namespace A305.EditorTools.Theme
                 ToneInks = toneInks;
                 Badge = badge;
                 OutlinedIcons = outlinedIcons;
+                Map = map;
             }
 
             public UiThemeId Id { get; }
@@ -1110,6 +1224,9 @@ namespace A305.EditorTools.Theme
             public string[] ToneInks { get; }
             public string Badge { get; }
             public bool OutlinedIcons { get; }
+
+            /// <summary>지도 색. 바탕·인도·도로·점선·이름·갈 곳·집·카페·호텔·편의점 순서.</summary>
+            public string[] Map { get; }
         }
     }
 }

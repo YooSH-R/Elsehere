@@ -117,7 +117,7 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1132,
+            "objectCount": 1122,
             "detailCount": 0,
             "wordKeys": [
                 "awning",
@@ -139,7 +139,6 @@
                 "porch",
                 "road",
                 "roof",
-                "shutter",
                 "sidewalk",
                 "sign",
                 "stairs",

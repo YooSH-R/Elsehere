@@ -116,7 +116,7 @@ namespace A305.Theme
 
         private void OnThemeChanged(UiThemeId theme) => ApplyCurrent();
 
-        private static void Paint(Image image, Sprite sprite, Color color)
+        internal static void Paint(Image image, Sprite sprite, Color color)
         {
             if (image == null)
                 return;
@@ -128,7 +128,7 @@ namespace A305.Theme
             image.color = color;
         }
 
-        private static void Overlay(Image image, Sprite sprite)
+        internal static void Overlay(Image image, Sprite sprite)
         {
             if (image == null)
                 return;
@@ -136,7 +136,7 @@ namespace A305.Theme
             Paint(image, sprite, Color.white);
         }
 
-        private static void Draw(Image image, Sprite sprite)
+        internal static void Draw(Image image, Sprite sprite)
         {
             if (image == null)
                 return;
@@ -146,7 +146,7 @@ namespace A305.Theme
             image.color = Color.white;
         }
 
-        private static void Write(TMP_Text text, TMP_FontAsset font, Color color)
+        internal static void Write(TMP_Text text, TMP_FontAsset font, Color color)
         {
             if (text == null)
                 return;

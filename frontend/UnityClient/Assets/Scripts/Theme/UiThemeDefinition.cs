@@ -107,6 +107,10 @@ namespace A305.Theme
         [SerializeField]
         private UiIconSet icons;
 
+        [SerializeField]
+        [Tooltip("퀘스트 수첩 마을 지도의 색")]
+        private TownMapColors townMap = new TownMapColors();
+
         public UiThemeId Id => id;
         public string DisplayName => displayName;
         public string Description => description;
@@ -126,6 +130,7 @@ namespace A305.Theme
         public Sprite BadgeSprite => badgeSprite;
         public Color BadgeColor => badgeColor;
         public UiIconSet Icons => icons;
+        public TownMapColors TownMap => townMap;
 
         public Color ToneColor(UiTone tone) => Pick(toneColors, tone, Color.white);
 

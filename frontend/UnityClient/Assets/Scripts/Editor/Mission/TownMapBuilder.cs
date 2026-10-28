@@ -5,6 +5,7 @@ using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.Mission;
+using A305.Theme;
 using A305.World;
 using TMPro;
 using UnityEditor;
@@ -16,8 +17,9 @@ using Object = UnityEngine.Object;
 namespace A305.EditorTools.Mission
 {
     /// <summary>
-    /// 퀘스트 수첩의 마을 지도를 TownScene의 실제 도로·출입문 위치로 그린다.
-    /// 길과 건물 칸은 씬 배치에서 다시 계산하므로 실행할 때마다 새로 그린다.
+    /// 퀘스트 수첩의 마을 지도를 TownScene의 실제 도로·출입문·가로수 위치로 그린다.
+    /// 길과 건물 칸은 씬 배치에서 다시 계산하므로 실행할 때마다 새로 그리고,
+    /// 색·아이콘·글꼴은 <see cref="ThemedTownMap"/>이 고른 테마로 칠한다.
     /// </summary>
     internal static class TownMapBuilder
     {
@@ -29,21 +31,27 @@ namespace A305.EditorTools.Mission
         private const string SettingsPath =
             "Assets/Data/World/MainstreetBlockout/TownBlockoutSettings.asset";
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
+        private const string ThemeCatalogPath = "Assets/Data/Theme/UiThemeCatalog.asset";
+
+        // 테마의 카드 테두리가 보이도록 길과 건물은 지도 바탕 안쪽에 그린다.
+        private const float GroundInset = 8;
+        private const float TreeSize = 20;
+        private const float DashLength = 10;
+        private const float DashGap = 8;
+        private const float DashThickness = 3;
 
         internal static readonly Color DestinationColor = Hex("#E0553D");
         private static readonly Color Paper = Hex("#F3EBDA");
-        private static readonly Color PavementColor = Hex("#E2CFAE");
-        private static readonly Color RoadColor = Hex("#8B93A7");
         private static readonly Color Ink = new Color(.16f, .24f, .2f);
 
-        // 장소 칸의 이름은 마을 간판과 같은 영어로 적고, 색은 각 건물 외관에 가깝게 둔다.
-        private static readonly Dictionary<string, (string Label, Color Color)> PlaceStyles =
-            new Dictionary<string, (string, Color)>
+        // 장소 칸의 이름은 마을 간판과 같은 영어로 적는다. 카페는 쉬어 가기 아이콘(커피잔)을 쓴다.
+        private static readonly Dictionary<string, (string Label, UiIcon Icon)> PlaceStyles =
+            new Dictionary<string, (string, UiIcon)>
             {
-                ["HOME"] = ("HOME", Hex("#B98B5E")),
-                ["CAFE"] = ("CAFE", Hex("#3F7D5A")),
-                ["HOTEL"] = ("HOTEL", Hex("#3C5A8C")),
-                ["SHOP"] = ("CONVENIENCE\nSTORE", Hex("#C2733B")),
+                ["HOME"] = ("HOME", UiIcon.Home),
+                ["CAFE"] = ("CAFE", UiIcon.Rest),
+                ["HOTEL"] = ("HOTEL", UiIcon.Hotel),
+                ["SHOP"] = ("CONVENIENCE\nSTORE", UiIcon.Store),
             };
 
         internal sealed class Layout
@@ -53,6 +61,7 @@ namespace A305.EditorTools.Mission
             public readonly List<Rect> Roads = new List<Rect>();
             public readonly List<(string Code, Rect Box, Vector3 Door)> Places =
                 new List<(string, Rect, Vector3)>();
+            public readonly List<Vector3> Trees = new List<Vector3>();
         }
 
         internal static Sprite Icon() => SpriteIfMissing(IconPath, 128, PaintMapIcon);
@@ -141,6 +150,12 @@ namespace A305.EditorTools.Mission
                 buildings.xMax + 1f,
                 Mathf.Max(buildings.yMax, crossing.yMax) + 3f
             );
+            layout.Trees.AddRange(
+                renderers
+                    .Where(renderer => renderer.name == "TreeBed")
+                    .Select(renderer => renderer.bounds.center)
+                    .Where(tree => layout.Area.Contains(new Vector2(tree.x, tree.z)))
+            );
             return layout;
         }
 
@@ -148,20 +163,34 @@ namespace A305.EditorTools.Mission
         {
             var view = root.GetComponentInChildren<TownMapView>(true);
             var map = new TownMap(layout.Area);
-            view.GetComponent<LayoutElement>().preferredHeight =
-                (DrawerWidth - DrawerPadding * 2) / map.WidthPerHeight;
+            float shellHeight = (DrawerWidth - DrawerPadding * 2) / map.WidthPerHeight;
+            view.GetComponent<LayoutElement>().preferredHeight = shellHeight;
             RectTransform area = (RectTransform)view.transform.Find("Area");
             area.GetComponent<AspectRatioFitter>().aspectRatio = map.WidthPerHeight;
             Transform previous = area.Find("Drawing");
             if (previous != null)
                 Object.DestroyImmediate(previous.gameObject);
             RectTransform drawing = NewRect("Drawing", area);
-            Stretch(drawing);
+            Stretch(drawing, GroundInset);
+            var pixels = new Vector2(
+                DrawerWidth - DrawerPadding * 2 - GroundInset * 2,
+                shellHeight - GroundInset * 2
+            );
 
-            foreach (Rect pavement in layout.Pavements)
-                Block("Pavement", drawing, map, pavement, PavementColor, null);
-            foreach (Rect road in layout.Roads)
-                Block("Road", drawing, map, road, RoadColor, null);
+            Image[] pavements = layout
+                .Pavements.Select(pavement =>
+                    Paint(Block("Pavement", drawing, map, pavement, null))
+                )
+                .ToArray();
+            Image[] roads = layout
+                .Roads.Select(road => Paint(Block("Road", drawing, map, road, null)))
+                .ToArray();
+            Image[] roadLines = layout
+                .Roads.SelectMany(road => CentreDashes(drawing, map, road, pixels))
+                .ToArray();
+            Image[] trees = layout
+                .Trees.Select(tree => Spot("Tree", drawing, map.ToMap(tree), TreeSize))
+                .ToArray();
             // 목적지 테두리는 건물 칸보다 조금 크게, 모든 건물 칸 뒤에 깔아 옆 건물을 가리지 않게 한다.
             var marks = new Dictionary<string, RectTransform>();
             foreach ((string code, Rect box, Vector3 _) in layout.Places)
@@ -171,7 +200,6 @@ namespace A305.EditorTools.Mission
                     drawing,
                     map,
                     Grow(box, 1.3f),
-                    DestinationColor,
                     RoundedSprite()
                 );
                 marks[code].gameObject.SetActive(false);
@@ -179,21 +207,7 @@ namespace A305.EditorTools.Mission
             var places = new List<(string Code, RectTransform Box, RectTransform Door)>();
             foreach ((string code, Rect box, Vector3 door) in layout.Places)
             {
-                (string label, Color color) = PlaceStyles[code];
-                RectTransform block = Block(code, drawing, map, box, color, RoundedSprite());
-                TMP_Text name = UiBuilderTools.FindOrCreateText(
-                    block,
-                    "Label",
-                    UiBuilderTools.BoldFont(),
-                    16,
-                    Color.white,
-                    label
-                );
-                name.alignment = TextAlignmentOptions.Center;
-                name.enableAutoSizing = true;
-                name.fontSizeMin = 9;
-                name.fontSizeMax = 16;
-                Stretch((RectTransform)name.transform, 3);
+                RectTransform block = PlaceTile(code, drawing, map, box);
                 RectTransform entrance = NewRect(code + "Door", drawing);
                 entrance.anchorMin = entrance.anchorMax = map.ToMap(door);
                 entrance.sizeDelta = Vector2.zero;
@@ -222,6 +236,159 @@ namespace A305.EditorTools.Mission
                 ];
             }
             fields.ApplyModifiedPropertiesWithoutUndo();
+
+            Image legendMark = view
+                .transform.parent.Find("Legend/DestinationIcon")
+                ?.GetComponent<Image>();
+            ConnectTheme(
+                view.gameObject,
+                area.GetComponent<Image>(),
+                pavements,
+                roads,
+                roadLines,
+                trees,
+                marks
+                    .Values.Select(mark => mark.GetComponent<Image>())
+                    .Append(legendMark)
+                    .Where(image => image != null)
+                    .ToArray(),
+                places.Select(place => place.Box).ToArray()
+            );
+        }
+
+        /// <summary>장소 칸: 테마의 버튼 바탕 위에 장소 아이콘을, 아래에 간판 이름을 둔다.</summary>
+        private static RectTransform PlaceTile(string code, Transform parent, TownMap map, Rect box)
+        {
+            RectTransform tile = Block(code, parent, map, box, RoundedSprite());
+            RectTransform outline = NewRect("Outline", tile);
+            Stretch(outline);
+            outline.gameObject.AddComponent<Image>().raycastTarget = false;
+            RectTransform icon = NewRect("Icon", tile);
+            icon.anchorMin = new Vector2(.22f, .4f);
+            icon.anchorMax = new Vector2(.78f, .92f);
+            icon.offsetMin = icon.offsetMax = Vector2.zero;
+            var iconImage = icon.gameObject.AddComponent<Image>();
+            iconImage.preserveAspect = true;
+            iconImage.raycastTarget = false;
+            TMP_Text name = UiBuilderTools.FindOrCreateText(
+                tile,
+                "Label",
+                UiBuilderTools.BoldFont(),
+                14,
+                Color.white,
+                PlaceStyles[code].Label
+            );
+            name.alignment = TextAlignmentOptions.Center;
+            name.enableAutoSizing = true;
+            name.fontSizeMin = 7;
+            name.fontSizeMax = 14;
+            name.lineSpacing = -18;
+            name.raycastTarget = false;
+            var nameRect = (RectTransform)name.transform;
+            nameRect.anchorMin = new Vector2(.04f, .05f);
+            nameRect.anchorMax = new Vector2(.96f, .42f);
+            nameRect.offsetMin = nameRect.offsetMax = Vector2.zero;
+            return tile;
+        }
+
+        /// <summary>도로 가운데를 따라 짧은 점선을 고르게 놓는다. 지도는 그림 크기가 정해져 있어 픽셀로 간격을 잡는다.</summary>
+        private static IEnumerable<Image> CentreDashes(
+            Transform parent,
+            TownMap map,
+            Rect road,
+            Vector2 pixels
+        )
+        {
+            Vector2 a = map.ToMap(new Vector3(road.xMin, 0, road.yMin));
+            Vector2 b = map.ToMap(new Vector3(road.xMax, 0, road.yMax));
+            Vector2 min = Vector2.Min(a, b);
+            Vector2 max = Vector2.Max(a, b);
+            Vector2 size = Vector2.Scale(max - min, pixels);
+            bool across = size.x >= size.y;
+            float length = across ? size.x : size.y;
+            int count = Mathf.FloorToInt((length - DashGap) / (DashLength + DashGap));
+            float start =
+                (length - (count * (DashLength + DashGap) - DashGap)) / 2 + DashLength / 2;
+            for (int index = 0; index < count; index++)
+            {
+                float along = (start + index * (DashLength + DashGap)) / length;
+                RectTransform dash = NewRect("RoadLine", parent);
+                dash.anchorMin = dash.anchorMax = across
+                    ? new Vector2(Mathf.Lerp(min.x, max.x, along), (min.y + max.y) / 2)
+                    : new Vector2((min.x + max.x) / 2, Mathf.Lerp(min.y, max.y, along));
+                dash.sizeDelta = across
+                    ? new Vector2(DashLength, DashThickness)
+                    : new Vector2(DashThickness, DashLength);
+                yield return Paint(dash);
+            }
+        }
+
+        private static Image Spot(string name, Transform parent, Vector2 point, float size)
+        {
+            RectTransform spot = NewRect(name, parent);
+            spot.anchorMin = spot.anchorMax = point;
+            spot.sizeDelta = new Vector2(size, size);
+            Image image = Paint(spot);
+            image.preserveAspect = true;
+            return image;
+        }
+
+        private static Image Paint(RectTransform rect)
+        {
+            var image = BuilderTools.GetOrAddComponent<Image>(rect.gameObject);
+            image.raycastTarget = false;
+            return image;
+        }
+
+        /// <summary>지도 조각을 테마 칠하기에 연결하고 지금 테마로 한 번 칠해 둔다.</summary>
+        private static void ConnectTheme(
+            GameObject map,
+            Image ground,
+            Image[] pavements,
+            Image[] roads,
+            Image[] roadLines,
+            Image[] trees,
+            Image[] destinationMarks,
+            RectTransform[] tiles
+        )
+        {
+            var themed = BuilderTools.GetOrAddComponent<ThemedTownMap>(map);
+            var fields = new SerializedObject(themed);
+            fields.FindProperty("catalog").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<UiThemeCatalog>(ThemeCatalogPath);
+            fields.FindProperty("ground").objectReferenceValue = ground;
+            SetImages(fields.FindProperty("pavements"), pavements);
+            SetImages(fields.FindProperty("roads"), roads);
+            SetImages(fields.FindProperty("roadLines"), roadLines);
+            SetImages(fields.FindProperty("trees"), trees);
+            SetImages(fields.FindProperty("destinationMarks"), destinationMarks);
+            SerializedProperty places = fields.FindProperty("places");
+            places.arraySize = tiles.Length;
+            for (int index = 0; index < tiles.Length; index++)
+            {
+                SerializedProperty place = places.GetArrayElementAtIndex(index);
+                RectTransform tile = tiles[index];
+                place.FindPropertyRelative("sceneCode").stringValue = tile.name;
+                place.FindPropertyRelative("icon").enumValueIndex = (int)
+                    PlaceStyles[tile.name].Icon;
+                place.FindPropertyRelative("tile").objectReferenceValue =
+                    tile.GetComponent<Image>();
+                place.FindPropertyRelative("outline").objectReferenceValue = tile.Find("Outline")
+                    .GetComponent<Image>();
+                place.FindPropertyRelative("iconImage").objectReferenceValue = tile.Find("Icon")
+                    .GetComponent<Image>();
+                place.FindPropertyRelative("label").objectReferenceValue = tile.Find("Label")
+                    .GetComponent<TMP_Text>();
+            }
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            themed.ApplyCurrent();
+        }
+
+        private static void SetImages(SerializedProperty list, Image[] images)
+        {
+            list.arraySize = images.Length;
+            for (int index = 0; index < images.Length; index++)
+                list.GetArrayElementAtIndex(index).objectReferenceValue = images[index];
         }
 
         private static RectTransform Block(
@@ -229,7 +396,6 @@ namespace A305.EditorTools.Mission
             Transform parent,
             TownMap map,
             Rect world,
-            Color color,
             Sprite sprite
         )
         {
@@ -240,7 +406,6 @@ namespace A305.EditorTools.Mission
             rect.anchorMax = Vector2.Max(a, b);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
             var image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
             image.raycastTarget = false;
             if (sprite != null)
             {

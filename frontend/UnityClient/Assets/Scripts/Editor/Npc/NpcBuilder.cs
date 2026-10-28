@@ -49,6 +49,8 @@ namespace A305.EditorTools.Npc
             (TutorialPasserbyCode, "Excuse me! Could you help me? I'm looking for the cafe."),
             (TownPasserbyCode, "Hi there! Nice weather today, isn't it?"),
             (CafeStaffCode, "Hi there! Welcome to the corner café. Would you like to order?"),
+            ("HOTEL_STAFF", "Good afternoon! Welcome to Maple House. Are you checking in?"),
+            ("SHOP_STAFF", "Hi! Welcome to the convenience store. Can I help you find something?"),
         };
 
         [MenuItem(MenuPath)]

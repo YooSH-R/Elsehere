@@ -38,6 +38,19 @@ namespace A305.Dialogue
         private TMP_Text suggestText;
 
         [SerializeField]
+        private RectTransform helpPanel;
+
+        [SerializeField]
+        private TMP_Text hintText;
+
+        [SerializeField]
+        private Button useHintButton;
+
+        [SerializeField]
+        private ScrollRect historyScroll;
+        private Vector2 lastCanvasSize;
+
+        [SerializeField]
         private TMP_InputField inputField;
 
         [SerializeField]
@@ -102,6 +115,7 @@ namespace A305.Dialogue
             isMeaningVisible = false;
             inputField.text = "";
             panel.SetActive(true);
+            helpPanel.gameObject.SetActive(true);
             Refresh();
         }
 
@@ -109,6 +123,7 @@ namespace A305.Dialogue
         {
             content = null;
             panel.SetActive(false);
+            helpPanel.gameObject.SetActive(false);
         }
 
         /// <summary>전사한 문장처럼 입력창에 넣어 줄 문장. 사용자가 확인하고 [보내기]로 보낸다.</summary>
@@ -138,7 +153,12 @@ namespace A305.Dialogue
             linesText.text = FormatRecentLines();
             guideText.text = FormatGuide();
             statusText.text = FormatStatus();
-            suggestText.text = FormatSuggestions();
+            suggestText.text = DialogueHelpText.Words(content.SuggestWords);
+            string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
+            hintText.text = string.IsNullOrEmpty(sentence)
+                ? "[힌트]를 누르면 추천 문장을 볼 수 있어요."
+                : sentence;
+            useHintButton.interactable = content.CanSend && !string.IsNullOrEmpty(sentence);
 
             sendButton.interactable = content.CanSend;
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
@@ -155,6 +175,9 @@ namespace A305.Dialogue
             hintButton.interactable =
                 content.LastNpcLine != null && content.CanSend && content.HintText == null;
             retryButton.gameObject.SetActive(content.CanRetry);
+            UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            historyScroll.verticalNormalizedPosition = 0;
         }
 
         private void Awake()
@@ -163,6 +186,12 @@ namespace A305.Dialogue
             sendButton.onClick.AddListener(RequestSend);
             inputField.onSubmit.AddListener(_ => RequestSend());
             exampleButton.onClick.AddListener(FillExampleSentence);
+            useHintButton.onClick.AddListener(() =>
+            {
+                if (content != null && content.CanSend)
+                    inputField.text =
+                        DialogueHelpText.Sentence(content.HintText, content.ExampleSentence) ?? "";
+            });
             meaningButton.onClick.AddListener(ToggleMeaning);
             saveButton.onClick.AddListener(() => SaveRequested?.Invoke());
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
@@ -257,21 +286,35 @@ namespace A305.Dialogue
             return string.Join(" · ", items);
         }
 
-        // 추천 단어 아래에 [힌트]로 받은 추천 문장을 보여 준다.
-        private string FormatSuggestions()
+        private void LateUpdate()
         {
-            var text = new StringBuilder();
-            if (content.SuggestWords != null && content.SuggestWords.Count > 0)
-            {
-                text.AppendLine("추천 단어 · " + string.Join(" · ", content.SuggestWords));
-            }
+            if (
+                content != null
+                && ((RectTransform)panel.transform.parent).rect.size != lastCanvasSize
+            )
+                UpdateLayout();
+        }
 
-            if (!string.IsNullOrEmpty(content.HintText))
-            {
-                text.AppendLine($"추천 문장 · <b>{content.HintText}</b>");
-            }
-
-            return text.ToString().TrimEnd();
+        public void UpdateLayout()
+        {
+            var frame = (RectTransform)panel.transform;
+            lastCanvasSize = ((RectTransform)frame.parent).rect.size;
+            bool wide = lastCanvasSize.x >= 1200;
+            frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(1, 0);
+            frame.anchoredPosition = new Vector2(-24, 24);
+            frame.sizeDelta = new Vector2(
+                wide ? Mathf.Min(1320, lastCanvasSize.x - 400) : lastCanvasSize.x - 48,
+                560
+            );
+            helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, 1);
+            helpPanel.anchoredPosition = new Vector2(24, -110);
+            helpPanel.sizeDelta = new Vector2(
+                wide ? 320 : Mathf.Min(320, lastCanvasSize.x * .43f),
+                Mathf.Max(
+                    180,
+                    Mathf.Min(650, wide ? lastCanvasSize.y - 160 : lastCanvasSize.y - 720)
+                )
+            );
         }
 
         private string FormatGuide()

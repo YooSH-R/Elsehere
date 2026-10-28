@@ -66,6 +66,11 @@ namespace A305.Player
         [Tooltip("목표 위치를 따라가는 빠르기. 클수록 바로 따라간다")]
         private float followSharpness = 15f;
 
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("걷는 동안 카메라가 캐릭터 뒤로 돌아가는 빠르기. 0이면 돌지 않는다")]
+        private float followBehindSharpness = 2f;
+
         [Header("벽 충돌")]
         [SerializeField]
         [Min(0f)]
@@ -74,6 +79,11 @@ namespace A305.Player
         [SerializeField]
         [Tooltip("카메라가 뚫고 지나가지 않을 물체의 레이어")]
         private LayerMask collisionLayers = ~0;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("벽에 막혔다가 풀린 뒤 원래 거리로 물러나는 빠르기. 벽에 닿을 때는 바로 당긴다")]
+        private float collisionRecoverSharpness = 3f;
 
         public float PivotHeightMeters => pivotHeightMeters;
 
@@ -85,6 +95,8 @@ namespace A305.Player
 
         public LayerMask CollisionLayers => collisionLayers;
 
+        public float CollisionRecoverSharpness => collisionRecoverSharpness;
+
         public CameraOrbit CreateOrbit()
         {
             var limits = new CameraOrbitLimits(
@@ -95,7 +107,8 @@ namespace A305.Player
                 thirdPersonMaxPitchDegrees,
                 firstPersonMinPitchDegrees,
                 firstPersonMaxPitchDegrees,
-                rotateDegreesPerPixel
+                rotateDegreesPerPixel,
+                followBehindSharpness
             );
 
             return new CameraOrbit(limits, startDistanceMeters, startPitchDegrees);

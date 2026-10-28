@@ -206,6 +206,31 @@ namespace A305.EditorTools.Theme
                     Line(c, 2.4f, White, V(16, 15), V(17.5f, 11.5f), V(15.5f, 7.5f));
                     Line(c, 2.4f, White, V(24, 15), V(25.5f, 11.5f), V(23.5f, 7.5f));
                     break;
+                case UiIcon.Home:
+                    Box(c, 30, 8, 35, 18, 1, White);
+                    c.Polygon(White, V(5, 23), V(24, 7), V(43, 23));
+                    Box(c, 10, 20, 38, 42, 3, White);
+                    Box(c, 20, 28, 28, 42, 2, Hex("#C97B4A"));
+                    Circle(c, 26, 35.5f, 1, Yellow);
+                    break;
+                case UiIcon.Hotel:
+                    Box(c, 6, 12, 12, 41, 2.5f, White);
+                    Box(c, 6, 27, 42, 36, 2.5f, White);
+                    Box(c, 14, 20, 23, 27, 2.5f, White);
+                    Box(c, 24, 21, 42, 31, 3, Yellow);
+                    Box(c, 37, 35, 42, 41, 1, White);
+                    break;
+                case UiIcon.Store:
+                    c.Arc(S(24), Y(17), S(7.5f), 0, 180, S(3.2f), White);
+                    Box(c, 9, 16, 39, 42, 4, White);
+                    Box(c, 9, 23, 39, 27, .5f, Red);
+                    Circle(c, 24, 34, 4, Yellow);
+                    break;
+                case UiIcon.Tree:
+                    Box(c, 21.5f, 28, 26.5f, 44, 2, Hex("#A0714B"));
+                    Circle(c, 24, 19, 14, Hex("#6FBF73"));
+                    Circle(c, 18.5f, 14.5f, 5, Hex("#8ED38F"));
+                    break;
                 case UiIcon.None:
                     break;
                 default:

@@ -4,6 +4,7 @@
     "references": [
         "A305.Player",
         "A305.Dialogue",
+        "A305.World",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

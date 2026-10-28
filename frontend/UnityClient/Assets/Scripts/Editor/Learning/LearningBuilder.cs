@@ -448,7 +448,7 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(
                 view,
                 "vocabularyButtonLabel",
-                vocabularyButton.GetComponentInChildren<TMP_Text>(true)
+                vocabularyButton.transform.Find("Label").GetComponent<TMP_Text>()
             );
             Button home = UiBuilderTools.FindOrCreateButton(
                 root.transform,

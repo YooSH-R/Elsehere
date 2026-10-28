@@ -39,6 +39,7 @@ unity:editor-and-webgl:
   variables:
     GIT_STRATEGY: fetch
     GIT_CLEAN_FLAGS: '-ffdx -e frontend/UnityClient/Library/'
+    TRIPO_MASTER_RECORD: Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset
   script:
     - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
     - |

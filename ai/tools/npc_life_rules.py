@@ -14,10 +14,12 @@ SCHEMA = ROOT / "docs/api/npc-ai-contracts/npc_life_rules_schemas.json"
 WORLD_RULES = ROOT / "ai/npcs/rules/world-rules.json"  # ai/npcs 바로 아래는 NPC 설정 파일만 (npc_configs가 묶음)
 OBJECT_WORD_BINDINGS = ROOT / "backend/src/main/resources/content/object-word-bindings.json"
 LIFE_FOLDER = ROOT / "ai/npcs/life"
+BEHAVIORS = ROOT / "ai/npcs/rules/behaviors.json"
 
 _schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
 WORLD_RULES_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/WorldRules"})
 LIFE_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/NpcLife"})
+BEHAVIOR_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/BehaviorLibrary"})
 
 
 def _errors(validator: Draft202012Validator, data: dict) -> list[tuple[str, str]]:
@@ -115,6 +117,37 @@ def life_problems(npc_folder: Path) -> list[str]:
         f"{npc_id}: 생활 파일이 없음 (life/{npc_id}.json)" for npc_id in npc_ids if npc_id not in life_file_of and npc_id not in life_files
     ]
     problems += [f"{name}: 인격 파일이 없는 npcId '{npc_id}'" for npc_id, name in life_file_of.items() if npc_id not in npc_ids]
+    return problems
+
+
+def behavior_errors(library: dict) -> list[tuple[str, str]]:
+    return _errors(BEHAVIOR_SCHEMA, library)
+
+
+AXES = ("openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism")
+MIN_BEHAVIORS_PER_SIDE = 2  # 성격이 어느 쪽이든 고를 조각이 있어야 같은 성격끼리도 조합이 달라진다
+
+
+def behavior_problems(library: dict) -> list[str]:
+    """행동 조각끼리의 대조: id는 한 번만, 충돌 표시는 다른 조각을 가리킴, 성격 축 양쪽마다 조각이 충분한지."""
+    behaviors = library["behaviors"]
+    problems, first_at = [], {}
+    for i, behavior in enumerate(behaviors):
+        if behavior["id"] in first_at:
+            problems.append(f"$.behaviors[{i}]: id '{behavior['id']}'를 $.behaviors[{first_at[behavior['id']]}]에서 이미 씀")
+        else:
+            first_at[behavior["id"]] = i
+    for i, behavior in enumerate(behaviors):
+        for other in behavior.get("conflictsWith", []):
+            if other == behavior["id"]:
+                problems.append(f"$.behaviors[{i}].conflictsWith: 자기 자신 '{other}'")
+            elif other not in first_at:
+                problems.append(f"$.behaviors[{i}].conflictsWith: 없는 조각 '{other}'")
+    for axis in AXES:
+        for side in ("high", "low"):
+            count = sum(1 for behavior in behaviors if behavior["leans"].get(axis) == side)
+            if count < MIN_BEHAVIORS_PER_SIDE:
+                problems.append(f"{axis} {side} 쪽 조각이 {MIN_BEHAVIORS_PER_SIDE}개 미만 ({count}개)")
     return problems
 
 

@@ -211,6 +211,69 @@ def test_every_npc_has_a_life_file_and_every_life_file_has_an_npc(tmp_path):
     ]
 
 
+# 행동 조각 모음 (ai/npcs/rules/behaviors.json): 성격 축 쪽이 표시된 행동. 생성기가 NPC 성격에 맞는 조각을 뽑아 인격 글에 넣는다
+
+
+def load_behaviors() -> dict:
+    return json.loads(npc_life_rules.BEHAVIORS.read_text(encoding="utf-8"))
+
+
+def test_the_service_behaviors_pass_the_schema_without_problems():
+    library = load_behaviors()
+
+    assert npc_life_rules.behavior_errors(library) == []
+    assert npc_life_rules.behavior_problems(library) == []
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "where"),
+    [
+        (("schemaVersion",), "2.0", None),
+        (("behaviors", 0, "id"), "Talks To Strangers", None),
+        (("behaviors", 0, "text"), "", None),
+        (("behaviors", 0, "category"), "hobby", None),
+        (("behaviors", 0, "leans"), {}, None),  # 어느 성격 쪽인지 없으면 뽑을 수 없음
+        (("behaviors", 0, "leans"), {"humor": "high"}, None),  # 없는 성격 축
+        (("behaviors", 0, "leans", "extraversion"), "very", None),
+        (("behaviors", 0, "affects"), {"speed": 2}, None),  # 정해진 생활 값만 바꿀 수 있음
+        (("behaviors", 0, "affects", "initiateTalkRate"), 0, None),
+        (("behaviors", 2, "affects", "needRates"), {"THIRST": 0.8}, None),
+        (("behaviors", 3, "affects", "eventScale"), {"SHOUT": 0.5}, None),
+        (("behaviors", 7, "affects", "salienceBonus", "TASK_DONE"), 3, None),
+        (("behaviors", 16, "affects", "memoryStabilityScale"), {"4": 1.5}, None),
+        (("behaviors", 17, "conflictsWith"), [], None),
+    ],
+)
+def test_values_a_behavior_does_not_allow_are_reported_where_they_break(path, value, where):
+    errors = npc_life_rules.behavior_errors(changed(load_behaviors(), path, value))
+
+    assert {where for where, _ in errors} == {json_path(where or path)}
+
+
+def test_a_behavior_id_is_used_once():
+    library = changed(load_behaviors(), ("behaviors", 1, "id"), "talks_to_strangers")
+
+    assert npc_life_rules.behavior_problems(library) == ["$.behaviors[1]: id 'talks_to_strangers'를 $.behaviors[0]에서 이미 씀"]
+
+
+def test_a_conflict_points_to_another_existing_behavior():
+    library = changed(load_behaviors(), ("behaviors", 17, "conflictsWith"), ["calm_down"])
+    changed(library, ("behaviors", 18, "conflictsWith"), ["shrugs_it_off"])  # 자기 자신
+
+    assert npc_life_rules.behavior_problems(library) == [
+        "$.behaviors[17].conflictsWith: 없는 조각 'calm_down'",
+        "$.behaviors[18].conflictsWith: 자기 자신 'shrugs_it_off'",
+    ]
+
+
+def test_each_side_of_every_axis_has_enough_behaviors_to_draw_from():
+    """성격이 어느 쪽이든 고를 조각이 있어야 같은 성격끼리도 조합이 달라진다."""
+    library = load_behaviors()
+    library["behaviors"] = [b for b in library["behaviors"] if b["leans"] != {"openness": "low"}]
+
+    assert npc_life_rules.behavior_problems(library) == [f"openness low 쪽 조각이 {npc_life_rules.MIN_BEHAVIORS_PER_SIDE}개 미만 (0개)"]
+
+
 def test_an_npc_away_from_off_duty_needs_a_scene():
     """퇴근(OFF)이 아니면 Unity가 NPC를 둘 장소가 있어야 한다."""
     life = load_life("CAFE_STAFF")

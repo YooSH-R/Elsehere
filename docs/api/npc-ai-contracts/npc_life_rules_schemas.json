@@ -1,8 +1,84 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NPC 생활·관계 규칙 스키마 (제안)",
-  "description": "$defs의 WorldRules(공통 규칙)나 NpcLife(NPC별 생활 파일)를 명시적으로 선택해 검증한다. Unity·AI 워커·백엔드가 같이 읽는 규칙 데이터이며, 설계는 docs/npc-life-design.md. 숫자는 시뮬레이션으로 맞출 초기값이다.",
+  "description": "$defs의 WorldRules(공통 규칙), NpcLife(NPC별 생활 파일), BehaviorLibrary(행동 조각 모음)를 명시적으로 선택해 검증한다. Unity·AI 워커·백엔드가 같이 읽는 규칙 데이터이며, 설계는 docs/npc-life-design.md. 숫자는 시뮬레이션으로 맞출 초기값이다.",
   "$defs": {
+    "BehaviorLibrary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "behaviors"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "behaviors": { "type": "array", "items": { "$ref": "#/$defs/Behavior" }, "minItems": 1 }
+      },
+      "description": "성격 축 쪽이 표시된 행동 조각. 생성기가 NPC 성격에 맞는 조각을 뽑아 인격의 habits·behaviorRules·speechStyle에 글로 넣는다. MBTI 유형별 목록이 아니라 축 표시라서 MBTI·성격 수치·랜덤 어느 입력에서도 같은 모음을 쓴다."
+    },
+    "Behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "ko", "category", "leans"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S", "description": "인격 글에 들어갈 영어 문장." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S", "description": "작성자가 읽는 한국어 뜻." },
+        "category": { "type": "string", "enum": ["habit", "social", "speech", "inner", "work"] },
+        "leans": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/Axis" },
+          "additionalProperties": { "type": "string", "enum": ["high", "low"] },
+          "minProperties": 1,
+          "description": "이 행동이 어느 성격 축의 어느 쪽에 가까운지 (MBTI: E·N·F·J·-T가 각 축의 high)."
+        },
+        "affects": { "$ref": "#/$defs/BehaviorAffects" },
+        "conflictsWith": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "함께 뽑지 않는 조각 id."
+        }
+      }
+    },
+    "Axis": {
+      "type": "string",
+      "enum": ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"],
+      "description": "인격 스키마 personality.dimensions(Big Five 0~1)와 같은 이름."
+    },
+    "BehaviorAffects": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "needRates": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/NeedId" },
+          "additionalProperties": { "$ref": "#/$defs/Scale" },
+          "description": "욕구 감소 속도에 곱한다."
+        },
+        "recognitionRate": { "$ref": "#/$defs/Scale", "description": "손님 얼굴을 외우는 속도에 곱한다." },
+        "initiateTalkRate": { "$ref": "#/$defs/Scale", "description": "먼저 말을 거는 빈도에 곱한다." },
+        "personalTalkScale": { "$ref": "#/$defs/Scale", "description": "사적인 이야기를 하는 관계 기준에 곱한다." },
+        "eventScale": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/EventId" },
+          "additionalProperties": { "$ref": "#/$defs/Scale" },
+          "description": "그 대화 사건의 기분·인상 변화에 곱한다."
+        },
+        "salienceBonus": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/EventId" },
+          "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 2 },
+          "description": "그 대화 사건을 기억할 때 인상 세기에 더한다 (최대 3)."
+        },
+        "memoryStabilityScale": {
+          "type": "object",
+          "propertyNames": { "type": "string", "enum": ["1", "2", "3"] },
+          "additionalProperties": { "$ref": "#/$defs/Scale" },
+          "description": "인상 세기별 기억 유지 기간에 곱한다."
+        }
+      }
+    },
+    "Scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
     "NpcLife": {
       "type": "object",
       "additionalProperties": false,

@@ -93,6 +93,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `CONVERSATION_NOT_ACTIVE` | 409 | 이미 끝난 대화에 발화 전송 |
 | `SCENE_CLOSED` | 409 | 열리지 않은 장소(`is_open = false`) |
 | `TUTORIAL_NOT_IN_PROGRESS` | 409 | 튜토리얼 전 단계(`LANG`, `LEVEL`) 사용자의 튜토리얼 완료·건너뛰기 |
+| `MISSION_NOT_READY` | 409 | 첫날 미션에서 카페 주문·대화 종료·현재 장소 등 휴식 조건 미충족 |
 | `AUDIO_TOO_LARGE` | 413 | 녹음 크기 초과(3MB) |
 | `AUDIO_FORMAT_UNSUPPORTED` | 415 | 지원하지 않는 녹음 형식 |
 | `STT_NO_SPEECH` | 422 | 무음 또는 인식 실패 |
@@ -598,6 +599,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `sceneCode`가 없거나 비어 있으면 `400 VALIDATION_FAILED`, 없는 장소면 `404 NOT_FOUND`, 열리지 않은 장소(`is_open = false`)면 `409 SCENE_CLOSED`입니다. 오류가 나면 마지막 장소를 바꾸지 않습니다.
 
 ### 4.5 미션
+
+첫날 7단계 연계 여정은 [첫날 연계 미션 계약](first-day-mission.md)의 `/api/v1/missions/first-day`를 사용한다. 사용자가 수첩에서 시작하고 서버가 진행을 영속화한다. 아래 일일 미션 API와 튜토리얼 기본 미션 경로는 유지한다.
 
 미션은 자동으로 시작됩니다. 수락 버튼이 없고, 사용자가 미션에 맞는 행동을 하면 서버가 완료로 판정합니다. 한 대화에서 여러 미션을 동시에 완료할 수 있습니다.
 

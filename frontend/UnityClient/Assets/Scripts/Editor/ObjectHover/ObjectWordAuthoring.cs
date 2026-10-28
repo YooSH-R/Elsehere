@@ -27,6 +27,7 @@ namespace A305.EditorTools.ObjectHover
             "CafeScene",
             "HotelScene",
             "TownScene",
+            "ShopScene",
         };
         private static string RepositoryPath =>
             Path.GetFullPath(Path.Combine(Application.dataPath, "../../.."));
@@ -190,7 +191,9 @@ namespace A305.EditorTools.ObjectHover
                 (check ? "검증" : "내보내기")
                     + " 완료: 공용 단어 "
                     + definitions.Length
-                    + "개, 배포용 씬 4개"
+                    + "개, 배포용 씬 "
+                    + SceneNames.Length
+                    + "개"
             );
         }
 

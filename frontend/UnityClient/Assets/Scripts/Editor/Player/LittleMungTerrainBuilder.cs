@@ -85,11 +85,30 @@ namespace A305.EditorTools.Player
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>모델 FBX를 다시 내보낸 뒤, 발바닥 스킨 복사본을 같은 에셋(GUID) 그대로 새 형태로 갱신한다. 프리팹은 건드리지 않는다.</summary>
+        [MenuItem("Tools/A305/Player/Refresh Terrain Sole Skin")]
+        public static void RefreshSoleSkins()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            var source = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(LittleMungAdjustedRigBuilder.ModelPath)
+            );
+            try
+            {
+                var originals = source.GetComponentsInChildren<SkinnedMeshRenderer>();
+                for (int skinIndex = 0; skinIndex < originals.Length; skinIndex++)
+                    SaveSoleSkin(originals[skinIndex], skinIndex);
+            }
+            finally
+            {
+                Object.DestroyImmediate(source);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
         private static void AttachSoleSkin(GameObject model)
         {
-            const string folder = "Assets/Art/Player/LittleMung/TerrainSkin";
-            if (!AssetDatabase.IsValidFolder(folder))
-                AssetDatabase.CreateFolder("Assets/Art/Player/LittleMung", "TerrainSkin");
             var source = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(LittleMungAdjustedRigBuilder.ModelPath)
             );
@@ -98,24 +117,35 @@ namespace A305.EditorTools.Player
                 var originals = source.GetComponentsInChildren<SkinnedMeshRenderer>();
                 var targets = model.GetComponentsInChildren<SkinnedMeshRenderer>();
                 for (int skinIndex = 0; skinIndex < originals.Length; skinIndex++)
-                {
-                    string path = folder + "/Sole" + skinIndex + ".asset";
-                    var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
-                    if (mesh == null)
-                    {
-                        var skin = originals[skinIndex];
-                        mesh = Object.Instantiate(skin.sharedMesh);
-                        mesh.name = "LittleMungTerrainSole" + skinIndex;
-                        StabilizeSoles(mesh, skin);
-                        AssetDatabase.CreateAsset(mesh, path);
-                    }
-                    targets[skinIndex].sharedMesh = mesh;
-                }
+                    targets[skinIndex].sharedMesh = SaveSoleSkin(originals[skinIndex], skinIndex);
             }
             finally
             {
                 Object.DestroyImmediate(source);
             }
+        }
+
+        // 복사본은 모델에서 다시 만들 수 있는 파생 에셋이다. 모델 형태가 바뀌어도 따라가도록, 이미 있으면
+        // 에셋을 지우지 않고 내용만 새로 채워 Female 등 이 메시를 쓰는 프리팹의 참조(GUID)를 유지한다.
+        private static Mesh SaveSoleSkin(SkinnedMeshRenderer skin, int skinIndex)
+        {
+            const string folder = "Assets/Art/Player/LittleMung/TerrainSkin";
+            if (!AssetDatabase.IsValidFolder(folder))
+                AssetDatabase.CreateFolder("Assets/Art/Player/LittleMung", "TerrainSkin");
+            string path = folder + "/Sole" + skinIndex + ".asset";
+            var mesh = Object.Instantiate(skin.sharedMesh);
+            mesh.name = "LittleMungTerrainSole" + skinIndex;
+            StabilizeSoles(mesh, skin);
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(mesh, path);
+                return mesh;
+            }
+            EditorUtility.CopySerialized(mesh, existing);
+            Object.DestroyImmediate(mesh);
+            EditorUtility.SetDirty(existing);
+            return existing;
         }
 
         private static void StabilizeSoles(Mesh mesh, SkinnedMeshRenderer skin)

@@ -23,7 +23,7 @@ import org.hibernate.annotations.ColumnTransformer;
 /**
  * 대화의 발화 한 턴. NPC 한 턴은 대답 한 줄(난이도에 따라 1~3문장)이며 문장으로 쪼개 저장하지 않는다.
  *
- * <p>무례 판정(guard_*)은 아직 부르지 않아 비워 둔다.
+ * <p>무례 판정(guard_*)은 사용자 턴에만 받은 그대로 남긴다. 판정하지 못했으면 guard_abusive가 null이고 guard_error_code에 이유가 있다.
  */
 @Entity
 @Table(
@@ -102,7 +102,9 @@ public class Turn extends BaseEntity {
       InputType inputType,
       String text,
       String sttRawText,
-      String translationEn) {
+      String translationEn,
+      Boolean guardAbusive,
+      String guardErrorCode) {
     Turn turn = new Turn();
     turn.conversation = conversation;
     turn.seq = seq;
@@ -112,7 +114,19 @@ public class Turn extends BaseEntity {
     turn.text = text;
     turn.sttRawText = sttRawText;
     turn.translationEn = translationEn;
+    turn.guardAbusive = guardAbusive;
+    turn.guardErrorCode = guardErrorCode;
     return turn;
+  }
+
+  /** 무례로 센 사용자 턴인지. 판정하지 못한 턴은 세지 않는다. */
+  public boolean isRude() {
+    return Boolean.TRUE.equals(guardAbusive);
+  }
+
+  /** 번역 카드는 번역이 있고 무례가 아니라고 확정된 사용자 턴에만 보여 준다. */
+  public String shownTranslation() {
+    return Boolean.FALSE.equals(guardAbusive) ? translationEn : null;
   }
 
   /**

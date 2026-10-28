@@ -3,10 +3,13 @@ package com.elsehere.conversation.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerNpc;
@@ -24,10 +27,13 @@ import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.user.repository.UserRepository;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -35,9 +41,21 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** HTTP·DB를 대체하고 실제 대화 서비스와 미션 규칙을 함께 실행한다. */
 class FirstDayTurnTest {
-  @Test
-  void onlySuccessfulSavedReplyAppliesRecognizedGoals() {
-    FirstDayMission mission = FirstDayMission.start(8L);
+
+  private static final NpcReply SAVED_REPLY =
+      new NpcReply(
+          "Your suitcase is safe. The cafe is across the street.",
+          null,
+          List.of(),
+          null,
+          List.of());
+
+  private final FirstDayMission mission = FirstDayMission.start(8L);
+  private final AiWorkerClient worker = mock(AiWorkerClient.class);
+  private TurnService service;
+
+  @BeforeEach
+  void setUp() {
     FirstDayMissionRepository missions = mock(FirstDayMissionRepository.class);
     when(missions.findById(8L)).thenReturn(Optional.of(mission));
     when(missions.findForUpdate(8L)).thenReturn(Optional.of(mission));
@@ -63,7 +81,6 @@ class FirstDayTurnTest {
                 null,
                 null));
     when(support.history(10L)).thenReturn(List.of());
-    AiWorkerClient worker = mock(AiWorkerClient.class);
     when(worker.judge(any(), any(), any(), any(), any()))
         .thenReturn(
             new JudgeResult(
@@ -76,16 +93,6 @@ class FirstDayTurnTest {
                     "confirm_reservation",
                     List.of("confirm_reservation", "store_suitcase", "ask_cafe"),
                     null)));
-    when(worker.reply(
-            any(), any(), any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt()))
-        .thenReturn(new NpcReply(null, null, null, "timeout", List.of()))
-        .thenReturn(
-            new NpcReply(
-                "Your suitcase is safe. The cafe is across the street.",
-                null,
-                List.of(),
-                null,
-                List.of()));
     TransactionTemplate transactions = mock(TransactionTemplate.class);
     when(transactions.execute(any()))
         .thenAnswer(
@@ -93,7 +100,7 @@ class FirstDayTurnTest {
               TransactionCallback<?> callback = invocation.getArgument(0);
               return callback.doInTransaction(mock(TransactionStatus.class));
             });
-    TurnService service =
+    service =
         new TurnService(
             turns,
             support,
@@ -101,11 +108,36 @@ class FirstDayTurnTest {
             mock(AiRequestRecorder.class),
             mock(MemoryService.class),
             transactions,
-            firstDay);
+            firstDay,
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+  }
+
+  @Test
+  void onlySuccessfulSavedReplyAppliesRecognizedGoals() {
+    guards(false);
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean()))
+        .thenReturn(new NpcReply(null, null, null, "timeout", List.of()))
+        .thenReturn(SAVED_REPLY);
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);
     assertThat(mission.getStage()).isZero();
     service.send(8L, 10L, request);
     assertThat(mission.getStage()).isEqualTo(1);
+  }
+
+  @Test
+  void rudeTurnDoesNotApplyRecognizedGoals() {
+    guards(true);
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean()))
+        .thenReturn(SAVED_REPLY);
+
+    service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
+
+    assertThat(mission.getStage()).isZero();
+  }
+
+  private void guards(boolean abusive) {
+    when(worker.guard(any(), any(), any(), any()))
+        .thenReturn(new GuardResult(new GuardResult.Guard(abusive, null), List.of()));
   }
 }

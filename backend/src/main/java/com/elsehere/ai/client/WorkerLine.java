@@ -9,8 +9,8 @@ package com.elsehere.ai.client;
  */
 public record WorkerLine(String who, String text, String english, boolean rude) {
 
-  public static WorkerLine learner(String text, String english) {
-    return new WorkerLine("me", text, english, false);
+  public static WorkerLine learner(String text, String english, boolean rude) {
+    return new WorkerLine("me", text, english, rude);
   }
 
   public static WorkerLine npc(String text) {

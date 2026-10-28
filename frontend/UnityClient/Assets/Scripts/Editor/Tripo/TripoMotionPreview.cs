@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using A305.Player;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
+using UnityEngine.SceneManagement;
 
 namespace A305.EditorTools.Tripo
 {
@@ -23,6 +25,8 @@ namespace A305.EditorTools.Tripo
     public sealed class TripoMotionPreview : IDisposable
     {
         private readonly HumanPoseHandler handler;
+        private readonly LittleMungArmClearance armCorrection;
+        private readonly GameObject correctionSpace;
         private HumanPose rest;
         private readonly Transform[] bones;
         private readonly Vector3[] positions;
@@ -61,6 +65,22 @@ namespace A305.EditorTools.Tripo
             }
             handler = new HumanPoseHandler(animator.avatar, animator.transform);
             handler.GetHumanPose(ref rest);
+            armCorrection = animator.GetComponent<LittleMungArmClearance>();
+            if (armCorrection != null)
+            {
+                var controller = instance.GetComponentInParent<CharacterController>();
+                if (controller == null)
+                {
+                    correctionSpace = new GameObject("Master preview reference")
+                    {
+                        hideFlags = HideFlags.HideAndDontSave,
+                    };
+                    SceneManager.MoveGameObjectToScene(correctionSpace, instance.scene);
+                    controller = correctionSpace.AddComponent<CharacterController>();
+                    controller.enabled = false;
+                }
+                armCorrection.Initialize(controller);
+            }
         }
 
         public void Apply(TripoReviewMotion motion, float phase)
@@ -119,6 +139,8 @@ namespace A305.EditorTools.Tripo
             }
             playable.SetTime(Mathf.Clamp01(phase) * clip.length);
             graph.Evaluate(0f);
+            if (armCorrection != null)
+                armCorrection.CorrectPose();
         }
 
         private void StopClip()
@@ -180,6 +202,8 @@ namespace A305.EditorTools.Tripo
             StopClip();
             handler.Dispose();
             RestoreTransforms();
+            if (correctionSpace != null)
+                UnityEngine.Object.DestroyImmediate(correctionSpace);
         }
     }
 }

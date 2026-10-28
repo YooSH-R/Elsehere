@@ -6,7 +6,8 @@
         "Unity.Animation.Rigging",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.EditorTools"
+        "A305.EditorTools",
+        "A305.Player"
     ],
     "includePlatforms": [
         "Editor"

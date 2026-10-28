@@ -28,6 +28,10 @@ namespace A305.EditorTools.Tripo
                 || record.uniformScale > record.profile.MaximumScale
             )
                 report.Errors.Add("전체 크기가 검증 범위를 벗어났습니다.");
+            if (record.kind == TripoAssetKind.Character && record.commonBody == null)
+                report.Errors.Add(
+                    "서비스 캐릭터의 마스터 골격을 연결해야 합니다. 기준 없이 승인할 수 없습니다."
+                );
             if (report.Errors.Count == 0)
             {
                 try
@@ -46,10 +50,15 @@ namespace A305.EditorTools.Tripo
                         report.Errors.AddRange(
                             TripoFaceBindings.Validate(model, record.faceBindings)
                         );
-                    if (!string.IsNullOrEmpty(record.revision.candidatePath))
+                    if (
+                        !string.IsNullOrEmpty(record.revision.candidatePath)
+                        && record.ModelPath != record.masterPreparedPath
+                    )
                     {
                         var previous = AssetDatabase.LoadAssetAtPath<GameObject>(
-                            record.revision.activePath
+                            string.IsNullOrEmpty(record.masterPreparedPath)
+                                ? record.revision.activePath
+                                : record.masterPreparedPath
                         );
                         if (previous == null)
                             report.Errors.Add("비교할 이전 모델이 없습니다.");
@@ -69,16 +78,16 @@ namespace A305.EditorTools.Tripo
                             "공통 기준 모델이 없어 체형·공통 골격 호환성은 검사하지 않았습니다."
                         );
                     if (record.commonBody != null && record.kind == TripoAssetKind.Character)
-                        Merge(
-                            report,
-                            TripoRoundTripAudit.Compare(
-                                record.commonBody,
-                                model,
-                                record.parts,
-                                record.profile,
-                                true
-                            )
-                        );
+                    {
+                        Merge(report, TripoMasterRig.Inspect(model, record.commonBody));
+                        if (report.Passed)
+                        {
+                            report.ManualChecks.RemoveAll(item =>
+                                item.StartsWith("자동 동작 검사 미실행")
+                            );
+                            Merge(report, TripoMasterMotionAudit.Inspect(model));
+                        }
+                    }
                     else if (
                         record.commonBody != null
                         && record.attachment == TripoAttachmentKind.Skinned

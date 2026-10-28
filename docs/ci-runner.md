@@ -130,6 +130,8 @@ sudo docker logs --tail=30 gitlab-runner
 
 백엔드 검사 컨테이너는 `DOCKER_HOST=tcp://docker:2375`로 작업 전용 Docker 서비스에 연결합니다. Testcontainers의 정리 컨테이너인 Ryuk는 그 서비스 내부의 Unix 소켓도 사용합니다. `docker:29.1.3-dind-rootless`는 UID 1000으로 실행하므로 `.gitlab/ci/backend.yml`에 `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/user/1000/docker.sock`을 지정합니다. 이 경로는 테스트 전용 서비스 내부의 소켓이며 호스트 Docker 소켓이 아닙니다. [Docker rootless 실행 경로](https://docs.docker.com/engine/security/rootless/tips/), [Testcontainers 소켓 설정](https://java.testcontainers.org/features/configuration/#customizing-docker-host-detection)
 
+작업마다 새로 만드는 검사용 Docker는 호스트의 이미지 캐시를 공유하지 않습니다. `.docker-job`의 서비스 시작 명령에 `--registry-mirror=https://mirror.gcr.io`를 지정해 Google이 관리하는 공개 Docker Hub 이미지 캐시를 먼저 확인합니다. 캐시에 없는 이미지는 Docker Hub에서 받습니다. 이 설정은 검사용 서비스에만 적용하고, 호스트 Docker 소켓·운영 앱 파일·인증 정보는 검사 컨테이너에 연결하지 않습니다. [Google 공개 이미지 캐시](https://docs.cloud.google.com/artifact-registry/docs/pull-cached-dockerhub-images)
+
 ### 테스트용 Docker의 임시 포트 범위
 
 Docker 29의 rootless 환경에서는 서비스 바깥쪽 네트워크의 임시 포트와 안쪽 Docker가 공개하는 동적 포트가 겹치면 `RootlessKit PortManager.AddPort(): ... bind: address already in use` 오류가 발생할 수 있습니다. `.gitlab-ci.yml`의 `.docker-job`은 테스트용 Docker 서비스가 시작될 때 바깥쪽 임시 포트 범위를 `15000 25000`으로 설정합니다. [Docker 포트 충돌 이슈](https://github.com/moby/moby/issues/53153)

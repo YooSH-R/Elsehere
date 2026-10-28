@@ -44,6 +44,7 @@ namespace A305.Mission
                 return;
             }
             api = new FirstDayMissionApi(apiSettings.CreateClient());
+            view.BindMap(sceneCode, player.transform);
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;

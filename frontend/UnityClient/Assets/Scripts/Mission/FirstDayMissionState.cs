@@ -14,6 +14,10 @@ namespace A305.Mission
         public string Situation { get; set; }
         public string Direction { get; set; }
         public List<FirstDayMissionStep> Steps { get; set; } = new List<FirstDayMissionStep>();
+
+        /// <summary>지금 가야 할 장소 코드. 시작 전과 모두 끝낸 뒤에는 없다. Scene은 마지막으로 들어온 장소다.</summary>
+        public string Destination =>
+            Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.Scene : null;
     }
 
     public sealed class FirstDayMissionStep

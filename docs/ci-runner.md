@@ -116,6 +116,8 @@ sudo nano /srv/gitlab-runner/config/config.toml
 
 최상위 `concurrent`와 등록된 `[[runners]]`의 `limit`를 `2`로 맞추고 id·token·URL·이름·토큰 시각을 유지합니다. 템플릿의 `environment`와 `[runners.docker]` 설정을 그 항목에 적용합니다. 새 `[[runners]]`를 추가하거나 템플릿으로 파일 전체를 덮어쓰지 않습니다.
 
+프로젝트 전용 Docker Runner의 `pull_policy`는 `["always", "if-not-present"]`를 사용합니다. 새 이미지를 먼저 확인하고, 레지스트리 다운로드가 실패하면 로컬에 저장된 이미지로 작업을 시작합니다. Docker Hub의 `429 Too Many Requests`처럼 다운로드가 제한된 경우에도 기존 이미지가 있으면 코드 검사와 빌드를 계속할 수 있습니다. 로컬에 없는 이미지는 다운로드에 성공해야 사용할 수 있으며, 레지스트리가 정상화되면 다시 새 이미지를 확인합니다. [GitLab의 다중 이미지 가져오기 정책](https://docs.gitlab.com/runner/executors/docker/#set-multiple-pull-policies)
+
 ```bash
 sudo docker restart gitlab-runner
 sudo docker exec gitlab-runner gitlab-runner verify

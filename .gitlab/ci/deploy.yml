@@ -59,20 +59,19 @@ dev:deliver:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true" && $A305_DEPLOY_ENVIRONMENT == "dev"'
 
-# Main checks finish before a Maintainer starts the production plan.
+# A protected main push runs every release check in its serialized child.
 .prod-deployment-source:
   rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "web" && $RUN_PROD_DEPLOY == "true"'
 
 prod:plan:
   extends:
     - .linux-job
     - .prod-deployment-source
-  stage: deploy
+  stage: validate
   image: python:3.12-alpine
   timeout: 5m
-  when: manual
-  allow_failure: false
   variables:
     GIT_DEPTH: "0"
   script:
@@ -90,7 +89,7 @@ prod:plan:
 
 prod:child:
   extends: .prod-deployment-source
-  stage: deploy
+  stage: verify
   needs:
     - ci:yaml
     - prod:plan

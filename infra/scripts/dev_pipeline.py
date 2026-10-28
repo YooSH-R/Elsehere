@@ -41,7 +41,9 @@ def create_release_plan(repository, state, candidate):
     return plan
 
 
-def create_child_pipeline(plan, parent_pipeline_id, state=None, environment="dev"):
+def create_child_pipeline(
+    plan, parent_pipeline_id, state=None, environment="dev", *, automatic=False
+):
     checks = ALL_CHECKS if environment == "prod" else set(plan["checks"])
     jobs = ["ci:yaml"]
     selections = {
@@ -69,6 +71,8 @@ def create_child_pipeline(plan, parent_pipeline_id, state=None, environment="dev
         },
         "A305_BUILD_WEB": str("web" in plan["builds"]).lower(),
     }
+    if environment == "prod":
+        variables["A305_PROD_AUTOMATIC"] = str(automatic).lower()
     return {
         "include": [{"local": ".gitlab-ci.yml"}],
         "variables": variables,
@@ -164,7 +168,9 @@ def verify_current_candidate(repository, branch, candidate):
         )
 
 
-def plan_pipeline(repository, candidate, branch, pipeline_id, environment="dev"):
+def plan_pipeline(
+    repository, candidate, branch, pipeline_id, environment="dev", *, automatic=False
+):
     verify_current_candidate(repository, branch, candidate)
     state = server_request("state", environment=environment)
     if state.get("environment", "dev") != environment:
@@ -179,7 +185,9 @@ def plan_pipeline(repository, candidate, branch, pipeline_id, environment="dev")
         ("plan.json", plan),
         (
             f"{environment}-child.yml",
-            create_child_pipeline(plan, pipeline_id, state, environment),
+            create_child_pipeline(
+                plan, pipeline_id, state, environment, automatic=automatic
+            ),
         ),
     ]:
         (directory / name).write_text(
@@ -336,7 +344,26 @@ def main():
         raise ValueError("Only the protected deployment branch may deploy.")
     repository = Path(os.environ["CI_PROJECT_DIR"])
     candidate = os.environ["CI_COMMIT_SHA"]
+    automatic = False
     if environment == "prod":
+        source = os.environ.get("CI_PIPELINE_SOURCE")
+        if arguments.action == "plan":
+            if source not in {"push", "web"}:
+                raise ValueError(
+                    "Production plans require a main push or manual pipeline."
+                )
+            automatic = source == "push"
+        else:
+            if (
+                source != "parent_pipeline"
+                or os.environ.get("A305_DEPLOY_CHILD") != "true"
+                or os.environ.get("A305_DEPLOY_ENVIRONMENT") != "prod"
+            ):
+                raise ValueError(
+                    "Production delivery requires its production child pipeline."
+                )
+            automatic = os.environ.get("A305_PROD_AUTOMATIC") == "true"
+    if environment == "prod" and not automatic:
         if os.environ.get("PROD_VERIFIED_COMMIT") != candidate:
             raise ValueError(
                 "PROD_VERIFIED_COMMIT must match this candidate's integration-tested SHA."
@@ -354,7 +381,17 @@ def main():
             )
     pipeline_id = os.environ["CI_PIPELINE_ID"]
     if arguments.action == "plan":
-        plan_pipeline(repository, candidate, branch, pipeline_id, environment)
+        if environment == "prod":
+            plan_pipeline(
+                repository,
+                candidate,
+                branch,
+                pipeline_id,
+                environment,
+                automatic=automatic,
+            )
+        else:
+            plan_pipeline(repository, candidate, branch, pipeline_id, environment)
     else:
         deliver_pipeline(repository, candidate, branch, pipeline_id, environment)
 

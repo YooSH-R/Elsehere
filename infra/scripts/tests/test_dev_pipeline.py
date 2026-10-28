@@ -199,8 +199,94 @@ class ServerRequestTests(unittest.TestCase):
 
 
 class ProductionEntryPointTests(unittest.TestCase):
+    def test_automatic_delivery_requires_its_protected_production_child(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "main",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "124",
+            "CI_PIPELINE_SOURCE": "parent_pipeline",
+            "A305_DEPLOY_CHILD": "true",
+            "A305_DEPLOY_ENVIRONMENT": "prod",
+            "A305_PROD_AUTOMATIC": "true",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "deliver", "--environment", "prod"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.deliver_pipeline") as deliver,
+        ):
+            dev_pipeline.main()
+            self.assertEqual(deliver.call_args.args[-1], "prod")
+            for override in (
+                {"CI_COMMIT_REF_PROTECTED": "false"},
+                {"CI_COMMIT_BRANCH": "dev"},
+                {"CI_PIPELINE_SOURCE": "merge_request_event"},
+                {"CI_PIPELINE_SOURCE": "push"},
+                {"CI_PIPELINE_SOURCE": "web"},
+                {"A305_DEPLOY_CHILD": "false"},
+                {"A305_DEPLOY_ENVIRONMENT": "dev"},
+                {"A305_PROD_AUTOMATIC": "false"},
+            ):
+                with (
+                    self.subTest(override=override),
+                    patch.dict("os.environ", override),
+                    self.assertRaises(ValueError),
+                ):
+                    dev_pipeline.main()
+            self.assertEqual(deliver.call_count, 1)
+
+    def test_automatic_plan_preserves_its_mode_in_the_generated_child(self):
+        with tempfile.TemporaryDirectory(prefix="a305-auto-plan-") as directory:
+            repository = Path(directory)
+            with (
+                patch("dev_pipeline.verify_current_candidate"),
+                patch(
+                    "dev_pipeline.server_request", return_value={"environment": "prod"}
+                ),
+                patch(
+                    "dev_pipeline.create_release_plan",
+                    return_value={
+                        "checks": [],
+                        "builds": [],
+                        "deploy": False,
+                        "reason": "cumulative-diff",
+                    },
+                ),
+            ):
+                dev_pipeline.plan_pipeline(
+                    repository, "a" * 40, "main", "123", "prod", automatic=True
+                )
+            child = json.loads(
+                (repository / "dist/deployment/prod-child.yml").read_text()
+            )
+
+        self.assertEqual(child["variables"]["A305_PROD_AUTOMATIC"], "true")
+        self.assertEqual(child["variables"]["A305_CHECK_BACKEND"], "true")
+        self.assertEqual(child["variables"]["A305_CHECK_UNITY"], "true")
+
+    def test_main_push_plans_production_without_manual_release_variables(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "main",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "123",
+            "CI_PIPELINE_SOURCE": "push",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "plan", "--environment", "prod"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.plan_pipeline") as plan,
+        ):
+            dev_pipeline.main()
+
+        self.assertEqual(plan.call_args.args[-1], "prod")
+        self.assertTrue(plan.call_args.kwargs["automatic"])
+
     def test_protected_main_requires_evidence_for_the_exact_candidate(self):
         environment = {
+            "CI_PIPELINE_SOURCE": "web",
             "CI_COMMIT_BRANCH": "main",
             "CI_COMMIT_REF_PROTECTED": "true",
             "CI_COMMIT_SHA": "a" * 40,
@@ -223,6 +309,9 @@ class ProductionEntryPointTests(unittest.TestCase):
                 {"PROD_DB_COMPATIBLE": "false"},
                 {"CI_COMMIT_BRANCH": "dev"},
                 {"CI_COMMIT_REF_PROTECTED": "false"},
+                {"CI_PIPELINE_SOURCE": "schedule"},
+                {"CI_PIPELINE_SOURCE": "merge_request_event"},
+                {"CI_PIPELINE_SOURCE": "parent_pipeline"},
             ):
                 with (
                     self.subTest(override=override),
@@ -230,6 +319,40 @@ class ProductionEntryPointTests(unittest.TestCase):
                     self.assertRaises(ValueError),
                 ):
                     dev_pipeline.main()
+
+    def test_manual_production_child_keeps_exact_candidate_evidence_checks(self):
+        environment = {
+            "CI_PIPELINE_SOURCE": "parent_pipeline",
+            "CI_COMMIT_BRANCH": "main",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "124",
+            "A305_DEPLOY_CHILD": "true",
+            "A305_DEPLOY_ENVIRONMENT": "prod",
+            "A305_PROD_AUTOMATIC": "false",
+            "PROD_VERIFIED_COMMIT": "a" * 40,
+            "PROD_RELEASE_MR": "https://lab.ssafy.com/s15-final/S15P31A305/-/merge_requests/123",
+            "PROD_DB_COMPATIBLE": "true",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "deliver", "--environment", "prod"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.deliver_pipeline") as deliver,
+        ):
+            dev_pipeline.main()
+            for override in (
+                {"PROD_VERIFIED_COMMIT": "b" * 40},
+                {"PROD_RELEASE_MR": ""},
+                {"PROD_DB_COMPATIBLE": "false"},
+            ):
+                with (
+                    self.subTest(override=override),
+                    patch.dict("os.environ", override),
+                    self.assertRaises(ValueError),
+                ):
+                    dev_pipeline.main()
+            self.assertEqual(deliver.call_count, 1)
 
 
 class MonitoringCompatibilityTests(unittest.TestCase):

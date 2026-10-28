@@ -38,11 +38,9 @@ public class LevelTest extends BaseEntity {
   @Column(nullable = false, length = 20)
   private LevelTestStatus status;
 
-  @Column(columnDefinition = "smallint")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   private Integer score;
 
-  @Column(columnDefinition = "smallint")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   private Integer resultLevel;
 

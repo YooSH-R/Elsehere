@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using A305.Api;
 using A305.EditorTools.Common;
+using A305.Learning;
 using A305.Mission;
 using A305.Npc;
 using A305.Player;
@@ -33,8 +34,17 @@ namespace A305.EditorTools.Mission
                 "Assets/Scenes/Production/" + sceneName + ".unity"
             );
             var view = BuilderTools.FindSingleInScene<FirstDayMissionView>(scene);
+            // 오른쪽 위 단어장 칸도 함께 그려 왼쪽 위 퀘스트 화면과 겹치는지 확인한다.
+            var vocabulary = BuilderTools.FindSingleInScene<LearningHudView>(scene);
+            Canvas[] shown = BuilderTools
+                .FindAllInScene<Canvas>(scene)
+                .Where(canvas =>
+                    canvas.gameObject == view.gameObject
+                    || (vocabulary != null && canvas.gameObject == vocabulary.gameObject)
+                )
+                .ToArray();
             foreach (Canvas canvas in BuilderTools.FindAllInScene<Canvas>(scene))
-                canvas.gameObject.SetActive(canvas.gameObject == view.gameObject);
+                canvas.gameObject.SetActive(shown.Contains(canvas));
             var camera = BuilderTools
                 .FindSingleInScene<PlayerCameraRig>(scene)
                 .GetComponent<Camera>();
@@ -48,18 +58,30 @@ namespace A305.EditorTools.Mission
                     Quaternion.LookRotation(target - position)
                 );
             }
-            Canvas overlay = view.GetComponent<Canvas>();
-            overlay.renderMode = RenderMode.ScreenSpaceCamera;
-            overlay.worldCamera = camera;
-            overlay.planeDistance = .5f;
+            foreach (Canvas overlay in shown)
+            {
+                overlay.renderMode = RenderMode.ScreenSpaceCamera;
+                overlay.worldCamera = camera;
+                overlay.planeDistance = .5f;
+            }
             view.SetAvailable(true);
+            view.BindMap(
+                sceneName.Replace("Scene", "").ToUpperInvariant(),
+                BuilderTools.FindSingleInScene<PlayerMover>(scene).transform
+            );
             view.Refresh(state, false, false);
             Directory.CreateDirectory(output);
-            var drawer = (GameObject)
-                new SerializedObject(view).FindProperty("journal").objectReferenceValue;
+            var fields = new SerializedObject(view);
+            var drawer = (GameObject)fields.FindProperty("journal").objectReferenceValue;
+            // 수첩을 펼치면 같은 내용의 목표 카드는 숨긴다.
+            GameObject banner = ((Component)fields.FindProperty("situation").objectReferenceValue)
+                .transform
+                .parent
+                .gameObject;
             drawer.SetActive(false);
             Render(camera, view, Path.Combine(output, "quest-npc.png"), 1920, 1080);
             drawer.SetActive(true);
+            banner.SetActive(false);
             Render(camera, view, Path.Combine(output, "quest-journal.png"), 1920, 1080);
             Render(camera, view, Path.Combine(output, "quest-mobile.png"), 1080, 1920);
         }

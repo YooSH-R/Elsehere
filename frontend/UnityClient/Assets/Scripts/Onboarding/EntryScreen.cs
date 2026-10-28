@@ -9,6 +9,9 @@ namespace A305.Onboarding
         /// <summary>화면 02 가입 정보 입력</summary>
         Signup,
 
+        /// <summary>게스트로 시작하기 전 캐릭터 선택. 서버 상태와 관계없이 화면 01에서만 들어온다.</summary>
+        GuestCharacter,
+
         /// <summary>화면 03 배울 언어 선택</summary>
         Language,
 

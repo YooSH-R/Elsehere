@@ -41,8 +41,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 대화 시작(CONV-01)·종료(CONV-08)·조회(CONV-10·11).
  *
- * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 사용자 AI 한도 예약·차감, 미션 연결, 종료 피드백은 아직 하지
- * 않는다.
+ * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 게스트는 대화 횟수로 제한하고, 사용자 AI 한도 예약·차감, 미션 연결,
+ * 종료 피드백은 아직 하지 않는다.
  */
 @Service
 @RequiredArgsConstructor
@@ -66,6 +66,7 @@ public class ConversationService {
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
   private final FirstDayMissionService firstDayMissionService;
+  private final GuestConversationLimit guestConversationLimit;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
     StartContext context =
@@ -172,25 +173,26 @@ public class ConversationService {
                   ErrorCode.CONVERSATION_ALREADY_ACTIVE,
                   Map.of("activeConversationId", active.getId()));
             });
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    guestConversationLimit.check(user);
     NpcContext npc = support.npcByCode(npcCode);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
     return new StartContext(
         npc,
-        selectedLevel(userId),
+        selectedLevel(user),
         memoryService.memoryFor(userId, npc.npcId()),
         firstDayMissionService.context(userId, npcCode));
   }
 
   // 대화 난이도는 지금 학습 언어에서 고른 난이도다. 설정 전이면 기본값(초급)이다.
-  private int selectedLevel(Long userId) {
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  private int selectedLevel(User user) {
     return userLanguageProfileRepository
-        .findById(new UserLanguageProfileId(userId, user.getCurrentLanguage()))
+        .findById(new UserLanguageProfileId(user.getId(), user.getCurrentLanguage()))
         .map(UserLanguageProfile::getSelectedLevel)
         .orElse(UserLanguageProfile.DEFAULT_SELECTED_LEVEL);
   }

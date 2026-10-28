@@ -33,12 +33,11 @@ public class UserLanguageProfile extends BaseEntity {
   @JoinColumn(name = "user_id")
   private User user;
 
-  @Column(columnDefinition = "smallint")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   private Integer recommendedLevel;
 
-  @Column(nullable = false, columnDefinition = "smallint")
   @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
   private Integer selectedLevel;
 
   // 마지막으로 시작하거나 건너뛴 레벨 테스트. ONB-08이 이 테스트의 상태로 화면 04·05를 나눈다.

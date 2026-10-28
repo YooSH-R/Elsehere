@@ -33,6 +33,9 @@ namespace A305.Onboarding
         private LoginPanelView loginPanel;
 
         [SerializeField]
+        private GuestPanelView guestPanel;
+
+        [SerializeField]
         private SignupPanelView signupPanel;
 
         [SerializeField]
@@ -65,9 +68,25 @@ namespace A305.Onboarding
         private void ConnectPanels()
         {
             loginPanel.GoogleLoginRequested += () => BrowserRedirect.GoTo(api.GoogleLoginUrl);
-            loginPanel.GuestLoginRequested += () => Run(() => flow.GuestLoginAsync());
+            loginPanel.GuestLoginRequested += () =>
+            {
+                flow.ChooseGuest();
+                Render();
+            };
             loginPanel.DevLoginRequested += () =>
                 Run(() => flow.DevLoginAsync(settings.DevLoginUserId));
+
+            guestPanel.AvatarSelected += avatar =>
+            {
+                flow.SelectGuestAvatar(avatar);
+                guestPanel.Show(flow.GuestAvatar);
+            };
+            guestPanel.StartRequested += () => Run(flow.GuestLoginAsync);
+            guestPanel.BackRequested += () =>
+            {
+                flow.BackToLogin();
+                Render();
+            };
 
             signupPanel.NicknameChanged += nickname =>
                 EditSignup(form => form.ChangeNickname(nickname));
@@ -138,6 +157,10 @@ namespace A305.Onboarding
                     ShowOnly(loginPanel.gameObject);
                     loginPanel.Show(Application.isEditor || Debug.isDebugBuild, LoginNotice());
                     break;
+                case EntryScreen.GuestCharacter:
+                    ShowOnly(guestPanel.gameObject);
+                    guestPanel.Show(flow.GuestAvatar);
+                    break;
                 case EntryScreen.Signup:
                     ShowOnly(signupPanel.gameObject);
                     signupPanel.Show(flow.SignupForm);
@@ -159,6 +182,7 @@ namespace A305.Onboarding
         private void ShowOnly(GameObject panel)
         {
             loginPanel.gameObject.SetActive(loginPanel.gameObject == panel);
+            guestPanel.gameObject.SetActive(guestPanel.gameObject == panel);
             signupPanel.gameObject.SetActive(signupPanel.gameObject == panel);
             languagePanel.gameObject.SetActive(languagePanel.gameObject == panel);
             levelTestPanel.gameObject.SetActive(levelTestPanel.gameObject == panel);

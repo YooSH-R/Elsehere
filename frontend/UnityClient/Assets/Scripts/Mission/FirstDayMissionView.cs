@@ -6,7 +6,10 @@ using UnityEngine.UI;
 
 namespace A305.Mission
 {
-    /// <summary>현재 목표만 상단에 두고, 사용자가 열었을 때만 전체 여정을 펼친다.</summary>
+    /// <summary>
+    /// 왼쪽 위에 지도 버튼과 현재 목표를 두고, 버튼을 누르면 마을 지도와 전체 여정이 담긴 수첩을 펼친다.
+    /// 수첩을 펼친 동안에는 같은 내용의 목표 카드를 숨긴다.
+    /// </summary>
     public sealed class FirstDayMissionView : MonoBehaviour
     {
         [SerializeField]
@@ -20,6 +23,12 @@ namespace A305.Mission
 
         [SerializeField]
         private TMP_Text direction;
+
+        [SerializeField]
+        private TMP_Text journalGoal;
+
+        [SerializeField]
+        private TownMapView townMap;
 
         [SerializeField]
         private TMP_Text journey;
@@ -45,21 +54,37 @@ namespace A305.Mission
         [SerializeField]
         private Button retryButton;
 
+        private const float Margin = 24;
+        private const float BesideButtonX = 112;
+        private const float BelowButtonY = 112;
+        private const float MinBannerWidth = 360;
+        private const float MaxBannerWidth = 640;
+        private const float DrawerWidth = 480;
+
+        // 오른쪽 위 단어장 칸(너비 360)과 그 앞 여백.
+        private const float VocabularyReserve = 384;
+
         public event Action StartRequested;
         public event Action RestRequested;
         public event Action RetryRequested;
+
+        private RectTransform Banner => (RectTransform)situation.transform.parent;
 
         public void SetAvailable(bool available)
         {
             content.SetActive(available);
             if (!available)
-                journal.SetActive(false);
+                ShowJournal(false);
         }
+
+        public void BindMap(string sceneCode, Transform player) => townMap.Bind(sceneCode, player);
 
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
         {
             situation.text = state.Situation;
             direction.text = state.Direction;
+            journalGoal.text = $"<b>{state.Situation}</b>\n{state.Direction}";
+            townMap.ShowDestination(state.Destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
             restButton.gameObject.SetActive(state.CanRest);
@@ -102,26 +127,34 @@ namespace A305.Mission
             retryButton.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
 
-        /// <summary>폭이 좁으면 목표 카드를 수첩 버튼 아래로 내려 서로 겹치지 않게 한다.</summary>
+        /// <summary>
+        /// 목표 카드는 지도 버튼 오른쪽에 두되, 오른쪽 위 단어장 칸까지 닿을 만큼 좁으면 버튼 아래로 내린다.
+        /// </summary>
         public void UpdateLayout()
         {
             var canvas = GetComponent<Canvas>();
             if (canvas == null || situation == null)
                 return;
             var screen = (RectTransform)canvas.transform;
-            var banner = (RectTransform)situation.transform.parent;
-            bool narrow = screen.rect.width < 1200;
-            float width = narrow ? screen.rect.width - 48 : 800;
-            banner.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, Mathf.Max(320, width));
-            banner.anchoredPosition = new Vector2(0, narrow ? -96 : -24);
+            float beside = screen.rect.width - BesideButtonX - Margin - VocabularyReserve;
+            bool below = beside < MinBannerWidth;
+            Banner.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                below
+                    ? Mathf.Min(MaxBannerWidth, screen.rect.width - Margin * 2)
+                    : Mathf.Min(MaxBannerWidth, beside)
+            );
+            Banner.anchoredPosition = below
+                ? new Vector2(Margin, -BelowButtonY)
+                : new Vector2(BesideButtonX, -Margin);
             var drawer = (RectTransform)journal.transform;
             drawer.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Horizontal,
-                Mathf.Min(430, screen.rect.width - 48)
+                Mathf.Min(DrawerWidth, screen.rect.width - Margin * 2)
             );
             drawer.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Vertical,
-                Mathf.Min(860, screen.rect.height - 118)
+                Mathf.Min(900, screen.rect.height - BelowButtonY - Margin)
             );
         }
 
@@ -146,9 +179,15 @@ namespace A305.Mission
             retryButton.onClick.RemoveListener(Retry);
         }
 
-        private void ToggleJournal() => journal.SetActive(!journal.activeSelf);
+        private void ToggleJournal() => ShowJournal(!journal.activeSelf);
 
-        private void CloseJournal() => journal.SetActive(false);
+        private void CloseJournal() => ShowJournal(false);
+
+        private void ShowJournal(bool open)
+        {
+            journal.SetActive(open);
+            Banner.gameObject.SetActive(!open);
+        }
 
         private void StartMission() => StartRequested?.Invoke();
 

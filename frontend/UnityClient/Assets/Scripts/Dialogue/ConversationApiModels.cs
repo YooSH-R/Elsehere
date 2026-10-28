@@ -149,4 +149,31 @@ namespace A305.Dialogue
     {
         public long ConversationId { get; set; }
     }
+
+    /// <summary>NPC 대사 뜻 보기(CONV-04).</summary>
+    public sealed class MeaningData
+    {
+        public long TurnId { get; set; }
+        public string MeaningKo { get; set; }
+
+        /// <summary>학습자가 모를 만한 말의 풀이. 쉬운 대사면 빈 목록이다.</summary>
+        public List<GlossaryData> Glossary { get; set; }
+    }
+
+    public sealed class GlossaryData
+    {
+        /// <summary>대사에 그대로 있는 말</summary>
+        public string Text { get; set; }
+
+        public string MeaningKo { get; set; }
+    }
+
+    /// <summary>힌트(CONV-05).</summary>
+    public sealed class HintData
+    {
+        public long TurnId { get; set; }
+
+        /// <summary>NPC 대사에 대답할 만한 영어 문장</summary>
+        public string HintText { get; set; }
+    }
 }

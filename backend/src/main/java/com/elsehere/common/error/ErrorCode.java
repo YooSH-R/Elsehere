@@ -26,6 +26,8 @@ public enum ErrorCode {
   AUDIO_FORMAT_UNSUPPORTED(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 녹음 형식입니다."),
   STT_NO_SPEECH(HttpStatus.UNPROCESSABLE_CONTENT, "말소리를 알아듣지 못했어요. 다시 말해 주세요."),
   VOCAB_SOURCE_MISMATCH(HttpStatus.UNPROCESSABLE_CONTENT, "저장할 수 없는 단어입니다."),
+  AI_QUOTA_EXHAUSTED(
+      HttpStatus.TOO_MANY_REQUESTS, "AI 사용량을 모두 사용했습니다. 마을 탐험, 사물 카드, 단어장은 계속할 수 있습니다."),
   AI_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "요청이 많아 잠시 후 다시 시도해 주세요."),
   AI_RESPONSE_INVALID(HttpStatus.BAD_GATEWAY, "AI 응답을 처리하지 못했습니다. 다시 시도해 주세요."),
   AI_TEMPORARILY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."),

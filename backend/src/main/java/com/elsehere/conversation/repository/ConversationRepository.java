@@ -10,4 +10,6 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
   Optional<Conversation> findFirstByUserIdAndStatus(Long userId, ConversationStatus status);
 
   Optional<Conversation> findByIdAndUserId(Long id, Long userId);
+
+  long countByUserId(Long userId);
 }

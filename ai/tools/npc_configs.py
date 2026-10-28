@@ -16,6 +16,11 @@ import sys
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
+from pydantic import ValidationError
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker"))  # 상황은 같은 저장소 AI 워커의 추론 요청 모델로 검사한다
+
+from app.npc_respond import Scenario
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "docs/api/npc-ai-contracts/npc_shared_schemas_v2.json"
@@ -70,24 +75,74 @@ def bundle(folder: Path) -> tuple[list[dict], list[str]]:
     return configs, problems
 
 
+SERVICE_SCENARIOS = "scenarios/service_scenarios.json"  # npcId → 서비스에서 쓰는 상황 파일 이름 (scenarios/<이름>.json)
+
+
+def service_scenarios(folder: Path, configs: list[dict]) -> tuple[dict[str, dict], list[str]]:
+    """NPC마다 서비스 대화에서 쓸 상황(추론 계약의 scenario)을 npcId로 모은다. 백엔드가 추론 요청에 그대로 담아 보낸다.
+
+    (npcId → 상황, 문제 목록)을 돌려준다. 상황은 인격과 따로 관리하므로(설계 기준) 설정 파일이 아니라 연결 파일로 잇는다.
+    """
+    links = json.loads((folder / SERVICE_SCENARIOS).read_text(encoding="utf-8"))
+    scenarios, problems = {}, []
+    for config in configs:
+        npc_id = config["npcId"]
+        if npc_id not in links:
+            problems.append(f"{npc_id}: 서비스 상황 연결이 없음 ({SERVICE_SCENARIOS})")
+            continue
+        scenario, scenario_problems = _scenario(folder, links[npc_id], npc_id)
+        if scenario_problems:
+            problems += scenario_problems
+        elif scenario["locationId"] != config["defaultLocationId"]:
+            problems.append(f"{npc_id}: 상황 장소 '{scenario['locationId']}'이 NPC 기본 장소 '{config['defaultLocationId']}'와 다름")
+        else:
+            scenarios[npc_id] = scenario
+    npc_ids = {config["npcId"] for config in configs}
+    problems += [f"{SERVICE_SCENARIOS}: 설정 파일에 없는 npcId '{npc_id}'" for npc_id in links if npc_id not in npc_ids]
+    return scenarios, problems
+
+
+def _scenario(folder: Path, name: str, npc_id: str) -> tuple[dict | None, list[str]]:
+    """상황 파일 하나를 Worker 추론 API가 받는 형식(app.npc_respond.Scenario)으로 검사한다."""
+    path = folder / "scenarios" / f"{name}.json"
+    if not path.exists():
+        return None, [f"{npc_id}: 상황 파일이 없음 (scenarios/{name}.json)"]
+    scenario = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        Scenario.model_validate(scenario)
+    except ValidationError as e:
+        return None, [f"scenarios/{name}.json {'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()]
+    return scenario, []
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="NPC 설정 파일을 검사하고, --out을 주면 백엔드 전달용 배열(JSON)로 합쳐 저장한다")
     parser.add_argument("folder", type=Path, help="NPC 설정 파일(*.json) 폴더. NPC마다 파일 하나")
     parser.add_argument("--out", type=Path, help="합친 배열을 저장할 파일. 없으면 검사만")
+    parser.add_argument("--scenarios-out", type=Path, help=f"NPC별 서비스 상황(npcId → scenario)을 저장할 파일. 연결은 {SERVICE_SCENARIOS}")
     args = parser.parse_args(argv)
     if not args.folder.is_dir():
         parser.error(f"폴더가 없음: {args.folder}")
 
     configs, problems = bundle(args.folder)
-    if problems:
+    scenarios = {}
+    if args.scenarios_out and not problems:
+        scenarios, problems = service_scenarios(args.folder, configs)
+    if problems:  # 하나라도 틀리면 어느 파일도 쓰지 않는다 (백엔드가 반만 맞는 데이터를 읽지 않게)
         print("\n".join(problems), file=sys.stderr)
         return 1
     print(f"NPC {len(configs)}명 검사 통과: {', '.join(c['npcId'] for c in configs)}")
     if args.out:
-        # 셸의 > 대신 직접 쓴다: Windows PowerShell 5.1은 > 로 저장하면 BOM을 붙여 JSON 읽기가 깨진다
-        args.out.write_text(json.dumps(configs, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
-        print(f"저장: {args.out}")
+        _write_json(args.out, configs)
+    if args.scenarios_out:
+        _write_json(args.scenarios_out, scenarios)
     return 0
+
+
+def _write_json(path: Path, data: object):
+    # 셸의 > 대신 직접 쓴다: Windows PowerShell 5.1은 > 로 저장하면 BOM을 붙여 JSON 읽기가 깨진다
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+    print(f"저장: {path}")
 
 
 if __name__ == "__main__":

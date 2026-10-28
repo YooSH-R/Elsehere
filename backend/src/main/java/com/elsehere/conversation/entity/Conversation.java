@@ -48,8 +48,8 @@ public class Conversation extends BaseEntity {
   @Column(nullable = false, length = 10)
   private InitiatedBy initiatedBy;
 
-  @Column(nullable = false, columnDefinition = "smallint")
   @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
   private Integer levelApplied;
 
   @Enumerated(EnumType.STRING)
@@ -61,8 +61,8 @@ public class Conversation extends BaseEntity {
   private ConversationEndReason endReason;
 
   @ColumnDefault("0")
-  @Column(nullable = false, columnDefinition = "smallint")
   @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
   private Integer rudeCount;
 
   @ColumnDefault("now()")

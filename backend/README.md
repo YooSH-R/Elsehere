@@ -9,13 +9,13 @@ ELSEHERE 서비스 API 서버입니다. API는 [MVP API 명세](../docs/api/mvp-
 | 언어 | Java 21 (Gradle 툴체인으로 고정) |
 | 프레임워크 | Spring Boot 4.1.1 |
 | 빌드 | Gradle 9.8.2 Wrapper, Groovy DSL |
-| 주요 의존성 | Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Actuator, Lombok, PostgreSQL 드라이버 |
+| 주요 의존성 | Spring Web MVC, Validation, Security, OAuth2 Client, Spring Data JPA, Flyway, Actuator, Lombok, PostgreSQL 드라이버 |
 | 테스트 DB | Testcontainers PostgreSQL 16 (Docker 필요) |
 | 포맷 | Spotless 8.9.0 + google-java-format 1.28.0 (Google Java Style, 들여쓰기 2칸) |
 | 규칙 검사 | Checkstyle 14.3.0 ([설정](config/checkstyle/checkstyle.xml)) |
 | 설정 파일 | `src/main/resources/application.properties` |
 
-- 스키마 마이그레이션 도구는 아직 넣지 않았습니다.
+- DB 스키마는 Flyway 마이그레이션으로 관리합니다. 작성 기준은 [스키마 관리](#스키마-관리)를 따릅니다.
 - google-java-format은 Spotless가 검증한 1.28.0으로 고정했습니다. 최신 1.37.0은 이 구성에서 포맷 실행이 실패합니다.
 
 ## 패키지 구조
@@ -57,7 +57,7 @@ com.elsehere
 - JDK 21을 설치하고 `JAVA_HOME`을 설정합니다. Gradle은 Wrapper가 내려받으므로 따로 설치하지 않습니다.
 - 테스트는 Testcontainers로 PostgreSQL 컨테이너를 띄우므로 Docker Desktop을 실행한 상태에서 실행합니다.
 - 테스트 JVM 안에서는 PostgreSQL 서버 하나를 공유하고 Spring 테스트 환경마다 별도 DB를 만듭니다. 각 환경의 테이블 생성·삭제와 데이터는 서로 격리되며 컨테이너는 JVM 종료 후 Testcontainers가 정리합니다. 여러 환경이 DB 연결을 미리 점유하지 않도록 테스트용 Hikari 풀의 최소 유휴 연결은 `0`으로 둡니다. 로컬 앱이나 개발·운영 DB를 테스트에 사용하지 않습니다.
-- 로컬 실행(`bootRun`)은 PostgreSQL이 필요합니다. 접속 정보는 환경변수 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`로 지정하며, 없으면 `jdbc:postgresql://localhost:5432/elsehere`, 사용자 `elsehere`를 씁니다. 스키마 생성 방식은 `JPA_DDL_AUTO`로 지정하며 기본값은 `update`입니다.
+- 로컬 실행(`bootRun`)은 PostgreSQL이 필요합니다. 접속 정보는 환경변수 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`로 지정하며, 없으면 `jdbc:postgresql://localhost:5432/elsehere`, 사용자 `elsehere`를 씁니다. 스키마는 앱이 시작할 때 Flyway가 만들고 바꾸며, `JPA_DDL_AUTO`(기본값 `validate`)는 엔티티와 스키마가 맞는지 검사합니다.
 - 로컬에서는 환경변수 대신 `backend/.env`나 저장소 루트 `.env`에 `GOOGLE_CLIENT_ID=값`처럼 한 줄에 하나씩 적어도 됩니다. 값에 따옴표나 `export`를 붙이지 않으며, 같은 이름의 환경변수가 있으면 환경변수가 우선합니다. `.env`는 커밋하지 않습니다. 서버 컨테이너에는 `.env`가 없으므로 값은 Compose의 `environment`로 넘깁니다.
 - NPC 대화·피드백·기억 카드는 AI 워커([계약](../docs/api/ai-worker.md))를 부릅니다. 워커 주소는 `AI_WORKER_BASE_URL`(기본 `http://localhost:8020`), 내부 토큰은 `AI_WORKER_TOKEN`으로 지정하며 워커의 `AI_WORKER_TOKEN`과 같은 값이어야 합니다. 토큰은 비밀값이므로 저장소에 넣지 않습니다.
 - NPC 턴 음성(WAV)은 `NPC_AUDIO_DIR`(기본 `./data/npc-audio`) 폴더에 저장합니다. 컨테이너로 실행하면 재시작 뒤에도 남도록 컨테이너 밖 볼륨으로 연결합니다.
@@ -75,10 +75,17 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ## 스키마 관리
 
-- 스키마는 [ERD](../docs/erd.dbml)를 기준으로 작성한 엔티티에서 JPA(`ddl-auto`)가 만듭니다. 엔티티를 바꾸면 ERD도 함께 수정합니다. 운영 환경에서는 `JPA_DDL_AUTO`를 `validate` 또는 `none`으로 지정합니다.
-- `update`는 없는 테이블·컬럼·인덱스를 추가할 뿐, 기존 컬럼의 타입과 제약은 바꾸지 않습니다. enum 컬럼에는 허용 값 CHECK 제약이 생성되므로, enum에 값을 추가하거나 컬럼 정의를 바꾸면 로컬 DB에서 해당 테이블을 지우고 다시 만들어야 반영됩니다.
-- ERD 상단에 "DDL에서 직접 만들 것"으로 적은 항목(pgvector 확장, 부분 인덱스)은 JPA가 만들지 않습니다. 해당 기능을 구현할 때 생성 방법을 정합니다.
-- `EntitySchemaTest`가 모든 엔티티의 DDL 생성과 운영 `validate` 검사를 PostgreSQL에서 확인합니다. Java `Integer`를 PostgreSQL `smallint`로 저장하는 필드는 `@JdbcTypeCode(SqlTypes.SMALLINT)`로 JDBC 자료형도 지정합니다. `columnDefinition`만 지정하면 생성한 컬럼과 검증 시 기대하는 자료형이 달라질 수 있습니다.
+- 스키마는 Flyway가 [`src/main/resources/db/migration`](src/main/resources/db/migration)의 SQL 파일로 만들고 바꿉니다. 앱이 시작할 때 아직 적용하지 않은 파일만 버전 순서대로 실행하고 DB의 `flyway_schema_history`에 기록합니다. JPA는 `ddl-auto=validate`로 엔티티와 스키마가 맞는지만 검사하며 스키마를 바꾸지 않습니다.
+- 엔티티를 바꾸면 같은 MR에 다음 순번의 마이그레이션 파일(`V<번호>__<설명>.sql`, 밑줄 두 개)을 추가하고 [ERD](../docs/erd.dbml)도 함께 수정합니다.
+- 번호는 순번입니다. 다른 MR과 번호가 겹치면 병합 뒤 앱이 시작하지 않으므로, 병합 전에 최신 `dev`를 반영해 마지막 번호를 확인합니다.
+- `dev`에 병합된 마이그레이션 파일은 고치지 않습니다. 적용된 파일의 내용이 바뀌면 체크섬이 맞지 않아 앱이 시작하지 않습니다. 고칠 내용은 새 파일로 추가합니다.
+- 앱 이미지를 이전 버전으로 되돌려도 DB는 되돌아가지 않습니다. 컬럼 이름 바꾸기·삭제처럼 이전 버전 앱이 깨지는 변경은 추가 → 데이터 옮기기 → 삭제처럼 나눠서 적용합니다.
+- V1은 Flyway 도입 전까지 엔티티 매핑이 만들던 스키마입니다. 유니크 제약 이름은 기존 DB와 같도록 Hibernate가 붙이던 `uk...` 이름을 씁니다.
+- Flyway 도입 전에 `ddl-auto=update`로 만든 DB(이력 테이블 없음)는 `spring.flyway.baseline-on-migrate=true`로 V1 상태로 인정하고 V2부터 적용합니다. V2는 `update`가 고치지 않은 차이(enum CHECK 제약, 없앤 사물 테이블)를 맞춥니다. 로컬 DB가 V1보다 오래되어 앱 시작 때 검사에서 실패하면(예: `scene_words` 테이블 없음) 로컬 DB를 지우고 다시 만듭니다.
+- ERD 상단에 "DDL에서 직접 만들 것"으로 적은 항목(pgvector 확장, 부분 인덱스)은 해당 기능을 구현할 때 마이그레이션 파일에 넣습니다.
+- `EntitySchemaTest`는 마이그레이션으로 만든 스키마가 엔티티 매핑으로 만든 스키마와 같은지(컬럼·타입·NOT NULL·기본값, CHECK·유니크·외래 키, 인덱스) 비교합니다. `validate`가 보지 않는 enum CHECK 제약도 여기서 비교하므로, 마이그레이션을 빠뜨리거나 엔티티와 다르게 쓰면 이 테스트가 실패합니다.
+- 엔티티 필드와 DB 컬럼의 타입이 다르면 `validate`가 실패합니다. `Integer` 필드를 `smallint` 컬럼에 두려면 `columnDefinition` 대신 `@JdbcTypeCode(SqlTypes.SMALLINT)`를 씁니다.
+- 테스트 전용 엔티티의 테이블은 [`src/test/resources/db/test-migration`](src/test/resources/db/test-migration)에서 만듭니다. 테스트 설정이 운영 마이그레이션과 이 위치를 함께 읽습니다.
 - 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커를 Mock으로 바꾸고 실제 DB와 함께 실행합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
 
 ## 시드 데이터
@@ -89,6 +96,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 Unity 에셋에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다. 언어 코드나 영어 표현을 바꾸면 현재 DB에서는 새 어휘 행이 생기며 기존 행은 삭제하지 않습니다. 기존 사용자 학습 기록을 새 표현으로 옮겨야 한다면 별도 DB 마이그레이션이 필요합니다.
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
 - 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. SQL을 실행한 뒤 `WorldSeedLoader`가 단어 JSON의 공용 키를 `vocabularies.word_key`에 넣고, 연결 JSON의 씬별 공용 키 목록으로 `scene_words`(장소별 단어)를 맞춥니다. 연결 JSON에서 빠진 단어는 그 장소의 `scene_words`에서 지웁니다. WORLD-02 단어 카드, WORLD-03 숨김, VOCAB-02 사물 저장은 모두 이 공용 키(`wordKey`)를 씁니다. 사용자별 저장·숨김 상태(`user_vocab`, `user_word_prefs`)는 공용 에셋에 넣지 않습니다.
+- 사물 단어 발음 음성(WORLD-04)은 [`src/main/resources/content/pronunciation/`](src/main/resources/content/pronunciation/)에 `{공용 키}.wav`로 두고 서버와 함께 배포합니다. `WorldSeedLoader`는 Unity 에셋에 발음 키가 없는 단어 중 이 폴더에 파일이 있는 단어에 파일 이름을 `pronunciation_audio_key`로 넣습니다. 파일이 없는 단어의 발음은 TTS 모델이 있는 AI 워커를 띄운 뒤 저장소 루트에서 `python ai/tools/generate_pronunciations.py`로 만듭니다(`AI_WORKER_BASE_URL`, `AI_WORKER_TOKEN` 사용, 이미 있는 파일은 건너뜀).
 - Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답
@@ -114,9 +122,11 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ### 게스트로 시작하기
 
-[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`를 부르면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `게스트` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 모든 환경에서 열려 있습니다.
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다.
 
-- `spring.jpa.hibernate.ddl-auto=update`는 이미 있는 `users.provider`의 CHECK 제약을 고치지 않습니다. `GUEST`를 더하기 전에 만든 DB에서는 제약을 다시 만들어야 게스트 사용자를 저장할 수 있습니다.
+| 환경변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
 
 ### 개발용 로그인
 

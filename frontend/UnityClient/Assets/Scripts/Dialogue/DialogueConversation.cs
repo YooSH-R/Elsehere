@@ -52,6 +52,9 @@ namespace A305.Dialogue
         public IReadOnlyList<string> SuggestWords => null;
         public bool CanSend => !IsGuidedCompleted;
         public bool HasMeaning => true;
+        public IReadOnlyList<GlossaryData> LastNpcGlossary => null;
+        public bool HasHint => false;
+        public string HintText => null;
         public bool UsesVoice => false;
 
         private GuidedTurn? CurrentGuidedTurn =>

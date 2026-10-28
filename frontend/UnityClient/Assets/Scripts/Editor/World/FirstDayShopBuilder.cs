@@ -5,6 +5,7 @@ using A305.EditorTools.ObjectHover;
 using A305.Npc;
 using A305.ObjectHover;
 using A305.World;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -13,11 +14,13 @@ using static A305.EditorTools.World.MainstreetArtKit;
 
 namespace A305.EditorTools.World
 {
-    /// <summary>기존 마을의 빈 건물 앞에 상점 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
+    /// <summary>기존 마을의 빈 건물 앞에 편의점 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
     public static class FirstDayShopBuilder
     {
         private const string ScenePath = "Assets/Scenes/Production/ShopScene.unity";
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
+        private const string TownSignText = "CONVENIENCE\nSTORE";
+        private const string PriceSignText = "CONVENIENCE STORE\nUMBRELLAS · 8 COINS";
 
         [MenuItem("Tools/A305/Mission/Adjust Shop Counter Sightline")]
         public static void AdjustSightline()
@@ -45,6 +48,11 @@ namespace A305.EditorTools.World
             {
                 Scene existing = EditorSceneManager.OpenScene(ScenePath);
                 SpaceSceneSetup.Apply(existing);
+                SetSignText(
+                    BuilderTools.EnsureGroups(existing).Environment,
+                    "TownShopInterior/ShopPriceSign/PriceLabel",
+                    PriceSignText
+                );
                 BuilderTools.SaveScene(existing, ScenePath);
                 return;
             }
@@ -135,7 +143,7 @@ namespace A305.EditorTools.World
             TownBlockoutGeometry
                 .Label(
                     "PriceLabel",
-                    "TOWN SHOP\nUMBRELLAS · 8 COINS",
+                    PriceSignText,
                     sign,
                     new Vector3(0, 0, -.1f),
                     Vector3.zero,
@@ -169,7 +177,10 @@ namespace A305.EditorTools.World
                     .FindAllInScene<SpaceDoorway>(groups.Scene)
                     .Any(door => door.DoorwayId == "ShopDoor")
             )
+            {
+                SetSignText(groups.Environment, "TownShopSign/ShopLabel", TownSignText);
                 return;
+            }
             Door(
                 groups.Environment,
                 "ShopDoor",
@@ -189,13 +200,26 @@ namespace A305.EditorTools.World
             TownBlockoutGeometry
                 .Label(
                     "ShopLabel",
-                    "TOWN SHOP",
+                    TownSignText,
                     sign,
                     new Vector3(.08f, 0, 0),
                     new Vector3(0, -90, 0),
                     .28f
                 )
                 .color = Cream.color;
+        }
+
+        /// <summary>이미 만든 간판은 모양과 위치를 두고 글자만 바꾼다.</summary>
+        private static void SetSignText(Transform environment, string labelPath, string text)
+        {
+            Transform label = environment.Find(labelPath);
+            if (label == null)
+                throw new System.InvalidOperationException(
+                    "Store sign label missing: " + labelPath
+                );
+            var sign = label.GetComponent<TextMeshPro>();
+            sign.text = text;
+            EditorUtility.SetDirty(sign);
         }
 
         private static void Door(

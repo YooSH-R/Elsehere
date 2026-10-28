@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NPC 생활·관계 규칙 스키마 (제안)",
+  "description": "$defs의 WorldRules를 명시적으로 선택해 검증한다. Unity·AI 워커·백엔드가 같이 읽는 규칙 데이터이며, 설계는 docs/npc-life-design.md. 숫자는 시뮬레이션으로 맞출 초기값이다.",
+  "$defs": {
+    "NeedId": {
+      "type": "string",
+      "enum": ["HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"],
+      "description": "욕구. 모두 높을수록 채워진 상태이고 시간이 지나면 줄어든다 (WORK는 할 일을 처리한 정도)."
+    },
+    "EventId": {
+      "type": "string",
+      "enum": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+      "description": "대화 사건. AI 워커가 대사를 만드는 같은 호출에서 판정한다."
+    },
+    "Emotion": {
+      "type": "string",
+      "enum": ["PLEASED", "ANNOYED", "HURT", "TIRED", "BORED"]
+    },
+    "Code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "maxLength": 64,
+      "description": "장소 코드·NPC 코드·행동 이름. 백엔드 시드와 Unity가 쓰는 대문자 코드."
+    },
+    "Fills": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/NeedId" },
+      "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 100 },
+      "minProperties": 1,
+      "description": "행동을 마치면 욕구가 채워지는 양."
+    },
+    "Action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objectKey", "scene", "action", "fills", "minutes"],
+      "properties": {
+        "objectKey": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 64,
+          "description": "사물 단어 키(backend/src/main/resources/content/object-words.json). NPC가 쓰는 사물이 학습 어휘와 이어진다."
+        },
+        "scene": { "$ref": "#/$defs/Code" },
+        "action": { "$ref": "#/$defs/Code" },
+        "fills": { "$ref": "#/$defs/Fills" },
+        "minutes": { "type": "integer", "minimum": 1, "maximum": 240, "description": "게임 시각 기준으로 걸리는 시간." },
+        "onlyFor": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Code" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "이 행동을 할 수 있는 NPC. 생략하면 누구나."
+        }
+      }
+    },
+    "EventEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mood": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/Emotion" },
+          "additionalProperties": { "type": "integer", "minimum": -3, "maximum": 3 },
+          "description": "이번 대화의 기분 변화. 대화가 이어지는 동안 mood.decayPerTurn씩 가라앉는다."
+        },
+        "impression": {
+          "type": "integer",
+          "minimum": -100,
+          "maximum": 100,
+          "description": "이번 대화의 인상 변화. 정상 종료 때 호감이 relationship.affinityFollowRate만큼 따라간다."
+        },
+        "memorySalience": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "이 사건을 기억으로 남길 때의 인상 세기. 생략하면 기억으로 남기지 않는다."
+        }
+      }
+    },
+    "WorldRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "needs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"],
+          "properties": {
+            "HUNGER": { "$ref": "#/$defs/NeedRule" },
+            "ENERGY": { "$ref": "#/$defs/NeedRule" },
+            "SOCIAL": { "$ref": "#/$defs/NeedRule" },
+            "FUN": { "$ref": "#/$defs/NeedRule" },
+            "WORK": { "$ref": "#/$defs/NeedRule" }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Action" },
+          "minItems": 1
+        },
+        "conversationEvents": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+          "properties": {
+            "GREETING": { "$ref": "#/$defs/EventEffect" },
+            "SMALL_TALK": { "$ref": "#/$defs/EventEffect" },
+            "PERSONAL_QUESTION": { "$ref": "#/$defs/EventEffect" },
+            "RUDE": { "$ref": "#/$defs/EventEffect" },
+            "APOLOGY": { "$ref": "#/$defs/EventEffect" },
+            "COMPLIMENT": { "$ref": "#/$defs/EventEffect" },
+            "TASK_DONE": { "$ref": "#/$defs/EventEffect" },
+            "LEAVE": { "$ref": "#/$defs/EventEffect" }
+          },
+          "description": "모든 NPC 공통 효과. NPC별 생활 파일에서 덮어쓸 수 있다."
+        },
+        "mood": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decayPerTurn"],
+          "properties": {
+            "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3 }
+          }
+        },
+        "relationship": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recognitionPerConversation", "seenBefore", "regular", "personalTalk", "graceDays", "recognitionDropPerDay", "affinityFollowRate"],
+          "properties": {
+            "recognitionPerConversation": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "정상 종료된 대화마다 알아봄이 오르는 기본값. 실제로는 × (1 − 현재/100) × NPC 배수."
+            },
+            "seenBefore": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '본 적 있음'." },
+            "regular": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '단골'." },
+            "personalTalk": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["recognition", "affinity"],
+              "properties": {
+                "recognition": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "affinity": { "type": "integer", "minimum": -100, "maximum": 100 }
+              },
+              "description": "두 값을 모두 넘으면 자기 이야기를 조금 한다."
+            },
+            "graceDays": { "type": "integer", "minimum": 0, "description": "마지막 대화 뒤 알아봄이 줄지 않는 날 수." },
+            "recognitionDropPerDay": { "type": "number", "minimum": 0, "maximum": 100 },
+            "affinityFollowRate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "정상 종료 때 호감이 이번 대화 인상 쪽으로 따라가는 비율."
+            }
+          }
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stabilityDays", "recallAt", "spacedRepeatFactor", "sameDayFactor"],
+          "properties": {
+            "stabilityDays": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["1", "2", "3"],
+              "properties": {
+                "1": { "type": "number", "exclusiveMinimum": 0 },
+                "2": { "type": "number", "exclusiveMinimum": 0 },
+                "3": { "type": "number", "exclusiveMinimum": 0 }
+              },
+              "description": "인상 세기(1 평범·2 대화 거리·3 강한 감정)별 처음 유지 기간(일)."
+            },
+            "recallAt": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "description": "exp(−지난 날 수 / 유지 기간)이 이 값 이상인 기억만 떠올린다."
+            },
+            "spacedRepeatFactor": { "type": "number", "minimum": 1, "description": "날을 두고 같은 일이 다시 일어나면 유지 기간에 곱한다." },
+            "sameDayFactor": { "type": "number", "minimum": 1, "description": "같은 날 다시 일어나면 유지 기간에 곱한다." }
+          }
+        }
+      }
+    },
+    "NeedRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dropPerHour"],
+      "properties": {
+        "dropPerHour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "게임 시각 한 시간에 줄어드는 양. NPC별 생활 파일의 배수를 곱한다."
+        }
+      }
+    }
+  }
+}

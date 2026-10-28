@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "needs": {
+    "HUNGER": { "dropPerHour": 6 },
+    "ENERGY": { "dropPerHour": 5 },
+    "SOCIAL": { "dropPerHour": 4 },
+    "FUN": { "dropPerHour": 5 },
+    "WORK": { "dropPerHour": 8 }
+  },
+  "actions": [
+    { "objectKey": "coffee_machine", "scene": "CAFE", "action": "MAKE_DRINK", "fills": { "WORK": 30 }, "minutes": 3, "onlyFor": ["CAFE_STAFF"] },
+    { "objectKey": "coffee_machine", "scene": "CAFE", "action": "DRINK_COFFEE", "fills": { "ENERGY": 25 }, "minutes": 5 },
+    { "objectKey": "muffin", "scene": "CAFE", "action": "EAT", "fills": { "HUNGER": 40 }, "minutes": 10 },
+    { "objectKey": "chair", "scene": "CAFE", "action": "REST", "fills": { "ENERGY": 15 }, "minutes": 15 },
+    { "objectKey": "reception_desk", "scene": "HOTEL", "action": "SERVE_GUEST", "fills": { "WORK": 30 }, "minutes": 5, "onlyFor": ["HOTEL_STAFF"] },
+    { "objectKey": "sofa", "scene": "HOTEL", "action": "REST", "fills": { "ENERGY": 20 }, "minutes": 15 },
+    { "objectKey": "book", "scene": "HOTEL", "action": "READ", "fills": { "FUN": 25 }, "minutes": 20 },
+    { "objectKey": "bench", "scene": "TOWN", "action": "REST", "fills": { "ENERGY": 20 }, "minutes": 15 },
+    { "objectKey": "fountain", "scene": "TOWN", "action": "LOOK_AROUND", "fills": { "FUN": 15 }, "minutes": 10 }
+  ],
+  "conversationEvents": {
+    "GREETING": { "impression": 1 },
+    "SMALL_TALK": { "mood": { "PLEASED": 1 }, "impression": 2, "memorySalience": 1 },
+    "PERSONAL_QUESTION": {},
+    "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -15, "memorySalience": 3 },
+    "APOLOGY": { "mood": { "ANNOYED": -1 }, "impression": 5 },
+    "COMPLIMENT": { "mood": { "PLEASED": 2 }, "impression": 5, "memorySalience": 2 },
+    "TASK_DONE": { "impression": 2, "memorySalience": 1 },
+    "LEAVE": {}
+  },
+  "mood": { "decayPerTurn": 0.5 },
+  "relationship": {
+    "recognitionPerConversation": 8,
+    "seenBefore": 20,
+    "regular": 50,
+    "personalTalk": { "recognition": 60, "affinity": 40 },
+    "graceDays": 3,
+    "recognitionDropPerDay": 1,
+    "affinityFollowRate": 0.3
+  },
+  "memory": {
+    "stabilityDays": { "1": 1, "2": 3, "3": 14 },
+    "recallAt": 0.5,
+    "spacedRepeatFactor": 2,
+    "sameDayFactor": 1.2
+  }
+}

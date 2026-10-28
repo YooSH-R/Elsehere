@@ -80,11 +80,11 @@ Unity, AI 워커, 백엔드가 같은 데이터를 읽습니다. 형식마다 JS
 
 | 파일 (작성 원본) | 내용 |
 | --- | --- |
-| `ai/npcs/world-rules.json` | 욕구별 감소 속도, 사물별 채움 값, 대화 사건 효과(기분·호감·기억 세기), 관계·기억 상수 |
+| `ai/npcs/rules/world-rules.json` | 욕구별 감소 속도, 사물별 행동과 채움 값, 대화 사건 효과(기분·인상·기억 세기), 관계·기억 상수 |
 | `ai/npcs/life/<npcId>.json` | 인격 파일과 같은 `npcId`. 욕구 속도 배수, 관계 속도 배수, 일과표(활동·장소·자리 비움 가능 여부), 사건 반응 덮어쓰기 |
 | `ai/npcs/requests/*.json` | 부탁 퀘스트 틀. 발동 조건, 단계, 학습 초점 |
 
-스키마는 계약 패키지(`docs/api/npc-ai-contracts/`)에 둡니다. 합치기 도구가 백엔드 `backend/src/main/resources/content/`로 내보내고, 백엔드가 Unity에는 API로, AI에는 요청에 담아 전달하는 방식을 제안합니다. 내보내기 경로와 API는 백엔드와 정합니다.
+스키마는 계약 패키지의 [npc_life_rules_schemas.json](api/npc-ai-contracts/npc_life_rules_schemas.json)에 둡니다. 지금은 공통 규칙(`WorldRules`)만 정의했고, 검사는 `ai/tools/npc_life_rules.py`가 합니다(스키마 검사와 함께, 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지 대조). NPC별 생활 파일과 부탁 퀘스트 틀의 스키마는 다음 단계입니다. 합치기 도구가 백엔드 `backend/src/main/resources/content/`로 내보내고, 백엔드가 Unity에는 API로, AI에는 요청에 담아 전달하는 방식을 제안합니다. 내보내기 경로와 API는 백엔드와 정합니다.
 
 ## 10. 함께 정할 것
 

@@ -28,6 +28,7 @@ namespace A305.EditorTools.Mission
             BuilderTools.ThrowIfPlaying();
             PrepareAssets();
             FirstDayShopBuilder.BuildShop();
+            TownMapBuilder.Layout townMap = null;
             foreach (
                 string name in new[]
                 {
@@ -48,9 +49,17 @@ namespace A305.EditorTools.Mission
                     BuilderTools.FindSingleInScene<PlayerMover>(scene)
                 );
                 if (name == "TownScene")
+                {
                     FirstDayShopBuilder.ConnectTownEntrance(groups);
+                    townMap = TownMapBuilder.Read(scene);
+                }
                 BuilderTools.SaveScene(scene, path);
             }
+            BuilderTools.UpdateOrCreatePrefab(
+                ViewPath,
+                "FirstDayMission",
+                root => TownMapBuilder.Draw(root, townMap)
+            );
             BuilderTools.AddToSceneList("Assets/Scenes/Production/ShopScene.unity");
             AssetDatabase.SaveAssets();
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
@@ -116,16 +125,20 @@ namespace A305.EditorTools.Mission
         {
             UiBuilderTools.EnsureOverlayCanvas(root, 108, true);
             var view = BuilderTools.GetOrAddComponent<FirstDayMissionView>(root);
-            if (root.transform.Find("Content") != null)
+            Transform existing = root.transform.Find("Content");
+            if (existing != null && existing.Find("MapButton") != null)
                 return;
+            // 오른쪽 위 수첩 버튼으로 만든 이전 배치는 단어장 버튼과 겹치므로 지우고 왼쪽 위 지도 버튼 배치로 다시 만든다.
+            if (existing != null)
+                Object.DestroyImmediate(existing.gameObject);
             RectTransform content = Rect("Content", root.transform);
             Stretch(content);
             RectTransform banner = UiBuilderTools.FindOrCreateAnchoredPanel(
                 content,
                 "CurrentGoal",
-                new Vector2(.5f, 1),
-                800,
-                new Vector2(0, -24)
+                new Vector2(0, 1),
+                640,
+                new Vector2(112, -24)
             );
             banner.GetComponent<Image>().color = Cream;
             TMP_Text situation = Text(banner, "Situation", 24, "첫날의 작은 소동");
@@ -133,17 +146,16 @@ namespace A305.EditorTools.Mission
                 banner,
                 "Direction",
                 21,
-                "퀘스트 수첩을 열어 여정을 확인하세요."
+                "지도 버튼을 눌러 여정을 확인하세요."
             );
-            Button journalButton = Button(content, "JournalButton", "퀘스트 수첩", 180);
-            Anchor(
-                journalButton.GetComponent<RectTransform>(),
-                new Vector2(1, 1),
-                new Vector2(-24, -24),
-                new Vector2(180, 56)
-            );
+            Button journalButton = MapButton(content);
             RectTransform journal = Rect("Journal", content);
-            Anchor(journal, new Vector2(1, 1), new Vector2(-24, -94), new Vector2(430, 860));
+            Anchor(
+                journal,
+                new Vector2(0, 1),
+                new Vector2(24, -112),
+                new Vector2(TownMapBuilder.DrawerWidth, 900)
+            );
             journal.gameObject.AddComponent<Image>().color = Cream;
             var column = journal.gameObject.AddComponent<VerticalLayoutGroup>();
             column.padding = new RectOffset(24, 24, 22, 22);
@@ -151,6 +163,8 @@ namespace A305.EditorTools.Mission
             column.childControlWidth = column.childControlHeight = true;
             column.childForceExpandHeight = false;
             Text(journal, "Title", 26, "첫날의 작은 소동");
+            TMP_Text journalGoal = Text(journal, "Goal", 20, "");
+            TownMapBuilder.CreateShell(journal, UiBuilderTools.RegularFont());
             RectTransform viewport = Rect("Viewport", journal);
             viewport.gameObject.AddComponent<Image>().color = new Color(1, 1, 1, .01f);
             viewport.gameObject.AddComponent<RectMask2D>();
@@ -186,6 +200,12 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "journal", journal.gameObject);
             BuilderTools.SetReference(view, "situation", situation);
             BuilderTools.SetReference(view, "direction", direction);
+            BuilderTools.SetReference(view, "journalGoal", journalGoal);
+            BuilderTools.SetReference(
+                view,
+                "townMap",
+                journal.GetComponentInChildren<TownMapView>(true)
+            );
             BuilderTools.SetReference(view, "journey", journey);
             BuilderTools.SetReference(view, "belongings", belongings);
             BuilderTools.SetReference(view, "message", message);
@@ -195,6 +215,44 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "retryButton", retry);
             BuilderTools.SetReference(view, "closeButton", close);
             journal.gameObject.SetActive(false);
+        }
+
+        /// <summary>접은 지도 아이콘 아래에 '지도'를 적은 버튼. 누르면 지도와 여정이 담긴 수첩을 연다.</summary>
+        private static Button MapButton(Transform content)
+        {
+            RectTransform rect = Rect("MapButton", content);
+            Anchor(rect, new Vector2(0, 1), new Vector2(24, -24), new Vector2(76, 76));
+            var background = rect.gameObject.AddComponent<Image>();
+            background.sprite = TownMapBuilder.RoundedSprite();
+            background.type = Image.Type.Sliced;
+            background.color = Cream;
+            var shadow = rect.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, .25f);
+            shadow.effectDistance = new Vector2(0, -3);
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            RectTransform icon = Rect("Icon", rect);
+            Anchor(icon, new Vector2(.5f, 1), new Vector2(0, -4), new Vector2(48, 48));
+            var image = icon.gameObject.AddComponent<Image>();
+            image.sprite = TownMapBuilder.Icon();
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            TMP_Text label = UiBuilderTools.FindOrCreateText(
+                rect,
+                "Label",
+                UiBuilderTools.BoldFont(),
+                17,
+                Ink,
+                "지도"
+            );
+            label.alignment = TextAlignmentOptions.Center;
+            Anchor(
+                (RectTransform)label.transform,
+                new Vector2(.5f, 0),
+                new Vector2(0, 3),
+                new Vector2(76, 22)
+            );
+            return button;
         }
 
         private static ParticleSystem Rain(SceneGroups groups)

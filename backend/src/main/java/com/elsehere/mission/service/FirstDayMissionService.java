@@ -162,7 +162,7 @@ public class FirstDayMissionService {
                     : mission.current().situation();
     String direction =
         !started
-            ? "퀘스트 수첩에서 첫날 여정을 시작하세요."
+            ? "왼쪽 위 지도 버튼에서 첫날 여정을 시작하세요."
             : complete
                 ? "다른 NPC와 자유롭게 대화해 보세요."
                 : !scene.equals(mission.current().scene())
@@ -185,7 +185,7 @@ public class FirstDayMissionService {
     return switch (scene) {
       case "HOTEL" -> "호텔로";
       case "CAFE" -> "카페로";
-      case "SHOP" -> "TOWN SHOP 상점으로";
+      case "SHOP" -> "CONVENIENCE STORE 편의점으로";
       default -> "마을 거리로";
     };
   }

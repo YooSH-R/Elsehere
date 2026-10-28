@@ -10,7 +10,7 @@ VALUES
   ('TOWN', '마을', 'TownScene', true),
   ('CAFE', '모퉁이 카페', 'CafeScene', true),
   ('HOTEL', '호텔', 'HotelScene', true),
-  ('SHOP', '마을 상점', 'ShopScene', true)
+  ('SHOP', '편의점', 'ShopScene', true)
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name,
     unity_key = EXCLUDED.unity_key,
@@ -148,8 +148,8 @@ FROM (
     ('HOTEL', 'HOTEL_STAFF', 'Emma', 'STAFF', '호텔 직원',
      '{"role": "the front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
      'af_heart', false, NULL),
-    ('SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '상점 직원',
-     '{"role": "the helpful clerk at Town Shop.", "facts": "Town Shop sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A warm small shop on the town main street."}',
+    ('SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '편의점 직원',
+     '{"role": "the helpful clerk at the convenience store.", "facts": "The convenience store sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small convenience store on the town main street."}',
      'af_heart', false, NULL)
 ) AS seed (scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code

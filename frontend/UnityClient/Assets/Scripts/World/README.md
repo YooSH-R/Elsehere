@@ -34,7 +34,7 @@
 | `TownScene` | `ShopDoor` | `ShopScene`의 `TownDoor` |
 | `ShopScene` | `TownDoor` | `TownScene`의 `ShopDoor` |
 
-상점 연결과 연계 미션은 **Tools → A305 → Mission → Build First Day Journey**로 준비합니다. 카페 옆 빈 건물 앞의 TOWN SHOP 간판에서 들어갑니다. 다른 기존 건물과 씬 아트는 유지합니다.
+상점 연결과 연계 미션은 **Tools → A305 → Mission → Build First Day Journey**로 준비합니다. 카페 옆 빈 건물 앞의 CONVENIENCE STORE 간판에서 들어갑니다. 다른 기존 건물과 씬 아트는 유지합니다.
 
 - 현재 TownScene의 이용 장소는 집·카페·호텔입니다. 빈 건물은 셔터가 닫힌 외관으로, 나머지는 배경 주거동으로 구분하며 출입 Trigger를 두지 않습니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.
 - 씬 이름은 ERD `scenes.unity_key` 값으로 사용합니다. 공간 이름·개방 여부 같은 서버 데이터는 Unity에 두지 않습니다.

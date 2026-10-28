@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: claw_machine
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_2ed81ce347fb9724d8df37ac679e41d9
+    languageCode: en-US
+    text: claw machine
+    meaningKo: "\uC778\uD615 \uBF51\uAE30 \uAE30\uACC4"
+    example: Can I try this claw machine?
+    exampleKo: "\uC774 \uC778\uD615 \uBF51\uAE30 \uAE30\uACC4\uB97C \uD574 \uBD10\uB3C4
+      \uB420\uAE4C\uC694?"
+    pronunciationAudioKey: 
+  assetGuid: 2ed81ce347fb9724d8df37ac679e41d9

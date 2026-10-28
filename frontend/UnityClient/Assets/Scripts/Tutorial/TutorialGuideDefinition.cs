@@ -35,7 +35,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.Move,
                 "첫걸음 가이드 2/4 · 자유롭게 이동하기",
-                "WASD로 걷고 Shift로 달려요. 마우스 오른쪽 버튼을 누른 채 움직이면 둘러볼 수 있어요.",
+                "WASD로 걷고 Shift로 달려요. 마우스 왼쪽 버튼을 누른 채 움직이면 둘러볼 수 있어요.",
                 "WASD로 한 번 걸어 보세요.",
                 "이해했어요"
             ),
@@ -84,7 +84,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.MissionTalk,
                 "미션 안내 3/3 · NPC와 대화해 보세요",
-                "마을의 CAFE 건물로 들어가 카운터의 직원에게 다가가면 말을 걸어와요. 미션 키워드를 넣어 말해 보세요.",
+                "마을의 CAFE 건물로 들어가 카운터의 직원에게 다가가면 말을 걸어와요. 미션 창의 '말할 단어'를 넣어 말해 보세요.",
                 "",
                 ""
             ),

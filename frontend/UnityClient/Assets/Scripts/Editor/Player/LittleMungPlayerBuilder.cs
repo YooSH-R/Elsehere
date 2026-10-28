@@ -307,7 +307,7 @@ namespace A305.EditorTools.Player
                 "Assets/Art/UI/Fonts/Pretendard-Regular SDF.asset"
             );
             text.text =
-                "리틀 멍 · 플레이어 동작 검수\nWASD 이동  |  Shift 달리기  |  Space 점프\n마우스 오른쪽 버튼 + 드래그: 시점 회전  |  휠: 확대\n왼쪽: 계단 · 오른쪽: 경사로 · 앞쪽: 벽\n원본 외형 복사본 / 표정·립싱크 미적용";
+                "리틀 멍 · 플레이어 동작 검수\nWASD 이동  |  Shift 달리기  |  Space 점프\n마우스 왼쪽 버튼 + 드래그: 시점 회전  |  휠: 확대\n왼쪽: 계단 · 오른쪽: 경사로 · 앞쪽: 벽\n원본 외형 복사본 / 표정·립싱크 미적용";
             text.fontSize = 22;
             text.raycastTarget = false;
             var rect = label.GetComponent<RectTransform>();

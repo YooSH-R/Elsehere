@@ -20,7 +20,7 @@
 2. Project에서 `Assets/Scenes/Sandbox/LittleMungPosePlayerSandbox.unity`를 연다. 기존 골격/수정 발 골격만 비교하려면 아래의 별도 검수 씬을 사용한다.
 3. Play를 누르고 Game 화면을 한 번 클릭한다.
 4. WASD로 이동, Shift를 누른 채 이동하면 달리기, Space로 점프한다.
-5. 마우스 오른쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다.
+5. 마우스 왼쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다.
 6. 왼쪽 계단, 오른쪽 경사로, 앞쪽 벽에서 움직임을 확인한다.
 
 이 씬에는 생성/API 키 입력이 필요하지 않다. Builder는 저장소에 포함된 `Assets/Art/Player/LittleMung/LittleMung.fbx`와 `BaseColor.png`를 사용한다. 파일이 누락되면 저장소에서 복원하며 개인 Tripo 생성 폴더를 요구하지 않는다. 메뉴 `Tools → A305 → Player → Build Little Mung Sandbox`는 누락된 전용 에셋과 씬을 구성한다. 이미 있는 전용 프리팹·컨트롤러·씬은 보존한다.

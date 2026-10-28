@@ -70,6 +70,18 @@ namespace A305.Api
             return ApiJson.Deserialize<T>(responseBody);
         }
 
+        public async Task<T> PatchAsync<T>(string path, object body)
+        {
+            string responseBody = await SendAsync("PATCH", path, body);
+            return ApiJson.Deserialize<T>(responseBody);
+        }
+
+        /// <summary>응답 본문이 없는 삭제 요청(예: 204 No Content).</summary>
+        public async Task DeleteAsync(string path)
+        {
+            await SendAsync("DELETE", path, null);
+        }
+
         /// <summary>
         /// 파일 하나와 글자 칸을 multipart/form-data로 보낸다(예: 녹음 전사). 글자 칸은 UTF-8로 보낸다.
         /// </summary>

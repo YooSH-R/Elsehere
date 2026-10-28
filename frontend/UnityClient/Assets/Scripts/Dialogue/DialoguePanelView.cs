@@ -96,6 +96,9 @@ namespace A305.Dialogue
 
         public bool IsVisible => panel.activeSelf;
 
+        /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
+        public bool IsSaveAvailable { get; set; } = true;
+
         public void Show(IDialogueContent shownContent)
         {
             content = shownContent;
@@ -146,6 +149,7 @@ namespace A305.Dialogue
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
             meaningButton.interactable = content.LastNpcLine != null;
+            saveButton.gameObject.SetActive(IsSaveAvailable);
             saveButton.interactable = content.LastNpcLine != null;
             talkButton.gameObject.SetActive(content.UsesVoice);
             talkButton.GetComponent<Button>().interactable = content.CanSend;

@@ -1,22 +1,30 @@
 namespace A305.Learning
 {
-    /// <summary>단어장의 한 표현. 저장한 횟수와 '외웠어요' 표시를 함께 가진다.</summary>
+    /// <summary>단어장의 한 단어. 뜻·저장한 문장·메모와 '외웠어요' 표시를 가진다.</summary>
     public sealed class VocabularyEntry
     {
-        public VocabularyEntry(string english, string korean, string source)
+        /// <summary>서버 단어장 항목(VOCAB-01)으로 만든다.</summary>
+        public VocabularyEntry(VocabItem item)
         {
-            English = english;
-            Korean = korean;
-            Source = source;
+            UserVocabId = item.UserVocabId;
+            English = item.Vocab?.Text;
+            Korean = item.Vocab?.MeaningKo;
+            ContextText = item.Context?.Text;
+            Memo = item.Memo;
+            IsLearned = item.Memorized;
         }
+
+        /// <summary>서버 단어장 항목 ID. 메모·외웠어요·삭제 요청에 쓴다.</summary>
+        public long UserVocabId { get; }
+
+        /// <summary>단어를 저장한 문장. 없으면 null.</summary>
+        public string ContextText { get; }
+
+        /// <summary>사용자가 남긴 메모. 없으면 null.</summary>
+        public string Memo { get; internal set; }
 
         public string English { get; }
         public string Korean { get; }
-
-        /// <summary>처음 저장한 곳. 예: 대화, 피드백</summary>
-        public string Source { get; }
-
-        public int SaveCount { get; internal set; }
 
         /// <summary>사용자가 '외웠어요'로 직접 표시한 상태. 자동 채점 결과가 아니다.</summary>
         public bool IsLearned { get; internal set; }

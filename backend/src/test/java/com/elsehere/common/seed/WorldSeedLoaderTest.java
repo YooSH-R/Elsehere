@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.mission.entity.Mission;
 import com.elsehere.mission.repository.MissionRepository;
+import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.entity.VocabularySource;
 import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.VocabularyRepository;
@@ -133,12 +134,21 @@ class WorldSeedLoaderTest {
                 assertThat(vocabulary.getExample()).isEqualTo(word.example());
                 assertThat(vocabulary.getExampleKo()).isEqualTo(word.exampleKo());
                 assertThat(vocabulary.getPronunciationAudioKey())
-                    .isEqualTo(
-                        word.pronunciationAudioKey().isBlank()
-                            ? null
-                            : word.pronunciationAudioKey());
+                    .isEqualTo(expectedPronunciationAudioKey(word));
               });
     }
+  }
+
+  @Test
+  @DisplayName("Unity에 발음 키가 없어도 미리 만든 발음 파일({wordKey}.wav)이 있으면 그 파일 이름을 발음 키로 넣는다")
+  void load_setsPronunciationKeyFromAudioFile() {
+    worldSeedLoader.load();
+
+    // 테스트 리소스에 sofa.wav를 두었다.
+    assertThat(vocabularyRepository.findByWordKey("sofa"))
+        .get()
+        .extracting(Vocabulary::getPronunciationAudioKey)
+        .isEqualTo("sofa.wav");
   }
 
   @Test
@@ -240,6 +250,15 @@ class WorldSeedLoaderTest {
     try (var input = new ClassPathResource("content/object-words.json").getInputStream()) {
       return new JsonMapper().readValue(input, Catalog.class);
     }
+  }
+
+  /** Unity에 적은 발음 키가 우선이고, 없으면 미리 만든 발음 파일이 있을 때 그 파일 이름이다. */
+  private static String expectedPronunciationAudioKey(CatalogWord word) {
+    if (!word.pronunciationAudioKey().isBlank()) {
+      return word.pronunciationAudioKey();
+    }
+    String fileName = word.key() + ".wav";
+    return new ClassPathResource("content/pronunciation/" + fileName).exists() ? fileName : null;
   }
 
   private List<Tuple> expectedSceneWords() throws IOException {

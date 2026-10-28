@@ -144,7 +144,7 @@ Table vocabularies [headercolor: #227C88] {
   meaning_ko text [not null]
   example text [note: '예문 · 사물 카드에 표시하는 시점(저장 전/후) [미정]']
   example_ko text [note: '예문 뜻']
-  pronunciation_audio_key varchar(100) [note: '사물 어휘 등록 시 TTS로 만든 발음 파일 키']
+  pronunciation_audio_key varchar(100) [note: '미리 TTS로 만든 발음 파일 이름 ({wordKey}.wav). Unity 에셋 값이 없으면 시드가 content/pronunciation의 파일로 채운다']
   word_key varchar(50) [unique, note: 'Unity 공용 단어 키 (air_conditioner · sofa ...). 사물 단어만 값이 있다 (v3.4)']
   source varchar(20) [not null, note: 'MASTER · NPC · FEEDBACK']
   created_at timestamptz [not null, default: `now()`]

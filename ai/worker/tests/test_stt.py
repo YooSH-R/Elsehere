@@ -146,6 +146,119 @@ def test_stt_first_provider_has_short_timeout_when_fallback_exists():
     assert seen == [("groq.test", 30.0)]
 
 
+GPU_CHAIN = [
+    {"provider": "gpu", "model": "turbo-lr1e4"},
+    {"provider": "gms", "model": "whisper-1"},
+    {"provider": "groq", "model": "whisper-large-v3-turbo"},
+]
+
+
+def chain_client(answers: dict, **kw) -> tuple[TestClient, list]:
+    """STT_CHAIN 구성: GPU 서버(gpu.test) → GMS(gms.test, 기본 공급자) → Groq(groq.test). answers[호스트] = 함수(request) → 응답.
+    반환: (클라이언트, 음성 인식 요청 [(호스트, read 시간 상한)])."""
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.host, request.extensions["timeout"]["read"]))
+        return answers[request.url.host](request)
+
+    models, role_provider = profile_models("gms-luna")
+    s = Settings(
+        token=TOKEN,
+        base_url="http://gms.test/v1",
+        api_key="g",
+        profile="gms-luna",
+        models=models,
+        role_provider=role_provider,
+        providers={"groq": {"base_url": "http://groq.test/v1", "api_key": "q"}, "gpu": {"base_url": "http://gpu.test/v1", "api_key": "t"}},
+        **{"stt_chain": GPU_CHAIN, "stt_first_timeout_s": 3.0, "call_timeout_s": 1.0, "retry_pause_s": 0.0, **kw},
+    )
+    return TestClient(create_app(s, httpx.MockTransport(handler), False), headers={"X-Internal-Token": TOKEN}), seen
+
+
+def test_stt_chain_gpu_ok_calls_only_gpu():
+    c, seen = chain_client({"gpu.test": answer_ok, "gms.test": fail(500), "groq.test": fail(500)})
+    with c:
+        r = c.post("/v1/stt", files=AUDIO).json()
+    assert [h for h, _ in seen] == ["gpu.test"]
+    assert (r["text"], r["usage"][0]["model"], r["usage"][0]["fallback"]) == ("Muffin.", "turbo-lr1e4", False)
+
+
+@pytest.mark.parametrize("how", [500, 429, "timeout"])
+def test_stt_chain_gpu_fails_goes_to_gms(how):
+    # GPU 서버가 꺼졌거나(터널 끊김) 느리면 짧게 기다리고 GMS로. Groq는 GMS까지 실패할 때만
+    c, seen = chain_client({"gpu.test": fail(how), "gms.test": answer_ok, "groq.test": fail(500)})
+    with c:
+        r = c.post("/v1/stt", files=AUDIO)
+    assert r.status_code == 200 and [h for h, _ in seen] == ["gpu.test", "gms.test"]
+    assert seen[0][1] == 3.0  # 첫 공급자는 짧은 상한
+    (u,) = r.json()["usage"]
+    assert (u["model"], u["fallback"]) == ("whisper-1", True)
+
+
+def test_stt_chain_last_provider_waits_longest():
+    c, seen = chain_client({"gpu.test": fail("timeout"), "gms.test": fail(503), "groq.test": answer_ok}, stt_next_timeout_s=6.0)
+    with c:
+        r = c.post("/v1/stt", files=AUDIO)
+    assert r.status_code == 200 and r.json()["usage"][0]["model"] == "whisper-large-v3-turbo"
+    assert seen == [("gpu.test", 3.0), ("gms.test", 6.0), ("groq.test", 30.0)]
+
+
+def test_stt_chain_all_fail_reports_every_provider():
+    c, seen = chain_client({"gpu.test": fail(500), "gms.test": fail(503), "groq.test": fail(429)})
+    with c:
+        r = c.post("/v1/stt", files=AUDIO)
+    assert r.status_code == 429 and r.json()["error"]["code"] == "provider_limit"  # 마지막 공급자의 오류
+    msg = r.json()["error"]["message"]
+    assert all(m in msg for m in ("turbo-lr1e4", "whisper-1", "whisper-large-v3-turbo"))
+    assert len(seen) == 3
+
+
+def test_stt_chain_does_not_pass_on_rejected_audio():
+    c, seen = chain_client({"gpu.test": fail(400), "gms.test": answer_ok, "groq.test": answer_ok})
+    with c:
+        r = c.post("/v1/stt", files=AUDIO)
+    assert r.status_code == 503 and [h for h, _ in seen] == ["gpu.test"]
+
+
+def test_stt_chain_skips_gpu_for_a_while_after_repeated_failures():
+    # GPU 서버가 꺼져 있으면 매 턴 상한(3초)을 기다리지 않고 잠시 바로 GMS로. 정해진 시간이 지나면 다시 시도
+    c, seen = chain_client(
+        {"gpu.test": fail(500), "gms.test": answer_ok, "groq.test": fail(500)}, stt_breaker_failures=2, stt_breaker_skip_s=60.0
+    )
+    now = [1000.0]
+    with c:
+        c.app.state.llm.clock = lambda: now[0]
+        for _ in range(2):
+            c.post("/v1/stt", files=AUDIO)
+        assert [h for h, _ in seen] == ["gpu.test", "gms.test", "gpu.test", "gms.test"]
+        seen.clear()
+        r = c.post("/v1/stt", files=AUDIO).json()
+        assert seen == [("gms.test", 8.0)]  # GPU를 건너뛰어도 GMS의 상한은 순서상 자리 그대로
+        assert (r["usage"][0]["model"], r["usage"][0]["fallback"]) == ("whisper-1", True)
+        seen.clear()
+        now[0] += 61
+        c.post("/v1/stt", files=AUDIO)
+        assert [h for h, _ in seen] == ["gpu.test", "gms.test"]
+
+
+def test_stt_chain_success_resets_failure_count():
+    answers = iter([fail(500), answer_ok, fail(500), answer_ok])
+    c, seen = chain_client({"gpu.test": lambda r: next(answers)(r), "gms.test": answer_ok, "groq.test": fail(500)}, stt_breaker_failures=2)
+    with c:
+        for _ in range(4):
+            c.post("/v1/stt", files=AUDIO)
+    assert [h for h, _ in seen].count("gpu.test") == 4  # 실패 사이에 성공이 있으면 연속 실패가 아니다
+
+
+def test_stt_last_provider_is_never_skipped():
+    c, seen = chain_client({"gpu.test": fail(500), "gms.test": fail(500), "groq.test": fail(503)}, stt_breaker_failures=1)
+    with c:
+        for _ in range(2):
+            r = c.post("/v1/stt", files=AUDIO)
+    assert r.status_code == 503 and [h for h, _ in seen][-1] == "groq.test" and [h for h, _ in seen][3:] == ["groq.test"]
+
+
 def test_prompt_echo_rule():
     p = stt_prompt(["latte"])
     assert is_prompt_echo("The bus stop is over there.", p)

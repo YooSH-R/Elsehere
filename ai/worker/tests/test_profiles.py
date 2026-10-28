@@ -105,6 +105,50 @@ def test_stt_fallback_key_required(env):
     assert "GMS_KEY" in str(e.value)
 
 
+GPU_CHAIN = "gpu:turbo-lr1e4,gms:whisper-1,groq:whisper-large-v3-turbo"
+
+
+def test_stt_chain_by_env(env):
+    # GPU 서버의 자체 모델 → GMS → Groq. gpu 주소는 배포마다 달라(터널 입구) 환경 변수에서 읽는다
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
+    assert Settings.from_env().stt_chain == []  # 정하지 않으면 지금처럼 구성의 음성 인식 + STT_FALLBACK
+    env.update({"STT_CHAIN": GPU_CHAIN, "STT_GPU_BASE_URL": "http://172.19.0.1:18431/v1/", "STT_GPU_TOKEN": "t"})
+    s = Settings.from_env()
+    assert s.stt_chain == [
+        {"provider": "gpu", "model": "turbo-lr1e4"},
+        {"provider": "gms", "model": "whisper-1"},
+        {"provider": "groq", "model": "whisper-large-v3-turbo"},
+    ]
+    assert s.providers["gpu"] == {"base_url": "http://172.19.0.1:18431/v1", "api_key": "t"}
+    assert s.providers["groq"] == {"base_url": GROQ_URL, "api_key": "q"}
+
+
+def test_stt_timeouts_and_skip_by_env(env):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
+    s = Settings.from_env()
+    assert (s.stt_next_timeout_s, s.stt_breaker_failures, s.stt_breaker_skip_s) == (8.0, 3, 60.0)
+    env.update({"STT_NEXT_TIMEOUT_S": "6", "STT_BREAKER_FAILURES": "0", "STT_BREAKER_SKIP_S": "120"})  # 0이면 건너뛰기 끔
+    s = Settings.from_env()
+    assert (s.stt_next_timeout_s, s.stt_breaker_failures, s.stt_breaker_skip_s) == (6.0, 0, 120.0)
+
+
+@pytest.mark.parametrize(("missing", "named"), [("STT_GPU_BASE_URL", "STT_GPU_BASE_URL"), ("STT_GPU_TOKEN", "STT_GPU_TOKEN")])
+def test_stt_chain_gpu_needs_address_and_token(env, missing, named):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_CHAIN": GPU_CHAIN, "STT_GPU_BASE_URL": "http://gpu/v1", "STT_GPU_TOKEN": "t"})
+    del env[missing]
+    with pytest.raises(RuntimeError) as e:
+        Settings.from_env()
+    assert named in str(e.value)
+
+
+@pytest.mark.parametrize("value", ["gpu", "nope:x,gms:whisper-1", "gms:whisper-1,", " , "])
+def test_stt_chain_bad_value(env, value):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_CHAIN": value})
+    with pytest.raises(RuntimeError) as e:
+        Settings.from_env()
+    assert "STT_CHAIN" in str(e.value)
+
+
 def test_missing_keys_named(env):
     env["LLM_PROFILE"] = "gms-sol"
     with pytest.raises(RuntimeError) as e:

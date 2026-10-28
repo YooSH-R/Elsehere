@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca27e76fcc915f43b4fed30bdf811d5, type: 3}
+  m_Name: Sticker
+  m_EditorClassIdentifier: A305.Theme::A305.Theme.UiThemeDefinition
+  id: 1
+  displayName: "\uC2A4\uD2F0\uCEE4 \uD31D"
+  description: "\uAD75\uC740 \uD14C\uB450\uB9AC \uC2A4\uD2F0\uCEE4\uC640 \uB9D0\uD48D\uC120"
+  titleFont: {fileID: 11400000, guid: f56a03b9b536f0c41ada6b77ccbe8f53, type: 2}
+  ink: {r: 0.1764706, g: 0.22745098, b: 0.3529412, a: 1}
+  mutedInk: {r: 0.33333334, g: 0.3764706, b: 0.47843137, a: 1}
+  accentInk: {r: 0.78431374, g: 0.27058825, b: 0.16470589, a: 1}
+  panelSprite: {fileID: 21300000, guid: bc298b16703f0b146b37653f9b87f715, type: 3}
+  panelTint: {r: 1, g: 1, b: 1, a: 1}
+  cardSprite: {fileID: 21300000, guid: 17397ab0e98635a44bad11ea327bec09, type: 3}
+  cardTint: {r: 1, g: 1, b: 1, a: 1}
+  inputSprite: {fileID: 21300000, guid: 674c24f630ed2fb4ab37756a67cc80e3, type: 3}
+  buttonSprite: {fileID: 21300000, guid: 5cec197faefc0384eb7a8205cfbd269e, type: 3}
+  buttonOutlineSprite: {fileID: 21300000, guid: a8882687be217c94f9858c8bcff2150d, type: 3}
+  pillSprite: {fileID: 21300000, guid: f2178ee8eb65c0a4c9acdc9816c99102, type: 3}
+  pillOutlineSprite: {fileID: 21300000, guid: eba2b026d040dcc499b38084c16d81bf, type: 3}
+  badgeSprite: {fileID: 21300000, guid: 40db36e5d38f86a45aa51a947cda7462, type: 3}
+  badgeColor: {r: 1, g: 0.47843137, b: 0.34901962, a: 1}
+  toneColors:
+  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 1, g: 0.8352941, b: 0.2901961, a: 1}
+  - {r: 1, g: 0.47843137, b: 0.34901962, a: 1}
+  - {r: 0.3529412, g: 0.6627451, b: 0.9019608, a: 1}
+  - {r: 0.29803923, g: 0.7882353, b: 0.6509804, a: 1}
+  toneInks:
+  - {r: 0.1764706, g: 0.22745098, b: 0.3529412, a: 1}
+  - {r: 0.1764706, g: 0.22745098, b: 0.3529412, a: 1}
+  - {r: 0.1764706, g: 0.22745098, b: 0.3529412, a: 1}
+  - {r: 0.1764706, g: 0.22745098, b: 0.3529412, a: 1}
+  - {r: 0.1764706, g: 0.22745098, b: 0.3529412, a: 1}
+  icons: {fileID: 11400000, guid: 7d87e03d88df1084d9df508f26a7574e, type: 2}

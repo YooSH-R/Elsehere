@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -144,6 +145,7 @@ namespace A305.Onboarding
         private void Render()
         {
             PlayerCharacterSelection.Select(flow.SelectedAvatar?.ToString());
+            UiThemeSelection.Shared.Select(UiThemeCodes.Parse(flow.UiTheme));
             messageText.text = flow.ErrorMessage ?? "";
             switch (flow.Screen)
             {

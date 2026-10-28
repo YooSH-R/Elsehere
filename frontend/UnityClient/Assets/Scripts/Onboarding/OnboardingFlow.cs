@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
+using UnityEngine;
 
 namespace A305.Onboarding
 {
@@ -9,12 +10,14 @@ namespace A305.Onboarding
     /// 입구 화면(01~05)의 진행. 서버 상태로 화면을 정하고, 화면에 필요한 데이터를 불러 둔 뒤 다음 화면으로 넘긴다.
     /// </summary>
     /// <remarks>
-    /// 요청이 실패하면 화면을 그대로 두고 <see cref="ErrorMessage"/>에 서버 메시지를 담는다. 로그인이 풀렸으면(401) 로그인 화면으로 돌아간다.
+    /// 요청이 실패하면 화면을 그대로 두고 <see cref="ErrorMessage"/>에 서버 메시지를 담는다. 로그인이 풀렸으면(401) 로그인 화면으로 돌아가고,
+    /// 접속 상태부터 읽지 못했으면 [다시 시도] 화면으로 간다.
     /// </remarks>
     public sealed class OnboardingFlow
     {
         private const string UnauthenticatedCode = "UNAUTHENTICATED";
         private const string NicknameTakenCode = "NICKNAME_TAKEN";
+        private const string UnexpectedErrorMessage = "문제가 생겼어요. 다시 시도해 주세요.";
 
         private readonly IOnboardingApi api;
 
@@ -45,9 +48,13 @@ namespace A305.Onboarding
         /// <summary>마지막 요청이 실패한 이유. 다음 요청이 성공하면 지운다.</summary>
         public string ErrorMessage { get; private set; }
 
-        public Task StartAsync()
+        /// <summary>
+        /// 접속 상태를 읽어 첫 화면을 정한다. 로그인 외의 이유로 실패하면 보여 줄 화면을 정할 수 없으므로 [다시 시도] 화면으로 둔다.
+        /// 그 화면의 [다시 시도]도 이 메서드를 다시 부른다.
+        /// </summary>
+        public async Task StartAsync()
         {
-            return RunAsync(async () =>
+            await RunAsync(async () =>
             {
                 BootstrapResponse boot = await api.GetBootstrapAsync();
                 LanguageCode = boot.User?.CurrentLanguage;
@@ -68,6 +75,11 @@ namespace A305.Onboarding
 
                 await EnterAsync(screen);
             });
+
+            if (ErrorMessage != null)
+            {
+                Screen = EntryScreen.ConnectionFailed;
+            }
         }
 
         /// <summary>개발용 로그인 뒤 접속 상태를 다시 읽는다. Editor에서 Google 로그인 대신 쓴다.</summary>
@@ -221,6 +233,12 @@ namespace A305.Onboarding
             catch (ApiException exception)
             {
                 ErrorMessage = exception.Message;
+            }
+            catch (Exception exception)
+            {
+                // 서버 오류가 아닌 문제도 화면이 멈춘 것처럼 보이지 않게 알리고, 원인은 로그로 남긴다.
+                Debug.LogException(exception);
+                ErrorMessage = UnexpectedErrorMessage;
             }
         }
     }

@@ -194,7 +194,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
 
-            // 서버 AI 대화: 상태 문구, 추천 단어, 누르고 말하기, 다시 듣기
+            // 서버 AI 대화: 상태 문구, 추천 단어, 누르고 말하기, 다시 듣기, 힌트
             TMP_Text status = UiBuilderTools.FindOrCreateText(
                 conversation,
                 "Status",
@@ -223,6 +223,13 @@ namespace A305.EditorTools.Dialogue
                 bold,
                 160f
             );
+            Button hintButton = UiBuilderTools.FindOrCreateButton(
+                toolRow,
+                "HintButton",
+                "힌트",
+                bold,
+                160f
+            );
 
             // Web 빌드의 Unity 입력창은 한글 조합을 받지 못해 브라우저 입력창을 겹쳐 받는다(닉네임 입력창과 같은 방식).
             BuilderTools.GetOrAddComponent<BrowserImeInput>(input.gameObject);
@@ -245,6 +252,7 @@ namespace A305.EditorTools.Dialogue
                 BuilderTools.GetOrAddComponent<HoldButton>(talkButton.gameObject)
             );
             BuilderTools.SetReference(view, "replayButton", replayButton);
+            BuilderTools.SetReference(view, "hintButton", hintButton);
             BuilderTools.RequireReferences(view);
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.

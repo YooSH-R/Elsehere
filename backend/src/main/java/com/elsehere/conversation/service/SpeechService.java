@@ -12,10 +12,10 @@ import com.elsehere.conversation.dto.SpeechResponse;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
 import com.elsehere.conversation.dto.TranscriptionResponse;
 import com.elsehere.conversation.entity.Conversation;
-import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +42,7 @@ public class SpeechService {
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final NpcAudioStore npcAudioStore;
+  private final NpcAudioRetention npcAudioRetention;
   private final TransactionTemplate transactionTemplate;
 
   /**
@@ -81,36 +82,43 @@ public class SpeechService {
   /** 저장해 둔 NPC 턴 음성(WAV). [다시 듣기]는 음성을 새로 만들지 않는다. */
   public byte[] npcSpeech(Long userId, Long turnId) {
     String key =
-        transactionTemplate.execute(status -> ownedNpcTurn(userId, turnId).getNpcAudioKey());
+        transactionTemplate.execute(
+            status -> support.ownedNpcTurn(userId, turnId).getNpcAudioKey());
     return npcAudioStore.load(key).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
-  /** 음성 합성에 실패한 NPC 턴의 음성을 다시 만든다. 이미 음성이 있으면 새로 만들지 않는다. */
+  /**
+   * 음성 합성에 실패한 NPC 턴의 음성을 다시 만든다. 이미 음성이 있거나 보관 정책으로 지운 음성이면 새로 만들지 않는다. 다시 만든 음성을 보관 상한 때문에 저장하지
+   * 못하면 FAILED로 돌려주고 자막만 보여 준다.
+   */
   public SpeechResponse regenerateSpeech(Long userId, Long turnId, UUID requestId) {
     SpeechTarget target =
         transactionTemplate.execute(
             status -> {
-              Turn turn = ownedNpcTurn(userId, turnId);
+              Turn turn = support.ownedNpcTurn(userId, turnId);
               Conversation conversation = turn.getConversation();
               NpcContext npc = support.npcById(conversation.getNpcId());
               return new SpeechTarget(
                   turn.getNpcAudioKey(),
+                  turn.getNpcAudioDeletedAt(),
                   turn.getText(),
                   npc.voiceId(),
                   conversation.getId(),
                   conversation.getLevelApplied());
             });
-    if (target.npcAudioKey() != null) {
-      return SpeechResponse.of(turnId, target.npcAudioKey());
+    if (target.npcAudioKey() != null || target.npcAudioDeletedAt() != null) {
+      return SpeechResponse.of(turnId, target.npcAudioKey(), target.npcAudioDeletedAt());
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     double speed = LEVEL_SPEED.getOrDefault(target.level(), 1.0);
     byte[] wav = aiWorkerClient.synthesize(trace, target.text(), target.voiceId(), speed);
     aiRequestRecorder.record(trace, AiRequestKind.TTS, List.of(), AiRequestStatus.OK);
-    String key = npcAudioStore.save(wav);
-    transactionTemplate.executeWithoutResult(
-        status -> turnRepository.findById(turnId).ifPresent(turn -> turn.attachNpcAudio(key)));
+    String key = npcAudioRetention.save(wav);
+    if (key != null) {
+      transactionTemplate.executeWithoutResult(
+          status -> turnRepository.findById(turnId).ifPresent(turn -> turn.attachNpcAudio(key)));
+    }
     return SpeechResponse.of(turnId, key);
   }
 
@@ -125,18 +133,6 @@ public class SpeechService {
     if (!active) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
-  }
-
-  // 다른 사용자의 턴과 사용자 턴은 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
-  private Turn ownedNpcTurn(Long userId, Long turnId) {
-    Turn turn =
-        turnRepository
-            .findById(turnId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    if (turn.getSpeaker() != Speaker.NPC || !turn.getConversation().getUserId().equals(userId)) {
-      throw new BusinessException(ErrorCode.NOT_FOUND);
-    }
-    return turn;
   }
 
   // "audio/webm;codecs=opus"처럼 매개변수가 붙어도 형식만 본다.
@@ -160,5 +156,10 @@ public class SpeechService {
   }
 
   private record SpeechTarget(
-      String npcAudioKey, String text, String voiceId, Long conversationId, int level) {}
+      String npcAudioKey,
+      Instant npcAudioDeletedAt,
+      String text,
+      String voiceId,
+      Long conversationId,
+      int level) {}
 }

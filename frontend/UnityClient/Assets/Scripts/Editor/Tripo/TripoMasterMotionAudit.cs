@@ -39,7 +39,10 @@ namespace A305.EditorTools.Tripo
                 var correction = animator.GetComponent<LittleMungArmClearance>();
                 if (
                     expected == null
-                    || animator.runtimeAnimatorController != expected
+                    || !TripoMasterAnimation.UsesLocomotion(
+                        animator.runtimeAnimatorController,
+                        expected
+                    )
                     || correction == null
                 )
                     throw new InvalidOperationException(

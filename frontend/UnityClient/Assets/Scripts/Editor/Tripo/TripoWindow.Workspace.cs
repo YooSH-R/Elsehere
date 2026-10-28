@@ -1077,7 +1077,7 @@ namespace A305.EditorTools.Tripo
                     using (new EditorGUI.DisabledScope(true))
                         EditorGUILayout.ObjectField(
                             FieldLabel("재사용 모션"),
-                            TripoMotionPreview.LoadPlayerClip(bodyMotionKind),
+                            bodyMotion.ActiveClip,
                             typeof(AnimationClip),
                             false
                         );
@@ -1088,7 +1088,7 @@ namespace A305.EditorTools.Tripo
                 }
             }
             EditorGUILayout.HelpBox(
-                "로컬 복사본에 실제 플레이어 모션을 적용합니다. 발 뒤집힘·옷 틈·손/몸 관통을 각 방향에서 확인하세요. 평면은 기준 자세 발밑 가이드입니다. 실제 이동·점프 높이·접지 IK와 리틀 멍 전용 보정은 포함하지 않으며, 재생 성공만으로 외형을 승인하지 않습니다. API 크레딧은 사용하지 않습니다.",
+                "로컬 복사본에 실제 플레이어 모션을 적용합니다. 발 뒤집힘·옷 틈·손/몸 관통을 각 방향에서 확인하세요. 평면은 기준 자세 발밑 가이드입니다. 마스터 적용본은 전용 Idle과 런타임 팔 보정을 함께 확인합니다. 실제 이동·점프 높이·접지 IK는 별도 플레이 검수 씬에서 확인하며, 재생 성공만으로 외형을 승인하지 않습니다. API 크레딧은 사용하지 않습니다.",
                 MessageType.None
             );
         }

@@ -70,7 +70,14 @@ namespace A305.EditorTools.Tripo
                             return mapped;
                         })
                         .ToArray();
-                    var mesh = CopySurface(skin, replacement, bodyScale, sourceFeet, targetFeet);
+                    var mesh = CopySurface(
+                        skin,
+                        replacement,
+                        bodyScale,
+                        sourceFeet,
+                        targetFeet,
+                        TripoTorsoWeights.Prepare(skin, sourceAnimator)
+                    );
                     created.Add(mesh);
                     mesh.bindposes = replacement
                         .bones.Select(bone =>
@@ -85,14 +92,7 @@ namespace A305.EditorTools.Tripo
                     replacement.updateWhenOffscreen = true;
                     AssetDatabase.CreateAsset(mesh, folder + "/Surface" + index + ".asset");
                 }
-                targetAnimator.runtimeAnimatorController =
-                    AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-                        LittleMungAnimationBuilder.ControllerPath
-                    );
-                if (targetAnimator.runtimeAnimatorController == null)
-                    throw new InvalidOperationException(
-                        "마스터 이동 애니메이션 컨트롤러가 없습니다."
-                    );
+                targetAnimator.runtimeAnimatorController = TripoMasterAnimation.Build(folder);
                 targetAnimator.applyRootMotion = false;
                 targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 var report = Inspect(output, master);
@@ -163,7 +163,8 @@ namespace A305.EditorTools.Tripo
             SkinnedMeshRenderer target,
             float bodyScale,
             Dictionary<Transform, Matrix4x4> sourceFeet,
-            Dictionary<Transform, Matrix4x4> targetFeet
+            Dictionary<Transform, Matrix4x4> targetFeet,
+            BoneWeight[] weights
         )
         {
             var original = source.sharedMesh;
@@ -193,7 +194,7 @@ namespace A305.EditorTools.Tripo
             }
             var mesh = Object.Instantiate(original);
             mesh.name = original.name + "_MasterBound";
-            var weights = original.boneWeights;
+            mesh.boneWeights = weights;
             mesh.vertices = original
                 .vertices.Select((v, i) => TransformPoint(v, weights[i], transforms))
                 .ToArray();

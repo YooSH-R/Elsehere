@@ -64,6 +64,9 @@ namespace A305.EditorTools.Tripo
             {
                 var target = visual.GetComponentInChildren<Animator>();
                 var source = model.GetComponentInChildren<Animator>();
+                // 컨트롤러 교체가 Humanoid 포즈를 초기화하므로 기준 본 복사보다 먼저 연결한다.
+                target.runtimeAnimatorController = source.runtimeAnimatorController;
+                target.avatar = source.avatar;
                 var bones = target
                     .GetBoneTransform(HumanBodyBones.Hips)
                     .GetComponentsInChildren<Transform>()
@@ -101,8 +104,7 @@ namespace A305.EditorTools.Tripo
                     replacement.quality = SkinQuality.Bone4;
                     replacement.updateWhenOffscreen = true;
                 }
-                target.runtimeAnimatorController = source.runtimeAnimatorController;
-                target.avatar = source.avatar;
+
                 PrefabUtility.RecordPrefabInstancePropertyModifications(target);
                 return PrefabUtility.SaveAsPrefabAsset(visual, path);
             }

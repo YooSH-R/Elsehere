@@ -42,6 +42,7 @@ namespace A305.EditorTools.Tripo
         private PlayableGraph graph;
         private AnimationClipPlayable playable;
         private AnimationClip activeClip;
+        public AnimationClip ActiveClip => activeClip;
         public float Duration => activeClip == null ? 4f : activeClip.length;
 
         public TripoMotionPreview(GameObject instance)
@@ -90,7 +91,7 @@ namespace A305.EditorTools.Tripo
                 return;
             if (motion >= TripoReviewMotion.Walk)
             {
-                ApplyClip(LoadPlayerClip(motion), phase);
+                ApplyClip(LoadPlayerClip(motion, controller), phase);
                 return;
             }
             StopClip();
@@ -99,7 +100,10 @@ namespace A305.EditorTools.Tripo
             handler.SetHumanPose(ref pose);
         }
 
-        public static AnimationClip LoadPlayerClip(TripoReviewMotion motion)
+        public static AnimationClip LoadPlayerClip(
+            TripoReviewMotion motion,
+            RuntimeAnimatorController controller = null
+        )
         {
             const string folder = "Assets/Art/Player/LittleMung/";
             string path =
@@ -116,7 +120,9 @@ namespace A305.EditorTools.Tripo
                 throw new InvalidOperationException(
                     "플레이어 Humanoid 동작 클립이 없습니다: " + motion + " / " + path
                 );
-            return clip;
+            return controller is AnimatorOverrideController overrides && overrides[clip] != null
+                ? overrides[clip]
+                : clip;
         }
 
         private void ApplyClip(AnimationClip clip, float phase)

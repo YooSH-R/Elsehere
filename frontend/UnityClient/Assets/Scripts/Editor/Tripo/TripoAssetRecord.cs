@@ -87,7 +87,7 @@ namespace A305.EditorTools.Tripo
             string settings = profile == null ? "missing-profile" : JsonUtility.ToJson(profile);
             return Hash128
                 .Compute(
-                    "validation:master-rig-v3-idle\n"
+                    "validation:master-rig-v4-torso-idle\n"
                         + modelPath
                         + "\n"
                         + modelHash

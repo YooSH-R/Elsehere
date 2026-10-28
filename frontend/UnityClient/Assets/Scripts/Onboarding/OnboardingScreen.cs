@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -15,6 +16,8 @@ namespace A305.Onboarding
     public class OnboardingScreen : MonoBehaviour
     {
         private const string LoginErrorQuery = "loginError=true";
+        private const string CheckingMessage = "접속 상태를 확인하고 있어요.";
+        private const string WaitingMessage = "잠시만 기다려 주세요...";
 
         [SerializeField]
         private ApiSettings apiSettings;
@@ -47,6 +50,9 @@ namespace A305.Onboarding
         [SerializeField]
         private LevelSettingPanelView levelSettingPanel;
 
+        [SerializeField]
+        private ConnectionPanelView connectionPanel;
+
         private IOnboardingApi api;
         private OnboardingFlow flow;
 
@@ -57,16 +63,16 @@ namespace A305.Onboarding
             flow = new OnboardingFlow(api);
             ConnectPanels();
             ShowOnly(null);
-            messageText.text = "접속 상태를 확인하고 있어요.";
         }
 
         private void Start()
         {
-            Run(flow.StartAsync);
+            Run(flow.StartAsync, CheckingMessage);
         }
 
         private void ConnectPanels()
         {
+            connectionPanel.RetryRequested += () => Run(flow.StartAsync, CheckingMessage);
             loginPanel.GoogleLoginRequested += () => BrowserRedirect.GoTo(api.GoogleLoginUrl);
             loginPanel.GuestLoginRequested += () =>
             {
@@ -110,9 +116,11 @@ namespace A305.Onboarding
         }
 
         // 버튼 이벤트에서 부르므로 async void로 두고, 서버 오류가 아닌 예외는 로그로 남긴다.
-        private async void Run(Func<Task> action)
+        // 기다리는 동안 버튼만 흐려지면 멈춘 것처럼 보이므로 아래 안내 문구에 기다리는 중임을 보여 준다.
+        private async void Run(Func<Task> action, string waitingMessage = WaitingMessage)
         {
             inputGroup.interactable = false;
+            messageText.text = waitingMessage;
             try
             {
                 await action();
@@ -144,6 +152,7 @@ namespace A305.Onboarding
         private void Render()
         {
             PlayerCharacterSelection.Select(flow.SelectedAvatar?.ToString());
+            UiThemeSelection.Shared.Select(UiThemeCodes.Parse(flow.UiTheme));
             messageText.text = flow.ErrorMessage ?? "";
             switch (flow.Screen)
             {
@@ -176,11 +185,15 @@ namespace A305.Onboarding
                     ShowOnly(levelSettingPanel.gameObject);
                     levelSettingPanel.Show(flow.LanguageProfile);
                     break;
+                case EntryScreen.ConnectionFailed:
+                    ShowOnly(connectionPanel.gameObject);
+                    break;
             }
         }
 
         private void ShowOnly(GameObject panel)
         {
+            connectionPanel.gameObject.SetActive(connectionPanel.gameObject == panel);
             loginPanel.gameObject.SetActive(loginPanel.gameObject == panel);
             guestPanel.gameObject.SetActive(guestPanel.gameObject == panel);
             signupPanel.gameObject.SetActive(signupPanel.gameObject == panel);

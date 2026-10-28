@@ -72,13 +72,14 @@ namespace A305.Mission
 
         private void StartMission(string missionCode)
         {
+            MissionContent previous = board.ActiveMission;
             if (!board.Start(missionCode))
             {
                 return;
             }
 
             panelView.Refresh(board);
-            panelView.ShowMessage($"미션 시작 · {board.ActiveMission.Title}");
+            panelView.ShowMessage(MissionText.StartMessage(previous, board.ActiveMission));
             MissionStarted?.Invoke(missionCode);
         }
 

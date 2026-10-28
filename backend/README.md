@@ -72,7 +72,7 @@ com.elsehere
 
 ## NPC 음성 파일 저장
 
-NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
+NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 상세 평가의 모범 음성(FB-04)은 같은 폴더의 `model-speech/`에 저장합니다. 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
 
 ## 스키마 관리
 

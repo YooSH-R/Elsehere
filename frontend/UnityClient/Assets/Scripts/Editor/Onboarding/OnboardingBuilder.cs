@@ -227,6 +227,11 @@ namespace A305.EditorTools.Onboarding
                 "levelSettingPanel",
                 SetUpLevelSettingPanel(root, bold, regular)
             );
+            BuilderTools.SetReference(
+                screen,
+                "connectionPanel",
+                SetUpConnectionPanel(root, bold, regular)
+            );
             BuilderTools.RequireReferences(screen);
         }
 
@@ -565,6 +570,44 @@ namespace A305.EditorTools.Onboarding
 
             BuilderTools.SetReference(view, "startButton", start);
             BuilderTools.SetReference(view, "skipButton", skip);
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        // 접속 상태를 확인하지 못했을 때의 화면. 실패한 이유는 화면 아래 안내 문구가 보여 준다.
+        private static ConnectionPanelView SetUpConnectionPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "ConnectionPanel");
+            var view = BuilderTools.GetOrAddComponent<ConnectionPanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                36f,
+                Color.white,
+                "접속하지 못했어요"
+            );
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Body",
+                regular,
+                24f,
+                SubTextColor,
+                "인터넷 연결을 확인한 뒤 다시 시도해 주세요."
+            );
+            Button retry = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "RetryButton",
+                "다시 시도",
+                bold,
+                PanelWidth
+            );
+
+            BuilderTools.SetReference(view, "retryButton", retry);
             BuilderTools.RequireReferences(view);
             return view;
         }

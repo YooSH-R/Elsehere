@@ -10,7 +10,7 @@ namespace A305.Dialogue
 {
     /// <summary>
     /// 대화 중에 보이는 화면. 최근 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
-    /// 서버 AI 대화의 [누르고 말하기]·[다시 듣기]·[힌트]가 있다.
+    /// 서버 AI 대화의 [누르고 말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
@@ -61,6 +61,9 @@ namespace A305.Dialogue
         [SerializeField]
         private Button hintButton;
 
+        [SerializeField]
+        private Button retryButton;
+
         private IDialogueContent content;
         private bool isMeaningVisible;
 
@@ -87,6 +90,9 @@ namespace A305.Dialogue
 
         /// <summary>[힌트]를 누르면 알린다.</summary>
         public event Action HintRequested;
+
+        /// <summary>[다시 시도]를 누르면 알린다.</summary>
+        public event Action RetryRequested;
 
         public bool IsVisible => panel.activeSelf;
 
@@ -131,11 +137,12 @@ namespace A305.Dialogue
 
             linesText.text = FormatRecentLines();
             guideText.text = FormatGuide();
-            statusText.text = content.StatusMessage ?? "";
+            statusText.text = FormatStatus();
             suggestText.text = FormatSuggestions();
 
             sendButton.interactable = content.CanSend;
-            inputField.interactable = !content.IsBusy;
+            // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
+            inputField.interactable = content.CanSend;
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
             meaningButton.interactable = content.LastNpcLine != null;
@@ -147,6 +154,7 @@ namespace A305.Dialogue
             hintButton.gameObject.SetActive(content.HasHint);
             hintButton.interactable =
                 content.LastNpcLine != null && content.CanSend && content.HintText == null;
+            retryButton.gameObject.SetActive(content.CanRetry);
         }
 
         private void Awake()
@@ -159,9 +167,29 @@ namespace A305.Dialogue
             saveButton.onClick.AddListener(() => SaveRequested?.Invoke());
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
+            retryButton.onClick.AddListener(RequestRetry);
             talkButton.Pressed += () => TalkPressed?.Invoke();
             talkButton.Released += () => TalkReleased?.Invoke();
             Hide();
+        }
+
+        // 입력창에 되돌려 놓은 실패 문장은 [다시 시도]가 그대로 다시 보내므로 비운다.
+        private void RequestRetry()
+        {
+            inputField.text = "";
+            RetryRequested?.Invoke();
+        }
+
+        private string FormatStatus()
+        {
+            if (string.IsNullOrEmpty(content.RecoveryGuide))
+            {
+                return content.StatusMessage ?? "";
+            }
+
+            return string.IsNullOrEmpty(content.StatusMessage)
+                ? content.RecoveryGuide
+                : $"{content.StatusMessage}\n{content.RecoveryGuide}";
         }
 
         private void RequestSend()

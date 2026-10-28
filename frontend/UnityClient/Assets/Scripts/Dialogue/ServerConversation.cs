@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Voice;
 using UnityEngine;
 
 namespace A305.Dialogue
@@ -11,19 +12,35 @@ namespace A305.Dialogue
     /// 종료(CONV-08)를 부르고, 화면에 그릴 내용을 갖는다.
     /// </summary>
     /// <remarks>
-    /// 요청이 실패하면 상태 문구에 서버가 준 이유를 담는다. 실패한 문장을 그대로 다시 보내면 같은 요청 ID로 보내 서버가 턴을 중복으로 만들지
-    /// 않는다(API 명세 1.3).
+    /// 요청이 실패하면 상태 문구에 서버가 준 이유를, <see cref="RecoveryGuide"/>에 사용자가 다음에 할 일을 담는다. 일시적인 장애로 대화 시작이나
+    /// 발화가 실패하면 [다시 시도]로 다시 보낼 수 있다. 실패한 문장을 다시 보내면 같은 요청 ID로 보내 서버가 턴을 중복으로 만들지 않는다
+    /// (API 명세 1.3).
     /// </remarks>
     public sealed class ServerConversation : IDialogueContent
     {
         private const string AlreadyActiveCode = "CONVERSATION_ALREADY_ACTIVE";
+        private const string QuotaExhaustedCode = "AI_QUOTA_EXHAUSTED";
+        private const string RateLimitedCode = "AI_RATE_LIMITED";
+        private const string NoSpeechCode = "STT_NO_SPEECH";
         private const string ActiveStatus = "ACTIVE";
+        private const string QuotaExhaustedReason = "QUOTA_EXHAUSTED";
         private const string FeedbackDone = "DONE";
+
+        private const string RetryGuide = "[다시 시도]를 누르거나 [대화 종료]로 나갈 수 있어요.";
+        private const string QuotaGuide = "[대화 종료]를 누르면 마을 탐험으로 돌아가요.";
+        private const string QuotaEndedGuide = "마을 탐험, 사물 카드, 단어장은 계속 쓸 수 있어요.";
+        private const string SpeakAgainGuide =
+            "[누르고 말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
 
         private readonly IConversationApi api;
         private readonly List<DialogueLine> lines = new List<DialogueLine>();
         private readonly List<string> userUtterances = new List<string>();
 
+        // [다시 시도]로 다시 할 요청. 일시적인 장애로 대화 시작이나 발화가 실패했을 때만 있다.
+        private Func<Task> pendingRetry;
+
+        // 대화 시작 요청 ID. [다시 시도]도 같은 ID로 보내 서버가 대화를 두 번 만들지 않게 한다(API 명세 1.3).
+        private string startRequestId;
         private string failedText;
         private string failedRequestId;
         private string textToRestore;
@@ -70,6 +87,11 @@ namespace A305.Dialogue
 
         public bool CanSend => ConversationId != null && !IsBusy && !IsEnded;
 
+        public bool CanRetry => pendingRetry != null && !IsBusy;
+
+        /// <summary>오류나 대화 종료 뒤 사용자가 할 수 있는 일. 안내할 것이 없으면 null이다.</summary>
+        public string RecoveryGuide { get; private set; }
+
         public bool HasMeaning => true;
         public IReadOnlyList<GlossaryData> LastNpcGlossary { get; private set; }
         public bool HasHint => true;
@@ -78,6 +100,11 @@ namespace A305.Dialogue
 
         public Task StartAsync()
         {
+            if (startRequestId == null)
+            {
+                startRequestId = NewRequestId();
+            }
+
             return RunAsync(
                 "대화를 시작하고 있어요...",
                 async () =>
@@ -90,7 +117,8 @@ namespace A305.Dialogue
                     }
 
                     AddNpcTurn(start.OpeningTurn);
-                }
+                },
+                StartAsync
             );
         }
 
@@ -107,6 +135,7 @@ namespace A305.Dialogue
             // 보낼 문장은 앞뒤 공백을 지우므로 전사 결과도 공백을 지우고 비교한다. 서버에는 전사 원문을 그대로 보낸다.
             bool isVoice = lastTranscript != null && utterance == lastTranscript.Trim();
             failedText = null;
+            string endReason = null;
 
             await RunAsync(
                 $"{NpcName}이(가) 대답을 생각하고 있어요...",
@@ -139,19 +168,55 @@ namespace A305.Dialogue
                     AddNpcTurn(result.NpcTurn);
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
-                }
+                    endReason = result.Conversation?.EndReason;
+                },
+                () => SendAsync(utterance)
             );
 
             if (IsEnded)
             {
-                StatusMessage =
-                    $"{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+                // 사용량 소진은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
+                bool isQuotaExhausted = endReason == QuotaExhaustedReason;
+                StatusMessage = isQuotaExhausted
+                    ? $"AI 사용량을 모두 써서 {NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요."
+                    : $"{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+                RecoveryGuide = isQuotaExhausted ? QuotaEndedGuide : null;
                 Changed?.Invoke();
             }
         }
 
-        /// <summary>녹음을 전사한다. 전사한 문장을 돌려주며, 실패하면 null이다.</summary>
-        public async Task<string> TranscribeAsync(byte[] wav)
+        /// <summary>
+        /// [다시 시도]. 일시적인 장애로 실패한 대화 시작이나 발화를 다시 보낸다. 발화는 같은 문장을 같은 요청 ID로 보낸다.
+        /// </summary>
+        public Task RetryAsync()
+        {
+            Func<Task> retry = pendingRetry;
+            if (retry == null || IsBusy)
+            {
+                return Task.CompletedTask;
+            }
+
+            // 다시 보내는 문장은 입력창에 되돌려 놓지 않는다.
+            textToRestore = null;
+            return retry();
+        }
+
+        /// <summary>[누르고 말하기]를 누르는 동안 녹음 중임을 알린다.</summary>
+        public void ShowListening(float maxSeconds)
+        {
+            StatusMessage = VoiceInputNotice.Listening(maxSeconds);
+            RecoveryGuide = null;
+            Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// 녹음을 전사한다. 전사한 문장을 돌려주며, 실패하면 null이다. 전사하면 문장을 확인하고 보내라고 안내하고,
+        /// 버튼을 떼기 전에 녹음이 끝났으면 그 이유도 알린다.
+        /// </summary>
+        public async Task<string> TranscribeAsync(
+            byte[] wav,
+            RecordingEndReason endReason = RecordingEndReason.UserStopped
+        )
         {
             if (!CanSend)
             {
@@ -172,6 +237,12 @@ namespace A305.Dialogue
                 }
             );
             lastTranscript = transcript;
+            if (!string.IsNullOrEmpty(transcript))
+            {
+                StatusMessage = VoiceInputNotice.Transcribed(endReason);
+                Changed?.Invoke();
+            }
+
             return transcript;
         }
 
@@ -263,20 +334,25 @@ namespace A305.Dialogue
                 IReadOnlyList<DetailedFeedbackItem> details = null;
                 if (summary?.Status == FeedbackDone)
                 {
-                    details = await DetailsOrNullAsync(conversationId);
+                    details = await FeedbackRegenerator.DetailsOrNullAsync(api, conversationId);
                 }
 
-                return new ServerFeedback(summary, details, null);
+                return new ServerFeedback(summary, details, null, conversationId);
             }
             catch (ApiException exception)
             {
-                return new ServerFeedback(null, null, exception.Message);
+                return new ServerFeedback(null, null, exception.Message, conversationId);
             }
             catch (Exception exception)
             {
                 // 응답을 읽지 못해도 피드백 대기에서 풀려야 대화창을 닫을 수 있다.
                 Debug.LogException(exception);
-                return new ServerFeedback(null, null, "피드백을 받는 중 문제가 생겼어요.");
+                return new ServerFeedback(
+                    null,
+                    null,
+                    "피드백을 받는 중 문제가 생겼어요.",
+                    conversationId
+                );
             }
             finally
             {
@@ -316,7 +392,7 @@ namespace A305.Dialogue
         {
             try
             {
-                return await api.StartAsync(NewRequestId(), NpcCode, "NPC");
+                return await api.StartAsync(startRequestId, NpcCode, "NPC");
             }
             catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
             {
@@ -327,30 +403,6 @@ namespace A305.Dialogue
                 }
 
                 return await api.StartAsync(NewRequestId(), NpcCode, "NPC");
-            }
-        }
-
-        // 상세 평가는 다시 보기(FB-01)에서도 볼 수 있어 받지 못해도 피드백 화면은 연다.
-        private async Task<IReadOnlyList<DetailedFeedbackItem>> DetailsOrNullAsync(
-            long conversationId
-        )
-        {
-            try
-            {
-                DetailedFeedback detailed = await api.GetDetailedFeedbackAsync(
-                    conversationId,
-                    NewRequestId()
-                );
-                return detailed?.Items;
-            }
-            catch (ApiException)
-            {
-                return null;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception);
-                return null;
             }
         }
 
@@ -372,10 +424,13 @@ namespace A305.Dialogue
             NpcSpoke?.Invoke(turn);
         }
 
-        private async Task RunAsync(string busyMessage, Func<Task> action)
+        /// <param name="retry">일시적인 장애로 실패하면 [다시 시도]가 부를 요청. 다시 시도하지 않는 요청은 null이다.</param>
+        private async Task RunAsync(string busyMessage, Func<Task> action, Func<Task> retry = null)
         {
             IsBusy = true;
             StatusMessage = busyMessage;
+            RecoveryGuide = null;
+            pendingRetry = null;
             Changed?.Invoke();
             try
             {
@@ -385,17 +440,46 @@ namespace A305.Dialogue
             catch (ApiException exception)
             {
                 StatusMessage = exception.Message;
+                bool canRetry = retry != null && IsTemporary(exception);
+                pendingRetry = canRetry ? retry : null;
+                RecoveryGuide = GuideFor(exception, canRetry);
             }
             catch (Exception exception)
             {
                 Debug.LogException(exception);
                 StatusMessage = "문제가 생겼어요. 다시 시도해 주세요.";
+                pendingRetry = retry;
+                RecoveryGuide = retry != null ? RetryGuide : null;
             }
             finally
             {
                 IsBusy = false;
                 Changed?.Invoke();
             }
+        }
+
+        // 오류마다 사용자가 다음에 할 수 있는 일이 달라 안내를 나눈다(기능 명세 F-41). 장애를 사용량 소진처럼 안내하지 않는다.
+        private static string GuideFor(ApiException exception, bool canRetry)
+        {
+            if (exception.Code == QuotaExhaustedCode)
+            {
+                return QuotaGuide;
+            }
+
+            if (exception.Code == NoSpeechCode)
+            {
+                return SpeakAgainGuide;
+            }
+
+            return canRetry ? RetryGuide : null;
+        }
+
+        // 연결 실패·시간 초과(상태 0), 서버·AI 장애(5xx), 요청 속도 제한은 잠시 뒤 같은 요청으로 다시 시도할 수 있다.
+        private static bool IsTemporary(ApiException exception)
+        {
+            return exception.StatusCode == 0
+                || exception.StatusCode >= 500
+                || exception.Code == RateLimitedCode;
         }
 
         private static string NewRequestId()

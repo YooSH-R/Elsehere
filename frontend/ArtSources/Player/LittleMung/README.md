@@ -2,6 +2,7 @@
 
 - export_motions.py reads original Mixamo FBX files and exports their actual rest skeleton plus baked motion copies in one coordinate system. Blender 5.2 is used. See docs/unity/little-mung-player.md for the command.
 - LittleMung_Player_Ankle_Adjusted.blend is an editable character rig candidate. The user's left terminal toe point is retained; ankle-to-forefoot connectivity and the corresponding right foot are aligned. Mesh vertices and other user edits are retained.
+- The generated eyebrows (a long wavy ridge) were replaced to match the reference look: the brow-area vertices and custom normals were flattened into the forehead, and the packed base color texture has short arched brows. Vertex count, UVs, skin weights and bones are unchanged. Unity's AdjustedRig FBX and BaseColor.png are exported from this state.
 - LittleMung_Player_Ankle_Adjusted.fbx is an exchange copy of that candidate. It is not automatically applied to the Unity sandbox.
 - Source Mixamo usage conditions are in frontend/UnityClient/Assets/ThirdParty/CREDITS.md.
 

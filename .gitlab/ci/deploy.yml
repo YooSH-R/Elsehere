@@ -57,4 +57,71 @@ dev:deliver:
       - dist/deployment/manifest.json
       - dist/deployment/result.json
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true"'
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true" && $A305_DEPLOY_ENVIRONMENT == "dev"'
+
+# A protected main push runs every release check in its serialized child.
+.prod-deployment-source:
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "web" && $RUN_PROD_DEPLOY == "true"'
+
+prod:plan:
+  extends:
+    - .linux-job
+    - .prod-deployment-source
+  stage: validate
+  image: python:3.12-alpine
+  timeout: 5m
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - apk add --no-cache git openssh-client
+    - python infra/scripts/dev_pipeline.py plan --environment prod
+  environment:
+    name: production
+    action: prepare
+  artifacts:
+    expire_in: 30 days
+    paths:
+      - dist/deployment/state.json
+      - dist/deployment/plan.json
+      - dist/deployment/prod-child.yml
+
+prod:child:
+  extends: .prod-deployment-source
+  stage: verify
+  needs:
+    - ci:yaml
+    - prod:plan
+  interruptible: false
+  resource_group: a305-prod-release
+  trigger:
+    include:
+      - artifact: dist/deployment/prod-child.yml
+        job: prod:plan
+    strategy: depend
+    forward:
+      pipeline_variables: true
+
+prod:deliver:
+  extends: .docker-job
+  stage: deploy
+  image: docker:29.1.3-cli
+  timeout: 30m
+  interruptible: false
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - apk add --no-cache python3 git openssh-client
+    - python3 infra/scripts/dev_pipeline.py deliver --environment prod
+  environment:
+    name: production
+    url: https://elsehere.kr/
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - dist/deployment/manifest.json
+      - dist/deployment/result.json
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_DEPLOY_CHILD == "true" && $A305_DEPLOY_ENVIRONMENT == "prod"'

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Voice;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -409,6 +410,179 @@ namespace A305.Dialogue.Tests
             await conversation.SendAsync("Wait!");
 
             Assert.That(api.Turns, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Start_WhenAiIsTemporarilyUnavailable_OffersRetry()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException(
+                    "AI_TEMPORARILY_UNAVAILABLE",
+                    503,
+                    "AI가 잠시 응답하지 않습니다. 다시 시도해 주세요."
+                )
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.CanRetry, Is.True);
+            Assert.That(conversation.RecoveryGuide, Does.Contain("[다시 시도]"));
+        }
+
+        [Test]
+        public async Task Retry_AfterStartFailed_StartsConversation()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException(ApiErrorCodes.NetworkError, 0, "서버에 연결하지 못했습니다.")
+            );
+            await conversation.StartAsync();
+
+            await conversation.RetryAsync();
+
+            Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.RecoveryGuide, Is.Null);
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public async Task Retry_AfterStartFailed_ReusesStartRequestId()
+        {
+            // 첫 요청이 서버에서는 처리됐는데 응답만 못 받았을 수 있어 같은 요청 ID로 다시 보낸다(API 명세 1.3).
+            api.StartErrors.Enqueue(
+                new ApiException(ApiErrorCodes.NetworkError, 0, "서버에 연결하지 못했습니다.")
+            );
+            await conversation.StartAsync();
+
+            await conversation.RetryAsync();
+
+            Assert.That(api.Starts[1].RequestId, Is.EqualTo(api.Starts[0].RequestId));
+        }
+
+        [Test]
+        public async Task Retry_AfterTurnFailed_ResendsSameTextWithSameRequestId()
+        {
+            await conversation.StartAsync();
+            api.TurnError = new ApiException(
+                "AI_RESPONSE_INVALID",
+                502,
+                "AI 응답을 처리하지 못했습니다."
+            );
+            await conversation.SendAsync(Order);
+            api.TurnError = null;
+
+            await conversation.RetryAsync();
+
+            Assert.That(api.Turns, Has.Count.EqualTo(2));
+            Assert.That(api.Turns[1].Text, Is.EqualTo(Order));
+            Assert.That(api.Turns[1].RequestId, Is.EqualTo(api.Turns[0].RequestId));
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.TakeTextToRestore(), Is.Null);
+        }
+
+        [Test]
+        public async Task Start_WhenQuotaIsExhausted_GuidesToEndInsteadOfRetry()
+        {
+            api.StartErrors.Enqueue(
+                new ApiException(
+                    "AI_QUOTA_EXHAUSTED",
+                    429,
+                    "AI 사용량을 모두 사용했습니다. 마을 탐험, 사물 카드, 단어장은 계속할 수 있습니다."
+                )
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.RecoveryGuide, Does.Contain("[대화 종료]"));
+        }
+
+        [Test]
+        public async Task Transcribe_WhenNoSpeechIsHeard_GuidesToSpeakAgainOrType()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionError = new ApiException(
+                "STT_NO_SPEECH",
+                422,
+                "말소리를 알아듣지 못했어요."
+            );
+
+            await conversation.TranscribeAsync(Wav);
+
+            Assert.That(conversation.CanRetry, Is.False);
+            Assert.That(conversation.RecoveryGuide, Does.Contain("다시 말하거나"));
+        }
+
+        [Test]
+        public async Task Send_WhenQuotaRunsOutDuringConversation_ExplainsWhyNpcEnded()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(
+                Order,
+                "Oh, something urgent just came up. Let's talk next time!",
+                "ENDED_BY_NPC"
+            );
+            api.TurnResponse.Conversation.EndReason = "QUOTA_EXHAUSTED";
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("AI 사용량"));
+            Assert.That(conversation.StatusMessage, Does.Contain("[대화 종료]"));
+            Assert.That(conversation.RecoveryGuide, Does.Contain("단어장"));
+        }
+
+        [Test]
+        public void ShowListening_AsksToSpeakAndTellsMaximumLength()
+        {
+            conversation.ShowListening(15f);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("듣고 있어요"));
+            Assert.That(conversation.StatusMessage, Does.Contain("15초"));
+        }
+
+        [Test]
+        public async Task Transcribe_AfterButtonReleased_AsksToCheckSentenceBeforeSending()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            await conversation.TranscribeAsync(Wav, RecordingEndReason.UserStopped);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("[보내기]"));
+        }
+
+        [Test]
+        public async Task Transcribe_AfterRecordingTimeRanOut_SaysWhyRecordingStopped()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            await conversation.TranscribeAsync(Wav, RecordingEndReason.MaxDuration);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("녹음 시간이 다 되어"));
+            Assert.That(conversation.StatusMessage, Does.Contain("[보내기]"));
+        }
+
+        [Test]
+        public async Task Transcribe_AfterSilence_SaysWhyRecordingStopped()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            await conversation.TranscribeAsync(Wav, RecordingEndReason.Silence);
+
+            Assert.That(conversation.StatusMessage, Does.Contain("말이 멈춰서"));
+        }
+
+        [Test]
+        public async Task End_KeepsConversationIdForRegeneratingFeedback()
+        {
+            await conversation.StartAsync();
+            api.EndResponse = Ended("FAILED");
+
+            ServerFeedback feedback = await conversation.EndAsync();
+
+            Assert.That(feedback.ConversationId, Is.EqualTo(ConversationId));
         }
 
         [Test]
@@ -996,6 +1170,12 @@ namespace A305.Dialogue.Tests
                 return TranscriptionError != null
                     ? Task.FromException<Transcription>(TranscriptionError)
                     : Task.FromResult(TranscriptionResponse);
+            }
+
+            public Task<FeedbackData> RegenerateFeedbackAsync(long conversationId, string requestId)
+            {
+                Calls.Add("RegenerateFeedback");
+                return Task.FromResult(EndResponse.Feedback);
             }
 
             public Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId)

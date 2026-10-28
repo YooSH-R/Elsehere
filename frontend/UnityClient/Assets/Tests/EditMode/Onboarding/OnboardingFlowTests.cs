@@ -1,7 +1,11 @@
+using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace A305.Onboarding.Tests
 {
@@ -26,6 +30,17 @@ namespace A305.Onboarding.Tests
             await flow.StartAsync();
 
             Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public async Task BootstrapRetainsTheAccountUiThemeForEnteringTheWorld()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.UiTheme = "CLOUD";
+
+            await flow.StartAsync();
+
+            Assert.That(flow.UiTheme, Is.EqualTo("CLOUD"));
         }
 
         [Test]
@@ -296,6 +311,50 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task StartFailedToConnect_ShowsRetryScreenWithReason()
+        {
+            api.BootstrapError = new ApiException(
+                ApiErrorCodes.NetworkError,
+                0,
+                "서버에 연결하지 못했습니다."
+            );
+
+            await flow.StartAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.ConnectionFailed));
+            Assert.That(flow.ErrorMessage, Is.EqualTo("서버에 연결하지 못했습니다."));
+        }
+
+        [Test]
+        public async Task SignupTermsFailedToLoad_ShowsRetryScreenInsteadOfLogin()
+        {
+            api.Bootstrap = new BootstrapResponse { AuthState = AuthState.SignupRequired };
+            api.SignupFormError = new ApiException(
+                "INTERNAL_ERROR",
+                500,
+                "잠시 후 다시 시도해 주세요."
+            );
+
+            await flow.StartAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.ConnectionFailed));
+        }
+
+        [Test]
+        public async Task UnexpectedFailure_KeepsScreenAndShowsGeneralMessage()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Language, currentLanguage: null);
+            await flow.StartAsync();
+            api.ChooseLanguageError = new InvalidOperationException("응답 처리 오류");
+            LogAssert.Expect(LogType.Exception, new Regex("응답 처리 오류"));
+
+            await flow.ChooseLanguageAsync("en-US");
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Language));
+            Assert.That(flow.ErrorMessage, Is.EqualTo("문제가 생겼어요. 다시 시도해 주세요."));
+        }
+
+        [Test]
         public async Task SessionExpiredDuringFlow_GoesBackToLogin()
         {
             api.Bootstrap = SignedIn(OnboardingStep.Language, currentLanguage: null);
@@ -367,7 +426,8 @@ namespace A305.Onboarding.Tests
             public ApiException BootstrapError { get; set; }
             public ApiException GuestLoginError { get; set; }
             public ApiException SignupError { get; set; }
-            public ApiException ChooseLanguageError { get; set; }
+            public Exception SignupFormError { get; set; }
+            public Exception ChooseLanguageError { get; set; }
 
             public SignupFormResponse SignupForm { get; } =
                 new SignupFormResponse
@@ -466,7 +526,9 @@ namespace A305.Onboarding.Tests
 
             public Task<SignupFormResponse> GetSignupFormAsync()
             {
-                return Task.FromResult(SignupForm);
+                return SignupFormError != null
+                    ? Task.FromException<SignupFormResponse>(SignupFormError)
+                    : Task.FromResult(SignupForm);
             }
 
             public Task<NicknameAvailability> CheckNicknameAsync(string nickname)

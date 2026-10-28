@@ -664,6 +664,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Npc::A305.Npc.PasserbyOfferView
   panel: {fileID: 5736918288512022903}
+  hintLabel: {fileID: 3045146231280941025}
   greetingLabel: {fileID: 4767558792441699761}
   acceptButton: {fileID: 7515831913401281844}
   declineButton: {fileID: 6589389770344439892}

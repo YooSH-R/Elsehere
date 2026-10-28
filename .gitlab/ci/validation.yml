@@ -28,6 +28,7 @@ infra:deployment-plan-tests:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
         paths: &deployment_plan_change_paths
           - infra/scripts/**/*
+          - infra/deploy/**/*
           - .gitlab-ci.yml
           - .gitlab/ci/**/*
     - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'

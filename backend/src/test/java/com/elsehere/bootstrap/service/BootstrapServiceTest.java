@@ -16,6 +16,7 @@ import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
+import com.elsehere.user.entity.UiTheme;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
@@ -59,6 +60,16 @@ class BootstrapServiceTest {
     assertThat(response.user().avatarType()).isEqualTo(AvatarType.F);
     assertThat(response.user().currentLanguage()).isEqualTo("en-US");
     assertThat(response.user().onboardingStep()).isEqualTo(OnboardingStep.DONE);
+  }
+
+  @Test
+  @DisplayName("화면 테마를 고른 적 없는 사용자면 기본 테마 JELLY를 돌려준다")
+  void userWithoutChosenTheme_returnsJellyTheme() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+
+    BootstrapResponse response = bootstrapService.findSignedIn(userId).orElseThrow();
+
+    assertThat(response.user().uiTheme()).isEqualTo(UiTheme.JELLY);
   }
 
   @Test

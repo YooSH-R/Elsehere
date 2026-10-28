@@ -359,6 +359,91 @@ namespace A305.Learning.Tests
             Assert.That(feedback.NextExpression, Is.Null);
         }
 
+        [Test]
+        public void FromServer_DoneFeedback_HasEncouragingTitleAndCannotRegenerate()
+        {
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                2,
+                new ServerFeedback(DoneSummary(), null, null, 58)
+            );
+
+            Assert.That(feedback.Title, Is.EqualTo("오늘도 한 걸음 가까워졌어요"));
+            Assert.That(feedback.IsFailed, Is.False);
+            Assert.That(feedback.CanRegenerate, Is.False);
+        }
+
+        [Test]
+        public void FromServer_FailedFeedback_SaysSoInTitleAndCanRegenerate()
+        {
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                4,
+                new ServerFeedback(new FeedbackData { Status = "FAILED" }, null, null, 58)
+            );
+
+            Assert.That(feedback.Title, Is.EqualTo("피드백을 만들지 못했어요"));
+            Assert.That(feedback.IsFailed, Is.True);
+            Assert.That(feedback.CanRegenerate, Is.True);
+        }
+
+        [Test]
+        public void FromServer_EndRequestFailed_IsFailedButCannotRegenerate()
+        {
+            // 종료 요청이 실패하면 서버에 피드백 기록이 없어 다시 만들 수 없다. 대화 기록만 볼 수 있다.
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                4,
+                new ServerFeedback(null, null, "서버에 연결하지 못했어요.", 58)
+            );
+
+            Assert.That(feedback.Title, Is.EqualTo("피드백을 받지 못했어요"));
+            Assert.That(feedback.IsFailed, Is.True);
+            Assert.That(feedback.CanRegenerate, Is.False);
+        }
+
+        [Test]
+        public void FromServer_SkippedFeedback_SaysThereIsNoFeedbackInTitle()
+        {
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                0,
+                new ServerFeedback(new FeedbackData { Status = "SKIPPED" }, null, null, 58)
+            );
+
+            Assert.That(feedback.Title, Is.EqualTo("이번 대화는 피드백이 없어요"));
+            Assert.That(feedback.IsFailed, Is.False);
+            Assert.That(feedback.CanRegenerate, Is.False);
+        }
+
+        [Test]
+        public void FromServer_RegenerateRequestFailed_ShowsReasonAndCanTryAgain()
+        {
+            var feedback = ConversationFeedback.FromServer(
+                "Mia",
+                4,
+                new ServerFeedback(
+                    new FeedbackData { Status = "FAILED" },
+                    null,
+                    "서버에 연결하지 못했어요.",
+                    58
+                )
+            );
+
+            Assert.That(feedback.Summary, Does.Contain("서버에 연결하지 못했어요."));
+            Assert.That(feedback.CanRegenerate, Is.True);
+        }
+
+        [Test]
+        public void ExampleFeedback_HasEncouragingTitle()
+        {
+            var feedback = new ConversationFeedback("Emma", new[] { "I want soy latte" }, Rules);
+
+            Assert.That(feedback.Title, Is.EqualTo("오늘도 한 걸음 가까워졌어요"));
+            Assert.That(feedback.IsFailed, Is.False);
+            Assert.That(feedback.CanRegenerate, Is.False);
+        }
+
         private static FeedbackData DoneSummary()
         {
             return new FeedbackData

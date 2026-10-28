@@ -8,6 +8,8 @@ import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.feedback.service.FeedbackService;
+import com.elsehere.feedback.service.ModelSpeechService;
+import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import java.lang.annotation.Documented;
@@ -56,6 +58,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   WorkerNpcs.class,
   AiRequestRecorder.class,
   FeedbackService.class,
+  ModelSpeechService.class,
+  ModelSpeechStore.class,
   MemoryService.class,
   FirstDayMissionService.class
 })

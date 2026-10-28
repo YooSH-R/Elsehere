@@ -130,7 +130,7 @@ namespace A305.EditorTools.Learning
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            UiBuilderTools.FindOrCreateText(
+            TMP_Text title = UiBuilderTools.FindOrCreateText(
                 panel,
                 "Title",
                 bold,
@@ -182,7 +182,33 @@ namespace A305.EditorTools.Learning
                 180f
             );
 
+            // 피드백을 받지 못했을 때만 [표현 저장]·[상세 보기] 대신 보인다. 새로 붙이면 [단어장 보기] 앞에 둔다.
+            bool isRegenerateNew = buttons.Find("RegenerateButton") == null;
+            Button regenerateButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "RegenerateButton",
+                "다시 만들기",
+                bold,
+                180f
+            );
+            Button transcriptButton = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "TranscriptButton",
+                "대화 기록 보기",
+                bold,
+                180f
+            );
+            if (isRegenerateNew)
+            {
+                int index = vocabularyButton.transform.GetSiblingIndex();
+                regenerateButton.transform.SetSiblingIndex(index);
+                transcriptButton.transform.SetSiblingIndex(index + 1);
+                regenerateButton.gameObject.SetActive(false);
+                transcriptButton.gameObject.SetActive(false);
+            }
+
             BuilderTools.SetReference(view, "panel", panel.gameObject);
+            BuilderTools.SetReference(view, "titleText", title);
             BuilderTools.SetReference(view, "summaryText", summary);
             BuilderTools.SetReference(view, "bodyText", body);
             BuilderTools.SetReference(view, "saveButton", saveButton);
@@ -194,6 +220,13 @@ namespace A305.EditorTools.Learning
             );
             BuilderTools.SetReference(view, "vocabularyButton", vocabularyButton);
             BuilderTools.SetReference(view, "closeButton", closeButton);
+            BuilderTools.SetReference(view, "regenerateButton", regenerateButton);
+            BuilderTools.SetReference(view, "transcriptButton", transcriptButton);
+            BuilderTools.SetReference(
+                view,
+                "transcriptButtonLabel",
+                transcriptButton.GetComponentInChildren<TMP_Text>(true)
+            );
             BuilderTools.RequireReferences(view);
 
             // 대화가 끝난 뒤에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.

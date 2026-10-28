@@ -5,6 +5,9 @@
 | 에셋 | 위치 | 출처 | 라이선스 | 사용 |
 | --- | --- | --- | --- | --- |
 | Pretendard 1.3.9 (Regular, Bold) | `Pretendard/` | [orioncactus/pretendard](https://github.com/orioncactus/pretendard) | SIL Open Font License 1.1 (`Pretendard/OFL.txt`) | 한국어·영어 UI 글꼴. TMP 글꼴 에셋은 `Assets/Art/UI/Fonts/` |
+| Jua Regular — The Jua Project Authors | `Jua/` | [google/fonts](https://github.com/google/fonts/tree/main/ofl/jua) | SIL Open Font License 1.1 (`Jua/OFL.txt`) | 말랑 젤리 테마의 제목·버튼 글꼴. TMP 글꼴 에셋은 `Assets/Art/UI/Fonts/` |
+| Do Hyeon Regular — The Do Hyeon Project Authors | `DoHyeon/` | [google/fonts](https://github.com/google/fonts/tree/main/ofl/dohyeon) | SIL Open Font License 1.1 (`DoHyeon/OFL.txt`) | 스티커 팝 테마의 제목·버튼 글꼴. TMP 글꼴 에셋은 `Assets/Art/UI/Fonts/` |
+| Sunflower Bold — The Sunflower Project Authors | `Sunflower/` | [google/fonts](https://github.com/google/fonts/tree/main/ofl/sunflower) | SIL Open Font License 1.1 (`Sunflower/OFL.txt`) | 구름 유리 테마의 제목·버튼 글꼴. TMP 글꼴 에셋은 `Assets/Art/UI/Fonts/` |
 | Tiny Treats Bakery Interior 1.1 — Isa Lousberg | `TinyTreats/BakeryInterior/` | [공식 배포](https://tinytreats.itch.io/bakery-interior) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 12개와 원본 atlas 텍스처 |
 | Tiny Treats Baked Goods 1.0 — Isa Lousberg | `TinyTreats/BakedGoods/` | [공식 배포](https://tinytreats.itch.io/baked-goods) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 5개와 원본 atlas 텍스처 |
 | Tiny Treats House Plants 1.0 — Isa Lousberg | `TinyTreats/HousePlants/` | [공식 배포](https://tinytreats.itch.io/house-plants) | CC0, 동봉 `License.txt` | 무료판 Unity용 FBX 3개와 원본 atlas 텍스처 |

@@ -143,7 +143,8 @@ namespace A305.Npc
                 greeting = string.Empty;
             }
 
-            offerView.Show(this, greeting, approach.CanDecline, Accept, Decline);
+            string hint = PasserbyOfferText.Hint(dialogue.FindNpcName(identity.Code));
+            offerView.Show(this, hint, greeting, approach.CanDecline, Accept, Decline);
         }
 
         private void Accept()

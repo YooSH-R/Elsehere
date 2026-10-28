@@ -1,6 +1,7 @@
 {
   "schemaVersion": "1.0",
   "npcId": "TOWN_PASSERBY",
+  "mbti": "ESTJ-A",
   "needRates": { "ENERGY": 1.2, "SOCIAL": 0.9 },
   "schedule": [
     { "from": "08:00", "to": "10:00", "activity": "FREE", "scene": "TOWN", "canLeave": false },

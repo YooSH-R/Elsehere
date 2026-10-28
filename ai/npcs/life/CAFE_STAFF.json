@@ -1,6 +1,7 @@
 {
   "schemaVersion": "1.0",
   "npcId": "CAFE_STAFF",
+  "mbti": "ESFJ-T",
   "needRates": { "SOCIAL": 1.2 },
   "relationshipRates": { "recognition": 1.2 },
   "schedule": [

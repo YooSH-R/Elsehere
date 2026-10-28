@@ -1,6 +1,7 @@
 {
   "schemaVersion": "1.0",
   "npcId": "HOTEL_STAFF",
+  "mbti": "ISTP-T",
   "needRates": { "FUN": 1.6, "SOCIAL": 0.6, "ENERGY": 1.2 },
   "relationshipRates": { "recognition": 0.6 },
   "schedule": [

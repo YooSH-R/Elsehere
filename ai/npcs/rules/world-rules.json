@@ -43,5 +43,12 @@
     "recallAt": 0.5,
     "spacedRepeatFactor": 2,
     "sameDayFactor": 1.2
-  }
+  },
+  "derivation": [
+    { "target": "needRates.SOCIAL", "axis": "extraversion", "at0": 0.6, "at1": 1.4 },
+    { "target": "needRates.FUN", "axis": "conscientiousness", "at0": 1.4, "at1": 0.6 },
+    { "target": "recognitionRate", "axis": "agreeableness", "at0": 0.6, "at1": 1.4 },
+    { "target": "eventScale.RUDE", "axis": "neuroticism", "at0": 0.6, "at1": 1.4 },
+    { "target": "eventScale.SMALL_TALK", "axis": "openness", "at0": 0.6, "at1": 1.4 }
+  ]
 }

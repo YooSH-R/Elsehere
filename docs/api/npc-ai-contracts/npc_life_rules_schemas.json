@@ -79,6 +79,21 @@
       }
     },
     "Scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
+    "ConnectionRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "axis", "at0", "at1"],
+      "properties": {
+        "target": {
+          "type": "string",
+          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|TASK_DONE|LEAVE))$",
+          "description": "계산할 생활 값 배수. 이름은 행동 조각 affects와 같다."
+        },
+        "axis": { "$ref": "#/$defs/Axis" },
+        "at0": { "$ref": "#/$defs/Scale", "description": "축이 0일 때 배수." },
+        "at1": { "$ref": "#/$defs/Scale", "description": "축이 1일 때 배수. 그 사이는 직선." }
+      }
+    },
     "NpcLife": {
       "type": "object",
       "additionalProperties": false,
@@ -86,6 +101,11 @@
       "properties": {
         "schemaVersion": { "const": "1.0" },
         "npcId": { "$ref": "#/$defs/Code", "description": "인격 파일(ai/npcs/<npcId>.json)·백엔드 시드와 같은 NPC 코드." },
+        "mbti": {
+          "type": "string",
+          "pattern": "^[EI][NS][FT][JP](-[AT])?$",
+          "description": "성격 입력 노드. 계산할 때 Big Five 5축으로 바꾼다(ai/tools/npc_derive.py). -T/-A는 신경성."
+        },
         "needRates": {
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/NeedId" },
@@ -210,9 +230,15 @@
     "WorldRules": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory"],
+      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation"],
       "properties": {
         "schemaVersion": { "const": "1.0" },
+        "derivation": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ConnectionRule" },
+          "minItems": 1,
+          "description": "성격 5축 → 생활 값 배수 연결 규칙. NPC마다 값을 손으로 적지 않고 이 규칙으로 계산한다(ai/tools/npc_derive.py)."
+        },
         "needs": {
           "type": "object",
           "additionalProperties": false,

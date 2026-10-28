@@ -64,6 +64,8 @@ def test_every_need_has_a_drop_rate():
         (("conversationEvents", "RUDE", "memorySalience"), 4, None),  # 인상 세기는 1~3
         (("relationship", "affinityFollowRate"), 2, None),  # 비율은 0~1
         (("memory", "recallAt"), 1.5, None),
+        (("derivation", 0, "target"), "speed", None),  # 계산할 수 있는 생활 값만
+        (("derivation", 0, "axis"), "humor", None),
     ],
 )
 def test_values_the_rules_do_not_allow_are_reported_where_they_break(path, value, where):
@@ -116,12 +118,20 @@ def life_with(path: tuple, value) -> dict:
         (("schedule", 0, "activity"), "SLEEP", None),
         (("eventOverrides", "SHOUT"), {}, ("eventOverrides",)),  # 없는 사건
         (("eventOverrides", "RUDE", "memorySalience"), 4, None),
+        (("mbti",), "ABCD", None),
     ],
 )
 def test_values_a_life_file_does_not_allow_are_reported_where_they_break(path, value, where):
     errors = npc_life_rules.life_errors(life_with(path, value))
 
     assert {where for where, _ in errors} == {json_path(where or path)}
+
+
+def test_service_npcs_record_their_mbti_as_an_input_node():
+    """성격 입력 노드. 생활 값은 이 값에서 공통 연결 규칙으로 계산한다 (ai/tools/npc_derive.py)."""
+    mbti = {npc_id: load_life(npc_id)["mbti"] for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]}
+
+    assert mbti == {"CAFE_STAFF": "ESFJ-T", "HOTEL_STAFF": "ISTP-T", "TOWN_PASSERBY": "ESTJ-A"}
 
 
 def test_service_npcs_stay_in_their_own_place_for_now():

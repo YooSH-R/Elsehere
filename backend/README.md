@@ -115,7 +115,11 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ### 게스트로 시작하기
 
-[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`를 부르면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `게스트` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 모든 환경에서 열려 있습니다.
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다.
+
+| 환경변수 | 기본값 | 설명 |
+| --- | --- | --- |
+| `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
 
 - `spring.jpa.hibernate.ddl-auto=update`는 이미 있는 `users.provider`의 CHECK 제약을 고치지 않습니다. `GUEST`를 더하기 전에 만든 DB에서는 제약을 다시 만들어야 게스트 사용자를 저장할 수 있습니다.
 

@@ -35,7 +35,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @DataJpaTest(
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "elsehere.npc-audio.dir=build/test-npc-audio"
+      "elsehere.npc-audio.dir=build/test-npc-audio",
+      "elsehere.guest.conversation-limit=2"
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @ImportAutoConfiguration(JacksonAutoConfiguration.class)
@@ -49,6 +50,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   SpeechService.class,
   TurnHelpService.class,
   ConversationSupport.class,
+  GuestConversationLimit.class,
   NpcAudioStore.class,
   NpcAudioRetention.class,
   WorkerNpcs.class,

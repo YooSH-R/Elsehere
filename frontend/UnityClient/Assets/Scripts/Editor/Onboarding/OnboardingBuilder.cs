@@ -210,6 +210,7 @@ namespace A305.EditorTools.Onboarding
             BuilderTools.SetReference(screen, "inputGroup", inputGroup);
             BuilderTools.SetReference(screen, "messageText", message);
             BuilderTools.SetReference(screen, "loginPanel", SetUpLoginPanel(root, bold, regular));
+            BuilderTools.SetReference(screen, "guestPanel", SetUpGuestPanel(root, bold, regular));
             BuilderTools.SetReference(screen, "signupPanel", SetUpSignupPanel(root, bold, regular));
             BuilderTools.SetReference(
                 screen,
@@ -281,6 +282,67 @@ namespace A305.EditorTools.Onboarding
             BuilderTools.SetReference(view, "guestButton", guest);
             BuilderTools.SetReference(view, "devLoginButton", devLogin);
             BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        // 게스트는 닉네임과 약관 없이 캐릭터만 고른다(AUTH-07).
+        private static GuestPanelView SetUpGuestPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "GuestPanel");
+            var view = BuilderTools.GetOrAddComponent<GuestPanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                36f,
+                Color.white,
+                "캐릭터를 골라 주세요"
+            );
+            RectTransform avatarRow = UiBuilderTools.FindOrCreateButtonRow(panel, "AvatarRow");
+            Button female = UiBuilderTools.FindOrCreateButton(
+                avatarRow,
+                "FemaleButton",
+                "여성",
+                regular
+            );
+            Button male = UiBuilderTools.FindOrCreateButton(
+                avatarRow,
+                "MaleButton",
+                "남성",
+                regular
+            );
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Note",
+                regular,
+                20f,
+                SubTextColor,
+                "닉네임은 자동으로 정해져요. 게스트는 NPC와 대화할 수 있는 횟수가 정해져 있어요."
+            );
+            Button start = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "StartButton",
+                "시작하기",
+                bold,
+                PanelWidth
+            );
+            Button back = FindOrCreateSecondaryButton(
+                panel,
+                "BackButton",
+                "뒤로",
+                regular,
+                PanelWidth
+            );
+
+            BuilderTools.SetReference(view, "femaleButton", female);
+            BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "startButton", start);
+            BuilderTools.SetReference(view, "backButton", back);
             BuilderTools.RequireReferences(view);
             return view;
         }

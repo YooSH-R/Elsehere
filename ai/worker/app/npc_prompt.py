@@ -99,6 +99,9 @@ BEGINNER = "Use short, simple everyday words. One or two sentences, each under 1
 MIDDLE = "Use natural everyday English with common expressions. Two or three sentences at most."
 ADVANCED = "Talk as you naturally would, including idioms. Three sentences at most."
 LEVEL_RULES = {"A1": BEGINNER, "A2": BEGINNER, "B1": MIDDLE, "B2": MIDDLE, "C1": ADVANCED, "C2": ADVANCED}
+# 게임 대화 경로(/v1/npc/reply)의 난이도 1~3. 그 경로의 원래 난이도 문장(app.prompts.LEVEL_RULES)은 따뜻함·유머를 내라고 해서
+# 불친절한 인격과 부딪히므로, 인격을 쓸 때는 말투를 정하지 않는 이 세 묶음을 쓴다
+REPLY_LEVEL_RULES = {1: BEGINNER, 2: MIDDLE, 3: ADVANCED}
 
 # 추론 API(app.npc_respond)가 시스템 프롬프트 끝에 붙인다. 대사와 대화 종료 신호를 한 번의 호출로 함께 받기 위해서다
 REPLY_FORMAT = """## Reply format
@@ -118,9 +121,12 @@ def situation_section(scenario: dict) -> str:
     return "\n".join(["## Situation", one_line(scenario["situation"]), *bullets("Facts", scenario["facts"])])
 
 
+LEVEL_FIRST = "This decides how long and how hard your reply is, whatever your talkativeness."
+
+
 def level_section(user_level: str) -> str:
     """④ 학습 수준 부분. 대답의 길이·어휘를 정하며 인격의 말투보다 우선한다."""
-    return f"## Learner level\n{LEVEL_RULES[user_level]}\nThis decides how long and how hard your reply is, whatever your talkativeness."
+    return f"## Learner level\n{LEVEL_RULES[user_level]}\n{LEVEL_FIRST}"
 
 
 def npc_system_prompt(profile: NpcProfile, scenario: dict, user_level: str, turn_type: str) -> str:
@@ -131,6 +137,24 @@ def npc_system_prompt(profile: NpcProfile, scenario: dict, user_level: str, turn
         situation_section(scenario),
         level_section(user_level),
         f"## This turn\n{TURN_INSTRUCTIONS[turn_type]}",
+    ]
+    return "\n\n".join(sections)
+
+
+def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str) -> str:
+    """게임 대화 경로(/v1/npc/reply)용. ① 공통 규칙 ② 인격은 추론 API와 같고, ③~⑤는 그 경로가 받는 값으로 채운다.
+
+    place·facts는 백엔드의 NPC 장면·사실, memory는 이 학습자에 대한 기억(app.prompts.memory_note), level은 난이도 1~3,
+    note는 백엔드가 정한 이번 대답에서 할 일. 기억은 상황에 넣어 '처음 만난 사이'라는 공통 규칙의 예외가 되게 한다.
+    """
+    situation = ["## Situation", f"Place: {place}", *labeled([("Facts", one_line(facts))]), *([memory] if memory else [])]
+    turn = f"IMPORTANT for your next reply: {note}" if note else TURN_INSTRUCTIONS["USER_MESSAGE"]
+    sections = [
+        RULES,
+        character_section(profile),
+        "\n".join(situation),
+        f"## Learner level\n{REPLY_LEVEL_RULES[level]}\n{LEVEL_FIRST}",
+        f"## This turn\n{turn}",
     ]
     return "\n\n".join(sections)
 

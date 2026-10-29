@@ -99,9 +99,18 @@ class Memory(BaseModel):
     card: dict | None = None
 
 
+class Relationship(BaseModel):
+    """사용자 × NPC 관계 (app.npc_relationship). 백엔드가 저장한 값과 마지막 대화 뒤 지난 게임 속 날 수. 처음 만나면 모두 0."""
+
+    recognition: int = Field(default=0, ge=0, le=100)  # 알아봄
+    affinity: int = Field(default=0, ge=-100, le=100)  # 호감
+    days_since_last_talk: int = Field(default=0, ge=0)
+
+
 class ReplyRequest(BaseModel):
     npc: Npc
     memory: Memory | None = None
+    relationship: Relationship | None = None  # 있으면 알아봄·호감·기분을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     instruction: str = Field(default="", max_length=1000)  # Spring 규칙이 정한 이번 대답에서 할 일

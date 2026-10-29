@@ -28,11 +28,13 @@
     "TASK_DONE": { "impression": 2, "memorySalience": 1 },
     "LEAVE": {}
   },
-  "mood": { "decayPerTurn": 0.5 },
+  "mood": { "decayPerTurn": 0.5, "showsAt": 1 },
   "relationship": {
     "recognitionPerConversation": 8,
     "seenBefore": 20,
     "regular": 50,
+    "liked": 15,
+    "disliked": -10,
     "personalTalk": { "recognition": 60, "affinity": 40 },
     "graceDays": 3,
     "recognitionDropPerDay": 1,

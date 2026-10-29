@@ -7,8 +7,9 @@
 """
 
 import json
+from functools import cache
 
-from .npc_persona import RULES
+from .npc_persona import RULES, load_behaviors
 from .npc_profile_models import NpcProfile
 
 RECOGNITION_MAX = 100
@@ -97,6 +98,45 @@ def follow_affinity(affinity: float, impression: float, rules: dict) -> float:
     toward_end = affinity if change > 0 else -affinity
     change *= 1 - max(0, toward_end) / AFFINITY_MAX
     return max(-AFFINITY_MAX, min(AFFINITY_MAX, affinity + change))
+
+
+MOOD_MAX = 3  # 기분 세기 0~3
+
+
+def annoyance(learner_rude: list[bool], rates: dict, rules: dict) -> float:
+    """이번 대화에서 지금 짜증 난 정도(0~3). learner_rude는 이력 속 학습자 줄마다 Spring이 확정한 무례 여부(순서대로).
+    무례 한 줄은 RUDE 사건의 ANNOYED 세기 × NPC 반응 크기로 시작해, 그 뒤 학습자가 말할 때마다(지금 말 포함) decayPerTurn씩 가라앉는다."""
+    start = rules["conversationEvents"]["RUDE"]["mood"]["ANNOYED"] * rates.get("eventScale", {}).get("RUDE", 1)
+    decay = rules["mood"]["decayPerTurn"]
+    turns = len(learner_rude)
+    total = sum(max(0, start - decay * (turns - index)) for index, rude in enumerate(learner_rude) if rude)
+    return min(MOOD_MAX, total)
+
+
+def person_state(relationship: dict, learner_rude: list[bool], profile: NpcProfile | None, rules: dict, library: dict) -> dict:
+    """대답 지시문에 말로 풀어 넣을 지금 상태. 숫자는 지시문에 넣지 않는다.
+    - known: 얼마나 알아보는지 new(처음 봄)·familiar(본 적 있음)·regular(단골). 오래 안 온 날만큼 줄어든 알아봄으로 정한다
+    - feeling: liked·disliked·None(티 나지 않음)
+    - personal: 자기 이야기를 조금 할 만큼 가까운지
+    - annoyed: 이번 대화의 무례로 아직 짜증 나 있는지"""
+    thresholds = rules["relationship"]
+    recognition = recognition_today(relationship.get("recognition", 0), relationship.get("days_since_last_talk", 0), rules)
+    affinity = relationship.get("affinity", 0)
+    known = "regular" if recognition >= thresholds["regular"] else "familiar" if recognition >= thresholds["seenBefore"] else "new"
+    feeling = "liked" if affinity >= thresholds["liked"] else "disliked" if affinity <= thresholds["disliked"] else None
+    personal = thresholds["personalTalk"]
+    return {
+        "known": known,
+        "feeling": feeling,
+        "personal": recognition >= personal["recognition"] and affinity >= personal["affinity"],
+        "annoyed": annoyance(learner_rude, npc_rates(profile, rules, library), rules) >= rules["mood"]["showsAt"],
+    }
+
+
+@cache
+def service_rules() -> tuple[dict, dict]:
+    """대답 경로에서 쓰는 공통 규칙과 행동 조각 모음. 요청마다 파일을 읽지 않도록 한 번만 읽는다(바꾸지 말고 읽기만)."""
+    return load_world_rules(), load_behaviors()
 
 
 def after_conversation(relationship: dict | None, events: list[str], rude_lines: int, rates: dict, rules: dict) -> dict:

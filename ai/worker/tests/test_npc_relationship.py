@@ -94,6 +94,53 @@ def test_rates_come_from_the_card_temperament_and_its_behavior_pieces():
         assert rel.npc_rates(NpcProfile.model_validate(config["npcProfile"]), RULES, library) == expected
 
 
+def state(relationship: dict, learner_rude: list[bool] | None = None, npc_id: str | None = None) -> dict:
+    profile = NpcProfile.model_validate(card(npc_id)["npcProfile"]) if npc_id else None
+    return rel.person_state(relationship, learner_rude or [], profile, RULES, npc_persona.load_behaviors())
+
+
+def test_how_well_the_npc_knows_them_follows_recognition_after_the_days_away():
+    relationship = RULES["relationship"]
+
+    assert state({"recognition": 0})["known"] == "new"
+    assert state({"recognition": relationship["seenBefore"]})["known"] == "familiar"
+    assert state({"recognition": relationship["regular"]})["known"] == "regular"
+    faded = {"recognition": relationship["seenBefore"], "days_since_last_talk": relationship["graceDays"] + 1}
+    assert state(faded)["known"] == "new"  # 오래 안 오면 다시 낯선 얼굴
+
+
+def test_feelings_show_only_past_the_rule_thresholds():
+    relationship = RULES["relationship"]
+
+    assert state({"recognition": 30, "affinity": relationship["liked"]})["feeling"] == "liked"
+    assert state({"recognition": 30, "affinity": relationship["disliked"]})["feeling"] == "disliked"
+    assert state({"recognition": 30, "affinity": 0})["feeling"] is None
+
+
+def test_personal_talk_needs_both_knowing_and_liking_them():
+    personal = RULES["relationship"]["personalTalk"]
+
+    assert state({"recognition": personal["recognition"], "affinity": personal["affinity"]})["personal"] is True
+    assert state({"recognition": personal["recognition"] - 1, "affinity": 100})["personal"] is False
+    assert state({"recognition": 100, "affinity": personal["affinity"] - 1})["personal"] is False
+
+
+def test_rudeness_leaves_the_npc_annoyed_for_a_few_turns():
+    """Spring이 확정한 무례 줄(history의 rude)로 계산한다. 무례 뒤 학습자가 말할 때마다 decayPerTurn씩 가라앉는다."""
+    assert state({}, [False, True])["annoyed"] is True  # 무례 바로 다음 말
+    assert state({}, [True, False, False, False])["annoyed"] is False
+    assert state({}, [False, False])["annoyed"] is False
+
+
+def test_a_touchy_npc_stays_annoyed_longer():
+    """사건 반응 크기(eventScale.RUDE)가 클수록 같은 무례에 더 오래 짜증 낸다."""
+    calm, touchy = {"eventScale": {"RUDE": 0.6}}, {"eventScale": {"RUDE": 1.4}}
+    turns = [True, False]  # 무례 뒤 두 번째 말
+
+    assert rel.annoyance(turns, touchy, RULES) > rel.annoyance(turns, calm, RULES)
+    assert rel.annoyance(turns, touchy, RULES) >= RULES["mood"]["showsAt"] > rel.annoyance(turns, calm, RULES)
+
+
 def test_an_npc_without_a_card_or_temperament_reacts_at_the_base_rate():
     profile = card("HOTEL_STAFF")["npcProfile"]
     plain = {**profile, "personality": {**profile["personality"], "dimensions": None}, "behaviorRules": ["Be polite."]}

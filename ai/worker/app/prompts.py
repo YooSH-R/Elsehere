@@ -4,9 +4,10 @@
 import json
 import re
 
+from . import npc_relationship
 from .llm import ModelOutputError
 from .npc_prompt import reply_system_prompt
-from .schemas import Line, Memory, Npc, State
+from .schemas import Line, Memory, Npc, Relationship, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
 HANGUL = re.compile(r"[가-힣ㄱ-ㅎ]")
@@ -127,8 +128,13 @@ def memory_note(m: Memory | None) -> str:
     """NPC 지시문에 넣을 '이 손님에 대해 기억하는 것'. visits: 한 마디 이상 나눈 지난 대화 수."""
     if not m or m.visits < 1:
         return ""
-    c = m.card or {}
     lines = [f"You remember this customer: you have talked {m.visits} time(s) before."]
+    return "\n".join(lines + card_lines(m.card or {}, m.last_order))
+
+
+def card_lines(c: dict, last_order: str | None) -> list[str]:
+    """기억 카드(/v1/memory)와 지난 주문을 지시문 줄로."""
+    lines = []
     if c.get("name"):
         lines.append(f"- Their name: {c['name']}")
     if c.get("claims"):
@@ -143,8 +149,41 @@ def memory_note(m: Memory | None) -> str:
         lines.append(
             "- English they found hard last time: " + "; ".join(c["struggled"]) + " (use one of these naturally if it fits; never teach)"
         )
-    if m.last_order:
-        lines.append(f"- Last time they ordered {m.last_order}.")
+    if last_order:
+        lines.append(f"- Last time they ordered {last_order}.")
+    return lines
+
+
+# 관계·기분(app.npc_relationship.person_state)을 숫자 대신 말로
+KNOWN = {
+    "new": "You do not recognize this person. To you they are a new face.",
+    "familiar": "This person looks familiar: you have seen them a few times, but you do not know them well yet.",
+    "regular": "This person is a regular: you have talked many times and know them by now.",
+}
+FEELING = {
+    "liked": "You like this person.",
+    "disliked": "You do not like this person much because of how they treated you before, so you are cooler with them than usual.",
+}
+PERSONAL = "You are close enough that you may share a little about your own day or life when it fits."
+ANNOYED = "They were rude to you a moment ago and you are still annoyed: keep your replies short and cool, but do not be rude back."
+STRONG_FEELINGS = ("friendly", "wary")
+
+
+def person_note(m: Memory | None, state: dict) -> str:
+    """관계가 있을 때 NPC 지시문에 넣을 '이 사람에 대해'. 얼굴을 알아봐야(본 적 있음부터) 평범한 기억(이름·했던 말·지난 주문)을 떠올리고,
+    알아보지 못해도 기억 카드의 태도가 friendly·wary로 남은 강한 일(events)은 떠올린다."""
+    lines = ["About this person:", f"- {KNOWN[state['known']]}"]
+    card = (m.card if m else None) or {}
+    if state["known"] != "new":
+        lines += card_lines(card, m.last_order if m else None)
+    elif card.get("attitude") in STRONG_FEELINGS:
+        lines += card_lines({"events": card.get("events", []), "attitude": card["attitude"]}, None)
+    if state["feeling"]:
+        lines.append(f"- {FEELING[state['feeling']]}")
+    if state["personal"]:
+        lines.append(f"- {PERSONAL}")
+    if state["annoyed"]:
+        lines.append(f"- {ANNOYED}")
     return "\n".join(lines)
 
 
@@ -198,11 +237,25 @@ How to reply:
 IMPORTANT for your next reply: {note or "Just reply naturally."}"""
 
 
-def npc_messages(n: Npc, memory: Memory | None, history: list[Line], text: str, instruction: str, level: int = 2) -> list[dict]:
-    if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
-        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, memory_note(memory), level, instruction)
+def npc_messages(
+    n: Npc,
+    memory: Memory | None,
+    history: list[Line],
+    text: str,
+    instruction: str,
+    level: int = 2,
+    relationship: Relationship | None = None,
+) -> list[dict]:
+    if relationship is None:  # 백엔드가 관계를 아직 보내지 않으면 지금처럼 지난 대화 수와 기억 카드
+        note = memory_note(memory)
     else:
-        system = npc_system(n, memory_note(memory), instruction, level)
+        learner_rude = [h.rude for h in history if h.who == "me"]
+        state = npc_relationship.person_state(relationship.model_dump(), learner_rude, n.profile, *npc_relationship.service_rules())
+        note = person_note(memory, state)
+    if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
+        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction)
+    else:
+        system = npc_system(n, note, instruction, level)
     msgs = [{"role": "system", "content": system}]
     for h in history[-12:]:
         msgs.append({"role": "assistant" if h.who == "npc" else "user", "content": h.text})

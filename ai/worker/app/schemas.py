@@ -36,6 +36,7 @@ class Line(BaseModel):
     text: str = Field(max_length=1000)
     english: str | None = None  # 학습자 줄: 번역 (대화 종료 API에서 씀)
     rude: bool = False  # 학습자 줄: 무례 판정 결과
+    events: list[str] = []  # 학습자 줄: 의도 판정(/v1/judge)이 고른 대화 사건. 대화 중 기분과 대화 뒤 관계에 쓴다
 
 
 class Intent(BaseModel):

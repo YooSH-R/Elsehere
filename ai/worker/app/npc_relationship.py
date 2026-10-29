@@ -103,33 +103,49 @@ def follow_affinity(affinity: float, impression: float, rules: dict) -> float:
 MOOD_MAX = 3  # 기분 세기 0~3
 
 
-def annoyance(learner_rude: list[bool], rates: dict, rules: dict) -> float:
-    """이번 대화에서 지금 짜증 난 정도(0~3). learner_rude는 이력 속 학습자 줄마다 Spring이 확정한 무례 여부(순서대로).
-    무례 한 줄은 RUDE 사건의 ANNOYED 세기 × NPC 반응 크기로 시작해, 그 뒤 학습자가 말할 때마다(지금 말 포함) decayPerTurn씩 가라앉는다."""
-    start = rules["conversationEvents"]["RUDE"]["mood"]["ANNOYED"] * rates.get("eventScale", {}).get("RUDE", 1)
-    decay = rules["mood"]["decayPerTurn"]
-    turns = len(learner_rude)
-    total = sum(max(0, start - decay * (turns - index)) for index, rude in enumerate(learner_rude) if rude)
-    return min(MOOD_MAX, total)
+LearnerTurn = tuple[bool, list[str]]  # 이력 속 학습자 줄 하나: (Spring이 확정한 무례인지, 의도 판정이 고른 사건)
 
 
-def person_state(relationship: dict, learner_rude: list[bool], profile: NpcProfile | None, rules: dict, library: dict) -> dict:
+def turn_events(turn: LearnerTurn) -> list[str]:
+    """그 줄에서 센 사건. 무례로 확정된 줄은 RUDE만 세고 다른 사건(욕하면서 칭찬 등)은 버린다."""
+    rude, events = turn
+    return ["RUDE"] if rude else list(dict.fromkeys(event for event in events if event != "RUDE"))
+
+
+def moods(learner_turns: list[LearnerTurn], rates: dict, rules: dict) -> dict[str, float]:
+    """이번 대화에서 지금 기분 세기(감정마다 0~3). 학습자가 말할 때마다(지금 말 포함) 모든 기분이 decayPerTurn씩 가라앉고,
+    그 줄 사건의 기분 효과(conversationEvents의 mood) × NPC 반응 크기(rates["eventScale"])가 더해진다. 사과는 짜증을 줄인다."""
+    effects, scales, decay = rules["conversationEvents"], rates.get("eventScale", {}), rules["mood"]["decayPerTurn"]
+    feelings: dict[str, float] = {}
+    for turn in learner_turns:
+        feelings = {emotion: max(0, value - decay) for emotion, value in feelings.items()}
+        for event in turn_events(turn):
+            for emotion, amount in effects.get(event, {}).get("mood", {}).items():
+                feelings[emotion] = min(MOOD_MAX, max(0, feelings.get(emotion, 0) + amount * scales.get(event, 1)))
+    return {emotion: max(0, value - decay) for emotion, value in feelings.items()}  # 지금 학습자가 한 말만큼 가라앉음
+
+
+def person_state(relationship: dict, learner_turns: list[LearnerTurn], profile: NpcProfile | None, rules: dict, library: dict) -> dict:
     """대답 지시문에 말로 풀어 넣을 지금 상태. 숫자는 지시문에 넣지 않는다.
     - known: 얼마나 알아보는지 new(처음 봄)·familiar(본 적 있음)·regular(단골). 오래 안 온 날만큼 줄어든 알아봄으로 정한다
     - feeling: liked·disliked·None(티 나지 않음)
     - personal: 자기 이야기를 조금 할 만큼 가까운지
-    - annoyed: 이번 대화의 무례로 아직 짜증 나 있는지"""
+    - annoyed·pleased: 이번 대화의 사건으로 짜증 나 있는지·기분이 좋은지. 둘 다면 더 큰 쪽만 (반대인 말투 지시를 함께 주지 않음)"""
     thresholds = rules["relationship"]
     recognition = recognition_today(relationship.get("recognition", 0), relationship.get("days_since_last_talk", 0), rules)
     affinity = relationship.get("affinity", 0)
     known = "regular" if recognition >= thresholds["regular"] else "familiar" if recognition >= thresholds["seenBefore"] else "new"
     feeling = "liked" if affinity >= thresholds["liked"] else "disliked" if affinity <= thresholds["disliked"] else None
     personal = thresholds["personalTalk"]
+    now = moods(learner_turns, npc_rates(profile, rules, library), rules)
+    annoyed, pleased = now.get("ANNOYED", 0), now.get("PLEASED", 0)
+    shows = rules["mood"]["showsAt"]
     return {
         "known": known,
         "feeling": feeling,
         "personal": recognition >= personal["recognition"] and affinity >= personal["affinity"],
-        "annoyed": annoyance(learner_rude, npc_rates(profile, rules, library), rules) >= rules["mood"]["showsAt"],
+        "annoyed": annoyed >= shows and annoyed >= pleased,
+        "pleased": pleased >= shows and pleased > annoyed,
     }
 
 

@@ -197,6 +197,7 @@ ANNOYED = (
     "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cool; "
     "if they apologize, accept it briefly, without warm words."
 )
+PLEASED = "They said something nice or chatted with you warmly a moment ago, so you are in a good mood: be a little warmer than usual."
 STRONG_FEELINGS = ("friendly", "wary")
 
 
@@ -219,6 +220,8 @@ def person_note(m: Memory | None, state: dict) -> str:
         lines.append(f"- {PERSONAL}")
     if state["annoyed"]:
         lines.append(f"- {ANNOYED}")
+    if state["pleased"]:
+        lines.append(f"- {PLEASED}")
     return "\n".join(lines)
 
 
@@ -284,8 +287,8 @@ def npc_messages(
     if relationship is None:  # 백엔드가 관계를 아직 보내지 않으면 지금처럼 지난 대화 수와 기억 카드
         note = memory_note(memory)
     else:
-        learner_rude = [h.rude for h in history if h.who == "me"]
-        state = npc_relationship.person_state(relationship.model_dump(), learner_rude, n.profile, *npc_relationship.service_rules())
+        learner_turns = [(h.rude, h.events) for h in history if h.who == "me"]
+        state = npc_relationship.person_state(relationship.model_dump(), learner_turns, n.profile, *npc_relationship.service_rules())
         note = person_note(memory, state)
     if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
         system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction)

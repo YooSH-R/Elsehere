@@ -105,6 +105,14 @@ def test_a_rude_line_a_moment_ago_keeps_the_npc_annoyed(client, provider):
     assert "still annoyed" not in system(client, provider, relationship={}, history=[])
 
 
+def test_a_compliment_a_moment_ago_puts_the_npc_in_a_good_mood(client, provider):
+    """백엔드가 의도 판정의 줄 사건을 history[].events로 보내면 대화 중 기분에 쓴다."""
+    history = [{"who": "me", "text": "Your latte is the best!", "events": ["COMPLIMENT"]}, {"who": "npc", "text": "Aw, thanks!"}]
+
+    assert "good mood" in system(client, provider, relationship={}, history=history)
+    assert "good mood" not in system(client, provider, relationship={}, history=[{**history[0], "events": []}, history[1]])
+
+
 def test_the_prompt_never_shows_the_numbers(client, provider):
     prompt = system(client, provider, relationship={"recognition": 37, "affinity": -23, "days_since_last_talk": 2}, memory=MEMORY)
 

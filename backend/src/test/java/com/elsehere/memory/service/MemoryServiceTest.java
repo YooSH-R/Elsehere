@@ -210,6 +210,36 @@ class MemoryServiceTest {
     assertThat(relation.getMemoryConversationId()).isEqualTo(second.getId());
   }
 
+  @Test
+  @DisplayName("카드를 만드는 사이 무례로 깎인 호감도는 카드를 저장할 때 덮어쓰지 않는다")
+  void updateAfterConversation_affinityChangedMeanwhile_keepsAffinity() {
+    Conversation conversation = endedConversation("I want a latte");
+    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+        .willAnswer(
+            invocation -> {
+              // 워커를 기다리는 사이 다음 대화의 무례한 말로 호감도가 깎인다.
+              entityManager
+                  .createNativeQuery(
+                      "update user_npc_relations set affinity = -5 where user_id = ? and npc_id = ?")
+                  .setParameter(1, userId)
+                  .setParameter(2, npcId)
+                  .executeUpdate();
+              return new MemoryCardResult(FIRST_CARD, List.of());
+            });
+
+    memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
+
+    entityManager.flush();
+    assertThat(
+            entityManager
+                .createNativeQuery(
+                    "select affinity from user_npc_relations where user_id = ? and npc_id = ?")
+                .setParameter(1, userId)
+                .setParameter(2, npcId)
+                .getSingleResult())
+        .isEqualTo((short) -5);
+  }
+
   private Conversation endedConversation(String userText) {
     Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
     npcTurn(entityManager, conversation, 1, "Hi! What can I get for you?");

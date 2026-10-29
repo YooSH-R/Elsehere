@@ -12,8 +12,14 @@ public record GuardResult(Guard guard, List<WorkerUsage> usage) {
   /**
    * @param abusive 무례면 true, 아니면 false, 판정하지 못했으면 null
    * @param errorCode 판정하지 못한 이유(empty·unparsed·timeout·provider_unavailable·provider_limit)
+   * @param affinityDelta 무례일 때 NPC 성격을 반영한 호감도 변화량(음수). 워커가 보내지 않으면 null이고 백엔드 기본값을 쓴다
    */
-  public record Guard(Boolean abusive, String errorCode) {}
+  public record Guard(Boolean abusive, String errorCode, Integer affinityDelta) {
+
+    public Guard(Boolean abusive, String errorCode) {
+      this(abusive, errorCode, null);
+    }
+  }
 
   public Boolean abusive() {
     return guard == null ? null : guard.abusive();
@@ -21,5 +27,9 @@ public record GuardResult(Guard guard, List<WorkerUsage> usage) {
 
   public String errorCode() {
     return guard == null ? null : guard.errorCode();
+  }
+
+  public Integer affinityDelta() {
+    return guard == null ? null : guard.affinityDelta();
   }
 }

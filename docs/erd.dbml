@@ -303,7 +303,7 @@ Table turn_feedback [headercolor: #2E6B4F] {
 Table user_npc_relations [headercolor: #C8642A] {
   user_id bigint [not null]
   npc_id bigint [not null]
-  affinity smallint [not null, default: 0, note: '0~5']
+  affinity smallint [not null, default: 0, note: '호감도 -100~100 · 무례로 센 말마다 깎음 (무례 판정 affinity_delta, 없으면 기본 -5) · docs/api/rudeness-handling.md 3절']
   talk_count int [not null, default: 0, note: '사용자 발화가 있었던 대화를 끝낸 횟수 · NPC 대답 요청의 memory.visits']
   last_talked_at timestamptz
   memory_card jsonb [note: 'NPC 기억 카드 { name, claims, events, attitude, struggled } · AI 워커 /v1/memory가 만든 카드로 통째로 교체']

@@ -23,6 +23,7 @@ import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.conversation.DialogueTestData;
 import com.elsehere.conversation.dto.ConversationStartResponse;
 import com.elsehere.conversation.dto.EndConversationRequest;
 import com.elsehere.conversation.dto.SpeechStatus;
@@ -406,6 +407,84 @@ class TurnServiceTest {
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
   }
 
+  @Test
+  @DisplayName("무례로 센 말은 워커 감점량이 없으면 기본값(-5)만큼 그 NPC의 호감도를 깎는다")
+  void send_abusive_deductsDefaultAffinity() {
+    rudeTo("you idiot", null);
+
+    send("you idiot");
+
+    assertThat(affinity()).isEqualTo(-5);
+  }
+
+  @Test
+  @DisplayName("무례 판정이 감점량을 주면 기본값 대신 그 값만큼 깎는다")
+  void send_abusiveWithWorkerDelta_deductsWorkerDelta() {
+    rudeTo("you idiot", -8);
+
+    send("you idiot");
+
+    assertThat(affinity()).isEqualTo(-8);
+  }
+
+  @Test
+  @DisplayName("무례가 아니거나 무례 판정을 하지 못한 말은 호감도를 바꾸지 않는다")
+  void send_notRudeOrUndecided_keepsAffinity() {
+    judges("Yes", "Yes", null);
+    repliesTo("Yes", reply("Nice!", null, null));
+    judges("네 맑아요", "네 맑아요", null);
+    guards("네 맑아요", null, "timeout");
+    repliesTo("네 맑아요", reply("Great!", null, null));
+
+    send("Yes");
+    send("네 맑아요");
+
+    assertThat(affinity()).isNull();
+  }
+
+  @Test
+  @DisplayName("무례 판정 3번으로 NPC가 대화를 끝내도 세 번 모두 깎는다")
+  void send_abusiveUntilLimit_deductsEveryTime() {
+    for (int count = 1; count <= ConversationSupport.RUDE_LIMIT; count++) {
+      rudeTo("you idiot " + count, null);
+    }
+
+    send("you idiot 1");
+    send("you idiot 2");
+    send("you idiot 3");
+
+    assertThat(affinity()).isEqualTo(-5 * ConversationSupport.RUDE_LIMIT);
+  }
+
+  @Test
+  @DisplayName("호감도는 -100 아래로 내려가지 않는다")
+  void send_abusiveNearMinimum_stopsAtMinimum() {
+    entityManager
+        .createNativeQuery(
+            "insert into user_npc_relations (user_id, npc_id, affinity, talk_count)"
+                + " values (?, ?, -98, 1)")
+        .setParameter(1, userId)
+        .setParameter(2, passerbyNpcId())
+        .executeUpdate();
+    rudeTo("you idiot", null);
+
+    send("you idiot");
+
+    assertThat(affinity()).isEqualTo(-100);
+  }
+
+  @Test
+  @DisplayName("같은 요청 ID로 다시 보낸 무례한 말은 한 번만 깎는다")
+  void send_sameAbusiveRequestTwice_deductsOnce() {
+    rudeTo("you idiot", null);
+    TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "you idiot", null);
+
+    turnService.send(userId, conversationId, request);
+    turnService.send(userId, conversationId, request);
+
+    assertThat(affinity()).isEqualTo(-5);
+  }
+
   private TurnResponse send(String text) {
     lastRequestId = UUID.randomUUID();
     return turnService.send(
@@ -434,6 +513,35 @@ class TurnServiceTest {
     given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
         .willReturn(
             new GuardResult(new GuardResult.Guard(abusive, errorCode), List.of(usage("guard"))));
+  }
+
+  private void rudeTo(String text, Integer affinityDelta) {
+    judges(text, text, null);
+    given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
+        .willReturn(
+            new GuardResult(
+                new GuardResult.Guard(true, null, affinityDelta), List.of(usage("guard"))));
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean()))
+        .willReturn(reply("That's not okay to say.", null, null));
+  }
+
+  // 대화 상대(행인)와의 호감도. 관계 행이 없으면 null이다.
+  private Integer affinity() {
+    entityManager.flush();
+    List<?> rows =
+        entityManager
+            .createNativeQuery(
+                "select affinity from user_npc_relations where user_id = ? and npc_id = ?")
+            .setParameter(1, userId)
+            .setParameter(2, passerbyNpcId())
+            .getResultList();
+    return rows.isEmpty() ? null : ((Number) rows.get(0)).intValue();
+  }
+
+  private Long passerbyNpcId() {
+    return DialogueTestData.npcId(entityManager, "TOWN_PASSERBY");
   }
 
   private void repliesTo(String text, NpcReply reply) {

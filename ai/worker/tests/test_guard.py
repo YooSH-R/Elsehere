@@ -3,9 +3,10 @@
 import asyncio
 
 import httpx
+import pytest
 
 from app import config
-from app.config import Settings
+from app.config import Settings, profile_models
 from app.guard import guard_result
 from conftest import TOKEN, make_client, ok
 
@@ -82,3 +83,80 @@ def test_guard_reads_only_clear_yes_no():
     assert guard_result("") == {"abusive": None, "error": "판정 모델이 빈 답을 냄", "error_code": "empty"}
     for out in ("I can't help with that.", "nothing rude", "yesterday", "Maybe"):  # 거절·다른 말은 무례도 정상도 아님
         assert guard_result(out)["abusive"] is None and guard_result(out)["error_code"] == "unparsed", out
+
+
+# ---------- GPU 서버 판정 모델 → 구성의 판정 모델 ----------
+GPU_MODEL = "guard-qwen3.8-27b-r16"
+GPU = {"guard_gpu_model": GPU_MODEL, "providers": {"gpu_llm": {"base_url": "http://gpu/v1", "api_key": "g"}}, "guard_gpu_timeout_s": 0.2}
+
+
+def guard_by_model(answers: dict):
+    """판정 요청을 모델 이름으로 나눠 답한다 (GPU 서버 모델 / 구성의 판정 모델)."""
+
+    async def answer(b):
+        res = answers[b["model"]](b)
+        return await res if asyncio.iscoroutine(res) else res
+
+    return answer
+
+
+def test_gpu_guard_model_answers_first(provider):
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: ok("yes")})
+    with make_client(provider, **GPU) as c:
+        body = c.post("/v1/guard", json=guard_body("you idiot")).json()
+    assert body["guard"]["abusive"] is True
+    assert provider.calls == [("guard", GPU_MODEL)]
+    assert [(u["model"], u["fallback"]) for u in body["usage"]] == [(GPU_MODEL, False)]
+
+
+def test_gpu_guard_request_turns_thinking_off(provider):
+    seen = {}
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: seen.update(b) or ok("no")})
+    with make_client(provider, **GPU) as c:
+        c.post("/v1/guard", json=guard_body("hello"))
+    assert seen["chat_template_kwargs"] == {"enable_thinking": False} and seen["max_tokens"] == 5
+
+
+def test_gpu_guard_failure_falls_back_to_profile_guard(provider):
+    profile_guard = profile_models("groq")[0]["guard"]
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: httpx.Response(503, text="down"), profile_guard: lambda b: ok("no")})
+    with make_client(provider, **GPU) as c:
+        body = c.post("/v1/guard", json=guard_body("hello")).json()
+    assert body["guard"]["abusive"] is False
+    assert provider.calls == [("guard", GPU_MODEL), ("guard", profile_guard)]  # GPU는 재시도하지 않고 한 번만
+    assert [(u["model"], u["fallback"]) for u in body["usage"]] == [(profile_guard, True)]
+
+
+def test_slow_gpu_guard_falls_back_within_budget(provider):
+    async def slow(b):
+        await asyncio.sleep(0.5)
+        return ok("yes")
+
+    profile_guard = profile_models("groq")[0]["guard"]
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: slow, profile_guard: lambda b: ok("no")})
+    with make_client(provider, **GPU) as c:
+        body = c.post("/v1/guard", json=guard_body("hello")).json()
+    assert body["guard"]["abusive"] is False and body["usage"][0]["model"] == profile_guard
+
+
+def test_gpu_guard_is_skipped_after_repeated_failures(provider):
+    profile_guard = profile_models("groq")[0]["guard"]
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: httpx.Response(503, text="down"), profile_guard: lambda b: ok("no")})
+    with make_client(provider, **GPU, guard_breaker_failures=2, guard_breaker_skip_s=60.0) as c:
+        for _ in range(3):
+            c.post("/v1/guard", json=guard_body("hello"))
+    assert [model for _, model in provider.calls] == [GPU_MODEL, profile_guard, GPU_MODEL, profile_guard, profile_guard]
+
+
+def test_gpu_guard_from_env(monkeypatch):
+    env = {"AI_WORKER_TOKEN": TOKEN, "LLM_PROFILE": "groq", "GROQ_API_KEY": "q", "GUARD_GPU_MODEL": GPU_MODEL}
+    monkeypatch.setattr(config, "load_dotenv", lambda *a, **kw: None)
+    monkeypatch.setattr(config.os, "environ", env)
+    with pytest.raises(RuntimeError, match="GUARD_GPU_BASE_URL"):
+        Settings.from_env()
+    env |= {"GUARD_GPU_BASE_URL": "http://172.19.0.1:18432/v1", "GUARD_GPU_TOKEN": "t", "GUARD_GPU_TIMEOUT_S": "1.5"}
+    s = Settings.from_env()
+    assert s.guard_gpu_model == GPU_MODEL and s.guard_gpu_timeout_s == 1.5
+    assert s.providers["gpu_llm"] == {"base_url": "http://172.19.0.1:18432/v1", "api_key": "t"}
+    env.pop("GUARD_GPU_MODEL")
+    assert Settings.from_env().guard_gpu_model == "" and "gpu_llm" not in Settings.from_env().providers

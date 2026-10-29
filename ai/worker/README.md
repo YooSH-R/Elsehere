@@ -55,6 +55,10 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
+| `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김 |
+| `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 예: `http://172.19.0.1:18432/v1`) |
+| `GUARD_GPU_TIMEOUT_S` | 2 | GPU 서버 판정 한 번의 상한. 넘으면 재시도 없이 구성의 `guard` 모델로 |
+| `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
 
 ## API
 
@@ -198,7 +202,7 @@ NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI와 역할뿐이�
 가짜 공급자(`tests/conftest.py`)가 시스템 프롬프트로 단계를 알아보고 정해 둔 답을 돌려줍니다.
 
 - `tests/test_api.py`: 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리
-- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결
+- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기
 - `tests/test_stt.py`: 음성 인식 — 프롬프트 되풀이 거르기·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외

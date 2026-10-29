@@ -18,14 +18,21 @@ namespace A305.Characters
         private Vector3 front;
         private CharacterFacePose pose;
         private float intensity = 1;
-        private static readonly string[] Labels =
+        private Vector2 scroll;
+        private static readonly (CharacterFacePose Pose, string Label)[] Options =
         {
-            "Neutral",
-            "Smile",
-            "Eyes closed",
-            "Mouth open",
-            "F / V",
-            "TH",
+            (CharacterFacePose.Neutral, "01 REST / SIL"),
+            (CharacterFacePose.ClosedLips, "02 M / B / P"),
+            (CharacterFacePose.OpenMouth, "03 AA / AH"),
+            (CharacterFacePose.E, "04 E / EH"),
+            (CharacterFacePose.OH, "05 OH"),
+            (CharacterFacePose.OU, "06 OU / OO"),
+            (CharacterFacePose.FV, "07 F / V"),
+            (CharacterFacePose.TH, "08 TH"),
+            (CharacterFacePose.WideI, "09 I (ee)"),
+            (CharacterFacePose.FlatEu, "10 EU"),
+            (CharacterFacePose.Smile, "Smile"),
+            (CharacterFacePose.Blink, "Eyes closed"),
         };
 
         public void Configure(
@@ -45,15 +52,20 @@ namespace A305.Characters
         {
             if (face == null)
                 return;
-            GUILayout.BeginArea(new Rect(12, 12, 220, 310), GUI.skin.box);
+            GUILayout.BeginArea(
+                new Rect(12, 12, 240, Mathf.Min(520, Screen.height - 24)),
+                GUI.skin.box
+            );
             GUILayout.Label("Cafe Female - Face Preview");
-            GUILayout.Label("Six poses / local mesh deformation");
-            for (int i = 0; i < Labels.Length; i++)
-                if (GUILayout.Button(Labels[i], GUILayout.Height(26)))
+            GUILayout.Label("10 speech mouths + smile / blink");
+            scroll = GUILayout.BeginScrollView(scroll, GUILayout.ExpandHeight(true));
+            foreach (var option in Options)
+                if (GUILayout.Button(option.Label, GUILayout.Height(26)))
                 {
-                    pose = (CharacterFacePose)i;
+                    pose = option.Pose;
                     face.SetPose(pose, intensity);
                 }
+            GUILayout.EndScrollView();
             GUILayout.Label("Strength: " + Mathf.RoundToInt(intensity * 100) + "%");
             float value = GUILayout.HorizontalSlider(intensity, 0, 1);
             if (!Mathf.Approximately(value, intensity))

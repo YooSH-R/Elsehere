@@ -653,7 +653,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "description": "호텔 직원에게 예약을 확인하고 체크인해 보세요.",
       "sceneCode": "HOTEL",
       "npcCode": "HOTEL_STAFF",
-      "npcName": "Emma",
+      "npcName": "Jake",
       "userMissionId": 13,
       "status": "RUN",
       "completedAt": null

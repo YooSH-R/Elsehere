@@ -1,6 +1,8 @@
 """Probe only the disposable Nginx fixture on its private Docker network."""
 
+import argparse
 import json
+import queue
 import re
 import threading
 import time
@@ -10,11 +12,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HOLD_STARTED = threading.Event()
 RELEASE_HOLD = threading.Event()
+HOLD_ARRIVALS = queue.Queue()
 
 
 class HoldingUpstream(BaseHTTPRequestHandler):
     def do_GET(self):
         HOLD_STARTED.set()
+        HOLD_ARRIVALS.put(None)
         if not RELEASE_HOLD.wait(timeout=10):
             self.send_error(504)
             return
@@ -142,7 +146,48 @@ def check_connection_limit():
         server_thread.join(timeout=5)
 
 
-def main():
+def check_restored_observation():
+    # The same low budgets must pass excess requests after restoring dry-run mode.
+    for _ in range(8):
+        assert request("/api/rate", port=8083)[0] == 200
+        assert request("/api/observe", port=8083)[0] == 200
+
+    upstream = ThreadingHTTPServer(("0.0.0.0", 8088), HoldingUpstream)
+    server_thread = threading.Thread(target=upstream.serve_forever, daemon=True)
+    server_thread.start()
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            responses = [
+                executor.submit(request, "/api/restore-hold", 8083) for _ in range(2)
+            ]
+            try:
+                # Both must reach the upstream while still in flight, not one at a time.
+                for _ in range(2):
+                    HOLD_ARRIVALS.get(timeout=10)
+            finally:
+                RELEASE_HOLD.set()
+            assert [response.result(timeout=15)[0] for response in responses] == [
+                200,
+                200,
+            ]
+    finally:
+        upstream.shutdown()
+        upstream.server_close()
+        server_thread.join(timeout=5)
+    print(
+        "Traffic modes: observation restored; excess rate and concurrent requests "
+        "accepted, with the existing observation path preserved.",
+        flush=True,
+    )
+
+
+def main(arguments=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--restored-observation", action="store_true")
+    options = parser.parse_args(arguments)
+    if options.restored_observation:
+        check_restored_observation()
+        return
     check_upload_limits()
     check_shared_ip_requests()
     check_rate_and_observation()

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "requests": [
+    {
+      "id": "bring_coffee",
+      "need": "ENERGY",
+      "below": 30,
+      "role": "STAFF",
+      "activities": ["WORK"],
+      "reason": "Feels worn out but cannot leave their post, so asks the learner to bring a coffee.",
+      "ko": "지쳤는데 자리를 비울 수 없어 학습자에게 커피를 부탁한다",
+      "steps": [
+        { "with": "staff", "place": "CAFE", "goal": "Order a coffee to go.", "languageFocus": ["ordering"] },
+        { "with": "requester", "goal": "Hand over the coffee.", "languageFocus": ["polite_request"] }
+      ],
+      "reward": { "fills": { "ENERGY": 25 }, "impression": 10 }
+    },
+    {
+      "id": "bring_muffin",
+      "need": "HUNGER",
+      "below": 30,
+      "role": "STAFF",
+      "activities": ["WORK"],
+      "reason": "Is hungry but cannot leave their post, so asks the learner to buy a muffin.",
+      "ko": "배고픈데 자리를 비울 수 없어 학습자에게 머핀을 사다 달라고 부탁한다",
+      "steps": [
+        { "with": "staff", "place": "CAFE", "goal": "Buy a muffin to take away.", "languageFocus": ["ordering"] },
+        { "with": "requester", "goal": "Hand over the muffin.", "languageFocus": ["polite_request"] }
+      ],
+      "reward": { "fills": { "HUNGER": 40 }, "impression": 10 }
+    },
+    {
+      "id": "recommend_a_spot",
+      "need": "SOCIAL",
+      "below": 40,
+      "role": "PASSERBY",
+      "activities": ["FREE"],
+      "reason": "Feels a bit lonely in a new town and wants someone to talk to, so asks the learner for a place worth seeing.",
+      "ko": "새 마을에서 말 상대가 그리워 학습자에게 구경할 만한 곳을 묻는다",
+      "steps": [
+        { "with": "requester", "goal": "Recommend a place in town worth seeing.", "languageFocus": ["recommending", "describing"] }
+      ],
+      "reward": { "fills": { "SOCIAL": 20 }, "impression": 8 }
+    }
+  ]
+}

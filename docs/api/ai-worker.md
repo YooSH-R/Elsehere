@@ -377,7 +377,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 요청: `{"text": "...", "voice": "af_heart", "speed": 1.0}`(text 1~400자, speed 0.5~2.0). 응답은 `audio/wav`이고, 헤더 `X-Audio-S`(길이)·`X-Cache`(hit/miss)·`X-Synth-S`(합성 시간)가 붙습니다. 모델이 없으면 503 `tts_unavailable`입니다.
 
-합성 전에 읽을 글로 다듬습니다(`app/speech_text.py`). Kokoro가 `$13`을 "dollar thirteen", `10:00`을 "ten zero zero"로 읽고 별표·한글을 소리 내 읽기 때문입니다. 가격은 `13 dollars`·`8 dollars and 50 cents`로, 시각은 `10 o'clock`·`6 30`·`9 oh 5`(`a.m.`·`p.m.`가 붙으면 `11 a.m.`)로 바꾸고, `*`와 한글은 읽지 않습니다. 다듬은 뒤 읽을 것이 없으면 0.2초 무음 WAV를 돌려줍니다.
+합성 전에 읽을 글로 다듬습니다(`app/speech_text.py`). Kokoro가 `$13`을 "dollar thirteen", `10:00`을 "ten zero zero"로 읽고 별표·한글을 소리 내 읽기 때문입니다. 가격은 `13 dollars`·`8 dollars and 50 cents`로, 시각은 `10 o'clock`·`6 30`·`9 oh 5`(`a.m.`·`p.m.`가 붙으면 `11 a.m.`)로 바꾸고, `*`와 한글은 읽지 않습니다. 다듬은 뒤 읽을 것이 없으면 0.2초 무음 WAV를 돌려줍니다. 이어서 발음 사전(`app/pronunciation.py`)을 거칩니다. 사전 단어(croissant·barista, kimchi·soju 같은 한국 음식, Busan·Itaewon 같은 지명, hon·tryna 같은 구어)는 적어 둔 미국식 음소로, 나머지는 기존 음소화 그대로 Kokoro에 음소로 넘깁니다.
 
 ### 2.9 `POST /v1/npc/persona/generate` — NPC 인격 카드 초안 (어드민 랜덤 생성)
 

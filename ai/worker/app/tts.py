@@ -14,6 +14,7 @@ import wave
 from collections import OrderedDict
 from pathlib import Path
 
+from .pronunciation import to_phonemes
 from .speech_text import for_speech
 
 
@@ -60,7 +61,8 @@ def silent_wav(seconds: float, sr: int = 24000) -> bytes:
 
 class Kokoro:
     """합성은 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 같은 문장(인사, 다시 듣기, 단어 발음)은 다시 만들지 않는다.
-    읽는 글은 for_speech로 다듬은 것이다 (가격·시각을 말로, 별표·한글은 읽지 않음). 자막은 호출한 쪽의 원문 그대로."""
+    읽는 글은 for_speech로 다듬은 것이다 (가격·시각을 말로, 별표·한글은 읽지 않음). 자막은 호출한 쪽의 원문 그대로.
+    다듬은 글은 발음 사전(app.pronunciation)을 거쳐 음소로 넘긴다."""
 
     CACHE_MAX = 300
     NOTHING_TO_READ_S = 0.2
@@ -98,7 +100,8 @@ class Kokoro:
                 self.cache.move_to_end(key)
                 wav, dur = self.cache[key]
                 return wav, dur, True
-            audio, sr = self.engine.create(spoken, voice=voice, speed=speed, lang="en-us")
+            phonemes = to_phonemes(spoken, lambda part: self.engine.tokenizer.phonemize(part, "en-us"))
+            audio, sr = self.engine.create(phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
             wav, dur = to_wav(audio, sr), len(audio) / sr
             self.cache[key] = (wav, dur)
             if len(self.cache) > self.CACHE_MAX:

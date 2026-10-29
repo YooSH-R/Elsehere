@@ -16,12 +16,14 @@ OBJECT_WORD_BINDINGS = ROOT / "backend/src/main/resources/content/object-word-bi
 LIFE_FOLDER = ROOT / "ai/npcs/life"
 BEHAVIORS = ROOT / "ai/npcs/rules/behaviors.json"
 REQUESTS = ROOT / "ai/npcs/rules/requests.json"
+PERSONA_INGREDIENTS = ROOT / "ai/npcs/rules/persona-ingredients.json"
 
 _schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
 WORLD_RULES_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/WorldRules"})
 LIFE_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/NpcLife"})
 BEHAVIOR_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/BehaviorLibrary"})
 REQUEST_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/RequestLibrary"})
+INGREDIENT_SCHEMA = Draft202012Validator({**_schema, "$ref": "#/$defs/PersonaIngredients"})
 
 
 def _errors(validator: Draft202012Validator, data: dict) -> list[tuple[str, str]]:
@@ -153,6 +155,33 @@ def behavior_problems(library: dict) -> list[str]:
             count = sum(1 for behavior in behaviors if behavior["leans"].get(axis) == side)
             if count < MIN_BEHAVIORS_PER_SIDE:
                 problems.append(f"{axis} {side} 쪽 조각이 {MIN_BEHAVIORS_PER_SIDE}개 미만 ({count}개)")
+    return problems
+
+
+def ingredient_errors(ingredients: dict) -> list[tuple[str, str]]:
+    return _errors(INGREDIENT_SCHEMA, ingredients)
+
+
+MIN_TRAITS_PER_SIDE = 2  # 성격 축마다 기운 쪽에서 하나씩 고르므로, 같은 성격끼리도 달라지게 두 개 이상
+
+
+def ingredient_problems(ingredients: dict) -> list[str]:
+    """재료끼리의 대조: 성격 특징 이름은 한 번만, 성격 축 양쪽마다 특징이 충분한지, 직업의 나이대가 나이대 목록에 있는지."""
+    traits = ingredients["traits"]
+    problems, first_at = [], {}
+    for i, trait in enumerate(traits):
+        if trait["name"] in first_at:
+            problems.append(f"$.traits[{i}]: 성격 특징 이름 '{trait['name']}'를 $.traits[{first_at[trait['name']]}]에서 이미 씀")
+        else:
+            first_at[trait["name"]] = i
+    for axis in AXES:
+        for side in ("high", "low"):
+            count = sum(1 for trait in traits if trait["leans"] == {axis: side})
+            if count < MIN_TRAITS_PER_SIDE:
+                problems.append(f"{axis} {side} 쪽 성격 특징이 {MIN_TRAITS_PER_SIDE}개 미만 ({count}개)")
+    ages = set(ingredients["ageRanges"])
+    for i, occupation in enumerate(ingredients["occupations"]):
+        problems += [f"$.occupations[{i}].ages: 나이대 목록에 없는 '{age}'" for age in occupation.get("ages", []) if age not in ages]
     return problems
 
 

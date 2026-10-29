@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NPC 생활·관계 규칙 스키마 (제안)",
-  "description": "$defs의 WorldRules(공통 규칙), NpcLife(NPC별 생활 파일), BehaviorLibrary(행동 조각 모음)를 명시적으로 선택해 검증한다. Unity·AI 워커·백엔드가 같이 읽는 규칙 데이터이며, 설계는 docs/npc-life-design.md. 숫자는 시뮬레이션으로 맞출 초기값이다.",
+  "description": "$defs의 WorldRules(공통 규칙), NpcLife(NPC별 생활 파일), BehaviorLibrary(행동 조각 모음), PersonaIngredients(인격 카드 생성 재료)를 명시적으로 선택해 검증한다. Unity·AI 워커·백엔드가 같이 읽는 규칙 데이터이며, 설계는 docs/npc-life-design.md. 숫자는 시뮬레이션으로 맞출 초기값이다.",
   "$defs": {
     "RequestLibrary": {
       "type": "object",
@@ -97,6 +97,118 @@
           "description": "함께 뽑지 않는 조각 id."
         }
       }
+    },
+    "PersonaIngredients": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "names", "ageRanges", "occupations", "traits", "values", "motivations", "interests", "socialBehavior", "speechStyle"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "names": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z][a-z]+$", "maxLength": 40 }, "minItems": 1, "uniqueItems": true, "description": "이름 후보. 이미 쓰는 NPC 이름은 생성기가 고르지 않는다." },
+        "ageRanges": { "type": "array", "items": { "$ref": "#/$defs/AgeRange" }, "minItems": 1, "uniqueItems": true },
+        "occupations": { "type": "array", "items": { "$ref": "#/$defs/Occupation" }, "minItems": 1 },
+        "traits": { "type": "array", "items": { "$ref": "#/$defs/TraitIngredient" }, "minItems": 1, "description": "성격 특징. 성격 축마다 NPC가 기운 쪽에서 하나씩 골라 personality.traits에 넣는다." },
+        "values": { "type": "array", "items": { "$ref": "#/$defs/TextIngredient" }, "minItems": 1 },
+        "motivations": { "type": "array", "items": { "$ref": "#/$defs/TextIngredient" }, "minItems": 1 },
+        "interests": { "type": "array", "items": { "$ref": "#/$defs/TextIngredient" }, "minItems": 1, "description": "취미·관심사. background.interests에 넣는다." },
+        "socialBehavior": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["firstMeeting", "familiarityExpression", "conflictResponse", "boundaries"],
+          "properties": {
+            "firstMeeting": { "$ref": "#/$defs/SideRule" },
+            "familiarityExpression": { "$ref": "#/$defs/SideRule" },
+            "conflictResponse": { "$ref": "#/$defs/SideRule" },
+            "boundaries": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["STAFF", "PASSERBY"],
+              "properties": {
+                "STAFF": { "type": "array", "items": { "$ref": "#/$defs/IngredientText" }, "maxItems": 8 },
+                "PASSERBY": { "type": "array", "items": { "$ref": "#/$defs/IngredientText" }, "maxItems": 8 }
+              }
+            }
+          },
+          "description": "인격 카드 socialBehavior 칸. 각 칸은 정한 성격 축의 쪽(high·middle·low)으로 문장을 고르고, 선(boundaries)은 역할로 고른다."
+        },
+        "speechStyle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tone", "verbosity", "directness", "formality"],
+          "properties": {
+            "tone": { "type": "array", "items": { "$ref": "#/$defs/SideRule" }, "minItems": 1, "maxItems": 3, "description": "축마다 고른 말을 'and'로 잇는다 (예: lively and warm)." },
+            "verbosity": { "$ref": "#/$defs/SideRule" },
+            "directness": { "$ref": "#/$defs/SideRule" },
+            "formality": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["STAFF", "PASSERBY"],
+              "properties": {
+                "STAFF": { "type": "string", "enum": ["casual", "neutral", "formal"] },
+                "PASSERBY": { "type": "string", "enum": ["casual", "neutral", "formal"] }
+              }
+            }
+          },
+          "description": "인격 카드 speechStyle 칸. 값은 인격 스키마의 허용 값이어야 하며, 생성 결과를 인격 스키마로 다시 검사한다."
+        }
+      },
+      "description": "인격 카드(NpcProfile) 생성 재료. 생성기(ai/tools/npc_generate.py)가 입력(npcId·MBTI·역할·장소)과 npcId 씨앗으로 골라 뼈대를 만든다. 성격 쪽이 표시된 재료는 그 쪽 NPC만 고른다."
+    },
+    "AgeRange": { "type": "string", "minLength": 1, "maxLength": 40, "pattern": "\\S" },
+    "IngredientText": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S" },
+    "AxisLean": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/Axis" },
+      "additionalProperties": { "type": "string", "enum": ["high", "low"] },
+      "minProperties": 1
+    },
+    "Occupation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "ko", "role"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "\\S", "description": "인격 카드 occupation에 그대로 들어가는 영어." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S" },
+        "role": { "$ref": "#/$defs/Role" },
+        "place": { "$ref": "#/$defs/Code", "description": "일하는 장소. 직원(STAFF)이면 필수." },
+        "ages": { "type": "array", "items": { "$ref": "#/$defs/AgeRange" }, "minItems": 1, "uniqueItems": true, "description": "이 직업에 맞는 나이대. 없으면 모든 나이대." }
+      },
+      "if": { "properties": { "role": { "const": "STAFF" } } },
+      "then": { "required": ["place"] }
+    },
+    "TraitIngredient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description", "ko", "leans"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 60, "pattern": "\\S" },
+        "description": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "그 특징이 어떻게 드러나는지 행동으로." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S" },
+        "leans": { "allOf": [{ "$ref": "#/$defs/AxisLean" }], "maxProperties": 1 }
+      }
+    },
+    "TextIngredient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "ko"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S" },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S" },
+        "leans": { "$ref": "#/$defs/AxisLean", "description": "이 성격 쪽 NPC만 고른다. 없으면 누구나." },
+        "roles": { "type": "array", "items": { "$ref": "#/$defs/Role" }, "minItems": 1, "uniqueItems": true, "description": "이 역할 NPC만 고른다. 없으면 누구나." }
+      }
+    },
+    "SideRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["axis", "high", "middle", "low"],
+      "properties": {
+        "axis": { "$ref": "#/$defs/Axis" },
+        "high": { "$ref": "#/$defs/IngredientText" },
+        "middle": { "$ref": "#/$defs/IngredientText", "description": "축 값이 정확히 0.5일 때 (예: -T·-A가 없는 MBTI의 신경성)." },
+        "low": { "$ref": "#/$defs/IngredientText" }
+      },
+      "description": "성격 축 값이 0.5보다 크면 high, 작으면 low, 같으면 middle 문장을 쓴다."
     },
     "Axis": {
       "type": "string",

@@ -16,7 +16,14 @@
           "name": "Polite and kind",
           "description": "Speaks courteously to everyone and is warm and thankful when people help him."
         }
-      ]
+      ],
+      "dimensions": {
+        "openness": 0.25,
+        "conscientiousness": 0.75,
+        "extraversion": 0.75,
+        "agreeableness": 0.75,
+        "neuroticism": 0.7
+      }
     },
     "values": [
       "Being polite to everyone",
@@ -48,7 +55,11 @@
       "If someone asks him the way, he says he is new here and does not know, and moves on.",
       "Answers personal questions with a short, light answer and no details, then moves on.",
       "Does not keep pressing people who can't help him.",
-      "If someone is rude, he does not apologize or laugh it off: he says calmly and firmly that it is rude."
+      "If someone is rude, he does not apologize or laugh it off: he says calmly and firmly that it is rude.",
+      "Replays awkward moments in their head long after.",
+      "Double-checks orders and details before acting.",
+      "Smooths things over quickly after a tense moment.",
+      "Thinks out loud and fills silences with chatter."
     ]
   },
   "defaultLocationId": "TOWN",

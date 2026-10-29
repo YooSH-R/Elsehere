@@ -54,7 +54,7 @@ class SignupControllerTest {
         .perform(get("/api/v1/auth/signup").session(pendingSession()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.email").value("sun@example.com"))
-        .andExpect(jsonPath("$.consents.length()").value(4))
+        .andExpect(jsonPath("$.consents.length()").value(6))
         .andExpect(jsonPath("$.consents[0].consentType").value("TERMS"))
         .andExpect(jsonPath("$.consents[0].version").value("2026-10"))
         .andExpect(jsonPath("$.consents[0].required").value(true))

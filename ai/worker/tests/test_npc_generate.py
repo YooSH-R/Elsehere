@@ -94,8 +94,11 @@ def load_behaviors() -> dict:
     return json.loads(npc_life_rules.BEHAVIORS.read_text(encoding="utf-8"))
 
 
-def generate(npc_id="GEN_001", mbti="INTJ-T", role="STAFF", place="CAFE", taken=()):
-    return npc_generate.generate(npc_id, mbti, role, place, load_ingredients(), load_behaviors(), taken_names=set(taken))
+def generate(npc_id="GEN_001", mbti="INTJ-T", role="STAFF", place="CAFE", taken=(), ingredients=None, **fixed):
+    """fixed: 고정할 칸(name·occupation·ageRange·values·motivations·interests). 나머지는 재료에서 고른다."""
+    return npc_generate.generate(
+        npc_id, role, place, ingredients or load_ingredients(), load_behaviors(), mbti=mbti, fixed=fixed, taken_names=set(taken)
+    )
 
 
 MBTIS = [e + n + f + j for e in "EI" for n in "NS" for f in "FT" for j in "JP"]
@@ -198,6 +201,60 @@ def test_the_behavior_fragments_and_five_axes_are_added_like_the_handwritten_npc
         b["text"] for b in npc_derive.pick_behaviors(npc_derive.mbti_to_dimensions("INTJ-T"), load_behaviors(), "GEN_001")
     ]
     assert profile["background"]["summary"] is None and profile["background"]["experiences"] == []
+
+
+def test_without_an_mbti_one_is_chosen_from_the_npc_id():
+    """어드민에서 MBTI를 비워 두면 npcId 씨앗으로 16유형과 -A·-T 중 하나를 고른다. 같은 id면 같은 MBTI."""
+    config, life = generate(mbti=None)
+
+    assert npc_derive.MBTI.match(life["mbti"]) and life["mbti"][-2:] in ("-A", "-T")
+    assert generate(mbti=None)[1]["mbti"] == life["mbti"]
+    assert config["npcProfile"]["personality"]["dimensions"] == {
+        axis: npc_derive.mbti_to_dimensions(life["mbti"])[axis] for axis in npc_derive.AXES
+    }
+
+
+def test_fixed_items_are_kept_as_given_and_the_rest_is_chosen():
+    fixed = {"name": "Zed", "occupation": "barista at the corner cafe", "ageRange": "40s", "interests": ["chess"]}
+    profile = generate(**fixed)[0]["npcProfile"]
+
+    assert (profile["name"], profile["occupation"], profile["ageRange"], profile["background"]["interests"]) == (
+        "Zed",
+        "barista at the corner cafe",
+        "40s",
+        ["chess"],
+    )
+    assert profile["values"] and profile["motivations"]  # 고정하지 않은 칸은 재료에서
+
+
+def test_fixing_one_item_does_not_reshuffle_the_others():
+    """칸마다 따로 씨앗을 써서, 이름만 고정해도 직업·관심사 같은 다른 칸은 그대로다."""
+    free = generate()[0]["npcProfile"]
+    named = generate(name="Zed")[0]["npcProfile"]
+
+    assert named["name"] == "Zed"
+    assert {**named, "name": free["name"]} == free
+
+
+def test_a_fixed_occupation_from_the_candidates_keeps_its_age_ranges():
+    occupation = next(job for job in load_ingredients()["occupations"] if job["text"] == "college student on a short break")
+
+    profile = generate(role="PASSERBY", place="TOWN", occupation=occupation["text"])[0]["npcProfile"]
+
+    assert profile["ageRange"] in occupation["ages"]
+
+
+def test_candidates_from_the_request_replace_only_the_lists_they_give():
+    """백엔드가 DB 후보를 보내면 그 목록만 바꾸고, 보내지 않은 목록과 말투·사회적 행동 규칙은 AI 기본 재료를 쓴다."""
+    defaults = load_ingredients()
+    merged = npc_generate.with_candidates(defaults, {"names": ["Zed"], "interests": [{"text": "chess"}]})
+
+    assert merged["names"] == ["Zed"] and merged["interests"] == [{"text": "chess"}]
+    assert {key: value for key, value in merged.items() if key not in ("names", "interests")} == {
+        key: value for key, value in defaults.items() if key not in ("names", "interests")
+    }
+    profile = generate(ingredients=merged)[0]["npcProfile"]
+    assert profile["name"] == "Zed" and profile["background"]["interests"] == ["chess"]
 
 
 def test_a_staff_npc_needs_an_occupation_at_its_place():

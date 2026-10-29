@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker"))  # 인�
 
 # side·generate·narrate는 테스트가 npc_generate에서 가져다 쓰는 이름이기도 하다
 from app.llm import LLM
-from app.npc_persona import generate, load_behaviors, load_ingredients, narrate, side  # noqa: F401
+from app.npc_persona import generate, load_behaviors, load_ingredients, narrate, side, with_candidates  # noqa: F401
 
 NPCS = Path(__file__).resolve().parents[2] / "ai/npcs"
 
@@ -52,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     taken = {json.loads(path.read_text(encoding="utf-8"))["npcProfile"]["name"] for path in NPCS.glob("*.json")}
-    config, life = generate(args.npc_id, args.mbti, args.role, args.place, load_ingredients(), load_behaviors(), taken_names=taken)
+    config, life = generate(args.npc_id, args.role, args.place, load_ingredients(), load_behaviors(), mbti=args.mbti, taken_names=taken)
     if args.narrate:
         config = asyncio.run(_narrate_with_settings(config))
     (args.out / "life").mkdir(parents=True, exist_ok=True)

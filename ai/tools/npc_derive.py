@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker"))  # 인격 생성 규칙은 같은 저장소 AI 워커에 있다
 
 # 다른 도구·테스트가 npc_derive에서 가져다 쓰는 이름도 함께 둔다
-from app.npc_persona import AXES, BEHAVIORS_PER_NPC, lean_fit, mbti_to_dimensions, pick_behaviors, with_derived_traits  # noqa: F401
+from app.npc_persona import AXES, BEHAVIORS_PER_NPC, MBTI, lean_fit, mbti_to_dimensions, pick_behaviors, with_derived_traits  # noqa: F401
 
 
 def derive_rates(dimensions: dict[str, float], rules: dict) -> dict:

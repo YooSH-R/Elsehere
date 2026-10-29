@@ -83,6 +83,11 @@ namespace A305.Dialogue
                 return false;
             }
 
+            if (serverLink != null)
+            {
+                var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();
+                serverLink.SetSpeaker(speaker != null ? speaker.Player : null);
+            }
             bool hasScript = scriptSource.TryGetScript(npcCode, out DialogueScript script);
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
@@ -117,6 +122,7 @@ namespace A305.Dialogue
 
             if (serverConversation != null)
             {
+                serverLink.StopSpeech();
                 isEnding = true;
                 _ = EndServerConversationAsync();
                 return;
@@ -187,6 +193,8 @@ namespace A305.Dialogue
 
         private void OnDestroy()
         {
+            if (serverLink != null)
+                serverLink.SetSpeaker(null);
             if (serverLink != null && serverLink.VoiceRecorder != null)
             {
                 serverLink.VoiceRecorder.RecordingFinished -= TranscribeRecording;
@@ -243,7 +251,7 @@ namespace A305.Dialogue
             isEnding = false;
             if (serverLink != null)
             {
-                serverLink.StopSpeech();
+                serverLink.SetSpeaker(null);
             }
 
             cameraRig.ExitDialogueView();
@@ -279,7 +287,7 @@ namespace A305.Dialogue
         private void PlayNpcSpeech(NpcTurnData turn)
         {
             NpcResponded?.Invoke();
-            if (turn.Speech != null && turn.Speech.IsReady)
+            if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
             }
@@ -330,7 +338,13 @@ namespace A305.Dialogue
         private async Task RegenerateAndPlayAsync(ServerConversation target)
         {
             SpeechData speech = await target.RegenerateSpeechAsync();
-            if (this != null && speech != null && speech.IsReady)
+            if (
+                this != null
+                && target == serverConversation
+                && !isEnding
+                && speech != null
+                && speech.IsReady
+            )
             {
                 await serverLink.PlaySpeechAsync(speech.Url);
             }

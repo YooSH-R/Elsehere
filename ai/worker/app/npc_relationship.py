@@ -1,9 +1,9 @@
 """사용자 × NPC 관계(알아봄·호감)를 공통 규칙(ai/npcs/rules/world-rules.json)으로 계산한다. 설계는 docs/npc-life-design.md 4절.
 
-계산은 코드, 표현은 LLM이 맡는다. AI 워커는 관계를 저장하지 않는다: 요청에 지금 관계가 들어오고 응답에 새 관계가 나가며,
-저장은 백엔드가 한다. 날짜는 모두 게임 속 날짜(마지막 대화 뒤 지난 날 수)다.
+계산은 코드, 표현은 LLM이 맡는다. AI 워커는 관계를 저장하지 않는다: 요청에 지금 관계가 들어오고 응답에 변화량이 나가며,
+백엔드가 저장값에 더한다. 날짜는 모두 게임 속 날짜(마지막 대화 뒤 지난 날 수)다.
 - 알아봄(0~100): 얼굴을 아는 정도. 정상 종료된 대화마다 갈수록 덜 오르고, 며칠 여유 뒤 하루씩 준다
-- 호감(−100~100): 좋게 보는 정도. 이번 대화의 인상(사건 합)을 조금만 따라간다
+- 호감(−100~100): 좋게 보는 정도. 무례는 발화마다 바로 깎고(/v1/guard), 나머지는 이번 대화의 인상(사건 합)을 조금만 따라간다
 """
 
 import json
@@ -81,19 +81,25 @@ def grow_recognition(recognition: float, rate: float, rules: dict) -> float:
     return min(RECOGNITION_MAX, recognition + step)
 
 
-def impression(events: list[str], rude_lines: int, rates: dict, rules: dict) -> float:
-    """이번 대화의 인상. 판정된 사건은 대화에서 한 번씩, 무례는 Spring이 확정한 줄마다 센다.
-    NPC의 사건 반응 크기(rates["eventScale"])를 곱하고, 공통 규칙에 없는 사건은 버린다."""
+def impression(events: list[str], rates: dict, rules: dict) -> float:
+    """이번 대화의 인상. 판정된 사건을 대화에서 한 번씩 세고 NPC의 사건 반응 크기(rates["eventScale"])를 곱한다.
+    무례는 발화마다 이미 깎았으므로(rude_affinity_delta) 넣지 않고, 공통 규칙에 없는 사건은 버린다."""
     effects, scales = rules["conversationEvents"], rates.get("eventScale", {})
-    counts = {event: 1 for event in events if event in effects and event != "RUDE"}
-    if rude_lines:
-        counts["RUDE"] = rude_lines
-    return sum(effects[event].get("impression", 0) * scales.get(event, 1) * count for event, count in counts.items())
+    counted = {event for event in events if event in effects and event != "RUDE"}
+    return sum(effects[event].get("impression", 0) * scales.get(event, 1) for event in counted)
+
+
+def rude_affinity_delta(rates: dict, rules: dict) -> int:
+    """무례한 말 한 번에 바로 깎는 호감(/v1/guard). 백엔드가 무례를 저장하면서 함께 더한다(하한 −100은 백엔드가 지킨다).
+    대화 끝에 인상을 따라가던 몫과 같은 크기다: 무례 인상 × affinityFollowRate × NPC 반응 크기(rates["eventScale"]).
+    지금 호감을 모르고 계산하므로 끝(−100)에 가까울수록 덜 깎는 완충은 없다."""
+    scale = rates.get("eventScale", {}).get("RUDE", 1)
+    return round(rules["conversationEvents"]["RUDE"]["impression"] * rules["relationship"]["affinityFollowRate"] * scale)
 
 
 def follow_affinity(affinity: float, impression: float, rules: dict) -> float:
     """호감은 인상의 affinityFollowRate만큼만 따라간다. 끝(±100)에 가까울수록 그쪽으로는 덜 움직인다
-    (좋아하는 사람이 칭찬해도 조금, 좋아하던 사람이 무례하면 그대로 깎인다)."""
+    (좋아하는 사람이 칭찬해도 조금 오르고, 좋아하던 사람에게 나쁜 인상을 받으면 그대로 깎인다)."""
     change = impression * rules["relationship"]["affinityFollowRate"]
     toward_end = affinity if change > 0 else -affinity
     change *= 1 - max(0, toward_end) / AFFINITY_MAX
@@ -155,13 +161,13 @@ def service_rules() -> tuple[dict, dict]:
     return load_world_rules(), load_behaviors()
 
 
-def after_conversation(relationship: dict | None, events: list[str], rude_lines: int, rates: dict, rules: dict) -> dict:
-    """정상 종료된 대화 하나를 반영한 새 관계. 백엔드는 이 값을 그대로 정수 칸에 저장한다.
+def after_conversation(relationship: dict | None, events: list[str], rates: dict, rules: dict) -> dict:
+    """정상 종료된 대화 하나로 바뀌는 관계의 변화량. 백엔드는 저장값에 더한다(종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게).
+    새 값을 정수로 반올림한 뒤 저장값을 빼므로, 더한 결과는 새 값을 그대로 저장할 때와 같다.
     relationship: 저장된 관계와 마지막 대화 뒤 지난 게임 날 수 {recognition, affinity, days_since_last_talk}. 처음 만나면 None."""
     before = relationship or {}
-    recognition = recognition_today(before.get("recognition", 0), before.get("days_since_last_talk", 0), rules)
-    affinity = before.get("affinity", 0)
-    return {
-        "recognition": round(grow_recognition(recognition, rates.get("recognitionRate", 1), rules)),
-        "affinity": round(follow_affinity(affinity, impression(events, rude_lines, rates, rules), rules)),
-    }
+    stored_recognition, stored_affinity = before.get("recognition", 0), before.get("affinity", 0)
+    recognition = recognition_today(stored_recognition, before.get("days_since_last_talk", 0), rules)
+    new_recognition = round(grow_recognition(recognition, rates.get("recognitionRate", 1), rules))
+    new_affinity = round(follow_affinity(stored_affinity, impression(events, rates, rules), rules))
+    return {"recognition_delta": new_recognition - stored_recognition, "affinity_delta": new_affinity - stored_affinity}

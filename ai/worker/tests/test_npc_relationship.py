@@ -38,27 +38,36 @@ def test_each_conversation_adds_less_recognition_as_the_npc_knows_them_better():
     assert rel.grow_recognition(100, 1.4, RULES) == 100
 
 
-def test_the_impression_counts_each_judged_event_once_and_every_rude_line():
-    """판정된 사건은 대화에서 한 번씩, 무례는 Spring이 확정한 줄마다 센다. 목록 밖 사건은 버린다."""
-    greeting, task_done, rude = (EVENTS[name].get("impression", 0) for name in ("GREETING", "TASK_DONE", "RUDE"))
+def test_the_impression_counts_each_judged_event_once_and_leaves_rudeness_out():
+    """판정된 사건은 대화에서 한 번씩 센다. 무례는 발화마다 이미 깎았으므로(/v1/guard) 대화 인상에 넣지 않는다. 목록 밖 사건은 버린다."""
+    greeting, task_done = (EVENTS[name].get("impression", 0) for name in ("GREETING", "TASK_DONE"))
 
-    assert rel.impression(["GREETING", "GREETING", "TASK_DONE"], 0, {}, RULES) == greeting + task_done
-    assert rel.impression([], 2, {}, RULES) == 2 * rude
-    assert rel.impression(["SHOUTING"], 0, {}, RULES) == 0
+    assert rel.impression(["GREETING", "GREETING", "TASK_DONE"], {}, RULES) == greeting + task_done
+    assert rel.impression(["RUDE", "TASK_DONE"], {"eventScale": {"RUDE": 1.4}}, RULES) == task_done
+    assert rel.impression(["SHOUTING"], {}, RULES) == 0
 
 
 def test_small_talk_and_personal_questions_do_not_move_affinity():
     """잡담은 그 대화의 기분만 좋게 하고 호감은 올리지 않는다. 사적인 질문은 NPC의 선과 친한 정도에 따라 대답이 정하므로 숫자로 두지 않는다
     (2026-10-29 결정, 이정훈 님 협의)."""
-    assert rel.impression(["SMALL_TALK"], 0, {"eventScale": {"SMALL_TALK": 1.4}}, RULES) == 0
-    assert rel.impression(["PERSONAL_QUESTION"], 0, {}, RULES) == 0
+    assert rel.impression(["SMALL_TALK"], {"eventScale": {"SMALL_TALK": 1.4}}, RULES) == 0
+    assert rel.impression(["PERSONAL_QUESTION"], {}, RULES) == 0
     assert EVENTS["SMALL_TALK"]["mood"]["PLEASED"] > 0
 
 
-def test_an_npc_reacts_more_or_less_strongly_by_its_event_scale():
-    plain = rel.impression([], 1, {}, RULES)
+def test_each_rude_line_lowers_affinity_by_the_share_the_impression_used_to_pass_on():
+    """무례는 대화 끝이 아니라 발화마다 바로 깎는다(/v1/guard, 백엔드가 무례 저장과 함께 적용).
+    크기는 대화 끝에 인상을 따라가던 몫과 같다: 무례 인상 × affinityFollowRate × NPC 반응 크기."""
+    rude, follow = EVENTS["RUDE"]["impression"], RULES["relationship"]["affinityFollowRate"]
 
-    assert rel.impression([], 1, {"eventScale": {"RUDE": 1.5}}, RULES) == plain * 1.5
+    assert rel.rude_affinity_delta({}, RULES) == round(rude * follow)
+    assert rel.rude_affinity_delta({"eventScale": {"RUDE": 1.5}}, RULES) == round(rude * follow * 1.5)
+    assert rel.rude_affinity_delta({"eventScale": {"RUDE": 0.6}}, RULES) > rel.rude_affinity_delta({}, RULES)
+
+
+def test_the_fallback_for_a_missing_rude_delta_is_the_base_rate():
+    """무례인데 감점량이 비면 백엔드가 쓰는 기본값. 성격 배수가 없는 NPC가 받는 감점과 같다."""
+    assert RULES["relationship"]["rudeAffinityFallback"] == rel.rude_affinity_delta({}, RULES)
 
 
 def test_affinity_follows_only_part_of_the_impression_and_slows_near_the_ends():
@@ -71,17 +80,24 @@ def test_affinity_follows_only_part_of_the_impression_and_slows_near_the_ends():
     assert rel.follow_affinity(100, 50, RULES) == 100
 
 
-def test_after_a_conversation_the_relationship_to_store_is_whole_numbers():
-    """백엔드는 정수 칸에 저장한다. 오래 안 온 만큼 알아봄이 줄어든 뒤 이번 대화만큼 오른다."""
+def test_after_a_conversation_the_changes_to_add_are_whole_numbers():
+    """백엔드는 정수 칸에 변화량을 더한다(종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게).
+    오래 안 온 만큼 알아봄이 줄어든 뒤 이번 대화만큼 오른 값과 저장값의 차이다."""
     before = {"recognition": 20, "affinity": 5, "days_since_last_talk": 10}
 
-    after = rel.after_conversation(before, ["GREETING", "COMPLIMENT"], 0, {}, RULES)
+    change = rel.after_conversation(before, ["GREETING", "COMPLIMENT"], {}, RULES)
 
-    assert after == {
-        "recognition": round(rel.grow_recognition(rel.recognition_today(20, 10, RULES), 1.0, RULES)),
-        "affinity": round(rel.follow_affinity(5, rel.impression(["GREETING", "COMPLIMENT"], 0, {}, RULES), RULES)),
-    }
-    assert after["affinity"] > 5
+    recognition = round(rel.grow_recognition(rel.recognition_today(20, 10, RULES), 1.0, RULES))
+    affinity = round(rel.follow_affinity(5, rel.impression(["GREETING", "COMPLIMENT"], {}, RULES), RULES))
+    assert change == {"recognition_delta": recognition - 20, "affinity_delta": affinity - 5}
+    assert change["affinity_delta"] > 0
+
+
+def test_recognition_can_go_down_after_a_long_absence():
+    """오래 안 오면 이번 대화로 오르는 것보다 그동안 잊은 것이 커서 변화량이 음수일 수 있다."""
+    change = rel.after_conversation({"recognition": 60, "affinity": 0, "days_since_last_talk": 30}, [], {}, RULES)
+
+    assert change["recognition_delta"] < 0
 
 
 def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
@@ -95,7 +111,8 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
         stored, conversations = {"recognition": 0, "affinity": 0}, 0
         while stored["affinity"] < threshold:
             conversations += 1
-            stored = rel.after_conversation({**stored, "days_since_last_talk": 1}, events, 0, {}, RULES)
+            change = rel.after_conversation({**stored, "days_since_last_talk": 1}, events, {}, RULES)
+            stored = {name: stored[name] + change[f"{name}_delta"] for name in stored}
         return conversations
 
     assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (8, 21)
@@ -103,10 +120,10 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
 
 
 def test_a_first_meeting_starts_from_nothing():
-    after = rel.after_conversation(None, [], 1, {}, RULES)
+    change = rel.after_conversation(None, ["GREETING"], {}, RULES)
 
-    assert after["recognition"] == RULES["relationship"]["recognitionPerConversation"]
-    assert after["affinity"] < 0
+    assert change["recognition_delta"] == RULES["relationship"]["recognitionPerConversation"]
+    assert change["affinity_delta"] == round(rel.follow_affinity(0, EVENTS["GREETING"]["impression"], RULES))
 
 
 def test_rates_come_from_the_card_temperament_and_its_behavior_pieces():

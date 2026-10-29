@@ -29,20 +29,21 @@ def update(client, npc: dict = NPC, **body) -> dict:
     return r.json()
 
 
-def test_the_line_events_and_the_rules_give_the_new_relationship_without_a_model_call(client, provider):
+def test_the_line_events_and_the_rules_give_the_changes_without_a_model_call(client, provider):
+    """새 값이 아니라 변화량을 돌려준다. 백엔드가 저장값에 더하므로 종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않는다."""
     before = {"recognition": 30, "affinity": 10, "days_since_last_talk": 1}
 
     body = update(client, relationship=before)
 
     events = ["GREETING", "COMPLIMENT", "TASK_DONE", "LEAVE"]
-    assert body == {"relationship": rel.after_conversation(before, events, 0, {}, RULES), "events": events}
+    assert body == {**rel.after_conversation(before, events, {}, RULES), "events": events}
     assert provider.calls == []
 
 
 def test_a_first_meeting_needs_no_relationship(client):
     body = update(client)
 
-    assert body["relationship"] == rel.after_conversation(None, body["events"], 0, {}, RULES)
+    assert body == {**rel.after_conversation(None, body["events"], {}, RULES), "events": body["events"]}
 
 
 def test_the_same_event_counts_once_per_conversation(client):
@@ -52,41 +53,26 @@ def test_the_same_event_counts_once_per_conversation(client):
     assert update(client, history=twice) == update(client)
 
 
-def test_rudeness_counts_per_rude_line_and_its_other_events_are_dropped(client):
-    """무례는 확정된 줄마다 세고, 무례한 줄의 다른 사건(욕하면서 칭찬 등)은 버린다(이정훈 님 협의)."""
+def test_rude_lines_are_left_out_because_the_guard_already_took_affinity_off(client):
+    """무례는 발화마다 /v1/guard의 affinity_delta로 이미 깎았으므로 여기서는 세지 않는다(이중 감점 방지).
+    무례한 줄의 다른 사건(욕하면서 칭찬 등)도 버린다(이정훈 님 협의)."""
     rude = me("You idiot, your cafe is nice though.", "COMPLIMENT", rude=True)
-    history = [HISTORY[0], me("One latte.", "TASK_DONE"), rude, rude]
+    polite = [HISTORY[0], me("One latte.", "TASK_DONE")]
+    profile = {**NPC, "profile": profile_of("HOTEL_STAFF")}
 
-    body = update(client, history=history)
+    body = update(client, profile, history=[*polite, rude, rude])
 
     assert body["events"] == ["TASK_DONE"]
-    assert body["relationship"] == rel.after_conversation(None, ["TASK_DONE"], 2, {}, RULES)
+    assert body == update(client, profile, history=polite)
 
 
 def test_events_outside_the_list_are_dropped(client):
-    """목록 밖 값과 줄 사건으로 온 RUDE는 버린다. 무례는 rude 표시만 센다."""
+    """목록 밖 값과 줄 사건으로 온 RUDE는 버린다."""
     history = [HISTORY[0], me("Hi!", "GREETING", "SHOUTING", "RUDE")]
 
     body = update(client, history=history)
 
-    assert body["events"] == ["GREETING"]
-    assert body["relationship"] == rel.after_conversation(None, ["GREETING"], 0, {}, RULES)
-
-
-def with_neuroticism(profile: dict, value: float) -> dict:
-    personality = profile["personality"]
-    return {**profile, "personality": {**personality, "dimensions": {**personality["dimensions"], "neuroticism": value}}}
-
-
-def test_the_npc_temperament_changes_how_much_rudeness_hurts(client):
-    """신경성이 높은 NPC는 같은 무례에 호감이 더 깎인다. 요청의 인격 카드로 계산한 배수를 쓴다."""
-    rude = me("You idiot.", rude=True)
-    history = [rude, rude, rude]
-    jake = profile_of("HOTEL_STAFF")
-    touchy = update(client, {**NPC, "profile": with_neuroticism(jake, 1.0)}, history=history)["relationship"]["affinity"]
-    calm = update(client, {**NPC, "profile": with_neuroticism(jake, 0.0)}, history=history)["relationship"]["affinity"]
-
-    assert touchy < calm < 0
+    assert body == {**rel.after_conversation(None, ["GREETING"], {}, RULES), "events": ["GREETING"]}
 
 
 @pytest.mark.parametrize("history", [[{"who": "npc", "text": "Hi!"}], []])

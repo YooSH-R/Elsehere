@@ -172,19 +172,28 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 학습자 한 줄의 무례 여부를 판정합니다. 한 턴에서 `/v1/judge`와 같은 `text`·`history`로 **동시에** 부릅니다.
 
-요청: `npc`, `history`(최대 40줄, 판정은 마지막 4줄·로컬 판정기는 마지막 NPC 줄만 봄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+요청: `npc`(`profile`이 있으면 인격 카드의 성격으로 무례 감점 크기를 정함), `history`(최대 40줄, 판정은 마지막 4줄·로컬 판정기는 마지막 NPC 줄만 봄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
 
 응답:
 
 ```json
-{"text": "you idiot, hurry up", "dropped": false, "guard": {"abusive": true, "error": null, "error_code": null}, "usage": [{"step": "guard", "model": "...", "input_tokens": 230, "output_tokens": 1, "latency_s": 0.9, "fallback": false}]}
+{"text": "you idiot, hurry up", "dropped": false, "guard": {"abusive": true, "error": null, "error_code": null}, "affinity_delta": -4, "usage": [{"step": "guard", "model": "...", "input_tokens": 230, "output_tokens": 1, "latency_s": 0.9, "fallback": false}]}
 ```
 
 | 칸 | 규칙 |
 |---|---|
 | `text` | 행동 묘사(`*...*`)를 지운 말. `/v1/judge`의 `text`와 같은 값 |
-| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않고 `guard: null`, `usage: []` |
+| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않고 `guard: null`, `affinity_delta: null`, `usage: []` |
 | `guard` | 아래 표. 판정 실패·시간 초과(`GUARD_BUDGET_S`)도 **HTTP 200**에 `abusive: null`과 `error_code` |
+| `affinity_delta` | `abusive: true`일 때만 정수(음수), 그 밖에는 `null`. 이 무례 한 번으로 깎을 호감 |
+
+**`affinity_delta` — 무례 감점**
+
+- 백엔드는 무례로 센 발화를 저장하는 **같은 트랜잭션**에서 `affinity = max(-100, affinity + affinity_delta)`로 적용합니다. 계산은 워커, 적용은 백엔드입니다. 무례 횟수에 넣지 않는 줄([무례 처리 합의안](rudeness-handling.md) 4절의 정당방위 장면)에는 적용하지 않습니다.
+- 크기는 `무례 인상(−15) × affinityFollowRate(0.3) × NPC 무례 반응 크기`를 반올림한 값입니다. 반응 크기는 `npc.profile`의 성격 5축(신경성)과 행동 조각으로 정하고, 카드가 없으면 1입니다. 지금 규칙으로 −3~−7이고 카드가 없으면 −4입니다.
+- `abusive: true`인데 `affinity_delta`가 비어 있으면(예: 이 칸을 모르는 이전 워커) 공통 규칙 `world-rules.json`의 `relationship.rudeAffinityFallback`(−4)을 씁니다.
+- `abusive`가 `false`이거나 `null`(판정 못 함)이면 감점하지 않고 기본값도 쓰지 않습니다.
+- 대화 종료 때 `/v1/npc/relationship`(2.7.2절)은 무례를 다시 세지 않습니다.
 
 **`guard` — 무례 판정**
 
@@ -349,15 +358,16 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 ### 2.7.2 `POST /v1/npc/relationship` — 대화 뒤 관계 갱신
 
-정상 종료된 대화 하나를 사용자 × NPC 관계(알아봄·호감)에 반영합니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. **모델을 부르지 않습니다.** 사건은 의도 판정이 줄마다 고른 `history[].events`, 무례는 `rude` 줄로 세고, 새 값은 공통 규칙으로 코드가 계산합니다. 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md) 4절입니다.
+정상 종료된 대화 하나를 사용자 × NPC 관계(알아봄·호감)에 반영합니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. **모델을 부르지 않습니다.** 사건은 의도 판정이 줄마다 고른 `history[].events`로 세고, 변화량은 공통 규칙으로 코드가 계산합니다. 무례는 발화마다 `/v1/guard`의 `affinity_delta`(2.2.1절)로 이미 깎았으므로 여기서는 호감 계산에 넣지 않습니다. 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md) 4절입니다.
 
 요청: `npc`(`profile`이 있으면 성격으로 알아보는 속도·사건 반응 크기를 정함), `relationship`(저장된 `recognition`·`affinity`와 `days_since_last_talk`, 처음 만나면 생략), `history`(최대 200줄, 학습자 줄의 `rude`·`events` 포함).
 
-응답: `{"relationship": {"recognition": 23, "affinity": 3}, "events": ["GREETING", "TASK_DONE", "LEAVE"]}`
+응답: `{"recognition_delta": 8, "affinity_delta": 1, "events": ["GREETING", "TASK_DONE", "LEAVE"]}`
 
-- `relationship`을 그대로 저장합니다. 다음 대답 요청에는 여기에 그때의 `days_since_last_talk`를 더해 보냅니다.
-- 알아봄은 마지막 대화 뒤 며칠 여유를 두고 하루씩 줄어든 값에서 이번 대화만큼 오릅니다(갈수록 덜 오름). 호감은 이번 대화 인상의 일부만 따라가고 끝(±100)에 가까울수록 그쪽으로 덜 움직입니다.
-- `events`는 이번 대화에서 센 사건입니다(기록용). 같은 사건은 한 대화에서 한 번만 셉니다(칭찬을 반복해도 한 번). 무례는 `rude: true`인 줄마다 세고, 무례 줄의 다른 사건과 목록 밖 값은 버립니다.
+- 새 값이 아니라 **변화량**입니다. 백엔드는 `recognition = recognition + recognition_delta`, `affinity = affinity + affinity_delta`로 원자적으로 더합니다. 종료 처리가 겹쳐도 앞 대화의 결과를 덮어쓰지 않습니다. 다음 대답 요청에는 저장한 값에 그때의 `days_since_last_talk`를 더해 보냅니다.
+- 변화량은 요청의 저장값으로 계산한 새 값(정수로 반올림)에서 저장값을 뺀 것입니다. 그래서 겹치지 않으면 더한 결과가 새 값을 그대로 저장할 때와 같습니다.
+- 알아봄은 마지막 대화 뒤 며칠 여유를 두고 하루씩 줄어든 값에서 이번 대화만큼 오릅니다(갈수록 덜 오름). 오래 안 왔으면 `recognition_delta`가 음수일 수 있습니다. 호감은 이번 대화 인상의 일부만 따라가고 끝(±100)에 가까울수록 그쪽으로 덜 움직입니다.
+- `events`는 이번 대화에서 센 사건입니다(기록용). 같은 사건은 한 대화에서 한 번만 셉니다(칭찬을 반복해도 한 번). 무례 줄의 다른 사건과 목록 밖 값은 버립니다. 무례 줄(`rude: true`)은 대화 중 기분 계산(2.3절)에만 씁니다.
 - 잡담은 대화 중 기분만 좋게 하고 호감은 올리지 않습니다. 사적인 질문은 호감·기분에 쓰지 않습니다.
 - 영어 실수·한국어·짧은 대답은 호감을 깎을 일로 보지 않습니다(요구사항 REQ-24).
 - 학습자가 말하지 않은 대화는 400 `invalid_request`입니다.

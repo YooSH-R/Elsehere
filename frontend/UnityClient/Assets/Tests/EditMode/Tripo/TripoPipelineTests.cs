@@ -213,6 +213,26 @@ namespace A305.Tripo.Tests
             Assert.That(api.GenerationRequests, Is.Zero);
         }
 
+        [TestCase(TripoStage.Generating)]
+        [TestCase(TripoStage.Rigging)]
+        public async Task PaidSubmissionCannotRepeatAfterRestartEvenIfTaskIdIsLost(TripoStage stage)
+        {
+            var api = new FakeTripoApi();
+            var job = NewJob();
+            job.stage = stage;
+            job.generationTaskId = stage == TripoStage.Rigging ? "generation" : null;
+            var pipeline = new TripoPipeline(api, saved => { });
+            await pipeline.AdvanceAsync(job, CancellationToken.None);
+            var restored = UnityEngine.JsonUtility.FromJson<TripoJob>(UnityEngine.JsonUtility.ToJson(job));
+            if (stage == TripoStage.Generating)
+                restored.generationTaskId = null;
+            else
+                restored.rigTaskId = null;
+            Assert.ThrowsAsync<System.InvalidOperationException>(async () =>
+                await new TripoPipeline(api, saved => { }).AdvanceAsync(restored, CancellationToken.None)
+            );
+            Assert.That(stage == TripoStage.Generating ? api.GenerationRequests : api.RigRequests, Is.EqualTo(1));
+        }
         private static TripoJob NewJob()
         {
             return new TripoJob
@@ -311,3 +331,4 @@ namespace A305.Tripo.Tests
         }
     }
 }
+

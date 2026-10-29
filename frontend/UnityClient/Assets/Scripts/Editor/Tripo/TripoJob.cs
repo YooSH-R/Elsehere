@@ -130,6 +130,7 @@ namespace A305.EditorTools.Tripo
         public string rigCheckTaskId;
         public string rigTaskId;
         public bool submissionUncertain;
+        public int submittedStages;
         public string modelPath;
         public string prefabPath;
         public float generationCredits;
@@ -157,3 +158,4 @@ namespace A305.EditorTools.Tripo
         public string rig_type;
     }
 }
+

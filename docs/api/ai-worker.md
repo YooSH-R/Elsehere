@@ -100,6 +100,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `scene` | 문자열 | 장면 설명 (요청의 `scene`이 비면 이것) |
 | `tts_voice` | 문자열 (기본 `af_heart`) | Kokoro 목소리 이름 |
 | `tts_speed` | 수 0.5~2.0 (기본 1.0) | 이 NPC의 타고난 말 속도. 실제 속도는 여기에 난이도 배율을 곱함 |
+| `profile` | 객체 또는 `null` (기본 `null`) | 인격. 백엔드 인격 설정(`content/npc-configurations.json`)에서 이 NPC의 `npcProfile`을 칸 이름(camelCase)까지 그대로 넣음. 형식은 [공통 인격 스키마](npc-ai-contracts/01_npc_configuration_spec_v2.md)이고 맞지 않으면 400 `invalid_request`. 있으면 NPC 대답을 공통 규칙과 인격으로 만듦(2.3절). 인격이 없는 NPC는 `null` |
 
 `history`의 한 줄
 
@@ -228,6 +229,7 @@ delta*  →  audio*  →  words?  →  done | error
 | `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성하지 못했거나 `tts: false`면 `null` → `/v1/tts`로 다시 만듦. `usage`에 추천 단어(`suggest`)도 포함 |
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
+- `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한과 말 속도는 `profile`이 없을 때와 같습니다. `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
 - 대답은 한 줄입니다. 모델이 줄을 바꿔 다른 사람 대사를 쓰면 버립니다.
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.

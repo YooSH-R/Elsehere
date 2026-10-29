@@ -242,6 +242,7 @@ namespace A305.EditorTools.Theme
             var vocabularyLabel = button.Find("Label").GetComponent<TMP_Text>();
             vocabularyLabel.fontSize = 24;
             vocabularyLabel.fontStyle = FontStyles.Bold;
+            StyleMyPageButton(root, (RectTransform)panel);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -266,6 +267,60 @@ namespace A305.EditorTools.Theme
                 return;
             TMP_Text count = Badge(button, "CountBadge");
             BuilderTools.SetReference(view, "vocabularyCountText", count);
+        }
+
+        /// <summary>
+        /// [내 정보]를 [단어장]과 같은 높이의 알약 버튼으로 버튼 줄 끝에 두고, 패널 너비를 버튼 줄에 맞춘다. 마이페이지 창도 칠한다.
+        /// </summary>
+        private static void StyleMyPageButton(Transform root, RectTransform panel)
+        {
+            Transform button = root.Find("Panel/Buttons/MyPageButton");
+            if (button == null)
+                return;
+            PillButton(root, "Panel/Buttons/MyPageButton", UiIcon.Detail, UiTone.Neutral);
+            var size = button.GetComponent<LayoutElement>();
+            size.minWidth = size.preferredWidth = 160;
+            size.preferredHeight = 72;
+            var label = button.Find("Label").GetComponent<TMP_Text>();
+            label.fontSize = 24;
+            label.fontStyle = FontStyles.Bold;
+            RectOffset padding = panel.GetComponent<VerticalLayoutGroup>().padding;
+            var row = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>();
+            panel.sizeDelta = new Vector2(
+                padding.left + padding.right + RowWidth(row),
+                panel.sizeDelta.y
+            );
+
+            Role(root, "MyPage/Window", UiThemeRole.Panel);
+            Role(root, "MyPage/Window/Title", UiThemeRole.Title);
+            Role(root, "MyPage/Window/Profile", UiThemeRole.Body);
+            Role(root, "MyPage/Window/NicknameRow/NicknameInput", UiThemeRole.Input);
+            Role(root, "MyPage/Window/Status", UiThemeRole.Muted);
+            QuietButton(root, "MyPage/Window/NicknameRow/NicknameButton", "닉네임 변경");
+            QuietButton(root, "MyPage/Window/Buttons/LogoutButton", "로그아웃");
+            QuietButton(root, "MyPage/Window/Buttons/CloseButton", "닫기");
+            Role(root, "MyPage/LogoutDialog", UiThemeRole.Panel);
+            Role(root, "MyPage/LogoutDialog/Title", UiThemeRole.Title);
+            Role(root, "MyPage/LogoutDialog/Body", UiThemeRole.Body);
+            Role(root, "MyPage/LogoutDialog/Status", UiThemeRole.Muted);
+            QuietButton(root, "MyPage/LogoutDialog/Buttons/CancelButton", "취소");
+            QuietButton(root, "MyPage/LogoutDialog/Buttons/ConfirmButton", "로그아웃");
+        }
+
+        // 오른쪽 정렬한 버튼 줄에서 켜진 버튼의 너비와 간격을 더한다.
+        private static float RowWidth(HorizontalLayoutGroup row)
+        {
+            float width = 0;
+            int count = 0;
+            foreach (Transform child in row.transform)
+            {
+                var size = child.GetComponent<LayoutElement>();
+                if (!child.gameObject.activeSelf || size == null)
+                    continue;
+                width += size.preferredWidth;
+                count++;
+            }
+            return width + row.spacing * Mathf.Max(0, count - 1);
         }
 
         private static void StyleFeedback(Transform root)
@@ -618,9 +673,8 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 테마 버튼을 오른쪽 위 단어장 버튼 바로 왼쪽에 같은 크기·높이·간격으로 둔다.
-        /// 두 화면은 같은 기준 해상도의 캔버스라, 단어장 칸의 위치와 안쪽 여백으로 자리를 계산한다.
-        /// 단어장 버튼은 오른쪽 정렬한 버튼 줄의 맨 오른쪽 버튼이다.
+        /// 테마 버튼을 오른쪽 위 HUD 버튼 줄([단어장]·[내 정보]) 바로 왼쪽에 단어장 버튼과 같은 크기·높이·간격으로 둔다.
+        /// 두 화면은 같은 기준 해상도의 캔버스라, HUD 칸의 위치와 안쪽 여백, 오른쪽 정렬한 버튼 줄의 너비로 자리를 계산한다.
         /// </summary>
         private static void StyleThemeLauncher(Transform root)
         {
@@ -650,13 +704,15 @@ namespace A305.EditorTools.Theme
                 return;
             }
             RectOffset padding = panel.GetComponent<VerticalLayoutGroup>().padding;
-            float spacing = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>().spacing;
+            var row = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>();
+            float spacing = row.spacing;
+            float rowWidth = RowWidth(row);
             var size = new Vector2(vocabulary.preferredWidth, vocabulary.preferredHeight);
             Place(
                 open,
                 new Vector2(1, 1),
                 new Vector2(
-                    panel.anchoredPosition.x - padding.right - size.x - spacing,
+                    panel.anchoredPosition.x - padding.right - rowWidth - spacing,
                     panel.anchoredPosition.y - padding.top
                 ),
                 size

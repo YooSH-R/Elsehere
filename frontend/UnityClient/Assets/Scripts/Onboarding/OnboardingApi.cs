@@ -5,8 +5,8 @@ using A305.Api;
 
 namespace A305.Onboarding
 {
-    /// <summary>입구 화면이 쓰는 API의 경로와 본문. 경로는 API 명세(docs/api/mvp-api.md)를 따른다.</summary>
-    public sealed class OnboardingApi : IOnboardingApi
+    /// <summary>입구 화면과 로그아웃이 쓰는 API의 경로와 본문. 경로는 API 명세(docs/api/mvp-api.md)를 따른다.</summary>
+    public sealed class OnboardingApi : IOnboardingApi, IMyPageApi, ILogoutApi
     {
         private readonly ApiClient client;
 
@@ -25,6 +25,19 @@ namespace A305.Onboarding
         public Task DevLoginAsync(long userId)
         {
             return client.PostAsync("/api/v1/dev/login", new DevLoginRequest { UserId = userId });
+        }
+
+        public Task LogoutAsync()
+        {
+            return client.PostAsync("/api/v1/auth/logout", null);
+        }
+
+        public Task<NicknameChange> ChangeNicknameAsync(string nickname)
+        {
+            return client.PutAsync<NicknameChange>(
+                "/api/v1/me/nickname",
+                new NicknameChange { Nickname = nickname }
+            );
         }
 
         public Task GuestLoginAsync(AvatarType avatarType)

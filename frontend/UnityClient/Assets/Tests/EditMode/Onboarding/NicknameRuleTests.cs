@@ -43,5 +43,19 @@ namespace A305.Onboarding.Tests
         {
             Assert.That(NicknameRule.Check(nickname), Is.EqualTo(NicknameProblem.InvalidCharacter));
         }
+
+        [TestCase(NicknameProblem.TooShort, "2자 이상 입력해 주세요.")]
+        [TestCase(NicknameProblem.TooLong, "한글은 8자, 영문·숫자는 16자까지 쓸 수 있어요.")]
+        [TestCase(NicknameProblem.InvalidCharacter, "한글, 영문, 숫자만 쓸 수 있어요.")]
+        public void Describe_Problem_TellsHowToFix(NicknameProblem problem, string expected)
+        {
+            Assert.That(NicknameRule.Describe(problem), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Describe_NoProblem_SaysNothing()
+        {
+            Assert.That(NicknameRule.Describe(NicknameProblem.None), Is.Null);
+        }
     }
 }

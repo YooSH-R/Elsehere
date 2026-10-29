@@ -133,6 +133,11 @@ public class User extends BaseEntity {
     this.uiTheme = uiTheme;
   }
 
+  /** 닉네임을 바꾼다(USER-04). 규칙과 중복은 호출하는 쪽에서 확인한다. */
+  public void changeNickname(String nickname) {
+    this.nickname = nickname;
+  }
+
   /** 재접속할 장소를 바꾼다(WORLD-05). */
   public void moveTo(Scene scene) {
     this.lastScene = scene;

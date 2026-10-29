@@ -104,14 +104,9 @@ namespace A305.Onboarding
                 return "한글 2~8자 또는 영문·숫자 2~16자로 정해 주세요.";
             }
 
-            switch (form.NicknameProblem)
+            if (form.NicknameProblem != NicknameProblem.None)
             {
-                case NicknameProblem.TooShort:
-                    return "2자 이상 입력해 주세요.";
-                case NicknameProblem.TooLong:
-                    return "한글은 8자, 영문·숫자는 16자까지 쓸 수 있어요.";
-                case NicknameProblem.InvalidCharacter:
-                    return "한글, 영문, 숫자만 쓸 수 있어요.";
+                return NicknameRule.Describe(form.NicknameProblem);
             }
 
             switch (form.NicknameStatus)

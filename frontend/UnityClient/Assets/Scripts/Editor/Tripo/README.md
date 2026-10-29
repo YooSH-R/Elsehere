@@ -587,3 +587,13 @@ API Character 자동 리깅과 다운로드 완료 시 마스터 적용·보정�
 `TripoCharacterHeadFitBuilder.Prepare`는 같은 기준으로 준비한 단일 스킨 머리를 별도 사본으로 맞춘다. 머리 외곽 치수를 맞추고, 보이는 목 부분에는 기준 남성 머리의 목 경계에 붙은 실제 면·UV·노멀·탄젠트·머티리얼을 재사용한다. 바디와 접하는 정점도 기준 목의 위치·가중치를 그대로 사용한다. 여성 머리와의 연결 띠는 이 목 패치의 바깥 경계에서 턱 안쪽으로 이어진다. UV 전용 정점을 분리하고 기준 목의 머티리얼 슬롯을 추가해 단색 패치와 기존 피부 텍스처 사이의 삼각형 색 경계를 피한다. 단일 닫힌 목 경계를 식별할 수 없는 모델은 임의로 메우지 않고 중단한다. 새로운 얼굴의 모든 형상·표정 품질을 보장하는 범용 리토폴로지 도구는 아니다.
 
 현재 여성 수정 후보는 `Assets/Art/Characters/Common/LittleMungMaster/SmoothNeck/FemaleCasualFitted/Composition.asset`이다. Project에서 이 에셋을 선택하고 **Common Character Builder**를 열면 수정된 머리와 공통 바디를 확인할 수 있다. 머리 부품은 `Assets/Art/Characters/Common/LittleMungMaster/SmoothNeck/Head/Part.asset`이며, 기존 `Heads/Female` 사본과 원본 여성 프리팹은 보존한다. `TripoCharacterBootstrap.Build`로 새 라이브러리를 준비할 때도 여성 머리 맞춤 단계를 거친다.
+
+### 손 변형 원인 비교용 배치 검사
+
+Unity를 닫은 상태에서 `-batchmode -quit -executeMethod A305.EditorTools.Tripo.TripoHandReview.Render`로 원본·이전 후보·수정 후보를 같은 손 구도로 렌더할 수 있다. 화면 조작이나 생성 API 호출은 하지 않는다.
+
+- `TRIPO_HAND_MODELS`: 프로젝트 안의 모델/프리팹 경로를 `|`로 구분한다.
+- `TRIPO_HAND_OUTPUT`: 비교 이미지와 정점·본·가중치 진단 JSON을 저장할 외부 폴더다.
+- `TRIPO_HAND_FULL=1`: 옷·손목을 포함한 실제 메시를 그대로 렌더한다. 기본값은 손 가중치 영역만 분리한 진단 화면이므로 손목의 잘린 경계를 원본 결함으로 해석하지 않는다.
+
+기준 자세와 동일한 Idle/Run 클립의 35% 시점을 양손 세 방향에서 비교한다. 체형 기준 길이를 맞추지만 각 모델의 실제 손 크기·손가락 위치 차이는 남는다. 원본에서도 같은 형태가 보이면 원본 조형과 모션의 영향이며, 마스터 적용 후에만 늘어나거나 꺾이면 바인딩·정렬을 먼저 확인한다. 실제 이동·점프와 몸 관통은 별도의 PlayMode 검사를 함께 수행한다.

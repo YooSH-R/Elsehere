@@ -71,7 +71,8 @@ class EntitySchemaTest {
             "ai_requests",
             "conversation_feedback",
             "turn_feedback",
-            "user_npc_relations")
+            "user_npc_relations",
+            "training_recordings")
         // 장소별 사물 단어로 바꾸면서 없앤 사물 단위 테이블은 다시 만들지 않는다.
         .doesNotContain("world_objects", "user_object_prefs");
   }

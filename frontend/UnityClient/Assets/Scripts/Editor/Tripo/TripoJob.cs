@@ -133,6 +133,7 @@ namespace A305.EditorTools.Tripo
         public int submittedStages;
         public string modelPath;
         public string prefabPath;
+        public string reviewRecordPath;
         public float generationCredits;
         public float rigCredits;
     }
@@ -158,4 +159,3 @@ namespace A305.EditorTools.Tripo
         public string rig_type;
     }
 }
-

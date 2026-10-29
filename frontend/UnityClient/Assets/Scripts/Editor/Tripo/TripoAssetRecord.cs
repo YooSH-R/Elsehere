@@ -19,6 +19,11 @@ namespace A305.EditorTools.Tripo
         public string masterPreparedPath;
         public TripoMasterBindingStamp masterBinding;
         public string registeredPrefabPath;
+        public string finalPrefabPath;
+        public string reviewScenePath;
+        public string reviewSceneFingerprint;
+        public string reviewSceneHash;
+        public string automaticStatus;
         public GameObject sourceModel;
         public TripoValidationProfile profile;
         public TripoAssetKind kind;
@@ -87,7 +92,7 @@ namespace A305.EditorTools.Tripo
             string settings = profile == null ? "missing-profile" : JsonUtility.ToJson(profile);
             return Hash128
                 .Compute(
-                    "validation:master-rig-v4-torso-idle\n"
+                    "validation:master-rig-v5-head-surface\n"
                         + modelPath
                         + "\n"
                         + modelHash

@@ -33,7 +33,7 @@ namespace A305.EditorTools.Tripo
             GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(job.modelAssetPath);
             if (job.autoRig)
                 TripoModelReview.RequireHumanoid(model);
-            return TripoPrefabBuilder.Build(model, job.prefabPath, job.heightMeters);
+            return model;
         }
 
         public static void ConfigureModel(string path, bool humanoid = true)

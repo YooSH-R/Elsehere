@@ -31,12 +31,15 @@ namespace A305.EditorTools.Tripo
             CopyTextures(source, destination);
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             TripoModelImporter.ConfigureModel(modelPath, kind == TripoAssetKind.Character);
-            return StartReview(
+            // 원본 FBX 왕복은 원본끼리 비교한다. 사용자 작업대는 이후 통합 검사를 이어 실행한다.
+            var record = TripoWorkbenchAssets.CreateRecord(
                 AssetDatabase.LoadAssetAtPath<GameObject>(modelPath),
                 kind,
                 attachment,
                 destination + "/Review"
             );
+            TripoWorkbench.Validate(record);
+            return record;
         }
 
         public static async Task<TripoAuditReport> ImportBlenderCandidateAsync(
@@ -76,7 +79,13 @@ namespace A305.EditorTools.Tripo
         )
         {
             var record = TripoWorkbenchAssets.CreateRecord(model, kind, attachment, folder);
-            TripoWorkbench.Validate(record);
+            if (kind == TripoAssetKind.Character)
+            {
+                if (!TripoLocalImport.ReadyForAppearance(record))
+                    TripoLocalImport.Review(record);
+            }
+            else
+                TripoWorkbench.Validate(record);
             return record;
         }
 

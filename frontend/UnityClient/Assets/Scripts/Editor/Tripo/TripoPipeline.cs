@@ -367,4 +367,3 @@ namespace A305.EditorTools.Tripo
         }
     }
 }
-

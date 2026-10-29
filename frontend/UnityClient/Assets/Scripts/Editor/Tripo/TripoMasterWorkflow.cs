@@ -19,6 +19,18 @@ namespace A305.EditorTools.Tripo
             TripoModelReview.RequireHumanoid(master);
             if (AssetDatabase.LoadAssetAtPath<GameObject>(VisualTemplate) == null)
                 throw new InvalidOperationException("서비스 공통 골격 부모 프리팹이 없습니다.");
+            foreach (
+                var motion in new[]
+                {
+                    TripoReviewMotion.Idle,
+                    TripoReviewMotion.Walk,
+                    TripoReviewMotion.Run,
+                    TripoReviewMotion.Rise,
+                    TripoReviewMotion.Fall,
+                    TripoReviewMotion.Land,
+                }
+            )
+                TripoMotionPreview.LoadPlayerClip(motion);
             return master;
         }
 
@@ -118,7 +130,7 @@ namespace A305.EditorTools.Tripo
             }
         }
 
-        [MenuItem("Tools/A305/Assets/Apply Service Master To Selected Record")]
+        [MenuItem("Tools/A305/Development/Tripo/Apply Service Master To Selected Record")]
         public static void ApplySelected()
         {
             if (!BuilderTools.CanBuild())

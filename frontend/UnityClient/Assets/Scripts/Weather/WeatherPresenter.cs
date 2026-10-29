@@ -1,10 +1,12 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 namespace A305.Weather
 {
     /// <summary>
-    /// 예보한 날씨에 맞춰 실외 장소의 하늘·해·환경광·안개·구름과 비를 바꾼다. 맑음은 씬에 디자인된 모습이다.
+    /// 예보한 날씨에 맞춰 실외 장소의 하늘·해·환경광·안개·구름과 날씨 효과를 바꾼다.
+    /// 날씨 종류는 <see cref="WeatherSettings"/>의 정의 에셋 목록에서 서버 값으로 찾는다.
     /// 하늘·구름 머티리얼은 사본을 물들여 원본 에셋을 바꾸지 않는다.
     /// </summary>
     public sealed class WeatherPresenter : MonoBehaviour
@@ -23,16 +25,15 @@ namespace A305.Weather
         private Transform clouds;
 
         [SerializeField]
-        [Tooltip("흐림·비일 때만 하늘을 덮는 구름")]
+        [Tooltip("하늘을 덮는 날씨(흐림·비 등)에만 띄우는 구름")]
         private GameObject overcastClouds;
 
         [SerializeField]
-        private ParticleSystem rain;
+        [Tooltip("날씨 효과가 머리 위에서 따라갈 대상. 보통 플레이어")]
+        private Transform effectFollowTarget;
 
-        [SerializeField]
-        [Tooltip("빗방울이 머리 위에서 따라갈 대상. 보통 플레이어")]
-        private Transform rainFollowTarget;
-
+        private readonly Dictionary<WeatherDefinition, GameObject> effects =
+            new Dictionary<WeatherDefinition, GameObject>();
         private bool prepared;
         private WeatherLook designedLook;
         private WeatherLook shownLook;
@@ -40,13 +41,18 @@ namespace A305.Weather
         private WeatherLook blendTo;
         private float blendElapsedSeconds;
         private bool blending;
+        private GameObject shownEffect;
+        private GameObject leavingEffect;
         private Material designedSky;
         private Material sky;
         private Material designedCloud;
         private Material cloud;
         private Renderer[] cloudRenderers;
 
-        public WeatherKind Current { get; private set; } = WeatherKind.Clear;
+        /// <summary>마지막으로 보여 준 날씨. 아직 바꾸지 않았으면 null이고 씬 디자인 그대로다.</summary>
+        public WeatherDefinition Current { get; private set; }
+
+        public WeatherSettings Settings => settings;
 
         private void Awake()
         {
@@ -55,36 +61,43 @@ namespace A305.Weather
                 || sun == null
                 || clouds == null
                 || overcastClouds == null
-                || rain == null
-                || rainFollowTarget == null;
+                || effectFollowTarget == null;
             if (missingReference)
             {
-                Debug.LogError("날씨 설정·해·구름·비·비가 따라갈 대상 참조가 필요합니다.", this);
+                Debug.LogError("날씨 설정·해·구름·효과가 따라갈 대상 참조가 필요합니다.", this);
                 enabled = false;
                 return;
             }
             Prepare();
         }
 
-        /// <summary>지금 보이는 모습에서 새 날씨로 설정한 시간 동안 섞는다.</summary>
-        public void Show(WeatherKind kind)
+        /// <summary>
+        /// 서버 값(code)의 날씨로 설정한 시간 동안 섞어 바꾼다. 목록에 없는 날씨면 fallbackCode의 날씨를 보여 준다.
+        /// </summary>
+        public void Show(string code, string fallbackCode)
         {
+            WeatherDefinition weather = Resolve(code, fallbackCode);
+            if (weather == null)
+                return;
             Prepare();
-            ChangeWeather(kind);
+            ChangeWeather(weather);
             blendFrom = shownLook;
-            blendTo = settings.LookFor(kind, designedLook);
+            blendTo = weather.LookOver(designedLook);
             blendElapsedSeconds = 0f;
             blending = true;
         }
 
         /// <summary>섞지 않고 바로 바꾼다. Editor 미리보기처럼 프레임이 흐르지 않을 때 쓴다.</summary>
-        public void ShowImmediately(WeatherKind kind)
+        public void ShowImmediately(string code)
         {
+            WeatherDefinition weather = Resolve(code, null);
+            if (weather == null)
+                return;
             Prepare();
-            ChangeWeather(kind);
+            ChangeWeather(weather);
             blending = false;
-            Apply(settings.LookFor(kind, designedLook));
-            overcastClouds.SetActive(kind != WeatherKind.Clear);
+            Apply(weather.LookOver(designedLook));
+            FinishChange();
         }
 
         private void Update()
@@ -100,14 +113,13 @@ namespace A305.Weather
             if (amount < 1f)
                 return;
             blending = false;
-            // 맑아질 때는 하늘이 다 밝아진 뒤에 덮고 있던 구름을 걷는다.
-            overcastClouds.SetActive(Current != WeatherKind.Clear);
+            FinishChange();
         }
 
         private void LateUpdate()
         {
-            if (prepared && rain.isPlaying)
-                MoveRainOverTarget();
+            if (shownEffect != null)
+                MoveOverTarget(shownEffect);
         }
 
         private void OnDestroy()
@@ -123,6 +135,17 @@ namespace A305.Weather
             }
             Destroy(sky);
             Destroy(cloud);
+        }
+
+        private WeatherDefinition Resolve(string code, string fallbackCode)
+        {
+            WeatherDefinition weather = settings.Resolve(code, fallbackCode);
+            if (weather == null)
+                Debug.LogWarning(
+                    $"날씨 '{code}'와 대신할 '{fallbackCode}'가 {settings.name}에 없어 날씨를 바꾸지 않습니다.",
+                    this
+                );
+            return weather;
         }
 
         private void Prepare()
@@ -144,7 +167,7 @@ namespace A305.Weather
                 sky = new Material(designedSky);
                 RenderSettings.skybox = sky;
             }
-            // 흐림·비 구름도 같은 색으로 물들도록 모든 구름이 사본 하나를 함께 쓴다.
+            // 하늘을 덮는 구름도 같은 색으로 물들도록 모든 구름이 사본 하나를 함께 쓴다.
             if (designedCloud != null)
             {
                 cloud = new Material(designedCloud);
@@ -152,27 +175,71 @@ namespace A305.Weather
                     cloudRenderer.sharedMaterial = cloud;
             }
             overcastClouds.SetActive(false);
-            rain.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
-        private void ChangeWeather(WeatherKind kind)
+        private void ChangeWeather(WeatherDefinition weather)
         {
-            Current = kind;
-            if (kind != WeatherKind.Clear)
+            Current = weather;
+            if (weather.CoversSky)
                 overcastClouds.SetActive(true);
-            if (kind == WeatherKind.Rain && !rain.isEmitting)
+            GameObject nextEffect = EffectOf(weather);
+            if (nextEffect != shownEffect)
             {
-                MoveRainOverTarget();
-                rain.Play(true);
+                // 떠나는 효과는 새로 만들지만 않게 멈추고, 이미 떨어지던 것은 섞기가 끝날 때 거둔다.
+                PutAwayLeavingEffect();
+                if (shownEffect != null)
+                {
+                    foreach (
+                        ParticleSystem particles in shownEffect.GetComponentsInChildren<ParticleSystem>()
+                    )
+                        particles.Stop(false, ParticleSystemStopBehavior.StopEmitting);
+                    leavingEffect = shownEffect;
+                }
+                shownEffect = nextEffect;
             }
-            if (kind != WeatherKind.Rain)
-                rain.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            if (shownEffect == null)
+                return;
+            MoveOverTarget(shownEffect);
+            shownEffect.SetActive(true);
+            foreach (
+                ParticleSystem particles in shownEffect.GetComponentsInChildren<ParticleSystem>()
+            )
+                particles.Play(false);
         }
 
-        private void MoveRainOverTarget()
+        private void FinishChange()
         {
-            rain.transform.position =
-                rainFollowTarget.position + Vector3.up * settings.RainHeightMeters;
+            // 맑아질 때는 하늘이 다 밝아진 뒤에 덮고 있던 구름을 걷는다.
+            overcastClouds.SetActive(Current.CoversSky);
+            PutAwayLeavingEffect();
+        }
+
+        private void PutAwayLeavingEffect()
+        {
+            if (leavingEffect != null)
+                leavingEffect.SetActive(false);
+            leavingEffect = null;
+        }
+
+        /// <summary>날씨 효과를 처음 쓸 때 만들어 두고 다시 쓴다. 효과가 없는 날씨는 null이다.</summary>
+        private GameObject EffectOf(WeatherDefinition weather)
+        {
+            if (weather.Effect == null)
+                return null;
+            if (!effects.TryGetValue(weather, out GameObject effect))
+            {
+                effect = Instantiate(weather.Effect, transform);
+                effect.name = weather.Effect.name;
+                effect.SetActive(false);
+                effects.Add(weather, effect);
+            }
+            return effect;
+        }
+
+        private void MoveOverTarget(GameObject effect)
+        {
+            effect.transform.position =
+                effectFollowTarget.position + Vector3.up * settings.EffectHeightMeters;
         }
 
         private WeatherLook ReadDesignedLook()

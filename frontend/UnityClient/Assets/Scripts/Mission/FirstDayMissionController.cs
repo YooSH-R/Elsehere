@@ -110,7 +110,7 @@ namespace A305.Mission
                 state = response;
                 view.ShowMessage("");
                 if (weather != null)
-                    weather.Show(state.Forecast);
+                    weather.Show(state.Weather, state.FallbackWeather);
             }
             catch (ApiException exception)
             {

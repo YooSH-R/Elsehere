@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using A305.Api;
-using A305.Weather;
 using NUnit.Framework;
 
 namespace A305.Mission.Tests
@@ -40,55 +39,25 @@ namespace A305.Mission.Tests
             Assert.That(state.Destination, Is.Null);
         }
 
-        [TestCase("CLEAR", WeatherKind.Clear)]
-        [TestCase("CLOUDY", WeatherKind.Cloudy)]
-        [TestCase("RAIN", WeatherKind.Rain)]
-        public void Forecast_ServerWeather_DecidesTownWeather(string weather, WeatherKind expected)
-        {
-            FirstDayMissionState state = State(started: true, completed: false);
-            state.Weather = weather;
-
-            Assert.That(state.Forecast, Is.EqualTo(expected));
-        }
-
-        [Test]
-        public void Forecast_ServerWeather_WinsOverRaining()
-        {
-            FirstDayMissionState state = State(started: true, completed: false);
-            state.Raining = true;
-            state.Weather = "CLOUDY";
-
-            Assert.That(state.Forecast, Is.EqualTo(WeatherKind.Cloudy));
-        }
-
-        [TestCase(true, WeatherKind.Rain)]
-        [TestCase(false, WeatherKind.Clear)]
-        public void Forecast_WithoutServerWeather_FollowsRaining(bool raining, WeatherKind expected)
+        [TestCase(true, "RAIN")]
+        [TestCase(false, "CLEAR")]
+        public void FallbackWeather_FollowsRaining(bool raining, string expected)
         {
             FirstDayMissionState state = State(started: true, completed: false);
             state.Raining = raining;
 
-            Assert.That(state.Forecast, Is.EqualTo(expected));
+            Assert.That(state.FallbackWeather, Is.EqualTo(expected));
         }
 
         [Test]
-        public void Forecast_UnknownServerWeather_FollowsRaining()
-        {
-            FirstDayMissionState state = State(started: true, completed: false);
-            state.Raining = true;
-            state.Weather = "SNOW";
-
-            Assert.That(state.Forecast, Is.EqualTo(WeatherKind.Rain));
-        }
-
-        [Test]
-        public void Forecast_ReadsWeatherFieldOfServerResponse()
+        public void Weather_ReadsServerForecastAndKeepsRainingFallback()
         {
             FirstDayMissionState state = ApiJson.Deserialize<FirstDayMissionState>(
                 "{\"started\":true,\"stage\":3,\"raining\":false,\"weather\":\"CLOUDY\"}"
             );
 
-            Assert.That(state.Forecast, Is.EqualTo(WeatherKind.Cloudy));
+            Assert.That(state.Weather, Is.EqualTo("CLOUDY"));
+            Assert.That(state.FallbackWeather, Is.EqualTo("CLEAR"));
         }
 
         private static FirstDayMissionState State(bool started, bool completed) =>

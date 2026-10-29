@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -11,6 +12,7 @@ namespace A305.Weather.PlayModeTests
     public class WeatherPresenterTests
     {
         private const float TransitionSeconds = .2f;
+        private const float EffectHeightMeters = 7f;
         private const float ClearSunIntensity = 1.7f;
         private const float ClearShadowStrength = .78f;
         private const float ClearFogEndMeters = 125f;
@@ -19,15 +21,33 @@ namespace A305.Weather.PlayModeTests
         private static readonly Color ClearAmbientSky = new Color(.55f, .7f, .85f);
         private static readonly Color ClearCloud = new Color(1f, .98f, .95f);
 
+        private static readonly WeatherLook CloudyLook = Look(
+            .95f,
+            .35f,
+            new Color(.47f, .53f, .6f),
+            110f
+        );
+        private static readonly WeatherLook RainLook = Look(
+            .6f,
+            .15f,
+            new Color(.36f, .41f, .47f),
+            80f
+        );
+        private static readonly WeatherLook SnowLook = Look(
+            1.1f,
+            .4f,
+            new Color(.7f, .74f, .8f),
+            70f
+        );
+
         private readonly SavedRenderSettings saved = new SavedRenderSettings();
+        private readonly List<Object> created = new List<Object>();
         private WeatherSettings settings;
         private Material designedSky;
         private Material designedCloud;
         private Light sun;
-        private Transform clouds;
         private GameObject overcast;
         private Renderer cloud;
-        private ParticleSystem rain;
         private Transform player;
         private WeatherPresenter presenter;
 
@@ -35,22 +55,32 @@ namespace A305.Weather.PlayModeTests
         public void SetUp()
         {
             saved.Read();
-            settings = ScriptableObject.CreateInstance<WeatherSettings>();
-            SetTransitionSeconds(TransitionSeconds);
+            settings = WeatherSettings.Create(
+                TransitionSeconds,
+                EffectHeightMeters,
+                Keep(WeatherDefinition.Create("CLEAR", default, keepDesignedLook: true)),
+                Keep(WeatherDefinition.Create("CLOUDY", CloudyLook, coversSky: true)),
+                Keep(
+                    WeatherDefinition.Create(
+                        "RAIN",
+                        RainLook,
+                        coversSky: true,
+                        effect: EffectTemplate("RainEffect")
+                    )
+                ),
+                // 코드에 없는 새 날씨도 정의만 넣으면 보이는지 확인한다.
+                Keep(
+                    WeatherDefinition.Create(
+                        "SNOW",
+                        SnowLook,
+                        coversSky: true,
+                        effect: EffectTemplate("SnowEffect")
+                    )
+                )
+            );
+            Keep(settings);
             SetUpDesignedClearDay();
-
-            var root = new GameObject("TownWeather");
-            root.SetActive(false);
-            presenter = root.AddComponent<WeatherPresenter>();
-            var fields = new SerializedObject(presenter);
-            fields.FindProperty("settings").objectReferenceValue = settings;
-            fields.FindProperty("sun").objectReferenceValue = sun;
-            fields.FindProperty("clouds").objectReferenceValue = clouds;
-            fields.FindProperty("overcastClouds").objectReferenceValue = overcast;
-            fields.FindProperty("rain").objectReferenceValue = rain;
-            fields.FindProperty("rainFollowTarget").objectReferenceValue = player;
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            root.SetActive(true);
+            presenter = NewPresenter();
         }
 
         [TearDown]
@@ -58,48 +88,33 @@ namespace A305.Weather.PlayModeTests
         {
             if (presenter != null)
                 Object.DestroyImmediate(presenter.gameObject);
-            foreach (
-                Object created in new Object[]
-                {
-                    sun.gameObject,
-                    clouds.gameObject,
-                    overcast,
-                    rain.gameObject,
-                    player.gameObject,
-                    designedSky,
-                    designedCloud,
-                    settings,
-                }
-            )
-                Object.DestroyImmediate(created);
+            foreach (Object item in created)
+            {
+                if (item != null)
+                    Object.DestroyImmediate(item);
+            }
+            created.Clear();
             saved.Restore();
         }
 
         [UnityTest]
-        public IEnumerator Rain_AfterTransition_DarkensSkyAndSunAndStartsRain()
+        public IEnumerator Rain_AfterTransition_DarkensSkyAndDropsRain()
         {
-            WeatherLook expected = settings.LookFor(WeatherKind.Rain, default);
-
-            presenter.Show(WeatherKind.Rain);
+            presenter.Show("RAIN", "CLEAR");
             yield return WaitForTransition();
 
-            Assert.That(presenter.Current, Is.EqualTo(WeatherKind.Rain));
-            Assert.That(rain.isEmitting, Is.True, "빗방울이 내려야 합니다.");
+            Assert.That(presenter.Current.Code, Is.EqualTo("RAIN"));
+            Assert.That(Effect("RainEffect").isEmitting, Is.True, "빗방울이 내려야 합니다.");
             Assert.That(overcast.activeSelf, Is.True, "비구름이 하늘을 덮어야 합니다.");
-            Assert.That(sun.intensity, Is.EqualTo(expected.sunIntensity).Within(.001f));
-            Assert.That(sun.intensity, Is.LessThan(ClearSunIntensity));
-            AssertColor(RenderSettings.ambientSkyColor, expected.ambientSky);
-            AssertColor(RenderSettings.fogColor, expected.fogColor);
+            Assert.That(sun.intensity, Is.EqualTo(RainLook.sunIntensity).Within(.001f));
+            AssertColor(RenderSettings.ambientSkyColor, RainLook.ambientSky);
+            AssertColor(RenderSettings.fogColor, RainLook.fogColor);
             Assert.That(
                 RenderSettings.fogEndDistance,
-                Is.EqualTo(expected.fogEndMeters).Within(.01f)
+                Is.EqualTo(RainLook.fogEndMeters).Within(.01f)
             );
-            AssertColor(RenderSettings.skybox.GetColor("_Zenith"), expected.skyZenith);
-            Assert.That(
-                RenderSettings.skybox.GetColor("_Zenith").grayscale,
-                Is.LessThan(ClearZenith.grayscale)
-            );
-            AssertColor(cloud.sharedMaterial.color, expected.cloudColor);
+            AssertColor(RenderSettings.skybox.GetColor("_Zenith"), RainLook.skyZenith);
+            AssertColor(cloud.sharedMaterial.color, RainLook.cloudColor);
             AssertColor(
                 designedSky.GetColor("_Zenith"),
                 ClearZenith,
@@ -111,31 +126,34 @@ namespace A305.Weather.PlayModeTests
         [UnityTest]
         public IEnumerator Cloudy_AfterTransition_DimsSkyUnderCloudsWithoutRain()
         {
-            WeatherLook expected = settings.LookFor(WeatherKind.Cloudy, default);
-
-            presenter.Show(WeatherKind.Cloudy);
+            presenter.Show("CLOUDY", "CLEAR");
             yield return WaitForTransition();
 
-            Assert.That(presenter.Current, Is.EqualTo(WeatherKind.Cloudy));
-            Assert.That(rain.isEmitting, Is.False, "흐린 날에는 비가 오지 않습니다.");
+            Assert.That(presenter.Current.Code, Is.EqualTo("CLOUDY"));
             Assert.That(overcast.activeSelf, Is.True, "구름이 하늘을 덮어야 합니다.");
-            Assert.That(sun.intensity, Is.EqualTo(expected.sunIntensity).Within(.001f));
+            Assert.That(
+                presenter.GetComponentInChildren<ParticleSystem>(),
+                Is.Null,
+                "흐린 날에는 비가 오지 않습니다."
+            );
+            Assert.That(sun.intensity, Is.EqualTo(CloudyLook.sunIntensity).Within(.001f));
             Assert.That(sun.shadowStrength, Is.LessThan(ClearShadowStrength));
-            AssertColor(RenderSettings.skybox.GetColor("_Zenith"), expected.skyZenith);
-            AssertColor(cloud.sharedMaterial.color, expected.cloudColor);
+            AssertColor(RenderSettings.skybox.GetColor("_Zenith"), CloudyLook.skyZenith);
+            AssertColor(cloud.sharedMaterial.color, CloudyLook.cloudColor);
         }
 
         [UnityTest]
-        public IEnumerator Clear_AfterRain_RestoresDesignedSceneAndStopsRain()
+        public IEnumerator Clear_AfterRain_RestoresDesignedSceneAndPutsRainAway()
         {
-            presenter.Show(WeatherKind.Rain);
+            presenter.Show("RAIN", "CLEAR");
             yield return WaitForTransition();
+            ParticleSystem rain = Effect("RainEffect");
             Assert.That(rain.isEmitting, Is.True, "맑아지기 전에는 비가 오고 있어야 합니다.");
 
-            presenter.Show(WeatherKind.Clear);
+            presenter.Show("CLEAR", "CLEAR");
             yield return WaitForTransition();
 
-            Assert.That(rain.isEmitting, Is.False);
+            Assert.That(rain.gameObject.activeSelf, Is.False, "맑아지면 빗방울을 거둬야 합니다.");
             Assert.That(overcast.activeSelf, Is.False, "맑아지면 덮던 구름을 걷어야 합니다.");
             Assert.That(sun.intensity, Is.EqualTo(ClearSunIntensity).Within(.001f));
             Assert.That(sun.shadowStrength, Is.EqualTo(ClearShadowStrength).Within(.001f));
@@ -146,48 +164,82 @@ namespace A305.Weather.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator NewWeatherAsset_ShowsItsOwnLookAndEffect()
+        {
+            presenter.Show("SNOW", "CLEAR");
+            yield return WaitForTransition();
+
+            Assert.That(presenter.Current.Code, Is.EqualTo("SNOW"));
+            Assert.That(Effect("SnowEffect").isEmitting, Is.True, "눈송이가 내려야 합니다.");
+            Assert.That(
+                presenter.transform.Find("RainEffect"),
+                Is.Null,
+                "다른 날씨 효과는 만들지 않습니다."
+            );
+            Assert.That(sun.intensity, Is.EqualTo(SnowLook.sunIntensity).Within(.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator UnknownWeather_ShowsFallbackWeather()
+        {
+            presenter.Show("HAIL", "RAIN");
+            yield return WaitForTransition();
+
+            Assert.That(presenter.Current.Code, Is.EqualTo("RAIN"));
+            Assert.That(Effect("RainEffect").isEmitting, Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator Show_ChangesSkyGraduallyInsteadOfAtOnce()
         {
-            SetTransitionSeconds(5f);
-            float rainIntensity = settings.LookFor(WeatherKind.Rain, default).sunIntensity;
+            Object.DestroyImmediate(presenter.gameObject);
+            settings = Keep(
+                WeatherSettings.Create(
+                    5f,
+                    EffectHeightMeters,
+                    Keep(WeatherDefinition.Create("RAIN", RainLook, coversSky: true))
+                )
+            );
+            presenter = NewPresenter();
 
-            presenter.Show(WeatherKind.Rain);
+            presenter.Show("RAIN", "CLEAR");
             yield return null;
 
             Assert.That(
                 sun.intensity,
-                Is.LessThan(ClearSunIntensity).And.GreaterThan(rainIntensity)
+                Is.LessThan(ClearSunIntensity).And.GreaterThan(RainLook.sunIntensity)
             );
         }
 
         [UnityTest]
-        public IEnumerator Rain_FollowsPlayerFromAbove()
+        public IEnumerator Effect_FollowsPlayerFromAbove()
         {
-            presenter.Show(WeatherKind.Rain);
+            presenter.Show("RAIN", "CLEAR");
             player.position = new Vector3(10f, 0f, -4f);
             yield return null;
 
-            Vector3 expected = player.position + Vector3.up * settings.RainHeightMeters;
-            Assert.That(Vector3.Distance(rain.transform.position, expected), Is.LessThan(.001f));
+            Vector3 expected = player.position + Vector3.up * EffectHeightMeters;
+            Assert.That(
+                Vector3.Distance(Effect("RainEffect").transform.position, expected),
+                Is.LessThan(.001f)
+            );
         }
 
         [Test]
         public void ShowImmediately_AppliesWeatherWithoutWaitingForFrames()
         {
-            WeatherLook expected = settings.LookFor(WeatherKind.Rain, default);
+            presenter.ShowImmediately("RAIN");
 
-            presenter.ShowImmediately(WeatherKind.Rain);
-
-            Assert.That(rain.isEmitting, Is.True);
+            Assert.That(Effect("RainEffect").isEmitting, Is.True);
             Assert.That(overcast.activeSelf, Is.True);
-            Assert.That(sun.intensity, Is.EqualTo(expected.sunIntensity).Within(.001f));
-            AssertColor(RenderSettings.skybox.GetColor("_Zenith"), expected.skyZenith);
+            Assert.That(sun.intensity, Is.EqualTo(RainLook.sunIntensity).Within(.001f));
+            AssertColor(RenderSettings.skybox.GetColor("_Zenith"), RainLook.skyZenith);
         }
 
         [UnityTest]
         public IEnumerator Destroy_PutsDesignedSkyAndCloudsBack()
         {
-            presenter.Show(WeatherKind.Rain);
+            presenter.Show("RAIN", "CLEAR");
             yield return null;
             Assert.That(
                 RenderSettings.skybox,
@@ -202,9 +254,44 @@ namespace A305.Weather.PlayModeTests
             Assert.That(cloud.sharedMaterial, Is.SameAs(designedCloud));
         }
 
+        private WeatherPresenter NewPresenter()
+        {
+            var root = new GameObject("TownWeather");
+            root.SetActive(false);
+            var component = root.AddComponent<WeatherPresenter>();
+            var fields = new SerializedObject(component);
+            fields.FindProperty("settings").objectReferenceValue = settings;
+            fields.FindProperty("sun").objectReferenceValue = sun;
+            fields.FindProperty("clouds").objectReferenceValue = cloud.transform.parent;
+            fields.FindProperty("overcastClouds").objectReferenceValue = overcast;
+            fields.FindProperty("effectFollowTarget").objectReferenceValue = player;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            root.SetActive(true);
+            return component;
+        }
+
+        private ParticleSystem Effect(string name)
+        {
+            Transform effect = presenter.transform.Find(name);
+            Assert.That(effect, Is.Not.Null, name + " 효과가 없습니다.");
+            return effect.GetComponent<ParticleSystem>();
+        }
+
+        private GameObject EffectTemplate(string name)
+        {
+            // 프리팹 대신 꺼 둔 객체를 복제 원본으로 쓴다.
+            var template = new GameObject(name);
+            template.SetActive(false);
+            var particles = template.AddComponent<ParticleSystem>();
+            ParticleSystem.MainModule main = particles.main;
+            main.playOnAwake = false;
+            Keep(template);
+            return template;
+        }
+
         private void SetUpDesignedClearDay()
         {
-            designedSky = new Material(Shader.Find("Elsehere/SummerSky"));
+            designedSky = Keep(new Material(Shader.Find("Elsehere/SummerSky")));
             designedSky.SetColor("_Zenith", ClearZenith);
             designedSky.SetColor("_Horizon", new Color(.72f, .88f, .94f));
             RenderSettings.skybox = designedSky;
@@ -219,26 +306,21 @@ namespace A305.Weather.PlayModeTests
             RenderSettings.fogEndDistance = ClearFogEndMeters;
 
             sun = new GameObject("Sun").AddComponent<Light>();
+            Keep(sun.gameObject);
             sun.type = LightType.Directional;
             sun.color = new Color(1f, .93f, .81f);
             sun.intensity = ClearSunIntensity;
             sun.shadowStrength = ClearShadowStrength;
 
-            designedCloud = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
-            {
-                color = ClearCloud,
-            };
-            clouds = new GameObject("SummerClouds").transform;
+            designedCloud = Keep(
+                new Material(Shader.Find("Universal Render Pipeline/Unlit")) { color = ClearCloud }
+            );
+            Transform clouds = Keep(new GameObject("SummerClouds")).transform;
             cloud = Cloud(clouds);
-            overcast = new GameObject("OvercastClouds");
+            overcast = Keep(new GameObject("OvercastClouds"));
             Cloud(overcast.transform);
             overcast.SetActive(false);
-
-            rain = new GameObject("Rain").AddComponent<ParticleSystem>();
-            ParticleSystem.MainModule main = rain.main;
-            main.playOnAwake = false;
-            rain.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            player = new GameObject("Player").transform;
+            player = Keep(new GameObject("Player")).transform;
         }
 
         private Renderer Cloud(Transform parent)
@@ -250,12 +332,34 @@ namespace A305.Weather.PlayModeTests
             return renderer;
         }
 
-        private void SetTransitionSeconds(float seconds)
+        private T Keep<T>(T item)
+            where T : Object
         {
-            var fields = new SerializedObject(settings);
-            fields.FindProperty("transitionSeconds").floatValue = seconds;
-            fields.ApplyModifiedPropertiesWithoutUndo();
+            created.Add(item);
+            return item;
         }
+
+        private static WeatherLook Look(
+            float sunIntensity,
+            float shadowStrength,
+            Color sky,
+            float fogEndMeters
+        ) =>
+            new WeatherLook
+            {
+                skyZenith = sky,
+                skyHorizon = sky,
+                sunColor = Color.white,
+                sunIntensity = sunIntensity,
+                sunShadowStrength = shadowStrength,
+                ambientSky = sky,
+                ambientEquator = sky,
+                ambientGround = sky * .5f,
+                fogColor = sky,
+                fogStartMeters = 20f,
+                fogEndMeters = fogEndMeters,
+                cloudColor = sky,
+            };
 
         private static IEnumerator WaitForTransition()
         {

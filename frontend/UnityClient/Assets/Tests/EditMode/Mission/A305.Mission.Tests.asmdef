@@ -5,8 +5,7 @@
         "A305.Api",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.Mission",
-        "A305.Weather"
+        "A305.Mission"
     ],
     "includePlatforms": [
         "Editor"

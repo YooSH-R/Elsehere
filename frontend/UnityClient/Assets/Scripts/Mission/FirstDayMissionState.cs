@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using A305.Weather;
 
 namespace A305.Mission
 {
@@ -12,7 +11,7 @@ namespace A305.Mission
         public bool CanRest { get; set; }
         public bool Raining { get; set; }
 
-        /// <summary>서버 예보 CLEAR/CLOUDY/RAIN. 이 값을 보내기 전의 서버는 비워 둔다.</summary>
+        /// <summary>서버 예보 이름(CLEAR/CLOUDY/RAIN 등). 이 값을 보내기 전의 서버는 비워 둔다.</summary>
         public string Weather { get; set; }
 
         public int Balance { get; set; }
@@ -25,25 +24,9 @@ namespace A305.Mission
             Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.Scene : null;
 
         /// <summary>
-        /// 이 장소에 보여 줄 날씨. Weather를 보내지 않는 서버나 모르는 값이면 Raining으로 비와 맑음만 나눈다.
+        /// Weather를 보내기 전의 서버이거나 Unity에 없는 날씨일 때 대신 보여 줄 날씨. Raining으로 비와 맑음만 나눈다.
         /// </summary>
-        public WeatherKind Forecast
-        {
-            get
-            {
-                switch (Weather)
-                {
-                    case "CLEAR":
-                        return WeatherKind.Clear;
-                    case "CLOUDY":
-                        return WeatherKind.Cloudy;
-                    case "RAIN":
-                        return WeatherKind.Rain;
-                    default:
-                        return Raining ? WeatherKind.Rain : WeatherKind.Clear;
-                }
-            }
-        }
+        public string FallbackWeather => Raining ? "RAIN" : "CLEAR";
     }
 
     public sealed class FirstDayMissionStep

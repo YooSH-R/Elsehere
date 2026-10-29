@@ -1,49 +1,16 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace A305.Weather
 {
-    /// <summary>
-    /// 흐림·비의 하늘과 조명. 맑음은 씬에 디자인된 하늘·조명을 그대로 쓰므로 여기에 두지 않는다.
-    /// 필드 초기값은 에셋을 처음 만들 때 들어가는 값이며, 이후 조정은 에셋에서 한다.
-    /// </summary>
+    /// <summary>장소에서 보여 줄 수 있는 날씨 목록과 날씨를 바꾸는 방식.</summary>
     [CreateAssetMenu(fileName = "TownWeather", menuName = "A305/Weather/Settings")]
     public sealed class WeatherSettings : ScriptableObject
     {
         [SerializeField]
-        [Tooltip("구름이 하늘을 덮어 해가 약해진 흐린 날")]
-        private WeatherLook cloudy = new WeatherLook
-        {
-            skyZenith = new Color(.47f, .53f, .6f),
-            skyHorizon = new Color(.76f, .79f, .81f),
-            sunColor = new Color(.92f, .93f, .95f),
-            sunIntensity = .95f,
-            sunShadowStrength = .35f,
-            ambientSky = new Color(.56f, .61f, .67f),
-            ambientEquator = new Color(.58f, .57f, .54f),
-            ambientGround = new Color(.3f, .29f, .28f),
-            fogColor = new Color(.7f, .73f, .76f),
-            fogStartMeters = 32f,
-            fogEndMeters = 110f,
-            cloudColor = new Color(.84f, .85f, .87f),
-        };
-
-        [SerializeField]
-        [Tooltip("먹구름 아래로 비가 내리는 날. 흐린 날보다 어둡고 안개가 가깝다")]
-        private WeatherLook rain = new WeatherLook
-        {
-            skyZenith = new Color(.36f, .41f, .47f),
-            skyHorizon = new Color(.58f, .62f, .66f),
-            sunColor = new Color(.82f, .86f, .92f),
-            sunIntensity = .6f,
-            sunShadowStrength = .15f,
-            ambientSky = new Color(.45f, .5f, .56f),
-            ambientEquator = new Color(.45f, .46f, .47f),
-            ambientGround = new Color(.25f, .25f, .26f),
-            fogColor = new Color(.53f, .57f, .62f),
-            fogStartMeters = 18f,
-            fogEndMeters = 80f,
-            cloudColor = new Color(.6f, .63f, .67f),
-        };
+        [Tooltip("이 장소에서 보여 줄 수 있는 날씨. 서버 값(code)으로 찾는다")]
+        private List<WeatherDefinition> weathers = new List<WeatherDefinition>();
 
         [SerializeField]
         [Min(0f)]
@@ -52,24 +19,50 @@ namespace A305.Weather
 
         [SerializeField]
         [Min(0f)]
-        [Tooltip("빗방울을 뿌리는 높이. 플레이어 머리 위를 따라간다")]
-        private float rainHeightMeters = 7f;
+        [Tooltip("날씨 효과(빗방울·눈송이)를 띄우는 높이. 플레이어 머리 위를 따라간다")]
+        private float effectHeightMeters = 7f;
 
+        public IReadOnlyList<WeatherDefinition> Weathers => weathers;
         public float TransitionSeconds => transitionSeconds;
-        public float RainHeightMeters => rainHeightMeters;
+        public float EffectHeightMeters => effectHeightMeters;
 
-        /// <param name="clear">씬에 디자인된 맑은 날의 모습</param>
-        public WeatherLook LookFor(WeatherKind kind, WeatherLook clear)
+        /// <summary>Builder와 테스트에서 새 설정을 만든다. 이미 있는 에셋의 값은 바꾸지 않는다.</summary>
+        public static WeatherSettings Create(
+            float transitionSeconds,
+            float effectHeightMeters,
+            params WeatherDefinition[] weathers
+        )
         {
-            switch (kind)
+            var settings = CreateInstance<WeatherSettings>();
+            settings.transitionSeconds = transitionSeconds;
+            settings.effectHeightMeters = effectHeightMeters;
+            settings.weathers = new List<WeatherDefinition>(weathers);
+            return settings;
+        }
+
+        /// <summary>
+        /// 서버 값(code)의 날씨. 비었거나 목록에 없으면 fallbackCode의 날씨를 쓰고, 그것도 없으면 null이다.
+        /// </summary>
+        public WeatherDefinition Resolve(string code, string fallbackCode)
+        {
+            // Unity 객체는 ??가 파괴된 객체를 null로 보지 않으므로 != null로 비교한다.
+            WeatherDefinition weather = Find(code);
+            return weather != null ? weather : Find(fallbackCode);
+        }
+
+        private WeatherDefinition Find(string code)
+        {
+            if (string.IsNullOrEmpty(code))
+                return null;
+            foreach (WeatherDefinition weather in weathers)
             {
-                case WeatherKind.Cloudy:
-                    return cloudy;
-                case WeatherKind.Rain:
-                    return rain;
-                default:
-                    return clear;
+                if (
+                    weather != null
+                    && string.Equals(weather.Code, code, StringComparison.OrdinalIgnoreCase)
+                )
+                    return weather;
             }
+            return null;
         }
     }
 }

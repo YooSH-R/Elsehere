@@ -40,6 +40,10 @@ namespace A305.EditorTools.Tripo
                 Path.GetDirectoryName(sourcePath).Replace('\\', '/') + "/MasterRig"
             );
             var model = TripoMasterRig.Build(record.sourceModel, master, folder);
+            foreach (var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())
+                if (TripoSurfaceCleanup.RemoveAttachedSlivers(skin.sharedMesh) > 0)
+                    EditorUtility.SetDirty(skin.sharedMesh);
+            AssetDatabase.SaveAssets();
             var visual = BuildVisual(model, folder + "/Visual.prefab");
             record.commonBody = master;
             record.referenceHeightMeters = 0;

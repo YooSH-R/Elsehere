@@ -51,8 +51,8 @@ namespace A305.EditorTools.Tripo
                 var skins = input.GetComponentsInChildren<SkinnedMeshRenderer>();
                 if (skins.Length == 0)
                     throw new InvalidOperationException("마스터에 연결할 스킨 메시가 없습니다.");
-                var sourceFeet = FootFrames(sourceAnimator);
-                var targetFeet = FootFrames(targetAnimator);
+                var sourceFrames = SurfaceFrames(sourceAnimator);
+                var targetFrames = SurfaceFrames(targetAnimator);
                 BuilderTools.EnsureFolder(folder);
                 for (int index = 0; index < skins.Length; index++)
                 {
@@ -74,8 +74,8 @@ namespace A305.EditorTools.Tripo
                         skin,
                         replacement,
                         bodyScale,
-                        sourceFeet,
-                        targetFeet,
+                        sourceFrames,
+                        targetFrames,
                         TripoTorsoWeights.Prepare(skin, sourceAnimator)
                     );
                     created.Add(mesh);
@@ -140,7 +140,7 @@ namespace A305.EditorTools.Tripo
             );
         }
 
-        private static Dictionary<Transform, Matrix4x4> FootFrames(Animator animator)
+        private static Dictionary<Transform, Matrix4x4> SurfaceFrames(Animator animator)
         {
             var frames = new Dictionary<Transform, Matrix4x4>();
             Quaternion bodyRotation = BodyFrame(animator).rotation;
@@ -155,6 +155,13 @@ namespace A305.EditorTools.Tripo
                 foreach (var bone in ankle.GetComponentsInChildren<Transform>())
                     frames.Add(bone, frame);
             }
+            // 생성된 목·머리의 bone roll을 얼굴 기울기로 옮기지 않는다.
+            // 관절 위치는 마스터를 따르되 표면 방향은 체형 축을 기준으로 보존한다.
+            var neck = animator.GetBoneTransform(HumanBodyBones.Neck);
+            if (neck == null)
+                throw new InvalidOperationException("목 본이 없습니다.");
+            foreach (var bone in neck.GetComponentsInChildren<Transform>())
+                frames.Add(bone, Matrix4x4.TRS(bone.position, bodyRotation, Vector3.one));
             return frames;
         }
 
@@ -162,8 +169,8 @@ namespace A305.EditorTools.Tripo
             SkinnedMeshRenderer source,
             SkinnedMeshRenderer target,
             float bodyScale,
-            Dictionary<Transform, Matrix4x4> sourceFeet,
-            Dictionary<Transform, Matrix4x4> targetFeet,
+            Dictionary<Transform, Matrix4x4> sourceFrames,
+            Dictionary<Transform, Matrix4x4> targetFrames,
             BoneWeight[] weights
         )
         {
@@ -178,10 +185,10 @@ namespace A305.EditorTools.Tripo
                 var to = target.bones[i];
                 // 메시의 각 관절 주변을 마스터의 기준 위치/축으로 옮긴 뒤 새 bind pose를 만든다.
                 // 전신만 정렬하고 bind pose를 바꾸면 손가락 메시와 실제 회전 중심이 어긋난다.
-                var sourceFrame = sourceFeet.TryGetValue(from, out var sourceFoot)
+                var sourceFrame = sourceFrames.TryGetValue(from, out var sourceFoot)
                     ? sourceFoot
                     : Matrix4x4.TRS(from.position, from.rotation, Vector3.one);
-                var targetFrame = targetFeet.TryGetValue(to, out var targetFoot)
+                var targetFrame = targetFrames.TryGetValue(to, out var targetFoot)
                     ? targetFoot * Matrix4x4.Scale(Vector3.one * bodyScale)
                     : Matrix4x4.TRS(to.position, to.rotation, Vector3.one * bodyScale);
                 transforms[i] =

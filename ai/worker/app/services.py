@@ -177,20 +177,15 @@ async def memory(llm: LLM, req: MemoryRequest) -> dict:
     return {"memory_card": P.parse_memory_card(out), "usage": usage.items}
 
 
-async def relationship(llm: LLM, req: RelationshipRequest) -> dict:
-    """정상 종료된 대화 하나를 관계(알아봄·호감)에 반영한 새 값. 모델은 사건만 고르고 숫자는 공통 규칙으로 코드가 계산한다.
-    무례는 Spring이 확정한 줄마다 센다. 판정에 실패하면 HTTP 오류이고 Spring은 이전 관계를 그대로 둔다."""
-    usage = Usage()
-    out = await llm.chat(
-        "relationship", "memory", P.relationship_messages(req.npc, req.history), usage, 0.0, 100, P.RELATIONSHIP_SCHEMA, hedge=False
-    )
-    got = load_object(out, "관계 사건").get("events")
-    if not isinstance(got, list):
-        raise ModelOutputError("관계 사건 출력에 events 목록이 없음")
-    events = [event for event in dict.fromkeys(got) if event in P.EVENT_MEANINGS]  # 목록 밖 값과 RUDE는 버린다
+def relationship(req: RelationshipRequest) -> dict:
+    """정상 종료된 대화 하나를 관계(알아봄·호감)에 반영한 새 값. 모델을 부르지 않는다.
+    사건은 의도 판정이 줄마다 고른 history[].events를 모아 대화에서 한 번씩, 무례는 Spring이 확정한 줄(rude)마다 세고
+    공통 규칙으로 계산한다. 무례한 줄의 다른 사건과 목록 밖 값은 버린다."""
+    turns = [(line.rude, line.events) for line in req.history if line.who == "me"]
+    said = (event for turn in turns for event in npc_relationship.turn_events(turn))
+    events = [event for event in dict.fromkeys(said) if event in P.LINE_EVENTS]
+    rude_lines = sum(1 for rude, _ in turns if rude)
     rules, library = npc_relationship.service_rules()
     rates = npc_relationship.npc_rates(req.npc.profile, rules, library)
-    rude_lines = sum(1 for line in req.history if line.who == "me" and line.rude)
     before = req.relationship.model_dump() if req.relationship else None
-    new = npc_relationship.after_conversation(before, events, rude_lines, rates, rules)
-    return {"relationship": new, "events": events, "usage": usage.items}
+    return {"relationship": npc_relationship.after_conversation(before, events, rude_lines, rates, rules), "events": events}

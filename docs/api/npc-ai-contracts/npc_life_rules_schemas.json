@@ -481,7 +481,8 @@
             "personalTalk",
             "graceDays",
             "recognitionDropPerDay",
-            "affinityFollowRate"
+            "affinityFollowRate",
+            "rudeAffinityFallback"
           ],
           "properties": {
             "recognitionPerConversation": {
@@ -510,7 +511,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 1,
-              "description": "정상 종료 때 호감이 이번 대화 인상 쪽으로 따라가는 비율."
+              "description": "정상 종료 때 호감이 이번 대화 인상 쪽으로 따라가는 비율. 무례는 인상에 넣지 않고 발화마다 그 몫(무례 인상 × 이 비율 × NPC 반응 크기)을 바로 깎는다."
+            },
+            "rudeAffinityFallback": {
+              "type": "integer",
+              "minimum": -100,
+              "maximum": 0,
+              "description": "무례 판정(/v1/guard)이 무례라고 했는데 감점량(affinity_delta)이 비었을 때 백엔드가 쓰는 감점. 성격 배수가 없는 NPC의 감점과 같게 둔다."
             }
           }
         },

@@ -38,7 +38,8 @@
     "personalTalk": { "recognition": 60, "affinity": 40 },
     "graceDays": 3,
     "recognitionDropPerDay": 1,
-    "affinityFollowRate": 0.3
+    "affinityFollowRate": 0.3,
+    "rudeAffinityFallback": -4
   },
   "memory": {
     "stabilityDays": { "1": 1, "2": 3, "3": 14 },

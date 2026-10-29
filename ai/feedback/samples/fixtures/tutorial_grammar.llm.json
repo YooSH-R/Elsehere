@@ -1,0 +1,90 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "행인에게 직진 후 좌회전 방향을 안내했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "Go straight and turns left."
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "clear",
+      "explanation_ko": "직진한 뒤 좌회전하라는 뜻은 전달됐어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "Go straight and turns left."
+        }
+      ]
+    },
+    "review_tags": [
+      {
+        "tag_id": "tag01",
+        "kind": "strength",
+        "label_ko": "이동 방향을 전달했어요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "Go straight and turns left."
+          }
+        ],
+        "assisted": false
+      },
+      {
+        "tag_id": "tag02",
+        "kind": "improvement",
+        "label_ko": "동사 형태를 연습해 보세요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "Go straight and turns left."
+          }
+        ],
+        "assisted": false
+      }
+    ],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "Go straight and turns left.",
+        "verdict": "improvement_suggested",
+        "explanation_ko": "명령문에서 동사를 연결할 때 turn도 동사원형으로 써요.",
+        "assisted": false,
+        "suggestions": [
+          {
+            "suggestion_id": "suggestion_t02",
+            "kind": "grammar_error",
+            "source": {
+              "turn_id": "t02",
+              "quote": "Go straight and turns left."
+            },
+            "suggested_expression": "Go straight and turn left.",
+            "explanation_ko": "명령문에서 동사를 연결할 때 turn도 동사원형으로 써요."
+          }
+        ]
+      }
+    ],
+    "summary_suggestion_id": "suggestion_t02",
+    "vocab_candidates": [
+      {
+        "candidate_id": "candidate01",
+        "kind": "sentence",
+        "expression": "Go straight and turn left.",
+        "meaning_ko": "직진한 뒤 좌회전하세요.",
+        "example_en": "Go straight and turn left.",
+        "example_ko": "직진한 뒤 좌회전하세요.",
+        "source": {
+          "type": "suggestion",
+          "review_id": "review_t02",
+          "suggestion_id": "suggestion_t02",
+          "quote": "Go straight and turn left."
+        }
+      }
+    ]
+  }
+}

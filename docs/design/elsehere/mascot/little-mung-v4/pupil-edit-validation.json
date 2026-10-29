@@ -1,0 +1,669 @@
+{
+  "method": "user_authorized_direct_pixel_edit",
+  "source": "roster-b-review-v3.png",
+  "output": "roster-b-centered-pixels-v1.png",
+  "changed_pixels": 11365,
+  "changed_pixels_outside_eye_regions": 0,
+  "eyes": [
+    {
+      "pupil_center_before": [
+        27.0,
+        17.5
+      ],
+      "target_center": [
+        21.5,
+        17.0
+      ],
+      "translation": [
+        -6,
+        0
+      ],
+      "pupil_center_expected": [
+        21.0,
+        17.5
+      ],
+      "pupil_center_measured": [
+        21.0,
+        17.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 1,
+      "box": [
+        96,
+        249,
+        140,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        15.5,
+        17.0
+      ],
+      "target_center": [
+        21.0,
+        16.0
+      ],
+      "translation": [
+        6,
+        -1
+      ],
+      "pupil_center_expected": [
+        21.5,
+        16.0
+      ],
+      "pupil_center_measured": [
+        21.5,
+        16.0
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.0
+      ],
+      "eye": 2,
+      "box": [
+        213,
+        249,
+        257,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        27.0,
+        16.5
+      ],
+      "target_center": [
+        21.0,
+        16.0
+      ],
+      "translation": [
+        -6,
+        0
+      ],
+      "pupil_center_expected": [
+        21.0,
+        16.5
+      ],
+      "pupil_center_measured": [
+        21.0,
+        16.5
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.5
+      ],
+      "eye": 3,
+      "box": [
+        395,
+        249,
+        440,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        15.5,
+        16.5
+      ],
+      "target_center": [
+        21.0,
+        15.5
+      ],
+      "translation": [
+        6,
+        -1
+      ],
+      "pupil_center_expected": [
+        21.5,
+        15.5
+      ],
+      "pupil_center_measured": [
+        21.5,
+        15.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.0
+      ],
+      "eye": 4,
+      "box": [
+        499,
+        249,
+        543,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        27.0,
+        16.5
+      ],
+      "target_center": [
+        20.5,
+        16.0
+      ],
+      "translation": [
+        -6,
+        0
+      ],
+      "pupil_center_expected": [
+        21.0,
+        16.5
+      ],
+      "pupil_center_measured": [
+        21.0,
+        16.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 5,
+      "box": [
+        682,
+        249,
+        728,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        15.5,
+        16.5
+      ],
+      "target_center": [
+        21.0,
+        16.0
+      ],
+      "translation": [
+        6,
+        0
+      ],
+      "pupil_center_expected": [
+        21.5,
+        16.5
+      ],
+      "pupil_center_measured": [
+        21.5,
+        16.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 6,
+      "box": [
+        785,
+        249,
+        829,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        29.5,
+        17.5
+      ],
+      "target_center": [
+        23.5,
+        17.0
+      ],
+      "translation": [
+        -6,
+        0
+      ],
+      "pupil_center_expected": [
+        23.5,
+        17.5
+      ],
+      "pupil_center_measured": [
+        23.5,
+        17.5
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.5
+      ],
+      "eye": 7,
+      "box": [
+        975,
+        249,
+        1020,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        21.5,
+        17.5
+      ],
+      "target_center": [
+        26.5,
+        17.0
+      ],
+      "translation": [
+        5,
+        0
+      ],
+      "pupil_center_expected": [
+        26.5,
+        17.5
+      ],
+      "pupil_center_measured": [
+        26.5,
+        17.5
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.5
+      ],
+      "eye": 8,
+      "box": [
+        1080,
+        249,
+        1128,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        25.5,
+        16.5
+      ],
+      "target_center": [
+        20.0,
+        16.0
+      ],
+      "translation": [
+        -6,
+        0
+      ],
+      "pupil_center_expected": [
+        19.5,
+        16.5
+      ],
+      "pupil_center_measured": [
+        19.5,
+        16.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 9,
+      "box": [
+        1285,
+        249,
+        1330,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        19.5,
+        16.5
+      ],
+      "target_center": [
+        24.5,
+        15.5
+      ],
+      "translation": [
+        5,
+        -1
+      ],
+      "pupil_center_expected": [
+        24.5,
+        15.5
+      ],
+      "pupil_center_measured": [
+        24.5,
+        15.5
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.0
+      ],
+      "eye": 10,
+      "box": [
+        1386,
+        249,
+        1433,
+        282
+      ]
+    },
+    {
+      "pupil_center_before": [
+        27.5,
+        16.0
+      ],
+      "target_center": [
+        21.0,
+        15.0
+      ],
+      "translation": [
+        -6,
+        -1
+      ],
+      "pupil_center_expected": [
+        21.5,
+        15.0
+      ],
+      "pupil_center_measured": [
+        21.5,
+        15.0
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.0
+      ],
+      "eye": 11,
+      "box": [
+        99,
+        673,
+        142,
+        705
+      ]
+    },
+    {
+      "pupil_center_before": [
+        17.0,
+        17.0
+      ],
+      "target_center": [
+        22.0,
+        16.0
+      ],
+      "translation": [
+        5,
+        -1
+      ],
+      "pupil_center_expected": [
+        22.0,
+        16.0
+      ],
+      "pupil_center_measured": [
+        22.0,
+        16.0
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.0
+      ],
+      "eye": 12,
+      "box": [
+        205,
+        672,
+        253,
+        705
+      ]
+    },
+    {
+      "pupil_center_before": [
+        29.5,
+        16.5
+      ],
+      "target_center": [
+        24.0,
+        15.0
+      ],
+      "translation": [
+        -6,
+        -2
+      ],
+      "pupil_center_expected": [
+        23.5,
+        14.5
+      ],
+      "pupil_center_measured": [
+        23.5,
+        14.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 13,
+      "box": [
+        395,
+        671,
+        440,
+        705
+      ]
+    },
+    {
+      "pupil_center_before": [
+        17.0,
+        16.0
+      ],
+      "target_center": [
+        22.0,
+        15.0
+      ],
+      "translation": [
+        5,
+        -1
+      ],
+      "pupil_center_expected": [
+        22.0,
+        15.0
+      ],
+      "pupil_center_measured": [
+        22.0,
+        15.0
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.0
+      ],
+      "eye": 14,
+      "box": [
+        501,
+        671,
+        546,
+        705
+      ]
+    },
+    {
+      "pupil_center_before": [
+        30.5,
+        14.5
+      ],
+      "target_center": [
+        23.5,
+        14.0
+      ],
+      "translation": [
+        -7,
+        0
+      ],
+      "pupil_center_expected": [
+        23.5,
+        14.5
+      ],
+      "pupil_center_measured": [
+        23.5,
+        14.5
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.5
+      ],
+      "eye": 15,
+      "box": [
+        681,
+        671,
+        726,
+        705
+      ]
+    },
+    {
+      "pupil_center_before": [
+        15.0,
+        15.5
+      ],
+      "target_center": [
+        20.0,
+        15.0
+      ],
+      "translation": [
+        5,
+        0
+      ],
+      "pupil_center_expected": [
+        20.0,
+        15.5
+      ],
+      "pupil_center_measured": [
+        20.0,
+        15.5
+      ],
+      "center_error_pixels": [
+        0.0,
+        0.5
+      ],
+      "eye": 16,
+      "box": [
+        782,
+        670,
+        829,
+        705
+      ]
+    },
+    {
+      "pupil_center_before": [
+        29.5,
+        16.0
+      ],
+      "target_center": [
+        23.0,
+        15.5
+      ],
+      "translation": [
+        -6,
+        0
+      ],
+      "pupil_center_expected": [
+        23.5,
+        16.0
+      ],
+      "pupil_center_measured": [
+        23.5,
+        16.0
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 17,
+      "box": [
+        975,
+        670,
+        1022,
+        704
+      ]
+    },
+    {
+      "pupil_center_before": [
+        18.0,
+        15.5
+      ],
+      "target_center": [
+        23.5,
+        15.0
+      ],
+      "translation": [
+        6,
+        0
+      ],
+      "pupil_center_expected": [
+        24.0,
+        15.5
+      ],
+      "pupil_center_measured": [
+        24.0,
+        15.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 18,
+      "box": [
+        1080,
+        670,
+        1128,
+        704
+      ]
+    },
+    {
+      "pupil_center_before": [
+        29.0,
+        16.0
+      ],
+      "target_center": [
+        23.5,
+        15.0
+      ],
+      "translation": [
+        -6,
+        -1
+      ],
+      "pupil_center_expected": [
+        23.0,
+        15.0
+      ],
+      "pupil_center_measured": [
+        23.0,
+        15.0
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.0
+      ],
+      "eye": 19,
+      "box": [
+        1290,
+        670,
+        1335,
+        705
+      ]
+    },
+    {
+      "pupil_center_before": [
+        18.0,
+        16.5
+      ],
+      "target_center": [
+        23.5,
+        16.0
+      ],
+      "translation": [
+        6,
+        0
+      ],
+      "pupil_center_expected": [
+        24.0,
+        16.5
+      ],
+      "pupil_center_measured": [
+        24.0,
+        16.5
+      ],
+      "center_error_pixels": [
+        0.5,
+        0.5
+      ],
+      "eye": 20,
+      "box": [
+        1389,
+        669,
+        1436,
+        705
+      ]
+    }
+  ]
+}

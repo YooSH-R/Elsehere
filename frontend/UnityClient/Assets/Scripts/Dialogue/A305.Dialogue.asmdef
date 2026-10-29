@@ -1,0 +1,21 @@
+{
+    "name": "A305.Dialogue",
+    "rootNamespace": "A305.Dialogue",
+    "references": [
+        "A305.Api",
+        "A305.Player",
+        "A305.Voice",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

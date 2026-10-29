@@ -1,0 +1,109 @@
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  database:
+    <<: *service-defaults
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:?Set DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME:?Set DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - database-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    cpus: 0.50
+    mem_limit: 512m
+
+  ai-worker:
+    <<: *service-defaults
+    image: ${AI_IMAGE:?Set AI_IMAGE}
+    environment:
+      AI_WORKER_TOKEN: ${AI_WORKER_TOKEN:?Set AI_WORKER_TOKEN}
+      LLM_PROFILE: ${LLM_PROFILE:-gms-luna}
+      GMS_KEY: ${GMS_KEY:?Set GMS_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY:?Set GROQ_API_KEY}
+      # Optional STT provider order (e.g. GPU server model first). Empty keeps the profile's STT and fallback.
+      STT_CHAIN: ${STT_CHAIN:-}
+      STT_GPU_BASE_URL: ${STT_GPU_BASE_URL:-}
+      STT_GPU_TOKEN: ${STT_GPU_TOKEN:-}
+      STT_FIRST_TIMEOUT_S: ${STT_FIRST_TIMEOUT_S:-8}
+      # TTS (Kokoro) synthesis threads; keep equal to the cpus limit below or synthesis slows down several times.
+      KOKORO_THREADS: "2"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    cpus: 2.00
+    mem_limit: 1g
+    security_opt:
+      - no-new-privileges:true
+
+  backend:
+    <<: *service-defaults
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE}
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?Set GOOGLE_CLIENT_SECRET}
+      DB_URL: jdbc:postgresql://database:5432/${DB_NAME:?Set DB_NAME}
+      DB_USERNAME: ${DB_USERNAME:?Set DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:?Set JPA_DDL_AUTO}
+      AI_WORKER_BASE_URL: http://ai-worker:8020
+      AI_WORKER_TOKEN: ${AI_WORKER_TOKEN:?Set AI_WORKER_TOKEN}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65.0
+      NPC_AUDIO_DIR: /app/data/npc-audio
+    volumes:
+      - npc-audio-data:/app/data/npc-audio
+    depends_on:
+      database:
+        condition: service_healthy
+      ai-worker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    cpus: 0.75
+    mem_limit: 1g
+    security_opt:
+      - no-new-privileges:true
+
+  web:
+    <<: *service-defaults
+    image: ${WEB_IMAGE:?Set WEB_IMAGE}
+    ports:
+      - "127.0.0.1:${BACKEND_HOST_PORT:?Set BACKEND_HOST_PORT}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1/version.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    cpus: 0.25
+    mem_limit: 128m
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  database-data:
+  npc-audio-data:

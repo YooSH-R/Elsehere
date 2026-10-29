@@ -1,0 +1,366 @@
+{
+  "$defs": {
+    "Assistance": {
+      "additionalProperties": false,
+      "properties": {
+        "assistance_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Assistance Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "keyword_hint",
+            "sentence_starter",
+            "full_example",
+            "translation",
+            "model_audio",
+            "replay"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "이미 제공한 힌트·문장 등. 텍스트가 없는 로컬 재생은 null 가능.",
+          "title": "Content"
+        }
+      },
+      "required": [
+        "assistance_id",
+        "kind",
+        "content"
+      ],
+      "title": "Assistance",
+      "type": "object"
+    },
+    "Context": {
+      "additionalProperties": false,
+      "properties": {
+        "scene_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Scene Id",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "tutorial",
+            "free_chat",
+            "ambient",
+            "quest"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "scene_description": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Scene Description",
+          "type": "string"
+        },
+        "target_language": {
+          "const": "en-US",
+          "title": "Target Language",
+          "type": "string"
+        },
+        "explanation_language": {
+          "const": "ko-KR",
+          "title": "Explanation Language",
+          "type": "string"
+        },
+        "end_reason": {
+          "description": "v0.1은 정상 종료 분석. 중단 대화 정책은 추가 합의한다.",
+          "enum": [
+            "user_end",
+            "npc_end"
+          ],
+          "title": "End Reason",
+          "type": "string"
+        },
+        "tutorial_goal": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tutorial Goal"
+        }
+      },
+      "required": [
+        "scene_id",
+        "mode",
+        "scene_description",
+        "target_language",
+        "explanation_language",
+        "end_reason",
+        "tutorial_goal"
+      ],
+      "title": "Context",
+      "type": "object"
+    },
+    "Difficulty": {
+      "additionalProperties": false,
+      "properties": {
+        "settings_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Settings Version",
+          "type": "string"
+        },
+        "vocabulary_profile": {
+          "description": "합의된 설정 프로필의 실제 적용값. 언어 실력 등급이 아니다.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Vocabulary Profile",
+          "type": "string"
+        },
+        "speech_rate_multiplier": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Speech Rate Multiplier"
+        },
+        "hint_policy": {
+          "enum": [
+            "on_request",
+            "tutorial_guided"
+          ],
+          "title": "Hint Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "settings_version",
+        "vocabulary_profile",
+        "speech_rate_multiplier",
+        "hint_policy"
+      ],
+      "title": "Difficulty",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "description": "서버가 인증·확인한 사용자 ID. LLM이 생성하거나 선택하지 않는다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "User Id",
+          "type": "string"
+        },
+        "npc_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Npc Id",
+          "type": "string"
+        },
+        "conversation_id": {
+          "description": "특정 NPC와의 1회 대화. 로그인 세션과 구분한다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Conversation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "npc_id",
+        "conversation_id"
+      ],
+      "title": "Scope",
+      "type": "object"
+    },
+    "Turn": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Turn Id",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "speaker": {
+          "enum": [
+            "user",
+            "npc",
+            "system"
+          ],
+          "title": "Speaker",
+          "type": "string"
+        },
+        "input_type": {
+          "enum": [
+            "voice",
+            "text",
+            "generated",
+            "system"
+          ],
+          "title": "Input Type",
+          "type": "string"
+        },
+        "text_status": {
+          "enum": [
+            "final",
+            "needs_review",
+            "failed",
+            "blocked",
+            "system_notice"
+          ],
+          "title": "Text Status",
+          "type": "string"
+        },
+        "original_transcript": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "STT 원문. 타이핑·NPC·시스템 발화에서는 null.",
+          "title": "Original Transcript"
+        },
+        "final_text": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "사용자 수정 반영 후의 확정 텍스트. 인식 실패·차단은 null 가능.",
+          "title": "Final Text"
+        },
+        "difficulty": {
+          "$ref": "#/$defs/Difficulty"
+        },
+        "assistance_ids": {
+          "description": "이 사용자 발화에 실제 사용한 도움 ID. 없으면 빈 배열.",
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+            "type": "string"
+          },
+          "title": "Assistance Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "turn_id",
+        "sequence",
+        "speaker",
+        "input_type",
+        "text_status",
+        "original_transcript",
+        "final_text",
+        "difficulty",
+        "assistance_ids"
+      ],
+      "title": "Turn",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "description": "서버가 부여한 요청 ID. 재시도 시 같은 분석 버전의 ID를 유지한다.",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/Scope"
+    },
+    "conversation_revision": {
+      "description": "서버가 확정한 대화 텍스트 스냅샷 버전. 전사 수정 뒤 재분석은 새 버전으로 요청한다.",
+      "minimum": 0,
+      "title": "Conversation Revision",
+      "type": "integer"
+    },
+    "analysis_config_version": {
+      "description": "서버가 관리하는 프롬프트·모델·평가 규칙 조합의 불변 버전.",
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "title": "Analysis Config Version",
+      "type": "string"
+    },
+    "context": {
+      "$ref": "#/$defs/Context"
+    },
+    "turns": {
+      "items": {
+        "$ref": "#/$defs/Turn"
+      },
+      "title": "Turns",
+      "type": "array"
+    },
+    "assistance_events": {
+      "items": {
+        "$ref": "#/$defs/Assistance"
+      },
+      "title": "Assistance Events",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "request_id",
+    "scope",
+    "conversation_revision",
+    "analysis_config_version",
+    "context",
+    "turns",
+    "assistance_events"
+  ],
+  "title": "FeedbackInput",
+  "type": "object"
+}

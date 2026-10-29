@@ -1,0 +1,25 @@
+{
+    "name": "A305.Mission.Tests",
+    "rootNamespace": "A305.Mission.Tests",
+    "references": [
+        "A305.Api",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "A305.Mission"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

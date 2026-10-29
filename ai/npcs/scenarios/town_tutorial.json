@@ -1,0 +1,8 @@
+{
+  "scenarioId": "town_tutorial",
+  "locationId": "TOWN",
+  "situation": "On the sidewalk in front of the other person's house. Ben has just walked up to them because he is looking for a cafe nearby where he can do some quick work. He asks where he can find one.",
+  "facts": [
+    "The other person lives in this town."
+  ]
+}

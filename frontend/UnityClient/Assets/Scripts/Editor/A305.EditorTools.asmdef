@@ -1,0 +1,38 @@
+{
+    "name": "A305.EditorTools",
+    "rootNamespace": "A305.EditorTools",
+    "references": [
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "A305.Player",
+        "A305.Characters",
+        "A305.World",
+        "A305.ObjectHover",
+        "A305.Dialogue",
+        "A305.Npc",
+        "A305.Learning",
+        "A305.Mission",
+        "A305.Tutorial",
+        "A305.Voice",
+        "A305.Api",
+        "A305.Onboarding",
+        "A305.Theme",
+        "WebGLInput",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.Animation.Rigging",
+        "Unity.Collections"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

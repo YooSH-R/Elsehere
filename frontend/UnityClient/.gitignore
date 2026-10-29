@@ -1,0 +1,18 @@
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Bb]uild/
+/[Bb]uilds/
+/.vs/
+/.idea/
+
+/*.csproj
+/*.sln
+/*.slnx
+/Assets/Scripts/Editor/Tripo/Blender/__pycache__/
+/Assets/Scripts/Editor/Tripo/Blender/__pycache__.meta
+
+# Installed from the official archive by infra/scripts/install-tripo-bridge.ps1.
+/Packages/com.tripo3d.unitybridge/

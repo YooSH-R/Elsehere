@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Production/EntryScene.unity
+    guid: 0fa5dd124ed8c204082ecbc9d2287a47
+  - enabled: 1
+    path: Assets/Scenes/Production/HomeScene.unity
+    guid: 2937dd06f5adead4b8e2258d1e345c50
+  - enabled: 1
+    path: Assets/Scenes/Production/TownScene.unity
+    guid: 16cf14be69baefd499bc307a95d5901f
+  - enabled: 1
+    path: Assets/Scenes/Production/CafeScene.unity
+    guid: a6201dfd98a244e40a8dc066c7cfab1e
+  - enabled: 1
+    path: Assets/Scenes/Production/HotelScene.unity
+    guid: ce51a7d63be472443a03e3839416778d
+  - enabled: 1
+    path: Assets/Scenes/Production/ShopScene.unity
+    guid: 776f1d474a97eb2428f3afcf81b3fab3
+  m_configObjects:
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  m_UseUCBPForAssetBundles: 0

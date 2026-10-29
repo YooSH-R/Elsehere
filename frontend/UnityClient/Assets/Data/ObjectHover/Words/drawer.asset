@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: drawer
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: drawer
+    languageCode: en-US
+    text: drawer
+    meaningKo: "\uC11C\uB78D"
+    example: Open the drawer to find a pen.
+    exampleKo: "\uD39C\uC744 \uCC3E\uC73C\uB824\uBA74 \uC11C\uB78D\uC744 \uC5EC\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 97bcc927dc9b14346bd5f382b30f9414

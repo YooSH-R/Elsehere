@@ -1,0 +1,32 @@
+root = true
+
+[*.cs]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+csharp_new_line_before_open_brace = all
+
+# Only explicitly selected Unity rules are enforced in our own code.
+dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.AD0001.severity = error
+
+[Assets/{Scripts,Tests}/**.cs]
+dotnet_diagnostic.UNT0001.severity = error
+dotnet_diagnostic.UNT0006.severity = error
+dotnet_diagnostic.UNT0007.severity = error
+dotnet_diagnostic.UNT0008.severity = error
+dotnet_diagnostic.UNT0010.severity = error
+dotnet_diagnostic.UNT0011.severity = error
+dotnet_diagnostic.UNT0013.severity = error
+dotnet_diagnostic.UNT0014.severity = error
+dotnet_diagnostic.UNT0015.severity = error
+dotnet_diagnostic.UNT0020.severity = error
+dotnet_diagnostic.UNT0023.severity = error
+dotnet_diagnostic.UNT0029.severity = error
+dotnet_diagnostic.UNT0033.severity = error
+
+[**/*.{g,generated,designer,Designer}.cs]
+generated_code = true

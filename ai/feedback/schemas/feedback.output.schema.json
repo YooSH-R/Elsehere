@@ -1,0 +1,962 @@
+{
+  "$defs": {
+    "Communication": {
+      "additionalProperties": false,
+      "properties": {
+        "judgement": {
+          "enum": [
+            "clear",
+            "partially_clear",
+            "unclear",
+            "not_assessable"
+          ],
+          "title": "Judgement",
+          "type": "string"
+        },
+        "explanation_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Explanation Ko",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "judgement",
+        "explanation_ko",
+        "evidence"
+      ],
+      "title": "Communication",
+      "type": "object"
+    },
+    "Completed": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "conversation_revision": {
+          "minimum": 0,
+          "title": "Conversation Revision",
+          "type": "integer"
+        },
+        "analysis_config_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Analysis Config Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "completed",
+          "title": "Status",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/EnrichedFeedbackData"
+        },
+        "problem": {
+          "title": "Problem",
+          "type": "null"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "conversation_revision",
+        "analysis_config_version",
+        "status",
+        "result",
+        "problem"
+      ],
+      "title": "Completed",
+      "type": "object"
+    },
+    "ConversationSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "text_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text Ko",
+          "type": "string"
+        },
+        "evidence": {
+          "description": "이번 대화의 확정 사용자/NPC 발화. NPC 인용은 문맥 요약에만 허용.",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text_ko",
+        "evidence"
+      ],
+      "title": "ConversationSummary",
+      "type": "object"
+    },
+    "DataIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "NO_USABLE_USER_TURNS",
+            "INSUFFICIENT_CONTEXT",
+            "AMBIGUOUS_INPUT"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Message Ko",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message_ko"
+      ],
+      "title": "DataIssue",
+      "type": "object"
+    },
+    "EnrichedFeedbackData": {
+      "additionalProperties": false,
+      "properties": {
+        "conversation_summary": {
+          "$ref": "#/$defs/ConversationSummary"
+        },
+        "communication": {
+          "$ref": "#/$defs/Communication"
+        },
+        "review_tags": {
+          "description": "이번 UI 계약의 제안 상한 3개. 근거 없으면 빈 배열. 공식 평가 척도가 아니다.",
+          "items": {
+            "$ref": "#/$defs/ReviewTag"
+          },
+          "maxItems": 3,
+          "title": "Review Tags",
+          "type": "array"
+        },
+        "turn_reviews": {
+          "items": {
+            "$ref": "#/$defs/TurnReview"
+          },
+          "minItems": 1,
+          "title": "Turn Reviews",
+          "type": "array"
+        },
+        "summary_suggestion_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Summary Suggestion Id"
+        },
+        "vocab_candidates": {
+          "items": {
+            "$ref": "#/$defs/VocabCandidate"
+          },
+          "title": "Vocab Candidates",
+          "type": "array"
+        },
+        "spoken_usage_notes": {
+          "items": {
+            "$ref": "#/$defs/SpokenUsageNote"
+          },
+          "maxItems": 1,
+          "title": "Spoken Usage Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conversation_summary",
+        "communication",
+        "review_tags",
+        "turn_reviews",
+        "summary_suggestion_id",
+        "vocab_candidates"
+      ],
+      "title": "EnrichedFeedbackData",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_id": {
+          "description": "현재 요청 대화의 발화 ID.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Turn Id",
+          "type": "string"
+        },
+        "quote": {
+          "description": "해당 final_text에 정확히 포함된 인용. 수정 전 STT 텍스트를 근거로 삼지 않는다.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "quote"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Failed": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "conversation_revision": {
+          "minimum": 0,
+          "title": "Conversation Revision",
+          "type": "integer"
+        },
+        "analysis_config_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Analysis Config Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "failed",
+          "title": "Status",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "null"
+        },
+        "problem": {
+          "$ref": "#/$defs/ModelIssue"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "conversation_revision",
+        "analysis_config_version",
+        "status",
+        "result",
+        "problem"
+      ],
+      "title": "Failed",
+      "type": "object"
+    },
+    "Insufficient": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "conversation_revision": {
+          "minimum": 0,
+          "title": "Conversation Revision",
+          "type": "integer"
+        },
+        "analysis_config_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Analysis Config Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "insufficient_evidence",
+          "title": "Status",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "null"
+        },
+        "problem": {
+          "$ref": "#/$defs/DataIssue"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "conversation_revision",
+        "analysis_config_version",
+        "status",
+        "result",
+        "problem"
+      ],
+      "title": "Insufficient",
+      "type": "object"
+    },
+    "ModelIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "AI_TIMEOUT",
+            "AI_PROVIDER_ERROR",
+            "INVALID_MODEL_OUTPUT"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Message Ko",
+          "type": "string"
+        },
+        "retryable_now": {
+          "title": "Retryable Now",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message_ko",
+        "retryable_now"
+      ],
+      "title": "ModelIssue",
+      "type": "object"
+    },
+    "Processing": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "conversation_revision": {
+          "minimum": 0,
+          "title": "Conversation Revision",
+          "type": "integer"
+        },
+        "analysis_config_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Analysis Config Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "processing",
+          "title": "Status",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "null"
+        },
+        "problem": {
+          "title": "Problem",
+          "type": "null"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "conversation_revision",
+        "analysis_config_version",
+        "status",
+        "result",
+        "problem"
+      ],
+      "title": "Processing",
+      "type": "object"
+    },
+    "QuotaBlocked": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "request_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "conversation_revision": {
+          "minimum": 0,
+          "title": "Conversation Revision",
+          "type": "integer"
+        },
+        "analysis_config_version": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Analysis Config Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "blocked_by_quota",
+          "title": "Status",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "null"
+        },
+        "problem": {
+          "$ref": "#/$defs/QuotaIssue"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "scope",
+        "conversation_revision",
+        "analysis_config_version",
+        "status",
+        "result",
+        "problem"
+      ],
+      "title": "QuotaBlocked",
+      "type": "object"
+    },
+    "QuotaIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "const": "AI_QUOTA_EXHAUSTED",
+          "title": "Code",
+          "type": "string"
+        },
+        "message_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Message Ko",
+          "type": "string"
+        },
+        "retryable_now": {
+          "const": false,
+          "title": "Retryable Now",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message_ko",
+        "retryable_now"
+      ],
+      "title": "QuotaIssue",
+      "type": "object"
+    },
+    "ReviewTag": {
+      "additionalProperties": false,
+      "properties": {
+        "tag_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Tag Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "strength",
+            "improvement"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Label Ko",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "assisted": {
+          "title": "Assisted",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tag_id",
+        "kind",
+        "label_ko",
+        "evidence",
+        "assisted"
+      ],
+      "title": "ReviewTag",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "description": "서버가 인증·확인한 사용자 ID. LLM이 생성하거나 선택하지 않는다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "User Id",
+          "type": "string"
+        },
+        "npc_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Npc Id",
+          "type": "string"
+        },
+        "conversation_id": {
+          "description": "특정 NPC와의 1회 대화. 로그인 세션과 구분한다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Conversation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "npc_id",
+        "conversation_id"
+      ],
+      "title": "Scope",
+      "type": "object"
+    },
+    "SpokenUsageNote": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Catalog Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "expression": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Expression",
+          "type": "string"
+        },
+        "meaning_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Meaning Ko",
+          "type": "string"
+        },
+        "usage_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Usage Ko",
+          "type": "string"
+        },
+        "example_en": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Example En",
+          "type": "string"
+        },
+        "example_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Example Ko",
+          "type": "string"
+        },
+        "example_kind": {
+          "const": "learning_example",
+          "title": "Example Kind",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "catalog_id",
+        "source",
+        "expression",
+        "meaning_ko",
+        "usage_ko",
+        "example_en",
+        "example_ko",
+        "example_kind",
+        "sources"
+      ],
+      "title": "SpokenUsageNote",
+      "type": "object"
+    },
+    "Suggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "suggestion_id": {
+          "description": "결과 내부 ID. DB 식별자가 아니다.",
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Suggestion Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "grammar_error",
+            "vocabulary_error",
+            "natural_alternative",
+            "context_fit",
+            "idiomatic_expression"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "suggested_expression": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Suggested Expression",
+          "type": "string"
+        },
+        "explanation_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Explanation Ko",
+          "type": "string"
+        }
+      },
+      "required": [
+        "suggestion_id",
+        "kind",
+        "source",
+        "suggested_expression",
+        "explanation_ko"
+      ],
+      "title": "Suggestion",
+      "type": "object"
+    },
+    "SuggestionSource": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "suggestion",
+          "title": "Type",
+          "type": "string"
+        },
+        "review_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Review Id",
+          "type": "string"
+        },
+        "suggestion_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Suggestion Id",
+          "type": "string"
+        },
+        "quote": {
+          "description": "연결된 suggested_expression에 포함된 실제 표현.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "review_id",
+        "suggestion_id",
+        "quote"
+      ],
+      "title": "SuggestionSource",
+      "type": "object"
+    },
+    "TurnReview": {
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Review Id",
+          "type": "string"
+        },
+        "turn_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Turn Id",
+          "type": "string"
+        },
+        "original_text": {
+          "description": "해당 사용자 final_text 전체와 정확히 일치.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Original Text",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "appropriate",
+            "improvement_suggested",
+            "needs_clarification",
+            "not_assessable"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "explanation_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Explanation Ko",
+          "type": "string"
+        },
+        "assisted": {
+          "title": "Assisted",
+          "type": "boolean"
+        },
+        "suggestions": {
+          "items": {
+            "$ref": "#/$defs/Suggestion"
+          },
+          "title": "Suggestions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "review_id",
+        "turn_id",
+        "original_text",
+        "verdict",
+        "explanation_ko",
+        "assisted",
+        "suggestions"
+      ],
+      "title": "TurnReview",
+      "type": "object"
+    },
+    "UserTurnSource": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "user_turn",
+          "title": "Type",
+          "type": "string"
+        },
+        "turn_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Turn Id",
+          "type": "string"
+        },
+        "quote": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "turn_id",
+        "quote"
+      ],
+      "title": "UserTurnSource",
+      "type": "object"
+    },
+    "VocabCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "word",
+            "idiom",
+            "sentence"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "expression": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Expression",
+          "type": "string"
+        },
+        "meaning_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Meaning Ko",
+          "type": "string"
+        },
+        "example_en": {
+          "description": "학습용 예문. 실제 사용자 발화라고 표시하지 않는다.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Example En",
+          "type": "string"
+        },
+        "example_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Example Ko",
+          "type": "string"
+        },
+        "source": {
+          "discriminator": {
+            "mapping": {
+              "suggestion": "#/$defs/SuggestionSource",
+              "user_turn": "#/$defs/UserTurnSource"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/UserTurnSource"
+            },
+            {
+              "$ref": "#/$defs/SuggestionSource"
+            }
+          ],
+          "title": "Source"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "kind",
+        "expression",
+        "meaning_ko",
+        "example_en",
+        "example_ko",
+        "source"
+      ],
+      "title": "VocabCandidate",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "blocked_by_quota": "#/$defs/QuotaBlocked",
+      "completed": "#/$defs/Completed",
+      "failed": "#/$defs/Failed",
+      "insufficient_evidence": "#/$defs/Insufficient",
+      "processing": "#/$defs/Processing"
+    },
+    "propertyName": "status"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Completed"
+    },
+    {
+      "$ref": "#/$defs/Processing"
+    },
+    {
+      "$ref": "#/$defs/Insufficient"
+    },
+    {
+      "$ref": "#/$defs/QuotaBlocked"
+    },
+    {
+      "$ref": "#/$defs/Failed"
+    }
+  ]
+}

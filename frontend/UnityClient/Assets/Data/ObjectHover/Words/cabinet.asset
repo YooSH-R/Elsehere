@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: cabinet
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: cabinet
+    languageCode: en-US
+    text: cabinet
+    meaningKo: "\uC218\uB0A9\uC7A5"
+    example: The plates are in the cabinet.
+    exampleKo: "\uC811\uC2DC\uB294 \uC218\uB0A9\uC7A5 \uC548\uC5D0 \uC788\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: f7dbb49fbd477394384a1a77ee8f41eb

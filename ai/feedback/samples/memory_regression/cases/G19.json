@@ -1,0 +1,145 @@
+{
+  "dataset_version": "memory-regression-1.0",
+  "case_id": "G19",
+  "case_type": "semantic_reference",
+  "title_ko": "새 방문의 길 안내가 이전 사실을 지우지 않기",
+  "source": "synthetic",
+  "tags": [
+    "cafe",
+    "retention",
+    "new_session"
+  ],
+  "rubric": {
+    "must": [
+      "같은 NPC와 새 대화에서 기존 음료 선호를 유지한다."
+    ],
+    "must_not": [
+      "이번에 선호를 언급하지 않았다는 이유로 지우지 않는다."
+    ]
+  },
+  "request": {
+    "schema_version": "0.1.0",
+    "request_id": "request_G19",
+    "scope": {
+      "user_id": "synthetic_user_01",
+      "npc_id": "npc_cafe",
+      "conversation_id": "conversation_G19"
+    },
+    "conversation_revision": 1,
+    "analysis_config_version": "memory_regression_v1",
+    "context": {
+      "scene_id": "cafe",
+      "mode": "free_chat",
+      "scene_description": "Synthetic conversation in cafe.",
+      "target_language": "en-US",
+      "explanation_language": "ko-KR",
+      "end_reason": "user_end"
+    },
+    "turns": [
+      {
+        "turn_id": "t1",
+        "sequence": 1,
+        "speaker": "npc",
+        "input_type": "generated",
+        "text_status": "final",
+        "original_transcript": null,
+        "final_text": "How can I help you today?",
+        "difficulty": {
+          "settings_version": "s1",
+          "vocabulary_profile": "simple",
+          "speech_rate_multiplier": 1.0,
+          "hint_policy": "on_request"
+        },
+        "assistance_ids": []
+      },
+      {
+        "turn_id": "t2",
+        "sequence": 2,
+        "speaker": "user",
+        "input_type": "text",
+        "text_status": "final",
+        "original_transcript": null,
+        "final_text": "Where is the station?",
+        "difficulty": {
+          "settings_version": "s1",
+          "vocabulary_profile": "simple",
+          "speech_rate_multiplier": 1.0,
+          "hint_policy": "on_request"
+        },
+        "assistance_ids": []
+      }
+    ],
+    "assistance_events": [],
+    "memory_snapshot": {
+      "version": 3,
+      "facts": [
+        {
+          "memory_id": "drink_1",
+          "fact_key": "preference.favorite_drink",
+          "kind": "in_game_preference",
+          "content": "Prefers coffee."
+        }
+      ]
+    }
+  },
+  "fixture_response": {
+    "schema_version": "0.1.0",
+    "request_id": "request_G19",
+    "scope": {
+      "user_id": "synthetic_user_01",
+      "npc_id": "npc_cafe",
+      "conversation_id": "conversation_G19"
+    },
+    "conversation_revision": 1,
+    "analysis_config_version": "memory_regression_v1",
+    "status": "completed",
+    "base_memory_version": 3,
+    "result": {
+      "summary": null,
+      "changes": []
+    },
+    "problem": null
+  },
+  "current": {
+    "scope": {
+      "user_id": "synthetic_user_01",
+      "npc_id": "npc_cafe",
+      "conversation_id": "conversation_G19"
+    },
+    "snapshot": {
+      "version": 3,
+      "facts": [
+        {
+          "memory_id": "drink_1",
+          "fact_key": "preference.favorite_drink",
+          "kind": "in_game_preference",
+          "content": "Prefers coffee."
+        }
+      ]
+    },
+    "conversation_revision": 1
+  },
+  "policy": {
+    "allowed_keys": {
+      "preference.favorite_drink": "in_game_preference",
+      "profile.display_name": "in_game_profile",
+      "travel.room_preference": "in_game_preference",
+      "preference.clothing_material": "in_game_preference",
+      "travel.transport_preference": "in_game_preference"
+    },
+    "max_changes": 5,
+    "max_active_facts": 20,
+    "max_content_chars": 180
+  },
+  "expected": {
+    "status": "no_change",
+    "next_memory_version": 3,
+    "active_values": {
+      "preference.favorite_drink": {
+        "kind": "in_game_preference",
+        "content": "Prefers coffee."
+      }
+    },
+    "change_targets": []
+  }
+}

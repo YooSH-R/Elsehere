@@ -1,0 +1,547 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NPC 생활·관계 규칙 스키마 (제안)",
+  "description": "$defs의 WorldRules(공통 규칙), NpcLife(NPC별 생활 파일), BehaviorLibrary(행동 조각 모음), PersonaIngredients(인격 카드 생성 재료)를 명시적으로 선택해 검증한다. Unity·AI 워커·백엔드가 같이 읽는 규칙 데이터이며, 설계는 docs/npc-life-design.md. 숫자는 시뮬레이션으로 맞출 초기값이다.",
+  "$defs": {
+    "RequestLibrary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "requests"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "requests": { "type": "array", "items": { "$ref": "#/$defs/RequestTemplate" }, "minItems": 1 }
+      },
+      "description": "부탁 퀘스트 틀. NPC가 스스로 채우지 못하는 욕구가 학습자에게 하는 부탁이 되고, 영어로 해결하는 퀘스트가 된다. 부탁하는 쪽과 들르는 곳은 NPC id가 아니라 역할·장소로 적어 자동 생성 NPC에도 쓴다."
+    },
+    "RequestTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "need", "below", "role", "activities", "reason", "ko", "steps", "reward"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
+        "need": { "$ref": "#/$defs/NeedId", "description": "이 욕구가 below 아래로 떨어지면 부탁한다." },
+        "below": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "role": { "$ref": "#/$defs/Role", "description": "부탁하는 NPC의 역할." },
+        "activities": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["WORK", "BREAK", "FREE"] },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "이 활동 중이고 자리를 비울 수 없을 때(canLeave false) 부탁한다."
+        },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "NPC가 말을 거는 이유. 첫 대사 요청에 담아 LLM이 자연스럽게 부탁하게 한다." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 150, "pattern": "\\S" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/RequestStep" }, "minItems": 1 },
+        "reward": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fills", "impression"],
+          "properties": {
+            "fills": { "$ref": "#/$defs/Fills", "description": "부탁을 들어주면 부탁한 NPC의 욕구가 채워지는 양." },
+            "impression": { "type": "integer", "minimum": 0, "maximum": 100, "description": "부탁한 NPC가 학습자에게 갖는 이번 대화 인상." }
+          }
+        }
+      }
+    },
+    "RequestStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["with", "goal", "languageFocus"],
+      "properties": {
+        "with": { "type": "string", "enum": ["requester", "staff"], "description": "requester: 부탁한 NPC, staff: place의 직원(STAFF)." },
+        "place": { "$ref": "#/$defs/Code" },
+        "goal": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S", "description": "학습자가 이 대화에서 할 일(영어)." },
+        "languageFocus": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["ordering", "polite_request", "giving_directions", "recommending", "describing", "thanking", "small_talk"] },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "이 대화에서 연습하는 말하기 기능."
+        }
+      },
+      "if": { "properties": { "with": { "const": "staff" } } },
+      "then": { "required": ["place"] }
+    },
+    "BehaviorLibrary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "behaviors"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "behaviors": { "type": "array", "items": { "$ref": "#/$defs/Behavior" }, "minItems": 1 }
+      },
+      "description": "성격 축 쪽이 표시된 행동 조각. 생성기가 NPC 성격에 맞는 조각을 뽑아 인격의 habits·behaviorRules·speechStyle에 글로 넣는다. MBTI 유형별 목록이 아니라 축 표시라서 MBTI·성격 수치·랜덤 어느 입력에서도 같은 모음을 쓴다."
+    },
+    "Behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "ko", "category", "leans"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 64 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S", "description": "인격 글에 들어갈 영어 문장." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S", "description": "작성자가 읽는 한국어 뜻." },
+        "category": { "type": "string", "enum": ["habit", "social", "speech", "inner", "work"] },
+        "leans": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/Axis" },
+          "additionalProperties": { "type": "string", "enum": ["high", "low"] },
+          "minProperties": 1,
+          "description": "이 행동이 어느 성격 축의 어느 쪽에 가까운지 (MBTI: E·N·F·J·-T가 각 축의 high)."
+        },
+        "affects": { "$ref": "#/$defs/BehaviorAffects" },
+        "conflictsWith": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "함께 뽑지 않는 조각 id."
+        }
+      }
+    },
+    "PersonaIngredients": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "names", "ageRanges", "occupations", "traits", "values", "motivations", "interests", "socialBehavior", "speechStyle"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "names": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z][a-z]+$", "maxLength": 40 }, "minItems": 1, "uniqueItems": true, "description": "이름 후보. 이미 쓰는 NPC 이름은 생성기가 고르지 않는다." },
+        "ageRanges": { "type": "array", "items": { "$ref": "#/$defs/AgeRange" }, "minItems": 1, "uniqueItems": true },
+        "occupations": { "type": "array", "items": { "$ref": "#/$defs/Occupation" }, "minItems": 1 },
+        "traits": { "type": "array", "items": { "$ref": "#/$defs/TraitIngredient" }, "minItems": 1, "description": "성격 특징. 성격 축마다 NPC가 기운 쪽에서 하나씩 골라 personality.traits에 넣는다." },
+        "values": { "type": "array", "items": { "$ref": "#/$defs/TextIngredient" }, "minItems": 1 },
+        "motivations": { "type": "array", "items": { "$ref": "#/$defs/TextIngredient" }, "minItems": 1 },
+        "interests": { "type": "array", "items": { "$ref": "#/$defs/TextIngredient" }, "minItems": 1, "description": "취미·관심사. background.interests에 넣는다." },
+        "socialBehavior": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["firstMeeting", "familiarityExpression", "conflictResponse", "boundaries"],
+          "properties": {
+            "firstMeeting": { "$ref": "#/$defs/SideRule" },
+            "familiarityExpression": { "$ref": "#/$defs/SideRule" },
+            "conflictResponse": { "$ref": "#/$defs/SideRule" },
+            "boundaries": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["STAFF", "PASSERBY"],
+              "properties": {
+                "STAFF": { "type": "array", "items": { "$ref": "#/$defs/IngredientText" }, "maxItems": 8 },
+                "PASSERBY": { "type": "array", "items": { "$ref": "#/$defs/IngredientText" }, "maxItems": 8 }
+              }
+            }
+          },
+          "description": "인격 카드 socialBehavior 칸. 각 칸은 정한 성격 축의 쪽(high·middle·low)으로 문장을 고르고, 선(boundaries)은 역할로 고른다."
+        },
+        "speechStyle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tone", "verbosity", "directness", "formality"],
+          "properties": {
+            "tone": { "type": "array", "items": { "$ref": "#/$defs/SideRule" }, "minItems": 1, "maxItems": 3, "description": "축마다 고른 말을 'and'로 잇는다 (예: lively and warm)." },
+            "verbosity": { "$ref": "#/$defs/SideRule" },
+            "directness": { "$ref": "#/$defs/SideRule" },
+            "formality": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["STAFF", "PASSERBY"],
+              "properties": {
+                "STAFF": { "type": "string", "enum": ["casual", "neutral", "formal"] },
+                "PASSERBY": { "type": "string", "enum": ["casual", "neutral", "formal"] }
+              }
+            }
+          },
+          "description": "인격 카드 speechStyle 칸. 값은 인격 스키마의 허용 값이어야 하며, 생성 결과를 인격 스키마로 다시 검사한다."
+        }
+      },
+      "description": "인격 카드(NpcProfile) 생성 재료. 생성기(ai/tools/npc_generate.py)가 입력(npcId·MBTI·역할·장소)과 npcId 씨앗으로 골라 뼈대를 만든다. 성격 쪽이 표시된 재료는 그 쪽 NPC만 고른다."
+    },
+    "AgeRange": { "type": "string", "minLength": 1, "maxLength": 40, "pattern": "\\S" },
+    "IngredientText": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S" },
+    "AxisLean": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/Axis" },
+      "additionalProperties": { "type": "string", "enum": ["high", "low"] },
+      "minProperties": 1
+    },
+    "Occupation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "ko", "role"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 120, "pattern": "\\S", "description": "인격 카드 occupation에 그대로 들어가는 영어." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S" },
+        "role": { "$ref": "#/$defs/Role" },
+        "place": { "$ref": "#/$defs/Code", "description": "일하는 장소. 직원(STAFF)이면 필수." },
+        "ages": { "type": "array", "items": { "$ref": "#/$defs/AgeRange" }, "minItems": 1, "uniqueItems": true, "description": "이 직업에 맞는 나이대. 없으면 모든 나이대." }
+      },
+      "if": { "properties": { "role": { "const": "STAFF" } } },
+      "then": { "required": ["place"] }
+    },
+    "TraitIngredient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description", "ko", "leans"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 60, "pattern": "\\S" },
+        "description": { "type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S", "description": "그 특징이 어떻게 드러나는지 행동으로." },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S" },
+        "leans": { "allOf": [{ "$ref": "#/$defs/AxisLean" }], "maxProperties": 1 }
+      }
+    },
+    "TextIngredient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "ko"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "\\S" },
+        "ko": { "type": "string", "minLength": 1, "maxLength": 100, "pattern": "\\S" },
+        "leans": { "$ref": "#/$defs/AxisLean", "description": "이 성격 쪽 NPC만 고른다. 없으면 누구나." },
+        "roles": { "type": "array", "items": { "$ref": "#/$defs/Role" }, "minItems": 1, "uniqueItems": true, "description": "이 역할 NPC만 고른다. 없으면 누구나." }
+      }
+    },
+    "SideRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["axis", "high", "middle", "low"],
+      "properties": {
+        "axis": { "$ref": "#/$defs/Axis" },
+        "high": { "$ref": "#/$defs/IngredientText" },
+        "middle": { "$ref": "#/$defs/IngredientText", "description": "축 값이 정확히 0.5일 때 (예: -T·-A가 없는 MBTI의 신경성)." },
+        "low": { "$ref": "#/$defs/IngredientText" }
+      },
+      "description": "성격 축 값이 0.5보다 크면 high, 작으면 low, 같으면 middle 문장을 쓴다."
+    },
+    "Axis": {
+      "type": "string",
+      "enum": ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"],
+      "description": "인격 스키마 personality.dimensions(Big Five 0~1)와 같은 이름."
+    },
+    "BehaviorAffects": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "needRates": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/NeedId" },
+          "additionalProperties": { "$ref": "#/$defs/Scale" },
+          "description": "욕구 감소 속도에 곱한다."
+        },
+        "recognitionRate": { "$ref": "#/$defs/Scale", "description": "손님 얼굴을 외우는 속도에 곱한다." },
+        "initiateTalkRate": { "$ref": "#/$defs/Scale", "description": "먼저 말을 거는 빈도에 곱한다." },
+        "personalTalkScale": { "$ref": "#/$defs/Scale", "description": "사적인 이야기를 하는 관계 기준에 곱한다." },
+        "eventScale": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/EventId" },
+          "additionalProperties": { "$ref": "#/$defs/Scale" },
+          "description": "그 대화 사건의 기분·인상 변화에 곱한다."
+        },
+        "salienceBonus": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/EventId" },
+          "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 2 },
+          "description": "그 대화 사건을 기억할 때 인상 세기에 더한다 (최대 3)."
+        },
+        "memoryStabilityScale": {
+          "type": "object",
+          "propertyNames": { "type": "string", "enum": ["1", "2", "3"] },
+          "additionalProperties": { "$ref": "#/$defs/Scale" },
+          "description": "인상 세기별 기억 유지 기간에 곱한다."
+        }
+      }
+    },
+    "Scale": { "type": "number", "exclusiveMinimum": 0, "maximum": 5 },
+    "Role": { "type": "string", "enum": ["STAFF", "PASSERBY"], "description": "NPC 역할. 백엔드 시드의 NPC 유형(npc_type)과 같다." },
+    "ActivityRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canFill"],
+      "properties": {
+        "canFill": { "type": "array", "items": { "$ref": "#/$defs/NeedId" }, "minItems": 1, "uniqueItems": true }
+      }
+    },
+    "RoleTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schedule"],
+      "properties": {
+        "schedule": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TemplateBlock" },
+          "minItems": 1,
+          "description": "게임 시각 기준 하루 일과. 겹치지 않고 하루 24시간을 빈틈없이 채운다(검사 도구가 확인). 장소는 NPC의 기본 장소."
+        }
+      }
+    },
+    "TemplateBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "activity"],
+      "properties": {
+        "from": { "$ref": "#/$defs/Clock" },
+        "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다. 같으면 하루 전체." },
+        "activity": { "type": "string", "enum": ["WORK", "BREAK", "FREE", "OFF"], "description": "OFF는 퇴근해 마을에 없음." }
+      }
+    },
+    "ConnectionRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "axis", "at0", "at1"],
+      "properties": {
+        "target": {
+          "type": "string",
+          "pattern": "^(needRates\\.(HUNGER|ENERGY|SOCIAL|FUN|WORK)|recognitionRate|initiateTalkRate|personalTalkScale|eventScale\\.(GREETING|SMALL_TALK|PERSONAL_QUESTION|RUDE|APOLOGY|COMPLIMENT|TASK_DONE|LEAVE))$",
+          "description": "계산할 생활 값 배수. 이름은 행동 조각 affects와 같다."
+        },
+        "axis": { "$ref": "#/$defs/Axis" },
+        "at0": { "$ref": "#/$defs/Scale", "description": "축이 0일 때 배수." },
+        "at1": { "$ref": "#/$defs/Scale", "description": "축이 1일 때 배수. 그 사이는 직선." }
+      }
+    },
+    "NpcLife": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "npcId", "mbti", "role"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "npcId": { "$ref": "#/$defs/Code", "description": "인격 파일(ai/npcs/<npcId>.json)·백엔드 시드와 같은 NPC 코드. 행동 조각 뽑기의 씨앗." },
+        "mbti": {
+          "type": "string",
+          "pattern": "^[EI][NS][FT][JP](-[AT])?$",
+          "description": "성격 입력 노드. 계산할 때 Big Five 5축으로 바꾼다(ai/tools/npc_derive.py). -T/-A는 신경성."
+        },
+        "role": { "$ref": "#/$defs/Role", "description": "역할 입력 노드. 공통 규칙의 역할별 일과 틀을 고른다." },
+        "tutorialGuide": {
+          "type": "boolean",
+          "description": "튜토리얼 안내 NPC(하나뿐). 학습자가 튜토리얼을 마치기 전까지는 튜토리얼 모드로 정해진 흐름(Unity 대본)만 따르고, 생활 시뮬레이션·부탁·AI 자유 대화를 하지 않는다."
+        }
+      },
+      "description": "NPC마다 정하는 입력 노드만 둔다. 생활 값 배수·행동·일과는 손으로 적지 않고 공통 규칙으로 계산한다."
+    },
+    "Clock": {
+      "type": "string",
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+      "description": "게임 시각 HH:MM"
+    },
+    "NeedId": {
+      "type": "string",
+      "enum": ["HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"],
+      "description": "욕구. 모두 높을수록 채워진 상태이고 시간이 지나면 줄어든다 (WORK는 할 일을 처리한 정도)."
+    },
+    "EventId": {
+      "type": "string",
+      "enum": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+      "description": "대화 사건. AI 워커가 대사를 만드는 같은 호출에서 판정한다."
+    },
+    "Emotion": {
+      "type": "string",
+      "enum": ["PLEASED", "ANNOYED", "HURT", "TIRED", "BORED"]
+    },
+    "Code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "maxLength": 64,
+      "description": "장소 코드·NPC 코드·행동 이름. 백엔드 시드와 Unity가 쓰는 대문자 코드."
+    },
+    "Fills": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/NeedId" },
+      "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 100 },
+      "minProperties": 1,
+      "description": "행동을 마치면 욕구가 채워지는 양."
+    },
+    "Action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objectKey", "scene", "action", "fills", "minutes"],
+      "properties": {
+        "objectKey": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 64,
+          "description": "사물 단어 키(backend/src/main/resources/content/object-words.json). NPC가 쓰는 사물이 학습 어휘와 이어진다."
+        },
+        "scene": { "$ref": "#/$defs/Code" },
+        "action": { "$ref": "#/$defs/Code" },
+        "fills": { "$ref": "#/$defs/Fills" },
+        "minutes": { "type": "integer", "minimum": 1, "maximum": 240, "description": "게임 시각 기준으로 걸리는 시간." },
+        "onlyRole": {
+          "$ref": "#/$defs/Role",
+          "description": "이 행동을 할 수 있는 역할(그 장소의 직원 등). 생략하면 누구나. NPC id로 제한하지 않는다."
+        }
+      }
+    },
+    "EventEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mood": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/Emotion" },
+          "additionalProperties": { "type": "integer", "minimum": -3, "maximum": 3 },
+          "description": "이번 대화의 기분 변화. 대화가 이어지는 동안 mood.decayPerTurn씩 가라앉는다."
+        },
+        "impression": {
+          "type": "integer",
+          "minimum": -100,
+          "maximum": 100,
+          "description": "이번 대화의 인상 변화. 정상 종료 때 호감이 relationship.affinityFollowRate만큼 따라간다."
+        },
+        "memorySalience": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "이 사건을 기억으로 남길 때의 인상 세기. 생략하면 기억으로 남기지 않는다."
+        }
+      }
+    },
+    "WorldRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "needs", "actions", "conversationEvents", "mood", "relationship", "memory", "derivation", "roles", "activities"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "activities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["WORK", "BREAK", "FREE"],
+          "properties": {
+            "WORK": { "$ref": "#/$defs/ActivityRule" },
+            "BREAK": { "$ref": "#/$defs/ActivityRule" },
+            "FREE": { "$ref": "#/$defs/ActivityRule" }
+          },
+          "description": "활동 중에 사물 행동으로 채울 수 있는 욕구. 근무 중에는 일만 해서, 자리를 못 비우는 직원의 다른 욕구는 부탁이 된다."
+        },
+        "roles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["STAFF", "PASSERBY"],
+          "properties": {
+            "STAFF": { "$ref": "#/$defs/RoleTemplate" },
+            "PASSERBY": { "$ref": "#/$defs/RoleTemplate" }
+          },
+          "description": "역할별 일과 틀. 역할은 백엔드 시드의 NPC 유형(npc_type)과 같다. NPC 일과는 손으로 적지 않고 이 틀에서 계산한다."
+        },
+        "derivation": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ConnectionRule" },
+          "minItems": 1,
+          "description": "성격 5축 → 생활 값 배수 연결 규칙. NPC마다 값을 손으로 적지 않고 이 규칙으로 계산한다(ai/tools/npc_derive.py)."
+        },
+        "needs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["HUNGER", "ENERGY", "SOCIAL", "FUN", "WORK"],
+          "properties": {
+            "HUNGER": { "$ref": "#/$defs/NeedRule" },
+            "ENERGY": { "$ref": "#/$defs/NeedRule" },
+            "SOCIAL": { "$ref": "#/$defs/NeedRule" },
+            "FUN": { "$ref": "#/$defs/NeedRule" },
+            "WORK": { "$ref": "#/$defs/NeedRule" }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Action" },
+          "minItems": 1
+        },
+        "conversationEvents": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "RUDE", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"],
+          "properties": {
+            "GREETING": { "$ref": "#/$defs/EventEffect" },
+            "SMALL_TALK": { "$ref": "#/$defs/EventEffect" },
+            "PERSONAL_QUESTION": { "$ref": "#/$defs/EventEffect" },
+            "RUDE": { "$ref": "#/$defs/EventEffect" },
+            "APOLOGY": { "$ref": "#/$defs/EventEffect" },
+            "COMPLIMENT": { "$ref": "#/$defs/EventEffect" },
+            "TASK_DONE": { "$ref": "#/$defs/EventEffect" },
+            "LEAVE": { "$ref": "#/$defs/EventEffect" }
+          },
+          "description": "모든 NPC 공통 효과. NPC별 생활 파일에서 덮어쓸 수 있다."
+        },
+        "mood": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decayPerTurn"],
+          "properties": {
+            "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3 }
+          }
+        },
+        "relationship": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recognitionPerConversation", "seenBefore", "regular", "personalTalk", "graceDays", "recognitionDropPerDay", "affinityFollowRate"],
+          "properties": {
+            "recognitionPerConversation": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "정상 종료된 대화마다 알아봄이 오르는 기본값. 실제로는 × (1 − 현재/100) × NPC 배수."
+            },
+            "seenBefore": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '본 적 있음'." },
+            "regular": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '단골'." },
+            "personalTalk": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["recognition", "affinity"],
+              "properties": {
+                "recognition": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "affinity": { "type": "integer", "minimum": -100, "maximum": 100 }
+              },
+              "description": "두 값을 모두 넘으면 자기 이야기를 조금 한다."
+            },
+            "graceDays": { "type": "integer", "minimum": 0, "description": "마지막 대화 뒤 알아봄이 줄지 않는 날 수." },
+            "recognitionDropPerDay": { "type": "number", "minimum": 0, "maximum": 100 },
+            "affinityFollowRate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "정상 종료 때 호감이 이번 대화 인상 쪽으로 따라가는 비율."
+            }
+          }
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stabilityDays", "recallAt", "spacedRepeatFactor", "sameDayFactor"],
+          "properties": {
+            "stabilityDays": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["1", "2", "3"],
+              "properties": {
+                "1": { "type": "number", "exclusiveMinimum": 0 },
+                "2": { "type": "number", "exclusiveMinimum": 0 },
+                "3": { "type": "number", "exclusiveMinimum": 0 }
+              },
+              "description": "인상 세기(1 평범·2 대화 거리·3 강한 감정)별 처음 유지 기간(일)."
+            },
+            "recallAt": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "description": "exp(−지난 날 수 / 유지 기간)이 이 값 이상인 기억만 떠올린다."
+            },
+            "spacedRepeatFactor": { "type": "number", "minimum": 1, "description": "날을 두고 같은 일이 다시 일어나면 유지 기간에 곱한다." },
+            "sameDayFactor": { "type": "number", "minimum": 1, "description": "같은 날 다시 일어나면 유지 기간에 곱한다." }
+          }
+        }
+      }
+    },
+    "NeedRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dropPerHour", "start"],
+      "properties": {
+        "start": { "type": "number", "minimum": 0, "maximum": 100, "description": "NPC가 하루를 시작할 때(퇴근 뒤 다시 나타날 때)의 값." },
+        "dropPerHour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "게임 시각 한 시간에 줄어드는 양. NPC별 생활 파일의 배수를 곱한다."
+        }
+      }
+    }
+  }
+}

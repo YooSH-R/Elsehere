@@ -1,0 +1,507 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NPC 공통 설정·인격 스키마 v2.0 (제안)",
+  "description": "$defs의 NpcConfigurationList/NpcConfiguration/NpcProfile을 명시적으로 선택해 검증한다. 루트만 검증하면 대상 타입을 제한하지 않는다. 상대 참조를 유지하도록 파일 묶음을 함께 보관한다.",
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "\\S"
+    },
+    "PersonalityTrait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "pattern": "\\S",
+          "description": "성격 특성의 짧은 이름."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "pattern": "\\S",
+          "description": "그 특성이 이 NPC에게 어떻게 드러나는지에 대한 설명. 단순 라벨보다 구체적인 행동 경향."
+        }
+      }
+    },
+    "PersonalityDimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "openness",
+        "conscientiousness",
+        "extraversion",
+        "agreeableness",
+        "neuroticism"
+      ],
+      "properties": {
+        "openness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "새로운 경험과 생각을 받아들이는 경향의 창작용 상대값."
+        },
+        "conscientiousness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "계획·책임·정확성을 중시하는 경향의 창작용 상대값."
+        },
+        "extraversion": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "사회적 상호작용에 적극적으로 나서는 경향의 창작용 상대값."
+        },
+        "agreeableness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "협조·배려를 우선하는 경향의 창작용 상대값."
+        },
+        "neuroticism": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "걱정·긴장 등 정서적 반응의 민감도를 표현하는 창작용 상대값."
+        }
+      },
+      "description": "선택적 Big Five 형식의 0~1 좌표. 실제 심리검사 점수가 아니며 인격의 전부가 아니다. 제공 시 다섯 값 모두 필요. 미설정은 null 또는 필드 생략; 0은 미설정이 아니다."
+    },
+    "Personality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traits"
+      ],
+      "properties": {
+        "traits": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/PersonalityTrait"
+          }
+        },
+        "dimensions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PersonalityDimensions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "선택 사항. 미설정 시 수치 성향을 추정해서 채우지 않는다."
+        }
+      }
+    },
+    "SpeechStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tone",
+        "formality",
+        "verbosity"
+      ],
+      "properties": {
+        "tone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "formality": {
+          "type": "string",
+          "enum": [
+            "casual",
+            "neutral",
+            "formal"
+          ]
+        },
+        "verbosity": {
+          "type": "string",
+          "enum": [
+            "short",
+            "medium",
+            "long"
+          ]
+        },
+        "humor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "\\S"
+        },
+        "directness": {
+          "type": "string",
+          "enum": [
+            "indirect",
+            "balanced",
+            "direct"
+          ]
+        },
+        "catchphrases": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 6,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true
+        }
+      },
+      "description": "언어 표현 경향. TTS 목소리·속도 설정이 아니다. 말버릇을 매 턴 반드시 반복하라는 지시가 아니다."
+    },
+    "SocialBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "firstMeeting",
+        "familiarityExpression",
+        "conflictResponse",
+        "boundaries"
+      ],
+      "properties": {
+        "firstMeeting": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 400,
+          "pattern": "\\S"
+        },
+        "familiarityExpression": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 400,
+          "pattern": "\\S"
+        },
+        "conflictResponse": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 400,
+          "pattern": "\\S"
+        },
+        "boundaries": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true
+        }
+      },
+      "description": "사회적 반응의 기본 경향. 객체를 제공하면 네 키가 모두 필요. 미설정 설명은 null, 경계 목록은 [] 사용. 사용자별 현재 친밀도나 관계 이력이 아니다."
+    },
+    "BackgroundExperience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event",
+        "influence"
+      ],
+      "properties": {
+        "event": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400,
+          "pattern": "\\S"
+        },
+        "influence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400,
+          "pattern": "\\S"
+        }
+      },
+      "description": "설정된 과거 경험과 현재 성격·행동에 미친 영향. 사용자의 실제 대화에서 얻은 기억과 구분."
+    },
+    "Background": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "experiences",
+        "interests"
+      ],
+      "properties": {
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 1500,
+          "pattern": "\\S"
+        },
+        "experiences": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/BackgroundExperience"
+          }
+        },
+        "interests": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true
+        }
+      },
+      "description": "고정된 허구 캐릭터의 배경. 객체를 제공하면 세 키 모두 필요. 동적 메뉴·가격·예약·사용자별 기억은 넣지 않는다."
+    },
+    "Habit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trigger",
+        "tendency"
+      ],
+      "properties": {
+        "trigger": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "\\S"
+        },
+        "tendency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "pattern": "\\S"
+        }
+      },
+      "description": "반복 습관의 맥락과 경향. 애니메이션 명령이나 조건식 실행 코드가 아니다."
+    },
+    "NpcProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "profileVersion",
+        "name",
+        "occupation",
+        "personality",
+        "values",
+        "motivations",
+        "speechStyle",
+        "behaviorRules"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "2.0",
+          "description": "프로필 구조 버전. API 문서 버전·내용 수정 횟수와 구분."
+        },
+        "profileVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Backend가 관리하는 NPC별 프로필 내용 버전. 구조 마이그레이션을 포함해 저장 내용을 수정하면 증가."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "\\S"
+        },
+        "occupation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "ageRange": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "\\S"
+        },
+        "personality": {
+          "$ref": "#/$defs/Personality"
+        },
+        "values": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true
+        },
+        "motivations": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true
+        },
+        "fears": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 6,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true
+        },
+        "socialBehavior": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SocialBehavior"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "speechStyle": {
+          "$ref": "#/$defs/SpeechStyle"
+        },
+        "background": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Background"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "habits": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Habit"
+          }
+        },
+        "behaviorRules": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "pattern": "\\S"
+          },
+          "uniqueItems": true
+        }
+      },
+      "description": "설정 저장·초기 등록·추론 입력이 공유하는 유일한 인격 구조. MVP는 직접 작성. 선택 필드 생략은 미설정이며 서버가 임의의 인격 사실을 채우지 않는다."
+    },
+    "NpcConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "npcId",
+        "npcProfile",
+        "defaultLocationId",
+        "voiceId",
+        "isActive"
+      ],
+      "properties": {
+        "npcId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "npcProfile": {
+          "$ref": "#/$defs/NpcProfile"
+        },
+        "defaultLocationId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "voiceId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "\\S"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      },
+      "description": "Backend 저장·초기 등록용 설정 데이터. HTTP 요청 본문을 뜻하지 않는다. 실제 현재 위치·사용자별 기억·API 자격 증명은 포함하지 않는다.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "isActive": {
+                "const": true
+              }
+            },
+            "required": [
+              "isActive"
+            ]
+          },
+          "then": {
+            "properties": {
+              "voiceId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "NpcConfigurationList": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "$ref": "#/$defs/NpcConfiguration"
+      },
+      "description": "초기 등록 파일의 배열. MVP 예시는 3개이며 3개로 스키마를 제한하지 않는다. npcId 중복·참조 존재·검토 여부는 별도 검증."
+    }
+  }
+}

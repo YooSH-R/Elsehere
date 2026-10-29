@@ -1,0 +1,20 @@
+Use case: precise-object-edit / environment scale study.
+This is the approved Elsehere BRICK MAINSTREET cute 3D-game environment. Preserve its design language: coral brick and creamy connected American Main Street storefronts, flat parapets, green cafe awning, striped general-store canopy, navy vertical HOTEL sign, simple broad tree crowns, smooth matte materials and enormous rounded-square-headed tiny-bodied characters. No realism or detailed texture, no redesign of faces or clothes.
+This is a scale comparison, NOT a new architectural style. The same layout, street width, building widths, pedestrians, props, colors, lighting and camera must be used across all variants. Scale values are design targets. Do not make an attractive image by secretly resizing the characters or changing the camera.
+
+
+Make the first comparison plate, BRICK MAINSTREET v3-A.
+Reference image role: the supplied image is the approved environment/character design source, not an exact meter-scale photograph.
+Show a closer, near-street-level view from across the intersection towards the cafe, general store and corner hotel. The cafe sits left, cream general store center, coral hotel right. Use a mild front three-quarter view with minimal perspective, a fixed camera approximately 2m above the road, looking almost horizontally. All buildings including their roofs visible. Landscape 3:2 composition with generous empty blue sky at the top that will accommodate taller buildings in later variants. Do not fill the frame by zooming in. This is a readable game scene, not a flat technical drawing.
+For comparisons, center the storefronts' sidewalk contact line near y=840 on a 1024px-tall canvas and reserve the top 200px primarily for sky. A person standing at the facade plane should be approximately 145px tall, with no changes in this scale in subsequent plates.
+HEIGHT TARGETS FOR A:
+- all characters have total height 1.4m; their huge head including hair occupies 1.0m and everything below the chin 0.4m. Keep this exaggerated ratio. Do not use normal chibi proportions.
+- first-floor height = 2.4m, measured from sidewalk surface to the TOP of the horizontal floor-separation band. The character is about 58% of that first-floor height.
+- upper floor height = 2.4m; roof parapet adds 0.4m. Total two-story height = 5.2m.
+- all entrance door clear openings = 2.0m wide by 2.2m tall. The upper floor has the same simple pair of large windows as the reference.
+- cafe/general store each 6m wide; hotel 8m wide. Keep these widths fixed across later images.
+- canopy lower edge stays at 2.2m above sidewalk, projecting toward the street.
+Use the female player with brown bob, periwinkle jacket and aqua shorts standing immediately BESIDE the general-store doorway, close to the same facade plane so her head-to-door height is obvious. Keep one navy hotelier just beside the hotel entrance and one barista at cafe entrance. They are standing on the sidewalk, not hovering or on hidden steps. No extra tiny background people. Preserve their huge heads and very small bodies.
+Keep a single simple leafy tree and a short lamp near the side edges, not hiding the door/person comparison. Retain part of the crosswalk and the blue parked pickup to establish the street. No interior crowd or gratuitous decoration.
+A should read as the compact, snug, almost toy-sized version: heads closer to the canopy and floor division, with relatively little wall above doors. It is the low-building comparison control.
+Small clear footer on one clean line: "BRICK MAINSTREET v3-A  |  1F 2.4m  |  AVATAR 1.4m". No other dimension arrows or diagram graphics. No depth-of-field or blur.

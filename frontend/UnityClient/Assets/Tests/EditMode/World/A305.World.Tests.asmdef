@@ -1,0 +1,35 @@
+{
+    "name": "A305.World.Tests",
+    "rootNamespace": "A305.World.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "A305.World",
+        "A305.Api",
+        "A305.Player",
+        "A305.Characters",
+        "A305.EditorTools",
+        "A305.ObjectHover",
+        "A305.Dialogue",
+        "A305.Npc",
+        "A305.Learning",
+        "A305.Mission",
+        "A305.Tutorial",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

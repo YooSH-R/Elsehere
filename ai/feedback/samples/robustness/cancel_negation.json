@@ -1,0 +1,103 @@
+{
+  "schema_version": "0.3.0",
+  "request_id": "robust_cancel_negation",
+  "scope": {
+    "user_id": "user_sample",
+    "npc_id": "npc_cafe_sample",
+    "conversation_id": "robust_cancel_negation"
+  },
+  "conversation_revision": 5,
+  "analysis_config_version": "feedback_stub_v03",
+  "context": {
+    "scene_id": "cafe_sample",
+    "mode": "free_chat",
+    "scene_description": "가상 카페에서 직원과 자유롭게 대화한다.",
+    "target_language": "en-US",
+    "explanation_language": "ko-KR",
+    "end_reason": "user_end",
+    "tutorial_goal": null
+  },
+  "turns": [
+    {
+      "turn_id": "t01",
+      "sequence": 1,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "What would you like?",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t02",
+      "sequence": 2,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "I don't want coffee. I'd like tea, please.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t03",
+      "sequence": 3,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Sure, one tea.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t04",
+      "sequence": 4,
+      "speaker": "user",
+      "input_type": "text",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Actually, cancel the tea. I only want water.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    },
+    {
+      "turn_id": "t05",
+      "sequence": 5,
+      "speaker": "npc",
+      "input_type": "generated",
+      "text_status": "final",
+      "original_transcript": null,
+      "final_text": "Okay, just water.",
+      "difficulty": {
+        "settings_version": "settings_sample_1",
+        "vocabulary_profile": "everyday_sample",
+        "speech_rate_multiplier": null,
+        "hint_policy": "on_request"
+      },
+      "assistance_ids": []
+    }
+  ],
+  "assistance_events": []
+}

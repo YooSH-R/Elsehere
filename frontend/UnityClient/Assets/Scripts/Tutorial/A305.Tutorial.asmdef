@@ -1,0 +1,24 @@
+{
+    "name": "A305.Tutorial",
+    "rootNamespace": "A305.Tutorial",
+    "references": [
+        "A305.Api",
+        "A305.Player",
+        "A305.ObjectHover",
+        "A305.Dialogue",
+        "A305.Npc",
+        "A305.Learning",
+        "A305.Mission",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

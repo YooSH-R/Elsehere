@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6b638e4573a5ac4fb9fb62142ff3dc0, type: 3}
+  m_Name: DefaultValidation
+  m_EditorClassIdentifier: A305.EditorTools::A305.EditorTools.Tripo.TripoValidationProfile
+  minimumScale: 0.85
+  maximumScale: 1.15
+  weightTolerance: 0.0001
+  seamHeightRatio: 0.001
+  penetrationHeightRatio: 0.0005
+  socketPositionHeightRatio: 0.0005
+  socketAngleDegrees: 0.5
+  lipsyncPercentileMilliseconds: 40
+  lipsyncMaximumMilliseconds: 80
+  speechReleaseMilliseconds: 150

@@ -1,0 +1,3 @@
+# Keep existing worker commands compatible with the shared AI configuration.
+[tool.ruff]
+extend = "../pyproject.toml"

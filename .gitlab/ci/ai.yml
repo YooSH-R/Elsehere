@@ -1,0 +1,88 @@
+.ai-python:
+  extends: .linux-job
+  image: python:3.12-slim-bookworm
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+    PYTHONUTF8: "1"
+    PYTHONUNBUFFERED: "1"
+  cache:
+    key: ai-python312-pip
+    paths:
+      - .cache/pip/
+
+ai:check-and-test:
+  extends: .ai-python
+  stage: verify
+  needs: ["ci:yaml"]
+  timeout: 10m
+  script:
+    - python -m pip install --disable-pip-version-check -r ai/requirements-dev.txt
+    - python -m ruff check ai --config ai/pyproject.toml
+    - python -m ruff format --check ai --config ai/pyproject.toml
+    - python -X utf8 ai/feedback/check_runtime.py
+    # Separate processes avoid collisions between the two test_feedback modules.
+    - cd ai/feedback
+    - python -m pytest -q --junitxml="$CI_PROJECT_DIR/reports/ai-feedback.xml"
+    - cd ../worker
+    - python -m pytest -q --junitxml="$CI_PROJECT_DIR/reports/ai-worker.xml"
+    - cd "$CI_PROJECT_DIR"
+    - python -m compileall -q ai/worker/app ai/feedback/feedback
+    - mkdir -p dist
+    - printf '%s\n' "$CI_COMMIT_SHA" > dist/ai-commit.txt
+    - >-
+      tar --exclude=__pycache__ --exclude='*.pyc' -czf dist/ai-source.tar.gz
+      ai/worker/app ai/worker/llm_profiles.json ai/worker/requirements.txt
+      ai/worker/requirements-tts.txt ai/worker/requirements-guard.txt
+      ai/feedback/feedback ai/feedback/prompts ai/feedback/content ai/feedback/schemas
+      ai/feedback/requirements.txt ai/feedback/check_runtime.py
+  artifacts:
+    when: always
+    name: ai-$CI_COMMIT_SHA
+    expire_in: 14 days
+    reports:
+      junit: reports/ai-*.xml
+    paths:
+      - reports/ai-*.xml
+      - dist/ai-source.tar.gz
+      - dist/ai-commit.txt
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_AI == "true"'
+    - !reference [.deployment-parent-skips, rules]
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &ai_python_change_paths
+          - ai/**/*
+          - docs/api/**/*
+          - .gitlab-ci.yml
+          - .gitlab/ci/**/*
+          - AGENTS.md
+          - docs/code-conventions.md
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *ai_python_change_paths
+
+ai:panel-tests:
+  extends: .linux-job
+  stage: verify
+  needs: ["ci:yaml"]
+  image: node:22-alpine
+  timeout: 3m
+  script:
+    - node --test ai/feedback/tests/test_prototype_panel.cjs
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_AI == "true"'
+    - !reference [.deployment-parent-skips, rules]
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &ai_panel_change_paths
+          - ai/feedback/**/*
+          - docs/api/**/*
+          - .gitlab-ci.yml
+          - .gitlab/ci/**/*
+          - AGENTS.md
+          - docs/code-conventions.md
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *ai_panel_change_paths

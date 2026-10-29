@@ -1,0 +1,80 @@
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  background: #17191f;
+  color: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  /* 게임 화면이 창을 꽉 채우므로 페이지 스크롤이 생기지 않게 한다. */
+  overflow: hidden;
+}
+
+#unity-viewport {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  /* 노치·홈 표시줄 영역만 비우고 나머지는 게임 화면으로 채운다. */
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: #17191f;
+}
+
+#unity-frame {
+  /* 창 크기에 맞춰 캔버스를 채운다. Unity가 캔버스 크기에 맞춰 화면을 다시 그리고, UI는 화면 크기에 맞춰 늘고 준다. */
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#unity-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  background: {{{ BACKGROUND_COLOR }}};
+}
+
+#unity-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  font-size: clamp(12px, 2vw, 16px);
+  text-align: center;
+}
+
+#unity-progress {
+  width: min(70%, 240px);
+  accent-color: #709bff;
+}
+
+#unity-warning {
+  position: absolute;
+  inset: 8px 8px auto;
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: #6b2028;
+  font-size: 14px;
+}
+
+[hidden] {
+  display: none !important;
+}

@@ -1,0 +1,153 @@
+"""학습 보조: NPC 대사 뜻·단어 풀이(/v1/meaning), 추천 단어(/v1/suggest), 대화 난이도(level). 가짜 공급자라 진짜 호출 없음."""
+
+import json
+
+import pytest
+
+from conftest import FakeTts, make_client, ok, stream
+
+NPC = {"id": "mia", "name": "Mia", "role": "the barista at Maple Cafe.", "facts": "Menu: latte $5.", "scene": "Inside Maple Cafe."}
+HISTORY = [
+    {"who": "npc", "text": "Hi! What can I get for you?"},
+    {"who": "me", "text": "one latte"},
+    {"who": "npc", "text": "Great! For here or to go?"},
+]
+
+
+def user_msg(body: dict) -> str:
+    return body["messages"][-1]["content"]
+
+
+# ---------------------------------------------------------------------
+# 뜻 보기
+# ---------------------------------------------------------------------
+def test_meaning_gives_korean_and_glossary_from_the_line(client, provider):
+    seen = {}
+
+    def answer(b):
+        seen["body"] = b
+        return ok(
+            json.dumps(
+                {
+                    "meaning_ko": "좋아요! 매장에서 드실 건가요, 가져가실 건가요?",
+                    "glossary": [{"text": "to go", "meaning_ko": "포장"}, {"text": "takeout", "meaning_ko": "포장 (대사에 없음)"}],
+                }
+            )
+        )
+
+    provider.answers["meaning"] = answer
+    r = client.post("/v1/meaning", json={"npc": NPC, "text": "Great! For here or to go?", "level": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["meaning_ko"] == "좋아요! 매장에서 드실 건가요, 가져가실 건가요?"
+    assert body["glossary"] == [{"text": "to go", "meaning_ko": "포장"}]  # 대사에 없는 말은 버린다
+    assert [u["step"] for u in body["usage"]] == ["meaning"]
+    assert "Great! For here or to go?" in user_msg(seen["body"]) and "Mia" in user_msg(seen["body"])
+
+
+def test_meaning_glossary_is_at_most_three(client, provider):
+    items = [{"text": w, "meaning_ko": "뜻"} for w in ("grab", "a", "quick", "bite")]
+    provider.answers["meaning"] = lambda b: ok(json.dumps({"meaning_ko": "빨리 뭐 좀 먹자", "glossary": items}))
+    r = client.post("/v1/meaning", json={"npc": NPC, "text": "Let's grab a quick bite"}).json()
+    assert len(r["glossary"]) == 3
+
+
+@pytest.mark.parametrize("out", ["not json", "[]", '{"glossary": []}', '{"meaning_ko": "", "glossary": []}'])
+def test_meaning_output_that_breaks_format_is_invalid_output(client, provider, out):
+    provider.answers["meaning"] = lambda b: ok(out)
+    r = client.post("/v1/meaning", json={"npc": NPC, "text": "Great!"})
+    assert r.status_code == 502 and r.json()["error"]["code"] == "invalid_output"
+
+
+def test_meaning_blank_line_is_invalid_request(client):
+    r = client.post("/v1/meaning", json={"npc": NPC, "text": "  "})
+    assert r.status_code == 400
+
+
+# ---------------------------------------------------------------------
+# 추천 단어
+# ---------------------------------------------------------------------
+def test_suggest_gives_three_words_for_the_reply(client, provider):
+    seen = {}
+
+    def answer(b):
+        seen["body"] = b
+        return ok(json.dumps({"words": ["for here", " to go ", "For here", 7, "please", "thanks"]}))
+
+    provider.answers["suggest"] = answer
+    r = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY, "goal": "choose for here or to go", "level": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["words"] == ["for here", "to go", "please"]  # 공백 정리·중복(대소문자 무시)·문자열 아닌 것 빼고 3개까지
+    assert [u["step"] for u in body["usage"]] == ["suggest"]
+    msg = user_msg(seen["body"])
+    assert "Great! For here or to go?" in msg and "choose for here or to go" in msg and "A1-A2" in msg
+
+
+def test_suggest_without_npc_line_still_works(client, provider):
+    provider.answers["suggest"] = lambda b: ok(json.dumps({"words": ["hello", "latte", "please"]}))
+    r = client.post("/v1/suggest", json={"npc": NPC, "history": []})
+    assert r.status_code == 200 and r.json()["words"] == ["hello", "latte", "please"]
+
+
+@pytest.mark.parametrize("out", ["not json", "{}", '{"words": "latte"}', '{"words": []}'])
+def test_suggest_output_that_breaks_format_is_invalid_output(client, provider, out):
+    provider.answers["suggest"] = lambda b: ok(out)
+    r = client.post("/v1/suggest", json={"npc": NPC, "history": HISTORY})
+    assert r.status_code == 502 and r.json()["error"]["code"] == "invalid_output"
+
+
+# ---------------------------------------------------------------------
+# 난이도
+# ---------------------------------------------------------------------
+def reply(provider, level=None, npc=NPC, tts=None):
+    seen = {}
+
+    def answer(b):
+        seen["body"] = b
+        return stream(["Sure. ", "One latte."])
+
+    provider.answers["npc"] = answer
+    body = {"npc": npc, "history": [], "text": "one latte", "tts": tts is not None} | ({"level": level} if level else {})
+    with make_client(provider, tts=tts) as c:
+        r = c.post("/v1/npc/reply", json=body)
+    assert r.status_code == 200
+    return seen["body"]
+
+
+@pytest.mark.parametrize(
+    ("level", "rule", "max_tokens"), [(1, "nervous beginner", 90), (2, "natural everyday American English", 120), (3, "at full speed", 170)]
+)
+def test_reply_follows_level(provider, level, rule, max_tokens):
+    b = reply(provider, level)
+    assert rule in b["messages"][0]["content"] and b["max_tokens"] == max_tokens
+
+
+def test_reply_default_level_is_normal(provider):
+    b = reply(provider)
+    assert "natural everyday American English" in b["messages"][0]["content"] and b["max_tokens"] == 120
+
+
+@pytest.mark.parametrize(("level", "npc_speed", "want"), [(1, 1.0, 0.85), (2, 1.0, 1.0), (3, 1.0, 1.06), (2, 1.1, 1.1), (1, 1.1, 0.94)])
+def test_reply_voice_speed_follows_level_and_npc(provider, level, npc_speed, want):
+    tts = FakeTts()
+    reply(provider, level, npc=NPC | {"tts_speed": npc_speed}, tts=tts)
+    assert tts.speeds and all(s == want for s in tts.speeds)
+
+
+def test_hint_follows_level(client, provider):
+    seen = {}
+
+    def answer(b):
+        seen["body"] = b
+        return ok(json.dumps({"say_this": [{"en": "For here.", "ko": "여기서요."}], "keywords": [{"en": "for here", "ko": "매장"}]}))
+
+    provider.answers["hint"] = answer
+    client.post("/v1/hint", json={"npc": NPC, "goal": "choose", "history": HISTORY, "level": 1})
+    assert "very simple (CEFR A1-A2)" in user_msg(seen["body"])
+
+
+@pytest.mark.parametrize("level", [0, 4, "hard"])
+def test_unknown_level_is_invalid_request(client, level):
+    r = client.post("/v1/npc/reply", json={"npc": NPC, "history": [], "text": "hi", "level": level})
+    assert r.status_code == 400

@@ -1,0 +1,57 @@
+# 백엔드 개발 지침
+
+루트 [AGENTS.md](../AGENTS.md)와 [공통 코드 규약](../docs/code-conventions.md)을 기본으로 적용합니다. 이 문서는 Java + Spring Boot 백엔드의 테스트 우선 개발 기준을 정합니다. 진행 절차는 `tdd` 스킬을 따릅니다.
+
+## 현재 상태
+
+- 기술·의존성 버전과 스키마 생성 방식은 [백엔드 README](README.md)에서 관리합니다.
+- 데이터 구조는 [ERD](../docs/erd.dbml), API는 [MVP API 명세](../docs/api/mvp-api.md)를 따릅니다.
+- 정하지 않은 기술을 코드 작성 중에 임의로 확정하지 않습니다. 필요하면 선택지와 영향을 설명하고 사용자 확인을 받습니다.
+
+## 패키지와 엔티티
+
+- 엔티티는 `com.elsehere.common.entity.BaseEntity`를 상속합니다. 생성·수정 시각(`created_at`, `updated_at`)은 JPA Auditing이 `Clock` 빈 기준으로 기록하며, 식별자는 각 엔티티에서 선언합니다.
+- 패키지는 `com.elsehere.<도메인>` 아래에 `controller`, `service`, `repository`, `entity`를 둡니다. 도메인별 테이블은 [백엔드 README](README.md#패키지-구조)에 있습니다.
+- 엔티티의 테이블·컬럼 이름, 길이, NOT NULL, 기본값, 유니크·인덱스를 ERD와 맞추고, 엔티티를 바꾸면 ERD와 함께 `src/main/resources/db/migration`에 다음 순번의 마이그레이션 SQL을 추가합니다. 병합된 마이그레이션 파일은 고치지 않습니다. 작성 기준은 [백엔드 README](README.md#스키마-관리)를 따릅니다.
+- 다른 담당 영역의 테이블(users, conversations, turns)은 연관관계 없이 `Long` ID로만 참조합니다.
+- `saved_at`, `started_at`처럼 업무에 쓰는 시각은 `created_at`과 별도 컬럼으로 두고, 값을 넣는 코드에서 `Clock` 기준으로 채웁니다.
+- 새 테이블의 엔티티를 만들면 `EntitySchemaTest`의 테이블 목록에 추가합니다.
+- 장소·NPC·사물·어휘·미션 같은 기본 데이터는 `src/main/resources/db/seed/world.sql`에 추가합니다. 방식은 [백엔드 README](README.md#시드-데이터)를 따릅니다.
+- 공용 사물 어휘의 편집 원본은 `frontend/UnityClient/Assets/Data/ObjectHover/Words/`의 Unity 에셋입니다. Unity의 `Tools/A305/ObjectHover/Export Backend Data` 또는 저장소 루트의 `infra/scripts/sync-object-words.ps1`로 `content/object-words.json`, `content/object-word-bindings.json`, SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 생성 파일은 직접 편집하지 않습니다. `-Check`는 Unity Editor로 에셋과 생성 결과를 비교합니다. 시드 로더는 SQL을 실행한 뒤 단어 JSON으로 `vocabularies.word_key`를, 씬·프리팹 연결 JSON으로 `scene_words`를 채우고, 음성 볼륨의 발음 폴더(`elsehere.pronunciation.dir`)에 `{공용 키}.wav` 파일이 있는 단어에 발음 키를 넣습니다. 발음 파일은 관리자가 발음 생성 API로 만듭니다.
+
+## 인증과 오류
+
+- 컨트롤러는 현재 사용자를 `@AuthenticationPrincipal LoginUser`로 받습니다. 요청 본문이나 경로로 받은 사용자 ID를 믿지 않습니다.
+- 업무 오류는 `BusinessException`에 `ErrorCode`를 담아 던지면 `GlobalExceptionHandler`가 공통 오류 응답으로 바꿉니다. 명세 오류 표의 코드가 처음 필요해질 때 `ErrorCode`에 추가하고, 표에 없는 코드를 만들면 명세에도 추가합니다.
+- 컨트롤러 테스트는 `@SecuredWebMvcTest(controllers = ...)`로 실제 보안 설정과 함께 검증합니다. `@WebMvcTest`에 보안 설정과 로그인 처리 빈을 등록하고, DB가 필요한 소셜 로그인 사용자 조회만 Mock으로 둔 테스트용 애너테이션입니다. 로그인 상태는 `SecurityMockMvcRequestPostProcessors.authentication(...)`에 `LoginUser`를 담아 만들고, 상태를 바꾸는 요청에는 `X-Requested-With` 헤더를 붙입니다.
+
+## 테스트 구성
+
+| 대상 | 테스트 방식 | 확인할 내용 |
+| --- | --- | --- |
+| 도메인 규칙·서비스 로직 | Spring 컨텍스트 없는 JUnit 5 단위 테스트 | 미션 판정, 상태 변경, 사용량 차단 등 핵심 규칙 |
+| 컨트롤러 | `@WebMvcTest` + `MockMvc` | 요청 검증, 응답 형식, 상태 코드, 오류 응답 |
+| 리포지토리·엔티티 매핑 | `@DataJpaTest` + Testcontainers PostgreSQL | 직접 작성한 쿼리, 매핑, 시각 자동 기록 |
+| 여러 계층을 잇는 흐름 | `@SpringBootTest` | 핵심 사용자 흐름에 한해 소수만 작성 |
+
+- Spring Boot 테스트 스타터에 포함된 JUnit 5, AssertJ, Mockito를 사용합니다. 다른 테스트 라이브러리는 필요성을 설명하고 확인을 받은 뒤 추가합니다.
+- 가장 가벼운 방식부터 선택합니다. 단위 테스트로 검증할 수 있는 규칙을 `@SpringBootTest`로 검증하지 않습니다.
+- Mock은 외부 AI 서비스, 시간, 난수처럼 테스트에서 통제해야 하는 경계에 사용합니다. 협력 객체를 모두 Mock으로 바꿔 호출 여부만 검증하지 않습니다.
+- Spring 빈을 대체할 때는 `@MockitoBean`을 사용합니다. `@MockBean`은 Spring Boot 3.4에서 지원 중단되었고 4.0에서 제거되었습니다.
+- DB는 PostgreSQL입니다. H2로는 `jsonb`, 부분 인덱스, `vector` 타입을 검증할 수 없으므로 Testcontainers로 실제 PostgreSQL에서 테스트합니다. 테스트를 실행하는 PC에 Docker가 필요합니다.
+- DB가 필요한 테스트는 `com.elsehere.TestcontainersConfiguration`을 `@Import`합니다. `@DataJpaTest`는 `@AutoConfigureTestDatabase(replace = Replace.NONE)`과 함께 씁니다.
+
+## 테스트 작성 기준
+
+- 테스트 클래스는 `src/test/java`에서 대상 클래스와 같은 패키지에 `<대상 클래스>Test` 이름으로 둡니다.
+- 테스트 메서드 이름은 시나리오와 결과를 드러냅니다. 필요하면 `@DisplayName`에 한국어 설명을 적습니다.
+- 본문은 준비(given), 실행(when), 검증(then) 순서로 작성합니다.
+- 테스트 하나는 동작 하나를 검증합니다. 같은 규칙에 입력만 바뀌면 `@ParameterizedTest`를 사용합니다.
+- 현재 시각은 `Clock`을 주입받아 사용하고 테스트에서 고정합니다. 실행 시점에 따라 결과가 달라지지 않게 합니다.
+- 오류 응답 테스트는 상태 코드와 함께 응답 본문의 오류 형식을 검증합니다.
+
+## 실행 명령
+
+실행 위치, OS별 Gradle Wrapper와 목적별 명령은 [백엔드 README의 명령](README.md#명령)을 따릅니다.
+
+Red-Green 반복 중에는 작성 중인 테스트를 실행하고, 작업을 마치기 전에 `spotlessApply`로 포맷을 적용한 뒤 `check`를 실행합니다.

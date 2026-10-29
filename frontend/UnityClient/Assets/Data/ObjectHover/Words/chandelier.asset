@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: chandelier
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: chandelier
+    languageCode: en-US
+    text: chandelier
+    meaningKo: "\uC0F9\uB4E4\uB9AC\uC5D0"
+    example: There is a chandelier in the lobby.
+    exampleKo: "\uB85C\uBE44\uC5D0 \uC0F9\uB4E4\uB9AC\uC5D0\uAC00 \uC788\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: d5ac7a42de3651145abcb32447c06744

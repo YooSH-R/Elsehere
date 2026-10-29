@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f02f3538f0bede49a13dee37835a9bd, type: 3}
+  m_Name: Composition
+  m_EditorClassIdentifier: A305.EditorTools::A305.EditorTools.Tripo.TripoCharacterComposition
+  library: {fileID: 11400000, guid: 602edd9fabb289840bafd5bb106f485d, type: 2}
+  head: {fileID: 11400000, guid: f8a9f0edb71e5424b86ff6cdeca84ca1, type: 2}
+  dressedBody: {fileID: 11400000, guid: ebf2d4d0ad9b6944194a8787c627ef02, type: 2}
+  preview: {fileID: 6043035359389392927, guid: 4f8bf97d7b3424f4990a40868f7a7daf, type: 3}
+  assembledFingerprint: afced611d0f4083cb39d3a6ad5527c85
+  visuallyApprovedFingerprint: 

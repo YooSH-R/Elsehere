@@ -1,0 +1,66 @@
+{
+  "outcome": "usable",
+  "problem": null,
+  "result": {
+    "conversation_summary": {
+      "text_ko": "추천 표현을 활용해 행인에게 카페 가는 길을 안내했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "Go straight and turn left at the corner."
+        }
+      ]
+    },
+    "communication": {
+      "judgement": "clear",
+      "explanation_ko": "추천 표현을 활용해 직진과 좌회전 방향을 전달했어요.",
+      "evidence": [
+        {
+          "turn_id": "t02",
+          "quote": "Go straight and turn left at the corner."
+        }
+      ]
+    },
+    "review_tags": [
+      {
+        "tag_id": "tag01",
+        "kind": "strength",
+        "label_ko": "추천 표현을 활용했어요",
+        "evidence": [
+          {
+            "turn_id": "t02",
+            "quote": "Go straight and turn left at the corner."
+          }
+        ],
+        "assisted": true
+      }
+    ],
+    "turn_reviews": [
+      {
+        "review_id": "review_t02",
+        "turn_id": "t02",
+        "original_text": "Go straight and turn left at the corner.",
+        "verdict": "appropriate",
+        "explanation_ko": "상황에 맞는 표현이에요.",
+        "assisted": true,
+        "suggestions": []
+      }
+    ],
+    "summary_suggestion_id": null,
+    "vocab_candidates": [
+      {
+        "candidate_id": "candidate01",
+        "kind": "sentence",
+        "expression": "Go straight and turn left at the corner.",
+        "meaning_ko": "직진한 뒤 모퉁이에서 좌회전하세요.",
+        "example_en": "Go straight and turn left at the corner.",
+        "example_ko": "직진한 뒤 모퉁이에서 좌회전하세요.",
+        "source": {
+          "type": "user_turn",
+          "turn_id": "t02",
+          "quote": "Go straight and turn left at the corner."
+        }
+      }
+    ]
+  }
+}

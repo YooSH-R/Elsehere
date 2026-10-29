@@ -1,0 +1,1106 @@
+{
+  "scope": "로컬 파일·JSON Schema·참조·예시·계약 규칙 검증. HTTP/DB/LLM/TTS 통합 테스트가 아님.",
+  "passed": 183,
+  "failed": 0,
+  "total": 183,
+  "results": [
+    {
+      "test": "공통 스키마 문서 문법",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: Identifier",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: PersonalityTrait",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: PersonalityDimensions",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: Personality",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: SpeechStyle",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: SocialBehavior",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: BackgroundExperience",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: Background",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: Habit",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: NpcProfile",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: NpcConfiguration",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "공통 정의 문법: NpcConfigurationList",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: Identifier",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: NpcProfile",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: Scenario",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: HistoryMessage",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: NpcRespondRequest",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: ConversationControl",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: NpcRespondResponse",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: ErrorDetail",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 내부 스키마 문법: ErrorResponse",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/Background",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/BackgroundExperience",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/Habit",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/Identifier",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/NpcConfiguration",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/NpcProfile",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/Personality",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/PersonalityDimensions",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/PersonalityTrait",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/SocialBehavior",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_shared_schemas_v2.json → #/$defs/SpeechStyle",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/ConversationControl",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/ErrorDetail",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/ErrorResponse",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/HistoryMessage",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/Identifier",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/NpcProfile",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/NpcRespondRequest",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/NpcRespondResponse",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → #/components/schemas/Scenario",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → ./npc_shared_schemas_v2.json#/$defs/Identifier",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "참조 연결: npc_inference_openapi_v2.yaml → ./npc_shared_schemas_v2.json#/$defs/NpcProfile",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "추론 경로는 하나",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 스키마 단일 참조",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "제공 스키마에 설정 HTTP 경로 없음",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 배치 3명 정상",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 정상: npc_cafe_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 정상: npc_cafe_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 정상: npc_hotel_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 정상: npc_hotel_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 정상: npc_pedestrian_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 정상: npc_pedestrian_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "목소리 ID가 있는 활성 설정의 형식",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "선택 정보 없는 최소 프로필",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "선택 수치 5개 정상",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "선택 객체/문자열 null 정상",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 정상: opening",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 교차 검증 정상: opening",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "예시 프로필 동일성: opening",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 정상: followup",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 교차 검증 정상: followup",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "예시 프로필 동일성: followup",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 정상: offerEnd",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 교차 검증 정상: offerEnd",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "예시 프로필 동일성: offerEnd",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "다른 NPC도 같은 요청 계약: npc_hotel_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "다른 NPC도 같은 요청 계약: npc_pedestrian_001",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: INVALID_JSON/False",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: UNAUTHORIZED/False",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: PAYLOAD_TOO_LARGE/False",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: UNSUPPORTED_MEDIA_TYPE/False",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: INVALID_REQUEST/False",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: AI_RATE_LIMITED/True",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: AI_PROVIDER_ERROR/False",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: AI_PROVIDER_ERROR/True",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: INVALID_AI_OUTPUT/True",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: AI_UNAVAILABLE/True",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: AI_TIMEOUT/True",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 매핑 정상: INTERNAL_ERROR/False",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 구조 버전 누락",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 구조 버전 불일치",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 내용 버전 0",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 공백 이름",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 없는 MBTI 필드",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 프로필에 음성 ID 혼입",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 구형 최상위 traits 혼입",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 성격 특성 빈 목록",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 성격 특성 문자열 목록",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 성격 특성 설명 누락",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 불완전 수치 객체",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 수치 상한 초과",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 수치 하한 미달",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 수치가 문자열",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 가치관 완전 중복",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 사회적 반응 부분 객체",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 말투 enum 오류",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 직접성 enum 오류",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 배경 구형 문자열",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 경험 영향 누락",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 습관 경향 누락",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "프로필 거부: 선택 배열에 null",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 거부: 음성 없는 활성화",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 거부: 장소 누락",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 거부: ID 공백",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "설정 거부: 개별 사용자 기억 혼입",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "배치 거부: 내용이 달라도 동일 NPC ID 중복",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 첫 대사에 사용자 텍스트",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 첫 대사에 이력",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 후속에 null 발화",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 후속에 공백 발화",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 후속에 빈 이력",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 후속 마지막 화자 USER",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 음성 필드 추가",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 학습 수준 enum 오류",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 프로필 대신 전체 설정",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 사용자 발화 2001자",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 이력 21개",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 사실 31개",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 상황 2001자",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 필수 requestId 누락",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "요청 거부: 수신 원문 바이트 상한",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: 요청 ID 불일치 requestId",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: 요청 ID 불일치 sessionId",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: 요청 ID 불일치 npcId",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: 대사 공백",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: 대사 길이 상한",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: CONTINUE에 종료 사유",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: OFFER_END에 사유 없음",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: 새 행동 명령 필드",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "응답 거부: 첫 대사에 마무리 신호",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 거부: TIMEOUT retryable 불일치",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "오류 거부: TIMEOUT HTTP 불일치",
+      "expected": "reject",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 요청 예제: opening",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 요청 예제: followup",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 요청 예제: offerEnd",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 응답 예제: opening",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 응답 예제: followup",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 응답 예제: offerEnd",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 400/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 401/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 413/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 415/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 422/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 429/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 500/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 502/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 502/invalidOutput",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 502/persistentProviderError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 503/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "OpenAPI 오류 예제: 504/defaultError",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 미치환 표시 없음: 01_npc_configuration_spec_v2.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 01_npc_configuration_spec_v2.md/1",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 01_npc_configuration_spec_v2.md/2",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 01_npc_configuration_spec_v2.md/3",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 01_npc_configuration_spec_v2.md → 02_npc_inference_api_spec_v2.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 01_npc_configuration_spec_v2.md → npc_configuration_examples_v2.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 01_npc_configuration_spec_v2.md → npc_inference_openapi_v2.yaml",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 01_npc_configuration_spec_v2.md → npc_shared_schemas_v2.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 미치환 표시 없음: 02_npc_inference_api_spec_v2.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 02_npc_inference_api_spec_v2.md/1",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 02_npc_inference_api_spec_v2.md/2",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 02_npc_inference_api_spec_v2.md/3",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 02_npc_inference_api_spec_v2.md/4",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 02_npc_inference_api_spec_v2.md/5",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 JSON 문법: 02_npc_inference_api_spec_v2.md/6",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 02_npc_inference_api_spec_v2.md → 01_npc_configuration_spec_v2.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 02_npc_inference_api_spec_v2.md → npc_inference_examples_v2.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 02_npc_inference_api_spec_v2.md → npc_inference_openapi_v2.yaml",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: 02_npc_inference_api_spec_v2.md → npc_shared_schemas_v2.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 미치환 표시 없음: README.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → ../../npc-life-design.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → 01_npc_configuration_spec_v2.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → 02_npc_inference_api_spec_v2.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → npc_configuration_examples_v2.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → npc_inference_examples_v2.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → npc_inference_openapi_v2.yaml",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → npc_life_rules_schemas.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → npc_shared_schemas_v2.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → validate_contracts.py",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → validation_report.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → validation_results.json",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

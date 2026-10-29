@@ -27,6 +27,8 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← `npc.tts_speed` × 난이도 배율(1.1절) |
 | CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함 |
 | FB-04 모범 음성 | `POST /v1/tts` | |
+| 어드민 NPC 랜덤 생성 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/generate` | 고정 칸·DB 후보를 실어 보내고, 받은 `npc_configuration`을 `npcs`에 저장 (2.9절) |
+| 어드민 NPC MBTI 변경 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/derive` | 저장된 카드의 자동 칸을 다시 계산해 저장 (2.9.1절) |
 | 1.5 오류 응답 | 워커 오류 코드 | `provider_limit` → `AI_RATE_LIMITED`, `provider_unavailable`·`timeout` → `AI_TEMPORARILY_UNAVAILABLE`, `invalid_output` → `AI_RESPONSE_INVALID` |
 
 ## 0.1 AI 쪽 규칙 (백엔드 명세에 없는 것)
@@ -324,6 +326,39 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 ### 2.8 `POST /v1/tts` — 한 문장 합성
 
 요청: `{"text": "...", "voice": "af_heart", "speed": 1.0}`(text 1~400자, speed 0.5~2.0). 응답은 `audio/wav`이고, 헤더 `X-Audio-S`(길이)·`X-Cache`(hit/miss)·`X-Synth-S`(합성 시간)가 붙습니다. 모델이 없으면 503 `tts_unavailable`입니다.
+
+### 2.9 `POST /v1/npc/persona/generate` — NPC 인격 카드 초안 (어드민 랜덤 생성)
+
+어드민에서 항목마다 직접 고르거나 비워 두면, 비운 칸만 재료에서 골라 인격 카드 초안을 만듭니다. 조합 규칙은 워커(`app/npc_persona.py`) 한 곳에만 있고 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md)의 "인격 카드 생성"입니다.
+
+요청:
+
+| 칸 | 형식 | 뜻 |
+|---|---|---|
+| `npc_id` | 문자열 (필수) | 새 NPC id. 씨앗으로도 써서 같은 요청(후보 목록 포함)이면 같은 카드 |
+| `role` | `STAFF` 또는 `PASSERBY` (필수) | 역할 |
+| `place` | 문자열 (필수) | 기본 장소 (예: `CAFE`). 직원은 이 장소의 직업에서 고름 |
+| `mbti` | 문자열 또는 `null` | 예: `ISTP-T`. 비우면 `npc_id`로 16유형과 `-A`·`-T` 중 고름 |
+| `fixed` | 객체 | 직접 고른 칸: `name`, `occupation`, `age_range`, `values`, `motivations`, `interests`. 비운 칸만 고름 |
+| `candidates` | 객체 | 백엔드 DB의 활성 후보: `names`, `age_ranges`, `occupations`(`text`·`role`·`place`·`ages`), `traits`(`name`·`description`·`leans`, 축 하나), `values`·`motivations`·`interests`(`text`, 선택 `leans`·`roles`). 보낸 목록만 AI 기본 재료(`ai/npcs/rules/persona-ingredients.json`)를 바꿈 |
+| `taken_names` | 문자열 목록 | 다른 NPC가 쓰는 이름. 고르지 않음 |
+| `narrate` | 불 (기본 `false`) | `true`면 LLM이 사연(배경 이야기·겪은 일)만 씀 |
+
+- `leans`는 `{"축": "high"|"low"}` 모양이고 축은 `openness`·`conscientiousness`·`extraversion`·`agreeableness`·`neuroticism`입니다. 있으면 그 성격 쪽 NPC만 고르고, 없으면 누구나 고릅니다.
+- 말투·사회적 행동은 성격 축으로 고르는 규칙이라 후보로 바꾸지 않습니다. 행동 조각과 성격 5축은 자동 칸으로 들어갑니다.
+
+응답: `{"npc_configuration": {...}, "mbti": "ISTP-T", "usage": [...]}`
+
+- `npc_configuration`은 [공통 인격 스키마](npc-ai-contracts/01_npc_configuration_spec_v2.md)의 `NpcConfiguration` 그대로(camelCase)이고 초안이라 `isActive: false`, `voiceId: null`입니다. 백엔드가 목소리를 정하고 켭니다.
+- `mbti`는 고른 MBTI입니다. 저장해 두었다가 MBTI를 바꿀 때 2.9.1절에 씁니다.
+- `usage`는 `narrate: true`일 때만 모델 호출이 들어갑니다(단계 `narrate`, NPC 대답 모델).
+- 그 장소의 직업, 고를 이름, NPC 성격 쪽의 성격 특징 후보가 없으면 400 `invalid_request`이고 `message`에 이유가 있습니다. 사연이 공통 인격 모델을 어기면 502 `invalid_output`, 공급자 실패는 429·503입니다.
+
+### 2.9.1 `POST /v1/npc/persona/derive` — 자동 칸 다시 계산
+
+요청: `npc_id`(행동 조각 씨앗), `mbti`, `profile`(저장된 `npcProfile` 그대로, camelCase).
+
+응답: `{"profile": {...}}`. 성격 5축(`personality.dimensions`)을 새 MBTI로 바꾸고, 예전에 더한 행동 조각 문장을 `behaviorRules`에서 빼고 새로 뽑은 조각을 붙입니다. 손으로 쓴 글은 그대로입니다. `profile`이 공통 인격 모델에 맞지 않거나 `mbti` 형식이 틀리면 400 `invalid_request`입니다.
 
 ## 3. 사용량 (`usage`)
 

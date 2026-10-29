@@ -408,13 +408,13 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("무례로 센 말은 워커 감점량이 없으면 기본값(-5)만큼 그 NPC의 호감도를 깎는다")
+  @DisplayName("무례로 센 말은 워커 감점량이 없으면 기본값(-4, 공통 규칙 rudeAffinityFallback)만큼 그 NPC의 호감도를 깎는다")
   void send_abusive_deductsDefaultAffinity() {
     rudeTo("you idiot", null);
 
     send("you idiot");
 
-    assertThat(affinity()).isEqualTo(-5);
+    assertThat(affinity()).isEqualTo(-4);
   }
 
   @Test
@@ -453,7 +453,7 @@ class TurnServiceTest {
     send("you idiot 2");
     send("you idiot 3");
 
-    assertThat(affinity()).isEqualTo(-5 * ConversationSupport.RUDE_LIMIT);
+    assertThat(affinity()).isEqualTo(-4 * ConversationSupport.RUDE_LIMIT);
   }
 
   @Test
@@ -482,7 +482,7 @@ class TurnServiceTest {
     turnService.send(userId, conversationId, request);
     turnService.send(userId, conversationId, request);
 
-    assertThat(affinity()).isEqualTo(-5);
+    assertThat(affinity()).isEqualTo(-4);
   }
 
   private TurnResponse send(String text) {
@@ -520,7 +520,7 @@ class TurnServiceTest {
     given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
         .willReturn(
             new GuardResult(
-                new GuardResult.Guard(true, null, affinityDelta), List.of(usage("guard"))));
+                new GuardResult.Guard(true, null), affinityDelta, List.of(usage("guard"))));
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean()))

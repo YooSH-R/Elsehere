@@ -237,7 +237,7 @@ class AiWorkerClientTest {
         200,
         "application/json",
         """
-        {"guard": {"abusive": true, "error_code": null, "affinity_delta": -7}, "usage": []}
+        {"guard": {"abusive": true, "error_code": null}, "affinity_delta": -7, "usage": []}
         """);
     GuardResult withDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
     respond(

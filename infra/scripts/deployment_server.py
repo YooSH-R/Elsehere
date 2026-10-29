@@ -340,9 +340,21 @@ class DeploymentServer:
             raise ValueError(f"Only {deployment_branch} may deploy.")
         if (
             not isinstance(manifest.get("pipeline_id"), int)
-            or manifest["pipeline_id"] <= previous["pipeline_id"]
+            or manifest["pipeline_id"] <= 0
             or manifest.get("expected_state_token") != previous["state_token"]
         ):
+            raise ValueError("Deployment state changed or the pipeline is outdated.")
+        if self.environment == "dev" and "verified_base_commit" in manifest:
+            # Ready candidates can finish out of pipeline order. The CI checks Git
+            # ancestry; this comparison and the state token bind that check to apply.
+            if (
+                manifest["verified_base_commit"] != previous["candidate_commit"]
+                or manifest["candidate_commit"] == previous["candidate_commit"]
+            ):
+                raise ValueError(
+                    "Deployment state changed or the candidate is outdated."
+                )
+        elif manifest["pipeline_id"] <= previous["pipeline_id"]:
             raise ValueError("Deployment state changed or the pipeline is outdated.")
         builds = manifest.get("builds")
         if not isinstance(builds, list) or len(builds) != len(set(builds)):

@@ -14,7 +14,7 @@ from deployment_plan import ALL_CHECKS, commit_exists, create_plan, run_git
 
 
 class SupersededCandidateError(ValueError):
-    """The candidate was replaced by a newer commit on its deployment branch."""
+    """The candidate is already deployed, older than a release, or not the prod head."""
 
 
 def create_release_plan(repository, state, candidate):
@@ -174,11 +174,39 @@ def verify_current_candidate(repository, branch, candidate):
         )
 
 
+def verify_development_candidate(repository, branch, candidate, state=None):
+    fetched = run_git(repository, "fetch", "--no-tags", "origin", branch)
+    if fetched.returncode:
+        raise RuntimeError("Could not determine the deployment branch history.")
+    ancestry = run_git(
+        repository, "merge-base", "--is-ancestor", candidate, "FETCH_HEAD"
+    )
+    if ancestry.returncode:
+        raise ValueError("Candidate does not belong to the deployment branch history.")
+    deployed = state.get("candidate_commit") if state else None
+    if deployed is None:
+        return
+    if (
+        run_git(
+            repository, "merge-base", "--is-ancestor", candidate, deployed
+        ).returncode
+        == 0
+    ):
+        raise SupersededCandidateError("Candidate is already deployed or superseded.")
+    if (
+        run_git(
+            repository, "merge-base", "--is-ancestor", deployed, candidate
+        ).returncode
+        != 0
+    ):
+        raise ValueError("Candidate does not extend the running deployment.")
+
+
 def plan_pipeline(
     repository, candidate, branch, pipeline_id, environment="dev", *, automatic=False
 ):
-    # Every dev commit is checked; deliver_pipeline still rejects superseded commits
-    # before building images and again immediately before the server request.
+    # Dev checks survive later merges; delivery rechecks the running release instead
+    # of requiring the branch head. Production still requires its exact current head.
     if environment == "prod":
         verify_current_candidate(repository, branch, candidate)
     state = server_request("state", environment=environment)
@@ -226,7 +254,21 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
         raise ValueError("The deployment state belongs to another environment.")
     if plan["candidate_commit"] != candidate:
         raise ValueError("Deployment plan belongs to another candidate.")
-    verify_current_candidate(repository, branch, candidate)
+    if environment == "dev":
+        state = server_request("state", environment=environment)
+        if state.get("environment", "dev") != environment:
+            raise ValueError("The deployment state belongs to another environment.")
+        verify_development_candidate(repository, branch, candidate, state)
+        current_plan = create_release_plan(repository, state, candidate)
+        for selection in ("checks", "builds"):
+            if not set(current_plan[selection]).issubset(plan[selection]):
+                raise ValueError(
+                    f"Deployment baseline requires {selection} not verified by this "
+                    "pipeline; run a new pipeline for this candidate."
+                )
+        plan = current_plan
+    else:
+        verify_current_candidate(repository, branch, candidate)
     images = state["images"].copy()
     dockerfiles = {
         "backend": "backend.Dockerfile",
@@ -310,6 +352,8 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
         "configuration_changed": plan["configuration_changed"],
         "images": images,
     }
+    if environment == "dev":
+        manifest["verified_base_commit"] = state["candidate_commit"]
     manifest_path = directory / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     bundle = directory / "release.tar"
@@ -320,8 +364,10 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
         )
         if plan["builds"]:
             archive.add(image_archive, arcname="images.tar.gz")
-    # A newer push during a long Unity/image build must not be replaced by this job.
-    verify_current_candidate(repository, branch, candidate)
+    if environment == "dev":
+        verify_development_candidate(repository, branch, candidate)
+    else:
+        verify_current_candidate(repository, branch, candidate)
     with bundle.open("rb") as source:
         result = server_request("apply", source, environment)
     (directory / "result.json").write_text(

@@ -21,7 +21,7 @@ MonoBehaviour:
   thirdPersonMaxPitchDegrees: 70
   firstPersonMinPitchDegrees: -70
   firstPersonMaxPitchDegrees: 70
-  rotateDegreesPerPixel: 0.2
+  rotateDegreesPerPixel: 0.1
   pivotHeightMeters: 1.5
   eyeHeightMeters: 1.6
   followSharpness: 15

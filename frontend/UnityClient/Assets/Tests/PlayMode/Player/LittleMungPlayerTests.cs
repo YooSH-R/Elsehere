@@ -221,17 +221,50 @@ namespace A305.Player.Tests
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             player.Teleport(new Vector3(-3, 0.03f, 0.5f), Quaternion.identity);
             yield return Frames(10, "Settle");
+            // 걷는 속도와 관계없이 마지막 단을 지나 떨어지기 전에 멈춰 오른 높이를 확인한다.
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-            yield return Frames(165, "Steps");
+            yield return Frames(165, "Steps", () => player.transform.position.z > 2.5f);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            yield return Frames(10, "Settle");
             Assert.That(player.transform.position.z, Is.GreaterThan(2.3f));
             Assert.That(player.transform.position.y, Is.GreaterThan(0.25f));
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             player.Teleport(new Vector3(4, 0.03f, 0.5f), Quaternion.identity);
             yield return Frames(10, "Settle");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-            yield return Frames(180, "Ramp");
+            yield return Frames(180, "Ramp", () => player.transform.position.z > 3f);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            yield return Frames(10, "Settle");
             Assert.That(player.transform.position.z, Is.GreaterThan(2.5f));
             Assert.That(player.transform.position.y, Is.GreaterThan(0.3f));
+        }
+
+        [UnityTest]
+        public IEnumerator BodyDoesNotPopWhenStartingOrStoppingARun()
+        {
+            // 서 있다가 바로 달리거나 멈출 때 자세가 한 프레임에 바뀌면 골반이 순간이동해 보인다.
+            // 달리기 동작 자체의 흔들림(2배 재생에서 한 프레임 약 6cm)보다 크게 튀지 않아야 한다.
+            player.Teleport(new Vector3(0, 0.03f, -4), Quaternion.identity);
+            yield return Frames(30, "Settle");
+            var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            Vector3 BodyOffset() =>
+                Vector3.ProjectOnPlane(hips.position - player.transform.position, Vector3.up);
+            Vector3 previous = BodyOffset();
+            float maxJump = 0;
+            observer.Observe = () =>
+            {
+                Vector3 offset = BodyOffset();
+                maxJump = Mathf.Max(maxJump, (offset - previous).magnitude);
+                previous = offset;
+            };
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.LeftShift));
+            for (int frame = 0; frame < 30; frame++)
+                yield return null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            for (int frame = 0; frame < 20; frame++)
+                yield return null;
+            observer.Observe = null;
+            Debug.Log($"Start/stop pop {variant}: maxJump={maxJump * 1000:F1}mm");
+            Assert.That(maxJump, Is.LessThan(.07f), "Body pops when starting or stopping a run");
         }
 
         [UnityTest]
@@ -321,7 +354,7 @@ namespace A305.Player.Tests
                     .InverseTransformDirection(referenceRight);
             Object.DestroyImmediate(reference);
             player.enabled = false;
-            animator.SetFloat("Speed", 1.7f);
+            animator.SetFloat("Speed", 7.5f);
             animator.SetBool("IsGrounded", true);
             yield return Frames(3, "WalkSettle");
             var maximumRoll = new float[2];
@@ -353,10 +386,12 @@ namespace A305.Player.Tests
             );
         }
 
-        private IEnumerator Frames(int count, string phase)
+        private IEnumerator Frames(int count, string phase, Func<bool> stopWhen = null)
         {
             for (int frame = 0; frame < count; frame++)
             {
+                if (stopWhen != null && stopWhen())
+                    yield break;
                 bool captureFrame = captureFolder != null && frame % 3 == 0;
                 observer.Observe = () =>
                 {

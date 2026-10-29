@@ -48,6 +48,13 @@ namespace A305.EditorTools.Tripo
                         .Inspect(recipe.preview, TripoMasterWorkflow.RequireMaster())
                         .Errors
                 );
+                report.Errors.AddRange(
+                    TripoCharacterHeadFit.Inspect(
+                        recipe.head.model,
+                        recipe.dressedBody.model,
+                        recipe.library.head.model
+                    )
+                );
                 var profile = ScriptableObject.CreateInstance<TripoValidationProfile>();
                 try
                 {

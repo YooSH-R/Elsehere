@@ -74,6 +74,11 @@ namespace A305.EditorTools.Tripo
                 TripoCharacterRegion.Head,
                 Folder + "/Heads/Female"
             );
+            femaleHead = TripoCharacterHeadFitBuilder.Prepare(
+                library,
+                femaleHead,
+                Folder + "/Heads/FemaleFitted"
+            );
             var femaleRecipe = TripoCharacterAssembly.Build(
                 library,
                 femaleHead,

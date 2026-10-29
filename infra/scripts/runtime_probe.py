@@ -33,8 +33,12 @@ def main():
     fetch("http://web/api/private-resource", expected_status=401)
 
     body, _ = fetch("http://127.0.0.1:8020/health")
-    if json.loads(body).get("ok") is not True:
+    ai_health = json.loads(body)
+    if ai_health.get("ok") is not True:
         raise AssertionError("AI worker is not ready.")
+    # The image packages the Kokoro model; health reports false when it cannot load.
+    if ai_health.get("tts") is not True:
+        raise AssertionError("AI worker speech synthesis (Kokoro) is not loaded.")
     # Health does not load feedback assets, so verify the packaged prompt separately.
     FEEDBACK_PROMPT_PATH.read_text(encoding="utf-8")
     fetch("http://127.0.0.1:8020/v1/judge", expected_status=401)
@@ -68,7 +72,7 @@ def main():
                 raise AssertionError(f"Empty decompressed {suffix} response.")
 
     print(
-        "Runtime probes passed: backend/database, AI authentication, web and response headers."
+        "Runtime probes passed: backend/database, AI authentication and speech synthesis, web and response headers."
     )
 
 

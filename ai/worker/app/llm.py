@@ -185,6 +185,8 @@ class LLM:
         self.clock = time.monotonic  # 음성 인식 공급자 건너뛰기 시각 (테스트에서 바꿔 끼움)
         self.stt_failures: dict[str, int] = {}  # 음성 인식 공급자 → 연속 실패 수
         self.stt_skip_until: dict[str, float] = {}  # 음성 인식 공급자 → 이 시각(clock)까지 건너뜀
+        self.guard_gpu_failures = 0  # GPU 서버 판정 모델의 연속 실패 수
+        self.guard_gpu_skip_until = 0.0  # 이 시각(clock)까지 GPU 서버 판정 모델을 건너뜀
 
     async def aclose(self):
         for c in (self.client, *self.others.values()):
@@ -388,6 +390,48 @@ class LLM:
             log.warning(json.dumps({"event": "stt_skip", "provider": provider, "skip_s": self.s.stt_breaker_skip_s}, ensure_ascii=False))
             count = 0
         self.stt_failures[provider] = count
+
+    async def guard_chat(self, messages: list[dict], usage: Usage) -> str:
+        """무례 판정 호출. GPU 서버 판정 모델(guard_gpu_model)이 있으면 먼저 한 번(짧은 상한, 재시도 없음) 부르고,
+        실패·시간 초과면 구성의 guard 모델로 넘긴다. 연속 실패가 guard_breaker_failures에 닿으면 GPU를 잠시 건너뛴다."""
+        model = self.s.guard_gpu_model
+        if model and self.guard_gpu_skip_until <= self.clock():
+            try:
+                out = await within(self._chat_once("gpu_llm", model, "guard", messages, usage), self.s.guard_gpu_timeout_s)
+            except ProviderError as e:
+                self._note_guard_gpu_failure()
+                log.warning(
+                    json.dumps({"event": "guard_fallback", "model": model, "to": self.model("guard"), "why": e.message}, ensure_ascii=False)
+                )
+                out = await self.chat("guard", "guard", messages, usage, 0.0, 5)
+                usage.items[-1]["fallback"] = True
+                return out
+            self.guard_gpu_failures = 0
+            return out
+        return await self.chat("guard", "guard", messages, usage, 0.0, 5)
+
+    async def _chat_once(self, provider: str, model: str, step: str, messages: list[dict], usage: Usage) -> str:
+        """다른 공급자의 모델 하나를 재시도·대체 모델 없이 한 번 부른다 (실패하면 부른 쪽이 다음으로 넘긴다)."""
+        b = model_body({"model": model, "temperature": 0.0, "max_tokens": 5, "messages": messages}, self.s.model_params)
+        t = time.perf_counter()
+        try:
+            r = await self.others[provider].post("/chat/completions", json=b)
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            raise ProviderError("provider_unavailable", f"{model} 연결 오류: {type(e).__name__}") from None
+        if r.status_code >= 400:
+            raise ProviderError("provider_unavailable", f"{model} {r.status_code}: {r.text[:160]}")
+        data = response_json(r)
+        usage.add(step, model, model, data, time.perf_counter() - t)
+        return message_text(data)
+
+    def _note_guard_gpu_failure(self):
+        if self.s.guard_breaker_failures <= 0:
+            return
+        self.guard_gpu_failures += 1
+        if self.guard_gpu_failures >= self.s.guard_breaker_failures:
+            self.guard_gpu_skip_until = self.clock() + self.s.guard_breaker_skip_s
+            log.warning(json.dumps({"event": "guard_gpu_skip", "skip_s": self.s.guard_breaker_skip_s}, ensure_ascii=False))
+            self.guard_gpu_failures = 0
 
     async def transcribe(self, audio: bytes, filename: str, mime: str, prompt: str, usage: Usage) -> dict:
         """음성 인식 (Whisper). 공급자를 순서대로 부르고, 한도·오류·응답 없음이면 다음 공급자로 넘긴다

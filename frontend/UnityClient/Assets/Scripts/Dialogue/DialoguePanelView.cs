@@ -14,13 +14,15 @@ namespace A305.Dialogue
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
-        private const int VisibleLineCount = 6;
         private const string MeaningColor = "#B8C0CC";
         private const string FreeTalkGuide =
             "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요. 한국어를 섞어도 돼요.";
 
         [SerializeField]
         private GameObject panel;
+
+        [SerializeField]
+        private TMP_Text npcNameText;
 
         [SerializeField]
         private Button endButton;
@@ -154,8 +156,13 @@ namespace A305.Dialogue
             }
 
             linesText.text = FormatRecentLines();
+            npcNameText.text = content.NpcName;
             guideText.text = FormatGuide();
+            guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
+            statusText.gameObject.SetActive(
+                content.IsBusy || content.CanRetry || content.IsGuidedCompleted
+            );
             suggestText.text = DialogueHelpText.Words(content.SuggestWords);
             string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
             hintText.text = string.IsNullOrEmpty(sentence)
@@ -181,7 +188,7 @@ namespace A305.Dialogue
             retryButton.gameObject.SetActive(content.CanRetry);
             UpdateLayout();
             Canvas.ForceUpdateCanvases();
-            historyScroll.verticalNormalizedPosition = 0;
+            historyScroll.verticalNormalizedPosition = 1;
         }
 
         private void Awake()
@@ -257,22 +264,18 @@ namespace A305.Dialogue
         private string FormatRecentLines()
         {
             var text = new StringBuilder();
-            int firstVisibleIndex = Mathf.Max(0, content.Lines.Count - VisibleLineCount);
-            for (int i = firstVisibleIndex; i < content.Lines.Count; i++)
+            DialogueLine line = content.LastNpcLine;
+            if (line == null)
+                return "";
+            text.AppendLine(line.English);
+            if (isMeaningVisible && line.Korean != null)
             {
-                DialogueLine line = content.Lines[i];
-                string speaker = line.IsNpc ? content.NpcName : "나";
-                text.AppendLine($"<b>{speaker}</b>  {line.English}");
-
-                if (isMeaningVisible && line == content.LastNpcLine && line.Korean != null)
+                text.AppendLine($"<color={MeaningColor}>{line.Korean}</color>");
+                if (content.LastNpcGlossary != null && content.LastNpcGlossary.Count > 0)
                 {
-                    text.AppendLine($"<color={MeaningColor}>{line.Korean}</color>");
-                    if (content.LastNpcGlossary != null && content.LastNpcGlossary.Count > 0)
-                    {
-                        text.AppendLine(
-                            $"<color={MeaningColor}>단어 풀이 · {FormatGlossary()}</color>"
-                        );
-                    }
+                    text.AppendLine(
+                        $"<color={MeaningColor}>단어 풀이 · {FormatGlossary()}</color>"
+                    );
                 }
             }
 
@@ -305,20 +308,28 @@ namespace A305.Dialogue
             lastCanvasSize = ((RectTransform)frame.parent).rect.size;
             bool wide = lastCanvasSize.x >= 1200;
             frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(1, 0);
-            frame.anchoredPosition = new Vector2(-24, 24);
+            frame.anchoredPosition = new Vector2(-40, 36);
             frame.sizeDelta = new Vector2(
-                wide ? Mathf.Min(1320, lastCanvasSize.x - 400) : lastCanvasSize.x - 48,
-                560
+                wide ? Mathf.Min(1400, lastCanvasSize.x - 520) : lastCanvasSize.x - 80,
+                wide ? 360 : 440
             );
-            helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, 1);
-            helpPanel.anchoredPosition = new Vector2(24, -110);
+            helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, .5f);
+            helpPanel.anchoredPosition = new Vector2(40, wide ? -12 : 200);
             helpPanel.sizeDelta = new Vector2(
-                wide ? 320 : Mathf.Min(320, lastCanvasSize.x * .43f),
-                Mathf.Max(
-                    180,
-                    Mathf.Min(650, wide ? lastCanvasSize.y - 160 : lastCanvasSize.y - 720)
-                )
+                wide ? 390 : Mathf.Min(390, lastCanvasSize.x - 80),
+                Mathf.Max(220, Mathf.Min(680, lastCanvasSize.y - (wide ? 280 : 600)))
             );
+            float width = frame.sizeDelta.x;
+            ((RectTransform)npcNameText.transform).anchoredPosition = new Vector2(
+                40,
+                frame.sizeDelta.y - 90
+            );
+            var history = (RectTransform)historyScroll.transform;
+            history.sizeDelta = new Vector2(-80, frame.sizeDelta.y - 286);
+            var input = (RectTransform)inputField.transform;
+            input.sizeDelta = new Vector2(Mathf.Max(160, width - 552), 68);
+            ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 492, 32);
+            ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 322, 32);
         }
 
         private string FormatGuide()

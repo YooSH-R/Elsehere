@@ -128,8 +128,11 @@ namespace A305.EditorTools.Dialogue
             );
             hint.enableAutoSizing = false;
             hint.textWrappingMode = TextWrappingModes.Normal;
+            Transform oldUseHint = help.Find("UseHintButton");
+            if (oldUseHint != null)
+                oldUseHint.SetParent(hintCard, false);
             Button useHint = UiBuilderTools.FindOrCreateButton(
-                help,
+                hintCard,
                 "UseHintButton",
                 "문장 입력",
                 bold,

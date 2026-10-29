@@ -387,7 +387,8 @@ namespace A305.EditorTools.Theme
 
         private static void CompactLabel(Transform root, string path, string caption)
         {
-            TMP_Text label = root.Find(path)?.GetComponent<TMP_Text>();
+            Transform target = root.Find(path);
+            TMP_Text label = target != null ? target.GetComponent<TMP_Text>() : null;
             if (label != null)
                 label.text = caption;
         }
@@ -468,10 +469,15 @@ namespace A305.EditorTools.Theme
             Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
             CompactLabel(root, "HelpPanel/Viewport/Content/WordsCard/Title", "단어");
             CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/Title", "문장");
-            CompactLabel(root, "HelpPanel/UseHintButton/Label", "넣기");
+            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/UseHintButton/Label", "넣기");
             CompactLabel(root, "Panel/Conversation/ToolRow/MeaningButton/Label", "뜻");
             CompactLabel(root, "Panel/Conversation/ToolRow/ReplayButton/Label", "듣기");
-            PillButton(root, "HelpPanel/UseHintButton", UiIcon.Example, UiTone.Secondary);
+            PillButton(
+                root,
+                "HelpPanel/Viewport/Content/HintCard/UseHintButton",
+                UiIcon.Example,
+                UiTone.Secondary
+            );
             Role(root, "Panel/Conversation/Status", UiThemeRole.Accent);
             Role(root, "Panel/Conversation/InputRow/Input", UiThemeRole.Input);
             IconButton(
@@ -483,7 +489,7 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/InputRow/ExampleButton",
+                "Panel/Conversation/ToolRow/MoreTools/ExampleButton",
                 UiIcon.Example,
                 UiTone.Accent,
                 caption: true
@@ -497,14 +503,14 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/SaveButton",
+                "Panel/Conversation/ToolRow/MoreTools/SaveButton",
                 UiIcon.Save,
                 UiTone.Neutral,
                 caption: true
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/TalkButton",
+                "Panel/Conversation/InputRow/TalkButton",
                 UiIcon.Mic,
                 UiTone.Secondary,
                 caption: true
@@ -518,7 +524,7 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/HintButton",
+                "Panel/Conversation/ToolRow/MoreTools/HintButton",
                 UiIcon.Hint,
                 UiTone.Positive,
                 caption: true
@@ -531,6 +537,7 @@ namespace A305.EditorTools.Theme
                 caption: true
             );
             IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);
+            A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
         }
 
         private static void StyleTutorial(Transform root)
@@ -1112,9 +1119,11 @@ namespace A305.EditorTools.Theme
                 SetColors(fields.FindProperty("toneColors"), spec.Tones);
                 SetColors(fields.FindProperty("toneInks"), spec.ToneInks);
             }
+            TMP_FontAsset serviceFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                ServiceFontBuilder.FontPath
+            );
             fields.FindProperty("titleFont").objectReferenceValue =
-                AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(ServiceFontBuilder.FontPath)
-                ?? TitleFont(spec.FontPath);
+                serviceFont != null ? serviceFont : TitleFont(spec.FontPath);
             fields.FindProperty("panelSprite").objectReferenceValue = ThemeSprite(
                 spec.Id,
                 UiThemeArt.Part.Panel

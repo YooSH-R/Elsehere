@@ -18,6 +18,7 @@ namespace A305.Theme
         Muted,
         Caption,
         Accent,
+        Control,
     }
 
     /// <summary>버튼 색의 쓰임. 테마마다 실제 색을 따로 정한다.</summary>

@@ -51,6 +51,9 @@ namespace A305.Theme
                 case UiThemeRole.Card:
                     Paint(GetComponent<Image>(), theme.CardSprite, theme.CardTint);
                     break;
+                case UiThemeRole.Control:
+                    Paint(GetComponent<Image>(), theme.CardSprite, theme.ToneColor(UiTone.Neutral));
+                    break;
                 case UiThemeRole.Input:
                     Paint(GetComponent<Image>(), theme.InputSprite, Color.white);
                     break;

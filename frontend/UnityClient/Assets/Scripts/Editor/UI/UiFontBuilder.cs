@@ -103,10 +103,13 @@ namespace A305.EditorTools.UI
             GetOrCreateFontAsset("Pretendard-Bold", BoldFontAssetPath);
 
             var settings = AssetDatabase.LoadAssetAtPath<TMP_Settings>(TmpSettingsPath);
+            TMP_FontAsset serviceFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                ServiceFontBuilder.FontPath
+            );
             BuilderTools.SetReference(
                 settings,
                 "m_defaultFontAsset",
-                AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(ServiceFontBuilder.FontPath) ?? regular
+                serviceFont != null ? serviceFont : regular
             );
 
             IsSavingFontSettings = true;

@@ -238,6 +238,12 @@ namespace A305.EditorTools.Dialogue
                 SubTextColor
             );
             RectTransform inputRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "InputRow");
+            RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
+            RectTransform moreTools = UiBuilderTools.FindOrCreateColumn(toolRow, "MoreTools");
+            MoveLegacy(inputRow, "ExampleButton", moreTools);
+            MoveLegacy(toolRow, "SaveButton", moreTools);
+            MoveLegacy(toolRow, "HintButton", moreTools);
+            MoveLegacy(toolRow, "TalkButton", inputRow);
             TMP_InputField input = UiBuilderTools.FindOrCreateInputField(
                 inputRow,
                 "Input",
@@ -252,13 +258,12 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button exampleButton = UiBuilderTools.FindOrCreateButton(
-                inputRow,
+                moreTools,
                 "ExampleButton",
                 "예시 문장",
                 bold,
                 160f
             );
-            RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
             Button meaningButton = UiBuilderTools.FindOrCreateButton(
                 toolRow,
                 "MeaningButton",
@@ -267,7 +272,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button saveButton = UiBuilderTools.FindOrCreateButton(
-                toolRow,
+                moreTools,
                 "SaveButton",
                 "표현 저장",
                 bold,
@@ -290,7 +295,7 @@ namespace A305.EditorTools.Dialogue
                 SubTextColor
             );
             Button talkButton = UiBuilderTools.FindOrCreateButton(
-                toolRow,
+                inputRow,
                 "TalkButton",
                 "누르고 말하기",
                 bold,
@@ -304,7 +309,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button hintButton = UiBuilderTools.FindOrCreateButton(
-                toolRow,
+                moreTools,
                 "HintButton",
                 "힌트",
                 bold,
@@ -316,6 +321,11 @@ namespace A305.EditorTools.Dialogue
             SetUpServerLink(root);
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
+            BuilderTools.SetReference(
+                view,
+                "npcNameText",
+                panel.Find("Title").GetComponent<TMP_Text>()
+            );
             BuilderTools.SetReference(view, "endButton", endButton);
             BuilderTools.SetReference(view, "linesText", lines);
             BuilderTools.SetReference(view, "guideText", guide);
@@ -339,6 +349,13 @@ namespace A305.EditorTools.Dialogue
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+        }
+
+        private static void MoveLegacy(Transform parent, string name, Transform destination)
+        {
+            Transform existing = parent.Find(name);
+            if (existing != null)
+                existing.SetParent(destination, false);
         }
 
         // 서버 AI 대화 연결(API 주소, NPC 음성, 녹음)은 화면 프리팹에 두어 공간 씬을 다시 만들지 않아도 모든 씬에 붙는다.

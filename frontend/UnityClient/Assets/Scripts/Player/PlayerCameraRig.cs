@@ -173,7 +173,7 @@ namespace A305.Player
                         dialogueLookTarget.position,
                         camera.fieldOfView,
                         camera.aspect,
-                        new Vector2(.66f, .76f)
+                        new Vector2(.64f, .66f)
                     );
                 default:
                     return GetThirdPersonPoseInFrontOfWalls(snap);

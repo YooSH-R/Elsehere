@@ -46,7 +46,13 @@ namespace A305.EditorTools.Dialogue
                 renderer.enabled = false;
             var npc = BuilderTools.FindAllInScene<NpcIdentity>(scene).First();
             Vector3 face = npc.LookTarget.position;
-            Vector3 eye = face + npc.transform.forward * 3f + Vector3.up * .2f;
+            Vector3 eye = new Vector3(0, 1.1576f, 2.1f);
+            foreach (
+                Renderer renderer in BuilderTools
+                    .FindSingleInScene<PlayerMover>(scene)
+                    .GetComponentsInChildren<Renderer>()
+            )
+                renderer.forceRenderingOff = true;
             var source = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(
                 "Assets/Data/Dialogue/MockDialogueScripts.asset"
             );
@@ -114,7 +120,7 @@ namespace A305.EditorTools.Dialogue
                 face,
                 camera.fieldOfView,
                 camera.aspect,
-                new Vector2(.66f, .76f)
+                new Vector2(.64f, .66f)
             );
             camera.transform.SetPositionAndRotation(pose.position, pose.rotation);
             camera.Render();
@@ -126,7 +132,7 @@ namespace A305.EditorTools.Dialogue
             pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             File.WriteAllBytes(path, pixels.EncodeToPNG());
             Vector3 screen = camera.WorldToViewportPoint(face);
-            if (screen.y < .7f)
+            if (screen.y < .6f)
                 throw new System.InvalidOperationException("NPC face is covered by dialogue area.");
             camera.targetTexture = null;
             RenderTexture.active = null;

@@ -40,7 +40,8 @@
 ## Builder와 미리보기
 
 - **Tools → A305 → Weather → Build Town Weather**(`Scripts/Editor/Weather/TownWeatherBuilder.cs`)가 TownScene의 `Lighting/TownWeather`에 `WeatherPresenter`를 두고 해·`SummerClouds`·`OvercastClouds`·`JourneyRain`·플레이어를 연결한 뒤 첫날 미션에 연결합니다. 데이터 에셋·흐림 구름·빗방울은 없을 때만 만들고, 이미 있으면 디자인한 값을 그대로 둡니다. **Mission → Build First Day Journey**와 **World → Build Spaces**도 마을을 연결할 때 같은 연결을 적용합니다.
-- **Tools → A305 → Weather → Capture Town Weather Preview**(`TownWeatherPreview.cs`)는 Play나 서버 호출 없이 TownScene을 맑음·흐림·비로 바꿔 같은 자리에서 찍습니다. 환경변수 `TOWN_WEATHER_PREVIEW_OUTPUT`에 저장 폴더를 지정하며 씬은 저장하지 않습니다.
+- **Play 중 확인:** TownScene을 Play하고 **Tools → A305 → Weather → Play Mode → Show Clear / Show Cloudy / Show Rain**을 누르면 서버 없이 그 자리에서 날씨가 섞여 바뀝니다. 메뉴는 Play 중 마을에서만 켜지며, 서버 상태를 다시 읽으면(씬 진입·NPC 응답·대화 종료) 서버 예보로 돌아갑니다.
+- **Tools → A305 → Weather → Capture Town Weather Preview**(`TownWeatherPreview.cs`)는 Play나 서버 호출 없이 TownScene을 맑음·흐림·비로 바꿔 같은 자리에서 찍습니다. Editor에서는 저장 폴더를 고르고, batchmode에서는 환경변수 `TOWN_WEATHER_PREVIEW_OUTPUT`에 폴더를 지정합니다. 시작할 때 저장하지 않은 씬을 저장할지 묻고, 다 찍으면 디스크의 TownScene을 다시 열어 날씨를 입힌 씬이 저장되지 않게 합니다.
 
 ## 테스트
 

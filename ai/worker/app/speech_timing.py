@@ -67,6 +67,7 @@ def attach_timing(wav: bytes, spoken) -> bytes:
         return wav
     _, duration = _pcm(wav)
     cues, previous, index = [], 0.0, 0
+    pending_stress = None
     while index < len(spoken):
         entry = spoken[index]
         symbol, start, end = entry.phoneme, float(entry.start), float(entry.end)
@@ -74,8 +75,18 @@ def attach_timing(wav: bytes, spoken) -> bytes:
         if not all(math.isfinite(v) for v in (start, end)) or start < previous - 1e-7 or end < start or end > duration + 1e-7:
             raise ValueError("Invalid model phoneme timing")
         previous = end
-        if end == start or symbol in MARKS:
+        if end == start:
             continue
+        if symbol in MARKS:
+            if symbol == "ː" and cues:
+                cues[-1]["end"] = end
+            else:
+                pending_stress = (pending_stress[0] if pending_stress else start, end)
+            continue
+        if pending_stress is not None:
+            if abs(start - pending_stress[1]) < 1e-6:
+                start = pending_stress[0]
+            pending_stress = None
         if index < len(spoken) and symbol + spoken[index].phoneme in PAIRS:
             following = spoken[index]
             if abs(following.start - end) < 1e-6:

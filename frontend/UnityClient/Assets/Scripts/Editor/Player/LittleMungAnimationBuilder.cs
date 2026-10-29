@@ -236,11 +236,12 @@ namespace A305.EditorTools.Player
                 Build();
                 return;
             }
-            var tree = controller
-                .layers[0]
-                .stateMachine.states.Select(entry => entry.state)
-                .Single(state => state.name == "Locomotion")
-                .motion as BlendTree;
+            var tree =
+                controller
+                    .layers[0]
+                    .stateMachine.states.Select(entry => entry.state)
+                    .Single(state => state.name == "Locomotion")
+                    .motion as BlendTree;
             SetLocomotionChildren(
                 tree,
                 AssetDatabase.LoadAssetAtPath<AnimationClip>(Folder + "/Idle.anim"),

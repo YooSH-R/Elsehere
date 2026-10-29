@@ -184,10 +184,7 @@ namespace A305.Player.Tests
             if (corrected)
             {
                 // 빠르게 단을 내려가며 캡슐이 떠 있는 동안에는 발을 고정하지 않으므로, 땅에 닿은 프레임만 센다.
-                Check(
-                    lockedFrames > groundedFrames / 3,
-                    phase + " needs real support intervals."
-                );
+                Check(lockedFrames > groundedFrames / 3, phase + " needs real support intervals.");
                 Check(
                     longest >= minimumSupportFrames,
                     phase + " support must persist across frames."

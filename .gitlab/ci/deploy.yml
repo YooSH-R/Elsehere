@@ -29,7 +29,6 @@ dev:child:
     - ci:yaml
     - dev:plan
   interruptible: false
-  resource_group: a305-dev-release
   trigger:
     include:
       - artifact: dist/deployment/dev-child.yml
@@ -42,6 +41,7 @@ dev:deliver:
   image: docker:29.1.3-cli
   timeout: 30m
   interruptible: false
+  resource_group: a305-dev-release
   allow_failure:
     exit_codes: 78
   variables:

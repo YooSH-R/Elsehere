@@ -11303,8 +11303,7 @@ MonoBehaviour:
   sun: {fileID: 4756998}
   clouds: {fileID: 477431703}
   overcastClouds: {fileID: 325632057}
-  rain: {fileID: 152934642}
-  rainFollowTarget: {fileID: 739269364}
+  effectFollowTarget: {fileID: 739269364}
 --- !u!1001 &1022003766
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,19 +1,25 @@
 """입력(npcId·MBTI·역할·장소)과 재료 파일(ai/npcs/rules/persona-ingredients.json)로 NPC 인격 카드의 뼈대를 만든다.
 LLM 없이 규칙으로만 고르고, npcId를 씨앗으로 써서 같은 입력이면 언제나 같은 NPC가 나온다. 설계는 docs/npc-life-design.md.
 
-    ai/.venv/Scripts/python ai/tools/npc_generate.py <npcId> <MBTI> <역할> <장소> --out <폴더>
+    ai/.venv/Scripts/python ai/tools/npc_generate.py <npcId> <MBTI> <역할> <장소> --out <폴더> [--narrate]
 
-<폴더>/<npcId>.json(인격 설정)과 <폴더>/life/<npcId>.json(생활 파일)을 쓴다. 생성 결과는 초안이라 isActive false이고,
-배경 이야기(사연)는 비어 있다. 서비스 NPC로 쓰려면 사람이 보고 ai/npcs로 옮긴 뒤 목소리를 정해 켠다.
+<폴더>/<npcId>.json(인격 설정)과 <폴더>/life/<npcId>.json(생활 파일)을 쓴다. 생성 결과는 초안이라 isActive false다.
+--narrate를 주면 LLM이 뼈대를 읽고 사연(배경 이야기·겪은 일)만 쓴다(ai/worker/.env의 구성, NPC 대답 모델).
+나머지 칸은 규칙으로 고른 그대로다. 서비스 NPC로 쓰려면 사람이 보고 ai/npcs로 옮긴 뒤 목소리를 정해 켠다.
 """
 
 import argparse
+import asyncio
 import json
+import os
 import random
 import sys
 from pathlib import Path
 
+import npc_configs  # 공통 인격 스키마 검사. 같은 저장소 AI 워커(app)를 가져올 경로도 함께 연다
 import npc_derive
+
+from app.llm import LLM, Usage
 
 NPCS = Path(__file__).resolve().parents[2] / "ai/npcs"
 VALUES_PER_NPC, MOTIVATIONS_PER_NPC, INTERESTS_PER_NPC = 2, 2, 3
@@ -110,19 +116,86 @@ def _speech_style(rules: dict, dimensions: dict[str, float], role: str) -> dict:
     }
 
 
+NARRATE_SYSTEM = """You write the backstory for a character in an English conversation game set in a small American town.
+You get the character's card as JSON. Write only:
+- "summary": two or three plain sentences about who they are and how they came to be this way.
+- "experiences": one or two past events, each with "event" (what happened, one sentence) and "influence" (how it shapes the way they act now, one sentence).
+Tie the story to the traits, values, motivations, interests and behavior rules on the card so they read as one person, and give a reason behind at least one of them.
+Never change or contradict the card. Do not name real people or brands, and do not mention any places, shops, streets or services in the town: the game decides those.
+Keep it ordinary and warm-hearted: no tragedy, crime, illness or stereotypes."""
+
+NARRATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string"},
+        "experiences": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"event": {"type": "string"}, "influence": {"type": "string"}},
+                "required": ["event", "influence"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["summary", "experiences"],
+    "additionalProperties": False,
+}
+
+
+async def narrate(config: dict, llm: LLM) -> dict:
+    """규칙 뼈대의 사연 칸(background.summary·experiences)만 LLM이 쓴 새 설정. 다른 칸은 그대로다.
+    결과가 공통 인격 스키마를 지키지 않으면 ValueError (저장하지 않는다)."""
+    profile = config["npcProfile"]
+    card = {key: value for key, value in profile.items() if key not in ("schemaVersion", "profileVersion")}
+    card["background"] = {"interests": profile["background"]["interests"]}  # 비어 있는 사연 칸은 보여 주지 않는다
+    messages = [{"role": "system", "content": NARRATE_SYSTEM}, {"role": "user", "content": json.dumps(card, ensure_ascii=False)}]
+    out = await llm.chat("narrate", "npc", messages, Usage(), temperature=0.8, max_tokens=500, schema=NARRATE_SCHEMA, hedge=False)
+    try:
+        story = json.loads(out)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"모델 출력이 JSON이 아님: {out[:80]!r}") from e
+    background = {**profile["background"], "summary": story["summary"], "experiences": story["experiences"]}
+    narrated = {**config, "npcProfile": {**profile, "background": background}}
+    errors = npc_configs.schema_errors(narrated)
+    if errors:
+        raise ValueError("사연이 공통 인격 스키마에 맞지 않음: " + "; ".join(f"{where}: {why}" for where, why in errors))
+    return narrated
+
+
+async def _narrate_with_settings(config: dict) -> dict:
+    """ai/worker/.env의 구성으로 LLM을 열어 사연을 쓴다. 터미널 대화 도구처럼 NPC 대답 공급자 키만 있으면 된다."""
+    from npc_chat import fill_unused_provider_keys
+
+    from app import config as worker_config
+    from app.config import Settings
+
+    worker_config.load_dotenv()
+    os.environ.setdefault("AI_WORKER_TOKEN", "npc-generate")  # 서버로 띄우지 않으므로 Spring과 공유할 토큰은 쓰지 않는다
+    fill_unused_provider_keys(os.environ.get("LLM_PROFILE") or worker_config.DEFAULT_PROFILE)
+    llm = LLM(Settings.from_env())
+    try:
+        return await narrate(config, llm)
+    finally:
+        await llm.aclose()
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="입력과 재료로 NPC 인격 카드 뼈대를 만들어 인격 설정·생활 파일로 저장한다 (LLM 없음)")
+    parser = argparse.ArgumentParser(description="입력과 재료로 NPC 인격 카드 뼈대를 만들어 인격 설정·생활 파일로 저장한다")
     parser.add_argument("npc_id", help="새 NPC의 id. 씨앗으로도 쓴다 (예: GEN_CAFE_01)")
     parser.add_argument("mbti", help="예: INTJ-T")
     parser.add_argument("role", choices=["STAFF", "PASSERBY"])
     parser.add_argument("place", help="기본 장소 (예: CAFE, HOTEL, TOWN)")
     parser.add_argument("--out", type=Path, required=True, help="저장할 폴더. <npcId>.json과 life/<npcId>.json을 쓴다")
+    parser.add_argument("--narrate", action="store_true", help="LLM이 사연(배경 이야기·겪은 일)을 쓴다. 없으면 사연은 비워 둔다")
     args = parser.parse_args(argv)
 
     ingredients = json.loads((NPCS / "rules/persona-ingredients.json").read_text(encoding="utf-8"))
     library = json.loads((NPCS / "rules/behaviors.json").read_text(encoding="utf-8"))
     taken = {json.loads(path.read_text(encoding="utf-8"))["npcProfile"]["name"] for path in NPCS.glob("*.json")}
     config, life = generate(args.npc_id, args.mbti, args.role, args.place, ingredients, library, taken_names=taken)
+    if args.narrate:
+        config = asyncio.run(_narrate_with_settings(config))
     (args.out / "life").mkdir(parents=True, exist_ok=True)
     _write_json(args.out / f"{args.npc_id}.json", config)
     _write_json(args.out / "life" / f"{args.npc_id}.json", life)

@@ -1,12 +1,18 @@
 """NPC 인격 카드 자동 생성: 재료 파일(ai/npcs/rules/persona-ingredients.json)의 검사와, 입력(npcId·MBTI·역할·장소)에서
 규칙으로 인격 카드 뼈대를 만드는 생성기(ai/tools/npc_generate.py). 설계는 docs/npc-life-design.md."""
 
+import asyncio
 import copy
 import json
 import sys
 from pathlib import Path
 
+import httpx
 import pytest
+
+from app.config import Settings
+from app.llm import LLM
+from conftest import ok
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 import npc_configs
@@ -211,3 +217,72 @@ def test_the_cli_writes_the_npc_and_life_files_and_skips_names_already_in_use(tm
     life = json.loads((out / "life/GEN_001.json").read_text(encoding="utf-8"))
     assert (config, life) == generate(taken=service_names)
     assert config["npcProfile"]["name"] not in service_names
+
+
+# ---------------------------------------------------------------------
+# LLM이 사연(배경 이야기·겪은 일)만 쓴다. 나머지 칸은 규칙으로 고른 그대로
+# ---------------------------------------------------------------------
+STORY = {
+    "summary": "Henry grew up helping in his aunt's kitchen and still bakes the way she taught him.",
+    "experiences": [
+        {"event": "He once burned a whole batch on a busy morning.", "influence": "He now stays calm and starts over without fuss."}
+    ],
+}
+
+
+def narrate(provider, model_output) -> tuple[dict, list[dict]]:
+    """규칙 뼈대(GEN_001)를 가짜 공급자 LLM으로 다듬는다. (결과, 공급자가 받은 요청 본문들)."""
+    settings = Settings(token="t", base_url="http://fake/v1", api_key="x", call_timeout_s=1.0, retry_pause_s=0.0, fallback={})
+    sent = []
+
+    def answer(body):
+        sent.append(body)
+        return ok(model_output if isinstance(model_output, str) else json.dumps(model_output))
+
+    provider.answers["npc"] = answer
+
+    async def run():
+        llm = LLM(settings, httpx.MockTransport(provider.handler))
+        try:
+            return await npc_generate.narrate(generate()[0], llm)
+        finally:
+            await llm.aclose()
+
+    return asyncio.run(run()), sent
+
+
+def test_the_llm_writes_only_the_backstory(provider):
+    skeleton = generate()[0]
+
+    narrated, _ = narrate(provider, STORY)
+
+    background = {**skeleton["npcProfile"]["background"], **STORY}
+    assert narrated == {**skeleton, "npcProfile": {**skeleton["npcProfile"], "background": background}}
+
+
+def test_the_llm_sees_the_card_and_is_told_not_to_invent_town_places(provider):
+    profile = generate()[0]["npcProfile"]
+
+    _, sent = narrate(provider, STORY)
+
+    system, card = sent[0]["messages"][0]["content"], sent[0]["messages"][1]["content"]
+    assert "backstory" in system and "places" in system
+    assert profile["name"] in card and profile["personality"]["traits"][0]["name"] in card and profile["behaviorRules"][0] in card
+    assert sent[0]["response_format"]["type"] == "json_schema"
+
+
+@pytest.mark.parametrize(
+    "story",
+    [
+        {**STORY, "summary": "x" * 1501},  # 스키마의 배경 이야기 상한
+        {**STORY, "experiences": [{"event": " ", "influence": "Stays calm."}]},  # 빈 겪은 일
+    ],
+)
+def test_a_backstory_outside_the_profile_schema_is_rejected(provider, story):
+    with pytest.raises(ValueError, match="background"):
+        narrate(provider, story)
+
+
+def test_model_output_that_is_not_json_is_rejected(provider):
+    with pytest.raises(ValueError, match="JSON"):
+        narrate(provider, "Henry is a baker.")

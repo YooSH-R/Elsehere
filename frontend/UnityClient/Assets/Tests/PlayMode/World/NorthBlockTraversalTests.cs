@@ -22,6 +22,7 @@ namespace A305.World.PlayModeTests
         private GameObject building;
         private GameObject walker;
         private GameObject pavement;
+        private float previousCaptureDelta;
 
         public NorthBlockTraversalTests(string buildingName, bool inTown)
         {
@@ -29,9 +30,18 @@ namespace A305.World.PlayModeTests
             this.inTown = inTown;
         }
 
+        [SetUp]
+        public void SetUp()
+        {
+            previousCaptureDelta = Time.captureDeltaTime;
+            // Headless frames must advance physics while this test moves a fixed distance per frame.
+            Time.captureDeltaTime = 1f / 60f;
+        }
+
         [TearDown]
         public void TearDown()
         {
+            Time.captureDeltaTime = previousCaptureDelta;
             Object.DestroyImmediate(walker);
             if (!inTown)
                 Object.DestroyImmediate(building);

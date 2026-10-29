@@ -47,6 +47,14 @@ def test_the_impression_counts_each_judged_event_once_and_every_rude_line():
     assert rel.impression(["SHOUTING"], 0, {}, RULES) == 0
 
 
+def test_small_talk_and_personal_questions_do_not_move_affinity():
+    """잡담은 그 대화의 기분만 좋게 하고 호감은 올리지 않는다. 사적인 질문은 NPC의 선과 친한 정도에 따라 대답이 정하므로 숫자로 두지 않는다
+    (2026-10-29 결정, 이정훈 님 협의)."""
+    assert rel.impression(["SMALL_TALK"], 0, {"eventScale": {"SMALL_TALK": 1.4}}, RULES) == 0
+    assert rel.impression(["PERSONAL_QUESTION"], 0, {}, RULES) == 0
+    assert EVENTS["SMALL_TALK"]["mood"]["PLEASED"] > 0
+
+
 def test_an_npc_reacts_more_or_less_strongly_by_its_event_scale():
     plain = rel.impression([], 1, {}, RULES)
 
@@ -77,7 +85,7 @@ def test_after_a_conversation_the_relationship_to_store_is_whole_numbers():
 
 
 def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
-    """백엔드가 정수로 저장해도 호감이 쌓인다. 잡담·칭찬까지 하면 다섯째 대화에 좋아하는 티, 열일곱째에 사적인 이야기.
+    """백엔드가 정수로 저장해도 호감이 쌓인다. 칭찬까지 하면 여덟째 대화에 좋아하는 티, 스물한째에 사적인 이야기(잡담은 호감에 더하지 않음).
     인사하고 주문만 하면 열다섯째, 마흔째다(기본 배수, 대화마다 하루 간격)."""
     relationship = RULES["relationship"]
     friendly = ["GREETING", "SMALL_TALK", "COMPLIMENT", "TASK_DONE", "LEAVE"]
@@ -90,7 +98,7 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
             stored = rel.after_conversation({**stored, "days_since_last_talk": 1}, events, 0, {}, RULES)
         return conversations
 
-    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (5, 17)
+    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (8, 21)
     assert (until(relationship["liked"], polite), until(relationship["personalTalk"]["affinity"], polite)) == (15, 40)
 
 

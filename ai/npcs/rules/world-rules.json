@@ -20,7 +20,7 @@
   ],
   "conversationEvents": {
     "GREETING": { "impression": 1 },
-    "SMALL_TALK": { "mood": { "PLEASED": 1 }, "impression": 2, "memorySalience": 1 },
+    "SMALL_TALK": { "mood": { "PLEASED": 1 }, "memorySalience": 1 },
     "PERSONAL_QUESTION": {},
     "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -15, "memorySalience": 3 },
     "APOLOGY": { "mood": { "ANNOYED": -1 }, "impression": 5 },

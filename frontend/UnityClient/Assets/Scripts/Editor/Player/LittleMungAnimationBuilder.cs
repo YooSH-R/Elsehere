@@ -12,8 +12,16 @@ namespace A305.EditorTools.Player
     {
         public const string Folder = "Assets/Art/Player/LittleMung";
         public const string ControllerPath = Folder + "/Locomotion.controller";
-        public const float WalkSpeed = 0.8f;
-        public const float RunSpeed = 1.7f;
+        public const float WalkSpeed = 3.2f;
+        public const float RunSpeed = 7.5f;
+
+        // 클립의 보폭이 땅과 맞는 이동 속도. 이보다 빠르면 발이 덜 미끄러지도록 클립을 빨리 재생한다.
+        private const float WalkStrideSpeed = 0.8f;
+        private const float RunStrideSpeed = 1.7f;
+
+        // 이보다 빨리 재생하면 골반의 흔들림이 프레임마다 크게 건너뛰어 몸이 덜컥거린다.
+        // 그 이상의 속도 차이는 발 미끄러짐으로 받아들인다.
+        private const float MaxPlaybackRate = 2f;
         private const string MotionFolder = LittleMungMotionAvatar.Folder;
 
         public static RuntimeAnimatorController Build()
@@ -49,9 +57,7 @@ namespace A305.EditorTools.Player
             var locomotion = controller.CreateBlendTreeInController("Locomotion", out var tree);
             tree.blendParameter = "Speed";
             tree.useAutomaticThresholds = false;
-            tree.AddChild(idle, 0f);
-            tree.AddChild(walk, WalkSpeed);
-            tree.AddChild(run, RunSpeed);
+            SetLocomotionChildren(tree, idle, walk, run);
             machine.defaultState = locomotion;
             var rising = machine.AddState("Rise");
             rising.motion = rise;
@@ -208,14 +214,7 @@ namespace A305.EditorTools.Player
                 var state = entry.state;
                 if (state.name == "Locomotion" && state.motion is BlendTree tree)
                 {
-                    var children = tree.children;
-                    foreach (int i in Enumerable.Range(0, children.Length))
-                        children[i].motion =
-                            children[i].threshold == 0 ? idle
-                            : children[i].threshold == WalkSpeed ? walk
-                            : children[i].threshold == RunSpeed ? run
-                            : children[i].motion;
-                    tree.children = children;
+                    SetLocomotionChildren(tree, idle, walk, run);
                     EditorUtility.SetDirty(tree);
                 }
                 else if (state.name == "Rise" || state.name == "Fall" || state.name == "Land")
@@ -226,6 +225,63 @@ namespace A305.EditorTools.Player
             }
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>이미 만든 Locomotion 블렌드 트리를 현재 이동 속도에 맞춘다. 클립과 상태 전환은 그대로 둔다.</summary>
+        public static void ApplyLocomotionSpeeds()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            if (controller == null)
+            {
+                Build();
+                return;
+            }
+            var tree = controller
+                .layers[0]
+                .stateMachine.states.Select(entry => entry.state)
+                .Single(state => state.name == "Locomotion")
+                .motion as BlendTree;
+            SetLocomotionChildren(
+                tree,
+                AssetDatabase.LoadAssetAtPath<AnimationClip>(Folder + "/Idle.anim"),
+                AssetDatabase.LoadAssetAtPath<AnimationClip>(Folder + "/Walk.anim"),
+                AssetDatabase.LoadAssetAtPath<AnimationClip>(Folder + "/Run.anim")
+            );
+            EditorUtility.SetDirty(tree);
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void SetLocomotionChildren(
+            BlendTree tree,
+            Motion idle,
+            Motion walk,
+            Motion run
+        )
+        {
+            // 천천히 걸을 때는 원래 걷기를, 그보다 빠르면 같은 클립을 속도에 비례해 빨리 재생한다.
+            tree.children = new[]
+            {
+                Child(idle, 0f, 1f),
+                Child(walk, WalkStrideSpeed, 1f),
+                Child(walk, WalkSpeed, PlaybackRate(WalkSpeed, WalkStrideSpeed)),
+                Child(run, RunSpeed, PlaybackRate(RunSpeed, RunStrideSpeed)),
+            };
+        }
+
+        private static float PlaybackRate(float moveSpeed, float strideSpeed)
+        {
+            return Mathf.Min(moveSpeed / strideSpeed, MaxPlaybackRate);
+        }
+
+        private static ChildMotion Child(Motion motion, float threshold, float timeScale)
+        {
+            return new ChildMotion
+            {
+                motion = motion,
+                threshold = threshold,
+                timeScale = timeScale,
+                directBlendParameter = "Blend",
+            };
         }
 
         private static AnimationClip CreateIdle(AnimationClip reference)

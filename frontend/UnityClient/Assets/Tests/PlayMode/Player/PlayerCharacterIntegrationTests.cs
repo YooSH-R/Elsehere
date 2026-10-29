@@ -237,8 +237,10 @@ namespace A305.Player.Tests
                     animator != null
                         ? animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg).localRotation
                         : Quaternion.identity;
+                // 달리기가 마을의 장애물에 닿기 전에 걷기와 달리기 거리를 비교한다.
+                const int moveFrames = 12;
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-                yield return Frames(39);
+                yield return Frames(moveFrames);
                 float walk = player.transform.position.z - start.z;
                 Assert.That(walk, Is.GreaterThan(.3f));
                 if (animator != null)
@@ -259,7 +261,7 @@ namespace A305.Player.Tests
                 start = player.transform.position;
                 phase = "run";
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.LeftShift));
-                yield return Frames(39);
+                yield return Frames(moveFrames);
                 Assert.That(player.transform.position.z - start.z, Is.GreaterThan(walk * 1.3f));
                 phase = "jump";
                 float ground = player.transform.position.y;

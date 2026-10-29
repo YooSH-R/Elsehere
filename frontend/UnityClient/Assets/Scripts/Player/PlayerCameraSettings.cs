@@ -48,7 +48,7 @@ namespace A305.Player
         [SerializeField]
         [Min(0f)]
         [Tooltip("마우스를 1픽셀 움직일 때 도는 각도")]
-        private float rotateDegreesPerPixel = 0.2f;
+        private float rotateDegreesPerPixel = 0.1f;
 
         [Header("따라가기")]
         [SerializeField]

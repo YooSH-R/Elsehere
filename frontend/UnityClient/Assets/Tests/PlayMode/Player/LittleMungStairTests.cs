@@ -23,10 +23,22 @@ namespace A305.Player.Tests
 
         public LittleMungStairTests(bool corrected) => this.corrected = corrected;
 
+        // 걷기 3.2 m/s를 계단 보정이 계획할 수 있는 0.8 m/s로 낮추는 이동 입력 크기.
+        private const float SlowWalkInput = .25f;
+
+        // 스틱 기본 무시 영역을 거친 뒤 이동 입력이 SlowWalkInput이 되는 실제 기울기.
+        private static float SlowWalkStickTilt =>
+            Mathf.Lerp(
+                InputSystem.settings.defaultDeadzoneMin,
+                InputSystem.settings.defaultDeadzoneMax,
+                SlowWalkInput
+            );
+
         private PlayerMover player;
         private PlayerCameraRig rig;
         private Animator animator;
         private Keyboard keyboard;
+        private Gamepad gamepad;
         private FinalPoseObserver observer;
         private float oldDelta;
         private InputSettings.BackgroundBehavior oldBackground;
@@ -63,6 +75,7 @@ namespace A305.Player.Tests
             rig = Object.FindFirstObjectByType<PlayerCameraRig>();
             rig.enabled = false;
             keyboard = InputSystem.AddDevice<Keyboard>();
+            gamepad = InputSystem.AddDevice<Gamepad>();
             observer = player.gameObject.AddComponent<FinalPoseObserver>();
             for (int i = 0; i < 30; i++)
                 yield return null;
@@ -75,6 +88,8 @@ namespace A305.Player.Tests
                 observer.Observe = null;
             if (keyboard != null)
                 InputSystem.RemoveDevice(keyboard);
+            if (gamepad != null)
+                InputSystem.RemoveDevice(gamepad);
             Time.captureDeltaTime = oldDelta;
             InputSystem.settings.backgroundBehavior = oldBackground;
             InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
@@ -87,6 +102,74 @@ namespace A305.Player.Tests
             foreach (bool down in new[] { false, true })
                 yield return Traverse(down);
             Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
+        [UnityTest]
+        public IEnumerator BodyKeepsUpWithRootWhenSprintingUpStairs()
+        {
+            const float start = .7f;
+            rig.transform.rotation = Quaternion.identity;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            using var probe = new TerrainFootProbe(animator, player.transform);
+            Assert.That(probe.Ground(new Vector3(-3, .5f, start), out var floor), Is.True);
+            player.Teleport(new Vector3(-3, floor.point.y + .03f, start), Quaternion.identity);
+            for (int i = 0; i < 60; i++)
+                yield return null;
+            var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            float BodyOffset() =>
+                Vector3.Dot(player.transform.position - hips.position, player.transform.forward);
+            float restOffset = BodyOffset();
+            float maxLag = 0;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.LeftShift));
+            observer.Observe = () => maxLag = Mathf.Max(maxLag, BodyOffset() - restOffset);
+            for (int frame = 0; frame < 120 && player.transform.position.z < start + 3.4f; frame++)
+                yield return null;
+            observer.Observe = null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            Debug.Log($"Sprint stairs corrected={corrected}: maxLag={maxLag * 1000:F1}mm");
+            Assert.That(player.transform.position.z - start, Is.GreaterThan(3f), "Sprint distance");
+            Assert.That(maxLag, Is.LessThan(.15f), "Body lags behind the root");
+        }
+
+        [UnityTest]
+        public IEnumerator BodyFollowsSmoothlyWhenSprintingOffFromStairMode()
+        {
+            // 단차 바로 앞에 서 있으면 계단 보정이 켜진다. 그 상태에서 바로 달려도 몸이 끊기지 않아야 한다.
+            const float start = 1f;
+            rig.transform.rotation = Quaternion.identity;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            using var probe = new TerrainFootProbe(animator, player.transform);
+            Assert.That(probe.Ground(new Vector3(-3, .5f, start), out var floor), Is.True);
+            player.Teleport(new Vector3(-3, floor.point.y + .03f, start), Quaternion.identity);
+            for (int i = 0; i < 60; i++)
+                yield return null;
+            var planner = animator.GetComponent<LittleMungStairLocomotion>();
+            if (planner != null)
+                Assert.That(planner.Active, Is.True, "Stair mode must be on before sprinting");
+            var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            float BodyOffset() =>
+                Vector3.Dot(player.transform.position - hips.position, player.transform.forward);
+            float restOffset = BodyOffset(),
+                previousOffset = restOffset,
+                maxLag = 0,
+                maxJump = 0;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.LeftShift));
+            observer.Observe = () =>
+            {
+                float offset = BodyOffset();
+                maxLag = Mathf.Max(maxLag, offset - restOffset);
+                maxJump = Mathf.Max(maxJump, Mathf.Abs(offset - previousOffset));
+                previousOffset = offset;
+            };
+            for (int frame = 0; frame < 30; frame++)
+                yield return null;
+            observer.Observe = null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            Debug.Log(
+                $"Sprint off stair mode corrected={corrected}: maxLag={maxLag * 1000:F1}mm, maxJump={maxJump * 1000:F1}mm"
+            );
+            Assert.That(maxLag, Is.LessThan(.15f), "Body lags behind the root");
+            Assert.That(maxJump, Is.LessThan(.04f), "Body jumps relative to the root in one frame");
         }
 
         private IEnumerator Traverse(bool down)
@@ -139,7 +222,11 @@ namespace A305.Player.Tests
             Debug.Log(
                 $"Stair geometry: hip={hips.position}, legLengths={Vector3.Distance(upperLeg.position, lowerLeg.position):F3}+{Vector3.Distance(lowerLeg.position, leftFoot.position):F3}, foot={leftFoot.position}"
             );
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+            // 계단 보정은 약 2.4 m/s까지만 동작하므로 스틱을 조금만 기울여 천천히 걷는다.
+            InputSystem.QueueStateEvent(
+                gamepad,
+                new GamepadState { leftStick = new Vector2(0, SlowWalkStickTilt) }
+            );
             for (int frame = 0; frame < 240; frame++)
             {
                 int captured = frame;
@@ -221,7 +308,7 @@ namespace A305.Player.Tests
                 yield return null;
                 observer.Observe = null;
             }
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            InputSystem.QueueStateEvent(gamepad, new GamepadState());
             int count =
                 planner == null
                     ? 0

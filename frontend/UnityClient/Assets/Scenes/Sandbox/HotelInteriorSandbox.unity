@@ -332,6 +332,10 @@ PrefabInstance:
       propertyPath: m_StepOffset
       value: 0.15
       objectReference: {fileID: 0}
+    - target: {fileID: 7306442443597707082, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: animator
+      value: 
+      objectReference: {fileID: 1298354532}
     - target: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_Name
       value: HotelStaff
@@ -341,7 +345,7 @@ PrefabInstance:
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 4218563804399725429, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 549244120}
+      addedObject: {fileID: 1298354531}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &29229178 stripped
@@ -455,6 +459,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.World::A305.World.SpaceArrival
   player: {fileID: 739269365}
   cameraRig: {fileID: 831445372}
+  apiSettings: {fileID: 0}
 --- !u!1001 &128320773
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -679,7 +684,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectHoverController
   settings: {fileID: 11400000, guid: dd7aa012417d9a84eb6fcb9c5e3f6fd3, type: 2}
-  wordSource: {fileID: 11400000, guid: 9cf6140cdbc735e44b2f6e355f5a5c0c, type: 2}
+  wordSource: {fileID: 11400000, guid: 28105cb20c0019040978bef1a0462186, type: 2}
   viewCamera: {fileID: 831445373}
   player: {fileID: 739269365}
   tooltip: {fileID: 1805006425}
@@ -732,68 +737,6 @@ MonoBehaviour:
   cameraRig: {fileID: 831445372}
   panel: {fileID: 286481412}
   scriptSource: {fileID: 11400000, guid: 66499f5da1151c6479b4d007c3d57ab8, type: 2}
---- !u!1001 &549244119
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 29229178}
-    m_Modifications:
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7802662940902518549, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-      propertyPath: m_Name
-      value: ConciergeVisual
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
---- !u!4 &549244120 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 713874261361056140, guid: 3416b86baf662534d97ebedec7de1782, type: 3}
-  m_PrefabInstance: {fileID: 549244119}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &662858912
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1717,6 +1660,73 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6581202975869136660, guid: 15f90f31ec82ba845adccf05866564e8, type: 3}
   m_PrefabInstance: {fileID: 1181131665}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1298354530
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 29229178}
+    m_Modifications:
+    - target: {fileID: 1907492821801285812, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_Name
+      value: Hotelier
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+--- !u!4 &1298354531 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8382901045656690072, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+  m_PrefabInstance: {fileID: 1298354530}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &1298354532 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 15338231332834970, guid: fd946798e191c9340a18711e31ccb1eb, type: 3}
+  m_PrefabInstance: {fileID: 1298354530}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1411797841
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1826,6 +1836,7 @@ MonoBehaviour:
   dialogue: {fileID: 491052814}
   missionSource: {fileID: 11400000, guid: 2b3c3aae84701694fa6f05f3b29349f1, type: 2}
   panelView: {fileID: 662858914}
+  firstDayMission: {fileID: 0}
 --- !u!1001 &1440774468
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1989,6 +2000,7 @@ MonoBehaviour:
   feedbackView: {fileID: 1691948087}
   vocabularyView: {fileID: 920455515}
   hudView: {fileID: 1440774470}
+  apiSettings: {fileID: 0}
 --- !u!1 &1519806474
 GameObject:
   m_ObjectHideFlags: 0
@@ -2579,6 +2591,7 @@ MonoBehaviour:
   mission: {fileID: 1426150976}
   passersby:
   - {fileID: 29229179}
+  apiSettings: {fileID: 0}
 --- !u!1001 &1924616692
 PrefabInstance:
   m_ObjectHideFlags: 0

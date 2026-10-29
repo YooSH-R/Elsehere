@@ -176,6 +176,7 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleDialogue);
             Style("Assets/Prefabs/Tutorial/TutorialGuide.prefab", StyleTutorial);
             Style("Assets/Prefabs/ObjectHover/WordTooltip.prefab", StyleTooltip);
+            Style(PickerPath, StyleThemeLauncher);
         }
 
         /// <summary>집 씬에 테마 고르기 화면을 둔다. 이미 있으면 그대로 둔다.</summary>
@@ -230,13 +231,17 @@ namespace A305.EditorTools.Theme
                 Object.DestroyImmediate(oldRole);
             panel.GetComponent<Image>().color = new Color(1, 1, 1, 0);
             panel.GetComponent<Image>().raycastTarget = false;
-            Transform button = IconButton(
-                root,
-                "Panel/Buttons/VocabularyButton",
-                UiIcon.Book,
-                UiTone.Secondary,
-                caption: true
-            );
+            Transform button = root.Find("Panel/Buttons/VocabularyButton");
+            Transform oldFace = button.Find("Face");
+            if (oldFace != null)
+                Object.DestroyImmediate(oldFace.gameObject);
+            PillButton(root, "Panel/Buttons/VocabularyButton", UiIcon.Book, UiTone.Neutral);
+            var vocabularySize = button.GetComponent<LayoutElement>();
+            vocabularySize.minWidth = vocabularySize.preferredWidth = 180;
+            vocabularySize.preferredHeight = 72;
+            var vocabularyLabel = button.Find("Label").GetComponent<TMP_Text>();
+            vocabularyLabel.fontSize = 24;
+            vocabularyLabel.fontStyle = FontStyles.Bold;
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -259,7 +264,7 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "messageBox", card.gameObject);
             if (button == null)
                 return;
-            TMP_Text count = Badge(button.Find("Face"), "CountBadge");
+            TMP_Text count = Badge(button, "CountBadge");
             BuilderTools.SetReference(view, "vocabularyCountText", count);
         }
 
@@ -274,54 +279,23 @@ namespace A305.EditorTools.Theme
             Role(root, "Panel/PageTitle", UiThemeRole.Title);
             Role(root, "Panel/Navigation/PageNumber", UiThemeRole.Caption);
             Role(root, "Panel/Notice", UiThemeRole.Muted);
-            PillButton(root, "Panel/Sections/SummaryButton", UiIcon.Detail, UiTone.Primary);
-            PillButton(root, "Panel/Sections/CorrectionsButton", UiIcon.Check, UiTone.Secondary);
-            PillButton(root, "Panel/Sections/ConversationButton", UiIcon.Talk, UiTone.Accent);
-            PillButton(root, "Panel/Sections/ExpressionsButton", UiIcon.Save, UiTone.Positive);
-            PillButton(root, "Panel/Navigation/PreviousButton", UiIcon.Previous, UiTone.Neutral);
-            PillButton(root, "Panel/Navigation/NextButton", UiIcon.Next, UiTone.Neutral);
-            IconButton(
-                root,
-                "Panel/Buttons/SaveButton",
-                UiIcon.Save,
-                UiTone.Neutral,
-                caption: true
+            root.Find("Panel").GetComponent<VerticalLayoutGroup>().padding = new RectOffset(
+                48,
+                48,
+                40,
+                36
             );
-            IconButton(
-                root,
-                "Panel/Buttons/DetailButton",
-                UiIcon.Detail,
-                UiTone.Accent,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/RegenerateButton",
-                UiIcon.Retry,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/TranscriptButton",
-                UiIcon.Talk,
-                UiTone.Accent,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/VocabularyButton",
-                UiIcon.Book,
-                UiTone.Secondary,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/CloseButton",
-                UiIcon.Close,
-                UiTone.Neutral,
-                caption: true
-            );
+            QuietButton(root, "Panel/Sections/SummaryButton", "요약", selectedTint: true);
+            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장", selectedTint: true);
+            QuietButton(root, "Panel/Sections/ConversationButton", "회화", selectedTint: true);
+            QuietButton(root, "Panel/Sections/ExpressionsButton", "표현", selectedTint: true);
+            CompactArrow(root, "Panel/Navigation/PreviousButton", UiIcon.Previous);
+            CompactArrow(root, "Panel/Navigation/NextButton", UiIcon.Next);
+            QuietButton(root, "Panel/Buttons/SaveButton", "담기");
+            QuietButton(root, "Panel/Buttons/DetailButton", "자세히");
+            QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
+            QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");
+            QuietButton(root, "Panel/Buttons/VocabularyButton", "단어장");
         }
 
         private static void StyleVocabulary(Transform root)
@@ -390,6 +364,8 @@ namespace A305.EditorTools.Theme
             Role(root, "Content/CurrentGoal/Situation", UiThemeRole.Title);
             Role(root, "Content/CurrentGoal/Direction", UiThemeRole.Body);
             Role(root, "Content/Journal", UiThemeRole.Panel);
+            root.Find("Content/Journal").GetComponent<VerticalLayoutGroup>().padding =
+                new RectOffset(48, 48, 36, 40);
             Role(root, "Content/Journal/Title", UiThemeRole.Title);
             Role(root, "Content/Journal/Goal", UiThemeRole.Body);
             Role(root, "Content/Journal/Legend/PlayerLabel", UiThemeRole.Caption);
@@ -400,7 +376,79 @@ namespace A305.EditorTools.Theme
             PillButton(root, "Content/Journal/StartButton", UiIcon.Play, UiTone.Primary);
             PillButton(root, "Content/Journal/RestButton", UiIcon.Rest, UiTone.Secondary);
             PillButton(root, "Content/Journal/RetryButton", UiIcon.Retry, UiTone.Neutral);
-            PillButton(root, "Content/Journal/CloseButton", UiIcon.Close, UiTone.Neutral);
+            IconButton(
+                root,
+                "Content/Journal/CloseButton",
+                UiIcon.Close,
+                UiTone.Neutral,
+                caption: false
+            );
+        }
+
+        private static void CompactLabel(Transform root, string path, string caption)
+        {
+            TMP_Text label = root.Find(path)?.GetComponent<TMP_Text>();
+            if (label != null)
+                label.text = caption;
+        }
+
+        // 읽는 화면의 조작은 같은 크기의 차분한 글자 버튼으로 통일한다.
+        private static void QuietButton(
+            Transform root,
+            string path,
+            string caption,
+            bool selectedTint = false
+        )
+        {
+            Transform target = root.Find(path);
+            if (target == null)
+                return;
+            foreach (string name in new[] { "Face", "Outline", "Icon" })
+            {
+                Transform decoration = target.Find(name);
+                if (decoration != null)
+                    Object.DestroyImmediate(decoration.gameObject);
+            }
+            Role(target, UiThemeRole.Card);
+            Image image = target.GetComponent<Image>();
+            image.raycastTarget = true;
+            image.pixelsPerUnitMultiplier = 1.7f;
+            var button = target.GetComponent<Button>();
+            button.targetGraphic = image;
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.highlightedColor = new Color(.95f, .97f, .92f);
+            colors.pressedColor = new Color(.82f, .90f, .79f);
+            colors.disabledColor = selectedTint
+                ? new Color(.78f, .88f, .73f)
+                : new Color(1, 1, 1, .4f);
+            button.colors = colors;
+            TMP_Text label = target.Find("Label").GetComponent<TMP_Text>();
+            label.gameObject.SetActive(true);
+            Stretch((RectTransform)label.transform);
+            label.text = caption;
+            label.fontSize = 24;
+            label.enableAutoSizing = false;
+            label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            Role(label.transform, UiThemeRole.Title);
+            var size = BuilderTools.GetOrAddComponent<LayoutElement>(target.gameObject);
+            size.minWidth = 0;
+            size.preferredHeight = 64;
+            size.minHeight = 64;
+            if (!selectedTint)
+                size.preferredWidth = 156;
+        }
+
+        private static void CompactArrow(Transform root, string path, UiIcon icon)
+        {
+            Transform target = root.Find(path);
+            Transform oldOutline = target.Find("Outline");
+            if (oldOutline != null)
+                Object.DestroyImmediate(oldOutline.gameObject);
+            IconButton(root, path, icon, UiTone.Neutral, caption: false);
+            var size = target.GetComponent<LayoutElement>();
+            size.preferredHeight = 56;
+            size.preferredWidth = size.minWidth = 56;
         }
 
         private static void StyleDialogue(Transform root)
@@ -418,6 +466,11 @@ namespace A305.EditorTools.Theme
             Role(root, "HelpPanel/Viewport/Content/HintCard", UiThemeRole.Card);
             Role(root, "HelpPanel/Viewport/Content/HintCard/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
+            CompactLabel(root, "HelpPanel/Viewport/Content/WordsCard/Title", "단어");
+            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/Title", "문장");
+            CompactLabel(root, "HelpPanel/UseHintButton/Label", "넣기");
+            CompactLabel(root, "Panel/Conversation/ToolRow/MeaningButton/Label", "뜻");
+            CompactLabel(root, "Panel/Conversation/ToolRow/ReplayButton/Label", "듣기");
             PillButton(root, "HelpPanel/UseHintButton", UiIcon.Example, UiTone.Secondary);
             Role(root, "Panel/Conversation/Status", UiThemeRole.Accent);
             Role(root, "Panel/Conversation/InputRow/Input", UiThemeRole.Input);
@@ -511,7 +564,7 @@ namespace A305.EditorTools.Theme
             var view = BuilderTools.GetOrAddComponent<ThemePickerView>(root);
             if (root.transform.Find("OpenButton") == null)
                 BuildPicker(root.transform);
-            AlignWithVocabularyButton((RectTransform)root.transform.Find("OpenButton"));
+            StyleThemeLauncher(root.transform);
             BuilderTools.SetReference(
                 view,
                 "apiSettings",
@@ -562,6 +615,22 @@ namespace A305.EditorTools.Theme
         /// 두 화면은 같은 기준 해상도의 캔버스라, 단어장 칸의 위치와 안쪽 여백으로 자리를 계산한다.
         /// 단어장 버튼은 오른쪽 정렬한 버튼 줄의 맨 오른쪽 버튼이다.
         /// </summary>
+        private static void StyleThemeLauncher(Transform root)
+        {
+            Transform button = root.Find("OpenButton");
+            if (button == null)
+                return;
+            Transform oldFace = button.Find("Face");
+            if (oldFace != null)
+                Object.DestroyImmediate(oldFace.gameObject);
+            PillButton(root, "OpenButton", UiIcon.Palette, UiTone.Neutral);
+            var label = button.Find("Label").GetComponent<TMP_Text>();
+            label.gameObject.SetActive(true);
+            label.text = "테마";
+            label.fontSize = 24;
+            AlignWithVocabularyButton((RectTransform)button);
+        }
+
         private static void AlignWithVocabularyButton(RectTransform open)
         {
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
@@ -891,6 +960,9 @@ namespace A305.EditorTools.Theme
             }
             var size = BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject);
             size.preferredHeight = 58;
+            var clickable = button.GetComponent<Button>();
+            if (clickable != null)
+                clickable.targetGraphic = button.GetComponent<Image>();
             // 알약 그림의 둥근 끝이 58px 높이 안에 들어가도록 9칸 나누기 모서리를 줄여 그린다.
             button.GetComponent<Image>().pixelsPerUnitMultiplier = 1.7f;
             RectTransform outline = FindOrCreateRect(button, "Outline");
@@ -913,6 +985,8 @@ namespace A305.EditorTools.Theme
                 labelRect.offsetMin = new Vector2(58, 4);
                 labelRect.offsetMax = new Vector2(-20, 0);
                 label.fontSize = 22;
+                label.enableAutoSizing = false;
+                label.textWrappingMode = TextWrappingModes.NoWrap;
                 label.alignment = TextAlignmentOptions.Center;
                 label.transform.SetAsLastSibling();
             }
@@ -1038,7 +1112,9 @@ namespace A305.EditorTools.Theme
                 SetColors(fields.FindProperty("toneColors"), spec.Tones);
                 SetColors(fields.FindProperty("toneInks"), spec.ToneInks);
             }
-            fields.FindProperty("titleFont").objectReferenceValue = TitleFont(spec.FontPath);
+            fields.FindProperty("titleFont").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(ServiceFontBuilder.FontPath)
+                ?? TitleFont(spec.FontPath);
             fields.FindProperty("panelSprite").objectReferenceValue = ThemeSprite(
                 spec.Id,
                 UiThemeArt.Part.Panel

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -83,7 +84,10 @@ namespace A305.Mission
         {
             situation.text = state.Situation;
             direction.text = state.Direction;
-            journalGoal.text = $"<b>{state.Situation}</b>\n{state.Direction}";
+            FirstDayMissionStep current = state.Steps.FirstOrDefault(step =>
+                step.Status == "CURRENT"
+            );
+            journalGoal.text = current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
             townMap.ShowDestination(state.Destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
@@ -92,33 +96,33 @@ namespace A305.Mission
             var lines = new StringBuilder();
             foreach (FirstDayMissionStep step in state.Steps)
             {
+                bool done = step.Status == "DONE";
+                bool active = step.Status == "CURRENT";
                 string marker =
-                    step.Status == "DONE" ? "완료"
-                    : step.Status == "CURRENT" ? "진행 중"
-                    : "예정";
+                    done ? "<color=#699B75>✓</color>"
+                    : active ? "<color=#BD7049>›</color>"
+                    : "<color=#B8AFA5>○</color>";
+                string color = active ? "#4A3B33" : "#8F887F";
+                string title = CompactTitle(step.Title);
                 lines.AppendLine(
-                    $"<b>{step.Index + 1}. {step.Title}</b>  <size=20>{marker}</size>"
+                    $"{marker}  <color={color}>{(active ? "<b>" + title + "</b>" : title)}</color>"
                 );
-                if (step.Status == "CURRENT")
-                    foreach (FirstDayMissionGoal goal in step.Goals)
-                        lines.AppendLine($"  {(goal.Completed ? "✓" : "○")} {goal.Title}");
-                lines.AppendLine();
             }
             journey.text = lines.ToString().TrimEnd();
             string suitcase =
-                state.Stage >= 7 ? "큰 캐리어 · 수령 완료"
-                : state.Started && state.Stage >= 1 ? "큰 캐리어 · 호텔에 보관 중"
-                : "큰 캐리어 · 가지고 있어요";
+                state.Stage >= 7 ? "캐리어 · 찾음"
+                : state.Started && state.Stage >= 1 ? "캐리어 · 호텔 보관"
+                : "캐리어 · 소지 중";
             string bag =
-                state.Stage >= 4 ? "작은 파란 가방 · 되찾았어요"
-                : state.Stage >= 2 ? "작은 파란 가방 · 카페에서 찾아야 해요"
-                : "작은 파란 가방 · 빨간 열쇠고리\n  여권 지갑과 책이 들어 있어요";
+                state.Stage >= 4 ? "파란 가방 · 찾음"
+                : state.Stage >= 2 ? "파란 가방 · 카페에 두고 옴"
+                : "파란 가방 · 빨간 열쇠고리\n여권 지갑 · 책";
             belongings.text =
                 suitcase
                 + "\n"
                 + bag
-                + (state.Stage >= 6 ? "\n우산 · 구매 완료" : "")
-                + $"\n여행용 예산 · {state.Balance}코인";
+                + (state.Stage >= 6 ? "\n우산 · 소지 중" : "")
+                + $"\n{state.Balance}코인";
         }
 
         public void ShowMessage(string text)
@@ -126,6 +130,19 @@ namespace A305.Mission
             message.text = text;
             retryButton.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
+
+        private static string CompactTitle(string title) =>
+            title switch
+            {
+                "호텔에 도착했어요" => "호텔 도착",
+                "카페에서 잠깐 쉬어요" => "카페에서 휴식",
+                "작은 가방이 없어요" => "사라진 가방",
+                "카페에서 가방을 찾아요" => "가방 찾기",
+                "갑자기 비가 내려요" => "갑작스런 비",
+                "우산을 사요" => "우산 구매",
+                "이제 체크인해요" => "호텔 체크인",
+                _ => title,
+            };
 
         /// <summary>
         /// 목표 카드는 지도 버튼 오른쪽에 두되, 오른쪽 위 단어장 칸까지 닿을 만큼 좁으면 버튼 아래로 내린다.

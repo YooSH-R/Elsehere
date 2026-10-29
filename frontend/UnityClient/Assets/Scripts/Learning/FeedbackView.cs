@@ -162,19 +162,17 @@ namespace A305.Learning
 
         private void Refresh()
         {
-            titleText.text = feedback.Title;
-            summaryText.text =
-                $"{feedback.NpcName}와 나눈 대화 · 내 발화 {feedback.UtteranceCount}개";
+            titleText.text = feedback.IsFailed ? feedback.Title : "대화 노트";
+            summaryText.text = $"{feedback.NpcName}와 나눈 대화";
             pageTitleText.text = isTranscriptShown ? "주고받은 대화" : pages[pageIndex].Title;
             bodyText.text = isTranscriptShown
                 ? FeedbackText.Transcript(feedback.NpcName, lines)
                 : pages[pageIndex].Body;
             bodyText.pageToDisplay = textPage;
-            transcriptButtonLabel.text = isTranscriptShown ? "기록 닫기" : "대화 기록 보기";
+            transcriptButtonLabel.text = isTranscriptShown ? "돌아가기" : "대화 기록";
+            pageTitleText.gameObject.SetActive(feedback.IsFailed || isTranscriptShown);
             sectionRow.gameObject.SetActive(!feedback.IsFailed);
-            noticeText.text = feedback.IsFromServer
-                ? "AI가 만든 학습 참고예요. 점수나 실력 판정은 아니에요."
-                : "대본 대화의 피드백 예시예요.";
+            noticeText.gameObject.SetActive(false);
             for (int i = 0; i < sectionButtons.Length; i++)
                 sectionButtons[i].interactable = i != (int)section;
 
@@ -223,7 +221,7 @@ namespace A305.Learning
             int count = isTranscriptShown ? 1 : pages.Count;
             pageNumberText.text =
                 $"{pageIndex + 1} / {count}"
-                + (textPages > 1 ? $"  ·  이어보기 {textPage} / {textPages}" : "");
+                + (textPages > 1 ? $"  ·  {textPage}/{textPages}" : "");
             previousButton.interactable = pageIndex > 0 || textPage > 1;
             nextButton.interactable = pageIndex + 1 < count || textPage < textPages;
         }

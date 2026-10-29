@@ -81,7 +81,7 @@ namespace A305.EditorTools.Theme
             Scene scene = Open("TownScene", out Camera camera);
             var hud = Show<LearningHudView>(scene, camera, 0.5f);
             hud.SetVocabularyCount(12);
-            hud.ShowMessage("표현을 단어장에 저장했어요.");
+            hud.ShowMessage("단어장에 담았어요.");
             var view = Show<FirstDayMissionView>(scene, camera, 0.45f);
             view.SetAvailable(true);
             view.BindMap("TOWN", BuilderTools.FindSingleInScene<PlayerMover>(scene).transform);

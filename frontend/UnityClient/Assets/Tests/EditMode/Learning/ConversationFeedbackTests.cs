@@ -299,7 +299,7 @@ namespace A305.Learning.Tests
             );
 
             Assert.That(feedback.IsFromServer, Is.True);
-            Assert.That(feedback.Summary, Does.Contain("평가할 수 있는 내 발화가 없어"));
+            Assert.That(feedback.Summary, Is.EqualTo("아직 말한 문장이 없어요."));
             Assert.That(feedback.Notes, Is.Empty);
             Assert.That(feedback.Reviews, Is.Empty);
             Assert.That(feedback.NextExpression, Is.Null);

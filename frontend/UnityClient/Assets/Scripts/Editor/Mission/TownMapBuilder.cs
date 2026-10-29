@@ -51,7 +51,7 @@ namespace A305.EditorTools.Mission
                 ["HOME"] = ("HOME", UiIcon.Home),
                 ["CAFE"] = ("CAFE", UiIcon.Rest),
                 ["HOTEL"] = ("HOTEL", UiIcon.Hotel),
-                ["SHOP"] = ("CONVENIENCE\nSTORE", UiIcon.Store),
+                ["SHOP"] = ("SHOP", UiIcon.Store),
             };
 
         internal sealed class Layout

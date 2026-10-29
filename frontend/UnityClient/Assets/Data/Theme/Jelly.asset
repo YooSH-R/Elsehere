@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uB9D0\uB791 \uC824\uB9AC"
   description: "\uB9D0\uB791\uD55C \uC0AC\uD0D5 \uBC84\uD2BC\uACFC \uD06C\uB9BC\uC0C9
     \uCC3D"
-  titleFont: {fileID: 11400000, guid: 609a8bc80477bce43a2bdf8c71a7b839, type: 2}
+  titleFont: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
   ink: {r: 0.2901961, g: 0.23137255, b: 0.2, a: 1}
   mutedInk: {r: 0.47843137, g: 0.3882353, b: 0.32156864, a: 1}
   accentInk: {r: 0.72156864, g: 0.27450982, b: 0.12156863, a: 1}

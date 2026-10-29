@@ -39,7 +39,7 @@ namespace A305.Learning
                     var summary = new StringBuilder(feedback.Summary);
                     foreach (string note in feedback.Notes)
                         summary.Append("\n\n").Append(note);
-                    pages.Add(new FeedbackPage("이번 대화를 돌아봐요", summary.ToString()));
+                    pages.Add(new FeedbackPage("이번 대화", summary.ToString()));
                     break;
                 case FeedbackSection.Corrections:
                     foreach (UtteranceReview review in feedback.Reviews)
@@ -49,7 +49,7 @@ namespace A305.Learning
                         );
                         if (review.Reference != null)
                         {
-                            body.Append("\n\n<b>이렇게 말해 보세요</b>\n")
+                            body.Append("\n\n<b>이렇게 말해요</b>\n")
                                 .Append(review.Reference.English);
                             if (!string.IsNullOrEmpty(review.Reference.Reason))
                                 body.Append("\n\n").Append(review.Reference.Reason);
@@ -62,7 +62,7 @@ namespace A305.Learning
                                         : review.Comment
                                 );
                         pages.Add(
-                            new FeedbackPage("내 문장 살펴보기", body.ToString(), review.Reference)
+                            new FeedbackPage("내가 한 말", body.ToString(), review.Reference)
                         );
                     }
                     break;
@@ -73,7 +73,7 @@ namespace A305.Learning
                             continue;
                         pages.Add(
                             new FeedbackPage(
-                                "실제 대화에서 쓰는 표현",
+                                "이럴 때 써요",
                                 $"<b>대화 속 문장</b>\n{review.Utterance}\n\n<b>{review.Idiom.English}</b>\n{review.Idiom.Korean}",
                                 review.Idiom
                             )
@@ -121,7 +121,7 @@ namespace A305.Learning
                 : expression.Korean;
             pages.Add(
                 new FeedbackPage(
-                    "다음 대화에도 써 보세요",
+                    "다음에 써 보기",
                     $"<b>{expression.English}</b>\n\n{explanation}",
                     expression
                 )

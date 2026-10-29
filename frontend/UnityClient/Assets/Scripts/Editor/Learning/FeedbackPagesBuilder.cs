@@ -21,8 +21,8 @@ namespace A305.EditorTools.Learning
             panel.anchoredPosition = Vector2.zero;
             panel.sizeDelta = new Vector2(1100, 920);
             var layout = panel.GetComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(32, 32, 24, 24);
-            layout.spacing = 12;
+            layout.padding = new RectOffset(40, 40, 32, 32);
+            layout.spacing = 20;
             layout.childForceExpandHeight = false;
 
             TMP_FontAsset font = UiBuilderTools.BoldFont();
@@ -35,16 +35,17 @@ namespace A305.EditorTools.Learning
             );
             var closeRect = (RectTransform)topClose.transform;
             closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = Vector2.one;
-            closeRect.anchoredPosition = new Vector2(-18, -18);
-            closeRect.sizeDelta = new Vector2(64, 64);
+            closeRect.anchoredPosition = new Vector2(-24, -24);
+            closeRect.sizeDelta = new Vector2(56, 56);
             topClose.GetComponent<LayoutElement>().ignoreLayout = true;
             BuilderTools.SetReference(view, "topCloseButton", topClose);
             RectTransform tabs = UiBuilderTools.FindOrCreateButtonRow(panel, "Sections");
             var tabLayout = tabs.GetComponent<HorizontalLayoutGroup>();
-            tabLayout.spacing = 8;
-            tabLayout.childForceExpandWidth = true;
+            tabLayout.spacing = 16;
+            tabLayout.childForceExpandWidth = false;
+            tabLayout.childAlignment = TextAnchor.MiddleLeft;
             var buttons = new Button[4];
-            string[] labels = { "요약", "문장 교정", "회화 표현", "저장할 표현" };
+            string[] labels = { "요약", "문장", "회화", "표현" };
             string[] names =
             {
                 "SummaryButton",
@@ -63,8 +64,8 @@ namespace A305.EditorTools.Learning
                 );
                 var size = buttons[i].GetComponent<LayoutElement>();
                 size.minWidth = 0;
-                size.flexibleWidth = 1;
-                size.preferredWidth = 0;
+                size.flexibleWidth = 0;
+                size.preferredWidth = 148;
             }
             TMP_Text heading = UiBuilderTools.FindOrCreateText(
                 panel,
@@ -84,8 +85,8 @@ namespace A305.EditorTools.Learning
             var bodyRect = (RectTransform)body.transform;
             bodyRect.anchorMin = Vector2.zero;
             bodyRect.anchorMax = Vector2.one;
-            bodyRect.offsetMin = new Vector2(24, 20);
-            bodyRect.offsetMax = new Vector2(-24, -20);
+            bodyRect.offsetMin = new Vector2(36, 32);
+            bodyRect.offsetMax = new Vector2(-36, -32);
             body.fontSize = 28;
             body.lineSpacing = 12;
             body.paragraphSpacing = 8;
@@ -130,11 +131,12 @@ namespace A305.EditorTools.Learning
 
             Height(panel.Find("Title"), 48);
             Height(panel.Find("Summary"), 34);
-            Height(tabs, 56);
+            Height(tabs, 68);
             Height(heading.transform, 40);
-            Height(navigation, 58);
-            Height(panel.Find("Buttons"), 86);
-            Height(notice.transform, 28);
+            Height(navigation, 60);
+            Height(panel.Find("Buttons"), 64);
+            Height(notice.transform, 22);
+            panel.Find("Buttons/CloseButton").gameObject.SetActive(false);
             string[] order =
             {
                 "Title",

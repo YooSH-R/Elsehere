@@ -105,6 +105,7 @@ namespace A305.EditorTools.Learning
                     null
                 )
             );
+            view.SetSaveAvailable(false);
             view.Show(feedback, new DialogueLine[0]);
             foreach (
                 UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }

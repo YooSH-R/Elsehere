@@ -30,7 +30,7 @@ namespace A305.Theme
         Positive,
     }
 
-    /// <summary>한 화면 테마의 그림·색·제목 글꼴. 본문 글꼴은 모든 테마가 Pretendard를 그대로 쓴다.</summary>
+    /// <summary>한 화면 테마의 그림·색·글꼴. 서비스 기본 글꼴을 제목과 본문에 함께 쓴다.</summary>
     [CreateAssetMenu(fileName = "UiTheme", menuName = "A305/Theme/Theme")]
     public sealed class UiThemeDefinition : ScriptableObject
     {

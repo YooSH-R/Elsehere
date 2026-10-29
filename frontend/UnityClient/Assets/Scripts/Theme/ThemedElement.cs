@@ -87,18 +87,19 @@ namespace A305.Theme
                     break;
                 case UiThemeRole.Title:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);
+                    GetComponent<TMP_Text>().fontStyle |= FontStyles.Bold;
                     break;
                 case UiThemeRole.Body:
-                    Write(GetComponent<TMP_Text>(), null, theme.Ink);
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);
                     break;
                 case UiThemeRole.Muted:
-                    Write(GetComponent<TMP_Text>(), null, theme.MutedInk);
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.MutedInk);
                     break;
                 case UiThemeRole.Caption:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.MutedInk);
                     break;
                 case UiThemeRole.Accent:
-                    Write(GetComponent<TMP_Text>(), null, theme.AccentInk);
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.AccentInk);
                     break;
             }
         }

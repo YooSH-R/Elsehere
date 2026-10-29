@@ -2,7 +2,7 @@
 
 튜토리얼 뒤에는 **첫날의 작은 소동** 연계 미션을 진행합니다. 왼쪽 위에 지도 버튼과 상황·목표만 두고, 지도 버튼을 누르면 마을 지도와 전체 7단계·목표·소지품을 담은 수첩을 펼칩니다. 지도의 길과 건물 칸은 `TownMapBuilder`가 TownScene 배치에서 그리고, `TownMapView`는 내 위치와 목적지 표시만 바꿉니다. 서버가 `/v1/judge`의 의미 판정 제안을 현재 NPC·단계에 맞춰 적용하고 사용자별 진행을 저장합니다. 새로고침과 씬 이동 후에도 서버 상태를 읽어 복원합니다.
 
-`FirstDayMissionApi`는 공용 API 클라이언트를 사용하고, `FirstDayMissionController`는 씬 진입·NPC 응답·대화 종료 후 상태를 읽습니다. `FirstDayMissionView`는 화면과 수첩만 담당합니다. 계약·7단계 내용·배포·QA 기준은 [연계 미션 API](../../../../../docs/api/first-day-mission.md)에 있습니다.
+`FirstDayMissionApi`는 공용 API 클라이언트를 사용하고, `FirstDayMissionController`는 씬 진입·NPC 응답·대화 종료 후 상태를 읽습니다. `FirstDayMissionView`는 화면과 수첩만 담당합니다. 마을에서는 상태를 읽을 때마다 `FirstDayMissionState.Forecast`를 [Weather 모듈](../Weather/README.md)의 `WeatherPresenter`에 넘겨 하늘·조명과 비를 바꿉니다. `Forecast`는 서버 `weather`(`CLEAR`/`CLOUDY`/`RAIN`)를 따르고, 값이 없거나 모르는 값이면 `raining`으로 비와 맑음만 나눕니다. 계약·7단계 내용·배포·QA 기준은 [연계 미션 API](../../../../../docs/api/first-day-mission.md)에 있습니다.
 
 **Tools → A305 → Mission → Build First Day Journey**가 다섯 공간의 기능 연결, 수첩 프리팹, 상점과 출입구를 준비합니다. 기존 씬 디자인은 유지합니다. `SpaceSceneSetup`도 같은 기능을 연결하므로 공간을 다시 구성해도 연결이 남습니다.
 
@@ -27,6 +27,7 @@
 | 대상 | 용도 |
 | --- | --- |
 | `A305.Dialogue` | `DialogueController.ConversationEnded`, `DialogueRecord`, `KeywordMatcher` |
+| `A305.Weather` | 첫날 미션의 예보 날씨를 마을에 보여 주는 `WeatherPresenter`, `WeatherKind` |
 | uGUI, TextMeshPro | 미션 창 |
 
 ## 동작 규칙

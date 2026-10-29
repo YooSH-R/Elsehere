@@ -60,7 +60,7 @@
 
 예시의 `steps`·`goals`는 축약했다. 실제 응답은 7개 단계를 모두 포함하며 `status`는 UPCOMING/CURRENT/DONE이다. `situation`·`direction`은 목표 장소와 현재 장소가 다르면 이동 안내를 반환한다. Unity는 `canRest`가 true이고 대화 중이 아닐 때 휴식 버튼을 활성화한다.
 
-`raining`은 4~6단계에 마을에 있을 때 true다. 단계별 예보를 보내는 `weather`(`CLEAR`/`CLOUDY`/`RAIN`)는 Unity가 먼저 읽도록 준비한 예정 필드이며, 서버는 아직 보내지 않는다. Unity는 `weather`가 있으면 그 값으로, 없거나 모르는 값이면 `raining`으로 비와 맑음을 정한다. 서버 필드 추가와 단계별 날씨는 백엔드 작업에서 정한다.
+`raining`은 4~6단계에 마을에 있을 때 true다. 단계별 예보를 보내는 `weather`(`CLEAR`/`CLOUDY`/`RAIN`)는 Unity가 먼저 읽도록 준비한 예정 필드이며, 서버는 아직 보내지 않는다. Unity는 `weather`가 있으면 그 값으로, 없거나 Unity 날씨 목록에 없는 값이면 `raining`으로 비와 맑음을 정한다. 눈 같은 날씨를 더할 때는 응답 구조를 바꾸지 않고 새 값을 쓰며, 값 이름은 Unity 날씨 정의와 먼저 맞춘다. 서버 필드 추가와 단계별 날씨는 백엔드 작업에서 정한다.
 
 ## 대화·AI·피드백 경계
 

@@ -2,10 +2,16 @@
 
 MBTI는 입력하기 편한 앞문이고, 계산과 인격 스키마(personality.dimensions)는 Big Five 5축(0~1)을 쓴다.
 MBTI를 성격의 정답으로 다루지 않고 캐릭터 재료로만 쓴다.
+
+    ai/.venv/Scripts/python ai/tools/npc_derive.py ai/npcs   생활 파일이 있는 NPC 인격 파일의 자동 칸을 다시 쓴다
 """
 
+import argparse
+import json
 import random
 import re
+import sys
+from pathlib import Path
 
 MBTI = re.compile(r"^([EI])([NS])([FT])([JP])(?:-([AT]))?$")
 LEANING = 0.75  # MBTI는 둘 중 하나로만 나눠 강도를 모르므로, 끝값(0·1) 대신 한쪽으로 기운 값
@@ -120,3 +126,47 @@ def _can_join(behavior: dict, picked: list[dict]) -> bool:
 
 def _lean(high: bool) -> float:
     return LEANING if high else round(1 - LEANING, 2)
+
+
+AXES = ("openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism")  # 인격 스키마 personality.dimensions 칸 순서
+
+
+def with_derived_traits(profile: dict, life: dict, library: dict) -> dict:
+    """손으로 쓴 인격 카드(npcProfile)에 자동 칸을 더한 새 카드. 손으로 쓴 글은 그대로 둔다.
+    - personality.dimensions: 생활 파일 MBTI의 성격 5축
+    - behaviorRules: 손으로 쓴 규칙 뒤에 뽑힌 행동 조각의 문장. 예전에 더한 조각 문장은 빼고 다시 더하므로 몇 번 계산해도 같다"""
+    dimensions = mbti_to_dimensions(life["mbti"])
+    picked = pick_behaviors(dimensions, library, seed=life["npcId"])
+    fragment_texts = {behavior["text"] for behavior in library["behaviors"]}
+    handwritten = [rule for rule in profile.get("behaviorRules", []) if rule not in fragment_texts]
+    return {
+        **profile,
+        "personality": {**profile["personality"], "dimensions": {axis: dimensions[axis] for axis in AXES}},
+        "behaviorRules": handwritten + [behavior["text"] for behavior in picked],
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="생활 파일(life/<npcId>.json)이 있는 NPC 인격 파일에 성격 5축과 뽑힌 행동 조각을 다시 쓴다"
+    )
+    parser.add_argument("folder", type=Path, help="NPC 설정 폴더(ai/npcs). 행동 조각은 rules/behaviors.json, 생활 파일은 life/")
+    args = parser.parse_args(argv)
+    library = json.loads((args.folder / "rules/behaviors.json").read_text(encoding="utf-8"))
+    for path in sorted(args.folder.glob("*.json")):
+        config = json.loads(path.read_text(encoding="utf-8"))
+        life_path = args.folder / "life" / f"{config['npcId']}.json"
+        if not life_path.exists():  # 생활 파일이 없는 NPC는 손으로 쓴 그대로 둔다
+            continue
+        life = json.loads(life_path.read_text(encoding="utf-8"))
+        derived = {**config, "npcProfile": with_derived_traits(config["npcProfile"], life, library)}
+        if derived != config:
+            # 셸의 > 대신 직접 쓴다: Windows PowerShell 5.1은 > 로 저장하면 BOM을 붙여 JSON 읽기가 깨진다
+            path.write_text(json.dumps(derived, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+            print(f"자동 칸 다시 씀: {path.name}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows 터미널에서도 한글이 깨지지 않게
+    sys.exit(main())

@@ -208,3 +208,88 @@ def test_jake_keeps_his_persona_direction():
     assert rates["needRates"]["SOCIAL"] < 1
     assert rates["recognitionRate"] < 1
     assert rates["eventScale"]["SMALL_TALK"] < 1
+
+
+# ---------------------------------------------------------------------
+# 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
+# ---------------------------------------------------------------------
+MIA_LIFE = {"npcId": "CAFE_STAFF", "mbti": "ESFJ-T", "role": "STAFF"}
+SERVICE_NPCS = ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]
+
+
+def handwritten(rules: list[str]) -> dict:
+    """손으로 쓴 인격 카드에서 자동 칸과 닿는 부분만."""
+    return {"name": "Mia", "personality": {"traits": [{"name": "Bright", "description": "Cheerful."}]}, "behaviorRules": rules}
+
+
+def picked_texts(mbti: str, npc_id: str) -> list[str]:
+    behaviors = npc_derive.pick_behaviors(npc_derive.mbti_to_dimensions(mbti), service_behaviors(), seed=npc_id)
+    return [behavior["text"] for behavior in behaviors]
+
+
+def test_the_profile_gets_the_five_axes_from_its_mbti_in_schema_order():
+    """인격 스키마(personality.dimensions)의 칸 순서(개방성·성실성·외향성·친화성·신경성)대로. 손으로 쓴 성격 특징은 그대로."""
+    profile = npc_derive.with_derived_traits(handwritten([]), MIA_LIFE, service_behaviors())
+
+    assert list(profile["personality"]["dimensions"].items()) == [
+        ("openness", 0.25),
+        ("conscientiousness", 0.75),
+        ("extraversion", 0.75),
+        ("agreeableness", 0.75),
+        ("neuroticism", 0.7),
+    ]
+    assert profile["personality"]["traits"] == [{"name": "Bright", "description": "Cheerful."}]
+
+
+def test_picked_behaviors_follow_the_handwritten_rules():
+    profile = npc_derive.with_derived_traits(handwritten(["Repeats the order back."]), MIA_LIFE, service_behaviors())
+
+    assert profile["behaviorRules"] == ["Repeats the order back.", *picked_texts("ESFJ-T", "CAFE_STAFF")]
+
+
+def test_deriving_again_replaces_the_old_behaviors_instead_of_adding_more():
+    """다시 계산하면 예전에 더한 조각을 빼고 새로 뽑은 조각을 더한다. 손으로 쓴 규칙은 남는다."""
+    once = npc_derive.with_derived_traits(handwritten(["Repeats the order back."]), MIA_LIFE, service_behaviors())
+
+    assert npc_derive.with_derived_traits(once, MIA_LIFE, service_behaviors()) == once
+    changed = npc_derive.with_derived_traits(once, {**MIA_LIFE, "mbti": "ISTP-T"}, service_behaviors())
+    assert changed["behaviorRules"] == ["Repeats the order back.", *picked_texts("ISTP-T", "CAFE_STAFF")]
+
+
+def test_the_handwritten_profile_itself_is_not_changed():
+    profile = handwritten(["Repeats the order back."])
+
+    npc_derive.with_derived_traits(profile, MIA_LIFE, service_behaviors())
+
+    assert profile == handwritten(["Repeats the order back."])
+
+
+REDERIVE = "저장소 최상위에서 ai/.venv/Scripts/python ai/tools/npc_derive.py ai/npcs 로 인격 파일의 자동 칸을 다시 쓴다"
+
+
+def test_the_service_npc_profiles_carry_their_derived_traits():
+    """ai/npcs의 인격 파일은 생활 파일(MBTI)과 행동 조각으로 다시 계산한 것과 같아야 한다. 규칙을 고쳤으면 REDERIVE."""
+    for npc_id in SERVICE_NPCS:
+        config = json.loads((npc_life_rules.ROOT / "ai/npcs" / f"{npc_id}.json").read_text(encoding="utf-8"))
+
+        assert config["npcProfile"] == npc_derive.with_derived_traits(config["npcProfile"], load_life(npc_id), service_behaviors()), (
+            REDERIVE
+        )
+
+
+def test_the_cli_writes_the_derived_traits_only_into_npc_files_with_a_life_file(tmp_path):
+    """생활 파일이 있는 NPC만 고쳐 쓰고, 없는 NPC 파일은 한 글자도 바꾸지 않는다."""
+    (tmp_path / "rules").mkdir()
+    (tmp_path / "life").mkdir()
+    (tmp_path / "rules/behaviors.json").write_bytes(npc_life_rules.BEHAVIORS.read_bytes())
+    (tmp_path / "life/CAFE_STAFF.json").write_text(json.dumps(MIA_LIFE), encoding="utf-8")
+    mia = {"npcId": "CAFE_STAFF", "npcProfile": handwritten(["Repeats the order back."])}
+    stranger = '{"npcId": "SHOP_STAFF", "npcProfile": {"name": "Alex"}}'
+    (tmp_path / "CAFE_STAFF.json").write_text(json.dumps(mia), encoding="utf-8")
+    (tmp_path / "SHOP_STAFF.json").write_text(stranger, encoding="utf-8")
+
+    assert npc_derive.main([str(tmp_path)]) == 0
+
+    written = json.loads((tmp_path / "CAFE_STAFF.json").read_text(encoding="utf-8"))
+    assert written["npcProfile"] == npc_derive.with_derived_traits(mia["npcProfile"], MIA_LIFE, service_behaviors())
+    assert (tmp_path / "SHOP_STAFF.json").read_text(encoding="utf-8") == stranger

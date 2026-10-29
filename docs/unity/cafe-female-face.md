@@ -45,19 +45,19 @@ Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 검�
 
 다른 NPC는 같은 채널 이름으로 제작한 얼굴에 `CharacterFaceController`를 붙여 `SetPose`를 재사용할 수 있다. `BlendPoses(from, to, progress, intensity)`는 두 포즈 사이를 0~1 진행률로 전환하며, 기존 관절 보정 채널을 유지한다. 얼굴 크기·정점 순서가 다른 NPC에 이 모델의 변형 값을 그대로 복사해서는 안 된다. 필수 채널이 빠졌으면 부분 적용 대신 오류를 반환한다.
 
-기존 문장 GIF는 수동 시간표 시안이었다. 현재 음성 검수 씬은 로컬 TTS가 WAV와 함께 생성한 Viseme 시각을 사용한다. 감정 혼합, 운영 서버 TTS 메타데이터 연결, 전체 29개 채널의 파이프라인 검증은 별도 작업이다. 이 씬의 동작만으로 전체 표정·립싱크 검증을 통과했다고 처리하지 않는다.
+기존 문장 GIF는 수동 시간표 시안이었다. 현재 음성 검수 씬은 로컬 TTS가 WAV와 함께 생성한 Viseme 시각을 사용한다. LLM 감정값 연결, 운영 서버 TTS 메타데이터 연결, 전체 29개 채널의 파이프라인 검증은 별도 작업이다. 이 씬의 동작만으로 전체 표정·립싱크 검증을 통과했다고 처리하지 않는다.
 
 `viseme_I`와 `viseme_EU`는 첨부된 한국어 이·으 기준이다. 기존 Tripo 전체 얼굴 검사의 `IH` 및 DD·KK·CH·SS·NN·RR, 추가 감정 채널과 자동으로 동일 취급하지 않는다. 전체 얼굴 검사 기준을 낮추거나 통과 처리하지 않는다.
 
 ## 실제 음성으로 확인
 
-1. `Assets/Scenes/Sandbox/CafeFemaleSpeechPreview.unity`를 열고 Play를 누른다.
+1. `Assets/Scenes/Sandbox/CafeFemaleExpressiveSpeechPreview.unity`를 열고 Play를 누른다.
 2. **Play / Replay**를 누르면 “May I help you. I find very happy.”를 실제 음성으로 재생한다.
 3. **Pause / Resume**은 오디오와 입 모양을 함께 멈추고 이어 재생한다. **Stop**과 자연 종료는 입을 중립으로 복원한다. Replay는 처음부터 시작한다.
 
-`CafeFemaleSpeechPreview.prefab`은 표정 검수 프리팹의 별도 변형이다. 원본 `Barista.prefab`과 기존 표정 확인 씬은 변경하지 않는다. 음성과 시간표는 `Assets/Audio/Characters/CafeFemale/`, 두 파일을 묶는 `CharacterSpeechClip`은 `Assets/Data/Characters/CafeFemaleSpeech.asset`에 있다. 재생 중 음량이 들리지 않으면 Game 창의 Mute Audio와 OS 출력 장치를 확인한다.
+`CafeFemaleExpressiveSpeechPreview.prefab`은 음성 검수 프리팹의 별도 변형이다. 기존 `CafeFemaleSpeechPreview`는 Viseme ID 방식 비교본으로 보존한다. 원본 `Barista.prefab`과 기존 표정 확인 씬은 변경하지 않는다. 음성과 시간표는 `Assets/Audio/Characters/CafeFemale/`, 두 파일을 묶는 `CharacterSpeechClip`은 `Assets/Data/Characters/CafeFemaleExpressiveSpeech.asset`에 있다. 친근한 미소 강도·첫 눈 깜박임·간격은 `FriendlySpeechExpression.asset`에서 조절한다. 재생 중 음량이 들리지 않으면 Game 창의 Mute Audio와 OS 출력 장치를 확인한다.
 
-`CharacterSpeechPlayer`는 프레임 수나 경과 시간을 누적하지 않고 `AudioSource.timeSamples / frequency`로 현재 발음을 찾는다. `SpeechVisemeTimeline`은 짧은 경계 구간을 보간하고 무음·종료에서는 중립으로 돌아간다. 입력 형식/Viseme 범위/구간 순서/음성 길이가 잘못되면 재생을 거부한다. Builder는 WAV의 SHA-256이 시간표와 일치하는지도 확인한다. `CharacterFaceController`의 기존 얼굴 제어를 사용하므로 현재 재생기는 얼굴 감정·눈 깜박임을 동시에 혼합하는 기능은 제공하지 않는다.
+`CharacterSpeechPlayer`는 프레임 수나 경과 시간을 누적하지 않고 `AudioSource.timeSamples / frequency`로 현재 발음을 찾는다. `SpeechVisemeTimeline`은 새 v2 음소 데이터에서 각 발음 내부와 인접 발음 사이를 보간한다. 무음·종료에서는 입이 중립으로 돌아간다. 기존 v1 Viseme 전용 데이터의 재생도 유지한다. 입력 형식/Viseme 범위/구간 순서/음성 길이가 잘못되면 재생을 거부한다. Builder는 WAV의 SHA-256이 시간표와 일치하는지도 확인한다. `CharacterFaceController.ApplySpeech`가 발음·미소·눈 깜박임을 한 번에 적용한다. 눈꺼풀은 발음과 독립적이고, 입술 접촉이나 둥근 모음이 우선되도록 미소의 입꼬리 영향을 낮춘다. 관절 보정 채널은 바꾸지 않는다. 일시정지하면 표정 시계도 정지하고 종료하면 모두 중립으로 돌아간다.
 
 ### 새 로컬 음성 만들기
 
@@ -69,6 +69,13 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 
 생성된 WAV/JSON 한 쌍을 Unity에 함께 가져온 뒤 **Create → A305 → Characters → Speech Clip**으로 만든 데이터 에셋에 연결한다. 같은 얼굴 채널을 가진 NPC에서 `CharacterSpeechPlayer`의 Face, Speech Source, Speech를 설정하면 같은 재생기를 사용한다. 얼굴 메시를 다시 만들거나 수동으로 문장별 키프레임을 찍을 필요는 없다. 임의 WAV만 넣어 음소를 인식하는 기능은 아니다.
 
-이 내보내기는 [Microsoft System.Speech VisemeReached](https://learn.microsoft.com/en-us/dotnet/api/system.speech.synthesis.speechsynthesizer.visemereached?view=netframework-4.8.1) 이벤트의 `AudioPosition`을 사용한다. PCM은 이벤트와 같은 16kHz로 유지하고 타임스탬프가 음성 길이를 벗어나면 결과를 사용하지 않는다. 지원 ID 0~21을 현재 제작된 입 모양에 연결하며, 전용 혀/치아 동작이 없는 r/l/d/t/n/k/g 등은 가까운 입 모양으로 근사한다. 한국어 TTS의 음소 분석 및 다른 공급자의 이벤트 형식은 이 en-US 매핑에 자동으로 호환되지 않는다.
+이 내보내기는 [Microsoft System.Speech PhonemeReached](https://learn.microsoft.com/en-us/dotnet/api/system.speech.synthesis.speechsynthesizer.phonemereached?view=netframework-4.8)와 오디오 시각을 함께 저장한다. Desktop SAPI가 반환하는 음소 ID는 en-US `SpPhoneConverter`로 ay/iy/y/uw 등의 기호로 변환한다. PCM은 이벤트와 같은 16kHz로 유지하고 타임스탬프가 음성 길이를 벗어나면 결과를 사용하지 않는다. `version: 2`의 `phonemes`가 새 재생 기준이며 기존 `cues`는 비교를 위해 함께 남긴다.
+
+- I/find의 `ay`는 열린 입에서 짧고 약한 /ɪ/로 변한다. 한국어 ‘이’ 모양을 100% 고정하지 않는다.
+- you의 `y`는 뒤의 `uw`를 준비하는 둥근 입으로 이어진다. /j/를 긴 ‘이’ 모양으로 표시하지 않는다.
+- 발음별 도달 지점을 연결해 앞소리의 잔여 움직임과 다음 소리 준비를 섞는다. P/B/M은 입술을 닫는 구간을 확보한다.
+- 미소는 친근한 프리셋이다. LLM이 문장 감정을 분석해 자동 선택하는 기능은 아니다. 눈 깜박임은 같은 오디오 시계를 사용하고 닫힘·짧은 유지·느린 열림을 구분한다.
+
+기존 메시에는 세밀한 혀·치아 조형이 없는 자음이 있으므로 해당 발음은 가까운 모양으로 근사한다. 지원하지 않는 음소는 조용히 다른 입으로 바꾸지 않고 오류를 반환한다. 한국어 TTS 및 다른 공급자의 이벤트는 별도 매핑이 필요하다.
 
 기존 `DialogueServerLink`는 서버 WAV만 받으며 Viseme 시각은 받지 않는다. 그 경로와 Production 씬은 그대로 둔다. 운영 TTS에 연결하려면 같은 WAV에 대응하는 발음 메타데이터를 공급자 또는 정렬기로 제공하고 이 재생기 입력으로 변환해야 한다. WebGL·운영 서버 동기화는 별도 검증 대상이다.

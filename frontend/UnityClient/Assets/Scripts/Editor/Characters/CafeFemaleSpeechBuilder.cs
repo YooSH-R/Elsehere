@@ -101,13 +101,15 @@ namespace A305.EditorTools.Characters
             AssetDatabase.SaveAssets();
         }
 
-        public static void Render()
+        public static void Render() => RenderScene(ScenePath);
+
+        internal static void RenderScene(string scenePath)
         {
             string output = Environment.GetEnvironmentVariable("CAFE_SPEECH_RENDER_OUTPUT");
             if (string.IsNullOrWhiteSpace(output))
                 throw new InvalidOperationException("Set CAFE_SPEECH_RENDER_OUTPUT.");
             Directory.CreateDirectory(output);
-            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             var player = Object.FindFirstObjectByType<CharacterSpeechPlayer>();
             var face = player.GetComponent<CharacterFaceController>();
             var camera = Object.FindFirstObjectByType<Camera>();

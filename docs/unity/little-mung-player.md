@@ -6,13 +6,15 @@
 
 - `Assets/Scenes/Production/TownScene.unity`를 열고 Play하면 기본 F 리틀 멍을 조작할 수 있다. 집·카페·호텔도 같은 공용 `Assets/Prefabs/Player/Player.prefab`을 사용한다.
 - 실제 가입·재접속은 `EntryScene`에서 시작한다. 가입의 F/M 선택은 기존 계정 API가 저장하고, `OnboardingFlow`가 가입 응답·bootstrap의 `avatarType`을 보존한다. `OnboardingScreen`이 월드로 넘어가기 전에 `PlayerCharacterSelection`에 전달한다.
-- F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐은 대기 자세의 실제 스킨 범위를 기준으로 높이 1.61m·반경 0.68m이며, 카메라 눈높이는 약 1.108m·3인칭 조준점은 0.966m이다. - M은 기본 남자 캐릭터 `Assets/Prefabs/Player/Characters/Male.prefab`을 사용한다. Tripo로 생성한 남자 메시를 마스터 골격(`LittleMungAdjusted.fbx`)에 다시 연결한 `Female.prefab` Variant이므로 골격·애니메이션·배율 1.6과 접지·계단·팔 관통 보정을 F와 함께 쓴다. 원본 FBX·메시·머티리얼·텍스처는 `Assets/Art/Player/LittleMung/Male/`에 둔다. M 정의의 충돌 캡슐은 높이 1.59m·반경 0.61m, 카메라 눈높이는 약 1.132m·3인칭 조준점은 0.954m이며 이동 설정은 F와 같다.
+- F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐은 대기 자세의 실제 스킨 범위를 기준으로 높이 1.61m·반경 0.68m이며, 카메라 눈높이는 약 1.108m·3인칭 조준점은 0.966m이다.
+- M은 기본 남자 캐릭터 `Assets/Prefabs/Player/Characters/Male.prefab`을 사용한다. Tripo로 생성한 남자 메시를 마스터 골격(`LittleMungAdjusted.fbx`)에 다시 연결한 `Female.prefab` Variant이므로 골격·애니메이션·배율 1.6과 접지·계단·팔 관통 보정을 F와 함께 쓴다. 원본 FBX·메시·머티리얼·텍스처는 `Assets/Art/Player/LittleMung/Male/`에 둔다. M 정의의 충돌 캡슐은 높이 1.59m·반경 0.61m, 카메라 눈높이는 약 1.132m·3인칭 조준점은 0.954m이다.
+- 걷기·달리기·점프·회전 수치는 공용 Player의 `PlayerMover`가 `Assets/Data/Player/LittleMung/Movement.asset` 하나로 정한다. 캐릭터 정의에는 이동 설정이 없으므로 어떤 외형을 골라도 같은 조작감으로 움직인다.
 - 외형 크기를 바꾸면 캡슐·시점·관통을 다시 검수해야 한다.
-- `Assets/Data/Player/Characters/Catalog.asset`이 선택 ID와 `F.asset`·`M.asset`을 연결한다. 각 정의는 Visual 프리팹, 이동 설정, 충돌 캡슐 크기와 선택적인 카메라 높이를 갖는다. 신규 ID는 서버에서 허용하는 선택값과 가입/설정 UI도 함께 확장해야 한다.
+- `Assets/Data/Player/Characters/Catalog.asset`이 선택 ID와 `F.asset`·`M.asset`을 연결한다. 각 정의는 Visual 프리팹, 충돌 캡슐 크기와 선택적인 카메라 높이만 갖는다. 신규 ID는 서버에서 허용하는 선택값과 가입/설정 UI도 함께 확장해야 한다.
 - `PlayerCharacterAppearance`가 루트를 유지하고 선택 외형만 연결한다. F·M 모두 리틀 멍의 발 골격·접지·계단·팔 관통 보정을 그대로 재사용한다. `PlayerCharacterVisibility`가 V키 1인칭 및 대화 시점에서 선택 외형만 숨기고 3인칭 복귀 시 다시 보여 준다.
 - 선택값은 씬 이동 동안 유지되며 재접속 때 서버에서 다시 읽는다. Entry 진입·인증 만료 시 이전 계정 선택을 비운다. 씬을 직접 실행해 선택값이 없거나 목록에 없는 ID이면 카탈로그 기본 캐릭터를 사용한다. 계정과 별개인 PlayerPrefs 저장은 하지 않는다.
 - 새 캐릭터 설정 화면이나 플레이 도중 즉시 외형 변경 기능은 포함하지 않는다. 기존 가입 선택과 로그인 결과를 게임에 적용하는 연결이다.
-- 재연결 메뉴는 **Tools → A305 → Player → Connect Selected Character**다. F·M 정의의 외형·이동 설정 연결과 공용 Player·네 공간 씬의 플레이어 연결만 갱신한다. 기존 배경·NPC·카메라 배치와 원본 모델을 유지하고, 이미 등록한 Visual 프리팹과 정의의 캡슐·시점 수치를 덮어쓰지 않는다. 전체 월드 Builder를 실행할 필요는 없다.
+- 재연결 메뉴는 **Tools → A305 → Player → Connect Selected Character**다. F·M 정의의 외형 연결, 공용 Player의 이동 설정 연결과 공용 Player·네 공간 씬의 플레이어 연결만 갱신한다. 기존 배경·NPC·카메라 배치와 원본 모델을 유지하고, 이미 등록한 Visual 프리팹과 정의의 캡슐·시점 수치를 덮어쓰지 않는다. 전체 월드 Builder를 실행할 필요는 없다.
 
 자동 검증은 F/M의 네 씬 이동, 플레이어·카메라·출입구 참조, 재연결 중복 방지, 걷기·달리기·점프, 이동 잠금, 1인칭/대화 시점의 외형 숨김을 확인한다. 리틀 멍의 팔·손 침범 검사는 스킨 정점과 몸통·머리 범위를 이용한 근사 판정이며 모든 외관 결함이 없다는 보증은 아니다. 실제 브라우저의 입력·프레임 성능과 최종 외관은 별도 확인한다.
 ## 열기와 조작

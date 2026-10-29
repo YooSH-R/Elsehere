@@ -23,7 +23,9 @@ import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
@@ -205,7 +208,7 @@ class WorldSeedLoaderTest {
                 true,
                 "Hi there! Nice weather today, isn't it?"),
             tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null),
-            tuple("HOTEL", "HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null),
+            tuple("HOTEL", "HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null),
             tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "편의점 직원", false, null));
   }
 
@@ -277,6 +280,65 @@ class WorldSeedLoaderTest {
         .extracting(Npc::getPersona)
         .asString()
         .contains("edited role");
+  }
+
+  @Test
+  @DisplayName("인격 카드가 있는 NPC에는 npc-configurations.json의 카드를 넣고, 카드가 없는 편의점 직원은 비워 둔다")
+  void load_insertsProfilesFromNpcConfigurations() throws IOException {
+    worldSeedLoader.load();
+
+    Map<String, JsonNode> profiles = profilesInConfigurations();
+    assertThat(profiles).containsOnlyKeys("TOWN_PASSERBY", "CAFE_STAFF", "HOTEL_STAFF");
+    JsonMapper jsonMapper = new JsonMapper();
+    for (Npc npc : npcRepository.findAll()) {
+      JsonNode expected = profiles.get(npc.getCode());
+      JsonNode actual = npc.getProfile() == null ? null : jsonMapper.readTree(npc.getProfile());
+      assertThat(actual).as(npc.getCode()).isEqualTo(expected);
+    }
+  }
+
+  @Test
+  @DisplayName("인격 카드가 있는 NPC는 화면에 보이는 이름과 카드의 이름이 같다")
+  void load_npcNameMatchesProfileName() throws IOException {
+    worldSeedLoader.load();
+
+    profilesInConfigurations()
+        .forEach(
+            (npcCode, profile) ->
+                assertThat(npcRepository.findByCode(npcCode))
+                    .get()
+                    .extracting(Npc::getName)
+                    .as(npcCode)
+                    .isEqualTo(profile.get("name").asString()));
+  }
+
+  @Test
+  @DisplayName("인격 카드는 처음 넣을 때만 쓰고, 다시 실행해도 이미 있는 카드를 바꾸지 않는다")
+  void load_keepsExistingProfile() {
+    worldSeedLoader.load();
+    entityManager
+        .createNativeQuery(
+            "update npcs set profile = '{\"name\": \"edited\"}' where code = 'CAFE_STAFF'")
+        .executeUpdate();
+
+    worldSeedLoader.load();
+    entityManager.clear();
+
+    assertThat(npcRepository.findByCode("CAFE_STAFF"))
+        .get()
+        .extracting(Npc::getProfile)
+        .asString()
+        .contains("edited");
+  }
+
+  private Map<String, JsonNode> profilesInConfigurations() throws IOException {
+    try (var input = new ClassPathResource("content/npc-configurations.json").getInputStream()) {
+      Map<String, JsonNode> profiles = new HashMap<>();
+      for (JsonNode configuration : new JsonMapper().readTree(input)) {
+        profiles.put(configuration.get("npcId").asString(), configuration.get("npcProfile"));
+      }
+      return profiles;
+    }
   }
 
   private Catalog catalog() throws IOException {

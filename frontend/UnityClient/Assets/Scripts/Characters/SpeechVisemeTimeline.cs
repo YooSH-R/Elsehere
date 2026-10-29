@@ -12,12 +12,21 @@ namespace A305.Characters
     }
 
     [Serializable]
+    public sealed class SpeechPhonemeCue
+    {
+        public float start;
+        public float end;
+        public string phoneme;
+    }
+
+    [Serializable]
     public sealed class SpeechVisemeData
     {
         public int version;
         public string provider;
         public float duration;
         public SpeechVisemeCue[] cues;
+        public SpeechPhonemeCue[] phonemes;
     }
 
     public readonly struct SpeechPoseSample
@@ -37,6 +46,7 @@ namespace A305.Characters
     public sealed class SpeechVisemeTimeline
     {
         private readonly SpeechVisemeData data;
+        private readonly SpeechPhonemeArticulation articulation;
         private const float TransitionSeconds = .035f;
         private static readonly SpeechPoseSample Rest = new SpeechPoseSample(
             CharacterFacePose.Neutral,
@@ -44,7 +54,14 @@ namespace A305.Characters
             1
         );
 
-        private SpeechVisemeTimeline(SpeechVisemeData source) => data = source;
+        private SpeechVisemeTimeline(
+            SpeechVisemeData source,
+            SpeechPhonemeArticulation phonemes = null
+        )
+        {
+            data = source;
+            articulation = phonemes;
+        }
 
         public static SpeechVisemeTimeline Parse(string json, float clipDuration)
         {
@@ -57,14 +74,18 @@ namespace A305.Characters
             var source = JsonUtility.FromJson<SpeechVisemeData>(json);
             if (
                 source == null
-                || source.version != 1
+                || (source.version != 1 && source.version != 2)
                 || source.provider != "windows-sapi-en-US"
                 || !float.IsFinite(source.duration)
                 || Mathf.Abs(source.duration - clipDuration) > .02f
-                || source.cues == null
-                || source.cues.Length == 0
+                || (source.version == 1 && (source.cues == null || source.cues.Length == 0))
             )
                 throw new ArgumentException("Unsupported or mismatched speech timeline.");
+            if (source.version == 2)
+                return new SpeechVisemeTimeline(
+                    source,
+                    new SpeechPhonemeArticulation(source.phonemes, source.duration)
+                );
             float previousEnd = 0;
             foreach (var cue in source.cues)
             {
@@ -104,8 +125,22 @@ namespace A305.Characters
                 _ => throw new ArgumentOutOfRangeException(nameof(viseme)),
             };
 
+        public SpeechMouthSample SampleArticulation(float seconds)
+        {
+            if (articulation != null)
+                return articulation.Sample(seconds);
+            var sample = Sample(seconds);
+            return SpeechMouthSample.Blend(
+                SpeechMouthSample.Pose(sample.From),
+                SpeechMouthSample.Pose(sample.To),
+                sample.Blend
+            );
+        }
+
         public SpeechPoseSample Sample(float seconds)
         {
+            if (articulation != null)
+                throw new InvalidOperationException("Use SampleArticulation for phoneme speech.");
             if (!float.IsFinite(seconds))
                 throw new ArgumentException("Audio time must be finite.");
             if (seconds < 0 || seconds >= data.duration)

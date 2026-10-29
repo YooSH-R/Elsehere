@@ -25,6 +25,10 @@ public sealed class LocalViseme {
     public double start;
     public int viseme;
 }
+public sealed class LocalPhoneme {
+    public double start;
+    public string phoneme;
+}
 public sealed class LocalWord {
     public double start;
     public string text;
@@ -32,6 +36,7 @@ public sealed class LocalWord {
 public sealed class LocalSpeechResult {
     public List<LocalViseme> cues = new List<LocalViseme>();
     public List<LocalWord> words = new List<LocalWord>();
+    public List<LocalPhoneme> phonemes = new List<LocalPhoneme>();
     public double duration;
 }
 public static class LocalSpeechExport {
@@ -47,6 +52,7 @@ public static class LocalSpeechExport {
             // produced drift on this engine; keep PCM and event clocks identical.
             speech.SetOutputToWaveFile(path, new SpeechAudioFormatInfo(16000, AudioBitsPerSample.Sixteen, AudioChannel.Mono));
             speech.VisemeReached += (sender, e) => result.cues.Add(new LocalViseme { start=e.AudioPosition.TotalSeconds, viseme=e.Viseme });
+            speech.PhonemeReached += (sender, e) => result.phonemes.Add(new LocalPhoneme { start=e.AudioPosition.TotalSeconds, phoneme=e.Phoneme });
             speech.SpeakProgress += (sender, e) => result.words.Add(new LocalWord { start=e.AudioPosition.TotalSeconds, text=e.Text });
             Exception failure = null;
             speech.SpeakCompleted += (sender, e) => { failure=e.Error; done.Set(); };
@@ -96,10 +102,26 @@ for ($i = 0; $i -lt $events.Count; $i++) {
         $cues += [ordered]@{ start=$events[$i].start; end=$end; viseme=$events[$i].viseme }
     }
 }
+# Desktop SAPI exposes phone IDs here. Resolve them with the same en-US
+# converter instead of treating IDs shared by ay/iy/y as the same mouth.
+$converter = New-Object -ComObject SAPI.SpPhoneConverter
+$converter.LanguageId = 1033
+$phonemes = @()
+for ($i = 0; $i -lt $result.phonemes.Count; $i++) {
+    $phone = $result.phonemes[$i]
+    $end = $result.duration
+    if ($i + 1 -lt $result.phonemes.Count) { $end = $result.phonemes[$i + 1].start }
+    if ($phone.start -lt 0 -or $end -gt $result.duration -or $end -le $phone.start) {
+        throw 'Invalid phoneme interval; do not import this speech.'
+    }
+    $phonemes += [ordered]@{start=$phone.start;end=$end;phoneme=$converter.IdToPhone($phone.phoneme).Trim()}
+}
+if ($phonemes.Count -eq 0) { throw 'The voice did not provide phoneme events.' }
+[void][Runtime.InteropServices.Marshal]::ReleaseComObject($converter)
 $manifest = [ordered]@{
-    version=1; provider='windows-sapi-en-US'; text=$Text; voice=$Voice
+    version=2; provider='windows-sapi-en-US'; text=$Text; voice=$Voice
     audioFile=($BaseName + '.wav'); audioSha256=(Get-FileHash -LiteralPath $wavePath -Algorithm SHA256).Hash
-    duration=$result.duration; cues=$cues; words=@($result.words)
+    duration=$result.duration; cues=$cues; words=@($result.words); phonemes=$phonemes
 }
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
 Write-Output "$wavePath`n$jsonPath"

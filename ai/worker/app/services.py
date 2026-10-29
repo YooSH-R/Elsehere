@@ -43,20 +43,27 @@ def clean_intent(raw: object, state: State) -> dict:
     return out
 
 
+def clean_events(raw: dict) -> list[str]:
+    """판정 출력의 줄 사건. 목록(P.LINE_EVENTS) 밖 값·중복·무례는 버리고, 없거나 목록이 아니면 []."""
+    got = raw.get("events") if isinstance(raw.get("events"), list) else []
+    return [event for event in dict.fromkeys(e for e in got if isinstance(e, str)) if event in P.LINE_EVENTS]
+
+
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
-    """의도와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear, 번역 → error).
+    """의도(+ 줄 사건)와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear·사건 없음, 번역 → error).
     무례 판정은 /v1/guard가 따로 한다. 번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 그 결과로 Spring이 정한다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
     if not text:  # 행동만 있었으면 모델을 부르지 않는다. Spring은 턴으로 세지 않음
-        return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "translation": None, "usage": []}
+        return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "translation": None, "events": None, "usage": []}
     scene = req.scene or req.npc.scene
 
     async def intent():
         out = await llm.chat(
             "intent", "intent", P.intent_messages(req.npc, req.state, req.history, text), usage, 0.0, 200, P.intent_schema(req.state)
         )
-        return clean_intent(json.loads(out), req.state)
+        raw = json.loads(out)
+        return clean_intent(raw, req.state), clean_events(raw)
 
     async def translate():
         out = await llm.chat("translate", "translate", P.translate_messages(req.npc, scene, req.history, text), usage, 0.0, 80)
@@ -67,7 +74,8 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
     if P.HANGUL.search(text):
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
-    it = res[0] if not isinstance(res[0], BaseException) else {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
+    failed = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
+    it, events = res[0] if not isinstance(res[0], BaseException) else (failed, [])
     translation = None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]
@@ -82,6 +90,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         "notice": P.ACTION_PART_KO if had_action else None,
         "intent": it,
         "translation": translation,
+        "events": events,
         "usage": usage.items,
     }
 

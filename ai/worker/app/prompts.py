@@ -70,8 +70,22 @@ def guard_messages(npc: Npc, history: list[Line], text: str) -> list[dict]:
     ]
 
 
+# 줄 사건: 의도 판정이 함께 고르고, 워커가 대화 중 기분과 대화 뒤 관계에 쓴다(app.npc_relationship). 무례는 /v1/guard만 판정한다.
+# 정의는 이정훈 님 사건 테스트셋 가이드 v1.0. 효과(인상·기분)는 공통 규칙 world-rules.json의 conversationEvents
+LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
+EVENTS_GUIDE = """Also list in "events" what the learner does toward the partner in this line, from the list below. Usually none: [].
+- GREETING: greets the partner.
+- SMALL_TALK: chats about something besides the business, like the weather.
+- PERSONAL_QUESTION: asks about the partner's own life or feelings ("Do you like working here?"). Then it is not SMALL_TALK.
+- APOLOGY: apologizes for something they did ("Sorry I'm late"). Not "sorry?" asking to repeat, "excuse me", "sorry to hear that", or apologizing for their English.
+- COMPLIMENT: praises the partner or their work ("You make the best latte"). A plain "thanks" or "thank you so much" is not a compliment.
+- TASK_DONE: says in words that their business is finished ("That's all", "No, thanks").
+- LEAVE: says goodbye.
+Korean words count by their meaning. English mistakes, Korean words and short answers are never a problem. Do not judge rudeness here."""
+
+
 def intent_schema(state: State) -> dict:
-    """판정 출력 형식: 허용된 의도 하나 + (사는 장소면) 상품 목록 + (있으면) 선택지."""
+    """판정 출력 형식: 허용된 의도 하나 + (사는 장소면) 상품 목록 + (있으면) 선택지 + 줄 사건."""
     props = {"intents": {"type": "array", "items": {"type": "string", "enum": [i.id for i in state.intents + state.more_intents]}}}
     s = state.slots
     if s.items:
@@ -86,6 +100,7 @@ def intent_schema(state: State) -> dict:
         }
     if s.option:
         props[s.option.slot] = {"type": "string", "enum": [*s.option.labels, "none"]}
+    props["events"] = {"type": "array", "items": {"type": "string", "enum": LINE_EVENTS}}
     return {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}
 
 
@@ -114,6 +129,7 @@ def intent_messages(npc: Npc, state: State, history: list[Line], text: str) -> l
         f'List in "intents" what the line does, in the order they say it. Usually one; more only when the line clearly does several things. Choose from:\n{lines}'
         + (f"\nIf the same line goes on to do more, these can come after the first one:\n{later}" if later else "")
         + extra
+        + f"\n\n{EVENTS_GUIDE}"
     )
     return [{"role": "system", "content": INTENT_SYSTEM}, {"role": "user", "content": user}]
 

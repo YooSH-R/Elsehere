@@ -83,7 +83,8 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
 def test_with_a_profile_the_level_rule_leaves_the_tone_to_the_character(client, provider, level):
     """원래 난이도 문장은 따뜻함·유머를 내라고 해서, 불친절한 인격(Jake)과 부딪히지 않게 말투를 정하지 않는 규칙을 쓴다."""
     system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")}, level=level))
-    assert "warmth" not in system and "humor" not in system
+    level_part = system.split("## Learner level")[1].split("## This turn")[0]
+    assert "warmth" not in level_part and "humor" not in level_part
 
 
 @pytest.mark.parametrize(("path", "value"), [("name", None), ("nickname", "Mimi")])

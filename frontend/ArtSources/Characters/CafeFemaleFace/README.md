@@ -14,3 +14,5 @@ Run Blender in background with `--python create_face_shapes.py -- --surface Cafe
 See `docs/unity/cafe-female-face.md` for the Unity scene, control names and prototype limitations. No service API is involved in this workflow.
 
 Unity applies explicit shape-normal offsets. Blender live Shape Key shading can differ; use the Unity preview scene as the final visual check.
+
+`export_local_speech.ps1` runs installed Windows en-US TTS locally and exports a matched PCM WAV/Viseme JSON pair. Use Windows PowerShell 5.1 with a new `-OutputDirectory`; existing outputs are preserved. No service API is called. The Unity speech sandbox consumes this pair through `CharacterSpeechClip`. The export uses 16 kHz audio to keep Zira audio/event clocks aligned and rejects out-of-range timing.

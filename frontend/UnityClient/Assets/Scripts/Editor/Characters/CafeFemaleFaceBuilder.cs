@@ -335,7 +335,7 @@ namespace A305.EditorTools.Characters
             EditorSceneManager.SaveScene(scene, ScenePath);
         }
 
-        private static void RenderBakedPose(CharacterFaceController face, Camera camera)
+        internal static void RenderBakedPose(CharacterFaceController face, Camera camera)
         {
             var skins = face.GetComponentsInChildren<SkinnedMeshRenderer>();
             var meshes = new Mesh[skins.Length];

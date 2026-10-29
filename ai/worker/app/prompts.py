@@ -155,29 +155,48 @@ def card_lines(c: dict, last_order: str | None) -> list[str]:
 
 
 # 관계·기분(app.npc_relationship.person_state)을 숫자 대신 말로
+# 작은 모델은 상태만 알려 주면 하던 일(주문 받기)만 이어 가서, 상태마다 어떻게 대할지를 함께 적는다
 KNOWN = {
-    "new": "You do not recognize this person. To you they are a new face.",
-    "familiar": "This person looks familiar: you have seen them a few times, but you do not know them well yet.",
-    "regular": "This person is a regular: you have talked many times and know them by now.",
+    "new": "You do not recognize this person. Treat them as a new face: do not talk as if you have met before.",
+    "familiar": (
+        "This person looks familiar: you have seen them a few times. Show that you recognize them a little, "
+        "like greeting them as someone you have seen before, but you do not know them well yet."
+    ),
+    "regular": (
+        "This person is a regular and you know them well. Greet them like a regular: use their name if you know it, "
+        "and if you know what they usually get, offer it."
+    ),
 }
 FEELING = {
-    "liked": "You like this person.",
-    "disliked": "You do not like this person much because of how they treated you before, so you are cooler with them than usual.",
+    "liked": "You like this person. Be a little warmer with them than with others.",
+    "disliked": (
+        "You do not like this person much because of how they treated you before. Stay correct but cool: no small talk, no extra warmth."
+    ),
 }
-PERSONAL = "You are close enough that you may share a little about your own day or life when it fits."
-ANNOYED = "They were rude to you a moment ago and you are still annoyed: keep your replies short and cool, but do not be rude back."
+PERSONAL = (
+    "You are close enough to share a little about your own day or life: if they ask about you, tell them one small personal thing, "
+    "not only about work."
+)
+ANNOYED = (
+    "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cool; "
+    "if they apologize, accept it briefly, without warm words."
+)
 STRONG_FEELINGS = ("friendly", "wary")
 
 
 def person_note(m: Memory | None, state: dict) -> str:
     """관계가 있을 때 NPC 지시문에 넣을 '이 사람에 대해'. 얼굴을 알아봐야(본 적 있음부터) 평범한 기억(이름·했던 말·지난 주문)을 떠올리고,
-    알아보지 못해도 기억 카드의 태도가 friendly·wary로 남은 강한 일(events)은 떠올린다."""
+    알아보지 못해도 기억 카드의 태도가 friendly·wary로 남은 강한 일(events)은 떠올린다.
+    호감이 기준을 넘으면 호감 문장을 쓰고 카드의 태도(말투 참고값)는 겹쳐 넣지 않는다."""
     lines = ["About this person:", f"- {KNOWN[state['known']]}"]
     card = (m.card if m else None) or {}
+    strong = card.get("attitude") in STRONG_FEELINGS
+    if state["feeling"]:
+        card = {key: value for key, value in card.items() if key != "attitude"}
     if state["known"] != "new":
         lines += card_lines(card, m.last_order if m else None)
-    elif card.get("attitude") in STRONG_FEELINGS:
-        lines += card_lines({"events": card.get("events", []), "attitude": card["attitude"]}, None)
+    elif strong:
+        lines += card_lines({"events": card.get("events", []), "attitude": card.get("attitude")}, None)
     if state["feeling"]:
         lines.append(f"- {FEELING[state['feeling']]}")
     if state["personal"]:

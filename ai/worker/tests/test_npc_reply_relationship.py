@@ -72,6 +72,25 @@ def test_liking_or_disliking_them_reaches_the_prompt(client, provider, affinity,
     assert line in system(client, provider, relationship={"recognition": RULES["seenBefore"], "affinity": affinity})
 
 
+def test_the_feeling_from_affinity_replaces_the_card_attitude(client, provider):
+    """호감 문장과 기억 카드의 태도(말투 참고값)를 겹쳐 넣지 않는다. 호감이 기준 안이면 카드의 태도를 쓴다."""
+    friendly = {**MEMORY, "card": {**CARD, "attitude": "friendly"}}
+
+    liked = system(client, provider, relationship={"recognition": RULES["seenBefore"], "affinity": RULES["liked"]}, memory=friendly)
+    neutral = system(client, provider, relationship={"recognition": RULES["seenBefore"]}, memory=friendly)
+
+    assert "You like this person." in liked and "You like this customer." not in liked
+    assert "You like this customer." in neutral
+
+
+def test_a_strong_feeling_is_remembered_without_recognizing_them_even_when_disliked(client, provider):
+    wary = {**MEMORY, "card": {**CARD, "events": ["was rude to me about the wait"], "attitude": "wary"}}
+
+    prompt = system(client, provider, relationship={"recognition": 0, "affinity": RULES["disliked"]}, memory=wary)
+
+    assert "was rude to me about the wait" in prompt and "You do not like this person much" in prompt
+
+
 def test_only_a_close_regular_hears_about_the_npc_s_own_day(client, provider):
     close = {"recognition": RULES["personalTalk"]["recognition"], "affinity": RULES["personalTalk"]["affinity"]}
 

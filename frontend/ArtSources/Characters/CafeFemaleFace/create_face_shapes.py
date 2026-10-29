@@ -119,6 +119,37 @@ for name,color,scale,target in [
             for v in k.data:v.co+=Vector(target)-Vector((-.215,-.043,.48))
     parts.append((ob,color))
 
+# Closed lid contours remain hidden at neutral and follow the blink channel.
+for side, center in [('Left',.082),('Right',-.155)]:
+    curve=bpy.data.curves.new('Closed'+side+'Lid','CURVE')
+    curve.dimensions='3D'
+    curve.bevel_depth=.0014
+    curve.bevel_resolution=2
+    curve.use_fill_caps=True
+    line=curve.splines.new('POLY')
+    line.points.add(24)
+    for i,point in enumerate(line.points):
+        y=center-.044+.088*i/24
+        z=.567-.004*((y-center)/.058)**2
+        point.co=(-.14,y,z,1)
+    ob=bpy.data.objects.new('Closed'+side+'Lid',curve)
+    bpy.context.collection.objects.link(ob)
+    bpy.ops.object.select_all(action='DESELECT')
+    ob.select_set(True)
+    bpy.context.view_layer.objects.active=ob
+    bpy.ops.object.convert(target='MESH')
+    ob=bpy.context.object
+    color=(.035,.018,.009)
+    mat=bpy.data.materials.new(ob.name)
+    mat.use_nodes=True
+    mat.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(*color,1)
+    ob.data.materials.append(mat)
+    ob.shape_key_add(name='Basis')
+    key=ob.shape_key_add(name='eyeBlink'+side)
+    for v in key.data:
+        v.co.x+=-.254+(v.co.y+.043)**2+.14
+    parts.append((ob,color))
+
 def shape_data(ob):
     basis=ob.data.shape_keys.key_blocks['Basis']
     result=[]
@@ -129,7 +160,7 @@ result=dict(vertices=d['vertices'],shapes=shape_data(body),parts=[])
 for shape in result['shapes']:shape['deltaNormals']=normal_offsets[shape['name']]
 for ob,color in parts:
     ob.data.calc_loop_triangles()
-    result['parts'].append(dict(name=ob.name,vertices=[uv(v.co) for v in ob.data.vertices],triangles=[i for t in ob.data.loop_triangles for i in reversed(t.vertices)],color=dict(r=color[0],g=color[1],b=color[2],a=1),shapes=shape_data(ob)))
+    result['parts'].append(dict(name=ob.name,vertices=[uv(v.co) for v in ob.data.vertices],triangles=[i for t in ob.data.loop_triangles for i in t.vertices],color=dict(r=color[0],g=color[1],b=color[2],a=1),shapes=shape_data(ob)))
 (a.output/'CafeFemaleFaceShapes.json').write_text(json.dumps(result,separators=(',',':')))
 for ob in [body,*[p[0] for p in parts]]:
     for k in ob.data.shape_keys.key_blocks:k.value=0

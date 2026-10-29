@@ -33,7 +33,12 @@ import tools.jackson.databind.json.JsonMapper;
 // 장소·NPC·장소별 단어는 시드(WorldSeedLoader가 시작 때 넣음)를 그대로 쓴다.
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-@Import({TestcontainersConfiguration.class, WorldSeedLoader.class, SceneService.class})
+@Import({
+  TestcontainersConfiguration.class,
+  WorldSeedLoader.class,
+  PronunciationAudioStore.class,
+  SceneService.class
+})
 class SceneServiceTest {
 
   @Autowired private SceneService sceneService;

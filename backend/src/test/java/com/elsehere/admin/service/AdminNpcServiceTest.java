@@ -15,6 +15,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.world.repository.NpcRepository;
+import com.elsehere.world.service.PronunciationAudioStore;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import org.springframework.context.annotation.Import;
 @Import({
   TestcontainersConfiguration.class,
   WorldSeedLoader.class,
+  PronunciationAudioStore.class,
   AdminNpcService.class,
   WorkerNpcs.class
 })

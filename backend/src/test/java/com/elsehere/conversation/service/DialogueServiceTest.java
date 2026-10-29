@@ -14,6 +14,7 @@ import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.user.service.TrainingConsentService;
+import com.elsehere.world.service.PronunciationAudioStore;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -50,6 +51,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   ClockConfig.class,
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
+  PronunciationAudioStore.class,
   ConversationService.class,
   ConversationHistoryService.class,
   TurnService.class,

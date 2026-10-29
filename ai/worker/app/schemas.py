@@ -163,6 +163,21 @@ class MemoryRequest(BaseModel):
     memory_card: dict | None = None  # 이전 카드
 
 
+class RelationshipRequest(BaseModel):
+    """정상 종료된 대화 하나를 관계에 반영 (app.npc_relationship). 백엔드가 /v1/memory와 같은 자리에서 부른다."""
+
+    npc: Npc  # profile이 있으면 인격 카드의 성격으로 알아보는 속도·사건 반응 크기를 정한다
+    relationship: Relationship | None = None  # 저장된 관계와 마지막 대화 뒤 지난 게임 날 수. 처음 만나면 없음
+    history: list[Line] = Field(max_length=200)  # 무례는 Spring이 확정한 줄(rude)로 센다
+
+    @field_validator("history")
+    @classmethod
+    def learner_spoke(cls, v: list[Line]) -> list[Line]:
+        if not any(line.who == "me" for line in v):
+            raise ValueError("학습자가 말하지 않은 대화는 관계에 반영하지 않습니다")
+        return v
+
+
 # ---------- NPC 인격 카드 조합 (어드민 랜덤 생성, app.npc_persona) ----------
 Axis = Literal["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]
 Role = Literal["STAFF", "PASSERBY"]

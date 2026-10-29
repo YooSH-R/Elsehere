@@ -35,6 +35,7 @@ from .schemas import (
     MemoryRequest,
     PersonaDeriveRequest,
     PersonaGenerateRequest,
+    RelationshipRequest,
     ReplyRequest,
     SuggestRequest,
     TtsRequest,
@@ -304,6 +305,11 @@ def create_app(
     @app.post("/v1/memory")
     async def memory(req: MemoryRequest, request: Request):
         return await services.memory(request.app.state.llm, req)
+
+    @app.post("/v1/npc/relationship")
+    async def relationship_after_conversation(req: RelationshipRequest, request: Request):
+        """정상 종료된 대화 하나를 사용자 × NPC 관계(알아봄·호감)에 반영한다. 백엔드가 받아 저장한다 (워커는 저장하지 않음)."""
+        return await services.relationship(request.app.state.llm, req)
 
     return app
 

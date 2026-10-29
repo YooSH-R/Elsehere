@@ -23,6 +23,7 @@ STEPS = {
     "You help a Korean learner of English (CEFR A2-B1) who is stuck": "hint",
     "# 대화 피드백": "feedback",  # ai/feedback 모듈의 지시문
     "You keep the memory": "memory",
+    "You judge what happened": "relationship",
     "You translate one line said by a character": "meaning",
     "You suggest words": "suggest",
 }

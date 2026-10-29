@@ -1,7 +1,7 @@
 .dev-deployment-source:
   rules:
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $RUN_DEV_DEPLOY == "true" && ($CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "chore/S15P31A305-37-server-environments")'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $RUN_DEV_DEPLOY == "true" && $CI_COMMIT_BRANCH == "dev"'
 
 dev:plan:
   extends:

@@ -60,7 +60,7 @@ def create_app(
         s = settings or Settings.from_env()
         app.state.settings = s
         app.state.llm = LLM(s, transport)
-        app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices) if tts is True else tts
+        app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices, s.kokoro_threads) if tts is True else tts
         app.state.guard_local = await asyncio.to_thread(LocalGuard.load, s.guard_local_model) if guard_local is True else guard_local
         if s.guard_local_model and not app.state.guard_local:
             log.warning(

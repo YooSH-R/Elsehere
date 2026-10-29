@@ -16,7 +16,7 @@
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
 | `infra:deployment-plan-tests` | 인프라 스크립트 또는 공통 CI 변경 | Ruff·임시 Git 저장소 기반 누적 배포 범위 판정 테스트 |
-| `infra:app-runtime` | 앱용 Dockerfile·Compose·환경 예제·웹 설정·실행 점검 코드, API 명세 또는 공통 CI 변경 | 검사된 JAR를 받아 실제 앱 이미지를 빌드하고, 일회용 Compose에서 DB·백엔드 health·AI 인증·웹 gzip/MIME 검증 |
+| `infra:app-runtime` | 앱용 Dockerfile·Compose·환경 예제·웹 설정·실행 점검 코드, API 명세 또는 공통 CI 변경 | 검사된 JAR를 받아 실제 앱 이미지를 빌드하고, 일회용 Compose에서 DB·백엔드 health·AI 인증·TTS 모델 적재·웹 gzip/MIME 검증 |
 | `infra:observability` | 모니터링·Nginx·관측 검증 스크립트 또는 공통 CI 변경 | 요청 ID·로그의 민감 정보 제외, Prometheus·Grafana 구성, 경보 발동·복구와 가짜 수신기 전송 검사 |
 | `prod:plan`·`prod:child`·`prod:deliver` | 보호된 `main` Push에서 자동 시작. 수동 재실행은 웹 실행과 `RUN_PROD_DEPLOY=true` 및 검증 변수 사용 | 직렬화된 자식에서 모든 영역 검사 후 누적 이미지 빌드·운영 자동 전달·상태 점검과 버전 보관. 설치·DB·병합 전 통합 검증 조건은 [운영 배포 문서](prod-deployment.md) 참조 |
 

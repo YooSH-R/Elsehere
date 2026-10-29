@@ -26,7 +26,7 @@ namespace A305.EditorTools.Tripo
             "자동 리깅",
             "FBX 다운로드",
             "로컬 가져오기·마스터 적용·자동 검사",
-            "프리팹 생성 완료",
+            "자동 검사 통과 · 외관 확인 대기",
             "원격 작업 실패",
             "FBX 변환",
         };
@@ -92,6 +92,8 @@ namespace A305.EditorTools.Tripo
             try
             {
                 job = store.Load();
+                if (record == null && job != null && !string.IsNullOrEmpty(job.reviewRecordPath))
+                    record = AssetDatabase.LoadAssetAtPath<TripoAssetRecord>(job.reviewRecordPath);
             }
             catch (Exception exception)
             {
@@ -133,7 +135,7 @@ namespace A305.EditorTools.Tripo
             if (GUILayout.Button("공통 바디로 캐릭터 조합 · API 사용 없음"))
                 TripoCharacterWindow.Open();
             EditorGUILayout.HelpBox(
-                "서비스 캐릭터는 검증된 바디·외형 부품 조합을 먼저 사용하세요. 아래 API 생성은 새 원본을 만드는 별도 작업이며 공통 메시를 보장하지 않습니다.",
+                "이미지 → 생성·리깅 각 1회 → 로컬 마스터 보정·동작 검사 → 마지막 외관 확인 → 최종 등록. 검사 실패 시 등록을 차단하며 자동 재생성하지 않습니다.",
                 MessageType.Info
             );
             creationSource = GUILayout.SelectionGrid(
@@ -285,9 +287,10 @@ namespace A305.EditorTools.Tripo
                 );
                 if (generationKind == TripoAssetKind.Character)
                 {
-                    autoRig = EditorGUILayout.Toggle(FieldLabel("Tripo 자동 리깅 추가"), autoRig);
+                    autoRig = true;
+                    EditorGUILayout.LabelField("Tripo 자동 리깅", "1회 포함 · 중복 제출 차단");
                     EditorGUILayout.HelpBox(
-                        "서비스 공통 마스터: LittleMungAdjusted / Female 부모 프리팹. 남녀 모두 같은 골격·동작을 사용하고 외형은 생성 모델을 유지합니다. 다운로드 후 로컬에서 재연결·검사하며 외관 승인은 별도입니다.",
+                        "서비스 공통 마스터: LittleMungAdjusted / Female 부모 프리팹. 남녀 모두 같은 골격·동작을 사용하고 외형은 생성 모델을 유지합니다. 다운로드 후 마스터 보정과 동작 검사를 자동 실행하고 마지막 외관 확인만 기다립니다.",
                         MessageType.Info
                     );
                 }
@@ -440,6 +443,7 @@ namespace A305.EditorTools.Tripo
             if (
                 !running
                 && !inFlight
+                && !job.autoRig
                 && job.stage == TripoStage.Failed
                 && !job.submissionUncertain
                 && !string.IsNullOrEmpty(job.generationTaskId)
@@ -498,7 +502,7 @@ namespace A305.EditorTools.Tripo
                 else if (
                     GUILayout.Button(
                         job.stage == TripoStage.ReadyToImport
-                            ? "로컬 마스터 적용·재검사 (API 사용 없음)"
+                            ? "자동 보정·검증 이어서 실행 (API 사용 없음)"
                             : "저장된 작업 재개"
                     )
                 )
@@ -507,7 +511,7 @@ namespace A305.EditorTools.Tripo
             if (job.stage == TripoStage.Completed)
             {
                 EditorGUILayout.HelpBox(
-                    "생성 완료 · 외형과 동작 검수는 별도입니다.",
+                    "자동 보정·검사 완료 · 외관 확인 전에는 최종 프리팹을 등록하지 않습니다.",
                     MessageType.Info
                 );
                 DrawSavedPath("원본 다운로드", job.modelPath);
@@ -517,9 +521,10 @@ namespace A305.EditorTools.Tripo
                     && AssetDatabase.GetAssetPath(record.sourceModel) == job.modelAssetPath
                     && Path.GetExtension(record.ModelPath) == ".prefab"
                         ? record.ModelPath
-                        : job.prefabPath;
-                DrawSavedPath("현재 검수 프리팹", reviewPrefabPath);
-                if (GUILayout.Button("생성 결과 검수하기"))
+                    : record == null ? ""
+                    : record.ModelPath;
+                DrawSavedPath("중간 검수 후보 · 최종 등록 전", reviewPrefabPath);
+                if (GUILayout.Button("마지막 외관 확인하기"))
                     RunEditorAction(() =>
                     {
                         var model = AssetDatabase.LoadAssetAtPath<GameObject>(job.modelAssetPath);
@@ -575,14 +580,24 @@ namespace A305.EditorTools.Tripo
                 string state =
                     running ? "진행 중"
                     : inFlight ? "처리 중"
-                    : job.stage == TripoStage.Completed ? "생성 완료"
+                    : job.stage == TripoStage.Completed
+                        ? (
+                            record != null && !string.IsNullOrEmpty(record.registeredPrefabPath)
+                                ? "최종 프리팹 등록 완료"
+                                : "자동 검사 통과 · 외관 확인 대기"
+                        )
                     : job.stage == TripoStage.Failed || messageIsError ? "오류로 중단"
                     : "중지됨 · 저장된 작업 재개 가능";
                 EditorGUILayout.LabelField(
                     job.assetName + " · " + state,
                     EditorStyles.wordWrappedLabel
                 );
-                string stage = StageNames[(int)job.stage];
+                string stage =
+                    job.stage == TripoStage.Completed
+                    && record != null
+                    && !string.IsNullOrEmpty(record.automaticStatus)
+                        ? record.automaticStatus
+                        : StageNames[(int)job.stage];
                 if (job.stage == TripoStage.Uploading)
                 {
                     int completed = Array
@@ -671,7 +686,9 @@ namespace A305.EditorTools.Tripo
 
         private void DrawReview()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(job.prefabPath);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                record == null ? job.modelAssetPath : record.ModelPath
+            );
             if (prefab == null)
                 return;
             long triangles = 0;
@@ -686,7 +703,7 @@ namespace A305.EditorTools.Tripo
             }
             EditorGUILayout.LabelField($"삼각형 {triangles:N0} · 블렌드셰이프 {shapes}");
             EditorGUILayout.HelpBox(
-                "프리팹 생성 완료는 형태·접합·포즈 품질의 합격 판정이 아닙니다. Prefab Mode에서 전체 크기는 최상위 루트로 조정하고, 본 수정 뒤에는 스킨 변형을 확인하세요. 메시·스킨 가중치 수정은 외부 모델 편집 후 별도 수정본으로 보관하세요.",
+                "현재는 중간 검수 후보입니다. 자동 검사 결과와 외관을 확인한 뒤 최종 등록하세요. 모델·설정 변경 시 이전 승인은 무효화됩니다.",
                 MessageType.Info
             );
             if (shapes == 0)
@@ -822,7 +839,10 @@ namespace A305.EditorTools.Tripo
                     throw new InvalidOperationException("Tripo API 키가 필요합니다.");
                 TripoMaterialImport.FindBlender();
                 if (generationKind == TripoAssetKind.Character)
+                {
+                    autoRig = true;
                     TripoMasterWorkflow.RequireMaster();
+                }
                 TripoJob created = TripoJob.Create(
                     assetName,
                     singleImage
@@ -863,7 +883,7 @@ namespace A305.EditorTools.Tripo
                             + "\n프리팹 저장: "
                             + created.prefabPath
                             + "\n예상액은 요금표 기준이며 API 잔액 조회값이 아닙니다."
-                            + "\n\nStudio Pro 크레딧과 별도인 API 크레딧이 사용됩니다. 생성 전 API 요금표와 API 잔액을 확인하세요. 이전 원격 작업은 취소되지 않습니다.",
+                            + "\n\n한 작업에서 생성과 리깅은 각각 최대 1회 제출합니다. 실패·재개 시 중복 제출하지 않습니다. Studio Pro와 별도인 API 크레딧을 사용합니다. 이전 원격 작업은 취소되지 않습니다.",
                         "생성 시작",
                         "돌아가기"
                     )
@@ -951,7 +971,7 @@ namespace A305.EditorTools.Tripo
                         message = messageIsError
                             ? "다운로드 완료 · 자동 검사 실패. 재생성하지 말고 아래 문제를 확인하세요. 로컬 재검사에는 API 키·크레딧이 필요하지 않습니다.\n"
                                 + string.Join("\n", record.validationErrors)
-                            : "마스터 적용·자동 검사 통과. 전신과 실제 동작의 외관 검수 후 승인하세요.";
+                            : "마스터 보정·자동 동작 검사 통과. 마지막 외관을 확인하면 최종 프리팹을 등록할 수 있습니다.";
                     }
                     finally
                     {

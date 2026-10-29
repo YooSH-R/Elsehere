@@ -17,16 +17,10 @@ namespace A305.EditorTools.Tripo
             "Blender 수정",
             "표정·립싱크",
             "부품·소켓",
-            "검증·등록",
+            "결과·외관 확인",
         };
-        private static readonly int[] BasicTabIndices = { 0, 1, 2, 5 };
-        private static readonly string[] BasicTabs =
-        {
-            "생성·가져오기",
-            "모델·골격",
-            "Blender 수정",
-            "검증·등록",
-        };
+        private static readonly int[] BasicTabIndices = { 0, 5 };
+        private static readonly string[] BasicTabs = { "생성·가져오기", "결과·외관 확인" };
         private const string BlenderPreference = "A305.Tripo.BlenderExecutable";
 
         [SerializeField]
@@ -151,7 +145,7 @@ namespace A305.EditorTools.Tripo
             if (record != null)
             {
                 showAdvancedTools = EditorGUILayout.ToggleLeft(
-                    "고급 작업 · 표정·립싱크 / 부품·소켓",
+                    "고급 작업 · 모델 / Blender / 표정 / 부품",
                     showAdvancedTools
                 );
                 if (showAdvancedTools)
@@ -263,6 +257,7 @@ namespace A305.EditorTools.Tripo
                                 ? TripoAttachmentKind.Rigid
                                 : TripoAttachmentKind.Skinned
                         );
+                        TripoLocalImport.Review(record);
                         selectedTab = 5;
                         ResetPreview();
                     });
@@ -271,13 +266,14 @@ namespace A305.EditorTools.Tripo
         private void DrawModelPanel()
         {
             if (
-                record.kind == TripoAssetKind.Character
+                showAdvancedTools
+                && record.kind == TripoAssetKind.Character
                 && record.requireHumanoid
                 && GUILayout.Button("서비스 마스터 적용 · 새 복사본 만들기 (API 사용 없음)")
             )
                 RunEditorAction(() =>
                 {
-                    TripoMasterWorkflow.Apply(record);
+                    TripoLocalImport.Review(record);
                     ResetPreview();
                 });
             EditorGUI.BeginChangeCheck();
@@ -763,19 +759,24 @@ namespace A305.EditorTools.Tripo
                 if (GUILayout.Button("검증값 Inspector에서 조정"))
                     Selection.activeObject = record.profile;
             }
-            if (
-                record.kind == TripoAssetKind.Character
-                && !string.IsNullOrEmpty(record.masterPreparedPath)
-                && GUILayout.Button("마스터 적용본 플레이 검수 씬 만들기")
-            )
+            EditorGUILayout.HelpBox(
+                record.automaticStatus ?? "자동 보정·검증이 필요합니다.",
+                MessageType.Info
+            );
+            DrawSavedPath("최종 등록 예정 위치", record.finalPrefabPath);
+            if (!string.IsNullOrEmpty(record.reviewScenePath))
+            {
+                DrawSavedPath("자동 준비한 동작 검수 씬", record.reviewScenePath);
+                if (GUILayout.Button("동작 검수 씬 열기"))
+                    UnityEditor.AssetDatabase.OpenAsset(
+                        AssetDatabase.LoadAssetAtPath<SceneAsset>(record.reviewScenePath)
+                    );
+            }
+            if (GUILayout.Button("자동 보정·검증 다시 실행 · API 사용 없음"))
                 RunEditorAction(() =>
                 {
-                    message = "검수 씬: " + TripoMasterSandbox.Build(record);
-                });
-            if (GUILayout.Button("현재 모델·설정 검증"))
-                RunEditorAction(() =>
-                {
-                    TripoWorkbench.Validate(record);
+                    TripoLocalImport.Review(record);
+                    ResetPreview();
                 });
             EditorGUILayout.LabelField(
                 string.IsNullOrEmpty(record.revision.candidatePath)
@@ -784,10 +785,11 @@ namespace A305.EditorTools.Tripo
                 EditorStyles.boldLabel
             );
             EditorGUILayout.LabelField(record.ModelPath ?? "", EditorStyles.wordWrappedMiniLabel);
-            bool current = record.revision.validatedFingerprint == record.GetFingerprint();
+            bool current = TripoLocalImport.ReadyForAppearance(record);
             EditorGUILayout.HelpBox(
                 !current ? "검증 전 또는 변경 후 재검증 필요"
-                    : record.revision.validationPassed ? "자동 구조 검사 통과 · 아래 시각 검수 필요"
+                    : record.revision.validationPassed
+                        ? "자동 보정·동작 검사 통과 · 마지막 외관 확인"
                     : "자동 검사 오류 수정 필요",
                 current && record.revision.validationPassed ? MessageType.Info : MessageType.Warning
             );
@@ -842,7 +844,7 @@ namespace A305.EditorTools.Tripo
             using (new EditorGUI.DisabledScope(!current || !record.revision.validationPassed))
             {
                 bool approved = EditorGUILayout.ToggleLeft(
-                    "표시된 수동 검수 항목까지 확인했습니다",
+                    "외관과 표시된 확인 항목을 확인했고, 이 결과를 사용하겠습니다",
                     record.revision.visuallyApproved
                 );
                 if (approved != record.revision.visuallyApproved)
@@ -850,18 +852,18 @@ namespace A305.EditorTools.Tripo
                     record.revision.visuallyApproved = approved;
                     SaveRecord(false);
                 }
-                if (GUILayout.Button("검수 프리팹을 새 버전으로 등록"))
-                    RunEditorAction(() =>
-                    {
-                        string path = EditorUtility.SaveFilePanelInProject(
-                            "새 프리팹 버전",
-                            "ReviewedCharacter",
-                            "prefab",
-                            "기존 파일은 덮어쓰지 않습니다."
-                        );
-                        if (!string.IsNullOrEmpty(path))
-                            Selection.activeObject = TripoWorkbench.Register(record, path);
-                    });
+                using (new EditorGUI.DisabledScope(!record.revision.visuallyApproved))
+                    if (GUILayout.Button("외관 승인한 최종 프리팹 등록"))
+                        RunEditorAction(() =>
+                        {
+                            string path = record.finalPrefabPath;
+                            if (string.IsNullOrEmpty(path))
+                                throw new InvalidOperationException(
+                                    "자동 보정·검증을 먼저 실행해 저장 위치를 준비하세요."
+                                );
+                            if (!string.IsNullOrEmpty(path))
+                                Selection.activeObject = TripoWorkbench.Register(record, path);
+                        });
             }
             DrawRevisionButtons();
             if (GUILayout.Button("현재 검사 모델 Inspector에서 확인"))

@@ -1,6 +1,6 @@
 # 카페 여자 표정 확인
 
-Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 검수용 복사본이다. 운영 NPC를 자동 교체하지 않는다.
+Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 복사본이다. 개별 표정 검수 씬과 실제 카페 NPC 대화 연결을 함께 제공한다. 원본 메시·텍스처·프리팹은 변경하지 않는다.
 
 ## Unity에서 확인
 
@@ -33,7 +33,7 @@ Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 검�
 
 입 벌림은 원래 미소를 아래로 늘리는 방식에서 교체했다. AA는 위·아래 입술이 벌어지는 윤곽과 구강 안쪽, 아래쪽 혀를 사용한다. F/V는 아랫입술을 올린 상태의 윗니 노출, TH는 치아 사이 혀를 구분한다. 첨부 기준은 `frontend/ArtSources/Characters/CafeFemaleFace/References/`에 보관한다. 첨부 이미지의 10종 모두 해당 복사본에 구성되어 있다. REST는 Basis이며 나머지 9종은 별도 발음 변형이다.
 
-참고 이미지의 입 모양 10종과 미소·눈 감기에 더해, 별도 음성 검수 씬에서 오프라인 TTS가 생성한 발음 시각과 실제 오디오 재생 위치를 연결한다. 운영 서버의 실시간 AI 대화 전체를 연결한 상태는 아니다. 특히 눈꺼풀 접힘과 F/V·TH의 입술 접촉은 정면·사선에서 외관을 확인해야 한다.
+참고 이미지의 입 모양 10종과 미소·눈 감기에 더해, 별도 음성 검수 씬에서 오프라인 TTS가 생성한 발음 시각과 실제 오디오 재생 위치를 연결한다. 실제 카페 대화 재생 경로도 아래의 Kokoro 음소 시간표를 소비하도록 연결되어 있다. 운영 서버 배포와 실제 서비스 음성 수신 여부는 별도로 확인해야 한다. 특히 눈꺼풀 접힘과 F/V·TH의 입술 접촉은 정면·사선에서 외관을 확인해야 한다.
 
 ## Blender 원본과 재사용 범위
 
@@ -45,7 +45,7 @@ Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 검�
 
 다른 NPC는 같은 채널 이름으로 제작한 얼굴에 `CharacterFaceController`를 붙여 `SetPose`를 재사용할 수 있다. `BlendPoses(from, to, progress, intensity)`는 두 포즈 사이를 0~1 진행률로 전환하며, 기존 관절 보정 채널을 유지한다. 얼굴 크기·정점 순서가 다른 NPC에 이 모델의 변형 값을 그대로 복사해서는 안 된다. 필수 채널이 빠졌으면 부분 적용 대신 오류를 반환한다.
 
-기존 문장 GIF는 수동 시간표 시안이었다. 현재 음성 검수 씬은 로컬 TTS가 WAV와 함께 생성한 Viseme 시각을 사용한다. LLM 감정값 연결, 운영 서버 TTS 메타데이터 연결, 전체 29개 채널의 파이프라인 검증은 별도 작업이다. 이 씬의 동작만으로 전체 표정·립싱크 검증을 통과했다고 처리하지 않는다.
+기존 문장 GIF는 수동 시간표 시안이었다. 현재 음성 검수 씬은 로컬 TTS가 WAV와 함께 생성한 Viseme 시각을 사용한다. LLM 감정값 연결, 운영 서버 배포·WebGL 동기화 확인, 전체 29개 채널의 파이프라인 검증은 별도 작업이다. 이 씬의 동작만으로 전체 표정·립싱크 검증을 통과했다고 처리하지 않는다.
 
 `viseme_I`와 `viseme_EU`는 첨부된 한국어 이·으 기준이다. 기존 Tripo 전체 얼굴 검사의 `IH` 및 DD·KK·CH·SS·NN·RR, 추가 감정 채널과 자동으로 동일 취급하지 않는다. 전체 얼굴 검사 기준을 낮추거나 통과 처리하지 않는다.
 
@@ -78,4 +78,22 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 
 기존 메시에는 세밀한 혀·치아 조형이 없는 자음이 있으므로 해당 발음은 가까운 모양으로 근사한다. 지원하지 않는 음소는 조용히 다른 입으로 바꾸지 않고 오류를 반환한다. 한국어 TTS 및 다른 공급자의 이벤트는 별도 매핑이 필요하다.
 
-기존 `DialogueServerLink`는 서버 WAV만 받으며 Viseme 시각은 받지 않는다. 그 경로와 Production 씬은 그대로 둔다. 운영 TTS에 연결하려면 같은 WAV에 대응하는 발음 메타데이터를 공급자 또는 정렬기로 제공하고 이 재생기 입력으로 변환해야 한다. WebGL·운영 서버 동기화는 별도 검증 대상이다.
+`DialogueServerLink`는 아래 경로로 서버 WAV 안의 발음 시간표를 읽는다. 기존 Windows 음성 검수 씬도 유지한다. WebGL·운영 서버에서의 실제 수신과 동기화는 별도 검증 대상이다.
+
+## 실제 카페 대화 연결
+
+`CafeScene`과 `CafeInteriorSandbox`의 `CAFE_STAFF`는 `CafeFemaleDialogue.prefab`을 사용한다. 이 프리팹은 원본 `Barista.prefab`을 자식으로 포함하고 복사본 얼굴 메시·구강 부품·표정 플레이어를 연결한다. 원본 Avatar·몸 Animator Controller와 관절 보정은 유지한다. NPC 코드·접근 범위·시선 대상·캡슐과 플레이어 카메라 설정은 변경하지 않는다. **Tools → A305 → Cafe → Connect Dialogue Face**로 연결을 다시 맞출 수 있으며, 기존 대화 프리팹의 외관을 재생성하지 않는다.
+
+대화 시작 시 `DialogueController`가 선택한 시선 대상의 부모 `DialogueSpeaker`를 찾는다. 서버의 기존 음성 GET 결과를 `DialogueServerLink` → `DialogueSpeechWav` → `CharacterSpeechPlayer` 순으로 전달한다. 플레이어는 다운로드한 PCM의 `AudioSource.timeSamples`를 기준으로 입모양·깜박임·미소를 함께 적용한다. 예제 두 문장이나 대사 철자에 종속되지 않는다. 음성 파일 안의 `a305` 시간표는 해시·길이·음소 범위를 검증한다. 발음 구간은 기존 부드러운 보간과 입술 접촉 우선 규칙을 재사용한다.
+
+다시 듣기는 받은 음성을 재사용한다. 대화 종료·화자 변경·씬 해제는 음성과 표정을 정지하고 늦게 끝난 이전 다운로드를 무시한다. 아직 얼굴 채널이 없는 NPC는 기존 AudioSource로 소리만 재생한다. 시간표가 없는 과거 WAV 또는 잘못된 시간표는 소리를 유지하되 발음을 추측해서 움직이지 않는다. `DialogueServerLink.LipSyncNotice`와 Console 경고로 확인할 수 있고, 음성을 자동 재생성하지 않는다.
+
+**서버 조건:** [AI 워커의 NPC 발음 시간표 설정](../../ai/worker/README.md#npc-발음-시간표와-립싱크)을 적용해야 한다. 같은 이름의 구형 Kokoro 모델에는 duration 출력이 없을 수 있다. Unity만 갱신해도 오래된 서버 음성에 시간표가 생기는 것은 아니다. 현재 감정은 `FriendlySpeechExpression`의 친근한 미소 프리셋이며, LLM이 문장의 감정을 판정하는 기능은 별개다.
+
+### 서버 호출 없이 카페에서 확인
+
+1. `Assets/Scenes/Sandbox/CafeDialogueSpeechSandbox.unity`를 열고 Play를 누른다.
+2. 화면 아래 **Would you like coffee or tea?** 또는 **Thank you for visiting. Your coffee will be ready in five minutes.** 버튼을 누른다.
+3. 카페 NPC의 입모양·깜박임·미소와 몸 Idle 동작이 함께 나오는지 확인한다. **멈춤**으로 입과 눈이 중립으로 돌아오는지 확인한다.
+
+이 씬은 대화 서버를 끈 복사본이며, 무료 Kokoro로 미리 생성한 WAV를 실제 대화와 같은 디코딩·재생 경로로 전달한다. 화면 버튼은 LLM이나 TTS API를 호출하지 않는다. 실제 서비스 연결은 `CafeScene`에서 기존 NPC 대화를 시작해 확인한다. 그 경우 기존 서비스의 대사 생성·음성 정책을 따른다.

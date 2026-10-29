@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using A305.Characters;
+using A305.EditorTools.Characters;
 using A305.EditorTools.Common;
 using A305.EditorTools.Player;
 using A305.Npc;
@@ -198,6 +199,7 @@ namespace A305.EditorTools.World
                 "animator",
                 barista.GetComponentInChildren<Animator>()
             );
+            CafeDialogueBuilder.Connect(staff);
         }
 
         private static void SizeController(CharacterController controller)

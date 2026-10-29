@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections;
+using System.Text;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -139,14 +140,54 @@ namespace A305.World.PlayModeTests
                 )
                     break;
             }
+            float remainingDistance = Vector3.Distance(walker.transform.position, target);
+            string details = remainingDistance >= .12f ? DoorDiagnostics(controller) : "";
             Assert.That(
-                Vector3.Distance(walker.transform.position, target),
+                remainingDistance,
                 Is.LessThan(.12f),
                 "Walk route blocked at "
                     + localTarget
                     + "; actual="
                     + building.transform.InverseTransformPoint(walker.transform.position)
+                    + details
             );
+        }
+
+        private string DoorDiagnostics(CharacterController controller)
+        {
+            var details = new StringBuilder();
+            details.AppendLine(
+                "; delta=" + Time.deltaTime + "; bounds=" + controller.bounds.center
+            );
+            foreach (ShopSwingDoor door in building.GetComponentsInChildren<ShopSwingDoor>())
+            {
+                var sensor = door.GetComponent<BoxCollider>();
+                Collider[] hits = Physics.OverlapBox(
+                    door.transform.TransformPoint(sensor.center),
+                    Vector3.Scale(sensor.size / 2, door.transform.lossyScale),
+                    door.transform.rotation,
+                    Physics.AllLayers,
+                    QueryTriggerInteraction.Ignore
+                );
+                bool visitorDetected = false;
+                foreach (Collider hit in hits)
+                    visitorDetected |= hit.gameObject == walker;
+                Transform hinge = door.transform.Find("Hinge");
+                details.AppendLine(
+                    door.name
+                        + ": active="
+                        + door.isActiveAndEnabled
+                        + "; leaf="
+                        + hinge.GetComponentInChildren<Collider>().enabled
+                        + "; yaw="
+                        + hinge.localEulerAngles.y
+                        + "; overlaps="
+                        + hits.Length
+                        + "; visitor="
+                        + visitorDetected
+                );
+            }
+            return details.ToString();
         }
     }
 }

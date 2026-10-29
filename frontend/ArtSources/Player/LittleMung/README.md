@@ -9,5 +9,3 @@
 Open the blend file in Edit Mode to change the rest skeleton. Bone Collections separate body, arms, fingers and end bones. Changing bone names, hierarchy, or adding bones requires rechecking skin weights and Unity Humanoid mapping.
 
 - export_player.py exports the edited blend into a separate Unity FBX with FBX_SCALE_ALL. Run Blender in background with --python export_player.py -- --source <blend> --output <new fbx>. Existing outputs are rejected. The Unity AdjustedRig model and its dedicated sandbox use this export; the earlier exchange FBX remains unchanged.
-
-- Barista/LittleMung_Barista.blend is the separately editable barista appearance. Its reference views are in Barista/Reference. The Unity prefab variant inherits the Stair player's skeleton and behaviour. See docs/unity/little-mung-barista.md for the appearance refresh and rig compatibility checks.

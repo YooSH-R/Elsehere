@@ -19,7 +19,6 @@ namespace A305.Player.Tests
     [TestFixture("Pose")]
     [TestFixture("Terrain")]
     [TestFixture("Stair")]
-    [TestFixture("Barista")]
     public sealed class LittleMungPlayerTests
     {
         private readonly string variant;
@@ -56,9 +55,7 @@ namespace A305.Player.Tests
             previousEditorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
             Assert.That(
                 AssetDatabase.LoadAssetAtPath<GameObject>(
-                    variant == "Barista"
-                        ? "Assets/Prefabs/Player/LittleMung/LittleMungBaristaPlayer.prefab"
-                    : variant == "Stair"
+                    variant == "Stair"
                         ? "Assets/Prefabs/Player/LittleMung/LittleMungStairPlayer.prefab"
                     : variant == "Terrain"
                         ? "Assets/Prefabs/Player/LittleMung/LittleMungTerrainPlayer.prefab"
@@ -71,9 +68,7 @@ namespace A305.Player.Tests
                 "The dedicated playable character prefab must exist."
             );
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
-                variant == "Barista" ? "Assets/Scenes/Sandbox/LittleMungBaristaPlayerSandbox.unity"
-                    : variant == "Stair"
-                        ? "Assets/Scenes/Sandbox/LittleMungStairPlayerSandbox.unity"
+                variant == "Stair" ? "Assets/Scenes/Sandbox/LittleMungStairPlayerSandbox.unity"
                     : variant == "Terrain"
                         ? "Assets/Scenes/Sandbox/LittleMungTerrainPlayerSandbox.unity"
                     : variant == "Pose" ? "Assets/Scenes/Sandbox/LittleMungPosePlayerSandbox.unity"
@@ -99,17 +94,13 @@ namespace A305.Player.Tests
                 outputIndex >= 0
                     ? Path.Combine(
                         args[outputIndex + 1],
-                        variant == "Barista" ? "barista"
-                            : variant == "Stair" ? "stair"
+                        variant == "Stair" ? "stair"
                             : variant == "Terrain" ? "terrain"
                             : variant == "Pose" ? "after"
                             : variant == "Adjusted" ? "before"
                             : "original"
                     )
                     : null;
-            int captureVariant = Array.IndexOf(args, "-playerCaptureVariant");
-            if (captureVariant >= 0 && args[captureVariant + 1] != variant)
-                captureFolder = null;
             if (captureFolder != null)
                 contacts = new FootContactCapture(animator, ModelPath, captureFolder);
             captureIndex = 0;
@@ -196,12 +187,7 @@ namespace A305.Player.Tests
             Debug.Log(
                 $"Body clearance {variant}: head={body.MinimumHeadDistance:F4}, torso={body.MinimumTorsoDistance:F4}; {body.WorstPose}"
             );
-            if (
-                variant == "Pose"
-                || variant == "Terrain"
-                || variant == "Stair"
-                || variant == "Barista"
-            )
+            if (variant == "Pose" || variant == "Terrain" || variant == "Stair")
             {
                 Assert.That(
                     body.MinimumHeadDistance,

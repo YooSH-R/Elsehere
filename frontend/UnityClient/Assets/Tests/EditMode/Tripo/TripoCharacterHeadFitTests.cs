@@ -14,17 +14,42 @@ namespace A305.Tripo.Tests
             var recipe = AssetDatabase.LoadAssetAtPath<TripoCharacterComposition>(
                 TripoCharacterBootstrap.Folder + "/Variants/FemaleCasual/Composition.asset"
             );
-            var report = TripoCharacterAssembly.Validate(recipe);
-            Assert.That(
-                report.Errors.Any(e => e.Contains("목 경계")),
-                Is.True,
-                "An incompatible neck cannot pass automatic validation."
-            );
-            Assert.That(
-                report.Errors.Any(e => e.Contains("머리 크기")),
-                Is.True,
-                "A different head envelope must be reported separately."
-            );
+            // Dependency hashes belong to this import environment. Prepare only in-memory
+            // fixture provenance so this test reaches the intentionally incompatible geometry.
+            var candidate = Object.Instantiate(recipe);
+            var library = Object.Instantiate(recipe.library);
+            var head = Object.Instantiate(recipe.head);
+            var body = Object.Instantiate(recipe.dressedBody);
+            try
+            {
+                library.referenceFingerprint = library.CurrentFingerprint;
+                head.referenceFingerprint = library.referenceFingerprint;
+                body.referenceFingerprint = library.referenceFingerprint;
+                candidate.library = library;
+                candidate.head = head;
+                candidate.dressedBody = body;
+                candidate.assembledFingerprint = candidate.CurrentFingerprint;
+
+                var report = TripoCharacterAssembly.Validate(candidate);
+                Assert.That(
+                    report.Errors.Any(e => e.Contains("목 경계")),
+                    Is.True,
+                    "An incompatible neck cannot pass automatic validation.\n"
+                        + string.Join("\n", report.Errors)
+                );
+                Assert.That(
+                    report.Errors.Any(e => e.Contains("머리 크기")),
+                    Is.True,
+                    "A different head envelope must be reported separately."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(candidate);
+                Object.DestroyImmediate(library);
+                Object.DestroyImmediate(head);
+                Object.DestroyImmediate(body);
+            }
         }
 
         [Test]

@@ -228,6 +228,92 @@ namespace A305.Tripo.Tests
             return count.Count(pair => pair.Value == 1);
         }
 
+        [Test]
+        public void VisibleNeckReusesReferenceFacesUvAndNormals()
+        {
+            string folder = TripoCharacterBootstrap.Folder;
+            var head = AssetDatabase
+                .LoadAssetAtPath<GameObject>(folder + "/Heads/Female/Part.prefab")
+                .GetComponentInChildren<SkinnedMeshRenderer>();
+            var reference = AssetDatabase
+                .LoadAssetAtPath<GameObject>(folder + "/Head/Part.prefab")
+                .GetComponentInChildren<SkinnedMeshRenderer>();
+            var body = AssetDatabase
+                .LoadAssetAtPath<GameObject>(folder + "/DressedBody/Part.prefab")
+                .GetComponentInChildren<SkinnedMeshRenderer>();
+            var sourcePoints = Common(reference, reference.sharedMesh.vertices);
+            var bodyPoints = Common(body, body.sharedMesh.vertices);
+            var border = sourcePoints
+                .Select((p, i) => (p, i))
+                .Where(v => bodyPoints.Any(b => Vector3.Distance(v.p, b) < .000001f))
+                .Select(v => v.i)
+                .ToHashSet();
+            var fitted = TripoCharacterHeadFit.Fit(head, reference);
+            try
+            {
+                Assert.That(
+                    fitted.subMeshCount,
+                    Is.EqualTo(head.sharedMesh.subMeshCount + reference.sharedMesh.subMeshCount),
+                    "The reference neck needs its original textured material, not a flat sampled color."
+                );
+                var points = Common(head, fitted.vertices);
+                var uv = fitted.uv;
+                var expectedUv = reference.sharedMesh.uv;
+                var triangles = fitted.GetTriangles(head.sharedMesh.subMeshCount);
+                var expected = reference.sharedMesh.triangles;
+                var headRoot = head.transform.root.GetComponentInChildren<Animator>().transform;
+                var referenceRoot = reference
+                    .transform.root.GetComponentInChildren<Animator>()
+                    .transform;
+                var toHead = headRoot.worldToLocalMatrix * head.transform.localToWorldMatrix;
+                var toReference =
+                    referenceRoot.worldToLocalMatrix * reference.transform.localToWorldMatrix;
+                int count = 0;
+                for (int i = 0; i < expected.Length; i += 3)
+                {
+                    if (!Enumerable.Range(0, 3).Any(c => border.Contains(expected[i + c])))
+                        continue;
+                    count++;
+                    bool found = false;
+                    for (int j = 0; j < triangles.Length; j += 3)
+                    {
+                        bool match = true;
+                        for (int c = 0; c < 3; c++)
+                        {
+                            int actual = triangles[j + c],
+                                want = expected[i + c];
+                            if (
+                                Vector3.Distance(points[actual], sourcePoints[want]) > .000001f
+                                || Vector2.Distance(uv[actual], expectedUv[want]) > .000001f
+                                || Vector3.Angle(
+                                    toHead.inverse.transpose.MultiplyVector(fitted.normals[actual]),
+                                    toReference.inverse.transpose.MultiplyVector(
+                                        reference.sharedMesh.normals[want]
+                                    )
+                                ) > .1f
+                            )
+                                match = false;
+                        }
+                        if (match)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    Assert.That(
+                        found,
+                        Is.True,
+                        "A visible neck triangle must retain reference positions, UVs and smooth normals."
+                    );
+                }
+                Assert.That(count, Is.GreaterThan(20));
+            }
+            finally
+            {
+                Object.DestroyImmediate(fitted);
+            }
+        }
+
         static float Influence(BoneWeight w, SkinnedMeshRenderer skin, string name)
         {
             return (skin.bones[w.boneIndex0].name == name ? w.weight0 : 0)

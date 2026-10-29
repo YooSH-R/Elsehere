@@ -21,6 +21,49 @@ namespace A305.EditorTools.Tripo
                 .ToArray();
             int[] upper = NeckRing(source, original),
                 lower = NeckRing(target, referencePoints);
+            // 보이는 목은 기준의 실제 면·UV를 그대로 쓴다. 연결 띠는 턱 안쪽으로 옮긴다.
+            var neckKeys = new HashSet<Vector3Int>(
+                lower.Select(i => Vector3Int.RoundToInt(referencePoints[i] * 1000000))
+            );
+            var referencePatch = new int[target.subMeshCount][];
+            for (int sub = 0; sub < target.subMeshCount; sub++)
+            {
+                var triangles = target.GetTriangles(sub);
+                var selected = new List<int>();
+                for (int i = 0; i < triangles.Length; i += 3)
+                    if (
+                        Enumerable
+                            .Range(0, 3)
+                            .Any(c =>
+                                neckKeys.Contains(
+                                    Vector3Int.RoundToInt(
+                                        referencePoints[triangles[i + c]] * 1000000
+                                    )
+                                )
+                            )
+                    )
+                        selected.AddRange(
+                            new[] { triangles[i], triangles[i + 1], triangles[i + 2] }
+                        );
+                referencePatch[sub] = selected.ToArray();
+            }
+            var neckPatch = new Mesh
+            {
+                vertices = referencePoints,
+                triangles = referencePatch.SelectMany(t => t).ToArray(),
+            };
+            try
+            {
+                lower = NeckRing(
+                    neckPatch,
+                    referencePoints,
+                    lower.Select(i => referencePoints[i]).ToArray()
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(neckPatch);
+            }
             var from = BoundsOf(original);
             var to = BoundsOf(referencePoints);
             var scale = new Vector3(
@@ -73,20 +116,43 @@ namespace A305.EditorTools.Tripo
             var boneLookup = head
                 .bones.Select((b, i) => (b.name, i))
                 .ToDictionary(p => p.name, p => p.i);
-            foreach (int index in lower)
+            BoneWeight ReferenceWeight(int index)
             {
-                Vector3 p = referencePoints[index];
-                points.Add(p);
                 var w = target.boneWeights[index];
                 w.boneIndex0 = boneLookup[reference.bones[w.boneIndex0].name];
                 w.boneIndex1 = boneLookup[reference.bones[w.boneIndex1].name];
                 w.boneIndex2 = boneLookup[reference.bones[w.boneIndex2].name];
                 w.boneIndex3 = boneLookup[reference.bones[w.boneIndex3].name];
-                weights.Add(w);
-
+                return w;
+            }
+            foreach (int index in lower)
+            {
+                points.Add(referencePoints[index]);
+                weights.Add(ReferenceWeight(index));
                 foreach (var channel in uvChannels)
                     if (channel.Count > 0)
                         channel.Add(channel[skinSample]);
+            }
+            var referenceUv = new List<Vector4>[8];
+            for (int c = 0; c < 8; c++)
+            {
+                referenceUv[c] = new List<Vector4>();
+                target.GetUVs(c, referenceUv[c]);
+            }
+            var patchMapping = new Dictionary<int, int>();
+            foreach (int index in referencePatch.SelectMany(t => t).Distinct())
+            {
+                patchMapping.Add(index, points.Count);
+                points.Add(referencePoints[index]);
+                weights.Add(ReferenceWeight(index));
+                for (int c = 0; c < 8; c++)
+                    if (uvChannels[c].Count > 0)
+                        uvChannels[c]
+                            .Add(
+                                referenceUv[c].Count == target.vertexCount
+                                    ? referenceUv[c][index]
+                                    : Vector4.zero
+                            );
             }
             var bridge = new List<int>();
             void Triangle(int a, int b, int c)
@@ -133,6 +199,12 @@ namespace A305.EditorTools.Tripo
                 .Range(0, source.subMeshCount)
                 .First(s => source.GetTriangles(s).Any(sourceUpper.Contains));
             mesh.SetTriangles(source.GetTriangles(material).Concat(bridge).ToArray(), material);
+            mesh.subMeshCount = source.subMeshCount + target.subMeshCount;
+            for (int sub = 0; sub < target.subMeshCount; sub++)
+                mesh.SetTriangles(
+                    referencePatch[sub].Select(i => patchMapping[i]).ToArray(),
+                    source.subMeshCount + sub
+                );
             mesh.RecalculateNormals();
             var normals = mesh.normals;
             var sourceNormals = source.normals;
@@ -155,8 +227,30 @@ namespace A305.EditorTools.Tripo
                 normals[start + i] = refNormalTransform
                     .MultiplyVector(referenceNormals[lower[i]])
                     .normalized;
+            foreach (var pair in patchMapping)
+                normals[pair.Value] = refNormalTransform
+                    .MultiplyVector(referenceNormals[pair.Key])
+                    .normalized;
             mesh.normals = normals;
             mesh.RecalculateTangents();
+            var tangents = mesh.tangents;
+            var referenceTangents = target.tangents;
+            var referenceVectorTransform = localToCommon.inverse * referenceToCommon;
+            if (referenceTangents.Length == target.vertexCount)
+            {
+                foreach (var pair in patchMapping)
+                {
+                    Vector4 tangent = referenceTangents[pair.Key];
+                    Vector3 direction = referenceVectorTransform.MultiplyVector(tangent).normalized;
+                    tangents[pair.Value] = new Vector4(
+                        direction.x,
+                        direction.y,
+                        direction.z,
+                        tangent.w
+                    );
+                }
+                mesh.tangents = tangents;
+            }
             // 기존 표정의 정점 델타도 머리 크기 변환을 따른다. 바디 접합 정점은 움직이지 않는다.
             var delta = new Vector3[source.vertexCount];
             var normalDelta = new Vector3[source.vertexCount];
@@ -303,7 +397,11 @@ namespace A305.EditorTools.Tripo
             return result;
         }
 
-        internal static int[] NeckRing(Mesh mesh, Vector3[] points)
+        internal static int[] NeckRing(
+            Mesh mesh,
+            Vector3[] points,
+            Vector3[] ignoredBoundary = null
+        )
         {
             var representatives = new Dictionary<Vector3Int, int>();
             int[] welded = new int[points.Length];
@@ -330,9 +428,19 @@ namespace A305.EditorTools.Tripo
                 edges.TryGetValue(edge, out int count);
                 edges[edge] = count + 1;
             }
+            var ignored = new HashSet<Vector3Int>(
+                (ignoredBoundary ?? Array.Empty<Vector3>()).Select(p =>
+                    Vector3Int.RoundToInt(p * 1000000)
+                )
+            );
             var adjacent = new Dictionary<int, List<int>>();
             foreach (var e in edges.Where(e => e.Value == 1).Select(e => e.Key))
             {
+                if (
+                    ignored.Contains(Vector3Int.RoundToInt(points[e.Item1] * 1000000))
+                    && ignored.Contains(Vector3Int.RoundToInt(points[e.Item2] * 1000000))
+                )
+                    continue;
                 if (!adjacent.ContainsKey(e.Item1))
                     adjacent[e.Item1] = new List<int>();
                 if (!adjacent.ContainsKey(e.Item2))

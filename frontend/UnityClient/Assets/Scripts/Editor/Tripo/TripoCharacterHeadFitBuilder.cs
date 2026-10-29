@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using A305.EditorTools.Common;
 using UnityEditor;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace A305.EditorTools.Tripo
 {
     public static class TripoCharacterHeadFitBuilder
     {
-        public const string Folder = TripoCharacterBootstrap.Folder + "/FittedHead";
+        public const string Folder = TripoCharacterBootstrap.Folder + "/SmoothNeck";
 
         public static TripoCharacterPart Prepare(
             TripoCharacterLibrary library,
@@ -45,6 +46,9 @@ namespace A305.EditorTools.Tripo
                 var skin = skins[0];
                 var mesh = TripoCharacterHeadFit.Fit(skin, references[0]);
                 AssetDatabase.CreateAsset(mesh, folder + "/Surface.asset");
+                skin.sharedMaterials = skin
+                    .sharedMaterials.Concat(references[0].sharedMaterials)
+                    .ToArray();
                 skin.sharedMesh = mesh;
                 skin.localBounds = mesh.bounds;
                 prefab = PrefabUtility.SaveAsPrefabAsset(instance, folder + "/Part.prefab");

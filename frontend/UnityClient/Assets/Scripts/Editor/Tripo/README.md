@@ -574,6 +574,6 @@ API Character 자동 리깅 완료 시 마스터 적용본을 자동 생성한�
 
 머리 크기는 공통 골격 좌표에서 기준 머리의 외곽 치수와 비교한다. 어느 축이든 5% 이상 다르면 오류다. 단일 스킨 머리·바디의 닫힌 목 경계는 정점 위치와 본별 가중치가 일치해야 한다. 본 이름·Avatar가 같아도 이 검사가 실패하면 최종 등록할 수 없다. 이 검사는 목 표면의 색상·음영이나 전체 메시 관통의 시각 검수를 대신하지 않는다.
 
-`TripoCharacterHeadFitBuilder.Prepare`는 같은 기준으로 준비한 단일 스킨 머리를 별도 사본으로 맞춘다. 머리 외곽 치수를 맞추고 기존 목 경계의 실제 면 연결 순서로 연결 띠를 만든다. 바디와 접하는 정점은 기준 목의 위치·가중치를 그대로 사용한다. UV 전용 정점을 분리해 연결 띠가 얼굴 텍스처의 다른 영역을 가로질러 보간되는 것을 방지한다. 단일 닫힌 목 경계를 식별할 수 없는 모델은 임의로 메우지 않고 중단한다. 새로운 얼굴의 모든 형상·표정 품질을 보장하는 범용 리토폴로지 도구는 아니다.
+`TripoCharacterHeadFitBuilder.Prepare`는 같은 기준으로 준비한 단일 스킨 머리를 별도 사본으로 맞춘다. 머리 외곽 치수를 맞추고, 보이는 목 부분에는 기준 남성 머리의 목 경계에 붙은 실제 면·UV·노멀·탄젠트·머티리얼을 재사용한다. 바디와 접하는 정점도 기준 목의 위치·가중치를 그대로 사용한다. 여성 머리와의 연결 띠는 이 목 패치의 바깥 경계에서 턱 안쪽으로 이어진다. UV 전용 정점을 분리하고 기준 목의 머티리얼 슬롯을 추가해 단색 패치와 기존 피부 텍스처 사이의 삼각형 색 경계를 피한다. 단일 닫힌 목 경계를 식별할 수 없는 모델은 임의로 메우지 않고 중단한다. 새로운 얼굴의 모든 형상·표정 품질을 보장하는 범용 리토폴로지 도구는 아니다.
 
-현재 여성 수정 후보는 `Assets/Art/Characters/Common/LittleMungMaster/FittedHead/FemaleCasualFitted/Composition.asset`이다. Project에서 이 에셋을 선택하고 **Common Character Builder**를 열면 수정된 머리와 공통 바디를 확인할 수 있다. 머리 부품은 `Assets/Art/Characters/Common/LittleMungMaster/FittedHead/Head/Part.asset`이며, 기존 `Heads/Female` 사본과 원본 여성 프리팹은 보존한다. `TripoCharacterBootstrap.Build`로 새 라이브러리를 준비할 때도 여성 머리 맞춤 단계를 거친다.
+현재 여성 수정 후보는 `Assets/Art/Characters/Common/LittleMungMaster/SmoothNeck/FemaleCasualFitted/Composition.asset`이다. Project에서 이 에셋을 선택하고 **Common Character Builder**를 열면 수정된 머리와 공통 바디를 확인할 수 있다. 머리 부품은 `Assets/Art/Characters/Common/LittleMungMaster/SmoothNeck/Head/Part.asset`이며, 기존 `Heads/Female` 사본과 원본 여성 프리팹은 보존한다. `TripoCharacterBootstrap.Build`로 새 라이브러리를 준비할 때도 여성 머리 맞춤 단계를 거친다.

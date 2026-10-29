@@ -41,6 +41,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 554998556257227827}
     m_Modifications:
+    - target: {fileID: 3364783239249484585, guid: e8e7c07787cdb284eb6382145fefd6fe, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: -4925863810201361916, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
     - target: {fileID: 5774315701786441763, guid: e8e7c07787cdb284eb6382145fefd6fe, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -81,6 +85,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7065561426048807718, guid: e8e7c07787cdb284eb6382145fefd6fe, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
+    - target: {fileID: 7065561426048807718, guid: e8e7c07787cdb284eb6382145fefd6fe, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: -4925863810201361916, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
     - target: {fileID: 8054412293924828043, guid: e8e7c07787cdb284eb6382145fefd6fe, type: 3}
       propertyPath: m_Name
       value: GroundFloor8m

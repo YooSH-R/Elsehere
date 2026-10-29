@@ -117,7 +117,7 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1430,
+            "objectCount": 1420,
             "detailCount": 50,
             "wordKeys": [
                 "awning",
@@ -163,7 +163,6 @@
                 "road",
                 "roof",
                 "shop",
-                "shutter",
                 "sidewalk",
                 "sign",
                 "sofa",

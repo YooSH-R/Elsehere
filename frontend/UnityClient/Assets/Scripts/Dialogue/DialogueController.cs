@@ -79,6 +79,20 @@ namespace A305.Dialogue
             return script.NpcName;
         }
 
+        /// <summary>대본에 적힌 NPC 역할(예: 편의점 직원). 대본이나 역할이 없으면 null이다.</summary>
+        public string FindNpcRoleLabel(string npcCode)
+        {
+            if (
+                scriptSource == null
+                || !scriptSource.TryGetScript(npcCode, out DialogueScript script)
+            )
+            {
+                return null;
+            }
+
+            return script.RoleLabel;
+        }
+
         /// <param name="npcCode">대화할 NPC 키(ERD npcs.code)</param>
         /// <param name="lookTarget">대화 시점에서 바라볼 NPC 머리 위치</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. NPC가 제안한 대화가 기본값이다.</param>

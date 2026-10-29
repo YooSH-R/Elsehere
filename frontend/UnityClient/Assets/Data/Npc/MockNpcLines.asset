@@ -19,3 +19,7 @@ MonoBehaviour:
     greeting: Hi there! Nice weather today, isn't it?
   - npcCode: CAFE_STAFF
     greeting: "Hi there! Welcome to the corner caf\xE9. Would you like to order?"
+  - npcCode: HOTEL_STAFF
+    greeting: Good afternoon! Welcome to Maple House. Are you checking in?
+  - npcCode: SHOP_STAFF
+    greeting: Hi! Welcome to the convenience store. Can I help you find something?

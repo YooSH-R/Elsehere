@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uB9D0\uB791 \uC824\uB9AC"
   description: "\uB9D0\uB791\uD55C \uC0AC\uD0D5 \uBC84\uD2BC\uACFC \uD06C\uB9BC\uC0C9
     \uCC3D"
-  titleFont: {fileID: 11400000, guid: 609a8bc80477bce43a2bdf8c71a7b839, type: 2}
+  titleFont: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
   ink: {r: 0.2901961, g: 0.23137255, b: 0.2, a: 1}
   mutedInk: {r: 0.47843137, g: 0.3882353, b: 0.32156864, a: 1}
   accentInk: {r: 0.72156864, g: 0.27450982, b: 0.12156863, a: 1}
@@ -44,3 +44,14 @@ MonoBehaviour:
   - {r: 1, g: 1, b: 1, a: 1}
   - {r: 1, g: 1, b: 1, a: 1}
   icons: {fileID: 11400000, guid: afe2ba63b465c54479ff76074f5af590, type: 2}
+  townMap:
+    ground: {r: 1, g: 0.9529412, b: 0.8627451, a: 1}
+    pavement: {r: 0.9607843, g: 0.8666667, b: 0.7019608, a: 1}
+    road: {r: 0.6627451, g: 0.7058824, b: 0.8117647, a: 1}
+    roadLine: {r: 1, g: 1, b: 1, a: 1}
+    label: {r: 1, g: 1, b: 1, a: 1}
+    destination: {r: 1, g: 0.3529412, b: 0.30588236, a: 1}
+    home: {r: 0.9490196, g: 0.6509804, b: 0.3529412, a: 1}
+    cafe: {r: 0.4862745, g: 0.76862746, b: 0.5411765, a: 1}
+    hotel: {r: 0.4117647, g: 0.7058824, b: 0.9411765, a: 1}
+    shop: {r: 1, g: 0.5411765, b: 0.35686275, a: 1}

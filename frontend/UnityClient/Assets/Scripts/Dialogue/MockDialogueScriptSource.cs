@@ -22,6 +22,7 @@ namespace A305.Dialogue
             {
                 npcCode = "TUTORIAL_PASSERBY",
                 npcName = "Alex",
+                roleLabel = "이웃",
                 opening = new LineEntry(
                     "Excuse me! Could you tell me how to get to the café?",
                     "실례합니다! 카페에 어떻게 가는지 알려 주실 수 있나요?"
@@ -56,6 +57,7 @@ namespace A305.Dialogue
             {
                 npcCode = "CAFE_STAFF",
                 npcName = "Emma",
+                roleLabel = "카페 직원",
                 opening = new LineEntry(
                     "Hi there! Welcome to our café. What can I get for you?",
                     "안녕하세요! 저희 카페에 오신 걸 환영해요. 무엇을 드릴까요?"
@@ -108,6 +110,7 @@ namespace A305.Dialogue
             {
                 npcCode = "TOWN_PASSERBY",
                 npcName = "Sam",
+                roleLabel = "행인",
                 opening = new LineEntry(
                     "Hey! Nice to see you. How's your day going?",
                     "안녕하세요! 반가워요. 오늘 하루 어때요?"
@@ -138,6 +141,84 @@ namespace A305.Dialogue
                     "아, 정말요? 더 얘기해 줘요!"
                 ),
                 exampleSentence = "It's a nice day today, isn't it?",
+            },
+            new Entry
+            {
+                npcCode = "HOTEL_STAFF",
+                npcName = "Emma",
+                roleLabel = "호텔 직원",
+                opening = new LineEntry(
+                    "Good afternoon! Welcome to Maple House. Are you checking in?",
+                    "안녕하세요! 메이플 하우스에 오신 걸 환영해요. 체크인하시나요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "check" },
+                        new LineEntry(
+                            "Of course. May I have your name, please?",
+                            "물론이죠. 성함을 알려 주시겠어요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "reservation" },
+                        new LineEntry(
+                            "Let me find your reservation. One moment, please.",
+                            "예약을 찾아볼게요. 잠시만 기다려 주세요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry(
+                            "My pleasure. Enjoy your stay!",
+                            "천만에요. 편히 쉬다 가세요!"
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "I see. How else can I help you?",
+                    "그렇군요. 더 도와드릴 일이 있을까요?"
+                ),
+                exampleSentence = "I'd like to check in, please.",
+            },
+            new Entry
+            {
+                npcCode = "SHOP_STAFF",
+                npcName = "Alex",
+                roleLabel = "편의점 직원",
+                opening = new LineEntry(
+                    "Hi! Welcome to the convenience store. Can I help you find something?",
+                    "안녕하세요! 편의점에 오신 걸 환영해요. 찾으시는 물건이 있나요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "umbrella" },
+                        new LineEntry(
+                            "Umbrellas are right by the door. They're 8 coins each.",
+                            "우산은 문 바로 옆에 있어요. 하나에 8코인이에요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "card" },
+                        new LineEntry(
+                            "Sure, we take cards. Please tap it here.",
+                            "네, 카드 돼요. 여기에 대 주세요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry(
+                            "You're welcome! Stay dry out there.",
+                            "천만에요! 비 맞지 않게 조심하세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Sure. Is there anything else you need?",
+                    "네. 더 필요한 건 없으세요?"
+                ),
+                exampleSentence = "Do you sell umbrellas?",
             },
         };
 
@@ -174,6 +255,9 @@ namespace A305.Dialogue
 
             [Tooltip("대화 화면에 보이는 NPC 이름")]
             public string npcName;
+
+            [Tooltip("누가 말을 거는지 알릴 때 쓰는 역할. 예: 편의점 직원")]
+            public string roleLabel;
 
             public LineEntry opening = new LineEntry("", "");
 
@@ -214,7 +298,8 @@ namespace A305.Dialogue
                     turns,
                     replies,
                     defaultReply.ToLine(),
-                    exampleSentence
+                    exampleSentence,
+                    roleLabel
                 );
             }
         }

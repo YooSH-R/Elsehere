@@ -236,6 +236,11 @@ namespace A305.EditorTools.UI
 
         public static TMP_FontAsset RegularFont()
         {
+            var serviceFont = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                ServiceFontBuilder.FontPath
+            );
+            if (serviceFont != null)
+                return serviceFont;
             return BuilderTools.LoadRequiredAsset<TMP_FontAsset>(
                 UiFontBuilder.RegularFontAssetPath,
                 UiFontBuilder.MenuPath
@@ -244,6 +249,11 @@ namespace A305.EditorTools.UI
 
         public static TMP_FontAsset BoldFont()
         {
+            var serviceFont = UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                ServiceFontBuilder.FontPath
+            );
+            if (serviceFont != null)
+                return serviceFont;
             return BuilderTools.LoadRequiredAsset<TMP_FontAsset>(
                 UiFontBuilder.BoldFontAssetPath,
                 UiFontBuilder.MenuPath

@@ -1,7 +1,8 @@
 """Spring ↔ AI 워커 요청 형식. AI 워커는 상태를 저장하지 않으므로 필요한 것은 Spring이 매 요청에 담아 보낸다.
 명세: docs/api/ai-worker.md"""
 
-from typing import Literal
+import re
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -151,3 +152,106 @@ class MemoryRequest(BaseModel):
     outcome: str  # 대화 결과 한 줄 (예: "주문 성공")
     history: list[Line] = Field(max_length=200)
     memory_card: dict | None = None  # 이전 카드
+
+
+# ---------- NPC 인격 카드 조합 (어드민 랜덤 생성, app.npc_persona) ----------
+Axis = Literal["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]
+Role = Literal["STAFF", "PASSERBY"]
+Leans = dict[Axis, Literal["high", "low"]]  # 이 성격 쪽 NPC만 고른다 (축: high/low)
+Phrase = Annotated[str, Field(min_length=1, max_length=200, pattern=r"\S")]
+
+
+class CandidateText(BaseModel):
+    """가치관·동기·관심사 후보 하나. leans·roles가 없으면 누구나 고를 수 있다."""
+
+    text: Phrase
+    leans: Leans | None = Field(default=None, min_length=1)
+    roles: list[Role] | None = Field(default=None, min_length=1)
+
+
+class CandidateOccupation(BaseModel):
+    text: Annotated[str, Field(min_length=1, max_length=120, pattern=r"\S")]
+    role: Role
+    place: str | None = None  # 직원은 일하는 장소
+    ages: list[Phrase] | None = Field(default=None, min_length=1)  # 이 직업의 나이대. 없으면 모든 나이대
+
+
+class CandidateTrait(BaseModel):
+    """성격 특징 후보 하나. 성격 축마다 NPC가 기운 쪽에서 하나씩 고르므로 축은 하나만."""
+
+    name: Annotated[str, Field(min_length=1, max_length=60, pattern=r"\S")]
+    description: Annotated[str, Field(min_length=1, max_length=300, pattern=r"\S")]
+    leans: Leans = Field(min_length=1, max_length=1)
+
+
+class PersonaCandidates(BaseModel):
+    """백엔드 DB의 활성 후보. 보낸 목록만 AI 기본 재료를 바꾸고, 말투·사회적 행동 규칙은 늘 AI 기본 재료다."""
+
+    names: list[Annotated[str, Field(min_length=1, max_length=80, pattern=r"\S")]] | None = None
+    age_ranges: list[Phrase] | None = None
+    occupations: list[CandidateOccupation] | None = None
+    traits: list[CandidateTrait] | None = None
+    values: list[CandidateText] | None = None
+    motivations: list[CandidateText] | None = None
+    interests: list[CandidateText] | None = None
+
+    def as_ingredients(self) -> dict:
+        """재료 파일(ai/npcs/rules/persona-ingredients.json)과 같은 모양. 보내지 않은 목록은 빠진다."""
+        lists = self.model_dump(exclude_none=True)
+        if "age_ranges" in lists:
+            lists["ageRanges"] = lists.pop("age_ranges")
+        return lists
+
+
+class PersonaFixed(BaseModel):
+    """어드민에서 직접 고른 칸. 비운 칸만 후보에서 고른다."""
+
+    name: Annotated[str, Field(min_length=1, max_length=80, pattern=r"\S")] | None = None
+    occupation: Annotated[str, Field(min_length=1, max_length=120, pattern=r"\S")] | None = None
+    age_range: Annotated[str, Field(min_length=1, max_length=40, pattern=r"\S")] | None = None
+    values: list[Phrase] | None = Field(default=None, min_length=1, max_length=8)
+    motivations: list[Phrase] | None = Field(default=None, min_length=1, max_length=8)
+    interests: list[Annotated[str, Field(min_length=1, max_length=120, pattern=r"\S")]] | None = Field(
+        default=None, min_length=1, max_length=10
+    )
+
+    def as_profile_fields(self) -> dict:
+        """인격 카드 칸 이름(ageRange)으로. 비운 칸은 빠진다."""
+        fields = self.model_dump(exclude_none=True)
+        if "age_range" in fields:
+            fields["ageRange"] = fields.pop("age_range")
+        return fields
+
+
+MBTI_FORM = re.compile(r"^[EI][NS][FT][JP](-[AT])?$")
+
+
+def mbti_form(v: str | None) -> str | None:
+    if v is not None and not MBTI_FORM.match(v.upper()):
+        raise ValueError("MBTI 형식이 아닙니다 (예: ISTP, ISTP-T)")
+    return v and v.upper()
+
+
+class PersonaGenerateRequest(BaseModel):
+    """인격 카드 초안 하나. npc_id가 씨앗이라 같은 요청(재료 포함)이면 같은 NPC다."""
+
+    npc_id: Annotated[str, Field(min_length=1, max_length=128, pattern=r"\S")]
+    role: Role
+    place: Annotated[str, Field(min_length=1, max_length=64, pattern=r"\S")]  # 기본 장소 (예: CAFE)
+    mbti: str | None = None  # 비우면 npc_id로 고른다
+    fixed: PersonaFixed = PersonaFixed()
+    candidates: PersonaCandidates = PersonaCandidates()
+    taken_names: list[str] = Field(default=[], max_length=1000)  # 다른 NPC가 쓰는 이름 (고르지 않음)
+    narrate: bool = False  # true면 LLM이 사연(배경 이야기·겪은 일)을 쓴다
+
+    check_mbti = field_validator("mbti")(mbti_form)
+
+
+class PersonaDeriveRequest(BaseModel):
+    """저장된 인격 카드의 자동 칸(성격 5축·행동 조각)을 MBTI로 다시 계산. 카드는 공통 인격 모델 그대로(camelCase)."""
+
+    npc_id: Annotated[str, Field(min_length=1, max_length=128, pattern=r"\S")]  # 행동 조각 씨앗
+    mbti: str
+    profile: dict
+
+    check_mbti = field_validator("mbti")(mbti_form)

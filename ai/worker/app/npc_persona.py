@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from .llm import LLM, Usage
+from .llm import LLM, ModelOutputError, Usage
 from .npc_profile_models import NpcConfiguration
 
 RULES = Path(__file__).resolve().parents[2] / "npcs/rules"  # 저장소의 ai/npcs/rules. 배포 이미지에도 같은 자리에 복사한다
@@ -145,7 +145,7 @@ def generate(
     profile = {
         "schemaVersion": "2.0",
         "profileVersion": 1,
-        "name": fixed.get("name") or rng("name").choice([name for name in ingredients["names"] if name not in taken_names]),
+        "name": fixed.get("name") or _name(ingredients["names"], taken_names, rng("name")),
         "occupation": job["text"],
         "ageRange": fixed.get("ageRange") or rng("ageRange").choice(job.get("ages", ingredients["ageRanges"])),
         "personality": {"traits": _traits(ingredients["traits"], dimensions, rng("traits"))},
@@ -167,6 +167,13 @@ def generate(
     return config, life
 
 
+def _name(names: list[str], taken_names, rng: random.Random) -> str:
+    free = [name for name in names if name not in taken_names]
+    if not free:
+        raise ValueError("고를 이름이 없음: 이름 후보를 모두 다른 NPC가 쓰고 있음")
+    return rng.choice(free)
+
+
 def _occupation(ingredients: dict, role: str, place: str, fixed: str | None, rng: random.Random) -> dict:
     """고정한 직업이 있으면 그 글(후보에 있으면 그 나이대도), 없으면 역할에 맞는 직업 하나. 직원은 일하는 장소까지 맞아야 한다."""
     if fixed:
@@ -183,7 +190,10 @@ def _traits(traits: list[dict], dimensions: dict[str, float], rng: random.Random
     for axis in AXES:
         leaning = side(dimensions[axis])
         if leaning != "middle":
-            trait = rng.choice([trait for trait in traits if trait["leans"] == {axis: leaning}])
+            options = [trait for trait in traits if trait["leans"] == {axis: leaning}]
+            if not options:
+                raise ValueError(f"성격 특징 후보에 {axis} {leaning} 쪽이 없음")
+            trait = rng.choice(options)
             picked.append({"name": trait["name"], "description": trait["description"]})
     return picked
 
@@ -253,23 +263,23 @@ NARRATE_SCHEMA = {
 }
 
 
-async def narrate(config: dict, llm: LLM) -> dict:
+async def narrate(config: dict, llm: LLM, usage: Usage | None = None) -> dict:
     """규칙 뼈대의 사연 칸(background.summary·experiences)만 LLM이 쓴 새 설정. 다른 칸은 그대로다.
-    결과가 공통 인격 모델을 지키지 않으면 ValueError (저장하지 않는다)."""
+    결과가 공통 인격 모델을 지키지 않으면 ModelOutputError (저장하지 않는다). usage에 모델 호출을 남긴다."""
     profile = config["npcProfile"]
     card = {key: value for key, value in profile.items() if key not in ("schemaVersion", "profileVersion")}
     card["background"] = {"interests": profile["background"]["interests"]}  # 비어 있는 사연 칸은 보여 주지 않는다
     messages = [{"role": "system", "content": NARRATE_SYSTEM}, {"role": "user", "content": json.dumps(card, ensure_ascii=False)}]
-    out = await llm.chat("narrate", "npc", messages, Usage(), temperature=0.8, max_tokens=500, schema=NARRATE_SCHEMA, hedge=False)
+    out = await llm.chat("narrate", "npc", messages, usage or Usage(), temperature=0.8, max_tokens=500, schema=NARRATE_SCHEMA, hedge=False)
     try:
         story = json.loads(out)
     except json.JSONDecodeError as e:
-        raise ValueError(f"모델 출력이 JSON이 아님: {out[:80]!r}") from e
+        raise ModelOutputError(f"모델 출력이 JSON이 아님: {out[:80]!r}") from e
     background = {**profile["background"], "summary": story["summary"], "experiences": story["experiences"]}
     narrated = {**config, "npcProfile": {**profile, "background": background}}
     try:
         NpcConfiguration.model_validate(narrated)
     except ValidationError as e:
         where = "; ".join(f"{'.'.join(str(part) for part in err['loc'])}: {err['msg']}" for err in e.errors()[:5])
-        raise ValueError(f"사연이 공통 인격 모델에 맞지 않음 ({where})") from e
+        raise ModelOutputError(f"사연이 공통 인격 모델에 맞지 않음 ({where})") from e
     return narrated

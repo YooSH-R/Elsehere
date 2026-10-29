@@ -83,6 +83,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | `WORDS_BUDGET_S` | 3초 | NPC 대답 스트림 안 추천 단어(`words`). 넘으면 `words: null`, `error: "timeout"`으로 넘기고 `done`을 보냄 |
 | `JUDGE_BUDGET_S` | 5초 | `/v1/judge`의 의도·번역 **각각**. 넘으면 그 칸만 `timeout` 오류 |
 | `GUARD_BUDGET_S` | 5초 | `/v1/guard` 무례 판정 (로컬 판정기 + LLM). 넘으면 `abusive: null`, `error_code: timeout` |
+| `GUARD_GPU_TIMEOUT_S` | 2초 | GPU 서버 판정 모델(`GUARD_GPU_MODEL`) 호출 한 번. 넘으면 재시도 없이 구성의 판정 모델로. `GUARD_BUDGET_S` 안에서 셈 |
 | `REPLY_FIRST_BUDGET_S` | 5초 | NPC 대답 **첫 글자까지**. 넘으면 SSE `error`(`timeout`). 말하기 시작한 대답은 끊지 않음 |
 | `STT_FIRST_TIMEOUT_S` | 8초 | 음성 인식 뒤에 다른 공급자가 있을 때 첫 공급자 호출. 넘으면 다음 공급자로. 마지막 공급자와 공급자가 하나뿐일 때는 30초 |
 | `STT_NEXT_TIMEOUT_S` | 8초 | 음성 인식 공급자가 셋 이상일 때 중간 공급자 호출 |
@@ -213,6 +214,10 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `local_error` | 로컬 판정기 오류 (이때 판정은 LLM으로 이어 감) |
 
 `abusive`·`error_code`의 뜻과 Spring 처리는 위 표와 같습니다. 기록에는 `source`와 `score`를 함께 남겨 주세요(호출 감소와 자동 구간 품질을 이걸로 셉니다). 서비스에서 켜는 것은 학습에 쓰지 않은 보정 데이터로 `t_lo`·`t_hi`를 고르고, 미리 정한 평가 기준(품질은 LLM 단독과 비슷하면서 판정용 LLM 호출 감소)을 넘은 뒤입니다. 그 전에는 켜지 않습니다.
+
+**GPU 서버 판정 모델을 켰을 때 (기본 꺼짐)**
+
+워커에 `GUARD_GPU_MODEL`을 주면 판정용 LLM 호출이 SSAFY GPU 서버의 vLLM에 올린 자체 학습 모델(Qwen3.8-27B + LoRA)을 먼저 한 번 부릅니다. 오류·시간 초과(`GUARD_GPU_TIMEOUT_S`)면 재시도 없이 구성의 판정 모델(기본 GPT-6 Luna)로 넘기고, 연속으로 `GUARD_BREAKER_FAILURES`(3)번 실패하면 `GUARD_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 응답 형식은 같고, `usage`의 `guard` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 프롬프트·yes/no 해석·`abusive: null` 규칙은 위와 같습니다.
 
 이진 판정이라 위협·성희롱 같은 **세부 유형은 구분하지 않습니다.** NPC가 먼저 잘못한 장면에서의 맞대응(정당방위)처럼 장면에 따라 봐줘야 하는 경우는, 유형을 돌려주는 계약이 생기기 전까지 Spring 규칙에서 자동 제재를 빼 주세요.
 

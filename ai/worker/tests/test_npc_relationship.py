@@ -76,6 +76,24 @@ def test_after_a_conversation_the_relationship_to_store_is_whole_numbers():
     assert after["affinity"] > 5
 
 
+def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
+    """백엔드가 정수로 저장해도 호감이 쌓인다. 잡담·칭찬까지 하면 다섯째 대화에 좋아하는 티, 열일곱째에 사적인 이야기.
+    인사하고 주문만 하면 열다섯째, 마흔째다(기본 배수, 대화마다 하루 간격)."""
+    relationship = RULES["relationship"]
+    friendly = ["GREETING", "SMALL_TALK", "COMPLIMENT", "TASK_DONE", "LEAVE"]
+    polite = ["GREETING", "TASK_DONE", "LEAVE"]
+
+    def until(threshold: int, events: list[str]) -> int:
+        stored, conversations = {"recognition": 0, "affinity": 0}, 0
+        while stored["affinity"] < threshold:
+            conversations += 1
+            stored = rel.after_conversation({**stored, "days_since_last_talk": 1}, events, 0, {}, RULES)
+        return conversations
+
+    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (5, 17)
+    assert (until(relationship["liked"], polite), until(relationship["personalTalk"]["affinity"], polite)) == (15, 40)
+
+
 def test_a_first_meeting_starts_from_nothing():
     after = rel.after_conversation(None, [], 1, {}, RULES)
 

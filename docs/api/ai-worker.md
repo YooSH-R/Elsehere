@@ -16,7 +16,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | 백엔드 API | AI API | 대응 |
 |---|---|---|
 | ONB-08·09 난이도, CONV-01 `levelApplied` | 모든 대화 요청의 `level` | 그대로 넘김 (MVP는 `1`) |
-| CONV-01 대화 시작 · 첫 인사 | (백엔드 `[미정]`) | 미리 작성한 인사를 쓰면 AI 호출 없음. AI로 만들면 `/v1/npc/reply`에 인사 지시(`instruction`)와 `suggest_words: true` |
+| CONV-01 대화 시작 · 첫 인사 | `/v1/npc/reply` | 말걸기 대사가 있는 NPC가 먼저 말을 걸면 그 대사(AI 호출 없음). 그 밖에는 인사 지시(`instruction`)와 `suggest_words: true`로 AI가 만듦. `relationship`도 실으면 알아보는 인사가 됨(2.3절) |
 | CONV-01·03 `suggestWords` | `/v1/npc/reply`의 `words` 이벤트 (또는 `/v1/suggest`) | `words` 그대로. 작별 대사 턴은 부르지 않음(`null`) |
 | CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
 | CONV-03 발화 전송 | `POST /v1/judge`와 `POST /v1/guard`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). `npcTurn.text` ← `done.text` |

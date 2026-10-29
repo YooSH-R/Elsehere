@@ -43,7 +43,6 @@ Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런�
 | `Suitcase`, `LuggageCart` | 복제해서 사용할 수 있는 수하물 소품 |
 | `LiftFacade` | 닫힌 엘리베이터 문 장식과 Collider |
 | `LobbyChandelier`, `GlobeSconce` | 조명 외형과 실제 Point Light |
-| `ConciergeVisual` | 기존 NPC 기능 루트에 붙이는 직원 대체 외형 |
 
 가구 원본은 Prefab Mode에서 편집한다. 장소마다 다른 색·구성을 만들 때는 Variant를 사용하고, 집에서도 사용하는 원본 가구·공통 재질을 직접 바꾸지 않는다. 식물은 기존 `TinyTreats/HousePlants/Monstera` 프리팹을 재사용하며 출처·라이선스는 `Assets/ThirdParty/CREDITS.md`를 따른다.
 
@@ -52,6 +51,8 @@ Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런�
 ## 기능 연결
 
 `HOTEL_STAFF`는 기존 `Passerby` 프리팹을 사용하는 고정 직원이다. `HotelStaffSettings`의 감지 거리는 3.5m, 대화 제안 거리는 2.5m, 걷는 속도는 0, 재제안 대기는 20초다. 튜토리얼의 대화 허용 조건과 기존 대화 시작·종료 흐름을 따른다.
+
+직원 외형은 Tripo로 만들어 외관 승인 뒤 최종 등록한 호텔리어 `Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab`이다(AI 인격 이름 Jake). 마스터 골격과 공용 이동 애니메이션을 쓰며, 직원 루트의 `CharacterAnimationDriver`가 이 Animator를 움직인다. **Tools → A305 → Hotel → Connect Hotelier Character**는 `HotelScene`·`HotelInteriorSandbox`의 직원에 호텔리어를 한 번만 붙이고 이전 임시 외형을 지운다. 직원 위치·대화·시선 대상·캡슐은 바꾸지 않는다.
 
 `MockHotelLines`는 로컬 검수용 인사말이며 서버의 NPC 이름·성격이나 호텔 체크인 미션을 구현한 데이터가 아니다. 예약·결제·객실 이동·앉기·수하물 조작은 별도 기능이다. 호텔 가구에는 서버의 단어 키를 새로 부여하지 않았으므로 호버 툴팁이 나오지 않는다. 기존 출입문과 도착 지점은 유지한다.
 

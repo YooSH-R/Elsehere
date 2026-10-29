@@ -2,6 +2,7 @@ package com.elsehere.ai.service;
 
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.world.entity.Npc;
+import com.elsehere.world.entity.NpcPersona;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
@@ -13,18 +14,16 @@ public class WorkerNpcs {
 
   private final JsonMapper jsonMapper;
 
-  // persona는 {"role", "facts", "scene"} JSON이다(시드 world.sql). NPC 식별자는 콘텐츠 코드(npcs.code)를 쓴다.
+  // persona는 NpcPersona JSON이다(시드 world.sql, 어드민). NPC 식별자는 콘텐츠 코드(npcs.code)를 쓴다.
   public WorkerNpc of(Npc npc) {
-    Persona persona = jsonMapper.readValue(npc.getPersona(), Persona.class);
+    NpcPersona persona = jsonMapper.readValue(npc.getPersona(), NpcPersona.class);
     return new WorkerNpc(
         npc.getCode(),
         npc.getName(),
         persona.role(),
-        persona.facts() == null ? "" : persona.facts(),
-        persona.scene() == null ? "" : persona.scene(),
+        persona.facts(),
+        persona.scene(),
         npc.getVoiceId(),
         1.0);
   }
-
-  private record Persona(String role, String facts, String scene) {}
 }

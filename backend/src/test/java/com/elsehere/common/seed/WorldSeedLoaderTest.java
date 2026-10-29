@@ -248,6 +248,26 @@ class WorldSeedLoaderTest {
             });
   }
 
+  @Test
+  @DisplayName("NPC 페르소나는 처음 넣을 때만 시드 값을 쓰고, 다시 실행해도 관리자가 고친 값을 유지한다")
+  void load_keepsPersonaEditedByAdmin() {
+    worldSeedLoader.load();
+    entityManager
+        .createNativeQuery(
+            "update npcs set persona = '{\"role\": \"edited role\", \"facts\": \"\", \"scene\": \"\"}'"
+                + " where code = 'CAFE_STAFF'")
+        .executeUpdate();
+
+    worldSeedLoader.load();
+    entityManager.clear();
+
+    assertThat(npcRepository.findByCode("CAFE_STAFF"))
+        .get()
+        .extracting(Npc::getPersona)
+        .asString()
+        .contains("edited role");
+  }
+
   private Catalog catalog() throws IOException {
     try (var input = new ClassPathResource("content/object-words.json").getInputStream()) {
       return new JsonMapper().readValue(input, Catalog.class);

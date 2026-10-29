@@ -84,6 +84,7 @@ NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 �
 호스트 Nginx dev.elsehere.kr /
   → 127.0.0.1:8081 (web)
       ├─ 정적 WebGL 파일
+      ├─ /admin → backend:8080 (운영자 어드민 화면)
       └─ /api/ → backend:8080 → database:5432
                               → ai-worker:8020 (연동 주소)
 ```
@@ -95,7 +96,7 @@ NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 �
 | `infra/docker/backend.Dockerfile` | 검사에 통과한 `backend/build/libs/app.jar` 실행. 서버에서 다시 빌드하지 않음 |
 | `infra/docker/ai-worker.Dockerfile` | 워커와 공유 피드백 모듈 실행 |
 | `infra/docker/web.Dockerfile` | WebGL 산출물과 내부 API 프록시 제공 |
-| `infra/nginx/web.conf` | WebAssembly MIME·gzip 헤더, 백엔드 교체 후 DNS 재조회 |
+| `infra/nginx/web.conf` | WebAssembly MIME·gzip 헤더, 백엔드 교체 후 DNS 재조회, `/api/`·`/admin`([운영자 어드민](admin.md)) 백엔드 프록시 |
 | `infra/compose/deploy.*.env.example` | 환경별 DB·Google OAuth·AI·포트·이미지 변수 예제 |
 | `infra/nginx/a305.dev-webgl.locations.conf` | 기존 HTTPS 서버에 수동으로 추가할 개발 WebGL 경로 예제 |
 

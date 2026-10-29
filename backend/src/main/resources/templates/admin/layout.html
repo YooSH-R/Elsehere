@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- 어드민 화면이 함께 쓰는 머리글과 상단 메뉴. -->
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title th:text="${title} + ' · Elsehere 어드민'">Elsehere 어드민</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --text: #1f2328;
+      --muted: #656d76;
+      --line: #d8dee4;
+      --accent: #2f6fde;
+      --accent-text: #ffffff;
+      --ok: #1a7f37;
+      --error: #cf222e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.6 system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 12px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+    header .brand { font-weight: 700; }
+    header nav { display: flex; gap: 16px; flex: 1; }
+    header a { color: var(--text); text-decoration: none; }
+    header a:hover { color: var(--accent); }
+    main { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    .hint { margin: 0 0 20px; color: var(--muted); }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+    th { color: var(--muted); font-weight: 600; font-size: 13px; }
+    a { color: var(--accent); }
+    code { font-size: 13px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0 0 20px; }
+    dt { color: var(--muted); }
+    dd { margin: 0; }
+    label { display: block; margin: 16px 0 4px; font-weight: 600; }
+    .field-hint { margin: 0 0 6px; color: var(--muted); font-size: 13px; font-weight: 400; }
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: inherit;
+      resize: vertical;
+    }
+    .actions { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+    button {
+      padding: 8px 16px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+    button:disabled { opacity: 0.6; cursor: default; }
+    .status.ok { color: var(--ok); }
+    .status.error { color: var(--error); }
+  </style>
+</head>
+<body>
+<header th:fragment="header">
+  <span class="brand">Elsehere 어드민</span>
+  <nav>
+    <a th:href="@{/admin/npcs}">NPC 페르소나</a>
+  </nav>
+  <a th:href="@{/}">게임으로</a>
+  <button type="button" id="logout">로그아웃</button>
+  <script>
+    document.getElementById("logout").addEventListener("click", async () => {
+      await fetch("/api/v1/auth/logout", {
+        method: "POST",
+        headers: { "X-Requested-With": "ElsehereAdmin" },
+        credentials: "same-origin"
+      });
+      location.href = "/";
+    });
+  </script>
+</header>
+</body>
+</html>

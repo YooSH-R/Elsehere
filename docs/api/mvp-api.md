@@ -84,6 +84,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `UNAUTHENTICATED` | 401 | 로그인 필요 |
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
+| `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |

@@ -7,11 +7,12 @@ from unittest.mock import patch
 import runtime_probe
 
 
-def fetch_response(url, **request_options):
+def fetch_response(url, ai_health=None, **request_options):
+    ai_health = ai_health or {"ok": True, "tts": True}
     responses = {
         "http://web/api/health": (json.dumps({"status": "UP"}).encode(), {}),
         "http://web/api/private-resource": (b"", {}),
-        "http://127.0.0.1:8020/health": (json.dumps({"ok": True}).encode(), {}),
+        "http://127.0.0.1:8020/health": (json.dumps(ai_health).encode(), {}),
         "http://127.0.0.1:8020/v1/judge": (b"", {}),
         "http://web/": (b"<html></html>", {"Content-Type": "text/html"}),
         "http://web/version.json": (json.dumps({"service": "web"}).encode(), {}),
@@ -42,6 +43,24 @@ class RuntimeProbeTests(unittest.TestCase):
                 patch.object(runtime_probe, "fetch", side_effect=fetch_response),
                 patch.dict("os.environ", {"AI_WORKER_TOKEN": "runtime-test-only"}),
                 patch("builtins.print"),
+            ):
+                runtime_probe.main()
+
+    def test_ai_worker_without_speech_synthesis_fails(self):
+        with tempfile.TemporaryDirectory(prefix="a305-runtime-probe-") as directory:
+            prompt_path = Path(directory) / "feedback_system.ko.md"
+            prompt_path.write_text("Feedback instructions", encoding="utf-8")
+            with (
+                patch.object(runtime_probe, "FEEDBACK_PROMPT_PATH", prompt_path),
+                patch.object(
+                    runtime_probe,
+                    "fetch",
+                    side_effect=lambda url, **options: fetch_response(
+                        url, ai_health={"ok": True, "tts": False}, **options
+                    ),
+                ),
+                patch.dict("os.environ", {"AI_WORKER_TOKEN": "runtime-test-only"}),
+                self.assertRaisesRegex(AssertionError, "speech synthesis"),
             ):
                 runtime_probe.main()
 

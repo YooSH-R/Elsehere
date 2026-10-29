@@ -132,6 +132,13 @@ def test_stt_timeouts_and_skip_by_env(env):
     assert (s.stt_next_timeout_s, s.stt_breaker_failures, s.stt_breaker_skip_s) == (6.0, 0, 120.0)
 
 
+def test_kokoro_threads_by_env(env):
+    env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
+    assert Settings.from_env().kokoro_threads == 0  # 0이면 onnxruntime 기본 (보이는 코어 수)
+    env["KOKORO_THREADS"] = "2"  # 컨테이너 CPU 상한에 맞춤
+    assert Settings.from_env().kokoro_threads == 2
+
+
 @pytest.mark.parametrize(("missing", "named"), [("STT_GPU_BASE_URL", "STT_GPU_BASE_URL"), ("STT_GPU_TOKEN", "STT_GPU_TOKEN")])
 def test_stt_chain_gpu_needs_address_and_token(env, missing, named):
     env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q", "STT_CHAIN": GPU_CHAIN, "STT_GPU_BASE_URL": "http://gpu/v1", "STT_GPU_TOKEN": "t"})

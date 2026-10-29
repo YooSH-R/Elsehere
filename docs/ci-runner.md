@@ -4,13 +4,15 @@
 
 ## 자동 검사 범위
 
-백엔드·Unity·AI 작업은 `needs: ["ci:yaml"]`로 YAML 검사 성공 후 실행할 수 있습니다. 각 작업이 별도 환경을 사용하므로 Runner의 동시 실행 한도 안에서 인프라 검사와 겹쳐 실행합니다. 파이프라인 성공에는 선택된 모든 필수 작업의 통과가 필요합니다.
+백엔드·Unity 포맷·AI 작업은 `needs: ["ci:yaml"]`로 YAML 검사 성공 후 실행할 수 있습니다. MR의 Unity 실행 테스트는 YAML과 Unity 포맷 검사 성공 후 시작합니다. 각 작업이 별도 환경을 사용하므로 Runner의 동시 실행 한도 안에서 인프라 검사와 겹쳐 실행합니다. 파이프라인 성공에는 선택된 모든 필수 작업의 통과가 필요합니다.
 
 | 작업 | 실행 조건 | 검증·산출물 |
 | --- | --- | --- |
 | `ci:yaml` | 생성된 모든 파이프라인 | CI YAML 문법·형식 검사 |
 | `backend:check-and-build` | 백엔드, API 명세, ERD, 앱 실행 설정 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·`app.jar`·커밋 식별자 |
 | `unity:format` | 프론트, API 명세, Unity 검사·규약 또는 공통 CI 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
+| `unity:editor-tests` | 같은 프로젝트의 Unity 관련 MR | Windows Runner에서 컴파일·EditMode·PlayMode 필수 검사, NUnit XML·로그. WebGL 빌드·서버 배포 없음 |
+| `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
 | `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
@@ -32,10 +34,10 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | --- | --- |
 | 일반 문서만 변경 | `ci:yaml` |
 | `backend/` | `ci:yaml`, `backend:check-and-build` |
-| `frontend/` | `ci:yaml`, `unity:format` |
+| `frontend/` | `ci:yaml`, `unity:format`, `unity:editor-tests` |
 | `ai/worker/` 또는 `ai/tools/` | `ci:yaml`, `ai:check-and-test` |
 | `ai/feedback/` | `ci:yaml`, `ai:check-and-test`, `ai:panel-tests` |
-| `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, 두 AI 작업, `infra:app-runtime` |
+| `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, `unity:editor-tests`, 두 AI 작업, `infra:app-runtime` |
 | 확인용 `infra/compose/` | `ci:yaml`, `infra:compose-and-nginx` |
 | 앱용 Dockerfile·Compose·환경 예제·웹 응답 설정 | `ci:yaml`, `backend:check-and-build`, `infra:app-runtime`, 해당 경로의 인프라 문법 검사 |
 | `infra/scripts/` | `ci:yaml`, `infra:deployment-plan-tests`. 앱 실행 점검 코드는 백엔드 빌드·실행 검사도 선택 |
@@ -46,9 +48,11 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 
 `infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 규약·검사 스크립트 변경은 Unity 검사, 공통 작성 지침 변경은 백엔드·Unity·AI 검사를 선택합니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
 
+Unity 검사 스크립트 `run-unity-ci.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷·실행 테스트를 선택합니다. 실행 테스트는 Draft를 포함한 MR의 각 Push에서 대상 브랜치와 남은 차이를 기준으로 다시 실행합니다. 외부 프로젝트 MR에는 같은 변경 경로에서 `unity:editor-tests` 대신 실패하는 `unity:external-mr`을 선택하므로 필수 검사를 생략한 성공 결과로 병합하지 않습니다.
+
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 
-일반 MR의 Unity 작업은 **포맷 검사**입니다. Unity Editor의 컴파일·EditMode·PlayMode·WebGL 빌드 검증을 대신하지 않습니다. 보호된 후보의 수동 CI 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
+Unity 관련 MR은 **포맷 검사와 실제 EditMode·PlayMode 실행 테스트를 모두 통과해야 합니다.** `unity:editor-tests`는 실패를 허용하지 않으며, 실패·취소·대기 중인 최신 파이프라인은 [병합 검사 설정](gitlab-setup.md#병합-검사-설정)에 따라 병합을 차단합니다. dev 병합 후에는 병합된 커밋의 누적 통합 검사와 필요한 WebGL 빌드·배포를 별도로 수행합니다. 보호된 후보의 수동 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
 
 일반 MR 파이프라인은 검사를 수행하며 서버 앱을 교체하지 않습니다. dev 자동 배포의 보호 조건, 자식 파이프라인, 서버 설치와 연결 시험은 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다. 운영 통합 테스트는 별도 릴리스 검증으로 관리합니다. 마지막 성공 배포 이후 누적 변경 판정은 배포 구현의 책임이며 CI의 `rules:changes`만으로 해결했다고 간주하지 않습니다.
 

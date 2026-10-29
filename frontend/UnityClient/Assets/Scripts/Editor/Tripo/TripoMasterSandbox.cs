@@ -13,7 +13,7 @@ namespace A305.EditorTools.Tripo
 {
     public static class TripoMasterSandbox
     {
-        public static string Build(TripoAssetRecord record)
+        public static string Build(TripoAssetRecord record, string outputFolder = null)
         {
             BuilderTools.ThrowIfPlaying();
             var visual = AssetDatabase.LoadAssetAtPath<GameObject>(record.ModelPath);
@@ -23,15 +23,21 @@ namespace A305.EditorTools.Tripo
             string name = Path.GetFileName(
                 Path.GetDirectoryName(AssetDatabase.GetAssetPath(record.sourceModel))
             );
-            const string prefabs = "Assets/Prefabs/Player/Tripo";
-            const string scenes = "Assets/Scenes/Sandbox/Tripo";
+            string prefabs = outputFolder ?? "Assets/Prefabs/Player/Tripo";
+            string scenes = outputFolder ?? "Assets/Scenes/Sandbox/Tripo";
             BuilderTools.EnsureFolder(prefabs);
             BuilderTools.EnsureFolder(scenes);
             string prefabPath = AssetDatabase.GenerateUniqueAssetPath(
-                prefabs + "/" + name + ".prefab"
+                prefabs
+                    + "/"
+                    + (outputFolder == null ? name : record.DisplayName + "_Player")
+                    + ".prefab"
             );
             string scenePath = AssetDatabase.GenerateUniqueAssetPath(
-                scenes + "/" + name + ".unity"
+                scenes
+                    + "/"
+                    + (outputFolder == null ? name : record.DisplayName + "_Review")
+                    + ".unity"
             );
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(
                 LittleMungStairBuilder.PrefabPath
@@ -60,19 +66,26 @@ namespace A305.EditorTools.Tripo
             }
             if (!AssetDatabase.CopyAsset(LittleMungStairBuilder.ScenePath, scenePath))
                 throw new IOException("검수 씬 복사 실패");
-            var scene = EditorSceneManager.OpenScene(scenePath);
-            var old = BuilderTools.FindSingleInScene<PlayerMover>(scene);
-            var camera = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
-            var instance = BuilderTools.InstantiatePrefab(
-                AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath),
-                old.transform.parent,
-                old.transform.position,
-                old.transform.rotation
-            );
-            PlayerSandboxBuilder.ConnectPlayerAndCamera(instance, camera.gameObject);
-            Object.DestroyImmediate(old.gameObject);
-            EditorSceneManager.SaveScene(scene);
-            return scenePath;
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
+            try
+            {
+                var old = BuilderTools.FindSingleInScene<PlayerMover>(scene);
+                var camera = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
+                var instance = BuilderTools.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath),
+                    old.transform.parent,
+                    old.transform.position,
+                    old.transform.rotation
+                );
+                PlayerSandboxBuilder.ConnectPlayerAndCamera(instance, camera.gameObject);
+                Object.DestroyImmediate(old.gameObject);
+                EditorSceneManager.SaveScene(scene);
+                return scenePath;
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
         }
 
         public static void ApplyFromCommandLine()

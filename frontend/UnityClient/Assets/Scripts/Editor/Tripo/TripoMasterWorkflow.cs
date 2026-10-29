@@ -18,7 +18,19 @@ namespace A305.EditorTools.Tripo
             var master = AssetDatabase.LoadAssetAtPath<GameObject>(TripoMasterRig.MasterPath);
             TripoModelReview.RequireHumanoid(master);
             if (AssetDatabase.LoadAssetAtPath<GameObject>(VisualTemplate) == null)
-                throw new InvalidOperationException("서비스 마스터 여성 프리팹이 없습니다.");
+                throw new InvalidOperationException("서비스 공통 골격 부모 프리팹이 없습니다.");
+            foreach (
+                var motion in new[]
+                {
+                    TripoReviewMotion.Idle,
+                    TripoReviewMotion.Walk,
+                    TripoReviewMotion.Run,
+                    TripoReviewMotion.Rise,
+                    TripoReviewMotion.Fall,
+                    TripoReviewMotion.Land,
+                }
+            )
+                TripoMotionPreview.LoadPlayerClip(motion);
             return master;
         }
 
@@ -33,19 +45,24 @@ namespace A305.EditorTools.Tripo
             var master = RequireMaster();
             if (record.commonBody != null && record.commonBody != master)
                 throw new InvalidOperationException(
-                    "선택한 마스터는 이 서비스 여성 템플릿과 다릅니다."
+                    "선택한 마스터는 이 서비스 공통 골격 템플릿과 다릅니다."
                 );
             string sourcePath = AssetDatabase.GetAssetPath(record.sourceModel);
             string folder = AssetDatabase.GenerateUniqueAssetPath(
                 Path.GetDirectoryName(sourcePath).Replace('\\', '/') + "/MasterRig"
             );
             var model = TripoMasterRig.Build(record.sourceModel, master, folder);
-            var visual = BuildVisual(model, folder + "/Visual.prefab");
+            foreach (var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())
+                if (TripoSurfaceCleanup.RemoveAttachedSlivers(skin.sharedMesh) > 0)
+                    EditorUtility.SetDirty(skin.sharedMesh);
+            AssetDatabase.SaveAssets();
+            var visual = BuildVisual(model, folder + "/" + record.DisplayName + "_Visual.prefab");
             record.commonBody = master;
             record.referenceHeightMeters = 0;
             record.uniformScale = 1;
             record.revision.candidatePath = AssetDatabase.GetAssetPath(visual);
             record.masterPreparedPath = record.revision.candidatePath;
+            record.masterBinding = TripoMasterBindingStamp.Capture(record);
             record.revision.Invalidate();
             EditorUtility.SetDirty(record);
             AssetDatabase.SaveAssets();
@@ -61,8 +78,12 @@ namespace A305.EditorTools.Tripo
             var visual = (GameObject)PrefabUtility.InstantiatePrefab(template);
             try
             {
+                visual.name = Path.GetFileNameWithoutExtension(path);
                 var target = visual.GetComponentInChildren<Animator>();
                 var source = model.GetComponentInChildren<Animator>();
+                // 컨트롤러 교체가 Humanoid 포즈를 초기화하므로 기준 본 복사보다 먼저 연결한다.
+                target.runtimeAnimatorController = source.runtimeAnimatorController;
+                target.avatar = source.avatar;
                 var bones = target
                     .GetBoneTransform(HumanBodyBones.Hips)
                     .GetComponentsInChildren<Transform>()
@@ -75,7 +96,7 @@ namespace A305.EditorTools.Tripo
                 {
                     if (!bones.TryGetValue(bone.name, out var replacement))
                         throw new InvalidOperationException(
-                            "여성 마스터 템플릿 본 누락: " + bone.name
+                            "공통 골격 부모 템플릿 본 누락: " + bone.name
                         );
                     replacement.localPosition = bone.localPosition;
                     replacement.localRotation = bone.localRotation;
@@ -100,8 +121,7 @@ namespace A305.EditorTools.Tripo
                     replacement.quality = SkinQuality.Bone4;
                     replacement.updateWhenOffscreen = true;
                 }
-                target.runtimeAnimatorController = source.runtimeAnimatorController;
-                target.avatar = source.avatar;
+
                 PrefabUtility.RecordPrefabInstancePropertyModifications(target);
                 return PrefabUtility.SaveAsPrefabAsset(visual, path);
             }
@@ -111,7 +131,7 @@ namespace A305.EditorTools.Tripo
             }
         }
 
-        [MenuItem("Tools/A305/Assets/Apply Service Master To Selected Record")]
+        [MenuItem("Tools/A305/Development/Tripo/Apply Service Master To Selected Record")]
         public static void ApplySelected()
         {
             if (!BuilderTools.CanBuild())

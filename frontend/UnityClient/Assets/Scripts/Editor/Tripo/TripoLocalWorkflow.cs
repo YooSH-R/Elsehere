@@ -25,18 +25,21 @@ namespace A305.EditorTools.Tripo
                 )
             )
                 throw new ArgumentException("저장된 FBX 파일을 선택하세요.", nameof(source));
-            string destination = NewVersionFolder(folder);
+            string destination = NewVersionFolder(folder, Path.GetFileNameWithoutExtension(source));
             string modelPath = destination + "/" + Path.GetFileName(source);
             File.Copy(source, modelPath, false);
             CopyTextures(source, destination);
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             TripoModelImporter.ConfigureModel(modelPath, kind == TripoAssetKind.Character);
-            return StartReview(
+            // 원본 FBX 왕복은 원본끼리 비교한다. 사용자 작업대는 이후 통합 검사를 이어 실행한다.
+            var record = TripoWorkbenchAssets.CreateRecord(
                 AssetDatabase.LoadAssetAtPath<GameObject>(modelPath),
                 kind,
                 attachment,
                 destination + "/Review"
             );
+            TripoWorkbench.Validate(record);
+            return record;
         }
 
         public static async Task<TripoAuditReport> ImportBlenderCandidateAsync(
@@ -55,7 +58,8 @@ namespace A305.EditorTools.Tripo
             )
                 throw new FileNotFoundException("Blender 편집 원본을 먼저 준비하고 저장하세요.");
             var bridge = new TripoBlenderBridge(executable);
-            string candidate = NewVersionFolder(folder) + "/Model.fbx";
+            string candidate =
+                NewVersionFolder(folder, record.DisplayName) + "/" + record.DisplayName + ".fbx";
             await bridge.ExportAsync(
                 record.blenderSourcePath,
                 Path.GetFullPath(candidate),
@@ -76,7 +80,13 @@ namespace A305.EditorTools.Tripo
         )
         {
             var record = TripoWorkbenchAssets.CreateRecord(model, kind, attachment, folder);
-            TripoWorkbench.Validate(record);
+            if (kind == TripoAssetKind.Character)
+            {
+                if (!TripoLocalImport.ReadyForAppearance(record))
+                    TripoLocalImport.Review(record);
+            }
+            else
+                TripoWorkbench.Validate(record);
             return record;
         }
 
@@ -114,7 +124,7 @@ namespace A305.EditorTools.Tripo
             return TripoWorkbench.Validate(record);
         }
 
-        private static string NewVersionFolder(string root)
+        private static string NewVersionFolder(string root, string name)
         {
             if (
                 string.IsNullOrEmpty(root)
@@ -123,7 +133,8 @@ namespace A305.EditorTools.Tripo
                 || root.Contains('\\')
             )
                 throw new ArgumentException("Assets 하위의 버전 폴더가 필요합니다.", nameof(root));
-            string folder = root + "/" + Guid.NewGuid().ToString("N");
+            A305.EditorTools.Common.BuilderTools.EnsureFolder(root);
+            string folder = AssetDatabase.GenerateUniqueAssetPath(root + "/" + name);
             Directory.CreateDirectory(folder);
             return folder;
         }

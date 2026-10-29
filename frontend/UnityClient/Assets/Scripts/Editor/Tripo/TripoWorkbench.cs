@@ -81,6 +81,22 @@ namespace A305.EditorTools.Tripo
                     {
                         Merge(report, TripoMasterRig.Inspect(model, record.commonBody));
                         if (report.Passed)
+                            Merge(report, TripoMasterBindingStamp.Inspect(record));
+                        if (report.Passed)
+                            Merge(
+                                report,
+                                TripoMasterFootAudit.Inspect(
+                                    record.sourceModel,
+                                    AssetDatabase.LoadAssetAtPath<GameObject>(
+                                        record.masterPreparedPath
+                                    )
+                                )
+                            );
+                        if (report.Passed)
+                            Merge(report, TripoMasterHeadAudit.Inspect(record.sourceModel, model));
+                        if (report.Passed)
+                            Merge(report, TripoMasterHandAudit.Inspect(record.sourceModel, model));
+                        if (report.Passed)
                         {
                             report.ManualChecks.RemoveAll(item =>
                                 item.StartsWith("자동 동작 검사 미실행")
@@ -204,7 +220,8 @@ namespace A305.EditorTools.Tripo
         public static GameObject Register(TripoAssetRecord record, string path)
         {
             if (
-                !record.revision.validationPassed
+                !TripoLocalImport.ReadyForAppearance(record)
+                || !record.revision.validationPassed
                 || !record.revision.visuallyApproved
                 || record.revision.validatedFingerprint != record.GetFingerprint()
             )
@@ -221,11 +238,18 @@ namespace A305.EditorTools.Tripo
                 throw new InvalidOperationException(
                     "기존 프리팹은 덮어쓰지 않습니다. 새 버전 이름을 사용하세요."
                 );
+            var checkedAgain = Validate(record);
+            if (!checkedAgain.Passed)
+                throw new InvalidOperationException(
+                    "최종 검사 실패: " + string.Join("\n", checkedAgain.Errors)
+                );
+            record.revision.visuallyApproved = true;
             Scene preview = EditorSceneManager.NewPreviewScene();
             GameObject instance = null;
             try
             {
                 instance = CreateAssembly(record);
+                instance.name = record.DisplayName;
                 SceneManager.MoveGameObjectToScene(instance, preview);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 AssetDatabase.Refresh();
@@ -233,6 +257,7 @@ namespace A305.EditorTools.Tripo
                 if (prefab == null)
                     throw new InvalidOperationException("프리팹을 저장하지 못했습니다.");
                 record.registeredPrefabPath = path;
+                record.automaticStatus = "최종 프리팹 등록 완료";
                 EditorUtility.SetDirty(record);
                 AssetDatabase.SaveAssets();
                 return prefab;

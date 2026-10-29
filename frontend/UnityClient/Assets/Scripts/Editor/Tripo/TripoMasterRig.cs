@@ -51,6 +51,8 @@ namespace A305.EditorTools.Tripo
                 var skins = input.GetComponentsInChildren<SkinnedMeshRenderer>();
                 if (skins.Length == 0)
                     throw new InvalidOperationException("마스터에 연결할 스킨 메시가 없습니다.");
+                var sourceFrames = SurfaceFrames(sourceAnimator);
+                var targetFrames = SurfaceFrames(targetAnimator);
                 BuilderTools.EnsureFolder(folder);
                 for (int index = 0; index < skins.Length; index++)
                 {
@@ -68,7 +70,14 @@ namespace A305.EditorTools.Tripo
                             return mapped;
                         })
                         .ToArray();
-                    var mesh = CopySurface(skin, replacement, bodyScale);
+                    var mesh = CopySurface(
+                        skin,
+                        replacement,
+                        bodyScale,
+                        sourceFrames,
+                        targetFrames,
+                        TripoTorsoWeights.Prepare(skin, sourceAnimator)
+                    );
                     created.Add(mesh);
                     mesh.bindposes = replacement
                         .bones.Select(bone =>
@@ -83,14 +92,7 @@ namespace A305.EditorTools.Tripo
                     replacement.updateWhenOffscreen = true;
                     AssetDatabase.CreateAsset(mesh, folder + "/Surface" + index + ".asset");
                 }
-                targetAnimator.runtimeAnimatorController =
-                    AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-                        LittleMungAnimationBuilder.ControllerPath
-                    );
-                if (targetAnimator.runtimeAnimatorController == null)
-                    throw new InvalidOperationException(
-                        "마스터 이동 애니메이션 컨트롤러가 없습니다."
-                    );
+                targetAnimator.runtimeAnimatorController = TripoMasterAnimation.Build(folder);
                 targetAnimator.applyRootMotion = false;
                 targetAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 var report = Inspect(output, master);
@@ -138,10 +140,89 @@ namespace A305.EditorTools.Tripo
             );
         }
 
+        private static Dictionary<Transform, Matrix4x4> SurfaceFrames(Animator animator)
+        {
+            var frames = new Dictionary<Transform, Matrix4x4>();
+            Quaternion bodyRotation = BodyFrame(animator).rotation;
+            foreach (var id in new[] { HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot })
+            {
+                var ankle = animator.GetBoneTransform(id);
+                if (ankle == null)
+                    throw new InvalidOperationException("발목 본이 없습니다: " + id);
+                // 발가락마다 다른 bone roll을 적용하면 단단한 밑창까지 휘어진다.
+                // 발 전체를 발목에 옮기고, 기준 방향은 공통 체형 축으로 보존한다.
+                var frame = Matrix4x4.TRS(ankle.position, bodyRotation, Vector3.one);
+                foreach (var bone in ankle.GetComponentsInChildren<Transform>())
+                    frames.Add(bone, frame);
+            }
+            foreach (bool left in new[] { true, false })
+            {
+                var wrist = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand
+                );
+                var index = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal
+                );
+                var little = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftLittleProximal : HumanBodyBones.RightLittleProximal
+                );
+                var thumb = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftThumbProximal : HumanBodyBones.RightThumbProximal
+                );
+                if (wrist == null || index == null || little == null || thumb == null)
+                    throw new InvalidOperationException(
+                        "손 표면 정렬에 필요한 손목·검지·새끼·엄지 본이 없습니다."
+                    );
+                var rotation = HandRotation(animator, left);
+                // 손가락 bone roll 대신 실제 손바닥의 해부학적 방향을 사용한다.
+                // 생성기의 엄지 시작점은 손바닥 안/밖으로 달라지므로 엄지 밑동은 손목과 함께 옮긴다.
+                foreach (var bone in wrist.GetComponentsInChildren<Transform>())
+                    frames.Add(
+                        bone,
+                        Matrix4x4.TRS(
+                            bone == thumb ? wrist.position : bone.position,
+                            rotation,
+                            Vector3.one
+                        )
+                    );
+            }
+            // 생성된 목·머리의 bone roll을 얼굴 기울기로 옮기지 않는다.
+            // 관절 위치는 마스터를 따르되 표면 방향은 체형 축을 기준으로 보존한다.
+            var neck = animator.GetBoneTransform(HumanBodyBones.Neck);
+            if (neck == null)
+                throw new InvalidOperationException("목 본이 없습니다.");
+            foreach (var bone in neck.GetComponentsInChildren<Transform>())
+                frames.Add(bone, Matrix4x4.TRS(bone.position, bodyRotation, Vector3.one));
+            return frames;
+        }
+
+        internal static Quaternion HandRotation(Animator animator, bool left)
+        {
+            var wrist = animator.GetBoneTransform(
+                left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand
+            );
+            var index = animator.GetBoneTransform(
+                left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal
+            );
+            var little = animator.GetBoneTransform(
+                left ? HumanBodyBones.LeftLittleProximal : HumanBodyBones.RightLittleProximal
+            );
+            if (wrist == null || index == null || little == null)
+                throw new InvalidOperationException("손바닥 방향에 필요한 관절이 없습니다.");
+            Vector3 along = (index.position + little.position) * .5f - wrist.position;
+            Vector3 normal = Vector3.Cross(index.position - little.position, along);
+            if (along.sqrMagnitude < 1e-10f || normal.sqrMagnitude < 1e-12f)
+                throw new InvalidOperationException("손바닥 방향을 계산할 수 없습니다.");
+            return Quaternion.LookRotation(normal, along);
+        }
+
         private static Mesh CopySurface(
             SkinnedMeshRenderer source,
             SkinnedMeshRenderer target,
-            float bodyScale
+            float bodyScale,
+            Dictionary<Transform, Matrix4x4> sourceFrames,
+            Dictionary<Transform, Matrix4x4> targetFrames,
+            BoneWeight[] weights
         )
         {
             var original = source.sharedMesh;
@@ -155,8 +236,12 @@ namespace A305.EditorTools.Tripo
                 var to = target.bones[i];
                 // 메시의 각 관절 주변을 마스터의 기준 위치/축으로 옮긴 뒤 새 bind pose를 만든다.
                 // 전신만 정렬하고 bind pose를 바꾸면 손가락 메시와 실제 회전 중심이 어긋난다.
-                var sourceFrame = Matrix4x4.TRS(from.position, from.rotation, Vector3.one);
-                var targetFrame = Matrix4x4.TRS(to.position, to.rotation, Vector3.one * bodyScale);
+                var sourceFrame = sourceFrames.TryGetValue(from, out var sourceFoot)
+                    ? sourceFoot
+                    : Matrix4x4.TRS(from.position, from.rotation, Vector3.one);
+                var targetFrame = targetFrames.TryGetValue(to, out var targetFoot)
+                    ? targetFoot * Matrix4x4.Scale(Vector3.one * bodyScale)
+                    : Matrix4x4.TRS(to.position, to.rotation, Vector3.one * bodyScale);
                 transforms[i] =
                     target.transform.worldToLocalMatrix
                     * targetFrame
@@ -167,7 +252,7 @@ namespace A305.EditorTools.Tripo
             }
             var mesh = Object.Instantiate(original);
             mesh.name = original.name + "_MasterBound";
-            var weights = original.boneWeights;
+            mesh.boneWeights = weights;
             mesh.vertices = original
                 .vertices.Select((v, i) => TransformPoint(v, weights[i], transforms))
                 .ToArray();

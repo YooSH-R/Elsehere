@@ -6,6 +6,7 @@ import json
 import logging
 import re
 
+from . import npc_relationship
 from . import prompts as P
 from .guard_local import HANGUL, LocalGuard
 from .llm import LLM, ProviderError, Usage, within
@@ -56,7 +57,7 @@ async def judge_rudeness(
                     trace["source"] = "local"
                     return {"abusive": s >= llm.s.guard_t_hi, "error": None, "error_code": None}
         # yes/no 한 단어로 받는다. JSON을 강제하면 욕설·위협에 빈 응답 → 400으로 턴이 죽었다
-        out = await llm.chat("guard", "guard", P.guard_messages(npc, history, text), usage, 0.0, 5)
+        out = await llm.guard_chat(P.guard_messages(npc, history, text), usage)
         return guard_result(out)
 
     try:
@@ -67,9 +68,17 @@ async def judge_rudeness(
 
 
 async def guard(llm: LLM, req: GuardRequest, local: LocalGuard | None = None) -> dict:
+    """affinity_delta: 무례로 판정했을 때만 바로 깎을 호감(app.npc_relationship). 아니거나 판정하지 못했으면 null."""
     usage = Usage()
     text, _ = P.strip_actions(req.text)
     if not text:  # 행동 묘사만 있었으면 모델을 부르지 않는다 (/v1/judge의 dropped와 같음)
-        return {"text": "", "dropped": True, "guard": None, "usage": []}
+        return {"text": "", "dropped": True, "guard": None, "affinity_delta": None, "usage": []}
     result = await judge_rudeness(llm, req.npc, req.history, text, usage, local, llm.s.guard_budget_s)
-    return {"text": text, "dropped": False, "guard": result, "usage": usage.items}
+    affinity_delta = rude_affinity_delta(req.npc) if result["abusive"] is True else None
+    return {"text": text, "dropped": False, "guard": result, "affinity_delta": affinity_delta, "usage": usage.items}
+
+
+def rude_affinity_delta(npc: Npc) -> int:
+    """요청의 인격 카드(성격 5축·행동 조각)로 이 NPC의 무례 반응 크기를 정해 감점을 계산한다. 카드가 없으면 기본 배수."""
+    rules, library = npc_relationship.service_rules()
+    return npc_relationship.rude_affinity_delta(npc_relationship.npc_rates(npc.profile, rules, library), rules)

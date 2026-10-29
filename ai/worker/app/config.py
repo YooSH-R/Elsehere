@@ -119,6 +119,10 @@ class Settings:
     words_budget_s: float = 3.0  # NPC 대답 스트림 안 추천 단어(words)의 상한. 넘으면 words: null(timeout)로 넘기고 done을 보낸다
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
     guard_budget_s: float = 5.0  # /v1/guard 무례 판정 하나의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함)
+    guard_gpu_model: str = ""  # GPU 서버 판정 모델(gpu_llm 공급자). 있으면 먼저 부르고 실패하면 구성의 guard 모델. 비면 끔
+    guard_gpu_timeout_s: float = 2.0  # GPU 서버 판정 한 번의 상한 (실측 p90 0.3초). 넘으면 바로 구성의 guard 모델로
+    guard_breaker_failures: int = 3  # GPU 서버 판정이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
+    guard_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
     respond_budget_s: float = 30.0  # NPC 추론 API(/internal/ai/npc/respond) 요청 하나의 상한. 계약 10절 'AI 처리 제한 30초'
     exhausted_skip_s: float = 600.0  # 하루 한도에 걸린 모델은 이만큼 건너뜀
@@ -155,6 +159,9 @@ class Settings:
         if stt_fallback and stt_fallback["provider"] != main:
             others.append(stt_fallback["provider"])
         others += [step["provider"] for step in stt_chain if step["provider"] != main]
+        guard_gpu_model = e.get("GUARD_GPU_MODEL", "")
+        if guard_gpu_model:  # 주소·키가 없으면 아래 missing에 걸린다
+            others.append("gpu_llm")
         providers = {name: {"base_url": provider_base_url(name, e), "api_key": provider_key(name, e)} for name in dict.fromkeys(others)}
         missing = [PROFILES["providers"][n]["base_url_env"] for n, v in providers.items() if not v["base_url"]]
         missing += [" 또는 ".join(PROFILES["providers"][n]["key_env"]) for n, v in providers.items() if not v["api_key"]]
@@ -193,6 +200,10 @@ class Settings:
             words_budget_s=float(e.get("WORDS_BUDGET_S", cls.words_budget_s)),
             judge_budget_s=float(e.get("JUDGE_BUDGET_S", cls.judge_budget_s)),
             guard_budget_s=float(e.get("GUARD_BUDGET_S", cls.guard_budget_s)),
+            guard_gpu_model=guard_gpu_model,
+            guard_gpu_timeout_s=float(e.get("GUARD_GPU_TIMEOUT_S", cls.guard_gpu_timeout_s)),
+            guard_breaker_failures=int(e.get("GUARD_BREAKER_FAILURES", cls.guard_breaker_failures)),
+            guard_breaker_skip_s=float(e.get("GUARD_BREAKER_SKIP_S", cls.guard_breaker_skip_s)),
             audio_max_mb=float(e.get("AUDIO_MAX_MB", cls.audio_max_mb)),
             reply_first_budget_s=float(e.get("REPLY_FIRST_BUDGET_S", cls.reply_first_budget_s)),
             respond_budget_s=float(e.get("RESPOND_BUDGET_S", cls.respond_budget_s)),

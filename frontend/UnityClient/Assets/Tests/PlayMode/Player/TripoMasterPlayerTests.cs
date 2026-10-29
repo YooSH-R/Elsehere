@@ -100,17 +100,25 @@ namespace A305.Player.Tests
                             frame
                         );
                 };
-                float start = player.transform.position.z;
+                // 달리기가 장면의 벽에 닿기 전에 끝나도록 같은 출발점에서 짧게 걷고 달려 비교한다.
+                const int moveFrames = 45;
+                Vector3 origin = player.transform.position;
+                float start = origin.z;
                 phase = "Walk";
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-                for (int i = 0; i < 90; i++)
+                for (int i = 0; i < moveFrames; i++)
                     yield return null;
                 float walked = player.transform.position.z - start;
                 Assert.That(walked, Is.GreaterThan(.3f));
+                phase = "Return";
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                player.Teleport(origin, Quaternion.identity);
+                for (int i = 0; i < 10; i++)
+                    yield return null;
                 start = player.transform.position.z;
                 phase = "Run";
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.LeftShift));
-                for (int i = 0; i < 90; i++)
+                for (int i = 0; i < moveFrames; i++)
                     yield return null;
                 Assert.That(player.transform.position.z - start, Is.GreaterThan(walked * 1.3f));
                 float ground = player.transform.position.y;

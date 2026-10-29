@@ -304,13 +304,28 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertEqual(self.runtime.containers["ai"], 1)
         self.assertEqual(self.runtime.containers["web"], 1)
 
-    def test_missing_branch_cannot_use_an_unconfigured_pilot(self):
+    def test_missing_deployment_branch_is_rejected(self):
         self.server.initialize()
 
         with self.assertRaisesRegex(ValueError, "Only dev"):
             self.server.apply(self.release_archive(branch=None))
 
         self.assertFalse((self.root / "deployments/last-success.json").exists())
+
+    def test_development_receiver_rejects_retired_pilot_in_existing_config(self):
+        retired_branch = "chore/retired-deploy-pilot"
+        self.config["pilot_branch"] = retired_branch
+        self.server.initialize()
+        original_containers = self.runtime.containers.copy()
+
+        with self.assertRaisesRegex(ValueError, "Only dev"):
+            self.server.apply(self.release_archive(branch=retired_branch))
+
+        self.assertEqual(self.runtime.containers, original_containers)
+        self.assertFalse((self.root / "deployments/last-success.json").exists())
+
+        result = self.server.apply(self.release_archive())
+        self.assertEqual(result["candidate_commit"], "c" * 40)
 
     def test_backend_success_keeps_other_containers_and_monitoring_secrets(self):
         self.server.initialize()

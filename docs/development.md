@@ -42,7 +42,7 @@ AI 도구가 처음 읽는 `AGENTS.md`의 필수 지침과 두 도구의 동일�
 
 ```text
 chore/S15P31A305-36-service-ci
-chore/S15P31A305-37-server-environments
+chore/S15P31A305-177-dev-auto-deployment
 docs/S15P31A305-113-https-operations
 ```
 
@@ -61,7 +61,7 @@ Jira에서는 에픽별로 스토리와 관련 작업을 묶어 정렬합니다.
 
 ```text
 chore(infra): 서비스별 CI와 품질 검사 기준 구성 [S15P31A305-36]
-chore(infra): 개발·운영 서버 실행 환경 구성 [S15P31A305-37]
+chore(infra): dev 자동 배포와 상태 점검 구성 [S15P31A305-177]
 docs(infra): HTTPS 적용과 인증서 갱신 절차 정리 [S15P31A305-113]
 ```
 

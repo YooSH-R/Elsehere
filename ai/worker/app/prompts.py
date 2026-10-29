@@ -78,7 +78,7 @@ EVENTS_GUIDE = """Also list in "events" what the learner does toward the partner
 - SMALL_TALK: chats about something besides the business, like the weather.
 - PERSONAL_QUESTION: asks about the partner's own life or feelings ("Do you like working here?"). Then it is not SMALL_TALK.
 - APOLOGY: apologizes for something they did ("Sorry I'm late"). Not "sorry?" asking to repeat, "excuse me", "sorry to hear that", or apologizing for their English.
-- COMPLIMENT: praises the partner or their work ("You make the best latte"). A plain "thanks" or "thank you so much" is not a compliment.
+- COMPLIMENT: praises the partner, their work or their place ("You make the best latte", "I love this cafe", "커피 진짜 맛있어요"). A plain "thanks" or "thank you so much" is not a compliment.
 - TASK_DONE: says in words that their business is finished ("That's all", "No, thanks").
 - LEAVE: says goodbye.
 Korean words count by their meaning. English mistakes, Korean words and short answers are never a problem. Do not judge rudeness here."""
@@ -197,7 +197,10 @@ ANNOYED = (
     "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cool; "
     "if they apologize, accept it briefly, without warm words."
 )
-PLEASED = "They said something nice or chatted with you warmly a moment ago, so you are in a good mood: be a little warmer than usual."
+PLEASED = (
+    "They said something nice or chatted with you warmly a moment ago, so you are in a good mood: "
+    "let it show in a friendlier word or two, even if you are usually reserved."
+)
 STRONG_FEELINGS = ("friendly", "wary")
 
 

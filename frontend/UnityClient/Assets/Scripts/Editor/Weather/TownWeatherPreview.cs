@@ -35,10 +35,12 @@ namespace A305.EditorTools.Weather
                 var weather = BuilderTools.FindSingleInScene<WeatherPresenter>(scene);
                 weather.ShowImmediately(kind);
                 // Edit 모드에서는 파티클이 흐르지 않으므로 빗방울이 내려온 뒤로 미리 돌린다.
-                var rain = (ParticleSystem)
-                    new SerializedObject(weather).FindProperty("rain").objectReferenceValue;
                 if (kind == WeatherKind.Rain)
+                {
+                    var fields = new SerializedObject(weather);
+                    var rain = (ParticleSystem)fields.FindProperty("rain").objectReferenceValue;
                     rain.Simulate(1.5f, true, true);
+                }
                 Transform player = BuilderTools.FindSingleInScene<PlayerMover>(scene).transform;
                 Camera camera = BuilderTools
                     .FindSingleInScene<PlayerCameraRig>(scene)

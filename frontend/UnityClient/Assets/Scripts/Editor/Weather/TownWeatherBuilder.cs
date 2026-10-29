@@ -111,11 +111,11 @@ namespace A305.EditorTools.Weather
                 Vector3.zero
             );
             foreach (Vector3 position in OvercastPositions)
-                MainstreetAtmosphere.Cloud(overcast, position, material).localScale = new Vector3(
-                    1.6f,
-                    1.2f,
-                    1.6f
-                );
+            {
+                Transform cloud = MainstreetAtmosphere.Cloud(overcast, position, material);
+                // 하늘을 덮도록 맑은 날 구름보다 넓고 두껍게 편다.
+                cloud.localScale = new Vector3(1.6f, 1.2f, 1.6f);
+            }
             overcast.gameObject.SetActive(false);
             return overcast.gameObject;
         }

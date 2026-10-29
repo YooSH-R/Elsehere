@@ -46,6 +46,7 @@ namespace A305.Characters
     public sealed class SpeechVisemeTimeline
     {
         private readonly SpeechVisemeData data;
+        public float Duration => data.duration;
         private readonly SpeechPhonemeArticulation articulation;
         private const float TransitionSeconds = .035f;
         private static readonly SpeechPoseSample Rest = new SpeechPoseSample(
@@ -75,7 +76,10 @@ namespace A305.Characters
             if (
                 source == null
                 || (source.version != 1 && source.version != 2)
-                || source.provider != "windows-sapi-en-US"
+                || (
+                    source.provider != "windows-sapi-en-US"
+                    && !(source.version == 2 && source.provider == "kokoro-en-US")
+                )
                 || !float.IsFinite(source.duration)
                 || Mathf.Abs(source.duration - clipDuration) > .02f
                 || (source.version == 1 && (source.cues == null || source.cues.Length == 0))

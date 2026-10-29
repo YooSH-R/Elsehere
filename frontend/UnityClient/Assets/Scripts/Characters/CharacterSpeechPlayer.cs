@@ -17,6 +17,7 @@ namespace A305.Characters
         [SerializeField]
         private SpeechExpressionProfile expressions;
         private SpeechVisemeTimeline timeline;
+        private AudioClip activeAudio;
         private bool active;
         private bool paused;
         public bool IsPlaying => active && !paused;
@@ -38,6 +39,7 @@ namespace A305.Characters
             speechSource = source;
             speech = clip;
             timeline = null;
+            activeAudio = null;
         }
 
         public void ConfigureExpressions(SpeechExpressionProfile profile) => expressions = profile;
@@ -57,14 +59,24 @@ namespace A305.Characters
             return SpeechVisemeTimeline.Parse(speech.Timeline.text, speech.Audio.length);
         }
 
-        public void Play()
+        public void Play() => Play(speech != null ? speech.Audio : null, ReadTimeline());
+
+        // Runtime dialogue supplies the downloaded voice and its own timing.
+        // A legacy voice without timing still plays, without invented mouth cues.
+        public void Play(AudioClip audio, SpeechVisemeTimeline phonemes)
         {
-            var nextTimeline = ReadTimeline();
+            if (face == null || speechSource == null || audio == null)
+                throw new InvalidOperationException(
+                    "Connect a face, AudioSource and runtime voice."
+                );
+            if (phonemes != null && Mathf.Abs(phonemes.Duration - audio.length) > .02f)
+                throw new ArgumentException("Phoneme timing does not match the voice length.");
             Stop();
-            timeline = nextTimeline;
+            timeline = phonemes;
+            activeAudio = audio;
             speechSource.playOnAwake = false;
             speechSource.loop = false;
-            speechSource.clip = speech.Audio;
+            speechSource.clip = audio;
             speechSource.timeSamples = 0;
             active = true;
             paused = false;
@@ -101,12 +113,16 @@ namespace A305.Characters
         // Offline rendering uses the same evaluator as real AudioSource playback.
         public void ApplyAtAudioTime(float seconds)
         {
-            if (timeline == null)
+            if (activeAudio == null)
+            {
                 timeline = ReadTimeline();
-            var mouth = timeline.SampleArticulation(seconds);
+                activeAudio = speech.Audio;
+            }
+            var mouth =
+                timeline != null ? timeline.SampleArticulation(seconds) : SpeechMouthSample.Rest;
             var expression =
                 expressions != null
-                    ? expressions.Sample(seconds, speech.Audio.length)
+                    ? expressions.Sample(seconds, activeAudio.length)
                     : new SpeechExpressionSample(0, 0);
             face.ApplySpeech(mouth, expression.Smile, expression.Blink);
         }

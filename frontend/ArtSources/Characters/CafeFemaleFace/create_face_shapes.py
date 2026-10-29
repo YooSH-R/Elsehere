@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 import bpy
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 p = argparse.ArgumentParser()
 p.add_argument('--surface', type=Path, required=True)
@@ -86,20 +87,20 @@ for channel in channels:
                     corner=min(1,abs(y)/.024)
                     q.z+=.007*w*corner*factor
                     q.y+=side*.004*w*corner*factor
-                elif channel=='viseme_AA':
-                    q.z-=.016*w*fade(v.z,.477,.487)
-                    q.x+=.002*w
-                elif channel=='viseme_FF':
-                    q.z+=.002*w*max(0,min(1,(.480-v.z)/.008))
-                    q.x+=.001*w
-                elif channel=='viseme_TH':
-                    q.z+=(v.z-.481)*.50*w
-                    q.x+=.001*w
+                elif channel in ('viseme_AA', 'viseme_FF', 'viseme_TH'):
+                    # The source has a painted crescent, not an oral aperture.
+                    # Recess that small surface behind the authored speaking lips.
+                    radius = math.sqrt((y/.043)**2 + ((v.z-.452)/.017)**2)
+                    influence = fade(radius, .4, 1.3)
+                    q.z -= (.002 if channel == 'viseme_AA' else .0005) * influence
         key.data[i].co=q
         offsets.append(uv(normal-normals[i]))
     normal_offsets[channel]=offsets
 
-parts=[]
+sys.path.insert(0, str(Path(__file__).parent))
+from build_speaking_mouth import build_speaking_mouth
+parts, kept_triangles = build_speaking_mouth(body, d, vertices, normals, triangles, node.image, a.output)
+
 for name,color,scale,target in [
     ('UpperTeeth',(.88,.82,.72),(.002,.014,.0028),(-.256,-.043,.481)),
     ('Tongue',(.48,.12,.14),(.005,.009,.0024),(-.260,-.043,.477)),
@@ -113,10 +114,11 @@ for name,color,scale,target in [
     ob.data.materials.append(m)
     for poly in ob.data.polygons:poly.use_smooth=True
     ob.shape_key_add(name='Basis')
-    for channel in ['viseme_FF','viseme_TH']:
+    for channel in ['viseme_AA','viseme_FF','viseme_TH']:
         k=ob.shape_key_add(name=channel)
-        if name=='UpperTeeth' or channel=='viseme_TH':
-            for v in k.data:v.co+=Vector(target)-Vector((-.215,-.043,.48))
+        if name=='UpperTeeth' and channel != 'viseme_AA' or name=='Tongue' and channel in ('viseme_AA','viseme_TH'):
+            destination = (-.245,-.043,.468) if channel == 'viseme_AA' else target
+            for v in k.data:v.co+=Vector(destination)-Vector((-.215,-.043,.48))
     parts.append((ob,color))
 
 # Closed lid contours remain hidden at neutral and follow the blink channel.
@@ -154,13 +156,13 @@ def shape_data(ob):
     basis=ob.data.shape_keys.key_blocks['Basis']
     result=[]
     for key in ob.data.shape_keys.key_blocks[1:]:
-        result.append(dict(name=key.name,deltaVertices=[uv(k.co-b.co) for k,b in zip(key.data,basis.data)]))
+        result.append(dict(name=key.name,deltaVertices=[uv(k.co-b.co) for k,b in zip(key.data,basis.data)],deltaNormals=json.loads(ob.get('normals_'+key.name,'[]'))))
     return result
-result=dict(vertices=d['vertices'],shapes=shape_data(body),parts=[])
+result=dict(vertices=d['vertices'],triangles=kept_triangles,shapes=shape_data(body),parts=[])
 for shape in result['shapes']:shape['deltaNormals']=normal_offsets[shape['name']]
 for ob,color in parts:
     ob.data.calc_loop_triangles()
-    result['parts'].append(dict(name=ob.name,vertices=[uv(v.co) for v in ob.data.vertices],triangles=[i for t in ob.data.loop_triangles for i in t.vertices],color=dict(r=color[0],g=color[1],b=color[2],a=1),shapes=shape_data(ob)))
+    result['parts'].append(dict(name=ob.name,vertices=[uv(v.co) for v in ob.data.vertices],triangles=[i for t in ob.data.loop_triangles for i in t.vertices],color=dict(r=color[0],g=color[1],b=color[2],a=1),shapes=shape_data(ob),useSourceMaterial=bool(ob.get('use_source_material',False)),uv=json.loads(ob.get('vertex_uv','[]')),textureFile=ob.get('texture_file',''),normals=json.loads(ob.get('base_normals','[]'))))
 (a.output/'CafeFemaleFaceShapes.json').write_text(json.dumps(result,separators=(',',':')))
 for ob in [body,*[p[0] for p in parts]]:
     for k in ob.data.shape_keys.key_blocks:k.value=0

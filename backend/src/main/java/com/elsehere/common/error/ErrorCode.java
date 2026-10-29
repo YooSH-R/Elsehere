@@ -12,6 +12,7 @@ public enum ErrorCode {
   UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
   SIGNUP_REQUIRED(HttpStatus.FORBIDDEN, "가입 정보를 먼저 입력해 주세요."),
   CSRF_HEADER_REQUIRED(HttpStatus.FORBIDDEN, "요청 확인 헤더가 없습니다."),
+  ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "관리자만 사용할 수 있습니다."),
   NOT_FOUND(HttpStatus.NOT_FOUND, "대상을 찾을 수 없습니다."),
   ALREADY_SIGNED_UP(HttpStatus.CONFLICT, "이미 가입한 계정입니다."),
   NICKNAME_TAKEN(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),

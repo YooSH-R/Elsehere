@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('NPC 페르소나')}"></head>
+<body>
+<header th:replace="~{admin/layout :: header}"></header>
+<main>
+  <h1>NPC 페르소나</h1>
+  <p class="hint">대화할 때 AI에게 보내는 NPC 설명입니다. 고치면 다음 대화부터 바로 반영됩니다.</p>
+  <table>
+    <thead>
+    <tr>
+      <th>코드</th>
+      <th>이름</th>
+      <th>역할 이름</th>
+      <th>장소</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="npc : ${npcs}">
+      <td><code th:text="${npc.npcCode}">CAFE_STAFF</code></td>
+      <td th:text="${npc.name}">Mia</td>
+      <td th:text="${npc.roleLabel}">카페 직원</td>
+      <td th:text="${npc.sceneName}">모퉁이 카페</td>
+      <td><a th:href="@{/admin/npcs/{code}(code=${npc.npcCode})}">페르소나 고치기</a></td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+</body>
+</html>

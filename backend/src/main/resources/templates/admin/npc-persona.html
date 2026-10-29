@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head(${npc.name} + ' 페르소나')}"></head>
+<body>
+<header th:replace="~{admin/layout :: header}"></header>
+<main>
+  <p><a th:href="@{/admin/npcs}">← NPC 목록</a></p>
+  <h1 th:text="${npc.name} + ' 페르소나'">Mia 페르소나</h1>
+  <p class="hint">AI에게 보내는 NPC 설명입니다. 저장하면 다음 대화부터 반영됩니다. 영어로 적어 주세요.</p>
+
+  <div class="panel">
+    <dl>
+      <dt>코드</dt>
+      <dd><code th:text="${npc.npcCode}">CAFE_STAFF</code></dd>
+      <dt>역할 이름</dt>
+      <dd th:text="${npc.roleLabel}">카페 직원</dd>
+      <dt>장소</dt>
+      <dd th:text="${npc.sceneName}">모퉁이 카페</dd>
+      <dt>목소리</dt>
+      <dd><code th:text="${npc.voiceId}">af_heart</code></dd>
+    </dl>
+
+    <form id="persona-form" th:data-url="@{/api/v1/admin/npcs/{code}/persona(code=${npc.npcCode})}">
+      <label for="role">역할 (role) · 필수</label>
+      <p class="field-hint" th:text="'NPC가 누구인지 한 문장으로 적습니다. AI에는 이름 뒤에 붙여 &quot;' + ${npc.name} + ', (이 문장)&quot;으로 보냅니다.'">
+        NPC가 누구인지 한 문장으로 적습니다.</p>
+      <textarea id="role" name="role" rows="2" maxlength="200" required th:text="${npc.role}"></textarea>
+
+      <label for="facts">알고 있는 사실·규칙 (facts)</label>
+      <p class="field-hint">가격, 파는 물건, 지켜야 할 규칙처럼 NPC가 대화에서 지켜야 할 사실입니다. 비워도 됩니다.</p>
+      <textarea id="facts" name="facts" rows="6" maxlength="2000" th:text="${npc.facts}"></textarea>
+
+      <label for="scene">장소 설명 (scene)</label>
+      <p class="field-hint">NPC가 있는 곳을 한두 문장으로 적습니다. 비워도 됩니다.</p>
+      <textarea id="scene" name="scene" rows="2" maxlength="300" th:text="${npc.scene}"></textarea>
+
+      <div class="actions">
+        <button type="submit" class="primary" id="save">저장</button>
+        <span id="status" class="status" role="status"></span>
+      </div>
+    </form>
+  </div>
+</main>
+<script>
+  const form = document.getElementById("persona-form");
+  const saveButton = document.getElementById("save");
+  const status = document.getElementById("status");
+
+  function showStatus(message, kind) {
+    status.textContent = message;
+    status.className = "status " + kind;
+  }
+
+  form.addEventListener("input", () => showStatus("", ""));
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    saveButton.disabled = true;
+    showStatus("저장하는 중…", "");
+    try {
+      const response = await fetch(form.dataset.url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-Requested-With": "ElsehereAdmin" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          role: form.role.value,
+          facts: form.facts.value,
+          scene: form.scene.value
+        })
+      });
+      if (response.ok) {
+        const saved = await response.json();
+        form.role.value = saved.role;
+        form.facts.value = saved.facts;
+        form.scene.value = saved.scene;
+        showStatus("저장했습니다. 다음 대화부터 반영됩니다.", "ok");
+        return;
+      }
+      const body = await response.json().catch(() => null);
+      const message = body && body.error ? body.error.message : "저장하지 못했습니다.";
+      showStatus(message + " (" + response.status + ")", "error");
+    } catch (error) {
+      showStatus("서버에 연결하지 못했습니다. 잠시 후 다시 저장해 주세요.", "error");
+    } finally {
+      saveButton.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

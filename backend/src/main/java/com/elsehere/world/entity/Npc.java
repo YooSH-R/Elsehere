@@ -46,7 +46,7 @@ public class Npc extends BaseEntity {
   @Column(nullable = false, length = 30)
   private String roleLabel;
 
-  // JSON 문자열을 jsonb 컬럼에 저장한다. 쓰기 때 jsonb로 변환하지 않으면 PostgreSQL이 타입 오류를 낸다.
+  // NpcPersona를 JSON 문자열로 jsonb 컬럼에 저장한다. 쓰기 때 jsonb로 변환하지 않으면 PostgreSQL이 타입 오류를 낸다.
   @Column(nullable = false, columnDefinition = "jsonb")
   @ColumnTransformer(write = "?::jsonb")
   private String persona;
@@ -69,4 +69,9 @@ public class Npc extends BaseEntity {
 
   @Column(length = 100)
   private String farewellAudioKey;
+
+  /** 페르소나를 바꾼다. 진행 중인 대화도 다음 턴부터 바뀐 값을 쓴다. */
+  public void changePersona(String personaJson) {
+    this.persona = personaJson;
+  }
 }

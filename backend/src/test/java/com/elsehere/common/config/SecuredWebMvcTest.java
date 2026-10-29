@@ -1,5 +1,6 @@
 package com.elsehere.common.config;
 
+import com.elsehere.admin.service.AdminAccess;
 import com.elsehere.auth.handler.LoginRequiredEntryPoint;
 import com.elsehere.auth.handler.SocialLoginFailureHandler;
 import com.elsehere.auth.handler.SocialLoginSuccessHandler;
@@ -18,7 +19,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 /**
  * 실제 보안 설정({@link SecurityConfig})으로 컨트롤러를 검증하는 웹 슬라이스 테스트.
  *
- * <p>보안 설정이 쓰는 로그인 처리 빈을 함께 등록한다. 웹 슬라이스에는 DB가 없으므로 소셜 로그인 사용자 조회만 Mock으로 둔다.
+ * <p>보안 설정이 쓰는 로그인 처리 빈을 함께 등록한다. 웹 슬라이스에는 DB가 없으므로 소셜 로그인 사용자 조회와 관리자 확인만 Mock으로 둔다. 관리자 확인은 기본으로
+ * 거절(false)하며, 관리자 기능 테스트는 {@code given(adminAccess.isAdmin(...))}로 허용한다.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -31,7 +33,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   SocialLoginFailureHandler.class,
   LoginRequiredEntryPoint.class
 })
-@MockitoBean(types = SocialLoginService.class)
+@MockitoBean(types = {SocialLoginService.class, AdminAccess.class})
 public @interface SecuredWebMvcTest {
 
   @AliasFor(annotation = WebMvcTest.class, attribute = "controllers")

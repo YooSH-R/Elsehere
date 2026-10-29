@@ -83,6 +83,65 @@ namespace A305.Characters
             }
         }
 
+        public void ApplySpeech(SpeechMouthSample mouth, float smile, float blink)
+        {
+            var poses = new[]
+            {
+                CharacterFacePose.OpenMouth,
+                CharacterFacePose.FV,
+                CharacterFacePose.TH,
+                CharacterFacePose.ClosedLips,
+                CharacterFacePose.E,
+                CharacterFacePose.OH,
+                CharacterFacePose.OU,
+                CharacterFacePose.WideI,
+                CharacterFacePose.FlatEu,
+            };
+            var weights = new float[Channels.Length];
+            float seal = mouth.Weight(CharacterFacePose.ClosedLips);
+            float rounding =
+                mouth.Weight(CharacterFacePose.OU) + mouth.Weight(CharacterFacePose.OH);
+            float opening =
+                mouth.Weight(CharacterFacePose.OpenMouth)
+                + mouth.Weight(CharacterFacePose.E)
+                + mouth.Weight(CharacterFacePose.TH);
+            // Lip contact and rounding take priority over corner lift. Eyelids
+            // remain independent, so one complete facial state is applied once.
+            float smileWeight =
+                Mathf.Clamp01(smile)
+                * (1 - Mathf.Clamp01(seal))
+                * (1 - .75f * Mathf.Clamp01(rounding))
+                * (1 - .65f * Mathf.Clamp01(opening));
+            weights[0] = weights[1] = smileWeight;
+            weights[2] = weights[3] = Mathf.Clamp01(blink);
+            for (int i = 0; i < poses.Length; i++)
+                weights[i + 4] = mouth.Weight(poses[i]);
+            var skins = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            for (int i = 0; i < weights.Length; i++)
+            {
+                if (weights[i] <= 0)
+                    continue;
+                bool found = false;
+                foreach (var skin in skins)
+                    found |=
+                        skin.sharedMesh != null
+                        && skin.sharedMesh.GetBlendShapeIndex(Channels[i]) >= 0;
+                if (!found)
+                    throw new InvalidOperationException("Missing face shape: " + Channels[i]);
+            }
+            foreach (var skin in skins)
+            {
+                if (skin.sharedMesh == null)
+                    continue;
+                for (int i = 0; i < weights.Length; i++)
+                {
+                    int index = skin.sharedMesh.GetBlendShapeIndex(Channels[i]);
+                    if (index >= 0)
+                        skin.SetBlendShapeWeight(index, weights[i] * 100);
+                }
+            }
+        }
+
         private static bool IsActive(CharacterFacePose pose, int channel) =>
             pose switch
             {

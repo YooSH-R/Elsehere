@@ -13,6 +13,9 @@ namespace A305.Characters
 
         [SerializeField]
         private CharacterSpeechClip speech;
+
+        [SerializeField]
+        private SpeechExpressionProfile expressions;
         private SpeechVisemeTimeline timeline;
         private bool active;
         private bool paused;
@@ -36,6 +39,8 @@ namespace A305.Characters
             speech = clip;
             timeline = null;
         }
+
+        public void ConfigureExpressions(SpeechExpressionProfile profile) => expressions = profile;
 
         private SpeechVisemeTimeline ReadTimeline()
         {
@@ -98,8 +103,12 @@ namespace A305.Characters
         {
             if (timeline == null)
                 timeline = ReadTimeline();
-            var sample = timeline.Sample(seconds);
-            face.BlendPoses(sample.From, sample.To, sample.Blend);
+            var mouth = timeline.SampleArticulation(seconds);
+            var expression =
+                expressions != null
+                    ? expressions.Sample(seconds, speech.Audio.length)
+                    : new SpeechExpressionSample(0, 0);
+            face.ApplySpeech(mouth, expression.Smile, expression.Blink);
         }
 
         private void LateUpdate()

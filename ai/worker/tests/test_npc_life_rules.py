@@ -71,6 +71,9 @@ def test_every_need_has_a_drop_rate():
         (("conversationEvents", "RUDE", "mood", "ANGRY"), 2, ("conversationEvents", "RUDE", "mood")),  # 없는 감정
         (("conversationEvents", "RUDE", "memorySalience"), 4, None),  # 인상 세기는 1~3
         (("relationship", "affinityFollowRate"), 2, None),  # 비율은 0~1
+        (("relationship", "liked"), -5, None),  # 좋아하는 티는 호감이 플러스일 때
+        (("relationship", "disliked"), 5, None),  # 싫어하는 티는 호감이 마이너스일 때
+        (("mood", "showsAt"), 0, None),  # 기분 세기는 0 초과~3
         (("memory", "recallAt"), 1.5, None),
         (("derivation", 0, "target"), "speed", None),  # 계산할 수 있는 생활 값만
         (("derivation", 0, "axis"), "humor", None),

@@ -4,9 +4,10 @@ import asyncio
 import json
 import logging
 
+from . import npc_relationship
 from . import prompts as P
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
-from .schemas import HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, State, SuggestRequest
+from .schemas import HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, RelationshipRequest, State, SuggestRequest
 
 log = logging.getLogger("ai_worker")
 
@@ -42,20 +43,27 @@ def clean_intent(raw: object, state: State) -> dict:
     return out
 
 
+def clean_events(raw: dict) -> list[str]:
+    """판정 출력의 줄 사건. 목록(P.LINE_EVENTS) 밖 값·중복·무례는 버리고, 없거나 목록이 아니면 []."""
+    got = raw.get("events") if isinstance(raw.get("events"), list) else []
+    return [event for event in dict.fromkeys(e for e in got if isinstance(e, str)) if event in P.LINE_EVENTS]
+
+
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
-    """의도와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear, 번역 → error).
+    """의도(+ 줄 사건)와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear·사건 없음, 번역 → error).
     무례 판정은 /v1/guard가 따로 한다. 번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 그 결과로 Spring이 정한다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
     if not text:  # 행동만 있었으면 모델을 부르지 않는다. Spring은 턴으로 세지 않음
-        return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "translation": None, "usage": []}
+        return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "translation": None, "events": None, "usage": []}
     scene = req.scene or req.npc.scene
 
     async def intent():
         out = await llm.chat(
             "intent", "intent", P.intent_messages(req.npc, req.state, req.history, text), usage, 0.0, 200, P.intent_schema(req.state)
         )
-        return clean_intent(json.loads(out), req.state)
+        raw = json.loads(out)
+        return clean_intent(raw, req.state), clean_events(raw)
 
     async def translate():
         out = await llm.chat("translate", "translate", P.translate_messages(req.npc, scene, req.history, text), usage, 0.0, 80)
@@ -66,7 +74,8 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
     if P.HANGUL.search(text):
         jobs.append(within(translate(), budget))
     res = await asyncio.gather(*jobs, return_exceptions=True)
-    it = res[0] if not isinstance(res[0], BaseException) else {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
+    failed = {"id": "unclear", "ids": ["unclear"], "slots": {}, "error": str(res[0])[:160]}
+    it, events = res[0] if not isinstance(res[0], BaseException) else (failed, [])
     translation = None
     if len(res) == 2:
         english = "" if isinstance(res[1], BaseException) else res[1]
@@ -81,6 +90,7 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         "notice": P.ACTION_PART_KO if had_action else None,
         "intent": it,
         "translation": translation,
+        "events": events,
         "usage": usage.items,
     }
 
@@ -165,3 +175,17 @@ async def memory(llm: LLM, req: MemoryRequest) -> dict:
         hedge=False,
     )
     return {"memory_card": P.parse_memory_card(out), "usage": usage.items}
+
+
+def relationship(req: RelationshipRequest) -> dict:
+    """정상 종료된 대화 하나를 관계(알아봄·호감)에 반영한 새 값. 모델을 부르지 않는다.
+    사건은 의도 판정이 줄마다 고른 history[].events를 모아 대화에서 한 번씩, 무례는 Spring이 확정한 줄(rude)마다 세고
+    공통 규칙으로 계산한다. 무례한 줄의 다른 사건과 목록 밖 값은 버린다."""
+    turns = [(line.rude, line.events) for line in req.history if line.who == "me"]
+    said = (event for turn in turns for event in npc_relationship.turn_events(turn))
+    events = [event for event in dict.fromkeys(said) if event in P.LINE_EVENTS]
+    rude_lines = sum(1 for rude, _ in turns if rude)
+    rules, library = npc_relationship.service_rules()
+    rates = npc_relationship.npc_rates(req.npc.profile, rules, library)
+    before = req.relationship.model_dump() if req.relationship else None
+    return {"relationship": npc_relationship.after_conversation(before, events, rude_lines, rates, rules), "events": events}

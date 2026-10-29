@@ -1,4 +1,5 @@
 using System.Linq;
+using A305.Api;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.ObjectHover;
@@ -21,6 +22,7 @@ namespace A305.EditorTools.ObjectHover
 
         private const string SettingsPath = "Assets/Data/ObjectHover/ObjectHoverSettings.asset";
         private const string TooltipPrefabPath = "Assets/Prefabs/ObjectHover/WordTooltip.prefab";
+        private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
         private const string HomeRoomPath = "Assets/Prefabs/Home/HomeRoom.prefab";
         private const string CafeInteriorPath = "Assets/Prefabs/Cafe/CafeInterior.prefab";
 
@@ -226,24 +228,102 @@ namespace A305.EditorTools.ObjectHover
                     "클릭하면 카드가 고정돼요"
                 )
             );
-            // 고정한 카드의 버튼 줄. 단어 저장·보이지 않기 버튼도 이 줄에 넣는다.
-            RectTransform actions = UiBuilderTools.FindOrCreateButtonRow(panel, "Actions");
-            BuilderTools.SetReference(view, "actionRow", actions.gameObject);
+            // 고정한 카드의 안내와 버튼 줄. 패널 너비(440)에 맞춰 단어 버튼을 두 줄로 나눈다.
+            TMP_Text status = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Status",
+                regular,
+                18f,
+                new Color(1f, 0.88f, 0.55f)
+            );
+            BuilderTools.SetReference(view, "statusLabel", status);
+
+            RectTransform wordActions = UiBuilderTools.FindOrCreateButtonRow(panel, "WordActions");
+            BuilderTools.SetReference(view, "wordActionRow", wordActions.gameObject);
+            Button save = FindOrCreateCardButton(wordActions, "SaveButton", "단어장에 저장", 170f);
+            BuilderTools.SetReference(view, "saveButton", save);
             BuilderTools.SetReference(
                 view,
-                "closeButton",
-                UiBuilderTools.FindOrCreateButton(
-                    actions,
-                    "CloseButton",
-                    "닫기",
-                    UiBuilderTools.BoldFont(),
-                    preferredWidth: 120f
+                "saveLabel",
+                save.GetComponentInChildren<TMP_Text>(true)
+            );
+            BuilderTools.SetReference(
+                view,
+                "pronunciationButton",
+                FindOrCreateCardButton(wordActions, "PronunciationButton", "발음 듣기", 130f)
+            );
+
+            RectTransform actions = UiBuilderTools.FindOrCreateButtonRow(panel, "Actions");
+            BuilderTools.SetReference(view, "actionRow", actions.gameObject);
+            Button hide = FindOrCreateCardButton(
+                actions,
+                "HideButton",
+                "알아요 · 다시 안 띄우기",
+                250f
+            );
+            BuilderTools.SetReference(view, "hideButton", hide);
+            BuilderTools.SetReference(
+                view,
+                "hideLabel",
+                hide.GetComponentInChildren<TMP_Text>(true)
+            );
+            Button close = UiBuilderTools.FindOrCreateButton(
+                actions,
+                "CloseButton",
+                "닫기",
+                UiBuilderTools.BoldFont(),
+                preferredWidth: 120f
+            );
+            BuilderTools.SetReference(view, "closeButton", close);
+            // [닫기]는 버튼 줄 오른쪽 끝, 안내와 단어 버튼은 카드 내용 아래에 둔다.
+            close.transform.SetAsLastSibling();
+            status.transform.SetAsLastSibling();
+            wordActions.SetAsLastSibling();
+            actions.SetAsLastSibling();
+            status.gameObject.SetActive(false);
+            wordActions.gameObject.SetActive(false);
+            actions.gameObject.SetActive(false);
+
+            // 서버 주소와 발음 재생. 카드 프리팹에 두어 장소 씬마다 배치하지 않는다.
+            var serverLink = BuilderTools.GetOrAddComponent<ObjectWordServerLink>(root);
+            BuilderTools.SetReference(
+                serverLink,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(
+                    ApiSettingsPath,
+                    A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
                 )
             );
-            actions.gameObject.SetActive(false);
+            var pronunciationSource = BuilderTools.GetOrAddComponent<AudioSource>(root);
+            pronunciationSource.playOnAwake = false;
+            BuilderTools.SetReference(serverLink, "pronunciationSource", pronunciationSource);
             // 고정한 카드의 빈 곳을 눌러도 뒤의 사물이 클릭되지 않게 배경이 클릭을 받는다.
             panel.GetComponent<Image>().raycastTarget = true;
             BuilderTools.RequireReferences(view);
+        }
+
+        // 카드 글자 크기(18~34)에 맞춰 새로 만드는 버튼의 글자를 기본 버튼보다 작게 한다. 이미 있는 버튼의 디자인은 유지한다.
+        private static Button FindOrCreateCardButton(
+            Transform row,
+            string buttonName,
+            string label,
+            float preferredWidth
+        )
+        {
+            bool isNew = row.Find(buttonName) == null;
+            Button button = UiBuilderTools.FindOrCreateButton(
+                row,
+                buttonName,
+                label,
+                UiBuilderTools.BoldFont(),
+                preferredWidth
+            );
+            if (isNew)
+            {
+                button.GetComponentInChildren<TMP_Text>(true).fontSize = 20f;
+            }
+
+            return button;
         }
 
         private static Transform CreatePanel(Transform root)

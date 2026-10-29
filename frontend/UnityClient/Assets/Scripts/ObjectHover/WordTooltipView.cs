@@ -12,6 +12,8 @@ namespace A305.ObjectHover
     /// </summary>
     public class WordTooltipView : MonoBehaviour
     {
+        private const string ExampleMeaningColor = "#B8C0CC";
+
         [SerializeField]
         private RectTransform canvasRect;
 
@@ -36,8 +38,33 @@ namespace A305.ObjectHover
         private TMP_Text pinHintLabel;
 
         [SerializeField]
-        [Tooltip("고정한 카드에만 보이는 버튼 줄. 단어 저장·보이지 않기 버튼도 이 줄에 둔다.")]
+        [Tooltip("고정한 카드의 저장 실패 이유나 숨긴 카드를 다시 보는 방법")]
+        private TMP_Text statusLabel;
+
+        [SerializeField]
+        [Tooltip(
+            "고정한 카드에서 서버 단어 카드가 있을 때만 보이는 [단어장에 저장]·[발음 듣기] 줄"
+        )]
+        private GameObject wordActionRow;
+
+        [SerializeField]
+        private Button saveButton;
+
+        [SerializeField]
+        private TMP_Text saveLabel;
+
+        [SerializeField]
+        private Button pronunciationButton;
+
+        [SerializeField]
+        [Tooltip("고정한 카드에만 보이는 [알아요 · 다시 안 띄우기]·[닫기] 줄")]
         private GameObject actionRow;
+
+        [SerializeField]
+        private Button hideButton;
+
+        [SerializeField]
+        private TMP_Text hideLabel;
 
         [SerializeField]
         private Button closeButton;
@@ -58,33 +85,68 @@ namespace A305.ObjectHover
         /// <summary>고정한 카드의 [닫기]를 눌렀다.</summary>
         public event Action CloseRequested;
 
+        /// <summary>고정한 카드의 [단어장에 저장]을 눌렀다.</summary>
+        public event Action SaveRequested;
+
+        /// <summary>고정한 카드의 [발음 듣기]를 눌렀다.</summary>
+        public event Action PronunciationRequested;
+
+        /// <summary>고정한 카드의 [알아요 · 다시 안 띄우기]나 [다시 띄우기]를 눌렀다.</summary>
+        public event Action HoverHiddenToggleRequested;
+
         /// <summary>호버로 잠깐 보이는 카드. 클릭을 막지 않고 "클릭하면 고정" 안내를 보인다.</summary>
         /// <param name="screenAnchor">마우스 포인터의 화면 좌표(픽셀)</param>
         public void Show(ObjectWord word, Vector2 screenAnchor, ObjectHoverSettings settings)
         {
-            Present(word, screenAnchor, settings, isPinned: false);
+            Present(word, screenAnchor, settings, isPinned: false, WordCardButtons.None);
         }
 
         /// <summary>클릭으로 고정한 카드. 카드 안 버튼을 누를 수 있게 클릭을 받고 버튼 줄을 보인다.</summary>
         /// <param name="screenAnchor">클릭한 화면 좌표(픽셀)</param>
-        public void ShowPinned(ObjectWord word, Vector2 screenAnchor, ObjectHoverSettings settings)
+        /// <param name="buttons">서버 단어 카드가 없으면 <see cref="WordCardButtons.None"/>으로 [닫기]만 보인다.</param>
+        public void ShowPinned(
+            ObjectWord word,
+            Vector2 screenAnchor,
+            ObjectHoverSettings settings,
+            WordCardButtons buttons
+        )
         {
-            Present(word, screenAnchor, settings, isPinned: true);
+            Present(word, screenAnchor, settings, isPinned: true, buttons);
+        }
+
+        /// <summary>고정한 카드의 안내 문구만 바꾼다. 발음을 받지 못했을 때처럼 카드 상태와 상관없는 안내에 쓴다.</summary>
+        public void ShowStatus(string message)
+        {
+            statusLabel.text = message;
+            statusLabel.gameObject.SetActive(IsPinned && !string.IsNullOrEmpty(message));
+            LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+        }
+
+        public void Hide()
+        {
+            panelGroup.alpha = 0f;
+            panelGroup.blocksRaycasts = false;
+            panelGroup.interactable = false;
+            IsVisible = false;
+            IsPinned = false;
         }
 
         private void Present(
             ObjectWord word,
             Vector2 screenAnchor,
             ObjectHoverSettings settings,
-            bool isPinned
+            bool isPinned,
+            WordCardButtons buttons
         )
         {
             pinHintLabel.gameObject.SetActive(!isPinned);
-            actionRow.SetActive(isPinned);
             wordLabel.text = word.Text;
             meaningLabel.text = word.MeaningKo;
-            exampleLabel.text = word.Example;
+            exampleLabel.text = string.IsNullOrEmpty(word.ExampleKo)
+                ? word.Example
+                : $"{word.Example}\n<color={ExampleMeaningColor}>{word.ExampleKo}</color>";
             exampleLabel.gameObject.SetActive(!string.IsNullOrEmpty(word.Example));
+            ShowButtons(isPinned, buttons);
             LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -111,18 +173,35 @@ namespace A305.ObjectHover
             IsPinned = isPinned;
         }
 
-        public void Hide()
+        // 서버 단어 카드가 없으면 단어 버튼과 안내를 숨기고 [닫기]만 보인다.
+        private void ShowButtons(bool isPinned, WordCardButtons buttons)
         {
-            panelGroup.alpha = 0f;
-            panelGroup.blocksRaycasts = false;
-            panelGroup.interactable = false;
-            IsVisible = false;
-            IsPinned = false;
+            bool hasWordActions = isPinned && buttons.HasWordActions;
+            actionRow.SetActive(isPinned);
+            wordActionRow.SetActive(hasWordActions);
+            hideButton.gameObject.SetActive(hasWordActions);
+            statusLabel.text = buttons.Message;
+            statusLabel.gameObject.SetActive(
+                hasWordActions && !string.IsNullOrEmpty(buttons.Message)
+            );
+            if (!hasWordActions)
+            {
+                return;
+            }
+
+            saveLabel.text = buttons.SaveLabel;
+            saveButton.interactable = buttons.CanSave;
+            hideLabel.text = buttons.HideLabel;
+            hideButton.interactable = buttons.CanToggleHide;
+            pronunciationButton.gameObject.SetActive(buttons.HasPronunciation);
         }
 
         private void Awake()
         {
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
+            saveButton.onClick.AddListener(() => SaveRequested?.Invoke());
+            pronunciationButton.onClick.AddListener(() => PronunciationRequested?.Invoke());
+            hideButton.onClick.AddListener(() => HoverHiddenToggleRequested?.Invoke());
             Hide();
         }
     }

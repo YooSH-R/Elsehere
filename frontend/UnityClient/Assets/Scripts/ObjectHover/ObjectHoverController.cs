@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using A305.Player;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using Object = UnityEngine.Object;
 
 namespace A305.ObjectHover
 {
@@ -11,6 +14,7 @@ namespace A305.ObjectHover
     /// 대화처럼 이동이 잠긴 상호작용 중이면 보이지 않는다. 툴팁은 하나만 보인다.
     /// 사물을 클릭하면 카드를 그 자리에 고정해 커서가 벗어나도 카드 안 버튼을 누를 수 있게 하고,
     /// [닫기]·빈 곳 클릭·Esc나 플레이어가 멀어지거나 대화가 시작되면 고정을 푼다.
+    /// 장소에 들어오면 서버 단어 카드(WORLD-02)를 받아 저장·숨김 상태를 카드에 반영한다. 숨긴 단어는 호버로 띄우지 않고 클릭해야 보인다.
     /// </summary>
     public class ObjectHoverController : MonoBehaviour
     {
@@ -43,8 +47,18 @@ namespace A305.ObjectHover
         private readonly HashSet<string> keysWithoutWord = new HashSet<string>();
         private HoverTooltipState state;
 
+        // 카드 프리팹의 서버 연결. 없거나 꺼져 있으면 Unity 단어로만 카드를 보인다.
+        private ObjectWordServerLink serverLink;
+
+        // 이 장소의 서버 단어 카드. 받기 전이면 null이고, 받지 못하면 카드가 비어 있다.
+        private ObjectWordCards cards;
+
         // 고정한 카드의 사물 위치. 플레이어가 이보다 최대 거리 넘게 멀어지면 고정을 푼다.
         private Vector3 pinnedPosition;
+
+        // 고정한 카드의 단어 키와 클릭한 화면 좌표. 카드 버튼을 누른 뒤 같은 자리에 다시 그린다.
+        private string pinnedWordKey;
+        private Vector2 pinnedAnchor;
 
         // 사물 클릭을 판단하려고 누른 자리를 기억한다. UI 위에서 눌렀으면 비운다.
         private Vector2? pressedAt;
@@ -66,7 +80,7 @@ namespace A305.ObjectHover
                 distance,
                 out _
             );
-            // 걷는 중이어도 고정할 수 있게 이동 여부는 보지 않는다.
+            // 걷는 중이어도 고정할 수 있게 이동 여부는 보지 않는다. 숨긴 단어도 클릭하면 카드를 보인다.
             ObjectWord word = default;
             bool canPin =
                 target != null
@@ -79,9 +93,11 @@ namespace A305.ObjectHover
                 return;
             }
 
-            state.Pin(WordKeyOf(target, definition));
+            pinnedWordKey = WordKeyOf(target, definition);
+            pinnedAnchor = pointerScreenPosition;
             pinnedPosition = pointedPosition;
-            tooltip.ShowPinned(word, pointerScreenPosition, settings);
+            state.Pin(pinnedWordKey);
+            tooltip.ShowPinned(word, pinnedAnchor, settings, PinnedButtons());
         }
 
         /// <summary>포인터 위치로 툴팁을 갱신한다. 매 프레임 Update에서 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.</summary>
@@ -110,15 +126,17 @@ namespace A305.ObjectHover
                 previousTarget = target;
                 previousPart = partIndex;
             }
+            string wordKey = WordKeyOf(target, definition);
             ObjectWord word = default;
             bool canShow =
                 target != null
                 && !player.IsMoving
                 && !player.IsMovementLocked
                 && distance <= settings.MaxDistanceMeters
+                && (cards == null || cards.CanHover(wordKey))
                 && TryGetWord(target, definition, out word);
 
-            state.Update(WordKeyOf(target, definition), canShow, deltaTimeSeconds);
+            state.Update(wordKey, canShow, deltaTimeSeconds);
 
             if (state.VisibleKey == null)
             {
@@ -138,7 +156,43 @@ namespace A305.ObjectHover
             }
 
             state = new HoverTooltipState(settings.ShowDelaySeconds);
+            serverLink = tooltip.GetComponent<ObjectWordServerLink>();
             tooltip.CloseRequested += Unpin;
+            tooltip.SaveRequested += SaveWord;
+            tooltip.HoverHiddenToggleRequested += ToggleHoverHidden;
+            tooltip.PronunciationRequested += PlayPronunciation;
+        }
+
+        // 장소의 서버 단어 카드를 받는다. 서버를 쓰지 않거나 서버 장소가 아닌 씬(검수용)이면 Unity 단어로만 보인다.
+        private async void Start()
+        {
+            if (
+                serverLink == null
+                || !serverLink.IsAvailable
+                || !ObjectWordScenes.TryGetSceneCode(gameObject.scene.name, out string sceneCode)
+            )
+            {
+                return;
+            }
+
+            var loading = new ObjectWordCards(serverLink.CreateApi());
+            try
+            {
+                await loading.LoadAsync(sceneCode);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                return;
+            }
+
+            if (this == null)
+            {
+                return;
+            }
+
+            cards = loading;
+            RefreshPinnedCard();
         }
 
         private void OnDestroy()
@@ -146,6 +200,9 @@ namespace A305.ObjectHover
             if (tooltip != null)
             {
                 tooltip.CloseRequested -= Unpin;
+                tooltip.SaveRequested -= SaveWord;
+                tooltip.HoverHiddenToggleRequested -= ToggleHoverHidden;
+                tooltip.PronunciationRequested -= PlayPronunciation;
             }
         }
 
@@ -226,10 +283,87 @@ namespace A305.ObjectHover
         private void Unpin()
         {
             state.Unpin();
+            pinnedWordKey = null;
             tooltip.Hide();
             // 고정을 푼 자리의 사물도 다시 지연 시간을 지나야 호버 카드가 보이게 한다.
             previousTarget = null;
             previousPart = -1;
+        }
+
+        private WordCardButtons PinnedButtons()
+        {
+            return cards != null && cards.TryGet(pinnedWordKey, out WordCard card)
+                ? WordCardButtons.For(card)
+                : WordCardButtons.None;
+        }
+
+        // 카드 버튼으로 상태가 바뀌었거나 서버 단어 카드를 늦게 받았으면 고정한 카드를 같은 자리에 다시 그린다.
+        private void RefreshPinnedCard()
+        {
+            if (!state.IsPinned || cards == null || !cards.TryGet(pinnedWordKey, out WordCard card))
+            {
+                return;
+            }
+
+            tooltip.ShowPinned(card.Word, pinnedAnchor, settings, WordCardButtons.For(card));
+        }
+
+        private void SaveWord()
+        {
+            RunCardRequest(wordKey => cards.SaveAsync(wordKey));
+        }
+
+        private void ToggleHoverHidden()
+        {
+            RunCardRequest(wordKey =>
+                cards.SetHoverHiddenAsync(
+                    wordKey,
+                    cards.TryGet(wordKey, out WordCard card) && !card.HoverHidden
+                )
+            );
+        }
+
+        // 요청을 보내는 동안 버튼을 막은 카드를 보이고, 끝나면 결과(저장한 예문, 실패 이유)를 다시 그린다.
+        private async void RunCardRequest(Func<string, Task> request)
+        {
+            if (cards == null || pinnedWordKey == null)
+            {
+                return;
+            }
+
+            Task running = request(pinnedWordKey);
+            RefreshPinnedCard();
+            try
+            {
+                await running;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
+
+            if (this != null)
+            {
+                RefreshPinnedCard();
+            }
+        }
+
+        private async void PlayPronunciation()
+        {
+            if (
+                cards == null
+                || !cards.TryGet(pinnedWordKey, out WordCard card)
+                || !card.HasPronunciation
+            )
+            {
+                return;
+            }
+
+            bool played = await serverLink.PlayPronunciationAsync(card.VocabId);
+            if (!played && this != null && state.IsPinned)
+            {
+                tooltip.ShowStatus("발음을 불러오지 못했어요. 잠시 후 다시 눌러 주세요.");
+            }
         }
 
         /// <summary>가까이에서 가구의 세부 영역을 가리키면 그 부분의 단어, 아니면 사물 전체의 단어.</summary>
@@ -288,6 +422,13 @@ namespace A305.ObjectHover
             out ObjectWord word
         )
         {
+            // 서버 단어 카드가 있으면 사용자의 저장 상태에 맞춘 카드를 쓴다.
+            if (cards != null && cards.TryGet(WordKeyOf(target, definition), out WordCard card))
+            {
+                word = card.Word;
+                return true;
+            }
+
             string unityKey = target.UnityKey;
             bool found =
                 definition != null

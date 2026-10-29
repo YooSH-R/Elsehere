@@ -94,5 +94,64 @@ namespace A305.ObjectHover.Tests
 
             Assert.That(immediate.VisibleKey, Is.EqualTo("tv"));
         }
+
+        [Test]
+        public void Pin_ShowsClickedObjectWithoutDelay()
+        {
+            state.Pin("tv");
+
+            Assert.That(state.IsPinned, Is.True);
+            Assert.That(state.VisibleKey, Is.EqualTo("tv"));
+        }
+
+        [Test]
+        public void WhilePinned_PointerLeavesOrCannotShow_KeepsPinnedObject()
+        {
+            // 고정한 카드는 커서가 벗어나거나 플레이어가 움직여도 닫지 않는다. 카드 안 버튼을 누를 수 있어야 한다.
+            state.Pin("tv");
+
+            state.Update(null, canShow: true, 1f);
+            state.Update("tv", canShow: false, 1f);
+
+            Assert.That(state.VisibleKey, Is.EqualTo("tv"));
+        }
+
+        [Test]
+        public void WhilePinned_HoveringOtherObject_DoesNotReplacePinnedObject()
+        {
+            state.Pin("tv");
+
+            state.Update("sofa", canShow: true, 1f);
+
+            Assert.That(state.VisibleKey, Is.EqualTo("tv"));
+        }
+
+        [Test]
+        public void Pin_OtherObject_ReplacesPinnedObject()
+        {
+            state.Pin("tv");
+
+            state.Pin("sofa");
+
+            Assert.That(state.VisibleKey, Is.EqualTo("sofa"));
+        }
+
+        [Test]
+        public void Unpin_HidesAndHoverShowsAgainOnlyAfterDelay()
+        {
+            state.Pin("tv");
+
+            state.Unpin();
+            bool isPinnedAfterUnpin = state.IsPinned;
+            string visibleAfterUnpin = state.VisibleKey;
+            state.Update("tv", canShow: true, 0.1f);
+            string beforeDelay = state.VisibleKey;
+            state.Update("tv", canShow: true, 0.1f);
+
+            Assert.That(isPinnedAfterUnpin, Is.False);
+            Assert.That(visibleAfterUnpin, Is.Null);
+            Assert.That(beforeDelay, Is.Null);
+            Assert.That(state.VisibleKey, Is.EqualTo("tv"));
+        }
     }
 }

@@ -40,5 +40,33 @@ namespace A305.ObjectHover.Tests
 
             Assert.That(word.Example, Is.EqualTo(string.Empty));
         }
+
+        [Test]
+        public void ForHover_SavedWord_ShowsExampleMeaning()
+        {
+            ObjectWord word = ObjectWord.ForHover(
+                "sofa",
+                "소파",
+                "He is sitting on the sofa.",
+                isSavedToVocabulary: true,
+                exampleKo: "그는 소파에 앉아 있어요."
+            );
+
+            Assert.That(word.ExampleKo, Is.EqualTo("그는 소파에 앉아 있어요."));
+        }
+
+        [Test]
+        public void ForHover_UnsavedWord_HidesExampleMeaning()
+        {
+            ObjectWord word = ObjectWord.ForHover(
+                "sofa",
+                "소파",
+                "He is sitting on the sofa.",
+                isSavedToVocabulary: false,
+                exampleKo: "그는 소파에 앉아 있어요."
+            );
+
+            Assert.That(word.ExampleKo, Is.Empty);
+        }
     }
 }

@@ -17,7 +17,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** 약관 동의 기록. 동의한 약관 버전과 시각을 남긴다. */
+/** 약관 동의 기록. 동의한 약관 버전과 시각을 남긴다. 철회하면 행을 지우지 않고 철회 시각을 남기며, 다시 동의하면 새 행을 만든다. */
 @Entity
 @Table(name = "user_consents")
 @Getter
@@ -42,6 +42,8 @@ public class UserConsent extends BaseEntity {
   @Column(nullable = false)
   private Instant agreedAt;
 
+  private Instant withdrawnAt;
+
   public static UserConsent agree(
       User user, ConsentType consentType, String version, Instant agreedAt) {
     UserConsent consent = new UserConsent();
@@ -50,5 +52,9 @@ public class UserConsent extends BaseEntity {
     consent.version = version;
     consent.agreedAt = agreedAt;
     return consent;
+  }
+
+  public void withdraw(Instant withdrawnAt) {
+    this.withdrawnAt = withdrawnAt;
   }
 }

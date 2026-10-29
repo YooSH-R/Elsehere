@@ -25,7 +25,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | CONV-05 힌트 | `POST /v1/hint` | `hintText` ← `say_this[0].en` (`say_this[0].ko`·`keywords`는 3단계 힌트용으로 남음) |
 | CONV-06 다시 듣기 | (없음) | CONV-03에서 저장한 턴 전체 음성 |
 | CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← `npc.tts_speed` × 난이도 배율(1.1절) |
-| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함 |
+| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)은 백엔드 `[미정]` |
 | FB-04 모범 음성 | `POST /v1/tts` | |
 | 어드민 NPC 랜덤 생성 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/generate` | 고정 칸·DB 후보를 실어 보내고, 받은 `npc_configuration`을 `npcs`에 저장 (2.9절) |
 | 어드민 NPC MBTI 변경 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/derive` | 저장된 카드의 자동 칸을 다시 계산해 저장 (2.9.1절) |
@@ -213,7 +213,15 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 ### 2.3 `POST /v1/npc/reply` — NPC 대답 (SSE)
 
-요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
+요청: `npc`, `memory`(선택: `visits`, `last_order`, `card`), `relationship`(선택, 아래 표), `history`(최대 40줄), `text`(학습자 원문, 최대 500자), `instruction`(Spring 규칙이 정한 이번 대답에서 할 일, 최대 1000자), `tts`(기본 `true`), `level`(기본 `2`), `suggest_words`(기본 `false`, 추천 단어를 스트림으로), `goal`(추천 단어용: 지금 상태에서 학습자가 할 일, 최대 300자). **한 턴의 대답은 난이도에 따라 한 문장에서 세 문장까지**이며 한 줄로 옵니다.
+
+`relationship`은 이 사용자와 NPC의 관계입니다. 2.7.2절이 돌려준 값을 저장해 두었다가 그대로 보냅니다. 처음 만나면 모두 `0`이고, 칸을 빼면 `0`입니다.
+
+| 칸 | 형식 | 뜻 |
+|---|---|---|
+| `recognition` | 정수 0~100 | 알아봄. 얼굴을 아는 정도 |
+| `affinity` | 정수 −100~100 | 호감. 좋게 보는 정도 |
+| `days_since_last_talk` | 정수 0 이상 | 마지막 대화 뒤 지난 **게임 속** 날 수. 게임 하루의 기준은 [NPC 생활·관계 설계](../npc-life-design.md) 11절에서 정함 |
 
 응답은 `text/event-stream`이며 이벤트 순서는 다음과 같습니다.
 
@@ -232,6 +240,11 @@ delta*  →  audio*  →  words?  →  done | error
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
 - `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한과 말 속도는 `profile`이 없을 때와 같습니다. `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
+- `relationship`이 있으면 지시문의 기억 자리에 "About this person"을 넣습니다(`app/npc_relationship.py`, `app/prompts.py`의 `person_note`). 숫자는 넣지 않고 말로 풉니다.
+  - 지난 날만큼 줄어든 알아봄으로 처음 봄·본 적 있음·단골을 정합니다. 알아봐야(본 적 있음부터) 기억 카드의 이름·했던 말·지난 주문을 떠올립니다. 알아보지 못해도 카드의 `attitude`가 `friendly`·`wary`면 그 일(`events`)은 떠올립니다.
+  - 호감이 기준을 넘으면 좋아하거나 차갑게 대하는 티를 내고, 알아봄과 호감이 모두 높으면 자기 이야기를 조금 합니다.
+  - `history`에 Spring이 확정한 무례 줄(`rude: true`)이 있으면 몇 턴 동안 짜증이 남습니다. 기준 숫자는 공통 규칙 `ai/npcs/rules/world-rules.json`이고, 알아보는 속도와 반응 크기는 `npc.profile`의 성격으로 정합니다.
+  - `relationship`이 없으면 지금처럼 `memory.visits`와 기억 카드를 그대로 넣습니다.
 - 대답은 한 줄입니다. 모델이 줄을 바꿔 다른 사람 대사를 쓰면 버립니다.
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.
@@ -323,6 +336,21 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 - `rude: true` 사용자 발화는 원문과 생성 번역 대신 `[RUDE: content withheld]` 표식으로 전달합니다. 확정 사건은 원문 인용 없이 요약할 수 있으나, 위협·횟수·제재·종료를 추측하지 않습니다. 다른 발화에 무례 표식이 없다는 것만으로 정상 판정을 확정하지 않습니다.
 - 무례 원문을 이름·프로필·선호·학습할 표현으로 저장하지 않는 프롬프트 규칙을 적용합니다. 출력의 의미 정확도까지 결정론적으로 보장하는 필터는 아니며 실제 모델 품질 검토가 별도로 필요합니다.
 
+### 2.7.2 `POST /v1/npc/relationship` — 대화 뒤 관계 갱신
+
+정상 종료된 대화 하나를 사용자 × NPC 관계(알아봄·호감)에 반영합니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. 모델은 이번 대화에서 일어난 사건만 고르고, 새 값은 공통 규칙으로 코드가 계산합니다. 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md) 4절입니다.
+
+요청: `npc`(`profile`이 있으면 성격으로 알아보는 속도·사건 반응 크기를 정함), `relationship`(저장된 `recognition`·`affinity`와 `days_since_last_talk`, 처음 만나면 생략), `history`(최대 200줄, 학습자 줄의 `rude` 포함).
+
+응답: `{"relationship": {"recognition": 22, "affinity": 4}, "events": ["GREETING", "TASK_DONE"], "usage": [...]}`
+
+- `relationship`을 그대로 저장합니다. 다음 대답 요청에는 여기에 그때의 `days_since_last_talk`를 더해 보냅니다.
+- 알아봄은 마지막 대화 뒤 며칠 여유를 두고 하루씩 줄어든 값에서 이번 대화만큼 오릅니다(갈수록 덜 오름). 호감은 이번 대화 인상의 일부만 따라가고 끝(±100)에 가까울수록 그쪽으로 덜 움직입니다.
+- `events`는 `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`TASK_DONE`·`LEAVE` 중 일어난 것입니다(기록용). 무례는 모델이 고르지 않고 `rude: true`인 줄마다 셉니다. 무례 원문은 `[RUDE: content withheld]` 표식으로 바꿔 보냅니다.
+- 영어 실수·한국어·짧은 대답은 호감을 깎을 일로 보지 않습니다(요구사항 REQ-24).
+- 학습자가 말하지 않은 대화는 400 `invalid_request`입니다. 모델 출력에 `events` 목록이 없으면 502 `invalid_output`, 공급자 실패는 429·503입니다. **실패하면 이전 관계를 그대로 둡니다.**
+- 단계 `relationship`, 기억 카드와 같은 모델(`memory` 역할)을 쓰고 `hedge`하지 않습니다.
+
 ### 2.8 `POST /v1/tts` — 한 문장 합성
 
 요청: `{"text": "...", "voice": "af_heart", "speed": 1.0}`(text 1~400자, speed 0.5~2.0). 응답은 `audio/wav`이고, 헤더 `X-Audio-S`(길이)·`X-Cache`(hit/miss)·`X-Synth-S`(합성 시간)가 붙습니다. 모델이 없으면 503 `tts_unavailable`입니다.
@@ -366,7 +394,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 | 칸 | 뜻 |
 |---|---|
-| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`feedback`·`memory`·`stt` |
+| `step` | `intent`·`guard`·`translate`·`npc`·`hint`·`suggest`·`meaning`·`feedback`·`memory`·`relationship`·`narrate`·`stt` |
 | `model` | **실제로 쓴** 모델 (대체 모델이면 그 이름) |
 | `fallback` | 요청한 모델이 아닌 대체 모델을 썼는지 |
 | `hedged` | (있을 때만 `true`) 답이 늦어 같은 요청을 하나 더 보냈음(NPC 대답은 첫 글자 기준). 토큰은 먼저 온 답의 것만 기록되고, 늦은 쪽 사용량은 알 수 없음 (크레딧이 조금 더 나갔을 수 있음) |

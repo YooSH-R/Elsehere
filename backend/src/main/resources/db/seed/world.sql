@@ -122,6 +122,9 @@ VALUES
   ('en-US', 'WORD', 'vase', '꽃병', 'Put the flowers in the vase.', '꽃을 꽃병에 꽂으세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'wall', '벽', 'There is a clock on the wall.', '벽에 시계가 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'window', '창문', 'Please open the window.', '창문을 열어 주세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'game console', '게임기', 'Where is the game console?', '게임기는 어디에 있나요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'claw machine', '인형 뽑기 기계', 'Can I try this claw machine?', '이 인형 뽑기 기계를 해 봐도 될까요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'toy', '장난감', 'I like this toy.', '이 장난감이 마음에 들어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'umbrella', '우산', 'Where can I buy an umbrella?', '우산은 어디에서 살 수 있나요?', 'MASTER', NULL)
 ON CONFLICT (language_code, text) DO UPDATE
 SET type = EXCLUDED.type,

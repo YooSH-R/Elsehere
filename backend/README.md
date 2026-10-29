@@ -43,7 +43,8 @@ com.elsehere
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
 | `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01) |
-| `user` | users, user_consents |
+| `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
+| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음) |
 | `world` | scenes, npcs, scene_words, user_word_prefs |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions |
@@ -72,7 +73,7 @@ com.elsehere
 
 ## NPC 음성 파일 저장
 
-NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 상세 평가의 모범 음성(FB-04)은 같은 폴더의 `model-speech/`에 저장합니다. 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
+NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 상세 평가의 모범 음성(FB-04)은 같은 폴더의 `model-speech/`에, AI 개선에 동의한 사용자의 녹음은 `training-recordings/`(`TRAINING_RECORDING_DIR`)에 저장합니다([AI 개선 데이터 활용 기준](../docs/ai-training-data.md)). 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
 
 ## 스키마 관리
 

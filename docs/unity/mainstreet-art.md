@@ -171,4 +171,6 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 ## 적용 범위
 
-현재 범위는 Sandbox 외관 아트와 크기·통행·카메라 검토다. 북쪽 추가 건물은 재사용한 닫힌 배경 외관이며 기능이나 실내는 없다. 부지 마커와 임시 경계 벽은 아트 화면에서 숨기고 경계 Collider는 유지한다. 실제 v7 메시·리그·립싱크, 실내 완성, Production 씬 전환 연결, Web 성능 측정은 별도 작업이다. 공유 메시와 프리팹 사용만으로 Web 성능을 검증했다고 판단하지 않는다. Web 적용 전에 꽃·창문 반복 수, Renderer·재질 수와 프레임 시간을 측정해 단순화한다.
+메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 편의점 구역은 이 작업의 대상이 아니다.
+
+부지 마커와 임시 경계 벽은 아트 화면에서 숨기고 경계 Collider는 유지한다. 공유 메시와 프리팹 사용만으로 Web 성능을 검증했다고 판단하지 않는다. Web 적용 전에 꽃·창문 반복 수, Renderer·재질 수와 프레임 시간을 측정해 단순화한다.

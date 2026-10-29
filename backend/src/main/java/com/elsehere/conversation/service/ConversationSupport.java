@@ -11,6 +11,7 @@ import com.elsehere.conversation.dto.ConversationStateResponse;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.dto.NpcTurnResponse;
 import com.elsehere.conversation.dto.SpeechResponse;
+import com.elsehere.conversation.dto.TranslationResponse;
 import com.elsehere.conversation.dto.TurnDetailResponse;
 import com.elsehere.conversation.dto.UserTurnResponse;
 import com.elsehere.conversation.entity.Conversation;
@@ -36,7 +37,7 @@ import tools.jackson.databind.json.JsonMapper;
 @RequiredArgsConstructor
 class ConversationSupport {
 
-  /** 대화 하나에서 무례로 셀 수 있는 발화 수(서버 설정값). 무례 판정을 붙이기 전까지 응답 표시용이다. */
+  /** 대화 하나에서 무례로 셀 수 있는 발화 수(서버 설정값). 여기에 닿으면 NPC가 대화를 끝낸다. */
   static final int RUDE_LIMIT = 3;
 
   private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
@@ -104,7 +105,7 @@ class ConversationSupport {
             turn ->
                 turn.getSpeaker() == Speaker.NPC
                     ? WorkerLine.npc(turn.getText())
-                    : WorkerLine.learner(turn.getText(), turn.getTranslationEn()))
+                    : WorkerLine.learner(turn.getText(), turn.getTranslationEn(), turn.isRude()))
         .toList();
   }
 
@@ -135,10 +136,14 @@ class ConversationSupport {
         SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt()));
   }
 
-  // 번역 카드는 무례가 아니라고 확정된 말에만 보여 준다. 무례 판정을 붙이기 전까지는 확정할 수 없어 보여 주지 않는다.
   UserTurnResponse userTurn(Turn turn) {
     return new UserTurnResponse(
-        turn.getId(), turn.getSeq(), Speaker.USER, turn.getText(), false, null);
+        turn.getId(),
+        turn.getSeq(),
+        Speaker.USER,
+        turn.getText(),
+        turn.isRude(),
+        translation(turn));
   }
 
   ConversationStateResponse state(Conversation conversation) {
@@ -180,14 +185,19 @@ class ConversationSupport {
         turn.getSeq(),
         turn.getSpeaker(),
         turn.getText(),
-        false,
-        null,
+        turn.isRude(),
+        translation(turn),
         readWords(turn.getSuggestWords()),
         turn.getMeaningKo(),
         turn.getHintText(),
         npcTurn
             ? SpeechResponse.of(turn.getId(), turn.getNpcAudioKey(), turn.getNpcAudioDeletedAt())
             : null);
+  }
+
+  private static TranslationResponse translation(Turn turn) {
+    String english = turn.shownTranslation();
+    return english == null ? null : new TranslationResponse(english);
   }
 
   private List<String> readWords(String json) {

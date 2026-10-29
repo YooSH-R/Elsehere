@@ -206,6 +206,59 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("무례 판정은 앞선 대화의 무례 표시와 함께 보내고 판정값·사용량을 읽는다")
+  void guard_sendsHistoryAndReadsAbusive() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"text": "you idiot", "dropped": false,
+         "guard": {"abusive": true, "error": null, "error_code": null},
+         "usage": [{"step": "guard", "model": "m1", "input_tokens": 230, "output_tokens": 1}]}
+        """);
+
+    GuardResult result =
+        client.guard(TRACE, NPC, List.of(new WorkerLine("me", "shut up", null, true)), "you idiot");
+
+    assertThat(result.abusive()).isTrue();
+    assertThat(result.errorCode()).isNull();
+    assertThat(result.usage()).extracting(WorkerUsage::step).containsExactly("guard");
+    assertThat(received.get("/v1/guard").body())
+        .contains("\"text\":\"you idiot\"")
+        .contains("\"rude\":true");
+  }
+
+  @Test
+  @DisplayName("판정하지 못한 무례 판정은 판정값 null과 이유 코드로 읽는다")
+  void guard_undecided_readsNullAndErrorCode() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"text": "hmm", "dropped": false,
+         "guard": {"abusive": null, "error": "timeout", "error_code": "timeout"}, "usage": []}
+        """);
+
+    GuardResult result = client.guard(TRACE, NPC, List.of(), "hmm");
+
+    assertThat(result.abusive()).isNull();
+    assertThat(result.errorCode()).isEqualTo("timeout");
+  }
+
+  @Test
+  @DisplayName("추천 단어를 끄면 NPC 대답 요청에 suggest_words false를 보낸다")
+  void reply_withoutSuggestWords_sendsFalse() {
+    respond(
+        "/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Bye\"}\n\n");
+
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, false);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"suggest_words\":false");
+  }
+
+  @Test
   @DisplayName("뜻 보기는 NPC·대사·난이도를 보내고 한국어 뜻·단어 풀이·사용량을 읽는다")
   void meaning_sendsLineAndReadsMeaningAndGlossary() {
     respond(

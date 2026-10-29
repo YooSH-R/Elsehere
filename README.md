@@ -86,6 +86,7 @@ AI 워커는 Spring과 같은 서버에서 별도 프로세스(컨테이너)로 
 - [Unity 개발 규약](docs/unity/conventions.md)
 - [AI 코드·문서 작성 지침](AGENTS.md)
 - [AI 공통 검사와 테스트](ai/README.md)
+- [AI 개선 데이터 활용 기준](docs/ai-training-data.md)
 - [GitLab 운영 정책](docs/gitlab-setup.md)
 - [HTTPS와 인증서 운영](docs/https.md)
 - [Nginx 요청 보호 정책과 이용량 측정](docs/traffic-protection.md)

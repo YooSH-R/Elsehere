@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c20f42c716c149e40919bc87000f87c0, type: 3}
+  m_Name: NorthBlockSofa
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordPartsDefinition
+  parts:
+  - label: "\uBC29\uC11D"
+    word: {fileID: 11400000, guid: 7a688a4453c231f4280d487657d4fef1, type: 2}
+    regions:
+    - m_Center: {x: -0.004, y: 0.445, z: 0.091}
+      m_Extent: {x: 0.9975, y: 0.116, z: 0.33650002}
+  - label: "\uB4F1 \uCFE0\uC158"
+    word: {fileID: 11400000, guid: 7a688a4453c231f4280d487657d4fef1, type: 2}
+    regions:
+    - m_Center: {x: -0.003, y: 0.726, z: -0.154}
+      m_Extent: {x: 0.9975, y: 0.2295, z: 0.1295}

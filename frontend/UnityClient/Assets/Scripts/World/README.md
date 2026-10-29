@@ -38,11 +38,27 @@
 
 상점 연결과 연계 미션은 **Tools → A305 → Mission → Build First Day Journey**로 준비합니다. 카페 옆 빈 건물 앞의 CONVENIENCE STORE 간판에서 들어갑니다. 다른 기존 건물과 씬 아트는 유지합니다.
 
-- 현재 TownScene의 이용 장소는 집·카페·호텔입니다. 빈 건물은 셔터가 닫힌 외관으로, 나머지는 배경 주거동으로 구분하며 출입 Trigger를 두지 않습니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.
+- 북쪽 기존 빈 건물 세 동은 아래의 층별 상가로 사용합니다. 나머지 배경 주거동은 닫힌 외관을 유지합니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.
 - 씬 이름은 ERD `scenes.unity_key` 값으로 사용합니다. 공간 이름·개방 여부 같은 서버 데이터는 Unity에 두지 않습니다.
 - TownScene 외관은 `Prefabs/World/TownProduction`과 `CafeBlenderKit`을 사용합니다. HomeScene은 `Prefabs/Home/CozyCottage`의 실내 외형을 사용하며 기존 가구 사물 키와 문 연결을 유지합니다. 카페·호텔의 실내는 도형 대체 공간을 유지합니다. 아래 Builder를 다시 실행해도 기존 디자인을 덮어쓰지 않습니다.
 
 ## 확인 방법
+
+### 북쪽 상가
+
+북쪽 상가는 `TownScene` 안에서 직접 걷는 실내입니다. 씬 이동이나 순간 이동 없이 계단을 오르내립니다. 기존 건물의 위치·높이·주요 외관을 유지하는 Prefab Variant를 사용하며, 호텔 앞 편의점 구역은 이 Builder의 대상이 아닙니다.
+
+| 기존 건물 앞 좌표 | 프리팹 | 층별 용도 | 출입 방식 |
+| --- | --- | --- | --- |
+| `(-7, 0.1, 21)` | `NorthBlock/MapleBakery` | 1층 베이커리, 2층 좌석 | 매장 안 복층 계단 |
+| `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 공용 계단실에서 각 층의 매장 문으로 진입 |
+| `(-7, 0.1, 39)` | `NorthBlock/HomeLiving` | 1층 생활용품점, 2층 Leaf Tea Room | 1층 독립 출입구, 전면 외부 계단으로 2층 진입 |
+
+`ShopSwingDoor`는 CharacterController가 문 앞에 접근하면 문짝을 열고, 감지 영역에서 나가면 닫습니다. 별도 키 입력은 필요하지 않습니다. 층별 문에는 씬 전환 Trigger를 사용하지 않습니다. 오락기·서점·찻집은 공간과 사물 학습을 위한 배치이며, 결제·오락기 플레이·상점 NPC 미션은 포함하지 않습니다.
+
+**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
+
+통행 검사는 실제 캐릭터의 최대 반지름과 계단 허용 높이를 사용하는 `NorthBlockTraversalTests`, 문 개폐는 `ShopSwingDoorTests`에서 확인합니다.
 
 `Assets/Scenes/Production/HomeScene.unity`를 열고 Play합니다. 방 남쪽 문으로 나가면 마을 남동쪽 집 앞에 서고, 큰길 서쪽의 `CAFE`와 동쪽의 `HOTEL` 건물 문으로 들어갈 수 있습니다. 실내 남쪽 문으로 나오면 그 건물 앞으로 돌아갑니다. 조작 방법은 [Player 모듈](../Player/README.md)을 따릅니다.
 

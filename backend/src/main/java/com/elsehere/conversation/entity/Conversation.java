@@ -94,6 +94,16 @@ public class Conversation extends BaseEntity {
     return status == ConversationStatus.ACTIVE;
   }
 
+  /** 무례한 말을 하나 센다. 한도에 닿으면 NPC가 대화를 끝낸다. */
+  public void countRude(int limit, Instant now) {
+    rudeCount++;
+    if (rudeCount >= limit) {
+      status = ConversationStatus.ENDED_BY_NPC;
+      endReason = ConversationEndReason.RUDE;
+      endedAt = now;
+    }
+  }
+
   /** 사용자가 [대화 종료]를 눌렀다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않는다. */
   public void endByUser(Instant now) {
     if (!isActive()) {

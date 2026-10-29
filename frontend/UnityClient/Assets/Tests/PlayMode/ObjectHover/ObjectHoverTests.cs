@@ -5,6 +5,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace A305.ObjectHover.PlayModeTests
 {
@@ -102,6 +103,74 @@ namespace A305.ObjectHover.PlayModeTests
             hover.Refresh(pointer, LongerThanShowDelaySeconds);
 
             Assert.That(tooltip.IsVisible, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingTv_PinsCard_AndKeepsItWhenPointerLeaves()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+
+            hover.Click(ScreenPointOf(tv));
+            LookAtEmptySky();
+            hover.Refresh(ScreenCenter(), LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsVisible, Is.True);
+            Assert.That(tooltip.IsPinned, Is.True);
+            Assert.That(tooltip.WordText, Is.EqualTo("TV"));
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingEmptySpace_ClosesPinnedCard()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            hover.Click(ScreenPointOf(tv));
+
+            LookAtEmptySky();
+            hover.Click(ScreenCenter());
+
+            Assert.That(tooltip.IsVisible, Is.False);
+            Assert.That(tooltip.IsPinned, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator PressingCloseButton_ClosesPinnedCard()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            hover.Click(ScreenPointOf(tv));
+
+            Button close = tooltip
+                .GetComponentsInChildren<Button>(true)
+                .SingleOrDefault(button => button.name == "CloseButton");
+            Assert.That(close, Is.Not.Null, "카드에 [닫기]가 없습니다.");
+            Assert.That(
+                close.gameObject.activeInHierarchy,
+                Is.True,
+                "고정한 카드에 [닫기]가 보이지 않습니다."
+            );
+            close.onClick.Invoke();
+            LookAtEmptySky();
+            hover.Refresh(ScreenCenter(), LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsVisible, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator PinnedCard_ClosesWhenPlayerMovesFarAway()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Vector2 pointer = ScreenPointOf(tv);
+            hover.Click(pointer);
+
+            // 남쪽 문 앞 감지 영역에 들어가면 마을로 이동하므로 문에서 떨어진 남동쪽 구석에 세운다.
+            player.Teleport(new Vector3(4f, 0f, -3.8f), Quaternion.identity);
+            hover.Refresh(pointer, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsVisible, Is.False);
+            Assert.That(tooltip.IsPinned, Is.False);
         }
 
         [UnityTest]
@@ -237,6 +306,20 @@ namespace A305.ObjectHover.PlayModeTests
             player.Teleport(position, Quaternion.LookRotation(-target.transform.forward));
             cameraRig.SnapBehindTarget();
             yield return null;
+        }
+
+        // 벽도 공용 단어를 가지므로, 씬 위쪽의 빈 공간을 바라보게 해 아무 사물도 가리키지 않게 한다.
+        private static void LookAtEmptySky()
+        {
+            Camera.main.transform.SetPositionAndRotation(
+                new Vector3(0f, 100f, 0f),
+                Quaternion.LookRotation(Vector3.up, Vector3.forward)
+            );
+        }
+
+        private static Vector2 ScreenCenter()
+        {
+            return new Vector2(Screen.width / 2f, Screen.height / 2f);
         }
 
         private static Vector2 ScreenPointOf(HoverableObject target)

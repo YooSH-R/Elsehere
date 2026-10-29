@@ -117,37 +117,66 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1122,
-            "detailCount": 0,
+            "objectCount": 1430,
+            "detailCount": 50,
             "wordKeys": [
                 "awning",
+                "bed",
                 "bench",
+                "book",
+                "bookshelf",
+                "bread",
+                "cabinet",
+                "cake",
+                "cash_register",
+                "ceiling",
+                "chair",
                 "cloud",
+                "coffee_machine",
                 "cornice",
                 "counter",
+                "croissant",
                 "crosswalk",
+                "cushion",
+                "display_case",
                 "door",
+                "drawer",
+                "duvet",
                 "entrance",
                 "fence",
                 "fire_hydrant",
                 "floor",
                 "flowerbed",
+                "flowerpot",
                 "fountain",
+                "handle",
+                "headboard",
                 "hedge",
                 "lamp",
+                "mattress",
+                "mug",
+                "pillow",
+                "plant",
                 "planter",
                 "porch",
+                "railing",
                 "road",
                 "roof",
+                "shop",
+                "shutter",
                 "sidewalk",
                 "sign",
+                "sofa",
                 "stairs",
                 "streetlight",
+                "table",
                 "trash_can",
                 "tree",
                 "truck",
                 "wall",
-                "window"
+                "window",
+                "word_2ed81ce347fb9724d8df37ac679e41d9",
+                "word_44f9cc0d067b770438b25673c21c1358"
             ]
         },
         {
@@ -1015,6 +1044,217 @@
             "path": "Assets/Prefabs/World/MainstreetArt/WindowFlowerBox.prefab",
             "wordKeys": [
                 "planter"
+            ]
+        },
+        {
+            "guid": "2dfb3dca90dd7ea4497f4e7f4810209a",
+            "path": "Assets/Prefabs/World/NorthBlock/HomeLiving.prefab",
+            "wordKeys": [
+                "bed",
+                "cabinet",
+                "ceiling",
+                "chair",
+                "cornice",
+                "cushion",
+                "door",
+                "drawer",
+                "duvet",
+                "floor",
+                "flowerpot",
+                "handle",
+                "headboard",
+                "lamp",
+                "mattress",
+                "mug",
+                "pillow",
+                "plant",
+                "railing",
+                "roof",
+                "shop",
+                "sign",
+                "sofa",
+                "stairs",
+                "table",
+                "wall",
+                "window",
+                "word_44f9cc0d067b770438b25673c21c1358"
+            ]
+        },
+        {
+            "guid": "960740ca47590184b8d2a7838fd13407",
+            "path": "Assets/Prefabs/World/NorthBlock/LittleArcade.prefab",
+            "wordKeys": [
+                "book",
+                "bookshelf",
+                "ceiling",
+                "chair",
+                "cornice",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "plant",
+                "railing",
+                "roof",
+                "shop",
+                "sign",
+                "stairs",
+                "table",
+                "wall",
+                "window",
+                "word_2ed81ce347fb9724d8df37ac679e41d9",
+                "word_44f9cc0d067b770438b25673c21c1358"
+            ]
+        },
+        {
+            "guid": "1d34e2fbb8b2ae7439f5ca5824bbcbc3",
+            "path": "Assets/Prefabs/World/NorthBlock/MapleBakery.prefab",
+            "wordKeys": [
+                "book",
+                "bread",
+                "cake",
+                "cash_register",
+                "ceiling",
+                "chair",
+                "coffee_machine",
+                "cornice",
+                "counter",
+                "croissant",
+                "display_case",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "mug",
+                "plant",
+                "railing",
+                "roof",
+                "shop",
+                "sign",
+                "stairs",
+                "table",
+                "wall",
+                "window"
+            ]
+        },
+        {
+            "guid": "d7b9aef2b1346914b8fb72f3fd9cc2e4",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Armchair.prefab",
+            "wordKeys": [
+                "chair",
+                "cushion"
+            ]
+        },
+        {
+            "guid": "916965e08ffc3db4baddd223084395ea",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Bear.prefab",
+            "wordKeys": [
+                "word_44f9cc0d067b770438b25673c21c1358"
+            ]
+        },
+        {
+            "guid": "d7166604d3104654b9648a2773be285c",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Bed.prefab",
+            "wordKeys": [
+                "bed",
+                "drawer",
+                "duvet",
+                "headboard",
+                "mattress",
+                "pillow"
+            ]
+        },
+        {
+            "guid": "ee2872bed8c95164eb902540714899af",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Book.prefab",
+            "wordKeys": [
+                "book"
+            ]
+        },
+        {
+            "guid": "a9961da56e34a3b4592304d3b44681bf",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Cabinet.prefab",
+            "wordKeys": [
+                "cabinet"
+            ]
+        },
+        {
+            "guid": "e192048e433d38d4eb52e1db25753913",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Chair.prefab",
+            "wordKeys": [
+                "chair"
+            ]
+        },
+        {
+            "guid": "e0b90ec1b0df19b4db2af605c3cf2259",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/ClawMachine.prefab",
+            "wordKeys": [
+                "word_2ed81ce347fb9724d8df37ac679e41d9"
+            ]
+        },
+        {
+            "guid": "1fc4414054f51574c8d6da33f43d1915",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/CoffeeTable.prefab",
+            "wordKeys": [
+                "table"
+            ]
+        },
+        {
+            "guid": "8e3fae22faad5a742a162bc8e7589f66",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/GameConsole.prefab",
+            "wordKeys": [
+                "word_0a8bd7882c5b7b04e84b90f02a9345c1"
+            ]
+        },
+        {
+            "guid": "ce9373151ac9193478669cf4489e8022",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Lamp.prefab",
+            "wordKeys": [
+                "lamp"
+            ]
+        },
+        {
+            "guid": "86f89ac975dbe3643a7ba75868feb487",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Nightstand.prefab",
+            "wordKeys": [
+                "drawer"
+            ]
+        },
+        {
+            "guid": "dc7e84376a4e800469fd620906394cd1",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Plant.prefab",
+            "wordKeys": [
+                "flowerpot",
+                "plant"
+            ]
+        },
+        {
+            "guid": "71eabdbd1b59ff348b840b888fdb72df",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Rabbit.prefab",
+            "wordKeys": [
+                "word_44f9cc0d067b770438b25673c21c1358"
+            ]
+        },
+        {
+            "guid": "2fee942e4811b784b82ded5c0af56653",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Sofa.prefab",
+            "wordKeys": [
+                "cushion",
+                "sofa"
+            ]
+        },
+        {
+            "guid": "688e9b26c70109a42871dd02b5831699",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Table.prefab",
+            "wordKeys": [
+                "table"
+            ]
+        },
+        {
+            "guid": "10ce26d9cb37ba942817a1415ee91cc1",
+            "path": "Assets/Prefabs/World/NorthBlock/Props/Toy.prefab",
+            "wordKeys": [
+                "word_44f9cc0d067b770438b25673c21c1358"
             ]
         },
         {

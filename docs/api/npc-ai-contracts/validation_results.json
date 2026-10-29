@@ -1,8 +1,8 @@
 {
   "scope": "로컬 파일·JSON Schema·참조·예시·계약 규칙 검증. HTTP/DB/LLM/TTS 통합 테스트가 아님.",
-  "passed": 181,
+  "passed": 183,
   "failed": 0,
-  "total": 181,
+  "total": 183,
   "results": [
     {
       "test": "공통 스키마 문서 문법",
@@ -1037,6 +1037,12 @@
       "detail": ""
     },
     {
+      "test": "문서 링크: README.md → ../../npc-life-design.md",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
       "test": "문서 링크: README.md → 01_npc_configuration_spec_v2.md",
       "expected": "accept",
       "passed": true,
@@ -1062,6 +1068,12 @@
     },
     {
       "test": "문서 링크: README.md → npc_inference_openapi_v2.yaml",
+      "expected": "accept",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "문서 링크: README.md → npc_life_rules_schemas.json",
       "expected": "accept",
       "passed": true,
       "detail": ""

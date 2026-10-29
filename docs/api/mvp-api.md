@@ -1,6 +1,6 @@
 # MVP API 명세 초안
 
-MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.6](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
+MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.7](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
 - MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능(설정, 프로필 수정, NPC 호감도 조회)도 API를 만들지 않았습니다. 집에서 고르는 화면 테마(USER-01)는 와이어프레임 밖에서 추가한 기능입니다.
@@ -246,6 +246,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | VOCAB-04 | `DELETE /api/v1/vocab/{userVocabId}` | 단어장에서 삭제 | - | 18 |
 | AI-01 | `GET /api/v1/ai/status` | AI 이용 상태·기능별 가능 여부 | - | 13, 19 |
 | USER-01 | `PUT /api/v1/me/ui-theme` | 화면 테마 저장 | - | 화면 없음(집에서 선택) |
+| USER-02 | `GET /api/v1/me/training-consents` | AI 개선 동의 조회 | - | 화면 없음(설정 화면 미정) |
+| USER-03 | `PUT /api/v1/me/training-consents` | AI 개선 동의 켜기·끄기 | - | 화면 없음(설정 화면 미정) |
 
 ## 4. API 상세
 
@@ -309,12 +311,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     { "consentType": "TERMS", "version": "2026-10", "required": true, "title": "서비스 이용약관", "url": "/terms/2026-10" },
     { "consentType": "PRIVACY", "version": "2026-10", "required": true, "title": "개인정보 처리방침", "url": "/privacy/2026-10" },
     { "consentType": "AGE14", "version": "2026-10", "required": true, "title": "만 14세 이상입니다", "url": null },
-    { "consentType": "VOICE", "version": "2026-10", "required": false, "title": "음성 처리 동의", "url": "/voice/2026-10" }
+    { "consentType": "VOICE", "version": "2026-10", "required": false, "title": "음성 처리 동의", "url": "/voice/2026-10" },
+    { "consentType": "TRAINING_TEXT", "version": "2026-10", "required": false, "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10" },
+    { "consentType": "TRAINING_VOICE", "version": "2026-10", "required": false, "title": "AI 개선에 내 녹음 음성 활용", "url": "/ai-training/2026-10" }
   ]
 }
 ```
 
 - 약관 버전과 문서 주소는 서버 설정값입니다. `VOICE` 동의의 필수 여부와 음성 보관 기간은 `[미정]`이며, 정해지기 전까지 선택 약관으로 둡니다.
+- `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
+- 문서 주소(`url`)를 보여 줄 약관 페이지는 아직 없습니다 `[미정]`.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -724,7 +730,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 인식 대상은 영어입니다. 한국어로 말하면 거르거나 번역하지 않고 한글 그대로 전사합니다. 그 문장의 번역은 CONV-03이 맡습니다.
 - 녹음 형식은 `webm`, `ogg`, `mp4`, `wav`, `mpeg`이며 Unity는 16kHz 모노 16비트 WAV로 보냅니다. `audio` 파일 부분에 `Content-Type`(예: `audio/wav`)을 붙입니다.
 - 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 15초, 무음이 3초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
-- 받은 음성은 전사 후 보관하지 않습니다. `VOICE` 동의를 받은 경우의 보관 여부·기간은 `[미정]`입니다.
+- 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 녹음만 인식 결과와 함께 학습용으로 보관합니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다. `VOICE` 동의를 받은 경우의 보관 여부·기간은 `[미정]`입니다.
 
 #### CONV-03 `POST /api/v1/conversations/{conversationId}/turns`
 
@@ -768,7 +774,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
 - 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다.
 
-**학습자 말 번역** — `userTurn.translation`은 학습자 말의 영어 번역 `{ "english": "Medium size, please." }`입니다. 번역이 있고 무례로 판정되지 않은 턴에만 담고, 그 밖에는 `null`입니다. 한국어나 한영 혼용으로 말했을 때 "영어로는 이렇게 말해요" 카드에 씁니다. 표시 위치는 Unity와 정합니다.
+**학습자 말 번역** — `userTurn.translation`은 학습자 말의 영어 번역 `{ "english": "Medium size, please." }`입니다. 번역이 있고 무례가 아니라고 확정된 턴에만 담고, 무례하거나 판정하지 못한 턴을 포함한 그 밖에는 `null`입니다. 한국어나 한영 혼용으로 말했을 때 "영어로는 이렇게 말해요" 카드에 씁니다. 표시 위치는 Unity와 정합니다.
 
 **무례 판정** — 학습자 말이 무례한지(욕설·위협·모욕·조롱·하대) 턴마다 판정하고, 대화 하나 안에서 셉니다.
 
@@ -780,7 +786,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 판정 실패 | `rude: false`. 무례로 세지 않고 평소대로 처리 | 평소대로 | 계속 |
 
 - `rudeLimit`은 서버 설정값(3)입니다. 새 대화는 0부터 셉니다.
-- 판정 결과와 실패 이유는 `turns.guard_abusive`, `turns.guard_error_code`에 남깁니다. 판정 실패를 무례나 무례 아님으로 바꿔 저장하지 않습니다.
+- 판정 결과와 실패 이유는 `turns.guard_abusive`, `turns.guard_error_code`에 남깁니다. 판정 실패를 무례나 무례 아님으로 바꿔 저장하지 않습니다. AI 워커에 닿지 못해 판정하지 못한 턴은 `guard_error_code`가 `worker_unavailable`이고 대화는 평소대로 이어집니다.
 - NPC가 먼저 잘못한 장면(정당방위)의 예외는 사건 장면을 만들 때 정합니다(6절).
 
 ```json
@@ -1161,9 +1167,43 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - `uiTheme`이 없거나 `null`이거나 세 값 중 하나가 아니면(대소문자 구분, 예: `sticker`) `400 VALIDATION_FAILED`이며 테마를 바꾸지 않습니다.
 - 같은 값을 여러 번 보내도 결과가 같습니다.
 
+### 4.11 AI 개선 동의
+
+가입 화면(AUTH-03·04)에서 받은 `TRAINING_TEXT`·`TRAINING_VOICE` 동의를 가입 뒤에 보고 바꿉니다. 동의 범위·보관·내보내기 기준은 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다. 설정 화면의 위치와 모양은 Unity와 정합니다 `[미정]`.
+
+#### USER-02 `GET /api/v1/me/training-consents`
+
+```json
+// 응답 200
+{
+  "consents": [
+    { "consentType": "TRAINING_TEXT", "version": "2026-10", "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10", "agreed": true },
+    { "consentType": "TRAINING_VOICE", "version": "2026-10", "title": "AI 개선에 내 녹음 음성 활용", "url": "/ai-training/2026-10", "agreed": false }
+  ]
+}
+```
+
+- 대화 기록, 녹음 음성 순서로 돌려줍니다. `agreed`는 지금 문구 버전(`version`)에 동의했고 철회하지 않았으면 `true`입니다. 옛 버전에 동의했으면 `false`입니다.
+- 게스트는 동의할 수 없으므로 둘 다 `false`입니다.
+
+#### USER-03 `PUT /api/v1/me/training-consents`
+
+```json
+// 요청
+{ "consentType": "TRAINING_VOICE", "agreed": false }
+
+// 응답 200
+{ "consentType": "TRAINING_VOICE", "version": "2026-10", "title": "AI 개선에 내 녹음 음성 활용", "url": "/ai-training/2026-10", "agreed": false }
+```
+
+- `agreed: true`면 지금 문구 버전으로 동의를 남깁니다. 이미 동의했으면 바뀌는 것이 없습니다.
+- `agreed: false`면 동의를 철회합니다(`user_consents.withdrawn_at`). `TRAINING_VOICE`를 철회하면 그동안 저장한 녹음 파일과 기록을 바로 지웁니다. `TRAINING_TEXT`를 철회하면 대화 기록은 서비스에 필요하므로 지우지 않고 학습용 내보내기에서 뺍니다.
+- `consentType`·`agreed`가 없거나 `null`이거나, `consentType`이 `TRAINING_TEXT`·`TRAINING_VOICE`가 아니면 `400 VALIDATION_FAILED`입니다. 게스트가 부르면 `400 VALIDATION_FAILED`입니다.
+- 로그인한 사용자만 호출할 수 있으며 `X-Requested-With` 헤더가 필요합니다.
+
 ## 5. ERD와의 관계
 
-### 5.1 이 명세에 맞춰 ERD v3.1~v3.6에 반영한 사항
+### 5.1 이 명세에 맞춰 ERD v3.1~v3.7에 반영한 사항
 
 | 항목 | 관련 API | ERD 변경 |
 | --- | --- | --- |
@@ -1194,6 +1234,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | NPC 음성 보관 정책 (v3.5) | CONV-01, 03, 06, 07, 10 | `turns.npc_audio_deleted_at`(보관 정책으로 음성을 지운 시각)을 추가했습니다. 처음 합성에 실패해 키가 없는 턴과 구분해, 지운 음성은 `speech.status: EXPIRED`로 알리고 다시 만들지 않습니다. |
 | 공용 단어 카드 (v3.4) | WORLD-02·03, VOCAB-02 | Unity가 사물 카드를 사물별 단어에서 공용 단어로 바꾼 데 맞춰 `world_objects`·`user_object_prefs`를 `scene_words`(장소별 단어)·`user_word_prefs`(단어별 숨김)로 바꾸고 `vocabularies.word_key`를 추가했습니다. API의 `objectKey`는 `wordKey`로 바꿨습니다. |
 | 화면 테마 (v3.6) | BOOT-01, AUTH-04·07, USER-01 | `users.ui_theme`(`JELLY`·`STICKER`·`CLOUD`, 기본값 `JELLY`)을 추가했습니다. 이미 가입한 사용자는 마이그레이션(V3)에서 `JELLY`로 채웁니다. |
+| AI 개선 동의·학습용 녹음 (v3.7) | AUTH-03·04, CONV-02, USER-02·03 | `user_consents.consent_type`에 `TRAINING_TEXT`·`TRAINING_VOICE`를 더하고 철회 시각 `withdrawn_at`을 추가했습니다. 녹음 음성 활용에 동의한 사용자의 녹음 기록 `training_recordings`를 추가했습니다(마이그레이션 V4). |
 
 ### 5.2 아직 정할 사항
 

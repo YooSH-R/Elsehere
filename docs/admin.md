@@ -1,6 +1,6 @@
 # 운영자 어드민
 
-운영자가 게임 콘텐츠를 고치는 관리 화면입니다. 백엔드가 Thymeleaf로 화면을 그리고, 저장은 화면의 스크립트가 관리 API를 호출합니다. 지금은 **NPC 페르소나 편집**만 제공합니다. 장소·NPC 기본 정보·사물·어휘·미션 관리는 Jira 에픽 S15P31A305-287의 후속 스토리에서 다룹니다.
+운영자가 게임 콘텐츠를 고치는 관리 화면입니다. 백엔드가 Thymeleaf로 화면을 그리고, 저장은 화면의 스크립트가 관리 API를 호출합니다. 지금은 **NPC 페르소나 편집** 화면과 화면 없는 **사물 단어 발음 만들기** API만 제공합니다. 장소·NPC 기본 정보·사물·어휘·미션 관리는 Jira 에픽 S15P31A305-287의 후속 스토리에서 다룹니다.
 
 ## 주소
 
@@ -19,6 +19,8 @@
 | API | 하는 일 |
 | --- | --- |
 | `PUT /api/v1/admin/npcs/{npcCode}/persona` | 페르소나 저장. 본문 `{ "role", "facts", "scene" }`, 응답은 저장한 값 |
+| `GET /api/v1/admin/pronunciations` | 사물 단어 발음 진행 상황 |
+| `POST /api/v1/admin/pronunciations` | 발음 파일이 없는 사물 단어의 발음을 백그라운드에서 만들기 시작. `202`와 진행 상황 |
 
 ## 접근 권한
 
@@ -65,6 +67,29 @@ select id, nickname, email from users where role = 'ADMIN';
 - 새 NPC는 지금처럼 `world.sql`에 추가합니다. 처음 페르소나는 시드 값이 들어가고, 그 뒤로는 어드민에서 고칩니다.
 - 이미 있는 NPC의 페르소나를 `world.sql`에서 고쳐도 반영되지 않습니다. 어드민에서 고칩니다.
 - 새로 만든 DB(로컬 DB 초기화 등)에는 시드의 처음 값이 들어갑니다. 환경 사이에 페르소나를 옮기는 기능은 없습니다.
+
+## 사물 단어 발음 만들기
+
+사물 카드의 [발음 듣기](api/mvp-api.md)(WORLD-04)가 쓰는 WAV를 AI 워커 TTS(`af_heart`, 속도 1.0)로 만듭니다. 파일은 음성 볼륨의 `pronunciation/` 폴더에 `{wordKey}.wav`로 저장합니다([NPC 음성 저장 운영](npc-audio-storage.md)). 발음 파일이 없는 사물 단어는 카드에서 발음 버튼이 숨겨집니다(`hasPronunciation: false`).
+
+- 발음 파일이 없는 단어만 만들므로 여러 번 실행해도 됩니다. 합성에 실패한 단어는 건너뛰고 결과의 `failedWordKeys`에 남기며, 다시 실행하면 그 단어만 다시 만듭니다.
+- 한 번에 하나만 실행합니다. 진행 중에 다시 시작하면 새로 시작하지 않고 진행 상황만 돌려줍니다. 실행 상태와 마지막 결과는 서버 메모리에만 있어 서버를 다시 시작하면 사라집니다(만든 파일은 남습니다).
+- 개발·운영 볼륨은 따로이므로 환경마다 실행합니다. 새 사물 단어를 Unity에서 추가해 배포한 뒤에도 다시 실행합니다.
+- AI 워커에 TTS 모델이 준비되어 있어야 합니다. 준비되지 않았으면 모든 단어가 `failedWordKeys`에 남습니다.
+- 합성 호출은 실행한 관리자의 `ai_requests`(`kind: TTS`)로 기록합니다.
+
+화면은 따로 없습니다. 관리자로 로그인한 브라우저에서 어드민 화면(`/admin/`)을 열고 개발자 도구 콘솔에서 실행합니다.
+
+```js
+// 시작
+await (await fetch("/api/v1/admin/pronunciations", {
+  method: "POST", headers: { "X-Requested-With": "ElsehereAdmin" }
+})).json();
+// 진행 상황: { total, ready, missing, running, lastRun: { created, failedWordKeys } }
+await (await fetch("/api/v1/admin/pronunciations")).json();
+```
+
+`running`이 `false`가 되고 `missing`이 0이면 끝난 것입니다.
 
 ## 화면을 바꿀 때
 

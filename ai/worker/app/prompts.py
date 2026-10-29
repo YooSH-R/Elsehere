@@ -5,6 +5,7 @@ import json
 import re
 
 from .llm import ModelOutputError
+from .npc_prompt import reply_system_prompt
 from .schemas import Line, Memory, Npc, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
@@ -198,7 +199,11 @@ IMPORTANT for your next reply: {note or "Just reply naturally."}"""
 
 
 def npc_messages(n: Npc, memory: Memory | None, history: list[Line], text: str, instruction: str, level: int = 2) -> list[dict]:
-    msgs = [{"role": "system", "content": npc_system(n, memory_note(memory), instruction, level)}]
+    if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
+        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, memory_note(memory), level, instruction)
+    else:
+        system = npc_system(n, memory_note(memory), instruction, level)
+    msgs = [{"role": "system", "content": system}]
     for h in history[-12:]:
         msgs.append({"role": "assistant" if h.who == "npc" else "user", "content": h.text})
     msgs.append({"role": "user", "content": text})

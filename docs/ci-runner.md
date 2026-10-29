@@ -16,11 +16,13 @@
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |
 | `infra:deployment-plan-tests` | 인프라 스크립트 또는 공통 CI 변경 | Ruff·임시 Git 저장소 기반 누적 배포 범위 판정 테스트 |
-| `infra:app-runtime` | 앱용 Dockerfile·Compose·환경 예제·웹 설정·실행 점검 코드, API 명세 또는 공통 CI 변경 | 검사된 JAR를 받아 실제 앱 이미지를 빌드하고, 일회용 Compose에서 DB·백엔드 health·AI 인증·웹 gzip/MIME 검증 |
+| `infra:app-runtime` | 앱용 Dockerfile·Compose·환경 예제·웹 설정·실행 점검 코드, API 명세 또는 공통 CI 변경 | 검사된 JAR를 받아 실제 앱 이미지를 빌드하고, 일회용 Compose에서 DB·백엔드 health·AI 인증·TTS 모델 적재·웹 gzip/MIME 검증 |
 | `infra:observability` | 모니터링·Nginx·관측 검증 스크립트 또는 공통 CI 변경 | 요청 ID·로그의 민감 정보 제외, Prometheus·Grafana 구성, 경보 발동·복구와 가짜 수신기 전송 검사 |
 | `prod:plan`·`prod:child`·`prod:deliver` | 보호된 `main` Push에서 자동 시작. 수동 재실행은 웹 실행과 `RUN_PROD_DEPLOY=true` 및 검증 변수 사용 | 직렬화된 자식에서 모든 영역 검사 후 누적 이미지 빌드·운영 자동 전달·상태 점검과 버전 보관. 설치·DB·병합 전 통합 검증 조건은 [운영 배포 문서](prod-deployment.md) 참조 |
 
 일반 문서 변경은 빠른 YAML 검사만 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 보호된 `dev`·`main`에 병합한 커밋은 별도 파이프라인으로 검사합니다. 새 커밋이 올라와도 이미 생성된 검사는 자동 취소하지 않습니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
+
+`dev → main` 릴리스 MR은 같은 소스 SHA의 dev 파이프라인 결과를 사용하며 별도 MR 파이프라인을 생성하지 않습니다. 일반 기능 MR과 `main → dev` 동기화 MR의 자동 검사는 유지합니다. 릴리스 검토 시 dev의 해당 SHA 검사 결과와 별도 통합 검증을 확인하고 main 병합 후 운영 전체 검사도 유지합니다.
 
 MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대상과의 최종 차이로 작업을 선택합니다. 같은 MR에서 문서만 추가로 고쳐도 백엔드 파일이 대상과 다르면 백엔드 검사가 다시 실행되고, 백엔드 변경을 완전히 되돌리면 선택 대상에서 빠집니다. 각 Push의 최종 커밋을 검사하며, 한 번의 Push에 포함된 중간 커밋마다 별도 파이프라인을 만들지는 않습니다. [GitLab 비교 대상 지정](https://docs.gitlab.com/ci/yaml/#ruleschangescompare_to)
 

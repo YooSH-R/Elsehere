@@ -42,7 +42,7 @@ AI 도구가 처음 읽는 `AGENTS.md`의 필수 지침과 두 도구의 동일�
 
 ```text
 chore/S15P31A305-36-service-ci
-chore/S15P31A305-37-server-environments
+chore/S15P31A305-177-dev-auto-deployment
 docs/S15P31A305-113-https-operations
 ```
 
@@ -61,7 +61,7 @@ Jira에서는 에픽별로 스토리와 관련 작업을 묶어 정렬합니다.
 
 ```text
 chore(infra): 서비스별 CI와 품질 검사 기준 구성 [S15P31A305-36]
-chore(infra): 개발·운영 서버 실행 환경 구성 [S15P31A305-37]
+chore(infra): dev 자동 배포와 상태 점검 구성 [S15P31A305-177]
 docs(infra): HTTPS 적용과 인증서 갱신 절차 정리 [S15P31A305-113]
 ```
 
@@ -149,7 +149,7 @@ git switch -c chore/S15P31A305-36-service-ci
 
 1. 릴리스에 포함할 `dev` 커밋을 정하고 통합 검증을 수행합니다.
 2. `dev → main` MR을 생성하고 Release 템플릿을 작성합니다.
-3. 검증 이후 `dev`에 변경이 추가되면 포함 범위와 검증 결과를 다시 확인합니다.
+3. 릴리스 MR은 별도 중복 MR 파이프라인 없이 같은 소스 SHA의 dev 파이프라인 결과를 사용합니다. 검증 이후 `dev`에 변경이 추가되면 새 SHA의 검사 결과·포함 범위·통합 검증을 다시 확인합니다.
 4. 리뷰 후 Maintainer가 Merge commit으로 병합합니다. `dev`는 삭제하지 않습니다.
 5. 보호된 `main`에 병합하면 전체 검사·빌드 후 운영 배포가 자동 실행됩니다. [CI/CD 기준](ci-cd.md)에 따라 운영 후보의 코드·이미지·설정과 통합 검증 결과, 필요한 DB 적용·이전 앱 호환성·복원 결과를 병합 전에 확인합니다. 최초 운영 앱 전환과 자동 배포 연결 조건은 [운영 배포 문서](prod-deployment.md), 환경 분리와 앱 교체는 [배포 문서](deployment.md)를 따릅니다.
 

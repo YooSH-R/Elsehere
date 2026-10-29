@@ -55,4 +55,9 @@ public class Vocabulary extends BaseEntity {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private VocabularySource source;
+
+  /** 만든 발음 파일을 연결한다(WORLD-04). */
+  public void attachPronunciation(String pronunciationAudioKey) {
+    this.pronunciationAudioKey = pronunciationAudioKey;
+  }
 }

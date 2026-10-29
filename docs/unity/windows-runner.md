@@ -6,6 +6,8 @@ Unity 테스트와 WebGL 빌드는 Windows 노트북의 `a305-unity-windows` Run
 
 Tripo 통합 검사에 필요한 Blender와 FBX는 테스트 스크립트가 준비합니다. 개인 모델 경로나 `TRIPO_*` 변수를 Runner 설정에 수동 등록하지 않습니다. [테스트 입력 준비](#blender와-fbx-테스트-입력)의 고정 버전·캐시와 생성 모델을 사용합니다.
 
+저장된 바리스타 마스터 검수 테스트는 CI 작업의 `TRIPO_MASTER_RECORD`에 지정된 저장소 레코드와 `TRIPO_MASTER_SCENE`의 손 연결 검수 씬을 사용합니다. 별도 모델을 생성하거나 API를 호출하지 않으며, 로컬에서 전체 검사를 실행할 때도 `.gitlab/ci/unity.yml`의 같은 두 입력을 지정합니다.
+
 ## 등록과 실행
 
 GitLab 프로젝트의 **Settings → CI/CD → Runners → Create project runner**에서 다음 값을 사용합니다.

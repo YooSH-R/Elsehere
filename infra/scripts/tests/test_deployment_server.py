@@ -116,6 +116,7 @@ class DeploymentServerTests(unittest.TestCase):
         candidate="c" * 40,
         branch="dev",
         environment="dev",
+        ready_deployment=False,
     ):
         builds = ["backend"] if builds is None else builds
         state = self.server.state()
@@ -141,6 +142,8 @@ class DeploymentServerTests(unittest.TestCase):
             "configuration_changed": False,
             "images": images,
         }
+        if ready_deployment:
+            manifest["verified_base_commit"] = state["candidate_commit"]
         files = {
             "manifest.json": json.dumps(manifest).encode(),
             "compose.app.yaml": b"services: {}\n",
@@ -304,13 +307,28 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertEqual(self.runtime.containers["ai"], 1)
         self.assertEqual(self.runtime.containers["web"], 1)
 
-    def test_missing_branch_cannot_use_an_unconfigured_pilot(self):
+    def test_missing_deployment_branch_is_rejected(self):
         self.server.initialize()
 
         with self.assertRaisesRegex(ValueError, "Only dev"):
             self.server.apply(self.release_archive(branch=None))
 
         self.assertFalse((self.root / "deployments/last-success.json").exists())
+
+    def test_development_receiver_rejects_retired_pilot_in_existing_config(self):
+        retired_branch = "chore/retired-deploy-pilot"
+        self.config["pilot_branch"] = retired_branch
+        self.server.initialize()
+        original_containers = self.runtime.containers.copy()
+
+        with self.assertRaisesRegex(ValueError, "Only dev"):
+            self.server.apply(self.release_archive(branch=retired_branch))
+
+        self.assertEqual(self.runtime.containers, original_containers)
+        self.assertFalse((self.root / "deployments/last-success.json").exists())
+
+        result = self.server.apply(self.release_archive())
+        self.assertEqual(result["candidate_commit"], "c" * 40)
 
     def test_backend_success_keeps_other_containers_and_monitoring_secrets(self):
         self.server.initialize()
@@ -356,6 +374,50 @@ class DeploymentServerTests(unittest.TestCase):
         self.assertEqual(result["images"], images)
         self.assertEqual(self.runtime.containers, containers)
         self.assertEqual(self.server.state()["candidate_commit"], "c" * 40)
+
+    def test_ready_development_release_uses_verified_base_instead_of_pipeline_age(self):
+        self.server.initialize()
+        self.server.apply(self.release_archive(pipeline_id=20, candidate="d" * 40))
+
+        result = self.server.apply(
+            self.release_archive(
+                pipeline_id=19, candidate="e" * 40, ready_deployment=True
+            )
+        )
+
+        self.assertEqual(result["candidate_commit"], "e" * 40)
+        self.assertEqual(self.server.state()["pipeline_id"], 19)
+
+    def test_ready_development_release_cannot_reuse_a_stale_state_token(self):
+        self.server.initialize()
+        older = self.release_archive(ready_deployment=True)
+        self.server.apply(self.release_archive(pipeline_id=11, candidate="d" * 40))
+
+        with self.assertRaisesRegex(ValueError, "state changed"):
+            self.server.apply(older)
+
+        self.assertEqual(self.server.state()["candidate_commit"], "d" * 40)
+
+    def test_production_keeps_pipeline_order_check_with_a_verified_base_field(self):
+        self.config["environment"] = "prod"
+        self.server = DeploymentServer(self.config, self.runtime)
+        self.server.initialize()
+        self.server.apply(
+            self.release_archive(pipeline_id=20, branch="main", environment="prod")
+        )
+
+        with self.assertRaisesRegex(ValueError, "outdated"):
+            self.server.apply(
+                self.release_archive(
+                    pipeline_id=19,
+                    candidate="d" * 40,
+                    branch="main",
+                    environment="prod",
+                    ready_deployment=True,
+                )
+            )
+
+        self.assertEqual(self.server.state()["pipeline_id"], 20)
 
     def test_older_queued_pipeline_cannot_overwrite_a_new_success(self):
         self.server.initialize()

@@ -19,6 +19,7 @@ import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.UserVocabRepository;
 import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.dto.WordCardResponse;
+import com.elsehere.world.service.PronunciationAudioStore;
 import com.elsehere.world.service.SceneService;
 import jakarta.persistence.EntityManager;
 import java.time.Clock;
@@ -46,6 +47,7 @@ import org.springframework.context.annotation.Import;
   TestcontainersConfiguration.class,
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
+  PronunciationAudioStore.class,
   VocabService.class,
   SceneService.class,
   VocabServiceTest.ClockTestConfiguration.class

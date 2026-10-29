@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
 using A305.Player;
+using A305.World;
 using UnityEngine;
 
 namespace A305.Learning
@@ -84,6 +85,7 @@ namespace A305.Learning
             vocabularyView.DeleteRequested += Delete;
             vocabularyView.MemoSaveRequested += SaveMemo;
             hudView.VocabularyRequested += OpenVocabulary;
+            hudView.HomeRequested += ReturnHome;
         }
 
         private void Start()
@@ -97,10 +99,31 @@ namespace A305.Learning
         private void Update()
         {
             hudView.SetVocabularyAvailable(!dialogue.IsTalking);
+            hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
+        }
+
+        private bool IsHomeBlocked =>
+            dialogue.IsTalking
+            || player.IsMovementLocked
+            || IsShowingScreen
+            || SpaceTravel.IsTraveling;
+
+        private void ReturnHome()
+        {
+            if (
+                HomeNavigation.TryReturn(
+                    gameObject.scene.name,
+                    IsHomeBlocked,
+                    SpaceTravel.TryTravel
+                )
+            )
+                player.SetMovementLocked(true);
         }
 
         private void OnDestroy()
         {
+            if (hudView != null)
+                hudView.HomeRequested -= ReturnHome;
             if (dialogue != null)
             {
                 dialogue.ConversationEnded -= ShowFeedback;

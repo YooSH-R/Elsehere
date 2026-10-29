@@ -14,12 +14,16 @@ using static A305.EditorTools.World.MainstreetArtKit;
 
 namespace A305.EditorTools.World
 {
-    /// <summary>기존 마을의 빈 건물 앞에 편의점 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
+    /// <summary>기존 마을의 빈 건물 1층을 편의점 정면으로 꾸며 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
     public static class FirstDayShopBuilder
     {
         private const string ScenePath = "Assets/Scenes/Production/ShopScene.unity";
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
-        private const string TownSignText = "CONVENIENCE\nSTORE";
+        private const string StoreFrontName = "ConvenienceStoreFront";
+        private const string VacantGroundFloorPath =
+            "TownMainstreet/BackgroundBuildings/VacantBuilding2F/ButterResidence2F/ButterGroundFloor8m";
+        private const string KitPartFolder = "Assets/Prefabs/World/CafeBlenderKit/Parts/";
+        private const string TownSignText = "CONVENIENCE STORE";
         private const string PriceSignText = "CONVENIENCE STORE\nUMBRELLAS · 8 COINS";
 
         [MenuItem("Tools/A305/Mission/Adjust Shop Counter Sightline")]
@@ -170,44 +174,147 @@ namespace A305.EditorTools.World
             BuilderTools.SaveScene(scene, ScenePath);
         }
 
+        /// <summary>
+        /// 마을의 빈 2층 건물 1층을 편의점 정면으로 꾸미고 출입구를 그 벽에 붙인다.
+        /// 옆 카페와 같은 상점 부품(출입문·진열창·차양·벽등)으로 한 건물처럼 보이게 하고, 간판은 카페처럼 차양에 적는다.
+        /// 이미 꾸민 정면은 디자인을 고쳤을 수 있으므로 그대로 둔다.
+        /// </summary>
         public static void ConnectTownEntrance(SceneGroups groups)
         {
+            Transform existingFront = groups.Environment.Find(StoreFrontName);
+            if (existingFront != null)
+            {
+                HideVacantClosure(groups.Environment);
+                AttachDoor(groups, existingFront);
+                return;
+            }
+            Transform groundFloor = groups.Environment.Find(VacantGroundFloorPath);
+            if (groundFloor == null)
+                throw new System.InvalidOperationException(
+                    "Vacant building for the store missing: " + VacantGroundFloorPath
+                );
+            Bounds building = groundFloor.Find("Walls").GetComponent<Renderer>().bounds;
+            // 빈 건물은 길(+X)을 향한다. 정면 가운데 바닥에 카페 1층과 같은 좌표계(앞쪽 +Z)를 둔다.
+            Transform front = BuilderTools.CreateEmpty(
+                StoreFrontName,
+                groups.Environment,
+                new Vector3(building.max.x, building.min.y, building.center.z),
+                Quaternion.Euler(0, 90, 0)
+            );
+            HideResidentialFront(groundFloor, building.max.x);
+            HideVacantClosure(groups.Environment);
+            // 부품은 벽 앞면과 겹쳐 깜빡이지 않도록 몇 cm 앞에 붙인다.
+            KitPart("Entrance4m", front, new Vector3(0, 0, .02f));
+            foreach (float x in new[] { -3f, 3f })
+                KitPart("WindowShop2m", front, new Vector3(x, 0, .04f));
+            Material awning = Color("StoreAwningCoral", "#D9573F");
+            foreach (float x in new[] { -3f, -1f, 1f, 3f })
+            foreach (
+                Renderer part in KitPart("Awning2m", front, new Vector3(x, 2.3f, .04f))
+                    .GetComponentsInChildren<Renderer>()
+            )
+            {
+                part.sharedMaterial = part.name.EndsWith("Edge") ? Cream : awning;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(part);
+            }
+            foreach (float x in new[] { -3f, 0f, 3f })
+                KitPart("WallLamp", front, new Vector3(x, 3.48f, .1f));
+            TextMeshPro sign = Text(
+                "StoreSign",
+                TownSignText,
+                front,
+                new Vector3(0, 2.83f, .89f),
+                .42f
+            );
+            sign.transform.localRotation = Quaternion.Euler(65, 180, 0);
+            AttachDoor(groups, front);
+            // 예전에는 건물 2m 앞에 간판과 문을 따로 세웠다.
+            Transform floatingSign = groups.Environment.Find("TownShopSign");
+            if (floatingSign != null)
+                Object.DestroyImmediate(floatingSign.gameObject);
+        }
+
+        private static void HideVacantClosure(Transform environment)
+        {
+            Transform vacant = environment.Find(
+                "TownMainstreet/BackgroundBuildings/VacantBuilding2F"
+            );
+            foreach (Transform child in vacant)
+            {
+                if (
+                    child.name
+                    is not ("ClosedShutter" or "ShutterSlat" or "StatusPlate" or "Status")
+                )
+                    continue;
+                child.gameObject.SetActive(false);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(child.gameObject);
+            }
+        }
+
+        /// <summary>빈 건물 1층 정면의 닫힌 창·현관문·걸레받이는 진열창과 출입문으로 바꾸므로 숨긴다.</summary>
+        private static void HideResidentialFront(Transform groundFloor, float frontX)
+        {
+            foreach (Transform child in groundFloor)
+            {
+                bool isFrontDressing =
+                    child.name
+                    is "ClosedWindow"
+                        or "DoorFrame"
+                        or "DoorPanel"
+                        or "Handle"
+                        or "ClosedResidentialDoor"
+                        or "Skirting";
+                Renderer shape = child.GetComponentInChildren<Renderer>();
+                if (!isFrontDressing || shape == null || shape.bounds.center.x < frontX - .5f)
+                    continue;
+                child.gameObject.SetActive(false);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(child.gameObject);
+            }
+        }
+
+        /// <summary>출입문을 편의점 정면 가운데에 붙이고, 카페처럼 문 그림을 출입문 틀에 맞춘다.</summary>
+        private static void AttachDoor(SceneGroups groups, Transform front)
+        {
             if (
-                BuilderTools
+                !BuilderTools
                     .FindAllInScene<SpaceDoorway>(groups.Scene)
                     .Any(door => door.DoorwayId == "ShopDoor")
             )
+                Door(groups.Environment, "ShopDoor", Vector3.zero, 0, "ShopScene", "TownDoor");
+            SpaceDoorway doorway = BuilderTools
+                .FindAllInScene<SpaceDoorway>(groups.Scene)
+                .Single(door => door.DoorwayId == "ShopDoor");
+            doorway.transform.SetParent(front, false);
+            doorway.transform.localPosition = new Vector3(0, 0, .07f);
+            doorway.transform.localRotation = Quaternion.identity;
+            var trigger = doorway.GetComponent<BoxCollider>();
+            trigger.center = new Vector3(0, 1.3f, .4f);
+            trigger.size = new Vector3(1.8f, 2.6f, .8f);
+            doorway.ArrivalPoint.localPosition = new Vector3(0, 0, 2);
+            // 편의점답게 안이 비치는 유리문 색으로 칠한다.
+            Transform visual = doorway.transform.Find("Visual");
+            visual.localScale = new Vector3(1.5f, 1.18f, 1);
+            foreach (Renderer panel in visual.GetComponentsInChildren<Renderer>())
             {
-                SetSignText(groups.Environment, "TownShopSign/ShopLabel", TownSignText);
-                return;
+                panel.sharedMaterial = Glass;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(panel);
             }
-            Door(
-                groups.Environment,
-                "ShopDoor",
-                new Vector3(-5.1f, .1f, -1),
-                90,
-                "ShopScene",
-                "TownDoor"
-            );
-            Transform sign = Solid(
-                "TownShopSign",
-                groups.Environment,
-                new Vector3(-4.9f, 2.75f, -1),
-                new Vector3(.12f, .8f, 2.6f),
-                Green,
-                "sign"
-            );
-            TownBlockoutGeometry
-                .Label(
-                    "ShopLabel",
-                    TownSignText,
-                    sign,
-                    new Vector3(.08f, 0, 0),
-                    new Vector3(0, -90, 0),
-                    .28f
-                )
-                .color = Cream.color;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.transform);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.ArrivalPoint);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
         }
+
+        private static GameObject KitPart(string name, Transform parent, Vector3 position) =>
+            BuilderTools.InstantiatePrefab(
+                BuilderTools.LoadRequiredAsset<GameObject>(
+                    KitPartFolder + name + ".prefab",
+                    MenuPath
+                ),
+                parent,
+                position,
+                Quaternion.identity
+            );
 
         /// <summary>이미 만든 간판은 모양과 위치를 두고 글자만 바꾼다.</summary>
         private static void SetSignText(Transform environment, string labelPath, string text)

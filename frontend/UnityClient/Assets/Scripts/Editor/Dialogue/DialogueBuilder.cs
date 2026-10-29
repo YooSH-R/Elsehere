@@ -55,8 +55,62 @@ namespace A305.EditorTools.Dialogue
         /// <summary>확인용 대본(없을 때만)과 대화 화면 프리팹의 기능 구성을 맞춘다. 디자인은 유지한다.</summary>
         public static void PrepareAssets()
         {
-            BuilderTools.LoadOrCreateAsset<MockDialogueScriptSource>(MockScriptsPath);
+            AddMissingMockScripts(
+                BuilderTools.LoadOrCreateAsset<MockDialogueScriptSource>(MockScriptsPath)
+            );
             BuilderTools.UpdateOrCreatePrefab(PanelPrefabPath, "DialoguePanel", SetUpPanel);
+        }
+
+        /// <summary>
+        /// 새로 놓은 NPC가 기본 대본("Neighbor")으로 빠지지 않도록, 코드의 예시 대본 중 에셋에 없는 NPC만 더한다.
+        /// 이미 있는 대본은 고친 대사를 그대로 두고, 비어 있는 역할만 채운다.
+        /// </summary>
+        private static void AddMissingMockScripts(MockDialogueScriptSource scripts)
+        {
+            var examples = ScriptableObject.CreateInstance<MockDialogueScriptSource>();
+            var fields = new SerializedObject(scripts);
+            SerializedProperty entries = fields.FindProperty("entries");
+            SerializedProperty exampleEntries = new SerializedObject(examples).FindProperty(
+                "entries"
+            );
+            for (int index = 0; index < exampleEntries.arraySize; index++)
+            {
+                SerializedProperty example = exampleEntries.GetArrayElementAtIndex(index);
+                string roleLabel = example.FindPropertyRelative("roleLabel").stringValue;
+                SerializedProperty existing = FindEntry(
+                    entries,
+                    example.FindPropertyRelative("npcCode").stringValue
+                );
+                if (existing == null)
+                {
+                    entries.InsertArrayElementAtIndex(entries.arraySize);
+                    entries.GetArrayElementAtIndex(entries.arraySize - 1).boxedValue =
+                        example.boxedValue;
+                }
+                else if (
+                    string.IsNullOrEmpty(existing.FindPropertyRelative("roleLabel").stringValue)
+                )
+                {
+                    existing.FindPropertyRelative("roleLabel").stringValue = roleLabel;
+                }
+            }
+
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            Object.DestroyImmediate(examples);
+        }
+
+        private static SerializedProperty FindEntry(SerializedProperty entries, string npcCode)
+        {
+            for (int index = 0; index < entries.arraySize; index++)
+            {
+                SerializedProperty entry = entries.GetArrayElementAtIndex(index);
+                if (entry.FindPropertyRelative("npcCode").stringValue == npcCode)
+                {
+                    return entry;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -166,21 +220,30 @@ namespace A305.EditorTools.Dialogue
                 conversation.SetSiblingIndex(buttons.GetSiblingIndex());
             }
 
+            Transform history = conversation.Find("History/Viewport");
+            Transform help = root.transform.Find("HelpPanel/Viewport/Content");
+            Transform words = root.transform.Find("HelpPanel/Viewport/Content/WordsCard");
             TMP_Text lines = UiBuilderTools.FindOrCreateText(
-                conversation,
+                history != null ? history : conversation,
                 "Lines",
                 regular,
                 24f,
                 Color.white
             );
             TMP_Text guide = UiBuilderTools.FindOrCreateText(
-                conversation,
+                help != null ? help : conversation,
                 "Guide",
                 regular,
                 20f,
                 SubTextColor
             );
             RectTransform inputRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "InputRow");
+            RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
+            RectTransform moreTools = UiBuilderTools.FindOrCreateColumn(toolRow, "MoreTools");
+            MoveLegacy(inputRow, "ExampleButton", moreTools);
+            MoveLegacy(toolRow, "SaveButton", moreTools);
+            MoveLegacy(toolRow, "HintButton", moreTools);
+            MoveLegacy(toolRow, "TalkButton", inputRow);
             TMP_InputField input = UiBuilderTools.FindOrCreateInputField(
                 inputRow,
                 "Input",
@@ -195,13 +258,12 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button exampleButton = UiBuilderTools.FindOrCreateButton(
-                inputRow,
+                moreTools,
                 "ExampleButton",
                 "예시 문장",
                 bold,
                 160f
             );
-            RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
             Button meaningButton = UiBuilderTools.FindOrCreateButton(
                 toolRow,
                 "MeaningButton",
@@ -210,7 +272,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button saveButton = UiBuilderTools.FindOrCreateButton(
-                toolRow,
+                moreTools,
                 "SaveButton",
                 "표현 저장",
                 bold,
@@ -226,14 +288,14 @@ namespace A305.EditorTools.Dialogue
                 StatusColor
             );
             TMP_Text suggest = UiBuilderTools.FindOrCreateText(
-                conversation,
+                words != null ? words : conversation,
                 "SuggestWords",
                 regular,
                 20f,
                 SubTextColor
             );
             Button talkButton = UiBuilderTools.FindOrCreateButton(
-                toolRow,
+                inputRow,
                 "TalkButton",
                 "누르고 말하기",
                 bold,
@@ -247,7 +309,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button hintButton = UiBuilderTools.FindOrCreateButton(
-                toolRow,
+                moreTools,
                 "HintButton",
                 "힌트",
                 bold,
@@ -259,6 +321,11 @@ namespace A305.EditorTools.Dialogue
             SetUpServerLink(root);
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
+            BuilderTools.SetReference(
+                view,
+                "npcNameText",
+                panel.Find("Title").GetComponent<TMP_Text>()
+            );
             BuilderTools.SetReference(view, "endButton", endButton);
             BuilderTools.SetReference(view, "linesText", lines);
             BuilderTools.SetReference(view, "guideText", guide);
@@ -277,10 +344,18 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "replayButton", replayButton);
             BuilderTools.SetReference(view, "hintButton", hintButton);
             BuilderTools.SetReference(view, "retryButton", retryButton);
+            DialogueLayoutBuilder.SetUp(root, view, lines, guide, suggest);
             BuilderTools.RequireReferences(view);
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+        }
+
+        private static void MoveLegacy(Transform parent, string name, Transform destination)
+        {
+            Transform existing = parent.Find(name);
+            if (existing != null)
+                existing.SetParent(destination, false);
         }
 
         // 서버 AI 대화 연결(API 주소, NPC 음성, 녹음)은 화면 프리팹에 두어 공간 씬을 다시 만들지 않아도 모든 씬에 붙는다.

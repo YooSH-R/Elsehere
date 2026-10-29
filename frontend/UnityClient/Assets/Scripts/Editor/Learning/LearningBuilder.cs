@@ -208,8 +208,11 @@ namespace A305.EditorTools.Learning
                 22f,
                 SubTextColor
             );
+            Transform bodyParent = panel.Find("PageCard");
+            if (bodyParent == null)
+                bodyParent = panel;
             TMP_Text body = UiBuilderTools.FindOrCreateText(
-                panel,
+                bodyParent,
                 "Body",
                 regular,
                 24f,
@@ -290,6 +293,7 @@ namespace A305.EditorTools.Learning
                 "transcriptButtonLabel",
                 transcriptButton.GetComponentInChildren<TMP_Text>(true)
             );
+            FeedbackPagesBuilder.SetUp(root, view, body);
             BuilderTools.RequireReferences(view);
 
             // 대화가 끝난 뒤에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
@@ -446,8 +450,20 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(
                 view,
                 "vocabularyButtonLabel",
-                vocabularyButton.GetComponentInChildren<TMP_Text>(true)
+                vocabularyButton.transform.Find("Label").GetComponent<TMP_Text>()
             );
+            Button home = UiBuilderTools.FindOrCreateButton(
+                root.transform,
+                "HomeButton",
+                "홈으로",
+                bold,
+                170
+            );
+            var homeRect = (RectTransform)home.transform;
+            homeRect.anchorMin = homeRect.anchorMax = homeRect.pivot = new Vector2(.5f, 0);
+            homeRect.anchoredPosition = new Vector2(0, 24);
+            homeRect.sizeDelta = new Vector2(170, 60);
+            BuilderTools.SetReference(view, "homeButton", home);
             BuilderTools.SetReference(view, "messageText", message);
             BuilderTools.RequireReferences(view);
         }

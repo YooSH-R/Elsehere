@@ -96,7 +96,7 @@ namespace A305.Learning
             if (summary.Status == FeedbackSkipped)
             {
                 feedback.Title = "이번 대화는 피드백이 없어요";
-                feedback.Summary = "평가할 수 있는 내 발화가 없어 피드백을 만들지 않았어요.";
+                feedback.Summary = "아직 말한 문장이 없어요.";
                 return feedback;
             }
 

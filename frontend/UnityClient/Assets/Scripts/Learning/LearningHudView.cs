@@ -16,6 +16,9 @@ namespace A305.Learning
         private Button vocabularyButton;
 
         [SerializeField]
+        private Button homeButton;
+
+        [SerializeField]
         private TMP_Text vocabularyButtonLabel;
 
         [SerializeField]
@@ -32,6 +35,10 @@ namespace A305.Learning
         private float messageHideTime;
 
         public event Action VocabularyRequested;
+
+        public event Action HomeRequested;
+
+        public void SetHomeAvailable(bool available) => homeButton.interactable = available;
 
         /// <summary>숫자 배지가 있으면 버튼 이름은 그대로 두고 배지에 개수를 보인다. 모은 표현이 없으면 배지를 숨긴다.</summary>
         public void SetVocabularyCount(int count)
@@ -62,6 +69,7 @@ namespace A305.Learning
         private void Awake()
         {
             vocabularyButton.onClick.AddListener(() => VocabularyRequested?.Invoke());
+            homeButton.onClick.AddListener(() => HomeRequested?.Invoke());
             MessageBox.SetActive(false);
         }
 

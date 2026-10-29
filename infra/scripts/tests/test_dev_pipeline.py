@@ -165,11 +165,13 @@ class DevelopmentDeliveryTests(unittest.TestCase):
         compose.write_text("services: {}\n", encoding="utf-8")
         self.plan = {
             "candidate_commit": self.candidate,
+            "checks": [],
             "builds": [],
             "configuration_changed": False,
         }
         self.state = {
             "environment": "dev",
+            "candidate_commit": None,
             "images": {},
             "state_token": "fixture-state",
             "minimum_backend_commit": self.candidate,
@@ -189,34 +191,40 @@ class DevelopmentDeliveryTests(unittest.TestCase):
             ["git"], 0, stdout=f"{commit}\trefs/heads/dev\n".encode()
         )
 
-    def test_superseded_commit_cannot_start_image_builds_or_contact_the_server(self):
+    def test_deployed_commit_cannot_start_image_builds_or_apply_again(self):
         with (
             patch("dev_pipeline.run_git", return_value=self.branch_head("b" * 40)),
             patch("dev_pipeline.docker") as docker,
-            patch("dev_pipeline.server_request") as server,
-            self.assertRaisesRegex(ValueError, "no longer the branch head"),
+            patch(
+                "dev_pipeline.server_request",
+                return_value={**self.state, "candidate_commit": self.candidate},
+            ) as server,
+            self.assertRaisesRegex(ValueError, "already deployed"),
         ):
             dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
 
         docker.assert_not_called()
-        server.assert_not_called()
+        self.assertEqual([call.args[0] for call in server.call_args_list], ["state"])
 
-    def test_commit_superseded_while_preparing_the_bundle_cannot_be_applied(self):
+    def test_commit_removed_from_dev_while_preparing_bundle_cannot_be_applied(self):
         with (
             patch(
-                "dev_pipeline.run_git",
+                "dev_pipeline.verify_development_candidate",
                 side_effect=[
-                    self.branch_head(self.candidate),
-                    self.branch_head("b" * 40),
+                    None,
+                    ValueError(
+                        "Candidate does not belong to the deployment branch history."
+                    ),
                 ],
             ),
-            patch("dev_pipeline.server_request") as server,
-            self.assertRaisesRegex(ValueError, "no longer the branch head"),
+            patch("dev_pipeline.create_release_plan", return_value=self.plan),
+            patch("dev_pipeline.server_request", return_value=self.state) as server,
+            self.assertRaisesRegex(ValueError, "branch history"),
         ):
             dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
 
         self.assertTrue((self.repository / "dist/deployment/release.tar").is_file())
-        server.assert_not_called()
+        self.assertEqual([call.args[0] for call in server.call_args_list], ["state"])
 
     def test_latest_verified_commit_can_be_applied_and_keeps_its_result(self):
         expected_result = {"result": "applied", "candidate_commit": self.candidate}
@@ -225,8 +233,9 @@ class DevelopmentDeliveryTests(unittest.TestCase):
                 "dev_pipeline.run_git", return_value=self.branch_head(self.candidate)
             ),
             patch(
-                "dev_pipeline.server_request", return_value=expected_result
+                "dev_pipeline.server_request", side_effect=[self.state, expected_result]
             ) as server,
+            patch("dev_pipeline.create_release_plan", return_value=self.plan),
         ):
             dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
 
@@ -250,7 +259,10 @@ class DevelopmentDeliveryTests(unittest.TestCase):
             patch("sys.argv", ["dev_pipeline.py", "deliver"]),
             patch.dict("os.environ", environment, clear=True),
             patch("dev_pipeline.run_git", return_value=self.branch_head("b" * 40)),
-            patch("dev_pipeline.server_request") as server,
+            patch(
+                "dev_pipeline.server_request",
+                return_value={**self.state, "candidate_commit": self.candidate},
+            ) as server,
         ):
             exit_code = dev_pipeline.main()
 
@@ -259,7 +271,7 @@ class DevelopmentDeliveryTests(unittest.TestCase):
             json.loads((self.repository / "dist/deployment/result.json").read_text()),
             {"result": "superseded", "candidate_commit": self.candidate},
         )
-        server.assert_not_called()
+        self.assertEqual([call.args[0] for call in server.call_args_list], ["state"])
 
     def test_branch_lookup_failure_cannot_be_treated_as_a_superseded_deployment(self):
         failed_lookup = subprocess.CompletedProcess(
@@ -267,12 +279,12 @@ class DevelopmentDeliveryTests(unittest.TestCase):
         )
         with (
             patch("dev_pipeline.run_git", return_value=failed_lookup),
-            patch("dev_pipeline.server_request") as server,
+            patch("dev_pipeline.server_request", return_value=self.state) as server,
             self.assertRaisesRegex(RuntimeError, "Could not determine"),
         ):
             dev_pipeline.deliver_pipeline(self.repository, self.candidate, "dev", "123")
 
-        server.assert_not_called()
+        self.assertEqual([call.args[0] for call in server.call_args_list], ["state"])
         self.assertFalse((self.repository / "dist/deployment/result.json").exists())
 
 
@@ -351,6 +363,47 @@ class ServerRequestTests(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "already initialized"),
         ):
             server_request("state")
+
+
+class DevelopmentEntryPointTests(unittest.TestCase):
+    def test_protected_dev_can_plan_a_development_release(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "dev",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "123",
+            "CI_PIPELINE_SOURCE": "push",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "plan"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.plan_pipeline") as plan,
+        ):
+            dev_pipeline.main()
+
+        plan.assert_called_once()
+        self.assertEqual(plan.call_args.args[2], "dev")
+        self.assertEqual(plan.call_args.args[-1], "dev")
+
+    def test_retired_deployment_branch_is_rejected_before_planning(self):
+        environment = {
+            "CI_COMMIT_BRANCH": "chore/S15P31A305-37-server-environments",
+            "CI_COMMIT_REF_PROTECTED": "true",
+            "CI_COMMIT_SHA": "a" * 40,
+            "CI_PROJECT_DIR": str(Path.cwd()),
+            "CI_PIPELINE_ID": "123",
+            "CI_PIPELINE_SOURCE": "web",
+        }
+        with (
+            patch("sys.argv", ["dev_pipeline.py", "plan"]),
+            patch.dict("os.environ", environment, clear=True),
+            patch("dev_pipeline.plan_pipeline") as plan,
+            self.assertRaisesRegex(ValueError, "protected deployment branch"),
+        ):
+            dev_pipeline.main()
+
+        plan.assert_not_called()
 
 
 class ProductionEntryPointTests(unittest.TestCase):

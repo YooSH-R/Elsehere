@@ -138,6 +138,7 @@ SET type = EXCLUDED.type,
 
 -- NPC. code는 Unity 씬의 NpcIdentity에 넣은 값이다. 튜토리얼 행인(TUTORIAL_PASSERBY)은 Unity 대본 콘텐츠라 넣지 않는다.
 -- persona·voice_id는 임시값이다. AI 워커 npc 형식(role, facts, scene)에 맞춘 실제 값은 대화 담당이 채운다.
+-- persona는 NPC를 처음 넣을 때만 쓴다. 그 뒤로는 어드민(/admin/npcs)에서 고친 값을 유지하므로, 이미 있는 NPC의 페르소나는 이 파일이 아니라 어드민에서 고친다.
 INSERT INTO npcs (scene_id, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 SELECT scene.id, seed.code, seed.name, seed.npc_type, seed.role_label, seed.persona::jsonb, seed.voice_id, seed.can_initiate, seed.approach_line
 FROM (
@@ -161,7 +162,6 @@ SET scene_id = EXCLUDED.scene_id,
     name = EXCLUDED.name,
     npc_type = EXCLUDED.npc_type,
     role_label = EXCLUDED.role_label,
-    persona = EXCLUDED.persona,
     voice_id = EXCLUDED.voice_id,
     can_initiate = EXCLUDED.can_initiate,
     approach_line = EXCLUDED.approach_line,

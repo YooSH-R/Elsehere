@@ -10,15 +10,19 @@ import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.entity.VocabularySource;
 import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.VocabularyRepository;
+import com.elsehere.world.PronunciationTestFiles;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.entity.NpcType;
 import com.elsehere.world.entity.Scene;
 import com.elsehere.world.repository.NpcRepository;
 import com.elsehere.world.repository.SceneRepository;
 import com.elsehere.world.repository.SceneWordRepository;
+import com.elsehere.world.service.PronunciationAudioStore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
@@ -29,12 +33,20 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-@Import({TestcontainersConfiguration.class, WorldSeedLoader.class})
+@Import({TestcontainersConfiguration.class, WorldSeedLoader.class, PronunciationAudioStore.class})
 class WorldSeedLoaderTest {
+
+  // 발음 폴더에는 sofa.wav만 있다.
+  @DynamicPropertySource
+  static void pronunciationDirectory(DynamicPropertyRegistry registry) {
+    registry.add("elsehere.pronunciation.dir", PronunciationTestFiles::directory);
+  }
 
   @Autowired private WorldSeedLoader worldSeedLoader;
 
@@ -141,11 +153,10 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("Unity에 발음 키가 없어도 미리 만든 발음 파일({wordKey}.wav)이 있으면 그 파일 이름을 발음 키로 넣는다")
+  @DisplayName("Unity에 발음 키가 없어도 발음 폴더에 발음 파일({wordKey}.wav)이 있으면 그 파일 이름을 발음 키로 넣는다")
   void load_setsPronunciationKeyFromAudioFile() {
     worldSeedLoader.load();
 
-    // 테스트 리소스에 sofa.wav를 두었다.
     assertThat(vocabularyRepository.findByWordKey("sofa"))
         .get()
         .extracting(Vocabulary::getPronunciationAudioKey)
@@ -248,19 +259,39 @@ class WorldSeedLoaderTest {
             });
   }
 
+  @Test
+  @DisplayName("NPC 페르소나는 처음 넣을 때만 시드 값을 쓰고, 다시 실행해도 관리자가 고친 값을 유지한다")
+  void load_keepsPersonaEditedByAdmin() {
+    worldSeedLoader.load();
+    entityManager
+        .createNativeQuery(
+            "update npcs set persona = '{\"role\": \"edited role\", \"facts\": \"\", \"scene\": \"\"}'"
+                + " where code = 'CAFE_STAFF'")
+        .executeUpdate();
+
+    worldSeedLoader.load();
+    entityManager.clear();
+
+    assertThat(npcRepository.findByCode("CAFE_STAFF"))
+        .get()
+        .extracting(Npc::getPersona)
+        .asString()
+        .contains("edited role");
+  }
+
   private Catalog catalog() throws IOException {
     try (var input = new ClassPathResource("content/object-words.json").getInputStream()) {
       return new JsonMapper().readValue(input, Catalog.class);
     }
   }
 
-  /** Unity에 적은 발음 키가 우선이고, 없으면 미리 만든 발음 파일이 있을 때 그 파일 이름이다. */
+  /** Unity에 적은 발음 키가 우선이고, 없으면 발음 폴더에 발음 파일이 있을 때 그 파일 이름이다. */
   private static String expectedPronunciationAudioKey(CatalogWord word) {
     if (!word.pronunciationAudioKey().isBlank()) {
       return word.pronunciationAudioKey();
     }
     String fileName = word.key() + ".wav";
-    return new ClassPathResource("content/pronunciation/" + fileName).exists() ? fileName : null;
+    return Files.exists(Path.of(PronunciationTestFiles.directory(), fileName)) ? fileName : null;
   }
 
   private List<Tuple> expectedSceneWords() throws IOException {

@@ -8,8 +8,8 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.vocab.repository.VocabularyRepository;
+import com.elsehere.world.PronunciationTestFiles;
 import jakarta.persistence.EntityManager;
-import java.io.IOException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -20,9 +20,10 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
-// 발음 파일은 테스트 리소스의 content/pronunciation/sofa.wav를 쓰고, 시드가 그 파일 이름을 sofa의 발음 키로 넣는다.
+// 발음 폴더는 sofa.wav만 있는 테스트 폴더(PronunciationTestFiles)를 쓰고, 시드가 그 파일 이름을 sofa의 발음 키로 넣는다.
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
@@ -33,6 +34,11 @@ import org.springframework.core.io.ClassPathResource;
 })
 class PronunciationServiceTest {
 
+  @DynamicPropertySource
+  static void pronunciationDirectory(DynamicPropertyRegistry registry) {
+    registry.add("elsehere.pronunciation.dir", PronunciationTestFiles::directory);
+  }
+
   @Autowired private PronunciationService pronunciationService;
 
   @Autowired private VocabularyRepository vocabularyRepository;
@@ -41,13 +47,12 @@ class PronunciationServiceTest {
 
   @Test
   @DisplayName("미리 만든 발음 파일이 있는 단어는 그 WAV 파일을 그대로 돌려준다")
-  void getPronunciation_returnsAudioFile() throws IOException {
+  void getPronunciation_returnsAudioFile() {
     Long sofaId = vocabularyRepository.findByWordKey("sofa").orElseThrow().getId();
 
     byte[] audio = pronunciationService.getPronunciation(sofaId);
 
-    assertThat(audio)
-        .isEqualTo(new ClassPathResource("content/pronunciation/sofa.wav").getContentAsByteArray());
+    assertThat(audio).isEqualTo(PronunciationTestFiles.SOFA_WAV);
   }
 
   @Test

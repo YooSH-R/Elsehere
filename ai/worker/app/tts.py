@@ -50,20 +50,24 @@ class Kokoro:
 
     CACHE_MAX = 300
 
-    def __init__(self, model_path: str, voices_path: str):
-        from kokoro_onnx import Kokoro as Engine  # 선택 의존성: 없으면 load()가 None을 돌려줌
+    def __init__(self, model_path: str, voices_path: str, threads: int = 0):
+        import onnxruntime as ort  # 선택 의존성(kokoro-onnx가 함께 설치): 없으면 load()가 None을 돌려줌
+        from kokoro_onnx import Kokoro as Engine
 
-        self.engine = Engine(model_path, voices_path)
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = threads  # 0이면 onnxruntime 기본 (Settings.kokoro_threads)
+        session = ort.InferenceSession(model_path, options, providers=["CPUExecutionProvider"])
+        self.engine = Engine.from_session(session, voices_path)
         self.name = Path(model_path).name
         self.lock = threading.Lock()
         self.cache: OrderedDict = OrderedDict()
 
     @classmethod
-    def load(cls, model_path: str, voices_path: str) -> "Kokoro | None":
+    def load(cls, model_path: str, voices_path: str, threads: int = 0) -> "Kokoro | None":
         if not model_path or not Path(model_path).exists() or not Path(voices_path or "").exists():
             return None
         try:
-            k = cls(model_path, voices_path)
+            k = cls(model_path, voices_path, threads)
         except ImportError:
             return None
         k.synth("Ready.", "af_heart", 1.0)  # 첫 호출 준비 시간을 미리 써 둔다

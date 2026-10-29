@@ -18,6 +18,7 @@ namespace A305.Theme
         Muted,
         Caption,
         Accent,
+        Control,
     }
 
     /// <summary>버튼 색의 쓰임. 테마마다 실제 색을 따로 정한다.</summary>
@@ -30,7 +31,7 @@ namespace A305.Theme
         Positive,
     }
 
-    /// <summary>한 화면 테마의 그림·색·제목 글꼴. 본문 글꼴은 모든 테마가 Pretendard를 그대로 쓴다.</summary>
+    /// <summary>한 화면 테마의 그림·색·글꼴. 서비스 기본 글꼴을 제목과 본문에 함께 쓴다.</summary>
     [CreateAssetMenu(fileName = "UiTheme", menuName = "A305/Theme/Theme")]
     public sealed class UiThemeDefinition : ScriptableObject
     {
@@ -107,6 +108,10 @@ namespace A305.Theme
         [SerializeField]
         private UiIconSet icons;
 
+        [SerializeField]
+        [Tooltip("퀘스트 수첩 마을 지도의 색")]
+        private TownMapColors townMap = new TownMapColors();
+
         public UiThemeId Id => id;
         public string DisplayName => displayName;
         public string Description => description;
@@ -126,6 +131,7 @@ namespace A305.Theme
         public Sprite BadgeSprite => badgeSprite;
         public Color BadgeColor => badgeColor;
         public UiIconSet Icons => icons;
+        public TownMapColors TownMap => townMap;
 
         public Color ToneColor(UiTone tone) => Pick(toneColors, tone, Color.white);
 

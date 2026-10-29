@@ -395,10 +395,9 @@ namespace A305.EditorTools.Characters
                     image.Apply();
                     File.WriteAllBytes(Path.Combine(output, pose + ".png"), image.EncodeToPNG());
                     if (
-                        pose
-                        is CharacterFacePose.OpenMouth
-                            or CharacterFacePose.FV
-                            or CharacterFacePose.TH
+                        pose != CharacterFacePose.Neutral
+                        && pose != CharacterFacePose.Smile
+                        && pose != CharacterFacePose.Blink
                     )
                     {
                         var skin = face.GetComponentInChildren<SkinnedMeshRenderer>();

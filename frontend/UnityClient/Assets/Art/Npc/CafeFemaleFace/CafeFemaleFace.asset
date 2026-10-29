@@ -1845,211 +1845,843 @@ Mesh:
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7312
-    - vertex: {x: 0, y: -0.00033080578, z: -0}
+    - vertex: {x: 0, y: -0.00039696693, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3369
-    - vertex: {x: 0, y: -0.00020584464, z: -0}
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3370
-    - vertex: {x: 0, y: -0.00024285913, z: -0}
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3371
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3372
-    - vertex: {x: 0, y: -0.00031632185, z: -0}
+    - vertex: {x: 0, y: -0.00037959218, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3375
-    - vertex: {x: 0, y: -0.00019347668, z: -0}
+    - vertex: {x: 0, y: -0.0002321899, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3377
-    - vertex: {x: 0, y: -0.00024285913, z: -0}
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3643
-    - vertex: {x: 0, y: -0.00005593896, z: -0}
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3650
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3651
-    - vertex: {x: 0, y: -0.0001526475, z: -0}
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3652
-    - vertex: {x: 0, y: -0.00015193224, z: -0}
+    - vertex: {x: 0, y: -0.00018233061, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3653
-    - vertex: {x: 0, y: -0.00020584464, z: -0}
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3654
-    - vertex: {x: 0, y: -0.00005593896, z: -0}
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5166
-    - vertex: {x: 0, y: -0.0001526475, z: -0}
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5167
-    - vertex: {x: 0, y: -0.00013020635, z: -0}
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5170
-    - vertex: {x: 0, y: -0.0002564788, z: -0}
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5171
-    - vertex: {x: 0, y: -0.0002564788, z: -0}
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7300
-    - vertex: {x: 0, y: -0.00013020635, z: -0}
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7301
-    - vertex: {x: 0, y: -0.000020176172, z: -0}
+    - vertex: {x: 0, y: -0.000024199486, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7303
-    - vertex: {x: 0, y: -0.0004502833, z: -0}
+    - vertex: {x: 0, y: -0.0005403459, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7304
-    - vertex: {x: 0, y: -0.0001526475, z: -0}
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7305
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7308
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7309
-    - vertex: {x: 0, y: -0.0003284812, z: -0}
+    - vertex: {x: 0, y: -0.00039416552, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7310
-    - vertex: {x: 0, y: -0.000023812056, z: -0}
+    - vertex: {x: 0, y: -0.000028580427, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7311
-    - vertex: {x: 0, y: -0.00004848838, z: -0}
+    - vertex: {x: 0, y: -0.000058203936, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7312
-    - vertex: {x: 0, y: -0.00033080578, z: -0}
+    - vertex: {x: 0, y: -0.00039696693, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3369
-    - vertex: {x: 0, y: -0.00020584464, z: -0}
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3370
-    - vertex: {x: 0, y: -0.00024285913, z: -0}
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3371
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3372
-    - vertex: {x: 0, y: -0.00031632185, z: -0}
+    - vertex: {x: 0, y: -0.00037959218, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3375
-    - vertex: {x: 0, y: -0.00019347668, z: -0}
+    - vertex: {x: 0, y: -0.0002321899, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3377
-    - vertex: {x: 0, y: -0.00024285913, z: -0}
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3643
-    - vertex: {x: 0, y: -0.00005593896, z: -0}
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3650
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3651
-    - vertex: {x: 0, y: -0.0001526475, z: -0}
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3652
-    - vertex: {x: 0, y: -0.00015193224, z: -0}
+    - vertex: {x: 0, y: -0.00018233061, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3653
-    - vertex: {x: 0, y: -0.00020584464, z: -0}
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 3654
-    - vertex: {x: 0, y: -0.00005593896, z: -0}
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5166
-    - vertex: {x: 0, y: -0.0001526475, z: -0}
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5167
-    - vertex: {x: 0, y: -0.00013020635, z: -0}
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5170
-    - vertex: {x: 0, y: -0.0002564788, z: -0}
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 5171
-    - vertex: {x: 0, y: -0.0002564788, z: -0}
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7300
-    - vertex: {x: 0, y: -0.00013020635, z: -0}
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7301
-    - vertex: {x: 0, y: -0.000020176172, z: -0}
+    - vertex: {x: 0, y: -0.000024199486, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7303
-    - vertex: {x: 0, y: -0.0004502833, z: -0}
+    - vertex: {x: 0, y: -0.0005403459, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7304
-    - vertex: {x: 0, y: -0.0001526475, z: -0}
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7305
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7308
-    - vertex: {x: 0, y: -0.00049999356, z: -0}
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7309
-    - vertex: {x: 0, y: -0.0003284812, z: -0}
+    - vertex: {x: 0, y: -0.00039416552, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7310
-    - vertex: {x: 0, y: -0.000023812056, z: -0}
+    - vertex: {x: 0, y: -0.000028580427, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7311
-    - vertex: {x: 0, y: -0.00004848838, z: -0}
+    - vertex: {x: 0, y: -0.000058203936, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7312
+    - vertex: {x: 0, y: 0.00026464462, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3369
+    - vertex: {x: 0, y: 0.00016468763, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3370
+    - vertex: {x: 0, y: 0.00019428134, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3371
+    - vertex: {x: 0, y: 0.00040000677, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3372
+    - vertex: {x: 0, y: 0.00025305152, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3375
+    - vertex: {x: 0, y: 0.00015479326, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3377
+    - vertex: {x: 0, y: 0.00019428134, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3643
+    - vertex: {x: 0, y: 0.00004476309, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3650
+    - vertex: {x: 0, y: 0.00040000677, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3651
+    - vertex: {x: 0, y: 0.00012210011, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3652
+    - vertex: {x: 0, y: 0.00012153387, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3653
+    - vertex: {x: 0, y: 0.00016468763, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3654
+    - vertex: {x: 0, y: 0.00004476309, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5166
+    - vertex: {x: 0, y: 0.00012210011, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5167
+    - vertex: {x: 0, y: 0.00010415912, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5170
+    - vertex: {x: 0, y: 0.00020518899, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5171
+    - vertex: {x: 0, y: 0.00020518899, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7300
+    - vertex: {x: 0, y: 0.00010415912, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7301
+    - vertex: {x: 0, y: 0.000016152859, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7303
+    - vertex: {x: 0, y: 0.00036022067, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7304
+    - vertex: {x: 0, y: 0.00012210011, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7305
+    - vertex: {x: 0, y: 0.00040000677, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7308
+    - vertex: {x: 0, y: 0.00040000677, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7309
+    - vertex: {x: 0, y: 0.00026276708, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7310
+    - vertex: {x: 0, y: 0.000019073486, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7311
+    - vertex: {x: 0, y: 0.000038802624, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7312
+    - vertex: {x: 0, y: -0.00039696693, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3369
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3370
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3371
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3372
+    - vertex: {x: 0, y: -0.00037959218, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3375
+    - vertex: {x: 0, y: -0.0002321899, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3377
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3643
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3650
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3651
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3652
+    - vertex: {x: 0, y: -0.00018233061, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3653
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3654
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5166
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5167
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5170
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5171
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7300
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7301
+    - vertex: {x: 0, y: -0.000024199486, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7303
+    - vertex: {x: 0, y: -0.0005403459, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7304
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7305
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7308
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7309
+    - vertex: {x: 0, y: -0.00039416552, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7310
+    - vertex: {x: 0, y: -0.000028580427, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7311
+    - vertex: {x: 0, y: -0.000058203936, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7312
+    - vertex: {x: 0, y: -0.0010586083, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3369
+    - vertex: {x: 0, y: -0.00065875053, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3370
+    - vertex: {x: 0, y: -0.00077718496, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3371
+    - vertex: {x: 0, y: -0.0015999973, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3372
+    - vertex: {x: 0, y: -0.0010122359, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3375
+    - vertex: {x: 0, y: -0.000025302172, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3376
+    - vertex: {x: 0, y: -0.00061917305, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3377
+    - vertex: {x: 0, y: -0.00077718496, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3643
+    - vertex: {x: 0, y: -0.00017905235, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3650
+    - vertex: {x: 0, y: -0.0015999973, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3651
+    - vertex: {x: 0, y: -0.00048846006, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3652
+    - vertex: {x: 0, y: -0.0004861951, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3653
+    - vertex: {x: 0, y: -0.00065875053, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3654
+    - vertex: {x: 0, y: -0.00017905235, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5166
+    - vertex: {x: 0, y: -0.00048846006, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5167
+    - vertex: {x: 0, y: -0.00041660666, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5170
+    - vertex: {x: 0, y: -0.00082072616, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5171
+    - vertex: {x: 0, y: -0.00082072616, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7300
+    - vertex: {x: 0, y: -0.00041660666, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7301
+    - vertex: {x: 0, y: -0.00006455183, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7303
+    - vertex: {x: 0, y: -0.0014409125, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7304
+    - vertex: {x: 0, y: -0.00048846006, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7305
+    - vertex: {x: 0, y: -0.0015999973, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7308
+    - vertex: {x: 0, y: -0.0015999973, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7309
+    - vertex: {x: 0, y: -0.0010510981, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7310
+    - vertex: {x: 0, y: -0.00007623434, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7311
+    - vertex: {x: 0, y: -0.00015518069, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7312
+    - vertex: {x: 0, y: -0.00079396367, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3369
+    - vertex: {x: 0, y: -0.0004940629, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3370
+    - vertex: {x: 0, y: -0.0005828738, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3371
+    - vertex: {x: 0, y: -0.0011999905, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3372
+    - vertex: {x: 0, y: -0.00075918436, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3375
+    - vertex: {x: 0, y: -0.00001898408, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3376
+    - vertex: {x: 0, y: -0.0004643798, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3377
+    - vertex: {x: 0, y: -0.0005828738, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3643
+    - vertex: {x: 0, y: -0.00013428926, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3650
+    - vertex: {x: 0, y: -0.0011999905, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3651
+    - vertex: {x: 0, y: -0.00036633015, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3652
+    - vertex: {x: 0, y: -0.0003646314, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3653
+    - vertex: {x: 0, y: -0.0004940629, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3654
+    - vertex: {x: 0, y: -0.00013428926, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5166
+    - vertex: {x: 0, y: -0.00036633015, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5167
+    - vertex: {x: 0, y: -0.00031247735, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5170
+    - vertex: {x: 0, y: -0.00061553717, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5171
+    - vertex: {x: 0, y: -0.00061553717, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7300
+    - vertex: {x: 0, y: -0.00031247735, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7301
+    - vertex: {x: 0, y: -0.000048428774, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7303
+    - vertex: {x: 0, y: -0.0010806918, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7304
+    - vertex: {x: 0, y: -0.00036633015, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7305
+    - vertex: {x: 0, y: -0.0011999905, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7308
+    - vertex: {x: 0, y: -0.0011999905, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7309
+    - vertex: {x: 0, y: -0.00078833103, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7310
+    - vertex: {x: 0, y: -0.000057190657, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7311
+    - vertex: {x: 0, y: -0.00011640787, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7312
+    - vertex: {x: 0, y: -0.00039696693, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3369
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3370
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3371
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3372
+    - vertex: {x: 0, y: -0.00037959218, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3375
+    - vertex: {x: 0, y: -0.0002321899, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3377
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3643
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3650
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3651
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3652
+    - vertex: {x: 0, y: -0.00018233061, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3653
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3654
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5166
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5167
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5170
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5171
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7300
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7301
+    - vertex: {x: 0, y: -0.000024199486, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7303
+    - vertex: {x: 0, y: -0.0005403459, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7304
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7305
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7308
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7309
+    - vertex: {x: 0, y: -0.00039416552, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7310
+    - vertex: {x: 0, y: -0.000028580427, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7311
+    - vertex: {x: 0, y: -0.000058203936, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7312
+    - vertex: {x: 0, y: -0.00039696693, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3369
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3370
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3371
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3372
+    - vertex: {x: 0, y: -0.00037959218, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3375
+    - vertex: {x: 0, y: -0.0002321899, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3377
+    - vertex: {x: 0, y: -0.0002914369, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3643
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3650
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3651
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3652
+    - vertex: {x: 0, y: -0.00018233061, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3653
+    - vertex: {x: 0, y: -0.00024703145, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 3654
+    - vertex: {x: 0, y: -0.00006714463, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5166
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5167
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5170
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 5171
+    - vertex: {x: 0, y: -0.00030776858, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7300
+    - vertex: {x: 0, y: -0.00015622377, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7301
+    - vertex: {x: 0, y: -0.000024199486, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7303
+    - vertex: {x: 0, y: -0.0005403459, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7304
+    - vertex: {x: 0, y: -0.00018316507, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7305
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7308
+    - vertex: {x: 0, y: -0.00060001016, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7309
+    - vertex: {x: 0, y: -0.00039416552, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7310
+    - vertex: {x: 0, y: -0.000028580427, z: -0}
+      normal: {x: 0, y: 0, z: -0}
+      tangent: {x: 0, y: 0, z: 0}
+      index: 7311
+    - vertex: {x: 0, y: -0.000058203936, z: -0}
       normal: {x: 0, y: 0, z: -0}
       tangent: {x: 0, y: 0, z: 0}
       index: 7312
@@ -2082,6 +2714,30 @@ Mesh:
       vertexCount: 26
       hasNormals: 0
       hasTangents: 0
+    - firstVertex: 508
+      vertexCount: 26
+      hasNormals: 0
+      hasTangents: 0
+    - firstVertex: 534
+      vertexCount: 26
+      hasNormals: 0
+      hasTangents: 0
+    - firstVertex: 560
+      vertexCount: 27
+      hasNormals: 0
+      hasTangents: 0
+    - firstVertex: 587
+      vertexCount: 27
+      hasNormals: 0
+      hasTangents: 0
+    - firstVertex: 614
+      vertexCount: 26
+      hasNormals: 0
+      hasTangents: 0
+    - firstVertex: 640
+      vertexCount: 26
+      hasNormals: 0
+      hasTangents: 0
     channels:
     - name: mouthSmileLeft
       nameHash: 953645942
@@ -2111,7 +2767,37 @@ Mesh:
       nameHash: 2210909580
       frameIndex: 6
       frameCount: 1
+    - name: viseme_PP
+      nameHash: 4106719454
+      frameIndex: 7
+      frameCount: 1
+    - name: viseme_E
+      nameHash: 1905400715
+      frameIndex: 8
+      frameCount: 1
+    - name: viseme_OH
+      nameHash: 720438806
+      frameIndex: 9
+      frameCount: 1
+    - name: viseme_OU
+      nameHash: 1240951503
+      frameIndex: 10
+      frameCount: 1
+    - name: viseme_I
+      nameHash: 2015647648
+      frameIndex: 11
+      frameCount: 1
+    - name: viseme_EU
+      nameHash: 3004727877
+      frameIndex: 12
+      frameCount: 1
     fullWeights:
+    - 100
+    - 100
+    - 100
+    - 100
+    - 100
+    - 100
     - 100
     - 100
     - 100

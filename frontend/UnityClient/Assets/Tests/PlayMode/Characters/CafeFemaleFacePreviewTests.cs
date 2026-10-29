@@ -13,7 +13,7 @@ namespace A305.Characters.PlayModeTests
     public sealed class CafeFemaleFacePreviewTests
     {
         [UnityTest]
-        public IEnumerator AllSixPosesDeformTheRenderedMeshAndReturnToNeutral()
+        public IEnumerator AllPreviewPosesDeformTheRenderedMeshAndReturnToNeutral()
         {
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
                 "Assets/Scenes/Sandbox/CafeFemaleFacePreview.unity",

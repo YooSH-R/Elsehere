@@ -7,12 +7,17 @@
 
 import asyncio
 import io
+import logging
 import secrets
 import threading
 import time
 import wave
 from collections import OrderedDict
 from pathlib import Path
+
+from .speech_timing import attach_timing, join_timing
+
+log = logging.getLogger(__name__)
 
 
 def to_wav(audio, sr: int) -> bytes:
@@ -42,7 +47,7 @@ def join_wavs(wavs: list[bytes]) -> tuple[bytes, float]:
         out.setframerate(params.framerate)
         out.writeframes(b"".join(frames))
     n = sum(len(f) for f in frames) // (params.sampwidth * params.nchannels)
-    return buf.getvalue(), n / params.framerate
+    return join_timing(buf.getvalue(), wavs), n / params.framerate
 
 
 class Kokoro:
@@ -55,6 +60,8 @@ class Kokoro:
 
         self.engine = Engine(model_path, voices_path)
         self.name = Path(model_path).name
+        if not self.engine.has_timings:
+            log.warning("Kokoro model has no duration output; NPC phoneme animation is unavailable")
         self.lock = threading.Lock()
         self.cache: OrderedDict = OrderedDict()
 
@@ -77,8 +84,17 @@ class Kokoro:
                 self.cache.move_to_end(key)
                 wav, dur = self.cache[key]
                 return wav, dur, True
-            audio, sr = self.engine.create(text, voice=voice, speed=speed, lang="en-us")
+            if self.engine.has_timings:
+                audio, sr, spoken = self.engine.create_timed(text, voice=voice, speed=speed, lang="en-us")
+            else:
+                audio, sr = self.engine.create(text, voice=voice, speed=speed, lang="en-us")
+                spoken = []
             wav, dur = to_wav(audio, sr), len(audio) / sr
+            try:
+                wav = attach_timing(wav, spoken)
+            except ValueError:
+                # Keep the real voice available, but never manufacture phoneme times.
+                log.warning("Kokoro phoneme timing was rejected; returning voice without lip sync", exc_info=True)
             self.cache[key] = (wav, dur)
             if len(self.cache) > self.CACHE_MAX:
                 self.cache.popitem(last=False)

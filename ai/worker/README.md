@@ -192,3 +192,13 @@ ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.
+
+## NPC 발음 시간표와 립싱크
+
+`kokoro-onnx==0.6.1`의 `create_timed()`를 사용해 같은 합성 호출에서 음성과 발음별 시간을 얻습니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
+
+`app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. 합성 시 얻은 시각은 무음 제거·문장 쉼이 반영된 최종 오디오 기준입니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
+
+시간표는 WAV의 선택적 `a305` RIFF chunk에 UTF-8 JSON으로 저장합니다. PCM 자체는 바꾸지 않으며, `version: 2`, `provider: "kokoro-en-US"`, 전체 `duration`(초), PCM 바이트의 `pcmSha256`, `phonemes` 배열(`start`, `end`, `phoneme`)을 담습니다. 대사 원문은 넣지 않습니다. Spring은 WAV 바이트 전체를 저장·반환하므로 기존 `/v1/tts`, `/v1/audio/{id}`, `/api/v1/turns/{id}/speech` 경로와 인증을 그대로 사용합니다. Unity는 같은 파일에서 PCM과 시간표를 읽고 해시·길이를 검사합니다.
+
+캐시는 음성과 시간표를 함께 보관합니다. 여러 음성 조각을 합칠 때 `join_wavs()`는 각 조각의 실제 샘플 길이만큼 시간을 이동하고 합친 PCM의 해시를 다시 계산합니다. 한 조각이라도 시간표가 없으면 완전한 립싱크 데이터로 표시하지 않습니다. 기존 저장 WAV에는 시간표가 없으므로 소리는 재생되지만 정확한 입모양은 적용되지 않습니다. 이를 이유로 과거 음성을 자동 재생성하지 않습니다.

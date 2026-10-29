@@ -96,7 +96,7 @@ def pick_behaviors(dimensions: dict[str, float], library: dict, seed: str, count
     """행동 조각 모음에서 이 성격 쪽에 맞는 조각을 뽑는다. 잘 맞을수록 뽑힐 확률이 높고(가중 추첨),
     범주는 겹치지 않으며, 서로 충돌하는 조각은 함께 뽑지 않는다. seed(보통 npcId)가 같으면 언제나 같은 결과다."""
     rng = random.Random(seed)
-    candidates = [(behavior, fit) for behavior in library["behaviors"] if (fit := _fit(behavior, dimensions)) > 0.5]
+    candidates = [(behavior, fit) for behavior in library["behaviors"] if (fit := lean_fit(behavior["leans"], dimensions)) > 0.5]
     picked: list[dict] = []
     while len(picked) < count:
         eligible = [(behavior, fit) for behavior, fit in candidates if _can_join(behavior, picked)]
@@ -106,9 +106,9 @@ def pick_behaviors(dimensions: dict[str, float], library: dict, seed: str, count
     return picked
 
 
-def _fit(behavior: dict, dimensions: dict[str, float]) -> float:
-    """조각이 성격에 맞는 정도 0~1. 조각이 기운 쪽(high/low)의 축 값을 평균한다. 0.5 이하면 그 성격 쪽이 아니다."""
-    sides = [dimensions[axis] if side == "high" else 1 - dimensions[axis] for axis, side in behavior["leans"].items()]
+def lean_fit(leans: dict[str, str], dimensions: dict[str, float]) -> float:
+    """성격 쪽 표시(축: high/low)가 이 성격에 맞는 정도 0~1. 기운 쪽의 축 값을 평균한다. 0.5 이하면 그 성격 쪽이 아니다."""
+    sides = [dimensions[axis] if side == "high" else 1 - dimensions[axis] for axis, side in leans.items()]
     return sum(sides) / len(sides)
 
 

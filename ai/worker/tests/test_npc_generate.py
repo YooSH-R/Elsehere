@@ -9,6 +9,9 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+import npc_configs
+import npc_derive
+import npc_generate
 import npc_life_rules
 
 
@@ -76,3 +79,135 @@ def test_names_and_trait_names_are_used_only_once():
     assert npc_life_rules.ingredient_problems(ingredients) == [
         f"$.traits[1]: 성격 특징 이름 '{ingredients['traits'][0]['name']}'를 $.traits[0]에서 이미 씀"
     ]
+
+
+# ---------------------------------------------------------------------
+# 규칙 뼈대 생성: 입력(npcId·MBTI·역할·장소)과 npcId 씨앗으로 재료를 골라 인격 카드를 만든다 (LLM 없음)
+# ---------------------------------------------------------------------
+def load_behaviors() -> dict:
+    return json.loads(npc_life_rules.BEHAVIORS.read_text(encoding="utf-8"))
+
+
+def generate(npc_id="GEN_001", mbti="INTJ-T", role="STAFF", place="CAFE", taken=()):
+    return npc_generate.generate(npc_id, mbti, role, place, load_ingredients(), load_behaviors(), taken_names=set(taken))
+
+
+MBTIS = [e + n + f + j for e in "EI" for n in "NS" for f in "FT" for j in "JP"]
+JOBS = [("STAFF", "CAFE"), ("STAFF", "HOTEL"), ("PASSERBY", "TOWN")]
+
+
+def test_the_same_npc_id_always_makes_the_same_npc():
+    assert generate("GEN_001") == generate("GEN_001")
+
+
+def test_a_different_npc_id_makes_a_different_npc():
+    assert generate("GEN_001")[0]["npcProfile"] != generate("GEN_002")[0]["npcProfile"]
+
+
+@pytest.mark.parametrize("mbti", MBTIS)
+@pytest.mark.parametrize(("role", "place"), JOBS)
+def test_every_generated_npc_passes_the_shared_profile_schema(mbti, role, place):
+    config, life = generate(f"GEN_{mbti}", f"{mbti}-A", role, place)
+
+    assert npc_configs.schema_errors(config) == []
+    assert npc_life_rules.life_errors(life) == []
+    assert life == {"schemaVersion": "1.0", "npcId": f"GEN_{mbti}", "mbti": f"{mbti}-A", "role": role}
+
+
+def test_a_generated_npc_is_inactive_until_someone_approves_it():
+    """생성 결과는 초안이다. 사람이 보고 켜기 전까지 서비스에 나오지 않게 isActive false (목소리도 그때 정한다)."""
+    config, _ = generate()
+
+    assert config["isActive"] is False and config["voiceId"] is None and config["defaultLocationId"] == "CAFE"
+
+
+@pytest.mark.parametrize("mbti", ["INTJ-T", "ESFP-A", "ENFJ"])
+def test_traits_come_one_per_axis_from_the_side_the_npc_leans_to(mbti):
+    """-T·-A가 없으면 신경성은 0.5(가운데)라 신경성 특징은 넣지 않는다."""
+    dimensions = npc_derive.mbti_to_dimensions(mbti)
+    by_name = {trait["name"]: trait["leans"] for trait in load_ingredients()["traits"]}
+
+    traits = generate(mbti=mbti)[0]["npcProfile"]["personality"]["traits"]
+
+    leans = [by_name[trait["name"]] for trait in traits]
+    assert [axis for lean in leans for axis in lean] == [axis for axis in npc_derive.AXES if dimensions[axis] != 0.5]
+    assert all(npc_generate.side(dimensions[axis]) == side for lean in leans for axis, side in lean.items())
+
+
+def test_values_motivations_and_interests_never_come_from_the_other_side_or_role():
+    dimensions = npc_derive.mbti_to_dimensions("INTJ-T")
+    ingredients = load_ingredients()
+    profile = generate(mbti="INTJ-T", role="STAFF")[0]["npcProfile"]
+
+    for field, picked in [
+        ("values", profile["values"]),
+        ("motivations", profile["motivations"]),
+        ("interests", profile["background"]["interests"]),
+    ]:
+        source = {item["text"]: item for item in ingredients[field]}
+        for text in picked:
+            item = source[text]
+            assert all(npc_generate.side(dimensions[axis]) == side for axis, side in item.get("leans", {}).items()), (field, text)
+            assert "STAFF" in item.get("roles", ["STAFF"]), (field, text)
+
+
+def test_the_occupation_fits_the_role_and_place_and_the_age_fits_the_occupation():
+    occupations = {occupation["text"]: occupation for occupation in load_ingredients()["occupations"]}
+
+    for role, place in JOBS:
+        profile = generate(role=role, place=place)[0]["npcProfile"]
+        occupation = occupations[profile["occupation"]]
+
+        assert occupation["role"] == role and occupation.get("place", place) == place
+        assert profile["ageRange"] in occupation.get("ages", load_ingredients()["ageRanges"])
+
+
+def test_a_name_already_used_by_another_npc_is_not_chosen():
+    name = generate()[0]["npcProfile"]["name"]
+
+    assert generate(taken=[name])[0]["npcProfile"]["name"] != name
+
+
+def test_speech_and_social_behavior_follow_the_axes_and_role():
+    """INTJ: 내향(말 짧게, 처음엔 짧게 인사), 사고형(건조하고 직설적), -T(긴장을 드러냄). 직원은 보통 격식."""
+    rules = load_ingredients()
+    profile = generate(mbti="INTJ-T", role="STAFF")[0]["npcProfile"]
+
+    assert profile["speechStyle"] == {"tone": "quiet and dry", "formality": "neutral", "verbosity": "short", "directness": "direct"}
+    assert profile["socialBehavior"] == {
+        "firstMeeting": rules["socialBehavior"]["firstMeeting"]["low"],
+        "familiarityExpression": rules["socialBehavior"]["familiarityExpression"]["low"],
+        "conflictResponse": rules["socialBehavior"]["conflictResponse"]["high"],
+        "boundaries": rules["socialBehavior"]["boundaries"]["STAFF"],
+    }
+
+
+def test_the_behavior_fragments_and_five_axes_are_added_like_the_handwritten_npcs():
+    """손으로 쓴 NPC와 같은 자동 칸(성격 5축, npcId로 뽑은 행동 조각). 사연(배경 이야기)은 아직 비어 있다."""
+    config, life = generate()
+    profile = config["npcProfile"]
+
+    assert profile == npc_derive.with_derived_traits(profile, life, load_behaviors())
+    assert profile["behaviorRules"] == [
+        b["text"] for b in npc_derive.pick_behaviors(npc_derive.mbti_to_dimensions("INTJ-T"), load_behaviors(), "GEN_001")
+    ]
+    assert profile["background"]["summary"] is None and profile["background"]["experiences"] == []
+
+
+def test_a_staff_npc_needs_an_occupation_at_its_place():
+    with pytest.raises(ValueError, match="SHOP"):
+        generate(role="STAFF", place="SHOP")
+
+
+def test_the_cli_writes_the_npc_and_life_files_and_skips_names_already_in_use(tmp_path):
+    out = tmp_path / "drafts"
+    service_names = {
+        json.loads(path.read_text(encoding="utf-8"))["npcProfile"]["name"] for path in (npc_life_rules.ROOT / "ai/npcs").glob("*.json")
+    }
+
+    assert npc_generate.main(["GEN_001", "INTJ-T", "STAFF", "CAFE", "--out", str(out)]) == 0
+
+    config = json.loads((out / "GEN_001.json").read_text(encoding="utf-8"))
+    life = json.loads((out / "life/GEN_001.json").read_text(encoding="utf-8"))
+    assert (config, life) == generate(taken=service_names)
+    assert config["npcProfile"]["name"] not in service_names

@@ -11,20 +11,46 @@ using UnityEngine.SceneManagement;
 namespace A305.EditorTools.Weather
 {
     /// <summary>
-    /// 마을의 맑음·흐림·비를 같은 자리에서 찍는다. Play나 서버 호출 없이 실행하고 씬을 저장하지 않는다.
+    /// 서버 없이 마을 날씨를 확인한다. Play 중에는 메뉴로 날씨를 바로 바꾸고,
+    /// Play 밖에서는 맑음·흐림·비를 같은 자리에서 찍는다. 찍을 때 바꾼 씬은 저장하지 않는다.
     /// </summary>
     public static class TownWeatherPreview
     {
         private const string ScenePath = "Assets/Scenes/Production/TownScene.unity";
+        private const string PlayMenu = "Tools/A305/Weather/Play Mode/";
+
+        [MenuItem(PlayMenu + "Show Clear")]
+        private static void ShowClearInPlay() => ShowInPlay(WeatherKind.Clear);
+
+        [MenuItem(PlayMenu + "Show Cloudy")]
+        private static void ShowCloudyInPlay() => ShowInPlay(WeatherKind.Cloudy);
+
+        [MenuItem(PlayMenu + "Show Rain")]
+        private static void ShowRainInPlay() => ShowInPlay(WeatherKind.Rain);
+
+        [MenuItem(PlayMenu + "Show Clear", true)]
+        [MenuItem(PlayMenu + "Show Cloudy", true)]
+        [MenuItem(PlayMenu + "Show Rain", true)]
+        private static bool CanShowInPlay() =>
+            EditorApplication.isPlaying
+            && UnityEngine.Object.FindFirstObjectByType<WeatherPresenter>() != null;
+
+        // 서버 상태를 다시 읽으면(씬 진입·NPC 응답·대화 종료) 서버 예보로 돌아간다.
+        private static void ShowInPlay(WeatherKind kind) =>
+            UnityEngine.Object.FindFirstObjectByType<WeatherPresenter>().Show(kind);
 
         [MenuItem("Tools/A305/Weather/Capture Town Weather Preview")]
         public static void Capture()
         {
             string output = Environment.GetEnvironmentVariable("TOWN_WEATHER_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output) && !Application.isBatchMode)
+                output = EditorUtility.SaveFolderPanel("날씨 미리보기를 저장할 폴더", "", "");
             if (string.IsNullOrWhiteSpace(output))
                 throw new InvalidOperationException(
-                    "TOWN_WEATHER_PREVIEW_OUTPUT에 사진을 저장할 폴더 경로를 지정하세요."
+                    "저장 폴더를 고르거나 TOWN_WEATHER_PREVIEW_OUTPUT에 폴더 경로를 지정하세요."
                 );
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
             Directory.CreateDirectory(output);
             foreach (WeatherKind kind in Enum.GetValues(typeof(WeatherKind)))
             {
@@ -55,6 +81,8 @@ namespace A305.EditorTools.Weather
                     900
                 );
             }
+            // 날씨를 입힌 채로 남은 씬을 실수로 저장하지 않게 디스크의 TownScene을 다시 연다.
+            EditorSceneManager.OpenScene(ScenePath);
         }
 
         private static void Render(Camera camera, string path, int width, int height)

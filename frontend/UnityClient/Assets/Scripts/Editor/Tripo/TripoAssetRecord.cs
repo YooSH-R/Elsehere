@@ -92,7 +92,7 @@ namespace A305.EditorTools.Tripo
             string settings = profile == null ? "missing-profile" : JsonUtility.ToJson(profile);
             return Hash128
                 .Compute(
-                    "validation:master-rig-v5-head-surface\n"
+                    "validation:master-rig-v6-hand-surface\n"
                         + modelPath
                         + "\n"
                         + modelHash

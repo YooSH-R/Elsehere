@@ -155,6 +155,37 @@ namespace A305.EditorTools.Tripo
                 foreach (var bone in ankle.GetComponentsInChildren<Transform>())
                     frames.Add(bone, frame);
             }
+            foreach (bool left in new[] { true, false })
+            {
+                var wrist = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand
+                );
+                var index = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal
+                );
+                var little = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftLittleProximal : HumanBodyBones.RightLittleProximal
+                );
+                var thumb = animator.GetBoneTransform(
+                    left ? HumanBodyBones.LeftThumbProximal : HumanBodyBones.RightThumbProximal
+                );
+                if (wrist == null || index == null || little == null || thumb == null)
+                    throw new InvalidOperationException(
+                        "손 표면 정렬에 필요한 손목·검지·새끼·엄지 본이 없습니다."
+                    );
+                var rotation = HandRotation(animator, left);
+                // 손가락 bone roll 대신 실제 손바닥의 해부학적 방향을 사용한다.
+                // 생성기의 엄지 시작점은 손바닥 안/밖으로 달라지므로 엄지 밑동은 손목과 함께 옮긴다.
+                foreach (var bone in wrist.GetComponentsInChildren<Transform>())
+                    frames.Add(
+                        bone,
+                        Matrix4x4.TRS(
+                            bone == thumb ? wrist.position : bone.position,
+                            rotation,
+                            Vector3.one
+                        )
+                    );
+            }
             // 생성된 목·머리의 bone roll을 얼굴 기울기로 옮기지 않는다.
             // 관절 위치는 마스터를 따르되 표면 방향은 체형 축을 기준으로 보존한다.
             var neck = animator.GetBoneTransform(HumanBodyBones.Neck);
@@ -163,6 +194,26 @@ namespace A305.EditorTools.Tripo
             foreach (var bone in neck.GetComponentsInChildren<Transform>())
                 frames.Add(bone, Matrix4x4.TRS(bone.position, bodyRotation, Vector3.one));
             return frames;
+        }
+
+        internal static Quaternion HandRotation(Animator animator, bool left)
+        {
+            var wrist = animator.GetBoneTransform(
+                left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand
+            );
+            var index = animator.GetBoneTransform(
+                left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal
+            );
+            var little = animator.GetBoneTransform(
+                left ? HumanBodyBones.LeftLittleProximal : HumanBodyBones.RightLittleProximal
+            );
+            if (wrist == null || index == null || little == null)
+                throw new InvalidOperationException("손바닥 방향에 필요한 관절이 없습니다.");
+            Vector3 along = (index.position + little.position) * .5f - wrist.position;
+            Vector3 normal = Vector3.Cross(index.position - little.position, along);
+            if (along.sqrMagnitude < 1e-10f || normal.sqrMagnitude < 1e-12f)
+                throw new InvalidOperationException("손바닥 방향을 계산할 수 없습니다.");
+            return Quaternion.LookRotation(normal, along);
         }
 
         private static Mesh CopySurface(

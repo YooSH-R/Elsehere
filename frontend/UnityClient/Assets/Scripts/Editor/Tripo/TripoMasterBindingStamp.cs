@@ -6,7 +6,7 @@ namespace A305.EditorTools.Tripo
     [Serializable]
     public sealed class TripoMasterBindingStamp
     {
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 6;
         public int version;
         public string sourceHash;
         public string masterHash;

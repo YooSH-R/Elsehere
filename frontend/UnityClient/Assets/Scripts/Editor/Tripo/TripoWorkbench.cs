@@ -95,6 +95,8 @@ namespace A305.EditorTools.Tripo
                         if (report.Passed)
                             Merge(report, TripoMasterHeadAudit.Inspect(record.sourceModel, model));
                         if (report.Passed)
+                            Merge(report, TripoMasterHandAudit.Inspect(record.sourceModel, model));
+                        if (report.Passed)
                         {
                             report.ManualChecks.RemoveAll(item =>
                                 item.StartsWith("자동 동작 검사 미실행")

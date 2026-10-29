@@ -1,36 +1,19 @@
 """NPC 입력 노드(MBTI·성격 5축)에서 공통 연결 규칙으로 생활 값을 계산한다. 설계는 docs/npc-life-design.md 10절.
 
-MBTI는 입력하기 편한 앞문이고, 계산과 인격 스키마(personality.dimensions)는 Big Five 5축(0~1)을 쓴다.
-MBTI를 성격의 정답으로 다루지 않고 캐릭터 재료로만 쓴다.
+MBTI → 성격 5축, 행동 조각 뽑기, 인격 카드 자동 칸은 AI 워커의 app.npc_persona에 있다(워커 API와 함께 쓴다).
 
     ai/.venv/Scripts/python ai/tools/npc_derive.py ai/npcs   생활 파일이 있는 NPC 인격 파일의 자동 칸을 다시 쓴다
 """
 
 import argparse
 import json
-import random
-import re
 import sys
 from pathlib import Path
 
-MBTI = re.compile(r"^([EI])([NS])([FT])([JP])(?:-([AT]))?$")
-LEANING = 0.75  # MBTI는 둘 중 하나로만 나눠 강도를 모르므로, 끝값(0·1) 대신 한쪽으로 기운 값
-NEUROTICISM = {"T": 0.7, "A": 0.3, None: 0.5}  # 16Personalities식 꼬리 -T(예민)·-A(안정), 없으면 중간
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker"))  # 인격 생성 규칙은 같은 저장소 AI 워커에 있다
 
-
-def mbti_to_dimensions(mbti: str) -> dict[str, float]:
-    """MBTI(예: ESFJ-T)를 성격 5축으로. E/I → 외향성, N/S → 개방성, F/T → 친화성, J/P → 성실성, -T/-A → 신경성."""
-    match = MBTI.match(mbti.upper())
-    if not match:
-        raise ValueError(f"MBTI 형식이 아님: {mbti!r} (예: ESFJ, ESFJ-T)")
-    energy, perceiving, deciding, living, identity = match.groups()
-    return {
-        "extraversion": _lean(energy == "E"),
-        "openness": _lean(perceiving == "N"),
-        "agreeableness": _lean(deciding == "F"),
-        "conscientiousness": _lean(living == "J"),
-        "neuroticism": NEUROTICISM[identity],
-    }
+# 다른 도구·테스트가 npc_derive에서 가져다 쓰는 이름도 함께 둔다
+from app.npc_persona import AXES, BEHAVIORS_PER_NPC, lean_fit, mbti_to_dimensions, pick_behaviors, with_derived_traits  # noqa: F401
 
 
 def derive_rates(dimensions: dict[str, float], rules: dict) -> dict:
@@ -87,63 +70,6 @@ def combine_rates(*parts: dict) -> dict:
             else:
                 combined[key] = round(combined.get(key, 1) * value, 2)
     return combined
-
-
-BEHAVIORS_PER_NPC = 4
-
-
-def pick_behaviors(dimensions: dict[str, float], library: dict, seed: str, count: int = BEHAVIORS_PER_NPC) -> list[dict]:
-    """행동 조각 모음에서 이 성격 쪽에 맞는 조각을 뽑는다. 잘 맞을수록 뽑힐 확률이 높고(가중 추첨),
-    범주는 겹치지 않으며, 서로 충돌하는 조각은 함께 뽑지 않는다. seed(보통 npcId)가 같으면 언제나 같은 결과다."""
-    rng = random.Random(seed)
-    candidates = [(behavior, fit) for behavior in library["behaviors"] if (fit := lean_fit(behavior["leans"], dimensions)) > 0.5]
-    picked: list[dict] = []
-    while len(picked) < count:
-        eligible = [(behavior, fit) for behavior, fit in candidates if _can_join(behavior, picked)]
-        if not eligible:
-            break
-        picked.append(rng.choices([behavior for behavior, _ in eligible], weights=[fit for _, fit in eligible])[0])
-    return picked
-
-
-def lean_fit(leans: dict[str, str], dimensions: dict[str, float]) -> float:
-    """성격 쪽 표시(축: high/low)가 이 성격에 맞는 정도 0~1. 기운 쪽의 축 값을 평균한다. 0.5 이하면 그 성격 쪽이 아니다."""
-    sides = [dimensions[axis] if side == "high" else 1 - dimensions[axis] for axis, side in leans.items()]
-    return sum(sides) / len(sides)
-
-
-def _can_join(behavior: dict, picked: list[dict]) -> bool:
-    """이미 뽑힌 조각과 범주가 겹치지 않고, 어느 쪽에서 적었든 충돌 표시가 없어야 함께 뽑힌다."""
-    picked_ids = {other["id"] for other in picked}
-    blocked_by_picked = {conflict for other in picked for conflict in other.get("conflictsWith", [])}
-    return (
-        behavior["id"] not in picked_ids
-        and behavior["category"] not in {other["category"] for other in picked}
-        and not set(behavior.get("conflictsWith", [])) & picked_ids
-        and behavior["id"] not in blocked_by_picked
-    )
-
-
-def _lean(high: bool) -> float:
-    return LEANING if high else round(1 - LEANING, 2)
-
-
-AXES = ("openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism")  # 인격 스키마 personality.dimensions 칸 순서
-
-
-def with_derived_traits(profile: dict, life: dict, library: dict) -> dict:
-    """손으로 쓴 인격 카드(npcProfile)에 자동 칸을 더한 새 카드. 손으로 쓴 글은 그대로 둔다.
-    - personality.dimensions: 생활 파일 MBTI의 성격 5축
-    - behaviorRules: 손으로 쓴 규칙 뒤에 뽑힌 행동 조각의 문장. 예전에 더한 조각 문장은 빼고 다시 더하므로 몇 번 계산해도 같다"""
-    dimensions = mbti_to_dimensions(life["mbti"])
-    picked = pick_behaviors(dimensions, library, seed=life["npcId"])
-    fragment_texts = {behavior["text"] for behavior in library["behaviors"]}
-    handwritten = [rule for rule in profile.get("behaviorRules", []) if rule not in fragment_texts]
-    return {
-        **profile,
-        "personality": {**profile["personality"], "dimensions": {axis: dimensions[axis] for axis in AXES}},
-        "behaviorRules": handwritten + [behavior["text"] for behavior in picked],
-    }
 
 
 def main(argv: list[str] | None = None) -> int:

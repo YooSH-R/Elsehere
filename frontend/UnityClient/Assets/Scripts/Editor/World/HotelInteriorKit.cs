@@ -419,45 +419,5 @@ namespace A305.EditorTools.World
             Block("GuestBookCover", p, V(1.8f, .772f, 4.35f), V(.5f, .015f, .34f), Coral);
             return root;
         }
-
-        internal static GameObject ConciergeVisual()
-        {
-            var root = new GameObject("ConciergeVisual");
-            var model = BuilderTools.LoadRequiredAsset<GameObject>(
-                "Assets/Prefabs/World/TownProduction/LittleMungV7NpcVisual.prefab",
-                "Town production design"
-            );
-            Transform visual = Put(model, root.transform, Vector3.zero);
-            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>())
-            {
-                if (
-                    renderer.name == "Jacket"
-                    || renderer.name == "Sleeve"
-                    || renderer.name == "Shorts"
-                )
-                {
-                    renderer.sharedMaterial = Navy;
-                    PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
-                }
-            }
-            Block("UniformFront", root.transform, V(0, .43f, .14f), V(.31f, .3f, .07f), Navy, .04f);
-            Block(
-                "ShirtFront",
-                root.transform,
-                V(0, .51f, .18f),
-                V(.08f, .12f, .018f),
-                Ivory,
-                .007f
-            );
-            Block(
-                "NameBadge",
-                root.transform,
-                V(-.095f, .49f, .19f),
-                V(.065f, .035f, .012f),
-                Brass,
-                .004f
-            );
-            return root;
-        }
     }
 }

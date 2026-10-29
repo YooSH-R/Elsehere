@@ -467,9 +467,87 @@ namespace A305.EditorTools.Learning
             homeRect.sizeDelta = new Vector2(170, 60);
             BuilderTools.SetReference(view, "homeButton", home);
             BuilderTools.SetReference(view, "messageText", message);
+            SetUpHistory(root, view, buttons, vocabularyButton, bold, regular);
             BuilderTools.RequireReferences(view);
 
             SetUpMyPage(root, buttons, bold, regular);
+        }
+
+        /// <summary>
+        /// [단어장] 바로 왼쪽의 [지난 대화]와 지난 대화 목록 창. 없는 요소만 만들고 디자인은 유지한다.
+        /// 창은 피드백 화면(정렬 130)보다 아래인 HUD 캔버스에 있어, 목록에서 연 피드백이 창 위에 보인다.
+        /// </summary>
+        private static void SetUpHistory(
+            GameObject root,
+            LearningHudView hud,
+            RectTransform hudButtons,
+            Button vocabularyButton,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            Button open = UiBuilderTools.FindOrCreateButton(
+                hudButtons,
+                "HistoryButton",
+                "지난 대화",
+                bold,
+                200f
+            );
+            open.transform.SetSiblingIndex(vocabularyButton.transform.GetSiblingIndex());
+            BuilderTools.SetReference(hud, "historyButton", open);
+
+            var view = BuilderTools.GetOrAddComponent<ConversationHistoryView>(root);
+            RectTransform panel = UiBuilderTools.FindOrCreateAnchoredPanel(
+                root.transform,
+                "History",
+                new Vector2(0.5f, 0.5f),
+                760f,
+                Vector2.zero
+            );
+            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white, "지난 대화");
+            UiBuilderTools.FindOrCreateText(
+                panel,
+                "Hint",
+                regular,
+                20f,
+                SubTextColor,
+                "대화를 고르고 [피드백 보기]를 누르면 그때 받은 피드백과 대화 기록을 다시 볼 수 있어요."
+            );
+            BuilderTools.SetReference(
+                view,
+                "listText",
+                UiBuilderTools.FindOrCreateText(panel, "List", regular, 22f, Color.white)
+            );
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            BuilderTools.SetReference(
+                view,
+                "previousButton",
+                UiBuilderTools.FindOrCreateButton(buttons, "PreviousButton", "이전", bold, 120f)
+            );
+            BuilderTools.SetReference(
+                view,
+                "nextButton",
+                UiBuilderTools.FindOrCreateButton(buttons, "NextButton", "다음", bold, 120f)
+            );
+            BuilderTools.SetReference(
+                view,
+                "openButton",
+                UiBuilderTools.FindOrCreateButton(buttons, "OpenButton", "피드백 보기", bold, 180f)
+            );
+            BuilderTools.SetReference(
+                view,
+                "closeButton",
+                UiBuilderTools.FindOrCreateButton(buttons, "CloseButton", "닫기", bold, 120f)
+            );
+            BuilderTools.SetReference(
+                view,
+                "statusText",
+                UiBuilderTools.FindOrCreateText(panel, "Status", regular, 20f, SubTextColor)
+            );
+            BuilderTools.SetReference(view, "panel", panel.gameObject);
+            BuilderTools.RequireReferences(view);
+            BuilderTools.SetReference(hud, "historyView", view);
+            panel.gameObject.SetActive(false);
         }
 
         /// <summary>

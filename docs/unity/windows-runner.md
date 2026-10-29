@@ -6,7 +6,7 @@ Unity 테스트와 WebGL 빌드는 Windows 노트북의 `a305-unity-windows` Run
 
 Tripo 통합 검사에 필요한 Blender와 FBX는 테스트 스크립트가 준비합니다. 개인 모델 경로나 `TRIPO_*` 변수를 Runner 설정에 수동 등록하지 않습니다. [테스트 입력 준비](#blender와-fbx-테스트-입력)의 고정 버전·캐시와 생성 모델을 사용합니다.
 
-저장된 바리스타 마스터 검수 테스트는 CI 작업의 `TRIPO_MASTER_RECORD`에 지정된 저장소 레코드와 `TRIPO_MASTER_SCENE`의 손 연결 검수 씬을 사용합니다. 별도 모델을 생성하거나 API를 호출하지 않으며, 로컬에서 전체 검사를 실행할 때도 `.gitlab/ci/unity.yml`의 같은 두 입력을 지정합니다.
+바리스타 마스터 검수 테스트는 `TRIPO_MASTER_RECORD`가 가리키는 작업 기록의 원본 모델을 임시 에셋 폴더에 복사하고, 현재 서비스 마스터 적용 절차로 다시 연결한 뒤 골격·모션을 검사합니다. 저장된 옛 후보에 재연결 정보만 덧붙여 통과시키지 않습니다. 원본 FBX·가져오기 설정·작업 기록이 보존되는지 함께 검사하고 임시 후보는 검사 후 제거합니다. `TRIPO_MASTER_SCENE`의 손 연결 검수 씬은 PlayMode 이동 검사에 사용합니다. API를 호출하지 않으며, 로컬에서도 `infra/scripts/run-unity-ci.ps1 -Action test`로 실행하면 CI와 같은 두 입력이 기본 지정됩니다.
 
 ## 등록과 실행
 
@@ -66,6 +66,7 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 
 - Editor 경로는 프로젝트 버전에서 구하며, 다른 설치 경로는 `UNITY_EDITOR_PATH`로 지정합니다.
 - EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다.
+- 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
 - GUI 실행 파일의 실제 종료까지 기다립니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.

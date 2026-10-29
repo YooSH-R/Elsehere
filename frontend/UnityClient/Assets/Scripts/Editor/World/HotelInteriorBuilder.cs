@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using A305.Characters;
 using A305.EditorTools.Common;
 using A305.EditorTools.Npc;
 using A305.EditorTools.Player;
@@ -16,6 +17,7 @@ using UnityEngine.SceneManagement;
 using static A305.EditorTools.World.HomeInteriorKit;
 using static A305.EditorTools.World.HotelInteriorKit;
 using static A305.EditorTools.World.MainstreetArtKit;
+using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.World
 {
@@ -26,6 +28,10 @@ namespace A305.EditorTools.World
         internal const string SandboxPath = "Assets/Scenes/Sandbox/HotelInteriorSandbox.unity";
         private const string DataFolder = "Assets/Data/Hotel";
         internal const string StaffCode = "HOTEL_STAFF";
+
+        // 사용자가 외관을 승인해 Tripo로 최종 등록한 호텔 직원(Jake)이다. 마스터 골격과 이동 애니메이션을 쓴다.
+        private const string HotelierPath =
+            "Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab";
 
         [MenuItem("Tools/A305/Hotel/Apply Maple House Design")]
         public static void Build()
@@ -133,7 +139,7 @@ namespace A305.EditorTools.World
             Transform oldStaff = staff.transform.Find("Visual");
             oldStaff.gameObject.SetActive(false);
             PrefabUtility.RecordPrefabInstancePropertyModifications(oldStaff.gameObject);
-            Put(Save("ConciergeVisual", ConciergeVisual), staff.transform, Vector3.zero);
+            ConnectHotelier(staff);
             SizeController(staff.GetComponent<CharacterController>());
             staff.LookTarget.localPosition = V(0, 1.12f, 0);
             PrefabUtility.RecordPrefabInstancePropertyModifications(staff.LookTarget);
@@ -159,6 +165,51 @@ namespace A305.EditorTools.World
             camera.nearClipPlane = .04f;
             camera.farClipPlane = 90;
             PrefabUtility.RecordPrefabInstancePropertyModifications(camera);
+        }
+
+        [MenuItem("Tools/A305/Hotel/Connect Hotelier Character")]
+        public static void ConnectHotelierInScenes()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            foreach (string path in new[] { ScenePath, SandboxPath })
+            {
+                Scene scene = EditorSceneManager.OpenScene(path);
+                ConnectHotelier(
+                    BuilderTools
+                        .FindAllInScene<NpcIdentity>(scene)
+                        .Single(npc => npc.Code == StaffCode)
+                );
+                BuilderTools.SaveScene(scene, path);
+            }
+            Debug.Log("Hotel staff now uses the Tripo hotelier character.");
+        }
+
+        /// <summary>호텔 직원에 Tripo 호텔리어 캐릭터를 연결한다. 위치·대화·시선 대상·캡슐은 유지한다.</summary>
+        public static void ConnectHotelier(NpcIdentity staff)
+        {
+            // 리틀 멍 인형으로 만든 이전 임시 외형은 지우고 호텔리어는 한 번만 붙인다.
+            Transform placeholder = staff.transform.Find("ConciergeVisual");
+            if (placeholder != null)
+                Object.DestroyImmediate(placeholder.gameObject);
+            Transform hotelier = staff.transform.Find("Hotelier");
+            if (hotelier == null)
+            {
+                hotelier = Put(
+                    BuilderTools.LoadRequiredAsset<GameObject>(
+                        HotelierPath,
+                        "Tripo hotelier character"
+                    ),
+                    staff.transform,
+                    Vector3.zero
+                );
+                hotelier.name = "Hotelier";
+            }
+            BuilderTools.SetReference(
+                staff.GetComponent<CharacterAnimationDriver>(),
+                "animator",
+                hotelier.GetComponentInChildren<Animator>()
+            );
         }
 
         private static void SizeController(CharacterController controller)

@@ -112,7 +112,7 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 
 자동화의 기본 실행 환경은 [Windows 노트북의 Unity 전용 Runner](windows-runner.md)입니다. EC2의 Editor·라이선스·자원 조건은 [EC2 빌드 검토](server-build.md)에 남깁니다. 빌드 스크립트, Runner 연결, 실제 CI 빌드와 서버 배포 성공은 각각 확인합니다.
 
-`infra/scripts/run-unity-ci.ps1 -Action test`는 회귀 검사 입력을 준비하고 EditMode·PlayMode를 실행합니다. `TRIPO_MASTER_RECORD`와 `TRIPO_MASTER_SCENE`이 없으면 저장소의 카페 캐릭터 작업 기록(`Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset`)과 손 바인딩 검수 씬(`Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity`)을 사용해 마스터 골격·모션·이동 검사가 빠지지 않게 합니다. 다른 캐릭터를 검사할 때는 두 환경 변수에 해당 Unity 에셋 경로를 지정합니다. 자동 검사 통과와 실제 외관 승인은 별도로 확인합니다.
+`infra/scripts/run-unity-ci.ps1 -Action test`는 회귀 검사 입력을 준비하고 EditMode·PlayMode를 실행합니다. `TRIPO_MASTER_RECORD`와 `TRIPO_MASTER_SCENE`이 없으면 저장소의 카페 캐릭터 작업 기록(`Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset`)과 손 바인딩 검수 씬(`Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity`)을 사용해 마스터 골격·모션·이동 검사가 빠지지 않게 합니다. EditMode는 작업 기록의 원본 모델을 복사해 현재 마스터 적용 절차를 실행한 임시 후보를 검사하며, 저장된 옛 후보를 승인하거나 원본 기록을 갱신하지 않습니다. PlayMode는 지정된 검수 씬에서 이동을 검사합니다. 다른 캐릭터를 검사할 때는 두 환경 변수에 해당 Unity 에셋 경로를 지정합니다. 자동 검사 통과와 실제 외관 승인은 별도로 확인합니다.
 
 ## 후속 검증 범위
 

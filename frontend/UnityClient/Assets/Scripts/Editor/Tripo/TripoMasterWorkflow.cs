@@ -56,7 +56,7 @@ namespace A305.EditorTools.Tripo
                 if (TripoSurfaceCleanup.RemoveAttachedSlivers(skin.sharedMesh) > 0)
                     EditorUtility.SetDirty(skin.sharedMesh);
             AssetDatabase.SaveAssets();
-            var visual = BuildVisual(model, folder + "/Visual.prefab");
+            var visual = BuildVisual(model, folder + "/" + record.DisplayName + "_Visual.prefab");
             record.commonBody = master;
             record.referenceHeightMeters = 0;
             record.uniformScale = 1;
@@ -78,6 +78,7 @@ namespace A305.EditorTools.Tripo
             var visual = (GameObject)PrefabUtility.InstantiatePrefab(template);
             try
             {
+                visual.name = Path.GetFileNameWithoutExtension(path);
                 var target = visual.GetComponentInChildren<Animator>();
                 var source = model.GetComponentInChildren<Animator>();
                 // 컨트롤러 교체가 Humanoid 포즈를 초기화하므로 기준 본 복사보다 먼저 연결한다.

@@ -249,6 +249,7 @@ namespace A305.EditorTools.Tripo
             try
             {
                 instance = CreateAssembly(record);
+                instance.name = record.DisplayName;
                 SceneManager.MoveGameObjectToScene(instance, preview);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 AssetDatabase.Refresh();

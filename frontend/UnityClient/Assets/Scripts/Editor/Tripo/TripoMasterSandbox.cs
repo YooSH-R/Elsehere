@@ -28,10 +28,16 @@ namespace A305.EditorTools.Tripo
             BuilderTools.EnsureFolder(prefabs);
             BuilderTools.EnsureFolder(scenes);
             string prefabPath = AssetDatabase.GenerateUniqueAssetPath(
-                prefabs + "/" + (outputFolder == null ? name : "ReviewPlayer") + ".prefab"
+                prefabs
+                    + "/"
+                    + (outputFolder == null ? name : record.DisplayName + "_Player")
+                    + ".prefab"
             );
             string scenePath = AssetDatabase.GenerateUniqueAssetPath(
-                scenes + "/" + (outputFolder == null ? name : "Review") + ".unity"
+                scenes
+                    + "/"
+                    + (outputFolder == null ? name : record.DisplayName + "_Review")
+                    + ".unity"
             );
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(
                 LittleMungStairBuilder.PrefabPath

@@ -118,8 +118,7 @@ namespace A305.EditorTools.Tripo
             EditorGUILayout.LabelField("Tripo Asset Workbench", EditorStyles.boldLabel);
             if (record != null)
                 EditorGUILayout.LabelField(
-                    "현재 작업: "
-                        + (record.sourceModel == null ? record.name : record.sourceModel.name),
+                    "현재 작업: " + record.DisplayName,
                     EditorStyles.wordWrappedLabel
                 );
             if (record == null || job == null || job.stage != TripoStage.Completed)

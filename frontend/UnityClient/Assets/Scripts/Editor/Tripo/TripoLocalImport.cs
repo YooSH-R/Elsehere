@@ -20,7 +20,8 @@ namespace A305.EditorTools.Tripo
                 job.kind,
                 job.kind == TripoAssetKind.Accessory || job.kind == TripoAssetKind.Hair
                     ? TripoAttachmentKind.Rigid
-                    : TripoAttachmentKind.Skinned
+                    : TripoAttachmentKind.Skinned,
+                assetName: job.assetName
             );
             job.reviewRecordPath = AssetDatabase.GetAssetPath(record);
             if (string.IsNullOrEmpty(record.finalPrefabPath))
@@ -157,12 +158,28 @@ namespace A305.EditorTools.Tripo
                 kind = TripoAssetKind.Character,
                 autoRig = true,
                 modelPath = Path.GetFullPath(source),
-                modelAssetPath = folder + "/Source.fbx",
+                modelAssetPath = folder + "/" + Path.GetFileName(folder) + ".fbx",
                 prefabPath =
                     "Assets/Prefabs/Characters/Tripo/" + Path.GetFileName(folder) + ".prefab",
             };
             var record = Complete(job);
             new TripoJobStore("UserSettings/Tripo/Local/" + job.assetName + ".json").Save(job);
+            WriteResult(record, output);
+        }
+
+        public static void ReviewFromCommandLine()
+        {
+            var record = AssetDatabase.LoadAssetAtPath<TripoAssetRecord>(
+                Environment.GetEnvironmentVariable("TRIPO_MASTER_RECORD")
+            );
+            if (record == null)
+                throw new InvalidOperationException("검수 기록을 지정하세요.");
+            Review(record);
+            WriteResult(record, Environment.GetEnvironmentVariable("TRIPO_LOCAL_REPORT"));
+        }
+
+        private static void WriteResult(TripoAssetRecord record, string output)
+        {
             File.WriteAllText(
                 output,
                 JsonUtility.ToJson(

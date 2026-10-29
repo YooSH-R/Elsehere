@@ -24,6 +24,11 @@ namespace A305.EditorTools.Tripo
         public string reviewSceneFingerprint;
         public string reviewSceneHash;
         public string automaticStatus;
+        public string assetName;
+        public string DisplayName =>
+            string.IsNullOrEmpty(assetName)
+                ? TripoWorkbenchAssets.ModelName(sourceModel)
+                : assetName;
         public GameObject sourceModel;
         public TripoValidationProfile profile;
         public TripoAssetKind kind;

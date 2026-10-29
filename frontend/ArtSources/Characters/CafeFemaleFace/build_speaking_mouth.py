@@ -137,9 +137,20 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
     skin_shader.inputs['Roughness'].default_value = .8
     skin_material.node_tree.links.new(color_node.outputs['Color'], skin_shader.inputs['Base Color'])
 
-    apertures = {'Basis': (.022, .0018), 'viseme_AA': (.024, .012),
-                 'viseme_FF': (.021, .003), 'viseme_TH': (.022, .007),
-                 'mouthSmileLeft': (.022, .0018), 'mouthSmileRight': (.022, .0018)}
+    apertures = {
+        'Basis': (.022, .0018),
+        'viseme_PP': (.022, .00025),
+        'viseme_AA': (.024, .012),
+        'viseme_E': (.026, .0055),
+        'viseme_OH': (.012, .014),
+        'viseme_OU': (.008, .014),
+        'viseme_FF': (.021, .003),
+        'viseme_TH': (.022, .007),
+        'viseme_I': (.024, .005),
+        'viseme_EU': (.023, .0035),
+        'mouthSmileLeft': (.022, .0018),
+        'mouthSmileRight': (.022, .0018),
+    }
     parts = []
     for part_name, rings in [('SpeakingLips', [1, .8, .55, .3, .1, 0]),
                              ('MouthInterior', [1, .8, .5, .2, 0])]:
@@ -149,11 +160,11 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
             for ring in rings:
                 for index, angle in enumerate(angles):
                     cosine, sine = math.cos(angle), math.sin(angle)
-                    exponent = .75 if channel == 'viseme_AA' else 1
+                    exponent = .75 if channel in ('viseme_AA', 'viseme_E', 'viseme_I', 'viseme_EU', 'viseme_PP') else 1
                     inner_y = CENTER_Y+half_width*math.copysign(abs(cosine)**exponent, cosine)
                     inner_z = CENTER_Z+half_height*math.copysign(abs(sine)**exponent, sine)
                     if channel == 'viseme_FF':
-                        inner_z += .002*(1-cosine*cosine)
+                        inner_z += .005*(1-cosine*cosine)
                     smiling = channel in ('Basis', 'mouthSmileLeft', 'mouthSmileRight')
                     if smiling:
                         inner_z += .004*(math.cos(angle)**2)
@@ -164,16 +175,18 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
                         outer = posed_outer[channel][index]
                         y = inner_y*(1-ring)+outer.y*ring
                         z = inner_z*(1-ring)+outer.z*ring
-                        x = fitted_x(y, z)+(outer.x-fitted_x(outer.y, outer.z))*ring
+                        purse = {'viseme_OH': .002, 'viseme_OU': .006}.get(channel, 0)
+                        x = fitted_x(y, z)+(outer.x-fitted_x(outer.y, outer.z))*ring-purse*(1-ring)**2
                         local_y, local_z = y-CENTER_Y, z-CENTER_Z
                         slope_y = coefficients[1]+2*coefficients[3]*local_y+coefficients[4]*local_z
                         slope_z = coefficients[2]+coefficients[4]*local_y+2*coefficients[5]*local_z
-                        surface_normal = Vector((-1, slope_y, slope_z)).normalized()
+                        surface_normal = Vector((-1, slope_y+purse*40*cosine*(1-ring), slope_z+purse*40*sine*(1-ring))).normalized()
                         normal = surface_normal.lerp(outer_normals[index], ring).normalized()
                     else:
                         y = CENTER_Y+(inner_y-CENTER_Y)*ring
                         z = CENTER_Z+(inner_z-CENTER_Z)*ring
-                        x = fitted_x(y, z)+.012*(1-ring)
+                        purse = {'viseme_OH': .002, 'viseme_OU': .006}.get(channel, 0)
+                        x = fitted_x(y, z)+.012*(1-ring)-purse*ring
                         normal = Vector((-1, -.3*math.cos(angle)*(1-ring), -.3*math.sin(angle)*(1-ring))).normalized()
                     points.append(Vector((x, y, z)))
                     shading.append(normal)
@@ -235,4 +248,4 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
     body.data.normals_split_custom_set_from_vertices(normals)
     kept = [value for index in range(len(triangles)) if index not in removed
             for value in source['triangles'][index*3:index*3+3]]
-    return parts, kept
+    return parts, kept, fitted_x

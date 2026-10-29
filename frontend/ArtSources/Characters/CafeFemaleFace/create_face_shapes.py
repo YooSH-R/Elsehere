@@ -57,7 +57,9 @@ mat.node_tree.links.new(node.outputs['Color'],shader.inputs['Base Color'])
 mesh.materials.append(mat)
 mesh.normals_split_custom_set_from_vertices(normals)
 body.shape_key_add(name='Basis')
-channels=['mouthSmileLeft','mouthSmileRight','eyeBlinkLeft','eyeBlinkRight','viseme_AA','viseme_FF','viseme_TH']
+channels = ['mouthSmileLeft', 'mouthSmileRight', 'eyeBlinkLeft', 'eyeBlinkRight',
+            'viseme_AA', 'viseme_FF', 'viseme_TH', 'viseme_PP', 'viseme_E',
+            'viseme_OH', 'viseme_OU', 'viseme_I', 'viseme_EU']
 def fade(r,inner,outer):
     t=max(0,min(1,(r-inner)/(outer-inner)))
     return 1-t*t*(3-2*t)
@@ -87,39 +89,75 @@ for channel in channels:
                     corner=min(1,abs(y)/.024)
                     q.z+=.007*w*corner*factor
                     q.y+=side*.004*w*corner*factor
-                elif channel in ('viseme_AA', 'viseme_FF', 'viseme_TH'):
-                    # The source has a painted crescent, not an oral aperture.
-                    # Recess that small surface behind the authored speaking lips.
+                elif channel.startswith('viseme_'):
+                    # Small chin motion accompanies the separate authored lip loops.
+                    # Their boundary follows these same displaced vertices.
                     radius = math.sqrt((y/.043)**2 + ((v.z-.452)/.017)**2)
                     influence = fade(radius, .4, 1.3)
-                    q.z -= (.002 if channel == 'viseme_AA' else .0005) * influence
+                    jaw_offsets = {'viseme_AA': .002, 'viseme_OH': .0016, 'viseme_OU': .0012, 'viseme_PP': -.0004}
+                    q.z -= jaw_offsets.get(channel, .0006) * influence
         key.data[i].co=q
         offsets.append(uv(normal-normals[i]))
     normal_offsets[channel]=offsets
 
 sys.path.insert(0, str(Path(__file__).parent))
 from build_speaking_mouth import build_speaking_mouth
-parts, kept_triangles = build_speaking_mouth(body, d, vertices, normals, triangles, node.image, a.output)
+parts, kept_triangles, mouth_surface_x = build_speaking_mouth(body, d, vertices, normals, triangles, node.image, a.output)
 
-for name,color,scale,target in [
-    ('UpperTeeth',(.88,.82,.72),(.002,.014,.0028),(-.256,-.043,.481)),
-    ('Tongue',(.48,.12,.14),(.005,.009,.0024),(-.260,-.043,.477)),
-]:
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=20,ring_count=10,location=(0,0,0))
-    ob=bpy.context.object
-    ob.name=name
-    for v in ob.data.vertices:v.co=Vector((v.co.x*scale[0]-.215,v.co.y*scale[1]-.043,v.co.z*scale[2]+.48))
-    m=bpy.data.materials.new(name);m.use_nodes=True
-    m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(*color,1)
-    ob.data.materials.append(m)
-    for poly in ob.data.polygons:poly.use_smooth=True
+# Teeth and tongue use the same head binding, with a distinct placement for
+# each viseme. Hidden rest positions prevent teeth leaking through closed lips.
+oral_parts = [
+    # A thin contact crease makes fully closed lips readable without opening
+    # the aperture or revealing teeth. It is hidden for every other viseme.
+    ('ClosedLipCrease', (.26, .055, .025), (.0003, .022, .0008), {
+        'viseme_PP': ((-.256, -.043, .477), (1, 1, 1)),
+    }),
+    ('UpperTeeth', (.88, .82, .72), (.002, .019, .0028), {
+        'viseme_FF': ((-.256, -.043, .482), (1, 1, 1)),
+        'viseme_TH': ((-.256, -.043, .481), (1, 1, 1)),
+        'viseme_E': ((-.256, -.043, .4808), (1, 1.1, 1)),
+        'viseme_I': ((-.256, -.043, .4808), (1, 1.05, .8)),
+    }),
+    ('LowerTeeth', (.82, .76, .68), (.002, .018, .0017), {
+        'viseme_I': ((-.255, -.043, .474), (1, 1, 1)),
+    }),
+    ('Tongue', (.48, .12, .14), (.005, .009, .0024), {
+        'viseme_AA': ((-.245, -.043, .468), (1, 1.1, 1)),
+        'viseme_TH': ((-.258, -.043, .474), (1, 1, .85)),
+        'viseme_OH': ((-.248, -.043, .467), (1, .75, .85)),
+        'viseme_OU': ((-.252, -.043, .466), (1, .45, .7)),
+    }),
+]
+for name, color, scale, placements in oral_parts:
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=20, ring_count=10, location=(0, 0, 0))
+    ob = bpy.context.object
+    ob.name = name
+    unit_vertices = [vertex.co.copy() for vertex in ob.data.vertices]
+    for vertex, unit in zip(ob.data.vertices, unit_vertices):
+        vertex.co = Vector((unit.x*scale[0]-.215, unit.y*scale[1]-.043, unit.z*scale[2]+.48))
+    material = bpy.data.materials.new(name)
+    material.use_nodes = True
+    material.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value = (*color, 1)
+    ob.data.materials.append(material)
+    for polygon in ob.data.polygons:
+        polygon.use_smooth = True
     ob.shape_key_add(name='Basis')
-    for channel in ['viseme_AA','viseme_FF','viseme_TH']:
-        k=ob.shape_key_add(name=channel)
-        if name=='UpperTeeth' and channel != 'viseme_AA' or name=='Tongue' and channel in ('viseme_AA','viseme_TH'):
-            destination = (-.245,-.043,.468) if channel == 'viseme_AA' else target
-            for v in k.data:v.co+=Vector(destination)-Vector((-.215,-.043,.48))
-    parts.append((ob,color))
+    for channel, (destination, factors) in placements.items():
+        key = ob.shape_key_add(name=channel)
+        for vertex, unit in zip(key.data, unit_vertices):
+            vertex.co = Vector(destination) + Vector(tuple(unit[index]*scale[index]*factors[index] for index in range(3)))
+            # Follow the curved lip surface instead of placing a flat tooth or
+            # tongue slab in front of the cheeks. Only TH intentionally protrudes.
+            purse = {'viseme_OH': .002, 'viseme_OU': .006}.get(channel, 0)
+            if name == 'ClosedLipCrease':
+                depth = -.0004
+            elif name == 'Tongue':
+                depth = -.001 if channel == 'viseme_TH' else .005
+            else:
+                depth = .0035
+            thickness = .003 if name == 'Tongue' else scale[0]
+            vertex.co.x = mouth_surface_x(vertex.co.y, vertex.co.z)-purse+depth+unit.x*thickness
+    parts.append((ob, color))
 
 # Closed lid contours remain hidden at neutral and follow the blink channel.
 for side, center in [('Left',.082),('Right',-.155)]:
@@ -175,7 +213,10 @@ for pos,power in [((-2,-2,3),180),((-2,2,1),80)]:
     bpy.ops.object.light_add(type='AREA',location=pos);o=bpy.context.object;o.data.energy=power;o.data.size=3;aim(o,(0,0,.65))
 bpy.ops.object.camera_add(location=(-2,0,.65));cam=bpy.context.object;aim(cam,(0,0,.65));cam.data.type='ORTHO';cam.data.ortho_scale=.78;scene.camera=cam
 scene.render.resolution_x=640;scene.render.resolution_y=640;scene.render.resolution_percentage=100
-poses={'Neutral':[],'Smile':channels[:2],'Blink':channels[2:4],'OpenMouth':['viseme_AA'],'FV':['viseme_FF'],'TH':['viseme_TH']}
+poses = {'Neutral': [], 'ClosedLips': ['viseme_PP'], 'OpenMouth': ['viseme_AA'],
+         'E': ['viseme_E'], 'OH': ['viseme_OH'], 'OU': ['viseme_OU'], 'FV': ['viseme_FF'],
+         'TH': ['viseme_TH'], 'WideI': ['viseme_I'], 'FlatEu': ['viseme_EU'],
+         'Smile': channels[:2], 'Blink': channels[2:4]}
 for name,active in poses.items():
     for ob in [body,*[p[0] for p in parts]]:
         for k in ob.data.shape_keys.key_blocks:k.value=1 if k.name in active else 0
@@ -186,4 +227,4 @@ for name,active in poses.items():
         posed_normals.append(result_normal.normalized())
     mesh.normals_split_custom_set_from_vertices(posed_normals)
     scene.render.filepath=str(a.output/(name+'.png'));bpy.ops.render.render(write_still=True)
-print('Cafe female six poses saved.')
+print('Cafe female ten speech mouths plus smile and blink saved.')

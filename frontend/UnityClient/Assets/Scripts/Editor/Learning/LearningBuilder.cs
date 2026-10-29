@@ -4,6 +4,7 @@ using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.Learning;
+using A305.Onboarding;
 using A305.Player;
 using TMPro;
 using UnityEditor;
@@ -11,6 +12,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using BrowserImeInput = WebGLSupport.WebGLInput;
 
 namespace A305.EditorTools.Learning
 {
@@ -466,6 +468,181 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(view, "homeButton", home);
             BuilderTools.SetReference(view, "messageText", message);
             BuilderTools.RequireReferences(view);
+
+            SetUpMyPage(root, buttons, bold, regular);
+        }
+
+        /// <summary>
+        /// 오른쪽 위 버튼 줄 끝의 [내 정보]와 마이페이지 창(내 정보·닉네임 변경·로그아웃 확인). 없는 요소만 만들고 디자인은 유지한다.
+        /// </summary>
+        private static void SetUpMyPage(
+            GameObject root,
+            RectTransform hudButtons,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            var view = BuilderTools.GetOrAddComponent<MyPageView>(root);
+            BuilderTools.SetReference(
+                view,
+                "apiSettings",
+                BuilderTools.LoadRequiredAsset<ApiSettings>(
+                    ApiSettingsPath,
+                    A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
+                )
+            );
+            Button open = UiBuilderTools.FindOrCreateButton(
+                hudButtons,
+                "MyPageButton",
+                "내 정보",
+                bold,
+                160f
+            );
+            // 계정 메뉴는 화면 오른쪽 위 끝에 둔다.
+            open.transform.SetAsLastSibling();
+            BuilderTools.SetReference(view, "openButton", open);
+
+            RectTransform overlay = FindOrCreateOverlay(root.transform, "MyPage");
+            BuilderTools.SetReference(view, "overlay", overlay.gameObject);
+
+            RectTransform profile = UiBuilderTools.FindOrCreateAnchoredPanel(
+                overlay,
+                "Window",
+                new Vector2(0.5f, 0.5f),
+                600f,
+                Vector2.zero
+            );
+            UiBuilderTools.FindOrCreateText(profile, "Title", bold, 32f, Color.white, "내 정보");
+            BuilderTools.SetReference(
+                view,
+                "profileText",
+                UiBuilderTools.FindOrCreateText(profile, "Profile", regular, 24f, Color.white)
+            );
+            RectTransform nicknameRow = UiBuilderTools.FindOrCreateButtonRow(
+                profile,
+                "NicknameRow"
+            );
+            TMP_InputField nickname = UiBuilderTools.FindOrCreateInputField(
+                nicknameRow,
+                "NicknameInput",
+                regular,
+                "새 닉네임"
+            );
+            // WebGL에서 한글 조합 입력을 받으려면 브라우저 입력창을 연결한다(가입 화면과 같음).
+            BuilderTools.GetOrAddComponent<BrowserImeInput>(nickname.gameObject);
+            BuilderTools.SetReference(view, "nicknameInput", nickname);
+            BuilderTools.SetReference(
+                view,
+                "nicknameButton",
+                UiBuilderTools.FindOrCreateButton(
+                    nicknameRow,
+                    "NicknameButton",
+                    "닉네임 변경",
+                    bold,
+                    180f
+                )
+            );
+            BuilderTools.SetReference(
+                view,
+                "statusText",
+                UiBuilderTools.FindOrCreateText(
+                    profile,
+                    "Status",
+                    regular,
+                    20f,
+                    SubTextColor,
+                    "한글 2~8자 또는 영문·숫자 2~16자로 정해 주세요."
+                )
+            );
+            RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
+            BuilderTools.SetReference(
+                view,
+                "logoutButton",
+                UiBuilderTools.FindOrCreateButton(
+                    profileButtons,
+                    "LogoutButton",
+                    "로그아웃",
+                    bold,
+                    160f
+                )
+            );
+            BuilderTools.SetReference(
+                view,
+                "closeButton",
+                UiBuilderTools.FindOrCreateButton(profileButtons, "CloseButton", "닫기", bold, 140f)
+            );
+            BuilderTools.SetReference(view, "profilePanel", profile.gameObject);
+
+            RectTransform logout = UiBuilderTools.FindOrCreateAnchoredPanel(
+                overlay,
+                "LogoutDialog",
+                new Vector2(0.5f, 0.5f),
+                520f,
+                Vector2.zero
+            );
+            UiBuilderTools.FindOrCreateText(
+                logout,
+                "Title",
+                bold,
+                30f,
+                Color.white,
+                "로그아웃할까요?"
+            );
+            UiBuilderTools.FindOrCreateText(
+                logout,
+                "Body",
+                regular,
+                22f,
+                Color.white,
+                "처음 화면으로 돌아가요. 게스트로 시작했다면 로그아웃한 뒤 같은 기록으로 다시 들어올 수 없어요."
+            );
+            BuilderTools.SetReference(
+                view,
+                "logoutStatusText",
+                UiBuilderTools.FindOrCreateText(logout, "Status", regular, 20f, SubTextColor)
+            );
+            RectTransform logoutButtons = UiBuilderTools.FindOrCreateButtonRow(logout, "Buttons");
+            BuilderTools.SetReference(
+                view,
+                "logoutCancelButton",
+                UiBuilderTools.FindOrCreateButton(logoutButtons, "CancelButton", "취소", bold, 140f)
+            );
+            BuilderTools.SetReference(
+                view,
+                "logoutConfirmButton",
+                UiBuilderTools.FindOrCreateButton(
+                    logoutButtons,
+                    "ConfirmButton",
+                    "로그아웃",
+                    bold,
+                    160f
+                )
+            );
+            BuilderTools.SetReference(view, "logoutDialog", logout.gameObject);
+            BuilderTools.RequireReferences(view);
+
+            logout.gameObject.SetActive(false);
+            overlay.gameObject.SetActive(false);
+        }
+
+        // 화면 전체를 덮는 어두운 바탕. 마이페이지가 열려 있는 동안 뒤의 HUD 버튼과 사물이 눌리지 않게 클릭을 받는다.
+        private static RectTransform FindOrCreateOverlay(Transform root, string overlayName)
+        {
+            Transform existing = root.Find(overlayName);
+            if (existing != null)
+            {
+                return (RectTransform)existing;
+            }
+
+            var overlay = new GameObject(overlayName, typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)overlay.transform;
+            rect.SetParent(root, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            overlay.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.45f);
+            return rect;
         }
     }
 }

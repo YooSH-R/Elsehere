@@ -76,13 +76,6 @@ namespace A305.Player
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
-            var appearance = GetComponent<PlayerCharacterAppearance>();
-            if (
-                appearance != null
-                && appearance.ActiveCharacter != null
-                && appearance.ActiveCharacter.MovementSettings != null
-            )
-                movementSettings = appearance.ActiveCharacter.MovementSettings;
             if (!HasRequiredReferences())
             {
                 enabled = false;

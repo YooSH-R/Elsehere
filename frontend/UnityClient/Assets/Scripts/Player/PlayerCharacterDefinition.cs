@@ -12,9 +12,6 @@ namespace A305.Player
         private GameObject visualPrefab;
 
         [SerializeField]
-        private PlayerMovementSettings movementSettings;
-
-        [SerializeField]
         private float heightMeters = 1.6f;
 
         [SerializeField]
@@ -39,7 +36,6 @@ namespace A305.Player
         public string CharacterId => characterId;
         public float HeightMeters => heightMeters;
         public GameObject VisualPrefab => visualPrefab;
-        public PlayerMovementSettings MovementSettings => movementSettings;
 
         public void FitController(CharacterController controller)
         {

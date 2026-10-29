@@ -20,7 +20,6 @@ namespace A305.EditorTools.Player
 
         // Tripo 생성 메시를 마스터 골격에 다시 연결한 Female Variant다. 골격·애니메이션·배율은 Female을 따른다.
         private const string MaleVisualPath = VisualFolder + "/Male.prefab";
-        private const string MovementPath = "Assets/Data/Player/LittleMung/Movement.asset";
 
         [MenuItem("Tools/A305/Player/Connect Selected Character")]
         public static void Build()
@@ -34,6 +33,15 @@ namespace A305.EditorTools.Player
             try
             {
                 ConfigurePlayer(contents, null);
+                // 씬의 Player가 프리팹 값을 따르도록 이동 설정은 프리팹에만 연결한다.
+                BuilderTools.SetReference(
+                    contents.GetComponent<PlayerMover>(),
+                    "movementSettings",
+                    BuilderTools.LoadRequiredAsset<PlayerMovementSettings>(
+                        PlayerSandboxBuilder.MovementSettingsPath,
+                        "Little Mung movement settings"
+                    )
+                );
                 PrefabUtility.SaveAsPrefabAsset(contents, PlayerSandboxBuilder.PlayerPrefabPath);
             }
             finally
@@ -167,7 +175,7 @@ namespace A305.EditorTools.Player
             }
         }
 
-        // 외형과 이동 설정 연결은 매번 맞춘다. 캡슐·시점 수치는 처음 만들 때만 정하고 이후에는 Fit 메뉴로 맞춘다.
+        // 외형 연결은 매번 맞춘다. 캡슐·시점 수치는 처음 만들 때만 정하고 이후에는 Fit 메뉴로 맞춘다.
         private static PlayerCharacterDefinition ConnectDefinition(string id, GameObject visual)
         {
             string path = DataFolder + "/" + id + ".asset";
@@ -178,11 +186,6 @@ namespace A305.EditorTools.Player
             var data = new SerializedObject(definition);
             data.FindProperty("characterId").stringValue = id;
             data.FindProperty("visualPrefab").objectReferenceValue = visual;
-            data.FindProperty("movementSettings").objectReferenceValue =
-                BuilderTools.LoadRequiredAsset<PlayerMovementSettings>(
-                    MovementPath,
-                    "Little Mung movement settings"
-                );
             if (created)
             {
                 var source = AssetDatabase

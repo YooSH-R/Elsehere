@@ -84,6 +84,38 @@ namespace A305.Player.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Player_WalkingOffFurniture_LandsWithFeetOnTheFloor()
+        {
+            yield return LoadHome();
+            Box(FurnitureCenter, new Vector3(1f, FurnitureHeightMeters, 1f));
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            float previousDelta = Time.captureDeltaTime;
+            Time.captureDeltaTime = 1f / 60f;
+            try
+            {
+                // 상자 위 가운데에서 앞(+x)으로 걸어 모서리 밖으로 떨어진 뒤 멈춘다.
+                yield return WalkForward(
+                    player,
+                    new Vector3(FurnitureCenter.x, FurnitureHeightMeters, FurnitureCenter.z),
+                    Vector3.right,
+                    1f
+                );
+                yield return WaitSeconds(1.5f);
+
+                // 계단 보정이 상자 윗면을 디딤점으로 붙들면 몸은 바닥에 있어도 외형이 상자 높이에 떠 있다.
+                Assert.That(
+                    LowestSkinHeight(player) - player.transform.position.y,
+                    Is.LessThan(.06f),
+                    "바닥에 내려서면 외형 발도 바닥에 닿아야 합니다."
+                );
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Player_FallingIntoGapNarrowerThanHead_StandsOnTheFloor()
         {
             yield return LoadHome();
@@ -206,6 +238,31 @@ namespace A305.Player.PlayModeTests
             }
 
             return farthest;
+        }
+
+        private static float LowestSkinHeight(PlayerMover player)
+        {
+            float lowest = float.PositiveInfinity;
+            var mesh = new Mesh();
+            try
+            {
+                foreach (
+                    SkinnedMeshRenderer skin in player.GetComponentsInChildren<SkinnedMeshRenderer>()
+                )
+                {
+                    skin.BakeMesh(mesh, true);
+                    foreach (Vector3 vertex in mesh.vertices)
+                    {
+                        lowest = Mathf.Min(lowest, skin.transform.TransformPoint(vertex).y);
+                    }
+                }
+            }
+            finally
+            {
+                Object.Destroy(mesh);
+            }
+
+            return lowest;
         }
 
         private static IEnumerator WaitSeconds(float seconds)

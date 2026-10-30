@@ -21,11 +21,14 @@ namespace A305.Player
         private const float InstantAnimationSpeedMetersPerSecond = 1f;
 
         // 캡슐 아래 둥근 면이 가구 모서리에 걸리면 CharacterController는 땅에 섰다고 보지만, 발밑은 비어 있어
-        // 가구 옆 공중에 떠 보인다. 발밑에 턱 높이 안으로 땅이 없으면 땅이 아닌 것으로 보고 모서리 바깥으로 민다.
+        // 가구 옆 공중에 떠 보인다. 이때는 땅이 아닌 것으로 보고 모서리 바깥으로 민다.
         private const float EdgeSlideSpeedMetersPerSecond = 2f;
 
         // 발밑 땅을 찾는 작은 구. 바닥 타일 사이 틈은 건너뛰고, 가구 모서리처럼 옆으로 떨어진 면은 찾지 않는다.
         private const float GroundProbeRadiusMeters = .1f;
+
+        // 발이 발밑 땅에서 이만큼 넘게 떠 있어야 모서리에 걸린 것으로 본다.
+        private const float HoverToleranceMeters = .03f;
 
         // 이보다 위를 향한 면에 닿았을 때만 발밑을 받친 면으로 본다. 벽에 닿은 점은 빼기 위해서다.
         private const float GroundContactMinNormalY = .1f;
@@ -140,7 +143,7 @@ namespace A305.Player
                 sprintAction.action.IsPressed(),
                 jumpAction.action.WasPressedThisFrame()
             );
-            bool isOnEdge = characterController.isGrounded && !HasGroundUnderFeet();
+            bool isOnEdge = characterController.isGrounded && IsHeldByEdge();
             bool isGrounded = characterController.isGrounded && !isOnEdge;
             Vector3 velocity = motor.ComputeVelocity(input, isGrounded, Time.deltaTime);
             Vector3 edgeSlide = isOnEdge
@@ -171,21 +174,42 @@ namespace A305.Player
 
         private void OnControllerColliderHit(ControllerColliderHit hit)
         {
-            if (hit.normal.y > GroundContactMinNormalY)
+            // 한 번 움직이며 여러 면에 닿으면 가장 높이 받친 점을 기억한다.
+            bool isGroundContact = hit.normal.y > GroundContactMinNormalY;
+            if (
+                isGroundContact
+                && (groundContactPoint == null || hit.point.y > groundContactPoint.Value.y)
+            )
             {
                 groundContactPoint = hit.point;
             }
         }
 
-        /// <summary>발 바로 아래 턱 높이 안에 디딜 땅이 있는지</summary>
-        private bool HasGroundUnderFeet()
+        /// <summary>
+        /// 발밑 땅에서 떠 있으면서 턱보다 높은 모서리가 받치고 있는지. 발밑에 턱 높이 안으로 땅이 없거나,
+        /// 땅은 있지만 받친 점이 발보다 턱 높이 넘게 위에 있으면 가구 모서리에 걸린 것이다.
+        /// 계단을 오르내릴 때 받치는 모서리는 턱 높이 안이라 여기에 들지 않는다.
+        /// </summary>
+        private bool IsHeldByEdge()
         {
-            Vector3 feet =
-                transform.position
-                + characterController.center
-                + Vector3.down * (characterController.height / 2f);
+            float hover = HoverAboveGround();
+            if (hover <= HoverToleranceMeters)
+            {
+                return false;
+            }
+
+            return float.IsPositiveInfinity(hover)
+                || (
+                    groundContactPoint != null
+                    && groundContactPoint.Value.y > Feet().y + characterController.stepOffset
+                );
+        }
+
+        /// <summary>발이 바로 아래 땅에서 떠 있는 높이. 턱 높이 안에 땅이 없으면 무한대.</summary>
+        private float HoverAboveGround()
+        {
             // 구가 시작부터 바닥에 닿아 있으면 찾지 못하므로 발보다 조금 위에서 내린다.
-            Vector3 start = feet + Vector3.up * (GroundProbeRadiusMeters * 2f);
+            Vector3 start = Feet() + Vector3.up * (GroundProbeRadiusMeters * 2f);
             int count = Physics.SphereCastNonAlloc(
                 start,
                 GroundProbeRadiusMeters,
@@ -195,15 +219,23 @@ namespace A305.Player
                 Physics.DefaultRaycastLayers,
                 QueryTriggerInteraction.Ignore
             );
+            float hover = float.PositiveInfinity;
             for (int index = 0; index < count; index++)
             {
                 if (!groundHits[index].transform.IsChildOf(transform))
                 {
-                    return true;
+                    hover = Mathf.Min(hover, groundHits[index].distance - GroundProbeRadiusMeters);
                 }
             }
 
-            return false;
+            return hover;
+        }
+
+        private Vector3 Feet()
+        {
+            return transform.position
+                + characterController.center
+                + Vector3.down * (characterController.height / 2f);
         }
 
         /// <summary>모서리에 닿은 점에서 플레이어 쪽으로 향하는 수평 방향</summary>

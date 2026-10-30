@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "A305.Api",
         "A305.Dialogue",
-        "A305.Voice"
+        "A305.Voice",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

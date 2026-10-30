@@ -136,6 +136,12 @@ namespace A305.Npc
             talkPromptPanel.SetActive(true);
         }
 
+        /// <summary>남은 대화 수 없이 버튼만 보인다. 택시 세우기처럼 NPC 대화가 아닌 동작에도 같은 자리를 쓴다.</summary>
+        public void ShowTalkPrompt(object requester, string label, Action talk)
+        {
+            ShowTalkPrompt(requester, label, null, talk);
+        }
+
         /// <summary>
         /// 새 대화를 시작할 수 없을 때(게스트 대화 횟수를 다 씀) [말 걸기] 자리에 누를 수 없는 버튼으로 이유를 보인다.
         /// 버튼과 E 키 모두 대화를 시작하지 않는다.

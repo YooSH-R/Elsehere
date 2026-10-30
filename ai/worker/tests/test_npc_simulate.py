@@ -167,16 +167,17 @@ def service_rules() -> dict:
 
 
 def test_familiarity_grows_over_conversations_faster_for_friendly_npcs():
-    """보통은 셋째 대화에 '본 적 있음', 아홉째에 단골. 친화성이 높으면(Mia 1.2) 빠르고, 낮으면(Jake 0.8) 느리다."""
+    """1차 유저 테스트 숫자(2026-10-30): 보통은 첫 대화 뒤 '본 적 있음', 넷째 대화 뒤 단골.
+    친화성이 높으면(Mia 1.2) 빠르고, 낮으면(Jake 0.8) 느리다."""
     rules = service_rules()
     relationship = rules["relationship"]
 
     def until(stage: str, rate: float) -> int:
         return npc_simulate.conversations_to_reach(relationship[stage], rate, rules)
 
-    assert (until("seenBefore", 1.0), until("regular", 1.0)) == (3, 9)
-    assert (until("seenBefore", 1.2), until("regular", 1.2)) == (3, 7)
-    assert (until("seenBefore", 0.8), until("regular", 0.8)) == (4, 11)
+    assert (until("seenBefore", 1.0), until("regular", 1.0)) == (1, 4)
+    assert (until("seenBefore", 1.2), until("regular", 1.2)) == (1, 3)
+    assert (until("seenBefore", 0.8), until("regular", 0.8)) == (2, 4)
 
 
 def test_an_everyday_order_is_remembered_after_a_couple_of_visits_and_rudeness_for_about_ten_days():

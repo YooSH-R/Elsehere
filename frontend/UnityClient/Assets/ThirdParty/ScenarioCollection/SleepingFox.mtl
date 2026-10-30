@@ -1,0 +1,23 @@
+newmtl SleepingFox_Fur___russet_orange
+Kd 0.7484 0.3734 0.1428
+
+newmtl SleepingFox_Fur___sunlit_copper
+Kd 0.7918 0.4182 0.1718
+
+newmtl SleepingFox_Fur___deep_rust
+Kd 0.6652 0.3015 0.1121
+
+newmtl SleepingFox_Fur___warm_ivory
+Kd 0.9640 0.9338 0.8434
+
+newmtl SleepingFox_Fur___charcoal_umber
+Kd 0.2806 0.2180 0.1828
+
+newmtl SleepingFox_Fur___pale_ivory
+Kd 0.9912 0.9649 0.8962
+
+newmtl SleepingFox_Nose___eyelids___soft_black
+Kd 0.1559 0.1428 0.1382
+
+newmtl SleepingFox_Ears___muted_terracotta
+Kd 0.5749 0.3575 0.3055

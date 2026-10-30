@@ -160,7 +160,7 @@ namespace A305.EditorTools.World
             );
             Label(
                 overlay.transform,
-                "1  MAPLE BAKERY\n1F: bakery / 2F: seating\nStairs INSIDE the shop\n\n2  ARCADE + BOOKSHOP\n1F: Little Arcade\n2F: Paper & Leaf Books\nSHARED stair hall\nSeparate shop doors\n\n3  HOME GOODS + TEA ROOM\n1F: Home & Living\n2F: Leaf Tea Room\nOUTSIDE stairs to 2F\nIndependent entrances\n\nExisting buildings retained.\nHotel-front convenience store:\nreserved and unchanged.",
+                "1  MAPLE BAKERY\n1F: bakery / 2F: seating\nStairs INSIDE the shop\n\n2  ARCADE + BOOKSHOP\n1F: Little Arcade\n2F: Paper & Leaf Books\nSHARED stair hall\nSeparate shop doors\n\n3  HOME GOODS + TEA ROOM\n1F: Home & Living\n2F: Leaf Tea Room\nOUTSIDE stairs to 2F\nIndependent entrances\n\nExisting buildings retained.\nHotel-front drugstore:\nreserved and unchanged.",
                 new Vector2(1170, 280),
                 new Vector2(405, 770),
                 23,

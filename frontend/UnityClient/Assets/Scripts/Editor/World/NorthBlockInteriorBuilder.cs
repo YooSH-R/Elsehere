@@ -311,7 +311,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        private static void OpenFloor(Transform floor, bool ground)
+        internal static void OpenFloor(Transform floor, bool ground)
         {
             Transform filled = floor.Find("Walls");
             Material wall = filled.GetComponent<Renderer>().sharedMaterial;
@@ -481,7 +481,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        private static Transform Solid(
+        internal static Transform Solid(
             string name,
             Transform parent,
             Vector3 position,

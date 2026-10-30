@@ -304,7 +304,7 @@ namespace A305.EditorTools.World
             );
         }
 
-        private static void Door(
+        internal static void Door(
             Transform parent,
             string name,
             Vector3 position,

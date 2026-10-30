@@ -60,6 +60,7 @@ namespace A305.Player
         private PlayerMotor motor;
         private PlayerTouchControls touchControls;
         private PlayerCameraRig cameraRig;
+        private HeadClearance headClearance;
         private readonly MoveReferenceYaw moveReference = new MoveReferenceYaw();
         private readonly RaycastHit[] groundHits = new RaycastHit[8];
         private float animationSpeed;
@@ -113,6 +114,19 @@ namespace A305.Player
             motor = movementSettings.CreateMotor();
             touchControls = GetComponentInChildren<PlayerTouchControls>(true);
             cameraRig = CameraRig;
+
+            // 외형 적용(PlayerCharacterAppearance)이 먼저 실행되어 고른 캐릭터와 캡슐이 정해져 있다.
+            var appearance = GetComponent<PlayerCharacterAppearance>();
+            PlayerCharacterDefinition character =
+                appearance != null ? appearance.ActiveCharacter : null;
+            if (character != null)
+            {
+                headClearance = new HeadClearance(
+                    character.HeadRadiusMeters,
+                    character.HeadCenterHeightMeters,
+                    characterController.skinWidth
+                );
+            }
         }
 
         private void OnEnable()
@@ -150,8 +164,14 @@ namespace A305.Player
                 ? AwayFromEdge() * EdgeSlideSpeedMetersPerSecond
                 : Vector3.zero;
 
+            Vector3 motion = (velocity + edgeSlide) * Time.deltaTime;
+            if (headClearance != null)
+            {
+                motion = headClearance.Limit(transform.position, motion, transform);
+            }
+
             groundContactPoint = null;
-            characterController.Move((velocity + edgeSlide) * Time.deltaTime);
+            characterController.Move(motion);
 
             Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
             IsMoving = horizontalVelocity.sqrMagnitude > 0.0001f;

@@ -62,7 +62,9 @@ Runner에서 실행되는 코드는 Windows 실행 계정 권한으로 동작합
 
 MR과 배포 검사는 Runner의 동시 실행 제한으로 최대 두 작업을 실행하며, Unity 전체를 하나로 묶는 `resource_group`은 사용하지 않습니다. Shell executor의 기본 작업 경로는 동시 실행 번호별로 분리되므로 각 작업은 자신의 Unity 프로젝트·`Library`·산출물을 사용합니다. 작업 경로를 하나로 고정하거나 `Library`를 두 작업이 동시에 쓰도록 연결하지 않습니다. [Shell executor 작업 경로](https://docs.gitlab.com/runner/executors/shell/)
 
-MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. 변경 전에 생성된 파이프라인은 기존 `a305-unity-editor` 잠금을 유지하므로 기존 대기 작업끼리는 계속 하나씩 실행됩니다. 새 CI 설정으로 생성한 작업부터 최대 두 개를 실행할 수 있습니다.
+프로젝트 전용 Runner의 일반 대기열은 FIFO로 처리합니다. 선행 검사가 끝나 실행 가능한 `pending` 작업 중 오래된 작업부터 빈 두 실행 자리에 배정합니다. 아직 선행 검사가 끝나지 않은 오래된 파이프라인을 기다리기 위해 새 작업을 막지는 않습니다. 파이프라인 ID 순서를 강제하는 자원 그룹의 `oldest_first`는 한 그룹에서 한 작업만 실행하므로 두 작업 병렬 실행의 순서 설정으로 사용하지 않습니다. [프로젝트 Runner 대기열](https://docs.gitlab.com/ci/runners/runners_scope/#project-runners), [자원 그룹 실행 순서](https://docs.gitlab.com/ci/resource_groups/#process-modes)
+
+MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. `waiting_for_resource` 상태는 일반 Runner 대기열과 별개입니다. 자원 그룹을 사용한 설정으로 이미 생성한 작업의 잠금은 새 YAML을 반영해도 소급 제거되지 않으므로 해당 자원 그룹의 실행 상태를 따로 확인합니다.
 
 ## 실행 스크립트와 결과
 

@@ -11,6 +11,7 @@ import tarfile
 from pathlib import Path
 
 from deployment_plan import ALL_CHECKS, commit_exists, create_plan, run_git
+from docker_build import build_image
 
 
 class SupersededCandidateError(ValueError):
@@ -296,15 +297,14 @@ def deliver_pipeline(repository, candidate, branch, pipeline_id, environment="de
                     "A real WebGL artifact for this candidate is required."
                 )
         reference = f"a305/{name}:{candidate}"
-        docker(
-            "build",
-            "--label",
-            f"org.opencontainers.image.revision={candidate}",
-            "--tag",
-            reference,
-            "--file",
-            f"infra/docker/{dockerfiles[name]}",
+        build_image(
+            docker,
             repository,
+            name,
+            reference,
+            f"infra/docker/{dockerfiles[name]}",
+            labels={"org.opencontainers.image.revision": candidate},
+            cache_directory=os.environ.get("A305_DOCKER_CACHE_DIR"),
         )
         image_id = (
             docker(

@@ -23,4 +23,16 @@ public interface UserNpcRelationRepository
               + " updated_at = now()",
       nativeQuery = true)
   void addAffinity(Long userId, Long npcId, int delta);
+
+  /** 대화 뒤 관계 갱신의 변화량을 더하고 알아봄은 0~100, 호감은 -100~100으로 자른다. 관계 행은 대화 종료 처리에서 이미 만들어져 있다. */
+  @Modifying
+  @Query(
+      value =
+          "update user_npc_relations"
+              + " set recognition = greatest(0, least(100, recognition + :recognitionDelta)),"
+              + " affinity = greatest(-100, least(100, affinity + :affinityDelta)),"
+              + " updated_at = now()"
+              + " where user_id = :userId and npc_id = :npcId",
+      nativeQuery = true)
+  void addRelationship(Long userId, Long npcId, int recognitionDelta, int affinityDelta);
 }

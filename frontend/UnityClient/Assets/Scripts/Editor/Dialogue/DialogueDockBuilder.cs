@@ -18,19 +18,19 @@ namespace A305.EditorTools.Dialogue
             Transform conversation = panel.Find("Conversation");
             FreeLayout(conversation);
             Stretch((RectTransform)conversation);
-            Place(panel.Find("Title"), 40, 270, 700, 50);
+            Place(panel.Find("Title"), 64, 270, 700, 50);
             panel.Find("Title").GetComponent<TMP_Text>().fontSize = 32;
             Transform buttons = panel.Find("Buttons");
             FreeLayout(buttons);
             Stretch((RectTransform)buttons);
-            Place(buttons.Find("EndButton"), -40, -32, 184, 64, true);
+            Place(buttons.Find("EndButton"), -64, -32, 200, 72, true);
             Control(buttons.Find("EndButton"), "대화 종료", "exit");
-            Place(buttons.Find("RetryButton"), -240, -32, 184, 64, true);
+            Place(buttons.Find("RetryButton"), -280, -32, 200, 72, true);
             Control(buttons.Find("RetryButton"), "다시 시도", "replay");
-            Place(conversation.Find("History"), 40, 184, 1320, 74);
+            Place(conversation.Find("History"), 64, 184, 1272, 74);
             RectTransform history = (RectTransform)conversation.Find("History");
             history.anchorMax = new Vector2(1, 0);
-            history.sizeDelta = new Vector2(-80, 74);
+            history.sizeDelta = new Vector2(-128, 74);
             var lines = history.GetComponentInChildren<TMP_Text>(true);
             lines.fontSize = 30;
             lines.lineSpacing = 10;
@@ -38,9 +38,10 @@ namespace A305.EditorTools.Dialogue
             Transform inputRow = conversation.Find("InputRow");
             FreeLayout(inputRow);
             Stretch((RectTransform)inputRow);
-            Place(inputRow.Find("Input"), 40, 32, 848, 68);
+            Place(inputRow.Find("Input"), 64, 44, 800, 72);
             var input = inputRow.Find("Input").GetComponent<TMP_InputField>();
             input.textComponent.fontSize = 26;
+            input.textComponent.alignment = TextAlignmentOptions.MidlineLeft;
             input.textViewport.offsetMin = new Vector2(24, 12);
             input.textViewport.offsetMax = new Vector2(-24, -12);
             if (input.placeholder is TMP_Text placeholder)
@@ -48,10 +49,11 @@ namespace A305.EditorTools.Dialogue
                 placeholder.text = "영어로 답하기…";
                 placeholder.fontSize = 24;
                 placeholder.fontStyle = FontStyles.Normal;
+                placeholder.alignment = TextAlignmentOptions.MidlineLeft;
             }
-            Place(inputRow.Find("SendButton"), 908, 32, 150, 68);
+            Place(inputRow.Find("SendButton"), 880, 44, 176, 72);
             Control(inputRow.Find("SendButton"), "보내기", "send");
-            Place(inputRow.Find("TalkButton"), 1078, 32, 282, 68);
+            Place(inputRow.Find("TalkButton"), 1072, 44, 264, 72);
             Control(inputRow.Find("TalkButton"), "누르고 말하기", "mic", true);
             ToolRow(conversation.Find("ToolRow"));
             Transform help = root.transform.Find("HelpPanel");
@@ -78,7 +80,7 @@ namespace A305.EditorTools.Dialogue
         /// </summary>
         public static void ToolRow(Transform tools)
         {
-            Place(tools, 40, 116, 1320, 56);
+            Place(tools, 64, 132, 1272, 56);
             var row = tools.GetComponent<HorizontalLayoutGroup>();
             row.enabled = true;
             row.spacing = 16;
@@ -110,8 +112,8 @@ namespace A305.EditorTools.Dialogue
         {
             Theme(card, UiThemeRole.Panel);
             var layout = card.GetComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(32, 32, 28, 28);
-            layout.spacing = 20;
+            layout.padding = new RectOffset(44, 44, 36, 36);
+            layout.spacing = 24;
             var size = BuilderTools.GetOrAddComponent<LayoutElement>(card.gameObject);
             size.minHeight = minimumHeight;
             var heading = card.Find("Title").GetComponent<TMP_Text>();
@@ -145,12 +147,13 @@ namespace A305.EditorTools.Dialogue
             label.gameObject.SetActive(!string.IsNullOrEmpty(caption));
             var rect = (RectTransform)label.transform;
             Stretch(rect);
-            rect.offsetMin = new Vector2(44, 10);
-            rect.offsetMax = new Vector2(-16, -10);
+            rect.offsetMin = new Vector2(16, 12);
+            rect.offsetMax = new Vector2(-16, -12);
             label.text = caption;
             label.fontSize = primary ? 25 : 22;
             label.enableAutoSizing = false;
-            label.alignment = TextAlignmentOptions.Center;
+            label.margin = Vector4.zero;
+            label.alignment = TextAlignmentOptions.Midline;
             label.fontStyle = FontStyles.Bold;
             Theme(label.transform, UiThemeRole.Title);
             DialogueControlArt.Draw(target, icon, string.IsNullOrEmpty(caption), primary);

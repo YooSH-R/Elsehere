@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1808653430701938699}
   - component: {fileID: 830761436695810581}
   - component: {fileID: 5985528374435730353}
+  - component: {fileID: 5953120443565859065}
   m_Layer: 0
   m_Name: Oak
   m_TagString: Untagged
@@ -91,6 +92,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &5953120443565859065
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1273975479354455344}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 85dd4254b609ced468694e7ce4debfcb, type: 2}
 --- !u!1 &1537855289685842602
 GameObject:
   m_ObjectHideFlags: 0
@@ -100,7 +123,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7691363859367484148}
-  - component: {fileID: 6550210622718291815}
   - component: {fileID: 6472493214480965006}
   m_Layer: 0
   m_Name: SageBed
@@ -130,27 +152,6 @@ Transform:
   - {fileID: 7229145951689841725}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &6550210622718291815
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1537855289685842602}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 2.04, y: 1, z: 2.78}
-  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!114 &6472493214480965006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -377,6 +378,7 @@ GameObject:
   - component: {fileID: 2549985186345410306}
   - component: {fileID: 7017221414918913514}
   - component: {fileID: 804885120683049192}
+  - component: {fileID: 3653110809118534339}
   m_Layer: 0
   m_Name: Sage
   m_TagString: Untagged
@@ -457,6 +459,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &3653110809118534339
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3989353696685505672}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: f8a203068ef53f74896bf0f4f5901b76, type: 2}
 --- !u!1 &5165668419410292543
 GameObject:
   m_ObjectHideFlags: 0
@@ -468,6 +492,7 @@ GameObject:
   - component: {fileID: 3003315692942288552}
   - component: {fileID: 2628060079544546192}
   - component: {fileID: 2816329018907800894}
+  - component: {fileID: 4132211180955792342}
   m_Layer: 0
   m_Name: Ivory
   m_TagString: Untagged
@@ -548,6 +573,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &4132211180955792342
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5165668419410292543}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: f614605317dbc2f4eb6e14f54877879f, type: 2}
 --- !u!1 &5255354745921151844
 GameObject:
   m_ObjectHideFlags: 0
@@ -691,6 +738,7 @@ GameObject:
   - component: {fileID: 2650456590464133083}
   - component: {fileID: 2398962543780438455}
   - component: {fileID: 5597962680479647991}
+  - component: {fileID: 6408733457546345648}
   m_Layer: 0
   m_Name: Duvet
   m_TagString: Untagged
@@ -771,6 +819,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &6408733457546345648
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6337471069220548225}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: a062a5de2e4dd3445b06d6c77f231b98, type: 2}
 --- !u!1 &6347387132856808699
 GameObject:
   m_ObjectHideFlags: 0
@@ -782,6 +852,7 @@ GameObject:
   - component: {fileID: 5475169642482748872}
   - component: {fileID: 1316627585750171663}
   - component: {fileID: 2944614761290761944}
+  - component: {fileID: 4638042602881820880}
   m_Layer: 0
   m_Name: LightOak
   m_TagString: Untagged
@@ -862,6 +933,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &4638042602881820880
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6347387132856808699}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: d85c0391c931160478b3e5199a8f4b0f, type: 2}
 --- !u!1 &6666694866143471767
 GameObject:
   m_ObjectHideFlags: 0
@@ -1071,6 +1164,7 @@ GameObject:
   - component: {fileID: 7229145951689841725}
   - component: {fileID: 1579749053447880816}
   - component: {fileID: 1262473222643703372}
+  - component: {fileID: 1193956147381486541}
   m_Layer: 0
   m_Name: Terracotta
   m_TagString: Untagged
@@ -1151,3 +1245,25 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &1193956147381486541
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8989964589666258591}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: e763e4b7e834e8b409aee725cc4e265c, type: 2}

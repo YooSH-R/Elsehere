@@ -77,6 +77,7 @@ GameObject:
   - component: {fileID: 3716465790771860647}
   - component: {fileID: 1848424713290308477}
   - component: {fileID: 1354186154392509427}
+  - component: {fileID: 8008403396448453021}
   m_Layer: 0
   m_Name: Frame
   m_TagString: Untagged
@@ -157,6 +158,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &8008403396448453021
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4242853960270708268}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: e19719912a9e59643b813d622671602b, type: 2}
 --- !u!1 &4549499419089152878
 GameObject:
   m_ObjectHideFlags: 0
@@ -598,6 +621,7 @@ GameObject:
   - component: {fileID: 7776142309574977654}
   - component: {fileID: 1877638101294377614}
   - component: {fileID: 1508957153580103673}
+  - component: {fileID: 421054362773620738}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -678,6 +702,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &421054362773620738
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6501707156639903551}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: d3d11ac7a58abe04587599cf9a9d5277, type: 2}
 --- !u!1 &7060386460751053103
 GameObject:
   m_ObjectHideFlags: 0
@@ -687,7 +733,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1041924669306055521}
-  - component: {fileID: 6463427201784124651}
   - component: {fileID: 6462473467152026991}
   m_Layer: 0
   m_Name: MenuBoard
@@ -715,27 +760,6 @@ Transform:
   - {fileID: 3154394485542273797}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &6463427201784124651
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7060386460751053103}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 4.2, y: 1.35, z: 0.2}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &6462473467152026991
 MonoBehaviour:
   m_ObjectHideFlags: 0

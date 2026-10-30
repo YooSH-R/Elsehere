@@ -5,7 +5,8 @@ concurrent = 1
 [[runners]]
   limit = 1
   executor = "docker"
-  environment = ["FF_NETWORK_PER_BUILD=true"]
+  # vpnkit's subnet overlaps Docker Desktop's internal DNS network.
+  environment = ["FF_NETWORK_PER_BUILD=true", "DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns"]
 
   [runners.docker]
     image = "alpine:3.22"

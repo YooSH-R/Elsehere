@@ -58,6 +58,13 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertEqual(runner["docker"]["volumes"], ["/cache"])
         self.assertEqual(runner["docker"]["services_limit"], 1)
 
+    def test_laptop_nested_network_avoids_docker_desktop_subnet(self):
+        path = REPOSITORY / "infra/runner/laptop.config.template.toml"
+        runner = tomllib.loads(path.read_text())["runners"][0]
+        self.assertIn(
+            "DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns", runner["environment"]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

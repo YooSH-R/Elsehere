@@ -130,6 +130,8 @@ docker exec -it a305-laptop-linux-runner gitlab-runner register
 
 등록 URL은 `https://lab.ssafy.com`, executor는 `docker`, 기본 이미지는 `alpine:3.22`입니다. 생성된 인증 정보는 유지하고 노트북 템플릿의 한 작업 제한·Docker 설정을 적용한 뒤 `verify`와 실제 일반 검사 성공을 확인하고 Paused를 해제합니다. 토큰이나 설정 전체를 로그로 출력하지 않습니다.
 
+노트북은 `DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns`로 작업별 rootless Docker의 네트워크를 지정합니다. 기본 `vpnkit`의 `192.168.65.0/24`는 Docker Desktop 내부 DNS 주소와 겹쳐 중첩 빌드의 이름 해석이 실패할 수 있습니다. `slirp4netns`의 별도 네트워크를 사용하고 실제 중첩 컨테이너에서 DNS 조회·패키지 설치·이미지 빌드를 확인합니다. EC2 설정은 바꾸지 않습니다. [Docker rootless 네트워크 설정](https://docs.docker.com/engine/security/rootless/troubleshoot/)
+
 EC2 일반 Runner에는 기존 `a305-linux` 태그를 남겨 이전 파이프라인을 계속 처리하게 합니다. 노트북에는 이 이전 태그와 `a305-ec2`를 부여하지 않으므로, 변경 전의 배포도 노트북으로 넘어가지 않습니다. 새 설정은 병합 후 생성한 파이프라인과 해당 설정을 반영한 작업 브랜치부터 적용됩니다.
 
 공통 태그의 작업은 여유가 있는 Runner가 나눠 받으며 정확한 반반 배분이나 EC2 우선순위를 보장하지 않습니다. 노트북이 꺼졌거나 Docker Desktop이 중지되면 새 일반 검사는 EC2에서 처리할 수 있습니다. 이미 노트북에서 실행 중이던 작업은 자동 이전되지 않으므로 중단 시 상태를 확인하고 재시도합니다.

@@ -30,6 +30,7 @@ namespace A305.World
 
         private Canvas canvas;
         private CanvasGroup cover;
+        private Camera backdrop;
         private ThreadPriority usualLoadingPriority;
 
         /// <summary>화면을 덮은 정도. 0이면 다 보이고 1이면 다 가려진다.</summary>
@@ -115,14 +116,20 @@ namespace A305.World
 
         private IEnumerator FadeTo(float targetOpacity, float seconds)
         {
-            canvas.enabled = true;
+            ShowCover(true);
             while (cover.alpha != targetOpacity)
             {
                 float step = Mathf.Min(Time.unscaledDeltaTime, MaxFadeStepSeconds) / seconds;
                 cover.alpha = Mathf.MoveTowards(cover.alpha, targetOpacity, step);
                 yield return null;
             }
-            canvas.enabled = targetOpacity > 0f;
+            ShowCover(targetOpacity > 0f);
+        }
+
+        private void ShowCover(bool shown)
+        {
+            canvas.enabled = shown;
+            backdrop.enabled = shown;
         }
 
         // Play를 멈춰 이동 중에 사라져도 Editor에 빠른 불러오기 설정이 남지 않게 한다.
@@ -147,6 +154,16 @@ namespace A305.World
             curtain.cover.alpha = 0f;
             curtain.cover.interactable = false;
             curtain.cover.blocksRaycasts = false;
+
+            // 이전 공간을 끈 뒤 새 공간이 깨어나기까지는 공간의 카메라가 하나도 없어, Editor가 덮개 대신
+            // "No cameras rendering"을 띄운다. 덮여 있는 동안 검은 화면만 그리는 카메라를 둔다.
+            curtain.backdrop = root.AddComponent<Camera>();
+            curtain.backdrop.clearFlags = CameraClearFlags.SolidColor;
+            curtain.backdrop.backgroundColor = Color.black;
+            curtain.backdrop.cullingMask = 0;
+            // 공간의 카메라가 있으면 그보다 먼저 그려 공간 화면을 가리지 않는다.
+            curtain.backdrop.depth = -100f;
+            curtain.backdrop.enabled = false;
 
             var black = new GameObject("Black", typeof(RectTransform), typeof(Image));
             var rect = (RectTransform)black.transform;

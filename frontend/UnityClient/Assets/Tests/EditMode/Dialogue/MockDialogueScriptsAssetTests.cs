@@ -52,6 +52,19 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void TaxiDriver_AsksWhereToGo()
+        {
+            // 마을 본길에서 택시를 세우면 기사에게 가고 싶은 곳을 영어로 말해 본다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            bool found = scripts.TryGetScript("TAXI_DRIVER", out DialogueScript script);
+
+            Assert.That(found, Is.True);
+            Assert.That(script.RoleLabel, Is.EqualTo("택시 기사"));
+            Assert.That(script.OpeningLine.English, Does.Contain("Where"));
+        }
+
+        [Test]
         public void TutorialPasserby_GainsItsRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
@@ -67,11 +80,11 @@ namespace A305.Dialogue.Tests
             string seed = File.ReadAllText(seedPath);
             string npcRows = Regex.Match(seed, @"(?s)INSERT INTO npcs .*?\) AS seed").Value;
             var npcs = new List<SeedNpc>();
-            // 행 앞부분: (장소 코드, NPC 코드, 이름, NPC 종류, 역할 이름, ...
+            // 행 앞부분: (목록 순서, 장소 코드, NPC 코드, 이름, NPC 종류, 역할 이름, ... 목록 순서는 없을 수도 있다.
             foreach (
                 Match row in Regex.Matches(
                     npcRows,
-                    @"\('[A-Z_]+', '([A-Z_]+)', '([^']+)', '[A-Z_]+', '([^']+)',"
+                    @"\((?:\d+, )?'[A-Z_]+', '([A-Z_]+)', '([^']+)', '[A-Z_]+', '([^']+)',"
                 )
             )
             {

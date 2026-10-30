@@ -169,20 +169,25 @@ INSERT INTO npcs (scene_id, code, name, npc_type, role_label, persona, voice_id,
 SELECT scene.id, seed.code, seed.name, seed.npc_type, seed.role_label, seed.persona::jsonb, seed.voice_id, seed.can_initiate, seed.approach_line
 FROM (
   VALUES
-    ('TOWN', 'TOWN_PASSERBY', 'Ben', 'PASSERBY', '행인',
+    (1, 'TOWN', 'TOWN_PASSERBY', 'Ben', 'PASSERBY', '행인',
      '{"role": "a friendly local walking around the town.", "facts": "", "scene": "A quiet street in the town."}',
      'af_heart', true, 'Hi there! Nice weather today, isn''t it?'),
-    ('CAFE', 'CAFE_STAFF', 'Mia', 'STAFF', '카페 직원',
+    (2, 'CAFE', 'CAFE_STAFF', 'Mia', 'STAFF', '카페 직원',
      '{"role": "the barista at the corner cafe.", "facts": "", "scene": "The counter of the corner cafe."}',
      'af_heart', false, NULL),
-    ('HOTEL', 'HOTEL_STAFF', 'Jake', 'STAFF', '호텔 직원',
+    (3, 'HOTEL', 'HOTEL_STAFF', 'Jake', 'STAFF', '호텔 직원',
      '{"role": "the front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
      'af_heart', false, NULL),
-    ('SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '드럭스토어 직원',
+    (4, 'SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '드럭스토어 직원',
      '{"role": "the helpful clerk at the drugstore.", "facts": "The drugstore sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small drugstore on the town main street."}',
+     'af_heart', false, NULL),
+    (5, 'TOWN', 'TAXI_DRIVER', 'Joe', 'STAFF', '택시 기사',
+     '{"role": "the friendly driver of a yellow taxi in town.", "facts": "The learner waved the taxi down on the main street. Ask where they want to go. Never invent fares.", "scene": "A yellow taxi stopped by the curb on the town main street."}',
      'af_heart', false, NULL)
-) AS seed (scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
+) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
+-- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.
+ORDER BY seed.seed_order
 ON CONFLICT (code) DO UPDATE
 SET scene_id = EXCLUDED.scene_id,
     name = EXCLUDED.name,

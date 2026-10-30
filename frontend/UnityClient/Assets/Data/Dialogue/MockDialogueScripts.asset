@@ -177,6 +177,29 @@ MonoBehaviour:
       english: Sure. Is there anything else you need?
       korean: "\uB124. \uB354 \uD544\uC694\uD55C \uAC74 \uC5C6\uC73C\uC138\uC694?"
     exampleSentence: Do you sell umbrellas?
+  - npcCode: TAXI_DRIVER
+    npcName: Joe
+    roleLabel: "\uD0DD\uC2DC \uAE30\uC0AC"
+    opening:
+      english: Hi there! Where are you headed?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC5B4\uB514\uB85C \uAC00\uC138\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - hotel
+      reply:
+        english: The hotel? It's just up the street. Hop in!
+        korean: "\uD638\uD154\uC774\uC694? \uC774 \uAE38 \uBC14\uB85C \uC704\uCABD\uC774\uC5D0\uC694.
+          \uD0C0\uC138\uC694!"
+    - keywords:
+      - thank
+      reply:
+        english: You're welcome! Have a nice day.
+        korean: "\uCC9C\uB9CC\uC5D0\uC694! \uC88B\uC740 \uD558\uB8E8 \uBCF4\uB0B4\uC138\uC694."
+    defaultReply:
+      english: Sure. Please fasten your seat belt.
+      korean: "\uC54C\uACA0\uC5B4\uC694. \uC548\uC804\uBCA8\uD2B8\uB97C \uB9E4 \uC8FC\uC138\uC694."
+    exampleSentence: Can you take me to the hotel, please?
   fallback:
     npcCode: 
     npcName: Neighbor

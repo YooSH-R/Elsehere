@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.mission.entity.FirstDayMission;
@@ -14,6 +15,8 @@ import com.elsehere.user.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class FirstDayMissionServiceTest {
   private final FirstDayMissionRepository repository = mock(FirstDayMissionRepository.class);
@@ -37,6 +40,154 @@ class FirstDayMissionServiceTest {
     when(repository.findById(8L)).thenReturn(Optional.empty());
 
     assertThat(service.status(8L).direction()).isEqualTo("왼쪽 위 지도 버튼에서 첫날 여정을 시작하세요.");
+  }
+
+  @Test
+  void hotelStaffDuringCafeBreakGetsDirectionsWithoutCafeInstructions() {
+    FirstDayMission mission = FirstDayMission.start(8L);
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+
+    assertThat(context.stage()).isEqualTo(1);
+    assertThat(context.state()).isNull();
+    assertThat(context.instruction())
+        .doesNotContain("Offer drinks")
+        .doesNotContain(FirstDayStage.CAFE_BREAK.instruction())
+        .contains("Corner Cafe");
+  }
+
+  @Test
+  void cafeReplyAfterLastAnswerDoesNotAskAnotherMissionQuestion() {
+    FirstDayMission mission = FirstDayMission.start(8L);
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    mission.accept(1, "CAFE_STAFF", List.of("order_drink", "set_options"));
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    String instruction =
+        service
+            .context(8L, "CAFE_STAFF")
+            .orElseThrow()
+            .replyInstruction(new JudgeResult.Intent("dine_in", List.of("dine_in"), null));
+
+    assertThat(instruction)
+        .doesNotContain("ask about one remaining objective")
+        .contains("No objectives remain for this stage");
+  }
+
+  @Test
+  void cafeStaffAfterCompletedOrderDoesNotOfferAnotherOrderBeforeRest() {
+    FirstDayMission mission = FirstDayMission.start(8L);
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    mission.accept(1, "CAFE_STAFF", FirstDayStage.CAFE_BREAK.intentIds());
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    FirstDayMissionService.Context context = service.context(8L, "CAFE_STAFF").orElseThrow();
+
+    assertThat(context.stage()).isEqualTo(1);
+    assertThat(context.instruction()).doesNotContain("Offer drinks").contains("already ordered");
+  }
+
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void everyStageKeepsOtherNpcsInTheirOwnRoles(FirstDayStage stage) {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
+    for (String npc :
+        List.of("HOTEL_STAFF", "CAFE_STAFF", "TOWN_PASSERBY", "SHOP_STAFF", "TAXI_DRIVER")) {
+      if (npc.equals(stage.npc())) {
+        continue;
+      }
+      FirstDayMissionService.Context context = service.context(8L, npc).orElseThrow();
+      assertThat(context.state()).as("%s talking to %s", stage, npc).isNull();
+      assertThat(context.instruction())
+          .doesNotContain(stage.instruction())
+          .contains("Stay in your own role", "help with directions if asked");
+      assertThat(context.replyInstruction(new JudgeResult.Intent(null, stage.intentIds(), null)))
+          .isEqualTo(context.instruction());
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void everyStageRetainsItsOwnerInstructionsAndAllowedIntents(FirstDayStage stage) {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
+    FirstDayMissionService.Context context = service.context(8L, stage.npc()).orElseThrow();
+
+    assertThat(context.instruction()).contains(stage.instruction());
+    assertThat(context.state().intents())
+        .extracting("id")
+        .containsExactlyElementsOf(stage.intentIds());
+  }
+
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void finalAnswerInEveryStageDoesNotRepeatMissionQuestions(FirstDayStage stage) {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
+    String instruction =
+        service
+            .context(8L, stage.npc())
+            .orElseThrow()
+            .replyInstruction(new JudgeResult.Intent(null, stage.intentIds(), null));
+
+    assertThat(instruction)
+        .contains("No objectives remain for this stage")
+        .doesNotContain("Ask about one of these objectives");
+  }
+
+  @Test
+  void pendingQuestionExcludesStoredAndJustRecognizedGoals() {
+    FirstDayMission mission = missionAt(FirstDayStage.EARLY_ARRIVAL);
+    mission.accept(0, "HOTEL_STAFF", List.of("confirm_reservation"));
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+    String instruction =
+        service
+            .context(8L, "HOTEL_STAFF")
+            .orElseThrow()
+            .replyInstruction(
+                new JudgeResult.Intent(null, List.of("store_suitcase", "unknown"), null));
+
+    assertThat(instruction)
+        .contains("Remaining objectives after this turn: ask_cafe.")
+        .doesNotContain("This turn recognized: store_suitcase,unknown");
+  }
+
+  @Test
+  void missingOrFailedIntentDoesNotPretendObjectivesAreComplete() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.CAFE_BREAK)));
+    FirstDayMissionService.Context context = service.context(8L, "CAFE_STAFF").orElseThrow();
+
+    assertThat(context.replyInstruction(null)).isEqualTo(context.instruction());
+    assertThat(context.replyInstruction(new JudgeResult.Intent(null, List.of(), "timeout")))
+        .isEqualTo(context.instruction());
+    assertThat(context.replyInstruction(new JudgeResult.Intent(null, List.of("unknown"), null)))
+        .contains("Remaining objectives after this turn: order_drink,set_options,dine_in.")
+        .doesNotContain("No objectives remain");
+  }
+
+  @Test
+  void unstartedAndCompletedJourneysDoNotRestartStageInstructions() {
+    when(repository.findById(8L)).thenReturn(Optional.empty());
+    assertThat(service.context(8L, "HOTEL_STAFF")).isEmpty();
+
+    FirstDayMission mission = missionAt(FirstDayStage.CHECK_IN);
+    mission.accept(6, "HOTEL_STAFF", FirstDayStage.CHECK_IN.intentIds());
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+    assertThat(context.state()).isNull();
+    assertThat(context.instruction()).contains("journey is complete", "Do not restart");
+  }
+
+  private static FirstDayMission missionAt(FirstDayStage target) {
+    FirstDayMission mission = FirstDayMission.start(8L);
+    while (mission.current() != target) {
+      FirstDayStage stage = mission.current();
+      mission.accept(stage.ordinal(), stage.npc(), stage.intentIds());
+      if (stage == FirstDayStage.CAFE_BREAK) {
+        mission.restAtCafe();
+      }
+    }
+    return mission;
   }
 
   @Test

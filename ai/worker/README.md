@@ -51,7 +51,8 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `REPLY_FIRST_BUDGET_S` | 5 | NPC 대답 첫 글자까지의 상한 |
 | `RESPOND_BUDGET_S` | 30 | NPC 추론 API(`/internal/ai/npc/respond`) 요청 하나의 상한 (재시도·대체 모델 포함, 계약 10절). 넘으면 504 `AI_TIMEOUT` |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
-| `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
+| `TTS_REQUIRE_TIMING` | `false` (배포 이미지 `true`) | 모델 워밍업에서 검증된 발음 시간표가 없으면 워커 시작 실패 |
+| `TTS_CHUNK_BUDGET_S` | 로컬 2.5, 앱 Compose 8 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
 
@@ -202,3 +203,11 @@ ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src
 시간표는 WAV의 선택적 `a305` RIFF chunk에 UTF-8 JSON으로 저장합니다. PCM 자체는 바꾸지 않으며, `version: 2`, `provider: "kokoro-en-US"`, 전체 `duration`(초), PCM 바이트의 `pcmSha256`, `phonemes` 배열(`start`, `end`, `phoneme`)을 담습니다. 대사 원문은 넣지 않습니다. Spring은 WAV 바이트 전체를 저장·반환하므로 기존 `/v1/tts`, `/v1/audio/{id}`, `/api/v1/turns/{id}/speech` 경로와 인증을 그대로 사용합니다. Unity는 같은 파일에서 PCM과 시간표를 읽고 해시·길이를 검사합니다.
 
 캐시는 음성과 시간표를 함께 보관합니다. 여러 음성 조각을 합칠 때 `join_wavs()`는 각 조각의 실제 샘플 길이만큼 시간을 이동하고 합친 PCM의 해시를 다시 계산합니다. 한 조각이라도 시간표가 없으면 완전한 립싱크 데이터로 표시하지 않습니다. 기존 저장 WAV에는 시간표가 없으므로 소리는 재생되지만 정확한 입모양은 적용되지 않습니다. 이를 이유로 과거 음성을 자동 재생성하지 않습니다.
+
+### 배포 모델 준비와 상태 확인
+
+앱 Docker 이미지는 `requirements-tts.txt`와 duration 출력 모델을 포함합니다. `ai/tools/prepare_kokoro.py --directory <모델 전용 폴더>`는 공식 배포의 두 파일을 SHA256으로 확인합니다. 같은 이름의 잘못된 기존 파일은 덮어쓰지 않고 실패하므로 새 폴더를 지정해야 합니다. 요청 중 다운로드는 하지 않습니다.
+
+이미지 빌드와 워커 시작 때 `Ready.`를 CPU로 합성해 음성과 일치하는 시간표까지 검사합니다. `/health`의 `tts`는 음성 엔진 존재 여부, `tts_phoneme_timing`은 워밍업의 시간표 검증 결과입니다. 배포 이미지의 `TTS_REQUIRE_TIMING=true`에서는 모델 누락·구형 모델·시간표 변환 실패를 정상 시작으로 처리하지 않습니다. 기존 로컬 환경은 이 옵션을 생략하면 음성 없는 개발을 계속할 수 있습니다.
+
+앱 Compose의 합성 조각 대기 상한은 8초이며 환경 변수로 조정합니다. CPU 합성 시간이 이전 2.5초를 넘는 문장도 있어 필요한 음성 조각이 일찍 버려지지 않도록 둔 상한입니다. 8초 응답 속도를 보장한다는 의미는 아닙니다. `AI_WORKER_CPUS`와 `AI_WORKER_MEMORY`의 기본은 2 CPU·1GiB이며, 배포 대상에서 여러 동시 대화의 지연·메모리·조각 누락을 측정한 후 조정해야 합니다. Spring의 단독 TTS 요청 제한은 기존 30초를 유지합니다.

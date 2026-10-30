@@ -59,8 +59,10 @@ def create_app(
     async def lifespan(app: FastAPI):
         s = settings or Settings.from_env()
         app.state.settings = s
-        app.state.llm = LLM(s, transport)
         app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices) if tts is True else tts
+        if s.tts_require_timing and not getattr(app.state.tts, "phoneme_timing_ready", False):
+            raise RuntimeError("TTS phoneme timing is required: install the duration-output Kokoro model and voices.")
+        app.state.llm = LLM(s, transport)
         app.state.guard_local = await asyncio.to_thread(LocalGuard.load, s.guard_local_model) if guard_local is True else guard_local
         if s.guard_local_model and not app.state.guard_local:
             log.warning(
@@ -84,6 +86,7 @@ def create_app(
                     "stt_fallback": s.stt_fallback,
                     "stt_chain": [f"{provider}:{model}" for provider, model in app.state.llm.stt_steps()],
                     "tts": bool(app.state.tts),
+                    "tts_phoneme_timing": bool(getattr(app.state.tts, "phoneme_timing_ready", False)),
                     "guard_local": gl and {"model": gl.name, "context": gl.context, "t_lo": s.guard_t_lo, "t_hi": s.guard_t_hi},
                 },
                 ensure_ascii=False,
@@ -157,6 +160,7 @@ def create_app(
         return {
             "ok": True,
             "tts": bool(st.tts),
+            "tts_phoneme_timing": bool(getattr(st.tts, "phoneme_timing_ready", False)),
             "profile": st.settings.profile,
             "models": st.settings.models,
             "guard_local": gl and {"model": gl.name, "t_lo": st.settings.guard_t_lo, "t_hi": st.settings.guard_t_hi},

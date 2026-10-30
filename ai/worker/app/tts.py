@@ -15,7 +15,7 @@ import wave
 from collections import OrderedDict
 from pathlib import Path
 
-from .speech_timing import attach_timing, join_timing
+from .speech_timing import attach_timing, join_timing, read_timing
 
 log = logging.getLogger(__name__)
 
@@ -60,6 +60,7 @@ class Kokoro:
 
         self.engine = Engine(model_path, voices_path)
         self.name = Path(model_path).name
+        self.phoneme_timing_ready = False
         if not self.engine.has_timings:
             log.warning("Kokoro model has no duration output; NPC phoneme animation is unavailable")
         self.lock = threading.Lock()
@@ -73,7 +74,8 @@ class Kokoro:
             k = cls(model_path, voices_path)
         except ImportError:
             return None
-        k.synth("Ready.", "af_heart", 1.0)  # 첫 호출 준비 시간을 미리 써 둔다
+        warmup, _, _ = k.synth("Ready.", "af_heart", 1.0)
+        k.phoneme_timing_ready = read_timing(warmup) is not None
         return k
 
     def synth(self, text: str, voice: str, speed: float) -> tuple[bytes, float, bool]:

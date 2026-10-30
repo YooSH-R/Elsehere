@@ -12,7 +12,7 @@ namespace A305.Dialogue
         public const float NarrowHeight = 440;
 
         // 대사 칸을 뺀 이름·도구·입력 줄의 높이
-        public const float ControlsHeight = 286;
+        public const float ControlsHeight = 302;
 
         public static float Height(bool wide, float linesHeight)
         {

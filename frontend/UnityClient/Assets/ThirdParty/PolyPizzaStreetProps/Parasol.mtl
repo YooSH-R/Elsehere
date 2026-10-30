@@ -1,0 +1,11 @@
+newmtl Parasol_mat21
+Kd 1.0000 1.0000 1.0000
+
+newmtl Parasol_mat8
+Kd 0.9593 0.2478 0.1897
+
+newmtl Parasol_mat16
+Kd 0.4731 0.5657 0.6180
+
+newmtl Parasol_mat22
+Kd 0.6262 0.6262 0.6262

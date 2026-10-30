@@ -15,7 +15,7 @@ Project elsehere {
 // ===== 가입 · 초기 설정 =====
 Table users [headercolor: #3D4A5C] {
   id bigint [pk, increment]
-  provider varchar(20) [not null, note: '로그인 방식 · GOOGLE(소셜 로그인) · GUEST(게스트로 시작하기, API AUTH-07)']
+  provider varchar(20) [not null, note: '로그인 방식 · GOOGLE(소셜 로그인) · GUEST(게스트로 시작하기, API AUTH-07) · 게스트는 마지막 활동 24시간 뒤 내용만 지우고 이 행은 남김(backend README)']
   provider_uid varchar(100) [not null, note: '제공자가 주는 사용자 고유 ID · 게스트는 서버가 만든 임의 값']
   email varchar(255) [note: '제공자가 줄 때만']
   nickname varchar(30) [not null, unique, note: 'NPC가 부르는 이름 · 중복 불가 · 한글 2, 영문·숫자 1로 세어 2자 이상 합계 16 이하 (API AUTH-04)']
@@ -233,6 +233,7 @@ Table turns [headercolor: #2E6B4F] {
   translation_en text [note: '학습자 말의 영어 번역 · 번역 카드·다음 요청의 history·피드백에 씀 (사용자 턴만)']
   guard_abusive boolean [note: '무례 판정 · true 무례, false 아님, null 판정 실패(무례로 세지 않음) · 사용자 턴만']
   guard_error_code varchar(30) [note: '판정 실패 이유 · empty · unparsed · timeout · provider_unavailable · provider_limit · worker_unavailable(Spring이 워커에 닿지 못함)']
+  events jsonb [note: '의도 판정(/v1/judge)이 고른 대화 사건 문자열 배열 (GREETING · APOLOGY 등) · 다음 요청의 history[].events · 사용자 턴만, 워커가 보내지 않으면 null']
   meaning_ko text [note: '뜻 보기']
   glossary jsonb [note: '단어 호버 뜻']
   suggest_words jsonb [note: '추천 단어 3개']
@@ -304,7 +305,8 @@ Table turn_feedback [headercolor: #2E6B4F] {
 Table user_npc_relations [headercolor: #C8642A] {
   user_id bigint [not null]
   npc_id bigint [not null]
-  affinity smallint [not null, default: 0, note: '호감도 -100~100 · 무례로 센 말마다 /v1/guard의 affinity_delta만큼 깎음 (비어 있으면 기본 -4) · docs/api/rudeness-handling.md 3절']
+  affinity smallint [not null, default: 0, note: '호감도 -100~100 · 무례로 센 말마다 /v1/guard의 affinity_delta만큼 깎음 (비어 있으면 기본 -4, docs/api/rudeness-handling.md 3절) · 대화가 끝나면 /v1/npc/relationship의 affinity_delta를 더함']
+  recognition smallint [not null, default: 0, note: '알아봄 0~100 · 대화가 끝나면 /v1/npc/relationship의 recognition_delta를 더함 · NPC 대답 요청의 relationship']
   talk_count int [not null, default: 0, note: '사용자 발화가 있었던 대화를 끝낸 횟수 · NPC 대답 요청의 memory.visits']
   last_talked_at timestamptz
   memory_card jsonb [note: 'NPC 기억 카드 { name, claims, events, attitude, struggled } · AI 워커 /v1/memory가 만든 카드로 통째로 교체']
@@ -316,7 +318,7 @@ Table user_npc_relations [headercolor: #C8642A] {
     (user_id, npc_id) [pk]
   }
 
-  Note: '호감도 · 방문 수 · NPC 기억 카드 (docs/api/npc-memory-integration.md)'
+  Note: '호감도 · 알아봄 · 방문 수 · NPC 기억 카드 (docs/api/npc-memory-integration.md)'
 }
 
 Table affinity_logs [headercolor: #C8642A] {

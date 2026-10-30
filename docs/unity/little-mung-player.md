@@ -23,7 +23,7 @@
 2. Project에서 `Assets/Scenes/Sandbox/LittleMungPosePlayerSandbox.unity`를 연다. 기존 골격/수정 발 골격만 비교하려면 아래의 별도 검수 씬을 사용한다.
 3. Play를 누르고 Game 화면을 한 번 클릭한다.
 4. WASD로 이동, Shift를 누른 채 이동하면 달리기, Space로 점프한다.
-5. 마우스 왼쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다.
+5. 마우스 왼쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다. Web 빌드는 마우스 이동량을 브라우저 화면 배율(`devicePixelRatio`)로 나눠, Windows 배율 200% 화면에서도 에디터와 같은 감도로 돈다. 회전 감도는 마우스 1픽셀(화면 배율 보정 후)당 0.15도다.
 6. 왼쪽 계단, 오른쪽 경사로, 앞쪽 벽에서 움직임을 확인한다.
 
 이 씬에는 생성/API 키 입력이 필요하지 않다. Builder는 저장소에 포함된 `Assets/Art/Player/LittleMung/LittleMung.fbx`와 `BaseColor.png`를 사용한다. 파일이 누락되면 저장소에서 복원하며 개인 Tripo 생성 폴더를 요구하지 않는다. 메뉴 `Tools → A305 → Player → Build Little Mung Sandbox`는 누락된 전용 에셋과 씬을 구성한다. 이미 있는 전용 프리팹·컨트롤러·씬은 보존한다.
@@ -45,7 +45,8 @@
 - Humanoid가 정규화한 애니메이션 자세를 기준으로 +Z 정면과 발 높이를 맞춘다. 원본 FBX의 바인드 방향을 다시 회전시켜 이중 보정하지 않는다.
 - 모델과 기본 색 텍스처는 기존 재질 수정본의 별도 복사본이다. 셰이더는 URP Lit이며 색 텍스처를 Normal Map으로 사용하지 않는다.
 - 눈썹은 기준 외형 이미지에 맞춰 생성 원본의 꺾인 긴 눈썹을 없애고 짧은 둥근 호로 바꿨다. 생성 원본은 눈썹을 텍스처뿐 아니라 메시 돌기와 사용자 지정 법선으로도 표현하고 Unity는 FBX 법선을 그대로 쓰므로(`normalImportMode: 0`), `BaseColor.png`의 눈썹 그림, `AdjustedRig/LittleMungAdjusted.fbx`의 눈썹 부근 정점 위치·법선을 함께 고쳤다. 정점 수·UV·스킨 가중치·뼈는 그대로다. 같은 수정이 `frontend/ArtSources/Player/LittleMung/`의 Blender 원본에도 들어 있으며 FBX는 그 원본을 `export_player.py`로 내보낸 결과다.
-- 이동 설정 기본값은 걷기 3.2 m/s, 달리기 7.5 m/s, 점프 높이 0.675 m다. 플레이 감각에 맞춘 초기 조작값이며 최종 기획 수치가 아니다. Walk·Run 클립의 보폭은 0.8·1.7 m/s에 맞으므로, 블렌드 트리는 0.8 m/s까지 원래 걷기를 쓰고, 그보다 빠르면 클립을 속도에 비례해 빨리 재생하되 최대 2배로 제한한다(3.2 m/s 걷기 2배, 7.5 m/s 달리기 2배). 보폭에 맞춰 4배 이상 재생하면 골반의 좌우·앞뒤 흔들림이 프레임마다 크게 건너뛰어 몸이 덜컥거리므로, 그 이상의 속도 차이는 발 미끄러짐으로 받아들인다. 값을 바꾸면 Builder 상수(`LittleMungAnimationBuilder`, `LittleMungPlayerBuilder`)를 고친 뒤 **Tools → A305 → Player → Apply Movement Tuning**으로 이동 설정·애니메이터·카메라 감도 에셋을 갱신한다. 같은 메뉴가 공용 카메라의 자동 뒤돌기(`followBehindSharpness`)를 0으로 둔다. 빠르게 방향을 바꾸면 카메라가 등 뒤로 크게 돌아, 뒤로 가는데 앞으로 가는 것처럼 보이기 때문이다.
+- 이동 설정 기본값은 걷기 3.2 m/s, 달리기 7.5 m/s, 점프 높이 0.675 m다. 플레이 감각에 맞춘 초기 조작값이며 최종 기획 수치가 아니다. Walk·Run 클립의 보폭은 0.8·1.7 m/s에 맞으므로, 블렌드 트리는 0.8 m/s까지 원래 걷기를 쓰고, 그보다 빠르면 클립을 속도에 비례해 빨리 재생하되 최대 2배로 제한한다(3.2 m/s 걷기 2배, 7.5 m/s 달리기 2배). 보폭에 맞춰 4배 이상 재생하면 골반의 좌우·앞뒤 흔들림이 프레임마다 크게 건너뛰어 몸이 덜컥거리므로, 그 이상의 속도 차이는 발 미끄러짐으로 받아들인다. 값을 바꾸면 Builder 상수(`LittleMungAnimationBuilder`, `LittleMungPlayerBuilder`)를 고친 뒤 **Tools → A305 → Player → Apply Movement Tuning**으로 이동 설정·애니메이터와 모든 공간의 카메라 감도를 갱신한다. 집·마을·카페·호텔은 공간마다 카메라 설정(`PlayerCameraSettings`)을 따로 쓰므로 감도는 이 메뉴로 한꺼번에 맞춘다.
+- 카메라는 마우스(왼쪽 버튼을 누른 채 드래그)와 모바일 오른쪽 드래그로만 돌고, 키 입력은 캐릭터만 움직인다. 걸을 때 카메라가 캐릭터 등 뒤로 저절로 돌아가는 기능은 두지 않는다.
 - Walk.anim과 Run.anim은 변환된 FBX에서 가져온 클립의 복사본이다. 발목을 포함한 근육 곡선을 그대로 유지한다. 걷기·달리기·점프는 실제 휴식 골격으로 만든 Reference Avatar를 공유하며, 본 이름·부모·길이가 맞지 않으면 재연결을 거부한다.
 - Idle은 Mixamo Jump 종료 자세를 바탕으로 호흡 변화를 추가했다. 외부 모션 사용 조건은 `Assets/ThirdParty/CREDITS.md`를 따른다.
 - 다른 씬에 넣을 때 `PlayerMover.cameraTransform`과 `PlayerCameraRig.followTarget`을 연결해야 한다. 전용 Builder에서는 `PlayerSandboxBuilder.ConnectPlayerAndCamera`를 재사용한다.

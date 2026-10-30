@@ -13,7 +13,7 @@ namespace A305.Dialogue.Tests
         [Test]
         public void WidePanel_GrowsToShowEveryLineOfALongerLine()
         {
-            Assert.That(DialoguePanelLayout.Height(true, 120), Is.EqualTo(406));
+            Assert.That(DialoguePanelLayout.Height(true, 120), Is.EqualTo(422));
         }
 
         // 그보다 긴 대사와 뜻 풀이는 대사 칸 안에서 스크롤한다.

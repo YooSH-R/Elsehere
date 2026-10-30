@@ -18,7 +18,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
 
-// 시드가 넣은 NPC(카페 직원은 인격 카드 있음, 편의점 직원은 없음)로 워커 요청의 NPC를 만든다.
+// 시드가 넣은 NPC(카페 직원은 인격 카드 있음, 드럭스토어 직원은 없음)로 워커 요청의 NPC를 만든다.
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
@@ -55,6 +55,6 @@ class WorkerNpcsTest {
     WorkerNpc npc = workerNpcs.of(npcRepository.findByCode("SHOP_STAFF").orElseThrow());
 
     assertThat(npc.profile()).isNull();
-    assertThat(npc.role()).isEqualTo("the helpful clerk at the convenience store.");
+    assertThat(npc.role()).isEqualTo("the helpful clerk at the drugstore.");
   }
 }

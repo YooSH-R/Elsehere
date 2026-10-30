@@ -42,6 +42,20 @@ namespace A305.EditorTools.Characters
             );
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
             var camera = Object.FindFirstObjectByType<Camera>();
+            // Optional oblique review only; the saved preview scene stays unchanged.
+            string requestedYaw = Environment.GetEnvironmentVariable("MANNEQUIN_SPEECH_YAW");
+            if (!string.IsNullOrEmpty(requestedYaw))
+            {
+                float yaw = float.Parse(
+                    requestedYaw,
+                    System.Globalization.CultureInfo.InvariantCulture
+                );
+                if (!float.IsFinite(yaw) || Mathf.Abs(yaw) > 60)
+                    throw new ArgumentOutOfRangeException(nameof(yaw));
+                var skin = face.GetComponentInChildren<SkinnedMeshRenderer>();
+                Vector3 center = skin.transform.TransformPoint(new Vector3(0, .65f, 0));
+                camera.transform.RotateAround(center, Vector3.up, yaw);
+            }
             const int size = 960;
             string requestedFps = Environment.GetEnvironmentVariable("MANNEQUIN_SPEECH_FPS");
             int fps = string.IsNullOrEmpty(requestedFps) ? 30 : int.Parse(requestedFps);

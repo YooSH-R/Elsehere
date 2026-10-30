@@ -177,7 +177,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 응답:
 
 ```json
-{"text": "you idiot, hurry up", "dropped": false, "guard": {"abusive": true, "error": null, "error_code": null}, "affinity_delta": -4, "usage": [{"step": "guard", "model": "...", "input_tokens": 230, "output_tokens": 1, "latency_s": 0.9, "fallback": false}]}
+{"text": "you idiot, hurry up", "dropped": false, "guard": {"abusive": true, "error": null, "error_code": null}, "affinity_delta": -6, "usage": [{"step": "guard", "model": "...", "input_tokens": 230, "output_tokens": 1, "latency_s": 0.9, "fallback": false}]}
 ```
 
 | 칸 | 규칙 |
@@ -362,7 +362,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 요청: `npc`(`profile`이 있으면 성격으로 알아보는 속도·사건 반응 크기를 정함), `relationship`(저장된 `recognition`·`affinity`와 `days_since_last_talk`, 처음 만나면 생략), `history`(최대 200줄, 학습자 줄의 `rude`·`events` 포함).
 
-응답: `{"recognition_delta": 8, "affinity_delta": 1, "events": ["GREETING", "TASK_DONE", "LEAVE"]}`
+응답: `{"recognition_delta": 20, "affinity_delta": 2, "events": ["GREETING", "TASK_DONE", "LEAVE"]}` (인격 카드 없는 NPC와 처음 만난 대화)
 
 - 새 값이 아니라 **변화량**입니다. 백엔드는 `recognition = recognition + recognition_delta`, `affinity = affinity + affinity_delta`로 원자적으로 더합니다. 종료 처리가 겹쳐도 앞 대화의 결과를 덮어쓰지 않습니다. 다음 대답 요청에는 저장한 값에 그때의 `days_since_last_talk`를 더해 보냅니다.
 - 변화량은 요청의 저장값으로 계산한 새 값(정수로 반올림)에서 저장값을 뺀 것입니다. 그래서 겹치지 않으면 더한 결과가 새 값을 그대로 저장할 때와 같습니다.

@@ -90,6 +90,14 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 
 **서버 조건:** [AI 워커의 NPC 발음 시간표 설정](../../ai/worker/README.md#npc-발음-시간표와-립싱크)을 적용해야 한다. 같은 이름의 구형 Kokoro 모델에는 duration 출력이 없을 수 있다. Unity만 갱신해도 오래된 서버 음성에 시간표가 생기는 것은 아니다. 현재 감정은 `FriendlySpeechExpression`의 친근한 미소 프리셋이며, LLM이 문장의 감정을 판정하는 기능은 별개다.
 
+### 다른 NPC의 자동 연결
+
+`NpcIdentity`는 실행 시 같은 NPC 루트에 `DialogueSpeaker`를 자동으로 준비한다. 대화 시작 때 선택된 `LookTarget`의 부모에서 화자를 찾고, 그 NPC 하위의 활성 얼굴만 검사한다. NPC 코드나 카페 이름으로 분기하지 않는다. 기존에 지정한 얼굴·음성 재생기·감정 프로필은 유지하며, 연결이 없으면 공통 재생기와 전용 AudioSource, 기본 미소·깜박임 프로필을 실행 중에 구성한다. 얼굴 메시·프리팹·씬 파일은 저장하거나 수정하지 않는다.
+
+자동 연결에는 `mouthSmileLeft`, `mouthSmileRight`, `eyeBlinkLeft`, `eyeBlinkRight`, `viseme_AA`, `viseme_FF`, `viseme_TH`, `viseme_PP`, `viseme_E`, `viseme_OH`, `viseme_OU`, `viseme_I`, `viseme_EU`가 필요하다. 채널은 같은 얼굴의 여러 SkinnedMeshRenderer에 나뉘어 있어도 된다. 실제 변형은 모델에서 미리 제작해야 하며, 공통 골격만 있는 새 Tripo 모델에 얼굴 변형을 생성하는 기능은 아니다. 여러 얼굴·재생기가 있어 자동으로 고를 수 없으면 명시적으로 연결해야 한다. 다른 NPC에 속한 얼굴은 사용하지 않는다.
+
+미지원 모델은 음성만 재생한다. 누락 채널은 실행 중 `DialogueSpeaker`의 Binding Notice와 `DialogueServerLink.LipSyncNotice`에서 확인할 수 있다. **Tools → A305 → Characters → Check NPC Speech Support**는 현재 열린 씬의 NPC별 채널 상태를 Console에 출력한다. 배치 검사는 `NPC_SPEECH_AUDIT_OUTPUT`을 저장소 밖 JSON 경로로 지정하고 `A305.EditorTools.Characters.NpcSpeechAudit.ExportProductionReport`를 실행한다. Production 씬에 배치된 NPC를 읽기만 하며, 동적으로 생성되는 NPC나 변형의 시각적 품질까지 합격시키는 검사는 아니다.
+
 ### 서버 호출 없이 카페에서 확인
 
 1. `Assets/Scenes/Sandbox/CafeDialogueSpeechSandbox.unity`를 열고 Play를 누른다.

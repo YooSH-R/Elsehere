@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: stool
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_369eb9ba5bdd95a4e82191d96b289f34
+    languageCode: en-US
+    text: stool
+    meaningKo: "\uC2A4\uD234 \uC758\uC790"
+    example: Can I sit on this stool?
+    exampleKo: "\uC774 \uC758\uC790\uC5D0 \uC549\uC544\uB3C4 \uB420\uAE4C\uC694?"
+    pronunciationAudioKey: 
+  assetGuid: 369eb9ba5bdd95a4e82191d96b289f34

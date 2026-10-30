@@ -30,6 +30,8 @@
 
 자동 취소의 기준은 같은 MR ref의 새 커밋입니다. 같은 커밋의 수동 재실행을 이전 커밋 검사 정리로 취급하지 않습니다. 설정과 취소 가능 작업의 의미는 [GitLab 자동 취소 설정](https://docs.gitlab.com/ci/yaml/#workflowauto_cancelon_new_commit), [interruptible 기준](https://docs.gitlab.com/ci/yaml/#interruptible)을 따릅니다.
 
+자동 취소는 이전 검사의 실행·대기를 중단하며 이미 완료된 결과와 취소 이력은 남깁니다. 이전 커밋에서 검사가 성공했더라도 최신 커밋의 필수 검사 통과를 대신하지 않습니다.
+
 `dev → main` 릴리스 MR은 같은 소스 SHA의 dev 파이프라인 결과를 사용하며 별도 MR 파이프라인을 생성하지 않습니다. 일반 기능 MR과 `main → dev` 동기화 MR의 자동 검사는 유지합니다. 릴리스 검토 시 dev의 해당 SHA 검사 결과와 별도 통합 검증을 확인하고 main 병합 후 운영 전체 검사도 유지합니다.
 
 MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대상과의 최종 차이로 작업을 선택합니다. 같은 MR에서 문서만 추가로 고쳐도 백엔드 파일이 대상과 다르면 백엔드 검사가 다시 실행되고, 백엔드 변경을 완전히 되돌리면 선택 대상에서 빠집니다. 각 Push의 최종 커밋을 검사하며, 한 번의 Push에 포함된 중간 커밋마다 별도 파이프라인을 만들지는 않습니다. [GitLab 비교 대상 지정](https://docs.gitlab.com/ci/yaml/#ruleschangescompare_to)

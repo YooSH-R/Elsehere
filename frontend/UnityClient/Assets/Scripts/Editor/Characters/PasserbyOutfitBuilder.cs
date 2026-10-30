@@ -522,7 +522,8 @@ namespace A305.EditorTools.Characters
             Directory.CreateDirectory(output);
             EditorSceneManager.OpenScene(ScenePath);
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
-            if (Environment.GetEnvironmentVariable("PASSERBY_SHOW_BODY") == "1")
+            bool pantsFit = Environment.GetEnvironmentVariable("PASSERBY_PANTS_FIT") == "1";
+            if (pantsFit || Environment.GetEnvironmentVariable("PASSERBY_SHOW_BODY") == "1")
             {
                 var body = face.GetComponentsInChildren<SkinnedMeshRenderer>()
                     .Single(r => r.sharedMesh.vertexCount == 8782);
@@ -531,7 +532,13 @@ namespace A305.EditorTools.Characters
                 );
             }
             var camera = Object.FindFirstObjectByType<Camera>();
-            var center = new Vector3(0, .87f, 0);
+            if (pantsFit)
+            {
+                foreach (var renderer in face.GetComponentsInChildren<SkinnedMeshRenderer>())
+                    if (renderer.name == "Suit_Navy_Upper" || renderer.name.StartsWith("Hair_"))
+                        renderer.enabled = false;
+            }
+            var center = new Vector3(0, pantsFit ? .29f : .87f, 0);
             foreach (int yaw in new[] { 0, -35, 35, 90, 180 })
             {
                 ConfigureCamera(
@@ -539,6 +546,8 @@ namespace A305.EditorTools.Characters
                     center + Quaternion.Euler(0, yaw, 0) * new Vector3(-3, .12f, 0),
                     center
                 );
+                if (pantsFit)
+                    camera.orthographicSize = .34f;
                 SaveFrame(face.gameObject, camera, Path.Combine(output, "rest_" + yaw + ".png"));
             }
             if (Environment.GetEnvironmentVariable("PASSERBY_REST_ONLY") == "1")

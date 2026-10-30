@@ -210,6 +210,83 @@ namespace A305.EditorTools.Characters
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
         }
 
+        // Render a real worker WAV through the same player used by cafe dialogue.
+        // No scene, prefab, source model or imported audio is saved by this command.
+        public static void RenderSpeechVideo()
+        {
+            string output = Environment.GetEnvironmentVariable("CAFE_DIALOGUE_REVIEW_OUTPUT");
+            string wavPath = Environment.GetEnvironmentVariable("CAFE_DIALOGUE_REVIEW_WAV");
+            if (string.IsNullOrWhiteSpace(output) || string.IsNullOrWhiteSpace(wavPath))
+                throw new InvalidOperationException(
+                    "Set the review output directory and worker WAV path."
+                );
+            byte[] wav = System.IO.File.ReadAllBytes(wavPath);
+            var decoded = DialogueSpeechWav.Read(wav);
+            if (decoded.Timeline == null)
+                throw new InvalidOperationException(
+                    "Review voice has no verified phoneme timing: " + decoded.TimingError
+                );
+            System.IO.Directory.CreateDirectory(output);
+            var scene = EditorSceneManager.OpenScene(SandboxPath);
+            foreach (
+                var controls in scene
+                    .GetRootGameObjects()
+                    .Where(go => go.name == "OfflineCafeSpeech")
+            )
+                controls.SetActive(false);
+            var speaker = Staff(scene).GetComponent<DialogueSpeaker>().Player;
+            var link = BuilderTools.FindSingleInScene<DialogueServerLink>(scene);
+            link.SetSpeaker(speaker);
+            link.PlayRecordedSpeech(wav);
+            speaker.GetComponent<AudioSource>().mute = true;
+            var animator = speaker.GetComponentInChildren<Animator>();
+            animator.Rebind();
+            animator.Update(.2f);
+            var camera = BuilderTools
+                .FindSingleInScene<PlayerCameraRig>(scene)
+                .GetComponent<Camera>();
+            FrameReviewFace(speaker, camera);
+            const int width = 960,
+                height = 676,
+                fps = 30;
+            int frames = Mathf.CeilToInt(decoded.Timeline.Duration * fps);
+            var target = new RenderTexture(width, height, 24);
+            var image = new Texture2D(width, height, TextureFormat.RGB24, false);
+            var previous = RenderTexture.active;
+            try
+            {
+                camera.targetTexture = target;
+                for (int frame = 0; frame < frames; frame++)
+                {
+                    if (frame > 0)
+                        animator.Update(1f / fps);
+                    speaker.ApplyAtAudioTime(frame / (float)fps);
+                    CafeFemaleFaceBuilder.RenderBakedPose(
+                        speaker.GetComponent<CharacterFaceController>(),
+                        camera
+                    );
+                    RenderTexture.active = target;
+                    image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                    image.Apply();
+                    System.IO.File.WriteAllBytes(
+                        System.IO.Path.Combine(output, $"Frame{frame:D5}.png"),
+                        image.EncodeToPNG()
+                    );
+                }
+                Debug.Log(
+                    $"Cafe speech review: {frames} frames at {fps} fps, verified audio {decoded.Timeline.Duration:F3}s."
+                );
+            }
+            finally
+            {
+                camera.targetTexture = null;
+                RenderTexture.active = previous;
+                Object.DestroyImmediate(target);
+                Object.DestroyImmediate(image);
+                link.StopSpeech();
+            }
+        }
+
         private static void FrameReviewFace(CharacterSpeechPlayer speaker, Camera camera)
         {
             var mouth = speaker

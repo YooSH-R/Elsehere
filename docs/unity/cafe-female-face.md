@@ -97,3 +97,9 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 3. 카페 NPC의 입모양·깜박임·미소와 몸 Idle 동작이 함께 나오는지 확인한다. **멈춤**으로 입과 눈이 중립으로 돌아오는지 확인한다.
 
 이 씬은 대화 서버를 끈 복사본이며, 무료 Kokoro로 미리 생성한 WAV를 실제 대화와 같은 디코딩·재생 경로로 전달한다. 화면 버튼은 LLM이나 TTS API를 호출하지 않는다. 실제 서비스 연결은 `CafeScene`에서 기존 NPC 대화를 시작해 확인한다. 그 경우 기존 서비스의 대사 생성·음성 정책을 따른다.
+
+### 실제 워커 음성으로 영상 검수
+
+AI 워커의 `/v1/tts` 또는 `/v1/audio/{id}`에서 받은 WAV를 저장한 뒤 `CAFE_DIALOGUE_REVIEW_WAV`에 파일 절대 경로, `CAFE_DIALOGUE_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 지정합니다. Editor가 닫힌 상태에서 Unity batchmode의 `-executeMethod A305.EditorTools.Characters.CafeDialogueBuilder.RenderSpeechVideo -quit`를 실행하면 카페 검수 씬의 실제 NPC와 Idle 애니메이션을 사용한 30fps PNG 프레임이 생성됩니다. 같은 WAV를 오디오 트랙으로 합치면 발음 시간과 프레임 시간이 일치하는 영상을 얻습니다.
+
+이 검수는 원본 모델·프리팹·씬을 저장하지 않고 `DialogueServerLink`의 WAV 검증과 `CharacterSpeechPlayer`의 표정 합성을 그대로 사용합니다. 시간표가 없거나 음성과 일치하지 않으면 렌더를 실패시킵니다. 고정된 두 예문 외의 대사도 검수할 수 있습니다. 영상 렌더 통과는 배포 서버나 WebGL에서의 전체 로그인·대화 연동 검증을 대신하지 않습니다.

@@ -235,8 +235,8 @@ namespace A305.EditorTools.Mission
             foreach (
                 TMP_Text label in journal.Find("TownMap").GetComponentsInChildren<TMP_Text>(true)
             )
-                if (label.text.StartsWith("CONVENIENCE"))
-                    label.text = "SHOP";
+                if (label.text.StartsWith("CONVENIENCE") || label.text == "SHOP")
+                    label.text = "DRUGSTORE";
             var list = journal.Find("Viewport/JourneyContent/Journey").GetComponent<TMP_Text>();
             list.fontSize = 24;
             list.lineSpacing = 44;
@@ -258,9 +258,49 @@ namespace A305.EditorTools.Mission
             if (oldOutline != null)
                 Object.DestroyImmediate(oldOutline.gameObject);
             close.SetAsLastSibling();
-            journal.Find("StartButton/Label").GetComponent<TMP_Text>().text = "시작";
-            journal.Find("RestButton/Label").GetComponent<TMP_Text>().text = "쉬기";
-            journal.Find("RetryButton/Label").GetComponent<TMP_Text>().text = "다시 시도";
+            EnsureActionRow(journal);
+            journal.Find("Actions/StartButton/Label").GetComponent<TMP_Text>().text = "시작";
+            journal.Find("Actions/RestButton/Label").GetComponent<TMP_Text>().text = "쉬기";
+            journal.Find("Actions/RetryButton/Label").GetComponent<TMP_Text>().text = "다시 시도";
+        }
+
+        /// <summary>기존 버튼 참조와 동작을 유지하며 퀘스트 조작을 한 줄로 모은다.</summary>
+        internal static void EnsureActionRow(Transform journal)
+        {
+            Transform row = journal.Find("Actions");
+            if (row == null)
+                row = Rect("Actions", journal);
+            var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(row.gameObject);
+            layout.spacing = 16;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var rowSize = BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject);
+            rowSize.minHeight = rowSize.preferredHeight = 72;
+            row.SetAsLastSibling();
+            foreach (string name in new[] { "StartButton", "RetryButton", "RestButton" })
+            {
+                Transform button = journal.Find(name);
+                if (button != null)
+                    button.SetParent(row, false);
+                else
+                    button = row.Find(name);
+                if (button == null)
+                    continue;
+                var size = BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject);
+                size.minWidth = size.preferredWidth = 184;
+                size.minHeight = size.preferredHeight = 72;
+                size.flexibleWidth = 0;
+                TMP_Text label = button.Find("Label").GetComponent<TMP_Text>();
+                label.font = UiBuilderTools.BoldFont();
+                label.fontSize = 24;
+                label.fontStyle = FontStyles.Bold;
+                var labelRect = (RectTransform)label.transform;
+                labelRect.offsetMin = new Vector2(16, 12);
+                labelRect.offsetMax = new Vector2(-16, -12);
+                label.margin = Vector4.zero;
+                label.alignment = TextAlignmentOptions.Midline;
+            }
         }
 
         /// <summary>접은 지도 아이콘 아래에 '지도'를 적은 버튼. 누르면 지도와 여정이 담긴 수첩을 연다.</summary>

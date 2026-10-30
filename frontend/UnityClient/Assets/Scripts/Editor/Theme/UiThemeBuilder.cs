@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using A305.Api;
 using A305.EditorTools.Common;
+using A305.EditorTools.Mission;
 using A305.EditorTools.UI;
 using A305.Learning;
 using A305.Theme;
@@ -52,7 +53,7 @@ namespace A305.EditorTools.Theme
                 new[] { "#4A3B33", "#4A3B33", "#FFFFFF", "#FFFFFF", "#FFFFFF" },
                 "#E8453C",
                 outlinedIcons: false,
-                // 지도: 바탕·인도·도로·점선·이름·갈 곳, 그리고 집·카페·호텔·편의점 칸
+                // 지도: 바탕·인도·도로·점선·이름·갈 곳, 그리고 집·카페·호텔·드럭스토어 칸
                 map: new[]
                 {
                     "#FFF3DC",
@@ -179,6 +180,25 @@ namespace A305.EditorTools.Theme
             Style(PickerPath, StyleThemeLauncher);
         }
 
+        [MenuItem("Tools/A305/UI/Apply Approved HUD Buttons")]
+        public static void ApplyApprovedButtons()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(HudPath, StyleHud);
+            Style(PickerPath, StyleThemeLauncher);
+            Style("Assets/Prefabs/Mission/FirstDayMission.prefab", StyleFirstDay);
+            AssetDatabase.SaveAssets();
+        }
+
+        [MenuItem("Tools/A305/UI/Apply Text Insets And Alignment")]
+        public static void ApplyTextInsets()
+        {
+            ApplyApprovedButtons();
+            Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleDialogue);
+            Style("Assets/Prefabs/Learning/FeedbackScreen.prefab", StyleFeedback);
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>집 씬에 테마 고르기 화면을 둔다. 이미 있으면 그대로 둔다.</summary>
         public static void ConnectPicker(SceneGroups groups)
         {
@@ -219,7 +239,20 @@ namespace A305.EditorTools.Theme
         /// </summary>
         private static void StyleHud(Transform root)
         {
-            PillButton(root, "HomeButton", UiIcon.Home, UiTone.Neutral);
+            Transform home = IconButton(
+                root,
+                "HomeButton",
+                UiIcon.Home,
+                UiTone.Neutral,
+                caption: false
+            );
+            if (home != null)
+            {
+                Transform outline = home.Find("Outline");
+                if (outline != null)
+                    Object.DestroyImmediate(outline.gameObject);
+                ((RectTransform)home).sizeDelta = new Vector2(78, 78);
+            }
             Transform panel = root.Find("Panel");
             if (panel == null)
             {
@@ -237,7 +270,7 @@ namespace A305.EditorTools.Theme
                 Object.DestroyImmediate(oldFace.gameObject);
             PillButton(root, "Panel/Buttons/VocabularyButton", UiIcon.Book, UiTone.Neutral);
             var vocabularySize = button.GetComponent<LayoutElement>();
-            vocabularySize.minWidth = vocabularySize.preferredWidth = 180;
+            vocabularySize.minWidth = vocabularySize.preferredWidth = 220;
             vocabularySize.preferredHeight = 72;
             var vocabularyLabel = button.Find("Label").GetComponent<TMP_Text>();
             vocabularyLabel.fontSize = 24;
@@ -246,7 +279,7 @@ namespace A305.EditorTools.Theme
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
             var cardLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(card.gameObject);
-            cardLayout.padding = new RectOffset(24, 24, 16, 22);
+            cardLayout.padding = new RectOffset(36, 36, 28, 28);
             cardLayout.childControlWidth = cardLayout.childControlHeight = true;
             cardLayout.childForceExpandHeight = false;
             Role(card, UiThemeRole.Card);
@@ -373,9 +406,11 @@ namespace A305.EditorTools.Theme
             Role(root, "Content/Journal/Viewport/JourneyContent/Journey", UiThemeRole.Body);
             Role(root, "Content/Journal/Viewport/JourneyContent/Belongings", UiThemeRole.Muted);
             Role(root, "Content/Journal/Message", UiThemeRole.Accent);
-            PillButton(root, "Content/Journal/StartButton", UiIcon.Play, UiTone.Primary);
-            PillButton(root, "Content/Journal/RestButton", UiIcon.Rest, UiTone.Secondary);
-            PillButton(root, "Content/Journal/RetryButton", UiIcon.Retry, UiTone.Neutral);
+            FirstDayMissionBuilder.EnsureActionRow(root.Find("Content/Journal"));
+            PillButton(root, "Content/Journal/Actions/StartButton", UiIcon.Play, UiTone.Primary);
+            PillButton(root, "Content/Journal/Actions/RestButton", UiIcon.Rest, UiTone.Secondary);
+            PillButton(root, "Content/Journal/Actions/RetryButton", UiIcon.Retry, UiTone.Neutral);
+            FirstDayMissionBuilder.EnsureActionRow(root.Find("Content/Journal"));
             IconButton(
                 root,
                 "Content/Journal/CloseButton",
@@ -425,11 +460,12 @@ namespace A305.EditorTools.Theme
             button.colors = colors;
             TMP_Text label = target.Find("Label").GetComponent<TMP_Text>();
             label.gameObject.SetActive(true);
-            Stretch((RectTransform)label.transform);
+            Stretch((RectTransform)label.transform, 16);
             label.text = caption;
             label.fontSize = 24;
             label.enableAutoSizing = false;
-            label.alignment = TextAlignmentOptions.Center;
+            label.margin = Vector4.zero;
+            label.alignment = TextAlignmentOptions.Midline;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             Role(label.transform, UiThemeRole.Title);
             var size = BuilderTools.GetOrAddComponent<LayoutElement>(target.gameObject);
@@ -635,6 +671,9 @@ namespace A305.EditorTools.Theme
             label.gameObject.SetActive(true);
             label.text = "테마";
             label.fontSize = 24;
+            label.fontStyle = FontStyles.Bold;
+            var size = button.GetComponent<LayoutElement>();
+            size.preferredHeight = 72;
             AlignWithVocabularyButton((RectTransform)button);
         }
 
@@ -787,7 +826,7 @@ namespace A305.EditorTools.Theme
                 regular,
                 15,
                 Color.black,
-                "편의점으로 가요."
+                "드럭스토어로 가요."
             );
             Place(
                 (RectTransform)sampleBody.transform,
@@ -979,7 +1018,7 @@ namespace A305.EditorTools.Theme
             outlineImage.raycastTarget = false;
             outlineImage.pixelsPerUnitMultiplier = 1.7f;
             RectTransform iconRect = FindOrCreateRect(button, "Icon");
-            Place(iconRect, new Vector2(0, 0.5f), new Vector2(22, 2), new Vector2(30, 30));
+            Place(iconRect, new Vector2(0, 0.5f), new Vector2(20, 0), new Vector2(22, 22));
             iconRect.pivot = new Vector2(0, 0.5f);
             BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
             Transform labelTransform = button.Find("Label");
@@ -989,12 +1028,13 @@ namespace A305.EditorTools.Theme
                 var labelRect = (RectTransform)label.transform;
                 labelRect.anchorMin = Vector2.zero;
                 labelRect.anchorMax = Vector2.one;
-                labelRect.offsetMin = new Vector2(58, 4);
-                labelRect.offsetMax = new Vector2(-20, 0);
+                labelRect.offsetMin = new Vector2(16, 12);
+                labelRect.offsetMax = new Vector2(-16, -12);
                 label.fontSize = 22;
                 label.enableAutoSizing = false;
                 label.textWrappingMode = TextWrappingModes.NoWrap;
-                label.alignment = TextAlignmentOptions.Center;
+                label.margin = Vector4.zero;
+                label.alignment = TextAlignmentOptions.Midline;
                 label.transform.SetAsLastSibling();
             }
             Role(button, UiThemeRole.PillButton, tone, icon);
@@ -1320,7 +1360,7 @@ namespace A305.EditorTools.Theme
             public string Badge { get; }
             public bool OutlinedIcons { get; }
 
-            /// <summary>지도 색. 바탕·인도·도로·점선·이름·갈 곳·집·카페·호텔·편의점 순서.</summary>
+            /// <summary>지도 색. 바탕·인도·도로·점선·이름·갈 곳·집·카페·호텔·드럭스토어 순서.</summary>
             public string[] Map { get; }
         }
     }

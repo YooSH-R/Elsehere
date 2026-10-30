@@ -12,6 +12,25 @@ namespace A305.Dialogue.Tests
 {
     public class ServerConversationTests
     {
+        [TestCase(false, "ACTIVE", 1)]
+        [TestCase(true, "ACTIVE", 0)]
+        [TestCase(false, "ENDED_BY_NPC", 0)]
+        public async Task SuccessfulNonRudeTurnOnly_NotifiesWorldInteractions(
+            bool rude,
+            string status,
+            int expected
+        )
+        {
+            var accepted = new List<string>();
+            conversation.UserTurnAccepted += accepted.Add;
+            api.TurnResponse = Reply("Take me to the hotel.", "All right.", status);
+            api.TurnResponse.UserTurn.Rude = rude;
+            await conversation.StartAsync();
+            Assert.That(accepted, Is.Empty);
+            await conversation.SendAsync("Take me to the hotel.");
+            Assert.That(accepted, Has.Count.EqualTo(expected));
+        }
+
         private const string CafeStaffCode = "CAFE_STAFF";
         private const long ConversationId = 58;
         private const long OpeningTurnId = 101;

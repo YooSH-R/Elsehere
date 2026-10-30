@@ -10,7 +10,7 @@ VALUES
   ('TOWN', '마을', 'TownScene', true),
   ('CAFE', '모퉁이 카페', 'CafeScene', true),
   ('HOTEL', '호텔', 'HotelScene', true),
-  ('SHOP', '편의점', 'ShopScene', true)
+  ('SHOP', '드럭스토어', 'ShopScene', true)
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name,
     unity_key = EXCLUDED.unity_key,
@@ -122,10 +122,35 @@ VALUES
   ('en-US', 'WORD', 'vase', '꽃병', 'Put the flowers in the vase.', '꽃을 꽃병에 꽂으세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'wall', '벽', 'There is a clock on the wall.', '벽에 시계가 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'window', '창문', 'Please open the window.', '창문을 열어 주세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'washing machine', '세탁기', 'This washing machine is free.', '이 세탁기는 비어 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'package', '소포', 'I want to send this package.', '이 소포를 보내고 싶어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'game console', '게임기', 'Where is the game console?', '게임기는 어디에 있나요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'ice cream', '아이스크림', 'Can I have a vanilla ice cream?', '바닐라 아이스크림 하나 주세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'car', '자동차', 'Is this your car?', '이거 당신 차예요?', 'MASTER', NULL),
   ('en-US', 'WORD', 'claw machine', '인형 뽑기 기계', 'Can I try this claw machine?', '이 인형 뽑기 기계를 해 봐도 될까요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'stool', '스툴 의자', 'Can I sit on this stool?', '이 의자에 앉아도 될까요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'parasol', '파라솔', 'Let''s sit under the parasol.', '파라솔 아래에 앉아요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'PO box', '사서함', 'I''d like to rent a PO box.', '사서함을 하나 빌리고 싶어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'toy', '장난감', 'I like this toy.', '이 장난감이 마음에 들어요.', 'MASTER', NULL),
-  ('en-US', 'WORD', 'umbrella', '우산', 'Where can I buy an umbrella?', '우산은 어디에서 살 수 있나요?', 'MASTER', NULL)
+  ('en-US', 'WORD', 'ice cream truck', '아이스크림 트럭', 'Let''s get ice cream from the ice cream truck.', '아이스크림 트럭에서 아이스크림을 사 먹자.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'pigeon', '비둘기', 'The pigeons are looking for food.', '비둘기들이 먹이를 찾고 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'newspaper box', '신문 판매함', 'You can buy a newspaper from the newspaper box.', '신문 판매함에서 신문을 살 수 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'flag', '깃발', 'The flag is waving in the wind.', '깃발이 바람에 펄럭이고 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'mailbox', '우체통', 'Where is the nearest mailbox?', '가장 가까운 우체통이 어디예요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'bus stop', '버스 정류장', 'The bus stop is across the street.', '버스 정류장은 길 건너편에 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'flower', '꽃', 'These flowers smell nice.', '이 꽃들은 향기가 좋아요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'traffic light', '신호등', 'Turn right at the traffic light.', '신호등에서 오른쪽으로 도세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'umbrella', '우산', 'Where can I buy an umbrella?', '우산은 어디에서 살 수 있나요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'bike rack', '자전거 거치대', 'You can park your bike at the bike rack.', '자전거 거치대에 자전거를 세울 수 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'cat', '고양이', 'The cat is sleeping in the sun.', '고양이가 햇볕 아래에서 자고 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'fox', '여우', 'The fox is curled up asleep.', '여우가 몸을 웅크리고 자고 있어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'parking meter', '주차 요금 기계', 'Do I need to pay at the parking meter?', '주차 요금 기계에 돈을 내야 하나요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'bicycle', '자전거', 'I came here by bicycle.', '저는 자전거를 타고 왔어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'taxi driver', '택시 기사', 'The taxi driver asked me where I was going.', '택시 기사가 어디로 가는지 물었어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'ATM', '현금 인출기', 'Is there an ATM near here?', '이 근처에 현금 인출기가 있나요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'taxi', '택시', 'Can you call a taxi for me?', '택시 좀 불러 주실래요?', 'MASTER', NULL),
+  ('en-US', 'WORD', 'barber chair', '이발 의자', 'Please have a seat in the barber chair.', '이발 의자에 앉으세요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'dryer', '건조기', 'How long does the dryer take?', '건조기는 얼마나 걸려요?', 'MASTER', NULL)
 ON CONFLICT (language_code, text) DO UPDATE
 SET type = EXCLUDED.type,
     meaning_ko = EXCLUDED.meaning_ko,
@@ -143,20 +168,25 @@ INSERT INTO npcs (scene_id, code, name, npc_type, role_label, persona, voice_id,
 SELECT scene.id, seed.code, seed.name, seed.npc_type, seed.role_label, seed.persona::jsonb, seed.voice_id, seed.can_initiate, seed.approach_line
 FROM (
   VALUES
-    ('TOWN', 'TOWN_PASSERBY', 'Ben', 'PASSERBY', '행인',
+    (1, 'TOWN', 'TOWN_PASSERBY', 'Ben', 'PASSERBY', '행인',
      '{"role": "a friendly local walking around the town.", "facts": "", "scene": "A quiet street in the town."}',
      'af_heart', true, 'Hi there! Nice weather today, isn''t it?'),
-    ('CAFE', 'CAFE_STAFF', 'Mia', 'STAFF', '카페 직원',
+    (2, 'CAFE', 'CAFE_STAFF', 'Mia', 'STAFF', '카페 직원',
      '{"role": "the barista at the corner cafe.", "facts": "", "scene": "The counter of the corner cafe."}',
      'af_heart', false, NULL),
-    ('HOTEL', 'HOTEL_STAFF', 'Emma', 'STAFF', '호텔 직원',
+    (3, 'HOTEL', 'HOTEL_STAFF', 'Emma', 'STAFF', '호텔 직원',
      '{"role": "the front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
      'af_heart', false, NULL),
-    ('SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '편의점 직원',
-     '{"role": "the helpful clerk at the convenience store.", "facts": "The convenience store sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small convenience store on the town main street."}',
+    (4, 'SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '드럭스토어 직원',
+     '{"role": "the helpful clerk at the drugstore.", "facts": "The drugstore sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small drugstore on the town main street."}',
+     'af_heart', false, NULL),
+    (5, 'TOWN', 'TAXI_DRIVER', 'Joe', 'STAFF', '택시 기사',
+     '{"role": "the friendly driver of a yellow taxi in town.", "facts": "The learner waved the taxi down on the main street. Ask where they want to go. Never invent fares.", "scene": "A yellow taxi stopped by the curb on the town main street."}',
      'af_heart', false, NULL)
-) AS seed (scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
+) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
+-- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.
+ORDER BY seed.seed_order
 ON CONFLICT (code) DO UPDATE
 SET scene_id = EXCLUDED.scene_id,
     name = EXCLUDED.name,

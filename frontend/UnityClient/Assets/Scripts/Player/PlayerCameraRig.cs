@@ -38,6 +38,7 @@ namespace A305.Player
         private PlayerMover mover;
         private PlayerCharacterDefinition character;
         private Transform dialogueLookTarget;
+        private Transform vehicleView;
         private PlayerTouchControls touchControls;
 
         public CameraViewMode ViewMode => orbit.ViewMode;
@@ -76,6 +77,20 @@ namespace A305.Player
             transform.SetPositionAndRotation(pose.position, pose.rotation);
         }
 
+        /// <summary>차체에 붙은 승객 눈높이를 그대로 따라간다. 일반 대화 카메라의 벽 보정은 적용하지 않는다.</summary>
+        public void EnterVehicleView(Transform anchor)
+        {
+            vehicleView = anchor;
+            if (anchor != null)
+                transform.SetPositionAndRotation(anchor.position, anchor.rotation);
+        }
+
+        public void ExitVehicleView()
+        {
+            vehicleView = null;
+            SnapBehindTarget();
+        }
+
         private void Awake()
         {
             if (!HasRequiredReferences())
@@ -103,6 +118,11 @@ namespace A305.Player
 
         private void LateUpdate()
         {
+            if (vehicleView != null)
+            {
+                transform.SetPositionAndRotation(vehicleView.position, vehicleView.rotation);
+                return;
+            }
             ApplyInput();
             // 직접 돌리는 동안에는 사용자가 고른 방향을 존중하고, 걸을 때만 등 뒤로 돌아간다.
             if (mover != null && mover.IsMoving && !TurnedByUserThisFrame)

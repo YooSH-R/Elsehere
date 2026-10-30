@@ -18,5 +18,15 @@ namespace A305.Npc.Tests
             Assert.That(lines.TryGetGreeting(npcCode, out string greeting), Is.True);
             Assert.That(greeting, Is.Not.Empty);
         }
+
+        [Test]
+        public void ShopStaffGreeting_NamesTheDrugstore()
+        {
+            var lines = AssetDatabase.LoadAssetAtPath<MockNpcLineSource>(LinesPath);
+
+            lines.TryGetGreeting("SHOP_STAFF", out string greeting);
+
+            Assert.That(greeting, Does.Contain("drugstore"));
+        }
     }
 }

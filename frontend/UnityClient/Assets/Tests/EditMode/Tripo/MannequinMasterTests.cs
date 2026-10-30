@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using A305.EditorTools.Tripo;
 using NUnit.Framework;
@@ -10,6 +12,53 @@ namespace A305.Tripo.Tests
     public sealed class MannequinMasterTests
     {
         private const string Folder = "Assets/Prefabs/Characters/Mannequin/";
+
+        [Serializable]
+        private sealed class AuthoredSurface
+        {
+            public Vector3[] vertices = Array.Empty<Vector3>();
+            public Vector3[] restVertices = Array.Empty<Vector3>();
+        }
+
+        [Test]
+        public void AuthoredEyesKeepBodyVerticesAndMasterWeights()
+        {
+            var data = JsonUtility.FromJson<AuthoredSurface>(
+                File.ReadAllText(
+                    "../ArtSources/Characters/LittleMungMannequin/MannequinFaceShapes.json"
+                )
+            );
+            var mesh = Load(160)
+                .GetComponentsInChildren<SkinnedMeshRenderer>()
+                .OrderByDescending(s => s.sharedMesh.vertexCount)
+                .First()
+                .sharedMesh;
+            var original = AssetDatabase
+                .LoadAssetAtPath<GameObject>(
+                    A305.EditorTools.Characters.MannequinMasterBuilder.SourcePath
+                )
+                .GetComponentInChildren<SkinnedMeshRenderer>()
+                .sharedMesh;
+            CollectionAssert.AreEqual(
+                data.restVertices,
+                mesh.vertices,
+                "The authored eye surface must be applied, not only its texture."
+            );
+            CollectionAssert.AreEqual(original.boneWeights, mesh.boneWeights);
+            CollectionAssert.AreEqual(original.bindposes, mesh.bindposes);
+            int changed = 0;
+            for (int i = 0; i < data.vertices.Length; i++)
+            {
+                if (Vector3.Distance(data.vertices[i], data.restVertices[i]) < 1e-6f)
+                    continue;
+                changed++;
+                var p = data.vertices[i];
+                Assert.That(p.x, Is.LessThan(-.15f));
+                Assert.That(p.y, Is.InRange(.55f, .64f));
+                Assert.That(Mathf.Abs(p.z), Is.InRange(.08f, .18f));
+            }
+            Assert.That(changed, Is.GreaterThan(10));
+        }
 
         private static GameObject Load(int height)
         {

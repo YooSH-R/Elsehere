@@ -51,6 +51,8 @@ namespace A305.EditorTools.Characters
         private sealed class FaceData
         {
             public Vector3[] vertices;
+            public Vector3[] restVertices = Array.Empty<Vector3>();
+            public Vector3[] restNormals = Array.Empty<Vector3>();
             public int[] triangles;
             public Shape[] shapes;
             public Part[] parts;
@@ -96,6 +98,7 @@ namespace A305.EditorTools.Characters
                 );
                 var mesh = Object.Instantiate(original);
                 mesh.name = "LittleMungMannequinFace";
+                ApplyAuthoredSurface(mesh, data);
                 mesh.triangles = data.triangles;
                 mesh.ClearBlendShapes();
                 AddShapes(mesh, data.shapes);
@@ -153,10 +156,13 @@ namespace A305.EditorTools.Characters
             var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(
                 ArtFolder + "/LittleMungMannequinFace.asset"
             );
-            if (mesh == null || !mesh.vertices.SequenceEqual(data.vertices))
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(SourcePath);
+            var original = source.GetComponentInChildren<SkinnedMeshRenderer>().sharedMesh;
+            if (mesh == null || !original.vertices.SequenceEqual(data.vertices))
                 throw new InvalidOperationException(
                     "Preserve the reviewed mesh: the authored source topology no longer matches."
                 );
+            ApplyAuthoredSurface(mesh, data);
             mesh.triangles = data.triangles;
             mesh.ClearBlendShapes();
             AddShapes(mesh, data.shapes);
@@ -204,6 +210,28 @@ namespace A305.EditorTools.Characters
                 );
             }
             AssetDatabase.SaveAssets();
+        }
+
+        private static void ApplyAuthoredSurface(Mesh mesh, FaceData data)
+        {
+            if (
+                data.restVertices.Length != mesh.vertexCount
+                || data.restNormals.Length != mesh.vertexCount
+            )
+                throw new InvalidOperationException(
+                    "Authored eye surface must preserve source vertex order."
+                );
+            if (
+                data.restVertices.Any(v =>
+                    !float.IsFinite(v.x) || !float.IsFinite(v.y) || !float.IsFinite(v.z)
+                )
+            )
+                throw new InvalidOperationException(
+                    "The authored surface contains invalid vertices."
+                );
+            mesh.vertices = data.restVertices;
+            mesh.normals = data.restNormals;
+            mesh.RecalculateBounds();
         }
 
         private static Material CreateMaterial(string name, Color color, string textureFile)

@@ -235,6 +235,8 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 
 새 사물을 배치할 때는 기존 공용 에셋을 재사용합니다. 새 단어는 **Assets → Create → A305 → Object Hover → Word**로 만들고 필수 내용을 채웁니다. 프리팹의 Word에 에셋을 지정하거나 `ObjectWordBindings.json`에 이름과 내부 공용 키를 등록하면 Builder가 연결합니다. `BuilderTools`로 저장할 때 이미 지정한 Word 참조는 유지하며 호버 전용 Trigger를 맞춥니다. 이동용 Collider와 메시·배치는 유지합니다. 디자인 완료 전 **Tools → A305 → ObjectHover → Register All Scene Words**를 실행합니다. 이 도구는 집·카페·호텔·마을의 활성 환경 MeshRenderer에 연결이 빠졌는지 검사하고 백엔드 파일을 내보냅니다. 같은 단어를 쓰는 다른 인스턴스로 포인터를 옮겨도 표시 대기 시간은 다시 시작합니다.
 
+가구·소품의 이동용 Collider는 겉모양 전체를 감싼 상자 하나로 두지 않습니다. 리틀멍은 점프와 턱으로 약 0.8m까지 올라서므로, 상자 윗면이 실제 표면보다 높으면 그 위에 선 캐릭터가 공중에 떠 보입니다. 사물을 새로 배치하거나 사물 Builder를 다시 실행했으면 **Tools → A305 → World → Fit Prop Colliders To Shape**를 실행합니다. 이 도구는 배포 씬에서 윗면이 실제 표면보다 0.15m 넘게 뜬 상자를 찾아 메시 모양 Collider로 바꾸고, 사물 프리팹에서 온 상자는 프리팹에서 고쳐 모든 배치에 반영합니다. 겉모양 메시가 없는 상자(보이지 않는 벽)와 바닥·벽·천장은 그대로 둡니다. EditMode 테스트 `PropColliderShapeTests`가 같은 기준으로 배포 씬을 검사합니다.
+
 WebGL 빌드에 포함된 코드와 데이터 에셋은 사용자가 내려받아 확인할 수 있습니다. 비밀값과 공개하면 안 되는 정보는 클라이언트에 넣지 않습니다.
 
 호버의 조절값은 `Data/ObjectHover/ObjectHoverSettings.asset`에 모읍니다. 가구별 세부 영역·단어 연결도 `Data/ObjectHover/Parts/` 에셋에 두며 프리팹에는 참조만 지정합니다. 큰 가구의 등록 여부만 확인하지 않고 베개·이불·화분·싱크대처럼 의미 있는 부분의 가까운 거리 호버도 검수합니다.

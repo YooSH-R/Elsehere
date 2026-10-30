@@ -20,6 +20,16 @@ namespace A305.Player
         // 천천히 걸을 때의 걷기 박자에 맞춰져 있어 박자가 밀리지 않게 한다.
         private const float InstantAnimationSpeedMetersPerSecond = 1f;
 
+        // 캡슐 아래 둥근 면이 가구 모서리에 걸리면 CharacterController는 땅에 섰다고 보지만, 발밑은 비어 있어
+        // 가구 옆 공중에 떠 보인다. 발밑에 턱 높이 안으로 땅이 없으면 땅이 아닌 것으로 보고 모서리 바깥으로 민다.
+        private const float EdgeSlideSpeedMetersPerSecond = 2f;
+
+        // 발밑 땅을 찾는 작은 구. 바닥 타일 사이 틈은 건너뛰고, 가구 모서리처럼 옆으로 떨어진 면은 찾지 않는다.
+        private const float GroundProbeRadiusMeters = .1f;
+
+        // 이보다 위를 향한 면에 닿았을 때만 발밑을 받친 면으로 본다. 벽에 닿은 점은 빼기 위해서다.
+        private const float GroundContactMinNormalY = .1f;
+
         [SerializeField]
         private PlayerMovementSettings movementSettings;
 
@@ -48,7 +58,11 @@ namespace A305.Player
         private PlayerTouchControls touchControls;
         private PlayerCameraRig cameraRig;
         private readonly MoveReferenceYaw moveReference = new MoveReferenceYaw();
+        private readonly RaycastHit[] groundHits = new RaycastHit[8];
         private float animationSpeed;
+
+        // 마지막 이동에서 발밑을 받친 면의 닿은 점. 모서리에 걸렸을 때 밀어낼 방향을 정한다.
+        private Vector3? groundContactPoint;
 
         public PlayerCameraRig CameraRig =>
             cameraTransform != null ? cameraTransform.GetComponent<PlayerCameraRig>() : null;
@@ -81,6 +95,7 @@ namespace A305.Player
             characterController.enabled = false;
             transform.SetPositionAndRotation(position, rotation);
             characterController.enabled = true;
+            groundContactPoint = null;
         }
 
         private void Awake()
@@ -125,13 +140,15 @@ namespace A305.Player
                 sprintAction.action.IsPressed(),
                 jumpAction.action.WasPressedThisFrame()
             );
-            Vector3 velocity = motor.ComputeVelocity(
-                input,
-                characterController.isGrounded,
-                Time.deltaTime
-            );
+            bool isOnEdge = characterController.isGrounded && !HasGroundUnderFeet();
+            bool isGrounded = characterController.isGrounded && !isOnEdge;
+            Vector3 velocity = motor.ComputeVelocity(input, isGrounded, Time.deltaTime);
+            Vector3 edgeSlide = isOnEdge
+                ? AwayFromEdge() * EdgeSlideSpeedMetersPerSecond
+                : Vector3.zero;
 
-            characterController.Move(velocity * Time.deltaTime);
+            groundContactPoint = null;
+            characterController.Move((velocity + edgeSlide) * Time.deltaTime);
 
             Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
             IsMoving = horizontalVelocity.sqrMagnitude > 0.0001f;
@@ -148,12 +165,58 @@ namespace A305.Player
                             speed,
                             AnimationSpeedChangePerSecond * Time.deltaTime
                         );
-                animationDriver.SetLocomotion(
-                    animationSpeed,
-                    characterController.isGrounded,
-                    velocity.y
-                );
+                animationDriver.SetLocomotion(animationSpeed, isGrounded, velocity.y);
             }
+        }
+
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (hit.normal.y > GroundContactMinNormalY)
+            {
+                groundContactPoint = hit.point;
+            }
+        }
+
+        /// <summary>발 바로 아래 턱 높이 안에 디딜 땅이 있는지</summary>
+        private bool HasGroundUnderFeet()
+        {
+            Vector3 feet =
+                transform.position
+                + characterController.center
+                + Vector3.down * (characterController.height / 2f);
+            // 구가 시작부터 바닥에 닿아 있으면 찾지 못하므로 발보다 조금 위에서 내린다.
+            Vector3 start = feet + Vector3.up * (GroundProbeRadiusMeters * 2f);
+            int count = Physics.SphereCastNonAlloc(
+                start,
+                GroundProbeRadiusMeters,
+                Vector3.down,
+                groundHits,
+                GroundProbeRadiusMeters + characterController.stepOffset,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore
+            );
+            for (int index = 0; index < count; index++)
+            {
+                if (!groundHits[index].transform.IsChildOf(transform))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>모서리에 닿은 점에서 플레이어 쪽으로 향하는 수평 방향</summary>
+        private Vector3 AwayFromEdge()
+        {
+            if (groundContactPoint == null)
+            {
+                return Vector3.zero;
+            }
+
+            Vector3 away = transform.position - groundContactPoint.Value;
+            away.y = 0f;
+            return away.sqrMagnitude > 1e-6f ? away.normalized : Vector3.zero;
         }
 
         private void TurnToward(Vector3 horizontalVelocity)

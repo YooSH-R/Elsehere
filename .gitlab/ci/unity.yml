@@ -36,9 +36,6 @@ unity:format:
   stage: verify
   timeout: 1h
   needs: []
-  retry:
-    max: 1
-    exit_codes: 75
   variables:
     GIT_STRATEGY: fetch
     GIT_CLEAN_FLAGS: '-ffdx -e frontend/UnityClient/Library/'

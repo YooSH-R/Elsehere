@@ -26,7 +26,7 @@ $runPath = Join-Path ([System.IO.Path]::GetTempPath()) ('a305-unity-' + [guid]::
 New-Item -ItemType Directory -Path $runPath | Out-Null
 
 function Invoke-Unity {
-    param([string] $RunName, [string[]] $AdditionalArguments, [string] $TestResultPath)
+    param([string] $RunName, [string[]] $AdditionalArguments)
 
     $logPath = Join-Path $runPath "$RunName.log"
     $arguments = @(
@@ -37,28 +37,9 @@ function Invoke-Unity {
 
     Write-Host "Running Unity ${editorVersion}: $RunName"
     try {
-        # A crashed Editor can leave descendants running; wait only for the Editor.
+        # Unity.exe is a GUI application; explicitly wait for the actual exit code.
         $unityProcess = Start-Process -FilePath $UnityEditorPath -ArgumentList $arguments `
-            -WindowStyle Hidden -PassThru
-        $unityProcess.WaitForExit()
-        $nativeCrashExitCodes = @(
-            -536870911,  # 0xE0000001: Mono fatal error
-            -1073741819, # 0xC0000005: access violation
-            -1073741795, # 0xC000001D: illegal instruction
-            -1073741571, # 0xC00000FD: stack overflow
-            -1073740940, # 0xC0000374: heap corruption
-            -1073740791  # 0xC0000409: native fail-fast
-        )
-        if ($nativeCrashExitCodes -contains $unityProcess.ExitCode) {
-            Write-Host "Unity $RunName crashed with exit code $($unityProcess.ExitCode)."
-            # A recorded test failure takes precedence over an accompanying crash.
-            if ($TestResultPath -and (Test-Path -LiteralPath $TestResultPath)) {
-                Read-UnityTestResults -ResultPath $TestResultPath -TestPlatform $RunName | Out-Null
-            }
-            # GitLab retries only this reserved script exit code, at most once per job.
-            Write-Host 'Requesting one CI retry for the Unity crash (exit 75).'
-            exit 75
-        }
+            -WindowStyle Hidden -Wait -PassThru
         if ($unityProcess.ExitCode -ne 0) {
             throw "Unity $RunName failed with exit code $($unityProcess.ExitCode). See the artifact log."
         }
@@ -105,7 +86,7 @@ if ($Action -eq 'test') {
         foreach ($testPlatform in @('EditMode', 'PlayMode')) {
             $resultPath = Join-Path $runPath "$testPlatform.xml"
             try {
-                Invoke-Unity -RunName $testPlatform -TestResultPath $resultPath -AdditionalArguments @(
+                Invoke-Unity -RunName $testPlatform -AdditionalArguments @(
                     '-runTests', '-testPlatform', $testPlatform,
                     '-testResults', ('"{0}"' -f $resultPath)
                 )

@@ -41,6 +41,8 @@ namespace A305.Dialogue
         public string Url { get; set; }
 
         public bool IsReady => Status == "READY" && !string.IsNullOrEmpty(Url);
+
+        public bool CanRegenerate => Status == "FAILED";
     }
 
     public sealed class TurnBody

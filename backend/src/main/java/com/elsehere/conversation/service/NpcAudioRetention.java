@@ -11,8 +11,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -65,11 +68,41 @@ public class NpcAudioRetention {
     }
     lock.lock();
     try {
-      freeSpace(store.usedBytes() + wav.length - maxBytes, sharedKeys());
+      Set<String> shared = sharedKeys();
+      deleteExpired(clock.instant(), shared);
+      freeSpace(usedBytes(shared) + wav.length - maxBytes, shared);
+      if (usedBytes(shared) + wav.length > maxBytes) {
+        log.warn("NPC 음성 저장 공간을 확보하지 못했습니다 bytes={}", wav.length);
+        return null;
+      }
       return store.save(wav);
     } catch (BusinessException exception) {
       log.warn("NPC 음성을 저장하지 못했습니다", exception);
       return null;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /** 소유자를 확인한 턴을 호출한 쪽의 트랜잭션 안에서 읽고 만료·파일 없음 상태를 맞춘다. */
+  public Optional<byte[]> load(Turn turn) {
+    lock.lock();
+    try {
+      String key = turn.getNpcAudioKey();
+      if (key == null || turn.getNpcAudioDeletedAt() != null) {
+        return Optional.empty();
+      }
+      Instant now = clock.instant();
+      Instant createdAt = audioCreatedAt(turn);
+      if (!sharedKeys().contains(key) && !createdAt.isAfter(now.minus(retention))) {
+        deleteAudio(turn, now);
+        return Optional.empty();
+      }
+      Optional<byte[]> wav = store.load(key);
+      if (wav.isEmpty()) {
+        turn.deleteNpcAudio(now);
+      }
+      return wav;
     } finally {
       lock.unlock();
     }
@@ -88,28 +121,34 @@ public class NpcAudioRetention {
       deleteExpired(now, shared);
       markMissingFiles(now);
       deleteUnreferencedFiles(now, shared);
-      freeSpace(store.usedBytes() - maxBytes, shared);
+      freeSpace(usedBytes(shared) - maxBytes, shared);
     } finally {
       lock.unlock();
     }
   }
 
-  // 보관 기간은 턴 생성 시각부터 센다. 음성은 턴과 함께 또는 그 뒤에 만들어지므로 음성 생성 후 보관 기간을 넘지 않는다.
-  // DB를 먼저 갱신한다. 파일 삭제가 실패하면 어떤 턴도 쓰지 않는 오래된 파일로 남아 다음 정리가 지운다.
+  // 파일의 수정 시각은 이전·복원으로 달라질 수 있으므로 DB에 기록한 음성 생성 시각부터 센다.
+  // 삭제 실패 시 DB 키를 남겨 파일 수정 시각이 바뀌었거나 앱이 재시작되어도 다시 시도한다.
   private void deleteExpired(Instant now, Set<String> shared) {
-    List<String> keys =
-        transactionTemplate.execute(
-            status -> {
-              List<String> expired = new ArrayList<>();
-              for (Turn turn :
-                  turnRepository.findAllByNpcAudioKeyIsNotNullAndCreatedAtBefore(
-                      now.minus(retention))) {
-                expired.add(turn.getNpcAudioKey());
-                turn.deleteNpcAudio(now);
-              }
-              return expired;
-            });
-    keys.stream().filter(key -> !shared.contains(key)).forEach(store::delete);
+    transactionTemplate.executeWithoutResult(
+        status -> {
+          for (Turn turn : turnRepository.findExpiredNpcAudio(now.minus(retention))) {
+            if (shared.contains(turn.getNpcAudioKey())) {
+              continue;
+            }
+            deleteAudio(turn, now);
+          }
+        });
+  }
+
+  private void deleteAudio(Turn turn, Instant now) {
+    turn.markNpcAudioUnavailable(now);
+    try {
+      store.delete(turn.getNpcAudioKey());
+      turn.deleteNpcAudio(now);
+    } catch (BusinessException exception) {
+      log.warn("NPC 음성 파일을 지우지 못해 다음 정리에서 재시도합니다 code={}", exception.getErrorCode());
+    }
   }
 
   private void markMissingFiles(Instant now) {
@@ -140,7 +179,7 @@ public class NpcAudioRetention {
     }
   }
 
-  // 생성 시점(파일을 쓴 시각)이 오래된 파일부터 지운다.
+  // 파일 이전으로 수정 시각이 바뀌어도 원래 생성 순서를 유지한다.
   private void freeSpace(long bytesToFree, Set<String> shared) {
     if (bytesToFree <= 0) {
       return;
@@ -183,11 +222,41 @@ public class NpcAudioRetention {
         status -> new HashSet<>(npcRepository.findAllApproachAudioKeys()));
   }
 
-  private static List<StoredAudio> oldestFirst(List<StoredAudio> files) {
-    return files.stream().sorted(Comparator.comparing(StoredAudio::modifiedAt)).toList();
+  private long usedBytes(Set<String> shared) {
+    return store.files().stream()
+        .filter(audio -> !shared.contains(audio.key()))
+        .mapToLong(StoredAudio::size)
+        .sum();
+  }
+
+  private List<StoredAudio> oldestFirst(List<StoredAudio> files) {
+    Map<String, Instant> createdAtByKey =
+        transactionTemplate.execute(
+            status -> {
+              Map<String, Instant> created = new HashMap<>();
+              for (Turn turn :
+                  turnRepository.findAllByNpcAudioKeyIn(
+                      files.stream().map(StoredAudio::key).toList())) {
+                Instant createdAt = audioCreatedAt(turn);
+                created.merge(
+                    turn.getNpcAudioKey(),
+                    createdAt,
+                    (first, second) -> first.isBefore(second) ? first : second);
+              }
+              return created;
+            });
+    return files.stream()
+        .sorted(
+            Comparator.comparing(
+                audio -> createdAtByKey.getOrDefault(audio.key(), audio.modifiedAt())))
+        .toList();
   }
 
   private static Set<String> keysOf(List<StoredAudio> files) {
     return files.stream().map(StoredAudio::key).collect(Collectors.toSet());
+  }
+
+  private static Instant audioCreatedAt(Turn turn) {
+    return turn.getNpcAudioCreatedAt() == null ? turn.getCreatedAt() : turn.getNpcAudioCreatedAt();
   }
 }

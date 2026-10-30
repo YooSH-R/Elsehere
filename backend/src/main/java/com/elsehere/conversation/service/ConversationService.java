@@ -106,7 +106,8 @@ public class ConversationService {
                       1,
                       opening.text(),
                       support.writeWords(opening.suggestWords()),
-                      opening.npcAudioKey()));
+                      opening.npcAudioKey(),
+                      clock.instant()));
           return new ConversationStartResponse(
               conversation.getId(),
               conversation.getStatus(),

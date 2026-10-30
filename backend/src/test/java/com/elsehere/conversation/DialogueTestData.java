@@ -35,7 +35,7 @@ public final class DialogueTestData {
 
   public static Turn npcTurn(
       EntityManager entityManager, Conversation conversation, int seq, String text) {
-    Turn turn = Turn.npc(conversation, seq, text, null, null);
+    Turn turn = Turn.npc(conversation, seq, text, null, null, null);
     entityManager.persist(turn);
     return turn;
   }

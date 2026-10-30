@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Voice;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -755,6 +757,143 @@ namespace A305.Dialogue.Tests
 
             Assert.That(feedback, Is.Null);
             Assert.That(api.Ends, Is.Empty);
+        }
+
+        [TestCase("READY", true)]
+        [TestCase("FAILED", true)]
+        [TestCase("EXPIRED", false)]
+        [TestCase(null, false)]
+        public async Task SpeechButton_ShowsOnlyPlaybackOrInitialGenerationRetry(
+            string status,
+            bool visible
+        )
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech =
+                status == null
+                    ? null
+                    : new SpeechData { Status = status, Url = "/api/v1/turns/101/speech" };
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Dialogue/DialoguePanel.prefab"
+            );
+            GameObject instance = UnityEngine.Object.Instantiate(prefab);
+            try
+            {
+                instance.GetComponent<DialoguePanelView>().Show(conversation);
+                Transform replayButton = instance
+                    .GetComponentsInChildren<Transform>(true)
+                    .Single(child => child.name == "ReplayButton");
+
+                Assert.That(replayButton.gameObject.activeSelf, Is.EqualTo(visible));
+                Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(instance);
+            }
+        }
+
+        [Test]
+        public async Task PlaySpeech_WhenNotFound_HidesSpeechActionAndKeepsText()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData
+            {
+                Status = "READY",
+                Url = "/api/v1/turns/101/speech",
+            };
+            bool refreshed = false;
+            conversation.Changed += () => refreshed = true;
+
+            bool played = await conversation.PlaySpeechAsync(_ =>
+                Task.FromException<bool>(new ApiException("NOT_FOUND", 404, "음성이 없습니다."))
+            );
+
+            Assert.That(played, Is.False);
+            Assert.That(conversation.CanReplaySpeech, Is.False);
+            Assert.That(conversation.LastNpcTurn.Speech.Status, Is.EqualTo("EXPIRED"));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+            Assert.That(refreshed, Is.True);
+        }
+
+        [Test]
+        public async Task PlaySpeech_WhenDownloadTemporarilyFails_KeepsPlaybackRetry()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData
+            {
+                Status = "READY",
+                Url = "/api/v1/turns/101/speech",
+            };
+
+            bool played = await conversation.PlaySpeechAsync(_ => Task.FromResult(false));
+
+            Assert.That(played, Is.False);
+            Assert.That(conversation.CanReplaySpeech, Is.True);
+            Assert.That(conversation.LastNpcTurn.Speech.Status, Is.EqualTo("READY"));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+        }
+
+        [TestCase("EXPIRED")]
+        [TestCase("FAILED")]
+        [TestCase(null)]
+        public async Task PlaySpeech_WithoutReadyAudio_DoesNotDownload(string status)
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech =
+                status == null ? null : new SpeechData { Status = status };
+            bool requested = false;
+
+            bool played = await conversation.PlaySpeechAsync(_ =>
+            {
+                requested = true;
+                return Task.FromResult(true);
+            });
+
+            Assert.That(played, Is.False);
+            Assert.That(requested, Is.False);
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+        }
+
+        [Test]
+        public async Task PlaySpeech_WhenNotFoundArrivesAfterNextTurn_KeepsCurrentSpeech()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData
+            {
+                Status = "READY",
+                Url = "/api/v1/turns/101/speech",
+            };
+            var download = new TaskCompletionSource<bool>();
+            Task<bool> playback = conversation.PlaySpeechAsync(_ => download.Task);
+            api.TurnResponse = Reply(Order, "Here you go!", "ACTIVE");
+            await conversation.SendAsync(Order);
+            NpcTurnData currentTurn = conversation.LastNpcTurn;
+            bool refreshed = false;
+            conversation.Changed += () => refreshed = true;
+
+            download.SetException(new ApiException("NOT_FOUND", 404, "음성이 없습니다."));
+            await playback;
+
+            Assert.That(conversation.LastNpcTurn, Is.SameAs(currentTurn));
+            Assert.That(currentTurn.Speech.IsReady, Is.True);
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("Here you go!"));
+            Assert.That(refreshed, Is.False);
+        }
+
+        [Test]
+        public async Task RegenerateSpeech_WhenExpired_KeepsTextWithoutRequest()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData { Status = "EXPIRED" };
+
+            await conversation.RegenerateSpeechAsync();
+
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+            Assert.That(conversation.LastNpcTurn.Speech.Status, Is.EqualTo("EXPIRED"));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
         }
 
         [Test]

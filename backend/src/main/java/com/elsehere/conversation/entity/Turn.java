@@ -92,7 +92,9 @@ public class Turn extends BaseEntity {
   @Column(length = 100)
   private String npcAudioKey;
 
-  // 보관 정책(기간 만료·용량 정리)으로 음성을 지운 시각. 처음 합성에 실패해 음성이 없는 턴과 구분해 다시 만들지 않는다.
+  private Instant npcAudioCreatedAt;
+
+  // 보관 정책으로 재생을 차단한 시각. 파일 삭제 실패 시에는 키를 남겨 다음 정리에서 재시도한다.
   private Instant npcAudioDeletedAt;
 
   public static Turn user(
@@ -134,25 +136,38 @@ public class Turn extends BaseEntity {
    * @param npcAudioKey 턴 전체 음성 파일 키. 합성에 실패했으면 null
    */
   public static Turn npc(
-      Conversation conversation, int seq, String text, String suggestWords, String npcAudioKey) {
+      Conversation conversation,
+      int seq,
+      String text,
+      String suggestWords,
+      String npcAudioKey,
+      Instant npcAudioCreatedAt) {
     Turn turn = new Turn();
     turn.conversation = conversation;
     turn.seq = seq;
     turn.speaker = Speaker.NPC;
     turn.text = text;
     turn.suggestWords = suggestWords;
-    turn.npcAudioKey = npcAudioKey;
+    turn.attachNpcAudio(npcAudioKey, npcAudioCreatedAt);
     return turn;
   }
 
-  public void attachNpcAudio(String npcAudioKey) {
+  public void attachNpcAudio(String npcAudioKey, Instant createdAt) {
     this.npcAudioKey = npcAudioKey;
+    this.npcAudioCreatedAt = npcAudioKey == null ? null : createdAt;
   }
 
   /** 보관 정책으로 음성 파일을 지웠다. 키를 비우고 지운 시각을 남긴다. */
   public void deleteNpcAudio(Instant deletedAt) {
     this.npcAudioKey = null;
-    this.npcAudioDeletedAt = deletedAt;
+    markNpcAudioUnavailable(deletedAt);
+  }
+
+  /** 파일을 지우지 못해도 재생·재생성을 먼저 차단하고, 삭제를 재시도할 키는 유지한다. */
+  public void markNpcAudioUnavailable(Instant deletedAt) {
+    if (this.npcAudioDeletedAt == null) {
+      this.npcAudioDeletedAt = deletedAt;
+    }
   }
 
   /**

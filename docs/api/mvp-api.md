@@ -193,7 +193,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | [단어장] 옆 [지난 대화] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
+| | 오른쪽 위 메뉴의 [지난 대화] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -228,6 +228,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | WORLD-03 | `PUT /api/v1/me/word-prefs/{wordKey}` | 단어 카드 자동 표시 끄기·다시 켜기 | - | 08 |
 | WORLD-04 | `GET /api/v1/vocab/{vocabId}/pronunciation` | 미리 만든 사물 단어 발음 음성 | - | 08 |
 | WORLD-05 | `PUT /api/v1/me/last-scene` | 현재 장소 저장(재접속 위치) | - | 09, 14 |
+| WORLD-06 | `GET /api/v1/me/game-clock` | 사용자별 게임 시각 | - | 화면 없음(월드 장면) |
+| WORLD-07 | `POST /api/v1/me/game-clock/beats` | 플레이 중 신호, 게임 시간 흐르게 하기 | - | 화면 없음(월드 장면) |
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
 | CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | LLM, TTS(말걸기 대사가 없는 NPC) | 14 |
 | CONV-02 | `POST /api/v1/speech/transcriptions` | 녹음 전사(STT) | STT | 11, 15 |
@@ -627,6 +629,32 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 09의 외출, 화면 14의 건물 출입처럼 장소를 옮길 때 호출합니다. 재접속하면 BOOT-01의 `lastSceneCode`에서 시작합니다. 장소 안의 정확한 위치 복원은 `[미정]`입니다.
 - `sceneCode`가 없거나 비어 있으면 `400 VALIDATION_FAILED`, 없는 장소면 `404 NOT_FOUND`, 열리지 않은 장소(`is_open = false`)면 `409 SCENE_CLOSED`입니다. 오류가 나면 마지막 장소를 바꾸지 않습니다.
 
+#### 게임 시간
+
+게임 시간은 **사용자마다 따로, 플레이한 동안만** 흐릅니다. 실제 10분이 게임 하루이고, 새 사용자는 1일차 오전 8시에서 시작합니다. 진행 중인 대화가 있으면 멈춥니다. 서버가 사용자별 누적 플레이 시간(`user_game_clocks`)을 보관하며, NPC 관계의 "마지막 대화 뒤 지난 게임 날 수"도 이 시계로 셉니다([NPC 생활·관계 설계](../npc-life-design.md) 11절).
+
+#### WORLD-06 `GET /api/v1/me/game-clock`
+
+```json
+// 응답 200
+{ "day": 3, "minuteOfDay": 615, "paused": false }
+```
+
+- `day`는 1일차부터 센 게임 날짜, `minuteOfDay`는 하루 중 분(0~1439, 615면 오전 10시 15분)입니다. `paused`는 진행 중인 대화가 있어 시간이 멈췄는지입니다.
+- 신호를 보낸 적이 없으면 `{ "day": 1, "minuteOfDay": 480, "paused": false }`입니다. 시간을 흐르게 하지 않습니다.
+
+#### WORLD-07 `POST /api/v1/me/game-clock/beats`
+
+```json
+// 응답 200 (요청 본문 없음)
+{ "day": 3, "minuteOfDay": 627, "paused": false }
+```
+
+- 월드 장면에 있는 동안 30초마다 보내는 신호입니다. 지난 신호 뒤 흐른 실제 시간만큼 게임 시간을 더하고 지금 게임 시각을 돌려줍니다(실제 1초 = 게임 2.4분).
+- 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 진행 중인 대화가 있으면 더하지 않고 `paused: true`입니다.
+- 대화가 신호 사이에 시작·끝나면 그 몇 초는 신호 간격 안에서 셀 수도 빠질 수도 있습니다. 게임 날짜 단위로 쓰기에는 충분한 정확도입니다.
+- 두 API 모두 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. WORLD-07은 `X-Requested-With` 헤더가 필요합니다.
+
 ### 4.5 미션
 
 첫날 7단계 연계 여정은 [첫날 연계 미션 계약](first-day-mission.md)의 `/api/v1/missions/first-day`를 사용한다. 사용자가 수첩에서 시작하고 서버가 진행을 영속화한다. 아래 일일 미션 API와 튜토리얼 기본 미션 경로는 유지한다.
@@ -945,7 +973,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 [단어장] 옆 [지난 대화] 창의 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 오른쪽 위 메뉴의 [지난 대화] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
 
 ```json
 {
@@ -1210,7 +1238,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 
 ### 4.12 마이페이지
 
-와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다.
+와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 메뉴(≡)의 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다.
 
 #### USER-04 `PUT /api/v1/me/nickname`
 

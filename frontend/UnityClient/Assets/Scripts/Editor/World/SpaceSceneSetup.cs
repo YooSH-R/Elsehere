@@ -145,6 +145,7 @@ namespace A305.EditorTools.World
             BuilderTools.SetReference(arrival, "cameraRig", cameraRig);
             ConnectArrivalToApi(arrival);
             BuilderTools.RequireReferences(arrival);
+            ConnectGameClock(arrival);
 
             ObjectHoverBuilder.ConnectToScene(groups, player, cameraRig);
             DialogueController dialogue = DialogueBuilder.ConnectToScene(groups, player, cameraRig);
@@ -186,15 +187,50 @@ namespace A305.EditorTools.World
             Debug.Log("배포용 장소 씬 5개의 도착 처리에 재접속 위치 저장을 연결했습니다.");
         }
 
+        /// <summary>
+        /// 배포용 장소 씬의 도착 처리 객체에 게임 시간 신호(WORLD-07)를 붙인다. 디자인한 씬의 다른 객체는 건드리지 않는다.
+        /// </summary>
+        [MenuItem("Tools/A305/World/Connect Game Clock")]
+        public static void ConnectGameClockToProductionScenes()
+        {
+            BuilderTools.ThrowIfPlaying();
+            foreach (string name in ProductionSpaceScenes)
+            {
+                string path = "Assets/Scenes/Production/" + name + ".unity";
+                Scene scene = EditorSceneManager.OpenScene(path);
+                var arrival = BuilderTools.FindSingleInScene<SpaceArrival>(scene);
+                if (arrival == null)
+                {
+                    throw new InvalidOperationException(
+                        $"{path}에 SpaceArrival이 없습니다. {MenuPath}를 먼저 실행합니다."
+                    );
+                }
+
+                ConnectGameClock(arrival);
+                BuilderTools.SaveScene(scene, path);
+            }
+
+            Debug.Log("배포용 장소 씬 5개에 게임 시간 신호를 연결했습니다.");
+        }
+
         private static void ConnectArrivalToApi(SpaceArrival arrival)
         {
-            BuilderTools.SetReference(
-                arrival,
-                "apiSettings",
-                BuilderTools.LoadRequiredAsset<ApiSettings>(
-                    ApiSettingsPath,
-                    A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
-                )
+            BuilderTools.SetReference(arrival, "apiSettings", LoadApiSettings());
+        }
+
+        // 장소 씬마다 하나 있는 도착 처리 객체에 붙여, 장소 씬에 있는 동안만 신호를 보낸다.
+        private static void ConnectGameClock(SpaceArrival arrival)
+        {
+            var driver = BuilderTools.GetOrAddComponent<GameClockDriver>(arrival.gameObject);
+            BuilderTools.SetReference(driver, "apiSettings", LoadApiSettings());
+            BuilderTools.RequireReferences(driver);
+        }
+
+        private static ApiSettings LoadApiSettings()
+        {
+            return BuilderTools.LoadRequiredAsset<ApiSettings>(
+                ApiSettingsPath,
+                A305.EditorTools.Onboarding.OnboardingBuilder.MenuPath
             );
         }
 

@@ -41,6 +41,9 @@ services:
       GUARD_GPU_MODEL: ${GUARD_GPU_MODEL:-}
       GUARD_GPU_BASE_URL: ${GUARD_GPU_BASE_URL:-}
       GUARD_GPU_TOKEN: ${GUARD_GPU_TOKEN:-}
+      # Optional speech synthesis on the GPU server first, then the local CPU Kokoro. Empty keeps CPU only.
+      TTS_GPU_BASE_URL: ${TTS_GPU_BASE_URL:-}
+      TTS_GPU_TOKEN: ${TTS_GPU_TOKEN:-}
       # TTS (Kokoro) synthesis threads; keep equal to the cpus limit below or synthesis slows down several times.
       KOKORO_THREADS: "2"
     healthcheck:

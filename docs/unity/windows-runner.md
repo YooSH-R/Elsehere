@@ -62,7 +62,9 @@ Runner에서 실행되는 코드는 Windows 실행 계정 권한으로 동작합
 
 MR과 배포 검사는 Runner의 동시 실행 제한으로 최대 두 작업을 실행하며, Unity 전체를 하나로 묶는 `resource_group`은 사용하지 않습니다. Shell executor의 기본 작업 경로는 동시 실행 번호별로 분리되므로 각 작업은 자신의 Unity 프로젝트·`Library`·산출물을 사용합니다. 작업 경로를 하나로 고정하거나 `Library`를 두 작업이 동시에 쓰도록 연결하지 않습니다. [Shell executor 작업 경로](https://docs.gitlab.com/runner/executors/shell/)
 
-MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. 변경 전에 생성된 파이프라인은 기존 `a305-unity-editor` 잠금을 유지하므로 기존 대기 작업끼리는 계속 하나씩 실행됩니다. 새 CI 설정으로 생성한 작업부터 최대 두 개를 실행할 수 있습니다.
+프로젝트 전용 Runner의 일반 대기열은 FIFO로 처리합니다. 선행 검사가 끝나 실행 가능한 `pending` 작업 중 오래된 작업부터 빈 두 실행 자리에 배정합니다. 아직 선행 검사가 끝나지 않은 오래된 파이프라인을 기다리기 위해 새 작업을 막지는 않습니다. 파이프라인 ID 순서를 강제하는 자원 그룹의 `oldest_first`는 한 그룹에서 한 작업만 실행하므로 두 작업 병렬 실행의 순서 설정으로 사용하지 않습니다. [프로젝트 Runner 대기열](https://docs.gitlab.com/ci/runners/runners_scope/#project-runners), [자원 그룹 실행 순서](https://docs.gitlab.com/ci/resource_groups/#process-modes)
+
+MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. `waiting_for_resource` 상태는 일반 Runner 대기열과 별개입니다. 자원 그룹을 사용한 설정으로 이미 생성한 작업의 잠금은 새 YAML을 반영해도 소급 제거되지 않으므로 해당 자원 그룹의 실행 상태를 따로 확인합니다.
 
 ## 실행 스크립트와 결과
 
@@ -77,10 +79,12 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 - EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다.
 - 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
-- GUI 실행 파일의 실제 종료까지 기다립니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
+- Editor 프로세스의 실제 종료까지 기다립니다. 크래시 후 남은 컴파일 보조 프로세스 때문에 작업 종료가 지연되지 않도록 Editor의 종료 코드를 직접 확인하고 로그를 보존합니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.
 - WebGL 산출물은 `dist/webgl/`이며 `version.json`의 전체 커밋 SHA가 후보와 일치해야 합니다. 빌드된 정적 파일의 실제 HTTPS 로딩과 화면 확인은 별도 검증입니다.
 - 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
+
+Editor 종료 대기의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p test_unity_process.py -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
 
 ## Blender와 FBX 테스트 입력
 

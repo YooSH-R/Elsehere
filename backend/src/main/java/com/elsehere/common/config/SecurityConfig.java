@@ -44,6 +44,11 @@ public class SecurityConfig {
   /** 운영자 관리 API. */
   private static final String ADMIN_API = "/api/v1/admin/**";
 
+  /** 가입 화면에서 여는 약관 문서(AUTH-03의 url). 백엔드가 그린다. */
+  private static final String[] LEGAL_DOCUMENTS = {
+    "/terms/*", "/privacy/*", "/voice/*", "/ai-training/*"
+  };
+
   @Bean
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http,
@@ -85,6 +90,9 @@ public class SecurityConfig {
                     .permitAll()
                     // 닉네임 중복 확인(AUTH-06)은 가입 대기 사용자도 호출한다. 호출 자격은 컨트롤러가 확인한다.
                     .requestMatchers(HttpMethod.GET, "/api/v1/nicknames/availability")
+                    .permitAll()
+                    // 약관 문서는 가입하기 전에 읽는다.
+                    .requestMatchers(HttpMethod.GET, LEGAL_DOCUMENTS)
                     .permitAll()
                     // 운영자 어드민 화면과 관리 API는 관리자만 쓴다. 역할은 요청마다 DB에서 확인한다(AdminAccess).
                     .requestMatchers(ADMIN_PAGES, ADMIN_API)

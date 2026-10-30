@@ -231,6 +231,11 @@ namespace A305.EditorTools.Theme
                     Circle(c, 24, 19, 14, Hex("#6FBF73"));
                     Circle(c, 18.5f, 14.5f, 5, Hex("#8ED38F"));
                     break;
+                case UiIcon.Menu:
+                    Box(c, 11, 13, 37, 18, 2.5f, Ink);
+                    Box(c, 11, 21.5f, 37, 26.5f, 2.5f, Ink);
+                    Box(c, 11, 30, 37, 35, 2.5f, Ink);
+                    break;
                 case UiIcon.None:
                     break;
                 default:

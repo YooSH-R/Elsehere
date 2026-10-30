@@ -17,7 +17,7 @@ using BrowserImeInput = WebGLSupport.WebGLInput;
 namespace A305.EditorTools.Learning
 {
     /// <summary>
-    /// 피드백·단어장 화면, [단어장] 버튼, 확인용 참고 표현 규칙을 준비하고 공간 씬에 학습 처리를 붙인다.
+    /// 피드백·단어장 화면, 오른쪽 위 메뉴(≡), 확인용 참고 표현 규칙을 준비하고 공간 씬에 학습 처리를 붙인다.
     /// 화면은 없는 요소만 만들고, 이미 있는 요소의 디자인은 유지한다.
     /// </summary>
     public static class LearningBuilder
@@ -74,8 +74,12 @@ namespace A305.EditorTools.Learning
                 "VocabularyScreen",
                 SetUpVocabularyScreen
             );
-            BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
+            PrepareHud();
         }
+
+        /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 지난 대화·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
+        public static void PrepareHud() =>
+            BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
 
         /// <summary>씬에 피드백·단어장 화면과 학습 처리가 없으면 붙이고 플레이어·대화 처리와 연결한다.</summary>
         public static LearningController ConnectToScene(
@@ -432,21 +436,15 @@ namespace A305.EditorTools.Learning
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            RectTransform menu = SetUpMenu(root, panel, bold);
             Button vocabularyButton = UiBuilderTools.FindOrCreateButton(
-                buttons,
+                menu,
                 "VocabularyButton",
                 "단어장 0",
                 bold,
                 200f
             );
-            TMP_Text message = UiBuilderTools.FindOrCreateText(
-                panel,
-                "Message",
-                regular,
-                20f,
-                SubTextColor
-            );
+            TMP_Text message = FindOrCreateMessage(panel, regular);
 
             BuilderTools.SetReference(view, "vocabularyButton", vocabularyButton);
             BuilderTools.SetReference(
@@ -454,46 +452,148 @@ namespace A305.EditorTools.Learning
                 "vocabularyButtonLabel",
                 vocabularyButton.transform.Find("Label").GetComponent<TMP_Text>()
             );
-            Button home = UiBuilderTools.FindOrCreateButton(
-                root.transform,
-                "HomeButton",
-                "",
-                bold,
-                170
-            );
-            var homeRect = (RectTransform)home.transform;
-            homeRect.anchorMin = homeRect.anchorMax = homeRect.pivot = new Vector2(.5f, 0);
-            homeRect.anchoredPosition = new Vector2(0, 24);
-            homeRect.sizeDelta = new Vector2(78, 78);
+            Button home = UiBuilderTools.FindOrCreateButton(menu, "HomeButton", "홈", bold, 200f);
             BuilderTools.SetReference(view, "homeButton", home);
             BuilderTools.SetReference(view, "messageText", message);
-            SetUpHistory(root, view, buttons, vocabularyButton, bold, regular);
+            SetUpHistory(root, view, menu, bold, regular);
             BuilderTools.RequireReferences(view);
 
-            SetUpMyPage(root, buttons, bold, regular);
+            SetUpMyPage(root, menu, bold, regular);
+            // 테마 고르기는 집에만 있어, 집 씬의 HUD에서만 켜고 테마 고르기 화면과 잇는다.
+            UiBuilderTools
+                .FindOrCreateButton(menu, "ThemeButton", "테마", bold, 200f)
+                .gameObject.SetActive(false);
+            OrderMenu(
+                menu,
+                "VocabularyButton",
+                "HistoryButton",
+                "MyPageButton",
+                "ThemeButton",
+                "Divider",
+                "HomeButton"
+            );
         }
 
         /// <summary>
-        /// [단어장] 바로 왼쪽의 [지난 대화]와 지난 대화 목록 창. 없는 요소만 만들고 디자인은 유지한다.
+        /// 오른쪽 위 메뉴(≡) 버튼과 펼치는 목록을 만든다. 펼친 동안 같은 자리에 강조한 메뉴 버튼과
+        /// 화면을 덮는 투명한 닫기 영역을 보인다. 예전 가로 버튼 줄과 아래 가운데 홈 버튼은 연결을 유지한 채 목록으로 옮긴다.
+        /// </summary>
+        private static RectTransform SetUpMenu(
+            GameObject root,
+            RectTransform panel,
+            TMP_FontAsset bold
+        )
+        {
+            var view = BuilderTools.GetOrAddComponent<HudMenuView>(root);
+            RectTransform bar = UiBuilderTools.FindOrCreateButtonRow(panel, "MenuBar");
+            bar.SetAsFirstSibling();
+            Button open = UiBuilderTools.FindOrCreateButton(bar, "MenuButton", "", bold, 78f);
+            Button close = UiBuilderTools.FindOrCreateButton(bar, "OpenMenuButton", "", bold, 78f);
+            close.gameObject.SetActive(false);
+            RectTransform menu = UiBuilderTools.FindOrCreateColumn(panel, "Menu");
+            menu.SetSiblingIndex(bar.GetSiblingIndex() + 1);
+            // 메뉴는 접힌 채 시작한다.
+            menu.gameObject.SetActive(false);
+            Transform oldRow = panel.Find("Buttons");
+            if (oldRow != null)
+            {
+                while (oldRow.childCount > 0)
+                    oldRow.GetChild(0).SetParent(menu, false);
+                UnityEngine.Object.DestroyImmediate(oldRow.gameObject);
+            }
+            Transform oldHome = root.transform.Find("HomeButton");
+            if (oldHome != null)
+                oldHome.SetParent(menu, false);
+
+            BuilderTools.SetReference(view, "menuButton", open);
+            BuilderTools.SetReference(view, "openMenuButton", close);
+            BuilderTools.SetReference(view, "backdrop", FindOrCreateBackdrop(root.transform));
+            BuilderTools.SetReference(view, "items", menu.gameObject);
+            BuilderTools.RequireReferences(view);
+            return menu;
+        }
+
+        // 펼친 메뉴 바깥을 누르면 접히도록 화면 전체를 덮는 투명 버튼. 다른 HUD 요소보다 뒤에 둔다.
+        private static Button FindOrCreateBackdrop(Transform root)
+        {
+            Transform existing = root.Find("MenuBackdrop");
+            var rect =
+                existing != null
+                    ? (RectTransform)existing
+                    : new GameObject(
+                        "MenuBackdrop",
+                        typeof(RectTransform)
+                    ).GetComponent<RectTransform>();
+            rect.SetParent(root, false);
+            rect.SetAsFirstSibling();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var image = BuilderTools.GetOrAddComponent<Image>(rect.gameObject);
+            image.color = new Color(0, 0, 0, 0);
+            var button = BuilderTools.GetOrAddComponent<Button>(rect.gameObject);
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = image;
+            rect.gameObject.SetActive(false);
+            return button;
+        }
+
+        // 알림 글자는 테마 Builder가 알림 카드(MessageCard) 안으로 옮긴다. 다시 실행해도 하나만 두고 남은 사본은 지운다.
+        private static TMP_Text FindOrCreateMessage(RectTransform panel, TMP_FontAsset regular)
+        {
+            Transform card = panel.Find("MessageCard");
+            TMP_Text kept = null;
+            foreach (Transform parent in new[] { panel, card })
+            {
+                if (parent == null)
+                    continue;
+                for (int i = parent.childCount - 1; i >= 0; i--)
+                {
+                    Transform child = parent.GetChild(i);
+                    if (child.name != "Message")
+                        continue;
+                    if (kept == null)
+                        kept = child.GetComponent<TMP_Text>();
+                    else
+                        UnityEngine.Object.DestroyImmediate(child.gameObject);
+                }
+            }
+            return kept != null
+                ? kept
+                : UiBuilderTools.FindOrCreateText(panel, "Message", regular, 20f, SubTextColor);
+        }
+
+        // 메뉴 목록을 정한 순서로 둔다. 없는 이름은 건너뛴다.
+        private static void OrderMenu(Transform menu, params string[] names)
+        {
+            int index = 0;
+            foreach (string name in names)
+            {
+                Transform item = menu.Find(name);
+                if (item != null)
+                    item.SetSiblingIndex(index++);
+            }
+        }
+
+        /// <summary>
+        /// 메뉴의 [지난 대화]와 지난 대화 목록 창. 없는 요소만 만들고 디자인은 유지한다.
         /// 창은 피드백 화면(정렬 130)보다 아래인 HUD 캔버스에 있어, 목록에서 연 피드백이 창 위에 보인다.
         /// </summary>
         private static void SetUpHistory(
             GameObject root,
             LearningHudView hud,
-            RectTransform hudButtons,
-            Button vocabularyButton,
+            RectTransform menu,
             TMP_FontAsset bold,
             TMP_FontAsset regular
         )
         {
             Button open = UiBuilderTools.FindOrCreateButton(
-                hudButtons,
+                menu,
                 "HistoryButton",
                 "지난 대화",
                 bold,
                 200f
             );
-            open.transform.SetSiblingIndex(vocabularyButton.transform.GetSiblingIndex());
             BuilderTools.SetReference(hud, "historyButton", open);
 
             var view = BuilderTools.GetOrAddComponent<ConversationHistoryView>(root);
@@ -555,7 +655,7 @@ namespace A305.EditorTools.Learning
         /// </summary>
         private static void SetUpMyPage(
             GameObject root,
-            RectTransform hudButtons,
+            RectTransform menu,
             TMP_FontAsset bold,
             TMP_FontAsset regular
         )
@@ -570,14 +670,12 @@ namespace A305.EditorTools.Learning
                 )
             );
             Button open = UiBuilderTools.FindOrCreateButton(
-                hudButtons,
+                menu,
                 "MyPageButton",
                 "내 정보",
                 bold,
                 160f
             );
-            // 계정 메뉴는 화면 오른쪽 위 끝에 둔다.
-            open.transform.SetAsLastSibling();
             BuilderTools.SetReference(view, "openButton", open);
 
             RectTransform overlay = FindOrCreateOverlay(root.transform, "MyPage");

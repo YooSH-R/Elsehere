@@ -58,6 +58,7 @@ namespace A305.Dialogue
         public bool HasHint => false;
         public string HintText => null;
         public bool UsesVoice => false;
+        public bool CanReplaySpeech => false;
 
         private GuidedTurn? CurrentGuidedTurn =>
             IsGuided && !IsGuidedCompleted

@@ -1,5 +1,9 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEngine;
 
 namespace A305.Dialogue.Tests
 {
@@ -7,22 +11,32 @@ namespace A305.Dialogue.Tests
     public class MockDialogueScriptsAssetTests
     {
         private const string ScriptsPath = "Assets/Data/Dialogue/MockDialogueScripts.asset";
+        private const string SeedRelativePath = "backend/src/main/resources/db/seed/world.sql";
 
-        // 이름은 서버 시드(world.sql npcs)와 같아야 서버 대화가 시작돼도 이름이 바뀌지 않는다.
-        [TestCase("SHOP_STAFF", "Alex", "드럭스토어 직원")]
-        [TestCase("HOTEL_STAFF", "Emma", "호텔 직원")]
-        public void StaffInTheJourney_AreIntroducedByNameAndRole(
-            string npcCode,
-            string name,
-            string roleLabel
-        )
+        // 이름과 역할은 서버 시드(world.sql npcs)와 같아야 서버 대화가 시작돼도 바뀌지 않는다.
+        [Test]
+        public void NpcsInTheSeed_AreIntroducedByTheirSeedNameAndRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+            List<SeedNpc> seedNpcs = ReadSeedNpcs();
 
-            scripts.TryGetScript(npcCode, out DialogueScript script);
+            var mismatches = new List<string>();
+            foreach (SeedNpc npc in seedNpcs)
+            {
+                if (!scripts.TryGetScript(npc.Code, out DialogueScript script))
+                {
+                    mismatches.Add($"{npc.Code}: 대본 없음");
+                }
+                else if (script.NpcName != npc.Name || script.RoleLabel != npc.RoleLabel)
+                {
+                    mismatches.Add(
+                        $"{npc.Code}: 대본 {script.NpcName}/{script.RoleLabel}, 시드 {npc.Name}/{npc.RoleLabel}"
+                    );
+                }
+            }
 
-            Assert.That(script.NpcName, Is.EqualTo(name));
-            Assert.That(script.RoleLabel, Is.EqualTo(roleLabel));
+            Assert.That(seedNpcs, Is.Not.Empty);
+            Assert.That(mismatches, Is.Empty);
         }
 
         [Test]
@@ -37,16 +51,50 @@ namespace A305.Dialogue.Tests
             Assert.That(script.OpeningLine.Korean, Does.Contain("드럭스토어"));
         }
 
-        [TestCase("TUTORIAL_PASSERBY", "이웃")]
-        [TestCase("TOWN_PASSERBY", "행인")]
-        [TestCase("CAFE_STAFF", "카페 직원")]
-        public void EarlierNpcs_GainTheirRole(string npcCode, string roleLabel)
+        [Test]
+        public void TutorialPasserby_GainsItsRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
 
-            scripts.TryGetScript(npcCode, out DialogueScript script);
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
 
-            Assert.That(script.RoleLabel, Is.EqualTo(roleLabel));
+            Assert.That(script.RoleLabel, Is.EqualTo("이웃"));
+        }
+
+        private static List<SeedNpc> ReadSeedNpcs()
+        {
+            string seedPath = Path.Combine(Application.dataPath, "../../..", SeedRelativePath);
+            string seed = File.ReadAllText(seedPath);
+            string npcRows = Regex.Match(seed, @"(?s)INSERT INTO npcs .*?\) AS seed").Value;
+            var npcs = new List<SeedNpc>();
+            // 행 앞부분: (장소 코드, NPC 코드, 이름, NPC 종류, 역할 이름, ...
+            foreach (
+                Match row in Regex.Matches(
+                    npcRows,
+                    @"\('[A-Z_]+', '([A-Z_]+)', '([^']+)', '[A-Z_]+', '([^']+)',"
+                )
+            )
+            {
+                npcs.Add(
+                    new SeedNpc(row.Groups[1].Value, row.Groups[2].Value, row.Groups[3].Value)
+                );
+            }
+
+            return npcs;
+        }
+
+        private readonly struct SeedNpc
+        {
+            public SeedNpc(string code, string name, string roleLabel)
+            {
+                Code = code;
+                Name = name;
+                RoleLabel = roleLabel;
+            }
+
+            public string Code { get; }
+            public string Name { get; }
+            public string RoleLabel { get; }
         }
     }
 }

@@ -53,5 +53,8 @@ namespace A305.Dialogue
 
         /// <summary>[누르고 말하기]·[다시 듣기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
         bool UsesVoice { get; }
+
+        /// <summary>NPC 호감도와 무례 경고 칸. 서버 대화만 쓰며, 대본 대화는 null이다.</summary>
+        ConversationStanding Standing { get; }
     }
 }

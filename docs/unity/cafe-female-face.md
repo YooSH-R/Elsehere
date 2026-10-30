@@ -86,7 +86,7 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 
 대화 시작 시 `DialogueController`가 선택한 시선 대상의 부모 `DialogueSpeaker`를 찾는다. 서버의 기존 음성 GET 결과를 `DialogueServerLink` → `DialogueSpeechWav` → `CharacterSpeechPlayer` 순으로 전달한다. 플레이어는 다운로드한 PCM의 `AudioSource.timeSamples`를 기준으로 입모양·깜박임·미소를 함께 적용한다. 예제 두 문장이나 대사 철자에 종속되지 않는다. 음성 파일 안의 `a305` 시간표는 해시·길이·음소 범위를 검증한다. 발음 구간은 기존 부드러운 보간과 입술 접촉 우선 규칙을 재사용한다.
 
-다시 듣기는 받은 음성을 재사용한다. 대화 종료·화자 변경·씬 해제는 음성과 표정을 정지하고 늦게 끝난 이전 다운로드를 무시한다. 아직 얼굴 채널이 없는 NPC는 기존 AudioSource로 소리만 재생한다. 시간표가 없는 과거 WAV 또는 잘못된 시간표는 소리를 유지하되 발음을 추측해서 움직이지 않는다. `DialogueServerLink.LipSyncNotice`와 Console 경고로 확인할 수 있고, 음성을 자동 재생성하지 않는다.
+다시 듣기는 현재 대사의 받은 음성을 재사용한다. 새 대사에 음성이 없으면 이전 음성과 시간표를 버리며, 그 상태에서 사용자가 다시 듣기를 누르면 기존 대화 기능의 음성 생성 요청으로 이어진다. 대화 종료·화자 변경·씬 해제는 음성과 표정을 정지하고 늦게 끝난 이전 다운로드를 무시한다. 아직 얼굴 채널이 없는 NPC는 기존 AudioSource로 소리만 재생한다. 시간표가 없는 과거 WAV 또는 잘못된 시간표는 소리를 유지하되 발음을 추측해서 움직이지 않는다. `DialogueServerLink.LipSyncNotice`와 Console 경고로 확인할 수 있고, 음성을 자동 재생성하지 않는다.
 
 **서버 조건:** [AI 워커의 NPC 발음 시간표 설정](../../ai/worker/README.md#npc-발음-시간표와-립싱크)을 적용해야 한다. 같은 이름의 구형 Kokoro 모델에는 duration 출력이 없을 수 있다. Unity만 갱신해도 오래된 서버 음성에 시간표가 생기는 것은 아니다. 현재 감정은 `FriendlySpeechExpression`의 친근한 미소 프리셋이며, LLM이 문장의 감정을 판정하는 기능은 별개다.
 

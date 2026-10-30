@@ -117,8 +117,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1420,
-            "detailCount": 50,
+            "objectCount": 1804,
+            "detailCount": 58,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -131,6 +131,7 @@
                 "cash_register",
                 "ceiling",
                 "chair",
+                "chalkboard",
                 "cloud",
                 "coffee_machine",
                 "cornice",
@@ -149,19 +150,23 @@
                 "flowerbed",
                 "flowerpot",
                 "fountain",
+                "freezer",
                 "handle",
                 "headboard",
                 "hedge",
                 "lamp",
                 "mattress",
+                "mirror",
                 "mug",
                 "pillow",
                 "plant",
                 "planter",
+                "plate",
                 "porch",
                 "railing",
                 "road",
                 "roof",
+                "shelf",
                 "shop",
                 "sidewalk",
                 "sign",
@@ -169,26 +174,61 @@
                 "stairs",
                 "streetlight",
                 "table",
+                "takeaway_cup",
                 "trash_can",
                 "tree",
                 "truck",
                 "wall",
                 "window",
+                "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_27d3dc992bf0dee46a465b3bb93c0a08",
+                "word_2a482726948f5bf41a0068cc69f541ca",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
-                "word_44f9cc0d067b770438b25673c21c1358"
+                "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_3f1b31e72fbacea48bed046e884e6255",
+                "word_3fc84a99d1f166d49a24ed5d59f38a89",
+                "word_44f9cc0d067b770438b25673c21c1358",
+                "word_49745493800188e47bee4b59a9a41f49",
+                "word_50a95568007664e448ac53663da03962",
+                "word_510320b4ce2ab1646975c5e1c03333fb",
+                "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_583992ed64934fe4ba5f273e34106ceb",
+                "word_5ca110b3066a4e04f83c2f7776bb5070",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_856ac06ac71774f41bd23a7b97da2cc1",
+                "word_a31ccaa6d412b78428976a47663eff21",
+                "word_b4a755c63d1d408438a71815ba75d475",
+                "word_cfe407d309ec44540a66769b307075c8",
+                "word_dc738621f28e03c49bfa7b6f67dbf4b3",
+                "word_e438a4ee4f2a3494eaadb31ccfda0859",
+                "word_efe358bf0753d334891d16f6961a2d08",
+                "word_f1493503fe49b48488b6a1674ff150cd",
+                "word_f7bedd45ef4077348a8fb4ff422f2399",
+                "word_f7e7d4080aa0f3240910c84584d2d799",
+                "word_fae84acd881cae244bb14dd79ae14bf5"
             ]
         },
         {
             "sceneCode": "SHOP",
             "unityKey": "ShopScene",
-            "objectCount": 13,
+            "objectCount": 69,
             "detailCount": 0,
             "wordKeys": [
+                "ceiling",
+                "coffee_machine",
                 "counter",
+                "crate",
                 "door",
                 "floor",
+                "freezer",
+                "lamp",
+                "plant",
+                "refrigerator",
+                "rug",
                 "shelf",
                 "sign",
+                "trash_can",
                 "wall",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
@@ -847,10 +887,123 @@
             ]
         },
         {
+            "guid": "fa28e285858e1494f893c372f193563e",
+            "path": "Assets/Prefabs/World/Drugstore/CoffeeCounter.prefab",
+            "wordKeys": [
+                "coffee_machine",
+                "counter"
+            ]
+        },
+        {
+            "guid": "d7cbef7f6272f1049b7b6e3f06f6ae5f",
+            "path": "Assets/Prefabs/World/Drugstore/DrinkCooler.prefab",
+            "wordKeys": [
+                "refrigerator"
+            ]
+        },
+        {
+            "guid": "e062b17753f62de47a554ef328f0e634",
+            "path": "Assets/Prefabs/World/Drugstore/DrugstoreInterior.prefab",
+            "wordKeys": [
+                "ceiling",
+                "coffee_machine",
+                "counter",
+                "crate",
+                "floor",
+                "freezer",
+                "lamp",
+                "plant",
+                "refrigerator",
+                "rug",
+                "shelf",
+                "sign",
+                "trash_can",
+                "wall",
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "6d46bc8cde6f19a4a9b97a7d0c322555",
+            "path": "Assets/Prefabs/World/Drugstore/HealthShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "2a2c4054c5a39d64282cac6bca9e9214",
+            "path": "Assets/Prefabs/World/Drugstore/IceCreamFreezer.prefab",
+            "wordKeys": [
+                "freezer"
+            ]
+        },
+        {
+            "guid": "afc4b3a369a8ca14fabbf6922d36d383",
+            "path": "Assets/Prefabs/World/Drugstore/OpenUmbrella.prefab",
+            "wordKeys": [
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "4ca5b6c0242cbd84ca372e16fd0f1446",
+            "path": "Assets/Prefabs/World/Drugstore/PantryShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "684b748a245212e419c52d59ddc72923",
+            "path": "Assets/Prefabs/World/Drugstore/PharmacyCounter.prefab",
+            "wordKeys": [
+                "counter"
+            ]
+        },
+        {
+            "guid": "5f714b2225b69ea4bb43fdad07851073",
+            "path": "Assets/Prefabs/World/Drugstore/ProduceStand.prefab",
+            "wordKeys": [
+                "crate"
+            ]
+        },
+        {
+            "guid": "738e2496d178f7d479a269be1b058b94",
+            "path": "Assets/Prefabs/World/Drugstore/RainyDaySign.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "bd9d69d9f9e54c7489e222852eba0415",
+            "path": "Assets/Prefabs/World/Drugstore/SnackShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "53f4b91e0df38cc4eb42e2cc948cb900",
+            "path": "Assets/Prefabs/World/Drugstore/UmbrellaBin.prefab",
+            "wordKeys": [
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "617d53606f88bf146b3159c8a2592306",
+            "path": "Assets/Prefabs/World/MainstreetArt/BlueMailbox.prefab",
+            "wordKeys": [
+                "word_583992ed64934fe4ba5f273e34106ceb"
+            ]
+        },
+        {
             "guid": "9c82fda40a1a6f1448246ad72586ab8b",
             "path": "Assets/Prefabs/World/MainstreetArt/BrickAccentPanel.prefab",
             "wordKeys": [
                 "wall"
+            ]
+        },
+        {
+            "guid": "150f0e8dfdc80394693421eec44592f1",
+            "path": "Assets/Prefabs/World/MainstreetArt/BusStopSign.prefab",
+            "wordKeys": [
+                "word_5ca110b3066a4e04f83c2f7776bb5070"
             ]
         },
         {
@@ -863,6 +1016,13 @@
         {
             "guid": "aeae19d0431904b4ab77b7773b0fb859",
             "path": "Assets/Prefabs/World/MainstreetArt/ChalkboardV2.prefab",
+            "wordKeys": [
+                "chalkboard"
+            ]
+        },
+        {
+            "guid": "0f79d4fb5c1a1614aa90f0a8888d43e2",
+            "path": "Assets/Prefabs/World/MainstreetArt/CoffeeSandwichBoard.prefab",
             "wordKeys": [
                 "chalkboard"
             ]
@@ -934,6 +1094,13 @@
             ]
         },
         {
+            "guid": "2a161baded09a254d9b0a98ab15ae407",
+            "path": "Assets/Prefabs/World/MainstreetArt/IceChest.prefab",
+            "wordKeys": [
+                "freezer"
+            ]
+        },
+        {
             "guid": "cb44336a1765bc345afb5b49d334f7b4",
             "path": "Assets/Prefabs/World/MainstreetArt/KenneyDeliveryTruck.prefab",
             "wordKeys": [
@@ -948,10 +1115,52 @@
             ]
         },
         {
+            "guid": "8781dca9f7ed2bc4386118f775b08d1b",
+            "path": "Assets/Prefabs/World/MainstreetArt/NewspaperBoxBlue.prefab",
+            "wordKeys": [
+                "word_510320b4ce2ab1646975c5e1c03333fb"
+            ]
+        },
+        {
+            "guid": "5fb38bf347ee3814baf2c378f146c87d",
+            "path": "Assets/Prefabs/World/MainstreetArt/NewspaperBoxRed.prefab",
+            "wordKeys": [
+                "word_510320b4ce2ab1646975c5e1c03333fb"
+            ]
+        },
+        {
+            "guid": "6879c0795e74549488f31621c0b37283",
+            "path": "Assets/Prefabs/World/MainstreetArt/NewspaperBoxYellow.prefab",
+            "wordKeys": [
+                "word_510320b4ce2ab1646975c5e1c03333fb"
+            ]
+        },
+        {
+            "guid": "5b2852f2f0b471d4f820697ef60bf401",
+            "path": "Assets/Prefabs/World/MainstreetArt/OpenSign.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
             "guid": "3febf4f5fb3aff0418be79e06df34fd5",
             "path": "Assets/Prefabs/World/MainstreetArt/ParkBench.prefab",
             "wordKeys": [
                 "bench"
+            ]
+        },
+        {
+            "guid": "77ce941845a94b6479e72474bfde108d",
+            "path": "Assets/Prefabs/World/MainstreetArt/ParkingMeter.prefab",
+            "wordKeys": [
+                "word_dc738621f28e03c49bfa7b6f67dbf4b3"
+            ]
+        },
+        {
+            "guid": "4c4a89361c66a8e4f897682aedf4b28e",
+            "path": "Assets/Prefabs/World/MainstreetArt/PedXingSign.prefab",
+            "wordKeys": [
+                "sign"
             ]
         },
         {
@@ -980,6 +1189,13 @@
             "path": "Assets/Prefabs/World/MainstreetArt/SidewalkTile2m.prefab",
             "wordKeys": [
                 "sidewalk"
+            ]
+        },
+        {
+            "guid": "19dbd436b8b59804dadbeb5a07878d73",
+            "path": "Assets/Prefabs/World/MainstreetArt/SpeedLimitSign.prefab",
+            "wordKeys": [
+                "sign"
             ]
         },
         {
@@ -1018,10 +1234,24 @@
             ]
         },
         {
+            "guid": "63e3da9753ff1e94da1c1ab0c7555eea",
+            "path": "Assets/Prefabs/World/MainstreetArt/TrafficSignal.prefab",
+            "wordKeys": [
+                "word_856ac06ac71774f41bd23a7b97da2cc1"
+            ]
+        },
+        {
             "guid": "5ca488216aebe274499a3f64c7af3628",
             "path": "Assets/Prefabs/World/MainstreetArt/UpperWindow.prefab",
             "wordKeys": [
                 "window"
+            ]
+        },
+        {
+            "guid": "e3cdd8a71211a874dbec4499334117f0",
+            "path": "Assets/Prefabs/World/MainstreetArt/UsFlag.prefab",
+            "wordKeys": [
+                "word_513415d5ad951964c9ede7ba32b0596f"
             ]
         },
         {
@@ -1254,6 +1484,111 @@
             "path": "Assets/Prefabs/World/NorthBlock/Props/Toy.prefab",
             "wordKeys": [
                 "word_44f9cc0d067b770438b25673c21c1358"
+            ]
+        },
+        {
+            "guid": "9bc90722b040b844ab8f49df4f88a1ae",
+            "path": "Assets/Prefabs/World/StreetLife/Bicycle.prefab",
+            "wordKeys": [
+                "word_e438a4ee4f2a3494eaadb31ccfda0859"
+            ]
+        },
+        {
+            "guid": "1e24cdbc267c54041b9df9d8be287153",
+            "path": "Assets/Prefabs/World/StreetLife/BikeRack.prefab",
+            "wordKeys": [
+                "word_a31ccaa6d412b78428976a47663eff21"
+            ]
+        },
+        {
+            "guid": "5489047f1bb3f4f4498c7848d74f97ab",
+            "path": "Assets/Prefabs/World/StreetLife/Cat.prefab",
+            "wordKeys": [
+                "word_b4a755c63d1d408438a71815ba75d475"
+            ]
+        },
+        {
+            "guid": "ca0ce87581055d340bacf5cde8aad0b5",
+            "path": "Assets/Prefabs/World/StreetLife/CloverPatch.prefab",
+            "wordKeys": [
+                "flowerbed"
+            ]
+        },
+        {
+            "guid": "2ce4f88054b8f2a4195071027b6a77dd",
+            "path": "Assets/Prefabs/World/StreetLife/FlowerBush.prefab",
+            "wordKeys": [
+                "plant"
+            ]
+        },
+        {
+            "guid": "166126fade909a44483cea6004219e59",
+            "path": "Assets/Prefabs/World/StreetLife/FlowerPatch.prefab",
+            "wordKeys": [
+                "flowerbed"
+            ]
+        },
+        {
+            "guid": "a863586ba3b248344b79fe2f588ec8a9",
+            "path": "Assets/Prefabs/World/StreetLife/FlowerPatchWhite.prefab",
+            "wordKeys": [
+                "flowerbed"
+            ]
+        },
+        {
+            "guid": "5c7a7dbe5cd87004d8f88ab4927503c1",
+            "path": "Assets/Prefabs/World/StreetLife/IceCreamCone.prefab",
+            "wordKeys": [
+                "word_27d3dc992bf0dee46a465b3bb93c0a08"
+            ]
+        },
+        {
+            "guid": "ad749c845cb661d49b7bb574f11052c6",
+            "path": "Assets/Prefabs/World/StreetLife/IceCreamTruck.prefab",
+            "wordKeys": [
+                "word_49745493800188e47bee4b59a9a41f49"
+            ]
+        },
+        {
+            "guid": "fdee00091f0e4714aa72d5e3c8fb0be1",
+            "path": "Assets/Prefabs/World/StreetLife/Parasol.prefab",
+            "wordKeys": [
+                "word_3f1b31e72fbacea48bed046e884e6255"
+            ]
+        },
+        {
+            "guid": "3450d257e27192c4f8c38509c6baae8e",
+            "path": "Assets/Prefabs/World/StreetLife/Pigeon.prefab",
+            "wordKeys": [
+                "word_50a95568007664e448ac53663da03962"
+            ]
+        },
+        {
+            "guid": "580aa4d57d0fbab4d841973716d0965c",
+            "path": "Assets/Prefabs/World/StreetLife/PottedPlant.prefab",
+            "wordKeys": [
+                "plant"
+            ]
+        },
+        {
+            "guid": "320f6ca9e18177e46b93dda52f5c22b2",
+            "path": "Assets/Prefabs/World/StreetLife/Sedan.prefab",
+            "wordKeys": [
+                "word_2a482726948f5bf41a0068cc69f541ca"
+            ]
+        },
+        {
+            "guid": "5fb4d753661f5344a935bcf22f01d963",
+            "path": "Assets/Prefabs/World/StreetLife/SleepingFox.prefab",
+            "wordKeys": [
+                "word_cfe407d309ec44540a66769b307075c8"
+            ]
+        },
+        {
+            "guid": "ad5ecefae65163748bda68a6e00677f4",
+            "path": "Assets/Prefabs/World/StreetLife/Taxi.prefab",
+            "wordKeys": [
+                "word_f7bedd45ef4077348a8fb4ff422f2399"
             ]
         },
         {
@@ -1733,6 +2068,150 @@
                 "sign",
                 "wall",
                 "window"
+            ]
+        },
+        {
+            "guid": "20ef9a4702ec10c4b8c8bd41e7ba8e20",
+            "path": "Assets/Prefabs/World/TownStorefronts/BloomFlowers.prefab",
+            "wordKeys": [
+                "cash_register",
+                "ceiling",
+                "cornice",
+                "counter",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "plant",
+                "roof",
+                "shelf",
+                "shop",
+                "sign",
+                "table",
+                "wall",
+                "window",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+            ]
+        },
+        {
+            "guid": "82607a1adf1feec4685340d49cd02a94",
+            "path": "Assets/Prefabs/World/TownStorefronts/MainStreetBarber.prefab",
+            "wordKeys": [
+                "book",
+                "ceiling",
+                "cornice",
+                "cushion",
+                "door",
+                "floor",
+                "handle",
+                "lamp",
+                "mirror",
+                "roof",
+                "shelf",
+                "shop",
+                "sign",
+                "sofa",
+                "table",
+                "wall",
+                "window",
+                "word_f7e7d4080aa0f3240910c84584d2d799"
+            ]
+        },
+        {
+            "guid": "90897f437ef339545b7af1c24854b3f8",
+            "path": "Assets/Prefabs/World/TownStorefronts/MapleDiner.prefab",
+            "wordKeys": [
+                "cake",
+                "ceiling",
+                "coffee_machine",
+                "cornice",
+                "counter",
+                "display_case",
+                "door",
+                "floor",
+                "handle",
+                "lamp",
+                "mug",
+                "plate",
+                "roof",
+                "shop",
+                "sign",
+                "sofa",
+                "table",
+                "wall",
+                "window",
+                "word_369eb9ba5bdd95a4e82191d96b289f34"
+            ]
+        },
+        {
+            "guid": "6a2d59dcabf9e964bb305a8c9d49eaa9",
+            "path": "Assets/Prefabs/World/TownStorefronts/PostOffice.prefab",
+            "wordKeys": [
+                "cash_register",
+                "ceiling",
+                "cornice",
+                "counter",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "plant",
+                "roof",
+                "shelf",
+                "shop",
+                "sign",
+                "wall",
+                "window",
+                "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_3fc84a99d1f166d49a24ed5d59f38a89"
+            ]
+        },
+        {
+            "guid": "464d33975fdcd1541a8cf232555f9598",
+            "path": "Assets/Prefabs/World/TownStorefronts/SudsLaundromat.prefab",
+            "wordKeys": [
+                "ceiling",
+                "chair",
+                "cornice",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "plant",
+                "roof",
+                "shop",
+                "sign",
+                "table",
+                "wall",
+                "window",
+                "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_fae84acd881cae244bb14dd79ae14bf5"
+            ]
+        },
+        {
+            "guid": "88d29ff95e6cdd94c8d91d59f47b7f08",
+            "path": "Assets/Prefabs/World/TownStorefronts/TownBank.prefab",
+            "wordKeys": [
+                "ceiling",
+                "chair",
+                "cornice",
+                "counter",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "plant",
+                "railing",
+                "roof",
+                "shop",
+                "sign",
+                "wall",
+                "window",
+                "word_f1493503fe49b48488b6a1674ff150cd"
             ]
         }
     ]

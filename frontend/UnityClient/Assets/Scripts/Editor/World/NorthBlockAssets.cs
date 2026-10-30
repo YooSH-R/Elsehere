@@ -280,7 +280,7 @@ namespace A305.EditorTools.World
             BuilderTools.SetReference(hover, "word", word);
         }
 
-        private static void AddWord(
+        internal static void AddWord(
             string key,
             string text,
             string meaning,

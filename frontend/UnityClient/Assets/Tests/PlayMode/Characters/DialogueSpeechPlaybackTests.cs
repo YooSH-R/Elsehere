@@ -93,6 +93,43 @@ namespace A305.Characters.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator NewLineWithoutSpeechForgetsVoiceAndResetsTheFace()
+        {
+            Assert.That(link.PlayRecordedSpeech(VoiceBytes("CafeThanksSpeech")), Is.True);
+            player.ApplyAtAudioTime(.3f);
+            link.ForgetSpeech();
+            Assert.That(link.HasSpeech, Is.False);
+            Assert.That(player.IsPlaying, Is.False);
+            link.ReplaySpeech();
+            Assert.That(player.IsPlaying, Is.False, "The previous line must not replay.");
+            foreach (var skin in actor.GetComponentsInChildren<SkinnedMeshRenderer>())
+                for (int i = 0; i < skin.sharedMesh.blendShapeCount; i++)
+                    if (skin.sharedMesh.GetBlendShapeName(i).StartsWith("viseme_"))
+                        Assert.That(skin.GetBlendShapeWeight(i), Is.Zero);
+            Assert.That(link.PlayRecordedSpeech(VoiceBytes("CoffeeChoiceSpeech")), Is.True);
+            Assert.That(
+                player.IsPlaying,
+                Is.True,
+                "Keep the current speaker for the next valid line."
+            );
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator NewSilentLineRejectsPendingPreviousVoice()
+        {
+            var pending = new TaskCompletionSource<byte[]>();
+            link.Download = pending.Task;
+            var playing = link.PlaySpeechAsync("/api/v1/turns/123/speech");
+            link.ForgetSpeech();
+            pending.SetResult(VoiceBytes("CoffeeChoiceSpeech"));
+            yield return new WaitUntil(() => playing.IsCompleted);
+            Assert.That(playing.GetAwaiter().GetResult(), Is.False);
+            Assert.That(link.HasSpeech, Is.False);
+            Assert.That(player.IsPlaying, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator ClosingDialogueBeforeDownloadCompletesCannotRestartVoice()
         {
             var pending = new TaskCompletionSource<byte[]>();

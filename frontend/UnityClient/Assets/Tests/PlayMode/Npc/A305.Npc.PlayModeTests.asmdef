@@ -9,7 +9,8 @@
         "A305.Player",
         "A305.World",
         "A305.Tutorial",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

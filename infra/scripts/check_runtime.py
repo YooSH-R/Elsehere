@@ -9,6 +9,8 @@ import subprocess
 import uuid
 from pathlib import Path
 
+from docker_build import build_image
+
 
 def create_http_fixture(directory):
     (directory / "Build").mkdir(parents=True, exist_ok=True)
@@ -100,10 +102,18 @@ def main():
         ("ai", "ai-worker.Dockerfile"),
         ("web", "web.Dockerfile"),
     ]:
-        command = ["build", "-t", images[service], "-f", f"infra/docker/{dockerfile}"]
-        if service == "web":
-            command.extend(["--build-arg", "WEBGL_DIRECTORY=dist/runtime-webgl"])
-        docker(*command, ".")
+        build_arguments = (
+            {"WEBGL_DIRECTORY": "dist/runtime-webgl"} if service == "web" else None
+        )
+        build_image(
+            docker,
+            repository,
+            service,
+            images[service],
+            f"infra/docker/{dockerfile}",
+            build_arguments=build_arguments,
+            cache_directory=os.environ.get("A305_DOCKER_CACHE_DIR"),
+        )
 
     environment = {
         **os.environ,

@@ -27,7 +27,7 @@ namespace A305.Dialogue
         [SerializeField]
         private VoiceRecorder voiceRecorder;
 
-        private AudioClip lastSpeech;
+        private readonly NpcSpeechSlot lastSpeech = new NpcSpeechSlot();
         private SpeechVisemeTimeline lastTimeline;
         private CharacterSpeechPlayer speaker;
         private string speakerNotice;
@@ -36,7 +36,7 @@ namespace A305.Dialogue
 
         public bool IsAvailable => useServer && apiSettings != null;
         public VoiceRecorder VoiceRecorder => voiceRecorder;
-        public bool HasSpeech => lastSpeech != null;
+        public bool HasSpeech => lastSpeech.Clip != null;
         public string LipSyncNotice { get; private set; }
 
         public IConversationApi CreateApi() =>
@@ -59,11 +59,12 @@ namespace A305.Dialogue
         {
             StopSpeech();
             ReleaseVoice();
+            lastSpeech.Expect(url);
             int request = playbackRequest;
             byte[] bytes = await DownloadSpeechAsync(url);
             if (this == null || request != playbackRequest || !isActiveAndEnabled || bytes == null)
                 return false;
-            return PlayDownloadedVoice(bytes);
+            return PlayDownloadedVoice(bytes, url);
         }
 
         protected virtual async Task<byte[]> DownloadSpeechAsync(string url)
@@ -90,10 +91,12 @@ namespace A305.Dialogue
         {
             StopSpeech();
             ReleaseVoice();
-            return PlayDownloadedVoice(wav);
+            const string recordedVoice = "offline-recorded-voice";
+            lastSpeech.Expect(recordedVoice);
+            return PlayDownloadedVoice(wav, recordedVoice);
         }
 
-        private bool PlayDownloadedVoice(byte[] bytes)
+        private bool PlayDownloadedVoice(byte[] bytes, string url)
         {
             DialogueSpeechWav decoded;
             try
@@ -105,14 +108,19 @@ namespace A305.Dialogue
                 Debug.LogWarning("NPC voice rejected: " + error.Message, this);
                 return false;
             }
-            lastSpeech = AudioClip.Create(
+            var clip = AudioClip.Create(
                 "NPC dialogue voice",
                 decoded.Samples.Length / decoded.Channels,
                 decoded.Channels,
                 decoded.Frequency,
                 false
             );
-            lastSpeech.SetData(decoded.Samples, 0);
+            clip.SetData(decoded.Samples, 0);
+            if (!lastSpeech.TryFill(url, clip))
+            {
+                Destroy(clip);
+                return false;
+            }
             lastTimeline = decoded.Timeline;
             LipSyncNotice = speakerNotice ?? decoded.TimingError;
             if (speaker != null && LipSyncNotice != null)
@@ -123,15 +131,22 @@ namespace A305.Dialogue
 
         public void ReplaySpeech()
         {
-            if (lastSpeech == null)
+            if (lastSpeech.Clip == null)
                 return;
             if (speaker != null)
-                speaker.Play(lastSpeech, lastTimeline);
+                speaker.Play(lastSpeech.Clip, lastTimeline);
             else if (speechSource != null)
             {
-                speechSource.clip = lastSpeech;
+                speechSource.clip = lastSpeech.Clip;
                 speechSource.Play();
             }
+        }
+
+        /// <summary>새 대사에 음성이 없으면 이전 음성과 발음 시간을 지우고 현재 화자는 유지한다.</summary>
+        public void ForgetSpeech()
+        {
+            StopSpeech();
+            ReleaseVoice();
         }
 
         public void StopSpeech()
@@ -146,9 +161,9 @@ namespace A305.Dialogue
 
         private void ReleaseVoice()
         {
-            if (lastSpeech != null)
-                Destroy(lastSpeech);
-            lastSpeech = null;
+            if (lastSpeech.Clip != null)
+                Destroy(lastSpeech.Clip);
+            lastSpeech.Clear();
             lastTimeline = null;
             LipSyncNotice = null;
         }

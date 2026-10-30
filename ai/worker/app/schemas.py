@@ -36,6 +36,7 @@ class Line(BaseModel):
     text: str = Field(max_length=1000)
     english: str | None = None  # 학습자 줄: 번역 (대화 종료 API에서 씀)
     rude: bool = False  # 학습자 줄: 무례 판정 결과
+    events: list[str] = []  # 학습자 줄: 의도 판정(/v1/judge)이 고른 대화 사건. 대화 중 기분과 대화 뒤 관계에 쓴다
 
 
 class Intent(BaseModel):
@@ -99,9 +100,18 @@ class Memory(BaseModel):
     card: dict | None = None
 
 
+class Relationship(BaseModel):
+    """사용자 × NPC 관계 (app.npc_relationship). 백엔드가 저장한 값과 마지막 대화 뒤 지난 게임 속 날 수. 처음 만나면 모두 0."""
+
+    recognition: int = Field(default=0, ge=0, le=100)  # 알아봄
+    affinity: int = Field(default=0, ge=-100, le=100)  # 호감
+    days_since_last_talk: int = Field(default=0, ge=0)
+
+
 class ReplyRequest(BaseModel):
     npc: Npc
     memory: Memory | None = None
+    relationship: Relationship | None = None  # 있으면 알아봄·호감·기분을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     instruction: str = Field(default="", max_length=1000)  # Spring 규칙이 정한 이번 대답에서 할 일
@@ -152,6 +162,21 @@ class MemoryRequest(BaseModel):
     outcome: str  # 대화 결과 한 줄 (예: "주문 성공")
     history: list[Line] = Field(max_length=200)
     memory_card: dict | None = None  # 이전 카드
+
+
+class RelationshipRequest(BaseModel):
+    """정상 종료된 대화 하나를 관계에 반영 (app.npc_relationship). 백엔드가 /v1/memory와 같은 자리에서 부른다."""
+
+    npc: Npc  # profile이 있으면 인격 카드의 성격으로 알아보는 속도·사건 반응 크기를 정한다
+    relationship: Relationship | None = None  # 저장된 관계와 마지막 대화 뒤 지난 게임 날 수. 처음 만나면 없음
+    history: list[Line] = Field(max_length=200)  # 무례는 Spring이 확정한 줄(rude)로 센다
+
+    @field_validator("history")
+    @classmethod
+    def learner_spoke(cls, v: list[Line]) -> list[Line]:
+        if not any(line.who == "me" for line in v):
+            raise ValueError("학습자가 말하지 않은 대화는 관계에 반영하지 않습니다")
+        return v
 
 
 # ---------- NPC 인격 카드 조합 (어드민 랜덤 생성, app.npc_persona) ----------

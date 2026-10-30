@@ -193,7 +193,7 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("호텔 상세는 호텔 직원 Emma를 돌려준다")
+  @DisplayName("호텔 상세는 호텔 직원 Jake를 돌려준다")
   void getScene_hotel_returnsHotelStaff() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -202,7 +202,7 @@ class SceneServiceTest {
     assertThat(hotel.isOpen()).isTrue();
     assertThat(hotel.npcs())
         .containsExactly(
-            new NpcResponse("HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null));
+            new NpcResponse("HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null));
   }
 
   @Test

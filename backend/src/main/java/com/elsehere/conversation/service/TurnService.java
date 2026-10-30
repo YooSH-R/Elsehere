@@ -19,6 +19,7 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import java.time.Clock;
 import java.util.List;
@@ -36,8 +37,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 발화 전송(CONV-03). 의도·번역 판정(/v1/judge)과 무례 판정(/v1/guard)을 함께 부른 뒤 → NPC 대답(/v1/npc/reply) → 턴 전체 음성
  * 저장 순서로 처리한다.
  *
- * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며, 한도에
- * 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
+ * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
+ * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
  */
 @Service
 @RequiredArgsConstructor
@@ -69,6 +70,7 @@ public class TurnService {
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final MemoryService memoryService;
+  private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
   private final FirstDayMissionService firstDayMissionService;
   private final Clock clock;
@@ -153,6 +155,8 @@ public class TurnService {
                       guard.errorCode()));
           if (rude) {
             conversation.countRude(ConversationSupport.RUDE_LIMIT, clock.instant());
+            npcAffinityService.deductForRudeness(
+                userId, conversation.getNpcId(), guard.affinityDelta());
           }
           Turn npcTurn =
               turnRepository.save(

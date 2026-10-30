@@ -112,6 +112,7 @@ Table npcs [headercolor: #2F4A7A] {
   npc_type varchar(20) [not null, note: 'PASSERBY · STAFF']
   role_label varchar(30) [not null, note: '화면에 보여주는 역할 이름 (행인 · 카페 직원). persona는 AI 프롬프트용이라 따로 둔다']
   persona jsonb [not null, note: 'AI 워커 npc 형식 {role, facts, scene} · 시드는 처음 넣을 때만 쓰고 이후에는 운영자 어드민에서 고침 (docs/admin.md)']
+  profile jsonb [note: '인격 카드 (AI 공통 스키마 npcProfile, camelCase 그대로) · 워커 요청 npc.profile · 시드 로더가 content/npc-configurations.json으로 카드가 없을 때만 넣음 · 없으면 persona.role 한 줄로 대답']
   voice_id varchar(30) [not null, note: 'TTS 보이스']
   can_initiate boolean [not null, default: false, note: 'NPC가 먼저 말을 거는지 (사용자→NPC 대화와 무관)']
   approach_line text [note: '먼저 말을 걸 때의 첫 말 (can_initiate NPC)']
@@ -304,7 +305,7 @@ Table turn_feedback [headercolor: #2E6B4F] {
 Table user_npc_relations [headercolor: #C8642A] {
   user_id bigint [not null]
   npc_id bigint [not null]
-  affinity smallint [not null, default: 0, note: '0~5']
+  affinity smallint [not null, default: 0, note: '호감도 -100~100 · 무례로 센 말마다 /v1/guard의 affinity_delta만큼 깎음 (비어 있으면 기본 -4) · docs/api/rudeness-handling.md 3절']
   talk_count int [not null, default: 0, note: '사용자 발화가 있었던 대화를 끝낸 횟수 · NPC 대답 요청의 memory.visits']
   last_talked_at timestamptz
   memory_card jsonb [note: 'NPC 기억 카드 { name, claims, events, attitude, struggled } · AI 워커 /v1/memory가 만든 카드로 통째로 교체']

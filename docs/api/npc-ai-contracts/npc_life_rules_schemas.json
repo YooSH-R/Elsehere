@@ -463,15 +463,27 @@
         "mood": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["decayPerTurn"],
+          "required": ["decayPerTurn", "showsAt"],
           "properties": {
-            "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3 }
+            "decayPerTurn": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "학습자가 한 번 말할 때마다 기분 세기가 가라앉는 양." },
+            "showsAt": { "type": "number", "exclusiveMinimum": 0, "maximum": 3, "description": "기분 세기(0~3)가 이 값 이상이면 말투에 드러난다." }
           }
         },
         "relationship": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["recognitionPerConversation", "seenBefore", "regular", "personalTalk", "graceDays", "recognitionDropPerDay", "affinityFollowRate"],
+          "required": [
+            "recognitionPerConversation",
+            "seenBefore",
+            "regular",
+            "liked",
+            "disliked",
+            "personalTalk",
+            "graceDays",
+            "recognitionDropPerDay",
+            "affinityFollowRate",
+            "rudeAffinityFallback"
+          ],
           "properties": {
             "recognitionPerConversation": {
               "type": "number",
@@ -481,6 +493,8 @@
             },
             "seenBefore": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '본 적 있음'." },
             "regular": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 알아봄부터 '단골'." },
+            "liked": { "type": "integer", "minimum": 0, "maximum": 100, "description": "이 호감부터 좋아하는 티가 난다." },
+            "disliked": { "type": "integer", "minimum": -100, "maximum": 0, "description": "이 호감 이하면 싫어하는 티가 난다(차갑게 대함)." },
             "personalTalk": {
               "type": "object",
               "additionalProperties": false,
@@ -497,7 +511,13 @@
               "type": "number",
               "minimum": 0,
               "maximum": 1,
-              "description": "정상 종료 때 호감이 이번 대화 인상 쪽으로 따라가는 비율."
+              "description": "정상 종료 때 호감이 이번 대화 인상 쪽으로 따라가는 비율. 무례는 인상에 넣지 않고 발화마다 그 몫(무례 인상 × 이 비율 × NPC 반응 크기)을 바로 깎는다."
+            },
+            "rudeAffinityFallback": {
+              "type": "integer",
+              "minimum": -100,
+              "maximum": 0,
+              "description": "무례 판정(/v1/guard)이 무례라고 했는데 감점량(affinity_delta)이 비었을 때 백엔드가 쓰는 감점. 성격 배수가 없는 NPC의 감점과 같게 둔다."
             }
           }
         },

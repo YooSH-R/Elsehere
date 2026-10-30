@@ -10,7 +10,8 @@ namespace A305.Learning
 {
     /// <summary>
     /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·03·04)과 잇는다.
-    /// 피드백·단어장 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
+    /// [지난 대화] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
+    /// 피드백·단어장·지난 대화 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
     /// 대화·피드백의 [표현 저장]은 서버가 그 출처의 저장을 열기 전까지 숨긴다.
     /// </summary>
     public class LearningController : MonoBehaviour
@@ -41,7 +42,12 @@ namespace A305.Learning
 
         private VocabularyBook vocabulary;
 
+        private ConversationHistory history;
+
         private DialogueRecord feedbackRecord;
+
+        // [지난 대화]에서 다시 연 대화. 대화 직후의 피드백(feedbackRecord)과 함께 열리지 않는다.
+        private PastConversation pastConversation;
 
         // 지금 피드백 화면에 보이는 서버 피드백. [다시 만들기]로 새로 받으면 바뀐다.
         private ServerFeedback shownServerFeedback;
@@ -49,7 +55,10 @@ namespace A305.Learning
         /// <summary>피드백을 닫으면 그 대화의 NPC 키와, 정해진 흐름을 끝까지 마쳤는지를 알린다.</summary>
         public event Action<string, bool> FeedbackClosed;
 
-        public bool IsShowingScreen => feedbackView.IsVisible || vocabularyView.IsVisible;
+        public bool IsShowingScreen =>
+            feedbackView.IsVisible || vocabularyView.IsVisible || historyView.IsVisible;
+
+        private ConversationHistoryView historyView => hudView.HistoryView;
 
         private void Awake()
         {
@@ -60,6 +69,7 @@ namespace A305.Learning
                 || feedbackView == null
                 || vocabularyView == null
                 || hudView == null
+                || hudView.HistoryView == null
             )
             {
                 Debug.LogError("LearningController의 참조가 연결되지 않았습니다.", this);
@@ -70,6 +80,9 @@ namespace A305.Learning
             if (apiSettings != null)
             {
                 vocabulary = new VocabularyBook(new VocabularyApi(apiSettings.CreateClient()));
+                history = new ConversationHistory(
+                    new ConversationHistoryApi(apiSettings.CreateClient())
+                );
             }
 
             // 서버가 대화·피드백 출처의 저장(NPC_LINE·FEEDBACK)을 아직 받지 않으므로 저장 버튼을 숨긴다.
@@ -85,7 +98,11 @@ namespace A305.Learning
             vocabularyView.DeleteRequested += Delete;
             vocabularyView.MemoSaveRequested += SaveMemo;
             hudView.VocabularyRequested += OpenVocabulary;
+            hudView.HistoryRequested += OpenHistory;
             hudView.HomeRequested += ReturnHome;
+            historyView.CloseRequested += CloseHistory;
+            historyView.OpenRequested += OpenPastFeedback;
+            historyView.MoreRequested += LoadMoreHistory;
         }
 
         private void Start()
@@ -123,7 +140,10 @@ namespace A305.Learning
         private void OnDestroy()
         {
             if (hudView != null)
+            {
                 hudView.HomeRequested -= ReturnHome;
+                hudView.HistoryRequested -= OpenHistory;
+            }
             if (dialogue != null)
             {
                 dialogue.ConversationEnded -= ShowFeedback;
@@ -160,9 +180,18 @@ namespace A305.Learning
 
         private void RegenerateFeedback()
         {
-            if (feedbackRecord != null && shownServerFeedback != null)
+            if (shownServerFeedback == null)
+            {
+                return;
+            }
+
+            if (feedbackRecord != null)
             {
                 _ = RegenerateFeedbackAsync(feedbackRecord, shownServerFeedback);
+            }
+            else if (pastConversation != null)
+            {
+                _ = RegeneratePastFeedbackAsync(pastConversation, shownServerFeedback);
             }
         }
 
@@ -189,6 +218,16 @@ namespace A305.Learning
 
         private void CloseFeedback()
         {
+            // [지난 대화]에서 연 피드백은 대화 결과(미션·튜토리얼)를 다시 알리지 않고 목록으로 돌아간다.
+            if (pastConversation != null)
+            {
+                pastConversation = null;
+                shownServerFeedback = null;
+                feedbackView.Hide();
+                UpdateMovementLock();
+                return;
+            }
+
             DialogueRecord closedRecord = feedbackRecord;
             if (closedRecord == null)
             {
@@ -200,6 +239,93 @@ namespace A305.Learning
             feedbackView.Hide();
             UpdateMovementLock();
             FeedbackClosed?.Invoke(closedRecord.NpcCode, closedRecord.IsGuidedCompleted);
+        }
+
+        private void OpenHistory()
+        {
+            if (history == null)
+            {
+                hudView.ShowMessage("지난 대화 서버가 연결되지 않았어요.");
+                return;
+            }
+
+            historyView.Show(history);
+            UpdateMovementLock();
+            _ = LoadHistoryAsync(history.LoadAsync(), "지난 대화를 불러오는 중이에요…");
+        }
+
+        private void LoadMoreHistory()
+        {
+            _ = LoadHistoryAsync(history.LoadMoreAsync(), "지난 대화를 더 불러오는 중이에요…");
+        }
+
+        // 창을 열 때마다 처음부터 다시 읽어 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 이유를 보인다.
+        private async Task LoadHistoryAsync(Task<bool> loading, string waitingMessage)
+        {
+            historyView.Refresh();
+            historyView.ShowStatus(waitingMessage);
+            bool loaded = await loading;
+            if (this == null || !historyView.IsVisible)
+            {
+                return;
+            }
+
+            historyView.Refresh();
+            historyView.ShowStatus(loaded ? "" : history.Message);
+        }
+
+        private void CloseHistory()
+        {
+            historyView.Hide();
+            UpdateMovementLock();
+        }
+
+        private void OpenPastFeedback(ConversationSummary conversation)
+        {
+            _ = OpenPastFeedbackAsync(conversation);
+        }
+
+        // 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면으로 연다. 지난 대화 창은 그 아래에 그대로 둔다.
+        private async Task OpenPastFeedbackAsync(ConversationSummary conversation)
+        {
+            historyView.ShowStatus("피드백을 불러오는 중이에요…");
+            PastConversation past = await history.OpenAsync(conversation);
+            if (this == null || !historyView.IsVisible)
+            {
+                return;
+            }
+
+            if (past == null)
+            {
+                historyView.ShowStatus(history.Message);
+                return;
+            }
+
+            historyView.ShowStatus("");
+            pastConversation = past;
+            shownServerFeedback = past.Feedback;
+            feedbackView.Show(
+                ConversationFeedback.FromServer(past.NpcName, past.UtteranceCount, past.Feedback),
+                past.Lines
+            );
+            UpdateMovementLock();
+        }
+
+        private async Task RegeneratePastFeedbackAsync(PastConversation past, ServerFeedback failed)
+        {
+            feedbackView.ShowRegenerating();
+            ServerFeedback regenerated = await dialogue.RegenerateFeedbackAsync(failed);
+            // 기다리는 사이 씬을 떠났거나 피드백을 닫았으면 보여 주지 않는다.
+            if (this == null || pastConversation != past)
+            {
+                return;
+            }
+
+            shownServerFeedback = regenerated;
+            feedbackView.Show(
+                ConversationFeedback.FromServer(past.NpcName, past.UtteranceCount, regenerated),
+                past.Lines
+            );
         }
 
         private void OpenVocabulary()

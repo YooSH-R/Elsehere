@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using A305.Api;
 using NUnit.Framework;
 
 namespace A305.Mission.Tests
@@ -36,6 +37,27 @@ namespace A305.Mission.Tests
             FirstDayMissionState state = State(started: true, completed: true);
 
             Assert.That(state.Destination, Is.Null);
+        }
+
+        [TestCase(true, "RAIN")]
+        [TestCase(false, "CLEAR")]
+        public void FallbackWeather_FollowsRaining(bool raining, string expected)
+        {
+            FirstDayMissionState state = State(started: true, completed: false);
+            state.Raining = raining;
+
+            Assert.That(state.FallbackWeather, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Weather_ReadsServerForecastAndKeepsRainingFallback()
+        {
+            FirstDayMissionState state = ApiJson.Deserialize<FirstDayMissionState>(
+                "{\"started\":true,\"stage\":3,\"raining\":false,\"weather\":\"CLOUDY\"}"
+            );
+
+            Assert.That(state.Weather, Is.EqualTo("CLOUDY"));
+            Assert.That(state.FallbackWeather, Is.EqualTo("CLEAR"));
         }
 
         private static FirstDayMissionState State(bool started, bool completed) =>

@@ -242,7 +242,9 @@ namespace A305.EditorTools.Theme
             var vocabularyLabel = button.Find("Label").GetComponent<TMP_Text>();
             vocabularyLabel.fontSize = 24;
             vocabularyLabel.fontStyle = FontStyles.Bold;
-            StyleMyPageButton(root, (RectTransform)panel);
+            StyleHistory(root);
+            StyleMyPage(root);
+            FitPanelToButtons((RectTransform)panel);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -269,28 +271,51 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "vocabularyCountText", count);
         }
 
-        /// <summary>
-        /// [내 정보]를 [단어장]과 같은 높이의 알약 버튼으로 버튼 줄 끝에 두고, 패널 너비를 버튼 줄에 맞춘다. 마이페이지 창도 칠한다.
-        /// </summary>
-        private static void StyleMyPageButton(Transform root, RectTransform panel)
+        /// <summary>[지난 대화]를 [단어장]과 같은 알약 버튼으로 바꾸고, 지난 대화 창을 단어장 화면처럼 칠한다.</summary>
+        private static void StyleHistory(Transform root)
         {
-            Transform button = root.Find("Panel/Buttons/MyPageButton");
-            if (button == null)
+            if (!StyleHudPill(root, "HistoryButton", UiIcon.Talk, 200))
                 return;
-            PillButton(root, "Panel/Buttons/MyPageButton", UiIcon.Detail, UiTone.Neutral);
-            var size = button.GetComponent<LayoutElement>();
-            size.minWidth = size.preferredWidth = 160;
-            size.preferredHeight = 72;
-            var label = button.Find("Label").GetComponent<TMP_Text>();
-            label.fontSize = 24;
-            label.fontStyle = FontStyles.Bold;
-            RectOffset padding = panel.GetComponent<VerticalLayoutGroup>().padding;
-            var row = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>();
-            panel.sizeDelta = new Vector2(
-                padding.left + padding.right + RowWidth(row),
-                panel.sizeDelta.y
+            Role(root, "History", UiThemeRole.Panel);
+            Role(root, "History/Title", UiThemeRole.Title);
+            Role(root, "History/Hint", UiThemeRole.Muted);
+            Role(root, "History/List", UiThemeRole.Body);
+            Role(root, "History/Status", UiThemeRole.Muted);
+            IconButton(
+                root,
+                "History/Buttons/PreviousButton",
+                UiIcon.Previous,
+                UiTone.Neutral,
+                caption: true
             );
+            IconButton(
+                root,
+                "History/Buttons/NextButton",
+                UiIcon.Next,
+                UiTone.Neutral,
+                caption: true
+            );
+            IconButton(
+                root,
+                "History/Buttons/OpenButton",
+                UiIcon.Detail,
+                UiTone.Primary,
+                caption: true
+            );
+            IconButton(
+                root,
+                "History/Buttons/CloseButton",
+                UiIcon.Close,
+                UiTone.Neutral,
+                caption: true
+            );
+        }
 
+        /// <summary>[내 정보]를 [단어장]과 같은 알약 버튼으로 버튼 줄 끝에 두고, 마이페이지 창을 칠한다.</summary>
+        private static void StyleMyPage(Transform root)
+        {
+            if (!StyleHudPill(root, "MyPageButton", UiIcon.Detail, 160))
+                return;
             Role(root, "MyPage/Window", UiThemeRole.Panel);
             Role(root, "MyPage/Window/Title", UiThemeRole.Title);
             Role(root, "MyPage/Window/Profile", UiThemeRole.Body);
@@ -305,6 +330,39 @@ namespace A305.EditorTools.Theme
             Role(root, "MyPage/LogoutDialog/Status", UiThemeRole.Muted);
             QuietButton(root, "MyPage/LogoutDialog/Buttons/CancelButton", "취소");
             QuietButton(root, "MyPage/LogoutDialog/Buttons/ConfirmButton", "로그아웃");
+        }
+
+        // 오른쪽 위 버튼 줄의 버튼을 [단어장]과 같은 높이·글자의 알약 버튼으로 바꾼다. 버튼이 없으면 false.
+        private static bool StyleHudPill(
+            Transform root,
+            string buttonName,
+            UiIcon icon,
+            float width
+        )
+        {
+            string path = "Panel/Buttons/" + buttonName;
+            Transform button = root.Find(path);
+            if (button == null)
+                return false;
+            PillButton(root, path, icon, UiTone.Neutral);
+            var size = button.GetComponent<LayoutElement>();
+            size.minWidth = size.preferredWidth = width;
+            size.preferredHeight = 72;
+            var label = button.Find("Label").GetComponent<TMP_Text>();
+            label.fontSize = 24;
+            label.fontStyle = FontStyles.Bold;
+            return true;
+        }
+
+        // 버튼 줄이 잘리지 않게 오른쪽 위 패널 너비를 버튼 줄에 맞춘다.
+        private static void FitPanelToButtons(RectTransform panel)
+        {
+            RectOffset padding = panel.GetComponent<VerticalLayoutGroup>().padding;
+            var row = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>();
+            panel.sizeDelta = new Vector2(
+                padding.left + padding.right + RowWidth(row),
+                panel.sizeDelta.y
+            );
         }
 
         // 오른쪽 정렬한 버튼 줄에서 켜진 버튼의 너비와 간격을 더한다.

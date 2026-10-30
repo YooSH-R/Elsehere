@@ -93,7 +93,7 @@ class MissionServiceTest {
                 "호텔에 체크인하기",
                 "HOTEL",
                 "HOTEL_STAFF",
-                "Emma",
+                "Jake",
                 UserMissionStatus.RUN,
                 null));
     assertThat(response.missions())

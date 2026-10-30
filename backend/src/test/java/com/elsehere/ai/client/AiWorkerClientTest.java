@@ -135,6 +135,30 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("NPC의 인격 카드는 snake_case로 바꾸지 않고 카드의 칸 이름(camelCase) 그대로 보낸다")
+  void reply_sendsProfileWithCamelCaseKeys() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+    WorkerNpc npcWithProfile =
+        new WorkerNpc(
+            "CAFE_STAFF",
+            "Mia",
+            "the barista",
+            "",
+            "The counter",
+            "af_heart",
+            1.0,
+            Map.of("schemaVersion", "2.0", "speechStyle", Map.of("tone", "bright")));
+
+    client.reply(TRACE, npcWithProfile, null, List.of(), "Hello", "", 2);
+
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"tts_voice\":\"af_heart\"")
+        .contains("\"schemaVersion\":\"2.0\"")
+        .contains("\"speechStyle\":{\"tone\":\"bright\"}")
+        .doesNotContain("schema_version");
+  }
+
+  @Test
   @DisplayName("대화가 없는 요청에는 대화 ID 헤더를 붙이지 않는다")
   void request_withoutConversation_omitsConversationHeader() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
@@ -227,6 +251,30 @@ class AiWorkerClientTest {
     assertThat(received.get("/v1/guard").body())
         .contains("\"text\":\"you idiot\"")
         .contains("\"rude\":true");
+  }
+
+  @Test
+  @DisplayName("무례 판정이 호감도 변화량(affinity_delta)을 주면 함께 읽고, 주지 않으면 null이다")
+  void guard_readsAffinityDeltaWhenGiven() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "affinity_delta": -7, "usage": []}
+        """);
+    GuardResult withDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "usage": []}
+        """);
+    GuardResult withoutDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+
+    assertThat(withDelta.affinityDelta()).isEqualTo(-7);
+    assertThat(withoutDelta.affinityDelta()).isNull();
   }
 
   @Test

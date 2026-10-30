@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using A305.Player;
+using A305.Weather;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Events;
@@ -84,6 +85,63 @@ namespace A305.World.PlayModeTests
             yield return WaitUntilCurtainOpens();
 
             Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(usualPriority));
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_LeavesOnlyTheDestinationSceneLoaded()
+        {
+            yield return LoadSpace("TownScene");
+
+            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+            yield return WaitForArrival("CafeScene");
+            yield return WaitUntilCurtainOpens();
+
+            Assert.That(LoadedSceneNames(), Is.EqualTo(new[] { "CafeScene" }));
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("CafeScene"));
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_NewSceneWakesUpWithoutThePreviousSpace()
+        {
+            yield return LoadSpace("TownScene");
+            int players = -1;
+            int listeners = -1;
+            UnityAction<Scene, LoadSceneMode> onSceneLoaded = (scene, mode) =>
+            {
+                players = Object.FindObjectsByType<PlayerMover>(FindObjectsSortMode.None).Length;
+                listeners = Object
+                    .FindObjectsByType<AudioListener>(FindObjectsSortMode.None)
+                    .Length;
+            };
+            SceneManager.sceneLoaded += onSceneLoaded;
+            try
+            {
+                Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+                yield return WaitForArrival("CafeScene");
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= onSceneLoaded;
+            }
+
+            // 이전 공간의 플레이어·카메라가 켜져 있으면 새 공간이 출입구와 카메라를 잘못 찾는다.
+            Assert.That(players, Is.EqualTo(1));
+            Assert.That(listeners, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingIntoTown_ShowsWeatherLikeOpeningTown()
+        {
+            yield return LoadSpace("TownScene");
+            string opened = ShowEveryWeatherLook();
+            yield return LoadSpace("CafeScene");
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "CafeDoor"), Is.True);
+            yield return WaitForArrival("TownScene");
+            yield return WaitUntilCurtainOpens();
+
+            // 날씨는 어디서 들어왔든 마을 씬에 디자인한 하늘·환경광을 기준으로 바뀌어야 한다.
+            Assert.That(ShowEveryWeatherLook(), Is.EqualTo(opened));
         }
 
         [UnityTest]
@@ -252,6 +310,41 @@ namespace A305.World.PlayModeTests
 
             // 도착한 뒤 한 프레임 동안 이동·카메라 갱신이 위치를 흐트러뜨리지 않는지 함께 본다.
             yield return null;
+        }
+
+        private static string[] LoadedSceneNames()
+        {
+            return Enumerable
+                .Range(0, SceneManager.sceneCount)
+                .Select(index => SceneManager.GetSceneAt(index).name)
+                .ToArray();
+        }
+
+        /// <summary>날씨마다 바로 바꿔 보고, 화면에 쓰이는 하늘·환경광·안개 값을 글로 남긴다.</summary>
+        private static string ShowEveryWeatherLook()
+        {
+            var presenter = Object.FindFirstObjectByType<WeatherPresenter>();
+            var looks = new List<string>();
+            foreach (WeatherDefinition weather in presenter.Settings.Weathers)
+            {
+                presenter.ShowImmediately(weather.Code);
+                Material sky = RenderSettings.skybox;
+                looks.Add(
+                    $"{weather.Code}: {SkyColor(sky, "_Zenith")} {SkyColor(sky, "_Horizon")} "
+                        + $"{RenderSettings.ambientSkyColor} {RenderSettings.ambientEquatorColor} "
+                        + $"{RenderSettings.ambientGroundColor} {RenderSettings.fogColor} "
+                        + $"{RenderSettings.fogStartDistance:F2} {RenderSettings.fogEndDistance:F2}"
+                );
+            }
+
+            return string.Join("\n", looks);
+        }
+
+        private static string SkyColor(Material sky, string property)
+        {
+            return sky != null && sky.HasProperty(property)
+                ? sky.GetColor(property).ToString()
+                : "none";
         }
 
         private static float CurtainOpacity()

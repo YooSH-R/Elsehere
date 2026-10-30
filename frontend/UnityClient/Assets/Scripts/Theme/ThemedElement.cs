@@ -7,7 +7,8 @@ namespace A305.Theme
     /// <summary>
     /// 화면 요소 하나를 지금 테마의 그림·색·글꼴로 칠하고, 테마가 바뀌면 다시 칠한다.
     /// 아이콘 버튼은 자식 Face(바탕)·Face/Outline·Face/Icon과 아래 이름 Label을,
-    /// 알약 버튼은 자기 바탕과 자식 Outline·Icon·Label을 쓴다. 자식 구성은 Builder가 만든다.
+    /// 알약 버튼은 자기 바탕과 자식 Outline·Icon·Label을, 메뉴 줄은 바탕 없이 자식 Icon·Label을 쓴다.
+    /// 자식 구성은 Builder가 만든다.
     /// </summary>
     public sealed class ThemedElement : MonoBehaviour
     {
@@ -119,6 +120,14 @@ namespace A305.Theme
                         theme.TitleFont,
                         quiet ? theme.Ink : theme.ToneInk(tone)
                     );
+                    break;
+                case UiThemeRole.MenuItem:
+                    Image itemIcon = Child<Image>(transform, "Icon");
+                    Draw(itemIcon, theme.Icons != null ? theme.Icons.Get(icon) : null);
+                    // 집·대화 아이콘은 색 바탕 위에 쓰는 흰 그림이라 밝은 메뉴에서는 글자색으로 칠한다.
+                    if (itemIcon != null && (icon == UiIcon.Home || icon == UiIcon.Talk))
+                        itemIcon.color = theme.Ink;
+                    Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, theme.Ink);
                     break;
                 case UiThemeRole.Title:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);

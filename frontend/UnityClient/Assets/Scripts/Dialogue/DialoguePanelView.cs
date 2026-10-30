@@ -180,7 +180,7 @@ namespace A305.Dialogue
             saveButton.interactable = content.LastNpcLine != null;
             talkButton.gameObject.SetActive(content.UsesVoice);
             talkButton.GetComponent<Button>().interactable = content.CanSend;
-            replayButton.gameObject.SetActive(content.UsesVoice);
+            replayButton.gameObject.SetActive(content.CanReplaySpeech);
             replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
             hintButton.gameObject.SetActive(content.HasHint);
             hintButton.interactable =
@@ -330,10 +330,10 @@ namespace A305.Dialogue
             bool wide = lastCanvasSize.x >= 1200;
             frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(1, 0);
             frame.anchoredPosition = new Vector2(-40, 36);
-            frame.sizeDelta = new Vector2(
-                wide ? Mathf.Min(1400, lastCanvasSize.x - 520) : lastCanvasSize.x - 80,
-                wide ? 360 : 440
-            );
+            float width = wide ? Mathf.Min(1400, lastCanvasSize.x - 520) : lastCanvasSize.x - 80;
+            // 대사 칸은 창 양옆에서 64씩 들어가 있다.
+            float linesHeight = linesText.GetPreferredValues(linesText.text, width - 128, 0).y;
+            frame.sizeDelta = new Vector2(width, DialoguePanelLayout.Height(wide, linesHeight));
             helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, .5f);
             helpPanel.anchoredPosition = new Vector2(40, wide ? -12 : 200);
             helpPanel.sizeDelta = new Vector2(
@@ -347,13 +347,15 @@ namespace A305.Dialogue
                 helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(1, .5f);
                 helpPanel.anchoredPosition = new Vector2(-40, -12);
             }
-            float width = frame.sizeDelta.x;
             ((RectTransform)npcNameText.transform).anchoredPosition = new Vector2(
                 64,
                 frame.sizeDelta.y - 96
             );
             var history = (RectTransform)historyScroll.transform;
-            history.sizeDelta = new Vector2(-128, frame.sizeDelta.y - 302);
+            history.sizeDelta = new Vector2(
+                -128,
+                frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight
+            );
             var input = (RectTransform)inputField.transform;
             input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
             ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 520, 44);

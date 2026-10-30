@@ -23,8 +23,7 @@ unity:format:
           - infra/scripts/run-unity-ci.ps1
           - infra/scripts/prepare-unity-test-inputs.ps1
           - infra/tests/tripo/**/*
-          - .gitlab-ci.yml
-          - .gitlab/ci/**/*
+          - .gitlab/ci/unity.yml
           - AGENTS.md
           - docs/code-conventions.md
           - docs/unity/**/*

@@ -59,8 +59,8 @@ AI의 카드 생성과 실제 저장 성공은 별개다. 같은 대화 종료 �
 워커 계약은 [AI 워커 명세](ai-worker.md) 2.2·2.3·2.7.2절이다. 백엔드(`MemoryService`, `TurnService`)는 다음과 같이 연결한다.
 
 - **사건 저장:** 발화 전송(CONV-03)에서 `/v1/judge`의 `events`를 그 학습자 턴(`turns.events`)에 저장하고, 이후 판정·대답·기억·관계 요청의 `history[].events`로 보낸다. NPC 줄과 사건이 없는 줄은 `[]`이다.
-- **대답·첫 인사:** 끝낸 대화가 있는 NPC면 `/v1/npc/reply`에 `relationship: {recognition, affinity, days_since_last_talk}`를 싣는다. 처음 만나면(끝낸 대화 없음) `memory`와 함께 뺀다. 게임 하루 기준이 정해지기 전까지 `days_since_last_talk`는 0이다(알아봄이 줄어들지 않을 뿐 나머지는 그대로 동작).
-- **대화 종료:** 기억 카드 갱신과 같은 비동기 작업에서 `/v1/npc/relationship`을 부른다. 보내는 `relationship`은 이번 대화를 반영하기 전에 저장돼 있던 값이고, 응답의 `recognition_delta`·`affinity_delta`를 SQL 한 번으로 더한다(알아봄 0~100, 호감 -100~100으로 자름). 그래서 종료 처리가 겹치거나 그 사이 무례로 호감이 깎여도 덮어쓰지 않는다.
+- **대답·첫 인사:** 끝낸 대화가 있는 NPC면 `/v1/npc/reply`에 `relationship: {recognition, affinity, days_since_last_talk}`를 싣는다. 처음 만나면(끝낸 대화 없음) `memory`와 함께 뺀다. `days_since_last_talk`는 사용자별 게임 시계(WORLD-06·07)의 지금 날짜에서 마지막 대화를 끝낸 게임 날짜(`user_npc_relations.last_talk_game_day`)를 뺀 값이다. 게임 시계 도입 전 대화만 있으면 0이다.
+- **대화 종료:** 기억 카드 갱신과 같은 비동기 작업에서 `/v1/npc/relationship`을 부른다. 보내는 `relationship`은 이번 대화를 반영하기 전에 저장돼 있던 값(지난 대화 뒤 지난 게임 날 수 포함)이고, 이번 대화를 끝낸 게임 날짜를 마지막 대화 날로 저장한다. 응답의 `recognition_delta`·`affinity_delta`를 SQL 한 번으로 더한다(알아봄 0~100, 호감 -100~100으로 자름). 그래서 종료 처리가 겹치거나 그 사이 무례로 호감이 깎여도 덮어쓰지 않는다.
 - 호출 조건은 기억 카드와 같다. [대화 종료]로 끝났거나 NPC가 끝낸 대화만, 학습자가 말한 대화만, 같은 대화는 한 번만 반영한다. 카드와 관계 중 하나가 실패해도 다른 하나는 반영하고, 실패한 쪽은 이전 값을 그대로 둔다.
 - 관계 갱신은 모델을 부르지 않으므로 AI 호출 기록(`ai_requests`)을 남기지 않는다.
 

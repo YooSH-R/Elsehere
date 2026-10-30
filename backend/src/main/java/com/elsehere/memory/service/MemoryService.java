@@ -24,6 +24,7 @@ import com.elsehere.memory.entity.UserNpcRelation;
 import com.elsehere.memory.entity.UserNpcRelationId;
 import com.elsehere.memory.repository.UserNpcRelationRepository;
 import com.elsehere.world.repository.NpcRepository;
+import com.elsehere.world.service.GameClockService;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +52,6 @@ public class MemoryService {
 
   // /v1/memory·/v1/npc/relationship가 받는 대화 줄 수 상한
   private static final int HISTORY_LIMIT = 200;
-  // 게임 하루 기준이 정해지기 전까지 마지막 대화 뒤 지난 날은 0으로 보낸다(알아봄이 줄어들지 않을 뿐 나머지는 그대로 동작).
-  private static final int DAYS_SINCE_LAST_TALK = 0;
   private static final TypeReference<Map<String, Object>> CARD = new TypeReference<>() {};
   private static final TypeReference<List<String>> EVENTS = new TypeReference<>() {};
 
@@ -65,6 +64,7 @@ public class MemoryService {
   private final AiRequestRecorder aiRequestRecorder;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
+  private final GameClockService gameClockService;
   private final Clock clock;
 
   /** 다음 대화의 NPC 대답에 넘길 기억과 관계. 끝낸 대화가 없으면(처음 만남) null이다. 호출하는 쪽의 트랜잭션 안에서 부른다. */
@@ -78,7 +78,7 @@ public class MemoryService {
                     relation.getTalkCount(),
                     null,
                     readCard(relation.getMemoryCard()),
-                    relationshipOf(relation)))
+                    relationshipOf(relation, gameClockService.currentDay(userId))))
         .orElse(null);
   }
 
@@ -167,10 +167,14 @@ public class MemoryService {
                 () ->
                     userNpcRelationRepository.save(
                         UserNpcRelation.start(userId, conversation.getNpcId())));
+    // 관계 갱신에는 이번 대화를 반영하기 전의 관계(지난 대화 뒤 지난 날 수 포함)를 보낸다.
+    int today = gameClockService.currentDay(userId);
+    WorkerRelationship before = relationshipOf(relation, today);
     boolean firstTime =
         relation.recordVisit(
             conversationId,
-            conversation.getEndedAt() != null ? conversation.getEndedAt() : clock.instant());
+            conversation.getEndedAt() != null ? conversation.getEndedAt() : clock.instant(),
+            today);
     if (!firstTime) {
       return null;
     }
@@ -186,7 +190,7 @@ public class MemoryService {
         outcome(conversation),
         history(turns),
         readCard(relation.getMemoryCard()),
-        relationshipOf(relation));
+        before);
   }
 
   // 무례로 확정된 말만 rude로 보낸다(판정 실패는 false). 워커가 무례 원문을 표식으로 바꿔 전달한다. 학습자 줄에는 의도 판정이 고른 사건을 함께 보낸다.
@@ -206,9 +210,9 @@ public class MemoryService {
         .toList();
   }
 
-  private static WorkerRelationship relationshipOf(UserNpcRelation relation) {
+  private static WorkerRelationship relationshipOf(UserNpcRelation relation, int today) {
     return new WorkerRelationship(
-        relation.getRecognition(), relation.getAffinity(), DAYS_SINCE_LAST_TALK);
+        relation.getRecognition(), relation.getAffinity(), relation.daysSinceLastTalk(today));
   }
 
   // 대화 결과 한 줄. 서버가 확정한 사실만 쓰고 추측하지 않는다.

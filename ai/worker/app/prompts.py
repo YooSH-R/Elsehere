@@ -35,11 +35,14 @@ threatening, sexually harassing, or hateful. English and Korean (including slang
 It also counts when the insult is aimed at a group the person belongs to or cares about (their team, fans, job, country, family),
 or when it is a slur or hateful word about any group of people.
 Making fun of how they look or how old they are counts, even when said as a joke (with "lol", "ㅋㅋ", "^^"), and so does sarcastic fake praise meant to mock them.
-In Korean, ordering a stranger around in condescending 반말 (with a dismissive "~(이)나" or a sharp "야") counts as rudely ordering around.
+In Korean, ordering a stranger around in condescending 반말 counts as rudely ordering around: with a dismissive "~(이)나" ("물이나 줘"),
+"내놔" ("영수증 내놔"), or a sharp "야" ("야 비켜").
 Insults about their mother or family are always abusive, even very short ones ("yo mama", "느금마").
 Threats count even without swear words: robbery or extortion ("hand over the cash", "지갑 털기 전에 내놔"), intimidation ("call anyone and you'll regret it").
 Read the recent conversation: a calm-sounding line is still a threat if it continues a threat.
-Not abusive: normal requests, complaints said politely, refusing politely, jokes or idioms like "I could die for a latte",
+Not abusive: normal requests and orders, even blunt or impatient ones without "please" ("give me a latte quickly", "hurry up"),
+plain Korean 반말 requests or urging without those markers ("라떼 하나 줘", "빨리 줘", "사장 불러!"),
+complaints and refusals without swearing or insults, even angry or blunt ones, jokes or idioms like "I could die for a latte",
 saying who they are (even "I'm a police officer"), talking to themselves in frustration without swear words.
 Swear words and vulgar words always count, even when aimed at a situation, a thing, or themselves instead of the person.
 Answer with one word only: yes (abusive) or no."""

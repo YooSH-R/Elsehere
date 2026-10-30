@@ -232,6 +232,12 @@ class ConversationServiceTest {
             BusinessException.class,
             exception -> {
               assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_QUOTA_EXHAUSTED);
+              // AI 사용량이 아니라 게스트 대화 횟수 때문에 막혔다고 알린다.
+              assertThat(exception.getMessage())
+                  .isEqualTo(
+                      "게스트는 NPC와 "
+                          + GUEST_CONVERSATION_LIMIT
+                          + "번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요.");
               assertThat(exception.getDetails())
                   .containsEntry("aiStatus", "AI_EXHAUSTED")
                   .containsEntry(

@@ -111,6 +111,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 지원하지 않는 메서드(405)·형식(415)처럼 표에 없는 요청 오류는 그 HTTP 상태와 상태 이름을 `code`로 돌려줍니다(예: `METHOD_NOT_ALLOWED`). 클라이언트 구현 오류이므로 화면에 따로 안내하지 않습니다.
 - `INTERNAL_ERROR`의 `message`에는 내부 오류 내용을 담지 않습니다. 원인은 서버 로그에만 남깁니다.
+- 같은 `code`라도 상황에 맞는 안내가 따로 있으면 `message`가 다를 수 있습니다(예: 게스트 대화 횟수 소진, CONV-01). 클라이언트는 `code`로 처리를 나누고 `message`는 그대로 보여 줍니다.
 - 화면 19의 세 상황은 서로 다른 코드로 구분합니다. 사용량 소진은 `AI_QUOTA_EXHAUSTED`, 응답 실패는 `AI_TEMPORARILY_UNAVAILABLE`·`AI_RESPONSE_INVALID`이며, 마이크 권한 거부와 장치 없음은 브라우저에서 판단하므로 서버 오류 코드가 없습니다.
 - 대화 도중 토큰이 떨어지거나 무례한 말이 쌓인 경우는 오류가 아니라 NPC 대사로 대화가 끝나는 정상 응답입니다(1.4, CONV-03). `AI_RESTRICTED`는 무례 누적에 쓰지 않습니다.
 - 무음·인식 실패(`STT_NO_SPEECH`)는 응답 실패와 별도로 "다시 녹음" 안내를 보여줍니다.
@@ -292,7 +293,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `onboardingStep: DONE` | `lastSceneCode` 장소. 없으면 마을 |
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
-- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
+- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
@@ -710,7 +711,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `runningMissions`는 이 NPC가 대상인 진행 중인 미션이며 상단의 "미션 · …" 표시에 씁니다.
 - `levelApplied`는 사용자의 `selected_level`입니다.
 - 1.4의 규칙대로 한 턴과 피드백에 쓸 토큰이 남아 있어야 시작하며, 피드백용 토큰을 예약합니다. 부족하면 `AI_QUOTA_EXHAUSTED`입니다.
-- 게스트(AUTH-07)는 이미 시작한 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. `details`는 1.5의 형식이며, 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 첫 인사를 만들지 못해 대화가 만들어지지 않은 시도는 세지 않습니다.
+- 게스트(AUTH-07)는 이미 시작한 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. `message`는 사용량 소진 문구 대신 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). `details`는 1.5의 형식이며, 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 첫 인사를 만들지 못해 대화가 만들어지지 않은 시도는 세지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
 - 진행 중인 대화가 있으면 `CONVERSATION_ALREADY_ACTIVE`를 `activeConversationId`와 함께 돌려줍니다.
 - AI를 쓸 수 없는 상태에서는 행인 말걸기를 발생시키지 않습니다. `[제안]` 클라이언트가 BOOT-01·AI-01의 상태로 판단하고, 최종 확인은 이 API에서 합니다.
 
@@ -1129,6 +1130,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
     "canUseSpeech": true,
     "canGenerateFeedback": true
   },
+  "remainingConversations": 2,
   "quota": null,
   "resumeAt": null
 }
@@ -1146,12 +1148,13 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
 - 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
 
-| 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` |
-| --- | --- | --- | --- | --- |
-| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` |
-| 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` |
-| 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` |
+| 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` | `remainingConversations` |
+| --- | --- | --- | --- | --- | --- |
+| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` | 담지 않음 |
+| 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` | 1 이상 |
+| 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` | `0` |
 
+- `remainingConversations`는 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 이미 시작한 대화 수를 뺀 값). 화면은 [E 대화하기]와 행인 제안의 [대화하기]에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 [E 대화하기]를 이유와 함께 비활성화합니다. 가입 사용자는 횟수 제한이 없어 담지 않습니다.
 - 게스트 한도는 새 대화 시작만 막습니다. 마지막으로 시작한 대화도 횟수에 들어가 그 대화 중에도 `AI_EXHAUSTED`이지만, 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
 - 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 

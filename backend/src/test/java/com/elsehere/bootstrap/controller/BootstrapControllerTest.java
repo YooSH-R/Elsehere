@@ -47,7 +47,7 @@ class BootstrapControllerTest {
     UserResponse user =
         new UserResponse(1L, "Sun", AvatarType.F, "en-US", OnboardingStep.DONE, UiTheme.STICKER);
     AiStatusResponse aiStatus =
-        new AiStatusResponse(AiStatus.AI_AVAILABLE, new Capabilities(true, true, true));
+        new AiStatusResponse(AiStatus.AI_AVAILABLE, new Capabilities(true, true, true), null);
     given(bootstrapService.findSignedIn(1L))
         .willReturn(Optional.of(BootstrapResponse.signedIn(user, "TOWN", aiStatus)));
 

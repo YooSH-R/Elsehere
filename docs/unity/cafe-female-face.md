@@ -33,7 +33,7 @@ Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 복�
 
 입 벌림은 원래 미소를 아래로 늘리는 방식에서 교체했다. AA는 위·아래 입술이 벌어지는 윤곽과 구강 안쪽, 아래쪽 혀를 사용한다. F/V는 아랫입술을 올린 상태의 윗니 노출, TH는 치아 사이 혀를 구분한다. 첨부 기준은 `frontend/ArtSources/Characters/CafeFemaleFace/References/`에 보관한다. 첨부 이미지의 10종 모두 해당 복사본에 구성되어 있다. REST는 Basis이며 나머지 9종은 별도 발음 변형이다.
 
-참고 이미지의 입 모양 10종과 미소·눈 감기에 더해, 별도 음성 검수 씬에서 오프라인 TTS가 생성한 발음 시각과 실제 오디오 재생 위치를 연결한다. 실제 카페 대화 재생 경로도 아래의 Kokoro 음소 시간표를 소비하도록 연결되어 있다. 운영 서버 배포와 실제 서비스 음성 수신 여부는 별도로 확인해야 한다. 특히 눈꺼풀 접힘과 F/V·TH의 입술 접촉은 정면·사선에서 외관을 확인해야 한다.
+참고 이미지의 입 모양 10종과 미소·눈 감기에 더해, 별도 음성 검수 씬에서 오프라인 TTS가 생성한 발음 시각과 실제 오디오 재생 위치를 연결한다. 실제 카페 대화 재생 경로는 Kokoro의 발음 순서를 PocketSphinx로 최종 PCM에 정렬한 시간표를 소비한다. 운영 서버 배포와 실제 서비스 음성 수신 여부는 별도로 확인해야 한다. 특히 눈꺼풀 접힘과 F/V·TH의 입술 접촉은 정면·사선에서 외관을 확인해야 한다.
 
 ## Blender 원본과 재사용 범위
 
@@ -100,6 +100,6 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 
 ### 실제 워커 음성으로 영상 검수
 
-AI 워커의 `/v1/tts` 또는 `/v1/audio/{id}`에서 받은 WAV를 저장한 뒤 `CAFE_DIALOGUE_REVIEW_WAV`에 파일 절대 경로, `CAFE_DIALOGUE_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 지정합니다. Editor가 닫힌 상태에서 Unity batchmode의 `-executeMethod A305.EditorTools.Characters.CafeDialogueBuilder.RenderSpeechVideo -quit`를 실행하면 카페 검수 씬의 실제 NPC와 Idle 애니메이션을 사용한 30fps PNG 프레임이 생성됩니다. 같은 WAV를 오디오 트랙으로 합치면 발음 시간과 프레임 시간이 일치하는 영상을 얻습니다.
+AI 워커의 `/v1/tts` 또는 `/v1/audio/{id}`에서 받은 WAV를 저장한 뒤 `CAFE_DIALOGUE_REVIEW_WAV`에 파일 절대 경로, `CAFE_DIALOGUE_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 지정합니다. Editor가 닫힌 상태에서 Unity batchmode의 `-executeMethod A305.EditorTools.Characters.CafeDialogueBuilder.RenderSpeechVideo -quit`를 실행하면 카페 검수 씬의 실제 NPC와 Idle 애니메이션을 사용한 30fps PNG 프레임이 생성됩니다. 같은 WAV를 오디오 트랙으로 합치면 발음 시간과 프레임 시간이 일치하는 영상을 얻습니다. `CAFE_DIALOGUE_REVIEW_FPS`는 1~120 범위이며 기본값은 30입니다. 120fps로 생성한 프레임을 30fps로 재생하고 같은 음성도 0.25배로 재생하면 전환을 생략하지 않는 느린 비교가 가능합니다. 느린 재생은 검수 영상에만 적용하며 실제 서비스 음성을 변경하지 않습니다. 함께 생성되는 `MouthSamples.csv`에는 실제 음성 시각별 입모양 목표 가중치가 기록됩니다. 감정 합성 전 목표값이므로 최종 메시 형태는 PNG에서도 확인해야 합니다.
 
 이 검수는 원본 모델·프리팹·씬을 저장하지 않고 `DialogueServerLink`의 WAV 검증과 `CharacterSpeechPlayer`의 표정 합성을 그대로 사용합니다. 시간표가 없거나 음성과 일치하지 않으면 렌더를 실패시킵니다. 고정된 두 예문 외의 대사도 검수할 수 있습니다. 영상 렌더 통과는 배포 서버나 WebGL에서의 전체 로그인·대화 연동 검증을 대신하지 않습니다.

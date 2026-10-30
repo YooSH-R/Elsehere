@@ -247,8 +247,27 @@ namespace A305.EditorTools.Characters
                 .GetComponent<Camera>();
             FrameReviewFace(speaker, camera);
             const int width = 960,
-                height = 676,
-                fps = 30;
+                height = 676;
+            string rate = Environment.GetEnvironmentVariable("CAFE_DIALOGUE_REVIEW_FPS");
+            int fps = string.IsNullOrEmpty(rate) ? 30 : int.Parse(rate);
+            if (fps < 1 || fps > 120)
+                throw new ArgumentOutOfRangeException(
+                    nameof(fps),
+                    "Review rate must be between 1 and 120."
+                );
+            var trace = new System.Text.StringBuilder("seconds,AA,PP,E,I,OH,OU,FV,TH,EU\n");
+            var tracePoses = new[]
+            {
+                CharacterFacePose.OpenMouth,
+                CharacterFacePose.ClosedLips,
+                CharacterFacePose.E,
+                CharacterFacePose.WideI,
+                CharacterFacePose.OH,
+                CharacterFacePose.OU,
+                CharacterFacePose.FV,
+                CharacterFacePose.TH,
+                CharacterFacePose.FlatEu,
+            };
             int frames = Mathf.CeilToInt(decoded.Timeline.Duration * fps);
             var target = new RenderTexture(width, height, 24);
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
@@ -260,7 +279,24 @@ namespace A305.EditorTools.Characters
                 {
                     if (frame > 0)
                         animator.Update(1f / fps);
-                    speaker.ApplyAtAudioTime(frame / (float)fps);
+                    float seconds = frame / (float)fps;
+                    speaker.ApplyAtAudioTime(seconds);
+                    var mouth = decoded.Timeline.SampleArticulation(seconds);
+                    trace.Append(
+                        seconds.ToString("F6", System.Globalization.CultureInfo.InvariantCulture)
+                    );
+                    foreach (var pose in tracePoses)
+                        trace
+                            .Append(',')
+                            .Append(
+                                mouth
+                                    .Weight(pose)
+                                    .ToString(
+                                        "F6",
+                                        System.Globalization.CultureInfo.InvariantCulture
+                                    )
+                            );
+                    trace.Append('\n');
                     CafeFemaleFaceBuilder.RenderBakedPose(
                         speaker.GetComponent<CharacterFaceController>(),
                         camera
@@ -273,6 +309,10 @@ namespace A305.EditorTools.Characters
                         image.EncodeToPNG()
                     );
                 }
+                System.IO.File.WriteAllText(
+                    System.IO.Path.Combine(output, "MouthSamples.csv"),
+                    trace.ToString()
+                );
                 Debug.Log(
                     $"Cafe speech review: {frames} frames at {fps} fps, verified audio {decoded.Timeline.Duration:F3}s."
                 );

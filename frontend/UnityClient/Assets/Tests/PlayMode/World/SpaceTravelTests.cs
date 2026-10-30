@@ -88,6 +88,31 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator TryTravel_KeepsACameraRenderingUntilArrival()
+        {
+            yield return LoadSpace("CafeScene");
+            int framesWithoutCamera = 0;
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "CafeDoor"), Is.True);
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (
+                (SceneManager.GetActiveScene().name != "TownScene" || SpaceTravel.IsTraveling)
+                && Time.realtimeSinceStartup < deadline
+            )
+            {
+                if (Camera.allCamerasCount == 0)
+                {
+                    framesWithoutCamera++;
+                }
+
+                yield return null;
+            }
+
+            // 그리는 카메라가 없으면 Editor는 덮개 대신 "No cameras rendering"을 띄운다.
+            Assert.That(framesWithoutCamera, Is.Zero);
+        }
+
+        [UnityTest]
         public IEnumerator TryTravel_LeavesOnlyTheDestinationSceneLoaded()
         {
             yield return LoadSpace("TownScene");

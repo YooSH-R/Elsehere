@@ -10,7 +10,7 @@ VALUES
   ('TOWN', '마을', 'TownScene', true),
   ('CAFE', '모퉁이 카페', 'CafeScene', true),
   ('HOTEL', '호텔', 'HotelScene', true),
-  ('SHOP', '편의점', 'ShopScene', true)
+  ('SHOP', '드럭스토어', 'ShopScene', true)
 ON CONFLICT (code) DO UPDATE
 SET name = EXCLUDED.name,
     unity_key = EXCLUDED.unity_key,
@@ -178,8 +178,8 @@ FROM (
     (3, 'HOTEL', 'HOTEL_STAFF', 'Jake', 'STAFF', '호텔 직원',
      '{"role": "the front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
      'af_heart', false, NULL),
-    (4, 'SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '편의점 직원',
-     '{"role": "the helpful clerk at the convenience store.", "facts": "The convenience store sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small convenience store on the town main street."}',
+    (4, 'SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '드럭스토어 직원',
+     '{"role": "the helpful clerk at the drugstore.", "facts": "The drugstore sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small drugstore on the town main street."}',
      'af_heart', false, NULL),
     (5, 'TOWN', 'TAXI_DRIVER', 'Joe', 'STAFF', '택시 기사',
      '{"role": "the friendly driver of a yellow taxi in town.", "facts": "The learner waved the taxi down on the main street. Ask where they want to go. Never invent fares.", "scene": "A yellow taxi stopped by the curb on the town main street."}',

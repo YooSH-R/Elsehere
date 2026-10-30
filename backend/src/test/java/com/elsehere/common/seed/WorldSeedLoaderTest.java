@@ -72,7 +72,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("편의점 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
+  @DisplayName("드럭스토어 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
   void load_insertsScenes() {
     worldSeedLoader.load();
 
@@ -83,7 +83,7 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "마을", "TownScene", true),
             tuple("CAFE", "모퉁이 카페", "CafeScene", true),
             tuple("HOTEL", "호텔", "HotelScene", true),
-            tuple("SHOP", "편의점", "ShopScene", true));
+            tuple("SHOP", "드럭스토어", "ShopScene", true));
   }
 
   @Test
@@ -185,7 +185,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("NPC 5명(행인·카페 직원·호텔 직원·편의점 직원·택시 기사)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName("NPC 5명(행인·카페 직원·호텔 직원·드럭스토어 직원·택시 기사)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -209,7 +209,7 @@ class WorldSeedLoaderTest {
                 "Hi there! Nice weather today, isn't it?"),
             tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null),
             tuple("HOTEL", "HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null),
-            tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "편의점 직원", false, null),
+            tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "드럭스토어 직원", false, null),
             tuple("TOWN", "TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null));
   }
 
@@ -284,7 +284,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("인격 카드가 있는 NPC에는 npc-configurations.json의 카드를 넣고, 카드가 없는 편의점 직원은 비워 둔다")
+  @DisplayName("인격 카드가 있는 NPC에는 npc-configurations.json의 카드를 넣고, 카드가 없는 드럭스토어 직원은 비워 둔다")
   void load_insertsProfilesFromNpcConfigurations() throws IOException {
     worldSeedLoader.load();
 

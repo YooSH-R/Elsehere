@@ -185,10 +185,10 @@ namespace A305.Dialogue
             {
                 npcCode = "SHOP_STAFF",
                 npcName = "Alex",
-                roleLabel = "편의점 직원",
+                roleLabel = "드럭스토어 직원",
                 opening = new LineEntry(
-                    "Hi! Welcome to the convenience store. Can I help you find something?",
-                    "안녕하세요! 편의점에 오신 걸 환영해요. 찾으시는 물건이 있나요?"
+                    "Hi! Welcome to the drugstore. Can I help you find something?",
+                    "안녕하세요! 드럭스토어에 오신 걸 환영해요. 찾으시는 물건이 있나요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
@@ -288,7 +288,7 @@ namespace A305.Dialogue
             [Tooltip("대화 화면에 보이는 NPC 이름")]
             public string npcName;
 
-            [Tooltip("누가 말을 거는지 알릴 때 쓰는 역할. 예: 편의점 직원")]
+            [Tooltip("누가 말을 거는지 알릴 때 쓰는 역할. 예: 드럭스토어 직원")]
             public string roleLabel;
 
             public LineEntry opening = new LineEntry("", "");

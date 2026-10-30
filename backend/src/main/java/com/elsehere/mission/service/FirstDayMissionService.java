@@ -137,6 +137,9 @@ public class FirstDayMissionService {
                     expectedStage, npcCode, intent.ids() == null ? List.of() : intent.ids()));
   }
 
+  // 시작 전과 여정 완료 뒤의 마을 날씨.
+  private static final String CLEAR_WEATHER = "CLEAR";
+
   private static FirstDayMissionResponse response(FirstDayMission mission) {
     boolean started = mission != null;
     int current = started ? mission.getStage() : 0;
@@ -187,6 +190,7 @@ public class FirstDayMissionService {
         scene,
         started && "CAFE".equals(scene) && mission.canRest(),
         started && current >= 4 && current <= 6 && "TOWN".equals(scene),
+        !started || complete ? CLEAR_WEATHER : mission.current().weather(),
         started ? mission.getBalance() : 20,
         situation,
         direction,

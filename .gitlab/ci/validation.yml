@@ -7,6 +7,7 @@ ci:yaml:
       printf 'source=%s commit=%s target=%s diff_base=%s\n' "$CI_PIPELINE_SOURCE" "$CI_COMMIT_SHA" "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
     - pip install --disable-pip-version-check yamllint==1.37.1
     - yamllint -c .yamllint.yml .gitlab-ci.yml .gitlab/ci .yamllint.yml infra/monitoring infra/compose/compose.observability.yaml
+    - python -m unittest discover -s infra/runner/tests -v
 
 infra:deployment-plan-tests:
   extends: .linux-light-job

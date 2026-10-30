@@ -51,7 +51,10 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 대사에 대답할 추천 문장. [힌트]를 누르기 전에는 null이다.</summary>
         string HintText { get; }
 
-        /// <summary>[누르고 말하기]·[다시 듣기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
+        /// <summary>[누르고 말하기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
         bool UsesVoice { get; }
+
+        /// <summary>저장 음성 재생이나 최초 생성 실패의 음성 재시도를 제공할지.</summary>
+        bool CanReplaySpeech { get; }
     }
 }

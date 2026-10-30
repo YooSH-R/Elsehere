@@ -17,10 +17,12 @@ import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.user.entity.ConsentType;
 import com.elsehere.user.service.TrainingConsentService;
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -43,11 +45,11 @@ public class SpeechService {
   private final ConversationSupport support;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
-  private final NpcAudioStore npcAudioStore;
   private final NpcAudioRetention npcAudioRetention;
   private final TransactionTemplate transactionTemplate;
   private final TrainingConsentService trainingConsentService;
   private final TrainingRecordingService trainingRecordingService;
+  private final Clock clock;
 
   /**
    * 녹음을 전사한다. 발화 턴은 만들지 않는다. 받은 음성은 녹음 음성 학습 활용(TRAINING_VOICE)에 동의한 사용자의 것만 인식 결과와 함께 보관하고, 그 밖에는
@@ -90,10 +92,11 @@ public class SpeechService {
 
   /** 저장해 둔 NPC 턴 음성(WAV). [다시 듣기]는 음성을 새로 만들지 않는다. */
   public byte[] npcSpeech(Long userId, Long turnId) {
-    String key =
+    Optional<byte[]> wav =
         transactionTemplate.execute(
-            status -> support.ownedNpcTurn(userId, turnId).getNpcAudioKey());
-    return npcAudioStore.load(key).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+            status -> npcAudioRetention.load(support.ownedNpcTurn(userId, turnId)));
+    // 404를 반환해도 만료·파일 없음 정리는 커밋되어야 한다.
+    return wav.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
   /**
@@ -105,6 +108,7 @@ public class SpeechService {
         transactionTemplate.execute(
             status -> {
               Turn turn = support.ownedNpcTurn(userId, turnId);
+              npcAudioRetention.load(turn);
               Conversation conversation = turn.getConversation();
               NpcContext npc = support.npcById(conversation.getNpcId());
               return new SpeechTarget(
@@ -126,7 +130,10 @@ public class SpeechService {
     String key = npcAudioRetention.save(wav);
     if (key != null) {
       transactionTemplate.executeWithoutResult(
-          status -> turnRepository.findById(turnId).ifPresent(turn -> turn.attachNpcAudio(key)));
+          status ->
+              turnRepository
+                  .findById(turnId)
+                  .ifPresent(turn -> turn.attachNpcAudio(key, clock.instant())));
     }
     return SpeechResponse.of(turnId, key);
   }

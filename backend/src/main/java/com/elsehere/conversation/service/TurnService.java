@@ -166,7 +166,8 @@ public class TurnService {
                       lastSeq + 2,
                       reply.text(),
                       support.writeWords(reply.suggestWords()),
-                      npcAudioKey));
+                      npcAudioKey,
+                      clock.instant()));
           if (!rude) {
             mission.ifPresent(
                 value ->

@@ -34,6 +34,8 @@ namespace A305.EditorTools.Dialogue
             var lines = history.GetComponentInChildren<TMP_Text>(true);
             lines.fontSize = 30;
             lines.lineSpacing = 10;
+            // 긴 대사가 창 오른쪽 끝에서 잘리지 않게 줄을 바꾼다. 창 높이는 DialoguePanelView가 대사 길이에 맞춘다.
+            lines.textWrappingMode = TextWrappingModes.Normal;
             Place(conversation.Find("Status"), 600, 126, 600, 32);
             Transform inputRow = conversation.Find("InputRow");
             FreeLayout(inputRow);

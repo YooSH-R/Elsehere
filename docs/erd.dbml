@@ -15,7 +15,7 @@ Project elsehere {
 // ===== 가입 · 초기 설정 =====
 Table users [headercolor: #3D4A5C] {
   id bigint [pk, increment]
-  provider varchar(20) [not null, note: '로그인 방식 · GOOGLE(소셜 로그인) · GUEST(게스트로 시작하기, API AUTH-07)']
+  provider varchar(20) [not null, note: '로그인 방식 · GOOGLE(소셜 로그인) · GUEST(게스트로 시작하기, API AUTH-07) · 게스트는 마지막 활동 24시간 뒤 내용만 지우고 이 행은 남김(backend README)']
   provider_uid varchar(100) [not null, note: '제공자가 주는 사용자 고유 ID · 게스트는 서버가 만든 임의 값']
   email varchar(255) [note: '제공자가 줄 때만']
   nickname varchar(30) [not null, unique, note: 'NPC가 부르는 이름 · 중복 불가 · 한글 2, 영문·숫자 1로 세어 2자 이상 합계 16 이하 (API AUTH-04)']
@@ -23,7 +23,7 @@ Table users [headercolor: #3D4A5C] {
   onboarding_step varchar(20) [not null, note: 'LANG→LEVEL→TUTORIAL→DONE · 튜토리얼 완료·건너뛰기 시 DONE (튜토리얼 기록은 이 값만 사용)']
   current_language varchar(10) [not null, note: 'en-US']
   ui_theme varchar(20) [not null, default: 'JELLY', note: '화면 테마 · JELLY / STICKER / CLOUD · 집에서 고르며 계정에 저장해 기기와 관계없이 유지 (API USER-01)']
-  role varchar(10) [not null, default: 'USER', note: 'USER / ADMIN · ADMIN만 운영자 어드민(/admin) 사용 · 가입은 항상 USER, 관리자는 운영자가 DB에서 직접 지정 (docs/admin.md)']
+  role varchar(10) [not null, default: 'USER', note: 'USER / ADMIN · ADMIN만 운영자 어드민(/admin) 사용 · 가입은 항상 USER, 관리자는 다른 관리자가 어드민에서 지정·해제 (docs/admin.md)']
   last_scene_id bigint [note: '재접속 위치']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]

@@ -63,7 +63,7 @@ ai:check-and-test:
       changes: *ai_python_change_paths
 
 ai:panel-tests:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: verify
   needs: ["ci:yaml"]
   image: node:22-alpine

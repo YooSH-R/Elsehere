@@ -194,6 +194,35 @@ namespace A305.EditorTools.Dialogue
             return dialogue;
         }
 
+        /// <summary>
+        /// NPC 이름 옆의 호감도·무례 경고 칸 한 줄. 자리와 색은 화면이 이름에 맞춰 정하므로 레이아웃에서 빼고, 처음 만들 때만 숨긴다.
+        /// </summary>
+        private static TMP_Text FindOrCreateStanding(RectTransform panel, TMP_FontAsset font)
+        {
+            bool isNew = panel.Find("Standing") == null;
+            TMP_Text standing = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Standing",
+                font,
+                24f,
+                Color.white
+            );
+            if (isNew)
+            {
+                BuilderTools.GetOrAddComponent<LayoutElement>(standing.gameObject).ignoreLayout =
+                    true;
+                var rect = (RectTransform)standing.transform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+                rect.sizeDelta = new Vector2(600f, 50f);
+                standing.alignment = TextAlignmentOptions.MidlineLeft;
+                standing.textWrappingMode = TextWrappingModes.NoWrap;
+                standing.overflowMode = TextOverflowModes.Ellipsis;
+                standing.gameObject.SetActive(false);
+            }
+
+            return standing;
+        }
+
         private static void SetUpPanel(GameObject root)
         {
             UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 120, receivesClicks: true);
@@ -208,6 +237,7 @@ namespace A305.EditorTools.Dialogue
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
             UiBuilderTools.FindOrCreateText(panel, "Title", bold, 30f, Color.white, "대화 중");
+            TMP_Text standing = FindOrCreateStanding(panel, bold);
             TMP_Text notice = UiBuilderTools.FindOrCreateText(
                 panel,
                 "Notice",
@@ -363,6 +393,7 @@ namespace A305.EditorTools.Dialogue
                 "npcNameText",
                 panel.Find("Title").GetComponent<TMP_Text>()
             );
+            BuilderTools.SetReference(view, "standingText", standing);
             BuilderTools.SetReference(view, "endButton", endButton);
             BuilderTools.SetReference(view, "linesText", lines);
             BuilderTools.SetReference(view, "guideText", guide);
@@ -382,7 +413,8 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "hintButton", hintButton);
             BuilderTools.SetReference(view, "retryButton", retryButton);
             DialogueLayoutBuilder.SetUp(root, view, lines, guide, suggest);
-            BuilderTools.RequireReferences(view);
+            // 택시 안내 문구는 택시 장면에서만 쓰며 TaxiCabinBuilder가 씬의 대화 화면에 연결한다.
+            BuilderTools.RequireReferences(view, "vehicleStatusText");
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);

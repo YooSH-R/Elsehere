@@ -302,6 +302,27 @@ namespace A305.Dialogue
                 UpdateLayout();
         }
 
+        private bool vehicleLayout;
+
+        [SerializeField]
+        private TMP_Text vehicleStatusText;
+
+        public void SetVehicleLayout(bool enabled)
+        {
+            vehicleLayout = enabled;
+            if (!enabled && vehicleStatusText != null)
+                vehicleStatusText.transform.parent.gameObject.SetActive(false);
+            UpdateLayout();
+        }
+
+        public void SetVehicleStatus(string message)
+        {
+            if (vehicleStatusText == null)
+                return;
+            vehicleStatusText.text = message;
+            vehicleStatusText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(message));
+        }
+
         public void UpdateLayout()
         {
             var frame = (RectTransform)panel.transform;
@@ -319,17 +340,24 @@ namespace A305.Dialogue
                 wide ? 390 : Mathf.Min(390, lastCanvasSize.x - 80),
                 Mathf.Max(220, Mathf.Min(680, lastCanvasSize.y - (wide ? 280 : 600)))
             );
+            if (vehicleLayout && wide)
+            {
+                frame.anchorMin = frame.anchorMax = frame.pivot = Vector2.zero;
+                frame.anchoredPosition = new Vector2(40, 36);
+                helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(1, .5f);
+                helpPanel.anchoredPosition = new Vector2(-40, -12);
+            }
             float width = frame.sizeDelta.x;
             ((RectTransform)npcNameText.transform).anchoredPosition = new Vector2(
-                40,
-                frame.sizeDelta.y - 90
+                64,
+                frame.sizeDelta.y - 96
             );
             var history = (RectTransform)historyScroll.transform;
-            history.sizeDelta = new Vector2(-80, frame.sizeDelta.y - 286);
+            history.sizeDelta = new Vector2(-128, frame.sizeDelta.y - 302);
             var input = (RectTransform)inputField.transform;
-            input.sizeDelta = new Vector2(Mathf.Max(160, width - 552), 68);
-            ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 492, 32);
-            ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 322, 32);
+            input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
+            ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 520, 44);
+            ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 328, 44);
         }
 
         private string FormatGuide()

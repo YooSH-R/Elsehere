@@ -29,7 +29,7 @@ namespace A305.Dialogue
 
         public string NpcName { get; }
 
-        /// <summary>대화 제안처럼 누가 말을 거는지 알릴 때 쓰는 역할(예: 편의점 직원). 없으면 null이다.</summary>
+        /// <summary>대화 제안처럼 누가 말을 거는지 알릴 때 쓰는 역할(예: 드럭스토어 직원). 없으면 null이다.</summary>
         public string RoleLabel { get; }
         public DialogueLine OpeningLine { get; }
         public IReadOnlyList<GuidedTurn> GuidedTurns { get; }

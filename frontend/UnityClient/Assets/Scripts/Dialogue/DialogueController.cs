@@ -46,6 +46,9 @@ namespace A305.Dialogue
         /// <summary>서버가 NPC 턴을 확정한 뒤 미션 등 읽기 전용 상태를 갱신할 때 쓴다.</summary>
         public event Action NpcResponded;
 
+        /// <summary>서버가 수락한 무례하지 않은 발화. 월드 상호작용은 이 시점에만 반영한다.</summary>
+        public event Action<string, string> UserTurnAccepted;
+
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
         /// 받는 쪽이 피드백 화면을 열며 이동을 다시 잠가도 풀리지 않는다.
@@ -79,7 +82,7 @@ namespace A305.Dialogue
             return script.NpcName;
         }
 
-        /// <summary>대본에 적힌 NPC 역할(예: 편의점 직원). 대본이나 역할이 없으면 null이다.</summary>
+        /// <summary>대본에 적힌 NPC 역할(예: 드럭스토어 직원). 대본이나 역할이 없으면 null이다.</summary>
         public string FindNpcRoleLabel(string npcCode)
         {
             if (
@@ -247,6 +250,7 @@ namespace A305.Dialogue
             );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
+            serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
             panel.Show(serverConversation);
             _ = serverConversation.StartAsync();
         }
@@ -271,6 +275,7 @@ namespace A305.Dialogue
             {
                 serverConversation.Changed -= panel.Refresh;
                 serverConversation.NpcSpoke -= PlayNpcSpeech;
+                serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
             }
 
             conversation = null;
@@ -278,7 +283,7 @@ namespace A305.Dialogue
             isEnding = false;
             if (serverLink != null)
             {
-                serverLink.StopSpeech();
+                serverLink.ForgetSpeech();
             }
 
             cameraRig.ExitDialogueView();
@@ -299,7 +304,13 @@ namespace A305.Dialogue
             if (conversation != null && conversation.Send(text))
             {
                 panel.Refresh();
+                UserTurnAccepted?.Invoke(conversation.NpcCode, text);
             }
+        }
+
+        private void ForwardAcceptedTurn(string text)
+        {
+            UserTurnAccepted?.Invoke(serverConversation.NpcCode, text);
         }
 
         private void SaveLastNpcLine()
@@ -317,7 +328,10 @@ namespace A305.Dialogue
             if (turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
+                return;
             }
+
+            serverLink.ForgetSpeech();
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).

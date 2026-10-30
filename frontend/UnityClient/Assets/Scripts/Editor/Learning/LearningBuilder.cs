@@ -458,14 +458,14 @@ namespace A305.EditorTools.Learning
             Button home = UiBuilderTools.FindOrCreateButton(
                 root.transform,
                 "HomeButton",
-                "홈으로",
+                "",
                 bold,
                 170
             );
             var homeRect = (RectTransform)home.transform;
             homeRect.anchorMin = homeRect.anchorMax = homeRect.pivot = new Vector2(.5f, 0);
             homeRect.anchoredPosition = new Vector2(0, 24);
-            homeRect.sizeDelta = new Vector2(170, 60);
+            homeRect.sizeDelta = new Vector2(78, 78);
             BuilderTools.SetReference(view, "homeButton", home);
             BuilderTools.SetReference(view, "messageText", message);
             SetUpHistory(root, view, buttons, vocabularyButton, bold, regular);

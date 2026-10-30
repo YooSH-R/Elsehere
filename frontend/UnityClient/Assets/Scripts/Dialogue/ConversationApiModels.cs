@@ -63,6 +63,7 @@ namespace A305.Dialogue
 
     public sealed class UserTurnData
     {
+        public bool Rude { get; set; }
         public long TurnId { get; set; }
         public string Text { get; set; }
     }

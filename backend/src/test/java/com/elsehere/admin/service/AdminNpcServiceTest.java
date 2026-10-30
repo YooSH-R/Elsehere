@@ -61,7 +61,8 @@ class AdminNpcServiceTest {
             tuple("TOWN_PASSERBY", "Ben", "행인", "마을"),
             tuple("CAFE_STAFF", "Mia", "카페 직원", "모퉁이 카페"),
             tuple("HOTEL_STAFF", "Jake", "호텔 직원", "호텔"),
-            tuple("SHOP_STAFF", "Alex", "편의점 직원", "편의점"));
+            tuple("SHOP_STAFF", "Alex", "드럭스토어 직원", "드럭스토어"),
+            tuple("TAXI_DRIVER", "Joe", "택시 기사", "마을"));
   }
 
   @Test
@@ -71,11 +72,11 @@ class AdminNpcServiceTest {
 
     assertThat(detail.npcCode()).isEqualTo("SHOP_STAFF");
     assertThat(detail.name()).isEqualTo("Alex");
-    assertThat(detail.sceneName()).isEqualTo("편의점");
+    assertThat(detail.sceneName()).isEqualTo("드럭스토어");
     assertThat(detail.voiceId()).isEqualTo("af_heart");
-    assertThat(detail.role()).isEqualTo("the helpful clerk at the convenience store.");
-    assertThat(detail.facts()).startsWith("The convenience store sells umbrellas");
-    assertThat(detail.scene()).isEqualTo("A small convenience store on the town main street.");
+    assertThat(detail.role()).isEqualTo("the helpful clerk at the drugstore.");
+    assertThat(detail.facts()).startsWith("The drugstore sells umbrellas");
+    assertThat(detail.scene()).isEqualTo("A small drugstore on the town main street.");
   }
 
   @Test

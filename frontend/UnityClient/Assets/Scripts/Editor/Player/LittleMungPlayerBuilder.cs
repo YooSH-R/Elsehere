@@ -22,7 +22,7 @@ namespace A305.EditorTools.Player
         private const string MovementSettingsPath = DataFolder + "/Movement.asset";
         private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const float JumpHeightMeters = 0.675f;
-        private const float CameraRotateDegreesPerPixel = 0.1f;
+        private const float CameraRotateDegreesPerPixel = 0.15f;
 
         /// <summary>이미 만든 이동 설정·애니메이터·카메라 감도를 현재 조작값으로 갱신한다. 프리팹과 씬은 그대로 둔다.</summary>
         [MenuItem("Tools/A305/Player/Apply Movement Tuning")]

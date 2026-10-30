@@ -5,6 +5,7 @@ using System.Linq;
 using A305.Player;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
@@ -44,6 +45,45 @@ namespace A305.World.PlayModeTests
             yield return WaitForArrival("CafeScene");
 
             AssertPlayerArrivedAt("TownDoor");
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_CoversTheScreenWhileTheSceneChanges()
+        {
+            yield return LoadSpace("TownScene");
+            float opacityWhenSceneChanged = -1f;
+            UnityAction<Scene, LoadSceneMode> onSceneLoaded = (scene, mode) =>
+                opacityWhenSceneChanged = CurtainOpacity();
+            SceneManager.sceneLoaded += onSceneLoaded;
+            try
+            {
+                Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+                yield return WaitForArrival("CafeScene");
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= onSceneLoaded;
+            }
+
+            // 씬이 바뀌는 순간의 끊김은 화면이 다 덮인 뒤에 일어나야 보이지 않는다.
+            Assert.That(opacityWhenSceneChanged, Is.EqualTo(1f));
+            yield return WaitUntilCurtainOpens();
+            Assert.That(CurtainOpacity(), Is.EqualTo(0f));
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_LoadsFasterOnlyWhileTheScreenIsCovered()
+        {
+            yield return LoadSpace("TownScene");
+            ThreadPriority usualPriority = Application.backgroundLoadingPriority;
+
+            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+            // 덮인 동안에는 프레임이 끊겨도 보이지 않으므로 불러오기에 프레임 시간을 더 쓴다.
+            Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(ThreadPriority.High));
+            yield return WaitForArrival("CafeScene");
+            yield return WaitUntilCurtainOpens();
+
+            Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(usualPriority));
         }
 
         [UnityTest]
@@ -212,6 +252,21 @@ namespace A305.World.PlayModeTests
 
             // 도착한 뒤 한 프레임 동안 이동·카메라 갱신이 위치를 흐트러뜨리지 않는지 함께 본다.
             yield return null;
+        }
+
+        private static float CurtainOpacity()
+        {
+            var curtain = Object.FindFirstObjectByType<SpaceTravelCurtain>();
+            return curtain != null ? curtain.Opacity : 0f;
+        }
+
+        private static IEnumerator WaitUntilCurtainOpens()
+        {
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (CurtainOpacity() > 0f && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
         }
 
         private static void AssertPlayerArrivedAt(string doorwayId)

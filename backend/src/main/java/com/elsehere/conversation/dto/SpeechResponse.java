@@ -18,10 +18,10 @@ public record SpeechResponse(SpeechStatus status, String url) {
   }
 
   /**
-   * @param npcAudioDeletedAt 보관 정책으로 음성을 지운 시각. 지우지 않았으면 null
+   * @param npcAudioDeletedAt 보관 정책으로 재생을 차단한 시각. 삭제 대기를 포함하며, 처음 생성에 실패했으면 null
    */
   public static SpeechResponse of(Long turnId, String npcAudioKey, Instant npcAudioDeletedAt) {
-    if (npcAudioKey == null && npcAudioDeletedAt != null) {
+    if (npcAudioDeletedAt != null) {
       return new SpeechResponse(SpeechStatus.EXPIRED, null);
     }
     return of(turnId, npcAudioKey);

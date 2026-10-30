@@ -85,9 +85,10 @@ class GuestContentCleanupTest {
         "update npcs set approach_audio_key = ? where code = 'TOWN_PASSERBY'", sharedKey);
     Long guestId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
     Conversation conversation = conversation(entityManager, guestId, "TOWN_PASSERBY");
-    entityManager.persist(Turn.npc(conversation, 1, "Hi there!", null, sharedKey));
+    Instant audioCreatedAt = Instant.parse("2026-10-28T00:00:00Z");
+    entityManager.persist(Turn.npc(conversation, 1, "Hi there!", null, sharedKey, audioCreatedAt));
     textTurn(entityManager, conversation, 2, "Hello");
-    entityManager.persist(Turn.npc(conversation, 3, "Nice weather!", null, ownKey));
+    entityManager.persist(Turn.npc(conversation, 3, "Nice weather!", null, ownKey, audioCreatedAt));
     entityManager.flush();
     lastActive(guestId, Duration.ofDays(2));
 

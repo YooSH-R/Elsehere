@@ -50,6 +50,42 @@ namespace A305.EditorTools.ObjectHover
             fields.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // 이미 있는 공용 단어를 쓴다.
+        public static ObjectWordDefinition LoadWord(string file)
+        {
+            var word = AssetDatabase.LoadAssetAtPath<ObjectWordDefinition>(
+                $"{WordsFolder}/{file}.asset"
+            );
+            if (word == null)
+                throw new InvalidOperationException("공용 단어가 없습니다: " + file);
+            return word;
+        }
+
+        // Builder가 새로 놓는 사물의 단어는 뜻·예문·예문 해석과 함께 없을 때만 만든다.
+        public static ObjectWordDefinition FindOrCreateWord(
+            string file,
+            string text,
+            string meaningKo,
+            string example,
+            string exampleKo
+        )
+        {
+            string path = $"{WordsFolder}/{file}.asset";
+            var definition = AssetDatabase.LoadAssetAtPath<ObjectWordDefinition>(path);
+            if (definition != null)
+                return definition;
+            definition = ScriptableObject.CreateInstance<ObjectWordDefinition>();
+            var fields = new SerializedObject(definition);
+            fields.FindProperty("details.text").stringValue = text;
+            fields.FindProperty("details.meaningKo").stringValue = meaningKo;
+            fields.FindProperty("details.example").stringValue = example;
+            fields.FindProperty("details.exampleKo").stringValue = exampleKo;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.CreateAsset(definition, path);
+            EnsureIdentity(definition);
+            return definition;
+        }
+
         public static ObjectWordDefinition[] LoadDefinitions(bool assignIdentity = true)
         {
             var definitions = AssetDatabase

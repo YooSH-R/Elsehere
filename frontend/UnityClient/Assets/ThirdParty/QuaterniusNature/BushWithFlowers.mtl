@@ -1,0 +1,7 @@
+newmtl BushWithFlowers_Leaves_NormalTree
+Kd 1.0000 1.0000 1.0000
+map_Kd NormalTreeLeaves.png
+
+newmtl BushWithFlowers_Flowers
+Kd 1.0000 1.0000 1.0000
+map_Kd Flowers.png

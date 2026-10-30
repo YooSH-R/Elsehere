@@ -47,7 +47,7 @@
 | 한도 | 3회 (서버 설정값 `rudeLimit`) |
 | 1~2회째 | 대화 계속. NPC가 경고 지시문으로 대답, 상태는 그대로 |
 | 3회째 | NPC가 퇴장 지시문으로 대답하고 대화가 끝남. `status: ENDED_BY_NPC`, `endReason: RUDE` |
-| 호감도 | 무례로 센 말마다(3회째 포함) 그 NPC의 호감도(`user_npc_relations.affinity`, -100~100)를 깎음. `/v1/guard`의 `affinity_delta`(NPC 성격 반영)를 쓰고, 비어 있으면 서버 설정 기본값 -4(`elsehere.relationship.rude-affinity-delta`) |
+| 호감도 | 무례로 센 말마다(3회째 포함) 그 NPC의 호감도(`user_npc_relations.affinity`, -100~100)를 깎음. `/v1/guard`의 `affinity_delta`(NPC 성격 반영)를 쓰고, 비어 있으면 서버 설정 기본값 -6(`elsehere.relationship.rude-affinity-delta`) |
 | 퇴장 뒤 | 다른 종료와 같이 CONV-08로 피드백을 만듦 |
 | 다시 말 걸기 | 막지 않음. 일정 시간 막는 것은 MVP에서 제외 |
 

@@ -16,6 +16,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace A305.EditorTools.Theme
 {
@@ -51,6 +52,33 @@ namespace A305.EditorTools.Theme
                 CaptureReview(Path.Combine(output, $"review-{name}.png"));
             }
             UiThemeSelection.Shared.Select(UiThemeId.Jelly);
+        }
+
+        public static void CaptureApprovedButtons()
+        {
+            string output = Environment.GetEnvironmentVariable("THEME_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new InvalidOperationException("Set THEME_PREVIEW_OUTPUT.");
+            Directory.CreateDirectory(output);
+            UiThemeSelection.Shared.Select(UiThemeId.Jelly);
+            Scene home = Open("HomeScene", out Camera homeCamera);
+            Show<LearningHudView>(home, homeCamera, .5f).SetVocabularyCount(0);
+            var picker = Show<ThemePickerView>(home, homeCamera, .4f);
+            Field<GameObject>(picker, "window").SetActive(false);
+            Render(home, homeCamera, Path.Combine(output, "approved-home-buttons.png"));
+            Scene town = Open("TownScene", out Camera townCamera);
+            Show<LearningHudView>(town, townCamera, .5f).SetVocabularyCount(0);
+            var journal = Show<FirstDayMissionView>(town, townCamera, .4f);
+            journal.SetAvailable(true);
+            journal.BindMap("TOWN", BuilderTools.FindSingleInScene<PlayerMover>(town).transform);
+            journal.ShowMessage("로그인이 필요합니다.");
+            Field<TMP_Text>(journal, "journey").text =
+                "○  호텔 도착\n○  카페에서 휴식\n○  사라진 가방\n○  가방 찾기\n○  갑작스런 비\n○  우산 구매\n○  호텔 체크인";
+            Field<Button>(journal, "startButton").gameObject.SetActive(true);
+            Field<Button>(journal, "restButton").gameObject.SetActive(false);
+            Field<GameObject>(journal, "journal").SetActive(true);
+            Field<TMP_Text>(journal, "situation").transform.parent.gameObject.SetActive(false);
+            Render(town, townCamera, Path.Combine(output, "approved-quest-buttons.png"));
         }
 
         private static void CaptureHome(string path)
@@ -104,8 +132,7 @@ namespace A305.EditorTools.Theme
             Field<TMP_Text>(dialogue, "guideText").text =
                 "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요.";
             Field<TMP_Text>(dialogue, "statusText").text = "Ben이 듣고 있어요";
-            Field<TMP_Text>(dialogue, "suggestText").text =
-                "추천 단어 · umbrella · convenience store";
+            Field<TMP_Text>(dialogue, "suggestText").text = "추천 단어 · umbrella · drugstore";
             var tooltip = Show<WordTooltipView>(scene, camera, 0.45f);
             Field<TMP_Text>(tooltip, "wordLabel").text = "umbrella";
             Field<TMP_Text>(tooltip, "meaningLabel").text = "우산";
@@ -124,7 +151,7 @@ namespace A305.EditorTools.Theme
             Field<TMP_Text>(feedback, "summaryText").text =
                 "길을 묻고 우산 파는 곳을 잘 알아냈어요.";
             Field<TMP_Text>(feedback, "bodyText").text =
-                "더 자연스럽게 · <b>Is there a convenience store nearby?</b>";
+                "더 자연스럽게 · <b>Is there a drugstore nearby?</b>";
             var guide = Show<TutorialGuideView>(scene, camera, 0.45f);
             Field<GameObject>(guide, "panel").SetActive(true);
             Field<TMP_Text>(guide, "titleText").text =

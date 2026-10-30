@@ -46,9 +46,9 @@ NPCS = {
     "SHOP_STAFF": Npc(
         id="SHOP_STAFF",
         name="Alex",
-        role="the helpful clerk at the convenience store.",
-        facts="The convenience store sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.",
-        scene="A small convenience store on the town main street.",
+        role="the helpful clerk at the drugstore.",
+        facts="The drugstore sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.",
+        scene="A small drugstore on the town main street.",
     ),
 }
 
@@ -101,12 +101,12 @@ STAGES = {
         },
     ),
     "RAINY_STREET": (
-        "It has started raining. The learner recovered the small bag. The convenience store sells umbrellas for 8 coins; "
-        "the learner has 20 quest coins. Give directions to the store marked CONVENIENCE STORE, not the cafe or hotel. "
+        "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins; "
+        "the learner has 20 quest coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. "
         "Do not sell an umbrella yourself.",
         {
             "ask_umbrella_shop": "Ask where to buy an umbrella or for a store selling one.",
-            "ask_directions": "Ask or confirm directions or the location of the convenience store.",
+            "ask_directions": "Ask or confirm directions or the location of the drugstore.",
         },
     ),
     "BUY_UMBRELLA": (

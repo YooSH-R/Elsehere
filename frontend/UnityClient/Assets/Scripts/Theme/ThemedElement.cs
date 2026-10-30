@@ -73,6 +73,8 @@ namespace A305.Theme
                         Child<Image>(face, "Icon"),
                         theme.Icons != null ? theme.Icons.Get(icon) : null
                     );
+                    if (icon == UiIcon.Home && Child<Image>(face, "Icon") != null)
+                        Child<Image>(face, "Icon").color = theme.Ink;
                     Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, theme.Ink);
                     break;
                 case UiThemeRole.PillButton:

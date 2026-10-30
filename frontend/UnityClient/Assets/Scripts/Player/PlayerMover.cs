@@ -113,7 +113,7 @@ namespace A305.Player
                 move = Vector2.ClampMagnitude(move + touchControls.Move, 1f);
             }
 
-            // 카메라가 등 뒤로 따라 도는 동안에도 누르고 있는 키는 걷기 시작할 때의 카메라 방향으로 읽는다.
+            // 카메라가 플레이어 뒤로 다시 맞춰져도 누르고 있는 키는 걷기 시작할 때의 카메라 방향으로 읽는다.
             float referenceYaw = moveReference.Resolve(
                 move,
                 cameraTransform.eulerAngles.y,

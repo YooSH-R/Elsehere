@@ -1,6 +1,6 @@
 # 검사 파이프라인과 Runner 연결
 
-검사 설정은 `.gitlab-ci.yml`과 `.gitlab/ci/`에서 관리합니다. Runner는 GitLab의 작업을 받아 실행하는 프로세스이며, 이 프로젝트에는 `a305-linux`와 `a305-linux-light` 태그의 Docker executor를 연결합니다. 설정 파일 작성, Runner 등록, 실제 작업 성공은 각각 확인합니다.
+검사 설정은 `.gitlab-ci.yml`과 `.gitlab/ci/`에서 관리합니다. 일반 Linux 검사는 `a305-linux-ci` 태그로 EC2와 노트북의 Docker Runner가 나눠 받습니다. 경량 검사는 EC2의 `a305-linux-light` Runner에서 실행하며, 배포 계획·전달은 `a305-ec2` 태그도 요구해 EC2로 제한합니다. 설정 파일 작성, Runner 등록, 실제 작업 성공은 각각 확인합니다.
 
 ## 자동 검사 범위
 
@@ -61,28 +61,29 @@ Unity 관련 MR은 **포맷 검사와 실제 EditMode·PlayMode 실행 테스트
 ## 동일 서버의 실행 구조와 제한
 
 ```text
-GitLab → Runner 관리 컨테이너 (전체 최대 3개)
-          ├─ a305-linux-light (최대 1개) → 경량 검사 컨테이너
-          └─ a305-linux (최대 2개) → 빌드·검사 컨테이너
-                                    └─ 테스트 전용 Docker 서비스 → 임시 PostgreSQL
+GitLab → EC2 Runner 관리 컨테이너 (최대 3개)
+          ├─ a305-linux-light + a305-ec2 (최대 1개) → 경량 검사·배포 계획
+          └─ a305-linux-ci + a305-ec2 (최대 2개) → 일반 검사·이미지 전달
+       → 노트북 Linux Runner (최대 1개, a305-linux-ci) → 일반 검사
 
 호스트 Docker → a305-dev / a305-prod (서비스 실행)
 ```
 
 Runner 관리 컨테이너만 호스트 Docker 소켓을 사용합니다. 일반 검사 컨테이너에는 소켓이나 앱의 환경 파일·인증서를 마운트하지 않습니다. Testcontainers는 검사 작업 전용 rootless Docker 서비스에 연결합니다. 프로젝트 Runner는 서버의 Docker를 제어하므로 팀 저장소의 신뢰하는 작업에만 사용합니다. [Runner 컨테이너 운영](https://docs.gitlab.com/runner/install/docker/)
 
-전체 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드 대기열과 분리합니다.
+EC2의 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드 대기열과 분리합니다. 노트북 Linux Runner는 별도로 한 개만 실행합니다. Windows Unity Runner의 동시 실행 수와는 별도 제한입니다.
 
 | 태그 | 동시 작업 | 자원 상한 | 작업 |
 | --- | --- | --- | --- |
-| `a305-linux-light` | 1개 | CPU 1개·메모리 1GiB. Docker 서비스 실행 불가 | YAML, Unity 포맷, AI 패널, 인프라 스크립트 검사, 외부 Unity MR 차단, dev·prod 배포 계획 |
-| `a305-linux` | 2개 | 작업당 CPU 2개·메모리 3GiB. 필요한 Docker 서비스는 CPU 1개·메모리 2GiB | 백엔드·AI 검사, Compose·Nginx·관측 검사, 앱 실행 검사·이미지 전달 |
+| EC2 `a305-linux-light` | 1개 | CPU 1개·메모리 1GiB. Docker 서비스 실행 불가 | YAML, Unity 포맷, AI 패널, 인프라 스크립트 검사, 외부 Unity MR 차단. 배포 계획은 `a305-ec2`도 요구 |
+| EC2 `a305-linux-ci` | 2개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 일반 검사. 이미지 전달은 `a305-ec2`도 요구 |
+| 노트북 `a305-linux-ci` | 1개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 백엔드·AI 검사, Compose·Nginx·관측 검사, 앱 실행 검사 |
 
 동시 실행 수는 작업을 받을 수 있는 상한이며 CPU 4개·메모리 16GiB 서버에서 모든 작업의 최대 자원을 보장하는 값은 아닙니다. 앱·모니터링과 자원을 공유하므로 CPU 사용률·가용 메모리·앱 응답을 함께 확인합니다. 빌드 부하가 크면 일반 Runner의 `limit`를 먼저 낮춰 경량 검사 자리를 유지합니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 변경 전에 생성된 작업은 기존 태그를 유지하므로 이전 경량 작업도 일반 Runner에서 실행될 수 있습니다.
 
 백엔드는 Gradle 의존성·Wrapper 캐시와 `--build-cache`의 작업 결과 캐시를 함께 사용합니다. 입력이 달라진 작업은 다시 실행하며 캐시가 없어도 검사·빌드를 수행합니다. 캐시 복원·저장 시간도 작업 실행 시간에 포함해 확인합니다.
 
-제한값과 허용 서비스는 `infra/runner/config.template.toml`을 따릅니다. 이 파일에는 토큰이 없으며 등록 완료 파일을 대체하는 완성본이 아닙니다. 등록된 항목의 인증 정보는 보존하고 제한값을 해당 항목에 병합합니다. [Runner 고급 설정](https://docs.gitlab.com/runner/configuration/advanced-configuration/)
+제한값과 허용 서비스는 EC2의 `infra/runner/config.template.toml`, 노트북의 `infra/runner/laptop.config.template.toml`을 따릅니다. 두 파일에는 토큰이 없으며 등록 완료 파일을 대체하는 완성본이 아닙니다. 등록된 항목의 인증 정보는 보존하고 제한값을 해당 항목에 병합합니다. [Runner 고급 설정](https://docs.gitlab.com/runner/configuration/advanced-configuration/)
 
 ### Docker 이미지와 AI 모델 계층 캐시
 
@@ -99,13 +100,41 @@ Docker 27 이후 기본 빌드 드라이버의 캐시 내보내기에는 contain
 프로젝트 **Settings → CI/CD → Runners → Create project runner**에서 생성합니다.
 
 - 플랫폼: Linux
-- 태그: 일반 Runner는 `a305-linux`, 경량 Runner는 `a305-linux-light`
+- 태그: EC2 일반 Runner는 `a305-linux-ci,a305-ec2,a305-linux`, EC2 경량 Runner는 `a305-linux-light,a305-ec2`, 노트북 Linux Runner는 `a305-linux-ci`만 지정
 - Run untagged jobs: 해제
 - 설명: 일반 Runner는 `a305-linux-ci`, 경량 Runner는 `a305-linux-light-ci`
 - Lock to current projects: 활성화
 - 처음에는 Paused 상태로 생성하고 자원 제한 반영 후 활성화합니다.
 
 등록 화면의 `glrt-` 인증 토큰은 서버의 등록 프롬프트에만 입력합니다. 저장소·채팅·터미널 출력 공유에 포함하지 않습니다. MR 검사에 사용하므로 protected 브랜치 전용으로 제한하는 옵션은 선택하지 않습니다. 배포용 권한은 이 검사 Runner에 추가하지 않습니다.
+
+### 노트북 Linux Runner
+
+Docker Desktop의 WSL2 Linux 엔진에서 Runner 관리 컨테이너를 실행합니다. Windows Unity Runner와 등록·설정 볼륨을 분리하고 `laptop.config.template.toml`의 `concurrent=1`, `limit=1`과 자원 제한을 적용합니다. 관리 컨테이너는 CPU 0.25개·메모리 256MiB, 로그는 파일당 10MiB·3개로 제한합니다.
+
+관리 컨테이너의 Docker 소켓 연결은 노트북 Docker의 컨테이너·볼륨을 제어할 권한을 줍니다. 일반 검사 컨테이너에는 이 소켓이나 Windows 사용자 폴더를 마운트하지 않으며, PostgreSQL·이미지 빌드는 작업별 rootless Docker 서비스에서 실행합니다. 노트북의 Docker에 중요한 개인 서비스를 함께 운영한다면 별도 Linux VM 등 독립된 Docker 엔진을 준비합니다.
+
+GitLab에서 설명 `a305-laptop-linux-ci`, 태그 `a305-linux-ci`, Run untagged jobs 해제, 프로젝트 잠금 활성화, 최초 Paused로 생성합니다. 다음과 같이 전용 설정 볼륨을 사용하는 공식 `gitlab/gitlab-runner:alpine-v18.11.4` 컨테이너를 준비하고 등록 프롬프트로 인증 토큰을 입력합니다.
+
+```powershell
+docker desktop start --detach
+docker volume create a305-laptop-runner-config
+docker run -d --name a305-laptop-linux-runner --restart unless-stopped `
+  --cpus 0.25 --memory 256m `
+  --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 `
+  -v a305-laptop-runner-config:/etc/gitlab-runner `
+  -v /var/run/docker.sock:/var/run/docker.sock `
+  gitlab/gitlab-runner:alpine-v18.11.4
+docker exec -it a305-laptop-linux-runner gitlab-runner register
+```
+
+등록 URL은 `https://lab.ssafy.com`, executor는 `docker`, 기본 이미지는 `alpine:3.22`입니다. 생성된 인증 정보는 유지하고 노트북 템플릿의 한 작업 제한·Docker 설정을 적용한 뒤 `verify`와 실제 일반 검사 성공을 확인하고 Paused를 해제합니다. 토큰이나 설정 전체를 로그로 출력하지 않습니다.
+
+EC2 일반 Runner에는 기존 `a305-linux` 태그를 남겨 이전 파이프라인을 계속 처리하게 합니다. 노트북에는 이 이전 태그와 `a305-ec2`를 부여하지 않으므로, 변경 전의 배포도 노트북으로 넘어가지 않습니다. 새 설정은 병합 후 생성한 파이프라인과 해당 설정을 반영한 작업 브랜치부터 적용됩니다.
+
+공통 태그의 작업은 여유가 있는 Runner가 나눠 받으며 정확한 반반 배분이나 EC2 우선순위를 보장하지 않습니다. 노트북이 꺼졌거나 Docker Desktop이 중지되면 새 일반 검사는 EC2에서 처리할 수 있습니다. 이미 노트북에서 실행 중이던 작업은 자동 이전되지 않으므로 중단 시 상태를 확인하고 재시도합니다.
+
+설정 회귀 검사는 `python -m unittest discover -s infra/runner/tests -v`로 실행하며 `ci:yaml`에도 연결합니다. 일반 검사 태그, 배포 계획·전달의 EC2 제한, 노트북의 한 작업 제한과 Docker 소켓 비공유를 확인합니다.
 
 ## Ubuntu 서버에 Runner 설치·등록
 
@@ -192,7 +221,7 @@ sudo apparmor_parser -r /etc/apparmor.d/usr.local.bin.rootlesskit
 ## 자동 실행 검증과 병합 조건
 
 1. CI 설정이 포함된 작업 브랜치의 MR에서 파이프라인이 생성되는지 확인합니다. dev 병합 전에도 검사할 수 있습니다.
-2. `a305-linux` 작업이 Pending에서 Running으로 바뀌는지 확인합니다.
+2. `a305-linux-ci` 작업이 EC2 또는 노트북에서 Pending에서 Running으로 바뀌는지 확인합니다. 계획·전달 작업은 EC2에만 배정돼야 합니다.
 3. 백엔드 DB 테스트·품질 검사·빌드가 성공하고 JUnit 보고서·JAR·커밋 식별자가 보관되는지 확인합니다.
 4. Unity 포맷·AI 검사와 적용 가능한 인프라 검사를 확인합니다. 인프라 설정 MR과 통합한 버전에서도 검사합니다.
 5. 일반 문서·백엔드·프론트·AI·API 명세 변경에 따라 작업 선택이 달라지고 열린 MR의 Push가 중복 파이프라인을 만들지 않는지 확인합니다.

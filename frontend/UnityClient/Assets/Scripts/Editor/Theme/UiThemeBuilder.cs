@@ -602,7 +602,7 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/MoreTools/ExampleButton",
+                "Panel/Conversation/ToolRow/ExampleButton",
                 UiIcon.Example,
                 UiTone.Accent,
                 caption: true
@@ -616,7 +616,7 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/MoreTools/SaveButton",
+                "Panel/Conversation/ToolRow/SaveButton",
                 UiIcon.Save,
                 UiTone.Neutral,
                 caption: true
@@ -637,7 +637,7 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/MoreTools/HintButton",
+                "Panel/Conversation/ToolRow/HintButton",
                 UiIcon.Hint,
                 UiTone.Positive,
                 caption: true

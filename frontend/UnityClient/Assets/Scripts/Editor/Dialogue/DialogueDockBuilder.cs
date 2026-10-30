@@ -1,9 +1,7 @@
 using A305.EditorTools.Common;
-using A305.EditorTools.UI;
 using A305.Theme;
 using TMPro;
 using UnityEditor;
-using UnityEditor.Events;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -55,57 +53,7 @@ namespace A305.EditorTools.Dialogue
             Control(inputRow.Find("SendButton"), "보내기", "send");
             Place(inputRow.Find("TalkButton"), 1078, 32, 282, 68);
             Control(inputRow.Find("TalkButton"), "누르고 말하기", "mic", true);
-            Transform tools = conversation.Find("ToolRow");
-            FreeLayout(tools);
-            Place(tools, 40, 116, 1320, 56);
-            Place(tools.Find("ReplayButton"), 0, 0, 144, 56);
-            Control(tools.Find("ReplayButton"), "듣기", "replay");
-            Place(tools.Find("MeaningButton"), 160, 0, 144, 56);
-            Control(tools.Find("MeaningButton"), "뜻", "meaning");
-            Transform more = tools.Find("MoreTools");
-            Place(more, 320, 72, 240, 224);
-            var column = more.GetComponent<VerticalLayoutGroup>();
-            column.padding = new RectOffset(20, 20, 20, 20);
-            column.spacing = 12;
-            var fitter = BuilderTools.GetOrAddComponent<ContentSizeFitter>(more.gameObject);
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            Theme(more, UiThemeRole.Panel);
-            Control(more.Find("SaveButton"), "담기", "insert");
-            Control(more.Find("HintButton"), "힌트", "meaning");
-            Control(more.Find("ExampleButton"), "예시 문장", "insert");
-            foreach (Transform child in more)
-            {
-                var size = BuilderTools.GetOrAddComponent<LayoutElement>(child.gameObject);
-                size.preferredHeight = 56;
-                size.minHeight = 56;
-            }
-            Transform moreTransform = tools.Find("MoreButton");
-            if (moreTransform == null)
-            {
-                moreTransform = new GameObject(
-                    "MoreButton",
-                    typeof(RectTransform),
-                    typeof(Image)
-                ).transform;
-                moreTransform.SetParent(tools, false);
-                UiBuilderTools.FindOrCreateText(
-                    moreTransform,
-                    "Label",
-                    UiBuilderTools.BoldFont(),
-                    22,
-                    Color.black
-                );
-            }
-            Place(moreTransform, 320, 0, 56, 56);
-            GameObject moreObject = moreTransform.gameObject;
-            var toggle = BuilderTools.GetOrAddComponent<Toggle>(moreObject);
-            Control(moreTransform, "", "more");
-            toggle.targetGraphic = toggle.GetComponent<Image>();
-            toggle.isOn = false;
-            while (toggle.onValueChanged.GetPersistentEventCount() > 0)
-                UnityEventTools.RemovePersistentListener(toggle.onValueChanged, 0);
-            UnityEventTools.AddPersistentListener(toggle.onValueChanged, more.gameObject.SetActive);
-            more.gameObject.SetActive(false);
+            ToolRow(conversation.Find("ToolRow"));
             Transform help = root.transform.Find("HelpPanel");
             FreeLayout(help);
             help.GetComponent<Image>().enabled = false;
@@ -122,6 +70,40 @@ namespace A305.EditorTools.Dialogue
             Control(hint, "넣기", "insert");
             var hintSize = hint.GetComponent<LayoutElement>();
             hintSize.minHeight = hintSize.preferredHeight = 60;
+        }
+
+        /// <summary>
+        /// 대화 보조 버튼을 [듣기]·[뜻]·[힌트]·[예시 문장]·[담기] 순서로 한 줄에 놓는다.
+        /// 대화 종류에 따라 숨는 버튼이 있어 가로 정렬로 빈자리 없이 붙인다.
+        /// </summary>
+        public static void ToolRow(Transform tools)
+        {
+            Place(tools, 40, 116, 1320, 56);
+            var row = tools.GetComponent<HorizontalLayoutGroup>();
+            row.enabled = true;
+            row.spacing = 16;
+            row.padding = new RectOffset(0, 0, 0, 0);
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childControlWidth = row.childControlHeight = true;
+            row.childForceExpandWidth = row.childForceExpandHeight = false;
+            ToolButton(tools.Find("ReplayButton"), "듣기", "replay", 144);
+            ToolButton(tools.Find("MeaningButton"), "뜻", "meaning", 144);
+            ToolButton(tools.Find("HintButton"), "힌트", "meaning", 144);
+            ToolButton(tools.Find("ExampleButton"), "예시 문장", "insert", 184);
+            ToolButton(tools.Find("SaveButton"), "담기", "insert", 144);
+            Transform more = tools.Find("MoreButton");
+            if (more != null)
+                Object.DestroyImmediate(more.gameObject);
+        }
+
+        private static void ToolButton(Transform button, string caption, string icon, float width)
+        {
+            button.SetAsLastSibling();
+            var size = BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject);
+            size.ignoreLayout = false;
+            size.minWidth = size.preferredWidth = width;
+            size.minHeight = size.preferredHeight = 56;
+            Control(button, caption, icon);
         }
 
         private static void HelpCard(Transform card, string title, float minimumHeight)

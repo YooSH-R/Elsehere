@@ -239,10 +239,16 @@ namespace A305.EditorTools.Dialogue
             );
             RectTransform inputRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "InputRow");
             RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
-            RectTransform moreTools = UiBuilderTools.FindOrCreateColumn(toolRow, "MoreTools");
-            MoveLegacy(inputRow, "ExampleButton", moreTools);
-            MoveLegacy(toolRow, "SaveButton", moreTools);
-            MoveLegacy(toolRow, "HintButton", moreTools);
+            // [힌트]를 바로 누를 수 있게 [...] 메뉴(MoreTools)에 넣었던 버튼을 도구 줄로 꺼낸다.
+            Transform moreTools = toolRow.Find("MoreTools");
+            if (moreTools != null)
+            {
+                MoveLegacy(moreTools, "ExampleButton", toolRow);
+                MoveLegacy(moreTools, "SaveButton", toolRow);
+                MoveLegacy(moreTools, "HintButton", toolRow);
+                Object.DestroyImmediate(moreTools.gameObject);
+            }
+            MoveLegacy(inputRow, "ExampleButton", toolRow);
             MoveLegacy(toolRow, "TalkButton", inputRow);
             TMP_InputField input = UiBuilderTools.FindOrCreateInputField(
                 inputRow,
@@ -258,7 +264,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button exampleButton = UiBuilderTools.FindOrCreateButton(
-                moreTools,
+                toolRow,
                 "ExampleButton",
                 "예시 문장",
                 bold,
@@ -272,7 +278,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button saveButton = UiBuilderTools.FindOrCreateButton(
-                moreTools,
+                toolRow,
                 "SaveButton",
                 "표현 저장",
                 bold,
@@ -309,7 +315,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button hintButton = UiBuilderTools.FindOrCreateButton(
-                moreTools,
+                toolRow,
                 "HintButton",
                 "힌트",
                 bold,

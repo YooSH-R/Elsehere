@@ -34,6 +34,12 @@ namespace A305.World
         private float startDistance;
 
         [SerializeField]
+        [Tooltip(
+            "남쪽 주차 트럭을 피해 중앙 쪽으로 비켜가는 거리. 남쪽까지 운행하는 택시에만 설정한다."
+        )]
+        private float parkedTruckBypassOffset;
+
+        [SerializeField]
         private TrafficLights lights;
 
         [SerializeField]
@@ -46,6 +52,9 @@ namespace A305.World
         private readonly List<float> stops = new List<float>();
         private float? pullOverDistance;
         private float height;
+        private bool passengerOnBoard;
+
+        public void SetPassengerOnBoard(bool onBoard) => passengerOnBoard = onBoard;
 
         public TrafficLights Lights => lights;
 
@@ -88,7 +97,7 @@ namespace A305.World
 
         private void Update()
         {
-            CarLoopRoute.Pose pose = Route.PoseAt(Distance);
+            CarLoopRoute.Pose pose = CarLaneBypass.PoseAt(Route, Distance, parkedTruckBypassOffset);
             if (IsBlocked(pose))
             {
                 return;
@@ -105,14 +114,17 @@ namespace A305.World
                 stops.Add(pullOverDistance.Value);
             }
 
-            Distance = Route.Advance(Distance, speedMetersPerSecond * Time.deltaTime, stops);
+            bool isPassing = Mathf.Abs(pose.Position.x - Route.PoseAt(Distance).Position.x) > .01f;
+            float speed = isPassing ? Mathf.Min(3, speedMetersPerSecond) : speedMetersPerSecond;
+            Distance = Route.Advance(Distance, speed * Time.deltaTime, stops);
             Place();
         }
 
         private bool IsBlocked(CarLoopRoute.Pose pose)
         {
             if (
-                player != null
+                !passengerOnBoard
+                && player != null
                 && CarLoopRoute.ShouldYield(pose.Position, pose.Forward, player.transform.position)
             )
             {
@@ -139,7 +151,7 @@ namespace A305.World
 
         private void Place()
         {
-            CarLoopRoute.Pose pose = Route.PoseAt(Distance);
+            CarLoopRoute.Pose pose = CarLaneBypass.PoseAt(Route, Distance, parkedTruckBypassOffset);
             transform.SetPositionAndRotation(
                 pose.Position + Vector3.up * height,
                 Quaternion.LookRotation(pose.Forward)

@@ -147,6 +147,7 @@ namespace A305.EditorTools.World
             );
             Drive("Sedan", parent, route, route.SouthboundDistance(2.3f), lights, player);
             SeatTaxiDriver(scene, taxi, player);
+            TaxiCabinBuilder.Configure(scene, taxi.GetComponent<TaxiRide>());
         }
 
         private static GameObject Drive(

@@ -17,16 +17,23 @@ p = argparse.ArgumentParser()
 p.add_argument('--surface', type=Path, required=True)
 p.add_argument('--texture', type=Path, required=True)
 p.add_argument('--output', type=Path, required=True)
+p.add_argument('--name', default='CafeFemaleFace')
+p.add_argument('--offset', type=float, nargs=3, default=(0, 0, 0))
+p.add_argument('--eye-centers', type=float, nargs=2, default=(.082, -.155))
+p.add_argument('--eye-height', type=float, default=.573)
+p.add_argument('--eye-radius', type=float, nargs=2, default=(.058, .048))
+p.add_argument('--skip-render', action='store_true')
 a = p.parse_args(sys.argv[sys.argv.index('--')+1:])
 a.output.mkdir(parents=True, exist_ok=True)
-if (a.output/'CafeFemaleFacePreview.blend').exists():
+if (a.output/(a.name+'Preview.blend')).exists():
     raise FileExistsError('Use a fresh output directory to preserve existing artist edits.')
 d = json.loads(a.surface.read_text(encoding='utf-8-sig'))
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 def cv(v): return Vector((v['x'], -v['z'], v['y']))
 def uv(v): return dict(x=float(v.x), y=float(v.z), z=float(-v.y))
-vertices = [cv(v) for v in d['vertices']]
+offset = Vector(a.offset)
+vertices = [cv(v)+offset for v in d['vertices']]
 normals = [cv(v) for v in d['normals']]
 triangles = []
 for i in range(0,len(d['triangles']),3):
@@ -72,12 +79,12 @@ for channel in channels:
         normal=normals[i].copy()
         if v.x<-.11:
             if channel.startswith('eyeBlink'):
-                center=.082 if channel.endswith('Left') else -.155
-                r=math.sqrt(((v.y-center)/.058)**2+((v.z-.573)/.048)**2)
+                center=a.eye_centers[0] if channel.endswith('Left') else a.eye_centers[1]
+                r=math.sqrt(((v.y-center)/a.eye_radius[0])**2+((v.z-a.eye_height)/a.eye_radius[1])**2)
                 w=fade(r,1.15,2.1)*fade(v.x,-.17,-.11)
-                q.z+=(.567-.004*((v.y-center)/.058)**2-v.z)*.997*w
+                q.z+=(a.eye_height-.006-.004*((v.y-center)/a.eye_radius[0])**2-v.z)*.997*w
                 q.x+=.003*w
-                surface_normal=Vector((-1,2.8*(v.y+.043),.8*(v.z-.573))).normalized()
+                surface_normal=Vector((-1,2.8*(v.y+.043),.8*(v.z-a.eye_height))).normalized()
                 normal=normals[i].lerp(surface_normal,w).normalized()
             else:
                 y=v.y+.043
@@ -160,7 +167,7 @@ for name, color, scale, placements in oral_parts:
     parts.append((ob, color))
 
 # Closed lid contours remain hidden at neutral and follow the blink channel.
-for side, center in [('Left',.082),('Right',-.155)]:
+for side, center in zip(['Left','Right'], a.eye_centers):
     curve=bpy.data.curves.new('Closed'+side+'Lid','CURVE')
     curve.dimensions='3D'
     curve.bevel_depth=.0014
@@ -169,8 +176,8 @@ for side, center in [('Left',.082),('Right',-.155)]:
     line=curve.splines.new('POLY')
     line.points.add(24)
     for i,point in enumerate(line.points):
-        y=center-.044+.088*i/24
-        z=.567-.004*((y-center)/.058)**2
+        y=center-a.eye_radius[0]*.76+a.eye_radius[0]*1.52*i/24
+        z=a.eye_height-.006-.004*((y-center)/a.eye_radius[0])**2
         point.co=(-.14,y,z,1)
     ob=bpy.data.objects.new('Closed'+side+'Lid',curve)
     bpy.context.collection.objects.link(ob)
@@ -200,12 +207,20 @@ result=dict(vertices=d['vertices'],triangles=kept_triangles,shapes=shape_data(bo
 for shape in result['shapes']:shape['deltaNormals']=normal_offsets[shape['name']]
 for ob,color in parts:
     ob.data.calc_loop_triangles()
-    result['parts'].append(dict(name=ob.name,vertices=[uv(v.co) for v in ob.data.vertices],triangles=[i for t in ob.data.loop_triangles for i in t.vertices],color=dict(r=color[0],g=color[1],b=color[2],a=1),shapes=shape_data(ob),useSourceMaterial=bool(ob.get('use_source_material',False)),uv=json.loads(ob.get('vertex_uv','[]')),textureFile=ob.get('texture_file',''),normals=json.loads(ob.get('base_normals','[]'))))
-(a.output/'CafeFemaleFaceShapes.json').write_text(json.dumps(result,separators=(',',':')))
+    result['parts'].append(dict(name=ob.name,vertices=[uv(v.co-offset) for v in ob.data.vertices],triangles=[i for t in ob.data.loop_triangles for i in t.vertices],color=dict(r=color[0],g=color[1],b=color[2],a=1),shapes=shape_data(ob),useSourceMaterial=bool(ob.get('use_source_material',False)),uv=json.loads(ob.get('vertex_uv','[]')),textureFile=ob.get('texture_file',''),normals=json.loads(ob.get('base_normals','[]'))))
+(a.output/(a.name+'Shapes.json')).write_text(json.dumps(result,separators=(',',':')))
 for ob in [body,*[p[0] for p in parts]]:
     for k in ob.data.shape_keys.key_blocks:k.value=0
-bpy.ops.wm.save_as_mainfile(filepath=str(a.output/'CafeFemaleFacePreview.blend'))
+# Return the authored copy to the exact source coordinates; normals and offsets are vectors.
+for ob in [body,*[p[0] for p in parts]]:
+    for key in ob.data.shape_keys.key_blocks:
+        for vertex in key.data: vertex.co -= offset
+    for vertex in ob.data.vertices: vertex.co -= offset
+body.name = a.name+'Preview'
+body.data.name = a.name
+bpy.ops.wm.save_as_mainfile(filepath=str(a.output/(a.name+'Preview.blend')))
 
+if a.skip_render: sys.exit(0)
 scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.samples=32;scene.cycles.use_denoising=True
 scene.world.color=(.3,.3,.3);scene.view_settings.view_transform='AgX'
 def aim(o,target):o.rotation_euler=(Vector(target)-o.location).to_track_quat('-Z','Y').to_euler()

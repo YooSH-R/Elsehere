@@ -52,19 +52,39 @@ namespace A305.EditorTools.Characters
         [MenuItem("Tools/A305/Characters/Build Cafe Female Face Preview")]
         public static void Build()
         {
-            if (File.Exists(PrefabPath))
+            BuildCopy(SourcePath, PrefabPath, ArtFolder, ShapePath, "CafeFemaleFace", true);
+            BuildScene();
+        }
+
+        public static void BuildCopy(
+            string sourcePath,
+            string prefabPath,
+            string artFolder,
+            string shapePath,
+            string meshName,
+            bool preview
+        )
+        {
+            if (File.Exists(prefabPath))
                 throw new InvalidOperationException(
                     "The preview already exists; keep artist edits and open its sandbox scene."
                 );
-            Directory.CreateDirectory(ArtFolder);
+            Directory.CreateDirectory(artFolder);
             AssetDatabase.Refresh();
-            var data = JsonUtility.FromJson<FaceData>(File.ReadAllText(ShapePath));
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>(SourcePath);
+            var data = JsonUtility.FromJson<FaceData>(File.ReadAllText(shapePath));
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath);
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            var savedRoot = instance;
+            if (!preview)
+            {
+                savedRoot = new GameObject(Path.GetFileNameWithoutExtension(prefabPath));
+                instance.transform.SetParent(savedRoot.transform, false);
+            }
             try
             {
-                instance.name = "CafeFemaleFacePreview";
-                RemovePreviewBehaviors(instance);
+                instance.name = meshName;
+                if (preview)
+                    RemovePreviewBehaviors(instance);
                 var skin = instance.GetComponentInChildren<SkinnedMeshRenderer>();
                 var original = skin.sharedMesh;
                 if (data.vertices.Length != original.vertexCount)
@@ -78,25 +98,24 @@ namespace A305.EditorTools.Characters
                             "The source mesh changed; re-author face data before binding."
                         );
                 var mesh = Object.Instantiate(original);
-                mesh.name = "CafeFemaleFace";
+                mesh.name = meshName;
                 mesh.triangles = data.triangles;
                 AddShapes(mesh, data.shapes);
-                AssetDatabase.CreateAsset(mesh, ArtFolder + "/CafeFemaleFace.asset");
+                AssetDatabase.CreateAsset(mesh, artFolder + "/" + meshName + ".asset");
                 skin.sharedMesh = mesh;
                 PrefabUtility.RecordPrefabInstancePropertyModifications(skin);
                 int head = Array.FindIndex(skin.bones, b => b.name == "Head");
                 if (head < 0)
                     throw new InvalidOperationException("The source has no Head bone.");
                 foreach (var part in data.parts)
-                    CreatePart(skin, part, head);
+                    CreatePart(skin, part, head, artFolder, shapePath);
                 instance.AddComponent<CharacterFaceController>();
-                PrefabUtility.SaveAsPrefabAsset(instance, PrefabPath);
+                PrefabUtility.SaveAsPrefabAsset(savedRoot, prefabPath);
             }
             finally
             {
-                Object.DestroyImmediate(instance);
+                Object.DestroyImmediate(savedRoot);
             }
-            BuildScene();
             AssetDatabase.SaveAssets();
         }
 
@@ -226,7 +245,13 @@ namespace A305.EditorTools.Characters
             }
         }
 
-        private static void CreatePart(SkinnedMeshRenderer body, Part data, int head)
+        private static void CreatePart(
+            SkinnedMeshRenderer body,
+            Part data,
+            int head,
+            string artFolder = ArtFolder,
+            string shapePath = ShapePath
+        )
         {
             var mesh = new Mesh
             {
@@ -249,7 +274,7 @@ namespace A305.EditorTools.Characters
                 mesh,
                 data.shapes.Where(s => s.deltaVertices.Any(v => v.sqrMagnitude > 1e-12f)).ToArray()
             );
-            AssetDatabase.CreateAsset(mesh, ArtFolder + "/" + data.name + ".asset");
+            AssetDatabase.CreateAsset(mesh, artFolder + "/" + data.name + ".asset");
             var material = new Material(Shader.Find("Universal Render Pipeline/Lit"))
             {
                 name = data.name,
@@ -270,10 +295,10 @@ namespace A305.EditorTools.Characters
                     throw new InvalidOperationException(
                         "The face texture must be a local file name."
                     );
-                string texturePath = ArtFolder + "/" + data.textureFile;
+                string texturePath = artFolder + "/" + data.textureFile;
                 if (!File.Exists(texturePath))
                     File.Copy(
-                        Path.Combine(Path.GetDirectoryName(ShapePath), data.textureFile),
+                        Path.Combine(Path.GetDirectoryName(shapePath), data.textureFile),
                         texturePath
                     );
                 AssetDatabase.ImportAsset(texturePath);
@@ -282,7 +307,7 @@ namespace A305.EditorTools.Characters
                     AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath)
                 );
             }
-            AssetDatabase.CreateAsset(material, ArtFolder + "/" + data.name + ".mat");
+            AssetDatabase.CreateAsset(material, artFolder + "/" + data.name + ".mat");
             var child = new GameObject(data.name);
             child.transform.SetParent(body.transform, false);
             var skin = child.AddComponent<SkinnedMeshRenderer>();
@@ -346,7 +371,8 @@ namespace A305.EditorTools.Characters
                 for (int i = 0; i < skins.Length; i++)
                 {
                     meshes[i] = new Mesh();
-                    skins[i].BakeMesh(meshes[i]);
+                    // Compensate the renderer scale before placing the baked mesh under that transform.
+                    skins[i].BakeMesh(meshes[i], true);
                     objects[i] = new GameObject("PoseRender");
                     objects[i].transform.SetParent(skins[i].transform, false);
                     objects[i].AddComponent<MeshFilter>().sharedMesh = meshes[i];

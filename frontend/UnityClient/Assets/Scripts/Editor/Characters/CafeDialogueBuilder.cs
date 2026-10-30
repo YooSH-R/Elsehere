@@ -327,7 +327,7 @@ namespace A305.EditorTools.Characters
             }
         }
 
-        private static void FrameReviewFace(CharacterSpeechPlayer speaker, Camera camera)
+        internal static void FrameReviewFace(CharacterSpeechPlayer speaker, Camera camera)
         {
             var mouth = speaker
                 .GetComponentsInChildren<SkinnedMeshRenderer>()
@@ -335,7 +335,7 @@ namespace A305.EditorTools.Characters
             var baked = new Mesh();
             try
             {
-                mouth.BakeMesh(baked);
+                mouth.BakeMesh(baked, true);
                 Vector3 lips = mouth.transform.TransformPoint(baked.bounds.center);
                 var head = speaker
                     .GetComponentInChildren<Animator>()

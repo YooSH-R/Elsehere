@@ -56,7 +56,7 @@ namespace A305.Characters
                 new Rect(12, 12, 240, Mathf.Min(520, Screen.height - 24)),
                 GUI.skin.box
             );
-            GUILayout.Label("Cafe Female - Face Preview");
+            GUILayout.Label(face.gameObject.name + " - Face Preview");
             GUILayout.Label("10 speech mouths + smile / blink");
             scroll = GUILayout.BeginScrollView(scroll, GUILayout.ExpandHeight(true));
             foreach (var option in Options)

@@ -116,6 +116,48 @@ namespace A305.Player.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Player_JumpingInPlaceBeforeStep_LandsWithFeetOnTheFloor()
+        {
+            yield return LoadHome();
+            // 보도 경계석처럼 높이 0.1m 턱. 플레이어는 턱 0.4m 앞에서 턱을 보고 선다.
+            Box(new Vector3(0f, .05f, -1.5f), new Vector3(2f, .1f, 1f));
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            float previousDelta = Time.captureDeltaTime;
+            Time.captureDeltaTime = 1f / 60f;
+            player.Teleport(new Vector3(0f, 0f, -.6f), Quaternion.LookRotation(Vector3.back));
+            player.CameraRig.SnapBehindTarget();
+            var oldBackground = InputSystem.settings.backgroundBehavior;
+            var oldEditorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
+                .EditorInputBehaviorInPlayMode
+                .AllDeviceInputAlwaysGoesToGameView;
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            try
+            {
+                yield return WaitSeconds(.5f);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Space));
+                yield return null;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return WaitSeconds(2f);
+
+                // 떨어지는 동안 계단 보정이 공중의 발 위치를 디딤점으로 잡으면 착지 뒤에도 외형이 떠 있다.
+                Assert.That(
+                    LowestSkinHeight(player) - player.transform.position.y,
+                    Is.LessThan(.06f),
+                    "제자리 점프 뒤 외형 발이 바닥에 닿아야 합니다."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
+                InputSystem.settings.backgroundBehavior = oldBackground;
+                Time.captureDeltaTime = previousDelta;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Player_FallingIntoGapNarrowerThanHead_StandsOnTheFloor()
         {
             yield return LoadHome();

@@ -2,7 +2,7 @@
 # Preserve each entry's id, token, token timestamps, name and URL.
 concurrent = 3
 
-# Project runner tagged a305-linux: builds, Python tests and Docker checks.
+# EC2 general runner tags: a305-linux-ci, a305-ec2, a305-linux (legacy jobs).
 [[runners]]
   limit = 2
   executor = "docker"
@@ -25,7 +25,7 @@ concurrent = 3
     wait_for_services_timeout = 60
     volumes = ["/cache"]
 
-# Project runner tagged a305-linux-light: short checks and deployment planning.
+# EC2 light runner tags: a305-linux-light, a305-ec2.
 [[runners]]
   limit = 1
   executor = "docker"

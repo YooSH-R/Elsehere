@@ -293,6 +293,7 @@ namespace A305.Dialogue
             isEnding = false;
             if (serverLink != null)
             {
+                // 립싱크 대상을 놓으면서 지난 대사의 음성도 멈추고 버린다(ForgetSpeech 포함).
                 serverLink.SetSpeaker(null);
             }
 

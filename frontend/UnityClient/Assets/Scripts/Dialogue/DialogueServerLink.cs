@@ -36,6 +36,8 @@ namespace A305.Dialogue
 
         public bool IsAvailable => useServer && apiSettings != null;
         public VoiceRecorder VoiceRecorder => voiceRecorder;
+
+        /// <summary>지금 대사의 음성을 받아 두었는지. 지난 대사의 음성은 세지 않는다.</summary>
         public bool HasSpeech => lastSpeech.Clip != null;
         public string LipSyncNotice { get; private set; }
 
@@ -54,7 +56,11 @@ namespace A305.Dialogue
             LipSyncNotice = bindingNotice;
         }
 
-        /// <summary>기존 GET 음성에서 PCM과 음소 시간을 함께 읽는다. 음성을 다시 합성하지 않는다.</summary>
+        /// <summary>
+        /// 기존 GET 음성에서 PCM과 음소 시간을 함께 읽는다. 음성을 다시 합성하지 않는다.
+        /// 받지 못하거나 받는 사이 새 대사로 바뀌었으면 재생하지 않고 false를 돌려준다(자막만 보여 준다).
+        /// </summary>
+        /// <param name="url">서버가 준 다시 듣기 주소(/api/v1/turns/{id}/speech)</param>
         public async Task<bool> PlaySpeechAsync(string url)
         {
             StopSpeech();
@@ -64,7 +70,7 @@ namespace A305.Dialogue
             byte[] bytes = await DownloadSpeechAsync(url);
             if (this == null || request != playbackRequest || !isActiveAndEnabled || bytes == null)
                 return false;
-            return PlayDownloadedVoice(bytes, url);
+            return PlayDownloadedVoice(url, bytes);
         }
 
         protected virtual async Task<byte[]> DownloadSpeechAsync(string url)
@@ -91,12 +97,12 @@ namespace A305.Dialogue
         {
             StopSpeech();
             ReleaseVoice();
-            const string recordedVoice = "offline-recorded-voice";
-            lastSpeech.Expect(recordedVoice);
-            return PlayDownloadedVoice(wav, recordedVoice);
+            // 검수용 녹음에는 서버 주소가 없어 주소 없이 받는다.
+            lastSpeech.Expect(null);
+            return PlayDownloadedVoice(null, wav);
         }
 
-        private bool PlayDownloadedVoice(byte[] bytes, string url)
+        private bool PlayDownloadedVoice(string url, byte[] bytes)
         {
             DialogueSpeechWav decoded;
             try
@@ -129,20 +135,24 @@ namespace A305.Dialogue
             return true;
         }
 
+        /// <summary>지금 대사의 음성을 처음부터 다시 재생한다.</summary>
         public void ReplaySpeech()
         {
-            if (lastSpeech.Clip == null)
+            AudioClip clip = lastSpeech.Clip;
+            if (clip == null)
                 return;
             if (speaker != null)
-                speaker.Play(lastSpeech.Clip, lastTimeline);
+                speaker.Play(clip, lastTimeline);
             else if (speechSource != null)
             {
-                speechSource.clip = lastSpeech.Clip;
+                speechSource.clip = clip;
                 speechSource.Play();
             }
         }
 
-        /// <summary>새 대사에 음성이 없으면 이전 음성과 발음 시간을 지우고 현재 화자는 유지한다.</summary>
+        /// <summary>
+        /// 새 대사에 음성이 없을 때(합성 실패 등) 지난 대사의 음성을 멈추고 버린다. [다시 듣기]가 지난 대사를 재생하지 않고 음성을 다시 만든다.
+        /// </summary>
         public void ForgetSpeech()
         {
             StopSpeech();

@@ -501,6 +501,7 @@ Blender 스크립트는 저장소 루트에서 다음과 같이 실행한다.
 
 ```powershell
 & '<Blender 실행 파일>' --background --factory-startup --disable-autoexec --python-exit-code 1 --python infra/tests/tripo/test_blender_bridge.py
+& '<Blender 실행 파일>' --background --factory-startup --disable-autoexec --python-exit-code 1 --python infra/tests/tripo/test_materials.py
 ```
 
 운영 모델의 조형·텍스처·음성 품질과 Editor의 실제 클릭·청취 검수는 별도로 수행한다.
@@ -528,6 +529,7 @@ API 새 생성 전에 실행 파일이 있는지 확인한다. 경로 지정은 
 
 - 격리한 FBX 복사본에서 내장 이미지와 동반 텍스처를 읽고 색상·노멀을 PNG로 저장한다.
 - 이미지의 잘못된 확장자에 의존하지 않고 Blender가 읽은 재질 연결을 사용한다.
+- 내장·지연 로딩 이미지는 크기 조회로 로드한 뒤 데이터 유효성을 확인한다. 아직 로드하지 않은 노멀맵을 누락으로 오판하지 않으며, 실제로 없거나 읽을 수 없는 이미지는 계속 실패 처리한다.
 - 색상 이미지와 바이트가 동일한 노멀 입력은 해제한다. 정상 노멀은 Normal Map 설정으로 가져온다.
 - 모델별 `Textures/materials.json`에 대응 관계와 자동 수정 내용을 남긴다.
 - 여러 재질의 이름 대응이나 이미지 읽기에 실패하면 가져오기를 중단한다. 새 API 생성으로 해결하려 하지 않는다.

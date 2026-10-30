@@ -57,7 +57,7 @@ Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 복�
 
 `CafeFemaleExpressiveSpeechPreview.prefab`은 음성 검수 프리팹의 별도 변형이다. 기존 `CafeFemaleSpeechPreview`는 Viseme ID 방식 비교본으로 보존한다. 원본 `Barista.prefab`과 기존 표정 확인 씬은 변경하지 않는다. 음성과 시간표는 `Assets/Audio/Characters/CafeFemale/`, 두 파일을 묶는 `CharacterSpeechClip`은 `Assets/Data/Characters/CafeFemaleExpressiveSpeech.asset`에 있다. 친근한 미소 강도·첫 눈 깜박임·간격은 `FriendlySpeechExpression.asset`에서 조절한다. 재생 중 음량이 들리지 않으면 Game 창의 Mute Audio와 OS 출력 장치를 확인한다.
 
-`CharacterSpeechPlayer`는 프레임 수나 경과 시간을 누적하지 않고 `AudioSource.timeSamples / frequency`로 현재 발음을 찾는다. `SpeechVisemeTimeline`은 새 v2 음소 데이터에서 각 발음 내부와 인접 발음 사이를 보간한다. 무음·종료에서는 입이 중립으로 돌아간다. 기존 v1 Viseme 전용 데이터의 재생도 유지한다. 입력 형식/Viseme 범위/구간 순서/음성 길이가 잘못되면 재생을 거부한다. Builder는 WAV의 SHA-256이 시간표와 일치하는지도 확인한다. `CharacterFaceController.ApplySpeech`가 발음·미소·눈 깜박임을 한 번에 적용한다. 눈꺼풀은 발음과 독립적이고, 입술 접촉이나 둥근 모음이 우선되도록 미소의 입꼬리 영향을 낮춘다. 관절 보정 채널은 바꾸지 않는다. 일시정지하면 표정 시계도 정지하고 종료하면 모두 중립으로 돌아간다.
+`CharacterSpeechPlayer`는 프레임 수나 경과 시간을 누적하지 않고 `AudioSource.timeSamples / frequency`로 현재 발음을 찾는다. `SpeechVisemeTimeline`은 새 v2 음소 데이터에서 각 발음 내부와 인접 발음 사이를 보간한다. 무음·종료에서는 입이 중립으로 돌아간다. 기존 v1 Viseme 전용 데이터의 재생도 유지한다. 입력 형식/Viseme 범위/구간 순서/음성 길이가 잘못되면 재생을 거부한다. Builder는 WAV의 SHA-256이 시간표와 일치하는지도 확인한다. `CharacterFaceController.ApplySpeech`가 발음·미소·눈 깜박임을 한 번에 적용한다. 눈꺼풀은 발음과 독립적이고, 입술 접촉이나 둥근 모음이 우선되도록 미소의 입꼬리 영향을 낮춘다. F/V·TH/DH는 해당 음소의 중앙 구간에서 제작된 접촉 모양을 온전히 적용한다. 단일 시점의 약한 정점만 사용하지 않으며, 진입·이탈은 인접 발음과 보간한다. 이 접촉이 완성되는 동안에는 미소로 입꼬리가 당겨지지 않게 한다. 관절 보정 채널은 바꾸지 않는다. 일시정지하면 표정 시계도 정지하고 종료하면 모두 중립으로 돌아간다.
 
 ### 새 로컬 음성 만들기
 
@@ -103,3 +103,5 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 AI 워커의 `/v1/tts` 또는 `/v1/audio/{id}`에서 받은 WAV를 저장한 뒤 `CAFE_DIALOGUE_REVIEW_WAV`에 파일 절대 경로, `CAFE_DIALOGUE_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 지정합니다. Editor가 닫힌 상태에서 Unity batchmode의 `-executeMethod A305.EditorTools.Characters.CafeDialogueBuilder.RenderSpeechVideo -quit`를 실행하면 카페 검수 씬의 실제 NPC와 Idle 애니메이션을 사용한 30fps PNG 프레임이 생성됩니다. 같은 WAV를 오디오 트랙으로 합치면 발음 시간과 프레임 시간이 일치하는 영상을 얻습니다. `CAFE_DIALOGUE_REVIEW_FPS`는 1~120 범위이며 기본값은 30입니다. 120fps로 생성한 프레임을 30fps로 재생하고 같은 음성도 0.25배로 재생하면 전환을 생략하지 않는 느린 비교가 가능합니다. 느린 재생은 검수 영상에만 적용하며 실제 서비스 음성을 변경하지 않습니다. 함께 생성되는 `MouthSamples.csv`에는 실제 음성 시각별 입모양 목표 가중치가 기록됩니다. 감정 합성 전 목표값이므로 최종 메시 형태는 PNG에서도 확인해야 합니다.
 
 이 검수는 원본 모델·프리팹·씬을 저장하지 않고 `DialogueServerLink`의 WAV 검증과 `CharacterSpeechPlayer`의 표정 합성을 그대로 사용합니다. 시간표가 없거나 음성과 일치하지 않으면 렌더를 실패시킵니다. 고정된 두 예문 외의 대사도 검수할 수 있습니다. 영상 렌더 통과는 배포 서버나 WebGL에서의 전체 로그인·대화 연동 검증을 대신하지 않습니다.
+
+검수 대사에는 F/V(예: “We have fresh coffee and vanilla muffins.”), 유성·무성 TH(“Those three muffins are for you. Thank you!”), 빠른 연결 발음(“Would you like your coffee with milk, or would you prefer it black?”)을 포함한다. 정상 속도와 빠른 합성 속도를 구분해 기록하고, 비교 양쪽에는 같은 WAV를 사용한다. 발음 구간 안의 목표 가중치뿐 아니라 치아·아랫입술·혀가 실제로 보이는지 확대 영상으로 확인한다. 음향 정렬 결과나 가중치만으로 모든 발음의 외관·정확도가 합격이라고 판단하지 않는다.

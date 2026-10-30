@@ -63,6 +63,54 @@ namespace A305.Characters.Tests
             }
         }
 
+        [TestCase(CharacterFacePose.FV, "viseme_FF")]
+        [TestCase(CharacterFacePose.TH, "viseme_TH")]
+        public void SmileDoesNotPullApartToothLipOrTongueContact(
+            CharacterFacePose pose,
+            string channel
+        )
+        {
+            var root = new GameObject("Contact test");
+            var mesh = new Mesh
+            {
+                vertices = new[] { Vector3.zero, Vector3.up, Vector3.right },
+                triangles = new[] { 0, 1, 2 },
+            };
+            foreach (
+                string name in new[]
+                {
+                    channel,
+                    "mouthSmileLeft",
+                    "mouthSmileRight",
+                    "eyeBlinkLeft",
+                    "eyeBlinkRight",
+                }
+            )
+                mesh.AddBlendShapeFrame(
+                    name,
+                    100,
+                    new[] { Vector3.up * .01f, Vector3.zero, Vector3.zero },
+                    null,
+                    null
+                );
+            try
+            {
+                var skin = root.AddComponent<SkinnedMeshRenderer>();
+                skin.sharedMesh = mesh;
+                root.AddComponent<CharacterFaceController>()
+                    .ApplySpeech(SpeechMouthSample.Pose(pose), .32f, .8f);
+                Assert.That(skin.GetBlendShapeWeight(0), Is.EqualTo(100));
+                Assert.That(skin.GetBlendShapeWeight(1), Is.Zero);
+                Assert.That(skin.GetBlendShapeWeight(2), Is.Zero);
+                Assert.That(skin.GetBlendShapeWeight(3), Is.EqualTo(80).Within(.01));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(mesh);
+            }
+        }
+
         [Test]
         public void BlinkHasClosingHoldOpeningAndExpressionReturnsToRest()
         {

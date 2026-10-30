@@ -98,7 +98,10 @@ namespace A305.Characters
                 CharacterFacePose.FlatEu,
             };
             var weights = new float[Channels.Length];
-            float seal = mouth.Weight(CharacterFacePose.ClosedLips);
+            float contact =
+                mouth.Weight(CharacterFacePose.ClosedLips)
+                + mouth.Weight(CharacterFacePose.FV)
+                + mouth.Weight(CharacterFacePose.TH);
             float rounding =
                 mouth.Weight(CharacterFacePose.OU) + mouth.Weight(CharacterFacePose.OH);
             float opening =
@@ -109,7 +112,7 @@ namespace A305.Characters
             // remain independent, so one complete facial state is applied once.
             float smileWeight =
                 Mathf.Clamp01(smile)
-                * (1 - Mathf.Clamp01(seal))
+                * (1 - Mathf.Clamp01(contact))
                 * (1 - .75f * Mathf.Clamp01(rounding))
                 * (1 - .65f * Mathf.Clamp01(opening));
             weights[0] = weights[1] = smileWeight;

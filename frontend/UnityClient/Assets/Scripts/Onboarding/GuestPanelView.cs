@@ -1,4 +1,5 @@
 using System;
+using A305.Theme;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,9 +10,6 @@ namespace A305.Onboarding
     /// </summary>
     public class GuestPanelView : MonoBehaviour
     {
-        private static readonly Color SelectedColor = new Color(0.24f, 0.42f, 0.85f, 1f);
-        private static readonly Color NormalColor = new Color(0.3f, 0.32f, 0.38f, 1f);
-
         // 게스트는 가입 약관 목록(AUTH-03)을 받지 않으므로 음성 처리 동의 문서를 여기 둔다. 서버 ConsentCatalog의 VOICE와 같게 둔다.
         private static readonly ConsentTerm VoiceTerm = new ConsentTerm
         {
@@ -58,10 +56,8 @@ namespace A305.Onboarding
 
         public void Show(AvatarType? selected, bool voiceAgreed)
         {
-            ((Image)femaleButton.targetGraphic).color =
-                selected == AvatarType.F ? SelectedColor : NormalColor;
-            ((Image)maleButton.targetGraphic).color =
-                selected == AvatarType.M ? SelectedColor : NormalColor;
+            femaleButton.GetComponent<ThemedElement>().SetSelected(selected == AvatarType.F);
+            maleButton.GetComponent<ThemedElement>().SetSelected(selected == AvatarType.M);
             voiceConsentRow.Toggle.SetIsOnWithoutNotify(voiceAgreed);
             startButton.interactable = selected != null;
         }

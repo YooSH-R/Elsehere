@@ -152,7 +152,8 @@ namespace A305.Player
                 );
             }
 
-            orbit.Rotate(turn);
+            // 사용자가 마이페이지에서 고른 감도 배율을 마우스·터치 회전에 함께 적용한다.
+            orbit.Rotate(turn * LookSensitivity.Current);
             TurnedByUserThisFrame =
                 turn != Vector2.zero && orbit.ViewMode != CameraViewMode.Dialogue;
 

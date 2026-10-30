@@ -12,6 +12,7 @@ namespace A305.Onboarding
 {
     /// <summary>
     /// 공간 화면의 마이페이지. 오른쪽 위 [내 정보]로 열어 내 정보를 보고 닉네임을 바꾸거나 로그아웃한다.
+    /// 시점 회전 감도도 여기서 조절한다(<see cref="LookSensitivity"/>, 이 기기에만 저장).
     /// 로그아웃은 확인 창을 거쳐 서버 세션을 끝낸 뒤(AUTH-05) 입구 씬의 로그인 화면으로 돌아간다.
     /// 단어장 HUD 프리팹에 붙어 있어 장소 씬마다 따로 배치하지 않는다.
     /// </summary>
@@ -61,6 +62,14 @@ namespace A305.Onboarding
         [SerializeField]
         [Tooltip("선택 동의 한 줄. 받은 동의 수만큼 복제한다.")]
         private ConsentRowView consentTemplate;
+
+        [SerializeField]
+        [Tooltip("시점 회전 감도 배율. 이 기기에만 저장한다.")]
+        private Slider lookSensitivitySlider;
+
+        [SerializeField]
+        [Tooltip("슬라이더 옆에 지금 감도 배율을 보여 준다. 슬라이더를 움직이는 동안에도 바뀐다.")]
+        private TMP_Text lookSensitivityText;
 
         [SerializeField]
         private Button logoutButton;
@@ -124,6 +133,9 @@ namespace A305.Onboarding
             withdrawCancelButton.onClick.AddListener(ShowProfile);
             withdrawConfirmButton.onClick.AddListener(Withdraw);
             consentTemplate.gameObject.SetActive(false);
+            lookSensitivitySlider.minValue = LookSensitivity.Min;
+            lookSensitivitySlider.maxValue = LookSensitivity.Max;
+            lookSensitivitySlider.onValueChanged.AddListener(ChangeLookSensitivity);
             overlay.SetActive(false);
         }
 
@@ -150,6 +162,8 @@ namespace A305.Onboarding
             overlay.SetActive(true);
             SetMovementLocked(true);
             nicknameInput.text = "";
+            lookSensitivitySlider.SetValueWithoutNotify(LookSensitivity.Current);
+            RenderLookSensitivity(LookSensitivity.Current);
             ShowProfile();
             await RunAsync(flow.LoadAsync(), LoadingMessage);
             ApplyVoiceConsent();
@@ -199,6 +213,18 @@ namespace A305.Onboarding
             {
                 VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
             }
+        }
+
+        // 움직이는 대로 바로 저장해 창을 닫지 않아도 다음 회전부터 적용된다.
+        private void ChangeLookSensitivity(float value)
+        {
+            LookSensitivity.Current = Mathf.Round(value * 10f) / 10f;
+            RenderLookSensitivity(LookSensitivity.Current);
+        }
+
+        private void RenderLookSensitivity(float value)
+        {
+            lookSensitivityText.text = $"{value:0.0}배";
         }
 
         private void AskLogout()

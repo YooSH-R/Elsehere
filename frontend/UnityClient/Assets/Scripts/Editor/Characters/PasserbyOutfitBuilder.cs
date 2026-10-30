@@ -224,13 +224,25 @@ namespace A305.EditorTools.Characters
             var baked = new Mesh();
             body.BakeMesh(baked, true);
             var vertices = baked.vertices.Select(body.transform.TransformPoint).ToArray();
+            var animator = npc.GetComponentInChildren<Animator>();
+            var wrists = new[]
+            {
+                animator.GetBoneTransform(HumanBodyBones.LeftHand).position,
+                animator.GetBoneTransform(HumanBodyBones.RightHand).position,
+            };
+            // Keep skin visible inside open cuffs and below a moving jacket hem.
+            // Masking only by height used to erase the wrist along with the sleeve.
+            bool IsCovered(int index) =>
+                vertices[index].y > .46f
+                && vertices[index].y < .753f
+                && wrists.All(wrist => Vector3.Distance(vertices[index], wrist) > .085f);
             var mesh = body.sharedMesh;
             var triangles = mesh.triangles;
             var uv = mesh.uv;
             for (int i = 0; i < triangles.Length; i += 3)
             {
                 var ids = new[] { triangles[i], triangles[i + 1], triangles[i + 2] };
-                bool hide = ids.All(id => vertices[id].y > .435f && vertices[id].y < .753f);
+                bool hide = ids.All(IsCovered);
                 PaintTriangle(
                     hide ? covered : exposed,
                     width,

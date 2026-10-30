@@ -100,6 +100,67 @@ namespace A305.Tripo.Tests
         }
 
         [Test]
+        public void CoveragePreservesSkinAtBothWristOpenings()
+        {
+            var instance = (GameObject)
+                PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(
+                        Folder + "LittleMung_Passerby_Male.prefab"
+                    )
+                );
+            var baked = new Mesh();
+            var texture = new Texture2D(2, 2);
+            try
+            {
+                var animator = instance.GetComponentInChildren<Animator>();
+                var body = instance
+                    .GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(s => s.sharedMesh.vertexCount == 8782);
+                body.BakeMesh(baked, true);
+                texture.LoadImage(
+                    System.IO.File.ReadAllBytes(
+                        AssetDatabase.GetAssetPath(body.sharedMaterial.GetTexture("_BaseMap"))
+                    )
+                );
+                var points = baked.vertices.Select(body.transform.TransformPoint).ToArray();
+                var uv = body.sharedMesh.uv;
+                foreach (var hand in new[] { HumanBodyBones.LeftHand, HumanBodyBones.RightHand })
+                {
+                    var wrist = animator.GetBoneTransform(hand).position;
+                    var indices = Enumerable
+                        .Range(0, points.Length)
+                        .Where(i => Vector3.Distance(points[i], wrist) < .065f)
+                        .ToArray();
+                    Assert.That(indices.Length, Is.GreaterThan(10), "Wrist sample is missing");
+                    foreach (int index in indices)
+                    {
+                        int x = Mathf.Clamp(
+                            (int)(uv[index].x * texture.width),
+                            0,
+                            texture.width - 1
+                        );
+                        int y = Mathf.Clamp(
+                            (int)(uv[index].y * texture.height),
+                            0,
+                            texture.height - 1
+                        );
+                        Assert.That(
+                            texture.GetPixel(x, y).a,
+                            Is.GreaterThan(.95f),
+                            hand + " skin is erased at the open cuff"
+                        );
+                    }
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(baked);
+                Object.DestroyImmediate(instance);
+            }
+        }
+
+        [Test]
         public void PasserbyVariantRetainsBehaviorAndConnectsItsAnimator()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(

@@ -534,45 +534,7 @@ namespace A305.EditorTools.Theme
 
         private static void StyleVocabulary(Transform root)
         {
-            Role(root, "Panel", UiThemeRole.Panel);
-            Role(root, "Panel/Title", UiThemeRole.Title);
-            Role(root, "Panel/Hint", UiThemeRole.Muted);
-            Role(root, "Panel/List", UiThemeRole.Body);
-            IconButton(
-                root,
-                "Panel/Buttons/PreviousButton",
-                UiIcon.Previous,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/NextButton",
-                UiIcon.Next,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/LearnedButton",
-                UiIcon.Check,
-                UiTone.Positive,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/DeleteButton",
-                UiIcon.Delete,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/CloseButton",
-                UiIcon.Close,
-                UiTone.Neutral,
-                caption: true
-            );
+            VocabularyCardsBuilder.ApplyVocabulary(root.gameObject);
         }
 
         private static void StyleMission(Transform root)
@@ -796,10 +758,7 @@ namespace A305.EditorTools.Theme
 
         private static void StyleTooltip(Transform root)
         {
-            Role(root, "Panel", UiThemeRole.Card);
-            Role(root, "Panel/Word", UiThemeRole.Title);
-            Role(root, "Panel/Meaning", UiThemeRole.Accent);
-            Role(root, "Panel/Example", UiThemeRole.Muted);
+            VocabularyCardsBuilder.ApplyTooltip(root);
         }
 
         // 테마 고르기: 집에서만 보이는 팔레트 버튼과 미리보기 카드 3장.

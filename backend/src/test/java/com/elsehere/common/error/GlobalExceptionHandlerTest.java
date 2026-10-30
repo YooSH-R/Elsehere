@@ -43,6 +43,17 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  @DisplayName("업무 예외에 상황별 문구가 있으면 오류 코드의 기본 문구 대신 그 문구로 응답한다")
+  void businessExceptionWithMessage_respondsThatMessage() throws Exception {
+    mockMvc
+        .perform(get("/test/errors/with-message"))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(jsonPath("$.error.code").value("AI_QUOTA_EXHAUSTED"))
+        .andExpect(jsonPath("$.error.message").value("게스트는 NPC와 3번까지 대화할 수 있어요."))
+        .andExpect(jsonPath("$.error.details.targetId").value(7));
+  }
+
+  @Test
   @DisplayName("요청 값 검증에 실패하면 400 VALIDATION_FAILED로 응답한다")
   void invalidRequestBody_respondsValidationFailed() throws Exception {
     mockMvc

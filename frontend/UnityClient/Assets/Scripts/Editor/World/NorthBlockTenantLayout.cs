@@ -17,7 +17,10 @@ namespace A305.EditorTools.World
             {
                 Transform exterior = root.transform.Find("TenantEntrances/ExteriorStairs");
                 if (exterior != null)
+                {
                     EnsureWalkSurface(exterior);
+                    StairEntranceSign(exterior.parent);
+                }
                 return;
             }
             Transform layout = Group("TenantEntrances", root.transform, Vector3.zero);
@@ -186,13 +189,7 @@ namespace A305.EditorTools.World
                 );
             Sign(layout, "1F  HOME & LIVING", new Vector3(-1.4f, 2.9f, .25f), 4.1f, Green);
             Sign(layout, "2F  LEAF TEA ROOM", new Vector3(0, 6.5f, .25f), 6.1f, Green);
-            Text(
-                "StairEntranceSign",
-                "TEA ROOM  2F  >",
-                layout,
-                new Vector3(-3.4f, 1.2f, 2.45f),
-                .19f
-            );
+            StairEntranceSign(layout);
             NorthBlockAssets.Place("Bed", interior, new Vector3(1.6f, 0, -5.9f));
             NorthBlockAssets.Place("Sofa", interior, new Vector3(.5f, 0, -3.5f));
             for (int index = 0; index < 4; index++)
@@ -368,6 +365,38 @@ namespace A305.EditorTools.World
                 false
             );
             Text("TenantName", text, parent, position + Vector3.forward * .09f, .23f);
+        }
+
+        /// <summary>
+        /// 바깥 계단 입구의 찻집 안내. 글자만 두면 난간 앞 공중에 떠 보이므로 계단 첫 단 옆 보도에 기둥과 판을 세워 붙인다.
+        /// 예전에 글자만 둔 건물은 그 글자를 지우고 안내판으로 바꾼다.
+        /// </summary>
+        private static void StairEntranceSign(Transform layout)
+        {
+            Transform floating = layout.Find("StairEntranceSign");
+            if (floating != null)
+                Object.DestroyImmediate(floating.gameObject);
+            if (layout.Find("StairSign") != null)
+                return;
+            Transform sign = Group("StairSign", layout, new Vector3(-4.3f, 0, 2.55f));
+            Solid(
+                "StairSignPost",
+                sign,
+                new Vector3(0, .65f, 0),
+                new Vector3(.08f, 1.3f, .08f),
+                Green,
+                "sign"
+            );
+            Solid(
+                "StairSignBoard",
+                sign,
+                new Vector3(0, 1.45f, 0),
+                new Vector3(1.25f, .4f, .08f),
+                Green,
+                "sign",
+                false
+            );
+            Text("StairEntranceSign", "TEA ROOM  2F  >", sign, new Vector3(0, 1.45f, .05f), .19f);
         }
 
         private static void Handrail(Transform parent, Vector3 from, Vector3 to)

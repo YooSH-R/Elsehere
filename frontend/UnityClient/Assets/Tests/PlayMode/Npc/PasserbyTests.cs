@@ -152,6 +152,91 @@ namespace A305.Npc.PlayModeTests
             Assert.That(offer.IsTalkPromptShowing, Is.False);
         }
 
+        [UnityTest]
+        public IEnumerator GuestWithConversationsLeft_OfferShowsRemainingCount()
+        {
+            yield return LoadTown();
+            Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 2));
+            StandNear(TownPasserbyCode, 4f);
+
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+
+            Assert.That(offer.RemainingText, Is.EqualTo("게스트 남은 대화 2번"));
+        }
+
+        [UnityTest]
+        public IEnumerator GuestUsedAllConversations_PasserbyDoesNotApproach_AndTalkButtonSaysWhy()
+        {
+            // 새 대화를 시작할 수 없으면 행인은 먼저 다가오지 않고(기능 명세 F-39), [말 걸기] 자리에 이유를 보인다.
+            yield return LoadTown();
+            Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 0));
+            Passerby passerby = FindPasserby(TownPasserbyCode);
+            StandNear(TownPasserbyCode, 4f);
+            yield return new WaitForSeconds(1.5f);
+
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            Assert.That(offer.IsShowing, Is.False);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Waiting));
+
+            StandNear(TownPasserbyCode, 1.5f);
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+
+            Assert.That(offer.IsTalkBlocked, Is.True);
+            Assert.That(offer.TalkLabelText, Is.EqualTo("게스트 대화를 모두 썼어요"));
+            Button talk = offer
+                .GetComponentsInChildren<Button>(true)
+                .Single(candidate => candidate.name == "TalkButton");
+            Assert.That(talk.interactable, Is.False);
+            talk.onClick.Invoke();
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator GuestWithConversationsLeft_TalkButtonShowsRemainingCount()
+        {
+            yield return LoadTownWithPlayerNear(TownPasserbyCode);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "DeclineButton");
+            Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 1));
+            // 제자리로 돌아갈 때까지 기다린 뒤 바로 앞에 선다.
+            yield return new WaitForSeconds(3f);
+            StandNear(TownPasserbyCode, 1.5f);
+
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+
+            Assert.That(offer.IsTalkBlocked, Is.False);
+            Assert.That(offer.TalkRemainingText, Is.EqualTo("게스트 남은 대화 1번"));
+        }
+
+        private static IEnumerator LoadTown()
+        {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+        }
+
+        private static void StandNear(string passerbyCode, float distanceMeters)
+        {
+            Passerby passerby = FindPasserby(passerbyCode);
+            Single<PlayerMover>()
+                .Teleport(
+                    passerby.transform.position + passerby.transform.forward * distanceMeters,
+                    Quaternion.identity
+                );
+        }
+
+        private static AiStatusData GuestStatus(int remaining)
+        {
+            return new AiStatusData
+            {
+                Status = remaining > 0 ? "AI_AVAILABLE" : "AI_EXHAUSTED",
+                Capabilities = new AiCapabilities { CanStartConversation = remaining > 0 },
+                RemainingConversations = remaining,
+            };
+        }
+
         /// <summary>마을을 불러오고 다른 행인이 끼어들지 않게 한 뒤, 플레이어를 해당 행인 앞에 세운다.</summary>
         private static IEnumerator LoadTownWithPlayerNear(string passerbyCode)
         {

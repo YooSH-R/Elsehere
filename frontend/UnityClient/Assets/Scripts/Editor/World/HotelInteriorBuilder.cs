@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using A305.Characters;
+using A305.EditorTools.Characters;
 using A305.EditorTools.Common;
 using A305.EditorTools.Npc;
 using A305.EditorTools.Player;
@@ -210,6 +211,8 @@ namespace A305.EditorTools.World
                 "animator",
                 hotelier.GetComponentInChildren<Animator>()
             );
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(HotelierFaceBuilder.PrefabPath) != null)
+                HotelierFaceBuilder.Connect(staff);
         }
 
         private static void SizeController(CharacterController controller)

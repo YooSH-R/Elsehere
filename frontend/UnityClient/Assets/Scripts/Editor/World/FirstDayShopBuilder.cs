@@ -4,6 +4,7 @@ using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.Npc;
 using A305.ObjectHover;
+using A305.Player;
 using A305.World;
 using TMPro;
 using UnityEditor;
@@ -26,6 +27,10 @@ namespace A305.EditorTools.World
         private const string KitPartFolder = "Assets/Prefabs/World/CafeBlenderKit/Parts/";
         private const string TownSignText = "DRUGSTORE";
         private const string PriceSignText = "DRUGSTORE\nUMBRELLAS · 8 COINS";
+        private const string CameraSettingsPath = "Assets/Data/Shop/ShopCameraSettings.asset";
+
+        // 문 바로 앞에 서면 3인칭 카메라가 문에 막혀 캐릭터에 붙으므로 매장 안쪽에 내려 준다.
+        private static readonly Vector3 EntryOffset = new Vector3(0, .1f, 3.6f);
 
         [MenuItem("Tools/A305/Mission/Adjust Shop Counter Sightline")]
         public static void AdjustSightline()
@@ -59,6 +64,7 @@ namespace A305.EditorTools.World
                     PriceSignText
                 );
                 DrugstoreInteriorBuilder.Apply(existing);
+                ConfigureInteriorCamera(existing);
                 BuilderTools.SaveScene(existing, ScenePath);
                 return;
             }
@@ -174,7 +180,56 @@ namespace A305.EditorTools.World
             DrugstoreInteriorBuilder.Apply(scene);
             BuilderTools.SaveScene(scene, ScenePath);
             SpaceSceneSetup.Apply(scene);
+            ConfigureInteriorCamera(scene);
             BuilderTools.SaveScene(scene, ScenePath);
+        }
+
+        [MenuItem("Tools/A305/Mission/Apply Shop Interior Camera")]
+        public static void ApplyInteriorCamera()
+        {
+            BuilderTools.ThrowIfPlaying();
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            ConfigureInteriorCamera(scene);
+            BuilderTools.SaveScene(scene, ScenePath);
+        }
+
+        /// <summary>
+        /// 카페·호텔처럼 좁은 실내용 카메라 거리와 시야를 쓰고, 입장 지점을 문에서 매장 안쪽으로 옮긴다.
+        /// 마을용 카메라 거리(5m)는 매장 안에서 벽에 막혀 캐릭터에 붙는다. 설정 에셋은 없을 때만 만든다.
+        /// </summary>
+        private static void ConfigureInteriorCamera(Scene scene)
+        {
+            PlayerCameraRig rig = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
+            var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(CameraSettingsPath);
+            if (settings == null)
+            {
+                BuilderTools.EnsureFolder("Assets/Data/Shop");
+                settings = ScriptableObject.CreateInstance<PlayerCameraSettings>();
+                var data = new SerializedObject(settings);
+                data.FindProperty("startDistanceMeters").floatValue = 3.8f;
+                data.FindProperty("minDistanceMeters").floatValue = 1.5f;
+                data.FindProperty("maxDistanceMeters").floatValue = 5.2f;
+                data.FindProperty("startPitchDegrees").floatValue = 15;
+                data.FindProperty("pivotHeightMeters").floatValue = 1.5f;
+                data.FindProperty("eyeHeightMeters").floatValue = 1.074f;
+                data.ApplyModifiedPropertiesWithoutUndo();
+                AssetDatabase.CreateAsset(settings, CameraSettingsPath);
+            }
+            BuilderTools.SetReference(rig, "cameraSettings", settings);
+            Camera camera = rig.GetComponent<Camera>();
+            camera.fieldOfView = 65;
+            camera.nearClipPlane = .04f;
+            camera.farClipPlane = 90;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(camera);
+
+            SpaceDoorway door = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Single(doorway => doorway.DoorwayId == "TownDoor");
+            door.ArrivalPoint.localPosition = EntryOffset;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
+            Transform player = BuilderTools.FindSingleInScene<PlayerMover>(scene).transform;
+            player.position = door.ArrivalPoint.position;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(player);
         }
 
         /// <summary>
@@ -366,7 +421,7 @@ namespace A305.EditorTools.World
             var trigger = root.GetComponent<BoxCollider>();
             trigger.center = new Vector3(0, 1.3f, .45f);
             trigger.size = new Vector3(1.8f, 2.6f, 1);
-            doorway.ArrivalPoint.localPosition = new Vector3(0, .1f, 2);
+            doorway.ArrivalPoint.localPosition = EntryOffset;
             PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
             PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.ArrivalPoint);
         }

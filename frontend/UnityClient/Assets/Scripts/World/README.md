@@ -46,12 +46,14 @@
 
 상점 실내는 **Tools → A305 → World → Apply Drugstore Interior**(`DrugstoreInteriorBuilder`)가 미국 드럭스토어처럼 꾸밉니다. 음료 냉장고·선반·우산 통 같은 조각 프리팹과 `DrugstoreInterior` 프리팹은 `Assets/Prefabs/World/Drugstore/`에 없을 때만 만들고, 이미 있으면 고친 디자인을 그대로 둡니다. 외부 모델은 `Assets/ThirdParty/`의 원본을 그대로 쓰고 URP 재질은 `Assets/Art/World/Drugstore/Materials/`에 만듭니다.
 
+상점 카메라는 **Tools → A305 → Mission → Apply Shop Interior Camera**가 맞춥니다. 카페와 같은 실내 거리 값을 `Assets/Data/Shop/ShopCameraSettings.asset`에 두고, 입구 도착 위치를 문 안쪽 3.6m로 옮겨 들어오자마자 카메라가 문 벽에 붙지 않게 합니다. **Build First Day Journey**도 같은 설정을 적용합니다.
+
 마을 거리는 두 Builder가 미국 소도시처럼 꾸밉니다.
 
 - **Tools → A305 → World → Apply American Street Details**(`AmericanStreetBuilder`): 카페 앞 횡단보도와 교차로에서 끊기던 중앙선을 정지선까지 잇고, 교차로 네 방향에 횡단보도·정지선을, 가로길에 중앙선을 그립니다. 교차로 모퉁이 두 곳에 MAPLE AVE 이름판을 단 신호등을 세우고, 길가에 속도 제한 25 표지판·버스 정류장·주차 미터기·신문 판매함·파란 우체통·보행자 횡단 표지판을 둡니다. 성조기는 호텔 외벽에 하나만 답니다.
 - **Tools → A305 → World → Apply Town Street Life**(`TownStreetLifeBuilder`): 집 남쪽 잔디의 아이스크림 트럭 광장, 카페 앞 파라솔 테라스, 본길을 도는 택시·승용차와 교차로 신호, 자전거 거치대, 가로수 밑 꽃과 건물 앞 꽃덤불, 공원의 여우·비둘기와 집 앞 고양이를 둡니다.
 
-승용차는 카페 앞 횡단보도 북쪽(z=-6)과 본길 북쪽 끝(z=66) 사이를 돕니다. 택시는 집까지 이동하도록 남쪽 끝을 z=-25까지 넓히고, 남행 중 기존 주차 트럭을 천천히 비켜갑니다. 두 차는 교차로 신호를 지키고, 택시는 인도에서 [택시 세우기]로 세우면 뒷좌석에 타서 택시 기사(`TAXI_DRIVER`)와 대화할 수 있습니다. 목적지 10곳과 승하차 흐름은 [택시 안내](../../../../../docs/unity/taxi-ride.md)에 있습니다.
+승용차는 카페 앞 횡단보도 북쪽(z=-6)과 본길 북쪽 끝(z=66) 사이를 돕니다. 택시는 집까지 이동하도록 남쪽 끝을 z=-25까지 넓히고, 남행 중 기존 주차 트럭을 천천히 비켜갑니다. 두 차는 교차로 신호를 지키고, 택시는 인도에서 [택시 세우기]를 누르면 손님 옆 길가에 서면서 바로 뒷좌석에 타 택시 기사(`TAXI_DRIVER`)와 대화합니다. 목적지 10곳과 승하차 흐름은 [택시 안내](../../../../../docs/unity/taxi-ride.md)에 있습니다.
 
 두 Builder는 `TownMainstreet` 아래 `AmericanStreetDetails`·`StreetLife` 묶음이 이미 있으면 배치를 바꾸지 않습니다. 조각 프리팹은 각각 `Assets/Prefabs/World/MainstreetArt/`, `Assets/Prefabs/World/StreetLife/`에 없을 때만 만들고, 새 사물의 공용 단어(신호등·택시·자전거 등)는 뜻·예문과 함께 없을 때만 만듭니다.
 
@@ -88,7 +90,7 @@
 
 `ShopSwingDoor`는 CharacterController가 문 앞에 접근하면 문짝을 열고, 감지 영역에서 나가면 닫습니다. 별도 키 입력은 필요하지 않습니다. 층별 문에는 씬 전환 Trigger를 사용하지 않습니다. 오락기·서점·찻집은 공간과 사물 학습을 위한 배치이며, 결제·오락기 플레이·상점 NPC 미션은 포함하지 않습니다.
 
-**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
+**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)을 기둥과 판에 붙여 다시 만듭니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
 계단·통로 통행과 문 개폐는 배치에 따른 결과이므로 자동 테스트 없이 TownScene을 Play해 확인합니다.
 

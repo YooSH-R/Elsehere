@@ -177,7 +177,8 @@ namespace A305.ObjectHover
         private void ShowButtons(bool isPinned, WordCardButtons buttons)
         {
             bool hasWordActions = isPinned && buttons.HasWordActions;
-            actionRow.SetActive(isPinned);
+            actionRow.SetActive(hasWordActions);
+            closeButton.gameObject.SetActive(isPinned);
             wordActionRow.SetActive(hasWordActions);
             hideButton.gameObject.SetActive(hasWordActions);
             statusLabel.text = buttons.Message;
@@ -189,9 +190,17 @@ namespace A305.ObjectHover
                 return;
             }
 
-            saveLabel.text = buttons.SaveLabel;
+            saveLabel.text = buttons.SaveLabel switch
+            {
+                "단어장에 저장" => "저장",
+                "저장했어요" => "저장됨",
+                _ => buttons.SaveLabel,
+            };
             saveButton.interactable = buttons.CanSave;
-            hideLabel.text = buttons.HideLabel;
+            hideLabel.text =
+                buttons.HideLabel == "알아요 · 다시 안 띄우기"
+                    ? "알아요 · 호버에서 숨기기"
+                    : buttons.HideLabel;
             hideButton.interactable = buttons.CanToggleHide;
             pronunciationButton.gameObject.SetActive(buttons.HasPronunciation);
         }

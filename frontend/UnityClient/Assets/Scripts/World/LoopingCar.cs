@@ -73,6 +73,14 @@ namespace A305.World
             pullOverDistance = distance;
         }
 
+        /// <summary>다가오는 모습 없이 정한 자리로 옮겨 바로 세운다. <see cref="Release"/>로 다시 보낸다.</summary>
+        public void StopAt(float distance)
+        {
+            Distance = Mathf.Repeat(distance, Route.Length);
+            pullOverDistance = Distance;
+            Place();
+        }
+
         public void Release()
         {
             pullOverDistance = null;

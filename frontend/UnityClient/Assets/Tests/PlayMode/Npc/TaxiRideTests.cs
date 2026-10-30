@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을(TownScene)을 실제로 불러와 인도에서 세운 택시가 옆에 서서 기사와 대화한 뒤 다시 떠나고,
+    /// 마을(TownScene)을 실제로 불러와 인도에서 세운 택시가 옆에 서자마자 손님을 태워 기사와 대화한 뒤 다시 떠나고,
     /// 승객으로 타면 목적지에 내려 주는지 확인한다. 목적지별 하차 위치와 차로 계산은 EditMode 테스트가 맡는다.
     /// </summary>
     public class TaxiRideTests
@@ -28,7 +28,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HailedTaxi_StopsBesideTheCustomer_DriverTalks_ThenDrivesOn()
+        public IEnumerator HailingTaxi_BoardsBesideTheCustomerRightAway_ThenDrivesOnAfterTalk()
         {
             yield return LoadTown();
             TaxiRide taxi = Single<TaxiRide>();
@@ -43,22 +43,19 @@ namespace A305.Npc.PlayModeTests
                 pose.Position + pose.Forward * 8f + curbside * 2.6f + Vector3.up * .2f,
                 Quaternion.identity
             );
+            Vector3 customer = player.transform.position;
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
             Click(offer, "TalkButton");
             yield return null;
-            Assert.That(taxi.Phase, Is.EqualTo(TaxiPhase.PullingOver));
 
-            yield return WaitUntil(() => taxi.Phase == TaxiPhase.Waiting);
-            Vector3 stoppedAt = taxi.transform.position;
-            Assert.That(
-                HorizontalDistance(stoppedAt, player.transform.position),
-                Is.LessThan(3.5f)
-            );
-
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
-            Click(offer, "TalkButton");
-            yield return null;
+            Assert.That(taxi.IsPassenger, Is.True, "세우기를 누르면 바로 타야 합니다.");
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
+            Assert.That(player.IsMovementLocked, Is.True);
+            Vector3 stoppedAt = taxi.transform.position;
+            Assert.That(HorizontalDistance(stoppedAt, customer), Is.LessThan(3.5f));
+
+            // 목적지를 말하기 전에는 그 자리에 서서 기다린다.
+            yield return new WaitForSeconds(.5f);
             Assert.That(Vector3.Distance(stoppedAt, taxi.transform.position), Is.LessThan(.01f));
 
             Click(Single<DialoguePanelView>(), "EndButton");
@@ -101,9 +98,6 @@ namespace A305.Npc.PlayModeTests
                     + Vector3.up * .2f,
                 Quaternion.identity
             );
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
-            Click(offer, "TalkButton");
-            yield return WaitUntil(() => taxi.Phase == TaxiPhase.Waiting);
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
             Click(offer, "TalkButton");
             yield return null;

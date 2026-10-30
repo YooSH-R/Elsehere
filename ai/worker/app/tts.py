@@ -16,11 +16,14 @@ import time
 import wave
 from collections import OrderedDict
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 
 from .pronunciation import to_phonemes
+from .speech_alignment import align_timing
 from .speech_text import for_speech
+from .speech_timing import attach_timing, join_timing, phoneme_sequence, read_timing
 
 log = logging.getLogger("ai_worker")
 
@@ -52,7 +55,7 @@ def join_wavs(wavs: list[bytes]) -> tuple[bytes, float]:
         out.setframerate(params.framerate)
         out.writeframes(b"".join(frames))
     n = sum(len(f) for f in frames) // (params.sampwidth * params.nchannels)
-    return buf.getvalue(), n / params.framerate
+    return join_timing(buf.getvalue(), wavs), n / params.framerate
 
 
 def silent_wav(seconds: float, sr: int = 24000) -> bytes:
@@ -63,7 +66,9 @@ def silent_wav(seconds: float, sr: int = 24000) -> bytes:
         w.setsampwidth(2)
         w.setframerate(sr)
         w.writeframes(b"\x00\x00" * round(sr * seconds))
-    return buf.getvalue()
+    # This PCM is deliberately silent; retain a real rest interval when joining replies.
+    rest = SimpleNamespace(phoneme=" ", start=0, end=round(sr * seconds) / sr)
+    return attach_timing(buf.getvalue(), [rest])
 
 
 class GpuSynth:
@@ -132,6 +137,9 @@ class Kokoro:
     def __init__(self, engine, name: str, gpu: GpuSynth | None = None):
         self.engine = engine
         self.name = name
+        self.phoneme_timing_ready = False
+        if not getattr(self.engine, "has_timings", False):
+            log.warning("CPU Kokoro model has no duration output; fallback phoneme animation is unavailable")
         self.gpu = gpu
         self.lock = threading.Lock()
         self.cache: OrderedDict = OrderedDict()
@@ -149,7 +157,8 @@ class Kokoro:
         options.intra_op_num_threads = threads  # 0이면 onnxruntime 기본 (Settings.kokoro_threads)
         session = ort.InferenceSession(model_path, options, providers=["CPUExecutionProvider"])
         k = cls(Engine.from_session(session, voices_path), Path(model_path).name)
-        k.synth("Ready.", "af_heart", 1.0)  # 첫 호출 준비 시간을 미리 써 둔다 (CPU 합성이 대체로 쓰이므로 GPU를 붙이기 전에)
+        warmup, _, _ = k.synth("Ready.", "af_heart", 1.0)
+        k.phoneme_timing_ready = read_timing(warmup) is not None
         k.gpu = gpu
         return k
 
@@ -164,14 +173,31 @@ class Kokoro:
                 self.cache.move_to_end(key)
                 wav, dur = self.cache[key]
                 return wav, dur, True
-            phonemes = to_phonemes(spoken, lambda part: self.engine.tokenizer.phonemize(part, "en-us"))
-        # GPU 서버를 기다리는 동안에는 잠그지 않는다 (CPU 합성은 GPU가 실패했을 때만)
-        made = self.gpu.try_synth(phonemes, voice, speed) if self.gpu else None
+            spoken_phonemes = to_phonemes(spoken, lambda part: self.engine.tokenizer.phonemize(part, "en-us"))
+        # Keep the GPU wait outside the CPU synthesis lock.
+        made = self.gpu.try_synth(spoken_phonemes, voice, speed) if self.gpu else None
         with self.lock:
             if made is None:
-                audio, sr = self.engine.create(phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
-                made = to_wav(audio, sr), len(audio) / sr
-            wav, dur = made
+                if getattr(self.engine, "has_timings", False):
+                    audio, sr, phonemes = self.engine.create_timed(
+                        spoken_phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True
+                    )
+                else:
+                    audio, sr = self.engine.create(spoken_phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
+                    phonemes = []
+                wav, dur = to_wav(audio, sr), len(audio) / sr
+                try:
+                    timing = read_timing(attach_timing(wav, phonemes))
+                    if timing:
+                        wav = align_timing(wav, timing["phonemes"])
+                except (ValueError, RuntimeError):
+                    log.warning("Kokoro phoneme timing was rejected; returning voice without lip sync", exc_info=True)
+            else:
+                wav, dur = made
+                try:
+                    wav = align_timing(wav, phoneme_sequence(spoken_phonemes))
+                except (ValueError, RuntimeError):
+                    log.warning("GPU phoneme alignment was rejected; returning voice without lip sync", exc_info=True)
             self.cache[key] = (wav, dur)
             if len(self.cache) > self.CACHE_MAX:
                 self.cache.popitem(last=False)

@@ -148,23 +148,9 @@ for channel in channels:
         if v.x < -.12:
             if channel.startswith('eyeBlink'):
                 center=.130 if channel.endswith('Left') else -.130
-                radius=math.sqrt(((v.y-center)/.045)**2+((v.z-.595)/.041)**2)
-                weight=fade(radius,1.05,1.8)*fade(v.x,-.17,-.12)
-                q.z+=(.591-.003*((v.y-center)/.045)**2-v.z)*.997*weight
-                q.x+=(lid_x(center,q.y,q.z)-v.x)*weight
-                normal=normal.lerp(Vector((-1,2.8*v.y,.8*(v.z-.595))).normalized(),weight).normalized()
-                side=1 if center>0 else -1
-                if side*v.y>.158 and .605<v.z<.662:
-                    uv=data['uv'][i]
-                    color=original_pixels[min(height-1,int(uv['y']*(height-1))),min(width-1,int(uv['x']*(width-1))),:3]
-                    lash_weight=max(0,min(1,(.45-float(max(color)))/.25))
-                    # Translate the lash silhouette with its outer lid anchor.
-                    # Flattening its root while leaving tips high stretched it.
-                    moved=v.copy()
-                    moved.y=side*.171+(v.y-side*.171)*.65
-                    moved.z=.591+(v.z-.617)*.65
-                    moved.x+=lid_x(center,side*.171,.591)-lid_x(center,side*.171,.617)
-                    q=q.lerp(moved,lash_weight)
+                # Blink belongs entirely to the separate eyelids and lashes.
+                # Preserve the eyebrows and the original face surface.
+                pass
             else:
                 radius=math.sqrt((v.y/.044)**2+((v.z-.501)/.025)**2)
                 weight=fade(radius,.45,1.6)*fade(v.z,.526,.54)
@@ -208,20 +194,16 @@ for name,color,scale,placements in oral_parts:
             v.co.x=mouth_x(v.co.y,v.co.z)-purse+depth+u.x*thickness
     parts.append((ob,color))
 
-for side,center in [('Left',.130),('Right',-.130)]:
-    curve=bpy.data.curves.new('Closed'+side+'Lid','CURVE');curve.dimensions='3D';curve.bevel_depth=.0015;curve.bevel_resolution=2;curve.use_fill_caps=True
-    line=curve.splines.new('POLY');line.points.add(32)
-    for i,p in enumerate(line.points):
-        y=center-.043+.086*i/32;z=.591-.003*((y-center)/.045)**2;p.co=(-.14,y,z,1)
-    ob=bpy.data.objects.new(curve.name,curve);bpy.context.collection.objects.link(ob)
-    bpy.ops.object.select_all(action='DESELECT');ob.select_set(True);bpy.context.view_layer.objects.active=ob;bpy.ops.object.convert(target='MESH');ob=bpy.context.object
-    color=(.035,.018,.009);mat=bpy.data.materials.new(ob.name);mat.use_nodes=True;mat.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(*color,1);ob.data.materials.append(mat)
-    ob.shape_key_add(name='Basis');key=ob.shape_key_add(name='eyeBlink'+side)
-    for v in key.data:v.co.x=lid_x(center,v.co.y,v.co.z)-.0007
-    parts.append((ob,color))
+from build_mannequin_eyes import build_eyes
+eye_parts,kept=build_eyes(body,data,vertices,normals,triangles,kept,source_image,reference,args.output)
+parts.extend(eye_parts)
 
 def shape_data(ob):
     base=ob.data.shape_keys.key_blocks[0]
+    if 'blink_frames' in ob:
+        authored=json.loads(ob['blink_frames'])
+        final=authored['frames'][-1]
+        return [dict(name=authored['name'],deltaVertices=final['deltaVertices'],deltaNormals=final['deltaNormals'],frames=authored['frames'])]
     return [dict(name=k.name,deltaVertices=[to_unity(v.co-b.co) for v,b in zip(k.data,base.data)],deltaNormals=json.loads(ob.get('normals_'+k.name,'[]'))) for k in ob.data.shape_keys.key_blocks[1:]]
 
 result=dict(vertices=data['vertices'],restVertices=[to_unity(v) for v in vertices],restNormals=[to_unity(n) for n in normals],triangles=kept,shapes=shape_data(body),parts=[],textureFile='MannequinColor.png')

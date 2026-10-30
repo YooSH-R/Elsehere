@@ -25,37 +25,73 @@ namespace A305.Characters.PlayModeTests
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
             Assert.That(face, Is.Not.Null);
             Assert.That(Object.FindFirstObjectByType<FacePosePreviewPanel>(), Is.Not.Null);
-            var skin = face.GetComponentsInChildren<SkinnedMeshRenderer>()
-                .OrderByDescending(s => s.sharedMesh.vertexCount)
-                .First();
+            var skins = face.GetComponentsInChildren<SkinnedMeshRenderer>();
             var mesh = new Mesh();
             try
             {
                 face.SetPose(CharacterFacePose.Neutral);
-                skin.BakeMesh(mesh, true);
-                var neutral = mesh.vertices;
+                var neutral = skins.ToDictionary(
+                    s => s,
+                    s =>
+                    {
+                        s.BakeMesh(mesh, true);
+                        return mesh.vertices;
+                    }
+                );
                 foreach (CharacterFacePose pose in Enum.GetValues(typeof(CharacterFacePose)))
                 {
                     face.SetPose(pose);
                     yield return null;
-                    skin.BakeMesh(mesh, true);
-                    Assert.That(
-                        mesh.vertices.All(v =>
-                            float.IsFinite(v.x) && float.IsFinite(v.y) && float.IsFinite(v.z)
-                        ),
-                        Is.True
-                    );
-                    if (pose != CharacterFacePose.Neutral)
+                    float maximumDeformation = 0;
+                    foreach (var skin in skins)
+                    {
+                        skin.BakeMesh(mesh, true);
                         Assert.That(
-                            mesh.vertices.Zip(neutral, (a, b) => Vector3.Distance(a, b)).Max(),
-                            Is.GreaterThan(.0001f),
-                            pose.ToString()
+                            mesh.vertices.All(v =>
+                                float.IsFinite(v.x) && float.IsFinite(v.y) && float.IsFinite(v.z)
+                            ),
+                            Is.True
                         );
+                        float moved = mesh
+                            .vertices.Zip(neutral[skin], (a, b) => Vector3.Distance(a, b))
+                            .Max();
+                        maximumDeformation = Mathf.Max(maximumDeformation, moved);
+                        if (
+                            pose == CharacterFacePose.Blink
+                            && (
+                                skin.sharedMesh.name.EndsWith("Lashes", StringComparison.Ordinal)
+                                || skin.sharedMesh.name.EndsWith("Lid", StringComparison.Ordinal)
+                            )
+                        )
+                            Assert.That(
+                                moved,
+                                Is.GreaterThan(.001f),
+                                skin.sharedMesh.name + " must follow the blink."
+                            );
+                        if (
+                            pose == CharacterFacePose.Blink
+                            && (
+                                skin.sharedMesh.name == "LittleMungMannequinFace"
+                                || skin.sharedMesh.name == "LeftEye"
+                                || skin.sharedMesh.name == "RightEye"
+                            )
+                        )
+                            Assert.That(
+                                moved,
+                                Is.LessThan(1e-6f),
+                                "Blink must preserve the eyes and eyebrows."
+                            );
+                    }
+                    if (pose != CharacterFacePose.Neutral)
+                        Assert.That(maximumDeformation, Is.GreaterThan(.0001f), pose.ToString());
                     Capture(pose.ToString());
                 }
                 face.SetPose(CharacterFacePose.Neutral);
-                skin.BakeMesh(mesh, true);
-                CollectionAssert.AreEqual(neutral, mesh.vertices);
+                foreach (var skin in skins)
+                {
+                    skin.BakeMesh(mesh, true);
+                    CollectionAssert.AreEqual(neutral[skin], mesh.vertices);
+                }
             }
             finally
             {

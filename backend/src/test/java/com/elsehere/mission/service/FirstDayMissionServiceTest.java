@@ -40,7 +40,7 @@ class FirstDayMissionServiceTest {
   }
 
   @Test
-  void statusAwayFromConvenienceStoreNamesItsEnglishSign() {
+  void statusAwayFromDrugstoreNamesItsEnglishSign() {
     FirstDayMission mission = FirstDayMission.start(8L);
     for (int stage = 0; stage < 5; stage++) {
       FirstDayStage current = mission.current();
@@ -52,6 +52,6 @@ class FirstDayMissionServiceTest {
     mission.visit("TOWN");
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    assertThat(service.status(8L).direction()).isEqualTo("CONVENIENCE STORE 편의점으로 이동하세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("DRUGSTORE 드럭스토어로 이동하세요.");
   }
 }

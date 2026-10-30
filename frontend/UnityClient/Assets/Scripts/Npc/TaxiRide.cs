@@ -8,8 +8,8 @@ using UnityEngine;
 namespace A305.Npc
 {
     /// <summary>
-    /// 본길을 도는 택시. 인도에 서 있을 때 택시가 다가오면 [택시 세우기]가 보이고, 누르면 손님 옆 길가에 선다.
-    /// 서 있는 택시 곁에서는 [기사에게 말 걸기]로 승차하고, 명확한 목적지를 말하면 이동해 보도에 내려준다.
+    /// 본길을 도는 택시. 인도에 서 있을 때 택시가 다가오면 [택시 세우기]가 보이고, 누르면 손님 옆 길가에 서면서
+    /// 바로 뒷좌석에 태워 기사와 대화를 시작한다. 명확한 목적지를 말하면 이동해 보도에 내려준다.
     /// 버튼은 행인의 [말 걸기]와 같은 자리(<see cref="PasserbyOfferView"/>)에 뜨고 E 키로도 누른다.
     /// </summary>
     [RequireComponent(typeof(LoopingCar))]
@@ -205,8 +205,10 @@ namespace A305.Npc
                 return;
             }
 
-            car.PullOverAt(TaxiFare.PullOverDistance(car.Route, car.Distance, customer));
-            HidePrompt();
+            // 손님 옆 길가에 바로 세우고 곧장 태운다. 태우지 못하면 서서 [말 걸기]를 기다린다.
+            car.StopAt(TaxiFare.PullOverDistance(car.Route, car.Distance, customer));
+            fare.Arrive();
+            Talk();
         }
 
         private void Talk()

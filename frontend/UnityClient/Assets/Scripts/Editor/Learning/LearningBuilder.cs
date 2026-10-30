@@ -768,6 +768,16 @@ namespace A305.EditorTools.Learning
                 "closeButton",
                 UiBuilderTools.FindOrCreateButton(profileButtons, "CloseButton", "닫기", bold, 140f)
             );
+            // 되돌릴 수 없는 동작이라 [로그아웃]·[닫기]와 떨어진 맨 앞에 둔다.
+            Button withdrawButton = UiBuilderTools.FindOrCreateButton(
+                profileButtons,
+                "WithdrawButton",
+                "회원 탈퇴",
+                bold,
+                160f
+            );
+            withdrawButton.transform.SetAsFirstSibling();
+            BuilderTools.SetReference(view, "withdrawButton", withdrawButton);
             BuilderTools.SetReference(view, "profilePanel", profile.gameObject);
 
             RectTransform logout = UiBuilderTools.FindOrCreateAnchoredPanel(
@@ -816,10 +826,63 @@ namespace A305.EditorTools.Learning
                 )
             );
             BuilderTools.SetReference(view, "logoutDialog", logout.gameObject);
+            RectTransform withdraw = SetUpWithdrawDialog(view, overlay, bold, regular);
             BuilderTools.RequireReferences(view);
 
             logout.gameObject.SetActive(false);
+            withdraw.gameObject.SetActive(false);
             overlay.gameObject.SetActive(false);
+        }
+
+        // [회원 탈퇴]의 확인 창(USER-05). 되돌릴 수 없으므로 지우는 내용을 알리고 한 번 더 묻는다.
+        private static RectTransform SetUpWithdrawDialog(
+            MyPageView view,
+            RectTransform overlay,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform withdraw = UiBuilderTools.FindOrCreateAnchoredPanel(
+                overlay,
+                "WithdrawDialog",
+                new Vector2(0.5f, 0.5f),
+                520f,
+                Vector2.zero
+            );
+            UiBuilderTools.FindOrCreateText(
+                withdraw,
+                "Title",
+                bold,
+                30f,
+                Color.white,
+                "회원 탈퇴할까요?"
+            );
+            UiBuilderTools.FindOrCreateText(
+                withdraw,
+                "Body",
+                regular,
+                22f,
+                Color.white,
+                "대화·피드백·NPC 기억·단어장과 이메일·닉네임이 바로 지워지고 되돌릴 수 없어요. 같은 Google 계정으로 다시 가입할 수 있어요."
+            );
+            BuilderTools.SetReference(
+                view,
+                "withdrawStatusText",
+                UiBuilderTools.FindOrCreateText(withdraw, "Status", regular, 20f, SubTextColor)
+            );
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(withdraw, "Buttons");
+            BuilderTools.SetReference(
+                view,
+                "withdrawCancelButton",
+                UiBuilderTools.FindOrCreateButton(buttons, "CancelButton", "취소", bold, 140f)
+            );
+            BuilderTools.SetReference(
+                view,
+                "withdrawConfirmButton",
+                UiBuilderTools.FindOrCreateButton(buttons, "ConfirmButton", "탈퇴하기", bold, 160f)
+            );
+            BuilderTools.SetReference(view, "withdrawDialog", withdraw.gameObject);
+            return withdraw;
         }
 
         // 닉네임 안내 아래, 버튼 줄 위에 "시점 감도" 제목·설명과 [느리게] 슬라이더 [빠르게] 현재값 줄을 둔다.

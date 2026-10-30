@@ -44,6 +44,17 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task Withdraw_DeletesMe()
+        {
+            transport.Reply("");
+
+            await api.WithdrawAsync();
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("DELETE"));
+            Assert.That(transport.LastRequest.Url, Is.EqualTo("http://localhost:8080/api/v1/me"));
+        }
+
+        [Test]
         public async Task Logout_PostsLogoutWithoutBody()
         {
             transport.Reply("");

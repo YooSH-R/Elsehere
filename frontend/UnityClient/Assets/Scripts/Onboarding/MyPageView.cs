@@ -22,6 +22,7 @@ namespace A305.Onboarding
         private const string SavingMessage = "닉네임을 바꾸는 중이에요…";
         private const string SavingConsentMessage = "동의를 바꾸는 중이에요…";
         private const string LoggingOutMessage = "로그아웃하는 중이에요…";
+        private const string WithdrawingMessage = "탈퇴하는 중이에요…";
         private const string UnexpectedMessage = "문제가 생겼어요. 다시 시도해 주세요.";
 
         [SerializeField]
@@ -88,6 +89,22 @@ namespace A305.Onboarding
         [SerializeField]
         private Button logoutCancelButton;
 
+        [SerializeField]
+        [Tooltip("[회원 탈퇴](USER-05). 확인 창을 거친다.")]
+        private Button withdrawButton;
+
+        [SerializeField]
+        private GameObject withdrawDialog;
+
+        [SerializeField]
+        private TMP_Text withdrawStatusText;
+
+        [SerializeField]
+        private Button withdrawConfirmButton;
+
+        [SerializeField]
+        private Button withdrawCancelButton;
+
         private MyPageFlow flow;
         private LogoutFlow logout;
         private PlayerMover player;
@@ -112,6 +129,9 @@ namespace A305.Onboarding
             logoutButton.onClick.AddListener(AskLogout);
             logoutCancelButton.onClick.AddListener(ShowProfile);
             logoutConfirmButton.onClick.AddListener(Logout);
+            withdrawButton.onClick.AddListener(AskWithdraw);
+            withdrawCancelButton.onClick.AddListener(ShowProfile);
+            withdrawConfirmButton.onClick.AddListener(Withdraw);
             consentTemplate.gameObject.SetActive(false);
             lookSensitivitySlider.minValue = LookSensitivity.Min;
             lookSensitivitySlider.maxValue = LookSensitivity.Max;
@@ -218,6 +238,7 @@ namespace A305.Onboarding
         private void ShowProfile()
         {
             logoutDialog.SetActive(false);
+            withdrawDialog.SetActive(false);
             profilePanel.SetActive(true);
             Render();
         }
@@ -250,6 +271,51 @@ namespace A305.Onboarding
 
             logoutStatusText.text = logout.ErrorMessage ?? UnexpectedMessage;
             SetLogoutButtonsInteractable(true);
+        }
+
+        private void AskWithdraw()
+        {
+            profilePanel.SetActive(false);
+            withdrawDialog.SetActive(true);
+            withdrawStatusText.text = "";
+            SetWithdrawButtonsInteractable(true);
+        }
+
+        // 탈퇴하면 서버 세션도 끝나므로 로그아웃처럼 입구 씬의 로그인 화면으로 돌아간다.
+        private async void Withdraw()
+        {
+            SetWithdrawButtonsInteractable(false);
+            withdrawStatusText.text = WithdrawingMessage;
+            bool canLeave;
+            try
+            {
+                canLeave = await logout.WithdrawAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                canLeave = false;
+            }
+
+            if (this == null)
+            {
+                return;
+            }
+
+            if (canLeave)
+            {
+                SceneManager.LoadScene(entrySceneName);
+                return;
+            }
+
+            withdrawStatusText.text = logout.ErrorMessage ?? UnexpectedMessage;
+            SetWithdrawButtonsInteractable(true);
+        }
+
+        private void SetWithdrawButtonsInteractable(bool interactable)
+        {
+            withdrawConfirmButton.interactable = interactable;
+            withdrawCancelButton.interactable = interactable;
         }
 
         // 요청을 기다리는 동안 버튼을 막고 기다리는 중임을 보이고, 끝나면 결과를 다시 그린다.
@@ -289,6 +355,7 @@ namespace A305.Onboarding
             nicknameButton.interactable = canEdit;
             closeButton.interactable = !flow.IsBusy;
             logoutButton.interactable = !flow.IsBusy;
+            withdrawButton.interactable = !flow.IsBusy;
             RenderConsents(canEdit);
         }
 

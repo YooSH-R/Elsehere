@@ -1,8 +1,6 @@
 package com.elsehere.user.service;
 
 import static com.elsehere.conversation.DialogueTestData.conversation;
-import static com.elsehere.conversation.DialogueTestData.npcId;
-import static com.elsehere.conversation.DialogueTestData.npcTurn;
 import static com.elsehere.conversation.DialogueTestData.textTurn;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,11 +15,9 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,7 +99,7 @@ class GuestContentCleanupTest {
   }
 
   @Test
-  @DisplayName("사용자·대화를 가리키는 칸이 있는 테이블은 모두 게스트 정리에서 지우거나 남기는 쪽으로 정해 둔다")
+  @DisplayName("사용자·대화를 가리키는 칸이 있는 테이블은 모두 내용 지우기(게스트 정리·탈퇴)에서 지우거나 남기는 쪽으로 정해 둔다")
   void everyUserOrConversationTable_isClassified() {
     List<String> tables =
         jdbcTemplate.queryForList(
@@ -112,50 +108,9 @@ class GuestContentCleanupTest {
                 + " and (column_name = 'user_id' or column_name like '%conversation_id')",
             String.class);
 
-    Set<String> classified = new HashSet<>(GuestContentCleanup.CLEARED_TABLES);
-    classified.addAll(GuestContentCleanup.RETAINED_TABLES);
+    Set<String> classified = new HashSet<>(UserContentEraser.CLEARED_TABLES);
+    classified.addAll(UserContentEraser.RETAINED_TABLES);
     assertThat(classified).containsExactlyInAnyOrderElementsOf(tables);
-  }
-
-  // 대화 하나(NPC·학습자 턴, 피드백)와 기억·저장 단어·숨김·레벨 테스트·AI 호출 기록을 가진 사용자
-  private Long userWithContent(AuthProvider provider, String providerUid) {
-    Long userId = UserTestData.insertUser(entityManager, provider, providerUid);
-    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
-    npcTurn(entityManager, conversation, 1, "Hi! What can I get for you?");
-    textTurn(entityManager, conversation, 2, "One latte, please.");
-    entityManager.flush();
-    Long vocabId = jdbcTemplate.queryForObject("select min(id) from vocabularies", Long.class);
-    jdbcTemplate.update(
-        "insert into conversation_feedback (conversation_id, status) values (?, 'SKIPPED')",
-        conversation.getId());
-    jdbcTemplate.update(
-        "insert into user_npc_relations (user_id, npc_id) values (?, ?)",
-        userId,
-        npcId(entityManager, "CAFE_STAFF"));
-    jdbcTemplate.update(
-        "insert into user_vocab (user_id, vocab_id, source_type) values (?, ?, 'OBJECT')",
-        userId,
-        vocabId);
-    jdbcTemplate.update(
-        "insert into user_word_prefs (user_id, vocab_id, hover_hidden) values (?, ?, true)",
-        userId,
-        vocabId);
-    Long testId =
-        jdbcTemplate.queryForObject(
-            "insert into level_tests (user_id, language_code, status)"
-                + " values (?, 'en-US', 'SKIPPED') returning id",
-            Long.class,
-            userId);
-    jdbcTemplate.update(
-        "insert into level_test_answers (test_id, item_code, answer) values (?, 'q1', 'a')",
-        testId);
-    jdbcTemplate.update(
-        "insert into ai_requests (request_id, kind, status, user_id, conversation_id)"
-            + " values (?, 'NPC', 'OK', ?, ?)",
-        UUID.randomUUID(),
-        userId,
-        conversation.getId());
-    return userId;
   }
 
   // 사용자가 남긴 모든 행의 시각을 그만큼 앞으로 옮긴다.
@@ -185,36 +140,15 @@ class GuestContentCleanupTest {
     }
   }
 
-  // 게스트 정리가 지우는 내용 테이블별 행 수
+  private Long userWithContent(AuthProvider provider, String providerUid) {
+    return UserContentTestData.userWithContent(entityManager, jdbcTemplate, provider, providerUid);
+  }
+
   private Map<String, Integer> contentRows(Long userId) {
-    String conversations = "(select id from conversations where user_id = ?)";
-    Map<String, Integer> rows = new LinkedHashMap<>();
-    rows.put(
-        "turns",
-        rows("select count(*) from turns where conversation_id in " + conversations, userId));
-    rows.put(
-        "conversation_feedback",
-        rows(
-            "select count(*) from conversation_feedback where conversation_id in " + conversations,
-            userId));
-    rows.put(
-        "user_npc_relations",
-        rows("select count(*) from user_npc_relations where user_id = ?", userId));
-    rows.put("user_vocab", rows("select count(*) from user_vocab where user_id = ?", userId));
-    rows.put(
-        "user_word_prefs", rows("select count(*) from user_word_prefs where user_id = ?", userId));
-    rows.put("level_tests", rows("select count(*) from level_tests where user_id = ?", userId));
-    rows.put(
-        "level_test_answers",
-        rows(
-            "select count(*) from level_test_answers"
-                + " where test_id in (select id from level_tests where user_id = ?)",
-            userId));
-    return rows;
+    return UserContentTestData.contentRows(entityManager, jdbcTemplate, userId);
   }
 
   private int rows(String sql, Long userId) {
-    entityManager.flush();
-    return jdbcTemplate.queryForObject(sql, Integer.class, userId);
+    return UserContentTestData.rows(entityManager, jdbcTemplate, sql, userId);
   }
 }

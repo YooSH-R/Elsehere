@@ -43,7 +43,7 @@ MonoBehaviour:
       korean: "\uADF8\uB807\uAD70\uC694!"
     exampleSentence: 
   - npcCode: CAFE_STAFF
-    npcName: Emma
+    npcName: Mia
     roleLabel: "\uCE74\uD398 \uC9C1\uC6D0"
     opening:
       english: "Hi there! Welcome to our caf\xE9. What can I get for you?"
@@ -88,7 +88,7 @@ MonoBehaviour:
         \uC788\uC744\uAE4C\uC694?"
     exampleSentence: Could I have a soy latte, please?
   - npcCode: TOWN_PASSERBY
-    npcName: Sam
+    npcName: Ben
     roleLabel: "\uD589\uC778"
     opening:
       english: Hey! Nice to see you. How's your day going?
@@ -118,7 +118,7 @@ MonoBehaviour:
       korean: "\uC544, \uC815\uB9D0\uC694? \uB354 \uC598\uAE30\uD574 \uC918\uC694!"
     exampleSentence: It's a nice day today, isn't it?
   - npcCode: HOTEL_STAFF
-    npcName: Emma
+    npcName: Jake
     roleLabel: "\uD638\uD154 \uC9C1\uC6D0"
     opening:
       english: Good afternoon! Welcome to Maple House. Are you checking in?

@@ -64,12 +64,13 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 | NPC 키 | 이름 | 대화 |
 | --- | --- | --- |
 | `TUTORIAL_PASSERBY` | Alex | 카페 가는 길을 묻는 정해진 3턴. 화면에 읽을 대사를 보여 주고, 무엇을 보내도 다음 턴으로 넘어갑니다. 마지막 턴 뒤에는 입력을 받지 않습니다. |
-| `CAFE_STAFF` | Emma | 키워드 응답. `soy`+`latte`, `latte`, `dessert`, `coffee`, `thank` 순서로 확인합니다. |
-| `TOWN_PASSERBY` | Sam | 키워드 응답. `weather`, `cafe`, `thank` |
+| `CAFE_STAFF` | Mia | 키워드 응답. `soy`+`latte`, `latte`, `dessert`, `coffee`, `thank` 순서로 확인합니다. |
+| `TOWN_PASSERBY` | Ben | 키워드 응답. `weather`, `cafe`, `thank` |
 | `TAXI_DRIVER` | Joe | 어디로 가는지 묻고 키워드 응답. `hotel`, `thank` |
 
 - 키워드는 대소문자를 구분하지 않고 단어 일부여도 맞습니다(`desserts`도 `dessert`에 맞음). 규칙은 위에서부터 확인해 처음 맞는 규칙으로 답합니다.
 - 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 합니다. 이름·대사는 서버 데이터라 서버 연동 후에는 서버 값을 씁니다.
+- 서버 시드(`backend/src/main/resources/db/seed/world.sql`)에 있는 NPC는 대본의 이름·역할 이름을 시드와 같게 둡니다. 서버 대화로 넘어가도 이름이 바뀌지 않게 하려는 것이며, `MockDialogueScriptsAssetTests`가 시드를 읽어 확인합니다. 시드 이름이 바뀌면 필드 초기값을 고치고 **Dialogue → Build**를 실행하면 에셋의 이름도 맞춰집니다.
 - Web 빌드의 Unity 입력창은 한국어 입력이 되지 않습니다(S15P31A305-200 PoC 결론). 입력 UI를 HTML로 옮기는 작업 전까지 영어로 입력합니다.
 
 공간 씬의 대화 처리와 화면은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 붙이므로 씬마다 직접 배치하지 않습니다. 화면 프리팹과 확인용 대본은 **Tools → A305 → Dialogue → Build**(`Scripts/Editor/Dialogue/DialogueBuilder.cs`)로 준비합니다. 화면은 없는 요소만 만들고, 이미 있는 요소의 디자인은 유지합니다.

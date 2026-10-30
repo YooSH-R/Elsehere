@@ -7,6 +7,7 @@ dev:plan:
   extends:
     - .linux-light-job
     - .dev-deployment-source
+  tags: [a305-linux-light, a305-ec2]
   stage: validate
   image: python:3.12-alpine
   timeout: 5m
@@ -37,6 +38,7 @@ dev:child:
 
 dev:deliver:
   extends: .docker-job
+  tags: [a305-linux-ci, a305-ec2]
   stage: deploy
   image: docker:29.1.3-cli
   timeout: 30m
@@ -71,6 +73,7 @@ prod:plan:
   extends:
     - .linux-light-job
     - .prod-deployment-source
+  tags: [a305-linux-light, a305-ec2]
   stage: validate
   image: python:3.12-alpine
   timeout: 5m
@@ -107,6 +110,7 @@ prod:child:
 
 prod:deliver:
   extends: .docker-job
+  tags: [a305-linux-ci, a305-ec2]
   stage: deploy
   image: docker:29.1.3-cli
   timeout: 30m

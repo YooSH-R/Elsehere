@@ -42,7 +42,7 @@ default:
 
 .linux-job:
   tags:
-    - a305-linux
+    - a305-linux-ci
 
 .linux-light-job:
   tags:

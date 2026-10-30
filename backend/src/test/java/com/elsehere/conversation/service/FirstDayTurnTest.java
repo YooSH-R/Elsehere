@@ -23,6 +23,7 @@ import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
@@ -107,6 +108,7 @@ class FirstDayTurnTest {
             worker,
             mock(AiRequestRecorder.class),
             mock(MemoryService.class),
+            mock(NpcAffinityService.class),
             transactions,
             firstDay,
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));

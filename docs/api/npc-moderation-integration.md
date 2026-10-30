@@ -20,7 +20,8 @@
 - 무례 판정은 `/v1/guard`의 `guard.abusive`를 사용한다. Spring이 원래 null과 오류 이유를 보관한다.
 - 번역 표시 여부는 Spring이 `유효 영어 번역 있음 && abusive === false`로 계산한다.
 - 행동 묘사만 남아 dropped인 입력은 실제 사용자 발화로 평가하지 않는다.
-- 한 대화의 1·2회 지적, 3회 종료 계산은 Spring, 대사 생성은 NPC 담당이다. MVP의 정당방위 장면·재대화 제한·호감도 반영은 분담 초안에서 제외했다.
+- 한 대화의 1·2회 지적, 3회 종료 계산은 Spring, 대사 생성은 NPC 담당이다. MVP의 정당방위 장면·재대화 제한은 분담 초안에서 제외했다.
+- 무례로 센 말마다 Spring이 그 NPC의 호감도를 깎는다(2026-10-29 팀 결정, [무례 처리 합의안](rudeness-handling.md) 3절).
 
 | guard.abusive | 피드백 text_status | 기억 history[].rude |
 |---|---|---|

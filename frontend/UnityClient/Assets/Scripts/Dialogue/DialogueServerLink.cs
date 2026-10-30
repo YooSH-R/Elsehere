@@ -29,13 +29,15 @@ namespace A305.Dialogue
         [SerializeField]
         private VoiceRecorder voiceRecorder;
 
-        private AudioClip lastSpeech;
+        private readonly NpcSpeechSlot lastSpeech = new NpcSpeechSlot();
+        private int speechRequestVersion;
 
         public bool IsAvailable => useServer && apiSettings != null;
 
         public VoiceRecorder VoiceRecorder => voiceRecorder;
 
-        public bool HasSpeech => lastSpeech != null;
+        /// <summary>지금 대사의 음성을 받아 두었는지. 지난 대사의 음성은 세지 않는다.</summary>
+        public bool HasSpeech => lastSpeech.Clip != null;
 
         public IConversationApi CreateApi()
         {
@@ -46,39 +48,66 @@ namespace A305.Dialogue
         }
 
         /// <summary>
-        /// NPC 턴 음성을 받아 재생한다. 받지 못하면 재생하지 않고 false를 돌려준다(자막만 보여 준다).
+        /// NPC 턴 음성을 받아 재생한다. 404는 ApiException으로 알리고, 그 밖의 다운로드 실패는 false를 돌려준다.
         /// </summary>
         /// <param name="url">서버가 준 다시 듣기 주소(/api/v1/turns/{id}/speech)</param>
         public async Task<bool> PlaySpeechAsync(string url)
         {
-            StopSpeech();
-            lastSpeech = null;
+            ForgetSpeech();
+            int requestVersion = speechRequestVersion;
+            lastSpeech.Expect(url);
             using UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(
                 apiSettings.BaseUrl.TrimEnd('/') + url,
                 AudioType.WAV
             );
             await Awaitable.FromAsyncOperation(request.SendWebRequest());
-            if (this == null || request.result != UnityWebRequest.Result.Success)
+            if (this == null || requestVersion != speechRequestVersion)
+            {
+                return false;
+            }
+            if (request.responseCode == 404)
+            {
+                throw new ApiException("NOT_FOUND", 404, "음성이 없습니다.");
+            }
+            if (
+                request.result != UnityWebRequest.Result.Success
+                || !lastSpeech.TryFill(url, DownloadHandlerAudioClip.GetContent(request))
+            )
             {
                 return false;
             }
 
-            lastSpeech = DownloadHandlerAudioClip.GetContent(request);
-            speechSource.clip = lastSpeech;
+            speechSource.clip = lastSpeech.Clip;
             speechSource.Play();
             return true;
         }
 
-        /// <summary>마지막으로 받은 NPC 음성을 처음부터 다시 재생한다.</summary>
+        /// <summary>지금 대사의 음성을 처음부터 다시 재생한다.</summary>
         public void ReplaySpeech()
         {
-            if (lastSpeech == null)
+            if (lastSpeech.Clip == null)
             {
                 return;
             }
 
-            speechSource.clip = lastSpeech;
+            speechSource.clip = lastSpeech.Clip;
             speechSource.Play();
+        }
+
+        /// <summary>대사가 바뀌거나 대화를 끝내면 이전 음성과 아직 끝나지 않은 다운로드를 무효화한다.</summary>
+        public void ForgetSpeech()
+        {
+            speechRequestVersion++;
+            StopSpeech();
+            if (speechSource != null)
+            {
+                speechSource.clip = null;
+            }
+            if (lastSpeech.Clip != null)
+            {
+                Destroy(lastSpeech.Clip);
+            }
+            lastSpeech.Clear();
         }
 
         public void StopSpeech()
@@ -87,6 +116,11 @@ namespace A305.Dialogue
             {
                 speechSource.Stop();
             }
+        }
+
+        private void OnDestroy()
+        {
+            ForgetSpeech();
         }
     }
 }

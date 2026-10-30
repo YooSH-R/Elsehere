@@ -14,10 +14,10 @@ namespace A305.Npc.Tests
         [Test]
         public void Hint_WithRoleLabel_SaysTheRoleWithTheRightParticle()
         {
-            // 영어 이름만으로는 편의점 직원인지 알 수 없어, 역할이 있으면 역할로 알린다.
+            // 영어 이름만으로는 드럭스토어 직원인지 알 수 없어, 역할이 있으면 역할로 알린다.
             Assert.That(
-                PasserbyOfferText.Hint("Alex", "편의점 직원"),
-                Is.EqualTo("편의점 직원이 말을 걸었어요")
+                PasserbyOfferText.Hint("Alex", "드럭스토어 직원"),
+                Is.EqualTo("드럭스토어 직원이 말을 걸었어요")
             );
             Assert.That(
                 PasserbyOfferText.Hint("Mia", "바리스타"),

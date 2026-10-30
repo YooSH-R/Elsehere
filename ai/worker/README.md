@@ -52,7 +52,10 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `RESPOND_BUDGET_S` | 30 | NPC 추론 API(`/internal/ai/npc/respond`) 요청 하나의 상한 (재시도·대체 모델 포함, 계약 10절). 넘으면 504 `AI_TIMEOUT` |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음, 배포 이미지는 `/opt/kokoro/` 안 파일) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
 | `KOKORO_THREADS` | 0 (onnxruntime 기본, 보이는 코어 수) | 음성 합성 스레드 수. 컨테이너처럼 CPU 상한이 있으면 상한과 같게 (앱 Compose는 2). 상한보다 많으면 CPU 할당량에 걸려 몇 배 느려짐 |
-| `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
+| `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false`(바로 재생 없이 자막만). 턴 전체 음성에는 합성이 끝나는 대로 넣음 |
+| `TTS_GPU_BASE_URL` / `TTS_GPU_TOKEN` | (없음, 꺼짐) | SSAFY GPU 서버 합성 서버([`ai/gpu_tts`](../gpu_tts/README.md))의 주소와 토큰. 주면 다듬고 음소로 바꾼 글을 먼저 GPU로 보내고, 실패·시간 초과면 CPU Kokoro로 만듦. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18433`) |
+| `TTS_GPU_TIMEOUT_S` | 2 | GPU 서버 합성 한 번의 상한. 넘으면 재시도 없이 CPU로 |
+| `TTS_BREAKER_FAILURES` / `TTS_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 합성이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 CPU로 바로 감. 횟수가 0이면 끔 |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
 | `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김 |
@@ -238,6 +241,7 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
 - `tests/test_speech_text.py`: 음성으로 읽을 글 다듬기(`app/speech_text.py`) — 가격(`$13` → 13 dollars, 센트·단수·쉼표), 시각(`10:00` → 10 o'clock, `9:05` → 9 oh 5, a.m.·p.m.), 별표, 한글은 자막으로만(남은 문장 부호 정리), 평범한 영어는 그대로, 읽을 게 없으면 빈 글. Kokoro가 다듬은 글을 음소로 엔진에 넘기고, 읽을 게 없으면 엔진 없이 같은 형식의 짧은 무음
 - `tests/test_pronunciation.py`: 발음 사전(`app/pronunciation.py`) — 사전 단어는 적어 둔 음소, 나머지는 음소화, 대소문자 무관·단어 경계(honest의 hon은 아님), 여러 단어 항목(café au lait), 사전 단어가 없으면 글 전체를 한 번에 음소화, 사전 음소가 Kokoro 어휘 기호만 쓰는지
+- `tests/test_tts_gpu.py`: GPU 서버 음성 합성 — 다듬고 음소로 바꾼 글·목소리·속도·토큰을 보내고 받은 WAV를 씀, 오류·시간 초과·WAV가 아닌 답이면 한 번만 부르고 CPU로, 연속 실패 시 잠시 건너뛰기·성공하면 초기화, 같은 문장·읽을 것이 없는 글은 GPU를 부르지 않음, 환경 변수(토큰 필수)
 - `tests/test_tts_roundtrip.py`: 음성 합성 왕복 평가(`ai/tools/tts_roundtrip.py`)의 채점 — 곡선 따옴표는 곧은 것으로 바꿔 정규화, 대소문자·문장 부호 무시, 붙여 쓰기·띄어 쓰기 차이, 이어서 틀린 단어를 한 덩어리로, 태그별 WER(단어 수 가중), 평가 문장 파일(id 중복·NPC·태그)
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, 음성 합성 스레드 수(`KOKORO_THREADS`), GPT-5 요청 칸
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행

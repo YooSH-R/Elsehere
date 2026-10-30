@@ -151,6 +151,12 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 **Tools → A305 → World → Build And Preview Tiny Treats Props**는 없는 재질·프리팹만 만들고 비교용 Sandbox를 재생성한다. 기존 프리팹과 조합 예시의 수동 편집은 유지한다. 유리 재질은 투명 URP/Lit, 나머지는 Metallic 0·Smoothness 0.18이다. 카운터 조합 (`artifacts/unity/free-props/CafeCounterDisplay.png`, 로컬 보관), 공원 소품 (`artifacts/unity/free-props/PrettyPark.png`, 로컬 보관)은 실제 Unity Editor 렌더이며 생성형 이미지가 아니다. 검수는 25개 모델의 URP 참조·바닥 피벗·콜라이더·실측 치수와 화면을 확인한다. WebGL 성능·기능 연결 완료를 의미하지 않는다.
 
+### 미국 소도시 거리와 생활 소품
+
+학습자가 미국 소도시에 온 상황을 연습하므로, 거리도 미국 소도시처럼 보이게 한다. 우산을 사는 상점도 미국에서 흔한 드럭스토어로 정했다. **Apply American Street Details**는 도로 전체에 이어지는 중앙선, 교차로의 횡단보도·정지선·신호등과 MAPLE AVE 이름판, 속도 제한 25·버스 정류장·보행자 횡단 표지판, 주차 미터기, 신문 판매함, 파란 우체통, 드럭스토어 앞 ICE 냉동고와 OPEN 네온, 카페 입간판을 둔다. 성조기는 호텔 외벽에 하나만 단다. 이 소품들은 Builder가 기본 도형으로 만든다.
+
+**Apply Town Street Life**는 거리가 비어 보이지 않게 집 남쪽 잔디에 아이스크림 트럭 광장을 따로 두고, 카페 앞 파라솔 테라스, 본길을 도는 택시·승용차, 자전거 거치대, 꽃과 동물을 둔다. 택시와 승용차는 교차로 신호를 지키며 본길을 돌고, 기존 픽업트럭만 길가에 세워 둔다. 택시는 인도에서 세워 운전석의 기사와 대화할 수 있다. 테이블·의자·휴지통·컵은 위 Tiny Treats 프리팹을 그대로 쓴다. 외부 모델의 출처와 라이선스는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md#마을-거리)에서 관리한다.
+
 ### 나머지 후보의 적용 순서
 
 아래는 미도입 후보에 대한 디자인 판단이다. 건물은 미국 소도시의 벽돌 상가·크림색 몰딩·녹색 차양과 반복 층 구조를 유지하고, 필요한 소품부터 보강한다.
@@ -173,6 +179,6 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 ## 적용 범위
 
-메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 편의점 구역은 이 작업의 대상이 아니다.
+메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 드럭스토어 구역은 이 작업의 대상이 아니다.
 
 부지 마커와 임시 경계 벽은 아트 화면에서 숨기고 경계 Collider는 유지한다. 공유 메시와 프리팹 사용만으로 Web 성능을 검증했다고 판단하지 않는다. Web 적용 전에 꽃·창문 반복 수, Renderer·재질 수와 프레임 시간을 측정해 단순화한다.

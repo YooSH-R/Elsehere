@@ -16,7 +16,9 @@
         "A305.Mission",
         "A305.Tutorial",
         "A305.Weather",
-        "UnityEngine.UI"
+        "A305.Theme",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

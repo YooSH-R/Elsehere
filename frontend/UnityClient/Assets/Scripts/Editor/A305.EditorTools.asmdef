@@ -18,6 +18,7 @@
         "A305.Api",
         "A305.Onboarding",
         "A305.Theme",
+        "A305.Weather",
         "WebGLInput",
         "Unity.TextMeshPro",
         "UnityEngine.UI",

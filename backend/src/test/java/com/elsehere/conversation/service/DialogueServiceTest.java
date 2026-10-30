@@ -12,6 +12,7 @@ import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.feedback.service.ModelSpeechService;
 import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.user.service.TrainingConsentService;
 import com.elsehere.world.service.PronunciationAudioStore;
@@ -71,6 +72,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   TrainingConsentService.class,
   ConsentCatalog.class,
   MemoryService.class,
+  NpcAffinityService.class,
   FirstDayMissionService.class
 })
 @MockitoBean(types = AiWorkerClient.class)

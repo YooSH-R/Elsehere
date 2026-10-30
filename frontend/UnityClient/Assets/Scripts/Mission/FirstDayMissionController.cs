@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
 using A305.Player;
+using A305.Weather;
 using UnityEngine;
 
 namespace A305.Mission
@@ -23,7 +24,8 @@ namespace A305.Mission
         private PlayerMover player;
 
         [SerializeField]
-        private ParticleSystem rain;
+        [Tooltip("예보 날씨를 보여 줄 실외 장소에만 연결한다")]
+        private WeatherPresenter weather;
 
         [SerializeField]
         private string sceneCode;
@@ -71,12 +73,6 @@ namespace A305.Mission
             }
         }
 
-        private void LateUpdate()
-        {
-            if (rain != null && rain.isPlaying)
-                rain.transform.position = player.transform.position + Vector3.up * 7f;
-        }
-
         private void OnStarted(string npcCode) => Render();
 
         private void OnEnded(string npcCode) => RequestRefresh();
@@ -113,13 +109,8 @@ namespace A305.Mission
                     return;
                 state = response;
                 view.ShowMessage("");
-                if (rain != null)
-                {
-                    if (state.Raining && !rain.isPlaying)
-                        rain.Play();
-                    if (!state.Raining && rain.isPlaying)
-                        rain.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                }
+                if (weather != null)
+                    weather.Show(state.Weather, state.FallbackWeather);
             }
             catch (ApiException exception)
             {

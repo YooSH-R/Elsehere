@@ -16,67 +16,6 @@ def unity_vector(value):
     return dict(x=float(value.x), y=float(value.z), z=float(-value.y))
 
 
-def build_lip_rim(skin_targets, skin_normals, count):
-    """A thin vermilion surface, distinct from the dark oral cavity.
-
-    Follow the existing aperture and its adjacent skin ring in every shape.
-    This leaves tooth contact and mouth opening unchanged.
-    """
-    width = .0012
-    color = (.80, .18, .16)
-    rings = [1.0, .5, 0.0]
-    targets, normals = {}, {}
-    for channel, skin_points in skin_targets.items():
-        points, shading = [], []
-        for ring in rings:
-            for index in range(count):
-                edge_index = len(skin_points) - count + index
-                next_index = edge_index - count
-                edge, adjacent = skin_points[edge_index], skin_points[next_index]
-                distance = math.hypot(adjacent.y - edge.y, adjacent.z - edge.z)
-                blend = min(.95, width / max(distance, .00001)) * ring
-                point = edge.lerp(adjacent, blend)
-                # Sit just above the matching skin surface, with a soft ridge.
-                point.x -= .00012 + .00015 * math.sin(math.pi * ring)
-                points.append(point)
-                shading.append(skin_normals[channel][edge_index].lerp(
-                    skin_normals[channel][next_index], blend).normalized())
-        targets[channel], normals[channel] = points, shading
-    faces = []
-    for ring in range(len(rings) - 1):
-        for index in range(count):
-            following = (index + 1) % count
-            first, second = ring * count, (ring + 1) * count
-            faces.append((first + index, second + index,
-                          second + following, first + following))
-    mesh = bpy.data.meshes.new('LipRim')
-    mesh.from_pydata(targets['Basis'], [], faces)
-    mesh.update()
-    item = bpy.data.objects.new('LipRim', mesh)
-    bpy.context.collection.objects.link(item)
-    for polygon in mesh.polygons:
-        polygon.use_smooth = True
-    mesh.normals_split_custom_set_from_vertices(normals['Basis'])
-    item['base_normals'] = json.dumps([unity_vector(n) for n in normals['Basis']])
-    material = bpy.data.materials.new('LipRim')
-    material.use_nodes = True
-    shader = material.node_tree.nodes.get('Principled BSDF')
-    shader.inputs['Base Color'].default_value = (*color, 1)
-    shader.inputs['Roughness'].default_value = .8
-    mesh.materials.append(material)
-    item.shape_key_add(name='Basis')
-    for channel, points in targets.items():
-        if channel == 'Basis':
-            continue
-        key = item.shape_key_add(name=channel)
-        for vertex, position in zip(key.data, points):
-            vertex.co = position
-        item['normals_' + channel] = json.dumps([
-            unity_vector(target - base)
-            for target, base in zip(normals[channel], normals['Basis'])])
-    return item, color
-
-
 def build_speaking_mouth(body, source, vertices, normals, triangles, texture, output):
     removed = set()
     edge_count = Counter()
@@ -213,7 +152,7 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
         'mouthSmileRight': (.022, .0018),
     }
     parts = []
-    for part_name, rings in [('SpeakingLips', [1, .8, .55, .3, .1, 0]),
+    for part_name, rings in [('SpeakingLips', [1, .6, .25, .1, .04, 0]),
                              ('MouthInterior', [1, .8, .5, .2, 0])]:
         targets, target_normals = {}, {}
         for channel, (half_width, half_height) in apertures.items():
@@ -238,9 +177,23 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
                         z = inner_z*(1-ring)+outer.z*ring
                         purse = {'viseme_OH': .002, 'viseme_OU': .006}.get(channel, 0)
                         x = fitted_x(y, z)+(outer.x-fitted_x(outer.y, outer.z))*ring-purse*(1-ring)**2
+                        # Sculpt a shallow, skin-colored lip fold in the existing
+                        # continuous skin surface, not a painted outline. Both ends
+                        # meet the unchanged aperture and surrounding face.
+                        outward_y, outward_z = outer.y-inner_y, outer.z-inner_z
+                        span = max(.00001, math.hypot(outward_y, outward_z))
+                        distance = span * ring
+                        fold_width, fold_height = .003, .00045
+                        fold_slope = 0.0
+                        if distance < fold_width:
+                            phase = math.pi * distance / fold_width
+                            x -= fold_height * math.sin(phase)**2
+                            fold_slope = -fold_height * math.pi / fold_width * math.sin(2*phase)
                         local_y, local_z = y-CENTER_Y, z-CENTER_Z
                         slope_y = coefficients[1]+2*coefficients[3]*local_y+coefficients[4]*local_z
                         slope_z = coefficients[2]+coefficients[4]*local_y+2*coefficients[5]*local_z
+                        slope_y += fold_slope * outward_y / span
+                        slope_z += fold_slope * outward_z / span
                         surface_normal = Vector((-1, slope_y+purse*40*cosine*(1-ring), slope_z+purse*40*sine*(1-ring))).normalized()
                         normal = surface_normal.lerp(outer_normals[index], ring).normalized()
                     else:
@@ -297,8 +250,6 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
             item['normals_'+channel] = json.dumps([
                 unity_vector(target-base) for target, base in zip(target_normals[channel], target_normals['Basis'])])
         parts.append((item, color))
-        if part_name == "SpeakingLips":
-            parts.append(build_lip_rim(targets, target_normals, count))
 
     # Keep vertex order, UVs, weights and rig metadata. Only these copy triangles
     # are replaced; the author's original prefab and mesh are not changed.

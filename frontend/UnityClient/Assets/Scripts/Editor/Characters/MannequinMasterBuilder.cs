@@ -239,13 +239,21 @@ namespace A305.EditorTools.Characters
                     AddShapes(existing, part.shapes);
                     EditorUtility.SetDirty(existing);
                 }
-                // The former flat closing lines are superseded by the authored
-                // lids. Their assets remain available in version history.
-                foreach (string retired in new[] { "ClosedLeftLid", "ClosedRightLid" })
+                // Retire obsolete preview surfaces when the authored replacement
+                // no longer includes them. Prior candidates remain in Git history.
+                foreach (string retired in new[] { "ClosedLeftLid", "ClosedRightLid", "LipRim" })
                 {
                     var child = body.transform.Find(retired);
-                    if (child != null && !data.parts.Any(p => p.name == retired))
-                        Object.DestroyImmediate(child.gameObject);
+                    if (!data.parts.Any(p => p.name == retired))
+                    {
+                        if (child != null)
+                            Object.DestroyImmediate(child.gameObject);
+                        if (retired == "LipRim")
+                        {
+                            AssetDatabase.DeleteAsset(ArtFolder + "/LipRim.asset");
+                            AssetDatabase.DeleteAsset(ArtFolder + "/LipRim.mat");
+                        }
+                    }
                 }
                 PrefabUtility.SaveAsPrefabAsset(visual, visualPath);
             }

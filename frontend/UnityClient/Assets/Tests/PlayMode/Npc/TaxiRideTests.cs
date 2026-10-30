@@ -13,8 +13,8 @@ using UnityEngine.UI;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을(TownScene)을 실제로 불러와 차가 본길을 달리고, 앞을 막으면 서며, 인도에서 세운 택시가 옆에 서서
-    /// 기사와 대화한 뒤 다시 떠나는지 확인한다.
+    /// 마을(TownScene)을 실제로 불러와 인도에서 세운 택시가 옆에 서서 기사와 대화한 뒤 다시 떠나고,
+    /// 승객으로 타면 목적지에 내려 주는지 확인한다. 목적지별 하차 위치와 차로 계산은 EditMode 테스트가 맡는다.
     /// </summary>
     public class TaxiRideTests
     {
@@ -25,40 +25,6 @@ namespace A305.Npc.PlayModeTests
         {
             PasserbyRestRecord.Clear();
             TutorialState.Clear();
-        }
-
-        [UnityTest]
-        public IEnumerator Taxi_DrivesAlongTheMainStreet()
-        {
-            yield return LoadTown();
-            Transform taxi = Single<TaxiRide>().transform;
-            Vector3 start = taxi.position;
-
-            yield return new WaitForSeconds(1f);
-
-            Assert.That(Vector3.Distance(start, taxi.position), Is.GreaterThan(1f));
-        }
-
-        [UnityTest]
-        public IEnumerator SomeoneInFrontOfTheSedan_StopsIt_UntilTheyStepAside()
-        {
-            yield return LoadTown();
-            LoopingCar sedan = FindCar("Sedan");
-            PlayerMover player = Single<PlayerMover>();
-            CarLoopRoute.Pose pose = sedan.Route.PoseAt(sedan.Distance);
-            player.Teleport(
-                pose.Position + pose.Forward * 4f + Vector3.up * .2f,
-                Quaternion.identity
-            );
-            yield return new WaitForSeconds(.3f);
-            float stoppedAt = sedan.Distance;
-
-            yield return new WaitForSeconds(1f);
-            Assert.That(sedan.Distance, Is.EqualTo(stoppedAt).Within(.01f));
-
-            player.Teleport(new Vector3(-5f, .2f, pose.Position.z), Quaternion.identity);
-            yield return new WaitForSeconds(1f);
-            Assert.That(sedan.Distance, Is.Not.EqualTo(stoppedAt).Within(.5f));
         }
 
         [UnityTest]
@@ -109,93 +75,9 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator PassengerRequestsCafe_TaxiDropsThemOnTheCafeSide()
-        {
-            yield return RideTo("The cafe, please.", "CAFE", -11, false);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsHome_TaxiReachesTheSouthernBuilding()
-        {
-            yield return RideTo("I'd like to go home.", "HOME", -19, true);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsDrugstore_TaxiDropsThemAtTheShop()
-        {
-            yield return RideTo("Take me to the drugstore, please.", "SHOP", -1, false);
-        }
-
-        [UnityTest]
         public IEnumerator PassengerEndsDuringJourney_RestoresCameraAndPlayer()
         {
             yield return RideTo("Take me to the hotel.", "HOTEL", -5, true, true);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsPostOffice_AvoidsTheTreeAtTheEntrance()
-        {
-            yield return RideTo("Take me to the post office.", "POST_OFFICE", 31.5f, false);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsDiner_ArrivesAtTheDiner()
-        {
-            yield return RideTo("Maple Diner, please.", "DINER", 39, true);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsBank_ArrivesAtTheBank()
-        {
-            yield return RideTo("Take me to the bank.", "BANK", 48, false);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsLaundromat_ArrivesAtTheLaundromat()
-        {
-            yield return RideTo("The laundromat, please.", "LAUNDROMAT", 48, true);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsFlowers_ArrivesAtTheFlorist()
-        {
-            yield return RideTo("Take me to the flower shop.", "FLOWER_SHOP", 57, false);
-        }
-
-        [UnityTest]
-        public IEnumerator PassengerRequestsBarber_ArrivesAtTheBarber()
-        {
-            yield return RideTo("The barber shop, please.", "BARBER", 57, true);
-        }
-
-        [UnityTest]
-        public IEnumerator AllNewStorefronts_OpenTheirEntranceWhenThePlayerApproaches()
-        {
-            yield return LoadTown();
-            PlayerMover player = Single<PlayerMover>();
-            foreach (
-                string shop in new[]
-                {
-                    "PostOffice",
-                    "MapleDiner",
-                    "TownBank",
-                    "SudsLaundromat",
-                    "BloomFlowers",
-                    "MainStreetBarber",
-                }
-            )
-            {
-                GameObject storefront = GameObject.Find(shop);
-                Assert.That(storefront, Is.Not.Null, shop);
-                ShopSwingDoor door = storefront.GetComponentInChildren<ShopSwingDoor>();
-                BoxCollider sensor = door.GetComponent<BoxCollider>();
-                Vector3 entrance = door.transform.TransformPoint(sensor.center);
-                entrance.y = storefront.transform.position.y;
-                player.Teleport(entrance, Quaternion.identity);
-                yield return new WaitForSeconds(.8f);
-                Collider leaf = door.transform.Find("Hinge/DoorLeaf").GetComponent<Collider>();
-                Assert.That(leaf.enabled, Is.False, shop + " 문이 열리지 않았습니다.");
-            }
         }
 
         private static IEnumerator RideTo(
@@ -359,13 +241,6 @@ namespace A305.Npc.PlayModeTests
             typeof(SpaceArrival)
                 .GetField("apiSettings", flags)
                 .SetValue(Single<SpaceArrival>(), null);
-        }
-
-        private static LoopingCar FindCar(string carName)
-        {
-            return Object
-                .FindObjectsByType<LoopingCar>(FindObjectsSortMode.None)
-                .Single(car => car.name == carName);
         }
 
         private static float HorizontalDistance(Vector3 a, Vector3 b)

@@ -418,6 +418,34 @@ class TurnServiceTest {
   }
 
   @Test
+  @DisplayName("무례로 깎은 뒤의 호감도를 대화 상태로 돌려준다")
+  void send_abusive_respondsDeductedAffinity() {
+    rudeTo("you idiot", -8);
+
+    TurnResponse response = send("you idiot");
+
+    assertThat(response.conversation().affinity()).isEqualTo(-8);
+  }
+
+  @Test
+  @DisplayName("무례가 아닌 말에는 그 NPC의 지금 호감도를 그대로 돌려준다")
+  void send_notRude_respondsCurrentAffinity() {
+    entityManager
+        .createNativeQuery(
+            "insert into user_npc_relations (user_id, npc_id, affinity, talk_count)"
+                + " values (?, ?, 12, 1)")
+        .setParameter(1, userId)
+        .setParameter(2, passerbyNpcId())
+        .executeUpdate();
+    judges("Yes", "Yes", null);
+    repliesTo("Yes", reply("Nice!", null, null));
+
+    TurnResponse response = send("Yes");
+
+    assertThat(response.conversation().affinity()).isEqualTo(12);
+  }
+
+  @Test
   @DisplayName("무례 판정이 감점량을 주면 기본값 대신 그 값만큼 깎는다")
   void send_abusiveWithWorkerDelta_deductsWorkerDelta() {
     rudeTo("you idiot", -8);

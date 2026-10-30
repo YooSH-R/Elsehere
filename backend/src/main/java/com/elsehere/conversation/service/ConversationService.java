@@ -113,7 +113,8 @@ public class ConversationService {
               conversation.getLevelApplied(),
               npc.summary(),
               List.of(),
-              support.npcTurn(openingTurn));
+              support.npcTurn(openingTurn),
+              support.state(conversation));
         });
   }
 

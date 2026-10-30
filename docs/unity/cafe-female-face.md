@@ -98,6 +98,8 @@ powershell.exe -NoProfile -File frontend/ArtSources/Characters/CafeFemaleFace/ex
 
 미지원 모델은 음성만 재생한다. 누락 채널은 실행 중 `DialogueSpeaker`의 Binding Notice와 `DialogueServerLink.LipSyncNotice`에서 확인할 수 있다. **Tools → A305 → Characters → Check NPC Speech Support**는 현재 열린 씬의 NPC별 채널 상태를 Console에 출력한다. 배치 검사는 `NPC_SPEECH_AUDIT_OUTPUT`을 저장소 밖 JSON 경로로 지정하고 `A305.EditorTools.Characters.NpcSpeechAudit.ExportProductionReport`를 실행한다. Production 씬에 배치된 NPC를 읽기만 하며, 동적으로 생성되는 NPC나 변형의 시각적 품질까지 합격시키는 검사는 아니다.
 
+호텔리어의 공통 채널 복사본과 1.7m 크기·호텔 대화 연결은 [호텔리어 표정과 대화](hotelier-face.md)에서 확인한다.
+
 ### 서버 호출 없이 카페에서 확인
 
 1. `Assets/Scenes/Sandbox/CafeDialogueSpeechSandbox.unity`를 열고 Play를 누른다.

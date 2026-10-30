@@ -38,7 +38,11 @@ default:
 
 .linux-job:
   tags:
-    - a305-linux
+    - a305-linux-ci
+
+.linux-light-job:
+  tags:
+    - a305-linux-light
 
 .docker-job:
   extends: .linux-job
@@ -58,3 +62,4 @@ default:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
     FF_NETWORK_PER_BUILD: "true"
+    A305_DOCKER_CACHE_DIR: /cache/a305-buildkit

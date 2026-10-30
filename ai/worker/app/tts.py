@@ -14,6 +14,9 @@ import wave
 from collections import OrderedDict
 from pathlib import Path
 
+from .pronunciation import to_phonemes
+from .speech_text import for_speech
+
 
 def to_wav(audio, sr: int) -> bytes:
     import numpy as np
@@ -45,20 +48,28 @@ def join_wavs(wavs: list[bytes]) -> tuple[bytes, float]:
     return buf.getvalue(), n / params.framerate
 
 
+def silent_wav(seconds: float, sr: int = 24000) -> bytes:
+    """Kokoro 음성과 같은 형식의 무음 (턴 전체 음성으로 이어 붙일 수 있게)."""
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(b"\x00\x00" * round(sr * seconds))
+    return buf.getvalue()
+
+
 class Kokoro:
-    """합성은 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 같은 문장(인사, 다시 듣기, 단어 발음)은 다시 만들지 않는다."""
+    """합성은 한 번에 하나 (CPU를 나눠 쓰면 둘 다 느려짐). 같은 문장(인사, 다시 듣기, 단어 발음)은 다시 만들지 않는다.
+    읽는 글은 for_speech로 다듬은 것이다 (가격·시각을 말로, 별표·한글은 읽지 않음). 자막은 호출한 쪽의 원문 그대로.
+    다듬은 글은 발음 사전(app.pronunciation)을 거쳐 음소로 넘긴다."""
 
     CACHE_MAX = 300
+    NOTHING_TO_READ_S = 0.2
 
-    def __init__(self, model_path: str, voices_path: str, threads: int = 0):
-        import onnxruntime as ort  # 선택 의존성(kokoro-onnx가 함께 설치): 없으면 load()가 None을 돌려줌
-        from kokoro_onnx import Kokoro as Engine
-
-        options = ort.SessionOptions()
-        options.intra_op_num_threads = threads  # 0이면 onnxruntime 기본 (Settings.kokoro_threads)
-        session = ort.InferenceSession(model_path, options, providers=["CPUExecutionProvider"])
-        self.engine = Engine.from_session(session, voices_path)
-        self.name = Path(model_path).name
+    def __init__(self, engine, name: str):
+        self.engine = engine
+        self.name = name
         self.lock = threading.Lock()
         self.cache: OrderedDict = OrderedDict()
 
@@ -67,21 +78,30 @@ class Kokoro:
         if not model_path or not Path(model_path).exists() or not Path(voices_path or "").exists():
             return None
         try:
-            k = cls(model_path, voices_path, threads)
+            import onnxruntime as ort  # 선택 의존성(kokoro-onnx가 함께 설치): 없으면 합성 없이 돈다
+            from kokoro_onnx import Kokoro as Engine
         except ImportError:
             return None
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = threads  # 0이면 onnxruntime 기본 (Settings.kokoro_threads)
+        session = ort.InferenceSession(model_path, options, providers=["CPUExecutionProvider"])
+        k = cls(Engine.from_session(session, voices_path), Path(model_path).name)
         k.synth("Ready.", "af_heart", 1.0)  # 첫 호출 준비 시간을 미리 써 둔다
         return k
 
     def synth(self, text: str, voice: str, speed: float) -> tuple[bytes, float, bool]:
-        """반환: (wav, 소리 길이 초, 저장본인지)."""
-        key = (text, voice, speed)
+        """반환: (wav, 소리 길이 초, 저장본인지). 읽을 것이 없으면(한글만 있는 조각 등) 짧은 무음."""
+        spoken = for_speech(text)
+        if not spoken:
+            return silent_wav(self.NOTHING_TO_READ_S), self.NOTHING_TO_READ_S, False
+        key = (spoken, voice, speed)
         with self.lock:
             if key in self.cache:
                 self.cache.move_to_end(key)
                 wav, dur = self.cache[key]
                 return wav, dur, True
-            audio, sr = self.engine.create(text, voice=voice, speed=speed, lang="en-us")
+            phonemes = to_phonemes(spoken, lambda part: self.engine.tokenizer.phonemize(part, "en-us"))
+            audio, sr = self.engine.create(phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
             wav, dur = to_wav(audio, sr), len(audio) / sr
             self.cache[key] = (wav, dur)
             if len(self.cache) > self.CACHE_MAX:

@@ -1,7 +1,10 @@
 package com.elsehere.admin.controller;
 
 import com.elsehere.admin.service.AdminNpcService;
+import com.elsehere.admin.service.AdminUserService;
+import com.elsehere.common.auth.LoginUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 public class AdminPageController {
 
   private final AdminNpcService adminNpcService;
+  private final AdminUserService adminUserService;
 
   @GetMapping({"/admin", "/admin/"})
   public String home() {
@@ -32,5 +36,13 @@ public class AdminPageController {
   public String npc(@PathVariable String npcCode, Model model) {
     model.addAttribute("npc", adminNpcService.npc(npcCode));
     return "admin/npc-persona";
+  }
+
+  /** 관리자 목록. 자기 자신에게는 해제 버튼을 두지 않는다. */
+  @GetMapping("/admin/admins")
+  public String admins(@AuthenticationPrincipal LoginUser loginUser, Model model) {
+    model.addAttribute("admins", adminUserService.admins());
+    model.addAttribute("currentUserId", loginUser.userId());
+    return "admin/admins";
   }
 }

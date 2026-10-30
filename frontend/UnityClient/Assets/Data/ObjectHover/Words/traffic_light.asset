@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: traffic_light
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_856ac06ac71774f41bd23a7b97da2cc1
+    languageCode: en-US
+    text: traffic light
+    meaningKo: "\uC2E0\uD638\uB4F1"
+    example: Turn right at the traffic light.
+    exampleKo: "\uC2E0\uD638\uB4F1\uC5D0\uC11C \uC624\uB978\uCABD\uC73C\uB85C \uB3C4\uC138\uC694."
+    pronunciationAudioKey: 
+  assetGuid: 856ac06ac71774f41bd23a7b97da2cc1

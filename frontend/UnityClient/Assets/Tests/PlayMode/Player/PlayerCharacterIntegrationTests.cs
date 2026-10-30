@@ -322,6 +322,50 @@ namespace A305.Player.Tests
         }
 
         [UnityTest]
+        public IEnumerator CameraPushedAgainstAWallHidesTheVisualUntilItBacksAway()
+        {
+            // 좁은 실내 어디서든 등 뒤 벽에 밀린 카메라가 캐릭터 머리 속을 비추지 않아야 한다.
+            PlayerCharacterSelection.Select(selected);
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                "Assets/Scenes/Production/TownScene.unity",
+                new LoadSceneParameters(LoadSceneMode.Single)
+            );
+            yield return null;
+            var player = Object.FindFirstObjectByType<PlayerMover>();
+            var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
+            Renderer[] renderers = player
+                .GetComponent<PlayerCharacterAppearance>()
+                .VisualRoot.GetComponentsInChildren<Renderer>();
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.transform.localScale = new Vector3(4, 4, .2f);
+            wall.transform.SetPositionAndRotation(
+                player.transform.position - player.transform.forward * .8f + Vector3.up * 1.5f,
+                player.transform.rotation
+            );
+            // 실행 중에 놓은 벽은 다음 물리 단계 전까지 충돌 검사에 잡히지 않는다.
+            Physics.SyncTransforms();
+            try
+            {
+                camera.SnapBehindTarget();
+                yield return Frames(3);
+                Assert.That(
+                    renderers.All(renderer => renderer.forceRenderingOff),
+                    Is.True,
+                    "벽에 밀린 카메라 앞에 캐릭터 머리가 남으면 안 됩니다."
+                );
+
+                Object.Destroy(wall);
+                yield return Frames(120);
+                Assert.That(renderers.All(renderer => !renderer.forceRenderingOff), Is.True);
+            }
+            finally
+            {
+                if (wall != null)
+                    Object.Destroy(wall);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator DialogueHidesSelectedVisualAndRestoresItWithoutReplacingThePlayer()
         {
             PlayerCharacterSelection.Select(selected);

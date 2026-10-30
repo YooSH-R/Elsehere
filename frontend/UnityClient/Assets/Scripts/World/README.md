@@ -46,6 +46,8 @@
 
 상점 실내는 **Tools → A305 → World → Apply Drugstore Interior**(`DrugstoreInteriorBuilder`)가 미국 드럭스토어처럼 꾸밉니다. 음료 냉장고·선반·우산 통 같은 조각 프리팹과 `DrugstoreInterior` 프리팹은 `Assets/Prefabs/World/Drugstore/`에 없을 때만 만들고, 이미 있으면 고친 디자인을 그대로 둡니다. 외부 모델은 `Assets/ThirdParty/`의 원본을 그대로 쓰고 URP 재질은 `Assets/Art/World/Drugstore/Materials/`에 만듭니다.
 
+상점 카메라는 **Tools → A305 → Mission → Apply Shop Interior Camera**가 맞춥니다. 카페와 같은 실내 거리 값을 `Assets/Data/Shop/ShopCameraSettings.asset`에 두고, 입구 도착 위치를 문 안쪽 3.6m로 옮겨 들어오자마자 카메라가 문 벽에 붙지 않게 합니다. **Build First Day Journey**도 같은 설정을 적용합니다.
+
 마을 거리는 두 Builder가 미국 소도시처럼 꾸밉니다.
 
 - **Tools → A305 → World → Apply American Street Details**(`AmericanStreetBuilder`): 카페 앞 횡단보도와 교차로에서 끊기던 중앙선을 정지선까지 잇고, 교차로 네 방향에 횡단보도·정지선을, 가로길에 중앙선을 그립니다. 교차로 모퉁이 두 곳에 MAPLE AVE 이름판을 단 신호등을 세우고, 길가에 속도 제한 25 표지판·버스 정류장·주차 미터기·신문 판매함·파란 우체통·보행자 횡단 표지판을 둡니다. 성조기는 호텔 외벽에 하나만 답니다.
@@ -88,7 +90,7 @@
 
 `ShopSwingDoor`는 CharacterController가 문 앞에 접근하면 문짝을 열고, 감지 영역에서 나가면 닫습니다. 별도 키 입력은 필요하지 않습니다. 층별 문에는 씬 전환 Trigger를 사용하지 않습니다. 오락기·서점·찻집은 공간과 사물 학습을 위한 배치이며, 결제·오락기 플레이·상점 NPC 미션은 포함하지 않습니다.
 
-**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
+**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)을 기둥과 판에 붙여 다시 만듭니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
 계단·통로 통행과 문 개폐는 배치에 따른 결과이므로 자동 테스트 없이 TownScene을 Play해 확인합니다.
 

@@ -16,6 +16,7 @@ from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
 
+from .pronunciation import to_phonemes
 from .speech_alignment import align_timing
 from .speech_text import for_speech
 from .speech_timing import attach_timing, join_timing, read_timing
@@ -110,10 +111,11 @@ class Kokoro:
                 self.cache.move_to_end(key)
                 wav, dur = self.cache[key]
                 return wav, dur, True
+            spoken_phonemes = to_phonemes(spoken, lambda part: self.engine.tokenizer.phonemize(part, "en-us"))
             if getattr(self.engine, "has_timings", False):
-                audio, sr, phonemes = self.engine.create_timed(spoken, voice=voice, speed=speed, lang="en-us")
+                audio, sr, phonemes = self.engine.create_timed(spoken_phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
             else:
-                audio, sr = self.engine.create(spoken, voice=voice, speed=speed, lang="en-us")
+                audio, sr = self.engine.create(spoken_phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
                 phonemes = []
             wav, dur = to_wav(audio, sr), len(audio) / sr
             try:

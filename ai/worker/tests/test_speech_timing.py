@@ -47,6 +47,7 @@ def test_kokoro_uses_one_timed_synthesis_and_caches_audio_with_its_timing(monkey
 
     class Engine:
         has_timings = True
+        tokenizer = SimpleNamespace(phonemize=lambda text, lang: text)
         calls = 0
 
         def create(self, *args, **kwargs):
@@ -118,7 +119,9 @@ def test_spoken_price_uses_timed_engine_and_shares_normalized_cache(monkeypatch)
         received.append(text)
         return [], 24000, [phone("f", 0.1, 0.4)]
 
-    service = tts.Kokoro(SimpleNamespace(has_timings=True, create_timed=synth), "fake")
+    service = tts.Kokoro(
+        SimpleNamespace(has_timings=True, create_timed=synth, tokenizer=SimpleNamespace(phonemize=lambda text, lang: text)), "fake"
+    )
     monkeypatch.setattr(tts, "to_wav", lambda audio, rate: wav_file())
     monkeypatch.setattr(tts, "align_timing", lambda wav, cues: attach_timing(wav, [phone("f", 0.1, 0.4)]))
     first = service.synth("That is $5.", "af_heart", 1)

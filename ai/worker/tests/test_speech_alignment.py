@@ -82,7 +82,11 @@ def test_failed_acoustic_alignment_returns_unchanged_voice_without_stale_timing(
 
     original = wav_file()
     service = tts.Kokoro.__new__(tts.Kokoro)
-    service.engine = SimpleNamespace(has_timings=True, create_timed=lambda *a, **k: ([0] * 24000, 24000, [phone("m", 0.1, 0.2)]))
+    service.engine = SimpleNamespace(
+        tokenizer=SimpleNamespace(phonemize=lambda text, lang: text),
+        has_timings=True,
+        create_timed=lambda *a, **k: ([0] * 24000, 24000, [phone("m", 0.1, 0.2)]),
+    )
     service.lock, service.cache = threading.Lock(), OrderedDict()
     monkeypatch.setattr(tts, "to_wav", lambda audio, rate: original)
 

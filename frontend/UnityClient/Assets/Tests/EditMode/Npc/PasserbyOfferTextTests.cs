@@ -45,5 +45,34 @@ namespace A305.Npc.Tests
             Assert.That(PasserbyOfferText.TalkLabel(null), Is.EqualTo("말 걸기"));
             Assert.That(PasserbyOfferText.TalkLabel(""), Is.EqualTo("말 걸기"));
         }
+
+        [Test]
+        public void RemainingConversations_Guest_SaysHowManyAreLeft()
+        {
+            Assert.That(
+                PasserbyOfferText.RemainingConversations(2),
+                Is.EqualTo("게스트 남은 대화 2번")
+            );
+        }
+
+        [Test]
+        public void RemainingConversations_WithoutLimit_ShowsNothing()
+        {
+            // 가입 사용자는 대화 횟수 제한이 없다.
+            Assert.That(PasserbyOfferText.RemainingConversations(null), Is.Null);
+        }
+
+        [Test]
+        public void Blocked_GuestUsedAllConversations_SaysWhy()
+        {
+            Assert.That(PasserbyOfferText.Blocked(0), Is.EqualTo("게스트 대화를 모두 썼어요"));
+        }
+
+        [Test]
+        public void Blocked_WithoutGuestLimit_SaysTalkIsUnavailable()
+        {
+            // 게스트 횟수가 아닌 이유로 막혔으면 게스트라고 말하지 않는다.
+            Assert.That(PasserbyOfferText.Blocked(null), Is.EqualTo("지금은 대화할 수 없어요"));
+        }
     }
 }

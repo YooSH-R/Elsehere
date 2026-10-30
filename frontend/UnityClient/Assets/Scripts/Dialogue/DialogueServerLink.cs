@@ -46,6 +46,11 @@ namespace A305.Dialogue
             );
         }
 
+        public IAiStatusApi CreateAiStatusApi()
+        {
+            return new AiStatusApi(apiSettings.CreateClient());
+        }
+
         /// <summary>
         /// NPC 턴 음성을 받아 재생한다. 받지 못하거나 받는 사이 새 대사로 바뀌었으면 재생하지 않고 false를 돌려준다(자막만 보여 준다).
         /// </summary>

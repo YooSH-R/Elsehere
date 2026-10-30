@@ -33,6 +33,7 @@ namespace A305.Dialogue
         private readonly DialogueSession session = new DialogueSession();
         private DialogueServerLink serverLink;
         private IConversationApi conversationApi;
+        private IAiStatusApi aiStatusApi;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
         private bool isEnding;
@@ -56,6 +57,12 @@ namespace A305.Dialogue
         public event Action<string, string> ExpressionSaveRequested;
 
         public bool IsTalking => session.IsActive;
+
+        /// <summary>
+        /// 새 NPC 대화를 시작할 수 있는지와 게스트의 남은 대화 수. 공간에 들어올 때와 대화가 끝날 때 서버에서 다시 받는다.
+        /// 서버를 끄면 받지 않으므로 막지 않는다.
+        /// </summary>
+        public ConversationAllowance Allowance { get; } = new ConversationAllowance();
 
         /// <summary>대화 화면의 [표현 저장]을 보여 줄지. 받을 곳(단어장)이 저장할 수 없으면 끈다.</summary>
         public void SetExpressionSaveAvailable(bool available)
@@ -192,6 +199,7 @@ namespace A305.Dialogue
             if (serverLink != null && serverLink.IsAvailable)
             {
                 conversationApi = serverLink.CreateApi();
+                aiStatusApi = serverLink.CreateAiStatusApi();
                 if (serverLink.VoiceRecorder != null)
                 {
                     serverLink.VoiceRecorder.RecordingFinished += TranscribeRecording;
@@ -208,6 +216,11 @@ namespace A305.Dialogue
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
             panel.RetryRequested += Retry;
+        }
+
+        private void Start()
+        {
+            RefreshAllowance();
         }
 
         private void OnDestroy()
@@ -283,8 +296,18 @@ namespace A305.Dialogue
             cameraRig.ExitDialogueView();
             player.SetMovementLocked(false);
             panel.Hide();
+            // 게스트는 대화를 시작할 때마다 남은 횟수가 줄고, 한도로 거절된 뒤에도 막힌 상태를 받아야 한다.
+            RefreshAllowance();
             Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);
+        }
+
+        private void RefreshAllowance()
+        {
+            if (aiStatusApi != null)
+            {
+                _ = Allowance.RefreshAsync(aiStatusApi);
+            }
         }
 
         private void Send(string text)

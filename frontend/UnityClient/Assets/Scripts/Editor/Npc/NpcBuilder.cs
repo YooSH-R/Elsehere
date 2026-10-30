@@ -347,6 +347,8 @@ namespace A305.EditorTools.Npc
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            // 게스트의 남은 대화 수. 버튼 바로 위 오른쪽에 두며 횟수 제한이 없으면 숨긴다.
+            TMP_Text remaining = FindOrCreateRemainingLabel(panel, buttons, regular);
             Button accept = UiBuilderTools.FindOrCreateButton(
                 buttons,
                 "AcceptButton",
@@ -368,6 +370,7 @@ namespace A305.EditorTools.Npc
                 80f
             );
             RectTransform talkRow = UiBuilderTools.FindOrCreateButtonRow(talkPrompt, "Buttons");
+            TMP_Text talkRemaining = FindOrCreateRemainingLabel(talkPrompt, talkRow, regular);
             Button talk = UiBuilderTools.FindOrCreateButton(
                 talkRow,
                 "TalkButton",
@@ -387,6 +390,8 @@ namespace A305.EditorTools.Npc
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "hintLabel", hint);
             BuilderTools.SetReference(view, "greetingLabel", greeting);
+            BuilderTools.SetReference(view, "remainingLabel", remaining);
+            BuilderTools.SetReference(view, "talkRemainingLabel", talkRemaining);
             BuilderTools.SetReference(view, "acceptButton", accept);
             BuilderTools.SetReference(view, "declineButton", decline);
             BuilderTools.SetReference(view, "talkPromptPanel", talkPrompt.gameObject);
@@ -402,6 +407,34 @@ namespace A305.EditorTools.Npc
 
             // 제안할 때만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 버튼 줄 바로 위에 오른쪽 정렬로 두는 남은 대화 수. 처음 만들 때만 버튼 줄 앞으로 옮기고, 이미 있으면 디자인한 자리를 둔다.
+        /// </summary>
+        private static TMP_Text FindOrCreateRemainingLabel(
+            RectTransform panel,
+            RectTransform buttonRow,
+            TMP_FontAsset font
+        )
+        {
+            bool isNew = panel.Find("Remaining") == null;
+            TMP_Text remaining = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Remaining",
+                font,
+                20f,
+                new Color(0.8f, 0.82f, 0.86f),
+                PasserbyOfferText.RemainingConversations(3)
+            );
+            if (isNew)
+            {
+                remaining.alignment = TextAlignmentOptions.Right;
+                remaining.transform.SetSiblingIndex(buttonRow.GetSiblingIndex());
+                remaining.gameObject.SetActive(false);
+            }
+
+            return remaining;
         }
 
         private static void CreateSettingsIfMissing(

@@ -37,7 +37,7 @@ public class GuestLoginController {
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
     UserResponse user = guestLoginService.startAsGuest(request.avatarType());
-    loginSessionService.login(new LoginUser(user.userId()), httpRequest, httpResponse);
+    loginSessionService.loginGuest(new LoginUser(user.userId()), httpRequest, httpResponse);
     return new SignupResponse(user);
   }
 }

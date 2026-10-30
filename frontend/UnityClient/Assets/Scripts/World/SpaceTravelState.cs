@@ -12,8 +12,13 @@ namespace A305.World
 
         /// <param name="destinationScene">이동할 씬 이름</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
+        /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도</param>
         /// <returns>이동을 시작했으면 true. 이미 이동 중이거나 씬 이름이 없으면 false.</returns>
-        public bool TryBegin(string destinationScene, string arrivalDoorwayId)
+        public bool TryBegin(
+            string destinationScene,
+            string arrivalDoorwayId,
+            float viewYawFromTravel = 0f
+        )
         {
             if (IsTraveling || string.IsNullOrEmpty(destinationScene))
             {
@@ -29,7 +34,14 @@ namespace A305.World
         /// <returns>도착할 출입구. 이동 없이 씬을 연 경우나 출입구를 정하지 않은 경우 null.</returns>
         public string CompleteArrival()
         {
+            return CompleteArrival(out _);
+        }
+
+        /// <param name="viewYawFromTravel">도착 출입구에서 나오는 방향 기준으로 카메라를 돌릴 각도</param>
+        public string CompleteArrival(out float viewYawFromTravel)
+        {
             string doorwayId = arrivalDoorwayId;
+            viewYawFromTravel = 0f;
             Reset();
             return doorwayId;
         }

@@ -5,6 +5,8 @@ using System.Linq;
 using A305.Player;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -51,14 +53,62 @@ namespace A305.World.PlayModeTests
             Transform cafeDoor = FindDoorway("CafeDoor").transform;
 
             // 문 앞 감지 영역 안에 문을 보고 세우면, 다음 이동에서 문에 닿는다.
+            // 카메라도 플레이어 뒤에 두어 앞으로 걸어 문에 들어가는 경우와 같게 한다.
             FindPlayer()
                 .Teleport(
                     cafeDoor.position + cafeDoor.forward * 0.4f,
                     Quaternion.LookRotation(-cafeDoor.forward)
                 );
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
             yield return WaitForArrival("CafeScene");
 
             AssertPlayerArrivedAt("TownDoor");
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingBackwardThroughCafeDoor_KeepsWalkingAwayFromTheDoorInside()
+        {
+            yield return LoadSpace("TownScene");
+            Transform outside = FindDoorway("CafeDoor").ArrivalPoint;
+            // 문을 등지고 서서 카메라를 등 뒤에 두면, 뒤로 가는 키(S)가 문 쪽으로 걷는다.
+            FindPlayer().Teleport(outside.position, outside.rotation);
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
+
+            float oldDelta = Time.captureDeltaTime;
+            var oldBackground = InputSystem.settings.backgroundBehavior;
+            var oldEditorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
+            Time.captureDeltaTime = 1f / 60f;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
+                .EditorInputBehaviorInPlayMode
+                .AllDeviceInputAlwaysGoesToGameView;
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            try
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.S));
+                yield return WaitForArrival("CafeScene");
+                Transform inside = FindDoorway("TownDoor").ArrivalPoint;
+                for (int frame = 0; frame < 45; frame++)
+                    yield return null;
+
+                Assert.That(
+                    SceneManager.GetActiveScene().name == "CafeScene" && !SpaceTravel.IsTraveling,
+                    Is.True,
+                    "Holding S must not walk back out of the cafe door."
+                );
+                Assert.That(
+                    Vector3.Dot(FindPlayer().transform.position - inside.position, inside.forward),
+                    Is.GreaterThan(1f),
+                    "Holding S must keep walking away from the door."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
+                InputSystem.settings.backgroundBehavior = oldBackground;
+                Time.captureDeltaTime = oldDelta;
+            }
         }
 
         [UnityTest]

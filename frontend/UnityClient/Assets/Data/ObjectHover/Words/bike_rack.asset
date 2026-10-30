@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: bike_rack
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_a31ccaa6d412b78428976a47663eff21
+    languageCode: en-US
+    text: bike rack
+    meaningKo: "\uC790\uC804\uAC70 \uAC70\uCE58\uB300"
+    example: You can park your bike at the bike rack.
+    exampleKo: "\uC790\uC804\uAC70 \uAC70\uCE58\uB300\uC5D0 \uC790\uC804\uAC70\uB97C
+      \uC138\uC6B8 \uC218 \uC788\uC5B4\uC694."
+    pronunciationAudioKey: 
+  assetGuid: a31ccaa6d412b78428976a47663eff21

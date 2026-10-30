@@ -20,6 +20,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 
 - 소셜 로그인 또는 게스트로 시작하기(AUTH-07)로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 소셜 로그인 제공자는 Google 하나이며, 경로의 `{provider}`는 `google`입니다. 게스트는 `provider`가 `GUEST`입니다.
 - 로그인 상태는 서버 세션에 두고 HttpOnly 세션 쿠키로 유지합니다. nginx로 Unity Web 빌드와 API를 같은 출처에서 제공하며, 세션 쿠키는 `SameSite=Lax`입니다.
+- 세션은 요청이 24시간 없으면 끝나고, 쿠키도 24시간 유지돼 브라우저를 닫았다 열어도 이어집니다. 게스트(AUTH-07)는 2시간입니다. 서버를 다시 시작(배포)하면 로그인이 풀립니다. 끝난 뒤의 요청은 `401 UNAUTHENTICATED`입니다.
 - 요청 위조를 막기 위해 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)에는 `X-Requested-With` 헤더를 붙입니다. 값은 자유이며, 헤더가 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 개발 환경(local 프로필)에서는 소셜 로그인 없이 `POST /api/v1/dev/login`에 `{ "userId": 1 }`을 보내 그 사용자로 로그인할 수 있습니다. 다른 환경에는 이 API가 없습니다.
 - 처음 로그인한 사용자는 가입 정보(닉네임, 캐릭터, 약관)를 제출해야 사용자 계정이 만들어집니다. 그 전까지는 가입 관련 API와 BOOT-01만 호출할 수 있고, 나머지는 `403 SIGNUP_REQUIRED`입니다.
@@ -87,8 +88,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
+| `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
+| `ADMIN_SELF_REVOKE` | 409 | 어드민에서 자기 자신을 관리자에서 해제 |
 | `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
@@ -393,6 +396,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 다른 상태 변경 요청처럼 `X-Requested-With` 헤더가 필요합니다. 응답 형식은 AUTH-04와 같습니다.
 - `avatarType`은 `F`, `M`이며 필수입니다. 없으면 `VALIDATION_FAILED`입니다.
 - 부를 때마다 새 사용자를 만듭니다. `provider`는 `GUEST`, `providerUid`는 서버가 만든 임의 값이며 이메일은 없습니다. 로그아웃하거나 세션이 끝나면 같은 게스트로 다시 로그인할 수 없습니다.
+- 게스트 세션은 요청이 2시간 없으면 끝납니다(가입자는 24시간).
+- 마지막 활동 뒤 24시간이 지나면 게스트가 남긴 내용(대화 원문·NPC 음성·피드백·NPC 기억·저장 단어·숨김)을 지웁니다. 사용자·대화·AI 사용량 기록은 내용 없이 남깁니다.
 - 닉네임은 서버가 `guest-` 뒤에 겹치지 않는 여섯 자리 숫자를 붙여 정합니다. 회원 닉네임 규칙(AUTH-04)은 `-`를 허용하지 않으므로 회원 닉네임과 겹치지 않습니다.
 - 학습 언어와 대화 난이도는 MVP에서 고를 수 있는 값(`en-US`, 초급 1)으로 정하고 초기 설정은 튜토리얼(`TUTORIAL`)부터 시작합니다. 화면 03~05를 거치지 않으며 레벨 테스트 기록은 만들지 않습니다.
 - 가입 화면을 거치지 않으므로 약관 동의 기록(`user_consents`)을 남기지 않습니다.
@@ -568,6 +573,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```json
 "npcs": [
   { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
+  { "npcCode": "TAXI_DRIVER", "name": "Joe", "npcType": "STAFF", "roleLabel": "택시 기사", "canInitiate": false, "approachLine": null },
   { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```

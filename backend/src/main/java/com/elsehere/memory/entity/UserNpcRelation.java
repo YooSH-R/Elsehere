@@ -33,11 +33,17 @@ public class UserNpcRelation extends BaseEntity {
 
   @EmbeddedId private UserNpcRelationId id;
 
-  // 호감도(-100~100). 무례로 센 말마다 깎는다(NpcAffinityService).
+  // 호감도(-100~100). 무례로 센 말마다 깎고(NpcAffinityService), 대화가 끝나면 관계 갱신 변화량을 더한다.
   @ColumnDefault("0")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   @Column(nullable = false)
   private Integer affinity;
+
+  // 알아봄(0~100). 얼굴을 아는 정도이며 대화가 끝나면 관계 갱신 변화량을 더한다.
+  @ColumnDefault("0")
+  @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
+  private Integer recognition;
 
   // 사용자 발화가 있었던 대화를 끝낸 횟수. NPC 대답 요청의 memory.visits로 쓴다.
   @ColumnDefault("0")
@@ -56,6 +62,7 @@ public class UserNpcRelation extends BaseEntity {
     UserNpcRelation relation = new UserNpcRelation();
     relation.id = new UserNpcRelationId(userId, npcId);
     relation.affinity = 0;
+    relation.recognition = 0;
     return relation;
   }
 

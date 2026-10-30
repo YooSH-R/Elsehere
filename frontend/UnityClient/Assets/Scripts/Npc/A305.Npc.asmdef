@@ -3,6 +3,7 @@
     "rootNamespace": "A305.Npc",
     "references": [
         "A305.Player",
+        "A305.World",
         "A305.Characters",
         "A305.Dialogue",
         "Unity.TextMeshPro",

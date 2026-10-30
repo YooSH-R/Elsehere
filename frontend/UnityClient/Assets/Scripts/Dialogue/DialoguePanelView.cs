@@ -180,7 +180,7 @@ namespace A305.Dialogue
             saveButton.interactable = content.LastNpcLine != null;
             talkButton.gameObject.SetActive(content.UsesVoice);
             talkButton.GetComponent<Button>().interactable = content.CanSend;
-            replayButton.gameObject.SetActive(content.UsesVoice);
+            replayButton.gameObject.SetActive(content.CanReplaySpeech);
             replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
             hintButton.gameObject.SetActive(content.HasHint);
             hintButton.interactable =

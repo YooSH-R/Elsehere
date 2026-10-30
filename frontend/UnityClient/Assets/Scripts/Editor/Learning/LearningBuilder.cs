@@ -526,7 +526,7 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(
                 view,
                 "closeButton",
-                UiBuilderTools.FindOrCreateButton(buttons, "CloseButton", "닫기", bold, 120f)
+                FindCornerOrRowButton(panel, buttons, "CloseButton", "닫기", bold, 120f)
             );
             BuilderTools.SetReference(
                 view,
@@ -634,7 +634,7 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(
                 view,
                 "closeButton",
-                UiBuilderTools.FindOrCreateButton(profileButtons, "CloseButton", "닫기", bold, 140f)
+                FindCornerOrRowButton(profile, profileButtons, "CloseButton", "닫기", bold, 140f)
             );
             BuilderTools.SetReference(view, "profilePanel", profile.gameObject);
 
@@ -688,6 +688,22 @@ namespace A305.EditorTools.Learning
 
             logout.gameObject.SetActive(false);
             overlay.gameObject.SetActive(false);
+        }
+
+        // 테마 Builder가 닫기를 창 오른쪽 위로 옮겼으면 그 버튼을 쓰고, 아니면 버튼 줄에서 찾거나 만든다.
+        private static Button FindCornerOrRowButton(
+            Transform panel,
+            RectTransform row,
+            string buttonName,
+            string label,
+            TMP_FontAsset font,
+            float preferredWidth
+        )
+        {
+            Transform corner = panel.Find(buttonName);
+            return corner != null
+                ? corner.GetComponent<Button>()
+                : UiBuilderTools.FindOrCreateButton(row, buttonName, label, font, preferredWidth);
         }
 
         // 화면 전체를 덮는 어두운 바탕. 마이페이지가 열려 있는 동안 뒤의 HUD 버튼과 사물이 눌리지 않게 클릭을 받는다.

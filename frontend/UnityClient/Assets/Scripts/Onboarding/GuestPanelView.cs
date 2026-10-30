@@ -1,4 +1,5 @@
 using System;
+using A305.Theme;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,9 +8,6 @@ namespace A305.Onboarding
     /// <summary>게스트로 시작하기 전 캐릭터 선택. 캐릭터를 골라야 [시작하기]를 누를 수 있다. 닉네임은 서버가 정한다.</summary>
     public class GuestPanelView : MonoBehaviour
     {
-        private static readonly Color SelectedColor = new Color(0.24f, 0.42f, 0.85f, 1f);
-        private static readonly Color NormalColor = new Color(0.3f, 0.32f, 0.38f, 1f);
-
         [SerializeField]
         private Button femaleButton;
 
@@ -36,10 +34,8 @@ namespace A305.Onboarding
 
         public void Show(AvatarType? selected)
         {
-            ((Image)femaleButton.targetGraphic).color =
-                selected == AvatarType.F ? SelectedColor : NormalColor;
-            ((Image)maleButton.targetGraphic).color =
-                selected == AvatarType.M ? SelectedColor : NormalColor;
+            femaleButton.GetComponent<ThemedElement>().SetSelected(selected == AvatarType.F);
+            maleButton.GetComponent<ThemedElement>().SetSelected(selected == AvatarType.M);
             startButton.interactable = selected != null;
         }
     }

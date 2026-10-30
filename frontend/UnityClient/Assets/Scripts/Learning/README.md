@@ -22,7 +22,7 @@
 | `IConversationHistoryApi`, `ConversationHistoryApi`, `ConversationHistoryModels` | CONV-09·10, FB-01 경로와 응답 형식 |
 | `ConversationHistoryText` | 지난 대화 목록 문구(NPC·장소·시작 시각·피드백 상태). Unity 객체 없이 테스트합니다. |
 | `LearningController` | 대화가 끝나면 피드백을 열고, 단어장을 열 때마다 서버에서 다시 읽고, 외웠어요·메모·삭제를 서버에 저장하고, [지난 대화]에서 고른 대화의 피드백을 다시 열고, 화면이 열려 있는 동안 이동을 잠급니다. `apiSettings`가 비어 있으면 단어장과 지난 대화를 열지 않습니다. |
-| `FeedbackView`, `VocabularyView`, `ConversationHistoryView`, `LearningHudView` | 피드백 화면, 단어장 화면, 지난 대화 창, 오른쪽 위 메뉴의 [단어장]·[지난 대화]·[홈] 버튼과 저장 알림입니다. 지난 대화 창은 HUD 프리팹에 있어 장소 씬마다 배치하지 않습니다. |
+| `FeedbackView`, `VocabularyView`, `ConversationHistoryView`, `LearningHudView` | 피드백 화면, 단어장 화면, 지난 대화 창, 오른쪽 위 메뉴의 [단어장]·[지난 대화]·[홈] 버튼과 저장 알림입니다. 지난 대화 창은 HUD 프리팹에 있어 장소 씬마다 배치하지 않습니다. 지난 대화·내 정보 창의 닫기는 단어장처럼 창 오른쪽 위 X입니다. |
 | `HudMenu`, `HudMenuView` | 오른쪽 위 메뉴(≡)의 펼침 상태와 화면. 메뉴 버튼은 목록을 펼치고 접으며, 목록의 버튼을 누르거나 바깥을 누르면 접습니다. 펼친 동안 같은 자리에 강조한 메뉴 버튼을 보입니다. `HudMenu`는 Unity 객체 없이 테스트합니다. |
 
 ## 의존성

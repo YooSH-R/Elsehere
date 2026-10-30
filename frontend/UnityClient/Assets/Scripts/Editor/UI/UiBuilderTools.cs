@@ -1,5 +1,6 @@
 using A305.EditorTools.Common;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,6 +13,7 @@ namespace A305.EditorTools.UI
     {
         private static readonly Color PanelColor = new Color(0.08f, 0.09f, 0.12f, 0.9f);
         private static readonly Color ButtonColor = new Color(0.24f, 0.42f, 0.85f, 1f);
+        private static readonly Color SliderTrackColor = new Color(0.62f, 0.64f, 0.68f, 1f);
 
         /// <summary>1920×1080 기준으로 크기를 맞추는 화면 오버레이 캔버스. 버튼을 누를 수 있으면 클릭을 받게 한다.</summary>
         public static void EnsureOverlayCanvas(
@@ -232,6 +234,53 @@ namespace A305.EditorTools.UI
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
             return button;
+        }
+
+        public static Slider FindOrCreateSlider(
+            Transform parent,
+            string sliderName,
+            float minValue,
+            float maxValue,
+            float value
+        )
+        {
+            Transform existing = parent.Find(sliderName);
+            if (existing != null && existing.TryGetComponent(out Slider existingSlider))
+            {
+                return existingSlider;
+            }
+
+            // Unity 기본 둥근 그림을 써서 막대·채움·손잡이가 구분되게 한다.
+            GameObject created = DefaultControls.CreateSlider(
+                new DefaultControls.Resources
+                {
+                    background = AssetDatabase.GetBuiltinExtraResource<Sprite>(
+                        "UI/Skin/Background.psd"
+                    ),
+                    standard = AssetDatabase.GetBuiltinExtraResource<Sprite>(
+                        "UI/Skin/UISprite.psd"
+                    ),
+                    knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd"),
+                }
+            );
+            created.name = sliderName;
+            created.transform.SetParent(parent, false);
+
+            var slider = created.GetComponent<Slider>();
+            slider.minValue = minValue;
+            slider.maxValue = maxValue;
+            slider.value = value;
+            created.transform.Find("Background").GetComponent<Image>().color = SliderTrackColor;
+            slider.fillRect.GetComponent<Image>().color = ButtonColor;
+            slider.handleRect.GetComponent<Image>().color = Color.white;
+            // 손잡이를 크게 해 마우스·손가락으로 잡기 쉽게 한다.
+            slider.handleRect.sizeDelta = new Vector2(44f, 0f);
+
+            var size = created.AddComponent<LayoutElement>();
+            size.flexibleWidth = 1f;
+            size.minWidth = 320f;
+            size.preferredHeight = 44f;
+            return slider;
         }
 
         public static TMP_FontAsset RegularFont()

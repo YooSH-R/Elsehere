@@ -55,6 +55,10 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
+| `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김 |
+| `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 예: `http://172.19.0.1:18432/v1`) |
+| `GUARD_GPU_TIMEOUT_S` | 2 | GPU 서버 판정 한 번의 상한. 넘으면 재시도 없이 구성의 `guard` 모델로 |
+| `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
 
 ## API
 
@@ -167,6 +171,30 @@ NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI와 역할뿐이�
 .venv/Scripts/python ../tools/npc_simulate.py   # 서비스 NPC 3명의 하루(행동 조각·부탁·행동·정시 욕구)와 알아봄·기억 곡선
 ```
 
+## NPC 인격 카드 생성
+
+성격을 만드는 일은 NPC를 만들 때 한 번 하고, 결과인 인격 카드는 대화할 때마다 그대로 씁니다(설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)의 "인격 카드 생성").
+
+- 손으로 쓴 인격 카드(`ai/npcs/<npcId>.json`)에는 생활 파일의 MBTI로 계산한 성격 5축과 뽑힌 행동 조각이 자동 칸으로 들어갑니다. 행동 조각이나 생활 파일을 바꿨으면 다시 쓰고 백엔드 전달물도 다시 만듭니다(위 "백엔드 시드로 내보내기").
+- 새 NPC는 재료 파일(`ai/npcs/rules/persona-ingredients.json`)에서 규칙으로 뼈대를 만들고, `--narrate`를 주면 LLM이 사연(배경 이야기·겪은 일)만 씁니다. 결과는 초안(`isActive` false, `voiceId` null)이라 사람이 보고 `ai/npcs`로 옮긴 뒤 상황 파일을 연결하고 목소리를 정해 켭니다.
+- 조합 규칙은 `app/npc_persona.py` 한 곳에 있고, 어드민 랜덤 생성은 같은 규칙을 워커 API로 부릅니다(`/v1/npc/persona/generate`·`/derive`, [계약](../../docs/api/ai-worker.md) 2.9절). 배포 이미지에는 `ai/npcs/rules`가 함께 들어갑니다.
+
+```bash
+.venv/Scripts/python ../tools/npc_derive.py ../npcs                                       # 손으로 쓴 인격 카드의 자동 칸 다시 쓰기
+.venv/Scripts/python ../tools/npc_generate.py GEN_CAFE_01 INFP-A STAFF CAFE --out drafts            # 규칙 뼈대만 (LLM 없음)
+.venv/Scripts/python ../tools/npc_generate.py GEN_CAFE_01 INFP-A STAFF CAFE --out drafts --narrate  # 사연까지 (.env 구성의 NPC 대답 모델)
+```
+
+## NPC 관계·기분
+
+사용자 × NPC 관계(알아봄 0~100, 호감 −100~100)는 공통 규칙(`ai/npcs/rules/world-rules.json`)으로 `app/npc_relationship.py`가 계산하고, 저장은 백엔드가 합니다(설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md) 4·5·8절).
+
+- 매 턴 의도 판정(`/v1/judge`)이 같은 호출에서 학습자 줄의 대화 사건(`events`)도 고릅니다. 백엔드는 줄마다 저장해 `history[].events`로 보냅니다([계약](../../docs/api/ai-worker.md) 2.2절).
+- 무례 판정(`/v1/guard`)이 무례라고 하면 응답의 `affinity_delta`(NPC 성격에 따른 감점)를 백엔드가 무례 저장과 함께 호감에 더합니다(2.2.1절).
+- 대화가 끝나면 백엔드가 `/v1/npc/relationship`을 부르고, 돌려받은 변화량(`recognition_delta`·`affinity_delta`)을 저장값에 더합니다. 모델을 부르지 않고 줄 사건으로 계산하며, 이미 깎은 무례는 다시 세지 않습니다(2.7.2절).
+- 다음 대답 요청(`/v1/npc/reply`)에 저장한 관계와 지난 게임 날 수를 `relationship`으로 실으면, 알아봄·호감·이번 대화의 기분(짜증·좋은 기분)을 말로 풀어 지시문에 넣습니다. 얼굴을 알아봐야 평범한 기억을 떠올립니다.
+- 알아보는 속도와 사건 반응 크기는 요청의 인격 카드(성격 5축과 카드의 행동 조각)로 정합니다.
+
 ## 검사
 
 ```bash
@@ -184,7 +212,7 @@ NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI와 역할뿐이�
 가짜 공급자(`tests/conftest.py`)가 시스템 프롬프트로 단계를 알아보고 정해 둔 답을 돌려줍니다.
 
 - `tests/test_api.py`: 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리
-- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결
+- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기, 무례일 때만 호감 감점(`affinity_delta`)과 성격(신경성)에 따른 크기
 - `tests/test_stt.py`: 음성 인식 — 프롬프트 되풀이 거르기·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
@@ -198,10 +226,16 @@ NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI와 역할뿐이�
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
 - `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC 3명의 상황, 백엔드 생성 파일이 원본과 같은지
-- `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 역할의 일과 틀에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만), 세 NPC의 최종 값이 인격 글의 성격 방향을 재현하는지
+- `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 역할의 일과 틀에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만), 세 NPC의 최종 값이 인격 글의 성격 방향을 재현하는지, 인격 카드 자동 칸(성격 5축을 스키마 칸 순서로, 손으로 쓴 규칙 뒤 행동 조각, 다시 계산해도 중복 없음, 원본 불변, 서비스 인격 파일 동기화, 명령은 생활 파일 있는 NPC만 고침)
+- `tests/test_npc_persona_api.py`: 인격 카드 조합 API(`/v1/npc/persona/generate`·`/derive`) — 필수 입력(npcId·역할·장소)만으로 초안과 고른 MBTI, 같은 요청 같은 결과, 고정 입력 유지, DB 후보와 다른 NPC 이름, 만들 수 없는 요청(장소에 직업 없음·틀린 MBTI·고를 이름 없음·필요한 쪽 성격 특징 없음)은 400, 사연은 사연 칸만·모델을 어긴 사연은 502, MBTI를 바꾼 카드의 자동 칸만 다시 계산, 모델 밖 카드는 400
+- `tests/test_npc_generate.py`: 인격 카드 생성(`app/npc_persona.py`, 명령 `ai/tools/npc_generate.py`) — MBTI 없이 고르기, 고정 칸 유지·한 칸 고정이 다른 칸을 바꾸지 않음, 고정 직업의 나이대, 후보 목록은 준 목록만 바꿈, 재료 파일 검사(스키마 위치, 축 양쪽 특징 2개 이상, 없는 나이대, 특징 이름 중복), 같은 id 같은 NPC·다른 id 다른 NPC, MBTI 16 × 직원(카페·호텔)·행인 48가지가 공통 인격 스키마·생활 파일 스키마 통과, 초안 표시, 축마다 기운 쪽 특징, 반대 쪽·다른 역할 재료 없음, 직업·나이대, 쓰는 이름 제외, 말투·사회적 행동 규칙, 자동 칸, 장소에 직업이 없으면 오류, 명령이 두 파일을 씀, LLM은 사연 칸만 쓰고(가짜 공급자) 카드와 금지 사항을 받으며 스키마 밖 사연·JSON이 아닌 출력은 거절
 - `tests/test_npc_simulate.py`: 하루 시뮬레이션(`ai/tools/npc_simulate.py`) — 욕구 감소 배수, 가장 급한 욕구를 채울 행동, 근무 중에는 일만, 다른 역할의 행동 제외, 부탁 발생(하루 한 번)·자기 장소 심부름 제외·퇴근 중 제외. 서비스 데이터로 Jake의 근무 중 머핀 부탁·Mia는 부탁 없음·Ben의 오후 말 걸기, 튜토리얼을 마치기 전 안내 NPC(Ben)는 생활·부탁 없음(다른 NPC는 평소대로), 알아봄 단계에 닿는 대화 수, 기억 떠올림, 명령줄 출력
 - `tests/test_npc_life_rules.py`: NPC 생활·관계 공통 규칙(`ai/npcs/rules/world-rules.json`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)) — 원본 스키마 통과, 빠진 욕구·없는 욕구·감정·사건, 범위 밖 값을 어긴 위치로 알려 주기, 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지, 역할별 일과 틀이 하루를 채우는지와 일과표의 빈 시간·겹침·자정 넘김. NPC별 생활 파일(`ai/npcs/life/<npcId>.json`) — 서비스 NPC 3명이 입력 노드(MBTI·역할)만 가짐, 스키마가 막는 값(손으로 적는 생활 값 포함), 파일 이름과 `npcId`, 인격 파일과의 짝, 스키마를 어긴 파일은 스키마 오류만, 튜토리얼 안내 NPC는 Ben 하나. 행동 조각 모음(`ai/npcs/rules/behaviors.json`) — 원본 스키마 통과, 스키마가 막는 값, id 중복, 없는 조각·자기 자신과의 충돌 표시, 성격 축 양쪽마다 고를 조각 수
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 - `tests/test_npc_reply_profile.py`: 게임 대화 경로(`/v1/npc/reply`)의 인격 — 인격이 없으면 지금 지시문 그대로, 백엔드 인격 설정(`content/npc-configurations.json`)의 3명이 대답의 Character가 됨, 다섯 부분 순서, 인격이 있어도 장소·사실·기억·난이도·백엔드 지시가 들어감, 난이도 규칙이 말투를 정하지 않음, 스키마 밖 인격은 400, 힌트 등 다른 요청도 같은 npc를 받음
+- `tests/test_npc_relationship.py`: 관계 계산(`app/npc_relationship.py`) — 알아봄은 여유 날 뒤 하루씩 줄고 대화마다 갈수록 덜 오름(NPC 배수), 인상은 사건 한 번씩·무례 제외·목록 밖 버림, 무례 한 번의 감점(인상 × 따라가는 비율 × 반응 크기)과 같은 값의 기본값, 호감은 인상 일부만 따라가고 끝에서 느려짐, 더할 정수 변화량, 오래 안 오면 알아봄 변화량이 음수, 처음 만남, 인격 카드로 계산한 배수가 생활 파일로 계산한 값과 같음, 지금 상태(처음 봄·본 적 있음·단골, 오래 안 오면 다시 낯섦, 좋아함·싫어함, 사적인 이야기, 무례 뒤 짜증과 성격별 지속, 사과하면 짜증이 줄어듦, 칭찬 뒤 좋은 기분, 잡담은 이어질 때만, 무례 줄의 다른 사건 버림, 함께면 더 큰 기분만), 잡담·사적인 질문은 호감을 움직이지 않음, 정수로 저장해도 호감이 쌓이는 대화 수
+- `tests/test_npc_reply_relationship.py`: 대답 경로의 관계 — 두 지시문(인격·한 줄 역할) 모두 처음 봄, 알아보지 못하면 평범한 기억 숨김, 본 적 있음·단골의 기억, 오래 안 오면 다시 낯섦, 강한 일은 얼굴을 몰라도 기억(싫어해도), 좋아함·싫어함, 호감 문장이 카드 태도를 대신함, 가까운 단골만 자기 이야기, 무례 뒤 짜증, 줄 사건의 칭찬 뒤 좋은 기분, 숫자를 넣지 않음, 관계가 없으면 지금 기억 문장 그대로, 범위 밖 값은 400
+- `tests/test_npc_relationship_api.py`: 관계 갱신 API(`/v1/npc/relationship`) — 줄 사건과 규칙으로 변화량(모델 호출 없음), 처음 만남, 같은 사건은 대화당 한 번, 무례 줄은 호감 계산에서 빠지고(이중 감점 방지) 그 줄의 다른 사건도 버림, 목록 밖·줄 사건으로 온 RUDE 버림, 학습자가 말하지 않은 대화는 400
+- `tests/test_judge_events.py`: 의도 판정의 줄 사건 — 같은 호출에서 `events`를 고름(판정 형식의 목록), 무례·목록 밖·중복 버림, `events`가 없거나 목록이 아니면 `[]`, 의도 판정 실패면 `[]`, 행동 묘사만이면 `null`, 지시문에 사건 정의 가이드 v1.0
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.

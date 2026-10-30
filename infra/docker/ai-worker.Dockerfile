@@ -22,6 +22,8 @@ RUN python -m pip install --no-cache-dir \
 
 COPY --chown=app:app ai/worker/app ai/worker/app
 COPY --chown=app:app ai/worker/llm_profiles.json ai/worker/llm_profiles.json
+# NPC 인격 카드 조합 규칙 데이터 (행동 조각·생성 재료). app.npc_persona가 ai/npcs/rules에서 읽는다
+COPY --chown=app:app ai/npcs/rules ai/npcs/rules
 COPY --chown=app:app ai/feedback/feedback ai/feedback/feedback
 COPY --chown=app:app ai/feedback/content ai/feedback/content
 COPY --chown=app:app ai/feedback/prompts ai/feedback/prompts

@@ -11,6 +11,22 @@ namespace A305.Onboarding
         private const int HangulWidth = 2;
         private const int AsciiWidth = 1;
 
+        /// <summary>가입 화면과 마이페이지가 보여 줄 안내. 어긋난 점이 없으면 null.</summary>
+        public static string Describe(NicknameProblem problem)
+        {
+            switch (problem)
+            {
+                case NicknameProblem.TooShort:
+                    return "2자 이상 입력해 주세요.";
+                case NicknameProblem.TooLong:
+                    return "한글은 8자, 영문·숫자는 16자까지 쓸 수 있어요.";
+                case NicknameProblem.InvalidCharacter:
+                    return "한글, 영문, 숫자만 쓸 수 있어요.";
+                default:
+                    return null;
+            }
+        }
+
         public static NicknameProblem Check(string nickname)
         {
             if (nickname == null || nickname.Length < MinLength)

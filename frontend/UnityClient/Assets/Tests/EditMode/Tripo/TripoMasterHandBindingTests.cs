@@ -87,7 +87,7 @@ namespace A305.Tripo.Tests
             }
         }
 
-        private static Vector3[] WorldVertices(SkinnedMeshRenderer skin)
+        internal static Vector3[] WorldVertices(SkinnedMeshRenderer skin)
         {
             var mesh = skin.sharedMesh;
             var matrices = skin

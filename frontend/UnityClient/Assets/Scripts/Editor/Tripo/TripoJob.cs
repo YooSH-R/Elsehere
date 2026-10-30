@@ -53,7 +53,7 @@ namespace A305.EditorTools.Tripo
                 throw new ArgumentException("높이는 0.1~10m 범위로 입력하세요.");
             images.Validate();
             string id = Guid.NewGuid().ToString("N");
-            string assetId = name + "_" + id.Substring(0, 8);
+            string assetId = name;
             return new TripoJob
             {
                 assetName = name,
@@ -62,7 +62,7 @@ namespace A305.EditorTools.Tripo
                 faceLimit = faces,
                 heightMeters = height,
                 modelPath = "UserSettings/Tripo/Downloads/" + id + ".fbx",
-                modelAssetPath = "Assets/Art/Characters/Tripo/" + assetId + "/Source.fbx",
+                modelAssetPath = "Assets/Art/Characters/Tripo/" + assetId + "/" + name + ".fbx",
                 prefabPath = "Assets/Prefabs/Characters/Tripo/" + assetId + ".prefab",
             };
         }
@@ -79,12 +79,19 @@ namespace A305.EditorTools.Tripo
                 );
             string models = NormalizeOutputFolder(modelFolder);
             string prefabs = NormalizeOutputFolder(prefabFolder);
-            string modelDirectory = System.IO.Path.GetFileName(
-                System.IO.Path.GetDirectoryName(modelAssetPath)
-            );
-            string prefabName = System.IO.Path.GetFileName(prefabPath);
-            modelAssetPath = models + "/" + modelDirectory + "/Source.fbx";
-            prefabPath = prefabs + "/" + prefabName;
+            string baseName = string.IsNullOrEmpty(assetName)
+                ? System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(modelAssetPath))
+                : assetName;
+            string modelFile = System.IO.Path.GetFileName(modelAssetPath);
+            string candidate = baseName;
+            int version = 2;
+            while (
+                System.IO.Directory.Exists(models + "/" + candidate)
+                || System.IO.File.Exists(prefabs + "/" + candidate + ".prefab")
+            )
+                candidate = baseName + "_" + version++;
+            modelAssetPath = models + "/" + candidate + "/" + modelFile;
+            prefabPath = prefabs + "/" + candidate + ".prefab";
         }
 
         public static string NormalizeOutputFolder(string folder)
@@ -130,8 +137,10 @@ namespace A305.EditorTools.Tripo
         public string rigCheckTaskId;
         public string rigTaskId;
         public bool submissionUncertain;
+        public int submittedStages;
         public string modelPath;
         public string prefabPath;
+        public string reviewRecordPath;
         public float generationCredits;
         public float rigCredits;
     }

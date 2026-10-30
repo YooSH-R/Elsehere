@@ -28,6 +28,41 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task ChangeNickname_PutsNicknameToMe()
+        {
+            transport.Reply("{\"nickname\": \"선종\"}");
+
+            NicknameChange changed = await api.ChangeNicknameAsync("선종");
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("PUT"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/me/nickname")
+            );
+            Assert.That(transport.LastRequest.JsonBody, Is.EqualTo("{\"nickname\":\"선종\"}"));
+            Assert.That(changed.Nickname, Is.EqualTo("선종"));
+        }
+
+        [Test]
+        public async Task Logout_PostsLogoutWithoutBody()
+        {
+            transport.Reply("");
+
+            await api.LogoutAsync();
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("POST"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/auth/logout")
+            );
+            Assert.That(transport.LastRequest.JsonBody, Is.Null);
+            Assert.That(
+                transport.LastRequest.Headers.ContainsKey(ApiClient.CsrfHeaderName),
+                Is.True
+            );
+        }
+
+        [Test]
         public async Task GuestLogin_PostsChosenCharacterToGuestStart()
         {
             transport.Reply("{\"user\": {\"userId\": 3, \"nickname\": \"guest-123456\"}}");

@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "1.0",
+  "names": [
+    "Olivia", "Noah", "Liam", "Ava", "Ethan", "Sofia", "Lucas", "Chloe", "Mason", "Grace",
+    "Daniel", "Hannah", "Leo", "Zoe", "Owen", "Lily", "Caleb", "Nora", "Samuel", "Ruby",
+    "Isaac", "Maya", "Henry", "Clara", "Ella", "Wyatt", "Priya", "Diego", "Mei", "Omar"
+  ],
+  "ageRanges": ["early 20s", "late 20s", "30s", "40s", "50s", "60s"],
+  "occupations": [
+    { "text": "barista at the corner cafe", "ko": "모퉁이 카페 바리스타", "role": "STAFF", "place": "CAFE", "ages": ["early 20s", "late 20s", "30s"] },
+    { "text": "baker at the corner cafe", "ko": "모퉁이 카페 제빵사", "role": "STAFF", "place": "CAFE", "ages": ["late 20s", "30s", "40s", "50s"] },
+    { "text": "front desk clerk at the hotel", "ko": "호텔 프런트 직원", "role": "STAFF", "place": "HOTEL", "ages": ["early 20s", "late 20s", "30s"] },
+    { "text": "concierge at the hotel", "ko": "호텔 컨시어지", "role": "STAFF", "place": "HOTEL", "ages": ["30s", "40s", "50s"] },
+    { "text": "businessperson in town for work", "ko": "일 때문에 온 회사원", "role": "PASSERBY", "ages": ["late 20s", "30s", "40s", "50s"] },
+    { "text": "college student on a short break", "ko": "짧은 방학 중인 대학생", "role": "PASSERBY", "ages": ["early 20s"] },
+    { "text": "retired teacher on a day trip", "ko": "당일치기 여행 온 은퇴 교사", "role": "PASSERBY", "ages": ["60s"] },
+    { "text": "nurse spending a day off out of town", "ko": "쉬는 날 나들이 온 간호사", "role": "PASSERBY", "ages": ["late 20s", "30s", "40s"] },
+    { "text": "travel photographer passing through", "ko": "지나가는 여행 사진가", "role": "PASSERBY", "ages": ["late 20s", "30s", "40s"] },
+    { "text": "musician on a small tour", "ko": "작은 공연 투어 중인 음악가", "role": "PASSERBY", "ages": ["early 20s", "late 20s", "30s"] }
+  ],
+  "traits": [
+    { "name": "Curious", "description": "Asks about new things and likes hearing how other people do them.", "ko": "호기심 많음", "leans": { "openness": "high" } },
+    { "name": "Imaginative", "description": "Thinks up new ideas out loud and enjoys trying a different way.", "ko": "상상력이 풍부함", "leans": { "openness": "high" } },
+    { "name": "Down-to-earth", "description": "Prefers the familiar and practical over anything new.", "ko": "현실적이고 소박함", "leans": { "openness": "low" } },
+    { "name": "Traditional", "description": "Likes things done the way they have always been done.", "ko": "전통을 따름", "leans": { "openness": "low" } },
+    { "name": "Organized", "description": "Keeps things in order and follows through on what they say.", "ko": "정리정돈을 잘함", "leans": { "conscientiousness": "high" } },
+    { "name": "Careful", "description": "Checks the details before acting and dislikes mistakes.", "ko": "신중함", "leans": { "conscientiousness": "high" } },
+    { "name": "Easygoing", "description": "Goes with the flow and does not sweat the small stuff.", "ko": "느긋함", "leans": { "conscientiousness": "low" } },
+    { "name": "Spontaneous", "description": "Decides on the spot and changes plans easily.", "ko": "즉흥적임", "leans": { "conscientiousness": "low" } },
+    { "name": "Outgoing", "description": "Enjoys meeting people and starts conversations easily.", "ko": "사교적임", "leans": { "extraversion": "high" } },
+    { "name": "Lively", "description": "Talks with energy and brightens up the room.", "ko": "활기참", "leans": { "extraversion": "high" } },
+    { "name": "Reserved", "description": "Keeps to themselves and speaks when there is something to say.", "ko": "말수가 적음", "leans": { "extraversion": "low" } },
+    { "name": "Quiet", "description": "Prefers listening to talking.", "ko": "조용함", "leans": { "extraversion": "low" } },
+    { "name": "Kind", "description": "Notices when someone needs help and offers it.", "ko": "친절함", "leans": { "agreeableness": "high" } },
+    { "name": "Patient", "description": "Stays gentle with people who are slow or unsure.", "ko": "참을성 있음", "leans": { "agreeableness": "high" } },
+    { "name": "Blunt", "description": "Says what they think without softening it.", "ko": "직설적임", "leans": { "agreeableness": "low" } },
+    { "name": "Guarded", "description": "Does not trust easily and keeps new people at a distance.", "ko": "경계심이 있음", "leans": { "agreeableness": "low" } },
+    { "name": "Sensitive", "description": "Feels small slights strongly and shows when something bothers them.", "ko": "예민함", "leans": { "neuroticism": "high" } },
+    { "name": "Worrier", "description": "Thinks about what could go wrong before it happens.", "ko": "걱정이 많음", "leans": { "neuroticism": "high" } },
+    { "name": "Calm", "description": "Stays steady when things get busy or tense.", "ko": "차분함", "leans": { "neuroticism": "low" } },
+    { "name": "Resilient", "description": "Bounces back quickly from a bad moment.", "ko": "회복이 빠름", "leans": { "neuroticism": "low" } }
+  ],
+  "values": [
+    { "text": "Doing the job properly", "ko": "일을 제대로 하기", "leans": { "conscientiousness": "high" } },
+    { "text": "Keeping promises", "ko": "약속 지키기", "leans": { "conscientiousness": "high" } },
+    { "text": "Freedom to do things their own way", "ko": "자기 방식대로 할 자유", "leans": { "conscientiousness": "low" } },
+    { "text": "Enjoying the moment", "ko": "지금을 즐기기", "leans": { "conscientiousness": "low" } },
+    { "text": "Learning something new", "ko": "새로운 것 배우기", "leans": { "openness": "high" } },
+    { "text": "Beauty and creativity", "ko": "아름다움과 창의성", "leans": { "openness": "high" } },
+    { "text": "Tradition and community", "ko": "전통과 공동체", "leans": { "openness": "low" } },
+    { "text": "Stability and a steady routine", "ko": "안정과 익숙한 일상", "leans": { "openness": "low" } },
+    { "text": "Making people feel welcome", "ko": "사람들을 편하게 해 주기", "leans": { "agreeableness": "high" } },
+    { "text": "Kindness to strangers", "ko": "낯선 사람에게 친절하기", "leans": { "agreeableness": "high" } },
+    { "text": "Honesty, even when it is awkward", "ko": "어색해도 솔직하기", "leans": { "agreeableness": "low" } },
+    { "text": "Standing on their own feet", "ko": "남에게 기대지 않기", "leans": { "agreeableness": "low" } },
+    { "text": "Time with friends", "ko": "친구와 보내는 시간", "leans": { "extraversion": "high" } },
+    { "text": "Peace and quiet", "ko": "조용함과 평온", "leans": { "extraversion": "low" } }
+  ],
+  "motivations": [
+    { "text": "Get better at what they do", "ko": "하는 일에 더 능숙해지기", "leans": { "conscientiousness": "high" } },
+    { "text": "Finish the day without a single mistake", "ko": "실수 없이 하루 끝내기", "leans": { "conscientiousness": "high" } },
+    { "text": "Have a little fun before the day is over", "ko": "하루가 끝나기 전에 조금 즐기기", "leans": { "conscientiousness": "low" } },
+    { "text": "See places they have never seen", "ko": "가 보지 못한 곳 보기", "leans": { "openness": "high" } },
+    { "text": "Try something they have never tried", "ko": "해 본 적 없는 것 해 보기", "leans": { "openness": "high" } },
+    { "text": "Keep life simple and steady", "ko": "삶을 단순하고 안정적으로 지키기", "leans": { "openness": "low" } },
+    { "text": "Meet new people", "ko": "새로운 사람 만나기", "leans": { "extraversion": "high" } },
+    { "text": "Find a quiet moment for themselves", "ko": "혼자만의 조용한 시간 찾기", "leans": { "extraversion": "low" } },
+    { "text": "Help someone today", "ko": "오늘 누군가를 돕기", "leans": { "agreeableness": "high" } },
+    { "text": "Take care of their own business first", "ko": "자기 일부터 챙기기", "leans": { "agreeableness": "low" } },
+    { "text": "Save up for a place of their own someday", "ko": "언젠가 자기 가게를 열 돈 모으기", "roles": ["STAFF"] },
+    { "text": "Make this trip worth it", "ko": "이번 여행을 보람 있게 만들기", "roles": ["PASSERBY"] }
+  ],
+  "interests": [
+    { "text": "hiking", "ko": "등산" },
+    { "text": "old movies", "ko": "옛날 영화" },
+    { "text": "baking", "ko": "베이킹" },
+    { "text": "video games", "ko": "비디오 게임" },
+    { "text": "photography", "ko": "사진", "leans": { "openness": "high" } },
+    { "text": "jazz records", "ko": "재즈 음반", "leans": { "openness": "high" } },
+    { "text": "trying new food", "ko": "새로운 음식 먹어 보기", "leans": { "openness": "high" } },
+    { "text": "stargazing", "ko": "별 보기", "leans": { "openness": "high" } },
+    { "text": "fishing", "ko": "낚시", "leans": { "openness": "low" } },
+    { "text": "local history", "ko": "동네 역사", "leans": { "openness": "low" } },
+    { "text": "running", "ko": "달리기", "leans": { "conscientiousness": "high" } },
+    { "text": "crossword puzzles", "ko": "십자말풀이", "leans": { "conscientiousness": "high" } },
+    { "text": "gardening", "ko": "정원 가꾸기", "leans": { "extraversion": "low" } },
+    { "text": "mystery novels", "ko": "추리 소설", "leans": { "extraversion": "low" } },
+    { "text": "knitting", "ko": "뜨개질", "leans": { "extraversion": "low" } },
+    { "text": "board games with friends", "ko": "친구들과 보드게임", "leans": { "extraversion": "high" } },
+    { "text": "basketball", "ko": "농구", "leans": { "extraversion": "high" } },
+    { "text": "karaoke", "ko": "노래방", "leans": { "extraversion": "high" } },
+    { "text": "volunteering", "ko": "봉사 활동", "leans": { "agreeableness": "high" } },
+    { "text": "cooking for family", "ko": "가족에게 요리해 주기", "leans": { "agreeableness": "high" } }
+  ],
+  "socialBehavior": {
+    "firstMeeting": {
+      "axis": "extraversion",
+      "high": "Greets new people warmly and starts small talk right away.",
+      "middle": "Greets new people politely and lets the talk go where it goes.",
+      "low": "Greets new people politely but keeps it short until they know them."
+    },
+    "familiarityExpression": {
+      "axis": "agreeableness",
+      "high": "Remembers small things about people they have met and asks about them.",
+      "middle": "Becomes a little more relaxed and chatty with people they have met before.",
+      "low": "Stays polite but reserved, even with people they have met before."
+    },
+    "conflictResponse": {
+      "axis": "neuroticism",
+      "high": "Gets tense and shows it, but calms down if the other person apologizes.",
+      "middle": "Says plainly what bothered them and moves on.",
+      "low": "Stays calm and tries to settle things quickly."
+    },
+    "boundaries": {
+      "STAFF": ["Keeps their private life to themselves with customers they do not know well."],
+      "PASSERBY": ["Shares light, everyday things about themselves but not private matters."]
+    }
+  },
+  "speechStyle": {
+    "tone": [
+      { "axis": "extraversion", "high": "lively", "middle": "even", "low": "quiet" },
+      { "axis": "agreeableness", "high": "warm", "middle": "polite", "low": "dry" }
+    ],
+    "verbosity": { "axis": "extraversion", "high": "medium", "middle": "medium", "low": "short" },
+    "directness": { "axis": "agreeableness", "high": "balanced", "middle": "balanced", "low": "direct" },
+    "formality": { "STAFF": "neutral", "PASSERBY": "casual" }
+  }
+}

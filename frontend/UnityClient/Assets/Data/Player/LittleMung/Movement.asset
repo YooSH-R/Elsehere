@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b3549c1acb7caa4f86bcab8eb86922a, type: 3}
   m_Name: Movement
   m_EditorClassIdentifier: A305.Player::A305.Player.PlayerMovementSettings
-  walkSpeedMetersPerSecond: 0.8
-  sprintSpeedMetersPerSecond: 1.7
-  jumpHeightMeters: 0.45
+  walkSpeedMetersPerSecond: 3.2
+  sprintSpeedMetersPerSecond: 7.5
+  jumpHeightMeters: 0.675
   gravityMetersPerSecondSquared: 9
   turnSpeedDegreesPerSecond: 720

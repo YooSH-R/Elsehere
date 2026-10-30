@@ -35,6 +35,7 @@
 
 - 무례한 말에 주문이 섞여 있어도(예: "latte 내놔 이 멍청아") 그 턴은 주문으로 처리하지 않습니다. NPC는 먼저 말투를 짚습니다. 학습자는 같은 주문을 정중하게 다시 말해야 합니다.
 - 무례한 말은 번역 카드("영어로는 이렇게 말해요")를 띄우지 않습니다. 욕을 영어로 가르치는 꼴이 되기 때문입니다.
+- 무례로 센 턴(`rude: true`)은 그 턴을 저장하는 같은 트랜잭션에서 `/v1/guard`의 `affinity_delta`만큼 호감을 깎습니다(`max(-100, affinity + affinity_delta)`). 크기는 NPC 성격에 따라 워커가 정하고, 비어 있으면 공통 규칙의 `rudeAffinityFallback`을 씁니다. `false`·`null`은 깎지 않습니다([AI 워커 명세](ai-worker.md) 2.2.1절).
 - `null`은 판정 모델의 빈 답·거절, 시간 초과, 공급자 장애입니다. 무례로 세면 정상 학습자가 억울하게 쫓겨나고, 정상으로 단정하면 번역 카드에 욕이 나올 수 있습니다. 그래서 횟수에는 넣지 않고 번역 카드도 띄우지 않습니다(`userTurn.translation: null`).
 - Spring이 AI 워커에 닿지 못해 `/v1/guard` 응답을 받지 못한 경우도 `null`로 다루고 `guard_error_code`에 `worker_unavailable`을 남깁니다. 무례 판정 때문에 턴을 실패시키지 않습니다.
 
@@ -122,7 +123,8 @@ They are upset because of what you did wrong in this scene. Do not scold them fo
 | NPC 대답 (`/v1/npc/reply`) | 무례 턴의 지시문(5절). 앞서 들은 말은 `history` 원문으로 앎 | 워커 지원 |
 | 대화 종료 피드백 (`/v1/feedback`, `ai/feedback` 0.3.0) | 무례한 줄(`abusive: true`)은 `text_status: blocked`로 보내 평가·인용에서 뺍니다. 판정 못 한 줄(`null`)은 `final` | 계약 변경 없음. 기능 명세 F-30(한 문장마다 평가)에 예외 한 줄 추가 필요 `[미정]` |
 | NPC 기억 카드 (`/v1/memory`) | `history[].rude`로 무례했던 일을 남기고 다음 대화 태도를 조심스럽게 함 | NPC 장기 기억은 MVP 제외(기능 명세 5.1) |
-| 호감도 (`affinity_logs`) | — | 무례로 호감도를 깎지 않음 (MVP 제외) |
+| 호감 감점 (`/v1/guard`의 `affinity_delta`) | 무례로 센 발화마다 바로 호감을 낮춤(공통 규칙, NPC 성격에 따라 크기가 다름) | 워커 지원([AI 워커 명세](ai-worker.md) 2.2.1절). 백엔드 적용 `[미정]` |
+| 관계 갱신 (`/v1/npc/relationship`) | 무례는 호감 계산에 다시 넣지 않음(이중 감점 방지). 대답 중에는 무례 뒤 몇 턴 동안 짜증이 남음 | 워커 지원(S15P31A305-338, [AI 워커 명세](ai-worker.md) 2.7.2절). 백엔드 저장 `[미정]` |
 
 ## 8. 남은 확인
 

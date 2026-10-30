@@ -3,7 +3,7 @@
 MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.7](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
-- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능(설정, 프로필 수정, NPC 호감도 조회)도 API를 만들지 않았습니다. 집에서 고르는 화면 테마(USER-01)는 와이어프레임 밖에서 추가한 기능입니다.
+- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 API를 만들지 않았습니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
 - 대화 턴은 REST로 작성했습니다. 스트리밍을 선택하면 요청·응답의 의미와 식별자는 유지하고 전송 방식만 바꿉니다.
 
 ## 1. 공통 규칙
@@ -190,7 +190,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | 지난 대화 탭 | CONV-09, CONV-10 |
+| | [단어장] 옆 [지난 대화] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -206,7 +206,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | AUTH-02 | `GET /api/v1/auth/callback/{provider}` | 제공자 콜백, 기존 사용자 로그인 또는 가입 대기 | - | 02 |
 | AUTH-03 | `GET /api/v1/auth/signup` | 가입 대기 정보와 약관 목록 | - | 02 |
 | AUTH-04 | `POST /api/v1/auth/signup` | 가입 정보 제출, 사용자 생성 | - | 02 |
-| AUTH-05 | `POST /api/v1/auth/logout` | 로그아웃 | - | 화면 없음 |
+| AUTH-05 | `POST /api/v1/auth/logout` | 로그아웃 | - | 마이페이지 |
 | AUTH-06 | `GET /api/v1/nicknames/availability` | 닉네임 사용 가능 여부 확인 | - | 02 |
 | AUTH-07 | `POST /api/v1/auth/guest` | 게스트로 시작하기, 사용자 생성·로그인 | - | 01 |
 | ONB-01 | `GET /api/v1/languages` | 학습 언어 목록 | - | 03 |
@@ -249,6 +249,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | USER-01 | `PUT /api/v1/me/ui-theme` | 화면 테마 저장 | - | 화면 없음(집에서 선택) |
 | USER-02 | `GET /api/v1/me/training-consents` | AI 개선 동의 조회 | - | 화면 없음(설정 화면 미정) |
 | USER-03 | `PUT /api/v1/me/training-consents` | AI 개선 동의 켜기·끄기 | - | 화면 없음(설정 화면 미정) |
+| USER-04 | `PUT /api/v1/me/nickname` | 닉네임 변경 | - | 마이페이지 |
 
 ## 4. API 상세
 
@@ -357,13 +358,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### AUTH-05 `POST /api/v1/auth/logout`
 
-- 세션을 끝내고 `204 No Content`를 돌려줍니다. 와이어프레임에는 로그아웃 버튼이 없으며 설정 화면을 설계할 때 배치합니다.
+- 세션을 끝내고 `204 No Content`를 돌려줍니다. 와이어프레임에는 로그아웃 버튼이 없어 마이페이지(4.12)의 [로그아웃]이 씁니다. Unity는 로그아웃한 뒤 입구 씬(화면 01)으로 돌아갑니다.
 - 로그인 여부와 관계없이 `204`입니다. 가입 대기 중인 사용자가 다른 Google 계정으로 바꾸려 할 때도 이 API로 가입 대기 정보를 지웁니다.
 - POST만 받습니다. 다른 상태 변경 요청처럼 `X-Requested-With` 헤더가 필요합니다.
 
 #### AUTH-06 `GET /api/v1/nicknames/availability`
 
-화면 02에서 가입 정보를 제출하기 전에 닉네임을 쓸 수 있는지 확인합니다. 이후 닉네임 변경 화면을 만들면 같은 API를 씁니다.
+화면 02에서 가입 정보를 제출하기 전에 닉네임을 쓸 수 있는지 확인합니다. 마이페이지의 닉네임 변경(USER-04)은 저장할 때 중복을 검사하므로 이 API를 먼저 부르지 않아도 됩니다.
 
 ```json
 // GET /api/v1/nicknames/availability?nickname=Sun
@@ -653,7 +654,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "description": "호텔 직원에게 예약을 확인하고 체크인해 보세요.",
       "sceneCode": "HOTEL",
       "npcCode": "HOTEL_STAFF",
-      "npcName": "Emma",
+      "npcName": "Jake",
       "userMissionId": 13,
       "status": "RUN",
       "completedAt": null
@@ -939,7 +940,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 화면 18의 지난 대화 탭 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 [단어장] 옆 [지난 대화] 창의 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
 
 ```json
 {
@@ -1202,6 +1203,26 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - `consentType`·`agreed`가 없거나 `null`이거나, `consentType`이 `TRAINING_TEXT`·`TRAINING_VOICE`가 아니면 `400 VALIDATION_FAILED`입니다. 게스트가 부르면 `400 VALIDATION_FAILED`입니다.
 - 로그인한 사용자만 호출할 수 있으며 `X-Requested-With` 헤더가 필요합니다.
 
+### 4.12 마이페이지
+
+와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다.
+
+#### USER-04 `PUT /api/v1/me/nickname`
+
+```json
+// 요청
+{ "nickname": "선종" }
+
+// 응답 200
+{ "nickname": "선종" }
+```
+
+- 닉네임 규칙은 가입(AUTH-04)과 같습니다. 규칙에 맞지 않거나 `nickname`이 없으면 `400 VALIDATION_FAILED`이며 바꾸지 않습니다.
+- 다른 사용자가 쓰는 닉네임이면 `409 NICKNAME_TAKEN`입니다. AUTH-06으로 미리 확인했어도 저장할 때 다시 검사하며, 동시에 같은 닉네임으로 바꾸려 해도 한 사람만 바뀝니다.
+- 지금 쓰는 닉네임을 그대로 보내면 바꾸지 않고 `200`입니다. 게스트도 바꿀 수 있습니다.
+- 바꾼 닉네임은 다시 접속하면 BOOT-01의 `user.nickname`으로 내려갑니다.
+- 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. `X-Requested-With` 헤더가 필요합니다.
+
 ## 5. ERD와의 관계
 
 ### 5.1 이 명세에 맞춰 ERD v3.1~v3.7에 반영한 사항
@@ -1269,7 +1290,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
 | 맵 확장 시 사물 조회 | WORLD-02 | 주변 사물 `wordKey` 묶음 조회 `[제안]` / 서버 반경 조회 |
 | 사용량 소진 HTTP 상태 코드 | 1.5 | 429 `[제안]` / 403 |
-| 설정 화면 | AUTH-05 | 로그아웃, 프로필 수정, 음성 동의 변경 등 화면 설계 |
+| 설정 화면 | USER-02·03 | AI 개선 동의 변경 화면의 위치. 마이페이지(4.12)에는 내 정보·닉네임 변경·로그아웃만 둡니다. |
 
 ## 7. MVP에서 뺀 기능
 

@@ -16,6 +16,8 @@ known-first-party = ["app", "conftest", "feedback"]
 # These entry points add the sibling package path before importing it.
 "**/worker/app/feedback_bridge.py" = ["E402"]
 "**/tools/llm_latency.py" = ["E402"]
+"**/tools/guard_eval.py" = ["E402"]
+"**/guard/train_lora.py" = ["E402"]
 
 [tool.ruff.format]
 line-ending = "lf"

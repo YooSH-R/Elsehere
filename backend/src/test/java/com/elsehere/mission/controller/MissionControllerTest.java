@@ -59,7 +59,7 @@ class MissionControllerTest {
                         "호텔 직원에게 예약을 확인하고 체크인해 보세요.",
                         "HOTEL",
                         "HOTEL_STAFF",
-                        "Emma",
+                        "Jake",
                         13L,
                         UserMissionStatus.RUN,
                         null))));

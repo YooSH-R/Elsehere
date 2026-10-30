@@ -283,7 +283,13 @@ namespace A305.EditorTools.Tripo
             CancellationToken cancellationToken
         )
         {
-            // 응답을 받기 전에 종료되어도 다음 실행에서 유료 작업을 다시 제출하지 않는다.
+            int flag = 1 << (int)job.stage;
+            if ((job.submittedStages & flag) != 0)
+                throw new InvalidOperationException(
+                    "이 작업의 해당 단계는 이미 제출했습니다. 추가 과금을 막기 위해 재제출하지 않습니다. 기존 작업 ID를 확인하세요."
+                );
+            job.submittedStages |= flag;
+            // 요청 전에 사용 기록을 저장한다. 작업 ID가 없어져도 유료 단계를 다시 제출하지 않는다.
             job.submissionUncertain = true;
             save(job);
             string taskId;

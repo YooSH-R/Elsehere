@@ -11,6 +11,15 @@ namespace A305.Player
     [RequireComponent(typeof(CharacterController))]
     public class PlayerMover : MonoBehaviour
     {
+        // 빠르게 출발·정지할 때 애니메이션 자세가 한 프레임에 바뀌면 골반이 순간이동해 보인다.
+        // 실제 이동은 바로 바꾸고, 애니메이션에 전달하는 속도는 초당 이만큼만 바뀌게 한다.
+        // 서 있다가 달리면 약 0.25초에 걸쳐 바뀐다.
+        private const float AnimationSpeedChangePerSecond = 30f;
+
+        // 이 속도 이하에서의 변화는 튀는 폭이 작아 원래대로 바로 전달한다. 계단 디딤 보정이
+        // 천천히 걸을 때의 걷기 박자에 맞춰져 있어 박자가 밀리지 않게 한다.
+        private const float InstantAnimationSpeedMetersPerSecond = 1f;
+
         [SerializeField]
         private PlayerMovementSettings movementSettings;
 
@@ -39,6 +48,7 @@ namespace A305.Player
         private PlayerTouchControls touchControls;
         private PlayerCameraRig cameraRig;
         private readonly MoveReferenceYaw moveReference = new MoveReferenceYaw();
+        private float animationSpeed;
 
         public PlayerCameraRig CameraRig =>
             cameraTransform != null ? cameraTransform.GetComponent<PlayerCameraRig>() : null;
@@ -129,8 +139,17 @@ namespace A305.Player
 
             if (animationDriver != null)
             {
+                float speed = horizontalVelocity.magnitude;
+                animationSpeed =
+                    Mathf.Max(animationSpeed, speed) <= InstantAnimationSpeedMetersPerSecond
+                        ? speed
+                        : Mathf.MoveTowards(
+                            animationSpeed,
+                            speed,
+                            AnimationSpeedChangePerSecond * Time.deltaTime
+                        );
                 animationDriver.SetLocomotion(
-                    horizontalVelocity.magnitude,
+                    animationSpeed,
                     characterController.isGrounded,
                     velocity.y
                 );

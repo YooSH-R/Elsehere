@@ -13,7 +13,8 @@ namespace A305.EditorTools.Tripo
             GameObject model,
             TripoAssetKind kind,
             TripoAttachmentKind attachment,
-            string folder = Folder
+            string folder = Folder,
+            string assetName = null
         )
         {
             string modelPath = AssetDatabase.GetAssetPath(model);
@@ -23,10 +24,23 @@ namespace A305.EditorTools.Tripo
             EnsureFolder(folder);
             string recordPath = folder + "/" + guid + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<TripoAssetRecord>(recordPath);
-            if (existing != null)
+            if (existing != null && existing.sourceModel == model)
                 return existing;
+            foreach (string key in AssetDatabase.FindAssets("t:TripoAssetRecord", new[] { folder }))
+            {
+                var candidate = AssetDatabase.LoadAssetAtPath<TripoAssetRecord>(
+                    AssetDatabase.GUIDToAssetPath(key)
+                );
+                if (candidate != null && candidate.sourceModel == model)
+                    return candidate;
+            }
+            assetName = string.IsNullOrEmpty(assetName) ? ModelName(model) : assetName;
+            recordPath = AssetDatabase.GenerateUniqueAssetPath(
+                folder + "/" + assetName + "_Review.asset"
+            );
             var record = ScriptableObject.CreateInstance<TripoAssetRecord>();
             record.sourceModel = model;
+            record.assetName = assetName;
             record.kind = kind;
             record.attachment = attachment;
             record.requireHumanoid = kind == TripoAssetKind.Character;
@@ -39,6 +53,21 @@ namespace A305.EditorTools.Tripo
             AssetDatabase.CreateAsset(record, recordPath);
             AssetDatabase.SaveAssets();
             return record;
+        }
+
+        public static string ModelName(GameObject model)
+        {
+            if (model == null)
+                return "Character";
+            string path = AssetDatabase.GetAssetPath(model);
+            string name = Path.GetFileNameWithoutExtension(path);
+            if (name == "Source" || name == "Model" || name == "Visual")
+                name = Path.GetFileName(Path.GetDirectoryName(path));
+            // 이전 생성 방식의 8자리 작업 식별자는 표시 이름에서 제외한다.
+            name = System.Text.RegularExpressions.Regex.Replace(name, "_[a-fA-F0-9]{8}$", "");
+            foreach (char invalid in Path.GetInvalidFileNameChars())
+                name = name.Replace(invalid, '_');
+            return string.IsNullOrWhiteSpace(name) ? "Character" : name;
         }
 
         public static TripoValidationProfile EnsureProfile(string folder = Folder)

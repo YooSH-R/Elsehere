@@ -6,7 +6,7 @@ Unity 테스트와 WebGL 빌드는 Windows 노트북의 `a305-unity-windows` Run
 
 Tripo 통합 검사에 필요한 Blender와 FBX는 테스트 스크립트가 준비합니다. 개인 모델 경로나 `TRIPO_*` 변수를 Runner 설정에 수동 등록하지 않습니다. [테스트 입력 준비](#blender와-fbx-테스트-입력)의 고정 버전·캐시와 생성 모델을 사용합니다.
 
-저장된 바리스타 마스터 검수 테스트는 CI 작업의 `TRIPO_MASTER_RECORD`에 지정된 저장소 레코드와 `TRIPO_MASTER_SCENE`의 손 연결 검수 씬을 사용합니다. 별도 모델을 생성하거나 API를 호출하지 않으며, 로컬에서 전체 검사를 실행할 때도 `.gitlab/ci/unity.yml`의 같은 두 입력을 지정합니다.
+바리스타 마스터 검수 테스트는 `TRIPO_MASTER_RECORD`가 가리키는 작업 기록의 원본 모델을 임시 에셋 폴더에 복사하고, 현재 서비스 마스터 적용 절차로 다시 연결한 뒤 골격·모션을 검사합니다. 저장된 옛 후보에 재연결 정보만 덧붙여 통과시키지 않습니다. 원본 FBX·가져오기 설정·작업 기록이 보존되는지 함께 검사하고 임시 후보는 검사 후 제거합니다. `TRIPO_MASTER_SCENE`의 손 연결 검수 씬은 PlayMode 이동 검사에 사용합니다. API를 호출하지 않으며, 로컬에서도 `infra/scripts/run-unity-ci.ps1 -Action test`로 실행하면 CI와 같은 두 입력이 기본 지정됩니다.
 
 ## 등록과 실행
 
@@ -17,7 +17,8 @@ GitLab 프로젝트의 **Settings → CI/CD → Runners → Create project runne
 | 운영체제·설명 | Windows, `a305-unity-windows` |
 | 태그 | `a305-unity-windows` |
 | Run untagged jobs | 해제 |
-| Protected | 활성화 |
+| Protected | MR의 일반 작업 브랜치 검사를 받으려면 비활성화 필요 |
+| Lock to current projects | 활성화, 이 프로젝트에만 연결 |
 | 최대 작업 시간 | 3600초 |
 
 현재 Unity를 사용 중인 계정의 일반 PowerShell에서 설치합니다. 서비스 계정의 라이선스·환경을 별도로 확인하기 전에는 아래의 사용자 세션에서 실행합니다.
@@ -45,15 +46,21 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 ## CI 연결 시험
 
-`unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 `dev` 자동 배포의 누적 변경 계획에서 Unity 검사가 선택됐을 때 실행합니다. 수동 Unity 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다. 일반 작업 브랜치나 일반 문서 변경으로 노트북 작업을 실행하지 않습니다.
+`unity:editor-tests`는 같은 프로젝트의 Unity 관련 MR에서 EditMode·PlayMode를 필수로 실행합니다. YAML과 포맷 검사가 통과한 뒤 시작하며 WebGL 빌드와 서버 배포는 하지 않습니다. Draft와 후속 Push에도 같은 조건을 적용합니다. 일반 문서만 바꾼 MR에는 실행하지 않습니다.
+
+보호된 Runner는 일반 작업 브랜치 MR을 받을 수 없으므로, MR 검사 적용에는 위 표의 실행 범위 전환이 필요합니다. 이 전환은 해당 노트북의 실행 권한을 작업 브랜치 코드에도 주는 변경입니다. GitLab의 Runner 설정을 변경하기 전에 실행 계정 권한과 프로젝트 접근 범위를 확인하고 승인된 범위로 적용합니다. 다른 프로젝트의 Unity MR은 Linux의 `unity:external-mr`에서 실패시켜 노트북 실행과 필수 검사 생략을 함께 차단합니다.
+
+`unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 dev·운영 배포 자식 파이프라인에서 사용합니다. MR 검사 뒤에도 병합 결과의 통합 검사와 필요한 WebGL 빌드를 수행합니다. 수동 Unity 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.
 
 1. 실행할 커밋과 `.gitlab/ci/unity.yml`, `infra/scripts/run-unity-ci.ps1`을 검토합니다.
-2. 대상 ref가 보호되어 있는지 확인합니다. MR 병합 전 작업 브랜치를 시험해야 한다면 해당 브랜치만 임시 보호하는 절차를 사용자와 합의합니다. Runner의 Protected 설정을 해제해 시험하지 않습니다.
+2. 수동 빌드 시험의 대상 ref가 보호되어 있는지 확인합니다. 일반 MR 검사는 작업 브랜치를 임시 보호하거나 수동 변수를 지정하지 않고 `unity:editor-tests`로 실행합니다.
 3. **Build → Pipelines → New pipeline**에서 대상 ref를 고르고 `RUN_UNITY_BUILD` 값을 `true`로 지정합니다.
 4. 노트북의 `unity:editor-and-webgl` 작업이 해당 커밋을 받아 실행하는지 확인합니다. 이 작업은 Linux 검사 대기열과 독립적으로 시작할 수 있습니다.
 5. EditMode·PlayMode 테스트, WebGL 빌드와 산출물 업로드가 모두 성공하는지 확인합니다. 전체 MR의 필수 검사 통과 여부도 별도로 확인합니다.
 
-보호된 Runner를 실행할 수 있는 사람의 코드가 Windows 실행 계정 권한으로 동작합니다. 우리 프로젝트의 검토된 후보에만 사용하며, 배포용 SSH 키·서버 환경 파일을 노트북 작업에 추가하지 않습니다. [보호된 Runner](https://docs.gitlab.com/ci/runners/configure_runners/#protecting-sensitive-information), [Shell executor](https://docs.gitlab.com/runner/executors/shell/)
+Runner에서 실행되는 코드는 Windows 실행 계정 권한으로 동작합니다. 프로젝트의 신뢰하는 팀원에게만 브랜치 작성 권한을 주고, Runner는 프로젝트에 잠근 채 지정 태그만 받습니다. `dev`·`main`의 브랜치 보호와 배포 자격 증명의 보호·환경 범위는 유지하며, 배포용 SSH 키·서버 환경 파일을 노트북 작업에 추가하지 않습니다. MR 작업에 protected 변수 접근을 허용하는 설정도 켜지 않습니다. [보호된 Runner](https://docs.gitlab.com/ci/runners/configure_runners/#protecting-sensitive-information), [Shell executor](https://docs.gitlab.com/runner/executors/shell/)
+
+MR과 배포 검사는 같은 `resource_group: a305-unity-editor`를 사용합니다. 노트북에서는 한 번에 Unity 작업 하나만 실행하고, 배포 대기열과는 독립적으로 검사합니다. MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다.
 
 ## 실행 스크립트와 결과
 
@@ -66,6 +73,7 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 
 - Editor 경로는 프로젝트 버전에서 구하며, 다른 설치 경로는 `UNITY_EDITOR_PATH`로 지정합니다.
 - EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다.
+- 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
 - GUI 실행 파일의 실제 종료까지 기다립니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.

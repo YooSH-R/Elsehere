@@ -15,6 +15,10 @@ namespace A305.Player.Tests
 {
     public sealed partial class LittleMungTerrainTests
     {
+        // LittleMungAnimationBuilder가 걷기 3.2 m/s·달리기 7.5 m/s에서 클립을 재생하는 배속(상한 2배).
+        private const float WalkPlaybackRate = 2f;
+        private const float RunPlaybackRate = 2f;
+
         private Keyboard keyboard;
         private InputSettings.BackgroundBehavior oldBackground;
         private InputSettings.EditorInputBehaviorInPlayMode oldEditorInput;
@@ -76,9 +80,18 @@ namespace A305.Player.Tests
                 folder != null ? new StreamWriter(Path.Combine(folder, phase + ".csv")) : null;
             csv?.WriteLine("frame,side,planted,x,y,z,gap,angle");
             var correction = animator.GetComponent<LittleMungTerrainContact>();
-            int frames = run ? 80 : 170,
+            // 걷는 속도와 관계없이 계단·경사 위의 같은 구간만 지나고 멈춘다.
+            const float traverseMeters = 2.25f;
+            // 클립을 빨리 재생하면 디딤도 짧아지므로, 원래 클립의 4프레임에 해당하는 시간만큼 디디면 된다.
+            // 한 프레임만 닿는 것은 디딤으로 보지 않는다.
+            float playbackRate = run ? RunPlaybackRate : WalkPlaybackRate;
+            int minimumSupportFrames = Mathf.Max(2, Mathf.CeilToInt(4 / playbackRate));
+            int maxFrames = run ? 80 : 170,
+                frames = 0,
+                groundedFrames = 0,
                 lockedFrames = 0,
                 longest = 0;
+            var capsule = player.GetComponent<CharacterController>();
             var streak = new int[2];
             var previous = new Vector3[2];
             var plantStart = new Vector3[2];
@@ -90,13 +103,20 @@ namespace A305.Player.Tests
                 keyboard,
                 run ? new KeyboardState(Key.W, Key.LeftShift) : new KeyboardState(Key.W)
             );
-            for (int frame = 0; frame < frames; frame++)
+            for (
+                ;
+                frames < maxFrames
+                    && Mathf.Abs(player.transform.position.z - start) < traverseMeters;
+                frames++
+            )
             {
-                int captured = frame;
+                int captured = frames;
                 observer.Observe = () =>
                 {
                     probe.Record();
                     body.Record(phase);
+                    if (capsule.isGrounded)
+                        groundedFrames++;
                     for (int side = 0; side < 2; side++)
                     {
                         bool planted = correction != null && correction.IsFootPlanted(side);
@@ -159,12 +179,16 @@ namespace A305.Player.Tests
             }
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             Debug.Log(
-                $"Terrain {phase} corrected={corrected}: lockSamples={lockedFrames}, longest={longest}, slip={maximumSlip * 1000:F4}mm, drift={maximumDrift * 1000:F4}mm, angle={maximumAngle:F2}, gap={minimumGap * 1000:F2}mm, head={body.MinimumHeadDistance:F3}, torso={body.MinimumTorsoDistance:F3}, end={player.transform.position}"
+                $"Terrain {phase} corrected={corrected}: lockSamples={lockedFrames}, grounded={groundedFrames}/{frames}, longest={longest}, slip={maximumSlip * 1000:F4}mm, drift={maximumDrift * 1000:F4}mm, angle={maximumAngle:F2}, gap={minimumGap * 1000:F2}mm, head={body.MinimumHeadDistance:F3}, torso={body.MinimumTorsoDistance:F3}, end={player.transform.position}"
             );
             if (corrected)
             {
-                Check(lockedFrames > frames / 3, phase + " needs real support intervals.");
-                Check(longest >= 4, phase + " support must persist across frames.");
+                // 빠르게 단을 내려가며 캡슐이 떠 있는 동안에는 발을 고정하지 않으므로, 땅에 닿은 프레임만 센다.
+                Check(lockedFrames > groundedFrames / 3, phase + " needs real support intervals.");
+                Check(
+                    longest >= minimumSupportFrames,
+                    phase + " support must persist across frames."
+                );
                 Check(
                     maximumDrift < .006f,
                     phase + " planted sole total drift must be <6mm: " + maximumDrift

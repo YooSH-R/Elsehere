@@ -19,11 +19,25 @@
 - 두 키는 머리·몸 비율을 유지하고 `Visual` 전체를 1.0625배 차이로 조정한다. 같은 메시, 스킨 가중치, Avatar, Animator Controller, BlendShape를 공유한다. 개별 본의 길이나 비율은 바꾸지 않는다.
 - 키는 머리카락 없는 기준 자세에서 발바닥부터 정수리까지 실제 스킨 정점으로 측정한다. 생성 작업의 `heightMeters`, Transform 배율, 캡슐 높이를 실제 메시 높이와 혼동하지 않는다. 키별 캡슐과 검수 씬의 카메라 눈높이도 별도 설정한다.
 - 표정 씬을 열어 Play를 누르면 중립, 미소, 눈 감기, AA, F/V, TH, M/B/P, E, OH, OU, 이, 으를 선택하고 강도를 조절할 수 있다. 입 안쪽·치아·혀도 Head에 묶인 실제 스킨 메시이며 표정은 정점 변형으로 적용된다.
-- `CharacterFaceController.ApplySpeech`는 발음별 가중치·미소·깜박임을 받는 공통 연결점이다. 이 마네킹 사본에는 실제 NPC 대화·TTS 재생기를 연결하지 않았다. 발음 시간표와 음성 재생 연결은 별도 통합 단계다.
+- `CharacterFaceController.ApplySpeech`는 발음별 가중치·미소·깜박임을 받는 공통 연결점이다. `SpeechVisemeTimeline`과 `SpeechPhonemeArticulation`으로 저장 음성의 발음 시간표를 샘플링한다. 이 마네킹 사본에는 실제 NPC 대화·TTS 재생기를 연결하지 않았다. 음성 재생 위치와의 실시간 연결은 별도 통합 단계다.
 - 이동 씬은 기존 조작을 재사용한다. WASD 이동, Shift 달리기, Space 점프와 카메라 조작으로 확인한다. 표정 씬과 이동 씬의 책임을 구분하고, 표정 씬에는 플레이어 이동·접지 컴포넌트를 넣지 않는다.
 - Blender 저작 파일과 얼굴 델타는 `frontend/ArtSources/Characters/LittleMungMannequin/`에 있다. `.blend`는 표정·외형 저작용이며 Unity의 공통 골격 바인딩은 Builder가 보존한다. 스크립트의 얼굴 좌표는 이 마네킹에 맞춘 값으로, 임의의 새 Tripo 얼굴에 그대로 적용하는 도구가 아니다.
 - `MannequinMasterBuilder.Build`는 새 사본만 만들고 기존 출력 폴더가 있으면 중단한다. `Refresh Mannequin Authored Face`는 같은 정점 구조의 저작 데이터를 검수 사본에 명시적으로 갱신한다. 손으로 수정한 사본에는 덮어쓰기 전에 변경 내용을 확인한다.
 - 자동 검사는 골격 일치, 실제 키·캡슐, 공유 메시·Controller, 유효한 표정 변형과 이동 중 기존 접지·관통 기준을 확인한다. 얼굴 인상, 속눈썹 경계, 관절·수트의 미세한 접힘은 외관 검수 대상이며 자동 통과를 외관 승인으로 취급하지 않는다.
+
+### 저장 음성으로 입 모양 영상 확인
+
+`A305.EditorTools.Characters.MannequinSpeechRenderer.Render`는 기존 WAV와 발음 시간표의 SHA-256이 일치하는지 확인하고 검수 씬을 프레임 이미지로 렌더한다. 음성을 생성하거나 외부 API를 호출하지 않으며 씬을 저장하지 않는다. 다음 환경변수를 설정하고 Editor가 닫힌 프로젝트에서 batchmode `-executeMethod`로 실행한다.
+
+| 환경변수 | 입력 |
+| --- | --- |
+| `MANNEQUIN_SPEECH_AUDIO` | 기존 WAV의 절대 경로 |
+| `MANNEQUIN_SPEECH_TIMELINE` | 같은 WAV의 `audioSha256`, `duration`, 발음 구간을 포함한 JSON 경로 |
+| `MANNEQUIN_SPEECH_OUTPUT` | 프로젝트 밖 프레임 출력 폴더 |
+
+출력은 30fps이며 앞에 0.5초, 뒤에 0.6초의 여유가 있다. 동영상으로 합칠 때 WAV에 0.5초 지연을 적용해야 입 모양과 소리가 맞는다. 저장된 시간표 검증을 임의의 새 대사나 실제 NPC 대화의 립싱크 검증으로 간주하지 않는다.
+
+눈 저작은 `create_mannequin_face.py`에 `--surface` 원본 정점 JSON, `--texture` 원본 색상 텍스처, `--reference` 승인된 정면 이미지, `--output` 별도 출력 폴더를 전달한다. 기준 이미지의 눈동자를 텍스처 사본에 투영하고 눈 중심의 제한된 표면과 눈 감기 변형을 저작한다. 몸 정점·가중치·바인드 포즈는 유지한다. 흰자 경계와 완전히 감겼을 때의 면 음영은 외관 검수에서 따로 확인한다.
 
 ## 작업 범위와 승인 경계
 

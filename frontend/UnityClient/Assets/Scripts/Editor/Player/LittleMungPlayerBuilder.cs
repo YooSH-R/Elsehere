@@ -20,7 +20,6 @@ namespace A305.EditorTools.Player
         public const string ArtFolder = LittleMungAnimationBuilder.Folder;
         private const string DataFolder = "Assets/Data/Player/LittleMung";
         private const string MovementSettingsPath = DataFolder + "/Movement.asset";
-        private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const float JumpHeightMeters = 0.675f;
         private const float CameraRotateDegreesPerPixel = 0.15f;
 
@@ -34,11 +33,23 @@ namespace A305.EditorTools.Player
             ApplyMovementSettings(
                 BuilderTools.LoadOrCreateAsset<PlayerMovementSettings>(MovementSettingsPath)
             );
-            var camera = new SerializedObject(
-                AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(CameraSettingsPath)
-            );
-            camera.FindProperty("rotateDegreesPerPixel").floatValue = CameraRotateDegreesPerPixel;
-            camera.ApplyModifiedPropertiesWithoutUndo();
+            // 집·마을·카페·호텔은 공간마다 카메라 설정을 따로 쓰므로, 공용 설정만 바꾸면 게임 씬에는 반영되지 않는다.
+            foreach (
+                string guid in AssetDatabase.FindAssets(
+                    "t:PlayerCameraSettings",
+                    new[] { "Assets" }
+                )
+            )
+            {
+                var camera = new SerializedObject(
+                    AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
+                        AssetDatabase.GUIDToAssetPath(guid)
+                    )
+                );
+                camera.FindProperty("rotateDegreesPerPixel").floatValue =
+                    CameraRotateDegreesPerPixel;
+                camera.ApplyModifiedPropertiesWithoutUndo();
+            }
             AssetDatabase.SaveAssets();
             Debug.Log("이동 속도·애니메이션 재생 속도·카메라 감도를 갱신했습니다.");
         }

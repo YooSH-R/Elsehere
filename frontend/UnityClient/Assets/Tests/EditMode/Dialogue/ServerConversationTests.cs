@@ -27,7 +27,7 @@ namespace A305.Dialogue.Tests
         public void CreateConversation()
         {
             api = new FakeConversationApi();
-            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api);
+            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api, true);
         }
 
         [Test]
@@ -70,6 +70,7 @@ namespace A305.Dialogue.Tests
                 CafeStaffCode,
                 CafeStaffCode,
                 api,
+                true,
                 ConversationInitiator.User
             );
 
@@ -85,6 +86,7 @@ namespace A305.Dialogue.Tests
                 CafeStaffCode,
                 CafeStaffCode,
                 api,
+                true,
                 ConversationInitiator.User
             );
             api.StartErrors.Enqueue(
@@ -546,6 +548,35 @@ namespace A305.Dialogue.Tests
 
             Assert.That(conversation.CanRetry, Is.False);
             Assert.That(conversation.RecoveryGuide, Does.Contain("다시 말하거나"));
+        }
+
+        [Test]
+        public async Task Transcribe_WithoutVoiceConsent_DoesNotSendRecording()
+        {
+            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api, false);
+            await conversation.StartAsync();
+
+            string transcript = await conversation.TranscribeAsync(Wav);
+
+            Assert.That(conversation.CanTalk, Is.False);
+            Assert.That(transcript, Is.Null);
+            Assert.That(api.Transcriptions, Is.Empty);
+        }
+
+        [Test]
+        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToMyPage()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionError = new ApiException(
+                "VOICE_CONSENT_REQUIRED",
+                403,
+                "음성 처리에 동의해야 음성으로 말할 수 있어요."
+            );
+
+            await conversation.TranscribeAsync(Wav);
+
+            Assert.That(conversation.CanTalk, Is.False);
+            Assert.That(conversation.RecoveryGuide, Does.Contain("마이페이지"));
         }
 
         [Test]

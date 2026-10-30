@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
 using NUnit.Framework;
@@ -128,6 +129,44 @@ namespace A305.Onboarding.Tests
             Assert.That(api.Changes, Is.Empty);
         }
 
+        [Test]
+        public async Task Load_ShowsConsentsUserCanChange()
+        {
+            await flow.LoadAsync();
+
+            Assert.That(
+                flow.Consents.Select(consent => consent.ConsentType),
+                Is.EqualTo(new[] { "VOICE", "TRAINING_TEXT" })
+            );
+            Assert.That(flow.IsVoiceAgreed, Is.False);
+        }
+
+        [Test]
+        public async Task ChangeConsent_SavesAndShowsNewChoice()
+        {
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeConsentAsync("VOICE", true);
+
+            Assert.That(changed, Is.True);
+            Assert.That(api.ConsentChanges, Is.EqualTo(new[] { "VOICE:True" }));
+            Assert.That(flow.IsVoiceAgreed, Is.True);
+            Assert.That(flow.Message, Is.EqualTo("켰어요: 음성 처리 동의"));
+        }
+
+        [Test]
+        public async Task ChangeConsent_WhenServerRejects_KeepsPreviousChoiceAndTellsWhy()
+        {
+            await flow.LoadAsync();
+            api.ConsentChangeError = Failure("서버에 연결하지 못했어요.");
+
+            bool changed = await flow.ChangeConsentAsync("VOICE", true);
+
+            Assert.That(changed, Is.False);
+            Assert.That(flow.IsVoiceAgreed, Is.False);
+            Assert.That(flow.Message, Is.EqualTo("서버에 연결하지 못했어요."));
+        }
+
         private static ApiException Failure(string message)
         {
             return new ApiException(ApiErrorCodes.NetworkError, 0, message);
@@ -181,6 +220,43 @@ namespace A305.Onboarding.Tests
                 }
 
                 return new NicknameChange { Nickname = nickname };
+            }
+
+            public ApiException ConsentChangeError { get; set; }
+
+            public List<string> ConsentChanges { get; } = new List<string>();
+
+            public Task<List<ConsentStatus>> GetConsentsAsync()
+            {
+                return Task.FromResult(
+                    new List<ConsentStatus>
+                    {
+                        Consent("VOICE", "음성 처리 동의", false),
+                        Consent("TRAINING_TEXT", "AI 개선에 내 대화 기록 활용", false),
+                    }
+                );
+            }
+
+            public Task<ConsentStatus> ChangeConsentAsync(string consentType, bool agreed)
+            {
+                ConsentChanges.Add($"{consentType}:{agreed}");
+                if (ConsentChangeError != null)
+                {
+                    throw ConsentChangeError;
+                }
+
+                return Task.FromResult(Consent(consentType, "음성 처리 동의", agreed));
+            }
+
+            private static ConsentStatus Consent(string consentType, string title, bool agreed)
+            {
+                return new ConsentStatus
+                {
+                    ConsentType = consentType,
+                    Version = "2026-10",
+                    Title = title,
+                    Agreed = agreed,
+                };
             }
         }
     }

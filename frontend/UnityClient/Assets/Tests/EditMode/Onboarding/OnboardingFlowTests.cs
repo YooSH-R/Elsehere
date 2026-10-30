@@ -44,6 +44,17 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task BootstrapTellsWhetherTheUserAgreedToVoiceInput()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.VoiceConsent = true;
+
+            await flow.StartAsync();
+
+            Assert.That(flow.IsVoiceAgreed, Is.True);
+        }
+
+        [Test]
         public async Task StartWithoutLogin_ShowsLogin()
         {
             api.BootstrapError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
@@ -80,6 +91,33 @@ namespace A305.Onboarding.Tests
             Assert.That(api.GuestAvatarSent, Is.EqualTo(AvatarType.M));
             Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
             Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public async Task GuestLogin_SendsVoiceConsentOnlyWhenChecked()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.F);
+            api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
+
+            flow.SetGuestVoiceConsent(true);
+            await flow.GuestLoginAsync();
+
+            Assert.That(api.GuestVoiceConsentSent, Is.True);
+        }
+
+        [Test]
+        public async Task ChooseGuestAgain_StartsWithVoiceConsentUnchecked()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+            flow.SetGuestVoiceConsent(true);
+
+            flow.BackToLogin();
+            flow.ChooseGuest();
+
+            Assert.That(flow.GuestVoiceConsent, Is.False);
         }
 
         [Test]
@@ -495,6 +533,7 @@ namespace A305.Onboarding.Tests
 
             public bool ScenesRequested { get; private set; }
             public AvatarType? GuestAvatarSent { get; private set; }
+            public bool? GuestVoiceConsentSent { get; private set; }
             public string NicknameCheckedFor { get; private set; }
             public SignupRequest SignupSent { get; private set; }
             public string LanguageChosen { get; private set; }
@@ -516,9 +555,10 @@ namespace A305.Onboarding.Tests
                 return Task.CompletedTask;
             }
 
-            public Task GuestLoginAsync(AvatarType avatarType)
+            public Task GuestLoginAsync(AvatarType avatarType, bool voiceConsent)
             {
                 GuestAvatarSent = avatarType;
+                GuestVoiceConsentSent = voiceConsent;
                 return GuestLoginError != null
                     ? Task.FromException(GuestLoginError)
                     : Task.CompletedTask;

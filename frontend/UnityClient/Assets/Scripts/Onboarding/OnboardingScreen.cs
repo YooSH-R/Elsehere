@@ -4,6 +4,7 @@ using A305.Api;
 using A305.Player;
 using A305.Theme;
 using A305.Tutorial;
+using A305.Voice;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -86,8 +87,10 @@ namespace A305.Onboarding
             guestPanel.AvatarSelected += avatar =>
             {
                 flow.SelectGuestAvatar(avatar);
-                guestPanel.Show(flow.GuestAvatar);
+                guestPanel.Show(flow.GuestAvatar, flow.GuestVoiceConsent);
             };
+            guestPanel.VoiceConsentChanged += flow.SetGuestVoiceConsent;
+            guestPanel.DocumentRequested += Application.OpenURL;
             guestPanel.StartRequested += () => Run(flow.GuestLoginAsync);
             guestPanel.BackRequested += () =>
             {
@@ -154,6 +157,7 @@ namespace A305.Onboarding
         {
             PlayerCharacterSelection.Select(flow.SelectedAvatar?.ToString());
             UiThemeSelection.Shared.Select(UiThemeCodes.Parse(flow.UiTheme));
+            VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
             messageText.text = flow.ErrorMessage ?? "";
             switch (flow.Screen)
             {
@@ -171,7 +175,7 @@ namespace A305.Onboarding
                     break;
                 case EntryScreen.GuestCharacter:
                     ShowOnly(guestPanel.gameObject);
-                    guestPanel.Show(flow.GuestAvatar);
+                    guestPanel.Show(flow.GuestAvatar, flow.GuestVoiceConsent);
                     break;
                 case EntryScreen.Signup:
                     ShowOnly(signupPanel.gameObject);

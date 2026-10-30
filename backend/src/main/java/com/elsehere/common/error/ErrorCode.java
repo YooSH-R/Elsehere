@@ -13,6 +13,8 @@ public enum ErrorCode {
   SIGNUP_REQUIRED(HttpStatus.FORBIDDEN, "가입 정보를 먼저 입력해 주세요."),
   CSRF_HEADER_REQUIRED(HttpStatus.FORBIDDEN, "요청 확인 헤더가 없습니다."),
   ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "관리자만 사용할 수 있습니다."),
+  VOICE_CONSENT_REQUIRED(
+      HttpStatus.FORBIDDEN, "음성 처리에 동의해야 음성으로 말할 수 있어요. 마이페이지에서 켜거나 글자로 입력해 주세요."),
   NOT_FOUND(HttpStatus.NOT_FOUND, "대상을 찾을 수 없습니다."),
   ADMIN_CANDIDATE_NOT_FOUND(
       HttpStatus.NOT_FOUND, "이 이메일로 Google 가입한 사용자가 없습니다. 먼저 게임에 Google로 가입해야 합니다."),

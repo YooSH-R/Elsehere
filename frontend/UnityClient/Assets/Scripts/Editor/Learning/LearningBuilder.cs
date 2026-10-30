@@ -2,6 +2,7 @@ using System;
 using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.Onboarding;
 using A305.EditorTools.UI;
 using A305.Learning;
 using A305.Onboarding;
@@ -632,7 +633,26 @@ namespace A305.EditorTools.Learning
                     "한글 2~8자 또는 영문·숫자 2~16자로 정해 주세요."
                 )
             );
+            // 선택 동의(음성 처리·AI 개선)는 받은 목록대로 줄을 복제한다(USER-02·03). 게스트는 음성 처리만 받는다.
+            TMP_Text consentsLabel = UiBuilderTools.FindOrCreateText(
+                profile,
+                "ConsentsLabel",
+                bold,
+                22f,
+                Color.white,
+                "선택 동의"
+            );
+            RectTransform consents = UiBuilderTools.FindOrCreateColumn(profile, "Consents");
+            BuilderTools.SetReference(view, "consentsParent", consents);
+            BuilderTools.SetReference(
+                view,
+                "consentTemplate",
+                OnboardingBuilder.SetUpConsentRow(consents, "ConsentRowTemplate", regular)
+            );
             RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
+            // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
+            consentsLabel.transform.SetSiblingIndex(profileButtons.GetSiblingIndex());
+            consents.SetSiblingIndex(profileButtons.GetSiblingIndex());
             BuilderTools.SetReference(
                 view,
                 "logoutButton",

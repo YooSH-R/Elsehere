@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
+using A305.Voice;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,6 +19,7 @@ namespace A305.Onboarding
     {
         private const string LoadingMessage = "내 정보를 불러오는 중이에요…";
         private const string SavingMessage = "닉네임을 바꾸는 중이에요…";
+        private const string SavingConsentMessage = "동의를 바꾸는 중이에요…";
         private const string LoggingOutMessage = "로그아웃하는 중이에요…";
         private const string UnexpectedMessage = "문제가 생겼어요. 다시 시도해 주세요.";
 
@@ -50,6 +52,14 @@ namespace A305.Onboarding
 
         [SerializeField]
         private TMP_Text statusText;
+
+        [SerializeField]
+        [Tooltip("선택 동의(음성 처리·AI 개선) 줄을 넣을 곳")]
+        private Transform consentsParent;
+
+        [SerializeField]
+        [Tooltip("선택 동의 한 줄. 받은 동의 수만큼 복제한다.")]
+        private ConsentRowView consentTemplate;
 
         [SerializeField]
         private Button logoutButton;
@@ -93,6 +103,7 @@ namespace A305.Onboarding
             logoutButton.onClick.AddListener(AskLogout);
             logoutCancelButton.onClick.AddListener(ShowProfile);
             logoutConfirmButton.onClick.AddListener(Logout);
+            consentTemplate.gameObject.SetActive(false);
             overlay.SetActive(false);
         }
 
@@ -121,6 +132,7 @@ namespace A305.Onboarding
             nicknameInput.text = "";
             ShowProfile();
             await RunAsync(flow.LoadAsync(), LoadingMessage);
+            ApplyVoiceConsent();
         }
 
         private void Close()
@@ -146,6 +158,26 @@ namespace A305.Onboarding
             if (this != null && changing.IsCompletedSuccessfully && changing.Result)
             {
                 nicknameInput.text = "";
+            }
+        }
+
+        private async void ChangeConsent(string consentType, bool agreed)
+        {
+            if (flow.IsBusy)
+            {
+                return;
+            }
+
+            await RunAsync(flow.ChangeConsentAsync(consentType, agreed), SavingConsentMessage);
+            ApplyVoiceConsent();
+        }
+
+        // 대화의 [누르고 말하기]가 바뀐 음성 처리 동의를 따르게 한다.
+        private void ApplyVoiceConsent()
+        {
+            if (this != null && flow.User != null)
+            {
+                VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
             }
         }
 
@@ -231,6 +263,31 @@ namespace A305.Onboarding
             nicknameButton.interactable = canEdit;
             closeButton.interactable = !flow.IsBusy;
             logoutButton.interactable = !flow.IsBusy;
+            RenderConsents(canEdit);
+        }
+
+        // 실패하면 흐름의 동의가 바뀌지 않으므로 다시 그리면 토글이 원래 상태로 돌아간다.
+        private void RenderConsents(bool canEdit)
+        {
+            TemplateClones.Clear(consentsParent, consentTemplate);
+            foreach (ConsentStatus consent in flow.Consents)
+            {
+                ConsentRowView row = TemplateClones.Add(consentTemplate, consentsParent);
+                row.Show(
+                    new ConsentTerm
+                    {
+                        ConsentType = consent.ConsentType,
+                        Title = consent.Title,
+                        Url = consent.Url,
+                    }
+                );
+                row.Toggle.SetIsOnWithoutNotify(consent.Agreed);
+                row.Toggle.interactable = canEdit;
+                row.Toggle.onValueChanged.AddListener(agreed =>
+                    ChangeConsent(consent.ConsentType, agreed)
+                );
+                row.ViewButton.onClick.AddListener(() => Application.OpenURL(consent.Url));
+            }
         }
 
         private void SetLogoutButtonsInteractable(bool interactable)

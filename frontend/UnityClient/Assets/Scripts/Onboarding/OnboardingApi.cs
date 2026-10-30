@@ -8,6 +8,8 @@ namespace A305.Onboarding
     /// <summary>입구 화면과 로그아웃이 쓰는 API의 경로와 본문. 경로는 API 명세(docs/api/mvp-api.md)를 따른다.</summary>
     public sealed class OnboardingApi : IOnboardingApi, IMyPageApi, ILogoutApi
     {
+        private const string ConsentsPath = "/api/v1/me/consents";
+
         private readonly ApiClient client;
 
         public OnboardingApi(ApiClient client)
@@ -40,11 +42,25 @@ namespace A305.Onboarding
             );
         }
 
-        public Task GuestLoginAsync(AvatarType avatarType)
+        public Task GuestLoginAsync(AvatarType avatarType, bool voiceConsent)
         {
             return client.PostAsync(
                 "/api/v1/auth/guest",
-                new GuestLoginRequest { AvatarType = avatarType }
+                new GuestLoginRequest { AvatarType = avatarType, VoiceConsent = voiceConsent }
+            );
+        }
+
+        public async Task<List<ConsentStatus>> GetConsentsAsync()
+        {
+            ConsentsResponse response = await client.GetAsync<ConsentsResponse>(ConsentsPath);
+            return response.Consents;
+        }
+
+        public Task<ConsentStatus> ChangeConsentAsync(string consentType, bool agreed)
+        {
+            return client.PutAsync<ConsentStatus>(
+                ConsentsPath,
+                new ConsentChangeRequest { ConsentType = consentType, Agreed = agreed }
             );
         }
 

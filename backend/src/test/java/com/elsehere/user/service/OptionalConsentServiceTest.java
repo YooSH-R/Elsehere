@@ -18,7 +18,7 @@ import com.elsehere.conversation.repository.TrainingRecordingRepository;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.user.UserTestData;
-import com.elsehere.user.dto.TrainingConsentResponse;
+import com.elsehere.user.dto.ConsentResponse;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.ConsentType;
 import jakarta.persistence.EntityManager;
@@ -34,11 +34,11 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
 
-// 학습 활용 동의 조회·변경(USER-02·03). 음성 동의를 끄면 저장한 녹음을 지우는지 테스트 폴더의 파일로 확인한다.
+// 선택 동의(음성 처리·AI 개선) 조회·변경(USER-02·03). 녹음 음성 동의를 끄면 저장한 녹음을 지우는지 테스트 폴더의 파일로 확인한다.
 @DataJpaTest(
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
-      "elsehere.training-recording.dir=" + TrainingConsentServiceTest.RECORDING_DIR
+      "elsehere.training-recording.dir=" + OptionalConsentServiceTest.RECORDING_DIR
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
@@ -46,15 +46,15 @@ import org.springframework.context.annotation.Import;
   ClockConfig.class,
   JpaAuditingConfig.class,
   ConsentCatalog.class,
-  TrainingConsentService.class,
+  OptionalConsentService.class,
   TrainingRecordingService.class,
   TrainingRecordingStore.class
 })
-class TrainingConsentServiceTest {
+class OptionalConsentServiceTest {
 
   static final String RECORDING_DIR = "build/test-training-recordings";
 
-  @Autowired private TrainingConsentService trainingConsentService;
+  @Autowired private OptionalConsentService optionalConsentService;
 
   @Autowired private TrainingRecordingService trainingRecordingService;
 
@@ -63,16 +63,45 @@ class TrainingConsentServiceTest {
   @Autowired private EntityManager entityManager;
 
   @Test
-  @DisplayName("동의한 적이 없으면 대화 기록·녹음 음성 학습 동의가 모두 꺼진 상태로 나온다")
-  void findAll_noConsent_bothOff() {
+  @DisplayName("동의한 적이 없으면 가입자의 음성 처리·대화 기록·녹음 음성 동의가 모두 꺼진 상태로 나온다")
+  void findAll_noConsent_allOff() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
-    List<TrainingConsentResponse> consents = trainingConsentService.findAll(userId).consents();
+    List<ConsentResponse> consents = optionalConsentService.findAll(userId).consents();
 
     assertThat(consents)
-        .extracting(TrainingConsentResponse::consentType, TrainingConsentResponse::agreed)
+        .extracting(ConsentResponse::consentType, ConsentResponse::agreed)
         .containsExactly(
-            tuple(ConsentType.TRAINING_TEXT, false), tuple(ConsentType.TRAINING_VOICE, false));
+            tuple(ConsentType.VOICE, false),
+            tuple(ConsentType.TRAINING_TEXT, false),
+            tuple(ConsentType.TRAINING_VOICE, false));
+  }
+
+  @Test
+  @DisplayName("게스트에게는 바꿀 수 있는 음성 처리 동의만 보여 준다")
+  void findAll_guest_onlyVoice() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-1");
+
+    List<ConsentResponse> consents = optionalConsentService.findAll(userId).consents();
+
+    assertThat(consents)
+        .extracting(ConsentResponse::consentType)
+        .containsExactly(ConsentType.VOICE);
+  }
+
+  @Test
+  @DisplayName("게스트도 음성 처리 동의를 켜고 끌 수 있다")
+  void change_guestVoice_isChanged() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-1");
+
+    ConsentResponse agreed = optionalConsentService.change(userId, ConsentType.VOICE, true);
+
+    assertThat(agreed.agreed()).isTrue();
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.VOICE)).isTrue();
+
+    optionalConsentService.change(userId, ConsentType.VOICE, false);
+
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.VOICE)).isFalse();
   }
 
   @Test
@@ -80,29 +109,29 @@ class TrainingConsentServiceTest {
   void change_agree_isAgreed() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
-    TrainingConsentResponse response =
-        trainingConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
+    ConsentResponse response =
+        optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
 
     assertThat(response.agreed()).isTrue();
-    assertThat(trainingConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isTrue();
-    assertThat(trainingConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)).isFalse();
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isTrue();
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)).isFalse();
   }
 
   @Test
   @DisplayName("켠 동의를 끄면 동의하지 않은 상태가 되고, 다시 켜면 다시 동의한 상태가 된다")
   void change_withdrawThenAgreeAgain() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
-    trainingConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
+    optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
 
-    TrainingConsentResponse withdrawn =
-        trainingConsentService.change(userId, ConsentType.TRAINING_TEXT, false);
+    ConsentResponse withdrawn =
+        optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, false);
 
     assertThat(withdrawn.agreed()).isFalse();
-    assertThat(trainingConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isFalse();
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isFalse();
 
-    trainingConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
+    optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
 
-    assertThat(trainingConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isTrue();
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isTrue();
   }
 
   @Test
@@ -116,28 +145,28 @@ class TrainingConsentServiceTest {
         .setParameter(1, userId)
         .executeUpdate();
 
-    assertThat(trainingConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isFalse();
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isFalse();
   }
 
   @Test
-  @DisplayName("게스트는 학습 동의를 켤 수 없다")
+  @DisplayName("게스트는 AI 개선 동의를 켤 수 없다")
   void change_guest_isRejected() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-1");
 
-    assertThatThrownBy(() -> trainingConsentService.change(userId, ConsentType.TRAINING_TEXT, true))
+    assertThatThrownBy(() -> optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
-    assertThat(trainingConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isFalse();
+    assertThat(optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_TEXT)).isFalse();
   }
 
   @Test
-  @DisplayName("학습 활용이 아닌 약관(이용약관 등)은 이 기능으로 바꿀 수 없다")
-  void change_nonTrainingTerm_isRejected() {
+  @DisplayName("필수 약관(이용약관 등)은 이 기능으로 바꿀 수 없다")
+  void change_requiredTerm_isRejected() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
-    assertThatThrownBy(() -> trainingConsentService.change(userId, ConsentType.TERMS, false))
+    assertThatThrownBy(() -> optionalConsentService.change(userId, ConsentType.TERMS, false))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception ->
@@ -148,7 +177,7 @@ class TrainingConsentServiceTest {
   @DisplayName("녹음 음성 동의를 끄면 그동안 저장한 녹음 파일과 기록을 지운다")
   void withdrawVoice_deletesRecordings() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
-    trainingConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
     trainingRecordingService.save(
         new WorkerTrace(UUID.randomUUID(), userId, null),
         TranscriptionPurpose.TUTORIAL,
@@ -159,7 +188,7 @@ class TrainingConsentServiceTest {
     Path file = Path.of(RECORDING_DIR, saved.getAudioKey());
     assertThat(file).exists();
 
-    trainingConsentService.change(userId, ConsentType.TRAINING_VOICE, false);
+    optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, false);
 
     assertThat(trainingRecordingRepository.findByUserId(userId)).isEmpty();
     assertThat(Files.exists(file)).isFalse();

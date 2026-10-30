@@ -5,8 +5,8 @@ import com.elsehere.auth.service.ConsentTerm;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.service.TrainingRecordingService;
-import com.elsehere.user.dto.TrainingConsentResponse;
-import com.elsehere.user.dto.TrainingConsentsResponse;
+import com.elsehere.user.dto.ConsentResponse;
+import com.elsehere.user.dto.ConsentsResponse;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.ConsentType;
 import com.elsehere.user.entity.User;
@@ -21,15 +21,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * AI 개선(학습·평가)에 대화 기록·녹음 음성을 쓰는 선택 동의를 조회하고 켜고 끈다(USER-02·03).
+ * 선택 동의를 조회하고 켜고 끈다(USER-02·03). 음성 처리(VOICE)와 AI 개선(학습·평가)에 대화 기록·녹음 음성을 쓰는 동의다.
  *
- * <p>게스트는 동의할 수 없다. 녹음 음성 동의를 끄면 그동안 저장한 녹음을 바로 지운다. 대화 기록은 서비스에 필요하므로 지우지 않고 학습용 내보내기에서만
- * 뺀다(docs/ai-training-data.md).
+ * <p>게스트는 음성 처리 동의만 바꿀 수 있고 AI 개선에는 동의할 수 없다. 녹음 음성 동의를 끄면 그동안 저장한 녹음을 바로 지운다. 대화 기록은 서비스에 필요하므로
+ * 지우지 않고 학습용 내보내기에서만 뺀다(docs/ai-training-data.md).
  */
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class TrainingConsentService {
+public class OptionalConsentService {
 
   private final UserRepository userRepository;
   private final UserConsentRepository userConsentRepository;
@@ -37,27 +37,24 @@ public class TrainingConsentService {
   private final TrainingRecordingService trainingRecordingService;
   private final Clock clock;
 
+  /** 이 사용자가 바꿀 수 있는 선택 동의. 게스트에게는 음성 처리 동의만 준다. */
   @Transactional(readOnly = true)
-  public TrainingConsentsResponse findAll(Long userId) {
-    return new TrainingConsentsResponse(
-        consentCatalog.trainingTerms().stream()
+  public ConsentsResponse findAll(Long userId) {
+    User user = findUser(userId);
+    return new ConsentsResponse(
+        consentCatalog.optionalTerms().stream()
+            .filter(term -> canChange(user, term))
             .map(term -> toResponse(term, hasAgreed(userId, term)))
             .toList());
   }
 
-  public TrainingConsentResponse change(Long userId, ConsentType consentType, boolean agreed) {
-    if (!consentType.isTraining()) {
-      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
-    }
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    if (user.getProvider() == AuthProvider.GUEST) {
+  public ConsentResponse change(Long userId, ConsentType consentType, boolean agreed) {
+    User user = findUser(userId);
+    ConsentTerm term = consentCatalog.currentTerm(consentType);
+    if (!canChange(user, term)) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
 
-    ConsentTerm term = consentCatalog.currentTerm(consentType);
     if (agreed) {
       agree(user, term);
     } else {
@@ -95,13 +92,27 @@ public class TrainingConsentService {
     }
   }
 
+  private User findUser(Long userId) {
+    return userRepository
+        .findById(userId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  // 필수 약관은 가입할 때만 받는다. 게스트는 동의 기록을 학습에 쓰지 않으므로 AI 개선에는 동의할 수 없다.
+  private static boolean canChange(User user, ConsentTerm term) {
+    if (term.required()) {
+      return false;
+    }
+    return user.getProvider() != AuthProvider.GUEST || !term.consentType().isTraining();
+  }
+
   private List<UserConsent> activeConsents(Long userId, ConsentType consentType) {
     return userConsentRepository.findByUserIdAndConsentTypeAndWithdrawnAtIsNull(
         userId, consentType);
   }
 
-  private static TrainingConsentResponse toResponse(ConsentTerm term, boolean agreed) {
-    return new TrainingConsentResponse(
+  private static ConsentResponse toResponse(ConsentTerm term, boolean agreed) {
+    return new ConsentResponse(
         term.consentType(), term.version(), term.title(), term.url(), agreed);
   }
 }

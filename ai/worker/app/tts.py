@@ -15,6 +15,7 @@ import wave
 from collections import OrderedDict
 from pathlib import Path
 
+from .speech_alignment import align_timing
 from .speech_timing import attach_timing, join_timing, read_timing
 
 log = logging.getLogger(__name__)
@@ -93,8 +94,10 @@ class Kokoro:
                 spoken = []
             wav, dur = to_wav(audio, sr), len(audio) / sr
             try:
-                wav = attach_timing(wav, spoken)
-            except ValueError:
+                timing = read_timing(attach_timing(wav, spoken))
+                if timing:
+                    wav = align_timing(wav, timing["phonemes"])
+            except (ValueError, RuntimeError):
                 # Keep the real voice available, but never manufacture phoneme times.
                 log.warning("Kokoro phoneme timing was rejected; returning voice without lip sync", exc_info=True)
             self.cache[key] = (wav, dur)

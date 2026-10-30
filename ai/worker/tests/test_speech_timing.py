@@ -59,6 +59,8 @@ def test_kokoro_uses_one_timed_synthesis_and_caches_audio_with_its_timing(monkey
     service = tts.Kokoro.__new__(tts.Kokoro)
     service.engine, service.lock, service.cache = Engine(), threading.Lock(), OrderedDict()
     monkeypatch.setattr(tts, "to_wav", lambda audio, rate: wav_file())
+    # Acoustic alignment is verified separately; keep this engine/cache test offline.
+    monkeypatch.setattr(tts, "align_timing", lambda wav, cues: attach_timing(wav, [phone("f", 0.1, 0.4)]))
     first = service.synth("Fresh coffee.", "af_heart", 1.0)
     second = service.synth("Fresh coffee.", "af_heart", 1.0)
     assert read_timing(first[0]) is not None

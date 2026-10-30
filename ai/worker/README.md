@@ -196,9 +196,9 @@ ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src
 
 ## NPC 발음 시간표와 립싱크
 
-`kokoro-onnx==0.6.1`의 `create_timed()`를 사용해 같은 합성 호출에서 음성과 발음별 시간을 얻습니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
+`kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 그대로 재생 시간표로 사용하지 않습니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
 
-`app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. 합성 시 얻은 시각은 무음 제거·문장 쉼이 반영된 최종 오디오 기준입니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
+`app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. `app/speech_alignment.py`가 같은 최종 PCM을 두 번 분석해 단어·음소 경계를 구합니다. 단어 사이 공백을 무음으로 강제하지 않고 음향 모델이 찾은 무음만 사용합니다. 발음 순서가 누락·변경되거나 시간 범위가 잘못되면 해당 시간표를 폐기하고 음성만 반환하며 경고를 기록합니다. 원래 음성의 속도·샘플은 변경하지 않습니다. 정렬은 음향 모델의 추정이므로 모든 경계의 정확성을 보장하지 않으며 빠른 연결 발음은 실제 음성과 대조해야 합니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
 
 시간표는 WAV의 선택적 `a305` RIFF chunk에 UTF-8 JSON으로 저장합니다. PCM 자체는 바꾸지 않으며, `version: 2`, `provider: "kokoro-en-US"`, 전체 `duration`(초), PCM 바이트의 `pcmSha256`, `phonemes` 배열(`start`, `end`, `phoneme`)을 담습니다. 대사 원문은 넣지 않습니다. Spring은 WAV 바이트 전체를 저장·반환하므로 기존 `/v1/tts`, `/v1/audio/{id}`, `/api/v1/turns/{id}/speech` 경로와 인증을 그대로 사용합니다. Unity는 같은 파일에서 PCM과 시간표를 읽고 해시·길이를 검사합니다.
 
@@ -206,7 +206,7 @@ ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src
 
 ### 배포 모델 준비와 상태 확인
 
-앱 Docker 이미지는 `requirements-tts.txt`와 duration 출력 모델을 포함합니다. `ai/tools/prepare_kokoro.py --directory <모델 전용 폴더>`는 공식 배포의 두 파일을 SHA256으로 확인합니다. 같은 이름의 잘못된 기존 파일은 덮어쓰지 않고 실패하므로 새 폴더를 지정해야 합니다. 요청 중 다운로드는 하지 않습니다.
+앱 Docker 이미지는 `requirements-tts.txt`의 Kokoro·PocketSphinx와 duration 출력 모델을 포함합니다. PocketSphinx에 포함된 영어 음향 모델을 사용하며 요청 중 외부 분석 API를 호출하지 않습니다. 합성 후 CPU 정렬 시간이 추가되므로 배포 환경에서 전체 응답 시간을 측정해야 합니다. `ai/tools/prepare_kokoro.py --directory <모델 전용 폴더>`는 공식 배포의 두 파일을 SHA256으로 확인합니다. 같은 이름의 잘못된 기존 파일은 덮어쓰지 않고 실패하므로 새 폴더를 지정해야 합니다. 요청 중 다운로드는 하지 않습니다.
 
 이미지 빌드와 워커 시작 때 `Ready.`를 CPU로 합성해 음성과 일치하는 시간표까지 검사합니다. `/health`의 `tts`는 음성 엔진 존재 여부, `tts_phoneme_timing`은 워밍업의 시간표 검증 결과입니다. 배포 이미지의 `TTS_REQUIRE_TIMING=true`에서는 모델 누락·구형 모델·시간표 변환 실패를 정상 시작으로 처리하지 않습니다. 기존 로컬 환경은 이 옵션을 생략하면 음성 없는 개발을 계속할 수 있습니다.
 

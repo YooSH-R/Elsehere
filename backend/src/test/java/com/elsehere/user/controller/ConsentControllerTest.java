@@ -15,10 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
-import com.elsehere.user.dto.TrainingConsentResponse;
-import com.elsehere.user.dto.TrainingConsentsResponse;
+import com.elsehere.user.dto.ConsentResponse;
+import com.elsehere.user.dto.ConsentsResponse;
 import com.elsehere.user.entity.ConsentType;
-import com.elsehere.user.service.TrainingConsentService;
+import com.elsehere.user.service.OptionalConsentService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,22 +32,22 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-// 동의 규칙은 TrainingConsentServiceTest에서 DB와 함께 검증하고, 여기서는 요청 검증과 응답 형식만 본다.
-@SecuredWebMvcTest(controllers = TrainingConsentController.class)
-class TrainingConsentControllerTest {
+// 동의 규칙은 OptionalConsentServiceTest에서 DB와 함께 검증하고, 여기서는 요청 검증과 응답 형식만 본다.
+@SecuredWebMvcTest(controllers = ConsentController.class)
+class ConsentControllerTest {
 
-  private static final String PATH = "/api/v1/me/training-consents";
+  private static final String PATH = "/api/v1/me/consents";
 
   @Autowired private MockMvc mockMvc;
 
-  @MockitoBean private TrainingConsentService trainingConsentService;
+  @MockitoBean private OptionalConsentService optionalConsentService;
 
   @Test
-  @DisplayName("로그인한 사용자의 학습 활용 동의 목록을 돌려준다")
+  @DisplayName("로그인한 사용자의 선택 동의 목록을 돌려준다")
   void findAll_respondsConsents() throws Exception {
-    given(trainingConsentService.findAll(1L))
+    given(optionalConsentService.findAll(1L))
         .willReturn(
-            new TrainingConsentsResponse(
+            new ConsentsResponse(
                 List.of(
                     consent(ConsentType.TRAINING_TEXT, true),
                     consent(ConsentType.TRAINING_VOICE, false))));
@@ -65,7 +65,7 @@ class TrainingConsentControllerTest {
   @Test
   @DisplayName("로그인한 사용자의 동의를 바꾸고 바뀐 상태를 돌려준다")
   void change_respondsChangedConsent() throws Exception {
-    given(trainingConsentService.change(1L, ConsentType.TRAINING_VOICE, false))
+    given(optionalConsentService.change(1L, ConsentType.TRAINING_VOICE, false))
         .willReturn(consent(ConsentType.TRAINING_VOICE, false));
 
     mockMvc
@@ -91,7 +91,7 @@ class TrainingConsentControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
 
-    then(trainingConsentService).should(never()).change(anyLong(), any(), anyBoolean());
+    then(optionalConsentService).should(never()).change(anyLong(), any(), anyBoolean());
   }
 
   @Test
@@ -103,9 +103,8 @@ class TrainingConsentControllerTest {
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
   }
 
-  private static TrainingConsentResponse consent(ConsentType consentType, boolean agreed) {
-    return new TrainingConsentResponse(
-        consentType, "2026-10", "AI 개선 동의", "/ai-training/2026-10", agreed);
+  private static ConsentResponse consent(ConsentType consentType, boolean agreed) {
+    return new ConsentResponse(consentType, "2026-10", "AI 개선 동의", "/ai-training/2026-10", agreed);
   }
 
   private static MockHttpServletRequestBuilder changeRequest(String body) {

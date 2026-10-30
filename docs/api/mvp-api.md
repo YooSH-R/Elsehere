@@ -86,6 +86,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
 | `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
+| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 마이페이지에서 동의를 켭니다. |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
 | `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
@@ -252,8 +253,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | VOCAB-04 | `DELETE /api/v1/vocab/{userVocabId}` | 단어장에서 삭제 | - | 18 |
 | AI-01 | `GET /api/v1/ai/status` | AI 이용 상태·기능별 가능 여부 | - | 13, 19 |
 | USER-01 | `PUT /api/v1/me/ui-theme` | 화면 테마 저장 | - | 화면 없음(집에서 선택) |
-| USER-02 | `GET /api/v1/me/training-consents` | AI 개선 동의 조회 | - | 화면 없음(설정 화면 미정) |
-| USER-03 | `PUT /api/v1/me/training-consents` | AI 개선 동의 켜기·끄기 | - | 화면 없음(설정 화면 미정) |
+| USER-02 | `GET /api/v1/me/consents` | 선택 동의(음성 처리·AI 개선) 조회 | - | 마이페이지 |
+| USER-03 | `PUT /api/v1/me/consents` | 선택 동의 켜기·끄기 | - | 마이페이지 |
 | USER-04 | `PUT /api/v1/me/nickname` | 닉네임 변경 | - | 마이페이지 |
 
 ## 4. API 상세
@@ -273,7 +274,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "avatarType": "F",
     "currentLanguage": "en-US",
     "onboardingStep": "DONE",
-    "uiTheme": "JELLY"
+    "uiTheme": "JELLY",
+    "voiceConsent": true
   },
   "lastSceneCode": "TOWN",
   "activeConversationId": null,
@@ -296,6 +298,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
 - `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
+- `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 음성 입력을 막고 글자 입력을 안내합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
 
@@ -326,7 +329,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 약관 버전과 문서 주소는 서버 설정값입니다.
-- `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 동의하지 않은 사용자의 음성 입력을 막는 동작은 아직 적용 전입니다.
+- `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 가입 뒤에는 USER-03으로 켜고 끕니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
 - 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다.
 
@@ -345,7 +348,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 
 // 응답 201
-{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY" } }
+{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY", "voiceConsent": true } }
 ```
 
 - 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다. 로그인하면서 세션 ID를 새로 발급하고 가입 대기 정보를 지웁니다.
@@ -384,15 +387,15 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### AUTH-07 `POST /api/v1/auth/guest`
 
-화면 01의 [게스트로 시작하기]입니다. Google 로그인과 가입 화면(02) 없이 캐릭터만 골라 새 사용자를 만들고 그 사용자로 로그인합니다.
+화면 01의 [게스트로 시작하기]입니다. Google 로그인과 가입 화면(02) 없이 캐릭터와 음성 처리 동의(선택)만 골라 새 사용자를 만들고 그 사용자로 로그인합니다.
 
 ```json
 // 요청
-{ "avatarType": "M" }
+{ "avatarType": "M", "voiceConsent": true }
 
 // 응답 201
 {
-  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY" }
+  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY", "voiceConsent": true }
 }
 ```
 
@@ -403,7 +406,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 마지막 활동 뒤 24시간이 지나면 게스트가 남긴 내용(대화 원문·NPC 음성·피드백·NPC 기억·저장 단어·숨김)을 지웁니다. 사용자·대화·AI 사용량 기록은 내용 없이 남깁니다.
 - 닉네임은 서버가 `guest-` 뒤에 겹치지 않는 여섯 자리 숫자를 붙여 정합니다. 회원 닉네임 규칙(AUTH-04)은 `-`를 허용하지 않으므로 회원 닉네임과 겹치지 않습니다.
 - 학습 언어와 대화 난이도는 MVP에서 고를 수 있는 값(`en-US`, 초급 1)으로 정하고 초기 설정은 튜토리얼(`TUTORIAL`)부터 시작합니다. 화면 03~05를 거치지 않으며 레벨 테스트 기록은 만들지 않습니다.
-- 가입 화면을 거치지 않으므로 약관 동의 기록(`user_consents`)을 남기지 않습니다.
+- 가입 화면을 거치지 않으므로 가입 약관 동의 기록(`user_consents`)을 남기지 않습니다. `voiceConsent`가 `true`면 지금 버전의 음성 처리(`VOICE`) 동의만 남깁니다. 없거나 `false`면 동의하지 않은 것으로 보며, 나중에 마이페이지(USER-03)에서 켤 수 있습니다.
 - NPC 대화는 계정마다 정해진 횟수까지만 시작할 수 있습니다(CONV-01).
 - 모든 환경에서 열려 있습니다. 운영 공개 전에 유지 여부와 약관 처리를 다시 정합니다.
 
@@ -766,7 +769,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 인식 대상은 영어입니다. 한국어로 말하면 거르거나 번역하지 않고 한글 그대로 전사합니다. 그 문장의 번역은 CONV-03이 맡습니다.
 - 녹음 형식은 `webm`, `ogg`, `mp4`, `wav`, `mpeg`이며 Unity는 16kHz 모노 16비트 WAV로 보냅니다. `audio` 파일 부분에 `Content-Type`(예: `audio/wav`)을 붙입니다.
 - 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 15초, 무음이 3초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
-- 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 녹음만 인식 결과와 함께 학습용으로 보관합니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다. `VOICE` 동의를 받은 경우의 보관 여부·기간은 `[미정]`입니다.
+- 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 녹음만 인식 결과와 함께 학습용으로 보관합니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다.
+- 음성은 외부 음성 인식 공급자로 가므로 지금 버전의 음성 처리(`VOICE`)에 동의한 사용자만 쓸 수 있습니다. 동의하지 않았으면 녹음을 확인하거나 AI를 부르기 전에 `403 VOICE_CONSENT_REQUIRED`로 거절합니다. 클라이언트는 BOOT-01의 `user.voiceConsent`로 미리 음성 입력을 막습니다.
 
 #### CONV-03 `POST /api/v1/conversations/{conversationId}/turns`
 
@@ -1203,26 +1207,27 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - `uiTheme`이 없거나 `null`이거나 세 값 중 하나가 아니면(대소문자 구분, 예: `sticker`) `400 VALIDATION_FAILED`이며 테마를 바꾸지 않습니다.
 - 같은 값을 여러 번 보내도 결과가 같습니다.
 
-### 4.11 AI 개선 동의
+### 4.11 선택 동의(음성 처리·AI 개선)
 
-가입 화면(AUTH-03·04)에서 받은 `TRAINING_TEXT`·`TRAINING_VOICE` 동의를 가입 뒤에 보고 바꿉니다. 동의 범위·보관·내보내기 기준은 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다. 설정 화면의 위치와 모양은 Unity와 정합니다 `[미정]`.
+가입 화면(AUTH-03·04)이나 게스트 시작(AUTH-07)에서 받은 선택 동의를 가입 뒤에 보고 바꿉니다. 마이페이지(4.12)에서 씁니다. 음성 처리(`VOICE`)는 음성 입력(CONV-02)에, AI 개선(`TRAINING_TEXT`·`TRAINING_VOICE`)은 [AI 개선 데이터 활용 기준](../ai-training-data.md)의 학습·평가에 쓰는 동의입니다.
 
-#### USER-02 `GET /api/v1/me/training-consents`
+#### USER-02 `GET /api/v1/me/consents`
 
 ```json
 // 응답 200
 {
   "consents": [
+    { "consentType": "VOICE", "version": "2026-10", "title": "음성 처리 동의", "url": "/voice/2026-10", "agreed": true },
     { "consentType": "TRAINING_TEXT", "version": "2026-10", "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10", "agreed": true },
     { "consentType": "TRAINING_VOICE", "version": "2026-10", "title": "AI 개선에 내 녹음 음성 활용", "url": "/ai-training/2026-10", "agreed": false }
   ]
 }
 ```
 
-- 대화 기록, 녹음 음성 순서로 돌려줍니다. `agreed`는 지금 문구 버전(`version`)에 동의했고 철회하지 않았으면 `true`입니다. 옛 버전에 동의했으면 `false`입니다.
-- 게스트는 동의할 수 없으므로 둘 다 `false`입니다.
+- 이 사용자가 바꿀 수 있는 동의만 음성 처리, 대화 기록, 녹음 음성 순서로 돌려줍니다. 게스트에게는 AI 개선 동의를 받지 않으므로 음성 처리만 돌려줍니다. 클라이언트는 받은 목록을 그대로 그립니다.
+- `agreed`는 지금 문구 버전(`version`)에 동의했고 철회하지 않았으면 `true`입니다. 옛 버전에 동의했으면 `false`입니다.
 
-#### USER-03 `PUT /api/v1/me/training-consents`
+#### USER-03 `PUT /api/v1/me/consents`
 
 ```json
 // 요청
@@ -1233,13 +1238,16 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 ```
 
 - `agreed: true`면 지금 문구 버전으로 동의를 남깁니다. 이미 동의했으면 바뀌는 것이 없습니다.
-- `agreed: false`면 동의를 철회합니다(`user_consents.withdrawn_at`). `TRAINING_VOICE`를 철회하면 그동안 저장한 녹음 파일과 기록을 바로 지웁니다. `TRAINING_TEXT`를 철회하면 대화 기록은 서비스에 필요하므로 지우지 않고 학습용 내보내기에서 뺍니다.
-- `consentType`·`agreed`가 없거나 `null`이거나, `consentType`이 `TRAINING_TEXT`·`TRAINING_VOICE`가 아니면 `400 VALIDATION_FAILED`입니다. 게스트가 부르면 `400 VALIDATION_FAILED`입니다.
+- `agreed: false`면 동의를 철회합니다(`user_consents.withdrawn_at`).
+  - `VOICE`를 철회하면 다음 요청부터 음성 입력(CONV-02)을 쓸 수 없습니다. 녹음은 원래 저장하지 않으므로 지울 것이 없습니다.
+  - `TRAINING_VOICE`를 철회하면 그동안 저장한 녹음 파일과 기록을 바로 지웁니다.
+  - `TRAINING_TEXT`를 철회하면 대화 기록은 서비스에 필요하므로 지우지 않고 학습용 내보내기에서 뺍니다.
+- `consentType`·`agreed`가 없거나 `null`이거나, `consentType`이 `VOICE`·`TRAINING_TEXT`·`TRAINING_VOICE`가 아니면 `400 VALIDATION_FAILED`입니다. 게스트가 AI 개선 동의를 바꾸려 해도 `400 VALIDATION_FAILED`입니다.
 - 로그인한 사용자만 호출할 수 있으며 `X-Requested-With` 헤더가 필요합니다.
 
 ### 4.12 마이페이지
 
-와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 메뉴(≡)의 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다.
+와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 메뉴(≡)의 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다. 선택 동의(USER-02·03)는 받은 목록대로 켜고 끄는 항목으로 보여 주며, 바꾸지 못하면 원래 상태로 되돌리고 이유를 알립니다.
 
 #### USER-04 `PUT /api/v1/me/nickname`
 

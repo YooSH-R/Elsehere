@@ -63,18 +63,62 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
-        public async Task GuestLogin_PostsChosenCharacterToGuestStart()
+        public async Task GuestLogin_PostsChosenCharacterAndVoiceConsentToGuestStart()
         {
             transport.Reply("{\"user\": {\"userId\": 3, \"nickname\": \"guest-123456\"}}");
 
-            await api.GuestLoginAsync(AvatarType.M);
+            await api.GuestLoginAsync(AvatarType.M, true);
 
             Assert.That(transport.LastRequest.Method, Is.EqualTo("POST"));
             Assert.That(
                 transport.LastRequest.Url,
                 Is.EqualTo("http://localhost:8080/api/v1/auth/guest")
             );
-            Assert.That(transport.LastRequest.JsonBody, Is.EqualTo("{\"avatarType\":\"M\"}"));
+            Assert.That(
+                transport.LastRequest.JsonBody,
+                Is.EqualTo("{\"avatarType\":\"M\",\"voiceConsent\":true}")
+            );
+        }
+
+        [Test]
+        public async Task Consents_GetsConsentsUserCanChange()
+        {
+            transport.Reply(
+                "{\"consents\": [{\"consentType\": \"VOICE\", \"version\": \"2026-10\","
+                    + " \"title\": \"음성 처리 동의\", \"url\": \"/voice/2026-10\", \"agreed\": true}]}"
+            );
+
+            List<ConsentStatus> consents = await api.GetConsentsAsync();
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("GET"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/me/consents")
+            );
+            Assert.That(consents[0].ConsentType, Is.EqualTo("VOICE"));
+            Assert.That(consents[0].Agreed, Is.True);
+        }
+
+        [Test]
+        public async Task ChangeConsent_PutsConsentTypeAndChoice()
+        {
+            transport.Reply(
+                "{\"consentType\": \"VOICE\", \"version\": \"2026-10\", \"title\": \"음성 처리 동의\","
+                    + " \"url\": \"/voice/2026-10\", \"agreed\": false}"
+            );
+
+            ConsentStatus changed = await api.ChangeConsentAsync("VOICE", false);
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("PUT"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/me/consents")
+            );
+            Assert.That(
+                transport.LastRequest.JsonBody,
+                Is.EqualTo("{\"consentType\":\"VOICE\",\"agreed\":false}")
+            );
+            Assert.That(changed.Agreed, Is.False);
         }
 
         [Test]

@@ -36,8 +36,10 @@ public class SignupService {
     rejectIfNicknameTaken(request.nickname());
 
     User user = saveNewUser(pendingSignup, request);
-    saveAgreedConsents(user, request);
-    return UserResponse.from(user);
+    List<ConsentTerm> agreedTerms = saveAgreedConsents(user, request);
+    boolean voiceConsent =
+        agreedTerms.stream().anyMatch(term -> term.consentType() == ConsentType.VOICE);
+    return UserResponse.from(user, voiceConsent);
   }
 
   private void rejectIfAlreadySignedUp(PendingSignup pendingSignup) {
@@ -90,13 +92,13 @@ public class SignupService {
         && User.NICKNAME_UNIQUE_CONSTRAINT.equals(violation.getConstraintName());
   }
 
-  private void saveAgreedConsents(User user, SignupRequest request) {
+  private List<ConsentTerm> saveAgreedConsents(User user, SignupRequest request) {
     Instant agreedAt = Instant.now(clock);
-    consentCatalog
-        .findAgreedTerms(request.consents())
-        .forEach(
-            term ->
-                userConsentRepository.save(
-                    UserConsent.agree(user, term.consentType(), term.version(), agreedAt)));
+    List<ConsentTerm> agreedTerms = consentCatalog.findAgreedTerms(request.consents());
+    agreedTerms.forEach(
+        term ->
+            userConsentRepository.save(
+                UserConsent.agree(user, term.consentType(), term.version(), agreedAt)));
+    return agreedTerms;
   }
 }

@@ -1,9 +1,9 @@
 # Apply to the notebook's separately registered Linux Docker runner.
 # Preserve its id, URL, token and token timestamps. GitLab tag: a305-linux-ci only.
-concurrent = 1
+concurrent = 2
 
 [[runners]]
-  limit = 1
+  limit = 2
   executor = "docker"
   # vpnkit's subnet overlaps Docker Desktop's internal DNS network.
   environment = ["FF_NETWORK_PER_BUILD=true", "DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns"]

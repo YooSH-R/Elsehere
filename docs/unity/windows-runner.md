@@ -79,10 +79,12 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 - EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다.
 - 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
-- GUI 실행 파일의 실제 종료까지 기다립니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
+- Editor 프로세스의 실제 종료까지 기다립니다. 크래시 후 남은 컴파일 보조 프로세스 때문에 작업 종료가 지연되지 않도록 Editor의 종료 코드를 직접 확인하고 로그를 보존합니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.
 - WebGL 산출물은 `dist/webgl/`이며 `version.json`의 전체 커밋 SHA가 후보와 일치해야 합니다. 빌드된 정적 파일의 실제 HTTPS 로딩과 화면 확인은 별도 검증입니다.
 - 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
+
+Editor 종료 대기의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p test_unity_process.py -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
 
 ## Blender와 FBX 테스트 입력
 

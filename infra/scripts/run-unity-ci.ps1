@@ -37,9 +37,11 @@ function Invoke-Unity {
 
     Write-Host "Running Unity ${editorVersion}: $RunName"
     try {
-        # Unity.exe is a GUI application; explicitly wait for the actual exit code.
+        # Start-Process -Wait also waits for descendants left behind by a crashed Editor.
+        # Wait on the Editor itself so its failure reaches CI and preserves the log.
         $unityProcess = Start-Process -FilePath $UnityEditorPath -ArgumentList $arguments `
-            -WindowStyle Hidden -Wait -PassThru
+            -WindowStyle Hidden -PassThru
+        $unityProcess.WaitForExit()
         if ($unityProcess.ExitCode -ne 0) {
             throw "Unity $RunName failed with exit code $($unityProcess.ExitCode). See the artifact log."
         }

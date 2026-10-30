@@ -8299,6 +8299,8 @@ MonoBehaviour:
   icon: 0
   fixedTheme: 0
   previewTheme: 0
+  quiet: 0
+  selection: 0
 --- !u!114 &690376114
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9314,7 +9316,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7475426848629461907, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_Radius
-      value: 0.68
+      value: 0.33
       objectReference: {fileID: 0}
     - target: {fileID: 7475426848629461907, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_Center.y

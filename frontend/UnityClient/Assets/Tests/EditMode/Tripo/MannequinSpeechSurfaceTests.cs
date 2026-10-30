@@ -50,6 +50,38 @@ namespace A305.Tripo.Tests
             }
         }
 
+        [TestCase(CharacterFacePose.OH, .65f)]
+        [TestCase(CharacterFacePose.OU, .8f)]
+        public void RoundedVowelsConcealBothRowsOfTeeth(CharacterFacePose pose, float strength)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_160.prefab"
+            );
+            var root = Object.Instantiate(prefab);
+            try
+            {
+                var face = root.GetComponentInChildren<CharacterFaceController>();
+                var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>();
+                var cavity = skins.Single(s => s.sharedMesh.name == "MouthInterior");
+                face.ApplySpeech(SpeechMouthSample.Pose(pose, strength), .15f, 0);
+                foreach (var sample in new[] { ("UpperTeeth", .5034f), ("LowerTeeth", .498f) })
+                {
+                    var teeth = skins.Single(s => s.sharedMesh.name == sample.Item1);
+                    float interior = Depth(cavity, sample.Item2);
+                    Assert.That(float.IsFinite(interior), Is.True);
+                    Assert.That(
+                        interior,
+                        Is.LessThan(Depth(teeth, sample.Item2)),
+                        pose + " must not show " + sample.Item1 + " through the rounded opening."
+                    );
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         private static float Depth(SkinnedMeshRenderer skin, float height)
         {
             var mesh = skin.sharedMesh;

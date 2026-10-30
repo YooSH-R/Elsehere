@@ -198,6 +198,18 @@ for name,color,scale,placements in oral_parts:
             purse={'viseme_OH':.002,'viseme_OU':.006}.get(channel,0)
             thickness=.003 if name=='Tongue' else scale[0]
             v.co.x=mouth_x(v.co.y,v.co.z)-purse+depth+u.x*thickness
+    if name in ('UpperTeeth', 'LowerTeeth'):
+        # Match the barista's per-phoneme tooth visibility while retaining the
+        # near-mouth rest positions needed for a soft I. Rounded vowels must
+        # not inherit both rows of teeth from that rest pose.
+        speech_channels = ('viseme_AA', 'viseme_FF', 'viseme_TH', 'viseme_PP',
+                           'viseme_E', 'viseme_OH', 'viseme_OU', 'viseme_I', 'viseme_EU')
+        for channel in speech_channels:
+            if channel in placements:
+                continue
+            key = ob.shape_key_add(name=channel)
+            for vertex, rest in zip(key.data, ob.data.shape_keys.key_blocks['Basis'].data):
+                vertex.co = rest.co + Vector((.045, 0, 0))
     parts.append((ob,color))
 
 from build_mannequin_eyes import build_eyes

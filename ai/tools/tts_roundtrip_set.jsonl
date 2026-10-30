@@ -1,0 +1,106 @@
+{"id": "cafe-01", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "Hi! Welcome in. What can I get for you today?"}
+{"id": "cafe-02", "npc": "CAFE_STAFF", "tags": ["price", "menu"], "text": "An americano is $4, and a latte is $5."}
+{"id": "cafe-03", "npc": "CAFE_STAFF", "tags": ["price"], "text": "Large is $1 more, so that's $6 for a large latte."}
+{"id": "cafe-04", "npc": "CAFE_STAFF", "tags": ["price"], "text": "Your total is $13. Card or cash?"}
+{"id": "cafe-05", "npc": "CAFE_STAFF", "tags": ["price"], "text": "That comes to $8.50."}
+{"id": "cafe-06", "npc": "CAFE_STAFF", "tags": ["price", "menu"], "text": "One iced americano and a muffin, that's $7 total."}
+{"id": "cafe-07", "npc": "CAFE_STAFF", "tags": ["price"], "text": "Here's your change: $2.75."}
+{"id": "cafe-08", "npc": "CAFE_STAFF", "tags": ["price", "dash", "curly"], "text": "That’s ten coffees—$40 in total."}
+{"id": "cafe-09", "npc": "CAFE_STAFF", "tags": ["price"], "text": "A dozen muffins? That's $36."}
+{"id": "cafe-10", "npc": "CAFE_STAFF", "tags": ["price"], "text": "Two large lattes come to $12."}
+{"id": "cafe-11", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "We take card, cash, or phone."}
+{"id": "cafe-12", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "Hot or iced? It's the same price."}
+{"id": "cafe-13", "npc": "CAFE_STAFF", "tags": ["short"], "text": "Small or large?"}
+{"id": "cafe-14", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "Would you like regular milk or soy?"}
+{"id": "cafe-15", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "The restroom is at the back of the cafe."}
+{"id": "cafe-16", "npc": "CAFE_STAFF", "tags": ["menu"], "text": "One cappuccino coming right up!"}
+{"id": "cafe-17", "npc": "CAFE_STAFF", "tags": ["informal", "curly"], "text": "Comin’ right up!"}
+{"id": "cafe-18", "npc": "CAFE_STAFF", "tags": ["informal", "curly"], "text": "I’m gonna need a minute to steam the milk."}
+{"id": "cafe-19", "npc": "CAFE_STAFF", "tags": ["menu"], "text": "Do you want a little latte art on that?"}
+{"id": "cafe-20", "npc": "CAFE_STAFF", "tags": ["dash"], "text": "I made a heart on your latte—hope you like it!"}
+{"id": "cafe-21", "npc": "CAFE_STAFF", "tags": ["menu", "curly"], "text": "Sorry, we’re out of croissants today."}
+{"id": "cafe-22", "npc": "CAFE_STAFF", "tags": ["menu"], "text": "Our muffins are baked fresh every morning."}
+{"id": "cafe-23", "npc": "CAFE_STAFF", "tags": ["menu"], "text": "We also have espresso, macchiato, and chai latte."}
+{"id": "cafe-24", "npc": "CAFE_STAFF", "tags": ["menu"], "text": "A flat white is like a latte with less milk."}
+{"id": "cafe-25", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "Can I get a name for the order?"}
+{"id": "cafe-26", "npc": "CAFE_STAFF", "tags": ["name"], "text": "Thanks, Minsu! Your latte will be ready in a sec."}
+{"id": "cafe-27", "npc": "CAFE_STAFF", "tags": ["name", "menu"], "text": "Jiwoo, your iced americano is ready!"}
+{"id": "cafe-28", "npc": "CAFE_STAFF", "tags": ["name"], "text": "Have a great day, Seoyeon!"}
+{"id": "cafe-29", "npc": "CAFE_STAFF", "tags": ["curly"], "text": "That’s not a nice way to talk to me. If you don’t need anything, you can go."}
+{"id": "cafe-30", "npc": "CAFE_STAFF", "tags": ["curly"], "text": "Apology accepted. So, what’ll it be?"}
+{"id": "cafe-31", "npc": "CAFE_STAFF", "tags": ["curly"], "text": "Sorry, I didn’t catch that. Could you say it again?"}
+{"id": "cafe-32", "npc": "CAFE_STAFF", "tags": ["dash"], "text": "The hotel is right across the street—cross at the crosswalk and turn left."}
+{"id": "cafe-33", "npc": "CAFE_STAFF", "tags": ["markup", "curly"], "text": "Have you tried our *Maple Latte*? It’s our special this week."}
+{"id": "cafe-34", "npc": "CAFE_STAFF", "tags": ["markup"], "text": "This one is called **Sunrise Blend**, a light roast."}
+{"id": "cafe-35", "npc": "CAFE_STAFF", "tags": ["curly"], "text": "“Latte” just means milk in Italian, actually."}
+{"id": "cafe-36", "npc": "CAFE_STAFF", "tags": ["time"], "text": "We open at 7 a.m. and close at 9 p.m."}
+{"id": "cafe-37", "npc": "CAFE_STAFF", "tags": ["time", "curly"], "text": "It’s 3:30, so the lunch rush is over."}
+{"id": "cafe-38", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "The Wi-Fi password is on your receipt."}
+{"id": "cafe-39", "npc": "CAFE_STAFF", "tags": ["hangul"], "text": "아이스 라떼요? An iced latte, got it."}
+{"id": "cafe-40", "npc": "CAFE_STAFF", "tags": ["plain"], "text": "You can sit anywhere you like."}
+{"id": "hotel-01", "npc": "HOTEL_STAFF", "tags": ["short"], "text": "Good evening. Checking in?"}
+{"id": "hotel-02", "npc": "HOTEL_STAFF", "tags": ["time"], "text": "Check-in is from 3 p.m., and check-out is by 11 a.m."}
+{"id": "hotel-03", "npc": "HOTEL_STAFF", "tags": ["plain"], "text": "I have a reservation under your name: a standard room for one night."}
+{"id": "hotel-04", "npc": "HOTEL_STAFF", "tags": ["short", "curly"], "text": "It’s already paid."}
+{"id": "hotel-05", "npc": "HOTEL_STAFF", "tags": ["number"], "text": "Your room is 305, on the third floor."}
+{"id": "hotel-06", "npc": "HOTEL_STAFF", "tags": ["plain"], "text": "The elevators are in the lobby, to your right."}
+{"id": "hotel-07", "npc": "HOTEL_STAFF", "tags": ["curly"], "text": "Here’s your key card."}
+{"id": "hotel-08", "npc": "HOTEL_STAFF", "tags": ["time"], "text": "Breakfast is served from 6:30 to 10:00."}
+{"id": "hotel-09", "npc": "HOTEL_STAFF", "tags": ["price"], "text": "Late check-out is $25 extra."}
+{"id": "hotel-10", "npc": "HOTEL_STAFF", "tags": ["price"], "text": "One night is $120 plus tax."}
+{"id": "hotel-11", "npc": "HOTEL_STAFF", "tags": ["abbreviation"], "text": "Can I see your ID, please?"}
+{"id": "hotel-12", "npc": "HOTEL_STAFF", "tags": ["dash", "curly"], "text": "Wi‑Fi’s free. The password is on the card."}
+{"id": "hotel-13", "npc": "HOTEL_STAFF", "tags": ["number"], "text": "Your confirmation number is A-1047."}
+{"id": "hotel-14", "npc": "HOTEL_STAFF", "tags": ["number"], "text": "Dial 0 for the front desk."}
+{"id": "hotel-15", "npc": "HOTEL_STAFF", "tags": ["number"], "text": "Sure. Room 1204 is on the 12th floor."}
+{"id": "hotel-16", "npc": "HOTEL_STAFF", "tags": ["abbreviation", "name"], "text": "Mr. Kim, your taxi is here."}
+{"id": "hotel-17", "npc": "HOTEL_STAFF", "tags": ["abbreviation", "name", "time"], "text": "Dr. Park left a message for you at 9:15 a.m."}
+{"id": "hotel-18", "npc": "HOTEL_STAFF", "tags": ["short"], "text": "Is that all?"}
+{"id": "hotel-19", "npc": "HOTEL_STAFF", "tags": ["short"], "text": "Next."}
+{"id": "hotel-20", "npc": "HOTEL_STAFF", "tags": ["short"], "text": "Whatever. Just sign here."}
+{"id": "hotel-21", "npc": "HOTEL_STAFF", "tags": ["number"], "text": "The pool is open until 10 tonight, on the 2nd floor."}
+{"id": "hotel-22", "npc": "HOTEL_STAFF", "tags": ["plain"], "text": "Please fill out this form and sign at the bottom."}
+{"id": "town-01", "npc": "TOWN_PASSERBY", "tags": ["curly"], "text": "Beautiful day, isn’t it?"}
+{"id": "town-02", "npc": "TOWN_PASSERBY", "tags": ["dash"], "text": "Hey, sorry to bother you—is there a cafe around here?"}
+{"id": "town-03", "npc": "TOWN_PASSERBY", "tags": ["time", "curly"], "text": "I’m in town for a meeting at 2 p.m."}
+{"id": "town-04", "npc": "TOWN_PASSERBY", "tags": ["plain"], "text": "I flew in from Chicago on Tuesday."}
+{"id": "town-05", "npc": "TOWN_PASSERBY", "tags": ["number", "curly"], "text": "The weather’s been great all week, about 75 degrees."}
+{"id": "town-06", "npc": "TOWN_PASSERBY", "tags": ["name", "curly"], "text": "My name’s Ben, by the way. Nice to meet you, Hyunwoo."}
+{"id": "town-07", "npc": "TOWN_PASSERBY", "tags": ["dash", "curly"], "text": "I’ve been to Seoul twice—loved the food."}
+{"id": "town-08", "npc": "TOWN_PASSERBY", "tags": ["foreign"], "text": "Bibimbap is my favorite."}
+{"id": "town-09", "npc": "TOWN_PASSERBY", "tags": ["plain"], "text": "Thanks a ton! Take it easy."}
+{"id": "town-10", "npc": "TOWN_PASSERBY", "tags": ["informal", "dash"], "text": "Gotta run—catch you later!"}
+{"id": "town-11", "npc": "TOWN_PASSERBY", "tags": ["informal", "curly"], "text": "I’m kinda lost, honestly."}
+{"id": "town-12", "npc": "TOWN_PASSERBY", "tags": ["informal", "curly"], "text": "Y’all have a really nice town here."}
+{"id": "town-13", "npc": "TOWN_PASSERBY", "tags": ["informal"], "text": "Lemme check my phone real quick."}
+{"id": "town-14", "npc": "TOWN_PASSERBY", "tags": ["informal"], "text": "I dunno, maybe next time."}
+{"id": "town-15", "npc": "TOWN_PASSERBY", "tags": ["number"], "text": "It's about 5 minutes on foot, maybe 10."}
+{"id": "town-16", "npc": "TOWN_PASSERBY", "tags": ["plain"], "text": "Do you live around here?"}
+{"id": "slang-01", "npc": "TOWN_PASSERBY", "tags": ["slang", "short"], "text": "Bet."}
+{"id": "slang-02", "npc": "TOWN_PASSERBY", "tags": ["slang", "short"], "text": "Say less."}
+{"id": "slang-03", "npc": "TOWN_PASSERBY", "tags": ["slang", "curly"], "text": "It’s lowkey the best coffee in town."}
+{"id": "slang-04", "npc": "TOWN_PASSERBY", "tags": ["slang"], "text": "Aight, see you around."}
+{"id": "slang-05", "npc": "TOWN_PASSERBY", "tags": ["slang", "curly"], "text": "I’m tryna finish my work before lunch."}
+{"id": "slang-06", "npc": "TOWN_PASSERBY", "tags": ["informal", "curly"], "text": "That’s a whole ’nother story."}
+{"id": "slang-07", "npc": "TOWN_PASSERBY", "tags": ["slang", "curly"], "text": "Ope, sorry, didn’t see you there!"}
+{"id": "slang-08", "npc": "TOWN_PASSERBY", "tags": ["slang", "short"], "text": "Atta girl!"}
+{"id": "slang-09", "npc": "CAFE_STAFF", "tags": ["informal", "curly"], "text": "What’ll it be, hon?"}
+{"id": "slang-10", "npc": "TOWN_PASSERBY", "tags": ["informal", "curly"], "text": "Ain’t nobody got time for that."}
+{"id": "foreign-01", "npc": "TOWN_PASSERBY", "tags": ["foreign", "short"], "text": "Órale, that was fast!"}
+{"id": "foreign-02", "npc": "TOWN_PASSERBY", "tags": ["foreign", "short"], "text": "Gracias, mijo."}
+{"id": "foreign-03", "npc": "TOWN_PASSERBY", "tags": ["foreign", "short"], "text": "Ay, Dios mío!"}
+{"id": "foreign-04", "npc": "CAFE_STAFF", "tags": ["foreign", "short"], "text": "Bon appétit!"}
+{"id": "foreign-05", "npc": "CAFE_STAFF", "tags": ["foreign", "menu"], "text": "I'll have a café au lait, please."}
+{"id": "foreign-06", "npc": "TOWN_PASSERBY", "tags": ["foreign", "curly"], "text": "I’d love to try tteokbokki someday."}
+{"id": "hangul-01", "npc": "CAFE_STAFF", "tags": ["hangul"], "text": "You said 감사합니다? That means thank you!"}
+{"id": "hangul-02", "npc": "TOWN_PASSERBY", "tags": ["hangul", "markup"], "text": "My friend recommended *삼국지* to me."}
+{"id": "hangul-03", "npc": "TOWN_PASSERBY", "tags": ["hangul"], "text": "Oh, 김치? I love kimchi!"}
+{"id": "long-01", "npc": "CAFE_STAFF", "tags": ["long", "dash", "curly"], "text": "If you’re heading to the hotel, cross at the crosswalk outside the door, turn left, and it’s a few steps up on the corner—you can’t miss it."}
+{"id": "long-02", "npc": "HOTEL_STAFF", "tags": ["long", "time", "number"], "text": "Your room is on the third floor, the elevators are behind you, breakfast starts at 6:30, and check-out is by 11 a.m. tomorrow."}
+{"id": "long-03", "npc": "CAFE_STAFF", "tags": ["long", "price", "menu"], "text": "So that's one large iced latte with soy milk, one hot americano, and two blueberry muffins, which comes to $17 altogether."}
+{"id": "word-01", "npc": "CAFE_STAFF", "tags": ["word"], "text": "napkin"}
+{"id": "word-02", "npc": "CAFE_STAFF", "tags": ["word"], "text": "receipt"}
+{"id": "word-03", "npc": "CAFE_STAFF", "tags": ["word", "menu"], "text": "croissant"}
+{"id": "word-04", "npc": "CAFE_STAFF", "tags": ["word", "menu"], "text": "espresso"}
+{"id": "word-05", "npc": "HOTEL_STAFF", "tags": ["word"], "text": "elevator"}
+{"id": "word-06", "npc": "HOTEL_STAFF", "tags": ["word"], "text": "reservation"}

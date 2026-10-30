@@ -41,14 +41,16 @@ class FirstDayMissionControllerTest {
     when(service.start(8L))
         .thenReturn(
             new FirstDayMissionResponse(
-                true, 0, false, "HOME", false, false, 20, "호텔로 가세요", "예약 확인", List.of()));
+                true, 0, false, "HOME", false, false, "CLEAR", 20, "호텔로 가세요", "예약 확인", List.of()));
     mvc.perform(
             post("/api/v1/missions/first-day/start")
                 .with(authentication(auth))
                 .header("X-Requested-With", "ElsehereClient"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.started").value(true))
-        .andExpect(jsonPath("$.stage").value(0));
+        .andExpect(jsonPath("$.stage").value(0))
+        .andExpect(jsonPath("$.raining").value(false))
+        .andExpect(jsonPath("$.weather").value("CLEAR"));
   }
 
   @Test

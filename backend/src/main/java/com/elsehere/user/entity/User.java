@@ -72,7 +72,7 @@ public class User extends BaseEntity {
   @Column(nullable = false, length = 20)
   private UiTheme uiTheme;
 
-  // 가입은 항상 일반 사용자다. 관리자는 운영자가 DB에서 직접 지정한다(UserRole).
+  // 가입은 항상 일반 사용자다. 관리자는 다른 관리자가 어드민에서 지정한다(UserRole).
   @Enumerated(EnumType.STRING)
   @ColumnDefault("'USER'")
   @Column(nullable = false, length = 10)
@@ -141,5 +141,15 @@ public class User extends BaseEntity {
   /** 재접속할 장소를 바꾼다(WORLD-05). */
   public void moveTo(Scene scene) {
     this.lastScene = scene;
+  }
+
+  /** 관리자로 지정한다. 게스트가 아닌지는 호출하는 쪽에서 확인한다. */
+  public void grantAdmin() {
+    this.role = UserRole.ADMIN;
+  }
+
+  /** 관리자에서 해제해 일반 사용자로 되돌린다. */
+  public void revokeAdmin() {
+    this.role = UserRole.USER;
   }
 }

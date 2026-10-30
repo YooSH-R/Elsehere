@@ -15,10 +15,15 @@ namespace A305.World
 
         /// <param name="destinationScene">이동할 씬 이름. Build Profile의 Scene List에 있어야 한다.</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
+        /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도. 도착 후 같은 각도로 맞춘다.</param>
         /// <returns>이동을 시작했으면 true. 이미 이동 중이거나 씬을 불러올 수 없으면 false.</returns>
-        public static bool TryTravel(string destinationScene, string arrivalDoorwayId)
+        public static bool TryTravel(
+            string destinationScene,
+            string arrivalDoorwayId,
+            float viewYawFromTravel = 0f
+        )
         {
-            if (!state.TryBegin(destinationScene, arrivalDoorwayId))
+            if (!state.TryBegin(destinationScene, arrivalDoorwayId, viewYawFromTravel))
             {
                 return false;
             }
@@ -35,10 +40,11 @@ namespace A305.World
         }
 
         /// <summary>새 공간에 도착했을 때 한 번 호출해 이동을 끝낸다.</summary>
+        /// <param name="viewYawFromTravel">도착 출입구에서 나오는 방향 기준으로 카메라를 돌릴 각도</param>
         /// <returns>도착할 출입구. 이동 없이 씬을 열었으면 null.</returns>
-        public static string TakeArrivalDoorwayId()
+        public static string TakeArrivalDoorwayId(out float viewYawFromTravel)
         {
-            return state.CompleteArrival();
+            return state.CompleteArrival(out viewYawFromTravel);
         }
 
         // Domain Reload를 끈 Editor에서도 Play를 시작할 때마다 이전 이동 상태를 지운다.

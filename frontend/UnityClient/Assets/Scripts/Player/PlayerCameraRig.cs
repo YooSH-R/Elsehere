@@ -68,10 +68,19 @@ namespace A305.Player
             SnapBehindTarget();
         }
 
+        /// <summary>카메라가 바라보는 수평 방향(마우스로 돌린 결과).</summary>
+        public float ViewYawDegrees => orbit.YawDegrees;
+
         /// <summary>카메라를 플레이어 뒤로 돌려 바로 그 자리에 놓는다. 플레이어를 순간 이동시킨 뒤 호출한다.</summary>
         public void SnapBehindTarget()
         {
-            orbit.SetYaw(followTarget.eulerAngles.y);
+            SnapView(followTarget.eulerAngles.y);
+        }
+
+        /// <summary>카메라를 주어진 수평 방향으로 돌려 바로 그 자리에 놓는다.</summary>
+        public void SnapView(float yawDegrees)
+        {
+            orbit.SetYaw(yawDegrees);
             Pose pose = GetDesiredPose(snap: true);
             transform.SetPositionAndRotation(pose.position, pose.rotation);
         }

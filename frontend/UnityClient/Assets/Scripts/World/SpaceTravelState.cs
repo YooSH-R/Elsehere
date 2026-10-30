@@ -7,6 +7,7 @@ namespace A305.World
     public sealed class SpaceTravelState
     {
         private string arrivalDoorwayId;
+        private float viewYawFromTravel;
 
         public bool IsTraveling { get; private set; }
 
@@ -27,6 +28,7 @@ namespace A305.World
 
             IsTraveling = true;
             this.arrivalDoorwayId = arrivalDoorwayId;
+            this.viewYawFromTravel = viewYawFromTravel;
             return true;
         }
 
@@ -41,7 +43,7 @@ namespace A305.World
         public string CompleteArrival(out float viewYawFromTravel)
         {
             string doorwayId = arrivalDoorwayId;
-            viewYawFromTravel = 0f;
+            viewYawFromTravel = this.viewYawFromTravel;
             Reset();
             return doorwayId;
         }
@@ -56,6 +58,7 @@ namespace A305.World
         {
             IsTraveling = false;
             arrivalDoorwayId = null;
+            viewYawFromTravel = 0f;
         }
     }
 }

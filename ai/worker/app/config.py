@@ -129,6 +129,7 @@ class Settings:
     retry_pause_s: float = 1.0  # 429/5xx 뒤 재시도 전에 쉬는 시간 (retry-after가 있으면 그것, 최대 5초)
     kokoro_model: str = ""  # 비어 있으면 음성 합성 없음 (tts: false로 알림)
     kokoro_voices: str = ""
+    tts_require_timing: bool = False
     # 합성 스레드 수. 0이면 onnxruntime 기본(보이는 코어 수). 컨테이너 CPU 상한보다 많으면 할당량에 걸려 몇 배 느려진다
     # (2026-10-29 i7-13700H Docker 2 CPU 상한: 기본 20스레드 대신 2스레드로 6초 소리 문장 합성 약 3초)
     kokoro_threads: int = 0
@@ -217,6 +218,7 @@ class Settings:
             respond_budget_s=float(e.get("RESPOND_BUDGET_S", cls.respond_budget_s)),
             kokoro_model=e.get("KOKORO_MODEL", ""),
             kokoro_voices=e.get("KOKORO_VOICES", ""),
+            tts_require_timing=e.get("TTS_REQUIRE_TIMING", "false").lower() == "true",
             kokoro_threads=int(e.get("KOKORO_THREADS", cls.kokoro_threads)),
             tts_chunk_budget_s=float(e.get("TTS_CHUNK_BUDGET_S", cls.tts_chunk_budget_s)),
             tts_gpu_base_url=tts_gpu_base_url,

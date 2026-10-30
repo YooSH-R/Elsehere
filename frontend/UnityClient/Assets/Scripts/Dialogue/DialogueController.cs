@@ -118,6 +118,14 @@ namespace A305.Dialogue
                 return false;
             }
 
+            if (serverLink != null)
+            {
+                var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();
+                serverLink.SetSpeaker(
+                    speaker != null ? speaker.Player : null,
+                    speaker != null ? speaker.BindingNotice : null
+                );
+            }
             bool hasScript = scriptSource.TryGetScript(npcCode, out DialogueScript script);
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
@@ -152,6 +160,7 @@ namespace A305.Dialogue
 
             if (serverConversation != null)
             {
+                serverLink.StopSpeech();
                 isEnding = true;
                 _ = EndServerConversationAsync();
                 return;
@@ -228,6 +237,8 @@ namespace A305.Dialogue
 
         private void OnDestroy()
         {
+            if (serverLink != null)
+                serverLink.SetSpeaker(null);
             if (serverLink != null && serverLink.VoiceRecorder != null)
             {
                 serverLink.VoiceRecorder.RecordingFinished -= TranscribeRecording;
@@ -296,7 +307,8 @@ namespace A305.Dialogue
             isEnding = false;
             if (serverLink != null)
             {
-                serverLink.ForgetSpeech();
+                // 립싱크 대상을 놓으면서 지난 대사의 음성도 멈추고 버린다(ForgetSpeech 포함).
+                serverLink.SetSpeaker(null);
             }
 
             cameraRig.ExitDialogueView();
@@ -348,7 +360,7 @@ namespace A305.Dialogue
         private void PlayNpcSpeech(NpcTurnData turn)
         {
             NpcResponded?.Invoke();
-            if (turn.Speech != null && turn.Speech.IsReady)
+            if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
                 return;
@@ -413,7 +425,13 @@ namespace A305.Dialogue
         private async Task RegenerateAndPlayAsync(ServerConversation target)
         {
             SpeechData speech = await target.RegenerateSpeechAsync();
-            if (this != null && serverConversation == target && speech != null && speech.IsReady)
+            if (
+                this != null
+                && target == serverConversation
+                && !isEnding
+                && speech != null
+                && speech.IsReady
+            )
             {
                 await target.PlaySpeechAsync(serverLink.PlaySpeechAsync);
             }

@@ -2323,7 +2323,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 119002825380996888, guid: 9eff277f277b3cf45b0e6c640e3f0a16, type: 3}
       propertyPath: m_Name
-      value: LittleMung_Base_Female_160
+      value: LittleMung_Base_Male_160
       objectReference: {fileID: 0}
     - target: {fileID: 5163394675680717497, guid: 9eff277f277b3cf45b0e6c640e3f0a16, type: 3}
       propertyPath: m_LocalPosition.x

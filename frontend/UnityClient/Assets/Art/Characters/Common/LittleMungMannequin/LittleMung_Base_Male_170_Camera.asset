@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4659f956dd7faa84b8c2e1d1421aa877, type: 3}
-  m_Name: LittleMung_Base_Female_170_Camera
+  m_Name: LittleMung_Base_Male_170_Camera
   m_EditorClassIdentifier: A305.Player::A305.Player.PlayerCameraSettings
   startDistanceMeters: 3.5
   minDistanceMeters: 2

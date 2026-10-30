@@ -312,7 +312,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6989324561072750317, guid: c46b53c0bc31ec24599b3a7f0bfd968a, type: 3}
       propertyPath: m_Name
-      value: LittleMung_Base_Female_Visual
+      value: LittleMung_Base_Male_Visual
       objectReference: {fileID: 0}
     - target: {fileID: 8819583743369575632, guid: c46b53c0bc31ec24599b3a7f0bfd968a, type: 3}
       propertyPath: m_Enabled

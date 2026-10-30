@@ -17,7 +17,7 @@ namespace A305.Characters.PlayModeTests
         public IEnumerator FacePreviewDeformsAllPosesWithoutPlayerDependencies()
         {
             yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
-                "Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_Face.unity",
+                "Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Male_Face.unity",
                 new UnityEngine.SceneManagement.LoadSceneParameters(
                     UnityEngine.SceneManagement.LoadSceneMode.Single
                 )

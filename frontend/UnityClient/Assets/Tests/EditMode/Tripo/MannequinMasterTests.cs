@@ -63,7 +63,7 @@ namespace A305.Tripo.Tests
         private static GameObject Load(int height)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                Folder + "LittleMung_Base_Female_" + height + ".prefab"
+                Folder + "LittleMung_Base_Male_" + height + ".prefab"
             );
             Assert.That(prefab, Is.Not.Null, "The reviewed height preset must exist.");
             return prefab;

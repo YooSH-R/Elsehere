@@ -69,7 +69,7 @@ for ids in triangles:
 mesh = bpy.data.meshes.new('LittleMungMannequinFace')
 mesh.from_pydata(vertices, [], triangles)
 mesh.update()
-body = bpy.data.objects.new('LittleMung_Base_Female', mesh)
+body = bpy.data.objects.new('LittleMung_Base_Male', mesh)
 bpy.context.collection.objects.link(body)
 bpy.context.view_layer.objects.active = body
 layer = mesh.uv_layers.new(name='UVMap')
@@ -230,5 +230,5 @@ for ob,color in parts:
     ob.data.calc_loop_triangles()
     result['parts'].append(dict(name=ob.name,vertices=[to_unity(v.co) for v in ob.data.vertices],triangles=[i for t in ob.data.loop_triangles for i in t.vertices],color=dict(r=color[0],g=color[1],b=color[2],a=1),shapes=shape_data(ob),uv=json.loads(ob.get('vertex_uv','[]')),textureFile=ob.get('texture_file',''),normals=json.loads(ob.get('base_normals','[]'))))
 (args.output/'MannequinFaceShapes.json').write_text(json.dumps(result,separators=(',',':')),encoding='utf-8')
-bpy.ops.wm.save_as_mainfile(filepath=str(args.output/'LittleMung_Base_Female_Face.blend'))
+bpy.ops.wm.save_as_mainfile(filepath=str(args.output/'LittleMung_Base_Male_Face.blend'))
 print('FACE_AUTHORING_COMPLETE',len(vertices),len(parts),int(np.any(pixels!=original_pixels,axis=2).sum()))

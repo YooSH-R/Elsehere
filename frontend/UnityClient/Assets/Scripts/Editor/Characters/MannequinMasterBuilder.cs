@@ -91,7 +91,7 @@ namespace A305.EditorTools.Characters
             var instance = Object.Instantiate(source);
             try
             {
-                instance.name = "LittleMung_Base_Female_Visual";
+                instance.name = "LittleMung_Base_Male_Visual";
                 var skin = instance
                     .GetComponentsInChildren<SkinnedMeshRenderer>()
                     .OrderByDescending(s => s.sharedMesh.vertexCount)
@@ -126,7 +126,7 @@ namespace A305.EditorTools.Characters
                 instance.AddComponent<CharacterFaceController>();
                 var visual = PrefabUtility.SaveAsPrefabAsset(
                     instance,
-                    ArtFolder + "/LittleMung_Base_Female_Visual.prefab"
+                    ArtFolder + "/LittleMung_Base_Male_Visual.prefab"
                 );
                 BuildHeightPreset(visual, 160);
                 BuildHeightPreset(visual, 170);
@@ -203,7 +203,7 @@ namespace A305.EditorTools.Characters
             mesh.ClearBlendShapes();
             AddShapes(mesh, data.shapes);
             EditorUtility.SetDirty(mesh);
-            string visualPath = ArtFolder + "/LittleMung_Base_Female_Visual.prefab";
+            string visualPath = ArtFolder + "/LittleMung_Base_Male_Visual.prefab";
             var visual = PrefabUtility.LoadPrefabContents(visualPath);
             try
             {
@@ -421,7 +421,7 @@ namespace A305.EditorTools.Characters
         private static void BuildHeightPreset(GameObject visual, int centimeters)
         {
             float height = centimeters / 100f;
-            string name = "LittleMung_Base_Female_" + centimeters;
+            string name = "LittleMung_Base_Male_" + centimeters;
             var player = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(LittleMungStairBuilder.PrefabPath)
             );
@@ -519,7 +519,7 @@ namespace A305.EditorTools.Characters
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(visual);
             instance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             foreach (var behavior in instance.GetComponentsInChildren<MonoBehaviour>().Reverse())
-                if (behavior is not CharacterFaceController)
+                if (behavior is not CharacterFaceController && behavior is not CharacterSkinTone)
                     Object.DestroyImmediate(behavior);
             instance.GetComponentInChildren<Animator>().enabled = false;
             var skin = instance.GetComponentInChildren<SkinnedMeshRenderer>();
@@ -547,7 +547,7 @@ namespace A305.EditorTools.Characters
                 center,
                 front
             );
-            EditorSceneManager.SaveScene(scene, SceneFolder + "/LittleMung_Base_Female_Face.unity");
+            EditorSceneManager.SaveScene(scene, SceneFolder + "/LittleMung_Base_Male_Face.unity");
         }
 
         [Serializable]

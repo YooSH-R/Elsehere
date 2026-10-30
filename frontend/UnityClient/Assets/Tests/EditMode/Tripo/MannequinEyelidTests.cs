@@ -13,7 +13,7 @@ namespace A305.Tripo.Tests
         public void BlinkCoversStationaryEyesAndRestoresNeutral()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_160.prefab"
+                "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Male_160.prefab"
             );
             var instance = Object.Instantiate(prefab);
             try

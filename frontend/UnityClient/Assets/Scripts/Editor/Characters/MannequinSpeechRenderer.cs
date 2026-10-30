@@ -36,8 +36,11 @@ namespace A305.EditorTools.Characters
                 );
             var timeline = SpeechVisemeTimeline.Parse(json, identity.duration);
             Directory.CreateDirectory(output);
+            string requestedScene = Environment.GetEnvironmentVariable("MANNEQUIN_SPEECH_SCENE");
             EditorSceneManager.OpenScene(
-                MannequinMasterBuilder.SceneFolder + "/LittleMung_Base_Female_Face.unity",
+                string.IsNullOrEmpty(requestedScene)
+                    ? MannequinMasterBuilder.SceneFolder + "/LittleMung_Base_Male_Face.unity"
+                    : requestedScene,
                 OpenSceneMode.Single
             );
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
@@ -124,9 +127,16 @@ namespace A305.EditorTools.Characters
                     objects[i] = new GameObject("ReviewPose");
                     objects[i].transform.SetParent(skins[i].transform, false);
                     objects[i].AddComponent<MeshFilter>().sharedMesh = meshes[i];
-                    objects[i].AddComponent<MeshRenderer>().sharedMaterials = skins[
-                        i
-                    ].sharedMaterials;
+                    var rendered = objects[i].AddComponent<MeshRenderer>();
+                    rendered.sharedMaterials = skins[i].sharedMaterials;
+                    var properties = new MaterialPropertyBlock();
+                    skins[i].GetPropertyBlock(properties);
+                    rendered.SetPropertyBlock(properties);
+                    for (int slot = 0; slot < rendered.sharedMaterials.Length; slot++)
+                    {
+                        skins[i].GetPropertyBlock(properties, slot);
+                        rendered.SetPropertyBlock(properties, slot);
+                    }
                     enabled[i] = skins[i].enabled;
                     skins[i].enabled = false;
                 }

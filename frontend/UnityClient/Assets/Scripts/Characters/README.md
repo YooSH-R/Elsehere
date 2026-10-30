@@ -34,7 +34,7 @@ Blender 드라이버 수식은 FBX에 자동 이식되지 않습니다. 모델�
 
 ## 공통 마네킹 얼굴 검수
 
-`Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_Face.unity`를 열고 Play하면 중립·미소·깜박임과 발음별 입 모양을 확인할 수 있습니다. 공용 Visual을 쓰는 1.6m·1.7m 프리팹은 같은 얼굴 메시와 채널을 공유합니다. 이 검수 씬은 카페·호텔 Production 대화 연결 여부를 증명하지 않습니다.
+`Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Male_Face.unity`를 열고 Play하면 중립·미소·깜박임과 발음별 입 모양을 확인할 수 있습니다. 공용 Visual을 쓰는 1.6m·1.7m 프리팹은 같은 얼굴 메시와 채널을 공유합니다. 이 검수 씬은 카페·호텔 Production 대화 연결 여부를 증명하지 않습니다.
 
 - `LeftEye`, `RightEye`는 고정된 눈 표면입니다. 깜박임으로 흰자·눈동자를 압축하지 않습니다.
 - 위·아래 눈꺼풀과 `LeftLashes`, `RightLashes`가 `eyeBlinkLeft`, `eyeBlinkRight`의 25·50·75·100 프레임을 사용합니다. 눈썹은 깜박임에 참여하지 않습니다.
@@ -49,4 +49,26 @@ Blender 제작 소스는 `frontend/ArtSources/Characters/LittleMungMannequin/`�
 
 입 안쪽의 검은 테두리처럼 보이는 표현을 피하려고 `MouthInterior`는 따뜻한 적갈색을 사용합니다. 제작 JSON의 색을 다시 적용할 때는 `MannequinMasterBuilder.RefreshAuthoredMouthColor`를 명시적으로 실행합니다. 일반 얼굴 메시 갱신은 수작업 머티리얼 수정을 덮어쓰지 않습니다.
 
-`MannequinSpeechRenderer.Render`는 기존 WAV와 해당 음성의 발음 JSON을 받아 검수 이미지를 만듭니다. `MANNEQUIN_SPEECH_AUDIO`, `MANNEQUIN_SPEECH_TIMELINE`, `MANNEQUIN_SPEECH_OUTPUT`을 지정하고, 느린 비교가 필요하면 `MANNEQUIN_SPEECH_FPS=120`을 사용합니다. `MANNEQUIN_SPEECH_YAW`는 -60~60도 사선 검수 각도이며 생략하면 기존 정면을 사용합니다. 저장된 씬 카메라는 변경하지 않습니다. JSON의 `audioSha256`은 WAV 전체 파일과 일치해야 합니다. 이 도구는 음성 합성이나 외부 API 호출을 하지 않으며, 0.5초 대기 후 발화를 렌더하므로 영상에 음성을 합칠 때도 같은 지연을 적용해야 합니다.
+`MannequinSpeechRenderer.Render`는 기존 WAV와 해당 음성의 발음 JSON을 받아 검수 이미지를 만듭니다. `MANNEQUIN_SPEECH_AUDIO`, `MANNEQUIN_SPEECH_TIMELINE`, `MANNEQUIN_SPEECH_OUTPUT`을 지정하고, 느린 비교가 필요하면 `MANNEQUIN_SPEECH_FPS=120`을 사용합니다. `MANNEQUIN_SPEECH_YAW`는 -60~60도 사선 검수 각도이며 생략하면 기존 정면을 사용합니다. `MANNEQUIN_SPEECH_SCENE`으로 다른 검수 씬을 지정할 수 있으며 기본값은 남자 Base 얼굴 씬입니다. 인스턴스의 피부색 PropertyBlock도 렌더에 복사합니다. 저장된 씬 카메라는 변경하지 않습니다. JSON의 `audioSha256`은 WAV 전체 파일과 일치해야 합니다. 이 도구는 음성 합성이나 외부 API 호출을 하지 않으며, 0.5초 대기 후 발화를 렌더하므로 영상에 음성을 합칠 때도 같은 지연을 적용해야 합니다.
+
+## 남자 Base와 NPC Variant
+
+검수한 마네킹은 `LittleMung_Base_Male`로 관리합니다. `Art/Characters/Tripo/LittleMung_Base_Female`은 제작 출처인 원본이므로 이름과 내용을 보존합니다. 외형·표정의 공통 편집 대상은 아래 Common Base입니다. 기존 플레이어 선택 데이터나 Production NPC를 이 마네킹으로 교체하지는 않습니다.
+
+| 용도 | Assets 기준 경로 |
+| --- | --- |
+| 공통 외형 Base | `Art/Characters/Common/LittleMungMannequin/LittleMung_Base_Male_Visual.prefab` |
+| 1.6m·1.7m 플레이어 검수 | `Prefabs/Characters/Mannequin/LittleMung_Base_Male_160.prefab`, `LittleMung_Base_Male_170.prefab` |
+| NPC 외형 Variant 예제 | `Prefabs/Characters/Mannequin/Npc/LittleMung_Npc_Male.prefab` |
+| NPC 표정·피부색 검수 | `Scenes/Sandbox/Mannequin/LittleMung_Npc_Male_Face.unity` |
+| NPC 외형의 이동 검수 | `Scenes/Sandbox/Mannequin/LittleMung_Npc_Male_Motion.unity` |
+
+새 NPC 외형은 Project 창에서 공통 외형 Base를 선택한 뒤 **Create → Prefab Variant**로 만듭니다. Variant의 Inspector에서 **Character Skin Tone → Skin Color**를 바꾸면 몸·위아래 눈꺼풀·입 주변에 함께 적용됩니다. 기본 기준색은 `#FFC799`이며, 텍스처에 이 기준색 대비 색상 비율을 적용합니다. 공유 머티리얼을 직접 변경하지 않으므로 다른 NPC의 색에는 영향을 주지 않습니다. 표정 가중치와 Animator 재생 상태도 각 인스턴스가 독립적으로 가집니다.
+
+`CharacterSkin` 셰이더의 피부 마스크는 현재 마네킹의 몸 텍스처에서 기본복·어두운 눈썹을 제외합니다. 눈꺼풀과 입 주변은 전부 피부로 처리하며, 눈·속눈썹·치아·구강 재질은 바꾸지 않습니다. 몸 텍스처를 교체하면 해당 텍스처에 맞는 마스크를 별도로 검수해야 합니다. 새 피부 부품은 Base의 `CharacterSkinTone.skinRenderers`에 등록하고 같은 셰이더와 적절한 마스크를 사용합니다.
+
+이 NPC 프리팹은 **외형용 Variant**입니다. 서비스의 NPC 이동·대화 루트에 Visual 자식으로 연결하는 대상이며, 그 자체에 AI 대화나 이동 판단은 없습니다. 상속된 발 접지·팔 보정은 부모의 `CharacterController`를 사용합니다. 이동 검수 씬은 기존 플레이어 이동 루트를 이용해 이 조건을 제공하고, 얼굴 전용 씬에서는 이동 보정 컴포넌트를 씬에서만 제거합니다.
+
+Base의 메시·골격 참조·표정 컴포넌트·애니메이션 연결 변경은 Variant와 씬 인스턴스의 **오버라이드되지 않은 항목**에 전파됩니다. NPC별 피부색·의상처럼 자식이 명시적으로 바꾼 값은 유지됩니다. Unpack하거나 메시·Controller 참조를 다른 에셋으로 교체하면 해당 연결은 상속하지 않습니다. 배포된 실행 파일에는 변경 후 빌드·배포가 필요하며, 런타임에 생성된 객체를 원격으로 갱신하는 기능은 아닙니다.
+
+`Tools → A305 → Characters → Prepare Male Base And NPC Variant`는 검수 복사본의 이름을 GUID 유지 방식으로 정리하고 색상 연결·예제 Variant·검수 씬을 준비합니다. 이미 있는 Variant와 이동 검수 씬의 사용자 수정은 덮어쓰지 않습니다. 메시·골격·표정 데이터를 새로 생성하거나 Tripo API를 호출하지 않습니다.

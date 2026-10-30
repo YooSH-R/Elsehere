@@ -13,7 +13,7 @@ namespace A305.Tripo.Tests
         public void SoftIVowelShowsUpperTeethInsideTheMouth()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_160.prefab"
+                "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Male_160.prefab"
             );
             var root = Object.Instantiate(prefab);
             try
@@ -55,7 +55,7 @@ namespace A305.Tripo.Tests
         public void RoundedVowelsConcealBothRowsOfTeeth(CharacterFacePose pose, float strength)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_160.prefab"
+                "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Male_160.prefab"
             );
             var root = Object.Instantiate(prefab);
             try

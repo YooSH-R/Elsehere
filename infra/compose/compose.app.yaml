@@ -37,18 +37,19 @@ services:
       STT_GPU_BASE_URL: ${STT_GPU_BASE_URL:-}
       STT_GPU_TOKEN: ${STT_GPU_TOKEN:-}
       STT_FIRST_TIMEOUT_S: ${STT_FIRST_TIMEOUT_S:-8}
+      TTS_CHUNK_BUDGET_S: ${TTS_CHUNK_BUDGET_S:-8}
     healthcheck:
       test:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3)"
+        - "import json, urllib.request; health = json.load(urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3)); assert health.get('tts_phoneme_timing') is True"
       interval: 10s
       timeout: 5s
       retries: 6
-      start_period: 20s
-    cpus: 0.50
-    mem_limit: 512m
+      start_period: 90s
+    cpus: ${AI_WORKER_CPUS:-2.0}
+    mem_limit: ${AI_WORKER_MEMORY:-1g}
     security_opt:
       - no-new-privileges:true
 

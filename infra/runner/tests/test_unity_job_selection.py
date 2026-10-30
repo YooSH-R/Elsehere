@@ -75,6 +75,18 @@ class UnityJobSelectionTests(unittest.TestCase):
                     self.jobs[job_name].get("resource_group", template_group)
                 )
 
+    def test_unity_jobs_retry_only_crashes_once(self):
+        template_retry = self.jobs[".unity-editor"].get("retry")
+        for job_name in ("unity:editor-tests", "unity:editor-and-webgl"):
+            with self.subTest(job=job_name):
+                self.assertEqual(
+                    self.jobs[job_name].get("retry", template_retry),
+                    {"max": "1", "exit_codes": "75"},
+                )
+        for job_name in ("unity:format", "unity:external-mr"):
+            with self.subTest(job=job_name):
+                self.assertNotIn("retry", self.jobs[job_name])
+
 
 if __name__ == "__main__":
     unittest.main()

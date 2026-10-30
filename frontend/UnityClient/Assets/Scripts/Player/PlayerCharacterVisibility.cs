@@ -2,11 +2,15 @@ using UnityEngine;
 
 namespace A305.Player
 {
-    /// <summary>카메라 시점 변경 후 현재 선택한 외형만 숨긴다. 애니메이션과 이동은 계속 실행한다.</summary>
+    /// <summary>
+    /// 1인칭·대화 시점이거나, 3인칭 카메라가 좁은 실내 벽에 밀려 캐릭터에 너무 붙으면 현재 선택한 외형만 숨긴다.
+    /// 애니메이션과 이동은 계속 실행한다.
+    /// </summary>
     [DefaultExecutionOrder(100)]
     [RequireComponent(typeof(PlayerCharacterAppearance), typeof(PlayerMover))]
     public sealed class PlayerCharacterVisibility : MonoBehaviour
     {
+        private readonly CloseCameraCharacter closeCamera = new CloseCameraCharacter();
         private Renderer[] renderers;
         private PlayerCameraRig cameraRig;
 
@@ -25,7 +29,8 @@ namespace A305.Player
 
         private void LateUpdate()
         {
-            SetHidden(cameraRig.ViewMode != CameraViewMode.ThirdPerson);
+            bool tooClose = closeCamera.IsHidden(cameraRig.CharacterDistanceMeters);
+            SetHidden(cameraRig.ViewMode != CameraViewMode.ThirdPerson || tooClose);
         }
 
         private void OnDisable()

@@ -1,3 +1,4 @@
+using A305.Dialogue;
 using UnityEngine;
 
 namespace A305.Npc
@@ -12,6 +13,12 @@ namespace A305.Npc
         [SerializeField]
         [Tooltip("대화 시점에서 카메라가 바라볼 머리 위치")]
         private Transform lookTarget;
+
+        private void Awake()
+        {
+            if (GetComponent<DialogueSpeaker>() == null)
+                gameObject.AddComponent<DialogueSpeaker>();
+        }
 
         public string Code => code;
 

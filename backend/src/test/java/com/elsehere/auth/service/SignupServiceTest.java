@@ -163,11 +163,20 @@ class SignupServiceTest {
     List<ConsentAgreement> consents = new ArrayList<>(requiredConsents());
     consents.add(new ConsentAgreement(ConsentType.VOICE, "2026-10"));
 
-    signupService.signUp(PENDING, request(consents));
+    UserResponse response = signupService.signUp(PENDING, request(consents));
 
     assertThat(userConsentRepository.findAll())
         .extracting(UserConsent::getConsentType)
         .contains(ConsentType.VOICE);
+    assertThat(response.voiceConsent()).isTrue();
+  }
+
+  @Test
+  @DisplayName("음성 처리에 동의하지 않고 가입하면 가입 응답에 음성 입력을 쓸 수 없다고 알린다")
+  void signUp_withoutVoiceConsent_respondsNoVoiceConsent() {
+    UserResponse response = signupService.signUp(PENDING, request(requiredConsents()));
+
+    assertThat(response.voiceConsent()).isFalse();
   }
 
   @Test

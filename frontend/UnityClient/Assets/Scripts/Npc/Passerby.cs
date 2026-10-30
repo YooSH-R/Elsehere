@@ -102,9 +102,11 @@ namespace A305.Npc
                 || dialogue.IsTalking
                 || player.IsMovementLocked
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
+            // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
+            bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
 
             PasserbyPhase before = approach.Phase;
-            approach.Tick(Now, toPlayer.magnitude, isPlayerBusy);
+            approach.Tick(Now, toPlayer.magnitude, isPlayerBusy || cannotStartConversation);
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {
                 // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다.
@@ -149,10 +151,32 @@ namespace A305.Npc
                 return;
             }
 
-            if (!offerView.IsTalkPromptShowing)
+            ConversationAllowance allowance = dialogue.Allowance;
+            if (!allowance.CanStartConversation)
+            {
+                if (!offerView.IsTalkBlocked)
+                {
+                    offerView.ShowBlockedTalkPrompt(
+                        this,
+                        PasserbyOfferText.Blocked(allowance.RemainingConversations)
+                    );
+                }
+
+                return;
+            }
+
+            // 대화가 끝난 뒤 남은 횟수가 줄면 문구를 다시 쓴다.
+            string remaining = PasserbyOfferText.RemainingConversations(
+                allowance.RemainingConversations
+            );
+            if (
+                !offerView.IsTalkPromptShowing
+                || offerView.IsTalkBlocked
+                || offerView.TalkRemainingText != remaining
+            )
             {
                 string label = PasserbyOfferText.TalkLabel(dialogue.FindNpcName(identity.Code));
-                offerView.ShowTalkPrompt(this, label, TalkByPlayer);
+                offerView.ShowTalkPrompt(this, label, remaining, TalkByPlayer);
             }
         }
 
@@ -191,7 +215,10 @@ namespace A305.Npc
                 dialogue.FindNpcName(identity.Code),
                 dialogue.FindNpcRoleLabel(identity.Code)
             );
-            offerView.Show(this, hint, greeting, approach.CanDecline, Accept, Decline);
+            string remaining = PasserbyOfferText.RemainingConversations(
+                dialogue.Allowance.RemainingConversations
+            );
+            offerView.Show(this, hint, greeting, approach.CanDecline, remaining, Accept, Decline);
         }
 
         private void Accept()

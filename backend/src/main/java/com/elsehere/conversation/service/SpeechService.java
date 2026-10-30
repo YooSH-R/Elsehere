@@ -15,7 +15,7 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.user.entity.ConsentType;
-import com.elsehere.user.service.TrainingConsentService;
+import com.elsehere.user.service.OptionalConsentService;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
@@ -47,13 +47,13 @@ public class SpeechService {
   private final AiRequestRecorder aiRequestRecorder;
   private final NpcAudioRetention npcAudioRetention;
   private final TransactionTemplate transactionTemplate;
-  private final TrainingConsentService trainingConsentService;
+  private final OptionalConsentService optionalConsentService;
   private final TrainingRecordingService trainingRecordingService;
   private final Clock clock;
 
   /**
-   * 녹음을 전사한다. 발화 턴은 만들지 않는다. 받은 음성은 녹음 음성 학습 활용(TRAINING_VOICE)에 동의한 사용자의 것만 인식 결과와 함께 보관하고, 그 밖에는
-   * 보관하지 않는다.
+   * 녹음을 전사한다. 발화 턴은 만들지 않는다. 음성은 외부 음성 인식 공급자로 가므로 음성 처리(VOICE)에 동의한 사용자의 것만 받는다. 받은 음성은 녹음 음성 학습
+   * 활용(TRAINING_VOICE)에 동의한 사용자의 것만 인식 결과와 함께 보관하고, 그 밖에는 보관하지 않는다.
    *
    * @param conversationId 자유 대화 발화(TURN)일 때 진행 중인 대화. 튜토리얼이면 null
    */
@@ -63,6 +63,9 @@ public class SpeechService {
       TranscriptionPurpose purpose,
       Long conversationId,
       MultipartFile audio) {
+    if (!optionalConsentService.hasAgreed(userId, ConsentType.VOICE)) {
+      throw new BusinessException(ErrorCode.VOICE_CONSENT_REQUIRED);
+    }
     if (audio.isEmpty()) {
       throw new BusinessException(ErrorCode.VALIDATION_FAILED);
     }
@@ -83,7 +86,7 @@ public class SpeechService {
     if (result.text() == null || result.text().isBlank()) {
       throw new BusinessException(ErrorCode.STT_NO_SPEECH);
     }
-    if (trainingConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)) {
+    if (optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)) {
       trainingRecordingService.save(trace, purpose, recording, contentType, result);
     }
     long durationMs = result.audioS() == null ? 0 : Math.round(result.audioS() * 1000);

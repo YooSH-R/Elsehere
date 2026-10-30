@@ -131,8 +131,10 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 ### 2.1 `GET /health` (토큰 불필요)
 
 ```json
-{"ok": true, "tts": true, "profile": "groq", "models": {"intent": "...", "guard": "...", "npc": "...", "stt": "..."}, "guard_local": null}
+{"ok": true, "tts": true, "tts_phoneme_timing": true, "profile": "groq", "models": {"intent": "...", "guard": "...", "npc": "...", "stt": "..."}, "guard_local": null}
 ```
+
+`tts_phoneme_timing`은 워밍업에서 음성과 일치하는 발음 시간표까지 검증했는지 나타냅니다. 음성 엔진 유무인 `tts`와 구분합니다. 배포 이미지의 `TTS_REQUIRE_TIMING=true`에서는 시간표를 만들 수 없으면 시작에 실패합니다.
 
 `profile`은 수집 기록의 `profile` 칸에 그대로 남깁니다. `guard_local`은 로컬 무례 판정기를 켰을 때만 `{"model": "v2-mix", "t_lo": 0.05, "t_hi": 0.95}`이고, 끄면(기본) `null`입니다.
 

@@ -10,6 +10,10 @@ namespace A305.Dialogue
         /// <summary>마이크가 열리기 전에 버튼에서 손을 떼 받은 소리가 없을 때.</summary>
         public const string TooShort = "버튼을 누른 채로 말해 주세요. 손을 떼면 녹음이 끝나요.";
 
+        /// <summary>음성 처리에 동의하지 않아 음성 입력을 쓸 수 없을 때(API 명세 CONV-02).</summary>
+        public const string ConsentRequired =
+            "음성으로 말하려면 마이페이지에서 음성 처리 동의를 켜 주세요. 지금은 글자로 입력할 수 있어요.";
+
         private const string CheckTranscript =
             "들은 문장을 확인하고 [보내기]를 눌러 주세요. 다시 말하려면 [누르고 말하기]를 다시 누르세요.";
 

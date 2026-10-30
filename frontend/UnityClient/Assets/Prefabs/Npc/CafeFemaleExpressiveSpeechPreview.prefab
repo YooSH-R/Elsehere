@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &3277813780836993585
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 162779943573440690, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1633593626114644244, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1935931587473308859, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976675008000233529, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4178747757143104725, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: speech
+      value: 
+      objectReference: {fileID: 11400000, guid: 66beee542db013a4f8ff279333a5c304, type: 2}
+    - target: {fileID: 4178747757143104725, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: expressions
+      value: 
+      objectReference: {fileID: 11400000, guid: d971682af4970ba40801242aadc35ea0, type: 2}
+    - target: {fileID: 6370337045989733161, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 7043096816279188060, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 11
+      objectReference: {fileID: 0}
+    - target: {fileID: 7373105920602611030, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_Name
+      value: CafeFemaleExpressiveSpeechPreview
+      objectReference: {fileID: 0}
+    - target: {fileID: 7880288403821616301, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8601061155518340945, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8630318765651677896, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 8634146872222456756, guid: fa3bbf21df0117c469b06539258433a7, type: 3}
+      propertyPath: m_BlendShapeWeights.Array.size
+      value: 11
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fa3bbf21df0117c469b06539258433a7, type: 3}

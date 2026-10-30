@@ -483,6 +483,11 @@ namespace A305.EditorTools.Theme
             Role(root, "MyPage/Window/Profile", UiThemeRole.Body);
             ThemedInput(root, "MyPage/Window/NicknameRow/NicknameInput");
             Role(root, "MyPage/Window/Status", UiThemeRole.Muted);
+            Role(root, "MyPage/Window/LookSensitivity/Title", UiThemeRole.Title);
+            Role(root, "MyPage/Window/LookSensitivity/Help", UiThemeRole.Muted);
+            Role(root, "MyPage/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
             ActionPill(
                 root,
                 "MyPage/Window/NicknameRow/NicknameButton",
@@ -499,6 +504,9 @@ namespace A305.EditorTools.Theme
             );
             CornerClose(root, "MyPage/Window");
             Roomy(root, "MyPage/Window");
+            // 여백을 넓힌 만큼 창을 넓혀 시점 감도 줄의 [빠르게]와 현재 배율이 겹치지 않게 한다.
+            var window = (RectTransform)root.Find("MyPage/Window");
+            window.sizeDelta = new Vector2(640, window.sizeDelta.y);
             Role(root, "MyPage/LogoutDialog", UiThemeRole.Panel);
             Role(root, "MyPage/LogoutDialog/Title", UiThemeRole.Title);
             Role(root, "MyPage/LogoutDialog/Body", UiThemeRole.Body);
@@ -518,6 +526,51 @@ namespace A305.EditorTools.Theme
                 180
             );
             Roomy(root, "MyPage/LogoutDialog");
+            if (root.Find("MyPage/Window/Consents") != null)
+            {
+                Role(root, "MyPage/Window/ConsentsLabel", UiThemeRole.Caption);
+                ConsentRow(root, "MyPage/Window/Consents/ConsentRowTemplate");
+            }
+            if (root.Find("MyPage/WithdrawDialog") == null)
+                return;
+            ActionPill(
+                root,
+                "MyPage/Window/Buttons/WithdrawButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                210
+            );
+            Role(root, "MyPage/WithdrawDialog", UiThemeRole.Panel);
+            Role(root, "MyPage/WithdrawDialog/Title", UiThemeRole.Title);
+            Role(root, "MyPage/WithdrawDialog/Body", UiThemeRole.Body);
+            // 지우는 내용을 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
+            root.Find("MyPage/WithdrawDialog/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            Role(root, "MyPage/WithdrawDialog/Status", UiThemeRole.Muted);
+            ActionPill(
+                root,
+                "MyPage/WithdrawDialog/Buttons/CancelButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                180
+            );
+            // 되돌릴 수 없는 동작은 강조색 대신 코랄(Secondary)로 구분한다.
+            ActionPill(
+                root,
+                "MyPage/WithdrawDialog/Buttons/ConfirmButton",
+                UiIcon.Delete,
+                UiTone.Secondary,
+                180
+            );
+            Roomy(root, "MyPage/WithdrawDialog");
+        }
+
+        /// <summary>약관·선택 동의 한 줄: 동그란 체크, 본문 글자, 작은 [보기] 알약 버튼.</summary>
+        private static void ConsentRow(Transform root, string rowPath)
+        {
+            Role(root, rowPath + "/Toggle", UiThemeRole.Input);
+            Role(root, rowPath + "/Label", UiThemeRole.Body);
+            ActionPill(root, rowPath + "/ViewButton", UiIcon.None, UiTone.Neutral, 110);
         }
 
         /// <summary>NPC가 말을 걸 때의 제안 창을 다른 창과 같은 바탕과 알약 버튼으로 칠하고, [말 걸기]·[택시 세우기]는 버튼만 둔다.</summary>
@@ -547,6 +600,12 @@ namespace A305.EditorTools.Theme
             lift.effectColor = new Color(0, 0, 0, .28f);
             lift.effectDistance = new Vector2(0, -4);
             Role(root, "TalkPrompt/Buttons/KeyHint", UiThemeRole.Title);
+            if (root.Find("Panel/Remaining") != null)
+            {
+                Role(root, "Panel/Remaining", UiThemeRole.Muted);
+                // 바탕이 없는 [말 걸기] 위에서도 읽히도록 진한 글자로 둔다.
+                Role(root, "TalkPrompt/Remaining", UiThemeRole.Title);
+            }
         }
 
         /// <summary>
@@ -586,6 +645,11 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "GuestPanel/AvatarRow/FemaleButton", "여성");
             QuietButton(root, "GuestPanel/AvatarRow/MaleButton", "남성");
             Role(root, "GuestPanel/Note", UiThemeRole.Muted);
+            if (root.Find("GuestPanel/VoiceConsentRow") != null)
+            {
+                ConsentRow(root, "GuestPanel/VoiceConsentRow");
+                Role(root, "GuestPanel/VoiceConsentNote", UiThemeRole.Muted);
+            }
             ActionPill(root, "GuestPanel/StartButton", UiIcon.Play, UiTone.Primary, 280);
             ActionPill(root, "GuestPanel/BackButton", UiIcon.Previous, UiTone.Neutral, 280);
 
@@ -603,15 +667,7 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "SignupPanel/AvatarRow/FemaleButton", "여성");
             QuietButton(root, "SignupPanel/AvatarRow/MaleButton", "남성");
             Role(root, "SignupPanel/ConsentsLabel", UiThemeRole.Caption);
-            Role(root, "SignupPanel/Consents/ConsentRowTemplate/Toggle", UiThemeRole.Input);
-            Role(root, "SignupPanel/Consents/ConsentRowTemplate/Label", UiThemeRole.Body);
-            ActionPill(
-                root,
-                "SignupPanel/Consents/ConsentRowTemplate/ViewButton",
-                UiIcon.None,
-                UiTone.Neutral,
-                110
-            );
+            ConsentRow(root, "SignupPanel/Consents/ConsentRowTemplate");
             ActionPill(root, "SignupPanel/SubmitButton", UiIcon.Check, UiTone.Primary, 280);
 
             foreach (string cards in new[] { "LanguagePanel/Cards", "LevelSettingPanel/Cards" })

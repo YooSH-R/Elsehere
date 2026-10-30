@@ -144,6 +144,7 @@ namespace A305.Dialogue.PlayModeTests
             public bool CanRetry => false;
             public IReadOnlyList<string> SuggestWords => null;
             public bool CanSend => true;
+            public bool CanTalk => true;
             public bool HasMeaning => true;
             public IReadOnlyList<GlossaryData> LastNpcGlossary => null;
             public bool HasHint => true;

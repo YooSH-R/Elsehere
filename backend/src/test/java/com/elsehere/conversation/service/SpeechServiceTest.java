@@ -33,7 +33,7 @@ import com.elsehere.conversation.repository.TrainingRecordingRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.ConsentType;
-import com.elsehere.user.service.TrainingConsentService;
+import com.elsehere.user.service.OptionalConsentService;
 import jakarta.persistence.EntityManager;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -64,7 +64,7 @@ class SpeechServiceTest {
 
   @Autowired private EntityManager entityManager;
 
-  @Autowired private TrainingConsentService trainingConsentService;
+  @Autowired private OptionalConsentService optionalConsentService;
 
   @Autowired private TrainingRecordingRepository trainingRecordingRepository;
 
@@ -77,6 +77,7 @@ class SpeechServiceTest {
   @BeforeEach
   void setUp() {
     userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    optionalConsentService.change(userId, ConsentType.VOICE, true);
     conversation = conversation(entityManager, userId, "CAFE_STAFF");
     npcTurn = npcTurn(entityManager, conversation, 1, "Hi! What can I get for you?");
     entityManager.flush();
@@ -127,6 +128,16 @@ class SpeechServiceTest {
   }
 
   @Test
+  @DisplayName("음성 처리에 동의하지 않은 사용자의 녹음은 워커로 보내지 않고 VOICE_CONSENT_REQUIRED로 거절한다")
+  void transcribe_withoutVoiceConsent_isRejectedWithoutAi() {
+    optionalConsentService.change(userId, ConsentType.VOICE, false);
+
+    assertErrorCode(
+        () -> transcribeTurn(recording("audio/wav", RECORDING)), ErrorCode.VOICE_CONSENT_REQUIRED);
+    then(aiWorkerClient).should(never()).transcribe(any(), any(), anyString());
+  }
+
+  @Test
   @DisplayName("빈 녹음·너무 긴 녹음·받지 않는 형식은 워커를 부르지 않고 거절한다")
   void transcribe_invalidRecording_isRejectedWithoutAi() {
     assertErrorCode(
@@ -172,7 +183,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("녹음 음성 학습 활용에 동의한 사용자는 전사한 녹음과 인식 결과를 학습용으로 저장한다")
   void transcribe_voiceTrainingAgreed_savesRecording() {
-    trainingConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
     given(aiWorkerClient.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
     UUID requestId = UUID.randomUUID();
@@ -197,7 +208,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("녹음 음성 학습 활용에 동의하지 않았으면 녹음을 저장하지 않는다")
   void transcribe_voiceTrainingNotAgreed_doesNotSave() {
-    trainingConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
+    optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
     given(aiWorkerClient.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
 
@@ -209,7 +220,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("동의했어도 말소리를 알아듣지 못한 녹음은 저장하지 않는다")
   void transcribe_noSpeech_doesNotSave() {
-    trainingConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
     given(aiWorkerClient.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("  ", 0.5, List.of()));
 

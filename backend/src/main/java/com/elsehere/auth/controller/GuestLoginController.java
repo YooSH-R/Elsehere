@@ -36,7 +36,8 @@ public class GuestLoginController {
       @Valid @RequestBody GuestLoginRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
-    UserResponse user = guestLoginService.startAsGuest(request.avatarType());
+    UserResponse user =
+        guestLoginService.startAsGuest(request.avatarType(), request.agreedToVoice());
     loginSessionService.loginGuest(new LoginUser(user.userId()), httpRequest, httpResponse);
     return new SignupResponse(user);
   }

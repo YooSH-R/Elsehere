@@ -178,7 +178,7 @@ namespace A305.Dialogue
             meaningButton.interactable = content.LastNpcLine != null;
             saveButton.gameObject.SetActive(IsSaveAvailable);
             saveButton.interactable = content.LastNpcLine != null;
-            talkButton.gameObject.SetActive(content.UsesVoice);
+            talkButton.gameObject.SetActive(content.UsesVoice && content.CanTalk);
             talkButton.GetComponent<Button>().interactable = content.CanSend;
             replayButton.gameObject.SetActive(content.CanReplaySpeech);
             replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
@@ -374,9 +374,14 @@ namespace A305.Dialogue
                 return $"이번에 읽을 대사: <b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
             }
 
-            return content.UsesVoice
+            if (!content.UsesVoice)
+            {
+                return "정답은 없어요. 하고 싶은 말을 영어로 자유롭게 입력해 보세요.";
+            }
+
+            return content.CanTalk
                 ? FreeTalkGuide + " [누르고 말하기]를 누른 채 말하면 문장으로 바꿔 드려요."
-                : "정답은 없어요. 하고 싶은 말을 영어로 자유롭게 입력해 보세요.";
+                : FreeTalkGuide + " " + VoiceInputNotice.ConsentRequired;
         }
     }
 }

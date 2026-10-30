@@ -34,10 +34,13 @@ public class AiStatusService {
   }
 
   public AiStatusResponse statusOf(User user) {
-    if (guestConversationLimit.isReached(user)) {
+    Integer remainingConversations = guestConversationLimit.remaining(user);
+    if (remainingConversations != null && remainingConversations == 0) {
       // 게스트 한도는 새 대화 시작만 막는다. 진행 중인 마지막 대화의 음성 입력과 피드백은 그대로 쓸 수 있다.
-      return new AiStatusResponse(AiStatus.AI_EXHAUSTED, new Capabilities(false, true, true));
+      return new AiStatusResponse(
+          AiStatus.AI_EXHAUSTED, new Capabilities(false, true, true), remainingConversations);
     }
-    return new AiStatusResponse(AiStatus.AI_AVAILABLE, new Capabilities(true, true, true));
+    return new AiStatusResponse(
+        AiStatus.AI_AVAILABLE, new Capabilities(true, true, true), remainingConversations);
   }
 }

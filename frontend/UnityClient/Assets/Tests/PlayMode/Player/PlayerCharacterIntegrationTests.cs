@@ -91,10 +91,25 @@ namespace A305.Player.Tests
                     Is.InRange(bounds.max.y, bounds.max.y + .1f),
                     "Capsule top must cover the standing mesh."
                 );
+                // 충돌 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 머리 구가 따로 막는다.
+                // 머리 구가 머리 아래 끝에서 시작해야 탁자·소파 앉는 면 같은 낮은 가구가 머리 아래로 지나간다.
+                PlayerCharacterDefinition definition = appearance.ActiveCharacter;
                 Assert.That(
                     capsule.radius,
+                    Is.GreaterThanOrEqualTo(
+                        HorizontalReachBelow(animator, player.transform, body.Head.min.y)
+                    ),
+                    "Capsule width must cover the body under the head."
+                );
+                Assert.That(
+                    definition.HeadRadiusMeters,
                     Is.GreaterThanOrEqualTo(headRadius),
-                    "Capsule width must cover the large head."
+                    "Head blocker must cover the large head."
+                );
+                Assert.That(
+                    definition.HeadCenterHeightMeters - definition.HeadRadiusMeters,
+                    Is.EqualTo(body.Head.min.y).Within(.05f),
+                    "Head blocker must start at the bottom of the head."
                 );
                 Assert.That(
                     eyeHeight,
@@ -143,6 +158,33 @@ namespace A305.Player.Tests
                 Physics.SyncTransforms();
                 camera.SnapBehindTarget();
             }
+        }
+
+        /// <summary>space 기준 높이 below 아래 메시 정점이 세로축에서 가장 멀리 떨어진 거리</summary>
+        private static float HorizontalReachBelow(Animator animator, Transform space, float below)
+        {
+            var mesh = new Mesh();
+            float reach = 0f;
+            try
+            {
+                foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
+                {
+                    skin.BakeMesh(mesh, true);
+                    foreach (var vertex in mesh.vertices)
+                    {
+                        Vector3 point = space.InverseTransformPoint(
+                            skin.transform.TransformPoint(vertex)
+                        );
+                        if (point.y < below)
+                            reach = Mathf.Max(reach, new Vector2(point.x, point.z).magnitude);
+                    }
+                }
+            }
+            finally
+            {
+                Object.Destroy(mesh);
+            }
+            return reach;
         }
 
         private static Bounds SkinBounds(Animator animator, Transform space)

@@ -1,6 +1,6 @@
 # Windows 노트북의 Unity 전용 Runner
 
-Unity 테스트와 WebGL 빌드는 Windows 노트북의 `a305-unity-windows` Runner에서 실행합니다. 일반 Linux 검사는 EC2와 노트북의 별도 Linux Runner가 `a305-linux-ci` 태그로 나눠 받으며, 배포 계획·전달과 개발·운영 서비스는 EC2에서 실행합니다. Linux Runner는 Unity와 별도로 한 작업만 실행하며 [설치·제한 기준](../ci-runner.md#노트북-linux-runner)을 따릅니다.
+Unity 테스트와 WebGL 빌드는 Windows 노트북의 `a305-unity-windows` Runner에서 실행합니다. 일반 Linux 검사는 EC2와 노트북의 별도 Linux Runner가 `a305-linux-ci` 태그로 나눠 받으며, 배포 계획·전달과 개발·운영 서비스는 EC2에서 실행합니다. Linux Runner는 Unity와 별도로 최대 두 작업을 실행하며 [설치·제한 기준](../ci-runner.md#노트북-linux-runner)을 따릅니다.
 
 노트북에는 프로젝트와 같은 Unity `6000.3.26f1`, Web Build Support와 사용 가능한 라이선스가 필요합니다. 라이선스를 활성화한 Windows 계정으로 Runner를 실행합니다. Runner 등록·Online 상태와 실제 CI 테스트·빌드 성공은 각각 확인합니다.
 

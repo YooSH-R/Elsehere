@@ -1,7 +1,8 @@
-# Apply these limits to the entry produced by `gitlab-runner register`.
-# Preserve that entry's id, token, token timestamps, name and URL.
-concurrent = 2
+# Apply these limits to the two entries produced by `gitlab-runner register`.
+# Preserve each entry's id, token, token timestamps, name and URL.
+concurrent = 3
 
+# Project runner tagged a305-linux: builds, Python tests and Docker checks.
 [[runners]]
   limit = 2
   executor = "docker"
@@ -22,4 +23,21 @@ concurrent = 2
     service_memory_swap = "2g"
     services_limit = 1
     wait_for_services_timeout = 60
+    volumes = ["/cache"]
+
+# Project runner tagged a305-linux-light: short checks and deployment planning.
+[[runners]]
+  limit = 1
+  executor = "docker"
+  environment = ["FF_NETWORK_PER_BUILD=true"]
+
+  [runners.docker]
+    image = "alpine:3.22"
+    pull_policy = ["always", "if-not-present"]
+    privileged = false
+    services_privileged = false
+    cpus = "1"
+    memory = "1g"
+    memory_swap = "1g"
+    services_limit = 0
     volumes = ["/cache"]

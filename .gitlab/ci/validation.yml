@@ -1,5 +1,5 @@
 ci:yaml:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: validate
   image: python:3.13-alpine
   script:
@@ -9,7 +9,7 @@ ci:yaml:
     - yamllint -c .yamllint.yml .gitlab-ci.yml .gitlab/ci .yamllint.yml infra/monitoring infra/compose/compose.observability.yaml
 
 infra:deployment-plan-tests:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: validate
   image: python:3.12-alpine
   timeout: 5m
@@ -60,6 +60,7 @@ infra:app-runtime:
           - infra/compose/deploy.*.env.example
           - infra/nginx/web.conf
           - infra/scripts/check_runtime.py
+          - infra/scripts/docker_build.py
           - infra/scripts/runtime_probe.py
           - docs/api/**/*
           - .gitlab-ci.yml

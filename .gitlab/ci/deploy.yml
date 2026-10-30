@@ -5,7 +5,7 @@
 
 dev:plan:
   extends:
-    - .linux-job
+    - .linux-light-job
     - .dev-deployment-source
   stage: validate
   image: python:3.12-alpine
@@ -69,7 +69,7 @@ dev:deliver:
 
 prod:plan:
   extends:
-    - .linux-job
+    - .linux-light-job
     - .prod-deployment-source
   stage: validate
   image: python:3.12-alpine

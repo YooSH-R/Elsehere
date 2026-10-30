@@ -1,6 +1,6 @@
 # 검사 파이프라인과 Runner 연결
 
-검사 설정은 `.gitlab-ci.yml`과 `.gitlab/ci/`에서 관리합니다. Runner는 GitLab의 작업을 받아 실행하는 프로세스이며, 이 프로젝트에는 `a305-linux` 태그를 사용하는 Docker executor를 연결합니다. 설정 파일 작성, Runner 등록, 실제 작업 성공은 각각 확인합니다.
+검사 설정은 `.gitlab-ci.yml`과 `.gitlab/ci/`에서 관리합니다. Runner는 GitLab의 작업을 받아 실행하는 프로세스이며, 이 프로젝트에는 `a305-linux`와 `a305-linux-light` 태그의 Docker executor를 연결합니다. 설정 파일 작성, Runner 등록, 실제 작업 성공은 각각 확인합니다.
 
 ## 자동 검사 범위
 
@@ -40,7 +40,7 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | `docs/api/` | `ci:yaml`, `backend:check-and-build`, `unity:format`, `unity:editor-tests`, 두 AI 작업, `infra:app-runtime` |
 | 확인용 `infra/compose/` | `ci:yaml`, `infra:compose-and-nginx` |
 | 앱용 Dockerfile·Compose·환경 예제·웹 응답 설정 | `ci:yaml`, `backend:check-and-build`, `infra:app-runtime`, 해당 경로의 인프라 문법 검사 |
-| `infra/scripts/` | `ci:yaml`, `infra:deployment-plan-tests`. 앱 실행 점검 코드는 백엔드 빌드·실행 검사도 선택 |
+| `infra/scripts/` | `ci:yaml`, `infra:deployment-plan-tests`. 앱 실행 점검 코드와 공통 이미지 빌더 `docker_build.py`는 백엔드 빌드·실행 검사도 선택 |
 | `infra/nginx/` | `ci:yaml`, `infra:observability`, 확인용 Compose가 있으면 `infra:compose-and-nginx` |
 | `infra/monitoring/`, `check_observability.py`, `check_alerting.py` | `ci:yaml`, `infra:observability` |
 | `.gitlab-ci.yml` 또는 `.gitlab/ci/` | 적용 가능한 모든 작업 |
@@ -61,28 +61,48 @@ Unity 관련 MR은 **포맷 검사와 실제 EditMode·PlayMode 실행 테스트
 ## 동일 서버의 실행 구조와 제한
 
 ```text
-GitLab → Runner 관리 컨테이너 → 검사 컨테이너
-                              └─ 테스트 전용 Docker 서비스 → 임시 PostgreSQL
+GitLab → Runner 관리 컨테이너 (전체 최대 3개)
+          ├─ a305-linux-light (최대 1개) → 경량 검사 컨테이너
+          └─ a305-linux (최대 2개) → 빌드·검사 컨테이너
+                                    └─ 테스트 전용 Docker 서비스 → 임시 PostgreSQL
 
 호스트 Docker → a305-dev / a305-prod (서비스 실행)
 ```
 
 Runner 관리 컨테이너만 호스트 Docker 소켓을 사용합니다. 일반 검사 컨테이너에는 소켓이나 앱의 환경 파일·인증서를 마운트하지 않습니다. Testcontainers는 검사 작업 전용 rootless Docker 서비스에 연결합니다. 프로젝트 Runner는 서버의 Docker를 제어하므로 팀 저장소의 신뢰하는 작업에만 사용합니다. [Runner 컨테이너 운영](https://docs.gitlab.com/runner/install/docker/)
 
-동시에 작업 두 개까지 실행하며 각 검사 컨테이너는 CPU 2개·메모리 3GiB, Docker 서비스는 CPU 1개·메모리 2GiB로 제한합니다. CPU 4개·메모리 16GiB 서버에서 앱과 모니터링의 자원을 함께 고려한 상한입니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 동시 실행 중 CPU 사용률·가용 메모리·앱 응답을 확인하고 서버 여유가 부족하면 `concurrent`와 `limit`를 함께 `1`로 낮춥니다.
+전체 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드 대기열과 분리합니다.
+
+| 태그 | 동시 작업 | 자원 상한 | 작업 |
+| --- | --- | --- | --- |
+| `a305-linux-light` | 1개 | CPU 1개·메모리 1GiB. Docker 서비스 실행 불가 | YAML, Unity 포맷, AI 패널, 인프라 스크립트 검사, 외부 Unity MR 차단, dev·prod 배포 계획 |
+| `a305-linux` | 2개 | 작업당 CPU 2개·메모리 3GiB. 필요한 Docker 서비스는 CPU 1개·메모리 2GiB | 백엔드·AI 검사, Compose·Nginx·관측 검사, 앱 실행 검사·이미지 전달 |
+
+동시 실행 수는 작업을 받을 수 있는 상한이며 CPU 4개·메모리 16GiB 서버에서 모든 작업의 최대 자원을 보장하는 값은 아닙니다. 앱·모니터링과 자원을 공유하므로 CPU 사용률·가용 메모리·앱 응답을 함께 확인합니다. 빌드 부하가 크면 일반 Runner의 `limit`를 먼저 낮춰 경량 검사 자리를 유지합니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 변경 전에 생성된 작업은 기존 태그를 유지하므로 이전 경량 작업도 일반 Runner에서 실행될 수 있습니다.
 
 백엔드는 Gradle 의존성·Wrapper 캐시와 `--build-cache`의 작업 결과 캐시를 함께 사용합니다. 입력이 달라진 작업은 다시 실행하며 캐시가 없어도 검사·빌드를 수행합니다. 캐시 복원·저장 시간도 작업 실행 시간에 포함해 확인합니다.
 
 제한값과 허용 서비스는 `infra/runner/config.template.toml`을 따릅니다. 이 파일에는 토큰이 없으며 등록 완료 파일을 대체하는 완성본이 아닙니다. 등록된 항목의 인증 정보는 보존하고 제한값을 해당 항목에 병합합니다. [Runner 고급 설정](https://docs.gitlab.com/runner/configuration/advanced-configuration/)
+
+### Docker 이미지와 AI 모델 계층 캐시
+
+앱 실행 검사와 dev·prod 이미지 빌드는 `infra/scripts/docker_build.py`를 사용합니다. CI의 `A305_DOCKER_CACHE_DIR=/cache/a305-buildkit` 설정으로 BuildKit의 로컬 계층 캐시를 불러오고 내보냅니다. AI 이미지에 포함된 Kokoro 모델·음성 파일과 Python 의존성도 변경되지 않은 계층으로 재사용합니다. 모델 URL·SHA256, 의존성 또는 소스가 달라지면 BuildKit이 해당 입력과 그 뒤의 계층을 다시 빌드합니다. 모델 다운로드의 SHA256 검증은 Dockerfile에 유지합니다.
+
+`/cache`는 Runner가 동시 실행 번호별로 관리하는 지속 볼륨입니다. 일반·경량 Runner와 보호 여부가 다른 작업의 볼륨은 분리하며, 같은 일반 Runner 슬롯의 다음 작업이 이전 캐시를 재사용합니다. 프로젝트의 보호 브랜치 캐시 분리 설정을 유지합니다. 캐시가 없거나 로컬 실행에서 `A305_DOCKER_CACHE_DIR`를 설정하지 않으면 일반 빌드를 수행합니다. [Docker executor의 지속 저장소](https://docs.gitlab.com/runner/executors/docker/#persistent-storage)
+
+Docker 데몬·테스트 컨테이너·네트워크·DB 볼륨은 작업마다 새로 준비합니다. 데몬의 데이터 디렉터리나 호스트 소켓을 캐시로 공유하지 않습니다. 빌드 성공 후 완성한 캐시만 교체하고 이전 캐시 디렉터리는 정리하므로, 실패한 빌드가 이전 캐시를 덮어쓰거나 이전 이미지 계층이 계속 누적되지 않습니다. 캐시는 `backend`·`ai`·`web`별로 분리하고 GitLab 산출물로 업로드하지 않습니다. [BuildKit 로컬 캐시](https://docs.docker.com/build/cache/backends/local/)
+
+Docker 27 이후 기본 빌드 드라이버의 캐시 내보내기에는 containerd 이미지 저장소가 필요합니다. CI에 고정한 Docker 환경의 `docker info`에서 `driver-type: io.containerd.snapshotter.v1`을 확인합니다. 캐시 사용 여부는 빌드 로그의 로컬 캐시 가져오기와 `CACHED` 계층으로 확인합니다. 새 Docker 데몬에서 같은 입력을 다시 빌드해 모델·의존성 계층을 재사용하고, 소스를 바꾸면 필요한 계층이 다시 생성되는지도 확인합니다. 캐시가 있어도 테스트·커밋 식별자·배포 전 검증은 계속 수행합니다. [GitLab Docker 계층 캐시 조건](https://docs.gitlab.com/ci/docker/docker_layer_caching/)
 
 ## GitLab에서 프로젝트 Runner 생성
 
 프로젝트 **Settings → CI/CD → Runners → Create project runner**에서 생성합니다.
 
 - 플랫폼: Linux
-- 태그: `a305-linux`
+- 태그: 일반 Runner는 `a305-linux`, 경량 Runner는 `a305-linux-light`
 - Run untagged jobs: 해제
-- 설명: `a305-linux-ci`
+- 설명: 일반 Runner는 `a305-linux-ci`, 경량 Runner는 `a305-linux-light-ci`
+- Lock to current projects: 활성화
 - 처음에는 Paused 상태로 생성하고 자원 제한 반영 후 활성화합니다.
 
 등록 화면의 `glrt-` 인증 토큰은 서버의 등록 프롬프트에만 입력합니다. 저장소·채팅·터미널 출력 공유에 포함하지 않습니다. MR 검사에 사용하므로 protected 브랜치 전용으로 제한하는 옵션은 선택하지 않습니다. 배포용 권한은 이 검사 Runner에 추가하지 않습니다.
@@ -103,13 +123,13 @@ sudo docker run -d --name gitlab-runner --restart unless-stopped \
 sudo docker exec -it gitlab-runner gitlab-runner register
 ```
 
-기존 `gitlab-runner` 컨테이너나 등록이 있는 서버에서는 먼저 확인하고 중복 생성하지 않습니다. 등록 프롬프트에는 아래 값을 입력합니다.
+기존 `gitlab-runner` 컨테이너나 등록이 있는 서버에서는 먼저 확인하고 중복 생성하지 않습니다. 두 프로젝트 Runner를 같은 관리 컨테이너에 각각 등록합니다. 등록 프롬프트에는 아래 값을 입력합니다.
 
 | 항목 | 값 |
 | --- | --- |
 | GitLab instance URL | `https://lab.ssafy.com` |
 | Authentication token | 생성 화면의 실제 `glrt-` 토큰 |
-| Runner name | `a305-linux-ci` |
+| Runner name | 일반 `a305-linux-ci`, 경량 `a305-linux-light-ci` |
 | Executor | `docker` |
 | Default Docker image | `alpine:3.22` |
 
@@ -120,7 +140,7 @@ sudo cp -a /srv/gitlab-runner/config/config.toml /srv/gitlab-runner/config/confi
 sudo nano /srv/gitlab-runner/config/config.toml
 ```
 
-최상위 `concurrent`와 등록된 `[[runners]]`의 `limit`를 `2`로 맞추고 id·token·URL·이름·토큰 시각을 유지합니다. 템플릿의 `environment`와 `[runners.docker]` 설정을 그 항목에 적용합니다. 새 `[[runners]]`를 추가하거나 템플릿으로 파일 전체를 덮어쓰지 않습니다.
+최상위 `concurrent`는 `3`, 일반 Runner의 `limit`는 `2`, 경량 Runner의 `limit`는 `1`로 맞추고 각각의 id·token·URL·이름·토큰 시각을 유지합니다. 템플릿의 `environment`와 `[runners.docker]` 설정을 해당 항목에 적용합니다. 등록 명령이 만든 두 항목에 제한값만 반영하며, 같은 인증 정보로 항목을 복제하거나 템플릿으로 파일 전체를 덮어쓰지 않습니다. 기존 Runner의 동시 실행 수만 조정할 때는 설정 자동 다시 읽기를 사용하여 진행 중인 작업을 재시작하지 않습니다.
 
 프로젝트 전용 Docker Runner의 `pull_policy`는 `["always", "if-not-present"]`를 사용합니다. 새 이미지를 먼저 확인하고, 레지스트리 다운로드가 실패하면 로컬에 저장된 이미지로 작업을 시작합니다. Docker Hub의 `429 Too Many Requests`처럼 다운로드가 제한된 경우에도 기존 이미지가 있으면 코드 검사와 빌드를 계속할 수 있습니다. 로컬에 없는 이미지는 다운로드에 성공해야 사용할 수 있으며, 레지스트리가 정상화되면 다시 새 이미지를 확인합니다. [GitLab의 다중 이미지 가져오기 정책](https://docs.gitlab.com/runner/executors/docker/#set-multiple-pull-policies)
 

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.elsehere.ai.client.AiWorkerClient;
@@ -25,6 +26,7 @@ import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.user.repository.UserRepository;
@@ -36,6 +38,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -136,6 +139,26 @@ class FirstDayTurnTest {
     service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
 
     assertThat(mission.getStage()).isZero();
+  }
+
+  @Test
+  void hotelTurnDuringCafeStageSendsOnlyDirectionsToWorkerAndDoesNotAdvance() {
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    guards(false);
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean()))
+        .thenReturn(SAVED_REPLY);
+
+    service.send(
+        8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Where is the cafe?", null));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    verify(worker)
+        .reply(any(), any(), any(), any(), any(), instruction.capture(), anyInt(), anyBoolean());
+    assertThat(instruction.getValue())
+        .contains("Corner Cafe", "Stay in your own role")
+        .doesNotContain("Offer drinks");
+    assertThat(mission.getStage()).isEqualTo(1);
+    assertThat(mission.hasGoal(0)).isFalse();
   }
 
   private void guards(boolean abusive) {

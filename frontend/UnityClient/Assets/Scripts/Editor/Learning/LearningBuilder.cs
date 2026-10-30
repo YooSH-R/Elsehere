@@ -747,6 +747,7 @@ namespace A305.EditorTools.Learning
                 "consentTemplate",
                 OnboardingBuilder.SetUpConsentRow(consents, "ConsentRowTemplate", regular)
             );
+            SetUpLookSensitivity(view, profile, bold, regular);
             RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
             // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
             consentsLabel.transform.SetSiblingIndex(profileButtons.GetSiblingIndex());
@@ -819,6 +820,64 @@ namespace A305.EditorTools.Learning
 
             logout.gameObject.SetActive(false);
             overlay.gameObject.SetActive(false);
+        }
+
+        // 닉네임 안내 아래, 버튼 줄 위에 "시점 감도" 제목·설명과 [느리게] 슬라이더 [빠르게] 현재값 줄을 둔다.
+        // 이미 만든 창에 추가할 때도 같은 자리에 넣는다. 글자 색은 UiThemeBuilder가 테마에 맞춘다.
+        private static void SetUpLookSensitivity(
+            MyPageView view,
+            RectTransform profile,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform group = UiBuilderTools.FindOrCreateColumn(profile, "LookSensitivity");
+            UiBuilderTools.FindOrCreateText(group, "Title", bold, 26f, Color.white, "시점 감도");
+            UiBuilderTools.FindOrCreateText(
+                group,
+                "Help",
+                regular,
+                20f,
+                SubTextColor,
+                "마우스·화면을 끌어 시점을 돌리는 빠르기예요.\n이 기기에만 저장돼요."
+            );
+            RectTransform row = UiBuilderTools.FindOrCreateButtonRow(group, "Row");
+            row.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            FixWidth(
+                UiBuilderTools.FindOrCreateText(row, "Slow", regular, 20f, SubTextColor, "느리게"),
+                72f
+            );
+            Slider slider = UiBuilderTools.FindOrCreateSlider(
+                row,
+                "Slider",
+                LookSensitivity.Min,
+                LookSensitivity.Max,
+                LookSensitivity.Default
+            );
+            FixWidth(
+                UiBuilderTools.FindOrCreateText(row, "Fast", regular, 20f, SubTextColor, "빠르게"),
+                72f
+            );
+            TMP_Text value = UiBuilderTools.FindOrCreateText(
+                row,
+                "Value",
+                bold,
+                30f,
+                Color.white,
+                "1.0배"
+            );
+            value.alignment = TextAlignmentOptions.Right;
+            FixWidth(value, 96f);
+
+            Transform status = profile.Find("Status");
+            group.SetSiblingIndex(status.GetSiblingIndex() + 1);
+            BuilderTools.SetReference(view, "lookSensitivitySlider", slider);
+            BuilderTools.SetReference(view, "lookSensitivityText", value);
+        }
+
+        private static void FixWidth(TMP_Text text, float width)
+        {
+            BuilderTools.GetOrAddComponent<LayoutElement>(text.gameObject).preferredWidth = width;
         }
 
         // 화면 전체를 덮는 어두운 바탕. 마이페이지가 열려 있는 동안 뒤의 HUD 버튼과 사물이 눌리지 않게 클릭을 받는다.

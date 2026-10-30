@@ -4,13 +4,18 @@
 
 ## 자동 검사 범위
 
-백엔드·Unity 포맷·AI 작업은 `needs: ["ci:yaml"]`로 YAML 검사 성공 후 실행할 수 있습니다. MR의 Unity 실행 테스트는 YAML과 Unity 포맷 검사 성공 후 시작합니다. 각 작업이 별도 환경을 사용하므로 Runner의 동시 실행 한도 안에서 인프라 검사와 겹쳐 실행합니다. 파이프라인 성공에는 선택된 모든 필수 작업의 통과가 필요합니다.
+MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 브랜치의 최신 커밋을 가져와 병합 충돌부터 검사합니다. 충돌이 있거나 대상 조회·병합 가능 여부 확인에 실패하면 나머지 검사를 시작하지 않습니다. 작업 트리와 인덱스를 바꾸지 않는 `git merge-tree`를 사용하며, 대규모 Unity 에셋은 체크아웃하지 않습니다. 소스와 대상의 공통 조상을 확인할 수 있도록 Git 이력은 전체를 가져옵니다. 최초 이력 수신 시간은 저장소 크기와 Runner 캐시에 따라 달라집니다.
+
+충돌 검사를 통과한 뒤 백엔드·Unity 포맷·AI 작업은 `needs: ["ci:yaml"]`로 YAML 검사 성공 후 실행할 수 있습니다. MR의 Unity 실행 테스트는 YAML과 Unity 포맷 검사 성공 후 시작합니다. 인프라 검사도 `.pre` 완료 후 시작하며, 각 작업이 별도 환경을 사용하므로 Runner의 동시 실행 한도 안에서 겹쳐 실행합니다. 파이프라인 성공에는 선택된 모든 필수 작업의 통과가 필요합니다. Push·웹 수동 실행·배포 자식 파이프라인에는 MR 충돌 검사를 추가하지 않습니다.
+
+충돌 여부는 사전 검사 시점의 대상 브랜치를 기준으로 합니다. 검사가 끝난 뒤 대상 브랜치가 바뀌어 생긴 충돌은 GitLab의 병합 검사에서 다시 확인합니다. 사전 검사 통과가 최신 커밋의 기능 검사나 병합 시점의 충돌 검사를 대신하지 않습니다.
 
 | 작업 | 실행 조건 | 검증·산출물 |
 | --- | --- | --- |
+| `ci:merge-conflicts` | 모든 MR 파이프라인의 첫 단계 | 최신 대상 브랜치와 충돌 검사. 충돌·조회 실패 시 후속 검사 차단 |
 | `ci:yaml` | 생성된 모든 파이프라인 | CI YAML 문법·형식 검사 |
 | `backend:check-and-build` | 백엔드, API 명세, ERD, 앱 실행 설정 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·`app.jar`·커밋 식별자 |
-| `unity:format` | 프론트, API 명세, Unity 검사·규약 또는 공통 CI 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
+| `unity:format` | 프론트, API 명세, Unity CI·검사 스크립트·규약 또는 공통 작성 지침 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
 | `unity:editor-tests` | 같은 프로젝트의 Unity 관련 MR | Windows Runner에서 컴파일·EditMode·PlayMode 필수 검사, NUnit XML·로그. WebGL 빌드·서버 배포 없음 |
 | `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
 | `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
@@ -22,13 +27,23 @@
 | `infra:observability` | 모니터링·Nginx·관측 검증 스크립트 또는 공통 CI 변경 | 요청 ID·로그의 민감 정보 제외, Prometheus·Grafana 구성, 경보 발동·복구와 가짜 수신기 전송 검사 |
 | `prod:plan`·`prod:child`·`prod:deliver` | 보호된 `main` Push에서 자동 시작. 수동 재실행은 웹 실행과 `RUN_PROD_DEPLOY=true` 및 검증 변수 사용 | 직렬화된 자식에서 모든 영역 검사 후 누적 이미지 빌드·운영 자동 전달·상태 점검과 버전 보관. 설치·DB·병합 전 통합 검증 조건은 [운영 배포 문서](prod-deployment.md) 참조 |
 
-일반 문서 변경은 빠른 YAML 검사만 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 보호된 `dev`·`main`에 병합한 커밋은 별도 파이프라인으로 검사합니다. 새 커밋이 올라와도 이미 생성된 검사는 자동 취소하지 않습니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
+일반 문서 변경은 MR 충돌 검사와 빠른 YAML 검사를 수행합니다. API 명세는 일반 문서와 구분하여 백엔드·프론트·AI 검사를 함께 실행합니다. 작업 브랜치의 자동 검사는 Draft를 포함한 MR 파이프라인으로 통일합니다. MR을 만들기 전의 작업 브랜치 Push에는 파이프라인을 생성하지 않으며, 필요하면 웹에서 수동 실행합니다. 같은 MR에 새 커밋이 올라오면 이전 커밋의 취소 가능한 검사만 자동 취소하고 최신 커밋에 필요한 검사는 모두 수행합니다. `dev`·`main`의 커밋별 검사와 배포는 보존합니다. 웹에서 수동 실행한 파이프라인은 사용 가능한 백엔드·Unity 포맷·AI·관측 검사를 모두 수행하고, 확인용 Compose가 있으면 Compose·Nginx 검사도 수행합니다.
+
+자동 취소는 `.gitlab-ci.yml`의 MR 전용 `workflow:rules:auto_cancel`에서 `on_new_commit: interruptible`로 설정합니다. 소스 브랜치가 `dev`·`main`인 MR, Push·웹 수동 실행·배포 자식 파이프라인은 기본값 `none`을 유지합니다. 배포 연결과 실제 전달 작업의 `interruptible: false`도 유지하므로 진행 중인 배포를 중단하지 않습니다. 최신 MR 검사의 실패·미실행은 계속 병합을 차단하며 다른 MR의 검사는 이 정책으로 취소하지 않습니다.
+
+이 정책은 변경된 CI 설정을 포함해 생성한 파이프라인부터 적용됩니다. 기존 작업 브랜치는 최신 `dev`를 반영해야 하며 이미 생성된 작업의 설정은 소급 변경하지 않습니다. GitLab 프로젝트의 **Auto-cancel redundant pipelines**도 활성화되어 있어야 합니다.
+
+자동 취소의 기준은 같은 MR ref의 새 커밋입니다. 같은 커밋의 수동 재실행을 이전 커밋 검사 정리로 취급하지 않습니다. 설정과 취소 가능 작업의 의미는 [GitLab 자동 취소 설정](https://docs.gitlab.com/ci/yaml/#workflowauto_cancelon_new_commit), [interruptible 기준](https://docs.gitlab.com/ci/yaml/#interruptible)을 따릅니다.
+
+자동 취소는 이전 검사의 실행·대기를 중단하며 이미 완료된 결과와 취소 이력은 남깁니다. 이전 커밋에서 검사가 성공했더라도 최신 커밋의 필수 검사 통과를 대신하지 않습니다.
 
 `dev → main` 릴리스 MR은 같은 소스 SHA의 dev 파이프라인 결과를 사용하며 별도 MR 파이프라인을 생성하지 않습니다. 일반 기능 MR과 `main → dev` 동기화 MR의 자동 검사는 유지합니다. 릴리스 검토 시 dev의 해당 SHA 검사 결과와 별도 통합 검증을 확인하고 main 병합 후 운영 전체 검사도 유지합니다.
 
 MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대상과의 최종 차이로 작업을 선택합니다. 같은 MR에서 문서만 추가로 고쳐도 백엔드 파일이 대상과 다르면 백엔드 검사가 다시 실행되고, 백엔드 변경을 완전히 되돌리면 선택 대상에서 빠집니다. 각 Push의 최종 커밋을 검사하며, 한 번의 Push에 포함된 중간 커밋마다 별도 파이프라인을 만들지는 않습니다. [GitLab 비교 대상 지정](https://docs.gitlab.com/ci/yaml/#ruleschangescompare_to)
 
 ### 변경 영역별 작업 선택 기준
+
+아래 표는 모든 MR에 공통으로 실행되는 `ci:merge-conflicts`를 생략한 변경 영역별 후속 검사 목록입니다.
 
 | 대상 브랜치와 다른 경로 | 선택할 작업 |
 | --- | --- |
@@ -43,12 +58,15 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | `infra/scripts/` | `ci:yaml`, `infra:deployment-plan-tests`. 앱 실행 점검 코드와 공통 이미지 빌더 `docker_build.py`는 백엔드 빌드·실행 검사도 선택 |
 | `infra/nginx/` | `ci:yaml`, `infra:observability`, 확인용 Compose가 있으면 `infra:compose-and-nginx` |
 | `infra/monitoring/`, `check_observability.py`, `check_alerting.py` | `ci:yaml`, `infra:observability` |
-| `.gitlab-ci.yml` 또는 `.gitlab/ci/` | 적용 가능한 모든 작업 |
+| `.gitlab-ci.yml` 또는 Unity 이외의 `.gitlab/ci/` 파일 | Unity를 제외한 적용 가능한 작업 |
+| `.gitlab/ci/unity.yml` | Unity를 포함한 적용 가능한 모든 작업 |
 | 웹에서 수동 실행 | 적용 가능한 모든 작업 |
 
 `infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 규약·검사 스크립트 변경은 Unity 검사, 공통 작성 지침 변경은 백엔드·Unity·AI 검사를 선택합니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
 
 Unity 검사 스크립트 `run-unity-ci.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷·실행 테스트를 선택합니다. 실행 테스트는 Draft를 포함한 MR의 각 Push에서 대상 브랜치와 남은 차이를 기준으로 다시 실행합니다. 외부 프로젝트 MR에는 같은 변경 경로에서 `unity:editor-tests` 대신 실패하는 `unity:external-mr`을 선택하므로 필수 검사를 생략한 성공 결과로 병합하지 않습니다.
+
+MR의 Unity 작업은 공통 workflow나 다른 영역의 CI 파일 변경만으로 선택하지 않습니다. 자동 취소 정책을 담은 `.gitlab-ci.yml`과 백엔드·AI·인프라 CI 파일은 YAML·설정 회귀 검사와 각 영역의 작업으로 검증합니다. Unity CI 파일인 `.gitlab/ci/unity.yml`을 바꾸거나 같은 MR에 Unity 관련 변경이 함께 있으면 포맷·실행 테스트를 모두 선택합니다. 이 기준은 MR의 작업 선택 범위이며, dev 배포 자식의 누적 검사 판정과 운영 배포의 전체 검사는 별도 기준을 유지합니다.
 
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 

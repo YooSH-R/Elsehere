@@ -6,7 +6,9 @@ using UnityEngine.UI;
 
 namespace A305.Theme
 {
-    /// <summary>집에서만 보이는 팔레트 버튼과 테마 고르기 창. 고른 테마는 바로 적용하고 계정에 저장한다.</summary>
+    /// <summary>
+    /// 테마 고르기 창. 집 씬에서는 HUD 메뉴의 [테마]가 연다. 고른 테마는 바로 적용하고 계정에 저장한다.
+    /// </summary>
     public sealed class ThemePickerView : MonoBehaviour
     {
         [SerializeField]

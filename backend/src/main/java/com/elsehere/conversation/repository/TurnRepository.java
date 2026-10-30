@@ -26,7 +26,10 @@ public interface TurnRepository extends JpaRepository<Turn, Long> {
 
   List<Turn> findAllByNpcAudioKeyIn(Collection<String> npcAudioKeys);
 
-  List<Turn> findAllByNpcAudioKeyIsNotNullAndCreatedAtBefore(Instant createdAt);
+  @Query(
+      "select t from Turn t where t.npcAudioKey is not null"
+          + " and (coalesce(t.npcAudioCreatedAt, t.createdAt) <= :createdAt or t.npcAudioDeletedAt is not null)")
+  List<Turn> findExpiredNpcAudio(@Param("createdAt") Instant createdAt);
 
   @Query("select t.npcAudioKey from Turn t where t.npcAudioKey is not null")
   List<String> findAllNpcAudioKeys();

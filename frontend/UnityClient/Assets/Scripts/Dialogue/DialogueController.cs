@@ -326,7 +326,7 @@ namespace A305.Dialogue
             NpcResponded?.Invoke();
             if (turn.Speech != null && turn.Speech.IsReady)
             {
-                _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
+                _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
                 return;
             }
 
@@ -361,14 +361,25 @@ namespace A305.Dialogue
         // 음성을 받아 둔 턴은 다시 재생하고, 합성에 실패한 턴은 음성을 다시 만든 뒤 재생한다(CONV-06·07).
         private void ReplaySpeech()
         {
-            if (serverConversation == null)
+            if (
+                serverConversation == null
+                || !serverConversation.CanReplaySpeech
+                || serverConversation.IsBusy
+            )
             {
                 return;
             }
 
-            if (serverLink.HasSpeech)
+            if (serverConversation.LastNpcTurn.Speech.IsReady)
             {
-                serverLink.ReplaySpeech();
+                if (serverLink.HasSpeech)
+                {
+                    serverLink.ReplaySpeech();
+                }
+                else
+                {
+                    _ = serverConversation.PlaySpeechAsync(serverLink.PlaySpeechAsync);
+                }
                 return;
             }
 
@@ -378,9 +389,9 @@ namespace A305.Dialogue
         private async Task RegenerateAndPlayAsync(ServerConversation target)
         {
             SpeechData speech = await target.RegenerateSpeechAsync();
-            if (this != null && speech != null && speech.IsReady)
+            if (this != null && serverConversation == target && speech != null && speech.IsReady)
             {
-                await serverLink.PlaySpeechAsync(speech.Url);
+                await target.PlaySpeechAsync(serverLink.PlaySpeechAsync);
             }
         }
 

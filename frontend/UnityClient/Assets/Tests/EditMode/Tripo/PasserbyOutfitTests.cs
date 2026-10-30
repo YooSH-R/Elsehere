@@ -56,6 +56,50 @@ namespace A305.Tripo.Tests
         }
 
         [Test]
+        public void JacketDoesNotFollowLegsFingersOrHead()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                Folder + "LittleMung_Passerby_Male.prefab"
+            );
+            var skin = prefab
+                .GetComponentsInChildren<SkinnedMeshRenderer>()
+                .Single(r => r.name == "Suit_Navy_Upper");
+            var allowed = new[]
+            {
+                "Hips",
+                "Spine",
+                "Chest",
+                "UpperChest",
+                "Neck",
+                "Neck_Twist_A",
+                "Left_Shoulder",
+                "Right_Shoulder",
+                "Left_UpperArm",
+                "Right_UpperArm",
+                "Left_LowerArm",
+                "Right_LowerArm",
+            };
+            foreach (var row in skin.sharedMesh.boneWeights)
+            {
+                var indices = new[]
+                {
+                    row.boneIndex0,
+                    row.boneIndex1,
+                    row.boneIndex2,
+                    row.boneIndex3,
+                };
+                var weights = new[] { row.weight0, row.weight1, row.weight2, row.weight3 };
+                for (int k = 0; k < 4; k++)
+                    if (weights[k] > .00001f)
+                        Assert.That(
+                            allowed,
+                            Does.Contain(skin.bones[indices[k]].name),
+                            "Unrelated bone pulls jacket vertices"
+                        );
+            }
+        }
+
+        [Test]
         public void PasserbyVariantRetainsBehaviorAndConnectsItsAnimator()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(

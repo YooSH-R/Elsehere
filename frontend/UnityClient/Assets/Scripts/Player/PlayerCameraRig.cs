@@ -6,7 +6,7 @@ namespace A305.Player
     /// <summary>
     /// 플레이어를 따라가는 카메라. 탐험 중에는 3인칭·1인칭을 오가고,
     /// 대화가 시작되면 상대를 바라보는 1인칭으로 고정했다가 대화가 끝나면 직전 시점으로 돌아간다.
-    /// 3인칭에서 걷는 동안에는 캐릭터 뒤로 천천히 돌아가 등 뒤에서 바라본다.
+    /// 시점은 마우스·터치로만 돌고, 키로 걸을 때는 위치만 따라간다.
     /// </summary>
     public class PlayerCameraRig : MonoBehaviour
     {
@@ -35,7 +35,6 @@ namespace A305.Player
 
         private CameraOrbit orbit;
         private CameraCollisionDistance wallDistance;
-        private PlayerMover mover;
         private PlayerCharacterDefinition character;
         private Transform dialogueLookTarget;
         private PlayerTouchControls touchControls;
@@ -88,7 +87,6 @@ namespace A305.Player
             character = appearance != null ? appearance.ActiveCharacter : null;
             orbit = cameraSettings.CreateOrbit();
             wallDistance = new CameraCollisionDistance(cameraSettings.CollisionRecoverSharpness);
-            mover = followTarget.GetComponent<PlayerMover>();
             touchControls = followTarget.GetComponentInChildren<PlayerTouchControls>(true);
             SnapBehindTarget();
         }
@@ -104,11 +102,6 @@ namespace A305.Player
         private void LateUpdate()
         {
             ApplyInput();
-            // 직접 돌리는 동안에는 사용자가 고른 방향을 존중하고, 걸을 때만 등 뒤로 돌아간다.
-            if (mover != null && mover.IsMoving && !TurnedByUserThisFrame)
-            {
-                orbit.FollowBehind(followTarget.eulerAngles.y, Time.deltaTime);
-            }
 
             Pose desiredPose = GetDesiredPose(snap: false);
             // 프레임 속도와 관계없이 같은 빠르기로 따라가도록 지수 감쇠로 섞는다.

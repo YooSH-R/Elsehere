@@ -15,12 +15,17 @@ namespace A305.World
 
         /// <param name="destinationScene">이동할 씬 이름. Build Profile의 Scene List에 있어야 한다.</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
-        /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도. 도착 후 같은 각도로 맞춘다.</param>
         /// <returns>이동을 시작했으면 true. 이미 이동 중이거나 씬을 불러올 수 없으면 false.</returns>
+        public static bool TryTravel(string destinationScene, string arrivalDoorwayId)
+        {
+            return TryTravel(destinationScene, arrivalDoorwayId, 0f);
+        }
+
+        /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도. 도착 후 같은 각도로 맞춘다.</param>
         public static bool TryTravel(
             string destinationScene,
             string arrivalDoorwayId,
-            float viewYawFromTravel = 0f
+            float viewYawFromTravel
         )
         {
             if (!state.TryBegin(destinationScene, arrivalDoorwayId, viewYawFromTravel))

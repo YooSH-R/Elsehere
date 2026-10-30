@@ -31,3 +31,18 @@ Controller에 없는 파라미터는 전달하지 않으며, 시작할 때 Conso
 Tripo 프리팹 Builder는 모델 옆에 `<모델 파일명>.correctives.asset`이 있으면 새 프리팹의 모델 인스턴스에 드라이버를 연결합니다. 원본 모델과 이미 존재하는 프리팹은 수정하지 않습니다. 본이나 셰이프가 없으면 설정 단계에서 오류를 내므로 모델을 교체하거나 골격을 바꾼 뒤에는 프로필을 다시 검증해야 합니다.
 
 Blender 드라이버 수식은 FBX에 자동 이식되지 않습니다. 모델별 프로필과 블렌드셰이프를 함께 배포해야 합니다. 관절 보정은 관통을 자동 탐지하는 물리 시스템이 아니며, 새 애니메이션·리타게팅·크기 설정에는 별도 외형 검수가 필요합니다.
+
+## 공통 마네킹 얼굴 검수
+
+`Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_Face.unity`를 열고 Play하면 중립·미소·깜박임과 발음별 입 모양을 확인할 수 있습니다. 공용 Visual을 쓰는 1.6m·1.7m 프리팹은 같은 얼굴 메시와 채널을 공유합니다. 이 검수 씬은 카페·호텔 Production 대화 연결 여부를 증명하지 않습니다.
+
+- `LeftEye`, `RightEye`는 고정된 눈 표면입니다. 깜박임으로 흰자·눈동자를 압축하지 않습니다.
+- 위·아래 눈꺼풀과 `LeftLashes`, `RightLashes`가 `eyeBlinkLeft`, `eyeBlinkRight`의 25·50·75·100 프레임을 사용합니다. 눈썹은 깜박임에 참여하지 않습니다.
+- `CharacterFaceController.ApplySpeech`는 입모양과 미소·깜박임을 별도 채널로 합성합니다. 치아·혀는 실제 구강 안에 두고 입술이 가리도록 하므로, 약한 발음에서도 구강 벽 뒤로 숨지 않습니다.
+- `SpeechVisemeTimeline.SampleArticulation`은 전달된 발음 시각을 사용합니다. `ay`는 아→이, `y` 다음 `uw`는 우 준비 동작으로 연결합니다. 메시만 교체해도 잘못된 발음 시각이 자동으로 수정되지는 않습니다.
+
+Blender 제작 소스는 `frontend/ArtSources/Characters/LittleMungMannequin/`에 있습니다. `create_mannequin_face.py`와 `build_mannequin_eyes.py`는 이 모델의 얼굴 위치를 기준으로 만든 도구입니다. 임의의 신규 NPC 얼굴에 그대로 적용하는 자동 리토폴로지 도구가 아닙니다. 원본 Tripo 폴더를 보존하고 Common 복사본의 얼굴 면·텍스처·셰이프만 교체합니다.
+
+제작한 JSON을 반영할 때는 `MannequinMasterBuilder.RefreshFaceShapes`를 사용합니다. 본·가중치·바인드포즈를 유지하며, 이미 있는 부품의 정점 수가 바뀌면 수작업 손상을 방지하기 위해 중단합니다. 기존 원본에 수작업 변경이 있다면 새로 생성하기 전에 별도 사본으로 보존해야 합니다.
+
+`MannequinSpeechRenderer.Render`는 기존 WAV와 해당 음성의 발음 JSON을 받아 검수 이미지를 만듭니다. `MANNEQUIN_SPEECH_AUDIO`, `MANNEQUIN_SPEECH_TIMELINE`, `MANNEQUIN_SPEECH_OUTPUT`을 지정하고, 느린 비교가 필요하면 `MANNEQUIN_SPEECH_FPS=120`을 사용합니다. JSON의 `audioSha256`은 WAV 전체 파일과 일치해야 합니다. 이 도구는 음성 합성이나 외부 API 호출을 하지 않으며, 0.5초 대기 후 발화를 렌더하므로 영상에 음성을 합칠 때도 같은 지연을 적용해야 합니다.

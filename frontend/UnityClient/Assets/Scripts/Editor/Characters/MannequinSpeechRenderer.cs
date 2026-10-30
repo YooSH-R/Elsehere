@@ -43,7 +43,10 @@ namespace A305.EditorTools.Characters
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
             var camera = Object.FindFirstObjectByType<Camera>();
             const int size = 960;
-            const int fps = 30;
+            string requestedFps = Environment.GetEnvironmentVariable("MANNEQUIN_SPEECH_FPS");
+            int fps = string.IsNullOrEmpty(requestedFps) ? 30 : int.Parse(requestedFps);
+            if (fps < 1 || fps > 120)
+                throw new ArgumentOutOfRangeException(nameof(fps));
             const float lead = .5f;
             int count = Mathf.CeilToInt((timeline.Duration + lead + .6f) * fps);
             var target = new RenderTexture(size, size, 24);

@@ -1,6 +1,7 @@
 package com.elsehere.admin.controller;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,8 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.elsehere.admin.dto.AdminNpcDetail;
 import com.elsehere.admin.dto.AdminNpcSummary;
+import com.elsehere.admin.dto.AdminUser;
 import com.elsehere.admin.service.AdminAccess;
 import com.elsehere.admin.service.AdminNpcService;
+import com.elsehere.admin.service.AdminUserService;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
 import java.util.List;
@@ -32,6 +35,30 @@ class AdminPageControllerTest {
   @Autowired private AdminAccess adminAccess;
 
   @MockitoBean private AdminNpcService adminNpcService;
+
+  @MockitoBean private AdminUserService adminUserService;
+
+  @Test
+  @DisplayName("관리자 화면은 관리자 목록과 추가 API 주소, 자기 자신을 뺀 관리자의 해제 API 주소를 보여 준다")
+  void admins_byAdmin_listsAdminsAndRevokeExceptSelf() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminUserService.admins())
+        .willReturn(
+            List.of(
+                new AdminUser(1L, "Sun", "sun@example.com"),
+                new AdminUser(2L, "Moon", "moon@example.com")));
+
+    mockMvc
+        .perform(get("/admin/admins").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("href=\"/admin/admins\"")))
+        .andExpect(content().string(containsString("sun@example.com")))
+        .andExpect(content().string(containsString("Moon")))
+        .andExpect(content().string(containsString("moon@example.com")))
+        .andExpect(content().string(containsString("data-url=\"/api/v1/admin/admins\"")))
+        .andExpect(content().string(containsString("data-url=\"/api/v1/admin/admins/2\"")))
+        .andExpect(content().string(not(containsString("data-url=\"/api/v1/admin/admins/1\""))));
+  }
 
   @Test
   @DisplayName("로그인하지 않고 어드민 화면을 열면 Google 로그인으로 보낸다")

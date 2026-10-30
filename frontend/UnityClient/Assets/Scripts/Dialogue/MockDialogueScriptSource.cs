@@ -56,7 +56,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "CAFE_STAFF",
-                npcName = "Emma",
+                npcName = "Mia",
                 roleLabel = "카페 직원",
                 opening = new LineEntry(
                     "Hi there! Welcome to our café. What can I get for you?",
@@ -109,7 +109,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "TOWN_PASSERBY",
-                npcName = "Sam",
+                npcName = "Ben",
                 roleLabel = "행인",
                 opening = new LineEntry(
                     "Hey! Nice to see you. How's your day going?",
@@ -145,7 +145,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "HOTEL_STAFF",
-                npcName = "Emma",
+                npcName = "Jake",
                 roleLabel = "호텔 직원",
                 opening = new LineEntry(
                     "Good afternoon! Welcome to Maple House. Are you checking in?",

@@ -277,7 +277,7 @@ namespace A305.Dialogue
             isEnding = false;
             if (serverLink != null)
             {
-                serverLink.StopSpeech();
+                serverLink.ForgetSpeech();
             }
 
             cameraRig.ExitDialogueView();
@@ -316,7 +316,10 @@ namespace A305.Dialogue
             if (turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
+                return;
             }
+
+            serverLink.ForgetSpeech();
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).

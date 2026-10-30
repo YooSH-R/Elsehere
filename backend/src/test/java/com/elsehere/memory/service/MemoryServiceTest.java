@@ -17,8 +17,10 @@ import static org.mockito.Mockito.times;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.MemoryCardResult;
+import com.elsehere.ai.client.RelationshipChange;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
+import com.elsehere.ai.client.WorkerRelationship;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
@@ -120,6 +122,101 @@ class MemoryServiceTest {
             WorkerLine.npc("Hi! What can I get for you?"),
             new WorkerLine("me", "I want a latte", null, false),
             WorkerLine.npc("Coming right up."));
+  }
+
+  @Test
+  @DisplayName("끝낸 대화가 있는 NPC에는 저장된 알아봄·호감을 지난 날 0과 함께 관계로 넘긴다")
+  void memoryFor_afterConversation_includesRelationship() {
+    relation(23, 3, 1);
+
+    assertThat(memoryService.memoryFor(userId, npcId).relationship())
+        .isEqualTo(new WorkerRelationship(23, 3, 0));
+  }
+
+  @Test
+  @DisplayName("대화가 끝나면 저장된 관계와 사건이 담긴 대화로 관계 갱신을 불러 변화량을 더한다")
+  void updateAfterConversation_appliesRelationshipDeltas() {
+    relation(15, 2, 1);
+    givenCard();
+    given(aiWorkerClient.relationship(any(), any(), any(), any()))
+        .willReturn(new RelationshipChange(8, 1, List.of("GREETING")));
+    Conversation conversation = endedConversation("Hi! One latte, please.");
+    entityManager
+        .createNativeQuery(
+            "update turns set events = '[\"GREETING\"]' where conversation_id = ? and seq = 2")
+        .setParameter(1, conversation.getId())
+        .executeUpdate();
+    entityManager.clear();
+
+    memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
+
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
+    then(aiWorkerClient)
+        .should()
+        .relationship(any(), any(), eq(new WorkerRelationship(15, 2, 0)), history.capture());
+    assertThat(history.getValue())
+        .contains(WorkerLine.learner("Hi! One latte, please.", null, false, List.of("GREETING")));
+    assertThat(relationValues()).containsExactly(23, 3);
+  }
+
+  @Test
+  @DisplayName("변화량을 더해도 알아봄은 0~100, 호감은 -100~100을 넘지 않는다")
+  void updateAfterConversation_relationshipDeltas_stayInRange() {
+    relation(98, -99, 1);
+    givenCard();
+    given(aiWorkerClient.relationship(any(), any(), any(), any()))
+        .willReturn(new RelationshipChange(8, -5, List.of()));
+
+    memoryService.updateAfterConversation(
+        userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
+
+    assertThat(relationValues()).containsExactly(100, -100);
+  }
+
+  @Test
+  @DisplayName("관계 갱신에 실패하면 관계는 그대로 두고 기억 카드는 저장한다")
+  void updateAfterConversation_relationshipFails_keepsRelationshipAndSavesCard() {
+    relation(15, 2, 1);
+    givenCard();
+    given(aiWorkerClient.relationship(any(), any(), any(), any()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+
+    memoryService.updateAfterConversation(
+        userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
+
+    assertThat(relationValues()).containsExactly(15, 2);
+    assertThat(memoryService.memoryFor(userId, npcId).card()).isEqualTo(card("", List.of()));
+  }
+
+  @Test
+  @DisplayName("기억 카드를 만들지 못해도 관계 갱신은 한다")
+  void updateAfterConversation_cardFails_stillAppliesRelationship() {
+    relation(15, 2, 1);
+    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+        .willThrow(new BusinessException(ErrorCode.AI_RATE_LIMITED));
+    given(aiWorkerClient.relationship(any(), any(), any(), any()))
+        .willReturn(new RelationshipChange(8, 1, List.of()));
+
+    memoryService.updateAfterConversation(
+        userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
+
+    assertThat(relationValues()).containsExactly(23, 3);
+  }
+
+  @Test
+  @DisplayName("같은 대화의 종료를 두 번 반영해도 관계 갱신은 한 번만 한다")
+  void updateAfterConversation_sameConversationTwice_appliesRelationshipOnce() {
+    givenCard();
+    given(aiWorkerClient.relationship(any(), any(), any(), any()))
+        .willReturn(new RelationshipChange(8, 1, List.of()));
+    Conversation conversation = endedConversation("I want a latte");
+
+    memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
+    memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
+
+    then(aiWorkerClient).should().relationship(any(), any(), any(), any());
+    assertThat(relationValues()).containsExactly(8, 1);
   }
 
   @Test
@@ -238,6 +335,40 @@ class MemoryServiceTest {
                 .setParameter(2, npcId)
                 .getSingleResult())
         .isEqualTo((short) -5);
+  }
+
+  private void givenCard() {
+    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+        .willReturn(new MemoryCardResult(FIRST_CARD, List.of()));
+  }
+
+  // 이미 끝낸 대화가 있는 관계. 다른 칸은 기본값이다.
+  private void relation(int recognition, int affinity, int talkCount) {
+    entityManager
+        .createNativeQuery(
+            "insert into user_npc_relations (user_id, npc_id, recognition, affinity, talk_count)"
+                + " values (?, ?, ?, ?, ?)")
+        .setParameter(1, userId)
+        .setParameter(2, npcId)
+        .setParameter(3, recognition)
+        .setParameter(4, affinity)
+        .setParameter(5, talkCount)
+        .executeUpdate();
+  }
+
+  // 지금 저장된 알아봄·호감.
+  private List<Integer> relationValues() {
+    entityManager.flush();
+    Object[] row =
+        (Object[])
+            entityManager
+                .createNativeQuery(
+                    "select recognition, affinity from user_npc_relations"
+                        + " where user_id = ? and npc_id = ?")
+                .setParameter(1, userId)
+                .setParameter(2, npcId)
+                .getSingleResult();
+    return List.of(((Number) row[0]).intValue(), ((Number) row[1]).intValue());
   }
 
   private Conversation endedConversation(String userText) {

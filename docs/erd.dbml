@@ -309,6 +309,7 @@ Table user_npc_relations [headercolor: #C8642A] {
   recognition smallint [not null, default: 0, note: '알아봄 0~100 · 대화가 끝나면 /v1/npc/relationship의 recognition_delta를 더함 · NPC 대답 요청의 relationship']
   talk_count int [not null, default: 0, note: '사용자 발화가 있었던 대화를 끝낸 횟수 · NPC 대답 요청의 memory.visits']
   last_talked_at timestamptz
+  last_talk_game_day int [note: '마지막 대화를 끝낸 게임 날짜 (user_game_clocks 기준) · NPC 대답·관계 갱신의 days_since_last_talk · 게임 시계 도입 전 대화는 null(0일로 봄)']
   memory_card jsonb [note: 'NPC 기억 카드 { name, claims, events, attitude, struggled } · AI 워커 /v1/memory가 만든 카드로 통째로 교체']
   memory_conversation_id bigint [note: '기억에 마지막으로 반영한 대화 · 같은 대화의 종료를 두 번 반영하지 않음']
   created_at timestamptz [not null, default: `now()`]
@@ -319,6 +320,16 @@ Table user_npc_relations [headercolor: #C8642A] {
   }
 
   Note: '호감도 · 알아봄 · 방문 수 · NPC 기억 카드 (docs/api/npc-memory-integration.md)'
+}
+
+Table user_game_clocks [headercolor: #C8642A] {
+  user_id bigint [pk]
+  play_seconds bigint [not null, default: 0, note: '시간이 흐른 실제 플레이 초 · 실제 600초가 게임 하루, 1일차 오전 8시에서 시작 · 대화 중에는 더하지 않음']
+  last_beat_at timestamptz [note: '마지막 신호(WORLD-07) 시각 · 다음 신호와의 간격만큼(최대 60초) 흐름']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: '사용자별 게임 시계 (docs/api/mvp-api.md WORLD-06·07)'
 }
 
 Table affinity_logs [headercolor: #C8642A] {
@@ -484,6 +495,7 @@ TableGroup dialogue {
 
 TableGroup relation_memory {
   user_npc_relations
+  user_game_clocks
   affinity_logs
   npc_memories
 }
@@ -525,6 +537,7 @@ Ref: conversation_feedback.conversation_id - conversations.id
 Ref: turn_feedback.turn_id - turns.id
 Ref: user_npc_relations.user_id > users.id
 Ref: user_npc_relations.npc_id > npcs.id
+Ref: user_game_clocks.user_id - users.id
 Ref: affinity_logs.user_id > users.id
 Ref: affinity_logs.npc_id > npcs.id
 Ref: npc_memories.user_id > users.id

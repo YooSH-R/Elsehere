@@ -13,6 +13,8 @@
 | `SpaceDoorway` | 다른 공간으로 이어지는 출입구입니다. 플레이어가 문 앞 감지 영역에 들어오면 이동하고, 다른 공간에서 들어오면 `ArrivalPoint`에 문을 등지고 섭니다. |
 | `SpaceArrival` | 공간 씬에 들어오면 플레이어를 도착 출입구 앞으로 옮기고 카메라를 플레이어 뒤로 맞춥니다. 장소 씬이면 재접속 위치로 저장합니다(WORLD-05). `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `LastSceneRecorder`, `ILastSceneApi`, `LastSceneApi` | Unity 씬 이름을 서버 장소 코드(`HomeScene`→`HOME`, `TownScene`→`TOWN`, `CafeScene`→`CAFE`, `HotelScene`→`HOTEL`, `ShopScene`→`SHOP`)로 바꿔 `PUT /api/v1/me/last-scene`으로 저장합니다. 장소가 아닌 씬은 저장하지 않고, 실패해도 예외 없이 결과로 알립니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
+| `GameClock`, `IGameClockApi`, `GameClockApi`, `GameClockTime` | 사용자별 게임 시간(WORLD-06·07). 게임 시간은 서버가 사용자마다 플레이한 시간만큼 흐르게 합니다(실제 10분 = 게임 하루, 대화 중 멈춤). 처음 들어오면 바로, 그 뒤로 30초마다 `POST /api/v1/me/game-clock/beats`를 보내고 받은 게임 시각을 `GameClock.Shared.Current`에 두며 `Changed`로 알립니다. 응답을 기다리는 동안은 다시 보내지 않고, 실패하면 마지막 시각을 그대로 두고 다음 간격에 다시 보냅니다. 장면을 옮겨도 주기가 이어지도록 정적으로 둡니다. Unity 객체 없이 테스트합니다. |
+| `GameClockDriver` | 장소 씬의 `SpaceArrival` 객체에 붙어, 그 씬에 있는 동안 `GameClock`의 신호를 보냅니다. 입구 화면에는 없어 로그인 전·로그아웃 뒤에는 보내지 않습니다. 튜토리얼(`HomeScene`)도 플레이 시간으로 셉니다. `apiSettings`가 비어 있으면 보내지 않습니다. 배포용 장소 씬 5개에는 **Tools → A305 → World → Connect Game Clock**으로 연결합니다(새로 꾸미는 씬은 **Set Up Open Scene**이 함께 붙입니다). |
 
 ## 의존성
 

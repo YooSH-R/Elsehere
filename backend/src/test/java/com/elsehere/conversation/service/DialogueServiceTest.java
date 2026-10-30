@@ -15,6 +15,7 @@ import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.user.service.TrainingConsentService;
+import com.elsehere.world.service.GameClockService;
 import com.elsehere.world.service.PronunciationAudioStore;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -73,7 +74,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   ConsentCatalog.class,
   MemoryService.class,
   NpcAffinityService.class,
-  FirstDayMissionService.class
+  FirstDayMissionService.class,
+  GameClockService.class
 })
 @MockitoBean(types = AiWorkerClient.class)
 public @interface DialogueServiceTest {

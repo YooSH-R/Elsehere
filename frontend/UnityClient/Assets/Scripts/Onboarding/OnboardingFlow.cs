@@ -63,6 +63,7 @@ namespace A305.Onboarding
                 LanguageCode = boot.User?.CurrentLanguage;
                 SelectedAvatar = boot.User?.AvatarType;
                 UiTheme = boot.User?.UiTheme;
+                IsVoiceAgreed = boot.User?.VoiceConsent ?? false;
 
                 LevelTestStatus? lastLevelTest = null;
                 if (boot.User?.OnboardingStep == OnboardingStep.Level)
@@ -103,6 +104,7 @@ namespace A305.Onboarding
         public void ChooseGuest()
         {
             GuestAvatar = null;
+            GuestVoiceConsent = false;
             Screen = EntryScreen.GuestCharacter;
         }
 
@@ -110,6 +112,17 @@ namespace A305.Onboarding
         {
             GuestAvatar = avatar;
         }
+
+        /// <summary>게스트 캐릭터 선택 화면의 음성 처리 동의(선택) 체크.</summary>
+        public bool GuestVoiceConsent { get; private set; }
+
+        public void SetGuestVoiceConsent(bool agreed)
+        {
+            GuestVoiceConsent = agreed;
+        }
+
+        /// <summary>지금 사용자가 음성 처리에 동의했는지. 동의하지 않았으면 대화에서 음성 입력을 막는다.</summary>
+        public bool IsVoiceAgreed { get; private set; }
 
         /// <summary>캐릭터 선택 화면의 [뒤로]. 그 화면에서 실패한 안내는 로그인 화면에 남기지 않는다.</summary>
         public void BackToLogin()
@@ -129,7 +142,8 @@ namespace A305.Onboarding
             }
 
             AvatarType avatar = GuestAvatar.Value;
-            await RunAsync(() => api.GuestLoginAsync(avatar));
+            bool voiceConsent = GuestVoiceConsent;
+            await RunAsync(() => api.GuestLoginAsync(avatar, voiceConsent));
             if (ErrorMessage == null)
             {
                 await StartAsync();
@@ -155,6 +169,7 @@ namespace A305.Onboarding
                     SignupResponse response = await api.SignUpAsync(SignupForm.ToRequest());
                     SelectedAvatar = response.User?.AvatarType;
                     UiTheme = response.User?.UiTheme;
+                    IsVoiceAgreed = response.User?.VoiceConsent ?? false;
                 }
                 catch (ApiException exception) when (exception.Code == NicknameTakenCode)
                 {
@@ -234,6 +249,7 @@ namespace A305.Onboarding
             {
                 SelectedAvatar = null;
                 UiTheme = null;
+                IsVoiceAgreed = false;
                 Screen = EntryScreen.Login;
             }
             catch (ApiException exception)

@@ -57,6 +57,11 @@ namespace A305.Dialogue
         /// <summary>NPC 호감도와 무례 경고 칸. 서버 대화만 쓰며, 대본 대화는 null이다.</summary>
         ConversationStanding Standing { get; }
 
+        /// <summary>
+        /// [누르고 말하기]로 말할 수 있는지. 음성 처리에 동의하지 않았으면 false이며, 글자로만 입력한다(API 명세 CONV-02).
+        /// </summary>
+        bool CanTalk { get; }
+
         /// <summary>저장 음성 재생이나 최초 생성 실패의 음성 재시도를 제공할지.</summary>
         bool CanReplaySpeech { get; }
     }

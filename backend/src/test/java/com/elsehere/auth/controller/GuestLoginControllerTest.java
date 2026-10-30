@@ -2,6 +2,7 @@ package com.elsehere.auth.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -33,7 +34,7 @@ class GuestLoginControllerTest {
 
   private static final UserResponse GUEST_USER =
       new UserResponse(
-          3L, "guest-123456", AvatarType.M, "en-US", OnboardingStep.TUTORIAL, UiTheme.JELLY);
+          3L, "guest-123456", AvatarType.M, "en-US", OnboardingStep.TUTORIAL, UiTheme.JELLY, false);
 
   @Autowired private MockMvc mockMvc;
 
@@ -42,7 +43,7 @@ class GuestLoginControllerTest {
   @Test
   @DisplayName("로그인하지 않은 상태에서 캐릭터를 골라 게스트로 시작하면 201과 만든 사용자 정보로 응답한다")
   void startAsGuest_respondsCreatedWithUser() throws Exception {
-    given(guestLoginService.startAsGuest(AvatarType.M)).willReturn(GUEST_USER);
+    given(guestLoginService.startAsGuest(AvatarType.M, false)).willReturn(GUEST_USER);
 
     mockMvc
         .perform(guestLogin("{\"avatarType\": \"M\"}"))
@@ -50,7 +51,28 @@ class GuestLoginControllerTest {
         .andExpect(jsonPath("$.user.userId").value(3))
         .andExpect(jsonPath("$.user.nickname").value("guest-123456"))
         .andExpect(jsonPath("$.user.avatarType").value("M"))
-        .andExpect(jsonPath("$.user.onboardingStep").value("TUTORIAL"));
+        .andExpect(jsonPath("$.user.onboardingStep").value("TUTORIAL"))
+        .andExpect(jsonPath("$.user.voiceConsent").value(false));
+  }
+
+  @Test
+  @DisplayName("음성 처리에 동의하고 게스트로 시작하면 동의를 함께 넘기고 음성 입력을 쓸 수 있다고 응답한다")
+  void startAsGuest_withVoiceConsent_passesConsent() throws Exception {
+    given(guestLoginService.startAsGuest(AvatarType.M, true))
+        .willReturn(
+            new UserResponse(
+                3L,
+                "guest-123456",
+                AvatarType.M,
+                "en-US",
+                OnboardingStep.TUTORIAL,
+                UiTheme.JELLY,
+                true));
+
+    mockMvc
+        .perform(guestLogin("{\"avatarType\": \"M\", \"voiceConsent\": true}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.user.voiceConsent").value(true));
   }
 
   @Test
@@ -61,13 +83,13 @@ class GuestLoginControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
 
-    then(guestLoginService).should(never()).startAsGuest(any());
+    then(guestLoginService).should(never()).startAsGuest(any(), anyBoolean());
   }
 
   @Test
   @DisplayName("게스트로 시작하면 같은 세션의 다음 요청에서 그 사용자로 인식된다")
   void startAsGuest_keepsUserInSession() throws Exception {
-    given(guestLoginService.startAsGuest(AvatarType.M)).willReturn(GUEST_USER);
+    given(guestLoginService.startAsGuest(AvatarType.M, false)).willReturn(GUEST_USER);
     MockHttpSession session = new MockHttpSession();
 
     mockMvc
@@ -83,7 +105,7 @@ class GuestLoginControllerTest {
   @Test
   @DisplayName("게스트 세션은 가입자보다 짧게, 2시간 동안 요청이 없으면 끝나도록 둔다")
   void startAsGuest_shortensSessionTimeout() throws Exception {
-    given(guestLoginService.startAsGuest(AvatarType.M)).willReturn(GUEST_USER);
+    given(guestLoginService.startAsGuest(AvatarType.M, false)).willReturn(GUEST_USER);
     MockHttpSession session = new MockHttpSession();
 
     mockMvc

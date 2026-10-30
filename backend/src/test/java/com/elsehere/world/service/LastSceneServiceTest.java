@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.service.AiStatusService;
+import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.bootstrap.service.BootstrapService;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
@@ -12,8 +13,11 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.conversation.service.GuestConversationLimit;
+import com.elsehere.conversation.service.TrainingRecordingService;
+import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
+import com.elsehere.user.service.OptionalConsentService;
 import com.elsehere.world.dto.LastSceneResponse;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +40,11 @@ import org.springframework.context.annotation.Import;
   LastSceneService.class,
   BootstrapService.class,
   AiStatusService.class,
-  GuestConversationLimit.class
+  GuestConversationLimit.class,
+  OptionalConsentService.class,
+  ConsentCatalog.class,
+  TrainingRecordingService.class,
+  TrainingRecordingStore.class
 })
 class LastSceneServiceTest {
 

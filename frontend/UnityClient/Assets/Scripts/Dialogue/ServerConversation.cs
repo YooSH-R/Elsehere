@@ -22,6 +22,7 @@ namespace A305.Dialogue
         private const string QuotaExhaustedCode = "AI_QUOTA_EXHAUSTED";
         private const string RateLimitedCode = "AI_RATE_LIMITED";
         private const string NoSpeechCode = "STT_NO_SPEECH";
+        private const string VoiceConsentRequiredCode = "VOICE_CONSENT_REQUIRED";
         private const string ActiveStatus = "ACTIVE";
         private const string QuotaExhaustedReason = "QUOTA_EXHAUSTED";
         private const string RudeReason = "RUDE";
@@ -35,6 +36,9 @@ namespace A305.Dialogue
 
         private readonly IConversationApi api;
         private readonly ConversationInitiator initiatedBy;
+
+        // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
+        private bool canTalk;
         private readonly List<DialogueLine> lines = new List<DialogueLine>();
         private readonly List<string> userUtterances = new List<string>();
 
@@ -49,17 +53,20 @@ namespace A305.Dialogue
         private string lastTranscript;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
+        /// <param name="canTalk">음성 처리에 동의해 [누르고 말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
             IConversationApi api,
+            bool canTalk,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc
         )
         {
             NpcCode = npcCode;
             NpcName = npcName;
             this.api = api;
+            this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
         }
 
@@ -108,6 +115,8 @@ namespace A305.Dialogue
         public string HintText { get; private set; }
         public bool UsesVoice => true;
         public ConversationStanding Standing { get; } = new ConversationStanding();
+        public bool CanTalk => canTalk;
+
         public bool CanReplaySpeech =>
             LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
 
@@ -240,7 +249,7 @@ namespace A305.Dialogue
             RecordingEndReason endReason = RecordingEndReason.UserStopped
         )
         {
-            if (!CanSend)
+            if (!CanSend || !canTalk)
             {
                 return null;
             }
@@ -490,6 +499,11 @@ namespace A305.Dialogue
             catch (ApiException exception)
             {
                 StatusMessage = exception.Message;
+                if (exception.Code == VoiceConsentRequiredCode)
+                {
+                    canTalk = false;
+                }
+
                 bool canRetry = retry != null && IsTemporary(exception);
                 pendingRetry = canRetry ? retry : null;
                 RecoveryGuide = GuideFor(exception, canRetry);
@@ -519,6 +533,11 @@ namespace A305.Dialogue
             if (exception.Code == NoSpeechCode)
             {
                 return SpeakAgainGuide;
+            }
+
+            if (exception.Code == VoiceConsentRequiredCode)
+            {
+                return VoiceInputNotice.ConsentRequired;
             }
 
             return canRetry ? RetryGuide : null;

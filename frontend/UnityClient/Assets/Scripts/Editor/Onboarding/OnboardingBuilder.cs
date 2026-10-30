@@ -291,7 +291,7 @@ namespace A305.EditorTools.Onboarding
             return view;
         }
 
-        // 게스트는 닉네임과 약관 없이 캐릭터만 고른다(AUTH-07).
+        // 게스트는 닉네임과 가입 약관 없이 캐릭터와 음성 처리 동의(선택)만 고른다(AUTH-07).
         private static GuestPanelView SetUpGuestPanel(
             GameObject root,
             TMP_FontAsset bold,
@@ -321,7 +321,7 @@ namespace A305.EditorTools.Onboarding
                 "남성",
                 regular
             );
-            UiBuilderTools.FindOrCreateText(
+            TMP_Text note = UiBuilderTools.FindOrCreateText(
                 panel,
                 "Note",
                 regular,
@@ -329,6 +329,18 @@ namespace A305.EditorTools.Onboarding
                 SubTextColor,
                 "닉네임은 자동으로 정해져요. 게스트는 NPC와 대화할 수 있는 횟수가 정해져 있어요."
             );
+            ConsentRowView voiceConsent = SetUpConsentRow(panel, "VoiceConsentRow", regular);
+            TMP_Text voiceNote = UiBuilderTools.FindOrCreateText(
+                panel,
+                "VoiceConsentNote",
+                regular,
+                20f,
+                SubTextColor,
+                "음성 처리에 동의하면 [누르고 말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있어요."
+            );
+            // 이미 만든 패널에 새로 붙는 줄은 맨 아래에 생기므로 안내 문구 바로 뒤로 옮긴다.
+            voiceConsent.transform.SetSiblingIndex(note.transform.GetSiblingIndex() + 1);
+            voiceNote.transform.SetSiblingIndex(voiceConsent.transform.GetSiblingIndex() + 1);
             Button start = UiBuilderTools.FindOrCreateButton(
                 panel,
                 "StartButton",
@@ -346,6 +358,7 @@ namespace A305.EditorTools.Onboarding
 
             BuilderTools.SetReference(view, "femaleButton", female);
             BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "voiceConsentRow", voiceConsent);
             BuilderTools.SetReference(view, "startButton", start);
             BuilderTools.SetReference(view, "backButton", back);
             BuilderTools.RequireReferences(view);
@@ -460,11 +473,18 @@ namespace A305.EditorTools.Onboarding
             TMP_FontAsset regular
         )
         {
-            bool isNew = consents.Find("ConsentRowTemplate") == null;
-            RectTransform template = UiBuilderTools.FindOrCreateButtonRow(
-                consents,
-                "ConsentRowTemplate"
-            );
+            return SetUpConsentRow(consents, "ConsentRowTemplate", regular);
+        }
+
+        /// <summary>동의 한 줄(체크·제목·[보기]). 가입·게스트 화면과 마이페이지가 함께 쓴다.</summary>
+        internal static ConsentRowView SetUpConsentRow(
+            Transform parent,
+            string rowName,
+            TMP_FontAsset regular
+        )
+        {
+            bool isNew = parent.Find(rowName) == null;
+            RectTransform template = UiBuilderTools.FindOrCreateButtonRow(parent, rowName);
             if (isNew)
             {
                 template.GetComponent<HorizontalLayoutGroup>().childAlignment =

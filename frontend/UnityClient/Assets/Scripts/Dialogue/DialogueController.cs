@@ -245,6 +245,7 @@ namespace A305.Dialogue
                 npcCode,
                 npcName,
                 conversationApi,
+                VoiceConsent.Shared.IsAgreed,
                 initiatedBy
             );
             serverConversation.Changed += panel.Refresh;

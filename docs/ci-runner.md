@@ -64,20 +64,20 @@ Unity 관련 MR은 **포맷 검사와 실제 EditMode·PlayMode 실행 테스트
 GitLab → EC2 Runner 관리 컨테이너 (최대 3개)
           ├─ a305-linux-light + a305-ec2 (최대 1개) → 경량 검사·배포 계획
           └─ a305-linux-ci + a305-ec2 (최대 2개) → 일반 검사·이미지 전달
-       → 노트북 Linux Runner (최대 1개, a305-linux-ci) → 일반 검사
+       → 노트북 Linux Runner (최대 2개, a305-linux-ci) → 일반 검사
 
 호스트 Docker → a305-dev / a305-prod (서비스 실행)
 ```
 
 Runner 관리 컨테이너만 호스트 Docker 소켓을 사용합니다. 일반 검사 컨테이너에는 소켓이나 앱의 환경 파일·인증서를 마운트하지 않습니다. Testcontainers는 검사 작업 전용 rootless Docker 서비스에 연결합니다. 프로젝트 Runner는 서버의 Docker를 제어하므로 팀 저장소의 신뢰하는 작업에만 사용합니다. [Runner 컨테이너 운영](https://docs.gitlab.com/runner/install/docker/)
 
-EC2의 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드 대기열과 분리합니다. 노트북 Linux Runner는 별도로 한 개만 실행합니다. Windows Unity Runner의 동시 실행 수와는 별도 제한입니다.
+EC2의 동시 실행 상한은 세 개이며, 경량 검사 한 자리를 빌드 대기열과 분리합니다. 노트북 Linux Runner는 별도로 최대 두 개를 실행합니다. Windows Unity Runner의 동시 실행 수와는 별도 제한입니다.
 
 | 태그 | 동시 작업 | 자원 상한 | 작업 |
 | --- | --- | --- | --- |
 | EC2 `a305-linux-light` | 1개 | CPU 1개·메모리 1GiB. Docker 서비스 실행 불가 | YAML, Unity 포맷, AI 패널, 인프라 스크립트 검사, 외부 Unity MR 차단. 배포 계획은 `a305-ec2`도 요구 |
 | EC2 `a305-linux-ci` | 2개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 일반 검사. 이미지 전달은 `a305-ec2`도 요구 |
-| 노트북 `a305-linux-ci` | 1개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 백엔드·AI 검사, Compose·Nginx·관측 검사, 앱 실행 검사 |
+| 노트북 `a305-linux-ci` | 2개 | 작업당 CPU 2개·메모리 3GiB. Docker 서비스는 CPU 1개·메모리 2GiB | 백엔드·AI 검사, Compose·Nginx·관측 검사, 앱 실행 검사 |
 
 동시 실행 수는 작업을 받을 수 있는 상한이며 CPU 4개·메모리 16GiB 서버에서 모든 작업의 최대 자원을 보장하는 값은 아닙니다. 앱·모니터링과 자원을 공유하므로 CPU 사용률·가용 메모리·앱 응답을 함께 확인합니다. 빌드 부하가 크면 일반 Runner의 `limit`를 먼저 낮춰 경량 검사 자리를 유지합니다. Runner 자체의 컨테이너 제한과 작업·서비스 제한은 별도로 적용합니다. 변경 전에 생성된 작업은 기존 태그를 유지하므로 이전 경량 작업도 일반 Runner에서 실행될 수 있습니다.
 
@@ -110,7 +110,7 @@ Docker 27 이후 기본 빌드 드라이버의 캐시 내보내기에는 contain
 
 ### 노트북 Linux Runner
 
-Docker Desktop의 WSL2 Linux 엔진에서 Runner 관리 컨테이너를 실행합니다. Windows Unity Runner와 등록·설정 볼륨을 분리하고 `laptop.config.template.toml`의 `concurrent=1`, `limit=1`과 자원 제한을 적용합니다. 관리 컨테이너는 CPU 0.25개·메모리 256MiB, 로그는 파일당 10MiB·3개로 제한합니다.
+Docker Desktop의 WSL2 Linux 엔진에서 Runner 관리 컨테이너를 실행합니다. Windows Unity Runner와 등록·설정 볼륨을 분리하고 `laptop.config.template.toml`의 `concurrent=2`, `limit=2`와 자원 제한을 적용합니다. 관리 컨테이너는 CPU 0.25개·메모리 256MiB, 로그는 파일당 10MiB·3개로 제한합니다. 일반 CI 두 개가 Docker 서비스를 함께 사용하면 합산 상한은 CPU 6개·메모리 10GiB이며 Unity와 개발 도구도 노트북 자원을 사용합니다. 동시 실행 중 가용 메모리·컨테이너 메모리 종료·작업 실패를 확인하고 여유가 부족하면 `concurrent`와 `limit`를 함께 `1`로 낮춥니다.
 
 관리 컨테이너의 Docker 소켓 연결은 노트북 Docker의 컨테이너·볼륨을 제어할 권한을 줍니다. 일반 검사 컨테이너에는 이 소켓이나 Windows 사용자 폴더를 마운트하지 않으며, PostgreSQL·이미지 빌드는 작업별 rootless Docker 서비스에서 실행합니다. 노트북의 Docker에 중요한 개인 서비스를 함께 운영한다면 별도 Linux VM 등 독립된 Docker 엔진을 준비합니다.
 
@@ -128,7 +128,7 @@ docker run -d --name a305-laptop-linux-runner --restart unless-stopped `
 docker exec -it a305-laptop-linux-runner gitlab-runner register
 ```
 
-등록 URL은 `https://lab.ssafy.com`, executor는 `docker`, 기본 이미지는 `alpine:3.22`입니다. 생성된 인증 정보는 유지하고 노트북 템플릿의 한 작업 제한·Docker 설정을 적용한 뒤 `verify`와 실제 일반 검사 성공을 확인하고 Paused를 해제합니다. 토큰이나 설정 전체를 로그로 출력하지 않습니다.
+등록 URL은 `https://lab.ssafy.com`, executor는 `docker`, 기본 이미지는 `alpine:3.22`입니다. 생성된 인증 정보는 유지하고 노트북 템플릿의 두 작업 제한·Docker 설정을 적용한 뒤 `verify`와 실제 일반 검사 성공을 확인하고 Paused를 해제합니다. 토큰이나 설정 전체를 로그로 출력하지 않습니다.
 
 노트북은 `DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns`로 작업별 rootless Docker의 네트워크를 지정합니다. 기본 `vpnkit`의 `192.168.65.0/24`는 Docker Desktop 내부 DNS 주소와 겹쳐 중첩 빌드의 이름 해석이 실패할 수 있습니다. `slirp4netns`의 별도 네트워크를 사용하고 실제 중첩 컨테이너에서 DNS 조회·패키지 설치·이미지 빌드를 확인합니다. EC2 설정은 바꾸지 않습니다. [Docker rootless 네트워크 설정](https://docs.docker.com/engine/security/rootless/troubleshoot/)
 
@@ -136,7 +136,7 @@ EC2 일반 Runner에는 기존 `a305-linux` 태그를 남겨 이전 파이프라
 
 공통 태그의 작업은 여유가 있는 Runner가 나눠 받으며 정확한 반반 배분이나 EC2 우선순위를 보장하지 않습니다. 노트북이 꺼졌거나 Docker Desktop이 중지되면 새 일반 검사는 EC2에서 처리할 수 있습니다. 이미 노트북에서 실행 중이던 작업은 자동 이전되지 않으므로 중단 시 상태를 확인하고 재시도합니다.
 
-설정 회귀 검사는 `python -m unittest discover -s infra/runner/tests -v`로 실행하며 `ci:yaml`에도 연결합니다. 일반 검사 태그, 배포 계획·전달의 EC2 제한, 노트북의 한 작업 제한과 Docker 소켓 비공유를 확인합니다.
+설정 회귀 검사는 `python -m unittest discover -s infra/runner/tests -v`로 실행하며 `ci:yaml`에도 연결합니다. 일반 검사 태그, 배포 계획·전달의 EC2 제한, 노트북의 두 작업 제한과 Docker 소켓 비공유를 확인합니다.
 
 ## Ubuntu 서버에 Runner 설치·등록
 

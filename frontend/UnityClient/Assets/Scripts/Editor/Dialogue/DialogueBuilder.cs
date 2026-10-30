@@ -64,6 +64,7 @@ namespace A305.EditorTools.Dialogue
         /// <summary>
         /// 새로 놓은 NPC가 기본 대본("Neighbor")으로 빠지지 않도록, 코드의 예시 대본 중 에셋에 없는 NPC만 더한다.
         /// 이미 있는 대본은 고친 대사를 그대로 두고, 비어 있는 역할만 채운다.
+        /// 이름은 서버 시드와 같아야 하므로 이미 있는 대본도 코드의 예시 이름으로 맞춘다.
         /// </summary>
         private static void AddMissingMockScripts(MockDialogueScriptSource scripts)
         {
@@ -87,11 +88,17 @@ namespace A305.EditorTools.Dialogue
                     entries.GetArrayElementAtIndex(entries.arraySize - 1).boxedValue =
                         example.boxedValue;
                 }
-                else if (
-                    string.IsNullOrEmpty(existing.FindPropertyRelative("roleLabel").stringValue)
-                )
+                else
                 {
-                    existing.FindPropertyRelative("roleLabel").stringValue = roleLabel;
+                    existing.FindPropertyRelative("npcName").stringValue = example
+                        .FindPropertyRelative("npcName")
+                        .stringValue;
+                    if (
+                        string.IsNullOrEmpty(existing.FindPropertyRelative("roleLabel").stringValue)
+                    )
+                    {
+                        existing.FindPropertyRelative("roleLabel").stringValue = roleLabel;
+                    }
                 }
                 if (existing != null)
                     ReplaceRetiredTexts(existing);

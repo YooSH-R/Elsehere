@@ -14,8 +14,11 @@ public enum ErrorCode {
   CSRF_HEADER_REQUIRED(HttpStatus.FORBIDDEN, "요청 확인 헤더가 없습니다."),
   ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "관리자만 사용할 수 있습니다."),
   NOT_FOUND(HttpStatus.NOT_FOUND, "대상을 찾을 수 없습니다."),
+  ADMIN_CANDIDATE_NOT_FOUND(
+      HttpStatus.NOT_FOUND, "이 이메일로 Google 가입한 사용자가 없습니다. 먼저 게임에 Google로 가입해야 합니다."),
   ALREADY_SIGNED_UP(HttpStatus.CONFLICT, "이미 가입한 계정입니다."),
   NICKNAME_TAKEN(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+  ADMIN_SELF_REVOKE(HttpStatus.CONFLICT, "자기 자신은 관리자에서 해제할 수 없습니다."),
   LEVEL_TEST_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "이미 끝난 레벨 테스트입니다."),
   SCENE_CLOSED(HttpStatus.CONFLICT, "아직 열리지 않은 장소입니다."),
   TUTORIAL_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "튜토리얼 단계가 아닙니다."),

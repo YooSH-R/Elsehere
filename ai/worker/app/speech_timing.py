@@ -17,6 +17,7 @@ IPA = dict(zip("pbmfvtdsznklgwjh", "p b m f v t d s z n k l g w y h".split(), st
     "ɒ": "ao",
     "æ": "ae",
     "ʌ": "ah",
+    "ɐ": "ah",
     "ə": "ax",
     "ɛ": "eh",
     "e": "eh",
@@ -101,7 +102,7 @@ def attach_timing(wav: bytes, spoken) -> bytes:
         else:
             phone = PAIRS.get(symbol, IPA.get(symbol))
         if phone is None:
-            raise ValueError("Unsupported Kokoro phoneme: " + symbol)
+            raise ValueError("Unsupported Kokoro phoneme: " + ascii(symbol))
         cues.append({"phoneme": phone, "start": start, "end": min(end, duration)})
     return _write(wav, cues) if cues else wav
 

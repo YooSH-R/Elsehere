@@ -100,3 +100,8 @@ def test_missing_timing_never_invents_phonemes_and_invalid_data_is_rejected():
 def test_stress_token_does_not_insert_an_unspoken_rest_before_the_vowel():
     data = read_timing(attach_timing(wav_file(), [phone("θ", 0.1, 0.2), phone("ˈ", 0.2, 0.25), phone("æ", 0.25, 0.4)]))
     assert data["phonemes"][1]["start"] == 0.2
+
+
+def test_reduced_article_vowel_keeps_new_cafe_sentences_animated():
+    timing = read_timing(attach_timing(wav_file(), [phone("ɐ", 0.1, 0.2), phone("k", 0.2, 0.3)]))
+    assert [p["phoneme"] for p in timing["phonemes"]] == ["ah", "k"]

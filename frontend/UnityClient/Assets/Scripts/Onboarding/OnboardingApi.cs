@@ -34,6 +34,11 @@ namespace A305.Onboarding
             return client.PostAsync("/api/v1/auth/logout", null);
         }
 
+        public Task WithdrawAsync()
+        {
+            return client.DeleteAsync("/api/v1/me");
+        }
+
         public Task<NicknameChange> ChangeNicknameAsync(string nickname)
         {
             return client.PutAsync<NicknameChange>(

@@ -87,6 +87,44 @@ namespace A305.Onboarding.Tests
             Assert.That(api.Calls, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task Withdraw_DeletesAccountAndAllowsReturningToEntry()
+        {
+            bool canLeave = await flow.WithdrawAsync();
+
+            Assert.That(canLeave, Is.True);
+            Assert.That(api.Withdrawals, Is.EqualTo(1));
+            Assert.That(flow.ErrorMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task Withdraw_WhenSessionAlreadyEnded_DoesNotPretendToHaveWithdrawn()
+        {
+            // 로그아웃과 달리 세션이 끝났으면 탈퇴하지 못한 것이므로 다시 로그인하라고 알린다.
+            api.Error = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
+
+            bool canLeave = await flow.WithdrawAsync();
+
+            Assert.That(canLeave, Is.False);
+            Assert.That(flow.ErrorMessage, Does.Contain("다시 로그인"));
+        }
+
+        [Test]
+        public async Task Withdraw_WhenRequestFails_StaysAndTellsWhy()
+        {
+            api.Error = new ApiException(
+                ApiErrorCodes.NetworkError,
+                0,
+                "서버에 연결하지 못했어요."
+            );
+
+            bool canLeave = await flow.WithdrawAsync();
+
+            Assert.That(canLeave, Is.False);
+            Assert.That(flow.IsBusy, Is.False);
+            Assert.That(flow.ErrorMessage, Is.EqualTo("서버에 연결하지 못했어요."));
+        }
+
         private sealed class FakeLogoutApi : ILogoutApi
         {
             public int Calls { get; private set; }
@@ -95,6 +133,14 @@ namespace A305.Onboarding.Tests
 
             /// <summary>정하면 응답이 이 작업이 끝날 때까지 오지 않는다.</summary>
             public TaskCompletionSource<bool> Gate { get; set; }
+
+            public int Withdrawals { get; private set; }
+
+            public Task WithdrawAsync()
+            {
+                Withdrawals++;
+                return Error != null ? Task.FromException(Error) : Task.CompletedTask;
+            }
 
             public async Task LogoutAsync()
             {

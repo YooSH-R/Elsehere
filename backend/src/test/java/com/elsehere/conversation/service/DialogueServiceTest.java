@@ -16,6 +16,8 @@ import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.user.service.GuestContentCleanup;
 import com.elsehere.user.service.OptionalConsentService;
+import com.elsehere.user.service.UserContentEraser;
+import com.elsehere.user.service.WithdrawalService;
 import com.elsehere.world.service.PronunciationAudioStore;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -75,7 +77,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   MemoryService.class,
   NpcAffinityService.class,
   FirstDayMissionService.class,
-  GuestContentCleanup.class
+  GuestContentCleanup.class,
+  UserContentEraser.class,
+  WithdrawalService.class
 })
 @MockitoBean(types = AiWorkerClient.class)
 public @interface DialogueServiceTest {

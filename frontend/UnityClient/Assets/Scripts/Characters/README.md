@@ -38,7 +38,7 @@ Blender 드라이버 수식은 FBX에 자동 이식되지 않습니다. 모델�
 
 - `LeftEye`, `RightEye`는 고정된 눈 표면입니다. 깜박임으로 흰자·눈동자를 압축하지 않습니다.
 - 위·아래 눈꺼풀과 `LeftLashes`, `RightLashes`가 `eyeBlinkLeft`, `eyeBlinkRight`의 25·50·75·100 프레임을 사용합니다. 눈썹은 깜박임에 참여하지 않습니다.
-- 입술은 `SpeakingLips`의 피부 면에 만든 얕은 굴곡입니다. 얼굴과 같은 피부 텍스처를 사용하며 붉은 테두리를 칠하지 않습니다. 입 벌림 경계와 바깥 피부에 연속적으로 이어지고, 모델 좌표에서 폭 0.003m 범위에 최대 0.00045m의 볼륨을 줍니다. 이전 색상 띠 `LipRim`은 갱신할 때 제거합니다.
+- 입술은 `SpeakingLips`의 피부 면에 만든 부드러운 굴곡입니다. 모델 좌표에서 폭 0.008m 범위에 윗입술 최대 0.0022m·아랫입술 최대 0.0028m의 볼륨을 주고 입꼬리에서는 약하게 만듭니다. 같은 피부 색상에 넓게 퍼지는 명도 차이를 더하며, 별도 색상 띠나 선명한 외곽선은 사용하지 않습니다. 입 벌림 경계와 바깥 피부는 계속 이어집니다. 이전 색상 띠 `LipRim`은 갱신할 때 제거합니다.
 - `CharacterFaceController.ApplySpeech`는 입모양과 미소·깜박임을 별도 채널로 합성합니다. 치아 노출이 필요한 이·E·F/V·TH에서는 해당 치아를 구강 앞쪽에 배치해 약한 발음도 보이도록 합니다. 오·우 등 치아를 드러내지 않는 발음에서는 별도 셰이프로 구강 안쪽에 숨깁니다. 윗니와 아랫니의 노출 발음은 구분하며, 입술 색·두께와 발음 시간표는 바꾸지 않습니다.
 - `SpeechVisemeTimeline.SampleArticulation`은 전달된 발음 시각을 사용합니다. `ay`는 아→이, `y` 다음 `uw`는 우 준비 동작으로 연결합니다. 메시만 교체해도 잘못된 발음 시각이 자동으로 수정되지는 않습니다.
 
@@ -48,4 +48,4 @@ Blender 제작 소스는 `frontend/ArtSources/Characters/LittleMungMannequin/`�
 
 입 안쪽의 검은 테두리처럼 보이는 표현을 피하려고 `MouthInterior`는 따뜻한 적갈색을 사용합니다. 제작 JSON의 색을 다시 적용할 때는 `MannequinMasterBuilder.RefreshAuthoredMouthColor`를 명시적으로 실행합니다. 일반 얼굴 메시 갱신은 수작업 머티리얼 수정을 덮어쓰지 않습니다.
 
-`MannequinSpeechRenderer.Render`는 기존 WAV와 해당 음성의 발음 JSON을 받아 검수 이미지를 만듭니다. `MANNEQUIN_SPEECH_AUDIO`, `MANNEQUIN_SPEECH_TIMELINE`, `MANNEQUIN_SPEECH_OUTPUT`을 지정하고, 느린 비교가 필요하면 `MANNEQUIN_SPEECH_FPS=120`을 사용합니다. JSON의 `audioSha256`은 WAV 전체 파일과 일치해야 합니다. 이 도구는 음성 합성이나 외부 API 호출을 하지 않으며, 0.5초 대기 후 발화를 렌더하므로 영상에 음성을 합칠 때도 같은 지연을 적용해야 합니다.
+`MannequinSpeechRenderer.Render`는 기존 WAV와 해당 음성의 발음 JSON을 받아 검수 이미지를 만듭니다. `MANNEQUIN_SPEECH_AUDIO`, `MANNEQUIN_SPEECH_TIMELINE`, `MANNEQUIN_SPEECH_OUTPUT`을 지정하고, 느린 비교가 필요하면 `MANNEQUIN_SPEECH_FPS=120`을 사용합니다. `MANNEQUIN_SPEECH_YAW`는 -60~60도 사선 검수 각도이며 생략하면 기존 정면을 사용합니다. 저장된 씬 카메라는 변경하지 않습니다. JSON의 `audioSha256`은 WAV 전체 파일과 일치해야 합니다. 이 도구는 음성 합성이나 외부 API 호출을 하지 않으며, 0.5초 대기 후 발화를 렌더하므로 영상에 음성을 합칠 때도 같은 지연을 적용해야 합니다.

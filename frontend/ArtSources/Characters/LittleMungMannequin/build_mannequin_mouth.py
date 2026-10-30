@@ -121,6 +121,15 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
                 clean = [left[i]*(1-fraction)+right[i]*fraction for i in range(3)]
                 blend = min(1, max(0, (1-radius)/.2))
                 color = [color[i]*(1-blend)+clean[i]*blend for i in range(3)]
+            # Broad tonal modelling follows the skin UVs through every viseme.
+            # Fade towards the corners; no narrow contour or colored lip band.
+            lateral = (y-CENTER_Y)/.022
+            centerline = CENTER_Z+.004*min(1, lateral*lateral)
+            upper = math.exp(-((z-centerline-.0038)/.0045)**2)
+            lower = math.exp(-((z-centerline+.0042)/.0055)**2)
+            corner_fade = math.exp(-(abs(lateral)/.82)**4)
+            brightness = 1-corner_fade*(.16*upper+.08*lower)
+            color = [component*brightness for component in color]
             baked_pixels.extend((*color, 1))
     image = bpy.data.images.new('MannequinMouthColor', width=texture_size, height=texture_size)
     image.colorspace_settings.name = texture.colorspace_settings.name
@@ -177,13 +186,14 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
                         z = inner_z*(1-ring)+outer.z*ring
                         purse = {'viseme_OH': .002, 'viseme_OU': .006}.get(channel, 0)
                         x = fitted_x(y, z)+(outer.x-fitted_x(outer.y, outer.z))*ring-purse*(1-ring)**2
-                        # Sculpt a shallow, skin-colored lip fold in the existing
+                        # Sculpt a soft, skin-colored lip fold in the existing
                         # continuous skin surface, not a painted outline. Both ends
                         # meet the unchanged aperture and surrounding face.
                         outward_y, outward_z = outer.y-inner_y, outer.z-inner_z
                         span = max(.00001, math.hypot(outward_y, outward_z))
                         distance = span * ring
-                        fold_width, fold_height = .003, .00045
+                        fold_width = .008
+                        fold_height = (.0022 if sine >= 0 else .0028)*(.25+.75*abs(sine))
                         fold_slope = 0.0
                         if distance < fold_width:
                             phase = math.pi * distance / fold_width

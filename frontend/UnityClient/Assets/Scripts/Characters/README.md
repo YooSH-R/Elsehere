@@ -38,6 +38,7 @@ Blender 드라이버 수식은 FBX에 자동 이식되지 않습니다. 모델�
 
 - `LeftEye`, `RightEye`는 고정된 눈 표면입니다. 깜박임으로 흰자·눈동자를 압축하지 않습니다.
 - 위·아래 눈꺼풀과 `LeftLashes`, `RightLashes`가 `eyeBlinkLeft`, `eyeBlinkRight`의 25·50·75·100 프레임을 사용합니다. 눈썹은 깜박임에 참여하지 않습니다.
+- `LipRim`은 입 안쪽 면과 별도로 만든 얇은 선홍색 입술입니다. 모델 좌표에서 폭은 최대 0.0012m이며, 기존 입 벌림 경계를 따라 모든 발음·미소 셰이프가 함께 변형됩니다.
 - `CharacterFaceController.ApplySpeech`는 입모양과 미소·깜박임을 별도 채널로 합성합니다. 치아·혀는 실제 구강 안에 두고 입술이 가리도록 하므로, 약한 발음에서도 구강 벽 뒤로 숨지 않습니다.
 - `SpeechVisemeTimeline.SampleArticulation`은 전달된 발음 시각을 사용합니다. `ay`는 아→이, `y` 다음 `uw`는 우 준비 동작으로 연결합니다. 메시만 교체해도 잘못된 발음 시각이 자동으로 수정되지는 않습니다.
 

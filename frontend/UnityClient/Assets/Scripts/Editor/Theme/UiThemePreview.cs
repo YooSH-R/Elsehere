@@ -81,6 +81,43 @@ namespace A305.EditorTools.Theme
             Render(town, townCamera, Path.Combine(output, "approved-quest-buttons.png"));
         }
 
+        /// <summary>오른쪽 위 메뉴(≡)를 접은 집과, 테마별로 펼친 집·마을을 그린다.</summary>
+        public static void CaptureHudMenu()
+        {
+            string output = Environment.GetEnvironmentVariable("THEME_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new InvalidOperationException(
+                    "THEME_PREVIEW_OUTPUT에 출력 폴더를 지정하세요."
+                );
+            Directory.CreateDirectory(output);
+            UiThemeSelection.Shared.Select(UiThemeId.Jelly);
+            Scene home = Open("HomeScene", out Camera homeCamera);
+            ShowMenu(Show<LearningHudView>(home, homeCamera, .5f), false);
+            Render(home, homeCamera, Path.Combine(output, "hud-menu-home-closed.png"));
+            foreach (UiThemeId theme in (UiThemeId[])Enum.GetValues(typeof(UiThemeId)))
+            {
+                UiThemeSelection.Shared.Select(theme);
+                string name = theme.ToString().ToLowerInvariant();
+                home = Open("HomeScene", out homeCamera);
+                ShowMenu(Show<LearningHudView>(home, homeCamera, .5f), true);
+                Render(home, homeCamera, Path.Combine(output, $"hud-menu-home-{name}.png"));
+                Scene town = Open("TownScene", out Camera townCamera);
+                ShowMenu(Show<LearningHudView>(town, townCamera, .5f), true);
+                Render(town, townCamera, Path.Combine(output, $"hud-menu-town-{name}.png"));
+            }
+            UiThemeSelection.Shared.Select(UiThemeId.Jelly);
+        }
+
+        // 실행 중 HudMenuView가 하는 것처럼 메뉴를 펼치거나 접어 둔다. 단어장 배지가 보이도록 개수를 넣는다.
+        private static void ShowMenu(LearningHudView hud, bool isOpen)
+        {
+            hud.SetVocabularyCount(3);
+            var menu = hud.GetComponent<HudMenuView>();
+            Field<GameObject>(menu, "items").SetActive(isOpen);
+            Field<Button>(menu, "menuButton").gameObject.SetActive(!isOpen);
+            Field<Button>(menu, "openMenuButton").gameObject.SetActive(isOpen);
+        }
+
         private static void CaptureHome(string path)
         {
             Scene scene = Open("HomeScene", out Camera camera);

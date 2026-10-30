@@ -39,8 +39,12 @@ namespace A305.Player
         private Transform dialogueLookTarget;
         private Transform vehicleView;
         private PlayerTouchControls touchControls;
+        private Vector3 thirdPersonPivot;
 
         public CameraViewMode ViewMode => orbit.ViewMode;
+
+        /// <summary>3인칭에서 카메라가 캐릭터 머리 높이 기준점에서 실제로 떨어진 거리. 좁은 실내에서 벽에 밀리면 짧아진다.</summary>
+        public float CharacterDistanceMeters { get; private set; } = float.PositiveInfinity;
 
         /// <summary>이번 프레임에 사용자가 마우스·터치로 카메라를 직접 돌렸는지. 이동 방향 기준을 새로 잡을 때 쓴다.</summary>
         public bool TurnedByUserThisFrame { get; private set; }
@@ -130,6 +134,7 @@ namespace A305.Player
                 Vector3.Lerp(transform.position, desiredPose.position, blend),
                 Quaternion.Slerp(transform.rotation, desiredPose.rotation, blend)
             );
+            CharacterDistanceMeters = Vector3.Distance(transform.position, thirdPersonPivot);
         }
 
         private void ApplyInput()
@@ -203,6 +208,7 @@ namespace A305.Player
                     ? character.CameraPivotHeightMeters
                     : cameraSettings.PivotHeightMeters;
             Vector3 pivot = followTarget.position + Vector3.up * pivotHeight;
+            thirdPersonPivot = pivot;
             Pose pose = orbit.GetThirdPersonPose(pivot);
             Vector3 pivotToCamera = pose.position - pivot;
             Vector3 direction = pivotToCamera.normalized;

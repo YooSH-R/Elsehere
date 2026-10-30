@@ -47,6 +47,11 @@ namespace A305.Dialogue
             );
         }
 
+        public IAiStatusApi CreateAiStatusApi()
+        {
+            return new AiStatusApi(apiSettings.CreateClient());
+        }
+
         /// <summary>
         /// NPC 턴 음성을 받아 재생한다. 404는 ApiException으로 알리고, 그 밖의 다운로드 실패는 false를 돌려준다.
         /// </summary>

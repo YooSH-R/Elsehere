@@ -62,11 +62,13 @@ class AiStatusServiceTest {
     assertThat(response.capabilities().canStartConversation()).isTrue();
     assertThat(response.capabilities().canUseSpeech()).isTrue();
     assertThat(response.capabilities().canGenerateFeedback()).isTrue();
+    // 가입 사용자는 대화 횟수 제한이 없다.
+    assertThat(response.remainingConversations()).isNull();
   }
 
   @Test
-  @DisplayName("게스트가 아직 대화 횟수를 다 쓰지 않았으면 AI를 쓸 수 있다")
-  void guestBelowLimit_isAvailable() {
+  @DisplayName("게스트가 아직 대화 횟수를 다 쓰지 않았으면 AI를 쓸 수 있고 남은 대화 수를 알려 준다")
+  void guestBelowLimit_isAvailableWithRemainingConversations() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
     startConversations(userId, GUEST_CONVERSATION_LIMIT - 1);
 
@@ -74,6 +76,17 @@ class AiStatusServiceTest {
 
     assertThat(response.status()).isEqualTo(AiStatus.AI_AVAILABLE);
     assertThat(response.capabilities().canStartConversation()).isTrue();
+    assertThat(response.remainingConversations()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("아직 대화하지 않은 게스트는 정해진 횟수 전부가 남아 있다")
+  void guestWithoutConversations_hasAllConversationsLeft() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
+
+    AiStatusResponse response = aiStatusService.status(userId);
+
+    assertThat(response.remainingConversations()).isEqualTo(GUEST_CONVERSATION_LIMIT);
   }
 
   @Test
@@ -89,6 +102,7 @@ class AiStatusServiceTest {
     // 게스트 한도는 대화 시작만 막는다. 마지막 대화의 음성 입력과 피드백은 그대로 쓸 수 있다.
     assertThat(response.capabilities().canUseSpeech()).isTrue();
     assertThat(response.capabilities().canGenerateFeedback()).isTrue();
+    assertThat(response.remainingConversations()).isZero();
   }
 
   @Test

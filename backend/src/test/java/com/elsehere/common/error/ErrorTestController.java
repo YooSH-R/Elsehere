@@ -24,6 +24,12 @@ class ErrorTestController {
     throw new BusinessException(ErrorCode.NOT_FOUND, Map.of("targetId", 7));
   }
 
+  @GetMapping("/with-message")
+  void throwWithMessage() {
+    throw new BusinessException(
+        ErrorCode.AI_QUOTA_EXHAUSTED, "게스트는 NPC와 3번까지 대화할 수 있어요.", Map.of("targetId", 7));
+  }
+
   @PostMapping("/validation")
   void validate(@Valid @RequestBody NameRequest request) {}
 

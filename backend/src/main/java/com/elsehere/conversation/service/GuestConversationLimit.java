@@ -33,18 +33,28 @@ public class GuestConversationLimit {
     this.limit = limit;
   }
 
-  /** 게스트가 이미 정해진 횟수만큼 대화를 시작했으면 거절한다. */
+  /** 게스트가 이미 정해진 횟수만큼 대화를 시작했으면 거절한다. 오류 코드는 AI 사용량 소진과 같지만, 사용량이 아니라 게스트 횟수 때문에 막혔다고 문구로 알린다. */
   public void check(User user) {
     if (isReached(user)) {
       throw new BusinessException(
           ErrorCode.AI_QUOTA_EXHAUSTED,
+          "게스트는 NPC와 " + limit + "번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요.",
           Map.of("aiStatus", AiStatus.AI_EXHAUSTED.name(), "allowedFeatures", ALLOWED_FEATURES));
     }
   }
 
-  /** 게스트가 정해진 횟수만큼 대화를 시작했는지. 끝난 대화도 센다. 가입 사용자는 항상 아니다. */
+  /** 게스트가 더 시작할 수 있는 대화 수. 끝난 대화도 쓴 것으로 센다. 가입 사용자는 횟수 제한이 없어 null이다. */
+  public Integer remaining(User user) {
+    if (user.getProvider() != AuthProvider.GUEST) {
+      return null;
+    }
+    long started = conversationRepository.countByUserId(user.getId());
+    return (int) Math.max(0, limit - started);
+  }
+
+  /** 게스트가 정해진 횟수만큼 대화를 시작했는지. 가입 사용자는 항상 아니다. */
   public boolean isReached(User user) {
-    return user.getProvider() == AuthProvider.GUEST
-        && conversationRepository.countByUserId(user.getId()) >= limit;
+    Integer remaining = remaining(user);
+    return remaining != null && remaining == 0;
   }
 }

@@ -93,13 +93,16 @@ namespace A305.Player.Tests
                 );
                 // 충돌 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 머리 구가 따로 막는다.
                 // 머리 구가 머리 아래 끝에서 시작해야 탁자·소파 앉는 면 같은 낮은 가구가 머리 아래로 지나간다.
+                // 팔은 머리·몸통에 묻히지 않게 옆으로 벌어져(LittleMungArmClearance) 캡슐 밖으로 조금 나온다.
+                // 캡슐을 팔까지 넓히면 소파와 탁자 사이 같은 좁은 틈에 끼므로 팔이 나오는 폭은 이만큼 허용한다.
+                const float armOverhangMeters = .12f;
                 PlayerCharacterDefinition definition = appearance.ActiveCharacter;
                 Assert.That(
-                    capsule.radius,
+                    capsule.radius + armOverhangMeters,
                     Is.GreaterThanOrEqualTo(
                         HorizontalReachBelow(animator, player.transform, body.Head.min.y)
                     ),
-                    "Capsule width must cover the body under the head."
+                    "Capsule width must cover the body under the head; arms may stick out a little."
                 );
                 Assert.That(
                     definition.HeadRadiusMeters,

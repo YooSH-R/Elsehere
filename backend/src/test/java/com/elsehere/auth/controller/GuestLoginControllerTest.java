@@ -1,5 +1,6 @@
 package com.elsehere.auth.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -77,6 +78,19 @@ class GuestLoginControllerTest {
         .perform(get("/api/v1/test/me").session(session))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.userId").value(3));
+  }
+
+  @Test
+  @DisplayName("게스트 세션은 가입자보다 짧게, 2시간 동안 요청이 없으면 끝나도록 둔다")
+  void startAsGuest_shortensSessionTimeout() throws Exception {
+    given(guestLoginService.startAsGuest(AvatarType.M)).willReturn(GUEST_USER);
+    MockHttpSession session = new MockHttpSession();
+
+    mockMvc
+        .perform(guestLogin("{\"avatarType\": \"M\"}").session(session))
+        .andExpect(status().isCreated());
+
+    assertThat(session.getMaxInactiveInterval()).isEqualTo(2 * 60 * 60);
   }
 
   private static MockHttpServletRequestBuilder guestLogin(String body) {

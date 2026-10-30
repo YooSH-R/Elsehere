@@ -218,7 +218,8 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
             item['texture_file'] = 'MannequinMouthColor.png'
             color = (1, 1, 1)
         else:
-            color = (.035, .006, .003)
+            # Warm oral tissue; near-black reads as a painted ring around the teeth.
+            color = (.30, .10, .075)
             material = bpy.data.materials.new(part_name)
             material.use_nodes = True
             material.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value = (*color, 1)

@@ -45,4 +45,6 @@ Blender 제작 소스는 `frontend/ArtSources/Characters/LittleMungMannequin/`�
 
 제작한 JSON을 반영할 때는 `MannequinMasterBuilder.RefreshFaceShapes`를 사용합니다. 본·가중치·바인드포즈를 유지하며, 이미 있는 부품의 정점 수가 바뀌면 수작업 손상을 방지하기 위해 중단합니다. 기존 원본에 수작업 변경이 있다면 새로 생성하기 전에 별도 사본으로 보존해야 합니다.
 
+입 안쪽의 검은 테두리처럼 보이는 표현을 피하려고 `MouthInterior`는 따뜻한 적갈색을 사용합니다. 제작 JSON의 색을 다시 적용할 때는 `MannequinMasterBuilder.RefreshAuthoredMouthColor`를 명시적으로 실행합니다. 일반 얼굴 메시 갱신은 수작업 머티리얼 수정을 덮어쓰지 않습니다.
+
 `MannequinSpeechRenderer.Render`는 기존 WAV와 해당 음성의 발음 JSON을 받아 검수 이미지를 만듭니다. `MANNEQUIN_SPEECH_AUDIO`, `MANNEQUIN_SPEECH_TIMELINE`, `MANNEQUIN_SPEECH_OUTPUT`을 지정하고, 느린 비교가 필요하면 `MANNEQUIN_SPEECH_FPS=120`을 사용합니다. JSON의 `audioSha256`은 WAV 전체 파일과 일치해야 합니다. 이 도구는 음성 합성이나 외부 API 호출을 하지 않으며, 0.5초 대기 후 발화를 렌더하므로 영상에 음성을 합칠 때도 같은 지연을 적용해야 합니다.

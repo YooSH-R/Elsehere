@@ -277,6 +277,25 @@ namespace A305.EditorTools.Characters
             AssetDatabase.SaveAssets();
         }
 
+        // Explicit art refresh: only the reviewed mouth material is updated.
+        // Ordinary mesh refreshes preserve artist-authored material overrides.
+        public static void RefreshAuthoredMouthColor()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var data = JsonUtility.FromJson<FaceData>(File.ReadAllText(ShapePath));
+            var part = data.parts.Single(p => p.name == "MouthInterior");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(
+                ArtFolder + "/MouthInterior.mat"
+            );
+            if (material == null)
+                throw new InvalidOperationException(
+                    "Build the mannequin copy before refreshing its mouth color."
+                );
+            material.SetColor("_BaseColor", part.color);
+            EditorUtility.SetDirty(material);
+            AssetDatabase.SaveAssets();
+        }
+
         private static void ApplyAuthoredSurface(Mesh mesh, FaceData data)
         {
             if (

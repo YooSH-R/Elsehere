@@ -47,6 +47,17 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void CompleteArrival_PassesTheViewTurnFromTheTravelDirection()
+        {
+            state.TryBegin("CafeScene", "TownDoor", viewYawFromTravel: 180f);
+
+            string arrivalDoorwayId = state.CompleteArrival(out float viewYawFromTravel);
+
+            Assert.That(arrivalDoorwayId, Is.EqualTo("TownDoor"));
+            Assert.That(viewYawFromTravel, Is.EqualTo(180f));
+        }
+
+        [Test]
         public void CompleteArrival_ReturnsArrivalDoorwayAndEndsTravel()
         {
             state.TryBegin("TownScene", "HomeDoor");

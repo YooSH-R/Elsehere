@@ -50,7 +50,14 @@ namespace A305.World
                 return;
             }
 
-            if (SpaceTravel.TryTravel(destinationScene, destinationDoorwayId))
+            // 문으로 들어가는 방향(도착 방향의 반대)에서 카메라가 돌아가 있던 각도를 넘긴다.
+            // 다음 공간에서도 누르던 키가 문에서 멀어지는 쪽으로 걸어, 문을 다시 밟지 않는다.
+            PlayerCameraRig cameraRig = player.CameraRig;
+            float viewYawFromTravel =
+                cameraRig != null
+                    ? Mathf.DeltaAngle(arrivalPoint.eulerAngles.y + 180f, cameraRig.ViewYawDegrees)
+                    : 0f;
+            if (SpaceTravel.TryTravel(destinationScene, destinationDoorwayId, viewYawFromTravel))
             {
                 // 다음 공간을 불러오는 동안 문 밖으로 걸어 나가지 않게 한다.
                 player.SetMovementLocked(true);

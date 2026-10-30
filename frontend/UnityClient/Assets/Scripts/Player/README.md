@@ -97,6 +97,8 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `PlayerCameraRig.ViewMode` | 현재 시점(`ThirdPerson`, `FirstPerson`, `Dialogue`) |
 | `PlayerMover.Teleport(Vector3, Quaternion)` | 플레이어를 바로 옮깁니다. 공간을 옮긴 뒤 출입구 앞에 세울 때 씁니다. |
 | `PlayerCameraRig.SnapBehindTarget()` | 카메라를 플레이어가 보는 방향 뒤로 돌려 바로 그 자리에 놓습니다. `Teleport` 다음에 호출합니다. 카메라는 시작할 때도 플레이어 뒤에서 시작합니다. |
+| `PlayerCameraRig.SnapView(float)` | 카메라를 주어진 수평 방향(도)으로 돌려 바로 그 자리에 놓습니다. 문을 지나 공간을 옮긴 뒤 들어가기 전 카메라 각도를 이어 맞출 때 씁니다. |
+| `PlayerCameraRig.ViewYawDegrees` | 카메라가 바라보는 수평 방향(도). 마우스·터치로 돌린 결과입니다. |
 
 ## 테스트
 

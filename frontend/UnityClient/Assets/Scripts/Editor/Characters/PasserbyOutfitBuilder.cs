@@ -200,6 +200,64 @@ namespace A305.EditorTools.Characters
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>Matches only the jacket fabric to the reviewed pants, preserving shirt and tie colors.</summary>
+        public static void MatchUpperFabricToPants()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var shader = Shader.Find("Elsehere/CharacterFabric");
+            if (shader == null || !shader.isSupported)
+                throw new InvalidOperationException("The character fabric shader is unavailable.");
+            var source = new Texture2D(2, 2);
+            try
+            {
+                if (!source.LoadImage(File.ReadAllBytes(Art + "/SuitBaseColor.png")))
+                    throw new InvalidDataException("The jacket texture could not be loaded.");
+                var pixels = source.GetPixels();
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    Color color = pixels[i];
+                    // Navy is blue-dominant; white shirt and yellow tie remain outside the mask.
+                    float mask =
+                        Mathf.SmoothStep(0, 1, Mathf.Clamp01((color.b - color.r) / .045f))
+                        * Mathf.SmoothStep(0, 1, Mathf.Clamp01((color.b - color.g) / .035f));
+                    pixels[i] = new Color(mask, mask, mask, 1);
+                }
+                source.SetPixels(pixels);
+                source.Apply();
+                string path = Art + "/SuitFabricMask.png";
+                File.WriteAllBytes(path, source.EncodeToPNG());
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.sRGBTexture = false;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.SaveAndReimport();
+                var upper = AssetDatabase.LoadAssetAtPath<Material>(Art + "/Suit_Navy_Upper.mat");
+                var pants = AssetDatabase.LoadAssetAtPath<Material>(Art + "/Suit_Navy_Pants.mat");
+                upper.shader = shader;
+                upper.SetTexture("_FabricMask", AssetDatabase.LoadAssetAtPath<Texture2D>(path));
+                // Median navy swatches from the two source atlases, converted to linear light.
+                Color jacketSwatch = new Color(53f / 255, 62f / 255, 86f / 255).linear;
+                Color pantsSwatch = new Color(38f / 255, 56f / 255, 89f / 255).linear;
+                upper.SetVector(
+                    "_FabricTint",
+                    new Vector4(
+                        pantsSwatch.r / jacketSwatch.r,
+                        pantsSwatch.g / jacketSwatch.g,
+                        pantsSwatch.b / jacketSwatch.b,
+                        1
+                    )
+                );
+                upper.SetFloat("_Smoothness", pants.GetFloat("_Smoothness"));
+                upper.SetFloat("_Metallic", pants.GetFloat("_Metallic"));
+                EditorUtility.SetDirty(upper);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                Object.DestroyImmediate(source);
+            }
+        }
+
         public static void UpdateUpperFit()
         {
             var data = JsonUtility.FromJson<Wardrobe>(
@@ -523,7 +581,12 @@ namespace A305.EditorTools.Characters
             EditorSceneManager.OpenScene(ScenePath);
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
             bool pantsFit = Environment.GetEnvironmentVariable("PASSERBY_PANTS_FIT") == "1";
-            if (pantsFit || Environment.GetEnvironmentVariable("PASSERBY_SHOW_BODY") == "1")
+            bool upperFit = Environment.GetEnvironmentVariable("PASSERBY_UPPER_FIT") == "1";
+            if (
+                pantsFit
+                || upperFit
+                || Environment.GetEnvironmentVariable("PASSERBY_SHOW_BODY") == "1"
+            )
             {
                 var body = face.GetComponentsInChildren<SkinnedMeshRenderer>()
                     .Single(r => r.sharedMesh.vertexCount == 8782);
@@ -532,13 +595,20 @@ namespace A305.EditorTools.Characters
                 );
             }
             var camera = Object.FindFirstObjectByType<Camera>();
-            if (pantsFit)
+            if (pantsFit || upperFit)
             {
                 foreach (var renderer in face.GetComponentsInChildren<SkinnedMeshRenderer>())
-                    if (renderer.name == "Suit_Navy_Upper" || renderer.name.StartsWith("Hair_"))
+                    if (
+                        (pantsFit && renderer.name == "Suit_Navy_Upper")
+                        || renderer.name.StartsWith("Hair_")
+                    )
                         renderer.enabled = false;
             }
-            var center = new Vector3(0, pantsFit ? .29f : .87f, 0);
+            var center = new Vector3(0, .87f, 0);
+            if (pantsFit)
+                center.y = .29f;
+            else if (upperFit)
+                center.y = .60f;
             foreach (int yaw in new[] { 0, -35, 35, 90, 180 })
             {
                 ConfigureCamera(
@@ -546,7 +616,7 @@ namespace A305.EditorTools.Characters
                     center + Quaternion.Euler(0, yaw, 0) * new Vector3(-3, .12f, 0),
                     center
                 );
-                if (pantsFit)
+                if (pantsFit || upperFit)
                     camera.orthographicSize = .34f;
                 SaveFrame(face.gameObject, camera, Path.Combine(output, "rest_" + yaw + ".png"));
             }

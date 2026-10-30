@@ -67,6 +67,15 @@ class UnityJobSelectionTests(unittest.TestCase):
             with self.subTest(job=job_name):
                 self.assertTrue(self.selects_job(job_name, changed_paths))
 
+    def test_editor_and_build_jobs_use_the_same_resource_group(self):
+        template_group = self.jobs[".unity-editor"].get("resource_group")
+        for job_name in ("unity:editor-tests", "unity:editor-and-webgl"):
+            with self.subTest(job=job_name):
+                self.assertEqual(
+                    self.jobs[job_name].get("resource_group", template_group),
+                    "a305-unity-editor",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -70,6 +70,11 @@ public class Turn extends BaseEntity {
   @Column(length = 30)
   private String guardErrorCode;
 
+  // 의도 판정이 고른 대화 사건(JSON 문자열 배열). 워커가 보내지 않았거나 NPC 턴이면 null이다.
+  @Column(columnDefinition = "jsonb")
+  @ColumnTransformer(write = "?::jsonb")
+  private String events;
+
   @Column(columnDefinition = "text")
   private String meaningKo;
 
@@ -104,7 +109,8 @@ public class Turn extends BaseEntity {
       String sttRawText,
       String translationEn,
       Boolean guardAbusive,
-      String guardErrorCode) {
+      String guardErrorCode,
+      String events) {
     Turn turn = new Turn();
     turn.conversation = conversation;
     turn.seq = seq;
@@ -116,6 +122,7 @@ public class Turn extends BaseEntity {
     turn.translationEn = translationEn;
     turn.guardAbusive = guardAbusive;
     turn.guardErrorCode = guardErrorCode;
+    turn.events = events;
     return turn;
   }
 

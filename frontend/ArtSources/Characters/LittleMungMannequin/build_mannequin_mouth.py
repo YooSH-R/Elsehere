@@ -71,11 +71,8 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
                 posed_outer[key.name].append(key.data[first].co.lerp(key.data[second].co, fraction))
             outer_normals.append(normals[first].lerp(normals[second], fraction).normalized())
     count = len(outer_points)
-    distances = [0.0]
-    for first, second in zip(outer_points, outer_points[1:]+outer_points[:1]):
-        distances.append(distances[-1]+(second-first).length)
     first_angle = math.atan2(outer_points[0].z-CENTER_Z, outer_points[0].y-CENTER_Y)
-    angles = [first_angle+2*math.pi*distance/distances[-1] for distance in distances[:-1]]
+    angles = [first_angle+2*math.pi*index/count for index in range(count)]
 
     fit = np.array([[1, v.y-CENTER_Y, v.z-CENTER_Z, (v.y-CENTER_Y)**2,
                      (v.y-CENTER_Y)*(v.z-CENTER_Z), (v.z-CENTER_Z)**2]
@@ -160,52 +157,144 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
         'mouthSmileLeft': (.022, .0018),
         'mouthSmileRight': (.022, .0018),
     }
+
+    def aperture_point(channel, half_width, half_height, angle):
+        cosine, sine = math.cos(angle), math.sin(angle)
+        exponent = .75 if channel in ('viseme_AA', 'viseme_E', 'viseme_I', 'viseme_EU', 'viseme_PP') else 1
+        y = CENTER_Y+half_width*math.copysign(abs(cosine)**exponent, cosine)
+        z = CENTER_Z+half_height*math.copysign(abs(sine)**exponent, sine)
+        if channel == 'viseme_FF':
+            z += .005*(1-cosine*cosine)
+        if channel in ('Basis', 'mouthSmileLeft', 'mouthSmileRight'):
+            z += .004*cosine*cosine
+        if channel.startswith('mouthSmile'):
+            side = 1 if channel.endswith('Left') else -1
+            z += .003*max(0, side*cosine)
+        return y, z
+
+    def cross_2d(first, second):
+        return first.x*second.y-first.y*second.x
+
+    def ray_boundary(start, outward, contour):
+        intersections = []
+        for first, second in zip(contour, contour[1:]+contour[:1]):
+            edge_start = Vector((first.y, first.z))
+            edge = Vector((second.y-first.y, second.z-first.z))
+            denominator = cross_2d(outward, edge)
+            if abs(denominator) < 1e-10:
+                continue
+            offset = edge_start-start
+            distance = cross_2d(offset, edge)/denominator
+            along = cross_2d(offset, outward)/denominator
+            if distance > 0 and 0 <= along <= 1:
+                intersections.append((distance, first.lerp(second, along)))
+        if not intersections:
+            raise ValueError('Lip surface must stay inside the preserved face boundary.')
+        return min(intersections, key=lambda item: item[0])
+
+    # Keep the outside patch stationary during speech; a fixed support contour
+    # separates the irregular source boundary from the animated lip surface.
+    support_scales = []
+    for angle in angles:
+        direction = Vector((.034*math.cos(angle), .021*math.sin(angle)))
+        distance, _ = ray_boundary(Vector((CENTER_Y, CENTER_Z)), direction.normalized(), outer_points)
+        support_scales.append(min(1, .9*distance/direction.length))
+    for _ in range(4):
+        support_scales = [min(scale, (support_scales[(i-1)%count]+2*scale+support_scales[(i+1)%count])/4)
+                          for i, scale in enumerate(support_scales)]
+    support = []
+    for angle, scale in zip(angles, support_scales):
+        y, z = CENTER_Y+.034*math.cos(angle)*scale, CENTER_Z+.021*math.sin(angle)*scale
+        support.append(Vector((fitted_x(y, z), y, z)))
+
     parts = []
     for part_name, rings in [('SpeakingLips', [1, .6, .25, .1, .04, 0]),
                              ('MouthInterior', [1, .8, .5, .2, 0])]:
         targets, target_normals = {}, {}
         for channel, (half_width, half_height) in apertures.items():
+            aperture = [aperture_point(channel, half_width, half_height, angle) for angle in angles]
+            purse = {'viseme_OH': .002, 'viseme_OU': .006}.get(channel, 0)
+            # Parameterize a convex opening first, then bend its centerline into
+            # the smile. Radial strips around an already bent thin crescent fold.
+            exponent = .75 if channel in ('viseme_AA', 'viseme_E', 'viseme_I', 'viseme_EU', 'viseme_PP') else 1
+            unbent = [(point[0], CENTER_Z+half_height*math.copysign(abs(math.sin(angle))**exponent, math.sin(angle)))
+                      for point, angle in zip(aperture, angles)]
+            directions, limits, hits = [], [], []
+            for index, angle in enumerate(angles):
+                start = Vector(unbent[index])
+                hit = support[index]
+                offset = Vector((hit.y, hit.z))-start
+                limit = offset.length
+                if limit < .0001:
+                    raise ValueError('The mouth aperture must fit inside its support contour.')
+                directions.append(offset.normalized())
+                limits.append(limit)
+                hits.append(hit)
+            widths = [min(.008, limit*.55) for limit in limits]
+            if channel.startswith('mouthSmile'):
+                side = 1 if channel.endswith('Left') else -1
+                widths = [width*(1-.5*max(0, side*math.cos(angle))**2)
+                          for width, angle in zip(widths, angles)]
+            # Conservatively soften width changes where the source boundary indents.
+            for _ in range(3):
+                widths = [min(width, (widths[(i-1)%count]+2*width+widths[(i+1)%count])/4)
+                          for i, width in enumerate(widths)]
+
+            def lip_surface(index, distance):
+                inner_y, inner_z = unbent[index]
+                width = widths[index]
+                direction = directions[index]
+                y, z = inner_y+direction.x*distance, inner_z+direction.y*distance
+                outer = hits[index]
+                fraction = distance/limits[index]
+                lateral = max(-1, min(1, (y-CENTER_Y)/half_width))
+                center_offset = 0.0
+                if channel in ('Basis', 'mouthSmileLeft', 'mouthSmileRight'):
+                    center_offset = .004*lateral*lateral
+                if channel.startswith('mouthSmile'):
+                    side = 1 if channel.endswith('Left') else -1
+                    center_offset += .003*max(0, side*lateral)
+                if channel == 'viseme_FF':
+                    center_offset = .005*(1-lateral*lateral)
+                # A shared vertical shear preserves the narrow lip loops. Fade
+                # the smile only beyond the fold, in the stationary skin margin.
+                fade = min(1, max(0, (distance-width)/(limits[index]-width)))
+                fade = fade*fade*(3-2*fade)
+                z += center_offset*(1-fade)
+                x = fitted_x(y, z)+(outer.x-fitted_x(outer.y, outer.z))*fraction**2-purse*(1-fraction)**2
+                if 0 < distance < width:
+                    sine = math.sin(angles[index])
+                    # Smooth across the corners while retaining upper/lower peaks.
+                    height = (.0025-.0003*sine)*(.25+.75*sine*sine)
+                    x -= height*math.sin(math.pi*distance/width)**2
+                return Vector((x, y, z))
+
             points, shading = [], []
-            for ring in rings:
+            for ring_index, ring in enumerate(rings):
                 for index, angle in enumerate(angles):
                     cosine, sine = math.cos(angle), math.sin(angle)
-                    exponent = .75 if channel in ('viseme_AA', 'viseme_E', 'viseme_I', 'viseme_EU', 'viseme_PP') else 1
-                    inner_y = CENTER_Y+half_width*math.copysign(abs(cosine)**exponent, cosine)
-                    inner_z = CENTER_Z+half_height*math.copysign(abs(sine)**exponent, sine)
-                    if channel == 'viseme_FF':
-                        inner_z += .005*(1-cosine*cosine)
-                    smiling = channel in ('Basis', 'mouthSmileLeft', 'mouthSmileRight')
-                    if smiling:
-                        inner_z += .004*(math.cos(angle)**2)
-                    if channel.startswith('mouthSmile'):
-                        side = 1 if channel.endswith('Left') else -1
-                        inner_z += .003*max(0, side*math.cos(angle))
+                    inner_y, inner_z = aperture[index]
                     if part_name == 'SpeakingLips':
-                        outer = posed_outer[channel][index]
-                        y = inner_y*(1-ring)+outer.y*ring
-                        z = inner_z*(1-ring)+outer.z*ring
-                        purse = {'viseme_OH': .002, 'viseme_OU': .006}.get(channel, 0)
-                        x = fitted_x(y, z)+(outer.x-fitted_x(outer.y, outer.z))*ring-purse*(1-ring)**2
-                        # Sculpt a soft, skin-colored lip fold in the existing
-                        # continuous skin surface, not a painted outline. Both ends
-                        # meet the unchanged aperture and surrounding face.
-                        outward_y, outward_z = outer.y-inner_y, outer.z-inner_z
-                        span = max(.00001, math.hypot(outward_y, outward_z))
-                        distance = span * ring
-                        fold_width = .008
-                        fold_height = (.0022 if sine >= 0 else .0028)*(.25+.75*abs(sine))
-                        fold_slope = 0.0
-                        if distance < fold_width:
-                            phase = math.pi * distance / fold_width
-                            x -= fold_height * math.sin(phase)**2
-                            fold_slope = -fold_height * math.pi / fold_width * math.sin(2*phase)
-                        local_y, local_z = y-CENTER_Y, z-CENTER_Z
-                        slope_y = coefficients[1]+2*coefficients[3]*local_y+coefficients[4]*local_z
-                        slope_z = coefficients[2]+coefficients[4]*local_y+2*coefficients[5]*local_z
-                        slope_y += fold_slope * outward_y / span
-                        slope_z += fold_slope * outward_z / span
-                        surface_normal = Vector((-1, slope_y+purse*40*cosine*(1-ring), slope_z+purse*40*sine*(1-ring))).normalized()
-                        normal = surface_normal.lerp(outer_normals[index], ring).normalized()
+                        # Align the crest and shoulders by physical distance from
+                        # the aperture, independent of the jagged source boundary.
+                        width = widths[index]
+                        distance = [0, width*1.25, width,
+                                    width/2, width*.2, 0][ring_index]
+                        point = lip_surface(index, distance)
+                        previous = lip_surface((index-1)%count, distance)
+                        following = lip_surface((index+1)%count, distance)
+                        radial = lip_surface(index, distance+.00001)-lip_surface(index, max(0, distance-.00001))
+                        normal = (following-previous).cross(radial).normalized()
+                        if ring_index == 0:
+                            point = posed_outer[channel][index]
+                            normal = outer_normals[index]
+                        elif ring_index == 1:
+                            point = support[index]
+                            local_y, local_z = point.y-CENTER_Y, point.z-CENTER_Z
+                            slope_y = coefficients[1]+2*coefficients[3]*local_y+coefficients[4]*local_z
+                            slope_z = coefficients[2]+coefficients[4]*local_y+2*coefficients[5]*local_z
+                            normal = Vector((-1, slope_y, slope_z)).normalized()
+                        x, y, z = point
                     else:
                         y = CENTER_Y+(inner_y-CENTER_Y)*ring
                         z = CENTER_Z+(inner_z-CENTER_Z)*ring
@@ -216,11 +305,31 @@ def build_speaking_mouth(body, source, vertices, normals, triangles, texture, ou
                     shading.append(normal)
             targets[channel], target_normals[channel] = points, shading
         faces = []
-        for ring_index in range(len(rings)-1):
-            for index in range(count):
-                next_index = (index+1)%count
-                first, second = ring_index*count, (ring_index+1)*count
-                faces.append((first+index, second+index, second+next_index, first+next_index))
+        if part_name == 'SpeakingLips':
+            # The source cut is concave. Constrained triangulation joins it to
+            # the smooth lip loops without the old crossed radial strips.
+            coordinates = [Vector((point.y, point.z)) for point in targets['Basis'][:count*2]]
+            edges = [(r*count+i, r*count+(i+1)%count) for r in range(2) for i in range(count)]
+            result = geometry.delaunay_2d_cdt(coordinates, edges, [list(range(count))], 1, 1e-8)
+            if any(len(ids) != 1 for ids in result[3]):
+                raise ValueError('Lip contours intersect or merge; refuse an invalid surface.')
+            for triangle in result[2]:
+                ids = [result[3][i][0] for i in triangle]
+                if all(i >= count for i in ids):
+                    continue
+                # CDT is counterclockwise in yz; the visible face points towards -X.
+                faces.append(tuple(reversed(ids)))
+            for ring_index in range(1, len(rings)-1):
+                for index in range(count):
+                    next_index = (index+1)%count
+                    first, second = ring_index*count, (ring_index+1)*count
+                    faces.append((first+index, second+index, second+next_index, first+next_index))
+        else:
+            for ring_index in range(len(rings)-1):
+                for index in range(count):
+                    next_index = (index+1)%count
+                    first, second = ring_index*count, (ring_index+1)*count
+                    faces.append((first+index, second+index, second+next_index, first+next_index))
         mesh = bpy.data.meshes.new(part_name)
         mesh.from_pydata(targets['Basis'], [], faces)
         mesh.update()

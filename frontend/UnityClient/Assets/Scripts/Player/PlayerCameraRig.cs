@@ -133,7 +133,10 @@ namespace A305.Player
                 && rotateHoldAction.action.IsPressed()
             )
             {
-                turn += lookAction.action.ReadValue<Vector2>();
+                turn += PointerDeltaScale.ToLogicalPixels(
+                    lookAction.action.ReadValue<Vector2>(),
+                    BrowserPointer.DevicePixelRatio
+                );
             }
 
             orbit.Rotate(turn);

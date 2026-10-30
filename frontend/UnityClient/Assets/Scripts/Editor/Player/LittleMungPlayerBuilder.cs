@@ -22,7 +22,7 @@ namespace A305.EditorTools.Player
         private const string MovementSettingsPath = DataFolder + "/Movement.asset";
         private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const float JumpHeightMeters = 0.675f;
-        private const float CameraRotateDegreesPerPixel = 0.1f;
+        private const float CameraRotateDegreesPerPixel = 0.15f;
 
         // 빠르게 방향을 바꾸면 카메라가 등 뒤로 크게 돌아 뒤로 가는데 앞으로 가는 것처럼 보여 끈다.
         private const float CameraFollowBehindSharpness = 0f;

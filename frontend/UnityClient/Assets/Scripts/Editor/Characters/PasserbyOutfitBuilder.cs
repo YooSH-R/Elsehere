@@ -157,6 +157,49 @@ namespace A305.EditorTools.Characters
             AssetDatabase.SaveAssets();
         }
 
+        public static void ApplyHairAndPants()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var data = JsonUtility.FromJson<Wardrobe>(
+                File.ReadAllText(SourceFolder + "/HairPantsParts.json")
+            );
+            var npc = PrefabUtility.LoadPrefabContents(NpcPath);
+            try
+            {
+                var visual = npc.transform.Find("Visual").gameObject;
+                var body = visual
+                    .GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(r => r.sharedMesh.vertexCount == 8782);
+                var bones = body.bones.ToDictionary(b => b.name);
+                foreach (var part in data.parts)
+                {
+                    string slotName =
+                        part.name.StartsWith("Hair_", StringComparison.Ordinal) ? "HairSlot"
+                        : part.name == "Suit_Navy_Pants" ? "PantsSlot"
+                        : throw new InvalidDataException("Unexpected wardrobe part: " + part.name);
+                    var slot = npc.GetComponentsInChildren<Transform>(true)
+                        .Single(t => t.name == slotName);
+                    var old = slot.Find(part.name);
+                    if (old != null)
+                        Object.DestroyImmediate(old.gameObject);
+                    CreatePart(
+                        visual,
+                        data.boneNames.Select(n => bones[n]).ToArray(),
+                        body.rootBone,
+                        part
+                    );
+                    visual.transform.Find(part.name).SetParent(slot, true);
+                }
+                SetUpperCoverage(npc);
+                PrefabUtility.SaveAsPrefabAsset(npc, NpcPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(npc);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
         public static void UpdateUpperFit()
         {
             var data = JsonUtility.FromJson<Wardrobe>(
@@ -232,10 +275,20 @@ namespace A305.EditorTools.Characters
             };
             // Keep skin visible inside open cuffs and below a moving jacket hem.
             // Masking only by height used to erase the wrist along with the sleeve.
+            bool hasPants = npc.GetComponentsInChildren<SkinnedMeshRenderer>()
+                .Any(r => r.name == "Suit_Navy_Pants" && r.enabled);
             bool IsCovered(int index) =>
-                vertices[index].y > .46f
-                && vertices[index].y < .753f
-                && wrists.All(wrist => Vector3.Distance(vertices[index], wrist) > .085f);
+                (
+                    vertices[index].y > .46f
+                    && vertices[index].y < .753f
+                    && wrists.All(wrist => Vector3.Distance(vertices[index], wrist) > .085f)
+                )
+                || (
+                    hasPants
+                    && vertices[index].y > .155f
+                    && vertices[index].y <= .46f
+                    && Mathf.Abs(vertices[index].z) < .22f
+                );
             var mesh = body.sharedMesh;
             var triangles = mesh.triangles;
             var uv = mesh.uv;
@@ -402,7 +455,19 @@ namespace A305.EditorTools.Characters
                 AssetDatabase.CreateAsset(mesh, meshPath);
             else
             {
-                EditorUtility.CopySerialized(mesh, existing);
+                // CopySerialized does not reliably replace a Mesh's native vertex
+                // buffers. Replace geometry through the Mesh API while preserving GUIDs.
+                existing.Clear();
+                existing.indexFormat = mesh.indexFormat;
+                existing.vertices = mesh.vertices;
+                existing.triangles = mesh.triangles;
+                existing.uv = mesh.uv;
+                existing.boneWeights = mesh.boneWeights;
+                existing.bindposes = mesh.bindposes;
+                existing.normals = mesh.normals;
+                existing.tangents = mesh.tangents;
+                existing.bounds = mesh.bounds;
+                EditorUtility.SetDirty(existing);
                 Object.DestroyImmediate(mesh);
                 mesh = existing;
             }

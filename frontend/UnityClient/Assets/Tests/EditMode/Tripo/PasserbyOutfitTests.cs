@@ -12,6 +12,170 @@ namespace A305.Tripo.Tests
         private const string BasePath =
             "Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Male_170.prefab";
 
+        [System.Serializable]
+        private sealed class WardrobeGeometry
+        {
+            public PartGeometry[] parts;
+        }
+
+        [System.Serializable]
+        private sealed class PartGeometry
+        {
+            public string name;
+            public Vector3[] vertices;
+            public int[] triangles;
+        }
+
+        [Test]
+        public void SavedWardrobeGeometryMatchesTheFittedSource()
+        {
+            var data = JsonUtility.FromJson<WardrobeGeometry>(
+                System.IO.File.ReadAllText(
+                    "../ArtSources/Characters/LittleMungPasserby/HairPantsParts.json"
+                )
+            );
+            foreach (var part in data.parts)
+            {
+                var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(
+                    "Assets/Art/Characters/Common/LittleMungPasserby/" + part.name + ".asset"
+                );
+                Assert.That(mesh.vertexCount, Is.EqualTo(part.vertices.Length), part.name);
+                CollectionAssert.AreEqual(part.triangles, mesh.triangles, part.name);
+                Assert.That(mesh.triangles.All(i => i >= 0 && i < mesh.vertexCount), Is.True);
+                var instance = Object.Instantiate(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(
+                        Folder + "LittleMung_Passerby_Male.prefab"
+                    )
+                );
+                try
+                {
+                    var skin = instance
+                        .GetComponentsInChildren<SkinnedMeshRenderer>()
+                        .Single(r => r.name == part.name);
+                    var vertices = mesh.vertices;
+                    for (int i = 0; i < vertices.Length; i++)
+                        Assert.That(
+                            Vector3.Distance(
+                                skin.transform.TransformPoint(vertices[i]),
+                                part.vertices[i]
+                            ),
+                            Is.LessThan(.00001f),
+                            part.name + " fitted position " + i
+                        );
+                }
+                finally
+                {
+                    Object.DestroyImmediate(instance);
+                }
+            }
+        }
+
+        [Test]
+        public void HairAndPantsUseBaseBonesWithoutChangingFaceOrSpeech()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                Folder + "LittleMung_Passerby_Male.prefab"
+            );
+            var instance = Object.Instantiate(prefab);
+            try
+            {
+                var animator = instance.GetComponentInChildren<Animator>();
+                var skins = instance.GetComponentsInChildren<SkinnedMeshRenderer>();
+                var hair = skins.SingleOrDefault(s => s.name == "Hair_SidePart_Brown");
+                var pants = skins.SingleOrDefault(s => s.name == "Suit_Navy_Pants");
+                Assert.That(hair, Is.Not.Null, "Generated hair is not fitted to HairSlot");
+                Assert.That(pants, Is.Not.Null, "Generated pants are not fitted to PantsSlot");
+                Assert.That(
+                    hair.transform.IsChildOf(animator.GetBoneTransform(HumanBodyBones.Head)),
+                    Is.True
+                );
+                Assert.That(pants.transform.parent.name, Is.EqualTo("PantsSlot"));
+                foreach (var skin in new[] { hair, pants })
+                {
+                    Assert.That(skin.sharedMaterial.GetTexture("_BaseMap"), Is.Not.Null);
+                    Assert.That(
+                        skin.sharedMesh.boneWeights.Length,
+                        Is.EqualTo(skin.sharedMesh.vertexCount)
+                    );
+                    foreach (var row in skin.sharedMesh.boneWeights)
+                    {
+                        var indices = new[]
+                        {
+                            row.boneIndex0,
+                            row.boneIndex1,
+                            row.boneIndex2,
+                            row.boneIndex3,
+                        };
+                        var weights = new[] { row.weight0, row.weight1, row.weight2, row.weight3 };
+                        Assert.That(weights.Sum(), Is.EqualTo(1).Within(.0001f));
+                        for (int k = 0; k < 4; k++)
+                        {
+                            if (weights[k] <= .00001f)
+                                continue;
+                            var bone = skin.bones[indices[k]];
+                            Assert.That(bone.IsChildOf(instance.transform), Is.True);
+                            if (skin == hair)
+                                Assert.That(
+                                    bone,
+                                    Is.SameAs(animator.GetBoneTransform(HumanBodyBones.Head))
+                                );
+                            else
+                                Assert.That(
+                                    new[]
+                                    {
+                                        "Hips",
+                                        "Spine",
+                                        "Left_UpperLeg",
+                                        "Right_UpperLeg",
+                                        "Left_LowerLeg",
+                                        "Right_LowerLeg",
+                                    },
+                                    Does.Contain(bone.name)
+                                );
+                        }
+                    }
+                }
+                var face = instance.GetComponentInChildren<CharacterFaceController>();
+                foreach (CharacterFacePose pose in System.Enum.GetValues(typeof(CharacterFacePose)))
+                    Assert.DoesNotThrow(() => face.SetPose(pose));
+                var timeline = SpeechVisemeTimeline.Parse(
+                    JsonUtility.ToJson(
+                        new SpeechVisemeData
+                        {
+                            version = 2,
+                            provider = "windows-sapi-en-US",
+                            duration = 1,
+                            phonemes = new[]
+                            {
+                                new SpeechPhonemeCue
+                                {
+                                    start = 0,
+                                    end = 1,
+                                    phoneme = "aa",
+                                },
+                            },
+                        }
+                    ),
+                    1
+                );
+                face.ApplySpeech(timeline.SampleArticulation(.2f), .3f, .7f);
+                var lips = skins.Single(s => s.sharedMesh.name == "SpeakingLips");
+                Assert.That(
+                    lips.GetBlendShapeWeight(lips.sharedMesh.GetBlendShapeIndex("viseme_AA")),
+                    Is.GreaterThan(10)
+                );
+                var lid = skins.Single(s => s.sharedMesh.name == "UpperLeftLid");
+                Assert.That(
+                    lid.GetBlendShapeWeight(lid.sharedMesh.GetBlendShapeIndex("eyeBlinkLeft")),
+                    Is.GreaterThan(0)
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance);
+            }
+        }
+
         [Test]
         public void OutfitInheritsBaseFaceAndUsesOnlyItsSkeleton()
         {

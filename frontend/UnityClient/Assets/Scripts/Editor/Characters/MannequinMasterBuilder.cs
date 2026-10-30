@@ -32,6 +32,15 @@ namespace A305.EditorTools.Characters
             public string name;
             public Vector3[] deltaVertices;
             public Vector3[] deltaNormals;
+            public ShapeFrame[] frames = Array.Empty<ShapeFrame>();
+        }
+
+        [Serializable]
+        private sealed class ShapeFrame
+        {
+            public float weight;
+            public Vector3[] deltaVertices;
+            public Vector3[] deltaNormals;
         }
 
         [Serializable]
@@ -134,6 +143,33 @@ namespace A305.EditorTools.Characters
         {
             foreach (var shape in shapes)
             {
+                if (shape.frames.Length > 0)
+                {
+                    float previous = 0;
+                    foreach (var frame in shape.frames)
+                    {
+                        if (
+                            !float.IsFinite(frame.weight)
+                            || frame.weight <= previous
+                            || frame.weight > 100
+                            || frame.deltaVertices.Length != mesh.vertexCount
+                        )
+                            throw new InvalidOperationException(
+                                "Invalid authored blink frame: " + shape.name
+                            );
+                        mesh.AddBlendShapeFrame(
+                            shape.name,
+                            frame.weight,
+                            frame.deltaVertices,
+                            frame.deltaNormals.Length == mesh.vertexCount
+                                ? frame.deltaNormals
+                                : null,
+                            null
+                        );
+                        previous = frame.weight;
+                    }
+                    continue;
+                }
                 if (shape.deltaVertices.Length != mesh.vertexCount)
                     throw new InvalidOperationException("Shape topology mismatch: " + shape.name);
                 if (!shape.deltaVertices.Any(v => v.sqrMagnitude > 1e-12f))
@@ -167,26 +203,55 @@ namespace A305.EditorTools.Characters
             mesh.ClearBlendShapes();
             AddShapes(mesh, data.shapes);
             EditorUtility.SetDirty(mesh);
-            foreach (var part in data.parts)
+            string visualPath = ArtFolder + "/LittleMung_Base_Female_Visual.prefab";
+            var visual = PrefabUtility.LoadPrefabContents(visualPath);
+            try
             {
-                var existing = AssetDatabase.LoadAssetAtPath<Mesh>(
-                    ArtFolder + "/" + part.name + ".asset"
-                );
-                if (existing == null || existing.vertexCount != part.vertices.Length)
-                    throw new InvalidOperationException(
-                        "The authored part topology changed: " + part.name
+                var body = visual
+                    .GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(s => s.sharedMesh == mesh);
+                int head = Array.FindIndex(body.bones, b => b.name == "Head");
+                if (head < 0)
+                    throw new InvalidOperationException("The master has no Head bone.");
+                foreach (var part in data.parts)
+                {
+                    var existing = AssetDatabase.LoadAssetAtPath<Mesh>(
+                        ArtFolder + "/" + part.name + ".asset"
                     );
-                existing.vertices = part.vertices;
-                existing.triangles = part.triangles;
-                existing.RecalculateNormals();
-                if (part.normals.Length == existing.vertexCount)
-                    existing.normals = part.normals;
-                if (part.uv.Length == existing.vertexCount)
-                    existing.uv = part.uv;
-                existing.RecalculateBounds();
-                existing.ClearBlendShapes();
-                AddShapes(existing, part.shapes);
-                EditorUtility.SetDirty(existing);
+                    if (existing == null)
+                    {
+                        CreatePart(body, part, head);
+                        continue;
+                    }
+                    if (existing.vertexCount != part.vertices.Length)
+                        throw new InvalidOperationException(
+                            "Preserve artist changes to part topology: " + part.name
+                        );
+                    existing.vertices = part.vertices;
+                    existing.triangles = part.triangles;
+                    existing.RecalculateNormals();
+                    if (part.normals.Length == existing.vertexCount)
+                        existing.normals = part.normals;
+                    if (part.uv.Length == existing.vertexCount)
+                        existing.uv = part.uv;
+                    existing.RecalculateBounds();
+                    existing.ClearBlendShapes();
+                    AddShapes(existing, part.shapes);
+                    EditorUtility.SetDirty(existing);
+                }
+                // The former flat closing lines are superseded by the authored
+                // lids. Their assets remain available in version history.
+                foreach (string retired in new[] { "ClosedLeftLid", "ClosedRightLid" })
+                {
+                    var child = body.transform.Find(retired);
+                    if (child != null && !data.parts.Any(p => p.name == retired))
+                        Object.DestroyImmediate(child.gameObject);
+                }
+                PrefabUtility.SaveAsPrefabAsset(visual, visualPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(visual);
             }
             foreach (
                 string texture in new[] { data.textureFile }

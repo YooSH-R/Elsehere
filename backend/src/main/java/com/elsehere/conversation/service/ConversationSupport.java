@@ -99,13 +99,18 @@ class ConversationSupport {
             .toList());
   }
 
-  private static List<WorkerLine> recentLines(List<Turn> turns) {
+  // 학습자 줄에는 의도 판정이 고른 대화 사건을 함께 보낸다. NPC의 대화 중 기분 계산에 쓰인다.
+  private List<WorkerLine> recentLines(List<Turn> turns) {
     return turns.subList(Math.max(0, turns.size() - HISTORY_LIMIT), turns.size()).stream()
         .map(
             turn ->
                 turn.getSpeaker() == Speaker.NPC
                     ? WorkerLine.npc(turn.getText())
-                    : WorkerLine.learner(turn.getText(), turn.getTranslationEn(), turn.isRude()))
+                    : WorkerLine.learner(
+                        turn.getText(),
+                        turn.getTranslationEn(),
+                        turn.isRude(),
+                        readWords(turn.getEvents())))
         .toList();
   }
 

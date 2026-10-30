@@ -271,6 +271,7 @@ delta*  →  audio*  →  words?  →  done | error
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.
 - 조각 하나의 합성이 `TTS_CHUNK_BUDGET_S`(기본 2.5초)를 넘으면 그 조각은 `tts: false`입니다.
+- `audio`·`delta`의 `text`는 대답 원문(자막)이고, 음성은 읽을 글로 다듬어 합성합니다(2.8절과 같음). 한글만 있는 조각처럼 읽을 것이 없으면 0.2초 무음입니다(`tts: true`).
 - 턴 전체 음성도 워커 메모리에 보관 시간(600초) 동안만 있으니, Spring은 `done`을 받은 뒤 바로 받아 저장합니다.
 
 ### 2.4 `GET /v1/audio/{audio_id}`
@@ -377,6 +378,8 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 ### 2.8 `POST /v1/tts` — 한 문장 합성
 
 요청: `{"text": "...", "voice": "af_heart", "speed": 1.0}`(text 1~400자, speed 0.5~2.0). 응답은 `audio/wav`이고, 헤더 `X-Audio-S`(길이)·`X-Cache`(hit/miss)·`X-Synth-S`(합성 시간)가 붙습니다. 모델이 없으면 503 `tts_unavailable`입니다.
+
+합성 전에 읽을 글로 다듬습니다(`app/speech_text.py`). Kokoro가 `$13`을 "dollar thirteen", `10:00`을 "ten zero zero"로 읽고 별표·한글을 소리 내 읽기 때문입니다. 가격은 `13 dollars`·`8 dollars and 50 cents`로, 시각은 `10 o'clock`·`6 30`·`9 oh 5`(`a.m.`·`p.m.`가 붙으면 `11 a.m.`)로 바꾸고, `*`와 한글은 읽지 않습니다. 다듬은 뒤 읽을 것이 없으면 0.2초 무음 WAV를 돌려줍니다.
 
 ### 2.9 `POST /v1/npc/persona/generate` — NPC 인격 카드 초안 (어드민 랜덤 생성)
 

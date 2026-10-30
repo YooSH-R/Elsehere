@@ -30,6 +30,7 @@ namespace A305.Dialogue
         private VoiceRecorder voiceRecorder;
 
         private readonly NpcSpeechSlot lastSpeech = new NpcSpeechSlot();
+        private int speechRequestVersion;
 
         public bool IsAvailable => useServer && apiSettings != null;
 
@@ -47,21 +48,29 @@ namespace A305.Dialogue
         }
 
         /// <summary>
-        /// NPC 턴 음성을 받아 재생한다. 받지 못하거나 받는 사이 새 대사로 바뀌었으면 재생하지 않고 false를 돌려준다(자막만 보여 준다).
+        /// NPC 턴 음성을 받아 재생한다. 404는 ApiException으로 알리고, 그 밖의 다운로드 실패는 false를 돌려준다.
         /// </summary>
         /// <param name="url">서버가 준 다시 듣기 주소(/api/v1/turns/{id}/speech)</param>
         public async Task<bool> PlaySpeechAsync(string url)
         {
-            StopSpeech();
+            ForgetSpeech();
+            int requestVersion = speechRequestVersion;
             lastSpeech.Expect(url);
             using UnityWebRequest request = UnityWebRequestMultimedia.GetAudioClip(
                 apiSettings.BaseUrl.TrimEnd('/') + url,
                 AudioType.WAV
             );
             await Awaitable.FromAsyncOperation(request.SendWebRequest());
+            if (this == null || requestVersion != speechRequestVersion)
+            {
+                return false;
+            }
+            if (request.responseCode == 404)
+            {
+                throw new ApiException("NOT_FOUND", 404, "음성이 없습니다.");
+            }
             if (
-                this == null
-                || request.result != UnityWebRequest.Result.Success
+                request.result != UnityWebRequest.Result.Success
                 || !lastSpeech.TryFill(url, DownloadHandlerAudioClip.GetContent(request))
             )
             {
@@ -85,12 +94,19 @@ namespace A305.Dialogue
             speechSource.Play();
         }
 
-        /// <summary>
-        /// 새 대사에 음성이 없을 때(합성 실패 등) 지난 대사의 음성을 멈추고 버린다. [다시 듣기]가 지난 대사를 재생하지 않고 음성을 다시 만든다.
-        /// </summary>
+        /// <summary>대사가 바뀌거나 대화를 끝내면 이전 음성과 아직 끝나지 않은 다운로드를 무효화한다.</summary>
         public void ForgetSpeech()
         {
+            speechRequestVersion++;
             StopSpeech();
+            if (speechSource != null)
+            {
+                speechSource.clip = null;
+            }
+            if (lastSpeech.Clip != null)
+            {
+                Destroy(lastSpeech.Clip);
+            }
             lastSpeech.Clear();
         }
 
@@ -100,6 +116,11 @@ namespace A305.Dialogue
             {
                 speechSource.Stop();
             }
+        }
+
+        private void OnDestroy()
+        {
+            ForgetSpeech();
         }
     }
 }

@@ -102,6 +102,15 @@ class DeploymentPlanTest(unittest.TestCase):
         self.assertEqual(plan["checks"], ["ai", "infra"])
         self.assertEqual(plan["builds"], ["ai"])
 
+    def test_shared_image_builder_runs_runtime_checks_without_deploying_applications(
+        self,
+    ):
+        plan = select_deployment_work(["infra/scripts/docker_build.py"])
+
+        self.assertEqual(plan["checks"], ["backend", "infra"])
+        self.assertEqual(plan["builds"], [])
+        self.assertFalse(plan["deploy"])
+
     def test_shared_build_context_exclusion_rebuilds_all_images(self):
         plan = select_deployment_work([".dockerignore"])
 

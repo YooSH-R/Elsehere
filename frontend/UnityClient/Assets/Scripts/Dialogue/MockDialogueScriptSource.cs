@@ -220,6 +220,38 @@ namespace A305.Dialogue
                 ),
                 exampleSentence = "Do you sell umbrellas?",
             },
+            new Entry
+            {
+                npcCode = "TAXI_DRIVER",
+                npcName = "Joe",
+                roleLabel = "택시 기사",
+                opening = new LineEntry(
+                    "Hi there! Where are you headed?",
+                    "안녕하세요! 어디로 가세요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "hotel" },
+                        new LineEntry(
+                            "The hotel? It's just up the street. Hop in!",
+                            "호텔이요? 이 길 바로 위쪽이에요. 타세요!"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry(
+                            "You're welcome! Have a nice day.",
+                            "천만에요! 좋은 하루 보내세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Sure. Please fasten your seat belt.",
+                    "알겠어요. 안전벨트를 매 주세요."
+                ),
+                exampleSentence = "Can you take me to the hotel, please?",
+            },
         };
 
         [SerializeField]

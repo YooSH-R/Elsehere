@@ -25,6 +25,19 @@ namespace A305.Dialogue.Tests
             Assert.That(script.RoleLabel, Is.EqualTo(roleLabel));
         }
 
+        [Test]
+        public void TaxiDriver_AsksWhereToGo()
+        {
+            // 마을 본길에서 택시를 세우면 기사에게 가고 싶은 곳을 영어로 말해 본다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            bool found = scripts.TryGetScript("TAXI_DRIVER", out DialogueScript script);
+
+            Assert.That(found, Is.True);
+            Assert.That(script.RoleLabel, Is.EqualTo("택시 기사"));
+            Assert.That(script.OpeningLine.English, Does.Contain("Where"));
+        }
+
         [TestCase("TUTORIAL_PASSERBY", "이웃")]
         [TestCase("TOWN_PASSERBY", "행인")]
         [TestCase("CAFE_STAFF", "카페 직원")]

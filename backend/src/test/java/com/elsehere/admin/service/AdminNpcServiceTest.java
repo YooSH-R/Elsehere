@@ -61,7 +61,8 @@ class AdminNpcServiceTest {
             tuple("TOWN_PASSERBY", "Ben", "행인", "마을"),
             tuple("CAFE_STAFF", "Mia", "카페 직원", "모퉁이 카페"),
             tuple("HOTEL_STAFF", "Jake", "호텔 직원", "호텔"),
-            tuple("SHOP_STAFF", "Alex", "편의점 직원", "편의점"));
+            tuple("SHOP_STAFF", "Alex", "편의점 직원", "편의점"),
+            tuple("TAXI_DRIVER", "Joe", "택시 기사", "마을"));
   }
 
   @Test

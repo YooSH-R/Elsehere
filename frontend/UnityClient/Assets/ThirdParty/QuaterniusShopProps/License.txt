@@ -1,0 +1,4 @@
+Can Fridge and Shelf Tall by Quaternius (quaternius.com)
+Source: https://poly.pizza/m/8OHbykvREu (Can Fridge), https://poly.pizza/m/TDgvIuorcX (Shelf Tall)
+License: Public Domain, CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+Can Fridge.obj/.mtl were renamed to CanFridge.obj/.mtl to avoid spaces in file names.

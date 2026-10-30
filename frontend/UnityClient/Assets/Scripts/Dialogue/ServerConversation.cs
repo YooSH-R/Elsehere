@@ -64,6 +64,7 @@ namespace A305.Dialogue
 
         /// <summary>화면을 다시 그려야 할 때 알린다.</summary>
         public event Action Changed;
+        public event Action<string> UserTurnAccepted;
 
         /// <summary>NPC가 새로 말했다. 음성 재생에 쓴다.</summary>
         public event Action<NpcTurnData> NpcSpoke;
@@ -177,6 +178,8 @@ namespace A305.Dialogue
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
                     endReason = result.Conversation?.EndReason;
+                    if (!IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
+                        UserTurnAccepted?.Invoke(sent);
                 },
                 () => SendAsync(utterance)
             );

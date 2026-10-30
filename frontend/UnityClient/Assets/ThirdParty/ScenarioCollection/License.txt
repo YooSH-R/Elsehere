@@ -1,0 +1,9 @@
+Scenario 3D Collection
+https://huggingface.co/datasets/scenario-labs/3d-collection
+License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+Credit: "Scenario". All assets in the collection are AI-generated.
+
+IceCreamTruck  example scenario:asset_QJU6sVzUqcAmReiisKB2nh18 ("a cartoon-style toy food truck with a friendly face")
+SleepingFox    example a87b5b04e048c8f0 ("A low-poly red fox curled up asleep, its white-tipped tail wrapped around its body.")
+
+Changes: the original GLB files were converted to OBJ + MTL (+ PNG) for Unity. Geometry, colors and textures are unchanged.

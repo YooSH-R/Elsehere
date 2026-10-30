@@ -56,6 +56,28 @@ def test_no_whole_turn_audio_when_a_chunk_failed(provider):
     assert done["audio_full_id"] is None and done["audio_full_s"] is None
 
 
+def test_late_chunks_still_make_whole_turn_audio(provider):
+    """조각 상한(바로 재생용)을 넘긴 조각도 합성이 끝나면 다시 듣기용 음성에 넣는다 (Spring은 done까지 기다린다)."""
+    provider.answers["npc"] = lambda b: stream(["Sure! ", "One latte. ", "Anything else?"])
+    with make_client(provider, FakeTts(delay=0.5, wav=True), tts_chunk_budget_s=0.1) as c:
+        ev = events(c.post("/v1/npc/reply", json={"npc": NPC, "history": HISTORY, "text": "one latte"}))
+        chunks = [d for name, d in ev if name == "audio"]
+        done = ev[-1][1]
+        # 가짜 합성은 조각을 동시에 만들어 뒤 조각은 상한 안에 끝날 수 있다. 첫 조각은 반드시 늦어 바로 재생은 자막만
+        assert len(chunks) == 3 and not chunks[0]["tts"]
+        assert done["audio_full_id"] is not None
+        full = c.get(f"/v1/audio/{done['audio_full_id']}")
+        assert frames(full.content) == sum(len(c["text"]) * 100 for c in chunks)
+
+
+def test_no_whole_turn_audio_when_a_late_chunk_failed(provider):
+    provider.answers["npc"] = lambda b: stream(["Sure! ", "One latte. ", "Anything else?"])
+    tts = FakeTts(delay=0.5, wav=True, fail_on="One latte.")
+    with make_client(provider, tts, tts_chunk_budget_s=0.1) as c:
+        done = events(c.post("/v1/npc/reply", json={"npc": NPC, "history": HISTORY, "text": "one latte"}))[-1]
+        assert done[0] == "done" and done[1]["audio_full_id"] is None
+
+
 def test_no_whole_turn_audio_without_tts(provider):
     _, done, _ = reply(provider, FakeTts(wav=True), tts=False)
     assert done["audio_full_id"] is None

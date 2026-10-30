@@ -201,7 +201,7 @@ public class FirstDayMissionService {
     return switch (scene) {
       case "HOTEL" -> "호텔로";
       case "CAFE" -> "카페로";
-      case "SHOP" -> "CONVENIENCE STORE 편의점으로";
+      case "SHOP" -> "DRUGSTORE 드럭스토어로";
       default -> "마을 거리로";
     };
   }
@@ -210,7 +210,7 @@ public class FirstDayMissionService {
     return switch (scene) {
       case "HOTEL" -> "the hotel";
       case "CAFE" -> "Corner Cafe";
-      case "SHOP" -> "the CONVENIENCE STORE";
+      case "SHOP" -> "the DRUGSTORE";
       case "TOWN" -> "the main street";
       default ->
           throw new IllegalArgumentException("Unsupported first-day mission scene: " + scene);

@@ -22,7 +22,7 @@
     "GREETING": { "impression": 1 },
     "SMALL_TALK": { "mood": { "PLEASED": 1 }, "memorySalience": 1 },
     "PERSONAL_QUESTION": {},
-    "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -15, "memorySalience": 3 },
+    "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -8, "memorySalience": 3 },
     "APOLOGY": { "mood": { "ANNOYED": -1 }, "impression": 5 },
     "COMPLIMENT": { "mood": { "PLEASED": 2 }, "impression": 5, "memorySalience": 2 },
     "TASK_DONE": { "impression": 2, "memorySalience": 1 },
@@ -30,16 +30,16 @@
   },
   "mood": { "decayPerTurn": 0.5, "showsAt": 1 },
   "relationship": {
-    "recognitionPerConversation": 8,
+    "recognitionPerConversation": 20,
     "seenBefore": 20,
     "regular": 50,
-    "liked": 15,
+    "liked": 10,
     "disliked": -10,
-    "personalTalk": { "recognition": 60, "affinity": 40 },
+    "personalTalk": { "recognition": 50, "affinity": 20 },
     "graceDays": 3,
     "recognitionDropPerDay": 1,
-    "affinityFollowRate": 0.3,
-    "rudeAffinityFallback": -4
+    "affinityFollowRate": 0.75,
+    "rudeAffinityFallback": -6
   },
   "memory": {
     "stabilityDays": { "1": 1, "2": 3, "3": 14 },

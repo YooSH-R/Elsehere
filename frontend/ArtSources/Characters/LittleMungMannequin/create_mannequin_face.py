@@ -179,8 +179,14 @@ oral_parts=[
 for name,color,scale,placements in oral_parts:
     bpy.ops.mesh.primitive_uv_sphere_add(segments=20,ring_count=10)
     ob=bpy.context.object;ob.name=name;unit=[v.co.copy() for v in ob.data.vertices]
-    hidden=Vector((mouth_x(0,.501)+.025,0,.501))
-    for v,u in zip(ob.data.vertices,unit):v.co=hidden+Vector(tuple(u[i]*scale[i] for i in range(3)))
+    # Teeth and tongue rest inside the actual mouth, behind closed lips.
+    # Moving them from far behind the oral cavity made weak speech weights
+    # show a black opening even when the lip/phoneme mapping was correct.
+    rest_z = {'UpperTeeth':.506, 'LowerTeeth':.4965, 'Tongue':.490}.get(name,.501)
+    rest_depth = .025 if name=='ClosedLipCrease' else (.005 if name=='Tongue' else .0035)
+    for v,u in zip(ob.data.vertices,unit):
+        v.co=Vector((0,0,rest_z))+Vector(tuple(u[i]*scale[i] for i in range(3)))
+        v.co.x=mouth_x(v.co.y,v.co.z)+rest_depth+u.x*scale[0]
     mat=bpy.data.materials.new(name);mat.use_nodes=True;mat.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(*color,1);ob.data.materials.append(mat)
     for poly in ob.data.polygons:poly.use_smooth=True
     ob.shape_key_add(name='Basis')

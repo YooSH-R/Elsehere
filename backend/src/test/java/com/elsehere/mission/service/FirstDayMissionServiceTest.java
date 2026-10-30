@@ -54,4 +54,60 @@ class FirstDayMissionServiceTest {
 
     assertThat(service.status(8L).direction()).isEqualTo("DRUGSTORE 드럭스토어로 이동하세요.");
   }
+
+  @Test
+  void weatherBeforeStartIsClear() {
+    when(repository.findById(8L)).thenReturn(Optional.empty());
+
+    assertThat(service.status(8L).weather()).isEqualTo("CLEAR");
+  }
+
+  @Test
+  void weatherFollowsStageWhereverTheLearnerIs() {
+    List<String> expected = List.of("CLEAR", "CLEAR", "CLEAR", "CLOUDY", "RAIN", "RAIN", "RAIN");
+    for (int stage = 0; stage < expected.size(); stage++) {
+      FirstDayMission mission = missionAt(stage);
+      mission.visit("HOTEL");
+      when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+      assertThat(service.status(8L).weather()).as("stage %d", stage).isEqualTo(expected.get(stage));
+    }
+  }
+
+  @Test
+  void rainingStillNeedsTownWhileWeatherIsRain() {
+    FirstDayMission mission = missionAt(4);
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    mission.visit("SHOP");
+    assertThat(service.status(8L).raining()).isFalse();
+    assertThat(service.status(8L).weather()).isEqualTo("RAIN");
+
+    mission.visit("TOWN");
+    assertThat(service.status(8L).raining()).isTrue();
+    assertThat(service.status(8L).weather()).isEqualTo("RAIN");
+  }
+
+  @Test
+  void weatherClearsWhenJourneyIsComplete() {
+    FirstDayMission mission = missionAt(FirstDayStage.values().length);
+    mission.visit("TOWN");
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(mission.isCompleted()).isTrue();
+    assertThat(service.status(8L).weather()).isEqualTo("CLEAR");
+    assertThat(service.status(8L).raining()).isFalse();
+  }
+
+  private static FirstDayMission missionAt(int target) {
+    FirstDayMission mission = FirstDayMission.start(8L);
+    while (mission.getStage() < target) {
+      FirstDayStage current = mission.current();
+      mission.accept(mission.getStage(), current.npc(), current.intentIds());
+      if (mission.getStage() == 1) {
+        mission.restAtCafe();
+      }
+    }
+    return mission;
+  }
 }

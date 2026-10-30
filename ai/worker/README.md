@@ -207,7 +207,7 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 
 - 목소리는 문장 NPC 설정의 `voiceId`, 속도는 `--speed`(기본 1.0, 난이도 1·3은 0.85·1.06)입니다.
 - Whisper 영어 정규화로 숫자·축약 표기를 맞추고, 곡선 따옴표와 붙여 쓰기·띄어 쓰기 차이(haircut ↔ hair cut)는 틀린 것으로 세지 않습니다.
-- Whisper는 어색한 발음도 맞게 받아쓰기 쉽습니다. 예를 들어 Kokoro가 `$4`를 "dollar four"로 읽어도 `$4`로 받아씁니다. 그래서 틀린 곳이 없다고 바르게 읽었다는 뜻은 아닙니다. 틀린 곳이 나온 문장은 wav를 직접 들어 확인합니다.
+- Whisper는 어색한 발음도 맞게 받아쓰기 쉽습니다. 예를 들어 읽을 글 다듬기(`app/speech_text.py`)를 넣기 전 Kokoro는 `$4`를 "dollar four"로 읽었는데, Whisper는 이를 `$4`로 받아썼습니다. 그래서 틀린 곳이 없다고 바르게 읽었다는 뜻은 아닙니다. 틀린 곳이 나온 문장은 wav를 직접 들어 확인합니다.
 
 ## 검사
 
@@ -236,6 +236,8 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
+- `tests/test_speech_text.py`: 음성으로 읽을 글 다듬기(`app/speech_text.py`) — 가격(`$13` → 13 dollars, 센트·단수·쉼표), 시각(`10:00` → 10 o'clock, `9:05` → 9 oh 5, a.m.·p.m.), 별표, 한글은 자막으로만(남은 문장 부호 정리), 평범한 영어는 그대로, 읽을 게 없으면 빈 글. Kokoro가 다듬은 글을 음소로 엔진에 넘기고, 읽을 게 없으면 엔진 없이 같은 형식의 짧은 무음
+- `tests/test_pronunciation.py`: 발음 사전(`app/pronunciation.py`) — 사전 단어는 적어 둔 음소, 나머지는 음소화, 대소문자 무관·단어 경계(honest의 hon은 아님), 여러 단어 항목(café au lait), 사전 단어가 없으면 글 전체를 한 번에 음소화, 사전 음소가 Kokoro 어휘 기호만 쓰는지
 - `tests/test_tts_roundtrip.py`: 음성 합성 왕복 평가(`ai/tools/tts_roundtrip.py`)의 채점 — 곡선 따옴표는 곧은 것으로 바꿔 정규화, 대소문자·문장 부호 무시, 붙여 쓰기·띄어 쓰기 차이, 이어서 틀린 단어를 한 덩어리로, 태그별 WER(단어 수 가중), 평가 문장 파일(id 중복·NPC·태그)
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, 음성 합성 스레드 수(`KOKORO_THREADS`), GPT-5 요청 칸
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행

@@ -37,7 +37,6 @@ unity:format:
   stage: verify
   timeout: 1h
   needs: []
-  resource_group: a305-unity-editor
   variables:
     GIT_STRATEGY: fetch
     GIT_CLEAN_FLAGS: '-ffdx -e frontend/UnityClient/Library/'

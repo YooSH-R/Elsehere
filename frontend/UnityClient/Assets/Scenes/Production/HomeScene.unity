@@ -2872,6 +2872,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1700707448}
   - component: {fileID: 1700707449}
+  - component: {fileID: 1700707450}
   m_Layer: 0
   m_Name: SpaceArrival
   m_TagString: Untagged
@@ -2908,6 +2909,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.World::A305.World.SpaceArrival
   player: {fileID: 808809279}
   cameraRig: {fileID: 71672427}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
+--- !u!114 &1700707450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700707447}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54a395ba488c7484286802e6d75c2a43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.World::A305.World.GameClockDriver
   apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1001 &1794782396
 PrefabInstance:

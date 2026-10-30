@@ -149,11 +149,11 @@ MonoBehaviour:
     exampleSentence: I'd like to check in, please.
   - npcCode: SHOP_STAFF
     npcName: Alex
-    roleLabel: "\uD3B8\uC758\uC810 \uC9C1\uC6D0"
+    roleLabel: "\uB4DC\uB7ED\uC2A4\uD1A0\uC5B4 \uC9C1\uC6D0"
     opening:
-      english: Hi! Welcome to the convenience store. Can I help you find something?
-      korean: "\uC548\uB155\uD558\uC138\uC694! \uD3B8\uC758\uC810\uC5D0 \uC624\uC2E0
-        \uAC78 \uD658\uC601\uD574\uC694. \uCC3E\uC73C\uC2DC\uB294 \uBB3C\uAC74\uC774
+      english: Hi! Welcome to the drugstore. Can I help you find something?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uB4DC\uB7ED\uC2A4\uD1A0\uC5B4\uC5D0
+        \uC624\uC2E0 \uAC78 \uD658\uC601\uD574\uC694. \uCC3E\uC73C\uC2DC\uB294 \uBB3C\uAC74\uC774
         \uC788\uB098\uC694?"
     guidedTurns: []
     keywordReplies:

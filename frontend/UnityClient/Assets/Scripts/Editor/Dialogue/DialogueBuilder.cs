@@ -100,10 +100,40 @@ namespace A305.EditorTools.Dialogue
                         existing.FindPropertyRelative("roleLabel").stringValue = roleLabel;
                     }
                 }
+                if (existing != null)
+                    ReplaceRetiredTexts(existing);
             }
 
             fields.ApplyModifiedPropertiesWithoutUndo();
             Object.DestroyImmediate(examples);
+        }
+
+        // 상점을 편의점에서 드럭스토어로 바꿨다. 예전 기본값 그대로인 칸만 새 이름으로 고치고 직접 고친 대사는 둔다.
+        private static readonly (string Old, string Current)[] RetiredTexts =
+        {
+            ("편의점 직원", "드럭스토어 직원"),
+            (
+                "Hi! Welcome to the convenience store. Can I help you find something?",
+                "Hi! Welcome to the drugstore. Can I help you find something?"
+            ),
+            (
+                "안녕하세요! 편의점에 오신 걸 환영해요. 찾으시는 물건이 있나요?",
+                "안녕하세요! 드럭스토어에 오신 걸 환영해요. 찾으시는 물건이 있나요?"
+            ),
+        };
+
+        private static void ReplaceRetiredTexts(SerializedProperty entry)
+        {
+            SerializedProperty field = entry.Copy();
+            SerializedProperty end = entry.GetEndProperty();
+            while (field.Next(true) && !SerializedProperty.EqualContents(field, end))
+            {
+                if (field.propertyType != SerializedPropertyType.String)
+                    continue;
+                foreach ((string old, string current) in RetiredTexts)
+                    if (field.stringValue == old)
+                        field.stringValue = current;
+            }
         }
 
         private static SerializedProperty FindEntry(SerializedProperty entries, string npcCode)

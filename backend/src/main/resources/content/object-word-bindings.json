@@ -181,14 +181,23 @@
         {
             "sceneCode": "SHOP",
             "unityKey": "ShopScene",
-            "objectCount": 13,
+            "objectCount": 69,
             "detailCount": 0,
             "wordKeys": [
+                "ceiling",
+                "coffee_machine",
                 "counter",
+                "crate",
                 "door",
                 "floor",
+                "freezer",
+                "lamp",
+                "plant",
+                "refrigerator",
+                "rug",
                 "shelf",
                 "sign",
+                "trash_can",
                 "wall",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
@@ -844,6 +853,105 @@
             "path": "Assets/Prefabs/World/CafeBlenderKit/Parts/WindowUpper2m.prefab",
             "wordKeys": [
                 "window"
+            ]
+        },
+        {
+            "guid": "fa28e285858e1494f893c372f193563e",
+            "path": "Assets/Prefabs/World/Drugstore/CoffeeCounter.prefab",
+            "wordKeys": [
+                "coffee_machine",
+                "counter"
+            ]
+        },
+        {
+            "guid": "d7cbef7f6272f1049b7b6e3f06f6ae5f",
+            "path": "Assets/Prefabs/World/Drugstore/DrinkCooler.prefab",
+            "wordKeys": [
+                "refrigerator"
+            ]
+        },
+        {
+            "guid": "e062b17753f62de47a554ef328f0e634",
+            "path": "Assets/Prefabs/World/Drugstore/DrugstoreInterior.prefab",
+            "wordKeys": [
+                "ceiling",
+                "coffee_machine",
+                "counter",
+                "crate",
+                "floor",
+                "freezer",
+                "lamp",
+                "plant",
+                "refrigerator",
+                "rug",
+                "shelf",
+                "sign",
+                "trash_can",
+                "wall",
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "6d46bc8cde6f19a4a9b97a7d0c322555",
+            "path": "Assets/Prefabs/World/Drugstore/HealthShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "2a2c4054c5a39d64282cac6bca9e9214",
+            "path": "Assets/Prefabs/World/Drugstore/IceCreamFreezer.prefab",
+            "wordKeys": [
+                "freezer"
+            ]
+        },
+        {
+            "guid": "afc4b3a369a8ca14fabbf6922d36d383",
+            "path": "Assets/Prefabs/World/Drugstore/OpenUmbrella.prefab",
+            "wordKeys": [
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "4ca5b6c0242cbd84ca372e16fd0f1446",
+            "path": "Assets/Prefabs/World/Drugstore/PantryShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "684b748a245212e419c52d59ddc72923",
+            "path": "Assets/Prefabs/World/Drugstore/PharmacyCounter.prefab",
+            "wordKeys": [
+                "counter"
+            ]
+        },
+        {
+            "guid": "5f714b2225b69ea4bb43fdad07851073",
+            "path": "Assets/Prefabs/World/Drugstore/ProduceStand.prefab",
+            "wordKeys": [
+                "crate"
+            ]
+        },
+        {
+            "guid": "738e2496d178f7d479a269be1b058b94",
+            "path": "Assets/Prefabs/World/Drugstore/RainyDaySign.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "bd9d69d9f9e54c7489e222852eba0415",
+            "path": "Assets/Prefabs/World/Drugstore/SnackShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "53f4b91e0df38cc4eb42e2cc948cb900",
+            "path": "Assets/Prefabs/World/Drugstore/UmbrellaBin.prefab",
+            "wordKeys": [
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
         },
         {

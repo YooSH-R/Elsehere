@@ -40,6 +40,18 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void ShopStaff_WelcomesVisitorsToTheDrugstore()
+        {
+            // 미국에서 비 올 때 우산을 사러 들르는 드럭스토어로 상점을 정했다. 간판·지도와 같은 이름으로 맞이한다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            scripts.TryGetScript("SHOP_STAFF", out DialogueScript script);
+
+            Assert.That(script.OpeningLine.English, Does.Contain("drugstore"));
+            Assert.That(script.OpeningLine.Korean, Does.Contain("드럭스토어"));
+        }
+
+        [Test]
         public void TutorialPasserby_GainsItsRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);

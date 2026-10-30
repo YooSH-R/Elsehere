@@ -106,6 +106,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 ## 인증과 오류 응답
 
 - 로그인 상태는 서버 세션에 두고 세션 쿠키(HttpOnly, `SameSite=Lax`)로 유지합니다. 로그인 없이 `/api/v1` API를 호출하면 `401 UNAUTHENTICATED`, Google 로그인만 하고 가입 정보를 내지 않았으면 `403 SIGNUP_REQUIRED`입니다.
+- 가입자 세션은 요청이 24시간 없으면 끝나고(`server.servlet.session.timeout`), 쿠키도 24시간 유지해 브라우저를 닫았다 열어도 이어집니다. 게스트는 로그인할 때 세션을 2시간으로 줄입니다(`elsehere.guest.session-timeout`). 세션은 서버 메모리에 있어 백엔드를 다시 시작하면 모두 로그아웃되므로, 운영 배포는 사용자가 적은 시간에 합니다. 서버를 늘리거나 무중단 배포를 하게 되면 세션을 DB 등 외부 저장소로 옮깁니다.
 - 가입(AUTH-03·04)은 Google 로그인이 세션에 남긴 가입 대기 정보로 진행합니다. 받는 약관과 현재 버전은 `ConsentCatalog`에 있으며, 약관 문서를 바꾸면 이 클래스의 버전과 주소를 함께 바꿉니다.
 - POST·PUT·PATCH·DELETE 요청에는 `X-Requested-With` 헤더(값은 자유)를 붙여야 합니다. 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 운영자 어드민 화면(`/admin/**`)과 관리 API(`/api/v1/admin/**`)는 `users.role`이 `ADMIN`인 사용자만 씁니다. 보안 설정이 요청마다 `AdminAccess`로 DB의 역할을 확인하며, 관리자가 아니면 `403 ADMIN_REQUIRED`입니다. 로그인하지 않고 어드민 화면을 열면 Google 로그인으로 보냅니다. 관리자 지정 방법은 [운영자 어드민](../docs/admin.md)을 따릅니다.
@@ -132,6 +133,9 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |
 | `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
+
+- 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다.
+- 사용자·대화를 가리키는 칸(`user_id`, `…conversation_id`)이 있는 테이블을 새로 만들면 `GuestContentCleanup`의 지움(`CLEARED_TABLES`)·남김(`RETAINED_TABLES`) 중 한쪽에 넣습니다. 빠뜨리면 `GuestContentCleanupTest`가 실패합니다.
 
 ### 개발용 로그인
 

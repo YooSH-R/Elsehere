@@ -6,7 +6,9 @@
         "UnityEditor.TestRunner",
         "A305.Api",
         "A305.Dialogue",
-        "A305.Learning"
+        "A305.Learning",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
@@ -28,6 +30,126 @@ namespace A305.EditorTools.Theme
     {
         private const int Width = 1920;
         private const int Height = 1080;
+
+        /// <summary>실제 프리팹을 고정 데이터로 렌더링한다. API·오디오 요청이나 씬 저장은 하지 않는다.</summary>
+        public static void CaptureVocabularyCards()
+        {
+            string output = Environment.GetEnvironmentVariable("THEME_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new InvalidOperationException("Set THEME_PREVIEW_OUTPUT.");
+            Directory.CreateDirectory(output);
+            var source = new VocabularyPreviewSource();
+            var book = new VocabularyBook(source);
+            book.LoadAsync().GetAwaiter().GetResult();
+            var cards = new ObjectWordCards(source);
+            cards.LoadAsync("HOME").GetAwaiter().GetResult();
+            cards.TryGet("counter", out WordCard card);
+            var emptyBook = new VocabularyBook(new VocabularyPreviewSource { Empty = true });
+            emptyBook.LoadAsync().GetAwaiter().GetResult();
+            UiThemeId original = UiThemeSelection.Shared.Current;
+            try
+            {
+                foreach (UiThemeId theme in (UiThemeId[])Enum.GetValues(typeof(UiThemeId)))
+                {
+                    UiThemeSelection.Shared.Select(theme);
+                    Scene scene = Open("HomeScene", out Camera camera);
+                    string name = theme.ToString().ToLowerInvariant();
+                    var view = Show<VocabularyView>(scene, camera, .3f);
+                    view.Show(book);
+                    Render(scene, camera, Path.Combine(output, $"vocabulary-{name}.png"));
+                    view.Show(emptyBook);
+                    Render(scene, camera, Path.Combine(output, $"vocabulary-empty-{name}.png"));
+                    view.Hide();
+                    var tooltip = Show<WordTooltipView>(scene, camera, .3f);
+                    tooltip.ShowPinned(
+                        card.Word,
+                        new Vector2(700, 450),
+                        AssetDatabase.LoadAssetAtPath<ObjectHoverSettings>(
+                            "Assets/Data/ObjectHover/ObjectHoverSettings.asset"
+                        ),
+                        WordCardButtons.For(card)
+                    );
+                    // 카메라 캔버스로 찍는 미리보기에서는 Overlay 전용 포인터 변환을 쓰지 않는다.
+                    Field<RectTransform>(tooltip, "panel").anchoredPosition = new Vector2(500, 400);
+                    Render(scene, camera, Path.Combine(output, $"hover-{name}.png"));
+                }
+            }
+            finally
+            {
+                UiThemeSelection.Shared.Select(original);
+            }
+        }
+
+        private sealed class VocabularyPreviewSource : IVocabularyApi, IObjectWordApi
+        {
+            public bool Empty { get; set; }
+
+            public Task<VocabPage> GetPageAsync(string cursor)
+            {
+                var page = new VocabPage();
+                if (!Empty)
+                {
+                    string[] words =
+                    {
+                        "kitchen counter",
+                        "umbrella",
+                        "reservation",
+                        "luggage",
+                        "Could you help me?",
+                    };
+                    string[] meanings = { "주방 조리대", "우산", "예약", "짐", "도와주시겠어요?" };
+                    for (int i = 0; i < words.Length; i++)
+                        page.Items.Add(
+                            new VocabItem
+                            {
+                                UserVocabId = i + 1,
+                                Vocab = new VocabWord { Text = words[i], MeaningKo = meanings[i] },
+                                Context = new VocabContext
+                                {
+                                    Text = "Please put it on the kitchen counter.",
+                                },
+                                Memo = i == 0 ? "조리대 위치를 물어볼 때" : "",
+                            }
+                        );
+                }
+                return Task.FromResult(page);
+            }
+
+            public Task<SceneWords> GetSceneWordsAsync(string sceneCode) =>
+                Task.FromResult(
+                    new SceneWords
+                    {
+                        Words = new List<WordCardData>
+                        {
+                            new WordCardData
+                            {
+                                WordKey = "counter",
+                                HasPronunciation = true,
+                                Vocab = new WordCardVocab
+                                {
+                                    Text = "kitchen counter",
+                                    MeaningKo = "주방 조리대",
+                                },
+                            },
+                        },
+                    }
+                );
+
+            public Task SaveAsync(string wordKey, string requestId) =>
+                throw new InvalidOperationException("Preview only.");
+
+            public Task SetHoverHiddenAsync(string wordKey, bool hidden) =>
+                throw new InvalidOperationException("Preview only.");
+
+            public Task<VocabItem> UpdateMemoAsync(long id, string memo) =>
+                throw new InvalidOperationException("Preview only.");
+
+            public Task<VocabItem> UpdateMemorizedAsync(long id, bool memorized) =>
+                throw new InvalidOperationException("Preview only.");
+
+            public Task DeleteAsync(long id) =>
+                throw new InvalidOperationException("Preview only.");
+        }
 
         [MenuItem("Tools/A305/UI/Capture Theme Previews")]
         public static void Capture()

@@ -41,7 +41,7 @@ NPCS = {
     ),
     "CAFE_STAFF": Npc(id="CAFE_STAFF", name="Mia", role="the barista at the corner cafe.", scene="The counter of the corner cafe."),
     "HOTEL_STAFF": Npc(
-        id="HOTEL_STAFF", name="Emma", role="the front desk clerk at the hotel.", scene="The front desk of the hotel lobby."
+        id="HOTEL_STAFF", name="Jake", role="the front desk clerk at the hotel.", scene="The front desk of the hotel lobby."
     ),
     "SHOP_STAFF": Npc(
         id="SHOP_STAFF",

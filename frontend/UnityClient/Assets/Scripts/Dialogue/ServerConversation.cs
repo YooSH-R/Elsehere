@@ -106,6 +106,8 @@ namespace A305.Dialogue
         public bool HasHint => true;
         public string HintText { get; private set; }
         public bool UsesVoice => true;
+        public bool CanReplaySpeech =>
+            LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
 
         public Task StartAsync()
         {
@@ -257,11 +259,35 @@ namespace A305.Dialogue
             return transcript;
         }
 
-        /// <summary>마지막 NPC 턴의 음성을 다시 만든다. 실패하면 null이다.</summary>
+        /// <summary>저장 음성을 재생한다. 404는 재생 버튼을 숨기고, 일시적인 다운로드 실패는 재시도할 수 있게 둔다.</summary>
+        public async Task<bool> PlaySpeechAsync(Func<string, Task<bool>> playSpeech)
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (turn?.Speech?.IsReady != true)
+            {
+                return false;
+            }
+
+            try
+            {
+                return await playSpeech(turn.Speech.Url);
+            }
+            catch (ApiException exception) when (exception.StatusCode == 404)
+            {
+                turn.Speech = new SpeechData { Status = "EXPIRED" };
+                if (LastNpcTurn == turn)
+                {
+                    Changed?.Invoke();
+                }
+                return false;
+            }
+        }
+
+        /// <summary>최초 생성에 실패한 NPC 음성을 다시 만든다. 삭제·만료 음성은 요청하지 않는다.</summary>
         public async Task<SpeechData> RegenerateSpeechAsync()
         {
             NpcTurnData turn = LastNpcTurn;
-            if (turn == null || IsBusy)
+            if (turn == null || IsBusy || turn.Speech?.CanRegenerate != true)
             {
                 return null;
             }

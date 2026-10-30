@@ -58,6 +58,7 @@ def test_kokoro_uses_one_timed_synthesis_and_caches_audio_with_its_timing(monkey
             return [0] * 24000, 24000, [phone("f", 0.1, 0.4)]
 
     service = tts.Kokoro.__new__(tts.Kokoro)
+    service.gpu = None
     service.engine, service.lock, service.cache = Engine(), threading.Lock(), OrderedDict()
     monkeypatch.setattr(tts, "to_wav", lambda audio, rate: wav_file())
     # Acoustic alignment is verified separately; keep this engine/cache test offline.

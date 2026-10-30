@@ -40,7 +40,7 @@ from .schemas import (
     SuggestRequest,
     TtsRequest,
 )
-from .tts import AudioStore, Kokoro
+from .tts import AudioStore, GpuSynth, Kokoro
 
 log = logging.getLogger("ai_worker")
 PUBLIC = {"/health"}  # Docker 상태 확인용. 나머지는 모두 내부 토큰 필요
@@ -72,10 +72,14 @@ def create_app(
     async def lifespan(app: FastAPI):
         s = settings or Settings.from_env()
         app.state.settings = s
-        app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices, s.kokoro_threads) if tts is True else tts
+        app.state.llm = LLM(s, transport)
+        if tts is True:
+            gpu = GpuSynth.from_settings(s)
+            app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices, s.kokoro_threads, gpu)
+        else:
+            app.state.tts = tts
         if s.tts_require_timing and not getattr(app.state.tts, "phoneme_timing_ready", False):
             raise RuntimeError("TTS phoneme timing is required: install the duration-output Kokoro model and voices.")
-        app.state.llm = LLM(s, transport)
         app.state.guard_local = await asyncio.to_thread(LocalGuard.load, s.guard_local_model) if guard_local is True else guard_local
         if s.guard_local_model and not app.state.guard_local:
             log.warning(
@@ -100,6 +104,7 @@ def create_app(
                     "stt_chain": [f"{provider}:{model}" for provider, model in app.state.llm.stt_steps()],
                     "tts": bool(app.state.tts),
                     "tts_phoneme_timing": bool(getattr(app.state.tts, "phoneme_timing_ready", False)),
+                    "tts_gpu": bool(s.tts_gpu_base_url),
                     "guard_local": gl and {"model": gl.name, "context": gl.context, "t_lo": s.guard_t_lo, "t_hi": s.guard_t_hi},
                 },
                 ensure_ascii=False,

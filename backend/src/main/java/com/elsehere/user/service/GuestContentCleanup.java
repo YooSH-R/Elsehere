@@ -44,7 +44,8 @@ public class GuestContentCleanup {
           "user_missions",
           "first_day_missions",
           "user_consents",
-          "user_language_profiles");
+          "user_language_profiles",
+          "user_game_clocks");
 
   private static final String GUEST_CONVERSATIONS =
       "(select id from conversations where user_id = ?)";

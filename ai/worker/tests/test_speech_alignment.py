@@ -82,6 +82,7 @@ def test_failed_acoustic_alignment_returns_unchanged_voice_without_stale_timing(
 
     original = wav_file()
     service = tts.Kokoro.__new__(tts.Kokoro)
+    service.gpu = None
     service.engine = SimpleNamespace(
         tokenizer=SimpleNamespace(phonemize=lambda text, lang: text),
         has_timings=True,

@@ -42,6 +42,11 @@ public class ConsentCatalog {
     return CURRENT_TERMS.stream().filter(term -> term.consentType().isTraining()).toList();
   }
 
+  /** 지금 받는 약관의 문서 주소인지. 약관 페이지는 이 주소만 연다. */
+  public boolean hasDocument(String url) {
+    return CURRENT_TERMS.stream().anyMatch(term -> url.equals(term.url()));
+  }
+
   public ConsentTerm currentTerm(ConsentType consentType) {
     return CURRENT_TERMS.stream()
         .filter(term -> term.consentType() == consentType)

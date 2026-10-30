@@ -47,6 +47,25 @@ PAIRS = {"aɪ": "ay", "aʊ": "aw", "eɪ": "ey", "ɔɪ": "oy", "oʊ": "ow", "əʊ
 MARKS = "ˈˌː"
 
 
+def phoneme_sequence(spoken: str) -> list[dict]:
+    """Normalize the exact GPU input for acoustic alignment; assign no times here."""
+    symbols = "".join(symbol for symbol in spoken if symbol not in MARKS)
+    cues, index = [], 0
+    while index < len(symbols):
+        symbol = symbols[index]
+        pair = symbols[index : index + 2]
+        if pair in PAIRS:
+            phone = PAIRS[pair]
+            index += 2
+        else:
+            phone = "_" if symbol.isspace() or symbol in ';:,.!?—…"()' else IPA.get(symbol)
+            index += 1
+        if phone is None:
+            raise ValueError("Unsupported Kokoro phoneme: " + ascii(symbol))
+        cues.append({"phoneme": phone})
+    return cues
+
+
 def _pcm(wav):
     with wave.open(io.BytesIO(wav)) as source:
         return source.readframes(source.getnframes()), source.getnframes() / source.getframerate()

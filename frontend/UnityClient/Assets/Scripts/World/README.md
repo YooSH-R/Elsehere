@@ -17,6 +17,8 @@
 | `LoopingCar` | 본길을 도는 차. 본길 신호가 초록이 아니면 교차로 정지선에서 서고, 앞을 사람이나 다른 차가 막으면 섭니다. 택시처럼 손님 옆에 설 때는 설 자리를 받습니다. |
 | `TaxiFare` | 택시를 세우고 보내는 흐름. 인도에서 다가오는 택시만 세울 수 있고, 손님 옆에 서서 기다리다 대화를 마치거나 손님이 떠나면 다시 달립니다. Unity 객체 없이 테스트합니다. |
 | `LastSceneRecorder`, `ILastSceneApi`, `LastSceneApi` | Unity 씬 이름을 서버 장소 코드(`HomeScene`→`HOME`, `TownScene`→`TOWN`, `CafeScene`→`CAFE`, `HotelScene`→`HOTEL`, `ShopScene`→`SHOP`)로 바꿔 `PUT /api/v1/me/last-scene`으로 저장합니다. 장소가 아닌 씬은 저장하지 않고, 실패해도 예외 없이 결과로 알립니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
+| `GameClock`, `IGameClockApi`, `GameClockApi`, `GameClockTime` | 사용자별 게임 시간(WORLD-06·07). 게임 시간은 서버가 사용자마다 플레이한 시간만큼 흐르게 합니다(실제 10분 = 게임 하루, 대화 중 멈춤). 처음 들어오면 바로, 그 뒤로 30초마다 `POST /api/v1/me/game-clock/beats`를 보내고 받은 게임 시각을 `GameClock.Shared.Current`에 두며 `Changed`로 알립니다. 응답을 기다리는 동안은 다시 보내지 않고, 실패하면 마지막 시각을 그대로 두고 다음 간격에 다시 보냅니다. 장면을 옮겨도 주기가 이어지도록 정적으로 둡니다. Unity 객체 없이 테스트합니다. |
+| `GameClockDriver` | 장소 씬의 `SpaceArrival` 객체에 붙어, 그 씬에 있는 동안 `GameClock`의 신호를 보냅니다. 입구 화면에는 없어 로그인 전·로그아웃 뒤에는 보내지 않습니다. 튜토리얼(`HomeScene`)도 플레이 시간으로 셉니다. `apiSettings`가 비어 있으면 보내지 않습니다. 배포용 장소 씬 5개에는 **Tools → A305 → World → Connect Game Clock**으로 연결합니다(새로 꾸미는 씬은 **Set Up Open Scene**이 함께 붙입니다). |
 
 ## 의존성
 
@@ -88,7 +90,7 @@
 
 **Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
-통행 검사는 실제 캐릭터의 최대 반지름과 계단 허용 높이를 사용하는 `NorthBlockTraversalTests`, 문 개폐는 `ShopSwingDoorTests`에서 확인합니다.
+계단·통로 통행과 문 개폐는 배치에 따른 결과이므로 자동 테스트 없이 TownScene을 Play해 확인합니다.
 
 `Assets/Scenes/Production/HomeScene.unity`를 열고 Play합니다. 방 남쪽 문으로 나가면 마을 남동쪽 집 앞에 서고, 큰길 서쪽의 `CAFE`와 동쪽의 `HOTEL` 건물 문으로 들어갈 수 있습니다. 실내 남쪽 문으로 나오면 그 건물 앞으로 돌아갑니다. 조작 방법은 [Player 모듈](../Player/README.md)을 따릅니다.
 

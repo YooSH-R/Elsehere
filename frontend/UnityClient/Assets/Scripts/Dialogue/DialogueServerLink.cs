@@ -58,7 +58,7 @@ namespace A305.Dialogue
 
         /// <summary>
         /// 기존 GET 음성에서 PCM과 음소 시간을 함께 읽는다. 음성을 다시 합성하지 않는다.
-        /// 받지 못하거나 받는 사이 새 대사로 바뀌었으면 재생하지 않고 false를 돌려준다(자막만 보여 준다).
+        /// 404는 ApiException으로 알린다. 그 밖의 실패나 이전 대사의 늦은 응답은 false를 반환한다.
         /// </summary>
         /// <param name="url">서버가 준 다시 듣기 주소(/api/v1/turns/{id}/speech)</param>
         public async Task<bool> PlaySpeechAsync(string url)
@@ -67,7 +67,16 @@ namespace A305.Dialogue
             ReleaseVoice();
             lastSpeech.Expect(url);
             int request = playbackRequest;
-            byte[] bytes = await DownloadSpeechAsync(url);
+            byte[] bytes;
+            try
+            {
+                bytes = await DownloadSpeechAsync(url);
+            }
+            catch (ApiException)
+                when (this == null || request != playbackRequest || !isActiveAndEnabled)
+            {
+                return false;
+            }
             if (this == null || request != playbackRequest || !isActiveAndEnabled || bytes == null)
                 return false;
             return PlayDownloadedVoice(url, bytes);
@@ -81,6 +90,8 @@ namespace A305.Dialogue
             try
             {
                 await Awaitable.FromAsyncOperation(request.SendWebRequest());
+                if (request.responseCode == 404)
+                    throw new ApiException("NOT_FOUND", 404, "음성이 없습니다.");
                 return request.result == UnityWebRequest.Result.Success
                     ? request.downloadHandler.data
                     : null;
@@ -171,6 +182,8 @@ namespace A305.Dialogue
 
         private void ReleaseVoice()
         {
+            if (speechSource != null)
+                speechSource.clip = null;
             if (lastSpeech.Clip != null)
                 Destroy(lastSpeech.Clip);
             lastSpeech.Clear();

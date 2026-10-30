@@ -6,7 +6,8 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// 화면 오른쪽 위의 [지난 대화]·[단어장] 버튼과 저장 알림. 알림은 잠깐 보였다 사라진다.
+    /// 오른쪽 위 메뉴(≡) 안의 [단어장]·[지난 대화]·[홈] 버튼과 저장 알림. 알림은 잠깐 보였다 사라진다.
+    /// 메뉴를 펼치고 접는 일은 <see cref="HudMenuView"/>가 맡는다.
     /// [지난 대화] 창도 이 HUD에 있어 장소 씬마다 배치하지 않는다.
     /// </summary>
     public class LearningHudView : MonoBehaviour

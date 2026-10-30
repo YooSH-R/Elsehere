@@ -5,7 +5,15 @@ import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
+import com.elsehere.common.error.BusinessException;
+import com.elsehere.common.error.ErrorCode;
+import com.elsehere.conversation.dto.SpeechResponse;
+import com.elsehere.conversation.dto.SpeechStatus;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
@@ -22,15 +30,18 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.AdditionalAnswers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -102,6 +113,55 @@ class NpcAudioRetentionTest {
   }
 
   @Test
+  @DisplayName("음성 파일을 이전해 수정 시각이 바뀌어도 DB의 원래 생성 순서대로 용량을 확보한다")
+  void save_evictsByOriginalAudioCreationTime() throws IOException {
+    String oldestKey = audioWrittenAt(4, NOW);
+    String newerKey = audioWrittenAt(4, NOW.minus(1, DAYS));
+    Turn oldest = npcTurnWithAudio(1, oldestKey, NOW.minus(3, DAYS));
+    npcTurnWithAudio(2, newerKey, NOW.minus(1, DAYS));
+
+    String saved = retention(8).save(new byte[4]);
+
+    assertThat(store.files())
+        .extracting(StoredAudio::key)
+        .containsExactlyInAnyOrder(newerKey, saved);
+    assertThat(reload(oldest).getNpcAudioDeletedAt()).isEqualTo(NOW);
+  }
+
+  @Test
+  @DisplayName("저장 공간이 부족하면 파일 수정일이 바뀐 만료 음성을 먼저 지우고 아직 보관 중인 음성을 유지한다")
+  void save_removesExpiredAudioBeforeEvictingRecentAudio() throws IOException {
+    String recentKey = audioWrittenAt(4, NOW.minus(2, DAYS));
+    String expiredKey = audioWrittenAt(4, NOW);
+    Turn recent = npcTurnWithAudio(1, recentKey, NOW.minus(2, DAYS));
+    Turn expired = npcTurnWithAudio(2, expiredKey, NOW.minus(31, DAYS));
+
+    String saved = retention(8).save(new byte[4]);
+
+    assertThat(store.files())
+        .extracting(StoredAudio::key)
+        .containsExactlyInAnyOrder(recentKey, saved);
+    assertThat(reload(recent).getNpcAudioDeletedAt()).isNull();
+    assertThat(reload(expired).getNpcAudioDeletedAt()).isEqualTo(NOW);
+  }
+
+  @Test
+  @DisplayName("공용 말걸기 음성은 용량 계산에서 제외해 상한 안의 NPC 턴 음성을 지우지 않는다")
+  void save_excludesSharedAudioFromLimit() throws IOException {
+    String sharedKey = audioWrittenAt(20, NOW.minus(3, DAYS));
+    setApproachAudio("TOWN_PASSERBY", sharedKey);
+    String existing = audioWrittenAt(4, NOW.minus(1, DAYS));
+    npcTurnWithAudio(1, existing);
+
+    String saved = retention(8).save(new byte[4]);
+
+    assertThat(saved).isNotNull();
+    assertThat(store.files())
+        .extracting(StoredAudio::key)
+        .containsExactlyInAnyOrder(sharedKey, existing, saved);
+  }
+
+  @Test
   @DisplayName("여러 요청이 동시에 저장해도 전체 사용량이 상한을 넘지 않는다")
   void save_concurrently_staysWithinLimit() throws Exception {
     NpcAudioRetention retention = retention(20);
@@ -122,7 +182,7 @@ class NpcAudioRetentionTest {
   }
 
   @Test
-  @DisplayName("정리: 턴이 만들어진 지 30일이 지난 음성은 파일을 지우고 삭제로 표시하며, 30일 안의 음성은 둔다")
+  @DisplayName("정리: 음성 생성 후 30일이 지난 파일은 지우고 삭제로 표시하며, 30일 안의 음성은 둔다")
   void cleanUp_expiresAudioOlderThanRetention() throws IOException {
     String expiredKey = audioWrittenAt(4, NOW.minus(31, DAYS));
     String recentKey = audioWrittenAt(4, NOW.minus(1, DAYS));
@@ -136,6 +196,123 @@ class NpcAudioRetentionTest {
     assertThat(reload(expired).getNpcAudioDeletedAt()).isEqualTo(NOW);
     assertThat(reload(recent).getNpcAudioKey()).isEqualTo(recentKey);
     assertThat(reload(recent).getNpcAudioDeletedAt()).isNull();
+  }
+
+  @Test
+  @DisplayName("오래된 턴에서 처음 합성에 성공한 음성은 턴 생성일이 아닌 음성 생성일부터 보관한다")
+  void cleanUp_keepsRecentlyGeneratedAudioOfOldTurn() throws IOException {
+    String key = audioWrittenAt(4, NOW.minus(1, DAYS));
+    Turn turn = reload(npcTurnWithAudio(1, key, NOW.minus(40, DAYS)));
+    turn.attachNpcAudio(key, NOW.minus(1, DAYS));
+    entityManager.flush();
+
+    retention(LIMIT).cleanUp();
+
+    assertThat(store.load(key)).isPresent();
+    assertThat(reload(turn).getNpcAudioKey()).isEqualTo(key);
+  }
+
+  @Test
+  @DisplayName("생성 후 정확히 30일이 된 음성은 만료하고 경계 직전 음성은 보관한다")
+  void cleanUp_expiresAtRetentionBoundary() throws IOException {
+    String expiredKey = audioWrittenAt(4, NOW.minus(30, DAYS));
+    String recentKey = audioWrittenAt(4, NOW.minus(30, DAYS).plusSeconds(1));
+    Turn expired = npcTurnWithAudio(1, expiredKey, NOW.minus(30, DAYS));
+    Turn recent = npcTurnWithAudio(2, recentKey, NOW.minus(30, DAYS).plusSeconds(1));
+
+    retention(LIMIT).cleanUp();
+
+    assertThat(store.load(expiredKey)).isEmpty();
+    assertThat(reload(expired).getNpcAudioDeletedAt()).isEqualTo(NOW);
+    assertThat(store.load(recentKey)).isPresent();
+    assertThat(reload(recent).getNpcAudioDeletedAt()).isNull();
+  }
+
+  @Test
+  @DisplayName("저장과 정리가 동시에 실행돼도 전체 NPC 턴 음성 용량이 상한을 넘지 않는다")
+  void saveAndCleanUp_concurrently_staysWithinLimit() throws Exception {
+    NpcAudioRetention retention = retention(20);
+    ExecutorService executor = Executors.newFixedThreadPool(8);
+    try {
+      List<Future<?>> operations = new ArrayList<>();
+      for (int i = 0; i < 16; i++) {
+        operations.add(executor.submit(() -> retention.save(new byte[4])));
+        operations.add(executor.submit(retention::cleanUp));
+      }
+      for (Future<?> operation : operations) {
+        operation.get(30, SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+
+    assertThat(store.usedBytes()).isLessThanOrEqualTo(20);
+  }
+
+  @Test
+  @DisplayName("파일을 지운 뒤 DB 갱신이 한 번 실패해도 다음 정리에서 없는 파일 키를 비운다")
+  void cleanUp_recoversDatabaseFailureAfterFileDeletion() throws IOException {
+    String oldestKey = audioWrittenAt(4, NOW.minus(3, DAYS));
+    String recentKey = audioWrittenAt(4, NOW.minus(1, DAYS));
+    Turn oldest = npcTurnWithAudio(1, oldestKey);
+    npcTurnWithAudio(2, recentKey);
+    TurnRepository failingRepository =
+        mock(TurnRepository.class, AdditionalAnswers.delegatesTo(turnRepository));
+    AtomicBoolean failNextUpdate = new AtomicBoolean(true);
+    doAnswer(
+            invocation -> {
+              Collection<String> keys = invocation.getArgument(0);
+              if (keys.size() == 1 && keys.contains(oldestKey) && failNextUpdate.getAndSet(false)) {
+                throw new IllegalStateException("Simulated database update failure");
+              }
+              return turnRepository.findAllByNpcAudioKeyIn(keys);
+            })
+        .when(failingRepository)
+        .findAllByNpcAudioKeyIn(anyCollection());
+    NpcAudioRetention retention =
+        new NpcAudioRetention(
+            store,
+            failingRepository,
+            npcRepository,
+            transactionTemplate,
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            30,
+            8);
+
+    assertThat(retention.save(new byte[4])).isNotNull();
+    assertThat(store.load(oldestKey)).isEmpty();
+    assertThat(reload(oldest).getNpcAudioKey()).isEqualTo(oldestKey);
+
+    retention.cleanUp();
+
+    assertThat(reload(oldest).getNpcAudioKey()).isNull();
+    assertThat(reload(oldest).getNpcAudioDeletedAt()).isEqualTo(NOW);
+  }
+
+  @Test
+  @DisplayName("만료 파일 삭제에 실패해도 재생을 차단하고, 재시작 후 정리에서 같은 파일을 다시 삭제한다")
+  void cleanUp_retriesFailedFileDeletionAfterRestart() throws IOException {
+    FailOnceDeleteStore failingStore = new FailOnceDeleteStore(directory);
+    store = failingStore;
+    String key = audioWrittenAt(4, NOW);
+    Turn turn = npcTurnWithAudio(1, key, NOW.minus(31, DAYS));
+    failingStore.failNextDeletion = true;
+
+    assertThatCode(() -> retention(LIMIT).cleanUp()).doesNotThrowAnyException();
+
+    Turn pending = reload(turn);
+    assertThat(store.load(key)).isPresent();
+    assertThat(
+            SpeechResponse.of(
+                    pending.getId(), pending.getNpcAudioKey(), pending.getNpcAudioDeletedAt())
+                .status())
+        .isEqualTo(SpeechStatus.EXPIRED);
+
+    store = new NpcAudioStore(directory.toString());
+    retention(LIMIT).cleanUp();
+
+    assertThat(store.load(key)).isEmpty();
+    assertThat(reload(turn).getNpcAudioKey()).isNull();
   }
 
   @Test
@@ -163,7 +340,7 @@ class NpcAudioRetentionTest {
   }
 
   @Test
-  @DisplayName("정리: NPC 공용 음성은 기간이 지나도 지우지 않고, 그 음성을 쓰던 턴만 삭제로 표시한다")
+  @DisplayName("정리: NPC 공용 음성과 이를 참조하는 턴은 기간 정리 대상에서 제외한다")
   void cleanUp_keepsSharedNpcAudio() throws IOException {
     String sharedKey = audioWrittenAt(4, NOW.minus(40, DAYS));
     setApproachAudio("TOWN_PASSERBY", sharedKey);
@@ -172,8 +349,8 @@ class NpcAudioRetentionTest {
     retention(LIMIT).cleanUp();
 
     assertThat(store.load(sharedKey)).isPresent();
-    assertThat(reload(turn).getNpcAudioKey()).isNull();
-    assertThat(reload(turn).getNpcAudioDeletedAt()).isEqualTo(NOW);
+    assertThat(reload(turn).getNpcAudioKey()).isEqualTo(sharedKey);
+    assertThat(reload(turn).getNpcAudioDeletedAt()).isNull();
   }
 
   @Test
@@ -192,7 +369,7 @@ class NpcAudioRetentionTest {
 
     assertThat(store.files())
         .extracting(StoredAudio::key)
-        .containsExactlyInAnyOrder(sharedKey, newest);
+        .containsExactlyInAnyOrder(sharedKey, older, newest);
     assertThat(reload(oldestTurn).getNpcAudioDeletedAt()).isEqualTo(NOW);
   }
 
@@ -214,13 +391,19 @@ class NpcAudioRetentionTest {
   }
 
   private Turn npcTurnWithAudio(int seq, String key) {
-    Turn turn = Turn.npc(conversation, seq, "Hi! What can I get for you?", null, key);
+    Instant createdAt =
+        store.files().stream()
+            .filter(audio -> audio.key().equals(key))
+            .map(StoredAudio::modifiedAt)
+            .findFirst()
+            .orElse(NOW);
+    Turn turn = Turn.npc(conversation, seq, "Hi! What can I get for you?", null, key, createdAt);
     entityManager.persist(turn);
     entityManager.flush();
     return turn;
   }
 
-  // 턴 생성 시각은 저장할 때 자동으로 기록되므로, 보관 기간을 확인하려고 DB에서 바꾼다.
+  // 턴 생성일과 음성 생성일이 다른 경우도 검증할 수 있도록 두 시각을 명시적으로 설정한다.
   private Turn npcTurnWithAudio(int seq, String key, Instant createdAt) {
     Turn turn = npcTurnWithAudio(seq, key);
     entityManager
@@ -229,6 +412,8 @@ class NpcAudioRetentionTest {
         .setParameter("id", turn.getId())
         .executeUpdate();
     entityManager.clear();
+    entityManager.find(Turn.class, turn.getId()).attachNpcAudio(key, createdAt);
+    entityManager.flush();
     return turn;
   }
 
@@ -244,5 +429,22 @@ class NpcAudioRetentionTest {
     entityManager.flush();
     entityManager.clear();
     return entityManager.find(Turn.class, turn.getId());
+  }
+
+  private static class FailOnceDeleteStore extends NpcAudioStore {
+    private boolean failNextDeletion;
+
+    FailOnceDeleteStore(Path directory) {
+      super(directory.toString());
+    }
+
+    @Override
+    public void delete(String key) {
+      if (failNextDeletion) {
+        failNextDeletion = false;
+        throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+      }
+      super.delete(key);
+    }
   }
 }

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Threading.Tasks;
+using A305.Api;
 using A305.Dialogue;
 using NUnit.Framework;
 using UnityEditor;
@@ -123,6 +124,35 @@ namespace A305.Characters.PlayModeTests
             var playing = link.PlaySpeechAsync("/api/v1/turns/123/speech");
             link.ForgetSpeech();
             pending.SetResult(VoiceBytes("CoffeeChoiceSpeech"));
+            yield return new WaitUntil(() => playing.IsCompleted);
+            Assert.That(playing.GetAwaiter().GetResult(), Is.False);
+            Assert.That(link.HasSpeech, Is.False);
+            Assert.That(player.IsPlaying, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator CurrentMissingVoiceStillReportsExpirationAndClearsPreviousPlayback()
+        {
+            Assert.That(link.PlayRecordedSpeech(VoiceBytes("CafeThanksSpeech")), Is.True);
+            link.Download = Task.FromException<byte[]>(
+                new ApiException("NOT_FOUND", 404, "음성이 없습니다.")
+            );
+            var playing = link.PlaySpeechAsync("/api/v1/turns/123/speech");
+            yield return new WaitUntil(() => playing.IsCompleted);
+            var error = Assert.Throws<ApiException>(() => playing.GetAwaiter().GetResult());
+            Assert.That(error.StatusCode, Is.EqualTo(404));
+            Assert.That(link.HasSpeech, Is.False);
+            Assert.That(player.IsPlaying, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator ClosingDialogueBeforeMissingVoiceResponseIgnoresTheOldError()
+        {
+            var pending = new TaskCompletionSource<byte[]>();
+            link.Download = pending.Task;
+            var playing = link.PlaySpeechAsync("/api/v1/turns/123/speech");
+            link.SetSpeaker(null);
+            pending.SetException(new ApiException("NOT_FOUND", 404, "음성이 없습니다."));
             yield return new WaitUntil(() => playing.IsCompleted);
             Assert.That(playing.GetAwaiter().GetResult(), Is.False);
             Assert.That(link.HasSpeech, Is.False);

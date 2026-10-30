@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -49,15 +50,29 @@ namespace A305.World
         private IEnumerator TravelTo(string destinationScene)
         {
             Application.backgroundLoadingPriority = ThreadPriority.High;
+            List<Scene> leavingScenes = LoadedScenes();
+            // 씬을 통째로 바꾸면 이전 씬 에셋 정리와 GC가 함께 돌아 마을처럼 큰 씬은 1초 넘게 더 걸린다.
+            // 새 씬을 겹쳐 불러오고 이전 씬은 따로 내린다. 이전 씬 에셋은 비우지 않아 다시 들어올 때 다시 읽지 않는다.
             AsyncOperation loading = SceneManager.LoadSceneAsync(
                 destinationScene,
-                LoadSceneMode.Single
+                LoadSceneMode.Additive
             );
             loading.allowSceneActivation = false;
             yield return FadeTo(1f, CloseSeconds);
 
+            // 새 씬이 깨어날 때 이전 공간의 플레이어·카메라·출입구를 찾지 않도록 먼저 끈다.
+            foreach (Scene scene in leavingScenes)
+            {
+                Deactivate(scene);
+            }
+            SceneManager.sceneLoaded += MakeActive;
             loading.allowSceneActivation = true;
             yield return loading;
+            foreach (Scene scene in leavingScenes)
+            {
+                yield return SceneManager.UnloadSceneAsync(scene);
+            }
+
             float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
             while (SpaceTravel.IsTraveling && Time.realtimeSinceStartup < deadline)
             {
@@ -70,6 +85,32 @@ namespace A305.World
                 yield return null;
             }
             yield return FadeTo(0f, OpenSeconds);
+        }
+
+        private static List<Scene> LoadedScenes()
+        {
+            var scenes = new List<Scene>();
+            for (int index = 0; index < SceneManager.sceneCount; index++)
+            {
+                scenes.Add(SceneManager.GetSceneAt(index));
+            }
+
+            return scenes;
+        }
+
+        private static void Deactivate(Scene scene)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                root.SetActive(false);
+            }
+        }
+
+        // 새 씬의 Start보다 먼저 활성 씬으로 바꿔, Start에서 읽는 하늘·환경광과 새로 만드는 오브젝트가 새 씬을 따르게 한다.
+        private static void MakeActive(Scene scene, LoadSceneMode mode)
+        {
+            SceneManager.sceneLoaded -= MakeActive;
+            SceneManager.SetActiveScene(scene);
         }
 
         private IEnumerator FadeTo(float targetOpacity, float seconds)

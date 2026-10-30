@@ -6,6 +6,7 @@ import static com.elsehere.conversation.DialogueTestData.usage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 
 import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.NpcReply;
@@ -366,7 +368,11 @@ class ConversationServiceTest {
   private void sendText(Long conversationId, String text) {
     given(aiWorkerClient.judge(any(), any(), any(), any(), eq(text)))
         .willReturn(new JudgeResult(text, false, null, null, List.of(usage("judge"))));
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt()))
+    given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
+        .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of(usage("guard"))));
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean()))
         .willReturn(reply("Nice!", null, null));
     turnService.send(
         userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, text, null));

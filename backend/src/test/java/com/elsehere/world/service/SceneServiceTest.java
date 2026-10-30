@@ -33,7 +33,12 @@ import tools.jackson.databind.json.JsonMapper;
 // 장소·NPC·장소별 단어는 시드(WorldSeedLoader가 시작 때 넣음)를 그대로 쓴다.
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
-@Import({TestcontainersConfiguration.class, WorldSeedLoader.class, SceneService.class})
+@Import({
+  TestcontainersConfiguration.class,
+  WorldSeedLoader.class,
+  PronunciationAudioStore.class,
+  SceneService.class
+})
 class SceneServiceTest {
 
   @Autowired private SceneService sceneService;
@@ -188,7 +193,7 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("호텔 상세는 호텔 직원 Emma를 돌려준다")
+  @DisplayName("호텔 상세는 호텔 직원 Jake를 돌려준다")
   void getScene_hotel_returnsHotelStaff() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -197,7 +202,7 @@ class SceneServiceTest {
     assertThat(hotel.isOpen()).isTrue();
     assertThat(hotel.npcs())
         .containsExactly(
-            new NpcResponse("HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null));
+            new NpcResponse("HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null));
   }
 
   @Test

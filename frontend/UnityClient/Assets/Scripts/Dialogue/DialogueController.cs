@@ -57,6 +57,12 @@ namespace A305.Dialogue
 
         public bool IsTalking => session.IsActive;
 
+        /// <summary>대화 화면의 [표현 저장]을 보여 줄지. 받을 곳(단어장)이 저장할 수 없으면 끈다.</summary>
+        public void SetExpressionSaveAvailable(bool available)
+        {
+            panel.IsSaveAvailable = available;
+        }
+
         /// <summary>
         /// 대본에 적힌 NPC 이름. 대화 제안처럼 대화를 시작하기 전에 누가 말을 거는지 보일 때 쓴다. 대본이 없으면 null이다.
         /// </summary>
@@ -73,10 +79,29 @@ namespace A305.Dialogue
             return script.NpcName;
         }
 
+        /// <summary>대본에 적힌 NPC 역할(예: 편의점 직원). 대본이나 역할이 없으면 null이다.</summary>
+        public string FindNpcRoleLabel(string npcCode)
+        {
+            if (
+                scriptSource == null
+                || !scriptSource.TryGetScript(npcCode, out DialogueScript script)
+            )
+            {
+                return null;
+            }
+
+            return script.RoleLabel;
+        }
+
         /// <param name="npcCode">대화할 NPC 키(ERD npcs.code)</param>
         /// <param name="lookTarget">대화 시점에서 바라볼 NPC 머리 위치</param>
+        /// <param name="initiatedBy">누가 먼저 말을 걸었는지. NPC가 제안한 대화가 기본값이다.</param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
-        public bool TryStart(string npcCode, Transform lookTarget)
+        public bool TryStart(
+            string npcCode,
+            Transform lookTarget,
+            ConversationInitiator initiatedBy = ConversationInitiator.Npc
+        )
         {
             if (lookTarget == null || !session.TryStart(npcCode))
             {
@@ -95,7 +120,7 @@ namespace A305.Dialogue
             bool isGuided = hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
-                StartServerConversation(npcCode, hasScript ? script.NpcName : npcCode);
+                StartServerConversation(npcCode, hasScript ? script.NpcName : npcCode, initiatedBy);
             }
             else
             {
@@ -215,9 +240,18 @@ namespace A305.Dialogue
             }
         }
 
-        private void StartServerConversation(string npcCode, string npcName)
+        private void StartServerConversation(
+            string npcCode,
+            string npcName,
+            ConversationInitiator initiatedBy
+        )
         {
-            serverConversation = new ServerConversation(npcCode, npcName, conversationApi);
+            serverConversation = new ServerConversation(
+                npcCode,
+                npcName,
+                conversationApi,
+                initiatedBy
+            );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
             panel.Show(serverConversation);

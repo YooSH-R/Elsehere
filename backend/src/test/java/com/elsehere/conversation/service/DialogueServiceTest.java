@@ -4,6 +4,7 @@ import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.ai.service.WorkerNpcs;
+import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
@@ -11,7 +12,10 @@ import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.feedback.service.ModelSpeechService;
 import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.user.service.TrainingConsentService;
+import com.elsehere.world.service.PronunciationAudioStore;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -38,6 +42,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
     properties = {
       "spring.jpa.hibernate.ddl-auto=create-drop",
       "elsehere.npc-audio.dir=build/test-npc-audio",
+      "elsehere.training-recording.dir=" + DialogueServiceTest.TRAINING_RECORDING_DIR,
       "elsehere.guest.conversation-limit=2"
     })
 @AutoConfigureTestDatabase(replace = Replace.NONE)
@@ -47,6 +52,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   ClockConfig.class,
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
+  PronunciationAudioStore.class,
   ConversationService.class,
   ConversationHistoryService.class,
   TurnService.class,
@@ -61,8 +67,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   FeedbackService.class,
   ModelSpeechService.class,
   ModelSpeechStore.class,
+  TrainingRecordingService.class,
+  TrainingRecordingStore.class,
+  TrainingConsentService.class,
+  ConsentCatalog.class,
   MemoryService.class,
+  NpcAffinityService.class,
   FirstDayMissionService.class
 })
 @MockitoBean(types = AiWorkerClient.class)
-public @interface DialogueServiceTest {}
+public @interface DialogueServiceTest {
+
+  String TRAINING_RECORDING_DIR = "build/test-training-recordings";
+}

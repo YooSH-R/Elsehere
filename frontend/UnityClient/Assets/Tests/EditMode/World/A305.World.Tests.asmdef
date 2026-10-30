@@ -15,6 +15,7 @@
         "A305.Learning",
         "A305.Mission",
         "A305.Tutorial",
+        "A305.Weather",
         "UnityEngine.UI"
     ],
     "includePlatforms": [

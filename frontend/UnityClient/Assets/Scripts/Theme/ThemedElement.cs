@@ -51,6 +51,9 @@ namespace A305.Theme
                 case UiThemeRole.Card:
                     Paint(GetComponent<Image>(), theme.CardSprite, theme.CardTint);
                     break;
+                case UiThemeRole.Control:
+                    Paint(GetComponent<Image>(), theme.CardSprite, theme.ToneColor(UiTone.Neutral));
+                    break;
                 case UiThemeRole.Input:
                     Paint(GetComponent<Image>(), theme.InputSprite, Color.white);
                     break;
@@ -87,18 +90,19 @@ namespace A305.Theme
                     break;
                 case UiThemeRole.Title:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);
+                    GetComponent<TMP_Text>().fontStyle |= FontStyles.Bold;
                     break;
                 case UiThemeRole.Body:
-                    Write(GetComponent<TMP_Text>(), null, theme.Ink);
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);
                     break;
                 case UiThemeRole.Muted:
-                    Write(GetComponent<TMP_Text>(), null, theme.MutedInk);
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.MutedInk);
                     break;
                 case UiThemeRole.Caption:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.MutedInk);
                     break;
                 case UiThemeRole.Accent:
-                    Write(GetComponent<TMP_Text>(), null, theme.AccentInk);
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.AccentInk);
                     break;
             }
         }
@@ -116,7 +120,7 @@ namespace A305.Theme
 
         private void OnThemeChanged(UiThemeId theme) => ApplyCurrent();
 
-        private static void Paint(Image image, Sprite sprite, Color color)
+        internal static void Paint(Image image, Sprite sprite, Color color)
         {
             if (image == null)
                 return;
@@ -128,7 +132,7 @@ namespace A305.Theme
             image.color = color;
         }
 
-        private static void Overlay(Image image, Sprite sprite)
+        internal static void Overlay(Image image, Sprite sprite)
         {
             if (image == null)
                 return;
@@ -136,7 +140,7 @@ namespace A305.Theme
             Paint(image, sprite, Color.white);
         }
 
-        private static void Draw(Image image, Sprite sprite)
+        internal static void Draw(Image image, Sprite sprite)
         {
             if (image == null)
                 return;
@@ -146,7 +150,7 @@ namespace A305.Theme
             image.color = Color.white;
         }
 
-        private static void Write(TMP_Text text, TMP_FontAsset font, Color color)
+        internal static void Write(TMP_Text text, TMP_FontAsset font, Color color)
         {
             if (text == null)
                 return;

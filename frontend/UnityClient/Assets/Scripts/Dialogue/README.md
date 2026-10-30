@@ -1,5 +1,9 @@
 # Dialogue 모듈
 
+대화 화면은 아래쪽 대화창과 왼쪽 단어·문장 카드를 따로 표시합니다. 대화창은 NPC 이름과 최신 대사를 표시하며 긴 대사·뜻은 스크롤합니다. [넣기]는 추천 문장을 입력창에 옮기며 전송하거나 모델을 호출하지 않습니다. 보조 기능은 […] 메뉴로 펼치고, 보내기·누르고 말하기·대화 종료는 바로 사용할 수 있습니다. NPC 얼굴은 대화창보다 위쪽에 오도록 화면 비율을 반영해 카메라 구도를 맞춥니다.
+
+**Tools → A305 → UI → Apply Approved Dialogue Design**은 기존 대화 기능과 입력 연결을 유지하며 승인된 하단 배치·글꼴·여백을 프리팹에 적용합니다. 카페의 카운터와 소품 높이, 직원 방향, 마을 편의점 출입구와 퀘스트 지도도 Unity Builder로 갱신합니다. 외부 AI 호출은 하지 않습니다.
+
 NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바라보는 1인칭 시점으로 바꾸고 이동을 잠그며, 끝나면 직전 시점과 이동을 되돌립니다. 대화는 한 번에 하나만 진행합니다.
 
 튜토리얼 길 안내처럼 정해진 흐름이 있는 NPC는 확인용 대본(`MockDialogueScripts`)으로, 그 밖의 NPC는 서버 AI와 자유 대화로 진행합니다. 대화 화면 프리팹의 `DialogueServerLink`에서 서버를 끄면 모든 대화를 확인용 대본으로 진행하며, 이때 자유 대화는 키워드로 답하는 대본이 흉내 냅니다. 지금 화면은 흐름 확인용 초안입니다.
@@ -42,7 +46,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 
 | API | 설명 |
 | --- | --- |
-| `DialogueController.TryStart(string npcCode, Transform lookTarget)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. |
+| `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
 | `DialogueController.End()` | 대화를 끝내고 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
 | `DialogueController.RegenerateFeedbackAsync(ServerFeedback)` | 만들지 못한 피드백을 다시 만듭니다. 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려줍니다. |
 | `DialogueController.IsTalking` | 대화 중인지 |

@@ -3,6 +3,7 @@ package com.elsehere.conversation.service;
 import static com.elsehere.conversation.DialogueTestData.conversation;
 import static com.elsehere.conversation.DialogueTestData.npcTurn;
 import static com.elsehere.conversation.DialogueTestData.textTurn;
+import static com.elsehere.conversation.service.DialogueServiceTest.TRAINING_RECORDING_DIR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,10 +27,15 @@ import com.elsehere.conversation.dto.SpeechStatus;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
 import com.elsehere.conversation.dto.TranscriptionResponse;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.TrainingRecording;
 import com.elsehere.conversation.entity.Turn;
+import com.elsehere.conversation.repository.TrainingRecordingRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
+import com.elsehere.user.entity.ConsentType;
+import com.elsehere.user.service.TrainingConsentService;
 import jakarta.persistence.EntityManager;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -55,6 +61,10 @@ class SpeechServiceTest {
   @Autowired private AiRequestRepository aiRequestRepository;
 
   @Autowired private EntityManager entityManager;
+
+  @Autowired private TrainingConsentService trainingConsentService;
+
+  @Autowired private TrainingRecordingRepository trainingRecordingRepository;
 
   private Long userId;
   private Conversation conversation;
@@ -153,6 +163,55 @@ class SpeechServiceTest {
 
     assertErrorCode(
         () -> transcribeTurn(recording("audio/wav", RECORDING)), ErrorCode.STT_NO_SPEECH);
+  }
+
+  @Test
+  @DisplayName("녹음 음성 학습 활용에 동의한 사용자는 전사한 녹음과 인식 결과를 학습용으로 저장한다")
+  void transcribe_voiceTrainingAgreed_savesRecording() {
+    trainingConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+        .willReturn(new SttResult("I want a latte", 1.25, List.of()));
+    UUID requestId = UUID.randomUUID();
+
+    speechService.transcribe(
+        userId,
+        requestId,
+        TranscriptionPurpose.TURN,
+        conversation.getId(),
+        recording("audio/webm;codecs=opus", RECORDING));
+
+    TrainingRecording saved = trainingRecordingRepository.findByUserId(userId).getFirst();
+    assertThat(saved.getRequestId()).isEqualTo(requestId);
+    assertThat(saved.getConversationId()).isEqualTo(conversation.getId());
+    assertThat(saved.getPurpose()).isEqualTo(TranscriptionPurpose.TURN);
+    assertThat(saved.getSttText()).isEqualTo("I want a latte");
+    assertThat(saved.getDurationMs()).isEqualTo(1250);
+    assertThat(saved.getContentType()).isEqualTo("audio/webm");
+    assertThat(Path.of(TRAINING_RECORDING_DIR, saved.getAudioKey())).hasBinaryContent(RECORDING);
+  }
+
+  @Test
+  @DisplayName("녹음 음성 학습 활용에 동의하지 않았으면 녹음을 저장하지 않는다")
+  void transcribe_voiceTrainingNotAgreed_doesNotSave() {
+    trainingConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
+    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+        .willReturn(new SttResult("I want a latte", 1.25, List.of()));
+
+    transcribeTurn(recording("audio/wav", RECORDING));
+
+    assertThat(trainingRecordingRepository.findByUserId(userId)).isEmpty();
+  }
+
+  @Test
+  @DisplayName("동의했어도 말소리를 알아듣지 못한 녹음은 저장하지 않는다")
+  void transcribe_noSpeech_doesNotSave() {
+    trainingConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
+    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+        .willReturn(new SttResult("  ", 0.5, List.of()));
+
+    assertErrorCode(
+        () -> transcribeTurn(recording("audio/wav", RECORDING)), ErrorCode.STT_NO_SPEECH);
+    assertThat(trainingRecordingRepository.findByUserId(userId)).isEmpty();
   }
 
   @Test

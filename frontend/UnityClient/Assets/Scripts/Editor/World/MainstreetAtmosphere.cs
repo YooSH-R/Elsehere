@@ -110,33 +110,38 @@ namespace A305.EditorTools.World
                 new Vector3(-8, 20, 90),
             };
             foreach (Vector3 position in positions)
-            {
-                Transform cloud = Group("Cloud", clouds, position);
-                SmoothBall("CloudBase", cloud, Vector3.zero, new Vector3(11, 2.8f, 3.5f), material);
-                SmoothBall(
-                    "CloudLeft",
-                    cloud,
-                    new Vector3(-2.8f, 1.1f, 0),
-                    new Vector3(4.8f, 4.4f, 4.5f),
-                    material
-                );
-                SmoothBall(
-                    "CloudCentre",
-                    cloud,
-                    new Vector3(.5f, 2, 0),
-                    new Vector3(5.2f, 5.5f, 4.8f),
-                    material
-                );
-                SmoothBall(
-                    "CloudRight",
-                    cloud,
-                    new Vector3(3.4f, .8f, 0),
-                    new Vector3(4.2f, 3.8f, 3.8f),
-                    material
-                );
-            }
-            foreach (Renderer renderer in clouds.GetComponentsInChildren<Renderer>())
+                Cloud(clouds, position, material);
+        }
+
+        /// <summary>둥근 덩어리 네 개를 겹친 구름 하나. 하늘 장식이라 그림자를 드리우지 않는다.</summary>
+        internal static Transform Cloud(Transform parent, Vector3 position, Material material)
+        {
+            Transform cloud = Group("Cloud", parent, position);
+            SmoothBall("CloudBase", cloud, Vector3.zero, new Vector3(11, 2.8f, 3.5f), material);
+            SmoothBall(
+                "CloudLeft",
+                cloud,
+                new Vector3(-2.8f, 1.1f, 0),
+                new Vector3(4.8f, 4.4f, 4.5f),
+                material
+            );
+            SmoothBall(
+                "CloudCentre",
+                cloud,
+                new Vector3(.5f, 2, 0),
+                new Vector3(5.2f, 5.5f, 4.8f),
+                material
+            );
+            SmoothBall(
+                "CloudRight",
+                cloud,
+                new Vector3(3.4f, .8f, 0),
+                new Vector3(4.2f, 3.8f, 3.8f),
+                material
+            );
+            foreach (Renderer renderer in cloud.GetComponentsInChildren<Renderer>())
                 renderer.shadowCastingMode = ShadowCastingMode.Off;
+            return cloud;
         }
     }
 }

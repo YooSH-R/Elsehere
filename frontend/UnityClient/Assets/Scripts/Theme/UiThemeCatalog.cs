@@ -12,8 +12,10 @@ namespace A305.Theme
 
         public UiThemeDefinition[] Themes => themes;
 
-        public UiThemeDefinition Get(UiThemeId id) =>
-            Array.Find(themes, theme => theme != null && theme.Id == id)
-            ?? (themes.Length > 0 ? themes[0] : null);
+        public UiThemeDefinition Get(UiThemeId id)
+        {
+            var theme = Array.Find(themes, candidate => candidate != null && candidate.Id == id);
+            return theme != null ? theme : (themes.Length > 0 ? themes[0] : null);
+        }
     }
 }

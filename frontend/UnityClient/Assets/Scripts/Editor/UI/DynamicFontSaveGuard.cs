@@ -16,13 +16,16 @@ namespace A305.EditorTools.UI
 
         private static string[] OnWillSaveAssets(string[] paths)
         {
-            if (UiFontBuilder.IsSavingFontSettings)
+            if (UiFontBuilder.IsSavingFontSettings || ServiceFontBuilder.IsSaving)
             {
                 return paths;
             }
 
             string[] pathsToSave = paths
-                .Where(path => !UiFontBuilder.DynamicFontAssetPaths.Contains(path))
+                .Where(path =>
+                    path != ServiceFontBuilder.FontPath
+                    && !UiFontBuilder.DynamicFontAssetPaths.Contains(path)
+                )
                 .ToArray();
             if (pathsToSave.Length != paths.Length && !hasNotified)
             {

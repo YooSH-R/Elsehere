@@ -15,6 +15,7 @@ MonoBehaviour:
   entries:
   - npcCode: TUTORIAL_PASSERBY
     npcName: Alex
+    roleLabel: "\uC774\uC6C3"
     opening:
       english: "Excuse me! Could you tell me how to get to the caf\xE9?"
       korean: "\uC2E4\uB840\uD569\uB2C8\uB2E4! \uCE74\uD398\uC5D0 \uC5B4\uB5BB\uAC8C
@@ -43,6 +44,7 @@ MonoBehaviour:
     exampleSentence: 
   - npcCode: CAFE_STAFF
     npcName: Emma
+    roleLabel: "\uCE74\uD398 \uC9C1\uC6D0"
     opening:
       english: "Hi there! Welcome to our caf\xE9. What can I get for you?"
       korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uD76C \uCE74\uD398\uC5D0 \uC624\uC2E0
@@ -87,6 +89,7 @@ MonoBehaviour:
     exampleSentence: Could I have a soy latte, please?
   - npcCode: TOWN_PASSERBY
     npcName: Sam
+    roleLabel: "\uD589\uC778"
     opening:
       english: Hey! Nice to see you. How's your day going?
       korean: "\uC548\uB155\uD558\uC138\uC694! \uBC18\uAC00\uC6CC\uC694. \uC624\uB298
@@ -114,9 +117,70 @@ MonoBehaviour:
       english: Oh, really? Tell me more!
       korean: "\uC544, \uC815\uB9D0\uC694? \uB354 \uC598\uAE30\uD574 \uC918\uC694!"
     exampleSentence: It's a nice day today, isn't it?
+  - npcCode: HOTEL_STAFF
+    npcName: Emma
+    roleLabel: "\uD638\uD154 \uC9C1\uC6D0"
+    opening:
+      english: Good afternoon! Welcome to Maple House. Are you checking in?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uBA54\uC774\uD50C \uD558\uC6B0\uC2A4\uC5D0
+        \uC624\uC2E0 \uAC78 \uD658\uC601\uD574\uC694. \uCCB4\uD06C\uC778\uD558\uC2DC\uB098\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - check
+      reply:
+        english: Of course. May I have your name, please?
+        korean: "\uBB3C\uB860\uC774\uC8E0. \uC131\uD568\uC744 \uC54C\uB824 \uC8FC\uC2DC\uACA0\uC5B4\uC694?"
+    - keywords:
+      - reservation
+      reply:
+        english: Let me find your reservation. One moment, please.
+        korean: "\uC608\uC57D\uC744 \uCC3E\uC544\uBCFC\uAC8C\uC694. \uC7A0\uC2DC\uB9CC
+          \uAE30\uB2E4\uB824 \uC8FC\uC138\uC694."
+    - keywords:
+      - thank
+      reply:
+        english: My pleasure. Enjoy your stay!
+        korean: "\uCC9C\uB9CC\uC5D0\uC694. \uD3B8\uD788 \uC26C\uB2E4 \uAC00\uC138\uC694!"
+    defaultReply:
+      english: I see. How else can I help you?
+      korean: "\uADF8\uB807\uAD70\uC694. \uB354 \uB3C4\uC640\uB4DC\uB9B4 \uC77C\uC774
+        \uC788\uC744\uAE4C\uC694?"
+    exampleSentence: I'd like to check in, please.
+  - npcCode: SHOP_STAFF
+    npcName: Alex
+    roleLabel: "\uD3B8\uC758\uC810 \uC9C1\uC6D0"
+    opening:
+      english: Hi! Welcome to the convenience store. Can I help you find something?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uD3B8\uC758\uC810\uC5D0 \uC624\uC2E0
+        \uAC78 \uD658\uC601\uD574\uC694. \uCC3E\uC73C\uC2DC\uB294 \uBB3C\uAC74\uC774
+        \uC788\uB098\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - umbrella
+      reply:
+        english: Umbrellas are right by the door. They're 8 coins each.
+        korean: "\uC6B0\uC0B0\uC740 \uBB38 \uBC14\uB85C \uC606\uC5D0 \uC788\uC5B4\uC694.
+          \uD558\uB098\uC5D0 8\uCF54\uC778\uC774\uC5D0\uC694."
+    - keywords:
+      - card
+      reply:
+        english: Sure, we take cards. Please tap it here.
+        korean: "\uB124, \uCE74\uB4DC \uB3FC\uC694. \uC5EC\uAE30\uC5D0 \uB300 \uC8FC\uC138\uC694."
+    - keywords:
+      - thank
+      reply:
+        english: You're welcome! Stay dry out there.
+        korean: "\uCC9C\uB9CC\uC5D0\uC694! \uBE44 \uB9DE\uC9C0 \uC54A\uAC8C \uC870\uC2EC\uD558\uC138\uC694."
+    defaultReply:
+      english: Sure. Is there anything else you need?
+      korean: "\uB124. \uB354 \uD544\uC694\uD55C \uAC74 \uC5C6\uC73C\uC138\uC694?"
+    exampleSentence: Do you sell umbrellas?
   fallback:
     npcCode: 
     npcName: Neighbor
+    roleLabel: 
     opening:
       english: Hello! Nice to meet you.
       korean: "\uC548\uB155\uD558\uC138\uC694! \uB9CC\uB098\uC11C \uBC18\uAC00\uC6CC\uC694."

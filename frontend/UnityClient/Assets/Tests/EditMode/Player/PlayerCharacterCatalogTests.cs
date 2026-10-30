@@ -40,7 +40,7 @@ namespace A305.Player.Tests
         }
 
         [Test]
-        public void MaleSharesTheFemaleMasterRigAnimationAndMovement()
+        public void MaleSharesTheFemaleMasterRigAndAnimation()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<PlayerCharacterCatalog>(
                 "Assets/Data/Player/Characters/Catalog.asset"
@@ -57,7 +57,35 @@ namespace A305.Player.Tests
                 maleAnimator.runtimeAnimatorController,
                 Is.SameAs(femaleAnimator.runtimeAnimatorController)
             );
-            Assert.That(male.MovementSettings, Is.SameAs(female.MovementSettings));
+        }
+
+        [Test]
+        public void EveryCharacterMovesWithTheSharedPlayerMovement()
+        {
+            var player = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Player/Player.prefab"
+            );
+            var littleMungMovement = AssetDatabase.LoadAssetAtPath<PlayerMovementSettings>(
+                "Assets/Data/Player/LittleMung/Movement.asset"
+            );
+            var catalog = AssetDatabase.LoadAssetAtPath<PlayerCharacterCatalog>(
+                "Assets/Data/Player/Characters/Catalog.asset"
+            );
+            var mover = new SerializedObject(player.GetComponent<PlayerMover>());
+
+            Assert.That(
+                mover.FindProperty("movementSettings").objectReferenceValue,
+                Is.SameAs(littleMungMovement)
+            );
+            foreach (string id in new[] { "F", "M" })
+            {
+                var definition = new SerializedObject(catalog.Resolve(id));
+                Assert.That(
+                    definition.FindProperty("movementSettings"),
+                    Is.Null,
+                    $"{id} must not replace the shared Player movement."
+                );
+            }
         }
 
         private static void SetId(PlayerCharacterDefinition definition, string id)

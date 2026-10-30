@@ -38,6 +38,12 @@ services:
       STT_GPU_TOKEN: ${STT_GPU_TOKEN:-}
       STT_FIRST_TIMEOUT_S: ${STT_FIRST_TIMEOUT_S:-8}
       TTS_CHUNK_BUDGET_S: ${TTS_CHUNK_BUDGET_S:-8}
+      # Optional rudeness judge on the GPU server (vLLM) first, then the profile's guard model. Empty keeps the profile's guard.
+      GUARD_GPU_MODEL: ${GUARD_GPU_MODEL:-}
+      GUARD_GPU_BASE_URL: ${GUARD_GPU_BASE_URL:-}
+      GUARD_GPU_TOKEN: ${GUARD_GPU_TOKEN:-}
+      # TTS (Kokoro) synthesis threads; keep equal to the cpus limit below or synthesis slows down several times.
+      KOKORO_THREADS: "2"
     healthcheck:
       test:
         - CMD

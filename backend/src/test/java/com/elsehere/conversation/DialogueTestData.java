@@ -42,7 +42,9 @@ public final class DialogueTestData {
 
   public static Turn textTurn(
       EntityManager entityManager, Conversation conversation, int seq, String text) {
-    Turn turn = Turn.user(conversation, seq, UUID.randomUUID(), InputType.TEXT, text, null, null);
+    Turn turn =
+        Turn.user(
+            conversation, seq, UUID.randomUUID(), InputType.TEXT, text, null, null, null, null);
     entityManager.persist(turn);
     return turn;
   }
@@ -54,7 +56,16 @@ public final class DialogueTestData {
       String text,
       String sttRawText) {
     Turn turn =
-        Turn.user(conversation, seq, UUID.randomUUID(), InputType.VOICE, text, sttRawText, null);
+        Turn.user(
+            conversation,
+            seq,
+            UUID.randomUUID(),
+            InputType.VOICE,
+            text,
+            sttRawText,
+            null,
+            null,
+            null);
     entityManager.persist(turn);
     return turn;
   }

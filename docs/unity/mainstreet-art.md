@@ -85,6 +85,8 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 기본 낮 조명은 Directional Light 하나(회전 48°, -35°, 0°; 강도 1.7)와 하늘·수평·지면의 환경광이며, 가로등과 매장의 Point Light를 더한다. Sandbox 전용 Volume은 exposure 0, contrast 10, saturation 8, bloom 0.15, tonemapping None이다. 선형 안개는 42~125m이며 피사계심도는 사용하지 않는다. 이 수치는 이미지에서 측정한 물성값이나 Web 성능 검증값이 아닌 Unity 아트 시작값이다.
 
+위 하늘·조명·안개는 맑은 날 기준이다. TownScene의 `Lighting/TownWeather`(`WeatherPresenter`)가 예보 날씨에 따라 해의 색·세기·그림자, 환경광, 안개, `SummerSky` 색, 구름 색을 섞어 바꾸고, 하늘을 덮는 날씨에는 `OvercastClouds`를, 비에는 `Assets/Prefabs/Weather/Rain.prefab` 빗방울을 띄운다. 날씨마다 `Assets/Data/Weather/`의 정의 에셋(`Clear`·`Cloudy`·`Rain`)이 있고 `TownWeather.asset` 목록에 모여 있으며, 맑음은 씬에 디자인한 값을 그대로 쓴다. 하늘·구름 머티리얼은 실행 중 사본을 물들이므로 원본 에셋은 바뀌지 않는다. 구성과 미리보기 방법은 [Weather 모듈](../../frontend/UnityClient/Assets/Scripts/Weather/README.md)에 있다.
+
 ## 가로등과 매장 조명
 
 `Assets/Prefabs/World/MainstreetArt/StreetLampV2.prefab`의 `LanternLight`가 주변을 비추며, 전구의 `LanternAmberV2` 재질이 발광한다. 같은 프리팹을 배치하면 외형과 광원을 함께 재사용한다.
@@ -171,4 +173,6 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 ## 적용 범위
 
-현재 범위는 Sandbox 외관 아트와 크기·통행·카메라 검토다. 북쪽 추가 건물은 재사용한 닫힌 배경 외관이며 기능이나 실내는 없다. 부지 마커와 임시 경계 벽은 아트 화면에서 숨기고 경계 Collider는 유지한다. 실제 v7 메시·리그·립싱크, 실내 완성, Production 씬 전환 연결, Web 성능 측정은 별도 작업이다. 공유 메시와 프리팹 사용만으로 Web 성능을 검증했다고 판단하지 않는다. Web 적용 전에 꽃·창문 반복 수, Renderer·재질 수와 프레임 시간을 측정해 단순화한다.
+메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 편의점 구역은 이 작업의 대상이 아니다.
+
+부지 마커와 임시 경계 벽은 아트 화면에서 숨기고 경계 Collider는 유지한다. 공유 메시와 프리팹 사용만으로 Web 성능을 검증했다고 판단하지 않는다. Web 적용 전에 꽃·창문 반복 수, Renderer·재질 수와 프레임 시간을 측정해 단순화한다.

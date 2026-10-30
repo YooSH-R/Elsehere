@@ -20,9 +20,10 @@ namespace A305.EditorTools.Player
         public const string CameraPrefabPath = "Assets/Prefabs/Player/PlayerCamera.prefab";
         public const string MenuPath = "Tools/A305/Player/Build Sandbox";
 
+        // 공용 Player는 어떤 외형을 고르든 이 이동 설정 하나로 움직인다.
+        public const string MovementSettingsPath = "Assets/Data/Player/LittleMung/Movement.asset";
+
         private const string ScenePath = "Assets/Scenes/Sandbox/PlayerSandbox.unity";
-        private const string MovementSettingsPath =
-            "Assets/Data/Player/PlayerMovementSettings.asset";
         private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const string ArtFolder = "Assets/Art/Player";
         private const string InputActionsPath = BuilderTools.InputActionsPath;

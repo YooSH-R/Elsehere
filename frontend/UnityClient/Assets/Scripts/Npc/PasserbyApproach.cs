@@ -93,6 +93,28 @@ namespace A305.Npc
             return true;
         }
 
+        /// <summary>
+        /// 플레이어가 먼저 말을 걸 수 있는지(기능 명세 F-22 [E 대화하기]). 기다리거나 쉬는 중이고 제안 거리 안에 있어야 한다.
+        /// 다가오거나 제안하는 중에는 제안 화면의 [대화하기]를 쓴다.
+        /// </summary>
+        public bool CanPlayerTalk(float distanceToPlayer)
+        {
+            bool isIdle = Phase == PasserbyPhase.Waiting || Phase == PasserbyPhase.Resting;
+            return isIdle && distanceToPlayer <= rules.OfferDistanceMeters;
+        }
+
+        /// <returns>말을 걸 수 있었으면 true이고 대화를 시작한다. 대화가 끝나면 다시 쉰다.</returns>
+        public bool TryTalkByPlayer(float distanceToPlayer)
+        {
+            if (!CanPlayerTalk(distanceToPlayer))
+            {
+                return false;
+            }
+
+            Phase = PasserbyPhase.Talking;
+            return true;
+        }
+
         public void EndTalk(double nowSeconds)
         {
             if (Phase == PasserbyPhase.Talking)

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "needs": {
+    "HUNGER": { "dropPerHour": 6, "start": 70 },
+    "ENERGY": { "dropPerHour": 5, "start": 70 },
+    "SOCIAL": { "dropPerHour": 4, "start": 70 },
+    "FUN": { "dropPerHour": 5, "start": 70 },
+    "WORK": { "dropPerHour": 8, "start": 70 }
+  },
+  "actions": [
+    { "objectKey": "coffee_machine", "scene": "CAFE", "action": "MAKE_DRINK", "fills": { "WORK": 30 }, "minutes": 3, "onlyRole": "STAFF" },
+    { "objectKey": "coffee_machine", "scene": "CAFE", "action": "DRINK_COFFEE", "fills": { "ENERGY": 25 }, "minutes": 5 },
+    { "objectKey": "muffin", "scene": "CAFE", "action": "EAT", "fills": { "HUNGER": 40 }, "minutes": 10 },
+    { "objectKey": "chair", "scene": "CAFE", "action": "REST", "fills": { "ENERGY": 15 }, "minutes": 15 },
+    { "objectKey": "reception_desk", "scene": "HOTEL", "action": "SERVE_GUEST", "fills": { "WORK": 30 }, "minutes": 5, "onlyRole": "STAFF" },
+    { "objectKey": "sofa", "scene": "HOTEL", "action": "REST", "fills": { "ENERGY": 20 }, "minutes": 15 },
+    { "objectKey": "book", "scene": "HOTEL", "action": "READ", "fills": { "FUN": 25 }, "minutes": 20 },
+    { "objectKey": "bench", "scene": "TOWN", "action": "REST", "fills": { "ENERGY": 20 }, "minutes": 15 },
+    { "objectKey": "fountain", "scene": "TOWN", "action": "LOOK_AROUND", "fills": { "FUN": 15 }, "minutes": 10 }
+  ],
+  "conversationEvents": {
+    "GREETING": { "impression": 1 },
+    "SMALL_TALK": { "mood": { "PLEASED": 1 }, "memorySalience": 1 },
+    "PERSONAL_QUESTION": {},
+    "RUDE": { "mood": { "ANNOYED": 2 }, "impression": -15, "memorySalience": 3 },
+    "APOLOGY": { "mood": { "ANNOYED": -1 }, "impression": 5 },
+    "COMPLIMENT": { "mood": { "PLEASED": 2 }, "impression": 5, "memorySalience": 2 },
+    "TASK_DONE": { "impression": 2, "memorySalience": 1 },
+    "LEAVE": {}
+  },
+  "mood": { "decayPerTurn": 0.5, "showsAt": 1 },
+  "relationship": {
+    "recognitionPerConversation": 8,
+    "seenBefore": 20,
+    "regular": 50,
+    "liked": 15,
+    "disliked": -10,
+    "personalTalk": { "recognition": 60, "affinity": 40 },
+    "graceDays": 3,
+    "recognitionDropPerDay": 1,
+    "affinityFollowRate": 0.3,
+    "rudeAffinityFallback": -4
+  },
+  "memory": {
+    "stabilityDays": { "1": 1, "2": 3, "3": 14 },
+    "recallAt": 0.5,
+    "spacedRepeatFactor": 2,
+    "sameDayFactor": 1.2
+  },
+  "activities": {
+    "WORK": { "canFill": ["WORK"] },
+    "BREAK": { "canFill": ["HUNGER", "ENERGY", "SOCIAL", "FUN"] },
+    "FREE": { "canFill": ["HUNGER", "ENERGY", "SOCIAL", "FUN"] }
+  },
+  "roles": {
+    "STAFF": {
+      "schedule": [
+        { "from": "08:00", "to": "12:00", "activity": "WORK" },
+        { "from": "12:00", "to": "12:30", "activity": "BREAK" },
+        { "from": "12:30", "to": "17:00", "activity": "WORK" },
+        { "from": "17:00", "to": "08:00", "activity": "OFF" }
+      ]
+    },
+    "PASSERBY": {
+      "schedule": [
+        { "from": "09:00", "to": "18:00", "activity": "FREE" },
+        { "from": "18:00", "to": "09:00", "activity": "OFF" }
+      ]
+    }
+  },
+  "derivation": [
+    { "target": "needRates.SOCIAL", "axis": "extraversion", "at0": 0.6, "at1": 1.4 },
+    { "target": "needRates.FUN", "axis": "conscientiousness", "at0": 1.4, "at1": 0.6 },
+    { "target": "recognitionRate", "axis": "agreeableness", "at0": 0.6, "at1": 1.4 },
+    { "target": "eventScale.RUDE", "axis": "neuroticism", "at0": 0.6, "at1": 1.4 },
+    { "target": "eventScale.SMALL_TALK", "axis": "openness", "at0": 0.6, "at1": 1.4 }
+  ]
+}

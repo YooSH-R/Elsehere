@@ -31,6 +31,7 @@ namespace A305.EditorTools.Theme
         private const string DataFolder = "Assets/Data/Theme";
         private const string CatalogPath = DataFolder + "/UiThemeCatalog.asset";
         private const string PickerPath = "Assets/Prefabs/Theme/ThemePicker.prefab";
+        private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string HomeScenePath = "Assets/Scenes/Production/HomeScene.unity";
         private const string FontFolder = "Assets/Art/UI/Fonts";
 
@@ -50,7 +51,21 @@ namespace A305.EditorTools.Theme
                 new[] { "#FFF8EC", "#FFCB52", "#FF8A5B", "#69B4F0", "#7CC48A" },
                 new[] { "#4A3B33", "#4A3B33", "#FFFFFF", "#FFFFFF", "#FFFFFF" },
                 "#E8453C",
-                outlinedIcons: false
+                outlinedIcons: false,
+                // 지도: 바탕·인도·도로·점선·이름·갈 곳, 그리고 집·카페·호텔·편의점 칸
+                map: new[]
+                {
+                    "#FFF3DC",
+                    "#F5DDB3",
+                    "#A9B4CF",
+                    "#FFFFFF",
+                    "#FFFFFF",
+                    "#FF5A4E",
+                    "#F2A65A",
+                    "#7CC48A",
+                    "#69B4F0",
+                    "#FF8A5B",
+                }
             ),
             new ThemeSpec(
                 UiThemeId.Sticker,
@@ -65,7 +80,20 @@ namespace A305.EditorTools.Theme
                 new[] { "#FFFFFF", "#FFD54A", "#FF7A59", "#5AA9E6", "#4CC9A6" },
                 new[] { "#2D3A5A", "#2D3A5A", "#2D3A5A", "#2D3A5A", "#2D3A5A" },
                 "#FF7A59",
-                outlinedIcons: true
+                outlinedIcons: true,
+                map: new[]
+                {
+                    "#FFFFFF",
+                    "#FFE8B0",
+                    "#6B7896",
+                    "#FFD54A",
+                    "#FFFFFF",
+                    "#FF4F5E",
+                    "#FFB547",
+                    "#4CC9A6",
+                    "#5AA9E6",
+                    "#FF7A59",
+                }
             ),
             new ThemeSpec(
                 UiThemeId.Cloud,
@@ -80,7 +108,20 @@ namespace A305.EditorTools.Theme
                 new[] { "#FFFFFF", "#3D8BD9", "#FF8F6B", "#DCEEFF", "#8FD6B5" },
                 new[] { "#24384F", "#FFFFFF", "#FFFFFF", "#24384F", "#24384F" },
                 "#FF8F6B",
-                outlinedIcons: false
+                outlinedIcons: false,
+                map: new[]
+                {
+                    "#EAF4FF",
+                    "#FFFFFF",
+                    "#BCD0EC",
+                    "#FFFFFF",
+                    "#FFFFFF",
+                    "#FF8F6B",
+                    "#F6A97C",
+                    "#6CC59A",
+                    "#6FA8E8",
+                    "#F48FA3",
+                }
             ),
         };
 
@@ -125,8 +166,9 @@ namespace A305.EditorTools.Theme
         /// <summary>대화·피드백·단어장·미션·튜토리얼·단어 카드 화면 프리팹에 테마 역할을 붙이고 기본 테마로 칠한다.</summary>
         public static void StyleFeaturePrefabs()
         {
-            catalog ??= BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
-            Style("Assets/Prefabs/Learning/LearningHud.prefab", StyleHud);
+            if (catalog == null)
+                catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(HudPath, StyleHud);
             Style("Assets/Prefabs/Learning/FeedbackScreen.prefab", StyleFeedback);
             Style("Assets/Prefabs/Learning/VocabularyScreen.prefab", StyleVocabulary);
             Style("Assets/Prefabs/Mission/MissionPanel.prefab", StyleMission);
@@ -134,6 +176,7 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleDialogue);
             Style("Assets/Prefabs/Tutorial/TutorialGuide.prefab", StyleTutorial);
             Style("Assets/Prefabs/ObjectHover/WordTooltip.prefab", StyleTooltip);
+            Style(PickerPath, StyleThemeLauncher);
         }
 
         /// <summary>집 씬에 테마 고르기 화면을 둔다. 이미 있으면 그대로 둔다.</summary>
@@ -176,6 +219,7 @@ namespace A305.EditorTools.Theme
         /// </summary>
         private static void StyleHud(Transform root)
         {
+            PillButton(root, "HomeButton", UiIcon.Home, UiTone.Neutral);
             Transform panel = root.Find("Panel");
             if (panel == null)
             {
@@ -187,23 +231,31 @@ namespace A305.EditorTools.Theme
                 Object.DestroyImmediate(oldRole);
             panel.GetComponent<Image>().color = new Color(1, 1, 1, 0);
             panel.GetComponent<Image>().raycastTarget = false;
-            Transform button = IconButton(
-                root,
-                "Panel/Buttons/VocabularyButton",
-                UiIcon.Book,
-                UiTone.Secondary,
-                caption: true
-            );
+            Transform button = root.Find("Panel/Buttons/VocabularyButton");
+            Transform oldFace = button.Find("Face");
+            if (oldFace != null)
+                Object.DestroyImmediate(oldFace.gameObject);
+            PillButton(root, "Panel/Buttons/VocabularyButton", UiIcon.Book, UiTone.Neutral);
+            var vocabularySize = button.GetComponent<LayoutElement>();
+            vocabularySize.minWidth = vocabularySize.preferredWidth = 180;
+            vocabularySize.preferredHeight = 72;
+            var vocabularyLabel = button.Find("Label").GetComponent<TMP_Text>();
+            vocabularyLabel.fontSize = 24;
+            vocabularyLabel.fontStyle = FontStyles.Bold;
+            StyleHistory(root);
+            StyleMyPage(root);
+            FitPanelToButtons((RectTransform)panel);
 
-            RectTransform card =
-                (RectTransform)panel.Find("MessageCard") ?? Rect("MessageCard", panel);
+            RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
             var cardLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(card.gameObject);
             cardLayout.padding = new RectOffset(24, 24, 16, 22);
             cardLayout.childControlWidth = cardLayout.childControlHeight = true;
             cardLayout.childForceExpandHeight = false;
             Role(card, UiThemeRole.Card);
-            Transform message = panel.Find("Message") ?? card.Find("Message");
+            Transform message = panel.Find("Message");
+            if (message == null)
+                message = card.Find("Message");
             if (message != null)
             {
                 message.SetParent(card, false);
@@ -215,58 +267,148 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "messageBox", card.gameObject);
             if (button == null)
                 return;
-            TMP_Text count = Badge(button.Find("Face"), "CountBadge");
+            TMP_Text count = Badge(button, "CountBadge");
             BuilderTools.SetReference(view, "vocabularyCountText", count);
         }
 
-        private static void StyleFeedback(Transform root)
+        /// <summary>[지난 대화]를 [단어장]과 같은 알약 버튼으로 바꾸고, 지난 대화 창을 단어장 화면처럼 칠한다.</summary>
+        private static void StyleHistory(Transform root)
         {
-            Role(root, "Panel", UiThemeRole.Panel);
-            Role(root, "Panel/Title", UiThemeRole.Title);
-            Role(root, "Panel/Summary", UiThemeRole.Muted);
-            Role(root, "Panel/Body", UiThemeRole.Body);
+            if (!StyleHudPill(root, "HistoryButton", UiIcon.Talk, 200))
+                return;
+            Role(root, "History", UiThemeRole.Panel);
+            Role(root, "History/Title", UiThemeRole.Title);
+            Role(root, "History/Hint", UiThemeRole.Muted);
+            Role(root, "History/List", UiThemeRole.Body);
+            Role(root, "History/Status", UiThemeRole.Muted);
             IconButton(
                 root,
-                "Panel/Buttons/SaveButton",
-                UiIcon.Save,
+                "History/Buttons/PreviousButton",
+                UiIcon.Previous,
                 UiTone.Neutral,
                 caption: true
             );
             IconButton(
                 root,
-                "Panel/Buttons/DetailButton",
+                "History/Buttons/NextButton",
+                UiIcon.Next,
+                UiTone.Neutral,
+                caption: true
+            );
+            IconButton(
+                root,
+                "History/Buttons/OpenButton",
                 UiIcon.Detail,
-                UiTone.Accent,
+                UiTone.Primary,
                 caption: true
             );
             IconButton(
                 root,
-                "Panel/Buttons/RegenerateButton",
-                UiIcon.Retry,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/TranscriptButton",
-                UiIcon.Talk,
-                UiTone.Accent,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/VocabularyButton",
-                UiIcon.Book,
-                UiTone.Secondary,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/CloseButton",
+                "History/Buttons/CloseButton",
                 UiIcon.Close,
                 UiTone.Neutral,
                 caption: true
             );
+        }
+
+        /// <summary>[내 정보]를 [단어장]과 같은 알약 버튼으로 버튼 줄 끝에 두고, 마이페이지 창을 칠한다.</summary>
+        private static void StyleMyPage(Transform root)
+        {
+            if (!StyleHudPill(root, "MyPageButton", UiIcon.Detail, 160))
+                return;
+            Role(root, "MyPage/Window", UiThemeRole.Panel);
+            Role(root, "MyPage/Window/Title", UiThemeRole.Title);
+            Role(root, "MyPage/Window/Profile", UiThemeRole.Body);
+            Role(root, "MyPage/Window/NicknameRow/NicknameInput", UiThemeRole.Input);
+            Role(root, "MyPage/Window/Status", UiThemeRole.Muted);
+            QuietButton(root, "MyPage/Window/NicknameRow/NicknameButton", "닉네임 변경");
+            QuietButton(root, "MyPage/Window/Buttons/LogoutButton", "로그아웃");
+            QuietButton(root, "MyPage/Window/Buttons/CloseButton", "닫기");
+            Role(root, "MyPage/LogoutDialog", UiThemeRole.Panel);
+            Role(root, "MyPage/LogoutDialog/Title", UiThemeRole.Title);
+            Role(root, "MyPage/LogoutDialog/Body", UiThemeRole.Body);
+            Role(root, "MyPage/LogoutDialog/Status", UiThemeRole.Muted);
+            QuietButton(root, "MyPage/LogoutDialog/Buttons/CancelButton", "취소");
+            QuietButton(root, "MyPage/LogoutDialog/Buttons/ConfirmButton", "로그아웃");
+        }
+
+        // 오른쪽 위 버튼 줄의 버튼을 [단어장]과 같은 높이·글자의 알약 버튼으로 바꾼다. 버튼이 없으면 false.
+        private static bool StyleHudPill(
+            Transform root,
+            string buttonName,
+            UiIcon icon,
+            float width
+        )
+        {
+            string path = "Panel/Buttons/" + buttonName;
+            Transform button = root.Find(path);
+            if (button == null)
+                return false;
+            PillButton(root, path, icon, UiTone.Neutral);
+            var size = button.GetComponent<LayoutElement>();
+            size.minWidth = size.preferredWidth = width;
+            size.preferredHeight = 72;
+            var label = button.Find("Label").GetComponent<TMP_Text>();
+            label.fontSize = 24;
+            label.fontStyle = FontStyles.Bold;
+            return true;
+        }
+
+        // 버튼 줄이 잘리지 않게 오른쪽 위 패널 너비를 버튼 줄에 맞춘다.
+        private static void FitPanelToButtons(RectTransform panel)
+        {
+            RectOffset padding = panel.GetComponent<VerticalLayoutGroup>().padding;
+            var row = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>();
+            panel.sizeDelta = new Vector2(
+                padding.left + padding.right + RowWidth(row),
+                panel.sizeDelta.y
+            );
+        }
+
+        // 오른쪽 정렬한 버튼 줄에서 켜진 버튼의 너비와 간격을 더한다.
+        private static float RowWidth(HorizontalLayoutGroup row)
+        {
+            float width = 0;
+            int count = 0;
+            foreach (Transform child in row.transform)
+            {
+                var size = child.GetComponent<LayoutElement>();
+                if (!child.gameObject.activeSelf || size == null)
+                    continue;
+                width += size.preferredWidth;
+                count++;
+            }
+            return width + row.spacing * Mathf.Max(0, count - 1);
+        }
+
+        private static void StyleFeedback(Transform root)
+        {
+            IconButton(root, "Panel/TopCloseButton", UiIcon.Close, UiTone.Neutral, caption: false);
+            Role(root, "Panel", UiThemeRole.Panel);
+            Role(root, "Panel/Title", UiThemeRole.Title);
+            Role(root, "Panel/Summary", UiThemeRole.Muted);
+            Role(root, "Panel/PageCard", UiThemeRole.Card);
+            Role(root, "Panel/PageCard/Body", UiThemeRole.Body);
+            Role(root, "Panel/PageTitle", UiThemeRole.Title);
+            Role(root, "Panel/Navigation/PageNumber", UiThemeRole.Caption);
+            Role(root, "Panel/Notice", UiThemeRole.Muted);
+            root.Find("Panel").GetComponent<VerticalLayoutGroup>().padding = new RectOffset(
+                48,
+                48,
+                40,
+                36
+            );
+            QuietButton(root, "Panel/Sections/SummaryButton", "요약", selectedTint: true);
+            QuietButton(root, "Panel/Sections/CorrectionsButton", "문장", selectedTint: true);
+            QuietButton(root, "Panel/Sections/ConversationButton", "회화", selectedTint: true);
+            QuietButton(root, "Panel/Sections/ExpressionsButton", "표현", selectedTint: true);
+            CompactArrow(root, "Panel/Navigation/PreviousButton", UiIcon.Previous);
+            CompactArrow(root, "Panel/Navigation/NextButton", UiIcon.Next);
+            QuietButton(root, "Panel/Buttons/SaveButton", "담기");
+            QuietButton(root, "Panel/Buttons/DetailButton", "자세히");
+            QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
+            QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");
+            QuietButton(root, "Panel/Buttons/VocabularyButton", "단어장");
         }
 
         private static void StyleVocabulary(Transform root)
@@ -335,6 +477,8 @@ namespace A305.EditorTools.Theme
             Role(root, "Content/CurrentGoal/Situation", UiThemeRole.Title);
             Role(root, "Content/CurrentGoal/Direction", UiThemeRole.Body);
             Role(root, "Content/Journal", UiThemeRole.Panel);
+            root.Find("Content/Journal").GetComponent<VerticalLayoutGroup>().padding =
+                new RectOffset(48, 48, 36, 40);
             Role(root, "Content/Journal/Title", UiThemeRole.Title);
             Role(root, "Content/Journal/Goal", UiThemeRole.Body);
             Role(root, "Content/Journal/Legend/PlayerLabel", UiThemeRole.Caption);
@@ -345,7 +489,80 @@ namespace A305.EditorTools.Theme
             PillButton(root, "Content/Journal/StartButton", UiIcon.Play, UiTone.Primary);
             PillButton(root, "Content/Journal/RestButton", UiIcon.Rest, UiTone.Secondary);
             PillButton(root, "Content/Journal/RetryButton", UiIcon.Retry, UiTone.Neutral);
-            PillButton(root, "Content/Journal/CloseButton", UiIcon.Close, UiTone.Neutral);
+            IconButton(
+                root,
+                "Content/Journal/CloseButton",
+                UiIcon.Close,
+                UiTone.Neutral,
+                caption: false
+            );
+        }
+
+        private static void CompactLabel(Transform root, string path, string caption)
+        {
+            Transform target = root.Find(path);
+            TMP_Text label = target != null ? target.GetComponent<TMP_Text>() : null;
+            if (label != null)
+                label.text = caption;
+        }
+
+        // 읽는 화면의 조작은 같은 크기의 차분한 글자 버튼으로 통일한다.
+        private static void QuietButton(
+            Transform root,
+            string path,
+            string caption,
+            bool selectedTint = false
+        )
+        {
+            Transform target = root.Find(path);
+            if (target == null)
+                return;
+            foreach (string name in new[] { "Face", "Outline", "Icon" })
+            {
+                Transform decoration = target.Find(name);
+                if (decoration != null)
+                    Object.DestroyImmediate(decoration.gameObject);
+            }
+            Role(target, UiThemeRole.Card);
+            Image image = target.GetComponent<Image>();
+            image.raycastTarget = true;
+            image.pixelsPerUnitMultiplier = 1.7f;
+            var button = target.GetComponent<Button>();
+            button.targetGraphic = image;
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.highlightedColor = new Color(.95f, .97f, .92f);
+            colors.pressedColor = new Color(.82f, .90f, .79f);
+            colors.disabledColor = selectedTint
+                ? new Color(.78f, .88f, .73f)
+                : new Color(1, 1, 1, .4f);
+            button.colors = colors;
+            TMP_Text label = target.Find("Label").GetComponent<TMP_Text>();
+            label.gameObject.SetActive(true);
+            Stretch((RectTransform)label.transform);
+            label.text = caption;
+            label.fontSize = 24;
+            label.enableAutoSizing = false;
+            label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            Role(label.transform, UiThemeRole.Title);
+            var size = BuilderTools.GetOrAddComponent<LayoutElement>(target.gameObject);
+            size.minWidth = 0;
+            size.preferredHeight = 64;
+            size.minHeight = 64;
+            if (!selectedTint)
+                size.preferredWidth = 156;
+        }
+
+        private static void CompactArrow(Transform root, string path, UiIcon icon)
+        {
+            Transform target = root.Find(path);
+            Transform oldOutline = target.Find("Outline");
+            if (oldOutline != null)
+                Object.DestroyImmediate(oldOutline.gameObject);
+            IconButton(root, path, icon, UiTone.Neutral, caption: false);
+            var size = target.GetComponent<LayoutElement>();
+            size.preferredHeight = 56;
+            size.preferredWidth = size.minWidth = 56;
         }
 
         private static void StyleDialogue(Transform root)
@@ -353,10 +570,28 @@ namespace A305.EditorTools.Theme
             Role(root, "Panel", UiThemeRole.Panel);
             Role(root, "Panel/Title", UiThemeRole.Title);
             Role(root, "Panel/Notice", UiThemeRole.Muted);
-            Role(root, "Panel/Conversation/Lines", UiThemeRole.Body);
-            Role(root, "Panel/Conversation/Guide", UiThemeRole.Muted);
+            Role(root, "Panel/Conversation/History/Viewport/Lines", UiThemeRole.Body);
+            Role(root, "HelpPanel", UiThemeRole.Panel);
+            Role(root, "HelpPanel/Title", UiThemeRole.Title);
+            Role(root, "HelpPanel/Viewport/Content/Guide", UiThemeRole.Muted);
+            Role(root, "HelpPanel/Viewport/Content/WordsCard", UiThemeRole.Card);
+            Role(root, "HelpPanel/Viewport/Content/WordsCard/Title", UiThemeRole.Title);
+            Role(root, "HelpPanel/Viewport/Content/WordsCard/SuggestWords", UiThemeRole.Body);
+            Role(root, "HelpPanel/Viewport/Content/HintCard", UiThemeRole.Card);
+            Role(root, "HelpPanel/Viewport/Content/HintCard/Title", UiThemeRole.Title);
+            Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
+            CompactLabel(root, "HelpPanel/Viewport/Content/WordsCard/Title", "단어");
+            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/Title", "문장");
+            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/UseHintButton/Label", "넣기");
+            CompactLabel(root, "Panel/Conversation/ToolRow/MeaningButton/Label", "뜻");
+            CompactLabel(root, "Panel/Conversation/ToolRow/ReplayButton/Label", "듣기");
+            PillButton(
+                root,
+                "HelpPanel/Viewport/Content/HintCard/UseHintButton",
+                UiIcon.Example,
+                UiTone.Secondary
+            );
             Role(root, "Panel/Conversation/Status", UiThemeRole.Accent);
-            Role(root, "Panel/Conversation/SuggestWords", UiThemeRole.Muted);
             Role(root, "Panel/Conversation/InputRow/Input", UiThemeRole.Input);
             IconButton(
                 root,
@@ -367,7 +602,7 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/InputRow/ExampleButton",
+                "Panel/Conversation/ToolRow/MoreTools/ExampleButton",
                 UiIcon.Example,
                 UiTone.Accent,
                 caption: true
@@ -381,14 +616,14 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/SaveButton",
+                "Panel/Conversation/ToolRow/MoreTools/SaveButton",
                 UiIcon.Save,
                 UiTone.Neutral,
                 caption: true
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/TalkButton",
+                "Panel/Conversation/InputRow/TalkButton",
                 UiIcon.Mic,
                 UiTone.Secondary,
                 caption: true
@@ -402,7 +637,7 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/HintButton",
+                "Panel/Conversation/ToolRow/MoreTools/HintButton",
                 UiIcon.Hint,
                 UiTone.Positive,
                 caption: true
@@ -415,6 +650,7 @@ namespace A305.EditorTools.Theme
                 caption: true
             );
             IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);
+            A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
         }
 
         private static void StyleTutorial(Transform root)
@@ -448,6 +684,7 @@ namespace A305.EditorTools.Theme
             var view = BuilderTools.GetOrAddComponent<ThemePickerView>(root);
             if (root.transform.Find("OpenButton") == null)
                 BuildPicker(root.transform);
+            StyleThemeLauncher(root.transform);
             BuilderTools.SetReference(
                 view,
                 "apiSettings",
@@ -493,13 +730,59 @@ namespace A305.EditorTools.Theme
             window.gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// 테마 버튼을 오른쪽 위 HUD 버튼 줄([단어장]·[내 정보]) 바로 왼쪽에 단어장 버튼과 같은 크기·높이·간격으로 둔다.
+        /// 두 화면은 같은 기준 해상도의 캔버스라, HUD 칸의 위치와 안쪽 여백, 오른쪽 정렬한 버튼 줄의 너비로 자리를 계산한다.
+        /// </summary>
+        private static void StyleThemeLauncher(Transform root)
+        {
+            Transform button = root.Find("OpenButton");
+            if (button == null)
+                return;
+            Transform oldFace = button.Find("Face");
+            if (oldFace != null)
+                Object.DestroyImmediate(oldFace.gameObject);
+            PillButton(root, "OpenButton", UiIcon.Palette, UiTone.Neutral);
+            var label = button.Find("Label").GetComponent<TMP_Text>();
+            label.gameObject.SetActive(true);
+            label.text = "테마";
+            label.fontSize = 24;
+            AlignWithVocabularyButton((RectTransform)button);
+        }
+
+        private static void AlignWithVocabularyButton(RectTransform open)
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            var panel = hud != null ? (RectTransform)hud.transform.Find("Panel") : null;
+            Transform button = panel != null ? panel.Find("Buttons/VocabularyButton") : null;
+            var vocabulary = button != null ? button.GetComponent<LayoutElement>() : null;
+            if (vocabulary == null)
+            {
+                Debug.LogWarning("테마 버튼을 맞출 단어장 버튼이 없습니다: " + HudPath);
+                return;
+            }
+            RectOffset padding = panel.GetComponent<VerticalLayoutGroup>().padding;
+            var row = panel.Find("Buttons").GetComponent<HorizontalLayoutGroup>();
+            float spacing = row.spacing;
+            float rowWidth = RowWidth(row);
+            var size = new Vector2(vocabulary.preferredWidth, vocabulary.preferredHeight);
+            Place(
+                open,
+                new Vector2(1, 1),
+                new Vector2(
+                    panel.anchoredPosition.x - padding.right - rowWidth - spacing,
+                    panel.anchoredPosition.y - padding.top
+                ),
+                size
+            );
+        }
+
         private static void BuildPicker(Transform root)
         {
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            // 오른쪽 위 단어장 칸(너비 360) 바로 왼쪽.
+            // 자리는 SetUpPicker가 단어장 버튼에 맞춘다.
             RectTransform open = Button(root, "OpenButton");
-            Place(open, new Vector2(1, 1), new Vector2(-404, -24), new Vector2(96, 96));
             UiBuilderTools.FindOrCreateText(open, "Label", bold, 15, Color.black, "테마");
             IconButton(root, "OpenButton", UiIcon.Palette, UiTone.Neutral, caption: true);
 
@@ -743,7 +1026,7 @@ namespace A305.EditorTools.Theme
             Transform oldIcon = button.Find("Icon");
             if (oldIcon != null)
                 Object.DestroyImmediate(oldIcon.gameObject);
-            RectTransform face = (RectTransform)button.Find("Face") ?? Rect("Face", button);
+            RectTransform face = FindOrCreateRect(button, "Face");
             face.SetAsFirstSibling();
             if (caption)
                 Place(face, new Vector2(0.5f, 1), Vector2.zero, new Vector2(66, 66));
@@ -755,16 +1038,17 @@ namespace A305.EditorTools.Theme
             var clickable = button.GetComponent<Button>();
             if (clickable != null)
                 clickable.targetGraphic = faceImage;
-            RectTransform outline = (RectTransform)face.Find("Outline") ?? Rect("Outline", face);
+            RectTransform outline = FindOrCreateRect(face, "Outline");
             Stretch(outline);
             BuilderTools.GetOrAddComponent<Image>(outline.gameObject).raycastTarget = false;
-            RectTransform iconRect = (RectTransform)face.Find("Icon") ?? Rect("Icon", face);
+            RectTransform iconRect = FindOrCreateRect(face, "Icon");
             iconRect.anchorMin = new Vector2(0.19f, 0.19f);
             iconRect.anchorMax = new Vector2(0.81f, 0.81f);
             iconRect.offsetMin = iconRect.offsetMax = Vector2.zero;
             BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
 
-            var label = button.Find("Label")?.GetComponent<TMP_Text>();
+            Transform labelTransform = button.Find("Label");
+            var label = labelTransform != null ? labelTransform.GetComponent<TMP_Text>() : null;
             if (label != null)
             {
                 label.gameObject.SetActive(caption);
@@ -797,20 +1081,23 @@ namespace A305.EditorTools.Theme
             }
             var size = BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject);
             size.preferredHeight = 58;
+            var clickable = button.GetComponent<Button>();
+            if (clickable != null)
+                clickable.targetGraphic = button.GetComponent<Image>();
             // 알약 그림의 둥근 끝이 58px 높이 안에 들어가도록 9칸 나누기 모서리를 줄여 그린다.
             button.GetComponent<Image>().pixelsPerUnitMultiplier = 1.7f;
-            RectTransform outline =
-                (RectTransform)button.Find("Outline") ?? Rect("Outline", button);
+            RectTransform outline = FindOrCreateRect(button, "Outline");
             Stretch(outline);
             outline.SetAsFirstSibling();
             var outlineImage = BuilderTools.GetOrAddComponent<Image>(outline.gameObject);
             outlineImage.raycastTarget = false;
             outlineImage.pixelsPerUnitMultiplier = 1.7f;
-            RectTransform iconRect = (RectTransform)button.Find("Icon") ?? Rect("Icon", button);
+            RectTransform iconRect = FindOrCreateRect(button, "Icon");
             Place(iconRect, new Vector2(0, 0.5f), new Vector2(22, 2), new Vector2(30, 30));
             iconRect.pivot = new Vector2(0, 0.5f);
             BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
-            var label = button.Find("Label")?.GetComponent<TMP_Text>();
+            Transform labelTransform = button.Find("Label");
+            var label = labelTransform != null ? labelTransform.GetComponent<TMP_Text>() : null;
             if (label != null)
             {
                 var labelRect = (RectTransform)label.transform;
@@ -819,6 +1106,8 @@ namespace A305.EditorTools.Theme
                 labelRect.offsetMin = new Vector2(58, 4);
                 labelRect.offsetMax = new Vector2(-20, 0);
                 label.fontSize = 22;
+                label.enableAutoSizing = false;
+                label.textWrappingMode = TextWrappingModes.NoWrap;
                 label.alignment = TextAlignmentOptions.Center;
                 label.transform.SetAsLastSibling();
             }
@@ -828,7 +1117,7 @@ namespace A305.EditorTools.Theme
         /// <summary>아이콘 버튼 오른쪽 위의 숫자 배지. 숫자 글자를 돌려준다.</summary>
         private static TMP_Text Badge(Transform face, string name)
         {
-            RectTransform badge = (RectTransform)face.Find(name) ?? Rect(name, face);
+            RectTransform badge = FindOrCreateRect(face, name);
             Place(badge, new Vector2(1, 1), new Vector2(8, 8), new Vector2(32, 32));
             badge.pivot = new Vector2(1, 1);
             BuilderTools.GetOrAddComponent<Image>(badge.gameObject).raycastTarget = false;
@@ -944,7 +1233,11 @@ namespace A305.EditorTools.Theme
                 SetColors(fields.FindProperty("toneColors"), spec.Tones);
                 SetColors(fields.FindProperty("toneInks"), spec.ToneInks);
             }
-            fields.FindProperty("titleFont").objectReferenceValue = TitleFont(spec.FontPath);
+            TMP_FontAsset serviceFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                ServiceFontBuilder.FontPath
+            );
+            fields.FindProperty("titleFont").objectReferenceValue =
+                serviceFont != null ? serviceFont : TitleFont(spec.FontPath);
             fields.FindProperty("panelSprite").objectReferenceValue = ThemeSprite(
                 spec.Id,
                 UiThemeArt.Part.Panel
@@ -978,9 +1271,31 @@ namespace A305.EditorTools.Theme
                 UiThemeArt.Part.Badge
             );
             fields.FindProperty("icons").objectReferenceValue = icons;
+            // 지도 색은 나중에 더한 값이라, 이미 만든 테마에도 비어 있을 때만 넣는다.
+            if (definition.TownMap.IsEmpty)
+                SetTownMapColors(fields.FindProperty("townMap"), spec.Map);
             fields.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(definition);
             return definition;
+        }
+
+        private static void SetTownMapColors(SerializedProperty map, string[] hexes)
+        {
+            string[] names =
+            {
+                "ground",
+                "pavement",
+                "road",
+                "roadLine",
+                "label",
+                "destination",
+                "home",
+                "cafe",
+                "hotel",
+                "shop",
+            };
+            for (int i = 0; i < names.Length; i++)
+                map.FindPropertyRelative(names[i]).colorValue = UiThemeArt.Hex(hexes[i]);
         }
 
         private static void SetColors(SerializedProperty list, string[] hexes)
@@ -1031,10 +1346,16 @@ namespace A305.EditorTools.Theme
 
         private static RectTransform Button(Transform parent, string name)
         {
-            RectTransform rect = (RectTransform)parent.Find(name) ?? Rect(name, parent);
+            RectTransform rect = FindOrCreateRect(parent, name);
             var image = BuilderTools.GetOrAddComponent<Image>(rect.gameObject);
             BuilderTools.GetOrAddComponent<Button>(rect.gameObject).targetGraphic = image;
             return rect;
+        }
+
+        private static RectTransform FindOrCreateRect(Transform parent, string name)
+        {
+            var existing = (RectTransform)parent.Find(name);
+            return existing != null ? existing : Rect(name, parent);
         }
 
         private static RectTransform Rect(string name, Transform parent)
@@ -1079,7 +1400,8 @@ namespace A305.EditorTools.Theme
                 string[] tones,
                 string[] toneInks,
                 string badge,
-                bool outlinedIcons
+                bool outlinedIcons,
+                string[] map
             )
             {
                 Id = id;
@@ -1095,6 +1417,7 @@ namespace A305.EditorTools.Theme
                 ToneInks = toneInks;
                 Badge = badge;
                 OutlinedIcons = outlinedIcons;
+                Map = map;
             }
 
             public UiThemeId Id { get; }
@@ -1110,6 +1433,9 @@ namespace A305.EditorTools.Theme
             public string[] ToneInks { get; }
             public string Badge { get; }
             public bool OutlinedIcons { get; }
+
+            /// <summary>지도 색. 바탕·인도·도로·점선·이름·갈 곳·집·카페·호텔·편의점 순서.</summary>
+            public string[] Map { get; }
         }
     }
 }

@@ -10,8 +10,11 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | --- | --- |
 | `PlayerMotor` | 이동 입력과 카메라 방향으로 이번 프레임의 속도를 계산합니다. 달리기, 점프, 중력, 이동 잠금을 포함하며 Unity 객체 없이 테스트합니다. |
 | `CameraOrbit` | 3인칭·1인칭·대화 시점 상태와 회전·줌 범위를 관리하고 카메라 위치를 계산합니다. |
+| `DialogueFraming` | 화면 비율에 맞춰 NPC 얼굴을 위쪽·오른쪽에 배치하고 수평선은 유지합니다. 대화창과 왼쪽 도움말이 얼굴을 가리지 않도록 합니다. |
 | `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. |
 | `PlayerCameraRig` | 카메라가 플레이어를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. |
+| `CameraCollisionDistance` | 가로등·사람 같은 가는 장애물에 줌이 흔들리지 않도록 구분하고, 벽에서 벗어나면 카메라 거리를 서서히 복구합니다. |
+| `MoveReferenceYaw` | 걷는 중 카메라가 캐릭터 뒤로 돌아가도 누른 방향대로 곧게 움직이도록 이동 시작 방향을 유지합니다. 사용자가 직접 시점을 돌리면 기준을 갱신합니다. |
 | `TouchDragInput` | 손가락별 드래그 소유권, 조이스틱 방향과 한 번만 적용할 카메라 이동량을 관리합니다. |
 | `PlayerTouchControls`, `TouchDragArea` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력을 전달합니다. |
 | `TouchControlsAvailability` | 조이스틱과 드래그 영역을 보일 기기인지 정합니다. Unity 객체 없이 테스트합니다. |
@@ -61,7 +64,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 
 ## 계정 캐릭터 적용
 
-공용 Player는 `PlayerCharacterAppearance`로 `PlayerCharacterCatalog`에서 선택 ID의 외형·이동 설정·캡슐 크기를 적용합니다. `PlayerCharacterSelection`은 서버가 확인한 ID를 씬 사이에 전달하며, 계정의 영구 저장은 Onboarding API가 맡습니다. F는 보정 리틀 멍, M은 같은 마스터 골격에 연결한 기본 남자 리틀 멍입니다. `PlayerCharacterVisibility`는 선택된 Visual을 1인칭·대화 시점에서 숨깁니다.
+공용 Player는 `PlayerCharacterAppearance`로 `PlayerCharacterCatalog`에서 선택 ID의 외형·캡슐 크기를 적용합니다. 이동 설정은 공용 Player의 `PlayerMover`가 하나만 가지므로 어떤 외형을 골라도 같은 속도로 움직입니다. `PlayerCharacterSelection`은 서버가 확인한 ID를 씬 사이에 전달하며, 계정의 영구 저장은 Onboarding API가 맡습니다. F는 보정 리틀 멍, M은 같은 마스터 골격에 연결한 기본 남자 리틀 멍입니다. `PlayerCharacterVisibility`는 선택된 Visual을 1인칭·대화 시점에서 숨깁니다.
 
 이동 루트, 입력 액션, 카메라 추적 대상과 상호작용 참조를 교체하지 않습니다. 새 모델은 Character Definition의 Visual Prefab에 등록하고, Animator가 있다면 `Speed`, `IsGrounded`, `VerticalSpeed` 파라미터를 갖춰야 합니다. 모델의 접지 보정은 해당 Visual 안에 함께 구성합니다. Character Definition의 카메라 눈높이·조준점이 0보다 크면 해당 캐릭터에 적용하고, 0이면 씬 카메라 데이터의 높이를 사용합니다. 거리·회전·줌 설정은 씬 데이터를 유지합니다. 등록 경로와 확인 순서는 [리틀 멍 플레이어](../../../../../docs/unity/little-mung-player.md)를 따릅니다.
 ## 사용 방법

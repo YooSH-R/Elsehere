@@ -1,7 +1,7 @@
 .dev-deployment-source:
   rules:
     - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
-    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $RUN_DEV_DEPLOY == "true" && ($CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "chore/S15P31A305-37-server-environments")'
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE == "web" && $RUN_DEV_DEPLOY == "true" && $CI_COMMIT_BRANCH == "dev"'
 
 dev:plan:
   extends:
@@ -29,7 +29,6 @@ dev:child:
     - ci:yaml
     - dev:plan
   interruptible: false
-  resource_group: a305-dev-release
   trigger:
     include:
       - artifact: dist/deployment/dev-child.yml
@@ -42,6 +41,9 @@ dev:deliver:
   image: docker:29.1.3-cli
   timeout: 30m
   interruptible: false
+  resource_group: a305-dev-release
+  allow_failure:
+    exit_codes: 78
   variables:
     GIT_DEPTH: "0"
   script:

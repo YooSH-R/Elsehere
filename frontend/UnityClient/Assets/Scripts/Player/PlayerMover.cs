@@ -4,10 +4,22 @@ using UnityEngine.InputSystem;
 
 namespace A305.Player
 {
-    /// <summary>키 입력으로 플레이어를 카메라 기준 방향으로 움직이고, 움직이는 방향으로 몸을 돌린다.</summary>
+    /// <summary>
+    /// 키 입력으로 플레이어를 카메라 기준 방향으로 움직이고, 움직이는 방향으로 몸을 돌린다.
+    /// 키를 누르고 있는 동안은 걷기 시작할 때의 카메라 방향을 기준으로 삼는다(<see cref="MoveReferenceYaw"/>).
+    /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerMover : MonoBehaviour
     {
+        // 빠르게 출발·정지할 때 애니메이션 자세가 한 프레임에 바뀌면 골반이 순간이동해 보인다.
+        // 실제 이동은 바로 바꾸고, 애니메이션에 전달하는 속도는 초당 이만큼만 바뀌게 한다.
+        // 서 있다가 달리면 약 0.25초에 걸쳐 바뀐다.
+        private const float AnimationSpeedChangePerSecond = 30f;
+
+        // 이 속도 이하에서의 변화는 튀는 폭이 작아 원래대로 바로 전달한다. 계단 디딤 보정이
+        // 천천히 걸을 때의 걷기 박자에 맞춰져 있어 박자가 밀리지 않게 한다.
+        private const float InstantAnimationSpeedMetersPerSecond = 1f;
+
         [SerializeField]
         private PlayerMovementSettings movementSettings;
 
@@ -34,6 +46,9 @@ namespace A305.Player
         private CharacterController characterController;
         private PlayerMotor motor;
         private PlayerTouchControls touchControls;
+        private PlayerCameraRig cameraRig;
+        private readonly MoveReferenceYaw moveReference = new MoveReferenceYaw();
+        private float animationSpeed;
 
         public PlayerCameraRig CameraRig =>
             cameraTransform != null ? cameraTransform.GetComponent<PlayerCameraRig>() : null;
@@ -71,13 +86,6 @@ namespace A305.Player
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
-            var appearance = GetComponent<PlayerCharacterAppearance>();
-            if (
-                appearance != null
-                && appearance.ActiveCharacter != null
-                && appearance.ActiveCharacter.MovementSettings != null
-            )
-                movementSettings = appearance.ActiveCharacter.MovementSettings;
             if (!HasRequiredReferences())
             {
                 enabled = false;
@@ -86,6 +94,7 @@ namespace A305.Player
 
             motor = movementSettings.CreateMotor();
             touchControls = GetComponentInChildren<PlayerTouchControls>(true);
+            cameraRig = CameraRig;
         }
 
         private void OnEnable()
@@ -104,9 +113,15 @@ namespace A305.Player
                 move = Vector2.ClampMagnitude(move + touchControls.Move, 1f);
             }
 
-            var input = new PlayerMoveInput(
+            // 카메라가 등 뒤로 따라 도는 동안에도 누르고 있는 키는 걷기 시작할 때의 카메라 방향으로 읽는다.
+            float referenceYaw = moveReference.Resolve(
                 move,
                 cameraTransform.eulerAngles.y,
+                cameraRig != null && cameraRig.TurnedByUserThisFrame
+            );
+            var input = new PlayerMoveInput(
+                move,
+                referenceYaw,
                 sprintAction.action.IsPressed(),
                 jumpAction.action.WasPressedThisFrame()
             );
@@ -124,8 +139,17 @@ namespace A305.Player
 
             if (animationDriver != null)
             {
+                float speed = horizontalVelocity.magnitude;
+                animationSpeed =
+                    Mathf.Max(animationSpeed, speed) <= InstantAnimationSpeedMetersPerSecond
+                        ? speed
+                        : Mathf.MoveTowards(
+                            animationSpeed,
+                            speed,
+                            AnimationSpeedChangePerSecond * Time.deltaTime
+                        );
                 animationDriver.SetLocomotion(
-                    horizontalVelocity.magnitude,
+                    animationSpeed,
                     characterController.isGrounded,
                     velocity.y
                 );

@@ -17,13 +17,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 장소·NPC·사물·어휘·미션 시드를 애플리케이션이 시작될 때 넣는다.
  *
  * <p>시드 SQL은 고유 키가 겹치면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않는다. SQL 뒤에 Unity가 내보낸 공용 단어 JSON으로 어휘의 단어 키와
- * 장소별 단어를 채우고, 미리 만든 발음 파일이 있는 단어에 발음 키를 채운다.
+ * 장소별 단어를 채우고, 발음 폴더에 발음 파일이 있는 단어에 발음 키를 채운다. 마지막으로 AI 쪽이 내보낸 NPC 설정으로 카드가 없는 NPC에 인격 카드를 넣는다.
  *
  * <p>Spring의 SQL 초기화({@code spring.sql.init})를 쓰지 않는 이유: 그 기능은 {@code @DataJpaTest}에서도 실행되어, 테스트가
  * 직접 넣는 장소 데이터와 겹친다. 이 클래스는 빈으로 등록된 컨텍스트에서만 실행된다.
@@ -35,8 +36,10 @@ public class WorldSeedLoader implements ApplicationRunner {
   static final String SCRIPT = "db/seed/world.sql";
   static final String OBJECT_WORDS = "content/object-words.json";
   static final String OBJECT_WORD_BINDINGS = "content/object-word-bindings.json";
+  static final String NPC_CONFIGURATIONS = "content/npc-configurations.json";
 
   private final DataSource dataSource;
+  private final PronunciationAudioStore pronunciationAudioStore;
 
   @Override
   public void run(ApplicationArguments args) {
@@ -52,6 +55,21 @@ public class WorldSeedLoader implements ApplicationRunner {
     loadWordKeys(jdbcTemplate);
     loadPronunciationAudioKeys(jdbcTemplate);
     loadSceneWords(jdbcTemplate);
+    loadProfiles(jdbcTemplate);
+  }
+
+  /**
+   * AI 쪽이 내보낸 NPC 설정의 인격 카드를 카드가 없는 NPC에만 넣는다. 페르소나처럼 처음만 쓰므로, 이미 있는 NPC의 카드를 바꾸려면 이 파일이 아니라 DB에서
+   * 고친다.
+   */
+  private static void loadProfiles(JdbcTemplate jdbcTemplate) {
+    JsonMapper jsonMapper = new JsonMapper();
+    for (NpcConfiguration configuration : read(NPC_CONFIGURATIONS, NpcConfiguration[].class)) {
+      jdbcTemplate.update(
+          "update npcs set profile = ?::jsonb where code = ? and profile is null",
+          jsonMapper.writeValueAsString(configuration.npcProfile()),
+          configuration.npcId());
+    }
   }
 
   /** 단어 키를 어휘(언어·철자)에 연결한다. 키가 다른 철자로 옮겨 갔으면 이전 행의 키를 먼저 비운다. */
@@ -72,13 +90,13 @@ public class WorldSeedLoader implements ApplicationRunner {
   }
 
   /**
-   * 미리 만든 발음 파일({@code {wordKey}.wav})이 있는 단어에 그 파일 이름을 발음 키로 넣는다. Unity 에셋에 발음 키를 적은 단어는 SQL이 이미 그
-   * 값을 넣었으므로 바꾸지 않는다.
+   * 발음 폴더에 발음 파일({@code {wordKey}.wav})이 있는 단어에 그 파일 이름을 발음 키로 넣는다. 시드 SQL이 발음 키를 Unity 에셋 값(대부분 비어
+   * 있음)으로 되돌리므로, 관리자가 만든 발음은 서버를 다시 시작할 때마다 여기서 다시 연결한다. Unity 에셋에 발음 키를 적은 단어는 바꾸지 않는다.
    */
-  private static void loadPronunciationAudioKeys(JdbcTemplate jdbcTemplate) {
+  private void loadPronunciationAudioKeys(JdbcTemplate jdbcTemplate) {
     for (ObjectWord word : read(OBJECT_WORDS, ObjectWords.class).words()) {
-      String fileName = word.key() + ".wav";
-      if (!new ClassPathResource(PronunciationAudioStore.DIRECTORY + fileName).exists()) {
+      String fileName = PronunciationAudioStore.keyOf(word.key());
+      if (!pronunciationAudioStore.exists(fileName)) {
         continue;
       }
       jdbcTemplate.update(
@@ -144,4 +162,8 @@ public class WorldSeedLoader implements ApplicationRunner {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record BindingScene(String sceneCode, List<String> wordKeys) {}
+
+  // 카드(npcProfile)는 칸 이름(camelCase)까지 그대로 저장해 워커에 보내므로 객체로 바꾸지 않고 JSON 그대로 읽는다.
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private record NpcConfiguration(String npcId, JsonNode npcProfile) {}
 }

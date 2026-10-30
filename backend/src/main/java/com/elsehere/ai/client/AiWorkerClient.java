@@ -35,7 +35,8 @@ import tools.jackson.databind.json.JsonMapper;
 public class AiWorkerClient {
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
-  // 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을 따른다.
+  // 의도·무례 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S·GUARD_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을
+  // 따른다.
   private static final Duration JUDGE_TIMEOUT = Duration.ofSeconds(15);
   private static final Duration REPLY_TIMEOUT = Duration.ofSeconds(30);
   private static final Duration AUDIO_TIMEOUT = Duration.ofSeconds(10);
@@ -75,13 +76,15 @@ public class AiWorkerClient {
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), JudgeResult.class);
   }
 
-  /**
-   * NPC 대답. 스트림을 끝까지 받아 대답 전문·턴 전체 음성 ID·추천 단어를 모은다. 생성이 실패해도 그때까지 쓴 사용량을 담아 돌려주며, 실패 여부는 {@link
-   * NpcReply#succeeded()}로 확인한다.
-   *
-   * @param text 학습자 원문(한국어가 섞여도 그대로)
-   * @param instruction 이번 대답에서 할 일. 없으면 빈 문자열
-   */
+  /** 무례 판정. 판정 모델이 실패해도 워커는 200에 판정값 null로 돌려준다. */
+  public GuardResult guard(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String text) {
+    HttpRequest request =
+        jsonRequest("/v1/guard", trace, JUDGE_TIMEOUT, new GuardBody(npc, history, text));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), GuardResult.class);
+  }
+
+  /** 추천 단어를 함께 만드는 NPC 대답. */
   public NpcReply reply(
       WorkerTrace trace,
       WorkerNpc npc,
@@ -90,7 +93,28 @@ public class AiWorkerClient {
       String text,
       String instruction,
       int level) {
-    ReplyBody body = new ReplyBody(npc, memory, history, text, instruction, true, level, true, "");
+    return reply(trace, npc, memory, history, text, instruction, level, true);
+  }
+
+  /**
+   * NPC 대답. 스트림을 끝까지 받아 대답 전문·턴 전체 음성 ID·추천 단어를 모은다. 생성이 실패해도 그때까지 쓴 사용량을 담아 돌려주며, 실패 여부는 {@link
+   * NpcReply#succeeded()}로 확인한다.
+   *
+   * @param text 학습자 원문(한국어가 섞여도 그대로)
+   * @param instruction 이번 대답에서 할 일. 없으면 빈 문자열
+   * @param suggestWords 추천 단어를 만들지. 대화를 끝내는 대답에서는 만들지 않는다
+   */
+  public NpcReply reply(
+      WorkerTrace trace,
+      WorkerNpc npc,
+      WorkerMemory memory,
+      List<WorkerLine> history,
+      String text,
+      String instruction,
+      int level,
+      boolean suggestWords) {
+    ReplyBody body =
+        new ReplyBody(npc, memory, history, text, instruction, true, level, suggestWords, "");
     HttpResponse<Stream<String>> response =
         send(
             jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
@@ -375,6 +399,8 @@ public class AiWorkerClient {
   }
 
   record JudgeBody(WorkerNpc npc, WorkerState state, List<WorkerLine> history, String text) {}
+
+  record GuardBody(WorkerNpc npc, List<WorkerLine> history, String text) {}
 
   record ReplyBody(
       WorkerNpc npc,

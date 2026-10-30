@@ -2077,6 +2077,7 @@ MonoBehaviour:
   mission: {fileID: 1898709491}
   passersby:
   - {fileID: 1957822439}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1001 &925173569
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3480,6 +3481,7 @@ MonoBehaviour:
   feedbackView: {fileID: 983490168}
   vocabularyView: {fileID: 925173571}
   hudView: {fileID: 708554597}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!4 &1453630575
 Transform:
   m_ObjectHideFlags: 0

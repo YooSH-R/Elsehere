@@ -195,6 +195,85 @@ namespace A305.Npc.Tests
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Approaching));
         }
 
+        [Test]
+        public void CanPlayerTalk_RestingNpcNearby_IsTrue()
+        {
+            // 대화를 마치고 쉬는 동안에도 플레이어가 먼저 다시 말을 걸 수 있다(F-22 [E 대화하기]).
+            PasserbyApproach passerby = Resting(TownPasserby);
+
+            Assert.That(passerby.CanPlayerTalk(OfferDistance), Is.True);
+        }
+
+        [Test]
+        public void CanPlayerTalk_RestingNpcTooFar_IsFalse()
+        {
+            PasserbyApproach passerby = Resting(TownPasserby);
+
+            Assert.That(passerby.CanPlayerTalk(OfferDistance + 0.1f), Is.False);
+        }
+
+        [Test]
+        public void CanPlayerTalk_WaitingNpcNearby_IsTrue()
+        {
+            var passerby = new PasserbyApproach(TownPasserby);
+
+            Assert.That(passerby.CanPlayerTalk(1.5f), Is.True);
+        }
+
+        [Test]
+        public void CanPlayerTalk_WhileApproachingOfferingOrTalking_IsFalse()
+        {
+            // 다가오거나 제안하는 중에는 제안 화면의 [대화하기]를 쓰고, 대화 중에는 다시 걸 수 없다.
+            var approaching = new PasserbyApproach(TownPasserby);
+            approaching.Tick(0d, 5f, isPlayerBusy: false);
+            PasserbyApproach offering = Offering(TownPasserby);
+            PasserbyApproach talking = Offering(TownPasserby);
+            talking.TryAccept();
+
+            Assert.That(approaching.CanPlayerTalk(1.5f), Is.False);
+            Assert.That(offering.CanPlayerTalk(1.5f), Is.False);
+            Assert.That(talking.CanPlayerTalk(1.5f), Is.False);
+        }
+
+        [Test]
+        public void TryTalkByPlayer_RestingNpcNearby_StartsTalkingAndRestsAgainAfterTalk()
+        {
+            PasserbyApproach passerby = Resting(TownPasserby);
+
+            bool isStarted = passerby.TryTalkByPlayer(1.5f);
+            PasserbyPhase whileTalking = passerby.Phase;
+            passerby.EndTalk(30d);
+
+            Assert.That(isStarted, Is.True);
+            Assert.That(whileTalking, Is.EqualTo(PasserbyPhase.Talking));
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
+            Assert.That(passerby.RestUntilSeconds, Is.EqualTo(30d + RestSeconds));
+        }
+
+        [Test]
+        public void TryTalkByPlayer_TooFar_KeepsResting()
+        {
+            PasserbyApproach passerby = Resting(TownPasserby);
+
+            bool isStarted = passerby.TryTalkByPlayer(OfferDistance + 0.1f);
+
+            Assert.That(isStarted, Is.False);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Resting));
+        }
+
+        private static PasserbyApproach Resting(PasserbyRules rules)
+        {
+            PasserbyApproach passerby = Offering(rules);
+            passerby.TryAccept();
+            passerby.EndTalk(10d);
+            Assert.That(
+                passerby.Phase,
+                Is.EqualTo(PasserbyPhase.Resting),
+                "준비: 대화 뒤 쉬는 상태"
+            );
+            return passerby;
+        }
+
         private static PasserbyApproach Offering(PasserbyRules rules)
         {
             var passerby = new PasserbyApproach(rules);

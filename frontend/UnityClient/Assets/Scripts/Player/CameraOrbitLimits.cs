@@ -11,7 +11,8 @@ namespace A305.Player
             float thirdPersonMaxPitchDegrees,
             float firstPersonMinPitchDegrees,
             float firstPersonMaxPitchDegrees,
-            float rotateDegreesPerPixel
+            float rotateDegreesPerPixel,
+            float followBehindSharpness = 0f
         )
         {
             MinDistanceMeters = minDistanceMeters;
@@ -22,6 +23,7 @@ namespace A305.Player
             FirstPersonMinPitchDegrees = firstPersonMinPitchDegrees;
             FirstPersonMaxPitchDegrees = firstPersonMaxPitchDegrees;
             RotateDegreesPerPixel = rotateDegreesPerPixel;
+            FollowBehindSharpness = followBehindSharpness;
         }
 
         public float MinDistanceMeters { get; }
@@ -41,5 +43,8 @@ namespace A305.Player
         public float FirstPersonMaxPitchDegrees { get; }
 
         public float RotateDegreesPerPixel { get; }
+
+        /// <summary>걷는 동안 카메라가 캐릭터 뒤로 돌아가는 빠르기. 0이면 따라 돌지 않는다.</summary>
+        public float FollowBehindSharpness { get; }
     }
 }

@@ -32,6 +32,7 @@ import org.springframework.context.annotation.Import;
   ClockConfig.class,
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
+  PronunciationAudioStore.class,
   WordPrefService.class,
   SceneService.class
 })

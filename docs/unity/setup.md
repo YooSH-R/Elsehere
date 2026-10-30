@@ -40,7 +40,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 ### 모바일 화면과 Web 템플릿
 
-`Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 빌드 설정의 캔버스 비율을 유지하며 화면 안에 맞춥니다. 기본 캔버스 크기는 960×600입니다. 세로 화면에는 위아래 여백이 생기며, 가로로 돌리면 더 크게 볼 수 있습니다. 화면을 채우기 위해 게임 화면을 자르거나 늘리지 않습니다. 노치·홈 표시줄의 안전 영역과 브라우저 주소창에 따른 높이 변화도 반영합니다.
+`Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 게임 화면이 브라우저 창 전체를 채우게 합니다. 페이지에는 게임 화면만 두고 제품 이름·[전체 화면] 같은 줄을 두지 않으며, 브라우저 자체의 전체 화면(PC는 F11)을 씁니다. 캔버스 크기가 창에 따라 바뀌어도 Unity가 그 크기로 다시 그리므로 게임 화면을 자르거나 늘리지 않고, 화면 비율에 따라 보이는 범위가 달라집니다. UI는 1920×1080 기준으로 화면 크기에 맞춰 늘고 줄어듭니다(`UiBuilderTools.EnsureOverlayCanvas`). 노치·홈 표시줄의 안전 영역은 비우고, 브라우저 주소창에 따른 높이 변화도 반영합니다. 빌드 설정의 960×600은 처음 캔버스 크기일 뿐 화면 비율을 고정하지 않습니다.
 
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 
@@ -111,6 +111,8 @@ CLI 검사는 Unity가 만든 프로젝트·참조를 그대로 읽고 `UnityCod
 배포 빌드는 내용 해시를 파일명으로 사용해 이전 릴리스의 JavaScript·WebAssembly·데이터가 섞이지 않게 합니다. 웹 컨테이너는 시작 페이지와 일반 정적 파일에 `Cache-Control: no-cache`를 적용해 브라우저가 현재 파일을 재검증하도록 합니다. 압축 산출물은 내용이 바뀌면 URL도 바뀝니다.
 
 자동화의 기본 실행 환경은 [Windows 노트북의 Unity 전용 Runner](windows-runner.md)입니다. EC2의 Editor·라이선스·자원 조건은 [EC2 빌드 검토](server-build.md)에 남깁니다. 빌드 스크립트, Runner 연결, 실제 CI 빌드와 서버 배포 성공은 각각 확인합니다.
+
+`infra/scripts/run-unity-ci.ps1 -Action test`는 회귀 검사 입력을 준비하고 EditMode·PlayMode를 실행합니다. `TRIPO_MASTER_RECORD`와 `TRIPO_MASTER_SCENE`이 없으면 저장소의 카페 캐릭터 작업 기록(`Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset`)과 손 바인딩 검수 씬(`Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity`)을 사용해 마스터 골격·모션·이동 검사가 빠지지 않게 합니다. EditMode는 작업 기록의 원본 모델을 복사해 현재 마스터 적용 절차를 실행한 임시 후보를 검사하며, 저장된 옛 후보를 승인하거나 원본 기록을 갱신하지 않습니다. PlayMode는 지정된 검수 씬에서 이동을 검사합니다. 다른 캐릭터를 검사할 때는 두 환경 변수에 해당 Unity 에셋 경로를 지정합니다. 자동 검사 통과와 실제 외관 승인은 별도로 확인합니다.
 
 ## 후속 검증 범위
 

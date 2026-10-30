@@ -29,6 +29,12 @@ namespace A305.Theme
         Detail,
         Retry,
         Rest,
+
+        // 마을 지도의 장소와 가로수. 카페는 쉬어 가기 아이콘(커피잔)을 함께 쓴다.
+        Home,
+        Hotel,
+        Store,
+        Tree,
     }
 
     /// <summary>한 테마가 쓰는 아이콘 그림 묶음. 같은 그림을 테두리 유무만 달리해 테마끼리 나눠 쓴다.</summary>

@@ -72,6 +72,22 @@ namespace A305.Player
             YawDegrees = yawDegrees;
         }
 
+        /// <summary>
+        /// 3인칭에서 걷는 동안 카메라를 캐릭터가 향한 방향 뒤로 천천히 돌린다. 1인칭과 대화 중에는 시점을 그대로 둔다.
+        /// </summary>
+        /// <param name="headingDegrees">캐릭터가 향한 수평 방향</param>
+        public void FollowBehind(float headingDegrees, float deltaTimeSeconds)
+        {
+            if (ViewMode != CameraViewMode.ThirdPerson || limits.FollowBehindSharpness <= 0f)
+            {
+                return;
+            }
+
+            // 프레임 속도와 관계없이 같은 빠르기로 돌도록 지수 감쇠로 섞고, 짧은 쪽으로 돈다.
+            float blend = 1f - Mathf.Exp(-limits.FollowBehindSharpness * deltaTimeSeconds);
+            YawDegrees += Mathf.DeltaAngle(YawDegrees, headingDegrees) * blend;
+        }
+
         public void ToggleFirstPerson()
         {
             if (ViewMode == CameraViewMode.Dialogue)

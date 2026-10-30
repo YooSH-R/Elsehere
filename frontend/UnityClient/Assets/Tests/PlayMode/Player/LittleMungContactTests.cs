@@ -85,7 +85,7 @@ namespace A305.Player.Tests
         [UnityTest]
         public IEnumerator WalkAndRunSolesDoNotEnterTheGround()
         {
-            foreach (float speed in new[] { 0.8f, 1.7f })
+            foreach (float speed in new[] { 3.2f, 7.5f })
             {
                 animator.SetFloat("Speed", speed);
                 animator.SetBool("IsGrounded", true);

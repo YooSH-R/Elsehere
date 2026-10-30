@@ -12,6 +12,7 @@ import com.elsehere.mission.entity.UserMissionStatus;
 import com.elsehere.mission.repository.UserMissionRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
+import com.elsehere.world.service.PronunciationAudioStore;
 import jakarta.persistence.EntityManager;
 import java.time.Clock;
 import java.time.Instant;
@@ -37,6 +38,7 @@ import org.springframework.context.annotation.Import;
   TestcontainersConfiguration.class,
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
+  PronunciationAudioStore.class,
   MissionService.class,
   MissionServiceTest.ClockTestConfiguration.class
 })
@@ -91,7 +93,7 @@ class MissionServiceTest {
                 "호텔에 체크인하기",
                 "HOTEL",
                 "HOTEL_STAFF",
-                "Emma",
+                "Jake",
                 UserMissionStatus.RUN,
                 null));
     assertThat(response.missions())

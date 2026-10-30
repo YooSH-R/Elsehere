@@ -72,6 +72,12 @@ public class User extends BaseEntity {
   @Column(nullable = false, length = 20)
   private UiTheme uiTheme;
 
+  // 가입은 항상 일반 사용자다. 관리자는 운영자가 DB에서 직접 지정한다(UserRole).
+  @Enumerated(EnumType.STRING)
+  @ColumnDefault("'USER'")
+  @Column(nullable = false, length = 10)
+  private UserRole role;
+
   // 재접속 위치
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "last_scene_id")
@@ -93,6 +99,7 @@ public class User extends BaseEntity {
     user.onboardingStep = OnboardingStep.LANG;
     user.currentLanguage = DEFAULT_LANGUAGE;
     user.uiTheme = UiTheme.JELLY;
+    user.role = UserRole.USER;
     return user;
   }
 
@@ -124,6 +131,11 @@ public class User extends BaseEntity {
   /** 화면 테마를 바꾼다(USER-01). */
   public void changeUiTheme(UiTheme uiTheme) {
     this.uiTheme = uiTheme;
+  }
+
+  /** 닉네임을 바꾼다(USER-04). 규칙과 중복은 호출하는 쪽에서 확인한다. */
+  public void changeNickname(String nickname) {
+    this.nickname = nickname;
   }
 
   /** 재접속할 장소를 바꾼다(WORLD-05). */

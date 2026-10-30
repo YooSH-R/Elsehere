@@ -135,6 +135,30 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("NPC의 인격 카드는 snake_case로 바꾸지 않고 카드의 칸 이름(camelCase) 그대로 보낸다")
+  void reply_sendsProfileWithCamelCaseKeys() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+    WorkerNpc npcWithProfile =
+        new WorkerNpc(
+            "CAFE_STAFF",
+            "Mia",
+            "the barista",
+            "",
+            "The counter",
+            "af_heart",
+            1.0,
+            Map.of("schemaVersion", "2.0", "speechStyle", Map.of("tone", "bright")));
+
+    client.reply(TRACE, npcWithProfile, null, List.of(), "Hello", "", 2);
+
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"tts_voice\":\"af_heart\"")
+        .contains("\"schemaVersion\":\"2.0\"")
+        .contains("\"speechStyle\":{\"tone\":\"bright\"}")
+        .doesNotContain("schema_version");
+  }
+
+  @Test
   @DisplayName("대화가 없는 요청에는 대화 ID 헤더를 붙이지 않는다")
   void request_withoutConversation_omitsConversationHeader() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
@@ -203,6 +227,83 @@ class AiWorkerClientTest {
     assertThat(result.text()).isEqualTo("라떼 주세요");
     assertThat(result.dropped()).isFalse();
     assertThat(result.english()).isEqualTo("A latte, please.");
+  }
+
+  @Test
+  @DisplayName("무례 판정은 앞선 대화의 무례 표시와 함께 보내고 판정값·사용량을 읽는다")
+  void guard_sendsHistoryAndReadsAbusive() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"text": "you idiot", "dropped": false,
+         "guard": {"abusive": true, "error": null, "error_code": null},
+         "usage": [{"step": "guard", "model": "m1", "input_tokens": 230, "output_tokens": 1}]}
+        """);
+
+    GuardResult result =
+        client.guard(TRACE, NPC, List.of(new WorkerLine("me", "shut up", null, true)), "you idiot");
+
+    assertThat(result.abusive()).isTrue();
+    assertThat(result.errorCode()).isNull();
+    assertThat(result.usage()).extracting(WorkerUsage::step).containsExactly("guard");
+    assertThat(received.get("/v1/guard").body())
+        .contains("\"text\":\"you idiot\"")
+        .contains("\"rude\":true");
+  }
+
+  @Test
+  @DisplayName("무례 판정이 호감도 변화량(affinity_delta)을 주면 함께 읽고, 주지 않으면 null이다")
+  void guard_readsAffinityDeltaWhenGiven() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "affinity_delta": -7, "usage": []}
+        """);
+    GuardResult withDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "usage": []}
+        """);
+    GuardResult withoutDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+
+    assertThat(withDelta.affinityDelta()).isEqualTo(-7);
+    assertThat(withoutDelta.affinityDelta()).isNull();
+  }
+
+  @Test
+  @DisplayName("판정하지 못한 무례 판정은 판정값 null과 이유 코드로 읽는다")
+  void guard_undecided_readsNullAndErrorCode() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"text": "hmm", "dropped": false,
+         "guard": {"abusive": null, "error": "timeout", "error_code": "timeout"}, "usage": []}
+        """);
+
+    GuardResult result = client.guard(TRACE, NPC, List.of(), "hmm");
+
+    assertThat(result.abusive()).isNull();
+    assertThat(result.errorCode()).isEqualTo("timeout");
+  }
+
+  @Test
+  @DisplayName("추천 단어를 끄면 NPC 대답 요청에 suggest_words false를 보낸다")
+  void reply_withoutSuggestWords_sendsFalse() {
+    respond(
+        "/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Bye\"}\n\n");
+
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, false);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"suggest_words\":false");
   }
 
   @Test

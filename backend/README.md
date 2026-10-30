@@ -43,11 +43,13 @@ com.elsehere
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
 | `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01) |
-| `user` | users, user_consents |
+| `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
+| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음) |
 | `world` | scenes, npcs, scene_words, user_word_prefs |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
+| `admin` | 없음 (운영자 어드민 화면·관리 API. 다른 도메인의 테이블을 고친다. [운영자 어드민](../docs/admin.md)) |
 
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
@@ -72,7 +74,7 @@ com.elsehere
 
 ## NPC 음성 파일 저장
 
-NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 상세 평가의 모범 음성(FB-04)은 같은 폴더의 `model-speech/`에 저장합니다. 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
+NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 상세 평가의 모범 음성(FB-04)은 같은 폴더의 `model-speech/`에, AI 개선에 동의한 사용자의 녹음은 `training-recordings/`(`TRAINING_RECORDING_DIR`)에 저장합니다([AI 개선 데이터 활용 기준](../docs/ai-training-data.md)). 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
 
 ## 스키마 관리
 
@@ -94,10 +96,11 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - 장소·NPC·사물·어휘·미션처럼 모든 환경에 같이 있어야 하는 기본 데이터는 [`src/main/resources/db/seed/world.sql`](src/main/resources/db/seed/world.sql)에 있습니다.
 - 사물 단어·한국어 뜻·영문 예문·예문 해석·발음 파일 키의 편집 원본은 [Unity 공용 단어 에셋](../frontend/UnityClient/Assets/Data/ObjectHover/Words/)입니다. Unity의 **Tools → A305 → ObjectHover → Export Backend Data**로 [단어 JSON](src/main/resources/content/object-words.json), [씬·프리팹 연결 JSON](src/main/resources/content/object-word-bindings.json), SQL의 `GENERATED OBJECT WORDS` 구간을 생성합니다. 발음 파일 키가 빈 항목은 DB에 NULL로 적재합니다.
 - Editor가 프로젝트를 닫은 상태에서는 저장소 루트의 `./infra/scripts/sync-object-words.ps1`로 내보내고 `-Check`로 에셋과 생성 파일의 일치를 검사합니다. 프로젝트 버전의 Unity Editor가 필요하며 다른 설치 위치는 `-UnityPath` 또는 `UNITY_EDITOR_PATH`로 지정합니다. 생성 JSON·SQL 구간은 직접 편집하지 않습니다.
-- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 Unity 에셋에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다. 언어 코드나 영어 표현을 바꾸면 현재 DB에서는 새 어휘 행이 생기며 기존 행은 삭제하지 않습니다. 기존 사용자 학습 기록을 새 표현으로 옮겨야 한다면 별도 DB 마이그레이션이 필요합니다.
+- `WorldSeedLoader`가 애플리케이션이 시작될 때(로컬·개발·운영 모두) 이 SQL을 실행합니다. 고유 키(`code`, `(language_code, text)`)가 같은 행이 있으면 시드 값으로 갱신하므로 여러 번 실행해도 행이 늘지 않습니다. DB에서 직접 고친 값은 다음 시작 때 시드 값으로 돌아가므로, 사물 어휘는 Unity 에셋에서, 그 밖의 기본 데이터는 SQL 파일에서 고칩니다. 예외로 NPC 페르소나(`npcs.persona`)는 NPC를 처음 넣을 때만 시드 값을 쓰고, 이후에는 [운영자 어드민](../docs/admin.md)에서 고친 값을 유지합니다. 언어 코드나 영어 표현을 바꾸면 현재 DB에서는 새 어휘 행이 생기며 기존 행은 삭제하지 않습니다. 기존 사용자 학습 기록을 새 표현으로 옮겨야 한다면 별도 DB 마이그레이션이 필요합니다.
+- NPC 인격 카드(`npcs.profile`)의 원본은 AI 쪽 `ai/npcs/<npcId>.json`이고, AI 도구(`ai/tools/npc_configs.py`)가 [NPC 설정 JSON](src/main/resources/content/npc-configurations.json)으로 내보냅니다. `WorldSeedLoader`가 SQL을 실행한 뒤 이 파일의 `npcProfile`을 카드가 없는 NPC에만 넣고, 이미 카드가 있는 NPC는 바꾸지 않습니다(페르소나처럼 처음만 씀). 카드는 AI 워커 요청의 `npc.profile`에 칸 이름(camelCase) 그대로 실리며, 카드가 없는 NPC는 페르소나의 역할 한 줄로 대답합니다. 카드가 있는 NPC의 `name`은 카드의 이름과 같게 둡니다.
 - `code`, `unity_key`는 Unity 씬·빌더에 쓴 값과 같아야 합니다. 행을 추가하거나 고치면 `WorldSeedLoaderTest`의 기대값도 함께 고칩니다.
 - 공용 목록의 어휘 전체를 `vocabularies`에 적재합니다. SQL을 실행한 뒤 `WorldSeedLoader`가 단어 JSON의 공용 키를 `vocabularies.word_key`에 넣고, 연결 JSON의 씬별 공용 키 목록으로 `scene_words`(장소별 단어)를 맞춥니다. 연결 JSON에서 빠진 단어는 그 장소의 `scene_words`에서 지웁니다. WORLD-02 단어 카드, WORLD-03 숨김, VOCAB-02 사물 저장은 모두 이 공용 키(`wordKey`)를 씁니다. 사용자별 저장·숨김 상태(`user_vocab`, `user_word_prefs`)는 공용 에셋에 넣지 않습니다.
-- 사물 단어 발음 음성(WORLD-04)은 [`src/main/resources/content/pronunciation/`](src/main/resources/content/pronunciation/)에 `{공용 키}.wav`로 두고 서버와 함께 배포합니다. `WorldSeedLoader`는 Unity 에셋에 발음 키가 없는 단어 중 이 폴더에 파일이 있는 단어에 파일 이름을 `pronunciation_audio_key`로 넣습니다. 파일이 없는 단어의 발음은 TTS 모델이 있는 AI 워커를 띄운 뒤 저장소 루트에서 `python ai/tools/generate_pronunciations.py`로 만듭니다(`AI_WORKER_BASE_URL`, `AI_WORKER_TOKEN` 사용, 이미 있는 파일은 건너뜀).
+- 사물 단어 발음 음성(WORLD-04)은 음성 볼륨의 하위 폴더(`elsehere.pronunciation.dir`, 기본 `${NPC_AUDIO_DIR}/pronunciation`)에 `{공용 키}.wav`로 둡니다. 관리자가 발음 생성 API(`POST /api/v1/admin/pronunciations`)로 발음 파일이 없는 단어만 AI 워커 TTS로 만듭니다([운영자 어드민](../docs/admin.md)). 시드 SQL이 발음 키를 Unity 에셋 값(대부분 비어 있음)으로 되돌리므로, `WorldSeedLoader`가 서버를 시작할 때마다 Unity 에셋에 발음 키가 없는 단어 중 이 폴더에 파일이 있는 단어에 파일 이름을 `pronunciation_audio_key`로 다시 넣습니다. 볼륨은 환경마다 따로라 개발·운영에서 각각 한 번 만듭니다.
 - Spring의 SQL 초기화(`spring.sql.init`)는 `@DataJpaTest`에서도 실행되어 테스트 데이터와 겹치므로 쓰지 않습니다. DB 테스트에서 시드가 필요하면 `WorldSeedLoader`를 `@Import`합니다.
 
 ## 인증과 오류 응답
@@ -105,6 +108,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - 로그인 상태는 서버 세션에 두고 세션 쿠키(HttpOnly, `SameSite=Lax`)로 유지합니다. 로그인 없이 `/api/v1` API를 호출하면 `401 UNAUTHENTICATED`, Google 로그인만 하고 가입 정보를 내지 않았으면 `403 SIGNUP_REQUIRED`입니다.
 - 가입(AUTH-03·04)은 Google 로그인이 세션에 남긴 가입 대기 정보로 진행합니다. 받는 약관과 현재 버전은 `ConsentCatalog`에 있으며, 약관 문서를 바꾸면 이 클래스의 버전과 주소를 함께 바꿉니다.
 - POST·PUT·PATCH·DELETE 요청에는 `X-Requested-With` 헤더(값은 자유)를 붙여야 합니다. 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
+- 운영자 어드민 화면(`/admin/**`)과 관리 API(`/api/v1/admin/**`)는 `users.role`이 `ADMIN`인 사용자만 씁니다. 보안 설정이 요청마다 `AdminAccess`로 DB의 역할을 확인하며, 관리자가 아니면 `403 ADMIN_REQUIRED`입니다. 로그인하지 않고 어드민 화면을 열면 Google 로그인으로 보냅니다. 관리자 지정 방법은 [운영자 어드민](../docs/admin.md)을 따릅니다.
 - 오류 응답 형식과 코드는 [MVP API 명세](../docs/api/mvp-api.md)의 1.5절을 따릅니다.
 
 ### Google 로그인

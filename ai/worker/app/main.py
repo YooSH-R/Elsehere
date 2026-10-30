@@ -20,13 +20,26 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import feedback_bridge, guard, services, stt
+from . import feedback_bridge, guard, npc_persona, services, stt
 from .config import Settings
 from .guard_local import LocalGuard
-from .llm import LLM, ModelOutputError, ProviderError
+from .llm import LLM, ModelOutputError, ProviderError, Usage
 from .npc import reply_events
+from .npc_profile_models import NpcProfile
 from .npc_respond import ContractError, load_payload, parse_request, readable_request_id, respond
-from .schemas import GuardRequest, HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, ReplyRequest, SuggestRequest, TtsRequest
+from .schemas import (
+    GuardRequest,
+    HintRequest,
+    JudgeRequest,
+    MeaningRequest,
+    MemoryRequest,
+    PersonaDeriveRequest,
+    PersonaGenerateRequest,
+    RelationshipRequest,
+    ReplyRequest,
+    SuggestRequest,
+    TtsRequest,
+)
 from .tts import AudioStore, Kokoro
 
 log = logging.getLogger("ai_worker")
@@ -59,7 +72,7 @@ def create_app(
     async def lifespan(app: FastAPI):
         s = settings or Settings.from_env()
         app.state.settings = s
-        app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices) if tts is True else tts
+        app.state.tts = await asyncio.to_thread(Kokoro.load, s.kokoro_model, s.kokoro_voices, s.kokoro_threads) if tts is True else tts
         if s.tts_require_timing and not getattr(app.state.tts, "phoneme_timing_ready", False):
             raise RuntimeError("TTS phoneme timing is required: install the duration-output Kokoro model and voices.")
         app.state.llm = LLM(s, transport)
@@ -203,6 +216,39 @@ def create_app(
             e = ContractError(500, "INTERNAL_ERROR", "NPC 추론 내부 오류", False, readable_request_id(payload))
             return JSONResponse(e.body(), status_code=e.http)
 
+    @app.post("/v1/npc/persona/generate")
+    async def persona_generate(req: PersonaGenerateRequest, request: Request):
+        """어드민 랜덤 생성: 고정 입력과 DB 후보로 인격 카드 초안을 만든다. 백엔드가 받아 npcs에 저장한다 (워커는 저장하지 않음)."""
+        ingredients = npc_persona.with_candidates(npc_persona.load_ingredients(), req.candidates.as_ingredients())
+        try:
+            config, life = npc_persona.generate(
+                req.npc_id,
+                req.role,
+                req.place,
+                ingredients,
+                npc_persona.load_behaviors(),
+                mbti=req.mbti,
+                fixed=req.fixed.as_profile_fields(),
+                taken_names=set(req.taken_names),
+            )
+        except ValueError as e:  # 그 장소의 직업·고를 이름·성격 특징 후보가 없음
+            raise ApiError("invalid_request", str(e), 400) from e
+        usage = Usage()
+        if req.narrate:
+            config = await npc_persona.narrate(config, request.app.state.llm, usage)
+        return {"npc_configuration": config, "mbti": life["mbti"], "usage": usage.items}
+
+    @app.post("/v1/npc/persona/derive")
+    async def persona_derive(req: PersonaDeriveRequest):
+        """어드민에서 MBTI를 바꾼 카드의 자동 칸(성격 5축·행동 조각)만 다시 계산한다. 손으로 쓴 글은 그대로."""
+        try:
+            NpcProfile.model_validate(req.profile)
+        except ValidationError as e:
+            where = "; ".join(f"{'.'.join(str(part) for part in err['loc'])}: {err['msg']}" for err in e.errors()[:5])
+            raise ApiError("invalid_request", f"인격이 공통 인격 모델에 맞지 않음 ({where})", 400) from e
+        life = {"npcId": req.npc_id, "mbti": req.mbti}
+        return {"profile": npc_persona.with_derived_traits(req.profile, life, npc_persona.load_behaviors())}
+
     @app.get("/v1/audio/{audio_id}")
     async def audio(audio_id: str, request: Request):
         wav = request.app.state.audio.get(audio_id)
@@ -263,6 +309,11 @@ def create_app(
     @app.post("/v1/memory")
     async def memory(req: MemoryRequest, request: Request):
         return await services.memory(request.app.state.llm, req)
+
+    @app.post("/v1/npc/relationship")
+    async def relationship_after_conversation(req: RelationshipRequest):
+        """정상 종료된 대화 하나를 사용자 × NPC 관계(알아봄·호감)에 반영한다. 모델을 부르지 않는다. 백엔드가 받아 저장한다 (워커는 저장하지 않음)."""
+        return services.relationship(req)
 
     return app
 

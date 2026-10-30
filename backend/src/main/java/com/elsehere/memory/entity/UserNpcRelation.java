@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -19,16 +20,20 @@ import org.hibernate.type.SqlTypes;
  *
  * <p>ERD에 없는 칸: 기억 카드(memory_card)와 마지막으로 반영한 대화(memory_conversation_id). 카드는 AI 워커 /v1/memory가 돌려준
  * 전체 카드이며 성공할 때마다 통째로 바꾼다. 같은 대화의 종료를 두 번 반영하지 않도록 마지막 대화 ID를 남긴다.
+ *
+ * <p>호감도는 발화 저장과 같은 트랜잭션에서 SQL로 바로 바꾸므로({@code UserNpcRelationRepository.addAffinity}), 엔티티를 저장할 때는
+ * 바꾼 칸만 써서 그 사이 바뀐 호감도를 덮어쓰지 않는다.
  */
 @Entity
 @Table(name = "user_npc_relations")
+@DynamicUpdate
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserNpcRelation extends BaseEntity {
 
   @EmbeddedId private UserNpcRelationId id;
 
-  // 호감도(0~5). 아직 바꾸는 기능이 없다.
+  // 호감도(-100~100). 무례로 센 말마다 깎는다(NpcAffinityService).
   @ColumnDefault("0")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   @Column(nullable = false)

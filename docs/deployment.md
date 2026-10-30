@@ -84,6 +84,7 @@ NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 �
 호스트 Nginx dev.elsehere.kr /
   → 127.0.0.1:8081 (web)
       ├─ 정적 WebGL 파일
+      ├─ /admin → backend:8080 (운영자 어드민 화면)
       └─ /api/ → backend:8080 → database:5432
                               → ai-worker:8020 (연동 주소)
 ```
@@ -95,13 +96,13 @@ NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 �
 | `infra/docker/backend.Dockerfile` | 검사에 통과한 `backend/build/libs/app.jar` 실행. 서버에서 다시 빌드하지 않음 |
 | `infra/docker/ai-worker.Dockerfile` | 워커와 공유 피드백 모듈 실행 |
 | `infra/docker/web.Dockerfile` | WebGL 산출물과 내부 API 프록시 제공 |
-| `infra/nginx/web.conf` | WebAssembly MIME·gzip 헤더, 백엔드 교체 후 DNS 재조회 |
+| `infra/nginx/web.conf` | WebAssembly MIME·gzip 헤더, 백엔드 교체 후 DNS 재조회, `/api/`·`/admin`([운영자 어드민](admin.md)) 백엔드 프록시 |
 | `infra/compose/deploy.*.env.example` | 환경별 DB·Google OAuth·AI·포트·이미지 변수 예제 |
 | `infra/nginx/a305.dev-webgl.locations.conf` | 기존 HTTPS 서버에 수동으로 추가할 개발 WebGL 경로 예제 |
 
 실제 `deploy.env`에는 DB 비밀번호, `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET`, 내부 토큰, GMS·Groq 키와 검증한 이미지 참조가 필요합니다. 예제의 빈 값은 사용자가 서버에서 채우며 저장소에 넣지 않습니다. 공통 앱 Compose는 Google 두 값을 백엔드의 `environment`에 명시적으로 전달하며 값이 없거나 비어 있으면 실행 전에 실패합니다. `--env-file`로 치환할 값을 읽는 것과 컨테이너에 전달하는 것은 별개입니다. 운영 앱을 활성화할 때도 운영용 Google 값을 운영 `deploy.env`에 준비합니다. DB 스키마는 백엔드가 시작할 때 Flyway 마이그레이션이 만들고 바꾸며, 모든 환경에서 `JPA_DDL_AUTO=validate`로 엔티티와 맞는지 검사합니다. 새 운영 DB도 첫 시작 때 마이그레이션으로 만들어집니다. 앱을 이전 이미지로 되돌려도 적용된 마이그레이션은 되돌아가지 않습니다. 작성 기준은 [백엔드 README](../backend/README.md#스키마-관리)를 따릅니다.
 
-개발 서비스의 초기 상한은 DB 0.5 CPU·512MiB, AI 2 CPU·1GiB, 백엔드 0.75 CPU·1GiB, 웹 0.25 CPU·128MiB입니다. 부하 측정 전의 시작값이며 Unity 빌드 자원과는 별도로 관리합니다. 백엔드 `/api/health`는 DB 상태를 포함한 `UP`/`DOWN`을 반환하고 세부 연결 정보는 노출하지 않습니다. 웹 `/version.json`은 WebGL 산출물의 커밋을 표시합니다.
+개발 서비스의 초기 상한은 DB 0.5 CPU·512MiB, AI 2 CPU·1GiB, 백엔드 0.75 CPU·1GiB, 웹 0.25 CPU·128MiB입니다. 부하 측정 전의 시작값이며 Unity 빌드 자원과는 별도로 관리합니다. AI 상한은 TTS 합성 기준입니다. 0.5 CPU에서는 짧은 문장 하나의 합성이 수십 초 걸려 TTS를 쓸 수 없습니다. 합성 스레드 수(`KOKORO_THREADS`)는 AI CPU 상한과 같게 맞추며, 상한보다 많으면 CPU 할당량에 걸려 몇 배 느려집니다. 상한은 사용 가능한 최대치이고 TTS 합성은 요청이 있을 때만 CPU를 쓰지만, 개발·운영 앱이 같은 서버에서 CPU 4개를 나눠 쓰므로 실제 서버의 합성 시간과 다른 서비스 응답을 함께 확인합니다. 백엔드 `/api/health`는 DB 상태를 포함한 `UP`/`DOWN`을 반환하고 세부 연결 정보는 노출하지 않습니다. 웹 `/version.json`은 WebGL 산출물의 커밋을 표시합니다.
 
 ### 전환 순서
 

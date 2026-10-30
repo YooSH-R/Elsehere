@@ -70,6 +70,13 @@ function Read-UnityTestResults {
 if ($Action -eq 'test') {
     $inputDirectory = Join-Path $runPath 'Tripo'
     try {
+        # The committed cafe character is required by the master-rig regression test.
+        if (-not $env:TRIPO_MASTER_RECORD) {
+            $env:TRIPO_MASTER_RECORD = 'Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset'
+        }
+        if (-not $env:TRIPO_MASTER_SCENE) {
+            $env:TRIPO_MASTER_SCENE = 'Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity'
+        }
         $testInputs = & "$PSScriptRoot/prepare-unity-test-inputs.ps1" `
             -ProjectPath $projectPath -OutputPath $inputDirectory
         $env:TRIPO_REVIEW_BLENDER = $testInputs.Blender

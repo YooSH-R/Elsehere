@@ -2,6 +2,7 @@ using System.Linq;
 using A305.EditorTools.Common;
 using A305.Mission;
 using A305.Npc;
+using A305.Weather;
 using A305.World;
 using NUnit.Framework;
 using UnityEditor;
@@ -33,7 +34,12 @@ namespace A305.World.Tests
                 Is.EqualTo(name.Replace("Scene", "").ToUpperInvariant())
             );
             if (name == "TownScene")
-                Assert.That(fields.FindProperty("rain").objectReferenceValue, Is.Not.Null);
+            {
+                var weather =
+                    fields.FindProperty("weather").objectReferenceValue as WeatherPresenter;
+                Assert.That(weather, Is.Not.Null, "마을은 예보 날씨를 보여 줘야 합니다.");
+                Assert.DoesNotThrow(() => BuilderTools.RequireReferences(weather));
+            }
         }
 
         [Test]

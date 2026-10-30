@@ -254,6 +254,30 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("무례 판정이 호감도 변화량(affinity_delta)을 주면 함께 읽고, 주지 않으면 null이다")
+  void guard_readsAffinityDeltaWhenGiven() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "affinity_delta": -7, "usage": []}
+        """);
+    GuardResult withDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "usage": []}
+        """);
+    GuardResult withoutDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+
+    assertThat(withDelta.affinityDelta()).isEqualTo(-7);
+    assertThat(withoutDelta.affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("판정하지 못한 무례 판정은 판정값 null과 이유 코드로 읽는다")
   void guard_undecided_readsNullAndErrorCode() {
     respond(

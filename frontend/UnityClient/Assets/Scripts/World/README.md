@@ -139,3 +139,9 @@
 | `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | Scene List의 모든 씬을 실제로 불러와 플레이어·카메라·도착 처리가 하나씩 있는지, 출입구 짝이 맞는지, 문에 닿으면 이동하는지, 도착 위치와 카메라 방향 |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
+
+## 거리·교통 구성
+
+**Tools → A305 → World → Apply American Street Details**는 차선·횡단보도·신호등과 거리 소품을, **Apply Town Street Life**는 차량·생활 소품·택시 기사를 TownScene에 구성합니다. 기존 묶음이 있으면 배치를 유지합니다. 외부 모델과 출처는 `Assets/ThirdParty/CREDITS.md`에 기록합니다.
+
+`CarLoopRoute`는 순환 길과 정차 위치를, `TrafficSignalCycle`은 신호 주기를 계산합니다. `LoopingCar`는 신호·장애물에 맞춰 정지하고, `TaxiFare`와 `TaxiRide`는 인도에서 택시를 세워 기사 Joe(`TAXI_DRIVER`)와 대화하는 흐름을 맡습니다. 이 단계의 택시는 승객을 태워 목적지로 이동하지 않습니다. 승객 시점·이동은 별도 작업 S15P31A305-357에서 연결합니다.

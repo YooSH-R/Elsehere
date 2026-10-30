@@ -3,6 +3,7 @@ using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
+using A305.EditorTools.Weather;
 using A305.EditorTools.World;
 using A305.Mission;
 using A305.Player;
@@ -116,7 +117,11 @@ namespace A305.EditorTools.Mission
             if (legacy != null)
                 BuilderTools.SetReference(legacy, "firstDayMission", controller);
             if (sceneCode == "TOWN")
-                BuilderTools.SetReference(controller, "rain", Rain(groups));
+                BuilderTools.SetReference(
+                    controller,
+                    "weather",
+                    TownWeatherBuilder.ConnectToScene(groups, player.transform)
+                );
             // 튜토리얼 진행에 따라 TutorialDirector가 표시하므로 처음에는 숨긴다.
             view.SetAvailable(false);
         }
@@ -339,49 +344,6 @@ namespace A305.EditorTools.Mission
                 new Vector2(76, 22)
             );
             return button;
-        }
-
-        private static ParticleSystem Rain(SceneGroups groups)
-        {
-            Transform existing = groups.Environment.Find("JourneyRain");
-            if (existing != null)
-                return existing.GetComponent<ParticleSystem>();
-            GameObject created = BuilderTools
-                .CreateEmpty("JourneyRain", groups.Environment, Vector3.up * 7, Quaternion.identity)
-                .gameObject;
-            var particles = created.AddComponent<ParticleSystem>();
-            var main = particles.main;
-            main.playOnAwake = false;
-            main.startLifetime = 1.2f;
-            main.startSpeed = 10;
-            main.startSize = .025f;
-            main.startColor = new Color(.65f, .8f, .95f, .45f);
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = 500;
-            var emission = particles.emission;
-            emission.rateOverTime = 250;
-            var shape = particles.shape;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(18, 18, .1f);
-            created.transform.rotation = Quaternion.Euler(90, 0, 0);
-            var renderer = created.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.lengthScale = 8;
-            string materialPath = "Assets/Art/Mission/JourneyRain.mat";
-            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (material == null)
-            {
-                BuilderTools.EnsureFolder("Assets/Art/Mission");
-                material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
-                material.SetFloat("_Surface", 1);
-                material.SetFloat("_Blend", 0);
-                material.SetOverrideTag("RenderType", "Transparent");
-                material.renderQueue = 3000;
-                AssetDatabase.CreateAsset(material, materialPath);
-            }
-            renderer.sharedMaterial = material;
-            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            return particles;
         }
 
         private static TMP_Text Text(Transform parent, string name, int size, string value) =>

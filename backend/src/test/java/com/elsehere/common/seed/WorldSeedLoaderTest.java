@@ -284,7 +284,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("인격 카드가 있는 NPC에는 npc-configurations.json의 카드를 넣고, 카드가 없는 편의점 직원은 비워 둔다")
+  @DisplayName("인격 카드가 있는 NPC에는 npc-configurations.json의 카드를 넣고, 카드가 없는 드럭스토어 직원은 비워 둔다")
   void load_insertsProfilesFromNpcConfigurations() throws IOException {
     worldSeedLoader.load();
 

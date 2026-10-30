@@ -107,3 +107,38 @@ def test_stress_token_does_not_insert_an_unspoken_rest_before_the_vowel():
 def test_reduced_article_vowel_keeps_new_cafe_sentences_animated():
     timing = read_timing(attach_timing(wav_file(), [phone("ɐ", 0.1, 0.2), phone("k", 0.2, 0.3)]))
     assert [p["phoneme"] for p in timing["phonemes"]] == ["ah", "k"]
+
+
+def test_spoken_price_uses_timed_engine_and_shares_normalized_cache(monkeypatch):
+    from app import tts
+
+    received = []
+
+    def synth(text, **kwargs):
+        received.append(text)
+        return [], 24000, [phone("f", 0.1, 0.4)]
+
+    service = tts.Kokoro(SimpleNamespace(has_timings=True, create_timed=synth), "fake")
+    monkeypatch.setattr(tts, "to_wav", lambda audio, rate: wav_file())
+    monkeypatch.setattr(tts, "align_timing", lambda wav, cues: attach_timing(wav, [phone("f", 0.1, 0.4)]))
+    first = service.synth("That is $5.", "af_heart", 1)
+    replay = service.synth("That is 5 dollars.", "af_heart", 1)
+    assert received == ["That is 5 dollars."]
+    assert read_timing(first[0]) is not None
+    assert replay[0] == first[0] and replay[2]
+
+
+def test_unspoken_chunk_preserves_neighboring_reply_phoneme_times():
+    import pytest
+
+    from app import tts
+
+    service = tts.Kokoro(SimpleNamespace(has_timings=True), "fake")
+    silence, seconds, _ = service.synth("감사합니다!", "af_heart", 1)
+    phrase = attach_timing(wav_file(), [phone("f", 0.1, 0.4)])
+    joined, duration = tts.join_wavs([silence, phrase])
+    timing = read_timing(joined)
+    assert timing is not None, "Known silent chunks must not discard the spoken reply's timeline."
+    assert duration == pytest.approx(seconds + 1)
+    assert timing["phonemes"][0] == {"phoneme": "_", "start": 0, "end": seconds}
+    assert timing["phonemes"][1]["start"] == pytest.approx(seconds + 0.1)

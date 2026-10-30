@@ -14,6 +14,7 @@ import time
 import wave
 from collections import OrderedDict
 from pathlib import Path
+from types import SimpleNamespace
 
 from .speech_alignment import align_timing
 from .speech_text import for_speech
@@ -60,7 +61,9 @@ def silent_wav(seconds: float, sr: int = 24000) -> bytes:
         w.setsampwidth(2)
         w.setframerate(sr)
         w.writeframes(b"\x00\x00" * round(sr * seconds))
-    return buf.getvalue()
+    # This PCM is deliberately silent; retain a real rest interval when joining replies.
+    rest = SimpleNamespace(phoneme=" ", start=0, end=round(sr * seconds) / sr)
+    return attach_timing(buf.getvalue(), [rest])
 
 
 class Kokoro:

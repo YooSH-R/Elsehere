@@ -79,6 +79,52 @@ namespace A305.Characters.Tests
             }
         }
 
+        [TestCase("f", CharacterFacePose.FV, .04f)]
+        [TestCase("v", CharacterFacePose.FV, .04f)]
+        [TestCase("th", CharacterFacePose.TH, .06f)]
+        [TestCase("dh", CharacterFacePose.TH, .06f)]
+        public void BriefContactConsonantsHoldTheirAuthoredPose(
+            string phone,
+            CharacterFacePose pose,
+            float length
+        )
+        {
+            var data = new SpeechVisemeData
+            {
+                version = 2,
+                provider = "kokoro-en-US",
+                duration = .5f,
+                phonemes = new[]
+                {
+                    new SpeechPhonemeCue
+                    {
+                        phoneme = "aa",
+                        start = 0,
+                        end = .2f,
+                    },
+                    new SpeechPhonemeCue
+                    {
+                        phoneme = phone,
+                        start = .2f,
+                        end = .2f + length,
+                    },
+                    new SpeechPhonemeCue
+                    {
+                        phoneme = "ah",
+                        start = .2f + length,
+                        end = .5f,
+                    },
+                },
+            };
+            var timeline = SpeechVisemeTimeline.Parse(JsonUtility.ToJson(data), data.duration);
+            // A brief consonant needs a contact interval, not one sub-frame peak.
+            foreach (float fraction in new[] { .25f, .5f, .75f })
+                Assert.That(
+                    timeline.SampleArticulation(.2f + length * fraction).Weight(pose),
+                    Is.GreaterThan(.95f)
+                );
+        }
+
         [Test]
         public void UnknownPhonemesFailExplicitly()
         {

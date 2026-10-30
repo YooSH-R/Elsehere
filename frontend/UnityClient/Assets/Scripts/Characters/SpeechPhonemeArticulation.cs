@@ -53,8 +53,10 @@ namespace A305.Characters
                     targets.Add((cue.start + length * .22f, initial));
                     targets.Add((cue.start + length * .85f, final));
                 }
-                else if (cue.phoneme is "p" or "b" or "m" or "_")
+                else if (cue.phoneme is "p" or "b" or "m" or "f" or "v" or "th" or "dh" or "_")
                 {
+                    // Tooth/lip/tongue contact must persist through the sound,
+                    // including short consonants between connected vowels.
                     float edge = Mathf.Min(.04f, length * .2f);
                     targets.Add((cue.start + edge, initial));
                     targets.Add((cue.end - edge, final));
@@ -106,8 +108,8 @@ namespace A305.Characters
                 "ao" => SpeechMouthSample.Pose(CharacterFacePose.OH, .65f),
                 "uh" => SpeechMouthSample.Pose(CharacterFacePose.OU, .45f),
                 "p" or "b" or "m" => SpeechMouthSample.Pose(CharacterFacePose.ClosedLips),
-                "f" or "v" => SpeechMouthSample.Pose(CharacterFacePose.FV, .85f),
-                "th" or "dh" => SpeechMouthSample.Pose(CharacterFacePose.TH, .7f),
+                "f" or "v" => SpeechMouthSample.Pose(CharacterFacePose.FV),
+                "th" or "dh" => SpeechMouthSample.Pose(CharacterFacePose.TH),
                 "s" or "z" => SpeechMouthSample.Pose(CharacterFacePose.WideI, .25f),
                 "sh" or "ch" or "jh" or "zh" => SpeechMouthSample.Pose(CharacterFacePose.OU, .4f),
                 "l" or "n" or "d" or "t" or "dx" or "k" or "g" or "ng" or "r" or "er" =>

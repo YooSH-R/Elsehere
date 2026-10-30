@@ -1,9 +1,9 @@
 # Apply these limits to the entry produced by `gitlab-runner register`.
 # Preserve that entry's id, token, token timestamps, name and URL.
-concurrent = 2
+concurrent = 3
 
 [[runners]]
-  limit = 2
+  limit = 3
   executor = "docker"
   environment = ["FF_NETWORK_PER_BUILD=true"]
 

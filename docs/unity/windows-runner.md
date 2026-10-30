@@ -34,7 +34,7 @@ Invoke-WebRequest -UseBasicParsing -Uri 'https://gitlab-runner-downloads.s3.amaz
 
 이미 설치·등록했다면 반복하지 않습니다. 등록 URL은 `https://lab.ssafy.com`, executor는 `shell`입니다. GitLab에서 받은 인증 토큰은 등록 프롬프트에만 입력하고 공유하지 않습니다. Runner 버전은 기존 GitLab의 18.11 계열에 맞춘 값이며, 업그레이드할 때 서버와의 호환성을 확인합니다.
 
-설정 파일은 저장소 밖의 Runner 폴더에서 관리합니다. 최상위 `concurrent = 1`, 등록된 `[[runners]]`의 `limit = 1`, `executor = "shell"`, `shell = "powershell"`을 맞춥니다. 기존 ID·URL·토큰은 보존합니다.
+설정 파일은 저장소 밖의 Runner 폴더에서 관리합니다. 최상위 `concurrent = 2`, 등록된 `[[runners]]`의 `limit = 2`, `executor = "shell"`을 맞춥니다. `shell`은 기존 실행 환경에 맞춘 `pwsh` 또는 `powershell` 값을 유지하며, 기존 ID·URL·토큰은 보존합니다. 실행 중인 Runner는 설정을 자동으로 다시 읽으므로 동시 실행 수 변경을 위해 진행 중인 작업을 재시작하지 않습니다.
 
 ```powershell
 notepad ./config.toml
@@ -60,7 +60,9 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 Runner에서 실행되는 코드는 Windows 실행 계정 권한으로 동작합니다. 프로젝트의 신뢰하는 팀원에게만 브랜치 작성 권한을 주고, Runner는 프로젝트에 잠근 채 지정 태그만 받습니다. `dev`·`main`의 브랜치 보호와 배포 자격 증명의 보호·환경 범위는 유지하며, 배포용 SSH 키·서버 환경 파일을 노트북 작업에 추가하지 않습니다. MR 작업에 protected 변수 접근을 허용하는 설정도 켜지 않습니다. [보호된 Runner](https://docs.gitlab.com/ci/runners/configure_runners/#protecting-sensitive-information), [Shell executor](https://docs.gitlab.com/runner/executors/shell/)
 
-MR과 배포 검사는 같은 `resource_group: a305-unity-editor`를 사용합니다. 노트북에서는 한 번에 Unity 작업 하나만 실행하고, 배포 대기열과는 독립적으로 검사합니다. MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다.
+MR과 배포 검사는 Runner의 동시 실행 제한으로 최대 두 작업을 실행하며, Unity 전체를 하나로 묶는 `resource_group`은 사용하지 않습니다. Shell executor의 기본 작업 경로는 동시 실행 번호별로 분리되므로 각 작업은 자신의 Unity 프로젝트·`Library`·산출물을 사용합니다. 작업 경로를 하나로 고정하거나 `Library`를 두 작업이 동시에 쓰도록 연결하지 않습니다. [Shell executor 작업 경로](https://docs.gitlab.com/runner/executors/shell/)
+
+MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. 변경 전에 생성된 파이프라인은 기존 `a305-unity-editor` 잠금을 유지하므로 기존 대기 작업끼리는 계속 하나씩 실행됩니다. 새 CI 설정으로 생성한 작업부터 최대 두 개를 실행할 수 있습니다.
 
 ## 실행 스크립트와 결과
 
@@ -78,7 +80,7 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 - GUI 실행 파일의 실제 종료까지 기다립니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.
 - WebGL 산출물은 `dist/webgl/`이며 `version.json`의 전체 커밋 SHA가 후보와 일치해야 합니다. 빌드된 정적 파일의 실제 HTTPS 로딩과 화면 확인은 별도 검증입니다.
-- 동시에 하나만 실행하도록 Runner 제한과 `resource_group`을 사용합니다. CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다.
+- 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
 
 ## Blender와 FBX 테스트 입력
 

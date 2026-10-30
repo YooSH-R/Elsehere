@@ -127,6 +127,17 @@ public class NpcAudioRetention {
     }
   }
 
+  /** 지운 턴이 쓰던 음성 파일을 지운다(게스트 내용 정리). NPC 공용 음성(말걸기)은 다른 사용자도 쓰므로 남긴다. */
+  public void deleteAudio(Collection<String> keys) {
+    lock.lock();
+    try {
+      Set<String> shared = sharedKeys();
+      keys.stream().filter(key -> !shared.contains(key)).forEach(store::delete);
+    } finally {
+      lock.unlock();
+    }
+  }
+
   // 파일의 수정 시각은 이전·복원으로 달라질 수 있으므로 DB에 기록한 음성 생성 시각부터 센다.
   // 삭제 실패 시 DB 키를 남겨 파일 수정 시각이 바뀌었거나 앱이 재시작되어도 다시 시도한다.
   private void deleteExpired(Instant now, Set<String> shared) {

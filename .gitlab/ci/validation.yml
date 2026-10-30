@@ -1,5 +1,5 @@
 ci:yaml:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: validate
   image: python:3.13-alpine
   script:
@@ -7,9 +7,10 @@ ci:yaml:
       printf 'source=%s commit=%s target=%s diff_base=%s\n' "$CI_PIPELINE_SOURCE" "$CI_COMMIT_SHA" "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" "$CI_MERGE_REQUEST_DIFF_BASE_SHA"
     - pip install --disable-pip-version-check yamllint==1.37.1
     - yamllint -c .yamllint.yml .gitlab-ci.yml .gitlab/ci .yamllint.yml infra/monitoring infra/compose/compose.observability.yaml
+    - python -m unittest discover -s infra/runner/tests -v
 
 infra:deployment-plan-tests:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: validate
   image: python:3.12-alpine
   timeout: 5m
@@ -60,6 +61,7 @@ infra:app-runtime:
           - infra/compose/deploy.*.env.example
           - infra/nginx/web.conf
           - infra/scripts/check_runtime.py
+          - infra/scripts/docker_build.py
           - infra/scripts/runtime_probe.py
           - docs/api/**/*
           - .gitlab-ci.yml

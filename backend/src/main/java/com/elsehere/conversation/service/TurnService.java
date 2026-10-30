@@ -152,7 +152,8 @@ public class TurnService {
                       request.sttRawText(),
                       judge.english(),
                       guard.abusive(),
-                      guard.errorCode()));
+                      guard.errorCode(),
+                      support.writeWords(judge.events())));
           if (rude) {
             conversation.countRude(ConversationSupport.RUDE_LIMIT, clock.instant());
             npcAffinityService.deductForRudeness(

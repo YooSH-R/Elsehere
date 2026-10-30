@@ -79,14 +79,22 @@ def test_text_with_nothing_to_read_becomes_empty():
     assert for_speech("**") == ""
 
 
+class IdentityTokenizer:
+    """espeak 음소화 자리. 글을 그대로 돌려준다."""
+
+    def phonemize(self, text, lang="en-us"):
+        return text.strip()
+
+
 class RecordingEngine:
-    """Kokoro 엔진 자리. 받은 글만 적고 실제 합성은 하지 않는다 (테스트 환경에 numpy·모델이 없음)."""
+    """Kokoro 엔진 자리. 받은 음소만 적고 실제 합성은 하지 않는다 (테스트 환경에 numpy·모델이 없음)."""
 
     def __init__(self):
+        self.tokenizer = IdentityTokenizer()
         self.texts = []
 
-    def create(self, text, voice, speed, lang):
-        self.texts.append(text)
+    def create(self, text, voice, speed, lang, is_phonemes=False):
+        self.texts.append((text, is_phonemes))
         raise RuntimeError("합성은 하지 않음")
 
 
@@ -97,7 +105,7 @@ def test_kokoro_reads_spoken_text_instead_of_subtitle():
     with pytest.raises(RuntimeError):
         kokoro.synth("That's $13, hon.", "af_heart", 1.0)
 
-    assert engine.texts == ["That's 13 dollars, hon."]
+    assert engine.texts == [("That's 13 dollars, hˈʌn.", True)]  # 다듬은 글을 음소화해 넘긴다 (hon은 발음 사전)
 
 
 def test_kokoro_returns_short_silence_when_nothing_to_read():

@@ -33,6 +33,14 @@ namespace A305.Theme
         [SerializeField]
         private UiThemeId previewTheme;
 
+        [SerializeField]
+        [Tooltip("바탕 없이 작은 아이콘과 글자만 보이는 보조 조작")]
+        private bool quiet;
+
+        [SerializeField]
+        [Tooltip("선택한 목록 행은 테마의 강조색을 옅게 사용한다")]
+        private bool selection;
+
         public void ApplyCurrent()
         {
             if (catalog == null)
@@ -79,16 +87,38 @@ namespace A305.Theme
                     Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, theme.Ink);
                     break;
                 case UiThemeRole.PillButton:
-                    Paint(GetComponent<Image>(), theme.PillSprite, theme.ToneColor(tone));
-                    Overlay(Child<Image>(transform, "Outline"), theme.PillOutlineSprite);
+                    Color buttonColor = theme.ToneColor(tone);
+                    if (selection)
+                        buttonColor = Color.Lerp(
+                            theme.ToneColor(UiTone.Neutral),
+                            theme.ToneColor(UiTone.Primary),
+                            .2f
+                        );
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.PillSprite,
+                        quiet ? Color.clear : buttonColor
+                    );
+                    Overlay(
+                        Child<Image>(transform, "Outline"),
+                        quiet ? null : theme.PillOutlineSprite
+                    );
                     Draw(
                         Child<Image>(transform, "Icon"),
                         theme.Icons != null ? theme.Icons.Get(icon) : null
                     );
+                    if (quiet && icon == UiIcon.Check && Child<Image>(transform, "Icon") != null)
+                        Child<Image>(transform, "Icon").color = theme.ToneColor(UiTone.Positive);
+                    if (
+                        tone == UiTone.Neutral
+                        && icon == UiIcon.Replay
+                        && Child<Image>(transform, "Icon") != null
+                    )
+                        Child<Image>(transform, "Icon").color = theme.AccentInk;
                     Write(
                         Child<TMP_Text>(transform, "Label"),
                         theme.TitleFont,
-                        theme.ToneInk(tone)
+                        quiet ? theme.Ink : theme.ToneInk(tone)
                     );
                     break;
                 case UiThemeRole.MenuItem:

@@ -11,13 +11,40 @@ namespace A305.Learning
     /// </summary>
     public class VocabularyView : MonoBehaviour
     {
-        private const int VisibleEntryCount = 8;
+        private const int VisibleEntryCount = 4;
 
         [SerializeField]
         private GameObject panel;
 
         [SerializeField]
-        private TMP_Text listText;
+        private GameObject content;
+
+        [SerializeField]
+        private GameObject emptyState;
+
+        [SerializeField]
+        private TMP_Text wordText;
+
+        [SerializeField]
+        private TMP_Text meaningText;
+
+        [SerializeField]
+        private TMP_Text contextText;
+
+        [SerializeField]
+        private GameObject contextSection;
+
+        [SerializeField]
+        private TMP_Text pageText;
+
+        [SerializeField]
+        private Button[] entryButtons;
+
+        [SerializeField]
+        private TMP_Text[] entryTexts;
+
+        [SerializeField]
+        private GameObject[] selectedMarks;
 
         [SerializeField]
         private Button previousButton;
@@ -48,6 +75,7 @@ namespace A305.Learning
 
         private VocabularyBook book;
         private int selectedIndex;
+        private int firstVisibleIndex;
 
         public event Action CloseRequested;
 
@@ -92,13 +120,33 @@ namespace A305.Learning
 
             int count = book.Entries.Count;
             selectedIndex = Mathf.Clamp(selectedIndex, 0, Mathf.Max(0, count - 1));
-            listText.text = VocabularyListText.Format(
-                book.Entries,
-                selectedIndex,
-                VisibleEntryCount
-            );
-
             bool hasEntries = count > 0;
+            content.SetActive(hasEntries);
+            emptyState.SetActive(!hasEntries);
+            if (!hasEntries)
+                return;
+
+            // 한 화면의 네 항목을 유지하고, 경계를 넘어갈 때만 다음 묶음으로 이동한다.
+            firstVisibleIndex = selectedIndex / VisibleEntryCount * VisibleEntryCount;
+            for (int row = 0; row < entryButtons.Length; row++)
+            {
+                int index = firstVisibleIndex + row;
+                bool visible = index < count;
+                entryButtons[row].gameObject.SetActive(visible);
+                if (!visible)
+                    continue;
+                VocabularyEntry entry = book.Entries[index];
+                // 서버 원문은 TMP 태그로 해석하지 않는다.
+                entryTexts[row].richText = false;
+                entryTexts[row].text = entry.English + "\n" + entry.Korean;
+                selectedMarks[row].SetActive(index == selectedIndex);
+            }
+            wordText.richText = meaningText.richText = contextText.richText = false;
+            wordText.text = SelectedEntry.English;
+            meaningText.text = SelectedEntry.Korean;
+            contextText.text = SelectedEntry.ContextText ?? "";
+            contextSection.SetActive(!string.IsNullOrWhiteSpace(SelectedEntry.ContextText));
+            pageText.text = $"{selectedIndex + 1} / {count}";
             previousButton.interactable = hasEntries && selectedIndex > 0;
             nextButton.interactable = hasEntries && selectedIndex < count - 1;
             learnedButton.interactable = hasEntries;
@@ -115,20 +163,44 @@ namespace A305.Learning
         private void Awake()
         {
             memoInput.characterLimit = VocabularyBook.MaxMemoLength;
+            for (int row = 0; row < entryButtons.Length; row++)
+            {
+                int clickedRow = row;
+                entryButtons[row].onClick.AddListener(() => Select(firstVisibleIndex + clickedRow));
+            }
             previousButton.onClick.AddListener(() => MoveSelection(-1));
             nextButton.onClick.AddListener(() => MoveSelection(1));
-            learnedButton.onClick.AddListener(() => LearnedToggleRequested?.Invoke(SelectedEntry));
-            deleteButton.onClick.AddListener(() => DeleteRequested?.Invoke(SelectedEntry));
+            learnedButton.onClick.AddListener(() =>
+            {
+                if (HasSelection)
+                    LearnedToggleRequested?.Invoke(SelectedEntry);
+            });
+            deleteButton.onClick.AddListener(() =>
+            {
+                if (HasSelection)
+                    DeleteRequested?.Invoke(SelectedEntry);
+            });
             memoSaveButton.onClick.AddListener(() =>
-                MemoSaveRequested?.Invoke(SelectedEntry, memoInput.text)
-            );
+            {
+                if (HasSelection)
+                    MemoSaveRequested?.Invoke(SelectedEntry, memoInput.text);
+            });
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             Hide();
         }
 
         private void MoveSelection(int step)
         {
-            selectedIndex += step;
+            Select(selectedIndex + step);
+        }
+
+        private bool HasSelection => book != null && book.Entries.Count > 0;
+
+        private void Select(int index)
+        {
+            if (!HasSelection || index < 0 || index >= book.Entries.Count)
+                return;
+            selectedIndex = index;
             ShowStatus("");
             Refresh();
         }

@@ -66,8 +66,13 @@ namespace A305.Weather
             {
                 Debug.LogError("날씨 설정·해·구름·효과가 따라갈 대상 참조가 필요합니다.", this);
                 enabled = false;
-                return;
             }
+        }
+
+        // 하늘·환경광·안개는 활성 씬의 값이다. 다른 공간에서 이 씬을 겹쳐 불러오면 Awake 때는
+        // 아직 이전 씬이 활성 씬이므로, 이 씬이 활성 씬이 된 뒤인 Start에서 디자인 값을 읽는다.
+        private void Start()
+        {
             Prepare();
         }
 

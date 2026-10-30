@@ -445,6 +445,14 @@ namespace A305.EditorTools.Characters
             Directory.CreateDirectory(output);
             EditorSceneManager.OpenScene(ScenePath);
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
+            if (Environment.GetEnvironmentVariable("PASSERBY_SHOW_BODY") == "1")
+            {
+                var body = face.GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .Single(r => r.sharedMesh.vertexCount == 8782);
+                body.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(
+                    "Assets/Art/Characters/Common/LittleMungMannequin/MannequinSkin.mat"
+                );
+            }
             var camera = Object.FindFirstObjectByType<Camera>();
             var center = new Vector3(0, .87f, 0);
             foreach (int yaw in new[] { 0, -35, 35, 90, 180 })
@@ -456,6 +464,8 @@ namespace A305.EditorTools.Characters
                 );
                 SaveFrame(face.gameObject, camera, Path.Combine(output, "rest_" + yaw + ".png"));
             }
+            if (Environment.GetEnvironmentVariable("PASSERBY_REST_ONLY") == "1")
+                return;
             using var motion = new TripoMotionPreview(face.gameObject);
             foreach (
                 var kind in new[]

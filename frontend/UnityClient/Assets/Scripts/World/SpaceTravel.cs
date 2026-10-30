@@ -1,10 +1,10 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace A305.World
 {
     /// <summary>
     /// 씬을 바꿔 다른 공간으로 이동한다. 씬이 바뀌어도 도착할 출입구가 남도록 정적으로 둔다.
+    /// 씬은 <see cref="SpaceTravelCurtain"/>이 화면을 덮은 채로 바꾸고,
     /// 새 씬의 <see cref="SpaceArrival"/>가 도착할 출입구를 받아 플레이어를 옮긴다.
     /// </summary>
     public static class SpaceTravel
@@ -40,7 +40,7 @@ namespace A305.World
                 return false;
             }
 
-            SceneManager.LoadSceneAsync(destinationScene, LoadSceneMode.Single);
+            SpaceTravelCurtain.Travel(destinationScene);
             return true;
         }
 

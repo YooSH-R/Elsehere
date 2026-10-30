@@ -206,7 +206,7 @@
      "last_npc": "Hi there! Nice weather today, isn't it?", "text": "Hi! Where can I buy an umbrella?",
      "intents": ["ask_umbrella_shop"], "events": ["GREETING"]},
     {"id": "mission-rain-directions", "group": "mission", "npc": "TOWN_PASSERBY", "state": "RAINY_STREET",
-     "last_npc": "The convenience store sells them.", "text": "How do I get to the convenience store?",
+     "last_npc": "The drugstore sells them.", "text": "How do I get to the drugstore?",
      "intents": ["ask_directions"], "events": []},
     {"id": "mission-rain-lifesaver", "group": "mission", "npc": "TOWN_PASSERBY", "state": "RAINY_STREET",
      "last_npc": "Go straight two blocks, it's next to the bank.", "text": "Thanks a lot, you're a lifesaver!",

@@ -44,13 +44,16 @@ namespace A305.EditorTools.Npc
         private const float BodyRadiusMeters = 0.3f;
 
         // 서버 연동 전 확인용 인사말. 서버 NPC·시나리오 데이터가 준비되면 서버 값을 쓴다.
+        private const string RetiredShopGreeting =
+            "Hi! Welcome to the convenience store. Can I help you find something?";
+
         private static readonly (string NpcCode, string Greeting)[] MockGreetings =
         {
             (TutorialPasserbyCode, "Excuse me! Could you help me? I'm looking for the cafe."),
             (TownPasserbyCode, "Hi there! Nice weather today, isn't it?"),
             (CafeStaffCode, "Hi there! Welcome to the corner café. Would you like to order?"),
             ("HOTEL_STAFF", "Good afternoon! Welcome to Maple House. Are you checking in?"),
-            ("SHOP_STAFF", "Hi! Welcome to the convenience store. Can I help you find something?"),
+            ("SHOP_STAFF", "Hi! Welcome to the drugstore. Can I help you find something?"),
         };
 
         [MenuItem(MenuPath)]
@@ -447,8 +450,11 @@ namespace A305.EditorTools.Npc
             SerializedProperty entries = fields.FindProperty("entries");
             foreach ((string npcCode, string greeting) in MockGreetings)
             {
-                if (lines.TryGetGreeting(npcCode, out _))
+                if (lines.TryGetGreeting(npcCode, out string current))
                 {
+                    // 상점을 편의점에서 드럭스토어로 바꿨다. 예전 기본 인사 그대로인 것만 새 인사로 고친다.
+                    if (current == RetiredShopGreeting && npcCode == "SHOP_STAFF")
+                        SetGreeting(entries, npcCode, greeting);
                     continue;
                 }
 
@@ -460,6 +466,16 @@ namespace A305.EditorTools.Npc
 
             fields.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(lines);
+        }
+
+        private static void SetGreeting(SerializedProperty entries, string npcCode, string greeting)
+        {
+            for (int index = 0; index < entries.arraySize; index++)
+            {
+                SerializedProperty entry = entries.GetArrayElementAtIndex(index);
+                if (entry.FindPropertyRelative("npcCode").stringValue == npcCode)
+                    entry.FindPropertyRelative("greeting").stringValue = greeting;
+            }
         }
 
         private static PasserbySettings LoadSettings(string path)

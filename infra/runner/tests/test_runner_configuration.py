@@ -46,13 +46,13 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertIn("a305-linux-light", self.tags_for("dev:plan"))
         self.assertIn("a305-linux-light", self.tags_for("prod:plan"))
 
-    def test_laptop_accepts_only_one_job_and_keeps_the_host_socket_out_of_jobs(self):
+    def test_laptop_accepts_two_jobs_and_keeps_the_host_socket_out_of_jobs(self):
         path = REPOSITORY / "infra/runner/laptop.config.template.toml"
         config = tomllib.loads(path.read_text())
-        self.assertEqual(config["concurrent"], 1)
+        self.assertEqual(config["concurrent"], 2)
         self.assertEqual(len(config["runners"]), 1)
         runner = config["runners"][0]
-        self.assertEqual(runner["limit"], 1)
+        self.assertEqual(runner["limit"], 2)
         self.assertEqual(runner["executor"], "docker")
         self.assertFalse(runner["docker"]["privileged"])
         self.assertEqual(runner["docker"]["volumes"], ["/cache"])

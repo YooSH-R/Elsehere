@@ -1,0 +1,3 @@
+newmtl car_taxi_citybits_texture
+Kd 1.0000 1.0000 1.0000
+map_Kd citybits_texture.png

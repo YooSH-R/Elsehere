@@ -14,17 +14,18 @@ using static A305.EditorTools.World.MainstreetArtKit;
 
 namespace A305.EditorTools.World
 {
-    /// <summary>기존 마을의 빈 건물 1층을 편의점 정면으로 꾸며 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
+    /// <summary>기존 마을의 빈 건물 1층을 드럭스토어 정면으로 꾸며 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
     public static class FirstDayShopBuilder
     {
         private const string ScenePath = "Assets/Scenes/Production/ShopScene.unity";
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
-        private const string StoreFrontName = "ConvenienceStoreFront";
+        private const string StoreFrontName = "DrugstoreFront";
+        private const string RetiredStoreFrontName = "ConvenienceStoreFront";
         private const string VacantGroundFloorPath =
             "TownMainstreet/BackgroundBuildings/VacantBuilding2F/ButterResidence2F/ButterGroundFloor8m";
         private const string KitPartFolder = "Assets/Prefabs/World/CafeBlenderKit/Parts/";
-        private const string TownSignText = "CONVENIENCE STORE";
-        private const string PriceSignText = "CONVENIENCE STORE\nUMBRELLAS · 8 COINS";
+        private const string TownSignText = "DRUGSTORE";
+        private const string PriceSignText = "DRUGSTORE\nUMBRELLAS · 8 COINS";
 
         [MenuItem("Tools/A305/Mission/Adjust Shop Counter Sightline")]
         public static void AdjustSightline()
@@ -57,6 +58,7 @@ namespace A305.EditorTools.World
                     "TownShopInterior/ShopPriceSign/PriceLabel",
                     PriceSignText
                 );
+                DrugstoreInteriorBuilder.Apply(existing);
                 BuilderTools.SaveScene(existing, ScenePath);
                 return;
             }
@@ -169,21 +171,30 @@ namespace A305.EditorTools.World
             sun.intensity = 1.4f;
             sun.transform.rotation = Quaternion.Euler(55, -30, 0);
             RenderSettings.ambientLight = new Color(.65f, .65f, .6f);
+            DrugstoreInteriorBuilder.Apply(scene);
             BuilderTools.SaveScene(scene, ScenePath);
             SpaceSceneSetup.Apply(scene);
             BuilderTools.SaveScene(scene, ScenePath);
         }
 
         /// <summary>
-        /// 마을의 빈 2층 건물 1층을 편의점 정면으로 꾸미고 출입구를 그 벽에 붙인다.
+        /// 마을의 빈 2층 건물 1층을 드럭스토어 정면으로 꾸미고 출입구를 그 벽에 붙인다.
         /// 옆 카페와 같은 상점 부품(출입문·진열창·차양·벽등)으로 한 건물처럼 보이게 하고, 간판은 카페처럼 차양에 적는다.
         /// 이미 꾸민 정면은 디자인을 고쳤을 수 있으므로 그대로 둔다.
         /// </summary>
         public static void ConnectTownEntrance(SceneGroups groups)
         {
             Transform existingFront = groups.Environment.Find(StoreFrontName);
+            Transform retiredFront = groups.Environment.Find(RetiredStoreFrontName);
+            if (existingFront == null && retiredFront != null)
+            {
+                // 상점을 편의점에서 드럭스토어로 바꿨다. 꾸민 정면은 그대로 두고 이름과 간판 글자만 바꾼다.
+                retiredFront.name = StoreFrontName;
+                existingFront = retiredFront;
+            }
             if (existingFront != null)
             {
+                SetSignText(groups.Environment, StoreFrontName + "/StoreSign", TownSignText);
                 HideVacantClosure(groups.Environment);
                 AttachDoor(groups, existingFront);
                 return;
@@ -272,7 +283,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        /// <summary>출입문을 편의점 정면 가운데에 붙이고, 카페처럼 문 그림을 출입문 틀에 맞춘다.</summary>
+        /// <summary>출입문을 드럭스토어 정면 가운데에 붙이고, 카페처럼 문 그림을 출입문 틀에 맞춘다.</summary>
         private static void AttachDoor(SceneGroups groups, Transform front)
         {
             if (
@@ -291,7 +302,7 @@ namespace A305.EditorTools.World
             trigger.center = new Vector3(0, 1.3f, .4f);
             trigger.size = new Vector3(1.8f, 2.6f, .8f);
             doorway.ArrivalPoint.localPosition = new Vector3(0, 0, 2);
-            // 편의점답게 안이 비치는 유리문 색으로 칠한다.
+            // 상점답게 안이 비치는 유리문 색으로 칠한다.
             Transform visual = doorway.transform.Find("Visual");
             visual.localScale = new Vector3(1.5f, 1.18f, 1);
             foreach (Renderer panel in visual.GetComponentsInChildren<Renderer>())

@@ -288,6 +288,7 @@ namespace A305.Dialogue
             isEnding = false;
             if (serverLink != null)
             {
+                // 립싱크 대상을 놓으면서 지난 대사의 음성도 멈추고 버린다(ForgetSpeech 포함).
                 serverLink.SetSpeaker(null);
             }
 
@@ -327,7 +328,10 @@ namespace A305.Dialogue
             if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
                 _ = serverLink.PlaySpeechAsync(turn.Speech.Url);
+                return;
             }
+
+            serverLink.ForgetSpeech();
         }
 
         // 대본 대화는 뜻을 대본에 가지고 있어 서버 대화만 받아 온다(CONV-04).

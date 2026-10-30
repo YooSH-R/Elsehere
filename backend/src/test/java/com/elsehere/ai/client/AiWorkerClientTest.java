@@ -467,6 +467,68 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("기억에 담긴 관계는 memory 안이 아니라 요청 최상위의 relationship으로 보낸다")
+  void reply_sendsRelationshipAtTopLevel() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(
+        TRACE,
+        NPC,
+        new WorkerMemory(2, null, null, new WorkerRelationship(23, 3, 0)),
+        List.of(),
+        "Hello",
+        "",
+        2);
+
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"memory\":{\"visits\":2,\"last_order\":null,\"card\":null}")
+        .contains(
+            "\"relationship\":{\"recognition\":23,\"affinity\":3,\"days_since_last_talk\":0}");
+  }
+
+  @Test
+  @DisplayName("관계 갱신은 저장된 관계와 학습자 줄의 무례·사건이 담긴 대화를 보내고 변화량과 센 사건을 읽는다")
+  void relationship_sendsRelationshipAndHistoryAndReadsDeltas() {
+    respond(
+        "/v1/npc/relationship",
+        200,
+        "application/json",
+        "{\"recognition_delta\": 8, \"affinity_delta\": 1, \"events\": [\"GREETING\", \"LEAVE\"]}");
+
+    RelationshipChange change =
+        client.relationship(
+            TRACE,
+            NPC,
+            new WorkerRelationship(15, 2, 0),
+            List.of(
+                WorkerLine.npc("Hi! What can I get you?"),
+                WorkerLine.learner("Hi! Bye!", null, false, List.of("GREETING", "LEAVE"))));
+
+    assertThat(change.recognitionDelta()).isEqualTo(8);
+    assertThat(change.affinityDelta()).isEqualTo(1);
+    assertThat(change.events()).containsExactly("GREETING", "LEAVE");
+    assertThat(received.get("/v1/npc/relationship").body())
+        .contains("\"relationship\":{\"recognition\":15,\"affinity\":2,\"days_since_last_talk\":0}")
+        .contains(
+            "{\"who\":\"npc\",\"text\":\"Hi! What can I get you?\",\"english\":null,\"rude\":false,\"events\":[]}")
+        .contains("\"rude\":false,\"events\":[\"GREETING\",\"LEAVE\"]");
+  }
+
+  @Test
+  @DisplayName("관계 갱신에 실패하면 워커 오류 코드로 던진다")
+  void relationship_error_throwsMappedCode() {
+    respond("/v1/npc/relationship", 503, "text/html", "<html>Bad gateway</html>");
+
+    assertThatThrownBy(
+            () -> client.relationship(TRACE, NPC, new WorkerRelationship(0, 0, 0), List.of()))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode())
+                    .isEqualTo(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+  }
+
+  @Test
   @DisplayName("워커에 연결하지 못하면 AI_TEMPORARILY_UNAVAILABLE이다")
   void unreachableWorker_throwsTemporarilyUnavailable() throws IOException {
     int closedPort;

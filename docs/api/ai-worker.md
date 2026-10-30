@@ -257,7 +257,7 @@ delta*  →  audio*  →  words?  →  done | error
 | `delta` | `{"text": "Got"}` | 글자 조각. 받는 대로 자막에 붙임 |
 | `audio` | `{"seq": 0, "text": "Got it, one latte for you.", "audio_id": "9f3a...", "duration_s": 1.8, "tts": true}` | 읽을 조각. `seq` 순서대로 재생. **WAV가 아니라 `audio_id`** — `GET /v1/audio/{audio_id}`로 받음. `tts: false`면 `audio_id: null`(합성 실패·늦음) → 그 조각은 자막만 |
 | `words` | `{"words": ["for here", "to go", "please"], "error": null}` | 추천 단어 (`/v1/suggest`와 같은 규칙). 실패하면 `words: null`, `error`에 `provider_unavailable`·`provider_limit`·`timeout`(`WORDS_BUDGET_S` 초과)·`invalid_output`·`internal_error`. 대답은 그대로 성공. **대답이 `error`로 끝나면 `words`는 오지 않음** |
-| `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성하지 못했거나 `tts: false`면 `null` → `/v1/tts`로 다시 만듦. `usage`에 추천 단어(`suggest`)도 포함 |
+| `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성에 실패했거나 요청이 `tts: false`면 `null` → `/v1/tts`로 다시 만듦(상한을 넘긴 조각은 기다려 넣음). `usage`에 추천 단어(`suggest`)도 포함 |
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
 - `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한과 말 속도는 `profile`이 없을 때와 같습니다. `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
@@ -270,7 +270,7 @@ delta*  →  audio*  →  words?  →  done | error
 - 대답은 한 줄입니다. 모델이 줄을 바꿔 다른 사람 대사를 쓰면 버립니다.
 - 빈 대답이면 `"Sorry, could you say that again?"`로 대신합니다(`done`).
 - Spring이 연결을 끊으면 워커도 모델 호출을 멈춥니다.
-- 조각 하나의 합성이 `TTS_CHUNK_BUDGET_S`(기본 2.5초)를 넘으면 그 조각은 `tts: false`입니다.
+- 조각 하나의 합성이 `TTS_CHUNK_BUDGET_S`(기본 2.5초)를 넘으면 그 조각은 `tts: false`입니다. 이 상한은 조각을 바로 재생하는 화면용이며, 늦은 조각도 합성이 끝나면 턴 전체 음성에는 넣습니다. 그래서 늦은 조각이 있으면 `done`이 남은 합성 시간만큼 늦게 옵니다.
 - `audio`·`delta`의 `text`는 대답 원문(자막)이고, 음성은 읽을 글로 다듬어 합성합니다(2.8절과 같음). 한글만 있는 조각처럼 읽을 것이 없으면 0.2초 무음입니다(`tts: true`).
 - 턴 전체 음성도 워커 메모리에 보관 시간(600초) 동안만 있으니, Spring은 `done`을 받은 뒤 바로 받아 저장합니다.
 

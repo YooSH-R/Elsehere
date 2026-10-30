@@ -309,23 +309,25 @@ namespace A305.Dialogue
             bool wide = lastCanvasSize.x >= 1200;
             frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(1, 0);
             frame.anchoredPosition = new Vector2(-40, 36);
-            frame.sizeDelta = new Vector2(
-                wide ? Mathf.Min(1400, lastCanvasSize.x - 520) : lastCanvasSize.x - 80,
-                wide ? 360 : 440
-            );
+            float width = wide ? Mathf.Min(1400, lastCanvasSize.x - 520) : lastCanvasSize.x - 80;
+            // 대사 칸은 창 양옆에서 40씩 들어가 있다.
+            float linesHeight = linesText.GetPreferredValues(linesText.text, width - 80, 0).y;
+            frame.sizeDelta = new Vector2(width, DialoguePanelLayout.Height(wide, linesHeight));
             helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, .5f);
             helpPanel.anchoredPosition = new Vector2(40, wide ? -12 : 200);
             helpPanel.sizeDelta = new Vector2(
                 wide ? 390 : Mathf.Min(390, lastCanvasSize.x - 80),
                 Mathf.Max(220, Mathf.Min(680, lastCanvasSize.y - (wide ? 280 : 600)))
             );
-            float width = frame.sizeDelta.x;
             ((RectTransform)npcNameText.transform).anchoredPosition = new Vector2(
                 40,
                 frame.sizeDelta.y - 90
             );
             var history = (RectTransform)historyScroll.transform;
-            history.sizeDelta = new Vector2(-80, frame.sizeDelta.y - 286);
+            history.sizeDelta = new Vector2(
+                -80,
+                frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight
+            );
             var input = (RectTransform)inputField.transform;
             input.sizeDelta = new Vector2(Mathf.Max(160, width - 552), 68);
             ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 492, 32);

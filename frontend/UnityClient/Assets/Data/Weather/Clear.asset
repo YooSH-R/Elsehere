@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e8b76d4a383d9d438930d90ac81a8c1, type: 3}
+  m_Name: Clear
+  m_EditorClassIdentifier: A305.Weather::A305.Weather.WeatherDefinition
+  code: CLEAR
+  keepDesignedLook: 1
+  look:
+    skyZenith: {r: 0, g: 0, b: 0, a: 0}
+    skyHorizon: {r: 0, g: 0, b: 0, a: 0}
+    sunColor: {r: 0, g: 0, b: 0, a: 0}
+    sunIntensity: 0
+    sunShadowStrength: 0
+    ambientSky: {r: 0, g: 0, b: 0, a: 0}
+    ambientEquator: {r: 0, g: 0, b: 0, a: 0}
+    ambientGround: {r: 0, g: 0, b: 0, a: 0}
+    fogColor: {r: 0, g: 0, b: 0, a: 0}
+    fogStartMeters: 0
+    fogEndMeters: 0
+    cloudColor: {r: 0, g: 0, b: 0, a: 0}
+  coversSky: 0
+  effect: {fileID: 0}

@@ -23,6 +23,9 @@ namespace A305.Characters
         public bool IsPlaying => active && !paused;
         public bool IsPaused => active && paused;
         public CharacterSpeechClip Speech => speech;
+        public CharacterFaceController Face => face;
+        public SpeechExpressionProfile Expressions => expressions;
+        public bool IsConfigured => face != null && speechSource != null;
         public float PlaybackTime =>
             speechSource != null && speechSource.clip != null
                 ? (float)speechSource.timeSamples / speechSource.clip.frequency

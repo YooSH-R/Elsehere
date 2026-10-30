@@ -30,6 +30,7 @@ namespace A305.Dialogue
         private AudioClip lastSpeech;
         private SpeechVisemeTimeline lastTimeline;
         private CharacterSpeechPlayer speaker;
+        private string speakerNotice;
         private int playbackRequest;
         private UnityWebRequest pendingRequest;
 
@@ -44,11 +45,13 @@ namespace A305.Dialogue
                 apiSettings.CreateClient(FeedbackTimeoutSeconds)
             );
 
-        public void SetSpeaker(CharacterSpeechPlayer player)
+        public void SetSpeaker(CharacterSpeechPlayer player, string bindingNotice = null)
         {
             StopSpeech();
             ReleaseVoice();
             speaker = player;
+            speakerNotice = bindingNotice;
+            LipSyncNotice = bindingNotice;
         }
 
         /// <summary>기존 GET 음성에서 PCM과 음소 시간을 함께 읽는다. 음성을 다시 합성하지 않는다.</summary>
@@ -111,7 +114,7 @@ namespace A305.Dialogue
             );
             lastSpeech.SetData(decoded.Samples, 0);
             lastTimeline = decoded.Timeline;
-            LipSyncNotice = decoded.TimingError;
+            LipSyncNotice = speakerNotice ?? decoded.TimingError;
             if (speaker != null && LipSyncNotice != null)
                 Debug.LogWarning("NPC lip sync unavailable: " + LipSyncNotice, this);
             ReplaySpeech();

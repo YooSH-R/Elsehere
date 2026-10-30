@@ -111,7 +111,10 @@ namespace A305.Dialogue
             if (serverLink != null)
             {
                 var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();
-                serverLink.SetSpeaker(speaker != null ? speaker.Player : null);
+                serverLink.SetSpeaker(
+                    speaker != null ? speaker.Player : null,
+                    speaker != null ? speaker.BindingNotice : null
+                );
             }
             bool hasScript = scriptSource.TryGetScript(npcCode, out DialogueScript script);
             cameraRig.EnterDialogueView(lookTarget);

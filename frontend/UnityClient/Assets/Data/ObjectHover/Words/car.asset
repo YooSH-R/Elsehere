@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35587a5923a6abf4ca2eddd8340d76cc, type: 3}
+  m_Name: car
+  m_EditorClassIdentifier: A305.ObjectHover::A305.ObjectHover.ObjectWordDefinition
+  details:
+    key: word_2a482726948f5bf41a0068cc69f541ca
+    languageCode: en-US
+    text: car
+    meaningKo: "\uC790\uB3D9\uCC28"
+    example: Is this your car?
+    exampleKo: "\uC774\uAC70 \uB2F9\uC2E0 \uCC28\uC608\uC694?"
+    pronunciationAudioKey: 
+  assetGuid: 2a482726948f5bf41a0068cc69f541ca

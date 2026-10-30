@@ -132,7 +132,7 @@ class Settings:
     # 합성 스레드 수. 0이면 onnxruntime 기본(보이는 코어 수). 컨테이너 CPU 상한보다 많으면 할당량에 걸려 몇 배 느려진다
     # (2026-10-29 i7-13700H Docker 2 CPU 상한: 기본 20스레드 대신 2스레드로 6초 소리 문장 합성 약 3초)
     kokoro_threads: int = 0
-    tts_chunk_budget_s: float = 2.5  # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false
+    tts_chunk_budget_s: float = 2.5  # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false (턴 전체 음성에는 기다려 넣음)
     tts_gpu_base_url: str = ""  # GPU 서버 합성 서버(ai/gpu_tts) 주소. 있으면 먼저 부르고 실패하면 CPU Kokoro. 비면 끔
     tts_gpu_token: str = ""
     tts_gpu_timeout_s: float = 2.0  # GPU 서버 합성 한 번의 상한 (실측 대사 하나 0.4~0.6초, 최대 1.2초). 넘으면 바로 CPU로

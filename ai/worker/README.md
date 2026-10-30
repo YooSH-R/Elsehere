@@ -52,7 +52,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `RESPOND_BUDGET_S` | 30 | NPC 추론 API(`/internal/ai/npc/respond`) 요청 하나의 상한 (재시도·대체 모델 포함, 계약 10절). 넘으면 504 `AI_TIMEOUT` |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음, 배포 이미지는 `/opt/kokoro/` 안 파일) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
 | `KOKORO_THREADS` | 0 (onnxruntime 기본, 보이는 코어 수) | 음성 합성 스레드 수. 컨테이너처럼 CPU 상한이 있으면 상한과 같게 (앱 Compose는 2). 상한보다 많으면 CPU 할당량에 걸려 몇 배 느려짐 |
-| `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
+| `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false`(바로 재생 없이 자막만). 턴 전체 음성에는 합성이 끝나는 대로 넣음 |
 | `TTS_GPU_BASE_URL` / `TTS_GPU_TOKEN` | (없음, 꺼짐) | SSAFY GPU 서버 합성 서버([`ai/gpu_tts`](../gpu_tts/README.md))의 주소와 토큰. 주면 다듬고 음소로 바꾼 글을 먼저 GPU로 보내고, 실패·시간 초과면 CPU Kokoro로 만듦. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18433`) |
 | `TTS_GPU_TIMEOUT_S` | 2 | GPU 서버 합성 한 번의 상한. 넘으면 재시도 없이 CPU로 |
 | `TTS_BREAKER_FAILURES` / `TTS_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 합성이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 CPU로 바로 감. 횟수가 0이면 끔 |

@@ -6,7 +6,7 @@
 
 - `Assets/Scenes/Production/TownScene.unity`를 열고 Play하면 기본 F 리틀 멍을 조작할 수 있다. 집·카페·호텔도 같은 공용 `Assets/Prefabs/Player/Player.prefab`을 사용한다.
 - 실제 가입·재접속은 `EntryScene`에서 시작한다. 가입의 F/M 선택은 기존 계정 API가 저장하고, `OnboardingFlow`가 가입 응답·bootstrap의 `avatarType`을 보존한다. `OnboardingScreen`이 월드로 넘어가기 전에 `PlayerCharacterSelection`에 전달한다.
-- F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐은 대기 자세의 실제 스킨 범위를 기준으로 높이 1.61m·반경 0.68m이며, 카메라 눈높이는 약 1.108m·3인칭 조준점은 0.966m이다.
+- F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐은 대기 자세의 실제 스킨 범위를 기준으로 높이 1.61m·반경 0.33m(머리 아래 몸통)이고, 큰 머리는 반지름 0.68m·발 기준 중심 높이 약 1.29m인 머리 구가 따로 막으며, 카메라 눈높이는 약 1.108m·3인칭 조준점은 0.966m이다.
 - M은 기본 남자 캐릭터 `Assets/Prefabs/Player/Characters/Male.prefab`을 사용한다. Tripo로 생성한 남자 메시를 마스터 골격(`LittleMungAdjusted.fbx`)에 다시 연결한 `Female.prefab` Variant이므로 골격·애니메이션·배율 1.6과 접지·계단·팔 관통 보정을 F와 함께 쓴다. 원본 FBX·메시·머티리얼·텍스처는 `Assets/Art/Player/LittleMung/Male/`에 둔다. M 정의의 충돌 캡슐은 높이 1.59m·반경 0.61m, 카메라 눈높이는 약 1.132m·3인칭 조준점은 0.954m이다.
 - 걷기·달리기·점프·회전 수치는 공용 Player의 `PlayerMover`가 `Assets/Data/Player/LittleMung/Movement.asset` 하나로 정한다. 캐릭터 정의에는 이동 설정이 없으므로 어떤 외형을 골라도 같은 조작감으로 움직인다.
 - 외형 크기를 바꾸면 캡슐·시점·관통을 다시 검수해야 한다.
@@ -152,7 +152,7 @@ Blender에서 새 사본을 내보낼 때 frontend/ArtSources/Player/LittleMung/
 
 발은 루트 앞 21cm 안에만 디디고 한 걸음은 최소 0.08초이므로, 약 2.4 m/s보다 빠르면 다음 디딤면을 계획할 수 없다. 이 속도를 넘으면 계단 보정을 켜지 않는다. 디딜 곳을 찾지 못하면 보정을 즉시 해제해 몸이 이전 발자리에 붙잡히지 않게 한다. 현재 걷기·달리기 속도(3.2·7.5 m/s)에서는 계단 보정이 사실상 동작하지 않고 원래 애니메이션 자세로 계단을 지난다.
 
-평지에서는 기존 Pose 동작으로 전환하고 점프 시 계단 보행을 해제한다. `LittleMungGroundContact` → 계단 보행 → `LittleMungArmClearance` 순서로 최종 자세를 계산한다. 새 사본은 형상·UV가 같은 기존 밑창 가중치 사본(`TerrainSkin/Sole0.asset`)을 재사용하며, 손 간격 설정은 새 프리팹에만 적용한다. 발목에 고정 각도를 더해 뒤집힘을 숨기는 보정은 추가하지 않는다.
+평지에서는 기존 Pose 동작으로 전환하고 점프 시 계단 보행을 해제한다. 점프 정점이나 가구에서 떨어지는 중처럼 발밑 땅에서 0.22m(계단을 내려갈 때 잠깐 뜨는 높이)보다 높이 떠 있는 동안에도 해제하고, 디딤점은 착지한 뒤에 잡는다. 떨어지는 중의 공중 발 위치를 디딤점으로 잡으면 착지한 뒤에도 외형이 그 높이에 떠 있기 때문이다. `LittleMungGroundContact` → 계단 보행 → `LittleMungArmClearance` 순서로 최종 자세를 계산한다. 새 사본은 형상·UV가 같은 기존 밑창 가중치 사본(`TerrainSkin/Sole0.asset`)을 재사용하며, 손 간격 설정은 새 프리팹에만 적용한다. 발목에 고정 각도를 더해 뒤집힘을 숨기는 보정은 추가하지 않는다.
 
 팔 관통 보정은 전완의 실제 스킨 정점과 팔꿈치–손목 축 사이의 최대 거리를 두께로 사용한다. 외형 배율이 달라져도 고정 반경 때문에 전완 표면을 놓치지 않도록 매 프레임 측정한다. 손·팔 목표를 이동시키며 기존 본 길이와 손목 회전은 유지한다.
 
@@ -173,8 +173,8 @@ Blender에서 새 사본을 내보낼 때 frontend/ArtSources/Player/LittleMung/
 
 ## 선택 캐릭터의 캡슐과 카메라 높이 맞추기
 
-`Data/Player/Characters/F.asset`·`M.asset`의 `Height Meters`, `Radius Meters`가 캐릭터별 충돌 캡슐을 정한다. `Camera Eye Height Meters`는 1인칭·대화 눈높이, `Camera Pivot Height Meters`는 3인칭 조준점이다. 0이면 씬의 `PlayerCameraSettings` 값을 사용하므로 기존 Sandbox는 기존 설정을 유지한다. 거리·회전·줌·벽 충돌 설정은 계속 씬에서 참조한 카메라 데이터 에셋을 따른다. 눈높이·조준점은 실행 중에도 설정 에셋의 값을 읽으며, 초기 거리·각도는 Play를 다시 시작하면 적용된다.
+`Data/Player/Characters/F.asset`·`M.asset`의 `Height Meters`, `Radius Meters`가 캐릭터별 충돌 캡슐을 정한다. 캡슐은 머리 아래 몸통만 덮어 소파와 탁자 사이 같은 좁은 틈에도 들어간다. 몸통보다 큰 머리는 `Head Radius Meters`·`Head Center Height Meters`의 머리 구가 따로 막는다(`HeadClearance`). 걸을 때 머리 구를 이동 방향으로 밀어 보고 벽·키 큰 가구에 닿으면 그 직전에서 멈추고 면을 따라 미끄러진다. 구의 아래 끝이 머리 아래 끝이라 탁자·소파 앉는 면처럼 낮은 가구는 머리 아래로 지나간다. 머리 반지름이 0이면 머리를 따로 막지 않는다. `Camera Eye Height Meters`는 1인칭·대화 눈높이, `Camera Pivot Height Meters`는 3인칭 조준점이다. 0이면 씬의 `PlayerCameraSettings` 값을 사용하므로 기존 Sandbox는 기존 설정을 유지한다. 거리·회전·줌·벽 충돌 설정은 계속 씬에서 참조한 카메라 데이터 에셋을 따른다. 눈높이·조준점은 실행 중에도 설정 에셋의 값을 읽으며, 초기 거리·각도는 Play를 다시 시작하면 적용된다.
 
-**Tools → A305 → Player → Fit Character Capsules And Camera**는 정의마다 현재 외형을 연결한 뒤 F·M 외형 복사본에 `Idle.anim`을 샘플링해 실제 스킨 정점을 측정한다. 두 정의의 캡슐·카메라 높이를 다시 계산하고 공용 Player와 Production 네 씬의 캡슐 연결을 갱신한다. 외형 프리팹의 배율·메시·골격과 씬 카메라 에셋은 바꾸지 않는다. 얼굴 중앙을 기본 눈높이로 사용하므로 최종 시점은 각 캐릭터 정의에서 조절한다. 단순한 Connect Selected Character는 이 계산을 반복하지 않고 이미 설정한 값을 유지한다.
+**Tools → A305 → Player → Fit Character Capsules And Camera**는 정의마다 현재 외형을 연결한 뒤 F·M 외형 복사본에 `Idle.anim`을 샘플링해 실제 스킨 정점을 측정한다. 두 정의의 캡슐(머리 아래 정점의 수평 범위)·머리 구(머리 정점의 수평 범위, 아래 끝을 머리 아래 끝에 맞춤)·카메라 높이를 다시 계산하고 공용 Player와 Production 네 씬의 캡슐 연결을 갱신한다. 외형 프리팹의 배율·메시·골격과 씬 카메라 에셋은 바꾸지 않는다. 얼굴 중앙을 기본 눈높이로 사용하므로 최종 시점은 각 캐릭터 정의에서 조절한다. 단순한 Connect Selected Character는 이 계산을 반복하지 않고 이미 설정한 값을 유지한다.
 
-`PlayerCharacterIntegrationTests`는 F/M의 실제 이동·대화·씬 전환과 함께, 두 캐릭터의 배율 1.6 유지·대기 메시 높이/머리 폭에 대한 캡슐 범위·얼굴 높이의 대화 시점·3인칭 조준점을 검사한다. 손·전완의 머리/몸통 간격 합격 기준은 타원체 정규화 거리 0.9 이상이다. 이는 근사 관통 검사이며 전체 삼각형 충돌이나 모든 체형·모션의 외관 품질을 보증하지 않는다.
+`PlayerCharacterIntegrationTests`는 F/M의 실제 이동·대화·씬 전환과 함께, 두 캐릭터의 배율 1.6 유지·대기 메시 높이에 대한 캡슐 높이·머리 아래 몸통에 대한 캡슐 폭(팔은 머리·몸통을 피해 벌어지므로 0.12m까지 나와도 됨)·머리 폭에 대한 머리 구 범위·얼굴 높이의 대화 시점·3인칭 조준점을 검사한다. `FurnitureEdgeTests`는 가구 모서리 옆이나 머리보다 좁고 몸통보다 넓은 틈에서 바닥까지 내려오는지, 낮은 탁자에는 머리를 위로 하고 다가가는지, 벽에는 머리가 묻히지 않는지 검사한다. 손·전완의 머리/몸통 간격 합격 기준은 타원체 정규화 거리 0.9 이상이다. 이는 근사 관통 검사이며 전체 삼각형 충돌이나 모든 체형·모션의 외관 품질을 보증하지 않는다.

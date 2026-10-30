@@ -669,7 +669,7 @@ MonoBehaviour:
   view: {fileID: 1731761662}
   dialogue: {fileID: 491052814}
   player: {fileID: 739269365}
-  rain: {fileID: 0}
+  weather: {fileID: 0}
   sceneCode: CAFE
 --- !u!1 &378429038
 GameObject:
@@ -1081,6 +1081,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Dialogue::A305.Dialogue.DialogueSpeaker
   player: {fileID: 891873551}
+  bindingNotice: 
 --- !u!1001 &739269363
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1107,7 +1108,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7475426848629461907, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_Radius
-      value: 0.68
+      value: 0.33
       objectReference: {fileID: 0}
     - target: {fileID: 7475426848629461907, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_Center.y

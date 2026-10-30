@@ -76,7 +76,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1162494289695499942}
   - component: {fileID: 4223788750656514894}
-  - component: {fileID: 8763229876139719655}
   m_Layer: 0
   m_Name: Bicycle
   m_TagString: Untagged
@@ -115,27 +114,6 @@ MonoBehaviour:
   word: {fileID: 11400000, guid: e438a4ee4f2a3494eaadb31ccfda0859, type: 2}
   parts: {fileID: 0}
   unityKey: 
---- !u!65 &8763229876139719655
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5343749914118098775}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.47386166, y: 0.8647845, z: 1.7}
-  m_Center: {x: 0, y: 0.43239224, z: -0.000000059604645}
 --- !u!1001 &5048846732623293603
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -218,8 +196,38 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1151388028547126963, guid: 2ce5734c8b1a40b4aad3056b68e31085, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2803634347783174369}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8164078558771037576, guid: 2ce5734c8b1a40b4aad3056b68e31085, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7470630537268388301}
   m_SourcePrefab: {fileID: 100100000, guid: 2ce5734c8b1a40b4aad3056b68e31085, type: 3}
+--- !u!1 &3989548717799205163 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8164078558771037576, guid: 2ce5734c8b1a40b4aad3056b68e31085, type: 3}
+  m_PrefabInstance: {fileID: 5048846732623293603}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &7470630537268388301
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3989548717799205163}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -2432090755550338912, guid: 2ce5734c8b1a40b4aad3056b68e31085, type: 3}
 --- !u!4 &4727550522408192840 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2ce5734c8b1a40b4aad3056b68e31085, type: 3}

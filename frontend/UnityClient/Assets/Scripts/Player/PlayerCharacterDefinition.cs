@@ -17,6 +17,16 @@ namespace A305.Player
         [SerializeField]
         private float radiusMeters = .36f;
 
+        [SerializeField, Min(0)]
+        [Tooltip("큰 머리를 벽·키 큰 가구에서 막는 구의 반지름. 0이면 머리를 따로 막지 않는다.")]
+        private float headRadiusMeters;
+
+        [SerializeField, Min(0)]
+        [Tooltip(
+            "발 기준 머리 구 중심 높이. 구의 아래 끝이 머리 아래 끝과 맞아 낮은 가구는 머리 아래로 지나간다."
+        )]
+        private float headCenterHeightMeters;
+
         [SerializeField]
         private float stepHeightMeters = .15f;
 
@@ -35,6 +45,8 @@ namespace A305.Player
         public float CameraPivotHeightMeters => cameraPivotHeightMeters;
         public string CharacterId => characterId;
         public float HeightMeters => heightMeters;
+        public float HeadRadiusMeters => headRadiusMeters;
+        public float HeadCenterHeightMeters => headCenterHeightMeters;
         public GameObject VisualPrefab => visualPrefab;
 
         public void FitController(CharacterController controller)

@@ -7,6 +7,7 @@ using A305.EditorTools.Common;
 using A305.Learning;
 using A305.Mission;
 using A305.ObjectHover;
+using A305.Onboarding;
 using A305.Player;
 using A305.Theme;
 using A305.Tutorial;
@@ -21,7 +22,7 @@ using UnityEngine.UI;
 namespace A305.EditorTools.Theme
 {
     /// <summary>
-    /// 테마 3개로 집·마을·대화·피드백 화면을 그려 이미지로 저장한다. Play나 서버 호출 없이 화면 배치와 색만 확인한다.
+    /// 테마 3개로 집·마을·대화·피드백·마이페이지 화면을 그려 이미지로 저장한다. Play나 서버 호출 없이 화면 배치와 색만 확인한다.
     /// THEME_PREVIEW_OUTPUT에 출력 폴더, 선택으로 FIRST_DAY_PREVIEW_JSON에 저장한 퀘스트 응답을 지정한다.
     /// </summary>
     public static class UiThemePreview
@@ -50,6 +51,7 @@ namespace A305.EditorTools.Theme
                 CaptureTown(mission, Path.Combine(output, $"town-{name}.png"));
                 CaptureTalk(Path.Combine(output, $"talk-{name}.png"));
                 CaptureReview(Path.Combine(output, $"review-{name}.png"));
+                CaptureMyPage(Path.Combine(output, $"mypage-{name}.png"));
             }
             UiThemeSelection.Shared.Select(UiThemeId.Jelly);
         }
@@ -156,6 +158,20 @@ namespace A305.EditorTools.Theme
             (
                 (RectTransform)Field<TMP_Text>(view, "situation").transform.parent
             ).gameObject.SetActive(false);
+            Render(scene, camera, path);
+        }
+
+        // 마이페이지 창을 열어 둔 모습. 시점 감도 슬라이더와 현재값이 보이는지 확인한다.
+        private static void CaptureMyPage(string path)
+        {
+            Scene scene = Open("TownScene", out Camera camera);
+            var page = Show<MyPageView>(scene, camera, 0.4f);
+            Field<GameObject>(page, "overlay").SetActive(true);
+            Field<GameObject>(page, "profilePanel").SetActive(true);
+            Field<GameObject>(page, "logoutDialog").SetActive(false);
+            Field<TMP_Text>(page, "profileText").text = "닉네임 미리보기 · 여자 캐릭터 · 영어";
+            Field<Slider>(page, "lookSensitivitySlider").SetValueWithoutNotify(1.4f);
+            Field<TMP_Text>(page, "lookSensitivityText").text = "1.4배";
             Render(scene, camera, path);
         }
 

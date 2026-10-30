@@ -486,6 +486,11 @@ namespace A305.EditorTools.Theme
             Role(root, "MyPage/Window/Profile", UiThemeRole.Body);
             Role(root, "MyPage/Window/NicknameRow/NicknameInput", UiThemeRole.Input);
             Role(root, "MyPage/Window/Status", UiThemeRole.Muted);
+            Role(root, "MyPage/Window/LookSensitivity/Title", UiThemeRole.Title);
+            Role(root, "MyPage/Window/LookSensitivity/Help", UiThemeRole.Muted);
+            Role(root, "MyPage/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
+            Role(root, "MyPage/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
             QuietButton(root, "MyPage/Window/NicknameRow/NicknameButton", "닉네임 변경");
             QuietButton(root, "MyPage/Window/Buttons/LogoutButton", "로그아웃");
             QuietButton(root, "MyPage/Window/Buttons/CloseButton", "닫기");

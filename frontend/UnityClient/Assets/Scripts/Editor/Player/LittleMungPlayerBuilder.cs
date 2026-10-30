@@ -20,14 +20,10 @@ namespace A305.EditorTools.Player
         public const string ArtFolder = LittleMungAnimationBuilder.Folder;
         private const string DataFolder = "Assets/Data/Player/LittleMung";
         private const string MovementSettingsPath = DataFolder + "/Movement.asset";
-        private const string CameraSettingsPath = "Assets/Data/Player/PlayerCameraSettings.asset";
         private const float JumpHeightMeters = 0.675f;
         private const float CameraRotateDegreesPerPixel = 0.15f;
 
-        // 빠르게 방향을 바꾸면 카메라가 등 뒤로 크게 돌아 뒤로 가는데 앞으로 가는 것처럼 보여 끈다.
-        private const float CameraFollowBehindSharpness = 0f;
-
-        /// <summary>이미 만든 이동 설정·애니메이터·카메라 감도와 자동 뒤돌기를 현재 조작값으로 갱신한다. 프리팹과 씬은 그대로 둔다.</summary>
+        /// <summary>이미 만든 이동 설정·애니메이터·카메라 감도를 현재 조작값으로 갱신한다. 프리팹과 씬은 그대로 둔다.</summary>
         [MenuItem("Tools/A305/Player/Apply Movement Tuning")]
         public static void ApplyMovementTuning()
         {
@@ -37,12 +33,23 @@ namespace A305.EditorTools.Player
             ApplyMovementSettings(
                 BuilderTools.LoadOrCreateAsset<PlayerMovementSettings>(MovementSettingsPath)
             );
-            var camera = new SerializedObject(
-                AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(CameraSettingsPath)
-            );
-            camera.FindProperty("rotateDegreesPerPixel").floatValue = CameraRotateDegreesPerPixel;
-            camera.FindProperty("followBehindSharpness").floatValue = CameraFollowBehindSharpness;
-            camera.ApplyModifiedPropertiesWithoutUndo();
+            // 집·마을·카페·호텔은 공간마다 카메라 설정을 따로 쓰므로, 공용 설정만 바꾸면 게임 씬에는 반영되지 않는다.
+            foreach (
+                string guid in AssetDatabase.FindAssets(
+                    "t:PlayerCameraSettings",
+                    new[] { "Assets" }
+                )
+            )
+            {
+                var camera = new SerializedObject(
+                    AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
+                        AssetDatabase.GUIDToAssetPath(guid)
+                    )
+                );
+                camera.FindProperty("rotateDegreesPerPixel").floatValue =
+                    CameraRotateDegreesPerPixel;
+                camera.ApplyModifiedPropertiesWithoutUndo();
+            }
             AssetDatabase.SaveAssets();
             Debug.Log("이동 속도·애니메이션 재생 속도·카메라 감도를 갱신했습니다.");
         }

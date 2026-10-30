@@ -1,0 +1,8 @@
+newmtl Bicycle_1A1A1A
+Kd 0.0999 0.0999 0.0999
+
+newmtl Bicycle_FF5722
+Kd 1.0000 0.3318 0.0999
+
+newmtl Bicycle_78909C
+Kd 0.4731 0.5657 0.6180

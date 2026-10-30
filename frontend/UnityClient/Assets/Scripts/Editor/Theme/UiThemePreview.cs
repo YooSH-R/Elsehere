@@ -56,6 +56,70 @@ namespace A305.EditorTools.Theme
             UiThemeSelection.Shared.Select(UiThemeId.Jelly);
         }
 
+        public static void CaptureApprovedButtons()
+        {
+            string output = Environment.GetEnvironmentVariable("THEME_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new InvalidOperationException("Set THEME_PREVIEW_OUTPUT.");
+            Directory.CreateDirectory(output);
+            UiThemeSelection.Shared.Select(UiThemeId.Jelly);
+            Scene home = Open("HomeScene", out Camera homeCamera);
+            Show<LearningHudView>(home, homeCamera, .5f).SetVocabularyCount(0);
+            var picker = Show<ThemePickerView>(home, homeCamera, .4f);
+            Field<GameObject>(picker, "window").SetActive(false);
+            Render(home, homeCamera, Path.Combine(output, "approved-home-buttons.png"));
+            Scene town = Open("TownScene", out Camera townCamera);
+            Show<LearningHudView>(town, townCamera, .5f).SetVocabularyCount(0);
+            var journal = Show<FirstDayMissionView>(town, townCamera, .4f);
+            journal.SetAvailable(true);
+            journal.BindMap("TOWN", BuilderTools.FindSingleInScene<PlayerMover>(town).transform);
+            journal.ShowMessage("로그인이 필요합니다.");
+            Field<TMP_Text>(journal, "journey").text =
+                "○  호텔 도착\n○  카페에서 휴식\n○  사라진 가방\n○  가방 찾기\n○  갑작스런 비\n○  우산 구매\n○  호텔 체크인";
+            Field<Button>(journal, "startButton").gameObject.SetActive(true);
+            Field<Button>(journal, "restButton").gameObject.SetActive(false);
+            Field<GameObject>(journal, "journal").SetActive(true);
+            Field<TMP_Text>(journal, "situation").transform.parent.gameObject.SetActive(false);
+            Render(town, townCamera, Path.Combine(output, "approved-quest-buttons.png"));
+        }
+
+        /// <summary>오른쪽 위 메뉴(≡)를 접은 집과, 테마별로 펼친 집·마을을 그린다.</summary>
+        public static void CaptureHudMenu()
+        {
+            string output = Environment.GetEnvironmentVariable("THEME_PREVIEW_OUTPUT");
+            if (string.IsNullOrWhiteSpace(output))
+                throw new InvalidOperationException(
+                    "THEME_PREVIEW_OUTPUT에 출력 폴더를 지정하세요."
+                );
+            Directory.CreateDirectory(output);
+            UiThemeSelection.Shared.Select(UiThemeId.Jelly);
+            Scene home = Open("HomeScene", out Camera homeCamera);
+            ShowMenu(Show<LearningHudView>(home, homeCamera, .5f), false);
+            Render(home, homeCamera, Path.Combine(output, "hud-menu-home-closed.png"));
+            foreach (UiThemeId theme in (UiThemeId[])Enum.GetValues(typeof(UiThemeId)))
+            {
+                UiThemeSelection.Shared.Select(theme);
+                string name = theme.ToString().ToLowerInvariant();
+                home = Open("HomeScene", out homeCamera);
+                ShowMenu(Show<LearningHudView>(home, homeCamera, .5f), true);
+                Render(home, homeCamera, Path.Combine(output, $"hud-menu-home-{name}.png"));
+                Scene town = Open("TownScene", out Camera townCamera);
+                ShowMenu(Show<LearningHudView>(town, townCamera, .5f), true);
+                Render(town, townCamera, Path.Combine(output, $"hud-menu-town-{name}.png"));
+            }
+            UiThemeSelection.Shared.Select(UiThemeId.Jelly);
+        }
+
+        // 실행 중 HudMenuView가 하는 것처럼 메뉴를 펼치거나 접어 둔다. 단어장 배지가 보이도록 개수를 넣는다.
+        private static void ShowMenu(LearningHudView hud, bool isOpen)
+        {
+            hud.SetVocabularyCount(3);
+            var menu = hud.GetComponent<HudMenuView>();
+            Field<GameObject>(menu, "items").SetActive(isOpen);
+            Field<Button>(menu, "menuButton").gameObject.SetActive(!isOpen);
+            Field<Button>(menu, "openMenuButton").gameObject.SetActive(isOpen);
+        }
+
         private static void CaptureHome(string path)
         {
             Scene scene = Open("HomeScene", out Camera camera);
@@ -121,8 +185,7 @@ namespace A305.EditorTools.Theme
             Field<TMP_Text>(dialogue, "guideText").text =
                 "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요.";
             Field<TMP_Text>(dialogue, "statusText").text = "Ben이 듣고 있어요";
-            Field<TMP_Text>(dialogue, "suggestText").text =
-                "추천 단어 · umbrella · convenience store";
+            Field<TMP_Text>(dialogue, "suggestText").text = "추천 단어 · umbrella · drugstore";
             var tooltip = Show<WordTooltipView>(scene, camera, 0.45f);
             Field<TMP_Text>(tooltip, "wordLabel").text = "umbrella";
             Field<TMP_Text>(tooltip, "meaningLabel").text = "우산";
@@ -141,7 +204,7 @@ namespace A305.EditorTools.Theme
             Field<TMP_Text>(feedback, "summaryText").text =
                 "길을 묻고 우산 파는 곳을 잘 알아냈어요.";
             Field<TMP_Text>(feedback, "bodyText").text =
-                "더 자연스럽게 · <b>Is there a convenience store nearby?</b>";
+                "더 자연스럽게 · <b>Is there a drugstore nearby?</b>";
             var guide = Show<TutorialGuideView>(scene, camera, 0.45f);
             Field<GameObject>(guide, "panel").SetActive(true);
             Field<TMP_Text>(guide, "titleText").text =

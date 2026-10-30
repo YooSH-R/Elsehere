@@ -9,6 +9,7 @@ public record FirstDayMissionResponse(
     String scene,
     boolean canRest,
     boolean raining,
+    String weather,
     int balance,
     String situation,
     String direction,

@@ -51,6 +51,7 @@ backend:check-and-build:
           - infra/compose/deploy.*.env.example
           - infra/nginx/web.conf
           - infra/scripts/check_runtime.py
+          - infra/scripts/docker_build.py
           - infra/scripts/runtime_probe.py
           - .gitlab-ci.yml
           - .gitlab/ci/**/*

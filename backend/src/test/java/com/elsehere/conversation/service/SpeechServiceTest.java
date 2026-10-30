@@ -43,6 +43,8 @@ import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
@@ -65,6 +67,8 @@ class SpeechServiceTest {
   @Autowired private TrainingConsentService trainingConsentService;
 
   @Autowired private TrainingRecordingRepository trainingRecordingRepository;
+
+  @Autowired private NpcAudioStore npcAudioStore;
 
   private Long userId;
   private Conversation conversation;
@@ -259,6 +263,39 @@ class SpeechServiceTest {
     assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
     assertThat(response.url()).isNull();
     then(aiWorkerClient).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
+  }
+
+  @DisplayName("정기 정리 전 만료됐거나 복원 후 파일이 없는 음성은 재생성 요청에서도 EXPIRED로 처리한다")
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void regenerateSpeech_unavailableStoredAudio_returnsExpired(boolean expired) {
+    String key = expired ? npcAudioStore.save(WAV) : UUID.randomUUID() + ".wav";
+    npcTurn.attachNpcAudio(key, expired ? Instant.EPOCH : Instant.parse("2026-10-29T00:00:00Z"));
+    entityManager.flush();
+
+    SpeechResponse response =
+        speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
+    assertThat(response.url()).isNull();
+    then(aiWorkerClient).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
+  }
+
+  @Test
+  @DisplayName("정기 정리 전이라도 만료된 NPC 음성 조회는 NOT_FOUND이며 삭제 상태를 기록한다")
+  void npcSpeech_expiredBeforeScheduledCleanup_throwsNotFound() {
+    String key = npcAudioStore.save(WAV);
+    npcTurn.attachNpcAudio(key, Instant.EPOCH);
+    entityManager.flush();
+
+    assertErrorCode(() -> speechService.npcSpeech(userId, npcTurn.getId()), ErrorCode.NOT_FOUND);
+
+    entityManager.flush();
+    entityManager.clear();
+    Turn expired = entityManager.find(Turn.class, npcTurn.getId());
+    assertThat(expired.getNpcAudioKey()).isNull();
+    assertThat(expired.getNpcAudioDeletedAt()).isNotNull();
+    assertThat(npcAudioStore.load(key)).isEmpty();
   }
 
   @Test

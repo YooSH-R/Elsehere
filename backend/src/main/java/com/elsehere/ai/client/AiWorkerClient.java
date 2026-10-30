@@ -45,6 +45,8 @@ public class AiWorkerClient {
   // 워커의 피드백 전체 상한(FEEDBACK_TIMEOUT_S, 기본 60초)보다 조금 길게 기다린다.
   private static final Duration FEEDBACK_TIMEOUT = Duration.ofSeconds(75);
   private static final Duration MEMORY_TIMEOUT = Duration.ofSeconds(45);
+  // 관계 갱신은 모델을 부르지 않는 계산이다.
+  private static final Duration RELATIONSHIP_TIMEOUT = Duration.ofSeconds(10);
   // 뜻 보기·힌트는 짧은 모델 호출 한 번이다. 재시도·대체 모델까지 기다리도록 NPC 대답과 같게 둔다.
   private static final Duration HELP_TIMEOUT = Duration.ofSeconds(30);
 
@@ -114,7 +116,17 @@ public class AiWorkerClient {
       int level,
       boolean suggestWords) {
     ReplyBody body =
-        new ReplyBody(npc, memory, history, text, instruction, true, level, suggestWords, "");
+        new ReplyBody(
+            npc,
+            memory,
+            memory == null ? null : memory.relationship(),
+            history,
+            text,
+            instruction,
+            true,
+            level,
+            suggestWords,
+            "");
     HttpResponse<Stream<String>> response =
         send(
             jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
@@ -216,6 +228,23 @@ public class AiWorkerClient {
     } catch (JacksonException exception) {
       throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
     }
+  }
+
+  /**
+   * 대화 뒤 관계 갱신. 저장된 관계와 대화 전체로 알아봄·호감 변화량을 계산한다. 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를 그대로 둔다.
+   *
+   * @param relationship 저장된 관계와 마지막 대화 뒤 지난 게임 날 수
+   * @param history 대화 전체(최대 200줄). 학습자 줄의 무례·사건을 담는다
+   */
+  public RelationshipChange relationship(
+      WorkerTrace trace, WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {
+    HttpRequest request =
+        jsonRequest(
+            "/v1/npc/relationship",
+            trace,
+            RELATIONSHIP_TIMEOUT,
+            new RelationshipBody(npc, relationship, history));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), RelationshipChange.class);
   }
 
   /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
@@ -405,6 +434,7 @@ public class AiWorkerClient {
   record ReplyBody(
       WorkerNpc npc,
       WorkerMemory memory,
+      WorkerRelationship relationship,
       List<WorkerLine> history,
       String text,
       String instruction,
@@ -420,6 +450,9 @@ public class AiWorkerClient {
   record TtsBody(String text, String voice, double speed) {}
 
   record MemoryBody(WorkerNpc npc, String outcome, List<WorkerLine> history, Object memoryCard) {}
+
+  record RelationshipBody(
+      WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {}
 
   record MemoryEnvelope(List<WorkerUsage> usage) {}
 

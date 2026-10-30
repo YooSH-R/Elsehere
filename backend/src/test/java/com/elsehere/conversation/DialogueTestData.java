@@ -35,7 +35,7 @@ public final class DialogueTestData {
 
   public static Turn npcTurn(
       EntityManager entityManager, Conversation conversation, int seq, String text) {
-    Turn turn = Turn.npc(conversation, seq, text, null, null);
+    Turn turn = Turn.npc(conversation, seq, text, null, null, null);
     entityManager.persist(turn);
     return turn;
   }
@@ -44,7 +44,16 @@ public final class DialogueTestData {
       EntityManager entityManager, Conversation conversation, int seq, String text) {
     Turn turn =
         Turn.user(
-            conversation, seq, UUID.randomUUID(), InputType.TEXT, text, null, null, null, null);
+            conversation,
+            seq,
+            UUID.randomUUID(),
+            InputType.TEXT,
+            text,
+            null,
+            null,
+            null,
+            null,
+            null);
     entityManager.persist(turn);
     return turn;
   }
@@ -63,6 +72,7 @@ public final class DialogueTestData {
             InputType.VOICE,
             text,
             sttRawText,
+            null,
             null,
             null,
             null);

@@ -20,6 +20,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 
 - 소셜 로그인 또는 게스트로 시작하기(AUTH-07)로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 소셜 로그인 제공자는 Google 하나이며, 경로의 `{provider}`는 `google`입니다. 게스트는 `provider`가 `GUEST`입니다.
 - 로그인 상태는 서버 세션에 두고 HttpOnly 세션 쿠키로 유지합니다. nginx로 Unity Web 빌드와 API를 같은 출처에서 제공하며, 세션 쿠키는 `SameSite=Lax`입니다.
+- 세션은 요청이 24시간 없으면 끝나고, 쿠키도 24시간 유지돼 브라우저를 닫았다 열어도 이어집니다. 게스트(AUTH-07)는 2시간입니다. 서버를 다시 시작(배포)하면 로그인이 풀립니다. 끝난 뒤의 요청은 `401 UNAUTHENTICATED`입니다.
 - 요청 위조를 막기 위해 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)에는 `X-Requested-With` 헤더를 붙입니다. 값은 자유이며, 헤더가 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 개발 환경(local 프로필)에서는 소셜 로그인 없이 `POST /api/v1/dev/login`에 `{ "userId": 1 }`을 보내 그 사용자로 로그인할 수 있습니다. 다른 환경에는 이 API가 없습니다.
 - 처음 로그인한 사용자는 가입 정보(닉네임, 캐릭터, 약관)를 제출해야 사용자 계정이 만들어집니다. 그 전까지는 가입 관련 API와 BOOT-01만 호출할 수 있고, 나머지는 `403 SIGNUP_REQUIRED`입니다.
@@ -87,8 +88,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
+| `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
+| `ADMIN_SELF_REVOKE` | 409 | 어드민에서 자기 자신을 관리자에서 해제 |
 | `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
@@ -190,7 +193,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | [단어장] 옆 [지난 대화] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
+| | 오른쪽 위 메뉴의 [지난 대화] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -225,6 +228,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | WORLD-03 | `PUT /api/v1/me/word-prefs/{wordKey}` | 단어 카드 자동 표시 끄기·다시 켜기 | - | 08 |
 | WORLD-04 | `GET /api/v1/vocab/{vocabId}/pronunciation` | 미리 만든 사물 단어 발음 음성 | - | 08 |
 | WORLD-05 | `PUT /api/v1/me/last-scene` | 현재 장소 저장(재접속 위치) | - | 09, 14 |
+| WORLD-06 | `GET /api/v1/me/game-clock` | 사용자별 게임 시각 | - | 화면 없음(월드 장면) |
+| WORLD-07 | `POST /api/v1/me/game-clock/beats` | 플레이 중 신호, 게임 시간 흐르게 하기 | - | 화면 없음(월드 장면) |
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
 | CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | LLM, TTS(말걸기 대사가 없는 NPC) | 14 |
 | CONV-02 | `POST /api/v1/speech/transcriptions` | 녹음 전사(STT) | STT | 11, 15 |
@@ -320,9 +325,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- 약관 버전과 문서 주소는 서버 설정값입니다. `VOICE` 동의의 필수 여부와 음성 보관 기간은 `[미정]`이며, 정해지기 전까지 선택 약관으로 둡니다.
+- 약관 버전과 문서 주소는 서버 설정값입니다.
+- `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 동의하지 않은 사용자의 음성 입력을 막는 동작은 아직 적용 전입니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
-- 문서 주소(`url`)를 보여 줄 약관 페이지는 아직 없습니다 `[미정]`.
+- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -393,6 +399,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 다른 상태 변경 요청처럼 `X-Requested-With` 헤더가 필요합니다. 응답 형식은 AUTH-04와 같습니다.
 - `avatarType`은 `F`, `M`이며 필수입니다. 없으면 `VALIDATION_FAILED`입니다.
 - 부를 때마다 새 사용자를 만듭니다. `provider`는 `GUEST`, `providerUid`는 서버가 만든 임의 값이며 이메일은 없습니다. 로그아웃하거나 세션이 끝나면 같은 게스트로 다시 로그인할 수 없습니다.
+- 게스트 세션은 요청이 2시간 없으면 끝납니다(가입자는 24시간).
+- 마지막 활동 뒤 24시간이 지나면 게스트가 남긴 내용(대화 원문·NPC 음성·피드백·NPC 기억·저장 단어·숨김)을 지웁니다. 사용자·대화·AI 사용량 기록은 내용 없이 남깁니다.
 - 닉네임은 서버가 `guest-` 뒤에 겹치지 않는 여섯 자리 숫자를 붙여 정합니다. 회원 닉네임 규칙(AUTH-04)은 `-`를 허용하지 않으므로 회원 닉네임과 겹치지 않습니다.
 - 학습 언어와 대화 난이도는 MVP에서 고를 수 있는 값(`en-US`, 초급 1)으로 정하고 초기 설정은 튜토리얼(`TUTORIAL`)부터 시작합니다. 화면 03~05를 거치지 않으며 레벨 테스트 기록은 만들지 않습니다.
 - 가입 화면을 거치지 않으므로 약관 동의 기록(`user_consents`)을 남기지 않습니다.
@@ -568,6 +576,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```json
 "npcs": [
   { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
+  { "npcCode": "TAXI_DRIVER", "name": "Joe", "npcType": "STAFF", "roleLabel": "택시 기사", "canInitiate": false, "approachLine": null },
   { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
@@ -620,6 +629,32 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 09의 외출, 화면 14의 건물 출입처럼 장소를 옮길 때 호출합니다. 재접속하면 BOOT-01의 `lastSceneCode`에서 시작합니다. 장소 안의 정확한 위치 복원은 `[미정]`입니다.
 - `sceneCode`가 없거나 비어 있으면 `400 VALIDATION_FAILED`, 없는 장소면 `404 NOT_FOUND`, 열리지 않은 장소(`is_open = false`)면 `409 SCENE_CLOSED`입니다. 오류가 나면 마지막 장소를 바꾸지 않습니다.
+
+#### 게임 시간
+
+게임 시간은 **사용자마다 따로, 플레이한 동안만** 흐릅니다. 실제 10분이 게임 하루이고, 새 사용자는 1일차 오전 8시에서 시작합니다. 진행 중인 대화가 있으면 멈춥니다. 서버가 사용자별 누적 플레이 시간(`user_game_clocks`)을 보관하며, NPC 관계의 "마지막 대화 뒤 지난 게임 날 수"도 이 시계로 셉니다([NPC 생활·관계 설계](../npc-life-design.md) 11절).
+
+#### WORLD-06 `GET /api/v1/me/game-clock`
+
+```json
+// 응답 200
+{ "day": 3, "minuteOfDay": 615, "paused": false }
+```
+
+- `day`는 1일차부터 센 게임 날짜, `minuteOfDay`는 하루 중 분(0~1439, 615면 오전 10시 15분)입니다. `paused`는 진행 중인 대화가 있어 시간이 멈췄는지입니다.
+- 신호를 보낸 적이 없으면 `{ "day": 1, "minuteOfDay": 480, "paused": false }`입니다. 시간을 흐르게 하지 않습니다.
+
+#### WORLD-07 `POST /api/v1/me/game-clock/beats`
+
+```json
+// 응답 200 (요청 본문 없음)
+{ "day": 3, "minuteOfDay": 627, "paused": false }
+```
+
+- 월드 장면에 있는 동안 30초마다 보내는 신호입니다. 지난 신호 뒤 흐른 실제 시간만큼 게임 시간을 더하고 지금 게임 시각을 돌려줍니다(실제 1초 = 게임 2.4분).
+- 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 진행 중인 대화가 있으면 더하지 않고 `paused: true`입니다.
+- 대화가 신호 사이에 시작·끝나면 그 몇 초는 신호 간격 안에서 셀 수도 빠질 수도 있습니다. 게임 날짜 단위로 쓰기에는 충분한 정확도입니다.
+- 두 API 모두 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. WORLD-07은 `X-Requested-With` 헤더가 필요합니다.
 
 ### 4.5 미션
 
@@ -886,11 +921,11 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-06·07 NPC 음성
 
-- CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키가 없거나 파일이 없으면 `404 NOT_FOUND`입니다.
-- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
+- CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
+- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
 - NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다.
-- 보관 정책: 음성은 턴 생성 후 최대 30일, 환경 전체 5,000,000,000바이트까지 둡니다(서버 설정값). 새 음성을 저장할 때 상한을 넘으면 오래된 파일부터 지우고, 매일 04:00(Asia/Seoul) 정리에서 기간이 지난 음성, 파일이 없어진 키(DB 복원 등), 어떤 턴도 쓰지 않는 오래된 파일을 지웁니다. NPC 공용 음성(`npcs.approach_audio_key`)은 지우지 않습니다.
-- `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 지움, `turns.npc_audio_deleted_at`)입니다. `EXPIRED`는 CONV-07을 불러도 다시 만들지 않으며, 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
+- 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
+- `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 재생 차단, `turns.npc_audio_deleted_at`)입니다. 파일 삭제 실패로 재시도 중인 경우도 `EXPIRED`이며 CONV-07을 불러도 다시 만들지 않습니다. 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
 - 내가 말한 문장을 TTS로 다시 들려주는 기능은 필요성을 함께 검토합니다(6절).
 
 #### CONV-08 `POST /api/v1/conversations/{conversationId}/end`
@@ -939,7 +974,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 [단어장] 옆 [지난 대화] 창의 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 오른쪽 위 메뉴의 [지난 대화] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
 
 ```json
 {
@@ -1204,7 +1239,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 
 ### 4.12 마이페이지
 
-와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다.
+와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 메뉴(≡)의 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다.
 
 #### USER-04 `PUT /api/v1/me/nickname`
 
@@ -1238,7 +1273,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 대화 종료 이유 | CONV-03, 08 | `conversations.end_reason`(`USER_ENDED`, `NPC_ENDED`, `QUOTA_EXHAUSTED`, `EXPIRED`)을 추가했습니다. |
 | 숙어 뜻 | FB-03 | `turn_feedback.idiom_meaning_ko`를 추가했습니다. |
 | 짧은 피드백 개선 표현 | CONV-08 | `conversation_feedback.reviews` JSON을 `{ good, improve, suggestion }` 구조로 정했습니다. |
-| NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관 기간은 `[미정]`입니다. |
+| NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관·삭제·용량 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다. |
 | 무례 판정 (v3.2) | CONV-03 | `turns.guard_abusive`(null이면 판정 실패), `turns.guard_error_code`, `conversations.rude_count`를 추가하고 `end_reason`에 `RUDE`를 더했습니다. |
 | 학습자 말 번역 (v3.2) | CONV-03 | `turns.translation_en`을 추가했습니다. 번역 카드와 다음 요청의 대화 기록, 피드백에 씁니다. |
 | AI 호출 기록 단위 (v3.2) | 1.4, CONV-02·03 | `ai_requests.kind`를 기능 단위(`STT`, `GUARD`, `JUDGE`, `NPC`, `TTS`, `HINT`, `MEANING`, `FEEDBACK`)로 나눴습니다. 한 턴의 여러 AI 호출이 같은 `request_id`를 써도 겹치지 않습니다. |

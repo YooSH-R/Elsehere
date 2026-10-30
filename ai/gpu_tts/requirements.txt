@@ -1,0 +1,3 @@
+# GPU 서버 합성 서버 전용. kokoro-onnx가 CPU용 onnxruntime을 끌어오므로 README의 설치 순서를 따른다
+kokoro-onnx==0.6.1
+onnxruntime-gpu[cuda,cudnn]==1.23.2

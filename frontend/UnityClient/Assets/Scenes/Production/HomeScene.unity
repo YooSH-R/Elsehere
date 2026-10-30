@@ -1214,6 +1214,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2455336062266064305, guid: c8da659b7ab03ea45b76f2e60c4c8833, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8919286331851269860, guid: c8da659b7ab03ea45b76f2e60c4c8833, type: 3}
       propertyPath: m_Name
       value: LearningHud
@@ -1239,6 +1243,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab8dee6e5714eab41aef658abb8d1cd9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Learning::A305.Learning.LearningHudView
+--- !u!114 &710634028 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4080787275234825284, guid: c8da659b7ab03ea45b76f2e60c4c8833, type: 3}
+  m_PrefabInstance: {fileID: 710634025}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1001 &739006678
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1349,7 +1364,7 @@ MonoBehaviour:
   view: {fileID: 1013747704}
   dialogue: {fileID: 388671852}
   player: {fileID: 808809279}
-  rain: {fileID: 0}
+  weather: {fileID: 0}
   sceneCode: HOME
 --- !u!1001 &808809277
 PrefabInstance:
@@ -1405,7 +1420,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8941058843998387087, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9945219
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8941058843998387087, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_LocalRotation.x
@@ -1413,7 +1428,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8941058843998387087, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.104528464
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8941058843998387087, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       propertyPath: m_LocalRotation.z
@@ -1544,6 +1559,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: ThemePicker
       objectReference: {fileID: 0}
+    - target: {fileID: 5896049282911324947, guid: a1a00f0728ed9ef46a97175df1d3f08c, type: 3}
+      propertyPath: openButton
+      value: 
+      objectReference: {fileID: 710634028}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2853,6 +2872,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1700707448}
   - component: {fileID: 1700707449}
+  - component: {fileID: 1700707450}
   m_Layer: 0
   m_Name: SpaceArrival
   m_TagString: Untagged
@@ -2889,6 +2909,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.World::A305.World.SpaceArrival
   player: {fileID: 808809279}
   cameraRig: {fileID: 71672427}
+  apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
+--- !u!114 &1700707450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1700707447}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54a395ba488c7484286802e6d75c2a43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.World::A305.World.GameClockDriver
   apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1001 &1794782396
 PrefabInstance:

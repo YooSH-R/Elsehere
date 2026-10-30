@@ -101,8 +101,8 @@ def test_recognition_can_go_down_after_a_long_absence():
 
 
 def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
-    """백엔드가 정수로 저장해도 호감이 쌓인다. 칭찬까지 하면 여덟째 대화에 좋아하는 티, 스물한째에 사적인 이야기(잡담은 호감에 더하지 않음).
-    인사하고 주문만 하면 열다섯째, 마흔째다(기본 배수, 대화마다 하루 간격)."""
+    """백엔드가 정수로 저장해도 호감이 쌓인다(1차 유저 테스트 숫자, 2026-10-30). 칭찬까지 하면 대화 두 번 뒤(셋째 방문) 좋아하는 티,
+    네 번 뒤 사적인 이야기만큼(잡담은 호감에 더하지 않음). 인사하고 주문만 하면 다섯 번, 열 번 뒤다(기본 배수, 대화마다 하루 간격)."""
     relationship = RULES["relationship"]
     friendly = ["GREETING", "SMALL_TALK", "COMPLIMENT", "TASK_DONE", "LEAVE"]
     polite = ["GREETING", "TASK_DONE", "LEAVE"]
@@ -115,8 +115,33 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
             stored = {name: stored[name] + change[f"{name}_delta"] for name in stored}
         return conversations
 
-    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (8, 21)
-    assert (until(relationship["liked"], polite), until(relationship["personalTalk"]["affinity"], polite)) == (15, 40)
+    assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (2, 4)
+    assert (until(relationship["liked"], polite), until(relationship["personalTalk"]["affinity"], polite)) == (5, 10)
+
+
+def test_two_rude_lines_make_a_service_npc_cool_but_one_does_not():
+    """1차 유저 테스트 목표: 무례 한 번으로는 싫어함까지 가지 않고, 두 번이면 다음 방문에 차갑게 대한다(서비스 NPC 3명)."""
+    disliked = RULES["relationship"]["disliked"]
+    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"):
+        rates = rel.npc_rates(NpcProfile.model_validate(card(npc_id)["npcProfile"]), RULES, npc_persona.load_behaviors())
+        once = rel.rude_affinity_delta(rates, RULES)
+
+        assert disliked < once < 0 and 2 * once <= disliked, npc_id
+
+
+def test_a_service_npc_knows_them_from_the_second_or_third_visit():
+    """1차 유저 테스트 목표: 친화성이 높은 Mia·Ben은 둘째 방문, 낮은 Jake는 셋째 방문부터 알아보고, 넷째·다섯째 방문에 단골."""
+    relationship = RULES["relationship"]
+
+    def visit_when(threshold: int, npc_id: str) -> int:
+        rate = rel.npc_rates(NpcProfile.model_validate(card(npc_id)["npcProfile"]), RULES, npc_persona.load_behaviors())["recognitionRate"]
+        recognition, visits = 0, 1
+        while recognition < threshold:
+            recognition, visits = round(rel.grow_recognition(recognition, rate, RULES)), visits + 1
+        return visits
+
+    for npc_id, expected in {"CAFE_STAFF": (2, 4), "TOWN_PASSERBY": (2, 4), "HOTEL_STAFF": (3, 5)}.items():
+        assert (visit_when(relationship["seenBefore"], npc_id), visit_when(relationship["regular"], npc_id)) == expected, npc_id
 
 
 def test_a_first_meeting_starts_from_nothing():

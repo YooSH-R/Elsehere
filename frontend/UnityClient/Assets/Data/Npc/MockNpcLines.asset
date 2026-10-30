@@ -22,4 +22,4 @@ MonoBehaviour:
   - npcCode: HOTEL_STAFF
     greeting: Good afternoon! Welcome to Maple House. Are you checking in?
   - npcCode: SHOP_STAFF
-    greeting: Hi! Welcome to the convenience store. Can I help you find something?
+    greeting: Hi! Welcome to the drugstore. Can I help you find something?

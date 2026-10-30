@@ -543,6 +543,20 @@ namespace A305.EditorTools.Characters
             }
             if (Environment.GetEnvironmentVariable("PASSERBY_REST_ONLY") == "1")
                 return;
+            string expressionFolder = Path.Combine(output, "Expressions");
+            Directory.CreateDirectory(expressionFolder);
+            ConfigureCamera(camera, new Vector3(-3, 1.25f, 0), new Vector3(0, 1.25f, 0));
+            camera.orthographicSize = .7f;
+            foreach (CharacterFacePose pose in Enum.GetValues(typeof(CharacterFacePose)))
+            {
+                face.SetPose(pose);
+                SaveFrame(face.gameObject, camera, Path.Combine(expressionFolder, pose + ".png"));
+            }
+            face.SetPose(CharacterFacePose.Neutral);
+            float.TryParse(
+                Environment.GetEnvironmentVariable("PASSERBY_REVIEW_YAW"),
+                out float motionYaw
+            );
             using var motion = new TripoMotionPreview(face.gameObject);
             foreach (
                 var kind in new[]
@@ -555,10 +569,27 @@ namespace A305.EditorTools.Characters
             {
                 string folder = Path.Combine(output, kind.ToString());
                 Directory.CreateDirectory(folder);
-                ConfigureCamera(camera, center + new Vector3(-3, .12f, 0), center);
+                ConfigureCamera(
+                    camera,
+                    center + Quaternion.Euler(0, motionYaw, 0) * new Vector3(-3, .12f, 0),
+                    center
+                );
                 for (int i = 0; i < 24; i++)
                 {
                     motion.Apply(kind, i / 24f);
+                    var animator = face.GetComponentInChildren<Animator>();
+                    var right =
+                        animator.GetBoneTransform(HumanBodyBones.RightUpperArm).position
+                        - animator.GetBoneTransform(HumanBodyBones.LeftUpperArm).position;
+                    right.y = 0;
+                    var forward = Vector3.Cross(right.normalized, Vector3.up);
+                    ConfigureCamera(
+                        camera,
+                        center
+                            + Quaternion.Euler(0, motionYaw, 0) * forward * 3
+                            + Vector3.up * .12f,
+                        center
+                    );
                     SaveFrame(
                         face.gameObject,
                         camera,
@@ -570,7 +601,10 @@ namespace A305.EditorTools.Characters
 
         private static void SaveFrame(GameObject visual, Camera camera, string path)
         {
-            var skins = visual.GetComponentsInChildren<SkinnedMeshRenderer>();
+            var skins = visual
+                .GetComponentsInChildren<SkinnedMeshRenderer>()
+                .Where(r => r.enabled)
+                .ToArray();
             var temporary = new List<GameObject>();
             var meshes = new List<Mesh>();
             var target = new RenderTexture(720, 900, 24);

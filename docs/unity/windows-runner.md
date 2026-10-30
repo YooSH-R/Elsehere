@@ -23,7 +23,11 @@ GitLab 프로젝트의 **Settings → CI/CD → Runners → Create project runne
 
 현재 Unity를 사용 중인 계정의 일반 PowerShell에서 설치합니다. 서비스 계정의 라이선스·환경을 별도로 확인하기 전에는 아래의 사용자 세션에서 실행합니다.
 
+Runner의 작업 셸은 PowerShell 7(`pwsh`)을 사용합니다. Windows PowerShell 5.1은 Runner가 만든 작업 스크립트를 시스템 코드 페이지(한국어 Windows는 CP949)로 읽어, MR 설명처럼 한글이 들어간 CI 변수가 있으면 작업 시작 단계에서 구문 오류(`ParserError`)로 실패합니다. 관리자 권한 없이 사용자 계정에 설치할 수 있습니다.
+
 ```powershell
+winget install --id Microsoft.PowerShell --source winget --exact
+pwsh --version
 $unityRunnerDirectory = Join-Path $env:USERPROFILE 'a305-unity-runner'
 New-Item -ItemType Directory -Path $unityRunnerDirectory -Force | Out-Null
 Set-Location $unityRunnerDirectory
@@ -34,7 +38,7 @@ Invoke-WebRequest -UseBasicParsing -Uri 'https://gitlab-runner-downloads.s3.amaz
 
 이미 설치·등록했다면 반복하지 않습니다. 등록 URL은 `https://lab.ssafy.com`, executor는 `shell`입니다. GitLab에서 받은 인증 토큰은 등록 프롬프트에만 입력하고 공유하지 않습니다. Runner 버전은 기존 GitLab의 18.11 계열에 맞춘 값이며, 업그레이드할 때 서버와의 호환성을 확인합니다.
 
-설정 파일은 저장소 밖의 Runner 폴더에서 관리합니다. 최상위 `concurrent = 2`, 등록된 `[[runners]]`의 `limit = 2`, `executor = "shell"`을 맞춥니다. `shell`은 기존 실행 환경에 맞춘 `pwsh` 또는 `powershell` 값을 유지하며, 기존 ID·URL·토큰은 보존합니다. 실행 중인 Runner는 설정을 자동으로 다시 읽으므로 동시 실행 수 변경을 위해 진행 중인 작업을 재시작하지 않습니다.
+설정 파일은 저장소 밖의 Runner 폴더에서 관리합니다. 최상위 `concurrent = 2`, 등록된 `[[runners]]`의 `limit = 2`, `executor = "shell"`, `shell = "pwsh"`를 맞추고, 기존 ID·URL·토큰은 보존합니다. 실행 중인 Runner는 설정을 자동으로 다시 읽으므로 동시 실행 수 변경을 위해 진행 중인 작업을 재시작하지 않습니다. `shell` 변경은 다시 읽은 설정에 반영되지 않으므로, 진행 중인 작업이 끝난 뒤 Runner를 재시작하고 첫 작업 로그의 `Using Shell (pwsh) executor`를 확인합니다. 확인 전에는 GitLab에서 Runner를 일시 중지해 다른 MR 작업을 받지 않게 합니다.
 
 ```powershell
 notepad ./config.toml
@@ -42,7 +46,7 @@ notepad ./config.toml
 ./gitlab-runner.exe run --config ./config.toml --working-directory "$env:USERPROFILE\a305-unity-runner"
 ```
 
-PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 들어가지 않도록 합니다. 노트북이 꺼져 있으면 Unity 작업이 대기하며 이미 EC2에 배포된 서비스는 계속 실행됩니다. Runner는 별도 `builds` 폴더에 후보 커밋을 내려받으므로 개발 중인 원본 체크아웃을 작업 폴더로 지정하지 않습니다. [Windows Runner 설치](https://docs.gitlab.com/runner/install/windows/), [지원 셸](https://docs.gitlab.com/runner/shells/)
+PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 들어가지 않도록 합니다. 노트북이 꺼져 있으면 Unity 작업이 대기하며 이미 EC2에 배포된 서비스는 계속 실행됩니다. Runner는 별도 `builds` 폴더에 후보 커밋을 내려받으므로 개발 중인 원본 체크아웃을 작업 폴더로 지정하지 않습니다. 멈춘 작업은 GitLab에서 취소하며, 작업 폴더의 Unity 프로세스를 강제 종료하지 않습니다. 강제 종료하면 남은 빌드 프로세스가 `Library/Bee`를 잡아 다음 작업의 스크립트 컴파일이 실패할 수 있습니다. [Windows Runner 설치](https://docs.gitlab.com/runner/install/windows/), [지원 셸](https://docs.gitlab.com/runner/shells/)
 
 ## CI 연결 시험
 

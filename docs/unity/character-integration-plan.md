@@ -1,13 +1,34 @@
 # 플레이어 캐릭터 검증과 NPC 대화 연결 계획
 
-현재 우선 목표는 이미 생성한 캐릭터 한 개를 플레이어로 연결하여 실제 조작과 몸 움직임이 원하는 수준인지 확인하는 것이다. NPC의 표정·립싱크·AI 대화는 그다음 단계로 보존한다. 개별 모델의 눈썹·눈꺼풀·피부 등을 계속 보정하는 작업은 중단한다.
+플레이어의 실제 조작과 몸 움직임 검증을 유지하면서, NPC 확장에 재사용할 마네킹 외형·골격·얼굴 변형을 별도 검수 사본으로 준비한다. 마네킹의 표정 저작·프리뷰와 실제 NPC의 AI 대화·음성 연결은 완료 범위를 구분한다.
 
 플레이어는 [리틀 멍 플레이어 확인](little-mung-player.md)의 공용 Player·Production 연결과 전용 비교 씬을 사용한다. F는 보정 리틀 멍, M은 기존 대체 외형을 적용한다. 아래 A 단계는 전용 검수부터 공용 적용까지의 진행 기준이다. 아래 NPC 표정·립싱크 연결은 후속 계획이며 아직 구현 완료로 간주하지 않는다.
+
+## 마네킹 공통 외형과 높이 프리셋
+
+`LittleMung_Base_Female` 생성 원본은 `Assets/Art/Characters/Tripo/LittleMung_Base_Female/`에 보존한다. 얼굴 수정 사본은 `Assets/Art/Characters/Common/LittleMungMannequin/`에서 관리하며, 기존 서비스 마스터 Avatar와 이동 애니메이션을 재사용한다. 아래 사본은 기존 Player·Production에 자동 등록하지 않는 검수용 에셋이다.
+
+| 확인 대상 | Unity 경로 |
+| --- | --- |
+| 1.6m 공통 캐릭터 | `Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_160.prefab` |
+| 1.7m 공통 캐릭터 | `Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_170.prefab` |
+| 표정·입 모양 | `Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_Face.unity` |
+| 1.6m 이동·접지 | `Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_160_Motion.unity` |
+| 1.7m 이동·접지 | `Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_170_Motion.unity` |
+
+- 두 키는 머리·몸 비율을 유지하고 `Visual` 전체를 1.0625배 차이로 조정한다. 같은 메시, 스킨 가중치, Avatar, Animator Controller, BlendShape를 공유한다. 개별 본의 길이나 비율은 바꾸지 않는다.
+- 키는 머리카락 없는 기준 자세에서 발바닥부터 정수리까지 실제 스킨 정점으로 측정한다. 생성 작업의 `heightMeters`, Transform 배율, 캡슐 높이를 실제 메시 높이와 혼동하지 않는다. 키별 캡슐과 검수 씬의 카메라 눈높이도 별도 설정한다.
+- 표정 씬을 열어 Play를 누르면 중립, 미소, 눈 감기, AA, F/V, TH, M/B/P, E, OH, OU, 이, 으를 선택하고 강도를 조절할 수 있다. 입 안쪽·치아·혀도 Head에 묶인 실제 스킨 메시이며 표정은 정점 변형으로 적용된다.
+- `CharacterFaceController.ApplySpeech`는 발음별 가중치·미소·깜박임을 받는 공통 연결점이다. 이 마네킹 사본에는 실제 NPC 대화·TTS 재생기를 연결하지 않았다. 발음 시간표와 음성 재생 연결은 별도 통합 단계다.
+- 이동 씬은 기존 조작을 재사용한다. WASD 이동, Shift 달리기, Space 점프와 카메라 조작으로 확인한다. 표정 씬과 이동 씬의 책임을 구분하고, 표정 씬에는 플레이어 이동·접지 컴포넌트를 넣지 않는다.
+- Blender 저작 파일과 얼굴 델타는 `frontend/ArtSources/Characters/LittleMungMannequin/`에 있다. `.blend`는 표정·외형 저작용이며 Unity의 공통 골격 바인딩은 Builder가 보존한다. 스크립트의 얼굴 좌표는 이 마네킹에 맞춘 값으로, 임의의 새 Tripo 얼굴에 그대로 적용하는 도구가 아니다.
+- `MannequinMasterBuilder.Build`는 새 사본만 만들고 기존 출력 폴더가 있으면 중단한다. `Refresh Mannequin Authored Face`는 같은 정점 구조의 저작 데이터를 검수 사본에 명시적으로 갱신한다. 손으로 수정한 사본에는 덮어쓰기 전에 변경 내용을 확인한다.
+- 자동 검사는 골격 일치, 실제 키·캡슐, 공유 메시·Controller, 유효한 표정 변형과 이동 중 기존 접지·관통 기준을 확인한다. 얼굴 인상, 속눈썹 경계, 관절·수트의 미세한 접힘은 외관 검수 대상이며 자동 통과를 외관 승인으로 취급하지 않는다.
 
 ## 작업 범위와 승인 경계
 
 - 기존 분리 작업 트리의 캐릭터 파이프라인 작업을 이어 사용한다. 기본 프로젝트의 기능 개발 체크아웃은 수정하지 않는다.
-- 먼저 플레이어 검증 단계를 진행하고, NPC 단계는 별도 착수 확인을 받는다. 플레이어 단계 승인을 NPC 전체 구현 승인으로 확대하지 않는다.
+- 마네킹 얼굴 저작·높이 프리셋·검수 씬까지 포함한다. 이 사본의 준비를 NPC 대화·TTS 통합이나 Production 외형 교체 완료로 확대하지 않는다.
 - 원본 생성 모델과 기존 보정본은 유지한다. 검증용 모델·프리팹·씬은 별도 경로로 만든다.
 - Tripo 생성이나 재생성, 유료 API 사용, 화면 자동제어는 이번 계획의 실행 범위에 포함하지 않는다.
 - 코드 변경은 테스트 우선 개발로 진행하고 작은 기능 단위로 커밋한다. 시각 에셋 구성은 Builder로 만들고 실제 렌더·플레이 검증으로 확인한다.

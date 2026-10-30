@@ -190,8 +190,8 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 **`affinity_delta` — 무례 감점**
 
 - 백엔드는 무례로 센 발화를 저장하는 **같은 트랜잭션**에서 `affinity = max(-100, affinity + affinity_delta)`로 적용합니다. 계산은 워커, 적용은 백엔드입니다. 무례 횟수에 넣지 않는 줄([무례 처리 합의안](rudeness-handling.md) 4절의 정당방위 장면)에는 적용하지 않습니다.
-- 크기는 `무례 인상(−15) × affinityFollowRate(0.3) × NPC 무례 반응 크기`를 반올림한 값입니다. 반응 크기는 `npc.profile`의 성격 5축(신경성)과 행동 조각으로 정하고, 카드가 없으면 1입니다. 지금 규칙으로 −3~−7이고 카드가 없으면 −4입니다.
-- `abusive: true`인데 `affinity_delta`가 비어 있으면(예: 이 칸을 모르는 이전 워커) 공통 규칙 `world-rules.json`의 `relationship.rudeAffinityFallback`(−4)을 씁니다.
+- 크기는 `무례 인상(−8) × affinityFollowRate(0.75) × NPC 무례 반응 크기`를 반올림한 값입니다. 반응 크기는 `npc.profile`의 성격 5축(신경성)과 행동 조각으로 정하고, 카드가 없으면 1입니다. 지금 규칙(1차 배포 유저 테스트 숫자)으로 −4~−9이고, 서비스 NPC 3명은 −7, 카드가 없으면 −6입니다.
+- `abusive: true`인데 `affinity_delta`가 비어 있으면(예: 이 칸을 모르는 이전 워커) 공통 규칙 `world-rules.json`의 `relationship.rudeAffinityFallback`(−6)을 씁니다.
 - `abusive`가 `false`이거나 `null`(판정 못 함)이면 감점하지 않고 기본값도 쓰지 않습니다.
 - 대화 종료 때 `/v1/npc/relationship`(2.7.2절)은 무례를 다시 세지 않습니다.
 
@@ -240,7 +240,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 |---|---|---|
 | `recognition` | 정수 0~100 | 알아봄. 얼굴을 아는 정도 |
 | `affinity` | 정수 −100~100 | 호감. 좋게 보는 정도 |
-| `days_since_last_talk` | 정수 0 이상 | 마지막 대화 뒤 지난 **게임 속** 날 수. 게임 하루의 기준은 [NPC 생활·관계 설계](../npc-life-design.md) 11절에서 정함 |
+| `days_since_last_talk` | 정수 0 이상 | 마지막 대화 뒤 지난 **게임 속** 날 수. 1차 배포는 게임 하루 10분, 대화 중 멈춤([NPC 생활·관계 설계](../npc-life-design.md) 4·11절) |
 
 응답은 `text/event-stream`이며 이벤트 순서는 다음과 같습니다.
 

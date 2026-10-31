@@ -22,6 +22,9 @@ namespace A305.Voice
         public float ElapsedSeconds => flow.ElapsedSeconds;
         public float MaxRecordingSeconds => settings.MaxRecordingSeconds;
 
+        /// <summary>이 음량(RMS)보다 작으면 조용한 것으로 본다. 녹음에 말소리가 있는지 볼 때도 같은 기준을 쓴다.</summary>
+        public float SilenceLevel => settings.SilenceLevel;
+
         private void Awake()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR

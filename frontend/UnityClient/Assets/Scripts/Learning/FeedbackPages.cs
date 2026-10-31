@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using A305.Dialogue;
 
 namespace A305.Learning
 {
@@ -67,6 +68,24 @@ namespace A305.Learning
                     }
                     break;
                 case FeedbackSection.Conversation:
+                    // 사용자 발화와 별개로 이 장면에서 자주 쓰는 표현을 먼저 보여 준다. 뜻을 함께 넘겨 [표현 저장]이 뜻까지 저장한다.
+                    foreach (SituationExpressionData situation in feedback.SituationExpressions)
+                    {
+                        if (string.IsNullOrWhiteSpace(situation.Expression))
+                            continue;
+                        pages.Add(
+                            new FeedbackPage(
+                                "이 상황에서 자주 써요",
+                                $"<b>{situation.Expression}</b>\n{situation.MeaningKo}\n\n{situation.UsageKo}\n\n<b>예문</b>\n{situation.ExampleEn}\n{situation.ExampleKo}",
+                                new ReferenceExpression(
+                                    situation.Expression,
+                                    situation.MeaningKo,
+                                    situation.UsageKo
+                                )
+                            )
+                        );
+                    }
+
                     foreach (UtteranceReview review in feedback.Reviews)
                     {
                         if (review.Idiom == null)

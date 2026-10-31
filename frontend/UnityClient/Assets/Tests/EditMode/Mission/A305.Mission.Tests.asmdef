@@ -5,7 +5,8 @@
         "A305.Api",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.Mission"
+        "A305.Mission",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

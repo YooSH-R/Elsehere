@@ -62,6 +62,8 @@ namespace A305.Npc
 
         public bool IsTalkPromptShowing => talkPromptOwner != null;
 
+        public bool IsTalkPromptShownBy(object requester) => talkPromptOwner == requester;
+
         public bool IsDeclineShown => declineButton.gameObject.activeSelf;
 
         /// <summary>새 대화를 시작할 수 없어 [말 걸기]를 막고 이유를 보이는 중인지.</summary>

@@ -98,7 +98,7 @@ namespace A305.Mission
 
         private void Rest()
         {
-            if (state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking))
+            if (state != null && state.CountsAsCafeRest && !busy)
                 _ = ExecuteAsync(api.RestAsync);
         }
 

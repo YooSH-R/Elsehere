@@ -189,8 +189,6 @@ namespace A305.Mission
 
         private void Awake()
         {
-            canvas = GetComponentInParent<Canvas>().rootCanvas;
-            closedSortingOrder = canvas.sortingOrder;
             journal.SetActive(false);
             journalButton.onClick.AddListener(ToggleJournal);
             closeButton.onClick.AddListener(CloseJournal);
@@ -216,7 +214,24 @@ namespace A305.Mission
         {
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open);
-            canvas.sortingOrder = open ? OpenJournalSortingOrder : closedSortingOrder;
+            Canvas root = RootCanvas();
+            if (root != null)
+                root.sortingOrder = open ? OpenJournalSortingOrder : closedSortingOrder;
+        }
+
+        // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.
+        private Canvas RootCanvas()
+        {
+            if (canvas == null)
+            {
+                Canvas parent = GetComponentInParent<Canvas>(true);
+                if (parent == null)
+                    return null;
+                canvas = parent.rootCanvas;
+                closedSortingOrder = canvas.sortingOrder;
+            }
+
+            return canvas;
         }
 
         private void StartMission() => StartRequested?.Invoke();

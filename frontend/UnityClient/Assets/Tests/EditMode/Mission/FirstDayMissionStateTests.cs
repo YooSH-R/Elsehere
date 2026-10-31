@@ -60,6 +60,33 @@ namespace A305.Mission.Tests
             Assert.That(state.FallbackWeather, Is.EqualTo("CLEAR"));
         }
 
+        [TestCase("CAFE", true, 1, true, false, false, true)]
+        [TestCase("CAFE", true, 1, false, false, false, false)]
+        [TestCase("HOTEL", true, 1, true, false, false, false)]
+        [TestCase("CAFE", true, 2, true, false, false, false)]
+        [TestCase("CAFE", true, 1, true, true, false, false)]
+        [TestCase("CAFE", true, 1, true, false, true, false)]
+        [TestCase("CAFE", false, 1, true, false, false, false)]
+        public void CanSitInCafe_OnlyAfterOrderAndBeforeRest(
+            string scene,
+            bool started,
+            int stage,
+            bool canRest,
+            bool busy,
+            bool talking,
+            bool expected
+        )
+        {
+            var state = new FirstDayMissionState
+            {
+                Started = started,
+                Stage = stage,
+                CanRest = canRest,
+            };
+
+            Assert.That(state.CanSitInCafe(scene, busy, talking), Is.EqualTo(expected));
+        }
+
         private static FirstDayMissionState State(bool started, bool completed) =>
             new FirstDayMissionState
             {

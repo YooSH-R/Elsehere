@@ -34,6 +34,7 @@ namespace A305.Mission
         private FirstDayMissionState state;
         private bool busy;
         private bool refreshPending;
+        private CafeChairSeat[] cafeSeats;
 
         public void SetAvailable(bool available) => view.SetAvailable(available);
 
@@ -46,6 +47,9 @@ namespace A305.Mission
                 return;
             }
             api = new FirstDayMissionApi(apiSettings.CreateClient());
+            cafeSeats = FindObjectsByType<CafeChairSeat>(FindObjectsSortMode.None);
+            foreach (CafeChairSeat seat in cafeSeats)
+                seat.RestCompleted += Rest;
             view.BindMap(sceneCode, player.transform);
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
@@ -59,6 +63,14 @@ namespace A305.Mission
 
         private void OnDestroy()
         {
+            if (cafeSeats != null)
+            {
+                foreach (CafeChairSeat seat in cafeSeats)
+                {
+                    if (seat != null)
+                        seat.RestCompleted -= Rest;
+                }
+            }
             if (view != null)
             {
                 view.StartRequested -= StartMission;
@@ -84,7 +96,11 @@ namespace A305.Mission
                 return await api.VisitAsync(sceneCode);
             });
 
-        private void Rest() => _ = ExecuteAsync(api.RestAsync);
+        private void Rest()
+        {
+            if (state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking))
+                _ = ExecuteAsync(api.RestAsync);
+        }
 
         private void RequestRefresh()
         {
@@ -144,6 +160,14 @@ namespace A305.Mission
         {
             if (state != null)
                 view.Refresh(state, busy, dialogue.IsTalking);
+            if (cafeSeats == null)
+                return;
+            bool canSit = state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking);
+            foreach (CafeChairSeat seat in cafeSeats)
+            {
+                if (seat != null)
+                    seat.SetAvailable(canSit);
+            }
         }
     }
 }

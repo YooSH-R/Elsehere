@@ -4,6 +4,7 @@
     "references": [
         "A305.Api", "A305.Characters",
         "A305.Player",
+        "A305.Theme",
         "A305.Voice",
         "Unity.InputSystem",
         "Unity.TextMeshPro",

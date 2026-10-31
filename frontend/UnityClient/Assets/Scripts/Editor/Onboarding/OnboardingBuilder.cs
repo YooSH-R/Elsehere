@@ -336,7 +336,7 @@ namespace A305.EditorTools.Onboarding
                 regular,
                 20f,
                 SubTextColor,
-                "음성 처리에 동의하면 [누르고 말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있어요."
+                "음성 처리에 동의하면 [꾹 눌러 말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있어요."
             );
             // 이미 만든 패널에 새로 붙는 줄은 맨 아래에 생기므로 안내 문구 바로 뒤로 옮긴다.
             voiceConsent.transform.SetSiblingIndex(note.transform.GetSiblingIndex() + 1);
@@ -432,14 +432,14 @@ namespace A305.EditorTools.Onboarding
             );
             RectTransform consents = UiBuilderTools.FindOrCreateColumn(panel, "Consents");
             ConsentRowView consentTemplate = SetUpConsentTemplate(consents, regular);
-            // 음성 처리는 선택 동의라, 동의해야 [누르고 말하기]를 쓸 수 있다는 것과 나중에 바꾸는 곳을 약관 바로 아래에 알린다.
+            // 음성 처리는 선택 동의라, 동의해야 [꾹 눌러 말하기]를 쓸 수 있다는 것과 나중에 바꾸는 곳을 약관 바로 아래에 알린다.
             TMP_Text voiceNote = UiBuilderTools.FindOrCreateText(
                 panel,
                 "VoiceConsentNote",
                 regular,
                 20f,
                 SubTextColor,
-                "음성 처리에 동의하면 [누르고 말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있고, 나중에 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 바꿀 수 있어요."
+                "음성 처리에 동의하면 [꾹 눌러 말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있고, 나중에 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 바꿀 수 있어요."
             );
             voiceNote.transform.SetSiblingIndex(consents.GetSiblingIndex() + 1);
 

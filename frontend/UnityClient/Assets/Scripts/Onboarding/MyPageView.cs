@@ -206,7 +206,7 @@ namespace A305.Onboarding
             ApplyVoiceConsent();
         }
 
-        // 대화의 [누르고 말하기]가 바뀐 음성 처리 동의를 따르게 한다.
+        // 대화의 [꾹 눌러 말하기]가 바뀐 음성 처리 동의를 따르게 한다.
         private void ApplyVoiceConsent()
         {
             if (this != null && flow.User != null)

@@ -65,6 +65,12 @@ namespace A305.Mission
         // 오른쪽 위 단어장 칸(너비 360)과 그 앞 여백.
         private const float VocabularyReserve = 384;
 
+        // 사용자가 연 수첩은 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
+        private const int OpenJournalSortingOrder = 1000;
+
+        private Canvas canvas;
+        private int closedSortingOrder;
+
         public event Action StartRequested;
         public event Action RestRequested;
         public event Action RetryRequested;
@@ -208,6 +214,24 @@ namespace A305.Mission
         {
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open);
+            Canvas root = RootCanvas();
+            if (root != null)
+                root.sortingOrder = open ? OpenJournalSortingOrder : closedSortingOrder;
+        }
+
+        // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.
+        private Canvas RootCanvas()
+        {
+            if (canvas == null)
+            {
+                Canvas parent = GetComponentInParent<Canvas>(true);
+                if (parent == null)
+                    return null;
+                canvas = parent.rootCanvas;
+                closedSortingOrder = canvas.sortingOrder;
+            }
+
+            return canvas;
         }
 
         private void StartMission() => StartRequested?.Invoke();

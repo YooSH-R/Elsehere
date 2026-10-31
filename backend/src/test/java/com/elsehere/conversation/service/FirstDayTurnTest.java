@@ -120,7 +120,7 @@ class FirstDayTurnTest {
   @Test
   void onlySuccessfulSavedReplyAppliesRecognizedGoals() {
     guards(false);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean()))
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean(), any()))
         .thenReturn(new NpcReply(null, null, null, "timeout", List.of()))
         .thenReturn(SAVED_REPLY);
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
@@ -133,7 +133,7 @@ class FirstDayTurnTest {
   @Test
   void rudeTurnDoesNotApplyRecognizedGoals() {
     guards(true);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean()))
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
@@ -145,7 +145,7 @@ class FirstDayTurnTest {
   void hotelTurnDuringCafeStageSendsOnlyDirectionsToWorkerAndDoesNotAdvance() {
     mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
     guards(false);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean()))
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(
@@ -153,7 +153,16 @@ class FirstDayTurnTest {
 
     ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
     verify(worker)
-        .reply(any(), any(), any(), any(), any(), instruction.capture(), anyInt(), anyBoolean());
+        .reply(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            instruction.capture(),
+            anyInt(),
+            anyBoolean(),
+            any());
     assertThat(instruction.getValue())
         .contains("Corner Cafe", "Stay in your own role")
         .doesNotContain("Offer drinks");

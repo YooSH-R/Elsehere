@@ -94,8 +94,9 @@ public class AiWorkerClient {
       List<WorkerLine> history,
       String text,
       String instruction,
-      int level) {
-    return reply(trace, npc, memory, history, text, instruction, level, true);
+      int level,
+      WorkerLearner learner) {
+    return reply(trace, npc, memory, history, text, instruction, level, true, learner);
   }
 
   /**
@@ -105,6 +106,7 @@ public class AiWorkerClient {
    * @param text 학습자 원문(한국어가 섞여도 그대로)
    * @param instruction 이번 대답에서 할 일. 없으면 빈 문자열
    * @param suggestWords 추천 단어를 만들지. 대화를 끝내는 대답에서는 만들지 않는다
+   * @param learner 대답 상대인 학습자. 캐릭터에 맞는 호칭을 쓰게 한다
    */
   public NpcReply reply(
       WorkerTrace trace,
@@ -114,7 +116,8 @@ public class AiWorkerClient {
       String text,
       String instruction,
       int level,
-      boolean suggestWords) {
+      boolean suggestWords,
+      WorkerLearner learner) {
     ReplyBody body =
         new ReplyBody(
             npc,
@@ -126,7 +129,8 @@ public class AiWorkerClient {
             true,
             level,
             suggestWords,
-            "");
+            "",
+            learner);
     HttpResponse<Stream<String>> response =
         send(
             jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
@@ -441,7 +445,8 @@ public class AiWorkerClient {
       boolean tts,
       int level,
       boolean suggestWords,
-      String goal) {}
+      String goal,
+      WorkerLearner learner) {}
 
   record MeaningBody(WorkerNpc npc, String text, int level) {}
 

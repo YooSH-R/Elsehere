@@ -110,6 +110,23 @@ Reply with a JSON object. "replyText" is exactly what you say out loud. "endSign
 - "NATURAL_WRAP_UP": the business is done and you are warmly closing the conversation in this reply.
 - "NONE": anything else. If you are not sure, use "NONE"."""
 
+# 대답 상대의 호칭. 말투가 정중한 NPC가 성별을 짐작해 여성 캐릭터를 "Mr."로 부르지 않게 캐릭터 기본형을 알려 준다 (S15P31A305-398)
+ADDRESS = {
+    "F": 'Their game character is a woman. If you use a polite title, use "ma\'am" or "Ms.", never "sir" or "Mr.".',
+    "M": 'Their game character is a man. If you use a polite title, use "sir" or "Mr.", never "ma\'am" or "Ms.".',
+    None: 'You do not know if they are a man or a woman. Do not use gendered titles such as "Mr.", "Ms.", "sir" or "ma\'am".',
+}
+
+
+def learner_section(nickname: str | None, avatar_type: str | None) -> str:
+    """대답 상대(학습자)의 호칭. 닉네임은 한글·게스트 이름처럼 영어 이름이 아니면 부르지 않게 한다 (영어 음성으로 읽기 어렵다)."""
+    lines = ["## The other person"]
+    if nickname:
+        lines.append(f'Their name in the game is "{one_line(nickname)}". Say it only if it is a real name written in English letters.')
+    lines.append(ADDRESS[avatar_type])
+    return "\n".join(lines)
+
+
 TURN_INSTRUCTIONS = {
     "NPC_OPENING": "Start the conversation with your first line for this situation.",
     "USER_MESSAGE": "Reply to the other person's last line.",
@@ -141,17 +158,19 @@ def npc_system_prompt(profile: NpcProfile, scenario: dict, user_level: str, turn
     return "\n\n".join(sections)
 
 
-def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str) -> str:
+def reply_system_prompt(profile: NpcProfile, place: str, facts: str, memory: str, level: int, note: str, learner: str = "") -> str:
     """게임 대화 경로(/v1/npc/reply)용. ① 공통 규칙 ② 인격은 추론 API와 같고, ③~⑤는 그 경로가 받는 값으로 채운다.
 
     place·facts는 백엔드의 NPC 장면·사실, memory는 이 학습자에 대한 기억(app.prompts.memory_note), level은 난이도 1~3,
-    note는 백엔드가 정한 이번 대답에서 할 일. 기억은 상황에 넣어 '처음 만난 사이'라는 공통 규칙의 예외가 되게 한다.
+    note는 백엔드가 정한 이번 대답에서 할 일, learner는 대답 상대의 호칭(learner_section). 기억은 상황에 넣어 '처음 만난 사이'라는
+    공통 규칙의 예외가 되게 한다.
     """
     situation = ["## Situation", f"Place: {place}", *labeled([("Facts", one_line(facts))]), *([memory] if memory else [])]
     turn = f"IMPORTANT for your next reply: {note}" if note else TURN_INSTRUCTIONS["USER_MESSAGE"]
     sections = [
         RULES,
         character_section(profile),
+        *([learner] if learner else []),
         "\n".join(situation),
         f"## Learner level\n{REPLY_LEVEL_RULES[level]}\n{LEVEL_FIRST}",
         f"## This turn\n{turn}",

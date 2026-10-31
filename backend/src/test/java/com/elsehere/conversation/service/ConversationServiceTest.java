@@ -21,6 +21,7 @@ import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
@@ -91,7 +92,9 @@ class ConversationServiceTest {
   @Test
   @DisplayName("말걸기 대사가 없는 직원은 NPC가 먼저 말을 건 대화라도 AI가 만든 첫 인사로 시작하고 음성을 저장한다")
   void start_staffWithoutApproachLine_usesAiGreeting() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Hi! What can I get for you?", "audio-1", List.of("latte", "iced")));
     given(aiWorkerClient.audio(any(), eq("audio-1"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
@@ -129,13 +132,15 @@ class ConversationServiceTest {
     assertThat(response.openingTurn().suggestWords()).isNull();
     then(aiWorkerClient)
         .should(never())
-        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt());
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any());
   }
 
   @Test
   @DisplayName("NPC 음성을 받지 못해도 대화는 시작하고 첫 턴의 음성 상태는 FAILED다")
   void start_audioDownloadFails_startsWithoutSpeech() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Hi!", "audio-1", null));
     given(aiWorkerClient.audio(any(), eq("audio-1")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
@@ -152,7 +157,9 @@ class ConversationServiceTest {
   @Test
   @DisplayName("첫 인사를 만들지 못하면 워커 오류 코드로 실패하고 대화를 만들지 않으며 호출 기록을 FAILED로 남긴다")
   void start_greetingFails_throwsWithoutConversation() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(new NpcReply(null, null, null, "provider_limit", List.of(usage("npc"))));
     UUID requestId = UUID.randomUUID();
 
@@ -283,9 +290,28 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("AI 첫인사에 사용자의 닉네임과 캐릭터를 실어 NPC가 캐릭터에 맞는 호칭을 쓰게 한다")
+  void start_aiGreeting_sendsTheLearner() {
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi!", null, null));
+
+    startCafe();
+
+    ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
+    then(aiWorkerClient)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
+    assertThat(learner.getValue()).isEqualTo(new WorkerLearner("Sun", "F"));
+  }
+
+  @Test
   @DisplayName("다시 만난 NPC의 첫 인사에는 이전 대화에서 저장한 기억을 넘긴다")
   void start_afterPreviousConversation_sendsMemory() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Hi!", null, null));
     given(aiWorkerClient.feedback(any(), any()))
         .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
@@ -301,7 +327,7 @@ class ConversationServiceTest {
     ArgumentCaptor<WorkerMemory> memory = ArgumentCaptor.forClass(WorkerMemory.class);
     then(aiWorkerClient)
         .should(atLeastOnce())
-        .reply(any(), any(), memory.capture(), any(), anyString(), anyString(), anyInt());
+        .reply(any(), any(), memory.capture(), any(), anyString(), anyString(), anyInt(), any());
     List<WorkerMemory> sent = memory.getAllValues();
     assertThat(sent.get(0)).isNull();
     WorkerMemory last = sent.get(sent.size() - 1);
@@ -378,7 +404,7 @@ class ConversationServiceTest {
         .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of(usage("guard"))));
     given(
             aiWorkerClient.reply(
-                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean()))
+                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean(), any()))
         .willReturn(reply("Nice!", null, null));
     turnService.send(
         userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, text, null));

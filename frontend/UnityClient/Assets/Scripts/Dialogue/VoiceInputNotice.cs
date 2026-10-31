@@ -7,8 +7,8 @@ namespace A305.Dialogue
     /// </summary>
     public static class VoiceInputNotice
     {
-        /// <summary>마이크가 열리기 전에 버튼에서 손을 떼 받은 소리가 없을 때.</summary>
-        public const string TooShort = "버튼을 누른 채로 말해 주세요. 손을 떼면 녹음이 끝나요.";
+        /// <summary>짧게 눌렀거나 말하지 않아 녹음에 말소리가 없을 때. 전사하지 않는다.</summary>
+        public const string TooShort = "말소리가 들리지 않았어요. 버튼을 꾹 누른 채로 말해 주세요.";
 
         /// <summary>음성 처리에 동의하지 않아 음성 입력을 쓸 수 없을 때(API 명세 CONV-02). 동의를 켜는 실제 메뉴 경로를 알린다.</summary>
         public const string ConsentRequired =

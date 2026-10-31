@@ -83,7 +83,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
 
     async def run_llm():
         sp = Splitter()
-        msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship)
+        msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship, req.learner)
         gen = llm.stream("npc", "npc", msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level])
         stopped, finished = False, False
 

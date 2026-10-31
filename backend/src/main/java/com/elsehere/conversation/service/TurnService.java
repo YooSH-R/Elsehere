@@ -4,6 +4,7 @@ import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerState;
@@ -122,7 +123,8 @@ public class TurnService {
             judge.text(),
             instruction,
             context.level(),
-            !leaving);
+            !leaving,
+            context.learner());
     aiRequestRecorder.record(
         trace,
         AiRequestKind.NPC,
@@ -228,6 +230,7 @@ public class TurnService {
     }
     return new TurnContext(
         support.npcById(conversation.getNpcId()),
+        support.learner(userId),
         support.history(conversationId),
         conversation.getLevelApplied(),
         memoryService.memoryFor(userId, conversation.getNpcId()),
@@ -243,9 +246,15 @@ public class TurnService {
   }
 
   /**
+   * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 이전 대화 기억. 처음 만나면 null
    * @param rudeCount 이 턴 전까지 무례로 센 말 수
    */
   private record TurnContext(
-      NpcContext npc, List<WorkerLine> history, int level, WorkerMemory memory, int rudeCount) {}
+      NpcContext npc,
+      WorkerLearner learner,
+      List<WorkerLine> history,
+      int level,
+      WorkerMemory memory,
+      int rudeCount) {}
 }

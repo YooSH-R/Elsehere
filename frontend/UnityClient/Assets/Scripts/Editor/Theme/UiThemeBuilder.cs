@@ -668,6 +668,8 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "SignupPanel/AvatarRow/MaleButton", "남성");
             Role(root, "SignupPanel/ConsentsLabel", UiThemeRole.Caption);
             ConsentRow(root, "SignupPanel/Consents/ConsentRowTemplate");
+            if (root.Find("SignupPanel/VoiceConsentNote") != null)
+                Role(root, "SignupPanel/VoiceConsentNote", UiThemeRole.Muted);
             ActionPill(root, "SignupPanel/SubmitButton", UiIcon.Check, UiTone.Primary, 280);
 
             foreach (string cards in new[] { "LanguagePanel/Cards", "LevelSettingPanel/Cards" })

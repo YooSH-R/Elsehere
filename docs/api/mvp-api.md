@@ -86,7 +86,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
 | `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
-| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 마이페이지에서 동의를 켭니다. |
+| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 동의를 켭니다. |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
 | `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |

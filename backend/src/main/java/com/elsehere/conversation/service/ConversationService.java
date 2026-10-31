@@ -2,6 +2,7 @@ package com.elsehere.conversation.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
@@ -185,6 +186,7 @@ public class ConversationService {
     }
     return new StartContext(
         npc,
+        support.learner(user),
         selectedLevel(user),
         memoryService.memoryFor(userId, npc.npcId()),
         firstDayMissionService.context(userId, npcCode));
@@ -218,7 +220,8 @@ public class ConversationService {
                         value.instruction()
                             + " Greet the learner with one short sentence for this situation; do not assume their task is complete.")
                 .orElse(GREETING_INSTRUCTION),
-            context.level());
+            context.level(),
+            context.learner());
     aiRequestRecorder.record(
         trace,
         AiRequestKind.NPC,
@@ -232,10 +235,12 @@ public class ConversationService {
   }
 
   /**
+   * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 기억. 처음 만나면 null
    */
   private record StartContext(
       NpcContext npc,
+      WorkerLearner learner,
       int level,
       WorkerMemory memory,
       Optional<FirstDayMissionService.Context> mission) {}

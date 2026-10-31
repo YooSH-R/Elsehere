@@ -108,6 +108,13 @@ class Relationship(BaseModel):
     days_since_last_talk: int = Field(default=0, ge=0)
 
 
+class Learner(BaseModel):
+    """대답 상대인 학습자. 캐릭터 기본형(F·M)과 닉네임이며, NPC가 부르는 호칭을 정할 때만 쓴다."""
+
+    nickname: str | None = Field(default=None, max_length=32)
+    avatar_type: Literal["F", "M"] | None = None
+
+
 class ReplyRequest(BaseModel):
     npc: Npc
     memory: Memory | None = None
@@ -119,6 +126,7 @@ class ReplyRequest(BaseModel):
     level: Level = 2
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
     goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일
+    learner: Learner | None = None  # 있으면 캐릭터에 맞는 호칭만, 없으면 성별을 짐작한 호칭(Mr.·Ms.·sir·ma'am)을 쓰지 않는다
 
 
 class TtsRequest(BaseModel):

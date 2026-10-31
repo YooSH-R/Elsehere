@@ -6,8 +6,8 @@ import re
 
 from . import npc_relationship
 from .llm import ModelOutputError
-from .npc_prompt import reply_system_prompt
-from .schemas import Line, Memory, Npc, Relationship, State
+from .npc_prompt import learner_section, reply_system_prompt
+from .schemas import Learner, Line, Memory, Npc, Relationship, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
 HANGUL = re.compile(r"[가-힣ㄱ-ㅎ]")
@@ -261,7 +261,7 @@ def npc_speed(n: Npc, level: int) -> float:
     return round(n.tts_speed * LEVEL_SPEED[level], 2)
 
 
-def npc_system(n: Npc, memory: str, note: str, level: int = 2) -> str:
+def npc_system(n: Npc, memory: str, note: str, level: int = 2, learner: str = "") -> str:
     return f"""You are {n.name}, {n.role}
 Place: {TOWN} {n.scene}
 What you know: {n.facts}{chr(10) + memory if memory else ""}
@@ -269,7 +269,7 @@ Level for this conversation: {LEVEL_RULES[level]}
 
 You are talking with a Korean person practicing English. Their words come from speech recognition and may be broken English, Korean, or a mix.
 Understand Korean too (including slang and insults), but always reply in English.
-
+{chr(10) + learner + chr(10) if learner else ""}
 How to reply:
 - Answer what they just said, like a real person here.
 - If their English has mistakes or Korean words, understand the meaning and naturally use the correct English words in your reply. Never explain grammar.
@@ -289,6 +289,7 @@ def npc_messages(
     instruction: str,
     level: int = 2,
     relationship: Relationship | None = None,
+    learner: Learner | None = None,
 ) -> list[dict]:
     if relationship is None:  # 백엔드가 관계를 아직 보내지 않으면 지금처럼 지난 대화 수와 기억 카드
         note = memory_note(memory)
@@ -296,10 +297,11 @@ def npc_messages(
         learner_turns = [(h.rude, h.events) for h in history if h.who == "me"]
         state = npc_relationship.person_state(relationship.model_dump(), learner_turns, n.profile, *npc_relationship.service_rules())
         note = person_note(memory, state)
+    address = learner_section(learner.nickname, learner.avatar_type) if learner else learner_section(None, None)
     if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
-        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction)
+        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction, address)
     else:
-        system = npc_system(n, note, instruction, level)
+        system = npc_system(n, note, instruction, level, address)
     msgs = [{"role": "system", "content": system}]
     for h in history[-12:]:
         msgs.append({"role": "assistant" if h.who == "npc" else "user", "content": h.text})

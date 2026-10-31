@@ -162,9 +162,7 @@ namespace A305.Mission
                 view.Refresh(state, busy, dialogue.IsTalking);
             if (cafeSeats == null)
                 return;
-            bool canSit = state != null && state.CanSitInCafe(
-                sceneCode, busy, dialogue.IsTalking
-            );
+            bool canSit = state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking);
             foreach (CafeChairSeat seat in cafeSeats)
             {
                 if (seat != null)

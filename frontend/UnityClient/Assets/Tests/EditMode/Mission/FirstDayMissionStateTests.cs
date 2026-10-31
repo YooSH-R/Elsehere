@@ -68,8 +68,14 @@ namespace A305.Mission.Tests
         [TestCase("CAFE", true, 1, true, false, true, false)]
         [TestCase("CAFE", false, 1, true, false, false, false)]
         public void CanSitInCafe_OnlyAfterOrderAndBeforeRest(
-            string scene, bool started, int stage, bool canRest,
-            bool busy, bool talking, bool expected)
+            string scene,
+            bool started,
+            int stage,
+            bool canRest,
+            bool busy,
+            bool talking,
+            bool expected
+        )
         {
             var state = new FirstDayMissionState
             {

@@ -50,8 +50,15 @@ namespace A305.Player
             lower[1] = animator.GetBoneTransform(HumanBodyBones.RightLowerLeg);
             feet[0] = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
             feet[1] = animator.GetBoneTransform(HumanBodyBones.RightFoot);
-            if (hips == null || upper[0] == null || upper[1] == null || lower[0] == null
-                || lower[1] == null || feet[0] == null || feet[1] == null)
+            if (
+                hips == null
+                || upper[0] == null
+                || upper[1] == null
+                || lower[0] == null
+                || lower[1] == null
+                || feet[0] == null
+                || feet[1] == null
+            )
                 return false;
 
             standingPosition = new Vector3(exitPosition.x, transform.position.y, exitPosition.z);
@@ -63,10 +70,12 @@ namespace A305.Player
             for (int i = 0; i < poseCorrections.Length; i++)
             {
                 Behaviour correction = poseCorrections[i];
-                if (correction is LittleMungGroundContact
+                if (
+                    correction is LittleMungGroundContact
                     || correction is LittleMungTerrainContact
                     || correction is LittleMungStairLocomotion
-                    || correction is LittleMungArmClearance)
+                    || correction is LittleMungArmClearance
+                )
                 {
                     correctionStates[i] = correction.enabled;
                     correction.enabled = false;
@@ -97,11 +106,8 @@ namespace A305.Player
             for (int side = 0; side < 2; side++)
             {
                 float offset = side == 0 ? -.13f : .13f;
-                Vector3 footTarget = seat.TransformPoint(
-                    new Vector3(offset, .06f, .38f)
-                );
-                TwoBonePose.Reach(upper[side], lower[side], feet[side], footTarget,
-                    seat.forward);
+                Vector3 footTarget = seat.TransformPoint(new Vector3(offset, .06f, .38f));
+                TwoBonePose.Reach(upper[side], lower[side], feet[side], footTarget, seat.forward);
             }
         }
 

@@ -6,7 +6,7 @@ using UnityEngine;
 namespace A305.Onboarding.Tests
 {
     /// <summary>
-    /// 가입 화면이 선택 동의 바로 아래에서, 음성 처리에 동의해야 [누르고 말하기]를 쓸 수 있고 나중에 어디서 바꾸는지 알려 주는지 확인한다.
+    /// 가입 화면이 선택 동의 바로 아래에서, 음성 처리에 동의해야 [꾹 눌러 말하기]를 쓸 수 있고 나중에 어디서 바꾸는지 알려 주는지 확인한다.
     /// </summary>
     public class SignupVoiceConsentNoteTests
     {
@@ -27,7 +27,7 @@ namespace A305.Onboarding.Tests
             );
             Assert.That(
                 note.GetComponent<TMP_Text>().text,
-                Does.Contain("[누르고 말하기]").And.Contain("내 정보")
+                Does.Contain("[꾹 눌러 말하기]").And.Contain("내 정보")
             );
         }
     }

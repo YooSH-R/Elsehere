@@ -21,7 +21,7 @@
 | `ThemePickerFlow`, `UiThemeApi` | 고른 테마를 바로 적용하고 계정에 저장합니다. 저장하지 못하면 되돌립니다. Unity 객체 없이 테스트합니다. |
 | `UiThemeDefinition`, `UiThemeCatalog` | 테마 하나의 제목 글꼴·글자색·창과 버튼 그림·버튼 쓰임별 색, 그리고 테마 목록. |
 | `UiIconSet`, `UiIcon` | 버튼 아이콘 그림 묶음. 스티커 팝만 남색 테두리를 더한 묶음을 씁니다. |
-| `ThemedElement` | 화면 요소 하나를 역할(창·카드·아이콘 버튼·알약 버튼·메뉴 줄·배지·입력칸·제목·본문 등)에 맞게 칠하고 테마가 바뀌면 다시 칠합니다. `SetSelected`로 고른 카드·목록 줄을 테마의 강조색 쪽으로 칠합니다(EditMode `ThemedElementTests`). |
+| `ThemedElement` | 화면 요소 하나를 역할(창·카드·아이콘 버튼·알약 버튼·메뉴 줄·배지·입력칸·제목·본문 등)에 맞게 칠하고 테마가 바뀌면 다시 칠합니다. `SetSelected`로 고른 카드·목록 줄을 테마의 강조색 쪽으로 칠하고, 대화창 조작 버튼은 강조색으로 칠해 다음에 누를 곳을 보입니다(예: 보낼 문장이 있는 [보내기]). (EditMode `ThemedElementTests`) |
 | `ThemedTownMap`, `TownMapColors` | 실제 마을 배치를 바탕으로 그린 퀘스트 지도의 길·장소 카드·나무 아이콘과 목적지 표시를 선택한 테마에 맞춥니다. |
 | `ThemePickerView` | 테마 고르기 창. 집 씬에서는 HUD 메뉴의 [테마]로 엽니다. 각 카드는 그 테마로만 칠한 미리보기를 보여 줍니다. |
 

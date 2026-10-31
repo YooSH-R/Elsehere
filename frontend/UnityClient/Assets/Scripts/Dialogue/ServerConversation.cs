@@ -31,7 +31,7 @@ namespace A305.Dialogue
         private const string QuotaGuide = "[대화 종료]를 누르면 마을 탐험으로 돌아가요.";
         private const string QuotaEndedGuide = "마을 탐험, 사물 카드, 단어장은 계속 쓸 수 있어요.";
         private const string SpeakAgainGuide =
-            "[누르고 말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
+            "[꾹 눌러 말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
 
         private readonly IConversationApi api;
         private readonly ConversationInitiator initiatedBy;
@@ -52,7 +52,7 @@ namespace A305.Dialogue
         private string lastTranscript;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
-        /// <param name="canTalk">음성 처리에 동의해 [누르고 말하기]를 쓸 수 있는지</param>
+        /// <param name="canTalk">음성 처리에 동의해 [꾹 눌러 말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         public ServerConversation(
             string npcCode,
@@ -223,7 +223,7 @@ namespace A305.Dialogue
             return retry();
         }
 
-        /// <summary>[누르고 말하기]를 누르는 동안 녹음 중임을 알린다.</summary>
+        /// <summary>[꾹 눌러 말하기]를 누르는 동안 녹음 중임을 알린다.</summary>
         public void ShowListening(float maxSeconds)
         {
             StatusMessage = VoiceInputNotice.Listening(maxSeconds);

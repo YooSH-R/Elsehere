@@ -74,7 +74,12 @@ namespace A305.Theme
                     );
                     break;
                 case UiThemeRole.Control:
-                    Paint(GetComponent<Image>(), theme.CardSprite, theme.ToneColor(UiTone.Neutral));
+                    // 고른 조작은 다음에 누를 곳이라 강조색으로 칠한다(예: 보낼 문장이 있는 [보내기]).
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.CardSprite,
+                        theme.ToneColor(selection ? UiTone.Primary : UiTone.Neutral)
+                    );
                     break;
                 case UiThemeRole.Input:
                     Paint(GetComponent<Image>(), theme.InputSprite, Color.white);

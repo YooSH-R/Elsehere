@@ -8,6 +8,16 @@ namespace A305.Player
     [RequireComponent(typeof(PlayerMover))]
     public sealed class PlayerSeatPose : MonoBehaviour
     {
+        // 카페 의자 기준(의자 원점에서 잰 값). 의자 충돌 메시로 잰 쿠션 윗면 높이와 앞 모서리까지의 거리다.
+        private const float CushionTop = .33f;
+        private const float FrontEdge = .30f;
+
+        // 허벅지 두께의 절반. 다리 시작점을 쿠션보다 이만큼 올려 허벅지가 쿠션에 묻히지 않게 한다.
+        private const float ThighRadius = .06f;
+
+        // 무릎을 앞 모서리보다 이만큼 앞에 두어 내려뜨린 정강이가 의자 앞면에 묻히지 않게 한다.
+        private const float KneeOverhang = .05f;
+
         private PlayerMover mover;
         private CharacterController controller;
         private Transform visual;
@@ -99,15 +109,27 @@ namespace A305.Player
             if (seat == null)
                 return;
 
-            // Animator가 매 프레임 기본 자세를 갱신한 뒤 골반을 쿠션 위로 옮긴다.
+            // Animator가 매 프레임 기본 자세를 갱신한 뒤 몸을 옮긴다. 리틀멍은 다리가 짧아 의자 가운데에 앉히면 다리가 쿠션에 묻히므로,
+            // 아이처럼 의자 앞쪽에 앉혀 허벅지는 쿠션 위에 앞으로 눕히고 무릎 아래는 앞 모서리 밖으로 내려뜨린다.
             visual.localPosition = originalVisualPosition;
-            Vector3 cushion = seat.TransformPoint(new Vector3(0f, .46f, 0f));
-            visual.position += cushion - hips.position;
+            float thigh = Vector3.Distance(upper[0].position, lower[0].position);
+            Vector3 legRoot = (upper[0].position + upper[1].position) * .5f;
+            Vector3 seatedLegRoot = seat.TransformPoint(
+                new Vector3(0f, CushionTop + ThighRadius, FrontEdge + KneeOverhang - thigh)
+            );
+            visual.position += seatedLegRoot - legRoot;
             for (int side = 0; side < 2; side++)
             {
-                float offset = side == 0 ? -.13f : .13f;
-                Vector3 footTarget = seat.TransformPoint(new Vector3(offset, .06f, .38f));
-                TwoBonePose.Reach(upper[side], lower[side], feet[side], footTarget, seat.forward);
+                float shin = Vector3.Distance(lower[side].position, feet[side].position);
+                Vector3 knee = upper[side].position + seat.forward * thigh;
+                Vector3 footTarget = knee - seat.up * shin + seat.forward * .01f;
+                TwoBonePose.Reach(
+                    upper[side],
+                    lower[side],
+                    feet[side],
+                    footTarget,
+                    seat.forward + seat.up
+                );
             }
         }
 

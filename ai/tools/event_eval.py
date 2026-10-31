@@ -64,8 +64,10 @@ MISSION_SUFFIX = (
 )
 STAGES = {
     "EARLY_ARRIVAL": (
-        "It is too early to check in. You can confirm the reservation, store the large suitcase and give directions to Corner Cafe. "
-        "The learner keeps a small blue shoulder bag.",
+        "It is too early to check in: the room is not ready yet. Do not check the learner in, give a room number or room key, "
+        "or ask for ID, a credit card or payment. If they ask to check in, tell them early check-in is not possible today. "
+        "You can confirm the reservation by name, store the large suitcase until the room is ready and give directions to "
+        "Corner Cafe, where they can wait. The learner keeps a small blue shoulder bag.",
         {
             "confirm_reservation": "Confirm or identify an existing hotel reservation.",
             "store_suitcase": "Ask to store the large suitcase until check-in.",

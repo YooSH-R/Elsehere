@@ -83,15 +83,17 @@ namespace A305.Mission
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
         {
             situation.text = state.Situation;
-            direction.text = state.Direction;
+            direction.text = state.CanRest ? "가까운 의자에 앉아 잠깐 쉬어 가세요." : state.Direction;
             FirstDayMissionStep current = state.Steps.FirstOrDefault(step =>
                 step.Status == "CURRENT"
             );
-            journalGoal.text = current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
+            journalGoal.text = state.CanRest
+                ? "의자에 앉아 잠깐 쉬기"
+                : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
             townMap.ShowDestination(state.Destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
-            restButton.gameObject.SetActive(state.CanRest);
+            restButton.gameObject.SetActive(false);
             restButton.interactable = !busy && !talking;
             var lines = new StringBuilder();
             foreach (FirstDayMissionStep step in state.Steps)

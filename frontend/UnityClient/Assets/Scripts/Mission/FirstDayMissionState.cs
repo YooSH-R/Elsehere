@@ -23,6 +23,10 @@ namespace A305.Mission
         public string Destination =>
             Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.Scene : null;
 
+        public bool CanSitInCafe(string sceneCode, bool busy, bool talking) =>
+            sceneCode == "CAFE" && Started && !Completed && Stage == 1
+            && CanRest && !busy && !talking;
+
         /// <summary>
         /// Weather를 보내기 전의 서버이거나 Unity에 없는 날씨일 때 대신 보여 줄 날씨. Raining으로 비와 맑음만 나눈다.
         /// </summary>

@@ -18,9 +18,17 @@ namespace A305.Mission
 
         private readonly CafeSeatTimer timer = new CafeSeatTimer(RestSeconds);
         private PlayerSeatPose pose;
+        private bool available;
         private bool resting;
 
         public event Action RestCompleted;
+
+        public void SetAvailable(bool value)
+        {
+            available = value;
+            if (!available)
+                offerView?.HideTalkPrompt(this);
+        }
 
         private void Awake()
         {
@@ -50,6 +58,12 @@ namespace A305.Mission
                 return;
             }
 
+            if (!available)
+            {
+                offerView.HideTalkPrompt(this);
+                return;
+            }
+
             bool nearby = Vector3.Distance(player.transform.position, transform.position)
                 <= InteractionDistanceMeters;
             bool anotherPrompt = offerView.IsTalkPromptShowing
@@ -64,6 +78,8 @@ namespace A305.Mission
         private void Sit()
         {
             offerView.HideTalkPrompt(this);
+            if (!available)
+                return;
             // 원형 테이블의 왼쪽 통로로 일어나면 의자와 외벽에 끼지 않는다.
             Vector3 exit = transform.position + new Vector3(-1f, 0f, .4f);
             if (!pose.Sit(transform, exit, 90f))

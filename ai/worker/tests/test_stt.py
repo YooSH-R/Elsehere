@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings, profile_models
 from app.main import create_app
-from app.stt import is_prompt_echo, stt_prompt
+from app.stt import is_prompt_echo
 from conftest import TOKEN
 
 WHISPER_OK = {"text": "Muffin.", "duration": 0.6}
@@ -14,14 +14,41 @@ AUDIO = {"file": ("a.webm", b"x" * 100, "audio/webm")}
 
 
 def test_stt_filters_prompt_echo_and_sends_scene_words(client, provider):
-    provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "Can I get a muffin, 음, 하나?", "duration": 2.0})
+    provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "Pain reliever, cough syrup.", "duration": 2.0})
     r = client.post(
         "/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}, data={"scene_words": '["pain reliever", "cough syrup"]'}
     ).json()
-    assert r["text"] == "" and r["audio_s"] == 2.0  # 무음에 프롬프트를 되풀이한 것
+    assert r["text"] == "" and r["audio_s"] == 2.0  # 무음에 프롬프트 끝(장면 단어 목록)을 되풀이한 것
     assert b"pain reliever, cough syrup" in provider.last_stt  # 장면 단어 보정
     provider.answers["stt"] = lambda b: httpx.Response(200, json={"text": "Muffin.", "duration": 0.6})
     assert client.post("/v1/stt", files={"file": ("a.webm", b"x" * 100, "audio/webm")}).json()["text"] == "Muffin."
+
+
+def test_stt_prompt_writes_menu_example_in_english(client, provider):
+    # 한글 예시 '아이스 라떼'는 한국식 발음 외래어('Iced americano')까지 '아이스트 아메라카노'처럼 한글로 끌어당겼다 (dev 재현).
+    # 한국어 발화가 번역되지 않고 한글로 남도록 한국어 군말('음, 하나?')은 그대로 둔다
+    provider.answers["stt"] = lambda b: httpx.Response(200, json=WHISPER_OK)
+    client.post("/v1/stt", files=AUDIO)
+    prompt = provider.last_stt.decode()
+    assert "an iced latte" in prompt and "아이스 라떼" not in prompt
+    assert "음, 하나?" in prompt
+
+
+@pytest.mark.parametrize(
+    ("text", "echo"),
+    [
+        ("The bus stop is over there.", True),  # Whisper가 무음에 되풀이하는 프롬프트 마지막 문장
+        ("I want... an iced latte... Can I get a muffin, 음, 하나? The bus stop is over there.", True),
+        ("Iced Americano, latte.", True),  # 장면 단어 목록
+        ("Iced Americano.", False),  # 장면 단어 하나는 진짜 주문
+        ("Can I get a muffin?", False),  # 프롬프트 앞·중간의 예시 문장은 학습자가 실제로 하는 말
+        ("I want an iced latte.", False),
+        ("Latte.", False),
+        ("I want a latte and a muffin", False),
+    ],
+)
+def test_prompt_echo_is_only_the_prompt_ending(text, echo):
+    assert is_prompt_echo(text, ["Iced Americano", "latte"]) is echo
 
 
 def test_stt_rejects_big_or_empty_audio(client):
@@ -257,9 +284,3 @@ def test_stt_last_provider_is_never_skipped():
         for _ in range(2):
             r = c.post("/v1/stt", files=AUDIO)
     assert r.status_code == 503 and [h for h, _ in seen][-1] == "groq.test" and [h for h, _ in seen][3:] == ["groq.test"]
-
-
-def test_prompt_echo_rule():
-    p = stt_prompt(["latte"])
-    assert is_prompt_echo("The bus stop is over there.", p)
-    assert not is_prompt_echo("Latte.", p) and not is_prompt_echo("I want a latte and a muffin", p)

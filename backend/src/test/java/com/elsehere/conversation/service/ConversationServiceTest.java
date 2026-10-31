@@ -6,7 +6,6 @@ import static com.elsehere.conversation.DialogueTestData.usage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -92,7 +91,7 @@ class ConversationServiceTest {
   @DisplayName("말걸기 대사가 없는 직원은 NPC가 먼저 말을 건 대화라도 AI가 만든 첫 인사로 시작하고 음성을 저장한다")
   void start_staffWithoutApproachLine_usesAiGreeting() {
     given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
-        .willReturn(reply("Hi! What can I get for you?", "audio-1", List.of("latte", "iced")));
+        .willReturn(reply("Hi! What can I get for you?", "audio-1"));
     given(aiWorkerClient.audio(any(), eq("audio-1"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
@@ -106,7 +105,7 @@ class ConversationServiceTest {
     assertThat(response.npc().name()).isEqualTo("Mia");
     assertThat(response.openingTurn().seq()).isEqualTo(1);
     assertThat(response.openingTurn().text()).isEqualTo("Hi! What can I get for you?");
-    assertThat(response.openingTurn().suggestWords()).containsExactly("latte", "iced");
+    assertThat(response.openingTurn().suggestWords()).isNull();
     assertThat(response.openingTurn().speech().status()).isEqualTo(SpeechStatus.READY);
     assertThat(speechService.npcSpeech(userId, response.openingTurn().turnId())).isEqualTo(WAV);
     assertThat(
@@ -136,7 +135,7 @@ class ConversationServiceTest {
   @DisplayName("NPC 음성을 받지 못해도 대화는 시작하고 첫 턴의 음성 상태는 FAILED다")
   void start_audioDownloadFails_startsWithoutSpeech() {
     given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
-        .willReturn(reply("Hi!", "audio-1", null));
+        .willReturn(reply("Hi!", "audio-1"));
     given(aiWorkerClient.audio(any(), eq("audio-1")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
@@ -153,7 +152,7 @@ class ConversationServiceTest {
   @DisplayName("첫 인사를 만들지 못하면 워커 오류 코드로 실패하고 대화를 만들지 않으며 호출 기록을 FAILED로 남긴다")
   void start_greetingFails_throwsWithoutConversation() {
     given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
-        .willReturn(new NpcReply(null, null, null, "provider_limit", List.of(usage("npc"))));
+        .willReturn(new NpcReply(null, null, "provider_limit", List.of(usage("npc"))));
     UUID requestId = UUID.randomUUID();
 
     assertThatThrownBy(
@@ -286,7 +285,7 @@ class ConversationServiceTest {
   @DisplayName("다시 만난 NPC의 첫 인사에는 이전 대화에서 저장한 기억을 넘긴다")
   void start_afterPreviousConversation_sendsMemory() {
     given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
-        .willReturn(reply("Hi!", null, null));
+        .willReturn(reply("Hi!", null));
     given(aiWorkerClient.feedback(any(), any()))
         .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
     given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
@@ -376,10 +375,8 @@ class ConversationServiceTest {
         .willReturn(new JudgeResult(text, false, null, null, List.of(usage("judge"))));
     given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
         .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of(usage("guard"))));
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean()))
-        .willReturn(reply("Nice!", null, null));
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt()))
+        .willReturn(reply("Nice!", null));
     turnService.send(
         userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, text, null));
   }

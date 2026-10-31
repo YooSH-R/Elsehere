@@ -35,7 +35,7 @@ public final class DialogueTestData {
 
   public static Turn npcTurn(
       EntityManager entityManager, Conversation conversation, int seq, String text) {
-    Turn turn = Turn.npc(conversation, seq, text, null, null, null);
+    Turn turn = Turn.npc(conversation, seq, text, null, null);
     entityManager.persist(turn);
     return turn;
   }
@@ -81,8 +81,8 @@ public final class DialogueTestData {
   }
 
   /** 대답이 끝난 NPC 스트림. 음성 ID가 없으면 음성을 받지 않는다. */
-  public static NpcReply reply(String text, String audioFullId, List<String> suggestWords) {
-    return new NpcReply(text, audioFullId, suggestWords, null, List.of(usage("npc")));
+  public static NpcReply reply(String text, String audioFullId) {
+    return new NpcReply(text, audioFullId, null, List.of(usage("npc")));
   }
 
   public static WorkerUsage usage(String step) {

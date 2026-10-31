@@ -3,6 +3,7 @@ package com.elsehere.conversation.service;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
@@ -14,6 +15,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.dto.HintResponse;
 import com.elsehere.conversation.dto.MeaningResponse;
+import com.elsehere.conversation.dto.SuggestWordsResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
@@ -28,7 +30,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * NPC 대사 뜻 보기(CONV-04)와 힌트(CONV-05). 한 번 만든 결과는 턴에 저장해 두고 다시 요청하면 AI를 부르지 않는다.
+ * NPC 대사 뜻 보기(CONV-04), 힌트(CONV-05), 추천 단어(CONV-12). 한 번 만든 결과는 턴에 저장해 두고 다시 요청하면 AI를 부르지 않는다.
  *
  * <p>AI를 기다리는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눈다.
  */
@@ -99,6 +101,34 @@ public class TurnHelpService {
     return new HintResponse(turnId, hintText);
   }
 
+  /** 추천 단어는 대답 응답(CONV-01·03)을 기다리게 하지 않도록 NPC 대사를 받은 뒤 따로 만든다. */
+  public SuggestWordsResponse suggestWords(Long userId, Long turnId, UUID requestId) {
+    HintTarget target = transactionTemplate.execute(status -> hintTarget(userId, turnId));
+    if (target.suggestWords() != null) {
+      return new SuggestWordsResponse(turnId, support.readWords(target.suggestWords()));
+    }
+
+    WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
+    SuggestResult result =
+        aiWorkerClient.suggest(trace, target.npc(), target.history(), "", target.level());
+    List<String> words = result.words();
+    boolean usable = words != null && !words.isEmpty();
+    // 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 힌트 호출로 기록한다. 사용량의 step은 suggest로 남는다.
+    aiRequestRecorder.record(
+        trace,
+        AiRequestKind.HINT,
+        result.usage(),
+        usable ? AiRequestStatus.OK : AiRequestStatus.FAILED);
+    if (!usable) {
+      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
+    }
+    String wordsJson = support.writeWords(words);
+    transactionTemplate.executeWithoutResult(
+        status ->
+            turnRepository.findById(turnId).ifPresent(turn -> turn.attachSuggestWords(wordsJson)));
+    return new SuggestWordsResponse(turnId, words);
+  }
+
   private NpcLine npcLine(Long userId, Long turnId) {
     Turn turn = support.ownedNpcTurn(userId, turnId);
     Conversation conversation = turn.getConversation();
@@ -116,6 +146,7 @@ public class TurnHelpService {
     Conversation conversation = turn.getConversation();
     return new HintTarget(
         turn.getHintText(),
+        turn.getSuggestWords(),
         conversation.getId(),
         conversation.getLevelApplied(),
         support.npcById(conversation.getNpcId()).workerNpc(),
@@ -132,10 +163,16 @@ public class TurnHelpService {
       WorkerNpc npc) {}
 
   /**
-   * 힌트를 만들 때 쓸 NPC 턴 정보.
+   * 힌트·추천 단어를 만들 때 쓸 NPC 턴 정보.
    *
+   * @param suggestWords 저장해 둔 추천 단어 JSON 배열. 아직 만들지 않았으면 null
    * @param history 이 NPC 대사까지의 앞선 대화
    */
   private record HintTarget(
-      String hintText, Long conversationId, int level, WorkerNpc npc, List<WorkerLine> history) {}
+      String hintText,
+      String suggestWords,
+      Long conversationId,
+      int level,
+      WorkerNpc npc,
+      List<WorkerLine> history) {}
 }

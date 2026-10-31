@@ -205,7 +205,7 @@ class ConversationSupport {
     return english == null ? null : new TranslationResponse(english);
   }
 
-  private List<String> readWords(String json) {
+  List<String> readWords(String json) {
     return json == null ? null : jsonMapper.readValue(json, STRING_LIST);
   }
 

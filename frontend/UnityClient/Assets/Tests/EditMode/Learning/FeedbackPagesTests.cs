@@ -69,6 +69,8 @@ namespace A305.Learning.Tests
 
             Assert.That(pages.Count, Is.EqualTo(2));
             Assert.That(pages[0].Title, Is.EqualTo("이 상황에서 자주 써요"));
+            // 대화 노트는 페이지 제목을 따로 보여 주지 않으므로 다른 회화 카드와 구분되게 본문 첫 줄에 쓴다.
+            Assert.That(pages[0].Body, Does.StartWith("<b>이 상황에서 자주 써요</b>"));
             Assert.That(
                 pages[0].Body,
                 Does.Contain("Can I get that to go?")

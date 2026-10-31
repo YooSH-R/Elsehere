@@ -76,7 +76,8 @@ namespace A305.Learning
                         pages.Add(
                             new FeedbackPage(
                                 "이 상황에서 자주 써요",
-                                $"<b>{situation.Expression}</b>\n{situation.MeaningKo}\n\n{situation.UsageKo}\n\n<b>예문</b>\n{situation.ExampleEn}\n{situation.ExampleKo}",
+                                // 대화 노트는 페이지 제목을 따로 보여 주지 않아 다른 회화 카드처럼 본문 첫 줄에 이름을 둔다.
+                                $"<b>이 상황에서 자주 써요</b>\n\n<b>{situation.Expression}</b>\n{situation.MeaningKo}\n{situation.UsageKo}\n\n<b>예문</b>\n{situation.ExampleEn}\n{situation.ExampleKo}",
                                 new ReferenceExpression(
                                     situation.Expression,
                                     situation.MeaningKo,

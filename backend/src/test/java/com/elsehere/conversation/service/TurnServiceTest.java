@@ -17,6 +17,7 @@ import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
@@ -80,12 +81,39 @@ class TurnServiceTest {
   }
 
   @Test
+  @DisplayName("NPC 대답에 대화하는 사용자의 닉네임과 캐릭터를 실어 NPC가 캐릭터에 맞는 호칭을 쓰게 한다")
+  void send_passesTheLearnerToTheNpcReply() {
+    judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), anyBoolean(), any()))
+        .willReturn(reply("Great day for a walk!", "audio-2", List.of()));
+    given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
+
+    turnService.send(
+        userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "네 맑아요", null));
+
+    then(aiWorkerClient)
+        .should()
+        .reply(
+            any(),
+            any(),
+            any(),
+            any(),
+            eq("네 맑아요"),
+            anyString(),
+            anyInt(),
+            anyBoolean(),
+            eq(new WorkerLearner("Sun", "F")));
+  }
+
+  @Test
   @DisplayName("판정한 문장·번역·무례 판정값으로 사용자 턴을, NPC 대답과 음성으로 NPC 턴을 이어서 저장하고 호출 기록을 남긴다")
   void send_savesUserAndNpcTurns() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
     given(
             aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), anyBoolean()))
+                any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), anyBoolean(), any()))
         .willReturn(reply("Great day for a walk!", "audio-2", List.of("walk", "park")));
     given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
@@ -122,7 +150,15 @@ class TurnServiceTest {
     guards("닥쳐 멍청아", true, null);
     given(
             aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt(), anyBoolean()))
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("닥쳐 멍청아"),
+                anyString(),
+                anyInt(),
+                anyBoolean(),
+                any()))
         .willReturn(reply("That's not okay to say.", null, List.of("sorry")));
 
     TurnResponse response = send("닥쳐 멍청아");
@@ -141,7 +177,8 @@ class TurnServiceTest {
             eq("닥쳐 멍청아"),
             eq(TurnService.RUDE_WARNING),
             anyInt(),
-            eq(true));
+            eq(true),
+            any());
     TurnDetailResponse saved = conversationService.detail(userId, conversationId).turns().get(1);
     assertThat(saved.rude()).isTrue();
     assertThat(saved.translation()).isNull();
@@ -156,7 +193,7 @@ class TurnServiceTest {
       guards(text, true, null);
       given(
               aiWorkerClient.reply(
-                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean()))
+                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean(), any()))
           .willReturn(reply("Stop it.", null, null));
     }
 
@@ -177,7 +214,8 @@ class TurnServiceTest {
             eq("you idiot 3"),
             eq(TurnService.RUDE_LEAVE),
             anyInt(),
-            eq(false));
+            eq(false),
+            any());
     assertThat(conversationService.detail(userId, conversationId).endedAt()).isNotNull();
   }
 
@@ -222,7 +260,15 @@ class TurnServiceTest {
     guards("you idiot", true, null);
     given(
             aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("you idiot"), anyString(), anyInt(), anyBoolean()))
+                any(),
+                any(),
+                any(),
+                any(),
+                eq("you idiot"),
+                anyString(),
+                anyInt(),
+                anyBoolean(),
+                any()))
         .willReturn(reply("Not okay.", null, null));
     send("you idiot");
     judges("Sorry", "Sorry", null);
@@ -292,7 +338,15 @@ class TurnServiceTest {
     then(aiWorkerClient)
         .should()
         .reply(
-            any(), any(), any(), history.capture(), eq("Bye"), anyString(), anyInt(), anyBoolean());
+            any(),
+            any(),
+            any(),
+            history.capture(),
+            eq("Bye"),
+            anyString(),
+            anyInt(),
+            anyBoolean(),
+            any());
     assertThat(history.getValue())
         .containsExactly(
             WorkerLine.npc(OPENING),
@@ -360,7 +414,7 @@ class TurnServiceTest {
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
     then(aiWorkerClient)
         .should(never())
-        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), anyBoolean());
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), anyBoolean(), any());
   }
 
   @Test
@@ -410,7 +464,7 @@ class TurnServiceTest {
     judges("Yes", "Yes", null);
     given(
             aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), anyBoolean()))
+                any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), anyBoolean(), any()))
         .willAnswer(
             invocation -> {
               entityManager
@@ -551,7 +605,7 @@ class TurnServiceTest {
                 new GuardResult.Guard(true, null), affinityDelta, List.of(usage("guard"))));
     given(
             aiWorkerClient.reply(
-                any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean()))
+                any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean(), any()))
         .willReturn(reply("That's not okay to say.", null, null));
   }
 
@@ -575,7 +629,7 @@ class TurnServiceTest {
   private void repliesTo(String text, NpcReply reply) {
     given(
             aiWorkerClient.reply(
-                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean()))
+                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean(), any()))
         .willReturn(reply);
   }
 

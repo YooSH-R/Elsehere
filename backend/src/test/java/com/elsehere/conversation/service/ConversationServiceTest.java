@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -42,6 +43,9 @@ import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -77,6 +81,8 @@ class ConversationServiceTest {
   @Autowired private ConversationRepository conversationRepository;
 
   @Autowired private AiRequestRepository aiRequestRepository;
+
+  @Autowired private FirstDayMissionRepository firstDayMissionRepository;
 
   @Autowired private EntityManager entityManager;
 
@@ -118,6 +124,37 @@ class ConversationServiceTest {
                 .orElseThrow()
                 .getStatus())
         .isEqualTo(AiRequestStatus.OK);
+  }
+
+  @Test
+  @DisplayName("카페 휴식 단계에 택시기사와 대화를 시작해도 첫 인사 지시에 카페 주문 지시가 섞이지 않는다")
+  void start_taxiDuringCafeBreak_greetingKeepsDriverRole() {
+    FirstDayMission mission = FirstDayMission.start(userId);
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    firstDayMissionRepository.saveAndFlush(mission);
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Where are you headed?", null, null));
+
+    conversationService.start(
+        userId, new StartConversationRequest(UUID.randomUUID(), "TAXI_DRIVER", InitiatedBy.USER));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiWorkerClient)
+        .should()
+        .reply(
+            any(),
+            argThat(npc -> "TAXI_DRIVER".equals(npc.id())),
+            any(),
+            any(),
+            anyString(),
+            instruction.capture(),
+            anyInt(),
+            any());
+    assertThat(instruction.getValue())
+        .contains("Corner Cafe", "Stay in your own role")
+        .doesNotContain("Offer drinks", "size, temperature or milk");
   }
 
   @Test

@@ -22,6 +22,7 @@ namespace A305.EditorTools.Mission
         private static readonly Color Ink = new Color(.16f, .24f, .2f);
         private static readonly Color Cream = new Color(.98f, .96f, .91f, .96f);
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
+        private const string MiniMapMenuPath = "Tools/A305/Mission/Apply Live Mini Map";
 
         [MenuItem(MenuPath)]
         public static void Build()
@@ -59,12 +60,102 @@ namespace A305.EditorTools.Mission
             BuilderTools.UpdateOrCreatePrefab(
                 ViewPath,
                 "FirstDayMission",
-                root => TownMapBuilder.Draw(root, townMap)
+                root =>
+                {
+                    TownMapBuilder.Draw(root, townMap);
+                    AddLiveMiniMap(root);
+                }
             );
             BuilderTools.AddToSceneList("Assets/Scenes/Production/ShopScene.unity");
             AssetDatabase.SaveAssets();
             Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
             Debug.Log("First-day journey connected to all five production spaces.");
+        }
+
+        [MenuItem(MiniMapMenuPath)]
+        public static void ApplyLiveMiniMap()
+        {
+            BuilderTools.ThrowIfPlaying();
+            if (!BuilderTools.UpdatePrefabIfExists(ViewPath, AddLiveMiniMap))
+                throw new System.InvalidOperationException("첫날 미션 프리팹이 없습니다.");
+            AssetDatabase.SaveAssets();
+            Debug.Log("Live mini map added to the first-day mission prefab.");
+        }
+
+        private static void AddLiveMiniMap(GameObject root)
+        {
+            Transform content = root.transform.Find("Content");
+            Transform journalMap = content?.Find("Journal/TownMap");
+            if (journalMap == null)
+                throw new System.InvalidOperationException("수첩의 마을 지도부터 생성해야 합니다.");
+
+            Transform old = content.Find("MiniMap");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+
+            RectTransform panel = Rect("MiniMap", content);
+            Anchor(panel, Vector2.zero, new Vector2(24, 24), new Vector2(252, 264));
+            Image glass = panel.gameObject.AddComponent<Image>();
+            glass.sprite = TownMapBuilder.RoundedSprite();
+            glass.type = Image.Type.Sliced;
+            glass.color = new Color32(169, 219, 255, 138);
+            glass.raycastTarget = false;
+            var outline = panel.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 1f, 1f, .9f);
+            outline.effectDistance = new Vector2(2, 2);
+            var shadow = panel.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(.27f, .44f, .58f, .2f);
+            shadow.effectDistance = new Vector2(0, -5);
+
+            TMP_Text title = Text(panel, "Title", 17, "마을 지도");
+            title.font = UiBuilderTools.BoldFont();
+            title.color = new Color32(51, 70, 88, 255);
+            Anchor(
+                (RectTransform)title.transform,
+                new Vector2(0, 1),
+                new Vector2(20, -10),
+                new Vector2(155, 32)
+            );
+
+            Button expand = Button(panel, "Expand", "↗", 30);
+            RectTransform expandRect = (RectTransform)expand.transform;
+            Anchor(expandRect, Vector2.one, new Vector2(-13, -12), new Vector2(30, 30));
+            expand.GetComponent<Image>().color = new Color(1, 1, 1, .42f);
+            TMP_Text expandLabel = expand.GetComponentInChildren<TMP_Text>();
+            expandLabel.fontSize = 22;
+            expandLabel.color = new Color32(75, 100, 121, 255);
+            expandLabel.alignment = TextAlignmentOptions.Center;
+
+            GameObject map = Object.Instantiate(journalMap.gameObject, panel);
+            map.name = "TownMap";
+            RectTransform mapRect = (RectTransform)map.transform;
+            Anchor(mapRect, Vector2.zero, new Vector2(13, 41), new Vector2(226, 176));
+            CanvasGroup mapGlass = map.AddComponent<CanvasGroup>();
+            mapGlass.alpha = .74f;
+            mapGlass.blocksRaycasts = false;
+            foreach (TMP_Text label in map.GetComponentsInChildren<TMP_Text>(true))
+                label.gameObject.SetActive(false);
+
+            TMP_Text footer = Text(
+                panel,
+                "Destination",
+                13,
+                FirstDayMissionView.MiniMapLegend(null)
+            );
+            footer.font = UiBuilderTools.BoldFont();
+            footer.color = new Color32(51, 70, 88, 255);
+            Anchor(
+                (RectTransform)footer.transform,
+                Vector2.zero,
+                new Vector2(15, 8),
+                new Vector2(222, 28)
+            );
+
+            FirstDayMissionView view = root.GetComponent<FirstDayMissionView>();
+            BuilderTools.SetReference(view, "miniMapPanel", panel.gameObject);
+            BuilderTools.SetReference(view, "miniMap", map.GetComponent<TownMapView>());
+            BuilderTools.SetReference(view, "miniMapButton", expand);
+            BuilderTools.SetReference(view, "miniMapDestination", footer);
         }
 
         public static void PrepareAssets()

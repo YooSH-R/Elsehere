@@ -32,6 +32,18 @@ namespace A305.Mission
         private TownMapView townMap;
 
         [SerializeField]
+        private GameObject miniMapPanel;
+
+        [SerializeField]
+        private TownMapView miniMap;
+
+        [SerializeField]
+        private Button miniMapButton;
+
+        [SerializeField]
+        private TMP_Text miniMapDestination;
+
+        [SerializeField]
         private TMP_Text journey;
 
         [SerializeField]
@@ -70,6 +82,8 @@ namespace A305.Mission
 
         private Canvas canvas;
         private int closedSortingOrder;
+        private bool available;
+        private string mapSceneCode;
 
         public event Action StartRequested;
         public event Action RestRequested;
@@ -79,12 +93,21 @@ namespace A305.Mission
 
         public void SetAvailable(bool available)
         {
+            this.available = available;
             content.SetActive(available);
             if (!available)
                 ShowJournal(false);
+            UpdateMiniMapVisibility();
         }
 
-        public void BindMap(string sceneCode, Transform player) => townMap.Bind(sceneCode, player);
+        public void BindMap(string sceneCode, Transform player)
+        {
+            mapSceneCode = sceneCode;
+            townMap.Bind(sceneCode, player);
+            if (miniMap != null)
+                miniMap.Bind(sceneCode, player);
+            UpdateMiniMapVisibility();
+        }
 
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
         {
@@ -99,6 +122,10 @@ namespace A305.Mission
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
             townMap.ShowDestination(state.Destination);
+            if (miniMap != null)
+                miniMap.ShowDestination(state.Destination);
+            if (miniMapDestination != null)
+                miniMapDestination.text = MiniMapLegend(state.Destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
             restButton.gameObject.SetActive(false);
@@ -191,6 +218,8 @@ namespace A305.Mission
         {
             journal.SetActive(false);
             journalButton.onClick.AddListener(ToggleJournal);
+            if (miniMapButton != null)
+                miniMapButton.onClick.AddListener(OpenJournal);
             closeButton.onClick.AddListener(CloseJournal);
             startButton.onClick.AddListener(StartMission);
             restButton.onClick.AddListener(Rest);
@@ -200,6 +229,8 @@ namespace A305.Mission
         private void OnDestroy()
         {
             journalButton.onClick.RemoveListener(ToggleJournal);
+            if (miniMapButton != null)
+                miniMapButton.onClick.RemoveListener(OpenJournal);
             closeButton.onClick.RemoveListener(CloseJournal);
             startButton.onClick.RemoveListener(StartMission);
             restButton.onClick.RemoveListener(Rest);
@@ -208,15 +239,40 @@ namespace A305.Mission
 
         private void ToggleJournal() => ShowJournal(!journal.activeSelf);
 
+        private void OpenJournal() => ShowJournal(true);
+
         private void CloseJournal() => ShowJournal(false);
 
         private void ShowJournal(bool open)
         {
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open);
+            UpdateMiniMapVisibility();
             Canvas root = RootCanvas();
             if (root != null)
                 root.sortingOrder = open ? OpenJournalSortingOrder : closedSortingOrder;
+        }
+
+        /// <summary>
+        /// 미니맵 아래 범례. 파란 화살표는 내 위치, 빨간 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
+        /// </summary>
+        public static string MiniMapLegend(string destination)
+        {
+            string place = destination switch
+            {
+                "CAFE" => "카페",
+                "HOTEL" => "호텔",
+                "SHOP" => "드럭스토어",
+                "HOME" => "집",
+                _ => "자유 탐험",
+            };
+            return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
+        }
+
+        private void UpdateMiniMapVisibility()
+        {
+            if (miniMapPanel != null)
+                miniMapPanel.SetActive(available && mapSceneCode == "TOWN" && !journal.activeSelf);
         }
 
         // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.

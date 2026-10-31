@@ -160,8 +160,9 @@ namespace A305.Dialogue
             guideText.text = FormatGuide();
             guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
+            // 음성 처리에 동의하지 않아 [누르고 말하기]가 없으면, 버튼이 왜 없는지와 동의를 켜는 곳을 입력칸 위에 알린다.
             statusText.gameObject.SetActive(
-                content.IsBusy || content.CanRetry || content.IsGuidedCompleted
+                content.IsBusy || content.CanRetry || content.IsGuidedCompleted || NeedsVoiceConsent
             );
             suggestText.text = DialogueHelpText.Words(content.SuggestWords);
             string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
@@ -224,7 +225,10 @@ namespace A305.Dialogue
         {
             if (string.IsNullOrEmpty(content.RecoveryGuide))
             {
-                return content.StatusMessage ?? "";
+                // 녹음·오류 같은 지금 상황 안내가 먼저이고, 없을 때만 음성 동의 안내를 보인다.
+                return string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
+                    ? VoiceInputNotice.ConsentRequired
+                    : content.StatusMessage ?? "";
             }
 
             return string.IsNullOrEmpty(content.StatusMessage)
@@ -358,6 +362,12 @@ namespace A305.Dialogue
             );
             var input = (RectTransform)inputField.transform;
             input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
+            // 상태 줄은 도구 줄 오른쪽부터 창 안쪽 끝까지만 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
+            var status = (RectTransform)statusText.transform;
+            status.sizeDelta = new Vector2(Mathf.Max(240, width - 664), status.sizeDelta.y);
+            statusText.enableAutoSizing = true;
+            statusText.fontSizeMin = 14;
+            statusText.fontSizeMax = 20;
             ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 520, 44);
             ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 328, 44);
         }
@@ -383,5 +393,7 @@ namespace A305.Dialogue
                 ? FreeTalkGuide + " [누르고 말하기]를 누른 채 말하면 문장으로 바꿔 드려요."
                 : FreeTalkGuide + " " + VoiceInputNotice.ConsentRequired;
         }
+
+        private bool NeedsVoiceConsent => content.UsesVoice && !content.CanTalk;
     }
 }

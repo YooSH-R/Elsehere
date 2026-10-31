@@ -12,9 +12,14 @@ namespace A305.Mission
         private const float InteractionDistanceMeters = 1.55f;
         private const float RestSeconds = 3f;
 
-        [SerializeField] private PlayerMover player;
-        [SerializeField] private DialogueController dialogue;
-        [SerializeField] private PasserbyOfferView offerView;
+        [SerializeField]
+        private PlayerMover player;
+
+        [SerializeField]
+        private DialogueController dialogue;
+
+        [SerializeField]
+        private PasserbyOfferView offerView;
 
         private readonly CafeSeatTimer timer = new CafeSeatTimer(RestSeconds);
         private PlayerSeatPose pose;
@@ -50,12 +55,18 @@ namespace A305.Mission
                 return;
             }
 
-            bool nearby = Vector3.Distance(player.transform.position, transform.position)
+            bool nearby =
+                Vector3.Distance(player.transform.position, transform.position)
                 <= InteractionDistanceMeters;
-            bool anotherPrompt = offerView.IsTalkPromptShowing
-                && !offerView.IsTalkPromptShownBy(this);
-            if (nearby && !dialogue.IsTalking && !player.IsMovementLocked
-                && !offerView.IsShowing && !anotherPrompt)
+            bool anotherPrompt =
+                offerView.IsTalkPromptShowing && !offerView.IsTalkPromptShownBy(this);
+            if (
+                nearby
+                && !dialogue.IsTalking
+                && !player.IsMovementLocked
+                && !offerView.IsShowing
+                && !anotherPrompt
+            )
                 offerView.ShowTalkPrompt(this, "잠깐 앉기", Sit);
             else
                 offerView.HideTalkPrompt(this);

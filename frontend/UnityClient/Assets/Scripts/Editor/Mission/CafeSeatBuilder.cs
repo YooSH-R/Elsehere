@@ -43,13 +43,15 @@ namespace A305.EditorTools.Mission
             PasserbyOfferView offer = BuilderTools.FindSingleInScene<PasserbyOfferView>(scene);
             BuilderTools.GetOrAddComponent<PlayerSeatPose>(player.gameObject);
 
-            Transform cornerCafe = scene.GetRootGameObjects()
+            Transform cornerCafe = scene
+                .GetRootGameObjects()
                 .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
                 .SingleOrDefault(item => item.name == "CornerCafe");
             if (cornerCafe == null)
                 throw new InvalidOperationException("Corner Cafe is missing in " + scene.name);
 
-            Transform[] chairs = cornerCafe.GetComponentsInChildren<Transform>(true)
+            Transform[] chairs = cornerCafe
+                .GetComponentsInChildren<Transform>(true)
                 .Where(item => item.name == "CafeChair" && HasRoundTableParent(item))
                 .ToArray();
             if (chairs.Length != 4)
@@ -67,7 +69,9 @@ namespace A305.EditorTools.Mission
                     marker.SetParent(cornerCafe, false);
                 }
                 marker.SetPositionAndRotation(chairs[index].position, chairs[index].rotation);
-                CafeChairSeat seat = BuilderTools.GetOrAddComponent<CafeChairSeat>(marker.gameObject);
+                CafeChairSeat seat = BuilderTools.GetOrAddComponent<CafeChairSeat>(
+                    marker.gameObject
+                );
                 BuilderTools.SetReference(seat, "player", player);
                 BuilderTools.SetReference(seat, "dialogue", dialogue);
                 BuilderTools.SetReference(seat, "offerView", offer);

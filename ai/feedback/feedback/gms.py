@@ -22,6 +22,10 @@ def feedback_response_format(messages):
     fields["review_tags"]["maxItems"] = 2
     fields["vocab_candidates"]["maxItems"] = 2
     definitions["TurnReview"]["properties"]["suggestions"]["maxItems"] = 1
+    # 기존 결과 호환용 기본값이 있는 필드라 strict 생성에서는 필수로 바꾸고, 장면 표현을 2~3개 받는다.
+    definitions["FeedbackData"]["required"].append("situation_expressions")
+    fields["situation_expressions"]["minItems"] = 2
+    fields["situation_expressions"]["maxItems"] = 3
     candidates = []
     try:
         request_data = json.loads(messages[-1]["content"])

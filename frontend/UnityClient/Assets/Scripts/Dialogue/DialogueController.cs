@@ -462,8 +462,8 @@ namespace A305.Dialogue
                 return;
             }
 
-            // 마이크가 열리기 전에 버튼을 뗐으면 받은 소리가 없다.
-            if (voice.Samples.Length == 0)
+            // 짧게 눌렀거나 말하지 않은 녹음을 STT에 보내면 엉뚱한 문장이 입력칸에 들어오므로, 말소리가 없으면 다시 말해 달라고만 한다.
+            if (!voice.HasSpeech(serverLink.VoiceRecorder.SilenceLevel))
             {
                 serverConversation.ShowMessage(VoiceInputNotice.TooShort);
                 return;

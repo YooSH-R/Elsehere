@@ -100,6 +100,22 @@ namespace A305.Dialogue
         public FeedbackReviews Reviews { get; set; }
         public FeedbackSuggestion Suggestion { get; set; }
         public string ErrorCode { get; set; }
+
+        /// <summary>이 장면에서 자주 쓰는 관용·추천 표현. 이 필드가 없던 피드백은 null이거나 비어 있다.</summary>
+        public List<SituationExpressionData> SituationExpressions { get; set; }
+    }
+
+    /// <summary>이 장면에서 자주 쓰는 표현 하나. 예문은 학습용이며 사용자가 한 말이 아니다.</summary>
+    public sealed class SituationExpressionData
+    {
+        public string Expression { get; set; }
+        public string MeaningKo { get; set; }
+
+        /// <summary>이 장면에서 언제 쓰는지</summary>
+        public string UsageKo { get; set; }
+
+        public string ExampleEn { get; set; }
+        public string ExampleKo { get; set; }
     }
 
     public sealed class FeedbackReviews

@@ -240,7 +240,8 @@ class ConversationControllerTest {
                 NPC,
                 "CAFE",
                 2,
-                new FeedbackResponse(FeedbackStatus.FAILED, null, null, null, "AI_TIMEOUT"),
+                new FeedbackResponse(
+                    FeedbackStatus.FAILED, null, null, null, "AI_TIMEOUT", List.of()),
                 List.of()));
 
     mockMvc

@@ -243,7 +243,11 @@ public class FeedbackService {
         feedback.getSummary(),
         reviews == null ? null : new ReviewsResponse(reviews.good(), reviews.improve()),
         reviews == null ? null : reviews.suggestion(),
-        feedback.getErrorCode());
+        feedback.getErrorCode(),
+        // 이 필드를 넣기 전에 저장한 피드백은 장면 표현이 없다.
+        reviews == null || reviews.situationExpressions() == null
+            ? List.of()
+            : reviews.situationExpressions());
   }
 
   // 다른 사용자의 대화는 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.

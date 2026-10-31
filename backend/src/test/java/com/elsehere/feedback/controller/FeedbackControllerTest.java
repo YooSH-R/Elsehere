@@ -45,7 +45,8 @@ class FeedbackControllerTest {
           "라테를 주문했어요.",
           new ReviewsResponse(List.of("분명히 말했어요"), List.of("공손하게 말해 보세요")),
           new SuggestionResponse("I want latte", "I'd like a latte, please."),
-          null);
+          null,
+          List.of());
   private static final DetailedFeedbackItemResponse ITEM =
       new DetailedFeedbackItemResponse(
           1L,

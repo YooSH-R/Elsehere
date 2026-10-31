@@ -3,6 +3,7 @@ package com.elsehere.feedback.service;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.feedback.dto.FeedbackReviews;
+import com.elsehere.feedback.dto.SituationExpressionResponse;
 import com.elsehere.feedback.dto.SuggestionResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import java.util.ArrayList;
@@ -12,7 +13,8 @@ import java.util.Optional;
 
 /**
  * 피드백 결과를 화면 형식으로 바꾼다. 대응은 AI 명세 2.7절을 따른다: 요약 ← conversation_summary.text_ko, 잘한 점·아쉬운 점 ←
- * review_tags의 label_ko, 개선 표현 ← summary_suggestion_id가 가리키는 제안.
+ * review_tags의 label_ko, 개선 표현 ← summary_suggestion_id가 가리키는 제안, 이 장면에서 자주 쓰는 표현 ←
+ * situation_expressions.
  */
 final class FeedbackResults {
 
@@ -24,7 +26,25 @@ final class FeedbackResults {
 
   static FeedbackReviews reviews(WorkerFeedback.Result result) {
     return new FeedbackReviews(
-        tagLabels(result, "strength"), tagLabels(result, "improvement"), suggestion(result));
+        tagLabels(result, "strength"),
+        tagLabels(result, "improvement"),
+        suggestion(result),
+        situationExpressions(result));
+  }
+
+  /** 이 장면에서 자주 쓰는 표현. 사용자 발화 평가와 별개로 화면의 회화 칸에 보여 준다. */
+  private static List<SituationExpressionResponse> situationExpressions(
+      WorkerFeedback.Result result) {
+    return nonNull(result.situationExpressions()).stream()
+        .map(
+            item ->
+                new SituationExpressionResponse(
+                    item.expression(),
+                    item.meaningKo(),
+                    item.usageKo(),
+                    item.exampleEn(),
+                    item.exampleKo()))
+        .toList();
   }
 
   /**

@@ -251,7 +251,7 @@ class ConversationControllerTest {
                 "CAFE",
                 2,
                 new FeedbackResponse(
-                    FeedbackStatus.FAILED, null, null, null, "AI_TIMEOUT", List.of()),
+                    FeedbackStatus.FAILED, null, null, null, "AI_TIMEOUT", List.of(), List.of()),
                 List.of()));
 
     mockMvc

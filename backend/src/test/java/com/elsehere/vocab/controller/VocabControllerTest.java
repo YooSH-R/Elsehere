@@ -64,6 +64,16 @@ class VocabControllerTest {
           OffsetDateTime.parse("2026-10-27T10:00:00+09:00"),
           new VocabItemResponse.Source(UserVocabSourceType.NPC_LINE, "Mia", 58L));
 
+  private static final VocabItemResponse FEEDBACK_LATTE =
+      new VocabItemResponse(
+          22L,
+          new VocabItemResponse.Word(78L, VocabularyType.WORD, "latte", "라떼"),
+          new VocabItemResponse.Context("I'd like an iced latte.", "아이스 라떼 주세요."),
+          null,
+          false,
+          OffsetDateTime.parse("2026-10-27T10:00:00+09:00"),
+          new VocabItemResponse.Source(UserVocabSourceType.FEEDBACK, "Mia", 58L));
+
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private VocabService vocabService;
@@ -174,19 +184,22 @@ class VocabControllerTest {
   }
 
   @Test
-  @DisplayName("피드백에서 저장하는 단어는 아직 단어장 후보를 확인할 수 없어 422 VOCAB_SOURCE_MISMATCH로 거절한다")
-  void saveFeedbackWord_isRejected() throws Exception {
+  @DisplayName("피드백 단어장 후보의 단어를 저장하면 저장 결과를 출처 대화와 함께 돌려준다")
+  void saveFeedbackWord_new_respondsCreated() throws Exception {
+    given(vocabService.saveFeedbackWord(1L, 58L, "latte"))
+        .willReturn(new VocabSaveResponse(FEEDBACK_LATTE, true));
+
     mockMvc
         .perform(
             stateChanging(post("/api/v1/vocab"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"sourceType\": \"FEEDBACK\", \"conversationId\": 58, \"text\": \"order\"}"))
-        .andExpect(status().is(422))
-        .andExpect(jsonPath("$.error.code").value("VOCAB_SOURCE_MISMATCH"));
-
-    then(vocabService).should(never()).saveObjectWord(anyLong(), any());
-    then(vocabService).should(never()).saveNpcLineWord(anyLong(), anyLong(), any());
+                    "{\"sourceType\": \"FEEDBACK\", \"conversationId\": 58, \"text\": \"latte\"}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.created").value(true))
+        .andExpect(jsonPath("$.context.text").value("I'd like an iced latte."))
+        .andExpect(jsonPath("$.source.sourceType").value("FEEDBACK"))
+        .andExpect(jsonPath("$.source.conversationId").value(58));
   }
 
   @ParameterizedTest
@@ -197,9 +210,11 @@ class VocabControllerTest {
         "{\"sourceType\": \"OBJECT\", \"wordKey\": \" \"}",
         "{\"sourceType\": \"NPC_LINE\", \"text\": \"latte\"}",
         "{\"sourceType\": \"NPC_LINE\", \"turnId\": 105}",
-        "{\"sourceType\": \"NPC_LINE\", \"turnId\": 105, \"text\": \" \"}"
+        "{\"sourceType\": \"NPC_LINE\", \"turnId\": 105, \"text\": \" \"}",
+        "{\"sourceType\": \"FEEDBACK\", \"text\": \"latte\"}",
+        "{\"sourceType\": \"FEEDBACK\", \"conversationId\": 58}"
       })
-  @DisplayName("저장 출처가 없거나, 사물 저장인데 단어 키가 없거나, NPC 대사 저장인데 턴·단어가 없으면 400 VALIDATION_FAILED로 응답한다")
+  @DisplayName("저장 출처가 없거나, 출처마다 필요한 단어 키·턴·대화·단어가 비어 있으면 400 VALIDATION_FAILED로 응답한다")
   void saveWithoutRequiredField_isRejected(String body) throws Exception {
     mockMvc
         .perform(
@@ -211,6 +226,7 @@ class VocabControllerTest {
 
     then(vocabService).should(never()).saveObjectWord(anyLong(), any());
     then(vocabService).should(never()).saveNpcLineWord(anyLong(), anyLong(), any());
+    then(vocabService).should(never()).saveFeedbackWord(anyLong(), anyLong(), any());
   }
 
   @Test

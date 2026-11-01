@@ -14,6 +14,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
+import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.vocab.dto.VocabItemResponse;
@@ -68,6 +69,10 @@ class VocabServiceTest {
   private static final Instant NOW = Instant.parse("2026-10-27T01:00:00Z");
 
   private static final String LATTE = "[{\"text\": \"latte\", \"meaningKo\": \"라떼\"}]";
+
+  private static final String LATTE_CANDIDATE =
+      "[{\"expression\": \"latte\", \"meaningKo\": \"라떼\","
+          + " \"exampleEn\": \"I'd like an iced latte.\", \"exampleKo\": \"아이스 라떼 주세요.\"}]";
 
   @Autowired private VocabService vocabService;
 
@@ -482,6 +487,86 @@ class VocabServiceTest {
         .isEqualTo(
             new VocabItemResponse.Source(
                 UserVocabSourceType.NPC_LINE, "Mia", conversation.getId()));
+  }
+
+  @Test
+  @DisplayName("피드백 단어장 후보의 단어를 저장하면 후보의 뜻과 예문·예문 뜻을 저장하고, 사전에 없던 단어는 피드백 출처 어휘로 만든다")
+  void saveFeedbackWord_savesCandidateWithExample() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    completeFeedback(conversation, LATTE_CANDIDATE);
+
+    VocabSaveResponse response =
+        vocabService.saveFeedbackWord(userId, conversation.getId(), "latte");
+
+    assertThat(response.created()).isTrue();
+    VocabItemResponse item = response.item();
+    assertThat(item.vocab().text()).isEqualTo("latte");
+    assertThat(item.vocab().meaningKo()).isEqualTo("라떼");
+    assertThat(item.context())
+        .isEqualTo(new VocabItemResponse.Context("I'd like an iced latte.", "아이스 라떼 주세요."));
+    assertThat(item.source())
+        .isEqualTo(
+            new VocabItemResponse.Source(
+                UserVocabSourceType.FEEDBACK, "Mia", conversation.getId()));
+    assertThat(userVocabRepository.findById(item.userVocabId()).orElseThrow().getSourceTurnId())
+        .isNull();
+    assertThat(vocabularySource("latte")).isEqualTo(VocabularySource.FEEDBACK);
+  }
+
+  @Test
+  @DisplayName("단어장 후보에 없는 단어나 피드백이 없는 대화의 단어는 VOCAB_SOURCE_MISMATCH로 거절한다")
+  void saveFeedbackWord_notCandidate_throwsMismatch() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation withFeedback = conversation(entityManager, userId, "CAFE_STAFF");
+    completeFeedback(withFeedback, LATTE_CANDIDATE);
+    Conversation withoutFeedback = conversation(entityManager, userId, "CAFE_STAFF");
+    entityManager.flush();
+
+    assertThatThrownBy(() -> vocabService.saveFeedbackWord(userId, withFeedback.getId(), "coffee"))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VOCAB_SOURCE_MISMATCH));
+    assertThatThrownBy(
+            () -> vocabService.saveFeedbackWord(userId, withoutFeedback.getId(), "latte"))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VOCAB_SOURCE_MISMATCH));
+    assertThat(userVocabRepository.count()).isZero();
+  }
+
+  @Test
+  @DisplayName("다른 사용자의 대화 피드백에서는 저장하지 못하고 NOT_FOUND로 거절한다")
+  void saveFeedbackWord_othersConversation_throwsNotFound() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
+    Conversation othersConversation = conversation(entityManager, otherUserId, "CAFE_STAFF");
+    completeFeedback(othersConversation, LATTE_CANDIDATE);
+
+    assertThatThrownBy(
+            () -> vocabService.saveFeedbackWord(userId, othersConversation.getId(), "latte"))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+    assertThat(userVocabRepository.count()).isZero();
+  }
+
+  /** 단어장 후보가 있는 완료된 피드백. reviews는 피드백 저장(FeedbackService)이 쓰는 JSON 형식이다. */
+  private void completeFeedback(Conversation conversation, String vocabCandidatesJson) {
+    ConversationFeedback feedback = ConversationFeedback.of(conversation.getId());
+    feedback.complete(
+        "라테를 주문했어요.",
+        "{\"good\": [], \"improve\": [], \"suggestion\": null, \"situationExpressions\": [],"
+            + " \"vocabCandidates\": "
+            + vocabCandidatesJson
+            + "}",
+        "test-model",
+        null);
+    entityManager.persist(feedback);
+    entityManager.flush();
   }
 
   /** 뜻 보기(CONV-04)를 마친 NPC 대사. 단어 풀이는 CONV-04가 저장하는 JSON 형식이다. */

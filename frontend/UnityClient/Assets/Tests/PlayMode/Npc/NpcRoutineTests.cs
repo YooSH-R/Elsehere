@@ -117,6 +117,26 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator CafeStaff_BehindTheCounter_TurnsToFaceTheCustomerBeforeOffering()
+        {
+            yield return LoadAt("CafeScene", 9 * 60, paused: true);
+            NpcRoutine mia = Routine("CAFE_STAFF");
+            Vector3 post = mia.transform.position;
+            Bounds counter = SolidBounds(NearestPlaced("counter", mia.transform));
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+
+            // 카운터 끝 앞(카운터에서 0.8m)이라 응대하러 돌아오지만, 직원 자리에서는 3.5m보다 멀어 아직 제안하지 않는 곳
+            player.Teleport(
+                new Vector3(counter.max.x - .15f, post.y, counter.min.z - .8f),
+                Quaternion.identity
+            );
+            yield return WaitUntil(() =>
+                HorizontalDistance(mia.transform.position, post) < .3f
+                && FacingDegrees(mia.transform, player.transform) < 20f
+            );
+        }
+
+        [UnityTest]
         public IEnumerator HotelStaff_OnBreak_GoesAroundTheDeskAndSitsOnALobbySofa()
         {
             yield return LoadAt("HotelScene", 12 * 60, paused: true);
@@ -257,6 +277,16 @@ namespace A305.Npc.PlayModeTests
                     Assert.Fail("멈추지 않았습니다.");
                 }
             }
+        }
+
+        // 앞을 보는 방향과 상대 쪽 방향 사이의 수평 각도
+        private static float FacingDegrees(Transform looker, Transform target)
+        {
+            Vector3 toTarget = target.position - looker.position;
+            toTarget.y = 0f;
+            Vector3 forward = looker.forward;
+            forward.y = 0f;
+            return Vector3.Angle(forward, toTarget);
         }
 
         private static float HorizontalDistance(Transform first, Transform second)

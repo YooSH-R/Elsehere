@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using A305.Theme;
 using A305.Voice;
 using TMPro;
@@ -10,12 +8,11 @@ using UnityEngine.UI;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대화 중에 보이는 화면. 최근 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
+    /// 대화 중에 보이는 화면. 이번 대화의 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
     /// 서버 AI 대화의 [꾹 눌러 말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
-        private const string MeaningColor = "#B8C0CC";
         private const string FreeTalkGuide =
             "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요. 한국어를 섞어도 돼요.";
         private const string TalkCaption = "꾹 눌러 말하기";
@@ -171,7 +168,12 @@ namespace A305.Dialogue
                 }
             }
 
-            linesText.text = FormatRecentLines();
+            linesText.text = DialogueLinesText.Format(
+                content.Lines,
+                content.NpcName,
+                isMeaningVisible,
+                content.LastNpcGlossary
+            );
             npcNameText.text = content.NpcName;
             UpdateStanding();
             guideText.text = FormatGuide();
@@ -212,7 +214,8 @@ namespace A305.Dialogue
             retryButton.gameObject.SetActive(content.CanRetry);
             UpdateLayout();
             Canvas.ForceUpdateCanvases();
-            historyScroll.verticalNormalizedPosition = 1;
+            // 대사가 쌓이면 가장 최근 대사와 뜻이 보이게 맨 아래로 내린다. 지난 대사는 위로 스크롤해 다시 본다.
+            historyScroll.verticalNormalizedPosition = 0;
         }
 
         private void Awake()
@@ -319,38 +322,6 @@ namespace A305.Dialogue
             }
 
             Refresh();
-        }
-
-        private string FormatRecentLines()
-        {
-            var text = new StringBuilder();
-            DialogueLine line = content.LastNpcLine;
-            if (line == null)
-                return "";
-            text.AppendLine(line.English);
-            if (isMeaningVisible && line.Korean != null)
-            {
-                text.AppendLine($"<color={MeaningColor}>{line.Korean}</color>");
-                if (content.LastNpcGlossary != null && content.LastNpcGlossary.Count > 0)
-                {
-                    text.AppendLine(
-                        $"<color={MeaningColor}>단어 풀이 · {FormatGlossary()}</color>"
-                    );
-                }
-            }
-
-            return text.ToString().TrimEnd();
-        }
-
-        private string FormatGlossary()
-        {
-            var items = new List<string>();
-            foreach (GlossaryData item in content.LastNpcGlossary)
-            {
-                items.Add($"{item.Text} {item.MeaningKo}");
-            }
-
-            return string.Join(" · ", items);
         }
 
         private void LateUpdate()

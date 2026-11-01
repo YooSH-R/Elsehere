@@ -195,7 +195,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | 오른쪽 위 메뉴의 [지난 대화] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
+| | 오른쪽 위 메뉴의 [피드백 목록] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -994,7 +994,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 오른쪽 위 메뉴의 [지난 대화] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 오른쪽 위 메뉴의 [피드백 목록] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
 
 ```json
 {

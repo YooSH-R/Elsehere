@@ -76,6 +76,7 @@ services:
       AI_WORKER_TOKEN: ${AI_WORKER_TOKEN:?Set AI_WORKER_TOKEN}
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65.0
       NPC_AUDIO_DIR: /app/data/npc-audio
+      LOGGING_LEVEL_COM_ELSEHERE: ${BACKEND_LOG_LEVEL:-INFO}
     volumes:
       - npc-audio-data:/app/data/npc-audio
     depends_on:

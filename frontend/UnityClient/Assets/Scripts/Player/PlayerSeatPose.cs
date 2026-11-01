@@ -4,26 +4,17 @@ using UnityEngine;
 namespace A305.Player
 {
     /// <summary>
-    /// 의자·벤치·소파에 앉은 동안 기존 Humanoid 골격을 앉는 면 높이에 맞춰 구부린다. 일어서면 앉기 전에 서 있던 곳으로 돌아간다.
+    /// 의자·벤치·소파에 앉은 동안 기존 Humanoid 골격을 앉는 면 높이에 맞춰 구부린다(<see cref="SeatedLegs"/>). 일어서면 앉기 전에 서 있던
+    /// 곳으로 돌아간다.
     /// </summary>
     [DefaultExecutionOrder(700)]
     [RequireComponent(typeof(PlayerMover))]
     public sealed class PlayerSeatPose : MonoBehaviour
     {
-        // 허벅지 두께의 절반. 다리 시작점을 쿠션보다 이만큼 올려 허벅지가 쿠션에 묻히지 않게 한다.
-        private const float ThighRadius = .06f;
-
-        // 무릎을 앞 모서리보다 이만큼 앞에 두어 내려뜨린 정강이가 의자·벤치·소파 앞면에 묻히지 않게 한다.
-        private const float KneeOverhang = .05f;
-
         private PlayerMover mover;
         private CharacterController controller;
         private Transform visual;
-        private Animator animator;
-        private Transform hips;
-        private readonly Transform[] upper = new Transform[2];
-        private readonly Transform[] lower = new Transform[2];
-        private readonly Transform[] feet = new Transform[2];
+        private SeatedLegs legs;
         private Behaviour[] poseCorrections;
         private bool[] correctionStates;
         private Vector3 originalVisualPosition;
@@ -52,26 +43,8 @@ namespace A305.Player
 
             var appearance = GetComponent<PlayerCharacterAppearance>();
             visual = appearance != null ? appearance.VisualRoot : null;
-            animator = visual != null ? visual.GetComponentInChildren<Animator>() : null;
-            if (animator == null || !animator.isHuman)
-                return false;
-
-            hips = animator.GetBoneTransform(HumanBodyBones.Hips);
-            upper[0] = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
-            upper[1] = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
-            lower[0] = animator.GetBoneTransform(HumanBodyBones.LeftLowerLeg);
-            lower[1] = animator.GetBoneTransform(HumanBodyBones.RightLowerLeg);
-            feet[0] = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
-            feet[1] = animator.GetBoneTransform(HumanBodyBones.RightFoot);
-            if (
-                hips == null
-                || upper[0] == null
-                || upper[1] == null
-                || lower[0] == null
-                || lower[1] == null
-                || feet[0] == null
-                || feet[1] == null
-            )
+            legs = SeatedLegs.Find(visual != null ? visual.GetComponentInChildren<Animator>() : null);
+            if (legs == null)
                 return false;
 
             // 서 있던 곳은 캡슐이 들어가 있던 빈 자리라, 일어설 때 탁자·팔걸이·벽에 끼지 않는다.
@@ -119,32 +92,8 @@ namespace A305.Player
             if (seat == null)
                 return;
 
-            // Animator가 매 프레임 기본 자세를 갱신한 뒤 몸을 옮긴다. 리틀멍은 다리가 짧아 자리 가운데에 앉히면 다리가 쿠션에 묻히므로,
-            // 아이처럼 자리 앞쪽에 앉혀 허벅지는 쿠션 위에 앞으로 눕히고 무릎 아래는 앞 모서리 밖으로 내려뜨린다.
-            visual.localPosition = originalVisualPosition;
-            float thigh = Vector3.Distance(upper[0].position, lower[0].position);
-            Vector3 legRoot = (upper[0].position + upper[1].position) * .5f;
-            Vector3 seatedLegRoot = seat.TransformPoint(
-                new Vector3(
-                    0f,
-                    cushionTopMeters + ThighRadius,
-                    frontEdgeMeters + KneeOverhang - thigh
-                )
-            );
-            visual.position += seatedLegRoot - legRoot;
-            for (int side = 0; side < 2; side++)
-            {
-                float shin = Vector3.Distance(lower[side].position, feet[side].position);
-                Vector3 knee = upper[side].position + seat.forward * thigh;
-                Vector3 footTarget = knee - seat.up * shin + seat.forward * .01f;
-                TwoBonePose.Reach(
-                    upper[side],
-                    lower[side],
-                    feet[side],
-                    footTarget,
-                    seat.forward + seat.up
-                );
-            }
+            // Animator가 매 프레임 기본 자세를 갱신한 뒤 몸을 옮긴다.
+            legs.Apply(visual, originalVisualPosition, seat, cushionTopMeters, frontEdgeMeters);
         }
 
         public void Stand()

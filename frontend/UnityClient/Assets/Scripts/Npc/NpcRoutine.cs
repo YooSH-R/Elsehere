@@ -166,7 +166,7 @@ namespace A305.Npc
             life.Advance(now);
             if (hasCounter && IsCustomerAtCounter(playerPosition))
             {
-                ServeAtCounter();
+                ServeAtCounter(playerPosition);
                 return;
             }
 
@@ -196,8 +196,8 @@ namespace A305.Npc
             StandUp();
         }
 
-        // 하던 일을 그만두고 카운터 뒤 자리로 돌아가 선다. 제안은 자리에 선 뒤 Passerby가 띄운다.
-        private void ServeAtCounter()
+        // 하던 일을 그만두고 카운터 뒤 자리로 돌아가 손님 쪽으로 선다. 제안은 자리에 선 뒤 Passerby가 띄운다.
+        private void ServeAtCounter(Vector3 customerPosition)
         {
             if (life.Doing != null)
             {
@@ -209,7 +209,12 @@ namespace A305.Npc
             lookingAround = false;
             StandUp();
             Pose post = body.HomePose;
-            if (GoTo(post.position, post.rotation) == Progress.Stuck)
+            Vector3 toCustomer = Flat(customerPosition - post.position);
+            Quaternion facing =
+                toCustomer.sqrMagnitude > .0001f
+                    ? Quaternion.LookRotation(toCustomer)
+                    : post.rotation;
+            if (GoTo(post.position, facing) == Progress.Stuck)
             {
                 // 길을 막은 사람이 비키면 다시 간다.
                 hasRoute = false;

@@ -172,6 +172,9 @@ namespace A305.Npc.PlayModeTests
             // 마을 행인 모델은 뼈대가 없어 앉지 못하고 벤치 앞에 서서 쉰다.
             yield return LoadAt("TownScene", 10 * 60, paused: true);
             NpcRoutine ben = Routine("TOWN_PASSERBY");
+            // Ben은 마을 시작 위치 가까운 집 앞에 있어, 다가오지 않도록 플레이어를 먼저 동서 길 쪽으로 멀리 보낸다.
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(new Vector3(12.5f, .12f, 18.5f), Quaternion.identity);
             yield return WaitUntil(() => ben.IsUsing);
             Assert.That(ben.Doing.Action, Is.EqualTo("REST"));
             Assert.That(
@@ -179,7 +182,6 @@ namespace A305.Npc.PlayModeTests
                 Is.LessThan(NearObjectMeters)
             );
 
-            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
             player.Teleport(
                 ben.transform.position + ben.transform.forward * 4f,
                 Quaternion.identity

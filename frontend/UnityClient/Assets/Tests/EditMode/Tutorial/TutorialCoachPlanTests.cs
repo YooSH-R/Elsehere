@@ -13,13 +13,13 @@ namespace A305.Tutorial.Tests
 
         [TestCase(TutorialStep.Walk)]
         [TestCase(TutorialStep.Look)]
-        public void MovingSteps_LeaveTheScreenOpenUntilDone(TutorialStep step)
+        public void MovingSteps_NeverCoverTheScreen(TutorialStep step)
         {
-            // 걷고 둘러보는 동안 화면을 덮으면 방해가 되므로, 할 일을 마친 뒤에만 [다음으로]가 있는 카드를 밝힌다.
+            // 걷고 둘러보는 단계는 해내면 저절로 넘어가므로 화면을 덮지 않는다.
             Assert.That(Choose(step), Is.EqualTo(TutorialCoachTarget.None));
             Assert.That(
                 TutorialCoachPlan.Choose(step, true, new TutorialScreen()),
-                Is.EqualTo(TutorialCoachTarget.GuideCard)
+                Is.EqualTo(TutorialCoachTarget.None)
             );
         }
 

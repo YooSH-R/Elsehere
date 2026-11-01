@@ -37,6 +37,8 @@ namespace A305.Tutorial
 
         public bool IsVisible => panel.activeSelf;
 
+        public bool IsSkipConfirmShowing => false;
+
         /// <summary>카드 전체. 튜토리얼 코치 마크가 도착 인사와 [다음으로]를 누를 때 밝힌다.</summary>
         public RectTransform PanelRect => (RectTransform)panel.transform;
 

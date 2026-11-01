@@ -36,6 +36,34 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Skipping_AsksFirst_AndOnlyConfirmingEndsTheTutorial()
+        {
+            // 잘못 눌러도 튜토리얼이 바로 끝나지 않도록 한 번 더 묻는다.
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+
+            Click(guideView, "SkipButton");
+            yield return null;
+
+            Assert.That(guideView.IsSkipConfirmShowing, Is.True);
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Arrival));
+
+            Click(guideView, "KeepGoingButton");
+            yield return null;
+
+            Assert.That(guideView.IsSkipConfirmShowing, Is.False);
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Arrival));
+
+            Click(guideView, "SkipButton");
+            Click(guideView, "ConfirmSkipButton");
+            yield return null;
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
+        }
+
+        [UnityTest]
         public IEnumerator Lodging_KeepsTheDoorLockedUntilTheGuideIsDone_ThenPointsAtIt()
         {
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);

@@ -46,6 +46,7 @@ namespace A305.Tutorial
         public string Title => title;
         public string Body => body;
         public string Task => task;
+        public string TouchTask => task;
         public string ButtonLabel => buttonLabel;
     }
 }

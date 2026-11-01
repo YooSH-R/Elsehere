@@ -30,8 +30,12 @@ public record VocabItemResponse(
 
   public record Source(UserVocabSourceType sourceType, String npcName, Long conversationId) {}
 
-  /** 저장 시각은 {@code zone} 기준으로 보여준다. */
-  public static VocabItemResponse from(UserVocab userVocab, ZoneId zone) {
+  /**
+   * 저장 시각은 {@code zone} 기준으로 보여준다.
+   *
+   * @param npcName 출처 대화의 NPC 이름. 사물에서 저장한 단어는 null이다.
+   */
+  public static VocabItemResponse from(UserVocab userVocab, String npcName, ZoneId zone) {
     Vocabulary vocabulary = userVocab.getVocabulary();
     Context context =
         userVocab.getContextText() == null
@@ -48,7 +52,6 @@ public record VocabItemResponse(
         userVocab.getMemo(),
         userVocab.getMemorizedAt() != null,
         userVocab.getSavedAt().atZone(zone).toOffsetDateTime(),
-        // 대화에서 저장한 단어의 NPC 이름은 대화 기능이 생긴 뒤 채운다.
-        new Source(userVocab.getSourceType(), null, userVocab.getSourceConversationId()));
+        new Source(userVocab.getSourceType(), npcName, userVocab.getSourceConversationId()));
   }
 }

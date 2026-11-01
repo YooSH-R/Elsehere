@@ -25,6 +25,7 @@ public record WorkerFeedback(
    * @param summarySuggestionId 짧은 피드백의 개선 표현 상자에 보여 줄 제안. 없으면 null
    * @param spokenUsageNotes 교정 아래의 회화 설명(0~1개)
    * @param situationExpressions 이 장면에서 자주 쓰는 관용·추천 표현(0~3개). 이 필드가 없던 워커 결과는 null
+   * @param vocabCandidates 단어장 저장 후보. 단어·숙어·문장이 섞여 있다
    */
   public record Result(
       Summary conversationSummary,
@@ -32,7 +33,8 @@ public record WorkerFeedback(
       List<TurnReview> turnReviews,
       String summarySuggestionId,
       List<SpokenUsageNote> spokenUsageNotes,
-      List<SituationExpression> situationExpressions) {}
+      List<SituationExpression> situationExpressions,
+      List<VocabCandidate> vocabCandidates) {}
 
   public record Summary(String textKo) {}
 
@@ -64,4 +66,11 @@ public record WorkerFeedback(
    */
   public record SituationExpression(
       String expression, String meaningKo, String usageKo, String exampleEn, String exampleKo) {}
+
+  /**
+   * @param kind word, idiom, sentence
+   * @param exampleEn 학습용 예문. 사용자가 한 말이 아니다
+   */
+  public record VocabCandidate(
+      String kind, String expression, String meaningKo, String exampleEn, String exampleKo) {}
 }

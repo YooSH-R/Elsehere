@@ -224,7 +224,8 @@ namespace A305.EditorTools.Npc
                 BuilderTools.SetReference(passerby, "player", player);
                 BuilderTools.SetReference(passerby, "dialogue", dialogue);
                 BuilderTools.SetReference(passerby, "offerView", offer);
-                BuilderTools.RequireReferences(passerby);
+                // 튜토리얼 설정은 튜토리얼에서 길을 묻는 Ben에게만 있다.
+                BuilderTools.RequireReferences(passerby, "tutorialSettings");
             }
         }
 

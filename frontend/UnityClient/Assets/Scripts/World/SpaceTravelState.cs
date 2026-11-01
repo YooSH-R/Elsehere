@@ -11,6 +11,12 @@ namespace A305.World
 
         public bool IsTraveling { get; private set; }
 
+        public bool IsLocked => false;
+
+        public void Lock() { }
+
+        public void Unlock() { }
+
         /// <param name="destinationScene">이동할 씬 이름</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
         /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도</param>

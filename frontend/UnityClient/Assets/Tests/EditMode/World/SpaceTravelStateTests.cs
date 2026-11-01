@@ -117,5 +117,34 @@ namespace A305.World.Tests
             Assert.That(state.CompleteArrival(), Is.Null);
             Assert.That(state.TryBegin("TownScene", "HomeDoor"), Is.True);
         }
+
+        [Test]
+        public void Lock_RefusesTravelUntilUnlocked()
+        {
+            // 튜토리얼처럼 지금 할 일을 마치기 전에는 문·[홈]으로 다른 공간에 가지 않는다.
+            state.Lock();
+
+            Assert.That(state.IsLocked, Is.True);
+            Assert.That(state.TryBegin("TownScene", "HomeDoor"), Is.False);
+            Assert.That(state.IsTraveling, Is.False);
+
+            state.Unlock();
+
+            Assert.That(state.IsLocked, Is.False);
+            Assert.That(state.TryBegin("TownScene", "HomeDoor"), Is.True);
+        }
+
+        [Test]
+        public void Lock_StaysAfterArrivalOrCancel()
+        {
+            state.TryBegin("TownScene", "HomeDoor");
+            state.Lock();
+
+            state.CompleteArrival();
+            Assert.That(state.IsLocked, Is.True);
+
+            state.Cancel();
+            Assert.That(state.IsLocked, Is.True);
+        }
     }
 }

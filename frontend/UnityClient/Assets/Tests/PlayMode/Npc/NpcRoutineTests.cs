@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using A305.ObjectHover;
 using A305.Player;
+using A305.Tutorial;
 using A305.World;
 using NUnit.Framework;
 using UnityEngine;
@@ -27,13 +28,17 @@ namespace A305.Npc.PlayModeTests
         public void ResetCrossSceneRecords()
         {
             PasserbyRestRecord.Clear();
+            // 카페 직원은 튜토리얼의 미션 대화 안내부터 다가오므로, 튜토리얼을 이미 마친 사용자로 시작한다.
+            TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
         }
 
         [TearDown]
         public void RestoreFlowingClock()
         {
-            // 다른 시험은 서버 없이 장면을 볼 때처럼 1일차 오전 8시부터 흐르는 시각을 쓴다.
+            // 다른 시험은 서버 없이 장면을 볼 때처럼 1일차 오전 8시부터 흐르는 시각과 처음 튜토리얼을 쓴다.
             SetClock(8 * 60, paused: false);
+            TutorialState.Clear();
         }
 
         [UnityTest]

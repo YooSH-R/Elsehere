@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -385,9 +386,17 @@ public class AiWorkerClient {
     return builder;
   }
 
+  // 호출 수·시간 통계는 ai_requests와 지표로 보고, 개발 서버(DEBUG)에서 문제를 따라갈 때만 호출마다 남긴다. 본문은 남기지 않는다.
   private <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> handler) {
+    long startedAt = System.nanoTime();
     try {
-      return httpClient.send(request, handler);
+      HttpResponse<T> response = httpClient.send(request, handler);
+      log.debug(
+          "ai_worker_call path={} status={} duration_ms={}",
+          request.uri().getPath(),
+          response.statusCode(),
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+      return response;
     } catch (HttpTimeoutException exception) {
       log.warn("AI 워커 응답 시간 초과 path={}", request.uri().getPath());
       throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE, exception);

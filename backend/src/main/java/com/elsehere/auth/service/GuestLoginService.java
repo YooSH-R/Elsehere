@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>게스트는 캐릭터와 음성 처리 동의(선택)만 고른다. 닉네임은 서버가 정하고, 가입 약관 동의 기록은 남기지 않는다. 음성 처리에 동의하면 그 동의만 남긴다. 학습 언어와
  * 대화 난이도는 MVP에서 고를 수 있는 값(영어·초급)으로 정해 튜토리얼부터 시작한다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -56,6 +58,7 @@ public class GuestLoginService {
       userConsentRepository.save(
           UserConsent.agree(guest, ConsentType.VOICE, voice.version(), Instant.now(clock)));
     }
+    log.info("guest_started user_id={}", guest.getId());
     return UserResponse.from(guest, voiceConsent);
   }
 

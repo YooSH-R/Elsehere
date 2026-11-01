@@ -2,9 +2,11 @@ package com.elsehere.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -59,6 +61,17 @@ class GuestLoginServiceTest {
     assertThat(user.getEmail()).isNull();
     assertThat(user.getNickname()).matches("guest-\\d{6}");
     assertThat(user.getAvatarType()).isEqualTo(AvatarType.M);
+  }
+
+  @Test
+  @DisplayName("게스트로 시작하면 사용자 ID만 INFO로 남기고 닉네임은 남기지 않는다")
+  void startAsGuest_logsGuestStarted() {
+    try (LogCapture logs = LogCapture.atInfo(GuestLoginService.class)) {
+      UserResponse response = guestLoginService.startAsGuest(AvatarType.M, false);
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly("guest_started user_id=" + response.userId());
+    }
   }
 
   @Test

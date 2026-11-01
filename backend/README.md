@@ -185,4 +185,6 @@ Actuator·Micrometer Prometheus를 사용하며, histogram으로 p95를 조회�
 
 관리 경로는 `/actuator/health`, `/actuator/prometheus`만 노출합니다. Nginx 전달, 보관 정책, Prometheus·Grafana 실행과 검증은 [관측성 운영 문서](../docs/observability.md)를 따릅니다.
 
+대화 시작·종료, 피드백 실패·건너뜀, 게스트 대화 한도, 가입·탈퇴 같은 업무 흐름은 `이벤트명 키=값` 형식으로 로그에 남깁니다. 사건 목록과 키는 [관측성 운영 문서의 백엔드 업무 흐름 로그](../docs/observability.md#백엔드-업무-흐름-로그)에 있습니다. 새 로그를 추가할 때도 ID와 코드값만 남기고 대화 본문·음성·인증값·이메일·닉네임은 남기지 않으며, 테스트에서는 `LogCapture`로 메시지를 확인합니다.
+
 기존 컨테이너와 프록시의 `GET /api/health`는 앱 포트에서 유지합니다. 내부 연결 상세 없이 `status`만 반환하며, 필수 연결이 비정상이면 HTTP 503으로 응답합니다. 이 공개 상태 확인과 인증이 필요한 관리 지표를 구분합니다.

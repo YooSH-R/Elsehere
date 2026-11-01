@@ -16,6 +16,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
@@ -29,6 +30,7 @@ import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.dto.ConversationDetailResponse;
 import com.elsehere.conversation.dto.ConversationStartResponse;
 import com.elsehere.conversation.dto.EndConversationRequest;
@@ -333,6 +335,65 @@ class ConversationServiceTest {
     }
 
     assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT + 1);
+  }
+
+  @Test
+  @DisplayName("게스트가 대화 한도에 닿아 거절되면 사용자 ID와 한도를 INFO로 남긴다")
+  void start_guestReachedLimit_logsLimitReached() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
+      startAndEndPasserby(guestId);
+    }
+
+    try (LogCapture logs = LogCapture.atInfo(GuestConversationLimit.class)) {
+      assertThatThrownBy(() -> startAndEndPasserby(guestId)).isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "guest_conversation_limit_reached user_id="
+                  + guestId
+                  + " limit="
+                  + GUEST_CONVERSATION_LIMIT);
+    }
+  }
+
+  @Test
+  @DisplayName("대화를 시작하면 대화 ID·NPC·먼저 건 쪽만 INFO로 남기고 첫 대사는 남기지 않는다")
+  void start_logsConversationStarted() {
+    try (LogCapture logs = LogCapture.atInfo(ConversationService.class)) {
+      ConversationStartResponse started = startPasserby();
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "conversation_started conversation_id="
+                  + started.conversationId()
+                  + " npc=TOWN_PASSERBY initiated_by=NPC");
+    }
+  }
+
+  @Test
+  @DisplayName("대화를 끝내면 종료 상태·이유·사용자 발화 수를 INFO로 남기고, 다시 끝내도 또 남기지 않는다")
+  void end_logsConversationEndedOnce() {
+    ConversationStartResponse started = startPasserby();
+    sendText(started.conversationId(), "Yes, it's sunny!");
+    given(aiWorkerClient.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
+    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+        .willReturn(new MemoryCardResult("{\"name\": \"\"}", List.of()));
+
+    try (LogCapture logs = LogCapture.atInfo(ConversationService.class)) {
+      conversationService.end(
+          userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+      conversationService.end(
+          userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "conversation_ended conversation_id="
+                  + started.conversationId()
+                  + " status=ENDED_BY_USER end_reason=USER_ENDED user_turns=1");
+    }
   }
 
   @Test

@@ -21,6 +21,25 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 
 저장소의 [AiWorkerClient](../backend/src/main/java/com/elsehere/ai/client/AiWorkerClient.java)는 HTTP 요청 문맥의 추적 ID를 워커의 `X-Request-Id`로 전달합니다. HTTP 요청 문맥이 없으면 `WorkerTrace`의 UUID를 사용합니다. 실제 배포본에서도 Spring과 워커의 로그를 같은 ID로 찾을 수 있는지 확인합니다.
 
+### 백엔드 업무 흐름 로그
+
+운영 중 한 사용자에게 일어난 일을 따라갈 수 있도록 양이 적고 중요한 업무 흐름을 남깁니다. 요청 요약(`http_request …`)과 같이 `이벤트명 키=값` 형식이고 `request_id`가 함께 붙습니다. ID와 코드값만 남기며 대화 본문·음성·인증값·이메일·닉네임은 남기지 않습니다. 응답 시간·호출 수 같은 수치는 로그가 아니라 Prometheus 지표와 `ai_requests` 기록으로 봅니다.
+
+| 레벨 | 이벤트 | 키 | 남기는 때 |
+| --- | --- | --- | --- |
+| INFO | `conversation_started` | `conversation_id`, `npc`, `initiated_by` | 대화 시작(CONV-01) 저장 뒤 |
+| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
+| WARN | `feedback_failed` | `conversation_id`, `reason` | 짧은 피드백을 만들지 못함(AI 시간 초과 등) |
+| INFO | `feedback_skipped` | `conversation_id`, `reason` | 피드백을 건너뜀. 사용자가 건너뛰면 `USER_SKIPPED` |
+| INFO | `guest_conversation_limit_reached` | `user_id`, `limit` | 게스트 대화 한도로 대화 시작을 거절 |
+| INFO | `user_signed_up` | `user_id`, `provider` | 가입 완료(AUTH-04) |
+| INFO | `guest_started` | `user_id` | 게스트 계정 생성(AUTH-07) |
+| INFO | `user_withdrew` | `user_id` | 회원 탈퇴(USER-05) |
+| DEBUG | `ai_worker_call` | `path`, `status`, `duration_ms` | AI 워커 호출마다(개발 서버에서만 보임) |
+| DEBUG | `business_error` | `code`, `status` | 업무 오류 응답마다(개발 서버에서만 보임) |
+
+이 밖의 실패 상황(AI 워커 시간 초과·연결 실패, NPC 음성 저장 실패, 기억 카드·관계 갱신 실패 등)은 기존처럼 WARN으로 남깁니다. 로그를 모으는 도구와 형식(JSON 등)은 아직 정하지 않았습니다.
+
 ## Nginx 설정 적용
 
 HTTPS 인증서와 기존 location을 보존합니다. 전체 사이트 설정을 예제로 덮어쓰지 않습니다.

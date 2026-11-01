@@ -13,6 +13,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
@@ -22,6 +23,7 @@ import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.service.DialogueServiceTest;
@@ -246,6 +248,41 @@ class FeedbackServiceTest {
 
     assertThat(response.status()).isEqualTo(FeedbackStatus.FAILED);
     assertThat(response.errorCode()).isEqualTo("AI_TEMPORARILY_UNAVAILABLE");
+  }
+
+  @Test
+  @DisplayName("피드백을 만들지 못하면 대화 ID와 원인 코드를 WARN으로 남긴다")
+  void feedbackOnEnd_workerFailed_logsFeedbackFailed() {
+    given(aiWorkerClient.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of(usage("fb"))));
+
+    try (LogCapture logs = LogCapture.atInfo(FeedbackService.class)) {
+      feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
+
+      assertThat(logs.messages(Level.WARN))
+          .containsExactly(
+              "feedback_failed conversation_id=" + conversation.getId() + " reason=AI_TIMEOUT");
+    }
+  }
+
+  @Test
+  @DisplayName("피드백을 건너뛰면 대화 ID와 이유를 INFO로 남기고, 사용자가 건너뛰었으면 이유를 USER_SKIPPED로 쓴다")
+  void feedbackOnEnd_skipped_logsFeedbackSkipped() {
+    Conversation silent = conversation(entityManager, userId, "HOTEL_STAFF");
+    npcTurn(entityManager, silent, 1, "Welcome to the hotel.");
+    silent.endByUser(Instant.parse("2026-10-27T01:06:00Z"));
+
+    try (LogCapture logs = LogCapture.atInfo(FeedbackService.class)) {
+      feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), true);
+      feedbackService.feedbackOnEnd(userId, silent.getId(), UUID.randomUUID(), false);
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "feedback_skipped conversation_id=" + conversation.getId() + " reason=USER_SKIPPED",
+              "feedback_skipped conversation_id="
+                  + silent.getId()
+                  + " reason=NO_USABLE_USER_TURNS");
+    }
   }
 
   @Test

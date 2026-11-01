@@ -30,6 +30,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -41,6 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
  * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TurnService {
@@ -160,6 +162,14 @@ public class TurnService {
             conversation.countRude(ConversationSupport.RUDE_LIMIT, clock.instant());
             npcAffinityService.deductForRudeness(
                 userId, conversation.getNpcId(), guard.affinityDelta());
+            // 무례가 쌓여 이 턴으로 NPC가 대화를 끝냈다. 무례한 말은 대화 본문이라 남기지 않는다.
+            if (!conversation.isActive()) {
+              log.info(
+                  "conversation_ended conversation_id={} status={} end_reason={}",
+                  conversationId,
+                  conversation.getStatus(),
+                  conversation.getEndReason());
+            }
           }
           Turn npcTurn =
               turnRepository.save(

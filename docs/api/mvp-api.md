@@ -1153,12 +1153,13 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 
 - 표에 없는 단어, 두 단어 이상인 표현, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
 - 새로 저장하면 `201`, 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
-- 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다.
+- 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
-- 현재 구현은 `OBJECT`만 저장합니다. CONV-04는 단어 풀이를 저장하지만 `NPC_LINE` 저장은 아직 구현하지 않았고, `FEEDBACK`은 단어장 후보 연동 전입니다. 두 출처 모두 `422 VOCAB_SOURCE_MISMATCH`입니다.
+- 현재 구현은 `OBJECT`와 `NPC_LINE`을 저장합니다. `FEEDBACK`은 피드백 응답이 단어장 후보를 아직 클라이언트에 보내지 않아 `422 VOCAB_SOURCE_MISMATCH`입니다.
 - `OBJECT`의 `wordKey`는 WORLD-02 단어 카드의 `wordKey`입니다.
-- `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있으면 `400 VALIDATION_FAILED`, 없는 단어 키면 `404 NOT_FOUND`입니다.
+- `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있거나, `NPC_LINE`인데 `turnId`·`text`가 비어 있으면 `400 VALIDATION_FAILED`입니다. 없는 단어 키면 `404 NOT_FOUND`입니다.
+- `NPC_LINE`의 턴이 없거나, 다른 사용자의 턴이거나, NPC가 아닌 사용자 턴이면 CONV-04와 같이 `404 NOT_FOUND`입니다.
 - `requestId`는 형식을 맞추려고 받지만 쓰지 않습니다. 이미 저장한 단어는 처음 항목을 돌려주므로 같은 요청을 다시 보내도 결과가 같습니다.
 
 #### VOCAB-03·04 메모·외웠어요·삭제

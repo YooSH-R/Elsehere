@@ -12,4 +12,8 @@ public interface VocabularyRepository extends JpaRepository<Vocabulary, Long> {
 
   /** 사물 단어(공용 단어 키가 있는 어휘) 전체. */
   List<Vocabulary> findAllByWordKeyIsNotNullOrderByIdAsc();
+
+  /** 대화에서 저장하는 단어가 사전에 있는지. 문장 첫머리처럼 대소문자만 다른 단어도 같은 단어로 본다. */
+  Optional<Vocabulary> findFirstByLanguageCodeAndTextIgnoreCaseOrderByIdAsc(
+      String languageCode, String text);
 }

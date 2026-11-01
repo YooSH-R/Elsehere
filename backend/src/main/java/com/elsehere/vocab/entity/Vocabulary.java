@@ -56,6 +56,18 @@ public class Vocabulary extends BaseEntity {
   @Column(nullable = false, length = 20)
   private VocabularySource source;
 
+  /** 대화에서 처음 저장하는 단어. 사전(시드)에 없던 단어라 예문과 단어 키가 없다. */
+  public static Vocabulary newWord(
+      String languageCode, String text, String meaningKo, VocabularySource source) {
+    Vocabulary vocabulary = new Vocabulary();
+    vocabulary.languageCode = languageCode;
+    vocabulary.type = VocabularyType.WORD;
+    vocabulary.text = text;
+    vocabulary.meaningKo = meaningKo;
+    vocabulary.source = source;
+    return vocabulary;
+  }
+
   /** 만든 발음 파일을 연결한다(WORLD-04). */
   public void attachPronunciation(String pronunciationAudioKey) {
     this.pronunciationAudioKey = pronunciationAudioKey;

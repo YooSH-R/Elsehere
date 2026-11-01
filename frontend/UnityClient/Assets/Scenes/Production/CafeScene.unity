@@ -1103,6 +1103,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcRoutine
   lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
   walkSpeedMetersPerSecond: 1.1
+  serveRadiusMeters: 2
 --- !u!1001 &739269363
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1766,6 +1767,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 662858913}
     m_Modifications:
+    - target: {fileID: 1022901089732155883, guid: 2260c69e531c67843acffb0d344c7fc0, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: e474152e1b79b4e4fae32f2520c12f29, type: 2}
     - target: {fileID: 2679211247300765433, guid: 2260c69e531c67843acffb0d344c7fc0, type: 3}
       propertyPath: m_Name
       value: Barista

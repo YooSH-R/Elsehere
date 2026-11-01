@@ -11,8 +11,9 @@ using UnityEngine.SceneManagement;
 namespace A305.EditorTools.Npc
 {
     /// <summary>
-    /// 생활 데이터(Data/Npc/NpcLife.json)가 있는 NPC가 놓인 장면마다 그 NPC에 생활(<see cref="NpcRoutine"/>)을 붙이고, NPC가 걸을
-    /// 바닥(NavMesh)을 구워 <see cref="NpcWalkArea"/>로 연결한다. 가구 배치를 바꾸면 다시 실행해 바닥을 새로 굽는다.
+    /// 생활 데이터(Data/Npc/NpcLife.json)가 있는 NPC가 놓인 장면마다 그 NPC에 생활(<see cref="NpcRoutine"/>)과 생활 동작
+    /// 컨트롤러(<see cref="NpcAnimationBuilder"/>)를 붙이고, NPC가 걸을 바닥(NavMesh)을 구워 <see cref="NpcWalkArea"/>로 연결한다.
+    /// 가구 배치를 바꾸면 다시 실행해 바닥을 새로 굽는다.
     /// 생활 데이터는 AI 규칙 원본에서 ai/tools/npc_life_export.py로 내보낸다.
     /// </summary>
     public static class NpcLifeBuilder
@@ -45,10 +46,11 @@ namespace A305.EditorTools.Npc
 
             var lifeData = BuilderTools.LoadRequiredAsset<TextAsset>(LifeDataPath, MenuPath);
             NpcLifeData data = NpcLifeData.Parse(lifeData.text);
+            RuntimeAnimatorController animator = NpcAnimationBuilder.PrepareController();
             foreach (string scenePath in ScenePaths)
             {
                 Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
-                if (ConnectRoutines(scene, data, lifeData) == 0)
+                if (ConnectRoutines(scene, data, lifeData, animator) == 0)
                 {
                     continue;
                 }
@@ -62,7 +64,12 @@ namespace A305.EditorTools.Npc
         }
 
         // 생활 데이터가 있는 NPC에만 붙인다. 튜토리얼 행인처럼 정해진 흐름대로 움직이는 NPC는 그대로 둔다.
-        private static int ConnectRoutines(Scene scene, NpcLifeData data, TextAsset lifeData)
+        private static int ConnectRoutines(
+            Scene scene,
+            NpcLifeData data,
+            TextAsset lifeData,
+            RuntimeAnimatorController animator
+        )
         {
             int connected = 0;
             foreach (Passerby passerby in BuilderTools.FindAllInScene<Passerby>(scene))
@@ -74,6 +81,7 @@ namespace A305.EditorTools.Npc
 
                 var routine = BuilderTools.GetOrAddComponent<NpcRoutine>(passerby.gameObject);
                 BuilderTools.SetReference(routine, "lifeData", lifeData);
+                NpcAnimationBuilder.Connect(passerby, animator);
                 connected++;
             }
 
@@ -152,7 +160,10 @@ namespace A305.EditorTools.Npc
                 return baked;
             }
 
+            // 덮어쓰면 에셋 이름까지 바뀌므로 원래 이름을 지킨다.
+            string assetName = existing.name;
             EditorUtility.CopySerialized(baked, existing);
+            existing.name = assetName;
             EditorUtility.SetDirty(existing);
             Object.DestroyImmediate(baked);
             return existing;

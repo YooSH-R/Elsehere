@@ -424,6 +424,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcRoutine
   lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
   walkSpeedMetersPerSecond: 1.1
+  serveRadiusMeters: 2
 --- !u!1 &9555466
 GameObject:
   m_ObjectHideFlags: 0

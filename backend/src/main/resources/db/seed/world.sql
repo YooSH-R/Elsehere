@@ -161,7 +161,8 @@ SET type = EXCLUDED.type,
     updated_at = now();
 -- END GENERATED OBJECT WORDS
 
--- NPC. code는 Unity 씬의 NpcIdentity에 넣은 값이다. 튜토리얼 행인(TUTORIAL_PASSERBY)은 Unity 대본 콘텐츠라 넣지 않는다.
+-- NPC. code는 Unity 씬의 NpcIdentity에 넣은 값이다. 튜토리얼에서 길을 묻는 행인은 Ben(TOWN_PASSERBY)이고, 그동안의 길 안내는
+-- Unity 대본(대본 키 TUTORIAL_PASSERBY)이라 따로 넣지 않는다.
 -- persona·voice_id는 임시값이다. AI 워커 npc 형식(role, facts, scene)에 맞춘 실제 값은 대화 담당이 채운다.
 -- persona는 NPC를 처음 넣을 때만 쓴다. 그 뒤로는 어드민(/admin/npcs)에서 고친 값을 유지하므로, 이미 있는 NPC의 페르소나는 이 파일이 아니라 어드민에서 고친다.
 -- 인격 카드(profile)는 시드 로더가 content/npc-configurations.json에서 넣는다. 카드가 있는 NPC의 name은 카드의 이름과 같게 둔다.

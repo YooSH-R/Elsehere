@@ -87,6 +87,7 @@ namespace A305.Tutorial
         private TaxiRide[] taxis;
         private TutorialCoachTarget shownCoachTarget;
         private Object shownCoachObject;
+        private string shownCaption;
 
         private void Awake()
         {
@@ -324,13 +325,19 @@ namespace A305.Tutorial
                 screen
             );
             Object targetObject = CoachObject(target);
-            if (target == shownCoachTarget && targetObject == shownCoachObject)
+            string caption = Caption(target);
+            if (
+                target == shownCoachTarget
+                && targetObject == shownCoachObject
+                && caption == shownCaption
+            )
             {
                 return;
             }
 
             shownCoachTarget = target;
             shownCoachObject = targetObject;
+            shownCaption = caption;
             switch (target)
             {
                 case TutorialCoachTarget.Door when exitDoor != null:
@@ -345,7 +352,7 @@ namespace A305.Tutorial
                     coachMark.Hide();
                     break;
                 default:
-                    coachMark.ShowSpotlight(SpotlightParts(target), Caption(target));
+                    coachMark.ShowSpotlight(SpotlightParts(target), caption);
                     break;
             }
         }
@@ -386,6 +393,7 @@ namespace A305.Tutorial
         }
 
         // 안내 카드가 숨는 대화 제안·대화·피드백 화면에서는 코치 마크 설명으로 할 일을 알린다.
+        // 길 안내 대화에서는 지금 입력할 대사를 크게 보이고, 다른 문장을 보냈으면 다시 입력하라고 알린다.
         private string Caption(TutorialCoachTarget target)
         {
             switch (target)
@@ -393,7 +401,10 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.TalkOffer:
                     return guide.TalkOfferCaption;
                 case TutorialCoachTarget.GuidedLine:
-                    return guide.GuidedLineCaption;
+                    string notice = dialogue.IsGuidedLineMissed
+                        ? DialogueConversation.GuidedLineMissNotice
+                        : guide.GuidedLineCaption;
+                    return $"{notice}\n<size=130%><b>{dialogue.GuidedLine}</b></size>";
                 case TutorialCoachTarget.DialogueEnd:
                     return guide.DialogueEndCaption;
                 case TutorialCoachTarget.Feedback:

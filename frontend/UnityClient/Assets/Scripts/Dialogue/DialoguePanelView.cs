@@ -90,14 +90,10 @@ namespace A305.Dialogue
         private TMP_Text talkLabel;
         private ThemedElement sendTheme;
 
-        /// <summary>
-        /// 정해진 흐름에서 읽을 대사·안내와 입력칸·[보내기]·[예시 문장]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
-        /// </summary>
+        /// <summary>정해진 대사를 입력하는 입력칸·[보내기]·[예시 문장]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.</summary>
         public IReadOnlyList<RectTransform> GuidedLineParts =>
             new[]
             {
-                (RectTransform)guideText.transform,
-                (RectTransform)statusText.transform,
                 (RectTransform)inputField.transform,
                 (RectTransform)sendButton.transform,
                 (RectTransform)exampleButton.transform,

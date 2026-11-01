@@ -11,7 +11,7 @@ namespace A305.Dialogue
     {
         /// <summary>정해진 대사와 다른 문장을 보냈을 때 입력칸 위에 보이는 안내</summary>
         public const string GuidedLineMissNotice =
-            "튜토리얼 대화는 정해진 대사로 연습해요. 위 문장과 같게 입력해 보세요. [예시 문장]을 누르면 입력칸에 넣어 줘요.";
+            "튜토리얼 대화는 정해진 대사로 연습해요. 이 문장과 같게 입력해 보세요. [예시 문장]을 누르면 입력칸에 넣어 줘요.";
 
         private readonly DialogueScript script;
         private readonly List<DialogueLine> lines = new List<DialogueLine>();

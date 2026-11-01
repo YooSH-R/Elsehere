@@ -99,19 +99,19 @@ namespace A305.Tutorial
 
         [SerializeField]
         [TextArea]
-        [Tooltip("Ben이 말을 걸어와 대화 제안이 뜬 동안 [대화하기] 옆에 보이는 설명")]
+        [Tooltip("Ben이 말을 걸어와 대화 제안이 뜬 동안 화면 위쪽에 보이는 설명")]
         private string talkOfferCaption =
             "Ben이 말을 걸어왔어요. [대화하기]를 눌러 이야기를 시작해요.";
 
         [SerializeField]
         [TextArea]
-        [Tooltip("길 안내 대화 중 읽을 대사와 입력칸 옆에 보이는 설명")]
+        [Tooltip("길 안내 대화 중 입력칸을 밝힐 때 보이는 설명. 아래에 지금 입력할 대사가 붙는다.")]
         private string guidedLineCaption =
-            "튜토리얼 대화는 정해진 대사로 연습해요. 위에 나온 문장을 그대로 입력하고 [보내기]를 눌러요. 마을 대화부터는 자유롭게 말해요.";
+            "튜토리얼 대화는 정해진 대사로 연습해요. 아래 문장을 그대로 입력하고 [보내기]를 눌러요. 마을 대화부터는 자유롭게 말해요.";
 
         [SerializeField]
         [TextArea]
-        [Tooltip("길 안내를 마친 뒤 [대화 종료] 옆에 보이는 설명")]
+        [Tooltip("길 안내를 마친 뒤 [대화 종료]를 밝힐 때 화면 위쪽에 보이는 설명")]
         private string dialogueEndCaption =
             "길 안내를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
 

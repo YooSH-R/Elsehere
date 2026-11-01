@@ -26,7 +26,7 @@
 
 | NPC | 다가와도 되는 단계 |
 | --- | --- |
-| 튜토리얼 행인(`TUTORIAL_PASSERBY`) | `NeighborApproach`, `NeighborDialogue` |
+| 길을 묻는 행인 Ben(`TOWN_PASSERBY`) | 튜토리얼 중에는 `NeighborApproach`, `NeighborDialogue`. 튜토리얼을 마치면(`Completed`) 항상 |
 | 미션 NPC(`CAFE_STAFF`) | `MissionTalk`, `Completed` |
 | 그 밖의 행인 | 항상 |
 
@@ -39,7 +39,7 @@
 | `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지와 미션 창 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
 | `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비웁니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. |
 | `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | 튜토리얼을 끝낸 방법에 맞춰 완료(TUT-01 `POST /api/v1/me/tutorial/complete`)나 건너뛰기(TUT-02 `/skip`)를 한 번 저장합니다. 네트워크 실패면 기록을 남겨 다음 장소에 들어갈 때 다시 보내고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. Unity 객체 없이 테스트합니다. |
-| `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 안내 문구와, 방 씬 이름·튜토리얼 행인·미션 NPC 키. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
+| `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 안내 문구와, 방 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`)·미션 NPC 키. 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
 | `TutorialDirector` | 공간 씬마다 하나. 걷기·사물 툴팁·공간 이동·대화·피드백·미션 신호를 진행에 전하고, 안내 카드·행인 허용·미션 창을 바꿉니다. `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `TutorialGuideView` | 화면 위쪽 가운데의 안내 카드(정렬 순서 115) |
 

@@ -35,7 +35,8 @@ namespace A305.EditorTools.Npc
         private const string CafeScenePath = "Assets/Scenes/Production/CafeScene.unity";
 
         // NPC 키는 ERD npcs.code 값으로 쓴다. 서버 시드 데이터와 같아야 한다.
-        private const string TutorialPasserbyCode = "TUTORIAL_PASSERBY";
+        // 튜토리얼 동안 Ben이 쓰는 길 안내 대본·인사말의 키. 예전에는 따로 둔 튜토리얼 행인의 NPC 키였다.
+        private const string TutorialScriptKey = "TUTORIAL_PASSERBY";
         private const string TownPasserbyCode = "TOWN_PASSERBY";
         private const string CafeStaffCode = "CAFE_STAFF";
 
@@ -49,7 +50,7 @@ namespace A305.EditorTools.Npc
 
         private static readonly (string NpcCode, string Greeting)[] MockGreetings =
         {
-            (TutorialPasserbyCode, "Excuse me! Could you help me? I'm looking for the cafe."),
+            (TutorialScriptKey, "Excuse me! Could you help me? I'm looking for the cafe."),
             (TownPasserbyCode, "Hi there! Nice weather today, isn't it?"),
             (CafeStaffCode, "Hi there! Welcome to the corner café. Would you like to order?"),
             ("HOTEL_STAFF", "Good afternoon! Welcome to Maple House. Are you checking in?"),
@@ -103,7 +104,9 @@ namespace A305.EditorTools.Npc
         }
 
         /// <summary>
-        /// 마을에 튜토리얼 행인(집 앞)과 일반 행인(동서 길)을 둔다. 같은 NPC 키의 행인이 이미 있으면 위치를 바꾸지 않는다.
+        /// 마을 행인 Ben을 집 앞에 둔다. Ben은 튜토리얼 동안 길을 묻고(튜토리얼 설정), 마친 뒤에는 평소 행인으로 지낸다.
+        /// 예전처럼 튜토리얼 행인(집 앞)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지운다.
+        /// Ben이 이미 있으면 위치를 바꾸지 않는다.
         /// </summary>
         public static void PlacePasserbysInTown()
         {
@@ -114,37 +117,48 @@ namespace A305.EditorTools.Npc
 
             Scene town = EditorSceneManager.OpenScene(TownScenePath, OpenSceneMode.Single);
             SceneGroups groups = BuilderTools.EnsureGroups(town);
-            string[] placedCodes = BuilderTools
-                .FindAllInScene<NpcIdentity>(town)
-                .Select(identity => identity.Code)
-                .ToArray();
-
-            if (!placedCodes.Contains(TutorialPasserbyCode))
+            NpcIdentity[] placed = BuilderTools.FindAllInScene<NpcIdentity>(town);
+            NpcIdentity ben = placed.FirstOrDefault(identity => identity.Code == TownPasserbyCode);
+            NpcIdentity retiredTutorial = placed.FirstOrDefault(identity =>
+                identity.Code == TutorialScriptKey
+            );
+            if (retiredTutorial != null)
             {
-                // 집 문 앞(-3.5, 0, -16)에서 6.7m 떨어진 큰길 위. 집을 바라본다.
-                Place(
-                    groups,
-                    TutorialPasserbyCode,
-                    "TutorialPasserby",
-                    TutorialSettingsPath,
-                    new Vector3(2.5f, 0f, -13f),
-                    -90f
-                );
+                // 집 앞에서 길을 묻던 튜토리얼 행인이 Ben이다. 그 자리와 모습을 지키고 동서 길의 Ben은 지운다.
+                if (ben != null)
+                {
+                    Object.DestroyImmediate(ben.gameObject);
+                }
+
+                BuilderTools.SetText(retiredTutorial, "code", TownPasserbyCode);
+                retiredTutorial.gameObject.name = "TownPasserby";
+                PrefabUtility.RecordPrefabInstancePropertyModifications(retiredTutorial.gameObject);
+                ben = retiredTutorial;
             }
 
-            if (!placedCodes.Contains(TownPasserbyCode))
+            if (ben == null)
             {
-                // 출입구에서 떨어진 동서 길 서쪽. 건물에서 나오자마자 붙잡지 않는다.
+                // 집 문 앞(-3.5, 0, -16)에서 6.7m 떨어진 큰길 위. 집을 바라본다.
                 Place(
                     groups,
                     TownPasserbyCode,
                     "TownPasserby",
                     TownSettingsPath,
-                    new Vector3(-14f, 0f, 10f),
-                    90f
+                    new Vector3(2.5f, 0f, -13f),
+                    -90f
                 );
+                ben = BuilderTools
+                    .FindAllInScene<NpcIdentity>(town)
+                    .Single(identity => identity.Code == TownPasserbyCode);
             }
 
+            var passerby = ben.GetComponent<Passerby>();
+            BuilderTools.SetReference(passerby, "settings", LoadSettings(TownSettingsPath));
+            BuilderTools.SetReference(
+                passerby,
+                "tutorialSettings",
+                LoadSettings(TutorialSettingsPath)
+            );
             SpaceSceneSetup.Apply(town);
             BuilderTools.SaveScene(town, TownScenePath);
         }

@@ -138,7 +138,7 @@ namespace A305.EditorTools.World
                     Audit(scene, player);
                     Capture(camera, "01-player-start.png");
                     // 카페 직원을 만날 수 있는 튜토리얼 완료 상태에서 실내 대화를 검수한다.
-                    TutorialState.GetOrCreate("TUTORIAL_PASSERBY", "CAFE_STAFF").Skip();
+                    TutorialState.GetOrCreate("TOWN_PASSERBY", "CAFE_STAFF").Skip();
                     Results.Add("Dialogue inspection uses the existing tutorial skip path.");
                     break;
                 case 1:

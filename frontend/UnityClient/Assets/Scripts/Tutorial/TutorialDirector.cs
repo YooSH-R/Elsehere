@@ -161,6 +161,11 @@ namespace A305.Tutorial
             {
                 string npcCode = passerby.GetComponent<NpcIdentity>().Code;
                 passerby.IsApproachAllowed = progress.IsApproachAllowed(npcCode);
+                if (npcCode == guide.TutorialNpcCode)
+                {
+                    // 튜토리얼 중에는 길 안내 대본으로 말하고, 마치면 평소 행인으로 돌아간다.
+                    passerby.SetTutorialScript(progress.IsGuiding ? guide.TutorialScriptKey : null);
+                }
             }
 
             mission.SetStoryAvailable(progress.Step == TutorialStep.Completed);

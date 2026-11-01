@@ -15,8 +15,16 @@ namespace A305.Tutorial
         private string homeSceneName = "HomeScene";
 
         [SerializeField]
-        [Tooltip("길을 묻는 튜토리얼 행인(ERD npcs.code)")]
-        private string tutorialNpcCode = "TUTORIAL_PASSERBY";
+        [Tooltip(
+            "튜토리얼에서 길을 묻는 행인(ERD npcs.code). 마을 행인 Ben이 튜토리얼 동안 이 역할을 한다."
+        )]
+        private string tutorialNpcCode = "TOWN_PASSERBY";
+
+        [SerializeField]
+        [Tooltip(
+            "튜토리얼 동안 그 행인이 쓰는 길 안내 대본·인사말의 키. 튜토리얼을 마치면 NPC 키로 평소 대화한다."
+        )]
+        private string tutorialScriptKey = "TUTORIAL_PASSERBY";
 
         [SerializeField]
         [Tooltip("미션 안내에서 대화하러 가는 NPC(ERD npcs.code)")]
@@ -93,6 +101,7 @@ namespace A305.Tutorial
         public string HomeSceneName => homeSceneName;
         public string TutorialNpcCode => tutorialNpcCode;
         public string MissionNpcCode => missionNpcCode;
+        public string TutorialScriptKey => tutorialScriptKey;
 
         /// <returns>그 단계의 안내 문구가 있으면 true. 없으면 안내 카드를 숨긴다.</returns>
         public bool TryGetStepGuide(TutorialStep step, out TutorialStepGuide guide)

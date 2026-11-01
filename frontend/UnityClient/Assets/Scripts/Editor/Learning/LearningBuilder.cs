@@ -643,8 +643,9 @@ namespace A305.EditorTools.Learning
             SetUpLookSensitivity(view, profile, bold, regular);
             RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
             // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
-            consentsLabel.transform.SetSiblingIndex(profileButtons.GetSiblingIndex());
-            consents.SetSiblingIndex(profileButtons.GetSiblingIndex());
+            // 이미 버튼 줄 위에 있는 줄까지 옮기면 제목·목록·버튼 순서가 뒤집히므로 아래에 있는 줄만 옮긴다.
+            MoveAboveIfBelow(consentsLabel.transform, profileButtons);
+            MoveAboveIfBelow(consents, profileButtons);
             BuilderTools.SetReference(
                 view,
                 "logoutButton",
@@ -792,6 +793,13 @@ namespace A305.EditorTools.Learning
             );
             BuilderTools.SetReference(view, "withdrawDialog", withdraw.gameObject);
             return withdraw;
+        }
+
+        // row가 anchor보다 아래에 있을 때만 anchor 바로 위로 옮긴다.
+        private static void MoveAboveIfBelow(Transform row, Transform anchor)
+        {
+            if (row.GetSiblingIndex() > anchor.GetSiblingIndex())
+                row.SetSiblingIndex(anchor.GetSiblingIndex());
         }
 
         // 닉네임 안내 아래, 버튼 줄 위에 "시점 감도" 제목·설명과 [느리게] 슬라이더 [빠르게] 현재값 줄을 둔다.

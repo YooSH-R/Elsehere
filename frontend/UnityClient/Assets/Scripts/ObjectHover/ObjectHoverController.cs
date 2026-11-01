@@ -62,6 +62,7 @@ namespace A305.ObjectHover
 
         // 사물 클릭을 판단하려고 누른 자리를 기억한다. UI 위에서 눌렀으면 비운다.
         private Vector2? pressedAt;
+        private readonly List<RaycastResult> uiHits = new List<RaycastResult>();
 
         /// <summary>
         /// 포인터 위치를 클릭했다. 단어가 있는 가까운 사물이면 그 카드를 클릭한 자리에 고정하고, 아니면 고정을 푼다.
@@ -252,7 +253,7 @@ namespace A305.ObjectHover
 
             if (device.press.wasPressedThisFrame)
             {
-                pressedAt = IsPointerOverUi() ? null : pointer;
+                pressedAt = IsPointerOverUi(pointer) ? null : pointer;
             }
             else if (device.press.wasReleasedThisFrame && pressedAt.HasValue)
             {
@@ -265,9 +266,24 @@ namespace A305.ObjectHover
             }
         }
 
-        private static bool IsPointerOverUi()
+        // 휴대폰·터치 노트북의 터치 조작판은 화면을 덮지만 끌기만 받으므로, 그 위를 누른 것은 사물 클릭으로 본다.
+        private bool IsPointerOverUi(Vector2 pointer)
         {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            EventSystem events = EventSystem.current;
+            if (events == null)
+            {
+                return false;
+            }
+
+            uiHits.Clear();
+            events.RaycastAll(new PointerEventData(events) { position = pointer }, uiHits);
+            var hitObjects = new List<GameObject>(uiHits.Count);
+            foreach (RaycastResult hit in uiHits)
+            {
+                hitObjects.Add(hit.gameObject);
+            }
+
+            return WorldClickBlocker.IsBlockedBy(hitObjects);
         }
 
         // 대화처럼 이동이 잠기거나 플레이어가 멀어지면 고정을 푼다. 걷는 동안에는 그대로 둔다.

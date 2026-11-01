@@ -188,6 +188,27 @@ namespace A305.Npc.PlayModeTests
             yield return WaitUntil(() => offer.IsShowing);
 
             Assert.That(ben.Doing, Is.Null, "말을 걸러 오면 하던 일을 그만둡니다.");
+            Assert.That(
+                offer.IsDeclineShown,
+                Is.True,
+                "튜토리얼을 마친 Ben은 평소 행인처럼 거절할 수 있습니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator TownPasserby_DuringTheTutorial_WaitsInFrontOfTheHouseWithoutLiving()
+        {
+            // 튜토리얼 중에는 Ben이 집 앞에서 정해진 흐름(길 묻기)대로만 움직이고 생활하지 않는다.
+            TutorialState.Clear();
+            yield return LoadAt("TownScene", 10 * 60, paused: true);
+            NpcRoutine ben = Routine("TOWN_PASSERBY");
+            PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
+
+            // 자유 시간이라 평소라면 바로 벤치로 가지만, 튜토리얼 중에는 집에서 나온 플레이어에게 길을 물으러 온다.
+            yield return WaitUntil(() => offer.IsShowing);
+
+            Assert.That(ben.Doing, Is.Null, "튜토리얼 중에는 생활하지 않습니다.");
+            Assert.That(offer.IsDeclineShown, Is.False, "튜토리얼 대화는 거절할 수 없습니다.");
         }
 
         /// <summary>서버가 알려 준 게임 시각으로 맞춘 뒤 장면을 불러온다. 장면의 신호는 이 시험 동안 다시 보내지 않는다.</summary>

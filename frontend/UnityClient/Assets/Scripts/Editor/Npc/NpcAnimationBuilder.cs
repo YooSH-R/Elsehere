@@ -21,9 +21,6 @@ namespace A305.EditorTools.Npc
         private const string Folder = "Assets/Art/Characters/Npc";
         private const string ControllerPath = Folder + "/NpcLife.controller";
 
-        // 서 있을 때 재생하는 동작. 플레이어의 대기 자세(점프 착지에서 만든 무릎 굽힌 자세) 대신 똑바로 선 대기를 쓴다.
-        private const string StandingClip = "Idle_Loop";
-
         private static readonly (string Clip, NpcAnimation Animation)[] ActionClips =
         {
             ("Interact", NpcAnimation.Work),
@@ -64,10 +61,8 @@ namespace A305.EditorTools.Npc
             );
             tree.blendParameter = "Speed";
             tree.useAutomaticThresholds = false;
-            // 걷기·뛰기는 플레이어와 같은 리틀멍 이동 클립과 속도 기준을 쓰고, 멈췄을 때만 똑바로 선다.
-            ChildMotion[] children = PlayerLocomotion().children;
-            children[0].motion = Clip(StandingClip);
-            tree.children = children;
+            // 서 있기·걷기·뛰기는 플레이어와 같은 리틀멍 이동 클립과 속도 기준을 쓴다. 대기 자세가 같아야 NPC 키(서비스 높이)도 그대로다.
+            tree.children = PlayerLocomotion().children;
             machine.defaultState = locomotion;
 
             foreach ((string clipName, NpcAnimation animation) in ActionClips)
@@ -87,14 +82,13 @@ namespace A305.EditorTools.Npc
             return controller;
         }
 
-        /// <summary>NPC의 Humanoid 모델 Animator에 NPC 전용 컨트롤러를 연결한다. 뼈대가 없는 모델(마을 행인 등)은 그대로 둔다.</summary>
-        public static void Connect(Component npc, RuntimeAnimatorController controller)
+        /// <summary>
+        /// NPC 생활에 동작 컨트롤러를 연결한다. 장면에 저장된 모델 Animator는 그대로 두고, 생활이 켜질 때 바꿔 끼운다
+        /// (<see cref="NpcRoutine"/>). 뼈대가 없는 모델(마을 행인 등)에는 바꿔 끼우지 않는다.
+        /// </summary>
+        public static void Connect(NpcRoutine routine, RuntimeAnimatorController controller)
         {
-            foreach (Animator animator in npc.GetComponentsInChildren<Animator>(true))
-            {
-                if (animator.avatar != null && animator.avatar.isHuman)
-                    BuilderTools.SetReference(animator, "m_Controller", controller);
-            }
+            BuilderTools.SetReference(routine, "lifeAnimator", controller);
         }
 
         // Quaternius 안내대로 Humanoid·축 변환으로 가져오고, 쓰는 동작만 남겨 이용하는 동안 되풀이한다.
@@ -110,7 +104,7 @@ namespace A305.EditorTools.Npc
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
             importer.SaveAndReimport();
 
-            string[] used = ActionClips.Select(entry => entry.Clip).Append(StandingClip).ToArray();
+            string[] used = ActionClips.Select(entry => entry.Clip).ToArray();
             ModelImporterClipAnimation[] clips = importer
                 .defaultClipAnimations.Where(clip => used.Contains(ShortName(clip.name)))
                 .ToArray();

@@ -387,6 +387,7 @@ MonoBehaviour:
   lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
   walkSpeedMetersPerSecond: 1.1
   serveRadiusMeters: 2
+  lifeAnimator: {fileID: 9100000, guid: 0a9e0e7b8fba0fb44bb8eda55e41c374, type: 2}
 --- !u!1 &59917500
 GameObject:
   m_ObjectHideFlags: 0
@@ -3175,10 +3176,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Hotelier
       objectReference: {fileID: 0}
-    - target: {fileID: 8025193356434928663, guid: b7aa253f02755b74a94aaef9c04f768a, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 9100000, guid: e474152e1b79b4e4fae32f2520c12f29, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

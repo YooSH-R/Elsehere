@@ -81,7 +81,7 @@ namespace A305.EditorTools.Npc
 
                 var routine = BuilderTools.GetOrAddComponent<NpcRoutine>(passerby.gameObject);
                 BuilderTools.SetReference(routine, "lifeData", lifeData);
-                NpcAnimationBuilder.Connect(passerby, animator);
+                NpcAnimationBuilder.Connect(routine, animator);
                 connected++;
             }
 

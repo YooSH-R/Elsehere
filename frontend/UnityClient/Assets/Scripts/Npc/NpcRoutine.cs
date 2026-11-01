@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using A305.Characters;
 using A305.ObjectHover;
 using A305.Player;
@@ -72,6 +73,12 @@ namespace A305.Npc
         )]
         private float serveRadiusMeters = 2f;
 
+        [SerializeField]
+        [Tooltip(
+            "생활 동작(일하기·물건 집기·말하기·앉기)이 있는 NPC 전용 Animator Controller. 생활이 켜지면 Humanoid 모델에 바꿔 끼운다."
+        )]
+        private RuntimeAnimatorController lifeAnimator;
+
         private readonly Dictionary<string, List<HoverableObject>> placed =
             new Dictionary<string, List<HoverableObject>>();
         private readonly List<INpcSeat> seats = new List<INpcSeat>();
@@ -141,6 +148,7 @@ namespace A305.Npc
             }
 
             life = new NpcLife(data, entry, GameClock.Shared.Minutes);
+            UseLifeAnimator();
             CollectSceneObjects();
             FindCounter();
         }
@@ -148,6 +156,25 @@ namespace A305.Npc
         private void OnDisable()
         {
             StandUp();
+        }
+
+        // 장면에는 플레이어와 같은 이동 컨트롤러로 저장해 두고, 생활하는 동안만 동작 상태가 더해진 컨트롤러를 쓴다.
+        private void UseLifeAnimator()
+        {
+            Animator model = GetComponentsInChildren<Animator>()
+                .FirstOrDefault(animator => animator.avatar != null && animator.avatar.isHuman);
+            if (lifeAnimator == null || model == null)
+            {
+                return;
+            }
+
+            model.runtimeAnimatorController = lifeAnimator;
+            // 바꿔 끼운 직후에는 새 파라미터가 아직 묶이지 않아 다시 묶는다.
+            model.Rebind();
+            if (animationDriver != null)
+            {
+                animationDriver.BindAnimator(model);
+            }
         }
 
         /// <summary>

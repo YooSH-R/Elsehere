@@ -425,6 +425,7 @@ MonoBehaviour:
   lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
   walkSpeedMetersPerSecond: 1.1
   serveRadiusMeters: 2
+  lifeAnimator: {fileID: 9100000, guid: 0a9e0e7b8fba0fb44bb8eda55e41c374, type: 2}
 --- !u!1 &9555466
 GameObject:
   m_ObjectHideFlags: 0

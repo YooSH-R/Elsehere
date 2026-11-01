@@ -12,7 +12,9 @@ namespace A305.Tutorial
     public class TutorialGuideDefinition : ScriptableObject
     {
         [SerializeField]
-        [Tooltip("튜토리얼을 시작하는 숙소 씬. 다른 공간 씬에 들어가면 숙소 안내를 마친 것으로 본다.")]
+        [Tooltip(
+            "튜토리얼을 시작하는 숙소 씬. 다른 공간 씬에 들어가면 숙소 안내를 마친 것으로 본다."
+        )]
         private string homeSceneName = "HomeScene";
 
         [SerializeField]
@@ -98,7 +100,8 @@ namespace A305.Tutorial
         [SerializeField]
         [TextArea]
         [Tooltip("Ben이 말을 걸어와 대화 제안이 뜬 동안 [대화하기] 옆에 보이는 설명")]
-        private string talkOfferCaption = "Ben이 말을 걸어왔어요. [대화하기]를 눌러 이야기를 시작해요.";
+        private string talkOfferCaption =
+            "Ben이 말을 걸어왔어요. [대화하기]를 눌러 이야기를 시작해요.";
 
         [SerializeField]
         [TextArea]
@@ -109,11 +112,13 @@ namespace A305.Tutorial
         [SerializeField]
         [TextArea]
         [Tooltip("길 안내를 마친 뒤 [대화 종료] 옆에 보이는 설명")]
-        private string dialogueEndCaption = "길 안내를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+        private string dialogueEndCaption =
+            "길 안내를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
 
         [SerializeField]
         [Tooltip("튜토리얼 단계를 마치기 전에 문·[홈]으로 다른 장소에 가려 할 때 보이는 안내")]
-        private string travelLockedMessage = "아직 다른 곳으로 갈 수 없어요. 안내 카드의 할 일을 먼저 해 보세요.";
+        private string travelLockedMessage =
+            "아직 다른 곳으로 갈 수 없어요. 안내 카드의 할 일을 먼저 해 보세요.";
 
         public string HomeSceneName => homeSceneName;
         public string TutorialNpcCode => tutorialNpcCode;

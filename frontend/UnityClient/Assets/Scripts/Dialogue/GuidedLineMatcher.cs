@@ -34,7 +34,11 @@ namespace A305.Dialogue
                 {
                     normalized.Append(char.ToLowerInvariant(letter));
                 }
-                else if (char.IsWhiteSpace(letter) && normalized.Length > 0 && normalized[^1] != ' ')
+                else if (
+                    char.IsWhiteSpace(letter)
+                    && normalized.Length > 0
+                    && normalized[^1] != ' '
+                )
                 {
                     normalized.Append(' ');
                 }

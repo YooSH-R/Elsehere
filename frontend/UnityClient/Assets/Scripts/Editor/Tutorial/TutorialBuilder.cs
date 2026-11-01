@@ -89,7 +89,9 @@ namespace A305.EditorTools.Tutorial
         public static void ResetGuideTexts()
         {
             BuilderTools.ThrowIfPlaying();
-            var guide = BuilderTools.LoadOrCreateAsset<TutorialGuideDefinition>(GuideDefinitionPath);
+            var guide = BuilderTools.LoadOrCreateAsset<TutorialGuideDefinition>(
+                GuideDefinitionPath
+            );
             var defaults = ScriptableObject.CreateInstance<TutorialGuideDefinition>();
             var fields = new SerializedObject(guide);
             var defaultFields = new SerializedObject(defaults);
@@ -473,7 +475,9 @@ namespace A305.EditorTools.Tutorial
             RectTransform rect = bar.rectTransform;
             rect.anchorMin = anchorMin;
             rect.anchorMax = anchorMax;
-            rect.pivot = isHorizontal ? new Vector2(0.5f, anchorMin.y) : new Vector2(anchorMin.x, 0.5f);
+            rect.pivot = isHorizontal
+                ? new Vector2(0.5f, anchorMin.y)
+                : new Vector2(anchorMin.x, 0.5f);
             rect.anchoredPosition = Vector2.zero;
             rect.sizeDelta = isHorizontal
                 ? new Vector2(0f, FrameThickness)

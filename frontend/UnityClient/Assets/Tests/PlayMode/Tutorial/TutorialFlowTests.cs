@@ -79,7 +79,11 @@ namespace A305.Tutorial.PlayModeTests
             CoachMarkView coachMark = Single<CoachMarkView>();
             Passerby ben = FindBen();
 
-            Assert.That(SpaceTravel.IsLocked, Is.True, "Ben과 이야기하기 전에는 다른 장소로 가지 않습니다.");
+            Assert.That(
+                SpaceTravel.IsLocked,
+                Is.True,
+                "Ben과 이야기하기 전에는 다른 장소로 가지 않습니다."
+            );
             Assert.That(coachMark.MarkerTarget, Is.EqualTo(ben.transform));
 
             yield return StandInFrontOf(ben);
@@ -113,12 +117,18 @@ namespace A305.Tutorial.PlayModeTests
             Click(panel, "SendButton");
             yield return null;
 
-            Assert.That(input.text, Is.EqualTo("Hello there"), "고쳐 보낼 수 있게 입력을 되돌립니다.");
             Assert.That(
-                panel.GetComponentsInChildren<TMP_Text>(true).Any(text =>
-                    text.gameObject.activeInHierarchy
-                    && text.text.Contains(DialogueConversation.GuidedLineMissNotice)
-                ),
+                input.text,
+                Is.EqualTo("Hello there"),
+                "고쳐 보낼 수 있게 입력을 되돌립니다."
+            );
+            Assert.That(
+                panel
+                    .GetComponentsInChildren<TMP_Text>(true)
+                    .Any(text =>
+                        text.gameObject.activeInHierarchy
+                        && text.text.Contains(DialogueConversation.GuidedLineMissNotice)
+                    ),
                 Is.True,
                 "정해진 대사로 연습한다는 안내가 보입니다."
             );

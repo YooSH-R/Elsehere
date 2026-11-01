@@ -21,7 +21,9 @@ namespace A305.Tutorial
         private Canvas canvas;
 
         [SerializeField]
-        [Tooltip("구멍 둘레를 덮는 아래·위·왼쪽·오른쪽 판. 클릭을 받아 구멍 밖을 누르지 못하게 한다.")]
+        [Tooltip(
+            "구멍 둘레를 덮는 아래·위·왼쪽·오른쪽 판. 클릭을 받아 구멍 밖을 누르지 못하게 한다."
+        )]
         private RectTransform[] shades = new RectTransform[4];
 
         [SerializeField]
@@ -183,7 +185,8 @@ namespace A305.Tutorial
                 out Vector2 local
             );
             float bob = Mathf.Abs(Mathf.Sin(Time.unscaledTime * MarkerBobSpeed)) * MarkerBobPixels;
-            marker.anchoredPosition = local + canvasRect.rect.size * canvasRect.pivot + Vector2.up * bob;
+            marker.anchoredPosition =
+                local + canvasRect.rect.size * canvasRect.pivot + Vector2.up * bob;
         }
 
         // 다른 캔버스의 버튼 모서리(화면 픽셀)를 이 캔버스 왼쪽 아래 기준 좌표로 바꾼다.
@@ -195,8 +198,12 @@ namespace A305.Tutorial
                 targetCanvas != null && targetCanvas.renderMode != RenderMode.ScreenSpaceOverlay
                     ? targetCanvas.worldCamera
                     : null;
-            Vector2 min = ToCanvas(RectTransformUtility.WorldToScreenPoint(eventCamera, corners[0]));
-            Vector2 max = ToCanvas(RectTransformUtility.WorldToScreenPoint(eventCamera, corners[2]));
+            Vector2 min = ToCanvas(
+                RectTransformUtility.WorldToScreenPoint(eventCamera, corners[0])
+            );
+            Vector2 max = ToCanvas(
+                RectTransformUtility.WorldToScreenPoint(eventCamera, corners[2])
+            );
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 

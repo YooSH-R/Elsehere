@@ -381,7 +381,10 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.DialogueEnd:
                     return guide.DialogueEndCaption;
                 case TutorialCoachTarget.Feedback:
-                    return guide.TryGetStepGuide(TutorialStep.BenFeedback, out TutorialStepGuide feedback)
+                    return guide.TryGetStepGuide(
+                        TutorialStep.BenFeedback,
+                        out TutorialStepGuide feedback
+                    )
                         ? feedback.Task
                         : null;
                 default:
@@ -409,7 +412,10 @@ namespace A305.Tutorial
             float nearestDistance = float.MaxValue;
             foreach (SpaceDoorway doorway in FindInThisScene<SpaceDoorway>())
             {
-                float distance = Vector3.Distance(doorway.transform.position, player.transform.position);
+                float distance = Vector3.Distance(
+                    doorway.transform.position,
+                    player.transform.position
+                );
                 if (distance < nearestDistance)
                 {
                     nearest = doorway;

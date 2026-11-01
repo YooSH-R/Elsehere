@@ -102,7 +102,10 @@ namespace A305.Tutorial.Tests
         {
             // 단어장·피드백 목록 화면이나 다른 대화가 열려 있으면 그 화면을 가리지 않는다.
             Assert.That(
-                Choose(TutorialStep.OpenVocabulary, new TutorialScreen { IsLearningScreenShowing = true }),
+                Choose(
+                    TutorialStep.OpenVocabulary,
+                    new TutorialScreen { IsLearningScreenShowing = true }
+                ),
                 Is.EqualTo(TutorialCoachTarget.None)
             );
             Assert.That(
@@ -110,7 +113,10 @@ namespace A305.Tutorial.Tests
                 Is.EqualTo(TutorialCoachTarget.None)
             );
             Assert.That(
-                Choose(TutorialStep.TodayGoal, new TutorialScreen { IsLearningScreenShowing = true }),
+                Choose(
+                    TutorialStep.TodayGoal,
+                    new TutorialScreen { IsLearningScreenShowing = true }
+                ),
                 Is.EqualTo(TutorialCoachTarget.None)
             );
         }

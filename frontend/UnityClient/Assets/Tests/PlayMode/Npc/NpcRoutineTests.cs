@@ -55,6 +55,7 @@ namespace A305.Npc.PlayModeTests
                 HorizontalDistance(mia.transform, NearestPlaced("muffin", mia.transform)),
                 Is.LessThan(NearObjectMeters)
             );
+            yield return WaitUntil(() => IsPlaying(mia, "PickUp"));
         }
 
         [UnityTest]
@@ -69,12 +70,18 @@ namespace A305.Npc.PlayModeTests
                 HorizontalDistance(mia.transform, NearestPlaced("coffee_machine", mia.transform)),
                 Is.LessThan(NearObjectMeters)
             );
+            yield return WaitUntil(() => IsPlaying(mia, "Work"));
 
             Vector3 drinkSpot = mia.transform.position;
 
             // 커피 만들기(게임 3분)가 끝나면 급한 일이 없어도 한곳에 서 있지 않고 가게 안 사물들을 옮겨 다닌다.
             yield return WaitUntil(() =>
                 mia.Doing == null && HorizontalDistance(mia.transform.position, drinkSpot) > 1f
+            );
+            Assert.That(
+                IsPlaying(mia, "Locomotion"),
+                Is.True,
+                "걸을 때는 걷기 동작으로 돌아옵니다."
             );
             yield return WaitUntilStill(mia.transform);
             Vector3 nextSpot = mia.transform.position;
@@ -114,6 +121,7 @@ namespace A305.Npc.PlayModeTests
                 Is.LessThan(.3f),
                 "카운터 뒤 자리에서 응대해야 합니다."
             );
+            yield return WaitUntil(() => IsPlaying(mia, "Talk"));
         }
 
         [UnityTest]
@@ -154,6 +162,7 @@ namespace A305.Npc.PlayModeTests
                 "소파 자리에 앉아야 합니다."
             );
             Assert.That(seat.IsTaken, Is.True, "NPC가 앉은 자리에는 플레이어가 앉을 수 없습니다.");
+            yield return WaitUntil(() => IsPlaying(jake, "Sit"));
         }
 
         [UnityTest]
@@ -235,6 +244,14 @@ namespace A305.Npc.PlayModeTests
             }
 
             return bounds;
+        }
+
+        // 모델 Animator가 그 동작 상태를 재생 중인지
+        private static bool IsPlaying(NpcRoutine npc, string state)
+        {
+            Animator animator = npc.GetComponentsInChildren<Animator>()
+                .First(candidate => candidate.isActiveAndEnabled);
+            return animator.GetCurrentAnimatorStateInfo(0).IsName(state);
         }
 
         private static INpcSeat[] Seats()

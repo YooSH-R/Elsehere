@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using A305.Dialogue;
 using A305.Npc;
 using A305.Player;
@@ -6,11 +7,17 @@ using UnityEngine;
 
 namespace A305.Mission
 {
-    /// <summary>카페 의자 앞에서 앉기 제안을 띄우고 잠깐 쉰 뒤 일으킨다.</summary>
-    public sealed class CafeChairSeat : MonoBehaviour
+    /// <summary>
+    /// 의자·벤치·소파의 한 자리. 플레이어에게 가장 가까운 자리 앞에서 앉기 제안을 띄우고 잠깐 쉰 뒤 일으킨다.
+    /// </summary>
+    public sealed class RestSeat : MonoBehaviour
     {
         private const float InteractionDistanceMeters = 1.55f;
         private const float RestSeconds = 3f;
+
+        // 켜져 있는 모든 자리. 붙어 있는 자리 중 가장 가까운 자리 하나에만 제안을 띄울 때 비교한다.
+        private static readonly List<RestSeat> EnabledSeats = new List<RestSeat>();
+        private static readonly List<Vector3> EnabledSeatPositions = new List<Vector3>();
 
         [SerializeField]
         private PlayerMover player;
@@ -21,9 +28,22 @@ namespace A305.Mission
         [SerializeField]
         private PasserbyOfferView offerView;
 
-        private readonly CafeSeatTimer timer = new CafeSeatTimer(RestSeconds);
+        // 앉는 면은 자리 원점에서 잰 값이다. 기본값은 카페 의자를 충돌 메시로 잰 값이고, 벤치·소파는 Builder가 모양에 맞춰 넣는다.
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("자리 원점에서 쿠션 윗면까지의 높이")]
+        private float cushionTopMeters = .33f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("자리 원점에서 앉는 면 앞 모서리까지의 거리")]
+        private float frontEdgeMeters = .30f;
+
+        private readonly RestSeatTimer timer = new RestSeatTimer(RestSeconds);
         private PlayerSeatPose pose;
-        private bool available;
+
+        // 카페에서는 첫날 미션이 요청 중에 막는다. 다른 장소의 자리는 미션과 상관없이 열려 있다.
+        private bool available = true;
         private bool resting;
 
         public event Action RestCompleted;
@@ -39,7 +59,7 @@ namespace A305.Mission
         {
             if (player == null || dialogue == null || offerView == null)
             {
-                Debug.LogError("카페 의자에 플레이어·대화·상호작용 화면을 연결해야 합니다.", this);
+                Debug.LogError("앉을 자리에 플레이어·대화·상호작용 화면을 연결해야 합니다.", this);
                 enabled = false;
                 return;
             }
@@ -50,6 +70,8 @@ namespace A305.Mission
                 enabled = false;
             }
         }
+
+        private void OnEnable() => EnabledSeats.Add(this);
 
         private void Update()
         {
@@ -69,13 +91,10 @@ namespace A305.Mission
                 return;
             }
 
-            bool nearby =
-                Vector3.Distance(player.transform.position, transform.position)
-                <= InteractionDistanceMeters;
             bool anotherPrompt =
                 offerView.IsTalkPromptShowing && !offerView.IsTalkPromptShownBy(this);
             if (
-                nearby
+                IsNearestSeatToPlayer()
                 && !dialogue.IsTalking
                 && !player.IsMovementLocked
                 && !offerView.IsShowing
@@ -86,14 +105,25 @@ namespace A305.Mission
                 offerView.HideTalkPrompt(this);
         }
 
+        private bool IsNearestSeatToPlayer()
+        {
+            EnabledSeatPositions.Clear();
+            foreach (RestSeat seat in EnabledSeats)
+                EnabledSeatPositions.Add(seat.transform.position);
+            int nearest = RestSeatPicker.Nearest(
+                player.transform.position,
+                EnabledSeatPositions,
+                InteractionDistanceMeters
+            );
+            return nearest >= 0 && EnabledSeats[nearest] == this;
+        }
+
         private void Sit()
         {
             offerView.HideTalkPrompt(this);
             if (!available)
                 return;
-            // 원형 테이블의 왼쪽 통로로 일어나면 의자와 외벽에 끼지 않는다.
-            Vector3 exit = transform.position + new Vector3(-1f, 0f, .4f);
-            if (!pose.Sit(transform, exit, 90f))
+            if (!pose.Sit(transform, cushionTopMeters, frontEdgeMeters))
                 return;
             resting = true;
             timer.Begin();
@@ -101,6 +131,7 @@ namespace A305.Mission
 
         private void OnDisable()
         {
+            EnabledSeats.Remove(this);
             offerView?.HideTalkPrompt(this);
             timer.Cancel();
             if (resting)

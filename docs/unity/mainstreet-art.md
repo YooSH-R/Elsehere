@@ -15,7 +15,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | 이용 장소 | 남동쪽 집, 서쪽 카페, 동쪽 호텔. 집은 포치, 카페는 초록 CAFE 차양, 호텔은 세로 간판 | 기존 HomeDoor·CafeDoor·HotelDoor와 실내 왕복 연결 유지 |
 | 빈 건물 | 카페 북쪽 크림색 2층 건물. 셔터와 CLOSED 표시, 비발광 창 | 출입 Trigger·상품·영업 조명 없음 |
 | 배경 주거동 | 북쪽 거리와 남서쪽 주택. 코럴·버터·세이지 3색, 1~3층, 닫힌 주거 문 | 배경 외벽 Collider만 사용 |
-| 휴식 공간 | 집 앞 대화 마당, 북동쪽 8×8m 공원 | 기존 행인 2명의 ID와 대화 참조 유지. 벤치·분수는 장식이며 앉기·물 효과는 미구현 |
+| 휴식 공간 | 집 앞 대화 마당, 북동쪽 8×8m 공원 | 기존 행인 2명의 ID와 대화 참조 유지. 벤치에는 앉을 수 있고, 분수는 장식이며 물 효과는 미구현 |
 
 `Environment/TownMainstreet` 아래에 공통 거리 프리팹과 `BackgroundBuildings`를 둔다. 기존 이용 건물 루트는 출입구의 참조를 보존하고, 도형 외관을 비활성화한 뒤 새 외관을 중첩한다. Systems·UI의 대화·사물 호버·학습·미션·튜토리얼 연결은 유지한다. 식당·공항의 임시 영업 간판은 현재 배치에서 제거하며 새 이동 장소를 추가하지 않는다.
 
@@ -64,7 +64,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | StreetLampV2 | 약 3.4m. 발광 전구와 범위 5m의 따뜻한 Point Light |
 | MarketCrateV2 / ChalkboardV2 | 상점 진열 상자 / 카페 입간판. 문 앞 비움 영역 밖에 배치 |
 | DistantShopV2 3종 | 폭 6m·깊이 5.2m, 높이 5.8~7.3m의 닫힌 배경 외관. 북쪽 확장부에 배치 |
-| ParkBench / CafeTable | 좌판 약 0.27~0.29m, 작은 몸 비율에 맞춘 가구. 앉기 동작은 미검증 |
+| ParkBench / CafeTable | 작은 몸 비율에 맞춘 가구. 벤치는 폭 1.6m를 반씩 나눈 두 자리에 앉는다. 앉는 면 치수는 [Mission 모듈](../../frontend/UnityClient/Assets/Scripts/Mission/README.md#의자벤치소파-앉기)에 있다 |
 | PicketFence2m | 주택 앞마당 가장자리에 연결 |
 | SidewalkTile2m | 2×2m 보도 반복. 교차로 끝은 길이를 절반으로 조정 |
 | FireHydrant | 빨간 소화전 한 종류 재사용 |

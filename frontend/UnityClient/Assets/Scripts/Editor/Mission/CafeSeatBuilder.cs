@@ -69,9 +69,7 @@ namespace A305.EditorTools.Mission
                     marker.SetParent(cornerCafe, false);
                 }
                 marker.SetPositionAndRotation(chairs[index].position, chairs[index].rotation);
-                CafeChairSeat seat = BuilderTools.GetOrAddComponent<CafeChairSeat>(
-                    marker.gameObject
-                );
+                RestSeat seat = BuilderTools.GetOrAddComponent<RestSeat>(marker.gameObject);
                 BuilderTools.SetReference(seat, "player", player);
                 BuilderTools.SetReference(seat, "dialogue", dialogue);
                 BuilderTools.SetReference(seat, "offerView", offer);

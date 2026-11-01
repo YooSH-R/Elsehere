@@ -34,7 +34,7 @@ namespace A305.Mission
         private FirstDayMissionState state;
         private bool busy;
         private bool refreshPending;
-        private CafeChairSeat[] cafeSeats;
+        private RestSeat[] cafeSeats;
 
         public void SetAvailable(bool available) => view.SetAvailable(available);
 
@@ -47,8 +47,10 @@ namespace A305.Mission
                 return;
             }
             api = new FirstDayMissionApi(apiSettings.CreateClient());
-            cafeSeats = FindObjectsByType<CafeChairSeat>(FindObjectsSortMode.None);
-            foreach (CafeChairSeat seat in cafeSeats)
+            cafeSeats = FirstDayMissionState.ManagesSeatsIn(sceneCode)
+                ? FindObjectsByType<RestSeat>(FindObjectsSortMode.None)
+                : Array.Empty<RestSeat>();
+            foreach (RestSeat seat in cafeSeats)
                 seat.RestCompleted += Rest;
             view.BindMap(sceneCode, player.transform);
             view.StartRequested += StartMission;
@@ -65,7 +67,7 @@ namespace A305.Mission
         {
             if (cafeSeats != null)
             {
-                foreach (CafeChairSeat seat in cafeSeats)
+                foreach (RestSeat seat in cafeSeats)
                 {
                     if (seat != null)
                         seat.RestCompleted -= Rest;
@@ -163,7 +165,7 @@ namespace A305.Mission
             if (cafeSeats == null)
                 return;
             bool canSit = state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking);
-            foreach (CafeChairSeat seat in cafeSeats)
+            foreach (RestSeat seat in cafeSeats)
             {
                 if (seat != null)
                     seat.SetAvailable(canSit);

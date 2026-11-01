@@ -3,19 +3,17 @@ using UnityEngine;
 
 namespace A305.Player
 {
-    /// <summary>카페 의자에 앉은 동안 기존 Humanoid 골격을 의자 높이에 맞춰 구부린다.</summary>
+    /// <summary>
+    /// 의자·벤치·소파에 앉은 동안 기존 Humanoid 골격을 앉는 면 높이에 맞춰 구부린다. 일어서면 앉기 전에 서 있던 곳으로 돌아간다.
+    /// </summary>
     [DefaultExecutionOrder(700)]
     [RequireComponent(typeof(PlayerMover))]
     public sealed class PlayerSeatPose : MonoBehaviour
     {
-        // 카페 의자 기준(의자 원점에서 잰 값). 의자 충돌 메시로 잰 쿠션 윗면 높이와 앞 모서리까지의 거리다.
-        private const float CushionTop = .33f;
-        private const float FrontEdge = .30f;
-
         // 허벅지 두께의 절반. 다리 시작점을 쿠션보다 이만큼 올려 허벅지가 쿠션에 묻히지 않게 한다.
         private const float ThighRadius = .06f;
 
-        // 무릎을 앞 모서리보다 이만큼 앞에 두어 내려뜨린 정강이가 의자 앞면에 묻히지 않게 한다.
+        // 무릎을 앞 모서리보다 이만큼 앞에 두어 내려뜨린 정강이가 의자·벤치·소파 앞면에 묻히지 않게 한다.
         private const float KneeOverhang = .05f;
 
         private PlayerMover mover;
@@ -32,6 +30,8 @@ namespace A305.Player
         private Vector3 standingPosition;
         private Quaternion standingRotation;
         private Transform seat;
+        private float cushionTopMeters;
+        private float frontEdgeMeters;
         private float seatCameraYaw;
 
         public bool IsSeated => seat != null;
@@ -42,9 +42,12 @@ namespace A305.Player
             controller = GetComponent<CharacterController>();
         }
 
-        public bool Sit(Transform chair, Vector3 exitPosition, float cameraYaw)
+        /// <param name="seatPoint">앉을 자리. 원점은 바닥, 앞(+z)은 앉아서 보는 방향이다.</param>
+        /// <param name="cushionTopMeters">자리 원점에서 쿠션 윗면까지의 높이</param>
+        /// <param name="frontEdgeMeters">자리 원점에서 앉는 면 앞 모서리까지의 거리</param>
+        public bool Sit(Transform seatPoint, float cushionTopMeters, float frontEdgeMeters)
         {
-            if (seat != null || chair == null || mover.IsMovementLocked)
+            if (seat != null || seatPoint == null || mover.IsMovementLocked)
                 return false;
 
             var appearance = GetComponent<PlayerCharacterAppearance>();
@@ -71,9 +74,16 @@ namespace A305.Player
             )
                 return false;
 
-            standingPosition = new Vector3(exitPosition.x, transform.position.y, exitPosition.z);
-            standingRotation = chair.rotation;
-            seatCameraYaw = cameraYaw;
+            // 서 있던 곳은 캡슐이 들어가 있던 빈 자리라, 일어설 때 탁자·팔걸이·벽에 끼지 않는다.
+            standingPosition = transform.position;
+            standingRotation = seatPoint.rotation;
+            seatCameraYaw = SeatView.CameraYawDegrees(
+                transform.position,
+                seatPoint.position,
+                seatPoint.eulerAngles.y
+            );
+            this.cushionTopMeters = cushionTopMeters;
+            this.frontEdgeMeters = frontEdgeMeters;
             originalVisualPosition = visual.localPosition;
             poseCorrections = visual.GetComponentsInChildren<Behaviour>(true);
             correctionStates = new bool[poseCorrections.Length];
@@ -95,10 +105,10 @@ namespace A305.Player
             mover.SetMovementLocked(true);
             mover.enabled = false;
             controller.enabled = false;
-            seat = chair;
+            seat = seatPoint;
             transform.SetPositionAndRotation(
-                new Vector3(chair.position.x, standingPosition.y, chair.position.z),
-                chair.rotation
+                new Vector3(seatPoint.position.x, standingPosition.y, seatPoint.position.z),
+                seatPoint.rotation
             );
             mover.CameraRig?.SnapView(seatCameraYaw);
             return true;
@@ -109,13 +119,17 @@ namespace A305.Player
             if (seat == null)
                 return;
 
-            // Animator가 매 프레임 기본 자세를 갱신한 뒤 몸을 옮긴다. 리틀멍은 다리가 짧아 의자 가운데에 앉히면 다리가 쿠션에 묻히므로,
-            // 아이처럼 의자 앞쪽에 앉혀 허벅지는 쿠션 위에 앞으로 눕히고 무릎 아래는 앞 모서리 밖으로 내려뜨린다.
+            // Animator가 매 프레임 기본 자세를 갱신한 뒤 몸을 옮긴다. 리틀멍은 다리가 짧아 자리 가운데에 앉히면 다리가 쿠션에 묻히므로,
+            // 아이처럼 자리 앞쪽에 앉혀 허벅지는 쿠션 위에 앞으로 눕히고 무릎 아래는 앞 모서리 밖으로 내려뜨린다.
             visual.localPosition = originalVisualPosition;
             float thigh = Vector3.Distance(upper[0].position, lower[0].position);
             Vector3 legRoot = (upper[0].position + upper[1].position) * .5f;
             Vector3 seatedLegRoot = seat.TransformPoint(
-                new Vector3(0f, CushionTop + ThighRadius, FrontEdge + KneeOverhang - thigh)
+                new Vector3(
+                    0f,
+                    cushionTopMeters + ThighRadius,
+                    frontEdgeMeters + KneeOverhang - thigh
+                )
             );
             visual.position += seatedLegRoot - legRoot;
             for (int side = 0; side < 2; side++)

@@ -6,6 +6,28 @@
 
 **Tools → A305 → Mission → Build First Day Journey**가 다섯 공간의 기능 연결, 수첩 프리팹, 상점과 출입구를 준비합니다. 기존 씬 디자인은 유지합니다. `SpaceSceneSetup`도 같은 기능을 연결하므로 공간을 다시 구성해도 연결이 남습니다.
 
+## 의자·벤치·소파 앉기
+
+카페 원형 테이블 의자 4개, 마을 벤치 4개, 호텔 대기 소파 2개에 같은 조작으로 앉습니다. 앉을 자리마다 `RestSeat`가 하나씩 있고, 벤치·소파는 가구 폭 방향으로 두 자리를 둡니다. 플레이어만 앉으므로 자리를 차지했는지는 따지지 않고, 앉을 위치를 왼쪽·오른쪽 중에서 고르게 하려고 두 자리로 나눕니다.
+
+| 상황 | 동작 |
+| --- | --- |
+| 자리에서 1.55m 안에 섬 | 가장 가까운 자리 하나에만 [잠깐 앉기]를 띄웁니다(`RestSeatPicker`). 버튼이나 E 키로 앉습니다. 대화 중, 이동 잠금 중, 행인 제안이나 다른 [말 걸기]가 떠 있으면 띄우지 않습니다. |
+| 앉음 | 3초 쉰 뒤 앉기 전에 서 있던 곳으로 일어섭니다. 카메라는 플레이어가 다가온 쪽에서 앉은 캐릭터를 봅니다. 자세와 카메라는 [Player 모듈](../Player/README.md)의 `PlayerSeatPose`가 맡습니다. |
+| 카페 | 첫날 미션이 상태를 읽기 전과 서버 요청 중에는 앉기를 막습니다. 쉬고 일어서면 `canRest`일 때만 서버에 휴식을 보냅니다. |
+| 마을·호텔 | 미션 상태와 상관없이 앉고, 미션 휴식으로 세지 않습니다(`FirstDayMissionState.ManagesSeatsIn`). 서버도 마지막 장소가 카페일 때만 휴식을 받습니다. |
+
+`RestSeat`의 `cushionTopMeters`·`frontEdgeMeters`는 자리 원점(바닥, +z가 앉아서 보는 방향)에서 잰 쿠션 윗면 높이와 앞 모서리까지의 거리입니다. 기본값은 카페 의자이고, 벤치·소파는 Builder가 모델에 맞춰 넣습니다.
+
+| 가구 | 모델 | 쿠션 윗면 | 앞 모서리 | 자리 |
+| --- | --- | --- | --- | --- |
+| 카페 의자 | `CafeChair` | 0.33m | 0.30m | 의자마다 1개 |
+| 메인스트리트 벤치 | `ParkBench_HoneyWood`(`MainstreetArtKit.Bench`) | 0.325m | 0.205m | 폭 1.6m를 반씩, x = ±0.4m |
+| 공원 벤치 | TinyTreats `bench.fbx`를 0.8배 | 0.40m | 0.527m | 폭 1.6m를 반씩, x = ±0.4m |
+| 세이지 소파 | `Home_SageSofa_Sage`(`HomeInteriorKit.Sofa`) | 0.705m | 0.485m | 쿠션 두 개의 가운데, x = ±0.57m |
+
+**Tools → A305 → Cafe → Connect Chair Sitting**(`CafeSeatBuilder`)은 `CafeScene`·`CafeInteriorSandbox`의 원형 테이블 의자에 `CafeSeat1~4`를 둡니다. **Tools → A305 → Mission → Connect Bench And Sofa Sitting**(`BenchSofaSeatBuilder`)은 `TownScene`·`HotelScene`에서 위 벤치·소파 모델을 그리는 활성 가구마다 자식 `RestSeat1`, `RestSeat2`를 두고 플레이어·대화·상호작용 화면과 앉는 면 값을 연결합니다. 두 Builder 모두 가구 배치와 디자인은 바꾸지 않습니다. 다른 벤치·소파 모델을 앉을 수 있게 하려면 `BenchSofaSeatBuilder`의 모델 목록에 메시 경로, 잰 값, 자리 위치를 추가합니다.
+
 ## 튜토리얼용 기본 미션
 
 기존 `MissionBoard`·`MissionPanelView`는 튜토리얼의 미션 고르기·카페 대화 안내와 서버 없는 데모에 유지합니다. 이 경로는 키워드를 사용하며 서버 연계 여정의 완료 판정에 사용하지 않습니다. 튜토리얼이 끝나면 `MissionController.SetStoryAvailable`로 기본 창을 숨기고 새 수첩을 표시합니다. 아래는 이 기본 미션 경로의 구성입니다.
@@ -26,7 +48,9 @@
 
 | 대상 | 용도 |
 | --- | --- |
-| `A305.Dialogue` | `DialogueController.ConversationEnded`, `DialogueRecord`, `KeywordMatcher` |
+| `A305.Dialogue` | `DialogueController.ConversationEnded`, `DialogueRecord`, `KeywordMatcher`. 앉기 제안은 대화 중에 띄우지 않습니다. |
+| `A305.Player` | 첫날 미션 지도의 플레이어 위치, 앉기의 `PlayerMover`·`PlayerSeatPose` |
+| `A305.Npc` | [잠깐 앉기]를 띄우는 `PasserbyOfferView`의 상호작용 버튼 |
 | `A305.Weather` | 첫날 미션의 예보 날씨를 마을에 보여 주는 `WeatherPresenter` |
 | uGUI, TextMeshPro | 미션 창 |
 
@@ -69,7 +93,7 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시 |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지 |
+| `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 미션 시작, 다른 미션으로 교체, 없는 미션 거절, 여러 문장에 나뉜 키워드로 완료, 다른 NPC·빠진 키워드·시작 전에는 미완료, 완료한 미션 재시작 거절, 시작·교체 알림 문구, 미션 줄의 말할 단어 표시, 닿는 거리 안의 가장 가까운 자리 고르기(`RestSeatPicker`), 앉아 쉰 시간(`RestSeatTimer`), 미션이 자리를 다루는 장소는 카페뿐인지 |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 미션 창과 미션 처리를 한 번씩 붙이고 대화 처리와 연결하는지, 카페 의자 4개(`CafeSeatSceneTests`)와 마을 벤치 4개·호텔 소파 2개에 두 자리씩(`BenchSofaSeatSceneTests`) 앉기가 연결됐는지 |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

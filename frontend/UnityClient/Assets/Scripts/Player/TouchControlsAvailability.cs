@@ -1,6 +1,9 @@
 namespace A305.Player
 {
-    /// <summary>조이스틱과 회전 드래그 영역을 보일지 정한다. 휴대폰·태블릿 브라우저에서만 보이고 PC 웹에서는 숨긴다.</summary>
+    /// <summary>
+    /// 조이스틱과 회전 드래그 영역을 보일지 정한다. 휴대폰·태블릿 브라우저에서만 보이고 PC 웹에서는 숨긴다.
+    /// Editor는 배포 대상인 PC 웹처럼 보이도록 컴퓨터의 실제 터치스크린은 세지 않고, Device Simulator·테스트의 가상 터치스크린만 센다.
+    /// </summary>
     public static class TouchControlsAvailability
     {
         public static bool ShouldShow(
@@ -21,6 +24,10 @@ namespace A305.Player
             return hasTouchscreen;
         }
 
-        public static bool CountsAsTouchscreen(bool isEditor, bool isNative) => false;
+        /// <param name="isNative">운영체제가 알려 준 실제 장치인지(Device Simulator·테스트가 붙인 장치는 false)</param>
+        public static bool CountsAsTouchscreen(bool isEditor, bool isNative)
+        {
+            return !isEditor || !isNative;
+        }
     }
 }

@@ -49,7 +49,7 @@ namespace A305.Player.Tests
         [TestCase(false)]
         public void OutsideBrowser_FollowsTouchscreenDevice(bool hasTouchscreen)
         {
-            // Editor의 Device Simulator와 PlayMode 테스트는 Touchscreen 장치를 붙여 터치 조작을 확인한다.
+            // 브라우저 밖(Editor의 Device Simulator·PlayMode 테스트, 데스크톱 실행)은 터치스크린 장치를 따른다.
             bool shouldShow = TouchControlsAvailability.ShouldShow(
                 isWebBrowser: false,
                 hasTouchscreen: hasTouchscreen,

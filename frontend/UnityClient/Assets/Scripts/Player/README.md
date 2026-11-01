@@ -58,7 +58,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | 실행 환경 | 기준 | 예 |
 | --- | --- | --- |
 | Web 빌드 | 브라우저 UA가 휴대폰·태블릿이거나(`Application.isMobilePlatform`) 주 입력 장치가 손가락(CSS `pointer: coarse`)이면 표시 | 휴대폰·iPad는 표시. 터치 노트북처럼 마우스·터치패드가 주 입력이면 터치스크린이 있어도 숨김 |
-| Editor | Input System에 Touchscreen 장치가 있으면 표시 | Device Simulator, 터치 PlayMode 테스트 |
+| Editor | Device Simulator·테스트가 붙인 가상 Touchscreen 장치가 있으면 표시. 컴퓨터의 실제 터치스크린(`InputDevice.native`)은 세지 않아 PC 웹처럼 숨김 | Device Simulator, 터치 PlayMode 테스트는 표시. 터치 화면 노트북의 일반 Game 뷰는 숨김 |
 
 Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어 Web 빌드에서는 장치 유무로 판단하지 않습니다. iPadOS Safari는 기본으로 Mac UA를 보내 `Application.isMobilePlatform`이 false이므로 주 입력 장치를 함께 확인합니다.
 

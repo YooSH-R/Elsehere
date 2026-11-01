@@ -3,7 +3,7 @@
 MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.7](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
-- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 API를 만들지 않았습니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
+- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 따로 API를 만들지 않았습니다. 대화 중인 NPC의 호감도만 대화 시작·발화 전송 응답(CONV-01·03의 `conversation.affinity`)에 실어 대화 화면에 보여 줍니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
 - 대화 턴은 REST로 작성했습니다. 스트리밍을 선택하면 요청·응답의 의미와 식별자는 유지하고 전송 방식만 바꿉니다.
 
 ## 1. 공통 규칙
@@ -734,10 +734,12 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "text": "Hi! What can I get for you?",
     "suggestWords": ["latte", "iced", "please"],
     "speech": { "status": "READY", "url": "/api/v1/turns/100/speech" }
-  }
+  },
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 }
 }
 ```
 
+- `conversation`은 CONV-03 응답과 같은 형식의 대화 상태입니다. 대화 화면이 처음부터 무례 경고 칸(`rudeLimit`개)과 이 NPC의 지금 호감도(`affinity`)를 보여 줍니다. 처음 만난 NPC의 호감도는 0입니다. `status`는 위쪽 `status`와 같은 값이며, 위쪽 값은 이전 클라이언트를 위해 남겨 둡니다.
 - 화면 14의 [E 대화하기]는 `initiatedBy: USER`, 튜토리얼 뒤 거리 행인의 말걸기에 응답하면 `initiatedBy: NPC`입니다. 행인 말걸기를 거절하거나 무시하면 서버를 호출하지 않습니다.
 - `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
@@ -803,7 +805,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": ["for here", "to go", "please"],
     "speech": { "status": "READY", "url": "/api/v1/turns/105/speech" }
   },
-  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3 },
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 },
   "missionUpdates": []
 }
 ```
@@ -828,6 +830,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 판정 실패 | `rude: false`. 무례로 세지 않고 평소대로 처리 | 평소대로 | 계속 |
 
 - `rudeLimit`은 서버 설정값(3)입니다. 새 대화는 0부터 셉니다.
+- `conversation.affinity`는 이 턴을 처리한 뒤 이 NPC의 호감도(-100~100)입니다. 무례로 센 턴은 깎인 값입니다([무례 처리 합의안](rudeness-handling.md) 3절). 대화 화면은 NPC 이름 옆에 호감도를, 무례 경고 칸에 `rudeCount`/`rudeLimit`를 보여 줍니다. 같은 `requestId`로 다시 보내 이전 응답을 돌려줄 때도 호감도는 지금 값입니다.
 - 판정 결과와 실패 이유는 `turns.guard_abusive`, `turns.guard_error_code`에 남깁니다. 판정 실패를 무례나 무례 아님으로 바꿔 저장하지 않습니다. AI 워커에 닿지 못해 판정하지 못한 턴은 `guard_error_code`가 `worker_unavailable`이고 대화는 평소대로 이어집니다.
 - NPC가 먼저 잘못한 장면(정당방위)의 예외는 사건 장면을 만들 때 정합니다(6절).
 
@@ -862,7 +865,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "status": "ENDED_BY_NPC",
     "endReason": "QUOTA_EXHAUSTED",
     "rudeCount": 0,
-    "rudeLimit": 3
+    "rudeLimit": 3,
+    "affinity": 12
   },
   "missionUpdates": []
 }
@@ -883,7 +887,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/121/speech" }
   },
-  "conversation": { "status": "ENDED_BY_NPC", "endReason": "RUDE", "rudeCount": 3, "rudeLimit": 3 },
+  "conversation": { "status": "ENDED_BY_NPC", "endReason": "RUDE", "rudeCount": 3, "rudeLimit": 3, "affinity": 0 },
   "missionUpdates": []
 }
 ```
@@ -1374,4 +1378,4 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 단어장 중요도 | 18 | 목록은 최근 저장순 |
 | 숙어·문장 저장, 단어장 유형 필터 | 15~18 | MVP는 단어 하나만 저장. 숙어 저장 방식(뜻 출처, 문장 표시)은 이후 검토 |
 | 회상 복습 | 18 | 요구사항명세서 REQ-17·18(정답 기록, 5회 정답 시 카드 숨김)과 다른 점으로 기록 |
-| NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음 |
+| NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음. 대화 중인 NPC의 호감도는 CONV-01·03 응답으로 보여 줌 |

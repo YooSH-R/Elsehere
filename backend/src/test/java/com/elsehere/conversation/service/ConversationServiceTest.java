@@ -173,6 +173,40 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("대화를 시작하면 무례 횟수 0·무례 한도와 그 NPC의 지금 호감도를 대화 상태로 돌려준다")
+  void start_respondsRudeLimitAndCurrentAffinity() {
+    entityManager
+        .createNativeQuery(
+            "insert into user_npc_relations (user_id, npc_id, affinity, talk_count)"
+                + " values (?, ?, 12, 1)")
+        .setParameter(1, userId)
+        .setParameter(2, npcId(entityManager, "TOWN_PASSERBY"))
+        .executeUpdate();
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
+
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().endReason()).isNull();
+    assertThat(response.conversation().rudeCount()).isZero();
+    assertThat(response.conversation().rudeLimit()).isEqualTo(ConversationSupport.RUDE_LIMIT);
+    assertThat(response.conversation().affinity()).isEqualTo(12);
+  }
+
+  @Test
+  @DisplayName("처음 만난 NPC와 대화를 시작하면 호감도는 0이다")
+  void start_firstMeeting_respondsZeroAffinity() {
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
+
+    assertThat(response.conversation().affinity()).isZero();
+  }
+
+  @Test
   @DisplayName("NPC 음성을 받지 못해도 대화는 시작하고 첫 턴의 음성 상태는 FAILED다")
   void start_audioDownloadFails_startsWithoutSpeech() {
     given(

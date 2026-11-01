@@ -20,6 +20,7 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.Npc;
@@ -54,6 +55,7 @@ class ConversationSupport {
   private final AiWorkerClient aiWorkerClient;
   private final NpcAudioRetention npcAudioRetention;
   private final WorkerNpcs workerNpcs;
+  private final NpcAffinityService npcAffinityService;
   private final UserRepository userRepository;
   private final JsonMapper jsonMapper;
 
@@ -173,7 +175,8 @@ class ConversationSupport {
         conversation.getStatus(),
         conversation.getEndReason(),
         conversation.getRudeCount(),
-        RUDE_LIMIT);
+        RUDE_LIMIT,
+        npcAffinityService.affinity(conversation.getUserId(), conversation.getNpcId()));
   }
 
   ConversationDetailResponse detail(Conversation conversation) {

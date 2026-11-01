@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -578,6 +580,47 @@ class AiWorkerClientTest {
   @DisplayName("오류 코드가 없으면 일시적인 AI 오류로 본다")
   void toErrorCode_null_isTemporarilyUnavailable() {
     assertThat(AiWorkerClient.toErrorCode(null)).isEqualTo(ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+  }
+
+  @Test
+  @DisplayName("개발 서버(DEBUG)에서는 워커 호출마다 경로·상태·걸린 시간만 남기고 보낸 말은 남기지 않는다")
+  void everyCall_logsPathStatusAndDurationAtDebug() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": false, "error_code": null}, "usage": []}
+        """);
+
+    try (LogCapture logs = LogCapture.atDebug(AiWorkerClient.class)) {
+      client.guard(TRACE, NPC, List.of(), "my secret plan");
+
+      assertThat(logs.messages(Level.DEBUG))
+          .singleElement()
+          .asString()
+          .matches("ai_worker_call path=/v1/guard status=200 duration_ms=\\d+")
+          .doesNotContain("my secret plan");
+    }
+  }
+
+  @Test
+  @DisplayName("운영(INFO)에서는 성공한 워커 호출을 남기지 않는다")
+  void successfulCall_isNotLoggedAtInfo() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": false, "error_code": null}, "usage": []}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      client.guard(TRACE, NPC, List.of(), "hello");
+
+      assertThat(logs.messages(Level.DEBUG)).isEmpty();
+      assertThat(logs.messages(Level.INFO)).isEmpty();
+    }
   }
 
   private void respond(String path, int status, String contentType, String body) {

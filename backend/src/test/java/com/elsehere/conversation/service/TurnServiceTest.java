@@ -13,6 +13,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
@@ -24,6 +25,7 @@ import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.DialogueTestData;
 import com.elsehere.conversation.dto.ConversationStartResponse;
 import com.elsehere.conversation.dto.EndConversationRequest;
@@ -217,6 +219,32 @@ class TurnServiceTest {
             eq(false),
             any());
     assertThat(conversationService.detail(userId, conversationId).endedAt()).isNotNull();
+  }
+
+  @Test
+  @DisplayName("무례가 쌓여 NPC가 대화를 끝내면 종료 상태와 이유를 INFO로 한 번 남기고 무례한 말은 남기지 않는다")
+  void send_abusiveAtLimit_logsConversationEnded() {
+    for (int count = 1; count <= ConversationSupport.RUDE_LIMIT; count++) {
+      String text = "you idiot " + count;
+      judges(text, text, null);
+      guards(text, true, null);
+      given(
+              aiWorkerClient.reply(
+                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean(), any()))
+          .willReturn(reply("Stop it.", null, null));
+    }
+
+    try (LogCapture logs = LogCapture.atInfo(TurnService.class)) {
+      send("you idiot 1");
+      send("you idiot 2");
+      send("you idiot 3");
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "conversation_ended conversation_id="
+                  + conversationId
+                  + " status=ENDED_BY_NPC end_reason=RUDE");
+    }
   }
 
   @Test

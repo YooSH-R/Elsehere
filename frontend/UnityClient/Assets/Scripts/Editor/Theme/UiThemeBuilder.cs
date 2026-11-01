@@ -1054,20 +1054,34 @@ namespace A305.EditorTools.Theme
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
         }
 
+        /// <summary>튜토리얼 안내 카드에만 테마를 다시 입힌다. 카드 구성을 바꾼 튜토리얼 Builder가 부른다.</summary>
+        public static void StyleTutorialGuide()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Tutorial/TutorialGuide.prefab", StyleTutorial);
+        }
+
+        // 한 줄 안내 카드: 진행 점은 흐리게, 할 일 한 줄은 제목처럼 진하게. 건너뛰기 확인도 같은 카드 안에 그린다.
         private static void StyleTutorial(Transform root)
         {
             Role(root, "Panel", UiThemeRole.Panel);
-            Role(root, "Panel/Title", UiThemeRole.Title);
-            Role(root, "Panel/Body", UiThemeRole.Body);
-            Role(root, "Panel/Task", UiThemeRole.Accent);
-            IconButton(
+            Role(root, "Panel/Content/Header/Title", UiThemeRole.Muted);
+            Role(root, "Panel/Content/Task", UiThemeRole.Title);
+            PillButton(root, "Panel/Content/Header/SkipButton", UiIcon.Skip, UiTone.Neutral);
+            PillButton(root, "Panel/Content/Buttons/ContinueButton", UiIcon.Play, UiTone.Positive);
+            Role(root, "Panel/SkipConfirm/Question", UiThemeRole.Title);
+            PillButton(
                 root,
-                "Panel/Buttons/SkipButton",
-                UiIcon.Skip,
-                UiTone.Neutral,
-                caption: true
+                "Panel/SkipConfirm/ConfirmButtons/KeepGoingButton",
+                UiIcon.Play,
+                UiTone.Positive
             );
-            PillButton(root, "Panel/Buttons/ContinueButton", UiIcon.Play, UiTone.Positive);
+            PillButton(
+                root,
+                "Panel/SkipConfirm/ConfirmButtons/ConfirmSkipButton",
+                UiIcon.Skip,
+                UiTone.Neutral
+            );
         }
 
         private static void StyleTooltip(Transform root)

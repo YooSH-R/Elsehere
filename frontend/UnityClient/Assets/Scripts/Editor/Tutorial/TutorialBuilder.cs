@@ -2,6 +2,7 @@ using System;
 using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.EditorTools.UI;
 using A305.Learning;
 using A305.Mission;
@@ -53,7 +54,6 @@ namespace A305.EditorTools.Tutorial
         private const float FrameThickness = 5f;
 
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
-        private static readonly Color TaskColor = new Color(0.62f, 0.8f, 1f);
 
         // Linear 색 공간에서 섞이므로 눈으로 절반쯤 어두워 보이게 진하게 둔다.
         private static readonly Color ShadeColor = new Color(0f, 0f, 0f, 0.82f);
@@ -104,6 +104,7 @@ namespace A305.EditorTools.Tutorial
                     "stepGuides",
                     "talkOfferCaption",
                     "guidedLineCaption",
+                    "guidedLineMissCaption",
                     "dialogueEndCaption",
                     "travelLockedMessage",
                 }
@@ -128,6 +129,7 @@ namespace A305.EditorTools.Tutorial
         {
             BuilderTools.ThrowIfPlaying();
             PrepareAssets();
+            UiThemeBuilder.StyleTutorialGuide();
             foreach (string name in ProductionSpaceScenes)
             {
                 string path = "Assets/Scenes/Production/" + name + ".unity";
@@ -347,40 +349,70 @@ namespace A305.EditorTools.Tutorial
             );
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
-            TMP_Text title = UiBuilderTools.FindOrCreateText(
-                panel,
-                "Title",
-                bold,
-                26f,
-                Color.white
-            );
-            TMP_Text body = UiBuilderTools.FindOrCreateText(
-                panel,
-                "Body",
-                regular,
-                22f,
-                SubTextColor
-            );
-            TMP_Text task = UiBuilderTools.FindOrCreateText(panel, "Task", regular, 20f, TaskColor);
-            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            Button skipButton = UiBuilderTools.FindOrCreateButton(
-                buttons,
-                "SkipButton",
-                "튜토리얼 건너뛰기",
-                bold,
-                240f
-            );
+
+            // 한 줄 안내 카드: 윗줄(진행 점·단계 이름·[건너뛰기]), 할 일 한 줄, 필요할 때만 주 버튼.
+            // 예전의 긴 설명(Body)과 버튼 줄의 큰 [튜토리얼 건너뛰기]는 지운다.
+            RemoveChild(panel, "Body");
+            RemoveChild(panel.Find("Buttons"), "SkipButton");
+            RectTransform content = UiBuilderTools.FindOrCreateColumn(panel, "Content");
+            content.SetAsFirstSibling();
+            RectTransform header = UiBuilderTools.FindOrCreateButtonRow(content, "Header");
+            MoveInto(panel, "Title", header);
+            MoveInto(panel, "Task", content);
+            MoveInto(panel, "Buttons", content);
+            header.SetAsFirstSibling();
+
+            TMP_Text title = UiBuilderTools.FindOrCreateText(header, "Title", regular, 18f, SubTextColor);
+            title.fontSize = 18f;
+            title.alignment = TextAlignmentOptions.MidlineLeft;
+            BuilderTools.GetOrAddComponent<LayoutElement>(title.gameObject).flexibleWidth = 1f;
+            title.transform.SetAsFirstSibling();
+            Button skipButton = UiBuilderTools.FindOrCreateButton(header, "SkipButton", "건너뛰기", bold, 150f);
+
+            TMP_Text task = UiBuilderTools.FindOrCreateText(content, "Task", bold, 26f, Color.white);
+            task.fontSize = 26f;
+            task.alignment = TextAlignmentOptions.MidlineLeft;
+            task.transform.SetSiblingIndex(1);
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(content, "Buttons");
             Button continueButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
                 "ContinueButton",
-                "다음으로",
+                "시작하기",
                 bold,
                 240f
             );
 
+            // [건너뛰기]를 누르면 위 묶음 대신 보이는 확인.
+            RectTransform confirm = UiBuilderTools.FindOrCreateColumn(panel, "SkipConfirm");
+            confirm.SetAsLastSibling();
+            TMP_Text question = UiBuilderTools.FindOrCreateText(
+                confirm,
+                "Question",
+                bold,
+                24f,
+                Color.white,
+                "튜토리얼을 건너뛸까요?\n<size=80%>건너뛰면 기본 안내를 다시 볼 수 없어요.</size>"
+            );
+            question.alignment = TextAlignmentOptions.MidlineLeft;
+            RectTransform confirmButtons = UiBuilderTools.FindOrCreateButtonRow(confirm, "ConfirmButtons");
+            Button keepGoingButton = UiBuilderTools.FindOrCreateButton(
+                confirmButtons,
+                "KeepGoingButton",
+                "계속하기",
+                bold,
+                200f
+            );
+            Button confirmSkipButton = UiBuilderTools.FindOrCreateButton(
+                confirmButtons,
+                "ConfirmSkipButton",
+                "건너뛰기",
+                bold,
+                200f
+            );
+            confirm.gameObject.SetActive(false);
+
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "titleText", title);
-            BuilderTools.SetReference(view, "bodyText", body);
             BuilderTools.SetReference(view, "taskText", task);
             BuilderTools.SetReference(view, "continueButton", continueButton);
             BuilderTools.SetReference(
@@ -389,6 +421,10 @@ namespace A305.EditorTools.Tutorial
                 continueButton.GetComponentInChildren<TMP_Text>(true)
             );
             BuilderTools.SetReference(view, "skipButton", skipButton);
+            BuilderTools.SetReference(view, "content", content.gameObject);
+            BuilderTools.SetReference(view, "skipConfirm", confirm.gameObject);
+            BuilderTools.SetReference(view, "keepGoingButton", keepGoingButton);
+            BuilderTools.SetReference(view, "confirmSkipButton", confirmSkipButton);
             BuilderTools.RequireReferences(view);
 
             // 단계에 맞는 안내가 있을 때만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
@@ -503,6 +539,25 @@ namespace A305.EditorTools.Tutorial
             rect.sizeDelta = isHorizontal
                 ? new Vector2(0f, FrameThickness)
                 : new Vector2(FrameThickness, 0f);
+        }
+
+        // 예전 자리에 있는 자식을 새 묶음으로 옮긴다. 이미 옮겼으면 그대로 둔다.
+        private static void MoveInto(Transform from, string name, Transform to)
+        {
+            Transform child = from.Find(name);
+            if (child != null && to.Find(name) == null)
+            {
+                child.SetParent(to, false);
+            }
+        }
+
+        private static void RemoveChild(Transform parent, string name)
+        {
+            Transform child = parent != null ? parent.Find(name) : null;
+            if (child != null)
+            {
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
         }
 
         private static RectTransform FindOrCreateRect(Transform parent, string name)

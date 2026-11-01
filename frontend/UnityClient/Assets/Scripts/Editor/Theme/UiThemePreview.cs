@@ -330,11 +330,11 @@ namespace A305.EditorTools.Theme
             var guide = Show<TutorialGuideView>(scene, camera, 0.45f);
             Field<GameObject>(guide, "panel").SetActive(true);
             Field<TMP_Text>(guide, "titleText").text =
-                "첫걸음 가이드 3/4 · 익숙한 사물, 새로운 이름";
-            Field<TMP_Text>(guide, "bodyText").text =
-                "가구에 마우스를 올리면 영어 이름과 뜻이 보여요.";
-            Field<TMP_Text>(guide, "taskText").text = "멈춘 채 가구에 마우스를 올려 보세요";
-            Field<TMP_Text>(guide, "continueButtonLabel").text = "다음으로";
+                TutorialGuideText.ProgressDots(4, 9) + "   <b>단어 모으기</b>";
+            Field<TMP_Text>(guide, "taskText").text = TutorialGuideText.KeyChips(
+                "가구를 클릭해 카드 고정 → {저장}"
+            );
+            Field<UnityEngine.UI.Button>(guide, "continueButton").gameObject.SetActive(false);
             Render(scene, camera, path);
         }
 

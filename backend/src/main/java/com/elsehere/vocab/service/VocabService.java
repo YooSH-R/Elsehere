@@ -244,9 +244,12 @@ public class VocabService {
     Map<Long, String> npcNames = npcNamesByConversation(entries);
     return entries.stream()
         .map(
-            entry ->
-                VocabItemResponse.from(
-                    entry, npcNames.get(entry.getSourceConversationId()), DISPLAY_ZONE))
+            entry -> {
+              // 사물에서 저장한 단어는 출처 대화가 없다. 빈 Map.of()는 null 키 조회도 막으므로 먼저 거른다.
+              Long conversationId = entry.getSourceConversationId();
+              String npcName = conversationId == null ? null : npcNames.get(conversationId);
+              return VocabItemResponse.from(entry, npcName, DISPLAY_ZONE);
+            })
         .toList();
   }
 

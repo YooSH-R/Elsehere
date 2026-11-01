@@ -25,6 +25,7 @@ namespace A305.Dialogue
         private const string VoiceConsentRequiredCode = "VOICE_CONSENT_REQUIRED";
         private const string ActiveStatus = "ACTIVE";
         private const string QuotaExhaustedReason = "QUOTA_EXHAUSTED";
+        private const string RudeReason = "RUDE";
         private const string FeedbackDone = "DONE";
 
         private const string RetryGuide = "[다시 시도]를 누르거나 [대화 종료]로 나갈 수 있어요.";
@@ -113,6 +114,7 @@ namespace A305.Dialogue
         public bool HasHint => true;
         public string HintText { get; private set; }
         public bool UsesVoice => true;
+        public ConversationStanding Standing { get; } = new ConversationStanding();
         public bool CanTalk => canTalk;
 
         public bool CanReplaySpeech =>
@@ -136,6 +138,7 @@ namespace A305.Dialogue
                         NpcName = start.Npc.Name;
                     }
 
+                    Standing.Apply(start.Conversation);
                     AddNpcTurn(start.OpeningTurn);
                 },
                 StartAsync
@@ -185,6 +188,7 @@ namespace A305.Dialogue
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
+                    Standing.Apply(result.Conversation);
                     AddNpcTurn(result.NpcTurn);
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
@@ -197,11 +201,16 @@ namespace A305.Dialogue
 
             if (IsEnded)
             {
-                // 사용량 소진은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
+                // 사용량 소진·무례 누적은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
                 bool isQuotaExhausted = endReason == QuotaExhaustedReason;
-                StatusMessage = isQuotaExhausted
-                    ? $"AI 사용량을 모두 써서 {NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요."
-                    : $"{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+                string reason = endReason switch
+                {
+                    QuotaExhaustedReason => "AI 사용량을 모두 써서 ",
+                    RudeReason => "무례한 말이 쌓여 ",
+                    _ => "",
+                };
+                StatusMessage =
+                    $"{reason}{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
                 RecoveryGuide = isQuotaExhausted ? QuotaEndedGuide : null;
                 Changed?.Invoke();
             }

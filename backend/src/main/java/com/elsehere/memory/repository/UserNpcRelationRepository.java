@@ -2,6 +2,7 @@ package com.elsehere.memory.repository;
 
 import com.elsehere.memory.entity.UserNpcRelation;
 import com.elsehere.memory.entity.UserNpcRelationId;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -23,6 +24,12 @@ public interface UserNpcRelationRepository
               + " updated_at = now()",
       nativeQuery = true)
   void addAffinity(Long userId, Long npcId, int delta);
+
+  /** 호감도만 읽는다. 같은 트랜잭션에서 SQL로 바꾼 값도 보이도록 엔티티가 아니라 값을 조회한다. */
+  @Query(
+      "select relation.affinity from UserNpcRelation relation"
+          + " where relation.id.userId = :userId and relation.id.npcId = :npcId")
+  Optional<Integer> findAffinity(Long userId, Long npcId);
 
   /** 대화 뒤 관계 갱신의 변화량을 더하고 알아봄은 0~100, 호감은 -100~100으로 자른다. 관계 행은 대화 종료 처리에서 이미 만들어져 있다. */
   @Modifying

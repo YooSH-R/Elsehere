@@ -28,6 +28,10 @@ namespace A305.Dialogue
         private TMP_Text npcNameText;
 
         [SerializeField]
+        [Tooltip("NPC 이름 옆의 호감도와 무례 경고 칸. 서버가 보내지 않으면 숨긴다.")]
+        private TMP_Text standingText;
+
+        [SerializeField]
         private Button endButton;
 
         [SerializeField]
@@ -84,6 +88,7 @@ namespace A305.Dialogue
 
         private IDialogueContent content;
         private bool isMeaningVisible;
+        private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
         private TMP_Text talkLabel;
         private ThemedElement sendTheme;
 
@@ -123,6 +128,7 @@ namespace A305.Dialogue
         {
             content = shownContent;
             isMeaningVisible = false;
+            standingDisplay = new ConversationStandingDisplay();
             inputField.text = "";
             panel.SetActive(true);
             helpPanel.gameObject.SetActive(true);
@@ -167,6 +173,7 @@ namespace A305.Dialogue
 
             linesText.text = FormatRecentLines();
             npcNameText.text = content.NpcName;
+            UpdateStanding();
             guideText.text = FormatGuide();
             guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
@@ -348,11 +355,23 @@ namespace A305.Dialogue
 
         private void LateUpdate()
         {
-            if (
-                content != null
-                && ((RectTransform)panel.transform.parent).rect.size != lastCanvasSize
-            )
+            if (content == null)
+                return;
+            // 변화량과 경고 문구는 몇 초 뒤 새 상태가 없어도 사라져야 하므로 매 프레임 다시 고른다.
+            UpdateStanding();
+            if (((RectTransform)panel.transform.parent).rect.size != lastCanvasSize)
                 UpdateLayout();
+        }
+
+        // 서버 대화의 호감도·무례 경고 칸. 대본 대화이거나 서버가 보내지 않으면 숨긴다. 색은 테마의 NPC 이름 색을 따른다.
+        private void UpdateStanding()
+        {
+            string text = standingDisplay.Text(content.Standing, Time.unscaledTime);
+            standingText.gameObject.SetActive(text != null);
+            if (text == null || standingText.text == text)
+                return;
+            standingText.text = text;
+            standingText.color = npcNameText.color;
         }
 
         private bool vehicleLayout;
@@ -403,6 +422,15 @@ namespace A305.Dialogue
             ((RectTransform)npcNameText.transform).anchoredPosition = new Vector2(
                 64,
                 frame.sizeDelta.y - 96
+            );
+            // 이름 바로 오른쪽에 두고, 오른쪽 위 [다시 시도]·[대화 종료] 앞에서 말줄임으로 자른다.
+            var nameRect = (RectTransform)npcNameText.transform;
+            float standingX = 64 + Mathf.Min(npcNameText.preferredWidth, nameRect.sizeDelta.x) + 24;
+            var standingRect = (RectTransform)standingText.transform;
+            standingRect.anchoredPosition = new Vector2(standingX, frame.sizeDelta.y - 96);
+            standingRect.sizeDelta = new Vector2(
+                Mathf.Max(0, width - standingX - 500),
+                nameRect.sizeDelta.y
             );
             var history = (RectTransform)historyScroll.transform;
             history.sizeDelta = new Vector2(

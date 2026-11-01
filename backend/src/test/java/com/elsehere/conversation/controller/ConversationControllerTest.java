@@ -123,7 +123,13 @@ class ConversationControllerTest {
                 1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.NPC)))
         .willReturn(
             new ConversationStartResponse(
-                5L, ConversationStatus.ACTIVE, 1, NPC, List.of(), npcTurn(10L, 1, "Hi!")));
+                5L,
+                ConversationStatus.ACTIVE,
+                1,
+                NPC,
+                List.of(),
+                npcTurn(10L, 1, "Hi!"),
+                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 12)));
 
     mockMvc
         .perform(
@@ -138,7 +144,10 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.npc.name").value("Mia"))
         .andExpect(jsonPath("$.openingTurn.text").value("Hi!"))
         .andExpect(jsonPath("$.openingTurn.speech.status").value("READY"))
-        .andExpect(jsonPath("$.openingTurn.speech.url").value("/api/v1/turns/10/speech"));
+        .andExpect(jsonPath("$.openingTurn.speech.url").value("/api/v1/turns/10/speech"))
+        .andExpect(jsonPath("$.conversation.rudeCount").value(0))
+        .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
+        .andExpect(jsonPath("$.conversation.affinity").value(12));
   }
 
   @Test
@@ -184,7 +193,7 @@ class ConversationControllerTest {
             new TurnResponse(
                 new UserTurnResponse(11L, 2, Speaker.USER, "A latte", false, null),
                 npcTurn(12L, 3, "Sure!"),
-                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3),
+                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, -4),
                 List.of()));
 
     mockMvc
@@ -199,7 +208,8 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.userTurn.text").value("A latte"))
         .andExpect(jsonPath("$.npcTurn.seq").value(3))
         .andExpect(jsonPath("$.conversation.status").value("ACTIVE"))
-        .andExpect(jsonPath("$.conversation.rudeLimit").value(3));
+        .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
+        .andExpect(jsonPath("$.conversation.affinity").value(-4));
   }
 
   @Test

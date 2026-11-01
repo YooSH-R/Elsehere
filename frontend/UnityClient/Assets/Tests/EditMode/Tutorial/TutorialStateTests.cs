@@ -4,8 +4,7 @@ namespace A305.Tutorial.Tests
 {
     public class TutorialStateTests
     {
-        private const string TutorialNpcCode = "TUTORIAL_PASSERBY";
-        private const string MissionNpcCode = "CAFE_STAFF";
+        private const string TutorialNpcCode = "TOWN_PASSERBY";
 
         [SetUp]
         [TearDown]
@@ -19,7 +18,7 @@ namespace A305.Tutorial.Tests
         {
             TutorialState.MarkFinishedOnServer();
 
-            TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode, MissionNpcCode);
+            TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode);
 
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
             Assert.That(progress.NeedsFinishSave, Is.False);
@@ -28,7 +27,7 @@ namespace A305.Tutorial.Tests
         [Test]
         public void MarkFinishedOnServer_AfterFirstUse_CompletesSameProgress()
         {
-            TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode, MissionNpcCode);
+            TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode);
 
             TutorialState.MarkFinishedOnServer();
 
@@ -42,8 +41,8 @@ namespace A305.Tutorial.Tests
 
             TutorialState.Clear();
 
-            TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode, MissionNpcCode);
-            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Welcome));
+            TutorialProgress progress = TutorialState.GetOrCreate(TutorialNpcCode);
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Arrival));
         }
     }
 }

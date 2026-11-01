@@ -1,26 +1,23 @@
 namespace A305.Tutorial
 {
     /// <summary>
-    /// 튜토리얼 진행. 버튼·이동·호버·공간 이동·대화·피드백·미션 신호를 받아 단계를 넘긴다.
+    /// 튜토리얼 진행. 버튼·걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 받아 단계를 넘긴다.
     /// 지금 단계와 관계없는 신호는 무시한다.
     /// </summary>
     public sealed class TutorialProgress
     {
         private readonly string tutorialNpcCode;
-        private readonly string missionNpcCode;
         private bool hasWalked;
-        private bool hasHovered;
+        private bool hasLooked;
         private bool isFinishSaved;
 
         /// <param name="tutorialNpcCode">길을 묻는 튜토리얼 행인의 NPC 키(ERD npcs.code)</param>
-        /// <param name="missionNpcCode">미션 안내에서 대화하러 가는 NPC 키</param>
-        public TutorialProgress(string tutorialNpcCode, string missionNpcCode)
+        public TutorialProgress(string tutorialNpcCode)
         {
             this.tutorialNpcCode = tutorialNpcCode;
-            this.missionNpcCode = missionNpcCode;
         }
 
-        public TutorialStep Step { get; private set; } = TutorialStep.Welcome;
+        public TutorialStep Step { get; private set; } = TutorialStep.Arrival;
 
         /// <summary>이번 Play에서 튜토리얼을 끝낸 방법. 끝내지 않았거나 서버에서 이미 끝난 사용자면 null.</summary>
         public TutorialFinish? Finish { get; private set; }
@@ -42,120 +39,38 @@ namespace A305.Tutorial
         }
 
         /// <summary>안내 카드의 주 버튼으로 다음 단계로 넘어갈 수 있는지</summary>
-        public bool CanContinue
-        {
-            get
-            {
-                switch (Step)
-                {
-                    case TutorialStep.Welcome:
-                    case TutorialStep.MissionWindow:
-                        return true;
-                    case TutorialStep.Move:
-                        return hasWalked;
-                    case TutorialStep.Hover:
-                        return hasHovered;
-                    default:
-                        return false;
-                }
-            }
-        }
+        public bool CanContinue => false;
 
-        /// <summary>미션 창은 미션 안내부터 보인다. 튜토리얼을 건너뛰어도 보인다.</summary>
-        public bool IsMissionPanelVisible => Step >= TutorialStep.MissionWindow;
+        /// <summary>미션(첫날 여정)을 보이고 시작할 수 있는지.</summary>
+        public bool IsMissionAvailable => false;
+
+        /// <summary>문·[홈]으로 다른 장소에 갈 수 있는지.</summary>
+        public bool IsTravelAllowed => false;
 
         /// <summary>
         /// 튜토리얼 중인지. 그동안 길을 묻는 행인(Ben)은 집 앞에서 튜토리얼 대본대로만 대화하고 생활하지 않는다(튜토리얼 모드).
         /// </summary>
         public bool IsGuiding => Step != TutorialStep.Completed;
 
-        public void Continue()
-        {
-            if (!CanContinue)
-            {
-                return;
-            }
+        public void Continue() { }
 
-            Step = Step switch
-            {
-                TutorialStep.Welcome => TutorialStep.Move,
-                TutorialStep.Move => TutorialStep.Hover,
-                TutorialStep.Hover => TutorialStep.MissionIntro,
-                TutorialStep.MissionWindow => TutorialStep.MissionSelect,
-                _ => Step,
-            };
-        }
+        public void ReportWalked() { }
 
-        /// <summary>플레이어가 걸었음을 알린다. 걷기 안내 단계에서 걸은 것만 센다.</summary>
-        public void ReportWalked()
-        {
-            if (Step == TutorialStep.Move)
-            {
-                hasWalked = true;
-            }
-        }
+        public void ReportLooked() { }
 
-        /// <summary>사물 툴팁이 보였음을 알린다. 사물 안내 단계에서 본 것만 센다.</summary>
-        public void ReportHovered()
-        {
-            if (Step == TutorialStep.Hover)
-            {
-                hasHovered = true;
-            }
-        }
+        public void ReportWordSaved() { }
 
-        /// <summary>방 밖 공간에 들어왔음을 알린다. 방 안내 중이면 남은 안내를 건너뛰고 이웃 만나기로 넘어간다.</summary>
-        public void LeaveHome()
-        {
-            if (Step <= TutorialStep.MissionIntro)
-            {
-                Step = TutorialStep.NeighborApproach;
-            }
-        }
+        public void ReportVocabularyOpened() { }
 
-        public void StartDialogue(string npcCode)
-        {
-            if (Step == TutorialStep.NeighborApproach && npcCode == tutorialNpcCode)
-            {
-                Step = TutorialStep.NeighborDialogue;
-            }
-            else if (Step == TutorialStep.MissionTalk && npcCode == missionNpcCode)
-            {
-                Finish = TutorialFinish.Completed;
-                Step = TutorialStep.Completed;
-            }
-        }
+        public void LeaveHome() { }
 
-        /// <summary>
-        /// 길 안내를 끝까지 마치면 피드백 단계로 넘어가고, 중간에 끝내면 이웃이 다시 다가오도록 이웃 만나기로 되돌린다.
-        /// </summary>
-        public void EndDialogue(string npcCode, bool isGuidedCompleted)
-        {
-            if (Step != TutorialStep.NeighborDialogue || npcCode != tutorialNpcCode)
-            {
-                return;
-            }
+        public void StartDialogue(string npcCode) { }
 
-            Step = isGuidedCompleted
-                ? TutorialStep.NeighborFeedback
-                : TutorialStep.NeighborApproach;
-        }
+        public void EndDialogue(string npcCode, bool isGuidedCompleted) { }
 
-        public void CloseFeedback(string npcCode)
-        {
-            if (Step == TutorialStep.NeighborFeedback && npcCode == tutorialNpcCode)
-            {
-                Step = TutorialStep.MissionWindow;
-            }
-        }
+        public void CloseFeedback(string npcCode) { }
 
-        public void StartMission()
-        {
-            if (Step == TutorialStep.MissionWindow || Step == TutorialStep.MissionSelect)
-            {
-                Step = TutorialStep.MissionTalk;
-            }
-        }
+        public void ReportJournalOpened() { }
 
         /// <summary>안내를 건너뛴다. 이미 끝난 튜토리얼은 끝낸 방법을 바꾸지 않는다.</summary>
         public void Skip()
@@ -169,25 +84,6 @@ namespace A305.Tutorial
             Step = TutorialStep.Completed;
         }
 
-        /// <summary>
-        /// 행인이 다가와 말을 걸어도 되는지. 길을 묻는 행인은 튜토리얼 중에는 이웃 만나기·길 안내 때만, 튜토리얼을 마치면 평소처럼
-        /// 다가온다. 미션 NPC는 미션 대화 안내부터 다가온다. 다른 NPC는 튜토리얼과 관계없이 다가온다.
-        /// </summary>
-        public bool IsApproachAllowed(string npcCode)
-        {
-            if (npcCode == tutorialNpcCode)
-            {
-                return !IsGuiding
-                    || Step == TutorialStep.NeighborApproach
-                    || Step == TutorialStep.NeighborDialogue;
-            }
-
-            if (npcCode == missionNpcCode)
-            {
-                return Step >= TutorialStep.MissionTalk;
-            }
-
-            return true;
-        }
+        public bool IsApproachAllowed(string npcCode) => false;
     }
 }

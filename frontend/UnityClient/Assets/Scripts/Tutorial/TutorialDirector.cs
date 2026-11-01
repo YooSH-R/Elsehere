@@ -76,7 +76,7 @@ namespace A305.Tutorial
                 return;
             }
 
-            progress = TutorialState.GetOrCreate(guide.TutorialNpcCode, guide.MissionNpcCode);
+            progress = TutorialState.GetOrCreate(guide.TutorialNpcCode);
             if (apiSettings != null)
             {
                 finishRecorder = new TutorialFinishRecorder(
@@ -95,7 +95,6 @@ namespace A305.Tutorial
             dialogue.Started += progress.StartDialogue;
             dialogue.ConversationEnded += EndDialogue;
             learning.FeedbackClosed += CloseFeedback;
-            mission.MissionStarted += StartMission;
             guideView.ContinueRequested += progress.Continue;
             guideView.SkipRequested += progress.Skip;
         }
@@ -110,7 +109,6 @@ namespace A305.Tutorial
             dialogue.Started -= progress.StartDialogue;
             dialogue.ConversationEnded -= EndDialogue;
             learning.FeedbackClosed -= CloseFeedback;
-            mission.MissionStarted -= StartMission;
         }
 
         private void Update()
@@ -118,11 +116,6 @@ namespace A305.Tutorial
             if (player.IsMoving)
             {
                 progress.ReportWalked();
-            }
-
-            if (wordTooltip.IsVisible)
-            {
-                progress.ReportHovered();
             }
 
             if (progress.Step != appliedStep)
@@ -141,11 +134,6 @@ namespace A305.Tutorial
         private void CloseFeedback(string npcCode, bool isGuidedCompleted)
         {
             progress.CloseFeedback(npcCode);
-        }
-
-        private void StartMission(string missionCode)
-        {
-            progress.StartMission();
         }
 
         private void ApplyStep()
@@ -168,8 +156,8 @@ namespace A305.Tutorial
                 }
             }
 
-            mission.SetStoryAvailable(progress.Step == TutorialStep.Completed);
-            mission.SetPanelVisible(progress.IsMissionPanelVisible);
+            mission.SetStoryAvailable(progress.IsMissionAvailable);
+            mission.SetPanelVisible(progress.IsMissionAvailable);
         }
 
         private void SaveFinish()

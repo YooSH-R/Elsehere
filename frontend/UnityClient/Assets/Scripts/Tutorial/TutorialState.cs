@@ -12,11 +12,11 @@ namespace A305.Tutorial
         private static bool isFinishedOnServer;
 
         /// <summary>처음 쓸 때 진행을 만들고, 이후에는 같은 진행을 돌려준다.</summary>
-        public static TutorialProgress GetOrCreate(string tutorialNpcCode, string missionNpcCode)
+        public static TutorialProgress GetOrCreate(string tutorialNpcCode)
         {
             if (progress == null)
             {
-                progress = new TutorialProgress(tutorialNpcCode, missionNpcCode);
+                progress = new TutorialProgress(tutorialNpcCode);
                 if (isFinishedOnServer)
                 {
                     progress.MarkFinishedOnServer();

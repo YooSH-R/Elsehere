@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// [지난 대화] 창. 지난 대화를 목록으로 보이고 [이전]·[다음]으로 고른 대화의 피드백을 [피드백 보기]로 다시 연다.
+    /// [피드백 목록] 창. 지난 대화를 목록으로 보이고 [이전]·[다음]으로 고른 대화의 피드백을 [피드백 보기]로 다시 연다.
     /// 마지막 대화에서 [다음]을 누르면 다음 페이지를 요청한다. 서버 요청은 <see cref="LearningController"/>가 맡고 이 화면은 결과만 그린다.
     /// </summary>
     public class ConversationHistoryView : MonoBehaviour

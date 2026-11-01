@@ -6,9 +6,9 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// 오른쪽 위 메뉴(≡) 안의 [단어장]·[지난 대화]·[홈] 버튼과 저장 알림. 알림은 잠깐 보였다 사라진다.
+    /// 오른쪽 위 메뉴(≡) 안의 [단어장]·[피드백 목록]·[홈] 버튼과 저장 알림. 알림은 잠깐 보였다 사라진다.
     /// 메뉴를 펼치고 접는 일은 <see cref="HudMenuView"/>가 맡는다.
-    /// [지난 대화] 창도 이 HUD에 있어 장소 씬마다 배치하지 않는다.
+    /// [피드백 목록] 창도 이 HUD에 있어 장소 씬마다 배치하지 않는다.
     /// </summary>
     public class LearningHudView : MonoBehaviour
     {
@@ -66,7 +66,7 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// 대화 중에는 단어장과 지난 대화를 열 수 없게 한다. 두 화면의 이동 잠금이 대화의 이동 잠금을 풀지 않게 하기 위함이다.
+        /// 대화 중에는 단어장과 피드백 목록을 열 수 없게 한다. 두 화면의 이동 잠금이 대화의 이동 잠금을 풀지 않게 하기 위함이다.
         /// </summary>
         public void SetVocabularyAvailable(bool isAvailable)
         {

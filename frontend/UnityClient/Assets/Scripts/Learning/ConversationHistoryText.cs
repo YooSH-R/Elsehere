@@ -4,7 +4,7 @@ using System.Text;
 
 namespace A305.Learning
 {
-    /// <summary>[지난 대화] 창의 목록 글자. 고른 대화 주변의 몇 개만 보여 준다.</summary>
+    /// <summary>[피드백 목록] 창의 목록 글자. 고른 대화 주변의 몇 개만 보여 준다.</summary>
     public static class ConversationHistoryText
     {
         public const string EmptyMessage =

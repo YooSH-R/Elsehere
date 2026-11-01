@@ -89,6 +89,59 @@ namespace A305.World.Tests
             Assert.That(time.Paused, Is.True);
         }
 
+        [Test]
+        public void Minutes_BeforeServerTime_StartsAtEightOnDayOneLikeANewUser()
+        {
+            var clock = new GameClock();
+
+            Assert.That(clock.Minutes, Is.EqualTo(8 * 60));
+        }
+
+        [Test]
+        public void Flow_TenRealMinutes_PassesOneGameDay()
+        {
+            var clock = new GameClock();
+
+            clock.Flow(60);
+            Assert.That(clock.Minutes, Is.EqualTo(8 * 60 + 144).Within(.001));
+
+            clock.Flow(540);
+            Assert.That(clock.Minutes, Is.EqualTo(32 * 60).Within(.001), "2일차 오전 8시");
+        }
+
+        [Test]
+        public async Task TickAsync_Updated_MovesFlowingTimeToTheServerTime()
+        {
+            var api = new FakeGameClockApi { Reply = Time(2, 600) };
+            var clock = new GameClock();
+            clock.Flow(100);
+
+            await clock.TickAsync(api, 5);
+            clock.Flow(10);
+
+            Assert.That(clock.Minutes, Is.EqualTo(24 * 60 + 600 + 24).Within(.001));
+        }
+
+        [Test]
+        public async Task Flow_WhileTheServerSaysPaused_StandsStill()
+        {
+            var api = new FakeGameClockApi
+            {
+                Reply = new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 700,
+                    Paused = true,
+                },
+            };
+            var clock = new GameClock();
+            await clock.TickAsync(api, 5);
+
+            clock.Flow(10);
+
+            Assert.That(clock.Minutes, Is.EqualTo(700), "대화 중에는 게임 시간이 멈춘다");
+        }
+
         private static GameClockTime Time(int day, int minuteOfDay)
         {
             return new GameClockTime { Day = day, MinuteOfDay = minuteOfDay };

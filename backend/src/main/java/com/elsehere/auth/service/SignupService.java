@@ -14,12 +14,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 가입 대기 중인 소셜 로그인 계정으로 사용자를 만든다(AUTH-04). 사용자와 약관 동의는 한 트랜잭션으로 저장한다. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -37,6 +39,8 @@ public class SignupService {
 
     User user = saveNewUser(pendingSignup, request);
     List<ConsentTerm> agreedTerms = saveAgreedConsents(user, request);
+    // 이메일·닉네임은 개인정보라 남기지 않는다.
+    log.info("user_signed_up user_id={} provider={}", user.getId(), pendingSignup.provider());
     boolean voiceConsent =
         agreedTerms.stream().anyMatch(term -> term.consentType() == ConsentType.VOICE);
     return UserResponse.from(user, voiceConsent);

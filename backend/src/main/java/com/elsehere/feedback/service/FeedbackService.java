@@ -37,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
@@ -47,12 +48,16 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>AI를 기다리는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눈다. 사용자 AI 한도 예약은 아직 하지 않는다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FeedbackService {
 
   // 평가할 사용자 발화가 없어 만들지 않은 경우의 이유. 워커의 insufficient_evidence 코드와 같다.
   private static final String NO_USABLE_USER_TURNS = "NO_USABLE_USER_TURNS";
+
+  // 사용자가 건너뛴 피드백은 이유 코드를 저장하지 않으므로(null) 로그에만 쓰는 이름
+  private static final String USER_SKIPPED = "USER_SKIPPED";
 
   private final ConversationRepository conversationRepository;
   private final TurnRepository turnRepository;
@@ -130,6 +135,25 @@ public class FeedbackService {
 
   private FeedbackResponse generate(
       Long userId, Long conversationId, UUID requestId, boolean skip) {
+    FeedbackResponse response = create(userId, conversationId, requestId, skip);
+    logIfNotDone(conversationId, response);
+    return response;
+  }
+
+  // 만들지 못한 피드백은 AI 장애일 수 있어 WARN, 건너뛴 피드백은 INFO로 남긴다. 이유는 우리가 정한 코드라 그대로 쓴다.
+  private static void logIfNotDone(Long conversationId, FeedbackResponse response) {
+    if (response.status() == FeedbackStatus.FAILED) {
+      log.warn(
+          "feedback_failed conversation_id={} reason={}", conversationId, response.errorCode());
+    } else if (response.status() == FeedbackStatus.SKIPPED) {
+      log.info(
+          "feedback_skipped conversation_id={} reason={}",
+          conversationId,
+          response.errorCode() != null ? response.errorCode() : USER_SKIPPED);
+    }
+  }
+
+  private FeedbackResponse create(Long userId, Long conversationId, UUID requestId, boolean skip) {
     Snapshot snapshot =
         transactionTemplate.execute(status -> snapshot(userId, conversationId, requestId));
     if (skip) {

@@ -17,6 +17,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.TurnRequest;
 import com.elsehere.conversation.dto.TurnResponse;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.memory.service.MemoryService;
@@ -30,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -41,6 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
  * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TurnService {
@@ -135,49 +138,62 @@ public class TurnService {
     }
     String npcAudioKey = support.saveNpcAudio(trace, reply.audioFullId());
 
-    return transactionTemplate.execute(
-        status -> {
-          Conversation conversation = support.ownedConversation(userId, conversationId);
-          // AI를 기다리는 사이 대화가 끝났을 수 있다.
-          if (!conversation.isActive()) {
-            throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
-          }
-          int lastSeq = turnRepository.findLastSeq(conversationId);
-          Turn userTurn =
-              turnRepository.save(
-                  Turn.user(
-                      conversation,
-                      lastSeq + 1,
-                      request.requestId(),
-                      request.inputType(),
-                      judge.text(),
-                      request.sttRawText(),
-                      judge.english(),
-                      guard.abusive(),
-                      guard.errorCode(),
-                      support.writeWords(judge.events())));
-          if (rude) {
-            conversation.countRude(ConversationSupport.RUDE_LIMIT, clock.instant());
-            npcAffinityService.deductForRudeness(
-                userId, conversation.getNpcId(), guard.affinityDelta());
-          }
-          Turn npcTurn =
-              turnRepository.save(
-                  Turn.npc(
-                      conversation,
-                      lastSeq + 2,
-                      reply.text(),
-                      support.writeWords(reply.suggestWords()),
-                      npcAudioKey,
-                      clock.instant()));
-          if (!rude) {
-            mission.ifPresent(
-                value ->
-                    firstDayMissionService.accept(
-                        userId, value.stage(), context.npc().summary().npcCode(), judge.intent()));
-          }
-          return response(conversation, userTurn, npcTurn);
-        });
+    TurnResponse saved =
+        transactionTemplate.execute(
+            status -> {
+              Conversation conversation = support.ownedConversation(userId, conversationId);
+              // AI를 기다리는 사이 대화가 끝났을 수 있다.
+              if (!conversation.isActive()) {
+                throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
+              }
+              int lastSeq = turnRepository.findLastSeq(conversationId);
+              Turn userTurn =
+                  turnRepository.save(
+                      Turn.user(
+                          conversation,
+                          lastSeq + 1,
+                          request.requestId(),
+                          request.inputType(),
+                          judge.text(),
+                          request.sttRawText(),
+                          judge.english(),
+                          guard.abusive(),
+                          guard.errorCode(),
+                          support.writeWords(judge.events())));
+              if (rude) {
+                conversation.countRude(ConversationSupport.RUDE_LIMIT, clock.instant());
+                npcAffinityService.deductForRudeness(
+                    userId, conversation.getNpcId(), guard.affinityDelta());
+              }
+              Turn npcTurn =
+                  turnRepository.save(
+                      Turn.npc(
+                          conversation,
+                          lastSeq + 2,
+                          reply.text(),
+                          support.writeWords(reply.suggestWords()),
+                          npcAudioKey,
+                          clock.instant()));
+              if (!rude) {
+                mission.ifPresent(
+                    value ->
+                        firstDayMissionService.accept(
+                            userId,
+                            value.stage(),
+                            context.npc().summary().npcCode(),
+                            judge.intent()));
+              }
+              return response(conversation, userTurn, npcTurn);
+            });
+    // 이 턴으로 NPC가 대화를 끝냈으면(무례 누적) 저장이 끝난 뒤 남긴다. 무례한 말은 대화 본문이라 남기지 않는다.
+    if (saved.conversation().status() != ConversationStatus.ACTIVE) {
+      log.info(
+          "conversation_ended conversation_id={} status={} end_reason={}",
+          conversationId,
+          saved.conversation().status(),
+          saved.conversation().endReason());
+    }
+    return saved;
   }
 
   // 의도 판정과 같은 문장으로 동시에 부른다. 워커에 닿지 못해도 턴을 막지 않고 판정하지 못한 것으로 둔다.

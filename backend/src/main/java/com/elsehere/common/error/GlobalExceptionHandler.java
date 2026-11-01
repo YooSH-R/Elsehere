@@ -23,9 +23,11 @@ public class GlobalExceptionHandler {
 
   private static final String REQUEST_REJECTED_MESSAGE = "처리할 수 없는 요청입니다.";
 
+  // 업무 오류는 예상한 흐름이라 개발 서버(DEBUG)에서만 남긴다. 메시지에는 사용자 입력이 섞일 수 있어 코드와 상태만 쓴다.
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {
     ErrorCode errorCode = exception.getErrorCode();
+    log.debug("business_error code={} status={}", errorCode, errorCode.getStatus().value());
     return ResponseEntity.status(errorCode.getStatus())
         .body(ErrorResponse.of(errorCode, exception.getMessage(), exception.getDetails()));
   }

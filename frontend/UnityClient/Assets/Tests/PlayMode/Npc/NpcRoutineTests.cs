@@ -53,11 +53,10 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator CafeStaff_AtWork_MakesADrinkAtTheMachineThenGoesBackBehindTheCounter()
+        public IEnumerator CafeStaff_AtWork_MakesADrinkThenKeepsMovingInsteadOfStandingStill()
         {
             yield return LoadAt("CafeScene", 9 * 60, paused: false);
             NpcRoutine mia = Routine("CAFE_STAFF");
-            Vector3 post = mia.transform.position;
 
             yield return WaitUntil(() => mia.IsUsing);
             Assert.That(mia.Doing.Action, Is.EqualTo("MAKE_DRINK"));
@@ -66,9 +65,49 @@ namespace A305.Npc.PlayModeTests
                 Is.LessThan(NearObjectMeters)
             );
 
-            // 커피 만들기(게임 3분)가 끝나면 근무 중 할 일이 없어 자리로 돌아간다.
+            Vector3 drinkSpot = mia.transform.position;
+
+            // 커피 만들기(게임 3분)가 끝나면 급한 일이 없어도 한곳에 서 있지 않고 가게 안 사물들을 옮겨 다닌다.
             yield return WaitUntil(() =>
-                mia.Doing == null && HorizontalDistance(mia.transform.position, post) < .3f
+                mia.Doing == null && HorizontalDistance(mia.transform.position, drinkSpot) > 1f
+            );
+            yield return WaitUntilStill(mia.transform);
+            Vector3 nextSpot = mia.transform.position;
+            yield return WaitUntil(() => HorizontalDistance(mia.transform.position, nextSpot) > 1f);
+        }
+
+        [UnityTest]
+        public IEnumerator CafeStaff_WhenThePlayerComesNearTheCounter_GoesBackBehindItAndOffers()
+        {
+            yield return LoadAt("CafeScene", 12 * 60, paused: true);
+            NpcRoutine mia = Routine("CAFE_STAFF");
+            Vector3 post = mia.transform.position;
+            Bounds counter = SolidBounds(NearestPlaced("counter", mia.transform));
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
+            yield return WaitUntil(() => mia.IsUsing);
+
+            // 손님 쪽에서 카운터와 3m 떨어져 있으면 하던 일(머핀 먹기)을 계속한다.
+            player.Teleport(
+                new Vector3(counter.center.x, post.y, counter.min.z - 3f),
+                Quaternion.identity
+            );
+            yield return new WaitForSeconds(1f);
+            Assert.That(mia.IsUsing, Is.True, "카운터에서 멀면 하던 일을 계속합니다.");
+            Assert.That(offer.IsShowing, Is.False);
+
+            // 카운터 앞 2m 안으로 오면 카운터 뒤 자리로 돌아가 응대한다.
+            player.Teleport(
+                new Vector3(counter.center.x, post.y, counter.min.z - .8f),
+                Quaternion.identity
+            );
+            yield return WaitUntil(() => offer.IsShowing);
+
+            Assert.That(mia.Doing, Is.Null);
+            Assert.That(
+                HorizontalDistance(mia.transform.position, post),
+                Is.LessThan(.3f),
+                "카운터 뒤 자리에서 응대해야 합니다."
             );
         }
 
@@ -158,6 +197,21 @@ namespace A305.Npc.PlayModeTests
                 .First();
         }
 
+        private static Bounds SolidBounds(Transform placed)
+        {
+            Collider[] colliders = placed
+                .GetComponentsInChildren<Collider>()
+                .Where(collider => !collider.isTrigger)
+                .ToArray();
+            Bounds bounds = colliders[0].bounds;
+            foreach (Collider collider in colliders)
+            {
+                bounds.Encapsulate(collider.bounds);
+            }
+
+            return bounds;
+        }
+
         private static INpcSeat[] Seats()
         {
             return Object
@@ -177,6 +231,26 @@ namespace A305.Npc.PlayModeTests
                 }
 
                 yield return null;
+            }
+        }
+
+        // 0.3초 동안 거의 움직이지 않을 때까지 기다린다.
+        private static IEnumerator WaitUntilStill(Transform walker)
+        {
+            float deadline = Time.realtimeSinceStartup + WaitTimeoutSeconds;
+            while (true)
+            {
+                Vector3 before = walker.position;
+                yield return new WaitForSeconds(.3f);
+                if (HorizontalDistance(before, walker.position) < .02f)
+                {
+                    yield break;
+                }
+
+                if (Time.realtimeSinceStartup > deadline)
+                {
+                    Assert.Fail("멈추지 않았습니다.");
+                }
             }
         }
 

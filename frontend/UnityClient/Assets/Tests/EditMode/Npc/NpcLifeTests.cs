@@ -197,24 +197,6 @@ namespace A305.Npc.Tests
         }
 
         [Test]
-        public void BelongsAtPost_OnlyWhenIdleAtWork()
-        {
-            NpcLifeData rules = Rules(
-                Need("WORK", start: 10),
-                Action("MAKE_DRINK", "CAFE", "WORK", 30)
-            );
-            var life = new NpcLife(rules, Npc("CAFE", StaffDay), 9 * Hour);
-
-            Assert.That(life.BelongsAtPost, Is.True, "근무 중 할 일이 없으면 자리로");
-            life.ChooseNext(Anything);
-            Assert.That(life.BelongsAtPost, Is.False, "커피를 만들러 가는 중");
-
-            life.GiveUp();
-            life.Advance(12 * Hour + 5);
-            Assert.That(life.BelongsAtPost, Is.False, "쉬는 시간에는 하던 곳에 머문다");
-        }
-
-        [Test]
         public void ExportedData_HasEveryServiceNpcInItsOwnPlace()
         {
             string json = File.ReadAllText(

@@ -104,6 +104,25 @@ public class UserVocab extends BaseEntity {
     return userVocab;
   }
 
+  /** 대화 피드백의 단어장 후보에서 저장한 단어. 짧은 피드백은 턴이 없어 대화만 기록하고, 문장은 후보의 학습 예문이다. */
+  public static UserVocab saveFromFeedback(
+      Long userId,
+      Vocabulary vocabulary,
+      Long conversationId,
+      String exampleEn,
+      String exampleKo,
+      Instant savedAt) {
+    UserVocab userVocab = new UserVocab();
+    userVocab.userId = userId;
+    userVocab.vocabulary = vocabulary;
+    userVocab.sourceType = UserVocabSourceType.FEEDBACK;
+    userVocab.sourceConversationId = conversationId;
+    userVocab.contextText = exampleEn;
+    userVocab.contextMeaningKo = exampleKo;
+    userVocab.savedAt = savedAt;
+    return userVocab;
+  }
+
   /** 사용자 메모를 바꾼다(VOCAB-03). */
   public void changeMemo(String memo) {
     this.memo = memo;

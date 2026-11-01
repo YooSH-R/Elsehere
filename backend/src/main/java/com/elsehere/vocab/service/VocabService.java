@@ -8,6 +8,10 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.feedback.dto.FeedbackReviews;
+import com.elsehere.feedback.dto.VocabCandidateResponse;
+import com.elsehere.feedback.entity.ConversationFeedback;
+import com.elsehere.feedback.repository.ConversationFeedbackRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.vocab.dto.VocabItemResponse;
 import com.elsehere.vocab.dto.VocabListResponse;
@@ -27,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
@@ -53,6 +58,7 @@ public class VocabService {
   private final UserVocabRepository userVocabRepository;
   private final TurnRepository turnRepository;
   private final ConversationRepository conversationRepository;
+  private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final NpcRepository npcRepository;
   private final JsonMapper jsonMapper;
   private final Clock clock;
@@ -131,15 +137,8 @@ public class VocabService {
         vocabularyRepository
             .findByWordKey(wordKey)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    // 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 돌려준다.
-    Optional<UserVocab> existing =
-        userVocabRepository.findByUserIdAndVocabularyId(userId, vocabulary.getId());
-    if (existing.isPresent()) {
-      return new VocabSaveResponse(toItem(existing.get()), false);
-    }
-    UserVocab saved =
-        userVocabRepository.save(UserVocab.saveFromObject(userId, vocabulary, Instant.now(clock)));
-    return new VocabSaveResponse(toItem(saved), true);
+    return saveUnlessSaved(
+        userId, vocabulary, () -> UserVocab.saveFromObject(userId, vocabulary, Instant.now(clock)));
   }
 
   /**
@@ -156,14 +155,10 @@ public class VocabService {
                 jsonMapper.readValue(line.getGlossary(), GLOSSARY), GlossaryResponse::text, text)
             .orElseThrow(() -> new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH));
     Vocabulary vocabulary = findOrCreateWord(word.text(), word.meaningKo(), VocabularySource.NPC);
-
-    Optional<UserVocab> existing =
-        userVocabRepository.findByUserIdAndVocabularyId(userId, vocabulary.getId());
-    if (existing.isPresent()) {
-      return new VocabSaveResponse(toItem(existing.get()), false);
-    }
-    UserVocab saved =
-        userVocabRepository.save(
+    return saveUnlessSaved(
+        userId,
+        vocabulary,
+        () ->
             UserVocab.saveFromNpcLine(
                 userId,
                 vocabulary,
@@ -172,7 +167,53 @@ public class VocabService {
                 line.getText(),
                 line.getMeaningKo(),
                 Instant.now(clock)));
-    return new VocabSaveResponse(toItem(saved), true);
+  }
+
+  /**
+   * 대화 피드백의 단어장 후보에서 단어를 저장한다(VOCAB-02 FEEDBACK). 뜻은 후보의 뜻, 문장은 후보의 학습 예문과 예문 뜻이다.
+   *
+   * <p>다른 사용자의 대화는 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
+   */
+  public VocabSaveResponse saveFeedbackWord(Long userId, Long conversationId, String text) {
+    Conversation conversation =
+        conversationRepository
+            .findByIdAndUserId(conversationId, userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    // 피드백을 만들지 못했거나 후보를 넣기 전에 만든 피드백은 저장할 단어를 확인할 수 없다.
+    List<VocabCandidateResponse> candidates =
+        conversationFeedbackRepository
+            .findById(conversation.getId())
+            .map(ConversationFeedback::getReviews)
+            .map(reviews -> jsonMapper.readValue(reviews, FeedbackReviews.class))
+            .map(FeedbackReviews::vocabCandidates)
+            .orElse(List.of());
+    VocabCandidateResponse word =
+        SourceWords.find(candidates, VocabCandidateResponse::expression, text)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH));
+    Vocabulary vocabulary =
+        findOrCreateWord(word.expression(), word.meaningKo(), VocabularySource.FEEDBACK);
+    return saveUnlessSaved(
+        userId,
+        vocabulary,
+        () ->
+            UserVocab.saveFromFeedback(
+                userId,
+                vocabulary,
+                conversation.getId(),
+                word.exampleEn(),
+                word.exampleKo(),
+                Instant.now(clock)));
+  }
+
+  /** 이미 저장한 단어면 새로 만들지 않고 처음 저장한 항목(문장 포함)을 그대로 돌려준다. */
+  private VocabSaveResponse saveUnlessSaved(
+      Long userId, Vocabulary vocabulary, Supplier<UserVocab> newEntry) {
+    Optional<UserVocab> existing =
+        userVocabRepository.findByUserIdAndVocabularyId(userId, vocabulary.getId());
+    if (existing.isPresent()) {
+      return new VocabSaveResponse(toItem(existing.get()), false);
+    }
+    return new VocabSaveResponse(toItem(userVocabRepository.save(newEntry.get())), true);
   }
 
   /** 다른 사용자의 턴과 내가 말한 턴은 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다(CONV-04와 같다). */

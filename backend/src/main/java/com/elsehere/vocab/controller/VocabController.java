@@ -57,15 +57,22 @@ public class VocabController {
         yield vocabService.saveObjectWord(userId, request.wordKey());
       }
       case NPC_LINE -> {
-        if (request.turnId() == null) {
-          throw new BusinessException(ErrorCode.VALIDATION_FAILED);
-        }
+        requireId(request.turnId());
         requireText(request.text());
         yield vocabService.saveNpcLineWord(userId, request.turnId(), request.text());
       }
-      // 피드백 단어장 후보를 클라이언트에 아직 보내지 않아 저장할 단어를 확인할 수 없다.
-      case FEEDBACK -> throw new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH);
+      case FEEDBACK -> {
+        requireId(request.conversationId());
+        requireText(request.text());
+        yield vocabService.saveFeedbackWord(userId, request.conversationId(), request.text());
+      }
     };
+  }
+
+  private static void requireId(Long value) {
+    if (value == null) {
+      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+    }
   }
 
   private static void requireText(String value) {

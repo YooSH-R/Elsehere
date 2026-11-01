@@ -59,7 +59,7 @@
 }
 ```
 
-예시의 `steps`·`goals`는 축약했다. 실제 응답은 7개 단계를 모두 포함하며 `status`는 UPCOMING/CURRENT/DONE이다. `situation`·`direction`은 목표 장소와 현재 장소가 다르면 이동 안내를 반환한다. Unity의 카페 의자는 미션 단계와 상관없이 카페에서 대화·요청 중이 아니면 몇 번이든 앉을 수 있다. `canRest`가 true일 때 앉아서 쉰 휴식만 서버에 휴식으로 보낸다.
+예시의 `steps`·`goals`는 축약했다. 실제 응답은 7개 단계를 모두 포함하며 `status`는 UPCOMING/CURRENT/DONE이다. `situation`·`direction`은 목표 장소와 현재 장소가 다르면 이동 안내를 반환한다. Unity의 카페 의자는 미션 단계와 상관없이 카페에서 대화·요청 중이 아니면 몇 번이든 앉을 수 있다. `canRest`가 true일 때 앉아서 쉰 휴식만 서버에 휴식으로 보낸다. 마을 벤치와 호텔 소파에도 같은 조작으로 앉지만 미션 휴식으로 보내지 않는다.
 
 `raining`은 4~6단계에 마을에 있을 때 true다. `weather`는 마을 날씨 이름이며 장소와 상관없이 현재 단계로 정한다. 시작 전과 여정 완료 뒤는 `CLEAR`다.
 

@@ -86,6 +86,15 @@ namespace A305.Mission.Tests
             Assert.That(state.CanSitInCafe(scene, busy, talking), Is.EqualTo(expected));
         }
 
+        // 미션은 카페 의자에서 쉰 것만 휴식으로 센다. 마을 벤치·호텔 소파는 미션이 막거나 세지 않는다.
+        [TestCase("CAFE", true)]
+        [TestCase("TOWN", false)]
+        [TestCase("HOTEL", false)]
+        public void ManagesSeatsIn_OnlyCafe(string scene, bool expected)
+        {
+            Assert.That(FirstDayMissionState.ManagesSeatsIn(scene), Is.EqualTo(expected));
+        }
+
         // 휴식으로 미션이 넘어가는 것은 주문을 마친 뒤 처음 쉬는 한 번뿐이다.
         [TestCase(true, false, 1, true, true)]
         [TestCase(true, false, 1, false, false)]

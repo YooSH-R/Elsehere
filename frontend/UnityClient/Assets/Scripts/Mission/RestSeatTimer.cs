@@ -1,13 +1,13 @@
 namespace A305.Mission
 {
     /// <summary>한 번 앉을 때 휴식 완료를 한 번만 알린다.</summary>
-    public sealed class CafeSeatTimer
+    public sealed class RestSeatTimer
     {
         private readonly float requiredSeconds;
         private float elapsed;
         private bool active;
 
-        public CafeSeatTimer(float requiredSeconds)
+        public RestSeatTimer(float requiredSeconds)
         {
             this.requiredSeconds = requiredSeconds;
         }

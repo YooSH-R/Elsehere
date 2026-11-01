@@ -6,13 +6,15 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 코치 마크 화면. 눌러야 할 버튼은 둘레를 반투명 검은 판으로 덮고 테두리로 밝혀 그 버튼만 누를 수 있게 하고,
-    /// 걸어가야 할 대상(문·Ben)은 머리 위에서 오르내리는 화살표로 가리킨다. 둘 중 하나만 보인다.
+    /// 걸어가야 할 대상(문·Ben)은 머리 위에서 오르내리는 화살표로 가리킨다. 대상이 화면 밖이면 화살표를 가장자리에 두고
+    /// 대상 쪽을 가리킨다. 둘 중 하나만 보인다. 설명은 화면 위쪽 가운데에 둬 밝힌 버튼 둘레의 내용을 가리지 않는다.
     /// 판은 밝힐 버튼이 있는 캔버스 바로 위에 그려, 그보다 위에 있는 안내 카드는 가리지 않는다.
     /// </summary>
     public class CoachMarkView : MonoBehaviour
     {
         private const float HolePadding = 10f;
-        private const float CaptionGap = 16f;
+        private const float CaptionTopMargin = 24f;
+        private const float MarkerEdgeMargin = 70f;
         private const float MarkerBobPixels = 12f;
         private const float MarkerBobSpeed = 4f;
         private const float FramePulseSpeed = 3f;
@@ -37,8 +39,12 @@ namespace A305.Tutorial
         private TMP_Text captionText;
 
         [SerializeField]
-        [Tooltip("장면 속 대상 위에 띄우는 화살표. 클릭을 받지 않는다.")]
+        [Tooltip("장면 속 대상 위에 띄우는 화살표 배지. 클릭을 받지 않는다.")]
         private RectTransform marker;
+
+        [SerializeField]
+        [Tooltip("배지 안의 화살표. 오른쪽을 가리키는 아이콘을 대상 쪽으로 돌린다.")]
+        private RectTransform markerArrow;
 
         private readonly List<RectTransform> targets = new List<RectTransform>();
         private readonly List<Rect> targetRects = new List<Rect>();
@@ -53,7 +59,7 @@ namespace A305.Tutorial
             Hide();
         }
 
-        /// <summary>대상 버튼들을 한 구멍으로 밝히고, 설명이 있으면 구멍 옆에 보인다.</summary>
+        /// <summary>대상 버튼들을 한 구멍으로 밝히고, 설명이 있으면 화면 위쪽 가운데에 보인다.</summary>
         public void ShowSpotlight(IReadOnlyList<RectTransform> spotlightTargets, string text)
         {
             markerTarget = null;
@@ -144,19 +150,17 @@ namespace A305.Tutorial
             SetSpotlightVisible(true);
             if (caption.gameObject.activeSelf)
             {
-                PlaceCaption(hole, canvasSize);
+                PlaceCaption(canvasSize);
             }
         }
 
-        private void PlaceCaption(Rect hole, Vector2 canvasSize)
+        // 안내 카드가 숨는 동안 같은 자리(위쪽 가운데)에 둔다.
+        private void PlaceCaption(Vector2 canvasSize)
         {
-            float height = caption.rect.height;
-            float width = caption.rect.width;
-            float x = Mathf.Clamp(hole.center.x - width / 2f, 0f, canvasSize.x - width);
-            float y = CoachMarkLayout.IsCaptionBelow(hole, height, CaptionGap)
-                ? hole.yMin - CaptionGap - height
-                : Mathf.Min(hole.yMax + CaptionGap, canvasSize.y - height);
-            caption.anchoredPosition = new Vector2(x, y);
+            caption.anchoredPosition = new Vector2(
+                (canvasSize.x - caption.rect.width) / 2f,
+                canvasSize.y - CaptionTopMargin - caption.rect.height
+            );
         }
 
         private void PlaceMarker()
@@ -171,22 +175,19 @@ namespace A305.Tutorial
             Vector3 screen = camera.WorldToScreenPoint(
                 markerTarget.position + Vector3.up * markerHeightMeters
             );
-            bool isInFront = screen.z > 0f;
-            marker.gameObject.SetActive(isInFront);
-            if (!isInFront)
-            {
-                return;
-            }
-
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                canvasRect,
-                screen,
-                null,
-                out Vector2 local
+            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
+                ToCanvas(screen),
+                screen.z < 0f,
+                canvasRect.rect.size,
+                MarkerEdgeMargin
             );
+            // 가리키는 쪽으로 오르내려 눈에 띄게 한다.
+            float radians = pose.ArrowDegrees * Mathf.Deg2Rad;
             float bob = Mathf.Abs(Mathf.Sin(Time.unscaledTime * MarkerBobSpeed)) * MarkerBobPixels;
             marker.anchoredPosition =
-                local + canvasRect.rect.size * canvasRect.pivot + Vector2.up * bob;
+                pose.Position - new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * bob;
+            markerArrow.localRotation = Quaternion.Euler(0f, 0f, pose.ArrowDegrees);
+            marker.gameObject.SetActive(true);
         }
 
         // 다른 캔버스의 버튼 모서리(화면 픽셀)를 이 캔버스 왼쪽 아래 기준 좌표로 바꾼다.

@@ -54,7 +54,8 @@ namespace A305.EditorTools.Tutorial
 
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
         private static readonly Color TaskColor = new Color(0.62f, 0.8f, 1f);
-        private static readonly Color ShadeColor = new Color(0f, 0f, 0f, 0.62f);
+        // Linear 색 공간에서 섞이므로 눈으로 절반쯤 어두워 보이게 진하게 둔다.
+        private static readonly Color ShadeColor = new Color(0f, 0f, 0f, 0.82f);
         private static readonly Color HighlightColor = new Color(1f, 0.84f, 0.29f);
         private static readonly Color CaptionColor = new Color(1f, 0.97f, 0.92f);
         private static readonly Color CaptionTextColor = new Color(0.23f, 0.18f, 0.16f);
@@ -433,7 +434,7 @@ namespace A305.EditorTools.Tutorial
             captionRect.anchorMin = Vector2.zero;
             captionRect.anchorMax = Vector2.zero;
             captionRect.pivot = Vector2.zero;
-            captionRect.sizeDelta = new Vector2(600f, 128f);
+            captionRect.sizeDelta = new Vector2(680f, 156f);
             TMP_Text captionText = UiBuilderTools.FindOrCreateText(
                 captionRect,
                 "Text",
@@ -466,7 +467,7 @@ namespace A305.EditorTools.Tutorial
             arrow.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArrowSpritePath);
             arrow.raycastTarget = false;
             arrow.rectTransform.sizeDelta = new Vector2(52f, 52f);
-            // 오른쪽을 가리키는 아이콘을 돌려 아래를 가리킨다.
+            // 오른쪽을 가리키는 아이콘을 코치 마크가 대상 쪽으로 돌린다. 처음에는 아래를 가리킨다.
             arrow.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -90f);
             marker.gameObject.SetActive(false);
 
@@ -475,6 +476,7 @@ namespace A305.EditorTools.Tutorial
             BuilderTools.SetReference(view, "caption", captionRect);
             BuilderTools.SetReference(view, "captionText", captionText);
             BuilderTools.SetReference(view, "marker", markerRect);
+            BuilderTools.SetReference(view, "markerArrow", arrow.rectTransform);
             BuilderTools.RequireReferences(view);
         }
 

@@ -106,7 +106,9 @@ namespace A305.Tutorial
         private string guidedLineCaption = "정해진 대사로 연습해요 · 아래 문장을 입력하고 {보내기}";
 
         [SerializeField]
-        [Tooltip("길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사가 붙는다.")]
+        [Tooltip(
+            "길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사가 붙는다."
+        )]
         private string guidedLineMissCaption = "문장이 달라요 · {예시 문장}으로 채울 수 있어요";
 
         [SerializeField]

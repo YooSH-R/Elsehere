@@ -362,14 +362,32 @@ namespace A305.EditorTools.Tutorial
             MoveInto(panel, "Buttons", content);
             header.SetAsFirstSibling();
 
-            TMP_Text title = UiBuilderTools.FindOrCreateText(header, "Title", regular, 18f, SubTextColor);
+            TMP_Text title = UiBuilderTools.FindOrCreateText(
+                header,
+                "Title",
+                regular,
+                18f,
+                SubTextColor
+            );
             title.fontSize = 18f;
             title.alignment = TextAlignmentOptions.MidlineLeft;
             BuilderTools.GetOrAddComponent<LayoutElement>(title.gameObject).flexibleWidth = 1f;
             title.transform.SetAsFirstSibling();
-            Button skipButton = UiBuilderTools.FindOrCreateButton(header, "SkipButton", "건너뛰기", bold, 150f);
+            Button skipButton = UiBuilderTools.FindOrCreateButton(
+                header,
+                "SkipButton",
+                "건너뛰기",
+                bold,
+                150f
+            );
 
-            TMP_Text task = UiBuilderTools.FindOrCreateText(content, "Task", bold, 26f, Color.white);
+            TMP_Text task = UiBuilderTools.FindOrCreateText(
+                content,
+                "Task",
+                bold,
+                26f,
+                Color.white
+            );
             task.fontSize = 26f;
             task.alignment = TextAlignmentOptions.MidlineLeft;
             task.transform.SetSiblingIndex(1);
@@ -394,7 +412,10 @@ namespace A305.EditorTools.Tutorial
                 "튜토리얼을 건너뛸까요?\n<size=80%>건너뛰면 기본 안내를 다시 볼 수 없어요.</size>"
             );
             question.alignment = TextAlignmentOptions.MidlineLeft;
-            RectTransform confirmButtons = UiBuilderTools.FindOrCreateButtonRow(confirm, "ConfirmButtons");
+            RectTransform confirmButtons = UiBuilderTools.FindOrCreateButtonRow(
+                confirm,
+                "ConfirmButtons"
+            );
             Button keepGoingButton = UiBuilderTools.FindOrCreateButton(
                 confirmButtons,
                 "KeepGoingButton",

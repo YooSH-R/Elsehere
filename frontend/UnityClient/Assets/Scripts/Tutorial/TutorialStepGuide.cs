@@ -5,7 +5,7 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 단계 하나의 안내 카드 문구. 짧은 단계 이름과 할 일 한 줄만 보인다.
-    /// 할 일의 {키}·{버튼}은 키 모양 칩으로 보인다(<see cref="TutorialGuideText.KeyChips"/>).
+    /// 할 일의 {키}·{버튼}은 강조색 [키]로 보인다(<see cref="TutorialGuideText.KeyChips"/>).
     /// </summary>
     [Serializable]
     public class TutorialStepGuide
@@ -18,11 +18,13 @@ namespace A305.Tutorial
         private string title;
 
         [SerializeField]
-        [Tooltip("키보드·마우스로 할 일 한 줄. {키}는 키 모양 칩으로 보인다.")]
+        [Tooltip("키보드·마우스로 할 일 한 줄. {키}는 강조색 [키]로 보인다.")]
         private string task;
 
         [SerializeField]
-        [Tooltip("터치 조작판이 보이는 기기(휴대폰·터치 화면)에서 할 일 한 줄. 비우면 키보드·마우스 문구를 쓴다.")]
+        [Tooltip(
+            "터치 조작판이 보이는 기기(휴대폰·터치 화면)에서 할 일 한 줄. 비우면 키보드·마우스 문구를 쓴다."
+        )]
         private string touchTask;
 
         [SerializeField]

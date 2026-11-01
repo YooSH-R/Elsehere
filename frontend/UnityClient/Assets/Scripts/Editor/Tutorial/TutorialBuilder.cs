@@ -54,6 +54,7 @@ namespace A305.EditorTools.Tutorial
 
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
         private static readonly Color TaskColor = new Color(0.62f, 0.8f, 1f);
+
         // Linear 색 공간에서 섞이므로 눈으로 절반쯤 어두워 보이게 진하게 둔다.
         private static readonly Color ShadeColor = new Color(0f, 0f, 0f, 0.82f);
         private static readonly Color HighlightColor = new Color(1f, 0.84f, 0.29f);

@@ -63,7 +63,9 @@ namespace A305.Tutorial
         private MissionController mission;
 
         [SerializeField]
-        [Tooltip("첫날 미션의 지도 버튼과 수첩. 비우면(첫날 미션 화면이 없는 Sandbox) 오늘의 목표 안내를 바로 마친다.")]
+        [Tooltip(
+            "첫날 미션의 지도 버튼과 수첩. 비우면(첫날 미션 화면이 없는 Sandbox) 오늘의 목표 안내를 바로 마친다."
+        )]
         private FirstDayMissionView firstDayMission;
 
         [SerializeField]

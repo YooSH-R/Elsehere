@@ -34,6 +34,16 @@ namespace A305.Npc.PlayModeTests
         {
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
+            // 숙소 안내(걷기·둘러보기·단어 저장·단어장)를 마쳐야 숙소 문이 열린다.
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+            progress.Continue();
+            progress.ReportWalked();
+            progress.Continue();
+            progress.ReportLooked();
+            progress.Continue();
+            progress.ReportWordSaved();
+            progress.ReportVocabularyOpened();
+            yield return null;
             Assert.That(SpaceTravel.TryTravel("TownScene", "HomeDoor"), Is.True);
             yield return WaitUntil(() =>
                 SceneManager.GetActiveScene().name == "TownScene" && !SpaceTravel.IsTraveling

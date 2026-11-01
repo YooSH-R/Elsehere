@@ -11,7 +11,8 @@ namespace A305.Npc
     /// <summary>
     /// 다가와 말을 걸지 않는 동안 NPC가 게임 시각의 일과와 욕구에 따라 자기 공간에서 지내게 한다(<see cref="NpcLife"/>).
     /// 고른 행동의 사물까지 NavMesh 경로(<see cref="NpcWalkArea"/>)를 따라 걸어가 이용하고, 의자·벤치·소파면 빈 자리에 앉는다.
-    /// 근무 중에 할 일이 없으면 처음 놓인 자리로 돌아가고, 쉬는 시간·자유 시간·퇴근 뒤에는 하던 곳에 머문다.
+    /// 급한 일이 없어도 한곳에 서 있지 않고 자기 공간의 다른 사물로 옮겨 다니며 둘러본다.
+    /// 카운터를 맡은 직원은 손님(플레이어)이 카운터 가까이 오면 하던 일을 그만두고 카운터 뒤 자리로 돌아가 응대한다.
     /// 장면을 다시 불러오면 그 시각의 시작값에서 다시 지낸다. 다가오기·대화는 <see cref="Passerby"/>가 맡고, 그동안 하던 일을 그만둔다.
     /// </summary>
     [DefaultExecutionOrder(700)]
@@ -39,6 +40,20 @@ namespace A305.Npc
         private const float StuckProgressMeters = .2f;
         private const float RetryUnreachableSeconds = 20f;
 
+        // 직원이 손님을 맞는 사물(카페 카운터, 호텔 리셉션 데스크). 처음 놓인 자리에서 이 거리 안에 있으면 그 직원의 카운터다.
+        private static readonly string[] ServiceCounterKeys = { "counter", "reception_desk" };
+        private const float CounterNearPostMeters = 1.5f;
+
+        // 카운터 뒤 자리에서 이 거리 안이면 자리에 선 것으로 본다.
+        private const float AtPostMeters = .3f;
+
+        // 급한 일이 없을 때 둘러볼 사물: 처음 놓인 자리에서 이 반경 안이고 지금 있는 곳에서 이보다 먼 사물
+        private const float LookAroundRadiusMeters = 8f;
+        private const float LookAroundStepMeters = 1.5f;
+        private const int LookAroundTries = 4;
+        private const float LookAroundMinSeconds = 2f;
+        private const float LookAroundMaxSeconds = 5f;
+
         [SerializeField]
         [Tooltip("ai/tools/npc_life_export.py가 내보낸 Data/Npc/NpcLife.json")]
         private TextAsset lifeData;
@@ -49,6 +64,13 @@ namespace A305.Npc
             "생활하며 걷는 속도. 다가와 말을 거는 속도(PasserbySettings)와 따로 두어, 다가오지 않는 카페 직원도 사물까지는 걷는다."
         )]
         private float walkSpeedMetersPerSecond = 1.1f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip(
+            "손님(플레이어)이 카운터에서 이 거리 안에 오면 카운터를 맡은 직원은 하던 일을 그만두고 카운터 뒤 자리로 돌아가 응대한다."
+        )]
+        private float serveRadiusMeters = 2f;
 
         private readonly Dictionary<string, List<HoverableObject>> placed =
             new Dictionary<string, List<HoverableObject>>();
@@ -72,6 +94,16 @@ namespace A305.Npc
         private int routeCorner;
         private float closestRemaining;
         private float stuckSeconds;
+
+        // 맡은 카운터. 카운터가 없는 NPC(행인)는 어디서든 다가와 말을 건다.
+        private bool hasCounter;
+        private Bounds counterBounds;
+
+        // 둘러보는 중인 사물과 그 앞에서 머무를 시각(Time.time). 걸어가는 중이면 음수
+        private bool lookingAround;
+        private HoverableObject lookAroundTarget;
+        private Spot lookAroundSpot;
+        private float lingerUntil;
 
         private INpcSeat seat;
         private SeatedLegs legs;
@@ -110,6 +142,7 @@ namespace A305.Npc
 
             life = new NpcLife(data, entry, GameClock.Shared.Minutes);
             CollectSceneObjects();
+            FindCounter();
         }
 
         private void OnDisable()
@@ -117,11 +150,26 @@ namespace A305.Npc
             StandUp();
         }
 
+        /// <summary>
+        /// 먼저 다가와 제안해도 되는지. 카운터를 맡은 직원은 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 제안한다.
+        /// 그 밖의 곳에서는 플레이어가 먼저 [말 걸기]로 대화할 수 있다.
+        /// </summary>
+        internal bool CanOfferTo(Vector3 playerPosition)
+        {
+            return !hasCounter || (IsCustomerAtCounter(playerPosition) && IsAtPost());
+        }
+
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
-        internal void Live()
+        internal void Live(Vector3 playerPosition)
         {
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
+            if (hasCounter && IsCustomerAtCounter(playerPosition))
+            {
+                ServeAtCounter();
+                return;
+            }
+
             if (life.Doing == null)
             {
                 life.ChooseNext(IsPlaced);
@@ -129,26 +177,13 @@ namespace A305.Npc
 
             if (life.Doing != null)
             {
+                lookingAround = false;
                 DoChosenAction(now);
                 return;
             }
 
             spotAction = null;
-            if (life.BelongsAtPost)
-            {
-                StandUp();
-                Pose post = body.HomePose;
-                if (GoTo(post.position, post.rotation) == Progress.Stuck)
-                {
-                    // 길을 막은 사람이 비키면 다시 간다.
-                    hasRoute = false;
-                }
-            }
-            else if (seat == null)
-            {
-                // 쉬는 시간·자유 시간에는 하던 곳에 머문다. 앉아 있었으면 계속 앉아 있다.
-                body.StandFacing(transform.rotation);
-            }
+            LookAround();
         }
 
         /// <summary>말을 걸러 가거나 대화하는 동안 <see cref="Passerby"/>가 부른다. 하던 일을 그만두고 앉아 있었으면 일어난다.</summary>
@@ -156,8 +191,146 @@ namespace A305.Npc
         {
             life?.GiveUp();
             spotAction = null;
+            lookingAround = false;
             hasRoute = false;
             StandUp();
+        }
+
+        // 하던 일을 그만두고 카운터 뒤 자리로 돌아가 선다. 제안은 자리에 선 뒤 Passerby가 띄운다.
+        private void ServeAtCounter()
+        {
+            if (life.Doing != null)
+            {
+                life.GiveUp();
+                spotAction = null;
+                hasRoute = false;
+            }
+
+            lookingAround = false;
+            StandUp();
+            Pose post = body.HomePose;
+            if (GoTo(post.position, post.rotation) == Progress.Stuck)
+            {
+                // 길을 막은 사람이 비키면 다시 간다.
+                hasRoute = false;
+            }
+        }
+
+        // 급한 일이 없으면 둘러볼 사물을 골라 걸어가 잠시 머문 뒤 다른 사물로 옮겨 간다. 앉아 있었으면 일어난다.
+        private void LookAround()
+        {
+            if (!lookingAround)
+            {
+                StandUp();
+                if (!TryPickLookAroundSpot())
+                {
+                    body.StandFacing(transform.rotation);
+                    return;
+                }
+
+                lookingAround = true;
+                lingerUntil = -1f;
+                hasRoute = false;
+            }
+
+            if (lingerUntil < 0f)
+            {
+                Progress progress = GoTo(lookAroundSpot.StandPoint, lookAroundSpot.Facing);
+                if (progress == Progress.Stuck)
+                {
+                    lookingAround = false;
+                }
+                else if (progress == Progress.Arrived)
+                {
+                    lingerUntil =
+                        Time.time + Random.Range(LookAroundMinSeconds, LookAroundMaxSeconds);
+                }
+
+                return;
+            }
+
+            body.StandFacing(lookAroundSpot.Facing);
+            if (Time.time >= lingerUntil)
+            {
+                lookingAround = false;
+            }
+        }
+
+        private bool TryPickLookAroundSpot()
+        {
+            var candidates = new List<HoverableObject>();
+            Vector3 home = body.HomePose.position;
+            foreach (List<HoverableObject> sameKey in placed.Values)
+            {
+                foreach (HoverableObject hoverable in sameKey)
+                {
+                    Vector3 center = SolidBounds(hoverable).center;
+                    if (
+                        hoverable != lookAroundTarget
+                        && Flat(center - home).magnitude <= LookAroundRadiusMeters
+                        && Flat(center - transform.position).magnitude >= LookAroundStepMeters
+                    )
+                    {
+                        candidates.Add(hoverable);
+                    }
+                }
+            }
+
+            bool hasWalkArea = HasWalkArea();
+            for (int i = 0; i < LookAroundTries && candidates.Count > 0; i++)
+            {
+                int pick = Random.Range(0, candidates.Count);
+                HoverableObject target = candidates[pick];
+                candidates.RemoveAt(pick);
+                if (TryStandBeside(SolidBounds(target), hasWalkArea, out lookAroundSpot))
+                {
+                    lookAroundTarget = target;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsCustomerAtCounter(Vector3 playerPosition)
+        {
+            Vector3 closest = counterBounds.ClosestPoint(
+                new Vector3(playerPosition.x, counterBounds.center.y, playerPosition.z)
+            );
+            return Flat(closest - playerPosition).magnitude <= serveRadiusMeters;
+        }
+
+        private bool IsAtPost()
+        {
+            return Flat(body.HomePose.position - transform.position).magnitude <= AtPostMeters;
+        }
+
+        // 처음 놓인 자리 바로 앞의 카운터. 카운터 없이 놓인 NPC는 카운터를 맡지 않는다.
+        private void FindCounter()
+        {
+            float nearest = CounterNearPostMeters;
+            foreach (string key in ServiceCounterKeys)
+            {
+                if (!placed.TryGetValue(key, out List<HoverableObject> counters))
+                {
+                    continue;
+                }
+
+                foreach (HoverableObject candidate in counters)
+                {
+                    Bounds bounds = SolidBounds(candidate);
+                    Vector3 closest = bounds.ClosestPoint(
+                        new Vector3(transform.position.x, bounds.center.y, transform.position.z)
+                    );
+                    float distance = Flat(closest - transform.position).magnitude;
+                    if (distance <= nearest)
+                    {
+                        nearest = distance;
+                        hasCounter = true;
+                        counterBounds = bounds;
+                    }
+                }
+            }
         }
 
         private void LateUpdate()
@@ -326,15 +499,10 @@ namespace A305.Npc
         // 사물 키가 같은 사물 중 걸어서 가장 가까운 자리. 앉을 자리가 있는 사물(의자·벤치·소파)이면 빈 자리에 앉고, 없으면 사물 옆에 선다.
         private bool TryFindSpot(string objectKey, out Spot found)
         {
-            bool hasWalkArea = NavMesh.SamplePosition(
-                transform.position,
-                out NavMeshHit _,
-                1f,
-                NavMesh.AllAreas
-            );
+            bool hasWalkArea = HasWalkArea();
             found = default;
             float best = float.PositiveInfinity;
-            var standing = new List<(Vector3 Point, Vector3 Center)>();
+            var withoutSeat = new List<Bounds>();
             foreach (HoverableObject hoverable in placed[objectKey])
             {
                 Bounds bounds = SolidBounds(hoverable);
@@ -368,7 +536,7 @@ namespace A305.Npc
 
                 if (!hasSeat)
                 {
-                    AddAround(bounds, standing);
+                    withoutSeat.Add(bounds);
                 }
             }
 
@@ -377,31 +545,36 @@ namespace A305.Npc
                 return true;
             }
 
-            foreach ((Vector3 point, Vector3 center) in standing)
+            foreach (Bounds bounds in withoutSeat)
             {
                 if (
-                    TryReach(point, hasWalkArea, out Vector3 standPoint, out float length)
+                    TryStandBeside(bounds, hasWalkArea, out Spot beside, out float length)
                     && length < best
                 )
                 {
                     best = length;
-                    Vector3 toObject = Flat(center - standPoint);
-                    found = new Spot(
-                        standPoint,
-                        toObject.sqrMagnitude > .0001f
-                            ? Quaternion.LookRotation(toObject)
-                            : transform.rotation,
-                        null
-                    );
+                    found = beside;
                 }
             }
 
             return best < float.PositiveInfinity;
         }
 
-        // 사물 둘레 여러 방향에서 콜라이더 바깥으로 StandOffMeters 떨어진 바닥 높이의 점
-        private void AddAround(Bounds bounds, List<(Vector3 Point, Vector3 Center)> standing)
+        private bool TryStandBeside(Bounds bounds, bool hasWalkArea, out Spot found)
         {
+            return TryStandBeside(bounds, hasWalkArea, out found, out float _);
+        }
+
+        // 사물 둘레 여러 방향에서 콜라이더 바깥으로 StandOffMeters 떨어진 바닥 중 걸어서 가장 가까운 곳에 사물을 보고 선다.
+        private bool TryStandBeside(
+            Bounds bounds,
+            bool hasWalkArea,
+            out Spot found,
+            out float bestLength
+        )
+        {
+            found = default;
+            bestLength = float.PositiveInfinity;
             for (int i = 0; i < SpotDirections; i++)
             {
                 float angle = i * Mathf.PI * 2f / SpotDirections;
@@ -417,8 +590,36 @@ namespace A305.Npc
                 Vector3 point =
                     new Vector3(bounds.center.x, transform.position.y, bounds.center.z)
                     + direction * (toEdge + StandOffMeters);
-                standing.Add((point, bounds.center));
+                if (
+                    !TryReach(point, hasWalkArea, out Vector3 standPoint, out float length)
+                    || length >= bestLength
+                )
+                {
+                    continue;
+                }
+
+                bestLength = length;
+                Vector3 toObject = Flat(bounds.center - standPoint);
+                found = new Spot(
+                    standPoint,
+                    toObject.sqrMagnitude > .0001f
+                        ? Quaternion.LookRotation(toObject)
+                        : transform.rotation,
+                    null
+                );
             }
+
+            return bestLength < float.PositiveInfinity;
+        }
+
+        private bool HasWalkArea()
+        {
+            return NavMesh.SamplePosition(
+                transform.position,
+                out NavMeshHit _,
+                1f,
+                NavMesh.AllAreas
+            );
         }
 
         // 그 점 가까운 NavMesh 위 자리와 거기까지 걷는 경로 길이. NavMesh가 없는 장면이면 곧은 거리

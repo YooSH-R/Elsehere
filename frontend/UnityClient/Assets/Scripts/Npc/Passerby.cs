@@ -112,9 +112,18 @@ namespace A305.Npc
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
+            // 카운터를 맡은 직원은 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
+            bool notReadyToOffer =
+                routine != null
+                && routine.enabled
+                && !routine.CanOfferTo(player.transform.position);
 
             PasserbyPhase before = approach.Phase;
-            approach.Tick(Now, toPlayer.magnitude, isPlayerBusy || cannotStartConversation);
+            approach.Tick(
+                Now,
+                toPlayer.magnitude,
+                isPlayerBusy || cannotStartConversation || notReadyToOffer
+            );
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {
                 // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다.
@@ -151,7 +160,7 @@ namespace A305.Npc
                 default:
                     if (routine != null && routine.enabled)
                     {
-                        routine.Live();
+                        routine.Live(player.transform.position);
                     }
                     else
                     {

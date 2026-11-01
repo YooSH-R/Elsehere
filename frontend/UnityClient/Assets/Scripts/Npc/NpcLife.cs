@@ -12,7 +12,6 @@ namespace A305.Npc
     /// </summary>
     public sealed class NpcLife
     {
-        public const string Work = "WORK";
         public const string Off = "OFF";
         private const string Free = "FREE";
         private const float FullNeed = 100f;
@@ -41,9 +40,6 @@ namespace A305.Npc
 
         /// <summary>사물에 도착해 이용 중인지</summary>
         public bool IsUsing { get; private set; }
-
-        /// <summary>근무 중에 할 일이 없으면 자리(처음 놓인 곳)로 돌아간다. 쉬는 시간·자유 시간·퇴근 뒤에는 하던 곳에 머문다.</summary>
-        public bool BelongsAtPost => Doing == null && Activity == Work;
 
         public float Need(string need)
         {

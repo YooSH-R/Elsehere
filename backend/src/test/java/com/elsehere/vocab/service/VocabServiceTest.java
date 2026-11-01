@@ -1,5 +1,8 @@
 package com.elsehere.vocab.service;
 
+import static com.elsehere.conversation.DialogueTestData.conversation;
+import static com.elsehere.conversation.DialogueTestData.npcTurn;
+import static com.elsehere.conversation.DialogueTestData.textTurn;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -9,12 +12,15 @@ import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
+import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.vocab.dto.VocabItemResponse;
 import com.elsehere.vocab.dto.VocabListResponse;
 import com.elsehere.vocab.dto.VocabSaveResponse;
 import com.elsehere.vocab.entity.UserVocabSourceType;
+import com.elsehere.vocab.entity.VocabularySource;
 import com.elsehere.vocab.entity.VocabularyType;
 import com.elsehere.vocab.repository.UserVocabRepository;
 import com.elsehere.vocab.repository.VocabularyRepository;
@@ -33,16 +39,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
-// 사물·어휘는 시드(WorldSeedLoader가 시작 때 넣음)를 쓰고, 저장 여부는 WORLD-02 사물 카드로도 확인한다.
+// 사물·어휘·NPC는 시드(WorldSeedLoader가 시작 때 넣음)를 쓰고, 저장 여부는 WORLD-02 사물 카드로도 확인한다.
+// NPC 대사 단어는 대화·턴을 바로 저장해(DialogueTestData) AI를 거치지 않는다.
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
+@ImportAutoConfiguration(JacksonAutoConfiguration.class)
 @Import({
   TestcontainersConfiguration.class,
   JpaAuditingConfig.class,
@@ -56,6 +66,8 @@ class VocabServiceTest {
 
   // 한국 시각 2026-10-27 10:00
   private static final Instant NOW = Instant.parse("2026-10-27T01:00:00Z");
+
+  private static final String LATTE = "[{\"text\": \"latte\", \"meaningKo\": \"라떼\"}]";
 
   @Autowired private VocabService vocabService;
 
@@ -323,6 +335,170 @@ class VocabServiceTest {
             BusinessException.class,
             exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
     assertThat(vocabService.getVocab(otherUserId, true, null, 20).items()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("NPC 대사 단어 풀이의 단어를 저장하면 풀이 뜻과 대사 전문·대사 뜻을 함께 저장하고, 사전에 없던 단어는 NPC 출처 어휘로 만든다")
+  void saveNpcLineWord_savesGlossaryWordWithLine() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    Turn line = viewedNpcLine(conversation, "Would you like an iced latte?", "아이스 라떼 드릴까요?", LATTE);
+
+    VocabSaveResponse response = vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+
+    assertThat(response.created()).isTrue();
+    VocabItemResponse item = response.item();
+    assertThat(item.vocab().type()).isEqualTo(VocabularyType.WORD);
+    assertThat(item.vocab().text()).isEqualTo("latte");
+    assertThat(item.vocab().meaningKo()).isEqualTo("라떼");
+    assertThat(item.context())
+        .isEqualTo(new VocabItemResponse.Context("Would you like an iced latte?", "아이스 라떼 드릴까요?"));
+    assertThat(item.savedAt()).isEqualTo(OffsetDateTime.parse("2026-10-27T10:00:00+09:00"));
+    assertThat(item.source())
+        .isEqualTo(
+            new VocabItemResponse.Source(
+                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId()));
+    assertThat(userVocabRepository.findById(item.userVocabId()).orElseThrow().getSourceTurnId())
+        .isEqualTo(line.getId());
+    assertThat(vocabularySource("latte")).isEqualTo(VocabularySource.NPC);
+  }
+
+  @Test
+  @DisplayName("사전에 이미 있는 단어면 새 어휘를 만들지 않고 기존 뜻을 그대로 쓴다")
+  void saveNpcLineWord_existingVocabulary_keepsMeaning() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "HOTEL_STAFF");
+    Turn line =
+        viewedNpcLine(
+            conversation,
+            "Please have a seat on the sofa.",
+            "소파에 앉아 계세요.",
+            "[{\"text\": \"sofa\", \"meaningKo\": \"긴 의자\"}]");
+    long vocabularyCount = vocabularyRepository.count();
+
+    VocabSaveResponse response = vocabService.saveNpcLineWord(userId, line.getId(), "Sofa");
+
+    assertThat(response.item().vocab().text()).isEqualTo("sofa");
+    assertThat(response.item().vocab().meaningKo()).isEqualTo("소파");
+    assertThat(response.item().context().text()).isEqualTo("Please have a seat on the sofa.");
+    assertThat(vocabularyRepository.count()).isEqualTo(vocabularyCount);
+  }
+
+  @Test
+  @DisplayName("이미 저장한 단어를 NPC 대사에서 다시 저장하면 처음 저장한 항목을 created=false로 돌려준다")
+  void saveNpcLineWordTwice_returnsFirstEntry() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    Turn line = viewedNpcLine(conversation, "Would you like an iced latte?", "아이스 라떼 드릴까요?", LATTE);
+    VocabSaveResponse first = vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+
+    VocabSaveResponse second = vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+
+    assertThat(second.created()).isFalse();
+    assertThat(second.item()).isEqualTo(first.item());
+    assertThat(userVocabRepository.count()).isEqualTo(1);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"coffee", "soy milk"})
+  @DisplayName("단어 풀이에 없는 단어와 두 단어 이상인 표현은 VOCAB_SOURCE_MISMATCH로 거절하고 저장하지 않는다")
+  void saveNpcLineWord_notSavableWord_throwsMismatch(String text) {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    Turn line =
+        viewedNpcLine(
+            conversation,
+            "Regular milk or soy milk?",
+            "일반 우유로 드릴까요, 두유로 드릴까요?",
+            "[{\"text\": \"soy milk\", \"meaningKo\": \"두유\"}]");
+    long vocabularyCount = vocabularyRepository.count();
+
+    assertThatThrownBy(() -> vocabService.saveNpcLineWord(userId, line.getId(), text))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VOCAB_SOURCE_MISMATCH));
+    assertThat(userVocabRepository.count()).isZero();
+    assertThat(vocabularyRepository.count()).isEqualTo(vocabularyCount);
+  }
+
+  @Test
+  @DisplayName("뜻 보기를 하지 않은 NPC 대사의 단어는 VOCAB_SOURCE_MISMATCH로 거절한다")
+  void saveNpcLineWord_beforeMeaning_throwsMismatch() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    Turn line = npcTurn(entityManager, conversation, 1, "Would you like an iced latte?");
+
+    assertThatThrownBy(() -> vocabService.saveNpcLineWord(userId, line.getId(), "latte"))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VOCAB_SOURCE_MISMATCH));
+    assertThat(userVocabRepository.count()).isZero();
+  }
+
+  @Test
+  @DisplayName("다른 사용자의 NPC 대사와 내가 말한 턴은 NOT_FOUND로 거절한다")
+  void saveNpcLineWord_othersOrUserTurn_throwsNotFound() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
+    Turn othersLine =
+        viewedNpcLine(
+            conversation(entityManager, otherUserId, "CAFE_STAFF"),
+            "Would you like an iced latte?",
+            "아이스 라떼 드릴까요?",
+            LATTE);
+    Turn myTurn =
+        textTurn(
+            entityManager,
+            conversation(entityManager, userId, "CAFE_STAFF"),
+            1,
+            "A latte, please.");
+
+    for (Turn turn : new Turn[] {othersLine, myTurn}) {
+      assertThatThrownBy(() -> vocabService.saveNpcLineWord(userId, turn.getId(), "latte"))
+          .isInstanceOfSatisfying(
+              BusinessException.class,
+              exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+    }
+    assertThat(userVocabRepository.count()).isZero();
+  }
+
+  @Test
+  @DisplayName("단어장 목록에서 NPC 대사로 저장한 단어는 출처 NPC 이름과 대화를 보여 준다")
+  void getVocab_showsNpcNameOfConversationSource() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    Turn line = viewedNpcLine(conversation, "Would you like an iced latte?", "아이스 라떼 드릴까요?", LATTE);
+    vocabService.saveNpcLineWord(userId, line.getId(), "latte");
+    entityManager.clear();
+
+    VocabListResponse response = vocabService.getVocab(userId, false, null, 20);
+
+    assertThat(response.items())
+        .singleElement()
+        .extracting(VocabItemResponse::source)
+        .isEqualTo(
+            new VocabItemResponse.Source(
+                UserVocabSourceType.NPC_LINE, "Mia", conversation.getId()));
+  }
+
+  /** 뜻 보기(CONV-04)를 마친 NPC 대사. 단어 풀이는 CONV-04가 저장하는 JSON 형식이다. */
+  private Turn viewedNpcLine(
+      Conversation conversation, String text, String meaningKo, String glossaryJson) {
+    Turn turn = npcTurn(entityManager, conversation, 1, text);
+    turn.attachMeaning(meaningKo, glossaryJson);
+    entityManager.flush();
+    return turn;
+  }
+
+  private VocabularySource vocabularySource(String text) {
+    return entityManager
+        .createQuery(
+            "select v.source from Vocabulary v where v.text = :text", VocabularySource.class)
+        .setParameter("text", text)
+        .getSingleResult();
   }
 
   // 외웠어요(VOCAB-03) 전이라 SQL로 외운 시각을 넣는다.

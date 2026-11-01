@@ -17,9 +17,9 @@ namespace A305.World.Tests
             Scene scene = EditorSceneManager.OpenScene(path);
             try
             {
-                CafeChairSeat[] seats = scene
+                RestSeat[] seats = scene
                     .GetRootGameObjects()
-                    .SelectMany(root => root.GetComponentsInChildren<CafeChairSeat>(true))
+                    .SelectMany(root => root.GetComponentsInChildren<RestSeat>(true))
                     .ToArray();
                 PlayerSeatPose[] poses = scene
                     .GetRootGameObjects()

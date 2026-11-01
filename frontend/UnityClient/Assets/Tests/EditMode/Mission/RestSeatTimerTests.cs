@@ -2,12 +2,12 @@ using NUnit.Framework;
 
 namespace A305.Mission.Tests
 {
-    public class CafeSeatTimerTests
+    public class RestSeatTimerTests
     {
         [Test]
         public void RestCompletesOnlyAfterHoldingSeatForRequiredTime()
         {
-            var timer = new CafeSeatTimer(2f);
+            var timer = new RestSeatTimer(2f);
 
             timer.Begin();
 
@@ -19,7 +19,7 @@ namespace A305.Mission.Tests
         [Test]
         public void LeavingSeatCancelsRest()
         {
-            var timer = new CafeSeatTimer(2f);
+            var timer = new RestSeatTimer(2f);
 
             timer.Begin();
             timer.Tick(1f);

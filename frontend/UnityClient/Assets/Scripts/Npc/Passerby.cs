@@ -143,10 +143,12 @@ namespace A305.Npc
             {
                 case PasserbyPhase.Approaching:
                     Walk(toPlayer);
+                    ShowAnimation(NpcAnimation.None);
                     break;
                 case PasserbyPhase.Offering:
                     Stand();
                     TurnToward(toPlayer);
+                    ShowAnimation(NpcAnimation.Talk);
                     if (!offerView.IsShownBy(this))
                     {
                         ShowOffer();
@@ -156,6 +158,7 @@ namespace A305.Npc
                 case PasserbyPhase.Talking:
                     Stand();
                     TurnToward(toPlayer);
+                    ShowAnimation(NpcAnimation.Talk);
                     break;
                 default:
                     if (routine != null && routine.enabled)
@@ -165,6 +168,7 @@ namespace A305.Npc
                     else
                     {
                         ReturnHome();
+                        ShowAnimation(NpcAnimation.None);
                     }
 
                     break;
@@ -351,6 +355,15 @@ namespace A305.Npc
                 Quaternion.LookRotation(horizontalDirection),
                 settings.TurnSpeedDegreesPerSecond * Time.deltaTime
             );
+        }
+
+        // 말을 건네거나 대화하는 동안 손짓한다. 동작 상태가 없는 모델(NPC 전용 컨트롤러가 아님)에는 아무것도 하지 않는다.
+        private void ShowAnimation(NpcAnimation animation)
+        {
+            if (animationDriver != null)
+            {
+                animationDriver.SetAction((int)animation);
+            }
         }
 
         private void ReportLocomotion(float speed)

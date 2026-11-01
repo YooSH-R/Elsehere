@@ -162,6 +162,19 @@ namespace A305.Npc
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
         internal void Live(Vector3 playerPosition)
         {
+            Decide(playerPosition);
+            // 사물을 쓰는 동안에만 그 행동의 동작을 재생하고, 걷거나 서 있을 때는 이동 동작으로 돌아온다.
+            NpcAnimation animation = life.IsUsing
+                ? NpcAnimations.WhileUsing(life.Doing.Action, seat != null)
+                : NpcAnimation.None;
+            if (animationDriver != null)
+            {
+                animationDriver.SetAction((int)animation);
+            }
+        }
+
+        private void Decide(Vector3 playerPosition)
+        {
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
             if (hasCounter && IsCustomerAtCounter(playerPosition))

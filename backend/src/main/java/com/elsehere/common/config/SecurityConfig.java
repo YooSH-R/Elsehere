@@ -8,6 +8,7 @@ import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.UserLoggingFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -63,6 +65,8 @@ public class SecurityConfig {
         // CSRF는 Spring의 토큰 방식 대신 사용자 정의 헤더 검사로 막는다(CsrfHeaderFilter).
         .csrf(AbstractHttpConfigurer::disable)
         .addFilterAt(new CsrfHeaderFilter(exceptionResolver), CsrfFilter.class)
+        // 세션에서 인증 정보를 읽은 뒤 로그인 사용자 ID를 로그 문맥에 넣는다.
+        .addFilterAfter(new UserLoggingFilter(), AnonymousAuthenticationFilter.class)
         .oauth2Login(
             oauth2 ->
                 oauth2

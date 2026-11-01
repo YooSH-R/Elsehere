@@ -19,7 +19,7 @@ Tiny Treats 원본 모델과 텍스처는 수정하지 않는다. Elsehere용 UR
 
 Fab 에셋은 Unity에서 편집하고 서비스에 포함해 상업적으로 배포할 수 있다. 이는 수익 발생이나 권리 무분쟁을 보증한다는 뜻은 아니다. 원본 에셋을 독립 상품으로 재판매·재배포하지 않으며, 프로젝트 작업에 필요한 공동 작업자에게만 원본을 공유한다. 원본이 포함된 저장소를 공개하지 않는다. 해당 콘텐츠의 NoAI 조건에 따라 생성형 AI 학습·데이터셋에 사용하지 않는다. 래퍼 프리팹은 `Assets/Prefabs/World/NorthBlock/Props/`, URP 재질은 `Assets/Art/World/NorthBlock/`에서 관리한다.
 | Mixamo Walk, Run, Jump | `MixamoLocomotion/` | 기존 King Parade 프로젝트의 Mixamo 다운로드본. [Adobe 사용 안내](https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html) | 게임 내 상업·비상업 이용 가능. 원본을 독립 에셋 상품으로 재배포하지 않음 | Humanoid 이동. Idle은 Jump의 종료 자세에 호흡 변화를 추가한 파생 클립 |
-| Universal Animation Library v3.0 Standard — Quaternius | `QuaterniusUniversalAnimation/` | [공식 배포](https://quaternius.itch.io/universal-animation-library) | CC0 1.0, 동봉 `License.txt` | 무료판 Unity용 FBX(루트 모션 없는 판). NPC 생활 동작(일하기·물건 집기·말하기·앉아 쉬기·서 있기)을 Humanoid로 리타겟팅 |
+| Universal Animation Library v3.0 Standard — Quaternius | `QuaterniusUniversalAnimation/` | [공식 배포](https://quaternius.itch.io/universal-animation-library) | CC0 1.0, 동봉 `License.txt` | 무료판 Unity용 FBX(루트 모션 없는 판). NPC 생활 동작(일하기·물건 집기·말하기·앉아 쉬기)을 Humanoid로 리타겟팅 |
 
 ## 드럭스토어 매장
 

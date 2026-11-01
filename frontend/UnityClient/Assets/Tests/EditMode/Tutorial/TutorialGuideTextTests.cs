@@ -11,9 +11,9 @@ namespace A305.Tutorial.Tests
             string text = TutorialGuideText.KeyChips("{W}{A} 걷기");
 
             Assert.That(text, Does.Not.Contain("{"));
-            Assert.That(text, Does.Contain("<b>W</b>"));
-            Assert.That(text, Does.Contain("<b>A</b>"));
-            Assert.That(text, Does.Contain("<mark="));
+            Assert.That(text, Does.Contain("[W]"));
+            Assert.That(text, Does.Contain("[A]"));
+            Assert.That(text, Does.Contain("<color="));
             Assert.That(text, Does.EndWith(" 걷기"));
         }
 
@@ -26,7 +26,7 @@ namespace A305.Tutorial.Tests
         [Test]
         public void VisibleLength_CountsOnlyWhatTheReaderSees()
         {
-            Assert.That(TutorialGuideText.VisibleLength("{Shift} 달리기"), Is.EqualTo(9));
+            Assert.That(TutorialGuideText.VisibleLength("{Shift} 달리기"), Is.EqualTo(11));
         }
 
         [Test]

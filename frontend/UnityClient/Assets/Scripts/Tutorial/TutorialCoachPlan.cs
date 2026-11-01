@@ -33,24 +33,16 @@ namespace A305.Tutorial
 
     /// <summary>
     /// 튜토리얼 단계와 화면 상태로 코치 마크가 무엇을 밝힐지 고른다. 눌러야 할 버튼은 둘레를 어둡게 덮어 밝히고,
-    /// 걸어가야 할 문·Ben은 장면 위 표시로 가리킨다. 걷고 둘러보는 동안이나 다른 화면이 열린 동안에는 가리지 않는다.
+    /// 걸어가야 할 문·Ben은 장면 위 표시로 가리킨다. 걷고 둘러보는 단계(해내면 저절로 넘어감)나 다른 화면이 열린 동안에는 가리지 않는다.
     /// </summary>
     public static class TutorialCoachPlan
     {
-        /// <param name="canContinue">할 일을 마쳐 안내 카드의 주 버튼을 누를 수 있는지</param>
-        public static TutorialCoachTarget Choose(
-            TutorialStep step,
-            bool canContinue,
-            TutorialScreen screen
-        )
+        public static TutorialCoachTarget Choose(TutorialStep step, TutorialScreen screen)
         {
             switch (step)
             {
                 case TutorialStep.Arrival:
                     return TutorialCoachTarget.GuideCard;
-                case TutorialStep.Walk:
-                case TutorialStep.Look:
-                    return canContinue ? TutorialCoachTarget.GuideCard : TutorialCoachTarget.None;
                 case TutorialStep.SaveWord:
                     return screen.IsWordCardPinned && screen.CanSaveWord
                         ? TutorialCoachTarget.WordSaveButton

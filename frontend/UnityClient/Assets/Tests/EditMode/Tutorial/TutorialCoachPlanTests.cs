@@ -17,10 +17,6 @@ namespace A305.Tutorial.Tests
         {
             // 걷고 둘러보는 단계는 해내면 저절로 넘어가므로 화면을 덮지 않는다.
             Assert.That(Choose(step), Is.EqualTo(TutorialCoachTarget.None));
-            Assert.That(
-                TutorialCoachPlan.Choose(step, true, new TutorialScreen()),
-                Is.EqualTo(TutorialCoachTarget.None)
-            );
         }
 
         [Test]
@@ -132,7 +128,7 @@ namespace A305.Tutorial.Tests
             TutorialScreen screen = default
         )
         {
-            return TutorialCoachPlan.Choose(step, false, screen);
+            return TutorialCoachPlan.Choose(step, screen);
         }
     }
 }

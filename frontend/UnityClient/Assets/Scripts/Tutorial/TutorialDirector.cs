@@ -87,6 +87,7 @@ namespace A305.Tutorial
         private Passerby ben;
         private SpaceDoorway exitDoor;
         private TaxiRide[] taxis;
+        private readonly TutorialAutoAdvance autoAdvance = new TutorialAutoAdvance();
         private TutorialCoachTarget shownCoachTarget;
         private Object shownCoachObject;
         private string shownCaption;
@@ -190,6 +191,12 @@ namespace A305.Tutorial
             if (firstDayMission == null)
             {
                 progress.ReportJournalOpened();
+            }
+
+            // 걷기·둘러보기는 해내면 완료 표시를 잠깐 보인 뒤 저절로 넘어간다.
+            if (autoAdvance.Tick(progress.Step, progress.CanContinue, Time.deltaTime))
+            {
+                progress.Continue();
             }
 
             if (progress.Step != appliedStep)
@@ -300,7 +307,13 @@ namespace A305.Tutorial
                 return;
             }
 
-            guideView.Show(stepGuide, progress.CanContinue);
+            guideView.Show(
+                stepGuide,
+                progress.CanContinue,
+                PlayerTouchControls.ShouldShowControls(),
+                guide.StepGuideNumber(progress.Step),
+                guide.StepGuideCount
+            );
             isCardShown = true;
             cardStep = progress.Step;
             cardCanContinue = progress.CanContinue;
@@ -321,13 +334,9 @@ namespace A305.Tutorial
                 IsFeedbackShowing = feedbackView.IsVisible,
                 IsJournalOpen = firstDayMission != null && firstDayMission.IsJournalOpen,
             };
-            TutorialCoachTarget target = TutorialCoachPlan.Choose(
-                progress.Step,
-                progress.CanContinue,
-                screen
-            );
+            TutorialCoachTarget target = TutorialCoachPlan.Choose(progress.Step, screen);
             Object targetObject = CoachObject(target);
-            string caption = Caption(target);
+            string caption = TutorialGuideText.KeyChips(Caption(target));
             if (
                 target == shownCoachTarget
                 && targetObject == shownCoachObject
@@ -404,7 +413,7 @@ namespace A305.Tutorial
                     return guide.TalkOfferCaption;
                 case TutorialCoachTarget.GuidedLine:
                     string notice = dialogue.IsGuidedLineMissed
-                        ? DialogueConversation.GuidedLineMissNotice
+                        ? guide.GuidedLineMissCaption
                         : guide.GuidedLineCaption;
                     return $"{notice}\n<size=130%><b>{dialogue.GuidedLine}</b></size>";
                 case TutorialCoachTarget.DialogueEnd:
@@ -414,7 +423,7 @@ namespace A305.Tutorial
                         TutorialStep.BenFeedback,
                         out TutorialStepGuide feedback
                     )
-                        ? feedback.Task
+                        ? feedback.TaskFor(PlayerTouchControls.ShouldShowControls())
                         : null;
                 default:
                     return null;

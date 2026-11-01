@@ -14,6 +14,12 @@ namespace A305.World
         /// <summary>신호 간격. 서버는 신호 사이를 한 번에 60초까지만 세므로 그보다 짧아야 한다.</summary>
         public const double BeatIntervalSeconds = 30;
 
+        /// <summary>실제 600초가 게임 하루다(서버 GameTime.REAL_SECONDS_PER_DAY).</summary>
+        public const double GameMinutesPerRealSecond = MinutesPerDay / 600;
+
+        private const double MinutesPerDay = 24 * 60;
+        private const double StartMinutes = 8 * 60;
+
         public static GameClock Shared { get; private set; } = new GameClock();
 
         // 다음 신호를 보낼 실제 시각(Time.realtimeSinceStartupAsDouble). 처음에는 바로 보낸다.
@@ -22,6 +28,23 @@ namespace A305.World
 
         /// <summary>서버가 마지막으로 알려 준 게임 시각. 아직 받지 못했으면 null.</summary>
         public GameClockTime Current { get; private set; }
+
+        /// <summary>
+        /// 1일차 0시부터 센 지금 게임 시각(분). 신호 사이에도 실제 시간만큼 흐르고, 서버에서 새 시각을 받으면 그 값으로 맞춘다.
+        /// 서버 시각을 받기 전(게스트, 서버 없이 씬만 볼 때)에는 새 사용자처럼 1일차 오전 8시에서 시작한다.
+        /// </summary>
+        public double Minutes { get; private set; } = StartMinutes;
+
+        /// <summary>실제 시간 realSeconds만큼 게임 시각을 흘린다. 서버가 대화 중이라 멈췄다고 알려 주면 흘리지 않는다.</summary>
+        public void Flow(double realSeconds)
+        {
+            if (Current != null && Current.Paused)
+            {
+                return;
+            }
+
+            Minutes += realSeconds * GameMinutesPerRealSecond;
+        }
 
         /// <summary>마지막 신호가 실패한 이유. 실패하지 않았으면 null.</summary>
         public ApiException LastError { get; private set; }
@@ -53,6 +76,7 @@ namespace A305.World
                 GameClockTime time = await api.BeatAsync();
                 LastError = null;
                 Current = time;
+                Minutes = (time.Day - 1) * MinutesPerDay + time.MinuteOfDay;
                 Changed?.Invoke();
                 return GameClockBeatStatus.Updated;
             }

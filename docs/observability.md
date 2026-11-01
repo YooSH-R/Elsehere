@@ -15,6 +15,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 - Nginx는 원본 URL 대신 `/api/**`, `/api/v1/auth/**`, `/webgl/**` 등 고정된 경로 그룹을 기록합니다. 쿼리, 토큰, 쿠키, IP·사용자 식별자와 음성·대화 본문은 요청 요약에 넣지 않습니다.
 - 요청 보호용 `rate_limit`·`connection_limit` 필드는 판정 상태만 기록합니다. 관찰과 실제 차단의 구분·설치 조건은 [Nginx 요청 보호 정책](traffic-protection.md)을 따릅니다.
 - 처리하지 못한 Spring 예외는 종류와 코드 위치만 기록합니다. 외부 응답이나 사용자 입력을 포함할 수 있는 원본 예외 메시지는 기록하지 않습니다.
+- 백엔드 애플리케이션 로그(`com.elsehere`)는 운영 INFO, 개발 서버 DEBUG입니다. 서버 `deploy.env`의 `BACKEND_LOG_LEVEL`로 정하며 없으면 INFO입니다. 라이브러리 로그는 INFO로 둡니다. 설정 방법은 [백엔드 README](../backend/README.md#요청-추적과-관리-지표)를 따릅니다.
 
 이 헤더는 전송 요청의 추적용입니다. 중복 처리를 방지하는 API 본문의 UUID `requestId`와는 용도가 다르며, 재시도 요청은 같은 본문 ID를 사용해도 새로운 HTTP 추적 ID를 받습니다.
 

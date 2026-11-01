@@ -171,6 +171,16 @@ IDE의 프로젝트 JDK·Gradle JVM은 Java 21, 파일 인코딩은 UTF-8, 줄�
 
 모든 요청은 응답의 `X-Request-ID`와 로그의 `request_id`로 연결합니다. 이 값은 API 본문의 중복 방지용 `requestId`와 구분합니다. 요청 요약에는 경로 패턴·상태·처리 시간만 남기며, 쿼리·인증값·본문과 원본 예외 메시지는 기록하지 않습니다.
 
+로그는 SLF4J(`@Slf4j`)로 남깁니다. 레벨은 우리 코드(`com.elsehere`)만 환경별로 바꾸고 Spring·Hibernate 같은 라이브러리는 INFO로 둡니다.
+
+| 환경 | `com.elsehere` | 설정 방법 |
+| --- | --- | --- |
+| 운영 | INFO | 기본값(`application.properties`의 `logging.level.com.elsehere`) |
+| 개발 서버 | DEBUG | 서버 `deploy.env`의 `BACKEND_LOG_LEVEL=DEBUG`를 Compose가 `LOGGING_LEVEL_COM_ELSEHERE`로 넘김 |
+| 로컬 | 필요할 때 DEBUG | 환경변수나 로컬 `.env`에 `LOGGING_LEVEL_COM_ELSEHERE=DEBUG` |
+
+DEBUG 로그에도 요청 요약과 같은 기준으로 인증값·대화 본문·음성 같은 사용자 데이터는 남기지 않습니다.
+
 Actuator·Micrometer Prometheus를 사용하며, histogram으로 p95를 조회합니다. 기본 관리 주소는 `127.0.0.1:9090`이고 공개 앱 포트와 분리합니다. `MONITORING_PASSWORD`를 설정해야 사용자 `monitoring`으로 관리용 HTTP Basic 인증을 사용할 수 있습니다. 값이 없으면 관리 접근을 거절합니다. 컨테이너 내부 수집에만 `MANAGEMENT_ADDRESS=0.0.0.0`을 사용하고 관리 포트를 호스트에 게시하지 않습니다.
 
 관리 경로는 `/actuator/health`, `/actuator/prometheus`만 노출합니다. Nginx 전달, 보관 정책, Prometheus·Grafana 실행과 검증은 [관측성 운영 문서](../docs/observability.md)를 따릅니다.

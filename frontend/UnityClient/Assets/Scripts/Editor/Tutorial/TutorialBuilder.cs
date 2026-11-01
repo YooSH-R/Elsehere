@@ -37,6 +37,7 @@ namespace A305.EditorTools.Tutorial
             "ShopScene",
         };
 
+        private const string SandboxFolder = "Assets/Scenes/Sandbox";
         private const string GuidePrefabPath = "Assets/Prefabs/Tutorial/TutorialGuide.prefab";
         private const string CoachMarkPrefabPath = "Assets/Prefabs/Tutorial/CoachMark.prefab";
         private const string BadgeSpritePath = "Assets/Art/UI/Theme/Jelly/Badge.png";
@@ -117,8 +118,8 @@ namespace A305.EditorTools.Tutorial
         }
 
         /// <summary>
-        /// 배포용 장소 씬의 튜토리얼 진행에 코치 마크와 단계 신호를 받는 화면(대화·메뉴·피드백·지도)을 연결한다.
-        /// 디자인한 씬의 다른 객체는 건드리지 않는다.
+        /// 튜토리얼 진행이 있는 장소 씬(배포용 5개와 공간 기능을 붙인 Sandbox 씬)에 코치 마크와 단계 신호를 받는 화면
+        /// (대화·메뉴·피드백·지도)을 연결한다. 디자인한 씬의 다른 객체는 건드리지 않는다.
         /// </summary>
         [MenuItem("Tools/A305/Tutorial/Connect Coach Marks")]
         public static void ConnectCoachMarks()
@@ -128,21 +129,38 @@ namespace A305.EditorTools.Tutorial
             foreach (string name in ProductionSpaceScenes)
             {
                 string path = "Assets/Scenes/Production/" + name + ".unity";
-                Scene scene = EditorSceneManager.OpenScene(path);
-                var tutorial = BuilderTools.FindSingleInScene<TutorialDirector>(scene);
-                if (tutorial == null)
+                if (!ConnectCoachMarks(path))
                 {
                     throw new InvalidOperationException(
                         $"{path}에 TutorialDirector가 없습니다. 공간 기능 연결을 먼저 실행합니다."
                     );
                 }
-
-                ConnectFlowViews(tutorial, BuilderTools.EnsureGroups(scene));
-                BuilderTools.RequireReferences(tutorial);
-                BuilderTools.SaveScene(scene, path);
             }
 
-            Debug.Log("배포용 장소 씬 5개의 튜토리얼에 코치 마크와 단계 신호 화면을 연결했습니다.");
+            // Sandbox 씬은 공간 기능을 붙인 씬만 연결해, 연결이 빠진 튜토리얼 진행이 오류를 내지 않게 한다.
+            foreach (string guid in AssetDatabase.FindAssets("t:Scene", new[] { SandboxFolder }))
+            {
+                ConnectCoachMarks(AssetDatabase.GUIDToAssetPath(guid));
+            }
+
+            Debug.Log("튜토리얼 진행이 있는 장소 씬에 코치 마크와 단계 신호 화면을 연결했습니다.");
+        }
+
+        // 씬에 튜토리얼 진행이 있으면 연결하고 저장한다. 없으면 false.
+        private static bool ConnectCoachMarks(string path)
+        {
+            Scene scene = EditorSceneManager.OpenScene(path);
+            var tutorial = BuilderTools.FindSingleInScene<TutorialDirector>(scene);
+            if (tutorial == null)
+            {
+                return false;
+            }
+
+            ConnectFlowViews(tutorial, BuilderTools.EnsureGroups(scene));
+            // 서버 설정과 첫날 미션 화면은 서버 없이 씬만 확인하는 Sandbox에 없을 수 있다.
+            BuilderTools.RequireReferences(tutorial, "apiSettings", "firstDayMission");
+            BuilderTools.SaveScene(scene, path);
+            return true;
         }
 
         // 길을 묻는 NPC(마을 행인 Ben)와 그동안 쓰는 대본 키는 코드와 장면이 함께 정하는 연결값이라 코드의 기본값으로 맞춘다.

@@ -63,6 +63,7 @@ namespace A305.Tutorial
         private MissionController mission;
 
         [SerializeField]
+        [Tooltip("첫날 미션의 지도 버튼과 수첩. 비우면(첫날 미션 화면이 없는 Sandbox) 오늘의 목표 안내를 바로 마친다.")]
         private FirstDayMissionView firstDayMission;
 
         [SerializeField]
@@ -103,7 +104,6 @@ namespace A305.Tutorial
                 || hudMenu == null
                 || feedbackView == null
                 || mission == null
-                || firstDayMission == null
             )
             {
                 Debug.LogError("TutorialDirector의 참조가 연결되지 않았습니다.", this);
@@ -135,7 +135,11 @@ namespace A305.Tutorial
             learning.FeedbackClosed += CloseFeedback;
             wordTooltip.SaveRequested += progress.ReportWordSaved;
             hud.VocabularyRequested += progress.ReportVocabularyOpened;
-            firstDayMission.JournalOpened += progress.ReportJournalOpened;
+            if (firstDayMission != null)
+            {
+                firstDayMission.JournalOpened += progress.ReportJournalOpened;
+            }
+
             guideView.ContinueRequested += progress.Continue;
             guideView.SkipRequested += progress.Skip;
             SpaceTravel.Refused += ShowTravelLocked;
@@ -153,7 +157,11 @@ namespace A305.Tutorial
             learning.FeedbackClosed -= CloseFeedback;
             wordTooltip.SaveRequested -= progress.ReportWordSaved;
             hud.VocabularyRequested -= progress.ReportVocabularyOpened;
-            firstDayMission.JournalOpened -= progress.ReportJournalOpened;
+            if (firstDayMission != null)
+            {
+                firstDayMission.JournalOpened -= progress.ReportJournalOpened;
+            }
+
             SpaceTravel.Refused -= ShowTravelLocked;
         }
 
@@ -173,6 +181,12 @@ namespace A305.Tutorial
             if (wordTooltip.IsPinned && !wordTooltip.CanSaveWord)
             {
                 progress.ReportWordSaved();
+            }
+
+            // 첫날 미션 화면이 없으면 보여 줄 지도가 없으므로 오늘의 목표 안내를 바로 마친다.
+            if (firstDayMission == null)
+            {
+                progress.ReportJournalOpened();
             }
 
             if (progress.Step != appliedStep)
@@ -302,7 +316,7 @@ namespace A305.Tutorial
                 IsMenuOpen = hudMenu.IsOpen,
                 IsLearningScreenShowing = learning.IsShowingScreen,
                 IsFeedbackShowing = feedbackView.IsVisible,
-                IsJournalOpen = firstDayMission.IsJournalOpen,
+                IsJournalOpen = firstDayMission != null && firstDayMission.IsJournalOpen,
             };
             TutorialCoachTarget target = TutorialCoachPlan.Choose(
                 progress.Step,
@@ -363,7 +377,9 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.Feedback:
                     return new[] { feedbackView.PanelRect };
                 case TutorialCoachTarget.MapButton:
-                    return new[] { firstDayMission.JournalButtonRect };
+                    return firstDayMission != null
+                        ? new[] { firstDayMission.JournalButtonRect }
+                        : new RectTransform[0];
                 default:
                     return new RectTransform[0];
             }

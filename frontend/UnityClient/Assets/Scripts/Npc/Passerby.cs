@@ -42,6 +42,9 @@ namespace A305.Npc
         private PasserbyApproach approach;
         private Pose homePose;
 
+        // 생활 데이터가 있는 NPC만 붙는다. 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
+        private NpcRoutine routine;
+
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
 
         /// <summary>
@@ -49,6 +52,9 @@ namespace A305.Npc
         /// 이미 제안 중이면 제안을 거두지 않는다.
         /// </summary>
         public bool IsApproachAllowed { get; set; } = true;
+
+        /// <summary>처음 놓인 자리와 방향. 다가왔다가 돌아갈 곳이고, 직원은 근무 자리다.</summary>
+        internal Pose HomePose => homePose;
 
         private static double Now => Time.realtimeSinceStartupAsDouble;
 
@@ -65,6 +71,7 @@ namespace A305.Npc
             }
 
             homePose = new Pose(transform.position, transform.rotation);
+            routine = GetComponent<NpcRoutine>();
             approach = new PasserbyApproach(
                 settings.ToRules(),
                 PasserbyRestRecord.GetRestUntil(identity.Code)
@@ -114,6 +121,14 @@ namespace A305.Npc
                 PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
             }
 
+            bool isIdle =
+                approach.Phase == PasserbyPhase.Waiting || approach.Phase == PasserbyPhase.Resting;
+            if (!isIdle && routine != null)
+            {
+                // 말을 걸러 가거나 대화하는 동안에는 하던 일을 그만두고 앉아 있었으면 일어난다.
+                routine.Interrupt();
+            }
+
             switch (approach.Phase)
             {
                 case PasserbyPhase.Approaching:
@@ -133,7 +148,15 @@ namespace A305.Npc
                     TurnToward(toPlayer);
                     break;
                 default:
-                    ReturnHome();
+                    if (routine != null && routine.enabled)
+                    {
+                        routine.Live();
+                    }
+                    else
+                    {
+                        ReturnHome();
+                    }
+
                     break;
             }
 
@@ -265,12 +288,7 @@ namespace A305.Npc
             toHome.y = 0f;
             if (toHome.magnitude <= ArrivedDistanceMeters)
             {
-                Stand();
-                transform.rotation = Quaternion.RotateTowards(
-                    transform.rotation,
-                    homePose.rotation,
-                    settings.TurnSpeedDegreesPerSecond * Time.deltaTime
-                );
+                StandFacing(homePose.rotation);
                 return;
             }
 
@@ -279,11 +297,28 @@ namespace A305.Npc
 
         private void Walk(Vector3 horizontalDirection)
         {
-            Vector3 velocity = horizontalDirection.normalized * settings.WalkSpeedMetersPerSecond;
+            WalkToward(horizontalDirection, settings.WalkSpeedMetersPerSecond);
+        }
+
+        /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
+        internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
+        {
+            Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;
             velocity.y = GroundedDownwardSpeedMetersPerSecond;
             characterController.Move(velocity * Time.deltaTime);
             TurnToward(horizontalDirection);
-            ReportLocomotion(settings.WalkSpeedMetersPerSecond);
+            ReportLocomotion(speedMetersPerSecond);
+        }
+
+        /// <summary>제자리에 서서 그 방향으로 천천히 돈다.</summary>
+        internal void StandFacing(Quaternion rotation)
+        {
+            Stand();
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                rotation,
+                settings.TurnSpeedDegreesPerSecond * Time.deltaTime
+            );
         }
 
         private void Stand()

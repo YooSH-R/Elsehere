@@ -3,6 +3,7 @@ namespace A305.World
     /// <summary>
     /// 공간 이동 요청을 한 번에 하나만 받고, 다음 공간에서 플레이어가 나타날 출입구를 넘겨준다.
     /// 이동 중에 들어온 요청은 거절해 같은 문으로 두 번 입장하지 않게 한다.
+    /// 튜토리얼처럼 지금 할 일을 마치기 전에는 이동을 잠가 둘 수 있고, 잠금은 도착·취소와 상관없이 풀 때까지 남는다.
     /// </summary>
     public sealed class SpaceTravelState
     {
@@ -11,23 +12,29 @@ namespace A305.World
 
         public bool IsTraveling { get; private set; }
 
-        public bool IsLocked => false;
+        public bool IsLocked { get; private set; }
 
-        public void Lock() { }
+        public void Lock()
+        {
+            IsLocked = true;
+        }
 
-        public void Unlock() { }
+        public void Unlock()
+        {
+            IsLocked = false;
+        }
 
         /// <param name="destinationScene">이동할 씬 이름</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
         /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도</param>
-        /// <returns>이동을 시작했으면 true. 이미 이동 중이거나 씬 이름이 없으면 false.</returns>
+        /// <returns>이동을 시작했으면 true. 잠겨 있거나, 이미 이동 중이거나, 씬 이름이 없으면 false.</returns>
         public bool TryBegin(
             string destinationScene,
             string arrivalDoorwayId,
             float viewYawFromTravel = 0f
         )
         {
-            if (IsTraveling || string.IsNullOrEmpty(destinationScene))
+            if (IsLocked || IsTraveling || string.IsNullOrEmpty(destinationScene))
             {
                 return false;
             }

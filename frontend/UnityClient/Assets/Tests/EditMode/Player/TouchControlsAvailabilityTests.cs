@@ -59,5 +59,34 @@ namespace A305.Player.Tests
 
             Assert.That(shouldShow, Is.EqualTo(hasTouchscreen));
         }
+
+        [Test]
+        public void Editor_IgnoresTheComputersOwnTouchscreen()
+        {
+            // 배포 대상은 PC 웹이므로, 터치 화면 노트북에서 Editor로 확인해도 PC 웹처럼 조이스틱을 숨긴다.
+            Assert.That(
+                TouchControlsAvailability.CountsAsTouchscreen(isEditor: true, isNative: true),
+                Is.False
+            );
+        }
+
+        [Test]
+        public void Editor_CountsSimulatedTouchscreen()
+        {
+            // Device Simulator와 PlayMode 테스트가 붙인 가상 터치스크린은 터치 조작을 확인하려는 것이다.
+            Assert.That(
+                TouchControlsAvailability.CountsAsTouchscreen(isEditor: true, isNative: false),
+                Is.True
+            );
+        }
+
+        [Test]
+        public void Build_CountsEveryTouchscreen()
+        {
+            Assert.That(
+                TouchControlsAvailability.CountsAsTouchscreen(isEditor: false, isNative: true),
+                Is.True
+            );
+        }
     }
 }

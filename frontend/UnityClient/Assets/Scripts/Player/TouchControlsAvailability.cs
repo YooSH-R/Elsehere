@@ -20,5 +20,7 @@ namespace A305.Player
 
             return hasTouchscreen;
         }
+
+        public static bool CountsAsTouchscreen(bool isEditor, bool isNative) => false;
     }
 }

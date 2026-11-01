@@ -9,6 +9,7 @@ namespace A305.Npc
     /// 플레이어가 가까이 오면 먼저 다가와 대화를 제안하는 행인. 수락하면 대화를 시작하고,
     /// 거절하거나 무시하고 멀어지면 제자리로 돌아가 정해진 시간 동안 쉰다. 제안 중에는 카메라·이동을 잠그지 않는다.
     /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다.
+    /// 생활(<see cref="NpcRoutine"/>)이 붙은 NPC는 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
     /// 모델은 자식 Visual 아래에 두고, 이동은 루트의 CharacterController가 맡는다.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]

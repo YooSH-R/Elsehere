@@ -116,6 +116,43 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void GuidedConversation_DifferentSentence_StaysOnTheLineAndAsksToTypeIt()
+        {
+            // 튜토리얼 대화는 정해진 대사로 연습하므로, 다른 문장은 대화에 남기지 않고 같은 대사를 다시 입력하게 한다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            bool isSent = conversation.Send("Hello there");
+
+            Assert.That(isSent, Is.False);
+            Assert.That(conversation.Lines.Count, Is.EqualTo(1));
+            Assert.That(conversation.SuggestedEnglish, Is.EqualTo("Go straight ahead."));
+            Assert.That(conversation.StatusMessage, Does.Contain("[예시 문장]"));
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [Test]
+        public void GuidedConversation_TheLineAfterAMiss_AdvancesAndClearsTheNotice()
+        {
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+            conversation.Send("Hello there");
+
+            bool isSent = conversation.Send("go straight ahead");
+
+            Assert.That(isSent, Is.True);
+            Assert.That(conversation.StatusMessage, Is.Null);
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("And then?"));
+        }
+
+        [Test]
+        public void FreeConversation_AnySentence_GetsAReply()
+        {
+            var conversation = new DialogueConversation(CafeStaffCode, CreateCafeScript());
+
+            Assert.That(conversation.Send("Hello there"), Is.True);
+            Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
+        [Test]
         public void ExampleSentence_InFreeConversation_UsesScriptExample()
         {
             var conversation = new DialogueConversation(CafeStaffCode, CreateCafeScript());

@@ -1,6 +1,7 @@
 package com.elsehere.conversation.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.service.WorkerNpcs;
@@ -20,6 +21,8 @@ import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.memory.service.NpcAffinityService;
+import com.elsehere.user.entity.User;
+import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
 import java.time.Instant;
@@ -53,7 +56,21 @@ class ConversationSupport {
   private final NpcAudioRetention npcAudioRetention;
   private final WorkerNpcs workerNpcs;
   private final NpcAffinityService npcAffinityService;
+  private final UserRepository userRepository;
   private final JsonMapper jsonMapper;
+
+  /** NPC 대답의 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰도록 닉네임과 캐릭터 기본형을 보낸다. */
+  WorkerLearner learner(User user) {
+    return new WorkerLearner(
+        user.getNickname(), user.getAvatarType() == null ? null : user.getAvatarType().name());
+  }
+
+  WorkerLearner learner(Long userId) {
+    return learner(
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)));
+  }
 
   NpcContext npcByCode(String npcCode) {
     return npcRepository

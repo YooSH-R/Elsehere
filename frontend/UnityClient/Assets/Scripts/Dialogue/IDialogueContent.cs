@@ -51,14 +51,14 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 대사에 대답할 추천 문장. [힌트]를 누르기 전에는 null이다.</summary>
         string HintText { get; }
 
-        /// <summary>[누르고 말하기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
+        /// <summary>[꾹 눌러 말하기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
         bool UsesVoice { get; }
 
         /// <summary>NPC 호감도와 무례 경고 칸. 서버 대화만 쓰며, 대본 대화는 null이다.</summary>
         ConversationStanding Standing { get; }
 
         /// <summary>
-        /// [누르고 말하기]로 말할 수 있는지. 음성 처리에 동의하지 않았으면 false이며, 글자로만 입력한다(API 명세 CONV-02).
+        /// [꾹 눌러 말하기]로 말할 수 있는지. 음성 처리에 동의하지 않았으면 false이며, 글자로만 입력한다(API 명세 CONV-02).
         /// </summary>
         bool CanTalk { get; }
 

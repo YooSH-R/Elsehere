@@ -75,7 +75,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2708998934847814178}
-  - component: {fileID: 8426317370771983189}
   - component: {fileID: 2460072094084383705}
   m_Layer: 0
   m_Name: ChocolateCake
@@ -100,27 +99,6 @@ Transform:
   - {fileID: 2053348766867891661}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &8426317370771983189
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5652663737381165648}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.35, y: 0.18484837, z: 0.35}
-  m_Center: {x: 0, y: 0.092424184, z: 0}
 --- !u!114 &2460072094084383705
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -210,8 +188,38 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7c52db394ad2f56429d52e5f4a81950f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8172415080574425928}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7c52db394ad2f56429d52e5f4a81950f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3992965626477524951}
   m_SourcePrefab: {fileID: 100100000, guid: 7c52db394ad2f56429d52e5f4a81950f, type: 3}
+--- !u!1 &1672284066505162615 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 7c52db394ad2f56429d52e5f4a81950f, type: 3}
+  m_PrefabInstance: {fileID: 2014319245555974694}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &3992965626477524951
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1672284066505162615}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -3950759952634723027, guid: 7c52db394ad2f56429d52e5f4a81950f, type: 3}
 --- !u!4 &2053348766867891661 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7c52db394ad2f56429d52e5f4a81950f, type: 3}

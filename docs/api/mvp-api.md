@@ -86,7 +86,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
 | `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
-| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 마이페이지에서 동의를 켭니다. |
+| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 동의를 켭니다. |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
 | `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
@@ -961,7 +961,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "improve": ["I want 대신 I'd like를 쓰면 더 공손해요."]
     },
     "suggestion": { "userText": "I want 아이스 라떼.", "betterText": "I'd like an iced latte, please." },
-    "errorCode": null
+    "errorCode": null,
+    "situationExpressions": [
+      {
+        "expression": "Can I get that to go?",
+        "meaningKo": "포장해 주실 수 있나요?",
+        "usageKo": "음료를 가지고 나가고 싶을 때 써요.",
+        "exampleEn": "Can I get that to go? I'm in a bit of a hurry.",
+        "exampleKo": "포장해 주실 수 있나요? 좀 급해서요."
+      }
+    ]
   },
   "completedMissions": [
     { "userMissionId": 12, "title": "카페에서 음료 주문하기" },
@@ -971,7 +980,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 화면 16의 짧은 피드백을 그립니다. "Mia · 카페 · 발화 4번"은 `npc`, `sceneCode`, `userTurnCount`, "미션 완료"는 `completedMissions`, 개선 표현 상자는 `suggestion`입니다.
-- `summary`는 `conversation_feedback.summary`, `reviews`와 `suggestion`은 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion }`)에 저장합니다.
+- `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions }`)에 저장합니다.
+- `situationExpressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개입니다(표현, 뜻, 쓰는 때, 학습 예문과 번역). 사용자 발화 평가와 별개로 화면 16·17의 회화 칸에 보여 줍니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다. 예문은 학습용이며 사용자가 한 말이 아닙니다.
 - 피드백은 대화를 시작할 때 예약한 토큰으로 만듭니다(1.4). 토큰이 떨어져 NPC가 대화를 끝낸 경우에도 피드백을 받습니다.
 - [대화 종료 (Esc)]와 오류 화면의 [대화 종료]에서 호출합니다. 어떤 오류 상태에서도 종료할 수 있습니다.
 - NPC가 대화를 끝낸 경우(`ENDED_BY_NPC`)에도 피드백을 받으려면 호출합니다. 이때 상태는 바꾸지 않고 피드백만 만듭니다.

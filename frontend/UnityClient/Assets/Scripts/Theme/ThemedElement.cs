@@ -41,6 +41,13 @@ namespace A305.Theme
         [Tooltip("선택한 목록 행은 테마의 강조색을 옅게 사용한다")]
         private bool selection;
 
+        /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
+        public void SetSelected(bool selected)
+        {
+            selection = selected;
+            ApplyCurrent();
+        }
+
         public void ApplyCurrent()
         {
             if (catalog == null)
@@ -58,10 +65,21 @@ namespace A305.Theme
                     Paint(GetComponent<Image>(), theme.PanelSprite, theme.PanelTint);
                     break;
                 case UiThemeRole.Card:
-                    Paint(GetComponent<Image>(), theme.CardSprite, theme.CardTint);
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.CardSprite,
+                        selection
+                            ? Color.Lerp(theme.CardTint, theme.ToneColor(UiTone.Primary), .35f)
+                            : theme.CardTint
+                    );
                     break;
                 case UiThemeRole.Control:
-                    Paint(GetComponent<Image>(), theme.CardSprite, theme.ToneColor(UiTone.Neutral));
+                    // 고른 조작은 다음에 누를 곳이라 강조색으로 칠한다(예: 보낼 문장이 있는 [보내기]).
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.CardSprite,
+                        theme.ToneColor(selection ? UiTone.Primary : UiTone.Neutral)
+                    );
                     break;
                 case UiThemeRole.Input:
                     Paint(GetComponent<Image>(), theme.InputSprite, Color.white);

@@ -95,7 +95,7 @@ class AiWorkerClientTest {
 
         """);
 
-    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(reply.succeeded()).isTrue();
     assertThat(reply.text()).isEqualTo("Hi! What can I get?");
@@ -118,7 +118,8 @@ class AiWorkerClientTest {
         List.of(WorkerLine.npc("Hi")),
         "Hello",
         "",
-        2);
+        2,
+        null);
 
     ReceivedRequest request = received.get("/v1/npc/reply");
     assertThat(request.token()).isEqualTo(TOKEN);
@@ -132,6 +133,17 @@ class AiWorkerClientTest {
         .contains("\"tts_voice\":\"af_heart\"")
         .contains(
             "\"memory\":{\"visits\":2,\"last_order\":null,\"card\":{\"attitude\":\"friendly\"}}");
+  }
+
+  @Test
+  @DisplayName("대답 상대인 학습자의 닉네임과 캐릭터 기본형을 learner로 보낸다")
+  void reply_sendsLearnerNicknameAndAvatarType() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 2, new WorkerLearner("Sun", "F"));
+
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"learner\":{\"nickname\":\"Sun\",\"avatar_type\":\"F\"}");
   }
 
   @Test
@@ -149,7 +161,7 @@ class AiWorkerClientTest {
             1.0,
             Map.of("schemaVersion", "2.0", "speechStyle", Map.of("tone", "bright")));
 
-    client.reply(TRACE, npcWithProfile, null, List.of(), "Hello", "", 2);
+    client.reply(TRACE, npcWithProfile, null, List.of(), "Hello", "", 2, null);
 
     assertThat(received.get("/v1/npc/reply").body())
         .contains("\"tts_voice\":\"af_heart\"")
@@ -163,7 +175,7 @@ class AiWorkerClientTest {
   void request_withoutConversation_omitsConversationHeader() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
 
-    client.reply(new WorkerTrace(REQUEST_ID, 7L, null), NPC, null, List.of(), "Hello", "", 1);
+    client.reply(new WorkerTrace(REQUEST_ID, 7L, null), NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(received.get("/v1/npc/reply").conversationId()).isNull();
   }
@@ -177,7 +189,7 @@ class AiWorkerClientTest {
         "text/event-stream",
         "event: error\ndata: {\"code\": \"provider_limit\", \"usage\": [{\"step\": \"npc\", \"model\": \"m1\"}]}\n\n");
 
-    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(reply.succeeded()).isFalse();
     assertThat(reply.errorCode()).isEqualTo("provider_limit");
@@ -190,7 +202,7 @@ class AiWorkerClientTest {
     respond(
         "/v1/npc/reply", 200, "text/event-stream", "event: delta\ndata: {\"text\": \"Hi\"}\n\n");
 
-    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(reply.succeeded()).isFalse();
     assertThat(reply.errorCode()).isEqualTo("provider_unavailable");
@@ -202,7 +214,7 @@ class AiWorkerClientTest {
     respond(
         "/v1/npc/reply", 429, "application/json", "{\"error\": {\"code\": \"provider_limit\"}}");
 
-    assertThatThrownBy(() -> client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1))
+    assertThatThrownBy(() -> client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_RATE_LIMITED));
@@ -301,7 +313,7 @@ class AiWorkerClientTest {
     respond(
         "/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Bye\"}\n\n");
 
-    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, false);
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, false, null);
 
     assertThat(received.get("/v1/npc/reply").body()).contains("\"suggest_words\":false");
   }
@@ -478,7 +490,8 @@ class AiWorkerClientTest {
         List.of(),
         "Hello",
         "",
-        2);
+        2,
+        null);
 
     assertThat(received.get("/v1/npc/reply").body())
         .contains("\"memory\":{\"visits\":2,\"last_order\":null,\"card\":null}")

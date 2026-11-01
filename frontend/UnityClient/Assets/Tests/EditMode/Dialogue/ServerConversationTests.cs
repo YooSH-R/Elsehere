@@ -644,7 +644,7 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToMyPage()
+        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToMyInfoConsent()
         {
             await conversation.StartAsync();
             api.TranscriptionError = new ApiException(
@@ -656,7 +656,8 @@ namespace A305.Dialogue.Tests
             await conversation.TranscribeAsync(Wav);
 
             Assert.That(conversation.CanTalk, Is.False);
-            Assert.That(conversation.RecoveryGuide, Does.Contain("마이페이지"));
+            // 동의를 켜는 실제 메뉴 경로(오른쪽 위 메뉴 › 내 정보 › 선택 동의)로 안내한다.
+            Assert.That(conversation.RecoveryGuide, Does.Contain("내 정보 › 선택 동의"));
         }
 
         [Test]

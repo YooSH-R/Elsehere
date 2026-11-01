@@ -77,6 +77,7 @@ GameObject:
   - component: {fileID: 3754086918884396845}
   - component: {fileID: 3219333629035594759}
   - component: {fileID: 132620689328942112}
+  - component: {fileID: 7910981235278775849}
   m_Layer: 0
   m_Name: SandwichBoardGreen
   m_TagString: Untagged
@@ -157,6 +158,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &7910981235278775849
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4402047267282763810}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 3e4a1adcf31257b42a189446ded55834, type: 2}
 --- !u!1 &4577889641906307492
 GameObject:
   m_ObjectHideFlags: 0
@@ -350,7 +373,6 @@ GameObject:
   m_Component:
   - component: {fileID: 6880966611733126380}
   - component: {fileID: 4374142128883392413}
-  - component: {fileID: 7110779084529448226}
   m_Layer: 0
   m_Name: CoffeeSandwichBoard
   m_TagString: Untagged
@@ -390,24 +412,3 @@ MonoBehaviour:
   word: {fileID: 11400000, guid: 54c5b1e22baabc84c9d2d981d4e8f18c, type: 2}
   parts: {fileID: 0}
   unityKey: 
---- !u!65 &7110779084529448226
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5019917686923748536}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.58, y: 0.83167505, z: 0.46008152}
-  m_Center: {x: 0, y: 0.5, z: 0}

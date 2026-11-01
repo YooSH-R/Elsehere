@@ -34,6 +34,8 @@ namespace A305.EditorTools.Theme
         private const string CatalogPath = DataFolder + "/UiThemeCatalog.asset";
         private const string PickerPath = "Assets/Prefabs/Theme/ThemePicker.prefab";
         private const string HudPath = "Assets/Prefabs/Learning/LearningHud.prefab";
+        private const string OfferPath = "Assets/Prefabs/Npc/PasserbyOffer.prefab";
+        private const string EntryPath = "Assets/Prefabs/Onboarding/EntryScreens.prefab";
         private const string HomeScenePath = "Assets/Scenes/Production/HomeScene.unity";
         private const string FontFolder = "Assets/Art/UI/Fonts";
         private const string HudMenuPath = "Panel/Menu";
@@ -42,6 +44,9 @@ namespace A305.EditorTools.Theme
         private const float MenuButtonSize = 78;
         private const float MenuWidth = 300;
         private const float MenuRowHeight = 64;
+
+        // 창의 동작 버튼은 글자가 잘 보이도록 통통한 알약으로 둔다.
+        private const float ActionPillHeight = 70;
 
         // 주의: 테마 순서는 UiThemeId 순서와 같다.
         private static readonly ThemeSpec[] Specs =
@@ -171,7 +176,7 @@ namespace A305.EditorTools.Theme
             BuilderTools.UpdateOrCreatePrefab(PickerPath, "ThemePicker", SetUpPicker);
         }
 
-        /// <summary>대화·피드백·단어장·미션·튜토리얼·단어 카드 화면 프리팹에 테마 역할을 붙이고 기본 테마로 칠한다.</summary>
+        /// <summary>대화·피드백·단어장·미션·튜토리얼·단어 카드·대화 제안·로그인 화면 프리팹에 테마 역할을 붙이고 기본 테마로 칠한다.</summary>
         public static void StyleFeaturePrefabs()
         {
             if (catalog == null)
@@ -185,6 +190,21 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/Tutorial/TutorialGuide.prefab", StyleTutorial);
             Style("Assets/Prefabs/ObjectHover/WordTooltip.prefab", StyleTooltip);
             Style(PickerPath, StyleThemeLauncher);
+            Style(OfferPath, StyleOffer);
+            Style(EntryPath, StyleEntry);
+        }
+
+        /// <summary>대화 제안·로그인과 가입·지난 대화·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
+        [MenuItem("Tools/A305/UI/Apply Unified Dialogs")]
+        public static void ApplyUnifiedDialogs()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(HudPath, StyleHud);
+            Style(OfferPath, StyleOffer);
+            Style(EntryPath, StyleEntry);
+            AssetDatabase.SaveAssets();
+            Debug.Log("대화 제안·로그인·지난 대화·내 정보 창을 테마 규칙으로 맞췄습니다.");
         }
 
         [MenuItem("Tools/A305/UI/Apply Approved HUD Buttons")]
@@ -436,7 +456,7 @@ namespace A305.EditorTools.Theme
             size.flexibleWidth = 1;
         }
 
-        /// <summary>지난 대화 창을 단어장 화면처럼 칠한다.</summary>
+        /// <summary>지난 대화 창을 단어장 화면처럼 칠한다. 닫기는 오른쪽 위 X, [피드백 보기]는 강조 알약 버튼이다.</summary>
         private static void StyleHistory(Transform root)
         {
             if (root.Find("History") == null)
@@ -446,37 +466,14 @@ namespace A305.EditorTools.Theme
             Role(root, "History/Hint", UiThemeRole.Muted);
             Role(root, "History/List", UiThemeRole.Body);
             Role(root, "History/Status", UiThemeRole.Muted);
-            IconButton(
-                root,
-                "History/Buttons/PreviousButton",
-                UiIcon.Previous,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "History/Buttons/NextButton",
-                UiIcon.Next,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "History/Buttons/OpenButton",
-                UiIcon.Detail,
-                UiTone.Primary,
-                caption: true
-            );
-            IconButton(
-                root,
-                "History/Buttons/CloseButton",
-                UiIcon.Close,
-                UiTone.Neutral,
-                caption: true
-            );
+            CompactArrow(root, "History/Buttons/PreviousButton", UiIcon.Previous);
+            CompactArrow(root, "History/Buttons/NextButton", UiIcon.Next);
+            ActionPill(root, "History/Buttons/OpenButton", UiIcon.Detail, UiTone.Primary, 220);
+            CornerClose(root, "History");
+            Roomy(root, "History");
         }
 
-        /// <summary>마이페이지 창을 칠한다.</summary>
+        /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
         private static void StyleMyPage(Transform root)
         {
             if (root.Find("MyPage") == null)
@@ -484,22 +481,339 @@ namespace A305.EditorTools.Theme
             Role(root, "MyPage/Window", UiThemeRole.Panel);
             Role(root, "MyPage/Window/Title", UiThemeRole.Title);
             Role(root, "MyPage/Window/Profile", UiThemeRole.Body);
-            Role(root, "MyPage/Window/NicknameRow/NicknameInput", UiThemeRole.Input);
+            ThemedInput(root, "MyPage/Window/NicknameRow/NicknameInput");
             Role(root, "MyPage/Window/Status", UiThemeRole.Muted);
             Role(root, "MyPage/Window/LookSensitivity/Title", UiThemeRole.Title);
             Role(root, "MyPage/Window/LookSensitivity/Help", UiThemeRole.Muted);
             Role(root, "MyPage/Window/LookSensitivity/Row/Slow", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Fast", UiThemeRole.Caption);
             Role(root, "MyPage/Window/LookSensitivity/Row/Value", UiThemeRole.Accent);
-            QuietButton(root, "MyPage/Window/NicknameRow/NicknameButton", "닉네임 변경");
-            QuietButton(root, "MyPage/Window/Buttons/LogoutButton", "로그아웃");
-            QuietButton(root, "MyPage/Window/Buttons/CloseButton", "닫기");
+            ActionPill(
+                root,
+                "MyPage/Window/NicknameRow/NicknameButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                210
+            );
+            ActionPill(
+                root,
+                "MyPage/Window/Buttons/LogoutButton",
+                UiIcon.Exit,
+                UiTone.Neutral,
+                210
+            );
+            CornerClose(root, "MyPage/Window");
+            Roomy(root, "MyPage/Window");
+            // 여백을 넓힌 만큼 창을 넓혀 시점 감도 줄의 [빠르게]와 현재 배율이 겹치지 않게 한다.
+            var window = (RectTransform)root.Find("MyPage/Window");
+            window.sizeDelta = new Vector2(640, window.sizeDelta.y);
             Role(root, "MyPage/LogoutDialog", UiThemeRole.Panel);
             Role(root, "MyPage/LogoutDialog/Title", UiThemeRole.Title);
             Role(root, "MyPage/LogoutDialog/Body", UiThemeRole.Body);
             Role(root, "MyPage/LogoutDialog/Status", UiThemeRole.Muted);
-            QuietButton(root, "MyPage/LogoutDialog/Buttons/CancelButton", "취소");
-            QuietButton(root, "MyPage/LogoutDialog/Buttons/ConfirmButton", "로그아웃");
+            ActionPill(
+                root,
+                "MyPage/LogoutDialog/Buttons/CancelButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                180
+            );
+            ActionPill(
+                root,
+                "MyPage/LogoutDialog/Buttons/ConfirmButton",
+                UiIcon.Exit,
+                UiTone.Primary,
+                180
+            );
+            Roomy(root, "MyPage/LogoutDialog");
+            if (root.Find("MyPage/Window/Consents") != null)
+            {
+                Role(root, "MyPage/Window/ConsentsLabel", UiThemeRole.Caption);
+                ConsentRow(root, "MyPage/Window/Consents/ConsentRowTemplate");
+            }
+            if (root.Find("MyPage/WithdrawDialog") == null)
+                return;
+            ActionPill(
+                root,
+                "MyPage/Window/Buttons/WithdrawButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                210
+            );
+            Role(root, "MyPage/WithdrawDialog", UiThemeRole.Panel);
+            Role(root, "MyPage/WithdrawDialog/Title", UiThemeRole.Title);
+            Role(root, "MyPage/WithdrawDialog/Body", UiThemeRole.Body);
+            // 지우는 내용을 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
+            root.Find("MyPage/WithdrawDialog/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            Role(root, "MyPage/WithdrawDialog/Status", UiThemeRole.Muted);
+            ActionPill(
+                root,
+                "MyPage/WithdrawDialog/Buttons/CancelButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                180
+            );
+            // 되돌릴 수 없는 동작은 강조색 대신 코랄(Secondary)로 구분한다.
+            ActionPill(
+                root,
+                "MyPage/WithdrawDialog/Buttons/ConfirmButton",
+                UiIcon.Delete,
+                UiTone.Secondary,
+                180
+            );
+            Roomy(root, "MyPage/WithdrawDialog");
+        }
+
+        /// <summary>약관·선택 동의 한 줄: 동그란 체크, 본문 글자, 작은 [보기] 알약 버튼.</summary>
+        private static void ConsentRow(Transform root, string rowPath)
+        {
+            Role(root, rowPath + "/Toggle", UiThemeRole.Input);
+            Role(root, rowPath + "/Label", UiThemeRole.Body);
+            ActionPill(root, rowPath + "/ViewButton", UiIcon.None, UiTone.Neutral, 110);
+        }
+
+        /// <summary>NPC가 말을 걸 때의 제안 창을 다른 창과 같은 바탕과 알약 버튼으로 칠하고, [말 걸기]·[택시 세우기]는 버튼만 둔다.</summary>
+        private static void StyleOffer(Transform root)
+        {
+            Role(root, "Panel", UiThemeRole.Panel);
+            Role(root, "Panel/Hint", UiThemeRole.Muted);
+            Role(root, "Panel/Greeting", UiThemeRole.Title);
+            ActionPill(root, "Panel/Buttons/AcceptButton", UiIcon.Talk, UiTone.Primary, 220);
+            ActionPill(root, "Panel/Buttons/DeclineButton", UiIcon.None, UiTone.Neutral, 220);
+            Roomy(root, "Panel");
+            // [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼 하나와 키 안내만 보인다.
+            Transform prompt = root.Find("TalkPrompt");
+            var promptTheme = prompt.GetComponent<ThemedElement>();
+            if (promptTheme != null)
+                Object.DestroyImmediate(promptTheme);
+            var promptImage = prompt.GetComponent<Image>();
+            promptImage.sprite = null;
+            promptImage.color = Color.clear;
+            promptImage.raycastTarget = false;
+            prompt.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(0, 0, 0, 0);
+            // 바탕이 없으므로 밝은 인도·회색 도로 어디서나 보이게 코랄(Secondary)과 그림자를 준다.
+            ActionPill(root, "TalkPrompt/Buttons/TalkButton", UiIcon.Talk, UiTone.Secondary, 260);
+            var lift = BuilderTools.GetOrAddComponent<Shadow>(
+                root.Find("TalkPrompt/Buttons/TalkButton").gameObject
+            );
+            lift.effectColor = new Color(0, 0, 0, .28f);
+            lift.effectDistance = new Vector2(0, -4);
+            Role(root, "TalkPrompt/Buttons/KeyHint", UiThemeRole.Title);
+            if (root.Find("Panel/Remaining") != null)
+            {
+                Role(root, "Panel/Remaining", UiThemeRole.Muted);
+                // 바탕이 없는 [말 걸기] 위에서도 읽히도록 진한 글자로 둔다.
+                Role(root, "TalkPrompt/Remaining", UiThemeRole.Title);
+            }
+        }
+
+        /// <summary>
+        /// 로그인·캐릭터·가입·언어·난이도·레벨 테스트·연결 안내 창을 기본 테마의 창과 알약 버튼으로 칠한다.
+        /// 고르는 캐릭터 버튼과 카드는 카드 모양으로 두고, 실행 중 고른 것만 강조색 쪽으로 칠한다.
+        /// </summary>
+        private static void StyleEntry(Transform root)
+        {
+            foreach (
+                string panel in new[]
+                {
+                    "LoginPanel",
+                    "GuestPanel",
+                    "SignupPanel",
+                    "LanguagePanel",
+                    "LevelSettingPanel",
+                    "LevelTestPanel",
+                    "ConnectionPanel",
+                }
+            )
+            {
+                Role(root, panel, UiThemeRole.Panel);
+                Role(root, panel + "/Title", UiThemeRole.Title);
+                Roomy(root, panel);
+            }
+
+            Role(root, "LoginPanel/Subtitle", UiThemeRole.Muted);
+            Role(root, "LoginPanel/Notice", UiThemeRole.Muted);
+            ActionPill(root, "LoginPanel/GoogleButton", UiIcon.None, UiTone.Primary, 280);
+            ActionPill(root, "LoginPanel/GuestButton", UiIcon.None, UiTone.Neutral, 280);
+            ActionPill(root, "LoginPanel/DevLoginButton", UiIcon.None, UiTone.Neutral, 280);
+
+            // 캐릭터 버튼은 위의 제목·설명과 같은 왼쪽 줄에서 시작한다.
+            foreach (string row in new[] { "GuestPanel/AvatarRow", "SignupPanel/AvatarRow" })
+                root.Find(row).GetComponent<HorizontalLayoutGroup>().childAlignment =
+                    TextAnchor.MiddleLeft;
+            QuietButton(root, "GuestPanel/AvatarRow/FemaleButton", "여성");
+            QuietButton(root, "GuestPanel/AvatarRow/MaleButton", "남성");
+            Role(root, "GuestPanel/Note", UiThemeRole.Muted);
+            if (root.Find("GuestPanel/VoiceConsentRow") != null)
+            {
+                ConsentRow(root, "GuestPanel/VoiceConsentRow");
+                Role(root, "GuestPanel/VoiceConsentNote", UiThemeRole.Muted);
+            }
+            ActionPill(root, "GuestPanel/StartButton", UiIcon.Play, UiTone.Primary, 280);
+            ActionPill(root, "GuestPanel/BackButton", UiIcon.Previous, UiTone.Neutral, 280);
+
+            Role(root, "SignupPanel/NicknameLabel", UiThemeRole.Caption);
+            ThemedInput(root, "SignupPanel/NicknameRow/NicknameInput");
+            ActionPill(
+                root,
+                "SignupPanel/NicknameRow/CheckNicknameButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                180
+            );
+            Role(root, "SignupPanel/NicknameHint", UiThemeRole.Muted);
+            Role(root, "SignupPanel/AvatarLabel", UiThemeRole.Caption);
+            QuietButton(root, "SignupPanel/AvatarRow/FemaleButton", "여성");
+            QuietButton(root, "SignupPanel/AvatarRow/MaleButton", "남성");
+            Role(root, "SignupPanel/ConsentsLabel", UiThemeRole.Caption);
+            ConsentRow(root, "SignupPanel/Consents/ConsentRowTemplate");
+            if (root.Find("SignupPanel/VoiceConsentNote") != null)
+                Role(root, "SignupPanel/VoiceConsentNote", UiThemeRole.Muted);
+            ActionPill(root, "SignupPanel/SubmitButton", UiIcon.Check, UiTone.Primary, 280);
+
+            foreach (string cards in new[] { "LanguagePanel/Cards", "LevelSettingPanel/Cards" })
+            {
+                Role(root, cards + "/CardTemplate", UiThemeRole.Card);
+                Role(root, cards + "/CardTemplate/Title", UiThemeRole.Title);
+                Role(root, cards + "/CardTemplate/Description", UiThemeRole.Muted);
+                Role(root, cards + "/CardTemplate/Badge", UiThemeRole.Accent);
+            }
+            ActionPill(root, "LevelSettingPanel/ConfirmButton", UiIcon.Check, UiTone.Primary, 280);
+
+            Role(root, "LevelTestPanel/Body", UiThemeRole.Body);
+            Role(root, "LevelTestPanel/SkipNote", UiThemeRole.Muted);
+            ActionPill(root, "LevelTestPanel/StartButton", UiIcon.Play, UiTone.Primary, 400);
+            ActionPill(root, "LevelTestPanel/SkipButton", UiIcon.Skip, UiTone.Neutral, 400);
+
+            Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
+            ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
+        }
+
+        /// <summary>
+        /// 창 아래의 동작 버튼을 알약 버튼으로 칠한다. 창마다 주요 동작 하나만 강조색(Primary)을 쓰고 나머지는 기본색으로 둔다. 예전에 아이콘 버튼으로 칠했던 바탕(Face)은 지우고,
+        /// 한 줄에 놓인 버튼들이 같은 높이가 되도록 맞춘다. 같은 창에 함께 놓이는 버튼은 같은 폭을 준다. 너비를 주지 않으면 줄의 너비를 따른다.
+        /// </summary>
+        private static void ActionPill(
+            Transform root,
+            string path,
+            UiIcon icon,
+            UiTone tone,
+            float width = 0
+        )
+        {
+            Transform button = root.Find(path);
+            if (button == null)
+            {
+                Debug.LogWarning($"알약 버튼으로 바꿀 버튼이 없습니다: {root.name}/{path}");
+                return;
+            }
+            Transform face = button.Find("Face");
+            if (face != null)
+                Object.DestroyImmediate(face.gameObject);
+            button.Find("Label").gameObject.SetActive(true);
+            PillButton(root, path, icon, tone);
+            // 통통한 알약: 높이를 키우고 둥근 끝이 맞도록 9칸 나누기 모서리를 넓히며, 아이콘과 글자를 크게 한다.
+            button.GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
+            button.Find("Outline").GetComponent<Image>().pixelsPerUnitMultiplier = 1.4f;
+            // 아이콘과 이름을 한 묶음으로 버튼 가운데에 둔다. 테두리(Outline)는 버튼 전체를 덮도록 배치에서 뺀다.
+            var group = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(button.gameObject);
+            group.childAlignment = TextAnchor.MiddleCenter;
+            group.spacing = 8;
+            group.padding = new RectOffset(18, 18, 0, 0);
+            group.childControlWidth = true;
+            group.childControlHeight = false;
+            group.childForceExpandWidth = false;
+            group.childForceExpandHeight = false;
+            BuilderTools
+                .GetOrAddComponent<LayoutElement>(button.Find("Outline").gameObject)
+                .ignoreLayout = true;
+            var iconRect = (RectTransform)button.Find("Icon");
+            iconRect.sizeDelta = new Vector2(28, 28);
+            var iconSize = BuilderTools.GetOrAddComponent<LayoutElement>(iconRect.gameObject);
+            iconSize.preferredWidth = iconSize.minWidth = 28;
+            iconSize.ignoreLayout = icon == UiIcon.None;
+            var label = button.Find("Label").GetComponent<TMP_Text>();
+            ((RectTransform)label.transform).sizeDelta = new Vector2(0, 50);
+            label.alignment = TextAlignmentOptions.Midline;
+            label.fontStyle = FontStyles.Bold;
+            // 이름이 긴 버튼(NPC 이름이 들어간 [말 걸기] 등)은 폭을 넘지 않게 글자만 조금 줄인다.
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 18;
+            label.fontSizeMax = 26;
+            // 높이를 정하지 않는 줄에서도 같은 크기가 되도록 레이아웃 값과 직접 크기를 함께 맞춘다.
+            var size = button.GetComponent<LayoutElement>();
+            var rect = (RectTransform)button;
+            size.preferredHeight = size.minHeight = ActionPillHeight;
+            rect.sizeDelta = new Vector2(rect.sizeDelta.x, ActionPillHeight);
+            if (width > 0)
+            {
+                size.preferredWidth = size.minWidth = width;
+                rect.sizeDelta = new Vector2(width, ActionPillHeight);
+            }
+        }
+
+        /// <summary>
+        /// 승인된 대화창·퀘스트 수첩(S15P31A305-336)과 같은 안쪽 여백과 줄 간격을 준다. 창은 내용 높이에 맞춰 늘어나므로
+        /// 글자와 버튼이 테두리에 붙지 않는다. 창 안의 버튼 줄도 버튼 사이를 띄운다. 글자와 줄은 창 너비를 채우고,
+        /// 줄 밖에 세로로 쌓인 버튼은 창 너비로 늘이지 않고 정한 폭으로 가운데에 둔다.
+        /// </summary>
+        private static void Roomy(Transform root, string panelPath)
+        {
+            Transform panel = root.Find(panelPath);
+            var column = panel.GetComponent<VerticalLayoutGroup>();
+            column.padding = new RectOffset(48, 48, 40, 40);
+            column.spacing = 20;
+            column.childAlignment = TextAnchor.UpperCenter;
+            column.childForceExpandWidth = false;
+            foreach (Transform child in panel)
+            {
+                var row = child.GetComponent<HorizontalLayoutGroup>();
+                if (row != null)
+                    row.spacing = 16;
+                if (child.GetComponent<Button>() == null)
+                    BuilderTools.GetOrAddComponent<LayoutElement>(child.gameObject).flexibleWidth =
+                        1;
+            }
+        }
+
+        /// <summary>단어장 메모 입력칸(S15P31A305-381)처럼 안내 글자를 기울이지 않은 흐린 글자로 두고 글자 안쪽 여백을 준다.</summary>
+        private static void ThemedInput(Transform root, string path)
+        {
+            Transform target = root.Find(path);
+            if (target == null)
+            {
+                Debug.LogWarning($"테마를 붙일 입력칸이 없습니다: {root.name}/{path}");
+                return;
+            }
+            var field = target.GetComponent<TMP_InputField>();
+            Role(target, UiThemeRole.Input);
+            field.textComponent.margin = new Vector4(16, 8, 16, 8);
+            field.textComponent.alignment = TextAlignmentOptions.MidlineLeft;
+            Role(field.textComponent, UiThemeRole.Body);
+            var placeholder = (TMP_Text)field.placeholder;
+            placeholder.fontStyle = FontStyles.Normal;
+            placeholder.margin = field.textComponent.margin;
+            placeholder.alignment = TextAlignmentOptions.MidlineLeft;
+            Role(placeholder, UiThemeRole.Muted);
+        }
+
+        /// <summary>닫기를 단어장·테마 고르기 창처럼 창 오른쪽 위의 X 아이콘으로 옮긴다. 다시 실행해도 같은 자리에 둔다.</summary>
+        private static void CornerClose(Transform root, string panelPath)
+        {
+            Transform panel = root.Find(panelPath);
+            Transform button = panel.Find("CloseButton");
+            if (button == null)
+                button = panel.Find("Buttons/CloseButton");
+            if (button == null)
+            {
+                Debug.LogWarning($"닫기 버튼이 없습니다: {root.name}/{panelPath}");
+                return;
+            }
+            button.SetParent(panel, false);
+            BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject).ignoreLayout = true;
+            IconButton(panel, "CloseButton", UiIcon.Close, UiTone.Neutral, caption: false);
+            Place((RectTransform)button, Vector2.one, new Vector2(-22, -22), new Vector2(52, 52));
         }
 
         private static void StyleFeedback(Transform root)

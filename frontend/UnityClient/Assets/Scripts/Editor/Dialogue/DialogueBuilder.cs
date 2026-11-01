@@ -352,7 +352,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
 
-            // 서버 AI 대화: 상태 문구, 추천 단어, 누르고 말하기, 다시 듣기, 힌트
+            // 서버 AI 대화: 상태 문구, 추천 단어, 꾹 눌러 말하기, 다시 듣기, 힌트
             TMP_Text status = UiBuilderTools.FindOrCreateText(
                 conversation,
                 "Status",
@@ -370,7 +370,7 @@ namespace A305.EditorTools.Dialogue
             Button talkButton = UiBuilderTools.FindOrCreateButton(
                 inputRow,
                 "TalkButton",
-                "누르고 말하기",
+                "꾹 눌러 말하기",
                 bold,
                 200f
             );

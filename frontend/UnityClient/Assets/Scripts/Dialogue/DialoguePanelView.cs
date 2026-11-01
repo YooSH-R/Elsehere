@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using A305.Theme;
 using A305.Voice;
 using TMPro;
 using UnityEngine;
@@ -10,13 +11,15 @@ namespace A305.Dialogue
 {
     /// <summary>
     /// 대화 중에 보이는 화면. 최근 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
-    /// 서버 AI 대화의 [누르고 말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다.
+    /// 서버 AI 대화의 [꾹 눌러 말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
         private const string MeaningColor = "#B8C0CC";
         private const string FreeTalkGuide =
             "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요. 한국어를 섞어도 돼요.";
+        private const string TalkCaption = "꾹 눌러 말하기";
+        private const string ListeningCaption = "듣는 중…";
 
         [SerializeField]
         private GameObject panel;
@@ -86,6 +89,8 @@ namespace A305.Dialogue
         private IDialogueContent content;
         private bool isMeaningVisible;
         private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
+        private TMP_Text talkLabel;
+        private ThemedElement sendTheme;
 
         /// <summary>[대화 종료]를 누르면 알린다.</summary>
         public event Action EndRequested;
@@ -96,10 +101,10 @@ namespace A305.Dialogue
         /// <summary>[표현 저장]을 누르면 알린다. 저장할 대사는 대화 처리가 정한다.</summary>
         public event Action SaveRequested;
 
-        /// <summary>[누르고 말하기]를 누르기 시작하면 알린다.</summary>
+        /// <summary>[꾹 눌러 말하기]를 누르기 시작하면 알린다.</summary>
         public event Action TalkPressed;
 
-        /// <summary>[누르고 말하기]에서 손을 떼면 알린다.</summary>
+        /// <summary>[꾹 눌러 말하기]에서 손을 떼면 알린다.</summary>
         public event Action TalkReleased;
 
         /// <summary>[다시 듣기]를 누르면 알린다.</summary>
@@ -133,6 +138,11 @@ namespace A305.Dialogue
         public void Hide()
         {
             content = null;
+            if (talkLabel != null)
+            {
+                talkLabel.text = TalkCaption;
+            }
+
             panel.SetActive(false);
             helpPanel.gameObject.SetActive(false);
         }
@@ -167,8 +177,14 @@ namespace A305.Dialogue
             guideText.text = FormatGuide();
             guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
+            // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
+            // 음성 처리에 동의하지 않아 [꾹 눌러 말하기]가 없으면, 버튼이 왜 없는지와 동의를 켜는 곳을 입력칸 위에 알린다.
             statusText.gameObject.SetActive(
-                content.IsBusy || content.CanRetry || content.IsGuidedCompleted
+                content.IsBusy
+                    || content.CanRetry
+                    || content.IsGuidedCompleted
+                    || NeedsVoiceConsent
+                    || !string.IsNullOrEmpty(content.StatusMessage)
             );
             suggestText.text = DialogueHelpText.Words(content.SuggestWords);
             string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
@@ -180,6 +196,7 @@ namespace A305.Dialogue
             sendButton.interactable = content.CanSend;
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
+            HighlightSend();
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
             meaningButton.interactable = content.LastNpcLine != null;
@@ -202,7 +219,9 @@ namespace A305.Dialogue
         {
             endButton.onClick.AddListener(() => EndRequested?.Invoke());
             sendButton.onClick.AddListener(RequestSend);
+            sendButton.TryGetComponent(out sendTheme);
             inputField.onSubmit.AddListener(_ => RequestSend());
+            inputField.onValueChanged.AddListener(_ => HighlightSend());
             exampleButton.onClick.AddListener(FillExampleSentence);
             useHintButton.onClick.AddListener(() =>
             {
@@ -215,9 +234,40 @@ namespace A305.Dialogue
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
             retryButton.onClick.AddListener(RequestRetry);
-            talkButton.Pressed += () => TalkPressed?.Invoke();
-            talkButton.Released += () => TalkReleased?.Invoke();
+            talkLabel = talkButton.transform.Find("Label").GetComponent<TMP_Text>();
+            talkButton.Pressed += StartTalking;
+            talkButton.Released += StopTalking;
             Hide();
+        }
+
+        // 녹음은 보낼 수 있을 때만 시작되므로, 그때만 버튼에 듣고 있다고 보인다.
+        private void StartTalking()
+        {
+            if (content != null && content.CanSend)
+            {
+                talkLabel.text = ListeningCaption;
+            }
+
+            TalkPressed?.Invoke();
+        }
+
+        private void StopTalking()
+        {
+            talkLabel.text = TalkCaption;
+            TalkReleased?.Invoke();
+        }
+
+        // 들은 문장이나 입력한 문장이 있으면 [보내기]를 강조해 다음에 누를 곳을 알린다.
+        private void HighlightSend()
+        {
+            if (sendTheme != null)
+            {
+                sendTheme.SetSelected(
+                    content != null
+                        && content.CanSend
+                        && !string.IsNullOrWhiteSpace(inputField.text)
+                );
+            }
         }
 
         // 입력창에 되돌려 놓은 실패 문장은 [다시 시도]가 그대로 다시 보내므로 비운다.
@@ -231,7 +281,10 @@ namespace A305.Dialogue
         {
             if (string.IsNullOrEmpty(content.RecoveryGuide))
             {
-                return content.StatusMessage ?? "";
+                // 녹음·오류 같은 지금 상황 안내가 먼저이고, 없을 때만 음성 동의 안내를 보인다.
+                return string.IsNullOrEmpty(content.StatusMessage) && NeedsVoiceConsent
+                    ? VoiceInputNotice.ConsentRequired
+                    : content.StatusMessage ?? "";
             }
 
             return string.IsNullOrEmpty(content.StatusMessage)
@@ -386,6 +439,12 @@ namespace A305.Dialogue
             );
             var input = (RectTransform)inputField.transform;
             input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
+            // 상태 줄은 도구 줄 오른쪽부터 창 안쪽 끝까지만 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
+            var status = (RectTransform)statusText.transform;
+            status.sizeDelta = new Vector2(Mathf.Max(240, width - 664), status.sizeDelta.y);
+            statusText.enableAutoSizing = true;
+            statusText.fontSizeMin = 14;
+            statusText.fontSizeMax = 20;
             ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 520, 44);
             ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 328, 44);
         }
@@ -408,8 +467,10 @@ namespace A305.Dialogue
             }
 
             return content.CanTalk
-                ? FreeTalkGuide + " [누르고 말하기]를 누른 채 말하면 문장으로 바꿔 드려요."
+                ? FreeTalkGuide + " [꾹 눌러 말하기]로 말하면 문장으로 바꿔 드려요."
                 : FreeTalkGuide + " " + VoiceInputNotice.ConsentRequired;
         }
+
+        private bool NeedsVoiceConsent => content.UsesVoice && !content.CanTalk;
     }
 }

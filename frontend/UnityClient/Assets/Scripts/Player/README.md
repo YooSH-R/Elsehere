@@ -11,7 +11,8 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `PlayerMotor` | 이동 입력과 카메라 방향으로 이번 프레임의 속도를 계산합니다. 달리기, 점프, 중력, 이동 잠금을 포함하며 Unity 객체 없이 테스트합니다. |
 | `CameraOrbit` | 3인칭·1인칭·대화 시점 상태와 회전·줌 범위를 관리하고 카메라 위치를 계산합니다. |
 | `DialogueFraming` | 화면 비율에 맞춰 NPC 얼굴을 위쪽·오른쪽에 배치하고 수평선은 유지합니다. 대화창과 왼쪽 도움말이 얼굴을 가리지 않도록 합니다. |
-| `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. |
+| `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. 캡슐 아래 둥근 면이 가구 모서리에 걸려 발이 떠 있고 받친 점이 턱(`stepOffset`)보다 높으면 땅이 아닌 것으로 보고 모서리 바깥으로 미끄러뜨려, 가구 옆 공중에 떠 있지 않게 합니다. 계단 모서리는 턱 높이 안이라 그대로 오릅니다. 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 `HeadClearance`가 머리 구로 따로 막습니다. |
+| `HeadClearance` | 몸통 캡슐보다 큰 머리를 벽·키 큰 가구에서 막습니다. 머리 구를 이동 방향으로 밀어 보고 막히면 닿기 직전까지만 가고 면을 따라 미끄러집니다. 구의 아래 끝이 머리 아래 끝이라 낮은 가구는 머리 아래로 지나갑니다. 반지름·높이는 캐릭터 정의(`PlayerCharacterDefinition`)에서 읽습니다. |
 | `PlayerCameraRig` | 카메라가 플레이어 위치를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. 시점은 마우스·터치로만 돌립니다. |
 | `CameraCollisionDistance` | 가로등·사람 같은 가는 장애물에 줌이 흔들리지 않도록 구분하고, 벽에서 벗어나면 카메라 거리를 서서히 복구합니다. |
 | `MoveReferenceYaw` | 순간이동·대화 종료로 카메라가 플레이어 뒤로 다시 맞춰져도 누른 방향대로 곧게 움직이도록 이동 시작 방향을 유지합니다. 사용자가 직접 시점을 돌리면 기준을 갱신합니다. |
@@ -97,6 +98,8 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `PlayerCameraRig.ViewMode` | 현재 시점(`ThirdPerson`, `FirstPerson`, `Dialogue`) |
 | `PlayerMover.Teleport(Vector3, Quaternion)` | 플레이어를 바로 옮깁니다. 공간을 옮긴 뒤 출입구 앞에 세울 때 씁니다. |
 | `PlayerCameraRig.SnapBehindTarget()` | 카메라를 플레이어가 보는 방향 뒤로 돌려 바로 그 자리에 놓습니다. `Teleport` 다음에 호출합니다. 카메라는 시작할 때도 플레이어 뒤에서 시작합니다. |
+| `PlayerCameraRig.SnapView(float)` | 카메라를 주어진 수평 방향(도)으로 돌려 바로 그 자리에 놓습니다. 문을 지나 공간을 옮긴 뒤 들어가기 전 카메라 각도를 이어 맞출 때 씁니다. |
+| `PlayerCameraRig.ViewYawDegrees` | 카메라가 바라보는 수평 방향(도). 마우스·터치로 돌린 결과입니다. |
 
 ## 테스트
 

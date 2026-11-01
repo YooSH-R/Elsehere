@@ -60,6 +60,57 @@ namespace A305.Mission.Tests
             Assert.That(state.FallbackWeather, Is.EqualTo("CLEAR"));
         }
 
+        // 카페 의자는 호텔로 돌아가기 전까지 원하는 만큼 앉을 수 있다. 쉬고 난 뒤(2단계)와 주문 전에도 앉는다.
+        [TestCase("CAFE", 1, true, false, false, true)]
+        [TestCase("CAFE", 1, false, false, false, true)]
+        [TestCase("CAFE", 2, false, false, false, true)]
+        [TestCase("HOTEL", 2, false, false, false, false)]
+        [TestCase("CAFE", 1, true, true, false, false)]
+        [TestCase("CAFE", 1, true, false, true, false)]
+        public void CanSitInCafe_AnyTimeInCafeWhileIdle(
+            string scene,
+            int stage,
+            bool canRest,
+            bool busy,
+            bool talking,
+            bool expected
+        )
+        {
+            var state = new FirstDayMissionState
+            {
+                Started = true,
+                Stage = stage,
+                CanRest = canRest,
+            };
+
+            Assert.That(state.CanSitInCafe(scene, busy, talking), Is.EqualTo(expected));
+        }
+
+        // 휴식으로 미션이 넘어가는 것은 주문을 마친 뒤 처음 쉬는 한 번뿐이다.
+        [TestCase(true, false, 1, true, true)]
+        [TestCase(true, false, 1, false, false)]
+        [TestCase(true, false, 2, false, false)]
+        [TestCase(true, true, 1, true, false)]
+        [TestCase(false, false, 1, true, false)]
+        public void CountsAsCafeRest_OnlyAfterOrderAndBeforeRest(
+            bool started,
+            bool completed,
+            int stage,
+            bool canRest,
+            bool expected
+        )
+        {
+            var state = new FirstDayMissionState
+            {
+                Started = started,
+                Completed = completed,
+                Stage = stage,
+                CanRest = canRest,
+            };
+
+            Assert.That(state.CountsAsCafeRest, Is.EqualTo(expected));
+        }
+
         private static FirstDayMissionState State(bool started, bool completed) =>
             new FirstDayMissionState
             {

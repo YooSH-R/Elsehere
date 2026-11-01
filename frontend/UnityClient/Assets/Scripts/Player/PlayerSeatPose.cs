@@ -76,7 +76,9 @@ namespace A305.Player
                     correction.enabled = false;
                 }
             }
-            GetComponent<CharacterAnimationDriver>()?.SetLocomotion(0f, true, 0f);
+            var animationDriver = GetComponent<CharacterAnimationDriver>();
+            if (animationDriver != null)
+                animationDriver.SetLocomotion(0f, true, 0f);
             mover.SetMovementLocked(true);
             mover.enabled = false;
             controller.enabled = false;
@@ -85,7 +87,8 @@ namespace A305.Player
                 new Vector3(seatPoint.position.x, standingPosition.y, seatPoint.position.z),
                 seatPoint.rotation
             );
-            mover.CameraRig?.SnapView(seatCameraYaw);
+            if (mover.CameraRig != null)
+                mover.CameraRig.SnapView(seatCameraYaw);
             return true;
         }
 
@@ -111,7 +114,8 @@ namespace A305.Player
                     poseCorrections[i].enabled = true;
             }
             mover.Teleport(standingPosition, standingRotation);
-            mover.CameraRig?.SnapView(seatCameraYaw);
+            if (mover.CameraRig != null)
+                mover.CameraRig.SnapView(seatCameraYaw);
             mover.SetMovementLocked(false);
             mover.enabled = true;
         }

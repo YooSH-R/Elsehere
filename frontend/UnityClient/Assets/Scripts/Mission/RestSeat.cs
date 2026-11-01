@@ -61,7 +61,8 @@ namespace A305.Mission
             if (IsTaken)
                 return false;
             npcSitter = npc;
-            offerView?.HideTalkPrompt(this);
+            if (offerView != null)
+                offerView.HideTalkPrompt(this);
             return true;
         }
 
@@ -74,8 +75,8 @@ namespace A305.Mission
         public void SetAvailable(bool value)
         {
             available = value;
-            if (!available)
-                offerView?.HideTalkPrompt(this);
+            if (!available && offerView != null)
+                offerView.HideTalkPrompt(this);
         }
 
         private void Awake()
@@ -162,10 +163,11 @@ namespace A305.Mission
         private void OnDisable()
         {
             EnabledSeats.Remove(this);
-            offerView?.HideTalkPrompt(this);
+            if (offerView != null)
+                offerView.HideTalkPrompt(this);
             timer.Cancel();
-            if (resting)
-                pose?.Stand();
+            if (resting && pose != null)
+                pose.Stand();
             resting = false;
         }
     }

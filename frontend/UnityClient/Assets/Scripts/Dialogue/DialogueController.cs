@@ -343,10 +343,21 @@ namespace A305.Dialogue
                 return;
             }
 
-            if (conversation != null && conversation.Send(text))
+            if (conversation == null)
+            {
+                return;
+            }
+
+            if (conversation.Send(text))
             {
                 panel.Refresh();
                 UserTurnAccepted?.Invoke(conversation.NpcCode, text);
+            }
+            else if (conversation.IsGuided)
+            {
+                // 정해진 대사와 달라 넘어가지 않았으면 고쳐 보낼 수 있게 입력을 되돌리고 안내를 보인다.
+                panel.SetInputText(text);
+                panel.Refresh();
             }
         }
 

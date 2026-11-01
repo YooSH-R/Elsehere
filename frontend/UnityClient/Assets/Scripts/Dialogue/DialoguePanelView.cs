@@ -429,7 +429,7 @@ namespace A305.Dialogue
 
             if (content.IsGuided)
             {
-                return $"이번에 읽을 대사: <b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
+                return $"정해진 대사로 연습해요. 이 문장을 그대로 입력해 보세요.\n<b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
             }
 
             if (!content.UsesVoice)

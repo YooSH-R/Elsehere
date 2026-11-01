@@ -1,77 +1,90 @@
 # Tutorial 모듈
 
-처음 들어온 사용자가 방에서 조작을 익히고, 밖에서 길을 묻는 이웃과 정해진 길 안내 대화를 한 뒤, 피드백과 미션 창을 거쳐 카페 직원과 대화하기까지 단계별로 안내합니다. 단계에 맞게 화면 위쪽 안내 카드, 행인이 다가와도 되는지, 미션 창 표시를 바꿉니다.
+마을에 막 도착한 여행자가 숙소에서 걷기·둘러보기·사물 단어 저장·단어장을 익히고, 밖으로 나가 길을 헤매는 Ben에게 정해진 대사로 카페 가는 길을 알려 준 뒤, 피드백과 오늘의 목표(지도)를 확인하기까지 단계별로 안내합니다. 단계에 맞게 화면 위쪽 안내 카드와 코치 마크, 행인이 다가와도 되는지, 장소 이동·택시 잠금, 미션 표시를 바꿉니다.
 
-이 서비스의 진행 흐름을 다루는 게임 전용 기능이며, 다른 기능 모듈의 공개 API만 써서 흐름을 잇습니다. 지금은 흐름 확인용 초안이라 진행 상태는 Play 동안만 남고, 서버 저장(튜토리얼 완료 여부)과 디자인은 이후 작업에서 붙입니다.
+이 서비스의 진행 흐름을 다루는 게임 전용 기능이며, 다른 기능 모듈의 공개 API만 써서 흐름을 잇습니다. 진행 단계는 Play 동안만 남고, 끝낸 기록(완료·건너뛰기)만 서버에 저장합니다.
 
 ## 단계
 
-| 단계 | 넘어가는 조건 | 안내 카드 |
-| --- | --- | --- |
-| `Welcome` | [함께 시작하기] | 환영 |
-| `Move` | 이 단계에서 걸은 뒤 [이해했어요] | WASD 걷기 |
-| `Hover` | 이 단계에서 사물 툴팁을 본 뒤 [다음으로] | 사물 호버 |
-| `MissionIntro` | 방 밖 공간에 들어감 | 밖으로 나가기 |
-| `NeighborApproach` | 튜토리얼 행인과 대화 시작 | 이웃 만나기 |
-| `NeighborDialogue` | 길 안내를 끝까지 마치고 대화 종료 → `NeighborFeedback`. 중간에 끝내면 `NeighborApproach`로 되돌아가 이웃이 다시 다가옵니다. | 숨김 |
-| `NeighborFeedback` | 길 안내 피드백의 [닫기] | 피드백 보기 |
-| `MissionWindow` | [미션 창 확인하기] 또는 미션 시작 | 미션 창 소개 |
-| `MissionSelect` | 미션 시작 | 미션 고르기 |
-| `MissionTalk` | 미션 NPC(카페 직원)와 대화 시작 | 카페 직원과 대화 |
-| `Completed` | — | 숨김 |
+| 단계 | 넘어가는 조건 | 안내 카드 | 코치 마크 |
+| --- | --- | --- | --- |
+| `Arrival` | [시작하기] | 숙소 도착 | 카드 |
+| `Walk` | 이 단계에서 걸은 뒤 [다음으로] | WASD·Shift, 휴대폰 조이스틱 | 걸은 뒤 카드 |
+| `Look` | 이 단계에서 시점을 돌린 뒤 [다음으로] | 마우스 왼쪽 끌기·휠·V, 휴대폰 화면 끌기 | 돌린 뒤 카드 |
+| `SaveWord` | 고정한 사물 카드의 [저장]. 서버 단어 카드가 없거나 이미 저장한 단어라 [저장]을 누를 수 없으면 카드를 고정한 것으로 넘어갑니다. | 호버 카드·클릭 고정·[발음 듣기]·[저장] | 카드를 고정하면 [저장] |
+| `OpenVocabulary` | 메뉴(≡)의 [단어장] | 단어장·[피드백 목록]·[홈] | ≡ → [단어장] |
+| `LeaveLodging` | 숙소 밖 공간에 들어감 | 밖으로 나가기 | 숙소 문 위 화살표 |
+| `MeetBen` | Ben과 대화 시작 | Ben 만나기 | Ben 머리 위 화살표, 제안이 뜨면 [대화하기] |
+| `BenDialogue` | 길 안내를 끝까지 마치고 대화 종료 → `BenFeedback`. 중간에 끝내면 `MeetBen`으로 되돌아가 Ben이 다시 다가옵니다. | 숨김 | 읽을 대사·입력칸, 마치면 [대화 종료] |
+| `BenFeedback` | 길 안내 피드백의 [닫기] | 피드백 보기(피드백이 떠 있으면 숨김) | 피드백 창 |
+| `TodayGoal` | 지도 버튼으로 수첩 열기 → `Completed` | 오늘의 목표·택시·벤치 | 지도 버튼 |
+| `Completed` | — | 숨김 | 숨김 |
 
-- 방 안내 중에 방 밖 공간에 들어가면 남은 방 안내를 건너뛰고 `NeighborApproach`로 넘어갑니다.
+- 숙소가 아닌 장소에서 시작하면 숙소 안내를 건너뛰고 `MeetBen`부터 합니다.
 - [튜토리얼 건너뛰기]는 어느 단계에서든 `Completed`로 넘깁니다.
-- 대화 제안 화면이 떠 있거나 대화 중이면 안내 카드를 숨깁니다. 카드는 이동을 막지 않습니다.
+- 대화 제안·대화·피드백·단어장 화면이 떠 있으면 안내 카드를 숨기고, 그동안 할 일은 코치 마크 설명으로 알립니다. 카드는 이동을 막지 않습니다.
+- Ben 대화는 정해진 대사와 같게 입력해야 넘어갑니다(대소문자·문장부호·작은 오타는 허용, [Dialogue 모듈](../Dialogue/README.md)).
+
+| 잠금 | 풀리는 단계 |
+| --- | --- |
+| 문·[홈]으로 다른 장소에 가기(`SpaceTravel.SetLocked`) | 숙소에서는 `LeaveLodging`부터, 밖에서는 `Completed`. 잠긴 문에 닿으면 HUD 알림으로 안내 카드의 할 일을 먼저 하라고 알립니다. |
+| 택시 세우기(`TaxiRide.IsHailAllowed`) | `Completed` |
 
 | NPC | 다가와도 되는 단계 |
 | --- | --- |
-| 길을 묻는 행인 Ben(`TOWN_PASSERBY`) | 튜토리얼 중에는 `NeighborApproach`, `NeighborDialogue`. 튜토리얼을 마치면(`Completed`) 항상 |
-| 미션 NPC(`CAFE_STAFF`) | `MissionTalk`, `Completed` |
-| 그 밖의 행인 | 항상 |
+| 길을 묻는 행인 Ben(`TOWN_PASSERBY`) | 튜토리얼 중에는 `MeetBen`, `BenDialogue`. 튜토리얼을 마치면(`Completed`) 항상 |
+| 그 밖의 NPC | `Completed`. 튜토리얼 동안 다른 NPC가 다가오면 누구와 말해야 하는지 헷갈리므로 막습니다. |
 
-미션 창은 `MissionWindow`부터 보입니다(건너뛴 뒤에도 보임).
+첫날 미션(지도 버튼·목표 카드·수첩)은 `TodayGoal`부터 보입니다(건너뛴 뒤에도 보임).
+
+## 코치 마크
+
+눌러야 할 버튼은 화면을 반투명 검은 판으로 덮고 그 버튼만 노란 테두리로 밝혀, 구멍 안만 누를 수 있게 합니다. 판은 밝힐 버튼이 있는 캔버스 바로 위에 그리므로, 그보다 위에 있는 안내 카드와 [튜토리얼 건너뛰기]는 가리지 않습니다. 걸어가야 할 숙소 문과 Ben은 화면을 덮지 않고 머리 위에서 오르내리는 노란 화살표로 가리킵니다. 무엇을 밝힐지는 `TutorialCoachPlan`이 단계와 화면 상태로 고릅니다.
 
 ## 구성
 
 | 파일 | 역할 |
 | --- | --- |
-| `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지와 미션 창 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
-| `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비웁니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. |
+| `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지·장소 이동 가능 여부·미션 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
+| `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비우고 장소 이동 잠금도 풉니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. |
 | `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | 튜토리얼을 끝낸 방법에 맞춰 완료(TUT-01 `POST /api/v1/me/tutorial/complete`)나 건너뛰기(TUT-02 `/skip`)를 한 번 저장합니다. 네트워크 실패면 기록을 남겨 다음 장소에 들어갈 때 다시 보내고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. Unity 객체 없이 테스트합니다. |
-| `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 안내 문구와, 방 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`)·미션 NPC 키. 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
-| `TutorialDirector` | 공간 씬마다 하나. 걷기·사물 툴팁·공간 이동·대화·피드백·미션 신호를 진행에 전하고, 안내 카드·행인 허용·미션 창을 바꿉니다. `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
+| `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상을 고르고, 구멍·둘레 판·설명 자리를 계산합니다. Unity 객체 없이 테스트합니다. |
+| `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 안내 문구, 안내 카드가 숨는 동안의 코치 마크 설명([대화하기]·읽을 대사·[대화 종료]), 잠긴 문 안내, 숙소 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`). 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
+| `TutorialDirector` | 공간 씬마다 하나. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 진행에 전하고, 안내 카드·코치 마크·행인 허용·장소 이동과 택시 잠금·미션 표시를 바꿉니다. `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `TutorialGuideView` | 화면 위쪽 가운데의 안내 카드(정렬 순서 115) |
+| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리·설명과 장면 속 대상 위 화살표 |
 
 ## 의존성
 
 | 대상 | 용도 |
 | --- | --- |
 | `A305.Api` | `ApiClient`, `ApiSettings`, `ApiException` |
-| `A305.Player` | `PlayerMover.IsMoving` |
-| `A305.ObjectHover` | `WordTooltipView.IsVisible` |
-| `A305.Dialogue` | `DialogueController.Started`·`ConversationEnded`·`IsTalking` |
-| `A305.Npc` | `Passerby.IsApproachAllowed`, `NpcIdentity.Code`, `PasserbyOfferView.IsShowing` |
-| `A305.Learning` | `LearningController.FeedbackClosed` |
-| `A305.Mission` | `MissionController.MissionStarted`·`SetPanelVisible` |
-| uGUI, TextMeshPro | 안내 카드 |
+| `A305.Player` | `PlayerMover.IsMoving`, `PlayerCameraRig.TurnedByUserThisFrame` |
+| `A305.ObjectHover` | `WordTooltipView.IsPinned`·`CanSaveWord`·`SaveRequested`·`SaveButtonRect` |
+| `A305.Dialogue` | `DialogueController.Started`·`ConversationEnded`·`IsTalking`·`IsGuidedCompleted`, `DialoguePanelView.GuidedLineParts`·`EndButtonRect` |
+| `A305.Npc` | `Passerby.IsApproachAllowed`·`SetTutorialScript`, `NpcIdentity.Code`, `PasserbyOfferView.IsShownBy`·`ShownButtonRect`, `TaxiRide.IsHailAllowed` |
+| `A305.Learning` | `LearningController.FeedbackClosed`·`IsShowingScreen`, `LearningHudView.VocabularyRequested`·`ShowMessage`, `HudMenuView.IsOpen`, `FeedbackView.IsVisible` |
+| `A305.Mission` | `MissionController.SetStoryAvailable`·`SetPanelVisible`, `FirstDayMissionView.JournalOpened` |
+| `A305.World` | `SpaceTravel.SetLocked`·`Refused`, `SpaceDoorway` |
+| uGUI, TextMeshPro | 안내 카드, 코치 마크 |
 
 ## 다른 기능에서 쓰는 API
 
 | API | 설명 |
 | --- | --- |
-| `TutorialState.Clear()` | 튜토리얼을 처음부터 다시 시작합니다. PlayMode 테스트에서 상태를 비울 때 씁니다. |
+| `TutorialState.Clear()` | 튜토리얼을 처음부터 다시 시작하고 장소 이동 잠금을 풉니다. PlayMode 테스트에서 상태를 비울 때 씁니다. |
 | `TutorialState.MarkFinishedOnServer()` | 서버 단계가 튜토리얼 이후인 사용자로 표시합니다. 입구 화면(`OnboardingScreen`)이 장소로 보낼 때 부릅니다. |
 
 ## Builder
 
-**Tools → A305 → Tutorial → Build**(`Scripts/Editor/Tutorial/TutorialBuilder.cs`)가 `Prefabs/Tutorial/TutorialGuide.prefab`과 안내 문구 에셋을 준비합니다. 안내 문구는 없을 때만 만들고, 이후 수정은 에셋에서 합니다. 공간 씬에 붙이고 씬에 놓인 행인 목록을 채우는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다. 행인을 새로 놓았다면 연결 도구를 다시 실행합니다. 배포용 장소 씬 5개의 `TutorialDirector`에 `ApiSettings`만 다시 연결할 때는 **Tools → A305 → Tutorial → Connect Tutorial Saving**을 씁니다.
+**Tools → A305 → Tutorial → Build**(`Scripts/Editor/Tutorial/TutorialBuilder.cs`)가 `Prefabs/Tutorial/TutorialGuide.prefab`·`CoachMark.prefab`과 안내 문구 에셋을 준비합니다. 안내 문구는 없을 때만 만들고, 이후 수정은 에셋에서 합니다. 단계를 바꿔 문구를 코드 기본값으로 다시 맞춰야 할 때만 **Tools → A305 → Tutorial → Reset Guide Texts**를 씁니다. 공간 씬에 붙이고 씬에 놓인 행인 목록을 채우는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다. 행인을 새로 놓았다면 연결 도구를 다시 실행합니다. 배포용 장소 씬 5개에 코치 마크와 단계 신호 화면만 다시 연결할 때는 **Tools → A305 → Tutorial → Connect Coach Marks**, `ApiSettings`만 다시 연결할 때는 **Tools → A305 → Tutorial → Connect Tutorial Saving**을 씁니다.
 
 ## 테스트
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 버튼으로 넘기는 단계, 걷기·호버는 그 단계에서 한 것만 인정, 방 밖 진입, 행인·미션 NPC 허용 단계, 길 안내 완료·중단, 피드백 닫기, 미션 시작, 미션 NPC 대화로 완료, 건너뛰기, 끝낸 방법 기록과 서버 저장(완료·건너뛰기·재시도·409 거절·API 경로), 서버에서 이미 끝난 사용자 |
+| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 단계 순서, 걷기·시점·단어 저장·단어장은 그 단계에서 한 것만 인정, 숙소 밖 진입, 단계별 장소 이동 잠금, 행인 허용 단계, 길 안내 완료·중단, 피드백 닫기, 지도로 완료, 건너뛰기, 끝낸 방법 기록과 서버 저장(완료·건너뛰기·재시도·409 거절·API 경로), 서버에서 이미 끝난 사용자, 코치 마크 대상 고르기와 구멍·판·설명 자리 계산 |
+| `A305.Tutorial.PlayModeTests` | `Assets/Tests/PlayMode/Tutorial/` | 배포용 숙소·마을 씬에서 숙소 문 잠금과 문 위 화살표, Ben 머리 위 화살표와 [대화하기]만 밝히기, 정해진 대사와 다른 문장은 되돌리고 안내한 뒤 길 안내를 마치면 [대화 종료] 밝히기 |
 | `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 안내 카드와 튜토리얼 진행 처리를 한 번씩 붙이고, 흐름 기능과 씬에 놓인 행인을 연결하는지, 배포 장소 씬의 `ApiSettings` 연결 |
 
-`A305.Npc.PlayModeTests`는 각 테스트 전에 `TutorialState.Clear()`로 튜토리얼을 처음부터 시작합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
+`A305.Npc.PlayModeTests`와 `A305.Tutorial.PlayModeTests`는 각 테스트 전에 `TutorialState.Clear()`로 튜토리얼을 처음부터 시작합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

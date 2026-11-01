@@ -97,5 +97,20 @@ namespace A305.World.Tests
 
             Assert.That(messages, Is.EqualTo(1));
         }
+
+        // 내 정보 창은 선택 동의 제목과 목록을 버튼 줄 위에 두며, HUD Builder를 다시 실행해도 이 순서를 지킨다.
+        [Test]
+        public void ProfileKeepsConsentsAboveItsButtons()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
+            Transform window = hud.transform.Find("MyPage/Window");
+
+            int label = window.Find("ConsentsLabel").GetSiblingIndex();
+            int consents = window.Find("Consents").GetSiblingIndex();
+            int buttons = window.Find("Buttons").GetSiblingIndex();
+
+            Assert.That(label, Is.LessThan(consents));
+            Assert.That(consents, Is.LessThan(buttons));
+        }
     }
 }

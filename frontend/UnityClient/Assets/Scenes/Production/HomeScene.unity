@@ -483,6 +483,7 @@ Transform:
   - {fileID: 1404699664}
   - {fileID: 1013747703}
   - {fileID: 817800829}
+  - {fileID: 1815444808}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &264226342
@@ -1254,6 +1255,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+--- !u!114 &710634029 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4836391488799427492, guid: c8da659b7ab03ea45b76f2e60c4c8833, type: 3}
+  m_PrefabInstance: {fileID: 710634025}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0e1df4a95ff725489dd7a9cc424452e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Learning::A305.Learning.HudMenuView
 --- !u!1001 &739006678
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2985,6 +2997,119 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5240348361062734410, guid: 15f8fb11ef3cd8444978af57bcf3f89a, type: 3}
   m_PrefabInstance: {fileID: 1794782396}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1815444807
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 240021186}
+    m_Modifications:
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4840483045053941482, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+      propertyPath: m_Name
+      value: CoachMark
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+--- !u!224 &1815444808 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 4159935652808662298, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+  m_PrefabInstance: {fileID: 1815444807}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1815444809 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2492890104696890945, guid: 5855a42d5679a334887c765d8a7eec7d, type: 3}
+  m_PrefabInstance: {fileID: 1815444807}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91b3d36d5b6d4c94096b8b28ffbbc6d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Tutorial::A305.Tutorial.CoachMarkView
 --- !u!1 &1829983696
 GameObject:
   m_ObjectHideFlags: 0
@@ -3142,12 +3267,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.Tutorial::A305.Tutorial.TutorialDirector
   guide: {fileID: 11400000, guid: 128cd532059257d4aa180b31f8e48770, type: 2}
   guideView: {fileID: 1404699665}
+  coachMark: {fileID: 1815444809}
   player: {fileID: 808809279}
   wordTooltip: {fileID: 1893816713}
   dialogue: {fileID: 388671852}
+  dialoguePanel: {fileID: 931921737}
   offerView: {fileID: 377048710}
   learning: {fileID: 387329939}
+  hud: {fileID: 710634027}
+  hudMenu: {fileID: 710634029}
+  feedbackView: {fileID: 58535817}
   mission: {fileID: 1140111745}
+  firstDayMission: {fileID: 1013747704}
   passersby: []
   apiSettings: {fileID: 11400000, guid: ace29024a70d9704f8fa96949f62fb59, type: 2}
 --- !u!1001 &1893816711

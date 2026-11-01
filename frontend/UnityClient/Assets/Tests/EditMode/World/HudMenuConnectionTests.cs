@@ -3,6 +3,7 @@ using A305.EditorTools.Common;
 using A305.Learning;
 using A305.Theme;
 using NUnit.Framework;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -11,7 +12,7 @@ using UnityEngine.UI;
 namespace A305.World.Tests
 {
     /// <summary>
-    /// 장소마다 HUD 버튼(단어장·지난 대화·내 정보·홈)은 오른쪽 위 메뉴(≡) 목록 안에 있고, 집에서만 [테마]가 켜져 테마 고르기를 연다.
+    /// 장소마다 HUD 버튼(단어장·피드백 목록·내 정보·홈)은 오른쪽 위 메뉴(≡) 목록 안에 있고, 집에서만 [테마]가 켜져 테마 고르기를 연다.
     /// </summary>
     public sealed class HudMenuConnectionTests
     {
@@ -72,6 +73,18 @@ namespace A305.World.Tests
             Assert.That(open.name, Is.EqualTo("ThemeButton"));
             Assert.That(open.transform.IsChildOf(hud.transform), Is.True);
             Assert.That(picker.transform.Find("OpenButton").gameObject.activeSelf, Is.False);
+        }
+
+        // 이 창은 지난 대화를 고르고 그때 받은 피드백을 다시 여는 곳이라 메뉴와 창 제목을 [피드백 목록]으로 부른다.
+        [TestCase("Panel/Menu/HistoryButton/Label")]
+        [TestCase("History/Title")]
+        public void HudNamesThePastFeedbackWindowFeedbackList(string path)
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
+
+            var label = hud.transform.Find(path).GetComponent<TMP_Text>();
+
+            Assert.That(label.text, Is.EqualTo("피드백 목록"));
         }
 
         [Test]

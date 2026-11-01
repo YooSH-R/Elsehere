@@ -6,6 +6,7 @@ import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.feedback.dto.FeedbackReviews;
 import com.elsehere.feedback.dto.SituationExpressionResponse;
+import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -75,6 +76,7 @@ class FeedbackResultsTest {
             List.of(),
             "missing",
             null,
+            null,
             null);
 
     FeedbackReviews reviews = FeedbackResults.reviews(result);
@@ -88,11 +90,38 @@ class FeedbackResultsTest {
   @Test
   @DisplayName("결과의 목록 칸이 비어(null) 있어도 빈 평가로 바꾼다")
   void nullLists_becomeEmpty() {
-    WorkerFeedback.Result result = new WorkerFeedback.Result(null, null, null, null, null, null);
+    WorkerFeedback.Result result =
+        new WorkerFeedback.Result(null, null, null, null, null, null, null);
 
     assertThat(FeedbackResults.turnFeedbacks(result)).isEmpty();
     assertThat(FeedbackResults.reviews(result))
-        .isEqualTo(new FeedbackReviews(List.of(), List.of(), null, List.of()));
+        .isEqualTo(new FeedbackReviews(List.of(), List.of(), null, List.of(), List.of()));
+  }
+
+  @Test
+  @DisplayName("단어장 후보 중 단어장에 저장할 수 있는 한 단어 후보만 뜻·예문과 함께 옮긴다")
+  void reviews_keepsSingleWordVocabCandidates() {
+    WorkerFeedback.Result result =
+        new WorkerFeedback.Result(
+            null,
+            List.of(),
+            List.of(),
+            null,
+            List.of(),
+            List.of(),
+            List.of(
+                new WorkerFeedback.VocabCandidate(
+                    "word", "latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."),
+                new WorkerFeedback.VocabCandidate(
+                    "word", "iced latte", "아이스 라떼", "One iced latte, please.", "아이스 라떼 하나 주세요."),
+                new WorkerFeedback.VocabCandidate(
+                    "idiom", "to go", "포장해서", "Can I get it to go?", "포장해 주실 수 있나요?"),
+                new WorkerFeedback.VocabCandidate(
+                    "sentence", "I'd like a latte.", "라떼 주세요.", "I'd like a latte.", "라떼 주세요.")));
+
+    assertThat(FeedbackResults.reviews(result).vocabCandidates())
+        .containsExactly(
+            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
   }
 
   @Test
@@ -111,7 +140,8 @@ class FeedbackResultsTest {
                     "짐을 여기 맡겨도 될까요?",
                     "체크인 전에 짐을 맡기고 싶을 때 써요.",
                     "Could I leave my bags here until check-in?",
-                    "체크인 전까지 짐을 여기 맡겨도 될까요?")));
+                    "체크인 전까지 짐을 여기 맡겨도 될까요?")),
+            List.of());
 
     assertThat(FeedbackResults.reviews(result).situationExpressions())
         .containsExactly(
@@ -138,6 +168,6 @@ class FeedbackResultsTest {
   private static WorkerFeedback.Result result(
       List<WorkerFeedback.TurnReview> turnReviews, String summarySuggestionId) {
     return new WorkerFeedback.Result(
-        null, List.of(), turnReviews, summarySuggestionId, List.of(), List.of());
+        null, List.of(), turnReviews, summarySuggestionId, List.of(), List.of(), List.of());
   }
 }

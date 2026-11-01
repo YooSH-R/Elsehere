@@ -31,6 +31,7 @@ import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.dto.IdiomResponse;
 import com.elsehere.feedback.dto.SituationExpressionResponse;
 import com.elsehere.feedback.dto.SuggestionResponse;
+import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -89,6 +90,9 @@ class FeedbackServiceTest {
     assertThat(response.situationExpressions())
         .extracting(SituationExpressionResponse::expression, SituationExpressionResponse::usageKo)
         .containsExactly(tuple("Can I get that to go?", "음료를 가지고 나가고 싶을 때 써요."));
+    assertThat(response.vocabCandidates())
+        .containsExactly(
+            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
     assertThat(response.reviews().good()).containsExactly("원하는 것을 분명히 말했어요");
     assertThat(response.reviews().improve()).containsExactly("공손한 표현을 더 써 보세요");
     assertThat(response.suggestion())
@@ -345,7 +349,12 @@ class FeedbackServiceTest {
                     "포장해 주실 수 있나요?",
                     "음료를 가지고 나가고 싶을 때 써요.",
                     "Can I get that to go? I'm in a hurry.",
-                    "포장해 주실 수 있나요? 좀 급해서요.")));
+                    "포장해 주실 수 있나요? 좀 급해서요.")),
+            List.of(
+                new WorkerFeedback.VocabCandidate(
+                    "word", "latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."),
+                new WorkerFeedback.VocabCandidate(
+                    "idiom", "to go", "포장해서", "Can I get it to go?", "포장해 주실 수 있나요?")));
     return new WorkerFeedback(
         "completed", null, result, "{\"conversation_summary\":{}}", List.of(usage("feedback")));
   }

@@ -62,6 +62,10 @@ namespace A305.Npc
 
         public bool IsTalkPromptShowing => talkPromptOwner != null;
 
+        /// <summary>지금 보이는 버튼. 제안이면 [대화하기], 아니면 [말 걸기]. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform ShownButtonRect =>
+            (RectTransform)(panel.activeSelf ? acceptButton : talkButton).transform;
+
         public bool IsTalkPromptShownBy(object requester) => talkPromptOwner == requester;
 
         public bool IsDeclineShown => declineButton.gameObject.activeSelf;

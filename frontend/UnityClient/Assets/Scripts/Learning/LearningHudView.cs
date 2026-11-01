@@ -50,6 +50,9 @@ namespace A305.Learning
 
         public ConversationHistoryView HistoryView => historyView;
 
+        /// <summary>메뉴 안의 [단어장]. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform VocabularyButtonRect => (RectTransform)vocabularyButton.transform;
+
         public void SetHomeAvailable(bool available) => homeButton.interactable = available;
 
         /// <summary>숫자 배지가 있으면 버튼 이름은 그대로 두고 배지에 개수를 보인다. 모은 표현이 없으면 배지를 숨긴다.</summary>

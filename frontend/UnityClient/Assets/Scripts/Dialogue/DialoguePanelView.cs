@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using A305.Theme;
 using A305.Voice;
 using TMPro;
@@ -88,6 +89,22 @@ namespace A305.Dialogue
         private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
         private TMP_Text talkLabel;
         private ThemedElement sendTheme;
+
+        /// <summary>
+        /// 정해진 흐름에서 읽을 대사·안내와 입력칸·[보내기]·[예시 문장]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
+        /// </summary>
+        public IReadOnlyList<RectTransform> GuidedLineParts =>
+            new[]
+            {
+                (RectTransform)guideText.transform,
+                (RectTransform)statusText.transform,
+                (RectTransform)inputField.transform,
+                (RectTransform)sendButton.transform,
+                (RectTransform)exampleButton.transform,
+            };
+
+        /// <summary>[대화 종료]. 튜토리얼 코치 마크가 길 안내를 마친 뒤 밝힌다.</summary>
+        public RectTransform EndButtonRect => (RectTransform)endButton.transform;
 
         /// <summary>[대화 종료]를 누르면 알린다.</summary>
         public event Action EndRequested;

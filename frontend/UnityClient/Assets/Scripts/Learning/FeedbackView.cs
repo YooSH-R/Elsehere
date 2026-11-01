@@ -102,6 +102,9 @@ namespace A305.Learning
 
         public bool IsVisible => panel.activeSelf;
 
+        /// <summary>피드백 창 전체. 튜토리얼 코치 마크가 첫 대화의 피드백을 밝힌다.</summary>
+        public RectTransform PanelRect => (RectTransform)panel.transform;
+
         /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
         public void SetSaveAvailable(bool available)
         {

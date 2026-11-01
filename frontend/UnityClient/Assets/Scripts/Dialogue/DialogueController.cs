@@ -61,6 +61,9 @@ namespace A305.Dialogue
 
         public bool IsTalking => session.IsActive;
 
+        /// <summary>지금 대화가 정해진 흐름(튜토리얼 길 안내)이고 끝까지 마쳤는지.</summary>
+        public bool IsGuidedCompleted => IsTalking && conversation != null && conversation.IsGuidedCompleted;
+
         /// <summary>
         /// 새 NPC 대화를 시작할 수 있는지와 게스트의 남은 대화 수. 공간에 들어올 때와 대화가 끝날 때 서버에서 다시 받는다.
         /// 서버를 끄면 받지 않으므로 막지 않는다.

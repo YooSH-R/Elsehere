@@ -86,10 +86,18 @@ namespace A305.Mission
         private string mapSceneCode;
 
         public event Action StartRequested;
+
+        /// <summary>지도 버튼으로 수첩을 열면 알린다.</summary>
+        public event Action JournalOpened;
         public event Action RestRequested;
         public event Action RetryRequested;
 
         private RectTransform Banner => (RectTransform)situation.transform.parent;
+
+        public bool IsJournalOpen => journal.activeSelf;
+
+        /// <summary>왼쪽 위 지도 버튼. 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
+        public RectTransform JournalButtonRect => (RectTransform)journalButton.transform;
 
         public void SetAvailable(bool available)
         {
@@ -245,12 +253,15 @@ namespace A305.Mission
 
         private void ShowJournal(bool open)
         {
+            bool isOpening = open && !journal.activeSelf;
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open);
             UpdateMiniMapVisibility();
             Canvas root = RootCanvas();
             if (root != null)
                 root.sortingOrder = open ? OpenJournalSortingOrder : closedSortingOrder;
+            if (isOpening)
+                JournalOpened?.Invoke();
         }
 
         /// <summary>

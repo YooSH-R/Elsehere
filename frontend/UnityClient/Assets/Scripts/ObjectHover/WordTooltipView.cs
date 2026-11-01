@@ -82,6 +82,13 @@ namespace A305.ObjectHover
         /// <summary>클릭으로 고정한 카드인지. 고정한 카드만 [닫기] 같은 버튼을 보이고 누를 수 있다.</summary>
         public bool IsPinned { get; private set; }
 
+        /// <summary>고정한 카드에서 [저장]을 누를 수 있는지. 서버 단어 카드가 없거나 이미 저장한 단어면 false.</summary>
+        public bool CanSaveWord =>
+            IsPinned && saveButton.gameObject.activeInHierarchy && saveButton.interactable;
+
+        /// <summary>고정한 카드의 [저장]. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SaveButtonRect => (RectTransform)saveButton.transform;
+
         /// <summary>고정한 카드의 [닫기]를 눌렀다.</summary>
         public event Action CloseRequested;
 

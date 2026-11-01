@@ -43,7 +43,9 @@ namespace A305.Player
 
             var appearance = GetComponent<PlayerCharacterAppearance>();
             visual = appearance != null ? appearance.VisualRoot : null;
-            legs = SeatedLegs.Find(visual != null ? visual.GetComponentInChildren<Animator>() : null);
+            legs = SeatedLegs.Find(
+                visual != null ? visual.GetComponentInChildren<Animator>() : null
+            );
             if (legs == null)
                 return false;
 

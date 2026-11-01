@@ -90,7 +90,9 @@ namespace A305.Npc
         /// <summary>minutes 뒤로 일과가 처음 바뀌는 시각(1일차 0시부터 센 분). 일과가 하나뿐이면 다음 날 같은 시각</summary>
         public double NextChangeAfter(double minutes)
         {
-            double dayStart = Math.Floor(minutes / NpcScheduleBlock.MinutesPerDay) * NpcScheduleBlock.MinutesPerDay;
+            double dayStart =
+                Math.Floor(minutes / NpcScheduleBlock.MinutesPerDay)
+                * NpcScheduleBlock.MinutesPerDay;
             double next = double.PositiveInfinity;
             foreach (NpcScheduleBlock block in Schedule)
             {

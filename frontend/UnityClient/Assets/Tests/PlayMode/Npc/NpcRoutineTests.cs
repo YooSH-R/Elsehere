@@ -46,7 +46,10 @@ namespace A305.Npc.PlayModeTests
             yield return WaitUntil(() => mia.IsUsing);
 
             Assert.That(mia.Doing.Action, Is.EqualTo("EAT"));
-            Assert.That(HorizontalDistance(mia.transform, NearestPlaced("muffin", mia.transform)), Is.LessThan(NearObjectMeters));
+            Assert.That(
+                HorizontalDistance(mia.transform, NearestPlaced("muffin", mia.transform)),
+                Is.LessThan(NearObjectMeters)
+            );
         }
 
         [UnityTest]
@@ -78,8 +81,14 @@ namespace A305.Npc.PlayModeTests
             yield return WaitUntil(() => jake.IsSeated);
 
             Assert.That(jake.Doing.Action, Is.EqualTo("REST"));
-            INpcSeat seat = Seats().OrderBy(candidate => HorizontalDistance(jake.transform, candidate.SeatPoint)).First();
-            Assert.That(HorizontalDistance(jake.transform, seat.SeatPoint), Is.LessThan(.1f), "소파 자리에 앉아야 합니다.");
+            INpcSeat seat = Seats()
+                .OrderBy(candidate => HorizontalDistance(jake.transform, candidate.SeatPoint))
+                .First();
+            Assert.That(
+                HorizontalDistance(jake.transform, seat.SeatPoint),
+                Is.LessThan(.1f),
+                "소파 자리에 앉아야 합니다."
+            );
             Assert.That(seat.IsTaken, Is.True, "NPC가 앉은 자리에는 플레이어가 앉을 수 없습니다.");
         }
 
@@ -92,10 +101,16 @@ namespace A305.Npc.PlayModeTests
             NpcRoutine ben = Routine("TOWN_PASSERBY");
             yield return WaitUntil(() => ben.IsUsing);
             Assert.That(ben.Doing.Action, Is.EqualTo("REST"));
-            Assert.That(HorizontalDistance(ben.transform, NearestPlaced("bench", ben.transform)), Is.LessThan(NearObjectMeters));
+            Assert.That(
+                HorizontalDistance(ben.transform, NearestPlaced("bench", ben.transform)),
+                Is.LessThan(NearObjectMeters)
+            );
 
             PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            player.Teleport(ben.transform.position + ben.transform.forward * 4f, Quaternion.identity);
+            player.Teleport(
+                ben.transform.position + ben.transform.forward * 4f,
+                Quaternion.identity
+            );
             PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
 

@@ -76,7 +76,11 @@ namespace A305.Player
             float thigh = Vector3.Distance(upper[0].position, lower[0].position);
             Vector3 legRoot = (upper[0].position + upper[1].position) * .5f;
             Vector3 seatedLegRoot = seat.TransformPoint(
-                new Vector3(0f, cushionTopMeters + ThighRadius, frontEdgeMeters + KneeOverhang - thigh)
+                new Vector3(
+                    0f,
+                    cushionTopMeters + ThighRadius,
+                    frontEdgeMeters + KneeOverhang - thigh
+                )
             );
             visual.position += seatedLegRoot - legRoot;
             for (int side = 0; side < 2; side++)
@@ -84,7 +88,13 @@ namespace A305.Player
                 float shin = Vector3.Distance(lower[side].position, feet[side].position);
                 Vector3 knee = upper[side].position + seat.forward * thigh;
                 Vector3 footTarget = knee - seat.up * shin + seat.forward * .01f;
-                TwoBonePose.Reach(upper[side], lower[side], feet[side], footTarget, seat.forward + seat.up);
+                TwoBonePose.Reach(
+                    upper[side],
+                    lower[side],
+                    feet[side],
+                    footTarget,
+                    seat.forward + seat.up
+                );
             }
         }
     }

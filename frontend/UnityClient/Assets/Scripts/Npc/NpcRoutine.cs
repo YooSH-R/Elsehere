@@ -53,7 +53,8 @@ namespace A305.Npc
         private readonly Dictionary<string, List<HoverableObject>> placed =
             new Dictionary<string, List<HoverableObject>>();
         private readonly List<INpcSeat> seats = new List<INpcSeat>();
-        private readonly Dictionary<string, float> unreachableUntil = new Dictionary<string, float>();
+        private readonly Dictionary<string, float> unreachableUntil =
+            new Dictionary<string, float>();
         private readonly List<Vector3> route = new List<Vector3>();
         private NavMeshPath path;
         private Passerby body;
@@ -228,7 +229,9 @@ namespace A305.Npc
         private bool IsPlaced(string objectKey)
         {
             return placed.ContainsKey(objectKey)
-                && (!unreachableUntil.TryGetValue(objectKey, out float until) || Time.time >= until);
+                && (
+                    !unreachableUntil.TryGetValue(objectKey, out float until) || Time.time >= until
+                );
         }
 
         // 걸어서 destination에 닿으면 그 방향으로 선다.
@@ -269,7 +272,10 @@ namespace A305.Npc
                 }
             }
 
-            body.WalkToward(Flat(route[routeCorner] - transform.position), walkSpeedMetersPerSecond);
+            body.WalkToward(
+                Flat(route[routeCorner] - transform.position),
+                walkSpeedMetersPerSecond
+            );
             return Progress.Walking;
         }
 
@@ -282,7 +288,12 @@ namespace A305.Npc
             closestRemaining = float.PositiveInfinity;
             stuckSeconds = 0f;
             if (
-                NavMesh.SamplePosition(transform.position, out NavMeshHit start, 1f, NavMesh.AllAreas)
+                NavMesh.SamplePosition(
+                    transform.position,
+                    out NavMeshHit start,
+                    1f,
+                    NavMesh.AllAreas
+                )
                 && NavMesh.CalculatePath(start.position, destination, NavMesh.AllAreas, path)
                 && path.status == NavMeshPathStatus.PathComplete
             )
@@ -345,7 +356,10 @@ namespace A305.Npc
                     Vector3 front =
                         point.position
                         + point.forward * (candidate.FrontEdgeMeters + SeatApproachMeters);
-                    if (TryReach(front, hasWalkArea, out Vector3 standPoint, out float length) && length < best)
+                    if (
+                        TryReach(front, hasWalkArea, out Vector3 standPoint, out float length)
+                        && length < best
+                    )
                     {
                         best = length;
                         found = new Spot(standPoint, point.rotation, candidate);
@@ -365,13 +379,18 @@ namespace A305.Npc
 
             foreach ((Vector3 point, Vector3 center) in standing)
             {
-                if (TryReach(point, hasWalkArea, out Vector3 standPoint, out float length) && length < best)
+                if (
+                    TryReach(point, hasWalkArea, out Vector3 standPoint, out float length)
+                    && length < best
+                )
                 {
                     best = length;
                     Vector3 toObject = Flat(center - standPoint);
                     found = new Spot(
                         standPoint,
-                        toObject.sqrMagnitude > .0001f ? Quaternion.LookRotation(toObject) : transform.rotation,
+                        toObject.sqrMagnitude > .0001f
+                            ? Quaternion.LookRotation(toObject)
+                            : transform.rotation,
                         null
                     );
                 }
@@ -388,17 +407,27 @@ namespace A305.Npc
                 float angle = i * Mathf.PI * 2f / SpotDirections;
                 var direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 float toEdge = Mathf.Min(
-                    Mathf.Abs(direction.x) > .0001f ? bounds.extents.x / Mathf.Abs(direction.x) : float.PositiveInfinity,
-                    Mathf.Abs(direction.z) > .0001f ? bounds.extents.z / Mathf.Abs(direction.z) : float.PositiveInfinity
+                    Mathf.Abs(direction.x) > .0001f
+                        ? bounds.extents.x / Mathf.Abs(direction.x)
+                        : float.PositiveInfinity,
+                    Mathf.Abs(direction.z) > .0001f
+                        ? bounds.extents.z / Mathf.Abs(direction.z)
+                        : float.PositiveInfinity
                 );
-                Vector3 point = new Vector3(bounds.center.x, transform.position.y, bounds.center.z)
+                Vector3 point =
+                    new Vector3(bounds.center.x, transform.position.y, bounds.center.z)
                     + direction * (toEdge + StandOffMeters);
                 standing.Add((point, bounds.center));
             }
         }
 
         // 그 점 가까운 NavMesh 위 자리와 거기까지 걷는 경로 길이. NavMesh가 없는 장면이면 곧은 거리
-        private bool TryReach(Vector3 point, bool hasWalkArea, out Vector3 standPoint, out float length)
+        private bool TryReach(
+            Vector3 point,
+            bool hasWalkArea,
+            out Vector3 standPoint,
+            out float length
+        )
         {
             standPoint = point;
             length = Flat(point - transform.position).magnitude;
@@ -409,7 +438,12 @@ namespace A305.Npc
 
             if (
                 !NavMesh.SamplePosition(point, out NavMeshHit hit, SpotSnapMeters, NavMesh.AllAreas)
-                || !NavMesh.SamplePosition(transform.position, out NavMeshHit start, 1f, NavMesh.AllAreas)
+                || !NavMesh.SamplePosition(
+                    transform.position,
+                    out NavMeshHit start,
+                    1f,
+                    NavMesh.AllAreas
+                )
                 || !NavMesh.CalculatePath(start.position, hit.position, NavMesh.AllAreas, path)
                 || path.status != NavMeshPathStatus.PathComplete
             )
@@ -483,10 +517,15 @@ namespace A305.Npc
         private void CollectSceneObjects()
         {
             foreach (
-                HoverableObject hoverable in FindObjectsByType<HoverableObject>(FindObjectsSortMode.None)
+                HoverableObject hoverable in FindObjectsByType<HoverableObject>(
+                    FindObjectsSortMode.None
+                )
             )
             {
-                if (hoverable.gameObject.scene != gameObject.scene || string.IsNullOrEmpty(hoverable.UnityKey))
+                if (
+                    hoverable.gameObject.scene != gameObject.scene
+                    || string.IsNullOrEmpty(hoverable.UnityKey)
+                )
                 {
                     continue;
                 }
@@ -500,9 +539,16 @@ namespace A305.Npc
                 sameKey.Add(hoverable);
             }
 
-            foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+            foreach (
+                MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(
+                    FindObjectsSortMode.None
+                )
+            )
             {
-                if (behaviour is INpcSeat candidate && behaviour.gameObject.scene == gameObject.scene)
+                if (
+                    behaviour is INpcSeat candidate
+                    && behaviour.gameObject.scene == gameObject.scene
+                )
                 {
                     seats.Add(candidate);
                 }

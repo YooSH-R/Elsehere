@@ -30,7 +30,11 @@ namespace A305.Npc.Tests
             Assert.That(staff.ActivityAt(12 * Hour + 10), Is.EqualTo("BREAK"));
             Assert.That(staff.ActivityAt(17 * Hour), Is.EqualTo("OFF"));
             Assert.That(staff.ActivityAt(3 * Hour), Is.EqualTo("OFF"));
-            Assert.That(staff.ActivityAt(24 * Hour + 9 * Hour), Is.EqualTo("WORK"), "다음 날에도 같은 일과");
+            Assert.That(
+                staff.ActivityAt(24 * Hour + 9 * Hour),
+                Is.EqualTo("WORK"),
+                "다음 날에도 같은 일과"
+            );
         }
 
         [Test]
@@ -97,7 +101,10 @@ namespace A305.Npc.Tests
         [Test]
         public void ChooseNext_NotUrgentEnough_DoesNothing()
         {
-            NpcLifeData rules = Rules(Need("HUNGER", start: 95), Action("EAT", "TOWN", "HUNGER", 40));
+            NpcLifeData rules = Rules(
+                Need("HUNGER", start: 95),
+                Action("EAT", "TOWN", "HUNGER", 40)
+            );
             var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
 
             Assert.That(life.ChooseNext(Anything), Is.Null, "40 × 0.05² = 0.1 < 기준 1");
@@ -106,7 +113,10 @@ namespace A305.Npc.Tests
         [Test]
         public void BeginUsing_ForTheActionMinutes_FillsTheNeedThenIsFreeAgain()
         {
-            NpcLifeData rules = Rules(Need("HUNGER", start: 20), Action("EAT", "TOWN", "HUNGER", 40, minutes: 10));
+            NpcLifeData rules = Rules(
+                Need("HUNGER", start: 20),
+                Action("EAT", "TOWN", "HUNGER", 40, minutes: 10)
+            );
             var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
             life.ChooseNext(Anything);
 
@@ -124,7 +134,10 @@ namespace A305.Npc.Tests
         [Test]
         public void GiveUp_DoesNotFillTheNeed()
         {
-            NpcLifeData rules = Rules(Need("HUNGER", start: 20), Action("EAT", "TOWN", "HUNGER", 40, minutes: 10));
+            NpcLifeData rules = Rules(
+                Need("HUNGER", start: 20),
+                Action("EAT", "TOWN", "HUNGER", 40, minutes: 10)
+            );
             var life = new NpcLife(rules, AllDay("TOWN", "FREE"), 0);
             life.ChooseNext(Anything);
             life.BeginUsing(0);
@@ -139,7 +152,10 @@ namespace A305.Npc.Tests
         [Test]
         public void OffDuty_StaysInItsPlaceAndLooksAfterItselfLikeFreeTime()
         {
-            NpcLifeData rules = Rules(Need("ENERGY", start: 40), Action("REST", "CAFE", "ENERGY", 15, objectKey: "chair"));
+            NpcLifeData rules = Rules(
+                Need("ENERGY", start: 40),
+                Action("REST", "CAFE", "ENERGY", 15, objectKey: "chair")
+            );
             var life = new NpcLife(rules, Npc("CAFE", StaffDay), 20 * Hour);
 
             Assert.That(life.Activity, Is.EqualTo("OFF"));
@@ -155,7 +171,11 @@ namespace A305.Npc.Tests
 
             life.Advance(9 * Hour);
 
-            Assert.That(life.Need("HUNGER"), Is.EqualTo(64f).Within(.001f), "8시에 70으로, 그 뒤 한 시간에 6");
+            Assert.That(
+                life.Need("HUNGER"),
+                Is.EqualTo(64f).Within(.001f),
+                "8시에 70으로, 그 뒤 한 시간에 6"
+            );
         }
 
         [Test]
@@ -169,13 +189,20 @@ namespace A305.Npc.Tests
             life.Advance(Hour - 30);
             life.Advance(Hour + 10);
 
-            Assert.That(life.Need("HUNGER"), Is.EqualTo(63f).Within(.001f), "70분어치만 줄어 70 − 7");
+            Assert.That(
+                life.Need("HUNGER"),
+                Is.EqualTo(63f).Within(.001f),
+                "70분어치만 줄어 70 − 7"
+            );
         }
 
         [Test]
         public void BelongsAtPost_OnlyWhenIdleAtWork()
         {
-            NpcLifeData rules = Rules(Need("WORK", start: 10), Action("MAKE_DRINK", "CAFE", "WORK", 30));
+            NpcLifeData rules = Rules(
+                Need("WORK", start: 10),
+                Action("MAKE_DRINK", "CAFE", "WORK", 30)
+            );
             var life = new NpcLife(rules, Npc("CAFE", StaffDay), 9 * Hour);
 
             Assert.That(life.BelongsAtPost, Is.True, "근무 중 할 일이 없으면 자리로");
@@ -190,7 +217,9 @@ namespace A305.Npc.Tests
         [Test]
         public void ExportedData_HasEveryServiceNpcInItsOwnPlace()
         {
-            string json = File.ReadAllText(Path.Combine(Application.dataPath, "Data/Npc/NpcLife.json"));
+            string json = File.ReadAllText(
+                Path.Combine(Application.dataPath, "Data/Npc/NpcLife.json")
+            );
 
             NpcLifeData data = NpcLifeData.Parse(json);
 
@@ -198,7 +227,10 @@ namespace A305.Npc.Tests
             Assert.That(data.FindNpc("CAFE_STAFF").Scene, Is.EqualTo("CAFE"));
             Assert.That(data.FindNpc("HOTEL_STAFF").ActivityAt(9 * Hour), Is.EqualTo("WORK"));
             Assert.That(data.FindNpc("TOWN_PASSERBY").Role, Is.EqualTo("PASSERBY"));
-            Assert.That(data.Actions.Exists(action => action.ObjectKey == "coffee_machine"), Is.True);
+            Assert.That(
+                data.Actions.Exists(action => action.ObjectKey == "coffee_machine"),
+                Is.True
+            );
             Assert.That(data.Activities["WORK"].CanFill, Is.EqualTo(new[] { "WORK" }));
         }
 
@@ -226,7 +258,11 @@ namespace A305.Npc.Tests
             return data;
         }
 
-        private static KeyValuePair<string, NpcNeedRule> Need(string need, float dropPerHour = 0, float start = 70)
+        private static KeyValuePair<string, NpcNeedRule> Need(
+            string need,
+            float dropPerHour = 0,
+            float start = 70
+        )
         {
             return new KeyValuePair<string, NpcNeedRule>(
                 need,

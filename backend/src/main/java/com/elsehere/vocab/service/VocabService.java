@@ -54,6 +54,9 @@ public class VocabService {
 
   private static final TypeReference<List<GlossaryResponse>> GLOSSARY = new TypeReference<>() {};
 
+  /** 한 페이지 최대 개수. 지난 대화 목록(CONV-09)과 같다. */
+  private static final int MAX_SIZE = 50;
+
   private final VocabularyRepository vocabularyRepository;
   private final UserVocabRepository userVocabRepository;
   private final TurnRepository turnRepository;
@@ -67,6 +70,9 @@ public class VocabService {
   @Transactional(readOnly = true)
   public VocabListResponse getVocab(
       Long userId, boolean includeMemorized, String cursor, int size) {
+    if (size < 1 || size > MAX_SIZE) {
+      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+    }
     // 다음 페이지가 있는지 알기 위해 한 개를 더 가져온다.
     Limit limit = Limit.of(size + 1);
     List<UserVocab> fetched =

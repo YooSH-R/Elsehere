@@ -4,7 +4,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
-import java.util.List;
+import com.elsehere.user.service.UserContentEraser.ErasedFiles;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,20 +23,20 @@ public class WithdrawalService {
   private final UserContentEraser userContentEraser;
   private final TransactionTemplate transactionTemplate;
 
-  /** 내용과 개인정보는 한 트랜잭션으로 지우고, 지운 턴이 쓰던 NPC 음성 파일은 그 뒤에 지운다. */
+  /** 내용과 개인정보는 한 트랜잭션으로 지우고, 지운 내용이 쓰던 음성 파일은 그 뒤에 지운다. */
   public void withdraw(Long userId) {
-    List<String> audioKeys =
+    ErasedFiles files =
         transactionTemplate.execute(
             status -> {
               User user =
                   userRepository
                       .findById(userId)
                       .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-              List<String> keys = userContentEraser.deleteContent(userId);
+              ErasedFiles erased = userContentEraser.deleteContent(userId);
               user.withdraw();
-              return keys;
+              return erased;
             });
     log.info("user_withdrew user_id={}", userId);
-    userContentEraser.deleteAudio(audioKeys);
+    userContentEraser.deleteFiles(files);
   }
 }

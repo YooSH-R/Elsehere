@@ -1,5 +1,6 @@
 package com.elsehere.user.service;
 
+import com.elsehere.user.service.UserContentEraser.ErasedFiles;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -67,9 +68,9 @@ public class GuestContentCleanup {
     Timestamp cutoff = Timestamp.from(clock.instant().minus(retention));
     List<Long> guests = jdbcTemplate.queryForList(EXPIRED_GUESTS, Long.class, cutoff);
     for (Long guestId : guests) {
-      List<String> audioKeys =
+      ErasedFiles files =
           transactionTemplate.execute(status -> userContentEraser.deleteContent(guestId));
-      userContentEraser.deleteAudio(audioKeys);
+      userContentEraser.deleteFiles(files);
     }
     if (!guests.isEmpty()) {
       log.info("게스트 내용을 정리했습니다 guests={}", guests.size());

@@ -6,6 +6,7 @@ import static com.elsehere.conversation.DialogueTestData.npcTurn;
 import static com.elsehere.conversation.DialogueTestData.textTurn;
 
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.Turn;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -19,7 +20,7 @@ final class UserContentTestData {
 
   private UserContentTestData() {}
 
-  // 대화 하나(NPC·학습자 턴, 피드백)와 기억·저장 단어·숨김·레벨 테스트·AI 호출 기록을 가진 사용자
+  // 대화 하나(NPC·학습자 턴, 대화·문장 피드백)와 기억·저장 단어·숨김·레벨 테스트·AI 호출 기록을 가진 사용자
   static Long userWithContent(
       EntityManager entityManager,
       JdbcTemplate jdbcTemplate,
@@ -38,12 +39,17 @@ final class UserContentTestData {
     Long userId = UserTestData.insertUser(entityManager, provider, providerUid, nickname);
     Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
     npcTurn(entityManager, conversation, 1, "Hi! What can I get for you?");
-    textTurn(entityManager, conversation, 2, "One latte, please.");
+    Turn learnerTurn = textTurn(entityManager, conversation, 2, "One latte, please.");
     entityManager.flush();
     Long vocabId = jdbcTemplate.queryForObject("select min(id) from vocabularies", Long.class);
     jdbcTemplate.update(
         "insert into conversation_feedback (conversation_id, status) values (?, 'SKIPPED')",
         conversation.getId());
+    jdbcTemplate.update(
+        "insert into turn_feedback (turn_id, better_text, reason) values (?, ?, ?)",
+        learnerTurn.getId(),
+        "Can I get a latte, please?",
+        turnFeedbackReason(userId));
     jdbcTemplate.update(
         "insert into user_npc_relations (user_id, npc_id) values (?, ?)",
         userId,
@@ -93,6 +99,14 @@ final class UserContentTestData {
             jdbcTemplate,
             "select count(*) from conversation_feedback where conversation_id in " + conversations,
             userId));
+    // turn_feedback은 턴 ID만 가지므로 턴을 지운 뒤에도 남는지 보려면 사용자별로 넣은 이유 문구로 센다.
+    rows.put(
+        "turn_feedback",
+        rows(
+            entityManager,
+            jdbcTemplate,
+            "select count(*) from turn_feedback where reason = 'turn feedback of user ' || ?",
+            userId));
     rows.put(
         "user_npc_relations",
         rows(
@@ -130,6 +144,18 @@ final class UserContentTestData {
                 + " where test_id in (select id from level_tests where user_id = ?)",
             userId));
     return rows;
+  }
+
+  /** {@link #userWithContent}로 만든 사용자의 문장 피드백에 모범 음성(FB-04) 파일 키를 붙인다. */
+  static void attachModelSpeech(JdbcTemplate jdbcTemplate, Long userId, String modelAudioKey) {
+    jdbcTemplate.update(
+        "update turn_feedback set model_audio_key = ? where reason = ?",
+        modelAudioKey,
+        turnFeedbackReason(userId));
+  }
+
+  private static String turnFeedbackReason(Long userId) {
+    return "turn feedback of user " + userId;
   }
 
   static int rows(EntityManager entityManager, JdbcTemplate jdbcTemplate, String sql, Long userId) {

@@ -118,6 +118,9 @@ namespace A305.EditorTools.Tutorial
                     "suggestedWordsCaption",
                     "guidedLineMissCaption",
                     "dialogueEndCaption",
+                    "feedbackSectionsCaption",
+                    "feedbackPagesCaption",
+                    "feedbackCloseCaption",
                     "travelLockedMessage",
                     "vocabularyCaption",
                 }

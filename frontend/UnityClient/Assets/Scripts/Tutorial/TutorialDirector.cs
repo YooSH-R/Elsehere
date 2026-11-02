@@ -96,8 +96,9 @@ namespace A305.Tutorial
         private readonly TutorialAutoAdvance autoAdvance = new TutorialAutoAdvance();
         private TutorialCoachTarget shownCoachTarget;
 
-        // 대화를 시작하고 [다음]으로 넘긴 티칭 수. 대화를 새로 시작하면 처음부터 다시 보인다.
+        // 대화 시작·대화 노트 티칭에서 [다음]으로 넘긴 수. 대화를 새로 시작하면 처음부터 다시 보인다.
         private int dialogueTourStep;
+        private int feedbackTourStep;
         private Object shownCoachObject;
         private string shownCaption;
 
@@ -443,6 +444,7 @@ namespace A305.Tutorial
                 IsGuidedCompleted = dialogue.IsGuidedCompleted,
                 GuidedTurnIndex = dialogue.GuidedTurnIndex,
                 DialogueTourStep = dialogueTourStep,
+                FeedbackTourStep = feedbackTourStep,
                 IsWordCardPinned = wordTooltip.IsPinned,
                 CanSaveWord = wordTooltip.CanSaveWord,
                 IsMenuOpen = hudMenu.IsOpen,
@@ -452,6 +454,13 @@ namespace A305.Tutorial
                 IsJournalOpen = firstDayMission != null && firstDayMission.IsJournalOpen,
             };
             TutorialCoachTarget target = TutorialCoachPlan.Choose(progress.Step, screen);
+            // 화면 구성에 따라 숨은 부분(한 쪽뿐인 피드백의 쪽 넘김 등)은 [다음]을 누를 수 없으므로 건너뛴다.
+            if (TutorialCoachPlan.IsTour(target) && !HasVisiblePart(SpotlightParts(target)))
+            {
+                ContinueTour(target);
+                return;
+            }
+
             Object targetObject = CoachObject(target);
             string caption = TutorialGuideText.KeyChips(Caption(target));
             if (
@@ -481,16 +490,17 @@ namespace A305.Tutorial
                     coachMark.Hide();
                     break;
                 case TutorialCoachTarget.GuidedLine:
-                case TutorialCoachTarget.DialogueEnd:
-                    // 티칭을 다 본 뒤에는 대사를 읽으며 해야 하므로 둘레를 어둡게 덮지 않고 테두리로만 밝힌다.
+                    // 티칭을 다 본 뒤 대사를 할 때는 대사를 읽으며 해야 하므로 둘레를 어둡게 덮지 않고 테두리로만 밝힌다.
                     coachMark.ShowSpotlight(SpotlightParts(target), caption, dimsOutside: false);
                     break;
                 default:
-                    // 대화 시작 티칭은 하나씩 어둡게 밝혀 볼 곳을 알리고 [다음]으로 넘긴다.
+                    // 대화 시작·대화 노트 티칭은 하나씩 어둡게 밝혀 볼 곳을 알리고 [다음]으로 넘긴다.
                     coachMark.ShowSpotlight(
                         SpotlightParts(target),
                         caption,
-                        next: TutorialCoachPlan.IsDialogueTour(target) ? ContinueDialogueTour : null
+                        next: TutorialCoachPlan.IsTour(target)
+                            ? () => ContinueTour(target)
+                            : (System.Action)null
                     );
                     break;
             }
@@ -499,11 +509,32 @@ namespace A305.Tutorial
         private void RestartDialogueTour(string npcCode)
         {
             dialogueTourStep = 0;
+            feedbackTourStep = 0;
         }
 
-        private void ContinueDialogueTour()
+        private void ContinueTour(TutorialCoachTarget target)
         {
-            dialogueTourStep++;
+            if (TutorialCoachPlan.IsDialogueTour(target))
+            {
+                dialogueTourStep++;
+            }
+            else
+            {
+                feedbackTourStep++;
+            }
+        }
+
+        private static bool HasVisiblePart(IReadOnlyList<RectTransform> parts)
+        {
+            foreach (RectTransform part in parts)
+            {
+                if (part != null && part.gameObject.activeInHierarchy)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // 같은 단계라도 밝힐 버튼이 바뀌면([말 걸기] → [대화하기]) 다시 그리도록 대상 객체를 함께 본다.
@@ -538,8 +569,12 @@ namespace A305.Tutorial
                     return new[] { dialoguePanel.SuggestedWordsRect };
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
-                case TutorialCoachTarget.Feedback:
-                    return new[] { feedbackView.PanelRect };
+                case TutorialCoachTarget.FeedbackSections:
+                    return new[] { feedbackView.SectionRowRect };
+                case TutorialCoachTarget.FeedbackPages:
+                    return new[] { feedbackView.NavigationRowRect };
+                case TutorialCoachTarget.FeedbackClose:
+                    return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:
                     return new[] { learning.VocabularyPanelRect };
                 case TutorialCoachTarget.MapButton:
@@ -577,13 +612,12 @@ namespace A305.Tutorial
                     return guide.DialogueEndCaption;
                 case TutorialCoachTarget.Vocabulary:
                     return guide.VocabularyCaption;
-                case TutorialCoachTarget.Feedback:
-                    return guide.TryGetStepGuide(
-                        TutorialStep.BenFeedback,
-                        out TutorialStepGuide feedback
-                    )
-                        ? feedback.TaskFor(progress.UsesTouch)
-                        : null;
+                case TutorialCoachTarget.FeedbackSections:
+                    return guide.FeedbackSectionsCaption;
+                case TutorialCoachTarget.FeedbackPages:
+                    return guide.FeedbackPagesCaption;
+                case TutorialCoachTarget.FeedbackClose:
+                    return guide.FeedbackCloseCaption;
                 default:
                     return null;
             }

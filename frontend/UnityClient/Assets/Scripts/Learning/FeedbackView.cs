@@ -118,6 +118,15 @@ namespace A305.Learning
         /// <summary>피드백 창 전체. 튜토리얼 코치 마크가 첫 대화의 피드백을 밝힌다.</summary>
         public RectTransform PanelRect => (RectTransform)panel.transform;
 
+        /// <summary>[요약]·[문장]·[회화]·[표현] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform SectionRowRect => sectionRow;
+
+        /// <summary>쪽 넘김 화살표 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform NavigationRowRect => navigationRow;
+
+        /// <summary>오른쪽 위 X. 튜토리얼 코치 마크가 피드백 티칭 끝에 밝힌다.</summary>
+        public RectTransform CloseButtonRect => (RectTransform)topCloseButton.transform;
+
         /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
         public void SetSaveAvailable(bool available)
         {

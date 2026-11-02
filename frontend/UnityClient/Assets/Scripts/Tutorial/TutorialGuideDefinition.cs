@@ -84,7 +84,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.BenFeedback,
                 "피드백",
-                "피드백을 읽고 {닫기}",
+                "피드백을 읽고 {X}로 닫기",
                 "",
                 ""
             ),
@@ -135,8 +135,25 @@ namespace A305.Tutorial
             "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {예시 문장}으로 채워요";
 
         [SerializeField]
-        [Tooltip("길 안내를 마친 뒤 [대화 종료] 옆에 보이는 설명")]
-        private string dialogueEndCaption = "길 안내 끝! {대화 종료}를 눌러요";
+        [Tooltip(
+            "길 안내를 마친 뒤 [대화 종료]를 밝히며 옆에 보이는 설명. 누르면 무엇이 이어지는지 알린다."
+        )]
+        private string dialogueEndCaption =
+            "길 안내를 마쳤어요! {대화 종료}를 누르면 Ben과 나눈 대화를 돌아보는 피드백을 볼 수 있어요";
+
+        [SerializeField]
+        [Tooltip("대화 노트(피드백)를 열면 탭 줄을 밝히며 [다음]과 함께 보이는 첫 티칭")]
+        private string feedbackSectionsCaption =
+            "Ben과 나눈 대화를 돌아보는 대화 노트예요. 탭을 눌러 {요약}·{문장}·{회화}·{표현}을 봐요";
+
+        [SerializeField]
+        [Tooltip("대화 노트 티칭의 둘째. 쪽 넘김 화살표를 밝히며 보인다.")]
+        private string feedbackPagesCaption = "내용이 길면 아래 화살표로 다음 장을 넘겨 봐요";
+
+        [SerializeField]
+        [Tooltip("대화 노트 티칭 끝에 오른쪽 위 X를 밝히며 보이는 설명")]
+        private string feedbackCloseCaption =
+            "다 봤으면 오른쪽 위 {X}로 닫아요. 이어서 오늘의 목표를 알려 드려요";
 
         [SerializeField]
         [Tooltip(
@@ -156,6 +173,9 @@ namespace A305.Tutorial
         public string TutorialScriptKey => tutorialScriptKey;
         public string TalkOfferCaption => talkOfferCaption;
         public string GuidedLineCaption => guidedLineCaption;
+        public string FeedbackSectionsCaption => feedbackSectionsCaption;
+        public string FeedbackPagesCaption => feedbackPagesCaption;
+        public string FeedbackCloseCaption => feedbackCloseCaption;
         public string DialogueLinesCaption => dialogueLinesCaption;
         public string DialogueToolsCaption => dialogueToolsCaption;
         public string SuggestedSentenceCaption => suggestedSentenceCaption;

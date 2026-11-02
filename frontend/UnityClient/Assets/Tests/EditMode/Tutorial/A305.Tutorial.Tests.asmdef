@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "A305.Api",
         "A305.Tutorial",
+        "A305.Theme",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

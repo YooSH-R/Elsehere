@@ -1,3 +1,4 @@
+using A305.Theme;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -128,28 +129,38 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void SkipButton_LabelStartsAfterItsIcon_AndHasRoomForTheWord()
+        public void SkipButton_ShowsOnlyItsName_AndTheNameFits()
         {
-            // 알약 버튼은 아이콘을 왼쪽 끝에 둔다. 글자를 버튼 전체 가운데에 두면 좁은 버튼에서 아이콘 위로 겹치므로,
-            // 글자 칸을 아이콘 오른쪽부터 잡는다.
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GuidePrefabPath);
-            Transform button = prefab.transform.Find("Panel/Content/Header/SkipButton");
-            var icon = (RectTransform)button.Find("Icon");
-            var labelRect = (RectTransform)button.Find("Label");
-            TMP_Text label = labelRect.GetComponent<TMP_Text>();
-
-            float iconRight = icon.anchoredPosition.x + icon.sizeDelta.x;
-            Assert.That(
-                labelRect.offsetMin.x,
-                Is.GreaterThanOrEqualTo(iconRight + 4f),
-                "글자 칸이 아이콘과 겹칩니다."
+            // 알약 버튼은 아이콘과 이름을 한 묶음으로 가운데에 두고, 큰 주요 버튼보다 낮은 버튼은 아이콘 없이 이름만 둔다.
+            // 좁은 [건너뛰기]에서 이름이 아이콘과 겹치거나 잘리지 않아야 한다.
+            var guide = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(GuidePrefabPath)
             );
-            float labelRoom =
-                button.GetComponent<LayoutElement>().preferredWidth
-                - labelRect.offsetMin.x
-                + labelRect.offsetMax.x;
-            // 한글 한 글자는 글자 크기만큼 넓다.
-            Assert.That(labelRoom, Is.GreaterThanOrEqualTo(label.text.Length * label.fontSize));
+            try
+            {
+                var button = (RectTransform)guide.transform.Find("Panel/Content/Header/SkipButton");
+                // 머리줄은 버튼을 정한 크기로 놓는다.
+                var size = button.GetComponent<LayoutElement>();
+                button.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Horizontal,
+                    size.preferredWidth
+                );
+                button.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size.preferredHeight);
+                button.GetComponent<PillContentLayout>().Arrange();
+                Image icon = button.Find("Icon").GetComponent<Image>();
+                TMP_Text label = button.Find("Label").GetComponent<TMP_Text>();
+
+                Assert.That(icon.enabled, Is.False, "낮은 버튼에 아이콘이 보입니다.");
+                Assert.That(
+                    label.rectTransform.sizeDelta.x,
+                    Is.GreaterThanOrEqualTo(label.GetPreferredValues(label.text).x - .5f),
+                    "이름이 버튼 안에 다 들어가지 않습니다."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(guide);
+            }
         }
 
         private const string GuidePrefabPath = "Assets/Prefabs/Tutorial/TutorialGuide.prefab";

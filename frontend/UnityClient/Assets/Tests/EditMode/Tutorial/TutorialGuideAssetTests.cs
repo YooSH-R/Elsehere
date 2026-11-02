@@ -74,14 +74,14 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void Look_TellsToDragWithTheRightMouseButton()
+        public void Look_TellsToDragWithTheLeftMouseButton()
         {
-            // 시점은 마우스 오른쪽 버튼을 누른 채 끌어 돌린다(Player/CameraRotate). 왼쪽 클릭은 사물 카드 고정에 쓴다.
+            // 시점은 마우스 왼쪽 버튼을 누른 채 끌어 돌린다(Player/CameraRotate).
             var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
             guide.TryGetStepGuide(TutorialStep.Look, out TutorialStepGuide stepGuide);
 
-            Assert.That(stepGuide.Task, Does.Contain("{마우스 오른쪽}"));
-            Assert.That(stepGuide.Task, Does.Not.Contain("왼쪽"));
+            Assert.That(stepGuide.Task, Does.Contain("{마우스 왼쪽}"));
+            Assert.That(stepGuide.Task, Does.Not.Contain("오른쪽"));
         }
 
         [Test]

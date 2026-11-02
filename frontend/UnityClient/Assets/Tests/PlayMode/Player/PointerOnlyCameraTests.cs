@@ -76,26 +76,26 @@ namespace A305.Player.Tests
         }
 
         [UnityTest]
-        public IEnumerator OnlyARightButtonDragTurnsTheCamera()
+        public IEnumerator OnlyALeftButtonDragTurnsTheCamera()
         {
-            // 왼쪽 클릭은 사물 카드 고정에 쓰므로 왼쪽 버튼으로 끌어도 시점이 돌지 않는다.
+            // 시점은 왼쪽 버튼을 누른 채 끌어 돌린다. 오른쪽 버튼으로 끌면 돌지 않는다(사물 클릭은 거의 움직이지 않고 뗀 것만 본다).
             Transform camera = Object.FindFirstObjectByType<PlayerCameraRig>().transform;
             Mouse mouse = InputSystem.AddDevice<Mouse>();
             try
             {
                 float startYaw = camera.eulerAngles.y;
-                yield return Drag(mouse, MouseButton.Left);
+                yield return Drag(mouse, MouseButton.Right);
                 Assert.That(
                     Mathf.DeltaAngle(startYaw, camera.eulerAngles.y),
                     Is.EqualTo(0f).Within(.5f),
-                    "A left-button drag must not turn the camera."
+                    "A right-button drag must not turn the camera."
                 );
 
-                yield return Drag(mouse, MouseButton.Right);
+                yield return Drag(mouse, MouseButton.Left);
                 Assert.That(
                     Mathf.Abs(Mathf.DeltaAngle(startYaw, camera.eulerAngles.y)),
                     Is.GreaterThan(5f),
-                    "A right-button drag must turn the camera."
+                    "A left-button drag must turn the camera."
                 );
             }
             finally

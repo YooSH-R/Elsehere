@@ -58,6 +58,14 @@ class FirstDayStageTest {
   }
 
   @Test
+  @DisplayName("드럭스토어 점원도 우산과 가격을 먼저 권하지 않고, 결제 방법은 학습자가 사겠다고 한 뒤에 묻는다")
+  void buyUmbrella_waitsForTheLearnerToAsk() {
+    assertThat(FirstDayStage.BUY_UMBRELLA.instruction())
+        .contains("Do not offer an umbrella or say its price before the learner asks")
+        .contains("only after the learner decides to buy");
+  }
+
+  @Test
   @DisplayName("우산을 사는 단계는 드럭스토어에서 일어난다")
   void buyUmbrella_happensAtTheDrugstore() {
     assertThat(FirstDayStage.BUY_UMBRELLA.situation()).startsWith("우산을 파는 드럭스토어예요.");

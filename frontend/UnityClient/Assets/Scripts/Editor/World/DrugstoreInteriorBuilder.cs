@@ -115,13 +115,20 @@ namespace A305.EditorTools.World
         {
             Transform environment = BuilderTools.EnsureGroups(scene).Environment;
             RemoveBlockoutUmbrellas(environment);
+            string prefabPath = PrefabFolder + "/" + InteriorName + ".prefab";
+            GameObject prefab = BuilderTools.CreatePrefabIfMissing(prefabPath, BuildInterior);
+            // 천장 충돌을 넣기 전에 만든 프리팹도 디자인은 그대로 두고 충돌만 더한다.
+            BuilderTools.UpdatePrefabIfExists(prefabPath, BlockCameraAtCeiling);
             if (environment.Find(InteriorName) != null)
                 return;
-            GameObject prefab = BuilderTools.CreatePrefabIfMissing(
-                PrefabFolder + "/" + InteriorName + ".prefab",
-                BuildInterior
-            );
             BuilderTools.InstantiatePrefab(prefab, environment, Vector3.zero, Quaternion.identity);
+        }
+
+        // 천장이 카메라를 막지 않으면 내려다볼 때 카메라가 천장 위로 빠져, 해를 받은 천장 윗면이 화면을 하얗게 덮는다.
+        private static void BlockCameraAtCeiling(GameObject interior)
+        {
+            GameObject ceiling = interior.transform.Find("DrugstoreShell/Ceiling").gameObject;
+            BuilderTools.GetOrAddComponent<BoxCollider>(ceiling);
         }
 
         private static void RemoveBlockoutUmbrellas(Transform environment)
@@ -314,7 +321,7 @@ namespace A305.EditorTools.World
                 Quaternion.Euler(90, 0, 0)
             );
 
-            // 천장은 그림자를 드리우지 않아 기존 해가 실내를 계속 비춘다.
+            // 천장은 그림자를 드리우지 않아 기존 해가 실내를 계속 비춘다. 카메라를 막는 충돌은 Apply에서 더한다.
             GameObject ceiling = Prim(
                 PrimitiveType.Cube,
                 "Ceiling",

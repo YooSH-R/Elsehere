@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -64,8 +63,7 @@ namespace A305.Onboarding
             checkNicknameButton.interactable =
                 form.NicknameProblem == NicknameProblem.None
                 && form.NicknameStatus != NicknameStatus.Available;
-            femaleButton.GetComponent<ThemedElement>().SetSelected(form.Avatar == AvatarType.F);
-            maleButton.GetComponent<ThemedElement>().SetSelected(form.Avatar == AvatarType.M);
+            AvatarButtons.ShowSelected(femaleButton, maleButton, form.Avatar);
 
             if (shownTerms != form.Terms)
             {

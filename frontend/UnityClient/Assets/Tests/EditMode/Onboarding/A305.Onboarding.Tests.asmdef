@@ -6,6 +6,8 @@
         "UnityEditor.TestRunner",
         "A305.Api",
         "A305.Onboarding",
+        "A305.Theme",
+        "UnityEngine.UI",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [

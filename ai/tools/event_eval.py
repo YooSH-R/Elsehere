@@ -115,7 +115,9 @@ STAGES = {
         },
     ),
     "BUY_UMBRELLA": (
-        "Sell one umbrella for exactly 8 quest coins. Balance before purchase is 20. Ask how they want to pay (cash/card both accepted). "
+        "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Balance before purchase is 20. "
+        "Do not offer an umbrella or say its price before the learner asks. "
+        "Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. "
         "Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
         {
             "ask_price": "Ask or confirm the umbrella price.",

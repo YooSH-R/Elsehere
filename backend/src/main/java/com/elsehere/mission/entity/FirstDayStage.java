@@ -90,7 +90,7 @@ public enum FirstDayStage {
       "RAIN",
       "우산을 파는 드럭스토어예요. 여행용 예산은 20코인, 우산은 8코인이에요.",
       "점원에게 우산을 사세요.",
-      "Sell one umbrella for exactly 8 quest coins. Balance before purchase is 20. Ask how they want to pay (cash/card both accepted). Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
+      "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Balance before purchase is 20. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
       goal("ask_price", "가격 묻기", "Ask or confirm the umbrella price."),
       goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella."),
       goal(

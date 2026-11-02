@@ -21,6 +21,9 @@ namespace A305.ObjectHover.PlayModeTests
         // 툴팁 표시 지연보다 충분히 긴 시간
         private const float LongerThanShowDelaySeconds = 1f;
 
+        // 플레이어를 옮긴 뒤 카메라가 따라와 화면이 실제 플레이처럼 자리 잡는 데 넉넉한 프레임 수
+        private const int CameraSettleFrames = 10;
+
         private ObjectHoverController hover;
         private WordTooltipView tooltip;
         private PlayerMover player;
@@ -271,6 +274,9 @@ namespace A305.ObjectHover.PlayModeTests
         {
             // 캐릭터 발 옆 바닥을 가리키면 카드가 바로 위에 떠 캐릭터 머리를 덮었다.
             yield return StandPlayerNear(FindHoverable("tv"));
+            // 순간이동한 바로 그 프레임은 카메라가 아직 따라오지 않아 실제 플레이와 다르게 보인다. 따라온 뒤에 잰다.
+            for (int frame = 0; frame < CameraSettleFrames; frame++)
+                yield return null;
             Transform body = player.transform;
             Vector3 floor = body.position + body.right * .55f + body.forward * .2f;
             Vector2 pointer = Camera.main.WorldToScreenPoint(floor);

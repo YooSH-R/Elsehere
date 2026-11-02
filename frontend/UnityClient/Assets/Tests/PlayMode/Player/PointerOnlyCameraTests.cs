@@ -74,6 +74,51 @@ namespace A305.Player.Tests
                 "Only the mouse may turn the camera."
             );
         }
+
+        [UnityTest]
+        public IEnumerator OnlyARightButtonDragTurnsTheCamera()
+        {
+            // 왼쪽 클릭은 사물 카드 고정에 쓰므로 왼쪽 버튼으로 끌어도 시점이 돌지 않는다.
+            Transform camera = Object.FindFirstObjectByType<PlayerCameraRig>().transform;
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            try
+            {
+                float startYaw = camera.eulerAngles.y;
+                yield return Drag(mouse, MouseButton.Left);
+                Assert.That(
+                    Mathf.DeltaAngle(startYaw, camera.eulerAngles.y),
+                    Is.EqualTo(0f).Within(.5f),
+                    "A left-button drag must not turn the camera."
+                );
+
+                yield return Drag(mouse, MouseButton.Right);
+                Assert.That(
+                    Mathf.Abs(Mathf.DeltaAngle(startYaw, camera.eulerAngles.y)),
+                    Is.GreaterThan(5f),
+                    "A right-button drag must turn the camera."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+            }
+        }
+
+        private static IEnumerator Drag(Mouse mouse, MouseButton button)
+        {
+            for (int frame = 0; frame < 20; frame++)
+            {
+                InputSystem.QueueStateEvent(
+                    mouse,
+                    new MouseState { delta = new Vector2(20f, 0f) }.WithButton(button)
+                );
+                yield return null;
+            }
+
+            InputSystem.QueueStateEvent(mouse, new MouseState());
+            for (int frame = 0; frame < 30; frame++)
+                yield return null;
+        }
     }
 }
 #endif

@@ -79,6 +79,19 @@ namespace A305.Learning
         [SerializeField]
         private RectTransform navigationRow;
 
+        [SerializeField]
+        [Tooltip("요약 탭 위쪽의 '이 상황에서 자주 써요' 표현 줄 묶음")]
+        private RectTransform situationRows;
+
+        [SerializeField]
+        [Tooltip("표현 줄 원본. 숨겨 두고 표현마다 복사해 쓴다")]
+        private GameObject situationRowTemplate;
+
+        // 요약 글이 표현 줄 아래에서 시작하도록 띄우는 간격과, 표현 줄이 없을 때 카드 위 여백
+        private const float BodyGapBelowRows = 16;
+        private const float BodyTopPadding = 32;
+
+        private readonly List<GameObject> situationRowItems = new List<GameObject>();
         private IReadOnlyList<FeedbackPage> pages;
         private FeedbackSection section;
         private int pageIndex;
@@ -190,7 +203,62 @@ namespace A305.Learning
             navigationRow.gameObject.SetActive(
                 !isRegenerating && (!feedback.IsFailed || isTranscriptShown)
             );
+            ShowSituationRows(
+                section == FeedbackSection.Summary && !feedback.IsFailed && !isTranscriptShown
+                    ? feedback.SituationExpressions
+                    : Array.Empty<SituationExpressionData>()
+            );
             UpdateLayout();
+        }
+
+        /// <summary>
+        /// 피드백을 열자마자 보이도록 요약 탭 위쪽에 이 상황에서 자주 쓰는 표현을 한 줄씩 모두 보이고, 줄마다 [+ 담기]로 그 표현과 뜻을 담게 한다.
+        /// 요약 글은 표현 줄 아래에서 시작한다.
+        /// </summary>
+        private void ShowSituationRows(IReadOnlyList<SituationExpressionData> expressions)
+        {
+            foreach (GameObject row in situationRowItems)
+            {
+                row.SetActive(false);
+                if (Application.isPlaying)
+                    Destroy(row);
+                else
+                    DestroyImmediate(row);
+            }
+            situationRowItems.Clear();
+
+            foreach (SituationExpressionData expression in expressions)
+            {
+                if (string.IsNullOrWhiteSpace(expression.Expression))
+                    continue;
+                GameObject row = Instantiate(situationRowTemplate, situationRows);
+                row.name = "SituationRow";
+                row.transform.Find("Texts/Phrase").GetComponent<TMP_Text>().text =
+                    $"<b>{expression.Expression}</b>  {expression.MeaningKo}";
+                row.transform.Find("Texts/Usage").GetComponent<TMP_Text>().text =
+                    expression.UsageKo;
+                Button save = row.GetComponentInChildren<Button>(true);
+                save.gameObject.SetActive(isSaveAvailable);
+                save.onClick.AddListener(() =>
+                    SaveRequested?.Invoke(expression.Expression, expression.MeaningKo)
+                );
+                row.SetActive(true);
+                situationRowItems.Add(row);
+            }
+
+            bool visible = situationRowItems.Count > 0;
+            situationRows.gameObject.SetActive(visible);
+            float top = BodyTopPadding;
+            if (visible)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
+                top =
+                    -situationRows.anchoredPosition.y
+                    + situationRows.rect.height
+                    + BodyGapBelowRows;
+            }
+            RectTransform body = bodyText.rectTransform;
+            body.offsetMax = new Vector2(body.offsetMax.x, -top);
         }
 
         private ReferenceExpression CurrentExpression =>

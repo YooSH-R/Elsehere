@@ -55,6 +55,17 @@ namespace A305.Dialogue
 
         [SerializeField]
         private ScrollRect historyScroll;
+
+        [SerializeField]
+        [Tooltip("NPC 첫 대사·대답을 기다리는 동안 대사 칸을 덮는 로딩")]
+        private GameObject waitPanel;
+
+        [SerializeField]
+        private TMP_Text waitText;
+
+        [SerializeField]
+        [Tooltip("대화를 끝내고 피드백을 기다리는 동안 화면 전체를 덮는 로딩 창")]
+        private GameObject feedbackWait;
         private Vector2 lastCanvasSize;
 
         [SerializeField]
@@ -155,6 +166,23 @@ namespace A305.Dialogue
 
             panel.SetActive(false);
             helpPanel.gameObject.SetActive(false);
+            ShowWait(DialogueWait.None);
+        }
+
+        // NPC 첫 대사·대답은 대사 칸을 덮는 로딩으로, 오래 걸리는 피드백은 화면 가운데 로딩 창으로 알린다.
+        private void ShowWait(DialogueWait wait)
+        {
+            bool inLines = wait == DialogueWait.Opening || wait == DialogueWait.NpcReply;
+            waitPanel.SetActive(inLines);
+            if (inLines)
+            {
+                waitText.text =
+                    wait == DialogueWait.Opening
+                        ? "대화를 준비하고 있어요"
+                        : $"{content.NpcName}의 대답을 기다리고 있어요";
+            }
+
+            feedbackWait.SetActive(wait == DialogueWait.Feedback);
         }
 
         /// <summary>전사한 문장처럼 입력창에 넣어 줄 문장. 사용자가 확인하고 [보내기]로 보낸다.</summary>
@@ -194,13 +222,18 @@ namespace A305.Dialogue
             statusText.text = FormatStatus();
             // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
             // 음성 처리에 동의하지 않아 [꾹 눌러 말하기]가 없으면, 버튼이 왜 없는지와 동의를 켜는 곳을 입력칸 위에 알린다.
+            // NPC 대답·피드백을 기다리는 동안은 상태 줄 대신 로딩이 같은 내용을 크게 알린다.
             statusText.gameObject.SetActive(
-                content.IsBusy
-                    || content.CanRetry
-                    || content.IsGuidedCompleted
-                    || NeedsVoiceConsent
-                    || !string.IsNullOrEmpty(content.StatusMessage)
+                content.Waiting == DialogueWait.None
+                    && (
+                        content.IsBusy
+                        || content.CanRetry
+                        || content.IsGuidedCompleted
+                        || NeedsVoiceConsent
+                        || !string.IsNullOrEmpty(content.StatusMessage)
+                    )
             );
+            ShowWait(content.Waiting);
             suggestText.text = DialogueHelpText.Words(content.SuggestWords);
             string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
             hintText.text = string.IsNullOrEmpty(sentence)
@@ -416,16 +449,19 @@ namespace A305.Dialogue
                 Mathf.Max(0, width - standingX - 500),
                 nameRect.sizeDelta.y
             );
+            // 대사 칸은 상태 줄 위에서 끝나 마지막 줄이 도구 버튼에 걸리지 않는다.
             var history = (RectTransform)historyScroll.transform;
+            history.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom);
             history.sizeDelta = new Vector2(
                 -128,
                 frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight
             );
             var input = (RectTransform)inputField.transform;
             input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
-            // 상태 줄은 도구 줄 오른쪽부터 창 안쪽 끝까지만 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
+            // 상태 줄은 도구 줄 바로 위에서 창 안쪽 폭 전체를 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
             var status = (RectTransform)statusText.transform;
-            status.sizeDelta = new Vector2(Mathf.Max(240, width - 664), status.sizeDelta.y);
+            status.anchoredPosition = new Vector2(64, DialoguePanelLayout.StatusBottom);
+            status.sizeDelta = new Vector2(width - 128, DialoguePanelLayout.StatusHeight);
             statusText.enableAutoSizing = true;
             statusText.fontSizeMin = 14;
             statusText.fontSizeMax = 20;

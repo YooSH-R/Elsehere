@@ -57,6 +57,7 @@ namespace A305.Dialogue
 
         /// <summary>정해진 대사와 다른 문장을 보냈을 때의 안내. 대사를 맞게 보내면 지운다.</summary>
         public string StatusMessage => statusMessage;
+        public DialogueWait Waiting => DialogueWait.None;
         public string RecoveryGuide => null;
         public bool CanRetry => false;
         public IReadOnlyList<string> SuggestWords => null;

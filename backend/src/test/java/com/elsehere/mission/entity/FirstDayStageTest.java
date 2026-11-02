@@ -38,6 +38,26 @@ class FirstDayStageTest {
   }
 
   @Test
+  @DisplayName("호텔 직원은 예약 확인·짐 보관·카페 안내를 학습자가 먼저 요청하기 전에는 꺼내지 않고, 퀘스트 카드는 직원에게 요청하라고 안내한다")
+  void earlyArrival_waitsForTheLearnerToAsk() {
+    FirstDayStage stage = FirstDayStage.EARLY_ARRIVAL;
+
+    assertThat(stage.instruction()).contains("Do not offer any of these before the learner asks");
+    assertThat(stage.direction()).isEqualTo("호텔 직원에게 요청하세요.");
+  }
+
+  @Test
+  @DisplayName("가방 분실·가방 찾기·비 단계의 NPC도 학습자가 말하기 전에 사건이나 해결책을 먼저 꺼내지 않는다")
+  void incidentStages_waitForTheLearnerToBringThemUp() {
+    assertThat(FirstDayStage.MISSING_BAG.instruction())
+        .contains("Do not bring up the missing bag before the learner explains it");
+    assertThat(FirstDayStage.FIND_BAG.instruction())
+        .contains("Do not mention or offer the found bag before the learner asks about a lost bag");
+    assertThat(FirstDayStage.RAINY_STREET.instruction())
+        .contains("Do not suggest umbrellas or the drugstore before the learner asks");
+  }
+
+  @Test
   @DisplayName("우산을 사는 단계는 드럭스토어에서 일어난다")
   void buyUmbrella_happensAtTheDrugstore() {
     assertThat(FirstDayStage.BUY_UMBRELLA.situation()).startsWith("우산을 파는 드럭스토어예요.");

@@ -303,6 +303,7 @@ namespace A305.EditorTools.Learning
                 transcriptButton.GetComponentInChildren<TMP_Text>(true)
             );
             FeedbackPagesBuilder.SetUp(root, view, body);
+            FeedbackSituationBuilder.SetUp(root, view);
             BuilderTools.RequireReferences(view);
 
             // 대화가 끝난 뒤에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.

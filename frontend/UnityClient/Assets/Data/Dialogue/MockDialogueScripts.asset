@@ -200,6 +200,33 @@ MonoBehaviour:
       english: Sure. Please fasten your seat belt.
       korean: "\uC54C\uACA0\uC5B4\uC694. \uC548\uC804\uBCA8\uD2B8\uB97C \uB9E4 \uC8FC\uC138\uC694."
     exampleSentence: Can you take me to the hotel, please?
+  - npcCode: POLICE_OFFICER
+    npcName: Dan
+    roleLabel: "\uACBD\uCC30\uAD00"
+    opening:
+      english: Hello, this is the Maple Town police. What happened?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uBA54\uC774\uD50C \uD0C0\uC6B4 \uACBD\uCC30\uC785\uB2C8\uB2E4.
+        \uBB34\uC2A8 \uC77C\uC774 \uC788\uC5C8\uB098\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - stolen
+      - lost
+      - accident
+      reply:
+        english: I see. A patrol car is heading out right away.
+        korean: "\uC54C\uACA0\uC5B4\uC694. \uC21C\uCC30\uCC28\uAC00 \uBC14\uB85C
+          \uCD9C\uB3D9\uD560\uAC8C\uC694."
+    - keywords:
+      - thank
+      reply:
+        english: You're welcome. Stay safe.
+        korean: "\uCC9C\uB9CC\uC5D0\uC694. \uC870\uC2EC\uD788 \uB2E4\uB2C8\uC138\uC694."
+    defaultReply:
+      english: Can you tell me what happened and where?
+      korean: "\uBB34\uC2A8 \uC77C\uC774 \uC5B4\uB514\uC11C \uC788\uC5C8\uB294\uC9C0
+        \uB9D0\uD574 \uC904\uB798\uC694?"
+    exampleSentence: My wallet was stolen at the diner.
   fallback:
     npcCode: 
     npcName: Neighbor

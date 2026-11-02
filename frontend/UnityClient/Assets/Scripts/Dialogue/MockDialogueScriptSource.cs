@@ -253,6 +253,35 @@ namespace A305.Dialogue
                 ),
                 exampleSentence = "Can you take me to the hotel, please?",
             },
+            new Entry
+            {
+                npcCode = "POLICE_OFFICER",
+                npcName = "Dan",
+                roleLabel = "경찰관",
+                opening = new LineEntry(
+                    "Hello, this is the Maple Town police. What happened?",
+                    "안녕하세요, 메이플 타운 경찰입니다. 무슨 일이 있었나요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "stolen", "lost", "accident" },
+                        new LineEntry(
+                            "I see. A patrol car is heading out right away.",
+                            "알겠어요. 순찰차가 바로 출동할게요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry("You're welcome. Stay safe.", "천만에요. 조심히 다니세요.")
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Can you tell me what happened and where?",
+                    "무슨 일이 어디서 있었는지 말해 줄래요?"
+                ),
+                exampleSentence = "My wallet was stolen at the diner.",
+            },
         };
 
         [SerializeField]

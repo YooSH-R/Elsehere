@@ -23,6 +23,12 @@
 | `TrafficSignalCycle`, `TrafficLights`, `TrafficSignalHead` | 교차로 신호 주기(본길 초록 12초·노랑 3초, 가로길 초록 7초·노랑 3초)와 신호등 렌즈 켜기. 주기는 `TrafficLights` Inspector에서 조절합니다. |
 | `LoopingCar` | 본길을 도는 차. 본길 신호가 초록이 아니면 교차로 정지선에서 서고, 앞을 사람이나 다른 차가 막으면 섭니다. 택시처럼 손님 옆에 설 때는 설 자리를 받습니다. |
 | `TaxiFare` | 택시를 세우고 보내는 흐름. 인도에서 다가오는 택시만 세울 수 있고, 손님 옆에 서서 기다리다 대화를 마치거나 손님이 떠나면 다시 달립니다. Unity 객체 없이 테스트합니다. |
+| `TaxiDestinationRequest`, `TaxiDestination` | 택시 목적지 판별(지원 장소 이름과 이동 요청 구분)과 장소별 정차·하차 지점. 장소 이름 찾기(`FindSinglePlace`)는 경찰 신고 판별도 함께 씁니다. Unity 객체 없이 테스트합니다. |
+| `PoliceReportRequest` | 경찰관에게 한 말이 분명한 신고(도난·분실·사고·싸움·침입·긴급)인지 고르고, 마을 장소를 하나만 말했으면 그 장소 코드를 돌려줍니다. 부정·가정·이야기·길을 잃었다는 말은 신고가 아닙니다. 택시처럼 별도 LLM 호출 없이 보수적인 규칙으로만 찾습니다. Unity 객체 없이 테스트합니다. |
+| `PoliceReportIntake` | 경찰관과 한 번 대화하는 동안 신고를 접수하고, 접수한 뒤 말한 장소로 출동 장소를 바꿉니다. 대화를 마치면 출동할 장소를 꺼내고 비웁니다. Unity 객체 없이 테스트합니다. |
+| `PoliceDispatch` | 순찰차 출동 흐름. 주차 칸 → 진입로로 나가기 → 장소로 출동(장소가 없으면 본길 한 바퀴 순찰) → 장소 앞 20초 → 돌아오기 → 주차 칸. 나가 있는 동안 새 신고는 받지 않고, 돌아올 때 경광등을 끕니다. Unity 객체 없이 테스트합니다. |
+| `DrivePath` | 주차 칸과 본길 사이처럼 `CarLoopRoute` 밖을 잇는 3차 베지어 곡선 길. 길 위 거리로 위치·방향을 구합니다. Unity 객체 없이 테스트합니다. |
+| `PoliceCar` | 경찰서 옆 주차 칸의 순찰차. 진입로는 `DrivePath`로 직접 움직이고 본길은 `LoopingCar`로 신호를 지키며 달립니다. 주차 칸·진입로에서는 `LoopingCar.IsHeld`로 붙잡아 두어 본길 차들이 계속 피하게 하고, 진입로에서는 사람만 피합니다(차끼리 서로 기다리다 멈추지 않도록). 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켭니다. |
 | `LastSceneRecorder`, `ILastSceneApi`, `LastSceneApi` | Unity 씬 이름을 서버 장소 코드(`HomeScene`→`HOME`, `TownScene`→`TOWN`, `CafeScene`→`CAFE`, `HotelScene`→`HOTEL`, `ShopScene`→`SHOP`)로 바꿔 `PUT /api/v1/me/last-scene`으로 저장합니다. 장소가 아닌 씬은 저장하지 않고, 실패해도 예외 없이 결과로 알립니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
 | `GameClock`, `IGameClockApi`, `GameClockApi`, `GameClockTime` | 사용자별 게임 시간(WORLD-06·07). 게임 시간은 서버가 사용자마다 플레이한 시간만큼 흐르게 합니다(실제 10분 = 게임 하루, 대화 중 멈춤). 처음 들어오면 바로, 그 뒤로 30초마다 `POST /api/v1/me/game-clock/beats`를 보내고 받은 게임 시각을 `GameClock.Shared.Current`에 두며 `Changed`로 알립니다. 응답을 기다리는 동안은 다시 보내지 않고, 실패하면 마지막 시각을 그대로 두고 다음 간격에 다시 보냅니다. NPC 일과가 끊기지 않게 `Minutes`(1일차 0시부터 센 분)는 신호 사이에도 실제 시간만큼 흐르다가 새 시각을 받으면 그 값으로 맞추고, 서버가 대화 중이라 멈췄다고 알려 주면 흐르지 않습니다. 서버 시각을 받기 전(게스트, 서버 없이 씬만 볼 때)에는 새 사용자처럼 1일차 오전 8시에서 시작합니다. 장면을 옮겨도 주기가 이어지도록 정적으로 둡니다. Unity 객체 없이 테스트합니다. |
 | `GameClockDriver` | 장소 씬의 `SpaceArrival` 객체에 붙어, 그 씬에 있는 동안 `GameClock`의 신호를 보내고 매 프레임 게임 시각을 흘립니다. 입구 화면에는 없어 로그인 전·로그아웃 뒤에는 보내지 않습니다. 튜토리얼(`HomeScene`)도 플레이 시간으로 셉니다. `apiSettings`가 비어 있으면 보내지 않습니다. 배포용 장소 씬 5개에는 **Tools → A305 → World → Connect Game Clock**으로 연결합니다(새로 꾸미는 씬은 **Set Up Open Scene**이 함께 붙입니다). |
@@ -60,7 +66,7 @@
 - **Tools → A305 → World → Apply American Street Details**(`AmericanStreetBuilder`): 카페 앞 횡단보도와 교차로에서 끊기던 중앙선을 정지선까지 잇고, 교차로 네 방향에 횡단보도·정지선을, 가로길에 중앙선을 그립니다. 교차로 모퉁이 두 곳에 MAPLE AVE 이름판을 단 신호등을 세우고, 길가에 속도 제한 25 표지판·버스 정류장·주차 미터기·신문 판매함·파란 우체통·보행자 횡단 표지판을 둡니다. 성조기는 호텔 외벽에 하나만 답니다.
 - **Tools → A305 → World → Apply Town Street Life**(`TownStreetLifeBuilder`): 집 남쪽 잔디의 아이스크림 트럭 광장, 카페 앞 파라솔 테라스, 본길을 도는 택시·승용차와 교차로 신호, 자전거 거치대, 가로수 밑 꽃과 건물 앞 꽃덤불, 공원의 여우·비둘기와 집 앞 고양이를 둡니다.
 
-승용차는 카페 앞 횡단보도 북쪽(z=-6)과 본길 북쪽 끝(z=66) 사이를 돕니다. 택시는 집까지 이동하도록 남쪽 끝을 z=-25까지 넓히고, 남행 중 기존 주차 트럭을 천천히 비켜갑니다. 두 차는 교차로 신호를 지키고, 택시는 인도에서 [택시 세우기]를 누르면 손님 옆 길가에 서면서 바로 뒷좌석에 타 택시 기사(`TAXI_DRIVER`)와 대화합니다. 목적지 10곳과 승하차 흐름은 [택시 안내](../../../../../docs/unity/taxi-ride.md)에 있습니다.
+승용차는 카페 앞 횡단보도 북쪽(z=-6)과 본길 북쪽 끝(z=66) 사이를 돕니다. 택시는 집까지 이동하도록 남쪽 끝을 z=-25까지 넓히고, 남행 중 기존 주차 트럭을 천천히 비켜갑니다. 두 차는 교차로 신호를 지키고, 택시는 인도에서 [택시 세우기]를 누르면 손님 옆 길가에 서면서 바로 뒷좌석에 타 택시 기사(`TAXI_DRIVER`)와 대화합니다. 목적지 11곳과 승하차 흐름은 [택시 안내](../../../../../docs/unity/taxi-ride.md)에 있습니다.
 
 승용차에도 앉은 운전자와 운전대가 들어 있습니다. **Tools → A305 → World → Add Vehicle Drivers**는 기존 택시 기사의 외형과 자세를 승용차 프리팹에 복제합니다. 승용차에는 택시 대화 기능을 붙이지 않으며, 운전자가 이미 있으면 디자인을 유지합니다. 운전자 크기·위치·자세는 `Prefabs/World/StreetLife/Sedan.prefab`의 `Driver`에서 조절합니다. 주차된 픽업트럭과 아이스크림 트럭은 비워 둡니다. **Adjust Driver Steering**은 택시와 승용차의 핸들을 얼굴 아래로 낮추고 앞유리 쪽으로 조금 옮긴 뒤, 팔 길이를 유지하면서 양손 자세를 맞춥니다. **Capture Vehicle Drivers** 메뉴로 마을에서 두 차량의 앞쪽·운전석 쪽 모습을 `artifacts/vehicle-drivers/`에 저장해 확인할 수 있습니다.
 
@@ -70,9 +76,9 @@
 - 씬 이름은 ERD `scenes.unity_key` 값으로 사용합니다. 공간 이름·개방 여부 같은 서버 데이터는 Unity에 두지 않습니다.
 - TownScene 외관은 `Prefabs/World/TownProduction`과 `CafeBlenderKit`을 사용합니다. HomeScene은 `Prefabs/Home/CozyCottage`의 실내 외형을 사용하며 기존 가구 사물 키와 문 연결을 유지합니다. 카페·호텔의 실내는 도형 대체 공간을 유지합니다. 아래 Builder를 다시 실행해도 기존 디자인을 덮어쓰지 않습니다.
 
-## 북쪽 거리 매장
+## 거리 매장
 
-`TownStorefrontBuilder`는 기존 배경 건물 6곳을 간판과 실내가 있는 매장으로 구성합니다. 모두 TownScene 안에서 직접 걸어 들어가며, 문은 접근하면 열립니다. 매장 직원 NPC나 결제 기능은 포함하지 않습니다.
+`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 모두 TownScene 안에서 직접 걸어 들어가며, 문은 접근하면 열립니다. 매장 직원 NPC나 결제 기능은 포함하지 않습니다.
 
 | 프리팹 | 간판 | 건물 앞 위치(x, z) |
 | --- | --- | --- |
@@ -82,8 +88,20 @@
 | `SudsLaundromat` | SUDS LAUNDROMAT | (7, 48) |
 | `BloomFlowers` | BLOOM FLOWERS | (-7, 57) |
 | `MainStreetBarber` | MAIN ST. BARBER | (7, 57) |
+| `PoliceStation` | POLICE | (-7, -20) |
 
-**Build Town Storefronts Sandbox**로 검토용 씬을 만들고 **Apply Town Storefronts To Town**으로 TownScene에 적용합니다(두 메뉴 모두 **Tools → A305 → World**). 프리팹은 없을 때만 생성하며 기존 디자인은 유지합니다. 원래 배경 건물은 비활성으로 보존합니다. 적용 후 **Apply Taxi Cabin**으로 목적지를 연결하고 **ObjectHover → Register All Scene Words**로 단어 등록과 백엔드 내보내기를 완료합니다. 새 사물 단어는 사서함·소포·스툴·ATM·세탁기·건조기·꽃·이발 의자입니다.
+**Build Town Storefronts Sandbox**로 검토용 씬을 만들고 **Apply Town Storefronts To Town**으로 TownScene에 적용합니다(두 메뉴 모두 **Tools → A305 → World**). 프리팹은 없을 때만 생성하며 기존 디자인은 유지합니다. 원래 배경 건물은 비활성으로 보존합니다. 적용 후 **Apply Taxi Cabin**으로 목적지를 연결하고 **ObjectHover → Register All Scene Words**로 단어 등록과 백엔드 내보내기를 완료합니다. 새 사물 단어는 사서함·소포·스툴·ATM·세탁기·건조기·꽃·이발 의자·경찰서입니다.
+
+### 경찰서와 순찰차
+
+**Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 경찰서 매장(창구·대기 의자·게시판·서류함·국기)을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 창구 뒤에는 경찰관 Dan(`POLICE_OFFICER`)을 세우고 신고 창구(`PoliceReportDesk`)와 순찰차를 잇습니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
+
+- 순찰차 모델은 KayKit City Builder Bits의 `car_police`이고 프리팹은 `Prefabs/World/PoliceStation/PoliceCar.prefab`입니다. 지붕 경광등 위에 빨강·파랑 발광 조각과 불빛(`LightBar/RedLights`, `LightBar/BlueLights`)을 얹어 두었습니다.
+- 경찰관 외형은 호텔리어 모델에 갈색 바지·구두만 남색으로 바꾼 텍스처 사본(`Art/World/PoliceStation/PoliceOfficerUniform.png`)과 경찰 모자를 씌운 것입니다. 모자는 모델의 원래 자세를 기준으로 머리 뼈에 붙여 서 있기 동작에서 머리 앞을 봅니다. 경찰관 전용 모델은 아직 없습니다.
+- 순찰차는 택시와 같은 본길(남쪽 끝 z=-25, 북쪽 끝 z=66)을 달리고, 택시 목적지와 같은 정차 지점을 씁니다(경찰서 자신은 빼고 10곳). 주차 칸은 (-9, -28.8)이고, 진입로는 동쪽 끝 정원수(-3.7, -27.8)를 피해 그 북쪽으로 지납니다.
+- 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
+- 새 사물 단어는 경찰차·경찰관·주차장입니다.
+- 거리 매장 천장에는 카메라를 막는 충돌이 있습니다. 위층이 없는 경찰서는 천장이 막지 않으면 내려다볼 때 카메라가 천장 위로 빠집니다(드럭스토어와 같은 문제). 매장 Builder는 충돌이 없는 기존 매장 프리팹에 충돌만 더합니다.
 
 ## 확인 방법
 
@@ -148,7 +166,7 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 차가 도는 길의 위치·방향·유턴·한 바퀴, 정지 지점에서 서기와 기다리기, 앞을 막은 사람 앞에서만 서기, 신호 주기, 택시 세우기 조건(차로 쪽 인도·앞쪽·유턴 전)과 기다림·출발, 마을 씬의 달리는 차·신호등·택시 기사 연결. 이동 중 중복 요청 거절, 도착 출입구와 카메라 각도 전달, 이동 취소 후 재이동. 새 씬에 기능 연결 도구를 적용했을 때 그룹·플레이어·카메라·도착 처리가 하나씩 붙고 연결되는지, 다시 실행해도 늘지 않고 디자인과 플레이어 위치가 유지되는지. 장소 코드 변환과 재접속 위치 저장·실패 처리, 배포 장소 씬 도착 처리의 `ApiSettings` 연결. 배포 씬 사물 이동 Collider 윗면이 겉모양보다 뜨지 않는지, 뜬 상자를 찾고 메시 모양 Collider로 바꾸는 도구(`PropColliderShape`) |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 택시 목적지와 경찰 신고 판별(장소 하나·여럿·없음, 부정·가정·길 잃음은 신고 아님), 순찰차 출동 단계(주차 → 출동·순찰 → 장소 앞 대기 → 복귀, 나가 있을 때 새 신고 거절, 경광등), 대화 중 신고 접수와 나중에 말한 장소, 마을 매장 천장이 카메라를 막는지, 진입로 곡선의 시작·끝 방향과 고른 걸음. 차가 도는 길의 위치·방향·유턴·한 바퀴, 정지 지점에서 서기와 기다리기, 앞을 막은 사람 앞에서만 서기, 신호 주기, 택시 세우기 조건(차로 쪽 인도·앞쪽·유턴 전)과 기다림·출발, 마을 씬의 달리는 차·신호등·택시 기사 연결. 이동 중 중복 요청 거절, 도착 출입구와 카메라 각도 전달, 이동 취소 후 재이동. 새 씬에 기능 연결 도구를 적용했을 때 그룹·플레이어·카메라·도착 처리가 하나씩 붙고 연결되는지, 다시 실행해도 늘지 않고 디자인과 플레이어 위치가 유지되는지. 장소 코드 변환과 재접속 위치 저장·실패 처리, 배포 장소 씬 도착 처리의 `ApiSettings` 연결. 배포 씬 사물 이동 Collider 윗면이 겉모양보다 뜨지 않는지, 뜬 상자를 찾고 메시 모양 Collider로 바꾸는 도구(`PropColliderShape`) |
 | `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | Scene List의 모든 씬을 실제로 불러와 플레이어·카메라·도착 처리가 하나씩 있는지, 출입구 짝이 맞는지, 문에 닿으면 이동하는지, 도착 위치와 카메라 방향, 뒤로 걸어 문을 지나도 도착 후 같은 키로 문에서 멀어지는지, 씬이 바뀌는 순간 화면이 덮여 있고 도착 뒤 걷히는지, 옮기는 동안 그리는 카메라가 비지 않는지, 덮인 동안만 불러오기 우선순위를 올리는지, 이동 뒤 도착 씬만 남는지, 새 씬이 이전 공간의 플레이어·카메라 없이 깨어나는지, 마을에 걸어 들어와도 바로 열었을 때와 날씨 연출이 같은지 |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
@@ -157,4 +175,4 @@
 
 **Tools → A305 → World → Apply American Street Details**는 차선·횡단보도·신호등과 거리 소품을, **Apply Town Street Life**는 차량·생활 소품·택시 기사를 TownScene에 구성합니다. 기존 묶음이 있으면 배치를 유지합니다. 외부 모델과 출처는 `Assets/ThirdParty/CREDITS.md`에 기록합니다.
 
-`CarLoopRoute`는 순환 길과 정차 위치를, `TrafficSignalCycle`은 신호 주기를 계산합니다. `LoopingCar`는 신호·장애물에 맞춰 정지하고, `TaxiFare`와 `TaxiRide`는 인도에서 택시를 세워 기사 Joe(`TAXI_DRIVER`)와 대화하는 흐름을 맡습니다. 뒷좌석 승객 시점과 목적지 이동·하차는 [택시 안내](../../../../../docs/unity/taxi-ride.md)를 따릅니다.
+`CarLoopRoute`는 순환 길과 정차 위치를, `TrafficSignalCycle`은 신호 주기를 계산합니다. 경찰서 순찰차는 [경찰서와 순찰차](#경찰서와-순찰차)를 따릅니다. `LoopingCar`는 신호·장애물에 맞춰 정지하고, `TaxiFare`와 `TaxiRide`는 인도에서 택시를 세워 기사 Joe(`TAXI_DRIVER`)와 대화하는 흐름을 맡습니다. 뒷좌석 승객 시점과 목적지 이동·하차는 [택시 안내](../../../../../docs/unity/taxi-ride.md)를 따릅니다.

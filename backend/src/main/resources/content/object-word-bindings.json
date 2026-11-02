@@ -117,8 +117,8 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1806,
-            "detailCount": 58,
+            "objectCount": 1846,
+            "detailCount": 59,
             "wordKeys": [
                 "awning",
                 "bed",
@@ -158,12 +158,14 @@
                 "mattress",
                 "mirror",
                 "mug",
+                "note",
                 "pillow",
                 "plant",
                 "planter",
                 "plate",
                 "porch",
                 "railing",
+                "reception_desk",
                 "road",
                 "roof",
                 "shelf",
@@ -193,12 +195,15 @@
                 "word_50a95568007664e448ac53663da03962",
                 "word_510320b4ce2ab1646975c5e1c03333fb",
                 "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_57394345ad5fd5c46a1e107b2d2a7656",
                 "word_583992ed64934fe4ba5f273e34106ceb",
                 "word_5ca110b3066a4e04f83c2f7776bb5070",
+                "word_5ef79e2727edae54ab972ddb33844750",
                 "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
                 "word_856ac06ac71774f41bd23a7b97da2cc1",
                 "word_a31ccaa6d412b78428976a47663eff21",
                 "word_b4a755c63d1d408438a71815ba75d475",
+                "word_be12390675add1b488faf55f8e9aeb96",
                 "word_cfe407d309ec44540a66769b307075c8",
                 "word_dc738621f28e03c49bfa7b6f67dbf4b3",
                 "word_e438a4ee4f2a3494eaadb31ccfda0859",
@@ -1487,6 +1492,13 @@
             ]
         },
         {
+            "guid": "06c5d69c19e2f454f9a89bf04061eb67",
+            "path": "Assets/Prefabs/World/PoliceStation/PoliceCar.prefab",
+            "wordKeys": [
+                "word_be12390675add1b488faf55f8e9aeb96"
+            ]
+        },
+        {
             "guid": "9bc90722b040b844ab8f49df4f88a1ae",
             "path": "Assets/Prefabs/World/StreetLife/Bicycle.prefab",
             "wordKeys": [
@@ -2142,6 +2154,30 @@
                 "wall",
                 "window",
                 "word_369eb9ba5bdd95a4e82191d96b289f34"
+            ]
+        },
+        {
+            "guid": "6950f1ecac92ebf49bfa20dc0446ffb6",
+            "path": "Assets/Prefabs/World/TownStorefronts/PoliceStation.prefab",
+            "wordKeys": [
+                "cabinet",
+                "ceiling",
+                "chair",
+                "cornice",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "note",
+                "plant",
+                "reception_desk",
+                "roof",
+                "sign",
+                "wall",
+                "window",
+                "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_57394345ad5fd5c46a1e107b2d2a7656"
             ]
         },
         {

@@ -135,6 +135,7 @@ def test_every_service_npc_has_a_life_file_without_problems():
     assert sorted(path.stem for path in npc_life_rules.LIFE_FOLDER.glob("*.json")) == [
         "CAFE_STAFF",
         "HOTEL_STAFF",
+        "POLICE_OFFICER",
         "SHOP_STAFF",
         "TAXI_DRIVER",
         "TOWN_PASSERBY",

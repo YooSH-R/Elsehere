@@ -35,7 +35,14 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
     configs, problems = npc_configs.bundle(npc_configs.ROOT / "ai/npcs")
 
     assert problems == []
-    assert [config["npcId"] for config in configs] == ["CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]
+    assert [config["npcId"] for config in configs] == [
+        "CAFE_STAFF",
+        "HOTEL_STAFF",
+        "POLICE_OFFICER",
+        "SHOP_STAFF",
+        "TAXI_DRIVER",
+        "TOWN_PASSERBY",
+    ]
 
 
 def test_an_active_npc_needs_a_voice():
@@ -257,6 +264,7 @@ def test_the_service_npcs_each_have_a_service_scenario():
     assert {npc_id: s["scenarioId"] for npc_id, s in scenarios.items()} == {
         "CAFE_STAFF": "cafe_counter",
         "HOTEL_STAFF": "hotel_front_desk",
+        "POLICE_OFFICER": "police_front_desk",
         "SHOP_STAFF": "drugstore_counter",
         "TAXI_DRIVER": "taxi_ride",
         "TOWN_PASSERBY": "town_street",

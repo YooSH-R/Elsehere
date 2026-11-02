@@ -112,5 +112,56 @@ namespace A305.World.Tests
             Assert.That(label, Is.LessThan(consents));
             Assert.That(consents, Is.LessThan(buttons));
         }
+
+        // 조작법 카드는 오른쪽 아래에 두고, X로 닫은 뒤에는 메뉴(≡)의 [조작법]으로 다시 연다.
+        [TestCase("HomeScene")]
+        [TestCase("TownScene")]
+        [TestCase("CafeScene")]
+        [TestCase("HotelScene")]
+        [TestCase("ShopScene")]
+        public void ProductionSceneHudShowsTheControlsGuideAtTheBottomRight(string name)
+        {
+            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
+            var hud = BuilderTools.FindSingleInScene<LearningHudView>(scene);
+            var guide = hud.GetComponent<ControlsGuideView>();
+            Assert.That(guide, Is.Not.Null, name + ": 조작법 카드가 없습니다.");
+            Assert.DoesNotThrow(() => BuilderTools.RequireReferences(guide));
+            Assert.That(
+                new SerializedObject(hud).FindProperty("controlsGuide").objectReferenceValue,
+                Is.EqualTo(guide),
+                name
+            );
+
+            var fields = new SerializedObject(guide);
+            var card = (RectTransform)
+                ((GameObject)fields.FindProperty("card").objectReferenceValue).transform;
+            Assert.That(card.anchorMin, Is.EqualTo(new Vector2(1f, 0f)), name);
+            Assert.That(card.anchorMax, Is.EqualTo(new Vector2(1f, 0f)), name);
+
+            var open = (Button)fields.FindProperty("openButton").objectReferenceValue;
+            var items = (GameObject)
+                new SerializedObject(hud.GetComponent<HudMenuView>())
+                    .FindProperty("items")
+                    .objectReferenceValue;
+            Assert.That(open.transform.parent, Is.EqualTo(items.transform), name);
+            Assert.That(
+                open.GetComponentInChildren<TMP_Text>(true).text,
+                Is.EqualTo(ControlsGuideText.MenuLabel),
+                name
+            );
+        }
+
+        // 메뉴를 펼치면 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접히고, 피드백 목록·내 정보 창은 카드 위에 보인다.
+        [Test]
+        public void ControlsGuideSitsBehindTheMenuBackdropAndWindows()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath).transform;
+
+            int card = hud.Find("ControlsGuide").GetSiblingIndex();
+
+            Assert.That(card, Is.LessThan(hud.Find("MenuBackdrop").GetSiblingIndex()));
+            Assert.That(card, Is.LessThan(hud.Find("History").GetSiblingIndex()));
+            Assert.That(card, Is.LessThan(hud.Find("MyPage").GetSiblingIndex()));
+        }
     }
 }

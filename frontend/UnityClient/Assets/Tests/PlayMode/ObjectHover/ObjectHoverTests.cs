@@ -32,6 +32,9 @@ namespace A305.ObjectHover.PlayModeTests
         [UnitySetUp]
         public IEnumerator LoadHome()
         {
+            // 튜토리얼 첫 단계에서는 코치 마크가 화면을 덮어 가구를 가리킬 수 없으므로, 튜토리얼을 마친 사용자로 시작한다.
+            TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
 
@@ -42,6 +45,12 @@ namespace A305.ObjectHover.PlayModeTests
             Assert.That(hover, Is.Not.Null, "HomeScene에 ObjectHoverController가 없습니다.");
             Assert.That(tooltip, Is.Not.Null, "HomeScene에 WordTooltipView가 없습니다.");
             hover.enabled = false;
+        }
+
+        [TearDown]
+        public void ClearTutorial()
+        {
+            TutorialState.Clear();
         }
 
         [UnityTest]
@@ -325,7 +334,8 @@ namespace A305.ObjectHover.PlayModeTests
             yield return StandPlayerNear(tv);
             Rect guide = ShowTutorialGuide();
             TutorialGuidePanel().gameObject.SetActive(false);
-            Vector2 belowGuide = new Vector2(guide.center.x, guide.yMin - 20f);
+            // 가이드 가운데 아래에 뜬 카드는 왼쪽 위 오늘의 목표 카드에 걸려 다른 자리로 가므로, 가이드 오른쪽 끝 아래를 가리킨다.
+            Vector2 belowGuide = new Vector2(guide.xMax - 20f, guide.yMin - 20f);
             AimSoThatScreenPointShows(tv, belowGuide);
             hover.Click(belowGuide);
             Assert.That(tooltip.IsPinned, Is.True);

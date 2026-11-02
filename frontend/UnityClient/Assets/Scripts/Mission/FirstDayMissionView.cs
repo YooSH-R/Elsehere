@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace A305.Mission
@@ -45,6 +46,23 @@ namespace A305.Mission
         private TMP_Text miniMapDestination;
 
         [SerializeField]
+        [Tooltip("미니맵을 누르면 화면 가운데에 크게 펼치는 마을 지도")]
+        private GameObject mapOverlay;
+
+        [SerializeField]
+        private TownMapView largeMap;
+
+        [SerializeField]
+        private TMP_Text largeMapLegend;
+
+        [SerializeField]
+        private Button mapCloseButton;
+
+        [SerializeField]
+        [Tooltip("크게 본 지도 바깥의 어두운 바탕. 누르면 지도를 닫는다")]
+        private Button mapOutsideButton;
+
+        [SerializeField]
         private TMP_Text journey;
 
         [SerializeField]
@@ -78,7 +96,7 @@ namespace A305.Mission
         // 오른쪽 위 단어장 칸(너비 360)과 그 앞 여백.
         private const float VocabularyReserve = 384;
 
-        // 사용자가 연 수첩은 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
+        // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
         private const int OpenJournalSortingOrder = 1000;
 
         private Canvas canvas;
@@ -97,7 +115,10 @@ namespace A305.Mission
             this.available = available;
             content.SetActive(available);
             if (!available)
+            {
                 ShowJournal(false);
+                ShowLargeMap(false);
+            }
             UpdateMiniMapVisibility();
         }
 
@@ -107,6 +128,10 @@ namespace A305.Mission
             townMap.Bind(sceneCode, player);
             if (miniMap != null)
                 miniMap.Bind(sceneCode, player);
+            if (largeMap != null)
+                largeMap.Bind(sceneCode, player);
+            if (sceneCode != "TOWN")
+                ShowLargeMap(false);
             UpdateMiniMapVisibility();
         }
 
@@ -127,6 +152,10 @@ namespace A305.Mission
                 miniMap.ShowDestination(state.Destination);
             if (miniMapDestination != null)
                 miniMapDestination.text = MiniMapLegend(state.Destination);
+            if (largeMap != null)
+                largeMap.ShowDestination(state.Destination);
+            if (largeMapLegend != null)
+                largeMapLegend.text = MiniMapLegend(state.Destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
             restButton.gameObject.SetActive(false);
@@ -250,7 +279,11 @@ namespace A305.Mission
             journal.SetActive(false);
             journalButton.onClick.AddListener(ToggleJournal);
             if (miniMapButton != null)
-                miniMapButton.onClick.AddListener(OpenJournal);
+                miniMapButton.onClick.AddListener(OpenLargeMap);
+            if (mapCloseButton != null)
+                mapCloseButton.onClick.AddListener(CloseLargeMap);
+            if (mapOutsideButton != null)
+                mapOutsideButton.onClick.AddListener(CloseLargeMap);
             closeButton.onClick.AddListener(CloseJournal);
             startButton.onClick.AddListener(StartMission);
             restButton.onClick.AddListener(Rest);
@@ -261,7 +294,11 @@ namespace A305.Mission
         {
             journalButton.onClick.RemoveListener(ToggleJournal);
             if (miniMapButton != null)
-                miniMapButton.onClick.RemoveListener(OpenJournal);
+                miniMapButton.onClick.RemoveListener(OpenLargeMap);
+            if (mapCloseButton != null)
+                mapCloseButton.onClick.RemoveListener(CloseLargeMap);
+            if (mapOutsideButton != null)
+                mapOutsideButton.onClick.RemoveListener(CloseLargeMap);
             closeButton.onClick.RemoveListener(CloseJournal);
             startButton.onClick.RemoveListener(StartMission);
             restButton.onClick.RemoveListener(Rest);
@@ -270,18 +307,50 @@ namespace A305.Mission
 
         private void ToggleJournal() => ShowJournal(!journal.activeSelf);
 
-        private void OpenJournal() => ShowJournal(true);
-
         private void CloseJournal() => ShowJournal(false);
 
         private void ShowJournal(bool open)
         {
+            if (open)
+                ShowLargeMap(false);
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open);
             UpdateMiniMapVisibility();
+            UpdateSortingOrder();
+        }
+
+        private void OpenLargeMap() => ShowLargeMap(true);
+
+        private void CloseLargeMap() => ShowLargeMap(false);
+
+        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 지도 버튼으로 연다.
+        private void ShowLargeMap(bool open)
+        {
+            if (mapOverlay == null)
+                return;
+            mapOverlay.SetActive(open);
+            UpdateMiniMapVisibility();
+            UpdateSortingOrder();
+        }
+
+        private void Update()
+        {
+            if (
+                mapOverlay != null
+                && mapOverlay.activeSelf
+                && Keyboard.current != null
+                && Keyboard.current.escapeKey.wasPressedThisFrame
+            )
+                CloseLargeMap();
+        }
+
+        private void UpdateSortingOrder()
+        {
             Canvas root = RootCanvas();
-            if (root != null)
-                root.sortingOrder = open ? OpenJournalSortingOrder : closedSortingOrder;
+            if (root == null)
+                return;
+            bool raised = journal.activeSelf || (mapOverlay != null && mapOverlay.activeSelf);
+            root.sortingOrder = raised ? OpenJournalSortingOrder : closedSortingOrder;
         }
 
         /// <summary>
@@ -303,7 +372,12 @@ namespace A305.Mission
         private void UpdateMiniMapVisibility()
         {
             if (miniMapPanel != null)
-                miniMapPanel.SetActive(available && mapSceneCode == "TOWN" && !journal.activeSelf);
+                miniMapPanel.SetActive(
+                    available
+                        && mapSceneCode == "TOWN"
+                        && !journal.activeSelf
+                        && (mapOverlay == null || !mapOverlay.activeSelf)
+                );
         }
 
         // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.

@@ -89,6 +89,8 @@ namespace A305.Learning
 
         public bool IsVisible => panel.activeSelf;
 
+        public RectTransform PanelRect => (RectTransform)panel.transform;
+
         public void Show(VocabularyBook shownBook)
         {
             book = shownBook;

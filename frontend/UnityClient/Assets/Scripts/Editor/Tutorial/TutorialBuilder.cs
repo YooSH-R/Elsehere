@@ -112,6 +112,7 @@ namespace A305.EditorTools.Tutorial
                     "guidedLineMissCaption",
                     "dialogueEndCaption",
                     "travelLockedMessage",
+                    "vocabularyCaption",
                 }
             )
             {

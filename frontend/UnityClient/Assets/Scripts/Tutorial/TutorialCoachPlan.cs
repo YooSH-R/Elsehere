@@ -24,6 +24,9 @@ namespace A305.Tutorial
         /// <summary>피드백·단어장·피드백 목록 화면 중 하나가 열려 있는지</summary>
         public bool IsLearningScreenShowing { get; set; }
 
+        /// <summary>단어장 화면이 열려 있는지</summary>
+        public bool IsVocabularyShowing { get; set; }
+
         /// <summary>대화 뒤 피드백 화면이 열려 있는지</summary>
         public bool IsFeedbackShowing { get; set; }
 
@@ -54,7 +57,10 @@ namespace A305.Tutorial
                         ? TutorialCoachTarget.VocabularyButton
                         : TutorialCoachTarget.MenuButton;
                 case TutorialStep.LeaveLodging:
-                    return TutorialCoachTarget.Door;
+                    // 단어장을 열면 이 단계로 넘어오며 안내 카드가 숨으므로, 단어장 설명과 다음 할 일을 함께 알린다.
+                    return screen.IsVocabularyShowing
+                        ? TutorialCoachTarget.Vocabulary
+                        : TutorialCoachTarget.Door;
                 case TutorialStep.MeetBen:
                     if (screen.IsTalking)
                         return TutorialCoachTarget.None;

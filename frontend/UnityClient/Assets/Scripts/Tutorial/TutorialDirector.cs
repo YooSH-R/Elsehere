@@ -408,6 +408,7 @@ namespace A305.Tutorial
                 CanSaveWord = wordTooltip.CanSaveWord,
                 IsMenuOpen = hudMenu.IsOpen,
                 IsLearningScreenShowing = learning.IsShowingScreen,
+                IsVocabularyShowing = learning.IsShowingVocabulary,
                 IsFeedbackShowing = feedbackView.IsVisible,
                 IsJournalOpen = firstDayMission != null && firstDayMission.IsJournalOpen,
             };
@@ -471,6 +472,8 @@ namespace A305.Tutorial
                     return new[] { dialoguePanel.EndButtonRect };
                 case TutorialCoachTarget.Feedback:
                     return new[] { feedbackView.PanelRect };
+                case TutorialCoachTarget.Vocabulary:
+                    return new[] { learning.VocabularyPanelRect };
                 case TutorialCoachTarget.MapButton:
                     return firstDayMission != null
                         ? new[] { firstDayMission.JournalButtonRect }
@@ -495,6 +498,8 @@ namespace A305.Tutorial
                     return $"{notice}\n<size=130%><b>{dialogue.GuidedLine}</b></size>";
                 case TutorialCoachTarget.DialogueEnd:
                     return guide.DialogueEndCaption;
+                case TutorialCoachTarget.Vocabulary:
+                    return guide.VocabularyCaption;
                 case TutorialCoachTarget.Feedback:
                     return guide.TryGetStepGuide(
                         TutorialStep.BenFeedback,

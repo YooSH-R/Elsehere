@@ -17,6 +17,9 @@ namespace A305.Tutorial
         /// <summary>메뉴 안의 [단어장]</summary>
         VocabularyButton,
 
+        /// <summary>단어장 화면. 단어장을 처음 열었을 때 무엇을 하는 곳인지와 다음 할 일을 설명과 함께 알린다.</summary>
+        Vocabulary,
+
         /// <summary>숙소 문(장면 속 표시)</summary>
         Door,
 

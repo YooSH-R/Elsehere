@@ -58,6 +58,12 @@ namespace A305.Learning
         public bool IsShowingScreen =>
             feedbackView.IsVisible || vocabularyView.IsVisible || historyView.IsVisible;
 
+        /// <summary>단어장 화면이 열려 있는지. 튜토리얼이 단어장을 처음 열었을 때 설명을 붙인다.</summary>
+        public bool IsShowingVocabulary => vocabularyView.IsVisible;
+
+        /// <summary>단어장 창. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform VocabularyPanelRect => vocabularyView.PanelRect;
+
         private ConversationHistoryView historyView => hudView.HistoryView;
 
         private void Awake()

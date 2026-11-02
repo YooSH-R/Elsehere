@@ -117,6 +117,13 @@ namespace A305.Tutorial
 
         [SerializeField]
         [Tooltip(
+            "단어장을 처음 열어 안내 카드가 숨은 동안 화면 위쪽에 보이는 단어장 설명과 다음 할 일"
+        )]
+        private string vocabularyCaption =
+            "단어장에는 사물 카드에서 {저장}한 단어가 모여요. 뜻·예문을 다시 보고 {외웠어요}·메모로 정리해요\n다 봤으면 오른쪽 위 {X}로 닫고 밖으로 나가요";
+
+        [SerializeField]
+        [Tooltip(
             "튜토리얼 단계를 마치기 전에 문·[홈]으로 다른 장소에 가려 할 때 안내 카드의 할 일 아래 보이는 안내. 카드 한 줄에 들어가게 짧게 쓴다"
         )]
         private string travelLockedMessage = "아직 다른 곳으로 갈 수 없어요. 할 일부터 해 주세요.";
@@ -129,6 +136,7 @@ namespace A305.Tutorial
         public string GuidedLineMissCaption => guidedLineMissCaption;
         public string DialogueEndCaption => dialogueEndCaption;
         public string TravelLockedMessage => travelLockedMessage;
+        public string VocabularyCaption => vocabularyCaption;
 
         /// <summary>안내 카드가 있는 단계 수. 진행 점의 개수다.</summary>
         public int StepGuideCount => stepGuides.Count;

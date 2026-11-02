@@ -99,6 +99,9 @@ namespace A305.Tutorial
         /// <summary>화살표로 가리키는 장면 속 대상. 화면 밖이라 화살표가 숨어 있어도 대상은 남는다.</summary>
         public Transform MarkerTarget => markerTarget;
 
+        /// <summary>화면 위쪽 가운데에 보이는 설명. 설명이 없으면 null이다.</summary>
+        public string CaptionText => caption.gameObject.activeSelf ? captionText.text : null;
+
         /// <summary>지금 밝힌 구멍(캔버스 왼쪽 아래 기준). 밝힌 것이 없으면 크기가 0이다.</summary>
         public Rect Hole { get; private set; }
 

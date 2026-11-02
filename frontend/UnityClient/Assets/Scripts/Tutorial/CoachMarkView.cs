@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using A305.ObjectHover;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,8 +15,9 @@ namespace A305.Tutorial
     /// 화면 밖이거나 위쪽 안내 카드에 걸리면 얼굴을 가리지 않게 띄우지 않는다. 밝히기·나침반·화살표 중 하나만 보인다.
     /// 설명은 밝힌 곳 옆에 꼬리 달린 말풍선으로 두고, 티칭처럼 읽고 넘길 설명에는 [다음]을 붙인다.
     /// 판은 밝힐 버튼이 있는 캔버스 바로 위에 그려, 그보다 위에 있는 안내 카드는 가리지 않는다.
+    /// 판은 화면을 덮는 막이라 고정한 단어 카드가 피하지 않는다.
     /// </summary>
-    public class CoachMarkView : MonoBehaviour
+    public class CoachMarkView : MonoBehaviour, IScreenBackdrop
     {
         private const float HolePadding = 10f;
         private const float BubbleGap = 28f;

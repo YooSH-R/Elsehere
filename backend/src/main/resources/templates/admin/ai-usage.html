@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('AI 사용량')}"></head>
+<body>
+<header th:replace="~{admin/layout :: header}"></header>
+<main>
+  <h1>AI 사용량</h1>
+  <p class="hint">
+    AI 호출 기록(ai_requests)을 묶은 값입니다. 실패는 워커 오류로 끝난 호출입니다. 모델별 단가가 정해지지 않아 금액 대신 토큰으로 보여 줍니다.
+  </p>
+
+  <p class="periods">
+    기간:
+    <a th:each="option : ${ {1, 7, 30, 90} }"
+       th:href="@{/admin/ai-usage(days=${option})}"
+       th:text="|최근 ${option}일|"
+       th:classappend="${option == report.days} ? 'current'">최근 7일</a>
+  </p>
+
+  <h2 th:text="|최근 ${report.days}일|">최근 7일</h2>
+  <dl class="panel">
+    <dt>사용자</dt>
+    <dd th:text="${#numbers.formatInteger(report.total.users, 1, 'COMMA')}">0</dd>
+    <dt>호출</dt>
+    <dd th:text="${#numbers.formatInteger(report.total.calls, 1, 'COMMA')}">0</dd>
+    <dt>실패</dt>
+    <dd th:text="${#numbers.formatInteger(report.total.failed, 1, 'COMMA')}">0</dd>
+    <dt>입력 토큰</dt>
+    <dd th:text="${#numbers.formatInteger(report.total.inputTokens, 1, 'COMMA')}">0</dd>
+    <dt>출력 토큰</dt>
+    <dd th:text="${#numbers.formatInteger(report.total.outputTokens, 1, 'COMMA')}">0</dd>
+    <dt>음성 길이</dt>
+    <dd th:text="|${#numbers.formatDecimal(report.total.audioMs / 1000.0, 1, 'COMMA', 1, 'POINT')}초|">0초</dd>
+  </dl>
+
+  <h2>날짜별 (한국 날짜)</h2>
+  <table th:replace="~{this :: usage(${report.byDay}, '날짜', null)}"></table>
+
+  <h2>호출 종류별</h2>
+  <table th:replace="~{this :: usage(${report.byKind}, '종류', ${kindNames})}"></table>
+
+  <h2>모델별</h2>
+  <p class="hint">워커 오류로 끝난 호출과 음성 합성은 모델을 알리지 않아 '없음'으로 묶입니다.</p>
+  <table th:replace="~{this :: usage(${report.byModel}, '모델', null)}"></table>
+
+  <h2>게스트·가입자</h2>
+  <table th:replace="~{this :: usage(${report.byUserType}, '구분', ${ {'GUEST': '게스트', 'MEMBER': '가입자'} })}"></table>
+
+  <h2>많이 쓴 사용자 (토큰 기준 상위 10명)</h2>
+  <table>
+    <thead>
+    <tr>
+      <th>사용자 ID</th>
+      <th>구분</th>
+      <th>호출</th>
+      <th>실패</th>
+      <th>입력 토큰</th>
+      <th>출력 토큰</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="user : ${report.topUsers}">
+      <td th:text="${user.userId}">1</td>
+      <td th:text="${user.guest} ? '게스트' : '가입자'">가입자</td>
+      <td th:text="${#numbers.formatInteger(user.calls, 1, 'COMMA')}">0</td>
+      <td th:text="${#numbers.formatInteger(user.failed, 1, 'COMMA')}">0</td>
+      <td th:text="${#numbers.formatInteger(user.inputTokens, 1, 'COMMA')}">0</td>
+      <td th:text="${#numbers.formatInteger(user.outputTokens, 1, 'COMMA')}">0</td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(report.topUsers)}">
+      <td colspan="6" class="muted">이 기간에 AI 호출이 없습니다.</td>
+    </tr>
+    </tbody>
+  </table>
+</main>
+
+<!-- 기준 하나로 묶은 사용량 표. names가 있으면 기준 값을 화면 이름으로 바꾼다. -->
+<table th:fragment="usage(rows, labelHeader, names)">
+  <thead>
+  <tr>
+    <th th:text="${labelHeader}">기준</th>
+    <th>사용자</th>
+    <th>호출</th>
+    <th>실패</th>
+    <th>입력 토큰</th>
+    <th>출력 토큰</th>
+    <th>음성 길이(초)</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="row : ${rows}">
+    <td th:text="${names != null and names.containsKey(row.label)} ? ${names[row.label]} : ${row.label}">NPC</td>
+    <td th:text="${#numbers.formatInteger(row.users, 1, 'COMMA')}">0</td>
+    <td th:text="${#numbers.formatInteger(row.calls, 1, 'COMMA')}">0</td>
+    <td th:text="${#numbers.formatInteger(row.failed, 1, 'COMMA')}">0</td>
+    <td th:text="${#numbers.formatInteger(row.inputTokens, 1, 'COMMA')}">0</td>
+    <td th:text="${#numbers.formatInteger(row.outputTokens, 1, 'COMMA')}">0</td>
+    <td th:text="${#numbers.formatDecimal(row.audioMs / 1000.0, 1, 'COMMA', 1, 'POINT')}">0.0</td>
+  </tr>
+  <tr th:if="${#lists.isEmpty(rows)}">
+    <td colspan="7" class="muted">이 기간에 AI 호출이 없습니다.</td>
+  </tr>
+  </tbody>
+</table>
+</body>
+</html>

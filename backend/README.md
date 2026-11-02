@@ -42,7 +42,7 @@ com.elsehere
 | --- | --- |
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
-| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01) |
+| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 워커 호출은 `AiFailureRecorder.recordIfFails`로 감싸 오류로 끝나도 FAILED로 남기고, 성공은 응답을 본 쪽이 `AiRequestRecorder.record`로 남긴다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
 | `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |

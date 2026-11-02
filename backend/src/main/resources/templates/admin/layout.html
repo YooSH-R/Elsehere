@@ -83,6 +83,8 @@
     button:disabled { opacity: 0.6; cursor: default; }
     .status.ok { color: var(--ok); }
     .status.error { color: var(--error); }
+    .periods { display: flex; gap: 12px; flex-wrap: wrap; }
+    .periods a.current { font-weight: 700; color: var(--text); text-decoration: none; }
   </style>
 </head>
 <body>
@@ -90,6 +92,7 @@
   <span class="brand">Elsehere 어드민</span>
   <nav>
     <a th:href="@{/admin/npcs}">NPC 페르소나</a>
+    <a th:href="@{/admin/ai-usage}">AI 사용량</a>
     <a th:href="@{/admin/admins}">관리자</a>
   </nav>
   <a th:href="@{/}">게임으로</a>

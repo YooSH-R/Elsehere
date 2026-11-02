@@ -1,0 +1,36 @@
+[
+  {
+    "side": "Left",
+    "source": "LittleMungMannequin",
+    "irisColor": [
+      0.2392157018184662,
+      0.20000001788139343,
+      0.1725490242242813
+    ],
+    "cutTriangles": 170,
+    "boundaryVertices": 20,
+    "blinkFrames": 4,
+    "eyeScale": [
+      1.0549822126730302,
+      1.050564679266585
+    ],
+    "unmatchedSkinEdges": 0
+  },
+  {
+    "side": "Right",
+    "source": "LittleMungMannequin",
+    "irisColor": [
+      0.250980406999588,
+      0.20000001788139343,
+      0.1764705926179886
+    ],
+    "cutTriangles": 143,
+    "boundaryVertices": 21,
+    "blinkFrames": 4,
+    "eyeScale": [
+      1.078426261843542,
+      1.050564679266585
+    ],
+    "unmatchedSkinEdges": 0
+  }
+]

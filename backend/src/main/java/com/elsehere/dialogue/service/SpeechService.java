@@ -12,6 +12,7 @@ import com.elsehere.conversation.dto.TranscriptionPurpose;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.conversation.service.NpcAudioRetention;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.dialogue.dto.SpeechResponse;
@@ -44,7 +45,8 @@ public class SpeechService {
   private static final Map<Integer, Double> LEVEL_SPEED = Map.of(1, 0.85, 2, 1.0, 3, 1.06);
 
   private final TurnRepository turnRepository;
-  private final ConversationSupport support;
+  private final ConversationLookup conversationLookup;
+  private final DialogueContexts dialogueContexts;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final NpcAudioRetention npcAudioRetention;
@@ -107,7 +109,7 @@ public class SpeechService {
   public byte[] npcSpeech(Long userId, Long turnId) {
     Optional<byte[]> wav =
         transactionTemplate.execute(
-            status -> npcAudioRetention.load(support.ownedNpcTurn(userId, turnId)));
+            status -> npcAudioRetention.load(conversationLookup.ownedNpcTurn(userId, turnId)));
     // 404를 반환해도 만료·파일 없음 정리는 커밋되어야 한다.
     return wav.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
@@ -120,10 +122,10 @@ public class SpeechService {
     SpeechTarget target =
         transactionTemplate.execute(
             status -> {
-              Turn turn = support.ownedNpcTurn(userId, turnId);
+              Turn turn = conversationLookup.ownedNpcTurn(userId, turnId);
               npcAudioRetention.load(turn);
               Conversation conversation = turn.getConversation();
-              NpcContext npc = support.npcById(conversation.getNpcId());
+              NpcContext npc = dialogueContexts.npcById(conversation.getNpcId());
               return new SpeechTarget(
                   turn.getNpcAudioKey(),
                   turn.getNpcAudioDeletedAt(),
@@ -158,7 +160,7 @@ public class SpeechService {
     boolean active =
         Boolean.TRUE.equals(
             transactionTemplate.execute(
-                status -> support.ownedConversation(userId, conversationId).isActive()));
+                status -> conversationLookup.ownedConversation(userId, conversationId).isActive()));
     if (!active) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }

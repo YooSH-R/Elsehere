@@ -11,6 +11,7 @@ import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.service.AiRequestRecorder;
+import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.entity.Conversation;
@@ -53,13 +54,13 @@ public class MemoryService {
   // /v1/memory·/v1/npc/relationship가 받는 대화 줄 수 상한
   private static final int HISTORY_LIMIT = 200;
   private static final TypeReference<Map<String, Object>> CARD = new TypeReference<>() {};
-  private static final TypeReference<List<String>> EVENTS = new TypeReference<>() {};
 
   private final UserNpcRelationRepository userNpcRelationRepository;
   private final ConversationRepository conversationRepository;
   private final TurnRepository turnRepository;
   private final NpcRepository npcRepository;
   private final WorkerNpcs workerNpcs;
+  private final WorkerLines workerLines;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final TransactionTemplate transactionTemplate;
@@ -188,26 +189,9 @@ public class MemoryService {
         relationId,
         npc,
         outcome(conversation),
-        history(turns),
+        workerLines.recent(turns, HISTORY_LIMIT),
         readCard(relation.getMemoryCard()),
         before);
-  }
-
-  // 무례로 확정된 말만 rude로 보낸다(판정 실패는 false). 워커가 무례 원문을 표식으로 바꿔 전달한다. 학습자 줄에는 의도 판정이 고른 사건을 함께 보낸다.
-  private List<WorkerLine> history(List<Turn> turns) {
-    return turns.subList(Math.max(0, turns.size() - HISTORY_LIMIT), turns.size()).stream()
-        .map(
-            turn ->
-                turn.getSpeaker() == Speaker.NPC
-                    ? WorkerLine.npc(turn.getText())
-                    : WorkerLine.learner(
-                        turn.getText(),
-                        turn.getTranslationEn(),
-                        turn.isRude(),
-                        turn.getEvents() == null
-                            ? null
-                            : jsonMapper.readValue(turn.getEvents(), EVENTS)))
-        .toList();
   }
 
   private static WorkerRelationship relationshipOf(UserNpcRelation relation, int today) {

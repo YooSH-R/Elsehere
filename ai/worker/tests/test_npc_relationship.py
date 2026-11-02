@@ -120,9 +120,9 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
 
 
 def test_two_rude_lines_make_a_service_npc_cool_but_one_does_not():
-    """1차 유저 테스트 목표: 무례 한 번으로는 싫어함까지 가지 않고, 두 번이면 다음 방문에 차갑게 대한다(서비스 NPC 3명)."""
+    """1차 유저 테스트 목표: 무례 한 번으로는 싫어함까지 가지 않고, 두 번이면 다음 방문에 차갑게 대한다(서비스 NPC 5명)."""
     disliked = RULES["relationship"]["disliked"]
-    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"):
+    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"):
         rates = rel.npc_rates(NpcProfile.model_validate(card(npc_id)["npcProfile"]), RULES, npc_persona.load_behaviors())
         once = rel.rude_affinity_delta(rates, RULES)
 
@@ -154,7 +154,7 @@ def test_a_first_meeting_starts_from_nothing():
 def test_rates_come_from_the_card_temperament_and_its_behavior_pieces():
     """대답 요청에는 인격 카드만 온다. 카드의 성격 5축과 행동 규칙에 들어 있는 조각으로 계산한 배수가 생활 파일로 계산한 값과 같다."""
     library = npc_persona.load_behaviors()
-    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"):
+    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"):
         config = card(npc_id)
         life = json.loads((NPCS / "life" / f"{npc_id}.json").read_text(encoding="utf-8"))
         expected = npc_derive.npc_life_values(life, RULES, library, config["defaultLocationId"])["rates"]

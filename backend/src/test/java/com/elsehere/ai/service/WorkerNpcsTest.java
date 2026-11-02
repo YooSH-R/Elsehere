@@ -7,6 +7,7 @@ import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.world.repository.NpcRepository;
 import com.elsehere.world.service.PronunciationAudioStore;
+import jakarta.persistence.EntityManager;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.context.annotation.Import;
 
-// 시드가 넣은 NPC(카페 직원은 인격 카드 있음, 드럭스토어 직원은 없음)로 워커 요청의 NPC를 만든다.
+// 시드가 넣은 NPC로 워커 요청의 NPC를 만든다. 시드의 NPC는 모두 인격 카드가 있어, 카드가 없는 경우는 택시 기사의 카드를 지워 만든다.
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
@@ -33,6 +34,8 @@ class WorkerNpcsTest {
   @Autowired private WorkerNpcs workerNpcs;
 
   @Autowired private NpcRepository npcRepository;
+
+  @Autowired private EntityManager entityManager;
 
   @Test
   @DisplayName("인격 카드가 있는 NPC는 워커 요청의 NPC에 카드를 칸 이름 그대로 싣는다")
@@ -52,9 +55,14 @@ class WorkerNpcsTest {
   @Test
   @DisplayName("인격 카드가 없는 NPC는 카드 없이 보내 워커가 역할 한 줄로 대답하게 한다")
   void of_npcWithoutProfile_sendsNoProfile() {
-    WorkerNpc npc = workerNpcs.of(npcRepository.findByCode("SHOP_STAFF").orElseThrow());
+    entityManager
+        .createNativeQuery("update npcs set profile = null where code = 'TAXI_DRIVER'")
+        .executeUpdate();
+    entityManager.clear();
+
+    WorkerNpc npc = workerNpcs.of(npcRepository.findByCode("TAXI_DRIVER").orElseThrow());
 
     assertThat(npc.profile()).isNull();
-    assertThat(npc.role()).isEqualTo("the helpful clerk at the drugstore.");
+    assertThat(npc.role()).isEqualTo("the friendly driver of a yellow taxi in town.");
   }
 }

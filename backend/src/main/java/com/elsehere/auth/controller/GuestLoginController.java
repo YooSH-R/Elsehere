@@ -1,12 +1,12 @@
 package com.elsehere.auth.controller;
 
+import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.auth.dto.GuestGuideResponse;
 import com.elsehere.auth.dto.GuestLoginRequest;
 import com.elsehere.auth.dto.SignupResponse;
 import com.elsehere.auth.service.GuestLoginService;
 import com.elsehere.common.auth.LoginSessionService;
 import com.elsehere.common.auth.LoginUser;
-import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.user.dto.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

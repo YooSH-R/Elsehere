@@ -11,11 +11,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.auth.service.GuestLoginService;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUserTestController;
 import com.elsehere.common.config.SecuredWebMvcTest;
-import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;

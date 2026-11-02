@@ -306,7 +306,7 @@ Table turn_feedback [headercolor: #2E6B4F] {
 Table user_npc_relations [headercolor: #C8642A] {
   user_id bigint [not null]
   npc_id bigint [not null]
-  affinity smallint [not null, default: 0, note: '호감도 -100~100 · 무례로 센 말마다 /v1/guard의 affinity_delta만큼 깎음 (비어 있으면 기본 -4, docs/api/rudeness-handling.md 3절) · 대화가 끝나면 /v1/npc/relationship의 affinity_delta를 더함']
+  affinity smallint [not null, default: 0, note: '호감도 -100~100 · 무례로 센 말마다 /v1/guard의 affinity_delta만큼 깎음 (비어 있으면 기본 -6, docs/api/rudeness-handling.md 3절) · 대화가 끝나면 /v1/npc/relationship의 affinity_delta를 더함']
   recognition smallint [not null, default: 0, note: '알아봄 0~100 · 대화가 끝나면 /v1/npc/relationship의 recognition_delta를 더함 · NPC 대답 요청의 relationship']
   talk_count int [not null, default: 0, note: '사용자 발화가 있었던 대화를 끝낸 횟수 · NPC 대답 요청의 memory.visits']
   last_talked_at timestamptz

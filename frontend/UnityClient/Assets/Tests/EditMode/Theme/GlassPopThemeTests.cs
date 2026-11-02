@@ -45,6 +45,7 @@ namespace A305.Theme.Tests
         [TestCase(UiThemeRole.Panel)]
         [TestCase(UiThemeRole.Card)]
         [TestCase(UiThemeRole.Input)]
+        [TestCase(UiThemeRole.Chip)]
         public void Surfaces_UseTheGlassMaterial(UiThemeRole role)
         {
             Image image = Create(role).GetComponent<Image>();

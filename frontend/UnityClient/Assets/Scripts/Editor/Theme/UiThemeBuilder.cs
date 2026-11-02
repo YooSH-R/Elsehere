@@ -894,10 +894,8 @@ namespace A305.EditorTools.Theme
 
         private static void StyleFirstDay(Transform root)
         {
-            IconButton(root, "Content/MapButton", UiIcon.Map, UiTone.Primary, caption: false);
-            Role(root, "Content/CurrentGoal", UiThemeRole.Panel);
-            Role(root, "Content/CurrentGoal/Situation", UiThemeRole.Title);
-            Role(root, "Content/CurrentGoal/Direction", UiThemeRole.Body);
+            // 퀘스트 카드와 오른쪽 위 시계·코인 칩은 퀘스트 카드 Builder가 칠한다.
+            A305.EditorTools.Mission.QuestCardBuilder.Apply(root.gameObject);
             Role(root, "Content/Journal", UiThemeRole.Panel);
             root.Find("Content/Journal").GetComponent<VerticalLayoutGroup>().padding =
                 new RectOffset(48, 48, 36, 40);

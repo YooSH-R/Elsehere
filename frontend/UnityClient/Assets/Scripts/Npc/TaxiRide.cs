@@ -303,7 +303,9 @@ namespace A305.Npc
             camera.nearClipPlane = previousNearClip;
             car.SetPassengerOnBoard(false);
             car.Release();
-            panel.SetVehicleLayout(false);
+            // 승객인 채로 장면이 바뀌면 대화창이 택시보다 먼저 지워질 수 있다.
+            if (panel != null)
+                panel.SetVehicleLayout(false);
             destination = null;
             DestinationCode = null;
         }

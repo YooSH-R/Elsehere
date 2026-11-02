@@ -117,6 +117,35 @@ namespace A305.Npc.PlayModeTests
             CapturePassengerView("taxi-status-with-goal");
         }
 
+        [UnityTest]
+        public IEnumerator SceneUnloadingWhileRiding_DoesNotTouchTheRemovedDialogue()
+        {
+            // 승객인 채로 장면이 바뀌면 대화창이 택시보다 먼저 지워질 수 있다. 그때 내리면서 지워진 대화창을 고쳐 오류가 났다.
+            yield return LoadTown();
+            TaxiRide taxi = Single<TaxiRide>();
+            CarLoopRoute.Pose pose = taxi.GetComponent<LoopingCar>()
+                .Route.PoseAt(taxi.GetComponent<LoopingCar>().Distance);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            Single<PlayerMover>()
+                .Teleport(
+                    pose.Position
+                        + pose.Forward * 8
+                        + Vector3.Cross(Vector3.up, pose.Forward) * 2.6f
+                        + Vector3.up * .2f,
+                    Quaternion.identity
+                );
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            Click(offer, "TalkButton");
+            yield return null;
+            Assert.That(taxi.IsPassenger, Is.True);
+
+            // 장면을 내릴 때처럼 대화 처리와 대화창을 택시보다 먼저 지운다.
+            Object.DestroyImmediate(Single<DialogueController>());
+            Object.DestroyImmediate(Single<DialoguePanelView>().gameObject);
+            taxi.enabled = false;
+            yield return null;
+        }
+
         // 호텔로 가는 단계의 목표 카드(제목·안내·목표 세 개)를 띄운다.
         private static void ShowHotelGoal(FirstDayMissionView mission)
         {

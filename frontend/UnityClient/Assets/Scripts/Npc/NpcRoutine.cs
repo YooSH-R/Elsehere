@@ -114,6 +114,7 @@ namespace A305.Npc
 
         private INpcSeat seat;
         private SeatedLegs legs;
+        private StandingPoseCorrections standingCorrections;
         private Vector3 standingPosition;
         private Vector3 standingVisualPosition;
 
@@ -725,6 +726,7 @@ namespace A305.Npc
             seat = target;
             standingPosition = transform.position;
             standingVisualPosition = visual.localPosition;
+            standingCorrections = StandingPoseCorrections.Suspend(visual);
             characterController.enabled = false;
             Transform point = target.SeatPoint;
             transform.SetPositionAndRotation(
@@ -748,6 +750,7 @@ namespace A305.Npc
             seat.Release(this);
             seat = null;
             visual.localPosition = standingVisualPosition;
+            standingCorrections.Restore();
             transform.position = standingPosition;
             characterController.enabled = true;
         }

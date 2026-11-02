@@ -54,6 +54,17 @@ namespace A305.Dialogue
 
         [SerializeField]
         private ScrollRect historyScroll;
+
+        [SerializeField]
+        [Tooltip("NPC 첫 대사·대답을 기다리는 동안 대사 칸을 덮는 로딩")]
+        private GameObject waitPanel;
+
+        [SerializeField]
+        private TMP_Text waitText;
+
+        [SerializeField]
+        [Tooltip("대화를 끝내고 피드백을 기다리는 동안 화면 전체를 덮는 로딩 창")]
+        private GameObject feedbackWait;
         private Vector2 lastCanvasSize;
 
         [SerializeField]
@@ -142,6 +153,23 @@ namespace A305.Dialogue
 
             panel.SetActive(false);
             helpPanel.gameObject.SetActive(false);
+            ShowWait(DialogueWait.None);
+        }
+
+        // NPC 첫 대사·대답은 대사 칸을 덮는 로딩으로, 오래 걸리는 피드백은 화면 가운데 로딩 창으로 알린다.
+        private void ShowWait(DialogueWait wait)
+        {
+            bool inLines = wait == DialogueWait.Opening || wait == DialogueWait.NpcReply;
+            waitPanel.SetActive(inLines);
+            if (inLines)
+            {
+                waitText.text =
+                    wait == DialogueWait.Opening
+                        ? "대화를 준비하고 있어요"
+                        : $"{content.NpcName}의 대답을 기다리고 있어요";
+            }
+
+            feedbackWait.SetActive(wait == DialogueWait.Feedback);
         }
 
         /// <summary>전사한 문장처럼 입력창에 넣어 줄 문장. 사용자가 확인하고 [보내기]로 보낸다.</summary>
@@ -181,13 +209,18 @@ namespace A305.Dialogue
             statusText.text = FormatStatus();
             // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
             // 음성 처리에 동의하지 않아 [꾹 눌러 말하기]가 없으면, 버튼이 왜 없는지와 동의를 켜는 곳을 입력칸 위에 알린다.
+            // NPC 대답·피드백을 기다리는 동안은 상태 줄 대신 로딩이 같은 내용을 크게 알린다.
             statusText.gameObject.SetActive(
-                content.IsBusy
-                    || content.CanRetry
-                    || content.IsGuidedCompleted
-                    || NeedsVoiceConsent
-                    || !string.IsNullOrEmpty(content.StatusMessage)
+                content.Waiting == DialogueWait.None
+                    && (
+                        content.IsBusy
+                        || content.CanRetry
+                        || content.IsGuidedCompleted
+                        || NeedsVoiceConsent
+                        || !string.IsNullOrEmpty(content.StatusMessage)
+                    )
             );
+            ShowWait(content.Waiting);
             suggestText.text = DialogueHelpText.Words(content.SuggestWords);
             string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
             hintText.text = string.IsNullOrEmpty(sentence)

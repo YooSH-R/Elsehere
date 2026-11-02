@@ -155,6 +155,7 @@ namespace A305.Dialogue.PlayModeTests
             public string HintText => null;
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
+            public DialogueWait Waiting => DialogueWait.None;
 
             // NPC 음성을 다시 들을 수 있으면 도구 버튼이 가장 많다.
             public bool CanReplaySpeech => true;

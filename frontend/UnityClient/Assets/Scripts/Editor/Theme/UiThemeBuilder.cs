@@ -217,6 +217,13 @@ namespace A305.EditorTools.Theme
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>대화창의 로딩(대사 칸 로딩, 피드백 로딩 창)만 테마로 칠한다. 대화창의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyDialogueWaitingTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleDialogueWaiting);
+        }
+
         [MenuItem("Tools/A305/UI/Apply Text Insets And Alignment")]
         public static void ApplyTextInsets()
         {
@@ -1052,6 +1059,16 @@ namespace A305.EditorTools.Theme
             );
             IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
+            StyleDialogueWaiting(root);
+        }
+
+        private static void StyleDialogueWaiting(Transform root)
+        {
+            Role(root, "Panel/Conversation/History/Wait", UiThemeRole.Card);
+            Role(root, "Panel/Conversation/History/Wait/Row/Label", UiThemeRole.Title);
+            Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
+            Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
+            Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);
         }
 
         private static void StyleTutorial(Transform root)

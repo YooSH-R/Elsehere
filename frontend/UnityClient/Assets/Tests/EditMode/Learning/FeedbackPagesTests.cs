@@ -85,6 +85,41 @@ namespace A305.Learning.Tests
             Assert.That(pages[1].Body, Does.Contain("I'm good"));
         }
 
+        // 한 장씩 넘기지 않고 이 상황 표현과 예문을 한 화면에 모은다. 표현마다 담기는 요약 탭의 표현 줄에서 한다.
+        [Test]
+        public void Conversation_PutsEverySituationExpressionOnOnePage()
+        {
+            var expressions = new List<SituationExpressionData>
+            {
+                new SituationExpressionData
+                {
+                    Expression = "Could you hold my luggage?",
+                    MeaningKo = "짐 좀 맡아 주시겠어요?",
+                    ExampleEn = "Could you hold my luggage until three?",
+                },
+                new SituationExpressionData
+                {
+                    Expression = "Is there a cafe nearby?",
+                    MeaningKo = "근처에 카페가 있나요?",
+                    ExampleEn = "Is there a cafe nearby where I can wait?",
+                },
+            };
+
+            var pages = FeedbackPages.Create(Sample(expressions), FeedbackSection.Conversation);
+
+            Assert.That(pages.Count, Is.EqualTo(2));
+            Assert.That(
+                pages[0].Body,
+                Does.Contain("Could you hold my luggage?")
+                    .And.Contain("짐 좀 맡아 주시겠어요?")
+                    .And.Contain("until three?")
+                    .And.Contain("Is there a cafe nearby?")
+                    .And.Contain("where I can wait?")
+            );
+            Assert.That(pages[0].Expression, Is.Null);
+            Assert.That(pages[1].Body, Does.Contain("I'm good"));
+        }
+
         [TestCase(FeedbackSection.Corrections)]
         [TestCase(FeedbackSection.Conversation)]
         [TestCase(FeedbackSection.Expressions)]

@@ -1,4 +1,4 @@
-package com.elsehere.conversation.dto;
+package com.elsehere.dialogue.dto;
 
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;

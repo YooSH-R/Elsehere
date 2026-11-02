@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.HintResult;
@@ -12,11 +12,11 @@ import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
-import com.elsehere.conversation.dto.HintResponse;
-import com.elsehere.conversation.dto.MeaningResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.dialogue.dto.HintResponse;
+import com.elsehere.dialogue.dto.MeaningResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;

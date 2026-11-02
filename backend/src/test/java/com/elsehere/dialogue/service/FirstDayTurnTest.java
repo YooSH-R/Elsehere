@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -17,12 +17,12 @@ import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
-import com.elsehere.conversation.dto.TurnRequest;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.entity.FirstDayMission;

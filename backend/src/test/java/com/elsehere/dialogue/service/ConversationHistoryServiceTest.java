@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import static com.elsehere.conversation.DialogueTestData.npcId;
 import static com.elsehere.conversation.DialogueTestData.npcTurn;
@@ -8,12 +8,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.dto.ConversationListResponse;
-import com.elsehere.conversation.dto.ConversationSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.ConversationEndReason;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.InitiatedBy;
+import com.elsehere.dialogue.dto.ConversationListResponse;
+import com.elsehere.dialogue.dto.ConversationSummaryResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.user.UserTestData;

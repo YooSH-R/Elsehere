@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import static com.elsehere.conversation.DialogueTestData.conversation;
 import static com.elsehere.conversation.DialogueTestData.npcTurn;
@@ -27,10 +27,10 @@ import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
-import com.elsehere.conversation.dto.HintResponse;
-import com.elsehere.conversation.dto.MeaningResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
+import com.elsehere.dialogue.dto.HintResponse;
+import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;

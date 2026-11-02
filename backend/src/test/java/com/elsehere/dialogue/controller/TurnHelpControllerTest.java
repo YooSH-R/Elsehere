@@ -1,4 +1,4 @@
-package com.elsehere.conversation.controller;
+package com.elsehere.dialogue.controller;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -10,9 +10,9 @@ import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.conversation.dto.GlossaryResponse;
-import com.elsehere.conversation.dto.HintResponse;
-import com.elsehere.conversation.dto.MeaningResponse;
-import com.elsehere.conversation.service.TurnHelpService;
+import com.elsehere.dialogue.dto.HintResponse;
+import com.elsehere.dialogue.dto.MeaningResponse;
+import com.elsehere.dialogue.service.TurnHelpService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;

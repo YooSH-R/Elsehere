@@ -1,13 +1,18 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.service.AiRequestRecorder;
+import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
+import com.elsehere.conversation.service.NpcAudioRetention;
+import com.elsehere.conversation.service.NpcAudioStore;
+import com.elsehere.conversation.service.TrainingRecordingService;
+import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.feedback.service.ModelSpeechService;
 import com.elsehere.feedback.service.ModelSpeechStore;

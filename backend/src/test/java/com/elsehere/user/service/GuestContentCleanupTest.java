@@ -6,8 +6,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.service.DialogueServiceTest;
 import com.elsehere.conversation.service.NpcAudioStore;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;

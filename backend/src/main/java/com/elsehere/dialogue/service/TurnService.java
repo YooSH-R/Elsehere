@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.GuardResult;
@@ -14,11 +14,11 @@ import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.dto.TurnRequest;
-import com.elsehere.conversation.dto.TurnResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.dialogue.dto.TurnRequest;
+import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;

@@ -4,7 +4,6 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.NpcAudioStore.StoredAudio;
-import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,7 +35,6 @@ public class NpcAudioRetention {
 
   private final NpcAudioStore store;
   private final TurnRepository turnRepository;
-  private final NpcRepository npcRepository;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
   private final Duration retention;
@@ -46,14 +44,12 @@ public class NpcAudioRetention {
   public NpcAudioRetention(
       NpcAudioStore store,
       TurnRepository turnRepository,
-      NpcRepository npcRepository,
       TransactionTemplate transactionTemplate,
       Clock clock,
       @Value("${elsehere.npc-audio.retention-days}") int retentionDays,
       @Value("${elsehere.npc-audio.max-bytes}") long maxBytes) {
     this.store = store;
     this.turnRepository = turnRepository;
-    this.npcRepository = npcRepository;
     this.transactionTemplate = transactionTemplate;
     this.clock = clock;
     this.retention = Duration.ofDays(retentionDays);
@@ -230,7 +226,7 @@ public class NpcAudioRetention {
 
   private Set<String> sharedKeys() {
     return transactionTemplate.execute(
-        status -> new HashSet<>(npcRepository.findAllApproachAudioKeys()));
+        status -> new HashSet<>(turnRepository.findNpcApproachAudioKeys()));
   }
 
   private long usedBytes(Set<String> shared) {

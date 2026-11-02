@@ -1,10 +1,10 @@
-package com.elsehere.conversation.controller;
+package com.elsehere.dialogue.controller;
 
 import com.elsehere.common.auth.LoginUser;
-import com.elsehere.conversation.dto.HintResponse;
-import com.elsehere.conversation.dto.MeaningResponse;
-import com.elsehere.conversation.dto.TurnHelpRequest;
-import com.elsehere.conversation.service.TurnHelpService;
+import com.elsehere.dialogue.dto.HintResponse;
+import com.elsehere.dialogue.dto.MeaningResponse;
+import com.elsehere.dialogue.dto.TurnHelpRequest;
+import com.elsehere.dialogue.service.TurnHelpService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

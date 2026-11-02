@@ -1,13 +1,12 @@
 package com.elsehere.conversation.service;
 
-import com.elsehere.ai.client.SttResult;
-import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
 import com.elsehere.conversation.entity.TrainingRecording;
 import com.elsehere.conversation.repository.TrainingRecordingRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,24 +26,33 @@ public class TrainingRecordingService {
   private final TrainingRecordingStore trainingRecordingStore;
   private final Clock clock;
 
+  /**
+   * @param requestId 음성 인식 요청 ID
+   * @param conversationId 대화 발화 녹음이면 그 대화, 튜토리얼처럼 대화 밖이면 null
+   * @param sttText 음성 인식 결과 글자
+   * @param durationMs 녹음 길이. 모르면 null
+   */
   public void save(
-      WorkerTrace trace,
+      Long userId,
+      UUID requestId,
+      Long conversationId,
       TranscriptionPurpose purpose,
       byte[] audio,
       String contentType,
-      SttResult result) {
+      String sttText,
+      Integer durationMs) {
     String key = null;
     try {
       key = trainingRecordingStore.save(audio, contentType);
-      Integer durationMs =
-          result.audioS() == null ? null : (int) Math.round(result.audioS() * 1000);
       trainingRecordingRepository.save(
           TrainingRecording.record(
-              trace,
+              userId,
+              requestId,
+              conversationId,
               purpose,
               key,
               TrainingRecordingStore.mediaType(contentType),
-              result.text(),
+              sttText,
               durationMs,
               Instant.now(clock)));
     } catch (RuntimeException exception) {

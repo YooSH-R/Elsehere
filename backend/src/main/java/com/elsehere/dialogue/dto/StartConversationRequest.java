@@ -1,4 +1,4 @@
-package com.elsehere.conversation.dto;
+package com.elsehere.dialogue.dto;
 
 import com.elsehere.conversation.entity.InitiatedBy;
 import jakarta.validation.constraints.NotBlank;

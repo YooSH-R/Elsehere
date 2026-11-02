@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.SttResult;
@@ -8,12 +8,14 @@ import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.dto.SpeechResponse;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
-import com.elsehere.conversation.dto.TranscriptionResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.NpcAudioRetention;
+import com.elsehere.conversation.service.TrainingRecordingService;
+import com.elsehere.dialogue.dto.SpeechResponse;
+import com.elsehere.dialogue.dto.TranscriptionResponse;
 import com.elsehere.user.entity.ConsentType;
 import com.elsehere.user.service.OptionalConsentService;
 import java.io.IOException;
@@ -86,11 +88,19 @@ public class SpeechService {
     if (result.text() == null || result.text().isBlank()) {
       throw new BusinessException(ErrorCode.STT_NO_SPEECH);
     }
+    Integer durationMs = result.audioS() == null ? null : (int) Math.round(result.audioS() * 1000);
     if (optionalConsentService.hasAgreed(userId, ConsentType.TRAINING_VOICE)) {
-      trainingRecordingService.save(trace, purpose, recording, contentType, result);
+      trainingRecordingService.save(
+          trace.userId(),
+          trace.requestId(),
+          trace.conversationId(),
+          purpose,
+          recording,
+          contentType,
+          result.text(),
+          durationMs);
     }
-    long durationMs = result.audioS() == null ? 0 : Math.round(result.audioS() * 1000);
-    return new TranscriptionResponse(result.text(), durationMs);
+    return new TranscriptionResponse(result.text(), durationMs == null ? 0 : durationMs);
   }
 
   /** 저장해 둔 NPC 턴 음성(WAV). [다시 듣기]는 음성을 새로 만들지 않는다. */

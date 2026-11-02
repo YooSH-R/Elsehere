@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import static com.elsehere.conversation.DialogueTestData.conversation;
 import static com.elsehere.conversation.DialogueTestData.npcTurn;
@@ -12,9 +12,9 @@ import static org.mockito.BDDMockito.given;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.dto.SpeechResponse;
-import com.elsehere.conversation.dto.SpeechStatus;
 import com.elsehere.conversation.entity.Turn;
+import com.elsehere.dialogue.dto.SpeechResponse;
+import com.elsehere.dialogue.dto.SpeechStatus;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;

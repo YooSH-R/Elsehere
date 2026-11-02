@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.conversation.dto.NpcSummaryResponse;

@@ -1,14 +1,14 @@
-package com.elsehere.conversation.service;
+package com.elsehere.dialogue.service;
 
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.dto.ConversationListResponse;
-import com.elsehere.conversation.dto.ConversationSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.repository.TurnRepository.TurnCount;
+import com.elsehere.dialogue.dto.ConversationListResponse;
+import com.elsehere.dialogue.dto.ConversationSummaryResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;

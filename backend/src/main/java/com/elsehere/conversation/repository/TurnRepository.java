@@ -13,6 +13,15 @@ import org.springframework.data.repository.query.Param;
 
 public interface TurnRepository extends JpaRepository<Turn, Long> {
 
+  /**
+   * 모든 사용자가 함께 쓰는 NPC 말걸기 음성 키. NPC 음성 보관 정리에서 지우지 않는다. 대화 기록 패키지가 world 패키지를 import하지 않도록 npcs
+   * 테이블을 직접 읽는다.
+   */
+  @Query(
+      value = "select approach_audio_key from npcs where approach_audio_key is not null",
+      nativeQuery = true)
+  List<String> findNpcApproachAudioKeys();
+
   List<Turn> findAllByConversationIdOrderBySeqAsc(Long conversationId);
 
   Optional<Turn> findByRequestId(UUID requestId);

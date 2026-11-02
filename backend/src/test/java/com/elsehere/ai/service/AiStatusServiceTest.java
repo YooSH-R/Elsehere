@@ -12,7 +12,6 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
-import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;

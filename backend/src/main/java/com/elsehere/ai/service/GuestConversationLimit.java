@@ -1,4 +1,4 @@
-package com.elsehere.conversation.service;
+package com.elsehere.ai.service;
 
 import com.elsehere.ai.dto.AiStatus;
 import com.elsehere.common.error.BusinessException;

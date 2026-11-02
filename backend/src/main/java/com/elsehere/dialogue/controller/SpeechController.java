@@ -1,11 +1,11 @@
-package com.elsehere.conversation.controller;
+package com.elsehere.dialogue.controller;
 
 import com.elsehere.common.auth.LoginUser;
-import com.elsehere.conversation.dto.SpeechRegenerateRequest;
-import com.elsehere.conversation.dto.SpeechResponse;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
-import com.elsehere.conversation.dto.TranscriptionResponse;
-import com.elsehere.conversation.service.SpeechService;
+import com.elsehere.dialogue.dto.SpeechRegenerateRequest;
+import com.elsehere.dialogue.dto.SpeechResponse;
+import com.elsehere.dialogue.dto.TranscriptionResponse;
+import com.elsehere.dialogue.service.SpeechService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

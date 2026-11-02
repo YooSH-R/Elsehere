@@ -1,5 +1,6 @@
-package com.elsehere.conversation.dto;
+package com.elsehere.dialogue.dto;
 
+import com.elsehere.conversation.dto.GlossaryResponse;
 import java.util.List;
 
 /**

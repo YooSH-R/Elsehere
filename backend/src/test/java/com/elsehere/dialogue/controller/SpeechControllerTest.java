@@ -1,4 +1,4 @@
-package com.elsehere.conversation.controller;
+package com.elsehere.dialogue.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -16,10 +16,10 @@ import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.dto.SpeechResponse;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
-import com.elsehere.conversation.dto.TranscriptionResponse;
-import com.elsehere.conversation.service.SpeechService;
+import com.elsehere.dialogue.dto.SpeechResponse;
+import com.elsehere.dialogue.dto.TranscriptionResponse;
+import com.elsehere.dialogue.service.SpeechService;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;

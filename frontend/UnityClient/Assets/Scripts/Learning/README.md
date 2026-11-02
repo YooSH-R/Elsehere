@@ -69,6 +69,7 @@
 | --- | --- |
 | `LearningController.FeedbackClosed` | 피드백을 닫으면 `(npcCode, isGuidedCompleted)`를 알립니다. 튜토리얼이 길 안내 피드백을 본 뒤 다음 단계로 넘어갈 때 씁니다. |
 | `LearningController.IsShowingScreen` | 피드백, 단어장, 피드백 목록 창 중 하나가 열려 있는지 |
+| `LearningController.IsShowingVocabulary`, `VocabularyPanelRect` | 단어장 창이 열려 있는지와 그 창. 튜토리얼이 단어장을 처음 열었을 때 밝히고 설명을 붙입니다. |
 
 ## 확인용 참고 표현
 

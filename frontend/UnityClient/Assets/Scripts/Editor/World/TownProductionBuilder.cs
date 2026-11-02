@@ -30,7 +30,7 @@ namespace A305.EditorTools.World
             Scene scene = EditorSceneManager.OpenScene(ScenePath);
             Transform passerby = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
-                .Single(npc => npc.Code == "TUTORIAL_PASSERBY")
+                .Single(npc => npc.Code == "TOWN_PASSERBY")
                 .transform;
             PlaceTutorialPasserby(scene, passerby);
             BuilderTools.SaveScene(scene, ScenePath);
@@ -331,7 +331,8 @@ namespace A305.EditorTools.World
             foreach (NpcIdentity npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))
             {
                 AttachVisual(npc.transform);
-                if (npc.Code == "TUTORIAL_PASSERBY")
+                // 마을 행인 Ben은 튜토리얼에서 길을 묻는 집 앞에 선다.
+                if (npc.Code == "TOWN_PASSERBY")
                     PlaceTutorialPasserby(scene, npc.transform);
                 else
                     npc.transform.SetPositionAndRotation(

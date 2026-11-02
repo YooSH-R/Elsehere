@@ -217,7 +217,28 @@ namespace A305.Tutorial.Tests
 
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
             Assert.That(progress.IsMissionPanelVisible, Is.True);
+        }
+
+        [Test]
+        public void IsApproachAllowed_TutorialNpcAfterTheTutorial_ApproachesLikeAnyPasserby()
+        {
+            // 길을 묻던 행인(Ben)은 튜토리얼을 마치면 평소 모드로 돌아가 다른 행인처럼 다가온다.
+            MoveTo(TutorialStep.MissionTalk);
             Assert.That(progress.IsApproachAllowed(TutorialNpcCode), Is.False);
+
+            progress.StartDialogue(MissionNpcCode);
+
+            Assert.That(progress.IsApproachAllowed(TutorialNpcCode), Is.True);
+        }
+
+        [Test]
+        public void IsGuiding_UntilTheTutorialIsCompleted()
+        {
+            Assert.That(progress.IsGuiding, Is.True);
+
+            progress.Skip();
+
+            Assert.That(progress.IsGuiding, Is.False);
         }
 
         [Test]

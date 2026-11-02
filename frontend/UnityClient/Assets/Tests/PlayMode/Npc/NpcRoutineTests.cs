@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using System.Threading.Tasks;
+using A305.Dialogue;
 using A305.ObjectHover;
 using A305.Player;
 using A305.Tutorial;
@@ -9,6 +10,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace A305.Npc.PlayModeTests
 {
@@ -166,12 +168,15 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator TownPasserby_RestingAtABench_StopsAndComesOverWhenThePlayerArrives()
+        public IEnumerator TownPasserby_RestingAtABench_StopsWhenThePlayerTalksToHim()
         {
             // 자유 시간, 욕구가 모두 시작값이면 에너지를 채우는 벤치가 분수 구경보다 급하다(20 > 15).
             // 마을 행인 모델은 뼈대가 없어 앉지 못하고 벤치 앞에 서서 쉰다.
             yield return LoadAt("TownScene", 10 * 60, paused: true);
             NpcRoutine ben = Routine("TOWN_PASSERBY");
+            // Ben은 마을 시작 위치 가까운 집 앞에 있어 곧장 다가오므로, 플레이어를 벤치가 없는 동서 길 서쪽으로 멀리 보내 무시한 것으로 두고 쉬게 한다.
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(new Vector3(-14f, .12f, 10f), Quaternion.identity);
             yield return WaitUntil(() => ben.IsUsing);
             Assert.That(ben.Doing.Action, Is.EqualTo("REST"));
             Assert.That(
@@ -179,15 +184,41 @@ namespace A305.Npc.PlayModeTests
                 Is.LessThan(NearObjectMeters)
             );
 
-            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            // 쉬는 동안에는 다가오지 않으므로 플레이어가 가까이 가서 먼저 말을 건다. 벤치의 [잠깐 앉기]와 겹치지 않게 벤치 반대쪽에 선다.
+            Vector3 awayFromBench =
+                ben.transform.position - NearestPlaced("bench", ben.transform).position;
+            awayFromBench.y = 0f;
             player.Teleport(
-                ben.transform.position + ben.transform.forward * 4f,
+                ben.transform.position + awayFromBench.normalized * 1.5f,
                 Quaternion.identity
             );
             PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            Assert.That(offer.TalkLabelText, Does.Contain("Ben"));
+            offer
+                .GetComponentsInChildren<Button>(true)
+                .Single(button => button.name == "TalkButton")
+                .onClick.Invoke();
+            yield return null;
+
+            Assert.That(Object.FindFirstObjectByType<DialogueController>().IsTalking, Is.True);
+            Assert.That(ben.Doing, Is.Null, "말을 걸면 하던 일을 그만둡니다.");
+        }
+
+        [UnityTest]
+        public IEnumerator TownPasserby_DuringTheTutorial_WaitsInFrontOfTheHouseWithoutLiving()
+        {
+            // 튜토리얼 중에는 Ben이 집 앞에서 정해진 흐름(길 묻기)대로만 움직이고 생활하지 않는다.
+            TutorialState.Clear();
+            yield return LoadAt("TownScene", 10 * 60, paused: true);
+            NpcRoutine ben = Routine("TOWN_PASSERBY");
+            PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
+
+            // 자유 시간이라 평소라면 바로 벤치로 가지만, 튜토리얼 중에는 집에서 나온 플레이어에게 길을 물으러 온다.
             yield return WaitUntil(() => offer.IsShowing);
 
-            Assert.That(ben.Doing, Is.Null, "말을 걸러 오면 하던 일을 그만둡니다.");
+            Assert.That(ben.Doing, Is.Null, "튜토리얼 중에는 생활하지 않습니다.");
+            Assert.That(offer.IsDeclineShown, Is.False, "튜토리얼 대화는 거절할 수 없습니다.");
         }
 
         /// <summary>서버가 알려 준 게임 시각으로 맞춘 뒤 장면을 불러온다. 장면의 신호는 이 시험 동안 다시 보내지 않는다.</summary>

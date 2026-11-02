@@ -74,7 +74,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 
 | NPC 키 | 이름 | 대화 |
 | --- | --- | --- |
-| `TUTORIAL_PASSERBY` | Alex | 카페 가는 길을 묻는 정해진 3턴. 화면에 읽을 대사를 보여 주고, 무엇을 보내도 다음 턴으로 넘어갑니다. 마지막 턴 뒤에는 입력을 받지 않습니다. |
+| `TUTORIAL_PASSERBY`(대본 키) | Ben | 튜토리얼 동안 행인 Ben이 카페 가는 길을 묻는 정해진 3턴. `DialogueController.TryStart`의 `scriptKey`로 이 대본을 고릅니다. 화면에 읽을 대사를 보여 주고, 무엇을 보내도 다음 턴으로 넘어갑니다. 마지막 턴 뒤에는 입력을 받지 않습니다. |
 | `CAFE_STAFF` | Mia | 키워드 응답. `soy`+`latte`, `latte`, `dessert`, `coffee`, `thank` 순서로 확인합니다. |
 | `TOWN_PASSERBY` | Ben | 키워드 응답. `weather`, `cafe`, `thank` |
 | `TAXI_DRIVER` | Joe | 어디로 가는지 묻고 키워드 응답. `hotel`, `thank` |

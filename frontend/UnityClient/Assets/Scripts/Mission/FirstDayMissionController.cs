@@ -35,6 +35,7 @@ namespace A305.Mission
         private bool busy;
         private bool refreshPending;
         private RestSeat[] cafeSeats;
+        private UmbrellaHold umbrella;
 
         public void SetAvailable(bool available) => view.SetAvailable(available);
 
@@ -53,6 +54,7 @@ namespace A305.Mission
             foreach (RestSeat seat in cafeSeats)
                 seat.RestCompleted += Rest;
             view.BindMap(sceneCode, player.transform);
+            umbrella = player.GetComponent<UmbrellaHold>();
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
@@ -129,6 +131,8 @@ namespace A305.Mission
                 view.ShowMessage("");
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);
+                if (umbrella != null)
+                    umbrella.SetOpen(state.OpensUmbrellaIn(sceneCode));
             }
             catch (ApiException exception)
             {

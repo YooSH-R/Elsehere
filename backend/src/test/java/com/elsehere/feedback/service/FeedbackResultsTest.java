@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerUsage;
-import com.elsehere.feedback.dto.FeedbackReviews;
-import com.elsehere.feedback.dto.SituationExpressionResponse;
-import com.elsehere.feedback.dto.VocabCandidateResponse;
+import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.entity.TurnFeedback;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -121,7 +119,8 @@ class FeedbackResultsTest {
 
     assertThat(FeedbackResults.reviews(result).vocabCandidates())
         .containsExactly(
-            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
+            new FeedbackReviews.VocabCandidate(
+                "latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
   }
 
   @Test
@@ -145,7 +144,7 @@ class FeedbackResultsTest {
 
     assertThat(FeedbackResults.reviews(result).situationExpressions())
         .containsExactly(
-            new SituationExpressionResponse(
+            new FeedbackReviews.SituationExpression(
                 "Could I leave my bags here?",
                 "짐을 여기 맡겨도 될까요?",
                 "체크인 전에 짐을 맡기고 싶을 때 써요.",

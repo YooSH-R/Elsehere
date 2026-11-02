@@ -7,9 +7,8 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.service.ConversationLookup;
-import com.elsehere.feedback.dto.FeedbackReviews;
-import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
+import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.vocab.dto.VocabItemResponse;
@@ -182,15 +181,15 @@ public class VocabService {
   public VocabSaveResponse saveFeedbackWord(Long userId, Long conversationId, String text) {
     Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
     // 피드백을 만들지 못했거나 후보를 넣기 전에 만든 피드백은 저장할 단어를 확인할 수 없다.
-    List<VocabCandidateResponse> candidates =
+    List<FeedbackReviews.VocabCandidate> candidates =
         conversationFeedbackRepository
             .findById(conversation.getId())
             .map(ConversationFeedback::getReviews)
             .map(reviews -> jsonMapper.readValue(reviews, FeedbackReviews.class))
             .map(FeedbackReviews::vocabCandidates)
             .orElse(List.of());
-    VocabCandidateResponse word =
-        SourceWords.find(candidates, VocabCandidateResponse::expression, text)
+    FeedbackReviews.VocabCandidate word =
+        SourceWords.find(candidates, FeedbackReviews.VocabCandidate::expression, text)
             .orElseThrow(() -> new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH));
     Vocabulary vocabulary =
         findOrCreateWord(word.expression(), word.meaningKo(), VocabularySource.FEEDBACK);

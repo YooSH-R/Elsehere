@@ -46,7 +46,7 @@ com.elsehere
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
 | `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
-| `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성) |
+| `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성). `conversation_feedback.reviews` JSON은 응답 DTO와 다른 저장 전용 타입(`entity.FeedbackReviews`)으로 읽고 쓴다. 이미 저장된 피드백을 읽어야 하므로 칸 이름을 바꾸지 않고, 응답 모양을 바꿀 때는 응답으로 옮겨 담는 부분만 고친다 |
 | `memory` | user_npc_relations (NPC 기억 카드와 관계) |
 | `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
 | `vocab` | vocabularies, user_vocab |

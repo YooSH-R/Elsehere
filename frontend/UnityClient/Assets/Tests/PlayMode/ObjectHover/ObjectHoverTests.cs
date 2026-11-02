@@ -444,6 +444,35 @@ namespace A305.ObjectHover.PlayModeTests
             );
         }
 
+        [UnityTest]
+        public IEnumerator PinnedCardAtRightEdge_MenuOpenedLater_StaysOutOfMenu()
+        {
+            // 화면 오른쪽 끝을 눌러 카드를 고정한 뒤 메뉴(≡)를 펼치면 카드가 메뉴 버튼 뒤로 들어갔다.
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Button menuButton = HudMenuButton().GetComponent<Button>();
+            menuButton.onClick.Invoke();
+            Canvas.ForceUpdateCanvases();
+            Rect openMenuButton = ScreenRectOf(OpenHudMenuButton());
+            Rect menuList = ScreenRectOf(HudMenuList());
+            OpenHudMenuButton().GetComponent<Button>().onClick.Invoke();
+            Vector2 rightOfList = new Vector2(
+                (menuList.xMax + Screen.width) / 2f,
+                menuList.center.y
+            );
+            AimSoThatScreenPointShows(tv, rightOfList);
+            hover.Click(rightOfList);
+            Assert.That(tooltip.IsPinned, Is.True);
+
+            menuButton.onClick.Invoke();
+            hover.Refresh(rightOfList, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsPinned, Is.True);
+            Rect card = CardScreenRect();
+            Assert.That(card.Overlaps(openMenuButton), Is.False, "카드가 메뉴 버튼과 겹칩니다.");
+            Assert.That(card.Overlaps(menuList), Is.False, "카드가 메뉴 목록과 겹칩니다.");
+        }
+
         private Rect CardScreenRect()
         {
             Canvas.ForceUpdateCanvases();
@@ -520,6 +549,24 @@ namespace A305.ObjectHover.PlayModeTests
                 .SingleOrDefault(button => button.name == "MenuButton");
             Assert.That(menu, Is.Not.Null, "HomeScene에 오른쪽 위 메뉴 버튼이 없습니다.");
             return (RectTransform)menu.transform;
+        }
+
+        // 메뉴를 펼친 동안 메뉴 버튼 자리에 보이는 강조 버튼
+        private static RectTransform OpenHudMenuButton()
+        {
+            Button open = Object
+                .FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .SingleOrDefault(button => button.name == "OpenMenuButton");
+            Assert.That(open, Is.Not.Null, "HomeScene에 펼친 메뉴 버튼이 없습니다.");
+            return (RectTransform)open.transform;
+        }
+
+        // 메뉴 버튼 줄 아래로 펼치는 목록
+        private static RectTransform HudMenuList()
+        {
+            Transform list = OpenHudMenuButton().parent.parent.Find("Menu");
+            Assert.That(list, Is.Not.Null, "HomeScene에 메뉴 목록이 없습니다.");
+            return (RectTransform)list;
         }
 
         private static Vector2 ScreenCenterOf(RectTransform rect)

@@ -10,8 +10,8 @@ namespace A305.Learning
 {
     /// <summary>
     /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·03·04)과 잇는다.
-    /// [지난 대화] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
-    /// 피드백·단어장·지난 대화 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
+    /// [피드백 목록] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
+    /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
     /// 대화·피드백의 [표현 저장]은 서버가 그 출처의 저장을 열기 전까지 숨긴다.
     /// </summary>
     public class LearningController : MonoBehaviour
@@ -46,7 +46,7 @@ namespace A305.Learning
 
         private DialogueRecord feedbackRecord;
 
-        // [지난 대화]에서 다시 연 대화. 대화 직후의 피드백(feedbackRecord)과 함께 열리지 않는다.
+        // [피드백 목록]에서 다시 연 대화. 대화 직후의 피드백(feedbackRecord)과 함께 열리지 않는다.
         private PastConversation pastConversation;
 
         // 지금 피드백 화면에 보이는 서버 피드백. [다시 만들기]로 새로 받으면 바뀐다.
@@ -218,7 +218,7 @@ namespace A305.Learning
 
         private void CloseFeedback()
         {
-            // [지난 대화]에서 연 피드백은 대화 결과(미션·튜토리얼)를 다시 알리지 않고 목록으로 돌아간다.
+            // [피드백 목록]에서 연 피드백은 대화 결과(미션·튜토리얼)를 다시 알리지 않고 목록으로 돌아간다.
             if (pastConversation != null)
             {
                 pastConversation = null;
@@ -245,18 +245,18 @@ namespace A305.Learning
         {
             if (history == null)
             {
-                hudView.ShowMessage("지난 대화 서버가 연결되지 않았어요.");
+                hudView.ShowMessage("피드백 목록 서버가 연결되지 않았어요.");
                 return;
             }
 
             historyView.Show(history);
             UpdateMovementLock();
-            _ = LoadHistoryAsync(history.LoadAsync(), "지난 대화를 불러오는 중이에요…");
+            _ = LoadHistoryAsync(history.LoadAsync(), "피드백 목록을 불러오는 중이에요…");
         }
 
         private void LoadMoreHistory()
         {
-            _ = LoadHistoryAsync(history.LoadMoreAsync(), "지난 대화를 더 불러오는 중이에요…");
+            _ = LoadHistoryAsync(history.LoadMoreAsync(), "피드백 목록을 더 불러오는 중이에요…");
         }
 
         // 창을 열 때마다 처음부터 다시 읽어 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 이유를 보인다.
@@ -285,7 +285,7 @@ namespace A305.Learning
             _ = OpenPastFeedbackAsync(conversation);
         }
 
-        // 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면으로 연다. 지난 대화 창은 그 아래에 그대로 둔다.
+        // 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면으로 연다. 피드백 목록 창은 그 아래에 그대로 둔다.
         private async Task OpenPastFeedbackAsync(ConversationSummary conversation)
         {
             historyView.ShowStatus("피드백을 불러오는 중이에요…");

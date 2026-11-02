@@ -6,6 +6,7 @@ import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -13,6 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 회원 탈퇴(USER-05). 사용자가 남긴 내용(범위는 {@link UserContentEraser})과 이메일·소셜 계정 ID·닉네임 같은 개인정보를 바로 지운다.
  * 사용자·대화·AI 호출 기록 같은 뼈대는 누구 것인지 알 수 없게 남기고, 같은 소셜 계정으로 다시 가입할 수 있다(개인정보 처리방침).
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WithdrawalService {
@@ -34,6 +36,7 @@ public class WithdrawalService {
               user.withdraw();
               return keys;
             });
+    log.info("user_withdrew user_id={}", userId);
     userContentEraser.deleteAudio(audioKeys);
   }
 }

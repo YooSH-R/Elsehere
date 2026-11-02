@@ -116,6 +116,19 @@ class RequestLoggingFilterTest {
         .containsEntry("requestId", response.getHeader("X-Request-ID"));
   }
 
+  // 사용자 ID는 보안 필터 안쪽(UserLoggingFilter)에서 넣는다. 요청 요약에도 붙고, 요청이 끝나면 다음 요청에 남지 않는다.
+  @Test
+  void requestLog_carriesUserIdSetInsideAndClearsItAfterwards() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/vocab");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilter(
+        request, response, (incomingRequest, outgoingResponse) -> MDC.put("userId", "7"));
+
+    assertThat(requestLogs.list.getFirst().getMDCPropertyMap()).containsEntry("userId", "7");
+    assertThat(MDC.get("userId")).isNull();
+  }
+
   @Test
   void unhandledFailure_isLoggedAsServerErrorAndRestoresOuterContext() {
     MDC.put("requestId", "outer-context");

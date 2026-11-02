@@ -41,8 +41,9 @@ null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이�
 
 - 짧은 피드백: conversation_summary, communication, review_tags와 summary_suggestion_id가 가리키는 실제 교정.
 - 상세 피드백: 원래 순서의 turn_reviews. 문법·어휘 오류와 context_fit을 구별하고, 적절한 표현을 오류로 표시하지 않는다.
-- 단어장: vocab_candidates는 저장 후보다. 사용자 선택과 백엔드 저장 성공 전에는 저장 완료라고 표시하지 않는다.
+- 단어장: vocab_candidates는 저장 후보다. 사용자 선택과 백엔드 저장 성공 전에는 저장 완료라고 표시하지 않는다. BE는 단어장이 단어 하나만 저장하므로 `kind: word`이고 한 단어인 후보만 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.vocabCandidates`로 내려 준다. 저장은 VOCAB-02 `FEEDBACK`이 이 목록으로 단어를 확인한다.
 - 회화 보충: `spoken_usage_notes`는 교정 아래의 선택적 설명 0~1개다. 현재 로컬 확장 필드이며 BE·Unity 적용 합의가 별도로 필요하다. 필드 누락은 빈 목록으로 처리할 수 있어야 하며, 설명이 없다고 실패로 처리하지 않는다.
+- 장면 표현: `situation_expressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개(표현·뜻·쓰는 때·학습 예문과 번역)다. 워커가 생성할 때는 2~3개를 요구하고, 필드가 없던 결과는 빈 목록으로 처리한다. BE는 `conversation_feedback.reviews`에 함께 저장하고 FB-01·CONV-08 응답의 `feedback.situationExpressions`로 내려 준다. Unity는 피드백 화면의 회화 칸에 "이 상황에서 자주 써요"로 보여 준다.
 
 `review_id`, `suggestion_id`, `candidate_id`는 결과 내부 참조값이며 DB 식별자가 아니다. usage의 토큰 수는 크레딧이 아니다. 현재 워커의 공급자 재시도·대체 모델 정책이 적용될 수 있으므로 실제 모델·시도·사용량을 응답 기준으로 기록한다.
 

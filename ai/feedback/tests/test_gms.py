@@ -4,7 +4,7 @@ import unittest
 from urllib.error import HTTPError, URLError
 
 from feedback.clients import ModelNotConfigured, ProviderCallError
-from feedback.gms import GmsClient, GmsSettings
+from feedback.gms import GmsClient, GmsSettings, feedback_response_format
 
 
 class FakeResponse(io.BytesIO):
@@ -145,6 +145,16 @@ class GmsTests(unittest.TestCase):
         self.assertFalse(schema["schema"]["additionalProperties"])
         evidence = schema["schema"]["$defs"]["Evidence"]
         self.assertEqual(set(evidence["properties"]), {"turn_id", "quote"})
+
+    def test_model_must_return_two_or_three_situation_expressions(self):
+        schema = feedback_response_format([{"role": "user", "content": "{}"}])["json_schema"]["schema"]
+        data = schema["$defs"]["FeedbackData"]
+        self.assertIn("situation_expressions", data["required"])
+        field = data["properties"]["situation_expressions"]
+        self.assertEqual((field["minItems"], field["maxItems"]), (2, 3))
+        item = schema["$defs"]["SituationExpression"]
+        self.assertEqual(set(item["properties"]), {"expression", "meaning_ko", "usage_ko", "example_en", "example_ko"})
+        self.assertEqual(set(item["required"]), set(item["properties"]))
 
     def test_invalid_http_body_is_sanitized(self):
         for body in [

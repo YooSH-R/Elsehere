@@ -3,7 +3,9 @@ package com.elsehere.feedback.service;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerUsage;
 import com.elsehere.feedback.dto.FeedbackReviews;
+import com.elsehere.feedback.dto.SituationExpressionResponse;
 import com.elsehere.feedback.dto.SuggestionResponse;
+import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +14,8 @@ import java.util.Optional;
 
 /**
  * 피드백 결과를 화면 형식으로 바꾼다. 대응은 AI 명세 2.7절을 따른다: 요약 ← conversation_summary.text_ko, 잘한 점·아쉬운 점 ←
- * review_tags의 label_ko, 개선 표현 ← summary_suggestion_id가 가리키는 제안.
+ * review_tags의 label_ko, 개선 표현 ← summary_suggestion_id가 가리키는 제안, 이 장면에서 자주 쓰는 표현 ←
+ * situation_expressions.
  */
 final class FeedbackResults {
 
@@ -24,7 +27,41 @@ final class FeedbackResults {
 
   static FeedbackReviews reviews(WorkerFeedback.Result result) {
     return new FeedbackReviews(
-        tagLabels(result, "strength"), tagLabels(result, "improvement"), suggestion(result));
+        tagLabels(result, "strength"),
+        tagLabels(result, "improvement"),
+        suggestion(result),
+        situationExpressions(result),
+        vocabCandidates(result));
+  }
+
+  /**
+   * 단어장에 저장할 수 있는 후보. 단어장은 단어 하나만 저장하므로(VOCAB-02) 숙어·문장과 두 단어 이상인 후보는 뺀다. 저장하지 못할 후보에 저장 버튼을 보이지 않기
+   * 위해서다.
+   */
+  private static List<VocabCandidateResponse> vocabCandidates(WorkerFeedback.Result result) {
+    return nonNull(result.vocabCandidates()).stream()
+        .filter(item -> "word".equals(item.kind()))
+        .filter(item -> item.expression().strip().chars().noneMatch(Character::isWhitespace))
+        .map(
+            item ->
+                new VocabCandidateResponse(
+                    item.expression(), item.meaningKo(), item.exampleEn(), item.exampleKo()))
+        .toList();
+  }
+
+  /** 이 장면에서 자주 쓰는 표현. 사용자 발화 평가와 별개로 화면의 회화 칸에 보여 준다. */
+  private static List<SituationExpressionResponse> situationExpressions(
+      WorkerFeedback.Result result) {
+    return nonNull(result.situationExpressions()).stream()
+        .map(
+            item ->
+                new SituationExpressionResponse(
+                    item.expression(),
+                    item.meaningKo(),
+                    item.usageKo(),
+                    item.exampleEn(),
+                    item.exampleKo()))
+        .toList();
   }
 
   /**

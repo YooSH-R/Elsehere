@@ -455,6 +455,65 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_ShowsAffinityAndRudeLimitFromServer()
+        {
+            api.StartResponse.Conversation = new ConversationState
+            {
+                Status = "ACTIVE",
+                RudeCount = 0,
+                RudeLimit = 3,
+                Affinity = 12,
+            };
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.Standing.IsKnown, Is.True);
+            Assert.That(conversation.Standing.Affinity, Is.EqualTo(12));
+            Assert.That(conversation.Standing.RudeLimit, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task Send_RudeTurn_UpdatesAffinityAndStrikes()
+        {
+            api.StartResponse.Conversation = new ConversationState
+            {
+                Status = "ACTIVE",
+                RudeCount = 0,
+                RudeLimit = 3,
+                Affinity = 12,
+            };
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("Shut up.", "That's not okay to say.", "ACTIVE");
+            api.TurnResponse.Conversation.RudeCount = 1;
+            api.TurnResponse.Conversation.RudeLimit = 3;
+            api.TurnResponse.Conversation.Affinity = 8;
+
+            await conversation.SendAsync("Shut up.");
+
+            Assert.That(conversation.Standing.Affinity, Is.EqualTo(8));
+            Assert.That(conversation.Standing.AffinityChange, Is.EqualTo(-4));
+            Assert.That(conversation.Standing.IsStrike(0), Is.True);
+        }
+
+        [Test]
+        public async Task Send_WhenRudeWordsEndConversation_SaysWhy()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(
+                "Shut up.",
+                "I don't want to talk like this anymore.",
+                "ENDED_BY_NPC"
+            );
+            api.TurnResponse.Conversation.EndReason = "RUDE";
+
+            await conversation.SendAsync("Shut up.");
+
+            Assert.That(conversation.StatusMessage, Does.Contain("무례한 말이 쌓여"));
+            Assert.That(conversation.StatusMessage, Does.Contain("Mia"));
+            Assert.That(conversation.StatusMessage, Does.Contain("[대화 종료]"));
+        }
+
+        [Test]
         public async Task Send_AfterNpcEndedConversation_IsNotSent()
         {
             await conversation.StartAsync();
@@ -585,7 +644,7 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToMyPage()
+        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToMyInfoConsent()
         {
             await conversation.StartAsync();
             api.TranscriptionError = new ApiException(
@@ -597,7 +656,8 @@ namespace A305.Dialogue.Tests
             await conversation.TranscribeAsync(Wav);
 
             Assert.That(conversation.CanTalk, Is.False);
-            Assert.That(conversation.RecoveryGuide, Does.Contain("마이페이지"));
+            // 동의를 켜는 실제 메뉴 경로(오른쪽 위 메뉴 › 내 정보 › 선택 동의)로 안내한다.
+            Assert.That(conversation.RecoveryGuide, Does.Contain("내 정보 › 선택 동의"));
         }
 
         [Test]

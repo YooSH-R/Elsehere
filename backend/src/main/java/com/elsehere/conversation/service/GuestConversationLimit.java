@@ -8,6 +8,7 @@ import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.User;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>게스트는 로그아웃하면 같은 계정으로 다시 들어올 수 없으므로 횟수를 다시 채우지 않는다. 가입 사용자의 AI 사용량 한도(API 명세 1.4)는 아직 없다.
  */
+@Slf4j
 @Component
 public class GuestConversationLimit {
 
@@ -36,6 +38,7 @@ public class GuestConversationLimit {
   /** 게스트가 이미 정해진 횟수만큼 대화를 시작했으면 거절한다. 오류 코드는 AI 사용량 소진과 같지만, 사용량이 아니라 게스트 횟수 때문에 막혔다고 문구로 알린다. */
   public void check(User user) {
     if (isReached(user)) {
+      log.info("guest_conversation_limit_reached user_id={} limit={}", user.getId(), limit);
       throw new BusinessException(
           ErrorCode.AI_QUOTA_EXHAUSTED,
           "게스트는 NPC와 " + limit + "번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요.",

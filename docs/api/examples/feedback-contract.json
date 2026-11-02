@@ -185,6 +185,7 @@
                 }
               }
             ],
+            "situation_expressions": [],
             "spoken_usage_notes": []
           },
           "problem": null
@@ -396,6 +397,7 @@
                 }
               }
             ],
+            "situation_expressions": [],
             "spoken_usage_notes": []
           },
           "problem": null

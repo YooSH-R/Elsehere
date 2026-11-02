@@ -11,7 +11,7 @@ public enum FirstDayStage {
       "CLEAR",
       "체크인까지 시간이 남았어요. 큰 캐리어는 호텔에 맡기고 잠시 쉬러 가려 해요.",
       "예약을 확인하고, 캐리어 보관과 근처 카페 위치를 물어보세요.",
-      "It is too early to check in. You can confirm the reservation, store the large suitcase and give directions to Corner Cafe. The learner keeps a small blue shoulder bag.",
+      "It is too early to check in: the room is not ready yet. Do not check the learner in, give a room number or room key, or ask for ID, a credit card or payment. If they ask to check in, tell them early check-in is not possible today. You can confirm the reservation by name, store the large suitcase until the room is ready and give directions to Corner Cafe, where they can wait. The learner keeps a small blue shoulder bag.",
       goal("confirm_reservation", "예약 확인", "Confirm or identify an existing hotel reservation."),
       goal("store_suitcase", "캐리어 맡기기", "Ask to store the large suitcase until check-in."),
       goal("ask_cafe", "카페 위치 묻기", "Ask for a nearby cafe or directions to it.")),

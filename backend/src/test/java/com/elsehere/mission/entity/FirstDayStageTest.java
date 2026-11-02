@@ -24,6 +24,20 @@ class FirstDayStageTest {
   }
 
   @Test
+  @DisplayName("첫 호텔 대화는 체크인을 끝내지 않고 얼리 체크인이 어렵다고 알린 뒤 짐 보관과 카페를 권한다")
+  void earlyArrival_keepsCheckInForLater() {
+    String instruction = FirstDayStage.EARLY_ARRIVAL.instruction();
+
+    assertThat(instruction)
+        .contains("Do not check the learner in")
+        .contains("room key")
+        .contains("ID, a credit card or payment")
+        .contains("early check-in is not possible")
+        .contains("store the large suitcase")
+        .contains("Corner Cafe");
+  }
+
+  @Test
   @DisplayName("우산을 사는 단계는 드럭스토어에서 일어난다")
   void buyUmbrella_happensAtTheDrugstore() {
     assertThat(FirstDayStage.BUY_UMBRELLA.situation()).startsWith("우산을 파는 드럭스토어예요.");

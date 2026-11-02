@@ -2,6 +2,8 @@ package com.elsehere.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.service.DialogueServiceTest;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -45,6 +47,18 @@ class WithdrawalServiceTest {
     assertThat(rows("select count(*) from ai_requests where user_id = ?", memberId)).isEqualTo(1);
     assertThat(UserContentTestData.contentRows(entityManager, jdbcTemplate, otherId))
         .allSatisfy((table, rows) -> assertThat(rows).as(table).isPositive());
+  }
+
+  @Test
+  @DisplayName("탈퇴하면 사용자 ID만 INFO로 남긴다")
+  void withdraw_logsUserWithdrew() {
+    Long memberId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+
+    try (LogCapture logs = LogCapture.atInfo(WithdrawalService.class)) {
+      withdrawalService.withdraw(memberId);
+
+      assertThat(logs.messages(Level.INFO)).containsExactly("user_withdrew user_id=" + memberId);
+    }
   }
 
   @Test

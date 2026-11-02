@@ -25,13 +25,14 @@ namespace A305.Dialogue
         private const string VoiceConsentRequiredCode = "VOICE_CONSENT_REQUIRED";
         private const string ActiveStatus = "ACTIVE";
         private const string QuotaExhaustedReason = "QUOTA_EXHAUSTED";
+        private const string RudeReason = "RUDE";
         private const string FeedbackDone = "DONE";
 
         private const string RetryGuide = "[다시 시도]를 누르거나 [대화 종료]로 나갈 수 있어요.";
         private const string QuotaGuide = "[대화 종료]를 누르면 마을 탐험으로 돌아가요.";
         private const string QuotaEndedGuide = "마을 탐험, 사물 카드, 단어장은 계속 쓸 수 있어요.";
         private const string SpeakAgainGuide =
-            "[누르고 말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
+            "[꾹 눌러 말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
 
         private readonly IConversationApi api;
         private readonly ConversationInitiator initiatedBy;
@@ -52,7 +53,7 @@ namespace A305.Dialogue
         private string lastTranscript;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
-        /// <param name="canTalk">음성 처리에 동의해 [누르고 말하기]를 쓸 수 있는지</param>
+        /// <param name="canTalk">음성 처리에 동의해 [꾹 눌러 말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         public ServerConversation(
             string npcCode,
@@ -115,6 +116,7 @@ namespace A305.Dialogue
         public bool HasHint => true;
         public string HintText { get; private set; }
         public bool UsesVoice => true;
+        public ConversationStanding Standing { get; } = new ConversationStanding();
         public bool CanTalk => canTalk;
 
         public bool CanReplaySpeech =>
@@ -138,6 +140,7 @@ namespace A305.Dialogue
                         NpcName = start.Npc.Name;
                     }
 
+                    Standing.Apply(start.Conversation);
                     AddNpcTurn(start.OpeningTurn);
                 },
                 StartAsync
@@ -188,6 +191,7 @@ namespace A305.Dialogue
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
+                    Standing.Apply(result.Conversation);
                     AddNpcTurn(result.NpcTurn);
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
@@ -200,11 +204,16 @@ namespace A305.Dialogue
 
             if (IsEnded)
             {
-                // 사용량 소진은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
+                // 사용량 소진·무례 누적은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
                 bool isQuotaExhausted = endReason == QuotaExhaustedReason;
-                StatusMessage = isQuotaExhausted
-                    ? $"AI 사용량을 모두 써서 {NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요."
-                    : $"{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+                string reason = endReason switch
+                {
+                    QuotaExhaustedReason => "AI 사용량을 모두 써서 ",
+                    RudeReason => "무례한 말이 쌓여 ",
+                    _ => "",
+                };
+                StatusMessage =
+                    $"{reason}{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
                 RecoveryGuide = isQuotaExhausted ? QuotaEndedGuide : null;
                 Changed?.Invoke();
             }
@@ -228,7 +237,7 @@ namespace A305.Dialogue
             return retry();
         }
 
-        /// <summary>[누르고 말하기]를 누르는 동안 녹음 중임을 알린다.</summary>
+        /// <summary>[꾹 눌러 말하기]를 누르는 동안 녹음 중임을 알린다.</summary>
         public void ShowListening(float maxSeconds)
         {
             StatusMessage = VoiceInputNotice.Listening(maxSeconds);

@@ -105,6 +105,16 @@ class VocabCandidate(core.Contract):
     source: VocabSource
 
 
+class SituationExpression(core.Contract):
+    """이번 장면에서 자주 쓰는 관용·추천 표현. 사용자 발화 평가와 별개로, 다음에 같은 상황에서 써 볼 표현을 알려 준다."""
+
+    expression: core.Text
+    meaning_ko: core.Text
+    usage_ko: core.Text = Field(description="이 장면에서 언제 쓰는지 한 문장")
+    example_en: core.Text = Field(description="학습용 새 예문. 실제 사용자 발화라고 표시하지 않는다.")
+    example_ko: core.Text
+
+
 class FeedbackData(core.Contract):
     conversation_summary: ConversationSummary
     communication: core.Communication
@@ -114,6 +124,8 @@ class FeedbackData(core.Contract):
     turn_reviews: Annotated[list[TurnReview], Field(min_length=1)]
     summary_suggestion_id: core.Id | None
     vocab_candidates: list[VocabCandidate]
+    # 기존 결과와 호환되도록 없으면 빈 배열이다. 생성할 때는 gms.feedback_response_format이 2~3개를 요구한다.
+    situation_expressions: Annotated[list[SituationExpression], Field(max_length=3)] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def references(self):
@@ -137,6 +149,9 @@ class FeedbackData(core.Contract):
         expressions = [" ".join(item.expression.split()).casefold() for item in self.vocab_candidates]
         if len(set(expressions)) != len(expressions):
             raise ValueError("같은 표현의 단어장 후보 중복")
+        situation = [" ".join(item.expression.split()).casefold() for item in self.situation_expressions]
+        if len(set(situation)) != len(situation):
+            raise ValueError("같은 상황 표현 중복")
         for item in self.vocab_candidates:
             if item.expression != item.source.quote:
                 raise ValueError("저장할 표현은 출처 quote와 정확히 일치해야 한다")

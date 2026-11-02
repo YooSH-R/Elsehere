@@ -8,24 +8,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.dto.ConversationDetailResponse;
 import com.elsehere.conversation.dto.ConversationStartResponse;
 import com.elsehere.conversation.dto.EndConversationRequest;
@@ -40,6 +44,9 @@ import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.memory.service.MemoryService;
+import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -76,6 +83,8 @@ class ConversationServiceTest {
 
   @Autowired private AiRequestRepository aiRequestRepository;
 
+  @Autowired private FirstDayMissionRepository firstDayMissionRepository;
+
   @Autowired private EntityManager entityManager;
 
   @Autowired private Clock clock;
@@ -90,7 +99,9 @@ class ConversationServiceTest {
   @Test
   @DisplayName("말걸기 대사가 없는 직원은 NPC가 먼저 말을 건 대화라도 AI가 만든 첫 인사로 시작하고 음성을 저장한다")
   void start_staffWithoutApproachLine_usesAiGreeting() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Hi! What can I get for you?", "audio-1"));
     given(aiWorkerClient.audio(any(), eq("audio-1"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
@@ -117,6 +128,37 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("카페 휴식 단계에 택시기사와 대화를 시작해도 첫 인사 지시에 카페 주문 지시가 섞이지 않는다")
+  void start_taxiDuringCafeBreak_greetingKeepsDriverRole() {
+    FirstDayMission mission = FirstDayMission.start(userId);
+    mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
+    firstDayMissionRepository.saveAndFlush(mission);
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Where are you headed?", null));
+
+    conversationService.start(
+        userId, new StartConversationRequest(UUID.randomUUID(), "TAXI_DRIVER", InitiatedBy.USER));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiWorkerClient)
+        .should()
+        .reply(
+            any(),
+            argThat(npc -> "TAXI_DRIVER".equals(npc.id())),
+            any(),
+            any(),
+            anyString(),
+            instruction.capture(),
+            anyInt(),
+            any());
+    assertThat(instruction.getValue())
+        .contains("Corner Cafe", "Stay in your own role")
+        .doesNotContain("Offer drinks", "size, temperature or milk");
+  }
+
+  @Test
   @DisplayName("말걸기 대사가 있는 행인이 먼저 말을 걸었으면 그 대사로 시작하고 AI를 부르지 않는다")
   void start_passerbyApproach_usesApproachLineWithoutAi() {
     ConversationStartResponse response =
@@ -128,13 +170,49 @@ class ConversationServiceTest {
     assertThat(response.openingTurn().suggestWords()).isNull();
     then(aiWorkerClient)
         .should(never())
-        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt());
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any());
+  }
+
+  @Test
+  @DisplayName("대화를 시작하면 무례 횟수 0·무례 한도와 그 NPC의 지금 호감도를 대화 상태로 돌려준다")
+  void start_respondsRudeLimitAndCurrentAffinity() {
+    entityManager
+        .createNativeQuery(
+            "insert into user_npc_relations (user_id, npc_id, affinity, talk_count)"
+                + " values (?, ?, 12, 1)")
+        .setParameter(1, userId)
+        .setParameter(2, npcId(entityManager, "TOWN_PASSERBY"))
+        .executeUpdate();
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
+
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+    assertThat(response.conversation().endReason()).isNull();
+    assertThat(response.conversation().rudeCount()).isZero();
+    assertThat(response.conversation().rudeLimit()).isEqualTo(ConversationSupport.RUDE_LIMIT);
+    assertThat(response.conversation().affinity()).isEqualTo(12);
+  }
+
+  @Test
+  @DisplayName("처음 만난 NPC와 대화를 시작하면 호감도는 0이다")
+  void start_firstMeeting_respondsZeroAffinity() {
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC));
+
+    assertThat(response.conversation().affinity()).isZero();
   }
 
   @Test
   @DisplayName("NPC 음성을 받지 못해도 대화는 시작하고 첫 턴의 음성 상태는 FAILED다")
   void start_audioDownloadFails_startsWithoutSpeech() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Hi!", "audio-1"));
     given(aiWorkerClient.audio(any(), eq("audio-1")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
@@ -151,7 +229,9 @@ class ConversationServiceTest {
   @Test
   @DisplayName("첫 인사를 만들지 못하면 워커 오류 코드로 실패하고 대화를 만들지 않으며 호출 기록을 FAILED로 남긴다")
   void start_greetingFails_throwsWithoutConversation() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(new NpcReply(null, null, "provider_limit", List.of(usage("npc"))));
     UUID requestId = UUID.randomUUID();
 
@@ -257,6 +337,65 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("게스트가 대화 한도에 닿아 거절되면 사용자 ID와 한도를 INFO로 남긴다")
+  void start_guestReachedLimit_logsLimitReached() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    for (int i = 0; i < GUEST_CONVERSATION_LIMIT; i++) {
+      startAndEndPasserby(guestId);
+    }
+
+    try (LogCapture logs = LogCapture.atInfo(GuestConversationLimit.class)) {
+      assertThatThrownBy(() -> startAndEndPasserby(guestId)).isInstanceOf(BusinessException.class);
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "guest_conversation_limit_reached user_id="
+                  + guestId
+                  + " limit="
+                  + GUEST_CONVERSATION_LIMIT);
+    }
+  }
+
+  @Test
+  @DisplayName("대화를 시작하면 대화 ID·NPC·먼저 건 쪽만 INFO로 남기고 첫 대사는 남기지 않는다")
+  void start_logsConversationStarted() {
+    try (LogCapture logs = LogCapture.atInfo(ConversationService.class)) {
+      ConversationStartResponse started = startPasserby();
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "conversation_started conversation_id="
+                  + started.conversationId()
+                  + " npc=TOWN_PASSERBY initiated_by=NPC");
+    }
+  }
+
+  @Test
+  @DisplayName("대화를 끝내면 종료 상태·이유·사용자 발화 수를 INFO로 남기고, 다시 끝내도 또 남기지 않는다")
+  void end_logsConversationEndedOnce() {
+    ConversationStartResponse started = startPasserby();
+    sendText(started.conversationId(), "Yes, it's sunny!");
+    given(aiWorkerClient.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
+    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+        .willReturn(new MemoryCardResult("{\"name\": \"\"}", List.of()));
+
+    try (LogCapture logs = LogCapture.atInfo(ConversationService.class)) {
+      conversationService.end(
+          userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+      conversationService.end(
+          userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "conversation_ended conversation_id="
+                  + started.conversationId()
+                  + " status=ENDED_BY_USER end_reason=USER_ENDED user_turns=1");
+    }
+  }
+
+  @Test
   @DisplayName("대화를 끝내면 ENDED_BY_USER와 사용자 발화 수, 피드백을 돌려주고 NPC 기억을 갱신한다")
   void end_savesEndAndReturnsFeedback() {
     ConversationStartResponse started = startPasserby();
@@ -282,9 +421,28 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("AI 첫인사에 사용자의 닉네임과 캐릭터를 실어 NPC가 캐릭터에 맞는 호칭을 쓰게 한다")
+  void start_aiGreeting_sendsTheLearner() {
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi!", null));
+
+    startCafe();
+
+    ArgumentCaptor<WorkerLearner> learner = ArgumentCaptor.forClass(WorkerLearner.class);
+    then(aiWorkerClient)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), learner.capture());
+    assertThat(learner.getValue()).isEqualTo(new WorkerLearner("Sun", "F"));
+  }
+
+  @Test
   @DisplayName("다시 만난 NPC의 첫 인사에는 이전 대화에서 저장한 기억을 넘긴다")
   void start_afterPreviousConversation_sendsMemory() {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Hi!", null));
     given(aiWorkerClient.feedback(any(), any()))
         .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
@@ -300,7 +458,7 @@ class ConversationServiceTest {
     ArgumentCaptor<WorkerMemory> memory = ArgumentCaptor.forClass(WorkerMemory.class);
     then(aiWorkerClient)
         .should(atLeastOnce())
-        .reply(any(), any(), memory.capture(), any(), anyString(), anyString(), anyInt());
+        .reply(any(), any(), memory.capture(), any(), anyString(), anyString(), anyInt(), any());
     List<WorkerMemory> sent = memory.getAllValues();
     assertThat(sent.get(0)).isNull();
     WorkerMemory last = sent.get(sent.size() - 1);
@@ -375,7 +533,7 @@ class ConversationServiceTest {
         .willReturn(new JudgeResult(text, false, null, null, List.of(usage("judge"))));
     given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
         .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of(usage("guard"))));
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt()))
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt(), any()))
         .willReturn(reply("Nice!", null));
     turnService.send(
         userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, text, null));

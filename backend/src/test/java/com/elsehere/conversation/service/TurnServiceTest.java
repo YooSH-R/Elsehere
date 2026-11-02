@@ -12,16 +12,19 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.DialogueTestData;
 import com.elsehere.conversation.dto.ConversationStartResponse;
 import com.elsehere.conversation.dto.EndConversationRequest;
@@ -79,11 +82,35 @@ class TurnServiceTest {
   }
 
   @Test
+  @DisplayName("NPC 대답에 대화하는 사용자의 닉네임과 캐릭터를 실어 NPC가 캐릭터에 맞는 호칭을 쓰게 한다")
+  void send_passesTheLearnerToTheNpcReply() {
+    judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
+        .willReturn(reply("Great day for a walk!", "audio-2"));
+    given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
+
+    turnService.send(
+        userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "네 맑아요", null));
+
+    then(aiWorkerClient)
+        .should()
+        .reply(
+            any(),
+            any(),
+            any(),
+            any(),
+            eq("네 맑아요"),
+            anyString(),
+            anyInt(),
+            eq(new WorkerLearner("Sun", "F")));
+  }
+
+  @Test
   @DisplayName(
       "판정한 문장·번역·무례 판정값으로 사용자 턴을, NPC 대답과 음성으로 NPC 턴을 이어서 저장하고 호출 기록을 남긴다. 추천 단어는 따로 받으므로 비워 둔다")
   void send_savesUserAndNpcTurns() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt()))
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
         .willReturn(reply("Great day for a walk!", "audio-2"));
     given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
@@ -118,7 +145,9 @@ class TurnServiceTest {
   void send_abusive_countsAndWarns() {
     judges("닥쳐 멍청아", "닥쳐 멍청아", "Shut up, idiot.");
     guards("닥쳐 멍청아", true, null);
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt(), any()))
         .willReturn(reply("That's not okay to say.", null));
 
     TurnResponse response = send("닥쳐 멍청아");
@@ -129,7 +158,15 @@ class TurnServiceTest {
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
     then(aiWorkerClient)
         .should()
-        .reply(any(), any(), any(), any(), eq("닥쳐 멍청아"), eq(TurnService.RUDE_WARNING), anyInt());
+        .reply(
+            any(),
+            any(),
+            any(),
+            any(),
+            eq("닥쳐 멍청아"),
+            eq(TurnService.RUDE_WARNING),
+            anyInt(),
+            any());
     TurnDetailResponse saved = conversationService.detail(userId, conversationId).turns().get(1);
     assertThat(saved.rude()).isTrue();
     assertThat(saved.translation()).isNull();
@@ -142,7 +179,9 @@ class TurnServiceTest {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
-      given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt()))
+      given(
+              aiWorkerClient.reply(
+                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
           .willReturn(reply("Stop it.", null));
     }
 
@@ -155,8 +194,42 @@ class TurnServiceTest {
     assertThat(last.conversation().endReason()).isEqualTo(ConversationEndReason.RUDE);
     then(aiWorkerClient)
         .should()
-        .reply(any(), any(), any(), any(), eq("you idiot 3"), eq(TurnService.RUDE_LEAVE), anyInt());
+        .reply(
+            any(),
+            any(),
+            any(),
+            any(),
+            eq("you idiot 3"),
+            eq(TurnService.RUDE_LEAVE),
+            anyInt(),
+            any());
     assertThat(conversationService.detail(userId, conversationId).endedAt()).isNotNull();
+  }
+
+  @Test
+  @DisplayName("무례가 쌓여 NPC가 대화를 끝내면 종료 상태와 이유를 INFO로 한 번 남기고 무례한 말은 남기지 않는다")
+  void send_abusiveAtLimit_logsConversationEnded() {
+    for (int count = 1; count <= ConversationSupport.RUDE_LIMIT; count++) {
+      String text = "you idiot " + count;
+      judges(text, text, null);
+      guards(text, true, null);
+      given(
+              aiWorkerClient.reply(
+                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+          .willReturn(reply("Stop it.", null));
+    }
+
+    try (LogCapture logs = LogCapture.atInfo(TurnService.class)) {
+      send("you idiot 1");
+      send("you idiot 2");
+      send("you idiot 3");
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "conversation_ended conversation_id="
+                  + conversationId
+                  + " status=ENDED_BY_NPC end_reason=RUDE");
+    }
   }
 
   @Test
@@ -198,7 +271,9 @@ class TurnServiceTest {
   void send_afterAbusive_marksRudeLineInHistory() {
     judges("you idiot", "you idiot", null);
     guards("you idiot", true, null);
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("you idiot"), anyString(), anyInt()))
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), eq("you idiot"), anyString(), anyInt(), any()))
         .willReturn(reply("Not okay.", null));
     send("you idiot");
     judges("Sorry", "Sorry", null);
@@ -267,7 +342,7 @@ class TurnServiceTest {
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiWorkerClient)
         .should()
-        .reply(any(), any(), any(), history.capture(), eq("Bye"), anyString(), anyInt());
+        .reply(any(), any(), any(), history.capture(), eq("Bye"), anyString(), anyInt(), any());
     assertThat(history.getValue())
         .containsExactly(
             WorkerLine.npc(OPENING),
@@ -335,7 +410,7 @@ class TurnServiceTest {
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
     then(aiWorkerClient)
         .should(never())
-        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt());
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any());
   }
 
   @Test
@@ -383,7 +458,7 @@ class TurnServiceTest {
   @DisplayName("AI 대답을 기다리는 사이 대화가 끝났으면 턴을 저장하지 않고 CONVERSATION_NOT_ACTIVE다")
   void send_conversationEndedWhileWaiting_throwsNotActive() {
     judges("Yes", "Yes", null);
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt()))
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
         .willAnswer(
             invocation -> {
               entityManager
@@ -416,6 +491,34 @@ class TurnServiceTest {
     send("you idiot");
 
     assertThat(affinity()).isEqualTo(-6);
+  }
+
+  @Test
+  @DisplayName("무례로 깎은 뒤의 호감도를 대화 상태로 돌려준다")
+  void send_abusive_respondsDeductedAffinity() {
+    rudeTo("you idiot", -8);
+
+    TurnResponse response = send("you idiot");
+
+    assertThat(response.conversation().affinity()).isEqualTo(-8);
+  }
+
+  @Test
+  @DisplayName("무례가 아닌 말에는 그 NPC의 지금 호감도를 그대로 돌려준다")
+  void send_notRude_respondsCurrentAffinity() {
+    entityManager
+        .createNativeQuery(
+            "insert into user_npc_relations (user_id, npc_id, affinity, talk_count)"
+                + " values (?, ?, 12, 1)")
+        .setParameter(1, userId)
+        .setParameter(2, passerbyNpcId())
+        .executeUpdate();
+    judges("Yes", "Yes", null);
+    repliesTo("Yes", reply("Nice!", null));
+
+    TurnResponse response = send("Yes");
+
+    assertThat(response.conversation().affinity()).isEqualTo(12);
   }
 
   @Test
@@ -522,7 +625,7 @@ class TurnServiceTest {
         .willReturn(
             new GuardResult(
                 new GuardResult.Guard(true, null), affinityDelta, List.of(usage("guard"))));
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt()))
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
         .willReturn(reply("That's not okay to say.", null));
   }
 
@@ -544,7 +647,7 @@ class TurnServiceTest {
   }
 
   private void repliesTo(String text, NpcReply reply) {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt()))
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt(), any()))
         .willReturn(reply);
   }
 

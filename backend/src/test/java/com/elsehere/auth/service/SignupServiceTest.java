@@ -7,12 +7,14 @@ import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.mock;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.auth.dto.ConsentAgreement;
 import com.elsehere.auth.dto.SignupRequest;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AuthProvider;
@@ -81,6 +83,22 @@ class SignupServiceTest {
     assertThat(user.getAvatarType()).isEqualTo(AvatarType.F);
     assertThat(user.getOnboardingStep()).isEqualTo(OnboardingStep.LANG);
     assertThat(user.getCurrentLanguage()).isEqualTo("en-US");
+  }
+
+  @Test
+  @DisplayName("가입하면 사용자 ID와 로그인 방식만 INFO로 남기고 이메일·닉네임은 남기지 않는다")
+  void signUp_logsUserSignedUp() {
+    try (LogCapture logs = LogCapture.atInfo(SignupService.class)) {
+      signupService.signUp(PENDING, request(requiredConsents()));
+
+      Long userId =
+          userRepository
+              .findByProviderAndProviderUid(AuthProvider.GOOGLE, "google-sub-new")
+              .orElseThrow()
+              .getId();
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly("user_signed_up user_id=" + userId + " provider=GOOGLE");
+    }
   }
 
   @Test

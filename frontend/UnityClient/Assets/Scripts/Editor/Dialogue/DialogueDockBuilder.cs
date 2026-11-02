@@ -56,7 +56,7 @@ namespace A305.EditorTools.Dialogue
             Place(inputRow.Find("SendButton"), 880, 44, 176, 72);
             Control(inputRow.Find("SendButton"), "보내기", "send");
             Place(inputRow.Find("TalkButton"), 1072, 44, 264, 72);
-            Control(inputRow.Find("TalkButton"), "누르고 말하기", "mic", true);
+            Control(inputRow.Find("TalkButton"), "꾹 눌러 말하기", "mic", true);
             ToolRow(conversation.Find("ToolRow"));
             Transform help = root.transform.Find("HelpPanel");
             FreeLayout(help);

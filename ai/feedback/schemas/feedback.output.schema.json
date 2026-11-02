@@ -190,6 +190,14 @@
           "title": "Vocab Candidates",
           "type": "array"
         },
+        "situation_expressions": {
+          "items": {
+            "$ref": "#/$defs/SituationExpression"
+          },
+          "maxItems": 3,
+          "title": "Situation Expressions",
+          "type": "array"
+        },
         "spoken_usage_notes": {
           "items": {
             "$ref": "#/$defs/SpokenUsageNote"
@@ -600,6 +608,53 @@
         "conversation_id"
       ],
       "title": "Scope",
+      "type": "object"
+    },
+    "SituationExpression": {
+      "additionalProperties": false,
+      "description": "이번 장면에서 자주 쓰는 관용·추천 표현. 사용자 발화 평가와 별개로, 다음에 같은 상황에서 써 볼 표현을 알려 준다.",
+      "properties": {
+        "expression": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Expression",
+          "type": "string"
+        },
+        "meaning_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Meaning Ko",
+          "type": "string"
+        },
+        "usage_ko": {
+          "description": "이 장면에서 언제 쓰는지 한 문장",
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Usage Ko",
+          "type": "string"
+        },
+        "example_en": {
+          "description": "학습용 새 예문. 실제 사용자 발화라고 표시하지 않는다.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Example En",
+          "type": "string"
+        },
+        "example_ko": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Example Ko",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expression",
+        "meaning_ko",
+        "usage_ko",
+        "example_en",
+        "example_ko"
+      ],
+      "title": "SituationExpression",
       "type": "object"
     },
     "SpokenUsageNote": {

@@ -13,6 +13,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
@@ -22,6 +23,7 @@ import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.service.DialogueServiceTest;
@@ -29,7 +31,9 @@ import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.dto.IdiomResponse;
+import com.elsehere.feedback.dto.SituationExpressionResponse;
 import com.elsehere.feedback.dto.SuggestionResponse;
+import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -85,6 +89,12 @@ class FeedbackServiceTest {
 
     assertThat(response.status()).isEqualTo(FeedbackStatus.DONE);
     assertThat(response.summary()).isEqualTo("라테를 주문했어요.");
+    assertThat(response.situationExpressions())
+        .extracting(SituationExpressionResponse::expression, SituationExpressionResponse::usageKo)
+        .containsExactly(tuple("Can I get that to go?", "음료를 가지고 나가고 싶을 때 써요."));
+    assertThat(response.vocabCandidates())
+        .containsExactly(
+            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
     assertThat(response.reviews().good()).containsExactly("원하는 것을 분명히 말했어요");
     assertThat(response.reviews().improve()).containsExactly("공손한 표현을 더 써 보세요");
     assertThat(response.suggestion())
@@ -241,6 +251,41 @@ class FeedbackServiceTest {
   }
 
   @Test
+  @DisplayName("피드백을 만들지 못하면 대화 ID와 원인 코드를 WARN으로 남긴다")
+  void feedbackOnEnd_workerFailed_logsFeedbackFailed() {
+    given(aiWorkerClient.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of(usage("fb"))));
+
+    try (LogCapture logs = LogCapture.atInfo(FeedbackService.class)) {
+      feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
+
+      assertThat(logs.messages(Level.WARN))
+          .containsExactly(
+              "feedback_failed conversation_id=" + conversation.getId() + " reason=AI_TIMEOUT");
+    }
+  }
+
+  @Test
+  @DisplayName("피드백을 건너뛰면 대화 ID와 이유를 INFO로 남기고, 사용자가 건너뛰었으면 이유를 USER_SKIPPED로 쓴다")
+  void feedbackOnEnd_skipped_logsFeedbackSkipped() {
+    Conversation silent = conversation(entityManager, userId, "HOTEL_STAFF");
+    npcTurn(entityManager, silent, 1, "Welcome to the hotel.");
+    silent.endByUser(Instant.parse("2026-10-27T01:06:00Z"));
+
+    try (LogCapture logs = LogCapture.atInfo(FeedbackService.class)) {
+      feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), true);
+      feedbackService.feedbackOnEnd(userId, silent.getId(), UUID.randomUUID(), false);
+
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly(
+              "feedback_skipped conversation_id=" + conversation.getId() + " reason=USER_SKIPPED",
+              "feedback_skipped conversation_id="
+                  + silent.getId()
+                  + " reason=NO_USABLE_USER_TURNS");
+    }
+  }
+
+  @Test
   @DisplayName("실패한 피드백은 다시 만들기(FB-02)로 다시 만들어 DONE과 상세 평가를 저장한다")
   void regenerate_afterFailure_savesDone() {
     given(aiWorkerClient.feedback(any(), any()))
@@ -334,7 +379,19 @@ class FeedbackServiceTest {
                 new WorkerFeedback.SpokenUsageNote(
                     new WorkerFeedback.Source(voiceTurnId, "I want latte"),
                     "I'd like ~",
-                    "~로 주세요")));
+                    "~로 주세요")),
+            List.of(
+                new WorkerFeedback.SituationExpression(
+                    "Can I get that to go?",
+                    "포장해 주실 수 있나요?",
+                    "음료를 가지고 나가고 싶을 때 써요.",
+                    "Can I get that to go? I'm in a hurry.",
+                    "포장해 주실 수 있나요? 좀 급해서요.")),
+            List.of(
+                new WorkerFeedback.VocabCandidate(
+                    "word", "latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."),
+                new WorkerFeedback.VocabCandidate(
+                    "idiom", "to go", "포장해서", "Can I get it to go?", "포장해 주실 수 있나요?")));
     return new WorkerFeedback(
         "completed", null, result, "{\"conversation_summary\":{}}", List.of(usage("feedback")));
   }

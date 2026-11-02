@@ -17,6 +17,9 @@ namespace A305.Dialogue
         public long ConversationId { get; set; }
         public NpcSummary Npc { get; set; }
         public NpcTurnData OpeningTurn { get; set; }
+
+        /// <summary>발화 응답과 같은 형식의 대화 상태. 이 칸을 보내지 않는 서버면 null이다.</summary>
+        public ConversationState Conversation { get; set; }
     }
 
     public sealed class NpcSummary
@@ -76,6 +79,15 @@ namespace A305.Dialogue
         public string Status { get; set; }
 
         public string EndReason { get; set; }
+
+        /// <summary>이 대화에서 무례로 센 말 수</summary>
+        public int? RudeCount { get; set; }
+
+        /// <summary>여기에 닿으면 NPC가 대화를 끝내는 무례 횟수(3)</summary>
+        public int? RudeLimit { get; set; }
+
+        /// <summary>이 NPC의 지금 호감도(-100~100). 이 칸을 보내지 않는 서버면 null이다.</summary>
+        public int? Affinity { get; set; }
     }
 
     public sealed class EndBody
@@ -100,6 +112,22 @@ namespace A305.Dialogue
         public FeedbackReviews Reviews { get; set; }
         public FeedbackSuggestion Suggestion { get; set; }
         public string ErrorCode { get; set; }
+
+        /// <summary>이 장면에서 자주 쓰는 관용·추천 표현. 이 필드가 없던 피드백은 null이거나 비어 있다.</summary>
+        public List<SituationExpressionData> SituationExpressions { get; set; }
+    }
+
+    /// <summary>이 장면에서 자주 쓰는 표현 하나. 예문은 학습용이며 사용자가 한 말이 아니다.</summary>
+    public sealed class SituationExpressionData
+    {
+        public string Expression { get; set; }
+        public string MeaningKo { get; set; }
+
+        /// <summary>이 장면에서 언제 쓰는지</summary>
+        public string UsageKo { get; set; }
+
+        public string ExampleEn { get; set; }
+        public string ExampleKo { get; set; }
     }
 
     public sealed class FeedbackReviews

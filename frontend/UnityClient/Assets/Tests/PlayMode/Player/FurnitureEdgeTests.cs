@@ -45,16 +45,27 @@ namespace A305.Player.PlayModeTests
             Box(FurnitureCenter, new Vector3(1f, FurnitureHeightMeters, 1f));
             PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
 
-            // 상자 오른쪽 모서리(x 0.5) 바깥 위에서 떨어뜨리면 캡슐 아래 둥근 면이 모서리에 먼저 닿는다.
-            player.Teleport(
-                new Vector3(
-                    .5f + metersOutsideEdge,
-                    FurnitureHeightMeters + .3f,
-                    FurnitureCenter.z
-                ),
-                Quaternion.identity
-            );
-            yield return WaitSeconds(1.5f);
+            // 다른 가구 테스트처럼 게임과 같은 1/60초 프레임으로 기다린다. 화면 없이 도는 CI에서는 프레임이
+            // 제한 없이 높아져 한 프레임 이동이 너무 작아지고, 캐릭터가 모서리에 걸린 채 남는 일이 생긴다.
+            float previousDelta = Time.captureDeltaTime;
+            Time.captureDeltaTime = 1f / 60f;
+            try
+            {
+                // 상자 오른쪽 모서리(x 0.5) 바깥 위에서 떨어뜨리면 캡슐 아래 둥근 면이 모서리에 먼저 닿는다.
+                player.Teleport(
+                    new Vector3(
+                        .5f + metersOutsideEdge,
+                        FurnitureHeightMeters + .3f,
+                        FurnitureCenter.z
+                    ),
+                    Quaternion.identity
+                );
+                yield return WaitSeconds(1.5f);
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
 
             Assert.That(
                 player.transform.position.y,

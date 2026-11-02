@@ -2,6 +2,7 @@ package com.elsehere.conversation.service;
 
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -44,6 +46,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 게스트는 대화 횟수로 제한하고, 사용자 AI 한도 예약·차감, 미션 연결,
  * 종료 피드백은 아직 하지 않는다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ConversationService {
@@ -81,36 +84,45 @@ public class ConversationService {
             ? approachOpening(npc)
             : greetingOpening(new WorkerTrace(request.requestId(), userId, null), npc, context);
 
-    return transactionTemplate.execute(
-        status -> {
-          Conversation conversation =
-              conversationRepository.save(
-                  Conversation.start(
-                      userId,
-                      npc.npcId(),
-                      request.initiatedBy(),
-                      context.level(),
-                      clock.instant()));
-          context
-              .mission()
-              .ifPresent(
-                  value -> {
-                    if (value.state() != null) {
-                      conversation.attachFirstDayStage(value.stage());
-                    }
-                  });
-          Turn openingTurn =
-              turnRepository.save(
-                  Turn.npc(
-                      conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
-          return new ConversationStartResponse(
-              conversation.getId(),
-              conversation.getStatus(),
-              conversation.getLevelApplied(),
-              npc.summary(),
-              List.of(),
-              support.npcTurn(openingTurn));
-        });
+    ConversationStartResponse started =
+        transactionTemplate.execute(
+            status -> {
+              Conversation conversation =
+                  conversationRepository.save(
+                      Conversation.start(
+                          userId,
+                          npc.npcId(),
+                          request.initiatedBy(),
+                          context.level(),
+                          clock.instant()));
+              context
+                  .mission()
+                  .ifPresent(
+                      value -> {
+                        if (value.state() != null) {
+                          conversation.attachFirstDayStage(value.stage());
+                        }
+                      });
+              Turn openingTurn =
+                  turnRepository.save(
+                      Turn.npc(
+                          conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
+              return new ConversationStartResponse(
+                  conversation.getId(),
+                  conversation.getStatus(),
+                  conversation.getLevelApplied(),
+                  npc.summary(),
+                  List.of(),
+                  support.npcTurn(openingTurn),
+                  support.state(conversation));
+            });
+    // 저장이 끝난 뒤 남긴다. 첫 대사는 대화 본문이라 남기지 않는다.
+    log.info(
+        "conversation_started conversation_id={} npc={} initiated_by={}",
+        started.conversationId(),
+        npc.summary().npcCode(),
+        request.initiatedBy());
+    return started;
   }
 
   /** 대화를 끝내고 짧은 피드백을 만든다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않고 피드백만 만든다. 피드백 생성은 대화 종료를 확정한 뒤 트랜잭션 밖에서 한다. */
@@ -129,10 +141,20 @@ public class ConversationService {
     return transactionTemplate.execute(
         status -> {
           Conversation conversation = support.ownedConversation(userId, conversationId);
+          boolean endingNow = conversation.isActive();
           conversation.endByUser(clock.instant());
           NpcContext npc = support.npcById(conversation.getNpcId());
           long userTurnCount =
               turnRepository.countByConversationIdAndSpeaker(conversationId, Speaker.USER);
+          // NPC가 이미 끝낸 대화(TurnService가 남김)나 다시 보낸 종료 요청은 새로 남기지 않는다.
+          if (endingNow) {
+            log.info(
+                "conversation_ended conversation_id={} status={} end_reason={} user_turns={}",
+                conversationId,
+                conversation.getStatus(),
+                conversation.getEndReason(),
+                userTurnCount);
+          }
           return new EndConversationResponse(
               conversation.getId(),
               conversation.getStatus(),
@@ -180,6 +202,7 @@ public class ConversationService {
     }
     return new StartContext(
         npc,
+        support.learner(user),
         selectedLevel(user),
         memoryService.memoryFor(userId, npc.npcId()),
         firstDayMissionService.context(userId, npcCode));
@@ -213,7 +236,8 @@ public class ConversationService {
                         value.instruction()
                             + " Greet the learner with one short sentence for this situation; do not assume their task is complete.")
                 .orElse(GREETING_INSTRUCTION),
-            context.level());
+            context.level(),
+            context.learner());
     aiRequestRecorder.record(
         trace,
         AiRequestKind.NPC,
@@ -226,10 +250,12 @@ public class ConversationService {
   }
 
   /**
+   * @param learner 대답 상대인 학습자. NPC가 캐릭터에 맞는 호칭을 쓰게 한다
    * @param memory 이 NPC와의 기억. 처음 만나면 null
    */
   private record StartContext(
       NpcContext npc,
+      WorkerLearner learner,
       int level,
       WorkerMemory memory,
       Optional<FirstDayMissionService.Context> mission) {}

@@ -46,6 +46,8 @@ namespace A305.EditorTools.Learning
         private const int VocabularySortingOrder = 135;
         private const int HudSortingOrder = 95;
 
+        private const string FeedbackListTitle = "피드백 목록";
+
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
 
         [MenuItem(MenuPath)]
@@ -78,7 +80,7 @@ namespace A305.EditorTools.Learning
             PrepareHud();
         }
 
-        /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 지난 대화·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
+        /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 피드백 목록·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
         public static void PrepareHud() =>
             BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
 
@@ -466,7 +468,7 @@ namespace A305.EditorTools.Learning
         }
 
         /// <summary>
-        /// 메뉴의 [지난 대화]와 지난 대화 목록 창. 없는 요소만 만들고 디자인은 유지한다.
+        /// 메뉴의 [피드백 목록]과 지난 대화를 고르는 피드백 목록 창. 없는 요소만 만들고 디자인은 유지하며, 창 제목 글자만 맞춘다.
         /// 창은 피드백 화면(정렬 130)보다 아래인 HUD 캔버스에 있어, 목록에서 연 피드백이 창 위에 보인다.
         /// </summary>
         private static void SetUpHistory(
@@ -480,7 +482,7 @@ namespace A305.EditorTools.Learning
             Button open = UiBuilderTools.FindOrCreateButton(
                 menu,
                 "HistoryButton",
-                "지난 대화",
+                FeedbackListTitle,
                 bold,
                 200f
             );
@@ -494,7 +496,9 @@ namespace A305.EditorTools.Learning
                 760f,
                 Vector2.zero
             );
-            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white, "지난 대화");
+            // 이미 있는 제목은 FindOrCreateText가 그대로 두므로, 예전 이름 "지난 대화"가 남지 않게 글자를 다시 넣는다.
+            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white).text =
+                FeedbackListTitle;
             UiBuilderTools.FindOrCreateText(
                 panel,
                 "Hint",
@@ -639,8 +643,9 @@ namespace A305.EditorTools.Learning
             SetUpLookSensitivity(view, profile, bold, regular);
             RectTransform profileButtons = UiBuilderTools.FindOrCreateButtonRow(profile, "Buttons");
             // 이미 만든 화면에 새로 붙는 줄은 맨 아래에 생기므로 버튼 줄 위로 옮긴다.
-            consentsLabel.transform.SetSiblingIndex(profileButtons.GetSiblingIndex());
-            consents.SetSiblingIndex(profileButtons.GetSiblingIndex());
+            // 이미 버튼 줄 위에 있는 줄까지 옮기면 제목·목록·버튼 순서가 뒤집히므로 아래에 있는 줄만 옮긴다.
+            MoveAboveIfBelow(consentsLabel.transform, profileButtons);
+            MoveAboveIfBelow(consents, profileButtons);
             BuilderTools.SetReference(
                 view,
                 "logoutButton",
@@ -788,6 +793,13 @@ namespace A305.EditorTools.Learning
             );
             BuilderTools.SetReference(view, "withdrawDialog", withdraw.gameObject);
             return withdraw;
+        }
+
+        // row가 anchor보다 아래에 있을 때만 anchor 바로 위로 옮긴다.
+        private static void MoveAboveIfBelow(Transform row, Transform anchor)
+        {
+            if (row.GetSiblingIndex() > anchor.GetSiblingIndex())
+                row.SetSiblingIndex(anchor.GetSiblingIndex());
         }
 
         // 닉네임 안내 아래, 버튼 줄 위에 "시점 감도" 제목·설명과 [느리게] 슬라이더 [빠르게] 현재값 줄을 둔다.

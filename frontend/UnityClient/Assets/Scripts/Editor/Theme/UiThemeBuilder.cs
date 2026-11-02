@@ -194,7 +194,7 @@ namespace A305.EditorTools.Theme
             Style(EntryPath, StyleEntry);
         }
 
-        /// <summary>대화 제안·로그인과 가입·지난 대화·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
+        /// <summary>대화 제안·로그인과 가입·피드백 목록·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
         [MenuItem("Tools/A305/UI/Apply Unified Dialogs")]
         public static void ApplyUnifiedDialogs()
         {
@@ -204,7 +204,7 @@ namespace A305.EditorTools.Theme
             Style(OfferPath, StyleOffer);
             Style(EntryPath, StyleEntry);
             AssetDatabase.SaveAssets();
-            Debug.Log("대화 제안·로그인·지난 대화·내 정보 창을 테마 규칙으로 맞췄습니다.");
+            Debug.Log("대화 제안·로그인·피드백 목록·내 정보 창을 테마 규칙으로 맞췄습니다.");
         }
 
         [MenuItem("Tools/A305/UI/Apply Approved HUD Buttons")]
@@ -296,7 +296,7 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 오른쪽 위에는 메뉴(≡) 버튼만 두고, 누르면 아래로 단어장·지난 대화·내 정보·(집의) 테마·홈 목록을 펼친다.
+        /// 오른쪽 위에는 메뉴(≡) 버튼만 두고, 누르면 아래로 단어장·피드백 목록·내 정보·(집의) 테마·홈 목록을 펼친다.
         /// 알림은 알림이 있을 때만 보이는 작은 카드에 담는다.
         /// </summary>
         private static void StyleHud(Transform root)
@@ -329,7 +329,7 @@ namespace A305.EditorTools.Theme
                 menu.GetComponent<VerticalLayoutGroup>().spacing = 0;
             }
             Transform vocabulary = MenuItem(root, "VocabularyButton", UiIcon.Book, "단어장");
-            MenuItem(root, "HistoryButton", UiIcon.Talk, "지난 대화");
+            MenuItem(root, "HistoryButton", UiIcon.Talk, "피드백 목록");
             MenuItem(root, "MyPageButton", UiIcon.Detail, "내 정보");
             MenuItem(root, "ThemeButton", UiIcon.Palette, "테마");
             MenuItem(root, "HomeButton", UiIcon.Home, "홈");
@@ -456,7 +456,7 @@ namespace A305.EditorTools.Theme
             size.flexibleWidth = 1;
         }
 
-        /// <summary>지난 대화 창을 단어장 화면처럼 칠한다. 닫기는 오른쪽 위 X, [피드백 보기]는 강조 알약 버튼이다.</summary>
+        /// <summary>피드백 목록 창을 단어장 화면처럼 칠한다. 닫기는 오른쪽 위 X, [피드백 보기]는 강조 알약 버튼이다.</summary>
         private static void StyleHistory(Transform root)
         {
             if (root.Find("History") == null)
@@ -668,6 +668,8 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "SignupPanel/AvatarRow/MaleButton", "남성");
             Role(root, "SignupPanel/ConsentsLabel", UiThemeRole.Caption);
             ConsentRow(root, "SignupPanel/Consents/ConsentRowTemplate");
+            if (root.Find("SignupPanel/VoiceConsentNote") != null)
+                Role(root, "SignupPanel/VoiceConsentNote", UiThemeRole.Muted);
             ActionPill(root, "SignupPanel/SubmitButton", UiIcon.Check, UiTone.Primary, 280);
 
             foreach (string cards in new[] { "LanguagePanel/Cards", "LevelSettingPanel/Cards" })

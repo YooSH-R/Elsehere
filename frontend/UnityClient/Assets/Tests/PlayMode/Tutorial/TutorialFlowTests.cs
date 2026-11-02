@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using A305.Dialogue;
 using A305.Npc;
+using A305.ObjectHover;
 using A305.Player;
 using A305.World;
 using NUnit.Framework;
@@ -64,6 +65,64 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator SaveWord_PinnedCardWithoutSaveButton_DoesNotSkipTheStep()
+        {
+            // 서버에 연결되지 않아 단어 카드에 [저장]이 없어도, 저장하지 않았으니 넘어가지 않는다.
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+            progress.Continue();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
+            progress.Continue();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
+            progress.Continue();
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.SaveWord), "준비: 단어 모으기");
+
+            Single<WordTooltipView>()
+                .ShowPinned(
+                    new ObjectWord("table", "탁자", "Put it on the table."),
+                    new Vector2(300f, 200f),
+                    ScriptableObject.CreateInstance<ObjectHoverSettings>(),
+                    WordCardButtons.None
+                );
+            for (int i = 0; i < 5; i++)
+            {
+                yield return null;
+            }
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.SaveWord));
+        }
+
+        [UnityTest]
+        public IEnumerator MeetBen_HoldsThePlayerWhileBenOffers_ThenTheDialogueTakesOver()
+        {
+            // 튜토리얼에서 Ben이 [대화하기]를 제안하면 답할 때까지 멀어지지 않게 이동을 잠근다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PlayerMover player = Single<PlayerMover>();
+            yield return StandInFrontOf(FindBen());
+            Assert.That(player.IsMovementLocked, Is.False, "Ben이 다가오는 동안에는 걸을 수 있습니다.");
+
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            yield return null;
+            Assert.That(player.IsMovementLocked, Is.True);
+
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            Assert.That(player.IsMovementLocked, Is.True, "대화가 잠금을 이어받습니다.");
+
+            Click(Single<DialoguePanelView>(), "EndButton");
+            yield return null;
+            yield return null;
+            Assert.That(player.IsMovementLocked, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator Lodging_KeepsTheDoorLockedUntilTheGuideIsDone_ThenPointsAtIt()
         {
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
@@ -80,9 +139,12 @@ namespace A305.Tutorial.PlayModeTests
 
             TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
             progress.Continue();
-            progress.ReportWalked();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
             progress.Continue();
-            progress.ReportLooked();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
             progress.Continue();
             progress.ReportWordSaved();
             progress.ReportVocabularyOpened();

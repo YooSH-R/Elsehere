@@ -132,9 +132,12 @@ namespace A305.Tutorial.Tests
         private void CompleteTutorial()
         {
             progress.Continue();
-            progress.ReportWalked();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
             progress.Continue();
-            progress.ReportLooked();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
             progress.Continue();
             progress.ReportWordSaved();
             progress.ReportVocabularyOpened();

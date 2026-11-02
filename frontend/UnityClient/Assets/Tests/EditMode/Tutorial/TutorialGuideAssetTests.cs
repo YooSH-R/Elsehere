@@ -42,6 +42,24 @@ namespace A305.Tutorial.Tests
             }
         }
 
+        [TestCase(TutorialStep.Walk)]
+        [TestCase(TutorialStep.Look)]
+        public void ActionSteps_ListEveryRequiredActionInOrder(TutorialStep step)
+        {
+            // 걷기·둘러보기는 " · "로 나눈 할 일마다 해냈는지 색으로 보이므로, 할 일 수가 필요한 행동 수와 같아야 한다.
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+            guide.TryGetStepGuide(step, out TutorialStepGuide stepGuide);
+
+            Assert.That(
+                TutorialGuideText.PartCount(stepGuide.Task),
+                Is.EqualTo(TutorialProgress.RequiredActions(step, false).Count)
+            );
+            Assert.That(
+                TutorialGuideText.PartCount(stepGuide.TouchTask),
+                Is.EqualTo(TutorialProgress.RequiredActions(step, true).Count)
+            );
+        }
+
         // 한 줄 안내가 카드 한 줄에 들어가는 길이(보이는 글자 수).
         private const int MaxLineLength = 34;
     }

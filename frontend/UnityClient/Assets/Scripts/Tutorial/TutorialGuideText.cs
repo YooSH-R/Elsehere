@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -25,6 +26,10 @@ namespace A305.Tutorial
         {
             return Tag.Replace(Key.Replace(text ?? "", "[$1]"), "").Length;
         }
+
+        public static string TaskLine(string task, IReadOnlyList<bool> partDone) => task;
+
+        public static int PartCount(string task) => 0;
 
         /// <param name="done">지금 단계까지 채울 점 수</param>
         public static string ProgressDots(int done, int total)

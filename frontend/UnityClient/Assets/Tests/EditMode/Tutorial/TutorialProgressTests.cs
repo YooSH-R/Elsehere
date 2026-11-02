@@ -33,36 +33,79 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void Continue_FromWalk_NeedsWalkingDuringWalkStep()
+        public void Walk_NeedsWalkingAndRunningDuringWalkStep()
         {
-            // 도착 단계에서 걸은 것은 세지 않는다.
-            progress.ReportWalked();
+            // 도착 단계에서 걸은 것은 세지 않는다. 안내한 걷기·달리기를 모두 해야 넘어간다.
+            progress.Report(TutorialAction.Walk);
             progress.Continue();
+            Assert.That(progress.IsDone(TutorialAction.Walk), Is.False);
 
+            progress.Report(TutorialAction.Walk);
+            Assert.That(progress.IsDone(TutorialAction.Walk), Is.True);
             Assert.That(progress.CanContinue, Is.False);
             progress.Continue();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Walk));
 
-            progress.ReportWalked();
+            progress.Report(TutorialAction.Run);
             Assert.That(progress.CanContinue, Is.True);
             progress.Continue();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Look));
         }
 
         [Test]
-        public void Continue_FromLook_NeedsTurningTheCameraDuringLookStep()
+        public void Look_NeedsTurningZoomingAndSwitchingViewDuringLookStep()
         {
             MoveTo(TutorialStep.Walk);
-            progress.ReportLooked();
-            progress.ReportWalked();
+            // 걷기 단계에서 돌린 시점은 세지 않는다.
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
             progress.Continue();
-
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Look));
+
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
             Assert.That(progress.CanContinue, Is.False);
 
-            progress.ReportLooked();
+            progress.Report(TutorialAction.ToggleView);
+            Assert.That(progress.CanContinue, Is.True);
             progress.Continue();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.SaveWord));
+        }
+
+        [Test]
+        public void TouchDevice_NeedsOnlyTheActionsItCanDo()
+        {
+            // 터치 기기에는 달리기·휠·V가 없어 조이스틱 걷기와 화면 끌기만 한다.
+            progress.UsesTouch = true;
+            progress.Continue();
+
+            progress.Report(TutorialAction.Walk);
+            Assert.That(progress.CanContinue, Is.True);
+            progress.Continue();
+
+            progress.Report(TutorialAction.Rotate);
+            Assert.That(progress.CanContinue, Is.True);
+        }
+
+        [Test]
+        public void RequiredActions_FollowTheDevice()
+        {
+            Assert.That(
+                TutorialProgress.RequiredActions(TutorialStep.Walk, false),
+                Is.EqualTo(new[] { TutorialAction.Walk, TutorialAction.Run })
+            );
+            Assert.That(
+                TutorialProgress.RequiredActions(TutorialStep.Look, false),
+                Is.EqualTo(
+                    new[] { TutorialAction.Rotate, TutorialAction.Zoom, TutorialAction.ToggleView }
+                )
+            );
+            Assert.That(
+                TutorialProgress.RequiredActions(TutorialStep.Look, true),
+                Is.EqualTo(new[] { TutorialAction.Rotate })
+            );
+            Assert.That(TutorialProgress.RequiredActions(TutorialStep.SaveWord, false), Is.Empty);
         }
 
         [Test]
@@ -71,7 +114,9 @@ namespace A305.Tutorial.Tests
             MoveTo(TutorialStep.Look);
             // 둘러보기 단계에서 저장한 단어는 세지 않는다.
             progress.ReportWordSaved();
-            progress.ReportLooked();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
             progress.Continue();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.SaveWord));
 
@@ -331,12 +376,15 @@ namespace A305.Tutorial.Tests
                 progress.Continue,
                 () =>
                 {
-                    progress.ReportWalked();
+                    progress.Report(TutorialAction.Walk);
+                    progress.Report(TutorialAction.Run);
                     progress.Continue();
                 },
                 () =>
                 {
-                    progress.ReportLooked();
+                    progress.Report(TutorialAction.Rotate);
+                    progress.Report(TutorialAction.Zoom);
+                    progress.Report(TutorialAction.ToggleView);
                     progress.Continue();
                 },
                 progress.ReportWordSaved,

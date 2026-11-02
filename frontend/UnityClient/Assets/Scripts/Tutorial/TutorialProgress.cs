@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace A305.Tutorial
 {
     /// <summary>
@@ -18,6 +20,15 @@ namespace A305.Tutorial
         }
 
         public TutorialStep Step { get; private set; } = TutorialStep.Arrival;
+
+        public bool UsesTouch { get; set; }
+
+        public static IReadOnlyList<TutorialAction> RequiredActions(TutorialStep step, bool isTouch) =>
+            new TutorialAction[0];
+
+        public void Report(TutorialAction action) { }
+
+        public bool IsDone(TutorialAction action) => false;
 
         /// <summary>이번 Play에서 튜토리얼을 끝낸 방법. 끝내지 않았거나 서버에서 이미 끝난 사용자면 null.</summary>
         public TutorialFinish? Finish { get; private set; }

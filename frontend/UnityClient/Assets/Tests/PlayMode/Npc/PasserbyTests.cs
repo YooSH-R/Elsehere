@@ -37,9 +37,12 @@ namespace A305.Npc.PlayModeTests
             // 숙소 안내(걷기·둘러보기·단어 저장·단어장)를 마쳐야 숙소 문이 열린다.
             TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
             progress.Continue();
-            progress.ReportWalked();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
             progress.Continue();
-            progress.ReportLooked();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
             progress.Continue();
             progress.ReportWordSaved();
             progress.ReportVocabularyOpened();
@@ -66,10 +69,11 @@ namespace A305.Npc.PlayModeTests
                 HorizontalDistance(tutorial.transform, Single<PlayerMover>().transform),
                 Is.LessThan(3f)
             );
+            yield return null;
             Assert.That(
                 Single<PlayerMover>().IsMovementLocked,
-                Is.False,
-                "제안 중에는 이동을 잠그지 않습니다."
+                Is.True,
+                "튜토리얼에서는 [대화하기]에 답할 때까지 Ben에게서 멀어지지 않게 이동을 잠급니다."
             );
         }
 

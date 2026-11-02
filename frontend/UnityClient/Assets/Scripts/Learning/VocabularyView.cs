@@ -49,6 +49,10 @@ namespace A305.Learning
         private TMP_Text contextTitleText;
 
         [SerializeField]
+        [Tooltip("저장한 문장 아래의 문장 뜻. 뜻이 없으면 숨긴다.")]
+        private TMP_Text contextMeaningText;
+
+        [SerializeField]
         private GameObject contextSection;
 
         [SerializeField]
@@ -170,10 +174,14 @@ namespace A305.Learning
                 selectedMarks[row].SetActive(index == selectedIndex);
             }
             wordText.richText = meaningText.richText = contextText.richText = false;
-            contextTitleText.richText = false;
+            contextTitleText.richText = contextMeaningText.richText = false;
             wordText.text = SelectedEntry.English;
             meaningText.text = SelectedEntry.Korean;
             contextText.text = SelectedEntry.ContextText ?? "";
+            contextMeaningText.text = SelectedEntry.ContextMeaning ?? "";
+            contextMeaningText.gameObject.SetActive(
+                !string.IsNullOrWhiteSpace(SelectedEntry.ContextMeaning)
+            );
             contextTitleText.text =
                 SelectedEntry.SourceLabel == null
                     ? ContextTitle

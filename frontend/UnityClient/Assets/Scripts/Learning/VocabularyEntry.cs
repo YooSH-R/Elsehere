@@ -12,6 +12,7 @@ namespace A305.Learning
             English = item.Vocab?.Text;
             Korean = item.Vocab?.MeaningKo;
             ContextText = item.Context?.Text;
+            ContextMeaning = item.Context?.MeaningKo;
             // NPC 대사에서 저장한 단어는 저장한 문장이 그 NPC의 대사다. 이름 뒤 조사가 받침에 따라 바뀌지 않도록 '의'를 쓴다.
             SourceLabel =
                 item.Source?.SourceType == NpcLineSource
@@ -27,6 +28,9 @@ namespace A305.Learning
 
         /// <summary>단어를 저장한 문장. 없으면 null.</summary>
         public string ContextText { get; }
+
+        /// <summary>저장한 문장의 뜻. 없으면 null.</summary>
+        public string ContextMeaning { get; }
 
         /// <summary>저장한 문장이 어디서 나왔는지(예: "Mia의 말"). 사물 카드처럼 대화 출처가 아니면 null.</summary>
         public string SourceLabel { get; }

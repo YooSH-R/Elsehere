@@ -303,6 +303,23 @@ namespace A305.Learning.Tests
             );
         }
 
+        // 대화에서 저장한 단어는 저장한 문장이 영어 대사라, 문장 뜻(CONV-04 대사 뜻)도 함께 보여 준다.
+        [Test]
+        public async Task LoadAsync_KeepsTheMeaningOfTheSavedSentence()
+        {
+            VocabItem latte = Item(40, "latte", "라떼");
+            latte.Context = new VocabContext
+            {
+                Text = "Would you like an iced latte?",
+                MeaningKo = "아이스 라떼 드릴까요?",
+            };
+
+            VocabularyEntry entry = await LoadOne(latte);
+
+            Assert.That(entry.ContextText, Is.EqualTo("Would you like an iced latte?"));
+            Assert.That(entry.ContextMeaning, Is.EqualTo("아이스 라떼 드릴까요?"));
+        }
+
         [Test]
         public async Task LoadAsync_WordSavedFromNpcLine_NamesTheNpc()
         {

@@ -108,7 +108,17 @@ namespace A305.EditorTools.Theme
                                 Context = new VocabContext
                                 {
                                     Text = "Please put it on the kitchen counter.",
+                                    MeaningKo = "주방 조리대 위에 놓아 주세요.",
                                 },
+                                // 첫 단어는 대화 중 Mia의 대사에서 저장한 것으로 두어 출처 표시를 함께 본다.
+                                Source =
+                                    i == 0
+                                        ? new VocabSource
+                                        {
+                                            SourceType = "NPC_LINE",
+                                            NpcName = "Mia",
+                                        }
+                                        : null,
                                 Memo = i == 0 ? "조리대 위치를 물어볼 때" : "",
                             }
                         );

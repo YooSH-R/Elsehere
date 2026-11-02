@@ -219,6 +219,25 @@ namespace A305.Learning.Tests
             );
         }
 
+        // 화면 18 상세는 저장한 문장과 그 문장의 뜻을 함께 보인다(API 명세 4.8).
+        [Test]
+        public async Task SavedSentence_ShowsItsMeaningBelow()
+        {
+            await Open(new SampleApi());
+
+            screen
+                .transform.Find("Panel/Content/Entries/Entry1")
+                .GetComponent<Button>()
+                .onClick.Invoke();
+
+            Transform meaning = screen.transform.Find(
+                "Panel/Content/Details/Context/SentenceMeaning"
+            );
+            Assert.That(meaning, Is.Not.Null, "저장한 문장 아래에 문장 뜻 칸이 있어야 합니다.");
+            Assert.That(meaning.gameObject.activeSelf, Is.True);
+            Assert.That(meaning.GetComponent<TMP_Text>().text, Is.EqualTo("우산이 필요해요."));
+        }
+
         private sealed class SampleApi : IVocabularyApi
         {
             public int Count { get; set; } = 2;
@@ -247,7 +266,11 @@ namespace A305.Learning.Tests
                         UserVocabId = 2,
                         Vocab = new VocabWord { Text = "umbrella", MeaningKo = "우산" },
                         Memo = "비 오는 날",
-                        Context = new VocabContext { Text = "I need an umbrella." },
+                        Context = new VocabContext
+                        {
+                            Text = "I need an umbrella.",
+                            MeaningKo = "우산이 필요해요.",
+                        },
                         Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Mia" },
                     },
                 };

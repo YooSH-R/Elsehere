@@ -104,6 +104,29 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(WordRow().gameObject.activeInHierarchy, Is.False);
         }
 
+        // 단어 줄이 열려 대사 칸이 줄어도 가장 최근 대사와 그 아래 단어 풀이가 보이도록 맨 아래를 지킨다.
+        [UnityTest]
+        public IEnumerator OpeningWordRow_KeepsTheLatestLinesInView()
+        {
+            var earlier = new List<DialogueLine>();
+            for (int i = 0; i < 6; i++)
+            {
+                earlier.Add(DialogueLine.FromNpc($"Earlier line number {i}.", "앞선 대사"));
+                earlier.Add(DialogueLine.FromUser($"My answer number {i}."));
+            }
+            view.Show(new WordContent(earlier));
+            yield return null;
+            yield return TurnOnMeaning();
+
+            yield return ClickWordInLines("latte");
+
+            Assert.That(WordRow().gameObject.activeInHierarchy, Is.True);
+            Assert.That(
+                Child<ScrollRect>("Panel/Conversation/History").verticalNormalizedPosition,
+                Is.LessThan(0.01f)
+            );
+        }
+
         // 서버는 문장을 저장하지 않으므로 대사 전체를 담던 [담기]는 두지 않는다.
         [UnityTest]
         public IEnumerator ToolRow_HasNoSentenceSaveButton()
@@ -201,10 +224,10 @@ namespace A305.Dialogue.PlayModeTests
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
-        /// <summary>[뜻 보기]로 뜻과 풀이를 받아 둔 Ben의 대사 하나.</summary>
+        /// <summary>[뜻 보기]로 뜻과 풀이를 받아 둔 Ben의 대사. 앞선 대사를 주면 그 뒤에 둔다.</summary>
         private class WordContent : IDialogueContent
         {
-            private static readonly DialogueLine Opening = DialogueLine.FromNpc(
+            private static readonly DialogueLine Latest = DialogueLine.FromNpc(
                 "Would you like an iced latte to go?",
                 "아이스 라떼 포장해 드릴까요?",
                 new[]
@@ -214,9 +237,18 @@ namespace A305.Dialogue.PlayModeTests
                 }
             );
 
+            private readonly List<DialogueLine> lines = new List<DialogueLine>();
+
+            public WordContent(IEnumerable<DialogueLine> earlier = null)
+            {
+                if (earlier != null)
+                    lines.AddRange(earlier);
+                lines.Add(Latest);
+            }
+
             public string NpcName => "Ben";
-            public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
-            public DialogueLine LastNpcLine => Opening;
+            public IReadOnlyList<DialogueLine> Lines => lines;
+            public DialogueLine LastNpcLine => Latest;
             public bool IsGuided => false;
             public bool IsGuidedCompleted => false;
             public string SuggestedEnglish => null;

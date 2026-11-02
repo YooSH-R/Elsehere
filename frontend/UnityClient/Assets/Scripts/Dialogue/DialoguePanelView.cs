@@ -458,6 +458,7 @@ namespace A305.Dialogue
         }
 
         // 단어 줄을 열고 닫으면 대사 칸 높이가 바뀌므로 배치도 다시 맞춘다.
+        // 대사 칸이 줄어도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 아래 기준으로 지킨다.
         private void ShowWordRow()
         {
             bool wasVisible = wordRow.gameObject.activeSelf;
@@ -465,8 +466,12 @@ namespace A305.Dialogue
             wordText.text = glossaryRow.Text;
             wordSaveButton.gameObject.SetActive(glossaryRow.IsSaveVisible);
             wordSaveButton.interactable = glossaryRow.IsSaveInteractable;
-            if (wasVisible != glossaryRow.IsVisible && content != null)
-                UpdateLayout();
+            if (wasVisible == glossaryRow.IsVisible || content == null)
+                return;
+            float scroll = historyScroll.verticalNormalizedPosition;
+            UpdateLayout();
+            Canvas.ForceUpdateCanvases();
+            historyScroll.verticalNormalizedPosition = scroll;
         }
 
         private void ToggleMeaning()
@@ -536,7 +541,7 @@ namespace A305.Dialogue
             float wordSpace = DialoguePanelLayout.WordRowSpace(glossaryRow.IsVisible);
             frame.sizeDelta = new Vector2(
                 width,
-                DialoguePanelLayout.Height(wide, linesHeight + wordSpace)
+                DialoguePanelLayout.Height(wide, linesHeight, glossaryRow.IsVisible)
             );
             helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, .5f);
             helpPanel.anchoredPosition = new Vector2(40, wide ? -12 : 200);

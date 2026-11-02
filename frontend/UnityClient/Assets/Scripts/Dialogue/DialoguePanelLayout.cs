@@ -37,11 +37,16 @@ namespace A305.Dialogue
             return isShown ? WordRowHeight + 6 : 0;
         }
 
-        public static float Height(bool wide, float linesHeight)
+        /// <param name="showsWordRow">
+        /// 누른 풀이 단어 줄이 대사 칸 아래에 보이는지. 보이면 그만큼 창을 키운다. 넓은 화면은 NPC 얼굴을 가리지 않도록 최대 높이를 넘지 않고,
+        /// 높이가 정해진 좁은 화면은 그대로 더해 최근 대사가 밀려나지 않게 한다.
+        /// </param>
+        public static float Height(bool wide, float linesHeight, bool showsWordRow = false)
         {
+            float wordSpace = WordRowSpace(showsWordRow);
             return wide
-                ? Mathf.Clamp(ControlsHeight + linesHeight, WideHeight, WideMaxHeight)
-                : NarrowHeight;
+                ? Mathf.Clamp(ControlsHeight + linesHeight + wordSpace, WideHeight, WideMaxHeight)
+                : NarrowHeight + wordSpace;
         }
     }
 }

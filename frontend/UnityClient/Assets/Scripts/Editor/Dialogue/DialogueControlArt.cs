@@ -151,6 +151,10 @@ namespace A305.EditorTools.Dialogue
                     Segment(root, new Vector2(.29f, .62f), new Vector2(.72f, .62f), size, color);
                     Segment(root, new Vector2(.29f, .46f), new Vector2(.58f, .46f), size, color);
                     break;
+                case "close":
+                    Segment(root, new Vector2(.25f, .25f), new Vector2(.75f, .75f), size, color);
+                    Segment(root, new Vector2(.25f, .75f), new Vector2(.75f, .25f), size, color);
+                    break;
                 case "insert":
                     Segment(root, new Vector2(.15f, .77f), new Vector2(.76f, .77f), size, color);
                     Polyline(

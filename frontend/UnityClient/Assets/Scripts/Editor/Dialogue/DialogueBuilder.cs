@@ -36,8 +36,11 @@ namespace A305.EditorTools.Dialogue
         private const string VoiceRecorderSettingsPath =
             "Assets/Data/Voice/VoiceRecorderSettings.asset";
 
-        // 단어 줄의 [단어장에 저장]. 왼쪽 아이콘과 글자가 겹치지 않는 폭이다.
-        private const float WordSaveButtonWidth = 230f;
+        // 단어 카드의 [단어장에 저장]. 왼쪽 아이콘과 글자가 겹치지 않는 폭이다.
+        private const float WordSaveButtonWidth = 220f;
+
+        // 단어 카드 크기. 넓은 화면 대화창의 대사 위쪽 공간에 들어가는 높이다.
+        private static readonly Vector2 WordCardSize = new Vector2(420f, 156f);
 
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
         private static readonly Color StatusColor = new Color(1f, 0.85f, 0.45f);
@@ -317,7 +320,7 @@ namespace A305.EditorTools.Dialogue
                 MoveLegacy(moreTools, "HintButton", toolRow);
                 Object.DestroyImmediate(moreTools.gameObject);
             }
-            // 대사 전체를 담던 [담기]는 서버가 문장을 저장하지 않아 지우고, 대사의 풀이 단어를 눌러 저장한다(단어 줄).
+            // 대사 전체를 담던 [담기]는 서버가 문장을 저장하지 않아 지우고, 대사의 풀이 단어를 눌러 저장한다(단어 카드).
             Transform sentenceSave = toolRow.Find("SaveButton");
             if (sentenceSave != null)
                 Object.DestroyImmediate(sentenceSave.gameObject);
@@ -353,7 +356,7 @@ namespace A305.EditorTools.Dialogue
             // 대사의 밑줄 친 풀이 단어를 누를 수 있게 대사 글자가 클릭을 받는다.
             lines.raycastTarget = true;
             var lineLinks = BuilderTools.GetOrAddComponent<TextLinkClicks>(lines.gameObject);
-            RectTransform wordRow = FindOrCreateWordRow(conversation, regular, bold);
+            RectTransform wordCard = FindOrCreateWordCard(conversation, regular, bold);
 
             // 서버 AI 대화: 상태 문구, 추천 단어, 말하기, 다시 듣기, 힌트
             TMP_Text status = UiBuilderTools.FindOrCreateText(
@@ -411,16 +414,29 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "exampleButton", exampleButton);
             BuilderTools.SetReference(view, "meaningButton", meaningButton);
             BuilderTools.SetReference(view, "lineLinks", lineLinks);
-            BuilderTools.SetReference(view, "wordRow", wordRow);
+            BuilderTools.SetReference(view, "wordCard", wordCard);
+            BuilderTools.SetReference(view, "wordCardFace", CardPart<Image>(wordCard, "Face"));
             BuilderTools.SetReference(
                 view,
-                "wordText",
-                wordRow.Find("Text").GetComponent<TMP_Text>()
+                "wordCardBacking",
+                CardPart<Image>(wordCard, "Backing")
             );
+            BuilderTools.SetReference(view, "wordTitleText", CardPart<TMP_Text>(wordCard, "Title"));
+            BuilderTools.SetReference(
+                view,
+                "wordMeaningText",
+                CardPart<TMP_Text>(wordCard, "Meaning")
+            );
+            BuilderTools.SetReference(view, "wordNoteText", CardPart<TMP_Text>(wordCard, "Note"));
             BuilderTools.SetReference(
                 view,
                 "wordSaveButton",
-                wordRow.Find("WordSaveButton").GetComponent<Button>()
+                CardPart<Button>(wordCard, "WordSaveButton")
+            );
+            BuilderTools.SetReference(
+                view,
+                "wordCloseButton",
+                CardPart<Button>(wordCard, "CloseButton")
             );
             BuilderTools.SetReference(view, "statusText", status);
             BuilderTools.SetReference(view, "suggestText", suggest);
@@ -442,57 +458,130 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대사에서 누른 풀이 단어의 뜻과 [단어장에 저장]을 보이는 줄. 자리와 크기는 <see cref="DialoguePanelView"/>가 대사 칸 아래로
-        /// 맞추므로 레이아웃에서 빼고, 단어를 누르기 전에는 숨긴다. 모양은 <see cref="DialogueDockBuilder"/>가 정한다.
+        /// 대사에서 누른 풀이 단어 근처에 뜨는 호버 카드. 단어·뜻·저장 안내와 [단어장에 저장]·닫기(X)가 있다.
+        /// 자리는 <see cref="DialoguePanelView"/>가 누른 단어에 맞춰 정하므로 레이아웃에서 빼고, 대사 위에 겹쳐 보이도록 맨 앞에 둔다.
+        /// 단어를 누르기 전에는 숨긴다. 모양은 <see cref="DialogueDockBuilder"/>가 정한다.
         /// </summary>
-        private static RectTransform FindOrCreateWordRow(
+        private static RectTransform FindOrCreateWordCard(
             RectTransform conversation,
             TMP_FontAsset regular,
             TMP_FontAsset bold
         )
         {
-            Transform existing = conversation.Find("WordRow");
-            RectTransform row =
+            // 대사 칸 아래에 붙여 두던 단어 줄은 호버 카드로 바꿨다.
+            Transform oldRow = conversation.Find("WordRow");
+            if (oldRow != null)
+                Object.DestroyImmediate(oldRow.gameObject);
+            Transform existing = conversation.Find("WordCard");
+            RectTransform card =
                 existing != null
                     ? (RectTransform)existing
                     : new GameObject(
-                        "WordRow",
+                        "WordCard",
                         typeof(RectTransform)
                     ).GetComponent<RectTransform>();
-            row.SetParent(conversation, false);
-            BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject).ignoreLayout = true;
-            row.anchorMin = row.anchorMax = row.pivot = Vector2.zero;
+            card.SetParent(conversation, false);
+            card.SetAsLastSibling();
+            BuilderTools.GetOrAddComponent<LayoutElement>(card.gameObject).ignoreLayout = true;
+            card.anchorMin = card.anchorMax = card.pivot = Vector2.zero;
+            card.sizeDelta = WordCardSize;
+            // 카드는 대사 위에 겹쳐 뜨므로, 테마 카드(Face)가 반투명한 테마에서도 뒤 대사가 비치지 않게 불투명한 받침(Backing)을 깐다.
+            CardLayer(card, "Backing", 0);
+            CardLayer(card, "Face", 1);
 
-            TMP_Text text = UiBuilderTools.FindOrCreateText(row, "Text", regular, 24f, Color.white);
-            var textRect = (RectTransform)text.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(20f, 0f);
-            textRect.offsetMax = new Vector2(-(WordSaveButtonWidth + 16f), 0f);
-            text.alignment = TextAlignmentOptions.MidlineLeft;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.overflowMode = TextOverflowModes.Ellipsis;
+            CardText(card, "Title", bold, 30f, new Vector2(0, 1), new Vector2(24, -16), 320);
+            CardText(card, "Meaning", regular, 22f, new Vector2(0, 1), new Vector2(24, -58), 372);
+            TMP_Text note = UiBuilderTools.FindOrCreateText(
+                card,
+                "Note",
+                regular,
+                18f,
+                Color.white
+            );
+            var noteRect = (RectTransform)note.transform;
+            noteRect.anchorMin = noteRect.pivot = Vector2.zero;
+            noteRect.anchorMax = new Vector2(1, 0);
+            noteRect.offsetMin = new Vector2(24, 16);
+            noteRect.offsetMax = new Vector2(-(WordSaveButtonWidth + 28), 60);
+            note.alignment = TextAlignmentOptions.MidlineLeft;
+            note.textWrappingMode = TextWrappingModes.Normal;
+            note.enableAutoSizing = true;
+            note.fontSizeMin = 14;
+            note.fontSizeMax = 18;
 
             Button save = UiBuilderTools.FindOrCreateButton(
-                row,
+                card,
                 "WordSaveButton",
                 "단어장에 저장",
                 bold,
                 WordSaveButtonWidth
             );
-            BuilderTools.GetOrAddComponent<LayoutElement>(save.gameObject).ignoreLayout = true;
-            var saveRect = (RectTransform)save.transform;
-            // 단어 줄 카드 안쪽에 들어가도록 오른쪽과 위아래를 조금 띄운다.
-            saveRect.anchorMin = saveRect.anchorMax = saveRect.pivot = new Vector2(1f, 0.5f);
-            saveRect.anchoredPosition = new Vector2(-4f, 0f);
-            saveRect.sizeDelta = new Vector2(
+            Corner(
+                save.transform,
+                new Vector2(1, 0),
+                new Vector2(-16, 16),
                 WordSaveButtonWidth,
-                DialoguePanelLayout.WordRowHeight - 8f
+                44
             );
+            Button close = UiBuilderTools.FindOrCreateButton(card, "CloseButton", "", bold, 44f);
+            Corner(close.transform, Vector2.one, new Vector2(-12, -12), 44, 44);
 
-            row.gameObject.SetActive(false);
-            return row;
+            card.gameObject.SetActive(false);
+            return card;
         }
+
+        // 카드 전체를 덮는 바탕 한 겹
+        private static void CardLayer(RectTransform card, string name, int order)
+        {
+            Transform existing = card.Find(name);
+            var layer =
+                existing != null
+                    ? (RectTransform)existing
+                    : new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+            layer.SetParent(card, false);
+            layer.SetSiblingIndex(order);
+            layer.anchorMin = Vector2.zero;
+            layer.anchorMax = Vector2.one;
+            layer.offsetMin = layer.offsetMax = Vector2.zero;
+            BuilderTools.GetOrAddComponent<Image>(layer.gameObject).raycastTarget = false;
+        }
+
+        private static void CardText(
+            RectTransform card,
+            string name,
+            TMP_FontAsset font,
+            float size,
+            Vector2 corner,
+            Vector2 position,
+            float width
+        )
+        {
+            TMP_Text text = UiBuilderTools.FindOrCreateText(card, name, font, size, Color.white);
+            Corner(text.transform, corner, position, width, size + 10);
+            text.fontSize = size;
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Ellipsis;
+        }
+
+        // 카드 모서리(corner)를 기준으로 붙인다.
+        private static void Corner(
+            Transform target,
+            Vector2 corner,
+            Vector2 position,
+            float width,
+            float height
+        )
+        {
+            BuilderTools.GetOrAddComponent<LayoutElement>(target.gameObject).ignoreLayout = true;
+            var rect = (RectTransform)target;
+            rect.anchorMin = rect.anchorMax = rect.pivot = corner;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(width, height);
+        }
+
+        private static T CardPart<T>(RectTransform card, string name)
+            where T : Component => card.Find(name).GetComponent<T>();
 
         private static void MoveLegacy(Transform parent, string name, Transform destination)
         {

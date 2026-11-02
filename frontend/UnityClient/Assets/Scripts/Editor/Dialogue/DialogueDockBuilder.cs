@@ -1,4 +1,3 @@
-using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.Theme;
 using TMPro;
@@ -70,7 +69,7 @@ namespace A305.EditorTools.Dialogue
             Place(inputRow.Find("TalkButton"), 1072, 44, 264, 72);
             Control(inputRow.Find("TalkButton"), "말하기", "mic", true);
             ToolRow(conversation.Find("ToolRow"));
-            WordRow(conversation.Find("WordRow"));
+            WordCard(conversation.Find("WordCard"));
             Transform help = root.transform.Find("HelpPanel");
             FreeLayout(help);
             help.GetComponent<Image>().enabled = false;
@@ -113,25 +112,27 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대사 칸 아래 단어 줄. 대사와 섞여 보이지 않도록 대사에서 고른 단어를 칠한 색과 같은 반투명 주황 카드로 감싸고,
-        /// 글자는 본문 색, [단어장에 저장]은 도구 버튼과 같은 모양으로 둔다. 자리와 폭은 DialoguePanelView가 대사 칸에 맞춘다.
-        /// 결과 문구가 길면 한 줄에 맞게 글자를 줄인다.
+        /// 대사에서 누른 단어 근처에 뜨는 호버 카드. 사물 호버 카드처럼 테마의 카드 바탕에 단어는 제목, 뜻은 강조색, 저장 안내는 흐린 글자로 두고,
+        /// [단어장에 저장]·닫기(X)는 다른 대화 버튼과 같은 모양이다. 카드 바탕이 클릭을 받아 아래 대사가 눌리지 않는다.
         /// </summary>
-        private static void WordRow(Transform row)
+        private static void WordCard(Transform card)
         {
-            var card = BuilderTools.GetOrAddComponent<Image>(row.gameObject);
-            card.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
-            card.type = Image.Type.Sliced;
-            card.pixelsPerUnitMultiplier = 0.6f;
-            card.raycastTarget = false;
-            ColorUtility.TryParseHtmlString(DialogueLinesText.SelectedWordMark, out Color mark);
-            card.color = mark;
-            var text = row.Find("Text").GetComponent<TMP_Text>();
-            text.enableAutoSizing = true;
-            text.fontSizeMin = 18;
-            text.fontSizeMax = 26;
-            Theme(text.transform, UiThemeRole.Body);
-            Control(row.Find("WordSaveButton"), "단어장에 저장", "insert");
+            // 카드 바탕은 클릭만 받고 그리지 않는다. 모양은 테마 카드(Face)가, 불투명함은 받침(Backing)이 맡는다.
+            var oldTheme = card.GetComponent<ThemedElement>();
+            if (oldTheme != null)
+                Object.DestroyImmediate(oldTheme);
+            var hitArea = BuilderTools.GetOrAddComponent<Image>(card.gameObject);
+            hitArea.sprite = null;
+            hitArea.color = Color.clear;
+            hitArea.raycastTarget = true;
+            // 받침은 카드를 띄울 때 DialoguePanelView가 지금 테마 카드와 같은 모양으로 맞추고 색만 불투명하게 둔다.
+            card.Find("Backing").GetComponent<Image>().color = Color.white;
+            Theme(card.Find("Face"), UiThemeRole.Panel);
+            Theme(card.Find("Title"), UiThemeRole.Title);
+            Theme(card.Find("Meaning"), UiThemeRole.Accent);
+            Theme(card.Find("Note"), UiThemeRole.Muted);
+            Control(card.Find("WordSaveButton"), "단어장에 저장", "insert");
+            Control(card.Find("CloseButton"), "", "close");
         }
 
         private static void ToolButton(Transform button, string caption, string icon, float width)

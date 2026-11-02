@@ -143,7 +143,7 @@ namespace A305.Dialogue.Tests
             );
         }
 
-        // 대사 칸 아래 단어 줄과 같은 색으로 고른 단어를 칠해, 어느 단어의 뜻인지 대사 안에서 바로 보이게 한다.
+        // 고른 단어를 대사 안에서 칠해, 단어 카드가 어느 단어의 뜻인지 바로 보이게 한다.
         [Test]
         public void Format_MarksTheSelectedWordOnly()
         {

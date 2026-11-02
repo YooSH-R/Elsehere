@@ -58,7 +58,7 @@ namespace A305.Dialogue
         public event Action<DialogueRecord> ConversationEnded;
 
         /// <summary>
-        /// 대사의 풀이 단어 줄에서 [단어장에 저장]을 누르면 그 단어를 알린다. 저장은 받는 쪽(Learning 모듈)이 하고
+        /// 대사의 풀이 단어 카드에서 [단어장에 저장]을 누르면 그 단어를 알린다. 저장은 받는 쪽(Learning 모듈)이 하고
         /// 결과를 <see cref="ShowWordSaveResult"/>로 돌려준다.
         /// </summary>
         public event Action<GlossaryWord> WordSaveRequested;
@@ -77,7 +77,7 @@ namespace A305.Dialogue
             panel.IsWordSaveAvailable = available;
         }
 
-        /// <summary>풀이 단어를 저장한 결과를 대화 화면의 단어 줄에 보인다.</summary>
+        /// <summary>풀이 단어를 저장한 결과를 대화 화면의 단어 카드에 보인다.</summary>
         /// <param name="saved">단어장에 들어갔는지. 이미 있던 단어도 true다.</param>
         public void ShowWordSaveResult(GlossaryWord word, bool saved, string message)
         {

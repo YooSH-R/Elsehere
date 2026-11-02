@@ -28,25 +28,11 @@ namespace A305.Dialogue
         // 대사 칸을 뺀 이름·대사 아래 여백·상태·도구·입력 줄의 높이
         public const float ControlsHeight = LinesBottom + HeaderHeight;
 
-        // 대사에서 누른 풀이 단어의 뜻과 [단어장에 저장]을 보이는 줄. 대사 칸이 끝나던 자리에 둔다.
-        public const float WordRowHeight = 48;
-
-        /// <summary>단어 줄이 보일 때 대사 칸을 위로 올릴 높이(줄과 그 위 여백). 줄이 없으면 0이다.</summary>
-        public static float WordRowSpace(bool isShown)
+        public static float Height(bool wide, float linesHeight)
         {
-            return isShown ? WordRowHeight + 6 : 0;
-        }
-
-        /// <param name="showsWordRow">
-        /// 누른 풀이 단어 줄이 대사 칸 아래에 보이는지. 보이면 그만큼 창을 키운다. 넓은 화면은 NPC 얼굴을 가리지 않도록 최대 높이를 넘지 않고,
-        /// 높이가 정해진 좁은 화면은 그대로 더해 최근 대사가 밀려나지 않게 한다.
-        /// </param>
-        public static float Height(bool wide, float linesHeight, bool showsWordRow = false)
-        {
-            float wordSpace = WordRowSpace(showsWordRow);
             return wide
-                ? Mathf.Clamp(ControlsHeight + linesHeight + wordSpace, WideHeight, WideMaxHeight)
-                : NarrowHeight + wordSpace;
+                ? Mathf.Clamp(ControlsHeight + linesHeight, WideHeight, WideMaxHeight)
+                : NarrowHeight;
         }
     }
 }

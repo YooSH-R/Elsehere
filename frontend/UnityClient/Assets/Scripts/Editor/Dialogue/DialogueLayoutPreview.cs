@@ -60,7 +60,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// [뜻]을 켠 대사의 풀이 단어를 눌렀을 때 대사 칸 아래 단어 줄을 찍는다. 저장 전·저장 뒤·숙어와 세로 화면이다.
+        /// [뜻]을 켠 대사의 풀이 단어를 눌렀을 때 단어 근처에 뜨는 호버 카드를 찍는다. 저장 전·저장 뒤·숙어와 세로 화면이다.
         /// 서버 호출 없이 고정 대사와 풀이를 쓴다.
         /// </summary>
         public static void CaptureWords()
@@ -177,11 +177,11 @@ namespace A305.EditorTools.Dialogue
             string linkId
         )
         {
-            var row = (GlossaryWordRow)
+            var card = (GlossaryWordCard)
                 typeof(DialoguePanelView)
-                    .GetField("glossaryRow", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetField("glossaryCard", BindingFlags.Instance | BindingFlags.NonPublic)
                     .GetValue(view);
-            if (row.Word != DialogueLinesText.FindWord(content.Lines, linkId))
+            if (card.Word != DialogueLinesText.FindWord(content.Lines, linkId))
                 Invoke(view, "SelectWord", linkId);
         }
 

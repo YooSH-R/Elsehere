@@ -12,7 +12,7 @@ using UnityEngine.UI;
 namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
-    /// 실제 대화창 프리팹에서 [뜻]을 켠 대사의 풀이 단어를 눌러 대사 칸 아래 줄에 뜻을 보고, [단어장에 저장]을 누를 수 있는지 확인한다.
+    /// 실제 대화창 프리팹에서 [뜻]을 켠 대사의 풀이 단어를 눌러 단어 근처 호버 카드에서 뜻을 보고, [단어장에 저장]을 누를 수 있는지 확인한다.
     /// </summary>
     public class DialoguePanelWordTests
     {
@@ -43,14 +43,15 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GlossaryWord_ClickedInLines_ShowsItsMeaningBelowTheLines()
+        public IEnumerator GlossaryWord_ClickedInLines_ShowsAHoverCardWithItsMeaning()
         {
             yield return TurnOnMeaning();
 
             yield return ClickWordInLines("latte");
 
-            Assert.That(WordRow().gameObject.activeInHierarchy, Is.True);
-            Assert.That(WordRowText().text, Is.EqualTo("<b>latte</b>  라떼"));
+            Assert.That(WordCard().gameObject.activeInHierarchy, Is.True);
+            Assert.That(CardText("Title").text, Is.EqualTo("latte"));
+            Assert.That(CardText("Meaning").text, Is.EqualTo("라떼"));
             Assert.That(WordSaveButton().gameObject.activeInHierarchy, Is.True);
             Assert.That(WordSaveButton().interactable, Is.True);
         }
@@ -74,39 +75,60 @@ namespace A305.Dialogue.PlayModeTests
             view.ShowWordSaveResult(requested[0], true, "단어장에 저장했어요.");
             yield return null;
 
-            Assert.That(WordRowText().text, Does.EndWith("단어장에 저장했어요."));
+            Assert.That(CardText("Note").text, Is.EqualTo("단어장에 저장했어요."));
             Assert.That(WordSaveButton().gameObject.activeInHierarchy, Is.False);
         }
 
-        // 단어 줄은 대사 칸 바로 아래, 상태 줄 위에 두어 마지막 대사와 안내를 가리지 않는다.
+        // 호버 카드는 누른 단어 바로 위나 아래에 붙고, 대화창 위쪽(NPC 얼굴)으로 넘어가지 않는다.
         [UnityTest]
-        public IEnumerator WordRow_SitsBetweenLinesAndStatusWithoutOverlapping()
+        public IEnumerator WordCard_StaysInsideThePanelRightNextToTheWord()
         {
             yield return TurnOnMeaning();
             yield return ClickWordInLines("latte");
 
-            Rect row = InPanel(WordRow());
-            Rect history = InPanel(Child<RectTransform>("Panel/Conversation/History"));
-            Rect status = InPanel(Child<RectTransform>("Panel/Conversation/Status"));
+            Rect card = InPanel(WordCard());
+            Rect panel = ((RectTransform)panelObject.transform.Find("Panel")).rect;
+            Rect word = WordInPanel("latte");
 
-            Assert.That(history.yMin, Is.GreaterThanOrEqualTo(row.yMax));
-            Assert.That(row.yMin, Is.GreaterThanOrEqualTo(status.yMax));
+            Assert.That(card.yMax, Is.LessThanOrEqualTo(panel.yMax + 0.5f));
+            Assert.That(card.yMin, Is.GreaterThanOrEqualTo(panel.yMin - 0.5f));
+            Assert.That(card.xMin, Is.GreaterThanOrEqualTo(panel.xMin - 0.5f));
+            Assert.That(card.xMax, Is.LessThanOrEqualTo(panel.xMax + 0.5f));
+            bool above = card.yMin >= word.yMax && card.yMin - word.yMax <= 12;
+            bool below = card.yMax <= word.yMin && word.yMin - card.yMax <= 12;
+            Assert.That(
+                above || below,
+                Is.True,
+                $"카드 {card}가 단어 {word} 바로 위나 아래에 있지 않습니다."
+            );
         }
 
         [UnityTest]
-        public IEnumerator HidingMeaning_ClosesTheWordRow()
+        public IEnumerator CloseButton_ClosesTheWordCard()
+        {
+            yield return TurnOnMeaning();
+            yield return ClickWordInLines("latte");
+
+            ClickCenterOf(Child<Button>("Panel/Conversation/WordCard/CloseButton"));
+            yield return null;
+
+            Assert.That(WordCard().gameObject.activeInHierarchy, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator HidingMeaning_ClosesTheWordCard()
         {
             yield return TurnOnMeaning();
             yield return ClickWordInLines("latte");
 
             yield return TurnOnMeaning();
 
-            Assert.That(WordRow().gameObject.activeInHierarchy, Is.False);
+            Assert.That(WordCard().gameObject.activeInHierarchy, Is.False);
         }
 
-        // 단어 줄이 열려 대사 칸이 줄어도 가장 최근 대사와 그 아래 단어 풀이가 보이도록 맨 아래를 지킨다.
+        // 카드를 띄워도 대사 칸 스크롤은 그대로 두어 가장 최근 대사와 그 아래 단어 풀이가 계속 보인다.
         [UnityTest]
-        public IEnumerator OpeningWordRow_KeepsTheLatestLinesInView()
+        public IEnumerator OpeningWordCard_KeepsTheLatestLinesInView()
         {
             var earlier = new List<DialogueLine>();
             for (int i = 0; i < 6; i++)
@@ -120,14 +142,14 @@ namespace A305.Dialogue.PlayModeTests
 
             yield return ClickWordInLines("latte");
 
-            Assert.That(WordRow().gameObject.activeInHierarchy, Is.True);
+            Assert.That(WordCard().gameObject.activeInHierarchy, Is.True);
             Assert.That(
                 Child<ScrollRect>("Panel/Conversation/History").verticalNormalizedPosition,
                 Is.LessThan(0.01f)
             );
         }
 
-        // 고른 단어를 대사 안에서도 칠해 단어 줄의 뜻이 어느 단어의 것인지 바로 보이게 한다.
+        // 고른 단어를 대사 안에서도 칠해 카드의 뜻이 어느 단어의 것인지 바로 보이게 한다.
         [UnityTest]
         public IEnumerator ClickedWord_IsMarkedInTheLine()
         {
@@ -214,12 +236,42 @@ namespace A305.Dialogue.PlayModeTests
             ExecuteEvents.Execute(clicked, pointer, ExecuteEvents.pointerClickHandler);
         }
 
-        private RectTransform WordRow() => Child<RectTransform>("Panel/Conversation/WordRow");
+        private RectTransform WordCard() => Child<RectTransform>("Panel/Conversation/WordCard");
 
-        private TMP_Text WordRowText() => Child<TMP_Text>("Panel/Conversation/WordRow/Text");
+        private TMP_Text CardText(string name) =>
+            Child<TMP_Text>("Panel/Conversation/WordCard/" + name);
 
         private Button WordSaveButton() =>
-            Child<Button>("Panel/Conversation/WordRow/WordSaveButton");
+            Child<Button>("Panel/Conversation/WordCard/WordSaveButton");
+
+        // 대사 칸에서 그 단어 글자들이 차지한 영역을 대화창 기준 좌표로 구한다.
+        private Rect WordInPanel(string word)
+        {
+            var lines = Child<TMP_Text>("Panel/Conversation/History/Viewport/Lines");
+            lines.ForceMeshUpdate();
+            TMP_TextInfo info = lines.textInfo;
+            for (int i = 0; i < info.linkCount; i++)
+            {
+                TMP_LinkInfo link = info.linkInfo[i];
+                if (link.GetLinkText() != word)
+                    continue;
+                TMP_CharacterInfo first = info.characterInfo[link.linkTextfirstCharacterIndex];
+                TMP_CharacterInfo last = info.characterInfo[
+                    link.linkTextfirstCharacterIndex + link.linkTextLength - 1
+                ];
+                var panel = (RectTransform)panelObject.transform.Find("Panel");
+                Vector3 min = panel.InverseTransformPoint(
+                    lines.transform.TransformPoint(first.bottomLeft)
+                );
+                Vector3 max = panel.InverseTransformPoint(
+                    lines.transform.TransformPoint(last.topRight)
+                );
+                return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+            }
+
+            Assert.Fail($"대사에 {word} 링크가 없습니다.");
+            return default;
+        }
 
         private T Child<T>(string path)
             where T : Component

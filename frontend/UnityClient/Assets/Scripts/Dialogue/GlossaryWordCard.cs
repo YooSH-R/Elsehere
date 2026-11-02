@@ -3,12 +3,11 @@ using System.Collections.Generic;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대사 칸 아래 고정 줄. 대사에서 누른 풀이 단어의 뜻과 [단어장에 저장], 저장 결과를 보인다.
+    /// 대사에서 누른 풀이 단어의 호버 카드 상태. 단어·뜻과 [단어장에 저장], 저장 안내(저장하는 중·결과·실패 이유)를 정한다.
     /// 이번 대화에서 저장한 단어는 다시 눌러도 저장했다고 보인다.
     /// </summary>
-    public sealed class GlossaryWordRow
+    public sealed class GlossaryWordCard
     {
-        private const string Separator = "  ·  ";
         private const string SavingNote = "저장하는 중이에요…";
 
         // 이번 대화에서 단어장에 넣은 단어와 그때 받은 결과 문구
@@ -20,7 +19,7 @@ namespace A305.Dialogue
         // 저장하지 못한 이유. 다시 누를 수 있게 버튼과 함께 보인다.
         private string failureNote;
 
-        /// <summary>지금 고른 단어. 줄을 닫았으면 null이다.</summary>
+        /// <summary>지금 고른 단어. 카드를 닫았으면 null이다.</summary>
         public GlossaryWord Word { get; private set; }
 
         public bool IsVisible => Word != null;
@@ -28,19 +27,27 @@ namespace A305.Dialogue
         /// <summary>단어장 서버가 연결되어 있는지. 연결되지 않았으면 [단어장에 저장]을 숨긴다.</summary>
         public bool IsSaveAvailable { get; set; } = true;
 
-        /// <summary>줄에 보일 글자. 단어·뜻과 저장 안내를 함께 쓴다.</summary>
-        public string Text
+        /// <summary>뜻 아래에 보일 저장 안내. 안내할 것이 없으면 null이다.</summary>
+        public string Note
         {
             get
             {
                 if (Word == null)
                 {
-                    return "";
+                    return null;
                 }
 
-                string text = $"<b>{Word.Text}</b>  {Word.MeaningKo}";
-                string note = Note();
-                return note == null ? text : text + Separator + note;
+                if (savedNotes.TryGetValue(Word, out string savedNote))
+                {
+                    return savedNote;
+                }
+
+                if (!IsSaveAvailable)
+                {
+                    return null;
+                }
+
+                return isSaving ? SavingNote : failureNote;
             }
         }
 
@@ -49,7 +56,7 @@ namespace A305.Dialogue
 
         public bool IsSaveInteractable => IsSaveVisible && !isSaving;
 
-        /// <summary>단어를 고른다. 이미 고른 단어를 다시 누르면 줄을 닫는다.</summary>
+        /// <summary>단어를 고른다. 이미 고른 단어를 다시 누르면 카드를 닫는다.</summary>
         public void Select(GlossaryWord word)
         {
             if (word == Word)
@@ -91,7 +98,7 @@ namespace A305.Dialogue
                 savedNotes[word] = message;
             }
 
-            // 기다리는 사이 다른 단어를 골랐으면 지금 보이는 줄은 그대로 둔다.
+            // 기다리는 사이 다른 단어를 골랐으면 지금 보이는 카드는 그대로 둔다.
             if (word != Word)
             {
                 return;
@@ -99,21 +106,6 @@ namespace A305.Dialogue
 
             isSaving = false;
             failureNote = saved ? null : message;
-        }
-
-        private string Note()
-        {
-            if (savedNotes.TryGetValue(Word, out string savedNote))
-            {
-                return savedNote;
-            }
-
-            if (!IsSaveAvailable)
-            {
-                return null;
-            }
-
-            return isSaving ? SavingNote : failureNote;
         }
     }
 }

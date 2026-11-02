@@ -159,7 +159,7 @@ namespace A305.Learning
             _ = SaveDialogueWordAsync(word);
         }
 
-        // 저장 결과는 대화창 단어 줄에 보이고, 새로 넣은 단어는 [단어장] 개수에도 바로 더한다.
+        // 저장 결과는 대화창 단어 카드에 보이고, 새로 넣은 단어는 [단어장] 개수에도 바로 더한다.
         private async Task SaveDialogueWordAsync(GlossaryWord word)
         {
             VocabularySaveResult result = await vocabulary.SaveNpcLineWordAsync(

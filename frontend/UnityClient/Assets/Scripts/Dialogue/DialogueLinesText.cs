@@ -17,13 +17,13 @@ namespace A305.Dialogue
         private const string MeaningColor = "#6E7888";
 
         /// <summary>
-        /// 고른 단어를 칠하는 반투명 주황(말하기 버튼 색). 대사 칸 아래 단어 줄의 바탕도 같은 색이라 어느 단어의 뜻인지 이어 보인다.
+        /// 고른 단어를 칠하는 반투명 주황(말하기 버튼 색). 단어 카드가 어느 단어의 뜻인지 대사 안에서 바로 보이게 한다.
         /// </summary>
         public const string SelectedWordMark = "#F982564D";
 
         /// <param name="showsMeaning">[뜻 보기]를 펼쳤는지. 뜻이 아직 없으면 펼쳐도 붙이지 않는다.</param>
         /// <param name="glossary">가장 최근 NPC 대사의 단어 풀이. 없으면 null이다.</param>
-        /// <param name="selected">대사 칸 아래 단어 줄에 보이는 단어. 없으면 null이다.</param>
+        /// <param name="selected">단어 카드에 보이는 단어. 없으면 null이다.</param>
         public static string Format(
             IReadOnlyList<DialogueLine> lines,
             string npcName,
@@ -91,7 +91,7 @@ namespace A305.Dialogue
         }
 
         // 풀이 단어를 대사에서 찾아 "<대사 번호>/<풀이 번호>" 링크로 감싼다. 대사에서 찾지 못한 풀이는 아래 단어 풀이 줄에만 보인다.
-        // 단어 줄에 보이는 단어는 같은 색으로 칠한다.
+        // 단어 카드에 보이는 단어는 칠해 둔다.
         private static string LinkGlossary(
             string english,
             IReadOnlyList<GlossaryWord> glossary,

@@ -82,11 +82,23 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.GuidedLineCaption, Does.Contain("정해진 흐름"));
             Assert.That(guide.GuidedLineCaption, Does.Not.Contain("연습"));
             Assert.That(guide.GuidedLineMissCaption, Does.Contain("정해진 흐름"));
+            Assert.That(guide.DialogueLinesCaption, Does.Contain("Ben"));
+            Assert.That(guide.DialogueToolsCaption, Does.Contain("{뜻}"));
+            Assert.That(guide.DialogueToolsCaption, Does.Contain("{예시 문장}"));
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{문장}"));
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("추천 문장"));
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{넣기}"));
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("{단어}"));
             Assert.That(guide.SuggestedWordsCaption, Does.Contain("추천 단어"));
+        }
+
+        [Test]
+        public void Walk_TellsToJumpWithTheSpaceBar()
+        {
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+            guide.TryGetStepGuide(TutorialStep.Walk, out TutorialStepGuide stepGuide);
+
+            Assert.That(stepGuide.Task, Does.Contain("{스페이스} 점프"));
         }
 
         [Test]

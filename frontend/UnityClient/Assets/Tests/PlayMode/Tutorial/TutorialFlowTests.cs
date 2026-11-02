@@ -75,6 +75,7 @@ namespace A305.Tutorial.PlayModeTests
             progress.Continue();
             progress.Report(TutorialAction.Walk);
             progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
             progress.Continue();
             progress.Report(TutorialAction.Rotate);
             progress.Report(TutorialAction.Zoom);
@@ -220,6 +221,7 @@ namespace A305.Tutorial.PlayModeTests
             progress.Continue();
             progress.Report(TutorialAction.Walk);
             progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
             progress.Continue();
             progress.Report(TutorialAction.Rotate);
             progress.Report(TutorialAction.Zoom);
@@ -249,6 +251,7 @@ namespace A305.Tutorial.PlayModeTests
             progress.Continue();
             progress.Report(TutorialAction.Walk);
             progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
             progress.Continue();
             progress.Report(TutorialAction.Rotate);
             progress.Report(TutorialAction.Zoom);
@@ -351,6 +354,7 @@ namespace A305.Tutorial.PlayModeTests
             CoachMarkView coachMark = Single<CoachMarkView>();
             TMP_InputField input = panel.GetComponentsInChildren<TMP_InputField>(true).Single();
             Assert.That(dialogue.IsTalking, Is.True);
+            yield return FinishTour(coachMark);
             Assert.That(coachMark.SpotlightTargets, Does.Contain(input.transform));
 
             input.text = "Hello there";
@@ -385,9 +389,10 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator BenDialogue_KeepsTheLinesVisible_AndExplainsTheSuggestedSentenceThenWords()
+        public IEnumerator BenDialogue_TeachesStepByStepWithNext_ThenKeepsTheLinesVisible()
         {
-            // 대사를 읽을 수 있게 어둡게 덮지 않고 할 곳만 테두리로 밝히며, 대사마다 왼쪽 추천 문장·추천 단어를 하나씩 알린다.
+            // 대화를 시작하면 무엇부터 볼지 하나씩 어둡게 밝히고 옆 말풍선으로 설명하며 [다음]으로 넘긴다.
+            // 다 보면 대사를 읽으며 할 수 있게 덮지 않고, 입력칸 옆에서 할 대사를 알린다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -398,34 +403,53 @@ namespace A305.Tutorial.PlayModeTests
 
             DialoguePanelView panel = Single<DialoguePanelView>();
             CoachMarkView coachMark = Single<CoachMarkView>();
-            Assert.That(
-                coachMark.IsDimmingOutside,
-                Is.False,
-                "대사가 보이게 어둡게 덮지 않습니다."
-            );
+            RectTransform[][] tour =
+            {
+                new[] { panel.LinesRect },
+                panel.ToolParts.ToArray(),
+                new[] { panel.SuggestedWordsRect },
+                new[] { panel.SuggestedSentenceRect },
+            };
+            foreach (RectTransform[] targets in tour)
+            {
+                Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
+                Assert.That(coachMark.IsDimmingOutside, Is.True, "하나씩 밝혀 볼 곳을 알립니다.");
+                Assert.That(coachMark.IsNextShowing, Is.True);
+                Assert.That(
+                    coachMark.CaptionRect.Overlaps(coachMark.Hole),
+                    Is.False,
+                    "설명은 밝힌 곳을 가리지 않고 옆에 둡니다."
+                );
+                ClickNext(coachMark);
+                yield return null;
+                yield return null;
+            }
+
+            TMP_InputField input = panel.GetComponentsInChildren<TMP_InputField>(true).Single();
+            Assert.That(coachMark.SpotlightTargets, Does.Contain(input.transform));
+            Assert.That(coachMark.IsDimmingOutside, Is.False, "대사가 보이게 덮지 않습니다.");
+            Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
+            Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+        }
 
-            Click(panel, "ExampleButton");
-            Click(panel, "SendButton");
-            yield return null;
-            Assert.That(
-                coachMark.SpotlightTargets,
-                Is.EqualTo(new[] { panel.SuggestedSentenceRect })
-            );
-            Assert.That(coachMark.CaptionText, Does.Contain("추천 문장"));
+        // 대화 시작 티칭을 [다음]으로 끝까지 넘긴다.
+        private static IEnumerator FinishTour(CoachMarkView coachMark)
+        {
+            for (int step = 0; step < TutorialCoachPlan.DialogueTourLength; step++)
+            {
+                ClickNext(coachMark);
+                yield return null;
+                yield return null;
+            }
+        }
 
-            Click(panel, "UseHintButton");
-            Click(panel, "SendButton");
-            yield return null;
-            Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { panel.SuggestedWordsRect }));
-            Assert.That(coachMark.CaptionText, Does.Contain("추천 단어"));
-            Assert.That(
-                panel
-                    .SuggestedWordsRect.GetComponentsInChildren<TMP_Text>()
-                    .Any(text => text.text.Contains("minute")),
-                Is.True,
-                "이번 대사에 쓸 추천 단어가 보입니다."
-            );
+        private static void ClickNext(CoachMarkView coachMark)
+        {
+            coachMark
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "NextButton")
+                .onClick.Invoke();
         }
 
         private static Passerby FindBen()

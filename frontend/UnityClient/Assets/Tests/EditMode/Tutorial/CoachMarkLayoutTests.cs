@@ -51,8 +51,10 @@ namespace A305.Tutorial.Tests
         {
             CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
                 new Vector2(400f, 300f),
+                new Vector2(400f, 300f),
                 false,
                 Canvas,
+                50f,
                 50f
             );
 
@@ -66,20 +68,26 @@ namespace A305.Tutorial.Tests
             // 대상이 화면 밖이면 위·옆 가장자리에서 안내 카드·메뉴와 겹치지 않게, 대상이 있는 쪽 아래 구석에서 돌아볼 방향을 가리킨다.
             CoachMarkLayout.MarkerPose right = CoachMarkLayout.Marker(
                 new Vector2(1200f, 300f),
+                new Vector2(1200f, 300f),
                 false,
                 Canvas,
+                50f,
                 50f
             );
             CoachMarkLayout.MarkerPose aboveLeft = CoachMarkLayout.Marker(
                 new Vector2(300f, 900f),
+                new Vector2(300f, 900f),
                 false,
                 Canvas,
+                50f,
                 50f
             );
             CoachMarkLayout.MarkerPose aboveRight = CoachMarkLayout.Marker(
                 new Vector2(700f, 900f),
+                new Vector2(700f, 900f),
                 false,
                 Canvas,
+                50f,
                 50f
             );
 
@@ -97,13 +105,113 @@ namespace A305.Tutorial.Tests
             // 카메라 뒤의 점은 화면 좌표가 좌우로 뒤집혀 나오므로 되돌려 대상이 있는 쪽 아래 구석에 둔다.
             CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
                 new Vector2(300f, 300f),
+                new Vector2(300f, 300f),
                 true,
                 Canvas,
+                50f,
                 50f
             );
 
             AssertNear(pose.Position, new Vector2(750f, 50f));
             Assert.That(pose.ArrowDegrees, Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void Marker_TopAboveTheScreen_ButTheBodyOnScreen_PointsDownAtTheBody()
+        {
+            // 문 가까이 서면 문 위 화살표 자리는 화면 위로 벗어나도 문은 보이므로, 옆 구석이 아니라 문 몸통을 가리킨다.
+            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
+                new Vector2(400f, 900f),
+                new Vector2(400f, 300f),
+                false,
+                Canvas,
+                50f,
+                50f
+            );
+
+            AssertNear(pose.Position, new Vector2(400f, 300f));
+            Assert.That(pose.ArrowDegrees, Is.EqualTo(-90f));
+        }
+
+        [Test]
+        public void Marker_TopUnderTheGuideCard_PointsAtTheBodyInstead()
+        {
+            // 위쪽 안내 카드 자리(위쪽 여백)에 걸린 화살표는 카드에 가리므로 몸통을 가리킨다.
+            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
+                new Vector2(400f, 520f),
+                new Vector2(400f, 300f),
+                false,
+                Canvas,
+                50f,
+                150f
+            );
+
+            AssertNear(pose.Position, new Vector2(400f, 300f));
+        }
+
+        [Test]
+        public void Bubble_RoomOnTheRight_SitsRightOfTheHole_WithItsTailOnTheLeftEdge()
+        {
+            // 설명은 밝힌 대상 옆 말풍선으로 둔다. 오른쪽에 자리가 있으면 오른쪽에, 대상 높이 가운데에 맞춘다.
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 250f, 100f, 100f),
+                new Vector2(300f, 100f),
+                Canvas,
+                20f,
+                10f
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Right));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(220f, 250f, 300f, 100f)));
+            AssertNear(bubble.Tail, new Vector2(220f, 300f));
+        }
+
+        [Test]
+        public void Bubble_NoRoomOnTheRight_SitsLeft()
+        {
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(600f, 250f, 100f, 100f),
+                new Vector2(300f, 100f),
+                Canvas,
+                20f,
+                10f
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Left));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(280f, 250f, 300f, 100f)));
+            AssertNear(bubble.Tail, new Vector2(580f, 300f));
+        }
+
+        [Test]
+        public void Bubble_WideHole_SitsAboveIt_CenteredOnIt()
+        {
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(50f, 100f, 700f, 120f),
+                new Vector2(300f, 100f),
+                Canvas,
+                20f,
+                10f
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Above));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(250f, 240f, 300f, 100f)));
+            AssertNear(bubble.Tail, new Vector2(400f, 240f));
+        }
+
+        [Test]
+        public void Bubble_NearTheBottom_StaysInsideTheCanvas_AndKeepsTheTailOnItsEdge()
+        {
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 0f, 100f, 40f),
+                new Vector2(300f, 100f),
+                Canvas,
+                20f,
+                10f
+            );
+
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(220f, 10f, 300f, 100f)));
+            Assert.That(bubble.Tail.x, Is.EqualTo(220f));
+            Assert.That(bubble.Tail.y, Is.InRange(bubble.Rect.yMin, bubble.Rect.yMax));
         }
 
         private static void AssertNear(Vector2 actual, Vector2 expected)

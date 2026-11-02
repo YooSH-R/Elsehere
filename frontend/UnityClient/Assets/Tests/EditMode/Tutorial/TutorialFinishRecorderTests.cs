@@ -134,6 +134,7 @@ namespace A305.Tutorial.Tests
             progress.Continue();
             progress.Report(TutorialAction.Walk);
             progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
             progress.Continue();
             progress.Report(TutorialAction.Rotate);
             progress.Report(TutorialAction.Zoom);

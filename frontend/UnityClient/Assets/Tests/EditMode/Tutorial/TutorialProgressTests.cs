@@ -33,9 +33,9 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void Walk_NeedsWalkingAndRunningDuringWalkStep()
+        public void Walk_NeedsWalkingRunningAndJumpingDuringWalkStep()
         {
-            // 도착 단계에서 걸은 것은 세지 않는다. 안내한 걷기·달리기를 모두 해야 넘어간다.
+            // 도착 단계에서 걸은 것은 세지 않는다. 안내한 걷기·달리기·점프를 모두 해야 넘어간다.
             progress.Report(TutorialAction.Walk);
             progress.Continue();
             Assert.That(progress.IsDone(TutorialAction.Walk), Is.False);
@@ -47,6 +47,9 @@ namespace A305.Tutorial.Tests
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Walk));
 
             progress.Report(TutorialAction.Run);
+            Assert.That(progress.CanContinue, Is.False);
+
+            progress.Report(TutorialAction.Jump);
             Assert.That(progress.CanContinue, Is.True);
             progress.Continue();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Look));
@@ -60,6 +63,7 @@ namespace A305.Tutorial.Tests
             progress.Report(TutorialAction.Rotate);
             progress.Report(TutorialAction.Walk);
             progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
             progress.Continue();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Look));
 
@@ -76,7 +80,7 @@ namespace A305.Tutorial.Tests
         [Test]
         public void TouchDevice_NeedsOnlyTheActionsItCanDo()
         {
-            // 터치 기기에는 달리기·휠·V가 없어 조이스틱 걷기와 화면 끌기만 한다.
+            // 터치 기기에는 달리기·점프·휠·V가 없어 조이스틱 걷기와 화면 끌기만 한다.
             progress.UsesTouch = true;
             progress.Continue();
 
@@ -378,6 +382,7 @@ namespace A305.Tutorial.Tests
                 {
                     progress.Report(TutorialAction.Walk);
                     progress.Report(TutorialAction.Run);
+                    progress.Report(TutorialAction.Jump);
                     progress.Continue();
                 },
                 () =>

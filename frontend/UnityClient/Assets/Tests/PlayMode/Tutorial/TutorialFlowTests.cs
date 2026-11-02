@@ -236,10 +236,20 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(SpaceTravel.IsLocked, Is.False);
             Assert.That(coachMark.IsSpotlightShowing, Is.False);
             Assert.That(
-                coachMark.MarkerTarget.GetComponent<SpaceDoorway>(),
-                Is.Not.Null,
-                "숙소 문 위에 화살표를 띄웁니다."
+                coachMark.MarkerTarget,
+                Is.Null,
+                "문 위·몸통에 띄운 화살표는 캐릭터를 가리므로 두지 않습니다."
             );
+            Assert.That(coachMark.IsCompassShowing, Is.True, "발밑 나침반으로 문 쪽을 가리킵니다.");
+            Transform player = Single<PlayerMover>().transform;
+            Vector3 toDoor = Vector3.ProjectOnPlane(
+                Object.FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                    .OrderBy(door => Vector3.Distance(door.transform.position, player.position))
+                    .First()
+                    .transform.position - player.position,
+                Vector3.up
+            );
+            Assert.That(Vector3.Angle(coachMark.CompassDirection, toDoor), Is.LessThan(5f));
         }
 
         [UnityTest]

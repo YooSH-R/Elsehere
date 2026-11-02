@@ -214,6 +214,45 @@ namespace A305.Tutorial.Tests
             Assert.That(bubble.Tail.y, Is.InRange(bubble.Rect.yMin, bubble.Rect.yMax));
         }
 
+        [Test]
+        public void Compass_LiesOnTheGroundAtTheFeet_PointingTowardTheTarget()
+        {
+            // 걸어갈 곳은 플레이어 발밑 바닥에 나침반처럼 가리킨다. 높낮이는 보지 않고 바닥을 따라 대상 쪽을 가리킨다.
+            CoachMarkLayout.CompassPose compass = CoachMarkLayout.Compass(
+                new Vector3(1f, 0.5f, 1f),
+                new Vector3(4f, 3f, 5f),
+                0.8f
+            );
+
+            var toward = new Vector3(0.6f, 0f, 0.8f);
+            AssertNear(compass.Direction, toward);
+            AssertNear(compass.PointerPosition, new Vector3(1f, 0.5f, 1f) + toward * 0.8f);
+            AssertNear(compass.Rotation * Vector3.right, toward);
+            Assert.That(
+                Mathf.Abs(Vector3.Dot(compass.Rotation * Vector3.forward, Vector3.up)),
+                Is.EqualTo(1f).Within(0.001f),
+                "그림 면이 바닥과 나란히 눕습니다."
+            );
+        }
+
+        [Test]
+        public void Compass_TargetRightAboveTheFeet_StillPointsSomewhereOnTheGround()
+        {
+            CoachMarkLayout.CompassPose compass = CoachMarkLayout.Compass(
+                Vector3.zero,
+                Vector3.up * 2f,
+                0.8f
+            );
+
+            Assert.That(compass.Direction.y, Is.EqualTo(0f));
+            Assert.That(compass.Direction.magnitude, Is.EqualTo(1f).Within(0.001f));
+        }
+
+        private static void AssertNear(Vector3 actual, Vector3 expected)
+        {
+            Assert.That(Vector3.Distance(actual, expected), Is.LessThan(0.001f), $"{actual} ≠ {expected}");
+        }
+
         private static void AssertNear(Vector2 actual, Vector2 expected)
         {
             Assert.That(actual.x, Is.EqualTo(expected.x).Within(0.01f));

@@ -5,8 +5,8 @@ using UnityEngine;
 namespace A305.World
 {
     /// <summary>
-    /// 월드 장면에 있는 동안 게임 시간 신호를 보낸다(<see cref="GameClock"/>). 장면이 바뀌거나 로그아웃해 입구 장면으로 가면 함께 사라져 신호도
-    /// 멈춘다. 브라우저 탭이 숨으면 Update가 멈춰 신호가 끊기고, 서버는 그 시간을 세지 않는다.
+    /// 월드 장면에 있는 동안 게임 시간 신호를 보내고, 신호 사이에도 게임 시각을 흘린다(<see cref="GameClock"/>). 장면이 바뀌거나 로그아웃해 입구
+    /// 장면으로 가면 함께 사라져 신호도 멈춘다. 브라우저 탭이 숨으면 Update가 멈춰 신호가 끊기고, 서버는 그 시간을 세지 않는다.
     /// </summary>
     public class GameClockDriver : MonoBehaviour
     {
@@ -28,6 +28,8 @@ namespace A305.World
 
         private void Update()
         {
+            // 신호 사이에도 게임 시각을 흘려 NPC 일과가 끊기지 않게 한다. 서버가 없어도 흐른다.
+            GameClock.Shared.Flow(Time.unscaledDeltaTime);
             double now = Time.realtimeSinceStartupAsDouble;
             if (api != null && GameClock.Shared.IsDue(now))
             {

@@ -9,6 +9,7 @@ namespace A305.Npc
     /// 플레이어가 가까이 오면 먼저 다가와 대화를 제안하는 행인. 수락하면 대화를 시작하고,
     /// 거절하거나 무시하고 멀어지면 제자리로 돌아가 정해진 시간 동안 쉰다. 제안 중에는 카메라·이동을 잠그지 않는다.
     /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다.
+    /// 생활(<see cref="NpcRoutine"/>)이 붙은 NPC는 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
     /// 모델은 자식 Visual 아래에 두고, 이동은 루트의 CharacterController가 맡는다.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
@@ -42,6 +43,9 @@ namespace A305.Npc
         private PasserbyApproach approach;
         private Pose homePose;
 
+        // 생활 데이터가 있는 NPC만 붙는다. 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
+        private NpcRoutine routine;
+
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
 
         /// <summary>
@@ -49,6 +53,9 @@ namespace A305.Npc
         /// 이미 제안 중이면 제안을 거두지 않는다.
         /// </summary>
         public bool IsApproachAllowed { get; set; } = true;
+
+        /// <summary>처음 놓인 자리와 방향. 다가왔다가 돌아갈 곳이고, 직원은 근무 자리다.</summary>
+        internal Pose HomePose => homePose;
 
         private static double Now => Time.realtimeSinceStartupAsDouble;
 
@@ -65,6 +72,7 @@ namespace A305.Npc
             }
 
             homePose = new Pose(transform.position, transform.rotation);
+            routine = GetComponent<NpcRoutine>();
             approach = new PasserbyApproach(
                 settings.ToRules(),
                 PasserbyRestRecord.GetRestUntil(identity.Code)
@@ -104,9 +112,18 @@ namespace A305.Npc
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
+            // 카운터를 맡은 직원은 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
+            bool notReadyToOffer =
+                routine != null
+                && routine.enabled
+                && !routine.CanOfferTo(player.transform.position);
 
             PasserbyPhase before = approach.Phase;
-            approach.Tick(Now, toPlayer.magnitude, isPlayerBusy || cannotStartConversation);
+            approach.Tick(
+                Now,
+                toPlayer.magnitude,
+                isPlayerBusy || cannotStartConversation || notReadyToOffer
+            );
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {
                 // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다.
@@ -114,14 +131,24 @@ namespace A305.Npc
                 PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
             }
 
+            bool isIdle =
+                approach.Phase == PasserbyPhase.Waiting || approach.Phase == PasserbyPhase.Resting;
+            if (!isIdle && routine != null)
+            {
+                // 말을 걸러 가거나 대화하는 동안에는 하던 일을 그만두고 앉아 있었으면 일어난다.
+                routine.Interrupt();
+            }
+
             switch (approach.Phase)
             {
                 case PasserbyPhase.Approaching:
                     Walk(toPlayer);
+                    ShowAnimation(NpcAnimation.None);
                     break;
                 case PasserbyPhase.Offering:
                     Stand();
                     TurnToward(toPlayer);
+                    ShowAnimation(NpcAnimation.Talk);
                     if (!offerView.IsShownBy(this))
                     {
                         ShowOffer();
@@ -131,9 +158,19 @@ namespace A305.Npc
                 case PasserbyPhase.Talking:
                     Stand();
                     TurnToward(toPlayer);
+                    ShowAnimation(NpcAnimation.Talk);
                     break;
                 default:
-                    ReturnHome();
+                    if (routine != null && routine.enabled)
+                    {
+                        routine.Live(player.transform.position);
+                    }
+                    else
+                    {
+                        ReturnHome();
+                        ShowAnimation(NpcAnimation.None);
+                    }
+
                     break;
             }
 
@@ -265,12 +302,7 @@ namespace A305.Npc
             toHome.y = 0f;
             if (toHome.magnitude <= ArrivedDistanceMeters)
             {
-                Stand();
-                transform.rotation = Quaternion.RotateTowards(
-                    transform.rotation,
-                    homePose.rotation,
-                    settings.TurnSpeedDegreesPerSecond * Time.deltaTime
-                );
+                StandFacing(homePose.rotation);
                 return;
             }
 
@@ -279,11 +311,28 @@ namespace A305.Npc
 
         private void Walk(Vector3 horizontalDirection)
         {
-            Vector3 velocity = horizontalDirection.normalized * settings.WalkSpeedMetersPerSecond;
+            WalkToward(horizontalDirection, settings.WalkSpeedMetersPerSecond);
+        }
+
+        /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
+        internal void WalkToward(Vector3 horizontalDirection, float speedMetersPerSecond)
+        {
+            Vector3 velocity = horizontalDirection.normalized * speedMetersPerSecond;
             velocity.y = GroundedDownwardSpeedMetersPerSecond;
             characterController.Move(velocity * Time.deltaTime);
             TurnToward(horizontalDirection);
-            ReportLocomotion(settings.WalkSpeedMetersPerSecond);
+            ReportLocomotion(speedMetersPerSecond);
+        }
+
+        /// <summary>제자리에 서서 그 방향으로 천천히 돈다.</summary>
+        internal void StandFacing(Quaternion rotation)
+        {
+            Stand();
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                rotation,
+                settings.TurnSpeedDegreesPerSecond * Time.deltaTime
+            );
         }
 
         private void Stand()
@@ -306,6 +355,15 @@ namespace A305.Npc
                 Quaternion.LookRotation(horizontalDirection),
                 settings.TurnSpeedDegreesPerSecond * Time.deltaTime
             );
+        }
+
+        // 말을 건네거나 대화하는 동안 손짓한다. 동작 상태가 없는 모델(NPC 전용 컨트롤러가 아님)에는 아무것도 하지 않는다.
+        private void ShowAnimation(NpcAnimation animation)
+        {
+            if (animationDriver != null)
+            {
+                animationDriver.SetAction((int)animation);
+            }
         }
 
         private void ReportLocomotion(float speed)

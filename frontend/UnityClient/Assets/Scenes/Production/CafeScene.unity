@@ -1050,6 +1050,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 662858916}
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 662858917}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &662858913 stripped
 Transform:
@@ -1086,6 +1089,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.Dialogue::A305.Dialogue.DialogueSpeaker
   player: {fileID: 891873551}
   bindingNotice: 
+--- !u!114 &662858917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 662858915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee0888a461749894eb0e86e255505fa2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcRoutine
+  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
+  walkSpeedMetersPerSecond: 1.1
+  serveRadiusMeters: 2
+  lifeAnimator: {fileID: 9100000, guid: 0a9e0e7b8fba0fb44bb8eda55e41c374, type: 2}
 --- !u!1001 &739269363
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2263,6 +2282,8 @@ MonoBehaviour:
   player: {fileID: 739269365}
   dialogue: {fileID: 491052814}
   offerView: {fileID: 9224386}
+  cushionTopMeters: 0.33
+  frontEdgeMeters: 0.3
 --- !u!1 &1158842876
 GameObject:
   m_ObjectHideFlags: 0
@@ -2350,6 +2371,8 @@ MonoBehaviour:
   player: {fileID: 739269365}
   dialogue: {fileID: 491052814}
   offerView: {fileID: 9224386}
+  cushionTopMeters: 0.33
+  frontEdgeMeters: 0.3
 --- !u!1001 &1440774468
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2576,6 +2599,51 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5869280220629242574, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
   m_PrefabInstance: {fileID: 1482583261}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1491354465
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1491354467}
+  - component: {fileID: 1491354466}
+  m_Layer: 0
+  m_Name: NpcWalkArea
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1491354466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1491354465}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8362476cbd53d634db957d3a038a9107, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWalkArea
+  data: {fileID: 23800000, guid: e0e771b3c4d6e7745b4a486e57f472fb, type: 2}
+--- !u!4 &1491354467
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1491354465}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1519806474
 GameObject:
   m_ObjectHideFlags: 0
@@ -3219,6 +3287,8 @@ MonoBehaviour:
   player: {fileID: 739269365}
   dialogue: {fileID: 491052814}
   offerView: {fileID: 9224386}
+  cushionTopMeters: 0.33
+  frontEdgeMeters: 0.3
 --- !u!1 &1854720053
 GameObject:
   m_ObjectHideFlags: 0
@@ -3383,6 +3453,8 @@ MonoBehaviour:
   player: {fileID: 739269365}
   dialogue: {fileID: 491052814}
   offerView: {fileID: 9224386}
+  cushionTopMeters: 0.33
+  frontEdgeMeters: 0.3
 --- !u!1001 &2097214834
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3505,3 +3577,4 @@ SceneRoots:
   - {fileID: 1725526042}
   - {fileID: 1158842877}
   - {fileID: 746182735}
+  - {fileID: 1491354467}

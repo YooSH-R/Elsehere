@@ -15,8 +15,8 @@
 | `OpenVocabulary` | 메뉴(≡)의 [단어장] | 단어장·[피드백 목록]·[홈] | ≡ → [단어장] |
 | `LeaveLodging` | 숙소 밖 공간에 들어감 | 밖으로 나가기(단어장이 떠 있으면 숨김) | 플레이어 발밑 나침반(원과 문 쪽을 가리키는 가장자리 화살표). 단어장을 열어 이 단계로 넘어온 동안에는 단어장 창을 밝히고 단어장 설명(저장한 단어가 모이는 곳, [외웠어요]·메모)과 닫고 밖으로 나가라는 다음 할 일 |
 | `MeetBen` | Ben과 대화 시작. 숙소를 나오자마자 다른 곳으로 걸어가지 않게 이동·시점을 잠그고, Ben을 바라보며 오른쪽 어깨 너머로 Ben을 비추는 구도로 붙잡아 둡니다. Ben은 멀리 있어도 다가와 말을 겁니다. | Ben 만나기(Ben이 다가오면 [대화하기]) | Ben 머리 위 화살표, 제안이 뜨면 [대화하기] |
-| `BenDialogue` | 길 안내를 끝까지 마치고 대화 종료 → `BenFeedback`. 중간에 끝내면 `MeetBen`으로 되돌아가 Ben 앞에 그대로 붙잡아 두고 Ben이 다시 말을 겁니다. 길 안내를 마쳐야 붙잡기가 풀립니다. | 숨김 | 대화를 시작하면 티칭: 대사 칸 → [뜻]·[예시 문장] → 왼쪽 추천 단어 카드 → 왼쪽 추천 문장 카드([넣기])를 하나씩 어둡게 밝히고 옆 말풍선의 [다음]으로 넘깁니다. 다 보거나 첫 대사를 보내면 대사를 읽을 수 있게 덮지 않고 입력칸·[보내기]·[예시 문장]·[꾹 눌러 말하기]를 테두리로 밝히며, 말풍선에 정해진 흐름대로 진행된다는 안내와 할 대사·뜻을 보입니다. 마치면 [대화 종료] |
-| `BenFeedback` | 길 안내 피드백의 [닫기] | 피드백 보기(피드백이 떠 있으면 숨김) | 피드백 창 |
+| `BenDialogue` | 길 안내를 끝까지 마치고 대화 종료 → `BenFeedback`. 중간에 끝내면 `MeetBen`으로 되돌아가 Ben 앞에 그대로 붙잡아 두고 Ben이 다시 말을 겁니다. 길 안내를 마쳐야 붙잡기가 풀립니다. | 숨김 | 대화를 시작하면 티칭: 대사 칸 → [뜻]·[예시 문장] → 왼쪽 추천 단어 카드 → 왼쪽 추천 문장 카드([넣기])를 하나씩 어둡게 밝히고 옆 말풍선의 [다음]으로 넘깁니다. 다 보거나 첫 대사를 보내면 대사를 읽을 수 있게 덮지 않고 입력칸·[보내기]·[예시 문장]·[꾹 눌러 말하기]를 테두리로 밝히며, 말풍선에 정해진 흐름대로 진행된다는 안내와 할 대사·뜻을 보입니다. 마치면 [대화 종료]를 어둡게 둘러 밝히고, 누르면 피드백을 볼 수 있다고 알림 |
+| `BenFeedback` | 길 안내 피드백(대화 노트)을 닫음 | 피드백 보기(피드백이 떠 있으면 숨김) | 대화 노트 티칭: 탭 줄 → 쪽 넘김 화살표를 하나씩 어둡게 밝히고 옆 말풍선의 [다음]으로 넘긴 뒤(보이지 않는 부분은 건너뜀), 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 이어진다고 알림 |
 | `TodayGoal` | 지도 버튼으로 수첩 열기 → `Completed` | 오늘의 목표·택시·벤치 | 지도 버튼 |
 | `Completed` | — | 숨김 | 숨김 |
 
@@ -69,7 +69,7 @@
 | `A305.ObjectHover` | `WordTooltipView.IsPinned`·`CanSaveWord`·`SaveRequested`·`SaveButtonRect` |
 | `A305.Dialogue` | `DialogueController.Started`·`ConversationEnded`·`IsTalking`·`IsGuidedCompleted`·`GuidedTurnIndex`·`GuidedLine`·`GuidedLineKorean`, `DialoguePanelView.LinesRect`·`ToolParts`·`GuidedLineParts`·`SuggestedSentenceRect`·`SuggestedWordsRect`·`EndButtonRect` |
 | `A305.Npc` | `Passerby.IsApproachAllowed`·`IsPlayerWaiting`·`SetTutorialScript`, `NpcIdentity.Code`, `PasserbyOfferView.IsShownBy`·`ShownButtonRect`, `TaxiRide.IsHailAllowed` |
-| `A305.Learning` | `LearningController.FeedbackClosed`·`IsShowingScreen`, `LearningHudView.VocabularyRequested`·`ShowMessage`, `HudMenuView.IsOpen`, `FeedbackView.IsVisible` |
+| `A305.Learning` | `LearningController.FeedbackClosed`·`IsShowingScreen`, `LearningHudView.VocabularyRequested`·`ShowMessage`, `HudMenuView.IsOpen`, `FeedbackView.IsVisible`·`SectionRowRect`·`NavigationRowRect`·`CloseButtonRect` |
 | `A305.Mission` | `MissionController.SetStoryAvailable`·`SetPanelVisible`, `FirstDayMissionView.JournalOpened` |
 | `A305.World` | `SpaceTravel.SetLocked`·`Refused`, `SpaceDoorway` |
 | uGUI, TextMeshPro | 안내 카드, 코치 마크 |
@@ -89,8 +89,8 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 단계 순서, 걷기·시점·단어 저장·단어장은 그 단계에서 한 것만 인정, 숙소 밖 진입, 단계별 장소 이동 잠금, 행인 허용 단계, 길 안내 완료·중단, 피드백 닫기, 지도로 완료, 건너뛰기, 끝낸 방법 기록과 서버 저장(완료·건너뛰기·재시도·409 거절·API 경로), 서버에서 이미 끝난 사용자, 코치 마크 대상 고르기와 구멍·판 계산, 화면 밖·카메라 뒤 대상을 가리키는 아래 구석 화살표와 머리 위가 화면 밖일 때 몸통 가리키기, 발밑 나침반이 바닥을 따라 대상 쪽을 가리키기, 설명 말풍선의 자리(오른쪽·왼쪽·위)와 캔버스 안에 머무르기·꼬리 위치, Ben 대화 시작 티칭 순서와 첫 대사 뒤에는 할 대사만 알리기, 걷기 단계의 점프, 대화 설명이 정해진 흐름대로 진행된다고 알리는지, 안내 문구의 [키] 표시·진행 점·보이는 글자 수, 해낸 단계의 자동 넘어가기, 단계 안내가 기기별 짧은 한 줄인지 |
-| `A305.Tutorial.PlayModeTests` | `Assets/Tests/PlayMode/Tutorial/` | 배포용 숙소·마을 씬에서 숙소 문 잠금과 발밑 나침반으로 문 쪽 가리키기, Ben 머리 위 화살표와 [대화하기]만 밝히기, 정해진 대사와 다른 문장은 되돌리고 안내한 뒤 길 안내를 마치면 [대화 종료] 밝히기, [건너뛰기]는 한 번 더 묻고 확인해야 끝나기, 잠긴 문 알림이 안내 카드에 잠깐 보였다 사라지기, 숙소를 나오자마자 이동·시점을 잠그고 Ben을 바라보며 Ben이 다가와 말을 걸기, 대화가 잠금을 이어받고 길 안내를 마치면 풀기, 일찍 끝내면 계속 붙잡기, Ben 대화를 시작하면 대사·[뜻]·추천 단어·추천 문장을 하나씩 밝히고 밝힌 곳 옆 말풍선의 [다음]으로 넘긴 뒤 대사를 덮지 않고 할 대사를 알리기 |
+| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 단계 순서, 걷기·시점·단어 저장·단어장은 그 단계에서 한 것만 인정, 숙소 밖 진입, 단계별 장소 이동 잠금, 행인 허용 단계, 길 안내 완료·중단, 피드백 닫기, 지도로 완료, 건너뛰기, 끝낸 방법 기록과 서버 저장(완료·건너뛰기·재시도·409 거절·API 경로), 서버에서 이미 끝난 사용자, 코치 마크 대상 고르기와 구멍·판 계산, 화면 밖·카메라 뒤 대상을 가리키는 아래 구석 화살표와 머리 위가 화면 밖일 때 몸통 가리키기, 발밑 나침반이 바닥을 따라 대상 쪽을 가리키기, 설명 말풍선의 자리(오른쪽·왼쪽·위)와 캔버스 안에 머무르기·꼬리 위치, Ben 대화 시작 티칭 순서와 첫 대사 뒤에는 할 대사만 알리기, 대화 노트 티칭 순서와 마지막에 닫는 버튼 밝히기, 걷기 단계의 점프, 대화 설명이 정해진 흐름대로 진행된다고 알리는지, 안내 문구의 [키] 표시·진행 점·보이는 글자 수, 해낸 단계의 자동 넘어가기, 단계 안내가 기기별 짧은 한 줄인지 |
+| `A305.Tutorial.PlayModeTests` | `Assets/Tests/PlayMode/Tutorial/` | 배포용 숙소·마을 씬에서 숙소 문 잠금과 발밑 나침반으로 문 쪽 가리키기, Ben 머리 위 화살표와 [대화하기]만 밝히기, 정해진 대사와 다른 문장은 되돌리고 안내한 뒤 길 안내를 마치면 [대화 종료] 밝히기, [건너뛰기]는 한 번 더 묻고 확인해야 끝나기, 잠긴 문 알림이 안내 카드에 잠깐 보였다 사라지기, 숙소를 나오자마자 이동·시점을 잠그고 Ben을 바라보며 Ben이 다가와 말을 걸기, 대화가 잠금을 이어받고 길 안내를 마치면 풀기, 일찍 끝내면 계속 붙잡기, Ben 대화를 시작하면 대사·[뜻]·추천 단어·추천 문장을 하나씩 밝히고 밝힌 곳 옆 말풍선의 [다음]으로 넘긴 뒤 대사를 덮지 않고 할 대사를 알리기, 길 안내를 마치면 [대화 종료]를 어둡게 둘러 밝히기, 대화 노트의 탭·쪽 넘기기를 [다음]으로 넘긴 뒤 X를 밝혀 닫으면 오늘의 목표로 넘어가기 |
 | `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 안내 카드와 튜토리얼 진행 처리를 한 번씩 붙이고, 흐름 기능과 씬에 놓인 행인을 연결하는지, 배포 장소 씬의 `ApiSettings` 연결 |
 
 `A305.Npc.PlayModeTests`와 `A305.Tutorial.PlayModeTests`는 각 테스트 전에 `TutorialState.Clear()`로 튜토리얼을 처음부터 시작합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

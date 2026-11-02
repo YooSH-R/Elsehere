@@ -45,12 +45,10 @@ namespace A305.EditorTools.Dialogue
 
             Transform history = root.transform.Find("Panel/Conversation/History");
             RectTransform wait = Child(history, "Wait", out bool isNewWait);
+            // 대사 칸과 같은 크기로 둔다. 더 크게 덮으면 위쪽 이름 줄의 [대화 종료]·[다시 시도]를 가린다.
+            Stretch(wait);
             if (isNewWait)
             {
-                // 카드 그림의 둥근 모서리 틈으로 대사가 비치지 않게 대사 칸보다 조금 크게 덮는다.
-                Stretch(wait);
-                wait.offsetMin = new Vector2(-16, -12);
-                wait.offsetMax = new Vector2(16, 12);
                 wait.gameObject.AddComponent<Image>().color = new Color(1f, 0.973f, 0.925f, 0.97f);
                 BuilderTools.GetOrAddComponent<LayoutElement>(wait.gameObject).ignoreLayout = true;
                 RectTransform row = Child(wait, "Row", out _);

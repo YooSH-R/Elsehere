@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
-    /// 음성 처리에 동의하지 않아 [꾹 눌러 말하기]가 없는 대화에서, 동의를 켜는 곳(오른쪽 위 메뉴 › 내 정보 › 선택 동의)을
+    /// 음성 처리에 동의하지 않아 [말하기]가 없는 대화에서, 동의를 켜는 곳(오른쪽 위 메뉴 › 내 정보 › 선택 동의)을
     /// 실제 대화창의 상태 줄에 알려 주는지 확인한다. 서버 없이 대화 내용을 흉내 낸다.
     /// </summary>
     public class DialoguePanelVoiceConsentTests

@@ -135,7 +135,7 @@ namespace A305.EditorTools.Voice
             Button talk = UiBuilderTools.FindOrCreateButton(
                 panel,
                 "TalkButton",
-                "누르고 말하기",
+                "말하기",
                 bold,
                 PanelWidth
             );
@@ -157,10 +157,11 @@ namespace A305.EditorTools.Voice
 
             BuilderTools.SetReference(view, "recorder", recorder);
             BuilderTools.SetReference(view, "accessButton", access);
+            BuilderTools.SetReference(view, "talkButton", talk);
             BuilderTools.SetReference(
                 view,
-                "talkButton",
-                BuilderTools.GetOrAddComponent<HoldButton>(talk.gameObject)
+                "talkCaption",
+                talk.transform.Find("Label").GetComponent<TMP_Text>()
             );
             BuilderTools.SetReference(view, "levelFill", levelFill);
             BuilderTools.SetReference(view, "statusText", status);

@@ -352,7 +352,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
 
-            // 서버 AI 대화: 상태 문구, 추천 단어, 꾹 눌러 말하기, 다시 듣기, 힌트
+            // 서버 AI 대화: 상태 문구, 추천 단어, 말하기, 다시 듣기, 힌트
             TMP_Text status = UiBuilderTools.FindOrCreateText(
                 conversation,
                 "Status",
@@ -370,7 +370,7 @@ namespace A305.EditorTools.Dialogue
             Button talkButton = UiBuilderTools.FindOrCreateButton(
                 inputRow,
                 "TalkButton",
-                "꾹 눌러 말하기",
+                "말하기",
                 bold,
                 200f
             );
@@ -410,11 +410,7 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "saveButton", saveButton);
             BuilderTools.SetReference(view, "statusText", status);
             BuilderTools.SetReference(view, "suggestText", suggest);
-            BuilderTools.SetReference(
-                view,
-                "talkButton",
-                BuilderTools.GetOrAddComponent<HoldButton>(talkButton.gameObject)
-            );
+            SetUpTalkButton(view, talkButton);
             BuilderTools.SetReference(view, "replayButton", replayButton);
             BuilderTools.SetReference(view, "hintButton", hintButton);
             BuilderTools.SetReference(view, "retryButton", retryButton);
@@ -432,6 +428,46 @@ namespace A305.EditorTools.Dialogue
             Transform existing = parent.Find(name);
             if (existing != null)
                 existing.SetParent(destination, false);
+        }
+
+        /// <summary>[말하기]를 한 번 눌러 녹음을 시작하고 다시 눌러 끝내는 버튼과 녹음 중 켜는 불을 연결한다.</summary>
+        public static void SetUpTalkButton(DialoguePanelView view, Button talkButton)
+        {
+            // 누르고 있는 동안만 녹음하던 HoldButton을 지웠으므로, 버튼에 남은 빈 스크립트 칸을 없앤다.
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(talkButton.gameObject);
+            TMP_Text caption = talkButton.transform.Find("Label").GetComponent<TMP_Text>();
+            caption.text = "말하기";
+            BuilderTools.SetReference(view, "talkButton", talkButton);
+            BuilderTools.SetReference(view, "talkCaption", caption);
+            BuilderTools.SetReference(view, "voiceLight", FindOrCreateVoiceLight(talkButton));
+        }
+
+        // 녹음 중 [종료] 오른쪽에 켜는 동그란 불. 켜기와 색은 DialoguePanelView가 정하고 평소에는 꺼 둔다.
+        private static Image FindOrCreateVoiceLight(Button talkButton)
+        {
+            Transform existing = talkButton.transform.Find("VoiceLight");
+            Image light =
+                existing != null
+                    ? existing.GetComponent<Image>()
+                    : new GameObject(
+                        "VoiceLight",
+                        typeof(RectTransform),
+                        typeof(Image)
+                    ).GetComponent<Image>();
+            light.transform.SetParent(talkButton.transform, false);
+            light.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            light.raycastTarget = false;
+            var rect = (RectTransform)light.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(26f, 26f);
+            rect.anchoredPosition = new Vector2(-32f, 0f);
+            // 주황 버튼 위에서도 불이 또렷하게 보이도록 흰 테두리를 두른다.
+            var ring = BuilderTools.GetOrAddComponent<Outline>(light.gameObject);
+            ring.effectColor = Color.white;
+            ring.effectDistance = new Vector2(2f, -2f);
+            light.gameObject.SetActive(false);
+            return light;
         }
 
         // 서버 AI 대화 연결(API 주소, NPC 음성, 녹음)은 화면 프리팹에 두어 공간 씬을 다시 만들지 않아도 모든 씬에 붙는다.

@@ -22,7 +22,7 @@ namespace A305.EditorTools.Dialogue
         private const string RingFolder = "Assets/Art/UI/Dialogue";
         private const string RingPath = RingFolder + "/LoadingRing.png";
 
-        // 꾹 눌러 말하기 버튼과 같은 코랄
+        // [말하기] 버튼과 같은 코랄
         private static readonly Color RingColor = new Color32(249, 130, 86, 255);
 
         /// <summary>대화창 프리팹에 로딩만 더하고 테마를 칠한다. 대화창 전체 Builder를 다시 돌리지 않아도 된다.</summary>

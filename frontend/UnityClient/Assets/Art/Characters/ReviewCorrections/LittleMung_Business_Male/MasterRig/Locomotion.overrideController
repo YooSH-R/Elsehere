@@ -1,0 +1,13 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Locomotion
+  m_Controller: {fileID: 9100000, guid: 9c595a7c3a26801428b4fa7c7bd3e725, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: 7bb6eca1b1973f64a96b49c0f212a4c4, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: 14ddbaeeb93ddd24fb95906c7323f7a8, type: 2}

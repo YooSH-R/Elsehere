@@ -25,6 +25,26 @@
 - `MannequinMasterBuilder.Build`는 새 사본만 만들고 기존 출력 폴더가 있으면 중단한다. `Refresh Mannequin Authored Face`는 같은 정점 구조의 저작 데이터를 검수 사본에 명시적으로 갱신한다. 손으로 수정한 사본에는 덮어쓰기 전에 변경 내용을 확인한다.
 - 자동 검사는 골격 일치, 실제 키·캡슐, 공유 메시·Controller, 유효한 표정 변형과 이동 중 기존 접지·관통 기준을 확인한다. 얼굴 인상, 속눈썹 경계, 관절·수트의 미세한 접힘은 외관 검수 대상이며 자동 통과를 외관 승인으로 취급하지 않는다.
 
+### 완성형 비즈니스맨의 얼굴 검수 사본
+
+`LittleMung_Business_Male`의 Tripo 생성 원본과 `MasterRig` 출력은 유지한다. 얼굴 검수 사본은 몸의 기존 Avatar·Controller·가중치를 재사용하고, Base의 입술·입안·치아·혀 구조를 얼굴 경계에 맞춰 연결한다. 전체 배율로 기준 자세의 실측 높이를 1.7m에 맞추며 개별 본 길이를 바꾸지 않는다.
+
+| 대상 | 경로 |
+| --- | --- |
+| 검수 프리팹 | `Assets/Prefabs/Characters/Review/Corrected/LittleMung_Business_Male.prefab` |
+| 몸 동작 검수 씬 | `Assets/Scenes/Sandbox/Characters/LittleMung_Business_Male_MotionReview.unity` |
+| 얼굴 검수 씬 | `Assets/Scenes/Sandbox/Characters/LittleMung_Business_Male_CorrectedReview.unity` |
+| 수정 메시·입 재질 | `Assets/Art/Characters/ReviewCorrections/LittleMung_Business_Male/Face/` |
+| Blender 얼굴 저작본·델타 | `frontend/ArtSources/Characters/LittleMungBusiness/Corrected/` |
+
+씬을 열고 Play를 누른 뒤 입 모양·미소 버튼, 강도 슬라이더, Left/Front/Right 버튼으로 확인한다. `FacePosePreviewPanel`은 `CharacterFaceController.SupportsPose`로 필요한 모든 채널을 확인하고, 준비되지 않은 표정은 비활성화한다. 비즈니스맨 사본에는 입 모양 9개와 좌우 미소가 있으며 눈 깜박임은 아직 없다. 중립은 별도 변형 없이 기본 메시를 사용한다.
+
+얼굴 씬은 외관 검수용이다. 몸 동작 씬은 기존 마네킹 이동 검수 씬의 복사본이며, 같은 이동·카메라 구성을 사용한다. 이동·지형 접지·실제 NPC 대화와 음성 동기화는 별도 검증하며, 검수 사본을 Production NPC로 자동 등록하지 않는다. 입 경계의 일치와 Head 가중치 보존은 구조 검사 대상이고 입술 인상과 눈 주변 음영은 외관 승인 대상이다.
+
+`BusinessCorrectionBuilder.Build`는 생성 원본에서 수정된 마스터 연결을 별도 폴더에 구성한다. 머리 방향은 골반에서 머리로 향하는 기울기와 분리해 수평 방향을 유지한다. `LittleMungArmClearance`는 팔꿈치와 손목의 로컬 회전을 유지한 채 어깨에서 팔 전체 방향을 조정한다. 기존 바인딩은 버전 검사로 재적용 대상으로 구분하며 유료 재생성을 요구하지 않는다.
+
+`BusinessCorrectionBuilder.BuildMotionScene`은 수정 얼굴 프리팹으로 별도의 이동 검수 씬을 만든다. `BusinessFacePreviewBuilder.Build`는 `BUSINESS_FACE_DATA`로 지정한 저작 JSON에서 새 검수 사본을 만들며, 출력이 이미 있으면 덮어쓰지 않는다. `RefreshPreview`는 해당 검수 씬만 다시 만든다. `BusinessCharacterReview.Export`는 `BUSINESS_REVIEW_OUTPUT`으로 지정한 프로젝트 밖 폴더에 기본 동작 수치 검사와 복사본의 포즈 데이터를 내보낸다. 이 도구들은 Tripo·음성 API를 호출하지 않는다.
+
 ### 저장 음성으로 입 모양 영상 확인
 
 `A305.EditorTools.Characters.MannequinSpeechRenderer.Render`는 기존 WAV와 발음 시간표의 SHA-256이 일치하는지 확인하고 검수 씬을 프레임 이미지로 렌더한다. 음성을 생성하거나 외부 API를 호출하지 않으며 씬을 저장하지 않는다. 다음 환경변수를 설정하고 Editor가 닫힌 프로젝트에서 batchmode `-executeMethod`로 실행한다.

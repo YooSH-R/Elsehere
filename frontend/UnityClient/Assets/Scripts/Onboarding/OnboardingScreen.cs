@@ -61,6 +61,7 @@ namespace A305.Onboarding
         private void Awake()
         {
             PlayerCharacterSelection.Reset();
+            PlayerNickname.Reset();
             api = new OnboardingApi(apiSettings.CreateClient());
             flow = new OnboardingFlow(api);
             ConnectPanels();
@@ -175,6 +176,7 @@ namespace A305.Onboarding
         private void Render()
         {
             PlayerCharacterSelection.Select(flow.SelectedAvatar?.ToString());
+            PlayerNickname.Set(flow.Nickname);
             UiThemeSelection.Shared.Select(UiThemeCodes.Parse(flow.UiTheme));
             VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
             messageText.text = flow.ErrorMessage ?? "";

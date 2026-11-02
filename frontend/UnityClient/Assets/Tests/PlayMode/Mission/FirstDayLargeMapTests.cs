@@ -41,6 +41,18 @@ namespace A305.Mission.PlayModeTests
             Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.False);
         }
 
+        // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
+        [UnityTest]
+        public IEnumerator MapRequestFromThePhone_OpensTheLargeTownMap()
+        {
+            yield return ShowInTown();
+
+            A305.World.JourneyStatus.Shared.RequestMap();
+
+            Assert.That(Field<GameObject>("mapOverlay").activeInHierarchy, Is.True);
+            Assert.That(Field<GameObject>("journal").activeSelf, Is.False);
+        }
+
         [UnityTest]
         public IEnumerator LargeMap_ClosesWithTheCloseButtonOrAClickOutside()
         {

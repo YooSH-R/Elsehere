@@ -8,6 +8,8 @@
         "A305.Dialogue",
         "A305.Learning",
         "UnityEngine.UI",
+        "A305.Player",
+        "A305.World",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [

@@ -74,5 +74,12 @@ namespace A305.Deployment.Tests
             Assert.That(page, Does.Contain("<title>Elsehere</title>"));
             Assert.That(page, Does.Contain("aria-label=\"Elsehere\""));
         }
+
+        [Test]
+        public void UnitySplashScreenIsHidden()
+        {
+            // 게임 파일을 받는 동안 웹 로딩 화면이 소개 장면을 보여 주므로, 다 받은 뒤 Unity 시작 로고로 로그인을 더 늦추지 않는다.
+            Assert.That(PlayerSettings.SplashScreen.show, Is.False);
+        }
     }
 }

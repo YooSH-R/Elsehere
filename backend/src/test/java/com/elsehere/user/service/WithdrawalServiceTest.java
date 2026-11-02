@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ch.qos.logback.classic.Level;
 import com.elsehere.common.logging.LogCapture;
-import com.elsehere.conversation.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;

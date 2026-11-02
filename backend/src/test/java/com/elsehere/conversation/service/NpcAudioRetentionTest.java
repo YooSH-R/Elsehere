@@ -12,15 +12,15 @@ import static org.mockito.Mockito.mock;
 
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.dto.SpeechResponse;
-import com.elsehere.conversation.dto.SpeechStatus;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.NpcAudioStore.StoredAudio;
+import com.elsehere.dialogue.dto.SpeechResponse;
+import com.elsehere.dialogue.dto.SpeechStatus;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
-import com.elsehere.world.repository.NpcRepository;
 import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -56,8 +56,6 @@ class NpcAudioRetentionTest {
   @TempDir private Path directory;
 
   @Autowired private TurnRepository turnRepository;
-
-  @Autowired private NpcRepository npcRepository;
 
   @Autowired private TransactionTemplate transactionTemplate;
 
@@ -271,13 +269,7 @@ class NpcAudioRetentionTest {
         .findAllByNpcAudioKeyIn(anyCollection());
     NpcAudioRetention retention =
         new NpcAudioRetention(
-            store,
-            failingRepository,
-            npcRepository,
-            transactionTemplate,
-            Clock.fixed(NOW, ZoneOffset.UTC),
-            30,
-            8);
+            store, failingRepository, transactionTemplate, Clock.fixed(NOW, ZoneOffset.UTC), 30, 8);
 
     assertThat(retention.save(new byte[4])).isNotNull();
     assertThat(store.load(oldestKey)).isEmpty();
@@ -375,13 +367,7 @@ class NpcAudioRetentionTest {
 
   private NpcAudioRetention retention(long maxBytes) {
     return new NpcAudioRetention(
-        store,
-        turnRepository,
-        npcRepository,
-        transactionTemplate,
-        Clock.fixed(NOW, ZoneOffset.UTC),
-        30,
-        maxBytes);
+        store, turnRepository, transactionTemplate, Clock.fixed(NOW, ZoneOffset.UTC), 30, maxBytes);
   }
 
   private String audioWrittenAt(int size, Instant writtenAt) throws IOException {

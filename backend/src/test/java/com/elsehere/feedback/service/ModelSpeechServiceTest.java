@@ -21,7 +21,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.dto.ModelSpeechResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.user.UserTestData;

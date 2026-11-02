@@ -5,7 +5,6 @@ import com.elsehere.ai.dto.AiStatusResponse;
 import com.elsehere.ai.dto.AiStatusResponse.Capabilities;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
-import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

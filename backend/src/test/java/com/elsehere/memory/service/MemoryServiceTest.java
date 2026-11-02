@@ -27,7 +27,7 @@ import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
-import com.elsehere.conversation.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.memory.entity.UserNpcRelation;
 import com.elsehere.memory.entity.UserNpcRelationId;
 import com.elsehere.memory.repository.UserNpcRelationRepository;

@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.service.AiStatusService;
+import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.bootstrap.service.BootstrapService;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
-import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.user.UserTestData;

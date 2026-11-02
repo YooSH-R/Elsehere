@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.service.AiStatusService;
+import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.bootstrap.service.BootstrapService;
 import com.elsehere.common.config.ClockConfig;
@@ -12,7 +13,6 @@ import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
-import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.user.UserTestData;

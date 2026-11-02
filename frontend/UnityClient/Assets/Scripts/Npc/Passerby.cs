@@ -10,6 +10,7 @@ namespace A305.Npc
     /// 거절하거나 무시하고 멀어지면 제자리로 돌아가 정해진 시간 동안 쉰다. 제안 중에는 카메라·이동을 잠그지 않는다.
     /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다.
     /// 생활(<see cref="NpcRoutine"/>)이 붙은 NPC는 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
+    /// 튜토리얼에서 길을 묻는 행인(Ben)은 튜토리얼 동안 튜토리얼 대본·설정으로 말하고 생활하지 않는다(<see cref="SetTutorialScript"/>).
     /// 모델은 자식 Visual 아래에 두고, 이동은 루트의 CharacterController가 맡는다.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
@@ -20,6 +21,12 @@ namespace A305.Npc
 
         [SerializeField]
         private PasserbySettings settings;
+
+        [SerializeField]
+        [Tooltip(
+            "튜토리얼에서 길을 묻는 동안 쓰는 설정(감지 거리·쉬는 시간·거절 불가). 비우면 평소 설정을 쓴다."
+        )]
+        private PasserbySettings tutorialSettings;
 
         [SerializeField]
         [Tooltip("행인이 먼저 건네는 말을 찾는 곳. 서버 연동 전에는 MockNpcLines")]
@@ -46,6 +53,9 @@ namespace A305.Npc
         // 생활 데이터가 있는 NPC만 붙는다. 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
         private NpcRoutine routine;
 
+        // 튜토리얼 동안 쓰는 대본·인사말 키. 튜토리얼이 아니면 null이고 NPC 키로 평소 대화한다.
+        private string tutorialScriptKey;
+
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
 
         /// <summary>
@@ -53,6 +63,15 @@ namespace A305.Npc
         /// 이미 제안 중이면 제안을 거두지 않는다.
         /// </summary>
         public bool IsApproachAllowed { get; set; } = true;
+
+        /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
+        public bool IsGuidingTutorial => tutorialScriptKey != null;
+
+        // 대본·인사말·이름을 찾는 키. 튜토리얼 중이면 튜토리얼 대본, 아니면 NPC 키
+        private string ScriptKey => tutorialScriptKey ?? identity.Code;
+
+        private PasserbySettings CurrentSettings =>
+            IsGuidingTutorial && tutorialSettings != null ? tutorialSettings : settings;
 
         /// <summary>처음 놓인 자리와 방향. 다가왔다가 돌아갈 곳이고, 직원은 근무 자리다.</summary>
         internal Pose HomePose => homePose;
@@ -74,9 +93,34 @@ namespace A305.Npc
             homePose = new Pose(transform.position, transform.rotation);
             routine = GetComponent<NpcRoutine>();
             approach = new PasserbyApproach(
-                settings.ToRules(),
+                CurrentSettings.ToRules(),
                 PasserbyRestRecord.GetRestUntil(identity.Code)
             );
+        }
+
+        /// <summary>
+        /// 튜토리얼에서 길을 묻는 동안 쓸 대본 키를 정한다. null이면 평소 행인으로 돌아간다. 튜토리얼 진행이 단계마다 부르며,
+        /// 모드가 바뀌면 그 모드의 설정으로 다가오기를 다시 시작하고 하던 생활을 멈춘다.
+        /// </summary>
+        public void SetTutorialScript(string scriptKey)
+        {
+            if (tutorialScriptKey == scriptKey)
+            {
+                return;
+            }
+
+            tutorialScriptKey = scriptKey;
+            if (approach == null)
+            {
+                // Awake 전이면 Awake가 지금 모드의 설정으로 만든다.
+                return;
+            }
+
+            approach = new PasserbyApproach(CurrentSettings.ToRules(), approach.RestUntilSeconds);
+            if (routine != null)
+            {
+                routine.Interrupt();
+            }
         }
 
         private void OnEnable()
@@ -161,7 +205,7 @@ namespace A305.Npc
                     ShowAnimation(NpcAnimation.Talk);
                     break;
                 default:
-                    if (routine != null && routine.enabled)
+                    if (routine != null && routine.enabled && !IsGuidingTutorial)
                     {
                         routine.Live(player.transform.position);
                     }
@@ -212,7 +256,7 @@ namespace A305.Npc
                 || offerView.TalkRemainingText != remaining
             )
             {
-                string label = PasserbyOfferText.TalkLabel(dialogue.FindNpcName(identity.Code));
+                string label = PasserbyOfferText.TalkLabel(dialogue.FindNpcName(ScriptKey));
                 offerView.ShowTalkPrompt(this, label, remaining, TalkByPlayer);
             }
         }
@@ -225,7 +269,14 @@ namespace A305.Npc
             }
 
             offerView.HideTalkPrompt(this);
-            if (!dialogue.TryStart(identity.Code, identity.LookTarget, ConversationInitiator.User))
+            if (
+                !dialogue.TryStart(
+                    identity.Code,
+                    identity.LookTarget,
+                    ConversationInitiator.User,
+                    ScriptKey
+                )
+            )
             {
                 // 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
                 approach.EndTalk(Now);
@@ -242,15 +293,15 @@ namespace A305.Npc
 
         private void ShowOffer()
         {
-            if (!lineSource.TryGetGreeting(identity.Code, out string greeting))
+            if (!lineSource.TryGetGreeting(ScriptKey, out string greeting))
             {
-                Debug.LogWarning($"행인 {identity.Code}의 인사말이 없습니다.", this);
+                Debug.LogWarning($"행인 {ScriptKey}의 인사말이 없습니다.", this);
                 greeting = string.Empty;
             }
 
             string hint = PasserbyOfferText.Hint(
-                dialogue.FindNpcName(identity.Code),
-                dialogue.FindNpcRoleLabel(identity.Code)
+                dialogue.FindNpcName(ScriptKey),
+                dialogue.FindNpcRoleLabel(ScriptKey)
             );
             string remaining = PasserbyOfferText.RemainingConversations(
                 dialogue.Allowance.RemainingConversations
@@ -266,7 +317,14 @@ namespace A305.Npc
             }
 
             offerView.Hide(this);
-            if (!dialogue.TryStart(identity.Code, identity.LookTarget))
+            if (
+                !dialogue.TryStart(
+                    identity.Code,
+                    identity.LookTarget,
+                    ConversationInitiator.Npc,
+                    ScriptKey
+                )
+            )
             {
                 // 다른 대화가 진행 중이면 대화 없이 쉬게 한다.
                 approach.EndTalk(Now);
@@ -311,7 +369,7 @@ namespace A305.Npc
 
         private void Walk(Vector3 horizontalDirection)
         {
-            WalkToward(horizontalDirection, settings.WalkSpeedMetersPerSecond);
+            WalkToward(horizontalDirection, CurrentSettings.WalkSpeedMetersPerSecond);
         }
 
         /// <summary>그 방향으로 한 프레임 걷는다. 생활(NpcRoutine)은 다가올 때와 다른 속도로 걷는다.</summary>
@@ -331,7 +389,7 @@ namespace A305.Npc
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 rotation,
-                settings.TurnSpeedDegreesPerSecond * Time.deltaTime
+                CurrentSettings.TurnSpeedDegreesPerSecond * Time.deltaTime
             );
         }
 
@@ -353,7 +411,7 @@ namespace A305.Npc
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 Quaternion.LookRotation(horizontalDirection),
-                settings.TurnSpeedDegreesPerSecond * Time.deltaTime
+                CurrentSettings.TurnSpeedDegreesPerSecond * Time.deltaTime
             );
         }
 

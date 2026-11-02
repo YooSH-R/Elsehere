@@ -1,8 +1,10 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using A305.Player;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -59,8 +61,10 @@ namespace A305.ObjectHover.PlayModeTests
         {
             HoverableObject airConditioner = FindHoverable("air_conditioner");
             yield return StandPlayerNear(airConditioner);
+            // 벽 위쪽의 에어컨은 화면 위쪽에 비쳐 튜토리얼 가이드 같은 UI에 가려질 수 있다. UI 아래는 가리키지 않으므로 화면 가운데에 둔다.
+            AimSoThatScreenPointShows(airConditioner, ScreenCenter());
 
-            hover.Refresh(ScreenPointOf(airConditioner), LongerThanShowDelaySeconds);
+            hover.Refresh(ScreenCenter(), LongerThanShowDelaySeconds);
 
             Assert.That(tooltip.IsVisible, Is.True);
             Assert.That(tooltip.MeaningText, Is.EqualTo("에어컨"));
@@ -297,6 +301,92 @@ namespace A305.ObjectHover.PlayModeTests
                 Assert.That(tooltip.IsVisible, Is.True);
                 Assert.That(tooltip.WordText, Is.EqualTo(distance < 3f ? "pillow" : "bed"));
             }
+        }
+
+        [UnityTest]
+        public IEnumerator PointingAtObjectBehindHudMenu_DoesNotShowCard()
+        {
+            // 오른쪽 위 메뉴(≡) 뒤에 TV가 보여도, 메뉴 위의 포인터는 사물을 가리키지 않는다.
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Vector2 menu = ScreenCenterOf(HudMenuButton());
+            AimSoThatScreenPointShows(tv, menu);
+            Assert.That(PointedHoverable(menu), Is.EqualTo(tv), "메뉴 뒤에 TV가 보여야 합니다.");
+
+            hover.Refresh(menu, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsVisible, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator PinnedCardOverHudMenu_DoesNotTakeMenuClicks()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            RectTransform menuButton = HudMenuButton();
+            Vector2 menu = ScreenCenterOf(menuButton);
+            // 메뉴 바로 아래의 TV를 눌러 고정하면 카드는 화면 안으로 당겨져 메뉴와 겹친다.
+            Vector2 belowMenu = menu - new Vector2(0f, 60f);
+            AimSoThatScreenPointShows(tv, belowMenu);
+            hover.Click(belowMenu);
+            Assert.That(tooltip.IsPinned, Is.True);
+            Canvas.ForceUpdateCanvases();
+
+            var results = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(
+                new PointerEventData(EventSystem.current) { position = menu },
+                results
+            );
+
+            Assert.That(results, Is.Not.Empty);
+            Assert.That(
+                results[0].gameObject.transform.IsChildOf(menuButton),
+                Is.True,
+                $"메뉴 대신 {results[0].gameObject.name}이(가) 클릭을 받습니다."
+            );
+        }
+
+        private static RectTransform HudMenuButton()
+        {
+            Button menu = Object
+                .FindObjectsByType<Button>(FindObjectsSortMode.None)
+                .SingleOrDefault(button => button.name == "MenuButton");
+            Assert.That(menu, Is.Not.Null, "HomeScene에 오른쪽 위 메뉴 버튼이 없습니다.");
+            return (RectTransform)menu.transform;
+        }
+
+        private static Vector2 ScreenCenterOf(RectTransform rect)
+        {
+            return RectTransformUtility.WorldToScreenPoint(
+                null,
+                rect.TransformPoint(rect.rect.center)
+            );
+        }
+
+        // 카메라를 사물 앞에 두고, 화면의 그 좌표를 지나는 방향이 사물 가운데를 향하도록 돌린다.
+        private static void AimSoThatScreenPointShows(HoverableObject target, Vector2 screenPoint)
+        {
+            Camera camera = Camera.main;
+            Vector3 center = VisibleBounds(target).center;
+            camera.transform.SetPositionAndRotation(
+                center + target.transform.forward * 2f,
+                Quaternion.LookRotation(-target.transform.forward)
+            );
+            Vector3 through = camera.ScreenPointToRay(screenPoint).direction;
+            Vector3 toTarget = (center - camera.transform.position).normalized;
+            camera.transform.rotation =
+                Quaternion.FromToRotation(through, toTarget) * camera.transform.rotation;
+        }
+
+        private HoverableObject PointedHoverable(Vector2 screenPoint)
+        {
+            return new ObjectHoverRaycast().Find(
+                Camera.main.ScreenPointToRay(screenPoint),
+                100f,
+                Physics.DefaultRaycastLayers,
+                player.transform,
+                out _
+            );
         }
 
         private IEnumerator StandPlayerNear(HoverableObject target)

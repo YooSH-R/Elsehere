@@ -414,16 +414,19 @@ namespace A305.Dialogue
                 Mathf.Max(0, width - standingX - 500),
                 nameRect.sizeDelta.y
             );
+            // 대사 칸은 상태 줄 위에서 끝나 마지막 줄이 도구 버튼에 걸리지 않는다.
             var history = (RectTransform)historyScroll.transform;
+            history.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom);
             history.sizeDelta = new Vector2(
                 -128,
                 frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight
             );
             var input = (RectTransform)inputField.transform;
             input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
-            // 상태 줄은 도구 줄 오른쪽부터 창 안쪽 끝까지만 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
+            // 상태 줄은 도구 줄 바로 위에서 창 안쪽 폭 전체를 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
             var status = (RectTransform)statusText.transform;
-            status.sizeDelta = new Vector2(Mathf.Max(240, width - 664), status.sizeDelta.y);
+            status.anchoredPosition = new Vector2(64, DialoguePanelLayout.StatusBottom);
+            status.sizeDelta = new Vector2(width - 128, DialoguePanelLayout.StatusHeight);
             statusText.enableAutoSizing = true;
             statusText.fontSizeMin = 14;
             statusText.fontSizeMax = 20;

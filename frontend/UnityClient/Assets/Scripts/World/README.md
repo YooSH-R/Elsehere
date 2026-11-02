@@ -51,7 +51,7 @@
 
 상점 연결과 연계 미션은 **Tools → A305 → Mission → Build First Day Journey**로 준비합니다. 카페 옆 빈 건물 앞의 DRUGSTORE 간판에서 들어갑니다. 다른 기존 건물과 씬 아트는 유지합니다.
 
-상점 실내는 **Tools → A305 → World → Apply Drugstore Interior**(`DrugstoreInteriorBuilder`)가 미국 드럭스토어처럼 꾸밉니다. 음료 냉장고·선반·우산 통 같은 조각 프리팹과 `DrugstoreInterior` 프리팹은 `Assets/Prefabs/World/Drugstore/`에 없을 때만 만들고, 이미 있으면 고친 디자인을 그대로 둡니다. 외부 모델은 `Assets/ThirdParty/`의 원본을 그대로 쓰고 URP 재질은 `Assets/Art/World/Drugstore/Materials/`에 만듭니다.
+상점 실내는 **Tools → A305 → World → Apply Drugstore Interior**(`DrugstoreInteriorBuilder`)가 미국 드럭스토어처럼 꾸밉니다. 음료 냉장고·선반·우산 통 같은 조각 프리팹과 `DrugstoreInterior` 프리팹은 `Assets/Prefabs/World/Drugstore/`에 없을 때만 만들고, 이미 있으면 고친 디자인을 그대로 둡니다. 이미 있는 `DrugstoreInterior` 프리팹에는 카메라를 막는 천장 충돌과 정문(`DrugstoreEntrance`: 문 구멍을 채우는 문틀·문 위 벽, 진열창, 앞벽 띠·걸레받이)이 빠졌을 때만 더합니다. 마을로 나가는 문판은 처음 한 번만 정문 틀 크기의 유리문으로 칠합니다. 외부 모델은 `Assets/ThirdParty/`의 원본을 그대로 쓰고 URP 재질은 `Assets/Art/World/Drugstore/Materials/`에 만듭니다.
 
 상점 카메라는 **Tools → A305 → Mission → Apply Shop Interior Camera**가 맞춥니다. 카페와 같은 실내 거리 값을 `Assets/Data/Shop/ShopCameraSettings.asset`에 두고, 입구 도착 위치를 문 안쪽 3.6m로 옮겨 들어오자마자 카메라가 문 벽에 붙지 않게 합니다. **Build First Day Journey**도 같은 설정을 적용합니다.
 

@@ -166,6 +166,27 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator LockedDoor_ShowsTheNoticeOnTheGuideCard_ThenClearsIt()
+        {
+            // 화면 구석의 HUD 알림은 잘 보이지 않으므로, 할 일이 적힌 안내 카드에 바로 알린다.
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            TutorialState.GetOrCreate(BenCode).Continue();
+            yield return null;
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            Assert.That(guideView.IsVisible, Is.True, "준비: 걷기 안내 카드");
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "HomeDoor"), Is.False);
+            yield return null;
+
+            Assert.That(guideView.IsNoticeShowing, Is.True);
+            Assert.That(guideView.NoticeText, Does.Contain("갈 수 없어요"));
+
+            yield return new WaitForSeconds(TutorialGuideView.NoticeSeconds + 0.2f);
+            Assert.That(guideView.IsNoticeShowing, Is.False, "잠시 보인 뒤 할 일 한 줄만 남깁니다.");
+        }
+
+        [UnityTest]
         public IEnumerator Town_PointsAtBen_ThenHighlightsOnlyTheTalkOffer()
         {
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);

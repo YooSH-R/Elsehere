@@ -44,7 +44,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | 조작 | 동작 |
 | --- | --- |
 | WASD·방향키, Shift, Space | 이동, 달리기, 점프 |
-| 마우스 오른쪽 버튼을 누른 채 이동 | 카메라 회전. 왼쪽 클릭은 사물 카드 고정에 씁니다. Web 빌드는 게임 화면에서 브라우저의 오른쪽 클릭 메뉴를 띄우지 않습니다(`WebGLTemplates/A305Responsive`). |
+| 마우스 왼쪽 버튼을 누른 채 이동 | 카메라 회전. 거의 움직이지 않고 뗀 왼쪽 클릭은 사물 카드 고정에 씁니다. Web 빌드는 게임 화면에서 브라우저의 오른쪽 클릭 메뉴를 띄우지 않습니다(`WebGLTemplates/A305Responsive`). |
 | 마우스 휠 | 3인칭 거리 조절 |
 | V | 1인칭·3인칭 전환 |
 | T | `DialogueTarget`을 바라보는 대화 시점과 이동 잠금 전환 |
@@ -86,7 +86,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `Player/Sprint` | Button | `PlayerMover` |
 | `Player/Jump` | Button | `PlayerMover` |
 | `Player/Look` | Value · Vector2(마우스 이동량) | `PlayerCameraRig` |
-| `Player/CameraRotate` | Button(마우스 오른쪽 버튼) | `PlayerCameraRig`. 누르고 있는 동안 회전 |
+| `Player/CameraRotate` | Button(마우스 왼쪽 버튼) | `PlayerCameraRig`. 누르고 있는 동안 회전 |
 | `Player/CameraZoom` | Value · Axis(마우스 휠 Y) | `PlayerCameraRig` |
 | `Player/ToggleView` | Button | `PlayerCameraRig`. 1인칭·3인칭 전환 |
 

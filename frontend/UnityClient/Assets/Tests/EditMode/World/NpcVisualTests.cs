@@ -131,22 +131,43 @@ namespace A305.World.Tests
             Assert.That(PlayerOnlyComponents(npc.transform), Is.Empty);
         }
 
-        [Test]
-        public void Ben_HasEveryFaceChannel_SoDialogueDrivesHisFace()
+        [TestCaseSource(nameof(StandingNpcs))]
+        public void Npc_HasEveryFaceChannel_SoDialogueDrivesItsFace(
+            string scenePath,
+            string code,
+            string prefabPath
+        )
         {
-            NpcIdentity ben = Open(TownPath, "TOWN_PASSERBY");
-            Transform visual = Visual(ben, BusinessPath);
+            NpcIdentity npc = Open(scenePath, code);
+            Transform visual = Visual(npc, prefabPath);
             Assert.That(visual, Is.Not.Null);
 
-            Assert.That(
-                CharacterFaceController.MissingChannels(visual),
-                Is.Empty,
-                "입 모양 9개, 좌우 미소, 좌우 눈 감기가 모두 있습니다."
-            );
-            // 실행 중에는 NpcIdentity.Awake가 붙이는 화자를 같은 방식으로 붙여 확인한다.
-            var speaker = ben.gameObject.AddComponent<DialogueSpeaker>();
+            AssertDialogueDrivesFace(npc, visual);
+        }
+
+        [Test]
+        public void TaxiDriver_HasEveryFaceChannel_SoDialogueDrivesHisFace()
+        {
+            Scene scene = EditorSceneManager.OpenScene(TownPath);
+            TaxiRide taxi = scene
+                .GetRootGameObjects()
+                .SelectMany(root => root.GetComponentsInChildren<TaxiRide>(true))
+                .Single();
+            var joe = (NpcIdentity)
+                new SerializedObject(taxi).FindProperty("driver").objectReferenceValue;
+
+            AssertDialogueDrivesFace(joe, joe.transform);
+        }
+
+        // 입 모양 9개, 좌우 미소, 좌우 눈 감기가 모두 있으면 대화가 그 NPC의 얼굴로 립싱크·깜박임을 적용한다.
+        // 실행 중에는 NpcIdentity.Awake가 붙이는 화자를 같은 방식으로 붙여 확인한다.
+        private static void AssertDialogueDrivesFace(NpcIdentity npc, Transform visual)
+        {
+            Assert.That(CharacterFaceController.MissingChannels(visual), Is.Empty);
+            var speaker = npc.gameObject.AddComponent<DialogueSpeaker>();
             Assert.That(speaker.Player, Is.Not.Null, speaker.BindingNotice);
             Assert.That(speaker.Player.transform.IsChildOf(visual), Is.True);
+            Assert.That(speaker.Player.Face, Is.Not.Null);
         }
 
         [Test]

@@ -334,7 +334,7 @@ namespace A305.EditorTools.World
                 // 마을 행인 Ben은 비즈니스맨 외형으로 튜토리얼에서 길을 묻는 집 앞에 선다.
                 if (npc.Code == "TOWN_PASSERBY")
                 {
-                    TownPasserbyVisualBuilder.Connect(npc);
+                    NpcVisualBuilder.Connect(npc);
                     PlaceTutorialPasserby(scene, npc.transform);
                     continue;
                 }

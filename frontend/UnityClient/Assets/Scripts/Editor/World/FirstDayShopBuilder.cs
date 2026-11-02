@@ -40,8 +40,8 @@ namespace A305.EditorTools.World
             NpcIdentity staff = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
                 .Single(npc => npc.Code == "SHOP_STAFF");
-            staff.LookTarget.localPosition = new Vector3(0, 1.12f, 0);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(staff.LookTarget);
+            // 시선은 직원 외형의 눈 높이에 맞춘다.
+            NpcVisualBuilder.Connect(staff);
             Transform counter = scene
                 .GetRootGameObjects()
                 .Single(root => root.name == "Environment")
@@ -459,14 +459,7 @@ namespace A305.EditorTools.World
                     MenuPath
                 )
             );
-            GameObject visual = BuilderTools.LoadRequiredAsset<GameObject>(
-                "Assets/Prefabs/World/TownProduction/LittleMungV7NpcVisual.prefab",
-                MenuPath
-            );
-            staff.transform.Find("Visual").gameObject.SetActive(false);
-            BuilderTools
-                .InstantiatePrefab(visual, staff.transform, Vector3.zero, Quaternion.identity)
-                .name = "ShopStaffVisual";
+            NpcVisualBuilder.Connect(staff.GetComponent<NpcIdentity>());
         }
 
         private static Transform Solid(

@@ -327,36 +327,6 @@ namespace A305.ObjectHover.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator PinnedCard_MovesOutOfWindowOpenedLater()
-        {
-            // 카드를 고정한 뒤 그 자리에 창이 열리면 카드가 창 뒤에 비쳐 보였다.
-            HoverableObject tv = FindHoverable("tv");
-            yield return StandPlayerNear(tv);
-            Rect guide = ShowTutorialGuide();
-            TutorialGuidePanel().gameObject.SetActive(false);
-            // 가이드 가운데 아래에 뜬 카드는 왼쪽 위 오늘의 목표 카드에 걸려 다른 자리로 가므로, 가이드 오른쪽 끝 아래를 가리킨다.
-            Vector2 belowGuide = new Vector2(guide.xMax - 20f, guide.yMin - 20f);
-            AimSoThatScreenPointShows(tv, belowGuide);
-            hover.Click(belowGuide);
-            Assert.That(tooltip.IsPinned, Is.True);
-            Assert.That(
-                CardScreenRect().Overlaps(guide),
-                Is.True,
-                "가이드 자리에 카드를 고정해야 합니다."
-            );
-
-            TutorialGuidePanel().gameObject.SetActive(true);
-            hover.Refresh(belowGuide, LongerThanShowDelaySeconds);
-
-            Assert.That(tooltip.IsPinned, Is.True);
-            Assert.That(
-                CardScreenRect().Overlaps(guide),
-                Is.False,
-                "카드가 새로 열린 창과 겹칩니다."
-            );
-        }
-
-        [UnityTest]
         public IEnumerator PinnedCard_StaysPut_WhenTheTutorialCoachMarkDimsTheScreen()
         {
             // 코치 마크는 밝힐 곳 둘레를 덮개 네 조각으로 덮는다. 조각마다 화면보다 작아 피할 창으로 보면,

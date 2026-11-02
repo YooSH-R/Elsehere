@@ -96,6 +96,7 @@ namespace A305.Dialogue
         public string ExampleSentence => null;
         public bool IsBusy { get; private set; }
         public string StatusMessage { get; private set; }
+        public DialogueWait Waiting { get; private set; }
         public IReadOnlyList<string> SuggestWords { get; private set; }
 
         /// <summary>NPC가 대화를 끝냈는지(무례 누적, 사용량 소진 등).</summary>
@@ -140,7 +141,8 @@ namespace A305.Dialogue
                     Standing.Apply(start.Conversation);
                     AddNpcTurn(start.OpeningTurn);
                 },
-                StartAsync
+                StartAsync,
+                DialogueWait.Opening
             );
         }
 
@@ -195,7 +197,8 @@ namespace A305.Dialogue
                     if (!IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
                         UserTurnAccepted?.Invoke(sent);
                 },
-                () => SendAsync(utterance)
+                () => SendAsync(utterance),
+                DialogueWait.NpcReply
             );
 
             if (IsEnded)
@@ -379,6 +382,7 @@ namespace A305.Dialogue
 
             long conversationId = ConversationId.Value;
             IsBusy = true;
+            Waiting = DialogueWait.Feedback;
             StatusMessage = "대화를 마치고 피드백을 만들고 있어요. 잠시만 기다려 주세요.";
             Changed?.Invoke();
             try
@@ -411,6 +415,7 @@ namespace A305.Dialogue
             finally
             {
                 IsBusy = false;
+                Waiting = DialogueWait.None;
             }
         }
 
@@ -483,9 +488,16 @@ namespace A305.Dialogue
         }
 
         /// <param name="retry">일시적인 장애로 실패하면 [다시 시도]가 부를 요청. 다시 시도하지 않는 요청은 null이다.</param>
-        private async Task RunAsync(string busyMessage, Func<Task> action, Func<Task> retry = null)
+        /// <param name="wait">대화창이 로딩으로 크게 보여 줄 기다림. 짧은 요청은 None으로 두어 상태 줄에만 알린다.</param>
+        private async Task RunAsync(
+            string busyMessage,
+            Func<Task> action,
+            Func<Task> retry = null,
+            DialogueWait wait = DialogueWait.None
+        )
         {
             IsBusy = true;
+            Waiting = wait;
             StatusMessage = busyMessage;
             RecoveryGuide = null;
             pendingRetry = null;
@@ -517,6 +529,7 @@ namespace A305.Dialogue
             finally
             {
                 IsBusy = false;
+                Waiting = DialogueWait.None;
                 Changed?.Invoke();
             }
         }

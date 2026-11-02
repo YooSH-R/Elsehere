@@ -49,6 +49,7 @@ namespace A305.Dialogue
         // 대본 대화는 바로 답하고 음성을 쓰지 않는다. 서버를 부르지 않으므로 실패도 없다.
         public bool IsBusy => false;
         public string StatusMessage => null;
+        public DialogueWait Waiting => DialogueWait.None;
         public string RecoveryGuide => null;
         public bool CanRetry => false;
         public IReadOnlyList<string> SuggestWords => null;

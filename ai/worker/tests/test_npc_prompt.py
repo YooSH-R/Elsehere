@@ -119,6 +119,14 @@ def system_prompt_of(request: dict) -> str:
     return npc_messages(request)[0]["content"]
 
 
+def test_the_npc_leaves_judging_rude_wording_to_the_game():
+    """무례는 /v1/guard가 판정하고 백엔드가 '이번 턴'으로 알린다. 무례를 못 참는 인격(카페 사장)이 재촉·please 없는 요청을 두고
+    스스로 정중히 말하라고 하지 않게, 공통 규칙이 말투 판단을 게임에 맡긴다."""
+    rules = npc_messages(request_example("followup"))[0]["content"].split("\n\n## Character")[0]
+    assert "How politely they word things is not yours to judge" in rules
+    assert "only when This turn says they were rude" in rules
+
+
 def test_sections_come_in_order_rules_character_situation_level_turn():
     """위쪽일수록 우선하고 덜 바뀐다. 공통 규칙이 맨 위라 아래의 데이터가 규칙을 덮지 못한다."""
     headings = [line for line in system_prompt_of(request_example("opening")).splitlines() if line.startswith("## ")]

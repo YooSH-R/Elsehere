@@ -62,6 +62,8 @@
 
 승용차는 카페 앞 횡단보도 북쪽(z=-6)과 본길 북쪽 끝(z=66) 사이를 돕니다. 택시는 집까지 이동하도록 남쪽 끝을 z=-25까지 넓히고, 남행 중 기존 주차 트럭을 천천히 비켜갑니다. 두 차는 교차로 신호를 지키고, 택시는 인도에서 [택시 세우기]를 누르면 손님 옆 길가에 서면서 바로 뒷좌석에 타 택시 기사(`TAXI_DRIVER`)와 대화합니다. 목적지 10곳과 승하차 흐름은 [택시 안내](../../../../../docs/unity/taxi-ride.md)에 있습니다.
 
+승용차에도 앉은 운전자와 운전대가 들어 있습니다. **Tools → A305 → World → Add Vehicle Drivers**는 기존 택시 기사의 외형과 자세를 승용차 프리팹에 복제합니다. 승용차에는 택시 대화 기능을 붙이지 않으며, 운전자가 이미 있으면 디자인을 유지합니다. 운전자 크기·위치·자세는 `Prefabs/World/StreetLife/Sedan.prefab`의 `Driver`에서 조절합니다. 주차된 픽업트럭과 아이스크림 트럭은 비워 둡니다. **Adjust Driver Steering**은 택시와 승용차의 핸들을 얼굴 아래로 낮추고 앞유리 쪽으로 조금 옮긴 뒤, 팔 길이를 유지하면서 양손 자세를 맞춥니다. **Capture Vehicle Drivers** 메뉴로 마을에서 두 차량의 앞쪽·운전석 쪽 모습을 `artifacts/vehicle-drivers/`에 저장해 확인할 수 있습니다.
+
 두 Builder는 `TownMainstreet` 아래 `AmericanStreetDetails`·`StreetLife` 묶음이 이미 있으면 배치를 바꾸지 않습니다. 조각 프리팹은 각각 `Assets/Prefabs/World/MainstreetArt/`, `Assets/Prefabs/World/StreetLife/`에 없을 때만 만들고, 새 사물의 공용 단어(신호등·택시·자전거 등)는 뜻·예문과 함께 없을 때만 만듭니다.
 
 - 북쪽 기존 빈 건물 세 동은 아래의 층별 상가로 사용합니다. 나머지 배경 주거동은 닫힌 외관을 유지합니다. 식당·공항의 도형 외관과 임시 간판은 현재 배치에서 사용하지 않습니다.

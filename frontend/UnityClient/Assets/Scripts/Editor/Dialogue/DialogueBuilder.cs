@@ -416,6 +416,7 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "retryButton", retryButton);
             DialogueLayoutBuilder.SetUp(root, view, lines, guide, suggest);
             DialogueWaitBuilder.SetUp(root, view);
+            VoiceConsentDialogBuilder.SetUp(root, view);
             // 택시 안내 문구는 택시 장면에서만 쓰며 TaxiCabinBuilder가 씬의 대화 화면에 연결한다.
             BuilderTools.RequireReferences(view, "vehicleStatusText");
 

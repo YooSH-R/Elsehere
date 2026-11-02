@@ -11,9 +11,12 @@ namespace A305.Dialogue
         public const string TooShort =
             "말소리가 없었어요. [말하기]를 누르고 말한 뒤 [종료]를 눌러요.";
 
-        /// <summary>음성 처리에 동의하지 않아 음성 입력을 쓸 수 없을 때(API 명세 CONV-02). 동의를 켜는 실제 메뉴 경로를 알린다.</summary>
+        /// <summary>
+        /// 음성 처리에 동의하지 않아 음성 입력을 쓸 수 없을 때(API 명세 CONV-02). 회색 [말하기]를 누르면 동의 창이 떠
+        /// 그 자리에서 켤 수 있으므로 [말하기]로 안내한다.
+        /// </summary>
         public const string ConsentRequired =
-            "음성으로 말하려면 ≡ 메뉴 › 내 정보 › 선택 동의에서 음성 처리를 켜 주세요.";
+            "음성으로 말하려면 [말하기]를 눌러 음성 처리에 동의해 주세요.";
 
         // 입력칸 위 한 줄에 녹음이 끝난 이유와 함께 들어가도록 짧게 쓴다. 다시 말하는 버튼은 바로 옆에 보인다.
         private const string CheckTranscript = "들은 문장이 맞으면 [보내기]를 눌러요.";

@@ -49,27 +49,6 @@ namespace A305.Tutorial
             return union;
         }
 
-        /// <summary>장면 속 대상을 가리키는 화살표의 자리와 방향(도, 오른쪽이 0).</summary>
-        public readonly struct MarkerPose
-        {
-            public MarkerPose(Vector2 position, float arrowDegrees)
-            {
-                Position = position;
-                ArrowDegrees = arrowDegrees;
-            }
-
-            public Vector2 Position { get; }
-            public float ArrowDegrees { get; }
-        }
-
-        /// <summary>
-        /// 화면 안의 대상은 그 위에서 아래를 가리킨다. 대상 위 자리가 화면 위로 벗어나거나 위쪽 안내 카드 자리에 걸려도
-        /// 대상 몸통이 보이면 몸통을 가리킨다(문 가까이 섰을 때). 둘 다 화면 밖이거나 카메라 뒤면 위·옆 가장자리의 안내 카드·메뉴와
-        /// 겹치지 않게 대상이 있는 쪽 아래 구석(여백 안쪽)에 두고, 그쪽 옆을 가리켜 어느 쪽으로 돌아봐야 하는지 알린다.
-        /// </summary>
-        /// <param name="point">대상 위 화살표 자리의 화면 위치(캔버스 왼쪽 아래 기준)</param>
-        /// <param name="bodyPoint">대상 몸통(문 가운데 등)의 화면 위치</param>
-        /// <param name="topMargin">위쪽 안내 카드 자리. 여기에 걸린 자리는 화면 밖으로 본다.</param>
         /// <summary>말풍선이 밝힌 대상의 어느 쪽에 있는지</summary>
         public enum BubbleSide
         {
@@ -221,9 +200,14 @@ namespace A305.Tutorial
             return 90f - turn;
         }
 
-        public static MarkerPose Marker(
+        /// <summary>
+        /// 다가오는 대상(Ben) 머리 위 화살표를 띄울지. 그 자리가 화면 안(위쪽 안내 카드 아래)에 있을 때만 띄우고,
+        /// 화면 밖·카드 자리·카메라 뒤면 띄우지 않는다. 몸통이나 얼굴로 옮기면 대상을 가리므로 옮기지 않는다.
+        /// </summary>
+        /// <param name="point">대상 머리 위 화살표 자리의 화면 위치(캔버스 왼쪽 아래 기준)</param>
+        /// <param name="topMargin">위쪽 안내 카드 자리. 여기에 걸린 자리는 화면 밖으로 본다.</param>
+        public static bool ShowsMarker(
             Vector2 point,
-            Vector2 bodyPoint,
             bool isBehindCamera,
             Vector2 canvasSize,
             float margin,
@@ -236,22 +220,7 @@ namespace A305.Tutorial
                 canvasSize.x - margin,
                 canvasSize.y - topMargin
             );
-            if (!isBehindCamera && inner.Contains(point))
-            {
-                return new MarkerPose(point, -90f);
-            }
-
-            if (!isBehindCamera && inner.Contains(bodyPoint))
-            {
-                return new MarkerPose(bodyPoint, -90f);
-            }
-
-            // 카메라 뒤의 점은 좌우가 뒤집혀 나온다.
-            float fromCenter = point.x - canvasSize.x / 2f;
-            bool isOnTheRight = isBehindCamera ? fromCenter <= 0f : fromCenter >= 0f;
-            return isOnTheRight
-                ? new MarkerPose(new Vector2(inner.xMax, inner.yMin), 0f)
-                : new MarkerPose(new Vector2(inner.xMin, inner.yMin), 180f);
+            return !isBehindCamera && inner.Contains(point);
         }
     }
 }

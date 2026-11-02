@@ -21,9 +21,8 @@ namespace A305.Tutorial
     /// </summary>
     public class TutorialDirector : MonoBehaviour
     {
-        // Ben 머리 위 화살표 높이와, 그 자리가 화면 밖일 때 가리킬 몸통 높이(발밑 기준).
+        // Ben 머리 위 화살표 높이(발밑 기준).
         private const float BenMarkerHeightMeters = 2.3f;
-        private const float BenBodyHeightMeters = 1.0f;
 
         [SerializeField]
         private TutorialGuideDefinition guide;
@@ -482,7 +481,7 @@ namespace A305.Tutorial
                     coachMark.ShowCompass(player.transform, exitDoor.transform);
                     break;
                 case TutorialCoachTarget.Ben when ben != null:
-                    coachMark.ShowMarker(ben.transform, BenMarkerHeightMeters, BenBodyHeightMeters);
+                    coachMark.ShowMarker(ben.transform, BenMarkerHeightMeters);
                     break;
                 case TutorialCoachTarget.None:
                 case TutorialCoachTarget.Door:

@@ -9,9 +9,9 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 코치 마크 화면. 눌러야 할 버튼은 둘레를 반투명 검은 판으로 덮고 테두리로 밝혀 그 버튼만 누를 수 있게 하고,
-    /// 걸어가야 할 숙소 문은 플레이어 발밑 바닥에 나침반처럼 원과 가장자리 화살표로 가리킨다. 다가오는 Ben은 머리 위에서
-    /// 오르내리는 화살표로 가리키고, 머리 위가 화면 밖이어도 몸통이 보이면 몸통을, 둘 다 화면 밖이면 대상 쪽 아래 구석에서
-    /// 대상 쪽을 가리킨다. 밝히기·나침반·화살표 중 하나만 보인다.
+    /// 걸어가야 할 숙소 문은 플레이어 발밑 바닥에 나침반처럼 원과 가장자리 화살표로 가리키고, 1인칭처럼 발밑이 화면에 없으면
+    /// 화면 아래 가운데 화살표로 같은 방향을 알린다. 다가오는 Ben은 머리 위에서 오르내리는 화살표로 가리키되, 그 자리가
+    /// 화면 밖이거나 위쪽 안내 카드에 걸리면 얼굴을 가리지 않게 띄우지 않는다. 밝히기·나침반·화살표 중 하나만 보인다.
     /// 설명은 밝힌 곳 옆에 꼬리 달린 말풍선으로 두고, 티칭처럼 읽고 넘길 설명에는 [다음]을 붙인다.
     /// 대화 화면처럼 둘레 내용을 읽으며 해야 하면 둘레를 덮지 않고 테두리로만 밝힌다.
     /// 판은 밝힐 버튼이 있는 캔버스 바로 위에 그려, 그보다 위에 있는 안내 카드는 가리지 않는다.
@@ -23,7 +23,7 @@ namespace A305.Tutorial
         private const float BubbleMargin = 24f;
         private const float MarkerEdgeMargin = 70f;
 
-        // 위쪽 안내 카드가 놓이는 높이. 여기에 걸린 화살표는 카드에 가리므로 대상 몸통을 가리킨다.
+        // 위쪽 안내 카드가 놓이는 높이. 여기에 걸린 머리 위 화살표는 카드에 가리므로 띄우지 않는다.
         private const float MarkerTopMargin = 260f;
 
         // 발밑 나침반: 발밑 원 지름, 가장자리 점 지름과 발밑에서 떨어진 거리, 점 위 화살표 길이, 점이 대상 쪽으로 오가는 폭,
@@ -91,7 +91,6 @@ namespace A305.Tutorial
         private RectTransform canvasRect;
         private Transform markerTarget;
         private float markerHeightMeters;
-        private float markerBodyHeightMeters;
         private bool dimsOutside = true;
         private Action nextAction;
         private Transform compassWalker;
@@ -136,17 +135,16 @@ namespace A305.Tutorial
         }
 
         /// <summary>
-        /// 장면 속 대상의 발밑에서 <paramref name="heightMeters"/> 위에 화살표를 띄운다. 그 자리가 화면 밖이어도
-        /// <paramref name="bodyHeightMeters"/> 높이의 몸통이 보이면 몸통을 가리킨다.
+        /// 장면 속 대상의 발밑에서 <paramref name="heightMeters"/> 위에 화살표를 띄운다. 그 자리가 화면 밖이거나
+        /// 위쪽 안내 카드에 걸리면 띄우지 않는다.
         /// </summary>
-        public void ShowMarker(Transform target, float heightMeters, float bodyHeightMeters)
+        public void ShowMarker(Transform target, float heightMeters)
         {
             HideCompass();
             targets.Clear();
             SetSpotlightVisible(false);
             markerTarget = target;
             markerHeightMeters = heightMeters;
-            markerBodyHeightMeters = bodyHeightMeters;
             LateUpdate();
         }
 
@@ -424,24 +422,24 @@ namespace A305.Tutorial
             Vector3 screen = camera.WorldToScreenPoint(
                 markerTarget.position + Vector3.up * markerHeightMeters
             );
-            Vector3 body = camera.WorldToScreenPoint(
-                markerTarget.position + Vector3.up * markerBodyHeightMeters
-            );
-            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
-                ToCanvas(screen),
-                ToCanvas(body),
+            Vector2 point = ToCanvas(screen);
+            bool isShown = CoachMarkLayout.ShowsMarker(
+                point,
                 screen.z < 0f,
                 canvasRect.rect.size,
                 MarkerEdgeMargin,
                 MarkerTopMargin
             );
-            // 가리키는 쪽으로 오르내려 눈에 띄게 한다.
-            float radians = pose.ArrowDegrees * Mathf.Deg2Rad;
+            marker.gameObject.SetActive(isShown);
+            if (!isShown)
+            {
+                return;
+            }
+
+            // 아래를 가리키며 위아래로 오르내려 눈에 띄게 한다.
             float bob = Mathf.Abs(Mathf.Sin(Time.unscaledTime * MarkerBobSpeed)) * MarkerBobPixels;
-            marker.anchoredPosition =
-                pose.Position - new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * bob;
-            markerArrow.localRotation = Quaternion.Euler(0f, 0f, pose.ArrowDegrees);
-            marker.gameObject.SetActive(true);
+            marker.anchoredPosition = point + Vector2.up * bob;
+            markerArrow.localRotation = Quaternion.Euler(0f, 0f, -90f);
         }
 
         // 다른 캔버스의 버튼 모서리(화면 픽셀)를 이 캔버스 왼쪽 아래 기준 좌표로 바꾼다.

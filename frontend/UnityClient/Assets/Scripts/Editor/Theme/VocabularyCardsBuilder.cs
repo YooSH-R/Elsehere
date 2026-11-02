@@ -92,7 +92,17 @@ namespace A305.EditorTools.Theme
             TMP_Text meaning = Text(details, "Meaning", "", 22, 0, 48, 600, 48, UiThemeRole.Accent);
             RectTransform context = Rect(details, "Context");
             Position(context, 0, 112, 600, 142);
-            Text(context, "Title", "저장한 문장", 18, 0, 0, 600, 28, UiThemeRole.Muted);
+            TMP_Text contextTitle = Text(
+                context,
+                "Title",
+                "저장한 문장",
+                18,
+                0,
+                0,
+                600,
+                28,
+                UiThemeRole.Muted
+            );
             TMP_Text sentence = Text(
                 context,
                 "Sentence",
@@ -218,6 +228,7 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "wordText", word);
             BuilderTools.SetReference(view, "meaningText", meaning);
             BuilderTools.SetReference(view, "contextText", sentence);
+            BuilderTools.SetReference(view, "contextTitleText", contextTitle);
             BuilderTools.SetReference(view, "contextSection", context.gameObject);
             BuilderTools.SetReference(view, "pageText", page);
             BuilderTools.SetReference(view, "previousButton", previous);

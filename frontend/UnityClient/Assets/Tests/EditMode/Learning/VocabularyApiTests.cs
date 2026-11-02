@@ -94,6 +94,34 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public async Task SaveNpcLineWordAsync_PostsTheTurnAndWord()
+        {
+            transport.ReplyStatus = 201;
+            transport.ReplyBody =
+                "{\"userVocabId\":30,\"vocab\":{\"vocabId\":77,\"text\":\"latte\",\"meaningKo\":\"라떼\"},"
+                + "\"context\":{\"text\":\"An iced latte?\",\"meaningKo\":\"아이스 라떼요?\"},"
+                + "\"memo\":null,\"memorized\":false,\"savedAt\":\"2026-11-02T14:06:00+09:00\","
+                + "\"source\":{\"sourceType\":\"NPC_LINE\",\"npcName\":\"Ben\",\"conversationId\":58},"
+                + "\"created\":true}";
+
+            VocabItem item = await api.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(transport.Request.Method, Is.EqualTo("POST"));
+            Assert.That(transport.Request.Url, Is.EqualTo("/api/v1/vocab"));
+            Assert.That(
+                transport.Request.JsonBody,
+                Does.Match(
+                    "^\\{\"requestId\":\"[0-9a-f-]{36}\",\"sourceType\":\"NPC_LINE\","
+                        + "\"turnId\":105,\"text\":\"latte\"\\}$"
+                )
+            );
+            Assert.That(transport.Request.Headers.ContainsKey(ApiClient.CsrfHeaderName), Is.True);
+            Assert.That(item.UserVocabId, Is.EqualTo(30));
+            Assert.That(item.Source.NpcName, Is.EqualTo("Ben"));
+            Assert.That(item.Created, Is.True);
+        }
+
+        [Test]
         public async Task DeleteAsync_DeletesEntry()
         {
             transport.ReplyStatus = 204;

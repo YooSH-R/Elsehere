@@ -242,6 +242,82 @@ namespace A305.Learning.Tests
             Assert.That(book.Entries, Has.Count.EqualTo(1));
         }
 
+        // 단어장 목록은 최근 저장순이라 방금 저장한 단어가 맨 앞이고, 단어 수도 바로 늘어난다.
+        [Test]
+        public async Task SaveNpcLineWordAsync_NewWord_PutsItFirstInTheLoadedList()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.SavedItem = Item(40, "latte", "라떼");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(api.Calls, Is.EqualTo(new[] { "save 105 latte" }));
+            Assert.That(
+                book.Entries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "latte", "sofa" })
+            );
+            Assert.That(book.LastFailureMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task SaveNpcLineWordAsync_AlreadySaved_DoesNotAddItTwice()
+        {
+            await LoadOne(Item(40, "latte", "라떼"));
+            api.SavedItem = Item(40, "latte", "라떼");
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.AlreadySaved));
+            Assert.That(book.Entries, Has.Count.EqualTo(1));
+        }
+
+        // 목록을 받기 전에 넣으면 단어 하나뿐인 목록과 틀린 개수가 보인다. 목록은 단어장을 열 때 다시 읽는다.
+        [Test]
+        public async Task SaveNpcLineWordAsync_BeforeListLoaded_DoesNotMakeAPartialList()
+        {
+            api.SavedItem = Item(40, "latte", "라떼");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(book.Entries, Is.Empty);
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+        }
+
+        [Test]
+        public async Task SaveNpcLineWordAsync_Fails_KeepsListAndTellsReason()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.Failure = NetworkError();
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Failed));
+            Assert.That(book.Entries, Has.Count.EqualTo(1));
+            Assert.That(
+                book.LastFailureMessage,
+                Is.EqualTo("단어를 저장하지 못했어요. 다시 시도해 주세요.")
+            );
+        }
+
+        [Test]
+        public async Task LoadAsync_WordSavedFromNpcLine_NamesTheNpc()
+        {
+            VocabItem fromBen = Item(40, "latte", "라떼");
+            fromBen.Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Ben" };
+            VocabItem fromObject = Item(31, "sofa", "소파");
+            fromObject.Source = new VocabSource { SourceType = "OBJECT" };
+            api.Pages[null] = Page(null, fromBen, fromObject);
+
+            await book.LoadAsync();
+
+            Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("Ben의 말"));
+            Assert.That(book.Entries[1].SourceLabel, Is.Null);
+        }
+
         private async Task<VocabularyEntry> LoadOne(VocabItem item)
         {
             api.Pages[null] = Page(null, item);
@@ -309,6 +385,14 @@ namespace A305.Learning.Tests
                 }
 
                 return Task.FromResult(pages[cursor ?? ""]);
+            }
+
+            /// <summary>단어 저장(VOCAB-02)이 돌려줄 항목</summary>
+            public VocabItem SavedItem { get; set; }
+
+            public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text)
+            {
+                return Reply($"save {turnId} {text}", SavedItem);
             }
 
             public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)

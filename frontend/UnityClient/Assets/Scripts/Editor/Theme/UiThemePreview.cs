@@ -142,6 +142,9 @@ namespace A305.EditorTools.Theme
             public Task SetHoverHiddenAsync(string wordKey, bool hidden) =>
                 throw new InvalidOperationException("Preview only.");
 
+            public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text) =>
+                throw new InvalidOperationException("Preview only.");
+
             public Task<VocabItem> UpdateMemoAsync(long id, string memo) =>
                 throw new InvalidOperationException("Preview only.");
 

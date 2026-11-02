@@ -199,6 +199,26 @@ namespace A305.Learning.Tests
             Assert.That(saved.UserVocabId, Is.EqualTo(2));
         }
 
+        // 대화에서 저장한 단어는 저장한 문장이 어느 NPC의 말인지 함께 보인다(API 명세 4.8 화면 18).
+        [Test]
+        public async Task WordSavedFromNpcLine_ShowsTheNpcAboveTheSentence()
+        {
+            await Open(new SampleApi());
+
+            screen
+                .transform.Find("Panel/Content/Entries/Entry1")
+                .GetComponent<Button>()
+                .onClick.Invoke();
+
+            Assert.That(
+                screen
+                    .transform.Find("Panel/Content/Details/Context/Title")
+                    .GetComponent<TMP_Text>()
+                    .text,
+                Is.EqualTo("저장한 문장 · Mia의 말")
+            );
+        }
+
         private sealed class SampleApi : IVocabularyApi
         {
             public int Count { get; set; } = 2;
@@ -228,6 +248,7 @@ namespace A305.Learning.Tests
                         Vocab = new VocabWord { Text = "umbrella", MeaningKo = "우산" },
                         Memo = "비 오는 날",
                         Context = new VocabContext { Text = "I need an umbrella." },
+                        Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Mia" },
                     },
                 };
                 while (items.Count < Count)
@@ -246,6 +267,9 @@ namespace A305.Learning.Tests
                     items.RemoveRange(Count, items.Count - Count);
                 return Task.FromResult(new VocabPage { Items = items });
             }
+
+            public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text) =>
+                Task.FromResult(new VocabItem());
 
             public Task<VocabItem> UpdateMemoAsync(long id, string memo) =>
                 Task.FromResult(new VocabItem { Memo = memo });

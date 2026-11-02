@@ -14,6 +14,7 @@ namespace A305.Learning
         private const int VisibleEntryCount = 4;
         private const string LoadingTitle = "단어장을 불러오는 중이에요…";
         private const string LoadFailedTitle = "단어장을 불러오지 못했어요";
+        private const string ContextTitle = "저장한 문장";
 
         [SerializeField]
         private GameObject panel;
@@ -42,6 +43,10 @@ namespace A305.Learning
 
         [SerializeField]
         private TMP_Text contextText;
+
+        [SerializeField]
+        [Tooltip("'저장한 문장' 제목. 대화에서 저장한 단어는 어느 NPC의 말인지 함께 보인다.")]
+        private TMP_Text contextTitleText;
 
         [SerializeField]
         private GameObject contextSection;
@@ -165,9 +170,14 @@ namespace A305.Learning
                 selectedMarks[row].SetActive(index == selectedIndex);
             }
             wordText.richText = meaningText.richText = contextText.richText = false;
+            contextTitleText.richText = false;
             wordText.text = SelectedEntry.English;
             meaningText.text = SelectedEntry.Korean;
             contextText.text = SelectedEntry.ContextText ?? "";
+            contextTitleText.text =
+                SelectedEntry.SourceLabel == null
+                    ? ContextTitle
+                    : $"{ContextTitle} · {SelectedEntry.SourceLabel}";
             contextSection.SetActive(!string.IsNullOrWhiteSpace(SelectedEntry.ContextText));
             pageText.text = $"{selectedIndex + 1} / {count}";
             previousButton.interactable = hasEntries && selectedIndex > 0;

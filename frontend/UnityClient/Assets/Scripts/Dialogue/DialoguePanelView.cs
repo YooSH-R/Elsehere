@@ -252,12 +252,10 @@ namespace A305.Dialogue
                 }
             }
 
-            linesText.text = DialogueLinesText.Format(
-                content.Lines,
-                content.NpcName,
-                isMeaningVisible,
-                content.LastNpcGlossary
-            );
+            // 밑줄은 뜻을 펼친 동안만 보이므로, 뜻을 접으면(보내기 포함) 누른 단어 줄도 닫는다.
+            if (!isMeaningVisible)
+                glossaryRow.Close();
+            ShowLines();
             npcNameText.text = content.NpcName;
             UpdateStanding();
             guideText.text = FormatGuide();
@@ -294,9 +292,6 @@ namespace A305.Dialogue
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
             meaningButton.interactable = content.LastNpcLine != null;
-            // 밑줄은 뜻을 펼친 동안만 보이므로, 뜻을 접으면(보내기 포함) 누른 단어 줄도 닫는다.
-            if (!isMeaningVisible)
-                glossaryRow.Close();
             ShowWordRow();
             TalkButtonState talk = TalkState();
             talkButton.gameObject.SetActive(talk.IsVisible);
@@ -444,6 +439,7 @@ namespace A305.Dialogue
             if (word == null)
                 return;
             glossaryRow.Select(word);
+            ShowLines();
             ShowWordRow();
         }
 
@@ -457,8 +453,19 @@ namespace A305.Dialogue
             WordSaveRequested?.Invoke(word);
         }
 
+        // 대사 칸 글자. 단어 줄에 보이는 단어는 대사 안에서도 같은 색으로 칠한다.
+        private void ShowLines()
+        {
+            linesText.text = DialogueLinesText.Format(
+                content.Lines,
+                content.NpcName,
+                isMeaningVisible,
+                content.LastNpcGlossary,
+                glossaryRow.Word
+            );
+        }
+
         // 단어 줄을 열고 닫으면 대사 칸 높이가 바뀌므로 배치도 다시 맞춘다.
-        // 대사 칸이 줄어도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 아래 기준으로 지킨다.
         private void ShowWordRow()
         {
             bool wasVisible = wordRow.gameObject.activeSelf;
@@ -466,12 +473,8 @@ namespace A305.Dialogue
             wordText.text = glossaryRow.Text;
             wordSaveButton.gameObject.SetActive(glossaryRow.IsSaveVisible);
             wordSaveButton.interactable = glossaryRow.IsSaveInteractable;
-            if (wasVisible == glossaryRow.IsVisible || content == null)
-                return;
-            float scroll = historyScroll.verticalNormalizedPosition;
-            UpdateLayout();
-            Canvas.ForceUpdateCanvases();
-            historyScroll.verticalNormalizedPosition = scroll;
+            if (wasVisible != glossaryRow.IsVisible && content != null)
+                UpdateLayout();
         }
 
         private void ToggleMeaning()
@@ -570,12 +573,16 @@ namespace A305.Dialogue
                 nameRect.sizeDelta.y
             );
             // 대사 칸은 상태 줄 위에서 끝나 마지막 줄이 도구 버튼에 걸리지 않는다.
+            // 창 크기나 단어 줄 때문에 대사 칸 높이가 바뀌어도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 지킨다.
             var history = (RectTransform)historyScroll.transform;
+            float scroll = historyScroll.verticalNormalizedPosition;
             history.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom + wordSpace);
             history.sizeDelta = new Vector2(
                 -128,
                 frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight - wordSpace
             );
+            Canvas.ForceUpdateCanvases();
+            historyScroll.verticalNormalizedPosition = scroll;
             wordRow.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom);
             wordRow.sizeDelta = new Vector2(width - 128, DialoguePanelLayout.WordRowHeight);
             var input = (RectTransform)inputField.transform;

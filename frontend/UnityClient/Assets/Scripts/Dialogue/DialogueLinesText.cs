@@ -16,13 +16,20 @@ namespace A305.Dialogue
         // 크림색 대화창 위에서도 읽히는 회색. 더 옅으면 뜻이 배경에 묻힌다.
         private const string MeaningColor = "#6E7888";
 
+        /// <summary>
+        /// 고른 단어를 칠하는 반투명 주황(말하기 버튼 색). 대사 칸 아래 단어 줄의 바탕도 같은 색이라 어느 단어의 뜻인지 이어 보인다.
+        /// </summary>
+        public const string SelectedWordMark = "#F982564D";
+
         /// <param name="showsMeaning">[뜻 보기]를 펼쳤는지. 뜻이 아직 없으면 펼쳐도 붙이지 않는다.</param>
         /// <param name="glossary">가장 최근 NPC 대사의 단어 풀이. 없으면 null이다.</param>
+        /// <param name="selected">대사 칸 아래 단어 줄에 보이는 단어. 없으면 null이다.</param>
         public static string Format(
             IReadOnlyList<DialogueLine> lines,
             string npcName,
             bool showsMeaning,
-            IReadOnlyList<GlossaryData> glossary
+            IReadOnlyList<GlossaryData> glossary,
+            GlossaryWord selected = null
         )
         {
             int latestNpcIndex = FindLatestNpcIndex(lines);
@@ -32,7 +39,7 @@ namespace A305.Dialogue
                 DialogueLine line = lines[i];
                 string speaker = line.IsNpc ? npcName : UserSpeaker;
                 string english = showsMeaning
-                    ? LinkGlossary(line.English, line.Glossary, i)
+                    ? LinkGlossary(line.English, line.Glossary, i, selected)
                     : line.English;
                 rows.Add($"<b>{speaker}</b>  {english}");
                 if (i == latestNpcIndex && showsMeaning && line.Korean != null)
@@ -84,10 +91,12 @@ namespace A305.Dialogue
         }
 
         // 풀이 단어를 대사에서 찾아 "<대사 번호>/<풀이 번호>" 링크로 감싼다. 대사에서 찾지 못한 풀이는 아래 단어 풀이 줄에만 보인다.
+        // 단어 줄에 보이는 단어는 같은 색으로 칠한다.
         private static string LinkGlossary(
             string english,
             IReadOnlyList<GlossaryWord> glossary,
-            int lineIndex
+            int lineIndex,
+            GlossaryWord selected
         )
         {
             if (glossary == null || glossary.Count == 0)
@@ -122,9 +131,13 @@ namespace A305.Dialogue
             foreach ((int start, int length, int wordIndex) in found)
             {
                 linked.Append(english, next, start - next);
-                linked.Append(
-                    $"<link=\"{lineIndex}/{wordIndex}\"><u>{english.Substring(start, length)}</u></link>"
-                );
+                string word = $"<u>{english.Substring(start, length)}</u>";
+                if (glossary[wordIndex] == selected)
+                {
+                    word = $"<mark={SelectedWordMark}>{word}</mark>";
+                }
+
+                linked.Append($"<link=\"{lineIndex}/{wordIndex}\">{word}</link>");
                 next = start + length;
             }
 

@@ -34,15 +34,15 @@ namespace A305.Dialogue.Tests
             Assert.That(row.IsSaveInteractable, Is.True);
         }
 
-        // 서버가 한 단어만 저장하므로 숙어는 뜻만 보이고 저장할 수 없는 이유를 알린다.
+        // 숙어도 단어처럼 단어장에 저장한다(VOCAB-02 NPC_LINE).
         [Test]
-        public void SelectingAnIdiom_ShowsMeaningWithoutSave()
+        public void SelectingAnIdiom_ShowsMeaningWithSave()
         {
             row.Select(ToGo);
 
-            Assert.That(row.Text, Does.StartWith("<b>to go</b>  포장"));
-            Assert.That(row.Text, Does.Contain("숙어는 아직 단어장에 저장할 수 없어요"));
-            Assert.That(row.IsSaveVisible, Is.False);
+            Assert.That(row.Text, Is.EqualTo("<b>to go</b>  포장"));
+            Assert.That(row.IsSaveVisible, Is.True);
+            Assert.That(row.IsSaveInteractable, Is.True);
         }
 
         [Test]

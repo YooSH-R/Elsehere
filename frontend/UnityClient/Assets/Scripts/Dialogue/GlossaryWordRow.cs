@@ -10,7 +10,6 @@ namespace A305.Dialogue
     {
         private const string Separator = "  ·  ";
         private const string SavingNote = "저장하는 중이에요…";
-        private const string IdiomNote = "숙어는 아직 단어장에 저장할 수 없어요";
 
         // 이번 대화에서 단어장에 넣은 단어와 그때 받은 결과 문구
         private readonly Dictionary<GlossaryWord, string> savedNotes =
@@ -46,7 +45,7 @@ namespace A305.Dialogue
         }
 
         public bool IsSaveVisible =>
-            Word != null && IsSaveAvailable && Word.CanSave && !savedNotes.ContainsKey(Word);
+            Word != null && IsSaveAvailable && !savedNotes.ContainsKey(Word);
 
         public bool IsSaveInteractable => IsSaveVisible && !isSaving;
 
@@ -107,11 +106,6 @@ namespace A305.Dialogue
             if (savedNotes.TryGetValue(Word, out string savedNote))
             {
                 return savedNote;
-            }
-
-            if (!Word.CanSave)
-            {
-                return IdiomNote;
             }
 
             if (!IsSaveAvailable)

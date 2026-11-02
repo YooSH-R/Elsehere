@@ -182,6 +182,7 @@ namespace A305.Learning
             contextMeaningText.gameObject.SetActive(
                 !string.IsNullOrWhiteSpace(SelectedEntry.ContextMeaning)
             );
+            PlaceMeaningUnderSentence();
             contextTitleText.text =
                 SelectedEntry.SourceLabel == null
                     ? ContextTitle
@@ -200,6 +201,22 @@ namespace A305.Learning
         }
 
         private VocabularyEntry SelectedEntry => book.Entries[selectedIndex];
+
+        // 문장 칸은 두 줄까지 들어가게 잡혀 있어, 한 줄 문장이면 뜻을 바로 아래로 붙여 사이가 벌어지지 않게 한다.
+        // 두 칸 모두 위쪽 기준이라 문장이 실제로 차지한 높이만큼만 내린다.
+        private void PlaceMeaningUnderSentence()
+        {
+            var sentence = (RectTransform)contextText.transform;
+            var meaning = (RectTransform)contextMeaningText.transform;
+            float sentenceHeight = Mathf.Min(
+                contextText.GetPreferredValues(contextText.text, sentence.rect.width, 0).y,
+                sentence.rect.height
+            );
+            meaning.anchoredPosition = new Vector2(
+                meaning.anchoredPosition.x,
+                sentence.anchoredPosition.y - sentenceHeight - 6
+            );
+        }
 
         private void Awake()
         {

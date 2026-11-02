@@ -4,8 +4,8 @@ using System.Linq;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// NPC 대사의 단어 풀이(CONV-04 <c>glossary</c>) 하나. 대사 안에서 눌러 뜻을 보고, 한 단어면 그 턴 출처(VOCAB-02 <c>NPC_LINE</c>)로
-    /// 단어장에 저장한다.
+    /// NPC 대사의 단어 풀이(CONV-04 <c>glossary</c>) 하나. 단어이거나 <c>to go</c> 같은 숙어다. 대사 안에서 눌러 뜻을 보고,
+    /// 그 턴 출처(VOCAB-02 <c>NPC_LINE</c>)로 단어장에 저장한다.
     /// </summary>
     public sealed class GlossaryWord
     {
@@ -23,10 +23,6 @@ namespace A305.Dialogue
         public string Text { get; }
 
         public string MeaningKo { get; }
-
-        /// <summary>단어장에 저장할 수 있는지. 서버는 한 단어만 저장하므로 숙어처럼 두 단어 이상이면 뜻만 보인다.</summary>
-        public bool CanSave =>
-            !string.IsNullOrWhiteSpace(Text) && !Text.Trim().Any(char.IsWhiteSpace);
 
         /// <summary>한 턴의 단어 풀이를 그 턴 ID와 함께 묶는다. 풀이가 없으면 빈 목록이다.</summary>
         public static IReadOnlyList<GlossaryWord> FromMeaning(

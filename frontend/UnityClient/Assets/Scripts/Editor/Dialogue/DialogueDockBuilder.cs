@@ -1,3 +1,4 @@
+using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.Theme;
 using TMPro;
@@ -112,11 +113,19 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대사 칸 아래 단어 줄. 글자는 대사와 같은 본문 색으로, [단어장에 저장]은 도구 버튼과 같은 모양으로 둔다.
-        /// 자리와 폭은 DialoguePanelView가 대사 칸에 맞춘다. 결과 문구가 길면 한 줄에 맞게 글자를 줄인다.
+        /// 대사 칸 아래 단어 줄. 대사와 섞여 보이지 않도록 대사에서 고른 단어를 칠한 색과 같은 반투명 주황 카드로 감싸고,
+        /// 글자는 본문 색, [단어장에 저장]은 도구 버튼과 같은 모양으로 둔다. 자리와 폭은 DialoguePanelView가 대사 칸에 맞춘다.
+        /// 결과 문구가 길면 한 줄에 맞게 글자를 줄인다.
         /// </summary>
         private static void WordRow(Transform row)
         {
+            var card = BuilderTools.GetOrAddComponent<Image>(row.gameObject);
+            card.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            card.type = Image.Type.Sliced;
+            card.pixelsPerUnitMultiplier = 0.6f;
+            card.raycastTarget = false;
+            ColorUtility.TryParseHtmlString(DialogueLinesText.SelectedWordMark, out Color mark);
+            card.color = mark;
             var text = row.Find("Text").GetComponent<TMP_Text>();
             text.enableAutoSizing = true;
             text.fontSizeMin = 18;

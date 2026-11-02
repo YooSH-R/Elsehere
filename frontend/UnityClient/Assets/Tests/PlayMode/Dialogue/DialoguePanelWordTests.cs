@@ -127,6 +127,21 @@ namespace A305.Dialogue.PlayModeTests
             );
         }
 
+        // 고른 단어를 대사 안에서도 칠해 단어 줄의 뜻이 어느 단어의 것인지 바로 보이게 한다.
+        [UnityTest]
+        public IEnumerator ClickedWord_IsMarkedInTheLine()
+        {
+            yield return TurnOnMeaning();
+
+            yield return ClickWordInLines("to go");
+
+            Assert.That(
+                Child<TMP_Text>("Panel/Conversation/History/Viewport/Lines").text,
+                Does.Contain("<mark=#F982564D><u>to go</u></mark>")
+            );
+            Assert.That(WordSaveButton().gameObject.activeInHierarchy, Is.True);
+        }
+
         // 서버는 문장을 저장하지 않으므로 대사 전체를 담던 [담기]는 두지 않는다.
         [UnityTest]
         public IEnumerator ToolRow_HasNoSentenceSaveButton()

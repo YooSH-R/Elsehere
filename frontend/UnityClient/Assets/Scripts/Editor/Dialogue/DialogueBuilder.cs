@@ -467,7 +467,7 @@ namespace A305.EditorTools.Dialogue
             var textRect = (RectTransform)text.transform;
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMin = new Vector2(20f, 0f);
             textRect.offsetMax = new Vector2(-(WordSaveButtonWidth + 16f), 0f);
             text.alignment = TextAlignmentOptions.MidlineLeft;
             text.textWrappingMode = TextWrappingModes.NoWrap;
@@ -482,11 +482,12 @@ namespace A305.EditorTools.Dialogue
             );
             BuilderTools.GetOrAddComponent<LayoutElement>(save.gameObject).ignoreLayout = true;
             var saveRect = (RectTransform)save.transform;
+            // 단어 줄 카드 안쪽에 들어가도록 오른쪽과 위아래를 조금 띄운다.
             saveRect.anchorMin = saveRect.anchorMax = saveRect.pivot = new Vector2(1f, 0.5f);
-            saveRect.anchoredPosition = Vector2.zero;
+            saveRect.anchoredPosition = new Vector2(-4f, 0f);
             saveRect.sizeDelta = new Vector2(
                 WordSaveButtonWidth,
-                DialoguePanelLayout.WordRowHeight
+                DialoguePanelLayout.WordRowHeight - 8f
             );
 
             row.gameObject.SetActive(false);

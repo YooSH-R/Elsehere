@@ -143,6 +143,28 @@ namespace A305.Dialogue.Tests
             );
         }
 
+        // 대사 칸 아래 단어 줄과 같은 색으로 고른 단어를 칠해, 어느 단어의 뜻인지 대사 안에서 바로 보이게 한다.
+        [Test]
+        public void Format_MarksTheSelectedWordOnly()
+        {
+            var toGo = new GlossaryWord(105, "to go", "포장");
+            DialogueLine line = WithGlossary(
+                "An iced latte to go?",
+                new GlossaryWord(105, "latte", "라떼"),
+                toGo
+            );
+
+            string text = DialogueLinesText.Format(new[] { line }, "Ben", true, null, toGo);
+
+            Assert.That(
+                text,
+                Does.StartWith(
+                    "<b>Ben</b>  An iced <link=\"0/0\"><u>latte</u></link> "
+                        + "<link=\"0/1\"><mark=#F982564D><u>to go</u></mark></link>?"
+                )
+            );
+        }
+
         [Test]
         public void FindWord_ByLinkId_ReturnsThatGlossaryWord()
         {

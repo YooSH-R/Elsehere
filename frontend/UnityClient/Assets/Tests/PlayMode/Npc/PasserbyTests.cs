@@ -64,6 +64,36 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ApproachingBen_AnimatesLegs_AndStopsWhenOffering()
+        {
+            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
+            Passerby ben = FindPasserby(BenCode);
+            Animator animator = ben.GetComponentInChildren<Animator>();
+            Assert.That(animator, Is.Not.Null, "Ben의 모델에 걷기 Animator가 필요합니다.");
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            yield return WaitUntil(() => ben.Phase == PasserbyPhase.Approaching);
+            Transform leg = animator
+                .GetComponentsInChildren<Transform>()
+                .Single(bone => bone.name == "LeftUpperLeg");
+            Quaternion before = leg.localRotation;
+            Vector3 positionBefore = ben.transform.position;
+            yield return new WaitForSeconds(.15f);
+            Assert.That(
+                Vector3.Distance(positionBefore, ben.transform.position),
+                Is.GreaterThan(.01f)
+            );
+            Assert.That(Quaternion.Angle(before, leg.localRotation), Is.GreaterThan(1f));
+            Assert.That(animator.GetFloat("Speed"), Is.GreaterThan(0f));
+
+            yield return WaitUntil(() => ben.Phase == PasserbyPhase.Offering);
+            yield return new WaitForSeconds(.25f);
+            Assert.That(animator.GetFloat("Speed"), Is.Zero);
+            before = leg.localRotation;
+            yield return new WaitForSeconds(.15f);
+            Assert.That(Quaternion.Angle(before, leg.localRotation), Is.LessThan(.1f));
+        }
+
+        [UnityTest]
         public IEnumerator AcceptingOffer_EntersDialogueView_AndEndingRestoresControl()
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: false);

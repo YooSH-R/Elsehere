@@ -66,6 +66,14 @@
 - 행인이 다가와도 되는지는 `Passerby.IsApproachAllowed`로 진행 흐름이 정합니다. false면 플레이어가 바쁠 때처럼 다가오지 않고 [말 걸기]도 보이지 않으며, 이미 제안 중이면 제안을 거두지 않습니다. 지금은 [Tutorial 모듈](../Tutorial/README.md)이 튜토리얼 행인은 이웃 만나기 단계에서만, 카페 직원은 미션 대화 안내부터 다가오게 합니다.
 - 거절하거나 대화를 마친 뒤에도 [말 걸기]로 언제든 다시 대화할 수 있으므로, 쉬는 시간은 NPC가 다시 먼저 다가오기까지의 간격으로만 씁니다.
 
+## Ben의 뼈대와 걷기
+
+Ben(`TOWN_PASSERBY`)은 `Prefabs/Npc/BenVisual.prefab`을 씁니다. 기존 도형 캐릭터의 모양·크기·재질을 유지하고 골반·몸통·머리, 양쪽 팔·팔꿈치·손, 허벅지·무릎·발 관절을 붙였습니다. 팔과 다리는 두 뼈의 영향을 섞는 스킨 메시이고, 손·신발·얼굴은 해당 관절을 따라갑니다.
+
+짧은 팔다리에 맞춘 **Generic 뼈대**로, Humanoid 동작을 직접 재사용하지 않습니다. `Art/Characters/Npc/Ben/BenLocomotion.controller`가 기존 `CharacterAnimationDriver`의 `Speed`를 받아 정지·걷기를 전환하고 보행 속도에 맞춰 재생 속도를 조절합니다. 이동 위치는 계속 `Passerby`가 맡습니다. `NpcRoutine`은 이 전용 컨트롤러를 유지합니다.
+
+**Tools → A305 → Npc → Build Ben Rig**는 에셋이 없을 때만 뼈대·클립을 만들고 TownScene의 Ben에 연결합니다. 이후 디자인은 프리팹과 `BenIdle.anim`·`BenWalk.anim`에서 조절합니다. 공용 도형 모델과 다른 NPC에는 적용하지 않습니다. **Preview Ben Walk**는 `Scenes/Sandbox/BenWalkSandbox.unity`와 정면·측면 렌더를 만듭니다. Sandbox를 Play한 뒤 Ben의 자식 `LittleMungV7Visual`을 선택하고 Animator 창의 Parameters에서 `Speed`를 1.1로 바꾸면 걷고, 0이면 멈춥니다.
+
 ## 생활
 
 생활 데이터가 있는 NPC(카페 직원 `CAFE_STAFF`, 호텔리어 `HOTEL_STAFF`, 행인 `TOWN_PASSERBY`)는 다가오지 않는 동안 게임 시각의 일과와 욕구에 따라 자기 공간에서 지냅니다. 규칙과 숫자는 [NPC 생활·관계 설계](../../../../../docs/npc-life-design.md)를 따릅니다. 튜토리얼 행인·상점 직원·택시 기사는 생활 데이터가 없어 전처럼 제자리에 있습니다.

@@ -172,7 +172,7 @@ def test_an_npc_schedule_comes_from_its_role_in_its_own_place():
 
 
 def test_service_npcs_stay_in_their_own_place_for_now():
-    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]:
+    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "POLICE_OFFICER", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]:
         scenes = {block["scene"] for block in life_values(npc_id)["schedule"] if "scene" in block}
 
         assert scenes == {home_of(npc_id)}, npc_id
@@ -228,11 +228,19 @@ def test_joe_keeps_the_persona_direction():
     assert rates["recognitionRate"] > 1
 
 
+def test_officer_dan_keeps_the_persona_direction():
+    """인격: 침착하고 믿음직함, 원칙대로 일을 처리함, 잡담보다 용건을 먼저 들음."""
+    rates = derived_from_life_file("POLICE_OFFICER")
+
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["recognitionRate"] > 1
+
+
 # ---------------------------------------------------------------------
 # 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
 # ---------------------------------------------------------------------
 MIA_LIFE = {"npcId": "CAFE_STAFF", "mbti": "ESFJ-T", "role": "STAFF"}
-SERVICE_NPCS = ["CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]
+SERVICE_NPCS = ["CAFE_STAFF", "HOTEL_STAFF", "POLICE_OFFICER", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]
 
 
 def handwritten(rules: list[str]) -> dict:

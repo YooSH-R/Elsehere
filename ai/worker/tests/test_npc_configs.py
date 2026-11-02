@@ -35,7 +35,14 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
     configs, problems = npc_configs.bundle(npc_configs.ROOT / "ai/npcs")
 
     assert problems == []
-    assert [config["npcId"] for config in configs] == ["CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]
+    assert [config["npcId"] for config in configs] == [
+        "CAFE_STAFF",
+        "HOTEL_STAFF",
+        "POLICE_OFFICER",
+        "SHOP_STAFF",
+        "TAXI_DRIVER",
+        "TOWN_PASSERBY",
+    ]
 
 
 def test_an_active_npc_needs_a_voice():
@@ -257,6 +264,7 @@ def test_the_service_npcs_each_have_a_service_scenario():
     assert {npc_id: s["scenarioId"] for npc_id, s in scenarios.items()} == {
         "CAFE_STAFF": "cafe_counter",
         "HOTEL_STAFF": "hotel_front_desk",
+        "POLICE_OFFICER": "police_front_desk",
         "SHOP_STAFF": "drugstore_counter",
         "TAXI_DRIVER": "taxi_ride",
         "TOWN_PASSERBY": "town_street",
@@ -270,6 +278,7 @@ def test_the_service_npcs_each_have_their_own_voice():
     assert {config["npcId"]: config["voiceId"] for config in configs} == {
         "CAFE_STAFF": "af_heart",  # Mia: 밝은 여자
         "HOTEL_STAFF": "am_onyx",  # Jake: 낮고 무덤덤한 남자
+        "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
         "SHOP_STAFF": "am_michael",  # Alex: 차분한 남자
         "TAXI_DRIVER": "am_puck",  # Joe: 밝고 수다스러운 남자
         "TOWN_PASSERBY": "am_fenrir",  # Ben: 분명하고 단호한 남자

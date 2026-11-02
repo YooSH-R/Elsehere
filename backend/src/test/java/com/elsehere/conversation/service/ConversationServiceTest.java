@@ -38,6 +38,7 @@ import com.elsehere.conversation.dto.EndConversationResponse;
 import com.elsehere.conversation.dto.SpeechStatus;
 import com.elsehere.conversation.dto.StartConversationRequest;
 import com.elsehere.conversation.dto.TurnRequest;
+import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.ConversationEndReason;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.InitiatedBy;
@@ -269,6 +270,57 @@ class ConversationServiceTest {
               assertThat(exception.getDetails())
                   .containsEntry("activeConversationId", active.conversationId());
             });
+  }
+
+  @Test
+  @DisplayName("첫 인사를 만드는 사이 다른 요청이 대화를 시작했으면 CONVERSATION_ALREADY_ACTIVE로 거절하고 진행 중인 대화는 하나만 남는다")
+  void start_otherStartWhileGreeting_throwsAlreadyActive() {
+    // 첫 인사(AI)를 기다리는 동안 같은 사용자의 다른 시작 요청이 먼저 저장된다.
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              startPasserby();
+              return reply("Hi! What can I get for you?", null, null);
+            });
+
+    assertThatThrownBy(this::startCafe)
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode())
+                    .isEqualTo(ErrorCode.CONVERSATION_ALREADY_ACTIVE));
+    assertThat(conversationRepository.findAll()).filteredOn(Conversation::isActive).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("게스트가 첫 인사를 기다리는 사이 다른 요청으로 마지막 횟수를 쓰면 AI_QUOTA_EXHAUSTED로 거절하고 횟수를 넘지 않는다")
+  void start_guestLimitReachedWhileGreeting_throwsQuotaExhausted() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    for (int i = 0; i < GUEST_CONVERSATION_LIMIT - 1; i++) {
+      startAndEndPasserby(guestId);
+    }
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              startAndEndPasserby(guestId);
+              return reply("Hi! What can I get for you?", null, null);
+            });
+
+    assertThatThrownBy(
+            () ->
+                conversationService.start(
+                    guestId,
+                    new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.NPC)))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_QUOTA_EXHAUSTED));
+    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT);
   }
 
   @Test

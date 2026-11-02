@@ -15,6 +15,7 @@ import com.elsehere.auth.service.GuestLoginService;
 import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUserTestController;
 import com.elsehere.common.config.SecuredWebMvcTest;
+import com.elsehere.conversation.service.GuestConversationLimit;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
@@ -39,6 +40,8 @@ class GuestLoginControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private GuestLoginService guestLoginService;
+
+  @MockitoBean private GuestConversationLimit guestConversationLimit;
 
   @Test
   @DisplayName("로그인하지 않은 상태에서 캐릭터를 골라 게스트로 시작하면 201과 만든 사용자 정보로 응답한다")
@@ -113,6 +116,17 @@ class GuestLoginControllerTest {
         .andExpect(status().isCreated());
 
     assertThat(session.getMaxInactiveInterval()).isEqualTo(2 * 60 * 60);
+  }
+
+  @Test
+  @DisplayName("로그인하지 않은 상태에서 게스트 안내를 조회하면 게스트가 시작할 수 있는 NPC 대화 수로 응답한다")
+  void getGuestGuide_withoutLogin_respondsConversationLimit() throws Exception {
+    given(guestConversationLimit.limit()).willReturn(3);
+
+    mockMvc
+        .perform(get("/api/v1/auth/guest"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.conversationLimit").value(3));
   }
 
   private static MockHttpServletRequestBuilder guestLogin(String body) {

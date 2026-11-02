@@ -128,7 +128,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ### 게스트로 시작하기
 
-[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다.
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다. 시작하기 전 캐릭터 선택 화면은 AUTH-08 `GET /api/v1/auth/guest`로 게스트가 대화할 수 있는 횟수(`conversationLimit`, 아래 `GUEST_CONVERSATION_LIMIT`)를 로그인 없이 읽습니다.
 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |

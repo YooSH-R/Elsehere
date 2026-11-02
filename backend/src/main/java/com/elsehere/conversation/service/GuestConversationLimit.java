@@ -35,6 +35,11 @@ public class GuestConversationLimit {
     this.limit = limit;
   }
 
+  /** 게스트 한 계정이 시작할 수 있는 NPC 대화 수(서버 설정 GUEST_CONVERSATION_LIMIT). */
+  public int limit() {
+    return limit;
+  }
+
   /** 게스트가 이미 정해진 횟수만큼 대화를 시작했으면 거절한다. 오류 코드는 AI 사용량 소진과 같지만, 사용량이 아니라 게스트 횟수 때문에 막혔다고 문구로 알린다. */
   public void check(User user) {
     if (isReached(user)) {

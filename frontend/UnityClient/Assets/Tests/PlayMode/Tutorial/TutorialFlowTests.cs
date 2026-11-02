@@ -472,7 +472,7 @@ namespace A305.Tutorial.PlayModeTests
         public IEnumerator BenDialogue_TeachesStepByStepWithNext_ThenKeepsTheLinesVisible()
         {
             // 대화를 시작하면 무엇부터 볼지 하나씩 어둡게 밝히고 옆 말풍선으로 설명하며 [다음]으로 넘긴다.
-            // 다 보면 대사를 읽으며 할 수 있게 덮지 않고, 입력칸 옆에서 할 대사를 알린다.
+            // 다 보면 대사 칸과 입력 줄을 함께 밝혀 대사를 읽을 수 있게 두고, 둘레를 덮어 입력칸 옆 말풍선이 눈에 띄게 할 대사를 알린다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -507,7 +507,16 @@ namespace A305.Tutorial.PlayModeTests
 
             TMP_InputField input = panel.GetComponentsInChildren<TMP_InputField>(true).Single();
             Assert.That(coachMark.SpotlightTargets, Does.Contain(input.transform));
-            Assert.That(coachMark.IsDimmingOutside, Is.False, "대사가 보이게 덮지 않습니다.");
+            Assert.That(
+                coachMark.SpotlightTargets,
+                Does.Contain(panel.LinesRect),
+                "대사는 밝힌 곳 안에 두어 그대로 보입니다."
+            );
+            Assert.That(
+                coachMark.IsDimmingOutside,
+                Is.True,
+                "말풍선이 눈에 띄게 둘레를 어둡게 덮습니다."
+            );
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);

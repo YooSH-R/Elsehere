@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using A305.Dialogue;
+using A305.Learning;
 using A305.Npc;
 using A305.ObjectHover;
 using A305.Player;
@@ -97,33 +98,107 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator MeetBen_HoldsThePlayerWhileBenOffers_ThenTheDialogueTakesOver()
+        public IEnumerator MeetBen_FromArrival_HoldsThePlayerFacingBen_AndBenComesToOffer()
         {
-            // 튜토리얼에서 Ben이 [대화하기]를 제안하면 답할 때까지 멀어지지 않게 이동을 잠근다.
+            // 숙소를 나오자마자 다른 곳으로 걸어가지 못하게 이동·시점을 잠그고 Ben을 바라보는 구도로 붙잡아 둔다.
+            // Ben은 이동이 잠긴 플레이어에게도, 감지 거리 밖에서도 다가와 말을 건다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
+            yield return null;
             PlayerMover player = Single<PlayerMover>();
-            yield return StandInFrontOf(FindBen());
+            PlayerCameraRig cameraRig = Single<PlayerCameraRig>();
+            Assert.That(player.IsMovementLocked, Is.True, "나오자마자 이동을 잠급니다.");
             Assert.That(
-                player.IsMovementLocked,
-                Is.False,
-                "Ben이 다가오는 동안에는 걸을 수 있습니다."
+                cameraRig.IsInMeetingView,
+                Is.True,
+                "Ben을 기다리는 구도로 시점을 붙잡습니다."
             );
 
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
-            yield return null;
-            Assert.That(player.IsMovementLocked, Is.True);
+            Vector3 toBen = Vector3.ProjectOnPlane(
+                FindBen().transform.position - player.transform.position,
+                Vector3.up
+            );
+            Assert.That(
+                Vector3.Angle(player.transform.forward, toBen),
+                Is.LessThan(20f),
+                "플레이어는 Ben을 바라봅니다."
+            );
+        }
 
+        [UnityTest]
+        public IEnumerator MeetBen_TheDialogueTakesOverTheHold_AndFinishingTheGuideReleasesIt()
+        {
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PlayerMover player = Single<PlayerMover>();
+            PlayerCameraRig cameraRig = Single<PlayerCameraRig>();
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
             Click(offer, "AcceptButton");
             yield return null;
             yield return null;
             Assert.That(player.IsMovementLocked, Is.True, "대화가 잠금을 이어받습니다.");
+            Assert.That(
+                cameraRig.ViewMode,
+                Is.EqualTo(CameraViewMode.Dialogue),
+                "대화 중에는 대화 시점이 우선합니다."
+            );
+
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            DialogueController dialogue = Single<DialogueController>();
+            while (!dialogue.IsGuidedCompleted)
+            {
+                Click(panel, "ExampleButton");
+                Click(panel, "SendButton");
+                yield return null;
+            }
+
+            Click(panel, "EndButton");
+            yield return null;
+            yield return null;
+            Assert.That(
+                cameraRig.IsInMeetingView,
+                Is.False,
+                "길 안내를 마치면 기다리는 구도를 풉니다."
+            );
+            FeedbackView feedback = Single<FeedbackView>();
+            Assert.That(feedback.IsVisible, Is.True, "준비: 피드백");
+            Assert.That(player.IsMovementLocked, Is.True, "피드백을 보는 동안은 잠겨 있습니다.");
+
+            feedback
+                .GetComponentsInChildren<Button>()
+                .First(button => button.isActiveAndEnabled && button.name.Contains("Close"))
+                .onClick.Invoke();
+            yield return null;
+            yield return null;
+            Assert.That(player.IsMovementLocked, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator MeetBen_EndingTheDialogueEarly_KeepsThePlayerWithBen()
+        {
+            // 길 안내를 마치지 않고 대화를 끝내면 Ben을 다시 만나야 하므로 계속 붙잡아 둔다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PlayerMover player = Single<PlayerMover>();
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
 
             Click(Single<DialoguePanelView>(), "EndButton");
             yield return null;
             yield return null;
-            Assert.That(player.IsMovementLocked, Is.False);
+
+            Assert.That(
+                TutorialState.GetOrCreate(BenCode).Step,
+                Is.EqualTo(TutorialStep.MeetBen),
+                "준비: 다시 Ben 만나기"
+            );
+            Assert.That(player.IsMovementLocked, Is.True);
+            Assert.That(Single<PlayerCameraRig>().IsInMeetingView, Is.True);
         }
 
         [UnityTest]

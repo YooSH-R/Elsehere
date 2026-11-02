@@ -104,6 +104,36 @@ namespace A305.Player.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator InTheMeetingView_ADragDoesNotTurnTheCamera()
+        {
+            // 숙소를 나와 Ben을 기다리는 동안은 정한 구도를 지키도록 마우스로 돌리지 못한다.
+            var rig = Object.FindFirstObjectByType<PlayerCameraRig>();
+            Transform player = Object.FindFirstObjectByType<PlayerMover>().transform;
+            var target = new GameObject("MeetingTarget").transform;
+            target.position = player.position + player.forward * 4f + Vector3.up * 1.4f;
+            rig.EnterMeetingView(target);
+            for (int frame = 0; frame < 30; frame++)
+                yield return null;
+            float startYaw = rig.transform.eulerAngles.y;
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            try
+            {
+                yield return Drag(mouse, MouseButton.Left);
+                Assert.That(
+                    Mathf.DeltaAngle(startYaw, rig.transform.eulerAngles.y),
+                    Is.EqualTo(0f).Within(.5f),
+                    "A drag must not turn the camera while waiting for Ben."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+                rig.ExitMeetingView();
+                Object.Destroy(target.gameObject);
+            }
+        }
+
         private static IEnumerator Drag(Mouse mouse, MouseButton button)
         {
             for (int frame = 0; frame < 20; frame++)

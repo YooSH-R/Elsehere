@@ -3,7 +3,7 @@
 계산은 코드, 표현은 LLM이 맡는다. AI 워커는 관계를 저장하지 않는다: 요청에 지금 관계가 들어오고 응답에 변화량이 나가며,
 백엔드가 저장값에 더한다. 날짜는 모두 게임 속 날짜(마지막 대화 뒤 지난 날 수)다.
 - 알아봄(0~100): 얼굴을 아는 정도. 정상 종료된 대화마다 갈수록 덜 오르고, 며칠 여유 뒤 하루씩 준다
-- 호감(−100~100): 좋게 보는 정도. 무례는 발화마다 바로 깎고(/v1/guard), 나머지는 이번 대화의 인상(사건 합)을 조금만 따라간다
+- 호감(−100~100): 좋게 보는 정도. 대화 중 발화마다 바로 바뀐다: 무례는 /v1/guard가 깎고, 칭찬·인사 같은 사건은 /v1/judge가 올린다
 """
 
 import json
@@ -91,10 +91,21 @@ def impression(events: list[str], rates: dict, rules: dict) -> float:
 
 def rude_affinity_delta(rates: dict, rules: dict) -> int:
     """무례한 말 한 번에 바로 깎는 호감(/v1/guard). 백엔드가 무례를 저장하면서 함께 더한다(하한 −100은 백엔드가 지킨다).
-    대화 끝에 인상을 따라가던 몫과 같은 크기다: 무례 인상 × affinityFollowRate × NPC 반응 크기(rates["eventScale"]).
+    다른 사건이 바로 올리는 호감(line_affinity_delta)과 같은 계산이다: 무례 인상 × affinityFollowRate × NPC 반응 크기(rates["eventScale"]).
     지금 호감을 모르고 계산하므로 끝(−100)에 가까울수록 덜 깎는 완충은 없다."""
     scale = rates.get("eventScale", {}).get("RUDE", 1)
     return round(rules["conversationEvents"]["RUDE"]["impression"] * rules["relationship"]["affinityFollowRate"] * scale)
+
+
+def line_affinity_delta(earlier_events: list[str], events: list[str], rates: dict, rules: dict) -> int:
+    """학습자 줄 하나의 사건으로 바로 올리는 호감(/v1/judge). 백엔드가 무례가 아닌 턴을 저장하면서 더한다(상한 100은 백엔드가 지킨다).
+    사건 인상 × affinityFollowRate × NPC 반응 크기이고, 이번 대화의 앞선 줄에서 센 사건(earlier_events)은 다시 세지 않는다.
+    앞선 줄까지와 이 줄까지의 몫을 각각 반올림해 차이를 돌려주므로, 한 대화에서 더한 합은 대화 전체 인상을 한 번에 반올림한 값과 같다.
+    무례 감점처럼 지금 호감을 모르고 계산하므로 끝(100)에 가까울수록 덜 오르는 완충은 없다."""
+    follow = rules["relationship"]["affinityFollowRate"]
+    before = impression(earlier_events, rates, rules)
+    after = impression([*earlier_events, *events], rates, rules)
+    return round(after * follow) - round(before * follow)
 
 
 def follow_affinity(affinity: float, impression: float, rules: dict) -> float:

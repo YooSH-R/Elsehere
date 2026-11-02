@@ -51,11 +51,21 @@ def clean_events(raw: dict) -> list[str]:
 
 async def judge(llm: LLM, req: JudgeRequest) -> dict:
     """의도(+ 줄 사건)와 번역(한국어가 섞였을 때)을 동시에. 하나가 실패해도 턴은 이어 간다 (의도 → unclear·사건 없음, 번역 → error).
-    무례 판정은 /v1/guard가 따로 한다. 번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 그 결과로 Spring이 정한다."""
+    무례 판정은 /v1/guard가 따로 한다. 번역 카드를 보여 줄지(무례가 아님이 확정일 때만)는 그 결과로 Spring이 정한다.
+    affinity_delta는 줄 사건으로 바로 올릴 호감이다. 무례로 확정된 턴이면 Spring이 쓰지 않고 /v1/guard의 감점만 쓴다."""
     usage = Usage()
     text, had_action = P.strip_actions(req.text)
     if not text:  # 행동만 있었으면 모델을 부르지 않는다. Spring은 턴으로 세지 않음
-        return {"text": "", "dropped": True, "notice": P.ACTION_ONLY_KO, "intent": None, "translation": None, "events": None, "usage": []}
+        return {
+            "text": "",
+            "dropped": True,
+            "notice": P.ACTION_ONLY_KO,
+            "intent": None,
+            "translation": None,
+            "events": None,
+            "affinity_delta": None,
+            "usage": [],
+        }
     scene = req.scene or req.npc.scene
 
     async def intent():
@@ -91,8 +101,17 @@ async def judge(llm: LLM, req: JudgeRequest) -> dict:
         "intent": it,
         "translation": translation,
         "events": events,
+        "affinity_delta": line_affinity(req, events),
         "usage": usage.items,
     }
+
+
+def line_affinity(req: JudgeRequest, events: list[str]) -> int:
+    """이 줄의 사건으로 바로 올릴 호감. 이력의 학습자 줄에서 이번 대화에 이미 센 사건은 다시 세지 않는다(무례 줄의 사건은 센 적 없음)."""
+    rules, library = npc_relationship.service_rules()
+    rates = npc_relationship.npc_rates(req.npc.profile, rules, library)
+    earlier = [event for line in req.history if line.who == "me" for event in npc_relationship.turn_events((line.rude, line.events))]
+    return npc_relationship.line_affinity_delta(earlier, events, rates, rules)
 
 
 async def hint(llm: LLM, req: HintRequest) -> dict:

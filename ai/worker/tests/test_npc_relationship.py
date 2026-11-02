@@ -93,22 +93,20 @@ def test_the_lines_of_a_conversation_add_up_to_its_whole_impression():
     assert added == round(rel.impression(earlier, {}, RULES) * follow)
 
 
-def test_after_a_conversation_the_changes_to_add_are_whole_numbers():
-    """백엔드는 정수 칸에 변화량을 더한다(종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게).
-    오래 안 온 만큼 알아봄이 줄어든 뒤 이번 대화만큼 오른 값과 저장값의 차이다."""
+def test_after_a_conversation_only_recognition_changes_by_a_whole_number():
+    """호감은 대화 중에 발화마다 이미 바꿨으므로 대화 뒤에는 알아봄만 바뀐다. 백엔드는 정수 칸에 변화량을 더한다
+    (종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게). 오래 안 온 만큼 줄어든 뒤 이번 대화만큼 오른 값과 저장값의 차이다."""
     before = {"recognition": 20, "affinity": 5, "days_since_last_talk": 10}
 
-    change = rel.after_conversation(before, ["GREETING", "COMPLIMENT"], {}, RULES)
+    change = rel.after_conversation(before, {}, RULES)
 
     recognition = round(rel.grow_recognition(rel.recognition_today(20, 10, RULES), 1.0, RULES))
-    affinity = round(rel.follow_affinity(5, rel.impression(["GREETING", "COMPLIMENT"], {}, RULES), RULES))
-    assert change == {"recognition_delta": recognition - 20, "affinity_delta": affinity - 5}
-    assert change["affinity_delta"] > 0
+    assert change == {"recognition_delta": recognition - 20}
 
 
 def test_recognition_can_go_down_after_a_long_absence():
     """오래 안 오면 이번 대화로 오르는 것보다 그동안 잊은 것이 커서 변화량이 음수일 수 있다."""
-    change = rel.after_conversation({"recognition": 60, "affinity": 0, "days_since_last_talk": 30}, [], {}, RULES)
+    change = rel.after_conversation({"recognition": 60, "affinity": 0, "days_since_last_talk": 30}, {}, RULES)
 
     assert change["recognition_delta"] < 0
 
@@ -157,10 +155,7 @@ def test_a_service_npc_knows_them_from_the_second_or_third_visit():
 
 
 def test_a_first_meeting_starts_from_nothing():
-    change = rel.after_conversation(None, ["GREETING"], {}, RULES)
-
-    assert change["recognition_delta"] == RULES["relationship"]["recognitionPerConversation"]
-    assert change["affinity_delta"] == round(rel.follow_affinity(0, EVENTS["GREETING"]["impression"], RULES))
+    assert rel.after_conversation(None, {}, RULES) == {"recognition_delta": RULES["relationship"]["recognitionPerConversation"]}
 
 
 def test_rates_come_from_the_card_temperament_and_its_behavior_pieces():

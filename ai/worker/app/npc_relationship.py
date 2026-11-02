@@ -13,7 +13,6 @@ from .npc_persona import RULES, load_behaviors
 from .npc_profile_models import NpcProfile
 
 RECOGNITION_MAX = 100
-AFFINITY_MAX = 100  # −100~100
 
 
 def load_world_rules() -> dict:
@@ -82,8 +81,8 @@ def grow_recognition(recognition: float, rate: float, rules: dict) -> float:
 
 
 def impression(events: list[str], rates: dict, rules: dict) -> float:
-    """이번 대화의 인상. 판정된 사건을 대화에서 한 번씩 세고 NPC의 사건 반응 크기(rates["eventScale"])를 곱한다.
-    무례는 발화마다 이미 깎았으므로(rude_affinity_delta) 넣지 않고, 공통 규칙에 없는 사건은 버린다."""
+    """이번 대화에서 판정된 사건들의 인상. 같은 사건은 한 번씩 세고 NPC의 사건 반응 크기(rates["eventScale"])를 곱한다.
+    무례는 따로 깎으므로(rude_affinity_delta) 넣지 않고, 공통 규칙에 없는 사건은 버린다."""
     effects, scales = rules["conversationEvents"], rates.get("eventScale", {})
     counted = {event for event in events if event in effects and event != "RUDE"}
     return sum(effects[event].get("impression", 0) * scales.get(event, 1) for event in counted)
@@ -106,15 +105,6 @@ def line_affinity_delta(earlier_events: list[str], events: list[str], rates: dic
     before = impression(earlier_events, rates, rules)
     after = impression([*earlier_events, *events], rates, rules)
     return round(after * follow) - round(before * follow)
-
-
-def follow_affinity(affinity: float, impression: float, rules: dict) -> float:
-    """호감은 인상의 affinityFollowRate만큼만 따라간다. 끝(±100)에 가까울수록 그쪽으로는 덜 움직인다
-    (좋아하는 사람이 칭찬해도 조금 오르고, 좋아하던 사람에게 나쁜 인상을 받으면 그대로 깎인다)."""
-    change = impression * rules["relationship"]["affinityFollowRate"]
-    toward_end = affinity if change > 0 else -affinity
-    change *= 1 - max(0, toward_end) / AFFINITY_MAX
-    return max(-AFFINITY_MAX, min(AFFINITY_MAX, affinity + change))
 
 
 MOOD_MAX = 3  # 기분 세기 0~3
@@ -172,13 +162,12 @@ def service_rules() -> tuple[dict, dict]:
     return load_world_rules(), load_behaviors()
 
 
-def after_conversation(relationship: dict | None, events: list[str], rates: dict, rules: dict) -> dict:
-    """정상 종료된 대화 하나로 바뀌는 관계의 변화량. 백엔드는 저장값에 더한다(종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게).
+def after_conversation(relationship: dict | None, rates: dict, rules: dict) -> dict:
+    """정상 종료된 대화 하나로 바뀌는 알아봄의 변화량. 백엔드는 저장값에 더한다(종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게).
     새 값을 정수로 반올림한 뒤 저장값을 빼므로, 더한 결과는 새 값을 그대로 저장할 때와 같다.
+    호감은 대화 중에 발화마다 이미 바꿨으므로(line_affinity_delta, rude_affinity_delta) 여기서는 계산하지 않는다.
     relationship: 저장된 관계와 마지막 대화 뒤 지난 게임 날 수 {recognition, affinity, days_since_last_talk}. 처음 만나면 None."""
     before = relationship or {}
-    stored_recognition, stored_affinity = before.get("recognition", 0), before.get("affinity", 0)
-    recognition = recognition_today(stored_recognition, before.get("days_since_last_talk", 0), rules)
-    new_recognition = round(grow_recognition(recognition, rates.get("recognitionRate", 1), rules))
-    new_affinity = round(follow_affinity(stored_affinity, impression(events, rates, rules), rules))
-    return {"recognition_delta": new_recognition - stored_recognition, "affinity_delta": new_affinity - stored_affinity}
+    stored = before.get("recognition", 0)
+    recognition = recognition_today(stored, before.get("days_since_last_talk", 0), rules)
+    return {"recognition_delta": round(grow_recognition(recognition, rates.get("recognitionRate", 1), rules)) - stored}

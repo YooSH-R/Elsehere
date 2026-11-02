@@ -197,13 +197,9 @@ async def memory(llm: LLM, req: MemoryRequest) -> dict:
 
 
 def relationship(req: RelationshipRequest) -> dict:
-    """정상 종료된 대화 하나로 바뀌는 관계(알아봄·호감)의 변화량. 모델을 부르지 않는다.
-    사건은 의도 판정이 줄마다 고른 history[].events를 모아 대화에서 한 번씩 세고 공통 규칙으로 계산한다.
-    무례는 발화마다 /v1/guard의 affinity_delta로 이미 깎았으므로 세지 않고, 무례한 줄의 다른 사건과 목록 밖 값은 버린다."""
-    turns = [(line.rude, line.events) for line in req.history if line.who == "me"]
-    said = (event for turn in turns for event in npc_relationship.turn_events(turn))
-    events = [event for event in dict.fromkeys(said) if event in P.LINE_EVENTS]
+    """정상 종료된 대화 하나로 바뀌는 알아봄의 변화량. 모델을 부르지 않는다.
+    호감은 대화 중에 발화마다 이미 바꿨으므로(사건은 /v1/judge, 무례는 /v1/guard의 affinity_delta) 여기서는 계산하지 않는다."""
     rules, library = npc_relationship.service_rules()
     rates = npc_relationship.npc_rates(req.npc.profile, rules, library)
     before = req.relationship.model_dump() if req.relationship else None
-    return {**npc_relationship.after_conversation(before, events, rates, rules), "events": events}
+    return npc_relationship.after_conversation(before, rates, rules)

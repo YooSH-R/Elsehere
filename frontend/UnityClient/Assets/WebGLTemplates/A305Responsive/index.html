@@ -11,9 +11,16 @@
     <main id="unity-viewport">
       <div id="unity-frame">
         <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1" aria-label="Elsehere"></canvas>
-        <div id="unity-loading" role="status">
-          <span>화면을 불러오는 중입니다.</span>
-          <progress id="unity-progress" max="1" value="0"></progress>
+        <div id="unity-loading">
+          <div id="intro-slides" aria-hidden="true"></div>
+          <p id="intro-brand">Elsehere</p>
+          <div id="intro-footer">
+            <p id="intro-caption"></p>
+            <div id="loading-status" role="status">
+              <span>마을을 불러오는 중이에요.</span>
+              <progress id="unity-progress" max="1" value="0"></progress>
+            </div>
+          </div>
         </div>
         <div id="unity-warning" role="alert" hidden></div>
       </div>
@@ -25,6 +32,95 @@
 
       // 게임 화면에서 오른쪽 클릭으로 브라우저 메뉴가 떠 화면을 가리지 않게 한다.
       canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+
+      // 게임 파일을 받는 동안 실제 게임 장면을 번갈아 보여 준다. 이미지는 Tools/A305/Web/Capture Intro Scenes로 찍는다.
+      const introSlides = [
+        { image: "intro/town-overview.jpg", caption: "영어로 하루를 보내는 작은 마을, 엘스히어" },
+        { image: "intro/town.jpg", caption: "마을을 걸으며 사람들과 영어로 이야기해요" },
+        { image: "intro/cafe.jpg", caption: "카페에서 마시고 싶은 커피를 영어로 주문해요" },
+        { image: "intro/hotel.jpg", caption: "호텔 프런트에서 체크인을 해 봐요" },
+        { image: "intro/taxi.jpg", caption: "택시를 타고 가고 싶은 곳을 영어로 말해요" },
+        { image: "intro/home.jpg", caption: "사물을 가리키면 영어 단어를 알려 줘요" },
+      ];
+      const slideDurationMs = 5000;
+      const panOrigins = ["center", "left center", "right center", "center top", "center bottom"];
+      const slidesElement = document.querySelector("#intro-slides");
+      const captionElement = document.querySelector("#intro-caption");
+      let introRunning = true;
+      let slideTimer = 0;
+
+      // 접속할 때마다 순서를 섞어 매번 다른 장면부터 보여 준다.
+      function shuffle(items) {
+        for (let index = items.length - 1; index > 0; index--) {
+          const other = Math.floor(Math.random() * (index + 1));
+          [items[index], items[other]] = [items[other], items[index]];
+        }
+        return items;
+      }
+
+      // 받지 못한 장면은 null이 되어 건너뛴다.
+      function prepareSlide(slide) {
+        const image = new Image();
+        image.className = "intro-slide";
+        image.alt = "";
+        image.src = slide.image;
+        image.style.transformOrigin = panOrigins[Math.floor(Math.random() * panOrigins.length)];
+        return image.decode().then(() => image, () => null);
+      }
+
+      async function playIntro(slides) {
+        let current = null;
+        let failedInRow = 0;
+        let upcoming = prepareSlide(slides[0]);
+        for (let index = 0; introRunning; index = (index + 1) % slides.length) {
+          const slide = slides[index];
+          const image = await upcoming;
+          // 지금 장면을 보여 주는 동안 다음 장면 이미지를 미리 받아 둔다.
+          upcoming = prepareSlide(slides[(index + 1) % slides.length]);
+          if (!introRunning) {
+            return;
+          }
+          if (image === null) {
+            // 모든 장면을 받지 못하면 진행 막대만 남긴다.
+            failedInRow++;
+            if (failedInRow >= slides.length) {
+              return;
+            }
+            continue;
+          }
+          failedInRow = 0;
+
+          slidesElement.appendChild(image);
+          // 새 장면을 붙인 다음 프레임에 켜야 투명도 전환이 일어난다.
+          requestAnimationFrame(() => image.classList.add("is-active"));
+          captionElement.textContent = slide.caption;
+          if (current !== null) {
+            const previous = current;
+            previous.classList.remove("is-active");
+            setTimeout(() => previous.remove(), 1500);
+          }
+          current = image;
+
+          await new Promise((resolve) => {
+            slideTimer = setTimeout(resolve, slideDurationMs);
+          });
+        }
+      }
+
+      function stopIntro() {
+        introRunning = false;
+        clearTimeout(slideTimer);
+      }
+
+      function hideLoading() {
+        stopIntro();
+        loading.style.pointerEvents = "none";
+        loading
+          .animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, easing: "ease-out" })
+          .finished.then(() => {
+            loading.hidden = true;
+          });
+      }
 
       function showBanner(message, type) {
         const entry = document.createElement("div");
@@ -40,9 +136,12 @@
       }
 
       function showLoadError(message) {
+        stopIntro();
         loading.hidden = true;
         showBanner(message, "error");
       }
+
+      playIntro(shuffle(introSlides.slice()));
 
       const buildUrl = "Build";
       const config = {
@@ -71,9 +170,7 @@
       loader.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress").value = progress;
-        }).then(() => {
-          loading.hidden = true;
-        }).catch(showLoadError);
+        }).then(hideLoading).catch(showLoadError);
       };
       document.body.appendChild(loader);
     </script>

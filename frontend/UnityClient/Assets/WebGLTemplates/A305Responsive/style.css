@@ -47,21 +47,116 @@ body {
 }
 
 #unity-loading {
+  /* 게임 파일을 받는 동안 캔버스를 덮고 소개 장면을 보여 준다. 첫 장면을 받기 전에는 UI 테마의 어두운 배경색이 보인다. */
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  background: #2b1c14;
+  color: #fff;
+}
+
+#intro-slides {
+  position: absolute;
+  inset: 0;
+}
+
+.intro-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.intro-slide.is-active {
+  opacity: 1;
+  /* 정지 화면이 영상처럼 보이도록 장면마다 천천히 다가간다. 다가가는 쪽은 장면마다 다르게 고른다. */
+  animation: intro-pan 6.5s ease-out forwards;
+}
+
+@keyframes intro-pan {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-slide.is-active {
+    animation: none;
+  }
+}
+
+#intro-brand {
+  position: absolute;
+  top: clamp(16px, 4vh, 40px);
+  left: clamp(16px, 4vw, 48px);
+  margin: 0;
+  font-size: clamp(22px, 3.2vw, 40px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 45%);
+}
+
+#intro-footer {
+  position: absolute;
+  inset: auto 0 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 12px;
-  font-size: clamp(12px, 2vw, 16px);
-  text-align: center;
+  gap: clamp(12px, 2.4vh, 20px);
+  /* 문구가 밝은 장면 위에서도 읽히도록 아래쪽만 어둡게 깐다. */
+  padding: clamp(48px, 12vh, 120px) clamp(16px, 4vw, 48px) clamp(20px, 5vh, 44px);
+  background: linear-gradient(to top, rgb(43 28 20 / 85%), rgb(43 28 20 / 0%));
+}
+
+#intro-caption {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: clamp(18px, 2.6vw, 30px);
+  font-weight: 700;
+  line-height: 1.4;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 40%);
+  /* 좁은 화면에서 한 낱말이 두 줄로 갈리지 않게 띄어쓰기에서만 줄을 바꾼다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+#loading-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+  font-size: clamp(12px, 1.6vw, 14px);
+  color: rgb(255 255 255 / 85%);
 }
 
 #unity-progress {
-  width: min(70%, 240px);
-  accent-color: #709bff;
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 25%);
+  overflow: hidden;
+}
+
+#unity-progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: rgb(255 255 255 / 25%);
+}
+
+#unity-progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: #ffc23d;
+}
+
+#unity-progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: #ffc23d;
 }
 
 #unity-warning {

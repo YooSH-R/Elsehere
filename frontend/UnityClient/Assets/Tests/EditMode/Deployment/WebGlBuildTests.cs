@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using A305.EditorTools.Deployment;
 using NUnit.Framework;
 using UnityEditor;
@@ -80,6 +82,22 @@ namespace A305.Deployment.Tests
         {
             // 게임 파일을 받는 동안 웹 로딩 화면이 소개 장면을 보여 주므로, 다 받은 뒤 Unity 시작 로고로 로그인을 더 늦추지 않는다.
             Assert.That(PlayerSettings.SplashScreen.show, Is.False);
+        }
+
+        [Test]
+        public void IntroSlidesUseImagesInsideTheTemplate()
+        {
+            // 소개 장면 이미지가 빠지면 로딩 화면에 빈 장면이 보이므로 템플릿 폴더에 실제로 있는지 확인한다.
+            const string templateFolder = "Assets/WebGLTemplates/A305Responsive/";
+            string page = File.ReadAllText(templateFolder + "index.html");
+            string[] images = Regex
+                .Matches(page, "\"(intro/[^\"]+\\.jpg)\"")
+                .Cast<Match>()
+                .Select(match => match.Groups[1].Value)
+                .ToArray();
+
+            Assert.That(images, Is.Not.Empty);
+            Assert.That(images.Where(image => !File.Exists(templateFolder + image)), Is.Empty);
         }
     }
 }

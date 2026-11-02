@@ -160,6 +160,35 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("첫날 미션 직원의 첫 인사는 무엇을 도와줄지만 묻고 학습자가 할 요청을 먼저 꺼내지 않게 지시한다")
+  void start_missionStaffGreeting_onlyAsksHowToHelp() {
+    firstDayMissionRepository.saveAndFlush(FirstDayMission.start(userId));
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Good morning! How can I help you?", null, null));
+
+    conversationService.start(
+        userId, new StartConversationRequest(UUID.randomUUID(), "HOTEL_STAFF", InitiatedBy.USER));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiWorkerClient)
+        .should()
+        .reply(
+            any(),
+            argThat(npc -> "HOTEL_STAFF".equals(npc.id())),
+            any(),
+            any(),
+            anyString(),
+            instruction.capture(),
+            anyInt(),
+            any());
+    assertThat(instruction.getValue())
+        .contains("ask how you can help")
+        .contains("Do not mention the learner's tasks, your offers or directions yet");
+  }
+
+  @Test
   @DisplayName("말걸기 대사가 있는 행인이 먼저 말을 걸었으면 그 대사로 시작하고 AI를 부르지 않는다")
   void start_passerbyApproach_usesApproachLineWithoutAi() {
     ConversationStartResponse response =

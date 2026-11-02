@@ -35,6 +35,9 @@ namespace A305.Tutorial
         private const float CompassBobMeters = 0.12f;
         private const float CompassLiftMeters = 0.03f;
         private const float CompassRingAlpha = 0.35f;
+
+        // 발밑 나침반이 화면에 없을 때 화면 아래 가운데에 띄우는 화살표의 높이(캔버스 아래에서).
+        private const float CompassScreenArrowBottom = 150f;
         private const float MarkerBobPixels = 12f;
         private const float MarkerBobSpeed = 4f;
         private const float FramePulseSpeed = 3f;
@@ -164,6 +167,9 @@ namespace A305.Tutorial
             LateUpdate();
         }
 
+        /// <summary>발밑 나침반이 화면에 없어(1인칭 등) 화면 아래 화살표로 방향을 알리는지</summary>
+        public bool IsCompassArrowShowing => compassWalker != null && marker.gameObject.activeSelf;
+
         /// <summary>발밑 나침반이 보이는지</summary>
         public bool IsCompassShowing => compassRoot != null && compassRoot.gameObject.activeSelf;
 
@@ -249,10 +255,48 @@ namespace A305.Tutorial
                 pose.PointerPosition + Vector3.up * 0.004f,
                 pose.Rotation
             );
+            PlaceCompassScreenArrow(pose);
+        }
+
+        // 1인칭처럼 발밑 나침반이 화면에 없으면 화면 아래 가운데에 같은 방향을 가리키는 화살표 배지를 띄운다.
+        private void PlaceCompassScreenArrow(CoachMarkLayout.CompassPose pose)
+        {
+            Camera camera = Camera.main;
+            if (camera == null || IsOnScreen(camera.WorldToScreenPoint(pose.PointerPosition)))
+            {
+                marker.gameObject.SetActive(false);
+                return;
+            }
+
+            float degrees = CoachMarkLayout.CompassScreenArrowDegrees(
+                camera.transform.forward,
+                pose.Direction
+            );
+            float radians = degrees * Mathf.Deg2Rad;
+            float bob = Mathf.Abs(Mathf.Sin(Time.unscaledTime * MarkerBobSpeed)) * MarkerBobPixels;
+            marker.anchoredPosition =
+                new Vector2(canvasRect.rect.width / 2f, CompassScreenArrowBottom)
+                + new Vector2(Mathf.Cos(radians), Mathf.Sin(radians)) * bob;
+            markerArrow.localRotation = Quaternion.Euler(0f, 0f, degrees);
+            marker.gameObject.SetActive(true);
+        }
+
+        private static bool IsOnScreen(Vector3 screen)
+        {
+            return screen.z > 0f
+                && screen.x >= 0f
+                && screen.x <= Screen.width
+                && screen.y >= 0f
+                && screen.y <= Screen.height;
         }
 
         private void HideCompass()
         {
+            if (compassWalker != null)
+            {
+                marker.gameObject.SetActive(false);
+            }
+
             compassWalker = null;
             compassTarget = null;
             CompassDirection = Vector3.zero;

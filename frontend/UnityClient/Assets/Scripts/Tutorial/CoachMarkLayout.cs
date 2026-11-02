@@ -202,6 +202,25 @@ namespace A305.Tutorial
             return new CompassPose(direction, feet + direction * pointerDistanceMeters, rotation);
         }
 
+        /// <summary>
+        /// 1인칭처럼 발밑 나침반이 화면에 없을 때 화면 아래에 띄울 화살표 방향(도, 오른쪽 0·위 90).
+        /// 카메라가 보는 쪽을 위로 두어, 앞이면 위·뒤면 아래·옆이면 그쪽을 가리킨다.
+        /// </summary>
+        public static float CompassScreenArrowDegrees(Vector3 cameraForward, Vector3 direction)
+        {
+            Vector3 forward = cameraForward;
+            forward.y = 0f;
+            // 바로 아래를 내려다보면 수평 방향을 알 수 없으므로 앞쪽으로 본다.
+            if (forward.sqrMagnitude < 0.0001f)
+            {
+                forward = Vector3.forward;
+            }
+
+            // 위에서 볼 때 시계 방향(오른쪽)이 양수다.
+            float turn = Vector3.SignedAngle(forward, direction, Vector3.up);
+            return 90f - turn;
+        }
+
         public static MarkerPose Marker(
             Vector2 point,
             Vector2 bodyPoint,

@@ -4,6 +4,13 @@ namespace A305.Player
 {
     public static class DialogueFraming
     {
+        public static Vector3 CameraPosition(
+            Vector3 face,
+            Vector3 playerEye,
+            float distanceMeters,
+            float heightOffsetMeters
+        ) => playerEye;
+
         public static Pose Pose(
             Vector3 eye,
             Vector3 target,

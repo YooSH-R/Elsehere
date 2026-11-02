@@ -12,7 +12,8 @@ namespace A305.ObjectHover.Tests
                     isPointerOverUi: false,
                     isMoving: false,
                     isMovementLocked: false,
-                    isWithinReach: true
+                    isWithinReach: true,
+                    isTouchDevice: false
                 ),
                 Is.True
             );
@@ -27,7 +28,8 @@ namespace A305.ObjectHover.Tests
                     isPointerOverUi: true,
                     isMoving: false,
                     isMovementLocked: false,
-                    isWithinReach: true
+                    isWithinReach: true,
+                    isTouchDevice: false
                 ),
                 Is.False
             );
@@ -41,7 +43,8 @@ namespace A305.ObjectHover.Tests
                     isPointerOverUi: false,
                     isMoving: true,
                     isMovementLocked: false,
-                    isWithinReach: true
+                    isWithinReach: true,
+                    isTouchDevice: false
                 ),
                 Is.False
             );
@@ -56,7 +59,8 @@ namespace A305.ObjectHover.Tests
                     isPointerOverUi: false,
                     isMoving: false,
                     isMovementLocked: true,
-                    isWithinReach: true
+                    isWithinReach: true,
+                    isTouchDevice: false
                 ),
                 Is.False
             );
@@ -70,7 +74,24 @@ namespace A305.ObjectHover.Tests
                     isPointerOverUi: false,
                     isMoving: false,
                     isMovementLocked: false,
-                    isWithinReach: false
+                    isWithinReach: false,
+                    isTouchDevice: false
+                ),
+                Is.False
+            );
+        }
+
+        [Test]
+        public void TouchDevice_DoesNotHover()
+        {
+            // 터치 화면에는 호버가 없어, 마지막으로 터치한 자리에 카드가 남아 뜬다. 탭으로만 카드를 고정한다.
+            Assert.That(
+                ObjectHoverRules.CanHover(
+                    isPointerOverUi: false,
+                    isMoving: false,
+                    isMovementLocked: false,
+                    isWithinReach: true,
+                    isTouchDevice: true
                 ),
                 Is.False
             );

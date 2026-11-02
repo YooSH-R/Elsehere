@@ -64,7 +64,7 @@ namespace A305.EditorTools.Theme
                     var tooltip = Show<WordTooltipView>(scene, camera, .3f);
                     tooltip.ShowPinned(
                         card.Word,
-                        new Vector2(700, 450),
+                        CardAnchor.AtPointer(new Vector2(700, 450)),
                         AssetDatabase.LoadAssetAtPath<ObjectHoverSettings>(
                             "Assets/Data/ObjectHover/ObjectHoverSettings.asset"
                         ),

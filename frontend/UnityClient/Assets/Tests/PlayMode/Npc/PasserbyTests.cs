@@ -37,6 +37,20 @@ namespace A305.Npc.PlayModeTests
         {
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
+            // 숙소 안내(걷기·둘러보기·단어 저장·단어장)를 마쳐야 숙소 문이 열린다.
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+            progress.Continue();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
+            progress.Continue();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
+            progress.Continue();
+            progress.ReportWordSaved();
+            progress.ReportVocabularyOpened();
+            yield return null;
             Assert.That(SpaceTravel.TryTravel("TownScene", "HomeDoor"), Is.True);
             yield return WaitUntil(() =>
                 SceneManager.GetActiveScene().name == "TownScene" && !SpaceTravel.IsTraveling
@@ -59,10 +73,11 @@ namespace A305.Npc.PlayModeTests
                 HorizontalDistance(tutorial.transform, Single<PlayerMover>().transform),
                 Is.LessThan(3f)
             );
+            yield return null;
             Assert.That(
                 Single<PlayerMover>().IsMovementLocked,
-                Is.False,
-                "제안 중에는 이동을 잠그지 않습니다."
+                Is.True,
+                "튜토리얼에서는 [대화하기]에 답할 때까지 Ben에게서 멀어지지 않게 이동을 잠급니다."
             );
             Assert.That(
                 PasserbyOfferRecord.HasOfferedOn(BenCode, System.DateTime.Today),
@@ -126,7 +141,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator AcceptingOffer_EntersDialogueView_AndEndingRestoresControl()
         {
-            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
+            // 튜토리얼 중에는 길 안내를 마칠 때까지 Ben 앞에 붙잡아 두므로, 평소 행인으로 확인한다.
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
 
@@ -150,6 +166,39 @@ namespace A305.Npc.PlayModeTests
             Assert.That(player.IsMovementLocked, Is.False);
             Assert.That(panel.IsVisible, Is.False);
             Assert.That(FindPasserby(BenCode).Phase, Is.EqualTo(PasserbyPhase.Resting));
+        }
+
+        [UnityTest]
+        public IEnumerator EndingDialogue_TurnsPlayerAndCameraTowardTheNpc()
+        {
+            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+
+            // 대화 전에는 Ben을 등지고 서 있게 해, 끝난 뒤 방향이 대화 덕분에 바뀐 것인지 확인한다.
+            PlayerMover player = Single<PlayerMover>();
+            Transform face = FindPasserby(BenCode).GetComponent<NpcIdentity>().LookTarget;
+            Vector3 towardBen = Vector3.ProjectOnPlane(
+                face.position - player.transform.position,
+                Vector3.up
+            );
+            player.Teleport(player.transform.position, Quaternion.LookRotation(-towardBen));
+            Click(offer, "AcceptButton");
+            yield return null;
+            Click(Single<DialoguePanelView>(), "EndButton");
+            yield return null;
+
+            float benYaw = Quaternion.LookRotation(towardBen).eulerAngles.y;
+            Assert.That(
+                Mathf.Abs(Mathf.DeltaAngle(player.transform.eulerAngles.y, benYaw)),
+                Is.LessThan(2f),
+                "대화가 끝나면 플레이어가 대화하던 NPC 쪽을 봅니다."
+            );
+            Assert.That(
+                Mathf.Abs(Mathf.DeltaAngle(Single<PlayerCameraRig>().ViewYawDegrees, benYaw)),
+                Is.LessThan(2f),
+                "카메라도 대화 시점이 보던 방향 그대로 플레이어 뒤에 섭니다."
+            );
         }
 
         [UnityTest]

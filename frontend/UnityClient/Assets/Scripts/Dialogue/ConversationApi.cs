@@ -108,6 +108,20 @@ namespace A305.Dialogue
             );
         }
 
+        public Task<Transcription> TranscribeTutorialAsync(string requestId, byte[] wav)
+        {
+            var fields = new Dictionary<string, string>
+            {
+                { "requestId", requestId },
+                { "purpose", "TUTORIAL" },
+            };
+            return client.PostMultipartAsync<Transcription>(
+                "/api/v1/speech/transcriptions",
+                fields,
+                new ApiFile("audio", "speech.wav", "audio/wav", wav)
+            );
+        }
+
         public Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId)
         {
             return client.PostAsync<SpeechData>(

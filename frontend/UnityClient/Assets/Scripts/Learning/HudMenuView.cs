@@ -25,6 +25,11 @@ namespace A305.Learning
 
         private readonly HudMenu menu = new HudMenu();
 
+        public bool IsOpen => menu.IsOpen;
+
+        /// <summary>접힌 메뉴 버튼(≡). 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform MenuButtonRect => (RectTransform)menuButton.transform;
+
         private void Awake()
         {
             menu.Changed += Show;

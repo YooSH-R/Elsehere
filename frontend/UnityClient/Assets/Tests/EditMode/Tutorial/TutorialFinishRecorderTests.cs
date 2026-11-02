@@ -15,7 +15,7 @@ namespace A305.Tutorial.Tests
         public void CreateRecorder()
         {
             api = new FakeTutorialApi();
-            progress = new TutorialProgress("TUTORIAL_PASSERBY", "CAFE_STAFF");
+            progress = new TutorialProgress("TOWN_PASSERBY");
             recorder = new TutorialFinishRecorder(api);
         }
 
@@ -128,20 +128,25 @@ namespace A305.Tutorial.Tests
             Assert.That(transport.Request.Headers.ContainsKey(ApiClient.CsrfHeaderName), Is.True);
         }
 
-        // 미션 NPC와 대화를 시작하면 튜토리얼이 끝난다.
+        // Ben 길 안내를 마치고 지도에서 오늘의 목표를 열면 튜토리얼이 끝난다.
         private void CompleteTutorial()
         {
             progress.Continue();
-            progress.ReportWalked();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
+            progress.Report(TutorialAction.Jump);
             progress.Continue();
-            progress.ReportHovered();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
             progress.Continue();
+            progress.ReportWordSaved();
+            progress.ReportVocabularyOpened();
             progress.LeaveHome();
-            progress.StartDialogue("TUTORIAL_PASSERBY");
-            progress.EndDialogue("TUTORIAL_PASSERBY", true);
-            progress.CloseFeedback("TUTORIAL_PASSERBY");
-            progress.StartMission();
-            progress.StartDialogue("CAFE_STAFF");
+            progress.StartDialogue("TOWN_PASSERBY");
+            progress.EndDialogue("TOWN_PASSERBY", true);
+            progress.CloseFeedback("TOWN_PASSERBY");
+            progress.ReportJournalOpened();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed), "준비: 튜토리얼 완료");
         }
 

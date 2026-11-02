@@ -76,6 +76,12 @@ namespace A305.Player
         /// <summary>이번 프레임에 수평으로 움직였는지. 점프·낙하만 하는 경우는 포함하지 않는다.</summary>
         public bool IsMoving { get; private set; }
 
+        /// <summary>달리기 키를 누른 채 움직이고 있는지</summary>
+        public bool IsRunning { get; private set; }
+
+        /// <summary>이번 프레임에 땅을 박차고 뛰어올랐는지</summary>
+        public bool JumpedThisFrame => motor != null && motor.JustJumped;
+
         /// <summary>대화처럼 캐릭터가 움직이면 안 되는 동안 이동과 점프를 막는다.</summary>
         public void SetMovementLocked(bool isLocked)
         {
@@ -100,6 +106,19 @@ namespace A305.Player
             transform.SetPositionAndRotation(position, rotation);
             characterController.enabled = true;
             groundContactPoint = null;
+        }
+
+        /// <summary>제자리에서 주어진 지점을 수평으로 바라보게 몸을 돌린다. 대화를 마친 뒤 상대 쪽을 보게 할 때 쓴다.</summary>
+        public void FaceToward(Vector3 point)
+        {
+            Vector3 direction = point - transform.position;
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            transform.rotation = Quaternion.LookRotation(direction);
         }
 
         private void Awake()
@@ -175,6 +194,7 @@ namespace A305.Player
 
             Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
             IsMoving = horizontalVelocity.sqrMagnitude > 0.0001f;
+            IsRunning = IsMoving && input.IsSprinting;
             TurnToward(horizontalVelocity);
 
             if (animationDriver != null)

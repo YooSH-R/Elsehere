@@ -96,6 +96,13 @@ namespace A305.ObjectHover
         /// <summary>클릭으로 고정한 카드인지. 고정한 카드만 [닫기] 같은 버튼을 보이고 누를 수 있다.</summary>
         public bool IsPinned { get; private set; }
 
+        /// <summary>고정한 카드에서 [저장]을 누를 수 있는지. 서버 단어 카드가 없거나 이미 저장한 단어면 false.</summary>
+        public bool CanSaveWord =>
+            IsPinned && saveButton.gameObject.activeInHierarchy && saveButton.interactable;
+
+        /// <summary>고정한 카드의 [저장]. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SaveButtonRect => (RectTransform)saveButton.transform;
+
         /// <summary>고정한 카드의 [닫기]를 눌렀다.</summary>
         public event Action CloseRequested;
 
@@ -205,7 +212,8 @@ namespace A305.ObjectHover
         }
 
         // 카드 밖에서 지금 그려지는 화면 UI(HUD·퀘스트 안내·수첩·미니맵·튜토리얼 가이드 등)의 영역을 더한다.
-        // 메뉴를 열 때의 어두운 막처럼 화면을 거의 다 덮는 것은 피할 수 없으므로 뺀다.
+        // 메뉴를 열 때의 어두운 막처럼 화면을 거의 다 덮는 것은 피할 수 없으므로 뺀다. 코치 마크처럼 덮개를 조각내 그린 막은
+        // 조각마다 작아 이 비율에 걸리지 않으므로 캔버스째 뺀다.
         private void AddOtherScreenAreas()
         {
             Canvas ownRoot = canvasRect.GetComponent<Canvas>().rootCanvas;
@@ -223,7 +231,11 @@ namespace A305.ObjectHover
                 }
 
                 Canvas root = canvas.rootCanvas;
-                if (root == ownRoot || root.renderMode == RenderMode.WorldSpace)
+                if (
+                    root == ownRoot
+                    || root.renderMode == RenderMode.WorldSpace
+                    || root.TryGetComponent(out IScreenBackdrop _)
+                )
                 {
                     continue;
                 }

@@ -188,7 +188,7 @@ namespace A305.Learning
         private void Refresh()
         {
             titleText.text = feedback.IsFailed ? feedback.Title : "대화 노트";
-            summaryText.text = $"{feedback.NpcName}와 나눈 대화";
+            summaryText.text = FeedbackText.Partner(feedback.NpcName);
             pageTitleText.text = isTranscriptShown ? "주고받은 대화" : pages[pageIndex].Title;
             bodyText.text = isTranscriptShown
                 ? FeedbackText.Transcript(feedback.NpcName, lines)

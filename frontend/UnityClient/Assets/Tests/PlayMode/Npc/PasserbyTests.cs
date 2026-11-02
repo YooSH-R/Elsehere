@@ -80,7 +80,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator AcceptingOffer_EntersDialogueView_AndEndingRestoresControl()
         {
-            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
+            // 튜토리얼 중에는 길 안내를 마칠 때까지 Ben 앞에 붙잡아 두므로, 평소 행인으로 확인한다.
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
 

@@ -42,9 +42,15 @@ IPA = dict(zip("pbmfvtdsznklgwjh", "p b m f v t d s z n k l g w y h".split(), st
     "ʤ": "jh",
     "ʧ": "ch",
     "ʔ": "_",
+    # espeak's script g (U+0261), and rare loanword consonants mapped to the nearest mouth pose.
+    "ɡ": "g",
+    "x": "k",
+    "ç": "h",
 }
 PAIRS = {"aɪ": "ay", "aʊ": "aw", "eɪ": "ey", "ɔɪ": "oy", "oʊ": "ow", "əʊ": "ow", "tʃ": "ch", "dʒ": "jh"}
-MARKS = "ˈˌː"
+# Length, nasal and palatal marks extend the phoneme before them; stress marks lead into the next one.
+MODIFIERS = "ː̃ʲ"
+MARKS = "ˈˌ" + MODIFIERS
 
 
 def phoneme_sequence(spoken: str) -> list[dict]:
@@ -98,7 +104,7 @@ def attach_timing(wav: bytes, spoken) -> bytes:
         if end == start:
             continue
         if symbol in MARKS:
-            if symbol == "ː" and cues:
+            if symbol in MODIFIERS and cues:
                 cues[-1]["end"] = end
             else:
                 pending_stress = (pending_stress[0] if pending_stress else start, end)

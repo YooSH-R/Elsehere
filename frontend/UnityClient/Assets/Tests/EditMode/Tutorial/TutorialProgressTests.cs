@@ -97,7 +97,12 @@ namespace A305.Tutorial.Tests
         {
             Assert.That(
                 TutorialProgress.RequiredActions(TutorialStep.Walk, false),
-                Is.EqualTo(new[] { TutorialAction.Walk, TutorialAction.Run })
+                Is.EqualTo(new[] { TutorialAction.Walk, TutorialAction.Run, TutorialAction.Jump })
+            );
+            Assert.That(
+                TutorialProgress.RequiredActions(TutorialStep.Walk, true),
+                Is.EqualTo(new[] { TutorialAction.Walk }),
+                "터치 기기에는 점프 버튼이 없습니다."
             );
             Assert.That(
                 TutorialProgress.RequiredActions(TutorialStep.Look, false),

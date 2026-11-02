@@ -149,6 +149,57 @@ namespace A305.Dialogue.Tests
             Assert.That(messages[1], Is.Null);
         }
 
+        // 기다리는 동안 대화창이 작은 상태 줄 대신 무엇을 기다리는지 크게 보여 줄 수 있어야 한다.
+        [Test]
+        public async Task Start_WhileWaiting_WaitsForTheOpeningLine()
+        {
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.StartAsync();
+
+            Assert.That(waits, Is.EqualTo(new[] { DialogueWait.Opening, DialogueWait.None }));
+        }
+
+        [Test]
+        public async Task Send_WhileWaiting_WaitsForTheNpcReply()
+        {
+            await conversation.StartAsync();
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(waits[0], Is.EqualTo(DialogueWait.NpcReply));
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+        }
+
+        [Test]
+        public async Task End_WhileWaiting_WaitsForFeedback()
+        {
+            await conversation.StartAsync();
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.EndAsync();
+
+            Assert.That(waits[0], Is.EqualTo(DialogueWait.Feedback));
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+        }
+
+        // 뜻·힌트처럼 짧게 기다리는 요청은 대사를 가리지 않고 상태 줄에만 알린다.
+        [Test]
+        public async Task RequestMeaning_WhileWaiting_KeepsTheLinesVisible()
+        {
+            await conversation.StartAsync();
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.RequestMeaningAsync();
+
+            Assert.That(waits, Is.All.EqualTo(DialogueWait.None));
+        }
+
         [Test]
         public async Task Start_WhenStaleConversationIsActive_EndsItWithoutFeedbackAndStartsAgain()
         {

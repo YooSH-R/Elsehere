@@ -177,7 +177,7 @@ class SignupControllerTest {
               "avatarType": "F",
               "consents": [
                 { "consentType": "TERMS", "version": "2026-10" },
-                { "consentType": "PRIVACY", "version": "2026-10" },
+                { "consentType": "PRIVACY", "version": "2026-11" },
                 { "consentType": "AGE14", "version": "2026-10" }
               ]
             }

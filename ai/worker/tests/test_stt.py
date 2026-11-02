@@ -40,6 +40,11 @@ def test_stt_prompt_writes_menu_example_in_english(client, provider):
         ("The bus stop is over there.", True),  # Whisper가 무음에 되풀이하는 프롬프트 마지막 문장
         ("I want... an iced latte... Can I get a muffin, 음, 하나? The bus stop is over there.", True),
         ("Iced Americano, latte.", True),  # 장면 단어 목록
+        # 무음에 메아리를 여러 번 이어 붙이기도 한다 (dev에서 입력칸에 들어옴)
+        ("The bus stop is over there. The bus stop is over there.", True),
+        ("Iced Americano, latte. Iced Americano, latte. Iced Americano, latte.", True),
+        ("The bus stop is over there. I want a latte.", False),  # 메아리 뒤 진짜 발화
+        ("Iced Americano. Iced Americano.", False),  # 장면 단어 하나를 되풀이한 주문
         ("Iced Americano.", False),  # 장면 단어 하나는 진짜 주문
         ("Can I get a muffin?", False),  # 프롬프트 앞·중간의 예시 문장은 학습자가 실제로 하는 말
         ("I want an iced latte.", False),

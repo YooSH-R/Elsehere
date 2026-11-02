@@ -102,6 +102,15 @@ namespace A305.Theme
                         theme.PopMaterial != null ? theme.ButtonBleed : Vector2.zero
                     );
                     break;
+                case UiThemeRole.Chip:
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.InputSprite,
+                        theme.CardTint,
+                        theme.GlassMaterial,
+                        theme.InputBleed
+                    );
+                    break;
                 case UiThemeRole.Input:
                     Paint(
                         GetComponent<Image>(),

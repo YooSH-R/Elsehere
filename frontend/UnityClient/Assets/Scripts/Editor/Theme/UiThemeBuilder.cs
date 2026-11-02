@@ -48,6 +48,9 @@ namespace A305.EditorTools.Theme
         // 창의 동작 버튼은 글자가 잘 보이도록 통통한 알약으로 둔다.
         private const float ActionPillHeight = 70;
 
+        // 로그인 창 아래 약관 링크처럼 바탕 없는 작은 글자 버튼의 높이
+        private const float LegalLinkHeight = 40;
+
         // 주의: 테마 순서는 UiThemeId 순서와 같다.
         private static readonly ThemeSpec[] Specs =
         {
@@ -222,6 +225,14 @@ namespace A305.EditorTools.Theme
         {
             catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
             Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleDialogueWaiting);
+        }
+
+        /// <summary>입구 화면의 배경색·로그인 창 정렬과 약관 링크·캐릭터 체크(S15P31A305-417)만 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyEntryGuidance()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(EntryPath, StyleEntryGuidance);
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>피드백 요약 탭의 표현 줄만 테마로 칠한다. 피드백 화면의 다른 요소는 건드리지 않는다.</summary>
@@ -702,6 +713,81 @@ namespace A305.EditorTools.Theme
 
             Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
+            StyleEntryGuidance(root);
+        }
+
+        /// <summary>
+        /// 입구 화면 배경을 테마의 엷은 강조색으로 깔고, 로그인 창 글자를 버튼과 같은 가운데로 맞추며 약관 링크를 차분한 글자 버튼으로 둔다.
+        /// 고르는 캐릭터 버튼에는 고른 것에만 보이는 체크 배지를 단다(S15P31A305-417).
+        /// </summary>
+        private static void StyleEntryGuidance(Transform root)
+        {
+            Role(root, "Background", UiThemeRole.Backdrop);
+            foreach (
+                string path in new[]
+                {
+                    "LoginPanel/Title",
+                    "LoginPanel/Subtitle",
+                    "LoginPanel/Notice",
+                }
+            )
+                root.Find(path).GetComponent<TMP_Text>().alignment = TextAlignmentOptions.Top;
+            Transform legalLinks = root.Find("LoginPanel/LegalLinks");
+            if (legalLinks != null)
+            {
+                legalLinks.GetComponent<HorizontalLayoutGroup>().childAlignment =
+                    TextAnchor.MiddleCenter;
+                LegalLink(root, "LoginPanel/LegalLinks/TermsButton");
+                LegalLink(root, "LoginPanel/LegalLinks/PrivacyButton");
+            }
+            foreach (
+                string avatar in new[]
+                {
+                    "GuestPanel/AvatarRow/FemaleButton",
+                    "GuestPanel/AvatarRow/MaleButton",
+                    "SignupPanel/AvatarRow/FemaleButton",
+                    "SignupPanel/AvatarRow/MaleButton",
+                }
+            )
+                SelectedCheck(root.Find(avatar));
+        }
+
+        // 약관 링크: 바탕 없는 작은 글자 버튼. 누를 수 있다는 것을 밑줄로 알린다.
+        private static void LegalLink(Transform root, string path)
+        {
+            ActionPill(root, path, UiIcon.None, UiTone.Neutral);
+            Transform link = root.Find(path);
+            var fields = new SerializedObject(link.GetComponent<ThemedElement>());
+            fields.FindProperty("quiet").boolValue = true;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            var label = link.Find("Label").GetComponent<TMP_Text>();
+            label.fontStyle = FontStyles.Underline;
+            label.enableAutoSizing = false;
+            label.fontSize = 18;
+            var size = link.GetComponent<LayoutElement>();
+            size.preferredHeight = size.minHeight = LegalLinkHeight;
+            // 두 링크가 떨어져 보이지 않게 정해 둔 폭 대신 글자 길이만큼만 차지한다.
+            size.preferredWidth = size.minWidth = -1;
+            var rect = (RectTransform)link;
+            rect.sizeDelta = new Vector2(rect.sizeDelta.x, LegalLinkHeight);
+        }
+
+        // 고른 캐릭터 버튼 오른쪽 위의 체크 배지. 처음에는 숨기고, 화면 코드(AvatarButtons)가 고른 버튼에만 켠다.
+        private static void SelectedCheck(Transform button)
+        {
+            if (button.Find("Check") != null)
+                return;
+            RectTransform check = Rect("Check", button);
+            check.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            Place(check, Vector2.one, new Vector2(10, 10), new Vector2(36, 36));
+            check.gameObject.AddComponent<Image>().raycastTarget = false;
+            Role(check, UiThemeRole.Badge);
+            RectTransform icon = Rect("Icon", check);
+            Stretch(icon, 7);
+            var iconImage = icon.gameObject.AddComponent<Image>();
+            iconImage.sprite = IconSprite(UiIcon.Check, outlined: false);
+            iconImage.raycastTarget = false;
+            check.gameObject.SetActive(false);
         }
 
         /// <summary>

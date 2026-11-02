@@ -41,7 +41,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 저장 순서로 처리한다.
  *
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
- * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
+ * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 무례가 아닌 말은 의도 판정이 고른 대화
+ * 사건(칭찬·인사 등)만큼 호감도를 올린다(docs/api/ai-worker.md 2.2절). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
  */
 @Slf4j
 @Service
@@ -173,6 +174,9 @@ public class TurnService {
                   conversation.getStatus(),
                   conversation.getEndReason());
             }
+          } else {
+            npcAffinityService.raiseForEvents(
+                userId, conversation.getNpcId(), judge.affinityDelta());
           }
           Turn npcTurn =
               turnRepository.save(

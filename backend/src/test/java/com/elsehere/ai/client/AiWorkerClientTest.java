@@ -239,6 +239,34 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("의도 판정이 줄 사건과 그 사건으로 바로 올릴 호감도(affinity_delta)를 주면 함께 읽고, 주지 않으면 null이다")
+  void judge_readsEventsAndAffinityDelta() {
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "I love this town!", "dropped": false, "notice": null, "intent": {"id": "chat"},
+         "translation": null, "events": ["COMPLIMENT"], "affinity_delta": 4, "usage": []}
+        """);
+    JudgeResult withDelta =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "Hi", "dropped": false, "usage": []}
+        """);
+    JudgeResult withoutDelta =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+
+    assertThat(withDelta.events()).containsExactly("COMPLIMENT");
+    assertThat(withDelta.affinityDelta()).isEqualTo(4);
+    assertThat(withoutDelta.affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("무례 판정은 앞선 대화의 무례 표시와 함께 보내고 판정값·사용량을 읽는다")
   void guard_sendsHistoryAndReadsAbusive() {
     respond(
@@ -520,13 +548,9 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("관계 갱신은 저장된 관계와 학습자 줄의 무례·사건이 담긴 대화를 보내고 변화량과 센 사건을 읽는다")
-  void relationship_sendsRelationshipAndHistoryAndReadsDeltas() {
-    respond(
-        "/v1/npc/relationship",
-        200,
-        "application/json",
-        "{\"recognition_delta\": 8, \"affinity_delta\": 1, \"events\": [\"GREETING\", \"LEAVE\"]}");
+  @DisplayName("관계 갱신은 저장된 관계와 학습자 줄의 무례·사건이 담긴 대화를 보내고 알아봄 변화량을 읽는다")
+  void relationship_sendsRelationshipAndHistoryAndReadsRecognitionDelta() {
+    respond("/v1/npc/relationship", 200, "application/json", "{\"recognition_delta\": 8}");
 
     RelationshipChange change =
         client.relationship(
@@ -537,9 +561,7 @@ class AiWorkerClientTest {
                 WorkerLine.npc("Hi! What can I get you?"),
                 WorkerLine.learner("Hi! Bye!", null, false, List.of("GREETING", "LEAVE"))));
 
-    assertThat(change.recognitionDelta()).isEqualTo(8);
-    assertThat(change.affinityDelta()).isEqualTo(1);
-    assertThat(change.events()).containsExactly("GREETING", "LEAVE");
+    assertThat(change).isEqualTo(new RelationshipChange(8));
     assertThat(received.get("/v1/npc/relationship").body())
         .contains("\"relationship\":{\"recognition\":15,\"affinity\":2,\"days_since_last_talk\":0}")
         .contains(

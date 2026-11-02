@@ -310,7 +310,7 @@ class ConversationServiceTest {
         .willAnswer(
             invocation -> {
               startPasserby();
-              return reply("Hi! What can I get for you?", null, null);
+              return reply("Hi! What can I get for you?", null);
             });
 
     assertThatThrownBy(this::startCafe)
@@ -336,7 +336,7 @@ class ConversationServiceTest {
         .willAnswer(
             invocation -> {
               startAndEndPasserby(guestId);
-              return reply("Hi! What can I get for you?", null, null);
+              return reply("Hi! What can I get for you?", null);
             });
 
     assertThatThrownBy(

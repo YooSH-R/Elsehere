@@ -180,6 +180,8 @@ namespace A305.Dialogue
         {
             bool inLines = wait == DialogueWait.Opening || wait == DialogueWait.NpcReply;
             waitPanel.SetActive(inLines);
+            // 로딩 카드는 대사 칸과 같은 크기라 둥근 모서리 틈으로 대사가 비치지 않게 그동안 대사를 감춘다.
+            linesText.enabled = !inLines;
             if (inLines)
             {
                 waitText.text =

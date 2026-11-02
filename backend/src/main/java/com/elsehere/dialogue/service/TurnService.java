@@ -11,6 +11,7 @@ import com.elsehere.ai.client.WorkerState;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -77,6 +78,7 @@ public class TurnService {
   private final NpcAudioReceiver npcAudioReceiver;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final AiFailureRecorder aiFailureRecorder;
   private final MemoryService memoryService;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
@@ -99,12 +101,16 @@ public class TurnService {
 
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
-        aiWorkerClient.judge(
+        aiFailureRecorder.recordIfFails(
             trace,
-            context.npc().workerNpc(),
-            mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
-            context.history(),
-            request.text());
+            AiRequestKind.JUDGE,
+            () ->
+                aiWorkerClient.judge(
+                    trace,
+                    context.npc().workerNpc(),
+                    mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
+                    context.history(),
+                    request.text()));
     aiRequestRecorder.record(trace, AiRequestKind.JUDGE, judge.usage(), AiRequestStatus.OK);
     if (judge.dropped()) {
       // 행동 묘사만 있는 말은 턴으로 세지 않는다. 응답 형식은 [미정]이라 안내 문구를 오류 정보로 돌려준다.
@@ -122,15 +128,19 @@ public class TurnService {
             : mission.map(value -> value.replyInstruction(judge.intent())).orElse("");
 
     NpcReply reply =
-        aiWorkerClient.reply(
+        aiFailureRecorder.recordIfFails(
             trace,
-            context.npc().workerNpc(),
-            context.memory(),
-            context.history(),
-            judge.text(),
-            instruction,
-            context.level(),
-            context.learner());
+            AiRequestKind.NPC,
+            () ->
+                aiWorkerClient.reply(
+                    trace,
+                    context.npc().workerNpc(),
+                    context.memory(),
+                    context.history(),
+                    judge.text(),
+                    instruction,
+                    context.level(),
+                    context.learner()));
     aiRequestRecorder.record(
         trace,
         AiRequestKind.NPC,

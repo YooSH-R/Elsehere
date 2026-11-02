@@ -132,6 +132,23 @@ class ModelSpeechServiceTest {
   }
 
   @Test
+  @DisplayName("모범 음성을 합성하다 워커에 닿지 못하면 합성 호출을 FAILED로 남긴다")
+  void create_whenSynthesisFails_recordsFailedCall() {
+    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertThatThrownBy(() -> modelSpeechService.create(userId, feedback.getId(), requestId))
+        .isInstanceOf(BusinessException.class);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.TTS)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
   @DisplayName("음성 합성이 실패하면 워커 오류를 그대로 알리고 음성을 남기지 않는다")
   void create_whenSynthesisFails_keepsNoSpeech() {
     given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble()))

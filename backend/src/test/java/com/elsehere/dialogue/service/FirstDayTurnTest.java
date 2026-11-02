@@ -13,6 +13,7 @@ import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerNpc;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
@@ -109,6 +110,7 @@ class FirstDayTurnTest {
             mock(NpcAudioReceiver.class),
             worker,
             mock(AiRequestRecorder.class),
+            new AiFailureRecorder(mock(AiRequestRecorder.class)),
             mock(MemoryService.class),
             mock(NpcAffinityService.class),
             transactions,

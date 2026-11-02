@@ -4,6 +4,7 @@ import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -33,6 +34,7 @@ public class ModelSpeechService {
   private final ConversationLookup conversationLookup;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final AiFailureRecorder aiFailureRecorder;
   private final ModelSpeechStore modelSpeechStore;
   private final TransactionTemplate transactionTemplate;
   private final String voice;
@@ -42,6 +44,7 @@ public class ModelSpeechService {
       ConversationLookup conversationLookup,
       AiWorkerClient aiWorkerClient,
       AiRequestRecorder aiRequestRecorder,
+      AiFailureRecorder aiFailureRecorder,
       ModelSpeechStore modelSpeechStore,
       TransactionTemplate transactionTemplate,
       @Value("${elsehere.model-speech.voice}") String voice) {
@@ -49,6 +52,7 @@ public class ModelSpeechService {
     this.conversationLookup = conversationLookup;
     this.aiWorkerClient = aiWorkerClient;
     this.aiRequestRecorder = aiRequestRecorder;
+    this.aiFailureRecorder = aiFailureRecorder;
     this.modelSpeechStore = modelSpeechStore;
     this.transactionTemplate = transactionTemplate;
     this.voice = voice;
@@ -67,7 +71,11 @@ public class ModelSpeechService {
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    byte[] wav = aiWorkerClient.synthesize(trace, target.betterText(), voice, SPEED);
+    byte[] wav =
+        aiFailureRecorder.recordIfFails(
+            trace,
+            AiRequestKind.TTS,
+            () -> aiWorkerClient.synthesize(trace, target.betterText(), voice, SPEED));
     aiRequestRecorder.record(trace, AiRequestKind.TTS, List.of(), AiRequestStatus.OK);
     String key = modelSpeechStore.save(wav);
     transactionTemplate.executeWithoutResult(

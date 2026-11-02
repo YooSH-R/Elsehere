@@ -231,6 +231,47 @@ class SpeechServiceTest {
   }
 
   @Test
+  @DisplayName("음성 인식을 부르다 워커에 닿지 못하면 오류를 그대로 알리고 인식 호출을 FAILED로 남긴다")
+  void transcribe_workerCallFails_recordsFailed() {
+    given(aiWorkerClient.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus")))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertThatThrownBy(
+            () ->
+                speechService.transcribe(
+                    userId,
+                    requestId,
+                    TranscriptionPurpose.TURN,
+                    conversation.getId(),
+                    recording("audio/webm;codecs=opus", RECORDING)))
+        .isInstanceOf(BusinessException.class);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.STT)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
+  @DisplayName("음성을 다시 합성하다 워커에 닿지 못하면 오류를 그대로 알리고 합성 호출을 FAILED로 남긴다")
+  void regenerateSpeech_workerCallFails_recordsFailed() {
+    given(aiWorkerClient.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertThatThrownBy(() -> speechService.regenerateSpeech(userId, npcTurn.getId(), requestId))
+        .isInstanceOf(BusinessException.class);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.TTS)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
   @DisplayName("음성이 없는 NPC 턴은 난이도 배율(초급 0.85)로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
   void regenerateSpeech_withoutAudio_synthesizesAndSaves() {
     given(aiWorkerClient.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))

@@ -7,6 +7,7 @@ import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.common.error.BusinessException;
@@ -75,6 +76,7 @@ public class ConversationService {
   private final NpcAudioReceiver npcAudioReceiver;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final AiFailureRecorder aiFailureRecorder;
   private final FeedbackService feedbackService;
   private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
@@ -246,18 +248,22 @@ public class ConversationService {
 
   private Opening greetingOpening(WorkerTrace trace, NpcContext npc, StartContext context) {
     NpcReply reply =
-        aiWorkerClient.reply(
+        aiFailureRecorder.recordIfFails(
             trace,
-            npc.workerNpc(),
-            context.memory(),
-            List.of(),
-            GREETING_TEXT,
-            context
-                .mission()
-                .map(value -> value.instruction() + MISSION_GREETING)
-                .orElse(GREETING_INSTRUCTION),
-            context.level(),
-            context.learner());
+            AiRequestKind.NPC,
+            () ->
+                aiWorkerClient.reply(
+                    trace,
+                    npc.workerNpc(),
+                    context.memory(),
+                    List.of(),
+                    GREETING_TEXT,
+                    context
+                        .mission()
+                        .map(value -> value.instruction() + MISSION_GREETING)
+                        .orElse(GREETING_INSTRUCTION),
+                    context.level(),
+                    context.learner()));
     aiRequestRecorder.record(
         trace,
         AiRequestKind.NPC,

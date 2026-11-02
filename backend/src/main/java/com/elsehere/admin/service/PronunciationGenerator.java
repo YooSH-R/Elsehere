@@ -6,6 +6,7 @@ import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.repository.VocabularyRepository;
@@ -34,6 +35,7 @@ public class PronunciationGenerator {
   private final PronunciationAudioStore pronunciationAudioStore;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final AiFailureRecorder aiFailureRecorder;
   private final TransactionTemplate transactionTemplate;
   private final String voice;
 
@@ -42,12 +44,14 @@ public class PronunciationGenerator {
       PronunciationAudioStore pronunciationAudioStore,
       AiWorkerClient aiWorkerClient,
       AiRequestRecorder aiRequestRecorder,
+      AiFailureRecorder aiFailureRecorder,
       TransactionTemplate transactionTemplate,
       @Value("${elsehere.pronunciation.voice}") String voice) {
     this.vocabularyRepository = vocabularyRepository;
     this.pronunciationAudioStore = pronunciationAudioStore;
     this.aiWorkerClient = aiWorkerClient;
     this.aiRequestRecorder = aiRequestRecorder;
+    this.aiFailureRecorder = aiFailureRecorder;
     this.transactionTemplate = transactionTemplate;
     this.voice = voice;
   }
@@ -84,7 +88,11 @@ public class PronunciationGenerator {
 
   private void synthesize(ObjectWord word, Long adminUserId) {
     WorkerTrace trace = new WorkerTrace(UUID.randomUUID(), adminUserId, null);
-    byte[] wav = aiWorkerClient.synthesize(trace, word.text(), voice, SPEED);
+    byte[] wav =
+        aiFailureRecorder.recordIfFails(
+            trace,
+            AiRequestKind.TTS,
+            () -> aiWorkerClient.synthesize(trace, word.text(), voice, SPEED));
     aiRequestRecorder.record(trace, AiRequestKind.TTS, List.of(), AiRequestStatus.OK);
     pronunciationAudioStore.save(word.audioKey(), wav);
   }

@@ -2,6 +2,7 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.ai.service.WorkerLines;
@@ -79,6 +80,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   NpcAudioRetention.class,
   WorkerNpcs.class,
   AiRequestRecorder.class,
+  AiFailureRecorder.class,
   FeedbackService.class,
   ModelSpeechService.class,
   ModelSpeechStore.class,

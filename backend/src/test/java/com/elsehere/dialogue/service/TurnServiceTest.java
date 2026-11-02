@@ -352,7 +352,14 @@ class TurnServiceTest {
     given(aiWorkerClient.judge(any(), any(), any(), any(), eq("Hi!")))
         .willReturn(
             new JudgeResult(
-                "Hi!", false, null, null, List.of(usage("intent")), null, List.of("GREETING")));
+                "Hi!",
+                false,
+                null,
+                null,
+                List.of(usage("intent")),
+                null,
+                List.of("GREETING"),
+                null));
     guards("Hi!", false, null);
     repliesTo("Hi!", reply("Hello!", null));
     judges("Bye", "Bye", null);
@@ -570,6 +577,30 @@ class TurnServiceTest {
   }
 
   @Test
+  @DisplayName("무례가 아닌 말은 의도 판정이 준 사건 호감 변화량만큼 바로 올리고 올린 값을 대화 상태로 돌려준다")
+  void send_notRudeWithEvents_raisesAffinityRightAway() {
+    judgeRaises("I love this town!", 4);
+    guards("I love this town!", false, null);
+    repliesTo("I love this town!", reply("Thank you!", null));
+
+    TurnResponse response = send("I love this town!");
+
+    assertThat(affinity()).isEqualTo(4);
+    assertThat(response.conversation().affinity()).isEqualTo(4);
+  }
+
+  @Test
+  @DisplayName("무례로 센 말은 의도 판정의 사건 변화량을 더하지 않고 무례 감점만 한다")
+  void send_rudeWithEvents_onlyDeductsForRudeness() {
+    rudeTo("you idiot, nice town though", -7);
+    judgeRaises("you idiot, nice town though", 4);
+
+    send("you idiot, nice town though");
+
+    assertThat(affinity()).isEqualTo(-7);
+  }
+
+  @Test
   @DisplayName("무례 판정 3번으로 NPC가 대화를 끝내도 세 번 모두 깎는다")
   void send_abusiveUntilLimit_deductsEveryTime() {
     for (int count = 1; count <= Conversation.RUDE_LIMIT; count++) {
@@ -633,6 +664,21 @@ class TurnServiceTest {
                 english == null ? null : new JudgeResult.Translation(english, null),
                 List.of(usage("intent"))));
     guards(text, false, null);
+  }
+
+  // 칭찬 사건과 그 사건으로 바로 올릴 호감도를 주는 의도 판정. 무례 판정은 따로 정한다.
+  private void judgeRaises(String text, int affinityDelta) {
+    given(aiWorkerClient.judge(any(), any(), any(), any(), eq(text)))
+        .willReturn(
+            new JudgeResult(
+                text,
+                false,
+                null,
+                null,
+                List.of(usage("intent")),
+                null,
+                List.of("COMPLIMENT"),
+                affinityDelta));
   }
 
   // 같은 문장에 다시 부르면 마지막 판정값으로 바뀐다.

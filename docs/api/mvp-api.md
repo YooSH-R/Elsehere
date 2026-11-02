@@ -847,7 +847,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 판정 실패 | `rude: false`. 무례로 세지 않고 평소대로 처리 | 평소대로 | 계속 |
 
 - `rudeLimit`은 서버 설정값(3)입니다. 새 대화는 0부터 셉니다.
-- `conversation.affinity`는 이 턴을 처리한 뒤 이 NPC의 호감도(-100~100)입니다. 무례로 센 턴은 깎인 값입니다([무례 처리 합의안](rudeness-handling.md) 3절). 대화 화면은 NPC 이름 옆에 호감도를, 무례 경고 칸에 `rudeCount`/`rudeLimit`를 보여 줍니다. 같은 `requestId`로 다시 보내 이전 응답을 돌려줄 때도 호감도는 지금 값입니다.
+- `conversation.affinity`는 이 턴을 처리한 뒤 이 NPC의 호감도(-100~100)입니다. 무례로 센 턴은 깎인 값이고([무례 처리 합의안](rudeness-handling.md) 3절), 인사·칭찬·사과·용건 끝냄 같은 대화 사건이 있는 턴은 오른 값입니다([AI 워커 명세](ai-worker.md) 2.2절, 같은 사건은 한 대화에서 한 번). 대화 화면은 NPC 이름 옆에 호감도를, 무례 경고 칸에 `rudeCount`/`rudeLimit`를 보여 줍니다. 같은 `requestId`로 다시 보내 이전 응답을 돌려줄 때도 호감도는 지금 값입니다.
 - 판정 결과와 실패 이유는 `turns.guard_abusive`, `turns.guard_error_code`에 남깁니다. 판정 실패를 무례나 무례 아님으로 바꿔 저장하지 않습니다. AI 워커에 닿지 못해 판정하지 못한 턴은 `guard_error_code`가 `worker_unavailable`이고 대화는 평소대로 이어집니다.
 - NPC가 먼저 잘못한 장면(정당방위)의 예외는 사건 장면을 만들 때 정합니다(6절).
 

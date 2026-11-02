@@ -19,13 +19,13 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | CONV-01 대화 시작 · 첫 인사 | `/v1/npc/reply` | 말걸기 대사가 있는 NPC가 먼저 말을 걸면 그 대사(AI 호출 없음). 그 밖에는 인사 지시(`instruction`)로 AI가 만듦. `relationship`도 실으면 알아보는 인사가 됨(2.3절) |
 | CONV-12 추천 단어 | `POST /v1/suggest` | `suggestWords` ← `words`. NPC 대답 응답(CONV-01·03)을 기다리게 하지 않도록 `/v1/npc/reply`는 `suggest_words: false`로 부르고, 대사를 받은 뒤 클라이언트가 CONV-12로 따로 요청함. 끝난 대화의 턴은 요청하지 않음 |
 | CONV-02 음성 인식 | `POST /v1/stt` | `sttRawText` ← `text`, `durationMs` ← `audio_s`×1000. `text: ""`이면 `STT_NO_SPEECH`. 413 `audio_too_large` → `AUDIO_TOO_LARGE`, 415 `audio_format_unsupported` → `AUDIO_FORMAT_UNSUPPORTED` |
-| CONV-03 발화 전송 | `POST /v1/judge`와 `POST /v1/guard`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). 판정의 `events`는 그 학습자 턴에 저장해 이후 `history[].events`로 보냄(백엔드 `[미정]`). `npcTurn.text` ← `done.text` |
+| CONV-03 발화 전송 | `POST /v1/judge`와 `POST /v1/guard`를 동시에 → (Spring 규칙) → `POST /v1/npc/reply` | 판정의 `intent.ids`를 Spring 규칙이 검증해 상태·미션을 확정(`ai_candidates`). 무례 판정은 `/v1/guard`(2.2.1절). 판정의 `events`는 그 학습자 턴에 저장해 이후 `history[].events`로 보냄. 무례가 아닌 턴이면 판정의 `affinity_delta`를 호감에 더함(2.2절). `npcTurn.text` ← `done.text` |
 | CONV-03 `npcTurn.speech` | `done.audio_full_id` → `GET /v1/audio/{id}` | 턴 전체 음성 하나를 받아 저장(`npc_audio_key`). `null`이면 `speech.status: FAILED` |
 | CONV-04 뜻 보기 | `POST /v1/meaning` | `meaningKo` ← `meaning_ko`, `glossary[].meaningKo` ← `glossary[].meaning_ko` |
 | CONV-05 힌트 | `POST /v1/hint` | `hintText` ← `say_this[0].en` (`say_this[0].ko`·`keywords`는 3단계 힌트용으로 남음) |
 | CONV-06 다시 듣기 | (없음) | CONV-03에서 저장한 턴 전체 음성 |
 | CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← `npc.tts_speed` × 난이도 배율(1.1절) |
-| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)은 백엔드 `[미정]` |
+| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)으로 알아봄을 더함 |
 | FB-04 모범 음성 | `POST /v1/tts` | |
 | 어드민 NPC 랜덤 생성 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/generate` | 고정 칸·DB 후보를 실어 보내고, 받은 `npc_configuration`을 `npcs`에 저장 (2.9절) |
 | 어드민 NPC MBTI 변경 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/derive` | 저장된 카드의 자동 칸을 다시 계산해 저장 (2.9.1절) |
@@ -114,7 +114,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `text` | 문자열 (필수, 최대 1000자) | 말한 내용 |
 | `english` | 문자열 또는 `null` | 학습자 줄의 영어 번역 (판정의 `translation.english`) |
 | `rude` | 불 (기본 `false`) | 학습자 줄의 무례 판정이 `true`였는지 (`null`은 `false`로) |
-| `events` | 문자열 목록 (기본 `[]`) | 학습자 줄의 대화 사건 (판정의 `events` 그대로). 대화 중 기분(2.3절)과 대화 뒤 관계(2.7.2절)에 씀 |
+| `events` | 문자열 목록 (기본 `[]`) | 학습자 줄의 대화 사건 (판정의 `events` 그대로). 대화 중 기분(2.3절)과, 이번 대화에서 이미 센 사건을 거르는 데(2.2절 `affinity_delta`) 씀 |
 
 ### 1.1 대화 난이도 `level`
 
@@ -154,6 +154,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
   "intent": {"id": "order_items", "ids": ["order_items"], "slots": {"items": [{"name": "latte", "iced": false, "qty": 1}], "choice": "none"}, "error": null},
   "translation": null,
   "events": [],
+  "affinity_delta": 0,
   "usage": [{"step": "intent", "model": "...", "input_tokens": 512, "output_tokens": 20, "latency_s": 0.41, "fallback": false}]
 }
 ```
@@ -161,15 +162,26 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | 칸 | 규칙 |
 |---|---|
 | `text` | 행동 묘사(`*...*`)를 지운 말. 판정·대답·기록에는 이것을 씀 |
-| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않았고 `intent`·`translation`·`events`는 `null`. **턴으로 세지 않고** `notice`를 보여 줌 |
+| `dropped` | `true`면 행동 묘사만 있었던 것. 모델을 부르지 않았고 `intent`·`translation`·`events`·`affinity_delta`는 `null`. **턴으로 세지 않고** `notice`를 보여 줌 |
 | `notice` | 학습자에게 보여 줄 한국어 안내 (행동 묘사를 지웠을 때) |
 | `intent.ids` | 말한 순서대로 최대 3개. Spring이 **하나씩 현재 상태에서 다시 검증**해 적용. `id`는 `ids[0]` |
 | `intent.slots` | 요청 `state.slots`에 있는 칸만. 상품은 `catalog` 안의 이름만, `iced`는 `iced_ok`에 있을 때만 |
 | `intent.error` | 의도 판정 실패 시 메시지, 이때 `id`는 `unclear`. **상태·금액을 바꾸지 말고 다시 물을 것** |
 | `translation` | 한글이 섞였을 때만 `{"english", "error"}`. 화면에 보여 줄지는 `/v1/guard` 결과로 Spring이 정함(0.1절 번역 카드) |
 | `events` | 이 줄에서 학습자가 한 대화 사건. `GREETING`·`SMALL_TALK`·`PERSONAL_QUESTION`·`APOLOGY`·`COMPLIMENT`·`TASK_DONE`·`LEAVE` 중 0개 이상. 의도 판정과 같은 호출에서 고름. 의도 판정이 실패하면 `[]`, `dropped`면 `null`. **이 줄에 저장해 다음 요청의 `history[].events`로 보냄** |
+| `affinity_delta` | 이 줄의 사건으로 바로 올릴 호감(정수, 0 이상). 의도 판정이 실패하면 `0`, `dropped`면 `null`. 아래 설명 |
 
 사건 정의는 이정훈 님 사건 테스트셋 가이드 v1.0을 따릅니다. "thanks" 같은 의례적 감사는 칭찬이 아니고, "sorry?" 같은 되묻기와 영어 실력에 대한 사과는 사과가 아닙니다. 사적인 질문은 잡담과 겹쳐 세지 않고, `TASK_DONE`은 "That's all"처럼 말로 용건을 끝낼 때만입니다(실제 미션 완료는 Spring 결과가 기준). 무례는 `/v1/guard`만 판정합니다.
+
+**`affinity_delta` — 사건으로 오르는 호감**
+
+- 백엔드는 무례로 세지 않은 턴(`/v1/guard`의 `abusive`가 `true`가 아닌 턴)을 저장하는 **같은 트랜잭션**에서 `affinity = min(100, affinity + affinity_delta)`로 적용합니다. 무례로 센 턴에는 쓰지 않고 `/v1/guard`의 감점만 씁니다(무례 줄의 다른 사건은 버림). 그래서 그 턴의 CONV-03 응답 `conversation.affinity`에 오른 값이 바로 보입니다.
+- 크기는 `사건 인상 × affinityFollowRate(0.75) × NPC 사건 반응 크기`입니다. 인상은 공통 규칙 `world-rules.json`의 `conversationEvents`입니다(인사 +1, 용건 끝냄 +2, 사과·칭찬 +5, 잡담·사적인 질문·작별 0). 반응 크기는 `npc.profile`의 성격 5축과 행동 조각으로 정하고, 카드가 없으면 1입니다.
+- 이번 대화의 앞선 학습자 줄(`history`, 최대 40줄)에서 센 사건은 다시 세지 않습니다(칭찬을 반복해도 한 번). 무례 줄(`rude: true`)의 사건은 센 적 없는 것으로 봅니다.
+- 앞선 줄까지와 이 줄까지의 몫을 각각 반올림해 차이를 돌려줍니다. 그래서 한 대화에서 더한 합은 대화 전체 인상을 한 번에 반올림한 값과 같습니다. 예: 카드 없는 NPC에게 인사 → 칭찬 → 용건 끝냄이면 `1`, `3`, `2`로 합 `6`입니다.
+- 지금 호감을 모르고 계산하므로 끝(100)에 가까울수록 덜 오르는 완충은 없습니다(무례 감점과 같음).
+- 잡담은 대화 중 기분만 좋게 하고 호감은 올리지 않습니다. 영어 실수·한국어·짧은 대답은 호감을 깎을 일로 보지 않습니다(요구사항 REQ-24).
+- 비어 있으면(이 칸을 모르는 이전 워커) 백엔드는 호감을 바꾸지 않습니다.
 
 ### 2.2.1 `POST /v1/guard` — 무례 판정만
 
@@ -196,7 +208,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 - 크기는 `무례 인상(−8) × affinityFollowRate(0.75) × NPC 무례 반응 크기`를 반올림한 값입니다. 반응 크기는 `npc.profile`의 성격 5축(신경성)과 행동 조각으로 정하고, 카드가 없으면 1입니다. 지금 규칙(1차 배포 유저 테스트 숫자)으로 −4~−9이고, 서비스 NPC 3명은 −7, 카드가 없으면 −6입니다.
 - `abusive: true`인데 `affinity_delta`가 비어 있으면(예: 이 칸을 모르는 이전 워커) 공통 규칙 `world-rules.json`의 `relationship.rudeAffinityFallback`(−6)을 씁니다.
 - `abusive`가 `false`이거나 `null`(판정 못 함)이면 감점하지 않고 기본값도 쓰지 않습니다.
-- 대화 종료 때 `/v1/npc/relationship`(2.7.2절)은 무례를 다시 세지 않습니다.
+- 대화 종료 때 `/v1/npc/relationship`(2.7.2절)은 호감을 계산하지 않습니다.
 
 **`guard` — 무례 판정**
 
@@ -239,7 +251,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 `learner`는 대답 상대인 학습자입니다. NPC는 `avatar_type`에 맞는 호칭만 씁니다(`F`는 ma'am·Ms., `M`은 sir·Mr.). 칸을 빼거나 `avatar_type`이 없으면 Mr.·Ms.·sir·ma'am처럼 성별을 짐작한 호칭을 쓰지 않습니다. `nickname`은 영어 글자로 된 실제 이름일 때만 부릅니다. Spring은 대화를 시작한 사용자의 닉네임과 캐릭터 기본형을 첫 인사와 매 턴 대답에 보냅니다.
 
-`relationship`은 이 사용자와 NPC의 관계입니다. 2.7.2절이 돌려준 값을 저장해 두었다가 그대로 보냅니다. 처음 만나면 모두 `0`이고, 칸을 빼면 `0`입니다.
+`relationship`은 이 사용자와 NPC의 관계입니다. 백엔드가 저장한 값(알아봄은 대화 뒤 2.7.2절, 호감은 대화 중 발화마다 2.2·2.2.1절로 바뀜)을 그대로 보냅니다. 처음 만나면 모두 `0`이고, 칸을 빼면 `0`입니다.
 
 | 칸 | 형식 | 뜻 |
 |---|---|---|
@@ -364,20 +376,17 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 - `rude: true` 사용자 발화는 원문과 생성 번역 대신 `[RUDE: content withheld]` 표식으로 전달합니다. 확정 사건은 원문 인용 없이 요약할 수 있으나, 위협·횟수·제재·종료를 추측하지 않습니다. 다른 발화에 무례 표식이 없다는 것만으로 정상 판정을 확정하지 않습니다.
 - 무례 원문을 이름·프로필·선호·학습할 표현으로 저장하지 않는 프롬프트 규칙을 적용합니다. 출력의 의미 정확도까지 결정론적으로 보장하는 필터는 아니며 실제 모델 품질 검토가 별도로 필요합니다.
 
-### 2.7.2 `POST /v1/npc/relationship` — 대화 뒤 관계 갱신
+### 2.7.2 `POST /v1/npc/relationship` — 대화 뒤 알아봄 갱신
 
-정상 종료된 대화 하나를 사용자 × NPC 관계(알아봄·호감)에 반영합니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. **모델을 부르지 않습니다.** 사건은 의도 판정이 줄마다 고른 `history[].events`로 세고, 변화량은 공통 규칙으로 코드가 계산합니다. 무례는 발화마다 `/v1/guard`의 `affinity_delta`(2.2.1절)로 이미 깎았으므로 여기서는 호감 계산에 넣지 않습니다. 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md) 4절입니다.
+정상 종료된 대화 하나를 사용자 × NPC 알아봄에 반영합니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. **모델을 부르지 않습니다.** 변화량은 공통 규칙으로 코드가 계산합니다. 호감은 대화 중에 발화마다 이미 바꿨으므로(사건은 2.2절 `/v1/judge`, 무례는 2.2.1절 `/v1/guard`의 `affinity_delta`) 여기서는 계산하지 않습니다. 워커는 저장하지 않습니다. 설계는 [NPC 생활·관계 설계](../npc-life-design.md) 4절입니다.
 
-요청: `npc`(`profile`이 있으면 성격으로 알아보는 속도·사건 반응 크기를 정함), `relationship`(저장된 `recognition`·`affinity`와 `days_since_last_talk`, 처음 만나면 생략), `history`(최대 200줄, 학습자 줄의 `rude`·`events` 포함).
+요청: `npc`(`profile`이 있으면 성격으로 알아보는 속도를 정함), `relationship`(저장된 `recognition`·`affinity`와 `days_since_last_talk`, 처음 만나면 생략), `history`(최대 200줄. 학습자가 말한 대화인지만 봄).
 
-응답: `{"recognition_delta": 20, "affinity_delta": 2, "events": ["GREETING", "TASK_DONE", "LEAVE"]}` (인격 카드 없는 NPC와 처음 만난 대화)
+응답: `{"recognition_delta": 20}` (인격 카드 없는 NPC와 처음 만난 대화)
 
-- 새 값이 아니라 **변화량**입니다. 백엔드는 `recognition = recognition + recognition_delta`, `affinity = affinity + affinity_delta`로 원자적으로 더합니다. 종료 처리가 겹쳐도 앞 대화의 결과를 덮어쓰지 않습니다. 다음 대답 요청에는 저장한 값에 그때의 `days_since_last_talk`를 더해 보냅니다.
+- 새 값이 아니라 **변화량**입니다. 백엔드는 `recognition = recognition + recognition_delta`로 원자적으로 더합니다. 종료 처리가 겹쳐도 앞 대화의 결과를 덮어쓰지 않습니다. 다음 대답 요청에는 저장한 값에 그때의 `days_since_last_talk`를 더해 보냅니다.
 - 변화량은 요청의 저장값으로 계산한 새 값(정수로 반올림)에서 저장값을 뺀 것입니다. 그래서 겹치지 않으면 더한 결과가 새 값을 그대로 저장할 때와 같습니다.
-- 알아봄은 마지막 대화 뒤 며칠 여유를 두고 하루씩 줄어든 값에서 이번 대화만큼 오릅니다(갈수록 덜 오름). 오래 안 왔으면 `recognition_delta`가 음수일 수 있습니다. 호감은 이번 대화 인상의 일부만 따라가고 끝(±100)에 가까울수록 그쪽으로 덜 움직입니다.
-- `events`는 이번 대화에서 센 사건입니다(기록용). 같은 사건은 한 대화에서 한 번만 셉니다(칭찬을 반복해도 한 번). 무례 줄의 다른 사건과 목록 밖 값은 버립니다. 무례 줄(`rude: true`)은 대화 중 기분 계산(2.3절)에만 씁니다.
-- 잡담은 대화 중 기분만 좋게 하고 호감은 올리지 않습니다. 사적인 질문은 호감·기분에 쓰지 않습니다.
-- 영어 실수·한국어·짧은 대답은 호감을 깎을 일로 보지 않습니다(요구사항 REQ-24).
+- 알아봄은 마지막 대화 뒤 며칠 여유를 두고 하루씩 줄어든 값에서 이번 대화만큼 오릅니다(갈수록 덜 오름). 오래 안 왔으면 `recognition_delta`가 음수일 수 있습니다.
 - 학습자가 말하지 않은 대화는 400 `invalid_request`입니다.
 
 ### 2.8 `POST /v1/tts` — 한 문장 합성

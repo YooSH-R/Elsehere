@@ -317,7 +317,7 @@ def create_app(
 
     @app.post("/v1/npc/relationship")
     async def relationship_after_conversation(req: RelationshipRequest):
-        """정상 종료된 대화 하나를 사용자 × NPC 관계(알아봄·호감)에 반영한다. 모델을 부르지 않는다. 백엔드가 받아 저장한다 (워커는 저장하지 않음)."""
+        """정상 종료된 대화 하나를 사용자 × NPC 알아봄에 반영한다. 모델을 부르지 않는다. 백엔드가 받아 저장한다 (워커는 저장하지 않음)."""
         return services.relationship(req)
 
     return app

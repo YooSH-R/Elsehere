@@ -128,7 +128,7 @@ They are upset because of what you did wrong in this scene. Do not scold them fo
 | 대화 종료 피드백 (`/v1/feedback`, `ai/feedback` 0.3.0) | 무례한 줄(`abusive: true`)은 `text_status: blocked`로 보내 평가·인용에서 뺍니다. 판정 못 한 줄(`null`)은 `final` | 계약 변경 없음. 기능 명세 F-30(한 문장마다 평가)에 예외 한 줄 추가 필요 `[미정]` |
 | NPC 기억 카드 (`/v1/memory`) | `history[].rude`로 무례했던 일을 남기고 다음 대화 태도를 조심스럽게 함 | NPC 장기 기억은 MVP 제외(기능 명세 5.1) |
 | 호감 감점 (`/v1/guard`의 `affinity_delta`) | 무례로 센 발화마다 바로 호감(`user_npc_relations.affinity`)을 낮춤(공통 규칙, NPC 성격에 따라 크기가 다름, 3절) | 워커 지원([AI 워커 명세](ai-worker.md) 2.2.1절). 백엔드 적용(S15P31A305-352) |
-| 관계 갱신 (`/v1/npc/relationship`) | 무례는 호감 계산에 다시 넣지 않음(이중 감점 방지). 대답 중에는 무례 뒤 몇 턴 동안 짜증이 남음 | 워커 지원(S15P31A305-338, [AI 워커 명세](ai-worker.md) 2.7.2절). 백엔드 저장 `[미정]` |
+| 사건 호감 (`/v1/judge`의 `affinity_delta`)·관계 갱신 (`/v1/npc/relationship`) | 무례로 센 턴에는 의도 판정의 사건 호감을 더하지 않음(욕하면서 칭찬해도 오르지 않음). 대화 뒤 관계 갱신은 알아봄만 계산해 무례를 다시 세지 않음(이중 감점 방지). 대답 중에는 무례 뒤 몇 턴 동안 짜증이 남음 | 워커 지원(S15P31A305-338·451, [AI 워커 명세](ai-worker.md) 2.2·2.7.2절). 백엔드 적용(S15P31A305-451) |
 
 ## 8. 남은 확인
 

@@ -55,9 +55,9 @@ def test_small_talk_and_personal_questions_do_not_move_affinity():
     assert EVENTS["SMALL_TALK"]["mood"]["PLEASED"] > 0
 
 
-def test_each_rude_line_lowers_affinity_by_the_share_the_impression_used_to_pass_on():
-    """무례는 대화 끝이 아니라 발화마다 바로 깎는다(/v1/guard, 백엔드가 무례 저장과 함께 적용).
-    크기는 대화 끝에 인상을 따라가던 몫과 같다: 무례 인상 × affinityFollowRate × NPC 반응 크기."""
+def test_each_rude_line_lowers_affinity_by_its_share_of_the_impression():
+    """무례는 발화마다 바로 깎는다(/v1/guard, 백엔드가 무례 저장과 함께 적용).
+    크기는 다른 사건이 바로 올리는 호감과 같은 계산이다: 무례 인상 × affinityFollowRate × NPC 반응 크기."""
     rude, follow = EVENTS["RUDE"]["impression"], RULES["relationship"]["affinityFollowRate"]
 
     assert rel.rude_affinity_delta({}, RULES) == round(rude * follow)
@@ -70,49 +70,59 @@ def test_the_fallback_for_a_missing_rude_delta_is_the_base_rate():
     assert RULES["relationship"]["rudeAffinityFallback"] == rel.rude_affinity_delta({}, RULES)
 
 
-def test_affinity_follows_only_part_of_the_impression_and_slows_near_the_ends():
+def test_each_line_raises_affinity_right_away_for_its_new_events():
+    """칭찬·인사 같은 사건의 호감도 무례처럼 그 말을 한 턴에 바로 더한다(/v1/judge). 사건 인상 × affinityFollowRate × NPC 반응 크기이고,
+    이번 대화에서 앞서 센 사건은 다시 세지 않는다(칭찬을 반복해도 한 번)."""
+    compliment, follow = EVENTS["COMPLIMENT"]["impression"], RULES["relationship"]["affinityFollowRate"]
+
+    assert rel.line_affinity_delta([], ["COMPLIMENT"], {}, RULES) == round(compliment * follow)
+    assert rel.line_affinity_delta(["COMPLIMENT"], ["COMPLIMENT"], {}, RULES) == 0
+    assert rel.line_affinity_delta([], ["COMPLIMENT"], {"eventScale": {"COMPLIMENT": 1.5}}, RULES) == round(compliment * follow * 1.5)
+    assert rel.line_affinity_delta([], ["SMALL_TALK", "LEAVE"], {}, RULES) == 0
+
+
+def test_the_lines_of_a_conversation_add_up_to_its_whole_impression():
+    """줄마다 정수로 더해도 한 대화의 합은 대화 전체 인상 × affinityFollowRate를 한 번에 반올림한 값과 같다(어떻게 나눠 말해도 같음)."""
     follow = RULES["relationship"]["affinityFollowRate"]
+    added, earlier = 0, []
 
-    assert rel.follow_affinity(0, 10, RULES) == 10 * follow
-    assert 0 < rel.follow_affinity(90, 10, RULES) - 90 < 10 * follow  # 이미 좋아하면 덜 오른다
-    assert rel.follow_affinity(90, -15, RULES) - 90 == -15 * follow  # 좋아하던 사람이 무례하면 그대로 깎인다
-    assert rel.follow_affinity(-100, -15, RULES) == -100
-    assert rel.follow_affinity(100, 50, RULES) == 100
+    for events in (["GREETING"], ["COMPLIMENT"], ["TASK_DONE", "LEAVE"]):
+        added += rel.line_affinity_delta(earlier, events, {}, RULES)
+        earlier += events
+
+    assert added == round(rel.impression(earlier, {}, RULES) * follow)
 
 
-def test_after_a_conversation_the_changes_to_add_are_whole_numbers():
-    """백엔드는 정수 칸에 변화량을 더한다(종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게).
-    오래 안 온 만큼 알아봄이 줄어든 뒤 이번 대화만큼 오른 값과 저장값의 차이다."""
+def test_after_a_conversation_only_recognition_changes_by_a_whole_number():
+    """호감은 대화 중에 발화마다 이미 바꿨으므로 대화 뒤에는 알아봄만 바뀐다. 백엔드는 정수 칸에 변화량을 더한다
+    (종료 처리가 겹쳐도 앞 대화 결과를 덮어쓰지 않게). 오래 안 온 만큼 줄어든 뒤 이번 대화만큼 오른 값과 저장값의 차이다."""
     before = {"recognition": 20, "affinity": 5, "days_since_last_talk": 10}
 
-    change = rel.after_conversation(before, ["GREETING", "COMPLIMENT"], {}, RULES)
+    change = rel.after_conversation(before, {}, RULES)
 
     recognition = round(rel.grow_recognition(rel.recognition_today(20, 10, RULES), 1.0, RULES))
-    affinity = round(rel.follow_affinity(5, rel.impression(["GREETING", "COMPLIMENT"], {}, RULES), RULES))
-    assert change == {"recognition_delta": recognition - 20, "affinity_delta": affinity - 5}
-    assert change["affinity_delta"] > 0
+    assert change == {"recognition_delta": recognition - 20}
 
 
 def test_recognition_can_go_down_after_a_long_absence():
     """오래 안 오면 이번 대화로 오르는 것보다 그동안 잊은 것이 커서 변화량이 음수일 수 있다."""
-    change = rel.after_conversation({"recognition": 60, "affinity": 0, "days_since_last_talk": 30}, [], {}, RULES)
+    change = rel.after_conversation({"recognition": 60, "affinity": 0, "days_since_last_talk": 30}, {}, RULES)
 
     assert change["recognition_delta"] < 0
 
 
 def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
-    """백엔드가 정수로 저장해도 호감이 쌓인다(1차 유저 테스트 숫자, 2026-10-30). 칭찬까지 하면 대화 두 번 뒤(셋째 방문) 좋아하는 티,
-    네 번 뒤 사적인 이야기만큼(잡담은 호감에 더하지 않음). 인사하고 주문만 하면 다섯 번, 열 번 뒤다(기본 배수, 대화마다 하루 간격)."""
+    """백엔드가 줄마다 정수로 더해도 호감이 쌓인다(1차 유저 테스트 숫자, 2026-10-30). 칭찬까지 하면 대화 두 번 뒤(셋째 방문) 좋아하는 티,
+    네 번 뒤 사적인 이야기만큼(잡담은 호감에 더하지 않음). 인사하고 주문만 하면 다섯 번, 열 번 뒤다(기본 배수, 한 줄에 사건 하나씩)."""
     relationship = RULES["relationship"]
     friendly = ["GREETING", "SMALL_TALK", "COMPLIMENT", "TASK_DONE", "LEAVE"]
     polite = ["GREETING", "TASK_DONE", "LEAVE"]
 
     def until(threshold: int, events: list[str]) -> int:
-        stored, conversations = {"recognition": 0, "affinity": 0}, 0
-        while stored["affinity"] < threshold:
+        affinity, conversations = 0, 0
+        while affinity < threshold:
             conversations += 1
-            change = rel.after_conversation({**stored, "days_since_last_talk": 1}, events, {}, RULES)
-            stored = {name: stored[name] + change[f"{name}_delta"] for name in stored}
+            affinity += sum(rel.line_affinity_delta(events[:line], [event], {}, RULES) for line, event in enumerate(events))
         return conversations
 
     assert (until(relationship["liked"], friendly), until(relationship["personalTalk"]["affinity"], friendly)) == (2, 4)
@@ -120,9 +130,9 @@ def test_a_friendly_learner_is_liked_sooner_than_one_who_only_orders():
 
 
 def test_two_rude_lines_make_a_service_npc_cool_but_one_does_not():
-    """1차 유저 테스트 목표: 무례 한 번으로는 싫어함까지 가지 않고, 두 번이면 다음 방문에 차갑게 대한다(서비스 NPC 3명)."""
+    """1차 유저 테스트 목표: 무례 한 번으로는 싫어함까지 가지 않고, 두 번이면 다음 방문에 차갑게 대한다(서비스 NPC 5명)."""
     disliked = RULES["relationship"]["disliked"]
-    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"):
+    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"):
         rates = rel.npc_rates(NpcProfile.model_validate(card(npc_id)["npcProfile"]), RULES, npc_persona.load_behaviors())
         once = rel.rude_affinity_delta(rates, RULES)
 
@@ -145,16 +155,13 @@ def test_a_service_npc_knows_them_from_the_second_or_third_visit():
 
 
 def test_a_first_meeting_starts_from_nothing():
-    change = rel.after_conversation(None, ["GREETING"], {}, RULES)
-
-    assert change["recognition_delta"] == RULES["relationship"]["recognitionPerConversation"]
-    assert change["affinity_delta"] == round(rel.follow_affinity(0, EVENTS["GREETING"]["impression"], RULES))
+    assert rel.after_conversation(None, {}, RULES) == {"recognition_delta": RULES["relationship"]["recognitionPerConversation"]}
 
 
 def test_rates_come_from_the_card_temperament_and_its_behavior_pieces():
     """대답 요청에는 인격 카드만 온다. 카드의 성격 5축과 행동 규칙에 들어 있는 조각으로 계산한 배수가 생활 파일로 계산한 값과 같다."""
     library = npc_persona.load_behaviors()
-    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"):
+    for npc_id in ("CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"):
         config = card(npc_id)
         life = json.loads((NPCS / "life" / f"{npc_id}.json").read_text(encoding="utf-8"))
         expected = npc_derive.npc_life_values(life, RULES, library, config["defaultLocationId"])["rates"]

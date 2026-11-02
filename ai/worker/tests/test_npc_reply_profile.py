@@ -47,7 +47,7 @@ def test_without_a_profile_the_reply_keeps_the_current_prompt(client, provider):
     assert system.startswith("You are Mia, the barista at the corner cafe.") and "## Character" not in system
 
 
-@pytest.mark.parametrize("npc_id", ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
+@pytest.mark.parametrize("npc_id", ["CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"])
 def test_the_profile_from_the_backend_settings_becomes_the_character(client, provider, npc_id):
     profile = profile_of(npc_id)
     system = system_of(reply_request(client, provider, {**NPC, "id": npc_id, "profile": profile}))
@@ -77,6 +77,15 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
     assert "Their name: Minsu" in system and "Last time they ordered a latte" in system  # 기억
     assert "Use short, simple everyday words" in system and body["max_tokens"] == 90  # 난이도 1 (출력 상한은 그대로)
     assert "Ask what size they want." in system  # 이번 대답에서 할 일
+
+
+@pytest.mark.parametrize("instruction", ["", "Ask what size they want."])
+def test_with_a_profile_this_turn_says_their_words_were_not_rude_unless_the_backend_said_so(client, provider, instruction):
+    """무례를 못 참는 카페 사장이 판정기가 무례 아님으로 본 재촉("hurry up")에 정중히 말하라고 했다.
+    무례일 때만 백엔드가 경고 지시문을 보내므로, 대답 바로 앞 칸에서 그때만 무례로 대하라고 한다."""
+    system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("CAFE_STAFF")}, instruction=instruction))
+    this_turn = system.split("## This turn")[1]
+    assert "Unless this section says they were rude, their words were not rude" in this_turn
 
 
 @pytest.mark.parametrize("level", [1, 2, 3])

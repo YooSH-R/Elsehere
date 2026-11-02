@@ -166,8 +166,7 @@ class MemoryServiceTest {
     relation(15, 2, 1, 1);
     gameDay(4);
     givenCard();
-    given(aiGateway.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8, 1, List.of()));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
 
     memoryService.updateAfterConversation(
         userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
@@ -178,12 +177,11 @@ class MemoryServiceTest {
   }
 
   @Test
-  @DisplayName("대화가 끝나면 저장된 관계와 사건이 담긴 대화로 관계 갱신을 불러 변화량을 더한다")
-  void updateAfterConversation_appliesRelationshipDeltas() {
+  @DisplayName("대화가 끝나면 저장된 관계와 사건이 담긴 대화로 관계 갱신을 불러 알아봄 변화량만 더한다(호감은 발화마다 이미 바뀜)")
+  void updateAfterConversation_appliesRecognitionDeltaOnly() {
     relation(15, 2, 1);
     givenCard();
-    given(aiGateway.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8, 1, List.of("GREETING")));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
     Conversation conversation = endedConversation("Hi! One latte, please.");
     entityManager
         .createNativeQuery(
@@ -201,21 +199,20 @@ class MemoryServiceTest {
         .relationship(any(), any(), eq(new WorkerRelationship(15, 2, 0)), history.capture());
     assertThat(history.getValue())
         .contains(WorkerLine.learner("Hi! One latte, please.", null, false, List.of("GREETING")));
-    assertThat(relationValues()).containsExactly(23, 3);
+    assertThat(relationValues()).containsExactly(23, 2);
   }
 
   @Test
-  @DisplayName("변화량을 더해도 알아봄은 0~100, 호감은 -100~100을 넘지 않는다")
-  void updateAfterConversation_relationshipDeltas_stayInRange() {
+  @DisplayName("변화량을 더해도 알아봄은 0~100을 넘지 않는다")
+  void updateAfterConversation_recognitionDelta_staysInRange() {
     relation(98, -99, 1);
     givenCard();
-    given(aiGateway.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8, -5, List.of()));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
 
     memoryService.updateAfterConversation(
         userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
 
-    assertThat(relationValues()).containsExactly(100, -100);
+    assertThat(relationValues()).containsExactly(100, -99);
   }
 
   @Test
@@ -239,28 +236,26 @@ class MemoryServiceTest {
     relation(15, 2, 1);
     given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willThrow(new BusinessException(ErrorCode.AI_RATE_LIMITED));
-    given(aiGateway.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8, 1, List.of()));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
 
     memoryService.updateAfterConversation(
         userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
 
-    assertThat(relationValues()).containsExactly(23, 3);
+    assertThat(relationValues()).containsExactly(23, 2);
   }
 
   @Test
   @DisplayName("같은 대화의 종료를 두 번 반영해도 관계 갱신은 한 번만 한다")
   void updateAfterConversation_sameConversationTwice_appliesRelationshipOnce() {
     givenCard();
-    given(aiGateway.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8, 1, List.of()));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
     Conversation conversation = endedConversation("I want a latte");
 
     memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
     memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
 
     then(aiGateway).should().relationship(any(), any(), any(), any());
-    assertThat(relationValues()).containsExactly(8, 1);
+    assertThat(relationValues()).containsExactly(8, 0);
   }
 
   @Test

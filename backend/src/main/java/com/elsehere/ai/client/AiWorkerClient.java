@@ -238,10 +238,11 @@ class AiWorkerClient {
   }
 
   /**
-   * 대화 뒤 관계 갱신. 저장된 관계와 대화 전체로 알아봄·호감 변화량을 계산한다. 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를 그대로 둔다.
+   * 대화 뒤 관계 갱신. 저장된 관계로 알아봄 변화량을 계산한다(호감은 대화 중에 발화마다 이미 바꿨다). 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를
+   * 그대로 둔다.
    *
    * @param relationship 저장된 관계와 마지막 대화 뒤 지난 게임 날 수
-   * @param history 대화 전체(최대 200줄). 학습자 줄의 무례·사건을 담는다
+   * @param history 대화 전체(최대 200줄). 워커는 학습자가 말한 대화인지 확인한다
    */
   public RelationshipChange relationship(
       WorkerTrace trace, WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {

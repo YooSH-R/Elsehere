@@ -39,6 +39,24 @@ namespace A305.Characters
             "viseme_EU",
         };
 
+        public bool SupportsPose(CharacterFacePose pose)
+        {
+            var skins = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            for (int i = 0; i < Channels.Length; i++)
+            {
+                if (!IsActive(pose, i))
+                    continue;
+                bool found = false;
+                foreach (var skin in skins)
+                    found |=
+                        skin.sharedMesh != null
+                        && skin.sharedMesh.GetBlendShapeIndex(Channels[i]) >= 0;
+                if (!found)
+                    return false;
+            }
+            return true;
+        }
+
         public static string[] MissingChannels(Transform root, bool includeInactive = false)
         {
             var missing = new List<string>();

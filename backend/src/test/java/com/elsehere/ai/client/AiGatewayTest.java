@@ -236,7 +236,7 @@ class AiGatewayTest {
   @Test
   @DisplayName("모델을 부르지 않는 관계 갱신과 음성 파일 받기는 기록하지 않는다")
   void relationshipAndAudio_areNotRecorded() {
-    RelationshipChange change = new RelationshipChange(1, 2, List.of());
+    RelationshipChange change = new RelationshipChange(1);
     given(aiWorkerClient.relationship(trace, null, null, List.of())).willReturn(change);
     given(aiWorkerClient.audio(trace, "audio-1")).willReturn(new byte[] {1});
 

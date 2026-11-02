@@ -1,12 +1,71 @@
 # 플레이어 캐릭터 검증과 NPC 대화 연결 계획
 
+플레이어의 실제 조작과 몸 움직임 검증을 유지하면서, NPC 확장에 재사용할 마네킹 외형·골격·얼굴 변형을 별도 검수 사본으로 준비한다. 마네킹의 표정 저작·프리뷰와 실제 NPC의 AI 대화·음성 연결은 완료 범위를 구분한다.
+
 플레이어 공용 연결과 움직임 검증은 유지하고, NPC 얼굴은 [카페 여자 입 모양 10종 검수](cafe-female-face.md)부터 진행한다. 원본 Tripo 모델의 복사본에서 실제 Blend Shape를 확인하는 단계이며, 오프라인 TTS의 실제 음소 시간표, 오디오 재생, 친근한 미소·눈 깜박임 합성을 별도 검수 씬에 연결했다. 카페 직원의 서버 음성 소비 경로까지 연결했으며, 완전한 얼굴 리그·전체 음소·운영 배포 검증·LLM 감정 연결은 후속 단계다. 플레이어 몸과 개별 의상 디테일 보정은 이 얼굴 작업에 포함하지 않는다.
 
 플레이어는 [리틀 멍 플레이어 확인](little-mung-player.md)의 공용 Player·Production 연결과 전용 비교 씬을 사용한다. F는 보정 리틀 멍, M은 기존 대체 외형을 적용한다. 아래 A 단계는 전용 검수부터 공용 적용까지의 진행 기준이다. 아래 NPC 단계는 구현 범위와 남은 작업을 구분해 관리한다.
 
+## 마네킹 공통 외형과 높이 프리셋
+
+`LittleMung_Base_Female` 생성 원본은 `Assets/Art/Characters/Tripo/LittleMung_Base_Female/`에 보존한다. 얼굴 수정 사본은 `Assets/Art/Characters/Common/LittleMungMannequin/`에서 관리하며, 기존 서비스 마스터 Avatar와 이동 애니메이션을 재사용한다. 아래 사본은 기존 Player·Production에 자동 등록하지 않는 검수용 에셋이다.
+
+| 확인 대상 | Unity 경로 |
+| --- | --- |
+| 1.6m 공통 캐릭터 | `Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_160.prefab` |
+| 1.7m 공통 캐릭터 | `Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Female_170.prefab` |
+| 표정·입 모양 | `Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_Face.unity` |
+| 1.6m 이동·접지 | `Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_160_Motion.unity` |
+| 1.7m 이동·접지 | `Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Female_170_Motion.unity` |
+
+- 두 키는 머리·몸 비율을 유지하고 `Visual` 전체를 1.0625배 차이로 조정한다. 같은 메시, 스킨 가중치, Avatar, Animator Controller, BlendShape를 공유한다. 개별 본의 길이나 비율은 바꾸지 않는다.
+- 키는 머리카락 없는 기준 자세에서 발바닥부터 정수리까지 실제 스킨 정점으로 측정한다. 생성 작업의 `heightMeters`, Transform 배율, 캡슐 높이를 실제 메시 높이와 혼동하지 않는다. 키별 캡슐과 검수 씬의 카메라 눈높이도 별도 설정한다.
+- 표정 씬을 열어 Play를 누르면 중립, 미소, 눈 감기, AA, F/V, TH, M/B/P, E, OH, OU, 이, 으를 선택하고 강도를 조절할 수 있다. 입 안쪽·치아·혀도 Head에 묶인 실제 스킨 메시이며 표정은 정점 변형으로 적용된다.
+- `CharacterFaceController.ApplySpeech`는 발음별 가중치·미소·깜박임을 받는 공통 연결점이다. `SpeechVisemeTimeline`과 `SpeechPhonemeArticulation`으로 저장 음성의 발음 시간표를 샘플링한다. 이 마네킹 사본에는 실제 NPC 대화·TTS 재생기를 연결하지 않았다. 음성 재생 위치와의 실시간 연결은 별도 통합 단계다.
+- 이동 씬은 기존 조작을 재사용한다. WASD 이동, Shift 달리기, Space 점프와 카메라 조작으로 확인한다. 표정 씬과 이동 씬의 책임을 구분하고, 표정 씬에는 플레이어 이동·접지 컴포넌트를 넣지 않는다.
+- Blender 저작 파일과 얼굴 델타는 `frontend/ArtSources/Characters/LittleMungMannequin/`에 있다. `.blend`는 표정·외형 저작용이며 Unity의 공통 골격 바인딩은 Builder가 보존한다. 스크립트의 얼굴 좌표는 이 마네킹에 맞춘 값으로, 임의의 새 Tripo 얼굴에 그대로 적용하는 도구가 아니다.
+- `MannequinMasterBuilder.Build`는 새 사본만 만들고 기존 출력 폴더가 있으면 중단한다. `Refresh Mannequin Authored Face`는 같은 정점 구조의 저작 데이터를 검수 사본에 명시적으로 갱신한다. 손으로 수정한 사본에는 덮어쓰기 전에 변경 내용을 확인한다.
+- 자동 검사는 골격 일치, 실제 키·캡슐, 공유 메시·Controller, 유효한 표정 변형과 이동 중 기존 접지·관통 기준을 확인한다. 얼굴 인상, 속눈썹 경계, 관절·수트의 미세한 접힘은 외관 검수 대상이며 자동 통과를 외관 승인으로 취급하지 않는다.
+
+### 완성형 비즈니스맨의 얼굴 검수 사본
+
+`LittleMung_Business_Male`의 Tripo 생성 원본과 `MasterRig` 출력은 유지한다. 얼굴 검수 사본은 몸의 기존 Avatar·Controller·가중치를 재사용하고, Base의 입술·입안·치아·혀 구조를 얼굴 경계에 맞춰 연결한다. 전체 배율로 기준 자세의 실측 높이를 1.7m에 맞추며 개별 본 길이를 바꾸지 않는다.
+
+| 대상 | 경로 |
+| --- | --- |
+| 검수 프리팹 | `Assets/Prefabs/Characters/Review/Corrected/LittleMung_Business_Male.prefab` |
+| 몸 동작 검수 씬 | `Assets/Scenes/Sandbox/Characters/LittleMung_Business_Male_MotionReview.unity` |
+| 얼굴 검수 씬 | `Assets/Scenes/Sandbox/Characters/LittleMung_Business_Male_CorrectedReview.unity` |
+| 수정 메시·입 재질 | `Assets/Art/Characters/ReviewCorrections/LittleMung_Business_Male/Face/` |
+| Blender 얼굴 저작본·델타 | `frontend/ArtSources/Characters/LittleMungBusiness/Corrected/` |
+
+씬을 열고 Play를 누른 뒤 입 모양·미소 버튼, 강도 슬라이더, Left/Front/Right 버튼으로 확인한다. `FacePosePreviewPanel`은 `CharacterFaceController.SupportsPose`로 필요한 모든 채널을 확인하고, 준비되지 않은 표정은 비활성화한다. 비즈니스맨 사본에는 입 모양 9개와 좌우 미소가 있으며 눈 깜박임은 아직 없다. 중립은 별도 변형 없이 기본 메시를 사용한다.
+
+얼굴 씬은 외관 검수용이다. 몸 동작 씬은 기존 마네킹 이동 검수 씬의 복사본이며, 같은 이동·카메라 구성을 사용한다. 이동·지형 접지·실제 NPC 대화와 음성 동기화는 별도 검증하며, 검수 사본을 Production NPC로 자동 등록하지 않는다. 입 경계의 일치와 Head 가중치 보존은 구조 검사 대상이고 입술 인상과 눈 주변 음영은 외관 승인 대상이다.
+
+`BusinessCorrectionBuilder.Build`는 생성 원본에서 수정된 마스터 연결을 별도 폴더에 구성한다. 머리 방향은 골반에서 머리로 향하는 기울기와 분리해 수평 방향을 유지한다. `LittleMungArmClearance`는 팔꿈치와 손목의 로컬 회전을 유지한 채 어깨에서 팔 전체 방향을 조정한다. 기존 바인딩은 버전 검사로 재적용 대상으로 구분하며 유료 재생성을 요구하지 않는다.
+
+`BusinessCorrectionBuilder.BuildMotionScene`은 수정 얼굴 프리팹으로 별도의 이동 검수 씬을 만든다. `BusinessFacePreviewBuilder.Build`는 `BUSINESS_FACE_DATA`로 지정한 저작 JSON에서 새 검수 사본을 만들며, 출력이 이미 있으면 덮어쓰지 않는다. `RefreshPreview`는 해당 검수 씬만 다시 만든다. `BusinessCharacterReview.Export`는 `BUSINESS_REVIEW_OUTPUT`으로 지정한 프로젝트 밖 폴더에 기본 동작 수치 검사와 복사본의 포즈 데이터를 내보낸다. 이 도구들은 Tripo·음성 API를 호출하지 않는다.
+
+### 저장 음성으로 입 모양 영상 확인
+
+`A305.EditorTools.Characters.MannequinSpeechRenderer.Render`는 기존 WAV와 발음 시간표의 SHA-256이 일치하는지 확인하고 검수 씬을 프레임 이미지로 렌더한다. 음성을 생성하거나 외부 API를 호출하지 않으며 씬을 저장하지 않는다. 다음 환경변수를 설정하고 Editor가 닫힌 프로젝트에서 batchmode `-executeMethod`로 실행한다.
+
+| 환경변수 | 입력 |
+| --- | --- |
+| `MANNEQUIN_SPEECH_AUDIO` | 기존 WAV의 절대 경로 |
+| `MANNEQUIN_SPEECH_TIMELINE` | 같은 WAV의 `audioSha256`, `duration`, 발음 구간을 포함한 JSON 경로 |
+| `MANNEQUIN_SPEECH_OUTPUT` | 프로젝트 밖 프레임 출력 폴더 |
+
+출력은 30fps이며 앞에 0.5초, 뒤에 0.6초의 여유가 있다. 동영상으로 합칠 때 WAV에 0.5초 지연을 적용해야 입 모양과 소리가 맞는다. 저장된 시간표 검증을 임의의 새 대사나 실제 NPC 대화의 립싱크 검증으로 간주하지 않는다.
+
+눈 저작은 `create_mannequin_face.py`에 `--surface` 원본 정점 JSON, `--texture` 원본 색상 텍스처, `--reference` 승인된 정면 이미지, `--output` 별도 출력 폴더를 전달한다. 기준 이미지의 눈동자를 텍스처 사본에 투영하고 눈 중심의 제한된 표면과 눈 감기 변형을 저작한다. 몸 정점·가중치·바인드 포즈는 유지한다. 흰자 경계와 완전히 감겼을 때의 면 음영은 외관 검수에서 따로 확인한다.
+
 ## 작업 범위와 승인 경계
 
 - 기존 분리 작업 트리의 캐릭터 파이프라인 작업을 이어 사용한다. 기본 프로젝트의 기능 개발 체크아웃은 수정하지 않는다.
+- 마네킹 얼굴 저작·높이 프리셋·검수 씬까지 포함한다. 이 사본의 준비를 NPC 대화·TTS 통합이나 Production 외형 교체 완료로 확대하지 않는다.
+
 - NPC 얼굴의 현재 범위는 참고 이미지 입 모양 10종과 미소·눈 감기 검수용 복사본, 공통 포즈 전환, 음소 기반 연속 조음, 미소·눈 깜박임을 포함한 TTS 재생 제어와 카페 NPC 연결이다. 이를 모든 캐릭터의 자동 얼굴 제작이나 운영 배포 완료로 확대하지 않는다.
 - 원본 생성 모델과 기존 보정본은 유지한다. 검증용 모델·프리팹·씬은 별도 경로로 만든다.
 - Tripo 생성이나 재생성, 유료 API 사용, 화면 자동제어는 이번 계획의 실행 범위에 포함하지 않는다.

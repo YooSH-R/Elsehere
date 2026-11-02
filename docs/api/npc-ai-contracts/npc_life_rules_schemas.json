@@ -384,7 +384,7 @@
           "type": "integer",
           "minimum": -100,
           "maximum": 100,
-          "description": "이번 대화의 인상 변화. 정상 종료 때 호감이 relationship.affinityFollowRate만큼 따라간다."
+          "description": "이 사건의 인상. 그 말을 한 턴에 호감이 relationship.affinityFollowRate만큼 바로 바뀐다(같은 사건은 한 대화에서 한 번)."
         },
         "memorySalience": {
           "type": "integer",
@@ -511,7 +511,7 @@
               "type": "number",
               "minimum": 0,
               "maximum": 1,
-              "description": "정상 종료 때 호감이 이번 대화 인상 쪽으로 따라가는 비율. 무례는 인상에 넣지 않고 발화마다 그 몫(무례 인상 × 이 비율 × NPC 반응 크기)을 바로 깎는다."
+              "description": "사건 인상이 호감으로 옮겨지는 비율. 발화마다 그 몫(사건 인상 × 이 비율 × NPC 반응 크기)을 바로 더하고, 무례도 같은 계산으로 깎는다."
             },
             "rudeAffinityFallback": {
               "type": "integer",

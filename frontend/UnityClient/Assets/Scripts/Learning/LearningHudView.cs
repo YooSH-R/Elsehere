@@ -21,6 +21,10 @@ namespace A305.Learning
         private ConversationHistoryView historyView;
 
         [SerializeField]
+        [Tooltip("오른쪽 아래 조작법 카드")]
+        private ControlsGuideView controlsGuide;
+
+        [SerializeField]
         private Button vocabularyButton;
 
         [SerializeField]
@@ -49,6 +53,8 @@ namespace A305.Learning
         public event Action HomeRequested;
 
         public ConversationHistoryView HistoryView => historyView;
+
+        public ControlsGuideView ControlsGuide => controlsGuide;
 
         public void SetHomeAvailable(bool available) => homeButton.interactable = available;
 

@@ -208,7 +208,9 @@ namespace A305.Tutorial.PlayModeTests
         public IEnumerator Lodging_InFirstPerson_ShowsTheCompassArrowOnTheScreen()
         {
             // 1인칭에서는 발밑이 화면에 없으므로 화면 아래 화살표로 문 쪽을 알린다. 3인칭에서 발밑이 보이면 띄우지 않는다.
-            InputSettings.BackgroundBehavior oldBackground = InputSystem.settings.backgroundBehavior;
+            InputSettings.BackgroundBehavior oldBackground = InputSystem
+                .settings
+                .backgroundBehavior;
             InputSettings.EditorInputBehaviorInPlayMode oldEditorInput = InputSystem
                 .settings
                 .editorInputBehaviorInPlayMode;

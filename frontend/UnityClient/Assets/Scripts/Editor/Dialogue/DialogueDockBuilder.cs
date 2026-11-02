@@ -11,6 +11,17 @@ namespace A305.EditorTools.Dialogue
     /// <summary>승인된 하단 대화창과 좌측 도움 카드를 실제 기능 프리팹에 적용한다.</summary>
     public static class DialogueDockBuilder
     {
+        private const string MenuPath = "Tools/A305/Dialogue/Apply Approved Layout";
+        private const string PanelPrefabPath = "Assets/Prefabs/Dialogue/DialoguePanel.prefab";
+
+        /// <summary>대화창 프리팹에 승인된 배치만 다시 적용한다. 대화창의 기능 구성은 건드리지 않는다.</summary>
+        [MenuItem(MenuPath)]
+        public static void ApplyToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(PanelPrefabPath, Apply);
+            AssetDatabase.SaveAssets();
+        }
+
         public static void Apply(GameObject root)
         {
             Transform panel = root.transform.Find("Panel");

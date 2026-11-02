@@ -417,6 +417,9 @@ namespace A305.EditorTools.Dialogue
             DialogueLayoutBuilder.SetUp(root, view, lines, guide, suggest);
             DialogueWaitBuilder.SetUp(root, view);
             VoiceConsentDialogBuilder.SetUp(root, view);
+            // 위 기능 구성은 카드 여백·글자 크기를 기본값으로 다시 정하므로, 마지막에 승인된 배치를 다시 적용해
+            // 대화창 Builder만 실행해도 단어·문장 카드 글자가 테두리에 붙지 않게 한다.
+            DialogueDockBuilder.Apply(root);
             // 택시 안내 문구는 택시 장면에서만 쓰며 TaxiCabinBuilder가 씬의 대화 화면에 연결한다.
             BuilderTools.RequireReferences(view, "vehicleStatusText");
 

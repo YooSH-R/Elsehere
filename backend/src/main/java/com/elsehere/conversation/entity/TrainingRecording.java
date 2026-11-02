@@ -1,6 +1,5 @@
 package com.elsehere.conversation.entity;
 
-import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.entity.BaseEntity;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
 import jakarta.persistence.Column;
@@ -62,7 +61,9 @@ public class TrainingRecording extends BaseEntity {
   private Instant recordedAt;
 
   public static TrainingRecording record(
-      WorkerTrace trace,
+      Long userId,
+      UUID requestId,
+      Long conversationId,
       TranscriptionPurpose purpose,
       String audioKey,
       String contentType,
@@ -70,9 +71,9 @@ public class TrainingRecording extends BaseEntity {
       Integer durationMs,
       Instant recordedAt) {
     TrainingRecording recording = new TrainingRecording();
-    recording.userId = trace.userId();
-    recording.requestId = trace.requestId();
-    recording.conversationId = trace.conversationId();
+    recording.userId = userId;
+    recording.requestId = requestId;
+    recording.conversationId = conversationId;
     recording.purpose = purpose;
     recording.audioKey = audioKey;
     recording.contentType = contentType;

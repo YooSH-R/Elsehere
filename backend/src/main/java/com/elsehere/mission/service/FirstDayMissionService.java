@@ -34,9 +34,7 @@ public class FirstDayMissionService {
 
   public FirstDayMissionResponse start(Long userId) {
     // 사용자 행을 잠가 첫 시작 요청 두 개가 같은 PK를 만들지 않게 한다.
-    users
-        .findForMissionUpdate(userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    users.findForUpdate(userId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     FirstDayMission mission =
         repository.findById(userId).orElseGet(() -> repository.save(FirstDayMission.start(userId)));
     return response(mission);

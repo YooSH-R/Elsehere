@@ -1022,7 +1022,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 화면 16의 짧은 피드백을 그립니다. "Mia · 카페 · 발화 4번"은 `npc`, `sceneCode`, `userTurnCount`, "미션 완료"는 `completedMissions`, 개선 표현 상자는 `suggestion`입니다.
-- `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`·`vocabCandidates`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions, vocabCandidates }`)에 저장합니다.
+- `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`·`vocabCandidates`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions, vocabCandidates }`)에 저장합니다. 저장 형식은 응답과 따로 관리하므로 응답 필드 이름을 바꿔도 이미 저장된 피드백을 그대로 읽습니다.
 - `situationExpressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개입니다(표현, 뜻, 쓰는 때, 학습 예문과 번역). 사용자 발화 평가와 별개로 화면 16·17의 회화 칸에 보여 줍니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다. 예문은 학습용이며 사용자가 한 말이 아닙니다.
 - `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`이고 한 단어인 것만 담으며, 숙어·문장 후보는 단어장이 단어 하나만 저장하므로(4.8) 뺍니다. 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
 - 피드백은 대화를 시작할 때 예약한 토큰으로 만듭니다(1.4). 토큰이 떨어져 NPC가 대화를 끝낸 경우에도 피드백을 받습니다.

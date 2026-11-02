@@ -24,6 +24,7 @@
 | `LearningController` | 대화가 끝나면 피드백을 열고, 단어장을 열 때마다 서버에서 다시 읽고, 외웠어요·메모·삭제를 서버에 저장하고, [피드백 목록]에서 고른 대화의 피드백을 다시 열고, 화면이 열려 있는 동안 이동을 잠급니다. `apiSettings`가 비어 있으면 단어장과 피드백 목록을 열지 않습니다. |
 | `FeedbackView`, `VocabularyView`, `ConversationHistoryView`, `LearningHudView` | 피드백 화면, 단어장 화면, 피드백 목록 창, 오른쪽 위 메뉴의 [단어장]·[피드백 목록]·[홈] 버튼과 저장 알림입니다. 피드백 목록 창은 HUD 프리팹에 있어 장소 씬마다 배치하지 않습니다. 피드백 목록·내 정보 창의 닫기는 단어장처럼 창 오른쪽 위 X입니다. |
 | `HudMenu`, `HudMenuView` | 오른쪽 위 메뉴(≡)의 펼침 상태와 화면. 메뉴 버튼은 목록을 펼치고 접으며, 목록의 버튼을 누르거나 바깥을 누르면 접습니다. 펼친 동안 같은 자리에 강조한 메뉴 버튼을 보입니다. `HudMenu`는 Unity 객체 없이 테스트합니다. |
+| `ControlsGuide`, `ControlsGuideText`, `ControlsGuideView` | 오른쪽 아래 조작법 카드. `ControlsGuide`는 카드를 X로 닫았는지 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 기억하고 보일지 정하며, `ControlsGuideText`는 PC·휴대폰 문구를 정합니다. 둘 다 Unity 객체 없이 테스트합니다. `ControlsGuideView`는 카드와 메뉴의 [조작법]을 잇습니다. |
 
 ## 의존성
 
@@ -31,7 +32,7 @@
 | --- | --- |
 | `A305.Api` | `ApiClient`, `ApiSettings`, `ApiException` |
 | `A305.Dialogue` | `DialogueController.ConversationEnded`·`SetExpressionSaveAvailable`·`IsTalking`, `DialogueRecord`, `ServerFeedback`, `KeywordMatcher` |
-| `A305.Player` | `PlayerMover.SetMovementLocked` |
+| `A305.Player` | `PlayerMover.SetMovementLocked`, `PlayerTouchControls.ShouldShowControls`(조작법 카드의 PC·휴대폰 문구) |
 | uGUI, TextMeshPro | 피드백·단어장 화면 |
 
 ## 동작 규칙
@@ -54,6 +55,9 @@
 | [이전]·[다음] | 대화를 고릅니다. 받은 목록의 마지막에서 [다음]을 누르면 다음 페이지를 불러와 그 첫 대화를 고릅니다. |
 | [피드백 보기] | 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면을 피드백 목록 창 위에 엽니다. 만들지 못한 피드백은 [다시 만들기](FB-02)를 쓸 수 있고, 피드백을 만들기 전에 끝난 대화는 평가 없이 이유와 [대화 기록 보기]만 보여 줍니다. 닫으면 피드백 목록 창으로 돌아오며, 미션·튜토리얼에 대화 결과를 다시 알리지 않습니다. |
 | 피드백 목록을 불러오지 못함 | 이전 목록은 그대로 두고 창 아래에 이유를 보여 줍니다. 다시 열거나 다시 누르면 다시 요청합니다. |
+| 장소에 들어옴 | 오른쪽 아래에 조작법 카드를 보입니다. PC는 이동·달리기·점프·시점 돌리기·거리·1인칭 전환·사물 클릭을, 휴대폰·태블릿은 조이스틱·오른쪽 끌기·사물 탭을 보입니다. [E 대화하기]처럼 그 자리에서 뜨는 조작은 넣지 않습니다. 왼쪽 아래는 마을 미니맵과 휴대폰 조이스틱 자리라 쓰지 않습니다. |
+| 조작법 카드 X | 카드를 닫고 이 기기에 기억해 새로고침·장소 이동 뒤에도 다시 띄우지 않습니다. 메뉴(≡)의 [조작법]을 누르면 다시 보입니다. |
+| 대화 중이거나 피드백·단어장·피드백 목록이 열림 | 조작법 카드를 잠시 숨기고, 끝나면 닫지 않은 카드만 다시 보입니다. 메뉴를 펼친 동안에는 메뉴 바깥 영역이 카드를 덮어 카드를 눌러도 메뉴가 접힙니다. |
 
 화면 정렬 순서는 오른쪽 위 메뉴와 피드백 목록 창 95, 피드백 130, 단어장 135입니다. 피드백에서 [단어장 보기]를 누르면 단어장이 피드백 위에 열리고, 닫으면 피드백으로 돌아옵니다.
 
@@ -76,13 +80,13 @@
 
 ## Builder
 
-**Tools → A305 → Learning → Build**(`Scripts/Editor/Learning/LearningBuilder.cs`)가 `Prefabs/Learning/`의 `FeedbackScreen`·`VocabularyScreen`·`LearningHud` 프리팹과 확인용 규칙을 준비합니다. `LearningHud`에는 오른쪽 위 메뉴(≡) 버튼과 목록(`Panel/Menu`)을 만들고, 목록에 [단어장]·[피드백 목록]·[내 정보]·[테마]·[홈]을 둡니다. [테마]는 꺼 두고 집 씬에서만 켭니다. 피드백 목록 창(`History`)과 마이페이지 창도 만듭니다. 메뉴 버튼·목록 줄 모양은 테마 Builder(`UiThemeBuilder`)가 맞춥니다. 화면은 없는 요소만 만들고 이미 있는 요소의 디자인은 유지합니다. **Tools → A305 → Learning → Connect Vocabulary Server**는 단어장 프리팹의 메모·안내 요소를 맞추고 배포용 장소 씬 5개의 `LearningController`에 `ApiSettings`만 연결합니다. 공간 씬에 붙이는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다.
+**Tools → A305 → Learning → Build**(`Scripts/Editor/Learning/LearningBuilder.cs`)가 `Prefabs/Learning/`의 `FeedbackScreen`·`VocabularyScreen`·`LearningHud` 프리팹과 확인용 규칙을 준비합니다. `LearningHud`에는 오른쪽 위 메뉴(≡) 버튼과 목록(`Panel/Menu`)을 만들고, 목록에 [단어장]·[피드백 목록]·[내 정보]·[조작법]·[홈]을 둡니다. 화면 디자인은 하나라 [테마]는 두지 않습니다. 피드백 목록 창(`History`)과 마이페이지 창, 오른쪽 아래 조작법 카드(`ControlsGuide`)도 만듭니다. 조작법 카드는 HUD 맨 뒤에 두어 메뉴 바깥 영역과 피드백 목록·내 정보 창이 그 위에 그려집니다. 메뉴 버튼·목록 줄 모양은 테마 Builder(`UiThemeBuilder`)가 맞춥니다. 화면은 없는 요소만 만들고 이미 있는 요소의 디자인은 유지합니다. **Tools → A305 → Learning → Connect Vocabulary Server**는 단어장 프리팹의 메모·안내 요소를 맞추고 배포용 장소 씬 5개의 `LearningController`에 `ApiSettings`만 연결합니다. 공간 씬에 붙이는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다.
 
 ## 테스트
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Learning.Tests` | `Assets/Tests/EditMode/Learning/` | 단어장 API 경로·본문·응답 변환, 서버 단어장의 페이지 읽기·외웠어요·메모(200자 경계)·삭제와 실패 시 값 유지, 화면 상태(읽기 전·읽는 중·빈 목록·실패·다시 시도·다시 읽는 중)와 단어장 화면의 불러오는 중·빈 목록·실패와 [다시 시도], 목록 문구. 발화별 참고 표현, 참고 표현 없는 발화, 다음 대화 표현, 요약. 서버 피드백 변환(실패·건너뜀 포함)과 상태별 제목·다시 만들기 가능 여부, 상세 화면 문구(고칠 표현 없는 발화의 AI 이유, 회화 표현, 안내 문구), 대화 기록 문구. 지난 대화 API 경로·응답 변환, 목록 읽기·이어 읽기·다시 읽기·실패 시 유지·중복 요청 막기, 저장된 피드백과 대화 기록 열기(피드백 없는 대화 포함), 목록 문구(장소·피드백 상태·더 있음) |
+| `A305.Learning.Tests` | `Assets/Tests/EditMode/Learning/` | 단어장 API 경로·본문·응답 변환, 서버 단어장의 페이지 읽기·외웠어요·메모(200자 경계)·삭제와 실패 시 값 유지, 화면 상태(읽기 전·읽는 중·빈 목록·실패·다시 시도·다시 읽는 중)와 단어장 화면의 불러오는 중·빈 목록·실패와 [다시 시도], 목록 문구. 발화별 참고 표현, 참고 표현 없는 발화, 다음 대화 표현, 요약. 서버 피드백 변환(실패·건너뜀 포함)과 상태별 제목·다시 만들기 가능 여부, 상세 화면 문구(고칠 표현 없는 발화의 AI 이유, 회화 표현, 안내 문구), 대화 기록 문구. 지난 대화 API 경로·응답 변환, 목록 읽기·이어 읽기·다시 읽기·실패 시 유지·중복 요청 막기, 저장된 피드백과 대화 기록 열기(피드백 없는 대화 포함), 목록 문구(장소·피드백 상태·더 있음). 조작법 카드의 처음 보임·닫기와 다시 켜기 기억·가려질 때 닫지 않고 숨기기, PC·휴대폰 문구와 다시 보기 안내 |
 | `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 피드백·단어장 화면과 학습 처리를 한 번씩 붙이고 대화·플레이어·`ApiSettings`와 연결하는지, 배포 장소 씬과 단어장 프리팹의 연결 |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

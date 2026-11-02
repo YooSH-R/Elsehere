@@ -29,9 +29,11 @@ import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.dto.IdiomResponse;
+import com.elsehere.feedback.dto.ReviewsResponse;
 import com.elsehere.feedback.dto.SituationExpressionResponse;
 import com.elsehere.feedback.dto.SuggestionResponse;
 import com.elsehere.feedback.dto.VocabCandidateResponse;
+import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -44,16 +46,36 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import tools.jackson.databind.json.JsonMapper;
 
 // 피드백 생성은 AI 워커 결과를 Mock으로 정하고, 저장 결과는 종료 응답·다시 보기(FB-01)·상세 평가(FB-03)로 확인한다.
 @DialogueServiceTest
 class FeedbackServiceTest {
+
+  // 이미 저장된 피드백의 conversation_feedback.reviews 형식(completed()의 결과). 바꾸면 저장된 피드백을 읽지 못한다.
+  private static final String STORED_REVIEWS =
+      """
+      {"good": ["원하는 것을 분명히 말했어요"],
+       "improve": ["공손한 표현을 더 써 보세요"],
+       "suggestion": {"userText": "I want latte", "betterText": "I'd like a latte, please."},
+       "situationExpressions": [{"expression": "Can I get that to go?",
+                                 "meaningKo": "포장해 주실 수 있나요?",
+                                 "usageKo": "음료를 가지고 나가고 싶을 때 써요.",
+                                 "exampleEn": "Can I get that to go? I'm in a hurry.",
+                                 "exampleKo": "포장해 주실 수 있나요? 좀 급해서요."}],
+       "vocabCandidates": [{"expression": "latte",
+                            "meaningKo": "라떼",
+                            "exampleEn": "I'd like an iced latte.",
+                            "exampleKo": "아이스 라떼 주세요."}]}
+      """;
 
   @Autowired private FeedbackService feedbackService;
 
   @Autowired private AiGateway aiGateway;
 
   @Autowired private EntityManager entityManager;
+
+  @Autowired private JsonMapper jsonMapper;
 
   private Long userId;
   private Conversation conversation;
@@ -72,6 +94,49 @@ class FeedbackServiceTest {
     npcTurn(entityManager, conversation, 5, "Here you go.");
     conversation.endByUser(Instant.parse("2026-10-27T01:05:00Z"));
     entityManager.flush();
+  }
+
+  @Test
+  @DisplayName(
+      "완료된 피드백은 reviews 칸에 저장 형식(good·improve·suggestion·situationExpressions·vocabCandidates)으로 남긴다")
+  void feedbackOnEnd_completed_savesReviewsInStoredFormat() {
+    given(aiGateway.feedback(any(), any())).willReturn(completed());
+
+    feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
+    entityManager.flush();
+    entityManager.clear();
+
+    String reviews =
+        entityManager.find(ConversationFeedback.class, conversation.getId()).getReviews();
+    assertThat(jsonMapper.readTree(reviews)).isEqualTo(jsonMapper.readTree(STORED_REVIEWS));
+  }
+
+  @Test
+  @DisplayName("이미 저장된 형식의 피드백을 읽어 다시 보기(FB-01) 응답을 만든다")
+  void feedback_readsStoredReviews() {
+    ConversationFeedback stored = ConversationFeedback.of(conversation.getId());
+    stored.complete("라테를 주문했어요.", STORED_REVIEWS, "test-model", null);
+    entityManager.persist(stored);
+    entityManager.flush();
+    entityManager.clear();
+
+    FeedbackResponse response = feedbackService.feedback(userId, conversation.getId()).feedback();
+
+    assertThat(response.reviews())
+        .isEqualTo(new ReviewsResponse(List.of("원하는 것을 분명히 말했어요"), List.of("공손한 표현을 더 써 보세요")));
+    assertThat(response.suggestion())
+        .isEqualTo(new SuggestionResponse("I want latte", "I'd like a latte, please."));
+    assertThat(response.situationExpressions())
+        .containsExactly(
+            new SituationExpressionResponse(
+                "Can I get that to go?",
+                "포장해 주실 수 있나요?",
+                "음료를 가지고 나가고 싶을 때 써요.",
+                "Can I get that to go? I'm in a hurry.",
+                "포장해 주실 수 있나요? 좀 급해서요."));
+    assertThat(response.vocabCandidates())
+        .containsExactly(
+            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
   }
 
   @Test

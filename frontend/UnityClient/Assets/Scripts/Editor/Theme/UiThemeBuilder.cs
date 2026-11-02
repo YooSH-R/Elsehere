@@ -235,11 +235,13 @@ namespace A305.EditorTools.Theme
             Transform vocabulary = MenuItem(root, "VocabularyButton", UiIcon.Book, "단어장");
             MenuItem(root, "HistoryButton", UiIcon.Talk, "피드백 목록");
             MenuItem(root, "MyPageButton", UiIcon.Detail, "내 정보");
+            MenuItem(root, "ControlsButton", UiIcon.Hint, ControlsGuideText.MenuLabel);
             MenuItem(root, "ThemeButton", UiIcon.Palette, "테마");
             MenuItem(root, "HomeButton", UiIcon.Home, "홈");
             MenuDivider(menu);
             StyleHistory(root);
             StyleMyPage(root);
+            StyleControlsGuide(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -375,6 +377,26 @@ namespace A305.EditorTools.Theme
             ActionPill(root, "History/Buttons/OpenButton", UiIcon.Detail, UiTone.Primary, 220);
             CornerClose(root, "History");
             Roomy(root, "History");
+        }
+
+        /// <summary>오른쪽 아래 조작법 카드. 알림 카드처럼 작은 카드 바탕에 제목·조작·안내를 두고, 닫기는 오른쪽 위 X다.</summary>
+        private static void StyleControlsGuide(Transform root)
+        {
+            if (root.Find("ControlsGuide") == null)
+                return;
+            Role(root, "ControlsGuide", UiThemeRole.Card);
+            Role(root, "ControlsGuide/Title", UiThemeRole.Title);
+            Role(root, "ControlsGuide/Body", UiThemeRole.Body);
+            Role(root, "ControlsGuide/Hint", UiThemeRole.Muted);
+            CornerClose(root, "ControlsGuide");
+            Transform card = root.Find("ControlsGuide");
+            var column = card.GetComponent<VerticalLayoutGroup>();
+            column.padding = new RectOffset(28, 28, 22, 24);
+            column.spacing = 10;
+            // 제목 줄을 오른쪽 위 X만큼 높여 첫 조작 줄이 X 아래에서 시작하게 한다.
+            Transform title = card.Find("Title");
+            BuilderTools.GetOrAddComponent<LayoutElement>(title.gameObject).minHeight = 52;
+            title.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.MidlineLeft;
         }
 
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
@@ -894,10 +916,8 @@ namespace A305.EditorTools.Theme
 
         private static void StyleFirstDay(Transform root)
         {
-            IconButton(root, "Content/MapButton", UiIcon.Map, UiTone.Primary, caption: false);
-            Role(root, "Content/CurrentGoal", UiThemeRole.Panel);
-            Role(root, "Content/CurrentGoal/Situation", UiThemeRole.Title);
-            Role(root, "Content/CurrentGoal/Direction", UiThemeRole.Body);
+            // 퀘스트 카드와 오른쪽 위 시계·코인 칩은 퀘스트 카드 Builder가 칠한다.
+            A305.EditorTools.Mission.QuestCardBuilder.Apply(root.gameObject);
             Role(root, "Content/Journal", UiThemeRole.Panel);
             root.Find("Content/Journal").GetComponent<VerticalLayoutGroup>().padding =
                 new RectOffset(48, 48, 36, 40);
@@ -991,12 +1011,9 @@ namespace A305.EditorTools.Theme
             size.preferredWidth = size.minWidth = 56;
         }
 
+        // 대화창 바탕·이름·대사·입력 줄·도구 버튼은 상자 없는 그라데이션 대화창 Builder가 칠한다. 여기서는 도움 카드만 칠한다.
         private static void StyleDialogue(Transform root)
         {
-            Role(root, "Panel", UiThemeRole.Panel);
-            Role(root, "Panel/Title", UiThemeRole.Title);
-            Role(root, "Panel/Notice", UiThemeRole.Muted);
-            Role(root, "Panel/Conversation/History/Viewport/Lines", UiThemeRole.Body);
             Role(root, "HelpPanel", UiThemeRole.Panel);
             Role(root, "HelpPanel/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/Guide", UiThemeRole.Muted);
@@ -1006,76 +1023,6 @@ namespace A305.EditorTools.Theme
             Role(root, "HelpPanel/Viewport/Content/HintCard", UiThemeRole.Card);
             Role(root, "HelpPanel/Viewport/Content/HintCard/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
-            CompactLabel(root, "HelpPanel/Viewport/Content/WordsCard/Title", "단어");
-            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/Title", "문장");
-            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/UseHintButton/Label", "넣기");
-            CompactLabel(root, "Panel/Conversation/ToolRow/MeaningButton/Label", "뜻");
-            CompactLabel(root, "Panel/Conversation/ToolRow/ReplayButton/Label", "듣기");
-            PillButton(
-                root,
-                "HelpPanel/Viewport/Content/HintCard/UseHintButton",
-                UiIcon.Example,
-                UiTone.Secondary
-            );
-            Role(root, "Panel/Conversation/Status", UiThemeRole.Accent);
-            Role(root, "Panel/Conversation/InputRow/Input", UiThemeRole.Input);
-            IconButton(
-                root,
-                "Panel/Conversation/InputRow/SendButton",
-                UiIcon.Send,
-                UiTone.Primary,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/ExampleButton",
-                UiIcon.Example,
-                UiTone.Accent,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/MeaningButton",
-                UiIcon.Meaning,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/SaveButton",
-                UiIcon.Save,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/InputRow/TalkButton",
-                UiIcon.Mic,
-                UiTone.Secondary,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/ReplayButton",
-                UiIcon.Replay,
-                UiTone.Positive,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/HintButton",
-                UiIcon.Hint,
-                UiTone.Positive,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/RetryButton",
-                UiIcon.Retry,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
             StyleDialogueWaiting(root);
             StyleVoiceConsentDialog(root);
@@ -1083,8 +1030,8 @@ namespace A305.EditorTools.Theme
 
         private static void StyleDialogueWaiting(Transform root)
         {
-            Role(root, "Panel/Conversation/History/Wait", UiThemeRole.Card);
-            Role(root, "Panel/Conversation/History/Wait/Row/Label", UiThemeRole.Title);
+            // 대답 기다림은 대사 자리에 바탕 없이 흰 글씨로 보인다.
+            Role(root, "Panel/Conversation/History/Wait/Row/Label", UiThemeRole.TitleOnDark);
             Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
             Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
             Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);

@@ -97,6 +97,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | --- | --- |
 | `PlayerMover.IsMoving` | 이번 프레임에 수평으로 움직였는지. 이동 중에 사물 툴팁을 숨길 때 씁니다. |
 | `PlayerMover.IsRunning` | 달리기 키를 누른 채 움직였는지. 튜토리얼 걷기 단계가 씁니다. |
+| `PlayerMover.JumpedThisFrame` | 이번 프레임에 땅을 박차고 뛰어올랐는지(공중에서 누른 점프는 아님). 튜토리얼 걷기 단계가 씁니다. |
 | `PlayerCameraRig.ZoomedByUserThisFrame`, `ToggledViewThisFrame` | 이번 프레임에 휠로 확대·축소했는지, 1인칭·3인칭을 바꿨는지. 튜토리얼 둘러보기 단계가 씁니다. |
 | `PlayerMover.SetMovementLocked(bool)` | 대화처럼 움직이면 안 되는 동안 이동과 점프를 막습니다. 중력은 계속 적용합니다. |
 | `PlayerMover.FaceToward(Vector3)` | 제자리에서 주어진 지점을 수평으로 바라보게 몸을 돌립니다. 대화를 마친 뒤 대화하던 NPC 쪽을 보게 할 때 씁니다. |

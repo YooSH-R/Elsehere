@@ -9,13 +9,13 @@
 | 단계 | 넘어가는 조건 | 안내 카드 | 코치 마크 |
 | --- | --- | --- | --- |
 | `Arrival` | [시작하기] | 숙소 도착 | 카드 |
-| `Walk` | 이 단계에서 걷기와 달리기(터치 기기는 걷기만)를 모두 하면 완료 표시 1초 뒤 저절로 | [W][A][S][D]·[Shift], 터치 기기는 조이스틱 | 없음 |
+| `Walk` | 이 단계에서 걷기·달리기·점프(터치 기기는 걷기만)를 모두 하면 완료 표시 1초 뒤 저절로 | [WASD] 걷기·[Shift] 뛰기·[스페이스] 점프, 터치 기기는 조이스틱 | 없음 |
 | `Look` | 이 단계에서 시점 돌리기·휠 확대·V 시점 바꾸기(터치 기기는 화면 끌기만)를 모두 하면 완료 표시 1초 뒤 저절로 | [마우스 왼쪽] 누른 채 끌기·[휠] 줌·[V], 터치 기기는 화면 오른쪽 끌기 | 없음 |
 | `SaveWord` | 고정한 사물 카드의 [저장]. 카드의 [저장]은 서버 단어 카드를 받아야 보이므로, 빌드에서는 서버에 연결되지 않으면 이 단계를 마칠 수 없습니다(건너뛰기는 할 수 있음). Editor에서는 서버가 없어도 확인용 단어 카드로 [저장]을 눌러 볼 수 있습니다([ObjectHover 모듈](../ObjectHover/README.md)). | 호버 카드·클릭 고정·[발음 듣기]·[저장] | 카드를 고정하면 [저장] |
 | `OpenVocabulary` | 메뉴(≡)의 [단어장] | 단어장·[피드백 목록]·[홈] | ≡ → [단어장] |
 | `LeaveLodging` | 숙소 밖 공간에 들어감 | 밖으로 나가기(단어장이 떠 있으면 숨김) | 숙소 문 위 화살표. 단어장을 열어 이 단계로 넘어온 동안에는 단어장 창을 밝히고 단어장 설명(저장한 단어가 모이는 곳, [외웠어요]·메모)과 닫고 밖으로 나가라는 다음 할 일 |
 | `MeetBen` | Ben과 대화 시작. 숙소를 나오자마자 다른 곳으로 걸어가지 않게 이동·시점을 잠그고, Ben을 바라보며 오른쪽 어깨 너머로 Ben을 비추는 구도로 붙잡아 둡니다. Ben은 멀리 있어도 다가와 말을 겁니다. | Ben 만나기(Ben이 다가오면 [대화하기]) | Ben 머리 위 화살표, 제안이 뜨면 [대화하기] |
-| `BenDialogue` | 길 안내를 끝까지 마치고 대화 종료 → `BenFeedback`. 중간에 끝내면 `MeetBen`으로 되돌아가 Ben 앞에 그대로 붙잡아 두고 Ben이 다시 말을 겁니다. 길 안내를 마쳐야 붙잡기가 풀립니다. | 숨김 | 대사를 읽을 수 있게 화면을 덮지 않고 테두리로만 밝힙니다. 첫 대사는 입력칸·[보내기]·[예시 문장]·[꾹 눌러 말하기], 둘째 대사는 왼쪽 추천 문장 카드와 [넣기], 셋째 대사는 왼쪽 추천 단어 카드. 설명에 정해진 흐름대로 진행된다는 안내와 할 대사·뜻. 마치면 [대화 종료] |
+| `BenDialogue` | 길 안내를 끝까지 마치고 대화 종료 → `BenFeedback`. 중간에 끝내면 `MeetBen`으로 되돌아가 Ben 앞에 그대로 붙잡아 두고 Ben이 다시 말을 겁니다. 길 안내를 마쳐야 붙잡기가 풀립니다. | 숨김 | 대화를 시작하면 티칭: 대사 칸 → [뜻]·[예시 문장] → 왼쪽 추천 단어 카드 → 왼쪽 추천 문장 카드([넣기])를 하나씩 어둡게 밝히고 옆 말풍선의 [다음]으로 넘깁니다. 다 보거나 첫 대사를 보내면 대사를 읽을 수 있게 덮지 않고 입력칸·[보내기]·[예시 문장]·[꾹 눌러 말하기]를 테두리로 밝히며, 말풍선에 정해진 흐름대로 진행된다는 안내와 할 대사·뜻을 보입니다. 마치면 [대화 종료] |
 | `BenFeedback` | 길 안내 피드백의 [닫기] | 피드백 보기(피드백이 떠 있으면 숨김) | 피드백 창 |
 | `TodayGoal` | 지도 버튼으로 수첩 열기 → `Completed` | 오늘의 목표·택시·벤치 | 지도 버튼 |
 | `Completed` | — | 숨김 | 숨김 |
@@ -43,7 +43,7 @@
 
 ## 코치 마크
 
-눌러야 할 버튼은 화면을 반투명 검은 판으로 덮고 그 버튼만 노란 테두리로 밝혀, 구멍 안만 누를 수 있게 합니다. 판은 밝힐 버튼이 있는 캔버스 바로 위에 그리므로, 그보다 위에 있는 안내 카드와 [튜토리얼 건너뛰기]는 가리지 않습니다. 걸어가야 할 숙소 문과 Ben은 화면을 덮지 않고 머리 위에서 오르내리는 노란 화살표로 가리키고, 화면 밖이거나 카메라 뒤면 위쪽 안내 카드와 겹치지 않게 대상이 있는 쪽 아래 구석에서 옆을 가리킵니다. 안내 카드가 숨는 대화 제안·대화·피드백 화면에서는 할 일을 화면 위쪽 가운데 설명으로 알리고, 대화 화면에서는 대사를 읽을 수 있게 둘레를 덮지 않고 테두리로만 밝히며, 길 안내 대화 설명에 지금 할 대사와 뜻을 함께 크게 보입니다. 무엇을 밝힐지는 `TutorialCoachPlan`이 단계와 화면 상태로 고릅니다.
+눌러야 할 버튼은 화면을 반투명 검은 판으로 덮고 그 버튼만 노란 테두리로 밝혀, 구멍 안만 누를 수 있게 합니다. 판은 밝힐 버튼이 있는 캔버스 바로 위에 그리므로, 그보다 위에 있는 안내 카드와 [튜토리얼 건너뛰기]는 가리지 않습니다. 걸어가야 할 숙소 문과 Ben은 화면을 덮지 않고 머리 위에서 오르내리는 노란 화살표로 가리킵니다. 머리 위 자리가 화면 위로 벗어나거나 위쪽 안내 카드 자리에 걸려도 문·Ben 몸통이 보이면 몸통을 가리키고, 둘 다 화면 밖이거나 카메라 뒤면 대상이 있는 쪽 아래 구석에서 옆을 가리킵니다. 안내 카드가 숨는 대화 제안·대화·단어장·피드백 화면에서는 할 일을 밝힌 곳 옆(오른쪽 → 왼쪽 → 위 → 아래 중 들어가는 곳)에 꼬리 달린 말풍선으로 알립니다. Ben 대화를 시작하면 볼 곳을 하나씩 밝히는 티칭을 말풍선의 [다음]으로 넘기고, 티칭 뒤에는 대사를 읽을 수 있게 둘레를 덮지 않고 테두리로만 밝히며 말풍선에 지금 할 대사와 뜻을 함께 크게 보입니다. 무엇을 밝힐지는 `TutorialCoachPlan`이 단계와 화면 상태로 고릅니다.
 
 ## 구성
 
@@ -52,22 +52,22 @@
 | `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지·장소 이동 가능 여부·미션 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
 | `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비우고 장소 이동 잠금도 풉니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. |
 | `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | 튜토리얼을 끝낸 방법에 맞춰 완료(TUT-01 `POST /api/v1/me/tutorial/complete`)나 건너뛰기(TUT-02 `/skip`)를 한 번 저장합니다. 네트워크 실패면 기록을 남겨 다음 장소에 들어갈 때 다시 보내고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. Unity 객체 없이 테스트합니다. |
-| `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상을 고르고, 구멍·둘레 판과 화살표 자리·방향을 계산합니다. Unity 객체 없이 테스트합니다. |
+| `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상(Ben 대화 시작 티칭 순서 포함)을 고르고, 구멍·둘레 판, 설명 말풍선 자리·꼬리, 화살표 자리·방향을 계산합니다. Unity 객체 없이 테스트합니다. |
 | `TutorialAction` | 걷기·둘러보기에서 해야 할 조작(걷기·달리기·시점 돌리기·확대·시점 바꾸기) |
 | `TutorialGuideText`, `TutorialAutoAdvance` | 안내 문구의 `{키}`를 `[키]` 표시로 바꾸고 해낸 할 일을 초록색으로 바꾸며 진행 점을 그리고, 해내면 끝나는 단계를 완료 표시 뒤 저절로 넘깁니다. Unity 객체 없이 테스트합니다. |
 | `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 짧은 이름과 할 일 한 줄(키보드·마우스, 터치 기기), 안내 카드가 숨는 동안의 코치 마크 설명([대화하기]·입력할 대사·추천 문장·추천 단어·다른 문장·[대화 종료]), 잠긴 문 안내, 숙소 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`). 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
 | `TutorialDirector` | 공간 씬마다 하나. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 진행에 전하고, 안내 카드·코치 마크·행인 허용·장소 이동과 택시 잠금·미션 표시를 바꿉니다. 숙소를 나오면 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둡니다(`Passerby.IsPlayerWaiting`, `PlayerCameraRig.EnterMeetingView`). `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `TutorialGuideView` | 화면 위쪽 가운데의 안내 카드(정렬 순서 115). 진행 점·단계 이름·할 일 한 줄과 건너뛰기 확인, 할 일 아래 잠깐 보이는 주의 띠 |
-| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리·설명과 장면 속 대상 위 화살표 |
+| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리, 밝힌 곳 옆 설명 말풍선(꼬리·[다음])과 장면 속 대상 위 화살표 |
 
 ## 의존성
 
 | 대상 | 용도 |
 | --- | --- |
 | `A305.Api` | `ApiClient`, `ApiSettings`, `ApiException` |
-| `A305.Player` | `PlayerMover.IsMoving`·`FaceToward`, `PlayerCameraRig.TurnedByUserThisFrame`·`EnterMeetingView`·`ExitMeetingView` |
+| `A305.Player` | `PlayerMover.IsMoving`·`IsRunning`·`JumpedThisFrame`·`FaceToward`, `PlayerCameraRig.TurnedByUserThisFrame`·`EnterMeetingView`·`ExitMeetingView` |
 | `A305.ObjectHover` | `WordTooltipView.IsPinned`·`CanSaveWord`·`SaveRequested`·`SaveButtonRect` |
-| `A305.Dialogue` | `DialogueController.Started`·`ConversationEnded`·`IsTalking`·`IsGuidedCompleted`·`GuidedTurnIndex`·`GuidedLine`·`GuidedLineKorean`, `DialoguePanelView.GuidedLineParts`·`SuggestedSentenceRect`·`SuggestedWordsRect`·`EndButtonRect` |
+| `A305.Dialogue` | `DialogueController.Started`·`ConversationEnded`·`IsTalking`·`IsGuidedCompleted`·`GuidedTurnIndex`·`GuidedLine`·`GuidedLineKorean`, `DialoguePanelView.LinesRect`·`ToolParts`·`GuidedLineParts`·`SuggestedSentenceRect`·`SuggestedWordsRect`·`EndButtonRect` |
 | `A305.Npc` | `Passerby.IsApproachAllowed`·`IsPlayerWaiting`·`SetTutorialScript`, `NpcIdentity.Code`, `PasserbyOfferView.IsShownBy`·`ShownButtonRect`, `TaxiRide.IsHailAllowed` |
 | `A305.Learning` | `LearningController.FeedbackClosed`·`IsShowingScreen`, `LearningHudView.VocabularyRequested`·`ShowMessage`, `HudMenuView.IsOpen`, `FeedbackView.IsVisible` |
 | `A305.Mission` | `MissionController.SetStoryAvailable`·`SetPanelVisible`, `FirstDayMissionView.JournalOpened` |
@@ -89,8 +89,8 @@
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 단계 순서, 걷기·시점·단어 저장·단어장은 그 단계에서 한 것만 인정, 숙소 밖 진입, 단계별 장소 이동 잠금, 행인 허용 단계, 길 안내 완료·중단, 피드백 닫기, 지도로 완료, 건너뛰기, 끝낸 방법 기록과 서버 저장(완료·건너뛰기·재시도·409 거절·API 경로), 서버에서 이미 끝난 사용자, 코치 마크 대상 고르기와 구멍·판 계산, 화면 밖·카메라 뒤 대상을 가리키는 아래 구석 화살표, 길 안내 대사마다 추천 문장·추천 단어 카드 알리기, 대화 설명이 정해진 흐름대로 진행된다고 알리는지, 안내 문구의 [키] 표시·진행 점·보이는 글자 수, 해낸 단계의 자동 넘어가기, 단계 안내가 기기별 짧은 한 줄인지 |
-| `A305.Tutorial.PlayModeTests` | `Assets/Tests/PlayMode/Tutorial/` | 배포용 숙소·마을 씬에서 숙소 문 잠금과 문 위 화살표, Ben 머리 위 화살표와 [대화하기]만 밝히기, 정해진 대사와 다른 문장은 되돌리고 안내한 뒤 길 안내를 마치면 [대화 종료] 밝히기, [건너뛰기]는 한 번 더 묻고 확인해야 끝나기, 잠긴 문 알림이 안내 카드에 잠깐 보였다 사라지기, 숙소를 나오자마자 이동·시점을 잠그고 Ben을 바라보며 Ben이 다가와 말을 걸기, 대화가 잠금을 이어받고 길 안내를 마치면 풀기, 일찍 끝내면 계속 붙잡기, 대화 중 대사를 덮지 않고 추천 문장·추천 단어를 차례로 알리기 |
+| `A305.Tutorial.Tests` | `Assets/Tests/EditMode/Tutorial/` | 단계 순서, 걷기·시점·단어 저장·단어장은 그 단계에서 한 것만 인정, 숙소 밖 진입, 단계별 장소 이동 잠금, 행인 허용 단계, 길 안내 완료·중단, 피드백 닫기, 지도로 완료, 건너뛰기, 끝낸 방법 기록과 서버 저장(완료·건너뛰기·재시도·409 거절·API 경로), 서버에서 이미 끝난 사용자, 코치 마크 대상 고르기와 구멍·판 계산, 화면 밖·카메라 뒤 대상을 가리키는 아래 구석 화살표와 머리 위가 화면 밖일 때 몸통 가리키기, 설명 말풍선의 자리(오른쪽·왼쪽·위)와 캔버스 안에 머무르기·꼬리 위치, Ben 대화 시작 티칭 순서와 첫 대사 뒤에는 할 대사만 알리기, 걷기 단계의 점프, 대화 설명이 정해진 흐름대로 진행된다고 알리는지, 안내 문구의 [키] 표시·진행 점·보이는 글자 수, 해낸 단계의 자동 넘어가기, 단계 안내가 기기별 짧은 한 줄인지 |
+| `A305.Tutorial.PlayModeTests` | `Assets/Tests/PlayMode/Tutorial/` | 배포용 숙소·마을 씬에서 숙소 문 잠금과 문 위 화살표, Ben 머리 위 화살표와 [대화하기]만 밝히기, 정해진 대사와 다른 문장은 되돌리고 안내한 뒤 길 안내를 마치면 [대화 종료] 밝히기, [건너뛰기]는 한 번 더 묻고 확인해야 끝나기, 잠긴 문 알림이 안내 카드에 잠깐 보였다 사라지기, 숙소를 나오자마자 이동·시점을 잠그고 Ben을 바라보며 Ben이 다가와 말을 걸기, 대화가 잠금을 이어받고 길 안내를 마치면 풀기, 일찍 끝내면 계속 붙잡기, Ben 대화를 시작하면 대사·[뜻]·추천 단어·추천 문장을 하나씩 밝히고 밝힌 곳 옆 말풍선의 [다음]으로 넘긴 뒤 대사를 덮지 않고 할 대사를 알리기 |
 | `A305.World.Tests` | `Assets/Tests/EditMode/World/` | 공간 기능 연결이 안내 카드와 튜토리얼 진행 처리를 한 번씩 붙이고, 흐름 기능과 씬에 놓인 행인을 연결하는지, 배포 장소 씬의 `ApiSettings` 연결 |
 
 `A305.Npc.PlayModeTests`와 `A305.Tutorial.PlayModeTests`는 각 테스트 전에 `TutorialState.Clear()`로 튜토리얼을 처음부터 시작합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

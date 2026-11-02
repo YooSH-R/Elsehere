@@ -10,6 +10,7 @@
         "A305.World",
         "A305.ObjectHover",
         "A305.Tutorial",
+        "A305.Mission",
         "UnityEngine.UI",
         "Unity.TextMeshPro"
     ],

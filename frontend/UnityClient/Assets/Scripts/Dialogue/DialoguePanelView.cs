@@ -621,6 +621,9 @@ namespace A305.Dialogue
 
         private bool vehicleLayout;
 
+        // 대화창 윗변과 택시 안내 사이 간격
+        private const float VehicleStatusGap = 16;
+
         [SerializeField]
         private TMP_Text vehicleStatusText;
 
@@ -700,6 +703,24 @@ namespace A305.Dialogue
             statusText.fontSizeMax = 20;
             ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 520, 44);
             ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 328, 44);
+            PlaceVehicleStatus(frame);
+        }
+
+        // 택시 안내는 대화창 바로 위 가운데에 붙인다. 화면 위쪽 가운데에 두면 왼쪽 위 목표 카드와 겹쳤다.
+        // 안내 판은 대화창과 같은 캔버스 아래에 있어 대화창의 자리를 그대로 기준으로 삼는다.
+        private void PlaceVehicleStatus(RectTransform frame)
+        {
+            if (vehicleStatusText == null)
+                return;
+            var status = (RectTransform)vehicleStatusText.transform.parent;
+            status.anchorMin = status.anchorMax = frame.anchorMin;
+            status.pivot = new Vector2(.5f, 0);
+            status.anchoredPosition =
+                frame.anchoredPosition
+                + new Vector2(
+                    (.5f - frame.pivot.x) * frame.sizeDelta.x,
+                    frame.sizeDelta.y + VehicleStatusGap
+                );
         }
 
         private string FormatGuide()

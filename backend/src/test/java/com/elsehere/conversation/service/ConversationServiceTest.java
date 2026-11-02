@@ -165,7 +165,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Good morning! How can I help you?", null, null));
+        .willReturn(reply("Good morning! How can I help you?", null));
 
     conversationService.start(
         userId, new StartConversationRequest(UUID.randomUUID(), "HOTEL_STAFF", InitiatedBy.USER));

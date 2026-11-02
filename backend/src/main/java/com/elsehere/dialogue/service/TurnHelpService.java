@@ -9,6 +9,7 @@ import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -47,6 +48,7 @@ public class TurnHelpService {
   private final ConversationResponses conversationResponses;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final AiFailureRecorder aiFailureRecorder;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
   private final Clock clock;
@@ -59,7 +61,11 @@ public class TurnHelpService {
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, line.conversationId());
-    MeaningResult result = aiWorkerClient.meaning(trace, line.npc(), line.text(), line.level());
+    MeaningResult result =
+        aiFailureRecorder.recordIfFails(
+            trace,
+            AiRequestKind.MEANING,
+            () -> aiWorkerClient.meaning(trace, line.npc(), line.text(), line.level()));
     aiRequestRecorder.record(trace, AiRequestKind.MEANING, result.usage(), AiRequestStatus.OK);
     List<GlossaryResponse> glossary =
         result.glossary() == null
@@ -86,7 +92,10 @@ public class TurnHelpService {
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     // 장면별 목표가 아직 없어 NPC 대답처럼 목표를 비워 보낸다(워커는 마지막 NPC 대사에 자연스럽게 대답할 말을 만든다).
     HintResult result =
-        aiWorkerClient.hint(trace, target.npc(), target.history(), "", target.level());
+        aiFailureRecorder.recordIfFails(
+            trace,
+            AiRequestKind.HINT,
+            () -> aiWorkerClient.hint(trace, target.npc(), target.history(), "", target.level()));
     String hintText = result.firstSentence();
     boolean usable = hintText != null && !hintText.isBlank();
     aiRequestRecorder.record(
@@ -114,7 +123,11 @@ public class TurnHelpService {
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     SuggestResult result =
-        aiWorkerClient.suggest(trace, target.npc(), target.history(), "", target.level());
+        aiFailureRecorder.recordIfFails(
+            trace,
+            AiRequestKind.HINT,
+            () ->
+                aiWorkerClient.suggest(trace, target.npc(), target.history(), "", target.level()));
     List<String> words = result.words();
     boolean usable = words != null && !words.isEmpty();
     // 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 힌트 호출로 기록한다. 사용량의 step은 suggest로 남는다.

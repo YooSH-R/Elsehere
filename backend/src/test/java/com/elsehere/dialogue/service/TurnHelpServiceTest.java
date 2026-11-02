@@ -125,6 +125,60 @@ class TurnHelpServiceTest {
   }
 
   @Test
+  @DisplayName("뜻 보기를 부르다 워커에 닿지 못하면 뜻 보기 호출을 FAILED로 남긴다")
+  void meaning_workerCallFails_recordsFailed() {
+    given(aiWorkerClient.meaning(any(), any(), anyString(), anyInt()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertErrorCode(
+        () -> turnHelpService.meaning(userId, npcTurn.getId(), requestId),
+        ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.MEANING)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
+  @DisplayName("힌트를 부르다 워커에 닿지 못하면 힌트 호출을 FAILED로 남긴다")
+  void hint_workerCallFails_recordsFailed() {
+    given(aiWorkerClient.hint(any(), any(), anyList(), anyString(), anyInt()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertErrorCode(
+        () -> turnHelpService.hint(userId, npcTurn.getId(), requestId),
+        ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.HINT)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
+  @DisplayName("추천 단어를 부르다 워커에 닿지 못하면 힌트 호출로 FAILED를 남긴다")
+  void suggestWords_workerCallFails_recordsFailed() {
+    given(aiWorkerClient.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertErrorCode(
+        () -> turnHelpService.suggestWords(userId, npcTurn.getId(), requestId),
+        ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.HINT)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
   @DisplayName("워커가 실패하면 오류를 그대로 알리고 뜻을 저장하지 않아 다음 요청에서 다시 만든다")
   void meaning_workerFails_savesNothing() {
     given(aiWorkerClient.meaning(any(), any(), anyString(), anyInt()))

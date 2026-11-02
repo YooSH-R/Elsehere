@@ -11,7 +11,8 @@ namespace A305.ObjectHover
     public sealed class LocalObjectWordApi : IObjectWordApi
     {
         // 장소를 옮겨도 같은 Play 동안은 저장·숨김을 기억한다. 저장한 단어는 저장한 순서로 둔다.
-        private static readonly List<ObjectWordDetails> SavedWordList = new List<ObjectWordDetails>();
+        private static readonly List<ObjectWordDetails> SavedWordList =
+            new List<ObjectWordDetails>();
         private static readonly HashSet<string> HiddenKeys = new HashSet<string>();
 
         private readonly List<ObjectWordDetails> sceneWords = new List<ObjectWordDetails>();

@@ -39,7 +39,11 @@ namespace A305.Player.Tests
             Vector3 face = Quaternion.Inverse(pose.rotation) * (Face - pose.position);
             Assert.That(player.z, Is.GreaterThan(0f), "플레이어는 카메라 앞에 있습니다.");
             Assert.That(player.x, Is.LessThan(0f), "플레이어는 화면 왼쪽에 보입니다.");
-            Assert.That(face.x / face.z, Is.EqualTo(0f).Within(0.01f), "상대 얼굴은 가운데에 보입니다.");
+            Assert.That(
+                face.x / face.z,
+                Is.EqualTo(0f).Within(0.01f),
+                "상대 얼굴은 가운데에 보입니다."
+            );
         }
 
         [Test]

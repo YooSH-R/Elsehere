@@ -398,7 +398,11 @@ namespace A305.Tutorial.PlayModeTests
 
             DialoguePanelView panel = Single<DialoguePanelView>();
             CoachMarkView coachMark = Single<CoachMarkView>();
-            Assert.That(coachMark.IsDimmingOutside, Is.False, "대사가 보이게 어둡게 덮지 않습니다.");
+            Assert.That(
+                coachMark.IsDimmingOutside,
+                Is.False,
+                "대사가 보이게 어둡게 덮지 않습니다."
+            );
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
 
             Click(panel, "ExampleButton");
@@ -416,9 +420,9 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { panel.SuggestedWordsRect }));
             Assert.That(coachMark.CaptionText, Does.Contain("추천 단어"));
             Assert.That(
-                panel.SuggestedWordsRect.GetComponentsInChildren<TMP_Text>().Any(text =>
-                    text.text.Contains("minute")
-                ),
+                panel
+                    .SuggestedWordsRect.GetComponentsInChildren<TMP_Text>()
+                    .Any(text => text.text.Contains("minute")),
                 Is.True,
                 "이번 대사에 쓸 추천 단어가 보입니다."
             );

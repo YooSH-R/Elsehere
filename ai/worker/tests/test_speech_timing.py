@@ -2,7 +2,7 @@ import io
 import wave
 from types import SimpleNamespace
 
-from app.speech_timing import attach_timing, read_timing
+from app.speech_timing import attach_timing, phoneme_sequence, read_timing
 
 
 def wav_file(seconds=1.0):
@@ -109,6 +109,23 @@ def test_stress_token_does_not_insert_an_unspoken_rest_before_the_vowel():
 def test_reduced_article_vowel_keeps_new_cafe_sentences_animated():
     timing = read_timing(attach_timing(wav_file(), [phone("ɐ", 0.1, 0.2), phone("k", 0.2, 0.3)]))
     assert [p["phoneme"] for p in timing["phonemes"]] == ["ah", "k"]
+
+
+def test_espeak_consonants_keep_lip_sync_for_gpu_voice():
+    # espeak는 g를 ASCII가 아닌 ɡ(U+0261)로 낸다. get·good·go처럼 흔한 단어라 빠지면 대사 대부분이 입모양을 잃는다.
+    cues = phoneme_sequence("ɡˈʊd bˈɑːx jˈuːtɹɛçt")
+    assert [c["phoneme"] for c in cues] == ["g", "uh", "d", "_", "b", "aa", "k", "_", "y", "uw", "t", "r", "eh", "h", "t"]
+
+
+def test_nasal_and_palatal_marks_belong_to_the_previous_phoneme():
+    assert [c["phoneme"] for c in phoneme_sequence("blˈɑ̃ŋk ˈɑːɹɡʲaɪl")] == ["b", "l", "aa", "ng", "k", "_", "aa", "r", "g", "ay", "l"]
+    timing = read_timing(
+        attach_timing(wav_file(), [phone("ɡ", 0.1, 0.2), phone("ʲ", 0.2, 0.25), phone("ɑ", 0.25, 0.4), phone("̃", 0.4, 0.45)])
+    )
+    assert timing["phonemes"] == [
+        {"phoneme": "g", "start": 0.1, "end": 0.25},
+        {"phoneme": "aa", "start": 0.25, "end": 0.45},
+    ]
 
 
 def test_spoken_price_uses_timed_engine_and_shares_normalized_cache(monkeypatch):

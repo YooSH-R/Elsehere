@@ -3,20 +3,17 @@ package com.elsehere.admin.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.admin.dto.PronunciationProgress;
 import com.elsehere.admin.dto.PronunciationRun;
-import com.elsehere.ai.client.AiWorkerClient;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.repository.AiRequestRepository;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
@@ -25,7 +22,6 @@ import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.service.PronunciationAudioStore;
-import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -52,11 +48,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
   PronunciationAudioStore.class,
-  AiRequestRecorder.class,
-  AiFailureRecorder.class,
   PronunciationGenerator.class
 })
-@MockitoBean(types = AiWorkerClient.class)
+@MockitoBean(types = AiGateway.class)
 class PronunciationGeneratorTest {
 
   private static final Path PRONUNCIATION_DIR = createDirectory();
@@ -70,15 +64,11 @@ class PronunciationGeneratorTest {
 
   @Autowired private PronunciationGenerator pronunciationGenerator;
 
-  @Autowired private AiRequestRepository aiRequestRepository;
-
-  @Autowired private AiWorkerClient aiWorkerClient;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private PronunciationAudioStore pronunciationAudioStore;
 
   @Autowired private VocabularyRepository vocabularyRepository;
-
-  @Autowired private EntityManager entityManager;
 
   private int objectWordCount;
 
@@ -95,14 +85,14 @@ class PronunciationGeneratorTest {
   @Test
   @DisplayName("발음 파일이 없는 사물 단어마다 영어 표현을 고정 목소리로 합성해 {wordKey}.wav로 저장하고 발음 키를 넣는다")
   void generateMissing_createsPronunciationForEachObjectWord() {
-    given(aiWorkerClient.synthesize(any(), anyString(), eq("af_heart"), eq(1.0))).willReturn(WAV);
+    given(aiGateway.synthesize(any(), anyString(), eq("af_heart"), eq(1.0))).willReturn(WAV);
 
     PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
 
     assertThat(objectWordCount).isPositive();
     assertThat(run.created()).isEqualTo(objectWordCount);
     assertThat(run.failedWordKeys()).isEmpty();
-    then(aiWorkerClient).should().synthesize(any(), eq("air conditioner"), eq("af_heart"), eq(1.0));
+    then(aiGateway).should().synthesize(any(), eq("air conditioner"), eq("af_heart"), eq(1.0));
     assertThat(pronunciationAudioStore.load("air_conditioner.wav")).contains(WAV);
     assertThat(vocabularyRepository.findByWordKey("air_conditioner"))
         .get()
@@ -114,12 +104,12 @@ class PronunciationGeneratorTest {
   @DisplayName("이미 발음 파일이 있는 단어는 다시 합성하지 않고 발음 키만 넣는다")
   void generateMissing_skipsWordWithFile() {
     pronunciationAudioStore.save("sofa.wav", WAV);
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
+    given(aiGateway.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
 
     PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
 
     assertThat(run.created()).isEqualTo(objectWordCount - 1);
-    then(aiWorkerClient).should(never()).synthesize(any(), eq("sofa"), anyString(), eq(1.0));
+    then(aiGateway).should(never()).synthesize(any(), eq("sofa"), anyString(), eq(1.0));
     assertThat(vocabularyRepository.findByWordKey("sofa"))
         .get()
         .extracting(Vocabulary::getPronunciationAudioKey)
@@ -127,32 +117,10 @@ class PronunciationGeneratorTest {
   }
 
   @Test
-  @DisplayName("합성에 실패한 단어는 합성 호출을 FAILED로 남긴다")
-  void generateMissing_failedWord_recordsFailedCall() {
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
-    given(aiWorkerClient.synthesize(any(), eq("sofa"), anyString(), eq(1.0)))
-        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
-
-    // 호출 기록은 별도 트랜잭션으로 커밋되어 앞선 테스트의 기록도 남아 있으므로 늘어난 수를 본다.
-    long failedBefore = failedSyntheses();
-
-    pronunciationGenerator.generateMissing(ADMIN_ID);
-
-    assertThat(failedSyntheses()).isEqualTo(failedBefore + 1);
-  }
-
-  private long failedSyntheses() {
-    return aiRequestRepository.findAll().stream()
-        .filter(request -> request.getKind() == AiRequestKind.TTS)
-        .filter(request -> request.getStatus() == AiRequestStatus.FAILED)
-        .count();
-  }
-
-  @Test
   @DisplayName("합성에 실패한 단어는 실패 목록에 넣고 건너뛰며, 나머지 단어는 계속 만든다")
   void generateMissing_failedWord_isReportedAndOthersContinue() {
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
-    given(aiWorkerClient.synthesize(any(), eq("sofa"), anyString(), eq(1.0)))
+    given(aiGateway.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
+    given(aiGateway.synthesize(any(), eq("sofa"), anyString(), eq(1.0)))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
     PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
@@ -167,14 +135,19 @@ class PronunciationGeneratorTest {
   }
 
   @Test
-  @DisplayName("합성한 단어마다 실행한 관리자의 TTS 호출 기록을 남긴다")
-  void generateMissing_recordsTtsRequestsForAdmin() {
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
-    long before = adminTtsRequestCount();
+  @DisplayName("합성할 때마다 실행한 관리자를 AI 호출의 사용자로 넘긴다. 대화와는 관계없다")
+  void generateMissing_tracesAdmin() {
+    given(aiGateway.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
 
     PronunciationRun run = pronunciationGenerator.generateMissing(ADMIN_ID);
 
-    assertThat(adminTtsRequestCount() - before).isEqualTo(run.created());
+    then(aiGateway)
+        .should(times(run.created()))
+        .synthesize(
+            argThat(trace -> ADMIN_ID.equals(trace.userId()) && trace.conversationId() == null),
+            anyString(),
+            anyString(),
+            eq(1.0));
   }
 
   @Test
@@ -186,16 +159,6 @@ class PronunciationGeneratorTest {
 
     assertThat(progress.total()).isEqualTo(objectWordCount);
     assertThat(progress.ready()).isEqualTo(1);
-  }
-
-  private long adminTtsRequestCount() {
-    return ((Number)
-            entityManager
-                .createNativeQuery(
-                    "select count(*) from ai_requests where kind = 'TTS' and user_id = ?")
-                .setParameter(1, ADMIN_ID)
-                .getSingleResult())
-        .longValue();
   }
 
   private static Path createDirectory() {

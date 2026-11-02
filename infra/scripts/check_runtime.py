@@ -44,7 +44,8 @@ def check_backend_runtime(docker, compose, environment):
         "-ec",
         'curl --fail --silent --show-error "$AI_WORKER_BASE_URL/health" >/dev/null; '
         'probe=$(mktemp "$NPC_AUDIO_DIR/.ci-write-check.XXXXXX"); '
-        'printf audio-storage-check > "$probe"; rm "$probe"',
+        'printf audio-storage-check > "$probe"; rm "$probe"; '
+        'test -s "$LOGGING_FILE_NAME"',
         env=environment,
     )
     container_id = docker(
@@ -71,7 +72,15 @@ def check_backend_runtime(docker, compose, environment):
         for mount in mounts
     ):
         raise AssertionError("NPC audio must use a writable persistent volume.")
-    print("Backend: internal AI worker health and writable NPC audio volume passed.")
+    if not any(
+        mount["Type"] == "volume" and mount["Destination"] == "/app/logs"
+        for mount in mounts
+    ):
+        raise AssertionError("Backend log files must use a persistent volume.")
+    print(
+        "Backend: internal AI worker health, writable NPC audio volume "
+        "and log file volume passed."
+    )
 
 
 def main():

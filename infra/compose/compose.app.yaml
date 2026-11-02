@@ -77,8 +77,12 @@ services:
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65.0
       NPC_AUDIO_DIR: /app/data/npc-audio
       LOGGING_LEVEL_COM_ELSEHERE: ${BACKEND_LOG_LEVEL:-INFO}
+      # Log files outlive container replacement in backend-logs. An empty format keeps text lines; production uses ecs JSON.
+      LOGGING_FILE_NAME: /app/logs/backend.log
+      LOGGING_STRUCTURED_FORMAT_FILE: ${BACKEND_LOG_FILE_FORMAT:-}
     volumes:
       - npc-audio-data:/app/data/npc-audio
+      - backend-logs:/app/logs
     depends_on:
       database:
         condition: service_healthy
@@ -116,3 +120,4 @@ services:
 volumes:
   database-data:
   npc-audio-data:
+  backend-logs:

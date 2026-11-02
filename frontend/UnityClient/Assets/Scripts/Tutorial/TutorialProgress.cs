@@ -3,14 +3,24 @@ using System.Collections.Generic;
 namespace A305.Tutorial
 {
     /// <summary>
-    /// 튜토리얼 진행. 버튼·걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 받아 단계를 넘긴다.
-    /// 지금 단계와 관계없는 신호는 무시한다.
+    /// 튜토리얼 진행. 버튼·조작(걷기·달리기·시점)·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 받아 단계를 넘긴다.
+    /// 걷기·둘러보기는 안내한 조작을 모두 해야 넘어간다. 지금 단계와 관계없는 신호는 무시한다.
     /// </summary>
     public sealed class TutorialProgress
     {
+        private static readonly TutorialAction[] KeyboardWalk = { TutorialAction.Walk, TutorialAction.Run };
+        private static readonly TutorialAction[] TouchWalk = { TutorialAction.Walk };
+        private static readonly TutorialAction[] KeyboardLook =
+        {
+            TutorialAction.Rotate,
+            TutorialAction.Zoom,
+            TutorialAction.ToggleView,
+        };
+        private static readonly TutorialAction[] TouchLook = { TutorialAction.Rotate };
+        private static readonly TutorialAction[] NoActions = new TutorialAction[0];
+
         private readonly string tutorialNpcCode;
-        private bool hasWalked;
-        private bool hasLooked;
+        private readonly HashSet<TutorialAction> doneActions = new HashSet<TutorialAction>();
         private bool isFinishSaved;
 
         /// <param name="tutorialNpcCode">길을 묻는 튜토리얼 행인의 NPC 키(ERD npcs.code)</param>
@@ -21,14 +31,34 @@ namespace A305.Tutorial
 
         public TutorialStep Step { get; private set; } = TutorialStep.Arrival;
 
+        /// <summary>터치 조작판이 보이는 기기인지. 터치 기기에는 달리기·휠·V가 없어 해야 할 조작이 줄어든다.</summary>
         public bool UsesTouch { get; set; }
 
-        public static IReadOnlyList<TutorialAction> RequiredActions(TutorialStep step, bool isTouch) =>
-            new TutorialAction[0];
+        /// <summary>그 단계에서 해야 할 조작. 안내 문구의 " · "로 나뉜 할 일과 순서가 같다. 조작 단계가 아니면 비어 있다.</summary>
+        public static IReadOnlyList<TutorialAction> RequiredActions(TutorialStep step, bool isTouch)
+        {
+            switch (step)
+            {
+                case TutorialStep.Walk:
+                    return isTouch ? TouchWalk : KeyboardWalk;
+                case TutorialStep.Look:
+                    return isTouch ? TouchLook : KeyboardLook;
+                default:
+                    return NoActions;
+            }
+        }
 
-        public void Report(TutorialAction action) { }
+        /// <summary>조작을 했음을 알린다. 지금 단계에서 해야 할 조작만 센다.</summary>
+        public void Report(TutorialAction action)
+        {
+            if (Contains(RequiredActions(Step, UsesTouch), action))
+            {
+                doneActions.Add(action);
+            }
+        }
 
-        public bool IsDone(TutorialAction action) => false;
+        /// <summary>지금 단계에서 그 조작을 했는지</summary>
+        public bool IsDone(TutorialAction action) => doneActions.Contains(action);
 
         /// <summary>이번 Play에서 튜토리얼을 끝낸 방법. 끝내지 않았거나 서버에서 이미 끝난 사용자면 null.</summary>
         public TutorialFinish? Finish { get; private set; }
@@ -59,9 +89,8 @@ namespace A305.Tutorial
                     case TutorialStep.Arrival:
                         return true;
                     case TutorialStep.Walk:
-                        return hasWalked;
                     case TutorialStep.Look:
-                        return hasLooked;
+                        return AreAllDone(RequiredActions(Step, UsesTouch));
                     default:
                         return false;
                 }
@@ -96,29 +125,10 @@ namespace A305.Tutorial
                 TutorialStep.Look => TutorialStep.SaveWord,
                 _ => Step,
             };
+            doneActions.Clear();
         }
 
-        /// <summary>플레이어가 걸었음을 알린다. 걷기 단계에서 걸은 것만 센다.</summary>
-        public void ReportWalked()
-        {
-            if (Step == TutorialStep.Walk)
-            {
-                hasWalked = true;
-            }
-        }
-
-        /// <summary>사용자가 시점을 돌렸음을 알린다. 둘러보기 단계에서 돌린 것만 센다.</summary>
-        public void ReportLooked()
-        {
-            if (Step == TutorialStep.Look)
-            {
-                hasLooked = true;
-            }
-        }
-
-        /// <summary>
-        /// 고정한 사물 카드에서 단어를 저장했음을 알린다. 서버 단어 카드가 없어 저장할 수 없는 카드를 고정했을 때도 알려 막히지 않게 한다.
-        /// </summary>
+        /// <summary>고정한 사물 카드에서 [저장]을 눌렀음을 알린다.</summary>
         public void ReportWordSaved()
         {
             if (Step == TutorialStep.SaveWord)
@@ -208,6 +218,32 @@ namespace A305.Tutorial
 
             return npcCode == tutorialNpcCode
                 && (Step == TutorialStep.MeetBen || Step == TutorialStep.BenDialogue);
+        }
+
+        private bool AreAllDone(IReadOnlyList<TutorialAction> actions)
+        {
+            foreach (TutorialAction action in actions)
+            {
+                if (!doneActions.Contains(action))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool Contains(IReadOnlyList<TutorialAction> actions, TutorialAction action)
+        {
+            foreach (TutorialAction candidate in actions)
+            {
+                if (candidate == action)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

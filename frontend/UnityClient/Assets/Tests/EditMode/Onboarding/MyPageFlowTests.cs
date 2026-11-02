@@ -167,6 +167,36 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.Message, Is.EqualTo("서버에 연결하지 못했어요."));
         }
 
+        [Test]
+        public async Task CanWithdraw_SignedInMember_IsTrue()
+        {
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanWithdraw, Is.True);
+        }
+
+        [Test]
+        public async Task CanWithdraw_Guest_IsFalse()
+        {
+            api.Guest = true;
+
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanWithdraw, Is.False);
+        }
+
+        // 게스트인지 알기 전에는 보이지 않아, 게스트에게 잠깐이라도 [회원 탈퇴]가 보이지 않게 한다.
+        [Test]
+        public async Task CanWithdraw_BeforeProfileLoaded_IsFalse()
+        {
+            Assert.That(flow.CanWithdraw, Is.False);
+
+            api.BootstrapError = Failure("서버에 연결하지 못했어요.");
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanWithdraw, Is.False);
+        }
+
         private static ApiException Failure(string message)
         {
             return new ApiException(ApiErrorCodes.NetworkError, 0, message);
@@ -175,6 +205,9 @@ namespace A305.Onboarding.Tests
         private sealed class FakeMyPageApi : IMyPageApi
         {
             public ApiException BootstrapError { get; set; }
+
+            /// <summary>정하면 게스트로 시작한 사용자를 돌려준다.</summary>
+            public bool Guest { get; set; }
 
             public ApiException ChangeError { get; set; }
 
@@ -201,6 +234,7 @@ namespace A305.Onboarding.Tests
                             AvatarType = AvatarType.F,
                             CurrentLanguage = "en-US",
                             OnboardingStep = OnboardingStep.Done,
+                            Guest = Guest,
                         },
                     }
                 );

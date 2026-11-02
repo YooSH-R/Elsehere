@@ -35,7 +35,14 @@ class GuestLoginControllerTest {
 
   private static final UserResponse GUEST_USER =
       new UserResponse(
-          3L, "guest-123456", AvatarType.M, "en-US", OnboardingStep.TUTORIAL, UiTheme.JELLY, false);
+          3L,
+          "guest-123456",
+          AvatarType.M,
+          "en-US",
+          OnboardingStep.TUTORIAL,
+          UiTheme.JELLY,
+          false,
+          true);
 
   @Autowired private MockMvc mockMvc;
 
@@ -55,7 +62,8 @@ class GuestLoginControllerTest {
         .andExpect(jsonPath("$.user.nickname").value("guest-123456"))
         .andExpect(jsonPath("$.user.avatarType").value("M"))
         .andExpect(jsonPath("$.user.onboardingStep").value("TUTORIAL"))
-        .andExpect(jsonPath("$.user.voiceConsent").value(false));
+        .andExpect(jsonPath("$.user.voiceConsent").value(false))
+        .andExpect(jsonPath("$.user.guest").value(true));
   }
 
   @Test
@@ -70,6 +78,7 @@ class GuestLoginControllerTest {
                 "en-US",
                 OnboardingStep.TUTORIAL,
                 UiTheme.JELLY,
+                true,
                 true));
 
     mockMvc

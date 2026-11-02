@@ -48,7 +48,8 @@ def extract(source, destination):
         for channel, node in (("color", color), ("normal", normal)):
             if node is None:
                 continue
-            if node.image is None or not node.image.has_data or min(node.image.size) == 0:
+            # Reading size loads packed/lazy images before has_data is meaningful.
+            if node.image is None or min(node.image.size) == 0 or not node.image.has_data:
                 raise ValueError(f"Missing {channel} image: {material.name}")
             filename = f"Material_{index}_{channel}.png"
             node.image.filepath_raw = str(destination / filename)

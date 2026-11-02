@@ -86,7 +86,7 @@ namespace A305.EditorTools.Mission
         private static void AddLiveMiniMap(GameObject root)
         {
             Transform content = root.transform.Find("Content");
-            Transform journalMap = content?.Find("Journal/TownMap");
+            Transform journalMap = content != null ? content.Find("Journal/TownMap") : null;
             if (journalMap == null)
                 throw new System.InvalidOperationException("수첩의 마을 지도부터 생성해야 합니다.");
 

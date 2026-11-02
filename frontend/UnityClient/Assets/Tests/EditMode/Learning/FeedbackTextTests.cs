@@ -6,6 +6,21 @@ namespace A305.Learning.Tests
 {
     public class FeedbackTextTests
     {
+        // 대화 노트 부제는 이름 끝소리에 맞춰 와·과를 고른다. 영어 이름은 한국어로 읽을 때 받침이 남는지(n·m·l·ng)로 본다.
+        [TestCase("Ben", "Ben과 나눈 대화")]
+        [TestCase("Mia", "Mia와 나눈 대화")]
+        [TestCase("Jake", "Jake와 나눈 대화")]
+        [TestCase("Alex", "Alex와 나눈 대화")]
+        [TestCase("Sam", "Sam과 나눈 대화")]
+        [TestCase("Bill", "Bill과 나눈 대화")]
+        [TestCase("Young", "Young과 나눈 대화")]
+        [TestCase("지민", "지민과 나눈 대화")]
+        [TestCase("하나", "하나와 나눈 대화")]
+        public void Partner_PicksWaOrGwaByTheLastSoundOfTheName(string npcName, string expected)
+        {
+            Assert.That(FeedbackText.Partner(npcName), Is.EqualTo(expected));
+        }
+
         [Test]
         public void Transcript_ListsLinesWithSpeakerNames()
         {

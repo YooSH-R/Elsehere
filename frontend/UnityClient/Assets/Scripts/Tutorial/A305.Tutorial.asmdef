@@ -9,6 +9,7 @@
         "A305.Npc",
         "A305.Learning",
         "A305.Mission",
+        "A305.World",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

@@ -83,6 +83,17 @@ namespace A305.Player.Tests
         }
 
         [Test]
+        public void ComputeVelocity_JumpOnGround_ReportsThatThePlayerJumped_OnlyForThatStep()
+        {
+            // 튜토리얼 걷기 단계가 [Space] 점프를 해냈는지 셀 수 있게 뛰어오른 순간을 알린다.
+            motor.ComputeVelocity(Jump(), true, DeltaTime);
+            Assert.That(motor.JustJumped, Is.True);
+
+            motor.ComputeVelocity(Jump(), false, DeltaTime);
+            Assert.That(motor.JustJumped, Is.False, "공중에서 누른 점프는 뛰어오른 것이 아닙니다.");
+        }
+
+        [Test]
         public void ComputeVelocity_JumpInAir_IsIgnoredAndGravityApplies()
         {
             Vector3 velocity = motor.ComputeVelocity(Jump(), false, DeltaTime);

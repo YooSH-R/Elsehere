@@ -33,6 +33,9 @@ namespace A305.Theme
         TitleOnDark,
         BodyOnDark,
         AccentOnDark,
+
+        // HUD의 시계·코인처럼 짧은 상태를 담는 둥근 유리 칩
+        Chip,
     }
 
     /// <summary>버튼 색의 쓰임. 테마마다 실제 색을 따로 정한다.</summary>

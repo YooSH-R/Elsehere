@@ -116,6 +116,151 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void GuidedConversation_DifferentSentence_StaysOnTheLineAndAsksToTypeIt()
+        {
+            // 튜토리얼 대화는 정해진 대사로 연습하므로, 다른 문장은 대화에 남기지 않고 같은 대사를 다시 입력하게 한다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            bool isSent = conversation.Send("Hello there");
+
+            Assert.That(isSent, Is.False);
+            Assert.That(conversation.Lines.Count, Is.EqualTo(1));
+            Assert.That(conversation.SuggestedEnglish, Is.EqualTo("Go straight ahead."));
+            Assert.That(conversation.StatusMessage, Does.Contain("[예시 문장]"));
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [Test]
+        public void GuidedConversation_TheLineAfterAMiss_AdvancesAndClearsTheNotice()
+        {
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+            conversation.Send("Hello there");
+
+            bool isSent = conversation.Send("go straight ahead");
+
+            Assert.That(isSent, Is.True);
+            Assert.That(conversation.StatusMessage, Is.Null);
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("And then?"));
+        }
+
+        [Test]
+        public void FreeConversation_AnySentence_GetsAReply()
+        {
+            var conversation = new DialogueConversation(CafeStaffCode, CreateCafeScript());
+
+            Assert.That(conversation.Send("Hello there"), Is.True);
+            Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
+        [Test]
+        public void GuidedConversation_WithARecorder_LetsTheUserSpeakTheLine()
+        {
+            // 튜토리얼이라고 말하기를 빼지 않는다. 대본 자유 대화(서버를 끈 확인용)는 그대로 글자로만 입력한다.
+            var guided = new DialogueConversation(
+                TutorialPasserbyCode,
+                CreateGuidedScript(),
+                hasRecorder: true
+            );
+            var free = new DialogueConversation(
+                CafeStaffCode,
+                CreateCafeScript(),
+                hasRecorder: true
+            );
+
+            Assert.That(guided.UsesVoice && guided.CanTalk, Is.True);
+            Assert.That(free.UsesVoice, Is.False);
+            Assert.That(
+                new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript()).UsesVoice,
+                Is.False,
+                "녹음기가 없으면 말하기 버튼을 두지 않습니다."
+            );
+        }
+
+        [Test]
+        public void SendSpoken_TheLine_ContinuesWithoutNotice()
+        {
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            bool isSent = conversation.SendSpoken("go straight ahead");
+
+            Assert.That(isSent, Is.True);
+            Assert.That(conversation.Lines[1].English, Is.EqualTo("Go straight ahead."));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("And then?"));
+            Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
+        [TestCase("I don't know the way.")]
+        [TestCase(null)]
+        public void SendSpoken_SomethingElseOrNothingHeard_ContinuesWithTheFixedLineAndNotice(
+            string transcript
+        )
+        {
+            // 말한 내용과 상관없이 튜토리얼은 정해진 대사로 이어 가고, 그렇게 했다고 알린다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            bool isSent = conversation.SendSpoken(transcript);
+
+            Assert.That(isSent, Is.True);
+            Assert.That(conversation.Lines[1].English, Is.EqualTo("Go straight ahead."));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("And then?"));
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo(DialogueConversation.GuidedVoiceNotice)
+            );
+            Assert.That(
+                conversation.ToRecord().UserUtterances,
+                Is.EqualTo(new[] { "Go straight ahead." })
+            );
+        }
+
+        [Test]
+        public void GuidedConversation_SuggestsWordsForTheLine_AndCountsTheTurn()
+        {
+            // 추천 단어는 지금 할 대사에 쓸 만한 단어다. 턴이 넘어가면 다음 대사의 단어로 바뀐다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "straight · 곧장" }));
+            Assert.That(conversation.GuidedTurnIndex, Is.EqualTo(0));
+
+            conversation.Send("Go straight ahead.");
+
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "corner · 모퉁이" }));
+            Assert.That(conversation.GuidedTurnIndex, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void SpokenLineThatDiffered_GoesThrough_WithoutAskingToRetypeIt()
+        {
+            // 말로 한 대사는 달라도 넘어가므로, 다시 입력하라는 안내와 구분한다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            conversation.SendSpoken("I don't know the way.");
+            Assert.That(conversation.IsGuidedLineMissed, Is.False);
+
+            conversation.Send("Hello there");
+            Assert.That(conversation.IsGuidedLineMissed, Is.True);
+        }
+
+        [Test]
+        public void TutorialNotices_SayTheTutorialFollowsAFixedFlow()
+        {
+            // 튜토리얼에서는 무엇을 말하든 정해진 흐름대로 진행된다는 뜻을 담는다.
+            Assert.That(DialogueConversation.GuidedLineMissNotice, Does.Contain("정해진 흐름"));
+            Assert.That(DialogueConversation.GuidedVoiceNotice, Does.Contain("정해진 흐름"));
+        }
+
+        [Test]
+        public void SendSpoken_AfterTheLastTurn_IsIgnored()
+        {
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+            conversation.Send("Go straight ahead.");
+            conversation.Send("Turn left at the corner.");
+
+            Assert.That(conversation.SendSpoken("Bye!"), Is.False);
+            Assert.That(conversation.Lines.Count, Is.EqualTo(5));
+        }
+
+        [Test]
         public void ExampleSentence_InFreeConversation_UsesScriptExample()
         {
             var conversation = new DialogueConversation(CafeStaffCode, CreateCafeScript());
@@ -205,12 +350,14 @@ namespace A305.Dialogue.Tests
                     new GuidedTurn(
                         "Go straight ahead.",
                         "앞으로 곧장 가세요.",
-                        DialogueLine.FromNpc("And then?", "그다음엔요?")
+                        DialogueLine.FromNpc("And then?", "그다음엔요?"),
+                        new[] { "straight · 곧장" }
                     ),
                     new GuidedTurn(
                         "Turn left at the corner.",
                         "모퉁이에서 왼쪽으로 도세요.",
-                        DialogueLine.FromNpc("Thank you so much!", "정말 고마워요!")
+                        DialogueLine.FromNpc("Thank you so much!", "정말 고마워요!"),
+                        new[] { "corner · 모퉁이" }
                     ),
                 },
                 new List<KeywordReply>(),

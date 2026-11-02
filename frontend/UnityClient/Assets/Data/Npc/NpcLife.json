@@ -201,6 +201,74 @@
       ]
     },
     {
+      "npcId": "SHOP_STAFF",
+      "role": "STAFF",
+      "scene": "SHOP",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TAXI_DRIVER",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "TOWN_PASSERBY",
       "role": "PASSERBY",
       "scene": "TOWN",

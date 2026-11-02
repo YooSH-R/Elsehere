@@ -1,0 +1,9 @@
+{
+  "scenarioId": "drugstore_counter",
+  "locationId": "SHOP",
+  "situation": "The customer is at the counter of the small drugstore on the town's main street.",
+  "facts": [
+    "Umbrellas are 8 quest coins each.",
+    "Cash and cards are both accepted."
+  ]
+}

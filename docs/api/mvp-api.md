@@ -1131,7 +1131,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 ```
 
 - "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다. `counts.all`은 현재 `includeMemorized` 조건을 적용한 개수입니다.
-- 기본값은 `includeMemorized=false`, `size=20`입니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서는 `400 VALIDATION_FAILED`입니다.
+- 기본값은 `includeMemorized=false`, `size=20`이고 `size`는 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다.
 - `savedAt`은 한국 시각(`+09:00`)으로 보냅니다. 저장한 문장이 없으면 `context`는 `null`입니다.
 - 저장하는 것이 단어뿐이라 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocabularies.type`은 숙어를 검토할 때를 위해 그대로 둡니다.
 - `vocab.meaningKo`는 단어 하나의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.

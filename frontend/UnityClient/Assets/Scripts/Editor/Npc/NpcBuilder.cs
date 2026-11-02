@@ -83,11 +83,13 @@ namespace A305.EditorTools.Npc
                 restSeconds: 15f,
                 canDecline: false
             );
+            // 마을 행인은 하루에 한 번만 먼저 다가온다. 그 뒤로는 플레이어가 먼저 말을 건다.
             CreateSettingsIfMissing(
                 TownSettingsPath,
                 detectRadiusMeters: 6f,
                 restSeconds: 60f,
-                canDecline: true
+                canDecline: true,
+                approachesOncePerDay: true
             );
             // 카페 직원은 카운터 뒤에 서 있다가, 카운터 앞까지 오면 걷지 않고 그 자리에서 대화를 제안한다.
             CreateSettingsIfMissing(
@@ -461,7 +463,8 @@ namespace A305.EditorTools.Npc
             float restSeconds,
             bool canDecline,
             float offerDistanceMeters = 2f,
-            float walkSpeedMetersPerSecond = 1.6f
+            float walkSpeedMetersPerSecond = 1.6f,
+            bool approachesOncePerDay = false
         )
         {
             if (AssetDatabase.LoadAssetAtPath<PasserbySettings>(path) != null)
@@ -477,6 +480,7 @@ namespace A305.EditorTools.Npc
             fields.FindProperty("canDecline").boolValue = canDecline;
             fields.FindProperty("offerDistanceMeters").floatValue = offerDistanceMeters;
             fields.FindProperty("walkSpeedMetersPerSecond").floatValue = walkSpeedMetersPerSecond;
+            fields.FindProperty("approachesOncePerDay").boolValue = approachesOncePerDay;
             fields.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.CreateAsset(settings, path);
         }

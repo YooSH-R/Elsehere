@@ -22,9 +22,12 @@ namespace A305.Npc.PlayModeTests
         private const float WaitTimeoutSeconds = 15f;
 
         [SetUp]
+        [TearDown]
         public void ResetCrossSceneRecords()
         {
             PasserbyRestRecord.Clear();
+            PasserbyOfferRecord.Clear();
+            // 하루 한 번 기록은 이 기기에 남으므로 끝난 뒤에도 지워 Editor에서 플레이할 때 남지 않게 한다.
             // 튜토리얼 행인은 튜토리얼의 이웃 만나기 단계에서만 다가오므로, 튜토리얼도 처음부터 시작한다.
             TutorialState.Clear();
         }
@@ -61,6 +64,34 @@ namespace A305.Npc.PlayModeTests
                 Is.False,
                 "제안 중에는 이동을 잠그지 않습니다."
             );
+            Assert.That(
+                PasserbyOfferRecord.HasOfferedOn(BenCode, System.DateTime.Today),
+                Is.True,
+                "튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 셉니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator TownPasserbyWhoOfferedToday_WaitsUntilTomorrow_ButPlayerCanStillTalk()
+        {
+            // Ben은 현실 하루에 한 번만 먼저 다가온다. 그날 이미 말을 걸었으면 플레이어가 먼저 말을 거는 것만 받는다.
+            PasserbyOfferRecord.Save(BenCode, System.DateTime.Today);
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
+            Passerby passerby = FindPasserby(BenCode);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+
+            yield return new WaitForSeconds(2f);
+            Assert.That(offer.IsShowing, Is.False);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Waiting));
+
+            StandNear(BenCode, 1.5f);
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+
+            // 마지막으로 말을 건 날이 어제가 되면(하루가 지나면) 다시 다가온다.
+            StandNear(BenCode, 4f);
+            PasserbyOfferRecord.Save(BenCode, System.DateTime.Today.AddDays(-1));
+            yield return WaitUntil(() => offer.IsShowing);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Offering));
         }
 
         [UnityTest]

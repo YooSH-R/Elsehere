@@ -52,6 +52,7 @@ namespace A305.EditorTools.Tutorial
         // 코치 마크는 밝힐 버튼의 캔버스 바로 위로 그리는 순서를 바꾼다. 처음 값은 안내 카드 바로 위다.
         private const int CoachMarkSortingOrder = GuideSortingOrder + 1;
         private const float FrameThickness = 5f;
+        private const float SkipButtonWidth = 180f;
 
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
 
@@ -378,8 +379,10 @@ namespace A305.EditorTools.Tutorial
                 "SkipButton",
                 "건너뛰기",
                 bold,
-                150f
+                SkipButtonWidth
             );
+            // 테마의 알약 버튼은 글자를 아이콘 오른쪽에 두므로, 아이콘과 네 글자가 함께 들어가는 폭으로 맞춘다.
+            skipButton.GetComponent<LayoutElement>().preferredWidth = SkipButtonWidth;
 
             TMP_Text task = UiBuilderTools.FindOrCreateText(
                 content,
@@ -391,6 +394,18 @@ namespace A305.EditorTools.Tutorial
             task.fontSize = 26f;
             task.alignment = TextAlignmentOptions.MidlineLeft;
             task.transform.SetSiblingIndex(1);
+            // 잠긴 문 안내처럼 할 일 바로 아래 잠깐 보이는 알림. 글자색은 문구에 넣어 테마와 상관없이 강조색으로 보인다.
+            TMP_Text notice = UiBuilderTools.FindOrCreateText(
+                content,
+                "Notice",
+                bold,
+                20f,
+                Color.white
+            );
+            notice.alignment = TextAlignmentOptions.MidlineLeft;
+            notice.textWrappingMode = TextWrappingModes.Normal;
+            notice.transform.SetSiblingIndex(2);
+            notice.gameObject.SetActive(false);
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(content, "Buttons");
             Button continueButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
@@ -446,6 +461,7 @@ namespace A305.EditorTools.Tutorial
             BuilderTools.SetReference(view, "skipConfirm", confirm.gameObject);
             BuilderTools.SetReference(view, "keepGoingButton", keepGoingButton);
             BuilderTools.SetReference(view, "confirmSkipButton", confirmSkipButton);
+            BuilderTools.SetReference(view, "noticeText", notice);
             BuilderTools.RequireReferences(view);
 
             // 단계에 맞는 안내가 있을 때만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.

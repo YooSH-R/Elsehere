@@ -271,8 +271,15 @@ namespace A305.Tutorial
             progress.CloseFeedback(npcCode);
         }
 
+        // 할 일이 적힌 안내 카드에 바로 알린다. 카드가 숨은 동안(대화·피드백 화면)에만 HUD 알림을 쓴다.
         private void ShowTravelLocked()
         {
+            if (guideView.IsVisible)
+            {
+                guideView.ShowNotice(guide.TravelLockedMessage);
+                return;
+            }
+
             hud.ShowMessage(guide.TravelLockedMessage);
         }
 

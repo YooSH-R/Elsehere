@@ -48,6 +48,11 @@ namespace A305.EditorTools.Theme
         // 창의 동작 버튼은 글자가 잘 보이도록 통통한 알약으로 둔다.
         private const float ActionPillHeight = 70;
 
+        // 알약 버튼 왼쪽 끝의 아이콘 자리
+        private const float PillIconLeft = 20;
+        private const float PillIconSize = 22;
+        private const float PillIconRight = PillIconLeft + PillIconSize;
+
         // 주의: 테마 순서는 UiThemeId 순서와 같다.
         private static readonly ThemeSpec[] Specs =
         {
@@ -1107,7 +1112,11 @@ namespace A305.EditorTools.Theme
             Role(root, "Panel", UiThemeRole.Panel);
             Role(root, "Panel/Content/Header/Title", UiThemeRole.Muted);
             Role(root, "Panel/Content/Task", UiThemeRole.Title);
+            Role(root, "Panel/Content/Notice", UiThemeRole.Body);
             PillButton(root, "Panel/Content/Header/SkipButton", UiIcon.Skip, UiTone.Neutral);
+            // 좁은 버튼에서 가운데 글자가 왼쪽 아이콘 위로 겹치지 않게 글자 칸을 아이콘 오른쪽부터 잡는다.
+            var skipLabel = (RectTransform)root.Find("Panel/Content/Header/SkipButton/Label");
+            skipLabel.offsetMin = new Vector2(PillIconRight + 6, skipLabel.offsetMin.y);
             PillButton(root, "Panel/Content/Buttons/ContinueButton", UiIcon.Play, UiTone.Positive);
             Role(root, "Panel/SkipConfirm/Question", UiThemeRole.Title);
             PillButton(
@@ -1508,7 +1517,12 @@ namespace A305.EditorTools.Theme
             outlineImage.raycastTarget = false;
             outlineImage.pixelsPerUnitMultiplier = 1.7f;
             RectTransform iconRect = FindOrCreateRect(button, "Icon");
-            Place(iconRect, new Vector2(0, 0.5f), new Vector2(20, 0), new Vector2(22, 22));
+            Place(
+                iconRect,
+                new Vector2(0, 0.5f),
+                new Vector2(PillIconLeft, 0),
+                new Vector2(PillIconSize, PillIconSize)
+            );
             iconRect.pivot = new Vector2(0, 0.5f);
             BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
             Transform labelTransform = button.Find("Label");

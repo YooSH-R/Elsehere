@@ -49,10 +49,30 @@ namespace A305.Tutorial
         [SerializeField]
         private Button confirmSkipButton;
 
+        [SerializeField]
+        [Tooltip("잠긴 문 안내처럼 할 일 아래에 잠깐 보이는 알림")]
+        private TMP_Text noticeText;
+
+        /// <summary>잠긴 문 안내처럼 카드에 잠깐 덧붙이는 알림이 보이는 시간</summary>
+        public const float NoticeSeconds = 3f;
+
+        // 알림을 띄울 때 카드를 좌우로 짧게 흔들어 눈길을 끈다.
+        private const float ShakeSeconds = 0.4f;
+        private const float ShakePixels = 10f;
+        private const float ShakeSpeed = 60f;
+
+        private float noticeHideTime;
+        private float shakeEndTime;
+        private Vector2 panelHome;
+
         public event Action ContinueRequested;
         public event Action SkipRequested;
 
         public bool IsVisible => panel.activeSelf;
+
+        public bool IsNoticeShowing => noticeText.gameObject.activeSelf;
+
+        public string NoticeText => noticeText.text;
 
         public bool IsSkipConfirmShowing => skipConfirm.activeSelf;
 
@@ -88,6 +108,16 @@ namespace A305.Tutorial
         {
             panel.SetActive(false);
             ShowSkipConfirm(false);
+            ClearNotice();
+        }
+
+        /// <summary>할 일 아래에 강조색 알림을 잠깐 보이고 카드를 흔든다. 화면 구석 알림보다 할 일과 함께 눈에 띈다.</summary>
+        public void ShowNotice(string message)
+        {
+            noticeText.text = TutorialGuideText.Warning(message);
+            noticeText.gameObject.SetActive(true);
+            noticeHideTime = Time.unscaledTime + NoticeSeconds;
+            shakeEndTime = Time.unscaledTime + ShakeSeconds;
         }
 
         private void Awake()
@@ -96,7 +126,29 @@ namespace A305.Tutorial
             skipButton.onClick.AddListener(() => ShowSkipConfirm(true));
             keepGoingButton.onClick.AddListener(() => ShowSkipConfirm(false));
             confirmSkipButton.onClick.AddListener(ConfirmSkip);
+            panelHome = PanelRect.anchoredPosition;
             Hide();
+        }
+
+        private void Update()
+        {
+            if (IsNoticeShowing && Time.unscaledTime >= noticeHideTime)
+            {
+                ClearNotice();
+            }
+
+            float shakeLeft = shakeEndTime - Time.unscaledTime;
+            float offset =
+                shakeLeft > 0f
+                    ? Mathf.Sin(shakeLeft * ShakeSpeed) * ShakePixels * (shakeLeft / ShakeSeconds)
+                    : 0f;
+            PanelRect.anchoredPosition = panelHome + Vector2.right * offset;
+        }
+
+        private void ClearNotice()
+        {
+            noticeText.gameObject.SetActive(false);
+            shakeEndTime = 0f;
         }
 
         private void ConfirmSkip()

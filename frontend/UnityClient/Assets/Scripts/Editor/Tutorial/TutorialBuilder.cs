@@ -601,7 +601,7 @@ namespace A305.EditorTools.Tutorial
                 150f
             );
             var nextSize = nextButton.GetComponent<LayoutElement>();
-            nextSize.preferredHeight = 52f;
+            nextSize.preferredHeight = 58f;
             nextButton.transform.SetAsLastSibling();
             nextButton.gameObject.SetActive(false);
             caption.gameObject.SetActive(false);
@@ -631,6 +631,16 @@ namespace A305.EditorTools.Tutorial
             BuilderTools.SetReference(view, "nextButton", nextButton);
             BuilderTools.SetReference(view, "marker", markerRect);
             BuilderTools.SetReference(view, "markerArrow", arrow.rectTransform);
+            BuilderTools.SetReference(
+                view,
+                "compassDiscSprite",
+                AssetDatabase.LoadAssetAtPath<Sprite>(BadgeSpritePath)
+            );
+            BuilderTools.SetReference(
+                view,
+                "compassArrowSprite",
+                AssetDatabase.LoadAssetAtPath<Sprite>(ArrowSpritePath)
+            );
             BuilderTools.RequireReferences(view);
         }
 

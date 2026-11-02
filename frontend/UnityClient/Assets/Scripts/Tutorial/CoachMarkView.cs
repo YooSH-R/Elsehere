@@ -2,14 +2,16 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 코치 마크 화면. 눌러야 할 버튼은 둘레를 반투명 검은 판으로 덮고 테두리로 밝혀 그 버튼만 누를 수 있게 하고,
-    /// 걸어가야 할 대상(문·Ben)은 머리 위에서 오르내리는 화살표로 가리킨다. 머리 위가 화면 밖이어도 몸통이 보이면 몸통을,
-    /// 둘 다 화면 밖이면 대상 쪽 아래 구석에서 대상 쪽을 가리킨다. 둘 중 하나만 보인다.
+    /// 걸어가야 할 숙소 문은 플레이어 발밑 바닥에 나침반처럼 원과 가장자리 화살표로 가리킨다. 다가오는 Ben은 머리 위에서
+    /// 오르내리는 화살표로 가리키고, 머리 위가 화면 밖이어도 몸통이 보이면 몸통을, 둘 다 화면 밖이면 대상 쪽 아래 구석에서
+    /// 대상 쪽을 가리킨다. 밝히기·나침반·화살표 중 하나만 보인다.
     /// 설명은 밝힌 곳 옆에 꼬리 달린 말풍선으로 두고, 티칭처럼 읽고 넘길 설명에는 [다음]을 붙인다.
     /// 대화 화면처럼 둘레 내용을 읽으며 해야 하면 둘레를 덮지 않고 테두리로만 밝힌다.
     /// 판은 밝힐 버튼이 있는 캔버스 바로 위에 그려, 그보다 위에 있는 안내 카드는 가리지 않는다.
@@ -23,6 +25,16 @@ namespace A305.Tutorial
 
         // 위쪽 안내 카드가 놓이는 높이. 여기에 걸린 화살표는 카드에 가리므로 대상 몸통을 가리킨다.
         private const float MarkerTopMargin = 260f;
+
+        // 발밑 나침반: 발밑 원 지름, 가장자리 점 지름과 발밑에서 떨어진 거리, 점 위 화살표 길이, 점이 대상 쪽으로 오가는 폭,
+        // 바닥에 묻히지 않게 띄우는 높이(미터).
+        private const float CompassRingMeters = 1.3f;
+        private const float CompassPointerMeters = 0.42f;
+        private const float CompassPointerDistanceMeters = 0.8f;
+        private const float CompassArrowMeters = 0.3f;
+        private const float CompassBobMeters = 0.12f;
+        private const float CompassLiftMeters = 0.03f;
+        private const float CompassRingAlpha = 0.35f;
         private const float MarkerBobPixels = 12f;
         private const float MarkerBobSpeed = 4f;
         private const float FramePulseSpeed = 3f;
@@ -62,6 +74,14 @@ namespace A305.Tutorial
         [Tooltip("배지 안의 화살표. 오른쪽을 가리키는 아이콘을 대상 쪽으로 돌린다.")]
         private RectTransform markerArrow;
 
+        [SerializeField]
+        [Tooltip("발밑 나침반의 원과 가장자리 점. 흰 원 그림에 화살표 배지와 같은 색을 입힌다.")]
+        private Sprite compassDiscSprite;
+
+        [SerializeField]
+        [Tooltip("발밑 나침반 가장자리 점 위의 화살표. 오른쪽을 가리키는 그림")]
+        private Sprite compassArrowSprite;
+
         private readonly List<RectTransform> targets = new List<RectTransform>();
         private readonly List<Rect> targetRects = new List<Rect>();
         private readonly Vector3[] corners = new Vector3[4];
@@ -71,6 +91,12 @@ namespace A305.Tutorial
         private float markerBodyHeightMeters;
         private bool dimsOutside = true;
         private Action nextAction;
+        private Transform compassWalker;
+        private Transform compassTarget;
+        private Transform compassRoot;
+        private Transform compassRing;
+        private Transform compassPointer;
+        private Transform compassArrow;
 
         private void Awake()
         {
@@ -89,6 +115,7 @@ namespace A305.Tutorial
             Action next = null
         )
         {
+            HideCompass();
             this.dimsOutside = dimsOutside;
             nextAction = next;
             markerTarget = null;
@@ -111,6 +138,7 @@ namespace A305.Tutorial
         /// </summary>
         public void ShowMarker(Transform target, float heightMeters, float bodyHeightMeters)
         {
+            HideCompass();
             targets.Clear();
             SetSpotlightVisible(false);
             markerTarget = target;
@@ -119,8 +147,32 @@ namespace A305.Tutorial
             LateUpdate();
         }
 
+        /// <summary>
+        /// <paramref name="walker"/>(플레이어) 발밑 바닥에 원을 깔고, 원 가장자리에서 <paramref name="target"/> 쪽을 가리키는 화살표를
+        /// 둔다. 화면에 대상이 있든 없든 같은 자리에서 방향을 알리고, 캐릭터나 문을 가리지 않는다.
+        /// </summary>
+        public void ShowCompass(Transform walker, Transform target)
+        {
+            targets.Clear();
+            SetSpotlightVisible(false);
+            markerTarget = null;
+            marker.gameObject.SetActive(false);
+            compassWalker = walker;
+            compassTarget = target;
+            EnsureCompass();
+            compassRoot.gameObject.SetActive(true);
+            LateUpdate();
+        }
+
+        /// <summary>발밑 나침반이 보이는지</summary>
+        public bool IsCompassShowing => compassRoot != null && compassRoot.gameObject.activeSelf;
+
+        /// <summary>발밑 나침반이 가리키는 바닥 방향. 보이지 않으면 0이다.</summary>
+        public Vector3 CompassDirection { get; private set; }
+
         public void Hide()
         {
+            HideCompass();
             targets.Clear();
             markerTarget = null;
             nextAction = null;
@@ -163,6 +215,102 @@ namespace A305.Tutorial
             {
                 PlaceMarker();
             }
+            else if (compassWalker != null && compassTarget != null)
+            {
+                PlaceCompass();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (compassRoot != null)
+            {
+                Destroy(compassRoot.gameObject);
+            }
+        }
+
+        // 원은 발밑에, 점과 화살표는 원 가장자리에서 대상 쪽으로 오가며 가리킨다.
+        private void PlaceCompass()
+        {
+            float bob = Mathf.Abs(Mathf.Sin(Time.unscaledTime * MarkerBobSpeed)) * CompassBobMeters;
+            Vector3 feet = compassWalker.position + Vector3.up * CompassLiftMeters;
+            CoachMarkLayout.CompassPose pose = CoachMarkLayout.Compass(
+                feet,
+                compassTarget.position,
+                CompassPointerDistanceMeters + bob
+            );
+            CompassDirection = pose.Direction;
+            compassRing.SetPositionAndRotation(feet, pose.Rotation);
+            compassPointer.SetPositionAndRotation(
+                pose.PointerPosition + Vector3.up * 0.002f,
+                pose.Rotation
+            );
+            compassArrow.SetPositionAndRotation(
+                pose.PointerPosition + Vector3.up * 0.004f,
+                pose.Rotation
+            );
+        }
+
+        private void HideCompass()
+        {
+            compassWalker = null;
+            compassTarget = null;
+            CompassDirection = Vector3.zero;
+            if (compassRoot != null)
+            {
+                compassRoot.gameObject.SetActive(false);
+            }
+        }
+
+        // 바닥에 눕힐 그림은 처음 가리킬 때 만든다. 다음 장소를 미리 불러오는 동안 다른 씬에 생기지 않게 이 씬으로 옮긴다.
+        private void EnsureCompass()
+        {
+            if (compassRoot != null)
+            {
+                return;
+            }
+
+            compassRoot = new GameObject("TutorialCompass").transform;
+            SceneManager.MoveGameObjectToScene(compassRoot.gameObject, gameObject.scene);
+            Color color = marker.GetComponent<Image>().color;
+            compassRing = GroundSprite(
+                "Ring",
+                compassDiscSprite,
+                new Color(color.r, color.g, color.b, CompassRingAlpha),
+                CompassRingMeters,
+                0
+            );
+            compassPointer = GroundSprite(
+                "Pointer",
+                compassDiscSprite,
+                color,
+                CompassPointerMeters,
+                1
+            );
+            compassArrow = GroundSprite(
+                "Arrow",
+                compassArrowSprite,
+                Color.white,
+                CompassArrowMeters,
+                2
+            );
+        }
+
+        private Transform GroundSprite(
+            string name,
+            Sprite sprite,
+            Color color,
+            float widthMeters,
+            int order
+        )
+        {
+            var renderer = new GameObject(name).AddComponent<SpriteRenderer>();
+            renderer.transform.SetParent(compassRoot, false);
+            renderer.sprite = sprite;
+            renderer.color = color;
+            renderer.sortingOrder = order;
+            renderer.transform.localScale = Vector3.one * (widthMeters / sprite.bounds.size.x);
+            return renderer.transform;
         }
 
         private void PlaceSpotlight()

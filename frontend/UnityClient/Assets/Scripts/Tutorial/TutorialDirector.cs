@@ -21,9 +21,7 @@ namespace A305.Tutorial
     /// </summary>
     public class TutorialDirector : MonoBehaviour
     {
-        // 문 위·Ben 머리 위 화살표 높이와, 그 자리가 화면 밖일 때 가리킬 몸통 높이(발밑·문 바닥 기준).
-        private const float DoorMarkerHeightMeters = 2.6f;
-        private const float DoorBodyHeightMeters = 1.2f;
+        // Ben 머리 위 화살표 높이와, 그 자리가 화면 밖일 때 가리킬 몸통 높이(발밑 기준).
         private const float BenMarkerHeightMeters = 2.3f;
         private const float BenBodyHeightMeters = 1.0f;
 
@@ -471,11 +469,8 @@ namespace A305.Tutorial
             switch (target)
             {
                 case TutorialCoachTarget.Door when exitDoor != null:
-                    coachMark.ShowMarker(
-                        exitDoor.transform,
-                        DoorMarkerHeightMeters,
-                        DoorBodyHeightMeters
-                    );
+                    // 문 위 화살표는 문 가까이에서 캐릭터를 가리므로 발밑 나침반으로 문 쪽을 가리킨다.
+                    coachMark.ShowCompass(player.transform, exitDoor.transform);
                     break;
                 case TutorialCoachTarget.Ben when ben != null:
                     coachMark.ShowMarker(ben.transform, BenMarkerHeightMeters, BenBodyHeightMeters);

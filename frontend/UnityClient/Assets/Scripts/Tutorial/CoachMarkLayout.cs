@@ -167,6 +167,41 @@ namespace A305.Tutorial
             return Mathf.Max(min, Mathf.Min(value, max));
         }
 
+        /// <summary>발밑 나침반이 가리키는 방향(바닥과 나란한 단위 벡터), 원 가장자리 표시 자리, 바닥에 눕힌 그림의 회전.</summary>
+        public readonly struct CompassPose
+        {
+            public CompassPose(Vector3 direction, Vector3 pointerPosition, Quaternion rotation)
+            {
+                Direction = direction;
+                PointerPosition = pointerPosition;
+                Rotation = rotation;
+            }
+
+            public Vector3 Direction { get; }
+            public Vector3 PointerPosition { get; }
+
+            /// <summary>오른쪽을 가리키는 그림을 바닥에 눕혀 대상 쪽으로 돌리는 회전</summary>
+            public Quaternion Rotation { get; }
+        }
+
+        /// <summary>
+        /// 걸어갈 대상을 플레이어 발밑 바닥에 나침반처럼 가리킨다. 높낮이는 보지 않고 바닥을 따라 대상 쪽을 가리키며,
+        /// 대상이 발밑 바로 위·아래에 있어 방향을 알 수 없으면 앞쪽을 가리킨다.
+        /// </summary>
+        /// <param name="pointerDistanceMeters">발밑에서 가장자리 표시까지 거리</param>
+        public static CompassPose Compass(Vector3 feet, Vector3 target, float pointerDistanceMeters)
+        {
+            Vector3 toward = target - feet;
+            toward.y = 0f;
+            Vector3 direction = toward.sqrMagnitude > 0.0001f ? toward.normalized : Vector3.forward;
+            // 그림은 오른쪽(+X)을 가리키고 앞(+Z)을 향한 면이다. 면을 아래로 눕히고 오른쪽을 대상 쪽으로 돌린다.
+            Quaternion rotation = Quaternion.LookRotation(
+                Vector3.down,
+                Quaternion.Euler(0f, -90f, 0f) * direction
+            );
+            return new CompassPose(direction, feet + direction * pointerDistanceMeters, rotation);
+        }
+
         public static MarkerPose Marker(
             Vector2 point,
             Vector2 bodyPoint,

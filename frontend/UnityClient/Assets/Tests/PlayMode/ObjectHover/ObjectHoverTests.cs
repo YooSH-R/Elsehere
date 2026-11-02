@@ -347,6 +347,45 @@ namespace A305.ObjectHover.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator PinnedCard_StaysPut_WhenTheTutorialCoachMarkDimsTheScreen()
+        {
+            // 코치 마크는 밝힐 곳 둘레를 덮개 네 조각으로 덮는다. 조각마다 화면보다 작아 피할 창으로 보면,
+            // 밝힌 곳 바로 옆의 고정한 카드가 덮개를 피해 밝힌 구멍 쪽으로 끌려가 밝힌 곳을 덮었다.
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Object.FindFirstObjectByType<TutorialDirector>().enabled = false;
+            CoachMarkView coachMark = Object.FindFirstObjectByType<CoachMarkView>();
+            coachMark.Hide();
+            Rect guide = ShowTutorialGuide();
+            Vector2 belowGuide = new Vector2(guide.center.x, guide.yMin - 20f);
+            AimSoThatScreenPointShows(tv, belowGuide);
+            hover.Click(belowGuide);
+            Assert.That(tooltip.IsPinned, Is.True);
+            Rect pinned = CardScreenRect();
+            Assert.That(
+                pinned.Overlaps(guide),
+                Is.False,
+                "준비: 카드가 안내 카드를 비켜 고정됩니다."
+            );
+
+            coachMark.ShowSpotlight(new[] { TutorialGuidePanel() }, "안내 카드를 읽어 보세요");
+            yield return null;
+            Assert.That(
+                coachMark.IsSpotlightShowing,
+                Is.True,
+                "준비: 코치 마크가 안내 카드 둘레를 덮습니다."
+            );
+            hover.Refresh(belowGuide, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsPinned, Is.True);
+            Assert.That(
+                Vector2.Distance(CardScreenRect().position, pinned.position),
+                Is.LessThan(1f),
+                "고정한 카드가 코치 마크 덮개를 피해 옮겨 갑니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator Tooltip_UsesSpacingFromDataAsset()
         {
             yield return null;

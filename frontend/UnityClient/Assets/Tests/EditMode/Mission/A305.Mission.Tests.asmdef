@@ -7,6 +7,7 @@
         "UnityEditor.TestRunner",
         "A305.Mission",
         "A305.Theme",
+        "A305.World",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

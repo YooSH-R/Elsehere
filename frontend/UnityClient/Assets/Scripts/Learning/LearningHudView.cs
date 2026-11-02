@@ -21,6 +21,10 @@ namespace A305.Learning
         private ConversationHistoryView historyView;
 
         [SerializeField]
+        [Tooltip("오른쪽 아래 조작법 카드")]
+        private ControlsGuideView controlsGuide;
+
+        [SerializeField]
         private Button vocabularyButton;
 
         [SerializeField]
@@ -49,6 +53,8 @@ namespace A305.Learning
         public event Action HomeRequested;
 
         public ConversationHistoryView HistoryView => historyView;
+
+        public ControlsGuideView ControlsGuide => controlsGuide;
 
         /// <summary>메뉴 안의 [단어장]. 튜토리얼 코치 마크가 밝힌다.</summary>
         public RectTransform VocabularyButtonRect => (RectTransform)vocabularyButton.transform;

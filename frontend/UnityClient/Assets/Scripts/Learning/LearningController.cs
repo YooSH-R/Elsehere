@@ -125,6 +125,7 @@ namespace A305.Learning
         private void Update()
         {
             hudView.SetVocabularyAvailable(!dialogue.IsTalking);
+            hudView.ControlsGuide.SetBlocked(dialogue.IsTalking || IsShowingScreen);
             hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
         }
 

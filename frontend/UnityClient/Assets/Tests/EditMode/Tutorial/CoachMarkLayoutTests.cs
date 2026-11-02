@@ -47,106 +47,27 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void Marker_OnScreen_PointsDownAtTheTarget()
+        public void Marker_AboveTheTargetOnScreen_IsShown()
         {
-            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
-                new Vector2(400f, 300f),
-                new Vector2(400f, 300f),
-                false,
-                Canvas,
-                50f,
-                50f
+            // Ben 머리 위 자리가 화면 안(위쪽 안내 카드 아래)에 있으면 그 자리에서 아래를 가리킨다.
+            Assert.That(
+                CoachMarkLayout.ShowsMarker(new Vector2(400f, 300f), false, Canvas, 50f, 150f),
+                Is.True
             );
-
-            Assert.That(pose.Position, Is.EqualTo(new Vector2(400f, 300f)));
-            Assert.That(pose.ArrowDegrees, Is.EqualTo(-90f));
         }
 
-        [Test]
-        public void Marker_OffScreen_GoesToTheBottomCornerOnTheTargetSide_PointingThatWay()
+        [TestCase(400f, 520f, false)]
+        [TestCase(400f, 900f, false)]
+        [TestCase(1200f, 300f, false)]
+        [TestCase(300f, 300f, true)]
+        public void Marker_UnderTheGuideCard_OffScreen_OrBehind_IsHidden(float x, float y, bool isBehind)
         {
-            // 대상이 화면 밖이면 위·옆 가장자리에서 안내 카드·메뉴와 겹치지 않게, 대상이 있는 쪽 아래 구석에서 돌아볼 방향을 가리킨다.
-            CoachMarkLayout.MarkerPose right = CoachMarkLayout.Marker(
-                new Vector2(1200f, 300f),
-                new Vector2(1200f, 300f),
-                false,
-                Canvas,
-                50f,
-                50f
+            // 화살표를 몸통·얼굴로 내리면 Ben 얼굴을 가리므로, 머리 위에 둘 수 없으면 띄우지 않는다.
+            // Ben은 기다리는 구도에서 늘 화면 가운데로 다가오고, 숙소 문은 발밑 나침반이 가리킨다.
+            Assert.That(
+                CoachMarkLayout.ShowsMarker(new Vector2(x, y), isBehind, Canvas, 50f, 150f),
+                Is.False
             );
-            CoachMarkLayout.MarkerPose aboveLeft = CoachMarkLayout.Marker(
-                new Vector2(300f, 900f),
-                new Vector2(300f, 900f),
-                false,
-                Canvas,
-                50f,
-                50f
-            );
-            CoachMarkLayout.MarkerPose aboveRight = CoachMarkLayout.Marker(
-                new Vector2(700f, 900f),
-                new Vector2(700f, 900f),
-                false,
-                Canvas,
-                50f,
-                50f
-            );
-
-            AssertNear(right.Position, new Vector2(750f, 50f));
-            Assert.That(right.ArrowDegrees, Is.EqualTo(0f));
-            AssertNear(aboveLeft.Position, new Vector2(50f, 50f));
-            Assert.That(aboveLeft.ArrowDegrees, Is.EqualTo(180f));
-            AssertNear(aboveRight.Position, new Vector2(750f, 50f));
-            Assert.That(aboveRight.ArrowDegrees, Is.EqualTo(0f));
-        }
-
-        [Test]
-        public void Marker_BehindTheCamera_GoesToTheBottomCornerOnTheTargetSide()
-        {
-            // 카메라 뒤의 점은 화면 좌표가 좌우로 뒤집혀 나오므로 되돌려 대상이 있는 쪽 아래 구석에 둔다.
-            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
-                new Vector2(300f, 300f),
-                new Vector2(300f, 300f),
-                true,
-                Canvas,
-                50f,
-                50f
-            );
-
-            AssertNear(pose.Position, new Vector2(750f, 50f));
-            Assert.That(pose.ArrowDegrees, Is.EqualTo(0f));
-        }
-
-        [Test]
-        public void Marker_TopAboveTheScreen_ButTheBodyOnScreen_PointsDownAtTheBody()
-        {
-            // 문 가까이 서면 문 위 화살표 자리는 화면 위로 벗어나도 문은 보이므로, 옆 구석이 아니라 문 몸통을 가리킨다.
-            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
-                new Vector2(400f, 900f),
-                new Vector2(400f, 300f),
-                false,
-                Canvas,
-                50f,
-                50f
-            );
-
-            AssertNear(pose.Position, new Vector2(400f, 300f));
-            Assert.That(pose.ArrowDegrees, Is.EqualTo(-90f));
-        }
-
-        [Test]
-        public void Marker_TopUnderTheGuideCard_PointsAtTheBodyInstead()
-        {
-            // 위쪽 안내 카드 자리(위쪽 여백)에 걸린 화살표는 카드에 가리므로 몸통을 가리킨다.
-            CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
-                new Vector2(400f, 520f),
-                new Vector2(400f, 300f),
-                false,
-                Canvas,
-                50f,
-                150f
-            );
-
-            AssertNear(pose.Position, new Vector2(400f, 300f));
         }
 
         [Test]

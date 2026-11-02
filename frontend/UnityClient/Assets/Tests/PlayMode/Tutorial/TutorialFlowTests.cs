@@ -30,6 +30,7 @@ namespace A305.Tutorial.PlayModeTests
         public void StartTutorialFromTheBeginning()
         {
             PasserbyRestRecord.Clear();
+            PasserbyOfferRecord.Clear();
             TutorialState.Clear();
         }
 

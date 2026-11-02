@@ -73,6 +73,23 @@ namespace A305.Characters
             return missing.ToArray();
         }
 
+        public void ApplyBlink(float strength)
+        {
+            if (!SupportsPose(CharacterFacePose.Blink))
+                throw new InvalidOperationException("Missing eyelid shapes.");
+            foreach (var skin in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (skin.sharedMesh == null)
+                    continue;
+                foreach (string channel in new[] { "eyeBlinkLeft", "eyeBlinkRight" })
+                {
+                    int index = skin.sharedMesh.GetBlendShapeIndex(channel);
+                    if (index >= 0)
+                        skin.SetBlendShapeWeight(index, Mathf.Clamp01(strength) * 100);
+                }
+            }
+        }
+
         public void SetPose(CharacterFacePose pose, float intensity = 1f) =>
             BlendPoses(pose, pose, 0, intensity);
 

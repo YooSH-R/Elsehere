@@ -102,6 +102,34 @@ namespace A305.Learning.Tests
             Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
         }
 
+        // 표현이 길어 두 줄로 넘어가도 처음 열 때부터 요약 글이 표현 줄 아래에서 시작한다.
+        // 다른 탭에 다녀와야 제자리로 내려가면 처음 보는 요약 글 첫 줄이 표현 줄에 가린다.
+        [Test]
+        public void SummaryText_StartsBelowWrappedSituationRows_OnFirstShow()
+        {
+            Show(
+                new List<SituationExpressionData>
+                {
+                    Situation(
+                        "Do you know where I can buy an umbrella?",
+                        "우산을 어디서 살 수 있는지 아세요?",
+                        "비가 와서 우산을 살 곳을 행인에게 정중히 물을 때 씁니다."
+                    ),
+                    Situation(
+                        "Is there a drugstore nearby?",
+                        "근처에 약국이 있나요?",
+                        "약국의 위치를 간단히 물을 때 쓸 수 있습니다."
+                    ),
+                }
+            );
+            var body = (TMP_Text)
+                new SerializedObject(view).FindProperty("bodyText").objectReferenceValue;
+            Canvas.ForceUpdateCanvases();
+
+            float rowsBottom = Rows().Min(row => Corners((RectTransform)row.transform)[0].y);
+            Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
+        }
+
         private void Show(List<SituationExpressionData> expressions)
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));

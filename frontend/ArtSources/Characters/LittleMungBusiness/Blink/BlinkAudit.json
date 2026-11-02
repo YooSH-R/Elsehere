@@ -1,0 +1,26 @@
+[
+  {
+    "side": "Left",
+    "source": "LittleMungMannequin",
+    "cutTriangles": 118,
+    "boundaryVertices": 20,
+    "blinkFrames": 4,
+    "eyeScale": [
+      1.15,
+      1.12
+    ],
+    "unmatchedSkinEdges": 0
+  },
+  {
+    "side": "Right",
+    "source": "LittleMungMannequin",
+    "cutTriangles": 147,
+    "boundaryVertices": 25,
+    "blinkFrames": 4,
+    "eyeScale": [
+      1.15,
+      1.12
+    ],
+    "unmatchedSkinEdges": 0
+  }
+]

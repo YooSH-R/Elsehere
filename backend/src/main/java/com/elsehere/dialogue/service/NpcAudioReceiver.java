@@ -4,6 +4,7 @@ import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.service.NpcAudioRetention;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,19 @@ class NpcAudioReceiver {
       return null;
     }
     try {
-      return npcAudioRetention.save(aiGateway.audio(trace, audioId));
+      long startedAt = System.nanoTime();
+      byte[] wav = aiGateway.audio(trace, audioId);
+      long downloadedAt = System.nanoTime();
+      String key = npcAudioRetention.save(wav);
+      if (key != null) {
+        // 대화 시작·대답이 오래 걸릴 때 어느 단계인지 보도록 개발 서버(DEBUG)에서만 남긴다.
+        log.debug(
+            "npc_audio_saved bytes={} download_ms={} save_ms={}",
+            wav.length,
+            TimeUnit.NANOSECONDS.toMillis(downloadedAt - startedAt),
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - downloadedAt));
+      }
+      return key;
     } catch (BusinessException exception) {
       log.warn("NPC 음성을 받지 못했습니다 code={}", exception.getErrorCode());
       return null;

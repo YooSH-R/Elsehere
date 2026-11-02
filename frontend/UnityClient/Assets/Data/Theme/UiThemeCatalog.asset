@@ -13,6 +13,4 @@ MonoBehaviour:
   m_Name: UiThemeCatalog
   m_EditorClassIdentifier: A305.Theme::A305.Theme.UiThemeCatalog
   themes:
-  - {fileID: 11400000, guid: 3ca80e33eb3547c40875282284518653, type: 2}
-  - {fileID: 11400000, guid: 486d3393376943b47b0c989bf106dccf, type: 2}
-  - {fileID: 11400000, guid: 88ebd5a414127354f986b1fd2448539f, type: 2}
+  - {fileID: 11400000, guid: 27c7b13a939591e4cb641ae312235714, type: 2}

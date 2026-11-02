@@ -19,6 +19,7 @@ namespace A305.Characters
         private CharacterFacePose pose;
         private float intensity = 1;
         private Vector2 scroll;
+        private bool automaticBlink;
         private static readonly (CharacterFacePose Pose, string Label)[] Options =
         {
             (CharacterFacePose.Neutral, "01 REST / SIL"),
@@ -58,6 +59,12 @@ namespace A305.Characters
             );
             GUILayout.Label(face.gameObject.name + " - Face Preview");
             GUILayout.Label("Unavailable poses are disabled");
+            var idleBlink = face.GetComponent<CharacterIdleBlink>();
+            if (idleBlink != null)
+            {
+                automaticBlink = GUILayout.Toggle(automaticBlink, "Automatic blink");
+                idleBlink.Suspended = !automaticBlink;
+            }
             scroll = GUILayout.BeginScrollView(scroll, GUILayout.ExpandHeight(true));
             foreach (var option in Options)
             {

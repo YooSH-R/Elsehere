@@ -6,8 +6,9 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 코치 마크 화면. 눌러야 할 버튼은 둘레를 반투명 검은 판으로 덮고 테두리로 밝혀 그 버튼만 누를 수 있게 하고,
-    /// 걸어가야 할 대상(문·Ben)은 머리 위에서 오르내리는 화살표로 가리킨다. 대상이 화면 밖이면 화살표를 가장자리에 두고
+    /// 걸어가야 할 대상(문·Ben)은 머리 위에서 오르내리는 화살표로 가리킨다. 대상이 화면 밖이면 화살표를 대상 쪽 아래 구석에 두고
     /// 대상 쪽을 가리킨다. 둘 중 하나만 보인다. 설명은 화면 위쪽 가운데에 둬 밝힌 버튼 둘레의 내용을 가리지 않는다.
+    /// 대화 화면처럼 둘레 내용을 읽으며 해야 하면 둘레를 덮지 않고 테두리로만 밝힌다.
     /// 판은 밝힐 버튼이 있는 캔버스 바로 위에 그려, 그보다 위에 있는 안내 카드는 가리지 않는다.
     /// </summary>
     public class CoachMarkView : MonoBehaviour
@@ -52,6 +53,7 @@ namespace A305.Tutorial
         private RectTransform canvasRect;
         private Transform markerTarget;
         private float markerHeightMeters;
+        private bool dimsOutside = true;
 
         private void Awake()
         {
@@ -60,8 +62,14 @@ namespace A305.Tutorial
         }
 
         /// <summary>대상 버튼들을 한 구멍으로 밝히고, 설명이 있으면 화면 위쪽 가운데에 보인다.</summary>
-        public void ShowSpotlight(IReadOnlyList<RectTransform> spotlightTargets, string text)
+        /// <param name="dimsOutside">false면 둘레를 덮지 않고 테두리로만 밝힌다. 대화처럼 둘레 내용을 읽으며 해야 할 때 쓴다.</param>
+        public void ShowSpotlight(
+            IReadOnlyList<RectTransform> spotlightTargets,
+            string text,
+            bool dimsOutside = true
+        )
         {
+            this.dimsOutside = dimsOutside;
             markerTarget = null;
             marker.gameObject.SetActive(false);
             targets.Clear();
@@ -92,6 +100,9 @@ namespace A305.Tutorial
         }
 
         public bool IsSpotlightShowing => targets.Count > 0;
+
+        /// <summary>밝힌 구멍 밖을 어둡게 덮어 누르지 못하게 하는지</summary>
+        public bool IsDimmingOutside => IsSpotlightShowing && dimsOutside;
 
         /// <summary>지금 밝히는 버튼들. 밝히지 않으면 비어 있다.</summary>
         public IReadOnlyList<RectTransform> SpotlightTargets => targets;
@@ -242,7 +253,7 @@ namespace A305.Tutorial
         {
             foreach (RectTransform shade in shades)
             {
-                shade.gameObject.SetActive(visible);
+                shade.gameObject.SetActive(visible && dimsOutside);
             }
 
             frame.gameObject.SetActive(visible);

@@ -1009,7 +1009,6 @@ namespace A305.EditorTools.Theme
             Role(root, "Panel/Conversation/History/Viewport/Lines", UiThemeRole.Body);
             Role(root, "HelpPanel", UiThemeRole.Panel);
             Role(root, "HelpPanel/Title", UiThemeRole.Title);
-            Role(root, "HelpPanel/Viewport/Content/Guide", UiThemeRole.Muted);
             Role(root, "HelpPanel/Viewport/Content/WordsCard", UiThemeRole.Card);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/SuggestWords", UiThemeRole.Body);

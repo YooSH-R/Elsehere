@@ -9,13 +9,11 @@ using UnityEngine.UI;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대화 중에 보이는 화면. 이번 대화의 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
+    /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 왼쪽 추천 단어·추천 문장 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
     /// 서버 AI 대화의 [꾹 눌러 말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
-        private const string FreeTalkGuide =
-            "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요. 한국어를 섞어도 돼요.";
         private const string TalkCaption = "꾹 눌러 말하기";
         private const string ListeningCaption = "듣는 중…";
 
@@ -34,9 +32,6 @@ namespace A305.Dialogue
 
         [SerializeField]
         private TMP_Text linesText;
-
-        [SerializeField]
-        private TMP_Text guideText;
 
         [SerializeField]
         private TMP_Text statusText;
@@ -125,6 +120,12 @@ namespace A305.Dialogue
                 return parts;
             }
         }
+
+        /// <summary>왼쪽 도움 칸의 추천 문장 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SuggestedSentenceRect => (RectTransform)hintText.transform.parent;
+
+        /// <summary>왼쪽 도움 칸의 추천 단어 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SuggestedWordsRect => (RectTransform)suggestText.transform.parent;
 
         /// <summary>[대화 종료]. 튜토리얼 코치 마크가 길 안내를 마친 뒤 밝힌다.</summary>
         public RectTransform EndButtonRect => (RectTransform)endButton.transform;
@@ -233,8 +234,6 @@ namespace A305.Dialogue
             );
             npcNameText.text = content.NpcName;
             UpdateStanding();
-            guideText.text = FormatGuide();
-            guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
             // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
             // 음성 처리에 동의하지 않아 [꾹 눌러 말하기]가 없으면, 버튼이 왜 없는지와 동의를 켜는 곳을 입력칸 위에 알린다.
@@ -489,31 +488,6 @@ namespace A305.Dialogue
             statusText.fontSizeMax = 20;
             ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 520, 44);
             ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 328, 44);
-        }
-
-        private string FormatGuide()
-        {
-            if (content.IsGuidedCompleted)
-            {
-                return "길 안내를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
-            }
-
-            if (content.IsGuided)
-            {
-                string how = content.UsesVoice
-                    ? "[꾹 눌러 말하기]로 말하거나 그대로 입력해 보세요."
-                    : "이 문장을 그대로 입력해 보세요.";
-                return $"정해진 대사로 연습해요. {how}\n<b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
-            }
-
-            if (!content.UsesVoice)
-            {
-                return "정답은 없어요. 하고 싶은 말을 영어로 자유롭게 입력해 보세요.";
-            }
-
-            return content.CanTalk
-                ? FreeTalkGuide + " [꾹 눌러 말하기]로 말하면 문장으로 바꿔 드려요."
-                : FreeTalkGuide + " " + VoiceInputNotice.ConsentRequired;
         }
 
         private bool NeedsVoiceConsent => content.UsesVoice && !content.CanTalk;

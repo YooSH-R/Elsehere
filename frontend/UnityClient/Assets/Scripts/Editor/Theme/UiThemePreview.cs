@@ -304,8 +304,6 @@ namespace A305.EditorTools.Theme
             Field<GameObject>(dialogue, "panel").SetActive(true);
             Field<TMP_Text>(dialogue, "linesText").text =
                 "<b>Ben</b>  Excuse me, are you new here?\n<b>나</b>  Yes! Where can I buy an umbrella?";
-            Field<TMP_Text>(dialogue, "guideText").text =
-                "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요.";
             Field<TMP_Text>(dialogue, "statusText").text = "Ben이 듣고 있어요";
             Field<TMP_Text>(dialogue, "suggestText").text = "추천 단어 · umbrella · drugstore";
             var tooltip = Show<WordTooltipView>(scene, camera, 0.45f);

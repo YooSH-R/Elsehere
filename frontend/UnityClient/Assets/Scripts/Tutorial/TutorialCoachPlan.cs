@@ -30,6 +30,9 @@ namespace A305.Tutorial
         /// <summary>대화 뒤 피드백 화면이 열려 있는지</summary>
         public bool IsFeedbackShowing { get; set; }
 
+        /// <summary>정해진 길 안내에서 지금 몇 번째 대사인지(0부터)</summary>
+        public int GuidedTurnIndex { get; set; }
+
         /// <summary>지도 수첩이 열려 있는지</summary>
         public bool IsJournalOpen { get; set; }
     }
@@ -70,9 +73,18 @@ namespace A305.Tutorial
                 case TutorialStep.BenDialogue:
                     if (!screen.IsTalking)
                         return TutorialCoachTarget.None;
-                    return screen.IsGuidedCompleted
-                        ? TutorialCoachTarget.DialogueEnd
-                        : TutorialCoachTarget.GuidedLine;
+                    if (screen.IsGuidedCompleted)
+                        return TutorialCoachTarget.DialogueEnd;
+                    // 첫 대사에서 말하고 보내는 법을, 다음 대사들에서 왼쪽 추천 문장·추천 단어 카드를 하나씩 알린다.
+                    switch (screen.GuidedTurnIndex)
+                    {
+                        case 0:
+                            return TutorialCoachTarget.GuidedLine;
+                        case 1:
+                            return TutorialCoachTarget.SuggestedSentence;
+                        default:
+                            return TutorialCoachTarget.SuggestedWords;
+                    }
                 case TutorialStep.BenFeedback:
                     return screen.IsFeedbackShowing
                         ? TutorialCoachTarget.Feedback

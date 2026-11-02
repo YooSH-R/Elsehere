@@ -430,6 +430,7 @@ namespace A305.Tutorial
                 IsTalkOfferShowing =
                     ben != null && (offerView.IsShownBy(ben) || offerView.IsTalkPromptShownBy(ben)),
                 IsGuidedCompleted = dialogue.IsGuidedCompleted,
+                GuidedTurnIndex = dialogue.GuidedTurnIndex,
                 IsWordCardPinned = wordTooltip.IsPinned,
                 CanSaveWord = wordTooltip.CanSaveWord,
                 IsMenuOpen = hudMenu.IsOpen,
@@ -466,6 +467,13 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.Ben:
                     coachMark.Hide();
                     break;
+                case TutorialCoachTarget.GuidedLine:
+                case TutorialCoachTarget.SuggestedSentence:
+                case TutorialCoachTarget.SuggestedWords:
+                case TutorialCoachTarget.DialogueEnd:
+                    // 대화 중에는 대사를 읽으며 해야 하므로 둘레를 어둡게 덮지 않고 테두리로만 밝힌다.
+                    coachMark.ShowSpotlight(SpotlightParts(target), caption, dimsOutside: false);
+                    break;
                 default:
                     coachMark.ShowSpotlight(SpotlightParts(target), caption);
                     break;
@@ -494,6 +502,10 @@ namespace A305.Tutorial
                     return new[] { offerView.ShownButtonRect };
                 case TutorialCoachTarget.GuidedLine:
                     return dialoguePanel.GuidedLineParts;
+                case TutorialCoachTarget.SuggestedSentence:
+                    return new[] { dialoguePanel.SuggestedSentenceRect };
+                case TutorialCoachTarget.SuggestedWords:
+                    return new[] { dialoguePanel.SuggestedWordsRect };
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
                 case TutorialCoachTarget.Feedback:
@@ -510,7 +522,7 @@ namespace A305.Tutorial
         }
 
         // 안내 카드가 숨는 대화 제안·대화·피드백 화면에서는 코치 마크 설명으로 할 일을 알린다.
-        // 길 안내 대화에서는 지금 입력할 대사를 크게 보이고, 다른 문장을 보냈으면 다시 입력하라고 알린다.
+        // 길 안내 대화에서는 그 대사에서 알릴 것과 지금 할 대사·뜻을 크게 보이고, 다른 문장을 보냈으면 다시 입력하라고 알린다.
         private string Caption(TutorialCoachTarget target)
         {
             switch (target)
@@ -518,10 +530,9 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.TalkOffer:
                     return guide.TalkOfferCaption;
                 case TutorialCoachTarget.GuidedLine:
-                    string notice = dialogue.IsGuidedLineMissed
-                        ? guide.GuidedLineMissCaption
-                        : guide.GuidedLineCaption;
-                    return $"{notice}\n<size=130%><b>{dialogue.GuidedLine}</b></size>";
+                case TutorialCoachTarget.SuggestedSentence:
+                case TutorialCoachTarget.SuggestedWords:
+                    return $"{GuidedLineNotice(target)}\n<size=130%><b>{dialogue.GuidedLine}</b></size>\n{dialogue.GuidedLineKorean}";
                 case TutorialCoachTarget.DialogueEnd:
                     return guide.DialogueEndCaption;
                 case TutorialCoachTarget.Vocabulary:
@@ -535,6 +546,24 @@ namespace A305.Tutorial
                         : null;
                 default:
                     return null;
+            }
+        }
+
+        private string GuidedLineNotice(TutorialCoachTarget target)
+        {
+            if (dialogue.IsGuidedLineMissed)
+            {
+                return guide.GuidedLineMissCaption;
+            }
+
+            switch (target)
+            {
+                case TutorialCoachTarget.SuggestedSentence:
+                    return guide.SuggestedSentenceCaption;
+                case TutorialCoachTarget.SuggestedWords:
+                    return guide.SuggestedWordsCaption;
+                default:
+                    return guide.GuidedLineCaption;
             }
         }
 

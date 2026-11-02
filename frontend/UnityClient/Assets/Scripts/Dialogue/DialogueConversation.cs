@@ -6,17 +6,18 @@ namespace A305.Dialogue
     /// 대화 한 번의 진행. 사용자가 문장을 보내면 대본에 따라 NPC 대사를 덧붙인다.
     /// 서버·AI 연동 전에는 대본의 정해진 턴과 키워드 규칙으로 응답한다.
     /// 정해진 턴(튜토리얼)에서 글자로 보낸 문장은 그 턴의 대사와 같아야 넘어가고, 다른 문장은 대화에 남기지 않고 다시 입력하게 한다.
+    /// 정해진 턴은 대사마다 쓸 만한 추천 단어를 보인다.
     /// 말로 한 대사는 무엇을 말했든 정해진 대사로 이어 가고, 다르게 들렸으면 그렇게 했다고 알린다.
     /// </summary>
     public sealed class DialogueConversation : IDialogueContent
     {
         /// <summary>정해진 대사와 다른 문장을 보냈을 때 입력칸 위에 보이는 안내</summary>
         public const string GuidedLineMissNotice =
-            "튜토리얼 대화는 정해진 대사로 연습해요. 이 문장과 같게 입력해 보세요. [예시 문장]을 누르면 입력칸에 넣어 줘요.";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 안내한 대사와 같게 입력하거나 [예시 문장]으로 채워 보세요.";
 
         /// <summary>말로 한 대사가 정해진 대사와 다르거나 알아듣지 못했어도 정해진 대사로 이어 갔다는 안내</summary>
         public const string GuidedVoiceNotice =
-            "튜토리얼은 정해진 대사로 이어 가요. 말한 내용과 달라도 이 대사로 진행했어요.";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 말한 내용과 달라도 안내한 대사로 이어 갔어요.";
 
         private readonly DialogueScript script;
         private readonly bool hasRecorder;
@@ -47,6 +48,14 @@ namespace A305.Dialogue
         /// <summary>튜토리얼처럼 읽을 대사를 따라가는 대화인지</summary>
         public bool IsGuided => script.GuidedTurns.Count > 0;
 
+        /// <summary>정해진 흐름에서 지금 몇 번째 대사인지(0부터). 튜토리얼이 대사마다 다른 도움 카드를 알린다.</summary>
+        public int GuidedTurnIndex => guidedTurnIndex;
+
+        /// <summary>
+        /// 정해진 흐름에서 글자로 보낸 문장이 대사와 달라 다시 입력해야 하는지. 말로 한 대사는 달라도 넘어가므로 여기에 들지 않는다.
+        /// </summary>
+        public bool IsGuidedLineMissed => statusMessage == GuidedLineMissNotice;
+
         public bool IsGuidedCompleted => IsGuided && guidedTurnIndex >= script.GuidedTurns.Count;
 
         /// <summary>정해진 흐름에서 이번에 읽을 대사. 자유 대화이거나 흐름을 마쳤으면 null이다.</summary>
@@ -68,7 +77,7 @@ namespace A305.Dialogue
         public DialogueWait Waiting => DialogueWait.None;
         public string RecoveryGuide => null;
         public bool CanRetry => false;
-        public IReadOnlyList<string> SuggestWords => null;
+        public IReadOnlyList<string> SuggestWords => CurrentGuidedTurn?.SuggestWords;
         public bool CanSend => !IsGuidedCompleted;
         public bool HasMeaning => true;
         public IReadOnlyList<GlossaryData> LastNpcGlossary => null;

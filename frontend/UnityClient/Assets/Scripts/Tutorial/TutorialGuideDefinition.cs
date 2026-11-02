@@ -102,15 +102,32 @@ namespace A305.Tutorial
         private string talkOfferCaption = "{대화하기}를 눌러 Ben과 이야기해요";
 
         [SerializeField]
-        [Tooltip("길 안내 대화 중 입력칸을 밝힐 때 보이는 설명. 아래에 지금 입력할 대사가 붙는다.")]
+        [Tooltip(
+            "길 안내 대화 첫 대사에서 입력칸·[꾹 눌러 말하기]를 밝힐 때 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
+        )]
         private string guidedLineCaption =
-            "정해진 대사로 연습해요 · 아래 문장을 {꾹 눌러 말하기}로 말하거나 입력하고 {보내기}";
+            "튜토리얼은 정해진 흐름대로 진행돼요 · 아래 대사를 {꾹 눌러 말하기}로 말하거나 입력하고 {보내기}";
+
+        [SerializeField]
+        [Tooltip(
+            "길 안내 대화 두 번째 대사에서 왼쪽 [문장] 카드를 밝힐 때 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
+        )]
+        private string suggestedSentenceCaption =
+            "왼쪽 {문장}은 지금 하면 좋은 추천 문장이에요 · {넣기}로 입력칸에 채우고 {보내기}";
+
+        [SerializeField]
+        [Tooltip(
+            "길 안내 대화 세 번째 대사에서 왼쪽 [단어] 카드를 밝힐 때 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
+        )]
+        private string suggestedWordsCaption =
+            "왼쪽 {단어}에는 대답에 쓸 만한 추천 단어가 나와요 · 단어를 보고 아래 대사를 말하거나 입력해요";
 
         [SerializeField]
         [Tooltip(
             "길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사가 붙는다."
         )]
-        private string guidedLineMissCaption = "문장이 달라요 · {예시 문장}으로 채울 수 있어요";
+        private string guidedLineMissCaption =
+            "튜토리얼은 정해진 흐름대로 진행돼요 · 아래 대사와 같게 입력하거나 {예시 문장}으로 채워요";
 
         [SerializeField]
         [Tooltip("길 안내를 마친 뒤 [대화 종료]를 밝힐 때 화면 위쪽에 보이는 설명")]
@@ -134,6 +151,8 @@ namespace A305.Tutorial
         public string TutorialScriptKey => tutorialScriptKey;
         public string TalkOfferCaption => talkOfferCaption;
         public string GuidedLineCaption => guidedLineCaption;
+        public string SuggestedSentenceCaption => suggestedSentenceCaption;
+        public string SuggestedWordsCaption => suggestedWordsCaption;
         public string GuidedLineMissCaption => guidedLineMissCaption;
         public string DialogueEndCaption => dialogueEndCaption;
         public string TravelLockedMessage => travelLockedMessage;

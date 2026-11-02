@@ -109,6 +109,8 @@ namespace A305.EditorTools.Tutorial
                     "stepGuides",
                     "talkOfferCaption",
                     "guidedLineCaption",
+                    "suggestedSentenceCaption",
+                    "suggestedWordsCaption",
                     "guidedLineMissCaption",
                     "dialogueEndCaption",
                     "travelLockedMessage",

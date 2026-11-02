@@ -68,8 +68,16 @@ namespace A305.Dialogue
         /// <summary>정해진 흐름(튜토리얼 길 안내)에서 지금 입력할 대사. 정해진 흐름이 아니거나 마쳤으면 null.</summary>
         public string GuidedLine => IsTalking ? conversation?.SuggestedEnglish : null;
 
-        /// <summary>정해진 흐름에서 방금 보낸 문장이 대사와 달라 다시 입력해야 하는지.</summary>
-        public bool IsGuidedLineMissed => IsTalking && conversation?.StatusMessage != null;
+        /// <summary>정해진 흐름에서 지금 입력할 대사의 뜻.</summary>
+        public string GuidedLineKorean => IsTalking ? conversation?.SuggestedKorean : null;
+
+        /// <summary>정해진 흐름에서 지금 몇 번째 대사인지(0부터)</summary>
+        public int GuidedTurnIndex =>
+            IsTalking && conversation != null ? conversation.GuidedTurnIndex : 0;
+
+        /// <summary>정해진 흐름에서 글자로 보낸 문장이 대사와 달라 다시 입력해야 하는지.</summary>
+        public bool IsGuidedLineMissed =>
+            IsTalking && conversation != null && conversation.IsGuidedLineMissed;
 
         /// <summary>지금 대화가 정해진 흐름(튜토리얼 길 안내)이고 끝까지 마쳤는지.</summary>
         public bool IsGuidedCompleted =>

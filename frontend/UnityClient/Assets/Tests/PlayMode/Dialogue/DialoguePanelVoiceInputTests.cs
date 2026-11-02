@@ -175,6 +175,7 @@ namespace A305.Dialogue.PlayModeTests
             public string RecoveryGuide => null;
             public bool CanRetry => false;
             public IReadOnlyList<string> SuggestWords => null;
+            public bool IsSuggestingWords => false;
             public bool CanSend => true;
             public bool CanTalk => true;
             public bool HasMeaning => true;

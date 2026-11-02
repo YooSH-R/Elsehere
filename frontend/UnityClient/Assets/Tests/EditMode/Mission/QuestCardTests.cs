@@ -31,7 +31,11 @@ namespace A305.Mission.Tests
         private FirstDayMissionView view;
 
         [TearDown]
-        public void DestroyMission() => Object.DestroyImmediate(instance);
+        public void DestroyMission()
+        {
+            Object.DestroyImmediate(instance);
+            JourneyStatus.Shared.Clear();
+        }
 
         [Test]
         public void StepChip_ShowsTheCurrentStepOutOfAll()
@@ -102,6 +106,35 @@ namespace A305.Mission.Tests
                 Field<TMP_Text>("clock").text,
                 Is.EqualTo(GameClockText.Format(GameClock.Shared.Minutes))
             );
+        }
+
+        // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보이도록 여정을 함께 알린다.
+        [Test]
+        public void Refresh_SharesTheJourneyWithThePhone()
+        {
+            FirstDayMissionState state = Journey(current: 5);
+            state.Balance = 20;
+            Refresh(state);
+
+            JourneyStatus shared = JourneyStatus.Shared;
+            Assert.That(shared.HasJourney, Is.True);
+            Assert.That(shared.StepChip, Is.EqualTo("6 / 7"));
+            Assert.That(shared.Direction, Is.EqualTo("드럭스토어 점원에게 요청하세요."));
+            Assert.That(shared.Balance, Is.EqualTo(20));
+            Assert.That(shared.Marks.Count, Is.EqualTo(7));
+            Assert.That(shared.Marks[4], Is.EqualTo(JourneyMark.Done));
+            Assert.That(shared.Marks[5], Is.EqualTo(JourneyMark.Current));
+            Assert.That(shared.Marks[6], Is.EqualTo(JourneyMark.Upcoming));
+        }
+
+        [Test]
+        public void Unavailable_ForgetsTheSharedJourney()
+        {
+            Refresh(Journey(current: 5));
+
+            view.SetAvailable(false);
+
+            Assert.That(JourneyStatus.Shared.HasJourney, Is.False);
         }
 
         // 왼쪽 위 지도 버튼을 없애고 카드 자체를 눌러 수첩을 연다. 카드는 화면 왼쪽 위 모서리에 붙는다.

@@ -991,12 +991,9 @@ namespace A305.EditorTools.Theme
             size.preferredWidth = size.minWidth = 56;
         }
 
+        // 대화창 바탕·이름·대사·입력 줄·도구 버튼은 상자 없는 그라데이션 대화창 Builder가 칠한다. 여기서는 도움 카드만 칠한다.
         private static void StyleDialogue(Transform root)
         {
-            Role(root, "Panel", UiThemeRole.Panel);
-            Role(root, "Panel/Title", UiThemeRole.Title);
-            Role(root, "Panel/Notice", UiThemeRole.Muted);
-            Role(root, "Panel/Conversation/History/Viewport/Lines", UiThemeRole.Body);
             Role(root, "HelpPanel", UiThemeRole.Panel);
             Role(root, "HelpPanel/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/Guide", UiThemeRole.Muted);
@@ -1006,69 +1003,6 @@ namespace A305.EditorTools.Theme
             Role(root, "HelpPanel/Viewport/Content/HintCard", UiThemeRole.Card);
             Role(root, "HelpPanel/Viewport/Content/HintCard/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/HintCard/Body", UiThemeRole.Body);
-            CompactLabel(root, "HelpPanel/Viewport/Content/WordsCard/Title", "단어");
-            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/Title", "문장");
-            CompactLabel(root, "HelpPanel/Viewport/Content/HintCard/UseHintButton/Label", "넣기");
-            CompactLabel(root, "Panel/Conversation/ToolRow/MeaningButton/Label", "뜻");
-            CompactLabel(root, "Panel/Conversation/ToolRow/ReplayButton/Label", "듣기");
-            PillButton(
-                root,
-                "HelpPanel/Viewport/Content/HintCard/UseHintButton",
-                UiIcon.Example,
-                UiTone.Secondary
-            );
-            Role(root, "Panel/Conversation/Status", UiThemeRole.Accent);
-            Role(root, "Panel/Conversation/InputRow/Input", UiThemeRole.Input);
-            IconButton(
-                root,
-                "Panel/Conversation/InputRow/SendButton",
-                UiIcon.Send,
-                UiTone.Primary,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/ExampleButton",
-                UiIcon.Example,
-                UiTone.Accent,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/MeaningButton",
-                UiIcon.Meaning,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/InputRow/TalkButton",
-                UiIcon.Mic,
-                UiTone.Secondary,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/ReplayButton",
-                UiIcon.Replay,
-                UiTone.Positive,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Conversation/ToolRow/HintButton",
-                UiIcon.Hint,
-                UiTone.Positive,
-                caption: true
-            );
-            IconButton(
-                root,
-                "Panel/Buttons/RetryButton",
-                UiIcon.Retry,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
             StyleDialogueWaiting(root);
             StyleVoiceConsentDialog(root);
@@ -1076,8 +1010,8 @@ namespace A305.EditorTools.Theme
 
         private static void StyleDialogueWaiting(Transform root)
         {
-            Role(root, "Panel/Conversation/History/Wait", UiThemeRole.Card);
-            Role(root, "Panel/Conversation/History/Wait/Row/Label", UiThemeRole.Title);
+            // 대답 기다림은 대사 자리에 바탕 없이 흰 글씨로 보인다.
+            Role(root, "Panel/Conversation/History/Wait/Row/Label", UiThemeRole.TitleOnDark);
             Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
             Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
             Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);

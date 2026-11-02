@@ -138,3 +138,7 @@ PlayerSandboxBuilder.Build는 기존 Sandbox와 공용 에셋을 갱신하므로
 ## 카페 NPC의 음소 기반 대화 연결
 
 카페 직원은 원본 Barista를 보존한 `CafeFemaleDialogue`로 연결한다. 서버 TTS는 기존 Kokoro 0.6.1의 시간 출력 기능을 사용해 PCM과 발음별 시간표를 같은 WAV에 저장하며, Spring의 기존 음성 보관·조회 경로를 유지한다. Unity 대화는 선택한 NPC의 얼굴에 이 시간표를 적용한다. 새 대사마다 표정 에셋을 생성할 필요는 없다. 동작 범위와 서버 모델 조건, 오프라인 검수 방법은 [카페 여자 표정 확인](cafe-female-face.md#실제-카페-대화-연결)에 정리한다. LLM 감정 전달과 다른 얼굴의 표정 조형은 별도 범위다.
+
+## 비즈니스맨 통합 검수본의 눈 깜박임
+
+현재 기준은 `Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab`이며, 기존 `Review/Corrected`는 이전 후보다. 통합 검수본에는 좌우 눈 감기와 대기 중 자동 깜박임을 연결한다. 기존 입 모양·미소와 눈 전용 제어를 분리하며 음성 재생 중에는 공통 음성 얼굴 제어기를 사용한다. 얼굴 검수 씬은 `Assets/Scenes/Sandbox/NpcReview/LittleMung_Business_Male_Face.unity`다. 저작·갱신 방법과 외관 검수 범위는 [행인 검수 자료](../../frontend/ArtSources/Characters/ServiceNpcs/README.md#비즈니스맨-눈-감기와-자동-깜박임)를 따른다. Production Ben 연결과 다른 NPC의 눈꺼풀 제작은 별도 범위다.

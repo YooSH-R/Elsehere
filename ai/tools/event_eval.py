@@ -131,7 +131,7 @@ STAGES = {
         "Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. "
         "Never ask them to fetch the bag again.",
         {
-            "found_bag": "Say they returned or found their bag.",
+            "found_bag": "Say they found or got back their small bag.",
             "request_checkin": "Ask to check in now.",
             "show_reservation": "Identify or confirm their reservation, name or booking.",
             "collect_suitcase": "Ask to collect the stored large suitcase.",

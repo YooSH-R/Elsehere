@@ -13,8 +13,11 @@ namespace A305.Dialogue
     {
         private const string UserSpeaker = "나";
 
-        // 크림색 대화창 위에서도 읽히는 회색. 더 옅으면 뜻이 배경에 묻힌다.
-        private const string MeaningColor = "#6E7888";
+        // 어두운 그라데이션 위에서 흰 대사보다 한 단계 옅게 읽히는 따뜻한 색. 회색은 어두운 바탕에 묻힌다.
+        private const string MeaningColor = "#E6D3BC";
+
+        // 뜻은 영어 대사를 돕는 글이라 대사보다 작게 쓴다.
+        private const string MeaningSize = "80%";
 
         /// <summary>
         /// 고른 단어를 칠하는 반투명 주황(말하기 버튼 색). 단어 카드가 어느 단어의 뜻인지 대사 안에서 바로 보이게 한다.
@@ -44,11 +47,13 @@ namespace A305.Dialogue
                 rows.Add($"<b>{speaker}</b>  {english}");
                 if (i == latestNpcIndex && showsMeaning && line.Korean != null)
                 {
-                    rows.Add($"<color={MeaningColor}>{line.Korean}</color>");
+                    rows.Add(
+                        $"<size={MeaningSize}><color={MeaningColor}>{line.Korean}</color></size>"
+                    );
                     if (glossary != null && glossary.Count > 0)
                     {
                         rows.Add(
-                            $"<color={MeaningColor}>단어 풀이 · {FormatGlossary(glossary)}</color>"
+                            $"<size={MeaningSize}><color={MeaningColor}>단어 풀이 · {FormatGlossary(glossary)}</color></size>"
                         );
                     }
                 }

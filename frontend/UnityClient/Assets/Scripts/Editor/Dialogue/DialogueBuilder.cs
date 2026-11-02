@@ -36,8 +36,11 @@ namespace A305.EditorTools.Dialogue
         private const string VoiceRecorderSettingsPath =
             "Assets/Data/Voice/VoiceRecorderSettings.asset";
 
-        // 단어 카드의 [단어장에 저장]. 왼쪽 아이콘과 글자가 겹치지 않는 폭이다.
+        // 단어 카드의 [단어장에 저장]. 글자를 줄이지 않고 한 줄에 쓰는 폭이다.
         private const float WordSaveButtonWidth = 220f;
+
+        // 단어 카드의 [닫기]. 64px보다 낮은 버튼은 아이콘 없이 이름만 두므로 '닫기' 글자가 들어가는 폭이다.
+        private const float WordCloseButtonWidth = 76f;
 
         // 단어 카드 크기. 넓은 화면 대화창의 대사 위쪽 공간에 들어가는 높이다.
         private static readonly Vector2 WordCardSize = new Vector2(420f, 156f);
@@ -487,7 +490,16 @@ namespace A305.EditorTools.Dialogue
                     Object.DestroyImmediate(old.gameObject);
             }
 
-            CardText(card, "Title", bold, 30f, new Vector2(0, 1), new Vector2(24, -16), 320);
+            // 단어가 길어도 오른쪽 위 [닫기]에 걸리지 않는 폭이다.
+            CardText(
+                card,
+                "Title",
+                bold,
+                30f,
+                new Vector2(0, 1),
+                new Vector2(24, -16),
+                WordCardSize.x - WordCloseButtonWidth - 48
+            );
             CardText(card, "Meaning", regular, 22f, new Vector2(0, 1), new Vector2(24, -58), 372);
             TMP_Text note = UiBuilderTools.FindOrCreateText(
                 card,
@@ -521,8 +533,14 @@ namespace A305.EditorTools.Dialogue
                 WordSaveButtonWidth,
                 44
             );
-            Button close = UiBuilderTools.FindOrCreateButton(card, "CloseButton", "", bold, 44f);
-            Corner(close.transform, Vector2.one, new Vector2(-12, -12), 44, 44);
+            Button close = UiBuilderTools.FindOrCreateButton(
+                card,
+                "CloseButton",
+                "닫기",
+                bold,
+                WordCloseButtonWidth
+            );
+            Corner(close.transform, Vector2.one, new Vector2(-12, -12), WordCloseButtonWidth, 44);
 
             card.gameObject.SetActive(false);
             return card;

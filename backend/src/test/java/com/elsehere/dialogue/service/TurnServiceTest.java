@@ -45,6 +45,8 @@ import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -393,6 +395,29 @@ class TurnServiceTest {
     assertThat(replayed).isEqualTo(first);
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
     then(aiWorkerClient).should().judge(any(), any(), any(), any(), anyString());
+  }
+
+  @Test
+  @DisplayName("처리하는 사이 같은 요청 ID로 다시 보낸 쪽이 먼저 저장하면 새로 저장하지 않고 그 결과를 돌려준다")
+  void send_sameRequestIdSavedWhileWaiting_replaysSavedTurns() {
+    judges("Yes", "Yes", null);
+    TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Yes", null);
+    // 클라이언트가 시간 초과로 다시 보낸 요청이 NPC 대답을 기다리는 사이 먼저 끝나 턴을 저장한다.
+    AtomicBoolean retriedOnce = new AtomicBoolean();
+    AtomicReference<TurnResponse> retried = new AtomicReference<>();
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              if (retriedOnce.compareAndSet(false, true)) {
+                retried.set(turnService.send(userId, conversationId, request));
+              }
+              return reply("Nice!", null);
+            });
+
+    TurnResponse first = turnService.send(userId, conversationId, request);
+
+    assertThat(first).isEqualTo(retried.get());
+    assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
   }
 
   @Test

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Linq;
+using A305.Tutorial;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -24,6 +25,20 @@ namespace A305.Player.Tests
         {
             previousCaptureDelta = Time.captureDeltaTime;
             Time.captureDeltaTime = 1f / 60f;
+        }
+
+        // 튜토리얼 동안에는 단계를 마칠 때까지 시점 바꾸기·이동을 잠그므로, 캐릭터 조작을 보는 이 시험은 튜토리얼을 마친 사용자로 한다.
+        [SetUp]
+        public void StartAfterTheTutorial()
+        {
+            TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
+        }
+
+        [TearDown]
+        public void ClearTutorial()
+        {
+            TutorialState.Clear();
         }
 
         public PlayerCharacterIntegrationTests(string selected)

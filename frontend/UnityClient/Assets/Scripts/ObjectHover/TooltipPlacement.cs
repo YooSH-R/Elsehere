@@ -28,7 +28,9 @@ namespace A305.ObjectHover
 
         /// <summary>
         /// 가리킨 영역의 위·아래·오른쪽·왼쪽 순서로 툴팁을 놓아 보고, 가리킨 영역과 피할 영역을 덮지 않는 첫 자리를 고른다.
-        /// 모든 자리가 덮으면 덮는 넓이가 가장 작은 자리를 고른다. 위·아래에서는 가로로, 양옆에서는 세로로 포인터를 따라간다.
+        /// 캐릭터 옆 바닥처럼 포인터가 피할 영역 안에 있으면 그 둘레 네 자리가 모두 덮으므로, 가리킨 영역과 그 피할 영역을 함께 감싼
+        /// 바깥의 위·아래·오른쪽·왼쪽도 놓아 본다. 모든 자리가 덮으면 덮는 넓이가 가장 작은 자리를 고른다.
+        /// 위·아래에서는 가로로, 양옆에서는 세로로 포인터를 따라간다.
         /// </summary>
         /// <param name="pointer">마우스 포인터 위치</param>
         /// <param name="pointedArea">가리킨 사물이 화면에서 차지하는 영역. 크기가 0이면 포인터 한 점만 피한다.</param>
@@ -44,32 +46,25 @@ namespace A305.ObjectHover
             IReadOnlyList<Rect> avoidAreas
         )
         {
-            float sideY = pointer.y - tooltipSize.y / 2f;
-            Vector2 above = PlaceAbove(
-                new Vector2(pointer.x, pointedArea.yMax),
-                tooltipSize,
-                canvasSize,
-                gap,
-                margin
+            var candidates = new List<Vector2>(
+                AroundArea(pointer, pointedArea, tooltipSize, canvasSize, gap, margin)
             );
-            Vector2 below = ClampInside(
-                new Vector2(pointer.x - tooltipSize.x / 2f, pointedArea.yMin - gap - tooltipSize.y),
-                tooltipSize,
-                canvasSize,
-                margin
-            );
-            Vector2 right = ClampInside(
-                new Vector2(pointedArea.xMax + gap, sideY),
-                tooltipSize,
-                canvasSize,
-                margin
-            );
-            Vector2 left = ClampInside(
-                new Vector2(pointedArea.xMin - gap - tooltipSize.x, sideY),
-                tooltipSize,
-                canvasSize,
-                margin
-            );
+            foreach (Rect area in avoidAreas)
+            {
+                if (area.Contains(pointer))
+                {
+                    candidates.AddRange(
+                        AroundArea(
+                            pointer,
+                            Enclosing(pointedArea, area),
+                            tooltipSize,
+                            canvasSize,
+                            gap,
+                            margin
+                        )
+                    );
+                }
+            }
 
             // 한 점을 가리켜도 포인터를 덮지 않도록 가리킨 영역을 간격의 절반만큼 넓혀 본다.
             Rect pointed = new Rect(
@@ -78,9 +73,9 @@ namespace A305.ObjectHover
                 pointedArea.width + gap,
                 pointedArea.height + gap
             );
-            Vector2 best = above;
+            Vector2 best = candidates[0];
             float least = float.PositiveInfinity;
-            foreach (Vector2 candidate in new[] { above, below, right, left })
+            foreach (Vector2 candidate in candidates)
             {
                 float covered = CoveredArea(new Rect(candidate, tooltipSize), pointed, avoidAreas);
                 if (covered <= 0f)
@@ -97,6 +92,44 @@ namespace A305.ObjectHover
 
             return best;
         }
+
+        // 영역의 위·아래·오른쪽·왼쪽 자리. 위·아래에서는 가로로, 양옆에서는 세로로 포인터를 따라간다.
+        private static Vector2[] AroundArea(
+            Vector2 pointer,
+            Rect area,
+            Vector2 tooltipSize,
+            Vector2 canvasSize,
+            float gap,
+            float margin
+        )
+        {
+            float sideY = pointer.y - tooltipSize.y / 2f;
+            return new[]
+            {
+                PlaceAbove(new Vector2(pointer.x, area.yMax), tooltipSize, canvasSize, gap, margin),
+                ClampInside(
+                    new Vector2(pointer.x - tooltipSize.x / 2f, area.yMin - gap - tooltipSize.y),
+                    tooltipSize,
+                    canvasSize,
+                    margin
+                ),
+                ClampInside(new Vector2(area.xMax + gap, sideY), tooltipSize, canvasSize, margin),
+                ClampInside(
+                    new Vector2(area.xMin - gap - tooltipSize.x, sideY),
+                    tooltipSize,
+                    canvasSize,
+                    margin
+                ),
+            };
+        }
+
+        private static Rect Enclosing(Rect a, Rect b) =>
+            Rect.MinMaxRect(
+                Mathf.Min(a.xMin, b.xMin),
+                Mathf.Min(a.yMin, b.yMin),
+                Mathf.Max(a.xMax, b.xMax),
+                Mathf.Max(a.yMax, b.yMax)
+            );
 
         // 툴팁이 캔버스보다 크면 왼쪽·아래 margin에 맞춘다.
         private static Vector2 ClampInside(

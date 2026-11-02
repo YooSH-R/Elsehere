@@ -41,7 +41,7 @@ public class AdminUserService {
             .orElseThrow(() -> new BusinessException(ErrorCode.ADMIN_CANDIDATE_NOT_FOUND));
     if (user.getRole() != UserRole.ADMIN) {
       user.grantAdmin();
-      log.info("관리자 지정: userId={}, 지정한 관리자 userId={}", user.getId(), adminUserId);
+      log.info("admin_granted user_id={} by_user_id={}", user.getId(), adminUserId);
     }
     return toAdminUser(user);
   }
@@ -58,7 +58,7 @@ public class AdminUserService {
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (user.getRole() == UserRole.ADMIN) {
       user.revokeAdmin();
-      log.info("관리자 해제: userId={}, 해제한 관리자 userId={}", userId, adminUserId);
+      log.info("admin_revoked user_id={} by_user_id={}", userId, adminUserId);
     }
   }
 

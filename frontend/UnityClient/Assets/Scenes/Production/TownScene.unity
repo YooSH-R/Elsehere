@@ -3673,6 +3673,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 377048710}
     - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      propertyPath: talkGesture
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 439480038333156538, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: tutorialSettings
       value: 
       objectReference: {fileID: 11400000, guid: 2393256d3119a924aafad46bc4b62bf5, type: 2}

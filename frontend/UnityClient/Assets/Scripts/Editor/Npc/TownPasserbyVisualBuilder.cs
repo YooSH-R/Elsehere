@@ -89,6 +89,10 @@ namespace A305.EditorTools.Npc
                 "animator",
                 visual.GetComponentInChildren<Animator>()
             );
+            // 공용 손짓 동작(Idle_Talking_Loop)은 이 체형에서 무릎을 굽히고 팔을 내민 자세가 되어, 말하는 동안 자기 Idle로 세운다.
+            var passerby = new SerializedObject(ben.GetComponent<Passerby>());
+            passerby.FindProperty("talkGesture").boolValue = false;
+            passerby.ApplyModifiedPropertiesWithoutUndo();
             var capsule = ben.GetComponent<CharacterController>();
             capsule.height = ServiceHeightMeters;
             capsule.center = new Vector3(

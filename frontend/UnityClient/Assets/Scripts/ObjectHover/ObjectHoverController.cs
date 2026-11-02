@@ -199,8 +199,48 @@ namespace A305.ObjectHover
                 return;
             }
 
+            // Editor에서는 서버 없이도 [저장]·[알아요]를 눌러 볼 수 있게 확인용 단어 카드로 바꾼다. 빌드는 버튼 없이 둔다.
+            if (!loading.IsLoaded && Application.isEditor)
+            {
+                Debug.LogWarning(
+                    "서버에서 단어 카드를 받지 못해 Editor 확인용 단어 카드로 저장·숨김을 해 봅니다. 이 Play 동안만 기억하고 단어장에는 남지 않습니다.",
+                    this
+                );
+                loading = new ObjectWordCards(new LocalObjectWordApi(SceneWordDetails()));
+                await loading.LoadAsync(sceneCode);
+            }
+
             cards = loading;
             RefreshPinnedCard();
+        }
+
+        // 이 장소에서 가리킬 수 있는 사물의 공용 단어(가구 전체와 세부 부분)
+        private IEnumerable<ObjectWordDetails> SceneWordDetails()
+        {
+            foreach (
+                HoverableObject target in FindObjectsByType<HoverableObject>(
+                    FindObjectsSortMode.None
+                )
+            )
+            {
+                if (target.Word != null)
+                {
+                    yield return target.Word.Details;
+                }
+
+                if (target.Parts == null)
+                {
+                    continue;
+                }
+
+                foreach (ObjectWordPartsDefinition.Part part in target.Parts.Parts)
+                {
+                    if (part.Word != null)
+                    {
+                        yield return part.Word.Details;
+                    }
+                }
+            }
         }
 
         private void OnDestroy()

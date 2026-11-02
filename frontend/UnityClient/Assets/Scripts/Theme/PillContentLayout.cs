@@ -7,7 +7,7 @@ namespace A305.Theme
     /// <summary>
     /// 알약 버튼 안의 아이콘(자식 Icon)과 이름(자식 Label)을 한 묶음으로 버튼 가운데에 둔다.
     /// 아이콘은 글자 크기에 맞추고 이름과 일정한 간격을 둔다. 아이콘은 큰 주요 버튼에만 두고, 그보다 낮은 버튼은 이름만 둔다.
-    /// 이름이나 버튼 크기가 바뀔 때만 다시 계산한다.
+    /// 이름을 숨긴 버튼은 아이콘만 가운데에 둔다. 이름이나 버튼 크기가 바뀔 때만 다시 계산한다.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
@@ -58,10 +58,14 @@ namespace A305.Theme
             arrangedFontSize = label.fontSize;
             arrangedIcon = iconSprite;
 
+            // 이름을 숨긴 둥근 버튼은 아이콘만 가운데에 둔다.
+            bool showName = label.gameObject.activeSelf && !string.IsNullOrEmpty(label.text);
             float iconSize = showIcon ? Mathf.Round(label.fontSize * .95f) : 0f;
-            float lead = showIcon ? iconSize + Gap : 0f;
+            float lead = showIcon ? iconSize + (showName ? Gap : 0f) : 0f;
             float room = Mathf.Max(0f, size.x - 2f * SidePadding - lead);
-            float textWidth = Mathf.Min(label.GetPreferredValues(label.text).x, room);
+            float textWidth = showName
+                ? Mathf.Min(label.GetPreferredValues(label.text).x, room)
+                : 0f;
             float left = -(lead + textWidth) / 2f;
 
             RectTransform text = label.rectTransform;

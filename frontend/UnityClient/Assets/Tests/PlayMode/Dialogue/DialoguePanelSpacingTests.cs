@@ -38,15 +38,43 @@ namespace A305.Dialogue.PlayModeTests
             Object.Destroy(eventSystemObject);
         }
 
-        // 대사 칸 아래 끝이 도구 줄 안까지 내려와 마지막 줄이 버튼에 걸려 잘려 보였다.
+        // 대사 칸이 도구 줄에 닿으면 대사가 버튼에 걸려 잘려 보였다. 도구 줄은 이름표 줄에 있어 대사 위에 놓인다.
         [UnityTest]
-        public IEnumerator ConversationLines_StayAboveTheToolRowWithRoomToBreathe()
+        public IEnumerator ConversationLines_StayBelowTheToolRowWithRoomToBreathe()
         {
             yield return Show(new Content(null));
 
             Rect lines = InPanel((RectTransform)Field<ScrollRect>("historyScroll").transform);
             Rect tools = InPanel(ToolRow());
-            Assert.That(lines.yMin - tools.yMax, Is.GreaterThanOrEqualTo(12f));
+            Assert.That(tools.yMin - lines.yMax, Is.GreaterThanOrEqualTo(12f));
+        }
+
+        // 대화창은 상자 없이 화면 아래 전체 폭에 그라데이션으로 깔린다. 위쪽 투명한 곳이 장면 클릭을 막으면 안 된다.
+        [UnityTest]
+        public IEnumerator Panel_LiesAcrossTheWholeBottomWithoutBlockingTheScene()
+        {
+            yield return Show(new Content(null));
+
+            var frame = (RectTransform)Field<GameObject>("panel").transform;
+            Rect canvas = ((RectTransform)frame.parent).rect;
+            Assert.That(frame.rect.width, Is.EqualTo(canvas.width).Within(.5f));
+            Assert.That(InParent(frame).yMin, Is.EqualTo(canvas.yMin).Within(.5f));
+            Assert.That(frame.GetComponent<Image>().raycastTarget, Is.False);
+        }
+
+        // 단어·문장 도움 카드는 오른쪽 위에 두어 대화 줄과 겹치지 않는다.
+        [UnityTest]
+        public IEnumerator HelpCards_SitAtTheTopRightAboveTheConversation()
+        {
+            yield return Show(new Content(null));
+
+            var frame = (RectTransform)Field<GameObject>("panel").transform;
+            Rect canvas = ((RectTransform)frame.parent).rect;
+            Rect help = InParent(Field<RectTransform>("helpPanel"));
+            Rect name = InParent(Field<TMP_Text>("npcNameText").rectTransform);
+            Assert.That(help.center.x, Is.GreaterThan(canvas.center.x), "오른쪽에 있어야 합니다.");
+            Assert.That(help.yMax, Is.GreaterThan(canvas.center.y), "위쪽에 있어야 합니다.");
+            Assert.That(help.yMin, Is.GreaterThan(name.yMax), "이름 줄보다 위에 있어야 합니다.");
         }
 
         // 긴 NPC 대사와 뜻을 펼쳐도 스크롤하지 않고 한 번에 다 보여야 한다.
@@ -107,6 +135,17 @@ namespace A305.Dialogue.PlayModeTests
 
         private RectTransform ToolRow() =>
             (RectTransform)Field<Button>("saveButton").transform.parent;
+
+        // 캔버스(대화창의 부모) 기준 자리
+        private Rect InParent(RectTransform rect)
+        {
+            var canvas = (RectTransform)Field<GameObject>("panel").transform.parent;
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector3 min = canvas.InverseTransformPoint(corners[0]);
+            Vector3 max = canvas.InverseTransformPoint(corners[2]);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
 
         private Rect InPanel(RectTransform rect)
         {

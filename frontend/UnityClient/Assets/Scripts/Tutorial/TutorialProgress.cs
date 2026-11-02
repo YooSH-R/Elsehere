@@ -4,7 +4,7 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 진행. 버튼·조작(걷기·달리기·시점)·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 받아 단계를 넘긴다.
-    /// 걷기·둘러보기는 안내한 조작을 모두 해야 넘어간다. 지금 단계와 관계없는 신호는 무시한다.
+    /// 걷기(걷기·달리기·점프)·둘러보기는 안내한 조작을 모두 해야 넘어간다. 지금 단계와 관계없는 신호는 무시한다.
     /// </summary>
     public sealed class TutorialProgress
     {
@@ -12,6 +12,7 @@ namespace A305.Tutorial
         {
             TutorialAction.Walk,
             TutorialAction.Run,
+            TutorialAction.Jump,
         };
         private static readonly TutorialAction[] TouchWalk = { TutorialAction.Walk };
         private static readonly TutorialAction[] KeyboardLook =
@@ -35,7 +36,7 @@ namespace A305.Tutorial
 
         public TutorialStep Step { get; private set; } = TutorialStep.Arrival;
 
-        /// <summary>터치 조작판이 보이는 기기인지. 터치 기기에는 달리기·휠·V가 없어 해야 할 조작이 줄어든다.</summary>
+        /// <summary>터치 조작판이 보이는 기기인지. 터치 기기에는 달리기·점프·휠·V가 없어 해야 할 조작이 줄어든다.</summary>
         public bool UsesTouch { get; set; }
 
         /// <summary>그 단계에서 해야 할 조작. 안내 문구의 " · "로 나뉜 할 일과 순서가 같다. 조작 단계가 아니면 비어 있다.</summary>

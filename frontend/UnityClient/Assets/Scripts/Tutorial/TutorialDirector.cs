@@ -16,13 +16,16 @@ namespace A305.Tutorial
     /// 공간 씬마다 하나씩 두는 튜토리얼 진행 처리. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 튜토리얼 진행에 전하고,
     /// 단계에 맞게 안내 카드와 코치 마크, 행인이 다가와도 되는지, 장소 이동·택시 잠금, 미션 표시를 바꾼다.
     /// 숙소를 나오면 Ben과 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둔다.
+    /// Ben과 대화를 시작하면 대사·[뜻]·추천 단어·추천 문장을 차례로 밝히는 티칭을 [다음]으로 넘기며 보인다.
     /// 튜토리얼을 끝내면 서버에 저장하고(TUT-01·02), 저장하지 못했으면 다음 장소에 들어갈 때 다시 보낸다.
     /// </summary>
     public class TutorialDirector : MonoBehaviour
     {
-        // 문 위·Ben 머리 위 화살표 높이(발밑·문 바닥 기준).
+        // 문 위·Ben 머리 위 화살표 높이와, 그 자리가 화면 밖일 때 가리킬 몸통 높이(발밑·문 바닥 기준).
         private const float DoorMarkerHeightMeters = 2.6f;
+        private const float DoorBodyHeightMeters = 1.2f;
         private const float BenMarkerHeightMeters = 2.3f;
+        private const float BenBodyHeightMeters = 1.0f;
 
         [SerializeField]
         private TutorialGuideDefinition guide;
@@ -94,6 +97,9 @@ namespace A305.Tutorial
         private TaxiRide[] taxis;
         private readonly TutorialAutoAdvance autoAdvance = new TutorialAutoAdvance();
         private TutorialCoachTarget shownCoachTarget;
+
+        // 대화를 시작하고 [다음]으로 넘긴 티칭 수. 대화를 새로 시작하면 처음부터 다시 보인다.
+        private int dialogueTourStep;
         private Object shownCoachObject;
         private string shownCaption;
 
@@ -141,6 +147,7 @@ namespace A305.Tutorial
             ApplyStep();
 
             dialogue.Started += progress.StartDialogue;
+            dialogue.Started += RestartDialogueTour;
             dialogue.ConversationEnded += EndDialogue;
             learning.FeedbackClosed += CloseFeedback;
             wordTooltip.SaveRequested += progress.ReportWordSaved;
@@ -163,6 +170,7 @@ namespace A305.Tutorial
             }
 
             dialogue.Started -= progress.StartDialogue;
+            dialogue.Started -= RestartDialogueTour;
             dialogue.ConversationEnded -= EndDialogue;
             learning.FeedbackClosed -= CloseFeedback;
             wordTooltip.SaveRequested -= progress.ReportWordSaved;
@@ -212,6 +220,11 @@ namespace A305.Tutorial
             if (player.IsRunning)
             {
                 progress.Report(TutorialAction.Run);
+            }
+
+            if (player.JumpedThisFrame)
+            {
+                progress.Report(TutorialAction.Jump);
             }
 
             PlayerCameraRig cameraRig = player.CameraRig;
@@ -431,6 +444,7 @@ namespace A305.Tutorial
                     ben != null && (offerView.IsShownBy(ben) || offerView.IsTalkPromptShownBy(ben)),
                 IsGuidedCompleted = dialogue.IsGuidedCompleted,
                 GuidedTurnIndex = dialogue.GuidedTurnIndex,
+                DialogueTourStep = dialogueTourStep,
                 IsWordCardPinned = wordTooltip.IsPinned,
                 CanSaveWord = wordTooltip.CanSaveWord,
                 IsMenuOpen = hudMenu.IsOpen,
@@ -457,10 +471,14 @@ namespace A305.Tutorial
             switch (target)
             {
                 case TutorialCoachTarget.Door when exitDoor != null:
-                    coachMark.ShowMarker(exitDoor.transform, DoorMarkerHeightMeters);
+                    coachMark.ShowMarker(
+                        exitDoor.transform,
+                        DoorMarkerHeightMeters,
+                        DoorBodyHeightMeters
+                    );
                     break;
                 case TutorialCoachTarget.Ben when ben != null:
-                    coachMark.ShowMarker(ben.transform, BenMarkerHeightMeters);
+                    coachMark.ShowMarker(ben.transform, BenMarkerHeightMeters, BenBodyHeightMeters);
                     break;
                 case TutorialCoachTarget.None:
                 case TutorialCoachTarget.Door:
@@ -468,16 +486,29 @@ namespace A305.Tutorial
                     coachMark.Hide();
                     break;
                 case TutorialCoachTarget.GuidedLine:
-                case TutorialCoachTarget.SuggestedSentence:
-                case TutorialCoachTarget.SuggestedWords:
                 case TutorialCoachTarget.DialogueEnd:
-                    // 대화 중에는 대사를 읽으며 해야 하므로 둘레를 어둡게 덮지 않고 테두리로만 밝힌다.
+                    // 티칭을 다 본 뒤에는 대사를 읽으며 해야 하므로 둘레를 어둡게 덮지 않고 테두리로만 밝힌다.
                     coachMark.ShowSpotlight(SpotlightParts(target), caption, dimsOutside: false);
                     break;
                 default:
-                    coachMark.ShowSpotlight(SpotlightParts(target), caption);
+                    // 대화 시작 티칭은 하나씩 어둡게 밝혀 볼 곳을 알리고 [다음]으로 넘긴다.
+                    coachMark.ShowSpotlight(
+                        SpotlightParts(target),
+                        caption,
+                        next: TutorialCoachPlan.IsDialogueTour(target) ? ContinueDialogueTour : null
+                    );
                     break;
             }
+        }
+
+        private void RestartDialogueTour(string npcCode)
+        {
+            dialogueTourStep = 0;
+        }
+
+        private void ContinueDialogueTour()
+        {
+            dialogueTourStep++;
         }
 
         // 같은 단계라도 밝힐 버튼이 바뀌면([말 걸기] → [대화하기]) 다시 그리도록 대상 객체를 함께 본다.
@@ -500,6 +531,10 @@ namespace A305.Tutorial
                     return new[] { hud.VocabularyButtonRect };
                 case TutorialCoachTarget.TalkOffer:
                     return new[] { offerView.ShownButtonRect };
+                case TutorialCoachTarget.DialogueLines:
+                    return new[] { dialoguePanel.LinesRect };
+                case TutorialCoachTarget.DialogueTools:
+                    return dialoguePanel.ToolParts;
                 case TutorialCoachTarget.GuidedLine:
                     return dialoguePanel.GuidedLineParts;
                 case TutorialCoachTarget.SuggestedSentence:
@@ -521,18 +556,28 @@ namespace A305.Tutorial
             }
         }
 
-        // 안내 카드가 숨는 대화 제안·대화·피드백 화면에서는 코치 마크 설명으로 할 일을 알린다.
-        // 길 안내 대화에서는 그 대사에서 알릴 것과 지금 할 대사·뜻을 크게 보이고, 다른 문장을 보냈으면 다시 입력하라고 알린다.
+        // 안내 카드가 숨는 대화 제안·대화·단어장·피드백 화면에서는 밝힌 곳 옆 말풍선으로 할 일을 알린다.
+        // 길 안내 대화는 처음에 볼 곳을 하나씩 설명하고, 그 뒤에는 지금 할 대사·뜻을 크게 보이며
+        // 다른 문장을 보냈으면 다시 입력하라고 알린다.
         private string Caption(TutorialCoachTarget target)
         {
             switch (target)
             {
                 case TutorialCoachTarget.TalkOffer:
                     return guide.TalkOfferCaption;
-                case TutorialCoachTarget.GuidedLine:
-                case TutorialCoachTarget.SuggestedSentence:
+                case TutorialCoachTarget.DialogueLines:
+                    return guide.DialogueLinesCaption;
+                case TutorialCoachTarget.DialogueTools:
+                    return guide.DialogueToolsCaption;
                 case TutorialCoachTarget.SuggestedWords:
-                    return $"{GuidedLineNotice(target)}\n<size=130%><b>{dialogue.GuidedLine}</b></size>\n{dialogue.GuidedLineKorean}";
+                    return guide.SuggestedWordsCaption;
+                case TutorialCoachTarget.SuggestedSentence:
+                    return guide.SuggestedSentenceCaption;
+                case TutorialCoachTarget.GuidedLine:
+                    string notice = dialogue.IsGuidedLineMissed
+                        ? guide.GuidedLineMissCaption
+                        : guide.GuidedLineCaption;
+                    return $"{notice}\n<size=130%><b>{dialogue.GuidedLine}</b></size>\n{dialogue.GuidedLineKorean}";
                 case TutorialCoachTarget.DialogueEnd:
                     return guide.DialogueEndCaption;
                 case TutorialCoachTarget.Vocabulary:
@@ -546,24 +591,6 @@ namespace A305.Tutorial
                         : null;
                 default:
                     return null;
-            }
-        }
-
-        private string GuidedLineNotice(TutorialCoachTarget target)
-        {
-            if (dialogue.IsGuidedLineMissed)
-            {
-                return guide.GuidedLineMissCaption;
-            }
-
-            switch (target)
-            {
-                case TutorialCoachTarget.SuggestedSentence:
-                    return guide.SuggestedSentenceCaption;
-                case TutorialCoachTarget.SuggestedWords:
-                    return guide.SuggestedWordsCaption;
-                default:
-                    return guide.GuidedLineCaption;
             }
         }
 

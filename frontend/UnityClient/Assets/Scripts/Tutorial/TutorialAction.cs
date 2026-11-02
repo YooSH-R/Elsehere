@@ -9,6 +9,9 @@ namespace A305.Tutorial
         /// <summary>Shift를 누른 채 달리기</summary>
         Run,
 
+        /// <summary>Space로 뛰어오르기</summary>
+        Jump,
+
         /// <summary>마우스 왼쪽 버튼 끌기나 화면 끌기로 시점 돌리기</summary>
         Rotate,
 

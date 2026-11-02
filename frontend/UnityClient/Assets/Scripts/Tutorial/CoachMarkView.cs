@@ -1,21 +1,28 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 코치 마크 화면. 눌러야 할 버튼은 둘레를 반투명 검은 판으로 덮고 테두리로 밝혀 그 버튼만 누를 수 있게 하고,
-    /// 걸어가야 할 대상(문·Ben)은 머리 위에서 오르내리는 화살표로 가리킨다. 대상이 화면 밖이면 화살표를 대상 쪽 아래 구석에 두고
-    /// 대상 쪽을 가리킨다. 둘 중 하나만 보인다. 설명은 화면 위쪽 가운데에 둬 밝힌 버튼 둘레의 내용을 가리지 않는다.
+    /// 걸어가야 할 대상(문·Ben)은 머리 위에서 오르내리는 화살표로 가리킨다. 머리 위가 화면 밖이어도 몸통이 보이면 몸통을,
+    /// 둘 다 화면 밖이면 대상 쪽 아래 구석에서 대상 쪽을 가리킨다. 둘 중 하나만 보인다.
+    /// 설명은 밝힌 곳 옆에 꼬리 달린 말풍선으로 두고, 티칭처럼 읽고 넘길 설명에는 [다음]을 붙인다.
     /// 대화 화면처럼 둘레 내용을 읽으며 해야 하면 둘레를 덮지 않고 테두리로만 밝힌다.
     /// 판은 밝힐 버튼이 있는 캔버스 바로 위에 그려, 그보다 위에 있는 안내 카드는 가리지 않는다.
     /// </summary>
     public class CoachMarkView : MonoBehaviour
     {
         private const float HolePadding = 10f;
-        private const float CaptionTopMargin = 24f;
+        private const float BubbleGap = 28f;
+        private const float BubbleMargin = 24f;
         private const float MarkerEdgeMargin = 70f;
+
+        // 위쪽 안내 카드가 놓이는 높이. 여기에 걸린 화살표는 카드에 가리므로 대상 몸통을 가리킨다.
+        private const float MarkerTopMargin = 260f;
         private const float MarkerBobPixels = 12f;
         private const float MarkerBobSpeed = 4f;
         private const float FramePulseSpeed = 3f;
@@ -40,6 +47,14 @@ namespace A305.Tutorial
         private TMP_Text captionText;
 
         [SerializeField]
+        [Tooltip("말풍선에서 밝힌 곳을 향하는 꼬리. 말풍선 가장자리에 붙인다.")]
+        private RectTransform captionTail;
+
+        [SerializeField]
+        [Tooltip("티칭처럼 읽고 넘길 설명의 [다음]")]
+        private Button nextButton;
+
+        [SerializeField]
         [Tooltip("장면 속 대상 위에 띄우는 화살표 배지. 클릭을 받지 않는다.")]
         private RectTransform marker;
 
@@ -53,41 +68,54 @@ namespace A305.Tutorial
         private RectTransform canvasRect;
         private Transform markerTarget;
         private float markerHeightMeters;
+        private float markerBodyHeightMeters;
         private bool dimsOutside = true;
+        private Action nextAction;
 
         private void Awake()
         {
             canvasRect = (RectTransform)canvas.transform;
+            nextButton.onClick.AddListener(() => nextAction?.Invoke());
             Hide();
         }
 
-        /// <summary>대상 버튼들을 한 구멍으로 밝히고, 설명이 있으면 화면 위쪽 가운데에 보인다.</summary>
+        /// <summary>대상 버튼들을 한 구멍으로 밝히고, 설명이 있으면 그 옆에 말풍선으로 보인다.</summary>
         /// <param name="dimsOutside">false면 둘레를 덮지 않고 테두리로만 밝힌다. 대화처럼 둘레 내용을 읽으며 해야 할 때 쓴다.</param>
+        /// <param name="next">있으면 말풍선에 [다음]을 두고 누르면 부른다. 티칭처럼 읽고 넘길 설명에 쓴다.</param>
         public void ShowSpotlight(
             IReadOnlyList<RectTransform> spotlightTargets,
             string text,
-            bool dimsOutside = true
+            bool dimsOutside = true,
+            Action next = null
         )
         {
             this.dimsOutside = dimsOutside;
+            nextAction = next;
             markerTarget = null;
             marker.gameObject.SetActive(false);
             targets.Clear();
             targets.AddRange(spotlightTargets);
             captionText.text = text ?? "";
+            nextButton.gameObject.SetActive(next != null);
             caption.gameObject.SetActive(!string.IsNullOrEmpty(text));
+            // 말풍선 높이는 글 길이에 맞춰 바뀌므로 자리를 잡기 전에 크기를 다시 계산한다.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(caption);
             DrawAboveTargets();
             SetSpotlightVisible(true);
             LateUpdate();
         }
 
-        /// <summary>장면 속 대상의 발밑에서 <paramref name="heightMeters"/> 위에 화살표를 띄운다.</summary>
-        public void ShowMarker(Transform target, float heightMeters)
+        /// <summary>
+        /// 장면 속 대상의 발밑에서 <paramref name="heightMeters"/> 위에 화살표를 띄운다. 그 자리가 화면 밖이어도
+        /// <paramref name="bodyHeightMeters"/> 높이의 몸통이 보이면 몸통을 가리킨다.
+        /// </summary>
+        public void ShowMarker(Transform target, float heightMeters, float bodyHeightMeters)
         {
             targets.Clear();
             SetSpotlightVisible(false);
             markerTarget = target;
             markerHeightMeters = heightMeters;
+            markerBodyHeightMeters = bodyHeightMeters;
             LateUpdate();
         }
 
@@ -95,11 +123,19 @@ namespace A305.Tutorial
         {
             targets.Clear();
             markerTarget = null;
+            nextAction = null;
             SetSpotlightVisible(false);
             marker.gameObject.SetActive(false);
         }
 
         public bool IsSpotlightShowing => targets.Count > 0;
+
+        /// <summary>말풍선에 [다음]이 보이는지</summary>
+        public bool IsNextShowing =>
+            caption.gameObject.activeSelf && nextButton.gameObject.activeSelf;
+
+        /// <summary>말풍선 자리(캔버스 왼쪽 아래 기준). 말풍선이 없으면 크기가 0이다.</summary>
+        public Rect CaptionRect { get; private set; }
 
         /// <summary>밝힌 구멍 밖을 어둡게 덮어 누르지 못하게 하는지</summary>
         public bool IsDimmingOutside => IsSpotlightShowing && dimsOutside;
@@ -110,7 +146,7 @@ namespace A305.Tutorial
         /// <summary>화살표로 가리키는 장면 속 대상. 화면 밖이라 화살표가 숨어 있어도 대상은 남는다.</summary>
         public Transform MarkerTarget => markerTarget;
 
-        /// <summary>화면 위쪽 가운데에 보이는 설명. 설명이 없으면 null이다.</summary>
+        /// <summary>밝힌 곳 옆 말풍선의 설명. 설명이 없으면 null이다.</summary>
         public string CaptionText => caption.gameObject.activeSelf ? captionText.text : null;
 
         /// <summary>지금 밝힌 구멍(캔버스 왼쪽 아래 기준). 밝힌 것이 없으면 크기가 0이다.</summary>
@@ -164,17 +200,24 @@ namespace A305.Tutorial
             SetSpotlightVisible(true);
             if (caption.gameObject.activeSelf)
             {
-                PlaceCaption(canvasSize);
+                PlaceCaption(canvasSize, hole);
             }
         }
 
-        // 안내 카드가 숨는 동안 같은 자리(위쪽 가운데)에 둔다.
-        private void PlaceCaption(Vector2 canvasSize)
+        // 밝힌 곳 옆에 말풍선을 두고, 꼬리를 밝힌 곳 쪽 가장자리에 붙인다. 꼬리는 마름모로 돌려 반만 밖으로 나오게 한다.
+        private void PlaceCaption(Vector2 canvasSize, Rect hole)
         {
-            caption.anchoredPosition = new Vector2(
-                (canvasSize.x - caption.rect.width) / 2f,
-                canvasSize.y - CaptionTopMargin - caption.rect.height
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                hole,
+                caption.rect.size,
+                canvasSize,
+                BubbleGap,
+                BubbleMargin
             );
+            caption.anchoredPosition = bubble.Rect.position;
+            CaptionRect = bubble.Rect;
+            captionTail.anchoredPosition = bubble.Tail - bubble.Rect.position;
+            captionTail.localRotation = Quaternion.Euler(0f, 0f, 45f);
         }
 
         private void PlaceMarker()
@@ -189,11 +232,16 @@ namespace A305.Tutorial
             Vector3 screen = camera.WorldToScreenPoint(
                 markerTarget.position + Vector3.up * markerHeightMeters
             );
+            Vector3 body = camera.WorldToScreenPoint(
+                markerTarget.position + Vector3.up * markerBodyHeightMeters
+            );
             CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
                 ToCanvas(screen),
+                ToCanvas(body),
                 screen.z < 0f,
                 canvasRect.rect.size,
-                MarkerEdgeMargin
+                MarkerEdgeMargin,
+                MarkerTopMargin
             );
             // 가리키는 쪽으로 오르내려 눈에 띄게 한다.
             float radians = pose.ArrowDegrees * Mathf.Deg2Rad;
@@ -261,6 +309,7 @@ namespace A305.Tutorial
             {
                 caption.gameObject.SetActive(false);
                 Hole = default;
+                CaptionRect = default;
             }
         }
 

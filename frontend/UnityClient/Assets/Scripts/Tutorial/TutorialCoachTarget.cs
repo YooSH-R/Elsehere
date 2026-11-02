@@ -32,6 +32,12 @@ namespace A305.Tutorial
         /// <summary>대화 화면의 읽을 대사와 입력칸</summary>
         GuidedLine,
 
+        /// <summary>대화 화면의 대사 칸. 대화 시작 티칭의 첫째</summary>
+        DialogueLines,
+
+        /// <summary>대화 화면의 [뜻]·[예시 문장]</summary>
+        DialogueTools,
+
         /// <summary>대화 화면 왼쪽의 추천 문장 카드와 [넣기]</summary>
         SuggestedSentence,
 

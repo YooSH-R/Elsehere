@@ -33,6 +33,9 @@ namespace A305.Tutorial
         /// <summary>정해진 길 안내에서 지금 몇 번째 대사인지(0부터)</summary>
         public int GuidedTurnIndex { get; set; }
 
+        /// <summary>대화를 시작하고 [다음]으로 넘긴 티칭 수</summary>
+        public int DialogueTourStep { get; set; }
+
         /// <summary>지도 수첩이 열려 있는지</summary>
         public bool IsJournalOpen { get; set; }
     }
@@ -43,6 +46,22 @@ namespace A305.Tutorial
     /// </summary>
     public static class TutorialCoachPlan
     {
+        // 대화를 시작하면 무엇부터 볼지 이 순서로 하나씩 밝히고 [다음]으로 넘긴다.
+        private static readonly TutorialCoachTarget[] DialogueTour =
+        {
+            TutorialCoachTarget.DialogueLines,
+            TutorialCoachTarget.DialogueTools,
+            TutorialCoachTarget.SuggestedWords,
+            TutorialCoachTarget.SuggestedSentence,
+        };
+
+        /// <summary>대화 시작 티칭의 수</summary>
+        public static int DialogueTourLength => DialogueTour.Length;
+
+        /// <summary>대화 시작 티칭에서 [다음]으로 넘기는 대상인지</summary>
+        public static bool IsDialogueTour(TutorialCoachTarget target) =>
+            System.Array.IndexOf(DialogueTour, target) >= 0;
+
         public static TutorialCoachTarget Choose(TutorialStep step, TutorialScreen screen)
         {
             switch (step)
@@ -75,16 +94,13 @@ namespace A305.Tutorial
                         return TutorialCoachTarget.None;
                     if (screen.IsGuidedCompleted)
                         return TutorialCoachTarget.DialogueEnd;
-                    // 첫 대사에서 말하고 보내는 법을, 다음 대사들에서 왼쪽 추천 문장·추천 단어 카드를 하나씩 알린다.
-                    switch (screen.GuidedTurnIndex)
-                    {
-                        case 0:
-                            return TutorialCoachTarget.GuidedLine;
-                        case 1:
-                            return TutorialCoachTarget.SuggestedSentence;
-                        default:
-                            return TutorialCoachTarget.SuggestedWords;
-                    }
+                    // 첫 대사를 보내기 전에는 티칭을 순서대로 보이고, 다 보거나 대사를 보냈으면 할 대사를 알린다.
+                    if (
+                        screen.GuidedTurnIndex == 0
+                        && screen.DialogueTourStep < DialogueTour.Length
+                    )
+                        return DialogueTour[screen.DialogueTourStep];
+                    return TutorialCoachTarget.GuidedLine;
                 case TutorialStep.BenFeedback:
                     return screen.IsFeedbackShowing
                         ? TutorialCoachTarget.Feedback

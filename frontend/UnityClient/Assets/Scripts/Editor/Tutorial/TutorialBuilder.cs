@@ -62,6 +62,9 @@ namespace A305.EditorTools.Tutorial
         private static readonly Color CaptionColor = new Color(1f, 0.97f, 0.92f);
         private static readonly Color CaptionTextColor = new Color(0.23f, 0.18f, 0.16f);
 
+        // 밝힌 곳 옆에 두는 설명 말풍선 너비. 대화창 왼쪽 도움 카드 정도라 옆자리에 들어간다.
+        private const float CaptionWidth = 440f;
+
         // 잠긴 문 안내 띠: 연한 주황 바탕에 진한 주황 글자
         private static readonly Color NoticeColor = new Color(0.99f, 0.88f, 0.8f);
         private static readonly Color NoticeTextColor = new Color(0.66f, 0.27f, 0.11f);
@@ -108,6 +111,8 @@ namespace A305.EditorTools.Tutorial
                 {
                     "stepGuides",
                     "talkOfferCaption",
+                    "dialogueLinesCaption",
+                    "dialogueToolsCaption",
                     "guidedLineCaption",
                     "suggestedSentenceCaption",
                     "suggestedWordsCaption",
@@ -539,6 +544,7 @@ namespace A305.EditorTools.Tutorial
             SetUpFrameBar(frame, "Right", new Vector2(1f, 0f), new Vector2(1f, 1f));
             frame.gameObject.SetActive(false);
 
+            // 설명 말풍선. 너비는 정해 두고 높이는 글 길이에 맞추며, 아래에 [다음]을 오른쪽으로 붙인다.
             Image caption = FindOrCreateImage(root.transform, "Caption");
             caption.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(CardSpritePath);
             caption.type = Image.Type.Sliced;
@@ -548,7 +554,30 @@ namespace A305.EditorTools.Tutorial
             captionRect.anchorMin = Vector2.zero;
             captionRect.anchorMax = Vector2.zero;
             captionRect.pivot = Vector2.zero;
-            captionRect.sizeDelta = new Vector2(680f, 156f);
+            captionRect.sizeDelta = new Vector2(CaptionWidth, 120f);
+            var captionLayout = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(
+                caption.gameObject
+            );
+            captionLayout.padding = new RectOffset(26, 26, 20, 20);
+            captionLayout.spacing = 14f;
+            captionLayout.childAlignment = TextAnchor.UpperRight;
+            captionLayout.childControlWidth = captionLayout.childControlHeight = true;
+            captionLayout.childForceExpandWidth = captionLayout.childForceExpandHeight = false;
+            var captionFitter = BuilderTools.GetOrAddComponent<ContentSizeFitter>(
+                caption.gameObject
+            );
+            captionFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            captionFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            Image tail = FindOrCreateImage(captionRect, "Tail");
+            tail.color = CaptionColor;
+            tail.raycastTarget = false;
+            tail.rectTransform.anchorMin = tail.rectTransform.anchorMax = Vector2.zero;
+            tail.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            tail.rectTransform.sizeDelta = new Vector2(28f, 28f);
+            BuilderTools.GetOrAddComponent<LayoutElement>(tail.gameObject).ignoreLayout = true;
+            tail.transform.SetAsFirstSibling();
+
             TMP_Text captionText = UiBuilderTools.FindOrCreateText(
                 captionRect,
                 "Text",
@@ -556,16 +585,25 @@ namespace A305.EditorTools.Tutorial
                 22f,
                 CaptionTextColor
             );
-            RectTransform textRect = captionText.rectTransform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(24f, 16f);
-            textRect.offsetMax = new Vector2(-24f, -16f);
-            captionText.alignment = TextAlignmentOptions.Center;
-            captionText.enableAutoSizing = true;
-            captionText.fontSizeMin = 16f;
-            captionText.fontSizeMax = 22f;
+            captionText.alignment = TextAlignmentOptions.TopLeft;
+            captionText.enableAutoSizing = false;
+            captionText.fontSize = 22f;
+            captionText.textWrappingMode = TextWrappingModes.Normal;
             captionText.raycastTarget = false;
+            BuilderTools.GetOrAddComponent<LayoutElement>(captionText.gameObject).flexibleWidth =
+                1f;
+
+            Button nextButton = UiBuilderTools.FindOrCreateButton(
+                captionRect,
+                "NextButton",
+                "다음",
+                UiBuilderTools.BoldFont(),
+                150f
+            );
+            var nextSize = nextButton.GetComponent<LayoutElement>();
+            nextSize.preferredHeight = 52f;
+            nextButton.transform.SetAsLastSibling();
+            nextButton.gameObject.SetActive(false);
             caption.gameObject.SetActive(false);
 
             Image marker = FindOrCreateImage(root.transform, "Marker");
@@ -589,6 +627,8 @@ namespace A305.EditorTools.Tutorial
             BuilderTools.SetReference(view, "frame", frameGroup);
             BuilderTools.SetReference(view, "caption", captionRect);
             BuilderTools.SetReference(view, "captionText", captionText);
+            BuilderTools.SetReference(view, "captionTail", tail.rectTransform);
+            BuilderTools.SetReference(view, "nextButton", nextButton);
             BuilderTools.SetReference(view, "marker", markerRect);
             BuilderTools.SetReference(view, "markerArrow", arrow.rectTransform);
             BuilderTools.RequireReferences(view);

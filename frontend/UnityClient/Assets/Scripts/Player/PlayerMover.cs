@@ -79,6 +79,9 @@ namespace A305.Player
         /// <summary>달리기 키를 누른 채 움직이고 있는지</summary>
         public bool IsRunning { get; private set; }
 
+        /// <summary>이번 프레임에 땅을 박차고 뛰어올랐는지</summary>
+        public bool JumpedThisFrame => motor != null && motor.JustJumped;
+
         /// <summary>대화처럼 캐릭터가 움직이면 안 되는 동안 이동과 점프를 막는다.</summary>
         public void SetMovementLocked(bool isLocked)
         {

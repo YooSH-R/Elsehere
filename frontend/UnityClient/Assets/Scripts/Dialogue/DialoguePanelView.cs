@@ -121,6 +121,27 @@ namespace A305.Dialogue
             }
         }
 
+        /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        public RectTransform LinesRect => (RectTransform)historyScroll.transform;
+
+        /// <summary>[뜻]·[예시 문장] 중 보이는 버튼. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        public IReadOnlyList<RectTransform> ToolParts
+        {
+            get
+            {
+                var parts = new List<RectTransform>();
+                foreach (Button button in new[] { meaningButton, exampleButton })
+                {
+                    if (button.gameObject.activeSelf)
+                    {
+                        parts.Add((RectTransform)button.transform);
+                    }
+                }
+
+                return parts;
+            }
+        }
+
         /// <summary>왼쪽 도움 칸의 추천 문장 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
         public RectTransform SuggestedSentenceRect => (RectTransform)hintText.transform.parent;
 

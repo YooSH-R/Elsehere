@@ -5,7 +5,7 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 안내 문구와 튜토리얼이 기준으로 삼는 씬·NPC 키. 안내 문구가 없는 단계(길 안내 대화 중, 완료 뒤)는 카드를 숨긴다.
-    /// 카드가 숨는 대화 제안·대화 화면에서는 코치 마크 설명으로 할 일을 알린다.
+    /// 카드가 숨는 대화 제안·대화·단어장·피드백 화면에서는 밝힌 곳 옆 말풍선(코치 마크 설명)으로 할 일을 알린다.
     /// 필드 초기값은 에셋을 처음 만들 때 들어가는 문구이며, 이후 수정은 에셋에서 한다.
     /// </summary>
     [CreateAssetMenu(menuName = "A305/Tutorial/Guide Definition", fileName = "TutorialGuide")]
@@ -42,7 +42,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.Walk,
                 "걷기",
-                "{W}{A}{S}{D} 걷기 · {Shift} 달리기",
+                "{WASD} 걷기 · {Shift} 뛰기 · {스페이스} 점프",
                 "왼쪽 아래 {조이스틱}을 밀어 걷기",
                 ""
             ),
@@ -98,44 +98,49 @@ namespace A305.Tutorial
         };
 
         [SerializeField]
-        [Tooltip("Ben이 말을 걸어와 대화 제안이 뜬 동안 화면 위쪽에 보이는 설명")]
+        [Tooltip("Ben이 말을 걸어와 대화 제안이 뜬 동안 [대화하기] 옆에 보이는 설명")]
         private string talkOfferCaption = "{대화하기}를 눌러 Ben과 이야기해요";
 
         [SerializeField]
+        [Tooltip("길 안내 대화를 시작하면 대사 칸을 밝히며 [다음]과 함께 보이는 첫 티칭")]
+        private string dialogueLinesCaption =
+            "Ben이 먼저 말을 걸었어요. 주고받은 대화는 여기에 쌓여요";
+
+        [SerializeField]
+        [Tooltip("대화 시작 티칭의 둘째. [뜻]·[예시 문장]을 밝히며 보인다.")]
+        private string dialogueToolsCaption =
+            "Ben의 말이 어려우면 {뜻}으로 한국어 뜻을 봐요. {예시 문장}은 할 말을 입력칸에 채워 줘요";
+
+        [SerializeField]
+        [Tooltip("대화 시작 티칭의 셋째. 왼쪽 [단어] 카드를 밝히며 보인다.")]
+        private string suggestedWordsCaption = "{단어}에는 대답에 쓸 만한 추천 단어가 나와요";
+
+        [SerializeField]
+        [Tooltip("대화 시작 티칭의 넷째. 왼쪽 [문장] 카드를 밝히며 보인다.")]
+        private string suggestedSentenceCaption =
+            "{문장}은 지금 하면 좋은 추천 문장이에요. {넣기}를 누르면 입력칸에 채워져요";
+
+        [SerializeField]
         [Tooltip(
-            "길 안내 대화 첫 대사에서 입력칸·[꾹 눌러 말하기]를 밝힐 때 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
+            "대화 시작 티칭을 다 본 뒤 입력칸·[꾹 눌러 말하기] 옆에 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
         )]
         private string guidedLineCaption =
-            "튜토리얼은 정해진 흐름대로 진행돼요 · 아래 대사를 {꾹 눌러 말하기}로 말하거나 입력하고 {보내기}";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사를 {꾹 눌러 말하기}로 말하거나 입력하고 {보내기}";
 
         [SerializeField]
         [Tooltip(
-            "길 안내 대화 두 번째 대사에서 왼쪽 [문장] 카드를 밝힐 때 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
-        )]
-        private string suggestedSentenceCaption =
-            "왼쪽 {문장}은 지금 하면 좋은 추천 문장이에요 · {넣기}로 입력칸에 채우고 {보내기}";
-
-        [SerializeField]
-        [Tooltip(
-            "길 안내 대화 세 번째 대사에서 왼쪽 [단어] 카드를 밝힐 때 보이는 설명. 아래에 지금 할 대사와 뜻이 붙는다."
-        )]
-        private string suggestedWordsCaption =
-            "왼쪽 {단어}에는 대답에 쓸 만한 추천 단어가 나와요 · 단어를 보고 아래 대사를 말하거나 입력해요";
-
-        [SerializeField]
-        [Tooltip(
-            "길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사가 붙는다."
+            "길 안내 대화에서 대사와 다른 문장을 보냈을 때의 설명. 아래에 입력할 대사와 뜻이 붙는다."
         )]
         private string guidedLineMissCaption =
-            "튜토리얼은 정해진 흐름대로 진행돼요 · 아래 대사와 같게 입력하거나 {예시 문장}으로 채워요";
+            "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {예시 문장}으로 채워요";
 
         [SerializeField]
-        [Tooltip("길 안내를 마친 뒤 [대화 종료]를 밝힐 때 화면 위쪽에 보이는 설명")]
+        [Tooltip("길 안내를 마친 뒤 [대화 종료] 옆에 보이는 설명")]
         private string dialogueEndCaption = "길 안내 끝! {대화 종료}를 눌러요";
 
         [SerializeField]
         [Tooltip(
-            "단어장을 처음 열어 안내 카드가 숨은 동안 화면 위쪽에 보이는 단어장 설명과 다음 할 일"
+            "단어장을 처음 열어 안내 카드가 숨은 동안 단어장 창 옆에 보이는 단어장 설명과 다음 할 일"
         )]
         private string vocabularyCaption =
             "단어장에는 사물 카드에서 {저장}한 단어가 모여요. 뜻·예문을 다시 보고 {외웠어요}·메모로 정리해요\n다 봤으면 오른쪽 위 {X}로 닫고 밖으로 나가요";
@@ -151,6 +156,8 @@ namespace A305.Tutorial
         public string TutorialScriptKey => tutorialScriptKey;
         public string TalkOfferCaption => talkOfferCaption;
         public string GuidedLineCaption => guidedLineCaption;
+        public string DialogueLinesCaption => dialogueLinesCaption;
+        public string DialogueToolsCaption => dialogueToolsCaption;
         public string SuggestedSentenceCaption => suggestedSentenceCaption;
         public string SuggestedWordsCaption => suggestedWordsCaption;
         public string GuidedLineMissCaption => guidedLineMissCaption;

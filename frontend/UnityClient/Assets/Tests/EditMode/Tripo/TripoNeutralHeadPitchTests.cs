@@ -37,7 +37,7 @@ namespace A305.Tripo.Tests
                     })
                     .ToArray();
                 Assert.That(indices.Length, Is.GreaterThan(10));
-                var expected = TripoMasterHandBindingTests.WorldVertices(skin);
+                var expected = SkinTestGeometry.WorldVertices(skin);
                 mesh = Object.Instantiate(skin.sharedMesh);
                 skin.sharedMesh = mesh;
                 // Generated joint position differs, while the visible neutral mesh
@@ -52,7 +52,7 @@ namespace A305.Tripo.Tests
                     .bones.Select(b => b.worldToLocalMatrix * skin.transform.localToWorldMatrix)
                     .ToArray();
                 candidate = Object.Instantiate(TripoMasterRig.Build(source, master, folder));
-                var actual = TripoMasterHandBindingTests.WorldVertices(
+                var actual = SkinTestGeometry.WorldVertices(
                     candidate.GetComponentInChildren<SkinnedMeshRenderer>()
                 );
                 Vector3 expectedCenter =

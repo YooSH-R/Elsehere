@@ -1,10 +1,20 @@
 {
     "name": "A305.Characters.PlayModeTests",
     "rootNamespace": "A305.Characters.Tests",
-    "references": ["A305.Characters", "UnityEngine.TestRunner"],
+    "references": [
+        "A305.Characters",
+        "A305.Api",
+        "A305.Dialogue",
+        "UnityEngine.TestRunner",
+        "A305.Npc"
+    ],
     "includePlatforms": [],
     "overrideReferences": true,
-    "precompiledReferences": ["nunit.framework.dll"],
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
     "autoReferenced": false,
-    "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ]
 }

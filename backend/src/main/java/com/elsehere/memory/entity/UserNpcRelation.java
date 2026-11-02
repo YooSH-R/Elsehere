@@ -33,11 +33,17 @@ public class UserNpcRelation extends BaseEntity {
 
   @EmbeddedId private UserNpcRelationId id;
 
-  // 호감도(-100~100). 무례로 센 말마다 깎는다(NpcAffinityService).
+  // 호감도(-100~100). 무례로 센 말마다 깎고(NpcAffinityService), 대화가 끝나면 관계 갱신 변화량을 더한다.
   @ColumnDefault("0")
   @JdbcTypeCode(SqlTypes.SMALLINT)
   @Column(nullable = false)
   private Integer affinity;
+
+  // 알아봄(0~100). 얼굴을 아는 정도이며 대화가 끝나면 관계 갱신 변화량을 더한다.
+  @ColumnDefault("0")
+  @JdbcTypeCode(SqlTypes.SMALLINT)
+  @Column(nullable = false)
+  private Integer recognition;
 
   // 사용자 발화가 있었던 대화를 끝낸 횟수. NPC 대답 요청의 memory.visits로 쓴다.
   @ColumnDefault("0")
@@ -45,6 +51,9 @@ public class UserNpcRelation extends BaseEntity {
   private int talkCount;
 
   private Instant lastTalkedAt;
+
+  // 마지막 대화를 끝낸 게임 날짜(사용자별 게임 시계). 다음 요청의 days_since_last_talk를 센다. 게임 시계 도입 전 대화는 null이다.
+  private Integer lastTalkGameDay;
 
   @Column(columnDefinition = "jsonb")
   @ColumnTransformer(write = "?::jsonb")
@@ -56,22 +65,30 @@ public class UserNpcRelation extends BaseEntity {
     UserNpcRelation relation = new UserNpcRelation();
     relation.id = new UserNpcRelationId(userId, npcId);
     relation.affinity = 0;
+    relation.recognition = 0;
     return relation;
   }
 
   /**
    * 대화 하나가 끝난 것을 방문으로 센다.
    *
+   * @param gameDay 대화를 끝낸 게임 날짜(사용자별 게임 시계)
    * @return 처음 반영했으면 true. 이미 반영한 대화면 false
    */
-  public boolean recordVisit(Long conversationId, Instant endedAt) {
+  public boolean recordVisit(Long conversationId, Instant endedAt, int gameDay) {
     if (conversationId.equals(memoryConversationId)) {
       return false;
     }
     talkCount++;
     lastTalkedAt = endedAt;
+    lastTalkGameDay = gameDay;
     memoryConversationId = conversationId;
     return true;
+  }
+
+  /** 마지막 대화 뒤 지난 게임 날 수. 게임 시계 도입 전 대화만 있으면 0이다. */
+  public int daysSinceLastTalk(int today) {
+    return lastTalkGameDay == null ? 0 : Math.max(0, today - lastTalkGameDay);
   }
 
   /** AI가 새로 만든 카드로 통째로 바꾼다. 이전 카드와 합치지 않는다(철회한 내용이 되살아나지 않도록). */

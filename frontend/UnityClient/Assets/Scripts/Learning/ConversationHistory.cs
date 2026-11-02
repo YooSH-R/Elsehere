@@ -8,7 +8,7 @@ using A305.Dialogue;
 namespace A305.Learning
 {
     /// <summary>
-    /// [지난 대화] 창의 목록과 열기. 지난 대화를 한 페이지씩 읽고(CONV-09), 고른 대화의 저장된 피드백(FB-01)과 대화 기록(CONV-10)을
+    /// [피드백 목록] 창의 목록과 열기. 지난 대화를 한 페이지씩 읽고(CONV-09), 고른 대화의 저장된 피드백(FB-01)과 대화 기록(CONV-10)을
     /// 대화 직후와 같은 피드백 화면에 보일 형식으로 바꾼다. 실패하면 <see cref="Message"/>에 이유를 남긴다.
     /// </summary>
     public sealed class ConversationHistory

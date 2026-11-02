@@ -3,7 +3,7 @@ namespace A305.Voice
     /// <summary>녹음이 끝난 이유.</summary>
     public enum RecordingEndReason
     {
-        /// <summary>[누르고 말하기] 버튼을 뗐다.</summary>
+        /// <summary>사용자가 [종료]를 눌렀다.</summary>
         UserStopped,
 
         /// <summary>최대 녹음 시간에 닿았다.</summary>

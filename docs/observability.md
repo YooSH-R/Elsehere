@@ -12,13 +12,34 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 - 내부 프록시는 이 헤더를 유지합니다. Spring은 해당 형식의 값만 수용하고, 값이 없거나 형식이 잘못되면 새 ID를 생성합니다. 백엔드 포트는 공개하지 않습니다.
 - Spring은 보안 필터보다 먼저 요청 문맥에 ID를 넣고 응답에도 반환합니다. 요청이 끝나거나 예외가 발생하면 이전 문맥을 복원합니다.
 - Spring 요청 로그에는 HTTP 메서드, 컨트롤러의 경로 패턴, 상태 코드와 처리 시간만 남깁니다. 컨트롤러에 도달하지 않은 요청은 `/unmatched`로 기록합니다.
+- Spring의 모든 로그 줄에는 `request_id`와 함께 로그인 사용자의 내부 ID(`users.id`)가 `user_id`로 붙습니다. 운영 중 한 사용자의 요청·오류를 이어서 찾기 위한 값이며, 로그인 전 요청과 요청 밖 작업(예약 작업 등)은 `user_id=none`입니다. 보안 필터가 인증을 마친 뒤 넣고 요청이 끝나면 지웁니다. 이메일·닉네임·소셜 계정 ID 같은 개인정보는 넣지 않습니다. 비동기 작업(@Async)에는 아직 전달하지 않습니다.
 - Nginx는 원본 URL 대신 `/api/**`, `/api/v1/auth/**`, `/webgl/**` 등 고정된 경로 그룹을 기록합니다. 쿼리, 토큰, 쿠키, IP·사용자 식별자와 음성·대화 본문은 요청 요약에 넣지 않습니다.
 - 요청 보호용 `rate_limit`·`connection_limit` 필드는 판정 상태만 기록합니다. 관찰과 실제 차단의 구분·설치 조건은 [Nginx 요청 보호 정책](traffic-protection.md)을 따릅니다.
 - 처리하지 못한 Spring 예외는 종류와 코드 위치만 기록합니다. 외부 응답이나 사용자 입력을 포함할 수 있는 원본 예외 메시지는 기록하지 않습니다.
+- 백엔드 애플리케이션 로그(`com.elsehere`)는 운영 INFO, 개발 서버 DEBUG입니다. 서버 `deploy.env`의 `BACKEND_LOG_LEVEL`로 정하며 없으면 INFO입니다. 라이브러리 로그는 INFO로 둡니다. 설정 방법은 [백엔드 README](../backend/README.md#요청-추적과-관리-지표)를 따릅니다.
 
 이 헤더는 전송 요청의 추적용입니다. 중복 처리를 방지하는 API 본문의 UUID `requestId`와는 용도가 다르며, 재시도 요청은 같은 본문 ID를 사용해도 새로운 HTTP 추적 ID를 받습니다.
 
 저장소의 [AiWorkerClient](../backend/src/main/java/com/elsehere/ai/client/AiWorkerClient.java)는 HTTP 요청 문맥의 추적 ID를 워커의 `X-Request-Id`로 전달합니다. HTTP 요청 문맥이 없으면 `WorkerTrace`의 UUID를 사용합니다. 실제 배포본에서도 Spring과 워커의 로그를 같은 ID로 찾을 수 있는지 확인합니다.
+
+### 백엔드 업무 흐름 로그
+
+운영 중 한 사용자에게 일어난 일을 따라갈 수 있도록 양이 적고 중요한 업무 흐름을 남깁니다. 요청 요약(`http_request …`)과 같이 `이벤트명 키=값` 형식이고 `request_id`가 함께 붙습니다. ID와 코드값만 남기며 대화 본문·음성·인증값·이메일·닉네임은 남기지 않습니다. 응답 시간·호출 수 같은 수치는 로그가 아니라 Prometheus 지표와 `ai_requests` 기록으로 봅니다. `ai_requests`에 쌓인 AI 사용량은 [어드민 AI 사용량 화면](admin.md#ai-사용량)에서 봅니다.
+
+| 레벨 | 이벤트 | 키 | 남기는 때 |
+| --- | --- | --- | --- |
+| INFO | `conversation_started` | `conversation_id`, `npc`, `initiated_by` | 대화 시작(CONV-01) 저장 뒤 |
+| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
+| WARN | `feedback_failed` | `conversation_id`, `reason` | 짧은 피드백을 만들지 못함(AI 시간 초과 등) |
+| INFO | `feedback_skipped` | `conversation_id`, `reason` | 피드백을 건너뜀. 사용자가 건너뛰면 `USER_SKIPPED` |
+| INFO | `guest_conversation_limit_reached` | `user_id`, `limit` | 게스트 대화 한도로 대화 시작을 거절 |
+| INFO | `user_signed_up` | `user_id`, `provider` | 가입 완료(AUTH-04) |
+| INFO | `guest_started` | `user_id` | 게스트 계정 생성(AUTH-07) |
+| INFO | `user_withdrew` | `user_id` | 회원 탈퇴(USER-05) |
+| DEBUG | `ai_worker_call` | `path`, `status`, `duration_ms` | AI 워커 호출마다(개발 서버에서만 보임) |
+| DEBUG | `business_error` | `code`, `status` | 업무 오류 응답마다(개발 서버에서만 보임) |
+
+이 밖의 실패 상황(AI 워커 시간 초과·연결 실패, NPC 음성 저장 실패, 기억 카드·관계 갱신 실패 등)은 기존처럼 WARN으로 남깁니다. 로그를 모으는 도구와 형식(JSON 등)은 아직 정하지 않았습니다.
 
 ## Nginx 설정 적용
 

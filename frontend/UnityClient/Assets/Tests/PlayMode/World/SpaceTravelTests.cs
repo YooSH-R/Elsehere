@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using A305.Player;
+using A305.Weather;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -45,20 +49,189 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator TryTravel_CoversTheScreenWhileTheSceneChanges()
+        {
+            yield return LoadSpace("TownScene");
+            float opacityWhenSceneChanged = -1f;
+            UnityAction<Scene, LoadSceneMode> onSceneLoaded = (scene, mode) =>
+                opacityWhenSceneChanged = CurtainOpacity();
+            SceneManager.sceneLoaded += onSceneLoaded;
+            try
+            {
+                Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+                yield return WaitForArrival("CafeScene");
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= onSceneLoaded;
+            }
+
+            // 씬이 바뀌는 순간의 끊김은 화면이 다 덮인 뒤에 일어나야 보이지 않는다.
+            Assert.That(opacityWhenSceneChanged, Is.EqualTo(1f));
+            yield return WaitUntilCurtainOpens();
+            Assert.That(CurtainOpacity(), Is.EqualTo(0f));
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_LoadsFasterOnlyWhileTheScreenIsCovered()
+        {
+            yield return LoadSpace("TownScene");
+            ThreadPriority usualPriority = Application.backgroundLoadingPriority;
+
+            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+            // 덮인 동안에는 프레임이 끊겨도 보이지 않으므로 불러오기에 프레임 시간을 더 쓴다.
+            Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(ThreadPriority.High));
+            yield return WaitForArrival("CafeScene");
+            yield return WaitUntilCurtainOpens();
+
+            Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(usualPriority));
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_KeepsACameraRenderingUntilArrival()
+        {
+            yield return LoadSpace("CafeScene");
+            int framesWithoutCamera = 0;
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "CafeDoor"), Is.True);
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (
+                (SceneManager.GetActiveScene().name != "TownScene" || SpaceTravel.IsTraveling)
+                && Time.realtimeSinceStartup < deadline
+            )
+            {
+                if (Camera.allCamerasCount == 0)
+                {
+                    framesWithoutCamera++;
+                }
+
+                yield return null;
+            }
+
+            // 그리는 카메라가 없으면 Editor는 덮개 대신 "No cameras rendering"을 띄운다.
+            Assert.That(framesWithoutCamera, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_LeavesOnlyTheDestinationSceneLoaded()
+        {
+            yield return LoadSpace("TownScene");
+
+            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+            yield return WaitForArrival("CafeScene");
+            yield return WaitUntilCurtainOpens();
+
+            Assert.That(LoadedSceneNames(), Is.EqualTo(new[] { "CafeScene" }));
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("CafeScene"));
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_NewSceneWakesUpWithoutThePreviousSpace()
+        {
+            yield return LoadSpace("TownScene");
+            int players = -1;
+            int listeners = -1;
+            UnityAction<Scene, LoadSceneMode> onSceneLoaded = (scene, mode) =>
+            {
+                players = Object.FindObjectsByType<PlayerMover>(FindObjectsSortMode.None).Length;
+                listeners = Object
+                    .FindObjectsByType<AudioListener>(FindObjectsSortMode.None)
+                    .Length;
+            };
+            SceneManager.sceneLoaded += onSceneLoaded;
+            try
+            {
+                Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+                yield return WaitForArrival("CafeScene");
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= onSceneLoaded;
+            }
+
+            // 이전 공간의 플레이어·카메라가 켜져 있으면 새 공간이 출입구와 카메라를 잘못 찾는다.
+            Assert.That(players, Is.EqualTo(1));
+            Assert.That(listeners, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingIntoTown_ShowsWeatherLikeOpeningTown()
+        {
+            yield return LoadSpace("TownScene");
+            string opened = ShowEveryWeatherLook();
+            yield return LoadSpace("CafeScene");
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "CafeDoor"), Is.True);
+            yield return WaitForArrival("TownScene");
+            yield return WaitUntilCurtainOpens();
+
+            // 날씨는 어디서 들어왔든 마을 씬에 디자인한 하늘·환경광을 기준으로 바뀌어야 한다.
+            Assert.That(ShowEveryWeatherLook(), Is.EqualTo(opened));
+        }
+
+        [UnityTest]
         public IEnumerator WalkingIntoCafeDoor_EntersCafeAtTownDoor()
         {
             yield return LoadSpace("TownScene");
             Transform cafeDoor = FindDoorway("CafeDoor").transform;
 
             // 문 앞 감지 영역 안에 문을 보고 세우면, 다음 이동에서 문에 닿는다.
+            // 카메라도 플레이어 뒤에 두어 앞으로 걸어 문에 들어가는 경우와 같게 한다.
             FindPlayer()
                 .Teleport(
                     cafeDoor.position + cafeDoor.forward * 0.4f,
                     Quaternion.LookRotation(-cafeDoor.forward)
                 );
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
             yield return WaitForArrival("CafeScene");
 
             AssertPlayerArrivedAt("TownDoor");
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingBackwardThroughCafeDoor_KeepsWalkingAwayFromTheDoorInside()
+        {
+            yield return LoadSpace("TownScene");
+            Transform outside = FindDoorway("CafeDoor").ArrivalPoint;
+            // 문을 등지고 서서 카메라를 등 뒤에 두면, 뒤로 가는 키(S)가 문 쪽으로 걷는다.
+            FindPlayer().Teleport(outside.position, outside.rotation);
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
+
+            float oldDelta = Time.captureDeltaTime;
+            var oldBackground = InputSystem.settings.backgroundBehavior;
+            var oldEditorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
+            Time.captureDeltaTime = 1f / 60f;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
+                .EditorInputBehaviorInPlayMode
+                .AllDeviceInputAlwaysGoesToGameView;
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            try
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.S));
+                yield return WaitForArrival("CafeScene");
+                Transform inside = FindDoorway("TownDoor").ArrivalPoint;
+                for (int frame = 0; frame < 45; frame++)
+                    yield return null;
+
+                Assert.That(
+                    SceneManager.GetActiveScene().name == "CafeScene" && !SpaceTravel.IsTraveling,
+                    Is.True,
+                    "Holding S must not walk back out of the cafe door."
+                );
+                Assert.That(
+                    Vector3.Dot(FindPlayer().transform.position - inside.position, inside.forward),
+                    Is.GreaterThan(1f),
+                    "Holding S must keep walking away from the door."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
+                InputSystem.settings.backgroundBehavior = oldBackground;
+                Time.captureDeltaTime = oldDelta;
+            }
         }
 
         [UnityTest]
@@ -162,6 +335,56 @@ namespace A305.World.PlayModeTests
 
             // 도착한 뒤 한 프레임 동안 이동·카메라 갱신이 위치를 흐트러뜨리지 않는지 함께 본다.
             yield return null;
+        }
+
+        private static string[] LoadedSceneNames()
+        {
+            return Enumerable
+                .Range(0, SceneManager.sceneCount)
+                .Select(index => SceneManager.GetSceneAt(index).name)
+                .ToArray();
+        }
+
+        /// <summary>날씨마다 바로 바꿔 보고, 화면에 쓰이는 하늘·환경광·안개 값을 글로 남긴다.</summary>
+        private static string ShowEveryWeatherLook()
+        {
+            var presenter = Object.FindFirstObjectByType<WeatherPresenter>();
+            var looks = new List<string>();
+            foreach (WeatherDefinition weather in presenter.Settings.Weathers)
+            {
+                presenter.ShowImmediately(weather.Code);
+                Material sky = RenderSettings.skybox;
+                looks.Add(
+                    $"{weather.Code}: {SkyColor(sky, "_Zenith")} {SkyColor(sky, "_Horizon")} "
+                        + $"{RenderSettings.ambientSkyColor} {RenderSettings.ambientEquatorColor} "
+                        + $"{RenderSettings.ambientGroundColor} {RenderSettings.fogColor} "
+                        + $"{RenderSettings.fogStartDistance:F2} {RenderSettings.fogEndDistance:F2}"
+                );
+            }
+
+            return string.Join("\n", looks);
+        }
+
+        private static string SkyColor(Material sky, string property)
+        {
+            return sky != null && sky.HasProperty(property)
+                ? sky.GetColor(property).ToString()
+                : "none";
+        }
+
+        private static float CurtainOpacity()
+        {
+            var curtain = Object.FindFirstObjectByType<SpaceTravelCurtain>();
+            return curtain != null ? curtain.Opacity : 0f;
+        }
+
+        private static IEnumerator WaitUntilCurtainOpens()
+        {
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (CurtainOpacity() > 0f && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
         }
 
         private static void AssertPlayerArrivedAt(string doorwayId)

@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace A305.Mission
@@ -30,6 +32,35 @@ namespace A305.Mission
 
         [SerializeField]
         private TownMapView townMap;
+
+        [SerializeField]
+        private GameObject miniMapPanel;
+
+        [SerializeField]
+        private TownMapView miniMap;
+
+        [SerializeField]
+        private Button miniMapButton;
+
+        [SerializeField]
+        private TMP_Text miniMapDestination;
+
+        [SerializeField]
+        [Tooltip("미니맵을 누르면 화면 가운데에 크게 펼치는 마을 지도")]
+        private GameObject mapOverlay;
+
+        [SerializeField]
+        private TownMapView largeMap;
+
+        [SerializeField]
+        private TMP_Text largeMapLegend;
+
+        [SerializeField]
+        private Button mapCloseButton;
+
+        [SerializeField]
+        [Tooltip("크게 본 지도 바깥의 어두운 바탕. 누르면 지도를 닫는다")]
+        private Button mapOutsideButton;
 
         [SerializeField]
         private TMP_Text journey;
@@ -65,6 +96,14 @@ namespace A305.Mission
         // 오른쪽 위 단어장 칸(너비 360)과 그 앞 여백.
         private const float VocabularyReserve = 384;
 
+        // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
+        private const int OpenJournalSortingOrder = 1000;
+
+        private Canvas canvas;
+        private int closedSortingOrder;
+        private bool available;
+        private string mapSceneCode;
+
         public event Action StartRequested;
         public event Action RestRequested;
         public event Action RetryRequested;
@@ -73,25 +112,53 @@ namespace A305.Mission
 
         public void SetAvailable(bool available)
         {
+            this.available = available;
             content.SetActive(available);
             if (!available)
+            {
                 ShowJournal(false);
+                ShowLargeMap(false);
+            }
+            UpdateMiniMapVisibility();
         }
 
-        public void BindMap(string sceneCode, Transform player) => townMap.Bind(sceneCode, player);
+        public void BindMap(string sceneCode, Transform player)
+        {
+            mapSceneCode = sceneCode;
+            townMap.Bind(sceneCode, player);
+            if (miniMap != null)
+                miniMap.Bind(sceneCode, player);
+            if (largeMap != null)
+                largeMap.Bind(sceneCode, player);
+            if (sceneCode != "TOWN")
+                ShowLargeMap(false);
+            UpdateMiniMapVisibility();
+        }
 
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
         {
             situation.text = state.Situation;
-            direction.text = state.Direction;
             FirstDayMissionStep current = state.Steps.FirstOrDefault(step =>
                 step.Status == "CURRENT"
             );
-            journalGoal.text = current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
+            direction.text = state.CanRest
+                ? "가까운 의자에 앉아 잠깐 쉬어 가세요."
+                : WithGoalChecklist(state.Direction, current);
+            journalGoal.text = state.CanRest
+                ? "의자에 앉아 잠깐 쉬기"
+                : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
             townMap.ShowDestination(state.Destination);
+            if (miniMap != null)
+                miniMap.ShowDestination(state.Destination);
+            if (miniMapDestination != null)
+                miniMapDestination.text = MiniMapLegend(state.Destination);
+            if (largeMap != null)
+                largeMap.ShowDestination(state.Destination);
+            if (largeMapLegend != null)
+                largeMapLegend.text = MiniMapLegend(state.Destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
-            restButton.gameObject.SetActive(state.CanRest);
+            restButton.gameObject.SetActive(false);
             restButton.interactable = !busy && !talking;
             var lines = new StringBuilder();
             foreach (FirstDayMissionStep step in state.Steps)
@@ -129,6 +196,36 @@ namespace A305.Mission
         {
             message.text = text;
             retryButton.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
+        // 한 줄에 다 들어가지 않아도 목표 한 항목은 이어서 보이게 하는 줄바꿈하지 않는 공백
+        private const char NoBreakSpace = '\u00A0';
+
+        // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
+        private static string WithGoalChecklist(string request, FirstDayMissionStep current)
+        {
+            string checklist = current == null ? "" : GoalChecklist(current.Goals);
+            return string.IsNullOrEmpty(checklist) ? request : $"{request}\n{checklist}";
+        }
+
+        /// <summary>
+        /// 이번 단계 목표 체크리스트. 달성한 목표는 초록 ✓, 남은 목표는 ○로 표시한다.
+        /// 목록이 두 줄이 되어도 한 항목이 갈라지지 않게 항목 안의 띄어쓰기는 줄바꿈하지 않는 공백으로 바꾼다.
+        /// </summary>
+        public static string GoalChecklist(IEnumerable<FirstDayMissionGoal> goals)
+        {
+            var items = new List<string>();
+            foreach (FirstDayMissionGoal goal in goals)
+            {
+                string title = goal.Title.Replace(' ', NoBreakSpace);
+                items.Add(
+                    goal.Completed
+                        ? $"<color=#699B75>✓{NoBreakSpace}{title}</color>"
+                        : $"<color=#B8AFA5>○</color>{NoBreakSpace}{title}"
+                );
+            }
+
+            return string.Join("   ", items);
         }
 
         private static string CompactTitle(string title) =>
@@ -181,6 +278,12 @@ namespace A305.Mission
         {
             journal.SetActive(false);
             journalButton.onClick.AddListener(ToggleJournal);
+            if (miniMapButton != null)
+                miniMapButton.onClick.AddListener(OpenLargeMap);
+            if (mapCloseButton != null)
+                mapCloseButton.onClick.AddListener(CloseLargeMap);
+            if (mapOutsideButton != null)
+                mapOutsideButton.onClick.AddListener(CloseLargeMap);
             closeButton.onClick.AddListener(CloseJournal);
             startButton.onClick.AddListener(StartMission);
             restButton.onClick.AddListener(Rest);
@@ -190,6 +293,12 @@ namespace A305.Mission
         private void OnDestroy()
         {
             journalButton.onClick.RemoveListener(ToggleJournal);
+            if (miniMapButton != null)
+                miniMapButton.onClick.RemoveListener(OpenLargeMap);
+            if (mapCloseButton != null)
+                mapCloseButton.onClick.RemoveListener(CloseLargeMap);
+            if (mapOutsideButton != null)
+                mapOutsideButton.onClick.RemoveListener(CloseLargeMap);
             closeButton.onClick.RemoveListener(CloseJournal);
             startButton.onClick.RemoveListener(StartMission);
             restButton.onClick.RemoveListener(Rest);
@@ -202,8 +311,88 @@ namespace A305.Mission
 
         private void ShowJournal(bool open)
         {
+            if (open)
+                ShowLargeMap(false);
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open);
+            UpdateMiniMapVisibility();
+            UpdateSortingOrder();
+        }
+
+        private void OpenLargeMap() => ShowLargeMap(true);
+
+        private void CloseLargeMap() => ShowLargeMap(false);
+
+        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 지도 버튼으로 연다.
+        private void ShowLargeMap(bool open)
+        {
+            if (mapOverlay == null)
+                return;
+            mapOverlay.SetActive(open);
+            UpdateMiniMapVisibility();
+            UpdateSortingOrder();
+        }
+
+        private void Update()
+        {
+            if (
+                mapOverlay != null
+                && mapOverlay.activeSelf
+                && Keyboard.current != null
+                && Keyboard.current.escapeKey.wasPressedThisFrame
+            )
+                CloseLargeMap();
+        }
+
+        private void UpdateSortingOrder()
+        {
+            Canvas root = RootCanvas();
+            if (root == null)
+                return;
+            bool raised = journal.activeSelf || (mapOverlay != null && mapOverlay.activeSelf);
+            root.sortingOrder = raised ? OpenJournalSortingOrder : closedSortingOrder;
+        }
+
+        /// <summary>
+        /// 미니맵 아래 범례. 파란 화살표는 내 위치, 빨간 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
+        /// </summary>
+        public static string MiniMapLegend(string destination)
+        {
+            string place = destination switch
+            {
+                "CAFE" => "카페",
+                "HOTEL" => "호텔",
+                "SHOP" => "드럭스토어",
+                "HOME" => "집",
+                _ => "자유 탐험",
+            };
+            return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
+        }
+
+        private void UpdateMiniMapVisibility()
+        {
+            if (miniMapPanel != null)
+                miniMapPanel.SetActive(
+                    available
+                        && mapSceneCode == "TOWN"
+                        && !journal.activeSelf
+                        && (mapOverlay == null || !mapOverlay.activeSelf)
+                );
+        }
+
+        // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.
+        private Canvas RootCanvas()
+        {
+            if (canvas == null)
+            {
+                Canvas parent = GetComponentInParent<Canvas>(true);
+                if (parent == null)
+                    return null;
+                canvas = parent.rootCanvas;
+                closedSortingOrder = canvas.sortingOrder;
+            }
+
+            return canvas;
         }
 
         private void StartMission() => StartRequested?.Invoke();

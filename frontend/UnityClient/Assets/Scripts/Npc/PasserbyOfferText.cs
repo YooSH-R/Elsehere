@@ -5,7 +5,7 @@ namespace A305.Npc
     {
         /// <summary>
         /// 누가 말을 걸었는지 알리는 머리말. 행인과 직원이 같은 제안 화면을 쓰므로 "행인이"로 고정하지 않는다.
-        /// 영어 이름만으로는 누구인지 알기 어려워 역할(편의점 직원 등)이 있으면 역할로, 없으면 이름으로 알린다.
+        /// 영어 이름만으로는 누구인지 알기 어려워 역할(드럭스토어 직원 등)이 있으면 역할로, 없으면 이름으로 알린다.
         /// </summary>
         /// <param name="npcName">대화 대본의 NPC 이름. 모르면 null.</param>
         /// <param name="roleLabel">대화 대본의 NPC 역할. 모르면 null.</param>
@@ -35,6 +35,19 @@ namespace A305.Npc
         public static string TalkLabel(string npcName)
         {
             return string.IsNullOrEmpty(npcName) ? "말 걸기" : $"{npcName}에게 말 걸기";
+        }
+
+        /// <summary>대화 버튼 위에 붙일 게스트의 남은 대화 수. 가입 사용자처럼 횟수 제한이 없으면 null이다.</summary>
+        public static string RemainingConversations(int? remaining)
+        {
+            return remaining == null ? null : $"게스트 남은 대화 {remaining}번";
+        }
+
+        /// <summary>새 대화를 시작할 수 없을 때 [말 걸기] 자리에 보일 이유.</summary>
+        /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
+        public static string Blocked(int? remaining)
+        {
+            return remaining == 0 ? "게스트 대화를 모두 썼어요" : "지금은 대화할 수 없어요";
         }
     }
 }

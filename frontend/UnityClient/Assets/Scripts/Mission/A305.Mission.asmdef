@@ -5,7 +5,9 @@
         "A305.Api",
         "A305.Player",
         "A305.Dialogue",
+        "A305.Npc",
         "A305.Weather",
+        "Unity.InputSystem",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

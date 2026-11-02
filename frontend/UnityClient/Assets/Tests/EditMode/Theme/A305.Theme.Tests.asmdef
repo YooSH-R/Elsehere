@@ -5,7 +5,9 @@
         "A305.Api",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.Theme"
+        "A305.Theme",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

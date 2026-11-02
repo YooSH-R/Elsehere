@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Voice;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -12,6 +14,25 @@ namespace A305.Dialogue.Tests
 {
     public class ServerConversationTests
     {
+        [TestCase(false, "ACTIVE", 1)]
+        [TestCase(true, "ACTIVE", 0)]
+        [TestCase(false, "ENDED_BY_NPC", 0)]
+        public async Task SuccessfulNonRudeTurnOnly_NotifiesWorldInteractions(
+            bool rude,
+            string status,
+            int expected
+        )
+        {
+            var accepted = new List<string>();
+            conversation.UserTurnAccepted += accepted.Add;
+            api.TurnResponse = Reply("Take me to the hotel.", "All right.", status);
+            api.TurnResponse.UserTurn.Rude = rude;
+            await conversation.StartAsync();
+            Assert.That(accepted, Is.Empty);
+            await conversation.SendAsync("Take me to the hotel.");
+            Assert.That(accepted, Has.Count.EqualTo(expected));
+        }
+
         private const string CafeStaffCode = "CAFE_STAFF";
         private const long ConversationId = 58;
         private const long OpeningTurnId = 101;
@@ -27,7 +48,7 @@ namespace A305.Dialogue.Tests
         public void CreateConversation()
         {
             api = new FakeConversationApi();
-            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api);
+            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api, true);
         }
 
         [Test]
@@ -70,6 +91,7 @@ namespace A305.Dialogue.Tests
                 CafeStaffCode,
                 CafeStaffCode,
                 api,
+                true,
                 ConversationInitiator.User
             );
 
@@ -85,6 +107,7 @@ namespace A305.Dialogue.Tests
                 CafeStaffCode,
                 CafeStaffCode,
                 api,
+                true,
                 ConversationInitiator.User
             );
             api.StartErrors.Enqueue(
@@ -124,6 +147,57 @@ namespace A305.Dialogue.Tests
             Assert.That(busyStates, Is.EqualTo(new[] { true, false }));
             Assert.That(messages[0], Is.Not.Empty);
             Assert.That(messages[1], Is.Null);
+        }
+
+        // 기다리는 동안 대화창이 작은 상태 줄 대신 무엇을 기다리는지 크게 보여 줄 수 있어야 한다.
+        [Test]
+        public async Task Start_WhileWaiting_WaitsForTheOpeningLine()
+        {
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.StartAsync();
+
+            Assert.That(waits, Is.EqualTo(new[] { DialogueWait.Opening, DialogueWait.None }));
+        }
+
+        [Test]
+        public async Task Send_WhileWaiting_WaitsForTheNpcReply()
+        {
+            await conversation.StartAsync();
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(waits[0], Is.EqualTo(DialogueWait.NpcReply));
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+        }
+
+        [Test]
+        public async Task End_WhileWaiting_WaitsForFeedback()
+        {
+            await conversation.StartAsync();
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.EndAsync();
+
+            Assert.That(waits[0], Is.EqualTo(DialogueWait.Feedback));
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+        }
+
+        // 뜻·힌트처럼 짧게 기다리는 요청은 대사를 가리지 않고 상태 줄에만 알린다.
+        [Test]
+        public async Task RequestMeaning_WhileWaiting_KeepsTheLinesVisible()
+        {
+            await conversation.StartAsync();
+            var waits = new List<DialogueWait>();
+            conversation.Changed += () => waits.Add(conversation.Waiting);
+
+            await conversation.RequestMeaningAsync();
+
+            Assert.That(waits, Is.All.EqualTo(DialogueWait.None));
         }
 
         [Test]
@@ -432,6 +506,65 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_ShowsAffinityAndRudeLimitFromServer()
+        {
+            api.StartResponse.Conversation = new ConversationState
+            {
+                Status = "ACTIVE",
+                RudeCount = 0,
+                RudeLimit = 3,
+                Affinity = 12,
+            };
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.Standing.IsKnown, Is.True);
+            Assert.That(conversation.Standing.Affinity, Is.EqualTo(12));
+            Assert.That(conversation.Standing.RudeLimit, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task Send_RudeTurn_UpdatesAffinityAndStrikes()
+        {
+            api.StartResponse.Conversation = new ConversationState
+            {
+                Status = "ACTIVE",
+                RudeCount = 0,
+                RudeLimit = 3,
+                Affinity = 12,
+            };
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("Shut up.", "That's not okay to say.", "ACTIVE");
+            api.TurnResponse.Conversation.RudeCount = 1;
+            api.TurnResponse.Conversation.RudeLimit = 3;
+            api.TurnResponse.Conversation.Affinity = 8;
+
+            await conversation.SendAsync("Shut up.");
+
+            Assert.That(conversation.Standing.Affinity, Is.EqualTo(8));
+            Assert.That(conversation.Standing.AffinityChange, Is.EqualTo(-4));
+            Assert.That(conversation.Standing.IsStrike(0), Is.True);
+        }
+
+        [Test]
+        public async Task Send_WhenRudeWordsEndConversation_SaysWhy()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(
+                "Shut up.",
+                "I don't want to talk like this anymore.",
+                "ENDED_BY_NPC"
+            );
+            api.TurnResponse.Conversation.EndReason = "RUDE";
+
+            await conversation.SendAsync("Shut up.");
+
+            Assert.That(conversation.StatusMessage, Does.Contain("무례한 말이 쌓여"));
+            Assert.That(conversation.StatusMessage, Does.Contain("Mia"));
+            Assert.That(conversation.StatusMessage, Does.Contain("[대화 종료]"));
+        }
+
+        [Test]
         public async Task Send_AfterNpcEndedConversation_IsNotSent()
         {
             await conversation.StartAsync();
@@ -546,6 +679,75 @@ namespace A305.Dialogue.Tests
 
             Assert.That(conversation.CanRetry, Is.False);
             Assert.That(conversation.RecoveryGuide, Does.Contain("다시 말하거나"));
+        }
+
+        [Test]
+        public async Task Transcribe_WithoutVoiceConsent_DoesNotSendRecording()
+        {
+            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api, false);
+            await conversation.StartAsync();
+
+            string transcript = await conversation.TranscribeAsync(Wav);
+
+            Assert.That(conversation.CanTalk, Is.False);
+            Assert.That(transcript, Is.Null);
+            Assert.That(api.Transcriptions, Is.Empty);
+        }
+
+        [Test]
+        public async Task AllowTalk_AfterAgreeingDuringConversation_SendsRecording()
+        {
+            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api, false);
+            await conversation.StartAsync();
+            int changes = 0;
+            conversation.Changed += () => changes++;
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            conversation.AllowTalk();
+            string transcript = await conversation.TranscribeAsync(Wav);
+
+            Assert.That(changes, Is.GreaterThan(0), "[말하기]를 다시 그리게 알려야 합니다.");
+            Assert.That(conversation.CanTalk, Is.True);
+            Assert.That(transcript, Is.EqualTo(Order));
+            Assert.That(api.Transcriptions, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AllowTalk_AfterServerAskedForConsent_ClearsConsentGuide()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionError = new ApiException(
+                "VOICE_CONSENT_REQUIRED",
+                403,
+                "음성 처리에 동의해야 음성으로 말할 수 있어요."
+            );
+            await conversation.TranscribeAsync(Wav);
+
+            conversation.AllowTalk();
+
+            Assert.That(conversation.CanTalk, Is.True);
+            Assert.That(conversation.StatusMessage, Is.Null);
+            Assert.That(conversation.RecoveryGuide, Is.Null);
+        }
+
+        [Test]
+        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToTalkButton()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionError = new ApiException(
+                "VOICE_CONSENT_REQUIRED",
+                403,
+                "음성 처리에 동의해야 음성으로 말할 수 있어요."
+            );
+
+            await conversation.TranscribeAsync(Wav);
+
+            Assert.That(conversation.CanTalk, Is.False);
+            // 회색 [말하기]를 누르면 그 자리에서 동의 창이 뜨므로 [말하기]로 안내한다.
+            Assert.That(
+                conversation.RecoveryGuide,
+                Does.Contain("[말하기]").And.Contain("음성 처리")
+            );
         }
 
         [Test]
@@ -757,6 +959,143 @@ namespace A305.Dialogue.Tests
             Assert.That(api.Ends, Is.Empty);
         }
 
+        [TestCase("READY", true)]
+        [TestCase("FAILED", true)]
+        [TestCase("EXPIRED", false)]
+        [TestCase(null, false)]
+        public async Task SpeechButton_ShowsOnlyPlaybackOrInitialGenerationRetry(
+            string status,
+            bool visible
+        )
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech =
+                status == null
+                    ? null
+                    : new SpeechData { Status = status, Url = "/api/v1/turns/101/speech" };
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Dialogue/DialoguePanel.prefab"
+            );
+            GameObject instance = UnityEngine.Object.Instantiate(prefab);
+            try
+            {
+                instance.GetComponent<DialoguePanelView>().Show(conversation);
+                Transform replayButton = instance
+                    .GetComponentsInChildren<Transform>(true)
+                    .Single(child => child.name == "ReplayButton");
+
+                Assert.That(replayButton.gameObject.activeSelf, Is.EqualTo(visible));
+                Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(instance);
+            }
+        }
+
+        [Test]
+        public async Task PlaySpeech_WhenNotFound_HidesSpeechActionAndKeepsText()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData
+            {
+                Status = "READY",
+                Url = "/api/v1/turns/101/speech",
+            };
+            bool refreshed = false;
+            conversation.Changed += () => refreshed = true;
+
+            bool played = await conversation.PlaySpeechAsync(_ =>
+                Task.FromException<bool>(new ApiException("NOT_FOUND", 404, "음성이 없습니다."))
+            );
+
+            Assert.That(played, Is.False);
+            Assert.That(conversation.CanReplaySpeech, Is.False);
+            Assert.That(conversation.LastNpcTurn.Speech.Status, Is.EqualTo("EXPIRED"));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+            Assert.That(refreshed, Is.True);
+        }
+
+        [Test]
+        public async Task PlaySpeech_WhenDownloadTemporarilyFails_KeepsPlaybackRetry()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData
+            {
+                Status = "READY",
+                Url = "/api/v1/turns/101/speech",
+            };
+
+            bool played = await conversation.PlaySpeechAsync(_ => Task.FromResult(false));
+
+            Assert.That(played, Is.False);
+            Assert.That(conversation.CanReplaySpeech, Is.True);
+            Assert.That(conversation.LastNpcTurn.Speech.Status, Is.EqualTo("READY"));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+        }
+
+        [TestCase("EXPIRED")]
+        [TestCase("FAILED")]
+        [TestCase(null)]
+        public async Task PlaySpeech_WithoutReadyAudio_DoesNotDownload(string status)
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech =
+                status == null ? null : new SpeechData { Status = status };
+            bool requested = false;
+
+            bool played = await conversation.PlaySpeechAsync(_ =>
+            {
+                requested = true;
+                return Task.FromResult(true);
+            });
+
+            Assert.That(played, Is.False);
+            Assert.That(requested, Is.False);
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+        }
+
+        [Test]
+        public async Task PlaySpeech_WhenNotFoundArrivesAfterNextTurn_KeepsCurrentSpeech()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData
+            {
+                Status = "READY",
+                Url = "/api/v1/turns/101/speech",
+            };
+            var download = new TaskCompletionSource<bool>();
+            Task<bool> playback = conversation.PlaySpeechAsync(_ => download.Task);
+            api.TurnResponse = Reply(Order, "Here you go!", "ACTIVE");
+            await conversation.SendAsync(Order);
+            NpcTurnData currentTurn = conversation.LastNpcTurn;
+            bool refreshed = false;
+            conversation.Changed += () => refreshed = true;
+
+            download.SetException(new ApiException("NOT_FOUND", 404, "음성이 없습니다."));
+            await playback;
+
+            Assert.That(conversation.LastNpcTurn, Is.SameAs(currentTurn));
+            Assert.That(currentTurn.Speech.IsReady, Is.True);
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("Here you go!"));
+            Assert.That(refreshed, Is.False);
+        }
+
+        [Test]
+        public async Task RegenerateSpeech_WhenExpired_KeepsTextWithoutRequest()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData { Status = "EXPIRED" };
+
+            await conversation.RegenerateSpeechAsync();
+
+            Assert.That(api.SpeechRegeneratedFor, Is.Empty);
+            Assert.That(conversation.LastNpcTurn.Speech.Status, Is.EqualTo("EXPIRED"));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo(Opening));
+        }
+
         [Test]
         public async Task RegenerateSpeech_ReplacesSpeechOfLastNpcTurn()
         {
@@ -877,6 +1216,105 @@ namespace A305.Dialogue.Tests
             await conversation.RequestMeaningAsync();
 
             Assert.That(api.MeaningRequestedFor, Is.Empty);
+        }
+
+        [Test]
+        public async Task Start_WithoutWords_ShowsLineFirstAndFillsWordsWhenTheyArrive()
+        {
+            api.StartResponse.OpeningTurn.SuggestWords = null;
+            api.PendingWords = new TaskCompletionSource<SuggestWordsData>();
+            int changes = 0;
+            conversation.Changed += () => changes++;
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.Lines[0].English, Is.EqualTo(Opening));
+            Assert.That(conversation.IsBusy, Is.False);
+            Assert.That(conversation.CanSend, Is.True);
+            Assert.That(conversation.IsSuggestingWords, Is.True);
+            Assert.That(conversation.SuggestWords, Is.Null);
+            Assert.That(api.WordsRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
+
+            int changesBeforeWords = changes;
+            api.PendingWords.SetResult(
+                new SuggestWordsData
+                {
+                    TurnId = OpeningTurnId,
+                    SuggestWords = new List<string> { "latte", "iced" },
+                }
+            );
+
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "latte", "iced" }));
+            Assert.That(conversation.IsSuggestingWords, Is.False);
+            Assert.That(changes, Is.GreaterThan(changesBeforeWords));
+        }
+
+        [Test]
+        public async Task Send_WithoutWords_RequestsWordsForTheNewNpcTurn()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse.NpcTurn.SuggestWords = null;
+            api.Words = new SuggestWordsData
+            {
+                TurnId = 103,
+                SuggestWords = new List<string> { "hot", "small" },
+            };
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(api.WordsRequestedFor, Is.EqualTo(new[] { 103L }));
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "hot", "small" }));
+        }
+
+        [Test]
+        public async Task Send_EndingTurn_DoesNotRequestWords()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(Order, "Bye.", "ENDED_BY_NPC");
+            api.TurnResponse.NpcTurn.SuggestWords = null;
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(api.WordsRequestedFor, Is.Empty);
+            Assert.That(conversation.IsSuggestingWords, Is.False);
+        }
+
+        [Test]
+        public async Task SuggestWords_WhenServerFails_LeavesWordsEmptyWithoutBlockingTheTalk()
+        {
+            api.StartResponse.OpeningTurn.SuggestWords = null;
+            api.WordsError = new ApiException(
+                "AI_RESPONSE_INVALID",
+                502,
+                "AI 응답을 처리하지 못했습니다. 다시 시도해 주세요."
+            );
+
+            await conversation.StartAsync();
+
+            Assert.That(conversation.SuggestWords, Is.Null);
+            Assert.That(conversation.IsSuggestingWords, Is.False);
+            Assert.That(conversation.StatusMessage, Is.Null);
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [Test]
+        public async Task LateWordsForAnOlderTurn_DoNotReplaceTheNewTurnWords()
+        {
+            api.StartResponse.OpeningTurn.SuggestWords = null;
+            api.PendingWords = new TaskCompletionSource<SuggestWordsData>();
+            await conversation.StartAsync();
+
+            await conversation.SendAsync(Order);
+            api.PendingWords.SetResult(
+                new SuggestWordsData
+                {
+                    TurnId = OpeningTurnId,
+                    SuggestWords = new List<string> { "latte" },
+                }
+            );
+
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "hot", "iced" }));
+            Assert.That(conversation.IsSuggestingWords, Is.False);
         }
 
         [Test]
@@ -1121,6 +1559,12 @@ namespace A305.Dialogue.Tests
             public HintData Hint { get; set; } = new HintData();
             public ApiException HintError { get; set; }
 
+            /// <summary>추천 단어 요청이 기다릴 응답. 없으면 <see cref="Words"/>를 바로 돌려준다.</summary>
+            public TaskCompletionSource<SuggestWordsData> PendingWords { get; set; }
+            public SuggestWordsData Words { get; set; } = new SuggestWordsData();
+            public ApiException WordsError { get; set; }
+            public List<long> WordsRequestedFor { get; } = new List<long>();
+
             public List<string> Calls { get; } = new List<string>();
             public List<StartRequest> Starts { get; } = new List<StartRequest>();
             public List<TurnRequest> Turns { get; } = new List<TurnRequest>();
@@ -1238,6 +1682,18 @@ namespace A305.Dialogue.Tests
                 return HintError != null
                     ? Task.FromException<HintData>(HintError)
                     : Task.FromResult(Hint);
+            }
+
+            public Task<SuggestWordsData> GetSuggestWordsAsync(long turnId, string requestId)
+            {
+                Calls.Add("GetSuggestWords");
+                WordsRequestedFor.Add(turnId);
+                if (WordsError != null)
+                {
+                    return Task.FromException<SuggestWordsData>(WordsError);
+                }
+
+                return PendingWords != null ? PendingWords.Task : Task.FromResult(Words);
             }
         }
     }

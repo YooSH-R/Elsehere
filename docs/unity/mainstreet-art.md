@@ -15,7 +15,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | 이용 장소 | 남동쪽 집, 서쪽 카페, 동쪽 호텔. 집은 포치, 카페는 초록 CAFE 차양, 호텔은 세로 간판 | 기존 HomeDoor·CafeDoor·HotelDoor와 실내 왕복 연결 유지 |
 | 빈 건물 | 카페 북쪽 크림색 2층 건물. 셔터와 CLOSED 표시, 비발광 창 | 출입 Trigger·상품·영업 조명 없음 |
 | 배경 주거동 | 북쪽 거리와 남서쪽 주택. 코럴·버터·세이지 3색, 1~3층, 닫힌 주거 문 | 배경 외벽 Collider만 사용 |
-| 휴식 공간 | 집 앞 대화 마당, 북동쪽 8×8m 공원 | 기존 행인 2명의 ID와 대화 참조 유지. 벤치·분수는 장식이며 앉기·물 효과는 미구현 |
+| 휴식 공간 | 집 앞 대화 마당, 북동쪽 8×8m 공원 | 기존 행인 2명의 ID와 대화 참조 유지. 벤치에는 앉을 수 있고, 분수는 장식이며 물 효과는 미구현 |
 
 `Environment/TownMainstreet` 아래에 공통 거리 프리팹과 `BackgroundBuildings`를 둔다. 기존 이용 건물 루트는 출입구의 참조를 보존하고, 도형 외관을 비활성화한 뒤 새 외관을 중첩한다. Systems·UI의 대화·사물 호버·학습·미션·튜토리얼 연결은 유지한다. 식당·공항의 임시 영업 간판은 현재 배치에서 제거하며 새 이동 장소를 추가하지 않는다.
 
@@ -29,7 +29,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 **Apply Town Follow Camera**는 TownScene의 3인칭 카메라를 캐릭터보다 키가 큰 사람이 바로 뒤에서 내려다보는 구도로 맞춘다. `Data/World/TownProduction/CameraSettings.asset`의 거리 4.2m·pitch 16도·조준 높이 1.3m를 저장하며, 캐릭터가 조준 높이를 따로 정했으면 그 값을 쓴다. Sandbox 전용 아트 검토 카메라는 바꾸지 않는다. 대화를 시작하면 기존과 같이 상대를 바라보는 1인칭으로 바뀌고 V키 1인칭 전환도 유지한다.
 
-튜토리얼 행인은 집의 `HomeDoor/ArrivalPoint`에서 약 5.4m 떨어진 보도에 둔다. **Repair Tutorial Passerby Placement**는 집 도착 지점을 기준으로 바깥쪽 2m·문 기준 오른쪽 5m에 행인의 위치와 방향만 다시 저장한다. 집·보도를 이동하면 감지 반경 8m 안에 있는지뿐 아니라 행인과 도착 지점 사이에 장애물이 없는지도 Play에서 확인한다. 기존 `PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline`를 유지해 집에서 나온 플레이어에게 실제로 다가와 제안하는지 검증한다.
+튜토리얼에서 길을 묻는 행인 Ben(`TOWN_PASSERBY`)은 집의 `HomeDoor/ArrivalPoint`에서 약 5.4m 떨어진 보도에 둔다. **Repair Tutorial Passerby Placement**는 집 도착 지점을 기준으로 바깥쪽 2m·문 기준 오른쪽 5m에 행인의 위치와 방향만 다시 저장한다. 집·보도를 이동하면 감지 반경 8m 안에 있는지뿐 아니라 행인과 도착 지점 사이에 장애물이 없는지도 Play에서 확인한다. 기존 `PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline`를 유지해 집에서 나온 플레이어에게 실제로 다가와 제안하는지 검증한다.
 
 집 내부는 [HomeScene 실내 디자인](home-interior.md), 호텔 로비는 [HotelScene 로비 디자인](hotel-interior.md)을 적용한다. CafeScene의 실내 아트 교체와 최종 캐릭터 리깅은 별도 작업이다. Editor 검수는 Web 빌드의 FPS·메모리 성능 보증이 아니다.
 
@@ -64,7 +64,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | StreetLampV2 | 약 3.4m. 발광 전구와 범위 5m의 따뜻한 Point Light |
 | MarketCrateV2 / ChalkboardV2 | 상점 진열 상자 / 카페 입간판. 문 앞 비움 영역 밖에 배치 |
 | DistantShopV2 3종 | 폭 6m·깊이 5.2m, 높이 5.8~7.3m의 닫힌 배경 외관. 북쪽 확장부에 배치 |
-| ParkBench / CafeTable | 좌판 약 0.27~0.29m, 작은 몸 비율에 맞춘 가구. 앉기 동작은 미검증 |
+| ParkBench / CafeTable | 작은 몸 비율에 맞춘 가구. 벤치는 폭 1.6m를 반씩 나눈 두 자리에 앉는다. 앉는 면 치수는 [Mission 모듈](../../frontend/UnityClient/Assets/Scripts/Mission/README.md#의자벤치소파-앉기)에 있다 |
 | PicketFence2m | 주택 앞마당 가장자리에 연결 |
 | SidewalkTile2m | 2×2m 보도 반복. 교차로 끝은 길이를 절반으로 조정 |
 | FireHydrant | 빨간 소화전 한 종류 재사용 |
@@ -151,6 +151,12 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 **Tools → A305 → World → Build And Preview Tiny Treats Props**는 없는 재질·프리팹만 만들고 비교용 Sandbox를 재생성한다. 기존 프리팹과 조합 예시의 수동 편집은 유지한다. 유리 재질은 투명 URP/Lit, 나머지는 Metallic 0·Smoothness 0.18이다. 카운터 조합 (`artifacts/unity/free-props/CafeCounterDisplay.png`, 로컬 보관), 공원 소품 (`artifacts/unity/free-props/PrettyPark.png`, 로컬 보관)은 실제 Unity Editor 렌더이며 생성형 이미지가 아니다. 검수는 25개 모델의 URP 참조·바닥 피벗·콜라이더·실측 치수와 화면을 확인한다. WebGL 성능·기능 연결 완료를 의미하지 않는다.
 
+### 미국 소도시 거리와 생활 소품
+
+학습자가 미국 소도시에 온 상황을 연습하므로, 거리도 미국 소도시처럼 보이게 한다. 우산을 사는 상점도 미국에서 흔한 드럭스토어로 정했다. **Apply American Street Details**는 도로 전체에 이어지는 중앙선, 교차로의 횡단보도·정지선·신호등과 MAPLE AVE 이름판, 속도 제한 25·버스 정류장·보행자 횡단 표지판, 주차 미터기, 신문 판매함, 파란 우체통, 드럭스토어 앞 ICE 냉동고와 OPEN 네온, 카페 입간판을 둔다. 성조기는 호텔 외벽에 하나만 단다. 이 소품들은 Builder가 기본 도형으로 만든다.
+
+**Apply Town Street Life**는 거리가 비어 보이지 않게 집 남쪽 잔디에 아이스크림 트럭 광장을 따로 두고, 카페 앞 파라솔 테라스, 본길을 도는 택시·승용차, 자전거 거치대, 꽃과 동물을 둔다. 택시와 승용차는 교차로 신호를 지키며 본길을 돌고, 기존 픽업트럭만 길가에 세워 둔다. 택시는 인도에서 세워 운전석의 기사와 대화할 수 있다. 테이블·의자·휴지통·컵은 위 Tiny Treats 프리팹을 그대로 쓴다. 외부 모델의 출처와 라이선스는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md#마을-거리)에서 관리한다.
+
 ### 나머지 후보의 적용 순서
 
 아래는 미도입 후보에 대한 디자인 판단이다. 건물은 미국 소도시의 벽돌 상가·크림색 몰딩·녹색 차양과 반복 층 구조를 유지하고, 필요한 소품부터 보강한다.
@@ -173,6 +179,6 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 ## 적용 범위
 
-메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 편의점 구역은 이 작업의 대상이 아니다.
+메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 드럭스토어 구역은 이 작업의 대상이 아니다.
 
 부지 마커와 임시 경계 벽은 아트 화면에서 숨기고 경계 Collider는 유지한다. 공유 메시와 프리팹 사용만으로 Web 성능을 검증했다고 판단하지 않는다. Web 적용 전에 꽃·창문 반복 수, Renderer·재질 수와 프레임 시간을 측정해 단순화한다.

@@ -23,6 +23,32 @@ def sample(name="free_grammar"):
     return read(f"samples/inputs/{name}.json"), read(f"samples/fixtures/{name}.llm.json")
 
 
+# 장면에서 자주 쓰는 표현. 사용자 발화 평가와 별개로 이 상황에서 써 볼 표현을 알려 준다.
+SITUATION = [
+    {
+        "expression": "Could I get that to go?",
+        "meaning_ko": "포장해 주실 수 있나요?",
+        "usage_ko": "카페에서 음료를 가지고 나가고 싶을 때 써요.",
+        "example_en": "Could I get that to go? I'm in a bit of a hurry.",
+        "example_ko": "포장해 주실 수 있나요? 좀 급해서요.",
+    },
+    {
+        "expression": "I'll have the same.",
+        "meaning_ko": "같은 걸로 할게요.",
+        "usage_ko": "앞사람과 같은 메뉴를 주문할 때 짧게 써요.",
+        "example_en": "That sounds good. I'll have the same.",
+        "example_ko": "좋네요. 저도 같은 걸로 할게요.",
+    },
+    {
+        "expression": "Can I get a refill?",
+        "meaning_ko": "리필해 주실 수 있나요?",
+        "usage_ko": "다 마신 음료를 다시 채워 달라고 할 때 써요.",
+        "example_en": "Excuse me, can I get a refill on my coffee?",
+        "example_ko": "실례지만 커피 리필해 주실 수 있나요?",
+    },
+]
+
+
 class FeedbackTests(unittest.TestCase):
     def run_body(self, body, request=None):
         return generate_feedback(request or sample()[0], FixtureClient(body), ai_allowed=True)
@@ -199,6 +225,31 @@ class FeedbackTests(unittest.TestCase):
                 self.assertEqual(vocab["source"]["type"], source)
                 for field in ("expression", "meaning_ko", "example_en", "example_ko"):
                     self.assertTrue(vocab[field])
+
+    def test_situation_expressions_keep_meaning_usage_and_example(self):
+        request, body = sample()
+        body["result"]["situation_expressions"] = copy.deepcopy(SITUATION[:2])
+        result = self.run_body(body, request)["result"]
+        self.assertEqual(result["situation_expressions"], SITUATION[:2])
+
+    def test_results_without_situation_expressions_stay_valid(self):
+        request, body = sample()
+        body["result"].pop("situation_expressions", None)
+        result = self.run_body(body, request)["result"]
+        self.assertEqual(result["situation_expressions"], [])
+
+    def test_duplicate_situation_expressions_rejected(self):
+        twin = dict(SITUATION[0], expression="could I get  that to go?")
+        self.assert_invalid(lambda r: r.update(situation_expressions=[copy.deepcopy(SITUATION[0]), twin]))
+
+    def test_more_than_three_situation_expressions_rejected(self):
+        extra = dict(SITUATION[0], expression="Do you have oat milk?")
+        self.assert_invalid(lambda r: r.update(situation_expressions=copy.deepcopy(SITUATION) + [extra]))
+
+    def test_prompt_asks_for_situation_expressions_from_the_scene(self):
+        system = build_messages(sample()[0])[0]["content"]
+        self.assertIn("situation_expressions", system)
+        self.assertIn("scene_description", system)
 
     def test_vocab_suggestion_and_review_must_exist(self):
         for key in ("review_id", "suggestion_id"):

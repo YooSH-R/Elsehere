@@ -6,7 +6,7 @@
 
 - `Assets/Scenes/Production/TownScene.unity`를 열고 Play하면 기본 F 리틀 멍을 조작할 수 있다. 집·카페·호텔도 같은 공용 `Assets/Prefabs/Player/Player.prefab`을 사용한다.
 - 실제 가입·재접속은 `EntryScene`에서 시작한다. 가입의 F/M 선택은 기존 계정 API가 저장하고, `OnboardingFlow`가 가입 응답·bootstrap의 `avatarType`을 보존한다. `OnboardingScreen`이 월드로 넘어가기 전에 `PlayerCharacterSelection`에 전달한다.
-- F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐은 대기 자세의 실제 스킨 범위를 기준으로 높이 1.61m·반경 0.68m이며, 카메라 눈높이는 약 1.108m·3인칭 조준점은 0.966m이다.
+- F는 `LittleMungStairPlayer.prefab`의 보정 Visual 복사본을 사용하며, 공용 `Female.prefab`의 루트 배율은 1.6이다. 이 값은 키가 아닌 모델 배율이다. F 정의의 충돌 캡슐은 대기 자세의 실제 스킨 범위를 기준으로 높이 1.61m·반경 0.33m(머리 아래 몸통)이고, 큰 머리는 반지름 0.68m·발 기준 중심 높이 약 1.29m인 머리 구가 따로 막으며, 카메라 눈높이는 약 1.108m·3인칭 조준점은 0.966m이다.
 - M은 기본 남자 캐릭터 `Assets/Prefabs/Player/Characters/Male.prefab`을 사용한다. Tripo로 생성한 남자 메시를 마스터 골격(`LittleMungAdjusted.fbx`)에 다시 연결한 `Female.prefab` Variant이므로 골격·애니메이션·배율 1.6과 접지·계단·팔 관통 보정을 F와 함께 쓴다. 원본 FBX·메시·머티리얼·텍스처는 `Assets/Art/Player/LittleMung/Male/`에 둔다. M 정의의 충돌 캡슐은 높이 1.59m·반경 0.61m, 카메라 눈높이는 약 1.132m·3인칭 조준점은 0.954m이다.
 - 걷기·달리기·점프·회전 수치는 공용 Player의 `PlayerMover`가 `Assets/Data/Player/LittleMung/Movement.asset` 하나로 정한다. 캐릭터 정의에는 이동 설정이 없으므로 어떤 외형을 골라도 같은 조작감으로 움직인다.
 - 외형 크기를 바꾸면 캡슐·시점·관통을 다시 검수해야 한다.
@@ -23,7 +23,7 @@
 2. Project에서 `Assets/Scenes/Sandbox/LittleMungPosePlayerSandbox.unity`를 연다. 기존 골격/수정 발 골격만 비교하려면 아래의 별도 검수 씬을 사용한다.
 3. Play를 누르고 Game 화면을 한 번 클릭한다.
 4. WASD로 이동, Shift를 누른 채 이동하면 달리기, Space로 점프한다.
-5. 마우스 왼쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다.
+5. 마우스 왼쪽 버튼을 누르고 드래그하면 시점을 돌리고, 휠로 확대·축소한다. Web 빌드는 마우스 이동량을 브라우저 화면 배율(`devicePixelRatio`)로 나눠, Windows 배율 200% 화면에서도 에디터와 같은 감도로 돈다. 회전 감도는 마우스 1픽셀(화면 배율 보정 후)당 0.15도이고, 플레이어가 마이페이지([내 정보])에서 0.5~2배로 조절할 수 있다. 고른 배율은 이 기기에만 저장한다.
 6. 왼쪽 계단, 오른쪽 경사로, 앞쪽 벽에서 움직임을 확인한다.
 
 이 씬에는 생성/API 키 입력이 필요하지 않다. Builder는 저장소에 포함된 `Assets/Art/Player/LittleMung/LittleMung.fbx`와 `BaseColor.png`를 사용한다. 파일이 누락되면 저장소에서 복원하며 개인 Tripo 생성 폴더를 요구하지 않는다. 메뉴 `Tools → A305 → Player → Build Little Mung Sandbox`는 누락된 전용 에셋과 씬을 구성한다. 이미 있는 전용 프리팹·컨트롤러·씬은 보존한다.
@@ -38,25 +38,24 @@
 | 외부 원본 모션 | Assets/ThirdParty/MixamoLocomotion/ |
 | 공통 휴식 Avatar·변환 모션 | Assets/Art/Player/LittleMung/Motions/Reference.fbx 및 Walk/Run/Jump.fbx |
 | 생성 코드 | `Assets/Scripts/Editor/Player/LittleMungPlayerBuilder.cs`, `LittleMungAnimationBuilder.cs` |
-| 조작 통합 테스트 | `Assets/Tests/PlayMode/Player/LittleMungPlayerTests.cs` |
+| 조작 통합 테스트 | `Assets/Tests/PlayMode/Player/PlayerCharacterIntegrationTests.cs` |
 
 - 이동 루트의 CharacterController가 위치를 바꾼다. 모델 Animator의 Root Motion은 꺼 두어 이동이 중복 적용되지 않는다.
 - `Speed`로 Idle/Walk/Run을 혼합하고, `IsGrounded`와 `VerticalSpeed`로 Rise/Fall/Land를 전환한다. 점프를 고정 재생 시간만으로 판단하지 않는다. `PlayerMover`는 실제 이동 속도를 바로 바꾸지만, 1 m/s를 넘는 범위에서는 `Speed`가 초당 30 m/s까지만 바뀌게 한다. 서 있다가 달리거나 멈출 때 자세가 한 프레임에 바뀌어 골반이 순간이동해 보이는 것을 막기 위해서다. 1 m/s 이하의 변화는 계단 디딤 보정이 맞춰진 걷기 박자를 유지하도록 바로 전달한다.
 - Humanoid가 정규화한 애니메이션 자세를 기준으로 +Z 정면과 발 높이를 맞춘다. 원본 FBX의 바인드 방향을 다시 회전시켜 이중 보정하지 않는다.
 - 모델과 기본 색 텍스처는 기존 재질 수정본의 별도 복사본이다. 셰이더는 URP Lit이며 색 텍스처를 Normal Map으로 사용하지 않는다.
 - 눈썹은 기준 외형 이미지에 맞춰 생성 원본의 꺾인 긴 눈썹을 없애고 짧은 둥근 호로 바꿨다. 생성 원본은 눈썹을 텍스처뿐 아니라 메시 돌기와 사용자 지정 법선으로도 표현하고 Unity는 FBX 법선을 그대로 쓰므로(`normalImportMode: 0`), `BaseColor.png`의 눈썹 그림, `AdjustedRig/LittleMungAdjusted.fbx`의 눈썹 부근 정점 위치·법선을 함께 고쳤다. 정점 수·UV·스킨 가중치·뼈는 그대로다. 같은 수정이 `frontend/ArtSources/Player/LittleMung/`의 Blender 원본에도 들어 있으며 FBX는 그 원본을 `export_player.py`로 내보낸 결과다.
-- 이동 설정 기본값은 걷기 3.2 m/s, 달리기 7.5 m/s, 점프 높이 0.675 m다. 플레이 감각에 맞춘 초기 조작값이며 최종 기획 수치가 아니다. Walk·Run 클립의 보폭은 0.8·1.7 m/s에 맞으므로, 블렌드 트리는 0.8 m/s까지 원래 걷기를 쓰고, 그보다 빠르면 클립을 속도에 비례해 빨리 재생하되 최대 2배로 제한한다(3.2 m/s 걷기 2배, 7.5 m/s 달리기 2배). 보폭에 맞춰 4배 이상 재생하면 골반의 좌우·앞뒤 흔들림이 프레임마다 크게 건너뛰어 몸이 덜컥거리므로, 그 이상의 속도 차이는 발 미끄러짐으로 받아들인다. 값을 바꾸면 Builder 상수(`LittleMungAnimationBuilder`, `LittleMungPlayerBuilder`)를 고친 뒤 **Tools → A305 → Player → Apply Movement Tuning**으로 이동 설정·애니메이터·카메라 감도 에셋을 갱신한다. 같은 메뉴가 공용 카메라의 자동 뒤돌기(`followBehindSharpness`)를 0으로 둔다. 빠르게 방향을 바꾸면 카메라가 등 뒤로 크게 돌아, 뒤로 가는데 앞으로 가는 것처럼 보이기 때문이다.
+- 이동 설정 기본값은 걷기 3.2 m/s, 달리기 7.5 m/s, 점프 높이 0.675 m다. 플레이 감각에 맞춘 초기 조작값이며 최종 기획 수치가 아니다. Walk·Run 클립의 보폭은 0.8·1.7 m/s에 맞으므로, 블렌드 트리는 0.8 m/s까지 원래 걷기를 쓰고, 그보다 빠르면 클립을 속도에 비례해 빨리 재생하되 최대 2배로 제한한다(3.2 m/s 걷기 2배, 7.5 m/s 달리기 2배). 보폭에 맞춰 4배 이상 재생하면 골반의 좌우·앞뒤 흔들림이 프레임마다 크게 건너뛰어 몸이 덜컥거리므로, 그 이상의 속도 차이는 발 미끄러짐으로 받아들인다. 값을 바꾸면 Builder 상수(`LittleMungAnimationBuilder`, `LittleMungPlayerBuilder`)를 고친 뒤 **Tools → A305 → Player → Apply Movement Tuning**으로 이동 설정·애니메이터와 모든 공간의 카메라 감도를 갱신한다. 집·마을·카페·호텔은 공간마다 카메라 설정(`PlayerCameraSettings`)을 따로 쓰므로 감도는 이 메뉴로 한꺼번에 맞춘다.
+- 카메라는 마우스(왼쪽 버튼을 누른 채 드래그)와 모바일 오른쪽 드래그로만 돌고, 키 입력은 캐릭터만 움직인다. 걸을 때 카메라가 캐릭터 등 뒤로 저절로 돌아가는 기능은 두지 않는다.
 - Walk.anim과 Run.anim은 변환된 FBX에서 가져온 클립의 복사본이다. 발목을 포함한 근육 곡선을 그대로 유지한다. 걷기·달리기·점프는 실제 휴식 골격으로 만든 Reference Avatar를 공유하며, 본 이름·부모·길이가 맞지 않으면 재연결을 거부한다.
 - Idle은 Mixamo Jump 종료 자세를 바탕으로 호흡 변화를 추가했다. 외부 모션 사용 조건은 `Assets/ThirdParty/CREDITS.md`를 따른다.
 - 다른 씬에 넣을 때 `PlayerMover.cameraTransform`과 `PlayerCameraRig.followTarget`을 연결해야 한다. 전용 Builder에서는 `PlayerSandboxBuilder.ConnectPlayerAndCamera`를 재사용한다.
 
 ## 검수와 한계
 
-자동 테스트는 입력 이동·회전·달리기 속도·점프/착지 전환, 실제 다리 본 변화, 몸의 정면, 정지 시 루트 이동 없음, 벽 충돌·계단·경사로 통과를 확인한다. 프레임 간격을 고정하고 가상 키보드 이벤트를 사용한다. 사용자의 실제 키보드나 화면은 제어하지 않는다.
+자동 테스트는 이동 속도 계산(`PlayerMotorTests`)과 운영 플레이어의 걷기·달리기·점프·시점 전환(`PlayerCharacterIntegrationTests`)을 확인한다. 애니메이션 외형, 발 접지, 메시 관통은 [프론트엔드 개발 지침](../../frontend/AGENTS.md#테스트-대상과-방식)에 따라 자동 테스트에서 제외하고 검수 씬을 Play해 확인한다.
 
-시각적으로는 정면·측면에서 발 접지와 보폭, 급회전 때 미끄러짐, 무릎·어깨 변형, 소매·반바지 관통을 확인한다. 단위 테스트 통과는 모든 메시 관통이 없다는 뜻이 아니다. 초기/수정 골격 비교 씬에는 발 IK가 없다. 접지·팔 보정 사본의 동작과 지형별 한계는 아래에서 설명한다. 현재 자동 리깅 모델의 세부 얼굴·옷 가중치를 새로 조형하지 않는다.
-
-PlayMode 테스트에서 `LittleMungPlayerTests`를 실행한다. 배치 실행에서는 `-runTests -testPlatform PlayMode -testFilter LittleMungPlayerTests`를 사용하고 `-quit`은 함께 쓰지 않는다. 실제 게임 카메라·정면·측면 캡처는 `CharacterRespondsToWalkRunJumpAndReturnsToIdle` 테스트만 선택하여 `-playerCaptureOutput <저장 폴더>`를 추가한다. 캡처 실행에는 `-nographics`를 쓰지 않는다.
+시각적으로는 정면·측면에서 발 접지와 보폭, 급회전 때 미끄러짐, 무릎·어깨 변형, 소매·반바지 관통을 확인한다. 초기/수정 골격 비교 씬에는 발 IK가 없다. 접지·팔 보정 사본의 동작과 지형별 한계는 아래에서 설명한다. 현재 자동 리깅 모델의 세부 얼굴·옷 가중치를 새로 조형하지 않는다.
 
 ## 모션 기준 Avatar 재구성
 
@@ -68,7 +67,7 @@ PlayMode 테스트에서 `LittleMungPlayerTests`를 실행한다. 배치 실행�
 
 Unity에서 Tools → A305 → Player → Reimport Little Mung Motions를 실행하면 생성된 이동 클립과 기존 Controller의 이동·점프 상태 연결을 갱신한다. 전용 Walk/Run/Idle 클립은 재생성하므로 수동 편집할 모션은 별도 이름으로 복사해야 한다. 원본 ThirdParty 모션과 플레이어 입력 코드는 변경하지 않는다.
 
-회귀 검사는 수평 발 방향, 실제 모션 평가 여부, 기준 골격의 좌우 무릎 대칭, 공통 Avatar 연결, 발목 대체 곡선이 없는지도 확인한다.
+다시 내보낸 뒤에는 검수 씬을 Play해 수평 발 방향, 좌우 무릎 대칭, 걷기·달리기·점프 재생을 확인한다.
 
 ## Blender 발 골격 편집본
 
@@ -93,7 +92,7 @@ Blender에서 새 사본을 내보낼 때 frontend/ArtSources/Player/LittleMung/
 
 수정 모델의 Avatar는 기존 본 대응 이름을 재사용하되, 관절 위치·회전·스케일은 수정 FBX의 휴식 골격에서 다시 읽는다. 기존 Avatar의 관절 위치를 복사하면 단위 변경 전 좌표가 남아 애니메이션 중 메시가 축소되거나 이동할 수 있다.
 
-LittleMungPlayerTests는 기존/수정 씬을 같은 허용값으로 검사한다. 명시적인 -playerCaptureOutput 옵션을 주면 아래의 original/before/after 구분에 따라 실제 플레이 이미지와 foot-contact.csv를 기록한다. CSV의 발 높이는 발·발가락 가중치 합이 0.5 이상인 메시 정점의 최저 높이이며, 평지 y=0 기준이다. 공중 동작의 발 높이와 달리기의 비행 구간은 접지 실패로 간주하지 않는다. 본의 위쪽 방향 값만으로 메시 뒤집힘을 판정하지 않고 렌더와 함께 검수한다.
+기존·수정 씬은 같은 입력으로 Play해 비교한다. 공중 동작의 발 높이와 달리기의 비행 구간은 접지 실패로 보지 않는다. 본의 위쪽 방향 값만으로 메시 뒤집힘을 판정하지 않고 화면과 함께 검수한다.
 
 ## 접지·팔 관통 보정 검수 씬
 
@@ -119,10 +118,6 @@ LittleMungPlayerTests는 기존/수정 씬을 같은 허용값으로 검사한�
 
 이 보정은 지면 높이를 맞추며 경사면 법선에 발바닥을 회전시키거나 보행 중 발을 수평으로 고정하지 않는다. 모든 지형의 접지·미끄러짐 해결을 보장하지 않는다. 팔 검사는 머리·몸통을 감싸는 타원체로 깊은 관통을 찾는 근사 검사이며, 모든 메시 삼각형 사이의 충돌이나 모든 모션에서의 실루엣을 보장하지 않는다. 원본 메시의 옷·손 가중치나 토폴로지는 수정하지 않는다.
 
-`LittleMungContactTests`는 생성 직후, 정지, 걷기·달리기의 실제 신발 스킨 높이를 검사한다. `HandsAndForearmsStayOutsideTheHeadAndTorso`는 같은 이동·점프 입력으로 손과 전완의 깊은 관통을 검사한다. 최종 자세 측정과 캡처는 보정 이후의 LateUpdate에서 실행한다. Unity `BakeMesh(true)`로 배율을 보상한 뒤 TransformPoint를 적용하여 캐릭터 확대 배율이 두 번 계산되지 않게 한다.
-
-명시적인 `-playerCaptureOutput <폴더>` 실행은 `original`(초기 골격), `before`(수정 발 골격), `after`(접지·팔 보정) 폴더를 만든다. 같은 동작의 정면·측면 이미지와 `foot-contact.csv`로 비교한다. 캡처는 테스트용 카메라 렌더이며 사용자 화면을 조작하지 않는다.
-
 ## 계단·경사로 접지 실험 씬 — 미채택
 
 이 씬은 플레이어 기본 사본으로 사용하지 않는다. 접지 중 정점 고정 검사는 통과하지만, 골반 높이의 불연속으로 몸이 떨리고 다음 계단의 디딤 위치를 계획하지 못한다. 비교·후속 개발 기준은 기존 LittleMungPosePlayerSandbox를 사용한다. 기존 Pose 사본도 계단 전용 보행은 구현하지 않았다.
@@ -140,11 +135,7 @@ LittleMungPlayerTests는 기존/수정 씬을 같은 허용값으로 검사한�
 
 원본 신발 밑면에는 정강이 가중치가 섞여 있어 발목만 고정해도 밑창이 휘었다. Builder는 별도 메시 에셋을 만들고 밑창의 가중치를 기존 발·발가락 본 사이에서 정규화한다. 신발 위쪽으로 갈수록 원래 가중치에 부드럽게 연결하며, 정점 위치·면·UV·노멀·바인드 포즈는 보존한다. 생성된 메시가 이미 있으면 다시 덮어쓰지 않는다. 지형 사본의 손 여유 간격은 16mm이며, 기존 Pose 사본의 기본 8mm는 유지한다.
 
-`LittleMungTerrainTests`는 실제 스킨 정점으로 지면 관통과 접지 중 프레임별/누적 이동을 측정한다. 경사면 정지, 경사로·계단 양방향 걷기·달리기와 손·전완 간격을 검사한다. `LittleMungPlayerTests(Terrain)`은 평지 걷기·달리기·점프·정지와 기존 Avatar 검사를 동일하게 실행한다. `LittleMungTerrainAssetTests`는 원본과 새 메시의 형상·UV·본 연결이 같은지 확인한다.
-
-전후 렌더는 PlayMode 검사에 `-terrainCaptureOutput <폴더>`를 추가하면 생성된다. `before`는 기존 Pose 사본, `after`는 지형 사본이다. 같은 입력 경로의 정면 사선·측면 PNG와 실제 정점 측정 CSV를 저장한다. API나 사용자 화면 조작은 사용하지 않는다.
-
-검증 지형은 Sandbox의 12도 고정 경사면과 단차 0.1m 계단이다. 접지 중 위치 고정과 발을 들어 옮기는 동작을 구분해 확인한다. 움직이는 발판·불규칙 지형·임의의 급회전까지 검증한 공통 IK 시스템은 아니다. 팔 관통은 머리·몸통 타원체에 대한 근사 검사와 렌더를 함께 확인하며 모든 삼각형의 무관통을 보증하지 않는다. Blender에서 신체 비율·신발·관절을 바꾸면 밑창 가중치 사본과 발바닥 기준 방향을 다시 만들고 같은 검사를 실행해야 한다.
+확인 지형은 Sandbox의 12도 고정 경사면과 단차 0.1m 계단이다. 접지 중 위치 고정과 발을 들어 옮기는 동작을 구분해 확인한다. 움직이는 발판·불규칙 지형·임의의 급회전까지 다루는 공통 IK 시스템은 아니다. 팔 관통 보정은 머리·몸통 타원체에 대한 근사 계산이며 모든 삼각형의 무관통을 보증하지 않는다. Blender에서 신체 비율·신발·관절을 바꾸면 밑창 가중치 사본과 발바닥 기준 방향을 다시 만들고 이 씬을 다시 Play해 확인한다.
 
 ## 다음 디딤면을 계획하는 계단 보행 사본
 
@@ -161,7 +152,7 @@ LittleMungPlayerTests는 기존/수정 씬을 같은 허용값으로 검사한�
 
 발은 루트 앞 21cm 안에만 디디고 한 걸음은 최소 0.08초이므로, 약 2.4 m/s보다 빠르면 다음 디딤면을 계획할 수 없다. 이 속도를 넘으면 계단 보정을 켜지 않는다. 디딜 곳을 찾지 못하면 보정을 즉시 해제해 몸이 이전 발자리에 붙잡히지 않게 한다. 현재 걷기·달리기 속도(3.2·7.5 m/s)에서는 계단 보정이 사실상 동작하지 않고 원래 애니메이션 자세로 계단을 지난다.
 
-평지에서는 기존 Pose 동작으로 전환하고 점프 시 계단 보행을 해제한다. `LittleMungGroundContact` → 계단 보행 → `LittleMungArmClearance` 순서로 최종 자세를 계산한다. 새 사본은 형상·UV가 같은 기존 밑창 가중치 사본(`TerrainSkin/Sole0.asset`)을 재사용하며, 손 간격 설정은 새 프리팹에만 적용한다. 발목에 고정 각도를 더해 뒤집힘을 숨기는 보정은 추가하지 않는다.
+평지에서는 기존 Pose 동작으로 전환하고 점프 시 계단 보행을 해제한다. 점프 정점이나 가구에서 떨어지는 중처럼 발밑 땅에서 0.22m(계단을 내려갈 때 잠깐 뜨는 높이)보다 높이 떠 있는 동안에도 해제하고, 디딤점은 착지한 뒤에 잡는다. 떨어지는 중의 공중 발 위치를 디딤점으로 잡으면 착지한 뒤에도 외형이 그 높이에 떠 있기 때문이다. `LittleMungGroundContact` → 계단 보행 → `LittleMungArmClearance` 순서로 최종 자세를 계산한다. 새 사본은 형상·UV가 같은 기존 밑창 가중치 사본(`TerrainSkin/Sole0.asset`)을 재사용하며, 손 간격 설정은 새 프리팹에만 적용한다. 발목에 고정 각도를 더해 뒤집힘을 숨기는 보정은 추가하지 않는다.
 
 팔 관통 보정은 전완의 실제 스킨 정점과 팔꿈치–손목 축 사이의 최대 거리를 두께로 사용한다. 외형 배율이 달라져도 고정 반경 때문에 전완 표면을 놓치지 않도록 매 프레임 측정한다. 손·팔 목표를 이동시키며 기존 본 길이와 손목 회전은 유지한다.
 
@@ -169,7 +160,7 @@ LittleMungPlayerTests는 기존/수정 씬을 같은 허용값으로 검사한�
 
 ### 검수 범위
 
-`LittleMungStairTests`는 60fps 고정 간격에서 높이 0.1m의 네 단을 양방향으로 걷는다. 입력·속도·지형·카메라 조건을 맞춘 Pose/계단 사본의 렌더와 실제 스킨 정점 측정을 남긴다.
+씬에서 높이 0.1m의 네 단을 양방향으로 걸으며 다음을 확인한다.
 
 - 충돌 캡슐이 다음 단에 올라서기 전 착지 위치를 선택하는지
 - 발을 들어 모서리를 넘기는 궤적과 디딤면 안쪽 착지
@@ -178,12 +169,12 @@ LittleMungPlayerTests는 기존/수정 씬을 같은 허용값으로 검사한�
 - 손·전완과 몸통·머리 사이의 근사 간격
 - 계단 사본의 평지 걷기·달리기·점프 및 기존 이동 기능 회귀
 
-자동 검사는 외관 합격을 대신하지 않는다. 발의 미끄러짐 수치는 프레임별 이동이며 완전한 무미끄러짐을 보증하지 않는다. 손 관통 검사는 스킨 정점과 몸통·머리 타원체 사이의 근사 검사이고 모든 삼각형 사이의 충돌 검사는 아니다. 빠른 계단 달리기, 계단 위 급회전, 움직이는 발판, 임의의 단높이·발판 폭까지 검증한 범용 보행 시스템은 아니다. 계단 전용 보행은 평평한 디딤면을 대상으로 하며 경사면 발바닥 기울기 보정은 포함하지 않는다.
+손 관통 보정은 스킨 정점과 몸통·머리 타원체 사이의 근사 계산이고 모든 삼각형 사이의 충돌 처리는 아니다. 빠른 계단 달리기, 계단 위 급회전, 움직이는 발판, 임의의 단높이·발판 폭까지 검증한 범용 보행 시스템은 아니다. 계단 전용 보행은 평평한 디딤면을 대상으로 하며 경사면 발바닥 기울기 보정은 포함하지 않는다.
 
 ## 선택 캐릭터의 캡슐과 카메라 높이 맞추기
 
-`Data/Player/Characters/F.asset`·`M.asset`의 `Height Meters`, `Radius Meters`가 캐릭터별 충돌 캡슐을 정한다. `Camera Eye Height Meters`는 1인칭·대화 눈높이, `Camera Pivot Height Meters`는 3인칭 조준점이다. 0이면 씬의 `PlayerCameraSettings` 값을 사용하므로 기존 Sandbox는 기존 설정을 유지한다. 거리·회전·줌·벽 충돌 설정은 계속 씬에서 참조한 카메라 데이터 에셋을 따른다. 눈높이·조준점은 실행 중에도 설정 에셋의 값을 읽으며, 초기 거리·각도는 Play를 다시 시작하면 적용된다.
+`Data/Player/Characters/F.asset`·`M.asset`의 `Height Meters`, `Radius Meters`가 캐릭터별 충돌 캡슐을 정한다. 캡슐은 머리 아래 몸통만 덮어 소파와 탁자 사이 같은 좁은 틈에도 들어간다. 몸통보다 큰 머리는 `Head Radius Meters`·`Head Center Height Meters`의 머리 구가 따로 막는다(`HeadClearance`). 걸을 때 머리 구를 이동 방향으로 밀어 보고 벽·키 큰 가구에 닿으면 그 직전에서 멈추고 면을 따라 미끄러진다. 구의 아래 끝이 머리 아래 끝이라 탁자·소파 앉는 면처럼 낮은 가구는 머리 아래로 지나간다. 머리 반지름이 0이면 머리를 따로 막지 않는다. `Camera Eye Height Meters`는 1인칭·대화 눈높이, `Camera Pivot Height Meters`는 3인칭 조준점이다. 0이면 씬의 `PlayerCameraSettings` 값을 사용하므로 기존 Sandbox는 기존 설정을 유지한다. 거리·회전·줌·벽 충돌 설정은 계속 씬에서 참조한 카메라 데이터 에셋을 따른다. 눈높이·조준점은 실행 중에도 설정 에셋의 값을 읽으며, 초기 거리·각도는 Play를 다시 시작하면 적용된다.
 
-**Tools → A305 → Player → Fit Character Capsules And Camera**는 정의마다 현재 외형을 연결한 뒤 F·M 외형 복사본에 `Idle.anim`을 샘플링해 실제 스킨 정점을 측정한다. 두 정의의 캡슐·카메라 높이를 다시 계산하고 공용 Player와 Production 네 씬의 캡슐 연결을 갱신한다. 외형 프리팹의 배율·메시·골격과 씬 카메라 에셋은 바꾸지 않는다. 얼굴 중앙을 기본 눈높이로 사용하므로 최종 시점은 각 캐릭터 정의에서 조절한다. 단순한 Connect Selected Character는 이 계산을 반복하지 않고 이미 설정한 값을 유지한다.
+**Tools → A305 → Player → Fit Character Capsules And Camera**는 정의마다 현재 외형을 연결한 뒤 F·M 외형 복사본에 `Idle.anim`을 샘플링해 실제 스킨 정점을 측정한다. 두 정의의 캡슐(머리 아래 정점의 수평 범위)·머리 구(머리 정점의 수평 범위, 아래 끝을 머리 아래 끝에 맞춤)·카메라 높이를 다시 계산하고 공용 Player와 Production 네 씬의 캡슐 연결을 갱신한다. 외형 프리팹의 배율·메시·골격과 씬 카메라 에셋은 바꾸지 않는다. 얼굴 중앙을 기본 눈높이로 사용하므로 최종 시점은 각 캐릭터 정의에서 조절한다. 단순한 Connect Selected Character는 이 계산을 반복하지 않고 이미 설정한 값을 유지한다.
 
-`PlayerCharacterIntegrationTests`는 F/M의 실제 이동·대화·씬 전환과 함께, 두 캐릭터의 배율 1.6 유지·대기 메시 높이/머리 폭에 대한 캡슐 범위·얼굴 높이의 대화 시점·3인칭 조준점을 검사한다. 손·전완의 머리/몸통 간격 합격 기준은 타원체 정규화 거리 0.9 이상이다. 이는 근사 관통 검사이며 전체 삼각형 충돌이나 모든 체형·모션의 외관 품질을 보증하지 않는다.
+`PlayerCharacterIntegrationTests`는 F/M의 실제 이동·대화·씬 전환과 함께, 두 캐릭터의 배율 1.6 유지·대기 메시 높이에 대한 캡슐 높이·머리 아래 몸통에 대한 캡슐 폭(팔은 머리·몸통을 피해 벌어지므로 0.12m까지 나와도 됨)·머리 폭에 대한 머리 구 범위·얼굴 높이의 대화 시점·3인칭 조준점을 검사한다. `FurnitureEdgeTests`는 가구 모서리 옆이나 머리보다 좁고 몸통보다 넓은 틈에서 바닥까지 내려오는지, 낮은 탁자에는 머리를 위로 하고 다가가는지, 벽에는 머리가 묻히지 않는지 검사한다. 손·전완의 머리/몸통 간격 합격 기준은 타원체 정규화 거리 0.9 이상이다. 이는 근사 관통 검사이며 전체 삼각형 충돌이나 모든 체형·모션의 외관 품질을 보증하지 않는다.

@@ -12,6 +12,10 @@ import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.admin.dto.PronunciationProgress;
 import com.elsehere.admin.dto.PronunciationRun;
 import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.entity.AiRequestKind;
+import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.repository.AiRequestRepository;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
@@ -49,6 +53,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   WorldSeedLoader.class,
   PronunciationAudioStore.class,
   AiRequestRecorder.class,
+  AiFailureRecorder.class,
   PronunciationGenerator.class
 })
 @MockitoBean(types = AiWorkerClient.class)
@@ -64,6 +69,8 @@ class PronunciationGeneratorTest {
   }
 
   @Autowired private PronunciationGenerator pronunciationGenerator;
+
+  @Autowired private AiRequestRepository aiRequestRepository;
 
   @Autowired private AiWorkerClient aiWorkerClient;
 
@@ -117,6 +124,28 @@ class PronunciationGeneratorTest {
         .get()
         .extracting(Vocabulary::getPronunciationAudioKey)
         .isEqualTo("sofa.wav");
+  }
+
+  @Test
+  @DisplayName("합성에 실패한 단어는 합성 호출을 FAILED로 남긴다")
+  void generateMissing_failedWord_recordsFailedCall() {
+    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), eq(1.0))).willReturn(WAV);
+    given(aiWorkerClient.synthesize(any(), eq("sofa"), anyString(), eq(1.0)))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+
+    // 호출 기록은 별도 트랜잭션으로 커밋되어 앞선 테스트의 기록도 남아 있으므로 늘어난 수를 본다.
+    long failedBefore = failedSyntheses();
+
+    pronunciationGenerator.generateMissing(ADMIN_ID);
+
+    assertThat(failedSyntheses()).isEqualTo(failedBefore + 1);
+  }
+
+  private long failedSyntheses() {
+    return aiRequestRepository.findAll().stream()
+        .filter(request -> request.getKind() == AiRequestKind.TTS)
+        .filter(request -> request.getStatus() == AiRequestStatus.FAILED)
+        .count();
   }
 
   @Test

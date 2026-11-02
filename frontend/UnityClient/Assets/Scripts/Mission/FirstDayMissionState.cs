@@ -24,6 +24,20 @@ namespace A305.Mission
             Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.Scene : null;
 
         /// <summary>
+        /// 카페 의자에 앉을 수 있는지. 호텔로 돌아가기 전까지 원하는 만큼 앉도록 미션 단계와 상관없이 카페에서 대화·요청 중이 아니면 앉는다.
+        /// </summary>
+        public bool CanSitInCafe(string sceneCode, bool busy, bool talking) =>
+            ManagesSeatsIn(sceneCode) && !busy && !talking;
+
+        /// <summary>
+        /// 미션이 이 장소의 자리를 요청 중에 막고 휴식을 세는지. 휴식은 카페 의자에서만 세므로 마을 벤치·호텔 소파는 미션과 상관없이 앉는다.
+        /// </summary>
+        public static bool ManagesSeatsIn(string sceneCode) => sceneCode == "CAFE";
+
+        /// <summary>이번 휴식이 미션의 '카페에서 잠깐 쉬기'로 인정되는지. 주문을 마친 뒤 처음 쉬는 한 번뿐이다.</summary>
+        public bool CountsAsCafeRest => Started && !Completed && Stage == 1 && CanRest;
+
+        /// <summary>
         /// Weather를 보내기 전의 서버이거나 Unity에 없는 날씨일 때 대신 보여 줄 날씨. Raining으로 비와 맑음만 나눈다.
         /// </summary>
         public string FallbackWeather => Raining ? "RAIN" : "CLEAR";

@@ -4,6 +4,7 @@ using A305.Api;
 using A305.Player;
 using A305.Theme;
 using A305.Tutorial;
+using A305.Voice;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -79,15 +80,19 @@ namespace A305.Onboarding
             {
                 flow.ChooseGuest();
                 Render();
+                ShowGuestConversationLimit();
             };
             loginPanel.DevLoginRequested += () =>
                 Run(() => flow.DevLoginAsync(settings.DevLoginUserId));
+            loginPanel.DocumentRequested += Application.OpenURL;
 
             guestPanel.AvatarSelected += avatar =>
             {
                 flow.SelectGuestAvatar(avatar);
-                guestPanel.Show(flow.GuestAvatar);
+                ShowGuestPanel();
             };
+            guestPanel.VoiceConsentChanged += flow.SetGuestVoiceConsent;
+            guestPanel.DocumentRequested += Application.OpenURL;
             guestPanel.StartRequested += () => Run(flow.GuestLoginAsync);
             guestPanel.BackRequested += () =>
             {
@@ -108,6 +113,23 @@ namespace A305.Onboarding
                 Run(() => flow.ChooseLanguageAsync(languageCode));
             levelTestPanel.SkipRequested += () => Run(flow.SkipLevelTestAsync);
             levelSettingPanel.LevelConfirmed += level => Run(() => flow.SelectLevelAsync(level));
+        }
+
+        private void ShowGuestPanel()
+        {
+            guestPanel.Show(flow.GuestAvatar, flow.GuestVoiceConsent, flow.GuestConversationLimit);
+        }
+
+        // 캐릭터 선택 화면을 먼저 보여 주고, 대화 횟수(AUTH-08)를 읽으면 안내 문구만 바꾼다. 읽는 동안 버튼을 막지 않는다.
+        private async void ShowGuestConversationLimit()
+        {
+            await flow.LoadGuestGuideAsync();
+
+            // 기다리는 사이 씬을 떠났거나 다른 화면으로 갔으면 그대로 둔다.
+            if (this != null && flow.Screen == EntryScreen.GuestCharacter)
+            {
+                ShowGuestPanel();
+            }
         }
 
         private void EditSignup(Action<SignupForm> edit)
@@ -154,6 +176,7 @@ namespace A305.Onboarding
         {
             PlayerCharacterSelection.Select(flow.SelectedAvatar?.ToString());
             UiThemeSelection.Shared.Select(UiThemeCodes.Parse(flow.UiTheme));
+            VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
             messageText.text = flow.ErrorMessage ?? "";
             switch (flow.Screen)
             {
@@ -171,7 +194,7 @@ namespace A305.Onboarding
                     break;
                 case EntryScreen.GuestCharacter:
                     ShowOnly(guestPanel.gameObject);
-                    guestPanel.Show(flow.GuestAvatar);
+                    ShowGuestPanel();
                     break;
                 case EntryScreen.Signup:
                     ShowOnly(signupPanel.gameObject);

@@ -64,6 +64,11 @@ namespace A305.Tutorial
         /// <summary>미션 창은 미션 안내부터 보인다. 튜토리얼을 건너뛰어도 보인다.</summary>
         public bool IsMissionPanelVisible => Step >= TutorialStep.MissionWindow;
 
+        /// <summary>
+        /// 튜토리얼 중인지. 그동안 길을 묻는 행인(Ben)은 집 앞에서 튜토리얼 대본대로만 대화하고 생활하지 않는다(튜토리얼 모드).
+        /// </summary>
+        public bool IsGuiding => Step != TutorialStep.Completed;
+
         public void Continue()
         {
             if (!CanContinue)
@@ -165,14 +170,15 @@ namespace A305.Tutorial
         }
 
         /// <summary>
-        /// 행인이 다가와 말을 걸어도 되는지. 튜토리얼 행인은 이웃 만나기·길 안내 중에만, 미션 NPC는 미션 대화 안내부터 다가온다.
-        /// 다른 NPC는 튜토리얼과 관계없이 다가온다.
+        /// 행인이 다가와 말을 걸어도 되는지. 길을 묻는 행인은 튜토리얼 중에는 이웃 만나기·길 안내 때만, 튜토리얼을 마치면 평소처럼
+        /// 다가온다. 미션 NPC는 미션 대화 안내부터 다가온다. 다른 NPC는 튜토리얼과 관계없이 다가온다.
         /// </summary>
         public bool IsApproachAllowed(string npcCode)
         {
             if (npcCode == tutorialNpcCode)
             {
-                return Step == TutorialStep.NeighborApproach
+                return !IsGuiding
+                    || Step == TutorialStep.NeighborApproach
                     || Step == TutorialStep.NeighborDialogue;
             }
 

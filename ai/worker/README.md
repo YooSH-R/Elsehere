@@ -52,13 +52,23 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `RESPOND_BUDGET_S` | 30 | NPC 추론 API(`/internal/ai/npc/respond`) 요청 하나의 상한 (재시도·대체 모델 포함, 계약 10절). 넘으면 504 `AI_TIMEOUT` |
 | `KOKORO_MODEL`, `KOKORO_VOICES` | (없음, 배포 이미지는 `/opt/kokoro/` 안 파일) | `kokoro-v1.0.int8.onnx`, `voices-v1.0.bin` 경로 ([kokoro-onnx 배포 파일](https://github.com/thewh1teagle/kokoro-onnx/releases)) |
 | `KOKORO_THREADS` | 0 (onnxruntime 기본, 보이는 코어 수) | 음성 합성 스레드 수. 컨테이너처럼 CPU 상한이 있으면 상한과 같게 (앱 Compose는 2). 상한보다 많으면 CPU 할당량에 걸려 몇 배 느려짐 |
-| `TTS_CHUNK_BUDGET_S` | 2.5 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false` |
+| `TTS_REQUIRE_TIMING` | `false` (배포 이미지 `true`) | 모델 워밍업에서 검증된 발음 시간표가 없으면 워커 시작 실패 |
+| `TTS_CHUNK_BUDGET_S` | 로컬 2.5, 앱 Compose 8 | NPC 대답 한 조각 합성이 이보다 늦으면 그 조각은 `tts: false`(바로 재생 없이 자막만). 턴 전체 음성에는 합성이 끝나는 대로 넣음 |
+| `TTS_GPU_BASE_URL` / `TTS_GPU_TOKEN` | (없음, 꺼짐) | SSAFY GPU 서버 합성 서버([`ai/gpu_tts`](../gpu_tts/README.md))의 주소와 토큰. 주면 다듬고 음소로 바꾼 글을 먼저 GPU로 보내고, 실패·시간 초과면 CPU Kokoro로 만듦. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18433`) |
+| `TTS_GPU_TIMEOUT_S` | 2 | GPU 서버 합성 한 번의 상한. 넘으면 재시도 없이 CPU로 |
+| `TTS_BREAKER_FAILURES` / `TTS_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 합성이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 CPU로 바로 감. 횟수가 0이면 끔 |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
 | `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김 |
 | `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 예: `http://172.19.0.1:18432/v1`) |
 | `GUARD_GPU_TIMEOUT_S` | 2 | GPU 서버 판정 한 번의 상한. 넘으면 재시도 없이 구성의 `guard` 모델로 |
 | `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
+
+## GPU 음성과 발음 시간표
+
+GPU 서버에는 발음 사전을 적용한 음소를 한 번 보내고, 반환된 PCM을 같은 음소 순서로 워커의 PocketSphinx에 정렬한다. 시간표를 얻으려고 CPU에서 음성을 다시 합성하지 않는다. GPU 장애 시에는 기존 CPU `create_timed` 경로로 대체하며, 두 경로 모두 음성과 검증된 시간표를 함께 캐시한다. 정렬에 실패하면 실제 음성은 유지하고 시간표는 생략한다.
+
+`tts_phoneme_timing`과 `TTS_REQUIRE_TIMING`은 시작 시 CPU 대체 모델의 워밍업 결과를 검증한다. GPU의 각 응답은 별도로 PCM 정렬을 거치므로 이 상태만으로 GPU 응답의 시간표나 처리 지연까지 확인됐다고 판단하지 않는다. GPU 서버에 duration 출력 모델을 추가로 배포할 필요는 없지만 워커에는 기존 PocketSphinx 의존성이 필요하다.
 
 ## API
 
@@ -207,7 +217,7 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 
 - 목소리는 문장 NPC 설정의 `voiceId`, 속도는 `--speed`(기본 1.0, 난이도 1·3은 0.85·1.06)입니다.
 - Whisper 영어 정규화로 숫자·축약 표기를 맞추고, 곡선 따옴표와 붙여 쓰기·띄어 쓰기 차이(haircut ↔ hair cut)는 틀린 것으로 세지 않습니다.
-- Whisper는 어색한 발음도 맞게 받아쓰기 쉽습니다. 예를 들어 Kokoro가 `$4`를 "dollar four"로 읽어도 `$4`로 받아씁니다. 그래서 틀린 곳이 없다고 바르게 읽었다는 뜻은 아닙니다. 틀린 곳이 나온 문장은 wav를 직접 들어 확인합니다.
+- Whisper는 어색한 발음도 맞게 받아쓰기 쉽습니다. 예를 들어 읽을 글 다듬기(`app/speech_text.py`)를 넣기 전 Kokoro는 `$4`를 "dollar four"로 읽었는데, Whisper는 이를 `$4`로 받아썼습니다. 그래서 틀린 곳이 없다고 바르게 읽었다는 뜻은 아닙니다. 틀린 곳이 나온 문장은 wav를 직접 들어 확인합니다.
 
 ## 검사
 
@@ -227,7 +237,7 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 
 - `tests/test_api.py`: 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리
 - `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기, 무례일 때만 호감 감점(`affinity_delta`)과 성격(신경성)에 따른 크기
-- `tests/test_stt.py`: 음성 인식 — 프롬프트 되풀이 거르기·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
+- `tests/test_stt.py`: 음성 인식 — 프롬프트 끝부분 되풀이만 거르기(예시 문장·장면 단어 하나는 통과)·영어 메뉴 예시·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외
 - `tests/test_contract.py`: 모델 출력이 깨졌을 때(JSON 객체가 아님, 칸 없음)와 빈 문장·없는 주소·프로그램 오류에도 계약의 실패 형식을 지키는지
@@ -236,6 +246,9 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - `tests/test_stream_hedge.py`: NPC 스트림의 첫 글자(또는 응답 머리)가 늦으면 같은 요청 스트림 하나 더, 이긴 쪽 글자만 이어짐, 진 쪽 닫기, 둘 다 늦으면 첫 글자 상한
 - `tests/test_turn.py`: 한 턴 구조 — 조각을 이어 붙인 턴 전체 음성, 조각 실패·음성 없음이면 `null`, 스트림 안의 추천 단어(`words`)와 그 실패
 - `tests/test_audio_store.py`: 음성 보관소의 전체 크기 상한
+- `tests/test_speech_text.py`: 음성으로 읽을 글 다듬기(`app/speech_text.py`) — 가격(`$13` → 13 dollars, 센트·단수·쉼표), 시각(`10:00` → 10 o'clock, `9:05` → 9 oh 5, a.m.·p.m.), 별표, 한글은 자막으로만(남은 문장 부호 정리), 평범한 영어는 그대로, 읽을 게 없으면 빈 글. Kokoro가 다듬은 글을 음소로 엔진에 넘기고, 읽을 게 없으면 엔진 없이 같은 형식의 짧은 무음
+- `tests/test_pronunciation.py`: 발음 사전(`app/pronunciation.py`) — 사전 단어는 적어 둔 음소, 나머지는 음소화, 대소문자 무관·단어 경계(honest의 hon은 아님), 여러 단어 항목(café au lait), 사전 단어가 없으면 글 전체를 한 번에 음소화, 사전 음소가 Kokoro 어휘 기호만 쓰는지
+- `tests/test_tts_gpu.py`: GPU 서버 음성 합성 — 다듬고 음소로 바꾼 글·목소리·속도·토큰을 보내고 받은 WAV를 씀, 오류·시간 초과·WAV가 아닌 답이면 한 번만 부르고 CPU로, 연속 실패 시 잠시 건너뛰기·성공하면 초기화, 같은 문장·읽을 것이 없는 글은 GPU를 부르지 않음, 환경 변수(토큰 필수)
 - `tests/test_tts_roundtrip.py`: 음성 합성 왕복 평가(`ai/tools/tts_roundtrip.py`)의 채점 — 곡선 따옴표는 곧은 것으로 바꿔 정규화, 대소문자·문장 부호 무시, 붙여 쓰기·띄어 쓰기 차이, 이어서 틀린 단어를 한 덩어리로, 태그별 WER(단어 수 가중), 평가 문장 파일(id 중복·NPC·태그)
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, 음성 합성 스레드 수(`KOKORO_THREADS`), GPT-5 요청 칸
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
@@ -254,3 +267,25 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - `tests/test_judge_events.py`: 의도 판정의 줄 사건 — 같은 호출에서 `events`를 고름(판정 형식의 목록), 무례·목록 밖·중복 버림, `events`가 없거나 목록이 아니면 `[]`, 의도 판정 실패면 `[]`, 행동 묘사만이면 `null`, 지시문에 사건 정의 가이드 v1.0
 
 프롬프트 문장의 품질(모델이 무엇을 고르는지)은 이 테스트로 보지 않습니다. 실제 모델을 부르는 회귀 테스트는 프로토타입 브랜치의 `prototype/mvp_web/tests/replay.py`에 있습니다.
+
+## NPC 발음 시간표와 립싱크
+
+읽을 글 정리와 발음 사전을 먼저 적용하고, 그 음소열을 `create_timed(..., is_phonemes=True)`에 한 번만 넘깁니다. 시간표도 같은 합성의 발음 순서를 최종 PCM에 정렬해 만들며, 재생용 음성과 함께 캐시합니다. 시간표 미지원 모델은 동일한 발음 사전으로 음성만 생성합니다. `tests/test_pronunciation_timing.py`에서 두 경로와 캐시 재사용을 검사합니다.
+
+`kokoro-onnx==0.6.1`의 `create_timed()`로 음성과 발음 순서를 얻고, `pocketsphinx==5.0.4`의 로컬 음향 모델로 해당 발음 순서를 최종 PCM에 정렬합니다. TTS 내부 duration은 실제 발음 경계와 어긋날 수 있어 그대로 재생 시간표로 사용하지 않습니다. 별도의 음성 재생성, 외부 분석 API, 문장별 입모양 수작업은 필요하지 않습니다. `KOKORO_MODEL`은 **duration 출력이 포함된** [공식 model-files-v1.1 배포](https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.1)의 `kokoro-v1.0.int8.onnx`, `KOKORO_VOICES`는 해당 배포의 `voices-v1.0.bin`을 가리켜야 합니다. 파일명이 같은 이전 모델에는 duration 출력이 없을 수 있습니다. 시작 로그에 `model has no duration output` 경고가 있으면 정확한 립싱크를 사용할 수 없습니다. 모델은 배포 시 준비하며 요청 중에 다운로드하지 않습니다.
+
+`app/speech_timing.py`는 영어 IPA를 Unity 공통 음소 이름으로 변환합니다. `/aɪ/` 등 이중모음은 하나의 구간으로 묶어 Unity에서 입이 연속 변형되게 합니다. `app/speech_alignment.py`가 같은 최종 PCM을 두 번 분석해 단어·음소 경계를 구합니다. 단어 사이 공백을 무음으로 강제하지 않고 음향 모델이 찾은 무음만 사용합니다. 발음 순서가 누락·변경되거나 시간 범위가 잘못되면 해당 시간표를 폐기하고 음성만 반환하며 경고를 기록합니다. 원래 음성의 속도·샘플은 변경하지 않습니다. 정렬은 음향 모델의 추정이므로 모든 경계의 정확성을 보장하지 않으며 빠른 연결 발음은 실제 음성과 대조해야 합니다. 기존 얼굴의 한계 때문에 일부 자음은 가까운 입모양을 사용하며, 실제 혀·치아 전체의 조음 모델은 아닙니다.
+
+시간표는 WAV의 선택적 `a305` RIFF chunk에 UTF-8 JSON으로 저장합니다. PCM 자체는 바꾸지 않으며, `version: 2`, `provider: "kokoro-en-US"`, 전체 `duration`(초), PCM 바이트의 `pcmSha256`, `phonemes` 배열(`start`, `end`, `phoneme`)을 담습니다. 대사 원문은 넣지 않습니다. Spring은 WAV 바이트 전체를 저장·반환하므로 기존 `/v1/tts`, `/v1/audio/{id}`, `/api/v1/turns/{id}/speech` 경로와 인증을 그대로 사용합니다. Unity는 같은 파일에서 PCM과 시간표를 읽고 해시·길이를 검사합니다.
+
+캐시는 음성과 시간표를 함께 보관합니다. 여러 음성 조각을 합칠 때 `join_wavs()`는 각 조각의 실제 샘플 길이만큼 시간을 이동하고 합친 PCM의 해시를 다시 계산합니다. 한 조각이라도 시간표가 없으면 완전한 립싱크 데이터로 표시하지 않습니다. 기존 저장 WAV에는 시간표가 없으므로 소리는 재생되지만 정확한 입모양은 적용되지 않습니다. 이를 이유로 과거 음성을 자동 재생성하지 않습니다.
+
+읽을 내용이 없는 음성 조각은 실제 무음 길이의 휴지 시간표를 함께 보관합니다. 앞뒤 음성을 다시 듣기용 WAV로 합칠 때 나머지 발음 시간표와 시간 오프셋을 유지하며, 자막 전처리 후 실제로 합성한 문장을 기준으로 음소 시간을 만듭니다.
+
+### 배포 모델 준비와 상태 확인
+
+앱 Docker 이미지는 `requirements-tts.txt`의 Kokoro·PocketSphinx와 duration 출력 모델을 포함합니다. PocketSphinx에 포함된 영어 음향 모델을 사용하며 요청 중 외부 분석 API를 호출하지 않습니다. 합성 후 CPU 정렬 시간이 추가되므로 배포 환경에서 전체 응답 시간을 측정해야 합니다. `ai/tools/prepare_kokoro.py --directory <모델 전용 폴더>`는 공식 배포의 두 파일을 SHA256으로 확인합니다. 같은 이름의 잘못된 기존 파일은 덮어쓰지 않고 실패하므로 새 폴더를 지정해야 합니다. 요청 중 다운로드는 하지 않습니다.
+
+이미지 빌드와 워커 시작 때 `Ready.`를 CPU로 합성해 음성과 일치하는 시간표까지 검사합니다. `/health`의 `tts`는 음성 엔진 존재 여부, `tts_phoneme_timing`은 워밍업의 시간표 검증 결과입니다. 배포 이미지의 `TTS_REQUIRE_TIMING=true`에서는 모델 누락·구형 모델·시간표 변환 실패를 정상 시작으로 처리하지 않습니다. 기존 로컬 환경은 이 옵션을 생략하면 음성 없는 개발을 계속할 수 있습니다.
+
+앱 Compose의 합성 조각 대기 상한은 8초이며 환경 변수로 조정합니다. 상한을 넘긴 조각은 즉시 재생 이벤트에서 자막만 보내지만 합성은 취소하지 않고, 완료되면 턴 전체 음성에 포함합니다. 전체 요청의 시간 초과나 실제 합성 실패는 별도로 발생할 수 있습니다. 8초 응답 속도를 보장한다는 의미는 아닙니다. `AI_WORKER_CPUS`와 `AI_WORKER_MEMORY`의 기본은 2 CPU·1GiB이며, 배포 대상에서 여러 동시 대화의 지연·메모리·조각 누락을 측정한 후 조정해야 합니다. Spring의 단독 TTS 요청 제한은 기존 30초를 유지합니다.

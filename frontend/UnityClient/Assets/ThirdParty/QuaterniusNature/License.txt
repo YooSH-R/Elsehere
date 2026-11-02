@@ -1,0 +1,7 @@
+Stylized Nature MegaKit by Quaternius
+https://poly.pizza/bundle/Stylized-Nature-MegaKit-T34GZFA0fm
+License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+
+BushWithFlowers, FlowerGroup0, FlowerGroup1, Clover
+
+The original GLB files were converted to OBJ + MTL + PNG for Unity. Shared textures are stored once.

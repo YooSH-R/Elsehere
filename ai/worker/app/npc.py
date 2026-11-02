@@ -2,6 +2,7 @@
 
 조각 나누기는 웹 프로토타입 화면(prototype/mvp_web/static/index.html)과 같다: 문장이 끝날 때마다 한 조각, 첫 조각만 12자 이상이면 쉼표에서도 끊어
 첫 소리를 당긴다. 한 조각 합성이 상한(기본 2.5초)을 넘기면 그 조각은 tts: false (화면이 자막만 또는 브라우저 음성).
+늦은 조각도 합성이 끝나면 done의 턴 전체 음성(다시 듣기용)에는 넣는다.
 """
 
 import asyncio
@@ -69,6 +70,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
     t0 = time.perf_counter()
     st = {"full": "", "first": None, "error": None, "seq": 0, "words": None}
     wavs: dict[int, bytes | None] = {}  # 조각 번호 → 합성한 음성 (실패·늦음은 None). 턴 전체 음성을 만든다
+    late: dict[int, asyncio.Task] = {}  # 상한을 넘겨 자막만 보낸 조각의 합성 (턴 전체 음성에는 끝나는 대로 넣는다)
     use_tts = req.tts and tts is not None
 
     def schedule(text: str):
@@ -81,7 +83,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
 
     async def run_llm():
         sp = Splitter()
-        msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship)
+        msgs = P.npc_messages(req.npc, req.memory, req.history, req.text, req.instruction, req.level, req.relationship, req.learner)
         gen = llm.stream("npc", "npc", msgs, usage, max_tokens=P.LEVEL_MAX_TOKENS[req.level])
         stopped, finished = False, False
 
@@ -152,16 +154,23 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                     wav, dur, _ = await asyncio.wait_for(asyncio.shield(task), max(left, 0.01))
                     ev.update(audio_id=store.put(wav), duration_s=round(dur, 2), tts=True)
                     wavs[seq] = wav
-                except TimeoutError:  # 늦은 조각은 자막만 (tts: false)
+                except TimeoutError:  # 늦은 조각은 바로 재생 없이 자막만 (tts: false)
                     log.info(json.dumps({"event": "tts_chunk_late", "seq": seq}))
+                    late[seq] = task
                 except Exception:  # 합성 실패도 그 조각만 자막으로 (대답 스트림은 이어 감)
                     log.warning(json.dumps({"event": "tts_chunk_failed", "seq": seq}), exc_info=True)
             prev_done = time.perf_counter()
             await out.put(("audio", ev))
         await out.put(("_end", None))
 
-    def whole_turn_audio() -> dict:
-        """다시 듣기용 턴 전체 음성: 모든 조각을 합성했을 때만 (하나라도 빠지면 Spring이 /v1/tts로 다시 만든다)."""
+    async def whole_turn_audio() -> dict:
+        """다시 듣기용 턴 전체 음성: 모든 조각을 합성했을 때만 (하나라도 빠지면 Spring이 /v1/tts로 다시 만든다).
+        상한을 넘긴 조각은 합성이 끝나기를 기다려 넣는다. Spring은 done까지 기다려 이 음성만 쓰므로 버리면 음성만 잃는다."""
+        for seq, task in late.items():
+            try:
+                wavs[seq] = (await task)[0]
+            except Exception:  # 합성 실패는 그 조각만 빠진다
+                log.warning(json.dumps({"event": "tts_chunk_failed", "seq": seq}), exc_info=True)
         parts = [wavs.get(i) for i in range(st["seq"])]
         if not parts or None in parts:
             return {"audio_full_id": None, "audio_full_s": None}
@@ -190,7 +199,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                     "text": st["full"].strip().strip('"'),
                     "first_token_s": st["first"],
                     "total_s": round(time.perf_counter() - t0, 2),
-                    **whole_turn_audio(),
+                    **(await whole_turn_audio()),
                     "usage": usage.items,
                 },
             )

@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,8 @@ public class AiWorkerClient {
   // 워커의 피드백 전체 상한(FEEDBACK_TIMEOUT_S, 기본 60초)보다 조금 길게 기다린다.
   private static final Duration FEEDBACK_TIMEOUT = Duration.ofSeconds(75);
   private static final Duration MEMORY_TIMEOUT = Duration.ofSeconds(45);
+  // 관계 갱신은 모델을 부르지 않는 계산이다.
+  private static final Duration RELATIONSHIP_TIMEOUT = Duration.ofSeconds(10);
   // 뜻 보기·힌트는 짧은 모델 호출 한 번이다. 재시도·대체 모델까지 기다리도록 NPC 대답과 같게 둔다.
   private static final Duration HELP_TIMEOUT = Duration.ofSeconds(30);
 
@@ -84,25 +87,13 @@ public class AiWorkerClient {
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), GuardResult.class);
   }
 
-  /** 추천 단어를 함께 만드는 NPC 대답. */
-  public NpcReply reply(
-      WorkerTrace trace,
-      WorkerNpc npc,
-      WorkerMemory memory,
-      List<WorkerLine> history,
-      String text,
-      String instruction,
-      int level) {
-    return reply(trace, npc, memory, history, text, instruction, level, true);
-  }
-
   /**
-   * NPC 대답. 스트림을 끝까지 받아 대답 전문·턴 전체 음성 ID·추천 단어를 모은다. 생성이 실패해도 그때까지 쓴 사용량을 담아 돌려주며, 실패 여부는 {@link
-   * NpcReply#succeeded()}로 확인한다.
+   * NPC 대답. 스트림을 끝까지 받아 대답 전문·턴 전체 음성 ID를 모은다. 추천 단어는 {@link #suggest}로 따로 받는다. 생성이 실패해도 그때까지 쓴
+   * 사용량을 담아 돌려주며, 실패 여부는 {@link NpcReply#succeeded()}로 확인한다.
    *
    * @param text 학습자 원문(한국어가 섞여도 그대로)
    * @param instruction 이번 대답에서 할 일. 없으면 빈 문자열
-   * @param suggestWords 추천 단어를 만들지. 대화를 끝내는 대답에서는 만들지 않는다
+   * @param learner 대답 상대인 학습자. 캐릭터에 맞는 호칭을 쓰게 한다
    */
   public NpcReply reply(
       WorkerTrace trace,
@@ -112,9 +103,20 @@ public class AiWorkerClient {
       String text,
       String instruction,
       int level,
-      boolean suggestWords) {
+      WorkerLearner learner) {
     ReplyBody body =
-        new ReplyBody(npc, memory, history, text, instruction, true, level, suggestWords, "");
+        new ReplyBody(
+            npc,
+            memory,
+            memory == null ? null : memory.relationship(),
+            history,
+            text,
+            instruction,
+            true,
+            level,
+            false,
+            "",
+            learner);
     HttpResponse<Stream<String>> response =
         send(
             jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
@@ -176,6 +178,21 @@ public class AiWorkerClient {
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), HintResult.class);
   }
 
+  /**
+   * 학습자가 다음 대답에 쓸 만한 단어(CONV-12 추천 단어).
+   *
+   * @param history 대답할 NPC 줄까지의 앞선 대화
+   * @param goal 지금 학습자가 할 일. 없으면 빈 문자열
+   */
+  public SuggestResult suggest(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String goal, int level) {
+    // 장소(scene)를 비우면 워커가 NPC의 장소를 쓴다.
+    HttpRequest request =
+        jsonRequest(
+            "/v1/suggest", trace, HELP_TIMEOUT, new SuggestBody(npc, "", goal, history, level));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), SuggestResult.class);
+  }
+
   /** 한 문장 음성 합성. WAV를 돌려준다. */
   public byte[] synthesize(WorkerTrace trace, String text, String voice, double speed) {
     HttpRequest request =
@@ -216,6 +233,23 @@ public class AiWorkerClient {
     } catch (JacksonException exception) {
       throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID, exception);
     }
+  }
+
+  /**
+   * 대화 뒤 관계 갱신. 저장된 관계와 대화 전체로 알아봄·호감 변화량을 계산한다. 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를 그대로 둔다.
+   *
+   * @param relationship 저장된 관계와 마지막 대화 뒤 지난 게임 날 수
+   * @param history 대화 전체(최대 200줄). 학습자 줄의 무례·사건을 담는다
+   */
+  public RelationshipChange relationship(
+      WorkerTrace trace, WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {
+    HttpRequest request =
+        jsonRequest(
+            "/v1/npc/relationship",
+            trace,
+            RELATIONSHIP_TIMEOUT,
+            new RelationshipBody(npc, relationship, history));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), RelationshipChange.class);
   }
 
   /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
@@ -286,7 +320,6 @@ public class AiWorkerClient {
 
     private DoneEvent done;
     private ErrorEvent error;
-    private List<String> words;
 
     void accept(String event, String data) {
       if (event == null || data.isEmpty()) {
@@ -295,7 +328,6 @@ public class AiWorkerClient {
       switch (event) {
         case "done" -> done = parse(data, DoneEvent.class);
         case "error" -> error = parse(data, ErrorEvent.class);
-        case "words" -> words = parse(data, WordsEvent.class).words();
         default -> {
           // delta·audio
         }
@@ -304,15 +336,15 @@ public class AiWorkerClient {
 
     NpcReply result() {
       if (done != null) {
-        return new NpcReply(done.text(), done.audioFullId(), words, null, usageOf(done.usage()));
+        return new NpcReply(done.text(), done.audioFullId(), null, usageOf(done.usage()));
       }
       if (error != null) {
         log.warn("AI 워커 NPC 대답 실패 code={}", error.code());
-        return new NpcReply(null, null, null, error.code(), usageOf(error.usage()));
+        return new NpcReply(null, null, error.code(), usageOf(error.usage()));
       }
       // done·error 없이 끊긴 스트림
       log.warn("AI 워커 NPC 대답 스트림이 끝나지 않고 끊겼습니다");
-      return new NpcReply(null, null, null, "provider_unavailable", List.of());
+      return new NpcReply(null, null, "provider_unavailable", List.of());
     }
 
     private <T> T parse(String data, Class<T> type) {
@@ -352,9 +384,17 @@ public class AiWorkerClient {
     return builder;
   }
 
+  // 호출 수·시간 통계는 ai_requests와 지표로 보고, 개발 서버(DEBUG)에서 문제를 따라갈 때만 호출마다 남긴다. 본문은 남기지 않는다.
   private <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> handler) {
+    long startedAt = System.nanoTime();
     try {
-      return httpClient.send(request, handler);
+      HttpResponse<T> response = httpClient.send(request, handler);
+      log.debug(
+          "ai_worker_call path={} status={} duration_ms={}",
+          request.uri().getPath(),
+          response.statusCode(),
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+      return response;
     } catch (HttpTimeoutException exception) {
       log.warn("AI 워커 응답 시간 초과 path={}", request.uri().getPath());
       throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE, exception);
@@ -405,29 +445,35 @@ public class AiWorkerClient {
   record ReplyBody(
       WorkerNpc npc,
       WorkerMemory memory,
+      WorkerRelationship relationship,
       List<WorkerLine> history,
       String text,
       String instruction,
       boolean tts,
       int level,
       boolean suggestWords,
-      String goal) {}
+      String goal,
+      WorkerLearner learner) {}
 
   record MeaningBody(WorkerNpc npc, String text, int level) {}
 
   record HintBody(WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
 
+  record SuggestBody(
+      WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
+
   record TtsBody(String text, String voice, double speed) {}
 
   record MemoryBody(WorkerNpc npc, String outcome, List<WorkerLine> history, Object memoryCard) {}
+
+  record RelationshipBody(
+      WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {}
 
   record MemoryEnvelope(List<WorkerUsage> usage) {}
 
   record DoneEvent(String text, String audioFullId, List<WorkerUsage> usage) {}
 
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
-
-  record WordsEvent(List<String> words) {}
 
   record FeedbackEnvelope(FeedbackBody feedback, List<WorkerUsage> usage) {}
 

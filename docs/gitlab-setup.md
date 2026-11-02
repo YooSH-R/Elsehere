@@ -26,7 +26,7 @@ Maintainer도 `main`·`dev`에 직접 Push하지 않습니다. 브랜치 생성�
 | Pipelines must succeed | 활성 |
 | Skipped pipelines are considered successful | 비활성 |
 
-최신 파이프라인이 실패하거나 실행 중이면 병합하지 않으며 건너뛴 파이프라인을 성공 근거로 사용하지 않습니다. 일반 문서 MR도 항상 실행되는 `ci:yaml` 검사를 통과해야 합니다. 작업별 실행 조건·산출물·검사 실패 확인은 [검사 파이프라인 문서](ci-runner.md)를 따릅니다.
+최신 파이프라인이 실패하거나 실행 중이면 병합하지 않으며 건너뛴 파이프라인을 성공 근거로 사용하지 않습니다. 일반 문서 MR도 첫 단계의 `ci:merge-conflicts`와 항상 실행되는 `ci:yaml` 검사를 통과해야 합니다. 작업별 실행 조건·산출물·검사 실패 확인은 [검사 파이프라인 문서](ci-runner.md)를 따릅니다.
 
 Unity 관련 MR은 `unity:format`과 `unity:editor-tests`의 EditMode·PlayMode까지 필수입니다. 실행 작업의 실패를 허용하거나 수동 선택으로 바꾸지 않습니다. Runner가 작업을 받지 못해 대기 중인 경우에도 병합을 허용하지 않으며 [Windows Runner 연결 조건](unity/windows-runner.md)을 먼저 해결합니다. MR의 성공 결과로 dev 병합 후 통합 검사·빌드·배포를 생략하지 않습니다.
 

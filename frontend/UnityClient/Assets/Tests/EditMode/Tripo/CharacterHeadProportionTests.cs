@@ -38,7 +38,7 @@ namespace A305.Tripo.Tests
                 var beforeBones = rig.GetComponentsInChildren<Transform>()
                     .Select(t => t.localToWorldMatrix)
                     .ToArray();
-                var beforePoints = TripoMasterHandBindingTests.WorldVertices(skin);
+                var beforePoints = SkinTestGeometry.WorldVertices(skin);
                 float expected = Ratio(reference);
                 Assert.That(Mathf.Abs(Ratio(candidate) - expected), Is.GreaterThan(.03f));
                 CharacterHeadProportions.Match(candidate, reference);
@@ -47,7 +47,7 @@ namespace A305.Tripo.Tests
                     Is.EqualTo(expected).Within(.001f),
                     "Use Little Mung's head/body proportion, not a square face or total-size resize."
                 );
-                var afterPoints = TripoMasterHandBindingTests.WorldVertices(skin);
+                var afterPoints = SkinTestGeometry.WorldVertices(skin);
                 for (int i = 0; i < weights.Length; i++)
                     if (HeadWeight(skin, head, weights[i]) == 0)
                         Assert.That(
@@ -91,7 +91,7 @@ namespace A305.Tripo.Tests
                 .GetComponentsInChildren<SkinnedMeshRenderer>()
                 .SelectMany(s =>
                 {
-                    var vertices = TripoMasterHandBindingTests.WorldVertices(s);
+                    var vertices = SkinTestGeometry.WorldVertices(s);
                     return vertices.Select(
                         (v, i) =>
                             (point: v, head: HeadWeight(s, head, s.sharedMesh.boneWeights[i]) > .8f)

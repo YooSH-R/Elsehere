@@ -5,7 +5,8 @@ using UnityEngine;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 서버·AI 연동 전에 쓰는 확인용 대화 대본. 튜토리얼 행인은 정해진 길 안내 3턴을, 나머지 NPC는 키워드 응답을 쓴다.
+    /// 서버·AI 연동 전에 쓰는 확인용 대화 대본. 튜토리얼 대본(키 TUTORIAL_PASSERBY)은 튜토리얼 동안 마을 행인 Ben이 말하는 정해진
+    /// 길 안내 3턴이고, 나머지 NPC는 키워드 응답을 쓴다.
     /// 목록에 없는 NPC는 <see cref="fallback"/> 대본으로 대화한다.
     /// 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 한다.
     /// </summary>
@@ -21,7 +22,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "TUTORIAL_PASSERBY",
-                npcName = "Alex",
+                npcName = "Ben",
                 roleLabel = "이웃",
                 opening = new LineEntry(
                     "Excuse me! Could you tell me how to get to the café?",
@@ -56,7 +57,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "CAFE_STAFF",
-                npcName = "Emma",
+                npcName = "Mia",
                 roleLabel = "카페 직원",
                 opening = new LineEntry(
                     "Hi there! Welcome to our café. What can I get for you?",
@@ -109,7 +110,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "TOWN_PASSERBY",
-                npcName = "Sam",
+                npcName = "Ben",
                 roleLabel = "행인",
                 opening = new LineEntry(
                     "Hey! Nice to see you. How's your day going?",
@@ -145,7 +146,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "HOTEL_STAFF",
-                npcName = "Emma",
+                npcName = "Jake",
                 roleLabel = "호텔 직원",
                 opening = new LineEntry(
                     "Good afternoon! Welcome to Maple House. Are you checking in?",
@@ -185,10 +186,10 @@ namespace A305.Dialogue
             {
                 npcCode = "SHOP_STAFF",
                 npcName = "Alex",
-                roleLabel = "편의점 직원",
+                roleLabel = "드럭스토어 직원",
                 opening = new LineEntry(
-                    "Hi! Welcome to the convenience store. Can I help you find something?",
-                    "안녕하세요! 편의점에 오신 걸 환영해요. 찾으시는 물건이 있나요?"
+                    "Hi! Welcome to the drugstore. Can I help you find something?",
+                    "안녕하세요! 드럭스토어에 오신 걸 환영해요. 찾으시는 물건이 있나요?"
                 ),
                 keywordReplies = new List<KeywordReplyEntry>
                 {
@@ -219,6 +220,38 @@ namespace A305.Dialogue
                     "네. 더 필요한 건 없으세요?"
                 ),
                 exampleSentence = "Do you sell umbrellas?",
+            },
+            new Entry
+            {
+                npcCode = "TAXI_DRIVER",
+                npcName = "Joe",
+                roleLabel = "택시 기사",
+                opening = new LineEntry(
+                    "Hi there! Where are you headed?",
+                    "안녕하세요! 어디로 가세요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "hotel" },
+                        new LineEntry(
+                            "The hotel? It's just up the street. Hop in!",
+                            "호텔이요? 이 길 바로 위쪽이에요. 타세요!"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry(
+                            "You're welcome! Have a nice day.",
+                            "천만에요! 좋은 하루 보내세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Sure. Please fasten your seat belt.",
+                    "알겠어요. 안전벨트를 매 주세요."
+                ),
+                exampleSentence = "Can you take me to the hotel, please?",
             },
         };
 
@@ -256,7 +289,7 @@ namespace A305.Dialogue
             [Tooltip("대화 화면에 보이는 NPC 이름")]
             public string npcName;
 
-            [Tooltip("누가 말을 거는지 알릴 때 쓰는 역할. 예: 편의점 직원")]
+            [Tooltip("누가 말을 거는지 알릴 때 쓰는 역할. 예: 드럭스토어 직원")]
             public string roleLabel;
 
             public LineEntry opening = new LineEntry("", "");

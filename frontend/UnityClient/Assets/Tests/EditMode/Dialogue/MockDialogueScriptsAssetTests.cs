@@ -1,5 +1,9 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEngine;
 
 namespace A305.Dialogue.Tests
 {
@@ -7,34 +11,117 @@ namespace A305.Dialogue.Tests
     public class MockDialogueScriptsAssetTests
     {
         private const string ScriptsPath = "Assets/Data/Dialogue/MockDialogueScripts.asset";
+        private const string SeedRelativePath = "backend/src/main/resources/db/seed/world.sql";
 
-        // 이름은 서버 시드(world.sql npcs)와 같아야 서버 대화가 시작돼도 이름이 바뀌지 않는다.
-        [TestCase("SHOP_STAFF", "Alex", "편의점 직원")]
-        [TestCase("HOTEL_STAFF", "Emma", "호텔 직원")]
-        public void StaffInTheJourney_AreIntroducedByNameAndRole(
-            string npcCode,
-            string name,
-            string roleLabel
-        )
+        // 이름과 역할은 서버 시드(world.sql npcs)와 같아야 서버 대화가 시작돼도 바뀌지 않는다.
+        [Test]
+        public void NpcsInTheSeed_AreIntroducedByTheirSeedNameAndRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+            List<SeedNpc> seedNpcs = ReadSeedNpcs();
 
-            scripts.TryGetScript(npcCode, out DialogueScript script);
+            var mismatches = new List<string>();
+            foreach (SeedNpc npc in seedNpcs)
+            {
+                if (!scripts.TryGetScript(npc.Code, out DialogueScript script))
+                {
+                    mismatches.Add($"{npc.Code}: 대본 없음");
+                }
+                else if (script.NpcName != npc.Name || script.RoleLabel != npc.RoleLabel)
+                {
+                    mismatches.Add(
+                        $"{npc.Code}: 대본 {script.NpcName}/{script.RoleLabel}, 시드 {npc.Name}/{npc.RoleLabel}"
+                    );
+                }
+            }
 
-            Assert.That(script.NpcName, Is.EqualTo(name));
-            Assert.That(script.RoleLabel, Is.EqualTo(roleLabel));
+            Assert.That(seedNpcs, Is.Not.Empty);
+            Assert.That(mismatches, Is.Empty);
         }
 
-        [TestCase("TUTORIAL_PASSERBY", "이웃")]
-        [TestCase("TOWN_PASSERBY", "행인")]
-        [TestCase("CAFE_STAFF", "카페 직원")]
-        public void EarlierNpcs_GainTheirRole(string npcCode, string roleLabel)
+        [Test]
+        public void ShopStaff_WelcomesVisitorsToTheDrugstore()
+        {
+            // 미국에서 비 올 때 우산을 사러 들르는 드럭스토어로 상점을 정했다. 간판·지도와 같은 이름으로 맞이한다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            scripts.TryGetScript("SHOP_STAFF", out DialogueScript script);
+
+            Assert.That(script.OpeningLine.English, Does.Contain("drugstore"));
+            Assert.That(script.OpeningLine.Korean, Does.Contain("드럭스토어"));
+        }
+
+        [Test]
+        public void TaxiDriver_AsksWhereToGo()
+        {
+            // 마을 본길에서 택시를 세우면 기사에게 가고 싶은 곳을 영어로 말해 본다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            bool found = scripts.TryGetScript("TAXI_DRIVER", out DialogueScript script);
+
+            Assert.That(found, Is.True);
+            Assert.That(script.RoleLabel, Is.EqualTo("택시 기사"));
+            Assert.That(script.OpeningLine.English, Does.Contain("Where"));
+        }
+
+        [Test]
+        public void TutorialScript_IsSpokenByBenTheTownPasserby()
+        {
+            // 집 앞에서 길을 묻는 튜토리얼 대본은 마을 행인 Ben이 말한다(같은 사람).
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript tutorial);
+            scripts.TryGetScript("TOWN_PASSERBY", out DialogueScript town);
+
+            Assert.That(tutorial.NpcName, Is.EqualTo("Ben"));
+            Assert.That(tutorial.NpcName, Is.EqualTo(town.NpcName));
+            Assert.That(tutorial.GuidedTurns, Has.Count.EqualTo(3), "대본 흐름은 그대로입니다.");
+        }
+
+        [Test]
+        public void TutorialPasserby_GainsItsRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
 
-            scripts.TryGetScript(npcCode, out DialogueScript script);
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
 
-            Assert.That(script.RoleLabel, Is.EqualTo(roleLabel));
+            Assert.That(script.RoleLabel, Is.EqualTo("이웃"));
+        }
+
+        private static List<SeedNpc> ReadSeedNpcs()
+        {
+            string seedPath = Path.Combine(Application.dataPath, "../../..", SeedRelativePath);
+            string seed = File.ReadAllText(seedPath);
+            string npcRows = Regex.Match(seed, @"(?s)INSERT INTO npcs .*?\) AS seed").Value;
+            var npcs = new List<SeedNpc>();
+            // 행 앞부분: (목록 순서, 장소 코드, NPC 코드, 이름, NPC 종류, 역할 이름, ... 목록 순서는 없을 수도 있다.
+            foreach (
+                Match row in Regex.Matches(
+                    npcRows,
+                    @"\((?:\d+, )?'[A-Z_]+', '([A-Z_]+)', '([^']+)', '[A-Z_]+', '([^']+)',"
+                )
+            )
+            {
+                npcs.Add(
+                    new SeedNpc(row.Groups[1].Value, row.Groups[2].Value, row.Groups[3].Value)
+                );
+            }
+
+            return npcs;
+        }
+
+        private readonly struct SeedNpc
+        {
+            public SeedNpc(string code, string name, string roleLabel)
+            {
+                Code = code;
+                Name = name;
+                RoleLabel = roleLabel;
+            }
+
+            public string Code { get; }
+            public string Name { get; }
+            public string RoleLabel { get; }
         }
     }
 }

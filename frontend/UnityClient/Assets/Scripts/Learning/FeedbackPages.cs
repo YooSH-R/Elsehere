@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using A305.Dialogue;
 
 namespace A305.Learning
 {
@@ -67,6 +68,8 @@ namespace A305.Learning
                     }
                     break;
                 case FeedbackSection.Conversation:
+                    AddSituationPage(pages, feedback.SituationExpressions);
+
                     foreach (UtteranceReview review in feedback.Reviews)
                     {
                         if (review.Idiom == null)
@@ -102,6 +105,50 @@ namespace A305.Learning
                 pages.Add(new FeedbackPage("이번 대화", message));
             }
             return pages;
+        }
+
+        /// <summary>
+        /// 사용자 발화와 별개로 이 장면에서 자주 쓰는 표현을 한 장에 모아 먼저 보여 준다. 한 장씩 넘기지 않아도 한눈에 보인다.
+        /// 표현이 하나면 뜻을 함께 넘겨 [표현 저장]이 그 표현을 저장하고, 여럿이면 요약 탭의 표현 줄에서 하나씩 담는다.
+        /// </summary>
+        private static void AddSituationPage(
+            List<FeedbackPage> pages,
+            IReadOnlyList<SituationExpressionData> situations
+        )
+        {
+            var shown = new List<SituationExpressionData>();
+            foreach (SituationExpressionData situation in situations)
+            {
+                if (!string.IsNullOrWhiteSpace(situation.Expression))
+                    shown.Add(situation);
+            }
+            if (shown.Count == 0)
+                return;
+
+            // 대화 노트는 페이지 제목을 따로 보여 주지 않아 다른 회화 카드처럼 본문 첫 줄에 이름을 둔다.
+            var body = new StringBuilder("<b>이 상황에서 자주 써요</b>");
+            foreach (SituationExpressionData situation in shown)
+            {
+                body.Append("\n\n<b>").Append(situation.Expression).Append("</b>  ");
+                body.Append(situation.MeaningKo);
+                if (!string.IsNullOrEmpty(situation.UsageKo))
+                    body.Append("\n").Append(situation.UsageKo);
+                if (!string.IsNullOrEmpty(situation.ExampleEn))
+                    body.Append("\n<color=#8F887F>예) ")
+                        .Append(situation.ExampleEn)
+                        .Append("  ")
+                        .Append(situation.ExampleKo)
+                        .Append("</color>");
+            }
+            ReferenceExpression only =
+                shown.Count == 1
+                    ? new ReferenceExpression(
+                        shown[0].Expression,
+                        shown[0].MeaningKo,
+                        shown[0].UsageKo
+                    )
+                    : null;
+            pages.Add(new FeedbackPage("이 상황에서 자주 써요", body.ToString(), only));
         }
 
         private static void AddExpression(

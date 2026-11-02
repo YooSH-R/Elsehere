@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace A305.Characters
@@ -54,6 +55,22 @@ namespace A305.Characters
                     return false;
             }
             return true;
+        }
+
+        public static string[] MissingChannels(Transform root, bool includeInactive = false)
+        {
+            var missing = new List<string>();
+            var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive);
+            foreach (string channel in Channels)
+            {
+                bool found = false;
+                foreach (var skin in skins)
+                    found |=
+                        skin.sharedMesh != null && skin.sharedMesh.GetBlendShapeIndex(channel) >= 0;
+                if (!found)
+                    missing.Add(channel);
+            }
+            return missing.ToArray();
         }
 
         public void SetPose(CharacterFacePose pose, float intensity = 1f) =>

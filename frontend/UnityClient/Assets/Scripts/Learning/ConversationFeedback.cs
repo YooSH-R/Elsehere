@@ -71,6 +71,10 @@ namespace A305.Learning
         /// <summary>다음 대화에서 활용할 표현. 대화에서 마지막으로 찾은 참고 표현이며, 없으면 null.</summary>
         public ReferenceExpression NextExpression { get; private set; }
 
+        /// <summary>이 장면에서 자주 쓰는 관용·추천 표현. 서버 피드백에만 있고, 없으면 비어 있다.</summary>
+        public IReadOnlyList<SituationExpressionData> SituationExpressions { get; private set; } =
+            new List<SituationExpressionData>();
+
         /// <summary>
         /// 서버가 만든 피드백(CONV-08 짧은 피드백, FB-03 상세 평가)으로 만든다. 받지 못했거나 만들지 못했으면 이유만 보여 준다.
         /// </summary>
@@ -110,6 +114,8 @@ namespace A305.Learning
             }
 
             feedback.Summary = summary.Summary;
+            feedback.SituationExpressions =
+                summary.SituationExpressions ?? new List<SituationExpressionData>();
             foreach (string good in summary.Reviews?.Good ?? new List<string>())
             {
                 feedback.notes.Add("잘했어요 · " + good);

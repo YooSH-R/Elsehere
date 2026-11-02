@@ -11,16 +11,22 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `PlayerMotor` | 이동 입력과 카메라 방향으로 이번 프레임의 속도를 계산합니다. 달리기, 점프, 중력, 이동 잠금을 포함하며 Unity 객체 없이 테스트합니다. |
 | `CameraOrbit` | 3인칭·1인칭·대화 시점 상태와 회전·줌 범위를 관리하고 카메라 위치를 계산합니다. |
 | `DialogueFraming` | 화면 비율에 맞춰 NPC 얼굴을 위쪽·오른쪽에 배치하고 수평선은 유지합니다. 대화창과 왼쪽 도움말이 얼굴을 가리지 않도록 합니다. |
-| `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. |
-| `PlayerCameraRig` | 카메라가 플레이어를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. |
+| `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. 캡슐 아래 둥근 면이 가구 모서리에 걸려 발이 떠 있고 받친 점이 턱(`stepOffset`)보다 높으면 땅이 아닌 것으로 보고 모서리 바깥으로 미끄러뜨려, 가구 옆 공중에 떠 있지 않게 합니다. 계단 모서리는 턱 높이 안이라 그대로 오릅니다. 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 `HeadClearance`가 머리 구로 따로 막습니다. |
+| `HeadClearance` | 몸통 캡슐보다 큰 머리를 벽·키 큰 가구에서 막습니다. 머리 구를 이동 방향으로 밀어 보고 막히면 닿기 직전까지만 가고 면을 따라 미끄러집니다. 구의 아래 끝이 머리 아래 끝이라 낮은 가구는 머리 아래로 지나갑니다. 반지름·높이는 캐릭터 정의(`PlayerCharacterDefinition`)에서 읽습니다. |
+| `PlayerCameraRig` | 카메라가 플레이어 위치를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. 시점은 마우스·터치로만 돌립니다. |
 | `CameraCollisionDistance` | 가로등·사람 같은 가는 장애물에 줌이 흔들리지 않도록 구분하고, 벽에서 벗어나면 카메라 거리를 서서히 복구합니다. |
-| `MoveReferenceYaw` | 걷는 중 카메라가 캐릭터 뒤로 돌아가도 누른 방향대로 곧게 움직이도록 이동 시작 방향을 유지합니다. 사용자가 직접 시점을 돌리면 기준을 갱신합니다. |
+| `MoveReferenceYaw` | 순간이동·대화 종료로 카메라가 플레이어 뒤로 다시 맞춰져도 누른 방향대로 곧게 움직이도록 이동 시작 방향을 유지합니다. 사용자가 직접 시점을 돌리면 기준을 갱신합니다. |
 | `TouchDragInput` | 손가락별 드래그 소유권, 조이스틱 방향과 한 번만 적용할 카메라 이동량을 관리합니다. |
 | `PlayerTouchControls`, `TouchDragArea` | 왼쪽 조이스틱과 오른쪽 드래그 영역의 터치 입력을 전달합니다. |
 | `TouchControlsAvailability` | 조이스틱과 드래그 영역을 보일 기기인지 정합니다. Unity 객체 없이 테스트합니다. |
-| `BrowserPointer`, `Plugins/WebGL/BrowserPointer.jslib` | Web 빌드에서 브라우저의 주 입력 장치가 손가락인지(CSS `pointer: coarse`) 읽습니다. |
+| `BrowserPointer`, `Plugins/WebGL/BrowserPointer.jslib` | Web 빌드에서 브라우저의 주 입력 장치가 손가락인지(CSS `pointer: coarse`)와 화면 배율(`devicePixelRatio`)을 읽습니다. |
+| `LookSensitivity` | 사용자가 마이페이지에서 고른 시점 회전 감도 배율(0.5~2배). `PlayerCameraRig`가 마우스·터치 회전에 곱하며, 이 기기에 `PlayerPrefs`로 저장합니다. |
+| `PointerDeltaScale` | 브라우저가 화면 배율을 곱해 넘기는 마우스 이동량을 배율로 나눠, 화면 배율과 관계없이 같은 회전 감도를 냅니다. 에디터에서는 배율을 1로 봅니다. |
 | `PlayerTouchSettings` | 조이스틱 중앙 무시 영역과 터치 회전 감도를 설정합니다. |
 | `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. |
+| `PlayerSeatPose` | 의자·벤치·소파에 앉은 동안 이동을 잠그고 Humanoid 골격을 앉는 면 높이에 맞춰 구부립니다. 다리가 짧은 리틀멍은 자리 앞쪽에 앉혀 허벅지를 쿠션 위에 눕히고 무릎 아래를 앞 모서리 밖으로 내려뜨립니다. 일어서면 앉기 전에 서 있던 곳으로 돌아갑니다. 서 있던 곳은 캡슐이 들어가 있던 빈 자리라 탁자·팔걸이·벽에 끼지 않습니다. |
+| `SeatedLegs` | Humanoid 다리 뼈를 찾아 앉는 면 높이에 맞춰 구부리는 계산입니다. `PlayerSeatPose`와 쉬는 NPC([Npc 모듈](../Npc/README.md#생활)의 `NpcRoutine`)가 함께 씁니다. |
+| `SeatView` | 앉은 캐릭터를 플레이어가 다가온 쪽에서 보도록 카메라 수평 방향을 정합니다. 자리 바로 위에서 앉아 다가온 방향을 알 수 없으면 자리 앞쪽에서 봅니다. Unity 객체 없이 테스트합니다. |
 | `DialogueViewProbe` | Sandbox 씬에서 T 키로 대화 시점과 이동 잠금을 확인하는 확인용 컴포넌트입니다. 배포용 프리팹에는 붙이지 않습니다. |
 
 ## 의존성
@@ -64,7 +70,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 
 ## 계정 캐릭터 적용
 
-공용 Player는 `PlayerCharacterAppearance`로 `PlayerCharacterCatalog`에서 선택 ID의 외형·캡슐 크기를 적용합니다. 이동 설정은 공용 Player의 `PlayerMover`가 하나만 가지므로 어떤 외형을 골라도 같은 속도로 움직입니다. `PlayerCharacterSelection`은 서버가 확인한 ID를 씬 사이에 전달하며, 계정의 영구 저장은 Onboarding API가 맡습니다. F는 보정 리틀 멍, M은 같은 마스터 골격에 연결한 기본 남자 리틀 멍입니다. `PlayerCharacterVisibility`는 선택된 Visual을 1인칭·대화 시점에서 숨깁니다.
+공용 Player는 `PlayerCharacterAppearance`로 `PlayerCharacterCatalog`에서 선택 ID의 외형·캡슐 크기를 적용합니다. 이동 설정은 공용 Player의 `PlayerMover`가 하나만 가지므로 어떤 외형을 골라도 같은 속도로 움직입니다. `PlayerCharacterSelection`은 서버가 확인한 ID를 씬 사이에 전달하며, 계정의 영구 저장은 Onboarding API가 맡습니다. F는 보정 리틀 멍, M은 같은 마스터 골격에 연결한 기본 남자 리틀 멍입니다. `PlayerCharacterVisibility`는 선택된 Visual을 1인칭·대화 시점에서 숨깁니다. 3인칭에서도 벽에 밀린 카메라가 캐릭터 기준점에서 1.2m 안으로 들어오면 숨기고, 1.5m 밖으로 물러나면 다시 표시합니다(`CloseCameraCharacter`). 두 거리 사이에서는 직전 상태를 유지해 경계에서 깜빡이지 않습니다.
 
 이동 루트, 입력 액션, 카메라 추적 대상과 상호작용 참조를 교체하지 않습니다. 새 모델은 Character Definition의 Visual Prefab에 등록하고, Animator가 있다면 `Speed`, `IsGrounded`, `VerticalSpeed` 파라미터를 갖춰야 합니다. 모델의 접지 보정은 해당 Visual 안에 함께 구성합니다. Character Definition의 카메라 눈높이·조준점이 0보다 크면 해당 캐릭터에 적용하고, 0이면 씬 카메라 데이터의 높이를 사용합니다. 거리·회전·줌 설정은 씬 데이터를 유지합니다. 등록 경로와 확인 순서는 [리틀 멍 플레이어](../../../../../docs/unity/little-mung-player.md)를 따릅니다.
 ## 사용 방법
@@ -95,7 +101,11 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `PlayerCameraRig.ViewMode` | 현재 시점(`ThirdPerson`, `FirstPerson`, `Dialogue`) |
 | `PlayerMover.Teleport(Vector3, Quaternion)` | 플레이어를 바로 옮깁니다. 공간을 옮긴 뒤 출입구 앞에 세울 때 씁니다. |
 | `PlayerCameraRig.SnapBehindTarget()` | 카메라를 플레이어가 보는 방향 뒤로 돌려 바로 그 자리에 놓습니다. `Teleport` 다음에 호출합니다. 카메라는 시작할 때도 플레이어 뒤에서 시작합니다. |
+| `PlayerCameraRig.SnapView(float)` | 카메라를 주어진 수평 방향(도)으로 돌려 바로 그 자리에 놓습니다. 문을 지나 공간을 옮긴 뒤 들어가기 전 카메라 각도를 이어 맞출 때 씁니다. |
+| `PlayerCameraRig.ViewYawDegrees` | 카메라가 바라보는 수평 방향(도). 마우스·터치로 돌린 결과입니다. |
+| `PlayerSeatPose.Sit(Transform, float, float)` | 자리(원점은 바닥, +z는 앉아서 보는 방향)에 앉힙니다. 자리 원점에서 잰 쿠션 윗면 높이와 앞 모서리까지의 거리를 함께 넘깁니다. 이동이 잠겨 있거나 Humanoid 다리 뼈를 찾지 못하면 앉지 않고 `false`를 돌려줍니다. 앉을 자리와 쉬는 시간은 [Mission 모듈](../Mission/README.md#의자벤치소파-앉기)의 `RestSeat`가 정합니다. |
+| `PlayerSeatPose.Stand()` | 앉기 전에 서 있던 곳에 자리 방향으로 세우고 이동 잠금을 풉니다. |
 
 ## 테스트
 
-`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.
+`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.

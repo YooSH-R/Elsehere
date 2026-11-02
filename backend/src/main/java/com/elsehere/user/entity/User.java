@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,6 +37,9 @@ public class User extends BaseEntity {
 
   /** 닉네임 중복을 막는 DB 제약 이름. 사전 검사를 지나친 동시 가입을 이 이름으로 알아본다. */
   public static final String NICKNAME_UNIQUE_CONSTRAINT = "uk_users_nickname";
+
+  // 회원 닉네임 규칙은 '-'를 허용하지 않으므로 탈퇴한 사용자의 닉네임은 회원·게스트 닉네임과 겹치지 않는다.
+  private static final String WITHDRAWN_PREFIX = "withdrawn-";
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,7 +76,7 @@ public class User extends BaseEntity {
   @Column(nullable = false, length = 20)
   private UiTheme uiTheme;
 
-  // 가입은 항상 일반 사용자다. 관리자는 운영자가 DB에서 직접 지정한다(UserRole).
+  // 가입은 항상 일반 사용자다. 관리자는 다른 관리자가 어드민에서 지정한다(UserRole).
   @Enumerated(EnumType.STRING)
   @ColumnDefault("'USER'")
   @Column(nullable = false, length = 10)
@@ -141,5 +145,26 @@ public class User extends BaseEntity {
   /** 재접속할 장소를 바꾼다(WORLD-05). */
   public void moveTo(Scene scene) {
     this.lastScene = scene;
+  }
+
+  /** 관리자로 지정한다. 게스트가 아닌지는 호출하는 쪽에서 확인한다. */
+  public void grantAdmin() {
+    this.role = UserRole.ADMIN;
+  }
+
+  /** 관리자에서 해제해 일반 사용자로 되돌린다. */
+  public void revokeAdmin() {
+    this.role = UserRole.USER;
+  }
+
+  /**
+   * 탈퇴한 사용자의 개인정보를 지운다(USER-05). 이메일을 비우고, 같은 계정과 닉네임으로 다시 가입할 수 있도록 제공자 ID와 닉네임을 탈퇴 표시 값으로 바꾸며,
+   * 관리자 권한도 없앤다. 남아 있는 대화·사용량 기록이 이 행을 가리키므로 행은 지우지 않는다.
+   */
+  public void withdraw() {
+    this.email = null;
+    this.providerUid = WITHDRAWN_PREFIX + UUID.randomUUID();
+    this.nickname = WITHDRAWN_PREFIX + id;
+    this.role = UserRole.USER;
   }
 }

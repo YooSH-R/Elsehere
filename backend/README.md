@@ -42,15 +42,25 @@ com.elsehere
 | --- | --- |
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
-| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01) |
+| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 워커 호출은 `AiFailureRecorder.recordIfFails`로 감싸 오류로 끝나도 FAILED로 남기고, 성공은 응답을 본 쪽이 `AiRequestRecorder.record`로 남긴다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
-| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음) |
-| `world` | scenes, npcs, scene_words, user_word_prefs |
+| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
+| `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
+| `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성) |
+| `memory` | user_npc_relations (NPC 기억 카드와 관계) |
+| `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
 | `admin` | 없음 (운영자 어드민 화면·관리 API. 다른 도메인의 테이블을 고친다. [운영자 어드민](../docs/admin.md)) |
 
+- 대화는 두 패키지로 나눕니다. 서로 import하는 순환이 생기지 않게 하기 위해서입니다.
+  - `conversation`(대화 기록): 다른 도메인이 읽는 아래쪽입니다. `common` 말고 다른 도메인을 import하지 않습니다.
+  - `dialogue`(대화 흐름): 여러 도메인을 엮는 위쪽입니다. 다른 도메인이 `dialogue`를 import하지 않습니다.
+  - 피드백·기억·단어장처럼 대화 기록을 읽어야 하는 코드는 `conversation`만 씁니다.
+  - 사용자의 대화·턴을 읽을 때는 `ConversationLookup`(`conversation.service`)을 씁니다. 다른 사용자의 것은 `NOT_FOUND`입니다.
+  - 턴을 AI 워커에 보낼 앞선 대화 줄로 바꿀 때는 `WorkerLines`(`ai.service`)를 씁니다.
+  - 두 패키지가 순환에 끼면 `PackageDependencyTest`가 실패합니다.
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
 - Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.
@@ -74,7 +84,7 @@ com.elsehere
 
 ## NPC 음성 파일 저장
 
-NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 상세 평가의 모범 음성(FB-04)은 같은 폴더의 `model-speech/`에, AI 개선에 동의한 사용자의 녹음은 `training-recordings/`(`TRAINING_RECORDING_DIR`)에 저장합니다([AI 개선 데이터 활용 기준](../docs/ai-training-data.md)). 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. 저장 권한과 재배포 시 보존 방법은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다. 보관 기간·자동 삭제·용량 상한은 아직 미정입니다.
+NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 `./data/npc-audio`입니다. 상세 평가의 모범 음성(FB-04)은 같은 폴더의 `model-speech/`에, AI 개선에 동의한 사용자의 녹음은 `training-recordings/`(`TRAINING_RECORDING_DIR`)에 저장합니다([AI 개선 데이터 활용 기준](../docs/ai-training-data.md)). 앱 Compose는 `/app/data/npc-audio`에 환경별 영구 볼륨을 연결합니다. NPC 턴 WAV는 최대 30일·환경별 합계 5GB까지 보관하고, 만료·용량 정리로 삭제한 음성은 다시 합성하지 않습니다. 공용 음성과 하위 폴더는 이 정책에서 제외합니다. 정책 원문, 저장 권한, 재배포·백업·복원 기준은 [NPC 음성 저장 운영 문서](../docs/npc-audio-storage.md)를 따릅니다.
 
 ## 스키마 관리
 
@@ -106,6 +116,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 ## 인증과 오류 응답
 
 - 로그인 상태는 서버 세션에 두고 세션 쿠키(HttpOnly, `SameSite=Lax`)로 유지합니다. 로그인 없이 `/api/v1` API를 호출하면 `401 UNAUTHENTICATED`, Google 로그인만 하고 가입 정보를 내지 않았으면 `403 SIGNUP_REQUIRED`입니다.
+- 가입자 세션은 요청이 24시간 없으면 끝나고(`server.servlet.session.timeout`), 쿠키도 24시간 유지해 브라우저를 닫았다 열어도 이어집니다. 게스트는 로그인할 때 세션을 2시간으로 줄입니다(`elsehere.guest.session-timeout`). 세션은 서버 메모리에 있어 백엔드를 다시 시작하면 모두 로그아웃되므로, 운영 배포는 사용자가 적은 시간에 합니다. 서버를 늘리거나 무중단 배포를 하게 되면 세션을 DB 등 외부 저장소로 옮깁니다.
 - 가입(AUTH-03·04)은 Google 로그인이 세션에 남긴 가입 대기 정보로 진행합니다. 받는 약관과 현재 버전은 `ConsentCatalog`에 있으며, 약관 문서를 바꾸면 이 클래스의 버전과 주소를 함께 바꿉니다.
 - POST·PUT·PATCH·DELETE 요청에는 `X-Requested-With` 헤더(값은 자유)를 붙여야 합니다. 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 운영자 어드민 화면(`/admin/**`)과 관리 API(`/api/v1/admin/**`)는 `users.role`이 `ADMIN`인 사용자만 씁니다. 보안 설정이 요청마다 `AdminAccess`로 DB의 역할을 확인하며, 관리자가 아니면 `403 ADMIN_REQUIRED`입니다. 로그인하지 않고 어드민 화면을 열면 Google 로그인으로 보냅니다. 관리자 지정 방법은 [운영자 어드민](../docs/admin.md)을 따릅니다.
@@ -127,11 +138,15 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ### 게스트로 시작하기
 
-[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다.
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다. 시작하기 전 캐릭터 선택 화면은 AUTH-08 `GET /api/v1/auth/guest`로 게스트가 대화할 수 있는 횟수(`conversationLimit`, 아래 `GUEST_CONVERSATION_LIMIT`)를 로그인 없이 읽습니다.
 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |
 | `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
+
+- 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 문장 피드백(`turn_feedback`)과 그 모범 음성 파일, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다.
+- 회원 탈퇴(USER-05, `WithdrawalService`)도 같은 범위의 내용을 바로 지우고, 이메일을 비우며 소셜 계정 ID·닉네임을 `withdrawn-` 값으로 바꿔 사용자 행은 익명으로 남깁니다.
+- 지우는 범위는 `UserContentEraser`가 게스트 정리와 탈퇴에 함께 씁니다. 사용자·대화·턴을 가리키는 칸(`user_id`, `…conversation_id`, `…turn_id`)이 있는 테이블을 새로 만들면 `UserContentEraser`의 지움(`CLEARED_TABLES`)·남김(`RETAINED_TABLES`) 중 한쪽에 넣습니다. 빠뜨리면 `GuestContentCleanupTest`가 실패합니다.
 
 ### 개발용 로그인
 
@@ -166,8 +181,22 @@ IDE의 프로젝트 JDK·Gradle JVM은 Java 21, 파일 인코딩은 UTF-8, 줄�
 
 모든 요청은 응답의 `X-Request-ID`와 로그의 `request_id`로 연결합니다. 이 값은 API 본문의 중복 방지용 `requestId`와 구분합니다. 요청 요약에는 경로 패턴·상태·처리 시간만 남기며, 쿼리·인증값·본문과 원본 예외 메시지는 기록하지 않습니다.
 
+로그인한 요청은 모든 로그 줄에 내부 사용자 ID(`users.id`)가 `user_id`로 붙습니다(`UserLoggingFilter`가 인증 뒤 MDC에 넣고 `RequestLoggingFilter`가 요청 끝에 지움). 로그인 전 요청은 `user_id=none`입니다. 한 사용자의 요청·오류를 이어서 찾을 때 `user_id`로 검색합니다.
+
+로그는 SLF4J(`@Slf4j`)로 남깁니다. 레벨은 우리 코드(`com.elsehere`)만 환경별로 바꾸고 Spring·Hibernate 같은 라이브러리는 INFO로 둡니다.
+
+| 환경 | `com.elsehere` | 설정 방법 |
+| --- | --- | --- |
+| 운영 | INFO | 기본값(`application.properties`의 `logging.level.com.elsehere`) |
+| 개발 서버 | DEBUG | 서버 `deploy.env`의 `BACKEND_LOG_LEVEL=DEBUG`를 Compose가 `LOGGING_LEVEL_COM_ELSEHERE`로 넘김 |
+| 로컬 | 필요할 때 DEBUG | 환경변수나 로컬 `.env`에 `LOGGING_LEVEL_COM_ELSEHERE=DEBUG` |
+
+DEBUG 로그에도 요청 요약과 같은 기준으로 인증값·대화 본문·음성 같은 사용자 데이터는 남기지 않습니다.
+
 Actuator·Micrometer Prometheus를 사용하며, histogram으로 p95를 조회합니다. 기본 관리 주소는 `127.0.0.1:9090`이고 공개 앱 포트와 분리합니다. `MONITORING_PASSWORD`를 설정해야 사용자 `monitoring`으로 관리용 HTTP Basic 인증을 사용할 수 있습니다. 값이 없으면 관리 접근을 거절합니다. 컨테이너 내부 수집에만 `MANAGEMENT_ADDRESS=0.0.0.0`을 사용하고 관리 포트를 호스트에 게시하지 않습니다.
 
 관리 경로는 `/actuator/health`, `/actuator/prometheus`만 노출합니다. Nginx 전달, 보관 정책, Prometheus·Grafana 실행과 검증은 [관측성 운영 문서](../docs/observability.md)를 따릅니다.
+
+대화 시작·종료, 피드백 실패·건너뜀, 게스트 대화 한도, 가입·탈퇴 같은 업무 흐름은 `이벤트명 키=값` 형식으로 로그에 남깁니다. 사건 목록과 키는 [관측성 운영 문서의 백엔드 업무 흐름 로그](../docs/observability.md#백엔드-업무-흐름-로그)에 있습니다. 새 로그를 추가할 때도 ID와 코드값만 남기고 대화 본문·음성·인증값·이메일·닉네임은 남기지 않으며, 테스트에서는 `LogCapture`로 메시지를 확인합니다.
 
 기존 컨테이너와 프록시의 `GET /api/health`는 앱 포트에서 유지합니다. 내부 연결 상세 없이 `status`만 반환하며, 필수 연결이 비정상이면 HTTP 503으로 응답합니다. 이 공개 상태 확인과 인증이 필요한 관리 지표를 구분합니다.

@@ -1,5 +1,5 @@
 unity:format:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: verify
   needs: ["ci:yaml"]
   image: mcr.microsoft.com/dotnet/sdk:10.0.401
@@ -23,8 +23,7 @@ unity:format:
           - infra/scripts/run-unity-ci.ps1
           - infra/scripts/prepare-unity-test-inputs.ps1
           - infra/tests/tripo/**/*
-          - .gitlab-ci.yml
-          - .gitlab/ci/**/*
+          - .gitlab/ci/unity.yml
           - AGENTS.md
           - docs/code-conventions.md
           - docs/unity/**/*
@@ -37,7 +36,6 @@ unity:format:
   stage: verify
   timeout: 1h
   needs: []
-  resource_group: a305-unity-editor
   variables:
     GIT_STRATEGY: fetch
     GIT_CLEAN_FLAGS: '-ffdx -e frontend/UnityClient/Library/'
@@ -64,7 +62,7 @@ unity:editor-tests:
 # Fork code must not run under the notebook's licensed Windows account.
 # Keep affected fork MRs blocked rather than silently omitting their required test.
 unity:external-mr:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: verify
   image: alpine:3.22
   needs: ["ci:yaml"]

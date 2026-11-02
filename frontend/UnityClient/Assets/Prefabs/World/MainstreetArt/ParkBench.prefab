@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8903047138268770772}
   - component: {fileID: 8685779638547551836}
   - component: {fileID: 8375204452096930961}
+  - component: {fileID: 4205851086511493751}
   m_Layer: 0
   m_Name: HoneyWood
   m_TagString: Untagged
@@ -91,6 +92,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &4205851086511493751
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3746016358192191293}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: fde3cde17e950fe42b75f6c0b718b4fe, type: 2}
 --- !u!1 &6332732749196569387
 GameObject:
   m_ObjectHideFlags: 0
@@ -100,7 +123,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8745378130858533252}
-  - component: {fileID: 8105178182424857802}
   - component: {fileID: 6620183091865830658}
   m_Layer: 0
   m_Name: ParkBench
@@ -126,27 +148,6 @@ Transform:
   - {fileID: 3249383361116011709}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &8105178182424857802
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6332732749196569387}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.6, y: 0.8, z: 0.55}
-  m_Center: {x: 0, y: 0.4, z: 0}
 --- !u!114 &6620183091865830658
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -305,6 +306,7 @@ GameObject:
   - component: {fileID: 3249383361116011709}
   - component: {fileID: 3982229079063158872}
   - component: {fileID: 5420596629212219812}
+  - component: {fileID: 3873222798465479216}
   m_Layer: 0
   m_Name: SignNavy
   m_TagString: Untagged
@@ -385,3 +387,25 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &3873222798465479216
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8653576938706929480}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: ddb5a22f34648624587a24209fa20221, type: 2}

@@ -7,7 +7,8 @@ namespace A305.Theme
     /// <summary>
     /// 화면 요소 하나를 지금 테마의 그림·색·글꼴로 칠하고, 테마가 바뀌면 다시 칠한다.
     /// 아이콘 버튼은 자식 Face(바탕)·Face/Outline·Face/Icon과 아래 이름 Label을,
-    /// 알약 버튼은 자기 바탕과 자식 Outline·Icon·Label을 쓴다. 자식 구성은 Builder가 만든다.
+    /// 알약 버튼은 자기 바탕과 자식 Outline·Icon·Label을, 메뉴 줄은 바탕 없이 자식 Icon·Label을 쓴다.
+    /// 자식 구성은 Builder가 만든다.
     /// </summary>
     public sealed class ThemedElement : MonoBehaviour
     {
@@ -32,6 +33,21 @@ namespace A305.Theme
         [SerializeField]
         private UiThemeId previewTheme;
 
+        [SerializeField]
+        [Tooltip("바탕 없이 작은 아이콘과 글자만 보이는 보조 조작")]
+        private bool quiet;
+
+        [SerializeField]
+        [Tooltip("선택한 목록 행은 테마의 강조색을 옅게 사용한다")]
+        private bool selection;
+
+        /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
+        public void SetSelected(bool selected)
+        {
+            selection = selected;
+            ApplyCurrent();
+        }
+
         public void ApplyCurrent()
         {
             if (catalog == null)
@@ -48,11 +64,30 @@ namespace A305.Theme
                 case UiThemeRole.Panel:
                     Paint(GetComponent<Image>(), theme.PanelSprite, theme.PanelTint);
                     break;
+                case UiThemeRole.Backdrop:
+                    Paint(
+                        GetComponent<Image>(),
+                        null,
+                        Color.Lerp(theme.ToneColor(UiTone.Primary), Color.white, .8f)
+                    );
+                    break;
                 case UiThemeRole.Card:
-                    Paint(GetComponent<Image>(), theme.CardSprite, theme.CardTint);
+                    // 고른 카드(캐릭터·언어·난이도)는 고르지 않은 흰 카드와 한눈에 구분되게 강조색 쪽으로 진하게 칠한다.
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.CardSprite,
+                        selection
+                            ? Color.Lerp(theme.CardTint, theme.ToneColor(UiTone.Primary), .6f)
+                            : theme.CardTint
+                    );
                     break;
                 case UiThemeRole.Control:
-                    Paint(GetComponent<Image>(), theme.CardSprite, theme.ToneColor(UiTone.Neutral));
+                    // 고른 조작은 다음에 누를 곳이라 강조색으로 칠한다(예: 보낼 문장이 있는 [보내기]).
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.CardSprite,
+                        theme.ToneColor(selection ? UiTone.Primary : UiTone.Neutral)
+                    );
                     break;
                 case UiThemeRole.Input:
                     Paint(GetComponent<Image>(), theme.InputSprite, Color.white);
@@ -73,20 +108,52 @@ namespace A305.Theme
                         Child<Image>(face, "Icon"),
                         theme.Icons != null ? theme.Icons.Get(icon) : null
                     );
+                    if (icon == UiIcon.Home && Child<Image>(face, "Icon") != null)
+                        Child<Image>(face, "Icon").color = theme.Ink;
                     Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, theme.Ink);
                     break;
                 case UiThemeRole.PillButton:
-                    Paint(GetComponent<Image>(), theme.PillSprite, theme.ToneColor(tone));
-                    Overlay(Child<Image>(transform, "Outline"), theme.PillOutlineSprite);
+                    Color buttonColor = theme.ToneColor(tone);
+                    if (selection)
+                        buttonColor = Color.Lerp(
+                            theme.ToneColor(UiTone.Neutral),
+                            theme.ToneColor(UiTone.Primary),
+                            .2f
+                        );
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.PillSprite,
+                        quiet ? Color.clear : buttonColor
+                    );
+                    Overlay(
+                        Child<Image>(transform, "Outline"),
+                        quiet ? null : theme.PillOutlineSprite
+                    );
                     Draw(
                         Child<Image>(transform, "Icon"),
                         theme.Icons != null ? theme.Icons.Get(icon) : null
                     );
+                    if (quiet && icon == UiIcon.Check && Child<Image>(transform, "Icon") != null)
+                        Child<Image>(transform, "Icon").color = theme.ToneColor(UiTone.Positive);
+                    if (
+                        tone == UiTone.Neutral
+                        && icon == UiIcon.Replay
+                        && Child<Image>(transform, "Icon") != null
+                    )
+                        Child<Image>(transform, "Icon").color = theme.AccentInk;
                     Write(
                         Child<TMP_Text>(transform, "Label"),
                         theme.TitleFont,
-                        theme.ToneInk(tone)
+                        quiet ? theme.Ink : theme.ToneInk(tone)
                     );
+                    break;
+                case UiThemeRole.MenuItem:
+                    Image itemIcon = Child<Image>(transform, "Icon");
+                    Draw(itemIcon, theme.Icons != null ? theme.Icons.Get(icon) : null);
+                    // 집·대화 아이콘은 색 바탕 위에 쓰는 흰 그림이라 밝은 메뉴에서는 글자색으로 칠한다.
+                    if (itemIcon != null && (icon == UiIcon.Home || icon == UiIcon.Talk))
+                        itemIcon.color = theme.Ink;
+                    Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, theme.Ink);
                     break;
                 case UiThemeRole.Title:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);

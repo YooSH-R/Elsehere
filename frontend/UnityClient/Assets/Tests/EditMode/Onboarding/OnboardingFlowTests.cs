@@ -44,6 +44,17 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task BootstrapTellsWhetherTheUserAgreedToVoiceInput()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.VoiceConsent = true;
+
+            await flow.StartAsync();
+
+            Assert.That(flow.IsVoiceAgreed, Is.True);
+        }
+
+        [Test]
         public async Task StartWithoutLogin_ShowsLogin()
         {
             api.BootstrapError = new ApiException("UNAUTHENTICATED", 401, "로그인이 필요합니다.");
@@ -80,6 +91,64 @@ namespace A305.Onboarding.Tests
             Assert.That(api.GuestAvatarSent, Is.EqualTo(AvatarType.M));
             Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
             Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public async Task GuestLogin_SendsVoiceConsentOnlyWhenChecked()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.F);
+            api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
+
+            flow.SetGuestVoiceConsent(true);
+            await flow.GuestLoginAsync();
+
+            Assert.That(api.GuestVoiceConsentSent, Is.True);
+        }
+
+        [Test]
+        public async Task ChooseGuestAgain_StartsWithVoiceConsentUnchecked()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+            flow.SetGuestVoiceConsent(true);
+
+            flow.BackToLogin();
+            flow.ChooseGuest();
+
+            Assert.That(flow.GuestVoiceConsent, Is.False);
+        }
+
+        [Test]
+        public async Task LoadGuestGuide_KeepsConversationLimitForCharacterChoice()
+        {
+            await StartAtLogin();
+            flow.ChooseGuest();
+            api.GuestGuide = new GuestGuideResponse { ConversationLimit = 3 };
+
+            await flow.LoadGuestGuideAsync();
+
+            Assert.That(flow.GuestConversationLimit, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task LoadGuestGuideFailed_StaysAtCharacterChoiceWithoutLimitOrMessage()
+        {
+            // 횟수를 읽지 못해도 캐릭터를 골라 시작할 수 있어야 하므로 실패 안내를 띄우지 않는다.
+            await StartAtLogin();
+            flow.ChooseGuest();
+            api.GuestGuideError = new ApiException(
+                "INTERNAL_ERROR",
+                500,
+                "잠시 후 다시 시도해 주세요."
+            );
+
+            await flow.LoadGuestGuideAsync();
+
+            Assert.That(flow.GuestConversationLimit, Is.Null);
+            Assert.That(flow.ErrorMessage, Is.Null);
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.GuestCharacter));
         }
 
         [Test]
@@ -425,6 +494,9 @@ namespace A305.Onboarding.Tests
             public BootstrapResponse Bootstrap { get; set; }
             public ApiException BootstrapError { get; set; }
             public ApiException GuestLoginError { get; set; }
+            public GuestGuideResponse GuestGuide { get; set; } =
+                new GuestGuideResponse { ConversationLimit = 3 };
+            public ApiException GuestGuideError { get; set; }
             public ApiException SignupError { get; set; }
             public Exception SignupFormError { get; set; }
             public Exception ChooseLanguageError { get; set; }
@@ -495,6 +567,7 @@ namespace A305.Onboarding.Tests
 
             public bool ScenesRequested { get; private set; }
             public AvatarType? GuestAvatarSent { get; private set; }
+            public bool? GuestVoiceConsentSent { get; private set; }
             public string NicknameCheckedFor { get; private set; }
             public SignupRequest SignupSent { get; private set; }
             public string LanguageChosen { get; private set; }
@@ -516,9 +589,17 @@ namespace A305.Onboarding.Tests
                 return Task.CompletedTask;
             }
 
-            public Task GuestLoginAsync(AvatarType avatarType)
+            public Task<GuestGuideResponse> GetGuestGuideAsync()
+            {
+                return GuestGuideError != null
+                    ? Task.FromException<GuestGuideResponse>(GuestGuideError)
+                    : Task.FromResult(GuestGuide);
+            }
+
+            public Task GuestLoginAsync(AvatarType avatarType, bool voiceConsent)
             {
                 GuestAvatarSent = avatarType;
+                GuestVoiceConsentSent = voiceConsent;
                 return GuestLoginError != null
                     ? Task.FromException(GuestLoginError)
                     : Task.CompletedTask;

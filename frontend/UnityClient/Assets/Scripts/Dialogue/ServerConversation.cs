@@ -22,18 +22,22 @@ namespace A305.Dialogue
         private const string QuotaExhaustedCode = "AI_QUOTA_EXHAUSTED";
         private const string RateLimitedCode = "AI_RATE_LIMITED";
         private const string NoSpeechCode = "STT_NO_SPEECH";
+        private const string VoiceConsentRequiredCode = "VOICE_CONSENT_REQUIRED";
         private const string ActiveStatus = "ACTIVE";
         private const string QuotaExhaustedReason = "QUOTA_EXHAUSTED";
+        private const string RudeReason = "RUDE";
         private const string FeedbackDone = "DONE";
 
         private const string RetryGuide = "[다시 시도]를 누르거나 [대화 종료]로 나갈 수 있어요.";
         private const string QuotaGuide = "[대화 종료]를 누르면 마을 탐험으로 돌아가요.";
         private const string QuotaEndedGuide = "마을 탐험, 사물 카드, 단어장은 계속 쓸 수 있어요.";
-        private const string SpeakAgainGuide =
-            "[누르고 말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
+        private const string SpeakAgainGuide = "[말하기]로 다시 말하거나 텍스트로 입력해 주세요.";
 
         private readonly IConversationApi api;
         private readonly ConversationInitiator initiatedBy;
+
+        // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
+        private bool canTalk;
         private readonly List<DialogueLine> lines = new List<DialogueLine>();
         private readonly List<string> userUtterances = new List<string>();
 
@@ -48,22 +52,26 @@ namespace A305.Dialogue
         private string lastTranscript;
 
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
+        /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
             IConversationApi api,
+            bool canTalk,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc
         )
         {
             NpcCode = npcCode;
             NpcName = npcName;
             this.api = api;
+            this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
         }
 
         /// <summary>화면을 다시 그려야 할 때 알린다.</summary>
         public event Action Changed;
+        public event Action<string> UserTurnAccepted;
 
         /// <summary>NPC가 새로 말했다. 음성 재생에 쓴다.</summary>
         public event Action<NpcTurnData> NpcSpoke;
@@ -88,7 +96,10 @@ namespace A305.Dialogue
         public string ExampleSentence => null;
         public bool IsBusy { get; private set; }
         public string StatusMessage { get; private set; }
+        public DialogueWait Waiting { get; private set; }
         public IReadOnlyList<string> SuggestWords { get; private set; }
+
+        public bool IsSuggestingWords { get; private set; }
 
         /// <summary>NPC가 대화를 끝냈는지(무례 누적, 사용량 소진 등).</summary>
         public bool IsEnded { get; private set; }
@@ -105,15 +116,20 @@ namespace A305.Dialogue
         public bool HasHint => true;
         public string HintText { get; private set; }
         public bool UsesVoice => true;
+        public ConversationStanding Standing { get; } = new ConversationStanding();
+        public bool CanTalk => canTalk;
 
-        public Task StartAsync()
+        public bool CanReplaySpeech =>
+            LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
+
+        public async Task StartAsync()
         {
             if (startRequestId == null)
             {
                 startRequestId = NewRequestId();
             }
 
-            return RunAsync(
+            await RunAsync(
                 "대화를 시작하고 있어요...",
                 async () =>
                 {
@@ -124,10 +140,13 @@ namespace A305.Dialogue
                         NpcName = start.Npc.Name;
                     }
 
+                    Standing.Apply(start.Conversation);
                     AddNpcTurn(start.OpeningTurn);
                 },
-                StartAsync
+                StartAsync,
+                DialogueWait.Opening
             );
+            _ = SuggestWordsAsync();
         }
 
         /// <summary>문장을 보낸다. 직전에 전사한 문장을 그대로 보내면 음성 입력으로 보낸다.</summary>
@@ -173,24 +192,35 @@ namespace A305.Dialogue
                     string sent = result.UserTurn?.Text ?? utterance;
                     lines.Add(DialogueLine.FromUser(sent));
                     userUtterances.Add(sent);
+                    Standing.Apply(result.Conversation);
                     AddNpcTurn(result.NpcTurn);
                     IsEnded =
                         result.Conversation != null && result.Conversation.Status != ActiveStatus;
                     endReason = result.Conversation?.EndReason;
+                    if (!IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
+                        UserTurnAccepted?.Invoke(sent);
                 },
-                () => SendAsync(utterance)
+                () => SendAsync(utterance),
+                DialogueWait.NpcReply
             );
 
             if (IsEnded)
             {
-                // 사용량 소진은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
+                // 사용량 소진·무례 누적은 오류가 아니라 정상 종료지만, 이유를 알리지 않으면 NPC가 갑자기 대화를 끊은 것처럼 보인다.
                 bool isQuotaExhausted = endReason == QuotaExhaustedReason;
-                StatusMessage = isQuotaExhausted
-                    ? $"AI 사용량을 모두 써서 {NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요."
-                    : $"{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
+                string reason = endReason switch
+                {
+                    QuotaExhaustedReason => "AI 사용량을 모두 써서 ",
+                    RudeReason => "무례한 말이 쌓여 ",
+                    _ => "",
+                };
+                StatusMessage =
+                    $"{reason}{NpcName}이(가) 대화를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
                 RecoveryGuide = isQuotaExhausted ? QuotaEndedGuide : null;
                 Changed?.Invoke();
             }
+
+            _ = SuggestWordsAsync();
         }
 
         /// <summary>
@@ -209,7 +239,7 @@ namespace A305.Dialogue
             return retry();
         }
 
-        /// <summary>[누르고 말하기]를 누르는 동안 녹음 중임을 알린다.</summary>
+        /// <summary>[말하기]를 눌러 녹음하는 동안 녹음 중임을 알린다.</summary>
         public void ShowListening(float maxSeconds)
         {
             StatusMessage = VoiceInputNotice.Listening(maxSeconds);
@@ -218,15 +248,30 @@ namespace A305.Dialogue
         }
 
         /// <summary>
+        /// 대화 중 음성 처리에 동의했을 때 [말하기]를 쓸 수 있게 한다. 서버가 동의를 요구해 남긴 안내는 지운다.
+        /// </summary>
+        public void AllowTalk()
+        {
+            canTalk = true;
+            if (RecoveryGuide == VoiceInputNotice.ConsentRequired)
+            {
+                StatusMessage = null;
+                RecoveryGuide = null;
+            }
+
+            Changed?.Invoke();
+        }
+
+        /// <summary>
         /// 녹음을 전사한다. 전사한 문장을 돌려주며, 실패하면 null이다. 전사하면 문장을 확인하고 보내라고 안내하고,
-        /// 버튼을 떼기 전에 녹음이 끝났으면 그 이유도 알린다.
+        /// [종료]를 누르기 전에 녹음이 끝났으면 그 이유도 알린다.
         /// </summary>
         public async Task<string> TranscribeAsync(
             byte[] wav,
             RecordingEndReason endReason = RecordingEndReason.UserStopped
         )
         {
-            if (!CanSend)
+            if (!CanSend || !canTalk)
             {
                 return null;
             }
@@ -254,11 +299,35 @@ namespace A305.Dialogue
             return transcript;
         }
 
-        /// <summary>마지막 NPC 턴의 음성을 다시 만든다. 실패하면 null이다.</summary>
+        /// <summary>저장 음성을 재생한다. 404는 재생 버튼을 숨기고, 일시적인 다운로드 실패는 재시도할 수 있게 둔다.</summary>
+        public async Task<bool> PlaySpeechAsync(Func<string, Task<bool>> playSpeech)
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (turn?.Speech?.IsReady != true)
+            {
+                return false;
+            }
+
+            try
+            {
+                return await playSpeech(turn.Speech.Url);
+            }
+            catch (ApiException exception) when (exception.StatusCode == 404)
+            {
+                turn.Speech = new SpeechData { Status = "EXPIRED" };
+                if (LastNpcTurn == turn)
+                {
+                    Changed?.Invoke();
+                }
+                return false;
+            }
+        }
+
+        /// <summary>최초 생성에 실패한 NPC 음성을 다시 만든다. 삭제·만료 음성은 요청하지 않는다.</summary>
         public async Task<SpeechData> RegenerateSpeechAsync()
         {
             NpcTurnData turn = LastNpcTurn;
-            if (turn == null || IsBusy)
+            if (turn == null || IsBusy || turn.Speech?.CanRegenerate != true)
             {
                 return null;
             }
@@ -333,6 +402,7 @@ namespace A305.Dialogue
 
             long conversationId = ConversationId.Value;
             IsBusy = true;
+            Waiting = DialogueWait.Feedback;
             StatusMessage = "대화를 마치고 피드백을 만들고 있어요. 잠시만 기다려 주세요.";
             Changed?.Invoke();
             try
@@ -365,6 +435,7 @@ namespace A305.Dialogue
             finally
             {
                 IsBusy = false;
+                Waiting = DialogueWait.None;
             }
         }
 
@@ -430,16 +501,65 @@ namespace A305.Dialogue
             LastNpcLine = line;
             LastNpcTurn = turn;
             SuggestWords = turn.SuggestWords;
+            IsSuggestingWords = false;
             // 단어 풀이와 힌트는 지난 대사의 것이므로 새 대사에서는 다시 받는다.
             LastNpcGlossary = null;
             HintText = null;
             NpcSpoke?.Invoke(turn);
         }
 
+        /// <summary>
+        /// 마지막 NPC 대사의 추천 단어를 받는다(CONV-12). 대사를 기다리지 않게 하려고 서버가 대사와 따로 만들므로 [보내기]를 막지 않고 뒤에서 받는다.
+        /// 이미 받았거나 받는 중이거나 대화가 끝났으면 요청하지 않는다.
+        /// </summary>
+        private async Task SuggestWordsAsync()
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (turn == null || turn.SuggestWords != null || IsSuggestingWords || IsEnded)
+            {
+                return;
+            }
+
+            IsSuggestingWords = true;
+            Changed?.Invoke();
+            List<string> words = null;
+            try
+            {
+                SuggestWordsData result = await api.GetSuggestWordsAsync(
+                    turn.TurnId,
+                    NewRequestId()
+                );
+                words = result?.SuggestWords;
+            }
+            catch (Exception exception)
+            {
+                // 추천 단어는 대화를 돕는 보조 정보라 실패해도 대화를 막지 않고 칸만 비워 둔다.
+                Debug.LogWarning($"추천 단어를 받지 못했어요: {exception.Message}");
+            }
+
+            turn.SuggestWords = words;
+            // 단어를 기다리는 사이 NPC가 새로 말했으면 지난 대사의 단어는 보여 주지 않는다.
+            if (LastNpcTurn != turn)
+            {
+                return;
+            }
+
+            SuggestWords = words;
+            IsSuggestingWords = false;
+            Changed?.Invoke();
+        }
+
         /// <param name="retry">일시적인 장애로 실패하면 [다시 시도]가 부를 요청. 다시 시도하지 않는 요청은 null이다.</param>
-        private async Task RunAsync(string busyMessage, Func<Task> action, Func<Task> retry = null)
+        /// <param name="wait">대화창이 로딩으로 크게 보여 줄 기다림. 짧은 요청은 None으로 두어 상태 줄에만 알린다.</param>
+        private async Task RunAsync(
+            string busyMessage,
+            Func<Task> action,
+            Func<Task> retry = null,
+            DialogueWait wait = DialogueWait.None
+        )
         {
             IsBusy = true;
+            Waiting = wait;
             StatusMessage = busyMessage;
             RecoveryGuide = null;
             pendingRetry = null;
@@ -452,6 +572,11 @@ namespace A305.Dialogue
             catch (ApiException exception)
             {
                 StatusMessage = exception.Message;
+                if (exception.Code == VoiceConsentRequiredCode)
+                {
+                    canTalk = false;
+                }
+
                 bool canRetry = retry != null && IsTemporary(exception);
                 pendingRetry = canRetry ? retry : null;
                 RecoveryGuide = GuideFor(exception, canRetry);
@@ -466,6 +591,7 @@ namespace A305.Dialogue
             finally
             {
                 IsBusy = false;
+                Waiting = DialogueWait.None;
                 Changed?.Invoke();
             }
         }
@@ -481,6 +607,11 @@ namespace A305.Dialogue
             if (exception.Code == NoSpeechCode)
             {
                 return SpeakAgainGuide;
+            }
+
+            if (exception.Code == VoiceConsentRequiredCode)
+            {
+                return VoiceInputNotice.ConsentRequired;
             }
 
             return canRetry ? RetryGuide : null;

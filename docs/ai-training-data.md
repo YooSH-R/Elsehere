@@ -17,7 +17,7 @@
 
 ## 안내 문구 (버전 2026-10)
 
-약관 문서 주소(`/ai-training/2026-10`)에 보여 줄 내용입니다. 약관 페이지를 제공하는 방식은 아직 정하지 않았습니다 `[미정]`.
+약관 문서 주소(`/ai-training/2026-10`)에 보여 줄 내용입니다. 페이지는 백엔드의 [ai-training.html](../backend/src/main/resources/templates/legal/ai-training.html)이 그리며, 문구를 바꾸면 두 곳을 함께 고칩니다.
 
 > **AI 개선을 위한 데이터 활용 (선택)**
 >

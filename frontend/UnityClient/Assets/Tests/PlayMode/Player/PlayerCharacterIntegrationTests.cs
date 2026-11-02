@@ -91,10 +91,28 @@ namespace A305.Player.Tests
                     Is.InRange(bounds.max.y, bounds.max.y + .1f),
                     "Capsule top must cover the standing mesh."
                 );
+                // 충돌 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 머리 구가 따로 막는다.
+                // 머리 구가 머리 아래 끝에서 시작해야 탁자·소파 앉는 면 같은 낮은 가구가 머리 아래로 지나간다.
+                // 팔은 머리·몸통에 묻히지 않게 옆으로 벌어져(LittleMungArmClearance) 캡슐 밖으로 조금 나온다.
+                // 캡슐을 팔까지 넓히면 소파와 탁자 사이 같은 좁은 틈에 끼므로 팔이 나오는 폭은 이만큼 허용한다.
+                const float armOverhangMeters = .12f;
+                PlayerCharacterDefinition definition = appearance.ActiveCharacter;
                 Assert.That(
-                    capsule.radius,
+                    capsule.radius + armOverhangMeters,
+                    Is.GreaterThanOrEqualTo(
+                        HorizontalReachBelow(animator, player.transform, body.Head.min.y)
+                    ),
+                    "Capsule width must cover the body under the head; arms may stick out a little."
+                );
+                Assert.That(
+                    definition.HeadRadiusMeters,
                     Is.GreaterThanOrEqualTo(headRadius),
-                    "Capsule width must cover the large head."
+                    "Head blocker must cover the large head."
+                );
+                Assert.That(
+                    definition.HeadCenterHeightMeters - definition.HeadRadiusMeters,
+                    Is.EqualTo(body.Head.min.y).Within(.05f),
+                    "Head blocker must start at the bottom of the head."
                 );
                 Assert.That(
                     eyeHeight,
@@ -143,6 +161,33 @@ namespace A305.Player.Tests
                 Physics.SyncTransforms();
                 camera.SnapBehindTarget();
             }
+        }
+
+        /// <summary>space 기준 높이 below 아래 메시 정점이 세로축에서 가장 멀리 떨어진 거리</summary>
+        private static float HorizontalReachBelow(Animator animator, Transform space, float below)
+        {
+            var mesh = new Mesh();
+            float reach = 0f;
+            try
+            {
+                foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
+                {
+                    skin.BakeMesh(mesh, true);
+                    foreach (var vertex in mesh.vertices)
+                    {
+                        Vector3 point = space.InverseTransformPoint(
+                            skin.transform.TransformPoint(vertex)
+                        );
+                        if (point.y < below)
+                            reach = Mathf.Max(reach, new Vector2(point.x, point.z).magnitude);
+                    }
+                }
+            }
+            finally
+            {
+                Object.Destroy(mesh);
+            }
+            return reach;
         }
 
         private static Bounds SkinBounds(Animator animator, Transform space)
@@ -319,6 +364,50 @@ namespace A305.Player.Tests
         {
             for (int frame = 0; frame < count; frame++)
                 yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator CameraPushedAgainstAWallHidesTheVisualUntilItBacksAway()
+        {
+            // 좁은 실내 어디서든 등 뒤 벽에 밀린 카메라가 캐릭터 머리 속을 비추지 않아야 한다.
+            PlayerCharacterSelection.Select(selected);
+            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+                "Assets/Scenes/Production/TownScene.unity",
+                new LoadSceneParameters(LoadSceneMode.Single)
+            );
+            yield return null;
+            var player = Object.FindFirstObjectByType<PlayerMover>();
+            var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
+            Renderer[] renderers = player
+                .GetComponent<PlayerCharacterAppearance>()
+                .VisualRoot.GetComponentsInChildren<Renderer>();
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.transform.localScale = new Vector3(4, 4, .2f);
+            wall.transform.SetPositionAndRotation(
+                player.transform.position - player.transform.forward * .8f + Vector3.up * 1.5f,
+                player.transform.rotation
+            );
+            // 실행 중에 놓은 벽은 다음 물리 단계 전까지 충돌 검사에 잡히지 않는다.
+            Physics.SyncTransforms();
+            try
+            {
+                camera.SnapBehindTarget();
+                yield return Frames(3);
+                Assert.That(
+                    renderers.All(renderer => renderer.forceRenderingOff),
+                    Is.True,
+                    "벽에 밀린 카메라 앞에 캐릭터 머리가 남으면 안 됩니다."
+                );
+
+                Object.Destroy(wall);
+                yield return Frames(120);
+                Assert.That(renderers.All(renderer => !renderer.forceRenderingOff), Is.True);
+            }
+            finally
+            {
+                if (wall != null)
+                    Object.Destroy(wall);
+            }
         }
 
         [UnityTest]

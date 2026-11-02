@@ -1,6 +1,7 @@
 package com.elsehere.admin.controller;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,8 +12,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.elsehere.admin.dto.AdminNpcDetail;
 import com.elsehere.admin.dto.AdminNpcSummary;
+import com.elsehere.admin.dto.AdminUser;
+import com.elsehere.admin.dto.AiUsageReport;
+import com.elsehere.admin.dto.AiUsageRow;
+import com.elsehere.admin.dto.AiUserUsage;
 import com.elsehere.admin.service.AdminAccess;
+import com.elsehere.admin.service.AdminAiUsageService;
 import com.elsehere.admin.service.AdminNpcService;
+import com.elsehere.admin.service.AdminUserService;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.config.SecuredWebMvcTest;
 import java.util.List;
@@ -32,6 +39,74 @@ class AdminPageControllerTest {
   @Autowired private AdminAccess adminAccess;
 
   @MockitoBean private AdminNpcService adminNpcService;
+
+  @MockitoBean private AdminUserService adminUserService;
+
+  @MockitoBean private AdminAiUsageService adminAiUsageService;
+
+  @Test
+  @DisplayName("AI 사용량 화면은 고른 기간의 합계와 날짜·종류·모델·사용자 구분·사용자별 사용량을 보여 준다")
+  void aiUsage_byAdmin_showsReport() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminAiUsageService.report(30))
+        .willReturn(
+            new AiUsageReport(
+                30,
+                new AiUsageRow("전체", 2, 5, 1, 12345, 678, 1500),
+                List.of(new AiUsageRow("2030-01-10", 2, 5, 1, 12345, 678, 1500)),
+                List.of(new AiUsageRow("JUDGE", 2, 5, 1, 12345, 678, 0)),
+                List.of(new AiUsageRow("gpt-4o-mini", 2, 4, 0, 12345, 678, 0)),
+                List.of(new AiUsageRow("GUEST", 1, 3, 1, 10000, 500, 0)),
+                List.of(new AiUserUsage(7L, true, 3, 1, 10000, 500))));
+
+    mockMvc
+        .perform(get("/admin/ai-usage").param("days", "30").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("href=\"/admin/ai-usage\"")))
+        .andExpect(content().string(containsString("최근 30일")))
+        .andExpect(content().string(containsString("12,345")))
+        .andExpect(content().string(containsString("2030-01-10")))
+        .andExpect(content().string(containsString("의도 판정")))
+        .andExpect(content().string(containsString("gpt-4o-mini")))
+        .andExpect(content().string(containsString("게스트")));
+  }
+
+  @Test
+  @DisplayName("AI 사용량 화면은 기간을 고르지 않으면 최근 7일을 보여 준다")
+  void aiUsage_withoutDays_showsLastWeek() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    AiUsageRow empty = new AiUsageRow("전체", 0, 0, 0, 0, 0, 0);
+    given(adminAiUsageService.report(7))
+        .willReturn(
+            new AiUsageReport(7, empty, List.of(), List.of(), List.of(), List.of(), List.of()));
+
+    mockMvc
+        .perform(get("/admin/ai-usage").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("최근 7일")));
+  }
+
+  @Test
+  @DisplayName("관리자 화면은 관리자 목록과 추가 API 주소, 자기 자신을 뺀 관리자의 해제 API 주소를 보여 준다")
+  void admins_byAdmin_listsAdminsAndRevokeExceptSelf() throws Exception {
+    given(adminAccess.isAdmin(1L)).willReturn(true);
+    given(adminUserService.admins())
+        .willReturn(
+            List.of(
+                new AdminUser(1L, "Sun", "sun@example.com"),
+                new AdminUser(2L, "Moon", "moon@example.com")));
+
+    mockMvc
+        .perform(get("/admin/admins").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("href=\"/admin/admins\"")))
+        .andExpect(content().string(containsString("sun@example.com")))
+        .andExpect(content().string(containsString("Moon")))
+        .andExpect(content().string(containsString("moon@example.com")))
+        .andExpect(content().string(containsString("data-url=\"/api/v1/admin/admins\"")))
+        .andExpect(content().string(containsString("data-url=\"/api/v1/admin/admins/2\"")))
+        .andExpect(content().string(not(containsString("data-url=\"/api/v1/admin/admins/1\""))));
+  }
 
   @Test
   @DisplayName("로그인하지 않고 어드민 화면을 열면 Google 로그인으로 보낸다")

@@ -3,7 +3,7 @@
 MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서버 API로 나눈 초안입니다. 데이터 구조는 [ERD v3.7](../erd.dbml), 수용 조건은 [요구사항명세서](../A305_기획안/04_AI용_요구사항명세서.md)를 따릅니다. 이 문서는 초안이며 팀 리뷰를 거쳐 확정합니다.
 
 - `[미정]`은 팀 결정이 필요한 항목, `[제안]`은 작성자 제안입니다.
-- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 API를 만들지 않았습니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
+- MVP에서 뺀 기능은 7절에 모았습니다. 와이어프레임에 화면이 없는 기능 중 NPC 호감도 조회는 따로 API를 만들지 않았습니다. 대화 중인 NPC의 호감도만 대화 시작·발화 전송 응답(CONV-01·03의 `conversation.affinity`)에 실어 대화 화면에 보여 줍니다. 집에서 고르는 화면 테마(USER-01)와 마이페이지의 닉네임 변경(USER-04)은 와이어프레임 밖에서 추가한 기능입니다.
 - 대화 턴은 REST로 작성했습니다. 스트리밍을 선택하면 요청·응답의 의미와 식별자는 유지하고 전송 방식만 바꿉니다.
 
 ## 1. 공통 규칙
@@ -20,6 +20,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 
 - 소셜 로그인 또는 게스트로 시작하기(AUTH-07)로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 소셜 로그인 제공자는 Google 하나이며, 경로의 `{provider}`는 `google`입니다. 게스트는 `provider`가 `GUEST`입니다.
 - 로그인 상태는 서버 세션에 두고 HttpOnly 세션 쿠키로 유지합니다. nginx로 Unity Web 빌드와 API를 같은 출처에서 제공하며, 세션 쿠키는 `SameSite=Lax`입니다.
+- 세션은 요청이 24시간 없으면 끝나고, 쿠키도 24시간 유지돼 브라우저를 닫았다 열어도 이어집니다. 게스트(AUTH-07)는 2시간입니다. 서버를 다시 시작(배포)하면 로그인이 풀립니다. 끝난 뒤의 요청은 `401 UNAUTHENTICATED`입니다.
 - 요청 위조를 막기 위해 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)에는 `X-Requested-With` 헤더를 붙입니다. 값은 자유이며, 헤더가 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 개발 환경(local 프로필)에서는 소셜 로그인 없이 `POST /api/v1/dev/login`에 `{ "userId": 1 }`을 보내 그 사용자로 로그인할 수 있습니다. 다른 환경에는 이 API가 없습니다.
 - 처음 로그인한 사용자는 가입 정보(닉네임, 캐릭터, 약관)를 제출해야 사용자 계정이 만들어집니다. 그 전까지는 가입 관련 API와 BOOT-01만 호출할 수 있고, 나머지는 `403 SIGNUP_REQUIRED`입니다.
@@ -85,10 +86,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `SIGNUP_REQUIRED` | 403 | 가입 정보 미제출 |
 | `CSRF_HEADER_REQUIRED` | 403 | 상태를 바꾸는 요청에 `X-Requested-With` 헤더 없음 |
 | `ADMIN_REQUIRED` | 403 | 관리자가 아닌 사용자가 운영자 어드민 화면·관리 API(`/admin`, `/api/v1/admin/**`) 호출. [운영자 어드민](../admin.md) 참고 |
+| `VOICE_CONSENT_REQUIRED` | 403 | 음성 처리(`VOICE`)에 동의하지 않은 사용자의 음성 인식(CONV-02). 글자로 입력하거나 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 동의를 켭니다. |
 | `AI_RESTRICTED` | 403 | 운영·안전상 AI 제한 |
 | `NOT_FOUND` | 404 | 대상이 없거나 다른 사용자의 데이터 |
+| `ADMIN_CANDIDATE_NOT_FOUND` | 404 | 어드민에서 관리자로 추가한 이메일로 Google 가입한 사용자가 없음. [운영자 어드민](../admin.md) 참고 |
 | `ALREADY_SIGNED_UP` | 409 | 이미 가입한 사용자의 가입 정보 제출 |
 | `NICKNAME_TAKEN` | 409 | 다른 사용자가 쓰고 있는 닉네임 |
+| `ADMIN_SELF_REVOKE` | 409 | 어드민에서 자기 자신을 관리자에서 해제 |
 | `LEVEL_TEST_NOT_IN_PROGRESS` | 409 | 이미 끝난 레벨 테스트에 응답·완료·그만하기 |
 | `REQUEST_ID_CONFLICT` | 409 | 같은 `requestId`로 다른 내용 전송 |
 | `CONVERSATION_ALREADY_ACTIVE` | 409 | 진행 중인 다른 대화가 있음 |
@@ -108,6 +112,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 지원하지 않는 메서드(405)·형식(415)처럼 표에 없는 요청 오류는 그 HTTP 상태와 상태 이름을 `code`로 돌려줍니다(예: `METHOD_NOT_ALLOWED`). 클라이언트 구현 오류이므로 화면에 따로 안내하지 않습니다.
 - `INTERNAL_ERROR`의 `message`에는 내부 오류 내용을 담지 않습니다. 원인은 서버 로그에만 남깁니다.
+- 같은 `code`라도 상황에 맞는 안내가 따로 있으면 `message`가 다를 수 있습니다(예: 게스트 대화 횟수 소진, CONV-01). 클라이언트는 `code`로 처리를 나누고 `message`는 그대로 보여 줍니다.
 - 화면 19의 세 상황은 서로 다른 코드로 구분합니다. 사용량 소진은 `AI_QUOTA_EXHAUSTED`, 응답 실패는 `AI_TEMPORARILY_UNAVAILABLE`·`AI_RESPONSE_INVALID`이며, 마이크 권한 거부와 장치 없음은 브라우저에서 판단하므로 서버 오류 코드가 없습니다.
 - 대화 도중 토큰이 떨어지거나 무례한 말이 쌓인 경우는 오류가 아니라 NPC 대사로 대화가 끝나는 정상 응답입니다(1.4, CONV-03). `AI_RESTRICTED`는 무례 누적에 쓰지 않습니다.
 - 무음·인식 실패(`STT_NO_SPEECH`)는 응답 실패와 별도로 "다시 녹음" 안내를 보여줍니다.
@@ -123,7 +128,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | --- | --- | --- |
 | 01 사이트 접속 | 접속 직후 로그인·가입·초기 설정 상태로 다음 화면 결정 | BOOT-01 |
 | | [시작하기], [로그인] | AUTH-01 |
-| | [게스트로 시작하기] → 캐릭터 기본형(F/M) 선택 → [시작하기]. 02~05를 거치지 않고 튜토리얼로 갑니다. | AUTH-07 |
+| | [게스트로 시작하기] → 캐릭터 기본형(F/M) 선택 → [시작하기]. 02~05를 거치지 않고 튜토리얼로 갑니다. 선택 화면에 대화할 수 있는 횟수를 보여 줍니다. | AUTH-08, AUTH-07 |
 | 02 회원가입·로그인 | [Google로 계속하기] | AUTH-01, AUTH-02 |
 | | 처음 가입: 약관 목록·버전 | AUTH-03 |
 | | 닉네임 [중복 확인] | AUTH-06 |
@@ -172,6 +177,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 15 NPC AI 자유 대화 | 대화 기록(텍스트) | CONV-01, CONV-03 응답(새로고침 후에는 CONV-11) |
 | | 녹음 → 전사 확인 → [다시 녹음] / [보내기] | CONV-02, CONV-03 |
 | | 마이크를 쓸 수 없을 때 [텍스트로 입력] | CONV-03 |
+| | 대사 아래 추천 단어 | CONV-12(대사를 받은 뒤 따로) |
 | | [다시 듣기], [뜻 보기], [힌트] | CONV-06, CONV-04, CONV-05 |
 | | [대화 종료 (Esc)] | CONV-08 |
 | | 토큰이 떨어지면 NPC 작별 대사로 대화 종료 | CONV-03 응답 |
@@ -190,7 +196,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | [단어장] 옆 [지난 대화] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
+| | 오른쪽 위 메뉴의 [피드백 목록] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -209,6 +215,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | AUTH-05 | `POST /api/v1/auth/logout` | 로그아웃 | - | 마이페이지 |
 | AUTH-06 | `GET /api/v1/nicknames/availability` | 닉네임 사용 가능 여부 확인 | - | 02 |
 | AUTH-07 | `POST /api/v1/auth/guest` | 게스트로 시작하기, 사용자 생성·로그인 | - | 01 |
+| AUTH-08 | `GET /api/v1/auth/guest` | 게스트 안내(대화할 수 있는 횟수) | - | 01 |
 | ONB-01 | `GET /api/v1/languages` | 학습 언어 목록 | - | 03 |
 | ONB-02 | `PUT /api/v1/me/languages/{languageCode}` | 학습 언어 선택 | - | 03 |
 | ONB-03 | `POST /api/v1/level-tests` | 레벨 테스트 시작, 문항 조회 | - | 04 |
@@ -225,10 +232,12 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | WORLD-03 | `PUT /api/v1/me/word-prefs/{wordKey}` | 단어 카드 자동 표시 끄기·다시 켜기 | - | 08 |
 | WORLD-04 | `GET /api/v1/vocab/{vocabId}/pronunciation` | 미리 만든 사물 단어 발음 음성 | - | 08 |
 | WORLD-05 | `PUT /api/v1/me/last-scene` | 현재 장소 저장(재접속 위치) | - | 09, 14 |
+| WORLD-06 | `GET /api/v1/me/game-clock` | 사용자별 게임 시각 | - | 화면 없음(월드 장면) |
+| WORLD-07 | `POST /api/v1/me/game-clock/beats` | 플레이 중 신호, 게임 시간 흐르게 하기 | - | 화면 없음(월드 장면) |
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
 | CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | LLM, TTS(말걸기 대사가 없는 NPC) | 14 |
 | CONV-02 | `POST /api/v1/speech/transcriptions` | 녹음 전사(STT) | STT | 11, 15 |
-| CONV-03 | `POST /api/v1/conversations/{conversationId}/turns` | 발화 전송, NPC 응답과 추천 단어 | LLM, TTS | 15 |
+| CONV-03 | `POST /api/v1/conversations/{conversationId}/turns` | 발화 전송, NPC 응답 | LLM, TTS | 15 |
 | CONV-04 | `POST /api/v1/turns/{turnId}/meaning` | NPC 대사 한국어 뜻 | LLM | 15 |
 | CONV-05 | `POST /api/v1/turns/{turnId}/hint` | 추천 문장 | LLM | 15 |
 | CONV-06 | `GET /api/v1/turns/{turnId}/speech` | 만들어 둔 NPC 음성 재생 | - | 15 |
@@ -237,6 +246,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | CONV-09 | `GET /api/v1/conversations` | 지난 대화 목록 | - | 18 |
 | CONV-10 | `GET /api/v1/conversations/{conversationId}` | 대화 상세(턴 포함) | - | 16, 18 |
 | CONV-11 | `GET /api/v1/conversations/active` | 진행 중인 대화 조회 | - | 15 |
+| CONV-12 | `POST /api/v1/turns/{turnId}/suggest-words` | NPC 대사에 대답할 추천 단어 | LLM | 15 |
 | FB-01 | `GET /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백·상세 평가 조회 | - | 16, 17 |
 | FB-02 | `POST /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백 다시 만들기 | LLM | 16 |
 | FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 조회(종료 때 만든 평가) | - | 16, 17 |
@@ -247,9 +257,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | VOCAB-04 | `DELETE /api/v1/vocab/{userVocabId}` | 단어장에서 삭제 | - | 18 |
 | AI-01 | `GET /api/v1/ai/status` | AI 이용 상태·기능별 가능 여부 | - | 13, 19 |
 | USER-01 | `PUT /api/v1/me/ui-theme` | 화면 테마 저장 | - | 화면 없음(집에서 선택) |
-| USER-02 | `GET /api/v1/me/training-consents` | AI 개선 동의 조회 | - | 화면 없음(설정 화면 미정) |
-| USER-03 | `PUT /api/v1/me/training-consents` | AI 개선 동의 켜기·끄기 | - | 화면 없음(설정 화면 미정) |
+| USER-02 | `GET /api/v1/me/consents` | 선택 동의(음성 처리·AI 개선) 조회 | - | 마이페이지 |
+| USER-03 | `PUT /api/v1/me/consents` | 선택 동의 켜기·끄기 | - | 마이페이지 |
 | USER-04 | `PUT /api/v1/me/nickname` | 닉네임 변경 | - | 마이페이지 |
+| USER-05 | `DELETE /api/v1/me` | 회원 탈퇴(내용·개인정보 삭제) | - | 마이페이지 |
 
 ## 4. API 상세
 
@@ -268,7 +279,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "avatarType": "F",
     "currentLanguage": "en-US",
     "onboardingStep": "DONE",
-    "uiTheme": "JELLY"
+    "uiTheme": "JELLY",
+    "voiceConsent": true
   },
   "lastSceneCode": "TOWN",
   "activeConversationId": null,
@@ -289,8 +301,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | `onboardingStep: DONE` | `lastSceneCode` 장소. 없으면 마을 |
 
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
-- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
+- `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
+- `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 녹음을 막고 [말하기]를 회색으로 보이며, 누르면 동의 창에서 USER-03으로 동의를 켤 수 있게 합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
 
@@ -320,9 +333,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- 약관 버전과 문서 주소는 서버 설정값입니다. `VOICE` 동의의 필수 여부와 음성 보관 기간은 `[미정]`이며, 정해지기 전까지 선택 약관으로 둡니다.
+- 약관 버전과 문서 주소는 서버 설정값입니다.
+- `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 가입 뒤에는 USER-03으로 켜고 끕니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
-- 문서 주소(`url`)를 보여 줄 약관 페이지는 아직 없습니다 `[미정]`.
+- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -339,7 +353,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 
 // 응답 201
-{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY" } }
+{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY", "voiceConsent": true } }
 ```
 
 - 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다. 로그인하면서 세션 ID를 새로 발급하고 가입 대기 정보를 지웁니다.
@@ -378,26 +392,40 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### AUTH-07 `POST /api/v1/auth/guest`
 
-화면 01의 [게스트로 시작하기]입니다. Google 로그인과 가입 화면(02) 없이 캐릭터만 골라 새 사용자를 만들고 그 사용자로 로그인합니다.
+화면 01의 [게스트로 시작하기]입니다. Google 로그인과 가입 화면(02) 없이 캐릭터와 음성 처리 동의(선택)만 골라 새 사용자를 만들고 그 사용자로 로그인합니다.
 
 ```json
 // 요청
-{ "avatarType": "M" }
+{ "avatarType": "M", "voiceConsent": true }
 
 // 응답 201
 {
-  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY" }
+  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY", "voiceConsent": true }
 }
 ```
 
 - 다른 상태 변경 요청처럼 `X-Requested-With` 헤더가 필요합니다. 응답 형식은 AUTH-04와 같습니다.
 - `avatarType`은 `F`, `M`이며 필수입니다. 없으면 `VALIDATION_FAILED`입니다.
 - 부를 때마다 새 사용자를 만듭니다. `provider`는 `GUEST`, `providerUid`는 서버가 만든 임의 값이며 이메일은 없습니다. 로그아웃하거나 세션이 끝나면 같은 게스트로 다시 로그인할 수 없습니다.
+- 게스트 세션은 요청이 2시간 없으면 끝납니다(가입자는 24시간).
+- 마지막 활동 뒤 24시간이 지나면 게스트가 남긴 내용(대화 원문·NPC 음성·피드백·NPC 기억·저장 단어·숨김)을 지웁니다. 사용자·대화·AI 사용량 기록은 내용 없이 남깁니다.
 - 닉네임은 서버가 `guest-` 뒤에 겹치지 않는 여섯 자리 숫자를 붙여 정합니다. 회원 닉네임 규칙(AUTH-04)은 `-`를 허용하지 않으므로 회원 닉네임과 겹치지 않습니다.
 - 학습 언어와 대화 난이도는 MVP에서 고를 수 있는 값(`en-US`, 초급 1)으로 정하고 초기 설정은 튜토리얼(`TUTORIAL`)부터 시작합니다. 화면 03~05를 거치지 않으며 레벨 테스트 기록은 만들지 않습니다.
-- 가입 화면을 거치지 않으므로 약관 동의 기록(`user_consents`)을 남기지 않습니다.
-- NPC 대화는 계정마다 정해진 횟수까지만 시작할 수 있습니다(CONV-01).
+- 가입 화면을 거치지 않으므로 가입 약관 동의 기록(`user_consents`)을 남기지 않습니다. `voiceConsent`가 `true`면 지금 버전의 음성 처리(`VOICE`) 동의만 남깁니다. 없거나 `false`면 동의하지 않은 것으로 보며, 나중에 마이페이지(USER-03)에서 켤 수 있습니다.
+- NPC 대화는 계정마다 정해진 횟수까지만 시작할 수 있습니다(CONV-01). 시작하기 전에는 AUTH-08로 그 횟수를 보여 줍니다.
 - 모든 환경에서 열려 있습니다. 운영 공개 전에 유지 여부와 약관 처리를 다시 정합니다.
+
+#### AUTH-08 `GET /api/v1/auth/guest`
+
+게스트 캐릭터 선택 화면에 보여 줄 안내입니다. 계정을 만들기 전에 부르므로 로그인하지 않아도 됩니다.
+
+```json
+// 응답 200
+{ "conversationLimit": 3 }
+```
+
+- `conversationLimit`은 게스트 한 계정이 시작할 수 있는 NPC 대화 수로, 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)입니다. 시작한 뒤의 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
+- 화면은 읽지 못해도 캐릭터 선택과 [시작하기]를 막지 않고, 횟수 없이 "횟수가 정해져 있어요"로 안내합니다.
 
 ### 4.2 초기 설정
 
@@ -568,6 +596,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```json
 "npcs": [
   { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
+  { "npcCode": "TAXI_DRIVER", "name": "Joe", "npcType": "STAFF", "roleLabel": "택시 기사", "canInitiate": false, "approachLine": null },
   { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
@@ -620,6 +649,32 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 09의 외출, 화면 14의 건물 출입처럼 장소를 옮길 때 호출합니다. 재접속하면 BOOT-01의 `lastSceneCode`에서 시작합니다. 장소 안의 정확한 위치 복원은 `[미정]`입니다.
 - `sceneCode`가 없거나 비어 있으면 `400 VALIDATION_FAILED`, 없는 장소면 `404 NOT_FOUND`, 열리지 않은 장소(`is_open = false`)면 `409 SCENE_CLOSED`입니다. 오류가 나면 마지막 장소를 바꾸지 않습니다.
+
+#### 게임 시간
+
+게임 시간은 **사용자마다 따로, 플레이한 동안만** 흐릅니다. 실제 10분이 게임 하루이고, 새 사용자는 1일차 오전 8시에서 시작합니다. 진행 중인 대화가 있으면 멈춥니다. 서버가 사용자별 누적 플레이 시간(`user_game_clocks`)을 보관하며, NPC 관계의 "마지막 대화 뒤 지난 게임 날 수"도 이 시계로 셉니다([NPC 생활·관계 설계](../npc-life-design.md) 11절).
+
+#### WORLD-06 `GET /api/v1/me/game-clock`
+
+```json
+// 응답 200
+{ "day": 3, "minuteOfDay": 615, "paused": false }
+```
+
+- `day`는 1일차부터 센 게임 날짜, `minuteOfDay`는 하루 중 분(0~1439, 615면 오전 10시 15분)입니다. `paused`는 진행 중인 대화가 있어 시간이 멈췄는지입니다.
+- 신호를 보낸 적이 없으면 `{ "day": 1, "minuteOfDay": 480, "paused": false }`입니다. 시간을 흐르게 하지 않습니다.
+
+#### WORLD-07 `POST /api/v1/me/game-clock/beats`
+
+```json
+// 응답 200 (요청 본문 없음)
+{ "day": 3, "minuteOfDay": 627, "paused": false }
+```
+
+- 월드 장면에 있는 동안 30초마다 보내는 신호입니다. 지난 신호 뒤 흐른 실제 시간만큼 게임 시간을 더하고 지금 게임 시각을 돌려줍니다(실제 1초 = 게임 2.4분).
+- 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 진행 중인 대화가 있으면 더하지 않고 `paused: true`입니다.
+- 대화가 신호 사이에 시작·끝나면 그 몇 초는 신호 간격 안에서 셀 수도 빠질 수도 있습니다. 게임 날짜 단위로 쓰기에는 충분한 정확도입니다.
+- 두 API 모두 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. WORLD-07은 `X-Requested-With` 헤더가 필요합니다.
 
 ### 4.5 미션
 
@@ -692,21 +747,25 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "seq": 1,
     "speaker": "NPC",
     "text": "Hi! What can I get for you?",
-    "suggestWords": ["latte", "iced", "please"],
+    "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/100/speech" }
-  }
+  },
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 }
 }
 ```
 
+- `conversation`은 CONV-03 응답과 같은 형식의 대화 상태입니다. 대화 화면이 처음부터 무례 경고 칸(`rudeLimit`개)과 이 NPC의 지금 호감도(`affinity`)를 보여 줍니다. 처음 만난 NPC의 호감도는 0입니다. `status`는 위쪽 `status`와 같은 값이며, 위쪽 값은 이전 클라이언트를 위해 남겨 둡니다.
 - 화면 14의 [E 대화하기]는 `initiatedBy: USER`, 튜토리얼 뒤 거리 행인의 말걸기에 응답하면 `initiatedBy: NPC`입니다. 행인 말걸기를 거절하거나 무시하면 서버를 호출하지 않습니다.
 - `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
+- 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
 - `runningMissions`는 이 NPC가 대상인 진행 중인 미션이며 상단의 "미션 · …" 표시에 씁니다.
 - `levelApplied`는 사용자의 `selected_level`입니다.
 - 1.4의 규칙대로 한 턴과 피드백에 쓸 토큰이 남아 있어야 시작하며, 피드백용 토큰을 예약합니다. 부족하면 `AI_QUOTA_EXHAUSTED`입니다.
-- 게스트(AUTH-07)는 이미 시작한 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. `details`는 1.5의 형식이며, 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 첫 인사를 만들지 못해 대화가 만들어지지 않은 시도는 세지 않습니다.
+- 게스트(AUTH-07)는 이미 시작한 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. `message`는 사용량 소진 문구 대신 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). `details`는 1.5의 형식이며, 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 첫 인사를 만들지 못해 대화가 만들어지지 않은 시도는 세지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`이고, 시작하기 전 한도는 AUTH-08의 `conversationLimit`입니다.
 - 진행 중인 대화가 있으면 `CONVERSATION_ALREADY_ACTIVE`를 `activeConversationId`와 함께 돌려줍니다.
+- 첫 인사를 만드는 사이 같은 사용자의 다른 시작 요청이 먼저 저장됐으면, 저장 직전에 다시 확인해 `CONVERSATION_ALREADY_ACTIVE`(게스트가 그 요청으로 횟수를 다 썼으면 `AI_QUOTA_EXHAUSTED`)로 거절합니다. 진행 중인 대화는 하나만 남습니다.
 - AI를 쓸 수 없는 상태에서는 행인 말걸기를 발생시키지 않습니다. `[제안]` 클라이언트가 BOOT-01·AI-01의 상태로 판단하고, 최종 확인은 이 API에서 합니다.
 
 #### CONV-02 `POST /api/v1/speech/transcriptions`
@@ -731,7 +790,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 인식 대상은 영어입니다. 한국어로 말하면 거르거나 번역하지 않고 한글 그대로 전사합니다. 그 문장의 번역은 CONV-03이 맡습니다.
 - 녹음 형식은 `webm`, `ogg`, `mp4`, `wav`, `mpeg`이며 Unity는 16kHz 모노 16비트 WAV로 보냅니다. `audio` 파일 부분에 `Content-Type`(예: `audio/wav`)을 붙입니다.
 - 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 15초, 무음이 3초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
-- 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 녹음만 인식 결과와 함께 학습용으로 보관합니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다. `VOICE` 동의를 받은 경우의 보관 여부·기간은 `[미정]`입니다.
+- 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 녹음만 인식 결과와 함께 학습용으로 보관합니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다.
+- 음성은 외부 음성 인식 공급자로 가므로 지금 버전의 음성 처리(`VOICE`)에 동의한 사용자만 쓸 수 있습니다. 동의하지 않았으면 녹음을 확인하거나 AI를 부르기 전에 `403 VOICE_CONSENT_REQUIRED`로 거절합니다. 클라이언트는 BOOT-01의 `user.voiceConsent`로 미리 녹음을 막고, 회색 [말하기]를 누르면 동의 창(USER-03)을 띄웁니다.
 
 #### CONV-03 `POST /api/v1/conversations/{conversationId}/turns`
 
@@ -759,17 +819,17 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "seq": 5,
     "speaker": "NPC",
     "text": "Great! Is that for here or to go?",
-    "suggestWords": ["for here", "to go", "please"],
+    "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/105/speech" }
   },
-  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3 },
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 },
   "missionUpdates": []
 }
 ```
 
 - `text`는 사용자가 보낸 최종 문장입니다. `inputType`이 `VOICE`면 STT 결과를 그대로 `text`와 `sttRawText`로 보내고, 마이크를 쓸 수 없어 텍스트로 입력하면 `TEXT`로 보냅니다.
 - 영어, 한국어, 한영 혼용, 미완성 발화를 모두 받습니다. 최대 길이는 서버 설정값이며 넘으면 `VALIDATION_FAILED`입니다.
-- 추천 단어(`suggestWords`)는 NPC 응답과 함께 만들어 대사 아래에 보여줍니다.
+- 추천 단어는 NPC 응답을 기다리게 하지 않도록 따로 만듭니다. 응답의 `suggestWords`는 `null`이고, 클라이언트가 대사를 보여 준 뒤 CONV-12로 받아 대사 아래에 보여줍니다. 대화가 끝난 턴에는 요청하지 않습니다.
 - 같은 `requestId`로 다시 보내면 턴을 새로 만들지 않고 이전 응답을 그대로 돌려줍니다(`turns.request_id`). 화면 19의 [다시 시도]가 이 규칙을 씁니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
@@ -787,6 +847,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 판정 실패 | `rude: false`. 무례로 세지 않고 평소대로 처리 | 평소대로 | 계속 |
 
 - `rudeLimit`은 서버 설정값(3)입니다. 새 대화는 0부터 셉니다.
+- `conversation.affinity`는 이 턴을 처리한 뒤 이 NPC의 호감도(-100~100)입니다. 무례로 센 턴은 깎인 값입니다([무례 처리 합의안](rudeness-handling.md) 3절). 대화 화면은 NPC 이름 옆에 호감도를, 무례 경고 칸에 `rudeCount`/`rudeLimit`를 보여 줍니다. 같은 `requestId`로 다시 보내 이전 응답을 돌려줄 때도 호감도는 지금 값입니다.
 - 판정 결과와 실패 이유는 `turns.guard_abusive`, `turns.guard_error_code`에 남깁니다. 판정 실패를 무례나 무례 아님으로 바꿔 저장하지 않습니다. AI 워커에 닿지 못해 판정하지 못한 턴은 `guard_error_code`가 `worker_unavailable`이고 대화는 평소대로 이어집니다.
 - NPC가 먼저 잘못한 장면(정당방위)의 예외는 사건 장면을 만들 때 정합니다(6절).
 
@@ -821,7 +882,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "status": "ENDED_BY_NPC",
     "endReason": "QUOTA_EXHAUSTED",
     "rudeCount": 0,
-    "rudeLimit": 3
+    "rudeLimit": 3,
+    "affinity": 12
   },
   "missionUpdates": []
 }
@@ -842,7 +904,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/121/speech" }
   },
-  "conversation": { "status": "ENDED_BY_NPC", "endReason": "RUDE", "rudeCount": 3, "rudeLimit": 3 },
+  "conversation": { "status": "ENDED_BY_NPC", "endReason": "RUDE", "rudeCount": 3, "rudeLimit": 3, "affinity": 0 },
   "missionUpdates": []
 }
 ```
@@ -884,13 +946,30 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 추천 문장이 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 자유 대화의 힌트는 추천 단어·추천 문장 2단계입니다. 요구사항명세서의 3단계 힌트(키워드 → 문장 시작 → 예문)와 다릅니다(5.2).
 
+#### CONV-12 `POST /api/v1/turns/{turnId}/suggest-words`
+
+```json
+// 요청
+{ "requestId": "..." }
+
+// 응답 200
+{ "turnId": 105, "suggestWords": ["for here", "to go", "please"] }
+```
+
+- 화면 15의 대사 아래 추천 단어입니다. 클라이언트는 NPC 대사(CONV-01·03 응답)를 먼저 보여 준 뒤 이 API를 따로 불러 단어가 오면 채웁니다. 기다리는 동안 입력과 [보내기]를 막지 않고, 실패하면 단어 칸만 비워 둡니다.
+- 사용자가 답해야 하는 NPC 턴에 요청합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
+- 만든 단어는 저장해 다시 쓰고(`turns.suggest_words`) 다시 요청하면 AI를 호출하지 않습니다. CONV-10 대화 상세에도 저장된 단어가 담깁니다.
+- 단어는 AI 워커 `/v1/suggest`가 그 NPC 턴까지의 대화와 대화 난이도로 3개까지 만듭니다. 장면별 목표는 아직 없어 워커에 목표를 비워 보냅니다.
+- AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 단어가 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
+- 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 AI 호출 기록(`ai_requests.kind`)은 `HINT`로 남깁니다. 사용량 항목의 단계 이름(`suggest`)으로 힌트 문장과 구분합니다.
+
 #### CONV-06·07 NPC 음성
 
-- CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키가 없거나 파일이 없으면 `404 NOT_FOUND`입니다.
-- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
+- CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
+- CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
 - NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다.
-- 보관 정책: 음성은 턴 생성 후 최대 30일, 환경 전체 5,000,000,000바이트까지 둡니다(서버 설정값). 새 음성을 저장할 때 상한을 넘으면 오래된 파일부터 지우고, 매일 04:00(Asia/Seoul) 정리에서 기간이 지난 음성, 파일이 없어진 키(DB 복원 등), 어떤 턴도 쓰지 않는 오래된 파일을 지웁니다. NPC 공용 음성(`npcs.approach_audio_key`)은 지우지 않습니다.
-- `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 지움, `turns.npc_audio_deleted_at`)입니다. `EXPIRED`는 CONV-07을 불러도 다시 만들지 않으며, 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
+- 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
+- `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 재생 차단, `turns.npc_audio_deleted_at`)입니다. 파일 삭제 실패로 재시도 중인 경우도 `EXPIRED`이며 CONV-07을 불러도 다시 만들지 않습니다. 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
 - 내가 말한 문장을 TTS로 다시 들려주는 기능은 필요성을 함께 검토합니다(6절).
 
 #### CONV-08 `POST /api/v1/conversations/{conversationId}/end`
@@ -916,7 +995,24 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
       "improve": ["I want 대신 I'd like를 쓰면 더 공손해요."]
     },
     "suggestion": { "userText": "I want 아이스 라떼.", "betterText": "I'd like an iced latte, please." },
-    "errorCode": null
+    "errorCode": null,
+    "situationExpressions": [
+      {
+        "expression": "Can I get that to go?",
+        "meaningKo": "포장해 주실 수 있나요?",
+        "usageKo": "음료를 가지고 나가고 싶을 때 써요.",
+        "exampleEn": "Can I get that to go? I'm in a bit of a hurry.",
+        "exampleKo": "포장해 주실 수 있나요? 좀 급해서요."
+      }
+    ],
+    "vocabCandidates": [
+      {
+        "expression": "latte",
+        "meaningKo": "라떼",
+        "exampleEn": "I'd like an iced latte.",
+        "exampleKo": "아이스 라떼 주세요."
+      }
+    ]
   },
   "completedMissions": [
     { "userMissionId": 12, "title": "카페에서 음료 주문하기" },
@@ -926,7 +1022,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 화면 16의 짧은 피드백을 그립니다. "Mia · 카페 · 발화 4번"은 `npc`, `sceneCode`, `userTurnCount`, "미션 완료"는 `completedMissions`, 개선 표현 상자는 `suggestion`입니다.
-- `summary`는 `conversation_feedback.summary`, `reviews`와 `suggestion`은 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion }`)에 저장합니다.
+- `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`·`vocabCandidates`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions, vocabCandidates }`)에 저장합니다.
+- `situationExpressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개입니다(표현, 뜻, 쓰는 때, 학습 예문과 번역). 사용자 발화 평가와 별개로 화면 16·17의 회화 칸에 보여 줍니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다. 예문은 학습용이며 사용자가 한 말이 아닙니다.
+- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`이고 한 단어인 것만 담으며, 숙어·문장 후보는 단어장이 단어 하나만 저장하므로(4.8) 뺍니다. 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
 - 피드백은 대화를 시작할 때 예약한 토큰으로 만듭니다(1.4). 토큰이 떨어져 NPC가 대화를 끝낸 경우에도 피드백을 받습니다.
 - [대화 종료 (Esc)]와 오류 화면의 [대화 종료]에서 호출합니다. 어떤 오류 상태에서도 종료할 수 있습니다.
 - NPC가 대화를 끝낸 경우(`ENDED_BY_NPC`)에도 피드백을 받으려면 호출합니다. 이때 상태는 바꾸지 않고 피드백만 만듭니다.
@@ -939,7 +1037,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### CONV-09·10 지난 대화
 
-- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 [단어장] 옆 [지난 대화] 창의 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
+- CONV-09 `GET /api/v1/conversations?npcCode=&cursor=&size=`는 오른쪽 위 메뉴의 [피드백 목록] 창 목록입니다. 최근 시작 순으로 `{ conversationId, npc, sceneCode, status, endReason, startedAt, endedAt, userTurnCount, feedbackStatus }`를 돌려줍니다.
 
 ```json
 {
@@ -1066,7 +1164,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 ```
 
 - "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다. `counts.all`은 현재 `includeMemorized` 조건을 적용한 개수입니다.
-- 기본값은 `includeMemorized=false`, `size=20`입니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서는 `400 VALIDATION_FAILED`입니다.
+- 기본값은 `includeMemorized=false`, `size=20`이고 `size`는 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다.
 - `savedAt`은 한국 시각(`+09:00`)으로 보냅니다. 저장한 문장이 없으면 `context`는 `null`입니다.
 - 저장하는 것이 단어뿐이라 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocabularies.type`은 숙어를 검토할 때를 위해 그대로 둡니다.
 - `vocab.meaningKo`는 단어 하나의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
@@ -1094,16 +1192,17 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | --- | --- | --- | --- |
 | `OBJECT` | 사물 카드의 단어 | `vocabularies.meaning_ko` (시드) | 사물 카드 예문 `example` · `example_ko` (없으면 `null`) |
 | `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`) 중 한 단어인 것 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
-| `FEEDBACK` | 그 대화 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`인 것 | 후보의 `meaning_ko` | 후보의 `example_en` · `example_ko` |
+| `FEEDBACK` | 그 대화 피드백의 단어장 후보 중 CONV-08·FB-01 `feedback.vocabCandidates`에 있는 것 | 후보의 `meaningKo` | 후보의 `exampleEn` · `exampleKo` |
 
 - 표에 없는 단어, 두 단어 이상인 표현, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
 - 새로 저장하면 `201`, 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
-- 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다.
+- 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
-- 현재 구현은 `OBJECT`만 저장합니다. CONV-04는 단어 풀이를 저장하지만 `NPC_LINE` 저장은 아직 구현하지 않았고, `FEEDBACK`은 단어장 후보 연동 전입니다. 두 출처 모두 `422 VOCAB_SOURCE_MISMATCH`입니다.
+- 피드백을 만들지 못한 대화와 `vocabCandidates`를 넣기 전에 만든 피드백의 단어는 확인할 후보가 없어 `422 VOCAB_SOURCE_MISMATCH`입니다.
 - `OBJECT`의 `wordKey`는 WORLD-02 단어 카드의 `wordKey`입니다.
-- `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있으면 `400 VALIDATION_FAILED`, 없는 단어 키면 `404 NOT_FOUND`입니다.
+- `sourceType`이 없거나, `OBJECT`인데 `wordKey`가 비어 있거나, `NPC_LINE`인데 `turnId`·`text`가, `FEEDBACK`인데 `conversationId`·`text`가 비어 있으면 `400 VALIDATION_FAILED`입니다. 없는 단어 키면 `404 NOT_FOUND`입니다.
+- `NPC_LINE`의 턴이 없거나, 다른 사용자의 턴이거나, NPC가 아닌 사용자 턴이면 CONV-04와 같이 `404 NOT_FOUND`입니다. `FEEDBACK`의 대화가 없거나 다른 사용자의 대화여도 `404 NOT_FOUND`입니다.
 - `requestId`는 형식을 맞추려고 받지만 쓰지 않습니다. 이미 저장한 단어는 처음 항목을 돌려주므로 같은 요청을 다시 보내도 결과가 같습니다.
 
 #### VOCAB-03·04 메모·외웠어요·삭제
@@ -1124,6 +1223,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
     "canUseSpeech": true,
     "canGenerateFeedback": true
   },
+  "remainingConversations": 2,
   "quota": null,
   "resumeAt": null
 }
@@ -1141,12 +1241,13 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - `quota`는 한도 정책이 정해진 경우에만 `{ "periodStart": "2026-10-21", "usedTokens": 1200, "remainingTokens": 8800 }` 형식으로 채웁니다. 화면 19의 "갱신 시점"은 `resumeAt`이며, 정해지지 않았으면 `[정책 미정]`으로 표시합니다.
 - 현재 구현: 가입 사용자의 토큰 한도(1.4)는 수치가 `[미정]`이라 아직 없고, 게스트의 대화 횟수 제한(CONV-01)만 반영합니다. 한도 정책이 없으므로 `quota`·`resumeAt`은 응답에 담지 않습니다.
 
-| 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` |
-| --- | --- | --- | --- | --- |
-| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` |
-| 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` |
-| 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` |
+| 사용자 | `status` | `canStartConversation` | `canUseSpeech` | `canGenerateFeedback` | `remainingConversations` |
+| --- | --- | --- | --- | --- | --- |
+| 가입 사용자 | `AI_AVAILABLE` | `true` | `true` | `true` | 담지 않음 |
+| 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` | 1 이상 |
+| 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` | `0` |
 
+- `remainingConversations`는 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 이미 시작한 대화 수를 뺀 값). 화면은 [E 대화하기]와 행인 제안의 [대화하기]에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 [E 대화하기]를 이유와 함께 비활성화합니다. 가입 사용자는 횟수 제한이 없어 담지 않습니다.
 - 게스트 한도는 새 대화 시작만 막습니다. 마지막으로 시작한 대화도 횟수에 들어가 그 대화 중에도 `AI_EXHAUSTED`이지만, 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
 - 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 
@@ -1168,26 +1269,27 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - `uiTheme`이 없거나 `null`이거나 세 값 중 하나가 아니면(대소문자 구분, 예: `sticker`) `400 VALIDATION_FAILED`이며 테마를 바꾸지 않습니다.
 - 같은 값을 여러 번 보내도 결과가 같습니다.
 
-### 4.11 AI 개선 동의
+### 4.11 선택 동의(음성 처리·AI 개선)
 
-가입 화면(AUTH-03·04)에서 받은 `TRAINING_TEXT`·`TRAINING_VOICE` 동의를 가입 뒤에 보고 바꿉니다. 동의 범위·보관·내보내기 기준은 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다. 설정 화면의 위치와 모양은 Unity와 정합니다 `[미정]`.
+가입 화면(AUTH-03·04)이나 게스트 시작(AUTH-07)에서 받은 선택 동의를 가입 뒤에 보고 바꿉니다. 마이페이지(4.12)에서 씁니다. 음성 처리(`VOICE`)는 음성 입력(CONV-02)에, AI 개선(`TRAINING_TEXT`·`TRAINING_VOICE`)은 [AI 개선 데이터 활용 기준](../ai-training-data.md)의 학습·평가에 쓰는 동의입니다.
 
-#### USER-02 `GET /api/v1/me/training-consents`
+#### USER-02 `GET /api/v1/me/consents`
 
 ```json
 // 응답 200
 {
   "consents": [
+    { "consentType": "VOICE", "version": "2026-10", "title": "음성 처리 동의", "url": "/voice/2026-10", "agreed": true },
     { "consentType": "TRAINING_TEXT", "version": "2026-10", "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10", "agreed": true },
     { "consentType": "TRAINING_VOICE", "version": "2026-10", "title": "AI 개선에 내 녹음 음성 활용", "url": "/ai-training/2026-10", "agreed": false }
   ]
 }
 ```
 
-- 대화 기록, 녹음 음성 순서로 돌려줍니다. `agreed`는 지금 문구 버전(`version`)에 동의했고 철회하지 않았으면 `true`입니다. 옛 버전에 동의했으면 `false`입니다.
-- 게스트는 동의할 수 없으므로 둘 다 `false`입니다.
+- 이 사용자가 바꿀 수 있는 동의만 음성 처리, 대화 기록, 녹음 음성 순서로 돌려줍니다. 게스트에게는 AI 개선 동의를 받지 않으므로 음성 처리만 돌려줍니다. 클라이언트는 받은 목록을 그대로 그립니다.
+- `agreed`는 지금 문구 버전(`version`)에 동의했고 철회하지 않았으면 `true`입니다. 옛 버전에 동의했으면 `false`입니다.
 
-#### USER-03 `PUT /api/v1/me/training-consents`
+#### USER-03 `PUT /api/v1/me/consents`
 
 ```json
 // 요청
@@ -1198,13 +1300,16 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 ```
 
 - `agreed: true`면 지금 문구 버전으로 동의를 남깁니다. 이미 동의했으면 바뀌는 것이 없습니다.
-- `agreed: false`면 동의를 철회합니다(`user_consents.withdrawn_at`). `TRAINING_VOICE`를 철회하면 그동안 저장한 녹음 파일과 기록을 바로 지웁니다. `TRAINING_TEXT`를 철회하면 대화 기록은 서비스에 필요하므로 지우지 않고 학습용 내보내기에서 뺍니다.
-- `consentType`·`agreed`가 없거나 `null`이거나, `consentType`이 `TRAINING_TEXT`·`TRAINING_VOICE`가 아니면 `400 VALIDATION_FAILED`입니다. 게스트가 부르면 `400 VALIDATION_FAILED`입니다.
+- `agreed: false`면 동의를 철회합니다(`user_consents.withdrawn_at`).
+  - `VOICE`를 철회하면 다음 요청부터 음성 입력(CONV-02)을 쓸 수 없습니다. 녹음은 원래 저장하지 않으므로 지울 것이 없습니다.
+  - `TRAINING_VOICE`를 철회하면 그동안 저장한 녹음 파일과 기록을 바로 지웁니다.
+  - `TRAINING_TEXT`를 철회하면 대화 기록은 서비스에 필요하므로 지우지 않고 학습용 내보내기에서 뺍니다.
+- `consentType`·`agreed`가 없거나 `null`이거나, `consentType`이 `VOICE`·`TRAINING_TEXT`·`TRAINING_VOICE`가 아니면 `400 VALIDATION_FAILED`입니다. 게스트가 AI 개선 동의를 바꾸려 해도 `400 VALIDATION_FAILED`입니다.
 - 로그인한 사용자만 호출할 수 있으며 `X-Requested-With` 헤더가 필요합니다.
 
 ### 4.12 마이페이지
 
-와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04)과 로그아웃(AUTH-05)을 둡니다.
+와이어프레임 밖에서 추가한 화면입니다. 공간 화면 오른쪽 위 메뉴(≡)의 [내 정보]로 열며, BOOT-01의 `user`로 닉네임·캐릭터·배우는 언어를 보여 주고 닉네임 변경(USER-04), 로그아웃(AUTH-05), 회원 탈퇴(USER-05)를 둡니다. 선택 동의(USER-02·03)는 받은 목록대로 켜고 끄는 항목으로 보여 주며, 바꾸지 못하면 원래 상태로 되돌리고 이유를 알립니다.
 
 #### USER-04 `PUT /api/v1/me/nickname`
 
@@ -1222,6 +1327,20 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - 바꾼 닉네임은 다시 접속하면 BOOT-01의 `user.nickname`으로 내려갑니다.
 - 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. `X-Requested-With` 헤더가 필요합니다.
 
+#### USER-05 `DELETE /api/v1/me`
+
+마이페이지의 [회원 탈퇴]입니다. 확인 창을 거친 뒤 부릅니다. 응답은 본문 없이 `204`입니다.
+
+- 사용자가 남긴 내용을 바로 지웁니다. 범위는 게스트 내용 정리(AUTH-07)와 같습니다: 대화 원문(턴)·NPC 음성·대화 피드백·문장 피드백과 모범 음성·NPC 기억과 관계·저장 단어·숨김·레벨 테스트 답·학습용 녹음.
+- 개인정보도 지웁니다.
+  - 이메일을 비웁니다.
+  - 소셜 계정 ID(`provider_uid`)는 `withdrawn-`으로 시작하는 임의 값으로, 닉네임은 `withdrawn-{사용자 ID}`로 바꿉니다. 같은 Google 계정과 같은 닉네임으로 다시 가입할 수 있습니다.
+  - 관리자였다면 일반 사용자로 되돌립니다.
+- 사용자·대화·AI 호출 기록·미션 진행·동의 기록 같은 뼈대는 남은 행이 가리키므로 누구 것인지 알 수 없는 채로 남깁니다.
+- 요청한 세션을 끝냅니다. 클라이언트는 입구 화면(로그인)으로 돌아갑니다. 다른 기기에서 로그인해 둔 세션은 그 기기에서 24시간 동안 요청이 없으면 끝납니다.
+- 게스트도 부를 수 있으며 같은 방식으로 지웁니다.
+- 로그인하지 않았으면 `401 UNAUTHENTICATED`이며 아무것도 지우지 않습니다. `X-Requested-With` 헤더가 필요합니다.
+
 ## 5. ERD와의 관계
 
 ### 5.1 이 명세에 맞춰 ERD v3.1~v3.7에 반영한 사항
@@ -1238,7 +1357,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 대화 종료 이유 | CONV-03, 08 | `conversations.end_reason`(`USER_ENDED`, `NPC_ENDED`, `QUOTA_EXHAUSTED`, `EXPIRED`)을 추가했습니다. |
 | 숙어 뜻 | FB-03 | `turn_feedback.idiom_meaning_ko`를 추가했습니다. |
 | 짧은 피드백 개선 표현 | CONV-08 | `conversation_feedback.reviews` JSON을 `{ good, improve, suggestion }` 구조로 정했습니다. |
-| NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관 기간은 `[미정]`입니다. |
+| NPC 음성 보관 | CONV-06, 07 | `turns.npc_audio_key`를 추가했습니다. 보관·삭제·용량 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다. |
 | 무례 판정 (v3.2) | CONV-03 | `turns.guard_abusive`(null이면 판정 실패), `turns.guard_error_code`, `conversations.rude_count`를 추가하고 `end_reason`에 `RUDE`를 더했습니다. |
 | 학습자 말 번역 (v3.2) | CONV-03 | `turns.translation_en`을 추가했습니다. 번역 카드와 다음 요청의 대화 기록, 피드백에 씁니다. |
 | AI 호출 기록 단위 (v3.2) | 1.4, CONV-02·03 | `ai_requests.kind`를 기능 단위(`STT`, `GUARD`, `JUDGE`, `NPC`, `TTS`, `HINT`, `MEANING`, `FEEDBACK`)로 나눴습니다. 한 턴의 여러 AI 호출이 같은 `request_id`를 써도 겹치지 않습니다. |
@@ -1303,4 +1422,4 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 단어장 중요도 | 18 | 목록은 최근 저장순 |
 | 숙어·문장 저장, 단어장 유형 필터 | 15~18 | MVP는 단어 하나만 저장. 숙어 저장 방식(뜻 출처, 문장 표시)은 이후 검토 |
 | 회상 복습 | 18 | 요구사항명세서 REQ-17·18(정답 기록, 5회 정답 시 카드 숨김)과 다른 점으로 기록 |
-| NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음 |
+| NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음. 대화 중인 NPC의 호감도는 CONV-01·03 응답으로 보여 줌 |

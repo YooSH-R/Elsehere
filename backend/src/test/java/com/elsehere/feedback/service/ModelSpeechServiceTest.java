@@ -21,7 +21,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.dto.ModelSpeechResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.user.UserTestData;
@@ -129,6 +129,23 @@ class ModelSpeechServiceTest {
 
     assertNotFound(() -> modelSpeechService.create(userId, fine.getId(), uuid()));
     then(aiWorkerClient).should(never()).synthesize(any(), any(), any(), anyDouble());
+  }
+
+  @Test
+  @DisplayName("모범 음성을 합성하다 워커에 닿지 못하면 합성 호출을 FAILED로 남긴다")
+  void create_whenSynthesisFails_recordsFailedCall() {
+    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertThatThrownBy(() -> modelSpeechService.create(userId, feedback.getId(), requestId))
+        .isInstanceOf(BusinessException.class);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.TTS)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test

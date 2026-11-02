@@ -8,6 +8,7 @@ import com.elsehere.common.auth.CsrfHeaderFilter;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.UserLoggingFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -44,6 +46,11 @@ public class SecurityConfig {
   /** 운영자 관리 API. */
   private static final String ADMIN_API = "/api/v1/admin/**";
 
+  /** 가입 화면에서 여는 약관 문서(AUTH-03의 url). 백엔드가 그린다. */
+  private static final String[] LEGAL_DOCUMENTS = {
+    "/terms/*", "/privacy/*", "/voice/*", "/ai-training/*"
+  };
+
   @Bean
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http,
@@ -58,6 +65,8 @@ public class SecurityConfig {
         // CSRF는 Spring의 토큰 방식 대신 사용자 정의 헤더 검사로 막는다(CsrfHeaderFilter).
         .csrf(AbstractHttpConfigurer::disable)
         .addFilterAt(new CsrfHeaderFilter(exceptionResolver), CsrfFilter.class)
+        // 세션에서 인증 정보를 읽은 뒤 로그인 사용자 ID를 로그 문맥에 넣는다.
+        .addFilterAfter(new UserLoggingFilter(), AnonymousAuthenticationFilter.class)
         .oauth2Login(
             oauth2 ->
                 oauth2
@@ -77,7 +86,9 @@ public class SecurityConfig {
                     // 가입(AUTH-03·04)은 로그인 전 단계다. 가입 대기 여부는 컨트롤러가 확인한다.
                     .requestMatchers("/api/v1/auth/signup")
                     .permitAll()
-                    // 게스트로 시작하기(AUTH-07)는 로그인 전에 부른다.
+                    // 게스트 안내(AUTH-08)와 게스트로 시작하기(AUTH-07)는 로그인 전에 부른다.
+                    .requestMatchers(HttpMethod.GET, "/api/v1/auth/guest")
+                    .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/guest")
                     .permitAll()
                     // 접속 상태 조회(BOOT-01)는 가입 대기 사용자도 호출한다. 로그인 상태는 컨트롤러가 구분한다.
@@ -85,6 +96,9 @@ public class SecurityConfig {
                     .permitAll()
                     // 닉네임 중복 확인(AUTH-06)은 가입 대기 사용자도 호출한다. 호출 자격은 컨트롤러가 확인한다.
                     .requestMatchers(HttpMethod.GET, "/api/v1/nicknames/availability")
+                    .permitAll()
+                    // 약관 문서는 가입하기 전에 읽는다.
+                    .requestMatchers(HttpMethod.GET, LEGAL_DOCUMENTS)
                     .permitAll()
                     // 운영자 어드민 화면과 관리 API는 관리자만 쓴다. 역할은 요청마다 DB에서 확인한다(AdminAccess).
                     .requestMatchers(ADMIN_PAGES, ADMIN_API)

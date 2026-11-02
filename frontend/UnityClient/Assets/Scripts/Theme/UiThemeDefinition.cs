@@ -19,6 +19,12 @@ namespace A305.Theme
         Caption,
         Accent,
         Control,
+
+        // 메뉴 목록의 한 줄(바탕 없이 아이콘·이름). 역할은 숫자로 저장되므로 새 역할은 끝에 더한다.
+        MenuItem,
+
+        // 입구 화면처럼 창 뒤를 채우는 배경. 흰 창과 구분되도록 강조색을 엷게 깐다.
+        Backdrop,
     }
 
     /// <summary>버튼 색의 쓰임. 테마마다 실제 색을 따로 정한다.</summary>

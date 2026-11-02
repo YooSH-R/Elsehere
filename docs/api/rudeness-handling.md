@@ -47,13 +47,14 @@
 | 한도 | 3회 (서버 설정값 `rudeLimit`) |
 | 1~2회째 | 대화 계속. NPC가 경고 지시문으로 대답, 상태는 그대로 |
 | 3회째 | NPC가 퇴장 지시문으로 대답하고 대화가 끝남. `status: ENDED_BY_NPC`, `endReason: RUDE` |
-| 호감도 | 무례로 센 말마다(3회째 포함) 그 NPC의 호감도(`user_npc_relations.affinity`, -100~100)를 깎음. `/v1/guard`의 `affinity_delta`(NPC 성격 반영)를 쓰고, 비어 있으면 서버 설정 기본값 -4(`elsehere.relationship.rude-affinity-delta`) |
+| 호감도 | 무례로 센 말마다(3회째 포함) 그 NPC의 호감도(`user_npc_relations.affinity`, -100~100)를 깎음. `/v1/guard`의 `affinity_delta`(NPC 성격 반영)를 쓰고, 비어 있으면 서버 설정 기본값 -6(`elsehere.relationship.rude-affinity-delta`) |
+| 응답 | CONV-01·03 응답의 `conversation`에 무례 횟수(`rudeCount`)·한도(`rudeLimit`)와 이 NPC의 지금 호감도(`affinity`)를 담음. 무례로 센 턴은 깎인 호감도 |
 | 퇴장 뒤 | 다른 종료와 같이 CONV-08로 피드백을 만듦 |
 | 다시 말 걸기 | 막지 않음. 일정 시간 막는 것은 MVP에서 제외 |
 
 - 판정은 틀릴 수 있습니다. 잠긴 테스트셋 기준으로 LLM 판정의 정밀도는 약 83~92%, 재현율은 약 65~72%라서, 정상 발화를 무례로 볼 때도 있고 무례한 말을 놓칠 때도 있습니다. 한도를 1회가 아니라 3회로 두면 오판 한 번으로 대화가 끝나지 않습니다. 한도를 낮추려면 이 오판율을 함께 봐 주세요.
 - 퇴장 턴의 대사도 AI로 만듭니다(`/v1/npc/reply` + 퇴장 지시문). 토큰이 떨어졌을 때처럼 미리 쓴 작별 대사(`npcs.farewell_line`)를 쓰면 "급한 일이 생겼어요"가 되어 맞지 않습니다.
-- 퇴장 턴에서는 추천 단어를 만들지 않습니다(`suggest_words: false`, `suggestWords: null`).
+- 퇴장 턴에서는 대화가 끝나므로 클라이언트가 추천 단어(CONV-12)를 요청하지 않습니다(`suggestWords: null`).
 - 호감도는 무례 턴을 저장하고 횟수를 세는 같은 트랜잭션에서 SQL 한 번으로 깎습니다. 그래서 무례 횟수와 감점이 함께 확정되고, 같은 요청 ID로 다시 보내도 한 번만 깎이며, 워커 장애나 [대화 종료] 없이 나가는 경우에도 빠지지 않습니다. `null`(판정 못 함)은 깎지 않습니다.
 - 기본값 -4는 공통 규칙(`ai/npcs/rules/world-rules.json`)의 `relationship.rudeAffinityFallback`과 같은 값입니다. 규칙 값이 바뀌면 서버 설정도 함께 바꿉니다.
 

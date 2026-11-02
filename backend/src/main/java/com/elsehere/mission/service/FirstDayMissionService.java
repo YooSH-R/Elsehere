@@ -34,9 +34,7 @@ public class FirstDayMissionService {
 
   public FirstDayMissionResponse start(Long userId) {
     // 사용자 행을 잠가 첫 시작 요청 두 개가 같은 PK를 만들지 않게 한다.
-    users
-        .findForMissionUpdate(userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    users.findForUpdate(userId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     FirstDayMission mission =
         repository.findById(userId).orElseGet(() -> repository.save(FirstDayMission.start(userId)));
     return response(mission);
@@ -80,7 +78,8 @@ public class FirstDayMissionService {
                 return new Context(
                     7,
                     null,
-                    "The first-day journey is complete. The learner is checked in, has their suitcase, small blue bag and umbrella. Do not restart the lost-bag incident.");
+                    "The first-day journey is complete. The learner is checked in, has their suitcase, small blue bag and umbrella. Do not restart the lost-bag incident.",
+                    List.of());
               }
               FirstDayStage stage = mission.current();
               boolean matches = stage.npc().equals(npcCode);
@@ -100,15 +99,26 @@ public class FirstDayMissionService {
                               .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
                               .toList())
                       : null;
-              String instruction =
-                  matches
-                      ? stage.instruction()
-                          + " Remaining objectives: "
-                          + String.join(",", remaining)
-                      : "Current journey: "
-                          + stage.instruction()
-                          + " You are not the required NPC for this stage; help with directions, but do not perform another NPC's actions or restart completed incidents.";
-              return new Context(mission.getStage(), state, instruction);
+              String instruction;
+              if (!matches) {
+                instruction =
+                    "The learner's next stop is "
+                        + place(stage.scene())
+                        + ". Stay in your own role and help with directions if asked. Do not offer or sell the destination NPC's goods or services, perform their mission actions, claim items found there, or restart completed incidents.";
+              } else if (stage == FirstDayStage.CAFE_BREAK && remaining.isEmpty()) {
+                instruction =
+                    "The learner has already ordered, chosen drink options and said they will stay. Acknowledge the order briefly. Do not offer another drink or repeat order questions. The learner has not rested yet; do not claim that they have.";
+              } else {
+                instruction =
+                    stage.instruction()
+                        + " Objectives pending before this turn: "
+                        + String.join(",", remaining);
+              }
+              return new Context(
+                  mission.getStage(),
+                  state,
+                  instruction,
+                  matches ? List.copyOf(remaining) : List.of());
             });
   }
 
@@ -124,6 +134,9 @@ public class FirstDayMissionService {
                 mission.accept(
                     expectedStage, npcCode, intent.ids() == null ? List.of() : intent.ids()));
   }
+
+  // 시작 전과 여정 완료 뒤의 마을 날씨.
+  private static final String CLEAR_WEATHER = "CLEAR";
 
   private static FirstDayMissionResponse response(FirstDayMission mission) {
     boolean started = mission != null;
@@ -175,6 +188,7 @@ public class FirstDayMissionService {
         scene,
         started && "CAFE".equals(scene) && mission.canRest(),
         started && current >= 4 && current <= 6 && "TOWN".equals(scene),
+        !started || complete ? CLEAR_WEATHER : mission.current().weather(),
         started ? mission.getBalance() : 20,
         situation,
         direction,
@@ -185,12 +199,24 @@ public class FirstDayMissionService {
     return switch (scene) {
       case "HOTEL" -> "호텔로";
       case "CAFE" -> "카페로";
-      case "SHOP" -> "CONVENIENCE STORE 편의점으로";
+      case "SHOP" -> "DRUGSTORE 드럭스토어로";
       default -> "마을 거리로";
     };
   }
 
-  public record Context(int stage, WorkerState state, String instruction) {
+  private static String place(String scene) {
+    return switch (scene) {
+      case "HOTEL" -> "the hotel";
+      case "CAFE" -> "Corner Cafe";
+      case "SHOP" -> "the DRUGSTORE";
+      case "TOWN" -> "the main street";
+      default ->
+          throw new IllegalArgumentException("Unsupported first-day mission scene: " + scene);
+    };
+  }
+
+  public record Context(
+      int stage, WorkerState state, String instruction, List<String> remainingGoals) {
     public String replyInstruction(JudgeResult.Intent intent) {
       if (state == null || intent == null || intent.error() != null || intent.ids() == null) {
         return instruction;
@@ -199,10 +225,19 @@ public class FirstDayMissionService {
           intent.ids().stream()
               .filter(id -> state.intents().stream().anyMatch(allowed -> allowed.id().equals(id)))
               .toList();
+      List<String> pending =
+          remainingGoals.stream().filter(id -> !recognized.contains(id)).toList();
+      String nextQuestion =
+          pending.isEmpty()
+              ? " No objectives remain for this stage. Acknowledge what was completed without asking another mission question or assuming later stages are complete."
+              : " Remaining objectives after this turn: "
+                  + String.join(",", pending)
+                  + ". Ask about one of these objectives. Do not repeat already answered questions.";
       return instruction
           + " This turn recognized: "
           + String.join(",", recognized)
-          + ". Acknowledge these requests and ask about one remaining objective. Do not repeat already answered questions.";
+          + ". Acknowledge these requests."
+          + nextQuestion;
     }
   }
 }

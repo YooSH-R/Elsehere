@@ -9,9 +9,6 @@ namespace A305.Onboarding
     /// <summary>화면 02 가입 정보 입력. 닉네임·캐릭터·약관 입력을 전달하고, <see cref="SignupForm"/>의 상태를 보여 준다.</summary>
     public class SignupPanelView : MonoBehaviour
     {
-        private static readonly Color SelectedColor = new Color(0.24f, 0.42f, 0.85f, 1f);
-        private static readonly Color NormalColor = new Color(0.3f, 0.32f, 0.38f, 1f);
-
         [SerializeField]
         private TMP_InputField nicknameInput;
 
@@ -66,10 +63,7 @@ namespace A305.Onboarding
             checkNicknameButton.interactable =
                 form.NicknameProblem == NicknameProblem.None
                 && form.NicknameStatus != NicknameStatus.Available;
-            ((Image)femaleButton.targetGraphic).color =
-                form.Avatar == AvatarType.F ? SelectedColor : NormalColor;
-            ((Image)maleButton.targetGraphic).color =
-                form.Avatar == AvatarType.M ? SelectedColor : NormalColor;
+            AvatarButtons.ShowSelected(femaleButton, maleButton, form.Avatar);
 
             if (shownTerms != form.Terms)
             {

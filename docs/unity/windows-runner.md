@@ -1,6 +1,6 @@
 # Windows 노트북의 Unity 전용 Runner
 
-Unity 테스트와 WebGL 빌드는 Windows 노트북의 `a305-unity-windows` Runner에서 실행합니다. 백엔드·AI·인프라 검사는 기존 EC2의 `a305-linux` Runner를 사용하며, 개발·운영 서비스는 EC2에서 실행합니다.
+Unity 테스트와 WebGL 빌드는 Windows 노트북의 `a305-unity-windows` Runner에서 실행합니다. 일반 Linux 검사는 EC2와 노트북의 별도 Linux Runner가 `a305-linux-ci` 태그로 나눠 받으며, 배포 계획·전달과 개발·운영 서비스는 EC2에서 실행합니다. Linux Runner는 Unity와 별도로 최대 두 작업을 실행하며 [설치·제한 기준](../ci-runner.md#노트북-linux-runner)을 따릅니다.
 
 노트북에는 프로젝트와 같은 Unity `6000.3.26f1`, Web Build Support와 사용 가능한 라이선스가 필요합니다. 라이선스를 활성화한 Windows 계정으로 Runner를 실행합니다. Runner 등록·Online 상태와 실제 CI 테스트·빌드 성공은 각각 확인합니다.
 
@@ -23,7 +23,11 @@ GitLab 프로젝트의 **Settings → CI/CD → Runners → Create project runne
 
 현재 Unity를 사용 중인 계정의 일반 PowerShell에서 설치합니다. 서비스 계정의 라이선스·환경을 별도로 확인하기 전에는 아래의 사용자 세션에서 실행합니다.
 
+Runner의 작업 셸은 PowerShell 7(`pwsh`)을 사용합니다. Windows PowerShell 5.1은 Runner가 만든 작업 스크립트를 시스템 코드 페이지(한국어 Windows는 CP949)로 읽어, MR 설명처럼 한글이 들어간 CI 변수가 있으면 작업 시작 단계에서 구문 오류(`ParserError`)로 실패합니다. 관리자 권한 없이 사용자 계정에 설치할 수 있습니다.
+
 ```powershell
+winget install --id Microsoft.PowerShell --source winget --exact
+pwsh --version
 $unityRunnerDirectory = Join-Path $env:USERPROFILE 'a305-unity-runner'
 New-Item -ItemType Directory -Path $unityRunnerDirectory -Force | Out-Null
 Set-Location $unityRunnerDirectory
@@ -34,7 +38,7 @@ Invoke-WebRequest -UseBasicParsing -Uri 'https://gitlab-runner-downloads.s3.amaz
 
 이미 설치·등록했다면 반복하지 않습니다. 등록 URL은 `https://lab.ssafy.com`, executor는 `shell`입니다. GitLab에서 받은 인증 토큰은 등록 프롬프트에만 입력하고 공유하지 않습니다. Runner 버전은 기존 GitLab의 18.11 계열에 맞춘 값이며, 업그레이드할 때 서버와의 호환성을 확인합니다.
 
-설정 파일은 저장소 밖의 Runner 폴더에서 관리합니다. 최상위 `concurrent = 1`, 등록된 `[[runners]]`의 `limit = 1`, `executor = "shell"`, `shell = "powershell"`을 맞춥니다. 기존 ID·URL·토큰은 보존합니다.
+설정 파일은 저장소 밖의 Runner 폴더에서 관리합니다. 최상위 `concurrent = 2`, 등록된 `[[runners]]`의 `limit = 2`, `executor = "shell"`, `shell = "pwsh"`를 맞추고, 기존 ID·URL·토큰은 보존합니다. 실행 중인 Runner는 설정을 자동으로 다시 읽으므로 동시 실행 수 변경을 위해 진행 중인 작업을 재시작하지 않습니다. `shell` 변경은 다시 읽은 설정에 반영되지 않으므로, 진행 중인 작업이 끝난 뒤 Runner를 재시작하고 첫 작업 로그의 `Using Shell (pwsh) executor`를 확인합니다. 확인 전에는 GitLab에서 Runner를 일시 중지해 다른 MR 작업을 받지 않게 합니다.
 
 ```powershell
 notepad ./config.toml
@@ -42,7 +46,7 @@ notepad ./config.toml
 ./gitlab-runner.exe run --config ./config.toml --working-directory "$env:USERPROFILE\a305-unity-runner"
 ```
 
-PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 들어가지 않도록 합니다. 노트북이 꺼져 있으면 Unity 작업이 대기하며 이미 EC2에 배포된 서비스는 계속 실행됩니다. Runner는 별도 `builds` 폴더에 후보 커밋을 내려받으므로 개발 중인 원본 체크아웃을 작업 폴더로 지정하지 않습니다. [Windows Runner 설치](https://docs.gitlab.com/runner/install/windows/), [지원 셸](https://docs.gitlab.com/runner/shells/)
+PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 들어가지 않도록 합니다. 노트북이 꺼져 있으면 Unity 작업이 대기하며 이미 EC2에 배포된 서비스는 계속 실행됩니다. Runner는 별도 `builds` 폴더에 후보 커밋을 내려받으므로 개발 중인 원본 체크아웃을 작업 폴더로 지정하지 않습니다. 멈춘 작업은 GitLab에서 취소하며, 작업 폴더의 Unity 프로세스를 강제 종료하지 않습니다. 강제 종료하면 남은 빌드 프로세스가 `Library/Bee`를 잡아 다음 작업의 스크립트 컴파일이 실패할 수 있습니다. [Windows Runner 설치](https://docs.gitlab.com/runner/install/windows/), [지원 셸](https://docs.gitlab.com/runner/shells/)
 
 ## CI 연결 시험
 
@@ -60,7 +64,11 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 Runner에서 실행되는 코드는 Windows 실행 계정 권한으로 동작합니다. 프로젝트의 신뢰하는 팀원에게만 브랜치 작성 권한을 주고, Runner는 프로젝트에 잠근 채 지정 태그만 받습니다. `dev`·`main`의 브랜치 보호와 배포 자격 증명의 보호·환경 범위는 유지하며, 배포용 SSH 키·서버 환경 파일을 노트북 작업에 추가하지 않습니다. MR 작업에 protected 변수 접근을 허용하는 설정도 켜지 않습니다. [보호된 Runner](https://docs.gitlab.com/ci/runners/configure_runners/#protecting-sensitive-information), [Shell executor](https://docs.gitlab.com/runner/executors/shell/)
 
-MR과 배포 검사는 같은 `resource_group: a305-unity-editor`를 사용합니다. 노트북에서는 한 번에 Unity 작업 하나만 실행하고, 배포 대기열과는 독립적으로 검사합니다. MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다.
+MR과 배포 검사는 Runner의 동시 실행 제한으로 최대 두 작업을 실행하며, Unity 전체를 하나로 묶는 `resource_group`은 사용하지 않습니다. Shell executor의 기본 작업 경로는 동시 실행 번호별로 분리되므로 각 작업은 자신의 Unity 프로젝트·`Library`·산출물을 사용합니다. 작업 경로를 하나로 고정하거나 `Library`를 두 작업이 동시에 쓰도록 연결하지 않습니다. [Shell executor 작업 경로](https://docs.gitlab.com/runner/executors/shell/)
+
+프로젝트 전용 Runner의 일반 대기열은 FIFO로 처리합니다. 선행 검사가 끝나 실행 가능한 `pending` 작업 중 오래된 작업부터 빈 두 실행 자리에 배정합니다. 아직 선행 검사가 끝나지 않은 오래된 파이프라인을 기다리기 위해 새 작업을 막지는 않습니다. 파이프라인 ID 순서를 강제하는 자원 그룹의 `oldest_first`는 한 그룹에서 한 작업만 실행하므로 두 작업 병렬 실행의 순서 설정으로 사용하지 않습니다. [프로젝트 Runner 대기열](https://docs.gitlab.com/ci/runners/runners_scope/#project-runners), [자원 그룹 실행 순서](https://docs.gitlab.com/ci/resource_groups/#process-modes)
+
+MR의 테스트 실패·미실행·결과 누락을 허용하지 않으며, 실패 시 해당 MR이 병합 차단되는지 실제 파이프라인에서 확인합니다. 동시 실행 시 노트북의 메모리·CPU·디스크 여유와 로컬 개발 작업의 응답을 확인하고 부족하면 Runner 제한을 다시 `1`로 낮춥니다. `waiting_for_resource` 상태는 일반 Runner 대기열과 별개입니다. 자원 그룹을 사용한 설정으로 이미 생성한 작업의 잠금은 새 YAML을 반영해도 소급 제거되지 않으므로 해당 자원 그룹의 실행 상태를 따로 확인합니다.
 
 ## 실행 스크립트와 결과
 
@@ -75,10 +83,12 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 - EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다.
 - 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
-- GUI 실행 파일의 실제 종료까지 기다립니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
+- Editor 프로세스의 실제 종료까지 기다립니다. 크래시 후 남은 컴파일 보조 프로세스 때문에 작업 종료가 지연되지 않도록 Editor의 종료 코드를 직접 확인하고 로그를 보존합니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
 - NUnit 결과와 Unity 로그는 임시 폴더에 생성한 뒤 GitLab 업로드용 사본을 Git에서 제외한 `dist/unity-ci/`에 모읍니다. Unity의 기본 NUnit XML을 JUnit 보고서로 표시하지 않습니다.
 - WebGL 산출물은 `dist/webgl/`이며 `version.json`의 전체 커밋 SHA가 후보와 일치해야 합니다. 빌드된 정적 파일의 실제 HTTPS 로딩과 화면 확인은 별도 검증입니다.
-- 동시에 하나만 실행하도록 Runner 제한과 `resource_group`을 사용합니다. CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다.
+- 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
+
+Editor 종료 대기의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p test_unity_process.py -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
 
 ## Blender와 FBX 테스트 입력
 

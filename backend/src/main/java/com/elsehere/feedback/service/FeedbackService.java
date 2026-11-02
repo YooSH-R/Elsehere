@@ -6,6 +6,7 @@ import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -13,8 +14,8 @@ import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackResponse;
@@ -37,6 +38,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
@@ -47,6 +49,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>AI를 기다리는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눈다. 사용자 AI 한도 예약은 아직 하지 않는다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FeedbackService {
@@ -54,13 +57,17 @@ public class FeedbackService {
   // 평가할 사용자 발화가 없어 만들지 않은 경우의 이유. 워커의 insufficient_evidence 코드와 같다.
   private static final String NO_USABLE_USER_TURNS = "NO_USABLE_USER_TURNS";
 
-  private final ConversationRepository conversationRepository;
+  // 사용자가 건너뛴 피드백은 이유 코드를 저장하지 않으므로(null) 로그에만 쓰는 이름
+  private static final String USER_SKIPPED = "USER_SKIPPED";
+
+  private final ConversationLookup conversationLookup;
   private final TurnRepository turnRepository;
   private final NpcRepository npcRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final TurnFeedbackRepository turnFeedbackRepository;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final AiFailureRecorder aiFailureRecorder;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
 
@@ -86,7 +93,7 @@ public class FeedbackService {
     ConversationFeedback feedback =
         transactionTemplate.execute(
             status -> {
-              ownedConversation(userId, conversationId);
+              conversationLookup.ownedConversation(userId, conversationId);
               return conversationFeedbackRepository
                   .findById(conversationId)
                   .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -101,7 +108,7 @@ public class FeedbackService {
   public ConversationFeedbackResponse feedback(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
-          Conversation conversation = ownedConversation(userId, conversationId);
+          Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           Npc npc = npcOf(conversation);
           List<Turn> userTurns = userTurns(conversationId);
           return new ConversationFeedbackResponse(
@@ -122,7 +129,7 @@ public class FeedbackService {
   public DetailedFeedbackResponse detailed(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
-          ownedConversation(userId, conversationId);
+          conversationLookup.ownedConversation(userId, conversationId);
           return new DetailedFeedbackResponse(
               conversationId, detailedItems(userTurns(conversationId)));
         });
@@ -130,6 +137,25 @@ public class FeedbackService {
 
   private FeedbackResponse generate(
       Long userId, Long conversationId, UUID requestId, boolean skip) {
+    FeedbackResponse response = create(userId, conversationId, requestId, skip);
+    logIfNotDone(conversationId, response);
+    return response;
+  }
+
+  // 만들지 못한 피드백은 AI 장애일 수 있어 WARN, 건너뛴 피드백은 INFO로 남긴다. 이유는 우리가 정한 코드라 그대로 쓴다.
+  private static void logIfNotDone(Long conversationId, FeedbackResponse response) {
+    if (response.status() == FeedbackStatus.FAILED) {
+      log.warn(
+          "feedback_failed conversation_id={} reason={}", conversationId, response.errorCode());
+    } else if (response.status() == FeedbackStatus.SKIPPED) {
+      log.info(
+          "feedback_skipped conversation_id={} reason={}",
+          conversationId,
+          response.errorCode() != null ? response.errorCode() : USER_SKIPPED);
+    }
+  }
+
+  private FeedbackResponse create(Long userId, Long conversationId, UUID requestId, boolean skip) {
     Snapshot snapshot =
         transactionTemplate.execute(status -> snapshot(userId, conversationId, requestId));
     if (skip) {
@@ -143,7 +169,11 @@ public class FeedbackService {
     WorkerTrace trace = new WorkerTrace(requestId, userId, conversationId);
     WorkerFeedback result;
     try {
-      result = aiWorkerClient.feedback(trace, snapshot.input());
+      result =
+          aiFailureRecorder.recordIfFails(
+              trace,
+              AiRequestKind.FEEDBACK,
+              () -> aiWorkerClient.feedback(trace, snapshot.input()));
     } catch (BusinessException exception) {
       // 워커에 닿지 못했거나 요청을 거절당했다. 대화 종료는 그대로 두고 실패로 기록한다.
       String errorCode = exception.getErrorCode().name();
@@ -200,7 +230,7 @@ public class FeedbackService {
   }
 
   private Snapshot snapshot(Long userId, Long conversationId, UUID requestId) {
-    Conversation conversation = ownedConversation(userId, conversationId);
+    Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
     List<Turn> turns = turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId);
     List<Long> userTurnIds =
         turns.stream().filter(turn -> turn.getSpeaker() == Speaker.USER).map(Turn::getId).toList();
@@ -243,14 +273,14 @@ public class FeedbackService {
         feedback.getSummary(),
         reviews == null ? null : new ReviewsResponse(reviews.good(), reviews.improve()),
         reviews == null ? null : reviews.suggestion(),
-        feedback.getErrorCode());
-  }
-
-  // 다른 사용자의 대화는 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
-  private Conversation ownedConversation(Long userId, Long conversationId) {
-    return conversationRepository
-        .findByIdAndUserId(conversationId, userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        feedback.getErrorCode(),
+        // 이 필드들을 넣기 전에 저장한 피드백은 장면 표현·단어장 후보가 없다.
+        reviews == null || reviews.situationExpressions() == null
+            ? List.of()
+            : reviews.situationExpressions(),
+        reviews == null || reviews.vocabCandidates() == null
+            ? List.of()
+            : reviews.vocabCandidates());
   }
 
   private Npc npcOf(Conversation conversation) {

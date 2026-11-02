@@ -6,7 +6,7 @@ namespace A305.Player
     /// <summary>
     /// 플레이어를 따라가는 카메라. 탐험 중에는 3인칭·1인칭을 오가고,
     /// 대화가 시작되면 상대를 바라보는 1인칭으로 고정했다가 대화가 끝나면 직전 시점으로 돌아간다.
-    /// 3인칭에서 걷는 동안에는 캐릭터 뒤로 천천히 돌아가 등 뒤에서 바라본다.
+    /// 시점은 마우스·터치로만 돌고, 키로 걸을 때는 위치만 따라간다.
     /// </summary>
     public class PlayerCameraRig : MonoBehaviour
     {
@@ -35,12 +35,16 @@ namespace A305.Player
 
         private CameraOrbit orbit;
         private CameraCollisionDistance wallDistance;
-        private PlayerMover mover;
         private PlayerCharacterDefinition character;
         private Transform dialogueLookTarget;
+        private Transform vehicleView;
         private PlayerTouchControls touchControls;
+        private Vector3 thirdPersonPivot;
 
         public CameraViewMode ViewMode => orbit.ViewMode;
+
+        /// <summary>3인칭에서 카메라가 캐릭터 머리 높이 기준점에서 실제로 떨어진 거리. 좁은 실내에서 벽에 밀리면 짧아진다.</summary>
+        public float CharacterDistanceMeters { get; private set; } = float.PositiveInfinity;
 
         /// <summary>이번 프레임에 사용자가 마우스·터치로 카메라를 직접 돌렸는지. 이동 방향 기준을 새로 잡을 때 쓴다.</summary>
         public bool TurnedByUserThisFrame { get; private set; }
@@ -68,12 +72,35 @@ namespace A305.Player
             SnapBehindTarget();
         }
 
+        /// <summary>카메라가 바라보는 수평 방향(마우스로 돌린 결과).</summary>
+        public float ViewYawDegrees => orbit.YawDegrees;
+
         /// <summary>카메라를 플레이어 뒤로 돌려 바로 그 자리에 놓는다. 플레이어를 순간 이동시킨 뒤 호출한다.</summary>
         public void SnapBehindTarget()
         {
-            orbit.SetYaw(followTarget.eulerAngles.y);
+            SnapView(followTarget.eulerAngles.y);
+        }
+
+        /// <summary>카메라를 주어진 수평 방향으로 돌려 바로 그 자리에 놓는다.</summary>
+        public void SnapView(float yawDegrees)
+        {
+            orbit.SetYaw(yawDegrees);
             Pose pose = GetDesiredPose(snap: true);
             transform.SetPositionAndRotation(pose.position, pose.rotation);
+        }
+
+        /// <summary>차체에 붙은 승객 눈높이를 그대로 따라간다. 일반 대화 카메라의 벽 보정은 적용하지 않는다.</summary>
+        public void EnterVehicleView(Transform anchor)
+        {
+            vehicleView = anchor;
+            if (anchor != null)
+                transform.SetPositionAndRotation(anchor.position, anchor.rotation);
+        }
+
+        public void ExitVehicleView()
+        {
+            vehicleView = null;
+            SnapBehindTarget();
         }
 
         private void Awake()
@@ -88,7 +115,6 @@ namespace A305.Player
             character = appearance != null ? appearance.ActiveCharacter : null;
             orbit = cameraSettings.CreateOrbit();
             wallDistance = new CameraCollisionDistance(cameraSettings.CollisionRecoverSharpness);
-            mover = followTarget.GetComponent<PlayerMover>();
             touchControls = followTarget.GetComponentInChildren<PlayerTouchControls>(true);
             SnapBehindTarget();
         }
@@ -103,12 +129,12 @@ namespace A305.Player
 
         private void LateUpdate()
         {
-            ApplyInput();
-            // 직접 돌리는 동안에는 사용자가 고른 방향을 존중하고, 걸을 때만 등 뒤로 돌아간다.
-            if (mover != null && mover.IsMoving && !TurnedByUserThisFrame)
+            if (vehicleView != null)
             {
-                orbit.FollowBehind(followTarget.eulerAngles.y, Time.deltaTime);
+                transform.SetPositionAndRotation(vehicleView.position, vehicleView.rotation);
+                return;
             }
+            ApplyInput();
 
             Pose desiredPose = GetDesiredPose(snap: false);
             // 프레임 속도와 관계없이 같은 빠르기로 따라가도록 지수 감쇠로 섞는다.
@@ -117,6 +143,7 @@ namespace A305.Player
                 Vector3.Lerp(transform.position, desiredPose.position, blend),
                 Quaternion.Slerp(transform.rotation, desiredPose.rotation, blend)
             );
+            CharacterDistanceMeters = Vector3.Distance(transform.position, thirdPersonPivot);
         }
 
         private void ApplyInput()
@@ -133,10 +160,14 @@ namespace A305.Player
                 && rotateHoldAction.action.IsPressed()
             )
             {
-                turn += lookAction.action.ReadValue<Vector2>();
+                turn += PointerDeltaScale.ToLogicalPixels(
+                    lookAction.action.ReadValue<Vector2>(),
+                    BrowserPointer.DevicePixelRatio
+                );
             }
 
-            orbit.Rotate(turn);
+            // 사용자가 마이페이지에서 고른 감도 배율을 마우스·터치 회전에 함께 적용한다.
+            orbit.Rotate(turn * LookSensitivity.Current);
             TurnedByUserThisFrame =
                 turn != Vector2.zero && orbit.ViewMode != CameraViewMode.Dialogue;
 
@@ -187,6 +218,7 @@ namespace A305.Player
                     ? character.CameraPivotHeightMeters
                     : cameraSettings.PivotHeightMeters;
             Vector3 pivot = followTarget.position + Vector3.up * pivotHeight;
+            thirdPersonPivot = pivot;
             Pose pose = orbit.GetThirdPersonPose(pivot);
             Vector3 pivotToCamera = pose.position - pivot;
             Vector3 direction = pivotToCamera.normalized;

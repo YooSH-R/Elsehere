@@ -62,8 +62,22 @@ namespace A305.EditorTools.Tutorial
         /// <summary>안내 문구(없을 때만)와 안내 카드 프리팹의 기능 구성을 맞춘다. 디자인은 유지한다.</summary>
         public static void PrepareAssets()
         {
-            BuilderTools.LoadOrCreateAsset<TutorialGuideDefinition>(GuideDefinitionPath);
+            AlignGuideNpc(
+                BuilderTools.LoadOrCreateAsset<TutorialGuideDefinition>(GuideDefinitionPath)
+            );
             BuilderTools.UpdateOrCreatePrefab(GuidePrefabPath, "TutorialGuide", SetUpGuide);
+        }
+
+        // 길을 묻는 NPC(마을 행인 Ben)와 그동안 쓰는 대본 키는 코드와 장면이 함께 정하는 연결값이라 코드의 기본값으로 맞춘다.
+        // 안내 문구는 고친 그대로 둔다.
+        private static void AlignGuideNpc(TutorialGuideDefinition guide)
+        {
+            var defaults = ScriptableObject.CreateInstance<TutorialGuideDefinition>();
+            var fields = new SerializedObject(guide);
+            fields.FindProperty("tutorialNpcCode").stringValue = defaults.TutorialNpcCode;
+            fields.FindProperty("tutorialScriptKey").stringValue = defaults.TutorialScriptKey;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            UnityEngine.Object.DestroyImmediate(defaults);
         }
 
         /// <summary>

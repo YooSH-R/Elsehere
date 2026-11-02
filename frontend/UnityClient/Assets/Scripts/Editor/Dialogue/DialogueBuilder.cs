@@ -64,6 +64,7 @@ namespace A305.EditorTools.Dialogue
         /// <summary>
         /// 새로 놓은 NPC가 기본 대본("Neighbor")으로 빠지지 않도록, 코드의 예시 대본 중 에셋에 없는 NPC만 더한다.
         /// 이미 있는 대본은 고친 대사를 그대로 두고, 비어 있는 역할만 채운다.
+        /// 이름은 서버 시드와 같아야 하므로 이미 있는 대본도 코드의 예시 이름으로 맞춘다.
         /// </summary>
         private static void AddMissingMockScripts(MockDialogueScriptSource scripts)
         {
@@ -87,16 +88,52 @@ namespace A305.EditorTools.Dialogue
                     entries.GetArrayElementAtIndex(entries.arraySize - 1).boxedValue =
                         example.boxedValue;
                 }
-                else if (
-                    string.IsNullOrEmpty(existing.FindPropertyRelative("roleLabel").stringValue)
-                )
+                else
                 {
-                    existing.FindPropertyRelative("roleLabel").stringValue = roleLabel;
+                    existing.FindPropertyRelative("npcName").stringValue = example
+                        .FindPropertyRelative("npcName")
+                        .stringValue;
+                    if (
+                        string.IsNullOrEmpty(existing.FindPropertyRelative("roleLabel").stringValue)
+                    )
+                    {
+                        existing.FindPropertyRelative("roleLabel").stringValue = roleLabel;
+                    }
                 }
+                if (existing != null)
+                    ReplaceRetiredTexts(existing);
             }
 
             fields.ApplyModifiedPropertiesWithoutUndo();
             Object.DestroyImmediate(examples);
+        }
+
+        // 상점을 편의점에서 드럭스토어로 바꿨다. 예전 기본값 그대로인 칸만 새 이름으로 고치고 직접 고친 대사는 둔다.
+        private static readonly (string Old, string Current)[] RetiredTexts =
+        {
+            ("편의점 직원", "드럭스토어 직원"),
+            (
+                "Hi! Welcome to the convenience store. Can I help you find something?",
+                "Hi! Welcome to the drugstore. Can I help you find something?"
+            ),
+            (
+                "안녕하세요! 편의점에 오신 걸 환영해요. 찾으시는 물건이 있나요?",
+                "안녕하세요! 드럭스토어에 오신 걸 환영해요. 찾으시는 물건이 있나요?"
+            ),
+        };
+
+        private static void ReplaceRetiredTexts(SerializedProperty entry)
+        {
+            SerializedProperty field = entry.Copy();
+            SerializedProperty end = entry.GetEndProperty();
+            while (field.Next(true) && !SerializedProperty.EqualContents(field, end))
+            {
+                if (field.propertyType != SerializedPropertyType.String)
+                    continue;
+                foreach ((string old, string current) in RetiredTexts)
+                    if (field.stringValue == old)
+                        field.stringValue = current;
+            }
         }
 
         private static SerializedProperty FindEntry(SerializedProperty entries, string npcCode)
@@ -157,6 +194,35 @@ namespace A305.EditorTools.Dialogue
             return dialogue;
         }
 
+        /// <summary>
+        /// NPC 이름 옆의 호감도·무례 경고 칸 한 줄. 자리와 색은 화면이 이름에 맞춰 정하므로 레이아웃에서 빼고, 처음 만들 때만 숨긴다.
+        /// </summary>
+        private static TMP_Text FindOrCreateStanding(RectTransform panel, TMP_FontAsset font)
+        {
+            bool isNew = panel.Find("Standing") == null;
+            TMP_Text standing = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Standing",
+                font,
+                24f,
+                Color.white
+            );
+            if (isNew)
+            {
+                BuilderTools.GetOrAddComponent<LayoutElement>(standing.gameObject).ignoreLayout =
+                    true;
+                var rect = (RectTransform)standing.transform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+                rect.sizeDelta = new Vector2(600f, 50f);
+                standing.alignment = TextAlignmentOptions.MidlineLeft;
+                standing.textWrappingMode = TextWrappingModes.NoWrap;
+                standing.overflowMode = TextOverflowModes.Ellipsis;
+                standing.gameObject.SetActive(false);
+            }
+
+            return standing;
+        }
+
         private static void SetUpPanel(GameObject root)
         {
             UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 120, receivesClicks: true);
@@ -171,6 +237,7 @@ namespace A305.EditorTools.Dialogue
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
             TMP_FontAsset regular = UiBuilderTools.RegularFont();
             UiBuilderTools.FindOrCreateText(panel, "Title", bold, 30f, Color.white, "대화 중");
+            TMP_Text standing = FindOrCreateStanding(panel, bold);
             TMP_Text notice = UiBuilderTools.FindOrCreateText(
                 panel,
                 "Notice",
@@ -239,10 +306,16 @@ namespace A305.EditorTools.Dialogue
             );
             RectTransform inputRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "InputRow");
             RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
-            RectTransform moreTools = UiBuilderTools.FindOrCreateColumn(toolRow, "MoreTools");
-            MoveLegacy(inputRow, "ExampleButton", moreTools);
-            MoveLegacy(toolRow, "SaveButton", moreTools);
-            MoveLegacy(toolRow, "HintButton", moreTools);
+            // [힌트]를 바로 누를 수 있게 [...] 메뉴(MoreTools)에 넣었던 버튼을 도구 줄로 꺼낸다.
+            Transform moreTools = toolRow.Find("MoreTools");
+            if (moreTools != null)
+            {
+                MoveLegacy(moreTools, "ExampleButton", toolRow);
+                MoveLegacy(moreTools, "SaveButton", toolRow);
+                MoveLegacy(moreTools, "HintButton", toolRow);
+                Object.DestroyImmediate(moreTools.gameObject);
+            }
+            MoveLegacy(inputRow, "ExampleButton", toolRow);
             MoveLegacy(toolRow, "TalkButton", inputRow);
             TMP_InputField input = UiBuilderTools.FindOrCreateInputField(
                 inputRow,
@@ -258,7 +331,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button exampleButton = UiBuilderTools.FindOrCreateButton(
-                moreTools,
+                toolRow,
                 "ExampleButton",
                 "예시 문장",
                 bold,
@@ -272,14 +345,14 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button saveButton = UiBuilderTools.FindOrCreateButton(
-                moreTools,
+                toolRow,
                 "SaveButton",
                 "표현 저장",
                 bold,
                 160f
             );
 
-            // 서버 AI 대화: 상태 문구, 추천 단어, 누르고 말하기, 다시 듣기, 힌트
+            // 서버 AI 대화: 상태 문구, 추천 단어, 말하기, 다시 듣기, 힌트
             TMP_Text status = UiBuilderTools.FindOrCreateText(
                 conversation,
                 "Status",
@@ -297,7 +370,7 @@ namespace A305.EditorTools.Dialogue
             Button talkButton = UiBuilderTools.FindOrCreateButton(
                 inputRow,
                 "TalkButton",
-                "누르고 말하기",
+                "말하기",
                 bold,
                 200f
             );
@@ -309,7 +382,7 @@ namespace A305.EditorTools.Dialogue
                 160f
             );
             Button hintButton = UiBuilderTools.FindOrCreateButton(
-                moreTools,
+                toolRow,
                 "HintButton",
                 "힌트",
                 bold,
@@ -326,6 +399,7 @@ namespace A305.EditorTools.Dialogue
                 "npcNameText",
                 panel.Find("Title").GetComponent<TMP_Text>()
             );
+            BuilderTools.SetReference(view, "standingText", standing);
             BuilderTools.SetReference(view, "endButton", endButton);
             BuilderTools.SetReference(view, "linesText", lines);
             BuilderTools.SetReference(view, "guideText", guide);
@@ -336,16 +410,18 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "saveButton", saveButton);
             BuilderTools.SetReference(view, "statusText", status);
             BuilderTools.SetReference(view, "suggestText", suggest);
-            BuilderTools.SetReference(
-                view,
-                "talkButton",
-                BuilderTools.GetOrAddComponent<HoldButton>(talkButton.gameObject)
-            );
+            SetUpTalkButton(view, talkButton);
             BuilderTools.SetReference(view, "replayButton", replayButton);
             BuilderTools.SetReference(view, "hintButton", hintButton);
             BuilderTools.SetReference(view, "retryButton", retryButton);
             DialogueLayoutBuilder.SetUp(root, view, lines, guide, suggest);
-            BuilderTools.RequireReferences(view);
+            DialogueWaitBuilder.SetUp(root, view);
+            VoiceConsentDialogBuilder.SetUp(root, view);
+            // 위 기능 구성은 카드 여백·글자 크기를 기본값으로 다시 정하므로, 마지막에 승인된 배치를 다시 적용해
+            // 대화창 Builder만 실행해도 단어·문장 카드 글자가 테두리에 붙지 않게 한다.
+            DialogueDockBuilder.Apply(root);
+            // 택시 안내 문구는 택시 장면에서만 쓰며 TaxiCabinBuilder가 씬의 대화 화면에 연결한다.
+            BuilderTools.RequireReferences(view, "vehicleStatusText");
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
@@ -356,6 +432,46 @@ namespace A305.EditorTools.Dialogue
             Transform existing = parent.Find(name);
             if (existing != null)
                 existing.SetParent(destination, false);
+        }
+
+        /// <summary>[말하기]를 한 번 눌러 녹음을 시작하고 다시 눌러 끝내는 버튼과 녹음 중 켜는 불을 연결한다.</summary>
+        public static void SetUpTalkButton(DialoguePanelView view, Button talkButton)
+        {
+            // 누르고 있는 동안만 녹음하던 HoldButton을 지웠으므로, 버튼에 남은 빈 스크립트 칸을 없앤다.
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(talkButton.gameObject);
+            TMP_Text caption = talkButton.transform.Find("Label").GetComponent<TMP_Text>();
+            caption.text = "말하기";
+            BuilderTools.SetReference(view, "talkButton", talkButton);
+            BuilderTools.SetReference(view, "talkCaption", caption);
+            BuilderTools.SetReference(view, "voiceLight", FindOrCreateVoiceLight(talkButton));
+        }
+
+        // 녹음 중 [종료] 오른쪽에 켜는 동그란 불. 켜기와 색은 DialoguePanelView가 정하고 평소에는 꺼 둔다.
+        private static Image FindOrCreateVoiceLight(Button talkButton)
+        {
+            Transform existing = talkButton.transform.Find("VoiceLight");
+            Image light =
+                existing != null
+                    ? existing.GetComponent<Image>()
+                    : new GameObject(
+                        "VoiceLight",
+                        typeof(RectTransform),
+                        typeof(Image)
+                    ).GetComponent<Image>();
+            light.transform.SetParent(talkButton.transform, false);
+            light.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            light.raycastTarget = false;
+            var rect = (RectTransform)light.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(26f, 26f);
+            rect.anchoredPosition = new Vector2(-32f, 0f);
+            // 주황 버튼 위에서도 불이 또렷하게 보이도록 흰 테두리를 두른다.
+            var ring = BuilderTools.GetOrAddComponent<Outline>(light.gameObject);
+            ring.effectColor = Color.white;
+            ring.effectDistance = new Vector2(2f, -2f);
+            light.gameObject.SetActive(false);
+            return light;
         }
 
         // 서버 AI 대화 연결(API 주소, NPC 음성, 녹음)은 화면 프리팹에 두어 공간 씬을 다시 만들지 않아도 모든 씬에 붙는다.

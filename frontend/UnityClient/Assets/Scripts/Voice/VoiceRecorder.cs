@@ -4,7 +4,7 @@ using UnityEngine;
 namespace A305.Voice
 {
     /// <summary>
-    /// 누르고 말하기 녹음 컴포넌트. 플랫폼에 맞는 마이크를 골라 <see cref="VoiceRecordingFlow"/>에 넘기고, 매 프레임 시각을 전달한다.
+    /// [말하기] 녹음 컴포넌트. 플랫폼에 맞는 마이크를 골라 <see cref="VoiceRecordingFlow"/>에 넘기고, 매 프레임 시각을 전달한다.
     /// </summary>
     public class VoiceRecorder : MonoBehaviour
     {
@@ -18,9 +18,13 @@ namespace A305.Voice
 
         public MicrophoneAccess? Access => flow.Access;
         public bool IsRecording => flow.IsRecording;
+        public bool IsHearingVoice => flow.IsHearingVoice;
         public float CurrentLevel => flow.CurrentLevel;
         public float ElapsedSeconds => flow.ElapsedSeconds;
         public float MaxRecordingSeconds => settings.MaxRecordingSeconds;
+
+        /// <summary>이 음량(RMS)보다 작으면 조용한 것으로 본다. 녹음에 말소리가 있는지 볼 때도 같은 기준을 쓴다.</summary>
+        public float SilenceLevel => settings.SilenceLevel;
 
         private void Awake()
         {
@@ -52,7 +56,7 @@ namespace A305.Voice
             flow.StartRecording(Time.unscaledTime);
         }
 
-        /// <summary>[누르고 말하기] 버튼을 뗐을 때 부른다.</summary>
+        /// <summary>사용자가 [종료]를 눌렀을 때 부른다.</summary>
         public void StopRecording()
         {
             flow.StopRecording(Time.unscaledTime);

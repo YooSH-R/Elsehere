@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{legal/layout :: head('음성 처리 동의')}"></head>
+<body>
+<main>
+  <article>
+    <header th:replace="~{legal/layout :: header('음성 처리 동의')}"></header>
+
+    <p><strong>선택 항목입니다.</strong> 동의하지 않아도 글자로 NPC와 대화할 수 있습니다.</p>
+
+    <h2>1. 음성을 처리하는 방법</h2>
+    <ul>
+      <li>[누르고 말하기]로 녹음한 음성을 글자로 바꾸려고 음성 인식 업체로 보냅니다. 받는 곳은 Groq(미국), SSAFY GMS를 거친 OpenAI(미국), 켜 둔 경우 SSAFY GPU 서버(국내)입니다.</li>
+      <li>인식된 문장은 NPC와 나눈 대화 기록으로 저장합니다.</li>
+      <li>녹음은 인식에만 쓰고 저장하지 않습니다. <a th:href="@{/ai-training/{v}(v=${version})}">AI 개선에 내 녹음 음성 활용</a>에 따로 동의한 경우에만 저장합니다.</li>
+      <li>업체로 보낸 음성의 보관은 각 업체의 정책을 따릅니다.</li>
+    </ul>
+
+    <h2>2. 동의하지 않으면</h2>
+    <p>음성 입력을 쓸 수 없고 글자로 대화합니다. 나머지 기능은 그대로 쓸 수 있습니다.</p>
+
+    <h2>3. 동의 바꾸기</h2>
+    <p>가입자는 마이페이지에서 언제든 켜고 끌 수 있습니다. 게스트는 시작할 때 고릅니다.</p>
+
+    <footer th:replace="~{legal/layout :: footer}"></footer>
+  </article>
+</main>
+</body>
+</html>

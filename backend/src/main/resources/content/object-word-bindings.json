@@ -212,7 +212,7 @@
         {
             "sceneCode": "SHOP",
             "unityKey": "ShopScene",
-            "objectCount": 69,
+            "objectCount": 80,
             "detailCount": 0,
             "wordKeys": [
                 "ceiling",
@@ -230,6 +230,7 @@
                 "sign",
                 "trash_can",
                 "wall",
+                "window",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
         }
@@ -902,6 +903,16 @@
             ]
         },
         {
+            "guid": "54e3840e53d1aae469a55a648d511377",
+            "path": "Assets/Prefabs/World/Drugstore/DrugstoreEntrance.prefab",
+            "wordKeys": [
+                "door",
+                "sign",
+                "wall",
+                "window"
+            ]
+        },
+        {
             "guid": "e062b17753f62de47a554ef328f0e634",
             "path": "Assets/Prefabs/World/Drugstore/DrugstoreInterior.prefab",
             "wordKeys": [
@@ -909,6 +920,7 @@
                 "coffee_machine",
                 "counter",
                 "crate",
+                "door",
                 "floor",
                 "freezer",
                 "lamp",
@@ -919,6 +931,7 @@
                 "sign",
                 "trash_can",
                 "wall",
+                "window",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
         },

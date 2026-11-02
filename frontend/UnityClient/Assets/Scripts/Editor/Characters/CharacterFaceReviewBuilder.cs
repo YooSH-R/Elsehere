@@ -311,7 +311,7 @@ namespace A305.EditorTools.Characters
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             instance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             foreach (var behavior in instance.GetComponentsInChildren<MonoBehaviour>().Reverse())
-                if (behavior is not CharacterFaceController)
+                if (behavior is not CharacterFaceController and not CharacterIdleBlink)
                     Object.DestroyImmediate(behavior);
             instance.GetComponentInChildren<Animator>().enabled = false;
             var bounds = CharacterHeadProportions.HeadBounds(instance);
@@ -358,7 +358,7 @@ namespace A305.EditorTools.Characters
                 camera.targetTexture = target;
                 foreach (CharacterFacePose pose in Enum.GetValues(typeof(CharacterFacePose)))
                 {
-                    if (pose == CharacterFacePose.Blink)
+                    if (!face.SupportsPose(pose))
                         continue;
                     face.SetPose(pose);
                     var skins = face.GetComponentsInChildren<SkinnedMeshRenderer>();

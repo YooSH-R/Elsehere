@@ -183,9 +183,38 @@ namespace A305.EditorTools.Theme
                 UiThemeRole.Muted
             );
             emptyHint.alignment = TextAlignmentOptions.Top;
+            // 불러오는 중이거나 불러오지 못했을 때 빈 상태와 같은 자리에 보이는 안내와 [다시 시도](S15P31A305-419)
+            RectTransform load = Rect(panel, "LoadState");
+            Position(load, 100, 188, 800, 270);
+            TMP_Text loadTitle = Text(
+                load,
+                "Title",
+                "단어장을 불러오는 중이에요…",
+                24,
+                0,
+                112,
+                800,
+                40,
+                UiThemeRole.Title
+            );
+            loadTitle.alignment = TextAlignmentOptions.Midline;
+            Button retry = TextButton(
+                load,
+                "RetryButton",
+                "다시 시도",
+                UiIcon.Retry,
+                UiTone.Primary,
+                310,
+                172,
+                180,
+                48
+            );
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "content", content.gameObject);
             BuilderTools.SetReference(view, "emptyState", empty.gameObject);
+            BuilderTools.SetReference(view, "loadState", load.gameObject);
+            BuilderTools.SetReference(view, "loadStateTitle", loadTitle);
+            BuilderTools.SetReference(view, "retryButton", retry);
             BuilderTools.SetReference(view, "wordText", word);
             BuilderTools.SetReference(view, "meaningText", meaning);
             BuilderTools.SetReference(view, "contextText", sentence);

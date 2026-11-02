@@ -16,12 +16,45 @@ namespace A305.Learning
         private readonly List<VocabularyEntry> entries = new List<VocabularyEntry>();
         private readonly IVocabularyApi api;
 
+        // 서버 목록을 한 번이라도 받았는지와 지금 받는 중인지. 받기 전의 빈 목록은 '단어 없음'이 아니다.
+        private bool isLoaded;
+        private bool isLoading;
+
         public VocabularyBook(IVocabularyApi api)
         {
             this.api = api;
         }
 
         public IReadOnlyList<VocabularyEntry> Entries => entries;
+
+        /// <summary>
+        /// 화면이 보여 줄 상태. 보여 줄 단어가 있으면 다시 읽는 중이거나 다시 읽지 못했어도 그 단어를 보인다.
+        /// 단어가 없으면 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.
+        /// </summary>
+        public VocabularyListState ListState
+        {
+            get
+            {
+                if (entries.Count > 0)
+                {
+                    return VocabularyListState.Entries;
+                }
+
+                if (isLoading)
+                {
+                    return VocabularyListState.Loading;
+                }
+
+                if (!isLoaded)
+                {
+                    return LastFailureMessage != null
+                        ? VocabularyListState.Failed
+                        : VocabularyListState.Loading;
+                }
+
+                return VocabularyListState.Empty;
+            }
+        }
 
         /// <summary>마지막 요청이 실패한 이유. 화면에 보여 줄 문장이다. 성공하면 null.</summary>
         public string LastFailureMessage { get; private set; }
@@ -31,6 +64,7 @@ namespace A305.Learning
         {
             var loaded = new List<VocabularyEntry>();
             string cursor = null;
+            isLoading = true;
             try
             {
                 do
@@ -48,9 +82,14 @@ namespace A305.Learning
             {
                 return Fail("단어장을 불러오지 못했어요. 잠시 후 다시 열어 주세요.");
             }
+            finally
+            {
+                isLoading = false;
+            }
 
             entries.Clear();
             entries.AddRange(loaded);
+            isLoaded = true;
             LastFailureMessage = null;
             return true;
         }

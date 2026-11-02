@@ -50,7 +50,6 @@ namespace A305.EditorTools.Theme
         // 알약 버튼 왼쪽 끝의 아이콘 자리
         private const float PillIconLeft = 20;
         private const float PillIconSize = 22;
-        private const float PillIconRight = PillIconLeft + PillIconSize;
 
         // 로그인 창 아래 약관 링크처럼 바탕 없는 작은 글자 버튼의 높이
         private const float LegalLinkHeight = 40;
@@ -1078,9 +1077,6 @@ namespace A305.EditorTools.Theme
             Role(root, "Panel/Content/Header/Title", UiThemeRole.Muted);
             Role(root, "Panel/Content/Task", UiThemeRole.Title);
             PillButton(root, "Panel/Content/Header/SkipButton", UiIcon.Skip, UiTone.Neutral);
-            // 좁은 버튼에서 가운데 글자가 왼쪽 아이콘 위로 겹치지 않게 글자 칸을 아이콘 오른쪽부터 잡는다.
-            var skipLabel = (RectTransform)root.Find("Panel/Content/Header/SkipButton/Label");
-            skipLabel.offsetMin = new Vector2(PillIconRight + 6, skipLabel.offsetMin.y);
             PillButton(root, "Panel/Content/Buttons/ContinueButton", UiIcon.Play, UiTone.Positive);
             Role(root, "Panel/SkipConfirm/Question", UiThemeRole.Title);
             PillButton(

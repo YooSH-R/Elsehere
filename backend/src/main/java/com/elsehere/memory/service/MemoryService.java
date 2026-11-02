@@ -1,6 +1,6 @@
 package com.elsehere.memory.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.RelationshipChange;
 import com.elsehere.ai.client.WorkerLine;
@@ -8,9 +8,6 @@ import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerRelationship;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.common.error.BusinessException;
@@ -61,8 +58,7 @@ public class MemoryService {
   private final NpcRepository npcRepository;
   private final WorkerNpcs workerNpcs;
   private final WorkerLines workerLines;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
+  private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
   private final GameClockService gameClockService;
@@ -114,15 +110,12 @@ public class MemoryService {
     MemoryCardResult result;
     try {
       result =
-          aiWorkerClient.memoryCard(
-              trace, job.npc(), job.outcome(), job.history(), job.previousCard());
+          aiGateway.memoryCard(trace, job.npc(), job.outcome(), job.history(), job.previousCard());
     } catch (BusinessException exception) {
       // 429·502·503 등. 오류 응답에는 카드가 없으므로 빈 카드로 덮지 않고 이전 카드를 그대로 둔다.
-      aiRequestRecorder.record(trace, AiRequestKind.MEMORY, List.of(), AiRequestStatus.FAILED);
       log.warn("기억 카드를 갱신하지 못해 이전 카드를 유지합니다 code={}", exception.getErrorCode());
       return;
     }
-    aiRequestRecorder.record(trace, AiRequestKind.MEMORY, result.usage(), AiRequestStatus.OK);
     transactionTemplate.executeWithoutResult(
         status ->
             userNpcRelationRepository
@@ -134,7 +127,7 @@ public class MemoryService {
   private void updateRelationship(WorkerTrace trace, MemoryJob job) {
     RelationshipChange change;
     try {
-      change = aiWorkerClient.relationship(trace, job.npc(), job.relationship(), job.history());
+      change = aiGateway.relationship(trace, job.npc(), job.relationship(), job.history());
     } catch (BusinessException exception) {
       log.warn("관계를 갱신하지 못해 이전 값을 유지합니다 code={}", exception.getErrorCode());
       return;

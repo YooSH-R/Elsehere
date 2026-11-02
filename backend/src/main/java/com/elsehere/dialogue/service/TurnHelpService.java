@@ -1,18 +1,10 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
-import com.elsehere.ai.client.HintResult;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.MeaningResult;
-import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
-import com.elsehere.common.error.BusinessException;
-import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
@@ -46,9 +38,7 @@ public class TurnHelpService {
   private final ConversationLookup conversationLookup;
   private final DialogueContexts dialogueContexts;
   private final ConversationResponses conversationResponses;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
-  private final AiFailureRecorder aiFailureRecorder;
+  private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
   private final Clock clock;
@@ -61,12 +51,7 @@ public class TurnHelpService {
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, line.conversationId());
-    MeaningResult result =
-        aiFailureRecorder.recordIfFails(
-            trace,
-            AiRequestKind.MEANING,
-            () -> aiWorkerClient.meaning(trace, line.npc(), line.text(), line.level()));
-    aiRequestRecorder.record(trace, AiRequestKind.MEANING, result.usage(), AiRequestStatus.OK);
+    MeaningResult result = aiGateway.meaning(trace, line.npc(), line.text(), line.level());
     List<GlossaryResponse> glossary =
         result.glossary() == null
             ? List.of()
@@ -91,21 +76,8 @@ public class TurnHelpService {
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     // 장면별 목표가 아직 없어 NPC 대답처럼 목표를 비워 보낸다(워커는 마지막 NPC 대사에 자연스럽게 대답할 말을 만든다).
-    HintResult result =
-        aiFailureRecorder.recordIfFails(
-            trace,
-            AiRequestKind.HINT,
-            () -> aiWorkerClient.hint(trace, target.npc(), target.history(), "", target.level()));
-    String hintText = result.firstSentence();
-    boolean usable = hintText != null && !hintText.isBlank();
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.HINT,
-        result.usage(),
-        usable ? AiRequestStatus.OK : AiRequestStatus.FAILED);
-    if (!usable) {
-      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
-    }
+    String hintText =
+        aiGateway.hint(trace, target.npc(), target.history(), "", target.level()).firstSentence();
     Instant openedAt = clock.instant();
     transactionTemplate.executeWithoutResult(
         status ->
@@ -122,23 +94,8 @@ public class TurnHelpService {
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    SuggestResult result =
-        aiFailureRecorder.recordIfFails(
-            trace,
-            AiRequestKind.HINT,
-            () ->
-                aiWorkerClient.suggest(trace, target.npc(), target.history(), "", target.level()));
-    List<String> words = result.words();
-    boolean usable = words != null && !words.isEmpty();
-    // 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 힌트 호출로 기록한다. 사용량의 step은 suggest로 남는다.
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.HINT,
-        result.usage(),
-        usable ? AiRequestStatus.OK : AiRequestStatus.FAILED);
-    if (!usable) {
-      throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
-    }
+    List<String> words =
+        aiGateway.suggest(trace, target.npc(), target.history(), "", target.level()).words();
     String wordsJson = conversationResponses.writeWords(words);
     transactionTemplate.executeWithoutResult(
         status ->

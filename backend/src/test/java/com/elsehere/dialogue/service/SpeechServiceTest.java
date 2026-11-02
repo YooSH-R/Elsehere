@@ -14,12 +14,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.SttResult;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.repository.AiRequestRepository;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
@@ -59,9 +56,7 @@ class SpeechServiceTest {
 
   @Autowired private SpeechService speechService;
 
-  @Autowired private AiWorkerClient aiWorkerClient;
-
-  @Autowired private AiRequestRepository aiRequestRepository;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private EntityManager entityManager;
 
@@ -85,9 +80,9 @@ class SpeechServiceTest {
   }
 
   @Test
-  @DisplayName("진행 중인 대화의 녹음을 전사해 문장과 길이를 돌려주고 호출 기록을 남긴다")
+  @DisplayName("진행 중인 대화의 녹음을 전사해 문장과 길이를 돌려주고, 워커 요청에 요청 ID와 대화를 붙인다")
   void transcribe_turn_returnsText() {
-    given(aiWorkerClient.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus")))
+    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus")))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
     UUID requestId = UUID.randomUUID();
 
@@ -100,18 +95,18 @@ class SpeechServiceTest {
             recording("audio/webm;codecs=opus", RECORDING));
 
     assertThat(response).isEqualTo(new TranscriptionResponse("I want a latte", 1250));
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.STT)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.OK);
+    then(aiGateway)
+        .should()
+        .transcribe(
+            eq(new WorkerTrace(requestId, userId, conversation.getId())),
+            eq(RECORDING),
+            eq("audio/webm;codecs=opus"));
   }
 
   @Test
   @DisplayName("튜토리얼 녹음은 대화 없이 전사하고 워커 요청에 대화 ID를 붙이지 않는다")
   void transcribe_tutorial_doesNotNeedConversation() {
-    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("Hello", null, List.of()));
 
     TranscriptionResponse response =
@@ -124,7 +119,7 @@ class SpeechServiceTest {
 
     assertThat(response).isEqualTo(new TranscriptionResponse("Hello", 0));
     ArgumentCaptor<WorkerTrace> trace = ArgumentCaptor.forClass(WorkerTrace.class);
-    then(aiWorkerClient).should().transcribe(trace.capture(), any(), anyString());
+    then(aiGateway).should().transcribe(trace.capture(), any(), anyString());
     assertThat(trace.getValue().conversationId()).isNull();
   }
 
@@ -135,7 +130,7 @@ class SpeechServiceTest {
 
     assertErrorCode(
         () -> transcribeTurn(recording("audio/wav", RECORDING)), ErrorCode.VOICE_CONSENT_REQUIRED);
-    then(aiWorkerClient).should(never()).transcribe(any(), any(), anyString());
+    then(aiGateway).should(never()).transcribe(any(), any(), anyString());
   }
 
   @Test
@@ -151,7 +146,7 @@ class SpeechServiceTest {
         ErrorCode.AUDIO_FORMAT_UNSUPPORTED);
     assertErrorCode(
         () -> transcribeTurn(recording(null, RECORDING)), ErrorCode.AUDIO_FORMAT_UNSUPPORTED);
-    then(aiWorkerClient).should(never()).transcribe(any(), any(), anyString());
+    then(aiGateway).should(never()).transcribe(any(), any(), anyString());
   }
 
   @Test
@@ -174,7 +169,7 @@ class SpeechServiceTest {
   @Test
   @DisplayName("말소리를 알아듣지 못하면(빈 전사) STT_NO_SPEECH다")
   void transcribe_blankText_throwsNoSpeech() {
-    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("  ", 0.5, List.of()));
 
     assertErrorCode(
@@ -185,7 +180,7 @@ class SpeechServiceTest {
   @DisplayName("녹음 음성 학습 활용에 동의한 사용자는 전사한 녹음과 인식 결과를 학습용으로 저장한다")
   void transcribe_voiceTrainingAgreed_savesRecording() {
     optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
-    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
     UUID requestId = UUID.randomUUID();
 
@@ -210,7 +205,7 @@ class SpeechServiceTest {
   @DisplayName("녹음 음성 학습 활용에 동의하지 않았으면 녹음을 저장하지 않는다")
   void transcribe_voiceTrainingNotAgreed_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_TEXT, true);
-    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("I want a latte", 1.25, List.of()));
 
     transcribeTurn(recording("audio/wav", RECORDING));
@@ -222,7 +217,7 @@ class SpeechServiceTest {
   @DisplayName("동의했어도 말소리를 알아듣지 못한 녹음은 저장하지 않는다")
   void transcribe_noSpeech_doesNotSave() {
     optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
-    given(aiWorkerClient.transcribe(any(), any(), anyString()))
+    given(aiGateway.transcribe(any(), any(), anyString()))
         .willReturn(new SttResult("  ", 0.5, List.of()));
 
     assertErrorCode(
@@ -231,9 +226,9 @@ class SpeechServiceTest {
   }
 
   @Test
-  @DisplayName("음성 인식을 부르다 워커에 닿지 못하면 오류를 그대로 알리고 인식 호출을 FAILED로 남긴다")
-  void transcribe_workerCallFails_recordsFailed() {
-    given(aiWorkerClient.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus")))
+  @DisplayName("음성 인식을 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
+  void transcribe_workerCallFails_throws() {
+    given(aiGateway.transcribe(any(), eq(RECORDING), eq("audio/webm;codecs=opus")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
@@ -246,35 +241,23 @@ class SpeechServiceTest {
                     conversation.getId(),
                     recording("audio/webm;codecs=opus", RECORDING)))
         .isInstanceOf(BusinessException.class);
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.STT)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
-  @DisplayName("음성을 다시 합성하다 워커에 닿지 못하면 오류를 그대로 알리고 합성 호출을 FAILED로 남긴다")
-  void regenerateSpeech_workerCallFails_recordsFailed() {
-    given(aiWorkerClient.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))
+  @DisplayName("음성을 다시 합성하다 워커에 닿지 못하면 오류를 그대로 알린다")
+  void regenerateSpeech_workerCallFails_throws() {
+    given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
     assertThatThrownBy(() -> speechService.regenerateSpeech(userId, npcTurn.getId(), requestId))
         .isInstanceOf(BusinessException.class);
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.TTS)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
   @DisplayName("음성이 없는 NPC 턴은 난이도 배율(초급 0.85)로 다시 합성해 저장하고, 이후 다시 듣기로 받을 수 있다")
   void regenerateSpeech_withoutAudio_synthesizesAndSaves() {
-    given(aiWorkerClient.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))
+    given(aiGateway.synthesize(any(), eq(npcTurn.getText()), eq("af_heart"), eq(0.85)))
         .willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
@@ -283,25 +266,26 @@ class SpeechServiceTest {
     assertThat(response.status()).isEqualTo(SpeechStatus.READY);
     assertThat(response.url()).isEqualTo("/api/v1/turns/" + npcTurn.getId() + "/speech");
     assertThat(speechService.npcSpeech(userId, npcTurn.getId())).isEqualTo(WAV);
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.TTS)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.OK);
+    then(aiGateway)
+        .should()
+        .synthesize(
+            eq(new WorkerTrace(requestId, userId, conversation.getId())),
+            eq(npcTurn.getText()),
+            eq("af_heart"),
+            eq(0.85));
   }
 
   @Test
   @DisplayName("이미 음성이 있는 NPC 턴은 다시 합성하지 않는다")
   void regenerateSpeech_withAudio_doesNotSynthesize() {
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
+    given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
     speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
 
     SpeechResponse again =
         speechService.regenerateSpeech(userId, npcTurn.getId(), UUID.randomUUID());
 
     assertThat(again.status()).isEqualTo(SpeechStatus.READY);
-    then(aiWorkerClient).should().synthesize(any(), anyString(), anyString(), anyDouble());
+    then(aiGateway).should().synthesize(any(), anyString(), anyString(), anyDouble());
   }
 
   @Test
@@ -315,7 +299,7 @@ class SpeechServiceTest {
 
     assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
     assertThat(response.url()).isNull();
-    then(aiWorkerClient).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
+    then(aiGateway).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
   }
 
   @DisplayName("정기 정리 전 만료됐거나 복원 후 파일이 없는 음성은 재생성 요청에서도 EXPIRED로 처리한다")
@@ -331,7 +315,7 @@ class SpeechServiceTest {
 
     assertThat(response.status()).isEqualTo(SpeechStatus.EXPIRED);
     assertThat(response.url()).isNull();
-    then(aiWorkerClient).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
+    then(aiGateway).should(never()).synthesize(any(), anyString(), anyString(), anyDouble());
   }
 
   @Test

@@ -1,9 +1,7 @@
 package com.elsehere.dialogue.service;
 
 import com.elsehere.TestcontainersConfiguration;
-import com.elsehere.ai.client.AiWorkerClient;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;
@@ -42,10 +40,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
- * 대화·피드백·기억 서비스를 실제 DB(PostgreSQL 컨테이너)와 함께 검증하는 테스트. AI 워커 호출만 Mock으로 바꾼다.
+ * 대화·피드백·기억 서비스를 실제 DB(PostgreSQL 컨테이너)와 함께 검증하는 테스트. AI 워커 호출({@link AiGateway})만 Mock으로 바꾼다. AI
+ * 호출 기록은 AiGatewayTest가 확인한다.
  *
  * <p>NPC는 시드(WorldSeedLoader가 시작 때 넣음)를 쓴다. 비동기 실행 설정(@EnableAsync)을 불러오지 않으므로 기억 카드 갱신도 호출한 스레드에서
- * 바로 끝난다. AI 호출 기록은 별도 트랜잭션으로 커밋되어 테스트가 끝나도 남으므로 요청 ID로 찾는다.
+ * 바로 끝난다.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -79,8 +78,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   NpcAudioStore.class,
   NpcAudioRetention.class,
   WorkerNpcs.class,
-  AiRequestRecorder.class,
-  AiFailureRecorder.class,
   FeedbackService.class,
   ModelSpeechService.class,
   ModelSpeechStore.class,
@@ -96,7 +93,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   UserContentEraser.class,
   WithdrawalService.class
 })
-@MockitoBean(types = AiWorkerClient.class)
+@MockitoBean(types = AiGateway.class)
 public @interface DialogueServiceTest {
 
   String TRAINING_RECORDING_DIR = "build/test-training-recordings";

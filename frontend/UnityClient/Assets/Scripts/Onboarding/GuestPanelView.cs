@@ -1,5 +1,6 @@
 using System;
-using A305.Theme;
+using A305.Voice;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,12 +11,12 @@ namespace A305.Onboarding
     /// </summary>
     public class GuestPanelView : MonoBehaviour
     {
-        // 게스트는 가입 약관 목록(AUTH-03)을 받지 않으므로 음성 처리 동의 문서를 여기 둔다. 서버 ConsentCatalog의 VOICE와 같게 둔다.
+        // 게스트는 가입 약관 목록(AUTH-03)을 받지 않으므로 음성 처리 동의 문서를 여기 둔다. 대화창 동의 창과 같은 문서를 연다.
         private static readonly ConsentTerm VoiceTerm = new ConsentTerm
         {
             ConsentType = "VOICE",
             Title = "음성 처리 동의",
-            Url = "/voice/2026-10",
+            Url = VoiceConsent.DocumentUrl,
         };
 
         [SerializeField]
@@ -23,6 +24,10 @@ namespace A305.Onboarding
 
         [SerializeField]
         private Button maleButton;
+
+        [SerializeField]
+        [Tooltip("닉네임과 게스트 대화 횟수 안내")]
+        private TMP_Text noteText;
 
         [SerializeField]
         private ConsentRowView voiceConsentRow;
@@ -54,10 +59,11 @@ namespace A305.Onboarding
             backButton.onClick.AddListener(() => BackRequested?.Invoke());
         }
 
-        public void Show(AvatarType? selected, bool voiceAgreed)
+        /// <param name="conversationLimit">게스트가 NPC와 대화할 수 있는 횟수(AUTH-08). 읽지 못했으면 null</param>
+        public void Show(AvatarType? selected, bool voiceAgreed, int? conversationLimit)
         {
-            femaleButton.GetComponent<ThemedElement>().SetSelected(selected == AvatarType.F);
-            maleButton.GetComponent<ThemedElement>().SetSelected(selected == AvatarType.M);
+            AvatarButtons.ShowSelected(femaleButton, maleButton, selected);
+            noteText.text = GuestPanelText.Note(conversationLimit);
             voiceConsentRow.Toggle.SetIsOnWithoutNotify(voiceAgreed);
             startButton.interactable = selected != null;
         }

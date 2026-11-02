@@ -14,8 +14,8 @@ using UnityEngine.UI;
 namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
-    /// 음성 대화에서 버튼을 누르고 있어야 녹음된다는 것, 녹음 중·녹음 후에 할 일을 실제 대화창이 알려 주는지 확인한다.
-    /// 서버와 마이크 없이 대화 내용을 흉내 낸다.
+    /// 음성 대화에서 [말하기]를 한 번 눌러 녹음을 시작하고 다시 눌러 끝내는지, 녹음 중 목소리가 들리면 초록불이 켜지는지,
+    /// 녹음 중·녹음 후에 할 일을 실제 대화창이 알려 주는지 확인한다. 서버와 마이크 없이 대화 내용을 흉내 낸다.
     /// </summary>
     public class DialoguePanelVoiceInputTests
     {
@@ -33,38 +33,67 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator TalkButton_TellsToHoldWhileSpeaking()
+        public IEnumerator TalkButton_ClickedTwice_StartsThenStopsRecording()
         {
             yield return Show(new VoiceContent(status: null));
+            int starts = 0;
+            int stops = 0;
+            view.TalkStartRequested += () => starts++;
+            view.TalkStopRequested += () => stops++;
 
-            Assert.That(TalkLabel().text, Is.EqualTo("꾹 눌러 말하기"));
+            Assert.That(TalkLabel().text, Is.EqualTo("말하기"));
+            ClickCenterOf(TalkButton());
+            Assert.That(starts, Is.EqualTo(1));
+            Assert.That(stops, Is.EqualTo(0));
+
+            view.ShowVoiceInput(isRecording: true, isHearingVoice: false);
+            Assert.That(TalkLabel().text, Is.EqualTo("종료"));
+            ClickCenterOf(TalkButton());
+
+            Assert.That(starts, Is.EqualTo(1));
+            Assert.That(stops, Is.EqualTo(1));
         }
 
         [UnityTest]
-        public IEnumerator HoldingTalkButton_ShowsListening_UntilReleased()
+        public IEnumerator VoiceLight_TurnsGreenOnlyWhileVoiceIsHeard()
         {
             yield return Show(new VoiceContent(status: null));
-            var hold = TalkButton().GetComponent<HoldButton>();
-            var pointer = new PointerEventData(EventSystem.current);
+            Image light = TalkButton().transform.Find("VoiceLight").GetComponent<Image>();
+            Assert.That(light.gameObject.activeInHierarchy, Is.False);
 
-            hold.OnPointerDown(pointer);
-            Assert.That(TalkLabel().text, Is.EqualTo("듣는 중…"));
+            view.ShowVoiceInput(isRecording: true, isHearingVoice: false);
+            Assert.That(light.gameObject.activeInHierarchy, Is.True);
+            Assert.That(light.color, Is.Not.EqualTo(DialoguePanelView.VoiceHeardColor));
 
-            hold.OnPointerUp(pointer);
-            Assert.That(TalkLabel().text, Is.EqualTo("꾹 눌러 말하기"));
+            view.ShowVoiceInput(isRecording: true, isHearingVoice: true);
+            Assert.That(light.color, Is.EqualTo(DialoguePanelView.VoiceHeardColor));
+
+            // 시간·무음으로 녹음이 저절로 끝나도 버튼은 [말하기]로 돌아오고 불이 꺼진다.
+            view.ShowVoiceInput(isRecording: false, isHearingVoice: false);
+            Assert.That(TalkLabel().text, Is.EqualTo("말하기"));
+            Assert.That(light.gameObject.activeInHierarchy, Is.False);
         }
 
         [UnityTest]
-        public IEnumerator WhileListening_StatusLineTellsToReleaseWhenDone()
+        public IEnumerator WhileListening_StatusLineTellsToPressStopWhenDone()
         {
             yield return Show(new VoiceContent(VoiceInputNotice.Listening(15)));
 
             Assert.That(Status().gameObject.activeInHierarchy, Is.True);
-            Assert.That(Status().text, Does.Contain("손을 떼"));
+            Assert.That(Status().text, Does.Contain("[종료]"));
             AssertFitsInPanel(Status());
         }
 
-        // 버튼을 떼기 전에 녹음이 끝났으면 이유가 앞에 붙어 안내가 길어지므로 모든 이유를 확인한다.
+        [UnityTest]
+        public IEnumerator RecordingWithoutSpeech_StatusLineFits()
+        {
+            yield return Show(new VoiceContent(VoiceInputNotice.TooShort));
+
+            Assert.That(Status().text, Does.Contain("[말하기]").And.Contain("[종료]"));
+            AssertFitsInPanel(Status());
+        }
+
+        // [종료]를 누르기 전에 녹음이 끝났으면 이유가 앞에 붙어 안내가 길어지므로 모든 이유를 확인한다.
         [UnityTest]
         public IEnumerator AfterTranscription_StatusLineAsksToCheckAndSend(
             [Values] RecordingEndReason endReason
@@ -107,6 +136,28 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         private const float NarrowCanvasWidth = 1600f;
+
+        // 버튼 가운데를 실제 화면 좌표로 눌러, 다른 UI에 가려지지 않고 버튼이 클릭을 받는지 본다.
+        private static void ClickCenterOf(Button button)
+        {
+            var rect = (RectTransform)button.transform;
+            var pointer = new PointerEventData(EventSystem.current)
+            {
+                position = RectTransformUtility.WorldToScreenPoint(
+                    null,
+                    rect.TransformPoint(rect.rect.center)
+                ),
+            };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits, Is.Not.Empty, "버튼 위치에 클릭을 받는 UI가 없습니다.");
+
+            GameObject clicked = ExecuteEvents.GetEventHandler<IPointerClickHandler>(
+                hits[0].gameObject
+            );
+            Assert.That(clicked, Is.EqualTo(button.gameObject));
+            ExecuteEvents.Execute(clicked, pointer, ExecuteEvents.pointerClickHandler);
+        }
 
         private void AssertFitsInPanel(TMP_Text text)
         {
@@ -175,6 +226,7 @@ namespace A305.Dialogue.PlayModeTests
             public string RecoveryGuide => null;
             public bool CanRetry => false;
             public IReadOnlyList<string> SuggestWords => null;
+            public bool IsSuggestingWords => false;
             public bool CanSend => true;
             public bool CanTalk => true;
             public bool HasMeaning => true;

@@ -1,0 +1,233 @@
+{
+  "name": "LittleMung_Base_Male_170",
+  "purpose": "부품 제작용 실측 기준. 런타임 자동 장착 설정이나 최종 의상 치수가 아님.",
+  "units": "meters",
+  "base_height_m": 1.7000002642162144,
+  "height_definition": "현재 기본복을 입은 Base의 발바닥 최저점부터 머리 정수리까지. 새 머리카락·신발 굽은 제외. 부품 추가 후 총높이를 1.7m로 맞추려고 Base를 다시 축소하지 않음.",
+  "source_prefab": "frontend/UnityClient/Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Male_170.prefab",
+  "source_hashes_sha256": {
+    "frontend/UnityClient/Assets/Prefabs/Characters/Mannequin/LittleMung_Base_Male_170.prefab": "1cdc2fec5b39ee507ca4d99415b0b2c74d924618d0b448c909032d2fa6a26ada",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LittleMung_Base_Male_Visual.prefab": "383e5f40151bb1d2b458e49917401ae7c980ba08caf80e6aa369280ec438869e",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/ClosedLeftLid.asset": "7479f8611e54c3f844c6dde24a86c784e785d93bb2a8299d0f4589b8525a02e4",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/ClosedLipCrease.asset": "7c3acaad9f5ce27557b80d62f3abeb4164071b270a2a2f5bca91d3e00842c496",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/ClosedRightLid.asset": "5da34f47ebef5272fb2876fa1ba1446a1495a45657edbf4708fe72288042ef10",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LeftEye.asset": "2c8336698c7e8885085a286948d1f5d722ac883bd96652e49a3b495ddd571402",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LeftLashes.asset": "a0ccd90e136958402b9c0c62f3eddfe1ba815a74dec565762f9416b4a8ed67dc",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LittleMung_Base_Male_160_Camera.asset": "5f88941e0d878e39a9aaa83b175bfde2a6849efe7804e5ebab4689156c695854",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LittleMung_Base_Male_170_Camera.asset": "17198468cfbea3c85df683c22295295e6d65ab7ce905d597645af16ef5a519e0",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LittleMungMannequinFace.asset": "e96e958b93131325d85793f8a55e9ad7d9540be06fbf52ed09b4b8859954cf0a",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LowerLeftLid.asset": "a7ae302994dedf03a9ad506a3b38189111df167f8ba0e2c5b873d40410365fd2",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LowerRightLid.asset": "dbdff10f46572a817d2bab5f2837af27a32c2ee46ae839eef0bf36f8aad26515",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/LowerTeeth.asset": "b40825bf524f963e9213f09e73a3c65ffed8cce149e16a4088b5e76a3070bd06",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/MouthInterior.asset": "b4837f43b1140aed4c051eb863b4192209d9083d1a5546f3e57314643eb55c22",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/RightEye.asset": "a3fc3e876934cefb5f000b8283578bc255244de8172b52fb06435bb315c5c9f8",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/RightLashes.asset": "e3f1dbbf8e1cfa55c99983fcc3966dde0488932de145711a28079f25bf8ad452",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/SpeakingLips.asset": "761444c0cc60bb5a15f891a07ee4a4b76fcf25951e5889abc869d30894a7ef60",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/Tongue.asset": "6881f9d7781cc621482359e25b376e7bfb4d2adf61c9f784e36cef5192027ace",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/UpperLeftLid.asset": "e36e6d028a7d88f767200a8967f508d4ec517a6195f5db4037338cc0ced3fb20",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/UpperRightLid.asset": "cfb7bd34857eaf8b0dadeecf72d2e5ed256606951b04b1a09eae69d5e2a1117e",
+    "frontend/UnityClient/Assets/Art/Characters/Common/LittleMungMannequin/UpperTeeth.asset": "35de93f08ad6f0f9cf2a421c79a244d4c2531ea33eb231ba1844a4ca0ebc03ee"
+  },
+  "measurement_method": "Unity BakeMesh(useScale=true), renderer.TransformPoint, Animator disabled; saved neutral/rest pose. Temporary instance only.",
+  "shoulder_joint_span_m": 0.22739791089261588,
+  "head_region": {
+    "min": [
+      -0.6565017537078491,
+      0.7568072457797825,
+      -0.5093617383038126
+    ],
+    "max": [
+      0.6635943638380059,
+      1.7000002642162144,
+      0.4832872199860595
+    ],
+    "size": [
+      1.320096117545855,
+      0.9431930184364319,
+      0.9926489582898721
+    ]
+  },
+  "head_region_note": "Weight >= 0.5 on head/eye bones; includes ears, face and lower head, not the hair cap inner dimensions.",
+  "torso_sections": {
+    "neck": {
+      "y_m": 0.756,
+      "width_m": 0.163588,
+      "depth_m": 0.151922,
+      "perimeter_m": 0.511819772139104,
+      "center_x": 0.007944237288135593,
+      "closed": true
+    },
+    "chest": {
+      "y_m": 0.5275476952083409,
+      "width_m": 0.321234,
+      "depth_m": 0.291192,
+      "perimeter_m": 0.9747810248703319,
+      "center_x": 0.006751390804597702,
+      "closed": true
+    },
+    "waist": {
+      "y_m": 0.4564859946258366,
+      "width_m": 0.36148199999999997,
+      "depth_m": 0.305865,
+      "perimeter_m": 1.0366198728936025,
+      "center_x": 0.00231116666666667,
+      "closed": true
+    },
+    "hip": {
+      "y_m": 0.4209550698287785,
+      "width_m": 0.376322,
+      "depth_m": 0.299023,
+      "perimeter_m": 1.0493509679475532,
+      "center_x": 0.006446648351648355,
+      "closed": true
+    }
+  },
+  "neck_section_method": "Narrowest closed central section between 0.748m and 0.768m, sampled every 0.002m; visually reviewed neck interval for this Base only.",
+  "limbs": {
+    "Left": {
+      "upper_arm_joint_length_m": 0.1417677780590997,
+      "forearm_joint_length_m": 0.14976281116500761,
+      "shoulder_to_wrist_path_m": 0.29153058922410735,
+      "arm_angle_from_vertical_front_degrees": 34.856145050152335,
+      "thigh_joint_length_m": 0.14990495591401987,
+      "shin_joint_length_m": 0.12122252384716876,
+      "foot_below_ankle_bounds_m": {
+        "min": [
+          -0.2344453545081131,
+          0.0,
+          -0.05707389781885399
+        ],
+        "max": [
+          -0.04666024229580092,
+          0.1152006764896214,
+          0.22332063676811362
+        ],
+        "size": [
+          0.18778511221231217,
+          0.1152006764896214,
+          0.2803945345869676
+        ]
+      }
+    },
+    "Right": {
+      "upper_arm_joint_length_m": 0.14176800041485293,
+      "forearm_joint_length_m": 0.15266494230876038,
+      "shoulder_to_wrist_path_m": 0.2944329427236133,
+      "arm_angle_from_vertical_front_degrees": 33.42906900966357,
+      "thigh_joint_length_m": 0.14990493126776114,
+      "shin_joint_length_m": 0.12122248526071153,
+      "foot_below_ankle_bounds_m": {
+        "min": [
+          0.05404953663183219,
+          0.0017871102318167686,
+          -0.05589282033375472
+        ],
+        "max": [
+          0.24287237912127507,
+          0.11526569025591016,
+          0.22317694766934876
+        ],
+        "size": [
+          0.18882284248944287,
+          0.11347858002409339,
+          0.27906976800310346
+        ]
+      }
+    }
+  },
+  "waist_to_ankle_vertical_m": {
+    "Left": 0.34109677374362946,
+    "Right": 0.3410966992378235
+  },
+  "smaller_height_multiplier": 0.9411764705882354,
+  "reference_reviews": [
+    {
+      "file": "Hair_SidePart_Brown_Front.png",
+      "part": "머리",
+      "sha256": "a952211399c5e99bbe06a97c41b6bf9250008b1f8bf793d71ee13934d6d00fd2",
+      "image_size_px": [
+        1254,
+        1254
+      ],
+      "colored_subject_bbox_px": [
+        40,
+        198,
+        1211,
+        999
+      ],
+      "fitting_action": "갈색 가르마·덩어리 실루엣 유지. 귀 포함 머리 폭을 가발 안쪽 폭으로 사용하지 않음. 실측 참조 메시의 두피에 안쪽 곡면을 맞추고 귀·눈썹을 가리지 않는지 확인.",
+      "status": "정면만 있어 후두부 깊이·두피 접촉면 확인 불가. 크기 적합 판정 보류."
+    },
+    {
+      "file": "Outfit_Suit_Navy_Upper_Front.png",
+      "part": "상의",
+      "sha256": "a02561e112f7915fb82e1cd2a9108c5488e149cece4ccd5be5942e97c3b412e6",
+      "image_size_px": [
+        1254,
+        1254
+      ],
+      "colored_subject_bbox_px": [
+        84,
+        288,
+        1168,
+        961
+      ],
+      "fitting_action": "재킷·셔츠·넥타이 디자인 유지. Base 팔 방향은 수직에서 약 33~35도. 어깨→팔꿈치→손목 경로와 목·가슴·허리 단면을 각각 맞춤.",
+      "status": "이미지 소매 각도는 A포즈 방향으로 활용 가능하나 사진의 소매 시작점은 본 관절 위치가 아님. 소매 길이·깊이·둘레 적합 판정 보류."
+    },
+    {
+      "file": "Outfit_Suit_Navy_Pants_Front.png",
+      "part": "바지",
+      "sha256": "a1f11901423c4ac8a2b0d4ad7318f9013e996f2d440e032bc0b2dd15654b2925",
+      "image_size_px": [
+        1254,
+        1254
+      ],
+      "colored_subject_bbox_px": [
+        277,
+        263,
+        974,
+        962
+      ],
+      "fitting_action": "허리 기준 높이 약 45.6cm, 발목 약 11.5cm. 허리부터 발목까지 수직 약 34.1cm에 맞춤. 현 참고 이미지의 넓은 밑단·짧은 바지 스타일은 유지하되 허리 폭과 길이를 독립적으로 확인.",
+      "status": "이미지의 허리 폭에 맞춰 환산하면 바지가 길어질 가능성 있음. 원근이 있어 아래 2D 수치는 선별용이며 확정 재단값이 아님.",
+      "screening_2d": {
+        "method": "선택한 허리 앞선 y=313~351px 및 허리 폭 샘플 y=313,351,376px. 색상 마스크는 그림자 제외용. 카메라 원근 보정 없음.",
+        "waist_width_px_range": [
+          537,
+          551
+        ],
+        "hem_drop_over_waist_width_range": [
+          1.1088929219600725,
+          1.2085661080074488
+        ],
+        "base_waist_to_ankle_over_waist_width": 0.9436064215942329,
+        "decision": "허리 폭 하나로 균일 확대하면 길이 오차 위험. 길이와 폭을 분리해 맞출 것. 자동 이미지 변형이나 재생성은 수행하지 않음."
+      }
+    },
+    {
+      "file": "Shoes_Dress_Brown_Pair_Front.png",
+      "part": "신발",
+      "sha256": "bb562fb12d3dbb75ec7d4202163fecd0bde9f72de80835c8d13dac6a54c910d3",
+      "image_size_px": [
+        1254,
+        1254
+      ],
+      "colored_subject_bbox_px": [
+        80,
+        281,
+        1173,
+        965
+      ],
+      "fitting_action": "갈색 구두 디자인 유지. 발목 아래 표면 범위는 좌우 각각 길이 약 28cm·폭 약 19cm. 신발 안쪽은 실제 발 메시로 맞추고 여유·밑창 두께를 별도로 설정. 좌우 별도 메시로 등록.",
+      "status": "윗면이 보이는 원근 이미지여서 이미지 세로 길이로 실제 발 길이를 정할 수 없음. 신발 안쪽·발목·밑창 적합 판정 보류."
+    }
+  ],
+  "limitations": [
+    "Body includes the basic mannequin suit, so sections are its exterior envelope rather than bare-skin tailoring measurements.",
+    "Bone joint lengths are not finished garment seam lengths.",
+    "Foot envelope excludes vertices above the ankle plane; shoe clearance and sole thickness must be added.",
+    "Reference image perspectives and hidden surfaces prevent exact 3D fit verification.",
+    "No new fitting, mesh generation, animation modification or runtime automatic fitting was performed."
+  ]
+}

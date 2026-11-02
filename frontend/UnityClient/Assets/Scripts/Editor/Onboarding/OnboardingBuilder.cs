@@ -24,6 +24,11 @@ namespace A305.EditorTools.Onboarding
         public const string MenuPath = "Tools/A305/Onboarding/Build";
         public const string EntryScenePath = "Assets/Scenes/Production/EntryScene.unity";
 
+        // 음성 동의 안내는 [말하기] 버튼 이름을 따르므로, 이미 있는 칸도 Builder가 매번 이 글자로 맞춘다.
+        private const string GuestVoiceNote =
+            "음성 처리에 동의하면 [말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있어요.";
+        private const string SignupVoiceNote =
+            "음성 처리에 동의하면 [말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있고, 나중에 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 바꿀 수 있어요.";
         private const string ScreensPrefabPath = "Assets/Prefabs/Onboarding/EntryScreens.prefab";
         private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
         private const string OnboardingSettingsPath =
@@ -282,11 +287,27 @@ namespace A305.EditorTools.Onboarding
                 20f,
                 BadgeColor
             );
+            // 로그인하기 전에도 약관을 볼 수 있게 창 맨 아래에 링크를 둔다. 모양은 UiThemeBuilder가 차분한 글자 버튼으로 칠한다.
+            RectTransform legalLinks = UiBuilderTools.FindOrCreateButtonRow(panel, "LegalLinks");
+            Button terms = UiBuilderTools.FindOrCreateButton(
+                legalLinks,
+                "TermsButton",
+                "이용약관",
+                regular
+            );
+            Button privacy = UiBuilderTools.FindOrCreateButton(
+                legalLinks,
+                "PrivacyButton",
+                "개인정보 처리방침",
+                regular
+            );
 
             BuilderTools.SetReference(view, "googleButton", google);
             BuilderTools.SetReference(view, "guestButton", guest);
             BuilderTools.SetReference(view, "devLoginButton", devLogin);
             BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.SetReference(view, "termsButton", terms);
+            BuilderTools.SetReference(view, "privacyButton", privacy);
             BuilderTools.RequireReferences(view);
             return view;
         }
@@ -327,7 +348,7 @@ namespace A305.EditorTools.Onboarding
                 regular,
                 20f,
                 SubTextColor,
-                "닉네임은 자동으로 정해져요. 게스트는 NPC와 대화할 수 있는 횟수가 정해져 있어요."
+                GuestPanelText.Note(null)
             );
             ConsentRowView voiceConsent = SetUpConsentRow(panel, "VoiceConsentRow", regular);
             TMP_Text voiceNote = UiBuilderTools.FindOrCreateText(
@@ -336,8 +357,9 @@ namespace A305.EditorTools.Onboarding
                 regular,
                 20f,
                 SubTextColor,
-                "음성 처리에 동의하면 [꾹 눌러 말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있어요."
+                GuestVoiceNote
             );
+            voiceNote.text = GuestVoiceNote;
             // 이미 만든 패널에 새로 붙는 줄은 맨 아래에 생기므로 안내 문구 바로 뒤로 옮긴다.
             voiceConsent.transform.SetSiblingIndex(note.transform.GetSiblingIndex() + 1);
             voiceNote.transform.SetSiblingIndex(voiceConsent.transform.GetSiblingIndex() + 1);
@@ -358,6 +380,7 @@ namespace A305.EditorTools.Onboarding
 
             BuilderTools.SetReference(view, "femaleButton", female);
             BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "noteText", note);
             BuilderTools.SetReference(view, "voiceConsentRow", voiceConsent);
             BuilderTools.SetReference(view, "startButton", start);
             BuilderTools.SetReference(view, "backButton", back);
@@ -432,15 +455,16 @@ namespace A305.EditorTools.Onboarding
             );
             RectTransform consents = UiBuilderTools.FindOrCreateColumn(panel, "Consents");
             ConsentRowView consentTemplate = SetUpConsentTemplate(consents, regular);
-            // 음성 처리는 선택 동의라, 동의해야 [꾹 눌러 말하기]를 쓸 수 있다는 것과 나중에 바꾸는 곳을 약관 바로 아래에 알린다.
+            // 음성 처리는 선택 동의라, 동의해야 [말하기]를 쓸 수 있다는 것과 나중에 바꾸는 곳을 약관 바로 아래에 알린다.
             TMP_Text voiceNote = UiBuilderTools.FindOrCreateText(
                 panel,
                 "VoiceConsentNote",
                 regular,
                 20f,
                 SubTextColor,
-                "음성 처리에 동의하면 [꾹 눌러 말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있고, 나중에 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 바꿀 수 있어요."
+                SignupVoiceNote
             );
+            voiceNote.text = SignupVoiceNote;
             voiceNote.transform.SetSiblingIndex(consents.GetSiblingIndex() + 1);
 
             Button submit = UiBuilderTools.FindOrCreateButton(

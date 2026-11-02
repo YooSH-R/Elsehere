@@ -115,7 +115,9 @@ STAGES = {
         },
     ),
     "BUY_UMBRELLA": (
-        "Sell one umbrella for exactly 8 quest coins. Balance before purchase is 20. Ask how they want to pay (cash/card both accepted). "
+        "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Balance before purchase is 20. "
+        "Do not offer an umbrella or say its price before the learner asks. "
+        "Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. "
         "Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
         {
             "ask_price": "Ask or confirm the umbrella price.",
@@ -125,7 +127,8 @@ STAGES = {
     ),
     "CHECK_IN": (
         "Check-in time has arrived. The learner recovered the small bag and passport, bought an umbrella and has 12 quest coins left. "
-        "The large suitcase is stored at this hotel. Confirm the reservation, check them in and return the suitcase on request. "
+        "The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. "
+        "Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. "
         "Never ask them to fetch the bag again.",
         {
             "found_bag": "Say they returned or found their bag.",

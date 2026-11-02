@@ -12,6 +12,8 @@ namespace A305.Learning
     public class VocabularyView : MonoBehaviour
     {
         private const int VisibleEntryCount = 4;
+        private const string LoadingTitle = "단어장을 불러오는 중이에요…";
+        private const string LoadFailedTitle = "단어장을 불러오지 못했어요";
 
         [SerializeField]
         private GameObject panel;
@@ -21,6 +23,16 @@ namespace A305.Learning
 
         [SerializeField]
         private GameObject emptyState;
+
+        [SerializeField]
+        [Tooltip("불러오는 중이거나 불러오지 못했을 때 빈 상태 대신 보이는 가운데 안내")]
+        private GameObject loadState;
+
+        [SerializeField]
+        private TMP_Text loadStateTitle;
+
+        [SerializeField]
+        private Button retryButton;
 
         [SerializeField]
         private TMP_Text wordText;
@@ -87,6 +99,9 @@ namespace A305.Learning
         /// <summary>[메모 저장]으로 고른 단어와 입력한 메모를 알린다.</summary>
         public event Action<VocabularyEntry, string> MemoSaveRequested;
 
+        /// <summary>단어장을 불러오지 못한 화면의 [다시 시도].</summary>
+        public event Action RetryRequested;
+
         public bool IsVisible => panel.activeSelf;
 
         public RectTransform PanelRect => (RectTransform)panel.transform;
@@ -122,9 +137,17 @@ namespace A305.Learning
 
             int count = book.Entries.Count;
             selectedIndex = Mathf.Clamp(selectedIndex, 0, Mathf.Max(0, count - 1));
-            bool hasEntries = count > 0;
+            VocabularyListState state = book.ListState;
+            bool hasEntries = state == VocabularyListState.Entries;
             content.SetActive(hasEntries);
-            emptyState.SetActive(!hasEntries);
+            // 서버 목록이 빈 것을 확인했을 때만 '단어 없음'을 보이고, 받기 전이나 받지 못했으면 같은 자리에 안내를 보인다.
+            emptyState.SetActive(state == VocabularyListState.Empty);
+            loadState.SetActive(
+                state == VocabularyListState.Loading || state == VocabularyListState.Failed
+            );
+            loadStateTitle.text =
+                state == VocabularyListState.Failed ? LoadFailedTitle : LoadingTitle;
+            retryButton.gameObject.SetActive(state == VocabularyListState.Failed);
             if (!hasEntries)
                 return;
 
@@ -188,6 +211,7 @@ namespace A305.Learning
                     MemoSaveRequested?.Invoke(SelectedEntry, memoInput.text);
             });
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
+            retryButton.onClick.AddListener(() => RetryRequested?.Invoke());
             Hide();
         }
 

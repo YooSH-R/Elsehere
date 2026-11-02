@@ -10,6 +10,8 @@ import java.util.List;
  * @param notice 학습자에게 보여 줄 한국어 안내
  * @param translation 학습자 말에 한글이 섞였을 때만 있는 영어 번역
  * @param events 이 줄에서 학습자가 한 대화 사건(GREETING·APOLOGY 등). 의도 판정이 실패하면 빈 목록, 워커가 보내지 않으면 null
+ * @param affinityDelta 이 줄의 사건으로 바로 올릴 호감도. 이번 대화에서 이미 센 사건은 빠진다. 무례로 센 턴에는 쓰지 않으며, 워커가 보내지 않으면(이
+ *     칸을 모르는 이전 워커) null
  */
 public record JudgeResult(
     String text,
@@ -18,7 +20,8 @@ public record JudgeResult(
     Translation translation,
     List<WorkerUsage> usage,
     Intent intent,
-    List<String> events) {
+    List<String> events,
+    Integer affinityDelta) {
 
   public JudgeResult(
       String text,
@@ -26,7 +29,7 @@ public record JudgeResult(
       String notice,
       Translation translation,
       List<WorkerUsage> usage) {
-    this(text, dropped, notice, translation, usage, null, null);
+    this(text, dropped, notice, translation, usage, null, null, null);
   }
 
   public JudgeResult(
@@ -36,7 +39,7 @@ public record JudgeResult(
       Translation translation,
       List<WorkerUsage> usage,
       Intent intent) {
-    this(text, dropped, notice, translation, usage, intent, null);
+    this(text, dropped, notice, translation, usage, intent, null, null);
   }
 
   public record Intent(String id, List<String> ids, String error) {}

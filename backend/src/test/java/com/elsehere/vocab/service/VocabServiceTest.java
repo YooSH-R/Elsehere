@@ -14,6 +14,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -60,6 +61,7 @@ import org.springframework.context.annotation.Import;
   WorldSeedLoader.class,
   PronunciationAudioStore.class,
   VocabService.class,
+  ConversationLookup.class,
   SceneService.class,
   VocabServiceTest.ClockTestConfiguration.class
 })
@@ -199,6 +201,20 @@ class VocabServiceTest {
     assertThat(secondPage.items()).extracting(item -> item.vocab().text()).containsExactly("sofa");
     assertThat(secondPage.nextCursor()).isNull();
     assertThat(secondPage.counts().all()).isEqualTo(3);
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {0, -1, 51})
+  @DisplayName("한 페이지 개수가 1~50을 벗어나면 VALIDATION_FAILED로 거절한다")
+  void getVocab_sizeOutOfRange_isRejected(int size) {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    saveAt(userId, "sofa", "2026-10-27T01:00:00Z");
+
+    assertThatThrownBy(() -> vocabService.getVocab(userId, false, null, size))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
   }
 
   @Test

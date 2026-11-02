@@ -279,8 +279,9 @@ namespace A305.EditorTools.Characters
                 var npc = new GameObject("Speech comparison NPC");
                 p.root.transform.SetParent(npc.transform, true);
                 npc.AddComponent<NpcIdentity>();
-                var binding =
-                    npc.GetComponent<DialogueSpeaker>() ?? npc.AddComponent<DialogueSpeaker>();
+                var binding = npc.GetComponent<DialogueSpeaker>();
+                if (binding == null)
+                    binding = npc.AddComponent<DialogueSpeaker>();
                 var player = binding.Player;
                 if (player == null)
                     throw new InvalidOperationException(binding.BindingNotice);

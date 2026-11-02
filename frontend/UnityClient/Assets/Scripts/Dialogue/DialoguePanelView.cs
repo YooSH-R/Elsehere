@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using A305.Theme;
-using A305.Voice;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,12 +9,13 @@ namespace A305.Dialogue
 {
     /// <summary>
     /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 왼쪽 추천 단어·추천 문장 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
-    /// 서버 AI 대화의 [꾹 눌러 말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다.
+    /// 서버 AI 대화와 튜토리얼 길 안내의 [말하기], 서버 AI 대화의 [다시 듣기]·[힌트]·[다시 시도]가 있다.
+    /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
-        private const string TalkCaption = "꾹 눌러 말하기";
-        private const string ListeningCaption = "듣는 중…";
+        private const string TalkCaption = "말하기";
+        private const string StopTalkCaption = "종료";
 
         [SerializeField]
         private GameObject panel;
@@ -73,7 +73,14 @@ namespace A305.Dialogue
         private Button exampleButton;
 
         [SerializeField]
-        private HoldButton talkButton;
+        private Button talkButton;
+
+        [SerializeField]
+        private TMP_Text talkCaption;
+
+        // 녹음 중에 켜는 불. 목소리가 들리면 초록색, 조용하면 흐린 흰색이다.
+        [SerializeField]
+        private Image voiceLight;
 
         [SerializeField]
         private Button meaningButton;
@@ -90,17 +97,29 @@ namespace A305.Dialogue
         [SerializeField]
         private Button retryButton;
 
+        [SerializeField]
+        [Tooltip("음성 처리에 동의하지 않은 채 회색 [말하기]를 누르면 뜨는 동의 창")]
+        private VoiceConsentDialogView voiceConsentDialog;
+
         private IDialogueContent content;
         private bool isMeaningVisible;
         private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
-        private TMP_Text talkLabel;
         private ThemedElement sendTheme;
+        private CanvasGroup talkGroup;
+        private bool isRecording;
+
+        // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
+        private const float UnavailableTalkAlpha = 0.45f;
+
+        /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
+        public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
+        private static readonly Color VoiceQuietColor = new Color(1f, 1f, 1f, 0.55f);
 
         // 자유 대화의 입력칸 안내("영어로 답하기…"). 정해진 대사를 따라가는 대화에서는 그 대사로 바꿔 보인다.
         private string freePlaceholder;
 
         /// <summary>
-        /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[꾹 눌러 말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
+        /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
         /// </summary>
         public IReadOnlyList<RectTransform> GuidedLineParts
         {
@@ -160,11 +179,11 @@ namespace A305.Dialogue
         /// <summary>[표현 저장]을 누르면 알린다. 저장할 대사는 대화 처리가 정한다.</summary>
         public event Action SaveRequested;
 
-        /// <summary>[꾹 눌러 말하기]를 누르기 시작하면 알린다.</summary>
-        public event Action TalkPressed;
+        /// <summary>녹음 중이 아닐 때 [말하기]를 누르면 알린다.</summary>
+        public event Action TalkStartRequested;
 
-        /// <summary>[꾹 눌러 말하기]에서 손을 떼면 알린다.</summary>
-        public event Action TalkReleased;
+        /// <summary>녹음 중에 [종료]를 누르면 알린다.</summary>
+        public event Action TalkStopRequested;
 
         /// <summary>[다시 듣기]를 누르면 알린다.</summary>
         public event Action ReplayRequested;
@@ -180,6 +199,9 @@ namespace A305.Dialogue
 
         public bool IsVisible => panel.activeSelf;
 
+        /// <summary>음성 처리 동의 창. 대화 처리가 [동의하고 켜기]·[문서 보기]를 받아 처리한다.</summary>
+        public VoiceConsentDialogView VoiceConsentDialog => voiceConsentDialog;
+
         /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
         public bool IsSaveAvailable { get; set; } = true;
 
@@ -189,6 +211,7 @@ namespace A305.Dialogue
             isMeaningVisible = false;
             standingDisplay = new ConversationStandingDisplay();
             inputField.text = "";
+            ShowVoiceInput(isRecording: false, isHearingVoice: false);
             panel.SetActive(true);
             helpPanel.gameObject.SetActive(true);
             Refresh();
@@ -197,13 +220,9 @@ namespace A305.Dialogue
         public void Hide()
         {
             content = null;
-            if (talkLabel != null)
-            {
-                talkLabel.text = TalkCaption;
-            }
-
             panel.SetActive(false);
             helpPanel.gameObject.SetActive(false);
+            voiceConsentDialog.Hide();
             ShowWait(DialogueWait.None);
         }
 
@@ -212,6 +231,8 @@ namespace A305.Dialogue
         {
             bool inLines = wait == DialogueWait.Opening || wait == DialogueWait.NpcReply;
             waitPanel.SetActive(inLines);
+            // 로딩 카드는 대사 칸과 같은 크기라 둥근 모서리 틈으로 대사가 비치지 않게 그동안 대사를 감춘다.
+            linesText.enabled = !inLines;
             if (inLines)
             {
                 waitText.text =
@@ -221,6 +242,18 @@ namespace A305.Dialogue
             }
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
+        }
+
+        /// <summary>
+        /// 녹음 중인지와 지금 목소리가 들리는지를 [말하기] 버튼에 표시한다. 녹음 중이면 [종료]로 바꾸고 불을 켠다.
+        /// 녹음은 시간·무음으로도 저절로 끝나므로 대화 처리가 매 프레임 부른다.
+        /// </summary>
+        public void ShowVoiceInput(bool isRecording, bool isHearingVoice)
+        {
+            this.isRecording = isRecording;
+            talkCaption.text = isRecording ? StopTalkCaption : TalkCaption;
+            voiceLight.gameObject.SetActive(isRecording);
+            voiceLight.color = isHearingVoice ? VoiceHeardColor : VoiceQuietColor;
         }
 
         /// <summary>전사한 문장처럼 입력창에 넣어 줄 문장. 사용자가 확인하고 [보내기]로 보낸다.</summary>
@@ -257,7 +290,7 @@ namespace A305.Dialogue
             UpdateStanding();
             statusText.text = FormatStatus();
             // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
-            // 음성 처리에 동의하지 않아 [꾹 눌러 말하기]가 없으면, 버튼이 왜 없는지와 동의를 켜는 곳을 입력칸 위에 알린다.
+            // 음성 처리에 동의하지 않아 [말하기]가 회색이면, 눌러서 동의하면 말할 수 있다고 입력칸 위에 알린다.
             // NPC 대답·피드백을 기다리는 동안은 상태 줄 대신 로딩이 같은 내용을 크게 알린다.
             statusText.gameObject.SetActive(
                 content.Waiting == DialogueWait.None
@@ -270,7 +303,10 @@ namespace A305.Dialogue
                     )
             );
             ShowWait(content.Waiting);
-            suggestText.text = DialogueHelpText.Words(content.SuggestWords);
+            suggestText.text = DialogueHelpText.Words(
+                content.SuggestWords,
+                content.IsSuggestingWords
+            );
             string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
             hintText.text = string.IsNullOrEmpty(sentence)
                 ? "[힌트]를 누르면 추천 문장을 볼 수 있어요."
@@ -292,8 +328,10 @@ namespace A305.Dialogue
             meaningButton.interactable = content.LastNpcLine != null;
             saveButton.gameObject.SetActive(IsSaveAvailable);
             saveButton.interactable = content.LastNpcLine != null;
-            talkButton.gameObject.SetActive(content.UsesVoice && content.CanTalk);
-            talkButton.GetComponent<Button>().interactable = content.CanSend;
+            TalkButtonState talk = TalkState();
+            talkButton.gameObject.SetActive(talk.IsVisible);
+            talkButton.interactable = talk.Action != TalkButtonAction.None;
+            TalkGroup.alpha = talk.LooksAvailable ? 1f : UnavailableTalkAlpha;
             replayButton.gameObject.SetActive(content.CanReplaySpeech);
             replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
             hintButton.gameObject.SetActive(content.HasHint);
@@ -325,27 +363,51 @@ namespace A305.Dialogue
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
             retryButton.onClick.AddListener(RequestRetry);
-            talkLabel = talkButton.transform.Find("Label").GetComponent<TMP_Text>();
-            talkButton.Pressed += StartTalking;
-            talkButton.Released += StopTalking;
+            talkButton.onClick.AddListener(PressTalk);
             Hide();
         }
 
-        // 녹음은 보낼 수 있을 때만 시작되므로, 그때만 버튼에 듣고 있다고 보인다.
-        private void StartTalking()
+        // [말하기]를 흐리게 그리는 투명도 묶음. Awake 전에 그릴 수도 있어(에디터 테스트 등) 처음 쓸 때 붙인다.
+        private CanvasGroup TalkGroup
         {
-            if (content != null && content.CanSend)
+            get
             {
-                talkLabel.text = ListeningCaption;
-            }
+                if (talkGroup == null && !talkButton.TryGetComponent(out talkGroup))
+                {
+                    talkGroup = talkButton.gameObject.AddComponent<CanvasGroup>();
+                }
 
-            TalkPressed?.Invoke();
+                return talkGroup;
+            }
         }
 
-        private void StopTalking()
+        private TalkButtonState TalkState() =>
+            TalkButtonRules.Decide(
+                content.UsesVoice,
+                content.CanTalk,
+                content.CanSend,
+                isRecording
+            );
+
+        private void PressTalk()
         {
-            talkLabel.text = TalkCaption;
-            TalkReleased?.Invoke();
+            if (content == null)
+            {
+                return;
+            }
+
+            switch (TalkState().Action)
+            {
+                case TalkButtonAction.StartRecording:
+                    TalkStartRequested?.Invoke();
+                    break;
+                case TalkButtonAction.StopRecording:
+                    TalkStopRequested?.Invoke();
+                    break;
+                case TalkButtonAction.AskVoiceConsent:
+                    voiceConsentDialog.Show();
+                    break;
+            }
         }
 
         // 들은 문장이나 입력한 문장이 있으면 [보내기]를 강조해 다음에 누를 곳을 알린다.

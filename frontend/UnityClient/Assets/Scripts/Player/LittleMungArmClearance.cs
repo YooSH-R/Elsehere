@@ -76,7 +76,6 @@ namespace A305.Player
             for (int side = 0; side < 2; side++)
             {
                 float sign = side == 0 ? -1f : 1f;
-                var hint = lower[side].position - upper[side].position + space.right * sign * .12f;
                 // 고정 반경은 외형 확대 시 실제 전완보다 작아져 턱 관통을 놓친다.
                 float forearmRadius = forearmSurface[side]
                     .RadiusAroundAxis(
@@ -102,13 +101,14 @@ namespace A305.Player
                     Vector3 shift = handShift + armShift * 1.5f;
                     if (shift.sqrMagnitude < .000001f)
                         break;
-                    TwoBonePose.Reach(
-                        upper[side],
-                        lower[side],
-                        hands[side],
-                        hands[side].position + space.TransformVector(shift),
-                        hint
-                    );
+                    // Swing the authored arm pose as a whole. A hand-position IK
+                    // solve straightened short arms and counter-rotated wrists.
+                    Vector3 reach = hands[side].position - upper[side].position;
+                    Vector3 target = reach + space.TransformVector(shift);
+                    if (reach.sqrMagnitude < 1e-10f || target.sqrMagnitude < 1e-10f)
+                        break;
+                    upper[side].rotation =
+                        Quaternion.FromToRotation(reach, target) * upper[side].rotation;
                 }
             }
         }

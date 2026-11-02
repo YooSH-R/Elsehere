@@ -22,6 +22,23 @@
       "Their room is 305 on the third floor. The elevators are in the lobby."
     ]
   },
+  "SHOP_STAFF": {
+    "scenarioId": "drugstore_counter",
+    "locationId": "SHOP",
+    "situation": "The customer is at the counter of the small drugstore on the town's main street.",
+    "facts": [
+      "Umbrellas are 8 quest coins each.",
+      "Cash and cards are both accepted."
+    ]
+  },
+  "TAXI_DRIVER": {
+    "scenarioId": "taxi_ride",
+    "locationId": "TOWN",
+    "situation": "The passenger has just waved down the yellow taxi on the town's main street and is sitting in the back seat.",
+    "facts": [
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
   "TOWN_PASSERBY": {
     "scenarioId": "town_street",
     "locationId": "TOWN",

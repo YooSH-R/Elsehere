@@ -6,8 +6,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.service.DialogueServiceTest;
 import com.elsehere.conversation.service.NpcAudioStore;
+import com.elsehere.dialogue.service.DialogueServiceTest;
+import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -32,6 +33,8 @@ class GuestContentCleanupTest {
   @Autowired private GuestContentCleanup guestContentCleanup;
 
   @Autowired private NpcAudioStore npcAudioStore;
+
+  @Autowired private ModelSpeechStore modelSpeechStore;
 
   @Autowired private EntityManager entityManager;
 
@@ -86,9 +89,9 @@ class GuestContentCleanupTest {
     Long guestId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
     Conversation conversation = conversation(entityManager, guestId, "TOWN_PASSERBY");
     Instant audioCreatedAt = Instant.parse("2026-10-28T00:00:00Z");
-    entityManager.persist(Turn.npc(conversation, 1, "Hi there!", null, sharedKey, audioCreatedAt));
+    entityManager.persist(Turn.npc(conversation, 1, "Hi there!", sharedKey, audioCreatedAt));
     textTurn(entityManager, conversation, 2, "Hello");
-    entityManager.persist(Turn.npc(conversation, 3, "Nice weather!", null, ownKey, audioCreatedAt));
+    entityManager.persist(Turn.npc(conversation, 3, "Nice weather!", ownKey, audioCreatedAt));
     entityManager.flush();
     lastActive(guestId, Duration.ofDays(2));
 
@@ -99,13 +102,27 @@ class GuestContentCleanupTest {
   }
 
   @Test
-  @DisplayName("사용자·대화를 가리키는 칸이 있는 테이블은 모두 내용 지우기(게스트 정리·탈퇴)에서 지우거나 남기는 쪽으로 정해 둔다")
-  void everyUserOrConversationTable_isClassified() {
+  @DisplayName("지운 문장 피드백의 모범 음성 파일도 지운다")
+  void cleanUp_expiredGuest_deletesModelSpeech() {
+    String modelAudioKey = modelSpeechStore.save(WAV);
+    Long guestId = userWithContent(AuthProvider.GUEST, "guest-uid-1");
+    UserContentTestData.attachModelSpeech(jdbcTemplate, guestId, modelAudioKey);
+    lastActive(guestId, Duration.ofDays(2));
+
+    guestContentCleanup.cleanUp();
+
+    assertThat(modelSpeechStore.exists(modelAudioKey)).isFalse();
+  }
+
+  @Test
+  @DisplayName("사용자·대화·턴을 가리키는 칸이 있는 테이블은 모두 내용 지우기(게스트 정리·탈퇴)에서 지우거나 남기는 쪽으로 정해 둔다")
+  void everyUserConversationOrTurnTable_isClassified() {
     List<String> tables =
         jdbcTemplate.queryForList(
             "select distinct table_name from information_schema.columns"
                 + " where table_schema = current_schema()"
-                + " and (column_name = 'user_id' or column_name like '%conversation_id')",
+                + " and (column_name = 'user_id' or column_name like '%conversation_id'"
+                + " or column_name like '%turn_id')",
             String.class);
 
     Set<String> classified = new HashSet<>(UserContentEraser.CLEARED_TABLES);

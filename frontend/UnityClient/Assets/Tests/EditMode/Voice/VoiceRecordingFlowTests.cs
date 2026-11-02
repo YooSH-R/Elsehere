@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace A305.Voice.Tests
 {
-    // 누르고 말하기 녹음의 진행. 브라우저 마이크 대신 FakeMicrophone으로 권한 답, 녹음 끝, 자동 종료를 확인한다.
+    // [말하기] 녹음의 진행. 브라우저 마이크 대신 FakeMicrophone으로 권한 답, 녹음 끝, 자동 종료를 확인한다.
     public class VoiceRecordingFlowTests
     {
         private const float Quiet = 0.005f;
@@ -45,7 +45,7 @@ namespace A305.Voice.Tests
         }
 
         [Test]
-        public void ReleasingButton_FinishesWithSixteenKilohertzWav()
+        public void StoppedByUser_FinishesWithSixteenKilohertzWav()
         {
             microphone.Access = MicrophoneAccess.Granted;
             microphone.CurrentLevel = Speaking;
@@ -65,6 +65,21 @@ namespace A305.Voice.Tests
             Assert.That(voice.SampleRate, Is.EqualTo(16000));
             Assert.That(voice.Samples.Length, Is.EqualTo(1600));
             Assert.That(voice.WavBytes.Length, Is.EqualTo(44 + 1600 * 2));
+        }
+
+        [Test]
+        public void SpeakingWhileRecording_HearsVoiceUntilStopped()
+        {
+            microphone.Access = MicrophoneAccess.Granted;
+            microphone.CurrentLevel = Speaking;
+            flow.StartRecording(10f);
+            Assert.That(flow.IsHearingVoice, Is.False);
+
+            flow.Update(10.25f);
+            Assert.That(flow.IsHearingVoice, Is.True);
+
+            flow.StopRecording(10.5f);
+            Assert.That(flow.IsHearingVoice, Is.False);
         }
 
         [Test]
@@ -105,7 +120,7 @@ namespace A305.Voice.Tests
         }
 
         [Test]
-        public void PressingAgainWhileRecording_KeepsFirstRecording()
+        public void StartingAgainWhileRecording_KeepsFirstRecording()
         {
             flow.StartRecording(10f);
             flow.StartRecording(11f);

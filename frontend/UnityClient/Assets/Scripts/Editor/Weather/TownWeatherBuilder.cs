@@ -19,6 +19,7 @@ namespace A305.EditorTools.Weather
     public static class TownWeatherBuilder
     {
         private const string MenuPath = "Tools/A305/Weather/Build Town Weather";
+        private const string HeavyRainMenuPath = "Tools/A305/Weather/Apply Heavy Rain";
         private const string ScenePath = "Assets/Scenes/Production/TownScene.unity";
         private const string DataFolder = "Assets/Data/Weather";
         private const string SettingsPath = DataFolder + "/TownWeather.asset";
@@ -56,6 +57,39 @@ namespace A305.EditorTools.Weather
             if (mission != null)
                 BuilderTools.SetReference(mission, "weather", weather);
             BuilderTools.SaveScene(scene, ScenePath);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// 이미 만든 비 날씨 모습과 비 효과를 쏟아지는 비로 바꾼다. 다른 날씨와 조정한 다른 값은 그대로 둔다.
+        /// </summary>
+        [MenuItem(HeavyRainMenuPath)]
+        public static void ApplyHeavyRain()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var rain = AssetDatabase.LoadAssetAtPath<WeatherDefinition>(DataFolder + "/Rain.asset");
+            if (rain != null)
+            {
+                var serialized = new SerializedObject(rain);
+                serialized.FindProperty("look").boxedValue = RainLook();
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            var effect = AssetDatabase.LoadAssetAtPath<GameObject>(RainPrefabPath);
+            if (effect != null)
+            {
+                GameObject root = PrefabUtility.LoadPrefabContents(RainPrefabPath);
+                try
+                {
+                    PourDown(root.GetComponentInChildren<ParticleSystem>());
+                    PrefabUtility.SaveAsPrefabAsset(root, RainPrefabPath);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+            }
+
             AssetDatabase.SaveAssets();
         }
 
@@ -179,22 +213,22 @@ namespace A305.EditorTools.Weather
                 cloudColor = new Color(.84f, .85f, .87f),
             };
 
-        // 흐린 날보다 어둡고 안개가 가까운 비 오는 날.
+        // 흐린 날보다 훨씬 어둡고, 먹구름 아래 그림자가 거의 없으며 빗발에 먼 거리가 흐려지는 비 오는 날.
         private static WeatherLook RainLook() =>
             new WeatherLook
             {
-                skyZenith = new Color(.36f, .41f, .47f),
-                skyHorizon = new Color(.58f, .62f, .66f),
-                sunColor = new Color(.82f, .86f, .92f),
-                sunIntensity = .6f,
-                sunShadowStrength = .15f,
-                ambientSky = new Color(.45f, .5f, .56f),
-                ambientEquator = new Color(.45f, .46f, .47f),
-                ambientGround = new Color(.25f, .25f, .26f),
-                fogColor = new Color(.53f, .57f, .62f),
-                fogStartMeters = 18f,
-                fogEndMeters = 80f,
-                cloudColor = new Color(.6f, .63f, .67f),
+                skyZenith = new Color(.26f, .3f, .35f),
+                skyHorizon = new Color(.44f, .48f, .52f),
+                sunColor = new Color(.75f, .8f, .88f),
+                sunIntensity = .32f,
+                sunShadowStrength = .05f,
+                ambientSky = new Color(.34f, .38f, .44f),
+                ambientEquator = new Color(.33f, .35f, .37f),
+                ambientGround = new Color(.18f, .18f, .19f),
+                fogColor = new Color(.4f, .44f, .49f),
+                fogStartMeters = 6f,
+                fogEndMeters = 48f,
+                cloudColor = new Color(.42f, .45f, .5f),
             };
 
         /// <summary>플레이어 머리 위에서 아래로 떨어지는 빗방울. 없을 때만 만든다.</summary>
@@ -212,24 +246,30 @@ namespace A305.EditorTools.Weather
                 Quaternion.Euler(90, 0, 0)
             );
             var particles = drops.gameObject.AddComponent<ParticleSystem>();
+            PourDown(particles);
+            drops.GetComponent<ParticleSystemRenderer>().sharedMaterial = RainMaterial();
+            return BuilderTools.SavePrefab(root, RainPrefabPath);
+        }
+
+        // 화면 앞쪽까지 덮는 넓은 범위에 가늘고 긴 빗줄기를 빠르고 촘촘하게 떨어뜨린다.
+        private static void PourDown(ParticleSystem particles)
+        {
             var main = particles.main;
             main.playOnAwake = false;
-            main.startLifetime = 1.2f;
-            main.startSpeed = 10;
-            main.startSize = .025f;
-            main.startColor = new Color(.65f, .8f, .95f, .45f);
+            main.startLifetime = .9f;
+            main.startSpeed = 18;
+            main.startSize = .02f;
+            main.startColor = new Color(.72f, .82f, .95f, .5f);
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = 500;
+            main.maxParticles = 3500;
             var emission = particles.emission;
-            emission.rateOverTime = 250;
+            emission.rateOverTime = 2600;
             var shape = particles.shape;
             shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(18, 18, .1f);
-            var renderer = drops.GetComponent<ParticleSystemRenderer>();
+            shape.scale = new Vector3(28, 28, .1f);
+            var renderer = particles.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.lengthScale = 8;
-            renderer.sharedMaterial = RainMaterial();
-            return BuilderTools.SavePrefab(root, RainPrefabPath);
+            renderer.lengthScale = 20;
         }
 
         private static Material RainMaterial()

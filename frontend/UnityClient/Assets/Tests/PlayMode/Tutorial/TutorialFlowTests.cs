@@ -88,7 +88,7 @@ namespace A305.Tutorial.PlayModeTests
             Single<WordTooltipView>()
                 .ShowPinned(
                     new ObjectWord("table", "탁자", "Put it on the table."),
-                    new Vector2(300f, 200f),
+                    CardAnchor.AtPointer(new Vector2(300f, 200f)),
                     ScriptableObject.CreateInstance<ObjectHoverSettings>(),
                     WordCardButtons.None
                 );

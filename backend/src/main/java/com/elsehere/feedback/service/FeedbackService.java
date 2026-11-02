@@ -1,20 +1,17 @@
 package com.elsehere.feedback.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackResponse;
@@ -59,13 +56,12 @@ public class FeedbackService {
   // 사용자가 건너뛴 피드백은 이유 코드를 저장하지 않으므로(null) 로그에만 쓰는 이름
   private static final String USER_SKIPPED = "USER_SKIPPED";
 
-  private final ConversationRepository conversationRepository;
+  private final ConversationLookup conversationLookup;
   private final TurnRepository turnRepository;
   private final NpcRepository npcRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final TurnFeedbackRepository turnFeedbackRepository;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
+  private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
 
@@ -91,7 +87,7 @@ public class FeedbackService {
     ConversationFeedback feedback =
         transactionTemplate.execute(
             status -> {
-              ownedConversation(userId, conversationId);
+              conversationLookup.ownedConversation(userId, conversationId);
               return conversationFeedbackRepository
                   .findById(conversationId)
                   .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -106,7 +102,7 @@ public class FeedbackService {
   public ConversationFeedbackResponse feedback(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
-          Conversation conversation = ownedConversation(userId, conversationId);
+          Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           Npc npc = npcOf(conversation);
           List<Turn> userTurns = userTurns(conversationId);
           return new ConversationFeedbackResponse(
@@ -127,7 +123,7 @@ public class FeedbackService {
   public DetailedFeedbackResponse detailed(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
-          ownedConversation(userId, conversationId);
+          conversationLookup.ownedConversation(userId, conversationId);
           return new DetailedFeedbackResponse(
               conversationId, detailedItems(userTurns(conversationId)));
         });
@@ -167,17 +163,12 @@ public class FeedbackService {
     WorkerTrace trace = new WorkerTrace(requestId, userId, conversationId);
     WorkerFeedback result;
     try {
-      result = aiWorkerClient.feedback(trace, snapshot.input());
+      result = aiGateway.feedback(trace, snapshot.input());
     } catch (BusinessException exception) {
       // 워커에 닿지 못했거나 요청을 거절당했다. 대화 종료는 그대로 두고 실패로 기록한다.
       String errorCode = exception.getErrorCode().name();
       return save(conversationId, feedback -> feedback.fail(errorCode, null), List.of(), List.of());
     }
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.FEEDBACK,
-        result.usage(),
-        result.completed() ? AiRequestStatus.OK : AiRequestStatus.FAILED);
 
     String model = FeedbackResults.firstModel(result.usage());
     if (result.completed()) {
@@ -224,7 +215,7 @@ public class FeedbackService {
   }
 
   private Snapshot snapshot(Long userId, Long conversationId, UUID requestId) {
-    Conversation conversation = ownedConversation(userId, conversationId);
+    Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
     List<Turn> turns = turnRepository.findAllByConversationIdOrderBySeqAsc(conversationId);
     List<Long> userTurnIds =
         turns.stream().filter(turn -> turn.getSpeaker() == Speaker.USER).map(Turn::getId).toList();
@@ -275,13 +266,6 @@ public class FeedbackService {
         reviews == null || reviews.vocabCandidates() == null
             ? List.of()
             : reviews.vocabCandidates());
-  }
-
-  // 다른 사용자의 대화는 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
-  private Conversation ownedConversation(Long userId, Long conversationId) {
-    return conversationRepository
-        .findByIdAndUserId(conversationId, userId)
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
   private Npc npcOf(Conversation conversation) {

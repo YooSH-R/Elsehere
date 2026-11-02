@@ -6,7 +6,9 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Mission",
-        "Unity.TextMeshPro"
+        "A305.Theme",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

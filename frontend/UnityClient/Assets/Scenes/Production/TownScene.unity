@@ -9533,6 +9533,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1953585703815199113, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 739269367}
+    - targetCorrespondingSourceObject: {fileID: 1953585703815199113, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 739269368}
   m_SourcePrefab: {fileID: 100100000, guid: 869d02d83c7a4964cab9a41b47c85b2c, type: 3}
 --- !u!4 &739269364 stripped
 Transform:
@@ -9567,6 +9570,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e161e151726a2464abb8f062386bb7fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Player::A305.Player.PlayerSeatPose
+--- !u!114 &739269368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 739269366}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7839263c0fbb9814192ef54ebaa44c72, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Player::A305.Player.UmbrellaHold
+  umbrellaPrefab: {fileID: 7980222108286933041, guid: e664d38d645f2bf4b9e370fd1efbb31b, type: 3}
+  gripBesideHead: 0.04
+  gripForward: 0.06
+  gripBelowShoulder: 0.05
+  headClearance: 0.06
+  leanDegrees: 8
 --- !u!1001 &740884128
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -30,10 +30,12 @@ import tools.jackson.databind.json.JsonMapper;
  * AI 워커(FastAPI) 호출. 같은 서버의 내부 주소로 부르며 모든 요청에 내부 토큰을 붙인다. 계약: docs/api/ai-worker.md
  *
  * <p>워커의 칸 이름은 snake_case라 전용 JSON 변환기를 쓴다. 워커 오류는 API 오류 코드로 바꿔 {@link BusinessException}으로 던진다.
+ *
+ * <p>호출 기록이 빠지지 않도록 패키지 밖에서는 쓸 수 없다. 다른 패키지는 {@link AiGateway}로 부른다.
  */
 @Slf4j
 @Component
-public class AiWorkerClient {
+class AiWorkerClient {
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
   // 의도·무례 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S·GUARD_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을
@@ -64,7 +66,7 @@ public class AiWorkerClient {
   private final String baseUrl;
   private final String token;
 
-  public AiWorkerClient(
+  AiWorkerClient(
       @Value("${elsehere.ai-worker.url}") String baseUrl,
       @Value("${elsehere.ai-worker.token}") String token) {
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
@@ -87,26 +89,12 @@ public class AiWorkerClient {
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), GuardResult.class);
   }
 
-  /** 추천 단어를 함께 만드는 NPC 대답. */
-  public NpcReply reply(
-      WorkerTrace trace,
-      WorkerNpc npc,
-      WorkerMemory memory,
-      List<WorkerLine> history,
-      String text,
-      String instruction,
-      int level,
-      WorkerLearner learner) {
-    return reply(trace, npc, memory, history, text, instruction, level, true, learner);
-  }
-
   /**
-   * NPC 대답. 스트림을 끝까지 받아 대답 전문·턴 전체 음성 ID·추천 단어를 모은다. 생성이 실패해도 그때까지 쓴 사용량을 담아 돌려주며, 실패 여부는 {@link
-   * NpcReply#succeeded()}로 확인한다.
+   * NPC 대답. 스트림을 끝까지 받아 대답 전문·턴 전체 음성 ID를 모은다. 추천 단어는 {@link #suggest}로 따로 받는다. 생성이 실패해도 그때까지 쓴
+   * 사용량을 담아 돌려주며, 실패 여부는 {@link NpcReply#succeeded()}로 확인한다.
    *
    * @param text 학습자 원문(한국어가 섞여도 그대로)
    * @param instruction 이번 대답에서 할 일. 없으면 빈 문자열
-   * @param suggestWords 추천 단어를 만들지. 대화를 끝내는 대답에서는 만들지 않는다
    * @param learner 대답 상대인 학습자. 캐릭터에 맞는 호칭을 쓰게 한다
    */
   public NpcReply reply(
@@ -117,7 +105,6 @@ public class AiWorkerClient {
       String text,
       String instruction,
       int level,
-      boolean suggestWords,
       WorkerLearner learner) {
     ReplyBody body =
         new ReplyBody(
@@ -129,7 +116,7 @@ public class AiWorkerClient {
             instruction,
             true,
             level,
-            suggestWords,
+            false,
             "",
             learner);
     HttpResponse<Stream<String>> response =
@@ -193,6 +180,21 @@ public class AiWorkerClient {
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), HintResult.class);
   }
 
+  /**
+   * 학습자가 다음 대답에 쓸 만한 단어(CONV-12 추천 단어).
+   *
+   * @param history 대답할 NPC 줄까지의 앞선 대화
+   * @param goal 지금 학습자가 할 일. 없으면 빈 문자열
+   */
+  public SuggestResult suggest(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history, String goal, int level) {
+    // 장소(scene)를 비우면 워커가 NPC의 장소를 쓴다.
+    HttpRequest request =
+        jsonRequest(
+            "/v1/suggest", trace, HELP_TIMEOUT, new SuggestBody(npc, "", goal, history, level));
+    return readJson(send(request, HttpResponse.BodyHandlers.ofString()), SuggestResult.class);
+  }
+
   /** 한 문장 음성 합성. WAV를 돌려준다. */
   public byte[] synthesize(WorkerTrace trace, String text, String voice, double speed) {
     HttpRequest request =
@@ -236,10 +238,11 @@ public class AiWorkerClient {
   }
 
   /**
-   * 대화 뒤 관계 갱신. 저장된 관계와 대화 전체로 알아봄·호감 변화량을 계산한다. 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를 그대로 둔다.
+   * 대화 뒤 관계 갱신. 저장된 관계로 알아봄 변화량을 계산한다(호감은 대화 중에 발화마다 이미 바꿨다). 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를
+   * 그대로 둔다.
    *
    * @param relationship 저장된 관계와 마지막 대화 뒤 지난 게임 날 수
-   * @param history 대화 전체(최대 200줄). 학습자 줄의 무례·사건을 담는다
+   * @param history 대화 전체(최대 200줄). 워커는 학습자가 말한 대화인지 확인한다
    */
   public RelationshipChange relationship(
       WorkerTrace trace, WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {
@@ -320,7 +323,6 @@ public class AiWorkerClient {
 
     private DoneEvent done;
     private ErrorEvent error;
-    private List<String> words;
 
     void accept(String event, String data) {
       if (event == null || data.isEmpty()) {
@@ -329,7 +331,6 @@ public class AiWorkerClient {
       switch (event) {
         case "done" -> done = parse(data, DoneEvent.class);
         case "error" -> error = parse(data, ErrorEvent.class);
-        case "words" -> words = parse(data, WordsEvent.class).words();
         default -> {
           // delta·audio
         }
@@ -338,15 +339,15 @@ public class AiWorkerClient {
 
     NpcReply result() {
       if (done != null) {
-        return new NpcReply(done.text(), done.audioFullId(), words, null, usageOf(done.usage()));
+        return new NpcReply(done.text(), done.audioFullId(), null, usageOf(done.usage()));
       }
       if (error != null) {
         log.warn("AI 워커 NPC 대답 실패 code={}", error.code());
-        return new NpcReply(null, null, null, error.code(), usageOf(error.usage()));
+        return new NpcReply(null, null, error.code(), usageOf(error.usage()));
       }
       // done·error 없이 끊긴 스트림
       log.warn("AI 워커 NPC 대답 스트림이 끝나지 않고 끊겼습니다");
-      return new NpcReply(null, null, null, "provider_unavailable", List.of());
+      return new NpcReply(null, null, "provider_unavailable", List.of());
     }
 
     private <T> T parse(String data, Class<T> type) {
@@ -461,6 +462,9 @@ public class AiWorkerClient {
 
   record HintBody(WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
 
+  record SuggestBody(
+      WorkerNpc npc, String scene, String goal, List<WorkerLine> history, int level) {}
+
   record TtsBody(String text, String voice, double speed) {}
 
   record MemoryBody(WorkerNpc npc, String outcome, List<WorkerLine> history, Object memoryCard) {}
@@ -473,8 +477,6 @@ public class AiWorkerClient {
   record DoneEvent(String text, String audioFullId, List<WorkerUsage> usage) {}
 
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
-
-  record WordsEvent(List<String> words) {}
 
   record FeedbackEnvelope(FeedbackBody feedback, List<WorkerUsage> usage) {}
 

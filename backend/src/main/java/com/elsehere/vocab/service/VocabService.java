@@ -4,10 +4,9 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
-import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
-import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.dto.FeedbackReviews;
 import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
@@ -54,9 +53,12 @@ public class VocabService {
 
   private static final TypeReference<List<GlossaryResponse>> GLOSSARY = new TypeReference<>() {};
 
+  /** 한 페이지 최대 개수. 지난 대화 목록(CONV-09)과 같다. */
+  private static final int MAX_SIZE = 50;
+
   private final VocabularyRepository vocabularyRepository;
   private final UserVocabRepository userVocabRepository;
-  private final TurnRepository turnRepository;
+  private final ConversationLookup conversationLookup;
   private final ConversationRepository conversationRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final NpcRepository npcRepository;
@@ -67,6 +69,9 @@ public class VocabService {
   @Transactional(readOnly = true)
   public VocabListResponse getVocab(
       Long userId, boolean includeMemorized, String cursor, int size) {
+    if (size < 1 || size > MAX_SIZE) {
+      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+    }
     // 다음 페이지가 있는지 알기 위해 한 개를 더 가져온다.
     Limit limit = Limit.of(size + 1);
     List<UserVocab> fetched =
@@ -145,7 +150,7 @@ public class VocabService {
    * NPC 대사 뜻 보기(CONV-04)의 단어 풀이에서 단어를 저장한다(VOCAB-02 NPC_LINE). 뜻은 단어 풀이의 뜻, 문장은 NPC 대사 전문과 대사 뜻이다.
    */
   public VocabSaveResponse saveNpcLineWord(Long userId, Long turnId, String text) {
-    Turn line = findOwnNpcLine(userId, turnId);
+    Turn line = conversationLookup.ownedNpcTurn(userId, turnId);
     // 뜻 보기를 하지 않은 대사는 단어 풀이가 없어 저장할 단어를 확인할 수 없다.
     if (line.getGlossary() == null) {
       throw new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH);
@@ -175,10 +180,7 @@ public class VocabService {
    * <p>다른 사용자의 대화는 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
    */
   public VocabSaveResponse saveFeedbackWord(Long userId, Long conversationId, String text) {
-    Conversation conversation =
-        conversationRepository
-            .findByIdAndUserId(conversationId, userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
     // 피드백을 만들지 못했거나 후보를 넣기 전에 만든 피드백은 저장할 단어를 확인할 수 없다.
     List<VocabCandidateResponse> candidates =
         conversationFeedbackRepository
@@ -214,15 +216,6 @@ public class VocabService {
       return new VocabSaveResponse(toItem(existing.get()), false);
     }
     return new VocabSaveResponse(toItem(userVocabRepository.save(newEntry.get())), true);
-  }
-
-  /** 다른 사용자의 턴과 내가 말한 턴은 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다(CONV-04와 같다). */
-  private Turn findOwnNpcLine(Long userId, Long turnId) {
-    return turnRepository
-        .findById(turnId)
-        .filter(turn -> turn.getSpeaker() == Speaker.NPC)
-        .filter(turn -> turn.getConversation().getUserId().equals(userId))
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
   /** 사전에 있는 단어면 기존 뜻을 그대로 쓰고, 없으면 대화에서 받은 뜻으로 새로 만든다. */

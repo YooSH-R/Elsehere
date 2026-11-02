@@ -13,15 +13,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiWorkerClient;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.repository.AiRequestRepository;
+import com.elsehere.ai.client.AiGateway;
+import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.dto.ModelSpeechResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.user.UserTestData;
@@ -43,9 +41,7 @@ class ModelSpeechServiceTest {
 
   @Autowired private ModelSpeechService modelSpeechService;
 
-  @Autowired private AiWorkerClient aiWorkerClient;
-
-  @Autowired private AiRequestRepository aiRequestRepository;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private EntityManager entityManager;
 
@@ -62,10 +58,9 @@ class ModelSpeechServiceTest {
   }
 
   @Test
-  @DisplayName("고친 문장을 고정 목소리로 합성해 저장하고, 받을 주소와 호출 기록을 남긴다")
+  @DisplayName("고친 문장을 고정 목소리로 합성해 저장하고 받을 주소를 돌려준다. 워커 요청에는 요청 ID와 대화를 붙인다")
   void create_synthesizesBetterTextWithFixedVoice() {
-    given(aiWorkerClient.synthesize(any(), eq(BETTER_TEXT), eq("af_heart"), eq(1.0)))
-        .willReturn(WAV);
+    given(aiGateway.synthesize(any(), eq(BETTER_TEXT), eq("af_heart"), eq(1.0))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
     ModelSpeechResponse response = modelSpeechService.create(userId, feedback.getId(), requestId);
@@ -73,24 +68,25 @@ class ModelSpeechServiceTest {
     assertThat(response.url())
         .isEqualTo("/api/v1/turn-feedback/" + feedback.getId() + "/model-speech");
     assertThat(modelSpeechService.load(userId, feedback.getId())).isEqualTo(WAV);
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.TTS)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.OK);
+    then(aiGateway)
+        .should()
+        .synthesize(
+            eq(new WorkerTrace(requestId, userId, conversation.getId())),
+            eq(BETTER_TEXT),
+            eq("af_heart"),
+            eq(1.0));
   }
 
   @Test
   @DisplayName("한 번 만든 모범 음성은 다시 쓰고 새로 합성하지 않는다")
   void create_twice_reusesSavedSpeech() {
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
+    given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
 
     ModelSpeechResponse first = modelSpeechService.create(userId, feedback.getId(), uuid());
     ModelSpeechResponse second = modelSpeechService.create(userId, feedback.getId(), uuid());
 
     assertThat(second).isEqualTo(first);
-    then(aiWorkerClient).should(times(1)).synthesize(any(), anyString(), anyString(), anyDouble());
+    then(aiGateway).should(times(1)).synthesize(any(), anyString(), anyString(), anyDouble());
   }
 
   @Test
@@ -98,7 +94,7 @@ class ModelSpeechServiceTest {
   void create_whenSavedFileIsGone_synthesizesAgain() {
     feedback.attachModelAudio("00000000-0000-0000-0000-000000000000.wav");
     entityManager.flush();
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
+    given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
 
     modelSpeechService.create(userId, feedback.getId(), uuid());
 
@@ -112,7 +108,7 @@ class ModelSpeechServiceTest {
         UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
 
     assertNotFound(() -> modelSpeechService.create(otherUserId, feedback.getId(), uuid()));
-    then(aiWorkerClient).should(never()).synthesize(any(), any(), any(), anyDouble());
+    then(aiGateway).should(never()).synthesize(any(), any(), any(), anyDouble());
   }
 
   @Test
@@ -128,13 +124,13 @@ class ModelSpeechServiceTest {
         saveFeedback(textTurn(entityManager, conversation, 4, "A medium, please."), null);
 
     assertNotFound(() -> modelSpeechService.create(userId, fine.getId(), uuid()));
-    then(aiWorkerClient).should(never()).synthesize(any(), any(), any(), anyDouble());
+    then(aiGateway).should(never()).synthesize(any(), any(), any(), anyDouble());
   }
 
   @Test
   @DisplayName("음성 합성이 실패하면 워커 오류를 그대로 알리고 음성을 남기지 않는다")
   void create_whenSynthesisFails_keepsNoSpeech() {
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble()))
+    given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
     assertThatThrownBy(() -> modelSpeechService.create(userId, feedback.getId(), uuid()))
@@ -153,7 +149,7 @@ class ModelSpeechServiceTest {
   @Test
   @DisplayName("다른 사용자는 만들어 둔 모범 음성을 받을 수 없다")
   void load_otherUsersSpeech_notFound() {
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
+    given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
     modelSpeechService.create(userId, feedback.getId(), uuid());
     Long otherUserId =
         UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");

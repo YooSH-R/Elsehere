@@ -33,9 +33,10 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public void TooShortRecording_AsksToKeepPressingWhileSpeaking()
+        public void TooShortRecording_AsksToSpeakBeforePressingStop()
         {
-            Assert.That(VoiceInputNotice.TooShort, Does.Contain("누른 채"));
+            Assert.That(VoiceInputNotice.TooShort, Does.Contain("[말하기]"));
+            Assert.That(VoiceInputNotice.TooShort, Does.Contain("[종료]"));
         }
     }
 }

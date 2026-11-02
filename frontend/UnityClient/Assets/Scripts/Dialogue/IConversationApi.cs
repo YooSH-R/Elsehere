@@ -45,5 +45,8 @@ namespace A305.Dialogue
 
         /// <summary>CONV-05 NPC 대사에 대답할 추천 문장. 서버가 한 번 만든 문장은 다시 만들지 않는다.</summary>
         Task<HintData> GetHintAsync(long turnId, string requestId);
+
+        /// <summary>CONV-12 NPC 대사에 대답할 때 쓸 추천 단어. 서버가 한 번 만든 단어는 다시 만들지 않는다.</summary>
+        Task<SuggestWordsData> GetSuggestWordsAsync(long turnId, string requestId);
     }
 }

@@ -145,5 +145,13 @@ namespace A305.Dialogue
                 new RequestIdBody { RequestId = requestId }
             );
         }
+
+        public Task<SuggestWordsData> GetSuggestWordsAsync(long turnId, string requestId)
+        {
+            return client.PostAsync<SuggestWordsData>(
+                $"/api/v1/turns/{turnId}/suggest-words",
+                new RequestIdBody { RequestId = requestId }
+            );
+        }
     }
 }

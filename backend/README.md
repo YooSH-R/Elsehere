@@ -42,15 +42,25 @@ com.elsehere
 | --- | --- |
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
-| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01) |
+| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 다른 패키지는 워커를 `AiGateway`로만 부르며, 게이트웨이가 호출마다 성공·실패를 기록한다. 워커 클라이언트(`AiWorkerClient`)와 기록기(`AiRequestRecorder`)는 `ai.client` 안에서만 쓸 수 있다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
-| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음) |
-| `world` | scenes, npcs, scene_words, user_word_prefs |
+| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
+| `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
+| `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성) |
+| `memory` | user_npc_relations (NPC 기억 카드와 관계) |
+| `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
 | `admin` | 없음 (운영자 어드민 화면·관리 API. 다른 도메인의 테이블을 고친다. [운영자 어드민](../docs/admin.md)) |
 
+- 대화는 두 패키지로 나눕니다. 서로 import하는 순환이 생기지 않게 하기 위해서입니다.
+  - `conversation`(대화 기록): 다른 도메인이 읽는 아래쪽입니다. `common` 말고 다른 도메인을 import하지 않습니다.
+  - `dialogue`(대화 흐름): 여러 도메인을 엮는 위쪽입니다. 다른 도메인이 `dialogue`를 import하지 않습니다.
+  - 피드백·기억·단어장처럼 대화 기록을 읽어야 하는 코드는 `conversation`만 씁니다.
+  - 사용자의 대화·턴을 읽을 때는 `ConversationLookup`(`conversation.service`)을 씁니다. 다른 사용자의 것은 `NOT_FOUND`입니다.
+  - 턴을 AI 워커에 보낼 앞선 대화 줄로 바꿀 때는 `WorkerLines`(`ai.service`)를 씁니다.
+  - 두 패키지가 순환에 끼면 `PackageDependencyTest`가 실패합니다.
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
 - Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.
@@ -89,7 +99,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - `EntitySchemaTest`는 마이그레이션으로 만든 스키마가 엔티티 매핑으로 만든 스키마와 같은지(컬럼·타입·NOT NULL·기본값, CHECK·유니크·외래 키, 인덱스) 비교합니다. `validate`가 보지 않는 enum CHECK 제약도 여기서 비교하므로, 마이그레이션을 빠뜨리거나 엔티티와 다르게 쓰면 이 테스트가 실패합니다.
 - 엔티티 필드와 DB 컬럼의 타입이 다르면 `validate`가 실패합니다. `Integer` 필드를 `smallint` 컬럼에 두려면 `columnDefinition` 대신 `@JdbcTypeCode(SqlTypes.SMALLINT)`를 씁니다.
 - 테스트 전용 엔티티의 테이블은 [`src/test/resources/db/test-migration`](src/test/resources/db/test-migration)에서 만듭니다. 테스트 설정이 운영 마이그레이션과 이 위치를 함께 읽습니다.
-- 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커를 Mock으로 바꾸고 실제 DB와 함께 실행합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
+- 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커 호출(`AiGateway`)을 Mock으로 바꾸고 실제 DB와 함께 실행합니다. AI 호출 기록은 `AiGatewayTest`가 실제 DB로 확인합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
 
 ## 시드 데이터
 
@@ -128,15 +138,15 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 
 ### 게스트로 시작하기
 
-[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다.
+[MVP API 명세](../docs/api/mvp-api.md)의 AUTH-07입니다. `POST /api/v1/auth/guest`에 고른 캐릭터(`avatarType`)를 보내면 Google 로그인과 가입 화면 없이 새 사용자(`provider=GUEST`)를 만들고 그 사용자로 로그인합니다. 닉네임은 `guest-` 뒤에 여섯 자리 숫자를 붙이고 약관 동의 기록은 남기지 않습니다. 학습 언어·대화 난이도는 영어·초급으로 정해 튜토리얼부터 시작합니다. 모든 환경에서 열려 있습니다. 시작하기 전 캐릭터 선택 화면은 AUTH-08 `GET /api/v1/auth/guest`로 게스트가 대화할 수 있는 횟수(`conversationLimit`, 아래 `GUEST_CONVERSATION_LIMIT`)를 로그인 없이 읽습니다.
 
 | 환경변수 | 기본값 | 설명 |
 | --- | --- | --- |
 | `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
 
-- 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다.
+- 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 문장 피드백(`turn_feedback`)과 그 모범 음성 파일, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다.
 - 회원 탈퇴(USER-05, `WithdrawalService`)도 같은 범위의 내용을 바로 지우고, 이메일을 비우며 소셜 계정 ID·닉네임을 `withdrawn-` 값으로 바꿔 사용자 행은 익명으로 남깁니다.
-- 지우는 범위는 `UserContentEraser`가 게스트 정리와 탈퇴에 함께 씁니다. 사용자·대화를 가리키는 칸(`user_id`, `…conversation_id`)이 있는 테이블을 새로 만들면 `UserContentEraser`의 지움(`CLEARED_TABLES`)·남김(`RETAINED_TABLES`) 중 한쪽에 넣습니다. 빠뜨리면 `GuestContentCleanupTest`가 실패합니다.
+- 지우는 범위는 `UserContentEraser`가 게스트 정리와 탈퇴에 함께 씁니다. 사용자·대화·턴을 가리키는 칸(`user_id`, `…conversation_id`, `…turn_id`)이 있는 테이블을 새로 만들면 `UserContentEraser`의 지움(`CLEARED_TABLES`)·남김(`RETAINED_TABLES`) 중 한쪽에 넣습니다. 빠뜨리면 `GuestContentCleanupTest`가 실패합니다.
 
 ### 개발용 로그인
 

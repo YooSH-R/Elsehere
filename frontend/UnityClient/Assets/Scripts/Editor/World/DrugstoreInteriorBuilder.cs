@@ -5,6 +5,7 @@ using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.ObjectHover;
 using A305.ObjectHover;
+using A305.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -115,13 +116,45 @@ namespace A305.EditorTools.World
         {
             Transform environment = BuilderTools.EnsureGroups(scene).Environment;
             RemoveBlockoutUmbrellas(environment);
+            string prefabPath = PrefabFolder + "/" + InteriorName + ".prefab";
+            GameObject prefab = BuilderTools.CreatePrefabIfMissing(prefabPath, BuildInterior);
+            // 천장 충돌과 정문을 넣기 전에 만든 프리팹도 디자인은 그대로 두고 빠진 부분만 더한다.
+            BuilderTools.UpdatePrefabIfExists(prefabPath, AddMissingParts);
+            DressEntranceDoor(scene);
             if (environment.Find(InteriorName) != null)
                 return;
-            GameObject prefab = BuilderTools.CreatePrefabIfMissing(
-                PrefabFolder + "/" + InteriorName + ".prefab",
-                BuildInterior
-            );
             BuilderTools.InstantiatePrefab(prefab, environment, Vector3.zero, Quaternion.identity);
+        }
+
+        private static void AddMissingParts(GameObject interior)
+        {
+            BlockCameraAtCeiling(interior);
+            if (interior.transform.Find("DrugstoreEntrance") == null)
+                Piece("DrugstoreEntrance", BuildEntrance, interior.transform, Vector3.zero, 0);
+        }
+
+        // 천장이 카메라를 막지 않으면 내려다볼 때 카메라가 천장 위로 빠져, 해를 받은 천장 윗면이 화면을 하얗게 덮는다.
+        private static void BlockCameraAtCeiling(GameObject interior)
+        {
+            GameObject ceiling = interior.transform.Find("DrugstoreShell/Ceiling").gameObject;
+            BuilderTools.GetOrAddComponent<BoxCollider>(ceiling);
+        }
+
+        // 마을로 나가는 문은 공용 출입구 프리팹의 갈색 문판이다. 처음 한 번만 정문 틀에 맞는 크기의 바깥 햇빛이 비치는
+        // 유리문으로 바꾸고, 디자인에서 다시 칠했으면 그대로 둔다.
+        private static void DressEntranceDoor(Scene scene)
+        {
+            SpaceDoorway door = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Single(doorway => doorway.DoorwayId == "TownDoor");
+            Transform visual = door.transform.Find("Visual");
+            Renderer panel = visual.Find("DoorPanel").GetComponent<Renderer>();
+            if (panel.sharedMaterial.name != "Door")
+                return;
+            visual.localScale = new Vector3(1.25f, 1.1f, 1);
+            panel.sharedMaterial = DaylightGlass();
+            PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(panel);
         }
 
         private static void RemoveBlockoutUmbrellas(Transform environment)
@@ -290,6 +323,7 @@ namespace A305.EditorTools.World
             );
 
             Checkout(t);
+            Piece("DrugstoreEntrance", BuildEntrance, t, Vector3.zero, 0);
             return root;
         }
 
@@ -314,7 +348,7 @@ namespace A305.EditorTools.World
                 Quaternion.Euler(90, 0, 0)
             );
 
-            // 천장은 그림자를 드리우지 않아 기존 해가 실내를 계속 비춘다.
+            // 천장은 그림자를 드리우지 않아 기존 해가 실내를 계속 비춘다. 카메라를 막는 충돌은 Apply에서 더한다.
             GameObject ceiling = Prim(
                 PrimitiveType.Cube,
                 "Ceiling",
@@ -967,6 +1001,180 @@ namespace A305.EditorTools.World
             return root;
         }
 
+        // 앞벽(z=-7)의 문 구멍(x=-1~1, 높이 4m)을 미국 드럭스토어 정면처럼 알루미늄 문틀과 문 위 벽으로 채운다.
+        // 양옆에는 바깥 햇빛이 비치는 진열창을 두고, 옆·뒷벽처럼 초록 띠와 걸레받이를 두른다.
+        // 문틀과 문 위 벽은 카메라가 틈으로 빠지지 않게 충돌을 둔다.
+        private static GameObject BuildEntrance()
+        {
+            var root = new GameObject("DrugstoreEntrance");
+            Transform t = root.transform;
+            Material frame = Paint("DrugstoreDarkSteel", "#3A3F44");
+            Material daylight = DaylightGlass();
+
+            Solid("WallOverDoor", t, new Vector3(0, 3.225f, -7), new Vector3(2, 1.55f, .2f));
+            foreach (float side in new[] { -1f, 1f })
+                Solid(
+                    "DoorFrame",
+                    t,
+                    new Vector3(side * .875f, 1.225f, -6.85f),
+                    new Vector3(.25f, 2.45f, .5f),
+                    frame
+                );
+            Solid("DoorFrame", t, new Vector3(0, 2.45f, -6.85f), new Vector3(2, .14f, .5f), frame);
+
+            // 매장 안쪽은 +Z다. 유리문 안쪽 면(z=-6.7) 바로 앞에 문짝 테두리·손잡이·발판을 붙인다.
+            const float leafZ = -6.67f;
+            // 단어 연결 규칙에서 DoorPanel로 시작하는 이름은 "door"로 묶인다.
+            Transform trim = BuilderTools.CreateEmpty(
+                "DoorPanelTrim",
+                t,
+                Vector3.zero,
+                Quaternion.identity
+            );
+            Prim(
+                PrimitiveType.Cube,
+                "MeetingStile",
+                trim,
+                new Vector3(0, 1.2f, leafZ),
+                new Vector3(.08f, 2.4f, .04f),
+                frame
+            );
+            Prim(
+                PrimitiveType.Cube,
+                "KickPlate",
+                trim,
+                new Vector3(0, .13f, leafZ),
+                new Vector3(1.5f, .26f, .04f),
+                frame
+            );
+            Prim(
+                PrimitiveType.Cube,
+                "TopRail",
+                trim,
+                new Vector3(0, 2.34f, leafZ),
+                new Vector3(1.5f, .08f, .04f),
+                frame
+            );
+            Material steel = Paint("DrugstoreSteel", "#9AA3A8");
+            foreach (float side in new[] { -1f, 1f })
+                Prim(
+                    PrimitiveType.Cube,
+                    "PushBar",
+                    trim,
+                    new Vector3(side * .37f, 1.05f, leafZ + .04f),
+                    new Vector3(.5f, .05f, .05f),
+                    steel
+                );
+            // 매장 안에서 -Z를 보며 읽으므로 글자를 뒤로 돌린다.
+            foreach (float side in new[] { -1f, 1f })
+                TownBlockoutGeometry
+                    .Label(
+                        "Label",
+                        "PUSH",
+                        trim,
+                        new Vector3(side * .37f, 1.4f, leafZ + .03f),
+                        new Vector3(0, 180, 0),
+                        .1f
+                    )
+                    .color = Hex("#2A2A2A");
+
+            // 앞벽 안쪽 면은 z=-6.9다.
+            foreach (float side in new[] { -1f, 1f })
+                ShopWindow(t, new Vector3(side * 3.5f, 1.75f, -6.89f), frame, daylight);
+            Prim(
+                PrimitiveType.Cube,
+                "WallBand",
+                t,
+                new Vector3(0, 3.2f, -6.87f),
+                new Vector3(11.7f, .55f, .04f),
+                Paint("DrugstoreBand", "#2E6B57")
+            );
+            SectionSign(
+                "THANK YOU · COME AGAIN",
+                t,
+                new Vector3(0, 3.2f, -6.83f),
+                180,
+                .27f,
+                Hex("#FFF6E3")
+            );
+            Material baseboard = Paint("DrugstoreBaseboard", "#D9573F");
+            foreach (float side in new[] { -1f, 1f })
+                Prim(
+                    PrimitiveType.Cube,
+                    "Skirting",
+                    t,
+                    new Vector3(side * 3.43f, .14f, -6.87f),
+                    new Vector3(4.85f, .28f, .04f),
+                    baseboard
+                );
+            return root;
+        }
+
+        // 벽에 붙인 진열창. 유리 너머가 비어 있으므로 바깥 햇빛 색으로 밝게 칠한다.
+        private static void ShopWindow(
+            Transform parent,
+            Vector3 center,
+            Material frame,
+            Material daylight
+        )
+        {
+            Transform window = BuilderTools.CreateEmpty(
+                "ShopWindow",
+                parent,
+                center,
+                Quaternion.identity
+            );
+            const float width = 3.2f,
+                height = 1.7f;
+            Prim(
+                PrimitiveType.Cube,
+                "Glass",
+                window,
+                Vector3.zero,
+                new Vector3(width, height, .02f),
+                daylight
+            );
+            foreach (float y in new[] { -height / 2, height / 2 })
+                Prim(
+                    PrimitiveType.Cube,
+                    "Rail",
+                    window,
+                    new Vector3(0, y, .02f),
+                    new Vector3(width + .1f, .1f, .05f),
+                    frame
+                );
+            foreach (float x in new[] { -width / 2, 0, width / 2 })
+                Prim(
+                    PrimitiveType.Cube,
+                    "Mullion",
+                    window,
+                    new Vector3(x, 0, .02f),
+                    new Vector3(.1f, height, .05f),
+                    frame
+                );
+        }
+
+        // 보이는 겉모양과 같은 크기의 충돌을 가진 상자. 기본 재질은 매장 벽과 같은 크림색이다.
+        private static Transform Solid(
+            string name,
+            Transform parent,
+            Vector3 position,
+            Vector3 scale,
+            Material material = null
+        )
+        {
+            GameObject shape = Prim(
+                PrimitiveType.Cube,
+                name,
+                parent,
+                position,
+                scale,
+                material != null ? material : MainstreetArtKit.Cream
+            );
+            shape.AddComponent<BoxCollider>();
+            return shape.transform;
+        }
+
         // 계산대 위: 금전등록기, 빨간 과자 진열대, 화분
         private static void Checkout(Transform root)
         {
@@ -1138,6 +1346,22 @@ namespace A305.EditorTools.World
             {
                 material.EnableKeyword("_EMISSION");
                 material.SetColor("_EmissionColor", Hex(hex) * 1.4f);
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                EditorUtility.SetDirty(material);
+            }
+            return material;
+        }
+
+        // 유리 너머가 비어 있어 투명하게 둘 수 없으므로, 바깥 햇빛이 비치는 옅은 하늘색으로 은은하게 빛나게 한다.
+        // 형광등 패널처럼 세게 빛나면 흰 판처럼 보인다.
+        private static Material DaylightGlass()
+        {
+            Material material = Paint("DrugstoreDaylightGlass", "#B4D3E1");
+            if (!material.IsKeywordEnabled("_EMISSION"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", Hex("#B4D3E1") * .35f);
+                material.SetFloat("_Smoothness", .85f);
                 material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
                 EditorUtility.SetDirty(material);
             }

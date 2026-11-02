@@ -42,6 +42,7 @@ Threats count even without swear words: robbery or extortion ("hand over the cas
 Read the recent conversation: a calm-sounding line is still a threat if it continues a threat.
 Not abusive: normal requests and orders, even blunt or impatient ones without "please" ("give me a latte quickly", "hurry up"),
 plain Korean 반말 requests or urging without those markers ("라떼 하나 줘", "빨리 줘", "사장 불러!"),
+"야" that only calls someone or gets their attention, like "hey", alone or before a question or complaint ("야!", "야, 지금 몇 시야?"),
 complaints and refusals without swearing or insults, even angry or blunt ones, jokes or idioms like "I could die for a latte",
 saying who they are (even "I'm a police officer"), talking to themselves in frustration without swear words.
 Swear words and vulgar words always count, even when aimed at a situation, a thing, or themselves instead of the person.
@@ -73,7 +74,7 @@ def guard_messages(npc: Npc, history: list[Line], text: str) -> list[dict]:
     ]
 
 
-# 줄 사건: 의도 판정이 함께 고르고, 워커가 대화 중 기분과 대화 뒤 관계에 쓴다(app.npc_relationship). 무례는 /v1/guard만 판정한다.
+# 줄 사건: 의도 판정이 함께 고르고, 워커가 그 턴의 호감과 대화 중 기분에 쓴다(app.npc_relationship). 무례는 /v1/guard만 판정한다.
 # 정의는 이정훈 님 사건 테스트셋 가이드 v1.0. 효과(인상·기분)는 공통 규칙 world-rules.json의 conversationEvents
 LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
 EVENTS_GUIDE = """Also list in "events" what the learner does toward the partner in this line, from the list below. Usually none: [].

@@ -47,6 +47,11 @@ namespace A305.Onboarding
             );
         }
 
+        public Task<GuestGuideResponse> GetGuestGuideAsync()
+        {
+            return client.GetAsync<GuestGuideResponse>("/api/v1/auth/guest");
+        }
+
         public Task GuestLoginAsync(AvatarType avatarType, bool voiceConsent)
         {
             return client.PostAsync(

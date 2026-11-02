@@ -294,14 +294,23 @@ namespace A305.Learning
             if (feedback == null || !panel.activeInHierarchy)
                 return;
             Canvas.ForceUpdateCanvases();
+            int count = isTranscriptShown ? 1 : pages.Count;
+            // 대화 기록을 펼치면 기록 한 장만 센다.
+            int current = isTranscriptShown ? 0 : pageIndex;
+            var pagesPerCard = new List<int>();
+            string shown = bodyText.text;
+            for (int i = 0; i < count; i++)
+                pagesPerCard.Add(
+                    i == current ? 1 : Mathf.Max(1, bodyText.GetTextInfo(pages[i].Body).pageCount)
+                );
+            // 다른 카드 쪽수를 재느라 바뀐 글을 지금 카드로 되돌린다.
+            bodyText.text = shown;
             bodyText.ForceMeshUpdate();
             int textPages = Mathf.Max(1, bodyText.textInfo.pageCount);
+            pagesPerCard[current] = textPages;
             textPage = Mathf.Clamp(textPage, 1, textPages);
             bodyText.pageToDisplay = textPage;
-            int count = isTranscriptShown ? 1 : pages.Count;
-            pageNumberText.text =
-                $"{pageIndex + 1} / {count}"
-                + (textPages > 1 ? $"  ·  {textPage}/{textPages}" : "");
+            pageNumberText.text = FeedbackPageNumber.Format(pagesPerCard, current, textPage);
             previousButton.interactable = pageIndex > 0 || textPage > 1;
             nextButton.interactable = pageIndex + 1 < count || textPage < textPages;
         }

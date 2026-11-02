@@ -20,6 +20,15 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void WordsOnTheWay_SaysTheyAreComing()
+        {
+            Assert.That(
+                DialogueHelpText.Words(null, isSuggesting: true),
+                Is.EqualTo("추천 단어를 고르고 있어요...")
+            );
+        }
+
+        [Test]
         public void Sentence_PrefersTheRequestedHint()
         {
             Assert.That(

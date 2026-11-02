@@ -2,6 +2,7 @@ package com.elsehere.user.service;
 
 import com.elsehere.conversation.service.NpcAudioRetention;
 import com.elsehere.conversation.service.TrainingRecordingService;
+import com.elsehere.feedback.service.ModelSpeechStore;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -11,10 +12,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 사용자가 남긴 내용(대화 원문·피드백·NPC 기억·저장 단어·숨김·레벨 테스트 답·학습용 녹음·NPC 음성)을 지운다. 게스트 내용 정리와 회원 탈퇴가 함께 쓴다.
- * 사용자·대화·AI 호출 기록 같은 뼈대는 남겨, 남은 행이 가리키는 사용자·대화가 사라지지 않고 사용자 수·대화 수·사용량 집계도 그대로 할 수 있다.
+ * 사용자가 남긴 내용(대화 원문·대화·문장 피드백·NPC 기억·저장 단어·숨김·레벨 테스트 답·학습용 녹음·NPC 음성·모범 음성)을 지운다. 게스트 내용 정리와 회원 탈퇴가
+ * 함께 쓴다. 사용자·대화·AI 호출 기록 같은 뼈대는 남겨, 남은 행이 가리키는 사용자·대화가 사라지지 않고 사용자 수·대화 수·사용량 집계도 그대로 할 수 있다.
  *
- * <p>여러 도메인의 테이블을 한 번에 지우므로 SQL로 처리한다. 사용자·대화를 가리키는 칸이 있는 테이블은 {@link #CLEARED_TABLES}와 {@link
+ * <p>여러 도메인의 테이블을 한 번에 지우므로 SQL로 처리한다. 사용자·대화·턴을 가리키는 칸이 있는 테이블은 {@link #CLEARED_TABLES}와 {@link
  * #RETAINED_TABLES} 중 하나에 넣어 두어야 한다(새 테이블을 빠뜨리면 테스트가 실패한다).
  */
 @Service
@@ -25,6 +26,7 @@ public class UserContentEraser {
   static final Set<String> CLEARED_TABLES =
       Set.of(
           "turns",
+          "turn_feedback",
           "conversation_feedback",
           "user_npc_relations",
           "user_vocab",
@@ -46,26 +48,43 @@ public class UserContentEraser {
   private static final String USER_CONVERSATIONS =
       "(select id from conversations where user_id = ?)";
 
+  private static final String USER_TURNS =
+      "(select id from turns where conversation_id in " + USER_CONVERSATIONS + ")";
+
   private final JdbcTemplate jdbcTemplate;
   private final NpcAudioRetention npcAudioRetention;
+  private final ModelSpeechStore modelSpeechStore;
   private final TrainingRecordingService trainingRecordingService;
 
   /**
-   * 사용자의 내용을 DB에서 지운다. 지운 턴이 쓰던 NPC 음성 파일은 트랜잭션이 끝난 뒤 {@link #deleteAudio}로 지운다.
+   * 내용과 함께 지울 파일 키. DB를 지운 트랜잭션이 끝난 뒤 {@link #deleteFiles}로 지운다.
    *
-   * @return 지운 턴이 쓰던 NPC 음성 파일 키
+   * @param npcAudioKeys 지운 턴이 쓰던 NPC 음성
+   * @param modelSpeechKeys 지운 문장 피드백의 모범 음성(FB-04)
    */
+  public record ErasedFiles(List<String> npcAudioKeys, List<String> modelSpeechKeys) {}
+
+  /** 사용자의 내용을 DB에서 지우고, 함께 지울 파일 키를 돌려준다. */
   @Transactional(propagation = Propagation.MANDATORY)
-  public List<String> deleteContent(Long userId) {
-    List<String> audioKeys =
+  public ErasedFiles deleteContent(Long userId) {
+    List<String> npcAudioKeys =
         jdbcTemplate.queryForList(
             "select npc_audio_key from turns where npc_audio_key is not null"
                 + " and conversation_id in "
                 + USER_CONVERSATIONS,
             String.class,
             userId);
+    List<String> modelSpeechKeys =
+        jdbcTemplate.queryForList(
+            "select model_audio_key from turn_feedback where model_audio_key is not null"
+                + " and turn_id in "
+                + USER_TURNS,
+            String.class,
+            userId);
     jdbcTemplate.update(
         "delete from conversation_feedback where conversation_id in " + USER_CONVERSATIONS, userId);
+    // 문장 피드백은 턴 ID만 가지므로 턴을 지우기 전에 지운다.
+    jdbcTemplate.update("delete from turn_feedback where turn_id in " + USER_TURNS, userId);
     jdbcTemplate.update("delete from turns where conversation_id in " + USER_CONVERSATIONS, userId);
     jdbcTemplate.update("delete from user_npc_relations where user_id = ?", userId);
     jdbcTemplate.update("delete from user_vocab where user_id = ?", userId);
@@ -76,11 +95,15 @@ public class UserContentEraser {
         userId);
     jdbcTemplate.update("delete from level_tests where user_id = ?", userId);
     trainingRecordingService.deleteAllOf(userId);
-    return audioKeys;
+    return new ErasedFiles(npcAudioKeys, modelSpeechKeys);
   }
 
-  /** DB를 지운 뒤 NPC 음성 파일을 지운다. 실패하면 어떤 턴도 쓰지 않는 파일로 남아 NPC 음성 정리가 지운다. NPC 공용 음성(말걸기)은 남긴다. */
-  public void deleteAudio(List<String> audioKeys) {
-    npcAudioRetention.deleteAudio(audioKeys);
+  /**
+   * DB를 지운 뒤 파일을 지운다. NPC 음성은 실패하면 어떤 턴도 쓰지 않는 파일로 남아 NPC 음성 정리가 지우고, NPC 공용 음성(말걸기)은 남긴다. 모범 음성은
+   * 따로 정리하는 작업이 없어 실패하면 파일이 남는다.
+   */
+  public void deleteFiles(ErasedFiles files) {
+    npcAudioRetention.deleteAudio(files.npcAudioKeys());
+    files.modelSpeechKeys().forEach(modelSpeechStore::delete);
   }
 }

@@ -167,6 +167,11 @@ namespace A305.Dialogue.Tests
             {
                 throw new NotSupportedException();
             }
+
+            public Task<SuggestWordsData> GetSuggestWordsAsync(long turnId, string requestId)
+            {
+                throw new NotSupportedException();
+            }
         }
     }
 }

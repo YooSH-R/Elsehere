@@ -207,4 +207,13 @@ namespace A305.Dialogue
         /// <summary>NPC 대사에 대답할 만한 영어 문장</summary>
         public string HintText { get; set; }
     }
+
+    /// <summary>추천 단어(CONV-12).</summary>
+    public sealed class SuggestWordsData
+    {
+        public long TurnId { get; set; }
+
+        /// <summary>NPC 대사에 대답할 때 쓸 만한 단어·짧은 구</summary>
+        public List<string> SuggestWords { get; set; }
+    }
 }

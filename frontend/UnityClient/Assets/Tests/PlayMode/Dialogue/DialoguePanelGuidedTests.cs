@@ -14,7 +14,7 @@ namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
     /// 튜토리얼 길 안내처럼 정해진 대사를 따라가는 대화에서, 실제 대화창이 말할 대사를 빈 입력칸에 회색 안내로 미리 보이고
-    /// [꾹 눌러 말하기]도 두는지 확인한다.
+    /// [말하기]도 두는지 확인한다.
     /// </summary>
     public class DialoguePanelGuidedTests
     {

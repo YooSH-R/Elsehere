@@ -40,6 +40,9 @@ namespace A305.Dialogue
         /// <summary>NPC 대사 아래에 보여 줄 추천 단어. 없으면 null이다.</summary>
         IReadOnlyList<string> SuggestWords { get; }
 
+        /// <summary>추천 단어를 서버에서 받고 있는지. 대사를 먼저 보여 주고 단어는 따로 받는다(CONV-12).</summary>
+        bool IsSuggestingWords { get; }
+
         bool CanSend { get; }
 
         /// <summary>[뜻 보기]를 쓸 수 있는지. 서버 대화는 처음 뜻을 볼 때 서버에서 받아 온다.</summary>
@@ -54,14 +57,14 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 대사에 대답할 추천 문장. [힌트]를 누르기 전에는 null이다.</summary>
         string HintText { get; }
 
-        /// <summary>[꾹 눌러 말하기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
+        /// <summary>[말하기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
         bool UsesVoice { get; }
 
         /// <summary>NPC 호감도와 무례 경고 칸. 서버 대화만 쓰며, 대본 대화는 null이다.</summary>
         ConversationStanding Standing { get; }
 
         /// <summary>
-        /// [꾹 눌러 말하기]로 말할 수 있는지. 음성 처리에 동의하지 않았으면 false이며, 글자로만 입력한다(API 명세 CONV-02).
+        /// [말하기]로 말할 수 있는지. 음성 처리에 동의하지 않았으면 false이며, 글자로만 입력한다(API 명세 CONV-02).
         /// </summary>
         bool CanTalk { get; }
 

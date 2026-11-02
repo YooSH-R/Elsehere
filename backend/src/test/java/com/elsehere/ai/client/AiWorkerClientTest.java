@@ -76,8 +76,8 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("NPC 대답 스트림을 끝까지 읽어 대답 전문·턴 전체 음성 ID·추천 단어·사용량을 모은다")
-  void reply_collectsDoneEventWordsAndUsage() {
+  @DisplayName("NPC 대답 스트림을 끝까지 읽어 대답 전문·턴 전체 음성 ID·사용량을 모은다")
+  void reply_collectsDoneEventAndUsage() {
     respond(
         "/v1/npc/reply",
         200,
@@ -89,9 +89,6 @@ class AiWorkerClientTest {
         event: audio
         data: {"seq": 0, "text": "Hi! What can I get?", "audio_id": "a-0", "duration_s": 1.0}
 
-        event: words
-        data: {"words": ["latte", "iced"], "error": null}
-
         event: done
         data: {"text": "Hi! What can I get?", "audio_full_id": "full-1", "usage": [{"step": "npc", "model": "m1", "input_tokens": 120, "output_tokens": 8}]}
 
@@ -102,7 +99,6 @@ class AiWorkerClientTest {
     assertThat(reply.succeeded()).isTrue();
     assertThat(reply.text()).isEqualTo("Hi! What can I get?");
     assertThat(reply.audioFullId()).isEqualTo("full-1");
-    assertThat(reply.suggestWords()).containsExactly("latte", "iced");
     assertThat(reply.usage())
         .extracting(WorkerUsage::model, WorkerUsage::inputTokens)
         .containsExactly(tuple("m1", 120));
@@ -130,7 +126,6 @@ class AiWorkerClientTest {
     assertThat(request.conversationId()).isEqualTo("11");
     assertThat(request.contentType()).isEqualTo("application/json");
     assertThat(request.body())
-        .contains("\"suggest_words\":true")
         .contains("\"level\":2")
         .contains("\"tts_voice\":\"af_heart\"")
         .contains(
@@ -244,6 +239,34 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("의도 판정이 줄 사건과 그 사건으로 바로 올릴 호감도(affinity_delta)를 주면 함께 읽고, 주지 않으면 null이다")
+  void judge_readsEventsAndAffinityDelta() {
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "I love this town!", "dropped": false, "notice": null, "intent": {"id": "chat"},
+         "translation": null, "events": ["COMPLIMENT"], "affinity_delta": 4, "usage": []}
+        """);
+    JudgeResult withDelta =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "Hi", "dropped": false, "usage": []}
+        """);
+    JudgeResult withoutDelta =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+
+    assertThat(withDelta.events()).containsExactly("COMPLIMENT");
+    assertThat(withDelta.affinityDelta()).isEqualTo(4);
+    assertThat(withoutDelta.affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("무례 판정은 앞선 대화의 무례 표시와 함께 보내고 판정값·사용량을 읽는다")
   void guard_sendsHistoryAndReadsAbusive() {
     respond(
@@ -310,14 +333,37 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("추천 단어를 끄면 NPC 대답 요청에 suggest_words false를 보낸다")
-  void reply_withoutSuggestWords_sendsFalse() {
+  @DisplayName("추천 단어는 따로 받으므로 NPC 대답 요청에는 suggest_words false를 보낸다")
+  void reply_sendsSuggestWordsFalse() {
     respond(
         "/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Bye\"}\n\n");
 
-    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, false, null);
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(received.get("/v1/npc/reply").body()).contains("\"suggest_words\":false");
+  }
+
+  @Test
+  @DisplayName("추천 단어는 앞선 대화·목표·난이도를 보내고 단어와 사용량을 읽는다")
+  void suggest_sendsHistoryAndReadsWords() {
+    respond(
+        "/v1/suggest",
+        200,
+        "application/json",
+        """
+        {"words": ["for here", "to go", "please"],
+         "usage": [{"step": "suggest", "model": "m1"}]}
+        """);
+
+    SuggestResult result =
+        client.suggest(TRACE, NPC, List.of(WorkerLine.npc("For here or to go?")), "", 1);
+
+    assertThat(result.words()).containsExactly("for here", "to go", "please");
+    assertThat(result.usage()).extracting(WorkerUsage::step).containsExactly("suggest");
+    assertThat(received.get("/v1/suggest").body())
+        .contains("\"goal\":\"\"")
+        .contains("\"history\":[{\"who\":\"npc\",\"text\":\"For here or to go?\"")
+        .contains("\"level\":1");
   }
 
   @Test
@@ -502,13 +548,9 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("관계 갱신은 저장된 관계와 학습자 줄의 무례·사건이 담긴 대화를 보내고 변화량과 센 사건을 읽는다")
-  void relationship_sendsRelationshipAndHistoryAndReadsDeltas() {
-    respond(
-        "/v1/npc/relationship",
-        200,
-        "application/json",
-        "{\"recognition_delta\": 8, \"affinity_delta\": 1, \"events\": [\"GREETING\", \"LEAVE\"]}");
+  @DisplayName("관계 갱신은 저장된 관계와 학습자 줄의 무례·사건이 담긴 대화를 보내고 알아봄 변화량을 읽는다")
+  void relationship_sendsRelationshipAndHistoryAndReadsRecognitionDelta() {
+    respond("/v1/npc/relationship", 200, "application/json", "{\"recognition_delta\": 8}");
 
     RelationshipChange change =
         client.relationship(
@@ -519,9 +561,7 @@ class AiWorkerClientTest {
                 WorkerLine.npc("Hi! What can I get you?"),
                 WorkerLine.learner("Hi! Bye!", null, false, List.of("GREETING", "LEAVE"))));
 
-    assertThat(change.recognitionDelta()).isEqualTo(8);
-    assertThat(change.affinityDelta()).isEqualTo(1);
-    assertThat(change.events()).containsExactly("GREETING", "LEAVE");
+    assertThat(change).isEqualTo(new RelationshipChange(8));
     assertThat(received.get("/v1/npc/relationship").body())
         .contains("\"relationship\":{\"recognition\":15,\"affinity\":2,\"days_since_last_talk\":0}")
         .contains(

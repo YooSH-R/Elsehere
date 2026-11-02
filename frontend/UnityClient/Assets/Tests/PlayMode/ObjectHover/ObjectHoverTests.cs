@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using A305.Player;
+using A305.Tutorial;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -19,6 +20,9 @@ namespace A305.ObjectHover.PlayModeTests
     {
         // 툴팁 표시 지연보다 충분히 긴 시간
         private const float LongerThanShowDelaySeconds = 1f;
+
+        // 플레이어를 옮긴 뒤 카메라가 따라와 화면이 실제 플레이처럼 자리 잡는 데 넉넉한 프레임 수
+        private const int CameraSettleFrames = 10;
 
         private ObjectHoverController hover;
         private WordTooltipView tooltip;
@@ -220,15 +224,27 @@ namespace A305.ObjectHover.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Tooltip_FollowsPointerAboveItsPosition()
+        public IEnumerator Tooltip_FollowsPointerAboveThePointedObject()
         {
             HoverableObject tv = FindHoverable("tv");
             yield return StandPlayerNear(tv);
+            // 화면 위쪽의 튜토리얼 가이드가 카드를 다른 자리로 밀지 않게 숨긴다.
+            TutorialGuidePanel().gameObject.SetActive(false);
+            // TV가 화면 절반보다 작게 보이도록 2.5m 앞에서 보고, 캐릭터는 카메라 뒤에 세워 화면에서 뺀다.
             Camera camera = Camera.main;
             Vector3 center = VisibleBounds(tv).center;
+            Vector3 behindCamera = center + tv.transform.forward * 3f;
+            behindCamera.y = .05f;
+            player.Teleport(behindCamera, Quaternion.LookRotation(-tv.transform.forward));
             camera.transform.SetPositionAndRotation(
-                center + tv.transform.forward * 2f,
+                center + tv.transform.forward * 2.5f,
                 Quaternion.LookRotation(-tv.transform.forward)
+            );
+            Rect tvArea = RendererScreenRect(tv);
+            Assert.That(
+                tvArea.width < Screen.width / 2f && tvArea.height < Screen.height / 2f,
+                Is.True,
+                $"TV가 화면 절반보다 작게 보여야 합니다: {tvArea}, 화면 {Screen.width}x{Screen.height}"
             );
             var panel = tooltip.transform.Find("Panel").GetComponent<RectTransform>();
             var canvas = tooltip.GetComponent<Canvas>();
@@ -244,12 +260,90 @@ namespace A305.ObjectHover.PlayModeTests
                     null,
                     (corners[0] + corners[3]) * .5f
                 );
+                // 가로로는 포인터를 따라가고, 세로로는 가리킨 TV를 덮지 않게 TV 위쪽 끝 위에 둔다.
                 Assert.That(bottomCenter.x, Is.EqualTo(pointer.x).Within(1f));
                 Assert.That(
                     bottomCenter.y,
-                    Is.EqualTo(pointer.y + 16f * canvas.scaleFactor).Within(1f)
+                    Is.EqualTo(tvArea.yMax + 16f * canvas.scaleFactor).Within(1f)
                 );
             }
+        }
+
+        [UnityTest]
+        public IEnumerator PointingAtFloorBesideCharacter_CardDoesNotCoverCharacter()
+        {
+            // 캐릭터 발 옆 바닥을 가리키면 카드가 바로 위에 떠 캐릭터 머리를 덮었다.
+            yield return StandPlayerNear(FindHoverable("tv"));
+            // 순간이동한 바로 그 프레임은 카메라가 아직 따라오지 않아 실제 플레이와 다르게 보인다. 따라온 뒤에 잰다.
+            for (int frame = 0; frame < CameraSettleFrames; frame++)
+                yield return null;
+            Transform body = player.transform;
+            Vector3 floor = body.position + body.right * .55f + body.forward * .2f;
+            Vector2 pointer = Camera.main.WorldToScreenPoint(floor);
+            Assert.That(
+                PointedHoverable(pointer),
+                Is.Not.Null,
+                "캐릭터 옆 바닥을 가리켜야 합니다."
+            );
+
+            hover.Refresh(pointer, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsVisible, Is.True);
+            Assert.That(
+                CardScreenRect().Overlaps(RendererScreenRect(player)),
+                Is.False,
+                "카드가 캐릭터를 덮습니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator PointingJustBelowTutorialGuide_CardStaysOutOfGuide()
+        {
+            // 첫걸음 가이드 바로 아래 사물을 가리키면 카드가 가이드 뒤로 들어가 옆으로 비어져 나왔다.
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Rect guide = ShowTutorialGuide();
+            Vector2 belowGuide = new Vector2(guide.center.x, guide.yMin - 20f);
+            AimSoThatScreenPointShows(tv, belowGuide);
+            Assert.That(
+                PointedHoverable(belowGuide),
+                Is.EqualTo(tv),
+                "가이드 아래에 TV가 보여야 합니다."
+            );
+
+            hover.Refresh(belowGuide, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsVisible, Is.True);
+            Assert.That(CardScreenRect().Overlaps(guide), Is.False, "카드가 가이드와 겹칩니다.");
+        }
+
+        [UnityTest]
+        public IEnumerator PinnedCard_MovesOutOfWindowOpenedLater()
+        {
+            // 카드를 고정한 뒤 그 자리에 창이 열리면 카드가 창 뒤에 비쳐 보였다.
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Rect guide = ShowTutorialGuide();
+            TutorialGuidePanel().gameObject.SetActive(false);
+            Vector2 belowGuide = new Vector2(guide.center.x, guide.yMin - 20f);
+            AimSoThatScreenPointShows(tv, belowGuide);
+            hover.Click(belowGuide);
+            Assert.That(tooltip.IsPinned, Is.True);
+            Assert.That(
+                CardScreenRect().Overlaps(guide),
+                Is.True,
+                "가이드 자리에 카드를 고정해야 합니다."
+            );
+
+            TutorialGuidePanel().gameObject.SetActive(true);
+            hover.Refresh(belowGuide, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsPinned, Is.True);
+            Assert.That(
+                CardScreenRect().Overlaps(guide),
+                Is.False,
+                "카드가 새로 열린 창과 겹칩니다."
+            );
         }
 
         [UnityTest]
@@ -261,7 +355,11 @@ namespace A305.ObjectHover.PlayModeTests
             {
                 JsonUtility.FromJsonOverwrite("{\"pointerGap\":48}", settings);
                 Vector2 pointer = new Vector2(Screen.width / 2f, Screen.height / 3f);
-                tooltip.Show(ObjectWord.ForHover("pillow", "베개", "", false), pointer, settings);
+                tooltip.Show(
+                    ObjectWord.ForHover("pillow", "베개", "", false),
+                    CardAnchor.AtPointer(pointer),
+                    settings
+                );
                 var panel = tooltip.transform.Find("Panel").GetComponent<RectTransform>();
                 var corners = new Vector3[4];
                 panel.GetWorldCorners(corners);
@@ -346,6 +444,104 @@ namespace A305.ObjectHover.PlayModeTests
             );
         }
 
+        [UnityTest]
+        public IEnumerator PinnedCardAtRightEdge_MenuOpenedLater_StaysOutOfMenu()
+        {
+            // 화면 오른쪽 끝을 눌러 카드를 고정한 뒤 메뉴(≡)를 펼치면 카드가 메뉴 버튼 뒤로 들어갔다.
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Button menuButton = HudMenuButton().GetComponent<Button>();
+            menuButton.onClick.Invoke();
+            Canvas.ForceUpdateCanvases();
+            Rect openMenuButton = ScreenRectOf(OpenHudMenuButton());
+            Rect menuList = ScreenRectOf(HudMenuList());
+            OpenHudMenuButton().GetComponent<Button>().onClick.Invoke();
+            Vector2 rightOfList = new Vector2(
+                (menuList.xMax + Screen.width) / 2f,
+                menuList.center.y
+            );
+            AimSoThatScreenPointShows(tv, rightOfList);
+            hover.Click(rightOfList);
+            Assert.That(tooltip.IsPinned, Is.True);
+
+            menuButton.onClick.Invoke();
+            hover.Refresh(rightOfList, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsPinned, Is.True);
+            Rect card = CardScreenRect();
+            Assert.That(card.Overlaps(openMenuButton), Is.False, "카드가 메뉴 버튼과 겹칩니다.");
+            Assert.That(card.Overlaps(menuList), Is.False, "카드가 메뉴 목록과 겹칩니다.");
+        }
+
+        private Rect CardScreenRect()
+        {
+            Canvas.ForceUpdateCanvases();
+            return ScreenRectOf(tooltip.transform.Find("Panel").GetComponent<RectTransform>());
+        }
+
+        private static RectTransform TutorialGuidePanel()
+        {
+            var guide = Object.FindFirstObjectByType<TutorialGuideView>(
+                FindObjectsInactive.Include
+            );
+            Assert.That(guide, Is.Not.Null, "HomeScene에 튜토리얼 가이드가 없습니다.");
+            return guide
+                .GetComponentsInChildren<RectTransform>(true)
+                .Single(rect => rect.name == "Panel");
+        }
+
+        // 가이드 창을 열고 화면 영역을 돌려준다.
+        private static Rect ShowTutorialGuide()
+        {
+            RectTransform panel = TutorialGuidePanel();
+            panel.gameObject.SetActive(true);
+            Canvas.ForceUpdateCanvases();
+            return ScreenRectOf(panel);
+        }
+
+        private static Rect ScreenRectOf(RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector2 min = RectTransformUtility.WorldToScreenPoint(null, corners[0]);
+            Vector2 max = RectTransformUtility.WorldToScreenPoint(null, corners[2]);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        // 보이는 Renderer를 감싸는 상자를 화면에 비춘 영역
+        private static Rect RendererScreenRect(Component root)
+        {
+            Bounds bounds = root.GetComponentsInChildren<Renderer>()
+                .Where(renderer =>
+                    renderer.enabled
+                    && (renderer is MeshRenderer || renderer is SkinnedMeshRenderer)
+                )
+                .Select(renderer => renderer.bounds)
+                .Aggregate(
+                    (all, next) =>
+                    {
+                        all.Encapsulate(next);
+                        return all;
+                    }
+                );
+            Camera camera = Camera.main;
+            Vector2 min = Vector2.positiveInfinity;
+            Vector2 max = Vector2.negativeInfinity;
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 corner = new Vector3(
+                    (i & 1) == 0 ? bounds.min.x : bounds.max.x,
+                    (i & 2) == 0 ? bounds.min.y : bounds.max.y,
+                    (i & 4) == 0 ? bounds.min.z : bounds.max.z
+                );
+                Vector2 screen = camera.WorldToScreenPoint(corner);
+                min = Vector2.Min(min, screen);
+                max = Vector2.Max(max, screen);
+            }
+
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
         private static RectTransform HudMenuButton()
         {
             Button menu = Object
@@ -353,6 +549,24 @@ namespace A305.ObjectHover.PlayModeTests
                 .SingleOrDefault(button => button.name == "MenuButton");
             Assert.That(menu, Is.Not.Null, "HomeScene에 오른쪽 위 메뉴 버튼이 없습니다.");
             return (RectTransform)menu.transform;
+        }
+
+        // 메뉴를 펼친 동안 메뉴 버튼 자리에 보이는 강조 버튼
+        private static RectTransform OpenHudMenuButton()
+        {
+            Button open = Object
+                .FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .SingleOrDefault(button => button.name == "OpenMenuButton");
+            Assert.That(open, Is.Not.Null, "HomeScene에 펼친 메뉴 버튼이 없습니다.");
+            return (RectTransform)open.transform;
+        }
+
+        // 메뉴 버튼 줄 아래로 펼치는 목록
+        private static RectTransform HudMenuList()
+        {
+            Transform list = OpenHudMenuButton().parent.parent.Find("Menu");
+            Assert.That(list, Is.Not.Null, "HomeScene에 메뉴 목록이 없습니다.");
+            return (RectTransform)list;
         }
 
         private static Vector2 ScreenCenterOf(RectTransform rect)

@@ -26,7 +26,7 @@ namespace A305.Dialogue
         private int guidedTurnIndex;
         private string statusMessage;
 
-        /// <param name="hasRecorder">녹음기가 연결되어 있는지. 정해진 대사를 따라가는 대화면 [꾹 눌러 말하기]를 둔다.</param>
+        /// <param name="hasRecorder">녹음기가 연결되어 있는지. 정해진 대사를 따라가는 대화면 [말하기]를 둔다.</param>
         public DialogueConversation(string npcCode, DialogueScript script, bool hasRecorder = false)
         {
             NpcCode = npcCode;
@@ -78,6 +78,7 @@ namespace A305.Dialogue
         public string RecoveryGuide => null;
         public bool CanRetry => false;
         public IReadOnlyList<string> SuggestWords => CurrentGuidedTurn?.SuggestWords;
+        public bool IsSuggestingWords => false;
         public bool CanSend => !IsGuidedCompleted;
         public bool HasMeaning => true;
         public IReadOnlyList<GlossaryData> LastNpcGlossary => null;

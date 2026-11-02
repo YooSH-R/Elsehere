@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.elsehere.TestcontainersConfiguration;
-import com.elsehere.ai.client.SttResult;
-import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
@@ -179,11 +177,14 @@ class OptionalConsentServiceTest {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     optionalConsentService.change(userId, ConsentType.TRAINING_VOICE, true);
     trainingRecordingService.save(
-        new WorkerTrace(UUID.randomUUID(), userId, null),
+        userId,
+        UUID.randomUUID(),
+        null,
         TranscriptionPurpose.TUTORIAL,
         new byte[] {1, 2, 3},
         "audio/wav",
-        new SttResult("hello", 1.0, List.of()));
+        "hello",
+        1000);
     TrainingRecording saved = trainingRecordingRepository.findByUserId(userId).getFirst();
     Path file = Path.of(RECORDING_DIR, saved.getAudioKey());
     assertThat(file).exists();

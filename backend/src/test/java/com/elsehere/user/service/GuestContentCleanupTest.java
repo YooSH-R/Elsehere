@@ -6,8 +6,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.service.DialogueServiceTest;
 import com.elsehere.conversation.service.NpcAudioStore;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -89,9 +89,9 @@ class GuestContentCleanupTest {
     Long guestId = UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1");
     Conversation conversation = conversation(entityManager, guestId, "TOWN_PASSERBY");
     Instant audioCreatedAt = Instant.parse("2026-10-28T00:00:00Z");
-    entityManager.persist(Turn.npc(conversation, 1, "Hi there!", null, sharedKey, audioCreatedAt));
+    entityManager.persist(Turn.npc(conversation, 1, "Hi there!", sharedKey, audioCreatedAt));
     textTurn(entityManager, conversation, 2, "Hello");
-    entityManager.persist(Turn.npc(conversation, 3, "Nice weather!", null, ownKey, audioCreatedAt));
+    entityManager.persist(Turn.npc(conversation, 3, "Nice weather!", ownKey, audioCreatedAt));
     entityManager.flush();
     lastActive(guestId, Duration.ofDays(2));
 

@@ -177,6 +177,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 15 NPC AI 자유 대화 | 대화 기록(텍스트) | CONV-01, CONV-03 응답(새로고침 후에는 CONV-11) |
 | | 녹음 → 전사 확인 → [다시 녹음] / [보내기] | CONV-02, CONV-03 |
 | | 마이크를 쓸 수 없을 때 [텍스트로 입력] | CONV-03 |
+| | 대사 아래 추천 단어 | CONV-12(대사를 받은 뒤 따로) |
 | | [다시 듣기], [뜻 보기], [힌트] | CONV-06, CONV-04, CONV-05 |
 | | [대화 종료 (Esc)] | CONV-08 |
 | | 토큰이 떨어지면 NPC 작별 대사로 대화 종료 | CONV-03 응답 |
@@ -236,7 +237,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | MIS-01 | `GET /api/v1/missions` | 오늘의 미션과 진행 상태(자동 시작) | - | 13 |
 | CONV-01 | `POST /api/v1/conversations` | 대화 시작, NPC 첫 대사 | LLM, TTS(말걸기 대사가 없는 NPC) | 14 |
 | CONV-02 | `POST /api/v1/speech/transcriptions` | 녹음 전사(STT) | STT | 11, 15 |
-| CONV-03 | `POST /api/v1/conversations/{conversationId}/turns` | 발화 전송, NPC 응답과 추천 단어 | LLM, TTS | 15 |
+| CONV-03 | `POST /api/v1/conversations/{conversationId}/turns` | 발화 전송, NPC 응답 | LLM, TTS | 15 |
 | CONV-04 | `POST /api/v1/turns/{turnId}/meaning` | NPC 대사 한국어 뜻 | LLM | 15 |
 | CONV-05 | `POST /api/v1/turns/{turnId}/hint` | 추천 문장 | LLM | 15 |
 | CONV-06 | `GET /api/v1/turns/{turnId}/speech` | 만들어 둔 NPC 음성 재생 | - | 15 |
@@ -245,6 +246,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | CONV-09 | `GET /api/v1/conversations` | 지난 대화 목록 | - | 18 |
 | CONV-10 | `GET /api/v1/conversations/{conversationId}` | 대화 상세(턴 포함) | - | 16, 18 |
 | CONV-11 | `GET /api/v1/conversations/active` | 진행 중인 대화 조회 | - | 15 |
+| CONV-12 | `POST /api/v1/turns/{turnId}/suggest-words` | NPC 대사에 대답할 추천 단어 | LLM | 15 |
 | FB-01 | `GET /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백·상세 평가 조회 | - | 16, 17 |
 | FB-02 | `POST /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백 다시 만들기 | LLM | 16 |
 | FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 조회(종료 때 만든 평가) | - | 16, 17 |
@@ -745,7 +747,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "seq": 1,
     "speaker": "NPC",
     "text": "Hi! What can I get for you?",
-    "suggestWords": ["latte", "iced", "please"],
+    "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/100/speech" }
   },
   "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 }
@@ -756,6 +758,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 14의 [E 대화하기]는 `initiatedBy: USER`, 튜토리얼 뒤 거리 행인의 말걸기에 응답하면 `initiatedBy: NPC`입니다. 행인 말걸기를 거절하거나 무시하면 서버를 호출하지 않습니다.
 - `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
+- 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
 - `runningMissions`는 이 NPC가 대상인 진행 중인 미션이며 상단의 "미션 · …" 표시에 씁니다.
 - `levelApplied`는 사용자의 `selected_level`입니다.
@@ -816,7 +819,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "seq": 5,
     "speaker": "NPC",
     "text": "Great! Is that for here or to go?",
-    "suggestWords": ["for here", "to go", "please"],
+    "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/105/speech" }
   },
   "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 },
@@ -826,7 +829,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - `text`는 사용자가 보낸 최종 문장입니다. `inputType`이 `VOICE`면 STT 결과를 그대로 `text`와 `sttRawText`로 보내고, 마이크를 쓸 수 없어 텍스트로 입력하면 `TEXT`로 보냅니다.
 - 영어, 한국어, 한영 혼용, 미완성 발화를 모두 받습니다. 최대 길이는 서버 설정값이며 넘으면 `VALIDATION_FAILED`입니다.
-- 추천 단어(`suggestWords`)는 NPC 응답과 함께 만들어 대사 아래에 보여줍니다.
+- 추천 단어는 NPC 응답을 기다리게 하지 않도록 따로 만듭니다. 응답의 `suggestWords`는 `null`이고, 클라이언트가 대사를 보여 준 뒤 CONV-12로 받아 대사 아래에 보여줍니다. 대화가 끝난 턴에는 요청하지 않습니다.
 - 같은 `requestId`로 다시 보내면 턴을 새로 만들지 않고 이전 응답을 그대로 돌려줍니다(`turns.request_id`). 화면 19의 [다시 시도]가 이 규칙을 씁니다.
 - TTS가 실패해도 응답은 성공으로 돌려주고 `speech.status`를 `FAILED`로 표시합니다. 클라이언트는 자막을 보여주고 CONV-07로 다시 시도합니다.
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
@@ -942,6 +945,23 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `hintText`는 AI 워커 `/v1/hint`가 주는 추천 문장 중 첫 문장(가장 쉬운 문장)입니다. 그 NPC 턴까지의 대화와 대화 난이도로 만듭니다. 장면별 목표는 아직 없어 워커에 목표를 비워 보냅니다.
 - AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 추천 문장이 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
 - 자유 대화의 힌트는 추천 단어·추천 문장 2단계입니다. 요구사항명세서의 3단계 힌트(키워드 → 문장 시작 → 예문)와 다릅니다(5.2).
+
+#### CONV-12 `POST /api/v1/turns/{turnId}/suggest-words`
+
+```json
+// 요청
+{ "requestId": "..." }
+
+// 응답 200
+{ "turnId": 105, "suggestWords": ["for here", "to go", "please"] }
+```
+
+- 화면 15의 대사 아래 추천 단어입니다. 클라이언트는 NPC 대사(CONV-01·03 응답)를 먼저 보여 준 뒤 이 API를 따로 불러 단어가 오면 채웁니다. 기다리는 동안 입력과 [보내기]를 막지 않고, 실패하면 단어 칸만 비워 둡니다.
+- 사용자가 답해야 하는 NPC 턴에 요청합니다. 사용자 턴과 다른 사용자의 턴은 `404 NOT_FOUND`입니다.
+- 만든 단어는 저장해 다시 쓰고(`turns.suggest_words`) 다시 요청하면 AI를 호출하지 않습니다. CONV-10 대화 상세에도 저장된 단어가 담깁니다.
+- 단어는 AI 워커 `/v1/suggest`가 그 NPC 턴까지의 대화와 대화 난이도로 3개까지 만듭니다. 장면별 목표는 아직 없어 워커에 목표를 비워 보냅니다.
+- AI 호출이 실패하면 1.5의 AI 오류 코드를 돌려주고, 단어가 하나도 오지 않으면 `502 AI_RESPONSE_INVALID`입니다. 두 경우 모두 저장하지 않습니다.
+- 추천 단어는 자유 대화 힌트의 첫 단계(CONV-05)라 AI 호출 기록(`ai_requests.kind`)은 `HINT`로 남깁니다. 사용량 항목의 단계 이름(`suggest`)으로 힌트 문장과 구분합니다.
 
 #### CONV-06·07 NPC 음성
 

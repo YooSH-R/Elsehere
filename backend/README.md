@@ -44,13 +44,21 @@ com.elsehere
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
 | `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01) |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
-| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음) |
-| `world` | scenes, npcs, scene_words, user_word_prefs |
+| `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
+| `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
+| `feedback` | conversation_feedback, turn_feedback (대화 종료 피드백과 문장별 상세 평가, 모범 음성) |
+| `memory` | user_npc_relations (NPC 기억 카드와 관계) |
+| `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
 | `admin` | 없음 (운영자 어드민 화면·관리 API. 다른 도메인의 테이블을 고친다. [운영자 어드민](../docs/admin.md)) |
 
+- 대화는 두 패키지로 나눕니다. 서로 import하는 순환이 생기지 않게 하기 위해서입니다.
+  - `conversation`(대화 기록): 다른 도메인이 읽는 아래쪽입니다. `common` 말고 다른 도메인을 import하지 않습니다.
+  - `dialogue`(대화 흐름): 여러 도메인을 엮는 위쪽입니다. 다른 도메인이 `dialogue`를 import하지 않습니다.
+  - 피드백·기억·단어장처럼 대화 기록을 읽어야 하는 코드는 `conversation`만 씁니다.
+  - 두 패키지가 순환에 끼면 `PackageDependencyTest`가 실패합니다.
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.
 - Spring Security가 호출하는 로그인 성공·실패 처리기와 인증 진입점은 `auth/handler`에 둡니다.

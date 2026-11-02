@@ -26,7 +26,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.service.DialogueServiceTest;
+import com.elsehere.dialogue.service.DialogueServiceTest;
 import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.FeedbackResponse;

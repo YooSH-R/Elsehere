@@ -26,6 +26,14 @@ namespace A305.Theme
         // 입구 화면처럼 창 뒤를 채우는 배경. 흰 창과 구분되도록 강조색을 엷게 깐다.
         Backdrop,
 
+        // 대화창처럼 장면 위에 깔리는 어두운 그라데이션과 그 위의 반투명 조작·밝은 글자
+        Scrim,
+        GhostControl,
+        GhostInput,
+        TitleOnDark,
+        BodyOnDark,
+        AccentOnDark,
+
         // HUD의 시계·코인처럼 짧은 상태를 담는 둥근 유리 칩
         Chip,
     }
@@ -148,6 +156,20 @@ namespace A305.Theme
         [Tooltip("UiTone 순서대로. 색 버튼 위 글자색")]
         private Color[] toneInks = new Color[5];
 
+        [Header("어두운 바탕")]
+        [SerializeField]
+        [Tooltip(
+            "대화창 아래에 까는 그라데이션. 흰 그림의 투명도가 위로 갈수록 옅어지고 아래 색을 곱한다."
+        )]
+        private Sprite scrimSprite;
+
+        [SerializeField]
+        private Color scrimColor = new Color32(43, 28, 20, 255);
+
+        [SerializeField]
+        [Tooltip("어두운 바탕 위의 반투명 버튼·입력칸. 흰 테두리와 위쪽 하이라이트가 있다.")]
+        private Sprite ghostSprite;
+
         [SerializeField]
         private UiIconSet icons;
 
@@ -183,6 +205,9 @@ namespace A305.Theme
         public Color BadgeColor => badgeColor;
         public UiIconSet Icons => icons;
         public TownMapColors TownMap => townMap;
+        public Sprite ScrimSprite => scrimSprite;
+        public Color ScrimColor => scrimColor;
+        public Sprite GhostSprite => ghostSprite;
 
         public Color ToneColor(UiTone tone) => Pick(toneColors, tone, Color.white);
 

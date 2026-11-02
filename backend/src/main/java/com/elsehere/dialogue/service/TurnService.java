@@ -130,6 +130,11 @@ public class TurnService {
 
     return transactionTemplate.execute(
         status -> {
+          // AI를 기다리는 사이 시간 초과로 다시 보낸 같은 요청이 먼저 저장했을 수 있다.
+          Optional<TurnResponse> savedMeanwhile = replay(userId, conversationId, request);
+          if (savedMeanwhile.isPresent()) {
+            return savedMeanwhile.get();
+          }
           Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           // AI를 기다리는 사이 대화가 끝났을 수 있다.
           if (!conversation.isActive()) {

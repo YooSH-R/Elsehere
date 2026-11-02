@@ -219,7 +219,80 @@ namespace A305.Theme
                 case UiThemeRole.Accent:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.AccentInk);
                     break;
+                case UiThemeRole.Scrim:
+                    Image scrim = GetComponent<Image>();
+                    Paint(scrim, theme.ScrimSprite, theme.ScrimColor);
+                    // 위쪽은 거의 투명해 장면이 보이므로 장면 클릭을 막지 않는다.
+                    if (scrim != null)
+                        scrim.raycastTarget = false;
+                    break;
+                case UiThemeRole.GhostControl:
+                    PaintGhostControl(theme);
+                    break;
+                case UiThemeRole.GhostInput:
+                    Paint(GetComponent<Image>(), theme.GhostSprite, GhostInputTint);
+                    PaintInputText(GetComponent<TMP_InputField>(), theme.TitleFont);
+                    break;
+                case UiThemeRole.TitleOnDark:
+                    TMP_Text darkTitle = GetComponent<TMP_Text>();
+                    Write(darkTitle, theme.DisplayFont, Color.white);
+                    if (darkTitle != null)
+                        darkTitle.fontStyle &= ~FontStyles.Bold;
+                    break;
+                case UiThemeRole.BodyOnDark:
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, BodyOnDarkInk);
+                    break;
+                case UiThemeRole.AccentOnDark:
+                    Write(
+                        GetComponent<TMP_Text>(),
+                        theme.TitleFont,
+                        theme.ToneColor(UiTone.Primary)
+                    );
+                    break;
             }
+        }
+
+        // 어두운 바탕 위의 본문은 순백보다 살짝 따뜻하게 둬 큰 흰 대사와 구분한다.
+        private static readonly Color BodyOnDarkInk = new Color32(250, 240, 228, 255);
+
+        // 입력칸은 버튼보다 한 단계 옅게 둬 버튼과 구분한다.
+        private static readonly Color GhostInputTint = new Color(1f, 1f, 1f, .8f);
+
+        // 반투명한 흰 테두리 버튼. 다음에 누를 버튼으로 고르면 강조색 입체 버튼으로 바꿔 한눈에 보이게 한다.
+        private void PaintGhostControl(UiThemeDefinition theme)
+        {
+            if (selection)
+                Paint(
+                    GetComponent<Image>(),
+                    theme.PillSprite,
+                    theme.ToneColor(UiTone.Primary),
+                    theme.PopMaterial,
+                    theme.PillBleed
+                );
+            else
+                Paint(GetComponent<Image>(), theme.GhostSprite, Color.white, null, Vector2.zero);
+            Color ink = selection ? theme.ToneInk(UiTone.Primary) : Color.white;
+            Image ghostIcon = Child<Image>(transform, "Icon");
+            Draw(ghostIcon, theme.Icons != null ? theme.Icons.Get(icon) : null);
+            if (ghostIcon != null)
+                ghostIcon.color = ink;
+            Write(Child<TMP_Text>(transform, "Label"), theme.DisplayFont, ink);
+            PillContentLayout content = GetComponent<PillContentLayout>();
+            if (content == null)
+                content = gameObject.AddComponent<PillContentLayout>();
+            content.Arrange();
+        }
+
+        private static void PaintInputText(TMP_InputField input, TMP_FontAsset font)
+        {
+            if (input == null)
+                return;
+            Write(input.textComponent, font, Color.white);
+            if (input.placeholder is TMP_Text placeholder)
+                Write(placeholder, font, new Color(1f, 1f, 1f, .6f));
+            input.customCaretColor = true;
+            input.caretColor = Color.white;
+            input.selectionColor = new Color(1f, 1f, 1f, .3f);
         }
 
         private void OnEnable()

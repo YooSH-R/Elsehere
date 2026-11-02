@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -6,7 +5,7 @@ using UnityEngine;
 
 namespace A305.EditorTools.Characters
 {
-    // Applies authored eye textures to review copies without changing the source material.
+    // Restores the original eye appearance on the authored review prefabs.
     public static class ServiceNpcEyeReviewBuilder
     {
         public static void RenderReview()
@@ -16,7 +15,7 @@ namespace A305.EditorTools.Characters
             ServiceNpcReviewBuilder.ValidateAndScenes();
         }
 
-        public static void Apply()
+        public static void RestoreOriginalEyes()
         {
             foreach (
                 string name in new[]
@@ -28,12 +27,11 @@ namespace A305.EditorTools.Characters
             )
             {
                 var paths = ServiceNpcReviewBuilder.Paths(name);
-                string texturePath = paths.Art + "/CharacterColor.png";
-                string materialPath = paths.Art + "/CharacterColor.mat";
-                if (File.Exists(texturePath) || File.Exists(materialPath))
-                    throw new IOException("Preserve the existing authored eye copy: " + name);
-                File.Copy(Path.Combine(paths.Output, "CharacterColor.png"), texturePath, false);
-                AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceSynchronousImport);
+                var source = AssetDatabase.LoadAssetAtPath<GameObject>(paths.Source);
+                var original = source
+                    .GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .OrderByDescending(s => s.sharedMesh.vertexCount)
+                    .First();
                 var instance = PrefabUtility.LoadPrefabContents(paths.Prefab);
                 try
                 {
@@ -41,17 +39,14 @@ namespace A305.EditorTools.Characters
                         .GetComponentsInChildren<SkinnedMeshRenderer>()
                         .OrderByDescending(s => s.sharedMesh.vertexCount)
                         .First();
-                    var material = new Material(body.sharedMaterial)
-                    {
-                        name = name + "_CharacterColor",
-                    };
-                    material.SetTexture(
-                        "_BaseMap",
-                        AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath)
-                    );
-                    AssetDatabase.CreateAsset(material, materialPath);
-                    body.sharedMaterial = material;
+                    var mesh = body.sharedMesh;
+                    body.sharedMaterials = original.sharedMaterials;
+                    if (body.sharedMesh != mesh)
+                        throw new IOException("Restoring eyes must not replace the face mesh.");
                     PrefabUtility.SaveAsPrefabAsset(instance, paths.Prefab);
+                    Debug.Log(
+                        name + ": original eye material restored; face mesh and mouth retained."
+                    );
                 }
                 finally
                 {

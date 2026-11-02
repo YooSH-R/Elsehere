@@ -201,6 +201,20 @@ class VocabServiceTest {
     assertThat(secondPage.counts().all()).isEqualTo(3);
   }
 
+  @ParameterizedTest
+  @ValueSource(ints = {0, -1, 51})
+  @DisplayName("한 페이지 개수가 1~50을 벗어나면 VALIDATION_FAILED로 거절한다")
+  void getVocab_sizeOutOfRange_isRejected(int size) {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    saveAt(userId, "sofa", "2026-10-27T01:00:00Z");
+
+    assertThatThrownBy(() -> vocabService.getVocab(userId, false, null, size))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+  }
+
   @Test
   @DisplayName("다른 사용자가 저장한 단어는 내 단어장 목록과 개수에 섞이지 않는다")
   void getVocab_ignoresOtherUsersWords() {

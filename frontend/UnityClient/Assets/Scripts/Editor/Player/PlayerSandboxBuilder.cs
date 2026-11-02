@@ -92,7 +92,7 @@ namespace A305.EditorTools.Player
                 playerMap,
                 "CameraRotate",
                 InputActionType.Button,
-                "<Mouse>/leftButton",
+                "<Mouse>/rightButton",
                 expectedControlLayout: "Button"
             );
             isChanged |= AddActionIfMissing(

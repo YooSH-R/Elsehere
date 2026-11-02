@@ -23,6 +23,9 @@
       const loading = document.querySelector("#unity-loading");
       const warning = document.querySelector("#unity-warning");
 
+      // 시점은 마우스 오른쪽 버튼을 누른 채 끌어 돌리므로, 게임 화면에서는 브라우저의 오른쪽 클릭 메뉴를 띄우지 않는다.
+      canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+
       function showBanner(message, type) {
         const entry = document.createElement("div");
         entry.textContent = message;

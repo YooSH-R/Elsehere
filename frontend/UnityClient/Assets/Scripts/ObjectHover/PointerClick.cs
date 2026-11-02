@@ -3,7 +3,7 @@ using UnityEngine;
 namespace A305.ObjectHover
 {
     /// <summary>
-    /// 누른 자리와 뗀 자리로 사물 클릭인지 정한다. 마우스 왼쪽 버튼을 누른 채 끌면 시점을 돌리므로,
+    /// 누른 자리와 뗀 자리로 사물 클릭인지 정한다. 휴대폰에서는 화면을 끌어 시점을 돌리므로,
     /// 거의 움직이지 않고 뗀 것만 클릭으로 본다.
     /// </summary>
     public static class PointerClick

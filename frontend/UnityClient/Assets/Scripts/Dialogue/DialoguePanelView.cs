@@ -17,6 +17,9 @@ namespace A305.Dialogue
         private const string TalkCaption = "말하기";
         private const string StopTalkCaption = "종료";
 
+        // 녹음을 시작했지만 마이크가 아직 열리는 중. 이때 한 말은 녹음되지 않는다. 눌러서 그만둘 수는 있다.
+        private const string PreparingTalkCaption = "준비 중";
+
         [SerializeField]
         private GameObject panel;
 
@@ -246,13 +249,17 @@ namespace A305.Dialogue
 
         /// <summary>
         /// 녹음 중인지와 지금 목소리가 들리는지를 [말하기] 버튼에 표시한다. 녹음 중이면 [종료]로 바꾸고 불을 켠다.
+        /// 녹음을 시작했지만 마이크가 아직 열리는 중이면 [준비 중]을 보이고 불을 끈다.
         /// 녹음은 시간·무음으로도 저절로 끝나므로 대화 처리가 매 프레임 부른다.
         /// </summary>
-        public void ShowVoiceInput(bool isRecording, bool isHearingVoice)
+        public void ShowVoiceInput(bool isRecording, bool isHearingVoice, bool isPreparing = false)
         {
             this.isRecording = isRecording;
-            talkCaption.text = isRecording ? StopTalkCaption : TalkCaption;
-            voiceLight.gameObject.SetActive(isRecording);
+            talkCaption.text =
+                !isRecording ? TalkCaption
+                : isPreparing ? PreparingTalkCaption
+                : StopTalkCaption;
+            voiceLight.gameObject.SetActive(isRecording && !isPreparing);
             voiceLight.color = isHearingVoice ? VoiceHeardColor : VoiceQuietColor;
         }
 

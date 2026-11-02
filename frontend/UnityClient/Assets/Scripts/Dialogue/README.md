@@ -4,7 +4,7 @@
 
 **Tools → A305 → UI → Apply Approved Dialogue Design**은 기존 대화 기능과 입력 연결을 유지하며 승인된 하단 배치·글꼴·여백을 프리팹에 적용합니다. 카페의 카운터와 소품 높이, 직원 방향, 마을 드럭스토어 출입구와 퀘스트 지도도 Unity Builder로 갱신합니다. 외부 AI 호출은 하지 않습니다.
 
-NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바라보는 1인칭 시점으로 바꾸고 이동을 잠그며, 끝나면 직전 시점과 이동을 되돌립니다. 대화는 한 번에 하나만 진행합니다.
+NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴 앞에서 얼굴을 비추는 대화 시점으로 바꾸고 이동을 잠급니다. 끝나면 플레이어를 대화하던 NPC 쪽으로 돌리고, 직전 시점(카메라는 플레이어 뒤)과 이동을 되돌립니다. 대화는 한 번에 하나만 진행합니다.
 
 튜토리얼 길 안내처럼 정해진 흐름이 있는 NPC는 확인용 대본(`MockDialogueScripts`)으로, 그 밖의 NPC는 서버 AI와 자유 대화로 진행합니다. 대화 화면 프리팹의 `DialogueServerLink`에서 서버를 끄면 모든 대화를 확인용 대본으로 진행하며, 이때 자유 대화는 키워드로 답하는 대본이 흉내 냅니다. 지금 화면은 흐름 확인용 초안입니다.
 
@@ -49,7 +49,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 
 | 대상 | 용도 |
 | --- | --- |
-| `A305.Player` | `PlayerCameraRig.EnterDialogueView`·`ExitDialogueView`, `PlayerMover.SetMovementLocked` |
+| `A305.Player` | `PlayerCameraRig.EnterDialogueView`·`ExitDialogueView`, `PlayerMover.SetMovementLocked`·`FaceToward` |
 | uGUI, TextMeshPro | 대화 화면과 텍스트 입력 |
 
 ## 다른 기능에서 쓰는 API
@@ -57,7 +57,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC를 바
 | API | 설명 |
 | --- | --- |
 | `DialogueController.TryStart(string npcCode, Transform lookTarget, ConversationInitiator initiatedBy = Npc)` | 대화를 시작합니다. 이미 대화 중이면 false를 돌려줍니다. 플레이어가 [말 걸기]로 먼저 건 대화는 `ConversationInitiator.User`로 넘기고, 서버 대화 시작(CONV-01)에 `initiatedBy: USER`로 보냅니다. NPC가 제안한 대화는 기본값(`NPC`)입니다. |
-| `DialogueController.End()` | 대화를 끝내고 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
+| `DialogueController.End()` | 대화를 끝내고 플레이어를 대화하던 NPC 쪽으로 돌린 뒤 시점과 이동을 되돌립니다. [대화 종료] 버튼과 Esc도 이 동작을 합니다. |
 | `DialogueController.RegenerateFeedbackAsync(ServerFeedback)` | 만들지 못한 피드백을 다시 만듭니다. 서버 대화가 아니거나 대화 ID가 없으면 받은 피드백을 그대로 돌려줍니다. |
 | `DialogueController.IsTalking` | 대화 중인지 |
 | `DialogueController.Allowance` | 새 NPC 대화를 시작할 수 있는지(`CanStartConversation`)와 게스트의 남은 대화 수(`RemainingConversations`). 행인 말걸기와 [말 걸기]가 씁니다. |

@@ -63,8 +63,8 @@ namespace A305.Tutorial
         }
 
         /// <summary>
-        /// 화면 안의 대상은 그 위에서 아래를 가리키고, 화면 밖이면 가장자리 여백 안쪽에서 대상 쪽을 가리킨다.
-        /// 카메라 뒤의 대상은 뒤돌아봐야 하므로 아래 가장자리에서 대상이 있는 옆쪽을 가리킨다.
+        /// 화면 안의 대상은 그 위에서 아래를 가리킨다. 화면 밖이나 카메라 뒤의 대상은 위·옆 가장자리의 안내 카드·메뉴와 겹치지 않게
+        /// 대상이 있는 쪽 아래 구석(여백 안쪽)에 두고, 그쪽 옆을 가리켜 어느 쪽으로 돌아봐야 하는지 알린다.
         /// </summary>
         /// <param name="point">대상의 화면 위치(캔버스 왼쪽 아래 기준)</param>
         public static MarkerPose Marker(
@@ -85,26 +85,12 @@ namespace A305.Tutorial
                 return new MarkerPose(point, -90f);
             }
 
-            Vector2 center = canvasSize / 2f;
-            Vector2 halfExtents = inner.size / 2f;
-            Vector2 direction = point - center;
-            if (isBehindCamera)
-            {
-                // 카메라 뒤의 점은 좌우가 뒤집혀 나온다.
-                direction = new Vector2(
-                    -direction.x,
-                    -Mathf.Max(Mathf.Abs(direction.y), halfExtents.y)
-                );
-            }
-
-            float scale = Mathf.Min(
-                direction.x != 0f ? halfExtents.x / Mathf.Abs(direction.x) : float.MaxValue,
-                direction.y != 0f ? halfExtents.y / Mathf.Abs(direction.y) : float.MaxValue
-            );
-            return new MarkerPose(
-                center + direction * scale,
-                Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg
-            );
+            // 카메라 뒤의 점은 좌우가 뒤집혀 나온다.
+            float fromCenter = point.x - canvasSize.x / 2f;
+            bool isOnTheRight = isBehindCamera ? fromCenter <= 0f : fromCenter >= 0f;
+            return isOnTheRight
+                ? new MarkerPose(new Vector2(inner.xMax, inner.yMin), 0f)
+                : new MarkerPose(new Vector2(inner.xMin, inner.yMin), 180f);
         }
     }
 }

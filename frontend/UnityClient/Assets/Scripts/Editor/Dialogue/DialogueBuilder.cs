@@ -415,13 +415,6 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "meaningButton", meaningButton);
             BuilderTools.SetReference(view, "lineLinks", lineLinks);
             BuilderTools.SetReference(view, "wordCard", wordCard);
-            BuilderTools.SetReference(view, "wordCardFace", CardPart<Image>(wordCard, "Face"));
-            BuilderTools.SetReference(
-                view,
-                "wordCardBacking",
-                CardPart<Image>(wordCard, "Backing")
-            );
-            BuilderTools.SetReference(view, "wordCardTint", CardPart<Image>(wordCard, "Tint"));
             BuilderTools.SetReference(view, "wordTitleText", CardPart<TMP_Text>(wordCard, "Title"));
             BuilderTools.SetReference(
                 view,
@@ -486,11 +479,13 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.GetOrAddComponent<LayoutElement>(card.gameObject).ignoreLayout = true;
             card.anchorMin = card.anchorMax = card.pivot = Vector2.zero;
             card.sizeDelta = WordCardSize;
-            // 카드는 대사 위에 겹쳐 뜨므로, 테마 카드(Face)가 반투명한 테마에서도 뒤 대사가 비치지 않게 불투명한 받침(Backing)을 깐다.
-            // 같은 색 대화창과 섞이지 않도록 테마 카드 위에 고른 단어와 같은 주황을 옅게 입힌다(Tint).
-            CardLayer(card, "Backing", 0);
-            CardLayer(card, "Face", 1);
-            CardLayer(card, "Tint", 2);
+            // 카드 바탕은 카드 자신이 칠한다. 예전 테마에서 반투명한 카드 아래에 깔던 받침·카드 면·색 층은 지운다.
+            foreach (string layer in new[] { "Backing", "Face", "Tint" })
+            {
+                Transform old = card.Find(layer);
+                if (old != null)
+                    Object.DestroyImmediate(old.gameObject);
+            }
 
             CardText(card, "Title", bold, 30f, new Vector2(0, 1), new Vector2(24, -16), 320);
             CardText(card, "Meaning", regular, 22f, new Vector2(0, 1), new Vector2(24, -58), 372);
@@ -531,22 +526,6 @@ namespace A305.EditorTools.Dialogue
 
             card.gameObject.SetActive(false);
             return card;
-        }
-
-        // 카드 전체를 덮는 바탕 한 겹
-        private static void CardLayer(RectTransform card, string name, int order)
-        {
-            Transform existing = card.Find(name);
-            var layer =
-                existing != null
-                    ? (RectTransform)existing
-                    : new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-            layer.SetParent(card, false);
-            layer.SetSiblingIndex(order);
-            layer.anchorMin = Vector2.zero;
-            layer.anchorMax = Vector2.one;
-            layer.offsetMin = layer.offsetMax = Vector2.zero;
-            BuilderTools.GetOrAddComponent<Image>(layer.gameObject).raycastTarget = false;
         }
 
         private static void CardText(

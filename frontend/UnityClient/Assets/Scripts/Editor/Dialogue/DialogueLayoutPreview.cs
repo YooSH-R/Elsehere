@@ -71,22 +71,8 @@ namespace A305.EditorTools.Dialogue
             view.Show(content);
             FillHelp(view);
             Invoke(view, "ToggleMeaning");
-            foreach (
-                UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
-            )
-            {
-                SelectTheme(theme);
-                ShowWord(view, content, WordPreviewContent.LatteLink);
-                Render(
-                    camera,
-                    view,
-                    eye,
-                    face,
-                    Path.Combine(output, $"words-{theme}.png"),
-                    1920,
-                    1080
-                );
-            }
+            ShowWord(view, content, WordPreviewContent.LatteLink);
+            Render(camera, view, eye, face, Path.Combine(output, "words.png"), 1920, 1080);
             view.ShowWordSaveResult(
                 DialogueLinesText.FindWord(content.Lines, WordPreviewContent.LatteLink),
                 true,

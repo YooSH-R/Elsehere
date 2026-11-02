@@ -1,4 +1,3 @@
-using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.Theme;
 using TMPro;
@@ -113,56 +112,19 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대사에서 누른 단어 근처에 뜨는 호버 카드. 사물 호버 카드처럼 테마의 카드 바탕에 단어는 제목, 뜻은 강조색, 저장 안내는 흐린 글자로 두고,
+        /// 대사에서 누른 단어 근처에 뜨는 호버 카드. 사물 호버 카드처럼 카드 자체를 테마 카드로 칠하고 단어는 제목, 뜻은 강조색, 저장 안내는 흐린 글자로 두며,
         /// [단어장에 저장]·닫기(X)는 다른 대화 버튼과 같은 모양이다. 카드 바탕이 클릭을 받아 아래 대사가 눌리지 않는다.
         /// </summary>
         private static void WordCard(Transform card)
         {
-            // 카드 바탕은 클릭만 받고 그리지 않는다. 모양은 테마 카드(Face)가, 불투명함은 받침(Backing)이 맡는다.
-            var oldTheme = card.GetComponent<ThemedElement>();
-            if (oldTheme != null)
-                Object.DestroyImmediate(oldTheme);
-            var hitArea = BuilderTools.GetOrAddComponent<Image>(card.gameObject);
-            hitArea.sprite = null;
-            hitArea.color = Color.clear;
-            hitArea.raycastTarget = true;
-            // 받침과 색 층은 카드를 띄울 때 DialoguePanelView가 지금 테마 카드와 같은 모양으로 맞춘다.
-            // 같은 색 대화창 위에서 카드가 떠 보이도록 받침에 고른 단어와 같은 주황 테두리와 그림자를 두고, 카드 전체에 그 주황을 옅게 입힌다.
-            ColorUtility.TryParseHtmlString(DialogueLinesText.SelectedWordMark, out Color accent);
-            var backing = card.Find("Backing").GetComponent<Image>();
-            backing.color = Color.white;
-            var border = Effect<Outline>(backing.gameObject);
-            border.effectColor = new Color(accent.r, accent.g, accent.b, 1f);
-            border.effectDistance = new Vector2(3, -3);
-            border.useGraphicAlpha = true;
-            var shadow = Effect<Shadow>(backing.gameObject);
-            shadow.effectColor = new Color(0, 0, 0, 0.22f);
-            shadow.effectDistance = new Vector2(0, -8);
-            card.Find("Tint").GetComponent<Image>().color = new Color(
-                accent.r,
-                accent.g,
-                accent.b,
-                0.14f
-            );
-            Theme(card.Find("Face"), UiThemeRole.Panel);
+            // 유리 카드는 모양 안쪽이 불투명해 뒤 대사가 비치지 않는다. 같은 유리 대화창과 섞이지 않도록 고른 카드 색으로 칠한다.
+            BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = true;
+            Theme(card, UiThemeRole.Card, selected: true);
             Theme(card.Find("Title"), UiThemeRole.Title);
             Theme(card.Find("Meaning"), UiThemeRole.Accent);
             Theme(card.Find("Note"), UiThemeRole.Muted);
             Control(card.Find("WordSaveButton"), "단어장에 저장", "insert");
             Control(card.Find("CloseButton"), "", "close");
-        }
-
-        // Outline은 Shadow를 상속하므로 GetComponent로 찾으면 섞인다. 정확히 그 종류인 효과를 찾고, 없으면 붙인다.
-        private static T Effect<T>(GameObject target)
-            where T : Shadow
-        {
-            foreach (Shadow effect in target.GetComponents<Shadow>())
-            {
-                if (effect.GetType() == typeof(T))
-                    return (T)effect;
-            }
-
-            return target.AddComponent<T>();
         }
 
         private static void ToolButton(Transform button, string caption, string icon, float width)
@@ -234,7 +196,7 @@ namespace A305.EditorTools.Dialogue
             }
         }
 
-        private static void Theme(Transform target, UiThemeRole role)
+        private static void Theme(Transform target, UiThemeRole role, bool selected = false)
         {
             var element = BuilderTools.GetOrAddComponent<ThemedElement>(target.gameObject);
             BuilderTools.SetReference(
@@ -246,6 +208,8 @@ namespace A305.EditorTools.Dialogue
             );
             var fields = new SerializedObject(element);
             fields.FindProperty("role").enumValueIndex = (int)role;
+            if (selected)
+                fields.FindProperty("selection").boolValue = true;
             fields.ApplyModifiedPropertiesWithoutUndo();
             element.ApplyCurrent();
         }

@@ -22,9 +22,11 @@ namespace A305.Npc.PlayModeTests
         private const float WaitTimeoutSeconds = 15f;
 
         [SetUp]
+        [TearDown]
         public void ResetCrossSceneRecords()
         {
             PasserbyRestRecord.Clear();
+            PasserbyOfferRecord.Clear();
             TutorialState.Clear();
         }
 

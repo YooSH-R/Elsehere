@@ -105,6 +105,33 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName(
+      "NPC 대답 스트림이 끝나면 첫 글자·LLM 생성·워커가 잰 시간, 음성 길이, 백엔드가 기다린 시간을 개발 서버(DEBUG)에 남긴다. 대답 글은 남기지 않는다")
+  void reply_logsTimingAtDebug() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        """
+        event: done
+        data: {"text": "Hi! What can I get?", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "full-1", "audio_full_s": 3.4, "usage": [{"step": "npc", "model": "m1", "latency_s": 1.8}]}
+
+        """);
+
+    try (LogCapture logs = LogCapture.atDebug(AiWorkerClient.class)) {
+      client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
+
+      assertThat(logs.messages(Level.DEBUG))
+          .filteredOn(message -> message.startsWith("npc_reply_timing"))
+          .singleElement()
+          .asString()
+          .matches(
+              "npc_reply_timing first_token_s=0\\.62 llm_s=1\\.8 worker_total_s=2\\.1"
+                  + " audio_full_s=3\\.4 wait_ms=\\d+");
+    }
+  }
+
+  @Test
   @DisplayName("모든 요청에 내부 토큰과 추적 헤더를 붙이고, 본문은 워커 형식(snake_case)으로 보낸다")
   void reply_sendsTokenTraceHeadersAndSnakeCaseBody() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");

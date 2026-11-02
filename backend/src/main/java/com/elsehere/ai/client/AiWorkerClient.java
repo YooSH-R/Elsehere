@@ -12,6 +12,7 @@ import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -119,6 +120,7 @@ class AiWorkerClient {
             false,
             "",
             learner);
+    long startedAt = System.nanoTime();
     HttpResponse<Stream<String>> response =
         send(
             jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
@@ -127,7 +129,7 @@ class AiWorkerClient {
       if (response.statusCode() != 200) {
         throw toError(response.statusCode(), lines.collect(Collectors.joining("\n")));
       }
-      return readReplyStream(lines);
+      return readReplyStream(lines, startedAt);
     }
   }
 
@@ -300,8 +302,8 @@ class AiWorkerClient {
   }
 
   // SSE는 "event: 이름", "data: JSON", 빈 줄 순서로 이벤트 하나가 온다. delta·audio 조각은 스트리밍 재생용이라 쓰지 않는다.
-  private NpcReply readReplyStream(Stream<String> lines) {
-    ReplyCollector collector = new ReplyCollector();
+  private NpcReply readReplyStream(Stream<String> lines, long startedAt) {
+    ReplyCollector collector = new ReplyCollector(startedAt);
     String event = null;
     StringBuilder data = new StringBuilder();
     for (String line : (Iterable<String>) lines::iterator) {
@@ -321,8 +323,13 @@ class AiWorkerClient {
 
   private final class ReplyCollector {
 
+    private final long startedAt;
     private DoneEvent done;
     private ErrorEvent error;
+
+    ReplyCollector(long startedAt) {
+      this.startedAt = startedAt;
+    }
 
     void accept(String event, String data) {
       if (event == null || data.isEmpty()) {
@@ -339,6 +346,7 @@ class AiWorkerClient {
 
     NpcReply result() {
       if (done != null) {
+        logTiming();
         return new NpcReply(done.text(), done.audioFullId(), null, usageOf(done.usage()));
       }
       if (error != null) {
@@ -348,6 +356,24 @@ class AiWorkerClient {
       // done·error 없이 끊긴 스트림
       log.warn("AI 워커 NPC 대답 스트림이 끝나지 않고 끊겼습니다");
       return new NpcReply(null, null, "provider_unavailable", List.of());
+    }
+
+    // 대화 시작·대답이 오래 걸릴 때 어느 단계인지 보도록 개발 서버(DEBUG)에서만 남긴다. 워커는 LLM 생성과 음성 합성이 모두 끝나야 done을
+    // 보내므로, 기다린 시간에서 LLM 생성 시간을 빼면 음성 합성 쪽 시간이다. 대답 글은 남기지 않는다.
+    private void logTiming() {
+      log.debug(
+          "npc_reply_timing first_token_s={} llm_s={} worker_total_s={} audio_full_s={}"
+              + " wait_ms={}",
+          done.firstTokenS(),
+          usageOf(done.usage()).stream()
+              .filter(usage -> "npc".equals(usage.step()))
+              .map(WorkerUsage::latencyS)
+              .filter(Objects::nonNull)
+              .findFirst()
+              .orElse(null),
+          done.totalS(),
+          done.audioFullS(),
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
     }
 
     private <T> T parse(String data, Class<T> type) {
@@ -474,7 +500,13 @@ class AiWorkerClient {
 
   record MemoryEnvelope(List<WorkerUsage> usage) {}
 
-  record DoneEvent(String text, String audioFullId, List<WorkerUsage> usage) {}
+  record DoneEvent(
+      String text,
+      String audioFullId,
+      Double firstTokenS,
+      Double totalS,
+      Double audioFullS,
+      List<WorkerUsage> usage) {}
 
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
 

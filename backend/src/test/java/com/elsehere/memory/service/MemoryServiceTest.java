@@ -15,15 +15,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.RelationshipChange;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerRelationship;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.repository.AiRequestRepository;
+import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
@@ -58,11 +56,9 @@ class MemoryServiceTest {
 
   @Autowired private MemoryService memoryService;
 
-  @Autowired private AiWorkerClient aiWorkerClient;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private UserNpcRelationRepository userNpcRelationRepository;
-
-  @Autowired private AiRequestRepository aiRequestRepository;
 
   @Autowired private EntityManager entityManager;
 
@@ -82,9 +78,9 @@ class MemoryServiceTest {
   }
 
   @Test
-  @DisplayName("사용자가 말한 대화가 끝나면 방문 수를 1로 세고 워커가 만든 카드를 저장해 다음 대화에 넘긴다")
+  @DisplayName("사용자가 말한 대화가 끝나면 방문 수를 1로 세고 워커가 만든 카드를 저장해 다음 대화에 넘긴다. 워커 요청에는 요청 ID와 대화를 붙인다")
   void updateAfterConversation_firstVisit_savesCard() {
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), isNull()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), isNull()))
         .willReturn(new MemoryCardResult(FIRST_CARD, List.of(usage("memory"))));
     Conversation conversation = endedConversation("I want a latte");
     UUID requestId = UUID.randomUUID();
@@ -95,18 +91,20 @@ class MemoryServiceTest {
     assertThat(memory.visits()).isEqualTo(1);
     assertThat(memory.lastOrder()).isNull();
     assertThat(memory.card()).isEqualTo(card("", List.of()));
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.MEMORY)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.OK);
+    then(aiGateway)
+        .should()
+        .memoryCard(
+            eq(new WorkerTrace(requestId, userId, conversation.getId())),
+            any(),
+            anyString(),
+            any(),
+            isNull());
   }
 
   @Test
   @DisplayName("워커에는 대화 결과 한 줄과 대화 전체를 보내며, 처음이면 이전 카드는 보내지 않는다")
   void updateAfterConversation_sendsOutcomeAndHistory() {
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willReturn(new MemoryCardResult(FIRST_CARD, List.of()));
     Conversation conversation = endedConversation("I want a latte");
 
@@ -114,7 +112,7 @@ class MemoryServiceTest {
 
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
-    then(aiWorkerClient)
+    then(aiGateway)
         .should()
         .memoryCard(any(), any(), eq(NORMAL_OUTCOME), history.capture(), isNull());
     assertThat(history.getValue())
@@ -168,13 +166,12 @@ class MemoryServiceTest {
     relation(15, 2, 1, 1);
     gameDay(4);
     givenCard();
-    given(aiWorkerClient.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
 
     memoryService.updateAfterConversation(
         userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
 
-    then(aiWorkerClient)
+    then(aiGateway)
         .should()
         .relationship(any(), any(), eq(new WorkerRelationship(15, 2, 3)), any());
   }
@@ -184,8 +181,7 @@ class MemoryServiceTest {
   void updateAfterConversation_appliesRecognitionDeltaOnly() {
     relation(15, 2, 1);
     givenCard();
-    given(aiWorkerClient.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
     Conversation conversation = endedConversation("Hi! One latte, please.");
     entityManager
         .createNativeQuery(
@@ -198,7 +194,7 @@ class MemoryServiceTest {
 
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
-    then(aiWorkerClient)
+    then(aiGateway)
         .should()
         .relationship(any(), any(), eq(new WorkerRelationship(15, 2, 0)), history.capture());
     assertThat(history.getValue())
@@ -211,8 +207,7 @@ class MemoryServiceTest {
   void updateAfterConversation_recognitionDelta_staysInRange() {
     relation(98, -99, 1);
     givenCard();
-    given(aiWorkerClient.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
 
     memoryService.updateAfterConversation(
         userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
@@ -225,7 +220,7 @@ class MemoryServiceTest {
   void updateAfterConversation_relationshipFails_keepsRelationshipAndSavesCard() {
     relation(15, 2, 1);
     givenCard();
-    given(aiWorkerClient.relationship(any(), any(), any(), any()))
+    given(aiGateway.relationship(any(), any(), any(), any()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
     memoryService.updateAfterConversation(
@@ -239,10 +234,9 @@ class MemoryServiceTest {
   @DisplayName("기억 카드를 만들지 못해도 관계 갱신은 한다")
   void updateAfterConversation_cardFails_stillAppliesRelationship() {
     relation(15, 2, 1);
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willThrow(new BusinessException(ErrorCode.AI_RATE_LIMITED));
-    given(aiWorkerClient.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
 
     memoryService.updateAfterConversation(
         userId, endedConversation("I want a latte").getId(), UUID.randomUUID());
@@ -254,21 +248,20 @@ class MemoryServiceTest {
   @DisplayName("같은 대화의 종료를 두 번 반영해도 관계 갱신은 한 번만 한다")
   void updateAfterConversation_sameConversationTwice_appliesRelationshipOnce() {
     givenCard();
-    given(aiWorkerClient.relationship(any(), any(), any(), any()))
-        .willReturn(new RelationshipChange(8));
+    given(aiGateway.relationship(any(), any(), any(), any())).willReturn(new RelationshipChange(8));
     Conversation conversation = endedConversation("I want a latte");
 
     memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
     memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
 
-    then(aiWorkerClient).should().relationship(any(), any(), any(), any());
+    then(aiGateway).should().relationship(any(), any(), any(), any());
     assertThat(relationValues()).containsExactly(8, 0);
   }
 
   @Test
   @DisplayName("다음 대화가 끝나면 이전 카드를 넘겨 새 카드로 통째로 바꾸고 방문 수를 2로 센다")
   void updateAfterConversation_secondVisit_replacesCard() {
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willReturn(new MemoryCardResult(FIRST_CARD, List.of()))
         .willReturn(new MemoryCardResult(SECOND_CARD, List.of()));
     Conversation first = endedConversation("I want a latte");
@@ -278,7 +271,7 @@ class MemoryServiceTest {
     memoryService.updateAfterConversation(userId, second.getId(), UUID.randomUUID());
 
     ArgumentCaptor<Object> previousCard = ArgumentCaptor.forClass(Object.class);
-    then(aiWorkerClient)
+    then(aiGateway)
         .should(times(2))
         .memoryCard(any(), any(), anyString(), any(), previousCard.capture());
     assertThat(previousCard.getAllValues().get(1)).isEqualTo(card("", List.of()));
@@ -290,7 +283,7 @@ class MemoryServiceTest {
   @Test
   @DisplayName("같은 대화의 종료를 두 번 반영해도 방문 수는 한 번만 세고 카드도 한 번만 만든다")
   void updateAfterConversation_sameConversationTwice_countsOnce() {
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willReturn(new MemoryCardResult(FIRST_CARD, List.of()));
     Conversation conversation = endedConversation("I want a latte");
 
@@ -298,7 +291,7 @@ class MemoryServiceTest {
     memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
 
     assertThat(memoryService.memoryFor(userId, npcId).visits()).isEqualTo(1);
-    then(aiWorkerClient).should().memoryCard(any(), any(), anyString(), any(), any());
+    then(aiGateway).should().memoryCard(any(), any(), anyString(), any(), any());
   }
 
   @Test
@@ -311,7 +304,7 @@ class MemoryServiceTest {
     memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
 
     assertThat(memoryService.memoryFor(userId, npcId)).isNull();
-    then(aiWorkerClient).should(never()).memoryCard(any(), any(), any(), any(), any());
+    then(aiGateway).should(never()).memoryCard(any(), any(), any(), any(), any());
   }
 
   @Test
@@ -323,13 +316,13 @@ class MemoryServiceTest {
     memoryService.updateAfterConversation(userId, conversation.getId(), UUID.randomUUID());
 
     assertThat(userNpcRelationRepository.findById(new UserNpcRelationId(userId, npcId))).isEmpty();
-    then(aiWorkerClient).should(never()).memoryCard(any(), any(), any(), any(), any());
+    then(aiGateway).should(never()).memoryCard(any(), any(), any(), any(), any());
   }
 
   @Test
-  @DisplayName("카드를 만들지 못하면 방문 수는 세되 이전 카드를 그대로 두고 호출 기록을 FAILED로 남긴다")
+  @DisplayName("카드를 만들지 못하면 방문 수는 세되 이전 카드를 그대로 둔다")
   void updateAfterConversation_workerFails_keepsPreviousCard() {
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willReturn(new MemoryCardResult(FIRST_CARD, List.of()))
         .willThrow(new BusinessException(ErrorCode.AI_RATE_LIMITED));
     Conversation first = endedConversation("I want a latte");
@@ -342,12 +335,6 @@ class MemoryServiceTest {
     WorkerMemory memory = memoryService.memoryFor(userId, npcId);
     assertThat(memory.visits()).isEqualTo(2);
     assertThat(memory.card()).isEqualTo(card("", List.of()));
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.MEMORY)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
     UserNpcRelation relation =
         userNpcRelationRepository.findById(new UserNpcRelationId(userId, npcId)).orElseThrow();
     assertThat(relation.getMemoryConversationId()).isEqualTo(second.getId());
@@ -357,7 +344,7 @@ class MemoryServiceTest {
   @DisplayName("카드를 만드는 사이 무례로 깎인 호감도는 카드를 저장할 때 덮어쓰지 않는다")
   void updateAfterConversation_affinityChangedMeanwhile_keepsAffinity() {
     Conversation conversation = endedConversation("I want a latte");
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willAnswer(
             invocation -> {
               // 워커를 기다리는 사이 다음 대화의 무례한 말로 호감도가 깎인다.
@@ -384,7 +371,7 @@ class MemoryServiceTest {
   }
 
   private void givenCard() {
-    given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
+    given(aiGateway.memoryCard(any(), any(), anyString(), any(), any()))
         .willReturn(new MemoryCardResult(FIRST_CARD, List.of()));
   }
 

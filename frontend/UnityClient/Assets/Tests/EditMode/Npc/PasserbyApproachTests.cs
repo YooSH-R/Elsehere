@@ -274,6 +274,22 @@ namespace A305.Npc.Tests
             return passerby;
         }
 
+        [Test]
+        public void Tick_PlayerHeldToWaitForThePasserby_ApproachesFromAnyDistance_AndKeepsComing()
+        {
+            // 튜토리얼처럼 플레이어를 붙잡아 이 행인을 기다리게 하면 감지 거리 밖이어도 다가가고, 멀다고 그만두지 않는다.
+            var passerby = new PasserbyApproach(TutorialPasserby);
+
+            passerby.Tick(0d, distanceToPlayer: 30f, isPlayerBusy: false, isPlayerWaiting: true);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Approaching));
+
+            passerby.Tick(1d, distanceToPlayer: 25f, isPlayerBusy: false, isPlayerWaiting: true);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Approaching));
+
+            passerby.Tick(2d, distanceToPlayer: 1.5f, isPlayerBusy: false, isPlayerWaiting: true);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Offering));
+        }
+
         private static PasserbyApproach Offering(PasserbyRules rules)
         {
             var passerby = new PasserbyApproach(rules);

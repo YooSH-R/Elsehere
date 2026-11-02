@@ -26,8 +26,17 @@ def normalize(text: str) -> str:
 def is_prompt_echo(text: str, scene_words: list[str]) -> bool:
     """Whisper는 무음에 프롬프트 끝부분(마지막 문장, 장면 단어 목록, 프롬프트 전체)을 되풀이한다. 그 끝부분과 같으면 버린다.
     프롬프트 앞·중간의 예시 문장('Can I get a muffin?')과 장면 단어 하나('Iced Americano.')는 학습자가 실제로 하는 말이라 거르지 않는다.
-    짧은 말 'Latte.'도 진짜 발화일 수 있어 12자 미만은 거르지 않는다."""
-    t = normalize(text)
+    짧은 말 'Latte.'도 진짜 발화일 수 있어 12자 미만은 거르지 않는다.
+    끝부분을 여러 번 이어 붙이기도 해서('The bus stop is over there. The bus stop is over there.') 같은 메아리의 반복도 버린다."""
+    words = normalize(text).split()
+    for times in range(1, len(words) + 1):
+        once = words[: len(words) // times]
+        if once * times == words and is_one_echo(" ".join(once), scene_words):
+            return True
+    return False
+
+
+def is_one_echo(t: str, scene_words: list[str]) -> bool:
     if len(t) < 12 or t in {normalize(w) for w in scene_words}:
         return False
     endings = (normalize(STT_PROMPT), normalize(stt_prompt(scene_words)))

@@ -64,6 +64,11 @@ namespace A305.Npc
         /// </summary>
         public bool IsApproachAllowed { get; set; } = true;
 
+        /// <summary>
+        /// 튜토리얼이 플레이어를 붙잡아 이 행인을 기다리게 하는지. 켜져 있으면 이동이 잠긴 플레이어에게도, 감지 거리 밖에서도 다가간다.
+        /// </summary>
+        public bool IsPlayerWaiting { get; set; }
+
         /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
         public bool IsGuidingTutorial => tutorialScriptKey != null;
 
@@ -148,11 +153,11 @@ namespace A305.Npc
         private void Update()
         {
             Vector3 toPlayer = HorizontalOffsetToPlayer();
-            // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다.
+            // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.
             bool isPlayerBusy =
                 !IsApproachAllowed
                 || dialogue.IsTalking
-                || player.IsMovementLocked
+                || (player.IsMovementLocked && !IsPlayerWaiting)
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
@@ -161,13 +166,31 @@ namespace A305.Npc
                 routine != null
                 && routine.enabled
                 && !routine.CanOfferTo(player.transform.position);
+            // 하루에 한 번만 먼저 다가오는 행인은 그날(기기 날짜) 이미 말을 걸었으면 [말 걸기]만 받는다.
+            System.DateTime today = System.DateTime.Today;
+            bool offeredToday =
+                CurrentSettings.ApproachesOncePerDay
+                && PasserbyOfferRecord.HasOfferedOn(identity.Code, today);
 
             PasserbyPhase before = approach.Phase;
             approach.Tick(
                 Now,
                 toPlayer.magnitude,
-                isPlayerBusy || cannotStartConversation || notReadyToOffer
+                isPlayerBusy
+                    || cannotStartConversation
+                    || notReadyToOffer
+                    // 튜토리얼에서 이 행인을 기다리며 붙잡힌 플레이어에게는 그날 이미 말을 걸었어도 다가온다.
+                    || (offeredToday && !IsPlayerWaiting),
+                IsPlayerWaiting
             );
+            // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다.
+            bool startedOffer =
+                approach.Phase == PasserbyPhase.Offering && before != PasserbyPhase.Offering;
+            if (startedOffer && settings.ApproachesOncePerDay)
+            {
+                PasserbyOfferRecord.Save(identity.Code, today);
+            }
+
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {
                 // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다.

@@ -36,12 +36,16 @@ namespace A305.Dialogue
                         new LineEntry(
                             "Straight ahead? And then where should I go?",
                             "곧장이요? 그다음엔 어디로 가면 되나요?"
-                        )
+                        ),
+                        "straight · 곧장",
+                        "ahead · 앞으로"
                     ),
                     new GuidedTurnEntry(
                         "Turn left at the corner.",
                         "모퉁이에서 왼쪽으로 도세요.",
-                        new LineEntry("Got it. Is it far from here?", "알겠어요. 여기서 먼가요?")
+                        new LineEntry("Got it. Is it far from here?", "알겠어요. 여기서 먼가요?"),
+                        "turn left · 왼쪽으로 돌다",
+                        "corner · 모퉁이"
                     ),
                     new GuidedTurnEntry(
                         "No, it's just two minutes away.",
@@ -49,7 +53,9 @@ namespace A305.Dialogue
                         new LineEntry(
                             "Thank you so much. You're a lifesaver!",
                             "정말 고마워요. 덕분에 살았어요!"
-                        )
+                        ),
+                        "minute · 분",
+                        "away · 떨어져"
                     ),
                 },
                 defaultReply = new LineEntry("I see!", "그렇군요!"),
@@ -343,7 +349,8 @@ namespace A305.Dialogue
                         new GuidedTurn(
                             turn.suggestedEnglish,
                             turn.suggestedKorean,
-                            turn.reply.ToLine()
+                            turn.reply.ToLine(),
+                            turn.suggestWords
                         )
                     );
                 }
@@ -397,13 +404,24 @@ namespace A305.Dialogue
             [Tooltip("사용자가 말한 뒤 NPC가 이어서 하는 대사")]
             public LineEntry reply;
 
+            [Tooltip(
+                "이 대사에 쓸 만한 추천 단어. 대화 화면 왼쪽 [단어]에 보인다. 예: corner · 모퉁이"
+            )]
+            public List<string> suggestWords = new List<string>();
+
             public GuidedTurnEntry() { }
 
-            public GuidedTurnEntry(string suggestedEnglish, string suggestedKorean, LineEntry reply)
+            public GuidedTurnEntry(
+                string suggestedEnglish,
+                string suggestedKorean,
+                LineEntry reply,
+                params string[] suggestWords
+            )
             {
                 this.suggestedEnglish = suggestedEnglish;
                 this.suggestedKorean = suggestedKorean;
                 this.reply = reply;
+                this.suggestWords = new List<string>(suggestWords);
             }
         }
 

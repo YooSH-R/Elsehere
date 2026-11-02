@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -7,14 +8,12 @@ using UnityEngine.UI;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대화 중에 보이는 화면. 이번 대화의 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
-    /// 서버 AI 대화의 [말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다. 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고,
-    /// 누르면 그 자리에서 동의할 수 있는 창을 연다.
+    /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 왼쪽 추천 단어·추천 문장 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
+    /// 서버 AI 대화와 튜토리얼 길 안내의 [말하기], 서버 AI 대화의 [다시 듣기]·[힌트]·[다시 시도]가 있다.
+    /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
-        private const string FreeTalkGuide =
-            "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요. 한국어를 섞어도 돼요.";
         private const string TalkCaption = "말하기";
         private const string StopTalkCaption = "종료";
 
@@ -33,9 +32,6 @@ namespace A305.Dialogue
 
         [SerializeField]
         private TMP_Text linesText;
-
-        [SerializeField]
-        private TMP_Text guideText;
 
         [SerializeField]
         private TMP_Text statusText;
@@ -118,6 +114,61 @@ namespace A305.Dialogue
         /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
         private static readonly Color VoiceQuietColor = new Color(1f, 1f, 1f, 0.55f);
+
+        // 자유 대화의 입력칸 안내("영어로 답하기…"). 정해진 대사를 따라가는 대화에서는 그 대사로 바꿔 보인다.
+        private string freePlaceholder;
+
+        /// <summary>
+        /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
+        /// </summary>
+        public IReadOnlyList<RectTransform> GuidedLineParts
+        {
+            get
+            {
+                var parts = new List<RectTransform>
+                {
+                    (RectTransform)inputField.transform,
+                    (RectTransform)sendButton.transform,
+                    (RectTransform)exampleButton.transform,
+                };
+                if (talkButton.gameObject.activeSelf)
+                {
+                    parts.Add((RectTransform)talkButton.transform);
+                }
+
+                return parts;
+            }
+        }
+
+        /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        public RectTransform LinesRect => (RectTransform)historyScroll.transform;
+
+        /// <summary>[뜻]·[예시 문장] 중 보이는 버튼. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        public IReadOnlyList<RectTransform> ToolParts
+        {
+            get
+            {
+                var parts = new List<RectTransform>();
+                foreach (Button button in new[] { meaningButton, exampleButton })
+                {
+                    if (button.gameObject.activeSelf)
+                    {
+                        parts.Add((RectTransform)button.transform);
+                    }
+                }
+
+                return parts;
+            }
+        }
+
+        /// <summary>왼쪽 도움 칸의 추천 문장 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SuggestedSentenceRect => (RectTransform)hintText.transform.parent;
+
+        /// <summary>왼쪽 도움 칸의 추천 단어 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SuggestedWordsRect => (RectTransform)suggestText.transform.parent;
+
+        /// <summary>[대화 종료]. 튜토리얼 코치 마크가 길 안내를 마친 뒤 밝힌다.</summary>
+        public RectTransform EndButtonRect => (RectTransform)endButton.transform;
 
         /// <summary>[대화 종료]를 누르면 알린다.</summary>
         public event Action EndRequested;
@@ -237,8 +288,6 @@ namespace A305.Dialogue
             );
             npcNameText.text = content.NpcName;
             UpdateStanding();
-            guideText.text = FormatGuide();
-            guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
             // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
             // 음성 처리에 동의하지 않아 [말하기]가 회색이면, 눌러서 동의하면 말할 수 있다고 입력칸 위에 알린다.
@@ -267,6 +316,12 @@ namespace A305.Dialogue
             sendButton.interactable = content.CanSend;
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
+            // 정해진 대사를 따라가는 대화는 이번에 말하거나 입력할 대사를 빈 입력칸에 회색 안내로 미리 보인다.
+            var placeholder = (TMP_Text)inputField.placeholder;
+            freePlaceholder ??= placeholder.text;
+            placeholder.text = string.IsNullOrEmpty(content.SuggestedEnglish)
+                ? freePlaceholder
+                : content.SuggestedEnglish;
             HighlightSend();
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
@@ -440,14 +495,28 @@ namespace A305.Dialogue
             standingText.color = npcNameText.color;
         }
 
-        private bool vehicleLayout;
+        // 대화창 이름 줄 위와 택시 안내 사이 간격
+        private const float VehicleStatusGap = 16;
+
+        // 이름표 안 좌우 여백과 가장 좁은 폭
+        private const float NamePadding = 22;
+        private const float MinNameWidth = 120;
+
+        // 오른쪽 위 도움 카드 자리. 위쪽은 메뉴 버튼 아래부터 쓴다.
+        private const float HelpTop = 128;
+        private const float HelpMargin = 40;
+        private const float HelpWidth = 390;
 
         [SerializeField]
         private TMP_Text vehicleStatusText;
 
+        [SerializeField]
+        [Tooltip("NPC 이름 뒤의 코랄 이름표. 이름 길이에 맞춰 폭을 정한다.")]
+        private RectTransform nameChip;
+
+        /// <summary>택시에 탄 동안의 대화인지. 택시 안내는 택시에서만 보인다.</summary>
         public void SetVehicleLayout(bool enabled)
         {
-            vehicleLayout = enabled;
             if (!enabled && vehicleStatusText != null)
                 vehicleStatusText.transform.parent.gameObject.SetActive(false);
             UpdateLayout();
@@ -461,83 +530,107 @@ namespace A305.Dialogue
             vehicleStatusText.transform.parent.gameObject.SetActive(!string.IsNullOrEmpty(message));
         }
 
+        /// <summary>
+        /// 대화창을 화면 아래 전체 폭에 깔고, 가운데 열에 입력 줄·상태 줄·대사·이름 줄을 쌓는다.
+        /// 단어·문장 도움 카드는 오른쪽 위에 둔다.
+        /// </summary>
         public void UpdateLayout()
         {
             var frame = (RectTransform)panel.transform;
             lastCanvasSize = ((RectTransform)frame.parent).rect.size;
-            bool wide = lastCanvasSize.x >= 1200;
-            frame.anchorMin = frame.anchorMax = frame.pivot = new Vector2(1, 0);
-            frame.anchoredPosition = new Vector2(-40, 36);
-            float width = wide ? Mathf.Min(1400, lastCanvasSize.x - 520) : lastCanvasSize.x - 80;
-            // 대사 칸은 창 양옆에서 64씩 들어가 있다.
-            float linesHeight = linesText.GetPreferredValues(linesText.text, width - 128, 0).y;
-            frame.sizeDelta = new Vector2(width, DialoguePanelLayout.Height(wide, linesHeight));
-            helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, .5f);
-            helpPanel.anchoredPosition = new Vector2(40, wide ? -12 : 200);
-            helpPanel.sizeDelta = new Vector2(
-                wide ? 390 : Mathf.Min(390, lastCanvasSize.x - 80),
-                Mathf.Max(220, Mathf.Min(680, lastCanvasSize.y - (wide ? 280 : 600)))
+            float column = Mathf.Min(
+                DialogueCinemaLayout.ColumnWidth,
+                lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
             );
-            if (vehicleLayout && wide)
-            {
-                frame.anchorMin = frame.anchorMax = frame.pivot = Vector2.zero;
-                frame.anchoredPosition = new Vector2(40, 36);
-                helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(1, .5f);
-                helpPanel.anchoredPosition = new Vector2(-40, -12);
-            }
-            ((RectTransform)npcNameText.transform).anchoredPosition = new Vector2(
-                64,
-                frame.sizeDelta.y - 96
+            float linesHeight = linesText.GetPreferredValues(linesText.text, column, 0).y;
+            float nameWidth = Mathf.Max(
+                MinNameWidth,
+                npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
             );
-            // 이름 바로 오른쪽에 두고, 오른쪽 위 [다시 시도]·[대화 종료] 앞에서 말줄임으로 자른다.
-            var nameRect = (RectTransform)npcNameText.transform;
-            float standingX = 64 + Mathf.Min(npcNameText.preferredWidth, nameRect.sizeDelta.x) + 24;
-            var standingRect = (RectTransform)standingText.transform;
-            standingRect.anchoredPosition = new Vector2(standingX, frame.sizeDelta.y - 96);
-            standingRect.sizeDelta = new Vector2(
-                Mathf.Max(0, width - standingX - 500),
-                nameRect.sizeDelta.y
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                lastCanvasSize,
+                linesHeight,
+                nameWidth
             );
-            // 대사 칸은 상태 줄 위에서 끝나 마지막 줄이 도구 버튼에 걸리지 않는다.
-            var history = (RectTransform)historyScroll.transform;
-            history.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom);
-            history.sizeDelta = new Vector2(
-                -128,
-                frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight
+            frame.anchorMin = Vector2.zero;
+            frame.anchorMax = new Vector2(1, 0);
+            frame.pivot = new Vector2(.5f, 0);
+            frame.anchoredPosition = Vector2.zero;
+            frame.sizeDelta = new Vector2(0, layout.Height);
+
+            if (nameChip != null)
+                Place(nameChip, layout.Name);
+            Place(npcNameText.rectTransform, layout.Name);
+            float toolsLeft = PlaceTools(layout.Tools);
+            // 호감도·무례 경고는 이름표 바로 오른쪽에 두고, 도구 버튼 앞에서 말줄임으로 자른다.
+            Place(
+                standingText.rectTransform,
+                Rect.MinMaxRect(
+                    layout.Name.xMax + DialogueCinemaLayout.Gap,
+                    layout.Name.yMin,
+                    Mathf.Max(
+                        layout.Name.xMax + DialogueCinemaLayout.Gap,
+                        toolsLeft - DialogueCinemaLayout.Gap
+                    ),
+                    layout.Name.yMax
+                )
             );
-            var input = (RectTransform)inputField.transform;
-            input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
-            // 상태 줄은 도구 줄 바로 위에서 창 안쪽 폭 전체를 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
-            var status = (RectTransform)statusText.transform;
-            status.anchoredPosition = new Vector2(64, DialoguePanelLayout.StatusBottom);
-            status.sizeDelta = new Vector2(width - 128, DialoguePanelLayout.StatusHeight);
+            Place((RectTransform)historyScroll.transform, layout.Lines);
+            // 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
+            Place(statusText.rectTransform, layout.Status);
             statusText.enableAutoSizing = true;
             statusText.fontSizeMin = 14;
             statusText.fontSizeMax = 20;
-            ((RectTransform)sendButton.transform).anchoredPosition = new Vector2(width - 520, 44);
-            ((RectTransform)talkButton.transform).anchoredPosition = new Vector2(width - 328, 44);
+            Place((RectTransform)inputField.transform, layout.Input);
+            Place((RectTransform)sendButton.transform, layout.Send);
+            Place((RectTransform)talkButton.transform, layout.Talk);
+
+            helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = Vector2.one;
+            helpPanel.anchoredPosition = new Vector2(-HelpMargin, -HelpTop);
+            float helpRoom =
+                lastCanvasSize.y - HelpTop - layout.Name.yMax - 2 * DialogueCinemaLayout.Gap;
+            helpPanel.sizeDelta = new Vector2(
+                Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * HelpMargin),
+                Mathf.Clamp(helpRoom, 160, 600)
+            );
+            PlaceVehicleStatus(layout);
         }
 
-        private string FormatGuide()
+        // [다시 시도]·[대화 종료]를 이름 줄 오른쪽 끝에 두고, 나머지 도구는 그 왼쪽에 오른쪽 정렬로 붙인다.
+        // 대화 종류에 따라 숨는 버튼이 있어 보이는 버튼의 폭으로 자리를 정하고, 도구가 시작하는 왼쪽 끝을 돌려준다.
+        private float PlaceTools(Rect row)
         {
-            if (content.IsGuidedCompleted)
-            {
-                return "길 안내를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
-            }
+            var ends = (RectTransform)endButton.transform.parent;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(ends);
+            float endsWidth = LayoutUtility.GetPreferredWidth(ends);
+            Place(ends, Rect.MinMaxRect(row.xMax - endsWidth, row.yMin, row.xMax, row.yMax));
+            var tools = (RectTransform)saveButton.transform.parent;
+            float toolsRight = row.xMax - endsWidth - DialogueCinemaLayout.Gap;
+            Place(
+                tools,
+                Rect.MinMaxRect(row.xMin, row.yMin, Mathf.Max(row.xMin, toolsRight), row.yMax)
+            );
+            LayoutRebuilder.ForceRebuildLayoutImmediate(tools);
+            return toolsRight - LayoutUtility.GetPreferredWidth(tools);
+        }
 
-            if (content.IsGuided)
-            {
-                return $"이번에 읽을 대사: <b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
-            }
+        private static void Place(RectTransform rect, Rect area)
+        {
+            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+            rect.anchoredPosition = area.position;
+            rect.sizeDelta = area.size;
+        }
 
-            if (!content.UsesVoice)
-            {
-                return "정답은 없어요. 하고 싶은 말을 영어로 자유롭게 입력해 보세요.";
-            }
-
-            return content.CanTalk
-                ? FreeTalkGuide + " [말하기]를 누르고 말한 뒤 다시 누르면 문장으로 바꿔 드려요."
-                : FreeTalkGuide + " " + VoiceInputNotice.ConsentRequired;
+        // 택시 안내는 대화창 이름 줄 바로 위 가운데에 붙인다. 화면 위쪽 가운데에 두면 왼쪽 위 목표 카드와 겹쳤다.
+        // 안내 판은 대화창과 같은 캔버스 아래에 있어 대화창의 자리를 그대로 기준으로 삼는다.
+        private void PlaceVehicleStatus(DialogueCinemaLayout layout)
+        {
+            if (vehicleStatusText == null)
+                return;
+            var status = (RectTransform)vehicleStatusText.transform.parent;
+            status.anchorMin = status.anchorMax = new Vector2(.5f, 0);
+            status.pivot = new Vector2(.5f, 0);
+            status.anchoredPosition = new Vector2(0, layout.Name.yMax + VehicleStatusGap);
         }
 
         private bool NeedsVoiceConsent => content.UsesVoice && !content.CanTalk;

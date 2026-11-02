@@ -9,7 +9,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Turn;
@@ -33,7 +33,7 @@ class SpeechServiceStorageLimitTest {
 
   @Autowired private SpeechService speechService;
 
-  @Autowired private AiWorkerClient aiWorkerClient;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private EntityManager entityManager;
 
@@ -43,7 +43,7 @@ class SpeechServiceStorageLimitTest {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     Turn turn = npcTurn(entityManager, conversation(entityManager, userId, "CAFE_STAFF"), 1, "Hi!");
     entityManager.flush();
-    given(aiWorkerClient.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
+    given(aiGateway.synthesize(any(), anyString(), anyString(), anyDouble())).willReturn(WAV);
 
     SpeechResponse response =
         speechService.regenerateSpeech(userId, turn.getId(), UUID.randomUUID());

@@ -1,13 +1,9 @@
 package com.elsehere.feedback.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
@@ -20,10 +16,13 @@ import com.elsehere.feedback.dto.ConversationFeedbackResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackItemResponse;
 import com.elsehere.feedback.dto.DetailedFeedbackResponse;
 import com.elsehere.feedback.dto.FeedbackResponse;
-import com.elsehere.feedback.dto.FeedbackReviews;
 import com.elsehere.feedback.dto.IdiomResponse;
 import com.elsehere.feedback.dto.ReviewsResponse;
+import com.elsehere.feedback.dto.SituationExpressionResponse;
+import com.elsehere.feedback.dto.SuggestionResponse;
+import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.ConversationFeedback;
+import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.feedback.repository.ConversationFeedbackRepository;
@@ -65,9 +64,7 @@ public class FeedbackService {
   private final NpcRepository npcRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final TurnFeedbackRepository turnFeedbackRepository;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
-  private final AiFailureRecorder aiFailureRecorder;
+  private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
 
@@ -169,21 +166,12 @@ public class FeedbackService {
     WorkerTrace trace = new WorkerTrace(requestId, userId, conversationId);
     WorkerFeedback result;
     try {
-      result =
-          aiFailureRecorder.recordIfFails(
-              trace,
-              AiRequestKind.FEEDBACK,
-              () -> aiWorkerClient.feedback(trace, snapshot.input()));
+      result = aiGateway.feedback(trace, snapshot.input());
     } catch (BusinessException exception) {
       // 워커에 닿지 못했거나 요청을 거절당했다. 대화 종료는 그대로 두고 실패로 기록한다.
       String errorCode = exception.getErrorCode().name();
       return save(conversationId, feedback -> feedback.fail(errorCode, null), List.of(), List.of());
     }
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.FEEDBACK,
-        result.usage(),
-        result.completed() ? AiRequestStatus.OK : AiRequestStatus.FAILED);
 
     String model = FeedbackResults.firstModel(result.usage());
     if (result.completed()) {
@@ -263,24 +251,52 @@ public class FeedbackService {
         .toList();
   }
 
+  // 저장 형식(FeedbackReviews)을 응답 DTO로 옮겨 담는다. 응답 모양을 바꿀 때는 여기만 고치고 저장 형식은 그대로 둔다.
   private FeedbackResponse toResponse(ConversationFeedback feedback) {
     FeedbackReviews reviews =
         feedback.getReviews() == null
             ? null
             : jsonMapper.readValue(feedback.getReviews(), FeedbackReviews.class);
+    if (reviews == null) {
+      return new FeedbackResponse(
+          feedback.getStatus(),
+          feedback.getSummary(),
+          null,
+          null,
+          feedback.getErrorCode(),
+          List.of(),
+          List.of());
+    }
+    FeedbackReviews.Suggestion suggestion = reviews.suggestion();
     return new FeedbackResponse(
         feedback.getStatus(),
         feedback.getSummary(),
-        reviews == null ? null : new ReviewsResponse(reviews.good(), reviews.improve()),
-        reviews == null ? null : reviews.suggestion(),
+        new ReviewsResponse(reviews.good(), reviews.improve()),
+        suggestion == null
+            ? null
+            : new SuggestionResponse(suggestion.userText(), suggestion.betterText()),
         feedback.getErrorCode(),
-        // 이 필드들을 넣기 전에 저장한 피드백은 장면 표현·단어장 후보가 없다.
-        reviews == null || reviews.situationExpressions() == null
-            ? List.of()
-            : reviews.situationExpressions(),
-        reviews == null || reviews.vocabCandidates() == null
-            ? List.of()
-            : reviews.vocabCandidates());
+        // 이 필드들을 넣기 전에 저장한 피드백은 장면 표현·단어장 후보가 없다(null).
+        nonNull(reviews.situationExpressions()).stream()
+            .map(
+                item ->
+                    new SituationExpressionResponse(
+                        item.expression(),
+                        item.meaningKo(),
+                        item.usageKo(),
+                        item.exampleEn(),
+                        item.exampleKo()))
+            .toList(),
+        nonNull(reviews.vocabCandidates()).stream()
+            .map(
+                item ->
+                    new VocabCandidateResponse(
+                        item.expression(), item.meaningKo(), item.exampleEn(), item.exampleKo()))
+            .toList());
+  }
+
+  private static <T> List<T> nonNull(List<T> items) {
+    return items == null ? List.of() : items;
   }
 
   private Npc npcOf(Conversation conversation) {

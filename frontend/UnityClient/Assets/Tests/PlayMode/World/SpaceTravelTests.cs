@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using A305.Player;
+using A305.Tutorial;
 using A305.Weather;
 using NUnit.Framework;
 using UnityEngine;
@@ -24,6 +25,20 @@ namespace A305.World.PlayModeTests
         private const float ArrivalTimeoutSeconds = 5f;
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
+
+        // 튜토리얼 동안에는 단계를 마칠 때까지 장소 이동을 잠그므로, 이동 자체를 보는 이 시험은 튜토리얼을 마친 사용자로 한다.
+        [SetUp]
+        public void StartAfterTheTutorial()
+        {
+            TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
+        }
+
+        [TearDown]
+        public void ClearTutorial()
+        {
+            TutorialState.Clear();
+        }
 
         [UnityTest]
         public IEnumerator TryTravel_HomeToTown_PlacesPlayerAtTownHomeDoor()

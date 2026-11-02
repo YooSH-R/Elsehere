@@ -399,9 +399,17 @@ namespace A305.EditorTools.Mission
             UiBuilderTools.EnsureOverlayCanvas(root, 108, true);
             var view = BuilderTools.GetOrAddComponent<FirstDayMissionView>(root);
             Transform existing = root.transform.Find("Content");
-            if (existing != null && existing.Find("MapButton") != null)
+            // 지도 버튼 배치나 그 뒤의 퀘스트 카드 배치는 유지하고 카드만 다시 맞춘다.
+            if (
+                existing != null
+                && (
+                    existing.Find("MapButton") != null
+                    || existing.Find("CurrentGoal/Header") != null
+                )
+            )
             {
                 CompactJournal(existing);
+                QuestCardBuilder.Apply(root);
                 return;
             }
             // 오른쪽 위 수첩 버튼으로 만든 이전 배치는 단어장 버튼과 겹치므로 지우고 왼쪽 위 지도 버튼 배치로 다시 만든다.
@@ -492,6 +500,7 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "closeButton", close);
             journal.gameObject.SetActive(false);
             CompactJournal(content);
+            QuestCardBuilder.Apply(root);
         }
 
         private static void CompactJournal(Transform content)

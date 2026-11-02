@@ -2,10 +2,7 @@ package com.elsehere.feedback.service;
 
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerUsage;
-import com.elsehere.feedback.dto.FeedbackReviews;
-import com.elsehere.feedback.dto.SituationExpressionResponse;
-import com.elsehere.feedback.dto.SuggestionResponse;
-import com.elsehere.feedback.dto.VocabCandidateResponse;
+import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.entity.TurnFeedback;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,24 +35,25 @@ final class FeedbackResults {
    * 단어장에 저장할 수 있는 후보. 단어장은 단어 하나만 저장하므로(VOCAB-02) 숙어·문장과 두 단어 이상인 후보는 뺀다. 저장하지 못할 후보에 저장 버튼을 보이지 않기
    * 위해서다.
    */
-  private static List<VocabCandidateResponse> vocabCandidates(WorkerFeedback.Result result) {
+  private static List<FeedbackReviews.VocabCandidate> vocabCandidates(
+      WorkerFeedback.Result result) {
     return nonNull(result.vocabCandidates()).stream()
         .filter(item -> "word".equals(item.kind()))
         .filter(item -> item.expression().strip().chars().noneMatch(Character::isWhitespace))
         .map(
             item ->
-                new VocabCandidateResponse(
+                new FeedbackReviews.VocabCandidate(
                     item.expression(), item.meaningKo(), item.exampleEn(), item.exampleKo()))
         .toList();
   }
 
   /** 이 장면에서 자주 쓰는 표현. 사용자 발화 평가와 별개로 화면의 회화 칸에 보여 준다. */
-  private static List<SituationExpressionResponse> situationExpressions(
+  private static List<FeedbackReviews.SituationExpression> situationExpressions(
       WorkerFeedback.Result result) {
     return nonNull(result.situationExpressions()).stream()
         .map(
             item ->
-                new SituationExpressionResponse(
+                new FeedbackReviews.SituationExpression(
                     item.expression(),
                     item.meaningKo(),
                     item.usageKo(),
@@ -108,7 +106,7 @@ final class FeedbackResults {
         .toList();
   }
 
-  private static SuggestionResponse suggestion(WorkerFeedback.Result result) {
+  private static FeedbackReviews.Suggestion suggestion(WorkerFeedback.Result result) {
     String suggestionId = result.summarySuggestionId();
     if (suggestionId == null) {
       return null;
@@ -116,7 +114,8 @@ final class FeedbackResults {
     for (WorkerFeedback.TurnReview review : nonNull(result.turnReviews())) {
       for (WorkerFeedback.Suggestion suggestion : nonNull(review.suggestions())) {
         if (suggestionId.equals(suggestion.suggestionId())) {
-          return new SuggestionResponse(review.originalText(), suggestion.suggestedExpression());
+          return new FeedbackReviews.Suggestion(
+              review.originalText(), suggestion.suggestedExpression());
         }
       }
     }

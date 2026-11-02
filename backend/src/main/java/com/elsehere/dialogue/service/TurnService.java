@@ -1,6 +1,6 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
@@ -9,10 +9,6 @@ import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
@@ -76,9 +72,7 @@ public class TurnService {
   private final DialogueContexts dialogueContexts;
   private final ConversationResponses conversationResponses;
   private final NpcAudioReceiver npcAudioReceiver;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
-  private final AiFailureRecorder aiFailureRecorder;
+  private final AiGateway aiGateway;
   private final MemoryService memoryService;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
@@ -101,17 +95,12 @@ public class TurnService {
 
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
-        aiFailureRecorder.recordIfFails(
+        aiGateway.judge(
             trace,
-            AiRequestKind.JUDGE,
-            () ->
-                aiWorkerClient.judge(
-                    trace,
-                    context.npc().workerNpc(),
-                    mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
-                    context.history(),
-                    request.text()));
-    aiRequestRecorder.record(trace, AiRequestKind.JUDGE, judge.usage(), AiRequestStatus.OK);
+            context.npc().workerNpc(),
+            mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
+            context.history(),
+            request.text());
     if (judge.dropped()) {
       // 행동 묘사만 있는 말은 턴으로 세지 않는다. 응답 형식은 [미정]이라 안내 문구를 오류 정보로 돌려준다.
       throw new BusinessException(
@@ -128,31 +117,24 @@ public class TurnService {
             : mission.map(value -> value.replyInstruction(judge.intent())).orElse("");
 
     NpcReply reply =
-        aiFailureRecorder.recordIfFails(
+        aiGateway.reply(
             trace,
-            AiRequestKind.NPC,
-            () ->
-                aiWorkerClient.reply(
-                    trace,
-                    context.npc().workerNpc(),
-                    context.memory(),
-                    context.history(),
-                    judge.text(),
-                    instruction,
-                    context.level(),
-                    context.learner()));
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.NPC,
-        reply.usage(),
-        reply.succeeded() ? AiRequestStatus.OK : AiRequestStatus.FAILED);
-    if (!reply.succeeded()) {
-      throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
-    }
+            context.npc().workerNpc(),
+            context.memory(),
+            context.history(),
+            judge.text(),
+            instruction,
+            context.level(),
+            context.learner());
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
 
     return transactionTemplate.execute(
         status -> {
+          // AI를 기다리는 사이 시간 초과로 다시 보낸 같은 요청이 먼저 저장했을 수 있다.
+          Optional<TurnResponse> savedMeanwhile = replay(userId, conversationId, request);
+          if (savedMeanwhile.isPresent()) {
+            return savedMeanwhile.get();
+          }
           Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           // AI를 기다리는 사이 대화가 끝났을 수 있다.
           if (!conversation.isActive()) {
@@ -211,12 +193,8 @@ public class TurnService {
             MDC.setContextMap(logContext);
           }
           try {
-            GuardResult guard =
-                aiWorkerClient.guard(trace, context.npc().workerNpc(), context.history(), text);
-            aiRequestRecorder.record(trace, AiRequestKind.GUARD, guard.usage(), AiRequestStatus.OK);
-            return guard;
+            return aiGateway.guard(trace, context.npc().workerNpc(), context.history(), text);
           } catch (BusinessException exception) {
-            aiRequestRecorder.record(trace, AiRequestKind.GUARD, List.of(), AiRequestStatus.FAILED);
             return new GuardResult(
                 new GuardResult.Guard(null, GUARD_WORKER_UNAVAILABLE), List.of());
           } finally {

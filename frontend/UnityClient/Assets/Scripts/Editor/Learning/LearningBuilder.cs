@@ -48,6 +48,8 @@ namespace A305.EditorTools.Learning
 
         private const string FeedbackListTitle = "피드백 목록";
 
+        private const float ControlsGuideWidth = 460f;
+
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
 
         [MenuItem(MenuPath)]
@@ -349,22 +351,99 @@ namespace A305.EditorTools.Learning
             BuilderTools.SetReference(view, "homeButton", home);
             BuilderTools.SetReference(view, "messageText", message);
             SetUpHistory(root, view, menu, bold, regular);
+            SetUpControlsGuide(root, view, menu, bold, regular);
             BuilderTools.RequireReferences(view);
 
             SetUpMyPage(root, menu, bold, regular);
-            // 테마 고르기는 집에만 있어, 집 씬의 HUD에서만 켜고 테마 고르기 화면과 잇는다.
-            UiBuilderTools
-                .FindOrCreateButton(menu, "ThemeButton", "테마", bold, 200f)
-                .gameObject.SetActive(false);
+            // 화면 디자인은 하나만 써서 메뉴에 [테마]를 두지 않는다.
+            Transform themeButton = menu.Find("ThemeButton");
+            if (themeButton != null)
+                UnityEngine.Object.DestroyImmediate(themeButton.gameObject);
             OrderMenu(
                 menu,
                 "VocabularyButton",
                 "HistoryButton",
                 "MyPageButton",
-                "ThemeButton",
+                "ControlsButton",
                 "Divider",
                 "HomeButton"
             );
+        }
+
+        /// <summary>
+        /// 오른쪽 아래 조작법 카드와 메뉴의 [조작법]. 없는 요소만 만들고 디자인은 유지한다.
+        /// 카드는 HUD 맨 뒤에 두어, 메뉴를 펼친 동안에는 바깥 영역이 덮고 피드백 목록·내 정보 창은 카드 위에 보이게 한다.
+        /// </summary>
+        private static void SetUpControlsGuide(
+            GameObject root,
+            LearningHudView hud,
+            RectTransform menu,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            var view = BuilderTools.GetOrAddComponent<ControlsGuideView>(root);
+            BuilderTools.SetReference(
+                view,
+                "openButton",
+                UiBuilderTools.FindOrCreateButton(
+                    menu,
+                    "ControlsButton",
+                    ControlsGuideText.MenuLabel,
+                    bold,
+                    200f
+                )
+            );
+
+            RectTransform card = UiBuilderTools.FindOrCreateAnchoredPanel(
+                root.transform,
+                "ControlsGuide",
+                new Vector2(1f, 0f),
+                ControlsGuideWidth,
+                new Vector2(-24f, 24f)
+            );
+            card.SetAsFirstSibling();
+            UiBuilderTools.FindOrCreateText(
+                card,
+                "Title",
+                bold,
+                24f,
+                Color.white,
+                ControlsGuideText.MenuLabel
+            );
+            BuilderTools.SetReference(
+                view,
+                "bodyText",
+                UiBuilderTools.FindOrCreateText(
+                    card,
+                    "Body",
+                    regular,
+                    20f,
+                    Color.white,
+                    ControlsGuideText.Body(isTouchDevice: false)
+                )
+            );
+            BuilderTools.SetReference(
+                view,
+                "hintText",
+                UiBuilderTools.FindOrCreateText(
+                    card,
+                    "Hint",
+                    regular,
+                    17f,
+                    SubTextColor,
+                    ControlsGuideText.ReopenHint
+                )
+            );
+            // 테마 Builder가 카드 오른쪽 위 X 아이콘으로 옮긴다.
+            BuilderTools.SetReference(
+                view,
+                "closeButton",
+                UiBuilderTools.FindOrCreateButton(card, "CloseButton", "닫기", bold, 120f)
+            );
+            BuilderTools.SetReference(view, "card", card.gameObject);
+            BuilderTools.RequireReferences(view);
+            BuilderTools.SetReference(hud, "controlsGuide", view);
         }
 
         /// <summary>

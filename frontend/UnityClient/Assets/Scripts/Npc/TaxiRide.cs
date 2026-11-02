@@ -53,6 +53,9 @@ namespace A305.Npc
         private LoopingCar car;
         private string promptLabel;
 
+        /// <summary>지나가는 택시를 세울 수 있는지. 튜토리얼 동안에는 다른 곳으로 가지 않게 막는다.</summary>
+        public bool IsHailAllowed { get; set; } = true;
+
         public TaxiPhase Phase => fare.Phase;
         public bool IsPassenger => passenger;
         public string DestinationCode { get; private set; }
@@ -160,6 +163,7 @@ namespace A305.Npc
 
             if (
                 fare.Phase == TaxiPhase.Cruising
+                && IsHailAllowed
                 && TaxiFare.CanHail(car.Route, car.Distance, customer)
             )
             {
@@ -303,7 +307,9 @@ namespace A305.Npc
             camera.nearClipPlane = previousNearClip;
             car.SetPassengerOnBoard(false);
             car.Release();
-            panel.SetVehicleLayout(false);
+            // 승객인 채로 장면이 바뀌면 대화창이 택시보다 먼저 지워질 수 있다.
+            if (panel != null)
+                panel.SetVehicleLayout(false);
             destination = null;
             DestinationCode = null;
         }

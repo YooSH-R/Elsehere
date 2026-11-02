@@ -5,7 +5,8 @@ using UnityEngine.UI;
 namespace A305.Theme
 {
     /// <summary>
-    /// 화면 요소 하나를 지금 테마의 그림·색·글꼴로 칠하고, 테마가 바뀌면 다시 칠한다.
+    /// 화면 요소 하나를 지금 테마의 그림·색·글꼴·재질로 칠한다. 창·카드·입력칸은 유리 재질, 버튼·배지는 입체 재질로 그리고,
+    /// 제목·버튼 이름은 둥근 제목 글꼴, 본문은 서비스 글꼴로 쓴다.
     /// 아이콘 버튼은 자식 Face(바탕)·Face/Outline·Face/Icon과 아래 이름 Label을,
     /// 알약 버튼은 자기 바탕과 자식 Outline·Icon·Label을, 메뉴 줄은 바탕 없이 자식 Icon·Label을 쓴다.
     /// 자식 구성은 Builder가 만든다.
@@ -41,6 +42,8 @@ namespace A305.Theme
         [Tooltip("선택한 목록 행은 테마의 강조색을 옅게 사용한다")]
         private bool selection;
 
+        public UiThemeRole Role => role;
+
         /// <summary>고른 카드나 목록 줄을 지금 테마의 강조색 쪽으로 옅게 칠한다. 테마가 바뀌어도 고른 표시를 유지한다.</summary>
         public void SetSelected(bool selected)
         {
@@ -62,7 +65,13 @@ namespace A305.Theme
             switch (role)
             {
                 case UiThemeRole.Panel:
-                    Paint(GetComponent<Image>(), theme.PanelSprite, theme.PanelTint);
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.PanelSprite,
+                        theme.PanelTint,
+                        theme.GlassMaterial,
+                        theme.PanelBleed
+                    );
                     break;
                 case UiThemeRole.Backdrop:
                     Paint(
@@ -78,30 +87,57 @@ namespace A305.Theme
                         theme.CardSprite,
                         selection
                             ? Color.Lerp(theme.CardTint, theme.ToneColor(UiTone.Primary), .6f)
-                            : theme.CardTint
+                            : theme.CardTint,
+                        theme.GlassMaterial,
+                        theme.CardBleed
                     );
                     break;
                 case UiThemeRole.Control:
                     // 고른 조작은 다음에 누를 곳이라 강조색으로 칠한다(예: 보낼 문장이 있는 [보내기]).
                     Paint(
                         GetComponent<Image>(),
-                        theme.CardSprite,
-                        theme.ToneColor(selection ? UiTone.Primary : UiTone.Neutral)
+                        theme.PopMaterial != null ? theme.ButtonSprite : theme.CardSprite,
+                        theme.ToneColor(selection ? UiTone.Primary : UiTone.Neutral),
+                        theme.PopMaterial,
+                        theme.PopMaterial != null ? theme.ButtonBleed : Vector2.zero
+                    );
+                    break;
+                case UiThemeRole.Chip:
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.InputSprite,
+                        theme.CardTint,
+                        theme.GlassMaterial,
+                        theme.InputBleed
                     );
                     break;
                 case UiThemeRole.Input:
-                    Paint(GetComponent<Image>(), theme.InputSprite, Color.white);
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.InputSprite,
+                        Color.white,
+                        theme.GlassMaterial,
+                        theme.InputBleed
+                    );
                     break;
                 case UiThemeRole.Badge:
-                    Paint(GetComponent<Image>(), theme.BadgeSprite, theme.BadgeColor);
-                    Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, Color.white);
+                    Paint(
+                        GetComponent<Image>(),
+                        theme.BadgeSprite,
+                        theme.BadgeColor,
+                        theme.PopMaterial,
+                        theme.PillBleed
+                    );
+                    Write(Child<TMP_Text>(transform, "Label"), theme.DisplayFont, Color.white);
                     break;
                 case UiThemeRole.IconButton:
                     Transform face = transform.Find("Face");
                     Paint(
                         Child<Image>(transform, "Face"),
                         theme.ButtonSprite,
-                        theme.ToneColor(tone)
+                        theme.ToneColor(tone),
+                        theme.PopMaterial,
+                        theme.ButtonBleed
                     );
                     Overlay(Child<Image>(face, "Outline"), theme.ButtonOutlineSprite);
                     Draw(
@@ -110,7 +146,7 @@ namespace A305.Theme
                     );
                     if (icon == UiIcon.Home && Child<Image>(face, "Icon") != null)
                         Child<Image>(face, "Icon").color = theme.Ink;
-                    Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, theme.Ink);
+                    Write(Child<TMP_Text>(transform, "Label"), theme.DisplayFont, theme.Ink);
                     break;
                 case UiThemeRole.PillButton:
                     Color buttonColor = theme.ToneColor(tone);
@@ -123,7 +159,9 @@ namespace A305.Theme
                     Paint(
                         GetComponent<Image>(),
                         theme.PillSprite,
-                        quiet ? Color.clear : buttonColor
+                        quiet ? Color.clear : buttonColor,
+                        theme.PopMaterial,
+                        theme.PillBleed
                     );
                     Overlay(
                         Child<Image>(transform, "Outline"),
@@ -143,9 +181,14 @@ namespace A305.Theme
                         Child<Image>(transform, "Icon").color = theme.AccentInk;
                     Write(
                         Child<TMP_Text>(transform, "Label"),
-                        theme.TitleFont,
+                        theme.DisplayFont,
                         quiet ? theme.Ink : theme.ToneInk(tone)
                     );
+                    // 아이콘과 이름은 한 묶음으로 가운데에 둔다. 낮은 버튼은 이름만 둔다.
+                    PillContentLayout content = GetComponent<PillContentLayout>();
+                    if (content == null)
+                        content = gameObject.AddComponent<PillContentLayout>();
+                    content.Arrange();
                     break;
                 case UiThemeRole.MenuItem:
                     Image itemIcon = Child<Image>(transform, "Icon");
@@ -153,11 +196,16 @@ namespace A305.Theme
                     // 집·대화 아이콘은 색 바탕 위에 쓰는 흰 그림이라 밝은 메뉴에서는 글자색으로 칠한다.
                     if (itemIcon != null && (icon == UiIcon.Home || icon == UiIcon.Talk))
                         itemIcon.color = theme.Ink;
-                    Write(Child<TMP_Text>(transform, "Label"), theme.TitleFont, theme.Ink);
+                    Write(Child<TMP_Text>(transform, "Label"), theme.DisplayFont, theme.Ink);
                     break;
                 case UiThemeRole.Title:
-                    Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);
-                    GetComponent<TMP_Text>().fontStyle |= FontStyles.Bold;
+                    TMP_Text title = GetComponent<TMP_Text>();
+                    Write(title, theme.DisplayFont, theme.Ink);
+                    // 둥근 제목 글꼴은 그 자체로 두꺼워 굵게 칠하지 않는다.
+                    if (title != null && theme.DisplayFont != theme.TitleFont)
+                        title.fontStyle &= ~FontStyles.Bold;
+                    else if (title != null)
+                        title.fontStyle |= FontStyles.Bold;
                     break;
                 case UiThemeRole.Body:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.Ink);
@@ -171,7 +219,80 @@ namespace A305.Theme
                 case UiThemeRole.Accent:
                     Write(GetComponent<TMP_Text>(), theme.TitleFont, theme.AccentInk);
                     break;
+                case UiThemeRole.Scrim:
+                    Image scrim = GetComponent<Image>();
+                    Paint(scrim, theme.ScrimSprite, theme.ScrimColor);
+                    // 위쪽은 거의 투명해 장면이 보이므로 장면 클릭을 막지 않는다.
+                    if (scrim != null)
+                        scrim.raycastTarget = false;
+                    break;
+                case UiThemeRole.GhostControl:
+                    PaintGhostControl(theme);
+                    break;
+                case UiThemeRole.GhostInput:
+                    Paint(GetComponent<Image>(), theme.GhostSprite, GhostInputTint);
+                    PaintInputText(GetComponent<TMP_InputField>(), theme.TitleFont);
+                    break;
+                case UiThemeRole.TitleOnDark:
+                    TMP_Text darkTitle = GetComponent<TMP_Text>();
+                    Write(darkTitle, theme.DisplayFont, Color.white);
+                    if (darkTitle != null)
+                        darkTitle.fontStyle &= ~FontStyles.Bold;
+                    break;
+                case UiThemeRole.BodyOnDark:
+                    Write(GetComponent<TMP_Text>(), theme.TitleFont, BodyOnDarkInk);
+                    break;
+                case UiThemeRole.AccentOnDark:
+                    Write(
+                        GetComponent<TMP_Text>(),
+                        theme.TitleFont,
+                        theme.ToneColor(UiTone.Primary)
+                    );
+                    break;
             }
+        }
+
+        // 어두운 바탕 위의 본문은 순백보다 살짝 따뜻하게 둬 큰 흰 대사와 구분한다.
+        private static readonly Color BodyOnDarkInk = new Color32(250, 240, 228, 255);
+
+        // 입력칸은 버튼보다 한 단계 옅게 둬 버튼과 구분한다.
+        private static readonly Color GhostInputTint = new Color(1f, 1f, 1f, .8f);
+
+        // 반투명한 흰 테두리 버튼. 다음에 누를 버튼으로 고르면 강조색 입체 버튼으로 바꿔 한눈에 보이게 한다.
+        private void PaintGhostControl(UiThemeDefinition theme)
+        {
+            if (selection)
+                Paint(
+                    GetComponent<Image>(),
+                    theme.PillSprite,
+                    theme.ToneColor(UiTone.Primary),
+                    theme.PopMaterial,
+                    theme.PillBleed
+                );
+            else
+                Paint(GetComponent<Image>(), theme.GhostSprite, Color.white, null, Vector2.zero);
+            Color ink = selection ? theme.ToneInk(UiTone.Primary) : Color.white;
+            Image ghostIcon = Child<Image>(transform, "Icon");
+            Draw(ghostIcon, theme.Icons != null ? theme.Icons.Get(icon) : null);
+            if (ghostIcon != null)
+                ghostIcon.color = ink;
+            Write(Child<TMP_Text>(transform, "Label"), theme.DisplayFont, ink);
+            PillContentLayout content = GetComponent<PillContentLayout>();
+            if (content == null)
+                content = gameObject.AddComponent<PillContentLayout>();
+            content.Arrange();
+        }
+
+        private static void PaintInputText(TMP_InputField input, TMP_FontAsset font)
+        {
+            if (input == null)
+                return;
+            Write(input.textComponent, font, Color.white);
+            if (input.placeholder is TMP_Text placeholder)
+                Write(placeholder, font, new Color(1f, 1f, 1f, .6f));
+            input.customCaretColor = true;
+            input.caretColor = Color.white;
+            input.selectionColor = new Color(1f, 1f, 1f, .3f);
         }
 
         private void OnEnable()
@@ -187,10 +308,24 @@ namespace A305.Theme
 
         private void OnThemeChanged(UiThemeId theme) => ApplyCurrent();
 
-        internal static void Paint(Image image, Sprite sprite, Color color)
+        internal static void Paint(
+            Image image,
+            Sprite sprite,
+            Color color,
+            Material material = null,
+            Vector2 bleed = default
+        )
         {
             if (image == null)
                 return;
+            // 그림자 여백이 있는 그림은 그만큼 넓혀 그려 보이는 모양을 칸에 맞춘다.
+            SurfaceBleed surface = image.GetComponent<SurfaceBleed>();
+            if (surface == null && bleed != Vector2.zero)
+                surface = image.gameObject.AddComponent<SurfaceBleed>();
+            // 그림을 줄여 그리는 버튼은 여백도 같은 비율로 줄어든다.
+            if (surface != null)
+                surface.Margin = bleed / Mathf.Max(.01f, image.pixelsPerUnitMultiplier);
+            image.material = material;
             image.sprite = sprite;
             image.type =
                 sprite != null && sprite.border != Vector4.zero

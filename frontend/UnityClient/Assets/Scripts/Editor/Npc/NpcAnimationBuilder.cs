@@ -84,7 +84,7 @@ namespace A305.EditorTools.Npc
 
         /// <summary>
         /// NPC 생활에 동작 컨트롤러를 연결한다. 장면에 저장된 모델 Animator는 그대로 두고, 생활이 켜질 때 바꿔 끼운다
-        /// (<see cref="NpcRoutine"/>). 뼈대가 없는 모델(마을 행인 등)에는 바꿔 끼우지 않는다.
+        /// (<see cref="NpcRoutine"/>). Ben처럼 전용 Generic 뼈대를 쓰는 모델은 자기 컨트롤러를 유지한다.
         /// </summary>
         public static void Connect(NpcRoutine routine, RuntimeAnimatorController controller)
         {

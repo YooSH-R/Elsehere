@@ -115,6 +115,18 @@ namespace A305.Learning
 
         public bool IsVisible => panel.activeSelf;
 
+        /// <summary>피드백 창 전체. 튜토리얼 코치 마크가 첫 대화의 피드백을 밝힌다.</summary>
+        public RectTransform PanelRect => (RectTransform)panel.transform;
+
+        /// <summary>[요약]·[문장]·[회화]·[표현] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform SectionRowRect => sectionRow;
+
+        /// <summary>쪽 넘김 화살표 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform NavigationRowRect => navigationRow;
+
+        /// <summary>오른쪽 위 X. 튜토리얼 코치 마크가 피드백 티칭 끝에 밝힌다.</summary>
+        public RectTransform CloseButtonRect => (RectTransform)topCloseButton.transform;
+
         /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
         public void SetSaveAvailable(bool available)
         {
@@ -176,7 +188,7 @@ namespace A305.Learning
         private void Refresh()
         {
             titleText.text = feedback.IsFailed ? feedback.Title : "대화 노트";
-            summaryText.text = $"{feedback.NpcName}와 나눈 대화";
+            summaryText.text = FeedbackText.Partner(feedback.NpcName);
             pageTitleText.text = isTranscriptShown ? "주고받은 대화" : pages[pageIndex].Title;
             bodyText.text = isTranscriptShown
                 ? FeedbackText.Transcript(feedback.NpcName, lines)
@@ -200,6 +212,8 @@ namespace A305.Learning
             navigationRow.gameObject.SetActive(
                 !isRegenerating && (!feedback.IsFailed || isTranscriptShown)
             );
+            // 표현 줄 높이는 패널 너비에 따라 달라지므로 화면에 맞춘 패널 크기부터 정한다.
+            FitFrameToCanvas();
             ShowSituationRows(
                 section == FeedbackSection.Summary && !feedback.IsFailed && !isTranscriptShown
                     ? feedback.SituationExpressions
@@ -248,6 +262,9 @@ namespace A305.Learning
             float top = BodyTopPadding;
             if (visible)
             {
+                // 카드 크기는 패널의 레이아웃이 정한다. 방금 켠 패널은 레이아웃이 아직 돌지 않아 카드가 원래 크기라서,
+                // 그대로 재면 표현 줄이 좁은 너비로 한 줄 높이가 되어 요약 글이 두 줄로 넘어간 표현 줄에 가린다.
+                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)panel.transform);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
                 top =
                     -situationRows.anchoredPosition.y
@@ -270,7 +287,7 @@ namespace A305.Learning
                 UpdateLayout();
         }
 
-        public void UpdateLayout()
+        private void FitFrameToCanvas()
         {
             var frame = (RectTransform)panel.transform;
             var canvas = (RectTransform)frame.parent;
@@ -279,6 +296,11 @@ namespace A305.Learning
                 Mathf.Min(1100, canvas.rect.width - 48),
                 Mathf.Min(920, canvas.rect.height - 48)
             );
+        }
+
+        public void UpdateLayout()
+        {
+            FitFrameToCanvas();
             if (feedback == null || !panel.activeInHierarchy)
                 return;
             Canvas.ForceUpdateCanvases();

@@ -32,6 +32,9 @@ namespace A305.ObjectHover.PlayModeTests
         [UnitySetUp]
         public IEnumerator LoadHome()
         {
+            // 튜토리얼 첫 단계에서는 코치 마크가 화면을 덮어 가구를 가리킬 수 없으므로, 튜토리얼을 마친 사용자로 시작한다.
+            TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
             yield return null;
 
@@ -42,6 +45,12 @@ namespace A305.ObjectHover.PlayModeTests
             Assert.That(hover, Is.Not.Null, "HomeScene에 ObjectHoverController가 없습니다.");
             Assert.That(tooltip, Is.Not.Null, "HomeScene에 WordTooltipView가 없습니다.");
             hover.enabled = false;
+        }
+
+        [TearDown]
+        public void ClearTutorial()
+        {
+            TutorialState.Clear();
         }
 
         [UnityTest]
@@ -318,31 +327,41 @@ namespace A305.ObjectHover.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator PinnedCard_MovesOutOfWindowOpenedLater()
+        public IEnumerator PinnedCard_StaysPut_WhenTheTutorialCoachMarkDimsTheScreen()
         {
-            // 카드를 고정한 뒤 그 자리에 창이 열리면 카드가 창 뒤에 비쳐 보였다.
+            // 코치 마크는 밝힐 곳 둘레를 덮개 네 조각으로 덮는다. 조각마다 화면보다 작아 피할 창으로 보면,
+            // 밝힌 곳 바로 옆의 고정한 카드가 덮개를 피해 밝힌 구멍 쪽으로 끌려가 밝힌 곳을 덮었다.
             HoverableObject tv = FindHoverable("tv");
             yield return StandPlayerNear(tv);
+            Object.FindFirstObjectByType<TutorialDirector>().enabled = false;
+            CoachMarkView coachMark = Object.FindFirstObjectByType<CoachMarkView>();
+            coachMark.Hide();
             Rect guide = ShowTutorialGuide();
-            TutorialGuidePanel().gameObject.SetActive(false);
             Vector2 belowGuide = new Vector2(guide.center.x, guide.yMin - 20f);
             AimSoThatScreenPointShows(tv, belowGuide);
             hover.Click(belowGuide);
             Assert.That(tooltip.IsPinned, Is.True);
+            Rect pinned = CardScreenRect();
             Assert.That(
-                CardScreenRect().Overlaps(guide),
-                Is.True,
-                "가이드 자리에 카드를 고정해야 합니다."
+                pinned.Overlaps(guide),
+                Is.False,
+                "준비: 카드가 안내 카드를 비켜 고정됩니다."
             );
 
-            TutorialGuidePanel().gameObject.SetActive(true);
+            coachMark.ShowSpotlight(new[] { TutorialGuidePanel() }, "안내 카드를 읽어 보세요");
+            yield return null;
+            Assert.That(
+                coachMark.IsSpotlightShowing,
+                Is.True,
+                "준비: 코치 마크가 안내 카드 둘레를 덮습니다."
+            );
             hover.Refresh(belowGuide, LongerThanShowDelaySeconds);
 
             Assert.That(tooltip.IsPinned, Is.True);
             Assert.That(
-                CardScreenRect().Overlaps(guide),
-                Is.False,
-                "카드가 새로 열린 창과 겹칩니다."
+                Vector2.Distance(CardScreenRect().position, pinned.position),
+                Is.LessThan(1f),
+                "고정한 카드가 코치 마크 덮개를 피해 옮겨 갑니다."
             );
         }
 
@@ -444,6 +463,35 @@ namespace A305.ObjectHover.PlayModeTests
             );
         }
 
+        [UnityTest]
+        public IEnumerator PinnedCardAtRightEdge_MenuOpenedLater_StaysOutOfMenu()
+        {
+            // 화면 오른쪽 끝을 눌러 카드를 고정한 뒤 메뉴(≡)를 펼치면 카드가 메뉴 버튼 뒤로 들어갔다.
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+            Button menuButton = HudMenuButton().GetComponent<Button>();
+            menuButton.onClick.Invoke();
+            Canvas.ForceUpdateCanvases();
+            Rect openMenuButton = ScreenRectOf(OpenHudMenuButton());
+            Rect menuList = ScreenRectOf(HudMenuList());
+            OpenHudMenuButton().GetComponent<Button>().onClick.Invoke();
+            Vector2 rightOfList = new Vector2(
+                (menuList.xMax + Screen.width) / 2f,
+                menuList.center.y
+            );
+            AimSoThatScreenPointShows(tv, rightOfList);
+            hover.Click(rightOfList);
+            Assert.That(tooltip.IsPinned, Is.True);
+
+            menuButton.onClick.Invoke();
+            hover.Refresh(rightOfList, LongerThanShowDelaySeconds);
+
+            Assert.That(tooltip.IsPinned, Is.True);
+            Rect card = CardScreenRect();
+            Assert.That(card.Overlaps(openMenuButton), Is.False, "카드가 메뉴 버튼과 겹칩니다.");
+            Assert.That(card.Overlaps(menuList), Is.False, "카드가 메뉴 목록과 겹칩니다.");
+        }
+
         private Rect CardScreenRect()
         {
             Canvas.ForceUpdateCanvases();
@@ -520,6 +568,24 @@ namespace A305.ObjectHover.PlayModeTests
                 .SingleOrDefault(button => button.name == "MenuButton");
             Assert.That(menu, Is.Not.Null, "HomeScene에 오른쪽 위 메뉴 버튼이 없습니다.");
             return (RectTransform)menu.transform;
+        }
+
+        // 메뉴를 펼친 동안 메뉴 버튼 자리에 보이는 강조 버튼
+        private static RectTransform OpenHudMenuButton()
+        {
+            Button open = Object
+                .FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .SingleOrDefault(button => button.name == "OpenMenuButton");
+            Assert.That(open, Is.Not.Null, "HomeScene에 펼친 메뉴 버튼이 없습니다.");
+            return (RectTransform)open.transform;
+        }
+
+        // 메뉴 버튼 줄 아래로 펼치는 목록
+        private static RectTransform HudMenuList()
+        {
+            Transform list = OpenHudMenuButton().parent.parent.Find("Menu");
+            Assert.That(list, Is.Not.Null, "HomeScene에 메뉴 목록이 없습니다.");
+            return (RectTransform)list;
         }
 
         private static Vector2 ScreenCenterOf(RectTransform rect)

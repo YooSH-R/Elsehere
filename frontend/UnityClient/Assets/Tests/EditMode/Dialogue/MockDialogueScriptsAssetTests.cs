@@ -92,6 +92,20 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void TutorialScript_SuggestsWordsForEveryLine()
+        {
+            // 대화 화면 왼쪽 [단어]에 지금 할 대사에 쓸 만한 단어를 보이고, 튜토리얼이 이를 설명한다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript tutorial);
+
+            foreach (GuidedTurn turn in tutorial.GuidedTurns)
+            {
+                Assert.That(turn.SuggestWords, Is.Not.Empty, turn.SuggestedEnglish);
+            }
+        }
+
+        [Test]
         public void TutorialPasserby_GainsItsRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);

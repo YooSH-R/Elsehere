@@ -57,8 +57,8 @@ namespace A305.Dialogue.Tests
                 text,
                 Does.EndWith(
                     "<b>Mia</b>  Regular milk or soy milk?\n"
-                        + "<color=#6E7888>일반 우유로 드릴까요, 두유로 드릴까요?</color>\n"
-                        + "<color=#6E7888>단어 풀이 · soy milk 두유</color>"
+                        + "<size=80%><color=#E6D3BC>일반 우유로 드릴까요, 두유로 드릴까요?</color></size>\n"
+                        + "<size=80%><color=#E6D3BC>단어 풀이 · soy milk 두유</color></size>"
                 )
             );
         }

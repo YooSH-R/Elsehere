@@ -33,6 +33,9 @@ namespace A305.Onboarding
         /// <summary>계정에 저장한 화면 테마 코드. 마을에 들어가기 전에 화면 테마를 맞추는 데 쓴다.</summary>
         public string UiTheme { get; private set; }
 
+        /// <summary>접속한 계정의 닉네임. 폰 메뉴 날짜 줄에 보인다.</summary>
+        public string Nickname { get; private set; }
+
         /// <summary>화면 02의 입력 상태. 가입 화면에 들어올 때 만든다.</summary>
         public SignupForm SignupForm { get; private set; }
 
@@ -63,6 +66,7 @@ namespace A305.Onboarding
                 LanguageCode = boot.User?.CurrentLanguage;
                 SelectedAvatar = boot.User?.AvatarType;
                 UiTheme = boot.User?.UiTheme;
+                Nickname = boot.User?.Nickname;
                 IsVoiceAgreed = boot.User?.VoiceConsent ?? false;
 
                 LevelTestStatus? lastLevelTest = null;
@@ -192,6 +196,7 @@ namespace A305.Onboarding
                     SignupResponse response = await api.SignUpAsync(SignupForm.ToRequest());
                     SelectedAvatar = response.User?.AvatarType;
                     UiTheme = response.User?.UiTheme;
+                    Nickname = response.User?.Nickname;
                     IsVoiceAgreed = response.User?.VoiceConsent ?? false;
                 }
                 catch (ApiException exception) when (exception.Code == NicknameTakenCode)

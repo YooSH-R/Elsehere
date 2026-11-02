@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "A305.Mission",
         "Unity.TextMeshPro",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "A305.World"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -55,7 +55,7 @@ blender --background --python frontend/ArtSources/Characters/ServiceNpcs/fit_npc
 
 ## 눈 외관 복원
 
-중년 남성·중년 여성·흑인 남성 검수 프리팹은 생성 원본의 눈 재질을 사용합니다. 머리 비율과 Base 입 메시를 유지하면서 눈 재질만 복원하며, `ServiceNpcEyeReviewBuilder.RestoreOriginalEyes`로 실행합니다.
+Base 눈 이식 전 중년 남성·중년 여성·흑인 남성 검수 프리팹은 생성 원본의 눈 재질을 사용했습니다. 현재 검수본은 아래 Base 눈 이식 결과를 사용합니다. 머리 비율과 Base 입 메시를 유지하면서 눈 재질만 복원하며, `ServiceNpcEyeReviewBuilder.RestoreOriginalEyes`로 실행합니다.
 
 `CharacterColor.png`, `Face/<이름>_SmallerIris.blend`, `resize_iris.py`의 홍채만 축소한 방식은 채택하지 않습니다. 흰자를 넓게 보이게 만들어 원래 인상을 해쳤으므로 현재 검수 프리팹에는 연결하지 않습니다. 해당 파일은 이전 시안을 보존하기 위한 자료이며 재적용 대상으로 사용하지 않습니다.
 
@@ -65,7 +65,7 @@ Blender 저작 스크립트·검수 씬 생성과 재질 복원은 시각 에셋
 
 ## 눈 전체 크기 사본
 
-중년 남성·중년 여성·흑인 남성의 현재 검수 프리팹은 원본 눈 텍스처를 유지하면서 눈 전체 형상을 약 14% 줄인 `Face/EyeShape/FaceSurface.asset`을 사용합니다. 홍채만 줄이거나 흰자를 새로 칠하지 않습니다. 눈 주변의 피부 전환 영역은 부드럽게 연결합니다.
+Base 눈 이식의 입력 사본은 중년 남성·중년 여성·흑인 남성의 원본 눈 텍스처를 유지하면서 눈 전체 형상을 약 14% 줄인 `Face/EyeShape/FaceSurface.asset`을 사용합니다. 홍채만 줄이거나 흰자를 새로 칠하지 않습니다. 눈 주변의 피부 전환 영역은 부드럽게 연결합니다.
 
 입 메시의 고정 접합부가 변형 영역과 겹치는 경우 `SpeakingLips.asset`도 사본으로 만듭니다. 세분화된 입 경계는 변형한 몸 메시의 원래 삼각형 모서리에 선형 보간하여 맞춥니다. 입 모양에 따라 움직이는 정점은 변경하지 않으며, UV·삼각형·본·가중치·블렌드셰이프 변화량을 유지합니다. 깊이 방향의 갑작스러운 범위 제한과 서로 다른 메시 경계의 비선형 변형은 면 찌그러짐과 틈의 원인이므로 사용하지 않습니다.
 
@@ -74,3 +74,25 @@ Blender 저작 스크립트·검수 씬 생성과 재질 복원은 시각 에셋
 `NPC_REVIEW_OUTPUT`을 `WholeEyes` 데이터 루트로 지정한 뒤 Unity 배치 메서드 `ServiceNpcEyeShapeBuilder.Build`를 실행해 적용합니다. 기존 `Face/EyeShape` 결과가 있으면 자동 덮어쓰기를 중단합니다. 현재 얼굴 정점과 입력이 다르거나 변경 영역이 발음용 정점에 닿으면 적용하지 않습니다.
 
 시각 에셋 변경이므로 별도의 동작 로직 테스트를 추가하지 않고 정면·양쪽 사선, Unity 입 모양 렌더, 기존 골격·동작 검사 및 정적 검사로 확인합니다. 눈 감기 채널은 이 작업에서 추가하지 않습니다.
+
+## 비즈니스맨 눈 감기와 자동 깜박임
+
+현재 통합 검수 프리팹 `Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab`은 Base의 눈·위/아래 눈꺼풀·눈꺼풀 선과 25·50·75·100 가중치의 깜박임을 재사용한다. 저작 원본은 `LittleMungMannequin/MannequinFaceShapes.json`과 좌우 `EyeColor.png`다. 비즈니스맨의 눈 위치·크기에 맞춰 옮기고 작업용 얼굴 메시에서 기존 눈 표면을 잘라 연결한다. 얼굴 경계의 모든 정점을 연결하며 미연결 모서리가 있으면 저작 결과를 저장하지 않는다. 입·눈썹·골격은 유지한다. 생성 원본과 Base 자산, 이전 `Review/Corrected` 후보는 수정하지 않는다.
+
+눈 색은 Base의 갈색 홍채를 사용한다. 다른 눈 색이 필요하면 눈 텍스처의 홍채 영역만 별도로 편집하고 흰자·동공·반사광은 유지한다. 피부나 눈 전체 머티리얼을 틴트하지 않는다. 비즈니스맨은 검수된 고정 적합 값을 사용한다. 다른 행인 검수본은 아래의 측정 자료를 사용한다.
+
+`CharacterIdleBlink`는 대기 중 기존 `SpeechExpressionProfile`의 타이밍으로 눈 가중치만 갱신한다. 미소·입·관절 보정 가중치는 유지하며, 상위 `CharacterSpeechPlayer`가 재생 또는 일시 정지 중이면 얼굴 제어를 양보한다. 얼굴 검수 씬에서는 `Automatic blink`를 켜서 자동 동작을 확인하고, 끄면 눈 감기 버튼과 강도 슬라이더로 정밀 검수한다. 음성 중 깜박임은 기존 음성 재생기의 감정 프로필 연결을 사용한다.
+
+저작 자료는 `frontend/ArtSources/Characters/LittleMungBusiness/Blink/`에 있다. Blender 백그라운드에서 `create_business_eyelids.py -- <저작 폴더 절대 경로>`로 실행한다. Unity에서는 `BUSINESS_BLINK_OUTPUT`을 같은 폴더로 지정하고 `BusinessBlinkBuilder.Apply`를 실행한다. 기존 눈꺼풀을 갱신하려면 `BUSINESS_BLINK_REFRESH=1`을 명시한다. 새 프리팹을 만들지 않고 해당 검수 프리팹의 눈꺼풀 자산을 같은 GUID로 갱신한다. 직접 편집한 결과에는 내용을 확인한 뒤 실행한다.
+
+눈꺼풀의 피부 경계·음영과 닫힌 눈의 인상은 정면·양쪽 사선 외관 검수 대상이다. 눈꺼풀 제작은 시각 에셋 변경으로 실제 Unity 렌더와 메시 검사로 확인하며, 눈 전용 제어와 자동 타이밍은 실패를 재현하는 테스트 및 실제 프리팹 재생 테스트로 검증한다. 이 변경만으로 Production Ben 연결이나 다른 NPC의 눈 감기가 완료되지는 않는다.
+
+## 나머지 행인의 Base 눈 이식
+
+대상은 `Npc/Review`의 중년 남성·중년 여성·흑인 청년 남성·할머니 프리팹이다. 기존 프리팹을 갱신하며 이전 후보와 Tripo 원본은 유지한다. 중년 남녀의 파란 홍채와 흑인 청년·할머니의 짙은 갈색 홍채는 현재 텍스처에서 측정한다. Base 눈 텍스처의 홍채 색 영역만 바꾸고 흰자·동공·반사광은 유지한다. 여성과 할머니는 Base 속눈썹도 사용한다.
+
+저작 폴더는 `ServiceNpcs/BaseEyes/<캐릭터 이름>`이다. `NPC_BASE_EYES_OUTPUT`에 `BaseEyes` 절대 경로를 지정해 `BusinessBlinkBuilder.ExportRemaining`으로 현재 메시를 읽는다. 기존 `Surface.json`은 덮어쓰지 않는다. Blender에서 `measure_base_eye_fit.py -- <BaseEyes 폴더>`로 위치·크기·홍채 색을 측정한 뒤 `EyeFit.json`을 검수한다. `create_business_eyelids.py -- <캐릭터 저작 폴더>`로 Base 부위를 이식하고 `BusinessBlinkBuilder.ApplyRemaining`으로 반영한다. 직접 편집한 기존 눈은 명시적인 `BUSINESS_BLINK_REFRESH=1` 없이 갱신하지 않는다.
+
+기존 입 메시의 접합부에 닿는 얼굴 면은 잘라내지 않는다. 할머니의 안경처럼 눈 주변에 있는 분리된 표면도 보존한다. 이식 경계의 미연결 모서리, 현재 몸 메시와 저작 원본 불일치는 적용 실패로 처리한다. 자동 측정은 현재 네 검수본에 맞춰 확인하는 저작 보조 기능이며, 새로 생성하는 모든 캐릭터의 외관을 보장하지 않는다.
+
+각 `Assets/Scenes/Sandbox/NpcReview/<캐릭터 이름>_Face.unity`에서 `Automatic blink`와 입 모양 버튼으로 확인한다. 실제 서비스 씬의 NPC 연결은 이 검수본 반영과 별도로 확인한다.

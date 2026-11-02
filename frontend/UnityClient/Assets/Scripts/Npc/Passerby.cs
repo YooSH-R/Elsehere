@@ -64,6 +64,11 @@ namespace A305.Npc
         /// </summary>
         public bool IsApproachAllowed { get; set; } = true;
 
+        /// <summary>
+        /// 튜토리얼이 플레이어를 붙잡아 이 행인을 기다리게 하는지. 켜져 있으면 이동이 잠긴 플레이어에게도, 감지 거리 밖에서도 다가간다.
+        /// </summary>
+        public bool IsPlayerWaiting { get; set; }
+
         /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
         public bool IsGuidingTutorial => tutorialScriptKey != null;
 
@@ -148,11 +153,11 @@ namespace A305.Npc
         private void Update()
         {
             Vector3 toPlayer = HorizontalOffsetToPlayer();
-            // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다.
+            // 다가오면 안 되는 때도 플레이어가 바쁠 때와 같게 다룬다. 이 행인을 기다리느라 잠긴 플레이어는 바쁘지 않다.
             bool isPlayerBusy =
                 !IsApproachAllowed
                 || dialogue.IsTalking
-                || player.IsMovementLocked
+                || (player.IsMovementLocked && !IsPlayerWaiting)
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
@@ -166,7 +171,8 @@ namespace A305.Npc
             approach.Tick(
                 Now,
                 toPlayer.magnitude,
-                isPlayerBusy || cannotStartConversation || notReadyToOffer
+                isPlayerBusy || cannotStartConversation || notReadyToOffer,
+                IsPlayerWaiting
             );
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {

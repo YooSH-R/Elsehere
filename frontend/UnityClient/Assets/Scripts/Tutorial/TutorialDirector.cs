@@ -15,6 +15,7 @@ namespace A305.Tutorial
     /// <summary>
     /// 공간 씬마다 하나씩 두는 튜토리얼 진행 처리. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 튜토리얼 진행에 전하고,
     /// 단계에 맞게 안내 카드와 코치 마크, 행인이 다가와도 되는지, 장소 이동·택시 잠금, 미션 표시를 바꾼다.
+    /// 숙소를 나오면 Ben과 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둔다.
     /// 튜토리얼을 끝내면 서버에 저장하고(TUT-01·02), 저장하지 못했으면 다음 장소에 들어갈 때 다시 보낸다.
     /// </summary>
     public class TutorialDirector : MonoBehaviour
@@ -88,6 +89,7 @@ namespace A305.Tutorial
         private bool cardUsesTouch;
         private bool isHoldingForBen;
         private Passerby ben;
+        private Transform benFace;
         private SpaceDoorway exitDoor;
         private TaxiRide[] taxis;
         private readonly TutorialAutoAdvance autoAdvance = new TutorialAutoAdvance();
@@ -127,6 +129,7 @@ namespace A305.Tutorial
             }
 
             ben = FindBen();
+            benFace = ben != null ? ben.GetComponent<NpcIdentity>().LookTarget : null;
             exitDoor = FindExitDoor();
             taxis = FindInThisScene<TaxiRide>();
             if (gameObject.scene.name != guide.HomeSceneName)
@@ -176,7 +179,7 @@ namespace A305.Tutorial
         {
             progress.UsesTouch = PlayerTouchControls.ShouldShowControls();
             ReportActions();
-            HoldPlayerWhileBenOffers();
+            HoldPlayerForBen();
 
             // 첫날 미션 화면이 없으면 보여 줄 지도가 없으므로 오늘의 목표 안내를 바로 마친다.
             if (firstDayMission == null)
@@ -233,15 +236,23 @@ namespace A305.Tutorial
             }
         }
 
-        // 튜토리얼에서 Ben이 [대화하기]를 제안하면 답할 때까지 멀어지지 않게 이동을 잠근다.
-        // 다가오는 동안에는 잠그지 않는다(행인은 이동이 잠긴 플레이어를 바쁘다고 보고 다가오기를 멈춘다).
-        // 제안을 받으면 대화가 잠금을 이어받으므로, 대화 중이면 풀지 않는다.
-        private void HoldPlayerWhileBenOffers()
+        // 숙소를 나오면 다른 곳으로 걸어가지 않게 이동·시점을 잠그고, Ben을 바라보며 어깨 너머로 Ben을 비추는 구도로 붙잡아 둔다.
+        // Ben은 자기를 기다리느라 잠긴 플레이어에게 다가와 말을 건다. 대화 중에는 대화가 잠금과 시점을 맡고,
+        // 길 안내를 마치지 않고 대화를 끝내면 다시 붙잡는다. 단어장 같은 화면이 열려 있으면 Ben은 다가오지 않는다.
+        // 다른 화면이 잠금을 풀어도 다음 프레임에 다시 잠근다.
+        private void HoldPlayerForBen()
         {
             bool shouldHold =
                 progress.Step == TutorialStep.MeetBen
                 && ben != null
-                && ben.Phase == PasserbyPhase.Offering;
+                && benFace != null
+                && !SpaceTravel.IsTraveling;
+            PlayerCameraRig cameraRig = player.CameraRig;
+            if (ben != null)
+            {
+                ben.IsPlayerWaiting = shouldHold && !learning.IsShowingScreen;
+            }
+
             if (shouldHold)
             {
                 if (!player.IsMovementLocked)
@@ -249,12 +260,27 @@ namespace A305.Tutorial
                     player.SetMovementLocked(true);
                 }
 
+                if (!dialogue.IsTalking)
+                {
+                    player.FaceToward(ben.transform.position);
+                }
+
+                if (cameraRig != null && !cameraRig.IsInMeetingView)
+                {
+                    cameraRig.EnterMeetingView(benFace);
+                }
+
                 isHoldingForBen = true;
             }
             else if (isHoldingForBen)
             {
                 isHoldingForBen = false;
-                if (!dialogue.IsTalking && !SpaceTravel.IsTraveling)
+                if (cameraRig != null)
+                {
+                    cameraRig.ExitMeetingView();
+                }
+
+                if (!dialogue.IsTalking && !SpaceTravel.IsTraveling && !learning.IsShowingScreen)
                 {
                     player.SetMovementLocked(false);
                 }

@@ -77,7 +77,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.MeetBen,
                 "Ben 만나기",
-                "길을 헤매는 Ben에게 다가가 {대화하기}",
+                "길을 헤매는 Ben이 다가오면 {대화하기}",
                 "",
                 ""
             ),

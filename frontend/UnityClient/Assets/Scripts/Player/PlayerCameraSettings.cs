@@ -86,6 +86,22 @@ namespace A305.Player
         )]
         private Vector2 dialogueFacePosition = new Vector2(.64f, .66f);
 
+        [Header("다가오는 상대를 기다리는 구도")]
+        [SerializeField]
+        [Min(0.5f)]
+        [Tooltip("플레이어 눈에서 상대 반대쪽으로 물러난 수평 거리")]
+        private float meetingBackMeters = 2.2f;
+
+        [SerializeField]
+        [Tooltip(
+            "상대를 바라볼 때 오른쪽으로 비킨 거리. 플레이어 뒷모습은 화면 왼쪽에, 상대는 가운데에 보인다"
+        )]
+        private float meetingSideMeters = 0.7f;
+
+        [SerializeField]
+        [Tooltip("플레이어 눈보다 높은 정도")]
+        private float meetingHeightMeters = 0.35f;
+
         [Header("벽 충돌")]
         [SerializeField]
         [Min(0f)]
@@ -111,6 +127,12 @@ namespace A305.Player
         public float DialogueHeightOffsetMeters => dialogueHeightOffsetMeters;
 
         public Vector2 DialogueFacePosition => dialogueFacePosition;
+
+        public float MeetingBackMeters => meetingBackMeters;
+
+        public float MeetingSideMeters => meetingSideMeters;
+
+        public float MeetingHeightMeters => meetingHeightMeters;
 
         public float CollisionRadiusMeters => collisionRadiusMeters;
 

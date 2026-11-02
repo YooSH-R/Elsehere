@@ -44,7 +44,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | 조작 | 동작 |
 | --- | --- |
 | WASD·방향키, Shift, Space | 이동, 달리기, 점프 |
-| 마우스 왼쪽 버튼을 누른 채 이동 | 카메라 회전 |
+| 마우스 오른쪽 버튼을 누른 채 이동 | 카메라 회전. 왼쪽 클릭은 사물 카드 고정에 씁니다. Web 빌드는 게임 화면에서 브라우저의 오른쪽 클릭 메뉴를 띄우지 않습니다(`WebGLTemplates/A305Responsive`). |
 | 마우스 휠 | 3인칭 거리 조절 |
 | V | 1인칭·3인칭 전환 |
 | T | `DialogueTarget`을 바라보는 대화 시점과 이동 잠금 전환 |
@@ -86,7 +86,7 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `Player/Sprint` | Button | `PlayerMover` |
 | `Player/Jump` | Button | `PlayerMover` |
 | `Player/Look` | Value · Vector2(마우스 이동량) | `PlayerCameraRig` |
-| `Player/CameraRotate` | Button | `PlayerCameraRig`. 누르고 있는 동안 회전 |
+| `Player/CameraRotate` | Button(마우스 오른쪽 버튼) | `PlayerCameraRig`. 누르고 있는 동안 회전 |
 | `Player/CameraZoom` | Value · Axis(마우스 휠 Y) | `PlayerCameraRig` |
 | `Player/ToggleView` | Button | `PlayerCameraRig`. 1인칭·3인칭 전환 |
 
@@ -111,4 +111,4 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 
 ## 테스트
 
-`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리를 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.
+`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리, 프로젝트 입력 액션의 시점 회전 버튼(`PlayerInputActionsTests`)을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.

@@ -130,6 +130,19 @@ namespace A305.ObjectHover.Tests
             AssertPosition(new Vector2(240f, 250f), bottomLeft);
         }
 
+        // 캐릭터 옆 바닥처럼 포인터가 캐릭터 영역 안에 있으면 포인터 둘레 네 자리가 모두 캐릭터와 겹친다.
+        // 이때는 덜 덮는 자리를 고르지 않고 캐릭터 바깥 자리에 둔다.
+        [Test]
+        public void PlaceAround_PointerInsideCharacter_PlacesOutsideTheCharacter()
+        {
+            Vector2 pointer = new Vector2(600f, 300f);
+            Rect character = new Rect(300f, 100f, 380f, 450f);
+
+            Vector2 bottomLeft = PlaceAround(pointer, new Rect(pointer, Vector2.zero), character);
+
+            Assert.That(new Rect(bottomLeft, TooltipSize).Overlaps(character), Is.False);
+        }
+
         [Test]
         public void PlaceAround_NearTop_PlacesBelowInsteadOfCoveringPointer()
         {

@@ -287,11 +287,27 @@ namespace A305.EditorTools.Onboarding
                 20f,
                 BadgeColor
             );
+            // 로그인하기 전에도 약관을 볼 수 있게 창 맨 아래에 링크를 둔다. 모양은 UiThemeBuilder가 차분한 글자 버튼으로 칠한다.
+            RectTransform legalLinks = UiBuilderTools.FindOrCreateButtonRow(panel, "LegalLinks");
+            Button terms = UiBuilderTools.FindOrCreateButton(
+                legalLinks,
+                "TermsButton",
+                "이용약관",
+                regular
+            );
+            Button privacy = UiBuilderTools.FindOrCreateButton(
+                legalLinks,
+                "PrivacyButton",
+                "개인정보 처리방침",
+                regular
+            );
 
             BuilderTools.SetReference(view, "googleButton", google);
             BuilderTools.SetReference(view, "guestButton", guest);
             BuilderTools.SetReference(view, "devLoginButton", devLogin);
             BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.SetReference(view, "termsButton", terms);
+            BuilderTools.SetReference(view, "privacyButton", privacy);
             BuilderTools.RequireReferences(view);
             return view;
         }
@@ -332,7 +348,7 @@ namespace A305.EditorTools.Onboarding
                 regular,
                 20f,
                 SubTextColor,
-                "닉네임은 자동으로 정해져요. 게스트는 NPC와 대화할 수 있는 횟수가 정해져 있어요."
+                GuestPanelText.Note(null)
             );
             ConsentRowView voiceConsent = SetUpConsentRow(panel, "VoiceConsentRow", regular);
             TMP_Text voiceNote = UiBuilderTools.FindOrCreateText(
@@ -364,6 +380,7 @@ namespace A305.EditorTools.Onboarding
 
             BuilderTools.SetReference(view, "femaleButton", female);
             BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "noteText", note);
             BuilderTools.SetReference(view, "voiceConsentRow", voiceConsent);
             BuilderTools.SetReference(view, "startButton", start);
             BuilderTools.SetReference(view, "backButton", back);

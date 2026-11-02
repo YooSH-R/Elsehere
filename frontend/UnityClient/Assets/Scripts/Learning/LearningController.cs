@@ -97,6 +97,7 @@ namespace A305.Learning
             vocabularyView.LearnedToggleRequested += ToggleLearned;
             vocabularyView.DeleteRequested += Delete;
             vocabularyView.MemoSaveRequested += SaveMemo;
+            vocabularyView.RetryRequested += RetryVocabulary;
             hudView.VocabularyRequested += OpenVocabulary;
             hudView.HistoryRequested += OpenHistory;
             hudView.HomeRequested += ReturnHome;
@@ -336,10 +337,16 @@ namespace A305.Learning
                 return;
             }
 
+            // 읽기를 먼저 시작해 열자마자 '불러오는 중'이나 지난번 목록이 보이게 한다. 받기 전의 빈 목록을 '단어 없음'으로 보이지 않는다.
+            Task loading = LoadVocabularyAsync();
             vocabularyView.Show(vocabulary);
-            vocabularyView.ShowStatus("단어장을 불러오는 중이에요…");
+            // 지난번 목록을 보이는 동안에만 아래에 새로 읽는 중임을 알린다. 목록이 없으면 가운데 안내가 같은 말을 한다.
+            if (!loading.IsCompleted && vocabulary.ListState == VocabularyListState.Entries)
+            {
+                vocabularyView.ShowStatus("단어장을 불러오는 중이에요…");
+            }
+
             UpdateMovementLock();
-            _ = LoadVocabularyAsync();
         }
 
         // 다른 기기나 이전 접속에서 바뀐 내용도 보이도록 단어장을 열 때마다 서버에서 다시 읽는다.
@@ -355,8 +362,19 @@ namespace A305.Learning
             if (vocabularyView.IsVisible)
             {
                 vocabularyView.Refresh();
-                vocabularyView.ShowStatus(loaded ? "" : vocabulary.LastFailureMessage);
+                // 목록이 없을 때의 실패는 가운데 [다시 시도]와 함께 보이므로 아래 안내에는 쓰지 않는다.
+                bool showsFailureInCenter = vocabulary.ListState == VocabularyListState.Failed;
+                vocabularyView.ShowStatus(
+                    loaded || showsFailureInCenter ? "" : vocabulary.LastFailureMessage
+                );
             }
+        }
+
+        // 단어장을 불러오지 못한 화면의 [다시 시도]. 다시 읽는 동안 가운데에 '불러오는 중'을 보인다.
+        private void RetryVocabulary()
+        {
+            _ = LoadVocabularyAsync();
+            vocabularyView.Refresh();
         }
 
         private void CloseVocabulary()

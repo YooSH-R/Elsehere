@@ -279,7 +279,7 @@
       "properties": {
         "from": { "$ref": "#/$defs/Clock" },
         "to": { "$ref": "#/$defs/Clock", "description": "from보다 이르면 자정을 넘긴다. 같으면 하루 전체." },
-        "activity": { "type": "string", "enum": ["WORK", "BREAK", "FREE", "OFF"], "description": "OFF는 퇴근해 마을에 없음." }
+        "activity": { "type": "string", "enum": ["WORK", "BREAK", "FREE", "OFF"], "description": "OFF는 근무 밖 시간. 하루 시뮬레이션은 이 시간을 세지 않고 다음 일과를 욕구 시작값에서 시작하며, Unity는 NPC를 자기 장소에 두고 자유 시간처럼 쉬게 한다." }
       }
     },
     "ConnectionRule": {

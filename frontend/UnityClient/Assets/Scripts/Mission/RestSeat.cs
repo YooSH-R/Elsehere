@@ -9,8 +9,9 @@ namespace A305.Mission
 {
     /// <summary>
     /// 의자·벤치·소파의 한 자리. 플레이어에게 가장 가까운 자리 앞에서 앉기 제안을 띄우고 잠깐 쉰 뒤 일으킨다.
+    /// NPC도 쉬는 동안 앉으며(<see cref="INpcSeat"/>), NPC가 앉은 자리는 플레이어에게 권하지 않는다.
     /// </summary>
-    public sealed class RestSeat : MonoBehaviour
+    public sealed class RestSeat : MonoBehaviour, INpcSeat
     {
         private const float InteractionDistanceMeters = 1.55f;
         private const float RestSeconds = 3f;
@@ -18,6 +19,7 @@ namespace A305.Mission
         // 켜져 있는 모든 자리. 붙어 있는 자리 중 가장 가까운 자리 하나에만 제안을 띄울 때 비교한다.
         private static readonly List<RestSeat> EnabledSeats = new List<RestSeat>();
         private static readonly List<Vector3> EnabledSeatPositions = new List<Vector3>();
+        private static readonly List<RestSeat> FreeSeats = new List<RestSeat>();
 
         [SerializeField]
         private PlayerMover player;
@@ -45,14 +47,36 @@ namespace A305.Mission
         // 카페에서는 첫날 미션이 요청 중에 막는다. 다른 장소의 자리는 미션과 상관없이 열려 있다.
         private bool available = true;
         private bool resting;
+        private UnityEngine.Object npcSitter;
 
         public event Action RestCompleted;
+
+        public Transform SeatPoint => transform;
+        public float CushionTopMeters => cushionTopMeters;
+        public float FrontEdgeMeters => frontEdgeMeters;
+        public bool IsTaken => resting || npcSitter != null;
+
+        public bool TryTake(UnityEngine.Object npc)
+        {
+            if (IsTaken)
+                return false;
+            npcSitter = npc;
+            if (offerView != null)
+                offerView.HideTalkPrompt(this);
+            return true;
+        }
+
+        public void Release(UnityEngine.Object npc)
+        {
+            if (npcSitter == npc)
+                npcSitter = null;
+        }
 
         public void SetAvailable(bool value)
         {
             available = value;
-            if (!available)
-                offerView?.HideTalkPrompt(this);
+            if (!available && offerView != null)
+                offerView.HideTalkPrompt(this);
         }
 
         private void Awake()
@@ -85,7 +109,7 @@ namespace A305.Mission
                 return;
             }
 
-            if (!available)
+            if (!available || npcSitter != null)
             {
                 offerView.HideTalkPrompt(this);
                 return;
@@ -107,21 +131,28 @@ namespace A305.Mission
 
         private bool IsNearestSeatToPlayer()
         {
+            // NPC가 앉은 자리는 빼고, 남은 자리 중 가장 가까운 자리에 권한다.
+            FreeSeats.Clear();
             EnabledSeatPositions.Clear();
             foreach (RestSeat seat in EnabledSeats)
+            {
+                if (seat.npcSitter != null)
+                    continue;
+                FreeSeats.Add(seat);
                 EnabledSeatPositions.Add(seat.transform.position);
+            }
             int nearest = RestSeatPicker.Nearest(
                 player.transform.position,
                 EnabledSeatPositions,
                 InteractionDistanceMeters
             );
-            return nearest >= 0 && EnabledSeats[nearest] == this;
+            return nearest >= 0 && FreeSeats[nearest] == this;
         }
 
         private void Sit()
         {
             offerView.HideTalkPrompt(this);
-            if (!available)
+            if (!available || npcSitter != null)
                 return;
             if (!pose.Sit(transform, cushionTopMeters, frontEdgeMeters))
                 return;
@@ -132,10 +163,11 @@ namespace A305.Mission
         private void OnDisable()
         {
             EnabledSeats.Remove(this);
-            offerView?.HideTalkPrompt(this);
+            if (offerView != null)
+                offerView.HideTalkPrompt(this);
             timer.Cancel();
-            if (resting)
-                pose?.Stand();
+            if (resting && pose != null)
+                pose.Stand();
             resting = false;
         }
     }

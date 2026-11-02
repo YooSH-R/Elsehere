@@ -383,7 +383,7 @@ class NpcAudioRetentionTest {
             .map(StoredAudio::modifiedAt)
             .findFirst()
             .orElse(NOW);
-    Turn turn = Turn.npc(conversation, seq, "Hi! What can I get for you?", null, key, createdAt);
+    Turn turn = Turn.npc(conversation, seq, "Hi! What can I get for you?", key, createdAt);
     entityManager.persist(turn);
     entityManager.flush();
     return turn;

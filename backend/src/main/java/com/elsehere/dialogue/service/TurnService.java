@@ -125,7 +125,6 @@ public class TurnService {
             judge.text(),
             instruction,
             context.level(),
-            !leaving,
             context.learner());
     aiRequestRecorder.record(
         trace,
@@ -173,13 +172,7 @@ public class TurnService {
           }
           Turn npcTurn =
               turnRepository.save(
-                  Turn.npc(
-                      conversation,
-                      lastSeq + 2,
-                      reply.text(),
-                      support.writeWords(reply.suggestWords()),
-                      npcAudioKey,
-                      clock.instant()));
+                  Turn.npc(conversation, lastSeq + 2, reply.text(), npcAudioKey, clock.instant()));
           if (!rude) {
             mission.ifPresent(
                 value ->

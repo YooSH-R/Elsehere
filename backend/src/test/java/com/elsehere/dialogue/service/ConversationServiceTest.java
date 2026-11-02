@@ -6,7 +6,6 @@ import static com.elsehere.conversation.DialogueTestData.usage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -105,7 +104,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Hi! What can I get for you?", "audio-1", List.of("latte", "iced")));
+        .willReturn(reply("Hi! What can I get for you?", "audio-1"));
     given(aiWorkerClient.audio(any(), eq("audio-1"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
@@ -119,7 +118,7 @@ class ConversationServiceTest {
     assertThat(response.npc().name()).isEqualTo("Mia");
     assertThat(response.openingTurn().seq()).isEqualTo(1);
     assertThat(response.openingTurn().text()).isEqualTo("Hi! What can I get for you?");
-    assertThat(response.openingTurn().suggestWords()).containsExactly("latte", "iced");
+    assertThat(response.openingTurn().suggestWords()).isNull();
     assertThat(response.openingTurn().speech().status()).isEqualTo(SpeechStatus.READY);
     assertThat(speechService.npcSpeech(userId, response.openingTurn().turnId())).isEqualTo(WAV);
     assertThat(
@@ -139,7 +138,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Where are you headed?", null, null));
+        .willReturn(reply("Where are you headed?", null));
 
     conversationService.start(
         userId, new StartConversationRequest(UUID.randomUUID(), "TAXI_DRIVER", InitiatedBy.USER));
@@ -168,7 +167,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Good morning! How can I help you?", null, null));
+        .willReturn(reply("Good morning! How can I help you?", null));
 
     conversationService.start(
         userId, new StartConversationRequest(UUID.randomUUID(), "HOTEL_STAFF", InitiatedBy.USER));
@@ -245,7 +244,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Hi!", "audio-1", null));
+        .willReturn(reply("Hi!", "audio-1"));
     given(aiWorkerClient.audio(any(), eq("audio-1")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
@@ -264,7 +263,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(new NpcReply(null, null, null, "provider_limit", List.of(usage("npc"))));
+        .willReturn(new NpcReply(null, null, "provider_limit", List.of(usage("npc"))));
     UUID requestId = UUID.randomUUID();
 
     assertThatThrownBy(
@@ -312,7 +311,7 @@ class ConversationServiceTest {
         .willAnswer(
             invocation -> {
               startPasserby();
-              return reply("Hi! What can I get for you?", null, null);
+              return reply("Hi! What can I get for you?", null);
             });
 
     assertThatThrownBy(this::startCafe)
@@ -338,7 +337,7 @@ class ConversationServiceTest {
         .willAnswer(
             invocation -> {
               startAndEndPasserby(guestId);
-              return reply("Hi! What can I get for you?", null, null);
+              return reply("Hi! What can I get for you?", null);
             });
 
     assertThatThrownBy(
@@ -509,7 +508,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Hi!", null, null));
+        .willReturn(reply("Hi!", null));
 
     startCafe();
 
@@ -526,7 +525,7 @@ class ConversationServiceTest {
     given(
             aiWorkerClient.reply(
                 any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
-        .willReturn(reply("Hi!", null, null));
+        .willReturn(reply("Hi!", null));
     given(aiWorkerClient.feedback(any(), any()))
         .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
     given(aiWorkerClient.memoryCard(any(), any(), anyString(), any(), any()))
@@ -616,10 +615,8 @@ class ConversationServiceTest {
         .willReturn(new JudgeResult(text, false, null, null, List.of(usage("judge"))));
     given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
         .willReturn(new GuardResult(new GuardResult.Guard(false, null), List.of(usage("guard"))));
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean(), any()))
-        .willReturn(reply("Nice!", null, null));
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt(), any()))
+        .willReturn(reply("Nice!", null));
     turnService.send(
         userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, text, null));
   }

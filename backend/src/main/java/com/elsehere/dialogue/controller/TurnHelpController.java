@@ -3,6 +3,7 @@ package com.elsehere.dialogue.controller;
 import com.elsehere.common.auth.LoginUser;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
+import com.elsehere.dialogue.dto.SuggestWordsResponse;
 import com.elsehere.dialogue.dto.TurnHelpRequest;
 import com.elsehere.dialogue.service.TurnHelpService;
 import jakarta.validation.Valid;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/** NPC 대사 뜻 보기(CONV-04)와 힌트(CONV-05). */
+/** NPC 대사 뜻 보기(CONV-04), 힌트(CONV-05), 추천 단어(CONV-12). */
 @RestController
 @RequiredArgsConstructor
 public class TurnHelpController {
@@ -34,5 +35,13 @@ public class TurnHelpController {
       @PathVariable Long turnId,
       @Valid @RequestBody TurnHelpRequest request) {
     return turnHelpService.hint(loginUser.userId(), turnId, request.requestId());
+  }
+
+  @PostMapping("/api/v1/turns/{turnId}/suggest-words")
+  public SuggestWordsResponse suggestWords(
+      @AuthenticationPrincipal LoginUser loginUser,
+      @PathVariable Long turnId,
+      @Valid @RequestBody TurnHelpRequest request) {
+    return turnHelpService.suggestWords(loginUser.userId(), turnId, request.requestId());
   }
 }

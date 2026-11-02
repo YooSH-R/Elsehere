@@ -239,7 +239,10 @@ namespace A305.Dialogue
                     )
             );
             ShowWait(content.Waiting);
-            suggestText.text = DialogueHelpText.Words(content.SuggestWords);
+            suggestText.text = DialogueHelpText.Words(
+                content.SuggestWords,
+                content.IsSuggestingWords
+            );
             string sentence = DialogueHelpText.Sentence(content.HintText, content.ExampleSentence);
             hintText.text = string.IsNullOrEmpty(sentence)
                 ? "[힌트]를 누르면 추천 문장을 볼 수 있어요."

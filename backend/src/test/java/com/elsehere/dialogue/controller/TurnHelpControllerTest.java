@@ -12,6 +12,7 @@ import com.elsehere.common.config.SecuredWebMvcTest;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
+import com.elsehere.dialogue.dto.SuggestWordsResponse;
 import com.elsehere.dialogue.service.TurnHelpService;
 import java.util.List;
 import java.util.UUID;
@@ -66,9 +67,27 @@ class TurnHelpControllerTest {
   }
 
   @Test
-  @DisplayName("뜻 보기·힌트 요청에 requestId가 없으면 400 VALIDATION_FAILED다")
+  @DisplayName("POST /api/v1/turns/{turnId}/suggest-words는 추천 단어를 돌려준다")
+  void suggestWords_respondsWords() throws Exception {
+    given(turnHelpService.suggestWords(1L, 12L, REQUEST_ID))
+        .willReturn(new SuggestWordsResponse(12L, List.of("for here", "to go")));
+
+    mockMvc
+        .perform(withRequestId(post("/api/v1/turns/12/suggest-words")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.turnId").value(12))
+        .andExpect(jsonPath("$.suggestWords[0]").value("for here"))
+        .andExpect(jsonPath("$.suggestWords[1]").value("to go"));
+  }
+
+  @Test
+  @DisplayName("뜻 보기·힌트·추천 단어 요청에 requestId가 없으면 400 VALIDATION_FAILED다")
   void help_withoutRequestId_isRejected() throws Exception {
-    for (String path : List.of("/api/v1/turns/12/meaning", "/api/v1/turns/12/hint")) {
+    for (String path :
+        List.of(
+            "/api/v1/turns/12/meaning",
+            "/api/v1/turns/12/hint",
+            "/api/v1/turns/12/suggest-words")) {
       mockMvc
           .perform(
               post(path)

@@ -3,7 +3,6 @@ package com.elsehere.dialogue.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -47,12 +46,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 class FirstDayTurnTest {
 
   private static final NpcReply SAVED_REPLY =
-      new NpcReply(
-          "Your suitcase is safe. The cafe is across the street.",
-          null,
-          List.of(),
-          null,
-          List.of());
+      new NpcReply("Your suitcase is safe. The cafe is across the street.", null, null, List.of());
 
   private final FirstDayMission mission = FirstDayMission.start(8L);
   private final AiWorkerClient worker = mock(AiWorkerClient.class);
@@ -120,8 +114,8 @@ class FirstDayTurnTest {
   @Test
   void onlySuccessfulSavedReplyAppliesRecognizedGoals() {
     guards(false);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean(), any()))
-        .thenReturn(new NpcReply(null, null, null, "timeout", List.of()))
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+        .thenReturn(new NpcReply(null, null, "timeout", List.of()))
         .thenReturn(SAVED_REPLY);
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);
@@ -133,7 +127,7 @@ class FirstDayTurnTest {
   @Test
   void rudeTurnDoesNotApplyRecognizedGoals() {
     guards(true);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean(), any()))
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
@@ -145,24 +139,14 @@ class FirstDayTurnTest {
   void hotelTurnDuringCafeStageSendsOnlyDirectionsToWorkerAndDoesNotAdvance() {
     mission.accept(0, "HOTEL_STAFF", FirstDayStage.EARLY_ARRIVAL.intentIds());
     guards(false);
-    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), anyBoolean(), any()))
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
         .thenReturn(SAVED_REPLY);
 
     service.send(
         8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Where is the cafe?", null));
 
     ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
-    verify(worker)
-        .reply(
-            any(),
-            any(),
-            any(),
-            any(),
-            any(),
-            instruction.capture(),
-            anyInt(),
-            anyBoolean(),
-            any());
+    verify(worker).reply(any(), any(), any(), any(), any(), instruction.capture(), anyInt(), any());
     assertThat(instruction.getValue())
         .contains("Corner Cafe", "Stay in your own role")
         .doesNotContain("Offer drinks");

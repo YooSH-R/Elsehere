@@ -52,9 +52,115 @@ namespace A305.ObjectHover.Tests
             AssertPosition(new Vector2(400f, 20f), bottomLeft);
         }
 
+        [Test]
+        public void PlaceAround_PointerOnly_PlacesAbovePointer()
+        {
+            Vector2 pointer = new Vector2(500f, 300f);
+
+            Vector2 bottomLeft = PlaceAround(pointer, new Rect(pointer, Vector2.zero));
+
+            AssertPosition(new Vector2(400f, 310f), bottomLeft);
+        }
+
+        [Test]
+        public void PlaceAround_PointedArea_PlacesAboveItsTopFollowingPointer()
+        {
+            Vector2 bottomLeft = PlaceAround(
+                new Vector2(480f, 300f),
+                new Rect(420f, 250f, 160f, 120f)
+            );
+
+            AssertPosition(new Vector2(380f, 380f), bottomLeft);
+        }
+
+        [Test]
+        public void PlaceAround_AboveCovered_PlacesBelow()
+        {
+            Vector2 pointer = new Vector2(500f, 300f);
+
+            Vector2 bottomLeft = PlaceAround(
+                pointer,
+                new Rect(pointer, Vector2.zero),
+                new Rect(0f, 400f, 1000f, 400f)
+            );
+
+            AssertPosition(new Vector2(400f, 190f), bottomLeft);
+        }
+
+        [Test]
+        public void PlaceAround_AboveAndBelowCovered_PlacesRight()
+        {
+            Vector2 bottomLeft = PlaceAround(
+                new Vector2(500f, 300f),
+                PointedBox,
+                AboveBox,
+                BelowBox
+            );
+
+            AssertPosition(new Vector2(560f, 250f), bottomLeft);
+        }
+
+        [Test]
+        public void PlaceAround_OnlyLeftFree_PlacesLeft()
+        {
+            Vector2 bottomLeft = PlaceAround(
+                new Vector2(500f, 300f),
+                PointedBox,
+                AboveBox,
+                BelowBox,
+                new Rect(560f, 0f, 440f, 800f)
+            );
+
+            AssertPosition(new Vector2(240f, 250f), bottomLeft);
+        }
+
+        [Test]
+        public void PlaceAround_EverySideCovered_PicksLeastCovered()
+        {
+            // 왼쪽 자리만 왼쪽 가장자리 10px 폭과 겹쳐 가장 적게 가린다.
+            Vector2 bottomLeft = PlaceAround(
+                new Vector2(500f, 300f),
+                PointedBox,
+                AboveBox,
+                BelowBox,
+                new Rect(560f, 0f, 440f, 800f),
+                new Rect(0f, 0f, 250f, 800f)
+            );
+
+            AssertPosition(new Vector2(240f, 250f), bottomLeft);
+        }
+
+        [Test]
+        public void PlaceAround_NearTop_PlacesBelowInsteadOfCoveringPointer()
+        {
+            Vector2 pointer = new Vector2(500f, 750f);
+
+            Vector2 bottomLeft = PlaceAround(pointer, new Rect(pointer, Vector2.zero));
+
+            AssertPosition(new Vector2(400f, 640f), bottomLeft);
+        }
+
+        // 가리킨 사물(450~550, 250~350)과 그 위·아래를 막는 영역
+        private static readonly Rect PointedBox = new Rect(450f, 250f, 100f, 100f);
+        private static readonly Rect AboveBox = new Rect(0f, 360f, 1000f, 440f);
+        private static readonly Rect BelowBox = new Rect(0f, 0f, 1000f, 240f);
+
         private static Vector2 Place(Vector2 anchor)
         {
             return TooltipPlacement.PlaceAbove(anchor, TooltipSize, CanvasSize, Gap, Margin);
+        }
+
+        private static Vector2 PlaceAround(Vector2 pointer, Rect pointedArea, params Rect[] avoid)
+        {
+            return TooltipPlacement.PlaceAround(
+                pointer,
+                pointedArea,
+                TooltipSize,
+                CanvasSize,
+                Gap,
+                Margin,
+                avoid
+            );
         }
 
         private static void AssertPosition(Vector2 expected, Vector2 actual)

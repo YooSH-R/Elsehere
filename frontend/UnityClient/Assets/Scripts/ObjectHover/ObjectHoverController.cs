@@ -18,6 +18,9 @@ namespace A305.ObjectHover
     /// </summary>
     public class ObjectHoverController : MonoBehaviour
     {
+        // 화면 가로나 세로를 이 비율보다 넓게 차지하는 사물은 카드가 피할 수 없다고 본다.
+        private const float LargeObjectScreenShare = .5f;
+
         [SerializeField]
         private ObjectHoverSettings settings;
 
@@ -56,9 +59,9 @@ namespace A305.ObjectHover
         // 고정한 카드의 사물 위치. 플레이어가 이보다 최대 거리 넘게 멀어지면 고정을 푼다.
         private Vector3 pinnedPosition;
 
-        // 고정한 카드의 단어 키와 클릭한 화면 좌표. 카드 버튼을 누른 뒤 같은 자리에 다시 그린다.
+        // 고정한 카드의 단어 키와 클릭할 때의 카드 자리 기준. 카드 버튼을 누른 뒤 같은 자리에 다시 그린다.
         private string pinnedWordKey;
-        private Vector2 pinnedAnchor;
+        private CardAnchor pinnedAnchor;
 
         // 사물 클릭을 판단하려고 누른 자리를 기억한다. UI 위에서 눌렀으면 비운다.
         private Vector2? pressedAt;
@@ -66,6 +69,9 @@ namespace A305.ObjectHover
         // 포인터 아래 UI를 찾는 데 매 프레임 다시 쓴다.
         private PointerEventData uiPointer;
         private readonly List<RaycastResult> uiHits = new List<RaycastResult>();
+
+        // 사물·캐릭터의 화면 영역을 구하는 데 매 프레임 다시 쓴다.
+        private readonly List<Renderer> renderers = new List<Renderer>();
 
         /// <summary>
         /// 포인터 위치를 클릭했다. 단어가 있는 가까운 사물이면 그 카드를 클릭한 자리에 고정하고, 아니면 고정을 푼다.
@@ -98,7 +104,7 @@ namespace A305.ObjectHover
             }
 
             pinnedWordKey = WordKeyOf(target, definition);
-            pinnedAnchor = pointerScreenPosition;
+            pinnedAnchor = AnchorFor(target, pointerScreenPosition);
             pinnedPosition = pointedPosition;
             state.Pin(pinnedWordKey);
             tooltip.ShowPinned(word, pinnedAnchor, settings, PinnedButtons());
@@ -110,6 +116,8 @@ namespace A305.ObjectHover
             if (state.IsPinned)
             {
                 KeepOrClosePinnedCard();
+                // 고정한 뒤 열린 창(수첩·가이드 등)에 가려지지 않게 자리를 다시 정한다.
+                tooltip.UpdatePlacement();
                 return;
             }
 
@@ -138,7 +146,8 @@ namespace A305.ObjectHover
                     IsUiAt(pointerScreenPosition),
                     player.IsMoving,
                     player.IsMovementLocked,
-                    distance <= settings.MaxDistanceMeters
+                    distance <= settings.MaxDistanceMeters,
+                    PlayerTouchControls.ShouldShowControls()
                 )
                 && (cards == null || cards.CanHover(wordKey))
                 && TryGetWord(target, definition, out word);
@@ -151,7 +160,7 @@ namespace A305.ObjectHover
                 return;
             }
 
-            tooltip.Show(word, pointerScreenPosition, settings);
+            tooltip.Show(word, AnchorFor(target, pointerScreenPosition), settings);
         }
 
         private void Awake()
@@ -422,6 +431,75 @@ namespace A305.ObjectHover
             }
 
             return target != null ? target.UnityKey : null;
+        }
+
+        /// <summary>
+        /// 카드를 둘 자리 기준. 가리킨 사물과 캐릭터의 화면 영역을 함께 넘겨 카드가 덮지 않게 한다.
+        /// 바닥·벽처럼 화면을 넓게 차지하는 사물은 덮지 않을 수 없으므로 포인터 한 점만 피한다.
+        /// </summary>
+        private CardAnchor AnchorFor(HoverableObject target, Vector2 pointerScreenPosition)
+        {
+            Rect screen = viewCamera.pixelRect;
+            Rect pointedArea =
+                ScreenAreaOf(target) is Rect area
+                && area.width <= screen.width * LargeObjectScreenShare
+                && area.height <= screen.height * LargeObjectScreenShare
+                    ? area
+                    : new Rect(pointerScreenPosition, Vector2.zero);
+            return new CardAnchor(pointerScreenPosition, pointedArea, ScreenAreaOf(player));
+        }
+
+        /// <summary>보이는 Renderer를 감싸는 상자를 화면에 비춘 영역(픽셀). Renderer가 없거나 상자 일부가 카메라 뒤에 있으면 없다.</summary>
+        private Rect? ScreenAreaOf(Component root)
+        {
+            root.GetComponentsInChildren(renderers);
+            Bounds? visible = null;
+            foreach (Renderer renderer in renderers)
+            {
+                if (
+                    !renderer.enabled
+                    || !(renderer is MeshRenderer || renderer is SkinnedMeshRenderer)
+                )
+                {
+                    continue;
+                }
+
+                Bounds bounds = renderer.bounds;
+                if (visible.HasValue)
+                {
+                    bounds.Encapsulate(visible.Value);
+                }
+
+                visible = bounds;
+            }
+
+            if (!visible.HasValue)
+            {
+                return null;
+            }
+
+            Vector3 min = visible.Value.min;
+            Vector3 max = visible.Value.max;
+            Vector2 screenMin = Vector2.positiveInfinity;
+            Vector2 screenMax = Vector2.negativeInfinity;
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 corner = new Vector3(
+                    (i & 1) == 0 ? min.x : max.x,
+                    (i & 2) == 0 ? min.y : max.y,
+                    (i & 4) == 0 ? min.z : max.z
+                );
+                Vector3 onScreen = viewCamera.WorldToScreenPoint(corner);
+                if (onScreen.z <= viewCamera.nearClipPlane)
+                {
+                    return null;
+                }
+
+                screenMin = Vector2.Min(screenMin, onScreen);
+                screenMax = Vector2.Max(screenMax, onScreen);
+            }
+
+            return Rect.MinMaxRect(screenMin.x, screenMin.y, screenMax.x, screenMax.y);
         }
 
         /// <summary>포인터 방향의 가장 가까운 물체가 호버 사물이면 돌려준다. 플레이어 자신은 가리지 않는다.</summary>

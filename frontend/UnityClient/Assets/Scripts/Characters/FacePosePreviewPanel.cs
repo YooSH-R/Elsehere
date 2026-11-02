@@ -57,14 +57,19 @@ namespace A305.Characters
                 GUI.skin.box
             );
             GUILayout.Label("Little Mung - Face Preview");
-            GUILayout.Label("10 speech mouths + smile / blink");
+            GUILayout.Label("Unavailable poses are disabled");
             scroll = GUILayout.BeginScrollView(scroll, GUILayout.ExpandHeight(true));
             foreach (var option in Options)
+            {
+                bool enabled = GUI.enabled;
+                GUI.enabled = enabled && face.SupportsPose(option.Pose);
                 if (GUILayout.Button(option.Label, GUILayout.Height(26)))
                 {
                     pose = option.Pose;
                     face.SetPose(pose, intensity);
                 }
+                GUI.enabled = enabled;
+            }
             GUILayout.EndScrollView();
             GUILayout.Label("Strength: " + Mathf.RoundToInt(intensity * 100) + "%");
             float value = GUILayout.HorizontalSlider(intensity, 0, 1);

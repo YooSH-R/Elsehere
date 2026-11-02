@@ -33,12 +33,20 @@ namespace A305.Npc
         private bool canDecline = true;
 
         [SerializeField]
+        [Tooltip(
+            "하루(기기 날짜)에 한 번만 먼저 다가온다. 그날 이미 말을 걸었으면 플레이어가 먼저 말을 거는 것만 받는다."
+        )]
+        private bool approachesOncePerDay;
+
+        [SerializeField]
         [Min(0f)]
         private float walkSpeedMetersPerSecond = 1.6f;
 
         [SerializeField]
         [Min(0f)]
         private float turnSpeedDegreesPerSecond = 540f;
+
+        public bool ApproachesOncePerDay => approachesOncePerDay;
 
         public float WalkSpeedMetersPerSecond => walkSpeedMetersPerSecond;
 

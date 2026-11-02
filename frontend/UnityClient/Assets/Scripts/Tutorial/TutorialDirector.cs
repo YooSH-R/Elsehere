@@ -488,10 +488,6 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.Ben:
                     coachMark.Hide();
                     break;
-                case TutorialCoachTarget.GuidedLine:
-                    // 티칭을 다 본 뒤 대사를 할 때는 대사를 읽으며 해야 하므로 둘레를 어둡게 덮지 않고 테두리로만 밝힌다.
-                    coachMark.ShowSpotlight(SpotlightParts(target), caption, dimsOutside: false);
-                    break;
                 default:
                     // 대화 시작·대화 노트 티칭은 하나씩 어둡게 밝혀 볼 곳을 알리고 [다음]으로 넘긴다.
                     coachMark.ShowSpotlight(
@@ -561,7 +557,10 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.DialogueTools:
                     return dialoguePanel.ToolParts;
                 case TutorialCoachTarget.GuidedLine:
-                    return dialoguePanel.GuidedLineParts;
+                    // 대사를 읽으며 말해야 하므로 대사 칸도 함께 밝혀, 둘레를 덮어도 대사가 그대로 보이게 한다.
+                    var parts = new List<RectTransform> { dialoguePanel.LinesRect };
+                    parts.AddRange(dialoguePanel.GuidedLineParts);
+                    return parts;
                 case TutorialCoachTarget.SuggestedSentence:
                     return new[] { dialoguePanel.SuggestedSentenceRect };
                 case TutorialCoachTarget.SuggestedWords:

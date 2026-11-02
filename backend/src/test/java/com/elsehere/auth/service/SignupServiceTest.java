@@ -110,7 +110,7 @@ class SignupServiceTest {
         .extracting(UserConsent::getConsentType, UserConsent::getVersion, UserConsent::getAgreedAt)
         .containsExactlyInAnyOrder(
             tuple(ConsentType.TERMS, "2026-10", NOW),
-            tuple(ConsentType.PRIVACY, "2026-10", NOW),
+            tuple(ConsentType.PRIVACY, "2026-11", NOW),
             tuple(ConsentType.AGE14, "2026-10", NOW));
   }
 
@@ -132,7 +132,7 @@ class SignupServiceTest {
     List<ConsentAgreement> withoutAge14 =
         List.of(
             new ConsentAgreement(ConsentType.TERMS, "2026-10"),
-            new ConsentAgreement(ConsentType.PRIVACY, "2026-10"));
+            new ConsentAgreement(ConsentType.PRIVACY, "2026-11"));
 
     assertThatThrownBy(() -> signupService.signUp(PENDING, request(withoutAge14)))
         .isInstanceOfSatisfying(
@@ -151,7 +151,7 @@ class SignupServiceTest {
     List<ConsentAgreement> outdatedTerms =
         List.of(
             new ConsentAgreement(ConsentType.TERMS, "2025-01"),
-            new ConsentAgreement(ConsentType.PRIVACY, "2026-10"),
+            new ConsentAgreement(ConsentType.PRIVACY, "2026-11"),
             new ConsentAgreement(ConsentType.AGE14, "2026-10"));
 
     assertThatThrownBy(() -> signupService.signUp(PENDING, request(outdatedTerms)))
@@ -246,7 +246,7 @@ class SignupServiceTest {
   private static List<ConsentAgreement> requiredConsents() {
     return List.of(
         new ConsentAgreement(ConsentType.TERMS, "2026-10"),
-        new ConsentAgreement(ConsentType.PRIVACY, "2026-10"),
+        new ConsentAgreement(ConsentType.PRIVACY, "2026-11"),
         new ConsentAgreement(ConsentType.AGE14, "2026-10"));
   }
 

@@ -326,7 +326,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "email": "user@example.com",
   "consents": [
     { "consentType": "TERMS", "version": "2026-10", "required": true, "title": "서비스 이용약관", "url": "/terms/2026-10" },
-    { "consentType": "PRIVACY", "version": "2026-10", "required": true, "title": "개인정보 처리방침", "url": "/privacy/2026-10" },
+    { "consentType": "PRIVACY", "version": "2026-11", "required": true, "title": "개인정보 처리방침", "url": "/privacy/2026-11" },
     { "consentType": "AGE14", "version": "2026-10", "required": true, "title": "만 14세 이상입니다", "url": null },
     { "consentType": "VOICE", "version": "2026-10", "required": false, "title": "음성 처리 동의", "url": "/voice/2026-10" },
     { "consentType": "TRAINING_TEXT", "version": "2026-10", "required": false, "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10" },
@@ -338,7 +338,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 약관 버전과 문서 주소는 서버 설정값입니다.
 - `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 가입 뒤에는 USER-03으로 켜고 끕니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
-- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다.
+- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다. 문서마다 버전이 다를 수 있어(개인정보 처리방침만 2026-11), 문서끼리의 링크는 각 문서의 지금 주소를 씁니다. 버전 확인은 가입할 때만 하며, 이미 가입한 사용자에게 다시 동의를 받지는 않습니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -349,7 +349,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "avatarType": "F",
   "consents": [
     { "consentType": "TERMS", "version": "2026-10" },
-    { "consentType": "PRIVACY", "version": "2026-10" },
+    { "consentType": "PRIVACY", "version": "2026-11" },
     { "consentType": "AGE14", "version": "2026-10" }
   ]
 }

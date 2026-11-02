@@ -1507,6 +1507,11 @@ namespace A305.Dialogue.Tests
                     : Task.FromResult(TranscriptionResponse);
             }
 
+            public Task<Transcription> TranscribeTutorialAsync(string requestId, byte[] wav)
+            {
+                throw new NotSupportedException();
+            }
+
             public Task<FeedbackData> RegenerateFeedbackAsync(long conversationId, string requestId)
             {
                 Calls.Add("RegenerateFeedback");

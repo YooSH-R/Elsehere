@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using A305.Api;
 using A305.Player;
 using A305.Voice;
 using UnityEngine;
@@ -160,7 +161,8 @@ namespace A305.Dialogue
             {
                 conversation = new DialogueConversation(
                     npcCode,
-                    hasScript ? script : EmptyScript(npcCode)
+                    hasScript ? script : EmptyScript(npcCode),
+                    hasRecorder: HasRecorder
                 );
                 panel.Show(conversation);
             }
@@ -476,6 +478,9 @@ namespace A305.Dialogue
             }
         }
 
+        // 녹음 끝을 받는 연결은 서버를 쓸 때만 한다(Awake).
+        private bool HasRecorder => conversationApi != null && serverLink.VoiceRecorder != null;
+
         private void StartRecording()
         {
             if (serverConversation != null && serverConversation.CanSend)
@@ -483,6 +488,14 @@ namespace A305.Dialogue
                 serverLink.StopSpeech();
                 serverLink.VoiceRecorder.StartRecording();
                 serverConversation.ShowListening(serverLink.VoiceRecorder.MaxRecordingSeconds);
+            }
+            else if (conversation != null && conversation.CanTalk && conversation.CanSend)
+            {
+                serverLink.VoiceRecorder.StartRecording();
+                conversation.ShowMessage(
+                    VoiceInputNotice.Listening(serverLink.VoiceRecorder.MaxRecordingSeconds)
+                );
+                panel.Refresh();
             }
         }
 
@@ -496,6 +509,19 @@ namespace A305.Dialogue
 
         private void TranscribeRecording(RecordedVoice voice)
         {
+            if (conversation != null && conversation.CanTalk)
+            {
+                if (!voice.HasSpeech(serverLink.VoiceRecorder.SilenceLevel))
+                {
+                    conversation.ShowMessage(VoiceInputNotice.TooShort);
+                    panel.Refresh();
+                    return;
+                }
+
+                _ = SendSpokenAsync(conversation, voice);
+                return;
+            }
+
             if (serverConversation == null)
             {
                 return;
@@ -520,11 +546,57 @@ namespace A305.Dialogue
             }
         }
 
+        /// <summary>
+        /// 튜토리얼 대사를 말로 했다. 음성 처리에 동의했으면 무엇을 말했는지 알아듣고, 정해진 대사와 다르거나 알아듣지 못했거나
+        /// 동의하지 않았으면 알림과 함께 정해진 대사로 이어 간다.
+        /// </summary>
+        private async Task SendSpokenAsync(DialogueConversation target, RecordedVoice voice)
+        {
+            string transcript = null;
+            if (VoiceConsent.Shared.IsAgreed)
+            {
+                target.ShowMessage("말한 내용을 알아듣고 있어요...");
+                panel.Refresh();
+                try
+                {
+                    Transcription result = await conversationApi.TranscribeTutorialAsync(
+                        Guid.NewGuid().ToString(),
+                        voice.WavBytes
+                    );
+                    transcript = result.SttRawText;
+                }
+                catch (ApiException)
+                {
+                    // 알아듣지 못해도 튜토리얼은 정해진 대사로 이어 간다.
+                }
+            }
+
+            if (this == null || target != conversation)
+            {
+                return;
+            }
+
+            string line = target.SuggestedEnglish;
+            if (target.SendSpoken(transcript))
+            {
+                panel.Refresh();
+                UserTurnAccepted?.Invoke(target.NpcCode, line);
+            }
+        }
+
         private void ShowMicrophoneAccess(MicrophoneAccess access)
         {
-            if (access != MicrophoneAccess.Granted)
+            if (access == MicrophoneAccess.Granted)
             {
-                serverConversation?.ShowMessage(VoiceInputNotice.MicrophoneUnavailable(access));
+                return;
+            }
+
+            string notice = VoiceInputNotice.MicrophoneUnavailable(access);
+            serverConversation?.ShowMessage(notice);
+            if (conversation != null)
+            {
+                conversation.ShowMessage(notice);
+                panel.Refresh();
             }
         }
 

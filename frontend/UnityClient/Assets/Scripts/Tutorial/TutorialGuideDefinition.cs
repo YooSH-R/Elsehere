@@ -103,7 +103,8 @@ namespace A305.Tutorial
 
         [SerializeField]
         [Tooltip("길 안내 대화 중 입력칸을 밝힐 때 보이는 설명. 아래에 지금 입력할 대사가 붙는다.")]
-        private string guidedLineCaption = "정해진 대사로 연습해요 · 아래 문장을 입력하고 {보내기}";
+        private string guidedLineCaption =
+            "정해진 대사로 연습해요 · 아래 문장을 {꾹 눌러 말하기}로 말하거나 입력하고 {보내기}";
 
         [SerializeField]
         [Tooltip(

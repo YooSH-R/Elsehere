@@ -34,6 +34,9 @@ namespace A305.Dialogue
         /// <summary>CONV-02 녹음 전사(16kHz 모노 WAV).</summary>
         Task<Transcription> TranscribeAsync(long conversationId, string requestId, byte[] wav);
 
+        /// <summary>CONV-02 튜토리얼 대본 대사의 녹음 전사(purpose TUTORIAL). 서버 대화 없이 부른다.</summary>
+        Task<Transcription> TranscribeTutorialAsync(string requestId, byte[] wav);
+
         /// <summary>CONV-07 NPC 음성 다시 만들기.</summary>
         Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId);
 

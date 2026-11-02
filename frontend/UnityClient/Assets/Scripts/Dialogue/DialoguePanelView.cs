@@ -101,14 +101,30 @@ namespace A305.Dialogue
         private TMP_Text talkLabel;
         private ThemedElement sendTheme;
 
-        /// <summary>정해진 대사를 입력하는 입력칸·[보내기]·[예시 문장]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.</summary>
-        public IReadOnlyList<RectTransform> GuidedLineParts =>
-            new[]
+        // 자유 대화의 입력칸 안내("영어로 답하기…"). 정해진 대사를 따라가는 대화에서는 그 대사로 바꿔 보인다.
+        private string freePlaceholder;
+
+        /// <summary>
+        /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[꾹 눌러 말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
+        /// </summary>
+        public IReadOnlyList<RectTransform> GuidedLineParts
+        {
+            get
             {
-                (RectTransform)inputField.transform,
-                (RectTransform)sendButton.transform,
-                (RectTransform)exampleButton.transform,
-            };
+                var parts = new List<RectTransform>
+                {
+                    (RectTransform)inputField.transform,
+                    (RectTransform)sendButton.transform,
+                    (RectTransform)exampleButton.transform,
+                };
+                if (talkButton.gameObject.activeSelf)
+                {
+                    parts.Add((RectTransform)talkButton.transform);
+                }
+
+                return parts;
+            }
+        }
 
         /// <summary>[대화 종료]. 튜토리얼 코치 마크가 길 안내를 마친 뒤 밝힌다.</summary>
         public RectTransform EndButtonRect => (RectTransform)endButton.transform;
@@ -244,6 +260,12 @@ namespace A305.Dialogue
             sendButton.interactable = content.CanSend;
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
+            // 정해진 대사를 따라가는 대화는 이번에 말하거나 입력할 대사를 빈 입력칸에 회색 안내로 미리 보인다.
+            var placeholder = (TMP_Text)inputField.placeholder;
+            freePlaceholder ??= placeholder.text;
+            placeholder.text = string.IsNullOrEmpty(content.SuggestedEnglish)
+                ? freePlaceholder
+                : content.SuggestedEnglish;
             HighlightSend();
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
@@ -478,7 +500,10 @@ namespace A305.Dialogue
 
             if (content.IsGuided)
             {
-                return $"정해진 대사로 연습해요. 이 문장을 그대로 입력해 보세요.\n<b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
+                string how = content.UsesVoice
+                    ? "[꾹 눌러 말하기]로 말하거나 그대로 입력해 보세요."
+                    : "이 문장을 그대로 입력해 보세요.";
+                return $"정해진 대사로 연습해요. {how}\n<b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
             }
 
             if (!content.UsesVoice)

@@ -5,7 +5,8 @@ namespace A305.Dialogue
     /// <summary>
     /// 대화 한 번의 진행. 사용자가 문장을 보내면 대본에 따라 NPC 대사를 덧붙인다.
     /// 서버·AI 연동 전에는 대본의 정해진 턴과 키워드 규칙으로 응답한다.
-    /// 정해진 턴(튜토리얼)은 그 턴의 대사와 같게 말해야 넘어가고, 다른 문장은 대화에 남기지 않고 다시 말하게 한다.
+    /// 정해진 턴(튜토리얼)에서 글자로 보낸 문장은 그 턴의 대사와 같아야 넘어가고, 다른 문장은 대화에 남기지 않고 다시 입력하게 한다.
+    /// 말로 한 대사는 무엇을 말했든 정해진 대사로 이어 가고, 다르게 들렸으면 그렇게 했다고 알린다.
     /// </summary>
     public sealed class DialogueConversation : IDialogueContent
     {
@@ -13,16 +14,23 @@ namespace A305.Dialogue
         public const string GuidedLineMissNotice =
             "튜토리얼 대화는 정해진 대사로 연습해요. 이 문장과 같게 입력해 보세요. [예시 문장]을 누르면 입력칸에 넣어 줘요.";
 
+        /// <summary>말로 한 대사가 정해진 대사와 다르거나 알아듣지 못했어도 정해진 대사로 이어 갔다는 안내</summary>
+        public const string GuidedVoiceNotice =
+            "튜토리얼은 정해진 대사로 이어 가요. 말한 내용과 달라도 이 대사로 진행했어요.";
+
         private readonly DialogueScript script;
+        private readonly bool hasRecorder;
         private readonly List<DialogueLine> lines = new List<DialogueLine>();
         private readonly List<string> userUtterances = new List<string>();
         private int guidedTurnIndex;
         private string statusMessage;
 
-        public DialogueConversation(string npcCode, DialogueScript script)
+        /// <param name="hasRecorder">녹음기가 연결되어 있는지. 정해진 대사를 따라가는 대화면 [꾹 눌러 말하기]를 둔다.</param>
+        public DialogueConversation(string npcCode, DialogueScript script, bool hasRecorder = false)
         {
             NpcCode = npcCode;
             this.script = script;
+            this.hasRecorder = hasRecorder;
 
             if (script.OpeningLine != null)
             {
@@ -52,10 +60,10 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 대사. [뜻 보기]·[표현 저장]이 이 대사를 쓴다.</summary>
         public DialogueLine LastNpcLine { get; private set; }
 
-        // 대본 대화는 바로 답하고 음성을 쓰지 않는다. 서버를 부르지 않으므로 실패도 없다.
+        // 대본 대화는 바로 답한다. 서버를 부르지 않으므로 실패도 없다.
         public bool IsBusy => false;
 
-        /// <summary>정해진 대사와 다른 문장을 보냈을 때의 안내. 대사를 맞게 보내면 지운다.</summary>
+        /// <summary>녹음 중 안내, 정해진 대사와 다른 문장을 보냈을 때의 안내, 말한 대사를 정해진 대사로 이어 갔다는 안내</summary>
         public string StatusMessage => statusMessage;
         public DialogueWait Waiting => DialogueWait.None;
         public string RecoveryGuide => null;
@@ -66,10 +74,38 @@ namespace A305.Dialogue
         public IReadOnlyList<GlossaryData> LastNpcGlossary => null;
         public bool HasHint => false;
         public string HintText => null;
-        public bool UsesVoice => false;
+
+        // 튜토리얼이라고 말하기를 빼지 않는다. 말한 녹음은 정해진 대사로 이어 가므로 음성 처리 동의 없이도 말해 볼 수 있다.
+        public bool UsesVoice => IsGuided && hasRecorder;
         public ConversationStanding Standing => null;
-        public bool CanTalk => false;
+        public bool CanTalk => UsesVoice;
         public bool CanReplaySpeech => false;
+
+        public void ShowMessage(string message)
+        {
+            statusMessage = message;
+        }
+
+        /// <summary>
+        /// 말로 한 대사로 이번 턴을 넘긴다. 무엇을 말했든 정해진 대사를 보낸 것으로 하며, 알아들은 문장이 대사와 다르거나
+        /// 알아듣지 못했으면(<paramref name="transcript"/>가 비어 있음) 그렇게 했다고 알린다.
+        /// </summary>
+        /// <returns>이번 턴을 넘겼으면 true. 정해진 흐름이 아니거나 이미 마쳤으면 false.</returns>
+        public bool SendSpoken(string transcript)
+        {
+            string line = SuggestedEnglish;
+            if (line == null)
+            {
+                return false;
+            }
+
+            bool isSameLine =
+                !string.IsNullOrWhiteSpace(transcript)
+                && GuidedLineMatcher.IsSameLine(transcript.Trim(), line);
+            Send(line);
+            statusMessage = isSameLine ? null : GuidedVoiceNotice;
+            return true;
+        }
 
         private GuidedTurn? CurrentGuidedTurn =>
             IsGuided && !IsGuidedCompleted

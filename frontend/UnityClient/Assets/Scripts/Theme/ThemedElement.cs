@@ -64,12 +64,20 @@ namespace A305.Theme
                 case UiThemeRole.Panel:
                     Paint(GetComponent<Image>(), theme.PanelSprite, theme.PanelTint);
                     break;
+                case UiThemeRole.Backdrop:
+                    Paint(
+                        GetComponent<Image>(),
+                        null,
+                        Color.Lerp(theme.ToneColor(UiTone.Primary), Color.white, .8f)
+                    );
+                    break;
                 case UiThemeRole.Card:
+                    // 고른 카드(캐릭터·언어·난이도)는 고르지 않은 흰 카드와 한눈에 구분되게 강조색 쪽으로 진하게 칠한다.
                     Paint(
                         GetComponent<Image>(),
                         theme.CardSprite,
                         selection
-                            ? Color.Lerp(theme.CardTint, theme.ToneColor(UiTone.Primary), .35f)
+                            ? Color.Lerp(theme.CardTint, theme.ToneColor(UiTone.Primary), .6f)
                             : theme.CardTint
                     );
                     break;

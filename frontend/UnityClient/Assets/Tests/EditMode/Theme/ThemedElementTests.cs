@@ -62,6 +62,30 @@ namespace A305.Theme.Tests
             );
         }
 
+        [Test]
+        public void Backdrop_PaintsALightTintOfTheThemeThatFollowsThemeChanges()
+        {
+            // 입구 화면 배경. 어두운 빈 화면 대신 밝은 테마 색으로 칠하되, 흰 창과 구분되게 흰색은 아니다.
+            ThemedElement element = Create(UiThemeRole.Backdrop, out Image image);
+            Color jelly = image.color;
+
+            Assert.That(jelly.grayscale, Is.GreaterThan(.8f), "밝은 색이어야 합니다.");
+            Assert.That(
+                Distance(jelly, Color.white),
+                Is.GreaterThan(.05f),
+                "흰 창과 구분돼야 합니다."
+            );
+
+            UiThemeSelection.Shared.Select(UiThemeId.Cloud);
+            element.ApplyCurrent();
+
+            Assert.That(
+                image.color,
+                Is.Not.EqualTo(jelly),
+                "테마를 바꾸면 배경색도 바뀌어야 합니다."
+            );
+        }
+
         private ThemedElement Create(UiThemeRole role, out Image image)
         {
             target = new GameObject("Choice", typeof(RectTransform), typeof(Image));

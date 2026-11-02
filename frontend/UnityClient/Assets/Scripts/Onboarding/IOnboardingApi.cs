@@ -14,6 +14,9 @@ namespace A305.Onboarding
         /// <summary>개발용 로그인. 백엔드 local 프로필에서만 동작한다.</summary>
         Task DevLoginAsync(long userId);
 
+        /// <summary>AUTH-08. 게스트가 대화할 수 있는 횟수. 로그인하지 않아도 부를 수 있다.</summary>
+        Task<GuestGuideResponse> GetGuestGuideAsync();
+
         /// <summary>
         /// AUTH-07. 고른 캐릭터와 음성 처리 동의(선택)로 게스트를 시작한다. 서버가 새 사용자를 만들고 그 사용자로 로그인한다.
         /// </summary>

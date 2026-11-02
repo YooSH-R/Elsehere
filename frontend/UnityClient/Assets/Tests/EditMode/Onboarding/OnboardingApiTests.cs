@@ -200,6 +200,21 @@ namespace A305.Onboarding.Tests
             Assert.That(scenes[0].IsOpen, Is.True);
         }
 
+        [Test]
+        public async Task GuestGuide_GetsConversationLimitBeforeLogin()
+        {
+            transport.Reply("{\"conversationLimit\": 3}");
+
+            GuestGuideResponse guide = await api.GetGuestGuideAsync();
+
+            Assert.That(transport.LastRequest.Method, Is.EqualTo("GET"));
+            Assert.That(
+                transport.LastRequest.Url,
+                Is.EqualTo("http://localhost:8080/api/v1/auth/guest")
+            );
+            Assert.That(guide.ConversationLimit, Is.EqualTo(3));
+        }
+
         private sealed class RecordingTransport : IApiTransport
         {
             private string nextBody;

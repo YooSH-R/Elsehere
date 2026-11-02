@@ -129,6 +129,7 @@ namespace A305.Dialogue.PlayModeTests
             public string HintText => null;
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
+            public DialogueWait Waiting => DialogueWait.None;
             public bool CanReplaySpeech => false;
         }
     }

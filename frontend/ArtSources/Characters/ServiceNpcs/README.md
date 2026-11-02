@@ -13,7 +13,7 @@ Tripo 생성 원본과 마스터 연결 결과를 보존하고, 서비스의 대
 
 이름은 `LittleMung_Business_Male`, `LittleMung_MiddleAge_Male`, `LittleMung_MiddleAge_Female`, `LittleMung_BlackYoung_Male`, `LittleMung_Grandmother`입니다. 얼굴 씬을 실행하면 기존 `FacePosePreviewPanel`에서 표정과 입 모양을 선택할 수 있습니다. 이동 씬은 공통 Player 이동 검수 구성을 사용합니다.
 
-검수 사본은 외관 승인 전까지 운영 씬에 연결하지 않습니다. 비즈니스맨 사본은 마을 행인 Ben의 외형으로 `TownScene`에 연결했습니다([Npc 모듈](../../../UnityClient/Assets/Scripts/Npc/README.md#builder)). 자동 검사 결과가 실패한 사본도 문제를 살펴볼 수 있도록 검수 씬만 제공합니다. 씬이 존재한다는 사실은 합격을 뜻하지 않습니다.
+검수 사본은 외관 승인 전까지 운영 씬에 연결하지 않습니다. 운영 씬에 연결한 사본은 비즈니스맨(마을 행인 Ben, `TownScene`), 흑인 남성(드럭스토어 직원 Alex, `ShopScene`), 중년 남성(택시 기사 Joe, `TownScene` 택시 운전석)입니다([Npc 모듈](../../../UnityClient/Assets/Scripts/Npc/README.md#builder)). 흑인 남성·중년 남성 사본은 눈 감기 채널이 없어 대화 중 립싱크를 연결하지 않고 음성만 재생합니다. 자동 검사 결과가 실패한 사본도 문제를 살펴볼 수 있도록 검수 씬만 제공합니다. 씬이 존재한다는 사실은 합격을 뜻하지 않습니다.
 
 ## 비율과 골격
 

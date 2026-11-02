@@ -7,9 +7,10 @@ using UnityEngine.UI;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대화 중에 보이는 화면. 이번 대화의 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
+    /// 대화 중에 보이는 화면. 이번 대화의 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[대화 종료],
     /// 서버 AI 대화의 [말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다. 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고,
-    /// 누르면 그 자리에서 동의할 수 있는 창을 연다.
+    /// 누르면 그 자리에서 동의할 수 있는 창을 연다. [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 대사 칸 아래 줄에 뜻과
+    /// [단어장에 저장]을 보인다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
@@ -90,7 +91,18 @@ namespace A305.Dialogue
         private Button meaningButton;
 
         [SerializeField]
-        private Button saveButton;
+        [Tooltip("대사 칸의 밑줄 친 풀이 단어 클릭")]
+        private TextLinkClicks lineLinks;
+
+        [SerializeField]
+        [Tooltip("누른 풀이 단어의 뜻과 [단어장에 저장]을 보이는 대사 칸 아래 줄")]
+        private RectTransform wordRow;
+
+        [SerializeField]
+        private TMP_Text wordText;
+
+        [SerializeField]
+        private Button wordSaveButton;
 
         [SerializeField]
         private Button replayButton;
@@ -107,6 +119,7 @@ namespace A305.Dialogue
 
         private IDialogueContent content;
         private bool isMeaningVisible;
+        private GlossaryWordRow glossaryRow = new GlossaryWordRow();
         private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
         private ThemedElement sendTheme;
         private CanvasGroup talkGroup;
@@ -125,9 +138,6 @@ namespace A305.Dialogue
         /// <summary>[보내기]나 Enter로 입력한 문장을 알린다.</summary>
         public event Action<string> SendRequested;
 
-        /// <summary>[표현 저장]을 누르면 알린다. 저장할 대사는 대화 처리가 정한다.</summary>
-        public event Action SaveRequested;
-
         /// <summary>녹음 중이 아닐 때 [말하기]를 누르면 알린다.</summary>
         public event Action TalkStartRequested;
 
@@ -143,6 +153,9 @@ namespace A305.Dialogue
         /// <summary>[힌트]를 누르면 알린다.</summary>
         public event Action HintRequested;
 
+        /// <summary>대사에서 고른 풀이 단어의 [단어장에 저장]을 누르면 그 단어를 알린다. 결과는 <see cref="ShowWordSaveResult"/>로 받는다.</summary>
+        public event Action<GlossaryWord> WordSaveRequested;
+
         /// <summary>[다시 시도]를 누르면 알린다.</summary>
         public event Action RetryRequested;
 
@@ -151,13 +164,23 @@ namespace A305.Dialogue
         /// <summary>음성 처리 동의 창. 대화 처리가 [동의하고 켜기]·[문서 보기]를 받아 처리한다.</summary>
         public VoiceConsentDialogView VoiceConsentDialog => voiceConsentDialog;
 
-        /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
-        public bool IsSaveAvailable { get; set; } = true;
+        /// <summary>풀이 단어의 [단어장에 저장]을 보여 줄지. 단어장 서버가 연결되지 않았으면 끈다.</summary>
+        public bool IsWordSaveAvailable { get; set; } = true;
+
+        /// <summary>풀이 단어를 저장한 결과를 단어 줄에 보인다.</summary>
+        /// <param name="saved">단어장에 들어갔는지. 이미 있던 단어도 true다.</param>
+        public void ShowWordSaveResult(GlossaryWord word, bool saved, string message)
+        {
+            glossaryRow.FinishSaving(word, saved, message);
+            ShowWordRow();
+        }
 
         public void Show(IDialogueContent shownContent)
         {
             content = shownContent;
             isMeaningVisible = false;
+            // 저장한 단어 표시는 이번 대화 안에서만 기억한다.
+            glossaryRow = new GlossaryWordRow { IsSaveAvailable = IsWordSaveAvailable };
             standingDisplay = new ConversationStandingDisplay();
             inputField.text = "";
             ShowVoiceInput(isRecording: false, isHearingVoice: false);
@@ -271,8 +294,10 @@ namespace A305.Dialogue
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
             meaningButton.interactable = content.LastNpcLine != null;
-            saveButton.gameObject.SetActive(IsSaveAvailable);
-            saveButton.interactable = content.LastNpcLine != null;
+            // 밑줄은 뜻을 펼친 동안만 보이므로, 뜻을 접으면(보내기 포함) 누른 단어 줄도 닫는다.
+            if (!isMeaningVisible)
+                glossaryRow.Close();
+            ShowWordRow();
             TalkButtonState talk = TalkState();
             talkButton.gameObject.SetActive(talk.IsVisible);
             talkButton.interactable = talk.Action != TalkButtonAction.None;
@@ -304,7 +329,8 @@ namespace A305.Dialogue
                         DialogueHelpText.Sentence(content.HintText, content.ExampleSentence) ?? "";
             });
             meaningButton.onClick.AddListener(ToggleMeaning);
-            saveButton.onClick.AddListener(() => SaveRequested?.Invoke());
+            lineLinks.Clicked += SelectWord;
+            wordSaveButton.onClick.AddListener(RequestWordSave);
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
             retryButton.onClick.AddListener(RequestRetry);
@@ -408,6 +434,41 @@ namespace A305.Dialogue
             inputField.text = content.ExampleSentence;
         }
 
+        // 지난 대사의 단어를 눌러도 보던 자리에 머물도록 대사 칸을 다시 그리거나 맨 아래로 내리지 않고 단어 줄만 바꾼다.
+        private void SelectWord(string linkId)
+        {
+            GlossaryWord word =
+                content != null && isMeaningVisible
+                    ? DialogueLinesText.FindWord(content.Lines, linkId)
+                    : null;
+            if (word == null)
+                return;
+            glossaryRow.Select(word);
+            ShowWordRow();
+        }
+
+        private void RequestWordSave()
+        {
+            if (!glossaryRow.IsSaveInteractable)
+                return;
+            GlossaryWord word = glossaryRow.Word;
+            glossaryRow.StartSaving();
+            ShowWordRow();
+            WordSaveRequested?.Invoke(word);
+        }
+
+        // 단어 줄을 열고 닫으면 대사 칸 높이가 바뀌므로 배치도 다시 맞춘다.
+        private void ShowWordRow()
+        {
+            bool wasVisible = wordRow.gameObject.activeSelf;
+            wordRow.gameObject.SetActive(glossaryRow.IsVisible);
+            wordText.text = glossaryRow.Text;
+            wordSaveButton.gameObject.SetActive(glossaryRow.IsSaveVisible);
+            wordSaveButton.interactable = glossaryRow.IsSaveInteractable;
+            if (wasVisible != glossaryRow.IsVisible && content != null)
+                UpdateLayout();
+        }
+
         private void ToggleMeaning()
         {
             isMeaningVisible = !isMeaningVisible;
@@ -471,7 +532,12 @@ namespace A305.Dialogue
             float width = wide ? Mathf.Min(1400, lastCanvasSize.x - 520) : lastCanvasSize.x - 80;
             // 대사 칸은 창 양옆에서 64씩 들어가 있다.
             float linesHeight = linesText.GetPreferredValues(linesText.text, width - 128, 0).y;
-            frame.sizeDelta = new Vector2(width, DialoguePanelLayout.Height(wide, linesHeight));
+            // 누른 단어 줄이 보이면 대사 칸을 그만큼 위로 올리고 창도 키운다.
+            float wordSpace = DialoguePanelLayout.WordRowSpace(glossaryRow.IsVisible);
+            frame.sizeDelta = new Vector2(
+                width,
+                DialoguePanelLayout.Height(wide, linesHeight + wordSpace)
+            );
             helpPanel.anchorMin = helpPanel.anchorMax = helpPanel.pivot = new Vector2(0, .5f);
             helpPanel.anchoredPosition = new Vector2(40, wide ? -12 : 200);
             helpPanel.sizeDelta = new Vector2(
@@ -500,11 +566,13 @@ namespace A305.Dialogue
             );
             // 대사 칸은 상태 줄 위에서 끝나 마지막 줄이 도구 버튼에 걸리지 않는다.
             var history = (RectTransform)historyScroll.transform;
-            history.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom);
+            history.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom + wordSpace);
             history.sizeDelta = new Vector2(
                 -128,
-                frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight
+                frame.sizeDelta.y - DialoguePanelLayout.ControlsHeight - wordSpace
             );
+            wordRow.anchoredPosition = new Vector2(64, DialoguePanelLayout.LinesBottom);
+            wordRow.sizeDelta = new Vector2(width - 128, DialoguePanelLayout.WordRowHeight);
             var input = (RectTransform)inputField.transform;
             input.sizeDelta = new Vector2(Mathf.Max(160, width - 600), 72);
             // 상태 줄은 도구 줄 바로 위에서 창 안쪽 폭 전체를 쓴다. 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.

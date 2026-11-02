@@ -9,10 +9,10 @@ using UnityEngine;
 namespace A305.Learning
 {
     /// <summary>
-    /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·03·04)과 잇는다.
+    /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·02·03·04)과 잇는다.
     /// [피드백 목록] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
     /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
-    /// 대화·피드백의 [표현 저장]은 서버가 그 출처의 저장을 열기 전까지 숨긴다.
+    /// 대화 중 누른 풀이 단어는 단어장에 저장(VOCAB-02 NPC_LINE)하고, 피드백의 [표현 저장]은 아직 숨긴다.
     /// </summary>
     public class LearningController : MonoBehaviour
     {
@@ -85,11 +85,13 @@ namespace A305.Learning
                 );
             }
 
-            // 서버가 대화·피드백 출처의 저장(NPC_LINE·FEEDBACK)을 아직 받지 않으므로 저장 버튼을 숨긴다.
-            dialogue.SetExpressionSaveAvailable(false);
+            // 대화 중 풀이 단어는 단어장 서버가 있을 때만 저장한다(VOCAB-02 NPC_LINE).
+            dialogue.SetWordSaveAvailable(vocabulary != null);
+            // 피드백의 [표현 저장]은 아직 FEEDBACK 출처 저장에 연결하지 않아 숨긴다.
             feedbackView.SetSaveAvailable(false);
 
             dialogue.ConversationEnded += ShowFeedback;
+            dialogue.WordSaveRequested += SaveDialogueWord;
             feedbackView.CloseRequested += CloseFeedback;
             feedbackView.VocabularyRequested += OpenVocabulary;
             feedbackView.RegenerateRequested += RegenerateFeedback;
@@ -148,6 +150,39 @@ namespace A305.Learning
             if (dialogue != null)
             {
                 dialogue.ConversationEnded -= ShowFeedback;
+                dialogue.WordSaveRequested -= SaveDialogueWord;
+            }
+        }
+
+        private void SaveDialogueWord(GlossaryWord word)
+        {
+            _ = SaveDialogueWordAsync(word);
+        }
+
+        // 저장 결과는 대화창 단어 줄에 보이고, 새로 넣은 단어는 [단어장] 개수에도 바로 더한다.
+        private async Task SaveDialogueWordAsync(GlossaryWord word)
+        {
+            VocabularySaveResult result = await vocabulary.SaveNpcLineWordAsync(
+                word.TurnId,
+                word.Text
+            );
+            if (this == null)
+            {
+                return;
+            }
+
+            switch (result)
+            {
+                case VocabularySaveResult.Saved:
+                    dialogue.ShowWordSaveResult(word, true, "단어장에 저장했어요.");
+                    hudView.SetVocabularyCount(vocabulary.Entries.Count);
+                    break;
+                case VocabularySaveResult.AlreadySaved:
+                    dialogue.ShowWordSaveResult(word, true, "이미 단어장에 있는 단어예요.");
+                    break;
+                default:
+                    dialogue.ShowWordSaveResult(word, false, vocabulary.LastFailureMessage);
+                    break;
             }
         }
 

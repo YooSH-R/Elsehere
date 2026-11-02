@@ -1140,13 +1140,6 @@ namespace A305.EditorTools.Theme
             );
             IconButton(
                 root,
-                "Panel/Conversation/ToolRow/SaveButton",
-                UiIcon.Save,
-                UiTone.Neutral,
-                caption: true
-            );
-            IconButton(
-                root,
                 "Panel/Conversation/InputRow/TalkButton",
                 UiIcon.Mic,
                 UiTone.Secondary,

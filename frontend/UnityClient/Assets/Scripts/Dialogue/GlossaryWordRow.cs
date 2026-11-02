@@ -1,0 +1,125 @@
+using System.Collections.Generic;
+
+namespace A305.Dialogue
+{
+    /// <summary>
+    /// 대사 칸 아래 고정 줄. 대사에서 누른 풀이 단어의 뜻과 [단어장에 저장], 저장 결과를 보인다.
+    /// 이번 대화에서 저장한 단어는 다시 눌러도 저장했다고 보인다.
+    /// </summary>
+    public sealed class GlossaryWordRow
+    {
+        private const string Separator = "  ·  ";
+        private const string SavingNote = "저장하는 중이에요…";
+        private const string IdiomNote = "숙어는 아직 단어장에 저장할 수 없어요";
+
+        // 이번 대화에서 단어장에 넣은 단어와 그때 받은 결과 문구
+        private readonly Dictionary<GlossaryWord, string> savedNotes =
+            new Dictionary<GlossaryWord, string>();
+
+        private bool isSaving;
+
+        // 저장하지 못한 이유. 다시 누를 수 있게 버튼과 함께 보인다.
+        private string failureNote;
+
+        /// <summary>지금 고른 단어. 줄을 닫았으면 null이다.</summary>
+        public GlossaryWord Word { get; private set; }
+
+        public bool IsVisible => Word != null;
+
+        /// <summary>단어장 서버가 연결되어 있는지. 연결되지 않았으면 [단어장에 저장]을 숨긴다.</summary>
+        public bool IsSaveAvailable { get; set; } = true;
+
+        /// <summary>줄에 보일 글자. 단어·뜻과 저장 안내를 함께 쓴다.</summary>
+        public string Text
+        {
+            get
+            {
+                if (Word == null)
+                {
+                    return "";
+                }
+
+                string text = $"<b>{Word.Text}</b>  {Word.MeaningKo}";
+                string note = Note();
+                return note == null ? text : text + Separator + note;
+            }
+        }
+
+        public bool IsSaveVisible =>
+            Word != null && IsSaveAvailable && Word.CanSave && !savedNotes.ContainsKey(Word);
+
+        public bool IsSaveInteractable => IsSaveVisible && !isSaving;
+
+        /// <summary>단어를 고른다. 이미 고른 단어를 다시 누르면 줄을 닫는다.</summary>
+        public void Select(GlossaryWord word)
+        {
+            if (word == Word)
+            {
+                Close();
+                return;
+            }
+
+            Word = word;
+            isSaving = false;
+            failureNote = null;
+        }
+
+        public void Close()
+        {
+            Word = null;
+            isSaving = false;
+            failureNote = null;
+        }
+
+        /// <summary>[단어장에 저장]을 눌렀다. 결과를 받을 때까지 버튼을 막는다.</summary>
+        public void StartSaving()
+        {
+            if (!IsSaveInteractable)
+            {
+                return;
+            }
+
+            isSaving = true;
+            failureNote = null;
+        }
+
+        /// <param name="saved">단어장에 들어갔는지. 이미 있던 단어도 true다.</param>
+        /// <param name="message">저장 결과나 실패 이유</param>
+        public void FinishSaving(GlossaryWord word, bool saved, string message)
+        {
+            if (saved)
+            {
+                savedNotes[word] = message;
+            }
+
+            // 기다리는 사이 다른 단어를 골랐으면 지금 보이는 줄은 그대로 둔다.
+            if (word != Word)
+            {
+                return;
+            }
+
+            isSaving = false;
+            failureNote = saved ? null : message;
+        }
+
+        private string Note()
+        {
+            if (savedNotes.TryGetValue(Word, out string savedNote))
+            {
+                return savedNote;
+            }
+
+            if (!Word.CanSave)
+            {
+                return IdiomNote;
+            }
+
+            if (!IsSaveAvailable)
+            {
+                return null;
+            }
+
+            return isSaving ? SavingNote : failureNote;
+        }
+    }
+}

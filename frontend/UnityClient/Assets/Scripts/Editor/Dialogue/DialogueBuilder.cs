@@ -36,6 +36,9 @@ namespace A305.EditorTools.Dialogue
         private const string VoiceRecorderSettingsPath =
             "Assets/Data/Voice/VoiceRecorderSettings.asset";
 
+        // 단어 줄의 [단어장에 저장]. 왼쪽 아이콘과 글자가 겹치지 않는 폭이다.
+        private const float WordSaveButtonWidth = 230f;
+
         private static readonly Color SubTextColor = new Color(0.8f, 0.82f, 0.86f);
         private static readonly Color StatusColor = new Color(1f, 0.85f, 0.45f);
 
@@ -311,10 +314,13 @@ namespace A305.EditorTools.Dialogue
             if (moreTools != null)
             {
                 MoveLegacy(moreTools, "ExampleButton", toolRow);
-                MoveLegacy(moreTools, "SaveButton", toolRow);
                 MoveLegacy(moreTools, "HintButton", toolRow);
                 Object.DestroyImmediate(moreTools.gameObject);
             }
+            // 대사 전체를 담던 [담기]는 서버가 문장을 저장하지 않아 지우고, 대사의 풀이 단어를 눌러 저장한다(단어 줄).
+            Transform sentenceSave = toolRow.Find("SaveButton");
+            if (sentenceSave != null)
+                Object.DestroyImmediate(sentenceSave.gameObject);
             MoveLegacy(inputRow, "ExampleButton", toolRow);
             MoveLegacy(toolRow, "TalkButton", inputRow);
             TMP_InputField input = UiBuilderTools.FindOrCreateInputField(
@@ -344,13 +350,10 @@ namespace A305.EditorTools.Dialogue
                 bold,
                 160f
             );
-            Button saveButton = UiBuilderTools.FindOrCreateButton(
-                toolRow,
-                "SaveButton",
-                "표현 저장",
-                bold,
-                160f
-            );
+            // 대사의 밑줄 친 풀이 단어를 누를 수 있게 대사 글자가 클릭을 받는다.
+            lines.raycastTarget = true;
+            var lineLinks = BuilderTools.GetOrAddComponent<TextLinkClicks>(lines.gameObject);
+            RectTransform wordRow = FindOrCreateWordRow(conversation, regular, bold);
 
             // 서버 AI 대화: 상태 문구, 추천 단어, 말하기, 다시 듣기, 힌트
             TMP_Text status = UiBuilderTools.FindOrCreateText(
@@ -407,7 +410,18 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "sendButton", sendButton);
             BuilderTools.SetReference(view, "exampleButton", exampleButton);
             BuilderTools.SetReference(view, "meaningButton", meaningButton);
-            BuilderTools.SetReference(view, "saveButton", saveButton);
+            BuilderTools.SetReference(view, "lineLinks", lineLinks);
+            BuilderTools.SetReference(view, "wordRow", wordRow);
+            BuilderTools.SetReference(
+                view,
+                "wordText",
+                wordRow.Find("Text").GetComponent<TMP_Text>()
+            );
+            BuilderTools.SetReference(
+                view,
+                "wordSaveButton",
+                wordRow.Find("WordSaveButton").GetComponent<Button>()
+            );
             BuilderTools.SetReference(view, "statusText", status);
             BuilderTools.SetReference(view, "suggestText", suggest);
             SetUpTalkButton(view, talkButton);
@@ -425,6 +439,58 @@ namespace A305.EditorTools.Dialogue
 
             // 대화 중에만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 대사에서 누른 풀이 단어의 뜻과 [단어장에 저장]을 보이는 줄. 자리와 크기는 <see cref="DialoguePanelView"/>가 대사 칸 아래로
+        /// 맞추므로 레이아웃에서 빼고, 단어를 누르기 전에는 숨긴다. 모양은 <see cref="DialogueDockBuilder"/>가 정한다.
+        /// </summary>
+        private static RectTransform FindOrCreateWordRow(
+            RectTransform conversation,
+            TMP_FontAsset regular,
+            TMP_FontAsset bold
+        )
+        {
+            Transform existing = conversation.Find("WordRow");
+            RectTransform row =
+                existing != null
+                    ? (RectTransform)existing
+                    : new GameObject(
+                        "WordRow",
+                        typeof(RectTransform)
+                    ).GetComponent<RectTransform>();
+            row.SetParent(conversation, false);
+            BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject).ignoreLayout = true;
+            row.anchorMin = row.anchorMax = row.pivot = Vector2.zero;
+
+            TMP_Text text = UiBuilderTools.FindOrCreateText(row, "Text", regular, 24f, Color.white);
+            var textRect = (RectTransform)text.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = new Vector2(-(WordSaveButtonWidth + 16f), 0f);
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Ellipsis;
+
+            Button save = UiBuilderTools.FindOrCreateButton(
+                row,
+                "WordSaveButton",
+                "단어장에 저장",
+                bold,
+                WordSaveButtonWidth
+            );
+            BuilderTools.GetOrAddComponent<LayoutElement>(save.gameObject).ignoreLayout = true;
+            var saveRect = (RectTransform)save.transform;
+            saveRect.anchorMin = saveRect.anchorMax = saveRect.pivot = new Vector2(1f, 0.5f);
+            saveRect.anchoredPosition = Vector2.zero;
+            saveRect.sizeDelta = new Vector2(
+                WordSaveButtonWidth,
+                DialoguePanelLayout.WordRowHeight
+            );
+
+            row.gameObject.SetActive(false);
+            return row;
         }
 
         private static void MoveLegacy(Transform parent, string name, Transform destination)

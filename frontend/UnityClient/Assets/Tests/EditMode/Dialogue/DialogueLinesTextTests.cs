@@ -63,6 +63,116 @@ namespace A305.Dialogue.Tests
             );
         }
 
+        private static DialogueLine WithGlossary(string english, params GlossaryWord[] words) =>
+            DialogueLine.FromNpc(english, "뜻", words);
+
+        // 풀이 단어를 대사 안에서 바로 눌러 뜻을 보고 저장할 수 있게 밑줄 친 링크로 둔다.
+        [Test]
+        public void Format_WithMeaning_UnderlinesGlossaryWordsInTheirLine()
+        {
+            DialogueLine line = WithGlossary(
+                "Would you like an iced latte to go?",
+                new GlossaryWord(105, "latte", "라떼"),
+                new GlossaryWord(105, "to go", "포장")
+            );
+
+            string text = DialogueLinesText.Format(new[] { line }, "Ben", true, null);
+
+            Assert.That(
+                text,
+                Does.StartWith(
+                    "<b>Ben</b>  Would you like an iced <link=\"0/0\"><u>latte</u></link> "
+                        + "<link=\"0/1\"><u>to go</u></link>?"
+                )
+            );
+        }
+
+        // 서버 풀이는 문장 첫머리처럼 대소문자가 다를 수 있고, 다른 단어 속 글자(good의 go)는 그 단어가 아니다.
+        [Test]
+        public void Format_MatchesWholeWordsRegardlessOfCase()
+        {
+            DialogueLine line = WithGlossary(
+                "Latte sounds good. Let's go!",
+                new GlossaryWord(105, "latte", "라떼"),
+                new GlossaryWord(105, "go", "가다")
+            );
+
+            string text = DialogueLinesText.Format(new[] { line }, "Ben", true, null);
+
+            Assert.That(
+                text,
+                Does.StartWith(
+                    "<b>Ben</b>  <link=\"0/0\"><u>Latte</u></link> sounds good. "
+                        + "Let's <link=\"0/1\"><u>go</u></link>!"
+                )
+            );
+        }
+
+        [Test]
+        public void Format_WithoutMeaning_DoesNotUnderline()
+        {
+            DialogueLine line = WithGlossary(
+                "An iced latte?",
+                new GlossaryWord(105, "latte", "라떼")
+            );
+
+            string text = DialogueLinesText.Format(new[] { line }, "Ben", false, null);
+
+            Assert.That(text, Is.EqualTo("<b>Ben</b>  An iced latte?"));
+        }
+
+        // 뜻을 받은 지난 대사의 단어도 이어서 눌러 볼 수 있게 밑줄을 둔다.
+        [Test]
+        public void Format_KeepsUnderlinesOnEarlierNpcLines()
+        {
+            DialogueLine first = WithGlossary(
+                "An iced latte?",
+                new GlossaryWord(105, "latte", "라떼")
+            );
+
+            string text = DialogueLinesText.Format(
+                new[] { first, Order, Question },
+                "Ben",
+                true,
+                null
+            );
+
+            Assert.That(
+                text,
+                Does.StartWith("<b>Ben</b>  An iced <link=\"0/0\"><u>latte</u></link>?\n")
+            );
+        }
+
+        [Test]
+        public void FindWord_ByLinkId_ReturnsThatGlossaryWord()
+        {
+            var toGo = new GlossaryWord(107, "to go", "포장");
+            DialogueLine line = WithGlossary(
+                "For here or to go?",
+                new GlossaryWord(107, "for here", "매장에서"),
+                toGo
+            );
+
+            GlossaryWord found = DialogueLinesText.FindWord(new[] { Order, line }, "1/1");
+
+            Assert.That(found, Is.SameAs(toGo));
+        }
+
+        [TestCase("")]
+        [TestCase("0/0")]
+        [TestCase("1/5")]
+        [TestCase("9/0")]
+        [TestCase("menu")]
+        public void FindWord_UnknownLink_IsNull(string linkId)
+        {
+            DialogueLine line = WithGlossary(
+                "An iced latte?",
+                new GlossaryWord(105, "latte", "라떼")
+            );
+
+            Assert.That(DialogueLinesText.FindWord(new[] { Order, line }, linkId), Is.Null);
+        }
+
         [Test]
         public void Format_WithoutMeaning_ShowsOnlyEnglish()
         {

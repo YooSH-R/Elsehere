@@ -57,8 +57,11 @@ namespace A305.Dialogue
         /// </summary>
         public event Action<DialogueRecord> ConversationEnded;
 
-        /// <summary>[표현 저장]으로 저장할 영어 문장과 한국어 뜻을 알린다.</summary>
-        public event Action<string, string> ExpressionSaveRequested;
+        /// <summary>
+        /// 대사의 풀이 단어 줄에서 [단어장에 저장]을 누르면 그 단어를 알린다. 저장은 받는 쪽(Learning 모듈)이 하고
+        /// 결과를 <see cref="ShowWordSaveResult"/>로 돌려준다.
+        /// </summary>
+        public event Action<GlossaryWord> WordSaveRequested;
 
         public bool IsTalking => session.IsActive;
 
@@ -68,10 +71,17 @@ namespace A305.Dialogue
         /// </summary>
         public ConversationAllowance Allowance { get; } = new ConversationAllowance();
 
-        /// <summary>대화 화면의 [표현 저장]을 보여 줄지. 받을 곳(단어장)이 저장할 수 없으면 끈다.</summary>
-        public void SetExpressionSaveAvailable(bool available)
+        /// <summary>풀이 단어의 [단어장에 저장]을 보여 줄지. 받을 곳(단어장)이 저장할 수 없으면 끈다.</summary>
+        public void SetWordSaveAvailable(bool available)
         {
-            panel.IsSaveAvailable = available;
+            panel.IsWordSaveAvailable = available;
+        }
+
+        /// <summary>풀이 단어를 저장한 결과를 대화 화면의 단어 줄에 보인다.</summary>
+        /// <param name="saved">단어장에 들어갔는지. 이미 있던 단어도 true다.</param>
+        public void ShowWordSaveResult(GlossaryWord word, bool saved, string message)
+        {
+            panel.ShowWordSaveResult(word, saved, message);
         }
 
         /// <summary>
@@ -236,7 +246,7 @@ namespace A305.Dialogue
 
             panel.EndRequested += End;
             panel.SendRequested += Send;
-            panel.SaveRequested += SaveLastNpcLine;
+            panel.WordSaveRequested += ForwardWordSave;
             panel.TalkStartRequested += StartRecording;
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
@@ -266,7 +276,7 @@ namespace A305.Dialogue
             {
                 panel.EndRequested -= End;
                 panel.SendRequested -= Send;
-                panel.SaveRequested -= SaveLastNpcLine;
+                panel.WordSaveRequested -= ForwardWordSave;
                 panel.TalkStartRequested -= StartRecording;
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
@@ -403,13 +413,9 @@ namespace A305.Dialogue
             UserTurnAccepted?.Invoke(serverConversation.NpcCode, text);
         }
 
-        private void SaveLastNpcLine()
+        private void ForwardWordSave(GlossaryWord word)
         {
-            DialogueLine line = serverConversation?.LastNpcLine ?? conversation?.LastNpcLine;
-            if (line != null)
-            {
-                ExpressionSaveRequested?.Invoke(line.English, line.Korean ?? "");
-            }
+            WordSaveRequested?.Invoke(word);
         }
 
         private void PlayNpcSpeech(NpcTurnData turn)

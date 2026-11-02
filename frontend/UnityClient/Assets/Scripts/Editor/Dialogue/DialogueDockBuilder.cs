@@ -69,6 +69,7 @@ namespace A305.EditorTools.Dialogue
             Place(inputRow.Find("TalkButton"), 1072, 44, 264, 72);
             Control(inputRow.Find("TalkButton"), "말하기", "mic", true);
             ToolRow(conversation.Find("ToolRow"));
+            WordRow(conversation.Find("WordRow"));
             Transform help = root.transform.Find("HelpPanel");
             FreeLayout(help);
             help.GetComponent<Image>().enabled = false;
@@ -88,7 +89,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대화 보조 버튼을 [듣기]·[뜻]·[힌트]·[예시 문장]·[담기] 순서로 한 줄에 놓는다.
+        /// 대화 보조 버튼을 [듣기]·[뜻]·[힌트]·[예시 문장] 순서로 한 줄에 놓는다.
         /// 대화 종류에 따라 숨는 버튼이 있어 가로 정렬로 빈자리 없이 붙인다.
         /// </summary>
         public static void ToolRow(Transform tools)
@@ -105,10 +106,23 @@ namespace A305.EditorTools.Dialogue
             ToolButton(tools.Find("MeaningButton"), "뜻", "meaning", 144);
             ToolButton(tools.Find("HintButton"), "힌트", "meaning", 144);
             ToolButton(tools.Find("ExampleButton"), "예시 문장", "insert", 184);
-            ToolButton(tools.Find("SaveButton"), "담기", "insert", 144);
             Transform more = tools.Find("MoreButton");
             if (more != null)
                 Object.DestroyImmediate(more.gameObject);
+        }
+
+        /// <summary>
+        /// 대사 칸 아래 단어 줄. 글자는 대사와 같은 본문 색으로, [단어장에 저장]은 도구 버튼과 같은 모양으로 둔다.
+        /// 자리와 폭은 DialoguePanelView가 대사 칸에 맞춘다. 결과 문구가 길면 한 줄에 맞게 글자를 줄인다.
+        /// </summary>
+        private static void WordRow(Transform row)
+        {
+            var text = row.Find("Text").GetComponent<TMP_Text>();
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 18;
+            text.fontSizeMax = 26;
+            Theme(text.transform, UiThemeRole.Body);
+            Control(row.Find("WordSaveButton"), "단어장에 저장", "insert");
         }
 
         private static void ToolButton(Transform button, string caption, string icon, float width)

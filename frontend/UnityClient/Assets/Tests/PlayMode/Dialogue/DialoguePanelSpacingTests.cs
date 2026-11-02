@@ -106,7 +106,7 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         private RectTransform ToolRow() =>
-            (RectTransform)Field<Button>("saveButton").transform.parent;
+            (RectTransform)Field<Button>("meaningButton").transform.parent;
 
         private Rect InPanel(RectTransform rect)
         {

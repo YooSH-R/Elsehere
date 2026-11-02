@@ -27,7 +27,21 @@ namespace A305.EditorTools.Tripo
                 var toFrame = TripoMasterRig.BodyFrame(output);
                 float targetLength = toFrame.MultiplyVector(Vector3.up).magnitude;
                 float scale = targetLength / fromFrame.MultiplyVector(Vector3.up).magnitude;
-                Quaternion alignment = toFrame.rotation * Quaternion.Inverse(fromFrame.rotation);
+                // Compare upright headings independently of the hip-to-head lean
+                // used for scale. Reusing that lean would approve the same error.
+                Quaternion Heading(Animator rig)
+                {
+                    Vector3 right =
+                        rig.GetBoneTransform(HumanBodyBones.RightUpperLeg).position
+                        - rig.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position;
+                    Vector3 forward = Vector3.Cross(right, Vector3.up);
+                    if (forward.sqrMagnitude < 1e-10f)
+                        throw new InvalidOperationException(
+                            "머리 방향 검사의 수평 기준이 없습니다."
+                        );
+                    return Quaternion.LookRotation(forward, Vector3.up);
+                }
+                Quaternion alignment = Heading(output) * Quaternion.Inverse(Heading(input));
                 var group = input
                     .GetBoneTransform(HumanBodyBones.Neck)
                     .GetComponentsInChildren<Transform>()

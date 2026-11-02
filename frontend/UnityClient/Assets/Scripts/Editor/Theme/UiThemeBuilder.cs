@@ -1112,7 +1112,6 @@ namespace A305.EditorTools.Theme
             Role(root, "Panel", UiThemeRole.Panel);
             Role(root, "Panel/Content/Header/Title", UiThemeRole.Muted);
             Role(root, "Panel/Content/Task", UiThemeRole.Title);
-            Role(root, "Panel/Content/Notice", UiThemeRole.Body);
             PillButton(root, "Panel/Content/Header/SkipButton", UiIcon.Skip, UiTone.Neutral);
             // 좁은 버튼에서 가운데 글자가 왼쪽 아이콘 위로 겹치지 않게 글자 칸을 아이콘 오른쪽부터 잡는다.
             var skipLabel = (RectTransform)root.Find("Panel/Content/Header/SkipButton/Label");

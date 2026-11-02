@@ -13,20 +13,13 @@ namespace A305.Tutorial
     /// </summary>
     public static class TutorialGuideText
     {
-        private const string AccentOpen = "<color=#C0612B>";
-        private const string ChipOpen = AccentOpen + "[";
+        private const string ChipOpen = "<color=#C0612B>[";
         private const string ChipClose = "]</color>";
         private const string PartSeparator = " · ";
         private const string DoneOpen = "<color=#3E9B5A>";
         private const string DoneClose = "</color>";
         private static readonly Regex Key = new Regex(@"\{([^{}]+)\}");
         private static readonly Regex Tag = new Regex(@"<[^>]+>");
-
-        /// <summary>안내 카드에 잠깐 덧붙이는 알림. [키]와 같은 강조색으로 쓴다.</summary>
-        public static string Warning(string text)
-        {
-            return AccentOpen + text + "</color>";
-        }
 
         public static string KeyChips(string text)
         {

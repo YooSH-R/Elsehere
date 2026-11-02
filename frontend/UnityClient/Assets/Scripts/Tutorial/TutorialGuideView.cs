@@ -50,7 +50,10 @@ namespace A305.Tutorial
         private Button confirmSkipButton;
 
         [SerializeField]
-        [Tooltip("잠긴 문 안내처럼 할 일 아래에 잠깐 보이는 알림")]
+        [Tooltip("잠긴 문 안내처럼 할 일 아래에 잠깐 보이는 주의 띠")]
+        private GameObject notice;
+
+        [SerializeField]
         private TMP_Text noticeText;
 
         /// <summary>잠긴 문 안내처럼 카드에 잠깐 덧붙이는 알림이 보이는 시간</summary>
@@ -70,7 +73,7 @@ namespace A305.Tutorial
 
         public bool IsVisible => panel.activeSelf;
 
-        public bool IsNoticeShowing => noticeText.gameObject.activeSelf;
+        public bool IsNoticeShowing => notice.activeSelf;
 
         public string NoticeText => noticeText.text;
 
@@ -111,11 +114,11 @@ namespace A305.Tutorial
             ClearNotice();
         }
 
-        /// <summary>할 일 아래에 강조색 알림을 잠깐 보이고 카드를 흔든다. 화면 구석 알림보다 할 일과 함께 눈에 띈다.</summary>
+        /// <summary>할 일 아래에 주의 띠를 잠깐 보이고 카드를 흔든다. 화면 구석 알림보다 할 일과 함께 눈에 띈다.</summary>
         public void ShowNotice(string message)
         {
-            noticeText.text = TutorialGuideText.Warning(message);
-            noticeText.gameObject.SetActive(true);
+            noticeText.text = message;
+            notice.SetActive(true);
             noticeHideTime = Time.unscaledTime + NoticeSeconds;
             shakeEndTime = Time.unscaledTime + ShakeSeconds;
         }
@@ -147,7 +150,7 @@ namespace A305.Tutorial
 
         private void ClearNotice()
         {
-            noticeText.gameObject.SetActive(false);
+            notice.SetActive(false);
             shakeEndTime = 0f;
         }
 

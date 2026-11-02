@@ -116,9 +116,10 @@ namespace A305.Tutorial
         private string dialogueEndCaption = "길 안내 끝! {대화 종료}를 눌러요";
 
         [SerializeField]
-        [Tooltip("튜토리얼 단계를 마치기 전에 문·[홈]으로 다른 장소에 가려 할 때 보이는 안내")]
-        private string travelLockedMessage =
-            "아직 다른 곳으로 갈 수 없어요. 안내 카드의 할 일을 먼저 해 보세요.";
+        [Tooltip(
+            "튜토리얼 단계를 마치기 전에 문·[홈]으로 다른 장소에 가려 할 때 안내 카드의 할 일 아래 보이는 안내. 카드 한 줄에 들어가게 짧게 쓴다"
+        )]
+        private string travelLockedMessage = "아직 다른 곳으로 갈 수 없어요. 할 일부터 해 주세요.";
 
         public string HomeSceneName => homeSceneName;
         public string TutorialNpcCode => tutorialNpcCode;

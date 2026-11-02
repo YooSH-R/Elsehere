@@ -62,6 +62,10 @@ namespace A305.EditorTools.Tutorial
         private static readonly Color CaptionColor = new Color(1f, 0.97f, 0.92f);
         private static readonly Color CaptionTextColor = new Color(0.23f, 0.18f, 0.16f);
 
+        // 잠긴 문 안내 띠: 연한 주황 바탕에 진한 주황 글자
+        private static readonly Color NoticeColor = new Color(0.99f, 0.88f, 0.8f);
+        private static readonly Color NoticeTextColor = new Color(0.66f, 0.27f, 0.11f);
+
         [MenuItem(MenuPath)]
         public static void Build()
         {
@@ -394,18 +398,7 @@ namespace A305.EditorTools.Tutorial
             task.fontSize = 26f;
             task.alignment = TextAlignmentOptions.MidlineLeft;
             task.transform.SetSiblingIndex(1);
-            // 잠긴 문 안내처럼 할 일 바로 아래 잠깐 보이는 알림. 글자색은 문구에 넣어 테마와 상관없이 강조색으로 보인다.
-            TMP_Text notice = UiBuilderTools.FindOrCreateText(
-                content,
-                "Notice",
-                bold,
-                20f,
-                Color.white
-            );
-            notice.alignment = TextAlignmentOptions.MidlineLeft;
-            notice.textWrappingMode = TextWrappingModes.Normal;
-            notice.transform.SetSiblingIndex(2);
-            notice.gameObject.SetActive(false);
+            RectTransform notice = SetUpNotice(content, bold);
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(content, "Buttons");
             Button continueButton = UiBuilderTools.FindOrCreateButton(
                 buttons,
@@ -461,11 +454,55 @@ namespace A305.EditorTools.Tutorial
             BuilderTools.SetReference(view, "skipConfirm", confirm.gameObject);
             BuilderTools.SetReference(view, "keepGoingButton", keepGoingButton);
             BuilderTools.SetReference(view, "confirmSkipButton", confirmSkipButton);
-            BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.SetReference(view, "notice", notice.gameObject);
+            BuilderTools.SetReference(
+                view,
+                "noticeText",
+                notice.Find("Label").GetComponent<TMP_Text>()
+            );
             BuilderTools.RequireReferences(view);
 
             // 단계에 맞는 안내가 있을 때만 보이므로, Play 전 씬 화면에서 다른 UI와 겹쳐 보이지 않게 숨겨 둔다.
             panel.gameObject.SetActive(false);
+        }
+
+        // 잠긴 문 안내처럼 할 일 바로 아래 잠깐 보이는 주의 띠. 카드 글자와 섞이지 않게 테마와 상관없이 주의 색 바탕에 굵게 쓴다.
+        private static RectTransform SetUpNotice(Transform content, TMP_FontAsset bold)
+        {
+            // 예전에는 글자 하나만 두었으므로 띠로 다시 만든다.
+            Transform oldText = content.Find("Notice");
+            if (oldText != null && oldText.GetComponent<TMP_Text>() != null)
+            {
+                UnityEngine.Object.DestroyImmediate(oldText.gameObject);
+            }
+
+            Image strip = FindOrCreateImage(content, "Notice");
+            strip.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(CardSpritePath);
+            strip.type = Image.Type.Sliced;
+            strip.color = NoticeColor;
+            strip.raycastTarget = false;
+            var layout = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(strip.gameObject);
+            layout.padding = new RectOffset(20, 20, 12, 12);
+            layout.childControlWidth = layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+
+            TMP_Text label = UiBuilderTools.FindOrCreateText(
+                strip.transform,
+                "Label",
+                bold,
+                22f,
+                NoticeTextColor
+            );
+            label.fontSize = 22f;
+            label.color = NoticeTextColor;
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+            label.textWrappingMode = TextWrappingModes.Normal;
+
+            RectTransform notice = strip.rectTransform;
+            notice.SetSiblingIndex(2);
+            notice.gameObject.SetActive(false);
+            return notice;
         }
 
         // 구멍 둘레를 덮는 판 넷, 구멍 테두리, 설명 말풍선, 장면 속 대상을 가리키는 화살표 배지.

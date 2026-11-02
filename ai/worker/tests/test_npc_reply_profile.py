@@ -79,6 +79,15 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
     assert "Ask what size they want." in system  # 이번 대답에서 할 일
 
 
+@pytest.mark.parametrize("instruction", ["", "Ask what size they want."])
+def test_with_a_profile_this_turn_says_their_words_were_not_rude_unless_the_backend_said_so(client, provider, instruction):
+    """무례를 못 참는 카페 사장이 판정기가 무례 아님으로 본 재촉("hurry up")에 정중히 말하라고 했다.
+    무례일 때만 백엔드가 경고 지시문을 보내므로, 대답 바로 앞 칸에서 그때만 무례로 대하라고 한다."""
+    system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("CAFE_STAFF")}, instruction=instruction))
+    this_turn = system.split("## This turn")[1]
+    assert "Unless this section says they were rude, their words were not rude" in this_turn
+
+
 @pytest.mark.parametrize("level", [1, 2, 3])
 def test_with_a_profile_the_level_rule_leaves_the_tone_to_the_character(client, provider, level):
     """원래 난이도 문장은 따뜻함·유머를 내라고 해서, 불친절한 인격(Jake)과 부딪히지 않게 말투를 정하지 않는 규칙을 쓴다."""

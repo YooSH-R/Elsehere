@@ -162,6 +162,8 @@ namespace A305.Dialogue
             {
                 serverLink.StopSpeech();
                 isEnding = true;
+                // 대화가 끝나면 녹음도 멈춘다(기능 명세 F-23). 끝내는 중이라 녹음 결과는 전사하지 않는다.
+                StopRecording();
                 _ = EndServerConversationAsync();
                 return;
             }
@@ -185,6 +187,7 @@ namespace A305.Dialogue
         // 기능 명세 F-23의 [대화 종료 (Esc)]. 피드백을 기다리는 중에 다시 눌러도 End가 한 번만 처리한다.
         private void Update()
         {
+            ShowVoiceInput();
             if (
                 session.IsActive
                 && Keyboard.current != null
@@ -222,8 +225,8 @@ namespace A305.Dialogue
             panel.EndRequested += End;
             panel.SendRequested += Send;
             panel.SaveRequested += SaveLastNpcLine;
-            panel.TalkPressed += StartRecording;
-            panel.TalkReleased += StopRecording;
+            panel.TalkStartRequested += StartRecording;
+            panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
@@ -250,8 +253,8 @@ namespace A305.Dialogue
                 panel.EndRequested -= End;
                 panel.SendRequested -= Send;
                 panel.SaveRequested -= SaveLastNpcLine;
-                panel.TalkPressed -= StartRecording;
-                panel.TalkReleased -= StopRecording;
+                panel.TalkStartRequested -= StartRecording;
+                panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
@@ -455,14 +458,24 @@ namespace A305.Dialogue
             }
         }
 
+        // 녹음은 시간·무음으로 저절로 끝나기도 하므로 매 프레임 녹음 상태와 목소리가 들리는지를 버튼에 알린다.
+        private void ShowVoiceInput()
+        {
+            if (panel.IsVisible && serverLink != null && serverLink.VoiceRecorder != null)
+            {
+                VoiceRecorder recorder = serverLink.VoiceRecorder;
+                panel.ShowVoiceInput(recorder.IsRecording, recorder.IsHearingVoice);
+            }
+        }
+
         private void TranscribeRecording(RecordedVoice voice)
         {
-            if (serverConversation == null)
+            if (serverConversation == null || isEnding)
             {
                 return;
             }
 
-            // 짧게 눌렀거나 말하지 않은 녹음을 STT에 보내면 엉뚱한 문장이 입력칸에 들어오므로, 말소리가 없으면 다시 말해 달라고만 한다.
+            // 말하지 않고 [종료]를 눌렀거나 말소리가 거의 없는 녹음을 STT에 보내면 엉뚱한 문장이 입력칸에 들어오므로, 다시 말해 달라고만 한다.
             if (!voice.HasSpeech(serverLink.VoiceRecorder.SilenceLevel))
             {
                 serverConversation.ShowMessage(VoiceInputNotice.TooShort);

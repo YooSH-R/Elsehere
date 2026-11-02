@@ -3,12 +3,13 @@ using A305.Voice;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 꾹 눌러 말하기 안내 문구. 녹음 중인지, 녹음이 왜 끝났는지, 마이크를 왜 쓸 수 없는지를 알려 사용자가 다음에 할 일을 알 수 있게 한다.
+    /// [말하기] 안내 문구. 녹음 중인지, 녹음이 왜 끝났는지, 마이크를 왜 쓸 수 없는지를 알려 사용자가 다음에 할 일을 알 수 있게 한다.
     /// </summary>
     public static class VoiceInputNotice
     {
-        /// <summary>짧게 눌렀거나 말하지 않아 녹음에 말소리가 없을 때. 전사하지 않는다.</summary>
-        public const string TooShort = "말소리가 들리지 않았어요. 버튼을 꾹 누른 채로 말해 주세요.";
+        /// <summary>말하지 않고 [종료]를 눌러 녹음에 말소리가 없을 때. 전사하지 않는다.</summary>
+        public const string TooShort =
+            "말소리가 없었어요. [말하기]를 누르고 말한 뒤 [종료]를 눌러요.";
 
         /// <summary>음성 처리에 동의하지 않아 음성 입력을 쓸 수 없을 때(API 명세 CONV-02). 동의를 켜는 실제 메뉴 경로를 알린다.</summary>
         public const string ConsentRequired =
@@ -19,10 +20,11 @@ namespace A305.Dialogue
 
         public static string Listening(float maxSeconds)
         {
-            return $"듣고 있어요. 다 말했으면 버튼에서 손을 떼 주세요. (최대 {maxSeconds:0}초)";
+            // 목소리가 들리는지는 [종료] 버튼의 초록불로 보이므로, 상태 줄 한 줄에는 끝내는 방법만 쓴다.
+            return $"듣고 있어요. 다 말했으면 [종료]를 눌러 주세요. (최대 {maxSeconds:0}초)";
         }
 
-        /// <summary>전사한 문장을 입력창에 넣은 뒤의 안내. 버튼을 떼지 않았는데 녹음이 끝났으면 그 이유를 먼저 알린다.</summary>
+        /// <summary>전사한 문장을 입력창에 넣은 뒤의 안내. [종료]를 누르지 않았는데 녹음이 끝났으면 그 이유를 먼저 알린다.</summary>
         public static string Transcribed(RecordingEndReason endReason)
         {
             switch (endReason)

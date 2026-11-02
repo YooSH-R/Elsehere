@@ -171,7 +171,6 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator TownPasserby_RestingAtABench_StopsWhenThePlayerTalksToHim()
         {
             // 자유 시간, 욕구가 모두 시작값이면 에너지를 채우는 벤치가 분수 구경보다 급하다(20 > 15).
-            // 마을 행인 모델은 뼈대가 없어 앉지 못하고 벤치 앞에 서서 쉰다.
             yield return LoadAt("TownScene", 10 * 60, paused: true);
             NpcRoutine ben = Routine("TOWN_PASSERBY");
             // Ben은 마을 시작 위치 가까운 집 앞에 있어 곧장 다가오므로, 플레이어를 벤치가 없는 동서 길 서쪽으로 멀리 보내 무시한 것으로 두고 쉬게 한다.
@@ -203,6 +202,36 @@ namespace A305.Npc.PlayModeTests
 
             Assert.That(Object.FindFirstObjectByType<DialogueController>().IsTalking, Is.True);
             Assert.That(ben.Doing, Is.Null, "말을 걸면 하던 일을 그만둡니다.");
+        }
+
+        [UnityTest]
+        public IEnumerator TownPasserby_InTheBusinessManVisual_KeepsHisOwnIdleWalksAndSitsOnABench()
+        {
+            // Ben의 비즈니스맨 외형은 마스터 골격이라, 생활하는 동안에도 쇄골을 편 자기 Idle을 쓰고 벤치에 앉는다.
+            yield return LoadAt("TownScene", 10 * 60, paused: true);
+            NpcRoutine ben = Routine("TOWN_PASSERBY");
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            player.Teleport(new Vector3(-14f, .12f, 10f), Quaternion.identity);
+            Animator animator = ben.GetComponentsInChildren<Animator>()
+                .Single(candidate => candidate.isActiveAndEnabled);
+
+            var life = animator.runtimeAnimatorController as AnimatorOverrideController;
+            Assert.That(life, Is.Not.Null, "생활 동작 컨트롤러에 자기 클립을 얹습니다.");
+            AnimationClip sharedIdle = life.runtimeAnimatorController.animationClips.First(clip =>
+                clip.name == "Idle"
+            );
+            Assert.That(life[sharedIdle], Is.Not.SameAs(sharedIdle));
+
+            yield return WaitUntil(() => animator.GetFloat("Speed") > .5f);
+            Assert.That(IsPlaying(ben, "Locomotion"), Is.True, "걸을 때는 이동 동작을 재생합니다.");
+
+            yield return WaitUntil(() => ben.IsSeated);
+            yield return WaitUntil(() => IsPlaying(ben, "Sit"));
+            Assert.That(
+                ben.GetComponentsInChildren<LittleMungGroundContact>(true).All(c => !c.enabled),
+                Is.True,
+                "앉아 있는 동안에는 서 있는 자세 보정을 끕니다."
+            );
         }
 
         [UnityTest]

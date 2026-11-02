@@ -153,6 +153,78 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void GuidedConversation_WithARecorder_LetsTheUserSpeakTheLine()
+        {
+            // 튜토리얼이라고 말하기를 빼지 않는다. 대본 자유 대화(서버를 끈 확인용)는 그대로 글자로만 입력한다.
+            var guided = new DialogueConversation(
+                TutorialPasserbyCode,
+                CreateGuidedScript(),
+                hasRecorder: true
+            );
+            var free = new DialogueConversation(
+                CafeStaffCode,
+                CreateCafeScript(),
+                hasRecorder: true
+            );
+
+            Assert.That(guided.UsesVoice && guided.CanTalk, Is.True);
+            Assert.That(free.UsesVoice, Is.False);
+            Assert.That(
+                new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript()).UsesVoice,
+                Is.False,
+                "녹음기가 없으면 말하기 버튼을 두지 않습니다."
+            );
+        }
+
+        [Test]
+        public void SendSpoken_TheLine_ContinuesWithoutNotice()
+        {
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            bool isSent = conversation.SendSpoken("go straight ahead");
+
+            Assert.That(isSent, Is.True);
+            Assert.That(conversation.Lines[1].English, Is.EqualTo("Go straight ahead."));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("And then?"));
+            Assert.That(conversation.StatusMessage, Is.Null);
+        }
+
+        [TestCase("I don't know the way.")]
+        [TestCase(null)]
+        public void SendSpoken_SomethingElseOrNothingHeard_ContinuesWithTheFixedLineAndNotice(
+            string transcript
+        )
+        {
+            // 말한 내용과 상관없이 튜토리얼은 정해진 대사로 이어 가고, 그렇게 했다고 알린다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            bool isSent = conversation.SendSpoken(transcript);
+
+            Assert.That(isSent, Is.True);
+            Assert.That(conversation.Lines[1].English, Is.EqualTo("Go straight ahead."));
+            Assert.That(conversation.LastNpcLine.English, Is.EqualTo("And then?"));
+            Assert.That(
+                conversation.StatusMessage,
+                Is.EqualTo(DialogueConversation.GuidedVoiceNotice)
+            );
+            Assert.That(
+                conversation.ToRecord().UserUtterances,
+                Is.EqualTo(new[] { "Go straight ahead." })
+            );
+        }
+
+        [Test]
+        public void SendSpoken_AfterTheLastTurn_IsIgnored()
+        {
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+            conversation.Send("Go straight ahead.");
+            conversation.Send("Turn left at the corner.");
+
+            Assert.That(conversation.SendSpoken("Bye!"), Is.False);
+            Assert.That(conversation.Lines.Count, Is.EqualTo(5));
+        }
+
+        [Test]
         public void ExampleSentence_InFreeConversation_UsesScriptExample()
         {
             var conversation = new DialogueConversation(CafeStaffCode, CreateCafeScript());

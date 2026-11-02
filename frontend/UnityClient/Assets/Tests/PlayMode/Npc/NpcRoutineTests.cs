@@ -235,6 +235,22 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator TownPasserby_WhileOffering_StandsInHisOwnIdleWithoutTheTalkGesture()
+        {
+            // 비즈니스맨 체형에는 공용 손짓 동작이 엉거주춤하게 보여, Ben은 말을 건네는 동안 자기 Idle로 선다.
+            TutorialState.Clear();
+            yield return LoadAt("TownScene", 10 * 60, paused: true);
+            NpcRoutine ben = Routine("TOWN_PASSERBY");
+            PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
+
+            yield return WaitUntil(() => offer.IsShowing);
+            yield return new WaitForSeconds(.5f);
+
+            Assert.That(IsPlaying(ben, "Talk"), Is.False, "손짓 동작을 재생하지 않습니다.");
+            Assert.That(IsPlaying(ben, "Locomotion"), Is.True, "자기 대기 자세로 섭니다.");
+        }
+
+        [UnityTest]
         public IEnumerator TownPasserby_DuringTheTutorial_WaitsInFrontOfTheHouseWithoutLiving()
         {
             // 튜토리얼 중에는 Ben이 집 앞에서 정해진 흐름(길 묻기)대로만 움직이고 생활하지 않는다.

@@ -17,6 +17,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
@@ -69,7 +70,10 @@ public class TurnService {
               new WorkerState.Intent("chat", "Anything the learner says in the conversation.")));
 
   private final TurnRepository turnRepository;
-  private final ConversationSupport support;
+  private final ConversationLookup conversationLookup;
+  private final DialogueContexts dialogueContexts;
+  private final ConversationResponses conversationResponses;
+  private final NpcAudioReceiver npcAudioReceiver;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final MemoryService memoryService;
@@ -110,7 +114,7 @@ public class TurnService {
 
     GuardResult guard = guarding.join();
     boolean rude = Boolean.TRUE.equals(guard.abusive());
-    boolean leaving = rude && context.rudeCount() + 1 >= ConversationSupport.RUDE_LIMIT;
+    boolean leaving = rude && context.rudeCount() + 1 >= Conversation.RUDE_LIMIT;
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
@@ -134,11 +138,11 @@ public class TurnService {
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
     }
-    String npcAudioKey = support.saveNpcAudio(trace, reply.audioFullId());
+    String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
 
     return transactionTemplate.execute(
         status -> {
-          Conversation conversation = support.ownedConversation(userId, conversationId);
+          Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           // AI를 기다리는 사이 대화가 끝났을 수 있다.
           if (!conversation.isActive()) {
             throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
@@ -156,9 +160,9 @@ public class TurnService {
                       judge.english(),
                       guard.abusive(),
                       guard.errorCode(),
-                      support.writeWords(judge.events())));
+                      conversationResponses.writeWords(judge.events())));
           if (rude) {
-            conversation.countRude(ConversationSupport.RUDE_LIMIT, clock.instant());
+            conversation.countRude(Conversation.RUDE_LIMIT, clock.instant());
             npcAffinityService.deductForRudeness(
                 userId, conversation.getNpcId(), guard.affinityDelta());
             // 무례가 쌓여 이 턴으로 NPC가 대화를 끝냈다. 무례한 말은 대화 본문이라 남기지 않는다.
@@ -227,14 +231,14 @@ public class TurnService {
   }
 
   private TurnContext turnContext(Long userId, Long conversationId) {
-    Conversation conversation = support.ownedConversation(userId, conversationId);
+    Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
     if (!conversation.isActive()) {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
     return new TurnContext(
-        support.npcById(conversation.getNpcId()),
-        support.learner(userId),
-        support.history(conversationId),
+        dialogueContexts.npcById(conversation.getNpcId()),
+        dialogueContexts.learner(userId),
+        dialogueContexts.history(conversationId),
         conversation.getLevelApplied(),
         memoryService.memoryFor(userId, conversation.getNpcId()),
         conversation.getRudeCount());
@@ -242,9 +246,9 @@ public class TurnService {
 
   private TurnResponse response(Conversation conversation, Turn userTurn, Turn npcTurn) {
     return new TurnResponse(
-        support.userTurn(userTurn),
-        support.npcTurn(npcTurn),
-        support.state(conversation),
+        conversationResponses.userTurn(userTurn),
+        conversationResponses.npcTurn(npcTurn),
+        conversationResponses.state(conversation),
         List.of());
   }
 

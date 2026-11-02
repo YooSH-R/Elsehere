@@ -16,6 +16,7 @@ import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
@@ -41,7 +42,9 @@ public class TurnHelpService {
   private static final TypeReference<List<GlossaryResponse>> GLOSSARY = new TypeReference<>() {};
 
   private final TurnRepository turnRepository;
-  private final ConversationSupport support;
+  private final ConversationLookup conversationLookup;
+  private final DialogueContexts dialogueContexts;
+  private final ConversationResponses conversationResponses;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final TransactionTemplate transactionTemplate;
@@ -105,7 +108,8 @@ public class TurnHelpService {
   public SuggestWordsResponse suggestWords(Long userId, Long turnId, UUID requestId) {
     HintTarget target = transactionTemplate.execute(status -> hintTarget(userId, turnId));
     if (target.suggestWords() != null) {
-      return new SuggestWordsResponse(turnId, support.readWords(target.suggestWords()));
+      return new SuggestWordsResponse(
+          turnId, conversationResponses.readWords(target.suggestWords()));
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
@@ -122,7 +126,7 @@ public class TurnHelpService {
     if (!usable) {
       throw new BusinessException(ErrorCode.AI_RESPONSE_INVALID);
     }
-    String wordsJson = support.writeWords(words);
+    String wordsJson = conversationResponses.writeWords(words);
     transactionTemplate.executeWithoutResult(
         status ->
             turnRepository.findById(turnId).ifPresent(turn -> turn.attachSuggestWords(wordsJson)));
@@ -130,7 +134,7 @@ public class TurnHelpService {
   }
 
   private NpcLine npcLine(Long userId, Long turnId) {
-    Turn turn = support.ownedNpcTurn(userId, turnId);
+    Turn turn = conversationLookup.ownedNpcTurn(userId, turnId);
     Conversation conversation = turn.getConversation();
     return new NpcLine(
         turn.getText(),
@@ -138,19 +142,19 @@ public class TurnHelpService {
         turn.getGlossary(),
         conversation.getId(),
         conversation.getLevelApplied(),
-        support.npcById(conversation.getNpcId()).workerNpc());
+        dialogueContexts.npcById(conversation.getNpcId()).workerNpc());
   }
 
   private HintTarget hintTarget(Long userId, Long turnId) {
-    Turn turn = support.ownedNpcTurn(userId, turnId);
+    Turn turn = conversationLookup.ownedNpcTurn(userId, turnId);
     Conversation conversation = turn.getConversation();
     return new HintTarget(
         turn.getHintText(),
         turn.getSuggestWords(),
         conversation.getId(),
         conversation.getLevelApplied(),
-        support.npcById(conversation.getNpcId()).workerNpc(),
-        support.historyUntil(conversation.getId(), turn.getSeq()));
+        dialogueContexts.npcById(conversation.getNpcId()).workerNpc(),
+        dialogueContexts.historyUntil(conversation.getId(), turn.getSeq()));
   }
 
   /** AI 호출 전에 트랜잭션 안에서 꺼내 둔 NPC 턴 정보. */

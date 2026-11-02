@@ -8,8 +8,7 @@ import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
-import com.elsehere.conversation.entity.Turn;
-import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.dto.ModelSpeechResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.feedback.repository.TurnFeedbackRepository;
@@ -31,7 +30,7 @@ public class ModelSpeechService {
   private static final double SPEED = 1.0;
 
   private final TurnFeedbackRepository turnFeedbackRepository;
-  private final TurnRepository turnRepository;
+  private final ConversationLookup conversationLookup;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final ModelSpeechStore modelSpeechStore;
@@ -40,14 +39,14 @@ public class ModelSpeechService {
 
   public ModelSpeechService(
       TurnFeedbackRepository turnFeedbackRepository,
-      TurnRepository turnRepository,
+      ConversationLookup conversationLookup,
       AiWorkerClient aiWorkerClient,
       AiRequestRecorder aiRequestRecorder,
       ModelSpeechStore modelSpeechStore,
       TransactionTemplate transactionTemplate,
       @Value("${elsehere.model-speech.voice}") String voice) {
     this.turnFeedbackRepository = turnFeedbackRepository;
-    this.turnRepository = turnRepository;
+    this.conversationLookup = conversationLookup;
     this.aiWorkerClient = aiWorkerClient;
     this.aiRequestRecorder = aiRequestRecorder;
     this.modelSpeechStore = modelSpeechStore;
@@ -92,11 +91,7 @@ public class ModelSpeechService {
             .findById(turnFeedbackId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     Conversation conversation =
-        turnRepository
-            .findById(feedback.getTurnId())
-            .map(Turn::getConversation)
-            .filter(owned -> owned.getUserId().equals(userId))
-            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        conversationLookup.ownedTurn(userId, feedback.getTurnId()).getConversation();
     return new SpeechTarget(
         feedback.getBetterText(), feedback.getModelAudioKey(), conversation.getId());
   }

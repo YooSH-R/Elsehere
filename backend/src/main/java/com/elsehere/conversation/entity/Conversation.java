@@ -34,6 +34,9 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Conversation extends BaseEntity {
 
+  /** 대화 하나에서 무례로 셀 수 있는 발화 수(서버 설정값). 여기에 닿으면 NPC가 대화를 끝낸다. */
+  public static final int RUDE_LIMIT = 3;
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;

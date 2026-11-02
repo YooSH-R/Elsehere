@@ -58,6 +58,8 @@ com.elsehere
   - `conversation`(대화 기록): 다른 도메인이 읽는 아래쪽입니다. `common` 말고 다른 도메인을 import하지 않습니다.
   - `dialogue`(대화 흐름): 여러 도메인을 엮는 위쪽입니다. 다른 도메인이 `dialogue`를 import하지 않습니다.
   - 피드백·기억·단어장처럼 대화 기록을 읽어야 하는 코드는 `conversation`만 씁니다.
+  - 사용자의 대화·턴을 읽을 때는 `ConversationLookup`(`conversation.service`)을 씁니다. 다른 사용자의 것은 `NOT_FOUND`입니다.
+  - 턴을 AI 워커에 보낼 앞선 대화 줄로 바꿀 때는 `WorkerLines`(`ai.service`)를 씁니다.
   - 두 패키지가 순환에 끼면 `PackageDependencyTest`가 실패합니다.
 - 계층 패키지는 그 계층의 코드를 처음 작성할 때 만듭니다. 빈 패키지를 미리 만들지 않습니다.
 - 요청·응답 객체(DTO)는 `<도메인>/dto`에 둡니다. 컨트롤러 하나에서만 쓰는 작은 요청은 컨트롤러 안의 record로 둘 수 있습니다.

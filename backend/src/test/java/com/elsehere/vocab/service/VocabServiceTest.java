@@ -14,6 +14,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.entity.ConversationFeedback;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
@@ -60,6 +61,7 @@ import org.springframework.context.annotation.Import;
   WorldSeedLoader.class,
   PronunciationAudioStore.class,
   VocabService.class,
+  ConversationLookup.class,
   SceneService.class,
   VocabServiceTest.ClockTestConfiguration.class
 })

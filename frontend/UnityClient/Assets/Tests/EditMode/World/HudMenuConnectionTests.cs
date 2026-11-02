@@ -52,27 +52,28 @@ namespace A305.World.Tests
                 name + ": 예전 버튼 줄이 남아 있습니다."
             );
 
-            bool themeShown = items.transform.Find("ThemeButton").gameObject.activeSelf;
             Assert.That(
-                themeShown,
-                Is.EqualTo(name == "HomeScene"),
-                name + ": [테마]는 집에서만 보입니다."
+                items.transform.Find("ThemeButton"),
+                Is.Null,
+                name + ": 화면 디자인은 하나라 메뉴에 [테마]를 두지 않습니다."
             );
         }
 
         [Test]
-        public void HomeThemeMenuItemOpensThePicker()
+        public void HomeHasNoThemePicker()
         {
             var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/HomeScene.unity");
-            var hud = BuilderTools.FindSingleInScene<LearningHudView>(scene);
-            var picker = BuilderTools.FindSingleInScene<ThemePickerView>(scene);
-            var open = (Button)
-                new SerializedObject(picker).FindProperty("openButton").objectReferenceValue;
 
-            Assert.That(open, Is.Not.Null);
-            Assert.That(open.name, Is.EqualTo("ThemeButton"));
-            Assert.That(open.transform.IsChildOf(hud.transform), Is.True);
-            Assert.That(picker.transform.Find("OpenButton").gameObject.activeSelf, Is.False);
+            bool hasPicker = scene
+                .GetRootGameObjects()
+                .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
+                .Any(child => child.name.StartsWith("ThemePicker"));
+
+            Assert.That(
+                hasPicker,
+                Is.False,
+                "화면 디자인은 하나라 테마 고르기 화면을 두지 않습니다."
+            );
         }
 
         // 이 창은 지난 대화를 고르고 그때 받은 피드백을 다시 여는 곳이라 메뉴와 창 제목을 [피드백 목록]으로 부른다.

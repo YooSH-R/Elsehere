@@ -17,5 +17,6 @@ MonoBehaviour:
   dismissDistanceMeters: 6
   restSeconds: 60
   canDecline: 1
+  approachesOncePerDay: 1
   walkSpeedMetersPerSecond: 1.6
   turnSpeedDegreesPerSecond: 540

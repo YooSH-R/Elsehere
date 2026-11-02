@@ -37,7 +37,10 @@ namespace A305.Theme
         Positive,
     }
 
-    /// <summary>한 화면 테마의 그림·색·글꼴. 서비스 기본 글꼴을 제목과 본문에 함께 쓴다.</summary>
+    /// <summary>
+    /// 화면 디자인의 그림·색·글꼴·재질. 본문은 서비스 기본 글꼴, 제목·버튼 이름은 둥근 제목 글꼴로 쓴다.
+    /// 창·카드·입력칸은 뒤 화면을 흐리게 비추는 유리 재질로, 버튼은 입체 재질로 그린다.
+    /// </summary>
     [CreateAssetMenu(fileName = "UiTheme", menuName = "A305/Theme/Theme")]
     public sealed class UiThemeDefinition : ScriptableObject
     {
@@ -56,6 +59,10 @@ namespace A305.Theme
         private TMP_FontAsset titleFont;
 
         [SerializeField]
+        [Tooltip("제목·버튼 이름·배지에 쓰는 둥근 글꼴. 비우면 위 글꼴을 쓴다.")]
+        private TMP_FontAsset displayFont;
+
+        [SerializeField]
         private Color ink = Color.black;
 
         [SerializeField]
@@ -67,7 +74,23 @@ namespace A305.Theme
 
         [Header("창")]
         [SerializeField]
+        [Tooltip("창·카드·입력칸에 쓰는 유리 재질. 비우면 그림을 그대로 그린다.")]
+        private Material glassMaterial;
+
+        [SerializeField]
         private Sprite panelSprite;
+
+        [SerializeField]
+        [Tooltip(
+            "창·카드·입력칸 그림에서 그림자를 그리는 바깥 여백(가로, 세로). 이만큼 넓혀 그려 유리 모양을 칸에 맞춘다."
+        )]
+        private Vector2 panelBleed;
+
+        [SerializeField]
+        private Vector2 cardBleed;
+
+        [SerializeField]
+        private Vector2 inputBleed;
 
         [SerializeField]
         [Tooltip("창 그림에 곱하는 색. 구름 유리는 투명도를 여기서 정한다.")]
@@ -84,12 +107,23 @@ namespace A305.Theme
 
         [Header("버튼")]
         [SerializeField]
+        [Tooltip("버튼·배지에 쓰는 입체 재질. 비우면 그림을 그대로 그린다.")]
+        private Material popMaterial;
+
+        [SerializeField]
         [Tooltip("흰색 바탕 그림. 버튼 쓰임 색을 곱해 칠한다.")]
         private Sprite buttonSprite;
 
         [SerializeField]
         [Tooltip("버튼 위에 겹치는 테두리·그림자. 없으면 겹치지 않는다.")]
         private Sprite buttonOutlineSprite;
+
+        [SerializeField]
+        [Tooltip("버튼·알약 그림에서 두께와 그림자를 그리는 바깥 여백(가로, 세로)")]
+        private Vector2 buttonBleed;
+
+        [SerializeField]
+        private Vector2 pillBleed;
 
         [SerializeField]
         private Sprite pillSprite;
@@ -122,6 +156,14 @@ namespace A305.Theme
         public string DisplayName => displayName;
         public string Description => description;
         public TMP_FontAsset TitleFont => titleFont;
+        public TMP_FontAsset DisplayFont => displayFont != null ? displayFont : titleFont;
+        public Material GlassMaterial => glassMaterial;
+        public Material PopMaterial => popMaterial;
+        public Vector2 PanelBleed => panelBleed;
+        public Vector2 CardBleed => cardBleed;
+        public Vector2 InputBleed => inputBleed;
+        public Vector2 ButtonBleed => buttonBleed;
+        public Vector2 PillBleed => pillBleed;
         public Color Ink => ink;
         public Color MutedInk => mutedInk;
         public Color AccentInk => accentInk;

@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ca27e76fcc915f43b4fed30bdf811d5, type: 3}
+  m_Name: GlassPop
+  m_EditorClassIdentifier: A305.Theme::A305.Theme.UiThemeDefinition
+  id: 0
+  displayName: "\uAE00\uB798\uC2A4 \uD31D"
+  description: "\uB4A4 \uD654\uBA74\uC774 \uBE44\uCE58\uB294 \uC720\uB9AC \uCC3D\uACFC
+    \uB3D9\uAE00\uB3D9\uAE00\uD55C \uC785\uCCB4 \uBC84\uD2BC"
+  titleFont: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
+  displayFont: {fileID: 11400000, guid: 609a8bc80477bce43a2bdf8c71a7b839, type: 2}
+  ink: {r: 0.18431373, g: 0.14509805, b: 0.105882354, a: 1}
+  mutedInk: {r: 0.49019608, g: 0.43137255, b: 0.35686275, a: 1}
+  accentInk: {r: 0.8235294, g: 0.30980393, b: 0.18431373, a: 1}
+  glassMaterial: {fileID: 2100000, guid: 91b48bd8bccdd50479bf16d06d5163e2, type: 2}
+  panelSprite: {fileID: 21300000, guid: 34b5815dbef19e64c8b48c0dccb74c50, type: 3}
+  panelBleed: {x: 30, y: 30}
+  cardBleed: {x: 18, y: 18}
+  inputBleed: {x: 8, y: 8}
+  panelTint: {r: 1, g: 0.972549, b: 0.93333334, a: 1}
+  cardSprite: {fileID: 21300000, guid: 65069994898f547438b38e00ccf52251, type: 3}
+  cardTint: {r: 1, g: 1, b: 1, a: 1}
+  inputSprite: {fileID: 21300000, guid: 5e6f4f806681da347973c3c75696e99f, type: 3}
+  popMaterial: {fileID: 2100000, guid: 59294512211ab0f4b8001922740409fe, type: 2}
+  buttonSprite: {fileID: 21300000, guid: 727cf4e7923b9fd4e87b34b8779b7de7, type: 3}
+  buttonOutlineSprite: {fileID: 0}
+  buttonBleed: {x: 8, y: 10}
+  pillBleed: {x: 8, y: 10}
+  pillSprite: {fileID: 21300000, guid: 94118d27ffd8ea14e88f38d592c274cb, type: 3}
+  pillOutlineSprite: {fileID: 0}
+  badgeSprite: {fileID: 21300000, guid: 94118d27ffd8ea14e88f38d592c274cb, type: 3}
+  badgeColor: {r: 1, g: 0.3529412, b: 0.27058825, a: 1}
+  toneColors:
+  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 1, g: 0.7607843, b: 0.23921569, a: 1}
+  - {r: 1, g: 0.46666667, b: 0.34901962, a: 1}
+  - {r: 0.27058825, g: 0.65882355, b: 0.9411765, a: 1}
+  - {r: 0.29803923, g: 0.7254902, b: 0.41960785, a: 1}
+  toneInks:
+  - {r: 0.18431373, g: 0.14509805, b: 0.105882354, a: 1}
+  - {r: 0.18431373, g: 0.14509805, b: 0.105882354, a: 1}
+  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 1, g: 1, b: 1, a: 1}
+  icons: {fileID: 11400000, guid: afe2ba63b465c54479ff76074f5af590, type: 2}
+  townMap:
+    ground: {r: 0.9843137, g: 0.9529412, b: 0.8862745, a: 1}
+    pavement: {r: 0.94509804, g: 0.9019608, b: 0.81960785, a: 1}
+    road: {r: 0.7882353, g: 0.8392157, b: 0.9019608, a: 1}
+    roadLine: {r: 1, g: 1, b: 1, a: 1}
+    label: {r: 0.49019608, g: 0.43137255, b: 0.35686275, a: 1}
+    destination: {r: 1, g: 0.46666667, b: 0.34901962, a: 1}
+    home: {r: 1, g: 0.7607843, b: 0.23921569, a: 1}
+    cafe: {r: 0.29803923, g: 0.7254902, b: 0.41960785, a: 1}
+    hotel: {r: 0.27058825, g: 0.65882355, b: 0.9411765, a: 1}
+    shop: {r: 1, g: 0.46666667, b: 0.34901962, a: 1}

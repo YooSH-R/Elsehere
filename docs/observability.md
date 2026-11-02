@@ -38,6 +38,14 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | INFO | `user_withdrew` | `user_id` | 회원 탈퇴(USER-05) |
 | DEBUG | `ai_worker_call` | `path`, `status`, `duration_ms` | AI 워커 호출마다(개발 서버에서만 보임) |
 | DEBUG | `business_error` | `code`, `status` | 업무 오류 응답마다(개발 서버에서만 보임) |
+| DEBUG | `npc_reply_timing` | `first_token_s`, `llm_s`, `worker_total_s`, `audio_full_s`, `wait_ms` | NPC 대답(첫 인사·발화) 스트림이 끝날 때(개발 서버에서만 보임) |
+| DEBUG | `npc_audio_saved` | `bytes`, `download_ms`, `save_ms` | NPC 대답 음성을 워커에서 받아 저장했을 때(개발 서버에서만 보임) |
+
+대화 시작·NPC 대답이 오래 걸리면 같은 `request_id`의 `http_request`(요청 전체), `npc_reply_timing`, `npc_audio_saved`를 함께 봅니다.
+
+- `first_token_s`·`llm_s`·`worker_total_s`는 워커가 잰 값입니다. 각각 LLM 첫 글자까지, LLM 대답 생성 전체, 늦은 조각을 기다려 턴 전체 음성을 이어 붙이기 전까지의 시간입니다.
+- `wait_ms`는 백엔드가 워커 스트림이 끝날 때까지 기다린 시간입니다. 워커는 LLM 생성과 음성 합성이 모두 끝나야 스트림을 끝내므로, `wait_ms`에서 `llm_s`를 빼면 대략 음성 합성 쪽 시간입니다.
+- `audio_full_s`는 턴 전체 음성의 길이입니다. `download_ms`·`save_ms`는 그 음성을 워커에서 받고 보관 정책에 맞춰 저장한 시간입니다.
 
 이 밖의 실패 상황(AI 워커 시간 초과·연결 실패, NPC 음성 저장 실패, 기억 카드·관계 갱신 실패 등)은 기존처럼 WARN으로 남깁니다. 운영 백엔드의 로그 파일은 JSON(ECS)으로 남기며([조회·보관·복구](#조회보관복구)), 로그를 모으는 도구는 아직 정하지 않았습니다.
 

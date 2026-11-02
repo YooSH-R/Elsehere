@@ -214,6 +214,7 @@ namespace A305.EditorTools.World
             {
                 case -6:
                     PasserbyRestRecord.Clear();
+                    PasserbyOfferRecord.Clear();
                     TutorialState.Clear();
                     SceneManager.LoadSceneAsync("HomeScene");
                     stage++;

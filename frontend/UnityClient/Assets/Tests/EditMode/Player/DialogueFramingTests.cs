@@ -31,7 +31,10 @@ namespace A305.Player.Tests
 
             Assert.That(Vector3.Distance(near, far), Is.LessThan(0.001f));
             Vector3 offset = near - Face;
-            Assert.That(new Vector2(offset.x, offset.z).magnitude, Is.EqualTo(Distance).Within(0.001f));
+            Assert.That(
+                new Vector2(offset.x, offset.z).magnitude,
+                Is.EqualTo(Distance).Within(0.001f)
+            );
             Assert.That(offset.y, Is.EqualTo(HeightOffset).Within(0.001f));
         }
 
@@ -61,7 +64,10 @@ namespace A305.Player.Tests
             );
 
             Vector3 offset = camera - Face;
-            Assert.That(new Vector2(offset.x, offset.z).magnitude, Is.EqualTo(Distance).Within(0.001f));
+            Assert.That(
+                new Vector2(offset.x, offset.z).magnitude,
+                Is.EqualTo(Distance).Within(0.001f)
+            );
         }
 
         [Test]

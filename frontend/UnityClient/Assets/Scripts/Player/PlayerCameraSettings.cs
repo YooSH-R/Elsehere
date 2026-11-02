@@ -75,7 +75,9 @@ namespace A305.Player
         private float dialogueDistanceMeters = 2f;
 
         [SerializeField]
-        [Tooltip("대화할 때 카메라가 NPC 얼굴보다 높은 정도. 0이면 얼굴과 같은 높이, 음수면 올려다본다")]
+        [Tooltip(
+            "대화할 때 카메라가 NPC 얼굴보다 높은 정도. 0이면 얼굴과 같은 높이, 음수면 올려다본다"
+        )]
         private float dialogueHeightOffsetMeters = 0f;
 
         [SerializeField]

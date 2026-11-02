@@ -235,11 +235,13 @@ namespace A305.EditorTools.Theme
             Transform vocabulary = MenuItem(root, "VocabularyButton", UiIcon.Book, "단어장");
             MenuItem(root, "HistoryButton", UiIcon.Talk, "피드백 목록");
             MenuItem(root, "MyPageButton", UiIcon.Detail, "내 정보");
+            MenuItem(root, "ControlsButton", UiIcon.Hint, ControlsGuideText.MenuLabel);
             MenuItem(root, "ThemeButton", UiIcon.Palette, "테마");
             MenuItem(root, "HomeButton", UiIcon.Home, "홈");
             MenuDivider(menu);
             StyleHistory(root);
             StyleMyPage(root);
+            StyleControlsGuide(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -375,6 +377,26 @@ namespace A305.EditorTools.Theme
             ActionPill(root, "History/Buttons/OpenButton", UiIcon.Detail, UiTone.Primary, 220);
             CornerClose(root, "History");
             Roomy(root, "History");
+        }
+
+        /// <summary>오른쪽 아래 조작법 카드. 알림 카드처럼 작은 카드 바탕에 제목·조작·안내를 두고, 닫기는 오른쪽 위 X다.</summary>
+        private static void StyleControlsGuide(Transform root)
+        {
+            if (root.Find("ControlsGuide") == null)
+                return;
+            Role(root, "ControlsGuide", UiThemeRole.Card);
+            Role(root, "ControlsGuide/Title", UiThemeRole.Title);
+            Role(root, "ControlsGuide/Body", UiThemeRole.Body);
+            Role(root, "ControlsGuide/Hint", UiThemeRole.Muted);
+            CornerClose(root, "ControlsGuide");
+            Transform card = root.Find("ControlsGuide");
+            var column = card.GetComponent<VerticalLayoutGroup>();
+            column.padding = new RectOffset(28, 28, 22, 24);
+            column.spacing = 10;
+            // 제목 줄을 오른쪽 위 X만큼 높여 첫 조작 줄이 X 아래에서 시작하게 한다.
+            Transform title = card.Find("Title");
+            BuilderTools.GetOrAddComponent<LayoutElement>(title.gameObject).minHeight = 52;
+            title.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.MidlineLeft;
         }
 
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
@@ -894,10 +916,8 @@ namespace A305.EditorTools.Theme
 
         private static void StyleFirstDay(Transform root)
         {
-            IconButton(root, "Content/MapButton", UiIcon.Map, UiTone.Primary, caption: false);
-            Role(root, "Content/CurrentGoal", UiThemeRole.Panel);
-            Role(root, "Content/CurrentGoal/Situation", UiThemeRole.Title);
-            Role(root, "Content/CurrentGoal/Direction", UiThemeRole.Body);
+            // 퀘스트 카드와 오른쪽 위 시계·코인 칩은 퀘스트 카드 Builder가 칠한다.
+            A305.EditorTools.Mission.QuestCardBuilder.Apply(root.gameObject);
             Role(root, "Content/Journal", UiThemeRole.Panel);
             root.Find("Content/Journal").GetComponent<VerticalLayoutGroup>().padding =
                 new RectOffset(48, 48, 36, 40);

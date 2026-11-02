@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -10,8 +11,8 @@ using UnityEngine.UI;
 namespace A305.Mission
 {
     /// <summary>
-    /// 왼쪽 위에 지도 버튼과 현재 목표를 두고, 버튼을 누르면 마을 지도와 전체 여정이 담긴 수첩을 펼친다.
-    /// 수첩을 펼친 동안에는 같은 내용의 목표 카드를 숨긴다.
+    /// 왼쪽 위에 퀘스트 카드(단계 칩·장소·할 일·상황·진행 막대·목표 체크리스트)를 두고, 카드를 누르면 마을 지도와 전체 여정이 담긴 수첩을 펼친다.
+    /// 수첩을 펼친 동안에는 같은 내용의 카드를 숨긴다. 오른쪽 위에는 게임 시계와 코인을 보인다.
     /// </summary>
     public sealed class FirstDayMissionView : MonoBehaviour
     {
@@ -26,6 +27,30 @@ namespace A305.Mission
 
         [SerializeField]
         private TMP_Text direction;
+
+        [SerializeField]
+        [Tooltip("퀘스트 카드 단계 칩의 글자(지금 단계 / 전체). 칩은 이 글자의 부모다.")]
+        private TMP_Text stepChip;
+
+        [SerializeField]
+        [Tooltip("단계 칩 옆의 지금 단계 이름")]
+        private TMP_Text place;
+
+        [SerializeField]
+        [Tooltip("이번 단계 목표. 한 줄에 하나씩 놓는다.")]
+        private TMP_Text checklist;
+
+        [SerializeField]
+        [Tooltip("단계마다 한 칸인 진행 막대. 첫 칸을 본떠 단계 수만큼 칸을 만든다.")]
+        private RectTransform progress;
+
+        [SerializeField]
+        [Tooltip("오른쪽 위 게임 시계 칩의 글자")]
+        private TMP_Text clock;
+
+        [SerializeField]
+        [Tooltip("오른쪽 위 코인 칩의 숫자")]
+        private TMP_Text coins;
 
         [SerializeField]
         private TMP_Text journalGoal;
@@ -86,20 +111,20 @@ namespace A305.Mission
         [SerializeField]
         private Button retryButton;
 
-        private const float Margin = 24;
-        private const float BesideButtonX = 112;
-        private const float BelowButtonY = 112;
-        private const float MinBannerWidth = 360;
-        private const float MaxBannerWidth = 640;
-        private const float DrawerWidth = 480;
+        /// <summary>진행 막대 칸 색. 끝낸 단계는 초록, 지금 단계는 코랄, 남은 단계는 옅은 갈색이다.</summary>
+        public static readonly Color DoneMark = new Color32(76, 185, 107, 255);
+        public static readonly Color CurrentMark = new Color32(255, 119, 89, 255);
+        public static readonly Color UpcomingMark = new Color32(125, 110, 91, 70);
 
-        // 오른쪽 위 단어장 칸(너비 360)과 그 앞 여백.
-        private const float VocabularyReserve = 384;
+        private const float Margin = 24;
+        private const float CardWidth = 520;
+        private const float DrawerWidth = 480;
 
         // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
         private const int OpenJournalSortingOrder = 1000;
 
         private Canvas canvas;
+        private int shownClockMinute = -1;
         private int closedSortingOrder;
         private bool available;
         private string mapSceneCode;
@@ -143,7 +168,18 @@ namespace A305.Mission
             );
             direction.text = state.CanRest
                 ? "가까운 의자에 앉아 잠깐 쉬어 가세요."
-                : WithGoalChecklist(state.Direction, current);
+                : state.Direction;
+            // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
+            string goals = state.CanRest || current == null ? "" : GoalChecklist(current.Goals);
+            checklist.text = goals;
+            checklist.gameObject.SetActive(goals.Length > 0);
+            string chip = StepChip(state.Steps);
+            stepChip.text = chip ?? "";
+            stepChip.transform.parent.gameObject.SetActive(chip != null);
+            place.text = current != null ? CompactTitle(current.Title) : "";
+            ShowProgress(state.Steps);
+            coins.text = state.Balance.ToString();
+            ShowClock();
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
@@ -201,16 +237,9 @@ namespace A305.Mission
         // 한 줄에 다 들어가지 않아도 목표 한 항목은 이어서 보이게 하는 줄바꿈하지 않는 공백
         private const char NoBreakSpace = '\u00A0';
 
-        // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
-        private static string WithGoalChecklist(string request, FirstDayMissionStep current)
-        {
-            string checklist = current == null ? "" : GoalChecklist(current.Goals);
-            return string.IsNullOrEmpty(checklist) ? request : $"{request}\n{checklist}";
-        }
-
         /// <summary>
-        /// 이번 단계 목표 체크리스트. 달성한 목표는 초록 ✓, 남은 목표는 ○로 표시한다.
-        /// 목록이 두 줄이 되어도 한 항목이 갈라지지 않게 항목 안의 띄어쓰기는 줄바꿈하지 않는 공백으로 바꾼다.
+        /// 이번 단계 목표 체크리스트. 한 줄에 하나씩, 달성한 목표는 초록 ✓, 남은 목표는 ○로 표시한다.
+        /// 긴 목표가 줄을 넘겨도 낱말 중간이 갈라지지 않게 항목 안의 띄어쓰기는 줄바꿈하지 않는 공백으로 바꾼다.
         /// </summary>
         public static string GoalChecklist(IEnumerable<FirstDayMissionGoal> goals)
         {
@@ -225,7 +254,51 @@ namespace A305.Mission
                 );
             }
 
-            return string.Join("   ", items);
+            return string.Join("\n", items);
+        }
+
+        /// <summary>단계 칩 글자. 지금 단계가 몇 번째인지 전체 단계 수와 함께 쓰고, 모두 끝냈으면 마지막 단계로, 시작 전이면 null이다.</summary>
+        public static string StepChip(IReadOnlyList<FirstDayMissionStep> steps)
+        {
+            for (int i = 0; i < steps.Count; i++)
+            {
+                if (steps[i].Status == "CURRENT")
+                    return $"{i + 1} / {steps.Count}";
+            }
+
+            return steps.Count > 0 && steps.All(step => step.Status == "DONE")
+                ? $"{steps.Count} / {steps.Count}"
+                : null;
+        }
+
+        // 진행 막대 칸을 단계 수만큼 두고 단계 상태에 따라 칠한다. 칸이 모자라면 첫 칸을 본떠 더 만든다.
+        private void ShowProgress(IReadOnlyList<FirstDayMissionStep> steps)
+        {
+            GameObject template = progress.GetChild(0).gameObject;
+            while (progress.childCount < steps.Count)
+                Instantiate(template, progress, false);
+            for (int i = 0; i < progress.childCount; i++)
+            {
+                GameObject mark = progress.GetChild(i).gameObject;
+                mark.SetActive(i < steps.Count);
+                if (i < steps.Count)
+                    mark.GetComponent<Image>().color = MarkColor(steps[i].Status);
+            }
+        }
+
+        private static Color MarkColor(string status) =>
+            status == "DONE" ? DoneMark
+            : status == "CURRENT" ? CurrentMark
+            : UpcomingMark;
+
+        // 게임 시계는 분이 바뀔 때만 다시 쓴다.
+        private void ShowClock()
+        {
+            int minute = (int)GameClock.Shared.Minutes;
+            if (minute == shownClockMinute)
+                return;
+            shownClockMinute = minute;
+            clock.text = GameClockText.Format(minute);
         }
 
         private static string CompactTitle(string title) =>
@@ -241,26 +314,18 @@ namespace A305.Mission
                 _ => title,
             };
 
-        /// <summary>
-        /// 목표 카드는 지도 버튼 오른쪽에 두되, 오른쪽 위 단어장 칸까지 닿을 만큼 좁으면 버튼 아래로 내린다.
-        /// </summary>
+        /// <summary>퀘스트 카드와 수첩은 화면 왼쪽 위 모서리에 붙인다. 좁은 화면에서는 화면 폭에 맞춰 줄인다.</summary>
         public void UpdateLayout()
         {
             var canvas = GetComponent<Canvas>();
             if (canvas == null || situation == null)
                 return;
             var screen = (RectTransform)canvas.transform;
-            float beside = screen.rect.width - BesideButtonX - Margin - VocabularyReserve;
-            bool below = beside < MinBannerWidth;
             Banner.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Horizontal,
-                below
-                    ? Mathf.Min(MaxBannerWidth, screen.rect.width - Margin * 2)
-                    : Mathf.Min(MaxBannerWidth, beside)
+                Mathf.Min(CardWidth, screen.rect.width - Margin * 2)
             );
-            Banner.anchoredPosition = below
-                ? new Vector2(Margin, -BelowButtonY)
-                : new Vector2(BesideButtonX, -Margin);
+            Banner.anchoredPosition = new Vector2(Margin, -Margin);
             var drawer = (RectTransform)journal.transform;
             drawer.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Horizontal,
@@ -268,7 +333,7 @@ namespace A305.Mission
             );
             drawer.SetSizeWithCurrentAnchors(
                 RectTransform.Axis.Vertical,
-                Mathf.Min(900, screen.rect.height - BelowButtonY - Margin)
+                Mathf.Min(900, screen.rect.height - Margin * 2)
             );
         }
 
@@ -335,6 +400,7 @@ namespace A305.Mission
 
         private void Update()
         {
+            ShowClock();
             if (
                 mapOverlay != null
                 && mapOverlay.activeSelf

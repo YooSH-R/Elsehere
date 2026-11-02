@@ -263,6 +263,19 @@ def test_the_service_npcs_each_have_a_service_scenario():
     }
 
 
+def test_the_service_npcs_each_have_their_own_voice():
+    """한 목소리를 모두 쓰면 남자 인물도 여자 목소리로 말한다. 인물 성별·성격에 맞춘 Kokoro 목소리를 NPC마다 따로 둔다."""
+    configs, _ = service_npcs()
+
+    assert {config["npcId"]: config["voiceId"] for config in configs} == {
+        "CAFE_STAFF": "af_heart",  # Mia: 밝은 여자
+        "HOTEL_STAFF": "am_onyx",  # Jake: 낮고 무덤덤한 남자
+        "SHOP_STAFF": "am_michael",  # Alex: 차분한 남자
+        "TAXI_DRIVER": "am_puck",  # Joe: 밝고 수다스러운 남자
+        "TOWN_PASSERBY": "am_fenrir",  # Ben: 분명하고 단호한 남자
+    }
+
+
 def test_the_backend_content_files_match_the_npc_sources():
     """백엔드 시드용 생성 파일(백엔드 연결은 별도 작업). ai/npcs를 고쳤으면 저장소 최상위에서 REGENERATE 명령으로 다시 만든다."""
     configs, scenarios = service_npcs()

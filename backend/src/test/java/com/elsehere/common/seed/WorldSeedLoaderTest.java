@@ -316,6 +316,21 @@ class WorldSeedLoaderTest {
   }
 
   @Test
+  @DisplayName("인격 카드가 있는 NPC는 음성 합성 목소리가 설정 파일의 목소리와 같다")
+  void load_npcVoiceMatchesConfigurationVoice() throws IOException {
+    worldSeedLoader.load();
+
+    voicesInConfigurations()
+        .forEach(
+            (npcCode, voiceId) ->
+                assertThat(npcRepository.findByCode(npcCode))
+                    .get()
+                    .extracting(Npc::getVoiceId)
+                    .as(npcCode)
+                    .isEqualTo(voiceId));
+  }
+
+  @Test
   @DisplayName("인격 카드는 처음 넣을 때만 쓰고, 다시 실행해도 이미 있는 카드를 바꾸지 않는다")
   void load_keepsExistingProfile() {
     worldSeedLoader.load();
@@ -341,6 +356,16 @@ class WorldSeedLoaderTest {
         profiles.put(configuration.get("npcId").asString(), configuration.get("npcProfile"));
       }
       return profiles;
+    }
+  }
+
+  private Map<String, String> voicesInConfigurations() throws IOException {
+    try (var input = new ClassPathResource("content/npc-configurations.json").getInputStream()) {
+      Map<String, String> voices = new HashMap<>();
+      for (JsonNode configuration : new JsonMapper().readTree(input)) {
+        voices.put(configuration.get("npcId").asString(), configuration.get("voiceId").asString());
+      }
+      return voices;
     }
   }
 

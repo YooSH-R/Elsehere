@@ -139,7 +139,7 @@
       ]
     },
     "defaultLocationId": "HOTEL",
-    "voiceId": "af_heart",
+    "voiceId": "am_onyx",
     "isActive": true
   },
   {
@@ -213,7 +213,7 @@
       ]
     },
     "defaultLocationId": "SHOP",
-    "voiceId": "af_heart",
+    "voiceId": "am_michael",
     "isActive": true
   },
   {
@@ -288,7 +288,7 @@
       ]
     },
     "defaultLocationId": "TOWN",
-    "voiceId": "af_heart",
+    "voiceId": "am_puck",
     "isActive": true
   },
   {
@@ -356,7 +356,7 @@
       ]
     },
     "defaultLocationId": "TOWN",
-    "voiceId": "af_heart",
+    "voiceId": "am_fenrir",
     "isActive": true
   }
 ]

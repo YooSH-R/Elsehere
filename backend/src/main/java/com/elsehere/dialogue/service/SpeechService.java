@@ -5,6 +5,7 @@ import com.elsehere.ai.client.SttResult;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
+import com.elsehere.ai.service.AiFailureRecorder;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -49,6 +50,7 @@ public class SpeechService {
   private final DialogueContexts dialogueContexts;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
+  private final AiFailureRecorder aiFailureRecorder;
   private final NpcAudioRetention npcAudioRetention;
   private final TransactionTemplate transactionTemplate;
   private final OptionalConsentService optionalConsentService;
@@ -85,7 +87,11 @@ public class SpeechService {
         new WorkerTrace(
             requestId, userId, purpose == TranscriptionPurpose.TURN ? conversationId : null);
     byte[] recording = bytesOf(audio);
-    SttResult result = aiWorkerClient.transcribe(trace, recording, contentType);
+    SttResult result =
+        aiFailureRecorder.recordIfFails(
+            trace,
+            AiRequestKind.STT,
+            () -> aiWorkerClient.transcribe(trace, recording, contentType));
     aiRequestRecorder.record(trace, AiRequestKind.STT, result.usage(), AiRequestStatus.OK);
     if (result.text() == null || result.text().isBlank()) {
       throw new BusinessException(ErrorCode.STT_NO_SPEECH);
@@ -140,7 +146,11 @@ public class SpeechService {
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     double speed = LEVEL_SPEED.getOrDefault(target.level(), 1.0);
-    byte[] wav = aiWorkerClient.synthesize(trace, target.text(), target.voiceId(), speed);
+    byte[] wav =
+        aiFailureRecorder.recordIfFails(
+            trace,
+            AiRequestKind.TTS,
+            () -> aiWorkerClient.synthesize(trace, target.text(), target.voiceId(), speed));
     aiRequestRecorder.record(trace, AiRequestKind.TTS, List.of(), AiRequestStatus.OK);
     String key = npcAudioRetention.save(wav);
     if (key != null) {

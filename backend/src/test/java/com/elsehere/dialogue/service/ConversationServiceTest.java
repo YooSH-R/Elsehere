@@ -258,6 +258,29 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("첫 인사를 부르다 워커에 닿지 못하면 오류를 그대로 알리고 NPC 호출을 FAILED로 남긴다")
+  void start_greetingCallFails_recordsFailed() {
+    given(
+            aiWorkerClient.reply(
+                any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    assertThatThrownBy(
+            () ->
+                conversationService.start(
+                    userId,
+                    new StartConversationRequest(requestId, "CAFE_STAFF", InitiatedBy.USER)))
+        .isInstanceOf(BusinessException.class);
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.NPC)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
   @DisplayName("첫 인사를 만들지 못하면 워커 오류 코드로 실패하고 대화를 만들지 않으며 호출 기록을 FAILED로 남긴다")
   void start_greetingFails_throwsWithoutConversation() {
     given(

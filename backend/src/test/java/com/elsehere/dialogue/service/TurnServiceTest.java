@@ -251,6 +251,28 @@ class TurnServiceTest {
   }
 
   @Test
+  @DisplayName("의도 판정을 부르다 워커에 닿지 못하면 오류를 그대로 알리고 판정 호출을 FAILED로 남긴다")
+  void send_judgeCallFails_recordsFailed() {
+    given(aiWorkerClient.judge(any(), any(), any(), any(), eq("Yes")))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+
+    assertThatThrownBy(() -> send("Yes")).isInstanceOf(BusinessException.class);
+    assertThat(record(lastRequestId, AiRequestKind.JUDGE)).isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
+  @DisplayName("NPC 대답을 부르다 워커에 닿지 못하면 오류를 그대로 알리고 대답 호출을 FAILED로 남긴다")
+  void send_replyCallFails_recordsFailed() {
+    judges("Yes", "Yes", null);
+    guards("Yes", false, null);
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), anyString(), anyInt(), any()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+
+    assertThatThrownBy(() -> send("Yes")).isInstanceOf(BusinessException.class);
+    assertThat(record(lastRequestId, AiRequestKind.NPC)).isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
   @DisplayName("무례 판정 호출이 실패해도 판정 못 함으로 기록하고 대화를 이어 간다")
   void send_guardCallFails_continuesUndecided() {
     judges("Yes", "Yes", null);

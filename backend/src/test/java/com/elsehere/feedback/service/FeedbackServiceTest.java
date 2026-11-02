@@ -238,6 +238,23 @@ class FeedbackServiceTest {
   }
 
   @Test
+  @DisplayName("피드백을 부르다 워커에 닿지 못하면 피드백 호출을 FAILED로 남긴다")
+  void feedbackOnEnd_workerUnavailable_recordsFailedCall() {
+    given(aiWorkerClient.feedback(any(), any()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+    UUID requestId = UUID.randomUUID();
+
+    feedbackService.feedbackOnEnd(userId, conversation.getId(), requestId, false);
+
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.FEEDBACK)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.FAILED);
+  }
+
+  @Test
   @DisplayName("워커에 닿지 못하면 대화 종료는 그대로 두고 FAILED와 API 오류 코드를 저장한다")
   void feedbackOnEnd_workerUnavailable_savesFailed() {
     given(aiWorkerClient.feedback(any(), any()))

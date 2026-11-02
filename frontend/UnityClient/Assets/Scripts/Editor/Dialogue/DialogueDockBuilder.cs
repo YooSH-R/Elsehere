@@ -1,3 +1,4 @@
+using A305.Dialogue;
 using A305.EditorTools.Common;
 using A305.Theme;
 using TMPro;
@@ -125,14 +126,43 @@ namespace A305.EditorTools.Dialogue
             hitArea.sprite = null;
             hitArea.color = Color.clear;
             hitArea.raycastTarget = true;
-            // 받침은 카드를 띄울 때 DialoguePanelView가 지금 테마 카드와 같은 모양으로 맞추고 색만 불투명하게 둔다.
-            card.Find("Backing").GetComponent<Image>().color = Color.white;
+            // 받침과 색 층은 카드를 띄울 때 DialoguePanelView가 지금 테마 카드와 같은 모양으로 맞춘다.
+            // 같은 색 대화창 위에서 카드가 떠 보이도록 받침에 고른 단어와 같은 주황 테두리와 그림자를 두고, 카드 전체에 그 주황을 옅게 입힌다.
+            ColorUtility.TryParseHtmlString(DialogueLinesText.SelectedWordMark, out Color accent);
+            var backing = card.Find("Backing").GetComponent<Image>();
+            backing.color = Color.white;
+            var border = Effect<Outline>(backing.gameObject);
+            border.effectColor = new Color(accent.r, accent.g, accent.b, 1f);
+            border.effectDistance = new Vector2(3, -3);
+            border.useGraphicAlpha = true;
+            var shadow = Effect<Shadow>(backing.gameObject);
+            shadow.effectColor = new Color(0, 0, 0, 0.22f);
+            shadow.effectDistance = new Vector2(0, -8);
+            card.Find("Tint").GetComponent<Image>().color = new Color(
+                accent.r,
+                accent.g,
+                accent.b,
+                0.14f
+            );
             Theme(card.Find("Face"), UiThemeRole.Panel);
             Theme(card.Find("Title"), UiThemeRole.Title);
             Theme(card.Find("Meaning"), UiThemeRole.Accent);
             Theme(card.Find("Note"), UiThemeRole.Muted);
             Control(card.Find("WordSaveButton"), "단어장에 저장", "insert");
             Control(card.Find("CloseButton"), "", "close");
+        }
+
+        // Outline은 Shadow를 상속하므로 GetComponent로 찾으면 섞인다. 정확히 그 종류인 효과를 찾고, 없으면 붙인다.
+        private static T Effect<T>(GameObject target)
+            where T : Shadow
+        {
+            foreach (Shadow effect in target.GetComponents<Shadow>())
+            {
+                if (effect.GetType() == typeof(T))
+                    return (T)effect;
+            }
+
+            return target.AddComponent<T>();
         }
 
         private static void ToolButton(Transform button, string caption, string icon, float width)

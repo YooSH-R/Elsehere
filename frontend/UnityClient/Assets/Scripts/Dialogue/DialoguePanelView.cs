@@ -103,8 +103,14 @@ namespace A305.Dialogue
         private Image wordCardFace;
 
         [SerializeField]
-        [Tooltip("테마 카드가 반투명해도 뒤 대사가 비치지 않게 까는 불투명한 받침")]
+        [Tooltip(
+            "테마 카드가 반투명해도 뒤 대사가 비치지 않게 까는 불투명한 받침. 주황 테두리와 그림자가 있다."
+        )]
         private Image wordCardBacking;
+
+        [SerializeField]
+        [Tooltip("같은 색 대화창과 섞이지 않도록 테마 카드 위에 옅게 입히는 주황")]
+        private Image wordCardTint;
 
         [SerializeField]
         private TMP_Text wordTitleText;
@@ -504,10 +510,9 @@ namespace A305.Dialogue
             wordCard.gameObject.SetActive(glossaryCard.IsVisible);
             if (!glossaryCard.IsVisible)
                 return;
-            // 테마마다 카드 모양이 달라, 받침은 지금 테마 카드와 같은 모양으로 맞춘다. 색은 불투명하게 둔다.
-            wordCardBacking.sprite = wordCardFace.sprite;
-            wordCardBacking.type = wordCardFace.type;
-            wordCardBacking.pixelsPerUnitMultiplier = wordCardFace.pixelsPerUnitMultiplier;
+            // 테마마다 카드 모양이 달라, 받침과 색 층은 지금 테마 카드와 같은 모양으로 맞춘다. 색은 Builder가 정한 대로 둔다.
+            MatchCardShape(wordCardBacking);
+            MatchCardShape(wordCardTint);
             wordTitleText.richText = wordMeaningText.richText = false;
             wordTitleText.text = glossaryCard.Word.Text;
             wordMeaningText.text = glossaryCard.Word.MeaningKo;
@@ -523,6 +528,13 @@ namespace A305.Dialogue
                 note.offsetMax.y
             );
             PlaceWordCard();
+        }
+
+        private void MatchCardShape(Image layer)
+        {
+            layer.sprite = wordCardFace.sprite;
+            layer.type = wordCardFace.type;
+            layer.pixelsPerUnitMultiplier = wordCardFace.pixelsPerUnitMultiplier;
         }
 
         // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 대화창 안에서만 움직여 그 위의 NPC 얼굴을 가리지 않는다.

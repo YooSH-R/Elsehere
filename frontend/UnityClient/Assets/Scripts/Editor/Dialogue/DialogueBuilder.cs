@@ -421,6 +421,7 @@ namespace A305.EditorTools.Dialogue
                 "wordCardBacking",
                 CardPart<Image>(wordCard, "Backing")
             );
+            BuilderTools.SetReference(view, "wordCardTint", CardPart<Image>(wordCard, "Tint"));
             BuilderTools.SetReference(view, "wordTitleText", CardPart<TMP_Text>(wordCard, "Title"));
             BuilderTools.SetReference(
                 view,
@@ -486,8 +487,10 @@ namespace A305.EditorTools.Dialogue
             card.anchorMin = card.anchorMax = card.pivot = Vector2.zero;
             card.sizeDelta = WordCardSize;
             // 카드는 대사 위에 겹쳐 뜨므로, 테마 카드(Face)가 반투명한 테마에서도 뒤 대사가 비치지 않게 불투명한 받침(Backing)을 깐다.
+            // 같은 색 대화창과 섞이지 않도록 테마 카드 위에 고른 단어와 같은 주황을 옅게 입힌다(Tint).
             CardLayer(card, "Backing", 0);
             CardLayer(card, "Face", 1);
+            CardLayer(card, "Tint", 2);
 
             CardText(card, "Title", bold, 30f, new Vector2(0, 1), new Vector2(24, -16), 320);
             CardText(card, "Meaning", regular, 22f, new Vector2(0, 1), new Vector2(24, -58), 372);

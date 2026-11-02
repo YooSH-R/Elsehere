@@ -95,7 +95,11 @@ namespace A305.Tutorial.Tests
             );
             guide.TryGetStepGuide(TutorialStep.BenFeedback, out TutorialStepGuide feedback);
             Assert.That(feedback.Task, Does.Contain("{X}"));
-            Assert.That(guide.DialogueEndCaption, Does.Contain("피드백"), "누르면 무엇이 이어지는지");
+            Assert.That(
+                guide.DialogueEndCaption,
+                Does.Contain("피드백"),
+                "누르면 무엇이 이어지는지"
+            );
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{문장}"));
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("추천 문장"));
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{넣기}"));

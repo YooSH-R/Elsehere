@@ -66,8 +66,9 @@ STAGES = {
     "EARLY_ARRIVAL": (
         "It is too early to check in: the room is not ready yet. Do not check the learner in, give a room number or room key, "
         "or ask for ID, a credit card or payment. If they ask to check in, tell them early check-in is not possible today. "
-        "You can confirm the reservation by name, store the large suitcase until the room is ready and give directions to "
-        "Corner Cafe, where they can wait. The learner keeps a small blue shoulder bag.",
+        "When the learner asks, you can confirm the reservation by name, store the large suitcase until the room is ready "
+        "and give directions to Corner Cafe, where they can wait. Do not offer any of these before the learner asks. "
+        "The learner keeps a small blue shoulder bag.",
         {
             "confirm_reservation": "Confirm or identify an existing hotel reservation.",
             "store_suitcase": "Ask to store the large suitcase until check-in.",
@@ -85,7 +86,8 @@ STAGES = {
     ),
     "MISSING_BAG": (
         "The large suitcase is safely stored at this hotel. The learner left their separate small shoulder bag at the cafe. "
-        "They need to go back for it before checking in. Do not claim the hotel has the small bag.",
+        "They need to go back for it before checking in. Do not claim the hotel has the small bag. "
+        "Do not bring up the missing bag before the learner explains it.",
         {
             "report_left_bag": "Explain the small bag is missing or was left at the cafe.",
             "return_later": "Say they will return after looking for or retrieving the bag.",
@@ -93,6 +95,7 @@ STAGES = {
     ),
     "FIND_BAG": (
         "You found a small blue shoulder bag with a red keyring. It contains a passport wallet and a book. "
+        "Do not mention or offer the found bag before the learner asks about a lost bag. "
         "Ask for appearance and contents, one question at a time. Return it only after the learner describes matching appearance "
         "and contents and claims ownership. Do not invent other contents.",
         {
@@ -105,7 +108,7 @@ STAGES = {
     "RAINY_STREET": (
         "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins; "
         "the learner has 20 quest coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. "
-        "Do not sell an umbrella yourself.",
+        "Do not sell an umbrella yourself. Do not suggest umbrellas or the drugstore before the learner asks.",
         {
             "ask_umbrella_shop": "Ask where to buy an umbrella or for a store selling one.",
             "ask_directions": "Ask or confirm directions or the location of the drugstore.",

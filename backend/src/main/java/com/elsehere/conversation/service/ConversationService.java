@@ -57,6 +57,12 @@ public class ConversationService {
       "The learner just walked up to you. Greet them first and ask how you can help, "
           + "like you would in your role. 1 short sentence.";
 
+  // 미션 지시에는 학습자가 할 일과 NPC가 해 줄 수 있는 일이 담겨 있다. 첫 인사에서 이를 먼저 다 말하면 학습자가 요청할 일이 사라진다.
+  private static final String MISSION_GREETING =
+      " Greet the learner and ask how you can help in one short sentence for this situation."
+          + " Do not mention the learner's tasks, your offers or directions yet; wait for the learner to ask."
+          + " Do not assume their task is complete.";
+
   private final ConversationRepository conversationRepository;
   private final TurnRepository turnRepository;
   private final UserRepository userRepository;
@@ -236,10 +242,7 @@ public class ConversationService {
             GREETING_TEXT,
             context
                 .mission()
-                .map(
-                    value ->
-                        value.instruction()
-                            + " Greet the learner with one short sentence for this situation; do not assume their task is complete.")
+                .map(value -> value.instruction() + MISSION_GREETING)
                 .orElse(GREETING_INSTRUCTION),
             context.level(),
             context.learner());

@@ -1,14 +1,10 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
@@ -74,9 +70,7 @@ public class ConversationService {
   private final DialogueContexts dialogueContexts;
   private final ConversationResponses conversationResponses;
   private final NpcAudioReceiver npcAudioReceiver;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
-  private final AiFailureRecorder aiFailureRecorder;
+  private final AiGateway aiGateway;
   private final FeedbackService feedbackService;
   private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
@@ -248,30 +242,18 @@ public class ConversationService {
 
   private Opening greetingOpening(WorkerTrace trace, NpcContext npc, StartContext context) {
     NpcReply reply =
-        aiFailureRecorder.recordIfFails(
+        aiGateway.reply(
             trace,
-            AiRequestKind.NPC,
-            () ->
-                aiWorkerClient.reply(
-                    trace,
-                    npc.workerNpc(),
-                    context.memory(),
-                    List.of(),
-                    GREETING_TEXT,
-                    context
-                        .mission()
-                        .map(value -> value.instruction() + MISSION_GREETING)
-                        .orElse(GREETING_INSTRUCTION),
-                    context.level(),
-                    context.learner()));
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.NPC,
-        reply.usage(),
-        reply.succeeded() ? AiRequestStatus.OK : AiRequestStatus.FAILED);
-    if (!reply.succeeded()) {
-      throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
-    }
+            npc.workerNpc(),
+            context.memory(),
+            List.of(),
+            GREETING_TEXT,
+            context
+                .mission()
+                .map(value -> value.instruction() + MISSION_GREETING)
+                .orElse(GREETING_INSTRUCTION),
+            context.level(),
+            context.learner());
     return new Opening(reply.text(), npcAudioReceiver.save(trace, reply.audioFullId()));
   }
 

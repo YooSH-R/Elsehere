@@ -23,7 +23,7 @@ namespace A305.EditorTools.Npc
         private const string TownScenePath = "Assets/Scenes/Production/TownScene.unity";
         private const string TownPasserbyCode = "TOWN_PASSERBY";
 
-        // TownProductionBuilder가 모든 NPC에 붙였던 뼈대 없는 도형 외형
+        // TownProductionBuilder가 모든 NPC에 붙였던 뼈대 없는 도형 외형. 이 외형에 Generic 뼈대를 붙인 BenVisual도 함께 치운다.
         private const string ProxyPrefabPath =
             TownBackgroundKit.Folder + "/LittleMungV7NpcVisual.prefab";
         private const float ServiceHeightMeters = 1.7f;
@@ -52,7 +52,10 @@ namespace A305.EditorTools.Npc
             );
             foreach (Transform child in ben.transform.Cast<Transform>().ToArray())
             {
-                if (IsInstanceOf(child, ProxyPrefabPath))
+                if (
+                    IsInstanceOf(child, ProxyPrefabPath)
+                    || IsInstanceOf(child, BenRigBuilder.VisualPath)
+                )
                 {
                     Object.DestroyImmediate(child.gameObject);
                 }

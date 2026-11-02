@@ -12,6 +12,7 @@ import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -30,10 +31,12 @@ import tools.jackson.databind.json.JsonMapper;
  * AI 워커(FastAPI) 호출. 같은 서버의 내부 주소로 부르며 모든 요청에 내부 토큰을 붙인다. 계약: docs/api/ai-worker.md
  *
  * <p>워커의 칸 이름은 snake_case라 전용 JSON 변환기를 쓴다. 워커 오류는 API 오류 코드로 바꿔 {@link BusinessException}으로 던진다.
+ *
+ * <p>호출 기록이 빠지지 않도록 패키지 밖에서는 쓸 수 없다. 다른 패키지는 {@link AiGateway}로 부른다.
  */
 @Slf4j
 @Component
-public class AiWorkerClient {
+class AiWorkerClient {
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
   // 의도·무례 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S·GUARD_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을
@@ -64,7 +67,7 @@ public class AiWorkerClient {
   private final String baseUrl;
   private final String token;
 
-  public AiWorkerClient(
+  AiWorkerClient(
       @Value("${elsehere.ai-worker.url}") String baseUrl,
       @Value("${elsehere.ai-worker.token}") String token) {
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
@@ -117,6 +120,7 @@ public class AiWorkerClient {
             false,
             "",
             learner);
+    long startedAt = System.nanoTime();
     HttpResponse<Stream<String>> response =
         send(
             jsonRequest("/v1/npc/reply", trace, REPLY_TIMEOUT, body),
@@ -125,7 +129,7 @@ public class AiWorkerClient {
       if (response.statusCode() != 200) {
         throw toError(response.statusCode(), lines.collect(Collectors.joining("\n")));
       }
-      return readReplyStream(lines);
+      return readReplyStream(lines, startedAt);
     }
   }
 
@@ -298,8 +302,8 @@ public class AiWorkerClient {
   }
 
   // SSE는 "event: 이름", "data: JSON", 빈 줄 순서로 이벤트 하나가 온다. delta·audio 조각은 스트리밍 재생용이라 쓰지 않는다.
-  private NpcReply readReplyStream(Stream<String> lines) {
-    ReplyCollector collector = new ReplyCollector();
+  private NpcReply readReplyStream(Stream<String> lines, long startedAt) {
+    ReplyCollector collector = new ReplyCollector(startedAt);
     String event = null;
     StringBuilder data = new StringBuilder();
     for (String line : (Iterable<String>) lines::iterator) {
@@ -319,8 +323,13 @@ public class AiWorkerClient {
 
   private final class ReplyCollector {
 
+    private final long startedAt;
     private DoneEvent done;
     private ErrorEvent error;
+
+    ReplyCollector(long startedAt) {
+      this.startedAt = startedAt;
+    }
 
     void accept(String event, String data) {
       if (event == null || data.isEmpty()) {
@@ -337,6 +346,7 @@ public class AiWorkerClient {
 
     NpcReply result() {
       if (done != null) {
+        logTiming();
         return new NpcReply(done.text(), done.audioFullId(), null, usageOf(done.usage()));
       }
       if (error != null) {
@@ -346,6 +356,24 @@ public class AiWorkerClient {
       // done·error 없이 끊긴 스트림
       log.warn("AI 워커 NPC 대답 스트림이 끝나지 않고 끊겼습니다");
       return new NpcReply(null, null, "provider_unavailable", List.of());
+    }
+
+    // 대화 시작·대답이 오래 걸릴 때 어느 단계인지 보도록 개발 서버(DEBUG)에서만 남긴다. 워커는 LLM 생성과 음성 합성이 모두 끝나야 done을
+    // 보내므로, 기다린 시간에서 LLM 생성 시간을 빼면 음성 합성 쪽 시간이다. 대답 글은 남기지 않는다.
+    private void logTiming() {
+      log.debug(
+          "npc_reply_timing first_token_s={} llm_s={} worker_total_s={} audio_full_s={}"
+              + " wait_ms={}",
+          done.firstTokenS(),
+          usageOf(done.usage()).stream()
+              .filter(usage -> "npc".equals(usage.step()))
+              .map(WorkerUsage::latencyS)
+              .filter(Objects::nonNull)
+              .findFirst()
+              .orElse(null),
+          done.totalS(),
+          done.audioFullS(),
+          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
     }
 
     private <T> T parse(String data, Class<T> type) {
@@ -472,7 +500,13 @@ public class AiWorkerClient {
 
   record MemoryEnvelope(List<WorkerUsage> usage) {}
 
-  record DoneEvent(String text, String audioFullId, List<WorkerUsage> usage) {}
+  record DoneEvent(
+      String text,
+      String audioFullId,
+      Double firstTokenS,
+      Double totalS,
+      Double audioFullS,
+      List<WorkerUsage> usage) {}
 
   record ErrorEvent(String code, List<WorkerUsage> usage) {}
 

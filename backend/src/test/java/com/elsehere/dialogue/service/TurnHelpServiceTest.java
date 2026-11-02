@@ -17,14 +17,12 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.MeaningResult;
 import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.repository.AiRequestRepository;
+import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
@@ -68,9 +66,7 @@ class TurnHelpServiceTest {
 
   @Autowired private TurnHelpService turnHelpService;
 
-  @Autowired private AiWorkerClient aiWorkerClient;
-
-  @Autowired private AiRequestRepository aiRequestRepository;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private EntityManager entityManager;
 
@@ -90,9 +86,9 @@ class TurnHelpServiceTest {
   }
 
   @Test
-  @DisplayName("처음 뜻 보기를 하면 대화 난이도(초급 1)로 워커를 불러 뜻과 단어 풀이를 돌려주고 호출 기록을 남긴다")
-  void meaning_firstRequest_returnsMeaningAndRecordsCall() {
-    given(aiWorkerClient.meaning(any(), any(), eq(NPC_LINE), eq(1))).willReturn(MEANING);
+  @DisplayName("처음 뜻 보기를 하면 대화 난이도(초급 1)로 워커를 불러 뜻과 단어 풀이를 돌려주고, 워커 요청에 요청 ID와 대화를 붙인다")
+  void meaning_firstRequest_returnsMeaning() {
+    given(aiGateway.meaning(any(), any(), eq(NPC_LINE), eq(1))).willReturn(MEANING);
     UUID requestId = UUID.randomUUID();
 
     MeaningResponse response = turnHelpService.meaning(userId, npcTurn.getId(), requestId);
@@ -102,18 +98,19 @@ class TurnHelpServiceTest {
     assertThat(response.glossary())
         .extracting(GlossaryResponse::text, GlossaryResponse::meaningKo)
         .containsExactly(tuple("to go", "포장"));
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.MEANING)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.OK);
+    then(aiGateway)
+        .should()
+        .meaning(
+            eq(new WorkerTrace(requestId, userId, conversation.getId())),
+            any(),
+            eq(NPC_LINE),
+            eq(1));
   }
 
   @Test
   @DisplayName("한 번 만든 뜻은 저장해 두고 다시 요청하면 워커를 부르지 않는다")
   void meaning_savedTurn_returnsSavedMeaningWithoutAi() {
-    given(aiWorkerClient.meaning(any(), any(), anyString(), anyInt())).willReturn(MEANING);
+    given(aiGateway.meaning(any(), any(), anyString(), anyInt())).willReturn(MEANING);
     MeaningResponse first = turnHelpService.meaning(userId, npcTurn.getId(), UUID.randomUUID());
     entityManager.flush();
     entityManager.clear();
@@ -121,67 +118,37 @@ class TurnHelpServiceTest {
     MeaningResponse again = turnHelpService.meaning(userId, npcTurn.getId(), UUID.randomUUID());
 
     assertThat(again).isEqualTo(first);
-    then(aiWorkerClient).should(times(1)).meaning(any(), any(), anyString(), anyInt());
+    then(aiGateway).should(times(1)).meaning(any(), any(), anyString(), anyInt());
   }
 
   @Test
-  @DisplayName("뜻 보기를 부르다 워커에 닿지 못하면 뜻 보기 호출을 FAILED로 남긴다")
-  void meaning_workerCallFails_recordsFailed() {
-    given(aiWorkerClient.meaning(any(), any(), anyString(), anyInt()))
-        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
-    UUID requestId = UUID.randomUUID();
-
-    assertErrorCode(
-        () -> turnHelpService.meaning(userId, npcTurn.getId(), requestId),
-        ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.MEANING)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
-  }
-
-  @Test
-  @DisplayName("힌트를 부르다 워커에 닿지 못하면 힌트 호출을 FAILED로 남긴다")
-  void hint_workerCallFails_recordsFailed() {
-    given(aiWorkerClient.hint(any(), any(), anyList(), anyString(), anyInt()))
+  @DisplayName("힌트를 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
+  void hint_workerCallFails_throws() {
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
     assertErrorCode(
         () -> turnHelpService.hint(userId, npcTurn.getId(), requestId),
         ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.HINT)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
-  @DisplayName("추천 단어를 부르다 워커에 닿지 못하면 힌트 호출로 FAILED를 남긴다")
-  void suggestWords_workerCallFails_recordsFailed() {
-    given(aiWorkerClient.suggest(any(), any(), anyList(), anyString(), anyInt()))
+  @DisplayName("추천 단어를 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
+  void suggestWords_workerCallFails_throws() {
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
     assertErrorCode(
         () -> turnHelpService.suggestWords(userId, npcTurn.getId(), requestId),
         ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.HINT)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
   @DisplayName("워커가 실패하면 오류를 그대로 알리고 뜻을 저장하지 않아 다음 요청에서 다시 만든다")
   void meaning_workerFails_savesNothing() {
-    given(aiWorkerClient.meaning(any(), any(), anyString(), anyInt()))
+    given(aiGateway.meaning(any(), any(), anyString(), anyInt()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE))
         .willReturn(MEANING);
 
@@ -191,7 +158,7 @@ class TurnHelpServiceTest {
     MeaningResponse retried = turnHelpService.meaning(userId, npcTurn.getId(), UUID.randomUUID());
 
     assertThat(retried.meaningKo()).isEqualTo(MEANING.meaningKo());
-    then(aiWorkerClient).should(times(2)).meaning(any(), any(), anyString(), anyInt());
+    then(aiGateway).should(times(2)).meaning(any(), any(), anyString(), anyInt());
   }
 
   @Test
@@ -209,42 +176,43 @@ class TurnHelpServiceTest {
     assertErrorCode(
         () -> turnHelpService.meaning(userId, Long.MAX_VALUE, UUID.randomUUID()),
         ErrorCode.NOT_FOUND);
-    then(aiWorkerClient).should(never()).meaning(any(), any(), anyString(), anyInt());
+    then(aiGateway).should(never()).meaning(any(), any(), anyString(), anyInt());
   }
 
   @Test
-  @DisplayName("처음 힌트를 열면 그 NPC 대사까지의 대화로 워커를 불러 첫 추천 문장을 저장하고 연 시각과 호출 기록을 남긴다")
+  @DisplayName("처음 힌트를 열면 그 NPC 대사까지의 대화로 워커를 불러 첫 추천 문장과 연 시각을 저장한다. 워커 요청에는 요청 ID와 대화를 붙인다")
   @SuppressWarnings("unchecked")
   void hint_firstRequest_usesHistoryUntilTurnAndSaves() {
     textTurn(entityManager, conversation, 4, "For here.");
     entityManager.flush();
-    given(aiWorkerClient.hint(any(), any(), anyList(), eq(""), eq(1))).willReturn(HINT);
+    given(aiGateway.hint(any(), any(), anyList(), eq(""), eq(1))).willReturn(HINT);
     UUID requestId = UUID.randomUUID();
 
     HintResponse response = turnHelpService.hint(userId, npcTurn.getId(), requestId);
 
     assertThat(response).isEqualTo(new HintResponse(npcTurn.getId(), "For here, please."));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
-    then(aiWorkerClient).should().hint(any(), any(), history.capture(), eq(""), eq(1));
+    then(aiGateway)
+        .should()
+        .hint(
+            eq(new WorkerTrace(requestId, userId, conversation.getId())),
+            any(),
+            history.capture(),
+            eq(""),
+            eq(1));
     assertThat(history.getValue())
         .extracting(WorkerLine::who, WorkerLine::text)
         .containsExactly(
             tuple("npc", "Hi! What can I get for you?"),
             tuple("me", "A latte, please."),
             tuple("npc", NPC_LINE));
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.HINT)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.OK);
     assertThat(savedNpcTurn().getHintOpenedAt()).isNotNull();
   }
 
   @Test
   @DisplayName("한 번 만든 힌트는 다시 요청해도 워커를 부르지 않고, 처음 연 시각을 바꾸지 않는다")
   void hint_savedTurn_returnsSavedHintWithoutAi() {
-    given(aiWorkerClient.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
     turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID());
     Instant firstOpenedAt = savedNpcTurn().getHintOpenedAt();
 
@@ -252,14 +220,14 @@ class TurnHelpServiceTest {
 
     assertThat(again.hintText()).isEqualTo("For here, please.");
     assertThat(savedNpcTurn().getHintOpenedAt()).isEqualTo(firstOpenedAt);
-    then(aiWorkerClient).should(times(1)).hint(any(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should(times(1)).hint(any(), any(), anyList(), anyString(), anyInt());
   }
 
   @Test
-  @DisplayName("워커가 추천 문장을 하나도 주지 않으면 AI_RESPONSE_INVALID이고 힌트를 저장하지 않는다")
+  @DisplayName("쓸 수 없는 힌트(AI_RESPONSE_INVALID)면 오류를 그대로 알리고 힌트를 저장하지 않는다")
   void hint_withoutSentence_throwsInvalidAndSavesNothing() {
-    given(aiWorkerClient.hint(any(), any(), anyList(), anyString(), anyInt()))
-        .willReturn(new HintResult(List.of(), List.of(), List.of(usage("hint"))));
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt()))
+        .willThrow(new BusinessException(ErrorCode.AI_RESPONSE_INVALID));
 
     assertErrorCode(
         () -> turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID()),
@@ -283,16 +251,16 @@ class TurnHelpServiceTest {
         ErrorCode.NOT_FOUND);
     assertErrorCode(
         () -> turnHelpService.hint(userId, Long.MAX_VALUE, UUID.randomUUID()), ErrorCode.NOT_FOUND);
-    then(aiWorkerClient).should(never()).hint(any(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should(never()).hint(any(), any(), anyList(), anyString(), anyInt());
   }
 
   @Test
-  @DisplayName("처음 추천 단어를 요청하면 그 NPC 대사까지의 대화로 워커를 불러 단어를 저장하고 힌트 호출로 기록한다")
+  @DisplayName("처음 추천 단어를 요청하면 그 NPC 대사까지의 대화로 워커를 불러 단어를 저장한다. 워커 요청에는 요청 ID와 대화를 붙인다")
   @SuppressWarnings("unchecked")
   void suggestWords_firstRequest_usesHistoryUntilTurnAndSaves() {
     textTurn(entityManager, conversation, 4, "For here.");
     entityManager.flush();
-    given(aiWorkerClient.suggest(any(), any(), anyList(), eq(""), eq(1))).willReturn(SUGGEST);
+    given(aiGateway.suggest(any(), any(), anyList(), eq(""), eq(1))).willReturn(SUGGEST);
     UUID requestId = UUID.randomUUID();
 
     SuggestWordsResponse response =
@@ -301,41 +269,41 @@ class TurnHelpServiceTest {
     assertThat(response)
         .isEqualTo(new SuggestWordsResponse(npcTurn.getId(), List.of("for here", "to go")));
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
-    then(aiWorkerClient).should().suggest(any(), any(), history.capture(), eq(""), eq(1));
+    then(aiGateway)
+        .should()
+        .suggest(
+            eq(new WorkerTrace(requestId, userId, conversation.getId())),
+            any(),
+            history.capture(),
+            eq(""),
+            eq(1));
     assertThat(history.getValue())
         .extracting(WorkerLine::who, WorkerLine::text)
         .containsExactly(
             tuple("npc", "Hi! What can I get for you?"),
             tuple("me", "A latte, please."),
             tuple("npc", NPC_LINE));
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.HINT)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.OK);
     assertThat(savedNpcTurn().getSuggestWords()).isEqualTo("[\"for here\", \"to go\"]");
   }
 
   @Test
   @DisplayName("한 번 만든 추천 단어는 다시 요청해도 워커를 부르지 않는다")
   void suggestWords_savedTurn_returnsSavedWordsWithoutAi() {
-    given(aiWorkerClient.suggest(any(), any(), anyList(), anyString(), anyInt()))
-        .willReturn(SUGGEST);
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt())).willReturn(SUGGEST);
     turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
 
     SuggestWordsResponse again =
         turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
 
     assertThat(again.suggestWords()).containsExactly("for here", "to go");
-    then(aiWorkerClient).should(times(1)).suggest(any(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should(times(1)).suggest(any(), any(), anyList(), anyString(), anyInt());
   }
 
   @Test
-  @DisplayName("워커가 단어를 하나도 주지 않으면 AI_RESPONSE_INVALID이고 추천 단어를 저장하지 않는다")
+  @DisplayName("쓸 수 없는 추천 단어(AI_RESPONSE_INVALID)면 오류를 그대로 알리고 추천 단어를 저장하지 않는다")
   void suggestWords_withoutWords_throwsInvalidAndSavesNothing() {
-    given(aiWorkerClient.suggest(any(), any(), anyList(), anyString(), anyInt()))
-        .willReturn(new SuggestResult(List.of(), List.of(usage("suggest"))));
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willThrow(new BusinessException(ErrorCode.AI_RESPONSE_INVALID));
 
     assertErrorCode(
         () -> turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID()),
@@ -358,7 +326,7 @@ class TurnHelpServiceTest {
     assertErrorCode(
         () -> turnHelpService.suggestWords(userId, Long.MAX_VALUE, UUID.randomUUID()),
         ErrorCode.NOT_FOUND);
-    then(aiWorkerClient).should(never()).suggest(any(), any(), anyList(), anyString(), anyInt());
+    then(aiGateway).should(never()).suggest(any(), any(), anyList(), anyString(), anyInt());
   }
 
   private Turn savedNpcTurn() {

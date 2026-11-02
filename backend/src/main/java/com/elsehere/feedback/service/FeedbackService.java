@@ -1,13 +1,9 @@
 package com.elsehere.feedback.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
@@ -65,9 +61,7 @@ public class FeedbackService {
   private final NpcRepository npcRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final TurnFeedbackRepository turnFeedbackRepository;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
-  private final AiFailureRecorder aiFailureRecorder;
+  private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
 
@@ -169,21 +163,12 @@ public class FeedbackService {
     WorkerTrace trace = new WorkerTrace(requestId, userId, conversationId);
     WorkerFeedback result;
     try {
-      result =
-          aiFailureRecorder.recordIfFails(
-              trace,
-              AiRequestKind.FEEDBACK,
-              () -> aiWorkerClient.feedback(trace, snapshot.input()));
+      result = aiGateway.feedback(trace, snapshot.input());
     } catch (BusinessException exception) {
       // 워커에 닿지 못했거나 요청을 거절당했다. 대화 종료는 그대로 두고 실패로 기록한다.
       String errorCode = exception.getErrorCode().name();
       return save(conversationId, feedback -> feedback.fail(errorCode, null), List.of(), List.of());
     }
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.FEEDBACK,
-        result.usage(),
-        result.completed() ? AiRequestStatus.OK : AiRequestStatus.FAILED);
 
     String model = FeedbackResults.firstModel(result.usage());
     if (result.completed()) {

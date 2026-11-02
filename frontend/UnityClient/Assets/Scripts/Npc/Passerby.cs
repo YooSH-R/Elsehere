@@ -167,13 +167,26 @@ namespace A305.Npc
                 routine != null
                 && routine.enabled
                 && !routine.CanOfferTo(player.transform.position);
+            // 하루에 한 번만 먼저 다가오는 행인은 그날(기기 날짜) 이미 말을 걸었으면 [말 걸기]만 받는다.
+            System.DateTime today = System.DateTime.Today;
+            bool offeredToday =
+                CurrentSettings.ApproachesOncePerDay
+                && PasserbyOfferRecord.HasOfferedOn(identity.Code, today);
 
             PasserbyPhase before = approach.Phase;
             approach.Tick(
                 Now,
                 toPlayer.magnitude,
-                isPlayerBusy || cannotStartConversation || notReadyToOffer
+                isPlayerBusy || cannotStartConversation || notReadyToOffer || offeredToday
             );
+            // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다.
+            bool startedOffer =
+                approach.Phase == PasserbyPhase.Offering && before != PasserbyPhase.Offering;
+            if (startedOffer && settings.ApproachesOncePerDay)
+            {
+                PasserbyOfferRecord.Save(identity.Code, today);
+            }
+
             if (approach.Phase == PasserbyPhase.Resting && before != PasserbyPhase.Resting)
             {
                 // 무시하고 멀어지면 제안을 닫고 쉬는 시간을 기록한다.

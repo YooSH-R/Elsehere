@@ -39,7 +39,7 @@
 | 몸·입 메시, 입 재질, Idle·이동 컨트롤러 | `Assets/Art/Characters/ReviewCorrections/ServiceNpcs/LittleMung_Business_Male/` |
 | Blender 얼굴 저작본·델타 | `frontend/ArtSources/Characters/LittleMungBusiness/Corrected/` |
 
-얼굴 씬을 열고 Play를 누른 뒤 입 모양·미소 버튼, 강도 슬라이더, Left/Front/Right 버튼으로 확인한다. `FacePosePreviewPanel`은 `CharacterFaceController.SupportsPose`로 필요한 모든 채널을 확인하고, 준비되지 않은 표정은 비활성화한다. 입 모양 9개와 좌우 미소가 있으며 눈 깜박임은 아직 없다. 공통 대화 연결은 모든 채널을 요구하므로 Ben의 대화에서는 립싱크 없이 음성만 재생한다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#공통-표정립싱크-연결)). 입 경계의 일치와 Head 가중치 보존은 구조 검사 대상이고 입술 인상과 눈 주변 음영은 외관 승인 대상이다.
+얼굴 씬을 열고 Play를 누른 뒤 입 모양·미소 버튼, 강도 슬라이더, Left/Front/Right 버튼으로 확인한다. `FacePosePreviewPanel`은 `CharacterFaceController.SupportsPose`로 필요한 모든 채널을 확인하고, 준비되지 않은 표정은 비활성화한다. 입 모양 9개, 좌우 미소, Base 눈꺼풀을 옮긴 좌우 눈 감기가 있어 Ben의 대화에서도 공통 립싱크·미소·눈 깜박임을 쓴다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#공통-표정립싱크-연결), [비즈니스맨 눈 감기](../../frontend/ArtSources/Characters/ServiceNpcs/README.md#비즈니스맨-눈-감기와-자동-깜박임)). 입 경계의 일치와 Head 가중치 보존은 구조 검사 대상이고 입술 인상과 눈 주변 음영은 외관 승인 대상이다.
 
 외형 프리팹은 이미 만들어 둔 결과이며 이 프리팹을 다시 만드는 Builder는 두지 않는다. `ServiceNpcReviewBuilder.Prepare`는 비즈니스맨 프리팹이 있으면 비율만 확인하고, 없으면 이전 사본을 새로 만들지 않고 중단한다. Blender 저작본은 입 형상을 고칠 때의 원본으로 보존한다.
 
@@ -134,3 +134,7 @@ PlayerSandboxBuilder.Build는 기존 Sandbox와 공용 에셋을 갱신하므로
 ## 카페 NPC의 음소 기반 대화 연결
 
 카페 직원은 원본 Barista를 보존한 `CafeFemaleDialogue`로 연결한다. 서버 TTS는 기존 Kokoro 0.6.1의 시간 출력 기능을 사용해 PCM과 발음별 시간표를 같은 WAV에 저장하며, Spring의 기존 음성 보관·조회 경로를 유지한다. Unity 대화는 선택한 NPC의 얼굴에 이 시간표를 적용한다. 새 대사마다 표정 에셋을 생성할 필요는 없다. 동작 범위와 서버 모델 조건, 오프라인 검수 방법은 [카페 여자 표정 확인](cafe-female-face.md#실제-카페-대화-연결)에 정리한다. LLM 감정 전달과 다른 얼굴의 표정 조형은 별도 범위다.
+
+## 비즈니스맨 통합 검수본의 눈 깜박임
+
+현재 기준은 `Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab`이며 마을 행인 Ben이 이 외형을 쓴다. 통합 검수본에는 좌우 눈 감기와 대기 중 자동 깜박임을 연결한다. 기존 입 모양·미소와 눈 전용 제어를 분리하며 음성 재생 중에는 공통 음성 얼굴 제어기를 사용한다. 얼굴 검수 씬은 `Assets/Scenes/Sandbox/NpcReview/LittleMung_Business_Male_Face.unity`다. 저작·갱신 방법과 외관 검수 범위는 [행인 검수 자료](../../frontend/ArtSources/Characters/ServiceNpcs/README.md#비즈니스맨-눈-감기와-자동-깜박임)를 따른다. 다른 NPC의 눈꺼풀 제작은 별도 범위다.

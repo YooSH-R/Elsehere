@@ -20,6 +20,7 @@ namespace A305.World.Tests
         private const string PasserbyPath = "Assets/Prefabs/Npc/Passerby.prefab";
         private const string ProxyPath =
             "Assets/Prefabs/World/TownProduction/LittleMungV7NpcVisual.prefab";
+        private const string GenericRigPath = "Assets/Prefabs/Npc/BenVisual.prefab";
         private const float ServiceHeightMeters = 1.7f;
 
         [TearDown]
@@ -113,7 +114,7 @@ namespace A305.World.Tests
         }
 
         [Test]
-        public void Ben_HasEveryMouthShape_ButNoAuthoredEyeBlink()
+        public void Ben_HasEveryFaceChannel_SoDialogueDrivesHisFace()
         {
             NpcIdentity ben = OpenBen();
             Transform visual = BusinessVisual(ben);
@@ -121,14 +122,13 @@ namespace A305.World.Tests
 
             Assert.That(
                 CharacterFaceController.MissingChannels(visual),
-                Is.EquivalentTo(new[] { "eyeBlinkLeft", "eyeBlinkRight" }),
-                "입 모양 9개와 좌우 미소는 있고 눈 감기는 아직 없습니다."
+                Is.Empty,
+                "입 모양 9개, 좌우 미소, 좌우 눈 감기가 모두 있습니다."
             );
-            // 공통 대화 연결은 모든 채널을 요구하므로, 눈 감기가 생기기 전에는 립싱크 없이 음성만 재생한다.
             // 실행 중에는 NpcIdentity.Awake가 붙이는 화자를 같은 방식으로 붙여 확인한다.
             var speaker = ben.gameObject.AddComponent<DialogueSpeaker>();
-            Assert.That(speaker.Player, Is.Null);
-            Assert.That(speaker.BindingNotice, Does.Contain("eyeBlinkLeft"));
+            Assert.That(speaker.Player, Is.Not.Null, speaker.BindingNotice);
+            Assert.That(speaker.Player.transform.IsChildOf(visual), Is.True);
         }
 
         [Test]
@@ -167,9 +167,10 @@ namespace A305.World.Tests
 
         private static bool IsProxyRoot(Transform child)
         {
-            return PrefabUtility.IsAnyPrefabInstanceRoot(child.gameObject)
-                && PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(child.gameObject)
-                    == ProxyPath;
+            if (!PrefabUtility.IsAnyPrefabInstanceRoot(child.gameObject))
+                return false;
+            string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(child.gameObject);
+            return path == ProxyPath || path == GenericRigPath;
         }
 
         // 대기 동작의 첫 자세를 적용한 몸 메시의 월드 경계. Renderer 배율을 한 번만 반영한다.

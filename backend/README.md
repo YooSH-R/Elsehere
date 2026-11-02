@@ -42,7 +42,7 @@ com.elsehere
 | --- | --- |
 | `auth` | 없음 (로그인·가입·로그아웃 처리, 개발용 로그인) |
 | `bootstrap` | 없음 (여러 기능의 상태를 모아 접속 직후 첫 화면을 정하는 BOOT-01) |
-| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 워커 호출은 `AiFailureRecorder.recordIfFails`로 감싸 오류로 끝나도 FAILED로 남기고, 성공은 응답을 본 쪽이 `AiRequestRecorder.record`로 남긴다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
+| `ai` | ai_requests (AI 호출 기록). AI 워커 호출과 AI 이용 상태(AI-01). 다른 패키지는 워커를 `AiGateway`로만 부르며, 게이트웨이가 호출마다 성공·실패를 기록한다. 워커 클라이언트(`AiWorkerClient`)와 기록기(`AiRequestRecorder`)는 `ai.client` 안에서만 쓸 수 있다. 사용량은 [어드민 AI 사용량](../docs/admin.md#ai-사용량)에서 본다 |
 | `user` | users, user_consents (가입 약관과 AI 개선 선택 동의) |
 | `conversation` | conversations, turns, training_recordings (AI 개선에 동의한 사용자의 녹음). 대화 기록: 엔티티·리포지토리, NPC 음성·학습용 녹음 저장 |
 | `dialogue` | 없음 (대화 흐름: 대화 시작·발화·종료, 음성 인식·NPC 음성, 뜻 보기·힌트, 지난 대화 목록 API. 피드백·기억·미션·동의를 엮는다) |
@@ -99,7 +99,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 - `EntitySchemaTest`는 마이그레이션으로 만든 스키마가 엔티티 매핑으로 만든 스키마와 같은지(컬럼·타입·NOT NULL·기본값, CHECK·유니크·외래 키, 인덱스) 비교합니다. `validate`가 보지 않는 enum CHECK 제약도 여기서 비교하므로, 마이그레이션을 빠뜨리거나 엔티티와 다르게 쓰면 이 테스트가 실패합니다.
 - 엔티티 필드와 DB 컬럼의 타입이 다르면 `validate`가 실패합니다. `Integer` 필드를 `smallint` 컬럼에 두려면 `columnDefinition` 대신 `@JdbcTypeCode(SqlTypes.SMALLINT)`를 씁니다.
 - 테스트 전용 엔티티의 테이블은 [`src/test/resources/db/test-migration`](src/test/resources/db/test-migration)에서 만듭니다. 테스트 설정이 운영 마이그레이션과 이 위치를 함께 읽습니다.
-- 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커를 Mock으로 바꾸고 실제 DB와 함께 실행합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
+- 대화·피드백·기억 서비스 테스트(`DialogueServiceTest`를 붙인 테스트)는 AI 워커 호출(`AiGateway`)을 Mock으로 바꾸고 실제 DB와 함께 실행합니다. AI 호출 기록은 `AiGatewayTest`가 실제 DB로 확인합니다. `AiWorkerClientTest`는 테스트 안에서 띄운 가짜 워커로 요청 형식을 확인하며 실제 AI 워커를 부르지 않습니다.
 
 ## 시드 데이터
 
@@ -192,6 +192,16 @@ IDE의 프로젝트 JDK·Gradle JVM은 Java 21, 파일 인코딩은 UTF-8, 줄�
 | 로컬 | 필요할 때 DEBUG | 환경변수나 로컬 `.env`에 `LOGGING_LEVEL_COM_ELSEHERE=DEBUG` |
 
 DEBUG 로그에도 요청 요약과 같은 기준으로 인증값·대화 본문·음성 같은 사용자 데이터는 남기지 않습니다.
+
+서버에서는 콘솔 출력과 함께 로그 파일을 남깁니다. Compose가 `LOGGING_FILE_NAME=/app/logs/backend.log`를 넘기고 `/app/logs`에 환경별 `backend-logs` 볼륨을 연결하므로 배포로 컨테이너를 바꿔도 파일이 남습니다. 로컬 실행은 파일 없이 콘솔에만 씁니다.
+
+| 항목 | 값 |
+| --- | --- |
+| 파일 나누기 | 하루마다·10MB마다 `backend.log.2026-11-02.0.gz`처럼 압축 |
+| 보관 | 14일, 압축본 합계 1GB를 넘으면 오래된 것부터 삭제(`application.properties`의 `logging.logback.rollingpolicy.*`) |
+| 형식 | 운영은 JSON 한 줄(ECS, `deploy.env`의 `BACKEND_LOG_FILE_FORMAT=ecs`), 개발 서버는 콘솔과 같은 텍스트(값 비움) |
+
+콘솔 출력은 환경과 관계없이 텍스트이므로 `docker logs`로 보는 방법은 그대로입니다. 파일 조회와 볼륨 보존 기준은 [관측성 운영 문서](../docs/observability.md#조회보관복구)를 따릅니다.
 
 Actuator·Micrometer Prometheus를 사용하며, histogram으로 p95를 조회합니다. 기본 관리 주소는 `127.0.0.1:9090`이고 공개 앱 포트와 분리합니다. `MONITORING_PASSWORD`를 설정해야 사용자 `monitoring`으로 관리용 HTTP Basic 인증을 사용할 수 있습니다. 값이 없으면 관리 접근을 거절합니다. 컨테이너 내부 수집에만 `MANAGEMENT_ADDRESS=0.0.0.0`을 사용하고 관리 포트를 호스트에 게시하지 않습니다.
 

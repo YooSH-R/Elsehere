@@ -200,6 +200,8 @@ namespace A305.Learning
             navigationRow.gameObject.SetActive(
                 !isRegenerating && (!feedback.IsFailed || isTranscriptShown)
             );
+            // 표현 줄 높이는 패널 너비에 따라 달라지므로 화면에 맞춘 패널 크기부터 정한다.
+            FitFrameToCanvas();
             ShowSituationRows(
                 section == FeedbackSection.Summary && !feedback.IsFailed && !isTranscriptShown
                     ? feedback.SituationExpressions
@@ -248,6 +250,9 @@ namespace A305.Learning
             float top = BodyTopPadding;
             if (visible)
             {
+                // 카드 크기는 패널의 레이아웃이 정한다. 방금 켠 패널은 레이아웃이 아직 돌지 않아 카드가 원래 크기라서,
+                // 그대로 재면 표현 줄이 좁은 너비로 한 줄 높이가 되어 요약 글이 두 줄로 넘어간 표현 줄에 가린다.
+                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)panel.transform);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(situationRows);
                 top =
                     -situationRows.anchoredPosition.y
@@ -270,7 +275,7 @@ namespace A305.Learning
                 UpdateLayout();
         }
 
-        public void UpdateLayout()
+        private void FitFrameToCanvas()
         {
             var frame = (RectTransform)panel.transform;
             var canvas = (RectTransform)frame.parent;
@@ -279,6 +284,11 @@ namespace A305.Learning
                 Mathf.Min(1100, canvas.rect.width - 48),
                 Mathf.Min(920, canvas.rect.height - 48)
             );
+        }
+
+        public void UpdateLayout()
+        {
+            FitFrameToCanvas();
             if (feedback == null || !panel.activeInHierarchy)
                 return;
             Canvas.ForceUpdateCanvases();

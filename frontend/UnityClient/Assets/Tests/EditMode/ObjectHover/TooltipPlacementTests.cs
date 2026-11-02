@@ -153,10 +153,69 @@ namespace A305.ObjectHover.Tests
             AssertPosition(new Vector2(400f, 640f), bottomLeft);
         }
 
+        // 화면 오른쪽 끝을 눌러 고정한 뒤 메뉴(≡)를 펼치면 둘레 네 자리가 모두 메뉴 버튼이나 목록에 걸려,
+        // 가장 적게 덮는 메뉴 버튼 자리에 카드가 놓였다.
+        [Test]
+        public void PlaceAround_MenuOnEverySideNearRightEdge_PlacesClearOfMenu()
+        {
+            Vector2 bottomLeft = PlaceAround(
+                RightEdgePointer,
+                new Rect(RightEdgePointer, Vector2.zero),
+                MenuButtonBox,
+                MenuListBox
+            );
+
+            Rect card = new Rect(bottomLeft, TooltipSize);
+            Assert.That(card.Overlaps(MenuButtonBox), Is.False, "카드가 메뉴 버튼과 겹칩니다.");
+            Assert.That(card.Overlaps(MenuListBox), Is.False, "카드가 메뉴 목록과 겹칩니다.");
+            Assert.That(card.Contains(RightEdgePointer), Is.False, "카드가 포인터를 덮습니다.");
+        }
+
+        [Test]
+        public void PlaceAround_MenuOnEverySideNearRightEdge_PicksFreeSpotClosestToPointer()
+        {
+            // 메뉴 목록 아래(780, 220)가 목록 왼쪽(390, 610)보다 포인터에 가깝다.
+            Vector2 bottomLeft = PlaceAround(
+                RightEdgePointer,
+                new Rect(RightEdgePointer, Vector2.zero),
+                MenuButtonBox,
+                MenuListBox
+            );
+
+            AssertPosition(new Vector2(780f, 220f), bottomLeft);
+        }
+
+        [Test]
+        public void PlaceAround_MovingOutOfUiMeetsMoreUi_KeepsMovingUntilClear()
+        {
+            // 포인터 아래로 비켜도 바로 밑의 띠에 걸려, 그 띠 아래까지 내려가야 빈자리가 있다.
+            Vector2 pointer = new Vector2(500f, 400f);
+            Rect[] ui =
+            {
+                new Rect(0f, 410f, 1000f, 390f),
+                new Rect(0f, 300f, 490f, 110f),
+                new Rect(510f, 300f, 490f, 110f),
+                new Rect(0f, 180f, 1000f, 100f),
+            };
+
+            Vector2 bottomLeft = PlaceAround(pointer, new Rect(pointer, Vector2.zero), ui);
+
+            Rect card = new Rect(bottomLeft, TooltipSize);
+            foreach (Rect area in ui)
+            {
+                Assert.That(card.Overlaps(area), Is.False, $"카드가 {area}와 겹칩니다.");
+            }
+        }
+
         // 가리킨 사물(450~550, 250~350)과 그 위·아래를 막는 영역
         private static readonly Rect PointedBox = new Rect(450f, 250f, 100f, 100f);
         private static readonly Rect AboveBox = new Rect(0f, 360f, 1000f, 440f);
         private static readonly Rect BelowBox = new Rect(0f, 0f, 1000f, 240f);
+
+        // 오른쪽 위 메뉴 버튼, 그 아래로 펼친 메뉴 목록, 목록 오른쪽 가장자리의 포인터
+        private static readonly Rect MenuButtonBox = new Rect(890f, 690f, 90f, 90f);
+        private static readonly Rect MenuListBox = new Rect(600f, 330f, 340f, 350f);
+        private static readonly Vector2 RightEdgePointer = new Vector2(970f, 600f);
 
         private static Vector2 Place(Vector2 anchor)
         {

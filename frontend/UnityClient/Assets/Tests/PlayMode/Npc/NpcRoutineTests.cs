@@ -30,6 +30,7 @@ namespace A305.Npc.PlayModeTests
         public void ResetCrossSceneRecords()
         {
             PasserbyRestRecord.Clear();
+            PasserbyOfferRecord.Clear();
             // 카페 직원은 튜토리얼의 미션 대화 안내부터 다가오므로, 튜토리얼을 이미 마친 사용자로 시작한다.
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
@@ -41,6 +42,8 @@ namespace A305.Npc.PlayModeTests
             // 다른 시험은 서버 없이 장면을 볼 때처럼 1일차 오전 8시부터 흐르는 시각과 처음 튜토리얼을 쓴다.
             SetClock(8 * 60, paused: false);
             TutorialState.Clear();
+            // 하루 한 번 기록은 이 기기에 남으므로 Editor에서 플레이할 때 남지 않게 지운다.
+            PasserbyOfferRecord.Clear();
         }
 
         [UnityTest]

@@ -1,11 +1,7 @@
 package com.elsehere.feedback.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
@@ -13,7 +9,6 @@ import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.feedback.dto.ModelSpeechResponse;
 import com.elsehere.feedback.entity.TurnFeedback;
 import com.elsehere.feedback.repository.TurnFeedbackRepository;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -32,9 +27,7 @@ public class ModelSpeechService {
 
   private final TurnFeedbackRepository turnFeedbackRepository;
   private final ConversationLookup conversationLookup;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
-  private final AiFailureRecorder aiFailureRecorder;
+  private final AiGateway aiGateway;
   private final ModelSpeechStore modelSpeechStore;
   private final TransactionTemplate transactionTemplate;
   private final String voice;
@@ -42,17 +35,13 @@ public class ModelSpeechService {
   public ModelSpeechService(
       TurnFeedbackRepository turnFeedbackRepository,
       ConversationLookup conversationLookup,
-      AiWorkerClient aiWorkerClient,
-      AiRequestRecorder aiRequestRecorder,
-      AiFailureRecorder aiFailureRecorder,
+      AiGateway aiGateway,
       ModelSpeechStore modelSpeechStore,
       TransactionTemplate transactionTemplate,
       @Value("${elsehere.model-speech.voice}") String voice) {
     this.turnFeedbackRepository = turnFeedbackRepository;
     this.conversationLookup = conversationLookup;
-    this.aiWorkerClient = aiWorkerClient;
-    this.aiRequestRecorder = aiRequestRecorder;
-    this.aiFailureRecorder = aiFailureRecorder;
+    this.aiGateway = aiGateway;
     this.modelSpeechStore = modelSpeechStore;
     this.transactionTemplate = transactionTemplate;
     this.voice = voice;
@@ -71,12 +60,7 @@ public class ModelSpeechService {
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    byte[] wav =
-        aiFailureRecorder.recordIfFails(
-            trace,
-            AiRequestKind.TTS,
-            () -> aiWorkerClient.synthesize(trace, target.betterText(), voice, SPEED));
-    aiRequestRecorder.record(trace, AiRequestKind.TTS, List.of(), AiRequestStatus.OK);
+    byte[] wav = aiGateway.synthesize(trace, target.betterText(), voice, SPEED);
     String key = modelSpeechStore.save(wav);
     transactionTemplate.executeWithoutResult(
         status ->

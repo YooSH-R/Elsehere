@@ -60,7 +60,11 @@ namespace A305.Tutorial.Tests
         [TestCase(400f, 900f, false)]
         [TestCase(1200f, 300f, false)]
         [TestCase(300f, 300f, true)]
-        public void Marker_UnderTheGuideCard_OffScreen_OrBehind_IsHidden(float x, float y, bool isBehind)
+        public void Marker_UnderTheGuideCard_OffScreen_OrBehind_IsHidden(
+            float x,
+            float y,
+            bool isBehind
+        )
         {
             // 화살표를 몸통·얼굴로 내리면 Ben 얼굴을 가리므로, 머리 위에 둘 수 없으면 띄우지 않는다.
             // Ben은 기다리는 구도에서 늘 화면 가운데로 다가오고, 숙소 문은 발밑 나침반이 가리킨다.

@@ -58,7 +58,7 @@
 | `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 짧은 이름과 할 일 한 줄(키보드·마우스, 터치 기기), 안내 카드가 숨는 동안의 코치 마크 설명([대화하기]·입력할 대사·추천 문장·추천 단어·다른 문장·[대화 종료]), 잠긴 문 안내, 숙소 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`). 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
 | `TutorialDirector` | 공간 씬마다 하나. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 진행에 전하고, 안내 카드·코치 마크·행인 허용·장소 이동과 택시 잠금·미션 표시를 바꿉니다. 숙소를 나오면 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둡니다(`Passerby.IsPlayerWaiting`, `PlayerCameraRig.EnterMeetingView`). `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `TutorialGuideView` | 화면 위쪽 가운데의 안내 카드(정렬 순서 115). 진행 점·단계 이름·할 일 한 줄과 건너뛰기 확인, 할 일 아래 잠깐 보이는 주의 띠 |
-| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리, 밝힌 곳 옆 설명 말풍선(꼬리·[다음])과 장면 속 대상 위 화살표 |
+| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리, 밝힌 곳 옆 설명 말풍선(꼬리·[다음])과 장면 속 대상 위 화살표. 화면을 덮는 막(`IScreenBackdrop`)이라 고정한 단어 카드가 판을 피해 옮겨 가지 않습니다. |
 
 ## 의존성
 
@@ -66,7 +66,7 @@
 | --- | --- |
 | `A305.Api` | `ApiClient`, `ApiSettings`, `ApiException` |
 | `A305.Player` | `PlayerMover.IsMoving`·`IsRunning`·`JumpedThisFrame`·`FaceToward`, `PlayerCameraRig.TurnedByUserThisFrame`·`EnterMeetingView`·`ExitMeetingView` |
-| `A305.ObjectHover` | `WordTooltipView.IsPinned`·`CanSaveWord`·`SaveRequested`·`SaveButtonRect` |
+| `A305.ObjectHover` | `WordTooltipView.IsPinned`·`CanSaveWord`·`SaveRequested`·`SaveButtonRect`, 코치 마크를 단어 카드가 피하지 않을 막으로 표시하는 `IScreenBackdrop` |
 | `A305.Dialogue` | `DialogueController.Started`·`ConversationEnded`·`IsTalking`·`IsGuidedCompleted`·`GuidedTurnIndex`·`GuidedLine`·`GuidedLineKorean`, `DialoguePanelView.LinesRect`·`ToolParts`·`GuidedLineParts`·`SuggestedSentenceRect`·`SuggestedWordsRect`·`EndButtonRect` |
 | `A305.Npc` | `Passerby.IsApproachAllowed`·`IsPlayerWaiting`·`SetTutorialScript`, `NpcIdentity.Code`, `PasserbyOfferView.IsShownBy`·`ShownButtonRect`, `TaxiRide.IsHailAllowed` |
 | `A305.Learning` | `LearningController.FeedbackClosed`·`IsShowingScreen`, `LearningHudView.VocabularyRequested`·`ShowMessage`, `HudMenuView.IsOpen`, `FeedbackView.IsVisible`·`SectionRowRect`·`NavigationRowRect`·`CloseButtonRect` |

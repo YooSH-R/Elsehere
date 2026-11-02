@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotNull;
  * @param wordKey OBJECT: 사물 카드의 공용 단어 키(vocabularies.word_key)
  * @param turnId NPC_LINE: 단어 풀이를 본 NPC 대사 턴
  * @param conversationId FEEDBACK: 단어장 후보가 나온 대화
- * @param text NPC_LINE·FEEDBACK: 저장할 단어 하나
+ * @param text NPC_LINE·FEEDBACK: 저장할 단어나 숙어 하나
  */
 public record VocabSaveRequest(
     String requestId,

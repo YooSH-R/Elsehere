@@ -179,7 +179,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 마이크를 쓸 수 없을 때 [텍스트로 입력] | CONV-03 |
 | | 대사 아래 추천 단어 | CONV-12(대사를 받은 뒤 따로) |
 | | [다시 듣기], [뜻 보기], [힌트] | CONV-06, CONV-04, CONV-05 |
-| | [뜻 보기]로 받은 대사의 단어 풀이를 눌러 대사 칸 아래에 뜻과 [단어장에 저장] (한 단어만 저장) | CONV-04 응답, VOCAB-02(`NPC_LINE`) |
+| | [뜻 보기]로 받은 대사의 단어 풀이(단어·숙어)를 눌러 대사 칸 아래에 뜻과 [단어장에 저장] | CONV-04 응답, VOCAB-02(`NPC_LINE`) |
 | | [대화 종료 (Esc)] | CONV-08 |
 | | 토큰이 떨어지면 NPC 작별 대사로 대화 종료 | CONV-03 응답 |
 | 16 대화 후 짧은 피드백 | NPC·장소·발화 수, 미션 완료, 요약, 잘했어요·아쉬워요, 개선 표현 | CONV-08 응답, FB-01 |
@@ -1025,7 +1025,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 16의 짧은 피드백을 그립니다. "Mia · 카페 · 발화 4번"은 `npc`, `sceneCode`, `userTurnCount`, "미션 완료"는 `completedMissions`, 개선 표현 상자는 `suggestion`입니다.
 - `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`·`vocabCandidates`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions, vocabCandidates }`)에 저장합니다.
 - `situationExpressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개입니다(표현, 뜻, 쓰는 때, 학습 예문과 번역). 사용자 발화 평가와 별개로 화면 16·17의 회화 칸에 보여 줍니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다. 예문은 학습용이며 사용자가 한 말이 아닙니다.
-- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`이고 한 단어인 것만 담으며, 숙어·문장 후보는 단어장이 단어 하나만 저장하므로(4.8) 뺍니다. 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
+- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`이고 한 단어인 것만 담으며, 숙어·문장 후보는 뺍니다. 피드백 출처의 숙어 저장은 아직 열지 않았습니다(4.8, 7절). 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
 - 피드백은 대화를 시작할 때 예약한 토큰으로 만듭니다(1.4). 토큰이 떨어져 NPC가 대화를 끝낸 경우에도 피드백을 받습니다.
 - [대화 종료 (Esc)]와 오류 화면의 [대화 종료]에서 호출합니다. 어떤 오류 상태에서도 종료할 수 있습니다.
 - NPC가 대화를 끝낸 경우(`ENDED_BY_NPC`)에도 피드백을 받으려면 호출합니다. 이때 상태는 바꾸지 않고 피드백만 만듭니다.
@@ -1130,7 +1130,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ### 4.8 단어장
 
-MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않으며 숙어는 이후 검토합니다(7절). 단어장에는 단어의 뜻과 함께, 그 단어를 저장한 **문장 전체와 문장 뜻**을 보여줍니다.
+MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단어 이상인 표현이며, NPC 대사의 단어 풀이에서만 저장합니다(VOCAB-02 `NPC_LINE`). 문장은 저장하지 않습니다(7절). 단어장에는 단어·숙어의 뜻과 함께, 그것을 저장한 **문장 전체와 문장 뜻**을 보여줍니다.
 
 예: Mia가 "Would you like an iced latte?"라고 했고 사용자가 `latte`를 저장하면, 단어장에는 `latte` = "라떼"와 함께 "Would you like an iced latte?" = "아이스 라떼 드릴까요?"가 보입니다.
 
@@ -1167,14 +1167,14 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다. `counts.all`은 현재 `includeMemorized` 조건을 적용한 개수입니다.
 - 기본값은 `includeMemorized=false`, `size=20`이고 `size`는 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다.
 - `savedAt`은 한국 시각(`+09:00`)으로 보냅니다. 저장한 문장이 없으면 `context`는 `null`입니다.
-- 저장하는 것이 단어뿐이라 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocabularies.type`은 숙어를 검토할 때를 위해 그대로 둡니다.
-- `vocab.meaningKo`는 단어 하나의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
+- 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocab.type`(`vocabularies.type`)은 한 단어면 `WORD`, 숙어면 `IDIOM`입니다.
+- `vocab.meaningKo`는 단어·숙어의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
 - `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 
 #### VOCAB-02 `POST /api/v1/vocab`
 
-저장 출처마다 요청 형식이 다릅니다. `text`는 저장할 단어 하나입니다.
+저장 출처마다 요청 형식이 다릅니다. `text`는 저장할 단어나 숙어 하나입니다.
 
 ```json
 // 화면 08: 사물 카드에서 저장
@@ -1192,12 +1192,12 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 출처 | 저장할 수 있는 단어 | 단어 뜻 | 문장 · 문장 뜻 |
 | --- | --- | --- | --- |
 | `OBJECT` | 사물 카드의 단어 | `vocabularies.meaning_ko` (시드) | 사물 카드 예문 `example` · `example_ko` (없으면 `null`) |
-| `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`) 중 한 단어인 것 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
+| `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`)에 있는 단어·숙어 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
 | `FEEDBACK` | 그 대화 피드백의 단어장 후보 중 CONV-08·FB-01 `feedback.vocabCandidates`에 있는 것 | 후보의 `meaningKo` | 후보의 `exampleEn` · `exampleKo` |
 
-- 표에 없는 단어, 두 단어 이상인 표현, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
+- 표에 없는 단어·숙어, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
 - 새로 저장하면 `201`, 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
-- 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
+- 사전에 없는 단어는 `vocabularies`에 새로 만듭니다. 한 단어면 `type: WORD`, 두 단어 이상인 숙어면 `type: IDIOM`입니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
 - 피드백을 만들지 못한 대화와 `vocabCandidates`를 넣기 전에 만든 피드백의 단어는 확인할 후보가 없어 `422 VOCAB_SOURCE_MISMATCH`입니다.
@@ -1420,6 +1420,6 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 상세 피드백의 내 음성 듣기 | 17 | 음성 보관 정책과 함께 이후 검토 |
 | 상세 피드백의 다시 말하기 | 17 | 이후 검토 |
 | 단어장 중요도 | 18 | 목록은 최근 저장순 |
-| 숙어·문장 저장, 단어장 유형 필터 | 15~18 | MVP는 단어 하나만 저장. 숙어 저장 방식(뜻 출처, 문장 표시)은 이후 검토 |
+| 문장 저장, 피드백 숙어 저장, 단어장 유형 필터 | 16~18 | 숙어는 NPC 대사 단어 풀이에서만 저장. 피드백 단어장 후보의 숙어와 문장 저장은 이후 검토 |
 | 회상 복습 | 18 | 요구사항명세서 REQ-17·18(정답 기록, 5회 정답 시 카드 숨김)과 다른 점으로 기록 |
 | NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음. 대화 중인 NPC의 호감도는 CONV-01·03 응답으로 보여 줌 |

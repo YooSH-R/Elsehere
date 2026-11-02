@@ -248,6 +248,26 @@ namespace A305.Tutorial.Tests
             Assert.That(compass.Direction.magnitude, Is.EqualTo(1f).Within(0.001f));
         }
 
+        [TestCase(0f, 0f, 1f, 90f)]
+        [TestCase(1f, 0f, 0f, 0f)]
+        [TestCase(-1f, 0f, 0f, 180f)]
+        [TestCase(0f, 0f, -1f, -90f)]
+        public void CompassScreenArrow_PointsWhereToTurn_FromWhereTheCameraLooks(
+            float x,
+            float y,
+            float z,
+            float expectedDegrees
+        )
+        {
+            // 1인칭처럼 발밑 나침반이 화면에 없으면 화면 아래 화살표로 알린다. 카메라가 보는 쪽이 위(90도)다.
+            float degrees = CoachMarkLayout.CompassScreenArrowDegrees(
+                new Vector3(0f, -0.3f, 1f),
+                new Vector3(x, y, z)
+            );
+
+            Assert.That(Mathf.DeltaAngle(degrees, expectedDegrees), Is.EqualTo(0f).Within(0.01f));
+        }
+
         private static void AssertNear(Vector3 actual, Vector3 expected)
         {
             Assert.That(

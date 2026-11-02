@@ -84,6 +84,9 @@ namespace A305.Tutorial
         private bool isCardShown;
         private TutorialStep cardStep;
         private bool cardCanContinue;
+        private int cardDoneCount;
+        private bool cardUsesTouch;
+        private bool isHoldingForBen;
         private Passerby ben;
         private SpaceDoorway exitDoor;
         private TaxiRide[] taxis;
@@ -171,21 +174,9 @@ namespace A305.Tutorial
 
         private void Update()
         {
-            if (player.IsMoving)
-            {
-                progress.ReportWalked();
-            }
-
-            if (player.CameraRig != null && player.CameraRig.TurnedByUserThisFrame)
-            {
-                progress.ReportLooked();
-            }
-
-            // 서버 단어 카드가 없거나 이미 저장한 단어라 [저장]을 누를 수 없으면 카드를 고정한 것으로 넘어간다.
-            if (wordTooltip.IsPinned && !wordTooltip.CanSaveWord)
-            {
-                progress.ReportWordSaved();
-            }
+            progress.UsesTouch = PlayerTouchControls.ShouldShowControls();
+            ReportActions();
+            HoldPlayerWhileBenOffers();
 
             // 첫날 미션 화면이 없으면 보여 줄 지도가 없으므로 오늘의 목표 안내를 바로 마친다.
             if (firstDayMission == null)
@@ -193,7 +184,7 @@ namespace A305.Tutorial
                 progress.ReportJournalOpened();
             }
 
-            // 걷기·둘러보기는 해내면 완료 표시를 잠깐 보인 뒤 저절로 넘어간다.
+            // 걷기·둘러보기는 안내한 조작을 모두 해내면 완료 표시를 잠깐 보인 뒤 저절로 넘어간다.
             if (autoAdvance.Tick(progress.Step, progress.CanContinue, Time.deltaTime))
             {
                 progress.Continue();
@@ -206,6 +197,68 @@ namespace A305.Tutorial
 
             RefreshCard();
             RefreshCoachMark();
+        }
+
+        private void ReportActions()
+        {
+            if (player.IsMoving)
+            {
+                progress.Report(TutorialAction.Walk);
+            }
+
+            if (player.IsRunning)
+            {
+                progress.Report(TutorialAction.Run);
+            }
+
+            PlayerCameraRig cameraRig = player.CameraRig;
+            if (cameraRig == null)
+            {
+                return;
+            }
+
+            if (cameraRig.TurnedByUserThisFrame)
+            {
+                progress.Report(TutorialAction.Rotate);
+            }
+
+            if (cameraRig.ZoomedByUserThisFrame)
+            {
+                progress.Report(TutorialAction.Zoom);
+            }
+
+            if (cameraRig.ToggledViewThisFrame)
+            {
+                progress.Report(TutorialAction.ToggleView);
+            }
+        }
+
+        // 튜토리얼에서 Ben이 [대화하기]를 제안하면 답할 때까지 멀어지지 않게 이동을 잠근다.
+        // 다가오는 동안에는 잠그지 않는다(행인은 이동이 잠긴 플레이어를 바쁘다고 보고 다가오기를 멈춘다).
+        // 제안을 받으면 대화가 잠금을 이어받으므로, 대화 중이면 풀지 않는다.
+        private void HoldPlayerWhileBenOffers()
+        {
+            bool shouldHold =
+                progress.Step == TutorialStep.MeetBen
+                && ben != null
+                && ben.Phase == PasserbyPhase.Offering;
+            if (shouldHold)
+            {
+                if (!player.IsMovementLocked)
+                {
+                    player.SetMovementLocked(true);
+                }
+
+                isHoldingForBen = true;
+            }
+            else if (isHoldingForBen)
+            {
+                isHoldingForBen = false;
+                if (!dialogue.IsTalking && !SpaceTravel.IsTraveling)
+                {
+                    player.SetMovementLocked(false);
+                }
+            }
         }
 
         private void EndDialogue(DialogueRecord record)
@@ -298,10 +351,24 @@ namespace A305.Tutorial
                 return;
             }
 
+            IReadOnlyList<TutorialAction> actions = TutorialProgress.RequiredActions(
+                progress.Step,
+                progress.UsesTouch
+            );
+            var partDone = new bool[actions.Count];
+            int doneCount = 0;
+            for (int i = 0; i < actions.Count; i++)
+            {
+                partDone[i] = progress.IsDone(actions[i]);
+                doneCount += partDone[i] ? 1 : 0;
+            }
+
             bool isChanged =
                 !isCardShown
                 || cardStep != progress.Step
-                || cardCanContinue != progress.CanContinue;
+                || cardCanContinue != progress.CanContinue
+                || cardDoneCount != doneCount
+                || cardUsesTouch != progress.UsesTouch;
             if (!isChanged)
             {
                 return;
@@ -310,13 +377,16 @@ namespace A305.Tutorial
             guideView.Show(
                 stepGuide,
                 progress.CanContinue,
-                PlayerTouchControls.ShouldShowControls(),
+                progress.UsesTouch,
+                partDone,
                 guide.StepGuideNumber(progress.Step),
                 guide.StepGuideCount
             );
             isCardShown = true;
             cardStep = progress.Step;
             cardCanContinue = progress.CanContinue;
+            cardDoneCount = doneCount;
+            cardUsesTouch = progress.UsesTouch;
         }
 
         private void RefreshCoachMark()
@@ -423,7 +493,7 @@ namespace A305.Tutorial
                         TutorialStep.BenFeedback,
                         out TutorialStepGuide feedback
                     )
-                        ? feedback.TaskFor(PlayerTouchControls.ShouldShowControls())
+                        ? feedback.TaskFor(progress.UsesTouch)
                         : null;
                 default:
                     return null;

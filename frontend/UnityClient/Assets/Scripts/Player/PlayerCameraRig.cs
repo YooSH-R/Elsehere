@@ -49,6 +49,12 @@ namespace A305.Player
         /// <summary>이번 프레임에 사용자가 마우스·터치로 카메라를 직접 돌렸는지. 이동 방향 기준을 새로 잡을 때 쓴다.</summary>
         public bool TurnedByUserThisFrame { get; private set; }
 
+        /// <summary>이번 프레임에 사용자가 휠로 가까이·멀리 보기를 했는지</summary>
+        public bool ZoomedByUserThisFrame { get; private set; }
+
+        /// <summary>이번 프레임에 사용자가 1인칭·3인칭을 바꿨는지</summary>
+        public bool ToggledViewThisFrame { get; private set; }
+
         /// <summary>대화 상대(보통 NPC의 머리 위치)를 바라보는 1인칭 시점으로 바꾼다.</summary>
         public void EnterDialogueView(Transform lookTarget)
         {
@@ -173,12 +179,14 @@ namespace A305.Player
 
             // 휠 한 번의 값은 브라우저·장치마다 크기가 달라 방향만 사용한다.
             float scroll = zoomAction.action.ReadValue<float>();
-            if (scroll != 0f)
+            ZoomedByUserThisFrame = scroll != 0f;
+            if (ZoomedByUserThisFrame)
             {
                 orbit.Zoom(Mathf.Sign(scroll));
             }
 
-            if (toggleViewAction.action.WasPressedThisFrame())
+            ToggledViewThisFrame = toggleViewAction.action.WasPressedThisFrame();
+            if (ToggledViewThisFrame)
             {
                 orbit.ToggleFirstPerson();
             }

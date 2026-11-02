@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,7 +8,7 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 화면 위쪽 가운데의 튜토리얼 안내 카드. 윗줄에 진행 점·단계 이름과 [건너뛰기], 가운데에 [키] 표시가 든 할 일 한 줄,
-    /// 필요할 때만 주 버튼을 보인다. 할 일을 해내면 그 줄 앞에 완료 표시를 붙인다.
+    /// 필요할 때만 주 버튼을 보인다. " · "로 나뉜 할 일은 해낼 때마다 초록색으로 바뀌고, 모두 해내면 줄 앞에 완료 표시를 붙인다.
     /// [건너뛰기]는 바로 끝내지 않고 카드 안에서 한 번 더 묻는다. 이동을 막지 않으므로 카드를 보면서 걸을 수 있다.
     /// </summary>
     public class TutorialGuideView : MonoBehaviour
@@ -60,11 +61,13 @@ namespace A305.Tutorial
 
         /// <param name="canContinue">할 일을 마쳤는지. 주 버튼이 있으면 누를 수 있게, 없으면 완료 표시를 붙인다.</param>
         /// <param name="isTouch">터치 조작판이 보이는 기기인지. 기기에 맞는 할 일 문구를 고른다.</param>
+        /// <param name="partDone">" · "로 나뉜 할 일마다 해냈는지. 조작 단계가 아니면 비어 있다.</param>
         /// <param name="stepNumber">안내 카드 중 몇 번째 단계인지(1부터)</param>
         public void Show(
             TutorialStepGuide guide,
             bool canContinue,
             bool isTouch,
+            IReadOnlyList<bool> partDone,
             int stepNumber,
             int stepCount
         )
@@ -72,7 +75,7 @@ namespace A305.Tutorial
             titleText.text =
                 $"{TutorialGuideText.ProgressDots(stepNumber, stepCount)}   <b>{guide.Title}</b>";
             bool hasButton = !string.IsNullOrEmpty(guide.ButtonLabel);
-            string task = TutorialGuideText.KeyChips(guide.TaskFor(isTouch));
+            string task = TutorialGuideText.TaskLine(guide.TaskFor(isTouch), partDone);
             taskText.text = canContinue && !hasButton ? DoneMark + task : task;
 
             continueButton.gameObject.SetActive(hasButton);

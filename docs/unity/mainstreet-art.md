@@ -29,7 +29,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 **Apply Town Follow Camera**는 TownScene의 3인칭 카메라를 캐릭터보다 키가 큰 사람이 바로 뒤에서 내려다보는 구도로 맞춘다. `Data/World/TownProduction/CameraSettings.asset`의 거리 4.2m·pitch 16도·조준 높이 1.3m를 저장하며, 캐릭터가 조준 높이를 따로 정했으면 그 값을 쓴다. Sandbox 전용 아트 검토 카메라는 바꾸지 않는다. 대화를 시작하면 기존과 같이 상대를 바라보는 1인칭으로 바뀌고 V키 1인칭 전환도 유지한다.
 
-튜토리얼 행인은 집의 `HomeDoor/ArrivalPoint`에서 약 5.4m 떨어진 보도에 둔다. **Repair Tutorial Passerby Placement**는 집 도착 지점을 기준으로 바깥쪽 2m·문 기준 오른쪽 5m에 행인의 위치와 방향만 다시 저장한다. 집·보도를 이동하면 감지 반경 8m 안에 있는지뿐 아니라 행인과 도착 지점 사이에 장애물이 없는지도 Play에서 확인한다. 기존 `PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline`를 유지해 집에서 나온 플레이어에게 실제로 다가와 제안하는지 검증한다.
+튜토리얼에서 길을 묻는 행인 Ben(`TOWN_PASSERBY`)은 집의 `HomeDoor/ArrivalPoint`에서 약 5.4m 떨어진 보도에 둔다. **Repair Tutorial Passerby Placement**는 집 도착 지점을 기준으로 바깥쪽 2m·문 기준 오른쪽 5m에 행인의 위치와 방향만 다시 저장한다. 집·보도를 이동하면 감지 반경 8m 안에 있는지뿐 아니라 행인과 도착 지점 사이에 장애물이 없는지도 Play에서 확인한다. 기존 `PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline`를 유지해 집에서 나온 플레이어에게 실제로 다가와 제안하는지 검증한다.
 
 집 내부는 [HomeScene 실내 디자인](home-interior.md), 호텔 로비는 [HotelScene 로비 디자인](hotel-interior.md)을 적용한다. CafeScene의 실내 아트 교체와 최종 캐릭터 리깅은 별도 작업이다. Editor 검수는 Web 빌드의 FPS·메모리 성능 보증이 아니다.
 

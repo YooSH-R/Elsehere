@@ -55,10 +55,11 @@
 
 | NPC 키 | 위치 | 설정 | 감지 거리 | 쉬는 시간 | 거절 |
 | --- | --- | --- | --- | --- | --- |
-| `TUTORIAL_PASSERBY` | 마을 집 앞 큰길 | `TutorialPasserbySettings` | 8m | 15초 | 불가 |
-| `TOWN_PASSERBY` | 마을 동서 길 서쪽 | `TownPasserbySettings` | 6m | 60초 | 가능 |
+| `TOWN_PASSERBY`(Ben), 튜토리얼 중 | 마을 집 앞 큰길 | `TutorialPasserbySettings` | 8m | 15초 | 불가 |
+| `TOWN_PASSERBY`(Ben), 튜토리얼 뒤 | 집 앞에서 시작해 마을에서 생활 | `TownPasserbySettings` | 6m | 60초 | 가능 |
 | `CAFE_STAFF` | 카페 카운터 뒤 | `CafeStaffSettings` | 3.5m | 20초 | 가능 |
 
+- 마을 행인 Ben은 튜토리얼에서 길을 묻는 사람과 같은 사람입니다. 튜토리얼 진행(`TutorialDirector`)이 단계마다 `Passerby.SetTutorialScript`를 불러, 튜토리얼 중에는 튜토리얼 대본·인사말(키 `TUTORIAL_PASSERBY`)과 튜토리얼 설정으로 집 앞에서 길을 묻고 생활하지 않게 합니다. 튜토리얼을 마치면 NPC 키로 평소 대화하고 평소 설정으로 생활합니다.
 - 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 카운터 앞 2m 안에 오면 카운터 뒤 자리로 돌아가([생활](#생활)) 제안 거리 2.5m에서 대화를 제안합니다. 행인과 직원이 같은 제안 화면을 쓰므로 머리말은 NPC 종류 대신 대화 대본의 이름으로 누가 말을 걸었는지 보여 줍니다.
 
 - NPC 키는 ERD `npcs.code`와 같아야 하므로 서버 시드 데이터와 맞춥니다. 이름·성격·대사는 서버 데이터입니다.
@@ -119,7 +120,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 - 설정(`Data/Npc/`): 없을 때만 만들고, 있으면 값을 유지합니다.
 - 확인용 인사말(`Data/Npc/MockNpcLines.asset`): 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙입니다. 이미 있는 인사말은 바꾸지 않습니다.
 - 행인 프리팹 `Prefabs/Npc/Passerby.prefab`과 제안 화면 `Prefabs/Npc/PasserbyOffer.prefab`(제안 패널과 [말 걸기]): 컴포넌트와 연결만 맞추고 모델·디자인을 유지합니다. 없는 요소만 새로 만듭니다.
-- 마을(`TownScene`)에 튜토리얼 행인과 일반 행인을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다.
+- 마을(`TownScene`) 집 앞에 행인 Ben을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 예전처럼 집 앞 튜토리얼 행인(`TUTORIAL_PASSERBY`)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지웁니다. Ben에게는 평소 설정과 튜토리얼 설정을 함께 연결합니다.
 
 **Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
 

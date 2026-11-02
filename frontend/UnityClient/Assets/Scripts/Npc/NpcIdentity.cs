@@ -7,7 +7,7 @@ namespace A305.Npc
     public class NpcIdentity : MonoBehaviour
     {
         [SerializeField]
-        [Tooltip("ERD npcs.code와 같은 값 (예: TUTORIAL_PASSERBY)")]
+        [Tooltip("ERD npcs.code와 같은 값 (예: TOWN_PASSERBY)")]
         private string code;
 
         [SerializeField]

@@ -315,6 +315,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Npc::A305.Npc.Passerby
   settings: {fileID: 11400000, guid: 9cdce6991398e59479b2fd2cc57f386e, type: 2}
+  tutorialSettings: {fileID: 0}
   lineSource: {fileID: 11400000, guid: 604447d545b65e74da60c7416d2c475c, type: 2}
   player: {fileID: 0}
   dialogue: {fileID: 0}

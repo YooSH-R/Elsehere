@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: TutorialGuide
   m_EditorClassIdentifier: A305.Tutorial::A305.Tutorial.TutorialGuideDefinition
   homeSceneName: HomeScene
-  tutorialNpcCode: TUTORIAL_PASSERBY
+  tutorialNpcCode: TOWN_PASSERBY
+  tutorialScriptKey: TUTORIAL_PASSERBY
   missionNpcCode: CAFE_STAFF
   stepGuides:
   - step: 0

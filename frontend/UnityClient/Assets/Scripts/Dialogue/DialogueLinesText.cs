@@ -9,7 +9,9 @@ namespace A305.Dialogue
     public static class DialogueLinesText
     {
         private const string UserSpeaker = "나";
-        private const string MeaningColor = "#B8C0CC";
+
+        // 크림색 대화창 위에서도 읽히는 회색. 더 옅으면 뜻이 배경에 묻힌다.
+        private const string MeaningColor = "#6E7888";
 
         /// <param name="showsMeaning">[뜻 보기]를 펼쳤는지. 뜻이 아직 없으면 펼쳐도 붙이지 않는다.</param>
         /// <param name="glossary">가장 최근 NPC 대사의 단어 풀이. 없으면 null이다.</param>

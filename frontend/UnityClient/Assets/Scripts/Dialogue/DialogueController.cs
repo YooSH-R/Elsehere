@@ -106,11 +106,15 @@ namespace A305.Dialogue
         /// <param name="npcCode">대화할 NPC 키(ERD npcs.code)</param>
         /// <param name="lookTarget">대화 시점에서 바라볼 NPC 머리 위치</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. NPC가 제안한 대화가 기본값이다.</param>
+        /// <param name="scriptKey">
+        /// 대본을 찾을 키. 비우면 NPC 키로 찾는다. 튜토리얼에서 길을 묻는 Ben처럼 같은 NPC가 정해진 대본으로 말할 때 쓴다.
+        /// </param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
             Transform lookTarget,
-            ConversationInitiator initiatedBy = ConversationInitiator.Npc
+            ConversationInitiator initiatedBy = ConversationInitiator.Npc,
+            string scriptKey = null
         )
         {
             if (lookTarget == null || !session.TryStart(npcCode))
@@ -126,7 +130,10 @@ namespace A305.Dialogue
                     speaker != null ? speaker.BindingNotice : null
                 );
             }
-            bool hasScript = scriptSource.TryGetScript(npcCode, out DialogueScript script);
+            bool hasScript = scriptSource.TryGetScript(
+                scriptKey ?? npcCode,
+                out DialogueScript script
+            );
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
 

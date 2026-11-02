@@ -63,6 +63,10 @@ namespace A305.ObjectHover
         // 사물 클릭을 판단하려고 누른 자리를 기억한다. UI 위에서 눌렀으면 비운다.
         private Vector2? pressedAt;
 
+        // 포인터 아래 UI를 찾는 데 매 프레임 다시 쓴다.
+        private PointerEventData uiPointer;
+        private readonly List<RaycastResult> uiHits = new List<RaycastResult>();
+
         /// <summary>
         /// 포인터 위치를 클릭했다. 단어가 있는 가까운 사물이면 그 카드를 클릭한 자리에 고정하고, 아니면 고정을 푼다.
         /// Update에서 클릭을 판단해 호출하며, 실제 마우스 없이 확인할 때 직접 호출할 수 있다.
@@ -130,9 +134,12 @@ namespace A305.ObjectHover
             ObjectWord word = default;
             bool canShow =
                 target != null
-                && !player.IsMoving
-                && !player.IsMovementLocked
-                && distance <= settings.MaxDistanceMeters
+                && ObjectHoverRules.CanHover(
+                    IsUiAt(pointerScreenPosition),
+                    player.IsMoving,
+                    player.IsMovementLocked,
+                    distance <= settings.MaxDistanceMeters
+                )
                 && (cards == null || cards.CanHover(wordKey))
                 && TryGetWord(target, definition, out word);
 
@@ -268,6 +275,23 @@ namespace A305.ObjectHover
         private static bool IsPointerOverUi()
         {
             return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        }
+
+        // 화면 좌표에 HUD 버튼·메뉴·창 같은 UI가 있는지. 호버 카드는 클릭을 받지 않아 걸리지 않는다.
+        // 실제 마우스 대신 좌표를 넣어 확인할 수 있도록 EventSystem의 현재 포인터가 아니라 좌표로 UI를 찾는다.
+        private bool IsUiAt(Vector2 screenPosition)
+        {
+            EventSystem events = EventSystem.current;
+            if (events == null)
+            {
+                return false;
+            }
+
+            uiPointer ??= new PointerEventData(events);
+            uiPointer.position = screenPosition;
+            uiHits.Clear();
+            events.RaycastAll(uiPointer, uiHits);
+            return uiHits.Count > 0;
         }
 
         // 대화처럼 이동이 잠기거나 플레이어가 멀어지면 고정을 푼다. 걷는 동안에는 그대로 둔다.

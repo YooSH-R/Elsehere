@@ -183,7 +183,11 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(guideView.NoticeText, Does.Contain("갈 수 없어요"));
 
             yield return new WaitForSeconds(TutorialGuideView.NoticeSeconds + 0.2f);
-            Assert.That(guideView.IsNoticeShowing, Is.False, "잠시 보인 뒤 할 일 한 줄만 남깁니다.");
+            Assert.That(
+                guideView.IsNoticeShowing,
+                Is.False,
+                "잠시 보인 뒤 할 일 한 줄만 남깁니다."
+            );
         }
 
         [UnityTest]

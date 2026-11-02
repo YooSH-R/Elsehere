@@ -69,7 +69,10 @@ namespace A305.ObjectHover.Tests
 
             LocalObjectWordApi.Forget();
 
-            Assert.That((await LoadAsync()).TryGet("sofa", out WordCard sofa) && sofa.Saved, Is.False);
+            Assert.That(
+                (await LoadAsync()).TryGet("sofa", out WordCard sofa) && sofa.Saved,
+                Is.False
+            );
         }
 
         private static async Task<ObjectWordCards> LoadAsync()

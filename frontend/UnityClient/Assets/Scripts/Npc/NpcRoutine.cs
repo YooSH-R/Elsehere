@@ -168,7 +168,10 @@ namespace A305.Npc
                 return;
             }
 
-            model.runtimeAnimatorController = lifeAnimator;
+            model.runtimeAnimatorController = NpcLifeAnimator.KeepCharacterClips(
+                lifeAnimator,
+                model.runtimeAnimatorController
+            );
             // 바꿔 끼운 직후에는 새 파라미터가 아직 묶이지 않아 다시 묶는다.
             model.Rebind();
             if (animationDriver != null)

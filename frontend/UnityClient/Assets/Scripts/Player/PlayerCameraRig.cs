@@ -5,7 +5,7 @@ namespace A305.Player
 {
     /// <summary>
     /// 플레이어를 따라가는 카메라. 탐험 중에는 3인칭·1인칭을 오가고,
-    /// 대화가 시작되면 상대를 바라보는 1인칭으로 고정했다가 대화가 끝나면 직전 시점으로 돌아간다.
+    /// 대화가 시작되면 1·3인칭과 따로 상대 얼굴 앞에서 얼굴을 비추는 대화 시점으로 고정했다가 대화가 끝나면 직전 시점으로 돌아간다.
     /// 시점은 마우스·터치로만 돌고, 키로 걸을 때는 위치만 따라간다.
     /// </summary>
     public class PlayerCameraRig : MonoBehaviour
@@ -55,7 +55,7 @@ namespace A305.Player
         /// <summary>이번 프레임에 사용자가 1인칭·3인칭을 바꿨는지</summary>
         public bool ToggledViewThisFrame { get; private set; }
 
-        /// <summary>대화 상대(보통 NPC의 머리 위치)를 바라보는 1인칭 시점으로 바꾼다.</summary>
+        /// <summary>대화 상대(보통 NPC의 머리 위치) 앞 정해진 거리·높이에서 상대를 비추는 대화 시점으로 바꾼다.</summary>
         public void EnterDialogueView(Transform lookTarget)
         {
             if (lookTarget == null)
@@ -206,13 +206,20 @@ namespace A305.Player
                 case CameraViewMode.FirstPerson:
                     return orbit.GetFirstPersonPose(eye);
                 case CameraViewMode.Dialogue:
+                    // 대화 시점은 1·3인칭과 따로 NPC 얼굴 기준으로 놓는다. 플레이어 눈은 카메라를 얼굴의 어느 쪽에 둘지만 정한다.
                     Camera camera = GetComponent<Camera>();
+                    Vector3 face = dialogueLookTarget.position;
                     return DialogueFraming.Pose(
-                        eye,
-                        dialogueLookTarget.position,
+                        DialogueFraming.CameraPosition(
+                            face,
+                            eye,
+                            cameraSettings.DialogueDistanceMeters,
+                            cameraSettings.DialogueHeightOffsetMeters
+                        ),
+                        face,
                         camera.fieldOfView,
                         camera.aspect,
-                        new Vector2(.64f, .66f)
+                        cameraSettings.DialogueFacePosition
                     );
                 default:
                     return GetThirdPersonPoseInFrontOfWalls(snap);

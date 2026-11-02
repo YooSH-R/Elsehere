@@ -1,6 +1,6 @@
 # Player 모듈
 
-PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동과 카메라 시점을 조작합니다. 탐험 중에는 3인칭·1인칭을 오가고, NPC와 대화할 때는 상대를 바라보는 1인칭으로 고정한 뒤 대화가 끝나면 직전 시점으로 돌아갑니다.
+PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동과 카메라 시점을 조작합니다. 탐험 중에는 3인칭·1인칭을 오가고, NPC와 대화할 때는 1·3인칭과 따로 NPC 얼굴 앞 정해진 거리·높이에서 얼굴을 비추는 대화 시점으로 고정한 뒤 대화가 끝나면 직전 시점으로 돌아갑니다.
 
 다른 프로젝트에서도 쓸 수 있도록 게임 진행, 서버 연동, NPC·미션 같은 게임 코드를 참조하지 않습니다. 대화 시작·종료처럼 게임이 정하는 일은 아래 공개 API로 요청받습니다.
 
@@ -10,7 +10,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | --- | --- |
 | `PlayerMotor` | 이동 입력과 카메라 방향으로 이번 프레임의 속도를 계산합니다. 달리기, 점프, 중력, 이동 잠금을 포함하며 Unity 객체 없이 테스트합니다. |
 | `CameraOrbit` | 3인칭·1인칭·대화 시점 상태와 회전·줌 범위를 관리하고 카메라 위치를 계산합니다. |
-| `DialogueFraming` | 화면 비율에 맞춰 NPC 얼굴을 위쪽·오른쪽에 배치하고 수평선은 유지합니다. 대화창과 왼쪽 도움말이 얼굴을 가리지 않도록 합니다. |
+| `DialogueFraming` | 대화 시점 카메라를 플레이어 눈이 아니라 NPC 얼굴 앞 정해진 거리·높이(`PlayerCameraSettings`의 대화 시점 항목)에 둡니다. 플레이어가 얼마나 떨어져 섰든 NPC마다 얼굴이 같은 크기로 보이고, 플레이어 위치는 카메라를 얼굴의 어느 쪽에 둘지만 정합니다. 화면 비율에 맞춰 얼굴을 정한 화면 자리(기본 위쪽·오른쪽)에 놓고 수평선은 유지해, 대화창과 왼쪽 도움말이 얼굴을 가리지 않게 합니다. |
 | `PlayerMover` | `CharacterController`로 플레이어를 움직이고 이동 방향으로 몸을 돌립니다. 캡슐 아래 둥근 면이 가구 모서리에 걸려 발이 떠 있고 받친 점이 턱(`stepOffset`)보다 높으면 땅이 아닌 것으로 보고 모서리 바깥으로 미끄러뜨려, 가구 옆 공중에 떠 있지 않게 합니다. 계단 모서리는 턱 높이 안이라 그대로 오릅니다. 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 `HeadClearance`가 머리 구로 따로 막습니다. |
 | `HeadClearance` | 몸통 캡슐보다 큰 머리를 벽·키 큰 가구에서 막습니다. 머리 구를 이동 방향으로 밀어 보고 막히면 닿기 직전까지만 가고 면을 따라 미끄러집니다. 구의 아래 끝이 머리 아래 끝이라 낮은 가구는 머리 아래로 지나갑니다. 반지름·높이는 캐릭터 정의(`PlayerCharacterDefinition`)에서 읽습니다. |
 | `PlayerCameraRig` | 카메라가 플레이어 위치를 따라가게 하고, 벽에 막히면 카메라를 앞으로 당깁니다. 시점은 마우스·터치로만 돌립니다. |
@@ -23,7 +23,7 @@ PC 웹의 키보드·마우스와 모바일 웹의 터치로 플레이어 이동
 | `LookSensitivity` | 사용자가 마이페이지에서 고른 시점 회전 감도 배율(0.5~2배). `PlayerCameraRig`가 마우스·터치 회전에 곱하며, 이 기기에 `PlayerPrefs`로 저장합니다. |
 | `PointerDeltaScale` | 브라우저가 화면 배율을 곱해 넘기는 마우스 이동량을 배율로 나눠, 화면 배율과 관계없이 같은 회전 감도를 냅니다. 에디터에서는 배율을 1로 봅니다. |
 | `PlayerTouchSettings` | 조이스틱 중앙 무시 영역과 터치 회전 감도를 설정합니다. |
-| `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. |
+| `PlayerMovementSettings`, `PlayerCameraSettings` | 속도·점프 높이·카메라 거리·회전 감도 등 수치를 담는 데이터 에셋입니다. 대화 시점의 얼굴까지 거리·얼굴보다 높은 정도·얼굴의 화면 자리도 `PlayerCameraSettings`에서 조절합니다. |
 | `PlayerSeatPose` | 의자·벤치·소파에 앉은 동안 이동을 잠그고 Humanoid 골격을 앉는 면 높이에 맞춰 구부립니다. 다리가 짧은 리틀멍은 자리 앞쪽에 앉혀 허벅지를 쿠션 위에 눕히고 무릎 아래를 앞 모서리 밖으로 내려뜨립니다. 일어서면 앉기 전에 서 있던 곳으로 돌아갑니다. 서 있던 곳은 캡슐이 들어가 있던 빈 자리라 탁자·팔걸이·벽에 끼지 않습니다. |
 | `SeatedLegs` | Humanoid 다리 뼈를 찾아 앉는 면 높이에 맞춰 구부리는 계산입니다. `PlayerSeatPose`와 쉬는 NPC([Npc 모듈](../Npc/README.md#생활)의 `NpcRoutine`)가 함께 씁니다. |
 | `SeatView` | 앉은 캐릭터를 플레이어가 다가온 쪽에서 보도록 카메라 수평 방향을 정합니다. 자리 바로 위에서 앉아 다가온 방향을 알 수 없으면 자리 앞쪽에서 봅니다. Unity 객체 없이 테스트합니다. |
@@ -98,8 +98,9 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 | `PlayerMover.IsRunning` | 달리기 키를 누른 채 움직였는지. 튜토리얼 걷기 단계가 씁니다. |
 | `PlayerCameraRig.ZoomedByUserThisFrame`, `ToggledViewThisFrame` | 이번 프레임에 휠로 확대·축소했는지, 1인칭·3인칭을 바꿨는지. 튜토리얼 둘러보기 단계가 씁니다. |
 | `PlayerMover.SetMovementLocked(bool)` | 대화처럼 움직이면 안 되는 동안 이동과 점프를 막습니다. 중력은 계속 적용합니다. |
-| `PlayerCameraRig.EnterDialogueView(Transform)` | 대상(보통 NPC 머리 위치)을 바라보는 대화 시점으로 바꿉니다. 회전·줌·시점 전환 입력을 받지 않습니다. |
-| `PlayerCameraRig.ExitDialogueView()` | 대화 직전의 시점으로 돌아갑니다. |
+| `PlayerMover.FaceToward(Vector3)` | 제자리에서 주어진 지점을 수평으로 바라보게 몸을 돌립니다. 대화를 마친 뒤 대화하던 NPC 쪽을 보게 할 때 씁니다. |
+| `PlayerCameraRig.EnterDialogueView(Transform)` | 대상(보통 NPC 머리 위치) 앞 정해진 거리·높이에서 대상을 비추는 대화 시점으로 바꿉니다. 회전·줌·시점 전환 입력을 받지 않습니다. |
+| `PlayerCameraRig.ExitDialogueView()` | 대화 직전의 시점으로 돌아가며 카메라를 플레이어가 보는 방향 뒤에 바로 세웁니다. 플레이어를 먼저 돌려 두면 그 방향을 그대로 이어 봅니다. |
 | `PlayerCameraRig.ViewMode` | 현재 시점(`ThirdPerson`, `FirstPerson`, `Dialogue`) |
 | `PlayerMover.Teleport(Vector3, Quaternion)` | 플레이어를 바로 옮깁니다. 공간을 옮긴 뒤 출입구 앞에 세울 때 씁니다. |
 | `PlayerCameraRig.SnapBehindTarget()` | 카메라를 플레이어가 보는 방향 뒤로 돌려 바로 그 자리에 놓습니다. `Teleport` 다음에 호출합니다. 카메라는 시작할 때도 플레이어 뒤에서 시작합니다. |
@@ -110,4 +111,4 @@ Unity Web은 PC 브라우저에서도 Touchscreen 장치를 등록할 수 있어
 
 ## 테스트
 
-`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향을 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.
+`Assets/Tests/EditMode/Player/`의 `A305.Player.Tests` 어셈블리가 `PlayerMotor`와 `CameraOrbit`의 이동·시점 규칙, `TouchDragInput`의 터치 드래그 처리, `TouchControlsAvailability`의 터치 조작 표시 기준, `SeatView`의 앉은 뒤 카메라 방향, `DialogueFraming`의 대화 시점 카메라 위치와 얼굴의 화면 자리를 검증합니다. 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다. 입력 연결과 카메라 연출은 Sandbox 씬의 Play로 확인합니다. `BrowserPointer.jslib`은 Editor에서 실행되지 않으므로 Web 빌드를 PC·모바일 브라우저에서 열어 조이스틱 표시 여부를 확인합니다.

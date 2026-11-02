@@ -62,7 +62,11 @@ namespace A305.ObjectHover
 
         // 사물 클릭을 판단하려고 누른 자리를 기억한다. UI 위에서 눌렀으면 비운다.
         private Vector2? pressedAt;
+
+        // 포인터 아래 UI를 찾는 데 매 프레임 다시 쓴다.
+        private PointerEventData uiPointer;
         private readonly List<RaycastResult> uiHits = new List<RaycastResult>();
+        private readonly List<GameObject> uiHitObjects = new List<GameObject>();
 
         /// <summary>
         /// 포인터 위치를 클릭했다. 단어가 있는 가까운 사물이면 그 카드를 클릭한 자리에 고정하고, 아니면 고정을 푼다.
@@ -131,9 +135,12 @@ namespace A305.ObjectHover
             ObjectWord word = default;
             bool canShow =
                 target != null
-                && !player.IsMoving
-                && !player.IsMovementLocked
-                && distance <= settings.MaxDistanceMeters
+                && ObjectHoverRules.CanHover(
+                    IsUiAt(pointerScreenPosition),
+                    player.IsMoving,
+                    player.IsMovementLocked,
+                    distance <= settings.MaxDistanceMeters
+                )
                 && (cards == null || cards.CanHover(wordKey))
                 && TryGetWord(target, definition, out word);
 
@@ -253,7 +260,7 @@ namespace A305.ObjectHover
 
             if (device.press.wasPressedThisFrame)
             {
-                pressedAt = IsPointerOverUi(pointer) ? null : pointer;
+                pressedAt = IsUiAt(pointer) ? null : pointer;
             }
             else if (device.press.wasReleasedThisFrame && pressedAt.HasValue)
             {
@@ -266,8 +273,10 @@ namespace A305.ObjectHover
             }
         }
 
-        // 휴대폰·터치 노트북의 터치 조작판은 화면을 덮지만 끌기만 받으므로, 그 위를 누른 것은 사물 클릭으로 본다.
-        private bool IsPointerOverUi(Vector2 pointer)
+        // 화면 좌표에 HUD 버튼·메뉴·창 같은 UI가 있어 사물 호버·클릭을 막는지. 호버 카드는 클릭을 받지 않아 걸리지 않는다.
+        // 휴대폰·터치 노트북의 터치 조작판은 화면을 덮지만 끌기만 받으므로 막지 않는다(WorldClickBlocker).
+        // 실제 마우스 대신 좌표를 넣어 확인할 수 있도록 EventSystem의 현재 포인터가 아니라 좌표로 UI를 찾는다.
+        private bool IsUiAt(Vector2 screenPosition)
         {
             EventSystem events = EventSystem.current;
             if (events == null)
@@ -275,15 +284,17 @@ namespace A305.ObjectHover
                 return false;
             }
 
+            uiPointer ??= new PointerEventData(events);
+            uiPointer.position = screenPosition;
             uiHits.Clear();
-            events.RaycastAll(new PointerEventData(events) { position = pointer }, uiHits);
-            var hitObjects = new List<GameObject>(uiHits.Count);
+            events.RaycastAll(uiPointer, uiHits);
+            uiHitObjects.Clear();
             foreach (RaycastResult hit in uiHits)
             {
-                hitObjects.Add(hit.gameObject);
+                uiHitObjects.Add(hit.gameObject);
             }
 
-            return WorldClickBlocker.IsBlockedBy(hitObjects);
+            return WorldClickBlocker.IsBlockedBy(uiHitObjects);
         }
 
         // 대화처럼 이동이 잠기거나 플레이어가 멀어지면 고정을 푼다. 걷는 동안에는 그대로 둔다.

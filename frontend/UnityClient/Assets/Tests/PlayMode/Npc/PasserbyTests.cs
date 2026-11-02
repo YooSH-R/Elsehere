@@ -107,6 +107,39 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator EndingDialogue_TurnsPlayerAndCameraTowardTheNpc()
+        {
+            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+
+            // 대화 전에는 Ben을 등지고 서 있게 해, 끝난 뒤 방향이 대화 덕분에 바뀐 것인지 확인한다.
+            PlayerMover player = Single<PlayerMover>();
+            Transform face = FindPasserby(BenCode).GetComponent<NpcIdentity>().LookTarget;
+            Vector3 towardBen = Vector3.ProjectOnPlane(
+                face.position - player.transform.position,
+                Vector3.up
+            );
+            player.Teleport(player.transform.position, Quaternion.LookRotation(-towardBen));
+            Click(offer, "AcceptButton");
+            yield return null;
+            Click(Single<DialoguePanelView>(), "EndButton");
+            yield return null;
+
+            float benYaw = Quaternion.LookRotation(towardBen).eulerAngles.y;
+            Assert.That(
+                Mathf.Abs(Mathf.DeltaAngle(player.transform.eulerAngles.y, benYaw)),
+                Is.LessThan(2f),
+                "대화가 끝나면 플레이어가 대화하던 NPC 쪽을 봅니다."
+            );
+            Assert.That(
+                Mathf.Abs(Mathf.DeltaAngle(Single<PlayerCameraRig>().ViewYawDegrees, benYaw)),
+                Is.LessThan(2f),
+                "카메라도 대화 시점이 보던 방향 그대로 플레이어 뒤에 섭니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator DecliningTownPasserby_ClosesOffer_AndDoesNotOfferAgainWhileResting()
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);

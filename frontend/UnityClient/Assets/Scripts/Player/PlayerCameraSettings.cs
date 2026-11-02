@@ -58,13 +58,33 @@ namespace A305.Player
 
         [SerializeField]
         [Min(0f)]
-        [Tooltip("1인칭·대화 시점의 눈높이(발 기준)")]
+        [Tooltip("1인칭 시점의 눈높이(발 기준). 대화 시점은 NPC 얼굴 기준이라 쓰지 않는다")]
         private float eyeHeightMeters = 1.6f;
 
         [SerializeField]
         [Min(0f)]
         [Tooltip("목표 위치를 따라가는 빠르기. 클수록 바로 따라간다")]
         private float followSharpness = 15f;
+
+        [Header("대화 시점")]
+        [SerializeField]
+        [Min(0.3f)]
+        [Tooltip(
+            "대화할 때 카메라가 NPC 얼굴에서 플레이어 쪽으로 떨어진 수평 거리. 플레이어가 선 거리와 관계없이 NPC마다 같은 크기로 보인다"
+        )]
+        private float dialogueDistanceMeters = 2f;
+
+        [SerializeField]
+        [Tooltip(
+            "대화할 때 카메라가 NPC 얼굴보다 높은 정도. 0이면 얼굴과 같은 높이, 음수면 올려다본다"
+        )]
+        private float dialogueHeightOffsetMeters = 0f;
+
+        [SerializeField]
+        [Tooltip(
+            "대화할 때 NPC 얼굴이 놓일 화면 자리(왼쪽 아래 0, 오른쪽 위 1). 아래·왼쪽 대화창에 가리지 않게 오른쪽 위에 둔다"
+        )]
+        private Vector2 dialogueFacePosition = new Vector2(.64f, .66f);
 
         [Header("벽 충돌")]
         [SerializeField]
@@ -85,6 +105,12 @@ namespace A305.Player
         public float EyeHeightMeters => eyeHeightMeters;
 
         public float FollowSharpness => followSharpness;
+
+        public float DialogueDistanceMeters => dialogueDistanceMeters;
+
+        public float DialogueHeightOffsetMeters => dialogueHeightOffsetMeters;
+
+        public Vector2 DialogueFacePosition => dialogueFacePosition;
 
         public float CollisionRadiusMeters => collisionRadiusMeters;
 

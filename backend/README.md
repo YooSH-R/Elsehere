@@ -171,6 +171,8 @@ IDE의 프로젝트 JDK·Gradle JVM은 Java 21, 파일 인코딩은 UTF-8, 줄�
 
 모든 요청은 응답의 `X-Request-ID`와 로그의 `request_id`로 연결합니다. 이 값은 API 본문의 중복 방지용 `requestId`와 구분합니다. 요청 요약에는 경로 패턴·상태·처리 시간만 남기며, 쿼리·인증값·본문과 원본 예외 메시지는 기록하지 않습니다.
 
+로그인한 요청은 모든 로그 줄에 내부 사용자 ID(`users.id`)가 `user_id`로 붙습니다(`UserLoggingFilter`가 인증 뒤 MDC에 넣고 `RequestLoggingFilter`가 요청 끝에 지움). 로그인 전 요청은 `user_id=none`입니다. 한 사용자의 요청·오류를 이어서 찾을 때 `user_id`로 검색합니다.
+
 로그는 SLF4J(`@Slf4j`)로 남깁니다. 레벨은 우리 코드(`com.elsehere`)만 환경별로 바꾸고 Spring·Hibernate 같은 라이브러리는 INFO로 둡니다.
 
 | 환경 | `com.elsehere` | 설정 방법 |

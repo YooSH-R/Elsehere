@@ -396,7 +396,11 @@ namespace A305.Tutorial.PlayModeTests
             }
 
             yield return null;
+            // 길 안내를 마치면 [대화 종료]만 어둡게 둘러 밝히고, 누르면 무엇이 이어지는지 옆 말풍선으로 알린다.
             Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { panel.EndButtonRect }));
+            Assert.That(coachMark.IsDimmingOutside, Is.True);
+            Assert.That(coachMark.CaptionText, Does.Contain("피드백"));
+            Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
         }
 
         [UnityTest]
@@ -442,6 +446,60 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
+        {
+            // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,
+            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            yield return FinishTour(coachMark);
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            DialogueController dialogue = Single<DialogueController>();
+            while (!dialogue.IsGuidedCompleted)
+            {
+                Click(panel, "ExampleButton");
+                Click(panel, "SendButton");
+                yield return null;
+            }
+
+            Click(panel, "EndButton");
+            yield return null;
+            yield return null;
+
+            FeedbackView feedback = Single<FeedbackView>();
+            Assert.That(feedback.IsVisible, Is.True, "준비: 피드백");
+            RectTransform[] tour = { feedback.SectionRowRect, feedback.NavigationRowRect };
+            foreach (RectTransform target in tour)
+            {
+                Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { target }));
+                Assert.That(coachMark.IsDimmingOutside, Is.True);
+                Assert.That(coachMark.IsNextShowing, Is.True);
+                Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+                ClickNext(coachMark);
+                yield return null;
+                yield return null;
+            }
+
+            Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { feedback.CloseButtonRect }));
+            Assert.That(coachMark.IsNextShowing, Is.False, "닫는 버튼을 직접 누릅니다.");
+            Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+
+            feedback.CloseButtonRect.GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            yield return null;
+            Assert.That(
+                TutorialState.GetOrCreate(BenCode).Step,
+                Is.EqualTo(TutorialStep.TodayGoal)
+            );
         }
 
         // 대화 시작 티칭을 [다음]으로 끝까지 넘긴다.

@@ -85,6 +85,17 @@ namespace A305.Tutorial.Tests
             Assert.That(guide.DialogueLinesCaption, Does.Contain("Ben"));
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{뜻}"));
             Assert.That(guide.DialogueToolsCaption, Does.Contain("{예시 문장}"));
+            Assert.That(guide.DialogueEndCaption, Does.Contain("{대화 종료}"));
+            Assert.That(guide.FeedbackSectionsCaption, Does.Contain("{요약}"));
+            Assert.That(guide.FeedbackPagesCaption, Does.Contain("화살표"));
+            Assert.That(
+                guide.FeedbackCloseCaption,
+                Does.Contain("{X}"),
+                "피드백은 오른쪽 위 X로 닫는다."
+            );
+            guide.TryGetStepGuide(TutorialStep.BenFeedback, out TutorialStepGuide feedback);
+            Assert.That(feedback.Task, Does.Contain("{X}"));
+            Assert.That(guide.DialogueEndCaption, Does.Contain("피드백"), "누르면 무엇이 이어지는지");
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{문장}"));
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("추천 문장"));
             Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{넣기}"));

@@ -141,12 +141,33 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void BenFeedback_HighlightsTheFeedbackWhileItIsShown()
+        public void BenFeedback_TeachesTheTabsThenThePages_ThenHighlightsTheCloseButton()
         {
+            // 피드백(대화 노트)도 볼 곳을 하나씩 밝혀 [다음]으로 넘기고, 마지막에 닫는 버튼을 밝힌다.
             Assert.That(Choose(TutorialStep.BenFeedback), Is.EqualTo(TutorialCoachTarget.None));
+            TutorialCoachTarget[] expected =
+            {
+                TutorialCoachTarget.FeedbackSections,
+                TutorialCoachTarget.FeedbackPages,
+                TutorialCoachTarget.FeedbackClose,
+            };
+            for (int tourStep = 0; tourStep < expected.Length; tourStep++)
+            {
+                Assert.That(
+                    Choose(
+                        TutorialStep.BenFeedback,
+                        new TutorialScreen { IsFeedbackShowing = true, FeedbackTourStep = tourStep }
+                    ),
+                    Is.EqualTo(expected[tourStep]),
+                    $"{tourStep}번째"
+                );
+            }
+
+            Assert.That(TutorialCoachPlan.IsTour(TutorialCoachTarget.FeedbackPages), Is.True);
             Assert.That(
-                Choose(TutorialStep.BenFeedback, new TutorialScreen { IsFeedbackShowing = true }),
-                Is.EqualTo(TutorialCoachTarget.Feedback)
+                TutorialCoachPlan.IsTour(TutorialCoachTarget.FeedbackClose),
+                Is.False,
+                "마지막은 [다음] 대신 직접 닫는다."
             );
         }
 

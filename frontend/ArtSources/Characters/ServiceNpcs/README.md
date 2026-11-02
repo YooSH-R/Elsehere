@@ -42,7 +42,7 @@ blender --background --python frontend/ArtSources/Characters/ServiceNpcs/fit_npc
 
 이 스크립트는 해당 ArtSources 폴더의 입 제작 결과를 다시 씁니다. 승인된 수동 수정이 있다면 먼저 별도 보관합니다. 피부색·입 위치 자동 검출은 이 네 입력에 맞춰 검수한 보조 도구이며, 다른 얼굴을 무조건 지원하지는 않습니다. 새 캐릭터는 정면·양쪽 사선과 전체 입 모양을 다시 확인해야 합니다.
 
-`NPC_REVIEW_OUTPUT`을 제작 데이터 루트로 지정하고 `ServiceNpcReviewBuilder`의 Unity 배치 메서드를 사용합니다. `Prepare`는 비율 적용 사본, `BuildFaces`는 얼굴 메시와 검수 씬, `ValidateAndScenes`는 골격·동작 검사, `RenderFaces`는 표정 렌더를 만듭니다. 기존 얼굴 사본은 자동 덮어쓰지 않으며 명시적 새 경로 또는 검토된 갱신이 필요합니다. 비즈니스맨은 기존 입 제작 사본을 비율에 맞춰 확대한 결과를 사용합니다.
+`NPC_REVIEW_OUTPUT`을 제작 데이터 루트로 지정하고 `ServiceNpcReviewBuilder`의 Unity 배치 메서드를 사용합니다. `Prepare`는 비율 적용 사본, `BuildFaces`는 얼굴 메시와 검수 씬, `ValidateAndScenes`는 골격·동작 검사, `RenderFaces`는 표정 렌더를 만듭니다. 기존 얼굴 사본은 자동 덮어쓰지 않으며 명시적 새 경로 또는 검토된 갱신이 필요합니다. 비즈니스맨은 입을 먼저 만든 사본을 비율에 맞춰 확대한 결과이며, 그 결과인 `Prefabs/Npc/Review/LittleMung_Business_Male.prefab`이 준비본을 겸합니다. 몸·입 메시와 입 재질, Idle·이동 컨트롤러는 `ServiceNpcs/LittleMung_Business_Male/`에 모여 있습니다. `Prepare`는 이 프리팹이 있으면 비율만 확인하고, 없으면 이전 사본을 다시 만들지 않고 중단합니다. `BuildFaces`는 비즈니스맨을 건너뜁니다.
 
 ## 검사 범위와 승인 기준
 

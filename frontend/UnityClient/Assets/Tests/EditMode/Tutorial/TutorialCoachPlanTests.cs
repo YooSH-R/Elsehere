@@ -95,6 +95,26 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void BenDialogue_ExplainsTheSuggestedSentenceThenTheSuggestedWords_OneTurnEach()
+        {
+            // 첫 대사에서 말하고 보내는 법을, 다음 대사들에서 왼쪽 추천 문장·추천 단어 카드를 하나씩 알린다.
+            Assert.That(
+                Choose(
+                    TutorialStep.BenDialogue,
+                    new TutorialScreen { IsTalking = true, GuidedTurnIndex = 1 }
+                ),
+                Is.EqualTo(TutorialCoachTarget.SuggestedSentence)
+            );
+            Assert.That(
+                Choose(
+                    TutorialStep.BenDialogue,
+                    new TutorialScreen { IsTalking = true, GuidedTurnIndex = 2 }
+                ),
+                Is.EqualTo(TutorialCoachTarget.SuggestedWords)
+            );
+        }
+
+        [Test]
         public void BenFeedback_HighlightsTheFeedbackWhileItIsShown()
         {
             Assert.That(Choose(TutorialStep.BenFeedback), Is.EqualTo(TutorialCoachTarget.None));

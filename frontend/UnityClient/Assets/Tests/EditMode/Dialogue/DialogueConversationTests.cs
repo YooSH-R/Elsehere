@@ -214,6 +214,42 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void GuidedConversation_SuggestsWordsForTheLine_AndCountsTheTurn()
+        {
+            // 추천 단어는 지금 할 대사에 쓸 만한 단어다. 턴이 넘어가면 다음 대사의 단어로 바뀐다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "straight · 곧장" }));
+            Assert.That(conversation.GuidedTurnIndex, Is.EqualTo(0));
+
+            conversation.Send("Go straight ahead.");
+
+            Assert.That(conversation.SuggestWords, Is.EqualTo(new[] { "corner · 모퉁이" }));
+            Assert.That(conversation.GuidedTurnIndex, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void SpokenLineThatDiffered_GoesThrough_WithoutAskingToRetypeIt()
+        {
+            // 말로 한 대사는 달라도 넘어가므로, 다시 입력하라는 안내와 구분한다.
+            var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
+
+            conversation.SendSpoken("I don't know the way.");
+            Assert.That(conversation.IsGuidedLineMissed, Is.False);
+
+            conversation.Send("Hello there");
+            Assert.That(conversation.IsGuidedLineMissed, Is.True);
+        }
+
+        [Test]
+        public void TutorialNotices_SayTheTutorialFollowsAFixedFlow()
+        {
+            // 튜토리얼에서는 무엇을 말하든 정해진 흐름대로 진행된다는 뜻을 담는다.
+            Assert.That(DialogueConversation.GuidedLineMissNotice, Does.Contain("정해진 흐름"));
+            Assert.That(DialogueConversation.GuidedVoiceNotice, Does.Contain("정해진 흐름"));
+        }
+
+        [Test]
         public void SendSpoken_AfterTheLastTurn_IsIgnored()
         {
             var conversation = new DialogueConversation(TutorialPasserbyCode, CreateGuidedScript());
@@ -314,12 +350,14 @@ namespace A305.Dialogue.Tests
                     new GuidedTurn(
                         "Go straight ahead.",
                         "앞으로 곧장 가세요.",
-                        DialogueLine.FromNpc("And then?", "그다음엔요?")
+                        DialogueLine.FromNpc("And then?", "그다음엔요?"),
+                        new[] { "straight · 곧장" }
                     ),
                     new GuidedTurn(
                         "Turn left at the corner.",
                         "모퉁이에서 왼쪽으로 도세요.",
-                        DialogueLine.FromNpc("Thank you so much!", "정말 고마워요!")
+                        DialogueLine.FromNpc("Thank you so much!", "정말 고마워요!"),
+                        new[] { "corner · 모퉁이" }
                     ),
                 },
                 new List<KeywordReply>(),

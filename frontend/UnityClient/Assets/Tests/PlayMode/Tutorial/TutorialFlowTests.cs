@@ -384,6 +384,46 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { panel.EndButtonRect }));
         }
 
+        [UnityTest]
+        public IEnumerator BenDialogue_KeepsTheLinesVisible_AndExplainsTheSuggestedSentenceThenWords()
+        {
+            // 대사를 읽을 수 있게 어둡게 덮지 않고 할 곳만 테두리로 밝히며, 대사마다 왼쪽 추천 문장·추천 단어를 하나씩 알린다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            Assert.That(coachMark.IsDimmingOutside, Is.False, "대사가 보이게 어둡게 덮지 않습니다.");
+            Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
+
+            Click(panel, "ExampleButton");
+            Click(panel, "SendButton");
+            yield return null;
+            Assert.That(
+                coachMark.SpotlightTargets,
+                Is.EqualTo(new[] { panel.SuggestedSentenceRect })
+            );
+            Assert.That(coachMark.CaptionText, Does.Contain("추천 문장"));
+
+            Click(panel, "UseHintButton");
+            Click(panel, "SendButton");
+            yield return null;
+            Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { panel.SuggestedWordsRect }));
+            Assert.That(coachMark.CaptionText, Does.Contain("추천 단어"));
+            Assert.That(
+                panel.SuggestedWordsRect.GetComponentsInChildren<TMP_Text>().Any(text =>
+                    text.text.Contains("minute")
+                ),
+                Is.True,
+                "이번 대사에 쓸 추천 단어가 보입니다."
+            );
+        }
+
         private static Passerby FindBen()
         {
             return Object

@@ -74,6 +74,22 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void DialogueCaptions_SayTheTutorialFollowsAFixedFlow_AndExplainTheHelpCards()
+        {
+            // 튜토리얼 대화는 무엇을 말하든 정해진 흐름대로 진행되고, 왼쪽 [문장]·[단어] 카드가 무엇인지 알린다.
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.GuidedLineCaption, Does.Contain("정해진 흐름"));
+            Assert.That(guide.GuidedLineCaption, Does.Not.Contain("연습"));
+            Assert.That(guide.GuidedLineMissCaption, Does.Contain("정해진 흐름"));
+            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{문장}"));
+            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("추천 문장"));
+            Assert.That(guide.SuggestedSentenceCaption, Does.Contain("{넣기}"));
+            Assert.That(guide.SuggestedWordsCaption, Does.Contain("{단어}"));
+            Assert.That(guide.SuggestedWordsCaption, Does.Contain("추천 단어"));
+        }
+
+        [Test]
         public void Look_TellsToDragWithTheLeftMouseButton()
         {
             // 시점은 마우스 왼쪽 버튼을 누른 채 끌어 돌린다(Player/CameraRotate).

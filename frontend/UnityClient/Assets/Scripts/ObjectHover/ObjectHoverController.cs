@@ -69,6 +69,7 @@ namespace A305.ObjectHover
         // 포인터 아래 UI를 찾는 데 매 프레임 다시 쓴다.
         private PointerEventData uiPointer;
         private readonly List<RaycastResult> uiHits = new List<RaycastResult>();
+        private readonly List<GameObject> uiHitObjects = new List<GameObject>();
 
         // 사물·캐릭터의 화면 영역을 구하는 데 매 프레임 다시 쓴다.
         private readonly List<Renderer> renderers = new List<Renderer>();
@@ -207,8 +208,48 @@ namespace A305.ObjectHover
                 return;
             }
 
+            // Editor에서는 서버 없이도 [저장]·[알아요]를 눌러 볼 수 있게 확인용 단어 카드로 바꾼다. 빌드는 버튼 없이 둔다.
+            if (!loading.IsLoaded && Application.isEditor)
+            {
+                Debug.LogWarning(
+                    "서버에서 단어 카드를 받지 못해 Editor 확인용 단어 카드로 저장·숨김을 해 봅니다. 이 Play 동안만 기억하고, 저장한 단어는 Editor 확인용 단어장에 보입니다.",
+                    this
+                );
+                loading = new ObjectWordCards(new LocalObjectWordApi(SceneWordDetails()));
+                await loading.LoadAsync(sceneCode);
+            }
+
             cards = loading;
             RefreshPinnedCard();
+        }
+
+        // 이 장소에서 가리킬 수 있는 사물의 공용 단어(가구 전체와 세부 부분)
+        private IEnumerable<ObjectWordDetails> SceneWordDetails()
+        {
+            foreach (
+                HoverableObject target in FindObjectsByType<HoverableObject>(
+                    FindObjectsSortMode.None
+                )
+            )
+            {
+                if (target.Word != null)
+                {
+                    yield return target.Word.Details;
+                }
+
+                if (target.Parts == null)
+                {
+                    continue;
+                }
+
+                foreach (ObjectWordPartsDefinition.Part part in target.Parts.Parts)
+                {
+                    if (part.Word != null)
+                    {
+                        yield return part.Word.Details;
+                    }
+                }
+            }
         }
 
         private void OnDestroy()
@@ -268,7 +309,7 @@ namespace A305.ObjectHover
 
             if (device.press.wasPressedThisFrame)
             {
-                pressedAt = IsPointerOverUi() ? null : pointer;
+                pressedAt = IsUiAt(pointer) ? null : pointer;
             }
             else if (device.press.wasReleasedThisFrame && pressedAt.HasValue)
             {
@@ -281,12 +322,8 @@ namespace A305.ObjectHover
             }
         }
 
-        private static bool IsPointerOverUi()
-        {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-        }
-
-        // 화면 좌표에 HUD 버튼·메뉴·창 같은 UI가 있는지. 호버 카드는 클릭을 받지 않아 걸리지 않는다.
+        // 화면 좌표에 HUD 버튼·메뉴·창 같은 UI가 있어 사물 호버·클릭을 막는지. 호버 카드는 클릭을 받지 않아 걸리지 않는다.
+        // 휴대폰·터치 노트북의 터치 조작판은 화면을 덮지만 끌기만 받으므로 막지 않는다(WorldClickBlocker).
         // 실제 마우스 대신 좌표를 넣어 확인할 수 있도록 EventSystem의 현재 포인터가 아니라 좌표로 UI를 찾는다.
         private bool IsUiAt(Vector2 screenPosition)
         {
@@ -300,7 +337,13 @@ namespace A305.ObjectHover
             uiPointer.position = screenPosition;
             uiHits.Clear();
             events.RaycastAll(uiPointer, uiHits);
-            return uiHits.Count > 0;
+            uiHitObjects.Clear();
+            foreach (RaycastResult hit in uiHits)
+            {
+                uiHitObjects.Add(hit.gameObject);
+            }
+
+            return WorldClickBlocker.IsBlockedBy(uiHitObjects);
         }
 
         // 대화처럼 이동이 잠기거나 플레이어가 멀어지면 고정을 푼다. 걷는 동안에는 그대로 둔다.

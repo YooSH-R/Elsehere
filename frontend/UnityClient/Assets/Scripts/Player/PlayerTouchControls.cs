@@ -109,10 +109,29 @@ namespace A305.Player
         {
             return TouchControlsAvailability.ShouldShow(
                 isWebBrowser: Application.platform == RuntimePlatform.WebGLPlayer,
-                hasTouchscreen: Touchscreen.current != null,
+                hasTouchscreen: HasTouchscreen(),
                 isMobileBrowser: Application.isMobilePlatform,
                 isPrimaryPointerCoarse: BrowserPointer.IsPrimaryCoarse
             );
+        }
+
+        private static bool HasTouchscreen()
+        {
+            foreach (InputDevice device in InputSystem.devices)
+            {
+                if (
+                    device is Touchscreen
+                    && TouchControlsAvailability.CountsAsTouchscreen(
+                        Application.isEditor,
+                        device.native
+                    )
+                )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

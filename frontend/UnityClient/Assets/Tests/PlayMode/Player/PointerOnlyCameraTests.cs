@@ -74,6 +74,81 @@ namespace A305.Player.Tests
                 "Only the mouse may turn the camera."
             );
         }
+
+        [UnityTest]
+        public IEnumerator OnlyALeftButtonDragTurnsTheCamera()
+        {
+            // 시점은 왼쪽 버튼을 누른 채 끌어 돌린다. 오른쪽 버튼으로 끌면 돌지 않는다(사물 클릭은 거의 움직이지 않고 뗀 것만 본다).
+            Transform camera = Object.FindFirstObjectByType<PlayerCameraRig>().transform;
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            try
+            {
+                float startYaw = camera.eulerAngles.y;
+                yield return Drag(mouse, MouseButton.Right);
+                Assert.That(
+                    Mathf.DeltaAngle(startYaw, camera.eulerAngles.y),
+                    Is.EqualTo(0f).Within(.5f),
+                    "A right-button drag must not turn the camera."
+                );
+
+                yield return Drag(mouse, MouseButton.Left);
+                Assert.That(
+                    Mathf.Abs(Mathf.DeltaAngle(startYaw, camera.eulerAngles.y)),
+                    Is.GreaterThan(5f),
+                    "A left-button drag must turn the camera."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator InTheMeetingView_ADragDoesNotTurnTheCamera()
+        {
+            // 숙소를 나와 Ben을 기다리는 동안은 정한 구도를 지키도록 마우스로 돌리지 못한다.
+            var rig = Object.FindFirstObjectByType<PlayerCameraRig>();
+            Transform player = Object.FindFirstObjectByType<PlayerMover>().transform;
+            var target = new GameObject("MeetingTarget").transform;
+            target.position = player.position + player.forward * 4f + Vector3.up * 1.4f;
+            rig.EnterMeetingView(target);
+            for (int frame = 0; frame < 30; frame++)
+                yield return null;
+            float startYaw = rig.transform.eulerAngles.y;
+            Mouse mouse = InputSystem.AddDevice<Mouse>();
+            try
+            {
+                yield return Drag(mouse, MouseButton.Left);
+                Assert.That(
+                    Mathf.DeltaAngle(startYaw, rig.transform.eulerAngles.y),
+                    Is.EqualTo(0f).Within(.5f),
+                    "A drag must not turn the camera while waiting for Ben."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+                rig.ExitMeetingView();
+                Object.Destroy(target.gameObject);
+            }
+        }
+
+        private static IEnumerator Drag(Mouse mouse, MouseButton button)
+        {
+            for (int frame = 0; frame < 20; frame++)
+            {
+                InputSystem.QueueStateEvent(
+                    mouse,
+                    new MouseState { delta = new Vector2(20f, 0f) }.WithButton(button)
+                );
+                yield return null;
+            }
+
+            InputSystem.QueueStateEvent(mouse, new MouseState());
+            for (int frame = 0; frame < 30; frame++)
+                yield return null;
+        }
     }
 }
 #endif

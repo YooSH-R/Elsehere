@@ -384,7 +384,7 @@ class TurnServiceTest {
     // 클라이언트가 시간 초과로 다시 보낸 요청이 NPC 대답을 기다리는 사이 먼저 끝나 턴을 저장한다.
     AtomicBoolean retriedOnce = new AtomicBoolean();
     AtomicReference<TurnResponse> retried = new AtomicReference<>();
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
+    given(aiGateway.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
         .willAnswer(
             invocation -> {
               if (retriedOnce.compareAndSet(false, true)) {

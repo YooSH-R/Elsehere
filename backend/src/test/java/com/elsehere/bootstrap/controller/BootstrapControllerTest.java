@@ -46,7 +46,7 @@ class BootstrapControllerTest {
   void signedInUser_getsSignedInState() throws Exception {
     UserResponse user =
         new UserResponse(
-            1L, "Sun", AvatarType.F, "en-US", OnboardingStep.DONE, UiTheme.STICKER, true);
+            1L, "Sun", AvatarType.F, "en-US", OnboardingStep.DONE, UiTheme.STICKER, true, false);
     AiStatusResponse aiStatus =
         new AiStatusResponse(AiStatus.AI_AVAILABLE, new Capabilities(true, true, true), null);
     given(bootstrapService.findSignedIn(1L))
@@ -60,6 +60,7 @@ class BootstrapControllerTest {
         .andExpect(jsonPath("$.user.onboardingStep").value("DONE"))
         .andExpect(jsonPath("$.user.uiTheme").value("STICKER"))
         .andExpect(jsonPath("$.user.voiceConsent").value(true))
+        .andExpect(jsonPath("$.user.guest").value(false))
         .andExpect(jsonPath("$.lastSceneCode").value("TOWN"))
         .andExpect(jsonPath("$.aiStatus.status").value("AI_AVAILABLE"))
         .andExpect(jsonPath("$.aiStatus.capabilities.canStartConversation").value(true));

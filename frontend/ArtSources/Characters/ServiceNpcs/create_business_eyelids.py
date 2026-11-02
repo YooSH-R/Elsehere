@@ -119,9 +119,38 @@ def make_part(name, poses, faces, uv, texture_name, channel="", shading=None):
     )
 
 
+# Preserve existing openings (especially the separate speaking-mouth seam).
+source_edges = Counter()
+for face in triangles:
+    for a, b in zip(face, face[1:] + face[:1]):
+        source_edges[
+            tuple(
+                sorted(
+                    (
+                        tuple(round(c, 6) for c in vertices[a]),
+                        tuple(round(c, 6) for c in vertices[b]),
+                    )
+                )
+            )
+        ] += 1
+protected_boundary = {
+    point for edge, count in source_edges.items() if count == 1 for point in edge
+}
+
+
+def touches_existing_opening(ids):
+    return any(
+        tuple(round(c, 6) for c in vertices[i]) in protected_boundary for i in ids
+    )
+
+
 removed = set()
 parts = []
 audit = []
+fit_path = output / "EyeFit.json"
+eye_settings = (
+    json.loads(fit_path.read_text(encoding="utf-8")) if fit_path.exists() else None
+)
 for side, sign in [("Left", 1), ("Right", -1)]:
     # Measured businessman eye centers. Preserve the reviewed eye size, not head size.
     center, cz = sign * 0.1455197133, 0.6378430941
@@ -129,18 +158,57 @@ for side, sign in [("Left", 1), ("Right", -1)]:
     sx, sz = 1.15, 1.12
     patch_rx, patch_rz = 0.084, 0.073
     hole_rx, hole_rz = 0.093, 0.081
+    eye_fit = (
+        next(e for e in eye_settings["eyes"] if e["side"] == side)
+        if eye_settings
+        else None
+    )
+    if eye_fit:
+        center, cz = eye_fit["center"]
+        rx, rz = eye_fit["radii"]
+        sx, sz = rx / 0.0445, rz / 0.0395
+        compact = "Grandmother" in eye_settings["name"]
+        patch_rx, patch_rz = (
+            rx * (1.35 if compact else 1.65),
+            rz * (1.35 if compact else 1.65),
+        )
+        hole_rx, hole_rz = patch_rx * 1.12, patch_rz * 1.12
     selected = set()
 
     def key(i):
         return tuple(round(c, 6) for c in vertices[i])
 
     for index, ids in enumerate(triangles):
+        if touches_existing_opening(ids):
+            continue
         p = sum((vertices[i] for i in ids), Vector()) / 3
         if (
             p.x < -0.15
             and ((p.y - center) / hole_rx) ** 2 + ((p.z - cz) / hole_rz) ** 2 < 1
         ):
             selected.add(index)
+    if eye_settings and "Grandmother" in eye_settings["name"]:
+        # Glasses and lashes can be disconnected shells inside the cut ellipse.
+        # Keep these shells; replace the largest connected face patch only.
+        vertex_faces = defaultdict(set)
+        for index in selected:
+            for vertex in triangles[index]:
+                vertex_faces[key(vertex)].add(index)
+        remaining_faces = set(selected)
+        components = []
+        while remaining_faces:
+            stack = [remaining_faces.pop()]
+            component = set(stack)
+            while stack:
+                current = stack.pop()
+                for vertex in triangles[current]:
+                    neighbors_in_cut = vertex_faces[key(vertex)] & remaining_faces
+                    remaining_faces.difference_update(neighbors_in_cut)
+                    component.update(neighbors_in_cut)
+                    stack.extend(neighbors_in_cut)
+            components.append(component)
+        print(side, "face/glasses components", [len(c) for c in components], flush=True)
+        selected = max(components, key=len)
     for attempt in range(20):
         edges = Counter()
         lookup = {}
@@ -159,12 +227,18 @@ for side, sign in [("Left", 1), ("Right", -1)]:
             break
         added = set()
         for index, ids in enumerate(triangles):
-            if index in selected or not any(key(i) in bad for i in ids):
+            if (
+                index in selected
+                or touches_existing_opening(ids)
+                or not any(key(i) in bad for i in ids)
+            ):
                 continue
             p = sum((vertices[i] for i in ids), Vector()) / 3
             if (
                 p.x < -0.15
-                and ((p.y - center) / 0.112) ** 2 + ((p.z - cz) / 0.100) ** 2 < 1
+                and ((p.y - center) / (hole_rx * 1.20)) ** 2
+                + ((p.z - cz) / (hole_rz * 1.20)) ** 2
+                < 1
             ):
                 added.add(index)
         if not added:
@@ -210,10 +284,10 @@ for side, sign in [("Left", 1), ("Right", -1)]:
     depth = []
     colors = []
     for a in np.linspace(0, 2 * math.pi, 160, endpoint=False):
-        y = center + 0.082 * math.cos(a)
-        z = cz + 0.072 * math.sin(a)
+        y = center + patch_rx * 0.98 * math.cos(a)
+        z = cz + patch_rz * 0.98 * math.sin(a)
         p, n, color = surface(y, z)
-        if color[0] > 0.4 and 0.4 < color[1] / color[0] < 0.9:
+        if color[0] > 0.06 and 0.4 < color[1] / color[0] < 0.9:
             dy, dz = y - center, z - cz
             samples.append([1, dy, dz, dy * dy, dy * dz, dz * dz])
             depth.append(p.x)
@@ -291,13 +365,33 @@ for side, sign in [("Left", 1), ("Right", -1)]:
             radius = math.sqrt(((y - center) / 0.061) ** 2 + ((z - cz) / 0.054) ** 2)
             blend = np.clip((radius - 1.0) / 0.30, 0, 1)
             blend = blend * blend * (3 - 2 * blend)
-            actual = surface(y, z)[2]
+            # Texture chart corners can lie outside the face silhouette; no mesh uses them.
+            try:
+                actual = surface(y, z)[2]
+            except ValueError:
+                actual = clean
             rgba.append(clean * (1 - blend) + actual * blend)
     save_image(side + "LidSkin.png", rgba, size)
     save_image(side + "LidLine.png", [[0.055, 0.025, 0.012, 1]] * 4, 2)
     shutil.copy2(
         base_folder / (side + "EyeColor.png"), output / (side + "EyeColor.png")
     )
+
+    if eye_fit:
+        image = bpy.data.images.load(str(output / (side + "EyeColor.png")))
+        rgba_eye = np.array(image.pixels[:]).reshape(image.size[1], image.size[0], 4)
+        rgb = rgba_eye[:, :, :3]
+        brightness = rgb.max(2)
+        saturation = np.ptp(rgb, axis=2) / np.maximum(brightness, 0.001)
+        iris_mask = (saturation > 0.22) & (brightness > 0.035) & (brightness < 0.80)
+        target_color = np.array(eye_fit["irisColor"])
+        iris_luminance = rgb[iris_mask].mean(axis=1)
+        shading = np.clip(iris_luminance / np.median(iris_luminance), 0.25, 1.6)
+        # Preserve Base shading without amplifying a brown texture's weak blue channel.
+        rgb[iris_mask] = np.clip(target_color[None, :] * shading[:, None], 0, 1)
+        image.pixels.foreach_set(rgba_eye.astype(np.float32).reshape(-1))
+        image.pack()
+        save_image(side + "EyeColor.png", rgba_eye, image.size[0])
 
     def skin_uv(points):
         return [
@@ -330,9 +424,18 @@ for side, sign in [("Left", 1), ("Right", -1)]:
         ]
         if "Lashes" in source_name:
             # Retain the Base eyelid rim, without adding long eyelashes to the male design.
-            mapped = [points[:260] for points in mapped]
-            faces = [face for face in faces if max(face) < 260]
-            uv = [(0.5, 0.5)] * 260
+            lash_count = (
+                364
+                if eye_settings
+                and (
+                    "Female" in eye_settings["name"]
+                    or "Grandmother" in eye_settings["name"]
+                )
+                else 260
+            )
+            mapped = [points[:lash_count] for points in mapped]
+            faces = [face for face in faces if max(face) < lash_count]
+            uv = [(0.5, 0.5)] * lash_count
             image = side + "LidLine.png"
         elif lid:
             uv = skin_uv(mapped[0])
@@ -399,6 +502,7 @@ for side, sign in [("Left", 1), ("Right", -1)]:
         dict(
             side=side,
             source="LittleMungMannequin",
+            irisColor=eye_fit["irisColor"] if eye_fit else None,
             cutTriangles=len(selected),
             boundaryVertices=len(boundary),
             blinkFrames=4,
@@ -422,7 +526,8 @@ def edge_counts(points, indices):
 
 
 kept = [i for index, face in enumerate(triangles) if index not in removed for i in face]
-surface_edges = edge_counts(source["vertices"], kept)
+# Use the same float32 coordinates as Blender/Unity mesh buffers on both sides.
+surface_edges = edge_counts([unity(vertex) for vertex in vertices], kept)
 for part in parts:
     if part["name"].endswith("Eye") or part["name"].endswith("Line"):
         continue
@@ -437,6 +542,7 @@ for part in parts:
         if count == 1 and surface_edges[edge] != 2
     ]
     if gaps:
+        print("GAP_DETAIL", [(edge, surface_edges[edge]) for edge in gaps], flush=True)
         raise ValueError(
             part["name"] + " has disconnected skin edges: " + str(len(gaps))
         )
@@ -474,5 +580,11 @@ mat.node_tree.links.new(
 )
 body.materials.append(mat)
 bpy.ops.wm.save_as_mainfile(
-    filepath=str(output / "LittleMung_Business_Male_Blink.blend")
+    filepath=str(
+        output
+        / (
+            (eye_settings["name"] if eye_settings else "LittleMung_Business_Male")
+            + "_Blink.blend"
+        )
+    )
 )

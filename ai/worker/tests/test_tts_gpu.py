@@ -101,6 +101,30 @@ def test_gpu_timeout_falls_back_to_cpu():
     assert engine.texts == ["Hello there."]
 
 
+def test_gpu_waits_long_for_a_busy_server_but_gives_up_connecting_quickly():
+    """여러 사람이 동시에 말하면 GPU 서버 앞에 줄이 선다. 2초 만에 CPU로 넘기면 CPU 합성(dev 2코어, 조각 하나 수 초~수십 초)이
+    잠금 안에서 하나씩 돌아 턴이 수십 초 늦어졌다 (S15P31A305-486 측정). 응답은 넉넉히 기다리고, 연결(꺼진 서버·끊긴 터널)만 짧게 끊는다."""
+    server = GpuServer(wav_answer())
+    kokoro, _ = kokoro_with_gpu(server, timeout_s=10.0, connect_timeout_s=1.0)
+
+    kokoro.synth("Hello there.", "af_heart", 1.0)
+
+    timeout = server.requests[0].extensions["timeout"]
+    assert timeout["connect"] == 1.0 and timeout["read"] == 10.0
+
+
+def test_gpu_connection_failure_falls_back_to_cpu():
+    def down(request):
+        raise httpx.ConnectError("connection refused", request=request)
+
+    kokoro, engine = kokoro_with_gpu(GpuServer(down))
+
+    with pytest.raises(RuntimeError, match="CPU 합성"):
+        kokoro.synth("Hello there.", "af_heart", 1.0)
+
+    assert engine.texts == ["Hello there."]
+
+
 def test_gpu_answer_that_is_not_wav_falls_back_to_cpu():
     kokoro, engine = kokoro_with_gpu(GpuServer(lambda request: httpx.Response(200, content=b"<html>proxy error</html>")))
 
@@ -174,12 +198,26 @@ def test_gpu_synth_is_off_by_default(env):
     assert s.tts_gpu_base_url == "" and GpuSynth.from_settings(s) is None
 
 
+def test_gpu_waits_by_default_long_enough_for_a_queue_of_concurrent_lines(env):
+    # 동시 15요청(5명 × 조각 3)을 GPU가 동시에 합성하면 최대 약 1.6초, 30요청이면 약 4초 (S15P31A305-486 실측)
+    s = Settings.from_env()
+    assert (s.tts_gpu_connect_timeout_s, s.tts_gpu_timeout_s) == (1.0, 10.0)
+
+
 def test_gpu_synth_from_env(env):
     env["TTS_GPU_BASE_URL"] = GPU_URL
     with pytest.raises(RuntimeError, match="TTS_GPU_TOKEN"):
         Settings.from_env()
-    env.update({"TTS_GPU_TOKEN": "t", "TTS_GPU_TIMEOUT_S": "1.5", "TTS_BREAKER_FAILURES": "0", "TTS_BREAKER_SKIP_S": "120"})
+    env.update(
+        {
+            "TTS_GPU_TOKEN": "t",
+            "TTS_GPU_TIMEOUT_S": "1.5",
+            "TTS_GPU_CONNECT_TIMEOUT_S": "0.5",
+            "TTS_BREAKER_FAILURES": "0",
+            "TTS_BREAKER_SKIP_S": "120",
+        }
+    )
     s = Settings.from_env()
-    assert (s.tts_gpu_base_url, s.tts_gpu_token, s.tts_gpu_timeout_s) == (GPU_URL, "t", 1.5)
+    assert (s.tts_gpu_base_url, s.tts_gpu_token, s.tts_gpu_timeout_s, s.tts_gpu_connect_timeout_s) == (GPU_URL, "t", 1.5, 0.5)
     assert (s.tts_breaker_failures, s.tts_breaker_skip_s) == (0, 120.0)
     assert GpuSynth.from_settings(s) is not None

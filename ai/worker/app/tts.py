@@ -85,9 +85,14 @@ class GpuSynth:
         breaker_skip_s: float = 60.0,
         transport: httpx.BaseTransport | None = None,
         clock=time.monotonic,
+        connect_timeout_s: float = 1.0,
     ):
         self.url = base_url.rstrip("/") + "/v1/synth"
-        self.client = httpx.Client(transport=transport, timeout=timeout_s, headers={"Authorization": f"Bearer {token}"})
+        self.client = httpx.Client(
+            transport=transport,
+            timeout=httpx.Timeout(timeout_s, connect=connect_timeout_s),
+            headers={"Authorization": f"Bearer {token}"},
+        )
         self.breaker_failures, self.breaker_skip_s, self.clock = breaker_failures, breaker_skip_s, clock
         self.failures = 0  # 연속 실패 수
         self.skip_until = 0.0  # 이 시각(clock)까지 GPU를 건너뜀
@@ -96,7 +101,14 @@ class GpuSynth:
     def from_settings(cls, s) -> "GpuSynth | None":
         if not s.tts_gpu_base_url:
             return None
-        return cls(s.tts_gpu_base_url, s.tts_gpu_token, s.tts_gpu_timeout_s, s.tts_breaker_failures, s.tts_breaker_skip_s)
+        return cls(
+            s.tts_gpu_base_url,
+            s.tts_gpu_token,
+            s.tts_gpu_timeout_s,
+            s.tts_breaker_failures,
+            s.tts_breaker_skip_s,
+            connect_timeout_s=s.tts_gpu_connect_timeout_s,
+        )
 
     def try_synth(self, phonemes: str, voice: str, speed: float) -> tuple[bytes, float] | None:
         """반환: (wav, 소리 길이 초). 건너뛰는 중이거나 실패하면 None."""

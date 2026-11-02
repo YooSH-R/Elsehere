@@ -44,11 +44,16 @@ def load_engine() -> Kokoro:
         options,
         providers=[("CUDAExecutionProvider", {"device_id": 0, "cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"],
     )
-    return Kokoro.from_session(session, str(MODEL_DIR / "voices-v1.0.bin"))
+    engine = Kokoro.from_session(session, str(MODEL_DIR / "voices-v1.0.bin"))
+    # kokoro-onnx는 목소리 파일(npz)을 요청마다 같은 zip 핸들로 읽는다. 동시에 읽으면 BadZipFile이 나서 미리 다 읽어 둔다
+    engine.voices = {name: engine.voices[name] for name in engine.voices.files}
+    return engine
 
 
 engine = load_engine()
-engine_lock = threading.Lock()  # 시제품: 한 번에 하나씩 (H200에서 대사 하나 0.4~0.6초)
+# 여러 사람이 동시에 말하면 조각 요청이 몰린다. 한 번에 하나씩이면 동시 15요청에 약 6초가 걸려 워커가 CPU로 넘겼다.
+# H200에서 같은 세션으로 동시에 합성하면 15요청 최대 약 1.6초, 30요청 약 4초 (S15P31A305-486). 상한은 워커 합성 스레드 수(약 8)에 맞춘다
+synth_slots = threading.BoundedSemaphore(8)
 VOICES = set(engine.get_voices())
 
 
@@ -65,7 +70,7 @@ def to_wav(audio: np.ndarray, sample_rate: int) -> bytes:
 
 
 def synth(phonemes: str, voice: str, speed: float) -> tuple[bytes, float]:
-    with engine_lock:
+    with synth_slots:
         audio, sample_rate = engine.create(phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
     return to_wav(audio, sample_rate), len(audio) / sample_rate
 

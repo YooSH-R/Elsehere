@@ -74,3 +74,15 @@ Blender 저작 스크립트·검수 씬 생성과 재질 복원은 시각 에셋
 `NPC_REVIEW_OUTPUT`을 `WholeEyes` 데이터 루트로 지정한 뒤 Unity 배치 메서드 `ServiceNpcEyeShapeBuilder.Build`를 실행해 적용합니다. 기존 `Face/EyeShape` 결과가 있으면 자동 덮어쓰기를 중단합니다. 현재 얼굴 정점과 입력이 다르거나 변경 영역이 발음용 정점에 닿으면 적용하지 않습니다.
 
 시각 에셋 변경이므로 별도의 동작 로직 테스트를 추가하지 않고 정면·양쪽 사선, Unity 입 모양 렌더, 기존 골격·동작 검사 및 정적 검사로 확인합니다. 눈 감기 채널은 이 작업에서 추가하지 않습니다.
+
+## 비즈니스맨 눈 감기와 자동 깜박임
+
+현재 통합 검수 프리팹 `Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab`은 Base의 눈·위/아래 눈꺼풀·눈꺼풀 선과 25·50·75·100 가중치의 깜박임을 재사용한다. 저작 원본은 `LittleMungMannequin/MannequinFaceShapes.json`과 좌우 `EyeColor.png`다. 비즈니스맨의 눈 위치·크기에 맞춰 옮기고 작업용 얼굴 메시에서 기존 눈 표면을 잘라 연결한다. 얼굴 경계의 모든 정점을 연결하며 미연결 모서리가 있으면 저작 결과를 저장하지 않는다. 입·눈썹·골격은 유지한다. 생성 원본과 Base 자산, 이전 `Review/Corrected` 후보는 수정하지 않는다.
+
+눈 색은 Base의 갈색 홍채를 사용한다. 다른 눈 색이 필요하면 눈 텍스처의 홍채 영역만 별도로 편집하고 흰자·동공·반사광은 유지한다. 피부나 눈 전체 머티리얼을 틴트하지 않는다. 현재 스크립트의 위치·크기 적합 값은 비즈니스맨용이며 다른 NPC에 일괄 적용하는 범용 자동 맞춤은 아니다.
+
+`CharacterIdleBlink`는 대기 중 기존 `SpeechExpressionProfile`의 타이밍으로 눈 가중치만 갱신한다. 미소·입·관절 보정 가중치는 유지하며, 상위 `CharacterSpeechPlayer`가 재생 또는 일시 정지 중이면 얼굴 제어를 양보한다. 얼굴 검수 씬에서는 `Automatic blink`를 켜서 자동 동작을 확인하고, 끄면 눈 감기 버튼과 강도 슬라이더로 정밀 검수한다. 음성 중 깜박임은 기존 음성 재생기의 감정 프로필 연결을 사용한다.
+
+저작 자료는 `frontend/ArtSources/Characters/LittleMungBusiness/Blink/`에 있다. Blender 백그라운드에서 `create_business_eyelids.py -- <저작 폴더 절대 경로>`로 실행한다. Unity에서는 `BUSINESS_BLINK_OUTPUT`을 같은 폴더로 지정하고 `BusinessBlinkBuilder.Apply`를 실행한다. 기존 눈꺼풀을 갱신하려면 `BUSINESS_BLINK_REFRESH=1`을 명시한다. 새 프리팹을 만들지 않고 해당 검수 프리팹의 눈꺼풀 자산을 같은 GUID로 갱신한다. 직접 편집한 결과에는 내용을 확인한 뒤 실행한다.
+
+눈꺼풀의 피부 경계·음영과 닫힌 눈의 인상은 정면·양쪽 사선 외관 검수 대상이다. 눈꺼풀 제작은 시각 에셋 변경으로 실제 Unity 렌더와 메시 검사로 확인하며, 눈 전용 제어와 자동 타이밍은 실패를 재현하는 테스트 및 실제 프리팹 재생 테스트로 검증한다. 이 변경만으로 Production Ben 연결이나 다른 NPC의 눈 감기가 완료되지는 않는다.

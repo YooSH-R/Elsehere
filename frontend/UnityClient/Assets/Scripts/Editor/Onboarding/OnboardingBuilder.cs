@@ -4,6 +4,7 @@ using A305.Api;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.Onboarding;
+using A305.Theme;
 using TMPro;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -165,19 +166,44 @@ namespace A305.EditorTools.Onboarding
             }
         }
 
-        // 입구 화면에는 공간이 없어 화면 UI 뒤를 채울 카메라만 둔다.
+        /// <summary>입구 씬 카메라의 배경색을 화면 배경과 맞춰 저장한다. 유리 창은 이 카메라 화면을 흐리게 비춘다.</summary>
+        public static void PaintCamera()
+        {
+            Scene scene = EditorSceneManager.OpenScene(EntryScenePath);
+            EnsureCamera(BuilderTools.EnsureGroups(scene));
+            BuilderTools.SaveScene(scene, EntryScenePath);
+        }
+
+        // 입구 화면에는 공간이 없어 화면 UI 뒤를 채울 카메라만 둔다. 유리 창이 이 화면을 비추므로 배경색을 화면 배경(테마 배경막)과 같게 칠한다.
         private static void EnsureCamera(SceneGroups groups)
         {
-            if (BuilderTools.FindSingleInScene<Camera>(groups.Scene) != null)
+            var camera = BuilderTools.FindSingleInScene<Camera>(groups.Scene);
+            if (camera == null)
             {
-                return;
+                camera = BuilderTools
+                    .CreateEmpty(
+                        "EntryCamera",
+                        groups.Environment,
+                        Vector3.zero,
+                        Quaternion.identity
+                    )
+                    .gameObject.AddComponent<Camera>();
             }
 
-            var camera = BuilderTools
-                .CreateEmpty("EntryCamera", groups.Environment, Vector3.zero, Quaternion.identity)
-                .gameObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = BackgroundColor;
+            camera.backgroundColor = BackdropColor();
+        }
+
+        // ThemedElement의 배경막(Backdrop)과 같은 색: 디자인 주 색을 흰색 쪽으로 옅게 섞는다.
+        private static Color BackdropColor()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<UiThemeCatalog>(
+                "Assets/Data/Theme/UiThemeCatalog.asset"
+            );
+            UiThemeDefinition design = catalog != null ? catalog.Get(UiThemeId.Jelly) : null;
+            return design != null
+                ? Color.Lerp(design.ToneColor(UiTone.Primary), Color.white, .8f)
+                : BackgroundColor;
         }
 
         private static void SetUpScreens(GameObject root)

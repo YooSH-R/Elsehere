@@ -46,24 +46,7 @@ namespace A305.Theme.Tests
         }
 
         [Test]
-        public void SetSelected_ThenThemeChanges_LeansTowardTheNewThemePrimary()
-        {
-            ThemedElement element = Create(UiThemeRole.Card, out Image image);
-            element.SetSelected(true);
-
-            UiThemeSelection.Shared.Select(UiThemeId.Sticker);
-            element.ApplyCurrent();
-
-            UiThemeDefinition sticker = catalog.Get(UiThemeId.Sticker);
-            Color primary = sticker.ToneColor(UiTone.Primary);
-            Assert.That(
-                Distance(image.color, primary),
-                Is.LessThan(Distance(sticker.CardTint, primary))
-            );
-        }
-
-        [Test]
-        public void Backdrop_PaintsALightTintOfTheThemeThatFollowsThemeChanges()
+        public void Backdrop_PaintsALightTintOfTheTheme()
         {
             // 입구 화면 배경. 어두운 빈 화면 대신 밝은 테마 색으로 칠하되, 흰 창과 구분되게 흰색은 아니다.
             ThemedElement element = Create(UiThemeRole.Backdrop, out Image image);
@@ -74,15 +57,6 @@ namespace A305.Theme.Tests
                 Distance(jelly, Color.white),
                 Is.GreaterThan(.05f),
                 "흰 창과 구분돼야 합니다."
-            );
-
-            UiThemeSelection.Shared.Select(UiThemeId.Cloud);
-            element.ApplyCurrent();
-
-            Assert.That(
-                image.color,
-                Is.Not.EqualTo(jelly),
-                "테마를 바꾸면 배경색도 바뀌어야 합니다."
             );
         }
 

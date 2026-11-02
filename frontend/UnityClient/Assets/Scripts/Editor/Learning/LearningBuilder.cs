@@ -355,17 +355,16 @@ namespace A305.EditorTools.Learning
             BuilderTools.RequireReferences(view);
 
             SetUpMyPage(root, menu, bold, regular);
-            // 테마 고르기는 집에만 있어, 집 씬의 HUD에서만 켜고 테마 고르기 화면과 잇는다.
-            UiBuilderTools
-                .FindOrCreateButton(menu, "ThemeButton", "테마", bold, 200f)
-                .gameObject.SetActive(false);
+            // 화면 디자인은 하나만 써서 메뉴에 [테마]를 두지 않는다.
+            Transform themeButton = menu.Find("ThemeButton");
+            if (themeButton != null)
+                UnityEngine.Object.DestroyImmediate(themeButton.gameObject);
             OrderMenu(
                 menu,
                 "VocabularyButton",
                 "HistoryButton",
                 "MyPageButton",
                 "ControlsButton",
-                "ThemeButton",
                 "Divider",
                 "HomeButton"
             );

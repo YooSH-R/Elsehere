@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using A305.Dialogue;
+using A305.Mission;
 using A305.Player;
 using A305.Tutorial;
 using A305.World;
@@ -21,9 +22,11 @@ namespace A305.Npc.PlayModeTests
         private const float WaitTimeoutSeconds = 15f;
 
         [SetUp]
+        [TearDown]
         public void ResetCrossSceneRecords()
         {
             PasserbyRestRecord.Clear();
+            PasserbyOfferRecord.Clear();
             TutorialState.Clear();
         }
 
@@ -75,6 +78,90 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator PassengerEndsDuringJourney_RestoresCameraAndPlayer()
         {
             yield return RideTo("Take me to the hotel.", "HOTEL", -5, true, true);
+        }
+
+        [UnityTest]
+        public IEnumerator TalkingToDriver_TripStatusStaysClearOfCurrentGoal()
+        {
+            // 왼쪽 위 목표 카드가 넓게 펼쳐지면 위쪽 가운데의 택시 안내와 겹쳤다.
+            yield return LoadTown();
+            ShowHotelGoal(Single<FirstDayMissionView>());
+            TaxiRide taxi = Single<TaxiRide>();
+            CarLoopRoute.Pose pose = taxi.GetComponent<LoopingCar>()
+                .Route.PoseAt(taxi.GetComponent<LoopingCar>().Distance);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            Single<PlayerMover>()
+                .Teleport(
+                    pose.Position
+                        + pose.Forward * 8
+                        + Vector3.Cross(Vector3.up, pose.Forward) * 2.6f
+                        + Vector3.up * .2f,
+                    Quaternion.identity
+                );
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+            Click(offer, "TalkButton");
+            yield return null;
+            Assert.That(taxi.IsPassenger, Is.True);
+            Canvas.ForceUpdateCanvases();
+
+            RectTransform status = NamedRect("TaxiTripStatus");
+            RectTransform goal = NamedRect("CurrentGoal");
+            Assert.That(status.gameObject.activeInHierarchy, Is.True, "택시 안내가 보여야 합니다.");
+            Assert.That(goal.gameObject.activeInHierarchy, Is.True, "목표 카드가 보여야 합니다.");
+            Assert.That(
+                ScreenRectOf(status).Overlaps(ScreenRectOf(goal)),
+                Is.False,
+                "택시 안내가 목표 카드와 겹칩니다."
+            );
+            // 캡처는 캔버스 모드를 잠시 바꿔 배치를 다시 계산하므로 검사를 마친 뒤에 찍는다.
+            CapturePassengerView("taxi-status-with-goal");
+        }
+
+        // 호텔로 가는 단계의 목표 카드(제목·안내·목표 세 개)를 띄운다.
+        private static void ShowHotelGoal(FirstDayMissionView mission)
+        {
+            var hotel = new FirstDayMissionStep
+            {
+                Index = 1,
+                Title = "호텔 체크인",
+                Scene = "HOTEL",
+                Status = "CURRENT",
+            };
+            foreach (string goal in new[] { "예약 확인", "캐리어 맡기기", "카페 위치 묻기" })
+                hotel.Goals.Add(new FirstDayMissionGoal { Title = goal });
+            var state = new FirstDayMissionState
+            {
+                Started = true,
+                Stage = 0,
+                Scene = "HOTEL",
+                Situation = "호텔로 이동해 다음 이야기를 이어 가세요.",
+                Direction = "호텔로 이동하세요.",
+            };
+            state.Steps.Add(hotel);
+            mission.SetAvailable(true);
+            mission.Refresh(state, false, false);
+        }
+
+        private static RectTransform NamedRect(string name)
+        {
+            return Object
+                .FindObjectsByType<RectTransform>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                )
+                .Single(rect => rect.name == name);
+        }
+
+        private static Rect ScreenRectOf(RectTransform rect)
+        {
+            Canvas canvas = rect.GetComponentInParent<Canvas>().rootCanvas;
+            Camera camera =
+                canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            Vector2 min = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
+            Vector2 max = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
         private static IEnumerator RideTo(

@@ -80,7 +80,7 @@
 
 ## Builder
 
-**Tools → A305 → Learning → Build**(`Scripts/Editor/Learning/LearningBuilder.cs`)가 `Prefabs/Learning/`의 `FeedbackScreen`·`VocabularyScreen`·`LearningHud` 프리팹과 확인용 규칙을 준비합니다. `LearningHud`에는 오른쪽 위 메뉴(≡) 버튼과 목록(`Panel/Menu`)을 만들고, 목록에 [단어장]·[피드백 목록]·[내 정보]·[조작법]·[테마]·[홈]을 둡니다. [테마]는 꺼 두고 집 씬에서만 켭니다. 피드백 목록 창(`History`)과 마이페이지 창, 오른쪽 아래 조작법 카드(`ControlsGuide`)도 만듭니다. 조작법 카드는 HUD 맨 뒤에 두어 메뉴 바깥 영역과 피드백 목록·내 정보 창이 그 위에 그려집니다. 메뉴 버튼·목록 줄 모양은 테마 Builder(`UiThemeBuilder`)가 맞춥니다. 화면은 없는 요소만 만들고 이미 있는 요소의 디자인은 유지합니다. **Tools → A305 → Learning → Connect Vocabulary Server**는 단어장 프리팹의 메모·안내 요소를 맞추고 배포용 장소 씬 5개의 `LearningController`에 `ApiSettings`만 연결합니다. 공간 씬에 붙이는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다.
+**Tools → A305 → Learning → Build**(`Scripts/Editor/Learning/LearningBuilder.cs`)가 `Prefabs/Learning/`의 `FeedbackScreen`·`VocabularyScreen`·`LearningHud` 프리팹과 확인용 규칙을 준비합니다. `LearningHud`에는 오른쪽 위 메뉴(≡) 버튼과 목록(`Panel/Menu`)을 만들고, 목록에 [단어장]·[피드백 목록]·[내 정보]·[조작법]·[홈]을 둡니다. 화면 디자인은 하나라 [테마]는 두지 않습니다. 피드백 목록 창(`History`)과 마이페이지 창, 오른쪽 아래 조작법 카드(`ControlsGuide`)도 만듭니다. 조작법 카드는 HUD 맨 뒤에 두어 메뉴 바깥 영역과 피드백 목록·내 정보 창이 그 위에 그려집니다. 메뉴 버튼·목록 줄 모양은 테마 Builder(`UiThemeBuilder`)가 맞춥니다. 화면은 없는 요소만 만들고 이미 있는 요소의 디자인은 유지합니다. **Tools → A305 → Learning → Connect Vocabulary Server**는 단어장 프리팹의 메모·안내 요소를 맞추고 배포용 장소 씬 5개의 `LearningController`에 `ApiSettings`만 연결합니다. 공간 씬에 붙이는 일은 [World 모듈의 공간 기능 연결](../World/README.md#새-공간-씬-만들기)이 합니다.
 
 ## 테스트
 

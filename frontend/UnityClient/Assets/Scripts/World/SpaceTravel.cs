@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace A305.World
@@ -13,9 +14,28 @@ namespace A305.World
 
         public static bool IsTraveling => state.IsTraveling;
 
+        /// <summary>다른 공간으로 가지 못하게 잠갔는지. 튜토리얼이 단계마다 정한다.</summary>
+        public static bool IsLocked => state.IsLocked;
+
+        /// <summary>잠겨 있어 이동을 거절했을 때 알린다. 잠근 쪽이 무엇을 먼저 할지 안내한다.</summary>
+        public static event Action Refused;
+
+        /// <summary>문·[홈]으로 다른 공간에 가지 못하게 잠그거나 푼다.</summary>
+        public static void SetLocked(bool locked)
+        {
+            if (locked)
+            {
+                state.Lock();
+            }
+            else
+            {
+                state.Unlock();
+            }
+        }
+
         /// <param name="destinationScene">이동할 씬 이름. Build Profile의 Scene List에 있어야 한다.</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
-        /// <returns>이동을 시작했으면 true. 이미 이동 중이거나 씬을 불러올 수 없으면 false.</returns>
+        /// <returns>이동을 시작했으면 true. 잠겨 있거나, 이미 이동 중이거나, 씬을 불러올 수 없으면 false.</returns>
         public static bool TryTravel(string destinationScene, string arrivalDoorwayId)
         {
             return TryTravel(destinationScene, arrivalDoorwayId, 0f);
@@ -28,6 +48,12 @@ namespace A305.World
             float viewYawFromTravel
         )
         {
+            if (state.IsLocked)
+            {
+                Refused?.Invoke();
+                return false;
+            }
+
             if (!state.TryBegin(destinationScene, arrivalDoorwayId, viewYawFromTravel))
             {
                 return false;

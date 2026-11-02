@@ -12,9 +12,11 @@ namespace A305.EditorTools.Characters
     // Offline Base-eye fitting on the existing review prefab. Generated FBX and Base assets are read-only.
     public static class BusinessBlinkBuilder
     {
-        public const string Prefab = "Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab";
-        private const string Folder =
-            "Assets/Art/Characters/ReviewCorrections/ServiceNpcs/LittleMung_Business_Male/Face/Blink";
+        private static string CharacterName =>
+            Environment.GetEnvironmentVariable("NPC_BASE_EYE_NAME") ?? "LittleMung_Business_Male";
+        public static string Prefab => "Assets/Prefabs/Npc/Review/" + CharacterName + ".prefab";
+        private static string Folder =>
+            "Assets/Art/Characters/ReviewCorrections/ServiceNpcs/" + CharacterName + "/Face/Blink";
         private static string Output =>
             Environment.GetEnvironmentVariable("BUSINESS_BLINK_OUTPUT")
             ?? throw new InvalidOperationException("Set BUSINESS_BLINK_OUTPUT.");
@@ -59,6 +61,26 @@ namespace A305.EditorTools.Characters
             public string texture;
         }
 
+        public static void ExportRemaining() => ForRemaining(Export);
+
+        public static void ApplyRemaining() => ForRemaining(Apply);
+
+        private static void ForRemaining(Action action)
+        {
+            string output =
+                Environment.GetEnvironmentVariable("NPC_BASE_EYES_OUTPUT")
+                ?? throw new InvalidOperationException("Set NPC_BASE_EYES_OUTPUT.");
+            foreach (string name in ServiceNpcReviewBuilder.Names.Skip(1))
+            {
+                Environment.SetEnvironmentVariable("NPC_BASE_EYE_NAME", name);
+                Environment.SetEnvironmentVariable(
+                    "BUSINESS_BLINK_OUTPUT",
+                    Path.Combine(output, name)
+                );
+                action();
+            }
+        }
+
         public static void Export()
         {
             Directory.CreateDirectory(Output);
@@ -68,13 +90,11 @@ namespace A305.EditorTools.Characters
                 var skin = root.GetComponentsInChildren<SkinnedMeshRenderer>()
                     .OrderByDescending(s => s.sharedMesh.vertexCount)
                     .First();
-                var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(
-                    "Assets/Art/Characters/ReviewCorrections/ServiceNpcs/LittleMung_Business_Male/BodySurface.asset"
-                );
-                if (mesh == null)
-                    throw new FileNotFoundException(
-                        "The uncut review body is required for eye authoring."
+                if (File.Exists(Path.Combine(Output, "Surface.json")))
+                    throw new IOException(
+                        "Preserve the existing eye fitting source: " + CharacterName
                     );
+                var mesh = skin.sharedMesh;
                 var head = root.GetComponentInChildren<Animator>()
                     .GetBoneTransform(HumanBodyBones.Head);
                 int index = Array.IndexOf(skin.bones, head);
@@ -254,7 +274,7 @@ namespace A305.EditorTools.Characters
         public static void Render()
         {
             EditorSceneManager.OpenScene(
-                "Assets/Scenes/Sandbox/NpcReview/LittleMung_Business_Male_Face.unity"
+                "Assets/Scenes/Sandbox/NpcReview/" + CharacterName + "_Face.unity"
             );
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
             var camera = Object.FindFirstObjectByType<Camera>();

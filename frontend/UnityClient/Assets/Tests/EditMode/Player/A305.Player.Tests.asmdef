@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.Player"
+        "A305.Player",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

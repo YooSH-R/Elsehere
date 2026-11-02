@@ -49,7 +49,7 @@
   - 테마 역할이 있는 프리팹을 다시 칠해 저장합니다.
   - 입구 카메라 배경색을 맞춥니다.
 - **Tools → A305 → UI → Build Themes**는 아이콘과 디자인 데이터를 준비하고 기존 화면 프리팹에 테마 역할을 붙입니다. `SpaceSceneSetup`도 같은 준비를 하므로 공간을 다시 구성해도 디자인이 남습니다. 집 씬에 예전 테마 고르기 화면이 남아 있으면 지웁니다.
-- **Tools → A305 → UI → Apply HUD Menu**는 HUD 버튼을 오른쪽 위 메뉴(≡)로 묶습니다. 메뉴에는 [테마]를 두지 않습니다.
+- **Tools → A305 → UI → Apply HUD Menu**는 HUD 버튼을 오른쪽 위 메뉴(≡)로 묶습니다. 메뉴에는 [테마]를 두지 않습니다. 오른쪽 아래 조작법 카드(`ControlsGuide`)도 카드 역할과 오른쪽 위 X로 칠하고, 메뉴의 [조작법] 줄을 둡니다.
 - **Tools → A305 → UI → Apply Unified Dialogs**는 대화 제안 창, 로그인·가입 화면, 피드백 목록·내 정보·로그아웃·탈퇴 확인 창을 같은 규칙으로 칠합니다.
 - **Tools → A305 → UI → Apply Vocabulary Cards**는 단어장과 사물 단어 카드 프리팹만 갱신합니다.
 - **Tools → A305 → UI → Apply Service Font**는 본문 글꼴과 기존 UI 프리팹의 글꼴을 맞춥니다. 원본은 네이버 공식 배포본이며, `Assets/ThirdParty/NanumSquareRound/LICENSE.txt`에 저작권 안내와 SIL OFL 1.1 전문이 있습니다.

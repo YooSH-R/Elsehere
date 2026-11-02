@@ -47,6 +47,10 @@ namespace A305.EditorTools.Theme
         // 창의 동작 버튼은 글자가 잘 보이도록 통통한 알약으로 둔다.
         private const float ActionPillHeight = 70;
 
+        // 알약 버튼 왼쪽 끝의 아이콘 자리
+        private const float PillIconLeft = 20;
+        private const float PillIconSize = 22;
+
         // 로그인 창 아래 약관 링크처럼 바탕 없는 작은 글자 버튼의 높이
         private const float LegalLinkHeight = 40;
 
@@ -227,6 +231,7 @@ namespace A305.EditorTools.Theme
             Transform vocabulary = root.Find(HudMenuPath + "/VocabularyButton");
             StyleHistory(root);
             StyleMyPage(root);
+            StyleControlsGuide(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -283,6 +288,26 @@ namespace A305.EditorTools.Theme
             ActionPill(root, "History/Buttons/OpenButton", UiIcon.Detail, UiTone.Primary, 220);
             CornerClose(root, "History");
             Roomy(root, "History");
+        }
+
+        /// <summary>오른쪽 아래 조작법 카드. 알림 카드처럼 작은 카드 바탕에 제목·조작·안내를 두고, 닫기는 오른쪽 위 X다.</summary>
+        private static void StyleControlsGuide(Transform root)
+        {
+            if (root.Find("ControlsGuide") == null)
+                return;
+            Role(root, "ControlsGuide", UiThemeRole.Card);
+            Role(root, "ControlsGuide/Title", UiThemeRole.Title);
+            Role(root, "ControlsGuide/Body", UiThemeRole.Body);
+            Role(root, "ControlsGuide/Hint", UiThemeRole.Muted);
+            CornerClose(root, "ControlsGuide");
+            Transform card = root.Find("ControlsGuide");
+            var column = card.GetComponent<VerticalLayoutGroup>();
+            column.padding = new RectOffset(28, 28, 22, 24);
+            column.spacing = 10;
+            // 제목 줄을 오른쪽 위 X만큼 높여 첫 조작 줄이 X 아래에서 시작하게 한다.
+            Transform title = card.Find("Title");
+            BuilderTools.GetOrAddComponent<LayoutElement>(title.gameObject).minHeight = 52;
+            title.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.MidlineLeft;
         }
 
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
@@ -902,7 +927,6 @@ namespace A305.EditorTools.Theme
         {
             Role(root, "HelpPanel", UiThemeRole.Panel);
             Role(root, "HelpPanel/Title", UiThemeRole.Title);
-            Role(root, "HelpPanel/Viewport/Content/Guide", UiThemeRole.Muted);
             Role(root, "HelpPanel/Viewport/Content/WordsCard", UiThemeRole.Card);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/Title", UiThemeRole.Title);
             Role(root, "HelpPanel/Viewport/Content/WordsCard/SuggestWords", UiThemeRole.Body);
@@ -959,20 +983,41 @@ namespace A305.EditorTools.Theme
             Roomy(root, "VoiceConsent/Dialog");
         }
 
+        /// <summary>튜토리얼 안내 카드에만 테마를 다시 입힌다. 카드 구성을 바꾼 튜토리얼 Builder가 부른다.</summary>
+        public static void StyleTutorialGuide()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Tutorial/TutorialGuide.prefab", StyleTutorial);
+            Style("Assets/Prefabs/Tutorial/CoachMark.prefab", StyleCoachMark);
+        }
+
+        // 코치 마크 말풍선의 [다음]은 안내 카드의 주 버튼과 같은 모양으로 둔다.
+        private static void StyleCoachMark(Transform root)
+        {
+            PillButton(root, "Caption/NextButton", UiIcon.Play, UiTone.Positive);
+        }
+
+        // 한 줄 안내 카드: 진행 점은 흐리게, 할 일 한 줄은 제목처럼 진하게. 건너뛰기 확인도 같은 카드 안에 그린다.
         private static void StyleTutorial(Transform root)
         {
             Role(root, "Panel", UiThemeRole.Panel);
-            Role(root, "Panel/Title", UiThemeRole.Title);
-            Role(root, "Panel/Body", UiThemeRole.Body);
-            Role(root, "Panel/Task", UiThemeRole.Accent);
-            IconButton(
+            Role(root, "Panel/Content/Header/Title", UiThemeRole.Muted);
+            Role(root, "Panel/Content/Task", UiThemeRole.Title);
+            PillButton(root, "Panel/Content/Header/SkipButton", UiIcon.Skip, UiTone.Neutral);
+            PillButton(root, "Panel/Content/Buttons/ContinueButton", UiIcon.Play, UiTone.Positive);
+            Role(root, "Panel/SkipConfirm/Question", UiThemeRole.Title);
+            PillButton(
                 root,
-                "Panel/Buttons/SkipButton",
-                UiIcon.Skip,
-                UiTone.Neutral,
-                caption: true
+                "Panel/SkipConfirm/ConfirmButtons/KeepGoingButton",
+                UiIcon.Play,
+                UiTone.Positive
             );
-            PillButton(root, "Panel/Buttons/ContinueButton", UiIcon.Play, UiTone.Positive);
+            PillButton(
+                root,
+                "Panel/SkipConfirm/ConfirmButtons/ConfirmSkipButton",
+                UiIcon.Skip,
+                UiTone.Neutral
+            );
         }
 
         private static void StyleTooltip(Transform root)
@@ -1129,7 +1174,12 @@ namespace A305.EditorTools.Theme
             outlineImage.raycastTarget = false;
             outlineImage.pixelsPerUnitMultiplier = 1.7f;
             RectTransform iconRect = FindOrCreateRect(button, "Icon");
-            Place(iconRect, new Vector2(0, 0.5f), new Vector2(20, 0), new Vector2(22, 22));
+            Place(
+                iconRect,
+                new Vector2(0, 0.5f),
+                new Vector2(PillIconLeft, 0),
+                new Vector2(PillIconSize, PillIconSize)
+            );
             iconRect.pivot = new Vector2(0, 0.5f);
             BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
             Transform labelTransform = button.Find("Label");

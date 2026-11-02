@@ -46,6 +46,7 @@ namespace A305.EditorTools.Theme
             new Vector2(282, 338),
             new Vector2(38, 486),
             new Vector2(160, 486),
+            new Vector2(282, 486),
         };
 
         private static readonly string[] AppNames =
@@ -55,8 +56,10 @@ namespace A305.EditorTools.Theme
             "MapButton",
             "HomeButton",
             "MyPageButton",
+            "ControlsButton",
         };
 
+        // 시안의 다섯 앱에, 메뉴에 있던 [조작법]을 같은 모양(노란 칸)으로 더했다.
         private static readonly string[] AppLabels =
         {
             "단어장",
@@ -64,6 +67,7 @@ namespace A305.EditorTools.Theme
             "마을 지도",
             "집으로",
             "내 정보",
+            ControlsGuideText.MenuLabel,
         };
 
         [MenuItem(MenuPath)]

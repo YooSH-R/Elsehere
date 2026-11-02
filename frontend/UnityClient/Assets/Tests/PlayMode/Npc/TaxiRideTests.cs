@@ -27,7 +27,9 @@ namespace A305.Npc.PlayModeTests
         {
             PasserbyRestRecord.Clear();
             PasserbyOfferRecord.Clear();
+            // 튜토리얼 동안에는 택시를 세울 수 없으므로 튜토리얼을 마친 사용자로 시작한다.
             TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
         }
 
         [UnityTest]

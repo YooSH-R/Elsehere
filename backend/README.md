@@ -193,6 +193,16 @@ IDE의 프로젝트 JDK·Gradle JVM은 Java 21, 파일 인코딩은 UTF-8, 줄�
 
 DEBUG 로그에도 요청 요약과 같은 기준으로 인증값·대화 본문·음성 같은 사용자 데이터는 남기지 않습니다.
 
+서버에서는 콘솔 출력과 함께 로그 파일을 남깁니다. Compose가 `LOGGING_FILE_NAME=/app/logs/backend.log`를 넘기고 `/app/logs`에 환경별 `backend-logs` 볼륨을 연결하므로 배포로 컨테이너를 바꿔도 파일이 남습니다. 로컬 실행은 파일 없이 콘솔에만 씁니다.
+
+| 항목 | 값 |
+| --- | --- |
+| 파일 나누기 | 하루마다·10MB마다 `backend.log.2026-11-02.0.gz`처럼 압축 |
+| 보관 | 14일, 압축본 합계 1GB를 넘으면 오래된 것부터 삭제(`application.properties`의 `logging.logback.rollingpolicy.*`) |
+| 형식 | 운영은 JSON 한 줄(ECS, `deploy.env`의 `BACKEND_LOG_FILE_FORMAT=ecs`), 개발 서버는 콘솔과 같은 텍스트(값 비움) |
+
+콘솔 출력은 환경과 관계없이 텍스트이므로 `docker logs`로 보는 방법은 그대로입니다. 파일 조회와 볼륨 보존 기준은 [관측성 운영 문서](../docs/observability.md#조회보관복구)를 따릅니다.
+
 Actuator·Micrometer Prometheus를 사용하며, histogram으로 p95를 조회합니다. 기본 관리 주소는 `127.0.0.1:9090`이고 공개 앱 포트와 분리합니다. `MONITORING_PASSWORD`를 설정해야 사용자 `monitoring`으로 관리용 HTTP Basic 인증을 사용할 수 있습니다. 값이 없으면 관리 접근을 거절합니다. 컨테이너 내부 수집에만 `MANAGEMENT_ADDRESS=0.0.0.0`을 사용하고 관리 포트를 호스트에 게시하지 않습니다.
 
 관리 경로는 `/actuator/health`, `/actuator/prometheus`만 노출합니다. Nginx 전달, 보관 정책, Prometheus·Grafana 실행과 검증은 [관측성 운영 문서](../docs/observability.md)를 따릅니다.

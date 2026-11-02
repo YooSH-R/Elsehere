@@ -36,7 +36,7 @@
 | 브랜치·Compose 프로젝트 | `main`·`a305-prod` |
 | 웹 포트 | `127.0.0.1:8080` |
 | 앱 환경 파일 | `/home/ubuntu/apps/a305/prod/deploy.env` |
-| DB·음성 볼륨 | `a305-prod_database-data`·`a305-prod_npc-audio-data` |
+| DB·음성·로그 볼륨 | `a305-prod_database-data`·`a305-prod_npc-audio-data`·`a305-prod_backend-logs` |
 | 수신기·설정 | `/usr/local/lib/a305-prod-deploy/deployment_server.py`·`/etc/a305-prod-deploy.json` |
 | 상태·버전 보관 | `/home/ubuntu/apps/a305/prod/deployments/` |
 | 대표 주소 | `https://elsehere.kr/` |

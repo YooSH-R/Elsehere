@@ -8,7 +8,8 @@ namespace A305.Dialogue
 {
     /// <summary>
     /// 대화 중에 보이는 화면. 이번 대화의 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
-    /// 서버 AI 대화의 [말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다.
+    /// 서버 AI 대화의 [말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다. 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고,
+    /// 누르면 그 자리에서 동의할 수 있는 창을 연다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
@@ -100,11 +101,19 @@ namespace A305.Dialogue
         [SerializeField]
         private Button retryButton;
 
+        [SerializeField]
+        [Tooltip("음성 처리에 동의하지 않은 채 회색 [말하기]를 누르면 뜨는 동의 창")]
+        private VoiceConsentDialogView voiceConsentDialog;
+
         private IDialogueContent content;
         private bool isMeaningVisible;
         private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
         private ThemedElement sendTheme;
+        private CanvasGroup talkGroup;
         private bool isRecording;
+
+        // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
+        private const float UnavailableTalkAlpha = 0.45f;
 
         /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
@@ -139,6 +148,9 @@ namespace A305.Dialogue
 
         public bool IsVisible => panel.activeSelf;
 
+        /// <summary>음성 처리 동의 창. 대화 처리가 [동의하고 켜기]·[문서 보기]를 받아 처리한다.</summary>
+        public VoiceConsentDialogView VoiceConsentDialog => voiceConsentDialog;
+
         /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
         public bool IsSaveAvailable { get; set; } = true;
 
@@ -159,6 +171,7 @@ namespace A305.Dialogue
             content = null;
             panel.SetActive(false);
             helpPanel.gameObject.SetActive(false);
+            voiceConsentDialog.Hide();
             ShowWait(DialogueWait.None);
         }
 
@@ -226,7 +239,7 @@ namespace A305.Dialogue
             guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
             // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
-            // 음성 처리에 동의하지 않아 [말하기]가 없으면, 버튼이 왜 없는지와 동의를 켜는 곳을 입력칸 위에 알린다.
+            // 음성 처리에 동의하지 않아 [말하기]가 회색이면, 눌러서 동의하면 말할 수 있다고 입력칸 위에 알린다.
             // NPC 대답·피드백을 기다리는 동안은 상태 줄 대신 로딩이 같은 내용을 크게 알린다.
             statusText.gameObject.SetActive(
                 content.Waiting == DialogueWait.None
@@ -258,8 +271,10 @@ namespace A305.Dialogue
             meaningButton.interactable = content.LastNpcLine != null;
             saveButton.gameObject.SetActive(IsSaveAvailable);
             saveButton.interactable = content.LastNpcLine != null;
-            talkButton.gameObject.SetActive(content.UsesVoice && content.CanTalk);
-            talkButton.interactable = content.CanSend;
+            TalkButtonState talk = TalkState();
+            talkButton.gameObject.SetActive(talk.IsVisible);
+            talkButton.interactable = talk.Action != TalkButtonAction.None;
+            TalkGroup.alpha = talk.LooksAvailable ? 1f : UnavailableTalkAlpha;
             replayButton.gameObject.SetActive(content.CanReplaySpeech);
             replayButton.interactable = content.LastNpcLine != null && !content.IsBusy;
             hintButton.gameObject.SetActive(content.HasHint);
@@ -291,19 +306,50 @@ namespace A305.Dialogue
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
             retryButton.onClick.AddListener(RequestRetry);
-            talkButton.onClick.AddListener(ToggleTalk);
+            talkButton.onClick.AddListener(PressTalk);
             Hide();
         }
 
-        private void ToggleTalk()
+        // [말하기]를 흐리게 그리는 투명도 묶음. Awake 전에 그릴 수도 있어(에디터 테스트 등) 처음 쓸 때 붙인다.
+        private CanvasGroup TalkGroup
         {
-            if (isRecording)
+            get
             {
-                TalkStopRequested?.Invoke();
+                if (talkGroup == null && !talkButton.TryGetComponent(out talkGroup))
+                {
+                    talkGroup = talkButton.gameObject.AddComponent<CanvasGroup>();
+                }
+
+                return talkGroup;
             }
-            else
+        }
+
+        private TalkButtonState TalkState() =>
+            TalkButtonRules.Decide(
+                content.UsesVoice,
+                content.CanTalk,
+                content.CanSend,
+                isRecording
+            );
+
+        private void PressTalk()
+        {
+            if (content == null)
             {
-                TalkStartRequested?.Invoke();
+                return;
+            }
+
+            switch (TalkState().Action)
+            {
+                case TalkButtonAction.StartRecording:
+                    TalkStartRequested?.Invoke();
+                    break;
+                case TalkButtonAction.StopRecording:
+                    TalkStopRequested?.Invoke();
+                    break;
+                case TalkButtonAction.AskVoiceConsent:
+                    voiceConsentDialog.Show();
+                    break;
             }
         }
 

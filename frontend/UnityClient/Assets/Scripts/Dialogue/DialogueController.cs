@@ -34,6 +34,7 @@ namespace A305.Dialogue
         private DialogueServerLink serverLink;
         private IConversationApi conversationApi;
         private IAiStatusApi aiStatusApi;
+        private VoiceConsentAgreement voiceConsentAgreement;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
         private bool isEnding;
@@ -222,6 +223,10 @@ namespace A305.Dialogue
             {
                 conversationApi = serverLink.CreateApi();
                 aiStatusApi = serverLink.CreateAiStatusApi();
+                voiceConsentAgreement = new VoiceConsentAgreement(
+                    serverLink.CreateVoiceConsentApi(),
+                    VoiceConsent.Shared
+                );
                 if (serverLink.VoiceRecorder != null)
                 {
                     serverLink.VoiceRecorder.RecordingFinished += TranscribeRecording;
@@ -238,6 +243,8 @@ namespace A305.Dialogue
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
             panel.RetryRequested += Retry;
+            panel.VoiceConsentDialog.AgreeRequested += AgreeVoiceConsent;
+            panel.VoiceConsentDialog.DocumentRequested += OpenVoiceConsentDocument;
         }
 
         private void Start()
@@ -266,7 +273,45 @@ namespace A305.Dialogue
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
                 panel.RetryRequested -= Retry;
+                panel.VoiceConsentDialog.AgreeRequested -= AgreeVoiceConsent;
+                panel.VoiceConsentDialog.DocumentRequested -= OpenVoiceConsentDocument;
             }
+        }
+
+        private void AgreeVoiceConsent()
+        {
+            if (voiceConsentAgreement != null)
+            {
+                _ = AgreeVoiceConsentAsync();
+            }
+        }
+
+        // 동의 창의 [동의하고 켜기]. 저장되면 창을 닫고, 지금 대화에서도 바로 [말하기]를 쓸 수 있게 한다.
+        private async Task AgreeVoiceConsentAsync()
+        {
+            VoiceConsentDialogView dialog = panel.VoiceConsentDialog;
+            dialog.ShowSaving();
+            bool saved = await voiceConsentAgreement.AgreeAsync();
+            // 저장을 기다리는 사이 씬을 떠났으면 이 컴포넌트는 이미 사라졌다.
+            if (this == null)
+            {
+                return;
+            }
+
+            if (saved)
+            {
+                dialog.Hide();
+                serverConversation?.AllowTalk();
+            }
+            else
+            {
+                dialog.ShowFailure(voiceConsentAgreement.Message);
+            }
+        }
+
+        private static void OpenVoiceConsentDocument()
+        {
+            Application.OpenURL(VoiceConsent.DocumentUrl);
         }
 
         private void StartServerConversation(

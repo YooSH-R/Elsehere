@@ -248,6 +248,21 @@ namespace A305.Dialogue
         }
 
         /// <summary>
+        /// 대화 중 음성 처리에 동의했을 때 [말하기]를 쓸 수 있게 한다. 서버가 동의를 요구해 남긴 안내는 지운다.
+        /// </summary>
+        public void AllowTalk()
+        {
+            canTalk = true;
+            if (RecoveryGuide == VoiceInputNotice.ConsentRequired)
+            {
+                StatusMessage = null;
+                RecoveryGuide = null;
+            }
+
+            Changed?.Invoke();
+        }
+
+        /// <summary>
         /// 녹음을 전사한다. 전사한 문장을 돌려주며, 실패하면 null이다. 전사하면 문장을 확인하고 보내라고 안내하고,
         /// [종료]를 누르기 전에 녹음이 끝났으면 그 이유도 알린다.
         /// </summary>

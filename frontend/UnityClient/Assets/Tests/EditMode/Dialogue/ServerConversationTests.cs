@@ -695,7 +695,43 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
-        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToMyInfoConsent()
+        public async Task AllowTalk_AfterAgreeingDuringConversation_SendsRecording()
+        {
+            conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api, false);
+            await conversation.StartAsync();
+            int changes = 0;
+            conversation.Changed += () => changes++;
+            api.TranscriptionResponse = new Transcription { SttRawText = Order };
+
+            conversation.AllowTalk();
+            string transcript = await conversation.TranscribeAsync(Wav);
+
+            Assert.That(changes, Is.GreaterThan(0), "[말하기]를 다시 그리게 알려야 합니다.");
+            Assert.That(conversation.CanTalk, Is.True);
+            Assert.That(transcript, Is.EqualTo(Order));
+            Assert.That(api.Transcriptions, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AllowTalk_AfterServerAskedForConsent_ClearsConsentGuide()
+        {
+            await conversation.StartAsync();
+            api.TranscriptionError = new ApiException(
+                "VOICE_CONSENT_REQUIRED",
+                403,
+                "음성 처리에 동의해야 음성으로 말할 수 있어요."
+            );
+            await conversation.TranscribeAsync(Wav);
+
+            conversation.AllowTalk();
+
+            Assert.That(conversation.CanTalk, Is.True);
+            Assert.That(conversation.StatusMessage, Is.Null);
+            Assert.That(conversation.RecoveryGuide, Is.Null);
+        }
+
+        [Test]
+        public async Task Transcribe_WhenServerAsksForVoiceConsent_StopsVoiceInputAndGuidesToTalkButton()
         {
             await conversation.StartAsync();
             api.TranscriptionError = new ApiException(
@@ -707,8 +743,11 @@ namespace A305.Dialogue.Tests
             await conversation.TranscribeAsync(Wav);
 
             Assert.That(conversation.CanTalk, Is.False);
-            // 동의를 켜는 실제 메뉴 경로(오른쪽 위 메뉴 › 내 정보 › 선택 동의)로 안내한다.
-            Assert.That(conversation.RecoveryGuide, Does.Contain("내 정보 › 선택 동의"));
+            // 회색 [말하기]를 누르면 그 자리에서 동의 창이 뜨므로 [말하기]로 안내한다.
+            Assert.That(
+                conversation.RecoveryGuide,
+                Does.Contain("[말하기]").And.Contain("음성 처리")
+            );
         }
 
         [Test]

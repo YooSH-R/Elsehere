@@ -3,7 +3,7 @@ using System;
 namespace A305.Voice
 {
     /// <summary>
-    /// 누르고 말하기 녹음의 진행. 마이크 권한 답을 알리고, 매 프레임 음량과 시각을 <see cref="RecordingSession"/>에 넘겨
+    /// [말하기] 녹음의 진행. 마이크 권한 답을 알리고, 매 프레임 음량과 시각을 <see cref="RecordingSession"/>에 넘겨
     /// 자동 종료를 판단하고, 끝나면 16kHz 모노 WAV로 만들어 <see cref="RecordingFinished"/>로 알린다.
     /// </summary>
     /// <remarks>시각은 부르는 쪽이 넘겨 Unity 객체 없이 테스트한다. 화면 연결은 <see cref="VoiceRecorder"/>가 맡는다.</remarks>
@@ -27,6 +27,7 @@ namespace A305.Voice
 
         public MicrophoneAccess? Access => microphone.Access;
         public bool IsRecording => session.IsRecording;
+        public bool IsHearingVoice => session.IsHearingVoice;
         public float CurrentLevel => IsRecording ? microphone.CurrentLevel : 0f;
         public float ElapsedSeconds => session.ElapsedSeconds;
 
@@ -47,7 +48,7 @@ namespace A305.Voice
             session.Start(now);
         }
 
-        /// <summary>[누르고 말하기] 버튼을 뗐을 때 부른다.</summary>
+        /// <summary>사용자가 [종료]를 눌렀을 때 부른다.</summary>
         public void StopRecording(float now)
         {
             if (!IsRecording)

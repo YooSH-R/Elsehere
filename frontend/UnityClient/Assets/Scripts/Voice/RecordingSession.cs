@@ -28,6 +28,9 @@ namespace A305.Voice
 
         public bool IsRecording { get; private set; }
 
+        /// <summary>이번 프레임 음량이 조용하다고 볼 음량 이상인지. 녹음 중이 아니면 false다.</summary>
+        public bool IsHearingVoice { get; private set; }
+
         /// <summary>끝난 이유. 녹음 중이거나 시작하기 전이면 null이다.</summary>
         public RecordingEndReason? EndReason { get; private set; }
 
@@ -40,6 +43,7 @@ namespace A305.Voice
             quietSince = now;
             ElapsedSeconds = 0f;
             EndReason = null;
+            IsHearingVoice = false;
             IsRecording = true;
         }
 
@@ -52,7 +56,8 @@ namespace A305.Voice
             }
 
             ElapsedSeconds = now - startedAt;
-            if (level >= silenceLevel)
+            IsHearingVoice = level >= silenceLevel;
+            if (IsHearingVoice)
             {
                 quietSince = null;
             }
@@ -76,7 +81,7 @@ namespace A305.Voice
             return false;
         }
 
-        /// <summary>[누르고 말하기] 버튼을 뗐다.</summary>
+        /// <summary>사용자가 [종료]를 눌렀다.</summary>
         public void Stop(float now)
         {
             End(now, RecordingEndReason.UserStopped);
@@ -97,6 +102,7 @@ namespace A305.Voice
 
             ElapsedSeconds = now - startedAt;
             EndReason = reason;
+            IsHearingVoice = false;
             IsRecording = false;
         }
     }

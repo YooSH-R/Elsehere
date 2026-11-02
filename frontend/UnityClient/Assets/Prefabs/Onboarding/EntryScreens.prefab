@@ -5431,9 +5431,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC74C\uC131 \uCC98\uB9AC\uC5D0 \uB3D9\uC758\uD558\uBA74 [\uAFB9 \uB20C\uB7EC
-    \uB9D0\uD558\uAE30]\uB85C \uB9D0\uD560 \uC218 \uC788\uC5B4\uC694. \uB3D9\uC758\uD558\uC9C0
-    \uC54A\uC544\uB3C4 \uAE00\uC790\uB85C \uB300\uD654\uD560 \uC218 \uC788\uC5B4\uC694."
+  m_text: "\uC74C\uC131 \uCC98\uB9AC\uC5D0 \uB3D9\uC758\uD558\uBA74 [\uB9D0\uD558\uAE30]\uB85C
+    \uB9D0\uD560 \uC218 \uC788\uC5B4\uC694. \uB3D9\uC758\uD558\uC9C0 \uC54A\uC544\uB3C4
+    \uAE00\uC790\uB85C \uB300\uD654\uD560 \uC218 \uC788\uC5B4\uC694."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
   m_sharedMaterial: {fileID: -4925863810201361916, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
@@ -13689,12 +13689,11 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC74C\uC131 \uCC98\uB9AC\uC5D0 \uB3D9\uC758\uD558\uBA74 [\uAFB9 \uB20C\uB7EC
-    \uB9D0\uD558\uAE30]\uB85C \uB9D0\uD560 \uC218 \uC788\uC5B4\uC694. \uB3D9\uC758\uD558\uC9C0
-    \uC54A\uC544\uB3C4 \uAE00\uC790\uB85C \uB300\uD654\uD560 \uC218 \uC788\uACE0,
-    \uB098\uC911\uC5D0 \uC624\uB978\uCABD \uC704 \uBA54\uB274(\u2261) \u203A \uB0B4
-    \uC815\uBCF4 \u203A \uC120\uD0DD \uB3D9\uC758\uC5D0\uC11C \uBC14\uAFC0 \uC218
-    \uC788\uC5B4\uC694."
+  m_text: "\uC74C\uC131 \uCC98\uB9AC\uC5D0 \uB3D9\uC758\uD558\uBA74 [\uB9D0\uD558\uAE30]\uB85C
+    \uB9D0\uD560 \uC218 \uC788\uC5B4\uC694. \uB3D9\uC758\uD558\uC9C0 \uC54A\uC544\uB3C4
+    \uAE00\uC790\uB85C \uB300\uD654\uD560 \uC218 \uC788\uACE0, \uB098\uC911\uC5D0
+    \uC624\uB978\uCABD \uC704 \uBA54\uB274(\u2261) \u203A \uB0B4 \uC815\uBCF4 \u203A
+    \uC120\uD0DD \uB3D9\uC758\uC5D0\uC11C \uBC14\uAFC0 \uC218 \uC788\uC5B4\uC694."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}
   m_sharedMaterial: {fileID: -4925863810201361916, guid: d5110a0b9e1d8124691abb8ff4732959, type: 2}

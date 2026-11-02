@@ -166,6 +166,52 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator OpeningTheVocabulary_ExplainsTheBook_WhileTheGuideCardIsHidden()
+        {
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+            progress.Continue();
+            progress.Report(TutorialAction.Walk);
+            progress.Report(TutorialAction.Run);
+            progress.Continue();
+            progress.Report(TutorialAction.Rotate);
+            progress.Report(TutorialAction.Zoom);
+            progress.Report(TutorialAction.ToggleView);
+            progress.Continue();
+            progress.ReportWordSaved();
+            Assert.That(
+                progress.Step,
+                Is.EqualTo(TutorialStep.OpenVocabulary),
+                "준비: 단어장 열기"
+            );
+
+            // 피드백 화면에도 [단어장 보기]가 있어 오른쪽 위 메뉴의 [단어장]을 고른다.
+            Object
+                .FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Single(button =>
+                    button.name == "VocabularyButton"
+                    && !button
+                        .GetComponentsInParent<Transform>(true)
+                        .Any(parent => parent.name.Contains("Feedback"))
+                )
+                .onClick.Invoke();
+            yield return null;
+            yield return null;
+
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.LeaveLodging));
+            Assert.That(
+                Single<TutorialGuideView>().IsVisible,
+                Is.False,
+                "단어장 위로 안내 카드는 숨깁니다."
+            );
+            Assert.That(coachMark.IsSpotlightShowing, Is.True, "단어장 창을 밝힙니다.");
+            Assert.That(coachMark.CaptionText, Does.Contain("단어장"));
+            Assert.That(coachMark.CaptionText, Does.Contain("밖으로"));
+        }
+
+        [UnityTest]
         public IEnumerator LockedDoor_ShowsTheNoticeOnTheGuideCard_ThenClearsIt()
         {
             // 화면 구석의 HUD 알림은 잘 보이지 않으므로, 할 일이 적힌 안내 카드에 바로 알린다.

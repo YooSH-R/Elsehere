@@ -52,6 +52,23 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void LeaveLodging_WhileTheVocabularyIsOpen_HighlightsItWithAnExplanation()
+        {
+            // 단어장을 열면 단어장 단계가 끝나고 안내 카드가 숨으므로, 단어장 설명과 다음 할 일을 코치 마크로 알린다.
+            Assert.That(
+                Choose(
+                    TutorialStep.LeaveLodging,
+                    new TutorialScreen
+                    {
+                        IsLearningScreenShowing = true,
+                        IsVocabularyShowing = true,
+                    }
+                ),
+                Is.EqualTo(TutorialCoachTarget.Vocabulary)
+            );
+        }
+
+        [Test]
         public void MeetBen_PointsAtBenThenHighlightsTheTalkOffer()
         {
             Assert.That(Choose(TutorialStep.MeetBen), Is.EqualTo(TutorialCoachTarget.Ben));

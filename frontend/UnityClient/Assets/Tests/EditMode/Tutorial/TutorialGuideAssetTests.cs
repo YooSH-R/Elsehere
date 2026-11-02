@@ -64,6 +64,16 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void VocabularyCaption_ExplainsTheBookAndTheNextStep()
+        {
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.VocabularyCaption, Does.Contain("{저장}"), "무엇이 모이는지");
+            Assert.That(guide.VocabularyCaption, Does.Contain("{외웠어요}"), "무엇을 할 수 있는지");
+            Assert.That(guide.VocabularyCaption, Does.Contain("밖으로"), "다음 할 일");
+        }
+
+        [Test]
         public void Look_TellsToDragWithTheRightMouseButton()
         {
             // 시점은 마우스 오른쪽 버튼을 누른 채 끌어 돌린다(Player/CameraRotate). 왼쪽 클릭은 사물 카드 고정에 쓴다.

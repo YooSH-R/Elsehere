@@ -30,10 +30,12 @@ import tools.jackson.databind.json.JsonMapper;
  * AI 워커(FastAPI) 호출. 같은 서버의 내부 주소로 부르며 모든 요청에 내부 토큰을 붙인다. 계약: docs/api/ai-worker.md
  *
  * <p>워커의 칸 이름은 snake_case라 전용 JSON 변환기를 쓴다. 워커 오류는 API 오류 코드로 바꿔 {@link BusinessException}으로 던진다.
+ *
+ * <p>호출 기록이 빠지지 않도록 패키지 밖에서는 쓸 수 없다. 다른 패키지는 {@link AiGateway}로 부른다.
  */
 @Slf4j
 @Component
-public class AiWorkerClient {
+class AiWorkerClient {
 
   private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
   // 의도·무례 판정은 워커가 5초 안에 끝낸다(JUDGE_BUDGET_S·GUARD_BUDGET_S). NPC 대답은 응답 헤더까지의 상한이며, 스트림은 워커의 시간 상한을
@@ -64,7 +66,7 @@ public class AiWorkerClient {
   private final String baseUrl;
   private final String token;
 
-  public AiWorkerClient(
+  AiWorkerClient(
       @Value("${elsehere.ai-worker.url}") String baseUrl,
       @Value("${elsehere.ai-worker.token}") String token) {
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
@@ -236,10 +238,11 @@ public class AiWorkerClient {
   }
 
   /**
-   * 대화 뒤 관계 갱신. 저장된 관계와 대화 전체로 알아봄·호감 변화량을 계산한다. 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를 그대로 둔다.
+   * 대화 뒤 관계 갱신. 저장된 관계로 알아봄 변화량을 계산한다(호감은 대화 중에 발화마다 이미 바꿨다). 모델을 부르지 않는다. 실패하면 오류로 던지며, 호출한 쪽은 관계를
+   * 그대로 둔다.
    *
    * @param relationship 저장된 관계와 마지막 대화 뒤 지난 게임 날 수
-   * @param history 대화 전체(최대 200줄). 학습자 줄의 무례·사건을 담는다
+   * @param history 대화 전체(최대 200줄). 워커는 학습자가 말한 대화인지 확인한다
    */
   public RelationshipChange relationship(
       WorkerTrace trace, WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {

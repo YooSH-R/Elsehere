@@ -1,0 +1,8 @@
+{
+  "scenarioId": "taxi_ride",
+  "locationId": "TOWN",
+  "situation": "The passenger has just waved down the yellow taxi on the town's main street and is sitting in the back seat.",
+  "facts": [
+    "The corner cafe and the hotel are on the main street, right across from each other."
+  ]
+}

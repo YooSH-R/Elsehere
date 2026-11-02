@@ -4,6 +4,9 @@ namespace A305.Mission
 {
     public sealed class FirstDayMissionState
     {
+        // 드럭스토어에서 우산을 사는 단계(0부터 센다).
+        private const int BuyUmbrellaStage = 5;
+
         public bool Started { get; set; }
         public int Stage { get; set; }
         public bool Completed { get; set; }
@@ -41,6 +44,19 @@ namespace A305.Mission
         /// Weather를 보내기 전의 서버이거나 Unity에 없는 날씨일 때 대신 보여 줄 날씨. Raining으로 비와 맑음만 나눈다.
         /// </summary>
         public string FallbackWeather => Raining ? "RAIN" : "CLEAR";
+
+        /// <summary>
+        /// 이 장소에서 플레이어가 우산을 펴 쓰는지. 우산은 드럭스토어 단계를 마치면 생기고, 비 오는 마을에서만 편다.
+        /// 예보 이름을 보내기 전의 서버는 Raining으로 비를 판단한다.
+        /// </summary>
+        public bool OpensUmbrellaIn(string sceneCode) =>
+            HasUmbrella
+            && sceneCode == "TOWN"
+            && (
+                Raining || string.Equals(Weather, "RAIN", System.StringComparison.OrdinalIgnoreCase)
+            );
+
+        private bool HasUmbrella => Started && (Completed || Stage > BuyUmbrellaStage);
     }
 
     public sealed class FirstDayMissionStep

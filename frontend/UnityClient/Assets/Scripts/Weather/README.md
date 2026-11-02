@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 맑음 | `CLEAR` | 씬에 디자인된 하늘·조명 그대로. 하늘을 덮던 구름과 효과는 걷습니다. |
 | 흐림 | `CLOUDY` | 회색 하늘, 약한 해와 옅은 그림자, 가까워진 안개, 하늘을 덮는 구름 |
-| 비 | `RAIN` | 흐림보다 어두운 하늘과 조명, 더 가까운 안개, 먹구름과 플레이어 머리 위를 따라오는 빗방울 |
+| 비 | `RAIN` | 흐림보다 훨씬 어두운 하늘과 조명(그림자가 거의 없음), 6~48m의 가까운 안개, 먹구름과 플레이어 둘레 28m에 쏟아지는 가늘고 긴 빗줄기 |
 
 날씨가 바뀌면 설정한 시간(기본 1.5초) 동안 지금 모습에서 새 모습으로 섞습니다. 목록에 없는 서버 값이 오면 대신할 날씨(첫날 미션은 `raining`에 따라 `RAIN` 또는 `CLEAR`)를 보여 줍니다.
 
@@ -56,6 +56,7 @@
 ## Builder와 미리보기
 
 - **Tools → A305 → Weather → Build Town Weather**(`Scripts/Editor/Weather/TownWeatherBuilder.cs`)가 TownScene의 `Lighting/TownWeather`에 `WeatherPresenter`를 두고 해·`SummerClouds`·`OvercastClouds`·플레이어와 날씨 목록을 연결한 뒤 첫날 미션에 연결합니다. 날씨 목록·정의·비 효과 프리팹·흐림 구름은 없을 때만 만들고, 이미 있으면 조정한 값과 더한 날씨를 그대로 둡니다. **Mission → Build First Day Journey**와 **World → Build Spaces**도 마을을 연결할 때 같은 연결을 적용합니다.
+- **Tools → A305 → Weather → Apply Heavy Rain**은 이미 만든 비 날씨(`Rain.asset`)의 모습과 비 효과(`Rain.prefab`)의 빗줄기를 쏟아지는 비 값으로 바꿉니다. 맑음·흐림과 날씨 목록은 그대로 둡니다. 새로 만들 때의 기본값도 같은 값입니다.
 - **Tools → A305 → Weather → Weather Preview** 창(`TownWeatherPreview.cs`)
   - Play 중: 목록의 날씨마다 버튼이 생기고, 누르면 서버 없이 그 자리에서 날씨가 섞여 바뀝니다. 서버 상태를 다시 읽으면(씬 진입·NPC 응답·대화 종료) 서버 예보로 돌아갑니다.
   - Play 밖: **Capture Town Weather Preview**로 목록의 날씨를 TownScene 같은 자리에서 찍습니다. 같은 기능이 메뉴 **Tools → A305 → Weather → Capture Town Weather Preview**에도 있으며, batchmode에서는 환경변수 `TOWN_WEATHER_PREVIEW_OUTPUT`에 저장 폴더를 지정합니다. 시작할 때 저장하지 않은 씬을 저장할지 묻고, 다 찍으면 디스크의 TownScene을 다시 열어 날씨를 입힌 씬이 저장되지 않게 합니다.

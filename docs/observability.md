@@ -39,7 +39,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | DEBUG | `ai_worker_call` | `path`, `status`, `duration_ms` | AI 워커 호출마다(개발 서버에서만 보임) |
 | DEBUG | `business_error` | `code`, `status` | 업무 오류 응답마다(개발 서버에서만 보임) |
 
-이 밖의 실패 상황(AI 워커 시간 초과·연결 실패, NPC 음성 저장 실패, 기억 카드·관계 갱신 실패 등)은 기존처럼 WARN으로 남깁니다. 로그를 모으는 도구와 형식(JSON 등)은 아직 정하지 않았습니다.
+이 밖의 실패 상황(AI 워커 시간 초과·연결 실패, NPC 음성 저장 실패, 기억 카드·관계 갱신 실패 등)은 기존처럼 WARN으로 남깁니다. 운영 백엔드의 로그 파일은 JSON(ECS)으로 남기며([조회·보관·복구](#조회보관복구)), 로그를 모으는 도구는 아직 정하지 않았습니다.
 
 ## Nginx 설정 적용
 
@@ -69,8 +69,20 @@ sudo docker logs --since=10m a305-dev-backend-1 2>&1 | grep -F 'request_id=<같�
 
 서버에서 실행하는 예시입니다. 컨테이너 이름은 `sudo docker ps --format '{{.Names}}'`로 확인합니다. 로그 조회는 앱 Compose 파일의 설치 위치와 관계없이 실행할 수 있습니다.
 
+`docker logs`는 컨테이너를 새로 만들면 비워지므로, 배포 전 기록은 백엔드 로그 파일에서 찾습니다. 파일은 환경별 `backend-logs` 볼륨(`a305-dev_backend-logs`, `a305-prod_backend-logs`)에 있습니다. 개발 서버 파일은 콘솔과 같은 텍스트, 운영 파일은 요청 ID가 `"requestId"`(로그인 사용자는 `"userId"`)로 들어간 JSON입니다.
+
+```bash
+logs=$(sudo docker volume inspect --format '{{.Mountpoint}}' a305-dev_backend-logs)
+sudo grep -F 'request_id=<같은 ID>' "$logs/backend.log"
+sudo zgrep -F 'request_id=<같은 ID>' "$logs"/backend.log.*.gz
+logs=$(sudo docker volume inspect --format '{{.Mountpoint}}' a305-prod_backend-logs)
+sudo grep -F '"requestId":"<같은 ID>"' "$logs/backend.log"
+```
+
 - Nginx 로그는 `www-data:adm`, `0640` 권한과 기존 `/etc/logrotate.d/nginx`를 유지합니다. 매일 확인하고 최대 14회분을 보관하며 압축은 한 회차 지연합니다. `notifempty`이므로 정확히 14일 보관과 같지는 않습니다.
 - 백엔드·웹·DB·AI 및 모니터링 컨테이너 로그는 `json-file`, 파일당 10MiB·최대 3개를 기준으로 관리합니다. Docker 로그 파일을 호스트 logrotate로 다시 순환시키지 않습니다.
+- 백엔드 로그 파일은 Spring Boot(Logback)가 직접 나눕니다. 하루마다·10MB마다 압축하고 14일, 압축본 합계 1GB를 넘으면 오래된 것부터 지웁니다. 호스트 logrotate를 쓰지 않습니다. 설정은 [백엔드 README](../backend/README.md#요청-추적과-관리-지표)를 따릅니다.
+- `backend-logs` 볼륨은 배포·롤백에서 유지합니다. `docker compose down --volumes`나 볼륨 삭제로 지우지 않습니다. 로그는 복구용 데이터가 아니므로 DB 백업 대상에 넣지 않습니다. 개발 자동 배포 수신기는 NPC 음성 볼륨만 검사하고 이 볼륨은 검사하지 않습니다.
 - 로그 접근은 서버 관리 담당자로 제한하고, 공유 자료에는 필요한 ID와 요약만 남깁니다. 로그·대시보드에 원문을 붙이지 않습니다.
 - Nginx 반영 전 원본 사이트 설정을 백업합니다. 문제 시 사이트 설정을 복원하고 `nginx -t` 성공 후 reload합니다. 기존 TLS와 인증서 갱신 설정은 보존합니다.
 

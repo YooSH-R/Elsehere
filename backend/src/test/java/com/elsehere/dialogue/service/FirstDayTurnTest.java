@@ -8,14 +8,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerNpc;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
+import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
@@ -51,7 +50,7 @@ class FirstDayTurnTest {
       new NpcReply("Your suitcase is safe. The cafe is across the street.", null, null, List.of());
 
   private final FirstDayMission mission = FirstDayMission.start(8L);
-  private final AiWorkerClient worker = mock(AiWorkerClient.class);
+  private final AiGateway worker = mock(AiGateway.class);
   private TurnService service;
 
   @BeforeEach
@@ -109,8 +108,6 @@ class FirstDayTurnTest {
             mock(ConversationResponses.class),
             mock(NpcAudioReceiver.class),
             worker,
-            mock(AiRequestRecorder.class),
-            new AiFailureRecorder(mock(AiRequestRecorder.class)),
             mock(MemoryService.class),
             mock(NpcAffinityService.class),
             transactions,
@@ -122,7 +119,7 @@ class FirstDayTurnTest {
   void onlySuccessfulSavedReplyAppliesRecognizedGoals() {
     guards(false);
     when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
-        .thenReturn(new NpcReply(null, null, "timeout", List.of()))
+        .thenThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE))
         .thenReturn(SAVED_REPLY);
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null);
     assertThatThrownBy(() -> service.send(8L, 10L, request)).isInstanceOf(BusinessException.class);

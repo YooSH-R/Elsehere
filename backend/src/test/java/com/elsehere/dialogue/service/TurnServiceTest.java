@@ -13,15 +13,13 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 import ch.qos.logback.classic.Level;
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.repository.AiRequestRepository;
+import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
@@ -64,11 +62,9 @@ class TurnServiceTest {
 
   @Autowired private SpeechService speechService;
 
-  @Autowired private AiWorkerClient aiWorkerClient;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private TurnRepository turnRepository;
-
-  @Autowired private AiRequestRepository aiRequestRepository;
 
   @Autowired private EntityManager entityManager;
 
@@ -86,14 +82,14 @@ class TurnServiceTest {
   @DisplayName("NPC 대답에 대화하는 사용자의 닉네임과 캐릭터를 실어 NPC가 캐릭터에 맞는 호칭을 쓰게 한다")
   void send_passesTheLearnerToTheNpcReply() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
+    given(aiGateway.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
         .willReturn(reply("Great day for a walk!", "audio-2"));
-    given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
+    given(aiGateway.audio(any(), eq("audio-2"))).willReturn(WAV);
 
     turnService.send(
         userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "네 맑아요", null));
 
-    then(aiWorkerClient)
+    then(aiGateway)
         .should()
         .reply(
             any(),
@@ -108,12 +104,12 @@ class TurnServiceTest {
 
   @Test
   @DisplayName(
-      "판정한 문장·번역·무례 판정값으로 사용자 턴을, NPC 대답과 음성으로 NPC 턴을 이어서 저장하고 호출 기록을 남긴다. 추천 단어는 따로 받으므로 비워 둔다")
+      "판정한 문장·번역·무례 판정값으로 사용자 턴을, NPC 대답과 음성으로 NPC 턴을 이어서 저장한다. 세 워커 요청에는 같은 요청 ID와 대화를 붙인다. 추천 단어는 따로 받으므로 비워 둔다")
   void send_savesUserAndNpcTurns() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
+    given(aiGateway.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
         .willReturn(reply("Great day for a walk!", "audio-2"));
-    given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
+    given(aiGateway.audio(any(), eq("audio-2"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
     TurnResponse response =
@@ -136,9 +132,12 @@ class TurnServiceTest {
     assertThat(saved.getInputType()).isEqualTo(InputType.TEXT);
     assertThat(saved.getGuardAbusive()).isFalse();
     assertThat(saved.getGuardErrorCode()).isNull();
-    assertThat(record(requestId, AiRequestKind.JUDGE)).isEqualTo(AiRequestStatus.OK);
-    assertThat(record(requestId, AiRequestKind.GUARD)).isEqualTo(AiRequestStatus.OK);
-    assertThat(record(requestId, AiRequestKind.NPC)).isEqualTo(AiRequestStatus.OK);
+    WorkerTrace trace = new WorkerTrace(requestId, userId, conversationId);
+    then(aiGateway).should().judge(eq(trace), any(), any(), any(), eq("네 맑아요"));
+    then(aiGateway).should().guard(eq(trace), any(), any(), eq("네 맑아요"));
+    then(aiGateway)
+        .should()
+        .reply(eq(trace), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any());
   }
 
   @Test
@@ -146,9 +145,7 @@ class TurnServiceTest {
   void send_abusive_countsAndWarns() {
     judges("닥쳐 멍청아", "닥쳐 멍청아", "Shut up, idiot.");
     guards("닥쳐 멍청아", true, null);
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt(), any()))
+    given(aiGateway.reply(any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt(), any()))
         .willReturn(reply("That's not okay to say.", null));
 
     TurnResponse response = send("닥쳐 멍청아");
@@ -157,7 +154,7 @@ class TurnServiceTest {
     assertThat(response.userTurn().translation()).isNull();
     assertThat(response.conversation().rudeCount()).isEqualTo(1);
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
-    then(aiWorkerClient)
+    then(aiGateway)
         .should()
         .reply(
             any(),
@@ -180,9 +177,7 @@ class TurnServiceTest {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
-      given(
-              aiWorkerClient.reply(
-                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+      given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
           .willReturn(reply("Stop it.", null));
     }
 
@@ -193,7 +188,7 @@ class TurnServiceTest {
     assertThat(last.conversation().rudeCount()).isEqualTo(Conversation.RUDE_LIMIT);
     assertThat(last.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
     assertThat(last.conversation().endReason()).isEqualTo(ConversationEndReason.RUDE);
-    then(aiWorkerClient)
+    then(aiGateway)
         .should()
         .reply(
             any(),
@@ -214,9 +209,7 @@ class TurnServiceTest {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
-      given(
-              aiWorkerClient.reply(
-                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+      given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
           .willReturn(reply("Stop it.", null));
     }
 
@@ -251,32 +244,19 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("의도 판정을 부르다 워커에 닿지 못하면 오류를 그대로 알리고 판정 호출을 FAILED로 남긴다")
-  void send_judgeCallFails_recordsFailed() {
-    given(aiWorkerClient.judge(any(), any(), any(), any(), eq("Yes")))
+  @DisplayName("의도 판정을 부르다 워커에 닿지 못하면 오류를 그대로 알린다")
+  void send_judgeCallFails_throws() {
+    given(aiGateway.judge(any(), any(), any(), any(), eq("Yes")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
     assertThatThrownBy(() -> send("Yes")).isInstanceOf(BusinessException.class);
-    assertThat(record(lastRequestId, AiRequestKind.JUDGE)).isEqualTo(AiRequestStatus.FAILED);
-  }
-
-  @Test
-  @DisplayName("NPC 대답을 부르다 워커에 닿지 못하면 오류를 그대로 알리고 대답 호출을 FAILED로 남긴다")
-  void send_replyCallFails_recordsFailed() {
-    judges("Yes", "Yes", null);
-    guards("Yes", false, null);
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), anyString(), anyInt(), any()))
-        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
-
-    assertThatThrownBy(() -> send("Yes")).isInstanceOf(BusinessException.class);
-    assertThat(record(lastRequestId, AiRequestKind.NPC)).isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
   @DisplayName("무례 판정 호출이 실패해도 판정 못 함으로 기록하고 대화를 이어 간다")
   void send_guardCallFails_continuesUndecided() {
     judges("Yes", "Yes", null);
-    given(aiWorkerClient.guard(any(), any(), any(), eq("Yes")))
+    given(aiGateway.guard(any(), any(), any(), eq("Yes")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     repliesTo("Yes", reply("Nice!", null));
 
@@ -286,7 +266,6 @@ class TurnServiceTest {
     Turn saved = turnRepository.findByRequestId(lastRequestId).orElseThrow();
     assertThat(saved.getGuardAbusive()).isNull();
     assertThat(saved.getGuardErrorCode()).isEqualTo(TurnService.GUARD_WORKER_UNAVAILABLE);
-    assertThat(record(lastRequestId, AiRequestKind.GUARD)).isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
@@ -295,7 +274,7 @@ class TurnServiceTest {
     judges("you idiot", "you idiot", null);
     guards("you idiot", true, null);
     given(
-            aiWorkerClient.reply(
+            aiGateway.reply(
                 any(), any(), any(), any(), eq("you idiot"), anyString(), anyInt(), any()))
         .willReturn(reply("Not okay.", null));
     send("you idiot");
@@ -306,7 +285,7 @@ class TurnServiceTest {
 
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
-    then(aiWorkerClient).should().guard(any(), any(), history.capture(), eq("Sorry"));
+    then(aiGateway).should().guard(any(), any(), history.capture(), eq("Sorry"));
     assertThat(history.getValue())
         .containsExactly(
             WorkerLine.npc(OPENING),
@@ -342,17 +321,24 @@ class TurnServiceTest {
 
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
-    then(aiWorkerClient).should().judge(any(), any(), any(), history.capture(), eq("Yes"));
+    then(aiGateway).should().judge(any(), any(), any(), history.capture(), eq("Yes"));
     assertThat(history.getValue()).containsExactly(WorkerLine.npc(OPENING));
   }
 
   @Test
   @DisplayName("의도 판정이 고른 대화 사건을 학습자 턴에 저장하고 다음 판정·대답의 history로 보낸다")
   void send_savesJudgeEventsAndSendsThemInHistory() {
-    given(aiWorkerClient.judge(any(), any(), any(), any(), eq("Hi!")))
+    given(aiGateway.judge(any(), any(), any(), any(), eq("Hi!")))
         .willReturn(
             new JudgeResult(
-                "Hi!", false, null, null, List.of(usage("intent")), null, List.of("GREETING")));
+                "Hi!",
+                false,
+                null,
+                null,
+                List.of(usage("intent")),
+                null,
+                List.of("GREETING"),
+                null));
     guards("Hi!", false, null);
     repliesTo("Hi!", reply("Hello!", null));
     judges("Bye", "Bye", null);
@@ -363,7 +349,7 @@ class TurnServiceTest {
 
     @SuppressWarnings("unchecked")
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
-    then(aiWorkerClient)
+    then(aiGateway)
         .should()
         .reply(any(), any(), any(), history.capture(), eq("Bye"), anyString(), anyInt(), any());
     assertThat(history.getValue())
@@ -385,7 +371,7 @@ class TurnServiceTest {
 
     assertThat(replayed).isEqualTo(first);
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(3);
-    then(aiWorkerClient).should().judge(any(), any(), any(), any(), anyString());
+    then(aiGateway).should().judge(any(), any(), any(), any(), anyString());
   }
 
   @Test
@@ -415,7 +401,7 @@ class TurnServiceTest {
   @Test
   @DisplayName("행동 묘사만 있는 말은 턴으로 세지 않고 안내 문구와 함께 VALIDATION_FAILED로 거절한다")
   void send_droppedText_throwsWithNotice() {
-    given(aiWorkerClient.judge(any(), any(), any(), any(), eq("*waves*")))
+    given(aiGateway.judge(any(), any(), any(), any(), eq("*waves*")))
         .willReturn(new JudgeResult("", true, "말로 표현해 주세요.", null, List.of(usage("intent"))));
 
     assertThatThrownBy(
@@ -431,16 +417,17 @@ class TurnServiceTest {
               assertThat(exception.getDetails()).containsEntry("notice", "말로 표현해 주세요.");
             });
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
-    then(aiWorkerClient)
+    then(aiGateway)
         .should(never())
         .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any());
   }
 
   @Test
-  @DisplayName("NPC 대답을 만들지 못하면 워커 오류 코드로 실패하고 턴을 저장하지 않으며 호출 기록을 FAILED로 남긴다")
+  @DisplayName("NPC 대답을 만들지 못하면 그 오류로 실패하고 턴을 저장하지 않는다")
   void send_replyFails_throwsWithoutTurns() {
     judges("Yes", "Yes", null);
-    repliesTo("Yes", new NpcReply(null, null, "timeout", List.of(usage("npc"))));
+    given(aiGateway.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
+        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     UUID requestId = UUID.randomUUID();
 
     assertThatThrownBy(
@@ -455,7 +442,6 @@ class TurnServiceTest {
                 assertThat(exception.getErrorCode())
                     .isEqualTo(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
-    assertThat(record(requestId, AiRequestKind.NPC)).isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
@@ -474,14 +460,14 @@ class TurnServiceTest {
             BusinessException.class,
             exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.CONVERSATION_NOT_ACTIVE));
-    then(aiWorkerClient).should(never()).judge(any(), any(), any(), any(), anyString());
+    then(aiGateway).should(never()).judge(any(), any(), any(), any(), anyString());
   }
 
   @Test
   @DisplayName("AI 대답을 기다리는 사이 대화가 끝났으면 턴을 저장하지 않고 CONVERSATION_NOT_ACTIVE다")
   void send_conversationEndedWhileWaiting_throwsNotActive() {
     judges("Yes", "Yes", null);
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
+    given(aiGateway.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
         .willAnswer(
             invocation -> {
               entityManager
@@ -570,6 +556,30 @@ class TurnServiceTest {
   }
 
   @Test
+  @DisplayName("무례가 아닌 말은 의도 판정이 준 사건 호감 변화량만큼 바로 올리고 올린 값을 대화 상태로 돌려준다")
+  void send_notRudeWithEvents_raisesAffinityRightAway() {
+    judgeRaises("I love this town!", 4);
+    guards("I love this town!", false, null);
+    repliesTo("I love this town!", reply("Thank you!", null));
+
+    TurnResponse response = send("I love this town!");
+
+    assertThat(affinity()).isEqualTo(4);
+    assertThat(response.conversation().affinity()).isEqualTo(4);
+  }
+
+  @Test
+  @DisplayName("무례로 센 말은 의도 판정의 사건 변화량을 더하지 않고 무례 감점만 한다")
+  void send_rudeWithEvents_onlyDeductsForRudeness() {
+    rudeTo("you idiot, nice town though", -7);
+    judgeRaises("you idiot, nice town though", 4);
+
+    send("you idiot, nice town though");
+
+    assertThat(affinity()).isEqualTo(-7);
+  }
+
+  @Test
   @DisplayName("무례 판정 3번으로 NPC가 대화를 끝내도 세 번 모두 깎는다")
   void send_abusiveUntilLimit_deductsEveryTime() {
     for (int count = 1; count <= Conversation.RUDE_LIMIT; count++) {
@@ -624,7 +634,7 @@ class TurnServiceTest {
   }
 
   private void judges(String text, String judgedText, String english) {
-    given(aiWorkerClient.judge(any(), any(), any(), any(), eq(text)))
+    given(aiGateway.judge(any(), any(), any(), any(), eq(text)))
         .willReturn(
             new JudgeResult(
                 judgedText,
@@ -635,20 +645,35 @@ class TurnServiceTest {
     guards(text, false, null);
   }
 
+  // 칭찬 사건과 그 사건으로 바로 올릴 호감도를 주는 의도 판정. 무례 판정은 따로 정한다.
+  private void judgeRaises(String text, int affinityDelta) {
+    given(aiGateway.judge(any(), any(), any(), any(), eq(text)))
+        .willReturn(
+            new JudgeResult(
+                text,
+                false,
+                null,
+                null,
+                List.of(usage("intent")),
+                null,
+                List.of("COMPLIMENT"),
+                affinityDelta));
+  }
+
   // 같은 문장에 다시 부르면 마지막 판정값으로 바뀐다.
   private void guards(String text, Boolean abusive, String errorCode) {
-    given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
+    given(aiGateway.guard(any(), any(), any(), eq(text)))
         .willReturn(
             new GuardResult(new GuardResult.Guard(abusive, errorCode), List.of(usage("guard"))));
   }
 
   private void rudeTo(String text, Integer affinityDelta) {
     judges(text, text, null);
-    given(aiWorkerClient.guard(any(), any(), any(), eq(text)))
+    given(aiGateway.guard(any(), any(), any(), eq(text)))
         .willReturn(
             new GuardResult(
                 new GuardResult.Guard(true, null), affinityDelta, List.of(usage("guard"))));
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+    given(aiGateway.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
         .willReturn(reply("That's not okay to say.", null));
   }
 
@@ -670,11 +695,7 @@ class TurnServiceTest {
   }
 
   private void repliesTo(String text, NpcReply reply) {
-    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt(), any()))
+    given(aiGateway.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt(), any()))
         .willReturn(reply);
-  }
-
-  private AiRequestStatus record(UUID requestId, AiRequestKind kind) {
-    return aiRequestRepository.findByRequestIdAndKind(requestId, kind).orElseThrow().getStatus();
   }
 }

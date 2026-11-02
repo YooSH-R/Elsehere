@@ -284,12 +284,14 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("인격 카드가 있는 NPC에는 npc-configurations.json의 카드를 넣고, 카드가 없는 드럭스토어 직원은 비워 둔다")
+  @DisplayName("시드의 NPC마다 npc-configurations.json의 인격 카드를 넣는다")
   void load_insertsProfilesFromNpcConfigurations() throws IOException {
     worldSeedLoader.load();
 
     Map<String, JsonNode> profiles = profilesInConfigurations();
-    assertThat(profiles).containsOnlyKeys("TOWN_PASSERBY", "CAFE_STAFF", "HOTEL_STAFF");
+    assertThat(profiles)
+        .containsOnlyKeys(
+            "TOWN_PASSERBY", "CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER");
     JsonMapper jsonMapper = new JsonMapper();
     for (Npc npc : npcRepository.findAll()) {
       JsonNode expected = profiles.get(npc.getCode());

@@ -1,10 +1,6 @@
 package com.elsehere.ai.client;
 
-import java.util.List;
-
 /**
- * 대화 뒤 관계 갱신(/v1/npc/relationship) 결과. 새 값이 아니라 저장값에 더할 변화량이다.
- *
- * @param events 이번 대화에서 센 사건(기록용)
+ * 대화 뒤 관계 갱신(/v1/npc/relationship) 결과. 새 값이 아니라 저장값에 더할 알아봄 변화량이다. 호감은 대화 중에 발화마다 이미 바꿨으므로 오지 않는다.
  */
-public record RelationshipChange(int recognitionDelta, int affinityDelta, List<String> events) {}
+public record RelationshipChange(int recognitionDelta) {}

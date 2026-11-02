@@ -1,6 +1,6 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
@@ -9,10 +9,6 @@ import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerState;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiFailureRecorder;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
@@ -42,7 +38,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 저장 순서로 처리한다.
  *
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
- * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
+ * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 무례가 아닌 말은 의도 판정이 고른 대화
+ * 사건(칭찬·인사 등)만큼 호감도를 올린다(docs/api/ai-worker.md 2.2절). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
  */
 @Slf4j
 @Service
@@ -75,9 +72,7 @@ public class TurnService {
   private final DialogueContexts dialogueContexts;
   private final ConversationResponses conversationResponses;
   private final NpcAudioReceiver npcAudioReceiver;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
-  private final AiFailureRecorder aiFailureRecorder;
+  private final AiGateway aiGateway;
   private final MemoryService memoryService;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
@@ -100,17 +95,12 @@ public class TurnService {
 
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
-        aiFailureRecorder.recordIfFails(
+        aiGateway.judge(
             trace,
-            AiRequestKind.JUDGE,
-            () ->
-                aiWorkerClient.judge(
-                    trace,
-                    context.npc().workerNpc(),
-                    mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
-                    context.history(),
-                    request.text()));
-    aiRequestRecorder.record(trace, AiRequestKind.JUDGE, judge.usage(), AiRequestStatus.OK);
+            context.npc().workerNpc(),
+            mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
+            context.history(),
+            request.text());
     if (judge.dropped()) {
       // 행동 묘사만 있는 말은 턴으로 세지 않는다. 응답 형식은 [미정]이라 안내 문구를 오류 정보로 돌려준다.
       throw new BusinessException(
@@ -127,27 +117,15 @@ public class TurnService {
             : mission.map(value -> value.replyInstruction(judge.intent())).orElse("");
 
     NpcReply reply =
-        aiFailureRecorder.recordIfFails(
+        aiGateway.reply(
             trace,
-            AiRequestKind.NPC,
-            () ->
-                aiWorkerClient.reply(
-                    trace,
-                    context.npc().workerNpc(),
-                    context.memory(),
-                    context.history(),
-                    judge.text(),
-                    instruction,
-                    context.level(),
-                    context.learner()));
-    aiRequestRecorder.record(
-        trace,
-        AiRequestKind.NPC,
-        reply.usage(),
-        reply.succeeded() ? AiRequestStatus.OK : AiRequestStatus.FAILED);
-    if (!reply.succeeded()) {
-      throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
-    }
+            context.npc().workerNpc(),
+            context.memory(),
+            context.history(),
+            judge.text(),
+            instruction,
+            context.level(),
+            context.learner());
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
 
     return transactionTemplate.execute(
@@ -183,6 +161,9 @@ public class TurnService {
                   conversation.getStatus(),
                   conversation.getEndReason());
             }
+          } else {
+            npcAffinityService.raiseForEvents(
+                userId, conversation.getNpcId(), judge.affinityDelta());
           }
           Turn npcTurn =
               turnRepository.save(
@@ -207,12 +188,8 @@ public class TurnService {
             MDC.setContextMap(logContext);
           }
           try {
-            GuardResult guard =
-                aiWorkerClient.guard(trace, context.npc().workerNpc(), context.history(), text);
-            aiRequestRecorder.record(trace, AiRequestKind.GUARD, guard.usage(), AiRequestStatus.OK);
-            return guard;
+            return aiGateway.guard(trace, context.npc().workerNpc(), context.history(), text);
           } catch (BusinessException exception) {
-            aiRequestRecorder.record(trace, AiRequestKind.GUARD, List.of(), AiRequestStatus.FAILED);
             return new GuardResult(
                 new GuardResult.Guard(null, GUARD_WORKER_UNAVAILABLE), List.of());
           } finally {

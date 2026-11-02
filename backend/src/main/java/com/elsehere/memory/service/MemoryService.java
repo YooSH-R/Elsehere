@@ -1,6 +1,6 @@
 package com.elsehere.memory.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.RelationshipChange;
 import com.elsehere.ai.client.WorkerLine;
@@ -8,9 +8,6 @@ import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerRelationship;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.common.error.BusinessException;
@@ -40,8 +37,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * NPC 기억 카드와 관계. 대화가 끝나면 방문 수를 세고 AI 워커(/v1/memory)로 카드를 새로 만들어 통째로 바꾸며, 관계
- * 갱신(/v1/npc/relationship)이 돌려준 알아봄·호감 변화량을 더한다. 다음 대화의 NPC 대답에는 저장된 최신 카드와 관계를 넘긴다. 연결 기준:
- * docs/api/npc-memory-integration.md, docs/api/ai-worker.md 2.7.2절
+ * 갱신(/v1/npc/relationship)이 돌려준 알아봄 변화량을 더한다. 호감은 대화 중에 발화마다 바꾼다(TurnService). 다음 대화의 NPC 대답에는 저장된
+ * 최신 카드와 관계를 넘긴다. 연결 기준: docs/api/npc-memory-integration.md, docs/api/ai-worker.md 2.7.2절
  *
  * <p>카드·관계 갱신은 대화 종료·피드백 응답을 막지 않도록 따로 실행하고, 둘 중 하나가 실패해도 다른 하나는 반영한다. 실패하면 이전 값을 그대로 둔다. 관계 갱신은
  * 모델을 부르지 않아 AI 호출 기록을 남기지 않는다. 사용자 AI 한도 예약은 아직 하지 않는다.
@@ -61,8 +58,7 @@ public class MemoryService {
   private final NpcRepository npcRepository;
   private final WorkerNpcs workerNpcs;
   private final WorkerLines workerLines;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
+  private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final JsonMapper jsonMapper;
   private final GameClockService gameClockService;
@@ -114,15 +110,12 @@ public class MemoryService {
     MemoryCardResult result;
     try {
       result =
-          aiWorkerClient.memoryCard(
-              trace, job.npc(), job.outcome(), job.history(), job.previousCard());
+          aiGateway.memoryCard(trace, job.npc(), job.outcome(), job.history(), job.previousCard());
     } catch (BusinessException exception) {
       // 429·502·503 등. 오류 응답에는 카드가 없으므로 빈 카드로 덮지 않고 이전 카드를 그대로 둔다.
-      aiRequestRecorder.record(trace, AiRequestKind.MEMORY, List.of(), AiRequestStatus.FAILED);
       log.warn("기억 카드를 갱신하지 못해 이전 카드를 유지합니다 code={}", exception.getErrorCode());
       return;
     }
-    aiRequestRecorder.record(trace, AiRequestKind.MEMORY, result.usage(), AiRequestStatus.OK);
     transactionTemplate.executeWithoutResult(
         status ->
             userNpcRelationRepository
@@ -130,22 +123,21 @@ public class MemoryService {
                 .ifPresent(relation -> relation.replaceMemoryCard(result.cardJson())));
   }
 
-  // 워커는 새 값이 아니라 변화량을 돌려주므로 SQL 한 번으로 더한다. 그 사이 무례로 깎인 호감도도 그대로 남는다.
+  // 워커는 새 값이 아니라 변화량을 돌려주므로 SQL 한 번으로 더한다.
   private void updateRelationship(WorkerTrace trace, MemoryJob job) {
     RelationshipChange change;
     try {
-      change = aiWorkerClient.relationship(trace, job.npc(), job.relationship(), job.history());
+      change = aiGateway.relationship(trace, job.npc(), job.relationship(), job.history());
     } catch (BusinessException exception) {
       log.warn("관계를 갱신하지 못해 이전 값을 유지합니다 code={}", exception.getErrorCode());
       return;
     }
     transactionTemplate.executeWithoutResult(
         status ->
-            userNpcRelationRepository.addRelationship(
+            userNpcRelationRepository.addRecognition(
                 job.relationId().getUserId(),
                 job.relationId().getNpcId(),
-                change.recognitionDelta(),
-                change.affinityDelta()));
+                change.recognitionDelta()));
   }
 
   // 방문 수를 먼저 세고 카드 생성 재료를 모은다. 이미 반영한 대화거나 사용자 발화가 없으면 null이다.

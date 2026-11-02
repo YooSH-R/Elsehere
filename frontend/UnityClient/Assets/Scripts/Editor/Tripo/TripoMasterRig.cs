@@ -186,13 +186,20 @@ namespace A305.EditorTools.Tripo
                         )
                     );
             }
-            // 생성된 목·머리의 bone roll을 얼굴 기울기로 옮기지 않는다.
-            // 관절 위치는 마스터를 따르되 표면 방향은 체형 축을 기준으로 보존한다.
+            // Head/Hips spacing controls scale, not facial pitch. Generated neck
+            // placement must not tilt a neutral face when binding the same master.
+            Vector3 lateral =
+                animator.GetBoneTransform(HumanBodyBones.RightUpperLeg).position
+                - animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position;
+            Vector3 heading = Vector3.Cross(lateral, Vector3.up);
+            if (heading.sqrMagnitude < 1e-10f)
+                throw new InvalidOperationException("머리 정렬의 수평 방향을 계산할 수 없습니다.");
+            Quaternion headRotation = Quaternion.LookRotation(heading, Vector3.up);
             var neck = animator.GetBoneTransform(HumanBodyBones.Neck);
             if (neck == null)
                 throw new InvalidOperationException("목 본이 없습니다.");
             foreach (var bone in neck.GetComponentsInChildren<Transform>())
-                frames.Add(bone, Matrix4x4.TRS(bone.position, bodyRotation, Vector3.one));
+                frames.Add(bone, Matrix4x4.TRS(bone.position, headRotation, Vector3.one));
             return frames;
         }
 

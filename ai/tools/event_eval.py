@@ -127,7 +127,8 @@ STAGES = {
     ),
     "CHECK_IN": (
         "Check-in time has arrived. The learner recovered the small bag and passport, bought an umbrella and has 12 quest coins left. "
-        "The large suitcase is stored at this hotel. Confirm the reservation, check them in and return the suitcase on request. "
+        "The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. "
+        "Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. "
         "Never ask them to fetch the bag again.",
         {
             "found_bag": "Say they returned or found their bag.",

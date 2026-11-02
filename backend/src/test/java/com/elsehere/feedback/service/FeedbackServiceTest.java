@@ -9,18 +9,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
 import ch.qos.logback.classic.Level;
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.FeedbackInput;
 import com.elsehere.ai.client.WorkerFeedback;
-import com.elsehere.ai.entity.AiRequest;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.repository.AiRequestRepository;
+import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
@@ -53,9 +51,7 @@ class FeedbackServiceTest {
 
   @Autowired private FeedbackService feedbackService;
 
-  @Autowired private AiWorkerClient aiWorkerClient;
-
-  @Autowired private AiRequestRepository aiRequestRepository;
+  @Autowired private AiGateway aiGateway;
 
   @Autowired private EntityManager entityManager;
 
@@ -79,9 +75,9 @@ class FeedbackServiceTest {
   }
 
   @Test
-  @DisplayName("워커가 피드백을 만들면 DONE으로 저장하고 요약·잘한 점·아쉬운 점·개선 표현을 돌려주며 호출 기록을 남긴다")
+  @DisplayName("워커가 피드백을 만들면 DONE으로 저장하고 요약·잘한 점·아쉬운 점·개선 표현을 돌려준다. 워커 요청에는 요청 ID와 대화를 붙인다")
   void feedbackOnEnd_completed_savesDone() {
-    given(aiWorkerClient.feedback(any(), any())).willReturn(completed());
+    given(aiGateway.feedback(any(), any())).willReturn(completed());
     UUID requestId = UUID.randomUUID();
 
     FeedbackResponse response =
@@ -100,16 +96,15 @@ class FeedbackServiceTest {
     assertThat(response.suggestion())
         .isEqualTo(new SuggestionResponse("I want latte", "I'd like a latte, please."));
     assertThat(response.errorCode()).isNull();
-    AiRequest record =
-        aiRequestRepository.findByRequestIdAndKind(requestId, AiRequestKind.FEEDBACK).orElseThrow();
-    assertThat(record.getStatus()).isEqualTo(AiRequestStatus.OK);
-    assertThat(record.getModel()).isEqualTo("test-model");
+    then(aiGateway)
+        .should()
+        .feedback(eq(new WorkerTrace(requestId, userId, conversation.getId())), any());
   }
 
   @Test
   @DisplayName("종료 때 만든 발화별 평가를 상세 평가(FB-03)와 다시 보기(FB-01)가 AI 재호출 없이 돌려준다")
   void detailed_afterCompleted_returnsSavedTurnReviews() {
-    given(aiWorkerClient.feedback(any(), any())).willReturn(completed());
+    given(aiGateway.feedback(any(), any())).willReturn(completed());
     feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
 
     List<DetailedFeedbackItemResponse> detailed =
@@ -135,19 +130,19 @@ class FeedbackServiceTest {
     assertThat(review.userTurnCount()).isEqualTo(2);
     assertThat(review.feedback().status()).isEqualTo(FeedbackStatus.DONE);
     assertThat(review.detailedFeedback()).isEqualTo(detailed);
-    then(aiWorkerClient).should().feedback(any(), any());
+    then(aiGateway).should().feedback(any(), any());
   }
 
   @Test
   @DisplayName("워커에는 사용자 말을 원문 그대로, 음성은 전사 원문과 함께, NPC 대사는 generated로 보낸다")
   void feedbackOnEnd_sendsConversationAsContractInput() {
-    given(aiWorkerClient.feedback(any(), any())).willReturn(completed());
+    given(aiGateway.feedback(any(), any())).willReturn(completed());
     UUID requestId = UUID.randomUUID();
 
     feedbackService.feedbackOnEnd(userId, conversation.getId(), requestId, false);
 
     ArgumentCaptor<FeedbackInput> captor = ArgumentCaptor.forClass(FeedbackInput.class);
-    then(aiWorkerClient).should().feedback(any(), captor.capture());
+    then(aiGateway).should().feedback(any(), captor.capture());
     FeedbackInput input = captor.getValue();
     assertThat(input.schemaVersion()).isEqualTo("0.3.0");
     assertThat(input.requestId()).isEqualTo(requestId.toString());
@@ -184,7 +179,7 @@ class FeedbackServiceTest {
     assertThat(response.status()).isEqualTo(FeedbackStatus.SKIPPED);
     assertThat(response.errorCode()).isNull();
     assertThat(response.summary()).isNull();
-    then(aiWorkerClient).should(never()).feedback(any(), any());
+    then(aiGateway).should(never()).feedback(any(), any());
   }
 
   @Test
@@ -199,13 +194,13 @@ class FeedbackServiceTest {
 
     assertThat(response.status()).isEqualTo(FeedbackStatus.SKIPPED);
     assertThat(response.errorCode()).isEqualTo("NO_USABLE_USER_TURNS");
-    then(aiWorkerClient).should(never()).feedback(any(), any());
+    then(aiGateway).should(never()).feedback(any(), any());
   }
 
   @Test
   @DisplayName("워커가 평가할 근거가 부족하다고 하면 워커가 준 이유로 SKIPPED를 저장한다")
   void feedbackOnEnd_insufficientEvidence_skipsWithProblemCode() {
-    given(aiWorkerClient.feedback(any(), any()))
+    given(aiGateway.feedback(any(), any()))
         .willReturn(
             new WorkerFeedback(
                 "insufficient_evidence", "NO_USABLE_USER_TURNS", null, null, List.of()));
@@ -218,9 +213,9 @@ class FeedbackServiceTest {
   }
 
   @Test
-  @DisplayName("워커가 생성에 실패했다고 하면 FAILED와 원인 코드를 저장하고 호출 기록을 FAILED로 남긴다")
+  @DisplayName("워커가 생성에 실패했다고 하면 FAILED와 원인 코드를 저장한다")
   void feedbackOnEnd_workerFailed_savesFailed() {
-    given(aiWorkerClient.feedback(any(), any()))
+    given(aiGateway.feedback(any(), any()))
         .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of(usage("fb"))));
     UUID requestId = UUID.randomUUID();
 
@@ -229,35 +224,12 @@ class FeedbackServiceTest {
 
     assertThat(response.status()).isEqualTo(FeedbackStatus.FAILED);
     assertThat(response.errorCode()).isEqualTo("AI_TIMEOUT");
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.FEEDBACK)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
-  }
-
-  @Test
-  @DisplayName("피드백을 부르다 워커에 닿지 못하면 피드백 호출을 FAILED로 남긴다")
-  void feedbackOnEnd_workerUnavailable_recordsFailedCall() {
-    given(aiWorkerClient.feedback(any(), any()))
-        .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
-    UUID requestId = UUID.randomUUID();
-
-    feedbackService.feedbackOnEnd(userId, conversation.getId(), requestId, false);
-
-    assertThat(
-            aiRequestRepository
-                .findByRequestIdAndKind(requestId, AiRequestKind.FEEDBACK)
-                .orElseThrow()
-                .getStatus())
-        .isEqualTo(AiRequestStatus.FAILED);
   }
 
   @Test
   @DisplayName("워커에 닿지 못하면 대화 종료는 그대로 두고 FAILED와 API 오류 코드를 저장한다")
   void feedbackOnEnd_workerUnavailable_savesFailed() {
-    given(aiWorkerClient.feedback(any(), any()))
+    given(aiGateway.feedback(any(), any()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
 
     FeedbackResponse response =
@@ -270,7 +242,7 @@ class FeedbackServiceTest {
   @Test
   @DisplayName("피드백을 만들지 못하면 대화 ID와 원인 코드를 WARN으로 남긴다")
   void feedbackOnEnd_workerFailed_logsFeedbackFailed() {
-    given(aiWorkerClient.feedback(any(), any()))
+    given(aiGateway.feedback(any(), any()))
         .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of(usage("fb"))));
 
     try (LogCapture logs = LogCapture.atInfo(FeedbackService.class)) {
@@ -305,7 +277,7 @@ class FeedbackServiceTest {
   @Test
   @DisplayName("실패한 피드백은 다시 만들기(FB-02)로 다시 만들어 DONE과 상세 평가를 저장한다")
   void regenerate_afterFailure_savesDone() {
-    given(aiWorkerClient.feedback(any(), any()))
+    given(aiGateway.feedback(any(), any()))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE))
         .willReturn(completed());
     feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
@@ -321,7 +293,7 @@ class FeedbackServiceTest {
   @Test
   @DisplayName("이미 만든 피드백은 종료를 다시 요청해도 다시 만들기를 요청해도 AI를 다시 부르지 않고 저장된 결과를 돌려준다")
   void feedbackOnEndAndRegenerate_afterDone_returnSaved() {
-    given(aiWorkerClient.feedback(any(), any())).willReturn(completed());
+    given(aiGateway.feedback(any(), any())).willReturn(completed());
     FeedbackResponse first =
         feedbackService.feedbackOnEnd(userId, conversation.getId(), UUID.randomUUID(), false);
 
@@ -332,7 +304,7 @@ class FeedbackServiceTest {
 
     assertThat(again).isEqualTo(first);
     assertThat(regenerated).isEqualTo(first);
-    then(aiWorkerClient).should().feedback(any(), any());
+    then(aiGateway).should().feedback(any(), any());
   }
 
   @Test

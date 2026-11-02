@@ -1,6 +1,6 @@
 package com.elsehere.dialogue.service;
 
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.service.NpcAudioRetention;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 class NpcAudioReceiver {
 
-  private final AiWorkerClient aiWorkerClient;
+  private final AiGateway aiGateway;
   private final NpcAudioRetention npcAudioRetention;
 
   /** 저장한 음성 키. 음성이 없거나, 받지 못하거나, 저장하지 못하면 자막만 보여 주도록 null이다. */
@@ -23,7 +23,7 @@ class NpcAudioReceiver {
       return null;
     }
     try {
-      return npcAudioRetention.save(aiWorkerClient.audio(trace, audioId));
+      return npcAudioRetention.save(aiGateway.audio(trace, audioId));
     } catch (BusinessException exception) {
       log.warn("NPC 음성을 받지 못했습니다 code={}", exception.getErrorCode());
       return null;

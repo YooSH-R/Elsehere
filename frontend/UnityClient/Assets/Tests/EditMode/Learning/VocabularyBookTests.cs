@@ -52,6 +52,100 @@ namespace A305.Learning.Tests
             Assert.That(book.LastFailureMessage, Is.Not.Empty);
         }
 
+        [Test]
+        public void ListState_BeforeFirstLoad_IsLoadingNotEmpty()
+        {
+            // 서버 목록을 받기 전의 빈 목록은 '단어 없음'이 아니다.
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+        }
+
+        [Test]
+        public async Task ListState_WhileFirstLoading_IsLoading()
+        {
+            api.Pending = new TaskCompletionSource<VocabPage>();
+            Task<bool> loading = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+
+            api.Pending.SetResult(Page(null));
+            await loading;
+        }
+
+        [Test]
+        public async Task ListState_LoadedEmptyList_IsEmpty()
+        {
+            api.Pages[null] = Page(null);
+
+            await book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Empty));
+        }
+
+        [Test]
+        public async Task ListState_LoadedWords_IsEntries()
+        {
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"));
+
+            await book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+        }
+
+        [Test]
+        public async Task ListState_FirstLoadFailed_IsFailed()
+        {
+            api.Failure = NetworkError();
+
+            await book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Failed));
+        }
+
+        [Test]
+        public async Task ListState_RetryingAfterFailure_IsLoadingUntilWordsArrive()
+        {
+            api.Failure = NetworkError();
+            await book.LoadAsync();
+            api.Failure = null;
+            api.Pending = new TaskCompletionSource<VocabPage>();
+
+            Task<bool> retrying = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+            api.Pending.SetResult(Page(null, Item(31, "sofa", "소파")));
+            await retrying;
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+        }
+
+        [Test]
+        public async Task ListState_ReloadingAfterEmptyList_IsLoadingNotEmpty()
+        {
+            // 그사이 사물 카드에서 단어를 저장했을 수 있어, 다시 읽는 동안 지난번의 '단어 없음'을 보이지 않는다.
+            api.Pages[null] = Page(null);
+            await book.LoadAsync();
+            api.Pending = new TaskCompletionSource<VocabPage>();
+
+            Task<bool> reloading = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+            api.Pending.SetResult(Page(null));
+            await reloading;
+        }
+
+        [Test]
+        public async Task ListState_ReloadingWithWords_KeepsShowingWords()
+        {
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"));
+            await book.LoadAsync();
+            api.Pending = new TaskCompletionSource<VocabPage>();
+
+            Task<bool> reloading = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+            api.Pending.SetResult(Page(null, Item(31, "sofa", "소파")));
+            await reloading;
+        }
+
         [TestCase(false, true)]
         [TestCase(true, false)]
         public async Task ToggleLearnedAsync_SavesOppositeValueThenMarks(
@@ -199,11 +293,19 @@ namespace A305.Learning.Tests
 
             public ApiException Failure { get; set; }
 
+            // 정하면 서버 응답을 기다리는 중으로 두고, 테스트가 SetResult로 응답한다.
+            public TaskCompletionSource<VocabPage> Pending { get; set; }
+
             public Task<VocabPage> GetPageAsync(string cursor)
             {
                 if (Failure != null)
                 {
                     return Task.FromException<VocabPage>(Failure);
+                }
+
+                if (Pending != null)
+                {
+                    return Pending.Task;
                 }
 
                 return Task.FromResult(pages[cursor ?? ""]);

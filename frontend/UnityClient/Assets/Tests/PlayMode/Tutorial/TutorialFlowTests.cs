@@ -243,7 +243,8 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsCompassShowing, Is.True, "발밑 나침반으로 문 쪽을 가리킵니다.");
             Transform player = Single<PlayerMover>().transform;
             Vector3 toDoor = Vector3.ProjectOnPlane(
-                Object.FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                Object
+                    .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
                     .OrderBy(door => Vector3.Distance(door.transform.position, player.position))
                     .First()
                     .transform.position - player.position,

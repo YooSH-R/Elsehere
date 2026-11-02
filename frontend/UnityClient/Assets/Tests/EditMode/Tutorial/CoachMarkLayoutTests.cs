@@ -250,7 +250,11 @@ namespace A305.Tutorial.Tests
 
         private static void AssertNear(Vector3 actual, Vector3 expected)
         {
-            Assert.That(Vector3.Distance(actual, expected), Is.LessThan(0.001f), $"{actual} ≠ {expected}");
+            Assert.That(
+                Vector3.Distance(actual, expected),
+                Is.LessThan(0.001f),
+                $"{actual} ≠ {expected}"
+            );
         }
 
         private static void AssertNear(Vector2 actual, Vector2 expected)

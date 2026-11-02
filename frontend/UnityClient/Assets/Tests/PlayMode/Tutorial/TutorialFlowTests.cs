@@ -104,7 +104,11 @@ namespace A305.Tutorial.PlayModeTests
             yield return null;
             PlayerMover player = Single<PlayerMover>();
             yield return StandInFrontOf(FindBen());
-            Assert.That(player.IsMovementLocked, Is.False, "Ben이 다가오는 동안에는 걸을 수 있습니다.");
+            Assert.That(
+                player.IsMovementLocked,
+                Is.False,
+                "Ben이 다가오는 동안에는 걸을 수 있습니다."
+            );
 
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);

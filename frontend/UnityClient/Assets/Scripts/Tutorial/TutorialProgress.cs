@@ -8,7 +8,11 @@ namespace A305.Tutorial
     /// </summary>
     public sealed class TutorialProgress
     {
-        private static readonly TutorialAction[] KeyboardWalk = { TutorialAction.Walk, TutorialAction.Run };
+        private static readonly TutorialAction[] KeyboardWalk =
+        {
+            TutorialAction.Walk,
+            TutorialAction.Run,
+        };
         private static readonly TutorialAction[] TouchWalk = { TutorialAction.Walk };
         private static readonly TutorialAction[] KeyboardLook =
         {

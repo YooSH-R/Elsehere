@@ -45,7 +45,10 @@ namespace A305.Tutorial.Tests
         [Test]
         public void PartCount_CountsTheDotSeparatedTasks()
         {
-            Assert.That(TutorialGuideText.PartCount("{W} 걷기 · {Shift} 달리기 · {V} 시점"), Is.EqualTo(3));
+            Assert.That(
+                TutorialGuideText.PartCount("{W} 걷기 · {Shift} 달리기 · {V} 시점"),
+                Is.EqualTo(3)
+            );
             Assert.That(TutorialGuideText.PartCount("문으로 나가기"), Is.EqualTo(1));
         }
 

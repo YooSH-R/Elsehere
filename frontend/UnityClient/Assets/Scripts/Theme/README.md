@@ -1,42 +1,87 @@
 # Theme 모듈
 
-사물 카드와 단어장은 기존 테마 목록·기본 글꼴·아이콘을 그대로 사용합니다. 테마를 바꾸면 열려 있는 창과 버튼도 함께 바뀌며, 선택한 목록 줄에는 현재 강조색을 옅게 적용합니다. `ThemedElement`의 `quiet`는 보조 조작의 바탕을 숨기고 `selection`은 목록 선택 색을 옅게 하는 표시 옵션입니다. 두 옵션은 기본값이 꺼져 있어 다른 화면의 스타일을 바꾸지 않습니다.
+화면 디자인은 **글래스 팝** 하나만 씁니다. 테마를 고르는 화면과 메뉴는 없습니다. 모든 기능 화면은 `ThemedElement` 역할(창·카드·입력칸·알약 버튼·아이콘 버튼·배지·메뉴 줄·제목·본문 등)로 칠하므로, 디자인 정의 하나를 바꾸면 전체 화면에 함께 적용됩니다.
 
-**Tools → A305 → UI → Apply Vocabulary Cards**로 두 프리팹만 갱신합니다. `THEME_PREVIEW_OUTPUT`에 출력 폴더를 지정해 `A305.EditorTools.Theme.UiThemePreview.CaptureVocabularyCards`를 실행하면 세 테마의 단어장·빈 목록·호버 카드를 고정 데이터로 캡처합니다. 서버·발음 API를 호출하지 않고 공간 씬도 저장하지 않습니다.
+- **유리:** 창·카드·입력칸은 뒤 화면을 흐리게 비추는 반투명 유리(`A305/UI/Glass`)로 그립니다. 위쪽 하이라이트와 가장자리 빛, 아래로 번지는 부드러운 그림자가 있습니다.
+- **입체 버튼:** 버튼·배지는 입체 재질(`A305/UI/Pop`)로 그립니다. 위가 밝은 그라데이션 앞면, 윗면 반사광, 아래 두께, 바닥 그림자가 있습니다. 버튼 쓰임 색만 바꾸면 노랑·코랄·하늘·초록 버튼이 됩니다.
+- **글꼴:** 제목·버튼 이름·배지·메뉴 줄은 둥근 제목 글꼴 **Jua**, 본문은 읽기 쉬운 **나눔스퀘어라운드**를 씁니다. 두 글꼴에 없는 글자는 Pretendard로 대신 그립니다.
+- **색:** 기본 흰색, 주 노랑 `#FFC23D`, 보조 코랄 `#FF7759`, 강조 하늘 `#45A8F0`, 완료 초록 `#4CB96B`
 
-플레이어는 처음 시작하는 집에서 화면 테마를 고릅니다. 테마는 **말랑 젤리**(기본)·**스티커 팝**·**구름 유리** 세 가지이며, 메인 화면의 지도·퀘스트 수첩·오른쪽 위 메뉴, 대화창, 피드백, 단어장 창, 튜토리얼 안내, 사물 단어 카드에 함께 적용됩니다. 오른쪽 위 메뉴(≡)를 누르면 단어장·피드백 목록·내 정보·테마(집에서만)·홈이 아이콘과 이름으로 펼쳐집니다. 피드백은 높이가 있는 글자 탭을 쓰고 닫기·페이지 이동은 아이콘만 표시합니다. 제목·버튼·본문의 기본 글꼴은 모든 테마가 **나눔스퀘어라운드**를 함께 사용하며, 지원하지 않는 글자에만 기존 Pretendard를 보조로 사용합니다.
+**규격**
+- **입력칸 높이:** 같은 줄에 놓인 입력칸과 버튼은 높이를 하나로 맞춥니다. 화면을 칠할 때(`UiThemeBuilder.Style`) 입력칸 높이를 같은 줄에서 가장 높은 버튼에 맞춥니다.
+- **아이콘과 이름:** 알약 버튼의 아이콘과 이름은 한 묶음으로 버튼 가운데에 둡니다(`PillContentLayout`). 아이콘은 글자 크기에 맞추고 이름과 10px 간격을 둡니다.
+- **아이콘을 두는 버튼:** 아이콘은 높이 64px 이상인 큰 주요 버튼에만 두고, 그보다 낮은 버튼은 이름만 둡니다.
 
-**Tools → A305 → UI → Apply Service Font**로 기본 글꼴과 기존 UI 프리팹의 글꼴을 맞춥니다. Regular 원본 한 개를 사용하고 굵기는 TMP 강조로 구분합니다. 원본은 네이버 공식 배포본이며 `Assets/ThirdParty/NanumSquareRound/LICENSE.txt`에 저작권 안내와 SIL OFL 1.1 전문을 포함합니다. 동적 글꼴이므로 사용한 글자만 채우고 빌드 시 아틀라스를 비웁니다. 한글 여러 줄이 맞닿아 보이지 않도록 글꼴 줄 높이를 글자 크기의 1.4배로 두고, TMP 설정의 한글 줄바꿈 규칙을 켜 단어 중간이 아닌 띄어쓰기에서 줄을 바꿉니다. 이 두 설정만 다시 맞출 때는 프리팹을 건드리지 않는 **Tools → A305 → UI → Apply Readable Text Spacing**을 씁니다.
+`ThemedElement`의 `quiet`는 보조 조작의 바탕을 숨기고, `selection`은 고른 카드·목록 줄을 주 색 쪽으로 칠합니다.
 
-고른 테마는 바로 화면에 적용하고 계정에 저장합니다(`PUT /api/v1/me/ui-theme`). 접속할 때 `GET /api/v1/bootstrap`의 `user.uiTheme`을 읽어 같은 테마로 시작합니다. 저장하지 못하면 이전 테마로 되돌리고 안내를 보입니다. 계약은 [MVP API 명세](../../../../../docs/api/mvp-api.md)의 USER-01을 따릅니다.
+## 흐린 뒤 화면
 
-**Tools → A305 → UI → Build Themes**가 제목 글꼴·아이콘·창과 버튼 그림·테마 데이터를 준비하고, 기존 화면 프리팹에 테마 역할을 붙인 뒤 집 씬에 테마 고르기 화면을 둡니다. 그림과 테마 데이터는 없을 때만 만들어, 디자인한 그림이나 Inspector에서 고친 색을 덮어쓰지 않습니다. `SpaceSceneSetup`도 같은 준비와 연결을 하므로 공간을 다시 구성해도 테마가 남습니다. **Tools → A305 → UI → Apply HUD Menu**는 HUD 버튼을 오른쪽 위 메뉴(≡)로 묶고, 집 씬에서 메뉴의 [테마]를 켜 테마 고르기 창과 잇습니다. **Tools → A305 → UI → Apply Unified Dialogs**는 대화 제안 창, 로그인·가입 화면, 피드백 목록·내 정보(선택 동의·시점 감도·회원 탈퇴 포함)·로그아웃·탈퇴 확인 창을 같은 규칙으로 칠합니다. 되돌릴 수 없는 [탈퇴하기]는 강조색 대신 코랄로 구분합니다. 창은 안쪽 여백 48·40px과 줄 간격 20px을 두고, 닫기는 창 오른쪽 위 X, 창마다 주요 동작 하나만 강조색 알약 버튼, 나머지 동작은 기본색 알약 버튼입니다. 동작 버튼은 높이 70px에 굵고 큰 글자를 쓰고, 아이콘과 이름을 한 묶음으로 버튼 가운데에 두며, 창 너비로 늘이지 않고 정한 폭으로 둡니다. 크림색 기본 버튼에서 잘 보이지 않는 흰 아이콘은 빼고 이름만 둡니다. 바탕 없이 화면에 떠 있는 [말 걸기]·[택시 세우기]는 인도·도로 위에서도 보이도록 보조색(코랄)과 그림자를 씁니다. 입력칸 안내 글자는 기울이지 않은 흐린 글자입니다. 고르는 캐릭터·카드는 `ThemedElement.SetSelected`로 고른 것만 강조색 쪽으로 진하게 칠하고, 캐릭터 버튼에는 고른 것에만 체크 배지를 켭니다. 입구 화면 배경은 테마 강조색을 엷게 깐 색(`Backdrop`)입니다. 입구 화면의 배경색·로그인 창 가운데 정렬과 약관 링크·캐릭터 체크만 다시 칠할 때는 `A305.EditorTools.Theme.UiThemeBuilder.ApplyEntryGuidance`를 실행합니다. **Tools → A305 → UI → Capture Theme Previews**는 세 테마로 집·마을·대화·피드백 화면을 그려 `THEME_PREVIEW_OUTPUT` 폴더에 저장합니다.
+유리 창은 `UiBackdropBlurFeature`가 만든 흐린 화면을 비춥니다. 이 렌더러 기능은 매 프레임 다음 순서로 동작합니다.
+
+1. 게임 카메라가 반투명 물체를 그리기 전 화면을 1/4로 줄여 복사합니다.
+2. 가로·세로 가우시안 흐림을 두 번 겁니다.
+3. 결과를 전역 텍스처 `_A305UiBackdrop`에 둡니다.
+
+화면 위 UI는 카메라가 다 그린 뒤에 그려지므로 같은 프레임의 흐린 화면을 씁니다. UI 자신은 흐림에 섞이지 않습니다. 이 기능은 웹이 쓰는 모바일 렌더러(`Settings/Mobile_Renderer.asset`)와 PC 렌더러에 붙어 있습니다. 기능이 없으면 유리는 이미지 색을 진하게 칠해 글자가 읽히게 합니다.
+
+입구 화면처럼 3D 공간이 없는 씬에서는 카메라 배경색이 유리에 비칩니다. 그래서 입구 카메라를 화면 배경과 같은 크림색으로 칠합니다(`OnboardingBuilder.PaintCamera`).
+
+## 그림과 여백
+
+유리·버튼 그림은 셰이더가 읽는 채널로 그립니다.
+
+| 그림 | R | G | B | A |
+| --- | --- | --- | --- | --- |
+| 유리(`Panel`·`Card`·`Input`) | 유리 모양 | 위쪽 하이라이트·가장자리 빛 | — | 모양 + 그림자 |
+| 버튼(`Button`·`Pill`) | 앞면 모양 | 앞면 위아래 위치(위 1) | 두께 | 모양 + 그림자 |
+
+그림에는 그림자를 그리는 바깥 여백이 있습니다. `SurfaceBleed`가 그 여백만큼 그리는 면을 바깥으로 넓혀, 보이는 유리·버튼 모양은 칸 경계에 맞고 그림자는 칸 밖으로 번집니다. 9칸 나눔의 테두리 폭은 그대로이고, 누르는 영역도 칸 그대로입니다. 여백 값은 디자인 정의의 `panelBleed`·`cardBleed`·`inputBleed`·`buttonBleed`·`pillBleed`에 두고, 그림을 그린 값과 같게 Builder가 맞춥니다. 버튼 그림은 위아래 여백이 같아 버튼 이름이 앞면 가운데에 옵니다.
+
+## Builder
+
+- **Tools → A305 → UI → Build Glass Pop Design**(`GlassPopBuilder`)이 다음을 차례로 합니다.
+  - 그림·재질·디자인 정의(`Data/Theme/GlassPop.asset`)를 준비합니다. 그림·재질은 없을 때만 만들고, 색은 처음 만들 때만 넣어 Inspector에서 고친 값을 유지합니다.
+  - 테마 목록을 디자인 하나로 맞춥니다.
+  - 흐린 뒤 화면 기능을 두 렌더러에 붙입니다.
+  - 테마 역할이 있는 프리팹을 다시 칠해 저장합니다.
+  - 입구 카메라 배경색을 맞춥니다.
+- **Tools → A305 → UI → Build Themes**는 아이콘과 디자인 데이터를 준비하고 기존 화면 프리팹에 테마 역할을 붙입니다. `SpaceSceneSetup`도 같은 준비를 하므로 공간을 다시 구성해도 디자인이 남습니다. 집 씬에 예전 테마 고르기 화면이 남아 있으면 지웁니다.
+- **Tools → A305 → UI → Apply HUD Menu**는 HUD 버튼을 오른쪽 위 메뉴(≡)로 묶습니다. 메뉴에는 [테마]를 두지 않습니다.
+- **Tools → A305 → UI → Apply Unified Dialogs**는 대화 제안 창, 로그인·가입 화면, 피드백 목록·내 정보·로그아웃·탈퇴 확인 창을 같은 규칙으로 칠합니다.
+- **Tools → A305 → UI → Apply Vocabulary Cards**는 단어장과 사물 단어 카드 프리팹만 갱신합니다.
+- **Tools → A305 → UI → Apply Service Font**는 본문 글꼴과 기존 UI 프리팹의 글꼴을 맞춥니다. 원본은 네이버 공식 배포본이며, `Assets/ThirdParty/NanumSquareRound/LICENSE.txt`에 저작권 안내와 SIL OFL 1.1 전문이 있습니다.
+- **Tools → A305 → UI → Apply Readable Text Spacing**은 프리팹을 건드리지 않고 두 설정만 다시 맞춥니다.
+  - 한글 여러 줄이 맞닿아 보이지 않게 줄 높이를 글자 크기의 1.4배로 둡니다.
+  - 단어 중간이 아니라 띄어쓰기에서 줄을 바꾸는 한글 줄바꿈 규칙을 켭니다.
+
+서버에는 계정 화면 테마 값(`user.uiTheme`, USER-01)이 남아 있지만, 화면은 어떤 값이 와도 같은 디자인으로 그립니다.
 
 ## 구성
 
 | 파일 | 역할 |
 | --- | --- |
-| `UiThemeId`, `UiThemeCodes` | 테마 종류와 서버 코드(JELLY·STICKER·CLOUD). 모르는 코드는 말랑 젤리로 봅니다. |
-| `UiThemeSelection` | 지금 적용할 테마와 바뀜 알림. 씬을 옮겨도 유지되도록 `Shared` 하나를 함께 씁니다. |
-| `ThemePickerFlow`, `UiThemeApi` | 고른 테마를 바로 적용하고 계정에 저장합니다. 저장하지 못하면 되돌립니다. Unity 객체 없이 테스트합니다. |
-| `UiThemeDefinition`, `UiThemeCatalog` | 테마 하나의 제목 글꼴·글자색·창과 버튼 그림·버튼 쓰임별 색, 그리고 테마 목록. |
-| `UiIconSet`, `UiIcon` | 버튼 아이콘 그림 묶음. 스티커 팝만 남색 테두리를 더한 묶음을 씁니다. |
-| `ThemedElement` | 화면 요소 하나를 역할(창·카드·아이콘 버튼·알약 버튼·메뉴 줄·배지·입력칸·제목·본문·입구 화면 배경 등)에 맞게 칠하고 테마가 바뀌면 다시 칠합니다. `SetSelected`로 고른 카드·목록 줄을 테마의 강조색 쪽으로 칠하고, 대화창 조작 버튼은 강조색으로 칠해 다음에 누를 곳을 보입니다(예: 보낼 문장이 있는 [보내기]). (EditMode `ThemedElementTests`) |
-| `ThemedTownMap`, `TownMapColors` | 실제 마을 배치를 바탕으로 그린 퀘스트 지도의 길·장소 카드·나무 아이콘과 목적지 표시를 선택한 테마에 맞춥니다. |
-| `ThemePickerView` | 테마 고르기 창. 집 씬에서는 HUD 메뉴의 [테마]로 엽니다. 각 카드는 그 테마로만 칠한 미리보기를 보여 줍니다. |
+| `UiThemeId`, `UiThemeCodes` | 서버가 보내는 테마 코드(JELLY·STICKER·CLOUD)를 읽습니다. 테마 목록은 디자인 하나라 어떤 코드여도 같은 디자인입니다. |
+| `UiThemeSelection` | 지금 적용할 테마와 바뀜 알림입니다. 씬을 옮겨도 유지되도록 `Shared` 하나를 함께 씁니다. |
+| `UiThemeDefinition`, `UiThemeCatalog` | 디자인의 글꼴(본문·제목)·글자색, 유리·입체 재질, 창과 버튼 그림과 바깥 여백, 버튼 쓰임별 색, 지도 색과 테마 목록입니다. |
+| `UiIconSet`, `UiIcon` | 버튼 아이콘 그림 묶음입니다. |
+| `ThemedElement` | 화면 요소 하나를 역할에 맞는 그림·색·재질·글꼴로 칠합니다. (EditMode `ThemedElementTests`, `GlassPopThemeTests`) |
+| `PillContentLayout` | 알약 버튼의 아이콘과 이름을 한 묶음으로 가운데에 두고, 낮은 버튼은 이름만 둡니다. (EditMode `PillContentLayoutTests`) |
+| `SurfaceBleed` | 그림의 그림자 여백만큼 그리는 면을 넓혀 보이는 모양을 칸에 맞춥니다. (EditMode `SurfaceBleedTests`) |
+| `UiBackdropBlurFeature` | 유리가 비출 흐린 뒤 화면을 만드는 URP 렌더러 기능입니다. |
+| `ThemedTownMap`, `TownMapColors` | 실제 마을 배치를 바탕으로 그린 퀘스트 지도의 길·장소 카드·나무 아이콘과 목적지 표시를 디자인 색에 맞춥니다. |
 
 ## 에셋 위치
 
 | 대상 | 위치 |
 | --- | --- |
-| 테마 데이터, 아이콘 묶음, 테마 목록 | `Assets/Data/Theme/` |
-| 아이콘·창·버튼 그림 | `Assets/Art/UI/Theme/` |
-| 기본 글꼴 에셋 | `Assets/Art/UI/Fonts/NanumSquareRound SDF.asset` (원본은 `Assets/ThirdParty/NanumSquareRound/`) |
-| 테마 고르기 화면 | `Assets/Prefabs/Theme/ThemePicker.prefab` |
+| 디자인 정의, 아이콘 묶음, 테마 목록 | `Assets/Data/Theme/` |
+| 유리·버튼 그림, 재질, 셰이더 | `Assets/Art/UI/Theme/GlassPop/` |
+| 아이콘 그림 | `Assets/Art/UI/Theme/Icons/` |
+| 본문·제목 글꼴 에셋 | `Assets/Art/UI/Fonts/NanumSquareRound SDF.asset`, `Jua-Regular SDF.asset` (원본은 `Assets/ThirdParty/`) |
 
 ## 의존성
 
 | 대상 | 용도 |
 | --- | --- |
-| `A305.Api` | 테마 저장 요청 |
-| uGUI, TextMeshPro | 화면 요소 칠하기와 테마 고르기 화면 |
+| uGUI, TextMeshPro | 화면 요소 칠하기 |
+| URP | 흐린 뒤 화면을 만드는 렌더러 기능 |

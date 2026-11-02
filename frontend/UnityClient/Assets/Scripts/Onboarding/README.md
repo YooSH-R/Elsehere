@@ -20,7 +20,7 @@
 | `LogoutFlow` | 로그아웃(AUTH-05). 이미 로그인이 풀렸어도 입구 화면으로 보냅니다. Unity 객체 없이 테스트합니다. |
 | `MyPageView` | 오른쪽 위 메뉴의 [내 정보]와 마이페이지 창·로그아웃 확인 창. 단어장 HUD 프리팹(`Prefabs/Learning/LearningHud`)에 붙어 있어 장소 씬마다 배치하지 않습니다. |
 | `OnboardingScreen` | 패널 입력을 `OnboardingFlow`에 전달하고 결과 화면을 보여 줍니다. 튜토리얼·마을 단계가 되면 씬을 바꿉니다. |
-| `LoginPanelView` 외 패널 | 화면 01~05, 게스트 캐릭터 선택(`GuestPanelView`), 접속 실패 화면(`ConnectionPanelView`). 언어·난이도 카드와 약관 줄은 템플릿을 복제합니다(`TemplateClones`). 창·버튼·입력칸은 기본 테마(말랑 젤리)로 칠하고, 고른 캐릭터와 카드는 `ThemedElement.SetSelected`로 테마의 강조색 쪽으로 칠합니다. 고른 캐릭터 버튼에는 체크 배지도 켭니다. 화면 뒤 배경은 테마 강조색을 엷게 깐 색입니다. |
+| `LoginPanelView` 외 패널 | 화면 01~05, 게스트 캐릭터 선택(`GuestPanelView`), 접속 실패 화면(`ConnectionPanelView`). 언어·난이도 카드와 약관 줄은 템플릿을 복제합니다(`TemplateClones`). 창·버튼·입력칸은 화면 디자인(글래스 팝: 반투명 유리 창과 입체 버튼)으로 칠하고, 고른 캐릭터와 카드는 `ThemedElement.SetSelected`로 테마의 강조색 쪽으로 칠합니다. 고른 캐릭터 버튼에는 체크 배지도 켭니다. 화면 뒤 배경은 테마 강조색을 엷게 깐 색입니다. |
 | `OnboardingSettings` | 튜토리얼·마을 씬 이름과 개발용 로그인 사용자(`Data/Onboarding/OnboardingSettings.asset`) |
 | `BrowserRedirect`, `Plugins/WebGL/BrowserRedirect.jslib` | Google 로그인을 같은 탭에서 엽니다. |
 | 나머지 | API 요청·응답 DTO |

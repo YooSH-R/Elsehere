@@ -38,6 +38,9 @@ namespace A305.Dialogue
         private ServerConversation serverConversation;
         private bool isEnding;
 
+        // 대화 시점이 바라보는 NPC 머리 위치. 대화가 끝나면 플레이어를 이쪽으로 돌린다.
+        private Transform partnerLookTarget;
+
         /// <summary>대화가 시작되면 NPC 키(ERD npcs.code)를 알린다.</summary>
         public event Action<string> Started;
 
@@ -134,6 +137,7 @@ namespace A305.Dialogue
                 scriptKey ?? npcCode,
                 out DialogueScript script
             );
+            partnerLookTarget = lookTarget;
             cameraRig.EnterDialogueView(lookTarget);
             player.SetMovementLocked(true);
 
@@ -318,6 +322,13 @@ namespace A305.Dialogue
                 serverLink.SetSpeaker(null);
             }
 
+            // 대화 시점이 보던 NPC 쪽을 그대로 보며 다시 걷도록 몸을 먼저 돌린다. 카메라는 시점을 되돌리며 몸 뒤에 선다.
+            if (partnerLookTarget != null)
+            {
+                player.FaceToward(partnerLookTarget.position);
+            }
+
+            partnerLookTarget = null;
             cameraRig.ExitDialogueView();
             player.SetMovementLocked(false);
             panel.Hide();

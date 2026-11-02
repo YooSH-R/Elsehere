@@ -102,6 +102,19 @@ namespace A305.Player
             groundContactPoint = null;
         }
 
+        /// <summary>제자리에서 주어진 지점을 수평으로 바라보게 몸을 돌린다. 대화를 마친 뒤 상대 쪽을 보게 할 때 쓴다.</summary>
+        public void FaceToward(Vector3 point)
+        {
+            Vector3 direction = point - transform.position;
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();

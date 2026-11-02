@@ -61,32 +61,40 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void Marker_OffScreen_StaysOnTheEdgePointingTowardTheTarget()
+        public void Marker_OffScreen_GoesToTheBottomCornerOnTheTargetSide_PointingThatWay()
         {
-            // 대상이 화면 밖이면 화살표를 가장자리에 두고 대상 쪽을 가리켜 어느 쪽으로 돌아야 할지 알려 준다.
+            // 대상이 화면 밖이면 위·옆 가장자리에서 안내 카드·메뉴와 겹치지 않게, 대상이 있는 쪽 아래 구석에서 돌아볼 방향을 가리킨다.
             CoachMarkLayout.MarkerPose right = CoachMarkLayout.Marker(
                 new Vector2(1200f, 300f),
                 false,
                 Canvas,
                 50f
             );
-            CoachMarkLayout.MarkerPose above = CoachMarkLayout.Marker(
-                new Vector2(400f, 900f),
+            CoachMarkLayout.MarkerPose aboveLeft = CoachMarkLayout.Marker(
+                new Vector2(300f, 900f),
+                false,
+                Canvas,
+                50f
+            );
+            CoachMarkLayout.MarkerPose aboveRight = CoachMarkLayout.Marker(
+                new Vector2(700f, 900f),
                 false,
                 Canvas,
                 50f
             );
 
-            AssertNear(right.Position, new Vector2(750f, 300f));
-            Assert.That(right.ArrowDegrees, Is.EqualTo(0f).Within(0.01f));
-            AssertNear(above.Position, new Vector2(400f, 550f));
-            Assert.That(above.ArrowDegrees, Is.EqualTo(90f).Within(0.01f));
+            AssertNear(right.Position, new Vector2(750f, 50f));
+            Assert.That(right.ArrowDegrees, Is.EqualTo(0f));
+            AssertNear(aboveLeft.Position, new Vector2(50f, 50f));
+            Assert.That(aboveLeft.ArrowDegrees, Is.EqualTo(180f));
+            AssertNear(aboveRight.Position, new Vector2(750f, 50f));
+            Assert.That(aboveRight.ArrowDegrees, Is.EqualTo(0f));
         }
 
         [Test]
-        public void Marker_BehindTheCamera_StaysOnTheBottomEdgeOnTheTargetSide()
+        public void Marker_BehindTheCamera_GoesToTheBottomCornerOnTheTargetSide()
         {
-            // 카메라 뒤의 점은 화면 좌표가 좌우로 뒤집혀 나오므로 되돌리고, 뒤돌아봐야 한다는 뜻으로 아래 가장자리에 둔다.
+            // 카메라 뒤의 점은 화면 좌표가 좌우로 뒤집혀 나오므로 되돌려 대상이 있는 쪽 아래 구석에 둔다.
             CoachMarkLayout.MarkerPose pose = CoachMarkLayout.Marker(
                 new Vector2(300f, 300f),
                 true,
@@ -94,9 +102,8 @@ namespace A305.Tutorial.Tests
                 50f
             );
 
-            Assert.That(pose.Position.y, Is.EqualTo(50f).Within(0.01f));
-            Assert.That(pose.Position.x, Is.GreaterThan(400f));
-            Assert.That(pose.ArrowDegrees, Is.LessThan(0f).And.GreaterThan(-90f));
+            AssertNear(pose.Position, new Vector2(750f, 50f));
+            Assert.That(pose.ArrowDegrees, Is.EqualTo(0f));
         }
 
         private static void AssertNear(Vector2 actual, Vector2 expected)

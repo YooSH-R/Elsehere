@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ch.qos.logback.classic.Level;
 import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.service.DialogueServiceTest;
+import com.elsehere.feedback.service.ModelSpeechStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.User;
@@ -23,6 +24,8 @@ class WithdrawalServiceTest {
   @Autowired private WithdrawalService withdrawalService;
 
   @Autowired private UserRepository userRepository;
+
+  @Autowired private ModelSpeechStore modelSpeechStore;
 
   @Autowired private EntityManager entityManager;
 
@@ -47,6 +50,20 @@ class WithdrawalServiceTest {
     assertThat(rows("select count(*) from ai_requests where user_id = ?", memberId)).isEqualTo(1);
     assertThat(UserContentTestData.contentRows(entityManager, jdbcTemplate, otherId))
         .allSatisfy((table, rows) -> assertThat(rows).as(table).isPositive());
+  }
+
+  @Test
+  @DisplayName("탈퇴하면 문장 피드백의 모범 음성 파일도 지운다")
+  void withdraw_deletesModelSpeech() {
+    String modelAudioKey = modelSpeechStore.save(new byte[] {82, 73, 70, 70});
+    Long memberId =
+        UserContentTestData.userWithContent(
+            entityManager, jdbcTemplate, AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    UserContentTestData.attachModelSpeech(jdbcTemplate, memberId, modelAudioKey);
+
+    withdrawalService.withdraw(memberId);
+
+    assertThat(modelSpeechStore.exists(modelAudioKey)).isFalse();
   }
 
   @Test

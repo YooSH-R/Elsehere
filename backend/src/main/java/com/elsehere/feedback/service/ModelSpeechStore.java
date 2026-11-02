@@ -55,6 +55,18 @@ public class ModelSpeechStore {
     }
   }
 
+  /** 내용 지우기(게스트 정리·탈퇴)에서 지운 문장 피드백의 음성 파일을 지운다. 없는 파일은 넘어간다. */
+  public void delete(String key) {
+    if (!isKey(key)) {
+      return;
+    }
+    try {
+      Files.deleteIfExists(directory.resolve(key));
+    } catch (IOException exception) {
+      throw new BusinessException(ErrorCode.INTERNAL_ERROR, exception);
+    }
+  }
+
   // 키는 서버가 만든 값만 받는다. 경로 조작을 막기 위해 형식을 확인한다.
   private static boolean isKey(String key) {
     return key != null && KEY_PATTERN.matcher(key).matches();

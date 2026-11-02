@@ -752,6 +752,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 1.4의 규칙대로 한 턴과 피드백에 쓸 토큰이 남아 있어야 시작하며, 피드백용 토큰을 예약합니다. 부족하면 `AI_QUOTA_EXHAUSTED`입니다.
 - 게스트(AUTH-07)는 이미 시작한 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. `message`는 사용량 소진 문구 대신 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). `details`는 1.5의 형식이며, 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 첫 인사를 만들지 못해 대화가 만들어지지 않은 시도는 세지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`입니다.
 - 진행 중인 대화가 있으면 `CONVERSATION_ALREADY_ACTIVE`를 `activeConversationId`와 함께 돌려줍니다.
+- 첫 인사를 만드는 사이 같은 사용자의 다른 시작 요청이 먼저 저장됐으면, 저장 직전에 다시 확인해 `CONVERSATION_ALREADY_ACTIVE`(게스트가 그 요청으로 횟수를 다 썼으면 `AI_QUOTA_EXHAUSTED`)로 거절합니다. 진행 중인 대화는 하나만 남습니다.
 - AI를 쓸 수 없는 상태에서는 행인 말걸기를 발생시키지 않습니다. `[제안]` 클라이언트가 BOOT-01·AI-01의 상태로 판단하고, 최종 확인은 이 API에서 합니다.
 
 #### CONV-02 `POST /api/v1/speech/transcriptions`
@@ -1150,7 +1151,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 ```
 
 - "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다. `counts.all`은 현재 `includeMemorized` 조건을 적용한 개수입니다.
-- 기본값은 `includeMemorized=false`, `size=20`입니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서는 `400 VALIDATION_FAILED`입니다.
+- 기본값은 `includeMemorized=false`, `size=20`이고 `size`는 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다.
 - `savedAt`은 한국 시각(`+09:00`)으로 보냅니다. 저장한 문장이 없으면 `context`는 `null`입니다.
 - 저장하는 것이 단어뿐이라 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocabularies.type`은 숙어를 검토할 때를 위해 그대로 둡니다.
 - `vocab.meaningKo`는 단어 하나의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
@@ -1317,7 +1318,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 
 마이페이지의 [회원 탈퇴]입니다. 확인 창을 거친 뒤 부릅니다. 응답은 본문 없이 `204`입니다.
 
-- 사용자가 남긴 내용을 바로 지웁니다. 범위는 게스트 내용 정리(AUTH-07)와 같습니다: 대화 원문(턴)·NPC 음성·피드백·NPC 기억과 관계·저장 단어·숨김·레벨 테스트 답·학습용 녹음.
+- 사용자가 남긴 내용을 바로 지웁니다. 범위는 게스트 내용 정리(AUTH-07)와 같습니다: 대화 원문(턴)·NPC 음성·대화 피드백·문장 피드백과 모범 음성·NPC 기억과 관계·저장 단어·숨김·레벨 테스트 답·학습용 녹음.
 - 개인정보도 지웁니다.
   - 이메일을 비웁니다.
   - 소셜 계정 ID(`provider_uid`)는 `withdrawn-`으로 시작하는 임의 값으로, 닉네임은 `withdrawn-{사용자 ID}`로 바꿉니다. 같은 Google 계정과 같은 닉네임으로 다시 가입할 수 있습니다.

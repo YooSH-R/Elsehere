@@ -43,8 +43,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 대화 시작(CONV-01)·종료(CONV-08)·조회(CONV-10·11).
  *
- * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 게스트는 대화 횟수로 제한하고, 사용자 AI 한도 예약·차감, 미션 연결,
- * 종료 피드백은 아직 하지 않는다.
+ * <p>AI를 부르는 동안 DB 트랜잭션을 잡지 않도록 조회 → AI 호출 → 저장을 나눠 처리한다. 게스트는 대화 횟수로 제한한다. 사용자 AI 한도 예약·차감은 아직 하지
+ * 않는다.
  */
 @Slf4j
 @Service
@@ -93,6 +93,11 @@ public class ConversationService {
     ConversationStartResponse started =
         transactionTemplate.execute(
             status -> {
+              // AI를 기다리는 사이 같은 사용자의 다른 시작 요청이 저장됐을 수 있다. 사용자 행을 잠가 시작 요청을 한 줄로 세우고 다시 확인한다.
+              ensureCanStart(
+                  userRepository
+                      .findForUpdate(userId)
+                      .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)));
               Conversation conversation =
                   conversationRepository.save(
                       Conversation.start(
@@ -189,19 +194,11 @@ public class ConversationService {
   }
 
   private StartContext startContext(Long userId, String npcCode) {
-    conversationRepository
-        .findFirstByUserIdAndStatus(userId, ConversationStatus.ACTIVE)
-        .ifPresent(
-            active -> {
-              throw new BusinessException(
-                  ErrorCode.CONVERSATION_ALREADY_ACTIVE,
-                  Map.of("activeConversationId", active.getId()));
-            });
     User user =
         userRepository
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    guestConversationLimit.check(user);
+    ensureCanStart(user);
     NpcContext npc = support.npcByCode(npcCode);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
@@ -212,6 +209,19 @@ public class ConversationService {
         selectedLevel(user),
         memoryService.memoryFor(userId, npc.npcId()),
         firstDayMissionService.context(userId, npcCode));
+  }
+
+  // 진행 중인 대화가 없고 게스트 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 두 번 확인한다.
+  private void ensureCanStart(User user) {
+    conversationRepository
+        .findFirstByUserIdAndStatus(user.getId(), ConversationStatus.ACTIVE)
+        .ifPresent(
+            active -> {
+              throw new BusinessException(
+                  ErrorCode.CONVERSATION_ALREADY_ACTIVE,
+                  Map.of("activeConversationId", active.getId()));
+            });
+    guestConversationLimit.check(user);
   }
 
   // 대화 난이도는 지금 학습 언어에서 고른 난이도다. 설정 전이면 기본값(초급)이다.

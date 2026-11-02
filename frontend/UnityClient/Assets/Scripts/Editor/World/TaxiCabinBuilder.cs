@@ -257,41 +257,14 @@ namespace A305.EditorTools.World
                 taxi.TransformPoint(new Vector3(-.29f, .62f, .13f)),
                 taxi.forward
             );
-            SolveLimb(
-                animator,
-                HumanBodyBones.LeftUpperArm,
-                HumanBodyBones.LeftLowerArm,
-                HumanBodyBones.LeftHand,
-                taxi.TransformPoint(new Vector3(-.49f, .90f, .25f)),
-                -taxi.right
-            );
-            SolveLimb(
-                animator,
-                HumanBodyBones.RightUpperArm,
-                HumanBodyBones.RightLowerArm,
-                HumanBodyBones.RightHand,
-                taxi.TransformPoint(new Vector3(-.27f, .90f, .25f)),
-                taxi.right
-            );
+            VehicleDriverBuilder.FitSteering(taxi, driver);
             Transform head = animator.GetBoneTransform(HumanBodyBones.Head);
             identity.LookTarget.position = head.position;
             foreach (Transform bone in driver.GetComponentsInChildren<Transform>(true))
                 PrefabUtility.RecordPrefabInstancePropertyModifications(bone);
-            Transform wheel = taxi.Find("SteeringWheel");
-            Transform column = taxi.Find("SteeringColumn");
-            if (wheel != null)
-            {
-                wheel.localPosition = new Vector3(-.38f, .90f, .26f);
-                wheel.localRotation = Quaternion.Euler(65, 0, 0);
-            }
-            if (column != null)
-            {
-                column.localPosition = new Vector3(-.38f, .79f, .42f);
-                column.localRotation = Quaternion.Euler(65, 0, 0);
-            }
         }
 
-        private static void SolveLimb(
+        internal static void SolveLimb(
             Animator animator,
             HumanBodyBones rootBone,
             HumanBodyBones middleBone,

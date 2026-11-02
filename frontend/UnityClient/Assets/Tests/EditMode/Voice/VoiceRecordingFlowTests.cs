@@ -149,6 +149,76 @@ namespace A305.Voice.Tests
         }
 
         [Test]
+        public void MicrophoneStillOpening_IsPreparingUntilSoundArrives()
+        {
+            microphone.CapturesOnStart = false;
+            flow.StartRecording(10f);
+            flow.Update(10.25f);
+
+            Assert.That(flow.IsRecording, Is.True);
+            Assert.That(flow.IsPreparing, Is.True);
+
+            microphone.IsCapturing = true;
+            flow.Update(10.5f);
+
+            Assert.That(flow.IsPreparing, Is.False);
+        }
+
+        [Test]
+        public void MicrophoneAlreadyOpen_IsNotPreparing()
+        {
+            flow.StartRecording(10f);
+
+            Assert.That(flow.IsRecording, Is.True);
+            Assert.That(flow.IsPreparing, Is.False);
+        }
+
+        // 마이크가 열리는 동안은 말해도 녹음되지 않으므로 그 시간을 무음으로 세면 말하기도 전에 끝난다.
+        [Test]
+        public void SilenceIsCountedFromWhenSoundArrives()
+        {
+            microphone.CurrentLevel = Quiet;
+            microphone.CapturesOnStart = false;
+            flow.StartRecording(10f);
+            flow.Update(14f);
+            Assert.That(finished, Is.Empty);
+
+            microphone.IsCapturing = true;
+            flow.Update(14.25f);
+            flow.Update(17f);
+            Assert.That(finished, Is.Empty);
+            flow.Update(17.25f);
+
+            Assert.That(finished, Has.Count.EqualTo(1));
+            Assert.That(finished[0].EndReason, Is.EqualTo(RecordingEndReason.Silence));
+            Assert.That(finished[0].DurationSeconds, Is.EqualTo(3f).Within(0.001f));
+        }
+
+        [Test]
+        public void StoppedWhilePreparing_FinishesWithEmptyWav()
+        {
+            microphone.CapturesOnStart = false;
+            flow.StartRecording(10f);
+            flow.Update(10.25f);
+            flow.StopRecording(10.5f);
+
+            Assert.That(flow.IsRecording, Is.False);
+            Assert.That(flow.IsPreparing, Is.False);
+            Assert.That(finished, Has.Count.EqualTo(1));
+            Assert.That(finished[0].Samples, Is.Empty);
+        }
+
+        [Test]
+        public void KeepMicrophoneOpen_HoldsMicrophoneUntilReleased()
+        {
+            flow.KeepMicrophoneOpen();
+            Assert.That(microphone.IsKeptOpen, Is.True);
+
+            flow.ReleaseMicrophone();
+            Assert.That(microphone.IsKeptOpen, Is.False);
+        }
+
+        [Test]
         public void StoppingOrLeavingWithoutRecording_FinishesNothing()
         {
             flow.StopRecording(10f);

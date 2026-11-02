@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: A305.Dialogue::A305.Dialogue.MockDialogueScriptSource
   entries:
   - npcCode: TUTORIAL_PASSERBY
-    npcName: Alex
+    npcName: Ben
     roleLabel: "\uC774\uC6C3"
     opening:
       english: "Excuse me! Could you tell me how to get to the caf\xE9?"

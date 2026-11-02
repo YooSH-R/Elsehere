@@ -5,8 +5,9 @@ import re
 
 from .llm import LLM, Usage
 
-# Whisper 프롬프트: 한영 혼합 예시를 주면 "muffin 하나"의 muffin을 한글로 바꾸지 않는다 (asr_eval 음성으로 확인)
-STT_PROMPT = "I want... 아이스 라떼... Can I get a muffin, 음, 하나? The bus stop is over there."
+# Whisper 프롬프트: 한영 혼합 예시를 주면 "muffin 하나"의 muffin을 한글로 바꾸지 않는다 (asr_eval 음성으로 확인).
+# 메뉴 예시는 영어로 쓴다. 한글 '아이스 라떼'는 한국식 발음 'Iced americano'를 '아이스트 아메라카노'로 끌어당겼다 (S15P31A305-397)
+STT_PROMPT = "I want... an iced latte... Can I get a muffin, 음, 하나? The bus stop is over there."
 STT_MAX_BYTES = 3 * 1024 * 1024
 AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "mp4", "audio/wav": "wav", "audio/x-wav": "wav", "audio/mpeg": "mp3"}
 NORM = re.compile(r"[^a-z0-9가-힣 ]")
@@ -18,17 +19,24 @@ def stt_prompt(scene_words: list[str]) -> str:
     return STT_PROMPT + (" " + ", ".join(words) + "." if words else "")
 
 
-def is_prompt_echo(text: str, prompt: str) -> bool:
-    """Whisper는 무음에 프롬프트를 되풀이한다. 프롬프트의 긴 조각과 같으면 버린다.
-    (짧은 말 'Latte.'는 프롬프트 단어와 같아도 진짜 발화일 수 있어 12자 미만은 거르지 않는다)"""
-    t = NORM.sub("", text.lower()).strip()
-    return len(t) >= 12 and t in NORM.sub("", prompt.lower())
+def normalize(text: str) -> str:
+    return " ".join(NORM.sub("", text.lower()).split())
+
+
+def is_prompt_echo(text: str, scene_words: list[str]) -> bool:
+    """Whisper는 무음에 프롬프트 끝부분(마지막 문장, 장면 단어 목록, 프롬프트 전체)을 되풀이한다. 그 끝부분과 같으면 버린다.
+    프롬프트 앞·중간의 예시 문장('Can I get a muffin?')과 장면 단어 하나('Iced Americano.')는 학습자가 실제로 하는 말이라 거르지 않는다.
+    짧은 말 'Latte.'도 진짜 발화일 수 있어 12자 미만은 거르지 않는다."""
+    t = normalize(text)
+    if len(t) < 12 or t in {normalize(w) for w in scene_words}:
+        return False
+    endings = (normalize(STT_PROMPT), normalize(stt_prompt(scene_words)))
+    return any(p == t or p.endswith(" " + t) for p in endings)
 
 
 async def stt(llm: LLM, audio: bytes, mime: str, scene_words: list[str]) -> dict:
     """mime은 AUDIO_EXT에 있는 형식만 받는다 (라우트가 매개변수를 떼고 걸러 415로 돌려줌)."""
     usage = Usage()
-    prompt = stt_prompt(scene_words)
-    out = await llm.transcribe(audio, f"speech.{AUDIO_EXT[mime]}", mime, prompt, usage)
-    text = "" if is_prompt_echo(out["text"], prompt) else out["text"]
+    out = await llm.transcribe(audio, f"speech.{AUDIO_EXT[mime]}", mime, stt_prompt(scene_words), usage)
+    text = "" if is_prompt_echo(out["text"], scene_words) else out["text"]
     return {"text": text, "latency_s": out["latency_s"], "audio_s": out["audio_s"], "usage": usage.items}

@@ -217,6 +217,20 @@ namespace A305.EditorTools.Theme
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>대화창의 로딩(대사 칸 로딩, 피드백 로딩 창)만 테마로 칠한다. 대화창의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyDialogueWaitingTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleDialogueWaiting);
+        }
+
+        /// <summary>피드백 요약 탭의 표현 줄만 테마로 칠한다. 피드백 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyFeedbackSituationTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Learning/FeedbackScreen.prefab", StyleFeedbackSituations);
+        }
+
         [MenuItem("Tools/A305/UI/Apply Text Insets And Alignment")]
         public static void ApplyTextInsets()
         {
@@ -844,6 +858,22 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");
             QuietButton(root, "Panel/Buttons/VocabularyButton", "단어장");
+            StyleFeedbackSituations(root);
+        }
+
+        private static void StyleFeedbackSituations(Transform root)
+        {
+            const string rows = "Panel/PageCard/Situations";
+            Role(root, rows + "/Header", UiThemeRole.Accent);
+            Role(root, rows + "/SituationRowTemplate", UiThemeRole.Input);
+            Role(root, rows + "/SituationRowTemplate/Texts/Phrase", UiThemeRole.Body);
+            Role(root, rows + "/SituationRowTemplate/Texts/Usage", UiThemeRole.Muted);
+            PillButton(
+                root,
+                rows + "/SituationRowTemplate/SaveButton",
+                UiIcon.Save,
+                UiTone.Primary
+            );
         }
 
         private static void StyleVocabulary(Transform root)
@@ -1052,6 +1082,16 @@ namespace A305.EditorTools.Theme
             );
             IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
+            StyleDialogueWaiting(root);
+        }
+
+        private static void StyleDialogueWaiting(Transform root)
+        {
+            Role(root, "Panel/Conversation/History/Wait", UiThemeRole.Card);
+            Role(root, "Panel/Conversation/History/Wait/Row/Label", UiThemeRole.Title);
+            Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
+            Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
+            Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);
         }
 
         private static void StyleTutorial(Transform root)

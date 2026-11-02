@@ -5,7 +5,8 @@ using UnityEngine;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 서버·AI 연동 전에 쓰는 확인용 대화 대본. 튜토리얼 행인은 정해진 길 안내 3턴을, 나머지 NPC는 키워드 응답을 쓴다.
+    /// 서버·AI 연동 전에 쓰는 확인용 대화 대본. 튜토리얼 대본(키 TUTORIAL_PASSERBY)은 튜토리얼 동안 마을 행인 Ben이 말하는 정해진
+    /// 길 안내 3턴이고, 나머지 NPC는 키워드 응답을 쓴다.
     /// 목록에 없는 NPC는 <see cref="fallback"/> 대본으로 대화한다.
     /// 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 한다.
     /// </summary>
@@ -21,7 +22,7 @@ namespace A305.Dialogue
             new Entry
             {
                 npcCode = "TUTORIAL_PASSERBY",
-                npcName = "Alex",
+                npcName = "Ben",
                 roleLabel = "이웃",
                 opening = new LineEntry(
                     "Excuse me! Could you tell me how to get to the café?",

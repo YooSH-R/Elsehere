@@ -28,6 +28,9 @@ namespace A305.Dialogue
         /// <summary>기다림·오류·안내 문구. 없으면 null이다.</summary>
         string StatusMessage { get; }
 
+        /// <summary>대화창이 로딩으로 크게 보여 줄 기다림. 짧은 기다림이나 기다리지 않을 때는 None이다.</summary>
+        DialogueWait Waiting { get; }
+
         /// <summary>오류나 대화 종료 뒤 사용자가 할 수 있는 일. 상태 문구 아래에 보이며, 없으면 null이다.</summary>
         string RecoveryGuide { get; }
 

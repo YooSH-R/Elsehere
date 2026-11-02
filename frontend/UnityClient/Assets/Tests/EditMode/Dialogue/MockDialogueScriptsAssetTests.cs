@@ -65,6 +65,20 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void TutorialScript_IsSpokenByBenTheTownPasserby()
+        {
+            // 집 앞에서 길을 묻는 튜토리얼 대본은 마을 행인 Ben이 말한다(같은 사람).
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript tutorial);
+            scripts.TryGetScript("TOWN_PASSERBY", out DialogueScript town);
+
+            Assert.That(tutorial.NpcName, Is.EqualTo("Ben"));
+            Assert.That(tutorial.NpcName, Is.EqualTo(town.NpcName));
+            Assert.That(tutorial.GuidedTurns, Has.Count.EqualTo(3), "대본 흐름은 그대로입니다.");
+        }
+
+        [Test]
         public void TutorialPasserby_GainsItsRole()
         {
             var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);

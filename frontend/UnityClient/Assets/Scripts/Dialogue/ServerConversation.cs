@@ -99,6 +99,8 @@ namespace A305.Dialogue
         public DialogueWait Waiting { get; private set; }
         public IReadOnlyList<string> SuggestWords { get; private set; }
 
+        public bool IsSuggestingWords { get; private set; }
+
         /// <summary>NPC가 대화를 끝냈는지(무례 누적, 사용량 소진 등).</summary>
         public bool IsEnded { get; private set; }
 
@@ -120,14 +122,14 @@ namespace A305.Dialogue
         public bool CanReplaySpeech =>
             LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
 
-        public Task StartAsync()
+        public async Task StartAsync()
         {
             if (startRequestId == null)
             {
                 startRequestId = NewRequestId();
             }
 
-            return RunAsync(
+            await RunAsync(
                 "대화를 시작하고 있어요...",
                 async () =>
                 {
@@ -144,6 +146,7 @@ namespace A305.Dialogue
                 StartAsync,
                 DialogueWait.Opening
             );
+            _ = SuggestWordsAsync();
         }
 
         /// <summary>문장을 보낸다. 직전에 전사한 문장을 그대로 보내면 음성 입력으로 보낸다.</summary>
@@ -216,6 +219,8 @@ namespace A305.Dialogue
                 RecoveryGuide = isQuotaExhausted ? QuotaEndedGuide : null;
                 Changed?.Invoke();
             }
+
+            _ = SuggestWordsAsync();
         }
 
         /// <summary>
@@ -481,10 +486,52 @@ namespace A305.Dialogue
             LastNpcLine = line;
             LastNpcTurn = turn;
             SuggestWords = turn.SuggestWords;
+            IsSuggestingWords = false;
             // 단어 풀이와 힌트는 지난 대사의 것이므로 새 대사에서는 다시 받는다.
             LastNpcGlossary = null;
             HintText = null;
             NpcSpoke?.Invoke(turn);
+        }
+
+        /// <summary>
+        /// 마지막 NPC 대사의 추천 단어를 받는다(CONV-12). 대사를 기다리지 않게 하려고 서버가 대사와 따로 만들므로 [보내기]를 막지 않고 뒤에서 받는다.
+        /// 이미 받았거나 받는 중이거나 대화가 끝났으면 요청하지 않는다.
+        /// </summary>
+        private async Task SuggestWordsAsync()
+        {
+            NpcTurnData turn = LastNpcTurn;
+            if (turn == null || turn.SuggestWords != null || IsSuggestingWords || IsEnded)
+            {
+                return;
+            }
+
+            IsSuggestingWords = true;
+            Changed?.Invoke();
+            List<string> words = null;
+            try
+            {
+                SuggestWordsData result = await api.GetSuggestWordsAsync(
+                    turn.TurnId,
+                    NewRequestId()
+                );
+                words = result?.SuggestWords;
+            }
+            catch (Exception exception)
+            {
+                // 추천 단어는 대화를 돕는 보조 정보라 실패해도 대화를 막지 않고 칸만 비워 둔다.
+                Debug.LogWarning($"추천 단어를 받지 못했어요: {exception.Message}");
+            }
+
+            turn.SuggestWords = words;
+            // 단어를 기다리는 사이 NPC가 새로 말했으면 지난 대사의 단어는 보여 주지 않는다.
+            if (LastNpcTurn != turn)
+            {
+                return;
+            }
+
+            SuggestWords = words;
+            IsSuggestingWords = false;
+            Changed?.Invoke();
         }
 
         /// <param name="retry">일시적인 장애로 실패하면 [다시 시도]가 부를 요청. 다시 시도하지 않는 요청은 null이다.</param>

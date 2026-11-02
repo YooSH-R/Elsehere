@@ -117,12 +117,7 @@ public class ConversationService {
               Turn openingTurn =
                   turnRepository.save(
                       Turn.npc(
-                          conversation,
-                          1,
-                          opening.text(),
-                          support.writeWords(opening.suggestWords()),
-                          opening.npcAudioKey(),
-                          clock.instant()));
+                          conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
               return new ConversationStartResponse(
                   conversation.getId(),
                   conversation.getStatus(),
@@ -239,7 +234,7 @@ public class ConversationService {
 
   // 행인 말걸기에 응답하면 이미 보여 준 말걸기 대사를 첫 턴으로 저장하고 AI를 부르지 않는다.
   private Opening approachOpening(NpcContext npc) {
-    return new Opening(npc.approachLine(), null, npc.approachAudioKey());
+    return new Opening(npc.approachLine(), npc.approachAudioKey());
   }
 
   private Opening greetingOpening(WorkerTrace trace, NpcContext npc, StartContext context) {
@@ -264,8 +259,7 @@ public class ConversationService {
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
     }
-    return new Opening(
-        reply.text(), reply.suggestWords(), support.saveNpcAudio(trace, reply.audioFullId()));
+    return new Opening(reply.text(), support.saveNpcAudio(trace, reply.audioFullId()));
   }
 
   /**
@@ -279,5 +273,5 @@ public class ConversationService {
       WorkerMemory memory,
       Optional<FirstDayMissionService.Context> mission) {}
 
-  private record Opening(String text, List<String> suggestWords, String npcAudioKey) {}
+  private record Opening(String text, String npcAudioKey) {}
 }

@@ -5,7 +5,6 @@ import static com.elsehere.conversation.DialogueTestData.usage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -86,10 +85,8 @@ class TurnServiceTest {
   @DisplayName("NPC 대답에 대화하는 사용자의 닉네임과 캐릭터를 실어 NPC가 캐릭터에 맞는 호칭을 쓰게 한다")
   void send_passesTheLearnerToTheNpcReply() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), anyBoolean(), any()))
-        .willReturn(reply("Great day for a walk!", "audio-2", List.of()));
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
+        .willReturn(reply("Great day for a walk!", "audio-2"));
     given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
 
     turnService.send(
@@ -105,18 +102,16 @@ class TurnServiceTest {
             eq("네 맑아요"),
             anyString(),
             anyInt(),
-            anyBoolean(),
             eq(new WorkerLearner("Sun", "F")));
   }
 
   @Test
-  @DisplayName("판정한 문장·번역·무례 판정값으로 사용자 턴을, NPC 대답과 음성으로 NPC 턴을 이어서 저장하고 호출 기록을 남긴다")
+  @DisplayName(
+      "판정한 문장·번역·무례 판정값으로 사용자 턴을, NPC 대답과 음성으로 NPC 턴을 이어서 저장하고 호출 기록을 남긴다. 추천 단어는 따로 받으므로 비워 둔다")
   void send_savesUserAndNpcTurns() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), anyBoolean(), any()))
-        .willReturn(reply("Great day for a walk!", "audio-2", List.of("walk", "park")));
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("네 맑아요"), eq(""), anyInt(), any()))
+        .willReturn(reply("Great day for a walk!", "audio-2"));
     given(aiWorkerClient.audio(any(), eq("audio-2"))).willReturn(WAV);
     UUID requestId = UUID.randomUUID();
 
@@ -130,7 +125,7 @@ class TurnServiceTest {
     assertThat(response.userTurn().translation().english()).isEqualTo("Yes, it's sunny.");
     assertThat(response.npcTurn().seq()).isEqualTo(3);
     assertThat(response.npcTurn().text()).isEqualTo("Great day for a walk!");
-    assertThat(response.npcTurn().suggestWords()).containsExactly("walk", "park");
+    assertThat(response.npcTurn().suggestWords()).isNull();
     assertThat(response.npcTurn().speech().status()).isEqualTo(SpeechStatus.READY);
     assertThat(speechService.npcSpeech(userId, response.npcTurn().turnId())).isEqualTo(WAV);
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
@@ -152,16 +147,8 @@ class TurnServiceTest {
     guards("닥쳐 멍청아", true, null);
     given(
             aiWorkerClient.reply(
-                any(),
-                any(),
-                any(),
-                any(),
-                eq("닥쳐 멍청아"),
-                anyString(),
-                anyInt(),
-                anyBoolean(),
-                any()))
-        .willReturn(reply("That's not okay to say.", null, List.of("sorry")));
+                any(), any(), any(), any(), eq("닥쳐 멍청아"), anyString(), anyInt(), any()))
+        .willReturn(reply("That's not okay to say.", null));
 
     TurnResponse response = send("닥쳐 멍청아");
 
@@ -179,7 +166,6 @@ class TurnServiceTest {
             eq("닥쳐 멍청아"),
             eq(TurnService.RUDE_WARNING),
             anyInt(),
-            eq(true),
             any());
     TurnDetailResponse saved = conversationService.detail(userId, conversationId).turns().get(1);
     assertThat(saved.rude()).isTrue();
@@ -187,7 +173,7 @@ class TurnServiceTest {
   }
 
   @Test
-  @DisplayName("무례한 말이 한도에 닿으면 퇴장 지시문으로 대답하고 추천 단어 없이 NPC가 대화를 끝낸다")
+  @DisplayName("무례한 말이 한도에 닿으면 퇴장 지시문으로 대답하고 NPC가 대화를 끝낸다")
   void send_abusiveAtLimit_endsConversation() {
     for (int count = 1; count <= ConversationSupport.RUDE_LIMIT; count++) {
       String text = "you idiot " + count;
@@ -195,8 +181,8 @@ class TurnServiceTest {
       guards(text, true, null);
       given(
               aiWorkerClient.reply(
-                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean(), any()))
-          .willReturn(reply("Stop it.", null, null));
+                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+          .willReturn(reply("Stop it.", null));
     }
 
     send("you idiot 1");
@@ -216,7 +202,6 @@ class TurnServiceTest {
             eq("you idiot 3"),
             eq(TurnService.RUDE_LEAVE),
             anyInt(),
-            eq(false),
             any());
     assertThat(conversationService.detail(userId, conversationId).endedAt()).isNotNull();
   }
@@ -230,8 +215,8 @@ class TurnServiceTest {
       guards(text, true, null);
       given(
               aiWorkerClient.reply(
-                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean(), any()))
-          .willReturn(reply("Stop it.", null, null));
+                  any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+          .willReturn(reply("Stop it.", null));
     }
 
     try (LogCapture logs = LogCapture.atInfo(TurnService.class)) {
@@ -252,7 +237,7 @@ class TurnServiceTest {
   void send_guardUndecided_keepsCountAndHidesTranslation() {
     judges("네 맑아요", "네 맑아요", "Yes, it's sunny.");
     guards("네 맑아요", null, "timeout");
-    repliesTo("네 맑아요", reply("Great!", null, null));
+    repliesTo("네 맑아요", reply("Great!", null));
 
     TurnResponse response = send("네 맑아요");
 
@@ -270,7 +255,7 @@ class TurnServiceTest {
     judges("Yes", "Yes", null);
     given(aiWorkerClient.guard(any(), any(), any(), eq("Yes")))
         .willThrow(new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
-    repliesTo("Yes", reply("Nice!", null, null));
+    repliesTo("Yes", reply("Nice!", null));
 
     TurnResponse response = send("Yes");
 
@@ -288,19 +273,11 @@ class TurnServiceTest {
     guards("you idiot", true, null);
     given(
             aiWorkerClient.reply(
-                any(),
-                any(),
-                any(),
-                any(),
-                eq("you idiot"),
-                anyString(),
-                anyInt(),
-                anyBoolean(),
-                any()))
-        .willReturn(reply("Not okay.", null, null));
+                any(), any(), any(), any(), eq("you idiot"), anyString(), anyInt(), any()))
+        .willReturn(reply("Not okay.", null));
     send("you idiot");
     judges("Sorry", "Sorry", null);
-    repliesTo("Sorry", reply("It's fine.", null, null));
+    repliesTo("Sorry", reply("It's fine.", null));
 
     send("Sorry");
 
@@ -318,7 +295,7 @@ class TurnServiceTest {
   @DisplayName("음성 입력은 입력 종류와 전사 원문을 함께 저장한다")
   void send_voice_savesSttRawText() {
     judges("Yes it is", "Yes it is", null);
-    repliesTo("Yes it is", reply("Indeed!", null, null));
+    repliesTo("Yes it is", reply("Indeed!", null));
     UUID requestId = UUID.randomUUID();
 
     turnService.send(
@@ -335,7 +312,7 @@ class TurnServiceTest {
   @DisplayName("판정과 대답에는 앞선 대화를 함께 보낸다")
   void send_sendsHistory() {
     judges("Yes", "Yes", null);
-    repliesTo("Yes", reply("Nice!", null, null));
+    repliesTo("Yes", reply("Nice!", null));
 
     turnService.send(
         userId, conversationId, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Yes", null));
@@ -354,9 +331,9 @@ class TurnServiceTest {
             new JudgeResult(
                 "Hi!", false, null, null, List.of(usage("intent")), null, List.of("GREETING")));
     guards("Hi!", false, null);
-    repliesTo("Hi!", reply("Hello!", null, null));
+    repliesTo("Hi!", reply("Hello!", null));
     judges("Bye", "Bye", null);
-    repliesTo("Bye", reply("See you!", null, null));
+    repliesTo("Bye", reply("See you!", null));
 
     send("Hi!");
     send("Bye");
@@ -365,16 +342,7 @@ class TurnServiceTest {
     ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
     then(aiWorkerClient)
         .should()
-        .reply(
-            any(),
-            any(),
-            any(),
-            history.capture(),
-            eq("Bye"),
-            anyString(),
-            anyInt(),
-            anyBoolean(),
-            any());
+        .reply(any(), any(), any(), history.capture(), eq("Bye"), anyString(), anyInt(), any());
     assertThat(history.getValue())
         .containsExactly(
             WorkerLine.npc(OPENING),
@@ -386,7 +354,7 @@ class TurnServiceTest {
   @DisplayName("같은 요청 ID로 다시 보내면 턴을 새로 만들지 않고 저장된 결과를 돌려준다")
   void send_sameRequestIdTwice_replaysSavedTurns() {
     judges("Yes", "Yes", null);
-    repliesTo("Yes", reply("Nice!", null, null));
+    repliesTo("Yes", reply("Nice!", null));
     TurnRequest request = new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Yes", null);
     TurnResponse first = turnService.send(userId, conversationId, request);
 
@@ -401,7 +369,7 @@ class TurnServiceTest {
   @DisplayName("다른 대화에서 쓴 요청 ID로 보내면 REQUEST_ID_CONFLICT다")
   void send_requestIdUsedInOtherConversation_throwsConflict() {
     judges("Yes", "Yes", null);
-    repliesTo("Yes", reply("Nice!", null, null));
+    repliesTo("Yes", reply("Nice!", null));
     UUID requestId = UUID.randomUUID();
     turnService.send(
         userId, conversationId, new TurnRequest(requestId, InputType.TEXT, "Yes", null));
@@ -442,14 +410,14 @@ class TurnServiceTest {
     assertThat(conversationService.detail(userId, conversationId).turns()).hasSize(1);
     then(aiWorkerClient)
         .should(never())
-        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), anyBoolean(), any());
+        .reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any());
   }
 
   @Test
   @DisplayName("NPC 대답을 만들지 못하면 워커 오류 코드로 실패하고 턴을 저장하지 않으며 호출 기록을 FAILED로 남긴다")
   void send_replyFails_throwsWithoutTurns() {
     judges("Yes", "Yes", null);
-    repliesTo("Yes", new NpcReply(null, null, null, "timeout", List.of(usage("npc"))));
+    repliesTo("Yes", new NpcReply(null, null, "timeout", List.of(usage("npc"))));
     UUID requestId = UUID.randomUUID();
 
     assertThatThrownBy(
@@ -490,9 +458,7 @@ class TurnServiceTest {
   @DisplayName("AI 대답을 기다리는 사이 대화가 끝났으면 턴을 저장하지 않고 CONVERSATION_NOT_ACTIVE다")
   void send_conversationEndedWhileWaiting_throwsNotActive() {
     judges("Yes", "Yes", null);
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), anyBoolean(), any()))
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq("Yes"), eq(""), anyInt(), any()))
         .willAnswer(
             invocation -> {
               entityManager
@@ -501,7 +467,7 @@ class TurnServiceTest {
                   .setParameter(1, conversationId)
                   .executeUpdate();
               entityManager.clear();
-              return reply("Nice!", null, null);
+              return reply("Nice!", null);
             });
 
     assertThatThrownBy(
@@ -548,7 +514,7 @@ class TurnServiceTest {
         .setParameter(2, passerbyNpcId())
         .executeUpdate();
     judges("Yes", "Yes", null);
-    repliesTo("Yes", reply("Nice!", null, null));
+    repliesTo("Yes", reply("Nice!", null));
 
     TurnResponse response = send("Yes");
 
@@ -569,10 +535,10 @@ class TurnServiceTest {
   @DisplayName("무례가 아니거나 무례 판정을 하지 못한 말은 호감도를 바꾸지 않는다")
   void send_notRudeOrUndecided_keepsAffinity() {
     judges("Yes", "Yes", null);
-    repliesTo("Yes", reply("Nice!", null, null));
+    repliesTo("Yes", reply("Nice!", null));
     judges("네 맑아요", "네 맑아요", null);
     guards("네 맑아요", null, "timeout");
-    repliesTo("네 맑아요", reply("Great!", null, null));
+    repliesTo("네 맑아요", reply("Great!", null));
 
     send("Yes");
     send("네 맑아요");
@@ -659,10 +625,8 @@ class TurnServiceTest {
         .willReturn(
             new GuardResult(
                 new GuardResult.Guard(true, null), affinityDelta, List.of(usage("guard"))));
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq(text), anyString(), anyInt(), anyBoolean(), any()))
-        .willReturn(reply("That's not okay to say.", null, null));
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), anyString(), anyInt(), any()))
+        .willReturn(reply("That's not okay to say.", null));
   }
 
   // 대화 상대(행인)와의 호감도. 관계 행이 없으면 null이다.
@@ -683,9 +647,7 @@ class TurnServiceTest {
   }
 
   private void repliesTo(String text, NpcReply reply) {
-    given(
-            aiWorkerClient.reply(
-                any(), any(), any(), any(), eq(text), eq(""), anyInt(), anyBoolean(), any()))
+    given(aiWorkerClient.reply(any(), any(), any(), any(), eq(text), eq(""), anyInt(), any()))
         .willReturn(reply);
   }
 

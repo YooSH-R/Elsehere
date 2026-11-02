@@ -139,14 +139,12 @@ public class Turn extends BaseEntity {
   }
 
   /**
-   * @param suggestWords 추천 단어 JSON 배열. 만들지 않았으면 null
    * @param npcAudioKey 턴 전체 음성 파일 키. 합성에 실패했으면 null
    */
   public static Turn npc(
       Conversation conversation,
       int seq,
       String text,
-      String suggestWords,
       String npcAudioKey,
       Instant npcAudioCreatedAt) {
     Turn turn = new Turn();
@@ -154,7 +152,6 @@ public class Turn extends BaseEntity {
     turn.seq = seq;
     turn.speaker = Speaker.NPC;
     turn.text = text;
-    turn.suggestWords = suggestWords;
     turn.attachNpcAudio(npcAudioKey, npcAudioCreatedAt);
     return turn;
   }
@@ -183,6 +180,10 @@ public class Turn extends BaseEntity {
   public void attachMeaning(String meaningKo, String glossary) {
     this.meaningKo = meaningKo;
     this.glossary = glossary;
+  }
+
+  public void attachSuggestWords(String suggestWords) {
+    this.suggestWords = suggestWords;
   }
 
   /** 처음 연 힌트를 저장한다. 연 시각은 힌트 사용 기록이다. */

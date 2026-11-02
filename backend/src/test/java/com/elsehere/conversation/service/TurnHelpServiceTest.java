@@ -20,6 +20,7 @@ import static org.mockito.Mockito.times;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.client.HintResult;
 import com.elsehere.ai.client.MeaningResult;
+import com.elsehere.ai.client.SuggestResult;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
@@ -29,6 +30,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
 import com.elsehere.conversation.dto.HintResponse;
 import com.elsehere.conversation.dto.MeaningResponse;
+import com.elsehere.conversation.dto.SuggestWordsResponse;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.user.UserTestData;
@@ -44,7 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 
-// NPC 대사 뜻 보기(CONV-04)와 힌트(CONV-05). 워커는 Mock이다.
+// NPC 대사 뜻 보기(CONV-04), 힌트(CONV-05), 추천 단어(CONV-12). 워커는 Mock이다.
 @DialogueServiceTest
 class TurnHelpServiceTest {
 
@@ -61,6 +63,8 @@ class TurnHelpServiceTest {
               new HintResult.Phrase("I'll have it here.", "여기서 마실게요.")),
           List.of(new HintResult.Phrase("for here", "매장에서")),
           List.of(usage("hint")));
+  private static final SuggestResult SUGGEST =
+      new SuggestResult(List.of("for here", "to go"), List.of(usage("suggest")));
 
   @Autowired private TurnHelpService turnHelpService;
 
@@ -226,6 +230,81 @@ class TurnHelpServiceTest {
     assertErrorCode(
         () -> turnHelpService.hint(userId, Long.MAX_VALUE, UUID.randomUUID()), ErrorCode.NOT_FOUND);
     then(aiWorkerClient).should(never()).hint(any(), any(), anyList(), anyString(), anyInt());
+  }
+
+  @Test
+  @DisplayName("처음 추천 단어를 요청하면 그 NPC 대사까지의 대화로 워커를 불러 단어를 저장하고 힌트 호출로 기록한다")
+  @SuppressWarnings("unchecked")
+  void suggestWords_firstRequest_usesHistoryUntilTurnAndSaves() {
+    textTurn(entityManager, conversation, 4, "For here.");
+    entityManager.flush();
+    given(aiWorkerClient.suggest(any(), any(), anyList(), eq(""), eq(1))).willReturn(SUGGEST);
+    UUID requestId = UUID.randomUUID();
+
+    SuggestWordsResponse response =
+        turnHelpService.suggestWords(userId, npcTurn.getId(), requestId);
+
+    assertThat(response)
+        .isEqualTo(new SuggestWordsResponse(npcTurn.getId(), List.of("for here", "to go")));
+    ArgumentCaptor<List<WorkerLine>> history = ArgumentCaptor.forClass(List.class);
+    then(aiWorkerClient).should().suggest(any(), any(), history.capture(), eq(""), eq(1));
+    assertThat(history.getValue())
+        .extracting(WorkerLine::who, WorkerLine::text)
+        .containsExactly(
+            tuple("npc", "Hi! What can I get for you?"),
+            tuple("me", "A latte, please."),
+            tuple("npc", NPC_LINE));
+    assertThat(
+            aiRequestRepository
+                .findByRequestIdAndKind(requestId, AiRequestKind.HINT)
+                .orElseThrow()
+                .getStatus())
+        .isEqualTo(AiRequestStatus.OK);
+    assertThat(savedNpcTurn().getSuggestWords()).isEqualTo("[\"for here\", \"to go\"]");
+  }
+
+  @Test
+  @DisplayName("한 번 만든 추천 단어는 다시 요청해도 워커를 부르지 않는다")
+  void suggestWords_savedTurn_returnsSavedWordsWithoutAi() {
+    given(aiWorkerClient.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(SUGGEST);
+    turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    SuggestWordsResponse again =
+        turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    assertThat(again.suggestWords()).containsExactly("for here", "to go");
+    then(aiWorkerClient).should(times(1)).suggest(any(), any(), anyList(), anyString(), anyInt());
+  }
+
+  @Test
+  @DisplayName("워커가 단어를 하나도 주지 않으면 AI_RESPONSE_INVALID이고 추천 단어를 저장하지 않는다")
+  void suggestWords_withoutWords_throwsInvalidAndSavesNothing() {
+    given(aiWorkerClient.suggest(any(), any(), anyList(), anyString(), anyInt()))
+        .willReturn(new SuggestResult(List.of(), List.of(usage("suggest"))));
+
+    assertErrorCode(
+        () -> turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID()),
+        ErrorCode.AI_RESPONSE_INVALID);
+    assertThat(savedNpcTurn().getSuggestWords()).isNull();
+  }
+
+  @Test
+  @DisplayName("사용자 턴, 다른 사용자의 턴, 없는 턴의 추천 단어는 워커를 부르지 않고 NOT_FOUND다")
+  void suggestWords_unavailableTurns_throwNotFound() {
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Other");
+
+    assertErrorCode(
+        () -> turnHelpService.suggestWords(userId, userTurn.getId(), UUID.randomUUID()),
+        ErrorCode.NOT_FOUND);
+    assertErrorCode(
+        () -> turnHelpService.suggestWords(otherUserId, npcTurn.getId(), UUID.randomUUID()),
+        ErrorCode.NOT_FOUND);
+    assertErrorCode(
+        () -> turnHelpService.suggestWords(userId, Long.MAX_VALUE, UUID.randomUUID()),
+        ErrorCode.NOT_FOUND);
+    then(aiWorkerClient).should(never()).suggest(any(), any(), anyList(), anyString(), anyInt());
   }
 
   private Turn savedNpcTurn() {

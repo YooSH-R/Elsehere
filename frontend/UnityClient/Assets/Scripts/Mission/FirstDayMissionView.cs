@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using TMPro;
@@ -112,12 +113,12 @@ namespace A305.Mission
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
         {
             situation.text = state.Situation;
-            direction.text = state.CanRest
-                ? "가까운 의자에 앉아 잠깐 쉬어 가세요."
-                : state.Direction;
             FirstDayMissionStep current = state.Steps.FirstOrDefault(step =>
                 step.Status == "CURRENT"
             );
+            direction.text = state.CanRest
+                ? "가까운 의자에 앉아 잠깐 쉬어 가세요."
+                : WithGoalChecklist(state.Direction, current);
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
@@ -166,6 +167,36 @@ namespace A305.Mission
         {
             message.text = text;
             retryButton.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
+        // 한 줄에 다 들어가지 않아도 목표 한 항목은 이어서 보이게 하는 줄바꿈하지 않는 공백
+        private const char NoBreakSpace = '\u00A0';
+
+        // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
+        private static string WithGoalChecklist(string request, FirstDayMissionStep current)
+        {
+            string checklist = current == null ? "" : GoalChecklist(current.Goals);
+            return string.IsNullOrEmpty(checklist) ? request : $"{request}\n{checklist}";
+        }
+
+        /// <summary>
+        /// 이번 단계 목표 체크리스트. 달성한 목표는 초록 ✓, 남은 목표는 ○로 표시한다.
+        /// 목록이 두 줄이 되어도 한 항목이 갈라지지 않게 항목 안의 띄어쓰기는 줄바꿈하지 않는 공백으로 바꾼다.
+        /// </summary>
+        public static string GoalChecklist(IEnumerable<FirstDayMissionGoal> goals)
+        {
+            var items = new List<string>();
+            foreach (FirstDayMissionGoal goal in goals)
+            {
+                string title = goal.Title.Replace(' ', NoBreakSpace);
+                items.Add(
+                    goal.Completed
+                        ? $"<color=#699B75>✓{NoBreakSpace}{title}</color>"
+                        : $"<color=#B8AFA5>○</color>{NoBreakSpace}{title}"
+                );
+            }
+
+            return string.Join("   ", items);
         }
 
         private static string CompactTitle(string title) =>

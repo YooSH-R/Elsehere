@@ -6,12 +6,12 @@ namespace A305.ObjectHover
 {
     /// <summary>
     /// Editor에서 서버에 연결하지 못했을 때 쓰는 확인용 단어 카드. 장소의 Unity 단어로 카드를 만들고,
-    /// [저장]·[알아요]로 바꾼 상태는 같은 Play 동안만 기억한다. 발음 음성은 없고 빌드에서는 쓰지 않는다.
+    /// [저장]·[알아요]로 바꾼 상태는 같은 Play 동안만 기억한다. 저장한 단어는 Editor 확인용 단어장이 보인다. 발음 음성은 없고 빌드에서는 쓰지 않는다.
     /// </summary>
     public sealed class LocalObjectWordApi : IObjectWordApi
     {
-        // 장소를 옮겨도 같은 Play 동안은 저장·숨김을 기억한다.
-        private static readonly HashSet<string> SavedKeys = new HashSet<string>();
+        // 장소를 옮겨도 같은 Play 동안은 저장·숨김을 기억한다. 저장한 단어는 저장한 순서로 둔다.
+        private static readonly List<ObjectWordDetails> SavedWordList = new List<ObjectWordDetails>();
         private static readonly HashSet<string> HiddenKeys = new HashSet<string>();
 
         private readonly List<ObjectWordDetails> sceneWords = new List<ObjectWordDetails>();
@@ -28,11 +28,14 @@ namespace A305.ObjectHover
             }
         }
 
+        /// <summary>같은 Play 동안 [저장]한 단어. 저장한 순서다.</summary>
+        public static IReadOnlyList<ObjectWordDetails> SavedWords => SavedWordList;
+
         /// <summary>기억한 저장·숨김을 지운다. Play를 시작할 때마다 부른다.</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Forget()
         {
-            SavedKeys.Clear();
+            SavedWordList.Clear();
             HiddenKeys.Clear();
         }
 
@@ -55,7 +58,7 @@ namespace A305.ObjectHover
                             ExampleKo = word.ExampleKo,
                         },
                         HasPronunciation = false,
-                        Saved = SavedKeys.Contains(word.Key),
+                        Saved = IsSaved(word.Key),
                         HoverHidden = HiddenKeys.Contains(word.Key),
                     }
                 );
@@ -64,9 +67,20 @@ namespace A305.ObjectHover
             return Task.FromResult(scene);
         }
 
+        /// <summary>단어장에서 지운 단어를 저장하지 않은 것으로 되돌린다. 사물 카드에 [저장]이 다시 보인다.</summary>
+        public static void Unsave(string wordKey)
+        {
+            SavedWordList.RemoveAll(word => word.Key == wordKey);
+        }
+
         public Task SaveAsync(string wordKey, string requestId)
         {
-            SavedKeys.Add(wordKey);
+            ObjectWordDetails word = sceneWords.Find(candidate => candidate.Key == wordKey);
+            if (word != null && !IsSaved(wordKey))
+            {
+                SavedWordList.Add(word);
+            }
+
             return Task.CompletedTask;
         }
 
@@ -82,6 +96,11 @@ namespace A305.ObjectHover
             }
 
             return Task.CompletedTask;
+        }
+
+        private static bool IsSaved(string wordKey)
+        {
+            return SavedWordList.Exists(word => word.Key == wordKey);
         }
     }
 }

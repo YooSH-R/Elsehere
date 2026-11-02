@@ -203,7 +203,7 @@ namespace A305.ObjectHover
             if (!loading.IsLoaded && Application.isEditor)
             {
                 Debug.LogWarning(
-                    "서버에서 단어 카드를 받지 못해 Editor 확인용 단어 카드로 저장·숨김을 해 봅니다. 이 Play 동안만 기억하고 단어장에는 남지 않습니다.",
+                    "서버에서 단어 카드를 받지 못해 Editor 확인용 단어 카드로 저장·숨김을 해 봅니다. 이 Play 동안만 기억하고, 저장한 단어는 Editor 확인용 단어장에 보입니다.",
                     this
                 );
                 loading = new ObjectWordCards(new LocalObjectWordApi(SceneWordDetails()));

@@ -41,7 +41,7 @@ public class ConversationHistoryService {
   private final TurnRepository turnRepository;
   private final ConversationFeedbackRepository conversationFeedbackRepository;
   private final NpcRepository npcRepository;
-  private final ConversationSupport support;
+  private final DialogueContexts dialogueContexts;
 
   /**
    * @param npcCode 이 NPC와 나눈 대화만 본다. null이면 모든 NPC다. 없는 코드면 빈 목록이다.
@@ -103,7 +103,8 @@ public class ConversationHistoryService {
                     ConversationFeedback::getConversationId, ConversationFeedback::getStatus));
     // 한 페이지에 같은 NPC가 여러 번 나오므로 NPC는 한 번씩만 읽는다.
     Map<Long, NpcContext> npcs = new HashMap<>();
-    Function<Long, NpcContext> npcOf = npcId -> npcs.computeIfAbsent(npcId, support::npcById);
+    Function<Long, NpcContext> npcOf =
+        npcId -> npcs.computeIfAbsent(npcId, dialogueContexts::npcById);
     return page.stream()
         .map(
             conversation -> {
@@ -114,8 +115,8 @@ public class ConversationHistoryService {
                   npc.sceneCode(),
                   conversation.getStatus(),
                   conversation.getEndReason(),
-                  ConversationSupport.toOffset(conversation.getStartedAt()),
-                  ConversationSupport.toOffset(conversation.getEndedAt()),
+                  ConversationResponses.toOffset(conversation.getStartedAt()),
+                  ConversationResponses.toOffset(conversation.getEndedAt()),
                   userTurnCounts.getOrDefault(conversation.getId(), 0L).intValue(),
                   feedbackStatuses.get(conversation.getId()));
             })

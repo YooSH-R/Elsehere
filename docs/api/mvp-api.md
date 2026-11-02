@@ -303,7 +303,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `activeConversationId`가 있으면 CONV-11 규칙에 따라 처리합니다.
 - `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
-- `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 음성 입력을 막고 글자 입력을 안내합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
+- `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 녹음을 막고 [말하기]를 회색으로 보이며, 누르면 동의 창에서 USER-03으로 동의를 켤 수 있게 합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
 
@@ -791,7 +791,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 녹음 형식은 `webm`, `ogg`, `mp4`, `wav`, `mpeg`이며 Unity는 16kHz 모노 16비트 WAV로 보냅니다. `audio` 파일 부분에 `Content-Type`(예: `audio/wav`)을 붙입니다.
 - 녹음은 최대 3MB입니다. 서버는 AI를 호출하기 전에 크기와 형식을 확인해 `AUDIO_TOO_LARGE`(413), `AUDIO_FORMAT_UNSUPPORTED`(415)로 거절합니다. 녹음 길이(최대 15초, 무음이 3초 넘게 이어지면 자동 종료)는 클라이언트 녹음 규칙으로 지킵니다. `durationMs`는 인식 뒤에 알 수 있으므로 거절 기준으로 쓰지 않습니다.
 - 받은 음성은 전사 후 보관하지 않습니다. 녹음 음성 활용(`TRAINING_VOICE`)에 동의한 사용자의 녹음만 인식 결과와 함께 학습용으로 보관합니다(`training_recordings`, [AI 개선 데이터 활용 기준](../ai-training-data.md)). 무음·인식 실패는 보관하지 않고, 보관에 실패해도 전사 응답은 그대로 돌려줍니다.
-- 음성은 외부 음성 인식 공급자로 가므로 지금 버전의 음성 처리(`VOICE`)에 동의한 사용자만 쓸 수 있습니다. 동의하지 않았으면 녹음을 확인하거나 AI를 부르기 전에 `403 VOICE_CONSENT_REQUIRED`로 거절합니다. 클라이언트는 BOOT-01의 `user.voiceConsent`로 미리 음성 입력을 막습니다.
+- 음성은 외부 음성 인식 공급자로 가므로 지금 버전의 음성 처리(`VOICE`)에 동의한 사용자만 쓸 수 있습니다. 동의하지 않았으면 녹음을 확인하거나 AI를 부르기 전에 `403 VOICE_CONSENT_REQUIRED`로 거절합니다. 클라이언트는 BOOT-01의 `user.voiceConsent`로 미리 녹음을 막고, 회색 [말하기]를 누르면 동의 창(USER-03)을 띄웁니다.
 
 #### CONV-03 `POST /api/v1/conversations/{conversationId}/turns`
 

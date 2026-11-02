@@ -21,6 +21,7 @@ import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
@@ -63,11 +64,12 @@ class FirstDayTurnTest {
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
     when(turns.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-    ConversationSupport support = mock(ConversationSupport.class);
+    ConversationLookup lookup = mock(ConversationLookup.class);
+    DialogueContexts contexts = mock(DialogueContexts.class);
     Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
-    when(support.ownedConversation(8L, 10L)).thenReturn(conversation);
+    when(lookup.ownedConversation(8L, 10L)).thenReturn(conversation);
     WorkerNpc npc = new WorkerNpc("HOTEL_STAFF", "Emma", "clerk", "", "hotel", "alloy", 1);
-    when(support.npcById(1L))
+    when(contexts.npcById(1L))
         .thenReturn(
             new NpcContext(
                 1L,
@@ -78,7 +80,7 @@ class FirstDayTurnTest {
                 "alloy",
                 null,
                 null));
-    when(support.history(10L)).thenReturn(List.of());
+    when(contexts.history(10L)).thenReturn(List.of());
     when(worker.judge(any(), any(), any(), any(), any()))
         .thenReturn(
             new JudgeResult(
@@ -101,7 +103,10 @@ class FirstDayTurnTest {
     service =
         new TurnService(
             turns,
-            support,
+            lookup,
+            contexts,
+            mock(ConversationResponses.class),
+            mock(NpcAudioReceiver.class),
             worker,
             mock(AiRequestRecorder.class),
             mock(MemoryService.class),

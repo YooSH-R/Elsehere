@@ -26,6 +26,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.common.logging.LogCapture;
 import com.elsehere.conversation.DialogueTestData;
+import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.ConversationEndReason;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.InitiatedBy;
@@ -129,7 +130,7 @@ class TurnServiceTest {
     assertThat(response.npcTurn().speech().status()).isEqualTo(SpeechStatus.READY);
     assertThat(speechService.npcSpeech(userId, response.npcTurn().turnId())).isEqualTo(WAV);
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
-    assertThat(response.conversation().rudeLimit()).isEqualTo(ConversationSupport.RUDE_LIMIT);
+    assertThat(response.conversation().rudeLimit()).isEqualTo(Conversation.RUDE_LIMIT);
     Turn saved = turnRepository.findByRequestId(requestId).orElseThrow();
     assertThat(saved.getTranslationEn()).isEqualTo("Yes, it's sunny.");
     assertThat(saved.getInputType()).isEqualTo(InputType.TEXT);
@@ -175,7 +176,7 @@ class TurnServiceTest {
   @Test
   @DisplayName("무례한 말이 한도에 닿으면 퇴장 지시문으로 대답하고 NPC가 대화를 끝낸다")
   void send_abusiveAtLimit_endsConversation() {
-    for (int count = 1; count <= ConversationSupport.RUDE_LIMIT; count++) {
+    for (int count = 1; count <= Conversation.RUDE_LIMIT; count++) {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
@@ -189,7 +190,7 @@ class TurnServiceTest {
     send("you idiot 2");
     TurnResponse last = send("you idiot 3");
 
-    assertThat(last.conversation().rudeCount()).isEqualTo(ConversationSupport.RUDE_LIMIT);
+    assertThat(last.conversation().rudeCount()).isEqualTo(Conversation.RUDE_LIMIT);
     assertThat(last.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
     assertThat(last.conversation().endReason()).isEqualTo(ConversationEndReason.RUDE);
     then(aiWorkerClient)
@@ -209,7 +210,7 @@ class TurnServiceTest {
   @Test
   @DisplayName("무례가 쌓여 NPC가 대화를 끝내면 종료 상태와 이유를 INFO로 한 번 남기고 무례한 말은 남기지 않는다")
   void send_abusiveAtLimit_logsConversationEnded() {
-    for (int count = 1; count <= ConversationSupport.RUDE_LIMIT; count++) {
+    for (int count = 1; count <= Conversation.RUDE_LIMIT; count++) {
       String text = "you idiot " + count;
       judges(text, text, null);
       guards(text, true, null);
@@ -549,7 +550,7 @@ class TurnServiceTest {
   @Test
   @DisplayName("무례 판정 3번으로 NPC가 대화를 끝내도 세 번 모두 깎는다")
   void send_abusiveUntilLimit_deductsEveryTime() {
-    for (int count = 1; count <= ConversationSupport.RUDE_LIMIT; count++) {
+    for (int count = 1; count <= Conversation.RUDE_LIMIT; count++) {
       rudeTo("you idiot " + count, null);
     }
 
@@ -557,7 +558,7 @@ class TurnServiceTest {
     send("you idiot 2");
     send("you idiot 3");
 
-    assertThat(affinity()).isEqualTo(-6 * ConversationSupport.RUDE_LIMIT);
+    assertThat(affinity()).isEqualTo(-6 * Conversation.RUDE_LIMIT);
   }
 
   @Test

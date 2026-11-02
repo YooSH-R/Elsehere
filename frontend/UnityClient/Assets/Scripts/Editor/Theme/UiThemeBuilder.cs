@@ -227,6 +227,13 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleDialogueWaiting);
         }
 
+        /// <summary>대화창의 음성 처리 동의 창만 테마로 칠한다. 대화창의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyVoiceConsentDialogTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleVoiceConsentDialog);
+        }
+
         /// <summary>입구 화면의 배경색·로그인 창 정렬과 약관 링크·캐릭터 체크(S15P31A305-417)만 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
         public static void ApplyEntryGuidance()
         {
@@ -1169,6 +1176,7 @@ namespace A305.EditorTools.Theme
             IconButton(root, "Panel/Buttons/EndButton", UiIcon.Exit, UiTone.Neutral, caption: true);
             A305.EditorTools.Dialogue.DialogueDockBuilder.Apply(root.gameObject);
             StyleDialogueWaiting(root);
+            StyleVoiceConsentDialog(root);
         }
 
         private static void StyleDialogueWaiting(Transform root)
@@ -1178,6 +1186,42 @@ namespace A305.EditorTools.Theme
             Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
             Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
             Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);
+        }
+
+        // 내 정보의 로그아웃·탈퇴 확인 창과 같은 모양. 주요 동작인 [동의하고 켜기]만 강조색으로 둔다.
+        private static void StyleVoiceConsentDialog(Transform root)
+        {
+            if (root.Find("VoiceConsent/Dialog") == null)
+                return;
+            Role(root, "VoiceConsent/Dialog", UiThemeRole.Panel);
+            Role(root, "VoiceConsent/Dialog/Title", UiThemeRole.Title);
+            Role(root, "VoiceConsent/Dialog/Body", UiThemeRole.Body);
+            // 음성을 어디에 쓰는지 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
+            root.Find("VoiceConsent/Dialog/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            Role(root, "VoiceConsent/Dialog/Status", UiThemeRole.Muted);
+            ActionPill(
+                root,
+                "VoiceConsent/Dialog/Buttons/DocumentButton",
+                UiIcon.Detail,
+                UiTone.Neutral,
+                170
+            );
+            ActionPill(
+                root,
+                "VoiceConsent/Dialog/Buttons/CloseButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                140
+            );
+            ActionPill(
+                root,
+                "VoiceConsent/Dialog/Buttons/AgreeButton",
+                UiIcon.Mic,
+                UiTone.Primary,
+                210
+            );
+            Roomy(root, "VoiceConsent/Dialog");
         }
 
         private static void StyleTutorial(Transform root)

@@ -18,6 +18,7 @@ import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.conversation.repository.TurnRepository;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.ConversationDetailResponse;
 import com.elsehere.dialogue.dto.ConversationStartResponse;
 import com.elsehere.dialogue.dto.EndConversationRequest;
@@ -68,7 +69,10 @@ public class ConversationService {
   private final TurnRepository turnRepository;
   private final UserRepository userRepository;
   private final UserLanguageProfileRepository userLanguageProfileRepository;
-  private final ConversationSupport support;
+  private final ConversationLookup conversationLookup;
+  private final DialogueContexts dialogueContexts;
+  private final ConversationResponses conversationResponses;
+  private final NpcAudioReceiver npcAudioReceiver;
   private final AiWorkerClient aiWorkerClient;
   private final AiRequestRecorder aiRequestRecorder;
   private final FeedbackService feedbackService;
@@ -125,8 +129,8 @@ public class ConversationService {
                   conversation.getLevelApplied(),
                   npc.summary(),
                   List.of(),
-                  support.npcTurn(openingTurn),
-                  support.state(conversation));
+                  conversationResponses.npcTurn(openingTurn),
+                  conversationResponses.state(conversation));
             });
     // 저장이 끝난 뒤 남긴다. 첫 대사는 대화 본문이라 남기지 않는다.
     log.info(
@@ -152,10 +156,10 @@ public class ConversationService {
   private EndConversationResponse endConversation(Long userId, Long conversationId) {
     return transactionTemplate.execute(
         status -> {
-          Conversation conversation = support.ownedConversation(userId, conversationId);
+          Conversation conversation = conversationLookup.ownedConversation(userId, conversationId);
           boolean endingNow = conversation.isActive();
           conversation.endByUser(clock.instant());
-          NpcContext npc = support.npcById(conversation.getNpcId());
+          NpcContext npc = dialogueContexts.npcById(conversation.getNpcId());
           long userTurnCount =
               turnRepository.countByConversationIdAndSpeaker(conversationId, Speaker.USER);
           // NPC가 이미 끝낸 대화(TurnService가 남김)나 다시 보낸 종료 요청은 새로 남기지 않는다.
@@ -171,7 +175,7 @@ public class ConversationService {
               conversation.getId(),
               conversation.getStatus(),
               conversation.getEndReason(),
-              ConversationSupport.toOffset(conversation.getEndedAt()),
+              ConversationResponses.toOffset(conversation.getEndedAt()),
               npc.summary(),
               npc.sceneCode(),
               userTurnCount,
@@ -182,7 +186,9 @@ public class ConversationService {
 
   public ConversationDetailResponse detail(Long userId, Long conversationId) {
     return transactionTemplate.execute(
-        status -> support.detail(support.ownedConversation(userId, conversationId)));
+        status ->
+            conversationResponses.detail(
+                conversationLookup.ownedConversation(userId, conversationId)));
   }
 
   /** 진행 중인 대화. 없으면 빈 값이다. */
@@ -191,7 +197,7 @@ public class ConversationService {
         status ->
             conversationRepository
                 .findFirstByUserIdAndStatus(userId, ConversationStatus.ACTIVE)
-                .map(support::detail));
+                .map(conversationResponses::detail));
   }
 
   private StartContext startContext(Long userId, String npcCode) {
@@ -200,13 +206,13 @@ public class ConversationService {
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     ensureCanStart(user);
-    NpcContext npc = support.npcByCode(npcCode);
+    NpcContext npc = dialogueContexts.npcByCode(npcCode);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
     return new StartContext(
         npc,
-        support.learner(user),
+        dialogueContexts.learner(user),
         selectedLevel(user),
         memoryService.memoryFor(userId, npc.npcId()),
         firstDayMissionService.context(userId, npcCode));
@@ -260,7 +266,7 @@ public class ConversationService {
     if (!reply.succeeded()) {
       throw new BusinessException(AiWorkerClient.toErrorCode(reply.errorCode()));
     }
-    return new Opening(reply.text(), support.saveNpcAudio(trace, reply.audioFullId()));
+    return new Opening(reply.text(), npcAudioReceiver.save(trace, reply.audioFullId()));
   }
 
   /**

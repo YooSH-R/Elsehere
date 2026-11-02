@@ -223,7 +223,7 @@ class ConversationServiceTest {
     assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
     assertThat(response.conversation().endReason()).isNull();
     assertThat(response.conversation().rudeCount()).isZero();
-    assertThat(response.conversation().rudeLimit()).isEqualTo(ConversationSupport.RUDE_LIMIT);
+    assertThat(response.conversation().rudeLimit()).isEqualTo(Conversation.RUDE_LIMIT);
     assertThat(response.conversation().affinity()).isEqualTo(12);
   }
 
@@ -557,7 +557,7 @@ class ConversationServiceTest {
 
     assertThat(detail.conversationId()).isEqualTo(started.conversationId());
     assertThat(detail.turns()).hasSize(1);
-    assertThat(detail.rudeLimit()).isEqualTo(ConversationSupport.RUDE_LIMIT);
+    assertThat(detail.rudeLimit()).isEqualTo(Conversation.RUDE_LIMIT);
 
     conversationService.end(
         userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), true));

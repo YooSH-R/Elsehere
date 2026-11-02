@@ -4,11 +4,13 @@ import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.client.AiWorkerClient;
 import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.ai.service.GuestConversationLimit;
+import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
+import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.conversation.service.NpcAudioRetention;
 import com.elsehere.conversation.service.NpcAudioStore;
 import com.elsehere.conversation.service.TrainingRecordingService;
@@ -67,7 +69,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   TurnService.class,
   SpeechService.class,
   TurnHelpService.class,
-  ConversationSupport.class,
+  ConversationLookup.class,
+  DialogueContexts.class,
+  ConversationResponses.class,
+  NpcAudioReceiver.class,
+  WorkerLines.class,
   GuestConversationLimit.class,
   NpcAudioStore.class,
   NpcAudioRetention.class,

@@ -61,6 +61,11 @@ namespace A305.Dialogue
             return new AiStatusApi(apiSettings.CreateClient());
         }
 
+        public IVoiceConsentApi CreateVoiceConsentApi()
+        {
+            return new VoiceConsentApi(apiSettings.CreateClient());
+        }
+
         /// <summary>
         /// 기존 GET 음성에서 PCM과 음소 시간을 함께 읽는다. 음성을 다시 합성하지 않는다.
         /// 404는 ApiException으로 알린다. 그 밖의 실패나 이전 대사의 늦은 응답은 false를 반환한다.

@@ -198,13 +198,20 @@ namespace A305.Player
                 case CameraViewMode.FirstPerson:
                     return orbit.GetFirstPersonPose(eye);
                 case CameraViewMode.Dialogue:
+                    // 대화 시점은 1·3인칭과 따로 NPC 얼굴 기준으로 놓는다. 플레이어 눈은 카메라를 얼굴의 어느 쪽에 둘지만 정한다.
                     Camera camera = GetComponent<Camera>();
+                    Vector3 face = dialogueLookTarget.position;
                     return DialogueFraming.Pose(
-                        eye,
-                        dialogueLookTarget.position,
+                        DialogueFraming.CameraPosition(
+                            face,
+                            eye,
+                            cameraSettings.DialogueDistanceMeters,
+                            cameraSettings.DialogueHeightOffsetMeters
+                        ),
+                        face,
                         camera.fieldOfView,
                         camera.aspect,
-                        new Vector2(.64f, .66f)
+                        cameraSettings.DialogueFacePosition
                     );
                 default:
                     return GetThirdPersonPoseInFrontOfWalls(snap);

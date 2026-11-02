@@ -73,7 +73,7 @@ class AdminNpcServiceTest {
     assertThat(detail.npcCode()).isEqualTo("SHOP_STAFF");
     assertThat(detail.name()).isEqualTo("Alex");
     assertThat(detail.sceneName()).isEqualTo("드럭스토어");
-    assertThat(detail.voiceId()).isEqualTo("af_heart");
+    assertThat(detail.voiceId()).isEqualTo("am_michael");
     assertThat(detail.role()).isEqualTo("the helpful clerk at the drugstore.");
     assertThat(detail.facts()).startsWith("The drugstore sells umbrellas");
     assertThat(detail.scene()).isEqualTo("A small drugstore on the town main street.");

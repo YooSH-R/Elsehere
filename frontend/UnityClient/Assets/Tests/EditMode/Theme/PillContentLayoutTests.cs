@@ -70,6 +70,19 @@ namespace A305.Theme.Tests
             Assert.That(icon.enabled, Is.False);
         }
 
+        [Test]
+        public void Arrange_IconOnlyButton_CentersTheIconWithoutTheNameGap()
+        {
+            // 대화창 [보내기]처럼 이름을 숨긴 둥근 버튼은 아이콘만 가운데에 둔다.
+            PillContentLayout layout = Create(new Vector2(72, 72), withIcon: true);
+            target.transform.Find("Label").gameObject.SetActive(false);
+
+            layout.Arrange();
+
+            Assert.That(target.transform.Find("Icon").GetComponent<Image>().enabled, Is.True);
+            Assert.That(Rect("Icon").anchoredPosition.x, Is.EqualTo(0f).Within(.01f));
+        }
+
         private PillContentLayout Create(Vector2 size, bool withIcon)
         {
             target = new GameObject("Pill", typeof(RectTransform), typeof(Image));

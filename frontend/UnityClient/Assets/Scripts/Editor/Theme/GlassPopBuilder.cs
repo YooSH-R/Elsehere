@@ -154,6 +154,16 @@ namespace A305.EditorTools.Theme
             );
             fields.FindProperty("pillSprite").objectReferenceValue = pill;
             fields.FindProperty("badgeSprite").objectReferenceValue = pill;
+            fields.FindProperty("scrimSprite").objectReferenceValue = SpriteIfMissing(
+                "Scrim",
+                Scrim,
+                0
+            );
+            fields.FindProperty("ghostSprite").objectReferenceValue = SpriteIfMissing(
+                "Ghost",
+                Ghost,
+                30
+            );
             fields.FindProperty("buttonOutlineSprite").objectReferenceValue = null;
             fields.FindProperty("pillOutlineSprite").objectReferenceValue = null;
             // 그림을 그린 값과 같은 바깥 여백. 이만큼 넓혀 그려 유리·버튼 모양이 칸에 맞는다.
@@ -317,6 +327,41 @@ namespace A305.EditorTools.Theme
                         baseCover,
                         Mathf.Max(face, Mathf.Max(baseCover, shadow))
                     );
+                }
+            );
+        }
+
+        // 대화창 바탕 그라데이션. 흰 그림의 투명도만 쓰고 색은 디자인 정의의 어두운 색을 곱한다.
+        // 아래 40%는 거의 불투명하게 둬 흰 글자가 읽히고, 그 위로 장면 속으로 부드럽게 옅어진다.
+        private static Texture2D Scrim()
+        {
+            const int Height = 256;
+            return Paint(
+                4,
+                Height,
+                (x, y) => new Color(1f, 1f, 1f, .94f * (1f - Smooth(.38f, 1f, y / Height)))
+            );
+        }
+
+        // 어두운 바탕 위의 반투명 버튼·입력칸. 옅은 흰 면에 위가 밝은 테두리와 위쪽 하이라이트를 얹어 유리 조각처럼 보이게 한다.
+        private static Texture2D Ghost()
+        {
+            const int Size = 64;
+            const float Radius = 28;
+            const float Half = Size / 2f - 1f;
+            return Paint(
+                Size,
+                Size,
+                (x, y) =>
+                {
+                    Vector2 point = new Vector2(x - Size / 2f, y - Size / 2f);
+                    float distance = RoundedBox(point, Half, Half, Radius);
+                    float inside = Mathf.Clamp01(.5f - distance);
+                    float ring = 1f - Smooth(1.2f, 2.8f, -distance);
+                    float topness = y / Size;
+                    float highlight = (1f - Smooth(0f, 16f, Size - 1f - y)) * .12f;
+                    float alpha = .13f + highlight + ring * Mathf.Lerp(.32f, .62f, topness);
+                    return new Color(1f, 1f, 1f, inside * Mathf.Clamp01(alpha));
                 }
             );
         }

@@ -23,7 +23,7 @@ namespace A305.Player
 
         [SerializeField]
         [Tooltip(
-            "Player/CameraRotate(마우스 오른쪽 버튼). 누르고 있는 동안 마우스 이동으로 카메라를 돌린다"
+            "Player/CameraRotate(마우스 왼쪽 버튼). 누르고 있는 동안 마우스 이동으로 카메라를 돌린다"
         )]
         private InputActionReference rotateHoldAction;
 

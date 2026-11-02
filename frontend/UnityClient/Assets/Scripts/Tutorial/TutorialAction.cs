@@ -9,7 +9,7 @@ namespace A305.Tutorial
         /// <summary>Shift를 누른 채 달리기</summary>
         Run,
 
-        /// <summary>마우스 오른쪽 버튼 끌기나 화면 끌기로 시점 돌리기</summary>
+        /// <summary>마우스 왼쪽 버튼 끌기나 화면 끌기로 시점 돌리기</summary>
         Rotate,
 
         /// <summary>마우스 휠로 가까이·멀리 보기</summary>

@@ -49,7 +49,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.Look,
                 "둘러보기",
-                "{마우스 오른쪽} 누른 채 끌기 · {휠} 줌 · {V} 시점",
+                "{마우스 왼쪽} 누른 채 끌기 · {휠} 줌 · {V} 시점",
                 "화면 오른쪽을 끌어 둘러보기",
                 ""
             ),

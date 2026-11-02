@@ -30,8 +30,8 @@ MonoBehaviour:
     buttonLabel: 
   - step: 2
     title: "\uB458\uB7EC\uBCF4\uAE30"
-    task: "{\uB9C8\uC6B0\uC2A4 \uC624\uB978\uCABD} \uB204\uB978 \uCC44 \uB04C\uAE30
-      \xB7 {\uD720} \uC90C \xB7 {V} \uC2DC\uC810"
+    task: "{\uB9C8\uC6B0\uC2A4 \uC67C\uCABD} \uB204\uB978 \uCC44 \uB04C\uAE30 \xB7
+      {\uD720} \uC90C \xB7 {V} \uC2DC\uC810"
     touchTask: "\uD654\uBA74 \uC624\uB978\uCABD\uC744 \uB04C\uC5B4 \uB458\uB7EC\uBCF4\uAE30"
     buttonLabel: 
   - step: 3

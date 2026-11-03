@@ -1,12 +1,15 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace A305.Weather
 {
     /// <summary>
-    /// 밤에 밝히는 등과 발광 재질, 밤하늘로 칠하는 창밖 유리. 재질은 사본을 칠해 원본 에셋을 바꾸지 않고,
-    /// 다 쓰면 렌더러에 원본 재질을 돌려준다. 값은 늘 씬 디자인 값에서 계산하므로 여러 번 칠해도 쌓이지 않는다.
+    /// 밤에 밝히는 등과 발광 재질, 밤하늘로 칠하는 창밖 유리, 안에서 불을 켠 것처럼 빛나는 입점 건물 창.
+    /// 재질은 사본을 칠해 원본 에셋을 바꾸지 않고, 다 쓰면 렌더러에 원본 재질을 돌려준다.
+    /// 값은 늘 씬 디자인 값에서 계산하므로 여러 번 칠해도 쌓이지 않는다.
     /// </summary>
     internal sealed class NightLights
     {
@@ -18,18 +21,23 @@ namespace A305.Weather
         private readonly float[] lampIntensities;
         private readonly List<Glow> glows = new List<Glow>();
         private readonly List<Window> windows = new List<Window>();
-        private readonly List<KeyValuePair<Renderer, Material[]>> designedMaterials =
-            new List<KeyValuePair<Renderer, Material[]>>();
+        private readonly List<LitWindow> litWindows = new List<LitWindow>();
+        private readonly Dictionary<Renderer, Material[]> designedMaterials =
+            new Dictionary<Renderer, Material[]>();
         private readonly List<Material> copies = new List<Material>();
 
+        /// <param name="renderers">발광 재질·창밖 유리를 찾을 렌더러. 보통 장소 씬 전체다.</param>
+        /// <param name="litBuildingRenderers">입점한 상점·숙소 건물의 렌더러. 이 안의 창 유리만 밤에 불 켠 창이 된다.</param>
         public NightLights(
             DaylightSettings settings,
             IEnumerable<Light> lamps,
-            IEnumerable<Renderer> renderers
+            IEnumerable<Renderer> renderers,
+            IEnumerable<Renderer> litBuildingRenderers = null
         )
         {
             this.lamps = lamps.Where(lamp => lamp != null).ToArray();
             lampIntensities = this.lamps.Select(lamp => lamp.intensity).ToArray();
+
             var glowMaterials = new HashSet<Material>(
                 settings.GlowMaterials.Where(item => item != null)
             );
@@ -38,36 +46,44 @@ namespace A305.Weather
             );
             var copyOf = new Dictionary<Material, Material>();
             foreach (Renderer renderer in renderers)
-            {
-                Material[] materials = renderer.sharedMaterials;
-                bool swapped = false;
-                for (int index = 0; index < materials.Length; index++)
-                {
-                    Material designed = materials[index];
-                    bool isGlow = designed != null && glowMaterials.Contains(designed);
-                    bool isWindow = designed != null && windowMaterials.Contains(designed);
-                    if (!isGlow && !isWindow)
-                        continue;
-                    if (!copyOf.TryGetValue(designed, out Material copy))
+                SwapMaterials(
+                    renderer,
+                    designed =>
                     {
-                        copy = new Material(designed);
-                        copyOf.Add(designed, copy);
-                        copies.Add(copy);
-                        if (isGlow)
-                            glows.Add(new Glow(copy));
-                        else
-                            windows.Add(new Window(copy));
+                        bool isGlow = glowMaterials.Contains(designed);
+                        if (!isGlow && !windowMaterials.Contains(designed))
+                            return null;
+                        return CopyOnce(
+                            designed,
+                            copyOf,
+                            copy =>
+                            {
+                                if (isGlow)
+                                    glows.Add(new Glow(copy));
+                                else
+                                    windows.Add(new Window(copy));
+                            }
+                        );
                     }
-                    materials[index] = copy;
-                    swapped = true;
-                }
-                if (!swapped)
-                    continue;
-                designedMaterials.Add(
-                    new KeyValuePair<Renderer, Material[]>(renderer, renderer.sharedMaterials)
                 );
-                renderer.sharedMaterials = materials;
-            }
+
+            // 같은 창 유리를 주택·빈 건물도 쓰므로 입점 건물에는 따로 사본을 둔다.
+            var litWindowMaterials = new HashSet<Material>(
+                settings.LitWindowMaterials.Where(item => item != null)
+            );
+            var litCopyOf = new Dictionary<Material, Material>();
+            foreach (Renderer renderer in litBuildingRenderers ?? Enumerable.Empty<Renderer>())
+                SwapMaterials(
+                    renderer,
+                    designed =>
+                        litWindowMaterials.Contains(designed)
+                            ? CopyOnce(
+                                designed,
+                                litCopyOf,
+                                copy => litWindows.Add(new LitWindow(copy))
+                            )
+                            : null
+                );
         }
 
         /// <param name="night">밤인 정도. 0이면 씬 디자인 그대로다.</param>
@@ -82,6 +98,8 @@ namespace A305.Weather
             float windowEmission = Mathf.Lerp(1f, settings.NightWindowEmissionScale, night);
             foreach (Window window in windows)
                 window.Apply(settings.NightWindowColor, night, windowEmission);
+            foreach (LitWindow window in litWindows)
+                window.Apply(settings.LitWindowColor, settings.LitWindowEmission, night);
         }
 
         public void Restore()
@@ -98,6 +116,43 @@ namespace A305.Weather
                 else
                     Object.DestroyImmediate(copy);
             }
+        }
+
+        /// <summary>렌더러의 재질 가운데 copyFor가 사본을 주는 것만 바꾸고, 처음 바꿀 때 원본 재질 목록을 기억한다.</summary>
+        private void SwapMaterials(Renderer renderer, Func<Material, Material> copyFor)
+        {
+            Material[] materials = renderer.sharedMaterials;
+            bool swapped = false;
+            for (int index = 0; index < materials.Length; index++)
+            {
+                if (materials[index] == null)
+                    continue;
+                Material copy = copyFor(materials[index]);
+                if (copy == null)
+                    continue;
+                materials[index] = copy;
+                swapped = true;
+            }
+            if (!swapped)
+                return;
+            if (!designedMaterials.ContainsKey(renderer))
+                designedMaterials.Add(renderer, renderer.sharedMaterials);
+            renderer.sharedMaterials = materials;
+        }
+
+        private Material CopyOnce(
+            Material designed,
+            Dictionary<Material, Material> copyOf,
+            Action<Material> created
+        )
+        {
+            if (copyOf.TryGetValue(designed, out Material copy))
+                return copy;
+            copy = new Material(designed);
+            copyOf.Add(designed, copy);
+            copies.Add(copy);
+            created(copy);
+            return copy;
         }
 
         private static Color Scale(Color color, float scale) =>
@@ -155,6 +210,33 @@ namespace A305.Weather
                 material.color = painted;
                 if (material.HasProperty(EmissionId))
                     material.SetColor(EmissionId, Scale(emission, emissionScale));
+            }
+        }
+
+        /// <summary>입점한 상점·숙소의 창 유리. 밤에는 안에서 실내등을 켠 것처럼 따뜻한 빛을 낸다.</summary>
+        private sealed class LitWindow
+        {
+            private readonly Material material;
+            private readonly Color color;
+            private readonly Color emission;
+
+            public LitWindow(Material material)
+            {
+                this.material = material;
+                color = material.color;
+                if (!material.HasProperty(EmissionId))
+                    return;
+                emission = material.GetColor(EmissionId);
+                material.EnableKeyword("_EMISSION");
+            }
+
+            public void Apply(Color litColor, Color litEmission, float night)
+            {
+                Color painted = Color.Lerp(color, litColor, night);
+                painted.a = color.a;
+                material.color = painted;
+                if (material.HasProperty(EmissionId))
+                    material.SetColor(EmissionId, Color.Lerp(emission, litEmission, night));
             }
         }
     }

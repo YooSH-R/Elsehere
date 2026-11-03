@@ -14973,6 +14973,20 @@ MonoBehaviour:
   - {fileID: 183756316}
   - {fileID: 990729705}
   - {fileID: 1804947430}
+  litBuildings:
+  - {fileID: 1337579283}
+  - {fileID: 2020359775}
+  - {fileID: 707709647}
+  - {fileID: 1996251866}
+  - {fileID: 1236884650}
+  - {fileID: 1716628494}
+  - {fileID: 1928670250}
+  - {fileID: 283901091}
+  - {fileID: 1783539928}
+  - {fileID: 731741645}
+  - {fileID: 688488105}
+  - {fileID: 216979003}
+  - {fileID: 580808664}
 --- !u!1001 &1022003766
 PrefabInstance:
   m_ObjectHideFlags: 0

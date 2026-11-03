@@ -34,13 +34,50 @@ namespace A305.Weather.Tests
         }
 
         [Test]
-        public void Night_BrightensLampsAndGlowAndDimsDaylightIndoors()
+        public void Night_BrightensLampsAndGlowAndSoftensDaylightIndoors()
         {
             Assert.That(settings.NightLampScale, Is.GreaterThan(1f));
             Assert.That(settings.NightGlowScale, Is.GreaterThan(1f));
-            Assert.That(settings.NightWindowLightScale, Is.LessThan(.5f));
+            Assert.That(settings.NightWindowLightScale, Is.LessThan(1f));
             Assert.That(settings.NightFillScale, Is.LessThan(1f));
             Assert.That(settings.NightInteriorAmbientScale, Is.LessThan(1f));
+        }
+
+        [Test]
+        public void Night_KeepsRoomsLitAsIfLightsAreOn()
+        {
+            // 밤의 실내는 불을 켠 방이다. 간접등만 켠 것처럼 어두우면 안 된다.
+            // 상점처럼 창으로 드는 빛 하나가 방 전체를 밝히는 곳도 있어 그 빛도 크게 줄이지 않는다.
+            Assert.That(settings.NightWindowLightScale, Is.GreaterThanOrEqualTo(.7f));
+            Assert.That(settings.NightInteriorAmbientScale, Is.GreaterThanOrEqualTo(.85f));
+            Assert.That(settings.NightFillScale, Is.GreaterThanOrEqualTo(.8f));
+            Assert.That(
+                settings.NightRoomLightColor.r,
+                Is.GreaterThan(settings.NightRoomLightColor.b),
+                "밤 방 조명은 따뜻한 실내등 색이어야 합니다."
+            );
+        }
+
+        [TestCase("WindowBlue")]
+        [TestCase("GlassLight")]
+        [TestCase("SkyGlassV2")]
+        [TestCase("Glass")]
+        public void OpenShopWindowsLightUpAtNight(string material)
+        {
+            Assert.That(
+                settings.LitWindowMaterials.Select(item => item.name),
+                Has.Member(material)
+            );
+            Assert.That(
+                settings.LitWindowEmission.maxColorComponent,
+                Is.GreaterThan(0f),
+                "불 켠 창은 빛을 내야 합니다."
+            );
+            Assert.That(
+                settings.LitWindowColor.r,
+                Is.GreaterThan(settings.LitWindowColor.b),
+                "실내등 빛은 따뜻한 색이어야 합니다."
+            );
         }
 
         [TestCase("WindowAmberGlow")]

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using A305.EditorTools.Common;
 using A305.Weather;
 using NUnit.Framework;
@@ -61,6 +62,48 @@ namespace A305.World.Tests
                 Is.GreaterThanOrEqualTo(16),
                 "가로등 16개가 모두 연결되어야 합니다."
             );
+        }
+
+        [Test]
+        public void TownLightsWindowsOfOpenShopsAndLodgingOnly()
+        {
+            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/TownScene.unity");
+            var weather = BuilderTools.FindSingleInScene<WeatherPresenter>(scene);
+            SerializedProperty buildings = new SerializedObject(weather).FindProperty(
+                "litBuildings"
+            );
+            var names = new List<string>();
+            for (int index = 0; index < buildings.arraySize; index++)
+                names.Add(buildings.GetArrayElementAtIndex(index).objectReferenceValue.name);
+
+            Assert.That(
+                names,
+                Is.SupersetOf(
+                    new[]
+                    {
+                        "CafeBuilding",
+                        "HotelBuilding",
+                        "DrugstoreFront",
+                        "PostOffice",
+                        "MapleDiner",
+                        "TownBank",
+                        "SudsLaundromat",
+                        "BloomFlowers",
+                        "MainStreetBarber",
+                        "PoliceStation",
+                        "MapleBakery",
+                        "LittleArcade",
+                        "HomeLiving",
+                    }
+                )
+            );
+            Assert.That(names, Has.None.Contains("Residence"), "주택은 입점 건물이 아닙니다.");
+            Assert.That(
+                names,
+                Has.None.EqualTo("VacantBuilding2F"),
+                "빈 건물은 불을 켜지 않습니다."
+            );
+            Assert.That(names, Has.None.EqualTo("HomeBuilding"), "집은 상점·숙소가 아닙니다.");
         }
     }
 }

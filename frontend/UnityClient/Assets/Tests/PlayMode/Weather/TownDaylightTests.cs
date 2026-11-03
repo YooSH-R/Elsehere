@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
+using A305.Theme;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -22,6 +23,7 @@ namespace A305.Weather.PlayModeTests
 
         private static readonly Quaternion DesignedSun = Quaternion.Euler(48f, -35f, 0f);
         private static readonly Color GlowEmission = new Color(.65f, .525f, .3f);
+        private static readonly Color DesignedWindowGlass = new Color(.451f, .624f, .686f);
         private static readonly WeatherLook Designed = new WeatherLook
         {
             skyZenith = new Color(.23f, .65f, .95f),
@@ -60,10 +62,14 @@ namespace A305.Weather.PlayModeTests
         private Material designedSky;
         private Material designedGlow;
         private Material designedLampGlass;
+        private Material designedWindowGlass;
         private Light sun;
         private Light lamp;
         private Renderer glow;
         private Renderer lampGlass;
+        private Transform shop;
+        private Renderer shopWindow;
+        private Renderer houseWindow;
         private WeatherPresenter presenter;
 
         [UnitySetUp]
@@ -76,7 +82,14 @@ namespace A305.Weather.PlayModeTests
             designedGlow.SetColor("_EmissionColor", GlowEmission);
             designedLampGlass = Keep(new Material(Shader.Find("Elsehere/WarmLamp")));
             designedLampGlass.SetFloat("_CoreStrength", LampCoreStrength);
-            daylight = Keep(DaylightSettings.Create(new[] { designedGlow, designedLampGlass }));
+            designedWindowGlass = Keep(new Material(Shader.Find("Universal Render Pipeline/Lit")));
+            designedWindowGlass.color = DesignedWindowGlass;
+            daylight = Keep(
+                DaylightSettings.Create(
+                    new[] { designedGlow, designedLampGlass },
+                    litWindowMaterials: new[] { designedWindowGlass }
+                )
+            );
             weathers = Keep(
                 WeatherSettings.Create(
                     TransitionSeconds,
@@ -161,6 +174,30 @@ namespace A305.Weather.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Midnight_LightsWindowsOfOpenShopsOnly()
+        {
+            yield return null;
+
+            presenter.ShowTime(Midnight);
+
+            AssertColor(shopWindow.sharedMaterial.color, daylight.LitWindowColor);
+            AssertColor(
+                shopWindow.sharedMaterial.GetColor("_EmissionColor"),
+                daylight.LitWindowEmission
+            );
+            Assert.That(
+                houseWindow.sharedMaterial,
+                Is.SameAs(designedWindowGlass),
+                "입점하지 않은 주택 창은 그대로여야 합니다."
+            );
+            AssertColor(designedWindowGlass.color, DesignedWindowGlass);
+
+            presenter.ShowTime(Midday);
+
+            AssertColor(shopWindow.sharedMaterial.color, DesignedWindowGlass);
+        }
+
+        [UnityTest]
         public IEnumerator Midday_KeepsDesignedTown()
         {
             yield return null;
@@ -216,6 +253,32 @@ namespace A305.Weather.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Night_LiftsUiGlassBackdropSoUiKeepsDaylightLook()
+        {
+            yield return null;
+
+            presenter.ShowTime(Midnight);
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(1f).Within(.001f),
+                "한밤에는 유리 UI가 비추는 뒤 화면을 낮 밝기까지 밝혀야 합니다."
+            );
+
+            presenter.ShowTime(Sunset);
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(daylight.NightAmount(Sunset)).Within(.001f)
+            );
+
+            presenter.ShowTime(Midday);
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(0f).Within(.001f),
+                "낮에는 유리 UI를 디자인 그대로 둡니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator Destroy_PutsDesignedGlowBack()
         {
             yield return null;
@@ -231,6 +294,12 @@ namespace A305.Weather.PlayModeTests
 
             Assert.That(glow.sharedMaterial, Is.SameAs(designedGlow));
             Assert.That(lampGlass.sharedMaterial, Is.SameAs(designedLampGlass));
+            Assert.That(shopWindow.sharedMaterial, Is.SameAs(designedWindowGlass));
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(0f).Within(.001f),
+                "장소를 떠나면 유리 UI를 디자인 그대로 돌려야 합니다."
+            );
         }
 
         private WeatherPresenter NewPresenter()
@@ -251,6 +320,9 @@ namespace A305.Weather.PlayModeTests
             SerializedProperty lamps = fields.FindProperty("lamps");
             lamps.arraySize = 1;
             lamps.GetArrayElementAtIndex(0).objectReferenceValue = lamp;
+            SerializedProperty litBuildings = fields.FindProperty("litBuildings");
+            litBuildings.arraySize = 1;
+            litBuildings.GetArrayElementAtIndex(0).objectReferenceValue = shop;
             fields.ApplyModifiedPropertiesWithoutUndo();
             root.SetActive(true);
             return component;
@@ -285,6 +357,13 @@ namespace A305.Weather.PlayModeTests
 
             glow = Shape("WindowAmberGlow", designedGlow);
             lampGlass = Shape("LanternAmberV2", designedLampGlass);
+
+            // 입점한 매장과 주택이 같은 창 유리 재질을 쓴다.
+            shop = Keep(new GameObject("MapleDiner")).transform;
+            shopWindow = Shape("WindowBlue", designedWindowGlass);
+            shopWindow.transform.SetParent(shop);
+            houseWindow = Shape("WindowBlue", designedWindowGlass);
+            houseWindow.transform.SetParent(Keep(new GameObject("BrickResidence2F")).transform);
         }
 
         private Renderer Shape(string name, Material material)

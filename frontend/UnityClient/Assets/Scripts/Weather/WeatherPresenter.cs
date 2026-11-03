@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
+using A305.Theme;
 using UnityEngine;
 
 namespace A305.Weather
 {
     /// <summary>
-    /// 예보한 날씨와 게임 시각에 맞춰 실외 장소의 하늘·해·환경광·안개·구름과 날씨 효과, 밤 불빛을 바꾼다.
+    /// 예보한 날씨와 게임 시각에 맞춰 실외 장소의 하늘·해·환경광·안개·구름과 날씨 효과, 밤 불빛과 입점 건물의 불 켠 창을 바꾼다.
     /// 날씨 종류는 <see cref="WeatherSettings"/>의 정의 에셋 목록에서 서버 값으로 찾고, 그 낮 모습 위에
     /// <see cref="DaylightSettings"/>의 낮·노을·밤을 입힌다. 하늘·구름·발광 머티리얼은 사본을 물들여 원본 에셋을 바꾸지 않는다.
+    /// UI는 시각을 따르지 않으므로, 밤에 어두워진 만큼 <see cref="UiBackdropLift"/>를 올려 유리 UI를 낮과 같은 밝기로 둔다.
     /// </summary>
     public sealed class WeatherPresenter : DaylightView
     {
@@ -40,6 +42,10 @@ namespace A305.Weather
         [SerializeField]
         [Tooltip("밤에 밝히는 가로등·창 불빛")]
         private Light[] lamps = new Light[0];
+
+        [SerializeField]
+        [Tooltip("입점한 상점·숙소 건물. 밤에는 안에서 불을 켠 것처럼 창이 빛난다")]
+        private Transform[] litBuildings = new Transform[0];
 
         private readonly Dictionary<WeatherDefinition, GameObject> effects =
             new Dictionary<WeatherDefinition, GameObject>();
@@ -164,6 +170,8 @@ namespace A305.Weather
             Destroy(sky);
             Destroy(cloud);
             nightLights?.Restore();
+            if (shownMinutes.HasValue)
+                UiBackdropLift.Show(0f);
         }
 
         private WeatherDefinition Resolve(string code, string fallbackCode)
@@ -197,7 +205,10 @@ namespace A305.Weather
                     lamps,
                     gameObject
                         .scene.GetRootGameObjects()
-                        .SelectMany(root => root.GetComponentsInChildren<Renderer>(true))
+                        .SelectMany(root => root.GetComponentsInChildren<Renderer>(true)),
+                    litBuildings
+                        .Where(building => building != null)
+                        .SelectMany(building => building.GetComponentsInChildren<Renderer>(true))
                 );
 
             if (designedSky != null)
@@ -324,7 +335,9 @@ namespace A305.Weather
                 look = daylight.Mix(shownLook, minutes, skyCovered);
                 stars = daylight.StarAmount(minutes, skyCovered);
                 sun.transform.rotation = daylight.SunRotation(designedSunRotation, minutes);
-                nightLights.Apply(daylight, daylight.NightAmount(minutes));
+                float night = daylight.NightAmount(minutes);
+                nightLights.Apply(daylight, night);
+                UiBackdropLift.Show(night);
             }
             if (sky != null && sky.HasProperty(StarsId))
                 sky.SetFloat(StarsId, stars);

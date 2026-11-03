@@ -49,6 +49,14 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 5d09b421e4519bc4eb4e3bc4b3a7a9cc, type: 2}
   nightWindowColor: {r: 0.1, g: 0.14, b: 0.24, a: 1}
   nightWindowEmissionScale: 0.1
-  nightWindowLightScale: 0.12
-  nightFillScale: 0.35
-  nightInteriorAmbientScale: 0.45
+  litWindowMaterials:
+  - {fileID: 2100000, guid: cbf76fe738f484c4dbe61803ad803990, type: 2}
+  - {fileID: 2100000, guid: 1d3a864cdf3fb6f48b06e435263367a5, type: 2}
+  - {fileID: 2100000, guid: ab83f91c832ed3d45899ca8bfdf92a3c, type: 2}
+  - {fileID: 2100000, guid: d2b7201baf647484697aeb06f6d3799e, type: 2}
+  litWindowColor: {r: 1, g: 0.85, b: 0.58, a: 1}
+  litWindowEmission: {r: 0.9, g: 0.62, b: 0.3, a: 1}
+  nightWindowLightScale: 0.8
+  nightRoomLightColor: {r: 1, g: 0.9, b: 0.76, a: 1}
+  nightFillScale: 0.9
+  nightInteriorAmbientScale: 0.9

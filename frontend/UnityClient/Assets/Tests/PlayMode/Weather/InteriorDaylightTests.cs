@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
+using A305.Theme;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -74,7 +75,7 @@ namespace A305.Weather.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator Midnight_DimsDaylightFromWindowsAndBrightensLamps()
+        public IEnumerator Midnight_TurnsWindowLightIntoWarmRoomLightAndBrightensLamps()
         {
             interior = NewInterior();
             yield return null;
@@ -85,7 +86,7 @@ namespace A305.Weather.PlayModeTests
                 windowLight.intensity,
                 Is.EqualTo(WindowLightIntensity * daylight.NightWindowLightScale).Within(.001f)
             );
-            AssertColor(windowLight.color, daylight.MoonColor);
+            AssertColor(windowLight.color, daylight.NightRoomLightColor);
             Assert.That(
                 fill.intensity,
                 Is.EqualTo(FillIntensity * daylight.NightFillScale).Within(.001f)
@@ -110,6 +111,23 @@ namespace A305.Weather.PlayModeTests
                 RenderSettings.ambientSkyColor,
                 DesignedAmbientSky * daylight.NightInteriorAmbientScale
             );
+        }
+
+        [UnityTest]
+        public IEnumerator Midnight_KeepsRoomLitAsIfLightsAreOn()
+        {
+            interior = NewInterior();
+            yield return null;
+
+            interior.ShowTime(Midnight);
+
+            // 밤의 실내는 불을 켠 방이다. 간접등만 켠 것처럼 어두우면 안 된다.
+            Assert.That(windowLight.intensity, Is.GreaterThanOrEqualTo(WindowLightIntensity * .7f));
+            Assert.That(
+                RenderSettings.ambientSkyColor.grayscale,
+                Is.GreaterThanOrEqualTo(DesignedAmbientSky.grayscale * .85f)
+            );
+            Assert.That(fill.intensity, Is.GreaterThanOrEqualTo(FillIntensity * .8f));
         }
 
         [UnityTest]
@@ -161,6 +179,33 @@ namespace A305.Weather.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Night_LiftsUiGlassBackdropSoUiKeepsDaylightLook()
+        {
+            interior = NewInterior();
+            yield return null;
+
+            interior.ShowTime(Midnight);
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(1f).Within(.001f),
+                "한밤에는 유리 UI가 비추는 뒤 화면을 낮 밝기까지 밝혀야 합니다."
+            );
+
+            interior.ShowTime(Sunset);
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(daylight.NightAmount(Sunset)).Within(.001f)
+            );
+
+            interior.ShowTime(Midday);
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(0f).Within(.001f),
+                "낮에는 유리 UI를 디자인 그대로 둡니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator Destroy_PutsDesignedWindowsBack()
         {
             interior = NewInterior();
@@ -176,6 +221,11 @@ namespace A305.Weather.PlayModeTests
             yield return null;
 
             Assert.That(window.sharedMaterial, Is.SameAs(designedWindow));
+            Assert.That(
+                UiBackdropLift.Amount,
+                Is.EqualTo(0f).Within(.001f),
+                "장소를 떠나면 유리 UI를 디자인 그대로 돌려야 합니다."
+            );
         }
 
         private InteriorDaylight NewInterior()

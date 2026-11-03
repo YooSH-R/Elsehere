@@ -49,6 +49,28 @@ namespace A305.EditorTools.Weather
             "Assets/Art/World/Drugstore/Materials/DrugstoreDaylightGlass.mat",
         };
 
+        // 밤에 입점한 상점·숙소 건물에서 안에서 불을 켠 것처럼 빛나게 할 창 유리.
+        private static readonly string[] LitWindowMaterialPaths =
+        {
+            "Assets/Art/World/MainstreetArt/WindowBlue.mat",
+            "Assets/Art/World/MainstreetArt/GlassLight.mat",
+            "Assets/Art/World/MainstreetArt/SkyGlassV2.mat",
+            "Assets/Art/World/CafeBlenderKit/Materials/Glass.mat",
+        };
+
+        // 마을에서 들어가 볼 수 있는 이용 건물: 카페·숙소(호텔)·드럭스토어. 집은 상점·숙소가 아니라 넣지 않는다.
+        private static readonly string[] OpenSpaceBuildings =
+        {
+            "CafeBuilding",
+            "HotelBuilding",
+            "DrugstoreFront",
+        };
+
+        private const string BackgroundBuildingsPath = "TownMainstreet/BackgroundBuildings";
+
+        // 배경 건물 가운데 매장 실내가 있는 건물이 입점한 상점이다. 주택·빈 건물에는 실내가 없다.
+        private const string ShopInteriorName = "Interior";
+
         // 마을에서 밤에 밝히는 등. 순찰차 경광등처럼 따로 켜고 끄는 빛은 넣지 않는다.
         private static readonly string[] TownLampNames =
         {
@@ -101,11 +123,13 @@ namespace A305.EditorTools.Weather
             BuilderTools.SetReference(link, "daylight", view);
         }
 
-        /// <summary>마을 날씨 표시에 밤낮 설정과 밤에 밝히는 등을 잇는다. 날씨 Builder도 이 연결을 쓴다.</summary>
+        /// <summary>
+        /// 마을 날씨 표시에 밤낮 설정과 밤에 밝히는 등, 밤에 창이 빛나는 입점 건물을 잇는다. 날씨 Builder도 이 연결을 쓴다.
+        /// </summary>
         public static void ConnectTown(WeatherPresenter weather, Scene scene)
         {
             BuilderTools.SetReference(weather, "daylight", Settings());
-            SetLights(
+            SetList(
                 weather,
                 "lamps",
                 BuilderTools
@@ -114,6 +138,32 @@ namespace A305.EditorTools.Weather
                         light.type != LightType.Directional && TownLampNames.Contains(light.name)
                     )
             );
+            SetList(weather, "litBuildings", OpenBuildings(scene));
+        }
+
+        /// <summary>입점한 상점·숙소 건물. 이용 건물과, 배경 건물 가운데 켜져 있고 매장 실내가 있는 건물이다.</summary>
+        public static IEnumerable<Transform> OpenBuildings(Scene scene)
+        {
+            Transform environment = scene
+                .GetRootGameObjects()
+                .Select(root => root.transform)
+                .FirstOrDefault(root => root.name == "Environment");
+            if (environment == null)
+                yield break;
+            foreach (string name in OpenSpaceBuildings)
+            {
+                Transform building = environment.Find(name);
+                if (building != null)
+                    yield return building;
+            }
+            Transform background = environment.Find(BackgroundBuildingsPath);
+            if (background == null)
+                yield break;
+            foreach (Transform building in background)
+            {
+                if (building.gameObject.activeSelf && building.Find(ShopInteriorName) != null)
+                    yield return building;
+            }
         }
 
         private static InteriorDaylight ConnectInterior(SceneGroups groups)
@@ -131,13 +181,13 @@ namespace A305.EditorTools.Weather
             BuilderTools.SetReference(interior, "daylight", Settings());
             Light[] lights = BuilderTools.FindAllInScene<Light>(groups.Scene);
             Light[] rooms = lights.Where(light => light.type != LightType.Directional).ToArray();
-            SetLights(
+            SetList(
                 interior,
                 "windowLights",
                 lights.Where(light => light.type == LightType.Directional)
             );
-            SetLights(interior, "fills", rooms.Where(light => light.name.Contains(FillLightName)));
-            SetLights(interior, "lamps", rooms.Where(light => !light.name.Contains(FillLightName)));
+            SetList(interior, "fills", rooms.Where(light => light.name.Contains(FillLightName)));
+            SetList(interior, "lamps", rooms.Where(light => !light.name.Contains(FillLightName)));
             return interior;
         }
 
@@ -153,15 +203,19 @@ namespace A305.EditorTools.Weather
                 ),
                 WindowMaterialPaths.Select(path =>
                     BuilderTools.LoadRequiredAsset<Material>(path, MenuPath)
+                ),
+                LitWindowMaterialPaths.Select(path =>
+                    BuilderTools.LoadRequiredAsset<Material>(path, MenuPath)
                 )
             );
             AssetDatabase.CreateAsset(settings, SettingsPath);
             return settings;
         }
 
-        private static void SetLights(Object owner, string propertyName, IEnumerable<Light> lights)
+        private static void SetList<T>(Object owner, string propertyName, IEnumerable<T> items)
+            where T : Object
         {
-            Light[] list = lights.ToArray();
+            T[] list = items.ToArray();
             var fields = new SerializedObject(owner);
             SerializedProperty property = fields.FindProperty(propertyName);
             property.arraySize = list.Length;

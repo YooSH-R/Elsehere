@@ -1,11 +1,14 @@
 using System.Linq;
+using A305.Theme;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace A305.Weather
 {
     /// <summary>
-    /// 실내 장소의 낮·밤. 밤에는 창으로 드는 빛을 달빛으로 바꾸고 낮빛 보조광·환경광을 줄이며, 실내등은 밝히고 창밖 유리는 밤하늘 색으로 칠한다.
+    /// 실내 장소의 낮·밤. 밤의 실내는 불을 켠 방이다. 창으로 드는 빛은 따뜻한 실내등 색의 방 조명으로 바꾸고
+    /// 낮빛 보조광·환경광은 조금만 줄이며, 실내등은 밝히고 창밖 유리는 밤하늘 색으로 칠한다.
+    /// 유리 UI는 <see cref="UiBackdropLift"/>로 낮과 같은 밝기로 둔다.
     /// 낮에는 씬에 디자인한 값 그대로다. 값은 이 씬이 활성 씬이 된 뒤 Start에서 읽는다.
     /// </summary>
     public sealed class InteriorDaylight : DaylightView
@@ -14,7 +17,7 @@ namespace A305.Weather
         private DaylightSettings daylight;
 
         [SerializeField]
-        [Tooltip("창으로 드는 햇빛(Directional Light). 밤에는 달빛 색으로 약해진다")]
+        [Tooltip("창으로 드는 햇빛(Directional Light). 밤에는 조금 약한 실내등 색 방 조명이 된다")]
         private Light[] windowLights = new Light[0];
 
         [SerializeField]
@@ -54,6 +57,8 @@ namespace A305.Weather
         private void OnDestroy()
         {
             nightLights?.Restore();
+            if (prepared)
+                UiBackdropLift.Show(0f);
         }
 
         public override void ShowTime(double gameMinutes)
@@ -68,7 +73,7 @@ namespace A305.Weather
                 windowLights[index].intensity = windowLightIntensities[index] * windowScale;
                 windowLights[index].color = Color.Lerp(
                     windowLightColors[index],
-                    daylight.MoonColor,
+                    daylight.NightRoomLightColor,
                     night
                 );
             }
@@ -77,6 +82,7 @@ namespace A305.Weather
                 fills[index].intensity = fillIntensities[index] * fillScale;
             ApplyAmbient(Mathf.Lerp(1f, daylight.NightInteriorAmbientScale, night));
             nightLights.Apply(daylight, night);
+            UiBackdropLift.Show(night);
         }
 
         private void Prepare()

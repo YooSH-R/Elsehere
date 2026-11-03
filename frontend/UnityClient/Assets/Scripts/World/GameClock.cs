@@ -35,6 +35,9 @@ namespace A305.World
         /// </summary>
         public double Minutes { get; private set; } = StartMinutes;
 
+        /// <summary>튜토리얼처럼 진행 흐름이 게임 시간을 멈춰 두는 동안 true.</summary>
+        public bool IsHeld { get; set; }
+
         /// <summary>실제 시간 realSeconds만큼 게임 시각을 흘린다. 서버가 대화 중이라 멈췄다고 알려 주면 흘리지 않는다.</summary>
         public void Flow(double realSeconds)
         {

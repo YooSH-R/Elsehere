@@ -69,6 +69,34 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Tutorial_HoldsTheGameClock_UntilItIsSkipped()
+        {
+            // 튜토리얼은 정해진 대본으로 연습하는 시간이라 게임 시각이 흐르지 않는다. 마치거나 건너뛰면 그때부터 흐른다.
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            double before = GameClock.Shared.Minutes;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return null;
+            }
+
+            Assert.That(GameClock.Shared.IsHeld, Is.True);
+            Assert.That(
+                GameClock.Shared.Minutes,
+                Is.EqualTo(before),
+                "튜토리얼 동안 시간이 흐릅니다."
+            );
+
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            Click(guideView, "SkipButton");
+            Click(guideView, "ConfirmSkipButton");
+            yield return null;
+            yield return null;
+
+            Assert.That(GameClock.Shared.IsHeld, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator SaveWord_PinnedCardWithoutSaveButton_DoesNotSkipTheStep()
         {
             // 서버에 연결되지 않아 단어 카드에 [저장]이 없어도, 저장하지 않았으니 넘어가지 않는다.

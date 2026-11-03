@@ -68,7 +68,7 @@ body {
   inset: 0;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 1.2s ease;
+  transition: opacity 0.8s ease;
 }
 
 .intro-slide.is-active {
@@ -103,7 +103,7 @@ body {
 
 /* 정지 그림이 살아 보이도록 카드가 천천히 다가온다. */
 .intro-slide.is-active .intro-picture {
-  animation: intro-lift 6.5s ease-out forwards;
+  animation: intro-lift 4s ease-out forwards;
 }
 
 @keyframes intro-lift {

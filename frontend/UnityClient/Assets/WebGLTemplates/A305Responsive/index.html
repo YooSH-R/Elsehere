@@ -43,7 +43,8 @@
         { image: "intro/feature-relationship.jpg", caption: "다시 찾아가면 NPC가 나를 알아보고 반겨 줘요" },
         { image: "intro/feature-greeting.jpg", caption: "다시 만나면 오늘 하루가 어땠는지 물어봐 줘요" },
       ];
-      const slideDurationMs = 5000;
+      // 로딩이 10초 남짓이어도 서너 장은 보이도록 짧게 바꾼다. 장면이 겹쳐 바뀌는 시간은 style.css의 .intro-slide에 있다.
+      const slideDurationMs = 3000;
       const slidesElement = document.querySelector("#intro-slides");
       const captionElement = document.querySelector("#intro-caption");
       let introRunning = true;
@@ -133,7 +134,7 @@
           if (current !== null) {
             const previous = current;
             previous.classList.remove("is-active");
-            setTimeout(() => previous.remove(), 1500);
+            setTimeout(() => previous.remove(), 1000);
           }
           current = shown;
 

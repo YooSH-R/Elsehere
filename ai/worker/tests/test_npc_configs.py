@@ -277,7 +277,7 @@ def test_the_service_npcs_each_have_their_own_voice():
 
     assert {config["npcId"]: config["voiceId"] for config in configs} == {
         "CAFE_STAFF": "af_heart",  # Mia: 밝은 여자
-        "HOTEL_STAFF": "am_onyx",  # Jake: 낮고 무덤덤한 남자
+        "HOTEL_STAFF": "am_echo",  # Jake: 또렷하고 밝은 남자
         "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
         "SHOP_STAFF": "am_michael",  # Alex: 차분한 남자
         "TAXI_DRIVER": "am_puck",  # Joe: 밝고 수다스러운 남자

@@ -6,8 +6,8 @@ import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.ai.service.WorkerLines;
 import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.auth.service.ConsentCatalog;
-import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.conversation.service.NpcAudioRetention;
@@ -60,7 +60,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @ImportAutoConfiguration(JacksonAutoConfiguration.class)
 @Import({
   TestcontainersConfiguration.class,
-  ClockConfig.class,
+  TestClockConfig.class,
   JpaAuditingConfig.class,
   WorldSeedLoader.class,
   PronunciationAudioStore.class,

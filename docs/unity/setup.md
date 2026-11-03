@@ -49,6 +49,16 @@ Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브�
 - 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
 - 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
 
+### 웹 이용 통계
+
+웹 템플릿은 `elsehere.kr`과 `www.elsehere.kr`에서만 Google 애널리틱스 측정 ID `G-209TJ3SH81`을 사용합니다. 방문자가 통계 수집에 동의하기 전에는 Google 태그를 불러오지 않습니다. 거부해도 게임을 이용할 수 있고, 화면 오른쪽 아래의 **통계 수집 설정**에서 나중에 선택을 바꿀 수 있습니다. 동의를 철회하면 측정을 중지하고 분석 쿠키를 지운 뒤 페이지를 다시 불러옵니다. 브라우저의 사이트별 저장소를 사용하므로 두 도메인의 선택은 각각 유지됩니다.
+
+동의한 방문에는 페이지 조회와 WebGL 로딩 완료(`webgl_loaded`, `duration_seconds`) 또는 실패(`webgl_load_failed`, `failure_stage`)를 전송합니다. 실패 단계는 `loader` 또는 `initialization`만 사용하며 오류 원문과 사용자 정보는 보내지 않습니다. 페이지 주소는 도메인까지만, 유입 주소는 출처 도메인까지만 전달해 경로와 쿼리를 제외합니다. Google 신호와 광고 맞춤설정은 태그에서도 끕니다. 개발 주소와 로컬에서는 태그와 동의 화면이 실행되지 않습니다.
+
+배포 전에는 팀이 검토한 `2026-11` 개인정보 처리방침과 로그인 화면의 링크가 함께 반영되었는지 확인해야 합니다. 템플릿의 동의 화면은 `/privacy/2026-11`로 연결하므로 백엔드 문서가 먼저 준비되지 않으면 링크가 열리지 않습니다. 변경된 처리방침과 동의 안내를 확인하기 전에는 이 템플릿을 운영에 배포하지 않습니다.
+
+Unity EditMode 검사 외에 저장소 최상위에서 `node --test infra/tests/webgl_analytics.test.cjs`를 실행하면 동의·거부·철회, 운영 주소 제한과 로딩 이벤트를 네트워크 없이 검증합니다. 운영 배포 후에는 동의 전과 거부 시 요청이 없는지, 동의 후 실시간 보고서에 이벤트가 들어오는지 확인합니다.
+
 ```powershell
 & "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -buildTarget WebGL -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Common.WebBuildBuilder.Build -quit -logFile <저장소 밖 경로>\WebBuild.log
 ```

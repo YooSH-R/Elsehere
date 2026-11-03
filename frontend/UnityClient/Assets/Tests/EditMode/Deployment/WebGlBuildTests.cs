@@ -74,5 +74,15 @@ namespace A305.Deployment.Tests
             Assert.That(page, Does.Contain("<title>Elsehere</title>"));
             Assert.That(page, Does.Contain("aria-label=\"Elsehere\""));
         }
+
+        [Test]
+        public void WebTemplateProvidesAnExplicitAnalyticsConsentChoice()
+        {
+            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
+
+            Assert.That(page, Does.Contain("id=\"analytics-consent\""));
+            Assert.That(page, Does.Contain("id=\"analytics-accept\""));
+            Assert.That(page, Does.Contain("id=\"analytics-reject\""));
+        }
     }
 }

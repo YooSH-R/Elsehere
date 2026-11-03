@@ -9,8 +9,8 @@ import com.elsehere.ai.entity.AiRequest;
 import com.elsehere.ai.entity.AiRequestKind;
 import com.elsehere.ai.entity.AiRequestStatus;
 import com.elsehere.ai.repository.AiRequestRepository;
-import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import java.util.List;
@@ -37,7 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
   TestcontainersConfiguration.class,
-  ClockConfig.class,
+  TestClockConfig.class,
   JpaAuditingConfig.class,
   AiGateway.class,
   AiRequestRecorder.class

@@ -70,6 +70,19 @@ namespace A305.ObjectHover.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ClickingSavedWord_PinnedCardShowsTheExample()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+
+            hover.Click(ScreenPointOf(tv));
+
+            Assert.That(tooltip.IsPinned, Is.True);
+            Assert.That(tooltip.IsExampleVisible, Is.True);
+            Assert.That(tooltip.ExampleText, Is.EqualTo("Let's watch TV together."));
+        }
+
+        [UnityTest]
         public IEnumerator PointingAtUnsavedWord_ShowsMeaningWithoutExample()
         {
             HoverableObject airConditioner = FindHoverable("air_conditioner");

@@ -136,7 +136,14 @@ namespace A305.EditorTools.Theme
         public static void ApplyFeedbackSituationTheme()
         {
             catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
-            Style("Assets/Prefabs/Learning/FeedbackScreen.prefab", StyleFeedbackSituations);
+            Style(
+                "Assets/Prefabs/Learning/FeedbackScreen.prefab",
+                root =>
+                {
+                    StyleFeedbackSituations(root);
+                    FeedbackScreenBuilder.Apply(root);
+                }
+            );
         }
 
         [MenuItem("Tools/A305/UI/Apply Text Insets And Alignment")]
@@ -834,6 +841,8 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");
             QuietButton(root, "Panel/Buttons/VocabularyButton", "단어장");
             StyleFeedbackSituations(root);
+            // 머리줄·탭·표현 칸·본문 칸·아래 버튼은 확정 시안 그림으로 다시 놓는다.
+            FeedbackScreenBuilder.Apply(root);
         }
 
         private static void StyleFeedbackSituations(Transform root)

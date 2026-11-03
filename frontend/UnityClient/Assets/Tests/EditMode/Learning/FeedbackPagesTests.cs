@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using A305.Dialogue;
 using NUnit.Framework;
 
@@ -15,6 +16,16 @@ namespace A305.Learning.Tests
             Assert.That(pages[0].Body, Does.Contain("카페에서 주문했어요"));
             Assert.That(pages[0].Body, Does.Contain("의도를 잘 전달했어요"));
             Assert.That(pages[0].Body, Does.Not.Contain("I want go"));
+        }
+
+        // 요약 칸의 잘한 점·아쉬운 점은 앞머리를 초록·코랄 굵은 글자로 칠해 한눈에 구분한다(시안의 '잘했어요' 칩).
+        [Test]
+        public void Summary_MarksGoodAndImproveNotesInColor()
+        {
+            var pages = FeedbackPages.Create(Sample(), FeedbackSection.Summary);
+
+            Assert.That(pages[0].Body, Does.Contain("<color=#2F8A4B><b>잘했어요</b></color>  "));
+            Assert.That(pages[0].Body, Does.Not.Contain("잘했어요 · "));
         }
 
         [Test]
@@ -69,16 +80,11 @@ namespace A305.Learning.Tests
 
             Assert.That(pages.Count, Is.EqualTo(2));
             Assert.That(pages[0].Title, Is.EqualTo("이 상황에서 자주 써요"));
-            // 대화 노트는 페이지 제목을 따로 보여 주지 않으므로 다른 회화 카드와 구분되게 본문 첫 줄에 쓴다.
-            Assert.That(pages[0].Body, Does.StartWith("<b>이 상황에서 자주 써요</b>"));
-            Assert.That(
-                pages[0].Body,
-                Does.Contain("Can I get that to go?")
-                    .And.Contain("포장해 주실 수 있나요?")
-                    .And.Contain("음료를 가지고 나가고 싶을 때 써요.")
-                    .And.Contain("I'm in a bit of a hurry.")
-                    .And.Contain("좀 급해서요.")
-            );
+            // 요약 탭과 같은 표현 칸(코랄 제목 아래 흰 칸)으로 보이므로 본문 글은 비우고 표현을 넘긴다.
+            Assert.That(pages[0].Body, Is.Empty);
+            Assert.That(pages[0].Situations, Has.Count.EqualTo(1));
+            Assert.That(pages[0].Situations[0].Expression, Is.EqualTo("Can I get that to go?"));
+            Assert.That(pages[0].Situations[0].ExampleEn, Does.Contain("I'm in a bit of a hurry."));
             // [표현 저장]이 표현과 뜻을 함께 저장한다.
             Assert.That(pages[0].Expression.English, Is.EqualTo("Can I get that to go?"));
             Assert.That(pages[0].Expression.Korean, Is.EqualTo("포장해 주실 수 있나요?"));
@@ -109,12 +115,8 @@ namespace A305.Learning.Tests
 
             Assert.That(pages.Count, Is.EqualTo(2));
             Assert.That(
-                pages[0].Body,
-                Does.Contain("Could you hold my luggage?")
-                    .And.Contain("짐 좀 맡아 주시겠어요?")
-                    .And.Contain("until three?")
-                    .And.Contain("Is there a cafe nearby?")
-                    .And.Contain("where I can wait?")
+                pages[0].Situations.Select(situation => situation.Expression),
+                Is.EqualTo(new[] { "Could you hold my luggage?", "Is there a cafe nearby?" })
             );
             Assert.That(pages[0].Expression, Is.Null);
             Assert.That(pages[1].Body, Does.Contain("I'm good"));

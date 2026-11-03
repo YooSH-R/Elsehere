@@ -616,7 +616,7 @@ namespace A305.EditorTools.Learning
         }
 
         /// <summary>
-        /// 메뉴의 [피드백 목록]과 지난 대화를 고르는 피드백 목록 창. 없는 요소만 만들고 디자인은 유지하며, 창 제목 글자만 맞춘다.
+        /// 메뉴의 [피드백 목록]과 지난 대화를 고르는 피드백 목록 창. 창 안은 확정 시안대로 FeedbackListBuilder가 배치한다.
         /// 창은 피드백 화면(정렬 130)보다 아래인 HUD 캔버스에 있어, 목록에서 연 피드백이 창 위에 보인다.
         /// </summary>
         private static void SetUpHistory(
@@ -644,50 +644,8 @@ namespace A305.EditorTools.Learning
                 760f,
                 Vector2.zero
             );
-            // 이미 있는 제목은 FindOrCreateText가 그대로 두므로, 예전 이름 "지난 대화"가 남지 않게 글자를 다시 넣는다.
-            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 32f, Color.white).text =
-                FeedbackListTitle;
-            UiBuilderTools.FindOrCreateText(
-                panel,
-                "Hint",
-                regular,
-                20f,
-                SubTextColor,
-                "대화를 고르고 [피드백 보기]를 누르면 그때 받은 피드백과 대화 기록을 다시 볼 수 있어요."
-            );
-            BuilderTools.SetReference(
-                view,
-                "listText",
-                UiBuilderTools.FindOrCreateText(panel, "List", regular, 22f, Color.white)
-            );
-            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
-            BuilderTools.SetReference(
-                view,
-                "previousButton",
-                UiBuilderTools.FindOrCreateButton(buttons, "PreviousButton", "이전", bold, 120f)
-            );
-            BuilderTools.SetReference(
-                view,
-                "nextButton",
-                UiBuilderTools.FindOrCreateButton(buttons, "NextButton", "다음", bold, 120f)
-            );
-            BuilderTools.SetReference(
-                view,
-                "openButton",
-                UiBuilderTools.FindOrCreateButton(buttons, "OpenButton", "피드백 보기", bold, 180f)
-            );
-            BuilderTools.SetReference(
-                view,
-                "closeButton",
-                FindCornerOrRowButton(panel, buttons, "CloseButton", "닫기", bold, 120f)
-            );
-            BuilderTools.SetReference(
-                view,
-                "statusText",
-                UiBuilderTools.FindOrCreateText(panel, "Status", regular, 20f, SubTextColor)
-            );
-            BuilderTools.SetReference(view, "panel", panel.gameObject);
-            BuilderTools.RequireReferences(view);
+            // 머리줄·대화 줄·쪽 넘김은 확정 시안대로 FeedbackListBuilder가 만든다.
+            FeedbackListBuilder.Apply(root.transform);
             BuilderTools.SetReference(hud, "historyView", view);
             panel.gameObject.SetActive(false);
         }

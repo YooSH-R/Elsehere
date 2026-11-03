@@ -21,9 +21,16 @@
     <main id="unity-viewport">
       <div id="unity-frame">
         <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1" aria-label="Elsehere"></canvas>
-        <div id="unity-loading" role="status">
-          <span>화면을 불러오는 중입니다.</span>
-          <progress id="unity-progress" max="1" value="0"></progress>
+        <div id="unity-loading">
+          <div id="intro-slides" aria-hidden="true"></div>
+          <p id="intro-brand"><img src="logo.png" alt="Elsehere" width="660" height="128"></p>
+          <div id="intro-footer">
+            <p id="intro-caption"></p>
+            <div id="loading-status" role="status">
+              <span>마을을 불러오는 중이에요.</span>
+              <div id="unity-progress" role="progressbar" aria-label="불러온 정도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+            </div>
+          </div>
         </div>
         <div id="unity-warning" role="alert" hidden></div>
       </div>
@@ -164,6 +171,167 @@
       // 게임 화면에서 오른쪽 클릭으로 브라우저 메뉴가 떠 화면을 가리지 않게 한다.
       canvas.addEventListener("contextmenu", (event) => event.preventDefault());
 
+      // 게임 파일을 받는 동안 소개 그림(1536x1024)을 한 장씩 보여 준다.
+      const introSlides = [
+        { image: "intro/feature-hover.jpg", caption: "사물을 가리키면 영어 단어와 예문을 알려 줘요" },
+        { image: "intro/feature-talk.jpg", caption: "NPC에게 영어로 말을 걸면 대답해 줘요" },
+        { image: "intro/feature-shop.jpg", caption: "가게에서 필요한 물건이 어디 있는지 물어봐요" },
+        { image: "intro/feature-directions.jpg", caption: "길을 모르면 마을 사람에게 물어봐요" },
+        { image: "intro/feature-vocabulary.jpg", caption: "저장한 단어는 나만의 단어장에 모여요" },
+        { image: "intro/feature-relationship.jpg", caption: "다시 찾아가면 NPC가 나를 알아보고 반겨 줘요" },
+        { image: "intro/feature-greeting.jpg", caption: "다시 만나면 오늘 하루가 어땠는지 물어봐 줘요" },
+      ];
+      // 로딩이 10초 남짓이어도 서너 장은 보이도록 짧게 바꾼다. 장면이 겹쳐 바뀌는 시간은 style.css의 .intro-slide에 있다.
+      const slideDurationMs = 3000;
+      const slidesElement = document.querySelector("#intro-slides");
+      const captionElement = document.querySelector("#intro-caption");
+      let introRunning = true;
+      let slideTimer = 0;
+
+      // 접속할 때마다 순서를 섞는다. 로딩이 짧으면 첫 장면만 보일 수 있어, 지난 접속의 첫 장면은 첫 자리에 두지 않는다.
+      // 브라우저 저장소를 쓸 수 없으면 지난 접속을 모르는 채로 섞기만 한다.
+      const lastFirstSlideKey = "elsehere.intro.lastFirstSlide";
+
+      function shuffleIntro(slides) {
+        const order = slides.slice();
+        for (let index = order.length - 1; index > 0; index--) {
+          const other = Math.floor(Math.random() * (index + 1));
+          [order[index], order[other]] = [order[other], order[index]];
+        }
+
+        let lastFirst = null;
+        try {
+          lastFirst = localStorage.getItem(lastFirstSlideKey);
+        } catch {
+          // 저장소를 읽지 못하면 지난 첫 장면을 피하지 않는다.
+        }
+        if (order.length > 1 && order[0].image === lastFirst) {
+          const other = 1 + Math.floor(Math.random() * (order.length - 1));
+          [order[0], order[other]] = [order[other], order[0]];
+        }
+        try {
+          localStorage.setItem(lastFirstSlideKey, order[0].image);
+        } catch {
+          // 저장하지 못하면 다음 접속은 이번 첫 장면을 피하지 않는다.
+        }
+        return order;
+      }
+
+      // 장면 하나는 흐린 배경과 그 위 가운데 카드로 그린다. 받지 못한 장면은 null이 되어 건너뛴다.
+      function prepareSlide(slide) {
+        const element = document.createElement("div");
+        element.className = "intro-slide";
+        const backdrop = new Image();
+        backdrop.className = "intro-backdrop";
+        backdrop.alt = "";
+        backdrop.src = slide.image;
+        const frame = document.createElement("div");
+        frame.className = "intro-frame";
+        const picture = new Image();
+        picture.className = "intro-picture";
+        picture.alt = "";
+        picture.src = slide.image;
+        frame.appendChild(picture);
+        element.append(backdrop, frame);
+        return picture.decode().then(
+          () => {
+            // 카드는 사진 비율대로 크기를 잡는다.
+            element.style.setProperty("--ratio", picture.naturalWidth / picture.naturalHeight);
+            return element;
+          },
+          () => null
+        );
+      }
+
+      async function playIntro(slides) {
+        let current = null;
+        let failedInRow = 0;
+        let upcoming = prepareSlide(slides[0]);
+        for (let index = 0; introRunning; index = (index + 1) % slides.length) {
+          const slide = slides[index];
+          const shown = await upcoming;
+          // 지금 장면을 보여 주는 동안 다음 장면 이미지를 미리 받아 둔다.
+          upcoming = prepareSlide(slides[(index + 1) % slides.length]);
+          if (!introRunning) {
+            return;
+          }
+          if (shown === null) {
+            // 모든 장면을 받지 못하면 진행 막대만 남긴다.
+            failedInRow++;
+            if (failedInRow >= slides.length) {
+              return;
+            }
+            continue;
+          }
+          failedInRow = 0;
+
+          slidesElement.appendChild(shown);
+          // 새 장면을 붙인 다음 프레임에 켜야 투명도 전환이 일어난다.
+          requestAnimationFrame(() => shown.classList.add("is-active"));
+          captionElement.textContent = slide.caption;
+          if (current !== null) {
+            const previous = current;
+            previous.classList.remove("is-active");
+            setTimeout(() => previous.remove(), 1000);
+          }
+          current = shown;
+
+          await new Promise((resolve) => {
+            slideTimer = setTimeout(resolve, slideDurationMs);
+          });
+        }
+      }
+
+      function stopIntro() {
+        introRunning = false;
+        clearTimeout(slideTimer);
+      }
+
+      // 막대가 받은 만큼 부드럽게 따라 차도록 값만 넘긴다. 차오르는 시간은 style.css의 #unity-progress span에 있다.
+      const progressBar = document.querySelector("#unity-progress");
+
+      function showProgress(progress) {
+        progressBar.style.setProperty("--progress", progress);
+        progressBar.setAttribute("aria-valuenow", Math.round(progress * 100));
+      }
+
+      // Unity는 파일을 다 받으면 0.9, 게임 준비를 마치면 1을 알린다. 마지막 칸은 hideLoading이 채운다.
+      function showDownloadProgress(progress) {
+        showProgress(Math.min(progress, 0.9));
+      }
+
+      // 게임 준비를 마친 직후 Unity가 첫 화면을 그리는 동안 브라우저 화면이 1초 남짓 멈춘다.
+      // 화면이 다시 이어서 그려질 때 마무리를 시작해야 막대가 끝까지 차는 모습이 보인다. 느린 기기에서 붙잡지 않도록 2초가 지나면 그냥 시작한다.
+      function whenFramesFlow(callback) {
+        let started = 0;
+        let previous = 0;
+        let smoothFrames = 0;
+        requestAnimationFrame(function check(now) {
+          started ||= now;
+          smoothFrames = previous && now - previous < 100 ? smoothFrames + 1 : 0;
+          previous = now;
+          if (smoothFrames >= 2 || now - started > 2000) {
+            callback();
+            return;
+          }
+          requestAnimationFrame(check);
+        });
+      }
+
+      function hideLoading() {
+        stopIntro();
+        loading.style.pointerEvents = "none";
+        whenFramesFlow(() => {
+          // 막대가 끝까지 차는 모습을 보인 뒤 로딩 화면을 닫는다.
+          showProgress(1);
+          loading
+            .animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, delay: 400, easing: "ease-out" })
+            .finished.then(() => {
+              loading.hidden = true;
+            });
+        });
+      }
+
       function showBanner(message, type) {
         const entry = document.createElement("div");
         entry.textContent = message;
@@ -178,9 +346,12 @@
       }
 
       function showLoadError(message) {
+        stopIntro();
         loading.hidden = true;
         showBanner(message, "error");
       }
+
+      playIntro(shuffleIntro(introSlides));
 
       const buildUrl = "Build";
       const config = {
@@ -211,10 +382,8 @@
         showLoadError("화면을 불러오지 못했습니다. 연결을 확인한 뒤 새로고침해 주세요.");
       };
       loader.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress").value = progress;
-        }).then(() => {
-          loading.hidden = true;
+        createUnityInstance(canvas, config, showDownloadProgress).then(() => {
+          hideLoading();
           const seconds = Math.round((performance.now() - loadStartedAt) / 10) / 100;
           window.reportUnityLoad?.("loaded", seconds);
         }).catch((error) => {

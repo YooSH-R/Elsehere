@@ -294,21 +294,13 @@ namespace A305.EditorTools.Theme
 
         // 메뉴(≡) 버튼. 평소 버튼은 기본 색, 펼친 동안 같은 자리에 보이는 버튼은 강조 색이다.
 
-        /// <summary>피드백 목록 창을 단어장 화면처럼 칠한다. 닫기는 오른쪽 위 X, [피드백 보기]는 강조 알약 버튼이다.</summary>
+        /// <summary>피드백 목록 창은 테마 유리 판 위에 확정 시안대로 다시 놓는다(FeedbackListBuilder).</summary>
         private static void StyleHistory(Transform root)
         {
             if (root.Find("History") == null)
                 return;
             Role(root, "History", UiThemeRole.Panel);
-            Role(root, "History/Title", UiThemeRole.Title);
-            Role(root, "History/Hint", UiThemeRole.Muted);
-            Role(root, "History/List", UiThemeRole.Body);
-            Role(root, "History/Status", UiThemeRole.Muted);
-            CompactArrow(root, "History/Buttons/PreviousButton", UiIcon.Previous);
-            CompactArrow(root, "History/Buttons/NextButton", UiIcon.Next);
-            ActionPill(root, "History/Buttons/OpenButton", UiIcon.Detail, UiTone.Primary, 220);
-            CornerClose(root, "History");
-            Roomy(root, "History");
+            A305.EditorTools.Learning.FeedbackListBuilder.Apply(root);
         }
 
         /// <summary>오른쪽 아래 조작법 카드. 알림 카드처럼 작은 카드 바탕에 제목·조작·안내를 두고, 닫기는 오른쪽 위 X다.</summary>

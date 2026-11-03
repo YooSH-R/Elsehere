@@ -113,6 +113,7 @@ namespace A305.EditorTools.Weather
             BuilderTools.SetReference(weather, "clouds", summerClouds);
             BuilderTools.SetReference(weather, "overcastClouds", OvercastClouds(summerClouds));
             BuilderTools.SetReference(weather, "effectFollowTarget", player);
+            DaylightBuilder.ConnectTown(weather, groups.Scene);
             BuilderTools.RequireReferences(weather);
             return weather;
         }

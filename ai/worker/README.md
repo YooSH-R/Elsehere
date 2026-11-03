@@ -176,10 +176,11 @@ ai/worker/.venv/Scripts/python ai/tools/npc_configs.py ai/npcs --out backend/src
 
 ## NPC 생활 규칙과 하루 시뮬레이션
 
-NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI와 역할뿐이고, 행동·생활 값·일과는 `ai/npcs/rules/`의 공통 규칙으로 계산합니다(`ai/tools/npc_derive.py`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)). 규칙 숫자를 바꾼 뒤에는 LLM 없이 하루를 돌려 봅니다.
+NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI·역할·근무지(`workplace`)·맡은 교대(`shift`)뿐이고, 행동·생활 값·일과는 `ai/npcs/rules/`의 공통 규칙으로 계산합니다(`ai/tools/npc_derive.py`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)). 일과는 공통 규칙 `places`의 장소별 교대를 `roles`의 역할 규칙으로 하루로 바꾼 것입니다(직원은 6시간 넘는 교대 가운데 30분 휴식). 규칙 숫자를 바꾼 뒤에는 LLM 없이 하루를 돌려 보고, 규칙이나 생활 파일을 바꿨으면 Unity 데이터를 다시 내보냅니다.
 
 ```bash
-.venv/Scripts/python ../tools/npc_simulate.py   # 서비스 NPC 3명의 하루(행동 조각·부탁·행동·정시 욕구)와 알아봄·기억 곡선
+.venv/Scripts/python ../tools/npc_simulate.py      # 서비스 NPC 3명의 하루(행동 조각·부탁·행동·정시 욕구)와 알아봄·기억 곡선
+.venv/Scripts/python ../tools/npc_life_export.py   # Unity 생활 데이터(Data/Npc/NpcLife.json)와 장소별 영업시간(Data/World/PlaceHours.json) 다시 내보내기
 ```
 
 ## NPC 인격 카드 생성
@@ -187,13 +188,13 @@ NPC마다 정하는 것은 `ai/npcs/life/<npcId>.json`의 MBTI와 역할뿐이�
 성격을 만드는 일은 NPC를 만들 때 한 번 하고, 결과인 인격 카드는 대화할 때마다 그대로 씁니다(설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)의 "인격 카드 생성").
 
 - 손으로 쓴 인격 카드(`ai/npcs/<npcId>.json`)에는 생활 파일의 MBTI로 계산한 성격 5축과 뽑힌 행동 조각이 자동 칸으로 들어갑니다. 행동 조각이나 생활 파일을 바꿨으면 다시 쓰고 백엔드 전달물도 다시 만듭니다(위 "백엔드 시드로 내보내기").
-- 새 NPC는 재료 파일(`ai/npcs/rules/persona-ingredients.json`)에서 규칙으로 뼈대를 만들고, `--narrate`를 주면 LLM이 사연(배경 이야기·겪은 일)만 씁니다. 결과는 초안(`isActive` false, `voiceId` null)이라 사람이 보고 `ai/npcs`로 옮긴 뒤 상황 파일을 연결하고 목소리를 정해 켭니다.
+- 새 NPC는 재료 파일(`ai/npcs/rules/persona-ingredients.json`)에서 규칙으로 뼈대를 만들고, `--narrate`를 주면 LLM이 사연(배경 이야기·겪은 일)만 씁니다. 명령은 장소에서 맡을 교대도 받아 생활 파일에 근무지(장소)·교대를 적고, 공통 규칙에 없는 장소·교대면 파일을 쓰지 않습니다. 결과는 초안(`isActive` false, `voiceId` null)이라 사람이 보고 `ai/npcs`로 옮긴 뒤 상황 파일을 연결하고 목소리를 정해 켭니다.
 - 조합 규칙은 `app/npc_persona.py` 한 곳에 있고, 어드민 랜덤 생성은 같은 규칙을 워커 API로 부릅니다(`/v1/npc/persona/generate`·`/derive`, [계약](../../docs/api/ai-worker.md) 2.9절). 배포 이미지에는 `ai/npcs/rules`가 함께 들어갑니다.
 
 ```bash
 .venv/Scripts/python ../tools/npc_derive.py ../npcs                                       # 손으로 쓴 인격 카드의 자동 칸 다시 쓰기
-.venv/Scripts/python ../tools/npc_generate.py GEN_CAFE_01 INFP-A STAFF CAFE --out drafts            # 규칙 뼈대만 (LLM 없음)
-.venv/Scripts/python ../tools/npc_generate.py GEN_CAFE_01 INFP-A STAFF CAFE --out drafts --narrate  # 사연까지 (.env 구성의 NPC 대답 모델)
+.venv/Scripts/python ../tools/npc_generate.py GEN_CAFE_01 INFP-A STAFF CAFE CLOSING --out drafts            # 규칙 뼈대만 (LLM 없음)
+.venv/Scripts/python ../tools/npc_generate.py GEN_CAFE_01 INFP-A STAFF CAFE CLOSING --out drafts --narrate  # 사연까지 (.env 구성의 NPC 대답 모델)
 ```
 
 ## NPC 관계·기분
@@ -255,11 +256,12 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
 - `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC마다 연결한 상황, 서비스 NPC마다 성별·성격에 맞춰 따로 정한 목소리(`voiceId`), 백엔드 생성 파일이 원본과 같은지
-- `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 역할의 일과 틀에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만), 서비스 NPC마다 최종 값이 인격 글의 성격 방향을 재현하는지, 인격 카드 자동 칸(성격 5축을 스키마 칸 순서로, 손으로 쓴 규칙 뒤 행동 조각, 다시 계산해도 중복 없음, 원본 불변, 서비스 인격 파일 동기화, 명령은 생활 파일 있는 NPC만 고침)
+- `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 맡은 교대를 역할 규칙으로 바꾼 하루(6시간 넘는 교대는 가운데 30분 휴식·30분 단위로 맞춤, 6시간 이하는 휴식 없음, 자정을 넘는 야간 교대, 하루 전체 교대는 퇴근 없음, 행인은 자유 시간만)에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만, 거리 매장 직원은 기본 장소 마을에 매장 교대 시각), 서비스 NPC마다 최종 값이 인격 글의 성격 방향을 재현하는지, 인격 카드 자동 칸(성격 5축을 스키마 칸 순서로, 손으로 쓴 규칙 뒤 행동 조각, 다시 계산해도 중복 없음, 원본 불변, 서비스 인격 파일 동기화, 명령은 생활 파일 있는 NPC만 고침)
 - `tests/test_npc_persona_api.py`: 인격 카드 조합 API(`/v1/npc/persona/generate`·`/derive`) — 필수 입력(npcId·역할·장소)만으로 초안과 고른 MBTI, 같은 요청 같은 결과, 고정 입력 유지, DB 후보와 다른 NPC 이름, 만들 수 없는 요청(장소에 직업 없음·틀린 MBTI·고를 이름 없음·필요한 쪽 성격 특징 없음)은 400, 사연은 사연 칸만·모델을 어긴 사연은 502, MBTI를 바꾼 카드의 자동 칸만 다시 계산, 모델 밖 카드는 400
-- `tests/test_npc_generate.py`: 인격 카드 생성(`app/npc_persona.py`, 명령 `ai/tools/npc_generate.py`) — MBTI 없이 고르기, 고정 칸 유지·한 칸 고정이 다른 칸을 바꾸지 않음, 고정 직업의 나이대, 후보 목록은 준 목록만 바꿈, 재료 파일 검사(스키마 위치, 축 양쪽 특징 2개 이상, 없는 나이대, 특징 이름 중복), 같은 id 같은 NPC·다른 id 다른 NPC, MBTI 16 × 직원(카페·호텔)·행인 48가지가 공통 인격 스키마·생활 파일 스키마 통과, 초안 표시, 축마다 기운 쪽 특징, 반대 쪽·다른 역할 재료 없음, 직업·나이대, 쓰는 이름 제외, 말투·사회적 행동 규칙, 자동 칸, 장소에 직업이 없으면 오류, 명령이 두 파일을 씀, LLM은 사연 칸만 쓰고(가짜 공급자) 카드와 금지 사항을 받으며 스키마 밖 사연·JSON이 아닌 출력은 거절
+- `tests/test_npc_generate.py`: 인격 카드 생성(`app/npc_persona.py`, 명령 `ai/tools/npc_generate.py`) — MBTI 없이 고르기, 고정 칸 유지·한 칸 고정이 다른 칸을 바꾸지 않음, 고정 직업의 나이대, 후보 목록은 준 목록만 바꿈, 재료 파일 검사(스키마 위치, 축 양쪽 특징 2개 이상, 없는 나이대, 특징 이름 중복), 같은 id 같은 NPC·다른 id 다른 NPC, MBTI 16 × 직원(카페·호텔)·행인 48가지가 공통 인격 스키마·생활 파일 스키마 통과, 초안 표시, 축마다 기운 쪽 특징, 반대 쪽·다른 역할 재료 없음, 직업·나이대, 쓰는 이름 제외, 말투·사회적 행동 규칙, 자동 칸, 장소에 직업이 없으면 오류, 명령이 두 파일을 씀(생활 파일에 근무지·교대)·장소에 없는 교대는 거절, LLM은 사연 칸만 쓰고(가짜 공급자) 카드와 금지 사항을 받으며 스키마 밖 사연·JSON이 아닌 출력은 거절
+- `tests/test_npc_life_export.py`: Unity 생활 데이터 내보내기(`ai/tools/npc_life_export.py`) — 생활 파일이 있는 NPC 모두, 역할·장소와 교대로 계산한 일과, 성격 배수(없는 욕구는 1), 공통 규칙과 할 일 기준을 그대로, 장소별 영업시간(규칙 순서, 영업시간이 없으면 `alwaysOpen`), 커밋한 `NpcLife.json`·`PlaceHours.json`이 다시 내보낸 것과 같은지
 - `tests/test_npc_simulate.py`: 하루 시뮬레이션(`ai/tools/npc_simulate.py`) — 욕구 감소 배수, 가장 급한 욕구를 채울 행동, 근무 중에는 일만, 다른 역할의 행동 제외, 부탁 발생(하루 한 번)·자기 장소 심부름 제외·퇴근 중 제외. 서비스 데이터로 Jake의 근무 중 머핀 부탁·Mia는 부탁 없음·Ben의 오후 말 걸기, 튜토리얼을 마치기 전 안내 NPC(Ben)는 생활·부탁 없음(다른 NPC는 평소대로), 알아봄 단계에 닿는 대화 수, 기억 떠올림, 명령줄 출력
-- `tests/test_npc_life_rules.py`: NPC 생활·관계 공통 규칙(`ai/npcs/rules/world-rules.json`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)) — 원본 스키마 통과, 빠진 욕구·없는 욕구·감정·사건, 범위 밖 값을 어긴 위치로 알려 주기, 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지, 역할별 일과 틀이 하루를 채우는지와 일과표의 빈 시간·겹침·자정 넘김. NPC별 생활 파일(`ai/npcs/life/<npcId>.json`) — 서비스 NPC 3명이 입력 노드(MBTI·역할)만 가짐, 스키마가 막는 값(손으로 적는 생활 값 포함), 파일 이름과 `npcId`, 인격 파일과의 짝, 스키마를 어긴 파일은 스키마 오류만, 튜토리얼 안내 NPC는 Ben 하나. 행동 조각 모음(`ai/npcs/rules/behaviors.json`) — 원본 스키마 통과, 스키마가 막는 값, id 중복, 없는 조각·자기 자신과의 충돌 표시, 성격 축 양쪽마다 고를 조각 수
+- `tests/test_npc_life_rules.py`: NPC 생활·관계 공통 규칙(`ai/npcs/rules/world-rules.json`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)) — 원본 스키마 통과, 빠진 욕구·없는 욕구·감정·사건, 범위 밖 값을 어긴 위치로 알려 주기, 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지, 어느 역할이 어느 교대를 맡아도 하루를 채우는지(교대에 들어가지 않는 휴식은 역할·교대와 함께 알림)와 일과표의 빈 시간·겹침·자정 넘김, 장소별 영업시간 동안 맡은 교대가 없는 시간·영업시간 밖 교대(자정을 넘는 영업시간 포함). NPC별 생활 파일(`ai/npcs/life/<npcId>.json`) — 서비스 NPC가 입력 노드(MBTI·역할·근무지·교대)만 가짐, NPC마다 맡은 교대, 스키마가 막는 값(손으로 적는 생활 값, 빠진 교대 포함), 파일 이름과 `npcId`, 인격 파일과의 짝, 공통 규칙에 없는 근무지·그 근무지에 없는 교대, 스키마를 어긴 파일은 스키마 오류만, 튜토리얼 안내 NPC는 Ben 하나. 행동 조각 모음(`ai/npcs/rules/behaviors.json`) — 원본 스키마 통과, 스키마가 막는 값, id 중복, 없는 조각·자기 자신과의 충돌 표시, 성격 축 양쪽마다 고를 조각 수
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 - `tests/test_npc_reply_profile.py`: 게임 대화 경로(`/v1/npc/reply`)의 인격 — 인격이 없으면 지금 지시문 그대로, 백엔드 인격 설정(`content/npc-configurations.json`)의 3명이 대답의 Character가 됨, 다섯 부분 순서, 인격이 있어도 장소·사실·기억·난이도·백엔드 지시가 들어감, 난이도 규칙이 말투를 정하지 않음, 스키마 밖 인격은 400, 힌트 등 다른 요청도 같은 npc를 받음
 - `tests/test_npc_relationship.py`: 관계 계산(`app/npc_relationship.py`) — 알아봄은 여유 날 뒤 하루씩 줄고 대화마다 갈수록 덜 오름(NPC 배수), 인상은 사건 한 번씩·무례 제외·목록 밖 버림, 무례 한 번의 감점(인상 × 따라가는 비율 × 반응 크기)과 같은 값의 기본값, 줄마다 새 사건만큼 바로 오르는 호감(반복한 사건은 0, 반응 크기 곱함), 줄마다 더한 합이 대화 전체 인상과 같음, 대화 뒤에는 알아봄만 정수 변화량, 오래 안 오면 알아봄 변화량이 음수, 처음 만남, 인격 카드로 계산한 배수가 생활 파일로 계산한 값과 같음, 지금 상태(처음 봄·본 적 있음·단골, 오래 안 오면 다시 낯섦, 좋아함·싫어함, 사적인 이야기, 무례 뒤 짜증과 성격별 지속, 사과하면 짜증이 줄어듦, 칭찬 뒤 좋은 기분, 잡담은 이어질 때만, 무례 줄의 다른 사건 버림, 함께면 더 큰 기분만), 잡담·사적인 질문은 호감을 움직이지 않음, 정수로 저장해도 호감이 쌓이는 대화 수

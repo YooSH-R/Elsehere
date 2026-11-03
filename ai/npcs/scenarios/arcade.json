@@ -1,0 +1,10 @@
+{
+  "scenarioId": "arcade",
+  "locationId": "TOWN",
+  "situation": "The visitor has just walked into Little Arcade on the town's main street. There are claw machines with stuffed bears and rabbits inside.",
+  "facts": [
+    "One claw machine game is $1.",
+    "Paper & Leaf Books, a separate bookshop, is upstairs.",
+    "The post office is right across the main street."
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "scenarioId": "flower_shop_counter",
+  "locationId": "TOWN",
+  "situation": "The customer is at the counter at the back of Bloom Flowers on the town's main street. Fresh cut flowers stand in buckets on steps along both walls.",
+  "facts": [
+    "Today's fresh flowers are roses, tulips, sunflowers and daisies.",
+    "A single flower is $2. A bouquet is $15.",
+    "Lily can wrap any flowers in paper with a ribbon.",
+    "Main St. Barber is right across the main street."
+  ]
+}

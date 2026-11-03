@@ -23,9 +23,20 @@ namespace A305.Learning.PlayModeTests
             TutorialState.MarkFinishedOnServer();
         }
 
-        [TearDown]
-        public void ClearTutorial()
+        // 열어 둔 창이 다음 시험의 마을 HUD를 숨기지 않게 창을 다루는 학습 처리를 지운다. 지울 때 가운데 창이 닫혔다고 알린다.
+        [UnityTearDown]
+        public IEnumerator CloseWindowsAndClearTutorial()
         {
+            foreach (
+                LearningController learning in Object.FindObjectsByType<LearningController>(
+                    FindObjectsSortMode.None
+                )
+            )
+            {
+                Object.Destroy(learning);
+            }
+
+            yield return null;
             TutorialState.Clear();
         }
 

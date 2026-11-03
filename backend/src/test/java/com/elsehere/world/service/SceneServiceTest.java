@@ -92,7 +92,8 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan과 거리 매장 직원 9명을 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
+  @DisplayName(
+      "마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan, 거리 매장 직원 9명과 행인 Ruby·Ethan·Maya를 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
   void getScene_town_returnsNpcs() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -117,7 +118,10 @@ class SceneServiceTest {
             new NpcResponse("BARBER_STAFF", "Tony", NpcType.STAFF, "이발사", false, null),
             new NpcResponse("BAKERY_STAFF", "Grace", NpcType.STAFF, "제빵사", false, null),
             new NpcResponse("ARCADE_STAFF", "Max", NpcType.STAFF, "오락실 직원", false, null),
-            new NpcResponse("HOME_STORE_STAFF", "Nina", NpcType.STAFF, "매장 직원", false, null));
+            new NpcResponse("HOME_STORE_STAFF", "Nina", NpcType.STAFF, "매장 직원", false, null),
+            new NpcResponse("TOWN_RETIREE", "Ruby", NpcType.PASSERBY, "행인", false, null),
+            new NpcResponse("TOWN_STUDENT", "Ethan", NpcType.PASSERBY, "행인", false, null),
+            new NpcResponse("TOWN_EVENING_WALKER", "Maya", NpcType.PASSERBY, "행인", false, null));
   }
 
   @Test
@@ -204,7 +208,7 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("호텔 상세는 호텔 직원 Jake를 돌려준다")
+  @DisplayName("호텔 상세는 교대를 나눠 맡는 호텔 직원 Jake·Owen·Clara를 돌려준다")
   void getScene_hotel_returnsHotelStaff() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -213,7 +217,10 @@ class SceneServiceTest {
     assertThat(hotel.isOpen()).isTrue();
     assertThat(hotel.npcs())
         .containsExactly(
-            new NpcResponse("HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null));
+            new NpcResponse("HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null),
+            new NpcResponse("HOTEL_RECEPTIONIST", "Owen", NpcType.STAFF, "호텔 직원", false, null),
+            new NpcResponse(
+                "HOTEL_NIGHT_MANAGER", "Clara", NpcType.STAFF, "호텔 야간 매니저", false, null));
   }
 
   @Test

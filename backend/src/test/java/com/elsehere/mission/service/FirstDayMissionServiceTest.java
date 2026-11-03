@@ -120,7 +120,15 @@ class FirstDayMissionServiceTest {
             "BARBER_STAFF",
             "BAKERY_STAFF",
             "ARCADE_STAFF",
-            "HOME_STORE_STAFF")) {
+            "HOME_STORE_STAFF",
+            "CAFE_BARISTA",
+            "HOTEL_RECEPTIONIST",
+            "HOTEL_NIGHT_MANAGER",
+            "SHOP_PHARMACIST",
+            "SHOP_NIGHT_CLERK",
+            "TOWN_RETIREE",
+            "TOWN_STUDENT",
+            "TOWN_EVENING_WALKER")) {
       if (npc.equals(stage.npc())) {
         continue;
       }

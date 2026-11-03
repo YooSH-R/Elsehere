@@ -58,6 +58,13 @@ namespace A305.Voice
                     : MicrophoneAccess.NoDevice;
         }
 
+        // Unity Microphone은 시작하자마자 소리를 받아 미리 열어 둘 필요가 없다.
+        public bool IsCapturing => clip != null;
+
+        public void KeepOpen() { }
+
+        public void Release() { }
+
         public void StartRecording()
         {
             // 브라우저처럼 녹음을 시작할 때 마이크가 있는지 다시 확인한다. 없으면 녹음 진행이 녹음을 취소한다.

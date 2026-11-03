@@ -73,7 +73,7 @@ public class GuestContentCleanup {
       userContentEraser.deleteFiles(files);
     }
     if (!guests.isEmpty()) {
-      log.info("게스트 내용을 정리했습니다 guests={}", guests.size());
+      log.info("guest_content_cleaned guests={}", guests.size());
     }
   }
 }

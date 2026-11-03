@@ -57,7 +57,7 @@ public class AdminPronunciationService {
     try {
       lastRun = pronunciationGenerator.generateMissing(adminUserId);
     } catch (RuntimeException exception) {
-      log.error("사물 단어 발음 만들기가 중간에 멈췄습니다.", exception);
+      log.error("pronunciation_generation_stopped", exception);
     } finally {
       running.set(false);
     }

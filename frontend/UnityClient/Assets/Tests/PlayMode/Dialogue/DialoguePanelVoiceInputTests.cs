@@ -74,6 +74,28 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(light.gameObject.activeInHierarchy, Is.False);
         }
 
+        // 마이크가 열리는 동안 한 말은 녹음되지 않으므로 [종료] 대신 [준비 중]으로 기다리라고 알린다.
+        [UnityTest]
+        public IEnumerator MicrophoneOpening_ShowsPreparingUntilSoundArrives()
+        {
+            yield return Show(new VoiceContent(status: null));
+            int stops = 0;
+            view.TalkStopRequested += () => stops++;
+            Image light = TalkButton().transform.Find("VoiceLight").GetComponent<Image>();
+
+            view.ShowVoiceInput(isRecording: true, isHearingVoice: false, isPreparing: true);
+            Assert.That(TalkLabel().text, Is.EqualTo("준비 중"));
+            Assert.That(light.gameObject.activeInHierarchy, Is.False);
+
+            // 준비 중에도 눌러서 녹음을 그만둘 수 있다.
+            ClickCenterOf(TalkButton());
+            Assert.That(stops, Is.EqualTo(1));
+
+            view.ShowVoiceInput(isRecording: true, isHearingVoice: false, isPreparing: false);
+            Assert.That(TalkLabel().text, Is.EqualTo("종료"));
+            Assert.That(light.gameObject.activeInHierarchy, Is.True);
+        }
+
         [UnityTest]
         public IEnumerator WhileListening_StatusLineTellsToPressStopWhenDone()
         {

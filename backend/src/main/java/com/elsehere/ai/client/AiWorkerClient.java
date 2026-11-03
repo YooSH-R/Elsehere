@@ -350,11 +350,11 @@ class AiWorkerClient {
         return new NpcReply(done.text(), done.audioFullId(), null, usageOf(done.usage()));
       }
       if (error != null) {
-        log.warn("AI 워커 NPC 대답 실패 code={}", error.code());
+        log.warn("npc_reply_failed code={}", error.code());
         return new NpcReply(null, null, error.code(), usageOf(error.usage()));
       }
       // done·error 없이 끊긴 스트림
-      log.warn("AI 워커 NPC 대답 스트림이 끝나지 않고 끊겼습니다");
+      log.warn("npc_reply_stream_cut");
       return new NpcReply(null, null, "provider_unavailable", List.of());
     }
 
@@ -425,10 +425,10 @@ class AiWorkerClient {
           TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
       return response;
     } catch (HttpTimeoutException exception) {
-      log.warn("AI 워커 응답 시간 초과 path={}", request.uri().getPath());
+      log.warn("ai_worker_timeout path={}", request.uri().getPath());
       throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE, exception);
     } catch (IOException exception) {
-      log.warn("AI 워커에 연결하지 못했습니다 path={}", request.uri().getPath());
+      log.warn("ai_worker_unreachable path={}", request.uri().getPath());
       throw new BusinessException(ErrorCode.AI_TEMPORARILY_UNAVAILABLE, exception);
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
@@ -463,7 +463,7 @@ class AiWorkerClient {
     } catch (JacksonException exception) {
       // 오류 형식이 아닌 본문(프록시 오류 등)
     }
-    log.warn("AI 워커 오류 status={} code={}", status, code);
+    log.warn("ai_worker_error status={} code={}", status, code);
     return new BusinessException(toErrorCode(code));
   }
 

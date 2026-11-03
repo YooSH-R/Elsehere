@@ -90,7 +90,7 @@ public class MemoryService {
       update(userId, conversationId, requestId);
     } catch (RuntimeException exception) {
       log.warn(
-          "NPC 기억을 갱신하지 못했습니다 conversationId={} type={}",
+          "npc_memory_update_failed conversation_id={} type={}",
           conversationId,
           exception.getClass().getSimpleName());
     }
@@ -113,7 +113,7 @@ public class MemoryService {
           aiGateway.memoryCard(trace, job.npc(), job.outcome(), job.history(), job.previousCard());
     } catch (BusinessException exception) {
       // 429·502·503 등. 오류 응답에는 카드가 없으므로 빈 카드로 덮지 않고 이전 카드를 그대로 둔다.
-      log.warn("기억 카드를 갱신하지 못해 이전 카드를 유지합니다 code={}", exception.getErrorCode());
+      log.warn("memory_card_update_failed code={}", exception.getErrorCode());
       return;
     }
     transactionTemplate.executeWithoutResult(
@@ -129,7 +129,8 @@ public class MemoryService {
     try {
       change = aiGateway.relationship(trace, job.npc(), job.relationship(), job.history());
     } catch (BusinessException exception) {
-      log.warn("관계를 갱신하지 못해 이전 값을 유지합니다 code={}", exception.getErrorCode());
+      // 관계는 바꾸지 않고 이전 값을 그대로 둔다.
+      log.warn("relationship_update_failed code={}", exception.getErrorCode());
       return;
     }
     transactionTemplate.executeWithoutResult(

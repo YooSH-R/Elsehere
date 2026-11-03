@@ -385,9 +385,9 @@ namespace A305.Tutorial.PlayModeTests
             CoachMarkView coachMark = Single<CoachMarkView>();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.LeaveLodging));
             Assert.That(
-                Single<TutorialGuideView>().IsVisible,
-                Is.False,
-                "단어장 위로 안내 카드는 숨깁니다."
+                Single<TutorialGuideView>().IsSkipOnly,
+                Is.True,
+                "단어장 위로는 할 일 카드 대신 [건너뛰기]만 남깁니다."
             );
             Assert.That(coachMark.IsSpotlightShowing, Is.True, "단어장 창을 밝힙니다.");
             Assert.That(coachMark.CaptionText, Does.Contain("단어장"));
@@ -549,6 +549,88 @@ namespace A305.Tutorial.PlayModeTests
             Assert.That(coachMark.IsNextShowing, Is.False);
             Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
             Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator BenDialogue_TheEndButtonStaysLocked_UntilTheGuideIsDone()
+        {
+            // 튜토리얼 길 안내는 정해진 흐름이라 대사를 다 마치기 전에는 [대화 종료]·Esc로 끝낼 수 없다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            DialogueController dialogue = Single<DialogueController>();
+            Button endButton = panel.EndButtonRect.GetComponent<Button>();
+
+            Assert.That(
+                endButton.interactable,
+                Is.False,
+                "길 안내 중에 [대화 종료]를 누를 수 있습니다."
+            );
+            endButton.onClick.Invoke();
+            dialogue.End();
+            yield return null;
+            Assert.That(dialogue.IsTalking, Is.True, "길 안내를 마치기 전에 대화가 끝났습니다.");
+
+            yield return FinishTour(Single<CoachMarkView>());
+            while (!dialogue.IsGuidedCompleted)
+            {
+                Click(panel, "ExampleButton");
+                Click(panel, "SendButton");
+                yield return null;
+            }
+
+            yield return null;
+            Assert.That(
+                endButton.interactable,
+                Is.True,
+                "길 안내를 마치면 [대화 종료]를 누릅니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator BenDialogue_KeepsTheSkipCardOnTop_AndSkippingClosesTheTalkWithoutFeedback()
+        {
+            // 대화가 할 일 카드를 가려도 [건너뛰기]만 있는 작은 카드를 대화창과 코치 마크 위에 남긴다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            DialogueController dialogue = Single<DialogueController>();
+            Assert.That(dialogue.IsTalking, Is.True, "준비: Ben 대화");
+            Assert.That(coachMark.IsSpotlightShowing, Is.True, "준비: 대화 시작 티칭");
+
+            Assert.That(guideView.IsSkipOnly, Is.True);
+            Assert.That(
+                guideView.GetComponent<Canvas>().sortingOrder,
+                Is.GreaterThan(coachMark.GetComponent<Canvas>().sortingOrder),
+                "코치 마크 덮개가 [건너뛰기]를 가립니다."
+            );
+
+            Click(guideView, "SkipButton");
+            Click(guideView, "ConfirmSkipButton");
+            yield return null;
+            yield return null;
+
+            Assert.That(
+                TutorialState.GetOrCreate(BenCode).Step,
+                Is.EqualTo(TutorialStep.Completed)
+            );
+            Assert.That(dialogue.IsTalking, Is.False, "건너뛰어도 길 안내 대화가 남아 있습니다.");
+            Assert.That(
+                Single<FeedbackView>().IsVisible,
+                Is.False,
+                "건너뛴 길 안내 대화의 피드백을 띄웁니다."
+            );
         }
 
         [UnityTest]

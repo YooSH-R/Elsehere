@@ -79,6 +79,9 @@ namespace A305.Tutorial
 
         public bool IsSkipConfirmShowing => skipConfirm.activeSelf;
 
+        /// <summary>대화·대화 노트처럼 할 일 카드를 가리는 화면 위에 [건너뛰기]만 남긴 작은 카드를 보이는지</summary>
+        public bool IsSkipOnly => false;
+
         /// <summary>카드 전체. 튜토리얼 코치 마크가 도착 인사와 [시작하기]를 밝힌다.</summary>
         public RectTransform PanelRect => (RectTransform)panel.transform;
 

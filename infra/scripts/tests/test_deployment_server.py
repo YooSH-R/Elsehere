@@ -592,6 +592,17 @@ class ComposeConfigurationTests(unittest.TestCase):
         ):
             self.runtime.validate("candidate.yaml", "images.env", "previous.yaml")
 
+    def test_fixed_worker_policy_rejects_dynamic_worker_before_replacement(self):
+        self.runtime.config["fixed_worker_network"] = True
+        with self.assertRaisesRegex(ValueError, "external"):
+            self.validate_candidate(deepcopy(self.configuration))
+
+    def test_development_worker_policy_cannot_be_enabled_for_production(self):
+        self.runtime.config["fixed_worker_network"] = True
+        self.runtime.environment = "prod"
+        with self.assertRaisesRegex(ValueError, "prod"):
+            self.validate_candidate(deepcopy(self.configuration))
+
     def test_missing_google_credentials_rejects_deployment_configuration(self):
         for key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
             with self.subTest(key=key):

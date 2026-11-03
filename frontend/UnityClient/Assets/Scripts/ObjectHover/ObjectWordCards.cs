@@ -22,6 +22,17 @@ namespace A305.ObjectHover
             this.api = api;
         }
 
+        /// <summary>
+        /// 단어장에서 단어를 지웠을 때 그 영어 표현을 알린다. 장소의 카드는 들어올 때 받은 저장 상태를 들고 있어,
+        /// 이 알림을 받아 <see cref="ForgetSaved"/>로 다시 저장할 수 있게 한다.
+        /// </summary>
+        public static event Action<string> SavedWordRemoved;
+
+        public static void NotifySavedWordRemoved(string text)
+        {
+            SavedWordRemoved?.Invoke(text);
+        }
+
         /// <summary>장소의 단어 카드를 받았는지</summary>
         public bool IsLoaded { get; private set; }
 
@@ -81,6 +92,21 @@ namespace A305.ObjectHover
                     card.SaveRequestId = null;
                 }
             );
+        }
+
+        /// <summary>
+        /// 단어장에서 지운 단어를 저장하지 않은 카드로 되돌려 다시 저장할 수 있게 한다. 단어장 항목에는 단어 키가 없어
+        /// 영어 표현으로 찾는다.
+        /// </summary>
+        public void ForgetSaved(string text)
+        {
+            foreach (WordCard card in cards.Values)
+            {
+                if (string.Equals(card.Word.Text, text, StringComparison.OrdinalIgnoreCase))
+                {
+                    card.Saved = false;
+                }
+            }
         }
 
         /// <summary>[숨기기]와 [다시 띄우기](WORLD-03).</summary>

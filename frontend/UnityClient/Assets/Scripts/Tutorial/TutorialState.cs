@@ -34,13 +34,14 @@ namespace A305.Tutorial
             progress?.MarkFinishedOnServer();
         }
 
-        // Domain Reload를 끈 Editor에서도 Play를 시작할 때마다 비운다. 튜토리얼이 건 장소 이동 잠금도 함께 푼다.
+        // Domain Reload를 끈 Editor에서도 Play를 시작할 때마다 비운다. 튜토리얼이 건 장소 이동 잠금과 게임 시각 멈춤도 함께 푼다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Clear()
         {
             progress = null;
             isFinishedOnServer = false;
             SpaceTravel.SetLocked(false);
+            GameClock.Shared.IsHeld = false;
         }
     }
 }

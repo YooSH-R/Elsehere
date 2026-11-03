@@ -185,6 +185,270 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator LittleArcade_WalkThroughOpenHallAndEnterOriginalDoor()
+        {
+            yield return LoadSpace("TownScene");
+            Transform arcade = GameObject.Find("LittleArcade").transform;
+            var player = FindPlayer();
+            Vector3 street = arcade.TransformPoint(new Vector3(2f, .05f, 2f));
+            player.Teleport(street, Quaternion.LookRotation(-arcade.forward));
+            Assert.That(
+                arcade.Find("TenantEntrances/ArcadeFrontDoor"),
+                Is.Null,
+                "오락실 외벽은 기존 창문을 유지해야 합니다."
+            );
+            Assert.That(
+                arcade.Find("TenantEntrances/StairHallDoor"),
+                Is.Null,
+                "계단실 입구는 열린 통로여야 합니다."
+            );
+            yield return WalkForward(
+                player,
+                -arcade.forward,
+                () => arcade.InverseTransformPoint(player.transform.position).z <= -.88f
+            );
+            Assert.That(
+                arcade.InverseTransformPoint(player.transform.position).z,
+                Is.LessThan(-.8f),
+                "인도에서 공용 계단실로 걸어 들어가지 못했습니다."
+            );
+            Assert.That(SpaceTravel.IsTraveling, Is.False);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                yield return WalkForward(
+                    player,
+                    side * arcade.right,
+                    () => SpaceTravel.IsTraveling
+                );
+                Assert.That(
+                    SpaceTravel.IsTraveling,
+                    Is.True,
+                    "계단실 안 원래 오락실 문에서 전환되지 않았습니다."
+                );
+                yield return WaitUntilCurtainOpens();
+                Assert.That(
+                    arcade.InverseTransformPoint(player.transform.position).x * side,
+                    Is.GreaterThan(.4f)
+                );
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator OriginalShopDoors_AllowWalkingInAndOutWithMovementKeys()
+        {
+            yield return LoadSpace("TownScene");
+            var player = FindPlayer();
+            var failures = new List<string>();
+            var doors = Object
+                .FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
+                .Select(door => door.transform)
+                .Append(GameObject.Find("PoliceStationDoor").transform)
+                .ToArray();
+            Assert.That(doors, Has.Length.EqualTo(12));
+            foreach (var door in doors)
+            {
+                var room = door.GetComponentInParent<ShopInterior>();
+                Assert.That(room, Is.Not.Null, door.name);
+                Vector3 center = ShopThresholdCenter(door);
+                center.y = door.transform.position.y + .03f;
+                bool hallDoor = door.name == "ArcadeDoor" || door.name == "BookshopDoor";
+                Vector3 inward = hallDoor ? door.transform.forward : -door.transform.forward;
+                float approach = hallDoor ? 1.3f : 1.65f;
+                player.Teleport(center - inward * approach, Quaternion.LookRotation(inward));
+                foreach (var direction in new[] { inward, -inward })
+                {
+                    yield return WalkForward(player, direction, () => SpaceTravel.IsTraveling);
+                    if (!SpaceTravel.IsTraveling)
+                    {
+                        failures.Add(
+                            $"{door.name}: {door.transform.InverseTransformPoint(player.transform.position)} / lock={SpaceTravel.IsLocked}, movement={player.IsMovementLocked}"
+                        );
+                        break;
+                    }
+                    yield return WaitUntilCurtainOpens();
+                    Assert.That(
+                        Vector3.Dot(player.transform.position - center, direction),
+                        Is.GreaterThan(.4f),
+                        door.name
+                    );
+                    Assert.That(
+                        room.IsLoaded,
+                        Is.EqualTo(direction == inward),
+                        $"{door.name}: {room.SceneName}"
+                    );
+                }
+            }
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
+        [UnityTest]
+        public IEnumerator PostOffice_StreamsOnlyDuringTheVisitAfterSkippingTownTutorial()
+        {
+            TutorialState.Clear();
+            yield return LoadSpace("TownScene");
+            TutorialState.GetOrCreate("TOWN_PASSERBY").Skip();
+            yield return null;
+            yield return null;
+            Assert.That(
+                GameObject.Find("PoBoxWall"),
+                Is.Null,
+                "거리에서 우체국 실내를 로드하지 않아야 합니다."
+            );
+            Transform door = GameObject.Find("PostOfficeDoor").transform;
+            ShopInterior room = door.GetComponentInParent<ShopInterior>();
+            Assert.That(room, Is.Not.Null, "우체국 문이 실내 씬과 연결되어야 합니다.");
+            Assert.That(room.SceneName, Is.EqualTo("PostOfficeInterior"));
+            var player = FindPlayer();
+            Vector3 center = door.TransformPoint(door.GetComponent<BoxCollider>().center);
+            center.y = door.position.y + .02f;
+            player.Teleport(center + 2f * door.forward, Quaternion.LookRotation(-door.forward));
+            foreach (int side in new[] { -1, 1 })
+            {
+                yield return WalkForward(
+                    player,
+                    side * door.forward,
+                    () => SpaceTravel.IsTraveling
+                );
+                Assert.That(
+                    SpaceTravel.IsTraveling,
+                    Is.True,
+                    $"우체국 문 앞에서 전환되지 않았습니다. 거리={Vector3.Dot(player.transform.position - center, door.forward)}, 장소 잠금={SpaceTravel.IsLocked}, 이동 잠금={player.IsMovementLocked}"
+                );
+                yield return WaitUntilCurtainOpens();
+                Assert.That(
+                    Vector3.Dot(player.transform.position - center, door.forward) * side,
+                    Is.GreaterThan(.4f)
+                );
+                bool inside = side < 0;
+                Assert.That(
+                    SceneManager.GetSceneByName("PostOfficeInterior").isLoaded,
+                    Is.EqualTo(inside),
+                    $"loaded={string.Join(", ", LoadedSceneNames())}, side={side}, traveling={SpaceTravel.IsTraveling}"
+                );
+                Assert.That(GameObject.Find("PoBoxWall") != null, Is.EqualTo(inside));
+                if (inside)
+                {
+                    var lamp = SceneManager
+                        .GetSceneByName("PostOfficeInterior")
+                        .GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren<Light>())
+                        .Single(light => light.name == "InteriorLight");
+                    var weather = Object.FindFirstObjectByType<WeatherPresenter>();
+                    weather.ShowTime(12 * 60);
+                    float noonIntensity = lamp.intensity;
+                    weather.ShowTime(0);
+                    Assert.That(
+                        lamp.intensity,
+                        Is.GreaterThan(noonIntensity),
+                        "방문 중인 매장 조명도 마을의 밤 설정을 따라야 합니다."
+                    );
+                }
+            }
+        }
+
+        private static IEnumerator WalkForward(
+            PlayerMover player,
+            Vector3 direction,
+            System.Func<bool> arrived
+        )
+        {
+            var previousBackground = InputSystem.settings.backgroundBehavior;
+            var previousFocus = InputSystem.settings.editorInputBehaviorInPlayMode;
+            float previousStep = Time.captureDeltaTime;
+            Keyboard keyboard = null;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                InputSystem.settings.backgroundBehavior = InputSettings
+                    .BackgroundBehavior
+                    .IgnoreFocus;
+                InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
+                    .EditorInputBehaviorInPlayMode
+                    .AllDeviceInputAlwaysGoesToGameView;
+                keyboard = InputSystem.AddDevice<Keyboard>();
+                yield return null;
+                yield return null;
+                player.CameraRig.SnapView(Quaternion.LookRotation(direction).eulerAngles.y);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                for (int frame = 0; frame < 100 && !arrived(); frame++)
+                {
+                    yield return null;
+                }
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                Time.captureDeltaTime = previousStep;
+                InputSystem.settings.backgroundBehavior = previousBackground;
+                InputSystem.settings.editorInputBehaviorInPlayMode = previousFocus;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator TownShopDoors_CoverTheScreenWhenEnteringAndLeaving()
+        {
+            yield return LoadSpace("TownScene");
+            string[] doorNames =
+            {
+                "PostOfficeDoor",
+                "MapleDinerDoor",
+                "TownBankDoor",
+                "SudsLaundromatDoor",
+                "BloomFlowersDoor",
+                "MainStreetBarberDoor",
+                "PoliceStationDoor",
+                "BakeryDoor",
+                "ArcadeDoor",
+                "BookshopDoor",
+                "HomeGoodsDoor",
+                "TeaRoomDoor",
+            };
+            var player = FindPlayer();
+            foreach (string name in doorNames)
+            {
+                var door = GameObject.Find(name).transform;
+                Vector3 center = ShopThresholdCenter(door);
+                center.y = door.position.y;
+                Vector3 normal = door.forward;
+                foreach (int side in new[] { 1, -1 })
+                {
+                    player.Teleport(
+                        center + normal * (side * 0.45f),
+                        Quaternion.LookRotation(-side * normal)
+                    );
+                    float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+                    while (Vector3.Dot(player.transform.position - center, normal) * side > 0f)
+                    {
+                        Assert.That(
+                            Time.realtimeSinceStartup,
+                            Is.LessThan(deadline),
+                            $"{name} 문을 건너지 못했습니다 ({side})."
+                        );
+                        yield return null;
+                    }
+                    Assert.That(CurtainOpacity(), Is.EqualTo(1f), $"{name} 이동 순간");
+                    Assert.That(player.IsMovementLocked, Is.True, name);
+                    yield return WaitUntilCurtainOpens();
+                    Assert.That(CurtainOpacity(), Is.Zero, name);
+                    Assert.That(player.IsMovementLocked, Is.False, name);
+                    Assert.That(
+                        Mathf.Abs(player.transform.position.y - center.y),
+                        Is.LessThan(0.45f),
+                        $"{name} 도착 층"
+                    );
+                    Assert.That(
+                        Vector3.Dot(player.transform.position - center, normal) * side,
+                        Is.LessThan(-0.5f),
+                        $"{name} 도착 방향"
+                    );
+                    yield return new WaitForFixedUpdate();
+                }
+            }
+        }
+
+        [UnityTest]
         public IEnumerator WalkingIntoCafeDoor_EntersCafeAtTownDoor()
         {
             yield return LoadSpace("TownScene");
@@ -328,6 +592,15 @@ namespace A305.World.PlayModeTests
             );
         }
 
+        private static Vector3 ShopThresholdCenter(Transform door)
+        {
+            if (door.TryGetComponent(out BoxCollider sensor))
+                return door.TransformPoint(sensor.center);
+            Transform outside = door.parent.Find("OutsideDoorway");
+            Transform inside = door.parent.Find("InsideDoorway");
+            return (outside.position + inside.position) / 2f;
+        }
+
         private static IEnumerator LoadSpace(string sceneName)
         {
             yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
@@ -396,7 +669,10 @@ namespace A305.World.PlayModeTests
         private static IEnumerator WaitUntilCurtainOpens()
         {
             float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
-            while (CurtainOpacity() > 0f && Time.realtimeSinceStartup < deadline)
+            while (
+                (SpaceTravel.IsTraveling || CurtainOpacity() > 0f)
+                && Time.realtimeSinceStartup < deadline
+            )
             {
                 yield return null;
             }

@@ -31,7 +31,9 @@ def test_default_profile_is_gms_luna(env):
     env.update({"GMS_KEY": "g", "GROQ_API_KEY": "q"})
     s = Settings.from_env()
     assert (s.profile, s.base_url, s.api_key) == ("gms-luna", GMS_URL, "g")
-    assert s.models["npc"] == "gpt-6-luna" and s.fallback == {"gpt-6-luna": "gpt-6.1-sol"}
+    # 2026-11-03 NPC 대답만 SOL로 (Luna는 대화가 엉뚱해서). 판정·번역 등은 Luna 그대로, 서로를 대체 모델로
+    assert s.models["npc"] == "gpt-6.1-sol" and s.models["guard"] == "gpt-6-luna"
+    assert s.fallback == {"gpt-6-luna": "gpt-6.1-sol", "gpt-6.1-sol": "gpt-6-luna"}
     assert s.role_provider == {"stt": "groq"} and s.providers == {"groq": {"base_url": GROQ_URL, "api_key": "q"}}
 
 
@@ -66,7 +68,7 @@ def test_gms_profile_by_one_variable(env):
     env.update({"LLM_PROFILE": "gms-luna", "GMS_KEY": "g", "GROQ_API_KEY": "q", "MODEL_FEEDBACK": "gpt-6.1-sol"})
     s = Settings.from_env()
     assert (s.base_url, s.api_key) == (GMS_URL, "g")
-    assert s.models["npc"] == "gpt-6-luna" and s.models["feedback"] == "gpt-6.1-sol"  # 역할 하나만 덮어쓰기
+    assert s.models["guard"] == "gpt-6-luna" and s.models["feedback"] == "gpt-6.1-sol"  # 역할 하나만 덮어쓰기
     assert s.role_provider == {"stt": "groq"} and s.providers == {"groq": {"base_url": GROQ_URL, "api_key": "q"}}
 
 

@@ -69,6 +69,34 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Tutorial_HoldsTheGameClock_UntilItIsSkipped()
+        {
+            // 튜토리얼은 정해진 대본으로 연습하는 시간이라 게임 시각이 흐르지 않는다. 마치거나 건너뛰면 그때부터 흐른다.
+            yield return SceneManager.LoadSceneAsync("HomeScene", LoadSceneMode.Single);
+            yield return null;
+            double before = GameClock.Shared.Minutes;
+            for (int i = 0; i < 10; i++)
+            {
+                yield return null;
+            }
+
+            Assert.That(GameClock.Shared.IsHeld, Is.True);
+            Assert.That(
+                GameClock.Shared.Minutes,
+                Is.EqualTo(before),
+                "튜토리얼 동안 시간이 흐릅니다."
+            );
+
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            Click(guideView, "SkipButton");
+            Click(guideView, "ConfirmSkipButton");
+            yield return null;
+            yield return null;
+
+            Assert.That(GameClock.Shared.IsHeld, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator SaveWord_PinnedCardWithoutSaveButton_DoesNotSkipTheStep()
         {
             // 서버에 연결되지 않아 단어 카드에 [저장]이 없어도, 저장하지 않았으니 넘어가지 않는다.
@@ -178,31 +206,6 @@ namespace A305.Tutorial.PlayModeTests
             yield return null;
             yield return null;
             Assert.That(player.IsMovementLocked, Is.False);
-        }
-
-        [UnityTest]
-        public IEnumerator MeetBen_EndingTheDialogueEarly_KeepsThePlayerWithBen()
-        {
-            // 길 안내를 마치지 않고 대화를 끝내면 Ben을 다시 만나야 하므로 계속 붙잡아 둔다.
-            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
-            yield return null;
-            PlayerMover player = Single<PlayerMover>();
-            PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
-            Click(offer, "AcceptButton");
-            yield return null;
-
-            Click(Single<DialoguePanelView>(), "EndButton");
-            yield return null;
-            yield return null;
-
-            Assert.That(
-                TutorialState.GetOrCreate(BenCode).Step,
-                Is.EqualTo(TutorialStep.MeetBen),
-                "준비: 다시 Ben 만나기"
-            );
-            Assert.That(player.IsMovementLocked, Is.True);
-            Assert.That(Single<PlayerCameraRig>().IsInMeetingView, Is.True);
         }
 
         [UnityTest]
@@ -357,9 +360,9 @@ namespace A305.Tutorial.PlayModeTests
             CoachMarkView coachMark = Single<CoachMarkView>();
             Assert.That(progress.Step, Is.EqualTo(TutorialStep.LeaveLodging));
             Assert.That(
-                Single<TutorialGuideView>().IsVisible,
-                Is.False,
-                "단어장 위로 안내 카드는 숨깁니다."
+                Single<TutorialGuideView>().IsSkipOnly,
+                Is.True,
+                "단어장 위로는 할 일 카드 대신 [건너뛰기]만 남깁니다."
             );
             Assert.That(coachMark.IsSpotlightShowing, Is.True, "단어장 창을 밝힙니다.");
             Assert.That(coachMark.CaptionText, Does.Contain("단어장"));
@@ -495,6 +498,7 @@ namespace A305.Tutorial.PlayModeTests
             {
                 Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
                 Assert.That(coachMark.IsDimmingOutside, Is.True, "하나씩 밝혀 볼 곳을 알립니다.");
+                AssertCaptionClearsTheSkipCard(coachMark);
                 Assert.That(coachMark.IsNextShowing, Is.True);
                 Assert.That(
                     coachMark.CaptionRect.Overlaps(coachMark.Hole),
@@ -524,10 +528,92 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator BenDialogue_TheEndButtonStaysLocked_UntilTheGuideIsDone()
+        {
+            // 튜토리얼 길 안내는 정해진 흐름이라 대사를 다 마치기 전에는 [대화 종료]·Esc로 끝낼 수 없다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            DialogueController dialogue = Single<DialogueController>();
+            Button endButton = panel.EndButtonRect.GetComponent<Button>();
+
+            Assert.That(
+                endButton.interactable,
+                Is.False,
+                "길 안내 중에 [대화 종료]를 누를 수 있습니다."
+            );
+            endButton.onClick.Invoke();
+            dialogue.End();
+            yield return null;
+            Assert.That(dialogue.IsTalking, Is.True, "길 안내를 마치기 전에 대화가 끝났습니다.");
+
+            yield return FinishTour(Single<CoachMarkView>());
+            while (!dialogue.IsGuidedCompleted)
+            {
+                Click(panel, "ExampleButton");
+                Click(panel, "SendButton");
+                yield return null;
+            }
+
+            yield return null;
+            Assert.That(
+                endButton.interactable,
+                Is.True,
+                "길 안내를 마치면 [대화 종료]를 누릅니다."
+            );
+        }
+
+        [UnityTest]
+        public IEnumerator BenDialogue_KeepsTheSkipCardOnTop_AndSkippingClosesTheTalkWithoutFeedback()
+        {
+            // 대화가 할 일 카드를 가려도 [건너뛰기]만 있는 작은 카드를 대화창과 코치 마크 위에 남긴다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            DialogueController dialogue = Single<DialogueController>();
+            Assert.That(dialogue.IsTalking, Is.True, "준비: Ben 대화");
+            Assert.That(coachMark.IsSpotlightShowing, Is.True, "준비: 대화 시작 티칭");
+
+            Assert.That(guideView.IsSkipOnly, Is.True);
+            Assert.That(
+                guideView.GetComponent<Canvas>().sortingOrder,
+                Is.GreaterThan(coachMark.GetComponent<Canvas>().sortingOrder),
+                "코치 마크 덮개가 [건너뛰기]를 가립니다."
+            );
+
+            Click(guideView, "SkipButton");
+            Click(guideView, "ConfirmSkipButton");
+            yield return null;
+            yield return null;
+
+            Assert.That(
+                TutorialState.GetOrCreate(BenCode).Step,
+                Is.EqualTo(TutorialStep.Completed)
+            );
+            Assert.That(dialogue.IsTalking, Is.False, "건너뛰어도 길 안내 대화가 남아 있습니다.");
+            Assert.That(
+                Single<FeedbackView>().IsVisible,
+                Is.False,
+                "건너뛴 길 안내 대화의 피드백을 띄웁니다."
+            );
+        }
+
+        [UnityTest]
         public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
         {
             // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,
-            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
+            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 화살표 줄만 밝힌다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -552,13 +638,24 @@ namespace A305.Tutorial.PlayModeTests
 
             FeedbackView feedback = Single<FeedbackView>();
             Assert.That(feedback.IsVisible, Is.True, "준비: 피드백");
-            RectTransform[] tour = { feedback.SectionRowRect, feedback.NavigationRowRect };
-            foreach (RectTransform target in tour)
+            RectTransform[][] tour =
             {
-                Assert.That(coachMark.SpotlightTargets, Is.EqualTo(new[] { target }));
+                new[] { feedback.SectionRowRect, feedback.PageCardRect },
+                new[] { feedback.NavigationRowRect },
+            };
+            foreach (RectTransform[] targets in tour)
+            {
+                Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
                 Assert.That(coachMark.IsDimmingOutside, Is.True);
                 Assert.That(coachMark.IsNextShowing, Is.True);
-                Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+                // 설명은 결과 칸 위에는 조금 올라가도 되지만, 설명하는 탭·화살표 줄은 가리지 않는다.
+                Assert.That(
+                    ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
+                        .Overlaps(ScreenRectOf(targets[0])),
+                    Is.False,
+                    "설명이 설명하는 버튼 줄을 가립니다."
+                );
+                AssertCaptionClearsTheSkipCard(coachMark);
                 ClickNext(coachMark);
                 yield return null;
                 yield return null;
@@ -637,6 +734,27 @@ namespace A305.Tutorial.PlayModeTests
                 $"{buttonName}이 보이지 않습니다."
             );
             button.onClick.Invoke();
+        }
+
+        // 대화·대화 노트 위에 남긴 [건너뛰기] 카드는 그대로 두고, 코치 마크 설명 말풍선이 그 카드를 피해 놓인다.
+        private static void AssertCaptionClearsTheSkipCard(CoachMarkView coachMark)
+        {
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            Assert.That(guideView.IsSkipOnly, Is.True, "준비: [건너뛰기] 카드");
+            Canvas.ForceUpdateCanvases();
+            var caption = (RectTransform)coachMark.transform.Find("Caption");
+            Assert.That(
+                ScreenRectOf(caption).Overlaps(ScreenRectOf(guideView.PanelRect)),
+                Is.False,
+                "코치 마크 설명이 [건너뛰기] 카드에 가립니다."
+            );
+        }
+
+        private static Rect ScreenRectOf(RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
         }
 
         private static T Single<T>()

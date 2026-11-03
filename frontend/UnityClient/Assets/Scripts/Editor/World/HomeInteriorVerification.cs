@@ -286,8 +286,8 @@ namespace A305.EditorTools.World
                     "raycast hover displays word for " + item.UnityKey
                 );
                 Require(
-                    tooltip.IsExampleVisible == (item.UnityKey == "tv"),
-                    "saved-word example policy for " + item.UnityKey
+                    !tooltip.IsExampleVisible,
+                    "hover shows only the word and meaning for " + item.UnityKey
                 );
             }
             tooltip.Hide();

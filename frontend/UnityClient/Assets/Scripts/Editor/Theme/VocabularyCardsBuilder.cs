@@ -278,7 +278,6 @@ namespace A305.EditorTools.Theme
                     ("Word", 28f, UiThemeRole.Title),
                     ("Meaning", 22f, UiThemeRole.Accent),
                     ("Example", 18f, UiThemeRole.Muted),
-                    ("PinHint", 16f, UiThemeRole.Muted),
                     ("Status", 16f, UiThemeRole.Accent),
                 }
             )
@@ -294,6 +293,9 @@ namespace A305.EditorTools.Theme
                 Skin(label.transform, spec.Item3);
             }
             // 버튼은 카드 안쪽 너비를 한 덩어리로 채운다. [저장]·[발음]이 한 줄을 반씩, 그 아래 [알아요]가 같은 양 끝으로 한 줄.
+            Transform pinHint = panel.Find("PinHint");
+            if (pinHint != null)
+                Object.DestroyImmediate(pinHint.gameObject);
             Transform row = panel.Find("WordActions");
             var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
             rowLayout.spacing = ActionGap;

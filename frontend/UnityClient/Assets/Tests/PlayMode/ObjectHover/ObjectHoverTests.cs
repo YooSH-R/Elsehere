@@ -53,8 +53,9 @@ namespace A305.ObjectHover.PlayModeTests
             TutorialState.Clear();
         }
 
+        // 커서만 올렸을 때는 단어와 뜻만 깔끔하게 보인다. 저장한 단어여도 예문은 클릭해 고정한 카드에서 본다.
         [UnityTest]
-        public IEnumerator PointingAtSavedWord_NearPlayer_ShowsWordMeaningAndExample()
+        public IEnumerator PointingAtSavedWord_NearPlayer_ShowsOnlyWordAndMeaning()
         {
             // 확인용 단어 목록에서 TV는 단어장에 저장된 단어다.
             HoverableObject tv = FindHoverable("tv");
@@ -65,6 +66,18 @@ namespace A305.ObjectHover.PlayModeTests
             Assert.That(tooltip.IsVisible, Is.True);
             Assert.That(tooltip.WordText, Is.EqualTo("TV"));
             Assert.That(tooltip.MeaningText, Is.EqualTo("텔레비전"));
+            Assert.That(tooltip.IsExampleVisible, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingSavedWord_PinnedCardShowsTheExample()
+        {
+            HoverableObject tv = FindHoverable("tv");
+            yield return StandPlayerNear(tv);
+
+            hover.Click(ScreenPointOf(tv));
+
+            Assert.That(tooltip.IsPinned, Is.True);
             Assert.That(tooltip.IsExampleVisible, Is.True);
             Assert.That(tooltip.ExampleText, Is.EqualTo("Let's watch TV together."));
         }

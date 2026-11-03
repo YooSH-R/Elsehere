@@ -9,8 +9,8 @@ namespace A305.ObjectHover
     /// <summary>
     /// 사물의 영어 표현·뜻·예문을 보여 주는 툴팁 화면. 화면 오버레이 캔버스 루트에 붙이고,
     /// 패널은 캔버스 왼쪽 아래를 기준으로 자리를 잡는다. 포인터 가까이에 두되 가리킨 사물·캐릭터와
-    /// 다른 화면 UI를 덮지 않는 자리를 고른다. 호버로 보일 때는 클릭을 막지 않고,
-    /// 클릭으로 고정했을 때만 카드 안 버튼을 누를 수 있게 클릭을 받는다.
+    /// 다른 화면 UI를 덮지 않는 자리를 고른다. 호버로 보일 때는 단어와 뜻만 깔끔하게 보이고 클릭을 막지 않는다.
+    /// 클릭으로 고정했을 때만 저장한 단어의 예문과 카드 안 버튼을 보이고 클릭을 받는다.
     /// </summary>
     public class WordTooltipView : MonoBehaviour
     {
@@ -37,10 +37,6 @@ namespace A305.ObjectHover
 
         [SerializeField]
         private TMP_Text exampleLabel;
-
-        [SerializeField]
-        [Tooltip("호버 중에만 보이는 '클릭하면 카드가 고정돼요' 안내")]
-        private TMP_Text pinHintLabel;
 
         [SerializeField]
         [Tooltip("고정한 카드의 저장 실패 이유나 숨긴 카드를 다시 보는 방법")]
@@ -169,13 +165,12 @@ namespace A305.ObjectHover
             WordCardButtons buttons
         )
         {
-            pinHintLabel.gameObject.SetActive(!isPinned);
             wordLabel.text = word.Text;
             meaningLabel.text = word.MeaningKo;
             exampleLabel.text = string.IsNullOrEmpty(word.ExampleKo)
                 ? word.Example
                 : $"{word.Example}\n<color={ExampleMeaningColor}>{word.ExampleKo}</color>";
-            exampleLabel.gameObject.SetActive(!string.IsNullOrEmpty(word.Example));
+            exampleLabel.gameObject.SetActive(isPinned && !string.IsNullOrEmpty(word.Example));
             ShowButtons(isPinned, buttons);
             LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
 

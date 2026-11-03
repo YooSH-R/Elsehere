@@ -15,7 +15,7 @@ NPC가 생성한 턴 전체 WAV 파일은 백엔드가 저장하고, DB의 `turn
 | 개발 프로젝트·볼륨 | `a305-dev` · `a305-dev_npc-audio-data` |
 | 운영 프로젝트·볼륨 | `a305-prod` · `a305-prod_npc-audio-data` |
 | 파일 이름 | 백엔드가 생성한 UUID와 `.wav` 확장자 |
-| 모범 음성(FB-04) | 같은 볼륨의 하위 폴더 `model-speech/`. DB의 `turn_feedback.model_audio_key`에 파일 키를 기록 |
+| 모범 음성(FB-04) | 같은 볼륨의 하위 폴더 `model-speech/`. DB의 `turn_feedback.model_audio_key`에 파일 키를 기록. 처음 읽은 키가 그대로일 때만 새 키를 붙이고, 붙이지 못한 파일(동시 요청, 합성 중 피드백 삭제, DB 반영 실패)은 바로 지움 |
 | 학습용 녹음 | 같은 볼륨의 하위 폴더 `training-recordings/`(`TRAINING_RECORDING_DIR`로 바꿀 수 있음). DB의 `training_recordings.audio_key`에 파일 이름을 기록 |
 | 사물 단어 발음(WORLD-04) | 같은 볼륨의 하위 폴더 `pronunciation/`에 `{wordKey}.wav`. DB의 `vocabularies.pronunciation_audio_key`에 파일 이름을 기록. 관리자가 발음 생성 API로 만듦([운영자 어드민](admin.md)) |
 

@@ -22,6 +22,20 @@ namespace A305.Dialogue.Tests
             Assert.That(content.Find("HintCard"), Is.Not.Null);
         }
 
+        // 이름표 글자는 줄 높이가 아니라 글자 모양 기준(Midline)으로 가운데에 둔다. 줄 높이 기준이면 Jua 글자가 이름표 위로 뜬다.
+        [Test]
+        public void NpcName_IsCenteredOnItsChipByTheGlyphs()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PanelPrefabPath);
+            var view = prefab.GetComponentInChildren<DialoguePanelView>(true);
+            var name = (TMP_Text)
+                new SerializedObject(view).FindProperty("npcNameText").objectReferenceValue;
+
+            Assert.That(name.alignment, Is.EqualTo(TextAlignmentOptions.Midline));
+            Assert.That(name.margin.y, Is.EqualTo(0f));
+            Assert.That(name.margin.w, Is.EqualTo(0f));
+        }
+
         // 줄바꿈이 꺼져 있으면 긴 NPC 대사가 대화창 오른쪽 끝에서 잘린다.
         [Test]
         public void LongNpcLines_WrapInsideThePanel()

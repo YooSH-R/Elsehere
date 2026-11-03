@@ -42,6 +42,16 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 `Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 게임 화면이 브라우저 창 전체를 채우게 합니다. 페이지에는 게임 화면만 두고 제품 이름·[전체 화면] 같은 줄을 두지 않으며, 브라우저 자체의 전체 화면(PC는 F11)을 씁니다. 캔버스 크기가 창에 따라 바뀌어도 Unity가 그 크기로 다시 그리므로 게임 화면을 자르거나 늘리지 않고, 화면 비율에 따라 보이는 범위가 달라집니다. UI는 1920×1080 기준으로 화면 크기에 맞춰 늘고 줄어듭니다(`UiBuilderTools.EnsureOverlayCanvas`). 노치·홈 표시줄의 안전 영역은 비우고, 브라우저 주소창에 따른 높이 변화도 반영합니다. 빌드 설정의 960×600은 처음 캔버스 크기일 뿐 화면 비율을 고정하지 않습니다.
 
+게임 파일을 받는 동안 템플릿의 로딩 화면은 소개 그림(`intro/feature-*.jpg`)과 한 줄 문구를 3초마다 바꿔 보여 주고, 아래에 진행 막대를 둡니다. 로딩이 끝나면 로딩 화면이 서서히 사라지며 로그인 화면이 나옵니다. 이 화면이 Unity 시작 로고를 대신하므로 **Player Settings → Splash Image → Show Splash Screen**은 끕니다.
+
+- 소개 그림은 기능마다 한 장씩 만든 1536×1024(3:2) 그림을 그대로 씁니다. 새 그림도 같은 크기로 만들어 자르거나 늘리지 않고 넣습니다.
+- 왼쪽 위 로고(`logo.png`)는 `frontend/design/로고.webp`의 흰 바탕을 투명하게 바꾸고 글자 영역만 남긴 것입니다. 어두운 배경에서도 보이도록 흰 그림자를 두릅니다.
+- 그림은 화면 비율과 상관없이 잘리지 않도록 흐린 배경 위 가운데 카드로 띄웁니다.
+- 순서는 접속마다 섞습니다. 로딩이 짧으면 첫 장면만 보일 수 있으므로, 지난 접속의 첫 장면은 첫 자리에 두지 않습니다(브라우저 저장소 `elsehere.intro.lastFirstSlide`).
+- 그림과 문구 목록은 `index.html`의 `introSlides`에서 관리합니다.
+- 진행 막대는 받은 만큼 0.4초에 걸쳐 따라 찹니다. 파일을 다 받은 뒤 게임을 준비하는 동안에는 브라우저가 화면을 갱신하지 못해 막대가 잠시 멈출 수 있습니다. 그래서 로딩이 끝나면 막대가 끝까지 차는 모습을 보인 뒤 로딩 화면을 닫습니다.
+- Unity 로더는 서버가 보내는 `Content-Length`로 진행률을 계산합니다. 이 헤더가 없으면 막대는 파일을 다 받을 때까지 움직이지 않다가 한 번에 찹니다. 로컬에서 직접 띄운 서버로 확인할 때도 이 헤더를 보내야 합니다.
+
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 
 - **Player Settings → Web → Resolution and Presentation → Web Template**에서 `A305Responsive`를 선택합니다. **Tools → A305 → Web → Configure Responsive Template**으로도 적용할 수 있습니다.

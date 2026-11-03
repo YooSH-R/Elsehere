@@ -14,7 +14,7 @@
 | 빨래방 | Take me to the laundromat, please. | TownScene 안에서 문으로 진입 |
 | 꽃집 | The flower shop, please. | TownScene 안에서 문으로 진입 |
 | 이발소 | Take me to the barber shop, please. | TownScene 안에서 문으로 진입 |
-| 경찰서 | Take me to the police station, please. | TownScene 안에서 문으로 진입 |
+| 경찰서 | Take me to the police station, please. | TownScene 안에서 문 앞에 닿으면 화면 전환 후 실내로 |
 
 택시는 건물 앞 보도에 내려준다. 실내로 자동 이동하지 않으며, 하차 후 사용자가 문으로 걸어 들어간다. 북쪽 기존 베이커리·오락실·서점·생활용품점·찻집은 현재 택시 목적지에 포함하지 않는다.
 

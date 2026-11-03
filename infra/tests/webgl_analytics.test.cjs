@@ -74,13 +74,15 @@ async function runUnityLoader(page, result) {
   let loader;
   const nodes = new Map([
     ["#unity-canvas", { addEventListener() {} }],
-    ["#unity-loading", { hidden: false }],
+    ["#unity-loading", { hidden: false, style: {}, animate() { return { finished: Promise.resolve() }; } }],
     ["#unity-warning", { hidden: true, children: [], appendChild(child) { this.children.push(child); } }],
-    ["#unity-progress", {}],
+    ["#unity-progress", { style: { setProperty() {} }, setAttribute() {} }],
+    ["#intro-slides", { appendChild() {} }],
+    ["#intro-caption", {}],
   ]);
   const document = {
     querySelector(selector) { return nodes.get(selector); },
-    createElement() { return {}; },
+    createElement() { return { append() {}, appendChild() {} }; },
     body: { appendChild(element) { loader = element; } },
   };
   const context = {
@@ -90,7 +92,11 @@ async function runUnityLoader(page, result) {
     createUnityInstance: () => result === "initialization"
       ? Promise.reject(new Error("private error details"))
       : Promise.resolve(),
+    // The intro slides keep waiting for their first picture so the test only follows the loader.
+    Image: class { decode() { return new Promise(() => {}); } },
+    requestAnimationFrame() {},
     setTimeout,
+    clearTimeout,
   };
   vm.runInNewContext(source, context);
   if (result === "loader") loader.onerror();

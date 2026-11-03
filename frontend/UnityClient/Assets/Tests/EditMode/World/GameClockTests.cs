@@ -142,6 +142,20 @@ namespace A305.World.Tests
             Assert.That(clock.Minutes, Is.EqualTo(700), "대화 중에는 게임 시간이 멈춘다");
         }
 
+        [Test]
+        public void Flow_WhileHeld_StandsStill_AndFlowsAgainAfterRelease()
+        {
+            // 튜토리얼처럼 진행 흐름이 시계를 붙잡아 두면 서버 시각을 받기 전에도 흐르지 않는다.
+            var clock = new GameClock { IsHeld = true };
+
+            clock.Flow(60);
+            Assert.That(clock.Minutes, Is.EqualTo(8 * 60), "붙잡힌 동안은 1일차 오전 8시에 머문다");
+
+            clock.IsHeld = false;
+            clock.Flow(60);
+            Assert.That(clock.Minutes, Is.EqualTo(8 * 60 + 144).Within(.001));
+        }
+
         private static GameClockTime Time(int day, int minuteOfDay)
         {
             return new GameClockTime { Day = day, MinuteOfDay = minuteOfDay };

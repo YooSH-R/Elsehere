@@ -11,7 +11,10 @@ using UnityEngine.UI;
 
 namespace A305.Dialogue.PlayModeTests
 {
-    /// <summary>서버 없이 실제 대화창 프리팹에서 [힌트]를 메뉴를 거치지 않고 바로 누를 수 있는지 확인한다.</summary>
+    /// <summary>
+    /// 서버 없이 실제 대화창 프리팹에서 [힌트]를 메뉴를 거치지 않고 바로 누를 수 있는지,
+    /// 받은 추천 문장이 따로 카드 없이 입력창에 들어가는지 확인한다.
+    /// </summary>
     public class DialoguePanelHintTests
     {
         private const string PanelPrefabPath = "Assets/Prefabs/Dialogue/DialoguePanel.prefab";
@@ -61,18 +64,51 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator HintText_AfterServerAnswers_ShowsInSentenceCard()
+        public IEnumerator HintText_AfterServerAnswers_FillsTheInputWithoutASentenceCard()
         {
             content.HintText = HintSentence;
             view.Refresh();
             yield return null;
 
-            var body = FindChild("HelpPanel/Viewport/Content/HintCard/Body")
-                .GetComponent<TMP_Text>();
-            Assert.That(body.gameObject.activeInHierarchy, Is.True);
-            Assert.That(body.text, Is.EqualTo(HintSentence));
-            Assert.That(FindButton("HintButton").interactable, Is.False);
+            Assert.That(Input.text, Is.EqualTo(HintSentence));
+            Assert.That(FindChild("HintCard"), Is.Null);
+            Assert.That(FindChild("UseHintButton"), Is.Null);
         }
+
+        [UnityTest]
+        public IEnumerator HintText_AfterUserEditsTheInput_IsNotPutBackOnRefresh()
+        {
+            content.HintText = HintSentence;
+            view.Refresh();
+            yield return null;
+
+            Input.text = "Can I get a hot latte?";
+            view.Refresh();
+            yield return null;
+
+            Assert.That(Input.text, Is.EqualTo("Can I get a hot latte?"));
+        }
+
+        [UnityTest]
+        public IEnumerator HintButton_AfterHintArrived_RefillsTheInputWithoutAskingAgain()
+        {
+            content.HintText = HintSentence;
+            view.Refresh();
+            yield return null;
+            int requests = 0;
+            view.HintRequested += () => requests++;
+            Input.text = "";
+
+            Button hint = FindButton("HintButton");
+            Assert.That(hint.interactable, Is.True);
+            ClickCenterOf(hint);
+            yield return null;
+
+            Assert.That(Input.text, Is.EqualTo(HintSentence));
+            Assert.That(requests, Is.EqualTo(0));
+        }
+
+        private TMP_InputField Input => panelObject.GetComponentInChildren<TMP_InputField>(true);
 
         // 버튼 가운데를 실제 화면 좌표로 눌러, 다른 UI에 가려지지 않고 버튼이 클릭을 받는지 본다.
         private static void ClickCenterOf(Button button)

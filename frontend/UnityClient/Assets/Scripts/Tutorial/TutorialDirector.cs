@@ -596,8 +596,6 @@ namespace A305.Tutorial
                     var parts = new List<RectTransform> { dialoguePanel.LinesRect };
                     parts.AddRange(dialoguePanel.GuidedLineParts);
                     return parts;
-                case TutorialCoachTarget.SuggestedSentence:
-                    return new[] { dialoguePanel.SuggestedSentenceRect };
                 case TutorialCoachTarget.SuggestedWords:
                     return new[] { dialoguePanel.SuggestedWordsRect };
                 case TutorialCoachTarget.DialogueEnd:
@@ -635,8 +633,6 @@ namespace A305.Tutorial
                     return guide.DialogueToolsCaption;
                 case TutorialCoachTarget.SuggestedWords:
                     return guide.SuggestedWordsCaption;
-                case TutorialCoachTarget.SuggestedSentence:
-                    return guide.SuggestedSentenceCaption;
                 case TutorialCoachTarget.GuidedLine:
                     string notice = dialogue.IsGuidedLineMissed
                         ? guide.GuidedLineMissCaption

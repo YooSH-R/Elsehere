@@ -55,7 +55,6 @@ namespace A305.Tutorial
             TutorialCoachTarget.DialogueLines,
             TutorialCoachTarget.DialogueTools,
             TutorialCoachTarget.SuggestedWords,
-            TutorialCoachTarget.SuggestedSentence,
         };
 
         // 대화 노트(피드백)를 열면 이 순서로 하나씩 밝히고 [다음]으로 넘긴 뒤 닫는 버튼을 밝힌다.

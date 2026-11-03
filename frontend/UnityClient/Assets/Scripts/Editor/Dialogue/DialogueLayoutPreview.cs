@@ -132,13 +132,11 @@ namespace A305.EditorTools.Dialogue
             return view;
         }
 
-        // 서버 대화처럼 추천 단어·문장, 상태 줄과 [말하기]·[듣기]·[힌트]를 채운다.
+        // 서버 대화처럼 추천 단어, 상태 줄과 [말하기]·[듣기]·[힌트]를 채운다.
         private static void FillHelp(DialoguePanelView view)
         {
             Field<TMP_Text>(view, "suggestText").text =
                 "• iced latte\n• oat milk\n• for here\n• to go";
-            Field<TMP_Text>(view, "hintText").text =
-                "Could I have an iced latte with oat milk, please?";
             Field<TMP_Text>(view, "statusText").text = "Mia가 듣고 있어요";
             Field<MonoBehaviour>(view, "talkButton").gameObject.SetActive(true);
             Field<Button>(view, "replayButton").gameObject.SetActive(true);

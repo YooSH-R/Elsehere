@@ -492,7 +492,6 @@ namespace A305.Tutorial.PlayModeTests
                 new[] { panel.LinesRect },
                 panel.ToolParts.ToArray(),
                 new[] { panel.SuggestedWordsRect },
-                new[] { panel.SuggestedSentenceRect },
             };
             foreach (RectTransform[] targets in tour)
             {

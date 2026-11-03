@@ -79,7 +79,6 @@ namespace A305.EditorTools.Dialogue
             help.sizeDelta = new Vector2(320, 650);
             help.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(20, 20, 20, 20);
             TMP_FontAsset bold = UiBuilderTools.BoldFont();
-            TMP_FontAsset regular = UiBuilderTools.RegularFont();
             TMP_Text title = UiBuilderTools.FindOrCreateText(
                 help,
                 "Title",
@@ -112,30 +111,15 @@ namespace A305.EditorTools.Dialogue
             words.lineSpacing = 12;
             words.enableAutoSizing = false;
             words.textWrappingMode = TextWrappingModes.Normal;
-            RectTransform hintCard = Card(helpContent, "HintCard", "추천 문장", bold);
-            TMP_Text hint = UiBuilderTools.FindOrCreateText(
-                hintCard,
-                "Body",
-                regular,
-                28,
-                Color.black
-            );
-            hint.enableAutoSizing = false;
-            hint.textWrappingMode = TextWrappingModes.Normal;
-            Transform oldUseHint = help.Find("UseHintButton");
-            if (oldUseHint != null)
-                oldUseHint.SetParent(hintCard, false);
-            Button useHint = UiBuilderTools.FindOrCreateButton(
-                hintCard,
-                "UseHintButton",
-                "문장 입력",
-                bold,
-                270
-            );
-            Height(useHint.transform, 58);
+            // 추천 문장은 [힌트]를 누르면 입력창에 바로 들어가므로, 예전에 만든 문장 카드와 [문장 입력]은 지운다.
+            foreach (
+                Transform old in new[] { helpContent.Find("HintCard"), help.Find("UseHintButton") }
+            )
+            {
+                if (old != null)
+                    Object.DestroyImmediate(old.gameObject);
+            }
             BuilderTools.SetReference(view, "helpPanel", help);
-            BuilderTools.SetReference(view, "hintText", hint);
-            BuilderTools.SetReference(view, "useHintButton", useHint);
             BuilderTools.SetReference(view, "historyScroll", scroll);
             help.gameObject.SetActive(false);
         }

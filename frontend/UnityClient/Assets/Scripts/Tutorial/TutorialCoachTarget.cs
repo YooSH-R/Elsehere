@@ -38,9 +38,6 @@ namespace A305.Tutorial
         /// <summary>대화 화면의 [뜻]·[예시 문장]</summary>
         DialogueTools,
 
-        /// <summary>대화 화면 왼쪽의 추천 문장 카드와 [넣기]</summary>
-        SuggestedSentence,
-
         /// <summary>대화 화면 왼쪽의 추천 단어 카드</summary>
         SuggestedWords,
 

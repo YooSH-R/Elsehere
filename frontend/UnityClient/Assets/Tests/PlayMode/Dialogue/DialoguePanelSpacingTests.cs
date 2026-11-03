@@ -37,6 +37,13 @@ namespace A305.Dialogue.PlayModeTests
             "room key",
             "elevator",
             "breakfast",
+            "late checkout",
+            "wake-up call",
+            "towel",
+            "receipt",
+            "parking",
+            "lobby",
+            "deposit",
         };
 
         private GameObject panelObject;
@@ -90,6 +97,7 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         // 추천 단어가 많아 카드가 길어도 아래가 잘리지 않고 다 보인다. 남는 높이에 맞춰 카드 묶음을 줄인다.
+        // 도움 칸에는 단어 카드만 있으므로, 단어 카드 하나로 남는 높이를 넘길 만큼 단어를 둔다.
         [UnityTest]
         public IEnumerator ManySuggestedWords_KeepEveryHelpCardInView()
         {

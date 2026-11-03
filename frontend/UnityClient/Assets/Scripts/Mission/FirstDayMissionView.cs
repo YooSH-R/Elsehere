@@ -404,11 +404,13 @@ namespace A305.Mission
             retryButton.onClick.AddListener(Retry);
             // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
             JourneyStatus.Shared.MapRequested += OpenLargeMap;
+            CenterWindow.Shared.Changed += FollowCenterWindow;
         }
 
         private void OnDestroy()
         {
             JourneyStatus.Shared.MapRequested -= OpenLargeMap;
+            CenterWindow.Shared.Changed -= FollowCenterWindow;
             journalButton.onClick.RemoveListener(ToggleJournal);
             if (miniMapButton != null)
                 miniMapButton.onClick.RemoveListener(OpenLargeMap);
@@ -432,7 +434,7 @@ namespace A305.Mission
             if (open)
                 ShowLargeMap(false);
             journal.SetActive(open);
-            Banner.gameObject.SetActive(!open);
+            UpdateBannerVisibility();
             UpdateMiniMapVisibility();
             UpdateSortingOrder();
             if (isOpening)
@@ -499,7 +501,25 @@ namespace A305.Mission
                         && mapSceneCode == "TOWN"
                         && !journal.activeSelf
                         && (mapOverlay == null || !mapOverlay.activeSelf)
+                        && !CenterWindow.Shared.IsOpen
                 );
+        }
+
+        // 퀘스트 카드는 수첩을 펼친 동안 그 자리를 내주고, 단어장·피드백처럼 가운데 창이 열린 동안은 창과 겹치지 않게 숨는다.
+        private void UpdateBannerVisibility() =>
+            Banner.gameObject.SetActive(!journal.activeSelf && !CenterWindow.Shared.IsOpen);
+
+        // 가운데 창이 열리면 펼친 수첩·큰 지도도 닫아 창끼리 겹치지 않게 한다.
+        private void FollowCenterWindow()
+        {
+            if (CenterWindow.Shared.IsOpen)
+            {
+                ShowJournal(false);
+                ShowLargeMap(false);
+            }
+
+            UpdateBannerVisibility();
+            UpdateMiniMapVisibility();
         }
 
         // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.

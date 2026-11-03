@@ -220,7 +220,32 @@ FROM (
      'bm_fable', false, NULL),
     (15, 'TOWN', 'HOME_STORE_STAFF', 'Nina', 'STAFF', '매장 직원',
      '{"role": "the calm, tasteful clerk at Home & Living, a furniture and home goods store.", "facts": "A lamp is $30 and an armchair is $150. Never invent other prices, discounts or delivery.", "scene": "Home & Living, a furniture and home goods store on the town main street."}',
-     'af_sky', false, NULL)
+     'af_sky', false, NULL),
+    -- 한 장소를 교대로 나눠 맡는 NPC. 언제 나오는지는 생활 파일의 근무지·교대(ai/npcs/life/<code>.json)로 정한다.
+    (16, 'CAFE', 'CAFE_BARISTA', 'Zoe', 'STAFF', '카페 직원',
+     '{"role": "the chatty part-time barista at the corner cafe.", "facts": "", "scene": "The counter of the corner cafe."}',
+     'af_nova', false, NULL),
+    (17, 'HOTEL', 'HOTEL_RECEPTIONIST', 'Owen', 'STAFF', '호텔 직원',
+     '{"role": "the warm evening front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
+     'bm_lewis', false, NULL),
+    (18, 'HOTEL', 'HOTEL_NIGHT_MANAGER', 'Clara', 'STAFF', '호텔 야간 매니저',
+     '{"role": "the calm night manager at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby at night."}',
+     'bf_isabella', false, NULL),
+    (19, 'SHOP', 'SHOP_PHARMACIST', 'Hannah', 'STAFF', '약사',
+     '{"role": "the careful pharmacist at the drugstore.", "facts": "The drugstore sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small drugstore on the town main street."}',
+     'af_kore', false, NULL),
+    (20, 'SHOP', 'SHOP_NIGHT_CLERK', 'Samuel', 'STAFF', '드럭스토어 직원',
+     '{"role": "the quiet night clerk at the drugstore.", "facts": "The drugstore sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small drugstore on the town main street."}',
+     'am_onyx', false, NULL),
+    (21, 'TOWN', 'TOWN_RETIREE', 'Ruby', 'PASSERBY', '행인',
+     '{"role": "a retired schoolteacher on her morning walk through the town.", "facts": "", "scene": "A quiet street in the town."}',
+     'bf_alice', false, NULL),
+    (22, 'TOWN', 'TOWN_STUDENT', 'Ethan', 'PASSERBY', '행인',
+     '{"role": "a college student walking around the town after class.", "facts": "", "scene": "A quiet street in the town."}',
+     'bm_daniel', false, NULL),
+    (23, 'TOWN', 'TOWN_EVENING_WALKER', 'Maya', 'PASSERBY', '행인',
+     '{"role": "an office worker on her evening walk through the town.", "facts": "", "scene": "A quiet street in the town."}',
+     'af_aoede', false, NULL)
 ) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
 -- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.

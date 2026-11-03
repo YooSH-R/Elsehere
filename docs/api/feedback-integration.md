@@ -20,6 +20,8 @@ Spring에서 호출하는 `POST /v1/feedback`의 연결 기준이다. 사용자�
 | NPC 대사 | speaker는 npc, input_type은 generated. 실제 확정 대사 사용 |
 | judge가 만든 영어 번역 | 사용자 `final_text`를 대체하지 않음 |
 | 도움 사용 | 실제 `assistance_events`와 해당 턴의 `assistance_ids`를 연결 |
+| 첫날 퀘스트 단계 대화 | `scene_description`에 장소·NPC·상황·안내와 그 단계의 할 일(목표 제목과 설명)을 넣는다. 모델이 단계에 맞는 표현만 권하게 한다 |
+| 대화 난이도 | `settings_version`은 `level-N`, `vocabulary_profile`은 `level-N: 수준 설명`(워커 힌트와 같은 CEFR 설명). 이 입력을 바꾸면서 `analysis_config_version`을 `elsehere-feedback-v2`로 올렸다 |
 
 null 판정은 무례가 아님을 뜻하지 않는다. 원래 null·실패 이유는 Spring 기록에 유지한다. 한글 입력도 원문 그대로 전달한다. 모듈은 blocked·미확정 사용자 줄을 평가·원문 인용·교정·회화 용법·단어장 후보에서 제외한다.
 

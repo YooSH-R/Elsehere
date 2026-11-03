@@ -75,9 +75,14 @@ public class Conversation extends BaseEntity {
   private Instant endedAt;
 
   private Integer firstDayStage;
+  private Integer townStoryStage;
 
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;
+  }
+
+  public void attachTownStoryStage(Integer stage) {
+    this.townStoryStage = stage;
   }
 
   public static Conversation start(

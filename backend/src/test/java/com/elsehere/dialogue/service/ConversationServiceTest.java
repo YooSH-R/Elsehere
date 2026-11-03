@@ -45,7 +45,9 @@ import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
+import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
@@ -81,6 +83,7 @@ class ConversationServiceTest {
   @Autowired private ConversationRepository conversationRepository;
 
   @Autowired private FirstDayMissionRepository firstDayMissionRepository;
+  @Autowired private TownStoryRepository townStoryRepository;
 
   @Autowired private EntityManager entityManager;
 
@@ -182,6 +185,30 @@ class ConversationServiceTest {
     assertThat(instruction.getValue())
         .contains("ask how you can help")
         .contains("Do not mention the learner's tasks, your offers or directions yet");
+  }
+
+  @Test
+  void start_townStoryStaffGreetingUsesTheCurrentStorySituation() {
+    townStoryRepository.saveAndFlush(TownStory.start(userId));
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Good morning! How can I help you?", null));
+
+    conversationService.start(
+        userId, new StartConversationRequest(UUID.randomUUID(), "DINER_STAFF", InitiatedBy.USER));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            argThat(npc -> "DINER_STAFF".equals(npc.id())),
+            any(),
+            any(),
+            anyString(),
+            instruction.capture(),
+            anyInt(),
+            any());
+    assertThat(instruction.getValue()).containsIgnoringCase("spill");
   }
 
   @Test

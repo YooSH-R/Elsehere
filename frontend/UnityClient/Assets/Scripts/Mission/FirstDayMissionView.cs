@@ -247,19 +247,20 @@ namespace A305.Mission
                 );
             }
             journey.text = lines.ToString().TrimEnd();
+            int firstDayStage = state.IsTownStory ? 7 : state.Stage;
             string suitcase =
-                state.Stage >= 7 ? "캐리어 · 찾음"
-                : state.Started && state.Stage >= 1 ? "캐리어 · 호텔 보관"
+                firstDayStage >= 7 ? "캐리어 · 찾음"
+                : state.Started && firstDayStage >= 1 ? "캐리어 · 호텔 보관"
                 : "캐리어 · 소지 중";
             string bag =
-                state.Stage >= 4 ? "파란 가방 · 찾음"
-                : state.Stage >= 2 ? "파란 가방 · 카페에 두고 옴"
+                firstDayStage >= 4 ? "파란 가방 · 찾음"
+                : firstDayStage >= 2 ? "파란 가방 · 카페에 두고 옴"
                 : "파란 가방 · 빨간 열쇠고리\n여권 지갑 · 책";
             belongings.text =
                 suitcase
                 + "\n"
                 + bag
-                + (state.Stage >= 6 ? "\n우산 · 소지 중" : "")
+                + (firstDayStage >= 6 ? "\n우산 · 소지 중" : "")
                 + $"\n{state.Balance}코인";
         }
 
@@ -314,6 +315,13 @@ namespace A305.Mission
         // 진행 막대 칸을 단계 수만큼 두고 단계 상태에 따라 칠한다. 칸이 모자라면 첫 칸을 본떠 더 만든다.
         private void ShowProgress(IReadOnlyList<FirstDayMissionStep> steps)
         {
+            HorizontalLayoutGroup layout = progress.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null)
+            {
+                // 첫날보다 단계가 많으면 칸을 균등하게 줄여 카드 밖으로 나가지 않게 한다.
+                layout.childControlWidth = steps.Count > 7;
+                layout.childForceExpandWidth = steps.Count > 7;
+            }
             GameObject template = progress.GetChild(0).gameObject;
             while (progress.childCount < steps.Count)
                 Instantiate(template, progress, false);

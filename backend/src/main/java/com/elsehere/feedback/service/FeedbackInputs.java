@@ -7,6 +7,7 @@ import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.world.entity.Npc;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +36,15 @@ final class FeedbackInputs {
         missionStage != null && missionStage >= 0 && missionStage < FirstDayStage.values().length
             ? FirstDayStage.values()[missionStage]
             : null;
+    Integer townStage = conversation.getTownStoryStage();
+    TownStoryStage townQuest =
+        townStage != null && townStage >= 0 && townStage < TownStoryStage.values().length
+            ? TownStoryStage.values()[townStage]
+            : null;
+    String situation =
+        townQuest != null
+            ? townQuest.situation()
+            : quest != null ? quest.situation() + " " + quest.direction() : null;
     return new FeedbackInput(
         SCHEMA_VERSION,
         requestId.toString(),
@@ -47,15 +57,13 @@ final class FeedbackInputs {
         ANALYSIS_CONFIG_VERSION,
         new FeedbackInput.Context(
             npc.getScene().getCode(),
-            quest == null ? "free_chat" : "quest",
+            situation == null ? "free_chat" : "quest",
             npc.getScene().getName()
                 + " · "
                 + npc.getRoleLabel()
                 + " "
                 + npc.getName()
-                + (quest == null
-                    ? " · 자유 대화"
-                    : " · " + quest.situation() + " " + quest.direction()),
+                + (situation == null ? " · 자유 대화" : " · " + situation),
             "en-US",
             "ko-KR",
             conversation.getStatus() == ConversationStatus.ENDED_BY_NPC ? "npc_end" : "user_end",

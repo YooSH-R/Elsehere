@@ -26,6 +26,32 @@ namespace A305.Mission
         public Task<FirstDayMissionState> RestAsync() =>
             client.PostAsync<FirstDayMissionState>("/api/v1/missions/first-day/rest", null);
 
+        public Task<FirstDayMissionState> GetTownStoryAsync() =>
+            client.GetAsync<FirstDayMissionState>("/api/v1/missions/town-story");
+
+        public Task<FirstDayMissionState> StartTownStoryAsync() =>
+            client.PostAsync<FirstDayMissionState>("/api/v1/missions/town-story/start", null);
+
+        public async Task<FirstDayMissionState> LoadCurrentAsync(string scene)
+        {
+            FirstDayMissionState firstDay = await VisitAsync(scene);
+            if (!firstDay.ShouldOfferTownStory)
+                return firstDay;
+
+            FirstDayMissionState townStory = await GetTownStoryAsync();
+            townStory.IsTownStory = true;
+            return townStory;
+        }
+
+        public async Task<FirstDayMissionState> StartCurrentAsync(string scene, bool isTownStory)
+        {
+            if (isTownStory)
+                await StartTownStoryAsync();
+            else
+                await StartAsync();
+            return await LoadCurrentAsync(scene);
+        }
+
         private sealed class VisitRequest
         {
             public string Scene { get; set; }

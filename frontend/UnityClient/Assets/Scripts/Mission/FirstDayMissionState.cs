@@ -8,6 +8,8 @@ namespace A305.Mission
         private const int BuyUmbrellaStage = 5;
 
         public bool Started { get; set; }
+        public bool IsTownStory { get; set; }
+        public bool ShouldOfferTownStory => Completed && !IsTownStory;
         public int Stage { get; set; }
         public bool Completed { get; set; }
         public string Scene { get; set; }

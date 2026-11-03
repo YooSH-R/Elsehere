@@ -121,6 +121,11 @@ namespace A305.Learning
         private const float TileBottom = (32 + 20) * 1.2f;
 
         private readonly List<GameObject> situationRowItems = new List<GameObject>();
+
+        // 표현마다 [담기] 버튼. 저장하면 "담음"으로 바꾼다.
+        private readonly Dictionary<string, Button> saveButtons = new Dictionary<string, Button>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private IReadOnlyList<FeedbackPage> pages;
         private FeedbackSection section;
         private int pageIndex;
@@ -163,6 +168,17 @@ namespace A305.Learning
         public void SetSaveAvailable(bool available)
         {
             isSaveAvailable = available;
+        }
+
+        /// <summary>단어장에 넣은 표현의 [담기]를 "담음"으로 바꾸고 다시 누르지 않게 한다.</summary>
+        public void ShowSaved(string expression)
+        {
+            if (!saveButtons.TryGetValue(expression, out Button save))
+                return;
+            save.interactable = false;
+            TMP_Text label = save.GetComponentInChildren<TMP_Text>(true);
+            if (label != null)
+                label.text = "담음";
         }
 
         /// <param name="conversationLines">[대화 기록 보기]로 보여 줄 방금 나눈 대화</param>
@@ -301,6 +317,7 @@ namespace A305.Learning
                     DestroyImmediate(row);
             }
             situationRowItems.Clear();
+            saveButtons.Clear();
 
             foreach (SituationExpressionData expression in expressions)
             {
@@ -325,6 +342,7 @@ namespace A305.Learning
                 save.onClick.AddListener(() =>
                     SaveRequested?.Invoke(expression.Expression, expression.MeaningKo)
                 );
+                saveButtons[expression.Expression] = save;
                 row.SetActive(true);
                 situationRowItems.Add(row);
             }

@@ -843,7 +843,7 @@ namespace A305.EditorTools.Theme
             Role(placeholder, UiThemeRole.Muted);
         }
 
-        /// <summary>닫기를 단어장·테마 고르기 창처럼 창 오른쪽 위의 X 아이콘으로 옮긴다. 다시 실행해도 같은 자리에 둔다.</summary>
+        /// <summary>닫기를 창 오른쪽 위의 공용 X(<see cref="UiCloseButton"/>)로 옮긴다. 다시 실행해도 같은 자리에 둔다.</summary>
         private static void CornerClose(Transform root, string panelPath)
         {
             Transform panel = root.Find(panelPath);
@@ -857,13 +857,12 @@ namespace A305.EditorTools.Theme
             }
             button.SetParent(panel, false);
             BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject).ignoreLayout = true;
-            IconButton(panel, "CloseButton", UiIcon.Close, UiTone.Neutral, caption: false);
-            Place((RectTransform)button, Vector2.one, new Vector2(-22, -22), new Vector2(52, 52));
+            UiCloseButton.Corner(button, UiCloseButton.WindowSize);
         }
 
         private static void StyleFeedback(Transform root)
         {
-            IconButton(root, "Panel/TopCloseButton", UiIcon.Close, UiTone.Neutral, caption: false);
+            UiCloseButton.Corner(root.Find("Panel/TopCloseButton"), UiCloseButton.WindowSize);
             Role(root, "Panel", UiThemeRole.Panel);
             Role(root, "Panel/Title", UiThemeRole.Title);
             Role(root, "Panel/Summary", UiThemeRole.Muted);
@@ -950,12 +949,9 @@ namespace A305.EditorTools.Theme
             PillButton(root, "Content/Journal/Actions/RetryButton", UiIcon.Retry, UiTone.Neutral);
             FirstDayMissionBuilder.EnsureActionRow(root.Find("Content/Journal"));
             CompactLabel(root, "Content/Journal/Actions/RetryButton/Label", "재시도");
-            IconButton(
-                root,
-                "Content/Journal/CloseButton",
-                UiIcon.Close,
-                UiTone.Neutral,
-                caption: false
+            UiCloseButton.Corner(
+                root.Find("Content/Journal/CloseButton"),
+                UiCloseButton.WindowSize
             );
         }
 

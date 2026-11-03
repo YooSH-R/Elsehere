@@ -44,6 +44,7 @@ namespace A305.EditorTools.Theme
                     Object.DestroyImmediate(child.gameObject);
             }
             Button close = IconButton(panel, "CloseButton", UiIcon.Close, 920, 24);
+            UiCloseButton.Corner(close.transform, UiCloseButton.WindowSize);
             RectTransform content = Rect(panel, "Content");
             Position(content, 0, 96, 1000, 476);
             RectTransform entries = Rect(content, "Entries");
@@ -350,11 +351,7 @@ namespace A305.EditorTools.Theme
             Button close = closeSource.GetComponent<Button>();
             close.transform.SetParent(panel, false);
             BuilderTools.GetOrAddComponent<LayoutElement>(close.gameObject).ignoreLayout = true;
-            ConfigureButton(close.transform, "", UiIcon.Close, UiTone.Neutral, 44, 44);
-            var closeRect = (RectTransform)close.transform;
-            closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = Vector2.one;
-            closeRect.anchoredPosition = new Vector2(-20, -20);
-            closeRect.sizeDelta = new Vector2(44, 44);
+            UiCloseButton.Corner(close.transform, UiCloseButton.CardSize);
             // X는 별도 배치지만 고정/호버 상태는 기존 Actions와 동일하게 제어한다.
             BuilderTools.SetReference(
                 root.GetComponent<A305.ObjectHover.WordTooltipView>(),

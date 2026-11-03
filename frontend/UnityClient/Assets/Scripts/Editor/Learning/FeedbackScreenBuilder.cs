@@ -1,4 +1,5 @@
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.Learning;
 using A305.Theme;
 using TMPro;
@@ -91,10 +92,8 @@ namespace A305.EditorTools.Learning
             subtitle.textWrappingMode = TextWrappingModes.NoWrap;
             TopLeft(subtitle.rectTransform, 285.4f, 43, 360, 20);
 
-            ArtButton(panel.Find("TopCloseButton"), "FeedbackClose", 52, 52, 14, 12, 80, 84);
-            var close = (RectTransform)panel.Find("TopCloseButton");
-            close.anchorMin = close.anchorMax = close.pivot = Vector2.one;
-            close.anchoredPosition = new Vector2(-35, -27) * Px;
+            // 닫기 X는 다른 창과 같은 공용 모양으로 둔다(S15P31A305-525).
+            UiCloseButton.Corner(panel.Find("TopCloseButton"), UiCloseButton.WindowSize);
         }
 
         // 탭 묶음(시안 .seg): 옅은 알약 바탕, 탭마다 글자 폭 + 40, 고른 탭(누를 수 없는 탭)만 흰 알약이 보인다.
@@ -371,9 +370,16 @@ namespace A305.EditorTools.Learning
                 165,
                 96
             );
-            ArtButton(buttons.Find("CloseButton"), "FeedbackDone", 75.55f, 50, 22, 12, 120, 102);
-            buttons.Find("CloseButton").gameObject.SetActive(true);
-            buttons.Find("CloseButton").SetAsLastSibling();
+            // [닫기]는 할 일이 아니므로 강조색 그림 대신 공용 흰 보조 버튼으로 둔다(S15P31A305-525). 칸 크기는 시안 그대로다.
+            Transform done = buttons.Find("CloseButton");
+            var doneSize = BuilderTools.GetOrAddComponent<LayoutElement>(done.gameObject);
+            doneSize.minWidth = doneSize.preferredWidth = 75.55f * Px;
+            doneSize.minHeight = doneSize.preferredHeight = 50 * Px;
+            doneSize.flexibleWidth = 0;
+            ((RectTransform)done).sizeDelta = new Vector2(75.55f, 50) * Px;
+            UiCloseButton.Text(done, "닫기", 18 * Px);
+            done.gameObject.SetActive(true);
+            done.SetAsLastSibling();
         }
 
         // 렌더링한 그림 버튼: 버튼 칸은 시안 버튼 크기이고, 그림은 그림자 자리만큼 넓혀 깐다. 이름 글자는 그림에 들어 있다.

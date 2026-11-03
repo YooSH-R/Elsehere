@@ -80,7 +80,12 @@ namespace A305.Learning
             }
             catch (ApiException)
             {
-                return Fail("단어장을 불러오지 못했어요. 잠시 후 다시 열어 주세요.");
+                // 지난번 목록이 남아 있으면 고장처럼 알리지 않고, 화면에 보이는 목록이 무엇인지 알린다.
+                return Fail(
+                    entries.Count > 0
+                        ? "지금은 새 단어장을 받아 오지 못해 지난번 목록을 보여 드려요."
+                        : "단어장을 불러오지 못했어요. 잠시 후 다시 열어 주세요."
+                );
             }
             finally
             {

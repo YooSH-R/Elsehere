@@ -58,7 +58,7 @@ namespace A305.ObjectHover
         private Button pronunciationButton;
 
         [SerializeField]
-        [Tooltip("고정한 카드에만 보이는 [알아요 · 다시 안 띄우기]·[닫기] 줄")]
+        [Tooltip("고정한 카드에만 보이는 [숨기기]·[닫기] 줄")]
         private GameObject actionRow;
 
         [SerializeField]
@@ -108,7 +108,7 @@ namespace A305.ObjectHover
         /// <summary>고정한 카드의 [발음 듣기]를 눌렀다.</summary>
         public event Action PronunciationRequested;
 
-        /// <summary>고정한 카드의 [알아요 · 다시 안 띄우기]나 [다시 띄우기]를 눌렀다.</summary>
+        /// <summary>고정한 카드의 [숨기기]나 [다시 띄우기]를 눌렀다.</summary>
         public event Action HoverHiddenToggleRequested;
 
         /// <summary>호버로 잠깐 보이는 카드. 클릭을 막지 않고 "클릭하면 고정" 안내를 보인다.</summary>
@@ -316,10 +316,7 @@ namespace A305.ObjectHover
                 _ => buttons.SaveLabel,
             };
             saveButton.interactable = buttons.CanSave;
-            hideLabel.text =
-                buttons.HideLabel == "알아요 · 다시 안 띄우기"
-                    ? "알아요 · 호버에서 숨기기"
-                    : buttons.HideLabel;
+            hideLabel.text = buttons.HideLabel;
             hideButton.interactable = buttons.CanToggleHide;
             pronunciationButton.gameObject.SetActive(buttons.HasPronunciation);
         }

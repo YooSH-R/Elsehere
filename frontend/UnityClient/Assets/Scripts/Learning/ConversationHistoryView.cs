@@ -1,4 +1,5 @@
 using System;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -67,6 +68,7 @@ namespace A305.Learning
             pageAfterMore = -1;
             shade.SetActive(true);
             panel.SetActive(true);
+            UiLayer.Open(this);
             ShowStatus("");
             Refresh();
         }
@@ -76,6 +78,7 @@ namespace A305.Learning
             history = null;
             shade.SetActive(false);
             panel.SetActive(false);
+            UiLayer.Close(this);
         }
 
         /// <summary>목록 아래 안내(불러오는 중, 실패 이유). 빈 문자열이면 지운다.</summary>

@@ -3,6 +3,7 @@
     "rootNamespace": "A305.ObjectHover",
     "references": [
         "A305.Api",
+        "A305.Theme",
         "A305.Player",
         "Unity.InputSystem",
         "Unity.TextMeshPro",

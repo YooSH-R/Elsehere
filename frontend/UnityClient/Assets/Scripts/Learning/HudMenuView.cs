@@ -1,3 +1,4 @@
+using A305.Theme;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,12 +24,8 @@ namespace A305.Learning
         [SerializeField]
         private GameObject items;
 
-        // 펼친 동안의 그리기 순서. 마을 HUD(108)보다 위, 장소 이동 막(short.MaxValue)보다는 아래다.
-        private const int OpenSortingOrder = 1000;
-
         private readonly HudMenu menu = new HudMenu();
         private Canvas canvas;
-        private int closedSortingOrder;
 
         public bool IsOpen => menu.IsOpen;
 
@@ -38,7 +35,6 @@ namespace A305.Learning
         private void Awake()
         {
             canvas = GetComponent<Canvas>();
-            closedSortingOrder = canvas.sortingOrder;
             menu.Changed += Show;
             menuButton.onClick.AddListener(menu.Toggle);
             openMenuButton.onClick.AddListener(menu.Toggle);
@@ -60,7 +56,11 @@ namespace A305.Learning
             backdrop.gameObject.SetActive(isOpen);
             menuButton.gameObject.SetActive(!isOpen);
             openMenuButton.gameObject.SetActive(isOpen);
-            canvas.sortingOrder = isOpen ? OpenSortingOrder : closedSortingOrder;
+            // 펼친 동안에는 퀘스트 카드·미니맵 등 다른 캔버스와 먼저 연 창보다 위에 그린다.
+            if (isOpen)
+                UiLayer.Open(canvas, this);
+            else
+                UiLayer.Close(canvas, this);
         }
     }
 }

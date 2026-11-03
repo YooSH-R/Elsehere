@@ -305,6 +305,20 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public async Task SaveFeedbackWordAsync_SavesTheIdiomFromTheConversationFeedback()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.SavedItem = Item(41, "hang on to", "잠시 맡아 두다");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveFeedbackWordAsync(58, "hang on to");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(api.Calls, Is.EqualTo(new[] { "feedback 58 hang on to" }));
+            Assert.That(book.Entries.First().English, Is.EqualTo("hang on to"));
+        }
+
+        [Test]
         public async Task SaveNpcLineWordAsync_AlreadySaved_DoesNotAddItTwice()
         {
             await LoadOne(Item(40, "latte", "라떼"));
@@ -471,6 +485,11 @@ namespace A305.Learning.Tests
             public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text)
             {
                 return Reply($"save {turnId} {text}", SavedItem);
+            }
+
+            public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text)
+            {
+                return Reply($"feedback {conversationId} {text}", SavedItem);
             }
 
             public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)

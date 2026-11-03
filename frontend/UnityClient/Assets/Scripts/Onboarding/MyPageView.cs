@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
+using A305.Theme;
 using A305.Voice;
 using TMPro;
 using UnityEngine;
@@ -137,6 +138,7 @@ namespace A305.Onboarding
             lookSensitivitySlider.maxValue = LookSensitivity.Max;
             lookSensitivitySlider.onValueChanged.AddListener(ChangeLookSensitivity);
             overlay.SetActive(false);
+            UiLayer.Close(this);
         }
 
         private void Start()
@@ -160,6 +162,7 @@ namespace A305.Onboarding
             }
 
             overlay.SetActive(true);
+            UiLayer.Open(this);
             SetMovementLocked(true);
             nicknameInput.text = "";
             lookSensitivitySlider.SetValueWithoutNotify(LookSensitivity.Current);
@@ -177,6 +180,7 @@ namespace A305.Onboarding
             }
 
             overlay.SetActive(false);
+            UiLayer.Close(this);
             SetMovementLocked(false);
         }
 

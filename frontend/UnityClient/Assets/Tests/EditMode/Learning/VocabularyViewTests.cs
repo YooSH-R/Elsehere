@@ -240,6 +240,9 @@ namespace A305.Learning.Tests
 
         private sealed class SampleApi : IVocabularyApi
         {
+            public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text) =>
+                throw new System.NotSupportedException();
+
             public int Count { get; set; } = 2;
 
             public bool Fails { get; set; }

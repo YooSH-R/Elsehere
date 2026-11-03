@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
@@ -102,12 +103,20 @@ namespace A305.Learning
 
         /// <summary>대화 중 NPC 대사의 풀이 단어를 저장한다(VOCAB-02 NPC_LINE).</summary>
         /// <param name="turnId">단어 풀이를 받은 NPC 턴</param>
-        public async Task<VocabularySaveResult> SaveNpcLineWordAsync(long turnId, string text)
+        public Task<VocabularySaveResult> SaveNpcLineWordAsync(long turnId, string text) =>
+            SaveAsync(() => api.SaveNpcLineWordAsync(turnId, text));
+
+        /// <summary>대화 피드백의 표현(단어·숙어·문장)을 저장한다(VOCAB-02 FEEDBACK).</summary>
+        /// <param name="conversationId">피드백을 받은 대화</param>
+        public Task<VocabularySaveResult> SaveFeedbackWordAsync(long conversationId, string text) =>
+            SaveAsync(() => api.SaveFeedbackWordAsync(conversationId, text));
+
+        private async Task<VocabularySaveResult> SaveAsync(Func<Task<VocabItem>> save)
         {
             VocabItem saved;
             try
             {
-                saved = await api.SaveNpcLineWordAsync(turnId, text);
+                saved = await save();
             }
             catch (ApiException)
             {

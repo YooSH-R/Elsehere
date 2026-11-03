@@ -102,7 +102,7 @@ public enum FirstDayStage {
       "HOTEL",
       "HOTEL_STAFF",
       "RAIN",
-      "여권이 든 가방도 찾고 우산도 샀어요. 호텔에서 오늘의 여정을 마무리해요.",
+      "여권이 든 가방도 찾고 우산도 샀어요. 호텔에서 체크인을 마무리해요.",
       "호텔 직원에게 요청하세요.",
       "Check-in time has arrived. The learner recovered the small bag and passport, bought an umbrella and has 12 quest coins left. The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. Never ask them to fetch the bag again.",
       goal("found_bag", "가방 찾았다고 말하기", "Say they found or got back their small bag."),

@@ -60,6 +60,9 @@ namespace A305.Learning
 
         public bool IsVisible => panel.activeSelf;
 
+        /// <summary>목록 판. 마을 HUD가 창과 겹치지 않는지 볼 때 쓴다.</summary>
+        public RectTransform PanelRect => (RectTransform)panel.transform;
+
         public void Show(ConversationHistory shownHistory)
         {
             history = shownHistory;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using A305.Dialogue;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -176,6 +177,7 @@ namespace A305.Learning
             isRegenerating = false;
             isTranscriptShown = false;
             panel.SetActive(true);
+            UiLayer.Open(this);
             SelectSection(FeedbackSection.Summary);
         }
 
@@ -196,6 +198,7 @@ namespace A305.Learning
             feedback = null;
             lines = null;
             panel.SetActive(false);
+            UiLayer.Close(this);
         }
 
         private void Awake()

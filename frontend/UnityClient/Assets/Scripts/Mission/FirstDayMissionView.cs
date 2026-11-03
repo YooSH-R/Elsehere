@@ -84,13 +84,10 @@ namespace A305.Mission
         private GameObject miniMapPanel;
 
         [SerializeField]
-        private TownMapView miniMap;
+        private TownMiniMapView miniMap;
 
         [SerializeField]
         private Button miniMapButton;
-
-        [SerializeField]
-        private TMP_Text miniMapDestination;
 
         [SerializeField]
         [Tooltip("미니맵을 누르면 화면 가운데에 크게 펼치는 마을 지도")]
@@ -226,8 +223,6 @@ namespace A305.Mission
             townMap.ShowDestination(state.Destination);
             if (miniMap != null)
                 miniMap.ShowDestination(state.Destination);
-            if (miniMapDestination != null)
-                miniMapDestination.text = MiniMapLegend(state.Destination);
             if (largeMap != null)
                 largeMap.ShowDestination(state.Destination);
             if (largeMapLegend != null)
@@ -476,7 +471,7 @@ namespace A305.Mission
         }
 
         /// <summary>
-        /// 미니맵 아래 범례. 파란 화살표는 내 위치, 빨간 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
+        /// 크게 본 지도 아래 범례. 파란 화살표는 내 위치, 빨간 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
         /// </summary>
         public static string MiniMapLegend(string destination)
         {

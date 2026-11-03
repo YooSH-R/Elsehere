@@ -302,7 +302,7 @@ def test_the_service_npcs_each_have_their_own_voice():
         "DINER_STAFF": "af_bella",  # Rosa: 다정하고 수다스러운 여자
         "FLOWER_SHOP_STAFF": "af_nicole",  # Lily: 다정하고 수줍은 여자
         "HOME_STORE_STAFF": "af_sky",  # Nina: 차분하고 센스 있는 여자
-        "HOTEL_STAFF": "am_onyx",  # Jake: 낮고 무덤덤한 남자
+        "HOTEL_STAFF": "am_echo",  # Jake: 또렷하고 밝은 남자
         "LAUNDROMAT_STAFF": "am_adam",  # Gus: 느긋하고 농담을 좋아하는 남자
         "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
         "POST_OFFICE_STAFF": "af_sarah",  # Linda: 꼼꼼하고 원칙을 지키는 여자

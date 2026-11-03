@@ -6,8 +6,8 @@ import static org.assertj.core.api.Assertions.tuple;
 
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.auth.service.ConsentCatalog;
-import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.TranscriptionPurpose;
@@ -41,7 +41,7 @@ import org.springframework.context.annotation.Import;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
   TestcontainersConfiguration.class,
-  ClockConfig.class,
+  TestClockConfig.class,
   JpaAuditingConfig.class,
   ConsentCatalog.class,
   OptionalConsentService.class,

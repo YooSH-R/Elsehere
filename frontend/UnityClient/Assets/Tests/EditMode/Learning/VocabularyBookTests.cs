@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.ObjectHover;
 using NUnit.Framework;
 
 namespace A305.Learning.Tests
@@ -231,6 +233,20 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public async Task DeleteAsync_TellsObjectCardsTheWordIsNoLongerSaved()
+        {
+            // 장소의 사물 카드는 들어올 때 받은 저장 상태를 들고 있어, 지운 단어를 알려 줘야 [단어장에 저장]을 다시 보인다.
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"), Item(21, "bench", "벤치"));
+            await book.LoadAsync();
+
+            List<string> removed = await RecordSavedWordRemoved(() =>
+                book.DeleteAsync(book.Entries[0])
+            );
+
+            Assert.That(removed, Is.EqualTo(new[] { "sofa" }));
+        }
+
+        [Test]
         public async Task DeleteAsync_Fails_KeepsEntry()
         {
             VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
@@ -240,6 +256,17 @@ namespace A305.Learning.Tests
 
             Assert.That(deleted, Is.False);
             Assert.That(book.Entries, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DeleteAsync_Fails_KeepsObjectCardsSaved()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+            api.Failure = NetworkError();
+
+            List<string> removed = await RecordSavedWordRemoved(() => book.DeleteAsync(entry));
+
+            Assert.That(removed, Is.Empty);
         }
 
         // 단어장 목록은 최근 저장순이라 방금 저장한 단어가 맨 앞이고, 단어 수도 바로 늘어난다.
@@ -354,6 +381,24 @@ namespace A305.Learning.Tests
             api.Pages[null] = Page(null, item);
             await book.LoadAsync();
             return book.Entries[0];
+        }
+
+        // 정적 알림이라 다른 테스트에 남지 않게 동작이 끝나면 바로 구독을 푼다.
+        private static async Task<List<string>> RecordSavedWordRemoved(Func<Task> action)
+        {
+            var removed = new List<string>();
+            void Record(string text) => removed.Add(text);
+            ObjectWordCards.SavedWordRemoved += Record;
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                ObjectWordCards.SavedWordRemoved -= Record;
+            }
+
+            return removed;
         }
 
         private static ApiException NetworkError()

@@ -31,12 +31,16 @@ namespace A305.Dialogue
         /// <param name="showsMeaning">[뜻 보기]를 펼쳤는지. 뜻이 아직 없으면 펼쳐도 붙이지 않는다.</param>
         /// <param name="glossary">가장 최근 NPC 대사의 단어 풀이. 없으면 null이다.</param>
         /// <param name="selected">단어 카드에 보이는 단어. 없으면 null이다.</param>
+        /// <param name="sentenceIndent">
+        /// 이름 뒤 문장이 시작하는 자리. 0보다 크면 이름 길이와 상관없이 모든 문장과 그 아래 뜻을 이 자리에서 시작하고, 긴 문장이 줄을 바꿔도 같은 자리에 맞춘다.
+        /// </param>
         public static string Format(
             IReadOnlyList<DialogueLine> lines,
             string npcName,
             bool showsMeaning,
             IReadOnlyList<GlossaryData> glossary,
-            GlossaryWord selected = null
+            GlossaryWord selected = null,
+            float sentenceIndent = 0
         )
         {
             int latestNpcIndex = FindLatestNpcIndex(lines);
@@ -50,16 +54,26 @@ namespace A305.Dialogue
                 string english = showsMeaning
                     ? LinkGlossary(line.English, line.Glossary, i, selected)
                     : line.English;
-                rows.Add($"{speaker}  {english}");
+                rows.Add(
+                    sentenceIndent > 0
+                        ? $"{speaker}{Indented(english, sentenceIndent)}"
+                        : $"{speaker}  {english}"
+                );
                 if (i == latestNpcIndex && showsMeaning && line.Korean != null)
                 {
                     rows.Add(
-                        $"<size={MeaningSize}><color={MeaningColor}>{line.Korean}</color></size>"
+                        Indented(
+                            $"<size={MeaningSize}><color={MeaningColor}>{line.Korean}</color></size>",
+                            sentenceIndent
+                        )
                     );
                     if (glossary != null && glossary.Count > 0)
                     {
                         rows.Add(
-                            $"<size={MeaningSize}><color={MeaningColor}>단어 풀이 · {FormatGlossary(glossary)}</color></size>"
+                            Indented(
+                                $"<size={MeaningSize}><color={MeaningColor}>단어 풀이 · {FormatGlossary(glossary)}</color></size>",
+                                sentenceIndent
+                            )
                         );
                     }
                 }
@@ -68,6 +82,9 @@ namespace A305.Dialogue
             // 줄바꿈은 운영체제와 상관없이 \n으로 맞춘다.
             return string.Join("\n", rows);
         }
+
+        private static string Indented(string text, float indent) =>
+            indent > 0 ? $"<indent={indent:0.#}>{text}</indent>" : text;
 
         /// <summary>대사 칸에서 누른 링크의 풀이 단어. 없는 링크면 null이다.</summary>
         public static GlossaryWord FindWord(IReadOnlyList<DialogueLine> lines, string linkId)

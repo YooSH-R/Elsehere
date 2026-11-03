@@ -552,8 +552,17 @@ namespace A305.Dialogue
                 content.NpcName,
                 isMeaningVisible,
                 content.LastNpcGlossary,
-                glossaryCard.Word
+                glossaryCard.Word,
+                SentenceIndent()
             );
+        }
+
+        // 이름 길이와 상관없이 문장이 같은 자리에서 시작하도록, 더 긴 이름(NPC 이름·나) 뒤에 두 칸만큼 띄운 자리
+        private float SentenceIndent()
+        {
+            float npc = linesText.GetPreferredValues($"<b>{content.NpcName}</b>").x;
+            float me = linesText.GetPreferredValues("<b>나</b>").x;
+            return Mathf.Ceil(Mathf.Max(npc, me) + linesText.fontSize * .6f);
         }
 
         // 호버 카드는 대사 위에 겹쳐 뜨므로 대사 칸 크기는 그대로 두고 카드 내용과 자리만 맞춘다.
@@ -780,7 +789,8 @@ namespace A305.Dialogue
                 content.NpcName,
                 isMeaningVisible,
                 content.LastNpcGlossary,
-                glossaryCard.Word
+                glossaryCard.Word,
+                SentenceIndent()
             );
             return linesText.GetPreferredValues(latest, width, 0).y;
         }

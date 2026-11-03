@@ -25,6 +25,33 @@ namespace A305.Dialogue.Tests
             Assert.That(text, Does.Contain("\n<color=#9ED3FF><b>나</b></color>  A latte, please."));
         }
 
+        // 이름 길이가 달라도 문장은 같은 자리에서 시작한다. 이름 뒤 문장과 그 아래 뜻을 같은 들여쓰기로 맞춘다.
+        [Test]
+        public void Format_StartsEverySentenceAtTheSameIndent()
+        {
+            string text = DialogueLinesText.Format(
+                new[] { Order, Question },
+                "Mia",
+                true,
+                null,
+                sentenceIndent: 64
+            );
+
+            Assert.That(
+                text,
+                Does.Contain("<b>나</b></color><indent=64>A latte, please.</indent>")
+            );
+            Assert.That(
+                text,
+                Does.Contain("<b>Mia</b></color><indent=64>Regular milk or soy milk?</indent>")
+            );
+            Assert.That(
+                text,
+                Does.Contain("\n<indent=64><size=80%>"),
+                "뜻도 문장과 같은 자리에서 시작합니다."
+            );
+        }
+
         // 최신 대사만 보이면 방금 무슨 말이 오갔는지 대화 중에 다시 볼 수 없다.
         [Test]
         public void Format_ShowsEveryLineOfThisConversationWithItsSpeaker()

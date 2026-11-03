@@ -194,20 +194,20 @@ namespace A305.EditorTools.Mission
             clock.alignment = TextAlignmentOptions.Center;
             clock.margin = new Vector4(0, 2 * Px, 0, 0);
 
-            // 코인: 왼쪽 여백 22에 코인(42), 숫자 Jua 32(위 3), 단위 Jua 17(위 6), 칸 사이 10
+            // 코인: 코인(42), 숫자는 옆 시계와 같은 Jua 19(위 2), 단위 Jua 17(위 2), 칸 사이 10. 칩 가운데에 모은다.
             RectTransform coinChip = Chip(status, "Coins");
             RectTransform row = Row(coinChip, "Row", 10);
             Fill(row);
             var layout = row.GetComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(Round(23), Round(22), 0, 0);
-            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.padding = new RectOffset(0, 0, 0, 0);
+            layout.childAlignment = TextAnchor.MiddleCenter;
             RectTransform coin = Box(row, "Coin", 42, 42);
             Art(coin, "Coin", 42 + 2 * ArtPad, 48 + 2 * ArtPad, ArtPad, ArtPad);
-            TMP_Text amount = Text(row, "Amount", DisplayFontPath, 32, Ink, "0");
-            amount.margin = new Vector4(0, 3 * Px, 0, 0);
+            TMP_Text amount = Text(row, "Amount", DisplayFontPath, 19, Ink, "0");
+            amount.margin = new Vector4(0, 2 * Px, 0, 0);
             amount.alignment = TextAlignmentOptions.MidlineLeft;
             TMP_Text unit = Text(row, "Unit", DisplayFontPath, 17, Muted, "코인");
-            unit.margin = new Vector4(0, 6 * Px, 0, 0);
+            unit.margin = new Vector4(0, 2 * Px, 0, 0);
             unit.alignment = TextAlignmentOptions.MidlineLeft;
             BuilderTools.SetReference(view, "clock", clock);
             BuilderTools.SetReference(view, "coins", amount);

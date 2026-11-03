@@ -7,7 +7,7 @@ using Object = UnityEngine.Object;
 namespace A305.Weather
 {
     /// <summary>
-    /// 밤에 밝히는 등과 발광 재질, 밤하늘로 칠하는 창밖 유리, 안에서 불을 켠 것처럼 빛나는 입점 건물 창.
+    /// 밤에 밝히는 등과 발광 재질, 밤에만 켜는 가로등과 그 전구, 밤하늘로 칠하는 창밖 유리, 안에서 불을 켠 것처럼 빛나는 입점 건물 창.
     /// 재질은 사본을 칠해 원본 에셋을 바꾸지 않고, 다 쓰면 렌더러에 원본 재질을 돌려준다.
     /// 값은 늘 씬 디자인 값에서 계산하므로 여러 번 칠해도 쌓이지 않는다.
     /// </summary>
@@ -19,7 +19,10 @@ namespace A305.Weather
 
         private readonly Light[] lamps;
         private readonly float[] lampIntensities;
+        private readonly Light[] streetLamps;
+        private readonly float[] streetLampIntensities;
         private readonly List<Glow> glows = new List<Glow>();
+        private readonly List<Glow> streetLampGlows = new List<Glow>();
         private readonly List<Window> windows = new List<Window>();
         private readonly List<LitWindow> litWindows = new List<LitWindow>();
         private readonly Dictionary<Renderer, Material[]> designedMaterials =
@@ -28,18 +31,27 @@ namespace A305.Weather
 
         /// <param name="renderers">발광 재질·창밖 유리를 찾을 렌더러. 보통 장소 씬 전체다.</param>
         /// <param name="litBuildingRenderers">입점한 상점·숙소 건물의 렌더러. 이 안의 창 유리만 밤에 불 켠 창이 된다.</param>
+        /// <param name="streetLamps">밤에만 켜는 가로등 빛. 씬 디자인 세기는 밤에 켰을 때의 세기다.</param>
         public NightLights(
             DaylightSettings settings,
             IEnumerable<Light> lamps,
             IEnumerable<Renderer> renderers,
-            IEnumerable<Renderer> litBuildingRenderers = null
+            IEnumerable<Renderer> litBuildingRenderers = null,
+            IEnumerable<Light> streetLamps = null
         )
         {
             this.lamps = lamps.Where(lamp => lamp != null).ToArray();
             lampIntensities = this.lamps.Select(lamp => lamp.intensity).ToArray();
+            this.streetLamps = (streetLamps ?? Enumerable.Empty<Light>())
+                .Where(lamp => lamp != null)
+                .ToArray();
+            streetLampIntensities = this.streetLamps.Select(lamp => lamp.intensity).ToArray();
 
             var glowMaterials = new HashSet<Material>(
                 settings.GlowMaterials.Where(item => item != null)
+            );
+            var streetLampGlowMaterials = new HashSet<Material>(
+                settings.NightOnlyGlowMaterials.Where(item => item != null)
             );
             var windowMaterials = new HashSet<Material>(
                 settings.WindowMaterials.Where(item => item != null)
@@ -51,7 +63,8 @@ namespace A305.Weather
                     designed =>
                     {
                         bool isGlow = glowMaterials.Contains(designed);
-                        if (!isGlow && !windowMaterials.Contains(designed))
+                        bool isStreetLampGlow = streetLampGlowMaterials.Contains(designed);
+                        if (!isGlow && !isStreetLampGlow && !windowMaterials.Contains(designed))
                             return null;
                         return CopyOnce(
                             designed,
@@ -60,6 +73,8 @@ namespace A305.Weather
                             {
                                 if (isGlow)
                                     glows.Add(new Glow(copy));
+                                else if (isStreetLampGlow)
+                                    streetLampGlows.Add(new Glow(copy));
                                 else
                                     windows.Add(new Window(copy));
                             }
@@ -86,7 +101,7 @@ namespace A305.Weather
                 );
         }
 
-        /// <param name="night">밤인 정도. 0이면 씬 디자인 그대로다.</param>
+        /// <param name="night">밤인 정도. 0이면 가로등은 꺼지고 나머지는 씬 디자인 그대로다.</param>
         public void Apply(DaylightSettings settings, float night)
         {
             float lampScale = Mathf.Lerp(1f, settings.NightLampScale, night);
@@ -95,6 +110,15 @@ namespace A305.Weather
             float glowScale = Mathf.Lerp(1f, settings.NightGlowScale, night);
             foreach (Glow glow in glows)
                 glow.Apply(glowScale);
+            // 가로등은 해가 지면서 켜져 한밤에 다른 등과 같은 배율로 밝다. 낮에 꺼진 빛은 그리지 않는다.
+            float streetLampScale = settings.NightLampScale * night;
+            for (int index = 0; index < streetLamps.Length; index++)
+            {
+                streetLamps[index].intensity = streetLampIntensities[index] * streetLampScale;
+                streetLamps[index].enabled = streetLampScale > 0f;
+            }
+            foreach (Glow glow in streetLampGlows)
+                glow.Apply(settings.NightGlowScale * night);
             float windowEmission = Mathf.Lerp(1f, settings.NightWindowEmissionScale, night);
             foreach (Window window in windows)
                 window.Apply(settings.NightWindowColor, night, windowEmission);
@@ -104,6 +128,13 @@ namespace A305.Weather
 
         public void Restore()
         {
+            for (int index = 0; index < streetLamps.Length; index++)
+            {
+                if (streetLamps[index] == null)
+                    continue;
+                streetLamps[index].intensity = streetLampIntensities[index];
+                streetLamps[index].enabled = true;
+            }
             foreach (KeyValuePair<Renderer, Material[]> designed in designedMaterials)
             {
                 if (designed.Key != null)

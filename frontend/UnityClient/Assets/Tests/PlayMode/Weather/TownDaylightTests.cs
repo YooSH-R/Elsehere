@@ -18,6 +18,7 @@ namespace A305.Weather.PlayModeTests
         // 해 지기 15분 전. 노을은 해 지는 19시를 가운데로 앞뒤 30분 동안 물든다.
         private const double Sunset = 18 * 60 + 45;
         private const float LampIntensity = 4f;
+        private const float FixtureIntensity = .1f;
         private const float LampCoreStrength = 1.2f;
         private const float TransitionSeconds = .2f;
 
@@ -65,6 +66,7 @@ namespace A305.Weather.PlayModeTests
         private Material designedWindowGlass;
         private Light sun;
         private Light lamp;
+        private Light fixture;
         private Renderer glow;
         private Renderer lampGlass;
         private Transform shop;
@@ -86,8 +88,9 @@ namespace A305.Weather.PlayModeTests
             designedWindowGlass.color = DesignedWindowGlass;
             daylight = Keep(
                 DaylightSettings.Create(
-                    new[] { designedGlow, designedLampGlass },
-                    litWindowMaterials: new[] { designedWindowGlass }
+                    new[] { designedGlow },
+                    litWindowMaterials: new[] { designedWindowGlass },
+                    nightOnlyGlowMaterials: new[] { designedLampGlass }
                 )
             );
             weathers = Keep(
@@ -197,6 +200,7 @@ namespace A305.Weather.PlayModeTests
             AssertColor(shopWindow.sharedMaterial.color, DesignedWindowGlass);
         }
 
+        // 가로등이 아닌 등(상점 벽등·실내등)과 창빛은 낮에 씬 디자인 그대로다.
         [UnityTest]
         public IEnumerator Midday_KeepsDesignedTown()
         {
@@ -206,10 +210,31 @@ namespace A305.Weather.PlayModeTests
             presenter.ShowTime(Midday);
 
             Assert.That(sun.intensity, Is.EqualTo(Designed.sunIntensity).Within(.001f));
-            Assert.That(lamp.intensity, Is.EqualTo(LampIntensity).Within(.001f));
+            Assert.That(fixture.intensity, Is.EqualTo(FixtureIntensity).Within(.001f));
+            Assert.That(
+                glow.sharedMaterial.GetColor("_EmissionColor").r,
+                Is.EqualTo(GlowEmission.r).Within(.002f)
+            );
             Assert.That(RenderSettings.skybox.GetFloat("_Stars"), Is.EqualTo(0f).Within(.001f));
             Assert.That(Quaternion.Angle(sun.transform.rotation, DesignedSun), Is.LessThan(1f));
             AssertColor(RenderSettings.skybox.GetColor("_Zenith"), Designed.skyZenith);
+        }
+
+        // 가로등은 밤에만 켠다. 낮에는 빛과 전구를 끈다.
+        [UnityTest]
+        public IEnumerator Midday_TurnsStreetLampsOff()
+        {
+            yield return null;
+            presenter.ShowTime(Midnight);
+
+            presenter.ShowTime(Midday);
+
+            Assert.That(lamp.intensity, Is.EqualTo(0f).Within(.001f));
+            Assert.That(lamp.enabled, Is.False, "꺼진 가로등 빛은 그리지 않습니다.");
+            Assert.That(
+                lampGlass.sharedMaterial.GetFloat("_CoreStrength"),
+                Is.EqualTo(0f).Within(.002f)
+            );
         }
 
         [UnityTest]
@@ -319,7 +344,10 @@ namespace A305.Weather.PlayModeTests
             fields.FindProperty("daylight").objectReferenceValue = daylight;
             SerializedProperty lamps = fields.FindProperty("lamps");
             lamps.arraySize = 1;
-            lamps.GetArrayElementAtIndex(0).objectReferenceValue = lamp;
+            lamps.GetArrayElementAtIndex(0).objectReferenceValue = fixture;
+            SerializedProperty streetLamps = fields.FindProperty("streetLamps");
+            streetLamps.arraySize = 1;
+            streetLamps.GetArrayElementAtIndex(0).objectReferenceValue = lamp;
             SerializedProperty litBuildings = fields.FindProperty("litBuildings");
             litBuildings.arraySize = 1;
             litBuildings.GetArrayElementAtIndex(0).objectReferenceValue = shop;
@@ -354,6 +382,9 @@ namespace A305.Weather.PlayModeTests
             lamp = Keep(new GameObject("LanternLight")).AddComponent<Light>();
             lamp.type = LightType.Point;
             lamp.intensity = LampIntensity;
+            fixture = Keep(new GameObject("FixtureLight")).AddComponent<Light>();
+            fixture.type = LightType.Point;
+            fixture.intensity = FixtureIntensity;
 
             glow = Shape("WindowAmberGlow", designedGlow);
             lampGlass = Shape("LanternAmberV2", designedLampGlass);

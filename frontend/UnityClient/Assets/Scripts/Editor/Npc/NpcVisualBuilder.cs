@@ -77,6 +77,13 @@ namespace A305.EditorTools.Npc
                 throw new InvalidOperationException("No character visual for NPC " + npc.Code);
             }
 
+            Connect(npc, entry.Prefab, entry.TalkGesture);
+        }
+
+        /// <summary>위 표에 없는 NPC(건물 직원 등)에 외형을 붙인다. 외형 고르기는 부르는 Builder가 맡는다.</summary>
+        public static void Connect(NpcIdentity npc, string prefabPath, bool talkGesture)
+        {
+            var entry = (Prefab: prefabPath, TalkGesture: talkGesture);
             GameObject prefab = BuilderTools.LoadRequiredAsset<GameObject>(entry.Prefab, MenuPath);
             foreach (Transform child in npc.transform.Cast<Transform>().ToArray())
             {

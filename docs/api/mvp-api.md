@@ -601,11 +601,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
   { "npcCode": "TAXI_DRIVER", "name": "Joe", "npcType": "STAFF", "roleLabel": "택시 기사", "canInitiate": false, "approachLine": null },
   { "npcCode": "POLICE_OFFICER", "name": "Dan", "npcType": "STAFF", "roleLabel": "경찰관", "canInitiate": false, "approachLine": null },
+  { "npcCode": "POST_OFFICE_STAFF", "name": "Linda", "npcType": "STAFF", "roleLabel": "우체국 직원", "canInitiate": false, "approachLine": null },
   { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
 
 - `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
+- 마을(`TOWN`)에는 거리 매장 직원 9명(`POST_OFFICE_STAFF`·`DINER_STAFF`·`BANK_STAFF`·`LAUNDROMAT_STAFF`·`FLOWER_SHOP_STAFF`·`BARBER_STAFF`·`BAKERY_STAFF`·`ARCADE_STAFF`·`HOME_STORE_STAFF`)도 위 Linda처럼 `STAFF`, `canInitiate: false`로 내려옵니다.
 - `words`는 장소의 사물에 붙은 공용 단어 카드입니다. 여러 사물이 같은 단어를 쓰면 카드는 하나이며, Unity가 사물의 공용 단어 키(`wordKey`)로 카드를 찾습니다. 장소별 단어 목록은 Unity가 내보낸 `object-word-bindings.json`을 서버 시작 때 `scene_words`에 적재한 것입니다.
 - `npcs`, `words`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `wordKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 단어 카드를 한 번에 받습니다. MVP는 장소마다 단어가 20~40개라 응답이 작습니다.
@@ -972,7 +974,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
 - CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
 - NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다.
-- 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
+- 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값, 매일 정리에서 맞추므로 정리 사이에는 넘을 수 있음). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
 - `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 재생 차단, `turns.npc_audio_deleted_at`)입니다. 파일 삭제 실패로 재시도 중인 경우도 `EXPIRED`이며 CONV-07을 불러도 다시 만들지 않습니다. 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
 - 내가 말한 문장을 TTS로 다시 들려주는 기능은 필요성을 함께 검토합니다(6절).
 

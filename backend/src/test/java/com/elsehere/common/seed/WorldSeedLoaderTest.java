@@ -185,7 +185,8 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("NPC 5명(행인·카페 직원·호텔 직원·드럭스토어 직원·택시 기사)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName(
+      "NPC 15명(행인·카페 직원·호텔 직원·드럭스토어 직원·택시 기사·경찰관과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -211,7 +212,16 @@ class WorldSeedLoaderTest {
             tuple("HOTEL", "HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null),
             tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "드럭스토어 직원", false, null),
             tuple("TOWN", "TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null),
-            tuple("TOWN", "POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null));
+            tuple("TOWN", "POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null),
+            tuple("TOWN", "POST_OFFICE_STAFF", "Linda", NpcType.STAFF, "우체국 직원", false, null),
+            tuple("TOWN", "DINER_STAFF", "Rosa", NpcType.STAFF, "식당 종업원", false, null),
+            tuple("TOWN", "BANK_STAFF", "Henry", NpcType.STAFF, "은행원", false, null),
+            tuple("TOWN", "LAUNDROMAT_STAFF", "Gus", NpcType.STAFF, "빨래방 주인", false, null),
+            tuple("TOWN", "FLOWER_SHOP_STAFF", "Lily", NpcType.STAFF, "꽃집 주인", false, null),
+            tuple("TOWN", "BARBER_STAFF", "Tony", NpcType.STAFF, "이발사", false, null),
+            tuple("TOWN", "BAKERY_STAFF", "Grace", NpcType.STAFF, "제빵사", false, null),
+            tuple("TOWN", "ARCADE_STAFF", "Max", NpcType.STAFF, "오락실 직원", false, null),
+            tuple("TOWN", "HOME_STORE_STAFF", "Nina", NpcType.STAFF, "매장 직원", false, null));
   }
 
   @Test
@@ -239,7 +249,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(6);
+    assertThat(npcRepository.count()).isEqualTo(15);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 
@@ -297,7 +307,16 @@ class WorldSeedLoaderTest {
             "HOTEL_STAFF",
             "SHOP_STAFF",
             "TAXI_DRIVER",
-            "POLICE_OFFICER");
+            "POLICE_OFFICER",
+            "POST_OFFICE_STAFF",
+            "DINER_STAFF",
+            "BANK_STAFF",
+            "LAUNDROMAT_STAFF",
+            "FLOWER_SHOP_STAFF",
+            "BARBER_STAFF",
+            "BAKERY_STAFF",
+            "ARCADE_STAFF",
+            "HOME_STORE_STAFF");
     JsonMapper jsonMapper = new JsonMapper();
     for (Npc npc : npcRepository.findAll()) {
       JsonNode expected = profiles.get(npc.getCode());

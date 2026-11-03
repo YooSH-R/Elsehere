@@ -180,13 +180,13 @@ namespace A305.EditorTools.Mission
             BuilderTools.GetOrAddComponent<ContentSizeFitter>(status.gameObject).horizontalFit =
                 ContentSizeFitter.FitMode.PreferredSize;
 
-            // 시계: Jua 19(위 2)
+            // 시계: Jua 21(위 2). 옆 코인 숫자와 같은 크기다.
             RectTransform clockChip = Chip(status, "Clock");
             TMP_Text clock = Text(
                 clockChip,
                 "Label",
                 DisplayFontPath,
-                19,
+                21,
                 Ink,
                 "1일차 · 오전 8:00"
             );
@@ -194,19 +194,29 @@ namespace A305.EditorTools.Mission
             clock.alignment = TextAlignmentOptions.Center;
             clock.margin = new Vector4(0, 2 * Px, 0, 0);
 
-            // 코인: 코인(42), 숫자는 옆 시계와 같은 Jua 19(위 2), 단위 Jua 17(위 2), 칸 사이 10. 칩 가운데에 모은다.
+            // 코인: 코인 그림(30)은 숫자 크기에 맞추고, 숫자는 옆 시계와 같은 Jua 21(위 2), 단위 Jua 18(위 2), 칸 사이 10. 칩 가운데에 모은다.
             RectTransform coinChip = Chip(status, "Coins");
             RectTransform row = Row(coinChip, "Row", 10);
             Fill(row);
             var layout = row.GetComponent<HorizontalLayoutGroup>();
             layout.padding = new RectOffset(0, 0, 0, 0);
             layout.childAlignment = TextAnchor.MiddleCenter;
-            RectTransform coin = Box(row, "Coin", 42, 42);
-            Art(coin, "Coin", 42 + 2 * ArtPad, 48 + 2 * ArtPad, ArtPad, ArtPad);
-            TMP_Text amount = Text(row, "Amount", DisplayFontPath, 19, Ink, "0");
+            // 코인 그림(42에 그림자 자리 12)을 30 크기로 줄여 그대로 비율을 지킨다.
+            const float CoinSize = 30;
+            const float CoinScale = CoinSize / 42f;
+            RectTransform coin = Box(row, "Coin", CoinSize, CoinSize);
+            Art(
+                coin,
+                "Coin",
+                (42 + 2 * ArtPad) * CoinScale,
+                (48 + 2 * ArtPad) * CoinScale,
+                ArtPad * CoinScale,
+                ArtPad * CoinScale
+            );
+            TMP_Text amount = Text(row, "Amount", DisplayFontPath, 21, Ink, "0");
             amount.margin = new Vector4(0, 2 * Px, 0, 0);
             amount.alignment = TextAlignmentOptions.MidlineLeft;
-            TMP_Text unit = Text(row, "Unit", DisplayFontPath, 17, Muted, "코인");
+            TMP_Text unit = Text(row, "Unit", DisplayFontPath, 18, Muted, "코인");
             unit.margin = new Vector4(0, 2 * Px, 0, 0);
             unit.alignment = TextAlignmentOptions.MidlineLeft;
             BuilderTools.SetReference(view, "clock", clock);

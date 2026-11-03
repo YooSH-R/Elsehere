@@ -87,6 +87,8 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 위 하늘·조명·안개는 맑은 날 기준이다. TownScene의 `Lighting/TownWeather`(`WeatherPresenter`)가 예보 날씨에 따라 해의 색·세기·그림자, 환경광, 안개, `SummerSky` 색, 구름 색을 섞어 바꾸고, 하늘을 덮는 날씨에는 `OvercastClouds`를, 비에는 `Assets/Prefabs/Weather/Rain.prefab` 빗방울을 띄운다. 날씨마다 `Assets/Data/Weather/`의 정의 에셋(`Clear`·`Cloudy`·`Rain`)이 있고 `TownWeather.asset` 목록에 모여 있으며, 맑음은 씬에 디자인한 값을 그대로 쓴다. 하늘·구름 머티리얼은 실행 중 사본을 물들이므로 원본 에셋은 바뀌지 않는다. 구성과 미리보기 방법은 [Weather 모듈](../../frontend/UnityClient/Assets/Scripts/Weather/README.md)에 있다.
 
+위 값은 한낮(게임 시각 12:30 무렵) 기준이기도 하다. 같은 날씨 표시가 사용자별 게임 시각에 맞춰 새벽(6:00)·노을(19:00)에는 보랏빛·주황빛 하늘과 지평선 가까이 낮게 깔린 햇빛으로, 밤(19:30~5:30)에는 남색 하늘·별·달과 약한 달빛, 어두운 환경광·안개·구름으로 바꾼다. 밤에는 가로등(`LanternLight`)·상점 불빛(`FixtureLight`·`InteriorLight`)을 2배, 창빛(`WindowAmberGlow`)·가로등 전구(`LanternAmberV2`) 같은 발광 재질을 2.2배로 밝힌다. 별·달은 `SummerSky` 셰이더의 `_Stars`(0이면 낮 하늘 그대로)로 그리며 흐림·비에는 숨는다. 값은 `Assets/Data/Weather/DayNight.asset`에서 조정한다.
+
 ## 가로등과 매장 조명
 
 `Assets/Prefabs/World/MainstreetArt/StreetLampV2.prefab`의 `LanternLight`가 주변을 비추며, 전구의 `LanternAmberV2` 재질이 발광한다. 같은 프리팹을 배치하면 외형과 광원을 함께 재사용한다.

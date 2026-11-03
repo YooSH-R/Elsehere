@@ -269,6 +269,40 @@
       ]
     },
     {
+      "npcId": "CAFE_BARISTA",
+      "role": "STAFF",
+      "scene": "CAFE",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "13:00",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "17:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "17:30",
+          "to": "21:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "21:00",
+          "to": "13:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "CAFE_STAFF",
       "role": "STAFF",
       "scene": "CAFE",
@@ -400,6 +434,74 @@
         {
           "from": "20:00",
           "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_NIGHT_MANAGER",
+      "role": "STAFF",
+      "scene": "HOTEL",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.64,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "22:00",
+          "to": "02:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "02:00",
+          "to": "02:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "02:30",
+          "to": "06:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:30",
+          "to": "22:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_RECEPTIONIST",
+      "role": "STAFF",
+      "scene": "HOTEL",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "14:00",
+          "to": "18:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "18:00",
+          "to": "18:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "18:30",
+          "to": "22:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "22:30",
+          "to": "14:00",
           "activity": "OFF"
         }
       ]
@@ -541,6 +643,74 @@
       ]
     },
     {
+      "npcId": "SHOP_NIGHT_CLERK",
+      "role": "STAFF",
+      "scene": "SHOP",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "23:00",
+          "to": "03:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "03:00",
+          "to": "03:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "03:30",
+          "to": "07:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "07:30",
+          "to": "23:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "SHOP_PHARMACIST",
+      "role": "STAFF",
+      "scene": "SHOP",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.64,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "07:00",
+          "to": "11:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "11:00",
+          "to": "11:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "11:30",
+          "to": "15:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "15:30",
+          "to": "07:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "SHOP_STAFF",
       "role": "STAFF",
       "scene": "SHOP",
@@ -604,6 +774,30 @@
       ]
     },
     {
+      "npcId": "TOWN_EVENING_WALKER",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.64,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "16:00",
+          "to": "23:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "23:00",
+          "to": "16:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "TOWN_PASSERBY",
       "role": "PASSERBY",
       "scene": "TOWN",
@@ -623,6 +817,54 @@
         {
           "from": "18:00",
           "to": "09:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_RETIREE",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "06:00",
+          "to": "13:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "13:00",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_STUDENT",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "12:00",
+          "to": "20:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "20:00",
+          "to": "12:00",
           "activity": "OFF"
         }
       ]

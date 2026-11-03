@@ -35,6 +35,7 @@ namespace A305.World.Tests
         };
 
         private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
+        private const string PlaceHoursPath = "Assets/Data/World/PlaceHours.json";
 
         private Scene scene;
 
@@ -230,6 +231,22 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void Apply_AddsOpeningHoursConnectedToNoticeAndPlayer()
+        {
+            SpaceSceneSetup.Apply(scene);
+
+            OpeningHoursController openingHours = Single<OpeningHoursController>();
+            Assert.That(openingHours.transform.parent, Is.EqualTo(Root("Systems")));
+            Assert.That(Single<HudNoticeView>().transform.parent, Is.EqualTo(Root("UI")));
+            Assert.That(Reference(openingHours, "notice"), Is.EqualTo(Single<HudNoticeView>()));
+            Assert.That(Reference(openingHours, "player"), Is.EqualTo(Single<PlayerMover>()));
+            Assert.That(
+                Reference(openingHours, "placeHours"),
+                Is.EqualTo(AssetDatabase.LoadAssetAtPath<TextAsset>(PlaceHoursPath))
+            );
+        }
+
+        [Test]
         public void Apply_ReplacesDefaultCameraWithPlayerCamera()
         {
             SpaceSceneSetup.Apply(scene);
@@ -262,6 +279,8 @@ namespace A305.World.Tests
             Assert.That(FindAll<MissionPanelView>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<TutorialDirector>(), Has.Length.EqualTo(1));
             Assert.That(FindAll<TutorialGuideView>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<OpeningHoursController>(), Has.Length.EqualTo(1));
+            Assert.That(FindAll<HudNoticeView>(), Has.Length.EqualTo(1));
         }
 
         [Test]

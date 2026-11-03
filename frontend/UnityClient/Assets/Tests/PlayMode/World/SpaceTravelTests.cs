@@ -27,17 +27,20 @@ namespace A305.World.PlayModeTests
         private const float AngleToleranceDegrees = 1f;
 
         // 튜토리얼 동안에는 단계를 마칠 때까지 장소 이동을 잠그므로, 이동 자체를 보는 이 시험은 튜토리얼을 마친 사용자로 한다.
+        // 영업시간이 아닌 장소는 문이 열리지 않으므로 모든 장소가 여는 오후 1시에 멈춘 시각으로 한다.
         [SetUp]
-        public void StartAfterTheTutorial()
+        public void StartAfterTheTutorialWhileEveryPlaceIsOpen()
         {
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
+            TestGameClock.Set(13 * 60);
         }
 
         [TearDown]
-        public void ClearTutorial()
+        public void ClearTutorialAndClock()
         {
             TutorialState.Clear();
+            TestGameClock.Restore();
         }
 
         [UnityTest]

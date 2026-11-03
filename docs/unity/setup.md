@@ -49,7 +49,7 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 | 장소 장면(`sceneSlides`) | 마을·카페·호텔·택시를 실제 씬에서 찍은 사진 | 화면을 가득 채우고 천천히 다가갑니다. 세로 화면에서는 양옆이 잘리지 않게 카드로 띄웁니다. |
 | 기능 장면(`featureSlides`) | 기능 소개 그림(`feature-*`)과, 대화창·단어 카드를 띄워 찍은 게임 화면(`cafe-talk`·`home-hover`) | 흐린 배경 위 가운데 카드로 띄워 그림이 흐려지거나 화면 UI가 아래 문구에 가리지 않게 합니다. |
 
-두 묶음은 각각 순서를 섞은 뒤 한 장씩 번갈아 보여 줍니다. 장면과 문구 목록은 `index.html`에서 관리합니다. 기능 소개 그림은 `frontend/design/소개 그림 4칸.webp`를 칸별로 잘라 씁니다. 사진과 게임 화면은 **Tools → A305 → Web → Capture Intro Scenes**로 찍습니다. 이 도구는 씬을 저장하지 않습니다. 다만 대화창·단어 카드 글자를 그리면서 `Assets/Art/UI/Fonts/Jua-Regular SDF.asset`에 글자 간격 정보가 덧붙어 저장될 수 있으니, 찍은 뒤 바뀌어 있으면 커밋하지 않고 되돌립니다. 씬 배치나 캐릭터, 대화창·단어 카드 디자인이 바뀌면 다시 찍고 이미지를 확인한 뒤 커밋합니다. 명령줄로 찍을 때는 화면을 그려야 하므로 `-nographics` 없이 `-executeMethod A305.EditorTools.Common.IntroSceneCapture.Capture`를 실행합니다.
+두 묶음은 기능 장면부터 한 장씩 번갈아 보여 줍니다. 로딩이 짧으면 한두 장만 보이므로, 지난 접속에서 본 다음 장면부터 이어 보여 접속할 때마다 다른 장면이 나오게 합니다(브라우저 저장소 `elsehere.intro.nextSlide`). 저장소를 쓸 수 없으면 처음 장면부터 보여 줍니다. 장면과 문구 목록은 `index.html`에서 관리합니다. 기능 소개 그림은 `frontend/design/소개 그림 4칸.webp`를 칸별로 잘라 씁니다. 사진과 게임 화면은 **Tools → A305 → Web → Capture Intro Scenes**로 찍습니다. 이 도구는 씬을 저장하지 않습니다. 다만 대화창·단어 카드 글자를 그리면서 `Assets/Art/UI/Fonts/Jua-Regular SDF.asset`에 글자 간격 정보가 덧붙어 저장될 수 있으니, 찍은 뒤 바뀌어 있으면 커밋하지 않고 되돌립니다. 씬 배치나 캐릭터, 대화창·단어 카드 디자인이 바뀌면 다시 찍고 이미지를 확인한 뒤 커밋합니다. 명령줄로 찍을 때는 화면을 그려야 하므로 `-nographics` 없이 `-executeMethod A305.EditorTools.Common.IntroSceneCapture.Capture`를 실행합니다.
 
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 

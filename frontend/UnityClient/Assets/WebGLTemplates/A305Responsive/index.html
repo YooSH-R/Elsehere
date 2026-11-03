@@ -57,16 +57,7 @@
       let introRunning = true;
       let slideTimer = 0;
 
-      // 접속할 때마다 순서를 섞어 매번 다른 장면부터 보여 준다.
-      function shuffle(items) {
-        for (let index = items.length - 1; index > 0; index--) {
-          const other = Math.floor(Math.random() * (index + 1));
-          [items[index], items[other]] = [items[other], items[index]];
-        }
-        return items;
-      }
-
-      // 장소 장면과 기능 장면이 섞여 보이도록 한 장씩 번갈아 놓는다.
+      // 기능 장면과 장소 장면이 섞여 보이도록 한 장씩 번갈아 놓는다.
       function alternate(first, second) {
         const slides = [];
         for (let index = 0; index < Math.max(first.length, second.length); index++) {
@@ -108,11 +99,33 @@
         );
       }
 
+      // 로딩이 짧으면 한두 장만 보이므로, 지난 접속에서 본 다음 장면부터 이어 보여 접속할 때마다 다른 장면이 나오게 한다.
+      // 브라우저 저장소를 쓸 수 없으면 처음 장면부터 보여 준다.
+      const nextSlideKey = "elsehere.intro.nextSlide";
+
+      function loadNextSlide(count) {
+        try {
+          const saved = Number(localStorage.getItem(nextSlideKey));
+          return Number.isInteger(saved) && saved >= 0 && saved < count ? saved : 0;
+        } catch {
+          return 0;
+        }
+      }
+
+      function saveNextSlide(index) {
+        try {
+          localStorage.setItem(nextSlideKey, String(index));
+        } catch {
+          // 저장하지 못하면 다음 접속은 처음 장면부터 보인다.
+        }
+      }
+
       async function playIntro(slides) {
         let current = null;
         let failedInRow = 0;
-        let upcoming = prepareSlide(slides[0]);
-        for (let index = 0; introRunning; index = (index + 1) % slides.length) {
+        const first = loadNextSlide(slides.length);
+        let upcoming = prepareSlide(slides[first]);
+        for (let index = first; introRunning; index = (index + 1) % slides.length) {
           const slide = slides[index];
           const shown = await upcoming;
           // 지금 장면을 보여 주는 동안 다음 장면 이미지를 미리 받아 둔다.
@@ -134,6 +147,7 @@
           // 새 장면을 붙인 다음 프레임에 켜야 투명도 전환이 일어난다.
           requestAnimationFrame(() => shown.classList.add("is-active"));
           captionElement.textContent = slide.caption;
+          saveNextSlide((index + 1) % slides.length);
           if (current !== null) {
             const previous = current;
             previous.classList.remove("is-active");
@@ -181,7 +195,8 @@
         showBanner(message, "error");
       }
 
-      playIntro(alternate(shuffle(sceneSlides.slice()), shuffle(featureSlides.slice())));
+      // 처음 접속하면 기능 장면부터 보여 준다.
+      playIntro(alternate(featureSlides, sceneSlides));
 
       const buildUrl = "Build";
       const config = {

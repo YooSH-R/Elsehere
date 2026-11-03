@@ -22,7 +22,8 @@ namespace A305.Learning
         public ConversationFeedback(
             string npcName,
             IReadOnlyList<string> userUtterances,
-            IReadOnlyList<ReferenceRule> rules
+            IReadOnlyList<ReferenceRule> rules,
+            IReadOnlyList<SituationExpressionData> situations = null
         )
         {
             NpcName = npcName;
@@ -37,6 +38,12 @@ namespace A305.Learning
             }
 
             UtteranceCount = reviews.Count;
+            if (UtteranceCount > 0)
+            {
+                notes.Add($"잘했어요 · {UtteranceCount}개의 문장을 끝까지 영어로 말했어요.");
+            }
+
+            SituationExpressions = situations ?? new List<SituationExpressionData>();
             Summary =
                 $"{UtteranceCount}개의 문장으로 {FeedbackText.NameWith(NpcName)} 이야기를 나눴어요.";
         }

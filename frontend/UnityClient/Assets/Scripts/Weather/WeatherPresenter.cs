@@ -40,8 +40,12 @@ namespace A305.Weather
         private DaylightSettings daylight;
 
         [SerializeField]
-        [Tooltip("밤에 밝히는 가로등·창 불빛")]
+        [Tooltip("밤에 더 밝히는 상점 벽등·실내등. 낮에는 씬 디자인 세기 그대로다")]
         private Light[] lamps = new Light[0];
+
+        [SerializeField]
+        [Tooltip("밤에만 켜는 가로등 빛. 낮에는 끈다")]
+        private Light[] streetLamps = new Light[0];
 
         [SerializeField]
         [Tooltip("입점한 상점·숙소 건물. 밤에는 안에서 불을 켠 것처럼 창이 빛난다")]
@@ -229,7 +233,8 @@ namespace A305.Weather
                         .SelectMany(root => root.GetComponentsInChildren<Renderer>(true)),
                     litBuildings
                         .Where(building => building != null)
-                        .SelectMany(building => building.GetComponentsInChildren<Renderer>(true))
+                        .SelectMany(building => building.GetComponentsInChildren<Renderer>(true)),
+                    streetLamps
                 );
 
             if (designedSky != null)

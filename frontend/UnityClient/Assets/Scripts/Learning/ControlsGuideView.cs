@@ -1,4 +1,5 @@
 using A305.Player;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -60,6 +61,10 @@ namespace A305.Learning
             if (shouldShow)
                 bodyText.text = ControlsGuideText.Body(PlayerTouchControls.ShouldShowControls());
             card.SetActive(shouldShow);
+            if (shouldShow)
+                UiLayer.Open(this);
+            else
+                UiLayer.Close(this);
         }
     }
 }

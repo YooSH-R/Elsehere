@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using A305.Theme;
 using A305.Wayfinding;
 using A305.World;
 using TMPro;
@@ -140,13 +141,9 @@ namespace A305.Mission
         private const float CardWidth = 410 * 1.2f;
         private const float DrawerWidth = 480;
 
-        // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
-        private const int OpenJournalSortingOrder = 1000;
-
         private Canvas canvas;
         private int shownClockMinute = -1;
         private bool talking;
-        private int closedSortingOrder;
         private bool available;
         private string mapSceneCode;
 
@@ -480,7 +477,11 @@ namespace A305.Mission
             if (root == null)
                 return;
             bool raised = journal.activeSelf || (mapOverlay != null && mapOverlay.activeSelf);
-            root.sortingOrder = raised ? OpenJournalSortingOrder : closedSortingOrder;
+            // 수첩·큰 지도를 연 동안에는 다른 캔버스와 먼저 연 창보다 위에 그린다.
+            if (raised)
+                UiLayer.Open(root, this);
+            else
+                UiLayer.Close(root, this);
         }
 
         /// <summary>
@@ -521,7 +522,6 @@ namespace A305.Mission
                 if (parent == null)
                     return null;
                 canvas = parent.rootCanvas;
-                closedSortingOrder = canvas.sortingOrder;
             }
 
             return canvas;

@@ -87,6 +87,34 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public void ScriptedFeedback_ShowsTheSituationExpressionsOfTheScene()
+        {
+            var situations = new List<SituationExpressionData>
+            {
+                new SituationExpressionData
+                {
+                    Expression = "I'd like to check in.",
+                    MeaningKo = "체크인하고 싶어요.",
+                },
+            };
+
+            var feedback = new ConversationFeedback("Ben", new[] { "Hello!" }, Rules, situations);
+
+            Assert.That(feedback.SituationExpressions, Is.EqualTo(situations));
+        }
+
+        // 대본 대화도 서버 피드백처럼 잘한 점 한 줄을 보여 준다.
+        [Test]
+        public void ScriptedFeedback_PraisesFinishingTheConversationInEnglish()
+        {
+            var feedback = new ConversationFeedback("Ben", new[] { "Hello!", "Thanks!" }, Rules);
+
+            Assert.That(feedback.Notes, Has.Count.EqualTo(1));
+            Assert.That(feedback.Notes[0], Does.StartWith("잘했어요 · "));
+            Assert.That(feedback.Notes[0], Does.Contain("2"));
+        }
+
+        [Test]
         public void FromServer_DoneFeedback_ShowsServerSummaryAndNotes()
         {
             var feedback = ConversationFeedback.FromServer(

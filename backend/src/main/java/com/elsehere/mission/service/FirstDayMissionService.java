@@ -168,7 +168,7 @@ public class FirstDayMissionService {
     boolean complete = started && mission.isCompleted();
     String situation =
         !started
-            ? "여행 첫날, 작은 소동을 해결해 볼까요?"
+            ? "마을에서 일어난 작은 소동을 해결해 볼까요?"
             : complete
                 ? "체크인 완료! 오늘의 작은 소동을 모두 해결했어요."
                 : !scene.equals(mission.current().scene())
@@ -176,7 +176,7 @@ public class FirstDayMissionService {
                     : mission.current().situation();
     String direction =
         !started
-            ? "왼쪽 위 지도 버튼에서 첫날 여정을 시작하세요."
+            ? "왼쪽 위 지도 버튼에서 퀘스트를 시작하세요."
             : complete
                 ? "다른 NPC와 자유롭게 대화해 보세요."
                 : !scene.equals(mission.current().scene())

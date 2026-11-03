@@ -1,4 +1,5 @@
 using System;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -120,6 +121,7 @@ namespace A305.Learning
             book = shownBook;
             selectedIndex = 0;
             panel.SetActive(true);
+            UiLayer.Open(this);
             ShowStatus("");
             Refresh();
         }
@@ -128,6 +130,7 @@ namespace A305.Learning
         {
             book = null;
             panel.SetActive(false);
+            UiLayer.Close(this);
         }
 
         /// <summary>목록 아래 안내(불러오는 중, 저장 실패 등). 빈 문자열이면 지운다.</summary>

@@ -134,12 +134,13 @@ namespace A305.Wayfinding
 
             Vector3 feet = player.transform.position;
             bool hasEntrance = entrance != null;
+            if (hasEntrance && FlatDistance(feet, entrance.position) <= settings.ArrivedMeters)
+                GuideDestination.Shared.Arrive();
             GuideVisibility visibility = GuideVisibility.Decide(
                 hasEntrance,
+                GuideDestination.Shared.Arrived,
                 SpaceTravel.IsTraveling || (dialogue != null && dialogue.IsTalking),
-                GuideRoutePreference.ShowsRoute,
-                hasEntrance ? FlatDistance(feet, entrance.position) : 0f,
-                settings.ArrivedMeters
+                GuideRoutePreference.ShowsRoute
             );
             ShowEntrance(visibility.ShowsEntrance, feet);
             ShowRoute(visibility.ShowsRoute, feet);

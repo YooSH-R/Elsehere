@@ -10,7 +10,7 @@ namespace A305.Wayfinding.PlayModeTests
 {
     /// <summary>
     /// 마을을 실제로 불러와 목적지를 알리면 출입문 앞이 빛나고 플레이어 발밑에서 출입문까지 길이 깔리는지,
-    /// 도착하거나 목적지가 사라지거나 사용자가 길을 끄면 길이 거둬지는지 본다.
+    /// 도착하거나 목적지가 사라지면 길과 빛이 거둬지고 사용자가 길을 끄면 길만 거둬지는지 본다.
     /// </summary>
     public sealed class DestinationGuidePlayTests
     {
@@ -64,7 +64,7 @@ namespace A305.Wayfinding.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ReachingTheDoor_RemovesTheRouteButKeepsTheGlow()
+        public IEnumerator ReachingTheDoor_RemovesTheRouteAndTheGlow()
         {
             yield return LoadTown();
             GuideDestination.Shared.Show("HOTEL");
@@ -76,7 +76,46 @@ namespace A305.Wayfinding.PlayModeTests
             yield return null;
 
             Assert.That(Route().enabled, Is.False);
+            Assert.That(Glow().activeSelf, Is.False);
+        }
+
+        // 도착한 뒤 문에 들어가지 않고 돌아서도 같은 목적지를 다시 안내하지 않는다.
+        [UnityTest]
+        public IEnumerator WalkingAwayAfterArriving_StaysHidden()
+        {
+            yield return LoadTown();
+            GuideDestination.Shared.Show("HOTEL");
+            yield return null;
+            Transform entrance = Entrance("HOTEL");
+            Player().Teleport(entrance.position, entrance.rotation);
+            yield return null;
+
+            Player().Teleport(entrance.position + entrance.forward * 8f, entrance.rotation);
+            yield return new WaitForSeconds(LaidSeconds);
+
+            Assert.That(Route().enabled, Is.False);
+            Assert.That(Glow().activeSelf, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator NewDestinationAfterArriving_GuidesAgain()
+        {
+            yield return LoadTown();
+            GuideDestination.Shared.Show("HOTEL");
+            yield return null;
+            Transform hotel = Entrance("HOTEL");
+            Player().Teleport(hotel.position, hotel.rotation);
+            yield return null;
+
+            GuideDestination.Shared.Show("CAFE");
+            yield return new WaitForSeconds(LaidSeconds);
+
+            Assert.That(Route().enabled, Is.True);
             Assert.That(Glow().activeSelf, Is.True);
+            Assert.That(
+                Flat(Glow().transform.position, Entrance("CAFE").position),
+                Is.LessThan(.01f)
+            );
         }
 
         [UnityTest]

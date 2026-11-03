@@ -4,12 +4,10 @@ namespace A305.Wayfinding.Tests
 {
     public class GuideVisibilityTests
     {
-        private const float ArrivedMeters = 1.5f;
-
         [Test]
         public void HeadingToTheDestination_ShowsEntranceAndRoute()
         {
-            GuideVisibility view = Decide(metersToEntrance: 20f);
+            GuideVisibility view = Decide();
 
             Assert.That(view.ShowsEntrance, Is.True);
             Assert.That(view.ShowsRoute, Is.True);
@@ -42,32 +40,21 @@ namespace A305.Wayfinding.Tests
             Assert.That(view.ShowsRoute, Is.False);
         }
 
-        [TestCase(1f, false)]
-        [TestCase(ArrivedMeters, false)]
-        [TestCase(1.6f, true)]
-        public void NearTheEntrance_RouteDisappearsButEntranceKeepsGlowing(
-            float metersToEntrance,
-            bool showsRoute
-        )
+        // 도착하면 안내가 할 일을 마쳤으므로 길과 출입문 빛을 모두 거둔다.
+        [Test]
+        public void Arrived_ShowsNothing()
         {
-            GuideVisibility view = Decide(metersToEntrance: metersToEntrance);
+            GuideVisibility view = Decide(arrived: true);
 
-            Assert.That(view.ShowsEntrance, Is.True);
-            Assert.That(view.ShowsRoute, Is.EqualTo(showsRoute));
+            Assert.That(view.ShowsEntrance, Is.False);
+            Assert.That(view.ShowsRoute, Is.False);
         }
 
         private static GuideVisibility Decide(
             bool hasEntrance = true,
+            bool arrived = false,
             bool paused = false,
-            bool routeWanted = true,
-            float metersToEntrance = 20f
-        ) =>
-            GuideVisibility.Decide(
-                hasEntrance,
-                paused,
-                routeWanted,
-                metersToEntrance,
-                ArrivedMeters
-            );
+            bool routeWanted = true
+        ) => GuideVisibility.Decide(hasEntrance, arrived, paused, routeWanted);
     }
 }

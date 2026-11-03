@@ -29,7 +29,9 @@ namespace A305.Wayfinding
 
         [SerializeField]
         [Min(0f)]
-        [Tooltip("출입문 앞에서 이 거리 안에 오면 도착한 것으로 보고 길을 거둔다(m)")]
+        [Tooltip(
+            "출입문 앞에서 이 거리 안에 오면 도착한 것으로 보고 길과 출입문 빛을 거둔다(m). 다른 목적지를 알릴 때까지 다시 보이지 않는다"
+        )]
         private float arrivedMeters = 1.5f;
 
         [Header("모양")]

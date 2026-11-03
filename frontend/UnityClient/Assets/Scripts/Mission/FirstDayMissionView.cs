@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using A305.Wayfinding;
 using A305.World;
 using TMPro;
 using UnityEngine;
@@ -172,6 +173,7 @@ namespace A305.Mission
                 ShowJournal(false);
                 ShowLargeMap(false);
                 JourneyStatus.Shared.Clear();
+                GuideDestination.Shared.Clear();
             }
             UpdateMiniMapVisibility();
         }
@@ -217,6 +219,8 @@ namespace A305.Mission
                 state.Steps.Select(step => Mark(step.Status)).ToArray(),
                 state.Balance
             );
+            // 길 안내가 지금 단계의 장소를 가리킨다. 시작 전과 모두 끝낸 뒤에는 목적지가 없어 안내하지 않는다.
+            GuideDestination.Shared.Show(state.Destination);
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";

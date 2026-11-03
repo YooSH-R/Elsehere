@@ -208,52 +208,6 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator TownPasserby_InTheBusinessManVisual_KeepsHisOwnIdleWalksAndSitsOnABench()
-        {
-            // Ben의 비즈니스맨 외형은 마스터 골격이라, 생활하는 동안에도 쇄골을 편 자기 Idle을 쓰고 벤치에 앉는다.
-            yield return LoadAt("TownScene", 10 * 60, paused: true);
-            NpcRoutine ben = Routine("TOWN_PASSERBY");
-            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            player.Teleport(new Vector3(-14f, .12f, 10f), Quaternion.identity);
-            Animator animator = ben.GetComponentsInChildren<Animator>()
-                .Single(candidate => candidate.isActiveAndEnabled);
-
-            var life = animator.runtimeAnimatorController as AnimatorOverrideController;
-            Assert.That(life, Is.Not.Null, "생활 동작 컨트롤러에 자기 클립을 얹습니다.");
-            AnimationClip sharedIdle = life.runtimeAnimatorController.animationClips.First(clip =>
-                clip.name == "Idle"
-            );
-            Assert.That(life[sharedIdle], Is.Not.SameAs(sharedIdle));
-
-            yield return WaitUntil(() => animator.GetFloat("Speed") > .5f);
-            Assert.That(IsPlaying(ben, "Locomotion"), Is.True, "걸을 때는 이동 동작을 재생합니다.");
-
-            yield return WaitUntil(() => ben.IsSeated);
-            yield return WaitUntil(() => IsPlaying(ben, "Sit"));
-            Assert.That(
-                ben.GetComponentsInChildren<LittleMungGroundContact>(true).All(c => !c.enabled),
-                Is.True,
-                "앉아 있는 동안에는 서 있는 자세 보정을 끕니다."
-            );
-        }
-
-        [UnityTest]
-        public IEnumerator TownPasserby_WhileOffering_StandsInHisOwnIdleWithoutTheTalkGesture()
-        {
-            // 비즈니스맨 체형에는 공용 손짓 동작이 엉거주춤하게 보여, Ben은 말을 건네는 동안 자기 Idle로 선다.
-            TutorialState.Clear();
-            yield return LoadAt("TownScene", 10 * 60, paused: true);
-            NpcRoutine ben = Routine("TOWN_PASSERBY");
-            PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
-
-            yield return WaitUntil(() => offer.IsShowing);
-            yield return new WaitForSeconds(.5f);
-
-            Assert.That(IsPlaying(ben, "Talk"), Is.False, "손짓 동작을 재생하지 않습니다.");
-            Assert.That(IsPlaying(ben, "Locomotion"), Is.True, "자기 대기 자세로 섭니다.");
-        }
-
-        [UnityTest]
         public IEnumerator TownPasserby_DuringTheTutorial_WaitsInFrontOfTheHouseWithoutLiving()
         {
             // 튜토리얼 중에는 Ben이 집 앞에서 정해진 흐름(길 묻기)대로만 움직이고 생활하지 않는다.

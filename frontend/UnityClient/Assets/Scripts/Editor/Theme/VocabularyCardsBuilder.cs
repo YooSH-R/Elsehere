@@ -480,7 +480,8 @@ namespace A305.EditorTools.Theme
             Stretch((RectTransform)label.transform);
             label.text = caption;
             label.gameObject.SetActive(caption.Length > 0);
-            label.fontSize = 18;
+            // 이름 없는 버튼은 숨긴 이름의 글자 크기로 아이콘 크기를 정한다(PillContentLayout).
+            label.fontSize = caption.Length == 0 ? Mathf.Round(height * .6f) : 18;
             label.fontStyle = FontStyles.Bold;
             label.enableAutoSizing = false;
             label.textWrappingMode = TextWrappingModes.NoWrap;

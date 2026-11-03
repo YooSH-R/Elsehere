@@ -83,7 +83,20 @@ namespace A305.ObjectHover
             );
         }
 
-        public void ForgetSaved(string text) { }
+        /// <summary>
+        /// 단어장에서 지운 단어를 저장하지 않은 카드로 되돌려 다시 저장할 수 있게 한다. 단어장 항목에는 단어 키가 없어
+        /// 영어 표현으로 찾는다.
+        /// </summary>
+        public void ForgetSaved(string text)
+        {
+            foreach (WordCard card in cards.Values)
+            {
+                if (string.Equals(card.Word.Text, text, StringComparison.OrdinalIgnoreCase))
+                {
+                    card.Saved = false;
+                }
+            }
+        }
 
         /// <summary>[알아요 · 다시 안 띄우기]와 [다시 띄우기](WORLD-03).</summary>
         public async Task SetHoverHiddenAsync(string wordKey, bool hoverHidden)

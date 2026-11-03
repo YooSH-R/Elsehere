@@ -111,6 +111,20 @@ class GameClockServiceTest {
   }
 
   @Test
+  @DisplayName("튜토리얼을 마치기 전에는 시간이 멈추고, 튜토리얼을 마친 뒤 신호부터 흐른다")
+  void beat_duringTutorial_pausesClock() {
+    setOnboardingStep("TUTORIAL");
+    gameClockService.beat(userId);
+    clock.setInstant(NOW.plusSeconds(30));
+
+    assertThat(gameClockService.beat(userId)).isEqualTo(new GameClockResponse(1, 480, true));
+
+    setOnboardingStep("DONE");
+    clock.setInstant(NOW.plusSeconds(60));
+    assertThat(gameClockService.beat(userId)).isEqualTo(GameTime.ofPlaySeconds(30).response(false));
+  }
+
+  @Test
   @DisplayName("게임 날짜는 사용자마다 따로 흐른다")
   void clocks_areSeparatePerUser() {
     Long otherUserId =
@@ -121,6 +135,17 @@ class GameClockServiceTest {
 
     assertThat(gameClockService.currentDay(userId)).isEqualTo(1);
     assertThat(gameClockService.now(otherUserId)).isEqualTo(new GameClockResponse(1, 480, false));
+  }
+
+  // 튜토리얼 완료 API(TUT-01)를 거치지 않고 온보딩 단계만 바꾼다.
+  private void setOnboardingStep(String step) {
+    entityManager.flush();
+    entityManager
+        .createNativeQuery("update users set onboarding_step = ? where id = ?")
+        .setParameter(1, step)
+        .setParameter(2, userId)
+        .executeUpdate();
+    entityManager.clear();
   }
 
   @TestConfiguration(proxyBeanMethods = false)

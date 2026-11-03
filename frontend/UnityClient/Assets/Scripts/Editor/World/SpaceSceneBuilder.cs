@@ -199,6 +199,7 @@ namespace A305.EditorTools.World
                 );
             }
 
+            ShopEntranceBuilder.FitSpaceDoor(root);
             BuilderTools.SetReference(doorway, "arrivalPoint", arrivalPoint);
             BuilderTools.RequireReferences(doorway);
         }

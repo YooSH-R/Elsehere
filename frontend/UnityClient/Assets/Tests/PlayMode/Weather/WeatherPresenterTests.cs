@@ -51,9 +51,10 @@ namespace A305.Weather.PlayModeTests
         private Transform player;
         private WeatherPresenter presenter;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            yield return IsolatedScene.Open();
             saved.Read();
             settings = WeatherSettings.Create(
                 TransitionSeconds,
@@ -225,8 +226,9 @@ namespace A305.Weather.PlayModeTests
             );
         }
 
-        [Test]
-        public void ShowImmediately_AppliesWeatherWithoutWaitingForFrames()
+        // 빈 씬을 여는 UnitySetUp이 앞서 돌도록 UnityTest로 둔다. 프레임은 기다리지 않는다.
+        [UnityTest]
+        public IEnumerator ShowImmediately_AppliesWeatherWithoutWaitingForFrames()
         {
             presenter.ShowImmediately("RAIN");
 
@@ -234,6 +236,7 @@ namespace A305.Weather.PlayModeTests
             Assert.That(overcast.activeSelf, Is.True);
             Assert.That(sun.intensity, Is.EqualTo(RainLook.sunIntensity).Within(.001f));
             AssertColor(RenderSettings.skybox.GetColor("_Zenith"), RainLook.skyZenith);
+            yield break;
         }
 
         [UnityTest]
@@ -372,48 +375,6 @@ namespace A305.Weather.PlayModeTests
             Assert.That(actual.r, Is.EqualTo(expected.r).Within(.002f), message);
             Assert.That(actual.g, Is.EqualTo(expected.g).Within(.002f), message);
             Assert.That(actual.b, Is.EqualTo(expected.b).Within(.002f), message);
-        }
-
-        private sealed class SavedRenderSettings
-        {
-            private Material skybox;
-            private AmbientMode ambientMode;
-            private Color ambientSky;
-            private Color ambientEquator;
-            private Color ambientGround;
-            private bool fog;
-            private FogMode fogMode;
-            private Color fogColor;
-            private float fogStart;
-            private float fogEnd;
-
-            public void Read()
-            {
-                skybox = RenderSettings.skybox;
-                ambientMode = RenderSettings.ambientMode;
-                ambientSky = RenderSettings.ambientSkyColor;
-                ambientEquator = RenderSettings.ambientEquatorColor;
-                ambientGround = RenderSettings.ambientGroundColor;
-                fog = RenderSettings.fog;
-                fogMode = RenderSettings.fogMode;
-                fogColor = RenderSettings.fogColor;
-                fogStart = RenderSettings.fogStartDistance;
-                fogEnd = RenderSettings.fogEndDistance;
-            }
-
-            public void Restore()
-            {
-                RenderSettings.skybox = skybox;
-                RenderSettings.ambientMode = ambientMode;
-                RenderSettings.ambientSkyColor = ambientSky;
-                RenderSettings.ambientEquatorColor = ambientEquator;
-                RenderSettings.ambientGroundColor = ambientGround;
-                RenderSettings.fog = fog;
-                RenderSettings.fogMode = fogMode;
-                RenderSettings.fogColor = fogColor;
-                RenderSettings.fogStartDistance = fogStart;
-                RenderSettings.fogEndDistance = fogEnd;
-            }
         }
     }
 }

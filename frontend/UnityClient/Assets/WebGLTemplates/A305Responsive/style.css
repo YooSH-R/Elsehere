@@ -47,21 +47,143 @@ body {
 }
 
 #unity-loading {
+  /* 게임 파일을 받는 동안 캔버스를 덮고 소개 장면을 보여 준다. 첫 장면을 받기 전에는 UI 테마의 어두운 배경색이 보인다. */
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  background: #2b1c14;
+  color: #fff;
+  /* 카드는 위 이름과 아래 문구·진행 막대 사이에 둔다. */
+  --card-top: clamp(56px, 10vh, 96px);
+  --card-bottom: clamp(130px, 22vh, 200px);
+}
+
+#intro-slides {
+  position: absolute;
+  inset: 0;
+}
+
+.intro-slide {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.intro-slide.is-active {
+  opacity: 1;
+}
+
+/* 소개 그림은 화면 비율과 상관없이 잘리지 않도록 흐린 배경 위 가운데 카드로 띄운다. */
+.intro-backdrop {
+  position: absolute;
+  inset: -48px;
+  width: calc(100% + 96px);
+  height: calc(100% + 96px);
+  object-fit: cover;
+  filter: blur(24px) brightness(0.55);
+}
+
+.intro-frame {
+  position: absolute;
+  inset: var(--card-top) clamp(16px, 4vw, 48px) var(--card-bottom);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 12px;
-  font-size: clamp(12px, 2vw, 16px);
-  text-align: center;
+  container-type: size;
+}
+
+.intro-picture {
+  width: min(100cqw, calc(100cqh * var(--ratio, 1.5)), 1280px);
+  height: auto;
+  border-radius: clamp(12px, 1.6vw, 22px);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+/* 정지 그림이 살아 보이도록 카드가 천천히 다가온다. */
+.intro-slide.is-active .intro-picture {
+  animation: intro-lift 4s ease-out forwards;
+}
+
+@keyframes intro-lift {
+  from {
+    scale: 0.97;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-slide.is-active .intro-picture {
+    animation: none;
+  }
+}
+
+#intro-brand {
+  position: absolute;
+  top: clamp(12px, 3vh, 32px);
+  left: clamp(16px, 4vw, 48px);
+  margin: 0;
+  line-height: 0;
+}
+
+#intro-brand img {
+  display: block;
+  width: auto;
+  height: clamp(24px, 3.2vw, 40px);
+  /* 로고의 남색 글자가 어두운 배경에서도 보이도록 글자 모양을 따라 흰 그림자를 두른다. */
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px rgb(255 255 255 / 90%)) drop-shadow(0 0 10px rgb(255 255 255 / 55%));
+}
+
+#intro-footer {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2.4vh, 20px);
+  /* 문구가 밝은 장면 위에서도 읽히도록 아래쪽만 어둡게 깐다. */
+  padding: clamp(48px, 12vh, 120px) clamp(16px, 4vw, 48px) clamp(20px, 5vh, 44px);
+  background: linear-gradient(to top, rgb(43 28 20 / 85%), rgb(43 28 20 / 0%));
+}
+
+#intro-caption {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: clamp(18px, 2.6vw, 30px);
+  font-weight: 700;
+  line-height: 1.4;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 40%);
+  /* 좁은 화면에서 한 낱말이 두 줄로 갈리지 않게 띄어쓰기에서만 줄을 바꾼다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+#loading-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+  font-size: clamp(12px, 1.6vw, 14px);
+  color: rgb(255 255 255 / 85%);
 }
 
 #unity-progress {
-  width: min(70%, 240px);
-  accent-color: #709bff;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 25%);
+  overflow: hidden;
+}
+
+/* 받은 만큼 왼쪽에서 밀려 나온다. 값이 크게 뛰어도 0.4초에 걸쳐 따라 차고, 다 받으면 index.html이 이만큼 기다린 뒤 로딩 화면을 닫는다. */
+#unity-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #ffc23d;
+  transform: translateX(calc((var(--progress, 0) - 1) * 100%));
+  transition: transform 0.4s ease-out;
 }
 
 #unity-warning {

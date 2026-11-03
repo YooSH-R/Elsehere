@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 import npc_chat
 
 LUNA_PRICES = {"gpt-6-luna": {"input": 1000, "output": 5000, "unit": "크레딧"}}
+SOL_PRICES = {"gpt-6.1-sol": {"input": 20000, "output": 100000, "unit": "크레딧"}}
 CAFE_ORDER = {
     "scenarioId": "cafe_order",
     "locationId": "cafe",
@@ -33,7 +34,7 @@ def usage_item(model: str, input_tokens: int, output_tokens: int, **extra) -> di
 def talk(provider, answers: list, lines: list[str]) -> tuple[list["npc_chat.Turn"], "npc_chat.Conversation", list[dict]]:
     """계약 예시 카페 점원과 첫 대사를 받고 lines를 차례로 말한다. answers[i]()가 가짜 공급자의 i번째 답이고,
     그 뒤 호출(오류 뒤 재시도 등)에는 마지막 답을 다시 만들어 준다.
-    반환: (턴들, 대화, 공급자가 받은 요청 본문들). 기본 구성(gms-luna, NPC는 gpt-6-luna), 대체 모델 없이."""
+    반환: (턴들, 대화, 공급자가 받은 요청 본문들). 기본 구성(gms-luna, NPC는 gpt-6.1-sol), 대체 모델 없이."""
     settings = Settings(token="t", base_url="http://fake/v1", api_key="x", call_timeout_s=1.0, retry_pause_s=0.0, fallback={})
     sent = []
 
@@ -46,7 +47,7 @@ def talk(provider, answers: list, lines: list[str]) -> tuple[list["npc_chat.Turn
     async def run():
         llm = LLM(settings, httpx.MockTransport(provider.handler))
         try:
-            conversation = npc_chat.Conversation(llm, load_npc_examples()[0]["npcProfile"], CAFE_ORDER, level="A2", prices=LUNA_PRICES)
+            conversation = npc_chat.Conversation(llm, load_npc_examples()[0]["npcProfile"], CAFE_ORDER, level="A2", prices=SOL_PRICES)
             turns = [await conversation.open()]
             for line in lines:
                 turns.append(await conversation.say(line))
@@ -102,9 +103,9 @@ def test_say_sends_the_history_and_returns_the_reply_with_its_cost(provider):
     turn = turns[1]
     assert turn.reply == "Sure! One iced latte."
     assert turn.error is None
-    assert turn.models == ["gpt-6-luna"]
+    assert turn.models == ["gpt-6.1-sol"]
     assert (turn.cost.input_tokens, turn.cost.output_tokens) == (300, 20)
-    assert turn.cost.credits == 0.4  # 300 × 0.001 + 20 × 0.005
+    assert turn.cost.credits == 8.0  # 300 × 0.02 + 20 × 0.1
     assert sent[1]["messages"][1:] == [{"role": "assistant", "content": OPENING}, {"role": "user", "content": "one iced latte please"}]
     assert conversation.history == [
         {"speaker": "NPC", "text": OPENING},
@@ -134,5 +135,5 @@ def test_a_gms_key_alone_is_enough_because_only_the_npc_role_is_called(monkeypat
     npc_chat.fill_unused_provider_keys("gms-luna")
     settings = Settings.from_env()
 
-    assert settings.models["npc"] == "gpt-6-luna"
+    assert settings.models["npc"] == "gpt-6.1-sol"
     assert settings.api_key == "gms-test-key"

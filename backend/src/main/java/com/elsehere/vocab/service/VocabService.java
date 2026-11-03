@@ -1,5 +1,6 @@
 package com.elsehere.vocab.service;
 
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.GlossaryResponse;
@@ -45,7 +46,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class VocabService {
 
   /** 저장 시각을 보여주는 시간대. MVP는 한국 시간으로 고정한다. */
-  private static final ZoneId DISPLAY_ZONE = ZoneId.of("Asia/Seoul");
+  private static final ZoneId DISPLAY_ZONE = ClockConfig.SERVICE_ZONE;
 
   /** 대화에서 처음 저장하는 단어의 언어. MVP는 영어만 배우므로 기본 언어 어휘로 둔다. */
   private static final String CONVERSATION_LANGUAGE = User.DEFAULT_LANGUAGE;

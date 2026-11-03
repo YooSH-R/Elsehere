@@ -7,8 +7,8 @@ import com.elsehere.ai.service.AiStatusService;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.bootstrap.service.BootstrapService;
-import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.conversation.service.TrainingRecordingService;
 import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.user.UserTestData;
@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Import;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
   TestcontainersConfiguration.class,
-  ClockConfig.class,
+  TestClockConfig.class,
   JpaAuditingConfig.class,
   UiThemeService.class,
   BootstrapService.class,

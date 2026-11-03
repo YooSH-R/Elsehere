@@ -161,14 +161,75 @@ def test_an_npc_life_comes_from_its_mbti_and_npc_id():
     )
 
 
-def test_an_npc_schedule_comes_from_its_role_in_its_own_place():
-    """역할의 일과 틀에 NPC의 기본 장소를 넣는다. NPC가 적은 지금은 자리를 비우지 않아(canLeave false)
-    스스로 채우지 못하는 욕구는 모두 부탁이 된다. 퇴근(OFF)에는 장소가 없다."""
-    staff_day = service_rules()["roles"]["STAFF"]["schedule"]
-
+def test_an_npc_schedule_comes_from_its_shift_in_its_own_place():
+    """맡은 교대(카페 오픈 07:00~15:00)를 역할 규칙으로 하루 일과로 바꾸고 NPC의 기본 장소를 넣는다.
+    NPC가 적은 지금은 자리를 비우지 않아(canLeave false) 스스로 채우지 못하는 욕구는 모두 부탁이 된다. 퇴근(OFF)에는 장소가 없다."""
     assert life_values("CAFE_STAFF")["schedule"] == [
-        dict(block) if block["activity"] == "OFF" else {**block, "scene": "CAFE", "canLeave": False} for block in staff_day
+        {"from": "07:00", "to": "11:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
+        {"from": "11:00", "to": "11:30", "activity": "BREAK", "scene": "CAFE", "canLeave": False},
+        {"from": "11:30", "to": "15:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
+        {"from": "15:00", "to": "07:00", "activity": "OFF"},
     ]
+
+
+def staff_day(start: str, end: str) -> list[dict]:
+    return npc_derive.shift_day({"from": start, "to": end}, service_rules()["roles"]["STAFF"])
+
+
+def day(*blocks: tuple[str, str, str]) -> list[dict]:
+    return [{"from": start, "to": end, "activity": activity} for start, end, activity in blocks]
+
+
+def test_a_long_storefront_shift_gets_one_break_in_the_middle():
+    """빵집 06:00~18:00. 6시간보다 긴 교대는 가운데에 30분 쉬고, 교대 밖은 퇴근."""
+    assert staff_day("06:00", "18:00") == day(
+        ("06:00", "12:00", "WORK"), ("12:00", "12:30", "BREAK"), ("12:30", "18:00", "WORK"), ("18:00", "06:00", "OFF")
+    )
+
+
+def test_a_night_shift_runs_past_midnight():
+    """호텔 야간 22:00~06:30. 가운데(02:15)에서 가장 가까운 30분 단위 시각 중 이른 쪽(02:00)에 쉰다."""
+    assert staff_day("22:00", "06:30") == day(
+        ("22:00", "02:00", "WORK"), ("02:00", "02:30", "BREAK"), ("02:30", "06:30", "WORK"), ("06:30", "22:00", "OFF")
+    )
+
+
+def test_the_break_starts_at_the_half_hour_nearest_the_middle_of_the_shift():
+    assert staff_day("07:00", "15:20")[1]["from"] == "11:00"  # 가운데 11:10
+    assert staff_day("07:00", "15:40")[1]["from"] == "11:30"  # 가운데 11:20
+
+
+def test_a_shift_of_six_hours_or_less_has_no_break():
+    assert staff_day("09:00", "15:00") == day(("09:00", "15:00", "WORK"), ("15:00", "09:00", "OFF"))
+
+
+def test_a_whole_day_shift_has_no_time_off():
+    """택시처럼 하루 전체(from == to)를 맡으면 퇴근이 없고, 가운데(12:00)에 쉰다."""
+    assert staff_day("00:00", "00:00") == day(("00:00", "12:00", "WORK"), ("12:00", "12:30", "BREAK"), ("12:30", "00:00", "WORK"))
+
+
+def test_a_passerby_is_free_while_out_in_town_and_takes_no_break():
+    """행인의 교대는 마을에 나와 있는 시간대(마을 낮 09:00~18:00)다. 쉬는 시간 없이 자유 시간이고, 나머지는 집에 있다."""
+    passerby = service_rules()["roles"]["PASSERBY"]
+
+    assert npc_derive.shift_day({"from": "09:00", "to": "18:00"}, passerby) == day(("09:00", "18:00", "FREE"), ("18:00", "09:00", "OFF"))
+    assert life_values("TOWN_PASSERBY")["schedule"] == [
+        {"from": "09:00", "to": "18:00", "activity": "FREE", "scene": "TOWN", "canLeave": False},
+        {"from": "18:00", "to": "09:00", "activity": "OFF"},
+    ]
+
+
+def test_a_storefront_clerk_keeps_its_home_place_while_working_its_storefront_hours():
+    """거리 매장 직원의 기본 장소는 마을(TOWN)이고, 일과 시각은 자기 매장(빵집 06:00~18:00)의 교대에서 온다."""
+    schedule = life_values("BAKERY_STAFF")["schedule"]
+
+    assert [(block["from"], block["to"], block["activity"]) for block in schedule] == [
+        ("06:00", "12:00", "WORK"),
+        ("12:00", "12:30", "BREAK"),
+        ("12:30", "18:00", "WORK"),
+        ("18:00", "06:00", "OFF"),
+    ]
+    assert {block.get("scene") for block in schedule} == {"TOWN", None}
 
 
 def test_service_npcs_stay_in_their_own_place_for_now():

@@ -113,9 +113,10 @@ namespace A305.Learning
         private const float SummaryTitleHeight = 26 * 1.2f;
         private const float SubtitleGap = 16 * 1.2f;
 
-        // 판 안은 시안 판(1240×770)을 1.2배로 배치하고, 화면에는 시안 크기로 줄여 보인다.
+        // 판 안은 시안 판(1240×770)을 1.2배로 배치하고, 화면에는 시안 크기로 줄여 보인다. 폭은 시안보다 좁은 1080으로,
+        // 머리줄의 부제(○○와 나눈 대화)와 오른쪽 탭 사이가 남는 만큼만 줄였다.
         // 위아래에는 화면 위 가운데의 튜토리얼 [건너뛰기] 카드(위에서 24, 높이 약 110)가 들어갈 자리를 남긴다.
-        private const float FrameWidth = 1240 * 1.2f;
+        private const float FrameWidth = 1080 * 1.2f;
         private const float FrameHeight = 770 * 1.2f;
         private const float FrameScale = 1 / 1.2f;
         private const float FrameClearance = 150;

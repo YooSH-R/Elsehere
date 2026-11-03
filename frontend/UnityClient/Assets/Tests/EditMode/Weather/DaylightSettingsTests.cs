@@ -114,6 +114,8 @@ namespace A305.Weather.Tests
         [TestCase(0, 0, false, 1f)]
         [TestCase(0, 0, true, 0f)]
         [TestCase(12, 0, false, 0f)]
+        [TestCase(19, 0, false, 0f)]
+        [TestCase(6, 0, false, 0f)]
         public void StarAmount_OnlyClearNight(int hour, int minute, bool skyCovered, float expected)
         {
             Assert.That(

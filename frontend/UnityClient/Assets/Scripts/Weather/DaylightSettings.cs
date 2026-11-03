@@ -194,9 +194,11 @@ namespace A305.Weather
             return look;
         }
 
-        /// <summary>별이 보이는 정도. 하늘을 덮는 날씨에서는 보이지 않는다.</summary>
+        /// <summary>
+        /// 별과 달이 보이는 정도. 해가 진 뒤(밤이 반을 넘은 뒤)부터 떠오르고, 하늘을 덮는 날씨에서는 보이지 않는다.
+        /// </summary>
         public float StarAmount(double gameMinutes, bool skyCovered) =>
-            skyCovered ? 0f : NightAmount(gameMinutes);
+            skyCovered ? 0f : Mathf.InverseLerp(.5f, 1f, NightAmount(gameMinutes));
 
         /// <summary>
         /// 시각에 따른 해 방향. 한낮(뜨고 지는 시각 가운데)에는 씬에 디자인한 방향이고, 뜰 때·질 때는 지평선 가까이 낮아지며

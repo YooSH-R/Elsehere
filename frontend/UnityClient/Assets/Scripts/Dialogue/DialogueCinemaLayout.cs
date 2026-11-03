@@ -5,7 +5,7 @@ namespace A305.Dialogue
     /// <summary>
     /// 상자 없는 대화창의 배치. 화면 아래 전체 폭에 어두운 그라데이션을 깔고, 가운데 읽기 좋은 폭의 열 안에
     /// 아래부터 입력 줄(입력칸·보내기·말하기) → 상태 줄 → 대사 → 이름표와 도구 줄 순서로 쌓는다.
-    /// 대사가 길면 대사 칸을 위로 키우고 그보다 길면 대사 칸 안에서 스크롤한다. 좌표는 대화창 왼쪽 아래 기준이다.
+    /// 대사 칸은 보이는 대사(최근 두 줄)에 맞춰 위로 키우고, 그 전 대사와 넘치는 대사는 대사 칸 안에서 스크롤한다. 좌표는 대화창 왼쪽 아래 기준이다.
     /// </summary>
     public struct DialogueCinemaLayout
     {
@@ -33,12 +33,16 @@ namespace A305.Dialogue
         public float Height;
 
         /// <param name="canvasSize">대화창이 놓인 캔버스 크기</param>
-        /// <param name="linesHeight">대사와 뜻을 모두 보이는 데 필요한 높이</param>
+        /// <param name="linesHeight">보이는 대사와 뜻에 필요한 높이</param>
         /// <param name="nameWidth">NPC 이름표 폭</param>
+        /// <param name="hasEarlierLines">
+        /// 보이는 대사 위에 지난 대사가 있는지. 있으면 최소 높이를 두지 않고 대사 칸을 보이는 대사에 딱 맞춰, 지난 대사가 반쯤 비치지 않게 한다.
+        /// </param>
         public static DialogueCinemaLayout Compute(
             Vector2 canvasSize,
             float linesHeight,
-            float nameWidth
+            float nameWidth,
+            bool hasEarlierLines = false
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -63,7 +67,9 @@ namespace A305.Dialogue
                 left,
                 layout.Status.yMax + 10,
                 width,
-                Mathf.Clamp(linesHeight, MinLinesHeight, MaxLinesHeight)
+                hasEarlierLines
+                    ? Mathf.Min(linesHeight, MaxLinesHeight)
+                    : Mathf.Clamp(linesHeight, MinLinesHeight, MaxLinesHeight)
             );
             layout.Name = new Rect(left, layout.Lines.yMax + Gap, nameWidth, NameHeight);
             layout.Tools = Rect.MinMaxRect(

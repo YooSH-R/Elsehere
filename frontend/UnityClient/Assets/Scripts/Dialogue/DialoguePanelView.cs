@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -139,6 +140,9 @@ namespace A305.Dialogue
 
         // 단어 카드와 대화창 가장자리 사이 여백
         private const float WordCardMargin = 12;
+
+        // 대사 칸에 한 번에 보이는 최근 대사 수(바로 앞 대사와 그다음 대사)
+        private const int VisibleLineCount = 2;
 
         /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
@@ -704,7 +708,7 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
             );
-            float linesHeight = linesText.GetPreferredValues(linesText.text, column, 0).y;
+            float linesHeight = VisibleLinesHeight(column, out bool hasEarlierLines);
             float nameWidth = Mathf.Max(
                 MinNameWidth,
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
@@ -712,7 +716,8 @@ namespace A305.Dialogue
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
-                nameWidth
+                nameWidth,
+                hasEarlierLines
             );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
@@ -761,6 +766,23 @@ namespace A305.Dialogue
                 Mathf.Clamp(helpRoom, 160, 600)
             );
             PlaceVehicleStatus(layout);
+        }
+
+        // 대사 칸에는 가장 최근 두 줄(바로 앞 대사와 그다음 대사)과 그 뜻만 보이는 높이를 준다. 그 전 대사는 위로 스크롤해 본다.
+        private float VisibleLinesHeight(float width, out bool hasEarlierLines)
+        {
+            IReadOnlyList<DialogueLine> lines = content?.Lines;
+            hasEarlierLines = lines != null && lines.Count > VisibleLineCount;
+            if (!hasEarlierLines)
+                return linesText.GetPreferredValues(linesText.text, width, 0).y;
+            string latest = DialogueLinesText.Format(
+                lines.Skip(lines.Count - VisibleLineCount).ToArray(),
+                content.NpcName,
+                isMeaningVisible,
+                content.LastNpcGlossary,
+                glossaryCard.Word
+            );
+            return linesText.GetPreferredValues(latest, width, 0).y;
         }
 
         // [다시 시도]·[대화 종료]를 이름 줄 오른쪽 끝에 두고, 나머지 도구는 그 왼쪽에 오른쪽 정렬로 붙인다.

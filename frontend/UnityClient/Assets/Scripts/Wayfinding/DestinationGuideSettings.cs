@@ -32,9 +32,54 @@ namespace A305.Wayfinding
         [Tooltip("출입문 앞에서 이 거리 안에 오면 도착한 것으로 보고 길을 거둔다(m)")]
         private float arrivedMeters = 1.5f;
 
+        [Header("모양")]
+        [SerializeField]
+        [ColorUsage(false, true)]
+        [Tooltip("길과 출입문 빛의 색. 1보다 밝게 두면 화면 번짐(Bloom)으로 야광처럼 보인다")]
+        private Color glowColor = new Color(.9f, 1.6f, .1f);
+
+        [SerializeField]
+        [Min(.1f)]
+        [Tooltip("도로 위 길의 폭(m)")]
+        private float routeWidthMeters = .6f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip(
+            "길과 출입문 빛을 바닥에서 띄우는 높이(m). 바닥과 겹쳐 깜박이지 않을 만큼만 띄운다"
+        )]
+        private float liftMeters = .04f;
+
+        [SerializeField]
+        [Min(.1f)]
+        [Tooltip("길을 바닥 높이에 맞춰 누일 점 간격(m)")]
+        private float routeSampleMeters = .5f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("새 길이 플레이어 발밑에서 출입문까지 깔리는 시간(초)")]
+        private float revealSeconds = .6f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("길 위 화살 무늬가 출입문 쪽으로 흐르는 속도(m/s)")]
+        private float arrowMetersPerSecond = 1.2f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip("출입문 빛이 1초에 밝아졌다 어두워지는 횟수")]
+        private float pulsesPerSecond = .8f;
+
         public float RoadCrossingCost => roadCrossingCost;
         public float ReplanMeters => replanMeters;
         public float ReplanSeconds => replanSeconds;
         public float ArrivedMeters => arrivedMeters;
+        public Color GlowColor => glowColor;
+        public float RouteWidthMeters => routeWidthMeters;
+        public float LiftMeters => liftMeters;
+        public float RouteSampleMeters => routeSampleMeters;
+        public float RevealSeconds => revealSeconds;
+        public float ArrowMetersPerSecond => arrowMetersPerSecond;
+        public float PulsesPerSecond => pulsesPerSecond;
     }
 }

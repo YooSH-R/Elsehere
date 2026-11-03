@@ -29,7 +29,8 @@
 | `PoliceDispatch` | 순찰차 출동 흐름. 주차 칸 → 진입로로 나가기 → 장소로 출동(장소가 없으면 본길 한 바퀴 순찰) → 장소 앞 20초 → 돌아오기 → 주차 칸. 나가 있는 동안 새 신고는 받지 않고, 돌아올 때 경광등을 끕니다. Unity 객체 없이 테스트합니다. |
 | `DrivePath` | 주차 칸과 본길 사이처럼 `CarLoopRoute` 밖을 잇는 3차 베지어 곡선 길. 길 위 거리로 위치·방향을 구합니다. Unity 객체 없이 테스트합니다. |
 | `PoliceCar` | 경찰서 옆 주차 칸의 순찰차. 진입로는 `DrivePath`로 직접 움직이고 본길은 `LoopingCar`로 신호를 지키며 달립니다. 주차 칸·진입로에서는 `LoopingCar.IsHeld`로 붙잡아 두어 본길 차들이 계속 피하게 하고, 진입로에서는 사람만 피합니다(차끼리 서로 기다리다 멈추지 않도록). 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켭니다. |
-| `LastSceneRecorder`, `ILastSceneApi`, `LastSceneApi` | Unity 씬 이름을 서버 장소 코드(`HomeScene`→`HOME`, `TownScene`→`TOWN`, `CafeScene`→`CAFE`, `HotelScene`→`HOTEL`, `ShopScene`→`SHOP`)로 바꿔 `PUT /api/v1/me/last-scene`으로 저장합니다. 장소가 아닌 씬은 저장하지 않고, 실패해도 예외 없이 결과로 알립니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
+| `PlaceScenes` | 서버 장소 코드와 Unity 씬 이름(`HOME`↔`HomeScene`, `TOWN`↔`TownScene`, `CAFE`↔`CafeScene`, `HOTEL`↔`HotelScene`, `SHOP`↔`ShopScene`). 재접속 위치 저장과 [길 안내](../Wayfinding/README.md)가 함께 씁니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
+| `LastSceneRecorder`, `ILastSceneApi`, `LastSceneApi` | Unity 씬 이름을 `PlaceScenes`로 서버 장소 코드로 바꿔 `PUT /api/v1/me/last-scene`으로 저장합니다. 장소가 아닌 씬은 저장하지 않고, 실패해도 예외 없이 결과로 알립니다. Unity 객체 없이 테스트합니다. |
 | `GameClock`, `IGameClockApi`, `GameClockApi`, `GameClockTime` | 사용자별 게임 시간(WORLD-06·07). 게임 시간은 서버가 사용자마다 플레이한 시간만큼 흐르게 합니다(실제 10분 = 게임 하루, 대화 중 멈춤). 처음 들어오면 바로, 그 뒤로 30초마다 `POST /api/v1/me/game-clock/beats`를 보내고 받은 게임 시각을 `GameClock.Shared.Current`에 두며 `Changed`로 알립니다. 응답을 기다리는 동안은 다시 보내지 않고, 실패하면 마지막 시각을 그대로 두고 다음 간격에 다시 보냅니다. NPC 일과가 끊기지 않게 `Minutes`(1일차 0시부터 센 분)는 신호 사이에도 실제 시간만큼 흐르다가 새 시각을 받으면 그 값으로 맞추고, 서버가 대화 중이라 멈췄다고 알려 주면 흐르지 않습니다. 서버 시각을 받기 전(게스트, 서버 없이 씬만 볼 때)에는 새 사용자처럼 1일차 오전 8시에서 시작합니다. 장면을 옮겨도 주기가 이어지도록 정적으로 둡니다. Unity 객체 없이 테스트합니다. |
 | `GameClockText` | HUD 시계 칩과 폰 화면의 시각 글자. 게임 시각(분)을 "n일차 · 오전/오후 h:mm"으로 쓰고, 폰은 큰 시각("h:mm"), 날짜("n일차 · 오전/오후"), 상태 표시줄 시각("오전/오후 h:mm")을 따로 씁니다. Unity 객체 없이 테스트합니다. |
 | `JourneyStatus` | 미션 화면과 폰 메뉴가 함께 보는 오늘의 여정. 미션 화면이 단계 칩·할 일·진행 막대 상태(`JourneyMark`)·예산을 알리고, 폰 메뉴가 같은 내용을 보입니다. 폰의 [마을 지도] 앱은 `RequestMap`으로 미션 화면에 큰 지도를 열어 달라고 알립니다. 두 화면은 서로의 모듈을 참조하지 않고 이 상태로 만납니다. Unity 객체 없이 테스트합니다. |
@@ -162,7 +163,7 @@
 2. 각 출입구의 `Doorway Id`, 이동할 씬(`Destination Scene`), 그 씬에서 나타날 출입구(`Destination Doorway Id`)를 서로 가리키게 입력합니다.
 3. `ArrivalPoint`는 문 앞 감지 영역 밖에 둡니다. 감지 영역 안에 두면 도착하자마자 다시 이동합니다.
 
-마을 출입문(집·카페·호텔·드럭스토어)에서는 문을 등지고 문 앞 인도 1m에 섭니다. 선 자리의 플레이어(반지름 0.33m)가 감지 영역에 닿지 않도록 감지 영역은 문에서 0.5m 깊이까지만 둡니다. **Tools → A305 → World → Apply Town Door Arrival**(`TownProductionBuilder.ApplyDoorArrival`)이 TownScene의 출입문을 이 기준으로 맞추고, EditMode 테스트 `TownDoorArrivalTests`가 같은 기준을 검사합니다.
+마을 출입문(집·카페·호텔·드럭스토어)에서는 문을 등지고 문 앞 인도 1m에 섭니다. 감지 영역은 문에서 0.6m 깊이까지 둡니다. 선 자리의 몸(반지름 0.33m)은 문 앞 0.67m까지만 와서 감지 영역에 닿지 않습니다. 문 쪽으로 걸으면 몸통보다 큰 머리(가장 큰 캐릭터 반지름 0.68m, `HeadClearance`)가 문짝에 먼저 닿아 몸이 0.475m에서 멈추므로, 감지 영역은 그보다 넉넉히 깊어야 들어갑니다. **Tools → A305 → World → Apply Town Door Arrival**(`TownProductionBuilder.ApplyDoorArrival`)이 TownScene의 출입문을 이 기준으로 맞추고, EditMode 테스트 `TownDoorArrivalTests`가 같은 기준을 검사합니다.
 
 ## 테스트
 

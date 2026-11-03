@@ -55,11 +55,12 @@ namespace A305.EditorTools.World
             Debug.Log($"Tutorial passerby placed {offset.magnitude:F2}m from HomeDoor front.");
         }
 
-        // 건물에서 나오면 문을 등지고 문 앞 인도 1m에 선다. 선 자리의 플레이어(반지름 0.33m)가 감지 영역에 닿으면
-        // 나오자마자 다시 들어가므로, 감지 영역은 문에서 0.5m 깊이까지만 둔다.
+        // 건물에서 나오면 문을 등지고 문 앞 인도 1m에 선다. 감지 영역은 문에서 0.6m 깊이까지 둔다.
+        // 선 자리의 몸(반지름 0.33m)은 0.67m까지 와서 닿지 않고, 문 쪽으로 걸으면 큰 머리(반지름 0.68m)가 문짝에 먼저 닿아
+        // 몸이 0.475m에서 멈추므로 그보다 넉넉히 깊어야 들어간다.
         private static readonly Vector3 DoorArrival = new Vector3(0, 0, 1f);
-        private static readonly Vector3 DoorTriggerCenter = new Vector3(0, 1.3f, .25f);
-        private static readonly Vector3 DoorTriggerSize = new Vector3(1.8f, 2.6f, .5f);
+        private static readonly Vector3 DoorTriggerCenter = new Vector3(0, 1.3f, .3f);
+        private static readonly Vector3 DoorTriggerSize = new Vector3(1.8f, 2.6f, .6f);
 
         [MenuItem("Tools/A305/World/Apply Town Door Arrival")]
         public static void ApplyDoorArrival()

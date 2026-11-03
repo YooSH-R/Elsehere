@@ -42,6 +42,19 @@ namespace A305.Mission.Tests
             Assert.That(panel.color.a, Is.LessThan(0.7f));
         }
 
+        // 크게 본 지도에서 도로 위 길 안내를 켜고 끈다. 범례 반대편 아래에 같은 흰 알약으로 둔다.
+        [Test]
+        public void LargeMap_HasTheRouteToggle()
+        {
+            Transform chip = Instantiate().transform.Find("Content/MapOverlay/Panel/RouteToggle");
+            Assert.That(chip, Is.Not.Null);
+            var toggle = chip.GetComponent<A305.Wayfinding.GuideRouteToggle>();
+            Assert.That(toggle, Is.Not.Null);
+            var fields = new SerializedObject(toggle);
+            Assert.That(fields.FindProperty("button").objectReferenceValue, Is.Not.Null);
+            Assert.That(fields.FindProperty("label").objectReferenceValue, Is.Not.Null);
+        }
+
         private GameObject Instantiate()
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));

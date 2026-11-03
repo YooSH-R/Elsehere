@@ -16,3 +16,10 @@ MonoBehaviour:
   replanMeters: 1
   replanSeconds: 0.5
   arrivedMeters: 1.5
+  glowColor: {r: 0.9, g: 1.6, b: 0.1, a: 1}
+  routeWidthMeters: 0.6
+  liftMeters: 0.04
+  routeSampleMeters: 0.5
+  revealSeconds: 0.6
+  arrowMetersPerSecond: 1.2
+  pulsesPerSecond: 0.8

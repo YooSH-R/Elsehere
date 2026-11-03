@@ -40,7 +40,6 @@ namespace A305.EditorTools.Theme
         private const string HudMenuPath = "Panel/Menu";
 
         // 오른쪽 위 메뉴(≡) 버튼과 펼친 목록의 크기
-        private const float MenuButtonSize = 78;
         private const float MenuWidth = 300;
         private const float MenuRowHeight = 64;
 
@@ -50,9 +49,6 @@ namespace A305.EditorTools.Theme
         // 알약 버튼 왼쪽 끝의 아이콘 자리
         private const float PillIconLeft = 20;
         private const float PillIconSize = 22;
-
-        // 로그인 창 아래 약관 링크처럼 바탕 없는 작은 글자 버튼의 높이
-        private const float LegalLinkHeight = 40;
 
         private static UiThemeCatalog catalog;
 
@@ -140,7 +136,14 @@ namespace A305.EditorTools.Theme
         public static void ApplyFeedbackSituationTheme()
         {
             catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
-            Style("Assets/Prefabs/Learning/FeedbackScreen.prefab", StyleFeedbackSituations);
+            Style(
+                "Assets/Prefabs/Learning/FeedbackScreen.prefab",
+                root =>
+                {
+                    StyleFeedbackSituations(root);
+                    FeedbackScreenBuilder.Apply(root);
+                }
+            );
         }
 
         [MenuItem("Tools/A305/UI/Apply Text Insets And Alignment")]
@@ -225,8 +228,6 @@ namespace A305.EditorTools.Theme
                 MenuWidth + panelLayout.padding.left + panelLayout.padding.right,
                 0
             );
-            StyleMenuButton(root, "Panel/MenuBar/MenuButton", UiTone.Accent);
-            StyleMenuButton(root, "Panel/MenuBar/OpenMenuButton", UiTone.Primary);
 
             Transform vocabulary = root.Find(HudMenuPath + "/VocabularyButton");
             StyleHistory(root);
@@ -264,14 +265,6 @@ namespace A305.EditorTools.Theme
         }
 
         // 메뉴(≡) 버튼. 평소 버튼은 기본 색, 펼친 동안 같은 자리에 보이는 버튼은 강조 색이다.
-        private static void StyleMenuButton(Transform root, string path, UiTone tone)
-        {
-            Transform button = IconButton(root, path, UiIcon.Phone, tone, caption: false);
-            if (button == null)
-                return;
-            var size = button.GetComponent<LayoutElement>();
-            size.minWidth = size.preferredWidth = size.preferredHeight = MenuButtonSize;
-        }
 
         /// <summary>피드백 목록 창을 단어장 화면처럼 칠한다. 닫기는 오른쪽 위 X, [피드백 보기]는 강조 알약 버튼이다.</summary>
         private static void StyleHistory(Transform root)
@@ -405,9 +398,110 @@ namespace A305.EditorTools.Theme
         /// <summary>약관·선택 동의 한 줄: 동그란 체크, 본문 글자, 작은 [보기] 알약 버튼.</summary>
         private static void ConsentRow(Transform root, string rowPath)
         {
-            Role(root, rowPath + "/Toggle", UiThemeRole.Input);
+            ConsentCheck(root.Find(rowPath + "/Toggle"));
             Role(root, rowPath + "/Label", UiThemeRole.Body);
             ActionPill(root, rowPath + "/ViewButton", UiIcon.None, UiTone.Neutral, 110);
+        }
+
+        /// <summary>약관·선택 동의 줄의 체크만 시안 모양으로 바꾼다. 입구 화면과 내 정보 창의 다른 요소는 건드리지 않는다.</summary>
+        [MenuItem("Tools/A305/UI/Apply Consent Checks")]
+        public static void ApplyConsentChecks()
+        {
+            BuilderTools.ThrowIfPlaying();
+            Style(
+                EntryPath,
+                root =>
+                {
+                    ConsentCheck(root.Find("SignupPanel/Consents/ConsentRowTemplate/Toggle"));
+                    ConsentCheck(root.Find("GuestPanel/VoiceConsentRow/Toggle"));
+                }
+            );
+            Style(
+                HudPath,
+                root => ConsentCheck(root.Find("MyPage/Window/Consents/ConsentRowTemplate/Toggle"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        // 시안 .check 동그라미(28px)와 그 둘레 그림자 자리(12px). 시안 1px = 캔버스 1.2
+        private const float ConsentCheckSize = (28 + 2 * 12) * 1.2f;
+
+        /// <summary>
+        /// 동의 체크를 시안 .check처럼 빈 동그라미(꺼짐)와 흰 체크가 든 초록 동그라미(켜짐)로 그린다.
+        /// 줄 높이에 늘어나 타원이 되지 않게, 체크 칸은 누르는 자리만 두고 가운데에 정해진 크기의 그림을 얹는다.
+        /// </summary>
+        private static void ConsentCheck(Transform cell)
+        {
+            var toggle = cell.GetComponent<Toggle>();
+            var theme = cell.GetComponent<ThemedElement>();
+            if (theme != null)
+                Object.DestroyImmediate(theme);
+            var area = cell.GetComponent<Image>();
+            area.sprite = null;
+            area.material = null;
+            area.color = Color.clear;
+            var size = BuilderTools.GetOrAddComponent<LayoutElement>(cell.gameObject);
+            size.minWidth = size.preferredWidth = 28 * 1.2f;
+            size.flexibleWidth = 0;
+            Transform oldMark = cell.Find("Checkmark");
+            if (oldMark != null)
+                Object.DestroyImmediate(oldMark.gameObject);
+
+            var box = (RectTransform)cell.Find("Box");
+            if (box == null)
+            {
+                box = new GameObject(
+                    "Box",
+                    typeof(RectTransform),
+                    typeof(Image)
+                ).GetComponent<RectTransform>();
+                box.SetParent(cell, false);
+            }
+            box.anchorMin = box.anchorMax = box.pivot = new Vector2(.5f, .5f);
+            box.anchoredPosition = Vector2.zero;
+            box.sizeDelta = Vector2.one * ConsentCheckSize;
+            var off = box.GetComponent<Image>();
+            off.sprite = OnboardingArt("ConsentCheckOff");
+            off.color = Color.white;
+
+            var mark = (RectTransform)box.Find("Check");
+            if (mark == null)
+            {
+                mark = new GameObject(
+                    "Check",
+                    typeof(RectTransform),
+                    typeof(Image)
+                ).GetComponent<RectTransform>();
+                mark.SetParent(box, false);
+            }
+            mark.anchorMin = Vector2.zero;
+            mark.anchorMax = Vector2.one;
+            mark.offsetMin = mark.offsetMax = Vector2.zero;
+            var on = mark.GetComponent<Image>();
+            on.sprite = OnboardingArt("ConsentCheckOn");
+            on.color = Color.white;
+            on.raycastTarget = false;
+
+            toggle.targetGraphic = off;
+            toggle.graphic = on;
+            toggle.transition = Selectable.Transition.None;
+        }
+
+        // 시안 HTML을 렌더링한 입구 화면 그림을 크기를 줄이지 않고 가져온다.
+        private static Sprite OnboardingArt(string name)
+        {
+            string path = $"Assets/Art/UI/Onboarding/{name}.png";
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            if (importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         /// <summary>NPC가 말을 걸 때의 제안 창을 다른 창과 같은 바탕과 알약 버튼으로 칠하고, [말 걸기]·[택시 세우기]는 버튼만 둔다.</summary>
@@ -454,7 +548,6 @@ namespace A305.EditorTools.Theme
             foreach (
                 string panel in new[]
                 {
-                    "LoginPanel",
                     "GuestPanel",
                     "SignupPanel",
                     "LanguagePanel",
@@ -469,11 +562,8 @@ namespace A305.EditorTools.Theme
                 Roomy(root, panel);
             }
 
-            Role(root, "LoginPanel/Subtitle", UiThemeRole.Muted);
-            Role(root, "LoginPanel/Notice", UiThemeRole.Muted);
-            ActionPill(root, "LoginPanel/GoogleButton", UiIcon.None, UiTone.Primary, 280);
-            ActionPill(root, "LoginPanel/GuestButton", UiIcon.None, UiTone.Neutral, 280);
-            ActionPill(root, "LoginPanel/DevLoginButton", UiIcon.None, UiTone.Neutral, 280);
+            // 로그인 메인은 확정 시안(A안) 그림으로 따로 만든다. 개발용 로그인만 알약 버튼으로 칠한다.
+            ActionPill(root, "LoginPanel/DevLoginButton", UiIcon.None, UiTone.Neutral, 480);
 
             // 캐릭터 버튼은 위의 제목·설명과 같은 왼쪽 줄에서 시작한다.
             foreach (string row in new[] { "GuestPanel/AvatarRow", "SignupPanel/AvatarRow" })
@@ -526,32 +616,16 @@ namespace A305.EditorTools.Theme
             Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
             StyleEntryGuidance(root);
+            A305.EditorTools.Onboarding.LoginScreenBuilder.Apply(root);
         }
 
         /// <summary>
-        /// 입구 화면 배경을 테마의 엷은 강조색으로 깔고, 로그인 창 글자를 버튼과 같은 가운데로 맞추며 약관 링크를 차분한 글자 버튼으로 둔다.
+        /// 입구 화면 배경을 테마의 엷은 강조색으로 깐다. 로그인 메인의 글자·약관 링크는 <see cref="A305.EditorTools.Onboarding.LoginScreenBuilder"/>가 맡는다.
         /// 고르는 캐릭터 버튼에는 고른 것에만 보이는 체크 배지를 단다(S15P31A305-417).
         /// </summary>
         private static void StyleEntryGuidance(Transform root)
         {
             Role(root, "Background", UiThemeRole.Backdrop);
-            foreach (
-                string path in new[]
-                {
-                    "LoginPanel/Title",
-                    "LoginPanel/Subtitle",
-                    "LoginPanel/Notice",
-                }
-            )
-                root.Find(path).GetComponent<TMP_Text>().alignment = TextAlignmentOptions.Top;
-            Transform legalLinks = root.Find("LoginPanel/LegalLinks");
-            if (legalLinks != null)
-            {
-                legalLinks.GetComponent<HorizontalLayoutGroup>().childAlignment =
-                    TextAnchor.MiddleCenter;
-                LegalLink(root, "LoginPanel/LegalLinks/TermsButton");
-                LegalLink(root, "LoginPanel/LegalLinks/PrivacyButton");
-            }
             foreach (
                 string avatar in new[]
                 {
@@ -562,26 +636,6 @@ namespace A305.EditorTools.Theme
                 }
             )
                 SelectedCheck(root.Find(avatar));
-        }
-
-        // 약관 링크: 바탕 없는 작은 글자 버튼. 누를 수 있다는 것을 밑줄로 알린다.
-        private static void LegalLink(Transform root, string path)
-        {
-            ActionPill(root, path, UiIcon.None, UiTone.Neutral);
-            Transform link = root.Find(path);
-            var fields = new SerializedObject(link.GetComponent<ThemedElement>());
-            fields.FindProperty("quiet").boolValue = true;
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            var label = link.Find("Label").GetComponent<TMP_Text>();
-            label.fontStyle = FontStyles.Underline;
-            label.enableAutoSizing = false;
-            label.fontSize = 18;
-            var size = link.GetComponent<LayoutElement>();
-            size.preferredHeight = size.minHeight = LegalLinkHeight;
-            // 두 링크가 떨어져 보이지 않게 정해 둔 폭 대신 글자 길이만큼만 차지한다.
-            size.preferredWidth = size.minWidth = -1;
-            var rect = (RectTransform)link;
-            rect.sizeDelta = new Vector2(rect.sizeDelta.x, LegalLinkHeight);
         }
 
         // 고른 캐릭터 버튼 오른쪽 위의 체크 배지. 처음에는 숨기고, 화면 코드(AvatarButtons)가 고른 버튼에만 켠다.
@@ -787,6 +841,8 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");
             QuietButton(root, "Panel/Buttons/VocabularyButton", "단어장");
             StyleFeedbackSituations(root);
+            // 머리줄·탭·표현 칸·본문 칸·아래 버튼은 확정 시안 그림으로 다시 놓는다.
+            FeedbackScreenBuilder.Apply(root);
         }
 
         private static void StyleFeedbackSituations(Transform root)

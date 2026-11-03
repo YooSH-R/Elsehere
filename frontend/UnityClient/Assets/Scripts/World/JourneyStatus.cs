@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace A305.World
 {
@@ -35,12 +34,6 @@ namespace A305.World
 
         /// <summary>폰의 [마을 지도] 앱을 눌렀다.</summary>
         public event Action MapRequested;
-
-        /// <summary>진행 막대 칸 색. 끝낸 단계는 초록, 지금 단계는 코랄, 남은 단계는 옅은 갈색이다.</summary>
-        public static Color MarkColor(JourneyMark mark) =>
-            mark == JourneyMark.Done ? new Color32(76, 185, 107, 255)
-            : mark == JourneyMark.Current ? new Color32(255, 119, 89, 255)
-            : new Color32(125, 110, 91, 70);
 
         public void Show(
             string stepChip,

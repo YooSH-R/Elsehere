@@ -74,6 +74,8 @@ sudo docker compose -p a305-prod \
 sudo install -d -m 755 /usr/local/lib/a305-prod-deploy
 sudo install -m 644 infra/scripts/deployment_server.py \
   /usr/local/lib/a305-prod-deploy/deployment_server.py
+sudo install -m 644 infra/scripts/dev_worker_network.py \
+  /usr/local/lib/a305-prod-deploy/dev_worker_network.py
 cp infra/deploy/prod-server.example.json "$HOME/apps/a305/prod/server-config.json"
 nano "$HOME/apps/a305/prod/server-config.json"
 ```

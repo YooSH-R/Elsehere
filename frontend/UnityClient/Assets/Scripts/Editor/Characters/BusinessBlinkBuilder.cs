@@ -227,8 +227,6 @@ namespace A305.EditorTools.Characters
                         name = part.name,
                     };
                     mat.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
-                    mat.SetFloat("_ReceiveShadows", 0);
-                    mat.EnableKeyword("_RECEIVE_SHADOWS_OFF");
                     mat.SetFloat("_Smoothness", 0);
                     mat.SetFloat("_Cull", 0);
                     string matPath = Folder + "/" + part.name + ".mat";
@@ -254,8 +252,8 @@ namespace A305.EditorTools.Characters
                     skin.rootBone = body.rootBone;
                     skin.localBounds = body.localBounds;
                     skin.updateWhenOffscreen = true;
-                    skin.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    skin.receiveShadows = false;
+                    MatchFaceLighting(skin, body);
+                    EditorUtility.SetDirty(mat);
                 }
                 if (root.GetComponent<CharacterIdleBlink>() == null)
                     root.AddComponent<CharacterIdleBlink>();
@@ -271,14 +269,80 @@ namespace A305.EditorTools.Characters
             Render();
         }
 
-        public static void Render()
+        private static void MatchFaceLighting(SkinnedMeshRenderer skin, SkinnedMeshRenderer body)
+        {
+            // The inserted skin must darken with the face under hair and scene shadows.
+            bool receives =
+                body.receiveShadows
+                && !body.sharedMaterial.IsKeywordEnabled("_RECEIVE_SHADOWS_OFF");
+            skin.receiveShadows = receives;
+            skin.shadowCastingMode = body.shadowCastingMode;
+            skin.sharedMaterial.SetFloat("_ReceiveShadows", receives ? 1 : 0);
+            if (receives)
+                skin.sharedMaterial.DisableKeyword("_RECEIVE_SHADOWS_OFF");
+            else
+                skin.sharedMaterial.EnableKeyword("_RECEIVE_SHADOWS_OFF");
+        }
+
+        public static void RepairEyeLighting()
+        {
+            string output = Output;
+            string previousName = Environment.GetEnvironmentVariable("NPC_BASE_EYE_NAME");
+            try
+            {
+                foreach (string name in ServiceNpcReviewBuilder.Names)
+                {
+                    Environment.SetEnvironmentVariable("NPC_BASE_EYE_NAME", name);
+                    Environment.SetEnvironmentVariable(
+                        "BUSINESS_BLINK_OUTPUT",
+                        Path.Combine(output, name)
+                    );
+                    RenderReview("LightingBefore", true);
+                    var root = PrefabUtility.LoadPrefabContents(Prefab);
+                    try
+                    {
+                        var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>();
+                        var body = skins.OrderByDescending(s => s.sharedMesh.vertexCount).First();
+                        foreach (
+                            var skin in skins.Where(s =>
+                                s != body
+                                && AssetDatabase
+                                    .GetAssetPath(s.sharedMesh)
+                                    .StartsWith(Folder + "/", StringComparison.Ordinal)
+                            )
+                        )
+                        {
+                            MatchFaceLighting(skin, body);
+                            EditorUtility.SetDirty(skin.sharedMaterial);
+                        }
+                        PrefabUtility.SaveAsPrefabAsset(root, Prefab);
+                    }
+                    finally
+                    {
+                        PrefabUtility.UnloadPrefabContents(root);
+                    }
+                    AssetDatabase.SaveAssets();
+                    RenderReview("LightingAfter", true);
+                }
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("NPC_BASE_EYE_NAME", previousName);
+                Environment.SetEnvironmentVariable("BUSINESS_BLINK_OUTPUT", output);
+            }
+        }
+
+        public static void Render() => RenderReview(null, false);
+
+        private static void RenderReview(string stageOverride, bool shadowCheck)
         {
             EditorSceneManager.OpenScene(
                 "Assets/Scenes/Sandbox/NpcReview/" + CharacterName + "_Face.unity"
             );
             var face = Object.FindFirstObjectByType<CharacterFaceController>();
             var camera = Object.FindFirstObjectByType<Camera>();
-            string stage = face.SupportsPose(CharacterFacePose.Blink) ? "After" : "Before";
+            string stage =
+                stageOverride ?? (face.SupportsPose(CharacterFacePose.Blink) ? "After" : "Before");
             Directory.CreateDirectory(Path.Combine(Output, stage));
             var rt = new RenderTexture(640, 640, 24);
             camera.targetTexture = rt;
@@ -286,6 +350,27 @@ namespace A305.EditorTools.Characters
             var origin = camera.transform.position;
             var focus = CharacterHeadProportions.HeadBounds(face.gameObject).center;
             var timing = ScriptableObject.CreateInstance<SpeechExpressionProfile>();
+            GameObject shadowCaster = null;
+            if (shadowCheck)
+            {
+                // Reproduce a tree or building shadow without saving objects into the scene.
+                var light = Object
+                    .FindObjectsByType<Light>(FindObjectsSortMode.None)
+                    .First(l => l.type == LightType.Directional);
+                light.shadows = LightShadows.Hard;
+                light.shadowBias = .02f;
+                light.shadowNormalBias = .1f;
+                light.transform.rotation = Quaternion.Euler(30, 70, 0);
+                shadowCaster = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                shadowCaster.name = "눈 접합부 그림자 검수";
+                shadowCaster.transform.position = focus - light.transform.forward * .6f;
+                shadowCaster.transform.rotation = light.transform.rotation;
+                shadowCaster.transform.localScale = new Vector3(.35f, 1.5f, .05f);
+                shadowCaster.GetComponent<Renderer>().shadowCastingMode = UnityEngine
+                    .Rendering
+                    .ShadowCastingMode
+                    .ShadowsOnly;
+            }
             try
             {
                 for (int i = 0; i < 120; i++)
@@ -303,7 +388,7 @@ namespace A305.EditorTools.Characters
                     camera.transform.LookAt(focus);
                     float blink = timing.Sample(1.1f + frame * .0125f, 10f).Blink;
                     face.SetPose(CharacterFacePose.Neutral);
-                    if (stage == "After")
+                    if (face.SupportsPose(CharacterFacePose.Blink))
                         face.ApplySpeech(
                             SpeechMouthSample.Pose(
                                 CharacterFacePose.OpenMouth,
@@ -376,6 +461,8 @@ namespace A305.EditorTools.Characters
                 camera.targetTexture = null;
                 Object.DestroyImmediate(rt);
                 Object.DestroyImmediate(timing);
+                if (shadowCaster != null)
+                    Object.DestroyImmediate(shadowCaster);
             }
         }
     }

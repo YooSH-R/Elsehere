@@ -19,6 +19,7 @@ import json
 import threading
 import time
 import wave
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -44,12 +45,20 @@ def load_engine() -> Kokoro:
         options,
         providers=[("CUDAExecutionProvider", {"device_id": 0, "cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"],
     )
-    return Kokoro.from_session(session, str(MODEL_DIR / "voices-v1.0.bin"))
+    engine = Kokoro.from_session(session, str(MODEL_DIR / "voices-v1.0.bin"))
+    # kokoro-onnx는 목소리 파일(npz)을 요청마다 같은 zip 핸들로 읽는다. 동시에 읽으면 BadZipFile이 나서 미리 다 읽어 둔다
+    engine.voices = {name: engine.voices[name] for name in engine.voices.files}
+    return engine
 
 
 engine = load_engine()
-engine_lock = threading.Lock()  # 시제품: 한 번에 하나씩 (H200에서 대사 하나 0.4~0.6초)
+# 여러 사람이 동시에 말하면 조각 요청이 몰린다. 한 번에 하나씩이면 동시 15요청에 약 6초가 걸려 워커가 CPU로 넘겼다.
+# H200에서 같은 세션으로 동시에 합성하면 15요청 약 2~2.6초, 60요청(20명분) 약 4.4~6.1초 (S15P31A305-486).
+# 상한은 워커 한 대가 동시에 보내는 합성 수(asyncio 기본 스레드 풀, CPU 수 + 4)와 비슷하게 잡는다
+SYNTH_SLOTS = 8
+synth_slots = threading.BoundedSemaphore(SYNTH_SLOTS)
 VOICES = set(engine.get_voices())
+WARMUP_LINES = ("Ready.", "Hi there, welcome in.", "That will be five dollars, and here is your receipt.")
 
 
 def to_wav(audio: np.ndarray, sample_rate: int) -> bytes:
@@ -65,9 +74,22 @@ def to_wav(audio: np.ndarray, sample_rate: int) -> bytes:
 
 
 def synth(phonemes: str, voice: str, speed: float) -> tuple[bytes, float]:
-    with engine_lock:
+    with synth_slots:
         audio, sample_rate = engine.create(phonemes, voice=voice, speed=speed, lang="en-us", is_phonemes=True)
     return to_wav(audio, sample_rate), len(audio) / sample_rate
+
+
+def warm_up() -> float:
+    """요청을 받기 전에 첫 호출 준비(약 3초)와 길이별 준비를 끝내 둔다. 순서대로만 합성해 두면
+    다시 띄운 직후 처음 동시에 몰린 8요청이 다 같이 5~13초 걸려서(그 뒤로는 1초 안팎),
+    합성 칸 수만큼 동시에도 한 번 돌린다. 그러면 첫 동시 8요청도 1.5초 안이다 (S15P31A305-508)."""
+    started = time.perf_counter()
+    phonemes = [engine.tokenizer.phonemize(line, "en-us") for line in WARMUP_LINES]
+    for p in phonemes:
+        synth(p, "af_heart", 1.0)
+    with ThreadPoolExecutor(SYNTH_SLOTS) as pool:
+        list(pool.map(lambda i: synth(phonemes[i % len(phonemes)], "af_heart", 1.0), range(SYNTH_SLOTS)))
+    return time.perf_counter() - started
 
 
 def read_request(body: bytes) -> tuple[str, str, float]:
@@ -131,7 +153,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    for line in ("Ready.", "Hi there, welcome in.", "That will be five dollars, and here is your receipt."):
-        synth(engine.tokenizer.phonemize(line, "en-us"), "af_heart", 1.0)  # 첫 호출 준비(약 3초)와 길이별 준비를 미리
-    log({"event": "start", "model": str(MODEL_DIR), "port": PORT, "device": ort.get_device()})
+    warmup_s = warm_up()
+    log({"event": "start", "model": str(MODEL_DIR), "port": PORT, "device": ort.get_device(), "warmup_s": round(warmup_s, 1)})
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

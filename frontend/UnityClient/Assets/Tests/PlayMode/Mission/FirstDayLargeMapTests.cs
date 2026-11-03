@@ -98,7 +98,10 @@ namespace A305.Mission.PlayModeTests
             player.transform.position = new Vector3(5f, 0f, 5f);
             yield return null;
 
-            Assert.That(map, Is.Not.SameAs(Field<TownMapView>("miniMap")));
+            Assert.That(
+                map.gameObject,
+                Is.Not.SameAs(Field<TownMiniMapView>("miniMap").gameObject)
+            );
             Assert.That(marker.anchorMin, Is.Not.EqualTo(before));
             Assert.That(Field<TMP_Text>("largeMapLegend").text, Does.Contain("카페"));
         }

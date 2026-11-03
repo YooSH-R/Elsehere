@@ -27,6 +27,18 @@ namespace A305.Dialogue.PlayModeTests
         private const string LongMeaning =
             "물론이죠. 오후에 방이 준비될 때까지 큰 캐리어를 여기 맡아 드릴게요. 보관표 여기 있으니 잘 가지고 계세요.";
 
+        private static readonly string[] ManyWords =
+        {
+            "reservation",
+            "suitcase",
+            "check-in",
+            "luggage",
+            "front desk",
+            "room key",
+            "elevator",
+            "breakfast",
+        };
+
         private GameObject panelObject;
         private GameObject eventSystemObject;
         private DialoguePanelView view;
@@ -75,6 +87,23 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(help.center.x, Is.GreaterThan(canvas.center.x), "오른쪽에 있어야 합니다.");
             Assert.That(help.yMax, Is.GreaterThan(canvas.center.y), "위쪽에 있어야 합니다.");
             Assert.That(help.yMin, Is.GreaterThan(name.yMax), "이름 줄보다 위에 있어야 합니다.");
+        }
+
+        // 추천 단어가 많아 카드가 길어도 아래가 잘리지 않고 다 보인다. 남는 높이에 맞춰 카드 묶음을 줄인다.
+        [UnityTest]
+        public IEnumerator ManySuggestedWords_KeepEveryHelpCardInView()
+        {
+            yield return Show(new Content(null, ManyWords));
+
+            var help = Field<RectTransform>("helpPanel");
+            var content = (RectTransform)help.Find("Viewport/Content");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            Assert.That(
+                LayoutUtility.GetPreferredHeight(content),
+                Is.LessThanOrEqualTo(help.rect.height + 0.5f)
+            );
+            Assert.That(help.localScale.y, Is.LessThan(1f), "카드 묶음을 줄여 넣습니다.");
+            Assert.That(help.localScale.y, Is.GreaterThanOrEqualTo(.7f));
         }
 
         // 긴 NPC 대사와 뜻을 펼쳐도 스크롤하지 않고 한 번에 다 보여야 한다.
@@ -134,7 +163,7 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         private RectTransform ToolRow() =>
-            (RectTransform)Field<Button>("saveButton").transform.parent;
+            (RectTransform)Field<Button>("meaningButton").transform.parent;
 
         // 캔버스(대화창의 부모) 기준 자리
         private Rect InParent(RectTransform rect)
@@ -168,9 +197,10 @@ namespace A305.Dialogue.PlayModeTests
                 LongMeaning
             );
 
-            public Content(string status)
+            public Content(string status, IReadOnlyList<string> words = null)
             {
                 StatusMessage = status;
+                SuggestWords = words;
             }
 
             public string NpcName => "Jake";
@@ -185,14 +215,15 @@ namespace A305.Dialogue.PlayModeTests
             public string StatusMessage { get; }
             public string RecoveryGuide => null;
             public bool CanRetry => false;
-            public IReadOnlyList<string> SuggestWords => null;
+            public IReadOnlyList<string> SuggestWords { get; }
             public bool IsSuggestingWords => false;
             public bool CanSend => true;
             public bool CanTalk => true;
             public bool HasMeaning => true;
             public IReadOnlyList<GlossaryData> LastNpcGlossary => null;
             public bool HasHint => true;
-            public string HintText => null;
+            public string HintText =>
+                "Could you keep my suitcase until my room is ready this afternoon?";
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
             public DialogueWait Waiting => DialogueWait.None;

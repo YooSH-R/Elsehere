@@ -37,7 +37,11 @@ namespace A305.EditorTools.World
         private const string Food = "Assets/ThirdParty/KenneyFoodKit/";
         private const string Furniture = "Assets/ThirdParty/KenneyFurnitureKit/";
         private const string PavingPath = "Assets/Art/World/MainstreetArt/SandPaving.mat";
-        private const string DriverModelPath = "Assets/Prefabs/Player/Characters/Male.prefab";
+
+        // 택시 기사 Joe는 중년 남성 리틀 멍 외형을 쓴다.
+        private const string DriverModelPath =
+            "Assets/Prefabs/Npc/Review/LittleMung_MiddleAge_Male.prefab";
+        private const string ReplaceDriverMenuPath = "Tools/A305/World/Replace Taxi Driver Model";
         private const string OpenWindowsTexturePath =
             "Assets/Art/World/StreetLife/CityCarsOpenWindows.png";
         private const string TaxiDriverCode = "TAXI_DRIVER";
@@ -182,22 +186,37 @@ namespace A305.EditorTools.World
         }
 
         // 미국 택시는 왼쪽(-X)이 운전석이다. 앉아서 운전대를 잡은 자세로 두고, 머리가 열린 창 높이에 오게 맞춘다.
+        /// <summary>
+        /// 이미 배치된 택시 기사의 외형만 기사 모델로 바꾼다. NPC 키·사물 단어·택시 대화 연결은 그대로 두고
+        /// 운전석 자세와 운전대는 <see cref="TaxiCabinBuilder"/>가 다시 맞춘다. 이미 기사 모델이면 바꾸지 않는다.
+        /// </summary>
+        [MenuItem(ReplaceDriverMenuPath)]
+        public static void ReplaceTaxiDriver()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            TaxiRide ride = BuilderTools.FindSingleInScene<TaxiRide>(scene);
+            var fields = new SerializedObject(ride);
+            var current = (NpcIdentity)fields.FindProperty("driver").objectReferenceValue;
+            if (
+                PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(current.gameObject)
+                == DriverModelPath
+            )
+                return;
+
+            GameObject driver = SeatDriverModel(ride.transform);
+            NpcIdentity identity = IdentifyDriver(driver, driver.transform.position);
+            BuilderTools.SetReference(ride, "driver", identity);
+            Object.DestroyImmediate(current.gameObject);
+            TaxiCabinBuilder.Configure(scene, ride);
+            BuilderTools.SaveScene(scene, ScenePath);
+        }
+
         private static void SeatTaxiDriver(Scene scene, GameObject taxi, PlayerMover player)
         {
-            GameObject model = BuilderTools.LoadRequiredAsset<GameObject>(
-                DriverModelPath,
-                "Tools/A305/Player/Build Characters"
-            );
-            GameObject driver = BuilderTools.InstantiatePrefab(
-                model,
-                taxi.transform,
-                new Vector3(DriverSeatX, 0f, DriverSeatZ),
-                Quaternion.identity
-            );
-            driver.name = "TaxiDriver";
-            driver.transform.localScale = Vector3.one * DriverScale;
+            GameObject driver = SeatDriverModel(taxi.transform);
             Animator animator = driver.GetComponentInChildren<Animator>();
-            PoseDriving(driver, animator);
 
             // 머리 높이를 창 가운데에 맞추고, 두 손 사이에 운전대를 둔다.
             Transform head = animator.GetBoneTransform(HumanBodyBones.Head);
@@ -212,10 +231,49 @@ namespace A305.EditorTools.World
             foreach (Transform bone in driver.GetComponentsInChildren<Transform>(true))
                 PrefabUtility.RecordPrefabInstancePropertyModifications(bone);
 
+            NpcIdentity identity = IdentifyDriver(driver, head.position);
+
+            var ride = taxi.AddComponent<TaxiRide>();
+            BuilderTools.SetReference(ride, "driver", identity);
+            BuilderTools.SetReference(ride, "player", player);
+            BuilderTools.SetReference(
+                ride,
+                "dialogue",
+                BuilderTools.FindSingleInScene<DialogueController>(scene)
+            );
+            BuilderTools.SetReference(
+                ride,
+                "offerView",
+                BuilderTools.FindSingleInScene<PasserbyOfferView>(scene)
+            );
+        }
+
+        // 운전석에 기사 모델을 앉힌다.
+        private static GameObject SeatDriverModel(Transform taxi)
+        {
+            GameObject model = BuilderTools.LoadRequiredAsset<GameObject>(
+                DriverModelPath,
+                ReplaceDriverMenuPath
+            );
+            GameObject driver = BuilderTools.InstantiatePrefab(
+                model,
+                taxi,
+                new Vector3(DriverSeatX, 0f, DriverSeatZ),
+                Quaternion.identity
+            );
+            driver.name = "TaxiDriver";
+            driver.transform.localScale = Vector3.one * DriverScale;
+            PoseDriving(driver, driver.GetComponentInChildren<Animator>());
+            return driver;
+        }
+
+        // 대화 상대 NPC 키와 머리 위치의 시선, 사물 단어(taxi driver)를 붙인다.
+        private static NpcIdentity IdentifyDriver(GameObject driver, Vector3 headPosition)
+        {
             Transform lookTarget = BuilderTools.CreateEmpty(
                 "LookTarget",
                 driver.transform,
-                driver.transform.InverseTransformPoint(head.position),
+                driver.transform.InverseTransformPoint(headPosition),
                 Quaternion.identity
             );
             var identity = new SerializedObject(driver.AddComponent<NpcIdentity>());
@@ -233,20 +291,7 @@ namespace A305.EditorTools.World
                     "택시 기사가 어디로 가는지 물었어요."
                 )
             );
-
-            var ride = taxi.AddComponent<TaxiRide>();
-            BuilderTools.SetReference(ride, "driver", driver.GetComponent<NpcIdentity>());
-            BuilderTools.SetReference(ride, "player", player);
-            BuilderTools.SetReference(
-                ride,
-                "dialogue",
-                BuilderTools.FindSingleInScene<DialogueController>(scene)
-            );
-            BuilderTools.SetReference(
-                ride,
-                "offerView",
-                BuilderTools.FindSingleInScene<PasserbyOfferView>(scene)
-            );
+            return driver.GetComponent<NpcIdentity>();
         }
 
         // 앉아서 운전하는 애니메이션이 없어 사람형 근육 값으로 자세를 만든다. 다리는 차 몸체에 가려 보이지 않는다.

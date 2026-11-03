@@ -2,6 +2,7 @@ package com.elsehere.ai.repository;
 
 import com.elsehere.ai.entity.AiRequest;
 import com.elsehere.ai.entity.AiRequestKind;
+import com.elsehere.common.config.ClockConfig;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +36,9 @@ public interface AiRequestRepository extends JpaRepository<AiRequest, Long> {
 
   @Query(
       value =
-          "select to_char(r.created_at at time zone 'Asia/Seoul', 'YYYY-MM-DD') as \"label\", "
+          "select to_char(r.created_at at time zone '"
+              + ClockConfig.SERVICE_ZONE_ID
+              + "', 'YYYY-MM-DD') as \"label\", "
               + TOTALS
               + IN_PERIOD
               + "group by 1 order by 1",

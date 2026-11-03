@@ -30,7 +30,7 @@ namespace A305.EditorTools.Npc
             "Assets/Data/Npc/TutorialPasserbySettings.asset";
         private const string TownSettingsPath = "Assets/Data/Npc/TownPasserbySettings.asset";
         private const string CafeStaffSettingsPath = "Assets/Data/Npc/CafeStaffSettings.asset";
-        private const string MockLinesPath = "Assets/Data/Npc/MockNpcLines.asset";
+        internal const string MockLinesPath = "Assets/Data/Npc/MockNpcLines.asset";
         private const string TownScenePath = "Assets/Scenes/Production/TownScene.unity";
         private const string CafeScenePath = "Assets/Scenes/Production/CafeScene.unity";
 
@@ -56,6 +56,18 @@ namespace A305.EditorTools.Npc
             ("HOTEL_STAFF", "Good afternoon! Welcome to Maple House. Are you checking in?"),
             ("SHOP_STAFF", "Hi! Welcome to the drugstore. Can I help you find something?"),
             ("POLICE_OFFICER", "Hello, this is the Maple Town police. How can I help you?"),
+            ("POST_OFFICE_STAFF", "Good morning. Are you sending something today?"),
+            ("DINER_STAFF", "Hi, hon! Welcome to Maple Diner. Table for one?"),
+            ("BANK_STAFF", "Good afternoon. Welcome to Town Bank. How may I help you?"),
+            ("LAUNDROMAT_STAFF", "Hey there! Need a hand with the machines?"),
+            (
+                "FLOWER_SHOP_STAFF",
+                "Oh, hello... Welcome to Bloom Flowers. Looking for anything special?"
+            ),
+            ("BARBER_STAFF", "Hey! Come on in. Just a trim today?"),
+            ("BAKERY_STAFF", "Good morning, dear! The bread just came out of the oven."),
+            ("ARCADE_STAFF", "Yo! Welcome to Little Arcade. Want to try the claw machine?"),
+            ("HOME_STORE_STAFF", "Welcome to Home and Living. Feel free to look around."),
         };
 
         [MenuItem(MenuPath)]
@@ -162,6 +174,7 @@ namespace A305.EditorTools.Npc
                 "tutorialSettings",
                 LoadSettings(TutorialSettingsPath)
             );
+            NpcVisualBuilder.Connect(ben);
             SpaceSceneSetup.Apply(town);
             BuilderTools.SaveScene(town, TownScenePath);
         }

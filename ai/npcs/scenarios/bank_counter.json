@@ -1,0 +1,11 @@
+{
+  "scenarioId": "bank_counter",
+  "locationId": "TOWN",
+  "situation": "The customer is at the teller window of Town Bank on the town's main street. There is an ATM just inside the entrance on the left and a few chairs to wait on.",
+  "facts": [
+    "At the teller window, Henry can help with deposits and withdrawals.",
+    "Opening a new account needs a photo ID.",
+    "The ATM is inside the bank, just inside the entrance on the left.",
+    "Suds Laundromat is right across the main street."
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "scenarioId": "diner_counter",
+  "locationId": "TOWN",
+  "situation": "The customer has just sat down on a stool at the long counter of Maple Diner on the town's main street. There are booths along the other wall and a menu board on the back wall.",
+  "facts": [
+    "Breakfast is served all day.",
+    "Menu: pancakes $7, cheeseburger $9, apple pie $4, coffee $2.",
+    "Coffee refills are free.",
+    "Home & Living is right across the main street."
+  ]
+}

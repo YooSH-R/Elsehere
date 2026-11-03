@@ -56,12 +56,15 @@ public class Vocabulary extends BaseEntity {
   @Column(nullable = false, length = 20)
   private VocabularySource source;
 
-  /** 대화에서 처음 저장하는 단어. 사전(시드)에 없던 단어라 예문과 단어 키가 없다. */
+  /** 대화에서 처음 저장하는 단어·숙어. 사전(시드)에 없던 말이라 예문과 단어 키가 없다. 두 단어 이상이면 숙어(IDIOM)로 둔다. */
   public static Vocabulary newWord(
       String languageCode, String text, String meaningKo, VocabularySource source) {
     Vocabulary vocabulary = new Vocabulary();
     vocabulary.languageCode = languageCode;
-    vocabulary.type = VocabularyType.WORD;
+    vocabulary.type =
+        text.strip().chars().anyMatch(Character::isWhitespace)
+            ? VocabularyType.IDIOM
+            : VocabularyType.WORD;
     vocabulary.text = text;
     vocabulary.meaningKo = meaningKo;
     vocabulary.source = source;

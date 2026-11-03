@@ -60,6 +60,7 @@ namespace A305.EditorTools.Dialogue
             Lines(conversation, layout);
             InputRow(conversation.Find("InputRow"), layout);
             ToolRow(conversation.Find("ToolRow"));
+            WordCard(conversation.Find("WordCard"));
             Waiting(conversation.Find("History/Wait"));
             HelpCards(root.transform.Find("HelpPanel"));
         }
@@ -73,7 +74,8 @@ namespace A305.EditorTools.Dialogue
             Place(title, layout.Name);
             var name = title.GetComponent<TMP_Text>();
             name.fontSize = 26;
-            name.alignment = TextAlignmentOptions.Center;
+            // 줄 높이 기준(Center)이면 Jua 글자가 이름표 위로 떠 보여, 글자 모양 기준(Midline)으로 가운데에 둔다.
+            name.alignment = TextAlignmentOptions.Midline;
             name.textWrappingMode = TextWrappingModes.NoWrap;
             name.margin = Vector4.zero;
             Theme(title, UiThemeRole.TitleOnDark);
@@ -170,7 +172,7 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대화 보조 버튼을 [듣기]·[뜻]·[힌트]·[예시 문장]·[담기] 순서로 이름 줄 오른쪽에 붙인다.
+        /// 대화 보조 버튼을 [듣기]·[뜻]·[힌트]·[예시 문장] 순서로 이름 줄 오른쪽에 붙인다.
         /// 대화 종류에 따라 숨는 버튼이 있어 가로 정렬로 빈자리 없이 오른쪽에 모은다.
         /// </summary>
         private static void ToolRow(Transform tools)
@@ -180,7 +182,6 @@ namespace A305.EditorTools.Dialogue
             Ghost(tools.Find("MeaningButton"), "뜻", UiIcon.Meaning, 80);
             Ghost(tools.Find("HintButton"), "힌트", UiIcon.Hint, 92);
             Ghost(tools.Find("ExampleButton"), "예시 문장", UiIcon.Example, 128);
-            Ghost(tools.Find("SaveButton"), "담기", UiIcon.Save, 92);
             foreach (
                 string name in new[]
                 {
@@ -188,13 +189,28 @@ namespace A305.EditorTools.Dialogue
                     "MeaningButton",
                     "HintButton",
                     "ExampleButton",
-                    "SaveButton",
                 }
             )
                 tools.Find(name).SetAsLastSibling();
             Transform more = tools.Find("MoreButton");
             if (more != null)
                 Object.DestroyImmediate(more.gameObject);
+        }
+
+        /// <summary>
+        /// 대사에서 누른 단어 근처에 뜨는 호버 카드. 오른쪽 위 도움 카드·사물 단어 카드처럼 카드 자체를 밝은 테마 카드로 칠해 어두운 대화창 위에서 떠 보이게 하고,
+        /// 단어는 제목, 뜻은 강조색, 저장 안내는 흐린 글자로 둔다. 카드 바탕이 클릭을 받아 아래 대사가 눌리지 않는다.
+        /// </summary>
+        private static void WordCard(Transform card)
+        {
+            BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = true;
+            Theme(card, UiThemeRole.Card);
+            Theme(card.Find("Title"), UiThemeRole.Title);
+            Theme(card.Find("Meaning"), UiThemeRole.Accent);
+            Theme(card.Find("Note"), UiThemeRole.Muted);
+            // 64px보다 낮은 버튼이라 아이콘 없이 이름만 둔다. 밝은 카드 위 버튼은 문장 카드의 [넣기]처럼 입체 알약으로 칠한다.
+            Pill(card.Find("WordSaveButton"), "단어장에 저장", UiIcon.Save, UiTone.Primary, 2f, 20);
+            Pill(card.Find("CloseButton"), "닫기", UiIcon.Close, UiTone.Neutral, 2f, 18);
         }
 
         // NPC 대답을 기다리는 동안 대사 자리에 바탕 없이 도는 고리와 흰 글씨를 왼쪽부터 둔다.

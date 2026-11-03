@@ -79,6 +79,16 @@ namespace A305.Npc
         )]
         private RuntimeAnimatorController lifeAnimator;
 
+        [SerializeField]
+        [Tooltip(
+            "켜면 생활하며 고르는 사물·자리를 아래 구역 안에서만 고른다. 자기 건물 안에서만 지내는 직원에게 켠다."
+        )]
+        private bool stayInArea;
+
+        [SerializeField]
+        [Tooltip("월드 좌표 구역. 건물 1층 실내처럼 NPC가 지낼 공간을 감싼다.")]
+        private Bounds area;
+
         private readonly Dictionary<string, List<HoverableObject>> placed =
             new Dictionary<string, List<HoverableObject>>();
         private readonly List<INpcSeat> seats = new List<INpcSeat>();
@@ -114,6 +124,7 @@ namespace A305.Npc
 
         private INpcSeat seat;
         private SeatedLegs legs;
+        private StandingPoseCorrections standingCorrections;
         private Vector3 standingPosition;
         private Vector3 standingVisualPosition;
 
@@ -168,7 +179,10 @@ namespace A305.Npc
                 return;
             }
 
-            model.runtimeAnimatorController = lifeAnimator;
+            model.runtimeAnimatorController = NpcLifeAnimator.KeepCharacterClips(
+                lifeAnimator,
+                model.runtimeAnimatorController
+            );
             // 바꿔 끼운 직후에는 새 파라미터가 아직 묶이지 않아 다시 묶는다.
             model.Rebind();
             if (animationDriver != null)
@@ -722,6 +736,7 @@ namespace A305.Npc
             seat = target;
             standingPosition = transform.position;
             standingVisualPosition = visual.localPosition;
+            standingCorrections = StandingPoseCorrections.Suspend(visual);
             characterController.enabled = false;
             Transform point = target.SeatPoint;
             transform.SetPositionAndRotation(
@@ -745,6 +760,7 @@ namespace A305.Npc
             seat.Release(this);
             seat = null;
             visual.localPosition = standingVisualPosition;
+            standingCorrections.Restore();
             transform.position = standingPosition;
             characterController.enabled = true;
         }
@@ -760,6 +776,7 @@ namespace A305.Npc
             return model;
         }
 
+        // 구역이 정해진 NPC는 구역 밖 사물·자리를 처음부터 모으지 않아, 일과·둘러보기 모두 구역 안에서만 고른다.
         private void CollectSceneObjects()
         {
             foreach (
@@ -771,6 +788,7 @@ namespace A305.Npc
                 if (
                     hoverable.gameObject.scene != gameObject.scene
                     || string.IsNullOrEmpty(hoverable.UnityKey)
+                    || !NpcStayArea.Allows(stayInArea, area, SolidBounds(hoverable).center)
                 )
                 {
                     continue;
@@ -794,6 +812,7 @@ namespace A305.Npc
                 if (
                     behaviour is INpcSeat candidate
                     && behaviour.gameObject.scene == gameObject.scene
+                    && NpcStayArea.Allows(stayInArea, area, candidate.SeatPoint.position)
                 )
                 {
                     seats.Add(candidate);

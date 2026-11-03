@@ -1,15 +1,16 @@
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace A305.Mission.Tests
 {
     /// <summary>
-    /// 왼쪽 위 퀘스트 카드가 '호텔 직원에게 요청하세요.' 같은 요청 안내와 함께 이번 단계 목표를 체크리스트로 보여 주는지 확인한다.
-    /// NPC가 할 일을 먼저 말하지 않으므로 학습자는 이 목록을 보고 요청한다. 목표는 한 줄에 하나씩 놓는다.
+    /// 왼쪽 위 퀘스트 카드가 '호텔 직원에게 요청하세요.' 같은 요청 안내와 함께 이번 단계 목표를 보여 주는지 확인한다.
+    /// NPC가 할 일을 먼저 말하지 않으므로 학습자는 이 목록을 보고 요청한다. 시안(g1·g4)처럼 목표마다 한 줄에 동그라미 체크와 이름을 두고,
+    /// 끝낸 목표는 초록 체크·옅은 글자·취소선으로 보인다.
     /// </summary>
     public sealed class QuestChecklistTests
     {
@@ -19,75 +20,97 @@ namespace A305.Mission.Tests
         private GameObject instance;
 
         [TearDown]
-        public void DestroyMission() => Object.DestroyImmediate(instance);
+        public void DestroyMission()
+        {
+            Object.DestroyImmediate(instance);
+            A305.World.JourneyStatus.Shared.Clear();
+        }
 
         [Test]
-        public void CurrentGoals_AppearAsAChecklistOneGoalPerLine()
+        public void CurrentGoals_AppearOneRowPerGoalUnderTheRequest()
         {
-            TMP_Text checklist = Refresh(HotelArrival(reservationDone: true), canRest: false);
+            List<Transform> rows = Refresh(HotelArrival(reservationDone: true), canRest: false);
 
             Assert.That(Field<TMP_Text>("direction").text, Is.EqualTo(Request));
             Assert.That(
-                Plain(checklist.text).Split('\n'),
-                Is.EqualTo(new[] { "✓ 예약 확인", "○ 캐리어 맡기기", "○ 카페 위치 묻기" })
+                rows.ConvertAll(Label),
+                Is.EqualTo(new[] { "예약 확인", "캐리어 맡기기", "카페 위치 묻기" })
             );
         }
 
-        // 달성한 목표는 남은 목표와 색으로도 구분한다.
         [Test]
-        public void CompletedGoal_IsMarkedGreen()
+        public void CompletedGoal_ShowsAGreenCheckAndAStrikeThrough()
         {
-            TMP_Text checklist = Refresh(HotelArrival(reservationDone: true), canRest: false);
+            List<Transform> rows = Refresh(HotelArrival(reservationDone: true), canRest: false);
 
-            Assert.That(checklist.text, Does.Contain("<color=#699B75>✓ 예약 확인</color>"));
-        }
-
-        // 목록이 두 줄이 되어도 '캐리어 / 맡기기'처럼 한 항목이 갈라지지 않게 항목 안의 띄어쓰기는 줄바꿈하지 않는다.
-        [Test]
-        public void ChecklistItems_DoNotBreakInTheMiddle()
-        {
-            TMP_Text checklist = Refresh(HotelArrival(reservationDone: false), canRest: false);
-
-            Assert.That(checklist.text, Does.Contain("캐리어 맡기기"));
-            Assert.That(checklist.text, Does.Contain("카페 위치 묻기"));
-        }
-
-        [Test]
-        public void Checklist_UsesOnlyGlyphsTheFontCanDraw()
-        {
-            TMP_Text checklist = Refresh(HotelArrival(reservationDone: true), canRest: false);
-            string glyphs = Plain(checklist.text).Replace(" ", "").Replace("\n", "");
-
+            Assert.That(Check(rows[0]), Is.SameAs(Field<Sprite>("goalDone")));
             Assert.That(
-                checklist.font.HasCharacters(glyphs, out uint[] missing, true, true),
-                Is.True,
-                "글꼴에 없는 글자: "
-                    + string.Concat(
-                        System.Array.ConvertAll(missing ?? new uint[0], code => (char)code)
-                    )
+                Text(rows[0]).fontStyle & FontStyles.Strikethrough,
+                Is.EqualTo(FontStyles.Strikethrough)
             );
+            Assert.That(Check(rows[1]), Is.SameAs(Field<Sprite>("goalOpen")));
+            Assert.That(
+                Text(rows[1]).fontStyle & FontStyles.Strikethrough,
+                Is.EqualTo(FontStyles.Normal)
+            );
+            Assert.That(
+                Text(rows[0]).color,
+                Is.Not.EqualTo(Text(rows[1]).color),
+                "끝낸 목표는 옅게 보입니다."
+            );
+        }
+
+        [Test]
+        public void GoalNames_UseOnlyGlyphsTheFontCanDraw()
+        {
+            List<Transform> rows = Refresh(HotelArrival(reservationDone: true), canRest: false);
+
+            foreach (Transform row in rows)
+            {
+                TMP_Text label = Text(row);
+                Assert.That(
+                    label.font.HasCharacters(
+                        label.text.Replace(" ", ""),
+                        out uint[] missing,
+                        true,
+                        true
+                    ),
+                    Is.True,
+                    label.text
+                );
+            }
         }
 
         // 카페에서 쉴 차례에는 다 끝낸 주문 목록 대신 의자에 앉으라는 안내만 보인다.
         [Test]
         public void WhileResting_ShowsOnlyTheRestHint()
         {
-            TMP_Text checklist = Refresh(HotelArrival(reservationDone: true), canRest: true);
+            Refresh(HotelArrival(reservationDone: true), canRest: true);
 
-            Assert.That(
-                Field<TMP_Text>("direction").text,
-                Does.Not.Contain("✓").And.Not.Contain("○")
-            );
-            Assert.That(checklist.gameObject.activeSelf, Is.False);
+            Assert.That(Field<TMP_Text>("direction").text, Does.Contain("의자"));
+            Assert.That(Field<RectTransform>("goals").gameObject.activeSelf, Is.False);
         }
 
-        private TMP_Text Refresh(FirstDayMissionState state, bool canRest)
+        private List<Transform> Refresh(FirstDayMissionState state, bool canRest)
         {
             state.CanRest = canRest;
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
             instance.GetComponent<FirstDayMissionView>().Refresh(state, false, false);
-            return Field<TMP_Text>("checklist");
+            var rows = new List<Transform>();
+            foreach (Transform row in Field<RectTransform>("goals"))
+            {
+                if (row.gameObject.activeSelf)
+                    rows.Add(row);
+            }
+            return rows;
         }
+
+        private static TMP_Text Text(Transform row) => row.GetComponentInChildren<TMP_Text>(true);
+
+        private static string Label(Transform row) => Text(row).text;
+
+        private static Sprite Check(Transform row) =>
+            row.GetComponentInChildren<Image>(true).sprite;
 
         private T Field<T>(string name)
             where T : Object =>
@@ -128,9 +151,5 @@ namespace A305.Mission.Tests
                     },
                 },
             };
-
-        // 서식 태그를 빼고, 항목 안 줄바꿈 금지 공백은 보통 공백으로 읽는다.
-        private static string Plain(string text) =>
-            Regex.Replace(text, "<[^>]+>", "").Replace(' ', ' ');
     }
 }

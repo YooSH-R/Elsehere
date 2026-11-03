@@ -92,17 +92,32 @@ namespace A305.EditorTools.Theme
             TMP_Text meaning = Text(details, "Meaning", "", 22, 0, 48, 600, 48, UiThemeRole.Accent);
             RectTransform context = Rect(details, "Context");
             Position(context, 0, 112, 600, 142);
-            Text(context, "Title", "저장한 문장", 18, 0, 0, 600, 28, UiThemeRole.Muted);
-            TMP_Text sentence = Text(
+            TMP_Text contextTitle = Text(
                 context,
-                "Sentence",
-                "",
-                21,
+                "Title",
+                "저장한 문장",
+                18,
                 0,
-                38,
+                0,
                 600,
-                100,
-                UiThemeRole.Body
+                28,
+                UiThemeRole.Muted
+            );
+            // 문장 아래에 문장 뜻을 둔다(화면 18). 긴 대사는 두 줄 안에 들도록 글자를 줄인다.
+            TMP_Text sentence = Text(context, "Sentence", "", 21, 0, 38, 600, 60, UiThemeRole.Body);
+            sentence.enableAutoSizing = true;
+            sentence.fontSizeMin = 16;
+            sentence.fontSizeMax = 21;
+            TMP_Text sentenceMeaning = Text(
+                context,
+                "SentenceMeaning",
+                "",
+                18,
+                0,
+                102,
+                600,
+                40,
+                UiThemeRole.Muted
             );
             Text(details, "MemoTitle", "메모", 18, 0, 266, 600, 28, UiThemeRole.Muted);
             TMP_InputField memo = UiBuilderTools.FindOrCreateInputField(
@@ -218,6 +233,8 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "wordText", word);
             BuilderTools.SetReference(view, "meaningText", meaning);
             BuilderTools.SetReference(view, "contextText", sentence);
+            BuilderTools.SetReference(view, "contextTitleText", contextTitle);
+            BuilderTools.SetReference(view, "contextMeaningText", sentenceMeaning);
             BuilderTools.SetReference(view, "contextSection", context.gameObject);
             BuilderTools.SetReference(view, "pageText", page);
             BuilderTools.SetReference(view, "previousButton", previous);
@@ -241,6 +258,11 @@ namespace A305.EditorTools.Theme
             panel.gameObject.SetActive(false);
         }
 
+        // 단어 카드 버튼 묶음: 카드 안쪽 너비(440 - 좌우 여백 32×2), 버튼 높이, 버튼 사이
+        private const float ActionWidth = 376;
+        private const float ActionHeight = 44;
+        private const float ActionGap = 12;
+
         public static void ApplyTooltip(Transform root)
         {
             RectTransform panel = (RectTransform)root.Find("Panel");
@@ -256,7 +278,6 @@ namespace A305.EditorTools.Theme
                     ("Word", 28f, UiThemeRole.Title),
                     ("Meaning", 22f, UiThemeRole.Accent),
                     ("Example", 18f, UiThemeRole.Muted),
-                    ("PinHint", 16f, UiThemeRole.Muted),
                     ("Status", 16f, UiThemeRole.Accent),
                 }
             )
@@ -271,39 +292,53 @@ namespace A305.EditorTools.Theme
                     376;
                 Skin(label.transform, spec.Item3);
             }
+            // 버튼은 카드 안쪽 너비를 한 덩어리로 채운다. [저장]·[발음]이 한 줄을 반씩, 그 아래 [알아요]가 같은 양 끝으로 한 줄.
+            Transform pinHint = panel.Find("PinHint");
+            if (pinHint != null)
+                Object.DestroyImmediate(pinHint.gameObject);
             Transform row = panel.Find("WordActions");
             var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
-            rowLayout.spacing = 12;
-            rowLayout.childForceExpandWidth = false;
-            rowLayout.childAlignment = TextAnchor.MiddleLeft;
-            ConfigureButton(row.Find("SaveButton"), "저장", UiIcon.Save, UiTone.Primary, 134, 44);
+            rowLayout.spacing = ActionGap;
+            rowLayout.childControlWidth = true;
+            rowLayout.childForceExpandWidth = true;
+            rowLayout.childAlignment = TextAnchor.MiddleCenter;
+            BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject).preferredWidth =
+                ActionWidth;
+            float half = (ActionWidth - ActionGap) / 2;
+            ConfigureButton(
+                row.Find("SaveButton"),
+                "저장",
+                UiIcon.Save,
+                UiTone.Primary,
+                half,
+                ActionHeight
+            );
             ConfigureButton(
                 row.Find("PronunciationButton"),
                 "발음",
                 UiIcon.Replay,
                 UiTone.Neutral,
-                134,
-                44
+                half,
+                ActionHeight
             );
             Transform actions = panel.Find("Actions");
             var actionLayout = actions.GetComponent<HorizontalLayoutGroup>();
-            actionLayout.childForceExpandWidth = false;
+            actionLayout.childControlWidth = true;
+            actionLayout.childForceExpandWidth = true;
+            actionLayout.childAlignment = TextAnchor.MiddleCenter;
+            BuilderTools.GetOrAddComponent<LayoutElement>(actions.gameObject).preferredWidth =
+                ActionWidth;
+            Transform hide = actions.Find("HideButton");
             ConfigureButton(
-                actions.Find("HideButton"),
+                hide,
                 "알아요 · 호버에서 숨기기",
                 UiIcon.Check,
                 UiTone.Neutral,
-                366,
-                40
+                ActionWidth,
+                ActionHeight
             );
-            Transform hide = actions.Find("HideButton");
-            Skin(hide, UiThemeRole.PillButton, UiTone.Neutral, UiIcon.Check);
-            SetThemeFlag(hide, "quiet");
-            hide.GetComponent<Image>().color = Color.clear;
-            hide.Find("Outline").gameObject.SetActive(false);
-            TMP_Text hideText = hide.Find("Label").GetComponent<TMP_Text>();
-            hideText.alignment = TextAlignmentOptions.MidlineLeft;
-            hideText.margin = new Vector4(42, 0, 4, 0);
+            SetThemeFlag(hide, "quiet", false);
+            hide.Find("Outline").gameObject.SetActive(true);
             Transform closeSource = panel.Find("CloseButton");
             if (closeSource == null)
                 closeSource = actions.Find("CloseButton");
@@ -313,11 +348,11 @@ namespace A305.EditorTools.Theme
             Button close = closeSource.GetComponent<Button>();
             close.transform.SetParent(panel, false);
             BuilderTools.GetOrAddComponent<LayoutElement>(close.gameObject).ignoreLayout = true;
-            ConfigureButton(close.transform, "", UiIcon.Close, UiTone.Neutral, 36, 36);
+            ConfigureButton(close.transform, "", UiIcon.Close, UiTone.Neutral, 44, 44);
             var closeRect = (RectTransform)close.transform;
             closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = Vector2.one;
             closeRect.anchoredPosition = new Vector2(-20, -20);
-            closeRect.sizeDelta = new Vector2(36, 36);
+            closeRect.sizeDelta = new Vector2(44, 44);
             // X는 별도 배치지만 고정/호버 상태는 기존 Actions와 동일하게 제어한다.
             BuilderTools.SetReference(
                 root.GetComponent<A305.ObjectHover.WordTooltipView>(),
@@ -334,11 +369,13 @@ namespace A305.EditorTools.Theme
                 property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
-        private static void SetThemeFlag(Component target, string propertyName)
+        private static void SetThemeFlag(Component target, string propertyName, bool value = true)
         {
-            var fields = new SerializedObject(target.GetComponent<ThemedElement>());
-            fields.FindProperty(propertyName).boolValue = true;
+            var element = target.GetComponent<ThemedElement>();
+            var fields = new SerializedObject(element);
+            fields.FindProperty(propertyName).boolValue = value;
             fields.ApplyModifiedPropertiesWithoutUndo();
+            element.ApplyCurrent();
         }
 
         private static TMP_Text Text(
@@ -443,7 +480,8 @@ namespace A305.EditorTools.Theme
             Stretch((RectTransform)label.transform);
             label.text = caption;
             label.gameObject.SetActive(caption.Length > 0);
-            label.fontSize = 18;
+            // 이름 없는 버튼은 숨긴 이름의 글자 크기로 아이콘 크기를 정한다(PillContentLayout).
+            label.fontSize = caption.Length == 0 ? Mathf.Round(height * .6f) : 18;
             label.fontStyle = FontStyles.Bold;
             label.enableAutoSizing = false;
             label.textWrappingMode = TextWrappingModes.NoWrap;

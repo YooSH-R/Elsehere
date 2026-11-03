@@ -25,6 +25,11 @@ namespace A305.EditorTools.World
         private const float SouthEnd = -25;
         private const float NorthEnd = 66;
 
+        // 운전석 골반 자리(택시 기준)와 기사 배율. 머리 꼭대기는 지붕 안감(택시 기준 약 1.53m)보다 3cm 아래까지만 둔다.
+        private static readonly Vector3 DriverSeat = new Vector3(-.38f, .75f, .01f);
+        private const float DriverScale = 1.05f;
+        private const float HeadTopLimit = 1.5f;
+
         [MenuItem("Tools/A305/World/Apply Taxi Cabin")]
         public static void Build()
         {
@@ -247,18 +252,13 @@ namespace A305.EditorTools.World
         {
             Transform driver = identity.transform;
             Animator animator = driver.GetComponentInChildren<Animator>(true);
-            driver.localScale = Vector3.one * 1.05f;
             driver.localRotation = Quaternion.Euler(0, 90, 0);
-            using (var handler = new HumanPoseHandler(animator.avatar, animator.transform))
-            {
-                var pose = new HumanPose();
-                handler.GetHumanPose(ref pose);
-                Array.Clear(pose.muscles, 0, pose.muscles.Length);
-                handler.SetHumanPose(ref pose);
-            }
-            animator.enabled = false;
-            Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
-            driver.position += taxi.TransformPoint(new Vector3(-.38f, .75f, .01f)) - hips.position;
+            SeatDriver(taxi, driver, animator, DriverScale);
+            // 머리가 큰 기사는 머리 꼭대기가 지붕 안감 아래에 오도록 줄여 앉힌다. 좌석에서 머리 꼭대기까지는 배율에 비례한다.
+            float rise = HighestPoint(taxi, driver) - DriverSeat.y;
+            float allowedRise = HeadTopLimit - DriverSeat.y;
+            if (rise > allowedRise)
+                SeatDriver(taxi, driver, animator, DriverScale * allowedRise / rise);
             SolveLimb(
                 animator,
                 HumanBodyBones.LeftUpperLeg,
@@ -280,6 +280,51 @@ namespace A305.EditorTools.World
             identity.LookTarget.position = head.position;
             foreach (Transform bone in driver.GetComponentsInChildren<Transform>(true))
                 PrefabUtility.RecordPrefabInstancePropertyModifications(bone);
+        }
+
+        // 기본 자세(근육 0)로 펴고 골반을 운전석에 맞춘다.
+        private static void SeatDriver(
+            Transform taxi,
+            Transform driver,
+            Animator animator,
+            float scale
+        )
+        {
+            driver.localScale = Vector3.one * scale;
+            using (var handler = new HumanPoseHandler(animator.avatar, animator.transform))
+            {
+                var pose = new HumanPose();
+                handler.GetHumanPose(ref pose);
+                Array.Clear(pose.muscles, 0, pose.muscles.Length);
+                handler.SetHumanPose(ref pose);
+            }
+            animator.enabled = false;
+            Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            driver.position += taxi.TransformPoint(DriverSeat) - hips.position;
+        }
+
+        // 기사 스킨 메시의 가장 높은 점(택시 기준 높이)
+        private static float HighestPoint(Transform taxi, Transform driver)
+        {
+            float highest = float.NegativeInfinity;
+            var baked = new Mesh();
+            try
+            {
+                foreach (var skin in driver.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    skin.BakeMesh(baked, true);
+                    foreach (Vector3 vertex in baked.vertices)
+                        highest = Mathf.Max(
+                            highest,
+                            taxi.InverseTransformPoint(skin.transform.TransformPoint(vertex)).y
+                        );
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(baked);
+            }
+            return highest;
         }
 
         internal static void SolveLimb(

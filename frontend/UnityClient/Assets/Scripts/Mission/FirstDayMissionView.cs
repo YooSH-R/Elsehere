@@ -37,12 +37,34 @@ namespace A305.Mission
         private TMP_Text place;
 
         [SerializeField]
-        [Tooltip("이번 단계 목표. 한 줄에 하나씩 놓는다.")]
-        private TMP_Text checklist;
+        [Tooltip(
+            "이번 단계 목표 줄들. 첫 줄(동그라미 체크 + 이름)을 본떠 목표 수만큼 줄을 만든다."
+        )]
+        private RectTransform goals;
 
         [SerializeField]
         [Tooltip("단계마다 한 칸인 진행 막대. 첫 칸을 본떠 단계 수만큼 칸을 만든다.")]
         private RectTransform progress;
+
+        [SerializeField]
+        [Tooltip("오른쪽 위 시계·코인 칩 묶음. 대화 중에는 숨긴다.")]
+        private GameObject statusBar;
+
+        [Header("시안을 렌더링한 그림")]
+        [SerializeField]
+        private Sprite doneMark;
+
+        [SerializeField]
+        private Sprite currentMark;
+
+        [SerializeField]
+        private Sprite upcomingMark;
+
+        [SerializeField]
+        private Sprite goalOpen;
+
+        [SerializeField]
+        private Sprite goalDone;
 
         [SerializeField]
         [Tooltip("오른쪽 위 게임 시계 칩의 글자")]
@@ -62,13 +84,10 @@ namespace A305.Mission
         private GameObject miniMapPanel;
 
         [SerializeField]
-        private TownMapView miniMap;
+        private TownMiniMapView miniMap;
 
         [SerializeField]
         private Button miniMapButton;
-
-        [SerializeField]
-        private TMP_Text miniMapDestination;
 
         [SerializeField]
         [Tooltip("미니맵을 누르면 화면 가운데에 크게 펼치는 마을 지도")]
@@ -111,13 +130,13 @@ namespace A305.Mission
         [SerializeField]
         private Button retryButton;
 
-        /// <summary>진행 막대 칸 색. 폰 메뉴의 오늘의 여정과 같은 색을 쓴다.</summary>
-        public static readonly Color DoneMark = JourneyStatus.MarkColor(JourneyMark.Done);
-        public static readonly Color CurrentMark = JourneyStatus.MarkColor(JourneyMark.Current);
-        public static readonly Color UpcomingMark = JourneyStatus.MarkColor(JourneyMark.Upcoming);
+        // 시안 글자색: 본문 잉크와 끝낸 목표의 옅은 갈색
+        private static readonly Color Ink = new Color32(47, 37, 27, 255);
+        private static readonly Color Muted = new Color32(125, 110, 91, 255);
 
-        private const float Margin = 24;
-        private const float CardWidth = 520;
+        // 시안: 퀘스트 카드는 왼쪽·위 28px, 폭 410px(캔버스는 1.2배)
+        private const float Margin = 28 * 1.2f;
+        private const float CardWidth = 410 * 1.2f;
         private const float DrawerWidth = 480;
 
         // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
@@ -125,6 +144,7 @@ namespace A305.Mission
 
         private Canvas canvas;
         private int shownClockMinute = -1;
+        private bool talking;
         private int closedSortingOrder;
         private bool available;
         private string mapSceneCode;
@@ -179,9 +199,10 @@ namespace A305.Mission
                 ? "가까운 의자에 앉아 잠깐 쉬어 가세요."
                 : state.Direction;
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
-            string goals = state.CanRest || current == null ? "" : GoalChecklist(current.Goals);
-            checklist.text = goals;
-            checklist.gameObject.SetActive(goals.Length > 0);
+            ShowGoals(state.CanRest || current == null ? null : current.Goals);
+            this.talking = talking;
+            statusBar.SetActive(!talking);
+            UpdateMiniMapVisibility();
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
             stepChip.transform.parent.gameObject.SetActive(chip != null);
@@ -202,8 +223,6 @@ namespace A305.Mission
             townMap.ShowDestination(state.Destination);
             if (miniMap != null)
                 miniMap.ShowDestination(state.Destination);
-            if (miniMapDestination != null)
-                miniMapDestination.text = MiniMapLegend(state.Destination);
             if (largeMap != null)
                 largeMap.ShowDestination(state.Destination);
             if (largeMapLegend != null)
@@ -250,27 +269,32 @@ namespace A305.Mission
             retryButton.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
 
-        // 한 줄에 다 들어가지 않아도 목표 한 항목은 이어서 보이게 하는 줄바꿈하지 않는 공백
-        private const char NoBreakSpace = '\u00A0';
-
         /// <summary>
-        /// 이번 단계 목표 체크리스트. 한 줄에 하나씩, 달성한 목표는 초록 ✓, 남은 목표는 ○로 표시한다.
-        /// 긴 목표가 줄을 넘겨도 낱말 중간이 갈라지지 않게 항목 안의 띄어쓰기는 줄바꿈하지 않는 공백으로 바꾼다.
+        /// 이번 단계 목표를 한 줄에 하나씩 보인다. 시안처럼 끝낸 목표는 초록 체크·옅은 글자·취소선, 남은 목표는 빈 동그라미다.
+        /// 목표가 없으면(쉬는 차례 등) 목표 칸을 숨긴다.
         /// </summary>
-        public static string GoalChecklist(IEnumerable<FirstDayMissionGoal> goals)
+        private void ShowGoals(IReadOnlyList<FirstDayMissionGoal> current)
         {
-            var items = new List<string>();
-            foreach (FirstDayMissionGoal goal in goals)
+            int count = current?.Count ?? 0;
+            goals.gameObject.SetActive(count > 0);
+            GameObject template = goals.GetChild(0).gameObject;
+            while (goals.childCount < count)
+                Instantiate(template, goals, false);
+            for (int i = 0; i < goals.childCount; i++)
             {
-                string title = goal.Title.Replace(' ', NoBreakSpace);
-                items.Add(
-                    goal.Completed
-                        ? $"<color=#699B75>✓{NoBreakSpace}{title}</color>"
-                        : $"<color=#B8AFA5>○</color>{NoBreakSpace}{title}"
-                );
+                GameObject row = goals.GetChild(i).gameObject;
+                row.SetActive(i < count);
+                if (i >= count)
+                    continue;
+                FirstDayMissionGoal goal = current[i];
+                row.GetComponentInChildren<Image>(true).sprite = goal.Completed
+                    ? goalDone
+                    : goalOpen;
+                TMP_Text label = row.GetComponentInChildren<TMP_Text>(true);
+                label.text = goal.Title;
+                label.color = goal.Completed ? Muted : Ink;
+                label.fontStyle = goal.Completed ? FontStyles.Strikethrough : FontStyles.Normal;
             }
-
-            return string.Join("\n", items);
         }
 
         /// <summary>단계 칩 글자. 지금 단계가 몇 번째인지 전체 단계 수와 함께 쓰고, 모두 끝냈으면 마지막 단계로, 시작 전이면 null이다.</summary>
@@ -298,11 +322,14 @@ namespace A305.Mission
                 GameObject mark = progress.GetChild(i).gameObject;
                 mark.SetActive(i < steps.Count);
                 if (i < steps.Count)
-                    mark.GetComponent<Image>().color = MarkColor(steps[i].Status);
+                    mark.GetComponent<Image>().sprite = MarkSprite(steps[i].Status);
             }
         }
 
-        private static Color MarkColor(string status) => JourneyStatus.MarkColor(Mark(status));
+        private Sprite MarkSprite(string status) =>
+            status == "DONE" ? doneMark
+            : status == "CURRENT" ? currentMark
+            : upcomingMark;
 
         private static JourneyMark Mark(string status) =>
             status == "DONE" ? JourneyMark.Done
@@ -322,11 +349,11 @@ namespace A305.Mission
         private static string CompactTitle(string title) =>
             title switch
             {
-                "호텔에 도착했어요" => "호텔 도착",
+                "호텔에 도착했어요" => "호텔에 도착",
                 "카페에서 잠깐 쉬어요" => "카페에서 휴식",
                 "작은 가방이 없어요" => "사라진 가방",
                 "카페에서 가방을 찾아요" => "가방 찾기",
-                "갑자기 비가 내려요" => "갑작스런 비",
+                "갑자기 비가 내려요" => "비 오는 거리",
                 "우산을 사요" => "우산 구매",
                 "이제 체크인해요" => "호텔 체크인",
                 _ => title,
@@ -444,7 +471,7 @@ namespace A305.Mission
         }
 
         /// <summary>
-        /// 미니맵 아래 범례. 파란 화살표는 내 위치, 빨간 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
+        /// 크게 본 지도 아래 범례. 파란 화살표는 내 위치, 빨간 점은 지금 갈 곳이다. 기본 글꼴에 있는 기호만 쓴다(➤는 없어 □로 보였다).
         /// </summary>
         public static string MiniMapLegend(string destination)
         {
@@ -464,6 +491,7 @@ namespace A305.Mission
             if (miniMapPanel != null)
                 miniMapPanel.SetActive(
                     available
+                        && !talking
                         && mapSceneCode == "TOWN"
                         && !journal.activeSelf
                         && (mapOverlay == null || !mapOverlay.activeSelf)

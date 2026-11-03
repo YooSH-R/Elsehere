@@ -341,6 +341,8 @@ namespace A305.Tutorial
             }
 
             SpaceTravel.SetLocked(!progress.IsTravelAllowed);
+            // 튜토리얼은 정해진 대본으로 연습하는 시간이라 마치거나 건너뛸 때까지 게임 시각을 멈춰 둔다.
+            GameClock.Shared.IsHeld = progress.IsGuiding;
             foreach (TaxiRide taxi in taxis)
             {
                 taxi.IsHailAllowed = !progress.IsGuiding;

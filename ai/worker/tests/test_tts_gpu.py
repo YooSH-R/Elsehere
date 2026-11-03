@@ -199,7 +199,7 @@ def test_gpu_synth_is_off_by_default(env):
 
 
 def test_gpu_waits_by_default_long_enough_for_a_queue_of_concurrent_lines(env):
-    # 동시 15요청(5명 × 조각 3)을 GPU가 동시에 합성하면 최대 약 1.6초, 30요청이면 약 4초 (S15P31A305-486 실측)
+    # 동시 15요청(5명 × 조각 3)을 GPU가 동시에 합성하면 약 2~2.6초, 60요청(20명분)이면 약 4.4~6.1초 (S15P31A305-486 실측)
     s = Settings.from_env()
     assert (s.tts_gpu_connect_timeout_s, s.tts_gpu_timeout_s) == (1.0, 10.0)
 

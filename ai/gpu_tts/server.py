@@ -52,7 +52,8 @@ def load_engine() -> Kokoro:
 
 engine = load_engine()
 # 여러 사람이 동시에 말하면 조각 요청이 몰린다. 한 번에 하나씩이면 동시 15요청에 약 6초가 걸려 워커가 CPU로 넘겼다.
-# H200에서 같은 세션으로 동시에 합성하면 15요청 최대 약 1.6초, 30요청 약 4초 (S15P31A305-486). 상한은 워커 합성 스레드 수(약 8)에 맞춘다
+# H200에서 같은 세션으로 동시에 합성하면 15요청 약 2~2.6초, 60요청(20명분) 약 4.4~6.1초 (S15P31A305-486).
+# 상한은 워커 한 대가 동시에 보내는 합성 수(asyncio 기본 스레드 풀, CPU 수 + 4)와 비슷하게 잡는다
 synth_slots = threading.BoundedSemaphore(8)
 VOICES = set(engine.get_voices())
 

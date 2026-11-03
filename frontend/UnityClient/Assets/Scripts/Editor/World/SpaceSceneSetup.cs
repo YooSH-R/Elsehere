@@ -11,6 +11,7 @@ using A305.EditorTools.ObjectHover;
 using A305.EditorTools.Player;
 using A305.EditorTools.Theme;
 using A305.EditorTools.Tutorial;
+using A305.EditorTools.Weather;
 using A305.Learning;
 using A305.Mission;
 using A305.Player;
@@ -153,6 +154,8 @@ namespace A305.EditorTools.World
             LearningController learning = LearningBuilder.ConnectToScene(groups, player, dialogue);
             MissionController mission = MissionBuilder.ConnectToScene(groups, dialogue);
             FirstDayMissionBuilder.ConnectToScene(groups, dialogue, player);
+            // 마을 날씨 표시는 위 미션 연결이 만든 뒤에 밤낮을 맡긴다.
+            DaylightBuilder.ConnectToScene(groups);
             TutorialBuilder.ConnectToScene(groups, player, dialogue, learning, mission);
             // 화면 디자인은 하나만 쓴다. 예전 테마 고르기 화면이 남아 있으면 지운다.
             if (scene.name == "HomeScene")

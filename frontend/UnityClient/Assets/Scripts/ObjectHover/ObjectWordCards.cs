@@ -28,7 +28,10 @@ namespace A305.ObjectHover
         /// </summary>
         public static event Action<string> SavedWordRemoved;
 
-        public static void NotifySavedWordRemoved(string text) { }
+        public static void NotifySavedWordRemoved(string text)
+        {
+            SavedWordRemoved?.Invoke(text);
+        }
 
         /// <summary>장소의 단어 카드를 받았는지</summary>
         public bool IsLoaded { get; private set; }

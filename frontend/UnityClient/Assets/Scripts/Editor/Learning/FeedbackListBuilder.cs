@@ -85,7 +85,11 @@ namespace A305.EditorTools.Learning
         private static void Shade(Transform hud, RectTransform panel, ConversationHistoryView view)
         {
             RectTransform shade = F.Rect("HistoryShade", hud);
-            shade.SetSiblingIndex(panel.GetSiblingIndex());
+            int panelIndex = panel.GetSiblingIndex();
+            // 다시 빌드해도 목록 바로 앞에 남도록, 이미 앞에 있으면 한 칸 앞 자리로 둔다.
+            shade.SetSiblingIndex(
+                shade.GetSiblingIndex() < panelIndex ? panelIndex - 1 : panelIndex
+            );
             F.Fill(shade);
             Image image = F.Picture(shade.gameObject, F.Sprite("HistoryShade"));
             image.raycastTarget = true;
@@ -182,6 +186,8 @@ namespace A305.EditorTools.Learning
             TMP_Text title = Label(row, "Title", F.DisplayFontPath, 24, F.Ink);
             title.alignment = TextAlignmentOptions.MidlineLeft;
             title.textWrappingMode = TextWrappingModes.NoWrap;
+            // 칸 높이(26.39)가 Jua 줄 높이보다 낮아 말줄임이면 이름 뒤가 잘리므로, 넘쳐도 그대로 그린다.
+            title.overflowMode = TextOverflowModes.Overflow;
             F.TopLeft(title.rectTransform, 87, 15.3f, 821.72f, 26.39f);
 
             TMP_Text subtitle = Label(row, "When", F.BodyFontPath, 16, F.Muted);

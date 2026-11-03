@@ -22,6 +22,7 @@ namespace A305.World.Tests
 
         [TestCase("Cafe, please.", "CAFE")]
         [TestCase("The coffee shop, please.", "CAFE")]
+        [TestCase("Take me to the caffee, please.", "CAFE")]
         [TestCase("I'd like to go home.", "HOME")]
         [TestCase("Can you drive me to the drugstore?", "SHOP")]
         [TestCase("Please take me to the convenience store.", "SHOP")]
@@ -39,6 +40,8 @@ namespace A305.World.Tests
         [TestCase("Take me to the laundromat.", "LAUNDROMAT")]
         [TestCase("The flower shop, please.", "FLOWER_SHOP")]
         [TestCase("Can you take me to the barber shop?", "BARBER")]
+        [TestCase("Take me to the police station, please.", "POLICE_STATION")]
+        [TestCase("경찰서로 가 주세요", "POLICE_STATION")]
         public void NewStorefrontRequest_ResolvesTheShop(string text, string expected)
         {
             Assert.That(TaxiDestinationRequest.TryResolve(text, out string code), Is.True);

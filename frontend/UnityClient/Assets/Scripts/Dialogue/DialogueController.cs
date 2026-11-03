@@ -176,6 +176,12 @@ namespace A305.Dialogue
                 panel.Show(conversation);
             }
 
+            // 튜토리얼은 동의와 상관없이 녹음하고, 서버 대화는 음성 처리에 동의했을 때만 녹음한다.
+            if (conversation != null || VoiceConsent.Shared.IsAgreed)
+            {
+                KeepMicrophoneOpen();
+            }
+
             Started?.Invoke(npcCode);
             return true;
         }
@@ -195,7 +201,9 @@ namespace A305.Dialogue
                 serverLink.StopSpeech();
                 isEnding = true;
                 // 대화가 끝나면 녹음도 멈춘다(기능 명세 F-23). 끝내는 중이라 녹음 결과는 전사하지 않는다.
+                // 피드백을 기다리는 동안 마이크가 켜져 있지 않게 미리 연 마이크도 닫는다.
                 StopRecording();
+                ReleaseMicrophone();
                 _ = EndServerConversationAsync();
                 return;
             }
@@ -325,7 +333,11 @@ namespace A305.Dialogue
             if (saved)
             {
                 dialog.Hide();
-                serverConversation?.AllowTalk();
+                if (serverConversation != null)
+                {
+                    serverConversation.AllowTalk();
+                    KeepMicrophoneOpen();
+                }
             }
             else
             {
@@ -389,6 +401,8 @@ namespace A305.Dialogue
                 // 립싱크 대상을 놓으면서 지난 대사의 음성도 멈추고 버린다(ForgetSpeech 포함).
                 serverLink.SetSpeaker(null);
             }
+
+            ReleaseMicrophone();
 
             // 대화 시점이 보던 NPC 쪽을 그대로 보며 다시 걷도록 몸을 먼저 돌린다. 카메라는 시점을 되돌리며 몸 뒤에 선다.
             if (partnerLookTarget != null)
@@ -537,6 +551,23 @@ namespace A305.Dialogue
         // 녹음 끝을 받는 연결은 서버를 쓸 때만 한다(Awake).
         private bool HasRecorder => conversationApi != null && serverLink.VoiceRecorder != null;
 
+        // 브라우저는 마이크를 여는 데 0.5~1초가 걸려, 누를 때마다 열면 첫 말이 녹음에서 빠진다. 대화 동안 열어 둔다.
+        private void KeepMicrophoneOpen()
+        {
+            if (HasRecorder)
+            {
+                serverLink.VoiceRecorder.KeepMicrophoneOpen();
+            }
+        }
+
+        private void ReleaseMicrophone()
+        {
+            if (HasRecorder)
+            {
+                serverLink.VoiceRecorder.ReleaseMicrophone();
+            }
+        }
+
         private void StartRecording()
         {
             if (serverConversation != null && serverConversation.CanSend)
@@ -569,7 +600,11 @@ namespace A305.Dialogue
             if (panel.IsVisible && serverLink != null && serverLink.VoiceRecorder != null)
             {
                 VoiceRecorder recorder = serverLink.VoiceRecorder;
-                panel.ShowVoiceInput(recorder.IsRecording, recorder.IsHearingVoice);
+                panel.ShowVoiceInput(
+                    recorder.IsRecording,
+                    recorder.IsHearingVoice,
+                    recorder.IsPreparing
+                );
             }
         }
 

@@ -36,7 +36,7 @@ Fab 에셋은 Unity에서 편집하고 서비스에 포함해 상업적으로 �
 | 에셋 | 위치 | 출처 | 라이선스 | 사용 |
 | --- | --- | --- | --- | --- |
 | Scenario 3D Collection — Scenario | `ScenarioCollection/` | [Hugging Face 데이터셋](https://huggingface.co/datasets/scenario-labs/3d-collection) | CC BY 4.0, 출처 "Scenario" 표기, 동봉 `License.txt` | 아이스크림 트럭, 잠든 여우. AI로 생성된 모델 |
-| City Builder Bits 1.0 — Kay Lousberg (KayKit) | `KayKitCityBits/` | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0) | CC0 1.0, 동봉 `License.txt` | 택시, 승용차 |
+| City Builder Bits 1.0 — Kay Lousberg (KayKit) | `KayKitCityBits/` | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0) | CC0 1.0, 동봉 `License.txt` | 택시, 승용차, 경찰차 |
 | Red/White Beach Umbrella — S. Paul Michael, Bicycle·Dove — jeremy, Cat·Bike Rack — J-Toastie | `PolyPizzaStreetProps/` | Poly Pizza 모델 페이지 (주소는 `License.txt`) | CC BY 3.0, 작성자 표기, 동봉 `License.txt` | 파라솔, 자전거, 비둘기, 고양이, 자전거 거치대 |
 | Stylized Nature MegaKit — Quaternius | `QuaterniusNature/` | [Poly Pizza 묶음](https://poly.pizza/bundle/Stylized-Nature-MegaKit-T34GZFA0fm) | CC0 1.0, 동봉 `License.txt` | 꽃덤불, 꽃·클로버 |
 

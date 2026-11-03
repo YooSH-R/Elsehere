@@ -23,3 +23,5 @@ MonoBehaviour:
     greeting: Good afternoon! Welcome to Maple House. Are you checking in?
   - npcCode: SHOP_STAFF
     greeting: Hi! Welcome to the drugstore. Can I help you find something?
+  - npcCode: POLICE_OFFICER
+    greeting: Hello, this is the Maple Town police. How can I help you?

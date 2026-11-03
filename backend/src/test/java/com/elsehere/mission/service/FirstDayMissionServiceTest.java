@@ -105,7 +105,13 @@ class FirstDayMissionServiceTest {
   void everyStageKeepsOtherNpcsInTheirOwnRoles(FirstDayStage stage) {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
     for (String npc :
-        List.of("HOTEL_STAFF", "CAFE_STAFF", "TOWN_PASSERBY", "SHOP_STAFF", "TAXI_DRIVER")) {
+        List.of(
+            "HOTEL_STAFF",
+            "CAFE_STAFF",
+            "TOWN_PASSERBY",
+            "SHOP_STAFF",
+            "TAXI_DRIVER",
+            "POLICE_OFFICER")) {
       if (npc.equals(stage.npc())) {
         continue;
       }

@@ -56,6 +56,12 @@ namespace A305.World
 
         public void SetPassengerOnBoard(bool onBoard) => passengerOnBoard = onBoard;
 
+        /// <summary>
+        /// 순찰차가 주차 칸·진입로에 있을 때처럼 다른 컴포넌트가 차를 움직이는 동안 길을 따라 움직이지 않는다.
+        /// 꺼 두는 것과 달리 다른 차는 이 차를 계속 보고 피한다.
+        /// </summary>
+        public bool IsHeld { get; set; }
+
         public TrafficLights Lights => lights;
 
         public CarLoopRoute Route { get; private set; }
@@ -105,6 +111,8 @@ namespace A305.World
 
         private void Update()
         {
+            if (IsHeld)
+                return;
             CarLoopRoute.Pose pose = CarLaneBypass.PoseAt(Route, Distance, parkedTruckBypassOffset);
             if (IsBlocked(pose))
             {

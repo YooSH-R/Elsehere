@@ -47,7 +47,7 @@ def test_without_a_profile_the_reply_keeps_the_current_prompt(client, provider):
     assert system.startswith("You are Mia, the barista at the corner cafe.") and "## Character" not in system
 
 
-@pytest.mark.parametrize("npc_id", ["CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"])
+@pytest.mark.parametrize("npc_id", ["CAFE_STAFF", "HOTEL_STAFF", "POLICE_OFFICER", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"])
 def test_the_profile_from_the_backend_settings_becomes_the_character(client, provider, npc_id):
     profile = profile_of(npc_id)
     system = system_of(reply_request(client, provider, {**NPC, "id": npc_id, "profile": profile}))

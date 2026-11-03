@@ -62,7 +62,7 @@ public class GlobalExceptionHandler {
     }
     // 예외 메시지에는 외부 응답이나 사용자 입력이 섞일 수 있어 타입과 코드 위치만 기록한다.
     log.error(
-        "처리하지 못한 예외 type={} stack={}",
+        "unhandled_exception type={} stack={}",
         exception.getClass().getName(),
         Arrays.toString(exception.getStackTrace()));
     return respond(ErrorCode.INTERNAL_ERROR, null);

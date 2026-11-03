@@ -56,7 +56,7 @@ public class TrainingRecordingService {
               durationMs,
               Instant.now(clock)));
     } catch (RuntimeException exception) {
-      log.warn("학습용 녹음을 저장하지 못했습니다", exception);
+      log.warn("training_recording_save_failed", exception);
       deleteQuietly(key);
     }
   }
@@ -74,7 +74,7 @@ public class TrainingRecordingService {
     try {
       trainingRecordingStore.delete(key);
     } catch (RuntimeException exception) {
-      log.warn("기록을 남기지 못한 학습용 녹음 파일을 지우지 못했습니다", exception);
+      log.warn("training_recording_file_delete_failed", exception);
     }
   }
 }

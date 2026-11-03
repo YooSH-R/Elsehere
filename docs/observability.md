@@ -47,7 +47,36 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 - `wait_ms`는 백엔드가 워커 스트림이 끝날 때까지 기다린 시간입니다. 워커는 LLM 생성과 음성 합성이 모두 끝나야 스트림을 끝내므로, `wait_ms`에서 `llm_s`를 빼면 대략 음성 합성 쪽 시간입니다.
 - `audio_full_s`는 턴 전체 음성의 길이입니다. `download_ms`·`save_ms`는 그 음성을 워커에서 받고 보관 정책에 맞춰 저장한 시간입니다.
 
-이 밖의 실패 상황(AI 워커 시간 초과·연결 실패, NPC 음성 저장 실패, 기억 카드·관계 갱신 실패 등)은 기존처럼 WARN으로 남깁니다. 운영 백엔드의 로그 파일은 JSON(ECS)으로 남기며([조회·보관·복구](#조회보관복구)), 로그를 모으는 도구는 아직 정하지 않았습니다.
+실패 상황과 운영 작업도 같은 형식으로 남깁니다. `(예외)`는 메시지 뒤에 예외 스택이 붙는 로그입니다.
+
+| 레벨 | 이벤트 | 키 | 남기는 때 |
+| --- | --- | --- | --- |
+| WARN | `ai_worker_timeout` | `path` | AI 워커 응답 시간 초과 |
+| WARN | `ai_worker_unreachable` | `path` | AI 워커에 연결하지 못함 |
+| WARN | `ai_worker_error` | `status`, `code` | AI 워커가 오류로 응답함. `code`는 워커 오류 코드 |
+| WARN | `npc_reply_failed` | `code` | NPC 대답 스트림이 오류로 끝남 |
+| WARN | `npc_reply_stream_cut` | 없음 | NPC 대답 스트림이 끝 이벤트 없이 끊김 |
+| WARN | `npc_audio_download_failed` | `code` | NPC 대답 음성을 워커에서 받지 못함. 자막만 보임 |
+| WARN | `npc_audio_too_large` | `bytes` | NPC 음성이 보관 상한보다 커서 저장하지 않음 |
+| WARN | `npc_audio_no_space` | `bytes` | 오래된 음성을 지워도 저장 공간이 모자람 |
+| WARN | `npc_audio_save_failed` | (예외) | NPC 음성 파일을 저장하지 못함 |
+| WARN | `npc_audio_delete_failed` | `code` | 보관 기간이 지난 음성 파일을 지우지 못함. 다음 정리에서 다시 지움 |
+| WARN | `npc_audio_turns_update_failed` | `count`, (예외) | 지운 음성 파일을 쓰던 턴의 상태를 갱신하지 못함 |
+| WARN | `training_recording_save_failed` | (예외) | 학습용 녹음 기록을 저장하지 못함. 녹음 파일도 지움 |
+| WARN | `training_recording_file_delete_failed` | (예외) | 기록을 남기지 못한 학습용 녹음 파일을 지우지 못함 |
+| WARN | `npc_memory_update_failed` | `conversation_id`, `type` | 대화 뒤 NPC 기억 갱신이 예외로 끝남 |
+| WARN | `memory_card_update_failed` | `code` | 기억 카드를 만들지 못함. 이전 카드를 그대로 둠 |
+| WARN | `relationship_update_failed` | `code` | 관계를 갱신하지 못함. 이전 값을 그대로 둠 |
+| INFO | `guest_content_cleaned` | `guests` | 정기 게스트 내용 정리에서 내용을 지운 게스트 수 |
+| INFO | `social_login_failed` | `type` | 소셜 로그인 실패. `type`은 예외 종류 |
+| INFO | `admin_granted` | `user_id`, `by_user_id` | 관리자 지정. `by_user_id`는 지정한 관리자 |
+| INFO | `admin_revoked` | `user_id`, `by_user_id` | 관리자 해제. `by_user_id`는 해제한 관리자 |
+| INFO | `pronunciation_generation_finished` | `created`, `failed` | 사물 단어 발음 만들기가 끝남 |
+| WARN | `pronunciation_word_failed` | `word_key`, (예외) | 사물 단어 하나의 발음을 만들지 못함. 나머지 단어는 계속 만듦 |
+| ERROR | `pronunciation_generation_stopped` | (예외) | 사물 단어 발음 만들기가 중간에 멈춤 |
+| ERROR | `unhandled_exception` | `type`, `stack` | 처리하지 못한 예외. 예외 메시지는 남기지 않음 |
+
+새 로그도 이 형식(영문 소문자 snake_case 이벤트명과 키)으로 씁니다. 백엔드 테스트 `LogMessageFormatTest`가 소스의 모든 로그 메시지를 검사합니다. 운영 백엔드의 로그 파일은 JSON(ECS)으로 남기며([조회·보관·복구](#조회보관복구)), 로그를 모으는 도구는 아직 정하지 않았습니다.
 
 ## Nginx 설정 적용
 

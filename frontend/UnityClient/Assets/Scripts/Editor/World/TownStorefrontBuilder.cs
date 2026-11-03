@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 namespace A305.EditorTools.World
 {
     /// <summary>
-    /// 북쪽 거리에 닫힌 외관으로만 서 있던 배경 건물 여섯 동을 1층 매장으로 바꾼다.
+    /// 거리에 닫힌 외관으로만 서 있던 배경 건물을 1층 매장으로 바꾼다. 북쪽 거리의 여섯 동과 남서쪽 끝의 경찰서다.
     /// 외관과 위층(주거층)은 그대로 두고, 1층을 열어 간판·출입문과 용도를 알아볼 수 있는 실내를 넣는다.
     /// 건물 프리팹은 없을 때만 만들고, 검토는 TownScene을 복사한 Sandbox 씬에서 한다.
     /// 공용 TownScene에는 Apply 메뉴를 실행할 때만 놓는다.
@@ -169,6 +169,20 @@ namespace A305.EditorTools.World
                 "#FFFFFF",
                 checkerFloor: true
             ),
+            new Storefront(
+                "PoliceStation",
+                "SageResidence1F",
+                new Vector3(-7, .1f, -20),
+                90,
+                "경찰서",
+                "POLICE",
+                "MAPLE TOWN POLICE DEPARTMENT",
+                "#293E57",
+                "#DCE3E8",
+                "#D9D6CF",
+                // 문 앞 남행 차로 (-1.3, -17~-20.6)에 주차 트럭이 있어 택시 길이(4.1m)만큼 남쪽에 선다.
+                taxiOffsetZ: -3f
+            ),
         };
 
         [MenuItem("Tools/A305/World/Build Town Storefronts Sandbox")]
@@ -200,11 +214,20 @@ namespace A305.EditorTools.World
         {
             Prepare();
             foreach (Storefront storefront in Storefronts)
-                BuilderTools.CreatePrefabIfMissing(
-                    Folder + "/" + storefront.Name + ".prefab",
-                    () => Build(storefront)
-                );
+            {
+                string path = Folder + "/" + storefront.Name + ".prefab";
+                BuilderTools.CreatePrefabIfMissing(path, () => Build(storefront));
+                // 천장 충돌을 넣기 전에 만든 매장도 디자인은 그대로 두고 충돌만 더한다.
+                BuilderTools.UpdatePrefabIfExists(path, BlockCameraAtCeiling);
+            }
             AssetDatabase.SaveAssets();
+        }
+
+        // 천장이 카메라를 막지 않으면 내려다볼 때 카메라가 천장 위로 빠져 천장 윗면이 화면을 덮는다(드럭스토어와 같은 문제).
+        private static void BlockCameraAtCeiling(GameObject storefront)
+        {
+            GameObject ceiling = storefront.transform.Find("Interior/Ceiling").gameObject;
+            BuilderTools.GetOrAddComponent<BoxCollider>(ceiling);
         }
 
         private static void Prepare()
@@ -262,6 +285,13 @@ namespace A305.EditorTools.World
                 "이 꽃들은 향기가 좋아요."
             );
             NorthBlockAssets.AddWord(
+                "police_station",
+                "police station",
+                "경찰서",
+                "Where is the police station?",
+                "경찰서가 어디에 있나요?"
+            );
+            NorthBlockAssets.AddWord(
                 "barber_chair",
                 "barber chair",
                 "이발 의자",
@@ -284,7 +314,10 @@ namespace A305.EditorTools.World
                 .transform.Cast<Transform>()
                 .First(child => child.name.Contains("GroundFloor8m"));
             NorthBlockInteriorBuilder.OpenFloor(groundFloor, true);
-            NorthBlockAssets.Bind(root, "shop");
+            NorthBlockAssets.Bind(
+                root,
+                storefront.Name == "PoliceStation" ? "police_station" : "shop"
+            );
 
             Transform interior = Group("Interior", root.transform, Vector3.zero);
             Shell(interior, storefront);
@@ -313,9 +346,14 @@ namespace A305.EditorTools.World
                 case "BloomFlowers":
                     FlowerShop(interior);
                     break;
-                default:
+                case "MainStreetBarber":
                     Barber(root.transform, interior);
                     break;
+                case "PoliceStation":
+                    PoliceStation(interior);
+                    break;
+                default:
+                    throw new InvalidOperationException("매장 실내가 없습니다: " + storefront.Name);
             }
             return root;
         }
@@ -347,8 +385,7 @@ namespace A305.EditorTools.World
                 new Vector3(0, 3.88f, -4),
                 new Vector3(7.6f, .1f, 7.6f),
                 Cream,
-                "ceiling",
-                false
+                "ceiling"
             );
 
             Material plaster = Paint(
@@ -877,6 +914,96 @@ namespace A305.EditorTools.World
             NorthBlockAssets.Bind(pole.gameObject, "sign");
         }
 
+        // 뒤쪽 민원 창구, 왼쪽 벽 대기 의자, 오른쪽 벽 게시판, 뒤 모서리 서류함과 국기.
+        // 경찰관은 창구 뒤(z=-6.4)에 선다(PoliceStationBuilder가 마을 씬에 놓는다). 3등신 경찰관 얼굴이 가리지 않게 창구는 0.7m다.
+        private static void PoliceStation(Transform interior)
+        {
+            Solid(
+                "FrontDesk",
+                interior,
+                new Vector3(0, .35f, -5.4f),
+                new Vector3(4.4f, .7f, .8f),
+                Navy,
+                "reception_desk"
+            );
+            Solid(
+                "FrontDeskTop",
+                interior,
+                new Vector3(0, .73f, -5.4f),
+                new Vector3(4.5f, .06f, .9f),
+                Cream,
+                "reception_desk",
+                false
+            );
+            Material screen = Paint("PoliceMonitor", "#2B3238");
+            Solid(
+                "Monitor",
+                interior,
+                new Vector3(-1.4f, .94f, -5.55f),
+                new Vector3(.55f, .36f, .05f),
+                screen,
+                "reception_desk",
+                false
+            );
+            WallBoard(interior, "MAPLE TOWN POLICE", new Vector3(0, 2.75f, -7.7f), 3.8f, Navy);
+            Material gold = Paint("PoliceBadgeGold", "#D8B24A");
+            Ball(
+                "Badge",
+                interior,
+                new Vector3(0, 2.05f, -7.74f),
+                new Vector3(.55f, .55f, .06f),
+                gold
+            );
+
+            for (int index = 0; index < 3; index++)
+                NorthBlockAssets.Place(
+                    "Chair",
+                    interior,
+                    new Vector3(-3.1f, 0, -1.6f - index * 1.0f),
+                    90
+                );
+            NorthBlockAssets.Place("Plant", interior, new Vector3(-3.1f, 0, -5.4f));
+
+            Material cork = Paint("NoticeCork", "#B98A5B");
+            Solid(
+                "NoticeBoard",
+                interior,
+                new Vector3(3.72f, 1.6f, -3.2f),
+                new Vector3(.05f, 1.1f, 1.9f),
+                cork,
+                "note",
+                false
+            );
+            Material paper = Paint("NoticePaper", "#F7F3EA");
+            for (int index = 0; index < 4; index++)
+                Solid(
+                    "Notice",
+                    interior,
+                    new Vector3(
+                        3.69f,
+                        1.4f + index % 2 * .45f,
+                        -2.6f - index / 2 * .8f - index % 2 * .15f
+                    ),
+                    new Vector3(.01f, .32f, .26f),
+                    paper,
+                    "note",
+                    false
+                );
+            WallText(interior, "LOST & FOUND", new Vector3(3.68f, 2.35f, -3.2f), -90, .14f);
+
+            NorthBlockAssets.Place("Cabinet", interior, new Vector3(3.1f, 0, -7.2f));
+            Transform flag = Group("Flag", interior, new Vector3(-3.2f, 0, -7.2f));
+            NorthBlockAssets.Bind(flag.gameObject, "flag");
+            Post("FlagPole", flag, Vector3.up * 1.1f, .025f, 2.2f, Steel());
+            Block(
+                "FlagCloth",
+                flag,
+                new Vector3(.38f, 1.85f, 0),
+                new Vector3(.7f, .45f, .02f),
+                Paint("FlagNavy", "#2F4B7C")
+            );
+        }
+
         // ---------- 공통 조각 ----------
 
         private static void Counter(Transform parent, Vector3 floorCenter, Vector3 size)
@@ -1114,7 +1241,7 @@ namespace A305.EditorTools.World
         // ---------- 마을 씬에 놓기 ----------
 
         // 위치와 원본 프리팹이 모두 맞는 배경 건물만 매장으로 바꾸고, 원래 건물은 꺼서 남긴다.
-        private static void Install(Scene scene)
+        internal static void Install(Scene scene)
         {
             Transform background = TownProductionBuilder
                 .Root(scene, "Environment")

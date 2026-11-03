@@ -147,9 +147,29 @@ namespace A305.EditorTools.World
             fields.FindProperty("passengerView").objectReferenceValue = camera;
             DialoguePanelView panel = BuilderTools.FindSingleInScene<DialoguePanelView>(scene);
             fields.FindProperty("panel").objectReferenceValue = panel;
+            FillDestinations(scene, fields.FindProperty("destinations"), true);
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            ConfigureRoute(taxi.GetComponent<LoopingCar>());
+            ConfigureStatus(panel);
+        }
+
+        /// <summary>
+        /// 마을 장소 목록(기존 공간 4곳과 거리 매장)을 정차·하차 지점과 함께 채운다. 택시와 순찰차가 같은 목록을 쓴다.
+        /// 순찰차는 경찰서 자신으로 출동하지 않으므로 includePoliceStation을 끈다.
+        /// </summary>
+        internal static void FillDestinations(
+            Scene scene,
+            SerializedProperty destinations,
+            bool includePoliceStation
+        )
+        {
             SpaceDoorway[] doors = BuilderTools.FindAllInScene<SpaceDoorway>(scene);
-            SerializedProperty destinations = fields.FindProperty("destinations");
-            destinations.arraySize = doors.Length + TownStorefrontBuilder.Storefronts.Length;
+            TownStorefrontBuilder.Storefront[] storefronts = TownStorefrontBuilder
+                .Storefronts.Where(storefront =>
+                    includePoliceStation || storefront.Name != "PoliceStation"
+                )
+                .ToArray();
+            destinations.arraySize = doors.Length + storefronts.Length;
             int destinationIndex = 0;
             foreach (SpaceDoorway door in doors)
             {
@@ -173,7 +193,7 @@ namespace A305.EditorTools.World
                     exit
                 );
             }
-            foreach (var storefront in TownStorefrontBuilder.Storefronts)
+            foreach (var storefront in storefronts)
             {
                 string code = storefront.Name switch
                 {
@@ -183,6 +203,7 @@ namespace A305.EditorTools.World
                     "SudsLaundromat" => "LAUNDROMAT",
                     "BloomFlowers" => "FLOWER_SHOP",
                     "MainStreetBarber" => "BARBER",
+                    "PoliceStation" => TaxiDestinationRequest.PoliceStation,
                     _ => throw new InvalidOperationException(
                         "택시 장소 코드가 없습니다: " + storefront.Name
                     ),
@@ -195,9 +216,6 @@ namespace A305.EditorTools.World
                     storefront.TaxiAlighting
                 );
             }
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            ConfigureRoute(taxi.GetComponent<LoopingCar>());
-            ConfigureStatus(panel);
         }
 
         private static void SetDestination(

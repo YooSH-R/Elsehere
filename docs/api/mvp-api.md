@@ -280,7 +280,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "currentLanguage": "en-US",
     "onboardingStep": "DONE",
     "uiTheme": "JELLY",
-    "voiceConsent": true
+    "voiceConsent": true,
+    "guest": false
   },
   "lastSceneCode": "TOWN",
   "activeConversationId": null,
@@ -304,6 +305,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 녹음을 막고 [말하기]를 회색으로 보이며, 누르면 동의 창에서 USER-03으로 동의를 켤 수 있게 합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
+- `user.guest`는 게스트로 시작한 사용자(AUTH-07)인지입니다. 클라이언트는 게스트에게 마이페이지의 [회원 탈퇴](USER-05)를 보이지 않습니다. AUTH-04 응답은 `false`, AUTH-07 응답은 `true`입니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
 
@@ -324,7 +326,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "email": "user@example.com",
   "consents": [
     { "consentType": "TERMS", "version": "2026-10", "required": true, "title": "서비스 이용약관", "url": "/terms/2026-10" },
-    { "consentType": "PRIVACY", "version": "2026-10", "required": true, "title": "개인정보 처리방침", "url": "/privacy/2026-10" },
+    { "consentType": "PRIVACY", "version": "2026-11", "required": true, "title": "개인정보 처리방침", "url": "/privacy/2026-11" },
     { "consentType": "AGE14", "version": "2026-10", "required": true, "title": "만 14세 이상입니다", "url": null },
     { "consentType": "VOICE", "version": "2026-10", "required": false, "title": "음성 처리 동의", "url": "/voice/2026-10" },
     { "consentType": "TRAINING_TEXT", "version": "2026-10", "required": false, "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10" },
@@ -336,7 +338,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 약관 버전과 문서 주소는 서버 설정값입니다.
 - `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 가입 뒤에는 USER-03으로 켜고 끕니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
-- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다.
+- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다. 문서마다 버전이 다를 수 있어(개인정보 처리방침만 2026-11), 문서끼리의 링크는 각 문서의 지금 주소를 씁니다. 버전 확인은 가입할 때만 하며, 이미 가입한 사용자에게 다시 동의를 받지는 않습니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -347,13 +349,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "avatarType": "F",
   "consents": [
     { "consentType": "TERMS", "version": "2026-10" },
-    { "consentType": "PRIVACY", "version": "2026-10" },
+    { "consentType": "PRIVACY", "version": "2026-11" },
     { "consentType": "AGE14", "version": "2026-10" }
   ]
 }
 
 // 응답 201
-{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY", "voiceConsent": true } }
+{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY", "voiceConsent": true, "guest": false } }
 ```
 
 - 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다. 로그인하면서 세션 ID를 새로 발급하고 가입 대기 정보를 지웁니다.
@@ -400,7 +402,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 // 응답 201
 {
-  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY", "voiceConsent": true }
+  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY", "voiceConsent": true, "guest": true }
 }
 ```
 
@@ -597,6 +599,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 "npcs": [
   { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
   { "npcCode": "TAXI_DRIVER", "name": "Joe", "npcType": "STAFF", "roleLabel": "택시 기사", "canInitiate": false, "approachLine": null },
+  { "npcCode": "POLICE_OFFICER", "name": "Dan", "npcType": "STAFF", "roleLabel": "경찰관", "canInitiate": false, "approachLine": null },
   { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
@@ -1338,7 +1341,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
   - 관리자였다면 일반 사용자로 되돌립니다.
 - 사용자·대화·AI 호출 기록·미션 진행·동의 기록 같은 뼈대는 남은 행이 가리키므로 누구 것인지 알 수 없는 채로 남깁니다.
 - 요청한 세션을 끝냅니다. 클라이언트는 입구 화면(로그인)으로 돌아갑니다. 다른 기기에서 로그인해 둔 세션은 그 기기에서 24시간 동안 요청이 없으면 끝납니다.
-- 게스트도 부를 수 있으며 같은 방식으로 지웁니다.
+- 게스트도 부를 수 있으며 같은 방식으로 지웁니다. 다만 게스트 내용은 AUTH-07 정리 규칙으로 지워지므로, 클라이언트는 게스트(`user.guest`)에게 [회원 탈퇴]를 보이지 않습니다.
 - 로그인하지 않았으면 `401 UNAUTHENTICATED`이며 아무것도 지우지 않습니다. `X-Requested-With` 헤더가 필요합니다.
 
 ## 5. ERD와의 관계

@@ -38,7 +38,7 @@ class NpcAudioReceiver {
       }
       return key;
     } catch (BusinessException exception) {
-      log.warn("NPC 음성을 받지 못했습니다 code={}", exception.getErrorCode());
+      log.warn("npc_audio_download_failed code={}", exception.getErrorCode());
       return null;
     }
   }

@@ -32,6 +32,18 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.SelectedAvatar, Is.EqualTo(AvatarType.M));
         }
 
+        // 폰 메뉴 날짜 줄에 닉네임을 보이도록 접속한 계정의 닉네임을 기억한다.
+        [Test]
+        public async Task BootstrapRetainsTheNicknameForThePhoneMenu()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.Nickname = "다빈";
+
+            await flow.StartAsync();
+
+            Assert.That(flow.Nickname, Is.EqualTo("다빈"));
+        }
+
         [Test]
         public async Task BootstrapRetainsTheAccountUiThemeForEnteringTheWorld()
         {

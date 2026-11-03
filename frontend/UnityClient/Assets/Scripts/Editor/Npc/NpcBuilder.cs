@@ -55,6 +55,7 @@ namespace A305.EditorTools.Npc
             (CafeStaffCode, "Hi there! Welcome to the corner café. Would you like to order?"),
             ("HOTEL_STAFF", "Good afternoon! Welcome to Maple House. Are you checking in?"),
             ("SHOP_STAFF", "Hi! Welcome to the drugstore. Can I help you find something?"),
+            ("POLICE_OFFICER", "Hello, this is the Maple Town police. How can I help you?"),
         };
 
         [MenuItem(MenuPath)]
@@ -489,7 +490,7 @@ namespace A305.EditorTools.Npc
         /// <summary>
         /// 확인용 인사말 에셋이 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙인다. 이미 있는 인사말은 바꾸지 않는다.
         /// </summary>
-        private static void PrepareMockLines()
+        internal static void PrepareMockLines()
         {
             var lines = AssetDatabase.LoadAssetAtPath<MockNpcLineSource>(MockLinesPath);
             if (lines == null)

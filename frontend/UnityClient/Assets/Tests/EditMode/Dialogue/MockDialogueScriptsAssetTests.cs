@@ -65,6 +65,19 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void PoliceOfficer_AsksWhatHappened()
+        {
+            // 경찰서 창구에서 경찰관에게 무슨 일이 있었는지 영어로 신고해 본다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            bool found = scripts.TryGetScript("POLICE_OFFICER", out DialogueScript script);
+
+            Assert.That(found, Is.True);
+            Assert.That(script.RoleLabel, Is.EqualTo("경찰관"));
+            Assert.That(script.OpeningLine.English, Does.Contain("happened"));
+        }
+
+        [Test]
         public void TutorialScript_IsSpokenByBenTheTownPasserby()
         {
             // 집 앞에서 길을 묻는 튜토리얼 대본은 마을 행인 Ben이 말한다(같은 사람).

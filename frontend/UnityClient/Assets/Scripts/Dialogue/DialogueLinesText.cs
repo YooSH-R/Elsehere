@@ -13,6 +13,10 @@ namespace A305.Dialogue
     {
         private const string UserSpeaker = "나";
 
+        // 말한 사람 이름은 흰 대사와 구분되게 칠한다. NPC는 코랄 이름표와 같은 계열의 밝은 코랄, 나는 밝은 하늘색이다.
+        private const string NpcSpeakerColor = "#FFB199";
+        private const string UserSpeakerColor = "#9ED3FF";
+
         // 어두운 그라데이션 위에서 흰 대사보다 한 단계 옅게 읽히는 따뜻한 색. 회색은 어두운 바탕에 묻힌다.
         private const string MeaningColor = "#E6D3BC";
 
@@ -40,11 +44,13 @@ namespace A305.Dialogue
             for (int i = 0; i < lines.Count; i++)
             {
                 DialogueLine line = lines[i];
-                string speaker = line.IsNpc ? npcName : UserSpeaker;
+                string speaker = line.IsNpc
+                    ? $"<color={NpcSpeakerColor}><b>{npcName}</b></color>"
+                    : $"<color={UserSpeakerColor}><b>{UserSpeaker}</b></color>";
                 string english = showsMeaning
                     ? LinkGlossary(line.English, line.Glossary, i, selected)
                     : line.English;
-                rows.Add($"<b>{speaker}</b>  {english}");
+                rows.Add($"{speaker}  {english}");
                 if (i == latestNpcIndex && showsMeaning && line.Korean != null)
                 {
                     rows.Add(

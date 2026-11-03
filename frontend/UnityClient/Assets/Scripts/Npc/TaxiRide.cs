@@ -15,7 +15,6 @@ namespace A305.Npc
     [RequireComponent(typeof(LoopingCar))]
     public sealed class TaxiRide : MonoBehaviour
     {
-        private const string HailLabel = "택시 세우기";
         private const float TalkDistanceMeters = 3.5f;
 
         [SerializeField]
@@ -51,7 +50,9 @@ namespace A305.Npc
 
         private readonly TaxiFare fare = new TaxiFare();
         private LoopingCar car;
-        private string promptLabel;
+
+        // 지금 보이는 버튼(종류·문구·남은 대화 수). 같은 버튼을 매 프레임 다시 그리지 않는다.
+        private string shownPrompt;
 
         /// <summary>지나가는 택시를 세울 수 있는지. 튜토리얼 동안에는 다른 곳으로 가지 않게 막는다.</summary>
         public bool IsHailAllowed { get; set; } = true;
@@ -154,50 +155,66 @@ namespace A305.Npc
                 dialogue.IsTalking
                 || player.IsMovementLocked
                 || offerView.IsShowing
-                || (offerView.IsTalkPromptShowing && promptLabel == null);
+                || (offerView.IsTalkPromptShowing && shownPrompt == null);
             if (isBusy)
             {
                 HidePrompt();
                 return;
             }
 
-            if (
+            // 택시를 세우면 바로 기사와 대화하므로 게스트 대화를 다 쓰면 두 버튼 대신 이유를 보인다(기능 명세 F-39).
+            ConversationAllowance allowance = dialogue.Allowance;
+            TaxiPrompt prompt = TaxiPrompt.Choose(
                 fare.Phase == TaxiPhase.Cruising
-                && IsHailAllowed
-                && TaxiFare.CanHail(car.Route, car.Distance, customer)
-            )
+                    && IsHailAllowed
+                    && TaxiFare.CanHail(car.Route, car.Distance, customer),
+                fare.Phase == TaxiPhase.Waiting && distance < TalkDistanceMeters,
+                allowance.CanStartConversation,
+                allowance.RemainingConversations,
+                dialogue.FindNpcName(driver.Code)
+            );
+            switch (prompt.Kind)
             {
-                ShowPrompt(HailLabel, Hail);
-            }
-            else if (fare.Phase == TaxiPhase.Waiting && distance < TalkDistanceMeters)
-            {
-                ShowPrompt(PasserbyOfferText.TalkLabel(dialogue.FindNpcName(driver.Code)), Talk);
-            }
-            else
-            {
-                HidePrompt();
+                case TaxiPromptKind.Hail:
+                    ShowPrompt(prompt, Hail);
+                    break;
+                case TaxiPromptKind.Talk:
+                case TaxiPromptKind.Blocked:
+                    ShowPrompt(prompt, Talk);
+                    break;
+                default:
+                    HidePrompt();
+                    break;
             }
         }
 
-        private void ShowPrompt(string label, Action press)
+        private void ShowPrompt(TaxiPrompt prompt, Action press)
         {
-            if (promptLabel == label)
+            string shown = $"{prompt.Kind}|{prompt.Label}|{prompt.Remaining}";
+            if (shownPrompt == shown)
             {
                 return;
             }
 
-            promptLabel = label;
-            offerView.ShowTalkPrompt(this, label, press);
+            shownPrompt = shown;
+            if (prompt.Kind == TaxiPromptKind.Blocked)
+            {
+                offerView.ShowBlockedTalkPrompt(this, prompt.Label);
+            }
+            else
+            {
+                offerView.ShowTalkPrompt(this, prompt.Label, prompt.Remaining, press);
+            }
         }
 
         private void HidePrompt()
         {
-            if (promptLabel == null)
+            if (shownPrompt == null)
             {
                 return;
             }
 
-            promptLabel = null;
+            shownPrompt = null;
             offerView.HideTalkPrompt(this);
         }
 

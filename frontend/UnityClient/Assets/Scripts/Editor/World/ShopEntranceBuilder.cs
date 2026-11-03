@@ -92,6 +92,8 @@ namespace A305.EditorTools.World
             Transform leaf = hinge.Find("DoorLeaf");
             float width = leaf.GetComponent<BoxCollider>().size.x;
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DoorPrefab);
+            // 문틀은 고정하고 손잡이는 기존 힌지 아래에 둬서 여닫힐 때 문짝과 함께 움직인다.
+            // 기존 문짝과 충돌체는 출입 동작에서 참조하므로 그대로 유지한다.
             var frame = BuilderTools.InstantiatePrefab(
                 prefab,
                 door,

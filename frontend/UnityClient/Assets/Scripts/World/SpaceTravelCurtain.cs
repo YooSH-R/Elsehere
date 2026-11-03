@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using A305.Player;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -37,16 +38,90 @@ namespace A305.World
         /// <summary>화면을 덮은 정도. 0이면 다 보이고 1이면 다 가려진다.</summary>
         public float Opacity => cover.alpha;
 
-        /// <summary>화면을 덮으며 다음 씬을 불러오고, 새 공간에 도착하면 화면을 걷는다.</summary>
-        public static void Travel(string destinationScene)
+        internal static bool IsCoveringScreen => instance != null && instance.canvas.enabled;
+
+        private static SpaceTravelCurtain GetOrCreate()
         {
             if (instance == null)
             {
                 instance = Create();
             }
+            return instance;
+        }
 
-            instance.StopAllCoroutines();
-            instance.StartCoroutine(instance.TravelTo(destinationScene));
+        /// <summary>화면을 덮으며 다음 씬을 불러오고, 새 공간에 도착하면 화면을 걷는다.</summary>
+        public static void Travel(string destinationScene)
+        {
+            SpaceTravelCurtain curtain = GetOrCreate();
+            curtain.StopAllCoroutines();
+            curtain.StartCoroutine(curtain.TravelTo(destinationScene));
+        }
+
+        internal static void CrossShopDoor(
+            PlayerMover player,
+            Pose destination,
+            ShopInterior interior,
+            bool entering,
+            float? arrivalViewYaw,
+            System.Action finishTravel
+        )
+        {
+            SpaceTravelCurtain curtain = GetOrCreate();
+            curtain.StartCoroutine(
+                curtain.CrossThreshold(
+                    player,
+                    destination,
+                    interior,
+                    entering,
+                    arrivalViewYaw,
+                    finishTravel
+                )
+            );
+        }
+
+        private IEnumerator CrossThreshold(
+            PlayerMover player,
+            Pose destination,
+            ShopInterior interior,
+            bool entering,
+            float? arrivalViewYaw,
+            System.Action finishTravel
+        )
+        {
+            player.SetMovementLocked(true);
+            bool completed = false;
+            void Finish()
+            {
+                if (completed)
+                    return;
+                completed = true;
+                if (player != null)
+                    player.SetMovementLocked(false);
+                finishTravel();
+            }
+            try
+            {
+                yield return FadeTo(1f, CloseSeconds);
+                if (interior != null && entering)
+                    yield return interior.SetOccupied(true);
+                if (player != null)
+                {
+                    player.Teleport(destination.position, destination.rotation);
+                    PlayerCameraRig camera = player.CameraRig;
+                    if (camera != null)
+                    {
+                        camera.SnapView(arrivalViewYaw ?? camera.ViewYawDegrees);
+                    }
+                }
+                if (interior != null && !entering)
+                    yield return interior.SetOccupied(false);
+                yield return null;
+                yield return FadeTo(0f, OpenSeconds, Finish);
+            }
+            finally
+            {
+                Finish();
+            }
         }
 
         /// <summary>
@@ -141,16 +216,19 @@ namespace A305.World
             SceneManager.SetActiveScene(scene);
         }
 
-        private IEnumerator FadeTo(float targetOpacity, float seconds)
+        private IEnumerator FadeTo(float targetOpacity, float seconds, Action onClear = null)
         {
             ShowCover(true);
             while (cover.alpha != targetOpacity)
             {
                 float step = Mathf.Min(Time.unscaledDeltaTime, MaxFadeStepSeconds) / seconds;
                 cover.alpha = Mathf.MoveTowards(cover.alpha, targetOpacity, step);
+                if (cover.alpha == 0f && targetOpacity == 0f)
+                    break;
                 yield return null;
             }
             ShowCover(targetOpacity > 0f);
+            onClear?.Invoke();
         }
 
         private void ShowCover(bool shown)

@@ -62,11 +62,21 @@ public class ModelSpeechService {
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     byte[] wav = aiGateway.synthesize(trace, target.betterText(), voice, SPEED);
     String key = modelSpeechStore.save(wav);
-    transactionTemplate.executeWithoutResult(
-        status ->
-            turnFeedbackRepository
-                .findById(turnFeedbackId)
-                .ifPresent(feedback -> feedback.attachModelAudio(key)));
+    boolean attached = false;
+    try {
+      attached =
+          Boolean.TRUE.equals(
+              transactionTemplate.execute(
+                  status ->
+                      turnFeedbackRepository.attachModelAudio(
+                              turnFeedbackId, target.modelAudioKey(), key)
+                          == 1));
+    } finally {
+      // 붙이지 못한 파일(다른 요청이 먼저 붙임, 피드백이 지워짐, DB 반영 실패)은 아무도 가리키지 않으므로 지운다.
+      if (!attached) {
+        modelSpeechStore.delete(key);
+      }
+    }
     return ModelSpeechResponse.of(turnFeedbackId);
   }
 

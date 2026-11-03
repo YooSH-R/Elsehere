@@ -1009,6 +1009,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_47611d6211561694cb7aa0e9039a893a",
+            "languageCode": "en-US",
+            "text": "bagel",
+            "meaningKo": "베이글",
+            "example": "I'd like a bagel, please.",
+            "exampleKo": "베이글 하나 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_49745493800188e47bee4b59a9a41f49",
             "languageCode": "en-US",
             "text": "ice cream truck",

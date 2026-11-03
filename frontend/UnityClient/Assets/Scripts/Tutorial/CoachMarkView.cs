@@ -190,6 +190,9 @@ namespace A305.Tutorial
         /// <summary>말풍선 자리(캔버스 왼쪽 아래 기준). 말풍선이 없으면 크기가 0이다.</summary>
         public Rect CaptionRect { get; private set; }
 
+        /// <summary>말풍선이 가리면 안 되는 다른 화면(대화·대화 노트 위에 남긴 [건너뛰기] 카드). 비어 있거나 숨어 있으면 보지 않는다.</summary>
+        public RectTransform KeepClear { get; set; }
+
         /// <summary>밝힌 구멍 밖을 어둡게 덮어 누르지 못하게 하는지</summary>
         public bool IsDimmingOutside => IsSpotlightShowing;
 
@@ -394,12 +397,17 @@ namespace A305.Tutorial
         // 밝힌 곳 옆에 말풍선을 두고, 꼬리를 밝힌 곳 쪽 가장자리에 붙인다. 꼬리는 마름모로 돌려 반만 밖으로 나오게 한다.
         private void PlaceCaption(Vector2 canvasSize, Rect hole)
         {
+            Rect keepClear =
+                KeepClear != null && KeepClear.gameObject.activeInHierarchy
+                    ? CanvasRectOf(KeepClear)
+                    : default;
             CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
                 hole,
                 caption.rect.size,
                 canvasSize,
                 BubbleGap,
-                BubbleMargin
+                BubbleMargin,
+                keepClear
             );
             caption.anchoredPosition = bubble.Rect.position;
             CaptionRect = bubble.Rect;

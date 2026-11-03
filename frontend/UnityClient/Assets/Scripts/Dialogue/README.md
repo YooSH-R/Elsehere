@@ -23,7 +23,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 | `TextLinkClicks` | 대사 칸 글자의 `<link>`를 누르면 링크 ID를 알립니다. 링크가 아닌 곳은 무시합니다. |
 | `DialogueRecord` | 끝난 대화의 기록. 피드백·미션·튜토리얼이 대화 결과를 판단할 때 씁니다. |
 | `DialogueScriptSource`, `MockDialogueScriptSource` | NPC 키로 대본을 찾는 곳과 서버 연동 전 확인용 대본입니다. |
-| `ServerConversation`, `IConversationApi`, `ConversationApi` | 서버 AI 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·종료(CONV-08)를 부릅니다. 가짜 API로 Unity 객체 없이 테스트합니다. |
+| `ServerConversation`, `IConversationApi`, `ConversationApi` | 서버 AI 자유 대화 한 번. 대화 시작(CONV-01)·발화(CONV-03)·녹음 전사(CONV-02)·뜻 보기(CONV-04)·힌트(CONV-05)·종료(CONV-08)를 부릅니다. 끝내지 못한 대화가 남아 있으면 같은 NPC와의 대화는 이어서 하고(CONV-11의 턴으로 지난 대사를 다시 보임), 다른 NPC와의 대화는 피드백 없이 끝내고 새로 시작합니다. 가짜 API로 Unity 객체 없이 테스트합니다. |
 | `ConversationStanding` | 서버 대화의 NPC 호감도와 무례 경고 칸(3아웃) 값. CONV-01·03 응답의 `conversation`(`affinity`, `rudeCount`, `rudeLimit`)으로 바뀌며, 호감도가 바뀐 턴에는 변화량을 한 번 냅니다(무례로 센 턴은 예: -6과 "무례한 말 1/3 · 3번이면 대화가 끝나요" 문구, 칭찬·인사 같은 사건이 있는 턴은 예: +4). 이 칸을 보내지 않는 서버면 `IsKnown`이 false입니다. Unity 객체 없이 테스트합니다. |
 | `ConversationStandingDisplay` | 대화창 NPC 이름 옆 한 줄 "♥ 12   ○○○". 새 상태를 받은 뒤 4초 동안 변화량(깎이면 빨강, 오르면 초록)과 무례 경고 문구를 붙였다가 지웁니다. 글자는 서비스 글꼴(NanumSquareRound)에 있는 ♥·●·○를 씁니다. Unity 객체 없이 테스트합니다. |
 | `ConversationAllowance`, `IAiStatusApi`, `AiStatusApi` | 새 NPC 대화를 시작할 수 있는지와 게스트의 남은 대화 수(AI-01). 공간에 들어올 때와 대화가 끝날 때 다시 받고, 받지 못하면 직전 상태를 둡니다. 받기 전이나 서버를 끈 때는 막지 않습니다(최종 확인은 CONV-01). 가짜 API로 Unity 객체 없이 테스트합니다. |

@@ -57,7 +57,8 @@ namespace A305.EditorTools.Onboarding
 
             TMP_Text subtitle = panel.Find("Subtitle").GetComponent<TMP_Text>();
             Body(subtitle, 21, SubtitleInk);
-            subtitle.text = "3D 마을에서 NPC와 영어로 대화하며\n여행 첫날을 보내 보세요.";
+            subtitle.text =
+                "3D 마을에서 NPC와 현지 언어로 대화하며\n그곳에 사는 것처럼 언어를 익혀 보세요.";
             subtitle.alignment = TextAlignmentOptions.TopLeft;
             // 시안 줄 높이 1.45
             subtitle.lineSpacing = 24;

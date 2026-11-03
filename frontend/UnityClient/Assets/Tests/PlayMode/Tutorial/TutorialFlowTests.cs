@@ -613,7 +613,7 @@ namespace A305.Tutorial.PlayModeTests
         public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
         {
             // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,
-            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭·화살표를 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝힌다.
+            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 화살표 줄만 밝힌다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -641,7 +641,7 @@ namespace A305.Tutorial.PlayModeTests
             RectTransform[][] tour =
             {
                 new[] { feedback.SectionRowRect, feedback.PageCardRect },
-                new[] { feedback.NavigationRowRect, feedback.PageCardRect },
+                new[] { feedback.NavigationRowRect },
             };
             foreach (RectTransform[] targets in tour)
             {

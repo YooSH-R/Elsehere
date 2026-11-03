@@ -183,6 +183,17 @@ def test_gpu_guard_is_skipped_after_repeated_failures(provider):
     assert [model for _, model in provider.calls] == [GPU_MODEL, profile_guard, GPU_MODEL, profile_guard, profile_guard]
 
 
+def test_gpu_guard_waits_past_vllm_first_batch_but_leaves_room_for_fallback(monkeypatch):
+    """vLLM은 처음 보는 동시 요청 수에서 한 번 2.4~2.7초가 걸린다(평소 10개 동시 약 1초). 2초에 끊으면 dev 5명 첫 턴이
+    Luna 재호출로 6~9초가 됐다 (S15P31A305-511). 넘겨도 Luna 판정(약 1~1.5초)이 GUARD_BUDGET_S 안에 들어와야 한다."""
+    env = {"AI_WORKER_TOKEN": TOKEN, "LLM_PROFILE": "groq", "GROQ_API_KEY": "q"}
+    monkeypatch.setattr(config, "load_dotenv", lambda *a, **kw: None)
+    monkeypatch.setattr(config.os, "environ", env)
+    s = Settings.from_env()
+    assert s.guard_gpu_timeout_s == 3.0
+    assert s.guard_budget_s - s.guard_gpu_timeout_s >= 1.5
+
+
 def test_gpu_guard_from_env(monkeypatch):
     env = {"AI_WORKER_TOKEN": TOKEN, "LLM_PROFILE": "groq", "GROQ_API_KEY": "q", "GUARD_GPU_MODEL": GPU_MODEL}
     monkeypatch.setattr(config, "load_dotenv", lambda *a, **kw: None)

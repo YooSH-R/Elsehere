@@ -15,7 +15,7 @@ namespace A305.EditorTools.Npc
     /// <summary>
     /// 마을의 들어갈 수 있는 건물 9곳(1층 매장 6곳·북쪽 블록 3곳)에 직원 NPC를 한 명씩 두고, 생활하며 자기 건물 1층 안에서만 지내게 한다.
     /// 외형은 리틀 멍 서비스 NPC 외형을 돌려 쓰고, 머리·옷·눈동자 색만 NPC마다 바꾼 재질 사본을 입힌다.
-    /// 같은 NPC가 이미 있으면 위치는 그대로 두고 연결·색·구역만 맞춘다. 색 사본은 없을 때만 만든다.
+    /// 같은 NPC가 이미 있으면 위치는 그대로 두고 연결·색·구역만 맞춘다. 색 텍스처는 없을 때만 만들고, 재질 사본은 실행할 때마다 외형의 원래 재질 설정(그림자 받기 등)에 맞춘다.
     /// </summary>
     public static class BuildingStaffBuilder
     {
@@ -383,11 +383,14 @@ namespace A305.EditorTools.Npc
         {
             foreach (Renderer renderer in npc.GetComponentsInChildren<Renderer>(true))
             {
+                // 이미 사본을 입혔어도 외형 프리팹의 원래 재질에서 다시 맞춰, 원래 재질의 설정이 바뀌면 사본도 따라가게 한다.
+                Renderer original = PrefabUtility.GetCorrespondingObjectFromSource(renderer);
+                Material[] sources = (original != null ? original : renderer).sharedMaterials;
                 Material[] materials = renderer.sharedMaterials;
                 bool changed = false;
-                for (int index = 0; index < materials.Length; index++)
+                for (int index = 0; index < materials.Length && index < sources.Length; index++)
                 {
-                    Material variant = Variant(staff, materials[index]);
+                    Material variant = Variant(staff, sources[index]);
                     if (variant != null && variant != materials[index])
                     {
                         materials[index] = variant;
@@ -423,10 +426,6 @@ namespace A305.EditorTools.Npc
 
             string name = (body ? "Body_" : "Eye_") + texture.name;
             string materialPath = folder + "/" + name + ".mat";
-            var existing = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (existing != null)
-                return existing;
-
             BuilderTools.EnsureFolder(folder);
             string texturePath = folder + "/" + name + ".png";
             if (!File.Exists(texturePath))
@@ -439,13 +438,25 @@ namespace A305.EditorTools.Npc
                 );
             }
 
-            var material = new Material(source) { name = staff.Code + "_" + name };
+            // 텍스처만 색 사본이고 셰이더·그림자 받기 같은 설정은 원래 재질을 따른다. 이미 있는 사본도 다시 맞춘다.
+            var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+            if (material == null)
+            {
+                material = new Material(source);
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+            else
+            {
+                material.shader = source.shader;
+                material.CopyPropertiesFromMaterial(source);
+            }
+
             var recolored = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
             if (material.HasProperty("_BaseMap"))
                 material.SetTexture("_BaseMap", recolored);
             if (material.HasProperty("_MainTex"))
                 material.SetTexture("_MainTex", recolored);
-            AssetDatabase.CreateAsset(material, materialPath);
+            EditorUtility.SetDirty(material);
             return material;
         }
 

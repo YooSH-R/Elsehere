@@ -87,6 +87,62 @@ namespace A305.World.Tests
             Assert.That(own.Any(path => path.Contains("/Eye")), Is.True, code + ": 눈동자 색 재질");
         }
 
+        // 색 사본은 텍스처만 다르고 그림자 받기 같은 설정은 외형의 원래 재질을 따른다.
+        // 원본 눈이 얼굴과 같이 그림자를 받게 바뀌면(S15P31A305-217) 사본도 따라가야 눈 둘레만 밝게 뜨지 않는다.
+        [TestCase("POST_OFFICE_STAFF")]
+        [TestCase("DINER_STAFF")]
+        [TestCase("BANK_STAFF")]
+        [TestCase("LAUNDROMAT_STAFF")]
+        [TestCase("FLOWER_SHOP_STAFF")]
+        [TestCase("BARBER_STAFF")]
+        [TestCase("BAKERY_STAFF")]
+        [TestCase("ARCADE_STAFF")]
+        [TestCase("HOME_STORE_STAFF")]
+        public void StaffColorsKeepTheLookMaterialSettings(string code)
+        {
+            Scene scene = EditorSceneManager.OpenScene(TownPath);
+            NpcIdentity npc = BuilderTools
+                .FindAllInScene<NpcIdentity>(scene)
+                .SingleOrDefault(candidate => candidate.Code == code);
+            Assert.That(npc, Is.Not.Null, code);
+
+            int compared = 0;
+            foreach (Renderer renderer in npc.GetComponentsInChildren<Renderer>(true))
+            {
+                Renderer original = PrefabUtility.GetCorrespondingObjectFromSource(renderer);
+                if (original == null)
+                {
+                    continue;
+                }
+
+                Material[] copies = renderer.sharedMaterials;
+                Material[] sources = original.sharedMaterials;
+                for (int index = 0; index < copies.Length && index < sources.Length; index++)
+                {
+                    if (!AssetDatabase.GetAssetPath(copies[index]).StartsWith(ColorFolder + code))
+                    {
+                        continue;
+                    }
+
+                    string name = renderer.name + " " + copies[index].name;
+                    Assert.That(copies[index].shader, Is.EqualTo(sources[index].shader), name);
+                    Assert.That(
+                        copies[index].GetFloat("_ReceiveShadows"),
+                        Is.EqualTo(sources[index].GetFloat("_ReceiveShadows")),
+                        name
+                    );
+                    Assert.That(
+                        copies[index].IsKeywordEnabled("_RECEIVE_SHADOWS_OFF"),
+                        Is.EqualTo(sources[index].IsKeywordEnabled("_RECEIVE_SHADOWS_OFF")),
+                        name
+                    );
+                    compared++;
+                }
+            }
+
+            Assert.That(compared, Is.GreaterThan(0), code + ": 비교할 색 사본이 없습니다.");
+        }
+
         private static Transform Building(Scene scene, string name)
         {
             Transform found = scene

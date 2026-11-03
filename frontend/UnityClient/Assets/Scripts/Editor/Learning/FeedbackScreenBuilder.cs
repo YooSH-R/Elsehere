@@ -128,9 +128,7 @@ namespace A305.EditorTools.Learning
                 var label = tab.Find("Label").GetComponent<TMP_Text>();
                 Style(label, DisplayFontPath, 18, Muted);
                 label.text = TabNames[i];
-                label.alignment = TextAlignmentOptions.Center;
-                label.margin = new Vector4(0, 2 * Px, 0, 0);
-                Fill(label.rectTransform);
+                Lowered(label, 3);
                 var tabSize = BuilderTools.GetOrAddComponent<LayoutElement>(tab.gameObject);
                 tabSize.preferredWidth = tabSize.minWidth = TabWidths[i] * Px;
                 tabSize.preferredHeight = tabSize.minHeight = 42 * Px;
@@ -308,9 +306,7 @@ namespace A305.EditorTools.Learning
             var saveLabel = save.Find("Label").GetComponent<TMP_Text>();
             Style(saveLabel, DisplayFontPath, 16, Color.white);
             saveLabel.text = "담기";
-            saveLabel.alignment = TextAlignmentOptions.Center;
-            saveLabel.margin = new Vector4(0, 2 * Px, 0, 0);
-            Fill(saveLabel.rectTransform);
+            Lowered(saveLabel, 5);
             var saveSize = BuilderTools.GetOrAddComponent<LayoutElement>(save.gameObject);
             saveSize.minWidth = saveSize.preferredWidth = 58.56f * Px;
             saveSize.minHeight = saveSize.preferredHeight = 40 * Px;
@@ -344,9 +340,11 @@ namespace A305.EditorTools.Learning
             BottomLeft((RectTransform)navigation.Find("PreviousButton"), 0, 50);
             var number = navigation.Find("PageNumber").GetComponent<TMP_Text>();
             Style(number, DisplayFontPath, 19, Muted);
-            number.alignment = TextAlignmentOptions.Center;
-            number.margin = new Vector4(0, 2 * Px, 0, 0);
+            number.alignment = TextAlignmentOptions.Midline;
+            number.margin = Vector4.zero;
             BottomLeft(number.rectTransform, 62, 38.77f, 50);
+            // 양옆 둥근 유리 버튼(두께 4px)의 화살표가 두께 절반만큼 내려가 있어 같은 높이로 맞춘다.
+            number.rectTransform.anchoredPosition -= new Vector2(0, 2 * Px);
             ArtButton(navigation.Find("NextButton"), "FeedbackNext", 50, 50, 22, 12, 94, 96);
             BottomLeft((RectTransform)navigation.Find("NextButton"), 112.77f, 50);
 
@@ -427,6 +425,20 @@ namespace A305.EditorTools.Learning
             colors.selectedColor = Color.white;
             colors.disabledColor = new Color(1, 1, 1, .45f);
             press.colors = colors;
+        }
+
+        /// <summary>
+        /// 아래 두께가 있는 버튼(시안 .btn의 0 Npx 0 그림자)의 글자. 앞면 가운데에 두면 떠 보여, 글자 모양을 가운데(Midline)에 맞추고
+        /// 두께(<paramref name="lip"/>, 시안 px)의 절반만큼 내려 두께까지 포함한 버튼 가운데에 둔다. 글자를 그림에 넣은 버튼은 그림을 같은 기준으로 렌더링한다.
+        /// </summary>
+        internal static void Lowered(TMP_Text label, float lip)
+        {
+            label.alignment = TextAlignmentOptions.Midline;
+            label.margin = Vector4.zero;
+            RectTransform rect = label.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = new Vector2(0, -lip / 2 * Px);
         }
 
         // 테마 알약 버튼이 붙인 바탕·아이콘·배치를 지운다. 이름 글자는 남길 수 있다.

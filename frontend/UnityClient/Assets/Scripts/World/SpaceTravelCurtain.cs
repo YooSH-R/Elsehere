@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -46,6 +47,32 @@ namespace A305.World
 
             instance.StopAllCoroutines();
             instance.StartCoroutine(instance.TravelTo(destinationScene));
+        }
+
+        /// <summary>
+        /// 씬을 바꾸지 않고 같은 씬 안에서 옮길 때 쓴다. 다른 공간으로 갈 때와 같은 시간으로 화면을 덮고,
+        /// 다 덮이면 <paramref name="moveWhileCovered"/>를 부른 뒤 화면을 걷는다.
+        /// </summary>
+        public static void CoverWhile(Action moveWhileCovered)
+        {
+            if (instance == null)
+            {
+                instance = Create();
+            }
+
+            instance.StopAllCoroutines();
+            instance.StartCoroutine(instance.Cover(moveWhileCovered));
+        }
+
+        private IEnumerator Cover(Action moveWhileCovered)
+        {
+            yield return FadeTo(1f, CloseSeconds);
+            moveWhileCovered();
+            for (int frame = 0; frame < SettleFrames; frame++)
+            {
+                yield return null;
+            }
+            yield return FadeTo(0f, OpenSeconds);
         }
 
         private IEnumerator TravelTo(string destinationScene)

@@ -52,7 +52,7 @@
 | `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지·장소 이동 가능 여부·미션 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
 | `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비우고 장소 이동 잠금도 풉니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. |
 | `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | 튜토리얼을 끝낸 방법에 맞춰 완료(TUT-01 `POST /api/v1/me/tutorial/complete`)나 건너뛰기(TUT-02 `/skip`)를 한 번 저장합니다. 네트워크 실패면 기록을 남겨 다음 장소에 들어갈 때 다시 보내고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. Unity 객체 없이 테스트합니다. |
-| `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상(Ben 대화 시작 티칭 순서 포함)을 고르고, 구멍·둘레 판, 설명 말풍선 자리·꼬리(가리면 안 되는 곳이 있으면 그곳을 피해 옆자리는 아래·위로, 위·아래 자리는 왼쪽·오른쪽으로 비킴), 화살표 자리·방향을 계산합니다. Unity 객체 없이 테스트합니다. |
+| `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상(Ben 대화 시작 티칭 순서 포함)을 고르고, 구멍·둘레 판, 설명 말풍선 자리·꼬리(가리면 안 되는 곳이 있으면 그곳을 피해 옆자리는 아래·위로 비키고, 옆에 조금 모자라면 화면 끝에 붙여 밝힌 곳에 절반까지 겹치며, 위·아래 자리는 왼쪽·오른쪽으로 비킴), 화살표 자리·방향을 계산합니다. Unity 객체 없이 테스트합니다. |
 | `TutorialAction` | 걷기·둘러보기에서 해야 할 조작(걷기·달리기·시점 돌리기·확대·시점 바꾸기) |
 | `TutorialGuideText`, `TutorialAutoAdvance` | 안내 문구의 `{키}`를 `[키]` 표시로 바꾸고 해낸 할 일을 초록색으로 바꾸며 진행 점을 그리고, 해내면 끝나는 단계를 완료 표시 뒤 저절로 넘깁니다. Unity 객체 없이 테스트합니다. |
 | `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 짧은 이름과 할 일 한 줄(키보드·마우스, 터치 기기), 안내 카드가 숨는 동안의 코치 마크 설명([대화하기]·입력할 대사·추천 문장·추천 단어·다른 문장·[대화 종료]), 잠긴 문 안내, 숙소 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`). 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |

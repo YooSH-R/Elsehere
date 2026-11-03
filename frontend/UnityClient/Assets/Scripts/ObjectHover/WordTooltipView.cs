@@ -74,6 +74,9 @@ namespace A305.ObjectHover
         private CardAnchor anchor;
         private ObjectHoverSettings settings;
 
+        // 마지막으로 자리를 정할 때의 카드 크기. 고정한 카드가 길어져도 왼쪽 위 모서리를 지킬 때 쓴다.
+        private Vector2 placedSize;
+
         // 씬의 화면 캔버스. 카드가 덮지 않을 UI를 찾는다.
         private Canvas[] canvases;
         private readonly List<Rect> avoidAreas = new List<Rect>();
@@ -131,10 +134,22 @@ namespace A305.ObjectHover
             Present(word, anchor, settings, isPinned: true, buttons);
         }
 
-        /// <summary>보이는 카드의 자리를 다시 정한다. 고정한 카드가 나중에 열린 창에 가려지지 않도록 매 프레임 부른다.</summary>
+        /// <summary>
+        /// 보이는 카드의 자리를 다시 정한다. 고정한 카드가 나중에 열린 창에 가려지지 않도록 매 프레임 부른다.
+        /// 고정한 카드는 [숨기기] 안내처럼 내용이 바뀌어 길어져도 그 자리를 지키고, 화면을 벗어나거나 다른 창을 덮을 때만 옮긴다.
+        /// </summary>
         public void UpdatePlacement()
         {
-            if (IsVisible)
+            if (!IsVisible)
+            {
+                return;
+            }
+
+            if (IsPinned)
+            {
+                KeepOrPlace();
+            }
+            else
             {
                 Place();
             }
@@ -174,9 +189,18 @@ namespace A305.ObjectHover
             ShowButtons(isPinned, buttons);
             LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
 
+            // 같은 고정 카드를 버튼 상태만 바꿔 다시 그릴 때는 자리를 지킨다.
+            bool redrawsPinnedCard = isPinned && IsPinned && IsSamePlace(anchor);
             this.anchor = anchor;
             this.settings = settings;
-            Place();
+            if (redrawsPinnedCard)
+            {
+                KeepOrPlace();
+            }
+            else
+            {
+                Place();
+            }
 
             panelGroup.alpha = 1f;
             panelGroup.blocksRaycasts = isPinned;
@@ -188,6 +212,36 @@ namespace A305.ObjectHover
         // 포인터 가까이에서 가리킨 사물·캐릭터와 다른 화면을 덮지 않는 자리에 카드를 둔다.
         private void Place()
         {
+            CollectAvoidAreas();
+            PlaceAroundPointer();
+        }
+
+        // 지금 자리에서 왼쪽 위 모서리를 지켜 늘인다. 화면을 벗어나거나 캐릭터·다른 화면을 덮으면 자리를 다시 정한다.
+        private void KeepOrPlace()
+        {
+            CollectAvoidAreas();
+            if (
+                TooltipPlacement.TryKeepTopLeft(
+                    panel.anchoredPosition,
+                    placedSize,
+                    panel.rect.size,
+                    canvasRect.rect.size,
+                    settings.ScreenMargin,
+                    avoidAreas,
+                    out Vector2 kept
+                )
+            )
+            {
+                panel.anchoredPosition = kept;
+                placedSize = panel.rect.size;
+                return;
+            }
+
+            PlaceAroundPointer();
+        }
+
+        private void CollectAvoidAreas()
+        {
             avoidAreas.Clear();
             if (anchor.PlayerArea is Rect playerArea)
             {
@@ -195,6 +249,10 @@ namespace A305.ObjectHover
             }
 
             AddOtherScreenAreas();
+        }
+
+        private void PlaceAroundPointer()
+        {
             panel.anchoredPosition = TooltipPlacement.PlaceAround(
                 ToCanvas(anchor.Pointer),
                 ToCanvas(anchor.PointedArea),
@@ -204,6 +262,12 @@ namespace A305.ObjectHover
                 settings.ScreenMargin,
                 avoidAreas
             );
+            placedSize = panel.rect.size;
+        }
+
+        private bool IsSamePlace(CardAnchor other)
+        {
+            return other.Pointer == anchor.Pointer && other.PointedArea == anchor.PointedArea;
         }
 
         // 카드 밖에서 지금 그려지는 화면 UI(HUD·퀘스트 안내·수첩·미니맵·튜토리얼 가이드 등)의 영역을 더한다.

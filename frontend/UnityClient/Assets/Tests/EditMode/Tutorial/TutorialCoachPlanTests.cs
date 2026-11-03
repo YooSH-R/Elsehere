@@ -172,9 +172,9 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
-        public void TodayGoal_HighlightsTheMapButton()
+        public void TodayGoal_HighlightsTheQuestCard()
         {
-            Assert.That(Choose(TutorialStep.TodayGoal), Is.EqualTo(TutorialCoachTarget.MapButton));
+            Assert.That(Choose(TutorialStep.TodayGoal), Is.EqualTo(TutorialCoachTarget.QuestCard));
         }
 
         [Test]

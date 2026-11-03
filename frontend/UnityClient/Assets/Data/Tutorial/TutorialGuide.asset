@@ -64,8 +64,8 @@ MonoBehaviour:
     buttonLabel: 
   - step: 9
     title: "\uC624\uB298\uC758 \uBAA9\uD45C"
-    task: "{\uC9C0\uB3C4} \uBC84\uD2BC\uC73C\uB85C \uC624\uB298\uC758 \uBAA9\uD45C
-      \uBCF4\uAE30"
+    task: "\uC67C\uCABD \uC704 {\uD018\uC2A4\uD2B8 \uCE74\uB4DC}\uB97C \uB20C\uB7EC
+      \uC624\uB298\uC758 \uBAA9\uD45C \uBCF4\uAE30"
     touchTask: 
     buttonLabel: 
   talkOfferCaption: "{\uB300\uD654\uD558\uAE30}\uB97C \uB20C\uB7EC Ben\uACFC \uC774\uC57C\uAE30\uD574\uC694"

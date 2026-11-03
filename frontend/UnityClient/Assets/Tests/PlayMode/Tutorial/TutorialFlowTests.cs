@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using A305.Dialogue;
 using A305.Learning;
+using A305.Mission;
 using A305.Npc;
 using A305.ObjectHover;
 using A305.Player;
@@ -672,6 +673,30 @@ namespace A305.Tutorial.PlayModeTests
                 TutorialState.GetOrCreate(BenCode).Step,
                 Is.EqualTo(TutorialStep.TodayGoal)
             );
+        }
+
+        [UnityTest]
+        public IEnumerator TodayGoal_HighlightsTheQuestCard_AndPressingItFinishesTheTutorial()
+        {
+            // 예전 지도 버튼은 없다. 왼쪽 위 퀘스트 카드를 밝히고, 카드를 눌러 수첩을 열면 튜토리얼을 마친다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            TutorialProgress progress = TutorialState.GetOrCreate(BenCode);
+            progress.StartDialogue(BenCode);
+            progress.EndDialogue(BenCode, true);
+            progress.CloseFeedback(BenCode);
+            yield return null;
+            yield return null;
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.TodayGoal), "준비: 오늘의 목표");
+
+            var card = (RectTransform)
+                Single<FirstDayMissionView>().transform.Find("Content/CurrentGoal");
+            Assert.That(Single<CoachMarkView>().SpotlightTargets, Is.EqualTo(new[] { card }));
+
+            card.GetComponent<Button>().onClick.Invoke();
+            yield return null;
+
+            Assert.That(progress.Step, Is.EqualTo(TutorialStep.Completed));
         }
 
         // 대화 시작 티칭을 [다음]으로 끝까지 넘긴다.

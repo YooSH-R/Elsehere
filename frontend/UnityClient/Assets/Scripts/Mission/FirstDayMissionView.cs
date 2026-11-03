@@ -151,7 +151,7 @@ namespace A305.Mission
 
         public event Action StartRequested;
 
-        /// <summary>지도 버튼으로 수첩을 열면 알린다.</summary>
+        /// <summary>퀘스트 카드를 눌러 수첩을 열면 알린다.</summary>
         public event Action JournalOpened;
         public event Action RestRequested;
         public event Action RetryRequested;
@@ -160,8 +160,8 @@ namespace A305.Mission
 
         public bool IsJournalOpen => journal.activeSelf;
 
-        /// <summary>왼쪽 위 지도 버튼. 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
-        public RectTransform JournalButtonRect => (RectTransform)journalButton.transform;
+        /// <summary>왼쪽 위 퀘스트 카드. 누르면 수첩이 열리며, 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
+        public RectTransform QuestCardRect => (RectTransform)journalButton.transform;
 
         public void SetAvailable(bool available)
         {
@@ -439,7 +439,7 @@ namespace A305.Mission
 
         private void CloseLargeMap() => ShowLargeMap(false);
 
-        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 지도 버튼으로 연다.
+        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 퀘스트 카드를 눌러 연다.
         private void ShowLargeMap(bool open)
         {
             if (mapOverlay == null)

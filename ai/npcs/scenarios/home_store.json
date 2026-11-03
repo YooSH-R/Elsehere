@@ -1,0 +1,10 @@
+{
+  "scenarioId": "home_store",
+  "locationId": "TOWN",
+  "situation": "The customer is looking around Home & Living, the furniture and home goods store on the town's main street. Armchairs, lamps, cabinets and nightstands are on display.",
+  "facts": [
+    "A lamp is $30. An armchair is $150.",
+    "Leaf Tea Room, a separate shop, is upstairs. Its entrance is by the outside stairs.",
+    "Maple Diner is right across the main street."
+  ]
+}

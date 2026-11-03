@@ -71,12 +71,14 @@ namespace A305.Learning.Tests
             );
         }
 
-        [Test]
-        public void OtherTabs_HideTheSituationRows()
+        // 회화 표현 탭은 같은 표현 칸을 보인다(FeedbackScreenLayoutTests). 문장 교정·저장할 표현 탭에는 없다.
+        [TestCase(FeedbackSection.Corrections)]
+        [TestCase(FeedbackSection.Expressions)]
+        public void CorrectionsAndExpressionsTabs_HideTheSituationRows(FeedbackSection section)
         {
             Show(Expressions);
 
-            view.SelectSection(FeedbackSection.Corrections);
+            view.SelectSection(section);
 
             Assert.That(Rows(), Is.Empty);
         }

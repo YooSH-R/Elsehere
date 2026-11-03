@@ -1,4 +1,46 @@
 {
+  "ARCADE_STAFF": {
+    "scenarioId": "arcade",
+    "locationId": "TOWN",
+    "situation": "The visitor has just walked into Little Arcade on the town's main street. There are claw machines with stuffed bears and rabbits inside.",
+    "facts": [
+      "One claw machine game is $1.",
+      "Paper & Leaf Books, a separate bookshop, is upstairs.",
+      "The post office is right across the main street."
+    ]
+  },
+  "BAKERY_STAFF": {
+    "scenarioId": "bakery_counter",
+    "locationId": "TOWN",
+    "situation": "The customer is at the counter of Maple Bakery on the town's main street. Bread, croissants and chocolate cake are in the display case.",
+    "facts": [
+      "A loaf of bread is $4, a croissant is $3 and a slice of chocolate cake is $5.",
+      "Coffee is $2.",
+      "There are tables upstairs on the second floor for eating in.",
+      "Maple Bakery is next to the post office."
+    ]
+  },
+  "BANK_STAFF": {
+    "scenarioId": "bank_counter",
+    "locationId": "TOWN",
+    "situation": "The customer is at the teller window of Town Bank on the town's main street. There is an ATM just inside the entrance on the left and a few chairs to wait on.",
+    "facts": [
+      "At the teller window, Henry can help with deposits and withdrawals.",
+      "Opening a new account needs a photo ID.",
+      "The ATM is inside the bank, just inside the entrance on the left.",
+      "Suds Laundromat is right across the main street."
+    ]
+  },
+  "BARBER_STAFF": {
+    "scenarioId": "barber_shop",
+    "locationId": "TOWN",
+    "situation": "The customer has just walked into Main St. Barber on the town's main street. There are two barber chairs in front of a long mirror and a sofa for waiting.",
+    "facts": [
+      "A haircut is $20. A shave is $10.",
+      "No appointment is needed. One chair is free right now.",
+      "Bloom Flowers is right across the main street."
+    ]
+  },
   "CAFE_STAFF": {
     "scenarioId": "cafe_counter",
     "locationId": "CAFE",
@@ -12,6 +54,38 @@
       "The hotel is right across the main street: cross at the crosswalk outside the cafe door, turn left, and it is a few steps up on the corner."
     ]
   },
+  "DINER_STAFF": {
+    "scenarioId": "diner_counter",
+    "locationId": "TOWN",
+    "situation": "The customer has just sat down on a stool at the long counter of Maple Diner on the town's main street. There are booths along the other wall and a menu board on the back wall.",
+    "facts": [
+      "Breakfast is served all day.",
+      "Menu: pancakes $7, cheeseburger $9, apple pie $4, coffee $2.",
+      "Coffee refills are free.",
+      "Home & Living is right across the main street."
+    ]
+  },
+  "FLOWER_SHOP_STAFF": {
+    "scenarioId": "flower_shop_counter",
+    "locationId": "TOWN",
+    "situation": "The customer is at the counter at the back of Bloom Flowers on the town's main street. Fresh cut flowers stand in buckets on steps along both walls.",
+    "facts": [
+      "Today's fresh flowers are roses, tulips, sunflowers and daisies.",
+      "A single flower is $2. A bouquet is $15.",
+      "Lily can wrap any flowers in paper with a ribbon.",
+      "Main St. Barber is right across the main street."
+    ]
+  },
+  "HOME_STORE_STAFF": {
+    "scenarioId": "home_store",
+    "locationId": "TOWN",
+    "situation": "The customer is looking around Home & Living, the furniture and home goods store on the town's main street. Armchairs, lamps, cabinets and nightstands are on display.",
+    "facts": [
+      "A lamp is $30. An armchair is $150.",
+      "Leaf Tea Room, a separate shop, is upstairs. Its entrance is by the outside stairs.",
+      "Maple Diner is right across the main street."
+    ]
+  },
   "HOTEL_STAFF": {
     "scenarioId": "hotel_front_desk",
     "locationId": "HOTEL",
@@ -22,6 +96,16 @@
       "Their room is 305 on the third floor. The elevators are in the lobby."
     ]
   },
+  "LAUNDROMAT_STAFF": {
+    "scenarioId": "laundromat",
+    "locationId": "TOWN",
+    "situation": "The customer has just walked into Suds Laundromat on the town's main street. There are washing machines along the left wall, dryers on the back wall and a folding table in the middle.",
+    "facts": [
+      "A wash is $3 and a dryer is $2.",
+      "A wash takes about 30 minutes and drying takes about 40 minutes.",
+      "Town Bank is right across the main street."
+    ]
+  },
   "POLICE_OFFICER": {
     "scenarioId": "police_front_desk",
     "locationId": "TOWN",
@@ -29,6 +113,16 @@
     "facts": [
       "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
       "If the visitor does not say where it happened, the patrol car drives once around the main street."
+    ]
+  },
+  "POST_OFFICE_STAFF": {
+    "scenarioId": "post_office_counter",
+    "locationId": "TOWN",
+    "situation": "The customer is at the counter of the small post office on the town's main street. There is a scale for packages on the counter and a wall of PO boxes.",
+    "facts": [
+      "A stamp for a letter is $1. Sending a package is $5.",
+      "Linda weighs every package on the scale before sending it.",
+      "The post office is between Maple Bakery and Home & Living. Little Arcade is right across the main street."
     ]
   },
   "SHOP_STAFF": {

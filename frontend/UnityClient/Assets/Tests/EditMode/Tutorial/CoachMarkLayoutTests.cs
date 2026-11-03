@@ -140,6 +140,46 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void Bubble_AboveWouldCoverTheKeepClearArea_SitsBelowInstead()
+        {
+            // 대화 위에 남긴 [건너뛰기] 카드처럼 가리면 안 되는 곳이 위에 있으면 아래로 간다.
+            var keepClear = new Rect(250f, 450f, 300f, 100f);
+
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(50f, 250f, 700f, 120f),
+                new Vector2(300f, 100f),
+                Canvas,
+                20f,
+                10f,
+                keepClear
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Below));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(250f, 130f, 300f, 100f)));
+            Assert.That(bubble.Rect.Overlaps(keepClear), Is.False);
+        }
+
+        [Test]
+        public void Bubble_NoRoomBelow_StaysAboveButMovesBesideTheKeepClearArea()
+        {
+            var keepClear = new Rect(300f, 480f, 200f, 100f);
+
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(50f, 100f, 700f, 300f),
+                new Vector2(200f, 100f),
+                Canvas,
+                20f,
+                10f,
+                keepClear
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Above));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(80f, 420f, 200f, 100f)));
+            Assert.That(bubble.Tail.y, Is.EqualTo(420f));
+            Assert.That(bubble.Tail.x, Is.InRange(bubble.Rect.xMin, bubble.Rect.xMax));
+        }
+
+        [Test]
         public void Compass_LiesOnTheGroundAtTheFeet_PointingTowardTheTarget()
         {
             // 걸어갈 곳은 플레이어 발밑 바닥에 나침반처럼 가리킨다. 높낮이는 보지 않고 바닥을 따라 대상 쪽을 가리킨다.

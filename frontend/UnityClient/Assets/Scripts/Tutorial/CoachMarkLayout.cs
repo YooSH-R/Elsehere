@@ -87,7 +87,8 @@ namespace A305.Tutorial
             Vector2 size,
             Vector2 canvasSize,
             float gap,
-            float margin
+            float margin,
+            Rect keepClear = default
         )
         {
             float sideY = Clamp(

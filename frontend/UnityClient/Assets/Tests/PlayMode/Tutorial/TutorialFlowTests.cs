@@ -498,6 +498,7 @@ namespace A305.Tutorial.PlayModeTests
             {
                 Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
                 Assert.That(coachMark.IsDimmingOutside, Is.True, "하나씩 밝혀 볼 곳을 알립니다.");
+                AssertCaptionClearsTheSkipCard(coachMark);
                 Assert.That(coachMark.IsNextShowing, Is.True);
                 Assert.That(
                     coachMark.CaptionRect.Overlaps(coachMark.Hole),
@@ -648,6 +649,7 @@ namespace A305.Tutorial.PlayModeTests
                 Assert.That(coachMark.IsDimmingOutside, Is.True);
                 Assert.That(coachMark.IsNextShowing, Is.True);
                 Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+                AssertCaptionClearsTheSkipCard(coachMark);
                 ClickNext(coachMark);
                 yield return null;
                 yield return null;
@@ -726,6 +728,27 @@ namespace A305.Tutorial.PlayModeTests
                 $"{buttonName}이 보이지 않습니다."
             );
             button.onClick.Invoke();
+        }
+
+        // 대화·대화 노트 위에 남긴 [건너뛰기] 카드는 그대로 두고, 코치 마크 설명 말풍선이 그 카드를 피해 놓인다.
+        private static void AssertCaptionClearsTheSkipCard(CoachMarkView coachMark)
+        {
+            TutorialGuideView guideView = Single<TutorialGuideView>();
+            Assert.That(guideView.IsSkipOnly, Is.True, "준비: [건너뛰기] 카드");
+            Canvas.ForceUpdateCanvases();
+            var caption = (RectTransform)coachMark.transform.Find("Caption");
+            Assert.That(
+                ScreenRectOf(caption).Overlaps(ScreenRectOf(guideView.PanelRect)),
+                Is.False,
+                "코치 마크 설명이 [건너뛰기] 카드에 가립니다."
+            );
+        }
+
+        private static Rect ScreenRectOf(RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
         }
 
         private static T Single<T>()

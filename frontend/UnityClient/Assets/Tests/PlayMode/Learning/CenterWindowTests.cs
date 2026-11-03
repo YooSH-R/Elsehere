@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Linq;
+using System.Threading.Tasks;
 using A305.Tutorial;
+using A305.World;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -21,6 +23,9 @@ namespace A305.Learning.PlayModeTests
         {
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
+            // 서버가 없는 시험에서 마을의 게임 시계 신호가 응답을 기다리는 채로 다음 시험에 남지 않게,
+            // 시각을 미리 맞춰 이 시험 동안(신호 간격 30초 안)에는 신호를 보낼 때가 오지 않게 한다.
+            GameClock.Shared.TickAsync(new FixedGameClockApi(), Time.realtimeSinceStartupAsDouble);
         }
 
         // 열어 둔 창이 다음 시험의 마을 HUD를 숨기지 않게 창을 다루는 학습 처리를 지운다. 지울 때 가운데 창이 닫혔다고 알린다.
@@ -125,6 +130,15 @@ namespace A305.Learning.PlayModeTests
             T[] found = Object.FindObjectsByType<T>(FindObjectsSortMode.None);
             Assert.That(found, Has.Length.EqualTo(1), $"{typeof(T).Name} 개수");
             return found[0];
+        }
+
+        // 1일차 오전 8시로 바로 답하는 게임 시계 신호
+        private sealed class FixedGameClockApi : IGameClockApi
+        {
+            public Task<GameClockTime> BeatAsync()
+            {
+                return Task.FromResult(new GameClockTime { Day = 1, MinuteOfDay = 8 * 60 });
+            }
         }
     }
 }

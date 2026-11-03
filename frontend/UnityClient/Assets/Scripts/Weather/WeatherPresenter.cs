@@ -225,17 +225,29 @@ namespace A305.Weather
             shownLook = designedLook;
             designedSunRotation = sun.transform.rotation;
             if (daylight != null)
+            {
+                // 입점 건물 안의 실내등은 마을의 어두운 밤 환경광을 그대로 받는 방을 밝히므로 따로 배율을 둔다.
+                Light[] shopLamps = lamps
+                    .Where(lamp =>
+                        lamp != null
+                        && litBuildings.Any(building =>
+                            building != null && lamp.transform.IsChildOf(building)
+                        )
+                    )
+                    .ToArray();
                 nightLights = new NightLights(
                     daylight,
-                    lamps,
+                    lamps.Except(shopLamps),
                     gameObject
                         .scene.GetRootGameObjects()
                         .SelectMany(root => root.GetComponentsInChildren<Renderer>(true)),
                     litBuildings
                         .Where(building => building != null)
                         .SelectMany(building => building.GetComponentsInChildren<Renderer>(true)),
-                    streetLamps
+                    streetLamps,
+                    shopLamps
                 );
+            }
 
             if (designedSky != null)
             {

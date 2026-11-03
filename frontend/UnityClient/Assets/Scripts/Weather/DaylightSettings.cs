@@ -87,6 +87,13 @@ namespace A305.Weather
 
         [SerializeField]
         [Min(0f)]
+        [Tooltip(
+            "한밤중 마을 입점 건물 안 실내등 세기 배율. 마을 안 매장은 실내 씬과 달리 밤의 어두운 환경광을 그대로 받으므로 실내등 하나로 불을 켠 방처럼 밝힌다"
+        )]
+        private float nightShopLampScale = 14f;
+
+        [SerializeField]
+        [Min(0f)]
         [Tooltip("한밤중 창빛·전구 같은 발광 재질 밝기 배율")]
         private float nightGlowScale = 2.2f;
 
@@ -154,6 +161,7 @@ namespace A305.Weather
         private float nightInteriorAmbientScale = .9f;
 
         public float NightLampScale => nightLampScale;
+        public float NightShopLampScale => nightShopLampScale;
         public float NightGlowScale => nightGlowScale;
         public IReadOnlyList<Material> GlowMaterials => glowMaterials;
         public IReadOnlyList<Material> NightOnlyGlowMaterials => nightOnlyGlowMaterials;

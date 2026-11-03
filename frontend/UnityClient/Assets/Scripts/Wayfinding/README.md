@@ -71,6 +71,8 @@
 4. TownScene의 차도·횡단보도 구역을 표시하고, `Systems`에 길 안내를 하나 두어 플레이어·대화와 이은 뒤 걸을 바닥을 다시 굽습니다(`NpcLifeBuilder.RebakeWalkArea`).
 5. 첫날 미션의 크게 본 지도에 길 안내 켜기·끄기 버튼을 둡니다(`FirstDayMissionBuilder.ApplyRouteToggle`).
 
+서버 없이 Editor에서 확인할 때는 TownScene을 Play한 뒤 **Tools → A305 → Wayfinding → Preview Destination**에서 호텔·카페·드럭스토어·집을 고르면 그 출입문으로 안내합니다(**Clear**로 끔). 서버가 미션 상태를 보내면 그 목적지로 다시 바뀝니다.
+
 ## 테스트
 
 | 어셈블리 | 위치 | 검증 |

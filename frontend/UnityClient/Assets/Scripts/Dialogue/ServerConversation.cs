@@ -24,6 +24,7 @@ namespace A305.Dialogue
         private const string NoSpeechCode = "STT_NO_SPEECH";
         private const string VoiceConsentRequiredCode = "VOICE_CONSENT_REQUIRED";
         private const string ActiveStatus = "ACTIVE";
+        private const string NpcSpeaker = "NPC";
         private const string QuotaExhaustedReason = "QUOTA_EXHAUSTED";
         private const string RudeReason = "RUDE";
         private const string FeedbackDone = "DONE";
@@ -133,15 +134,14 @@ namespace A305.Dialogue
                 "대화를 시작하고 있어요...",
                 async () =>
                 {
-                    ConversationStart start = await StartOrCloseStaleAsync();
-                    ConversationId = start.ConversationId;
-                    if (!string.IsNullOrEmpty(start.Npc?.Name))
+                    try
                     {
-                        NpcName = start.Npc.Name;
+                        Begin(await api.StartAsync(startRequestId, NpcCode, InitiatedByCode));
                     }
-
-                    Standing.Apply(start.Conversation);
-                    AddNpcTurn(start.OpeningTurn);
+                    catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
+                    {
+                        await ResumeOrRestartAsync();
+                    }
                 },
                 StartAsync,
                 DialogueWait.Opening
@@ -470,22 +470,73 @@ namespace A305.Dialogue
             );
         }
 
-        // 새로고침 등으로 끝내지 못한 대화가 남아 있으면 피드백 없이 끝내고 새로 시작한다.
-        private async Task<ConversationStart> StartOrCloseStaleAsync()
+        private void Begin(ConversationStart start)
         {
-            try
+            ConversationId = start.ConversationId;
+            if (!string.IsNullOrEmpty(start.Npc?.Name))
             {
-                return await api.StartAsync(startRequestId, NpcCode, InitiatedByCode);
+                NpcName = start.Npc.Name;
             }
-            catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
-            {
-                ActiveConversation stale = await api.GetActiveAsync();
-                if (stale != null)
-                {
-                    await api.EndAsync(stale.ConversationId, NewRequestId(), true);
-                }
 
-                return await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode);
+            Standing.Apply(start.Conversation);
+            AddNpcTurn(start.OpeningTurn);
+        }
+
+        // 새로고침 등으로 끝내지 못한 대화가 남아 있다. 같은 NPC와의 대화면 이어서 해 새 대화를 만들지 않고(게스트 대화 횟수를 다시 쓰지 않음),
+        // 다른 NPC와의 대화면 피드백 없이 끝내고 새로 시작한다.
+        private async Task ResumeOrRestartAsync()
+        {
+            ActiveConversation stale = await api.GetActiveAsync();
+            if (stale?.Npc?.NpcCode == NpcCode)
+            {
+                Resume(stale);
+                return;
+            }
+
+            if (stale != null)
+            {
+                await api.EndAsync(stale.ConversationId, NewRequestId(), true);
+            }
+
+            Begin(await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode));
+        }
+
+        // 지난 대사를 다시 보이고 마지막 NPC 대사는 처음 시작할 때처럼 들려준다.
+        // 진행 중인 대화 조회(CONV-11)에는 호감도가 없어 호감도·무례 칸은 다음 대사부터 보인다.
+        private void Resume(ActiveConversation active)
+        {
+            ConversationId = active.ConversationId;
+            if (!string.IsNullOrEmpty(active.Npc.Name))
+            {
+                NpcName = active.Npc.Name;
+            }
+
+            List<ActiveTurn> turns = active.Turns ?? new List<ActiveTurn>();
+            int lastNpcIndex = turns.FindLastIndex(turn => turn.Speaker == NpcSpeaker);
+            for (int index = 0; index < turns.Count; index++)
+            {
+                ActiveTurn turn = turns[index];
+                if (turn.Speaker != NpcSpeaker)
+                {
+                    lines.Add(DialogueLine.FromUser(turn.Text));
+                    userUtterances.Add(turn.Text);
+                }
+                else if (index == lastNpcIndex)
+                {
+                    AddNpcTurn(
+                        new NpcTurnData
+                        {
+                            TurnId = turn.TurnId,
+                            Text = turn.Text,
+                            SuggestWords = turn.SuggestWords,
+                            Speech = turn.Speech,
+                        }
+                    );
+                }
+                else
+                {
+                    lines.Add(DialogueLine.FromNpc(turn.Text, null));
+                }
             }
         }
 

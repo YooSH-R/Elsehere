@@ -24,10 +24,15 @@ namespace A305.Learning
         public string Title { get; }
         public string Body { get; }
         public ReferenceExpression Expression { get; }
+
+        /// <summary>표현 칸으로 그릴 '이 상황에서 자주 써요' 표현. 글로 된 장이면 null이다.</summary>
+        public IReadOnlyList<SituationExpressionData> Situations { get; set; }
     }
 
     public static class FeedbackPages
     {
+        public const string SituationTitle = "이 상황에서 자주 써요";
+
         public static IReadOnlyList<FeedbackPage> Create(
             ConversationFeedback feedback,
             FeedbackSection section
@@ -39,7 +44,7 @@ namespace A305.Learning
                 case FeedbackSection.Summary:
                     var summary = new StringBuilder(feedback.Summary);
                     foreach (string note in feedback.Notes)
-                        summary.Append("\n\n").Append(note);
+                        summary.Append("\n\n").Append(MarkNote(note));
                     pages.Add(new FeedbackPage("이번 대화", summary.ToString()));
                     break;
                 case FeedbackSection.Corrections:
@@ -108,8 +113,8 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// 사용자 발화와 별개로 이 장면에서 자주 쓰는 표현을 한 장에 모아 먼저 보여 준다. 한 장씩 넘기지 않아도 한눈에 보인다.
-        /// 표현이 하나면 뜻을 함께 넘겨 [표현 저장]이 그 표현을 저장하고, 여럿이면 요약 탭의 표현 줄에서 하나씩 담는다.
+        /// 사용자 발화와 별개로 이 장면에서 자주 쓰는 표현을 한 장에 모아 먼저 보여 준다. 요약 탭과 같은 표현 칸(코랄 제목 아래 흰 칸)으로 그리므로
+        /// 본문 글은 비우고 표현을 넘긴다. 표현이 하나면 뜻을 함께 넘겨 [표현 저장]이 그 표현을 저장한다.
         /// </summary>
         private static void AddSituationPage(
             List<FeedbackPage> pages,
@@ -125,21 +130,6 @@ namespace A305.Learning
             if (shown.Count == 0)
                 return;
 
-            // 대화 노트는 페이지 제목을 따로 보여 주지 않아 다른 회화 카드처럼 본문 첫 줄에 이름을 둔다.
-            var body = new StringBuilder("<b>이 상황에서 자주 써요</b>");
-            foreach (SituationExpressionData situation in shown)
-            {
-                body.Append("\n\n<b>").Append(situation.Expression).Append("</b>  ");
-                body.Append(situation.MeaningKo);
-                if (!string.IsNullOrEmpty(situation.UsageKo))
-                    body.Append("\n").Append(situation.UsageKo);
-                if (!string.IsNullOrEmpty(situation.ExampleEn))
-                    body.Append("\n<color=#8F887F>예) ")
-                        .Append(situation.ExampleEn)
-                        .Append("  ")
-                        .Append(situation.ExampleKo)
-                        .Append("</color>");
-            }
             ReferenceExpression only =
                 shown.Count == 1
                     ? new ReferenceExpression(
@@ -148,7 +138,21 @@ namespace A305.Learning
                         shown[0].UsageKo
                     )
                     : null;
-            pages.Add(new FeedbackPage("이 상황에서 자주 써요", body.ToString(), only));
+            pages.Add(new FeedbackPage(SituationTitle, "", only) { Situations = shown });
+        }
+
+        // 잘한 점·아쉬운 점의 앞머리(잘했어요·아쉬워요)를 초록·코랄 굵은 글자로 칠하고 가운뎃점은 뺀다.
+        private static string MarkNote(string note)
+        {
+            foreach (
+                var (head, color) in new[] { ("잘했어요", "#2F8A4B"), ("아쉬워요", "#D24F2F") }
+            )
+            {
+                string prefix = head + " · ";
+                if (note.StartsWith(prefix))
+                    return $"<color={color}><b>{head}</b></color>  {note.Substring(prefix.Length)}";
+            }
+            return note;
         }
 
         private static void AddExpression(

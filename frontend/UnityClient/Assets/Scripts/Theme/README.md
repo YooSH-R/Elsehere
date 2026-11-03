@@ -25,6 +25,8 @@
 
 화면 위 UI는 카메라가 다 그린 뒤에 그려지므로 같은 프레임의 흐린 화면을 씁니다. UI 자신은 흐림에 섞이지 않습니다. 이 기능은 웹이 쓰는 모바일 렌더러(`Settings/Mobile_Renderer.asset`)와 PC 렌더러에 붙어 있습니다. 기능이 없으면 유리는 이미지 색을 진하게 칠해 글자가 읽히게 합니다.
 
+UI는 씬의 시각이나 계절 테마를 따르지 않습니다. 지금 씬 색을 시각에 따라 바꾸는 것은 밤낮뿐이며(계절 테마는 아직 없음), 밤낮(Weather 모듈)이 씬을 밤처럼 어둡게 칠하면 밤인 정도(0~1)를 `UiBackdropLift`(전역 값 `_A305UiBackdropLift`)로 알립니다. 유리는 그만큼 흐린 뒤 화면의 어두운 곳을 낮 마을 뒤 화면 밝기(0.7)까지 밝혀 낮과 같은 밝기로 보입니다. 낮에는 0이라 디자인 그대로입니다.
+
 입구 화면처럼 3D 공간이 없는 씬에서는 카메라 배경색이 유리에 비칩니다. 그래서 입구 카메라를 화면 배경과 같은 크림색으로 칠합니다(`OnboardingBuilder.PaintCamera`).
 
 ## 그림과 여백
@@ -71,6 +73,7 @@
 | `PillContentLayout` | 알약 버튼의 아이콘과 이름을 한 묶음으로 가운데에 두고, 낮은 버튼은 이름만 둡니다. 이름이 없는 버튼은 높이와 상관없이 아이콘을 둡니다. (EditMode `PillContentLayoutTests`) |
 | `SurfaceBleed` | 그림의 그림자 여백만큼 그리는 면을 넓혀 보이는 모양을 칸에 맞춥니다. (EditMode `SurfaceBleedTests`) |
 | `UiBackdropBlurFeature` | 유리가 비출 흐린 뒤 화면을 만드는 URP 렌더러 기능입니다. |
+| `UiBackdropLift` | 씬이 밤처럼 어두워진 만큼 유리가 비추는 뒤 화면을 밝혀, 유리 UI가 씬의 시각을 따라 어두워지지 않게 합니다. (PlayMode `TownDaylightTests`, `InteriorDaylightTests`) |
 | `ThemedTownMap`, `TownMapColors` | 실제 마을 배치를 바탕으로 그린 퀘스트 지도의 길·장소 카드·나무 아이콘과 목적지 표시를 디자인 색에 맞춥니다. |
 
 ## 에셋 위치

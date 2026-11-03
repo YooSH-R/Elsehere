@@ -76,7 +76,7 @@ async function runUnityLoader(page, result) {
     ["#unity-canvas", { addEventListener() {} }],
     ["#unity-loading", { hidden: false, style: {}, animate() { return { finished: Promise.resolve() }; } }],
     ["#unity-warning", { hidden: true, children: [], appendChild(child) { this.children.push(child); } }],
-    ["#unity-progress", {}],
+    ["#unity-progress", { style: { setProperty() {} }, setAttribute() {} }],
     ["#intro-slides", { appendChild() {} }],
     ["#intro-caption", {}],
   ]);
@@ -94,6 +94,7 @@ async function runUnityLoader(page, result) {
       : Promise.resolve(),
     // The intro slides keep waiting for their first picture so the test only follows the loader.
     Image: class { decode() { return new Promise(() => {}); } },
+    requestAnimationFrame() {},
     setTimeout,
     clearTimeout,
   };

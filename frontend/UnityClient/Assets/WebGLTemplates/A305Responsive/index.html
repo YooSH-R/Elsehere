@@ -28,7 +28,7 @@
             <p id="intro-caption"></p>
             <div id="loading-status" role="status">
               <span>마을을 불러오는 중이에요.</span>
-              <progress id="unity-progress" max="1" value="0"></progress>
+              <div id="unity-progress" role="progressbar" aria-label="불러온 정도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
             </div>
           </div>
         </div>
@@ -287,14 +287,49 @@
         clearTimeout(slideTimer);
       }
 
+      // 막대가 받은 만큼 부드럽게 따라 차도록 값만 넘긴다. 차오르는 시간은 style.css의 #unity-progress span에 있다.
+      const progressBar = document.querySelector("#unity-progress");
+
+      function showProgress(progress) {
+        progressBar.style.setProperty("--progress", progress);
+        progressBar.setAttribute("aria-valuenow", Math.round(progress * 100));
+      }
+
+      // Unity는 파일을 다 받으면 0.9, 게임 준비를 마치면 1을 알린다. 마지막 칸은 hideLoading이 채운다.
+      function showDownloadProgress(progress) {
+        showProgress(Math.min(progress, 0.9));
+      }
+
+      // 게임 준비를 마친 직후 Unity가 첫 화면을 그리는 동안 브라우저 화면이 1초 남짓 멈춘다.
+      // 화면이 다시 이어서 그려질 때 마무리를 시작해야 막대가 끝까지 차는 모습이 보인다. 느린 기기에서 붙잡지 않도록 2초가 지나면 그냥 시작한다.
+      function whenFramesFlow(callback) {
+        let started = 0;
+        let previous = 0;
+        let smoothFrames = 0;
+        requestAnimationFrame(function check(now) {
+          started ||= now;
+          smoothFrames = previous && now - previous < 100 ? smoothFrames + 1 : 0;
+          previous = now;
+          if (smoothFrames >= 2 || now - started > 2000) {
+            callback();
+            return;
+          }
+          requestAnimationFrame(check);
+        });
+      }
+
       function hideLoading() {
         stopIntro();
         loading.style.pointerEvents = "none";
-        loading
-          .animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, easing: "ease-out" })
-          .finished.then(() => {
-            loading.hidden = true;
-          });
+        whenFramesFlow(() => {
+          // 막대가 끝까지 차는 모습을 보인 뒤 로딩 화면을 닫는다.
+          showProgress(1);
+          loading
+            .animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, delay: 400, easing: "ease-out" })
+            .finished.then(() => {
+              loading.hidden = true;
+            });
+        });
       }
 
       function showBanner(message, type) {
@@ -347,9 +382,7 @@
         showLoadError("화면을 불러오지 못했습니다. 연결을 확인한 뒤 새로고침해 주세요.");
       };
       loader.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress").value = progress;
-        }).then(() => {
+        createUnityInstance(canvas, config, showDownloadProgress).then(() => {
           hideLoading();
           const seconds = Math.round((performance.now() - loadStartedAt) / 10) / 100;
           window.reportUnityLoad?.("loaded", seconds);

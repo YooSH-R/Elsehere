@@ -170,28 +170,20 @@ body {
 }
 
 #unity-progress {
-  width: 100%;
   height: 6px;
-  appearance: none;
-  border: 0;
   border-radius: 999px;
   background: rgb(255 255 255 / 25%);
   overflow: hidden;
 }
 
-#unity-progress::-webkit-progress-bar {
-  border-radius: 999px;
-  background: rgb(255 255 255 / 25%);
-}
-
-#unity-progress::-webkit-progress-value {
-  border-radius: 999px;
+/* 받은 만큼 왼쪽에서 밀려 나온다. 값이 크게 뛰어도 0.4초에 걸쳐 따라 차고, 다 받으면 index.html이 이만큼 기다린 뒤 로딩 화면을 닫는다. */
+#unity-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
   background: #ffc23d;
-}
-
-#unity-progress::-moz-progress-bar {
-  border-radius: 999px;
-  background: #ffc23d;
+  transform: translateX(calc((var(--progress, 0) - 1) * 100%));
+  transition: transform 0.4s ease-out;
 }
 
 #unity-warning {

@@ -281,7 +281,7 @@ namespace A305.EditorTools.Onboarding
                 regular,
                 24f,
                 SubTextColor,
-                "3D 마을에서 NPC와 영어로 대화해요."
+                "3D 마을에서 NPC와 현지 언어로 대화해요."
             );
             Button google = UiBuilderTools.FindOrCreateButton(
                 panel,

@@ -129,6 +129,22 @@ namespace A305.Mission.Tests
             Assert.That(amount.fontSize, Is.EqualTo(clock.fontSize).Within(.01f));
         }
 
+        // 코인 그림도 옆 숫자와 같은 크기로 읽힌다. 코인만 크게 튀지 않는다(글자 크기의 1.3배 이하).
+        [Test]
+        public void CoinIcon_IsScaledToTheAmountText()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            var amount = instance
+                .transform.Find("Content/Status/Coins/Row/Amount")
+                .GetComponent<TMP_Text>();
+            var coin = instance
+                .transform.Find("Content/Status/Coins/Row/Coin")
+                .GetComponent<UnityEngine.UI.LayoutElement>();
+
+            Assert.That(coin.preferredHeight, Is.LessThanOrEqualTo(amount.fontSize * 1.3f));
+            Assert.That(coin.preferredWidth, Is.EqualTo(coin.preferredHeight).Within(.01f));
+        }
+
         // 시안(g4)처럼 대화 중에는 오른쪽 위 시계·코인 칩과 미니맵을 숨긴다.
         [Test]
         public void WhileTalking_HidesTheClockCoinsAndMiniMap()

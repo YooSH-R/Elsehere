@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Npc;
 using A305.EditorTools.Player;
 using A305.Npc;
 using A305.Player;
@@ -330,15 +331,19 @@ namespace A305.EditorTools.World
             );
             foreach (NpcIdentity npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))
             {
-                AttachVisual(npc.transform);
-                // 마을 행인 Ben은 튜토리얼에서 길을 묻는 집 앞에 선다.
+                // 마을 행인 Ben은 비즈니스맨 외형으로 튜토리얼에서 길을 묻는 집 앞에 선다.
                 if (npc.Code == "TOWN_PASSERBY")
+                {
+                    NpcVisualBuilder.Connect(npc);
                     PlaceTutorialPasserby(scene, npc.transform);
-                else
-                    npc.transform.SetPositionAndRotation(
-                        new Vector3(12.5f, .12f, 18.5f),
-                        Quaternion.Euler(0, 270, 0)
-                    );
+                    continue;
+                }
+
+                AttachVisual(npc.transform);
+                npc.transform.SetPositionAndRotation(
+                    new Vector3(12.5f, .12f, 18.5f),
+                    Quaternion.Euler(0, 270, 0)
+                );
                 npc.LookTarget.localPosition = new Vector3(0, 1.075f, .49f);
                 PrefabUtility.RecordPrefabInstancePropertyModifications(npc.LookTarget);
             }

@@ -13,7 +13,7 @@ Tripo 생성 원본과 마스터 연결 결과를 보존하고, 서비스의 대
 
 이름은 `LittleMung_Business_Male`, `LittleMung_MiddleAge_Male`, `LittleMung_MiddleAge_Female`, `LittleMung_BlackYoung_Male`, `LittleMung_Grandmother`입니다. 얼굴 씬을 실행하면 기존 `FacePosePreviewPanel`에서 표정과 입 모양을 선택할 수 있습니다. 이동 씬은 공통 Player 이동 검수 구성을 사용합니다.
 
-검수 사본은 외관 승인 전까지 운영 씬에 연결하지 않습니다. 자동 검사 결과가 실패한 사본도 문제를 살펴볼 수 있도록 검수 씬만 제공합니다. 씬이 존재한다는 사실은 합격을 뜻하지 않습니다.
+검수 사본은 외관 승인 전까지 운영 씬에 연결하지 않습니다. 운영 씬에 연결한 사본은 비즈니스맨(마을 행인 Ben, `TownScene`), 흑인 남성(드럭스토어 직원 Alex, `ShopScene`), 중년 남성(택시 기사 Joe, `TownScene` 택시 운전석)입니다([Npc 모듈](../../../UnityClient/Assets/Scripts/Npc/README.md#builder)). 세 사본 모두 입 모양·미소·눈 감기 채널을 갖춰 대화 중 립싱크·눈 깜박임을 씁니다. 자동 검사 결과가 실패한 사본도 문제를 살펴볼 수 있도록 검수 씬만 제공합니다. 씬이 존재한다는 사실은 합격을 뜻하지 않습니다.
 
 ## 비율과 골격
 
@@ -42,7 +42,7 @@ blender --background --python frontend/ArtSources/Characters/ServiceNpcs/fit_npc
 
 이 스크립트는 해당 ArtSources 폴더의 입 제작 결과를 다시 씁니다. 승인된 수동 수정이 있다면 먼저 별도 보관합니다. 피부색·입 위치 자동 검출은 이 네 입력에 맞춰 검수한 보조 도구이며, 다른 얼굴을 무조건 지원하지는 않습니다. 새 캐릭터는 정면·양쪽 사선과 전체 입 모양을 다시 확인해야 합니다.
 
-`NPC_REVIEW_OUTPUT`을 제작 데이터 루트로 지정하고 `ServiceNpcReviewBuilder`의 Unity 배치 메서드를 사용합니다. `Prepare`는 비율 적용 사본, `BuildFaces`는 얼굴 메시와 검수 씬, `ValidateAndScenes`는 골격·동작 검사, `RenderFaces`는 표정 렌더를 만듭니다. 기존 얼굴 사본은 자동 덮어쓰지 않으며 명시적 새 경로 또는 검토된 갱신이 필요합니다. 비즈니스맨은 기존 입 제작 사본을 비율에 맞춰 확대한 결과를 사용합니다.
+`NPC_REVIEW_OUTPUT`을 제작 데이터 루트로 지정하고 `ServiceNpcReviewBuilder`의 Unity 배치 메서드를 사용합니다. `Prepare`는 비율 적용 사본, `BuildFaces`는 얼굴 메시와 검수 씬, `ValidateAndScenes`는 골격·동작 검사, `RenderFaces`는 표정 렌더를 만듭니다. 기존 얼굴 사본은 자동 덮어쓰지 않으며 명시적 새 경로 또는 검토된 갱신이 필요합니다. 비즈니스맨은 입을 먼저 만든 사본을 비율에 맞춰 확대한 결과이며, 그 결과인 `Prefabs/Npc/Review/LittleMung_Business_Male.prefab`이 준비본을 겸합니다. 몸·입 메시와 입 재질, Idle·이동 컨트롤러는 `ServiceNpcs/LittleMung_Business_Male/`에 모여 있습니다. `Prepare`는 이 프리팹이 있으면 비율만 확인하고, 없으면 이전 사본을 다시 만들지 않고 중단합니다. `BuildFaces`는 비즈니스맨을 건너뜁니다.
 
 ## 검사 범위와 승인 기준
 
@@ -77,7 +77,7 @@ Base 눈 이식의 입력 사본은 중년 남성·중년 여성·흑인 남성�
 
 ## 비즈니스맨 눈 감기와 자동 깜박임
 
-현재 통합 검수 프리팹 `Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab`은 Base의 눈·위/아래 눈꺼풀·눈꺼풀 선과 25·50·75·100 가중치의 깜박임을 재사용한다. 저작 원본은 `LittleMungMannequin/MannequinFaceShapes.json`과 좌우 `EyeColor.png`다. 비즈니스맨의 눈 위치·크기에 맞춰 옮기고 작업용 얼굴 메시에서 기존 눈 표면을 잘라 연결한다. 얼굴 경계의 모든 정점을 연결하며 미연결 모서리가 있으면 저작 결과를 저장하지 않는다. 입·눈썹·골격은 유지한다. 생성 원본과 Base 자산, 이전 `Review/Corrected` 후보는 수정하지 않는다.
+현재 통합 검수 프리팹 `Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab`은 Base의 눈·위/아래 눈꺼풀·눈꺼풀 선과 25·50·75·100 가중치의 깜박임을 재사용한다. 저작 원본은 `LittleMungMannequin/MannequinFaceShapes.json`과 좌우 `EyeColor.png`다. 비즈니스맨의 눈 위치·크기에 맞춰 옮기고 작업용 얼굴 메시에서 기존 눈 표면을 잘라 연결한다. 얼굴 경계의 모든 정점을 연결하며 미연결 모서리가 있으면 저작 결과를 저장하지 않는다. 입·눈썹·골격은 유지한다. 생성 원본과 Base 자산은 수정하지 않는다.
 
 눈 색은 Base의 갈색 홍채를 사용한다. 다른 눈 색이 필요하면 눈 텍스처의 홍채 영역만 별도로 편집하고 흰자·동공·반사광은 유지한다. 피부나 눈 전체 머티리얼을 틴트하지 않는다. 비즈니스맨은 검수된 고정 적합 값을 사용한다. 다른 행인 검수본은 아래의 측정 자료를 사용한다.
 
@@ -85,7 +85,7 @@ Base 눈 이식의 입력 사본은 중년 남성·중년 여성·흑인 남성�
 
 저작 자료는 `frontend/ArtSources/Characters/LittleMungBusiness/Blink/`에 있다. Blender 백그라운드에서 `create_business_eyelids.py -- <저작 폴더 절대 경로>`로 실행한다. Unity에서는 `BUSINESS_BLINK_OUTPUT`을 같은 폴더로 지정하고 `BusinessBlinkBuilder.Apply`를 실행한다. 기존 눈꺼풀을 갱신하려면 `BUSINESS_BLINK_REFRESH=1`을 명시한다. 새 프리팹을 만들지 않고 해당 검수 프리팹의 눈꺼풀 자산을 같은 GUID로 갱신한다. 직접 편집한 결과에는 내용을 확인한 뒤 실행한다.
 
-눈꺼풀의 피부 경계·음영과 닫힌 눈의 인상은 정면·양쪽 사선 외관 검수 대상이다. 눈꺼풀 제작은 시각 에셋 변경으로 실제 Unity 렌더와 메시 검사로 확인하며, 눈 전용 제어와 자동 타이밍은 실패를 재현하는 테스트 및 실제 프리팹 재생 테스트로 검증한다. 이 변경만으로 Production Ben 연결이나 다른 NPC의 눈 감기가 완료되지는 않는다.
+눈꺼풀의 피부 경계·음영과 닫힌 눈의 인상은 정면·양쪽 사선 외관 검수 대상이다. 눈꺼풀 제작은 시각 에셋 변경으로 실제 Unity 렌더와 메시 검사로 확인하며, 눈 전용 제어와 자동 타이밍은 실패를 재현하는 테스트 및 실제 프리팹 재생 테스트로 검증한다. 마을 행인 Ben은 이 프리팹을 쓰므로 대화 중 립싱크·눈 깜박임이 함께 적용된다.
 
 ## 나머지 행인의 Base 눈 이식
 
@@ -95,4 +95,4 @@ Base 눈 이식의 입력 사본은 중년 남성·중년 여성·흑인 남성�
 
 기존 입 메시의 접합부에 닿는 얼굴 면은 잘라내지 않는다. 할머니의 안경처럼 눈 주변에 있는 분리된 표면도 보존한다. 이식 경계의 미연결 모서리, 현재 몸 메시와 저작 원본 불일치는 적용 실패로 처리한다. 자동 측정은 현재 네 검수본에 맞춰 확인하는 저작 보조 기능이며, 새로 생성하는 모든 캐릭터의 외관을 보장하지 않는다.
 
-각 `Assets/Scenes/Sandbox/NpcReview/<캐릭터 이름>_Face.unity`에서 `Automatic blink`와 입 모양 버튼으로 확인한다. 실제 서비스 씬의 NPC 연결은 이 검수본 반영과 별도로 확인한다.
+각 `Assets/Scenes/Sandbox/NpcReview/<캐릭터 이름>_Face.unity`에서 `Automatic blink`와 입 모양 버튼으로 확인한다. 서비스 씬에서는 흑인 청년 남성이 드럭스토어 직원 Alex(`ShopScene`), 중년 남성이 택시 기사 Joe(`TownScene` 택시 운전석)로 연결되어 대화 중 립싱크·눈 깜박임을 쓴다. 중년 여성과 할머니는 서비스 씬에 연결하지 않았다.

@@ -162,6 +162,7 @@ namespace A305.EditorTools.Npc
                 "tutorialSettings",
                 LoadSettings(TutorialSettingsPath)
             );
+            NpcVisualBuilder.Connect(ben);
             SpaceSceneSetup.Apply(town);
             BuilderTools.SaveScene(town, TownScenePath);
         }

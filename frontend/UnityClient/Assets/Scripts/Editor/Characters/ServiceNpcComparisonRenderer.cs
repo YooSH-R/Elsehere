@@ -19,9 +19,7 @@ namespace A305.EditorTools.Characters
             foreach (string name in ServiceNpcReviewBuilder.Names)
             {
                 string before =
-                    name == ServiceNpcReviewBuilder.Names[0]
-                        ? BusinessFacePreviewBuilder.Prefab
-                        : $"Assets/Art/Characters/Tripo/NPC/{name}/MasterRig/{name}_Visual.prefab";
+                    $"Assets/Art/Characters/Tripo/NPC/{name}/MasterRig/{name}_Visual.prefab";
                 RenderModel(before, Path.Combine(output, name, "Before"));
                 RenderModel(
                     ServiceNpcReviewBuilder.Paths(name).Prefab,

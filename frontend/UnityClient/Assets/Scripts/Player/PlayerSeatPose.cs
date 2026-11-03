@@ -15,8 +15,7 @@ namespace A305.Player
         private CharacterController controller;
         private Transform visual;
         private SeatedLegs legs;
-        private Behaviour[] poseCorrections;
-        private bool[] correctionStates;
+        private StandingPoseCorrections standingCorrections;
         private Vector3 originalVisualPosition;
         private Vector3 standingPosition;
         private Quaternion standingRotation;
@@ -60,22 +59,7 @@ namespace A305.Player
             this.cushionTopMeters = cushionTopMeters;
             this.frontEdgeMeters = frontEdgeMeters;
             originalVisualPosition = visual.localPosition;
-            poseCorrections = visual.GetComponentsInChildren<Behaviour>(true);
-            correctionStates = new bool[poseCorrections.Length];
-            for (int i = 0; i < poseCorrections.Length; i++)
-            {
-                Behaviour correction = poseCorrections[i];
-                if (
-                    correction is LittleMungGroundContact
-                    || correction is LittleMungTerrainContact
-                    || correction is LittleMungStairLocomotion
-                    || correction is LittleMungArmClearance
-                )
-                {
-                    correctionStates[i] = correction.enabled;
-                    correction.enabled = false;
-                }
-            }
+            standingCorrections = StandingPoseCorrections.Suspend(visual);
             var animationDriver = GetComponent<CharacterAnimationDriver>();
             if (animationDriver != null)
                 animationDriver.SetLocomotion(0f, true, 0f);
@@ -108,11 +92,7 @@ namespace A305.Player
 
             seat = null;
             visual.localPosition = originalVisualPosition;
-            for (int i = 0; i < poseCorrections.Length; i++)
-            {
-                if (correctionStates[i])
-                    poseCorrections[i].enabled = true;
-            }
+            standingCorrections.Restore();
             mover.Teleport(standingPosition, standingRotation);
             if (mover.CameraRig != null)
                 mover.CameraRig.SnapView(seatCameraYaw);

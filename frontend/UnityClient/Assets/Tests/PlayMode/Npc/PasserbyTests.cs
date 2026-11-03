@@ -118,9 +118,8 @@ namespace A305.Npc.PlayModeTests
             Assert.That(animator, Is.Not.Null, "Ben의 모델에 걷기 Animator가 필요합니다.");
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             yield return WaitUntil(() => ben.Phase == PasserbyPhase.Approaching);
-            Transform leg = animator
-                .GetComponentsInChildren<Transform>()
-                .Single(bone => bone.name == "LeftUpperLeg");
+            // Ben의 비즈니스맨 외형은 마스터 골격(Humanoid)이라 허벅지를 Humanoid 뼈로 찾는다.
+            Transform leg = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
             Quaternion before = leg.localRotation;
             Vector3 positionBefore = ben.transform.position;
             yield return new WaitForSeconds(.15f);

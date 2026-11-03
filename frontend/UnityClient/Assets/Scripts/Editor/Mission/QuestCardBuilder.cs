@@ -21,8 +21,8 @@ namespace A305.EditorTools.Mission
         private const string PlaceholderMenuPath =
             "Tools/A305/Mission/Apply Quest Card Placeholder";
 
-        // 서버 상태를 받기 전 카드의 할 일. 카드 자체를 눌러 수첩을 연다.
-        private const string DirectionPlaceholder = "퀘스트 카드를 눌러 여정을 확인하세요.";
+        // 서버 상태를 받기 전 카드의 할 일. 카드 자체를 눌러 수첩을 열며, 카드가 커지지 않게 한 줄에 들어가는 길이로 쓴다.
+        private const string DirectionPlaceholder = "카드를 눌러 여정을 확인하세요.";
         private const string PrefabPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
         private const string CatalogPath = "Assets/Data/Theme/UiThemeCatalog.asset";
         private const string ArtFolder = "Assets/Art/UI/Hud";

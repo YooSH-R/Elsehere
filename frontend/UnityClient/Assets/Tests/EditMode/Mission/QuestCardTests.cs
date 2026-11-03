@@ -237,8 +237,23 @@ namespace A305.Mission.Tests
             view = instance.GetComponent<FirstDayMissionView>();
 
             string direction = Field<TMP_Text>("direction").text;
-            Assert.That(direction, Does.Contain("퀘스트 카드"));
+            Assert.That(direction, Does.Contain("카드를 눌러"));
             Assert.That(direction, Does.Not.Contain("지도"));
+        }
+
+        // 서버 상태를 받기 전 할 일 문구는 한 줄에 들어가 카드를 키우지 않는다.
+        [Test]
+        public void QuestCard_BeforeTheServerAnswers_FitsTheDirectionOnOneLine()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            view = instance.GetComponent<FirstDayMissionView>();
+            view.SetAvailable(true);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                (RectTransform)instance.transform.Find("Content/CurrentGoal")
+            );
+
+            TMP_Text direction = Field<TMP_Text>("direction");
+            Assert.That(direction.GetTextInfo(direction.text).lineCount, Is.EqualTo(1));
         }
 
         private void Refresh(FirstDayMissionState state)

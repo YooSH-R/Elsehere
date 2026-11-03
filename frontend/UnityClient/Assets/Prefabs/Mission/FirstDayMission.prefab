@@ -18304,8 +18304,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uD018\uC2A4\uD2B8 \uCE74\uB4DC\uB97C \uB20C\uB7EC \uC5EC\uC815\uC744
-    \uD655\uC778\uD558\uC138\uC694."
+  m_text: "\uCE74\uB4DC\uB97C \uB20C\uB7EC \uC5EC\uC815\uC744 \uD655\uC778\uD558\uC138\uC694."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 609a8bc80477bce43a2bdf8c71a7b839, type: 2}
   m_sharedMaterial: {fileID: -7486566921287125584, guid: 609a8bc80477bce43a2bdf8c71a7b839, type: 2}

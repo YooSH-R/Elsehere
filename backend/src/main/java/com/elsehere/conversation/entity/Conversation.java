@@ -81,12 +81,21 @@ public class Conversation extends BaseEntity {
   @Column(unique = true)
   private UUID requestId;
 
+  // 근무 시간이 아닌 NPC와의 대화(CONV-01 npcOffDuty). 워커에 응대 상황 대신 일상 상황을 보낸다. 이 칸을 넣기 전의 대화는 false다.
+  @ColumnDefault("false")
+  @Column(nullable = false)
+  private boolean npcOffDuty;
+
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;
   }
 
   public void attachStartRequest(UUID requestId) {
     this.requestId = requestId;
+  }
+
+  public void markNpcOffDuty() {
+    this.npcOffDuty = true;
   }
 
   public static Conversation start(

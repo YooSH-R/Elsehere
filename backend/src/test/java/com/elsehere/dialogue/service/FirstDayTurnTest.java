@@ -69,7 +69,7 @@ class FirstDayTurnTest {
     Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
     when(lookup.ownedConversation(8L, 10L)).thenReturn(conversation);
     WorkerNpc npc = new WorkerNpc("HOTEL_STAFF", "Emma", "clerk", "", "hotel", "alloy", 1);
-    when(contexts.npcById(1L))
+    when(contexts.npcOf(conversation))
         .thenReturn(
             new NpcContext(
                 1L,

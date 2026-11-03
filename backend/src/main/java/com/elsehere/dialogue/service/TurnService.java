@@ -228,7 +228,7 @@ public class TurnService {
       throw new BusinessException(ErrorCode.CONVERSATION_NOT_ACTIVE);
     }
     return new TurnContext(
-        dialogueContexts.npcById(conversation.getNpcId()),
+        dialogueContexts.npcOf(conversation),
         dialogueContexts.learner(userId),
         dialogueContexts.history(conversationId),
         conversation.getLevelApplied(),

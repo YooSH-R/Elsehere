@@ -53,15 +53,25 @@ final class FeedbackInputs {
                 + npc.getRoleLabel()
                 + " "
                 + npc.getName()
-                + (quest == null
-                    ? " · 자유 대화"
-                    : " · " + quest.situation() + " " + quest.direction()),
+                + " · "
+                + situation(conversation, quest),
             "en-US",
             "ko-KR",
             conversation.getStatus() == ConversationStatus.ENDED_BY_NPC ? "npc_end" : "user_end",
             null),
         inputTurns,
         List.of());
+  }
+
+  // 평가할 대화의 상황. 근무 시간이 아닌 NPC와의 대화는 응대 상황으로 평가하지 않도록 일상 대화라고 알린다.
+  private static String situation(Conversation conversation, FirstDayStage quest) {
+    if (quest != null) {
+      return quest.situation() + " " + quest.direction();
+    }
+    if (conversation.isNpcOffDuty()) {
+      return "근무가 아닐 때의 일상 대화";
+    }
+    return "자유 대화";
   }
 
   private static FeedbackInput.Turn toInputTurn(Turn turn, FeedbackInput.Difficulty difficulty) {

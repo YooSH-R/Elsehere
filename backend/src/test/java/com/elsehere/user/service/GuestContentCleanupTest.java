@@ -13,6 +13,7 @@ import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import jakarta.persistence.EntityManager;
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -39,6 +40,8 @@ class GuestContentCleanupTest {
   @Autowired private EntityManager entityManager;
 
   @Autowired private JdbcTemplate jdbcTemplate;
+
+  @Autowired private Clock clock;
 
   @Test
   @DisplayName("마지막 활동이 하루 지난 게스트는 발화·피드백·기억·저장 단어·숨김·레벨 테스트를 지우고 사용자·대화·사용량은 남긴다")
@@ -132,7 +135,7 @@ class GuestContentCleanupTest {
 
   // 사용자가 남긴 모든 행의 시각을 그만큼 앞으로 옮긴다.
   private void lastActive(Long userId, Duration ago) {
-    Timestamp at = Timestamp.from(Instant.now().minus(ago));
+    Timestamp at = Timestamp.from(clock.instant().minus(ago));
     String conversations = "(select id from conversations where user_id = ?)";
     jdbcTemplate.update(
         "update users set created_at = ?, updated_at = ? where id = ?", at, at, userId);

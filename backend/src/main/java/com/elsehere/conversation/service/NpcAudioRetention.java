@@ -1,5 +1,6 @@
 package com.elsehere.conversation.service;
 
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
@@ -108,7 +109,7 @@ public class NpcAudioRetention {
    * 매일 정리한다. 보관 기간이 지난 음성, 파일이 없어진 키(DB 복원·이전 실패), 어떤 턴도 쓰지 않는 오래된 파일을 지우고, 상한을 넘었으면 오래된 파일부터 지운다.
    * NPC 공용 음성(말걸기)은 지우지 않는다.
    */
-  @Scheduled(cron = "${elsehere.npc-audio.cleanup-cron}", zone = "Asia/Seoul")
+  @Scheduled(cron = "${elsehere.npc-audio.cleanup-cron}", zone = ClockConfig.SERVICE_ZONE_ID)
   public void cleanUp() {
     lock.lock();
     try {

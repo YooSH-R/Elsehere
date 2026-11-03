@@ -6,8 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.dto.AiStatus;
 import com.elsehere.ai.dto.AiStatusResponse;
-import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.Conversation;
@@ -34,7 +34,7 @@ import org.springframework.context.annotation.Import;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
   TestcontainersConfiguration.class,
-  ClockConfig.class,
+  TestClockConfig.class,
   JpaAuditingConfig.class,
   AiStatusService.class,
   GuestConversationLimit.class

@@ -3,12 +3,10 @@ package com.elsehere.common.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.TestcontainersConfiguration;
+import com.elsehere.common.config.AdjustableClock;
 import com.elsehere.common.config.JpaAuditingConfig;
 import jakarta.persistence.EntityManager;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,35 +88,6 @@ class BaseEntityTest {
     @Bean
     AdjustableClock clock() {
       return new AdjustableClock(CREATED_TIME);
-    }
-  }
-
-  /** 테스트 안에서 현재 시각을 바꿀 수 있는 Clock. */
-  static class AdjustableClock extends Clock {
-
-    private Instant instant;
-
-    AdjustableClock(Instant instant) {
-      this.instant = instant;
-    }
-
-    void setInstant(Instant instant) {
-      this.instant = instant;
-    }
-
-    @Override
-    public ZoneId getZone() {
-      return ZoneOffset.UTC;
-    }
-
-    @Override
-    public Clock withZone(ZoneId zone) {
-      return Clock.fixed(instant, zone);
-    }
-
-    @Override
-    public Instant instant() {
-      return instant;
     }
   }
 }

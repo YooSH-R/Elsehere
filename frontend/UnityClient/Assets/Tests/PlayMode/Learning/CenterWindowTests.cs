@@ -10,8 +10,8 @@ using UnityEngine.UI;
 namespace A305.Learning.PlayModeTests
 {
     /// <summary>
-    /// 배포용 마을 씬에서 단어장·피드백 목록처럼 화면 가운데를 차지하는 창을 열면, 왼쪽 위 퀘스트 카드와 왼쪽 아래 미니맵이
-    /// 창과 겹치지 않는지 확인한다. 퀘스트 카드는 할 일 줄 수에 따라 높이가 바뀌므로 창 크기와 상관없이 겹치지 않아야 한다.
+    /// 배포용 마을 씬에서 단어장·피드백 목록처럼 화면 가운데를 차지하는 창을 열어도 왼쪽 위 퀘스트 카드와 왼쪽 아래 미니맵을
+    /// 함께 볼 수 있고, 창은 그 둘과 겹치지 않는지 확인한다. 퀘스트 카드는 할 일 줄 수에 따라 높이가 바뀌므로 높이와 상관없이 겹치지 않아야 한다.
     /// </summary>
     public class CenterWindowTests
     {
@@ -41,7 +41,7 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator OpeningVocabulary_KeepsTheQuestCardAndMiniMapClearOfTheWindow()
+        public IEnumerator OpeningVocabulary_KeepsTheQuestCardAndMiniMapInSightAndClearOfTheWindow()
         {
             yield return LoadTown();
 
@@ -51,7 +51,7 @@ namespace A305.Learning.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator OpeningFeedbackList_KeepsTheQuestCardAndMiniMapClearOfTheWindow()
+        public IEnumerator OpeningFeedbackList_KeepsTheQuestCardAndMiniMapInSightAndClearOfTheWindow()
         {
             yield return LoadTown();
 
@@ -87,8 +87,12 @@ namespace A305.Learning.PlayModeTests
             foreach (RectTransform hud in new[] { QuestCard(), MiniMap() })
             {
                 Assert.That(
-                    hud.gameObject.activeInHierarchy
-                        && ScreenRectOf(hud).Overlaps(ScreenRectOf(window)),
+                    hud.gameObject.activeInHierarchy,
+                    Is.True,
+                    $"창을 열어도 {hud.name}을 함께 봅니다."
+                );
+                Assert.That(
+                    ScreenRectOf(hud).Overlaps(ScreenRectOf(window)),
                     Is.False,
                     $"{hud.name}이 창과 겹칩니다."
                 );

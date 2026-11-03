@@ -25,9 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * NPC 턴 음성 보관 정책(docs/npc-audio-storage.md). 환경 전체 음성 용량이 상한을 넘지 않게 저장하고, 지운 음성을 쓰던 턴에 삭제 시각을 남긴다.
+ * NPC 턴 음성 보관 정책(docs/npc-audio-storage.md). 보관 기간과 환경 전체 음성 용량 상한은 매일 정리에서 맞추고, 지운 음성을 쓰던 턴에 삭제
+ * 시각을 남긴다.
  *
- * <p>저장과 정리는 한 잠금 안에서 해 상한을 지킨다. 환경마다 백엔드가 하나라는 전제다.
+ * <p>저장·재생은 잠그지 않으므로 정리 사이에는 상한을 넘을 수 있다. 정리와 게스트·탈퇴 음성 삭제만 한 잠금 안에서 한다.
  */
 @Slf4j
 @Service
@@ -56,52 +57,37 @@ public class NpcAudioRetention {
     this.maxBytes = maxBytes;
   }
 
-  /** 상한 안에 들어가도록 오래된 음성부터 정리한 뒤 저장한다. 저장할 수 없으면 null이며, 호출한 쪽은 자막만 보여 준다. */
+  /** 음성 파일만 저장한다. 만료와 상한은 매일 정리에서 맞춘다. 저장할 수 없으면 null이며, 호출한 쪽은 자막만 보여 준다. */
   public String save(byte[] wav) {
     if (wav.length > maxBytes) {
       log.warn("npc_audio_too_large bytes={}", wav.length);
       return null;
     }
-    lock.lock();
     try {
-      Set<String> shared = sharedKeys();
-      deleteExpired(clock.instant(), shared);
-      freeSpace(usedBytes(shared) + wav.length - maxBytes, shared);
-      if (usedBytes(shared) + wav.length > maxBytes) {
-        log.warn("npc_audio_no_space bytes={}", wav.length);
-        return null;
-      }
       return store.save(wav);
     } catch (BusinessException exception) {
       log.warn("npc_audio_save_failed", exception);
       return null;
-    } finally {
-      lock.unlock();
     }
   }
 
   /** 소유자를 확인한 턴을 호출한 쪽의 트랜잭션 안에서 읽고 만료·파일 없음 상태를 맞춘다. */
   public Optional<byte[]> load(Turn turn) {
-    lock.lock();
-    try {
-      String key = turn.getNpcAudioKey();
-      if (key == null || turn.getNpcAudioDeletedAt() != null) {
-        return Optional.empty();
-      }
-      Instant now = clock.instant();
-      Instant createdAt = audioCreatedAt(turn);
-      if (!sharedKeys().contains(key) && !createdAt.isAfter(now.minus(retention))) {
-        deleteAudio(turn, now);
-        return Optional.empty();
-      }
-      Optional<byte[]> wav = store.load(key);
-      if (wav.isEmpty()) {
-        turn.deleteNpcAudio(now);
-      }
-      return wav;
-    } finally {
-      lock.unlock();
+    String key = turn.getNpcAudioKey();
+    if (key == null || turn.getNpcAudioDeletedAt() != null) {
+      return Optional.empty();
     }
+    Instant now = clock.instant();
+    Instant createdAt = audioCreatedAt(turn);
+    if (!sharedKeys().contains(key) && !createdAt.isAfter(now.minus(retention))) {
+      deleteAudio(turn, now);
+      return Optional.empty();
+    }
+    Optional<byte[]> wav = store.load(key);
+    if (wav.isEmpty()) {
+      turn.deleteNpcAudio(now);
+    }
+    return wav;
   }
 
   /**
@@ -159,14 +145,13 @@ public class NpcAudioRetention {
     }
   }
 
+  // 음성 파일은 턴보다 먼저 저장하므로 DB 키를 먼저 읽고 파일 목록을 본다. 정리 중 새로 저장한 음성을 파일 없음으로 보지 않는다.
   private void markMissingFiles(Instant now) {
-    Set<String> stored = keysOf(store.files());
     transactionTemplate.executeWithoutResult(
         status -> {
-          List<String> missing =
-              turnRepository.findAllNpcAudioKeys().stream()
-                  .filter(key -> !stored.contains(key))
-                  .toList();
+          List<String> keys = turnRepository.findAllNpcAudioKeys();
+          Set<String> stored = keysOf(store.files());
+          List<String> missing = keys.stream().filter(key -> !stored.contains(key)).toList();
           if (!missing.isEmpty()) {
             turnRepository.findAllByNpcAudioKeyIn(missing).forEach(t -> t.deleteNpcAudio(now));
           }

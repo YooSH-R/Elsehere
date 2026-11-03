@@ -14974,6 +14974,7 @@ MonoBehaviour:
   - {fileID: 990729705}
   - {fileID: 1804947430}
   litBuildings:
+  - {fileID: 393855496}
   - {fileID: 1337579283}
   - {fileID: 2020359775}
   - {fileID: 707709647}

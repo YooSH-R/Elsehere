@@ -58,9 +58,10 @@ namespace A305.EditorTools.Weather
             "Assets/Art/World/CafeBlenderKit/Materials/Glass.mat",
         };
 
-        // 마을에서 들어가 볼 수 있는 이용 건물: 카페·숙소(호텔)·드럭스토어. 집은 상점·숙소가 아니라 넣지 않는다.
+        // 마을에서 들어가 볼 수 있는 이용 건물: 내 숙소(집)·카페·호텔·드럭스토어.
         private static readonly string[] OpenSpaceBuildings =
         {
+            "HomeBuilding",
             "CafeBuilding",
             "HotelBuilding",
             "DrugstoreFront",

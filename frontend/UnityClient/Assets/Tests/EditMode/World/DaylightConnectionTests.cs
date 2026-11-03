@@ -81,6 +81,7 @@ namespace A305.World.Tests
                 Is.SupersetOf(
                     new[]
                     {
+                        "HomeBuilding",
                         "CafeBuilding",
                         "HotelBuilding",
                         "DrugstoreFront",
@@ -103,7 +104,6 @@ namespace A305.World.Tests
                 Has.None.EqualTo("VacantBuilding2F"),
                 "빈 건물은 불을 켜지 않습니다."
             );
-            Assert.That(names, Has.None.EqualTo("HomeBuilding"), "집은 상점·숙소가 아닙니다.");
         }
     }
 }

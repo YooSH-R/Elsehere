@@ -22,7 +22,7 @@
 
 밤 모습은 날씨 모습 위에 입히므로 밤에 비가 오면 어두운 밤비가 됩니다. 발광·창 유리 재질은 사본을 칠해 원본 에셋을 바꾸지 않습니다.
 
-입점한 상점·숙소는 마을에서 들어갈 수 있는 카페·호텔·드럭스토어와, 배경 건물 가운데 매장 실내(`Interior`)가 있는 건물(북쪽 거리 매장·경찰서·북쪽 상가)입니다. 이 건물들의 창 유리(`DayNight.asset`의 입점 건물 창 재질)는 주택·빈 건물과 같은 재질이어서, 입점 건물에만 따로 사본을 끼워 밤에 실내등 색으로 칠하고 빛을 내게 합니다.
+입점한 상점·숙소는 마을에서 들어갈 수 있는 내 숙소(집)·카페·호텔·드럭스토어와, 배경 건물 가운데 매장 실내(`Interior`)가 있는 건물(북쪽 거리 매장·경찰서·북쪽 상가)입니다. 이 건물들의 창 유리(`DayNight.asset`의 입점 건물 창 재질)는 주택·빈 건물과 같은 재질이어서, 입점 건물에만 따로 사본을 끼워 밤에 실내등 색으로 칠하고 빛을 내게 합니다.
 
 UI는 씬의 시각을 따르지 않습니다. 유리 UI(`A305/UI/Glass`)는 흐린 뒤 화면을 비추므로 씬이 어두워지면 함께 어두워집니다. 그래서 `WeatherPresenter`·`InteriorDaylight`가 밤인 정도(0~1)를 `A305.Theme`의 `UiBackdropLift`로 알리고, 유리는 그만큼 뒤 화면을 낮 밝기로 밝혀 낮과 같은 밝기로 보입니다. 장소를 떠나면 0으로 돌립니다([Theme 모듈의 흐린 뒤 화면](../Theme/README.md#흐린-뒤-화면)).
 
@@ -79,7 +79,7 @@ UI는 씬의 시각을 따르지 않습니다. 유리 UI(`A305/UI/Glass`)는 흐
 
 - **Tools → A305 → Weather → Build Town Weather**(`Scripts/Editor/Weather/TownWeatherBuilder.cs`)가 TownScene의 `Lighting/TownWeather`에 `WeatherPresenter`를 두고 해·`SummerClouds`·`OvercastClouds`·플레이어와 날씨 목록을 연결한 뒤 첫날 미션에 연결합니다. 날씨 목록·정의·비 효과 프리팹·흐림 구름은 없을 때만 만들고, 이미 있으면 조정한 값과 더한 날씨를 그대로 둡니다. **Mission → Build First Day Journey**와 **World → Build Spaces**도 마을을 연결할 때 같은 연결을 적용합니다.
 - **Tools → A305 → Weather → Apply Heavy Rain**은 이미 만든 비 날씨(`Rain.asset`)의 모습과 비 효과(`Rain.prefab`)의 빗줄기를 쏟아지는 비 값으로 바꿉니다. 맑음·흐림과 날씨 목록은 그대로 둡니다. 새로 만들 때의 기본값도 같은 값입니다.
-- **Tools → A305 → Weather → Build Day Night**(`DaylightBuilder.cs`)가 다섯 장소 씬에 `GameClockDaylight`를 두고, 마을은 날씨 표시에 밤낮 설정과 가로등·상점·창 불빛(`LanternLight`·`FixtureLight`·`InteriorLight`), 입점 건물(카페·호텔·드럭스토어와 `BackgroundBuildings` 가운데 켜져 있고 `Interior`가 있는 건물)을, 실내는 `Lighting/InteriorDaylight`에 Directional Light(창으로 드는 빛)·이름에 `Bounce`가 든 Point Light(낮빛 보조광)·나머지 Point Light(실내등)를 연결합니다. 순찰차 경광등처럼 따로 켜고 끄는 빛은 넣지 않습니다. `DayNight.asset`은 없을 때만 만들고, 씬의 조명·재질 값은 바꾸지 않습니다. **World → Build Spaces**와 **Build Town Weather**도 같은 연결을 적용합니다.
+- **Tools → A305 → Weather → Build Day Night**(`DaylightBuilder.cs`)가 다섯 장소 씬에 `GameClockDaylight`를 두고, 마을은 날씨 표시에 밤낮 설정과 가로등·상점·창 불빛(`LanternLight`·`FixtureLight`·`InteriorLight`), 입점 건물(집·카페·호텔·드럭스토어와 `BackgroundBuildings` 가운데 켜져 있고 `Interior`가 있는 건물)을, 실내는 `Lighting/InteriorDaylight`에 Directional Light(창으로 드는 빛)·이름에 `Bounce`가 든 Point Light(낮빛 보조광)·나머지 Point Light(실내등)를 연결합니다. 순찰차 경광등처럼 따로 켜고 끄는 빛은 넣지 않습니다. `DayNight.asset`은 없을 때만 만들고, 씬의 조명·재질 값은 바꾸지 않습니다. **World → Build Spaces**와 **Build Town Weather**도 같은 연결을 적용합니다.
 - **Tools → A305 → Weather → Weather Preview** 창(`TownWeatherPreview.cs`)
   - Play 중: 새벽·한낮·노을·밤 버튼은 게임 시각을 그 시각까지 앞으로 흘립니다(서버에 연결돼 있으면 다음 신호에 서버 시각으로 돌아감). 마을에서는 목록의 날씨마다 버튼도 생겨, 누르면 서버 없이 그 자리에서 날씨가 섞여 바뀝니다. 서버 상태를 다시 읽으면(씬 진입·NPC 응답·대화 종료) 서버 예보로 돌아갑니다.
   - Play 밖: **Capture Town Weather Preview**로 TownScene의 날씨별(한낮)·시각별(맑음) 모습과 밤비, 실내 네 곳의 한낮·밤을 같은 자리에서 찍습니다. 같은 기능이 메뉴 **Tools → A305 → Weather → Capture Town Weather Preview**에도 있으며, batchmode에서는 환경변수 `TOWN_WEATHER_PREVIEW_OUTPUT`에 저장 폴더를 지정합니다. 시작할 때 저장하지 않은 씬을 저장할지 묻고, 다 찍으면 디스크의 TownScene을 다시 열어 날씨·시각을 입힌 씬이 저장되지 않게 합니다.
@@ -91,7 +91,7 @@ UI는 씬의 시각을 따르지 않습니다. 유리 UI(`A305/UI/Glass`)는 흐
 | `A305.Weather.Tests` | `Assets/Tests/EditMode/Weather/` | 두 모습 섞기, 서버 값으로 날씨 찾기(대소문자·빈 값·모르는 값은 대신할 날씨), 새 정의만 더해도 찾아지는지, 맑음은 씬 디자인 유지, 마을 에셋의 흐림·비가 맑은 날보다 어둡지만 밤처럼 까맣지 않고 비가 흐림보다 어둡고 안개가 가까운지, 비만 빗방울 효과가 있는지. 밤낮: 해 뜨고 지는 시각의 밤인 정도·노을인 정도(다음 날도 같음), 한낮은 그대로·한밤은 어둡되 날씨 안개 유지, 노을 붉기와 흐린 날 옅은 노을, 맑은 밤에만 별, 한낮·아침·저녁·해 질 때·한밤의 해 방향, `DayNight.asset`의 밤 밝기·불빛 배율·불 켠 실내 밝기·재질 목록·입점 건물 창 |
 | `A305.Weather.PlayModeTests` | `Assets/Tests/PlayMode/Weather/` | 비·흐림·맑음 전환 뒤 해·환경광·안개·하늘·구름·효과, 코드에 없는 새 날씨(눈) 정의의 모습과 효과, 모르는 값의 대신할 날씨, 시간에 따라 섞이는지, 효과가 플레이어 위를 따라가는지, 원본 하늘·구름 에셋이 바뀌지 않고 되돌려지는지. 밤낮: 마을의 한밤 하늘·해·환경광·별, 가로등·발광 재질, 한낮 복귀, 노을의 낮은 해, 밤비, 실내의 창으로 드는 빛·보조광·실내등·창밖 유리·환경광(하늘상자 포함)과 밤에도 불 켠 방 밝기, 원본 재질 복구, 밤에 유리 UI 뒤 화면을 밝히고 떠나면 되돌리는지, 입점 건물 창만 밤에 빛나고 주택 창은 그대로인지 |
 | `A305.Mission.Tests` | `Assets/Tests/EditMode/Mission/` | 서버 `weather` 읽기와 `raining`으로 정하는 대신할 날씨 |
-| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | TownScene의 첫날 미션에 날씨 표시와 그 참조가 모두 연결됐는지, 다섯 장소에 게임 시각 연결과 밤낮 표시·설정, 실내의 창으로 드는 빛, 마을 가로등 연결, 입점 건물(상점·숙소)만 창 불빛에 연결되고 주택·빈 건물·집은 빠지는지 |
+| `A305.World.Tests` | `Assets/Tests/EditMode/World/` | TownScene의 첫날 미션에 날씨 표시와 그 참조가 모두 연결됐는지, 다섯 장소에 게임 시각 연결과 밤낮 표시·설정, 실내의 창으로 드는 빛, 마을 가로등 연결, 입점 건물(상점·숙소, 내 집 포함)만 창 불빛에 연결되고 주택·빈 건물은 빠지는지 |
 | `A305.World.PlayModeTests` | `Assets/Tests/PlayMode/World/` | `GameClockDaylight`가 매 프레임 게임 시각을 넘기는지 |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.

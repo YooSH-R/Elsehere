@@ -199,7 +199,10 @@ namespace A305.Learning
         }
 
         // [담기]는 서버 대화 피드백에서만 보인다. 대본·예시 피드백은 저장할 대화가 없다.
-        private void ShowFeedbackView(ConversationFeedback feedback, IReadOnlyList<DialogueLine> lines)
+        private void ShowFeedbackView(
+            ConversationFeedback feedback,
+            IReadOnlyList<DialogueLine> lines
+        )
         {
             feedbackView.SetSaveAvailable(
                 vocabulary != null && shownServerFeedback?.ConversationId != null

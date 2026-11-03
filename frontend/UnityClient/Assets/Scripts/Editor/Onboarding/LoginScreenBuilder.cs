@@ -11,7 +11,9 @@ namespace A305.EditorTools.Onboarding
     /// 로그인 메인(화면 01)을 확정한 A안(시안 e1을 다듬은 것)대로 만든다. 크기·자리는 시안 px에 1.2를 곱한 캔버스 단위다.
     /// 마을 배경 위 왼쪽을 크림색 그라데이션으로 덮고, 화면 세로 가운데에 놓인 왼쪽 열(폭 440)에 칩·로고·소개 문장,
     /// 같은 폭의 [Google로 계속하기]·[게스트로 둘러보기], 밑줄 친 약관 링크를 쌓는다. 가운데 카드는 두지 않는다.
-    /// 칩·로고·버튼처럼 그림인 부분은 시안 HTML을 그대로 렌더링한 그림(Art/UI/Login)을 쓰고, 소개 문장과 약관 링크는 글자로 둔다.
+    /// 칩·로고·버튼처럼 그림인 부분은 렌더링한 그림(Art/UI/Login)을 쓰고, 소개 문장과 약관 링크는 글자로 둔다.
+    /// 로고는 ElseHere 로고(남색 Else, 코랄 Here)이고, 칩은 남색, [게스트로 둘러보기]는 코랄로 로고 색에 맞춘다.
+    /// 마을 배경은 <see cref="LoginTownCapture"/>가 지금 마을에서 찍은 그림이다.
     /// </summary>
     public static class LoginScreenBuilder
     {
@@ -31,8 +33,9 @@ namespace A305.EditorTools.Onboarding
         private const float ArtPad = 24;
         private const float LogoPad = 30;
 
-        private static readonly Color SubtitleInk = new Color32(111, 96, 78, 255);
-        private static readonly Color LinkInk = new Color32(125, 110, 91, 255);
+        // 글자는 로고의 남색을 크림색 쪽으로 옅게 한 색이다.
+        private static readonly Color SubtitleInk = new Color32(74, 85, 106, 255);
+        private static readonly Color LinkInk = new Color32(93, 103, 121, 255);
         private static readonly Color NoticeInk = new Color32(210, 79, 47, 255);
 
         [MenuItem(MenuPath)]
@@ -54,7 +57,8 @@ namespace A305.EditorTools.Onboarding
 
             TMP_Text subtitle = panel.Find("Subtitle").GetComponent<TMP_Text>();
             Body(subtitle, 21, SubtitleInk);
-            subtitle.text = "3D 마을에서 NPC와 영어로 대화하며\n여행 첫날을 보내 보세요.";
+            subtitle.text =
+                "3D 마을에서 NPC와 현지 언어로 대화하며\n그곳에 사는 것처럼 언어를 익혀 보세요.";
             subtitle.alignment = TextAlignmentOptions.TopLeft;
             // 시안 줄 높이 1.45
             subtitle.lineSpacing = 24;

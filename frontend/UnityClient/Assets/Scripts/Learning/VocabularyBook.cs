@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.ObjectHover;
 
 namespace A305.Learning
 {
@@ -175,7 +176,7 @@ namespace A305.Learning
             return true;
         }
 
-        /// <summary>단어장에서 지운다. 서버에서 지운 뒤에 목록에서 뺀다.</summary>
+        /// <summary>단어장에서 지운다. 서버에서 지운 뒤에 목록에서 빼고, 장소의 사물 카드가 다시 저장할 수 있게 알린다.</summary>
         public async Task<bool> DeleteAsync(VocabularyEntry entry)
         {
             try
@@ -189,6 +190,7 @@ namespace A305.Learning
 
             entries.Remove(entry);
             LastFailureMessage = null;
+            ObjectWordCards.NotifySavedWordRemoved(entry.English);
             return true;
         }
 

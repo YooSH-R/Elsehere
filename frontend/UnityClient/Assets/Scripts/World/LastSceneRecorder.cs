@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 
@@ -10,19 +9,6 @@ namespace A305.World
     /// </summary>
     public sealed class LastSceneRecorder
     {
-        // Unity 씬 이름(서버 scenes.unity_key)과 서버 장소 코드. 서버 시드(world.sql)의 장소와 같아야 한다.
-        private static readonly IReadOnlyDictionary<string, string> SceneCodes = new Dictionary<
-            string,
-            string
-        >
-        {
-            { "HomeScene", "HOME" },
-            { "TownScene", "TOWN" },
-            { "CafeScene", "CAFE" },
-            { "HotelScene", "HOTEL" },
-            { "ShopScene", "SHOP" },
-        };
-
         private readonly ILastSceneApi api;
 
         public LastSceneRecorder(ILastSceneApi api)
@@ -37,10 +23,8 @@ namespace A305.World
         public async Task<LastSceneRecordStatus> RecordAsync(string unitySceneName)
         {
             LastError = null;
-            if (
-                unitySceneName == null
-                || !SceneCodes.TryGetValue(unitySceneName, out string sceneCode)
-            )
+            string sceneCode = PlaceScenes.CodeOf(unitySceneName);
+            if (sceneCode == null)
             {
                 return LastSceneRecordStatus.NotAPlace;
             }

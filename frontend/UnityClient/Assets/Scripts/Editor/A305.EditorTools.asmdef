@@ -19,6 +19,8 @@
         "A305.Onboarding",
         "A305.Theme",
         "A305.Weather",
+        "A305.Wayfinding",
+        "Unity.AI.Navigation",
         "WebGLInput",
         "Unity.TextMeshPro",
         "UnityEngine.UI",

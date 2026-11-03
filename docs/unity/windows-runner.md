@@ -50,7 +50,7 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 ## CI 연결 시험
 
-`unity:editor-tests`는 같은 프로젝트의 Unity 관련 MR에서 EditMode·PlayMode를 필수로 실행합니다. YAML과 포맷 검사가 통과한 뒤 시작하며 WebGL 빌드와 서버 배포는 하지 않습니다. Draft와 후속 Push에도 같은 조건을 적용합니다. 일반 문서만 바꾼 MR에는 실행하지 않습니다.
+`unity:editor-tests`는 같은 프로젝트의 Unity 관련 MR에서 EditMode·PlayMode를 필수로 실행합니다. Web 템플릿·디자인 이미지·문서만 바뀌면 EditMode 배포 검사만 실행하며, 범위 판정은 [검사 파이프라인 문서](../ci-runner.md#unity-테스트-범위)를 따릅니다. YAML과 포맷 검사가 통과한 뒤 시작하며 WebGL 빌드와 서버 배포는 하지 않습니다. Draft와 후속 Push에도 같은 조건을 적용합니다. 일반 문서와 Unity 규약 문서만 바꾼 MR에는 실행하지 않습니다.
 
 보호된 Runner는 일반 작업 브랜치 MR을 받을 수 없으므로, MR 검사 적용에는 위 표의 실행 범위 전환이 필요합니다. 이 전환은 해당 노트북의 실행 권한을 작업 브랜치 코드에도 주는 변경입니다. GitLab의 Runner 설정을 변경하기 전에 실행 계정 권한과 프로젝트 접근 범위를 확인하고 승인된 범위로 적용합니다. 다른 프로젝트의 Unity MR은 Linux의 `unity:external-mr`에서 실패시켜 노트북 실행과 필수 검사 생략을 함께 차단합니다.
 
@@ -80,7 +80,7 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 ```
 
 - Editor 경로는 프로젝트 버전에서 구하며, 다른 설치 경로는 `UNITY_EDITOR_PATH`로 지정합니다.
-- EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다.
+- 전체 실행에서는 EditMode 전에 Blender와 테스트 FBX를 준비하고 같은 프로세스에서 테스트 입력 변수를 지정합니다. MR에서 배포 검사만 실행할 때는 준비하지 않습니다.
 - 공통 캐릭터의 목 경계·머리 크기 검사는 저장된 조합과 부품을 메모리에 복제하고 현재 가져오기 환경의 의존성 정보를 설정한 뒤, 원래의 불일치 메시가 각각의 오류로 검출되는지 확인합니다. 저장된 조합의 승인 상태나 검사 기준은 변경하지 않습니다.
 - 테스트는 `-runTests`로 종료하고 `-quit`을 함께 사용하지 않습니다. WebGL 빌드에는 `-quit`과 저장소의 빌드 진입점을 사용합니다.
 - Editor 프로세스의 실제 종료까지 기다립니다. 크래시 후 남은 컴파일 보조 프로세스 때문에 작업 종료가 지연되지 않도록 Editor의 종료 코드를 직접 확인하고 로그를 보존합니다. 테스트 XML 누락·실패·미실행·성공 테스트 0개 또는 빌드 실패를 성공으로 처리하지 않습니다.
@@ -88,7 +88,7 @@ powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1
 - WebGL 산출물은 `dist/webgl/`이며 `version.json`의 전체 커밋 SHA가 후보와 일치해야 합니다. 빌드된 정적 파일의 실제 HTTPS 로딩과 화면 확인은 별도 검증입니다.
 - 동시에 최대 두 작업을 실행하도록 Runner 제한을 사용합니다. 동시 실행 번호별 CI 작업 폴더의 `Library`를 유지해 다시 가져오는 비용을 줄이며, 빌드 결과·로그는 새 작업에서 정리합니다. 두 번째 작업 폴더의 최초 실행에는 별도의 에셋 가져오기·패키지 준비·Blender 설치 시간이 필요합니다.
 
-Editor 종료 대기의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p test_unity_process.py -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
+Editor 종료 대기와 MR 테스트 범위 판정의 회귀 검사는 Windows에서 `python -m unittest discover -s infra/scripts/tests -p "test_unity_*.py" -v`로 실행합니다. 가짜 Editor가 실패한 뒤 보조 프로세스가 남아도 실패와 로그가 즉시 전달되는지, 바뀐 파일에 따라 배포 검사나 전체 실행을 고르는지 검사하며 실제 Unity 테스트를 대신하지 않습니다. Linux의 인프라 검사에서는 이 Windows 전용 검사를 건너뜁니다.
 
 ## Blender와 FBX 테스트 입력
 

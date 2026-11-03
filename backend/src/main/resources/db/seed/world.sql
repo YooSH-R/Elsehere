@@ -133,6 +133,7 @@ VALUES
   ('en-US', 'WORD', 'parasol', '파라솔', 'Let''s sit under the parasol.', '파라솔 아래에 앉아요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'PO box', '사서함', 'I''d like to rent a PO box.', '사서함을 하나 빌리고 싶어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'toy', '장난감', 'I like this toy.', '이 장난감이 마음에 들어요.', 'MASTER', NULL),
+  ('en-US', 'WORD', 'bagel', '베이글', 'I''d like a bagel, please.', '베이글 하나 주세요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'ice cream truck', '아이스크림 트럭', 'Let''s get ice cream from the ice cream truck.', '아이스크림 트럭에서 아이스크림을 사 먹자.', 'MASTER', NULL),
   ('en-US', 'WORD', 'pigeon', '비둘기', 'The pigeons are looking for food.', '비둘기들이 먹이를 찾고 있어요.', 'MASTER', NULL),
   ('en-US', 'WORD', 'newspaper box', '신문 판매함', 'You can buy a newspaper from the newspaper box.', '신문 판매함에서 신문을 살 수 있어요.', 'MASTER', NULL),

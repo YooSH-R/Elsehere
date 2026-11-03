@@ -609,6 +609,7 @@ namespace A305.EditorTools.Theme
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
             StyleEntryGuidance(root);
             A305.EditorTools.Onboarding.LoginScreenBuilder.Apply(root);
+            A305.EditorTools.Onboarding.EntryScreensBuilder.Apply(root);
         }
 
         /// <summary>

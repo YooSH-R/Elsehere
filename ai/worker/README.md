@@ -28,7 +28,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | 환경 변수 | 기본값 | 뜻 |
 |---|---|---|
 | `AI_WORKER_TOKEN` | (필수) | Spring과 공유하는 내부 토큰. 모든 요청의 `X-Internal-Token` |
-| `LLM_PROFILE` | `gms-luna` | 모델 구성 이름 ([`llm_profiles.json`](llm_profiles.json): `gms-luna`(GPT-6 Luna), `gms-sol`(GPT-6.1 SOL), `groq`). 기본값은 json의 `default_profile`. 역할별 모델·공급자 주소·키 이름·대체 모델이 한 번에 바뀜 |
+| `LLM_PROFILE` | `gms-luna` | 모델 구성 이름 ([`llm_profiles.json`](llm_profiles.json): `gms-luna`(GPT-6 Luna, NPC 대답만 GPT-6.1 SOL), `gms-sol`(GPT-6.1 SOL), `groq`). 기본값은 json의 `default_profile`. 역할별 모델·공급자 주소·키 이름·대체 모델이 한 번에 바뀜 |
 | `GROQ_API_KEY` / `GMS_KEY` | (구성에 따라 필수) | 공급자 키 (이름은 json의 `key_env`). GMS 구성도 음성 인식은 Groq라 둘 다 필요. 배포하면 서버 키 하나의 한도를 모든 사용자가 나눠 씀 |
 | `STT_FALLBACK` | (구성 값, GMS 구성은 `gms:whisper-1`) | 음성 인식이 한도·오류·응답 없음일 때 한 번 더 부를 `공급자:모델`. 빈 값이면 끔. 녹음 자체 오류(400·413·415·422)는 넘기지 않음 |
 | `STT_FIRST_TIMEOUT_S` | 8 | 뒤에 다른 공급자가 있을 때 첫 음성 인식 호출의 상한 (마지막 공급자와 공급자가 하나뿐일 때는 30초) |

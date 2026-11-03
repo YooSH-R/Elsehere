@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -155,6 +156,7 @@ namespace A305.ObjectHover
             panelGroup.interactable = false;
             IsVisible = false;
             IsPinned = false;
+            UiLayer.Close(this);
         }
 
         private void Present(
@@ -183,6 +185,11 @@ namespace A305.ObjectHover
             panelGroup.interactable = isPinned;
             IsVisible = true;
             IsPinned = isPinned;
+            // 눌러 고정한 카드는 사용자가 연 창처럼 맨 위에 그린다. 지나가며 보이는 카드는 그대로 둔다.
+            if (isPinned)
+                UiLayer.Open(this);
+            else
+                UiLayer.Close(this);
         }
 
         // 포인터 가까이에서 가리킨 사물·캐릭터와 다른 화면을 덮지 않는 자리에 카드를 둔다.

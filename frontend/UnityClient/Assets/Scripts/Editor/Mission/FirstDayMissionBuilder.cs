@@ -98,42 +98,6 @@ namespace A305.EditorTools.Mission
             }
             Sprite glassSprite = RoundedSprite(GlassSpritePath, 0f);
 
-            // 왼쪽 아래 미니맵. 판 전체가 버튼이라 어디를 눌러도 큰 지도를 연다.
-            RectTransform panel = Rect("MiniMap", content);
-            Anchor(panel, Vector2.zero, new Vector2(24, 24), new Vector2(300, 286));
-            Glass(panel, glassSprite);
-            Button open = panel.gameObject.AddComponent<Button>();
-            open.transition = Selectable.Transition.None;
-
-            TownMapView miniMap = GlassMapCopy(journalMap, panel, MiniMapGroundOpacity, false, 34);
-            Anchor(
-                (RectTransform)miniMap.transform,
-                Vector2.zero,
-                new Vector2(12, 50),
-                new Vector2(276, 224)
-            );
-
-            RectTransform expand = Rect("Expand", panel);
-            Anchor(expand, Vector2.one, new Vector2(-18, -18), new Vector2(42, 42));
-            Image expandFace = expand.gameObject.AddComponent<Image>();
-            expandFace.sprite = glassSprite;
-            expandFace.type = Image.Type.Sliced;
-            expandFace.color = new Color(1, 1, 1, .9f);
-            expandFace.raycastTarget = false;
-            TMP_Text expandIcon = Text(expand, "Icon", 24, "↗");
-            expandIcon.font = UiBuilderTools.BoldFont();
-            expandIcon.color = MapInk;
-            expandIcon.alignment = TextAlignmentOptions.Center;
-            Stretch((RectTransform)expandIcon.transform);
-
-            TMP_Text miniLegend = Legend(
-                panel,
-                glassSprite,
-                new Vector2(12, 10),
-                new Vector2(230, 34),
-                17
-            );
-
             // 미니맵을 누르면 화면 가운데에 크게 펼치는 같은 유리 스타일의 지도
             RectTransform overlay = Rect("MapOverlay", content);
             Stretch(overlay);
@@ -186,11 +150,11 @@ namespace A305.EditorTools.Mission
             );
             overlay.gameObject.SetActive(false);
 
+            // 왼쪽 아래 미니맵은 시안 지도 그림으로 따로 만든다.
+            MiniMapBuilder.Apply(root);
+            overlay.SetAsLastSibling();
+
             FirstDayMissionView view = root.GetComponent<FirstDayMissionView>();
-            BuilderTools.SetReference(view, "miniMapPanel", panel.gameObject);
-            BuilderTools.SetReference(view, "miniMap", miniMap);
-            BuilderTools.SetReference(view, "miniMapButton", open);
-            BuilderTools.SetReference(view, "miniMapDestination", miniLegend);
             BuilderTools.SetReference(view, "mapOverlay", overlay.gameObject);
             BuilderTools.SetReference(view, "largeMap", largeMap);
             BuilderTools.SetReference(view, "largeMapLegend", largeLegend);
@@ -198,8 +162,7 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "mapOutsideButton", close);
         }
 
-        // 미니맵은 뒤 거리가 잘 보이게 바탕을 거의 비우고, 크게 본 지도는 뒤 화면이 어지럽지 않게 조금 더 칠한다.
-        private const float MiniMapGroundOpacity = .12f;
+        // 크게 본 지도는 뒤 화면이 어지럽지 않게 바탕을 조금 칠한다.
         private const float LargeMapGroundOpacity = .43f;
         private static readonly Color MapInk = new Color32(40, 56, 80, 255);
 

@@ -3,6 +3,7 @@ package com.elsehere.world.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.TestcontainersConfiguration;
+import com.elsehere.common.config.AdjustableClock;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.conversation.DialogueTestData;
@@ -10,10 +11,7 @@ import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.world.dto.GameClockResponse;
 import jakarta.persistence.EntityManager;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -129,35 +127,6 @@ class GameClockServiceTest {
     @Bean
     AdjustableClock clock() {
       return new AdjustableClock(NOW);
-    }
-  }
-
-  /** 테스트 안에서 현재 시각을 바꿀 수 있는 Clock. 신호 사이에 지난 시간을 정할 때 쓴다. */
-  static class AdjustableClock extends Clock {
-
-    private Instant instant;
-
-    AdjustableClock(Instant instant) {
-      this.instant = instant;
-    }
-
-    void setInstant(Instant instant) {
-      this.instant = instant;
-    }
-
-    @Override
-    public ZoneId getZone() {
-      return ZoneOffset.UTC;
-    }
-
-    @Override
-    public Clock withZone(ZoneId zone) {
-      return Clock.fixed(instant, zone);
-    }
-
-    @Override
-    public Instant instant() {
-      return instant;
     }
   }
 }

@@ -37,12 +37,13 @@ MonoBehaviour:
   nightGlowScale: 2.2
   glowMaterials:
   - {fileID: 2100000, guid: ea32c58bf8465b04a8612896ffb03601, type: 2}
-  - {fileID: 2100000, guid: 2f4d30b03ce52e54190c6093ebf93a30, type: 2}
   - {fileID: 2100000, guid: 19e19a2a48d4a0d4d8a7c05e37934af2, type: 2}
   - {fileID: 2100000, guid: 6c350a2b458b31146aca7604591b4175, type: 2}
   - {fileID: 2100000, guid: 09c9f8d12bcecb54097934f77da23887, type: 2}
   - {fileID: 2100000, guid: 1c636f100302bca408d4778c7f139ada, type: 2}
   - {fileID: 2100000, guid: 7f7b3b08f3ca6124685b7b3df7c16b1b, type: 2}
+  nightOnlyGlowMaterials:
+  - {fileID: 2100000, guid: 2f4d30b03ce52e54190c6093ebf93a30, type: 2}
   windowMaterials:
   - {fileID: 2100000, guid: 7661d7912b0c3f346803af93f1abb3be, type: 2}
   - {fileID: 2100000, guid: 69fefabe9188b6a43a46307ea61c8691, type: 2}

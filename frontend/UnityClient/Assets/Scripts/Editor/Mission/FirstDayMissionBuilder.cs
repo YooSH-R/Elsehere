@@ -127,7 +127,7 @@ namespace A305.EditorTools.Mission
 
             RectTransform large = Rect("Panel", overlay);
             Anchor(large, new Vector2(.5f, .5f), new Vector2(0, -10), new Vector2(880, 820));
-            Glass(large, glassSprite);
+            Glass(large);
             TMP_Text title = Text(large, "Title", 28, "마을 지도");
             title.font = UiBuilderTools.BoldFont();
             title.color = MapInk;
@@ -184,20 +184,25 @@ namespace A305.EditorTools.Mission
         private const float LargeMapGroundOpacity = .43f;
         private static readonly Color MapInk = new Color32(40, 56, 80, 255);
 
-        // 하늘색 유리 판과 흰 테두리. Outline 효과는 판 전체를 흰색으로 겹쳐 그려 반투명이 사라지므로 테두리는 링 그림으로 따로 그린다.
-        private static void Glass(RectTransform panel, Sprite sprite)
+        // 뒤 거리가 흐려지지 않고 비치는 하늘색 유리 판과 흰 테두리. 큰 지도와 미니맵이 함께 쓴다.
+        // Outline 효과는 판 전체를 흰색으로 겹쳐 그려 반투명이 사라지므로 테두리는 링 그림으로 따로 그린다.
+        // cornerScale은 판 그림 모서리(44)를 키우거나 줄이는 비율이다.
+        internal static Image Glass(RectTransform panel, float cornerScale = 1f)
         {
             Image glass = panel.gameObject.AddComponent<Image>();
-            glass.sprite = sprite;
+            glass.sprite = RoundedSprite(GlassSpritePath, 0f);
             glass.type = Image.Type.Sliced;
+            glass.pixelsPerUnitMultiplier = cornerScale;
             glass.color = new Color32(176, 222, 255, 110);
             RectTransform rim = Rect("Rim", panel);
             Stretch(rim);
             Image rimImage = rim.gameObject.AddComponent<Image>();
             rimImage.sprite = RoundedSprite(GlassRimPath, 3f);
             rimImage.type = Image.Type.Sliced;
+            rimImage.pixelsPerUnitMultiplier = cornerScale;
             rimImage.color = new Color(1f, 1f, 1f, .92f);
             rimImage.raycastTarget = false;
+            return glass;
         }
 
         // 수첩 지도를 복사해 유리 지도로 칠한다. 내 위치 화살표는 키우고 흰 테두리를 둘러 잘 보이게 한다.

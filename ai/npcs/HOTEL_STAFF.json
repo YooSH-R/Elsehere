@@ -63,6 +63,6 @@
     ]
   },
   "defaultLocationId": "HOTEL",
-  "voiceId": "am_onyx",
+  "voiceId": "am_echo",
   "isActive": true
 }

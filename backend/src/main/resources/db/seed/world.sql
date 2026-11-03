@@ -183,7 +183,7 @@ FROM (
      'af_heart', false, NULL),
     (3, 'HOTEL', 'HOTEL_STAFF', 'Jake', 'STAFF', '호텔 직원',
      '{"role": "the front desk clerk at the hotel.", "facts": "", "scene": "The front desk of the hotel lobby."}',
-     'am_onyx', false, NULL),
+     'am_echo', false, NULL),
     (4, 'SHOP', 'SHOP_STAFF', 'Alex', 'STAFF', '드럭스토어 직원',
      '{"role": "the helpful clerk at the drugstore.", "facts": "The drugstore sells umbrellas for 8 quest coins. Cash and cards are accepted. Never invent discounts or charge twice.", "scene": "A small drugstore on the town main street."}',
      'am_michael', false, NULL),

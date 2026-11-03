@@ -136,6 +136,8 @@ namespace A305.EditorTools.Learning
             number.textWrappingMode = TextWrappingModes.NoWrap;
             number.margin = Vector4.zero;
             F.TopLeft(number.rectTransform, 50, 0, 63.44f, 50);
+            // 양옆 둥근 유리 버튼(두께 4px)의 화살표가 두께 절반만큼 내려가 있어 같은 높이로 맞춘다.
+            number.rectTransform.anchoredPosition -= new Vector2(0, 2 * F.Px);
 
             Transform next = Move(panel, pager, "NextButton");
             F.ArtButton(next, "FeedbackNext", 50, 50, 22, 12, 94, 96);
@@ -201,9 +203,8 @@ namespace A305.EditorTools.Learning
             F.ArtFace(open, "HistoryOpen", 22, 12, 102.28f, 92);
             TMP_Text openLabel = Label(open, "Label", F.DisplayFontPath, 16, Color.white);
             openLabel.text = "보기";
-            openLabel.alignment = TextAlignmentOptions.Midline;
             openLabel.textWrappingMode = TextWrappingModes.NoWrap;
-            F.Fill(openLabel.rectTransform);
+            F.Lowered(openLabel, 5);
 
             BuilderTools.SetReference(component, "avatar", avatarImage);
             BuilderTools.SetReference(component, "letter", letter);

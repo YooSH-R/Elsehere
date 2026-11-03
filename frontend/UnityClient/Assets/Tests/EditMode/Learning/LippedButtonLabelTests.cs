@@ -12,6 +12,7 @@ namespace A305.Learning.Tests
     public class LippedButtonLabelTests
     {
         private const string FeedbackPrefabPath = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
+        private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const float Px = 1.2f;
 
         private GameObject instance;
@@ -47,6 +48,24 @@ namespace A305.Learning.Tests
         {
             AssertLowered(Find("Panel/Navigation/PageNumber"), 2f * Px);
         }
+
+        [Test]
+        public void FeedbackListViewButton_LabelSitsHalfTheLipLower()
+        {
+            AssertLowered(HudText("History/Rows/Row0/OpenButton/Label"), 2.5f * Px);
+        }
+
+        [Test]
+        public void FeedbackListPageNumber_SitsWithTheArrows()
+        {
+            AssertLowered(HudText("History/Pager/PageNumber"), 2f * Px);
+        }
+
+        private static TMP_Text HudText(string path) =>
+            AssetDatabase
+                .LoadAssetAtPath<GameObject>(HudPrefabPath)
+                .transform.Find(path)
+                .GetComponent<TMP_Text>();
 
         private TMP_Text Find(string path) =>
             instance.transform.Find(path).GetComponent<TMP_Text>();

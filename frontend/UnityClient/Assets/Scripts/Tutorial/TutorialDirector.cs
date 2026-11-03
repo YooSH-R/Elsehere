@@ -83,6 +83,8 @@ namespace A305.Tutorial
         private TutorialFinishRecorder finishRecorder;
         private TutorialStep appliedStep;
         private bool isCardShown;
+        private bool isSkipCardShown;
+        private TutorialStep skipCardStep;
         private TutorialStep cardStep;
         private bool cardCanContinue;
         private int cardDoneCount;
@@ -156,7 +158,7 @@ namespace A305.Tutorial
             }
 
             guideView.ContinueRequested += progress.Continue;
-            guideView.SkipRequested += progress.Skip;
+            guideView.SkipRequested += SkipTutorial;
             SpaceTravel.Refused += ShowTravelLocked;
         }
 
@@ -303,6 +305,13 @@ namespace A305.Tutorial
             progress.EndDialogue(record.NpcCode, record.IsGuidedCompleted);
         }
 
+        // 길 안내 대화 중에 건너뛰면 마치지 못한 대화를 피드백 없이 닫는다. 정해진 대사를 마치기 전에는 [대화 종료]로 끝낼 수 없기 때문이다.
+        private void SkipTutorial()
+        {
+            progress.Skip();
+            dialogue.Abandon();
+        }
+
         private void CloseFeedback(string npcCode, bool isGuidedCompleted)
         {
             progress.CloseFeedback(npcCode);
@@ -380,22 +389,44 @@ namespace A305.Tutorial
         // 내용이 바뀔 때만 다시 그린다.
         private void RefreshCard()
         {
-            bool hasGuide = guide.TryGetStepGuide(progress.Step, out TutorialStepGuide stepGuide);
-            bool shouldShow =
-                hasGuide
-                && !dialogue.IsTalking
-                && !offerView.IsShowing
-                && !learning.IsShowingScreen;
-            if (!shouldShow)
+            // 대화·제안·대화 노트·단어장이 할 일 카드를 가리는 동안에는 [건너뛰기]만 남긴 작은 카드를 맨 위에 둔다.
+            // 대화처럼 안내 카드가 없는 단계는 가장 가까운 앞 단계의 이름을 쓴다.
+            bool isCovered = dialogue.IsTalking || offerView.IsShowing || learning.IsShowingScreen;
+            if (
+                isCovered
+                && progress.IsGuiding
+                && guide.TryGetNearestStepGuide(progress.Step, out TutorialStepGuide nearest)
+            )
             {
-                if (isCardShown)
+                if (!isSkipCardShown || skipCardStep != nearest.Step)
                 {
-                    guideView.Hide();
+                    guideView.ShowSkipOnly(
+                        nearest,
+                        guide.StepGuideNumber(nearest.Step),
+                        guide.StepGuideCount
+                    );
+                    isSkipCardShown = true;
+                    skipCardStep = nearest.Step;
                     isCardShown = false;
                 }
 
                 return;
             }
+
+            bool hasGuide = guide.TryGetStepGuide(progress.Step, out TutorialStepGuide stepGuide);
+            if (isCovered || !hasGuide)
+            {
+                if (isCardShown || isSkipCardShown)
+                {
+                    guideView.Hide();
+                    isCardShown = false;
+                    isSkipCardShown = false;
+                }
+
+                return;
+            }
+
+            isSkipCardShown = false;
 
             IReadOnlyList<TutorialAction> actions = TutorialProgress.RequiredActions(
                 progress.Step,

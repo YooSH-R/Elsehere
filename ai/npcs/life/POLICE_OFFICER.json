@@ -2,5 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "POLICE_OFFICER",
   "mbti": "ISFJ-T",
-  "role": "STAFF"
+  "role": "STAFF",
+  "workplace": "POLICE_STATION",
+  "shift": "ALL_DAY"
 }

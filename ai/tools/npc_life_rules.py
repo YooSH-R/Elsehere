@@ -1,5 +1,5 @@
 """NPC 생활·관계 규칙 데이터를 원본 스키마로 검사하고, 행동에 쓰는 사물을 장소별 사물 단어 배치와 대조한다.
-설계는 docs/npc-life-design.md.
+장소별 영업시간·교대와 교대에서 계산한 하루 일과도 검사한다. 설계는 docs/npc-life-design.md.
 
 원본: docs/api/npc-ai-contracts/npc_life_rules_schemas.json (Unity·AI 워커·백엔드가 같이 읽는 계약)
 """
@@ -7,6 +7,7 @@
 import json
 from pathlib import Path
 
+import npc_derive
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -51,9 +52,34 @@ def life_errors(life: dict) -> list[tuple[str, str]]:
     return _errors(LIFE_SCHEMA, life)
 
 
-def role_schedule_problems(rules: dict) -> list[str]:
-    """역할별 일과 틀마다 하루 24시간을 겹치지 않고 빈틈없이 채우는지."""
-    return [f"roles.{role}: {problem}" for role, template in rules["roles"].items() for problem in schedule_problems(template["schedule"])]
+def shift_day_problems(rules: dict) -> list[str]:
+    """어느 역할이 어느 장소의 어느 교대를 맡아도, 교대와 역할 규칙으로 계산한 하루 일과가 24시간을 겹치지 않고 빈틈없이 채우는지."""
+    problems = []
+    for role_name, role in rules["roles"].items():
+        for place_code, place in rules["places"].items():
+            for shift_name, shift in place["shifts"].items():
+                where = f"roles.{role_name} × places.{place_code}.shifts.{shift_name}"
+                problems += [f"{where}: {problem}" for problem in schedule_problems(npc_derive.shift_day(shift, role))]
+    return problems
+
+
+def place_problems(rules: dict) -> list[str]:
+    """영업시간이 있는 장소마다 문을 연 동안은 교대가 하나 이상 맡는지, 영업시간 밖에 걸친 교대가 없는지.
+    영업시간이 없으면 24시간 여는 곳이라 교대가 하루를 다 채우지 않아도 된다(행인이 마을에 나와 있는 시간대 등)."""
+    problems = []
+    for code, place in rules["places"].items():
+        if "hours" not in place:
+            continue
+        is_open = _painted([place["hours"]])
+        staffed = _painted(place["shifts"].values())
+        unstaffed = [open_count > 0 and staff_count == 0 for open_count, staff_count in zip(is_open, staffed)]
+        problems += [f"places.{code}: {_clock(start)}~{_clock(end)}에 맡은 교대가 없음" for start, end in _runs(unstaffed, bool)]
+        for name, shift in place["shifts"].items():
+            after_hours = [shift_count > 0 and open_count == 0 for shift_count, open_count in zip(_painted([shift]), is_open)]
+            problems += [
+                f"places.{code}.shifts.{name}: {_clock(start)}~{_clock(end)}은 영업시간 밖" for start, end in _runs(after_hours, bool)
+            ]
+    return problems
 
 
 DAY_MINUTES = 24 * 60
@@ -62,15 +88,21 @@ DAY_MINUTES = 24 * 60
 def schedule_problems(schedule: list[dict]) -> list[str]:
     """일과표가 하루 24시간을 겹치지 않고 빈틈없이 채우는지. 하루를 분 단위로 칠해 비거나 두 번 칠해진 구간을 알려 준다.
     to가 from보다 이르면 자정을 넘기고, 같으면 하루 전체다."""
-    covered = [0] * DAY_MINUTES
-    for block in schedule:
-        start = _minutes(block["from"])
-        length = (_minutes(block["to"]) - start) % DAY_MINUTES or DAY_MINUTES
-        for offset in range(length):
-            covered[(start + offset) % DAY_MINUTES] += 1
+    covered = _painted(schedule)
     gaps = [f"{_clock(start)}~{_clock(end)}에 일과가 없음" for start, end in _runs(covered, lambda count: count == 0)]
     overlaps = [f"{_clock(start)}~{_clock(end)}에 일과가 겹침" for start, end in _runs(covered, lambda count: count > 1)]
     return gaps + overlaps
+
+
+def _painted(spans) -> list[int]:
+    """시간 구간(from·to)들을 하루에 분 단위로 칠해, 분마다 몇 번 칠해졌는지. to가 from보다 이르면 자정을 넘기고, 같으면 하루 전체다."""
+    covered = [0] * DAY_MINUTES
+    for span in spans:
+        start = _minutes(span["from"])
+        length = (_minutes(span["to"]) - start) % DAY_MINUTES or DAY_MINUTES
+        for offset in range(length):
+            covered[(start + offset) % DAY_MINUTES] += 1
+    return covered
 
 
 def _runs(covered: list[int], hit) -> list[list[int]]:
@@ -97,9 +129,9 @@ def _clock(minutes: int) -> str:
     return f"{minutes // 60 % 24:02d}:{minutes % 60:02d}"
 
 
-def life_problems(npc_folder: Path) -> list[str]:
-    """NPC 폴더(ai/npcs)의 생활 파일(life/*.json)을 하나씩 검사하고, 인격 파일(*.json)과 짝이 맞는지 본다.
-    스키마를 어긴 파일은 나머지를 믿을 수 없으니 스키마 오류만 알린다."""
+def life_problems(npc_folder: Path, rules: dict) -> list[str]:
+    """NPC 폴더(ai/npcs)의 생활 파일(life/*.json)을 하나씩 검사하고, 인격 파일(*.json)과 짝이 맞는지,
+    근무지·교대가 공통 규칙(rules)의 places에 있는지 본다. 스키마를 어긴 파일은 나머지를 믿을 수 없으니 스키마 오류만 알린다."""
     problems, life_file_of, life_files, guides = [], {}, set(), []
     for path in sorted((npc_folder / "life").glob("*.json")):
         name = f"life/{path.name}"
@@ -112,6 +144,11 @@ def life_problems(npc_folder: Path) -> list[str]:
         npc_id = life["npcId"]
         if path.stem != npc_id:
             problems.append(f"{name}: 파일 이름이 npcId '{npc_id}'와 다름")
+        workplace = rules["places"].get(life["workplace"])
+        if workplace is None:
+            problems.append(f"{name}: 공통 규칙 places에 없는 근무지 '{life['workplace']}'")
+        elif life["shift"] not in workplace["shifts"]:
+            problems.append(f"{name}: {life['workplace']}에 없는 교대 '{life['shift']}'")
         if life.get("tutorialGuide"):
             guides.append(npc_id)
         life_file_of[npc_id] = name
@@ -201,13 +238,18 @@ def request_problems(library: dict, rules: dict) -> list[str]:
         for j, step in enumerate(request["steps"]):
             if step["with"] == "staff" and not _can_fill_at(rules, step["place"], request["need"]):
                 problems.append(f"$.requests[{i}].steps[{j}]: {step['place']}에서는 {request['need']}를 채울 수 없음")
-        role_activities = {block["activity"] for block in rules["roles"][request["role"]]["schedule"]}
+        role_activities = _role_activities(rules["roles"][request["role"]])
         problems += [
             f"$.requests[{i}]: {request['role']} 일과에 {activity}가 없음"
             for activity in request["activities"]
             if activity not in role_activities
         ]
     return problems
+
+
+def _role_activities(role: dict) -> set[str]:
+    """역할의 하루에 나올 수 있는 활동: 교대 중 활동, 쉬는 시간이 있으면 BREAK, 교대 밖 퇴근."""
+    return {role["onShift"], "OFF"} | ({"BREAK"} if "break" in role else set())
 
 
 def _can_fill_at(rules: dict, place: str, need: str) -> bool:

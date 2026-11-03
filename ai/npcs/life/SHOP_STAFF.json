@@ -2,5 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "SHOP_STAFF",
   "mbti": "ISFJ-T",
-  "role": "STAFF"
+  "role": "STAFF",
+  "workplace": "SHOP",
+  "shift": "EVENING"
 }

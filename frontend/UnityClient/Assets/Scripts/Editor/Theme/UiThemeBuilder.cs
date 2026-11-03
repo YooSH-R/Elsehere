@@ -50,9 +50,6 @@ namespace A305.EditorTools.Theme
         private const float PillIconLeft = 20;
         private const float PillIconSize = 22;
 
-        // 로그인 창 아래 약관 링크처럼 바탕 없는 작은 글자 버튼의 높이
-        private const float LegalLinkHeight = 40;
-
         private static UiThemeCatalog catalog;
 
         [MenuItem(MenuPath)]
@@ -544,7 +541,6 @@ namespace A305.EditorTools.Theme
             foreach (
                 string panel in new[]
                 {
-                    "LoginPanel",
                     "GuestPanel",
                     "SignupPanel",
                     "LanguagePanel",
@@ -559,11 +555,8 @@ namespace A305.EditorTools.Theme
                 Roomy(root, panel);
             }
 
-            Role(root, "LoginPanel/Subtitle", UiThemeRole.Muted);
-            Role(root, "LoginPanel/Notice", UiThemeRole.Muted);
-            ActionPill(root, "LoginPanel/GoogleButton", UiIcon.None, UiTone.Primary, 280);
-            ActionPill(root, "LoginPanel/GuestButton", UiIcon.None, UiTone.Neutral, 280);
-            ActionPill(root, "LoginPanel/DevLoginButton", UiIcon.None, UiTone.Neutral, 280);
+            // 로그인 메인은 확정 시안(A안) 그림으로 따로 만든다. 개발용 로그인만 알약 버튼으로 칠한다.
+            ActionPill(root, "LoginPanel/DevLoginButton", UiIcon.None, UiTone.Neutral, 480);
 
             // 캐릭터 버튼은 위의 제목·설명과 같은 왼쪽 줄에서 시작한다.
             foreach (string row in new[] { "GuestPanel/AvatarRow", "SignupPanel/AvatarRow" })
@@ -616,32 +609,16 @@ namespace A305.EditorTools.Theme
             Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
             StyleEntryGuidance(root);
+            A305.EditorTools.Onboarding.LoginScreenBuilder.Apply(root);
         }
 
         /// <summary>
-        /// 입구 화면 배경을 테마의 엷은 강조색으로 깔고, 로그인 창 글자를 버튼과 같은 가운데로 맞추며 약관 링크를 차분한 글자 버튼으로 둔다.
+        /// 입구 화면 배경을 테마의 엷은 강조색으로 깐다. 로그인 메인의 글자·약관 링크는 <see cref="A305.EditorTools.Onboarding.LoginScreenBuilder"/>가 맡는다.
         /// 고르는 캐릭터 버튼에는 고른 것에만 보이는 체크 배지를 단다(S15P31A305-417).
         /// </summary>
         private static void StyleEntryGuidance(Transform root)
         {
             Role(root, "Background", UiThemeRole.Backdrop);
-            foreach (
-                string path in new[]
-                {
-                    "LoginPanel/Title",
-                    "LoginPanel/Subtitle",
-                    "LoginPanel/Notice",
-                }
-            )
-                root.Find(path).GetComponent<TMP_Text>().alignment = TextAlignmentOptions.Top;
-            Transform legalLinks = root.Find("LoginPanel/LegalLinks");
-            if (legalLinks != null)
-            {
-                legalLinks.GetComponent<HorizontalLayoutGroup>().childAlignment =
-                    TextAnchor.MiddleCenter;
-                LegalLink(root, "LoginPanel/LegalLinks/TermsButton");
-                LegalLink(root, "LoginPanel/LegalLinks/PrivacyButton");
-            }
             foreach (
                 string avatar in new[]
                 {
@@ -652,26 +629,6 @@ namespace A305.EditorTools.Theme
                 }
             )
                 SelectedCheck(root.Find(avatar));
-        }
-
-        // 약관 링크: 바탕 없는 작은 글자 버튼. 누를 수 있다는 것을 밑줄로 알린다.
-        private static void LegalLink(Transform root, string path)
-        {
-            ActionPill(root, path, UiIcon.None, UiTone.Neutral);
-            Transform link = root.Find(path);
-            var fields = new SerializedObject(link.GetComponent<ThemedElement>());
-            fields.FindProperty("quiet").boolValue = true;
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            var label = link.Find("Label").GetComponent<TMP_Text>();
-            label.fontStyle = FontStyles.Underline;
-            label.enableAutoSizing = false;
-            label.fontSize = 18;
-            var size = link.GetComponent<LayoutElement>();
-            size.preferredHeight = size.minHeight = LegalLinkHeight;
-            // 두 링크가 떨어져 보이지 않게 정해 둔 폭 대신 글자 길이만큼만 차지한다.
-            size.preferredWidth = size.minWidth = -1;
-            var rect = (RectTransform)link;
-            rect.sizeDelta = new Vector2(rect.sizeDelta.x, LegalLinkHeight);
         }
 
         // 고른 캐릭터 버튼 오른쪽 위의 체크 배지. 처음에는 숨기고, 화면 코드(AvatarButtons)가 고른 버튼에만 켠다.

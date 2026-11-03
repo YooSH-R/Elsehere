@@ -43,14 +43,44 @@ namespace A305.EditorTools.World
             SpaceDoorway homeDoor = BuilderTools
                 .FindAllInScene<SpaceDoorway>(scene)
                 .Single(door => door.DoorwayId == "HomeDoor");
-            // 집 도착 지점에서 보도 쪽으로 2m, 길을 따라 5m: 감지 반경 8m 안의 열린 보도.
+            // 집 문 앞 2m에서 보도 쪽으로 2m, 길을 따라 5m: 감지 반경 8m 안의 열린 보도.
+            // 도착 지점을 문 앞 1m로 줄이기 전과 같은 자리에 서도록 문에서 잰다.
+            Vector3 front = homeDoor.transform.TransformDirection(new Vector3(0f, 0f, 2f));
             Vector3 offset = homeDoor.transform.TransformDirection(new Vector3(5f, 0f, 2f));
             passerby.SetPositionAndRotation(
-                homeDoor.ArrivalPoint.position + offset + Vector3.up * .02f,
+                homeDoor.transform.position + front + offset + Vector3.up * .02f,
                 Quaternion.LookRotation(-offset)
             );
             PrefabUtility.RecordPrefabInstancePropertyModifications(passerby);
-            Debug.Log($"Tutorial passerby placed {offset.magnitude:F2}m from HomeDoor arrival.");
+            Debug.Log($"Tutorial passerby placed {offset.magnitude:F2}m from HomeDoor front.");
+        }
+
+        // 건물에서 나오면 문을 등지고 문 앞 인도 1m에 선다. 선 자리의 플레이어(반지름 0.33m)가 감지 영역에 닿으면
+        // 나오자마자 다시 들어가므로, 감지 영역은 문에서 0.5m 깊이까지만 둔다.
+        private static readonly Vector3 DoorArrival = new Vector3(0, 0, 1f);
+        private static readonly Vector3 DoorTriggerCenter = new Vector3(0, 1.3f, .25f);
+        private static readonly Vector3 DoorTriggerSize = new Vector3(1.8f, 2.6f, .5f);
+
+        [MenuItem("Tools/A305/World/Apply Town Door Arrival")]
+        public static void ApplyDoorArrival()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            foreach (SpaceDoorway door in BuilderTools.FindAllInScene<SpaceDoorway>(scene))
+                FitDoorToSidewalk(door);
+            BuilderTools.SaveScene(scene, ScenePath);
+        }
+
+        /// <summary>마을 출입문의 감지 영역과 나올 때 설 자리를 문 앞 인도에 맞춘다.</summary>
+        internal static void FitDoorToSidewalk(SpaceDoorway door)
+        {
+            BoxCollider trigger = door.GetComponent<BoxCollider>();
+            trigger.center = DoorTriggerCenter;
+            trigger.size = DoorTriggerSize;
+            door.ArrivalPoint.localPosition = DoorArrival;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
         }
 
         /// <summary>
@@ -306,17 +336,12 @@ namespace A305.EditorTools.World
             }
             door.transform.localPosition = new Vector3(localDoorX, 0, .05f);
             door.transform.localRotation = Quaternion.identity;
-            BoxCollider trigger = door.GetComponent<BoxCollider>();
-            trigger.center = new Vector3(0, 1.3f, .4f);
-            trigger.size = new Vector3(1.8f, 2.6f, .8f);
-            door.ArrivalPoint.localPosition = new Vector3(0, 0, 2f);
+            FitDoorToSidewalk(door);
             Transform visual = door.transform.Find("Visual");
             visual.localScale = new Vector3(1.5f, 1.18f, 1);
             foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>())
                 renderer.sharedMaterial = Green;
             PrefabUtility.RecordPrefabInstancePropertyModifications(door.transform);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
             PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
         }
 

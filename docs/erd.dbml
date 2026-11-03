@@ -215,6 +215,7 @@ Table conversations [headercolor: #2E6B4F] {
   ended_at timestamptz
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
   request_id uuid [unique, note: '대화 시작(CONV-01) 요청 ID · 재전송 시 새 대화를 만들지 않고 같은 대화를 돌려줌 (V10 전에 시작한 대화는 NULL)']
+  npc_off_duty boolean [not null, default: false, note: '근무 시간(교대) 밖의 NPC와 시작한 대화 (CONV-01 npcOffDuty) · AI 워커에 응대 상황 대신 일상 상황을 보냄 · V11 전 대화는 false']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 

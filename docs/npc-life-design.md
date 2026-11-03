@@ -118,6 +118,7 @@ NPC 일과는 손으로 적지 않고, 장소마다 정한 영업시간·교대�
   | 마을(행인) | 아침 Ruby, 낮 Ben, 오후 Ethan, 저녁 Maya |
   | 거리 매장·경찰서·택시 | 장소마다 한 명이 `ALL_DAY` |
 
+- **근무 외 대화:** 교대 밖의 직원과 대화하면 클라이언트가 대화 시작(API CONV-01)에 `npcOffDuty: true`를 보내고, 백엔드는 그 대화의 AI 요청에 응대 상황 대신 쉬는 중에 잡담하는 일상 상황을 보냅니다. 첫 인사도 손님을 맞는 말 대신 일상 인사입니다. 사적인 화제는 근무 중과 같이 인격과 알아봄·호감을 따릅니다.
 - **Unity로 내보내기:** `ai/tools/npc_life_export.py`가 계산한 일과를 `NpcLife.json`의 NPC별 `schedule`(`from`·`to`·`activity`)로, 장소별 영업시간을 `frontend/UnityClient/Assets/Data/World/PlaceHours.json`으로 내보냅니다. 영업시간 파일은 장소마다 `code`·`alwaysOpen`·`from`·`to`이고, 24시간 여는 곳은 `alwaysOpen: true`에 시각을 비웁니다. Unity `JsonUtility`가 없는 칸을 구분하지 못해 모든 장소를 같은 모양으로 둡니다.
 
 ## 7. 부탁 퀘스트

@@ -23,6 +23,7 @@ import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
+import com.elsehere.ai.client.WorkerNpc;
 import com.elsehere.ai.client.WorkerTrace;
 import com.elsehere.ai.service.GuestConversationLimit;
 import com.elsehere.common.error.BusinessException;
@@ -184,6 +185,116 @@ class ConversationServiceTest {
     assertThat(instruction.getValue())
         .contains("ask how you can help")
         .contains("Do not mention the learner's tasks, your offers or directions yet");
+  }
+
+  @Test
+  @DisplayName("근무 중인 직원과의 대화는 워커에 시드의 응대 상황을 보내고 첫 인사에서 무엇을 도와줄지 묻게 한다")
+  void start_onDutyStaff_sendsServiceSceneAndAsksHowToHelp() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi! What can I get for you?", null));
+
+    startCafe();
+
+    ArgumentCaptor<WorkerNpc> npc = ArgumentCaptor.forClass(WorkerNpc.class);
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            npc.capture(),
+            any(),
+            any(),
+            anyString(),
+            instruction.capture(),
+            anyInt(),
+            any());
+    assertThat(npc.getValue().scene()).isEqualTo("The counter of the corner cafe.");
+    assertThat(instruction.getValue()).contains("ask how you can help");
+  }
+
+  @Test
+  @DisplayName("근무가 아닌 NPC와 시작한 대화는 근무가 아닌 대화로 저장한다")
+  void start_npcOffDuty_savesOffDutyConversation() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Oh, hey there!", null));
+
+    ConversationStartResponse response = startOffDuty("CAFE_STAFF", InitiatedBy.USER);
+
+    assertThat(
+            conversationRepository.findById(response.conversationId()).orElseThrow().isNpcOffDuty())
+        .isTrue();
+  }
+
+  @Test
+  @DisplayName("근무가 아닌 직원의 첫 인사는 응대 상황 대신 일상 상황으로 만들고 무엇을 도와줄지 묻지 않게 한다")
+  void start_offDutyStaff_greetsCasuallyInOffDutyScene() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Oh, hey there!", null));
+
+    ConversationStartResponse response = startOffDuty("CAFE_STAFF", InitiatedBy.USER);
+
+    ArgumentCaptor<WorkerNpc> npc = ArgumentCaptor.forClass(WorkerNpc.class);
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            npc.capture(),
+            any(),
+            any(),
+            anyString(),
+            instruction.capture(),
+            anyInt(),
+            any());
+    assertThat(npc.getValue().scene())
+        .contains("Mia is off work right now")
+        .contains("does not take orders or serve anyone");
+    assertThat(instruction.getValue()).contains("off work").doesNotContain("how you can help");
+    assertThat(response.openingTurn().text()).isEqualTo("Oh, hey there!");
+  }
+
+  @Test
+  @DisplayName("근무가 아닌 NPC가 먼저 말을 걸어도 저장된 말걸기 대사 대신 AI가 만든 일상 인사로 시작한다")
+  void start_offDutyPasserbyApproach_doesNotUseApproachLine() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Oh, hello!", null));
+
+    ConversationStartResponse response = startOffDuty("TOWN_PASSERBY", InitiatedBy.NPC);
+
+    assertThat(response.openingTurn().text()).isEqualTo("Oh, hello!");
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            argThat(npc -> npc.scene().contains("Ben is off work right now")),
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            any());
+  }
+
+  @Test
+  @DisplayName("근무가 아닌 NPC와의 대화는 발화에 대답할 때도 워커에 일상 상황을 보낸다")
+  void send_offDutyConversation_sendsOffDutySceneToReply() {
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Oh, hey there!", null));
+    ConversationStartResponse started = startOffDuty("CAFE_STAFF", InitiatedBy.USER);
+
+    sendText(started.conversationId(), "Are you working today?");
+
+    then(aiGateway)
+        .should()
+        .reply(
+            any(),
+            argThat(npc -> npc.scene().contains("Mia is off work right now")),
+            any(),
+            any(),
+            eq("Are you working today?"),
+            anyString(),
+            anyInt(),
+            any());
   }
 
   @Test
@@ -657,6 +768,11 @@ class ConversationServiceTest {
   private ConversationStartResponse startCafe() {
     return conversationService.start(
         userId, new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.NPC));
+  }
+
+  private ConversationStartResponse startOffDuty(String npcCode, InitiatedBy initiatedBy) {
+    return conversationService.start(
+        userId, new StartConversationRequest(UUID.randomUUID(), npcCode, initiatedBy, true));
   }
 
   private void sendText(Long conversationId, String text) {

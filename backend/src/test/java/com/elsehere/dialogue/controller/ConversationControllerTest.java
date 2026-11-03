@@ -3,6 +3,7 @@ package com.elsehere.dialogue.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -45,6 +46,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -160,6 +163,49 @@ class ConversationControllerTest {
                 "{\"requestId\": \"" + REQUEST_ID + "\", \"npcCode\": \"CAFE_STAFF\"}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  @DisplayName("대화 시작에 npcOffDuty가 true면 근무가 아닌 NPC와의 대화로 서비스에 넘긴다")
+  void start_npcOffDuty_passesOffDuty() throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\","
+                    + " \"initiatedBy\": \"USER\", \"npcOffDuty\": true}"))
+        .andExpect(status().isCreated());
+
+    then(conversationService)
+        .should()
+        .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, true));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", ", \"npcOffDuty\": null"})
+  @DisplayName("npcOffDuty가 없거나 null이면 근무 중인 NPC와의 대화로 넘긴다")
+  void start_withoutNpcOffDuty_passesOnDuty(String npcOffDutyField) throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\","
+                    + " \"initiatedBy\": \"USER\""
+                    + npcOffDutyField
+                    + "}"))
+        .andExpect(status().isCreated());
+
+    then(conversationService)
+        .should()
+        .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, false));
   }
 
   @Test
@@ -302,6 +348,17 @@ class ConversationControllerTest {
         .perform(get("/api/v1/conversations/active"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+  }
+
+  private static ConversationStartResponse startedConversation() {
+    return new ConversationStartResponse(
+        5L,
+        ConversationStatus.ACTIVE,
+        1,
+        NPC,
+        List.of(),
+        npcTurn(10L, 1, "Hi!"),
+        new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 0));
   }
 
   private static NpcTurnResponse npcTurn(Long turnId, int seq, String text) {

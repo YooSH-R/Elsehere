@@ -774,6 +774,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 게스트(AUTH-07)는 이미 시작한 대화 수(끝난 대화 포함)가 서버 설정값(`GUEST_CONVERSATION_LIMIT`, 기본 3)에 이르면 대화를 시작하지 않고 `AI_QUOTA_EXHAUSTED`입니다. `message`는 사용량 소진 문구 대신 "게스트는 NPC와 3번까지 대화할 수 있어요. 마을 탐험, 사물 카드, 단어장은 계속할 수 있어요."입니다(횟수는 설정값). `details`는 1.5의 형식이며, 게스트 한도는 다시 채워지지 않으므로 `resumeAt`을 담지 않습니다. 첫 인사를 만들지 못해 대화가 만들어지지 않은 시도는 세지 않습니다. 남은 횟수는 AI-01·BOOT-01의 `remainingConversations`이고, 시작하기 전 한도는 AUTH-08의 `conversationLimit`입니다.
 - 진행 중인 대화가 있으면 `CONVERSATION_ALREADY_ACTIVE`를 `activeConversationId`와 함께 돌려줍니다.
 - 첫 인사를 만드는 사이 같은 사용자의 다른 시작 요청이 먼저 저장됐으면, 저장 직전에 다시 확인해 `CONVERSATION_ALREADY_ACTIVE`(게스트가 그 요청으로 횟수를 다 썼으면 `AI_QUOTA_EXHAUSTED`)로 거절합니다. 진행 중인 대화는 하나만 남습니다.
+- 같은 `requestId`로 다시 보내면(응답 시간 초과 뒤 재시도 등) 대화를 새로 만들지 않고 그 요청으로 시작한 대화의 응답(첫 대사 포함)을 돌려줍니다(`conversations.request_id`). 이때는 `CONVERSATION_ALREADY_ACTIVE`나 게스트 횟수로 거절하지 않고 횟수도 다시 세지 않습니다. 처음 요청이 첫 인사를 기다리는 사이 재요청이 먼저 저장했어도 같습니다. 다른 사용자가 쓴 `requestId`면 `409 REQUEST_ID_CONFLICT`입니다.
 - AI를 쓸 수 없는 상태에서는 행인 말걸기를 발생시키지 않습니다. `[제안]` 클라이언트가 BOOT-01·AI-01의 상태로 판단하고, 최종 확인은 이 API에서 합니다.
 
 #### CONV-02 `POST /api/v1/speech/transcriptions`
@@ -1130,7 +1131,9 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 화면 17의 [모범 음성 듣기]입니다. `{ "requestId": "..." }`로 `betterText`의 모범 음성을 만들고 `{ "url": "..." }`를 돌려줍니다.
 - 한 번 만든 음성은 `turn_feedback.model_audio_key`로 다시 사용하며 새로 만들지 않습니다. 저장한 파일이 없어졌으면 다시 만듭니다.
+- 같은 항목을 거의 동시에 여러 번 요청해도 모두 성공합니다. 서버는 먼저 붙은 음성 하나만 남기고 늦게 만든 파일은 지웁니다. 합성은 요청 수만큼 일어날 수 있으므로 클라이언트는 요청 중에 버튼을 막습니다.
 - `url`은 같은 경로의 `GET /api/v1/turn-feedback/{turnFeedbackId}/model-speech`이며 WAV(`audio/wav`)를 돌려줍니다. 아직 만들지 않았으면 `404 NOT_FOUND`입니다.
+- 모범 음성 파일은 마지막 재생 뒤 30일, 환경 전체 5GB까지 보관합니다(서버 설정값, [NPC 음성 저장 운영](../npc-audio-storage.md#모범-음성-보관)). 정리로 지워진 뒤 GET은 `404 NOT_FOUND`입니다. 클라이언트는 [모범 음성 듣기]를 누를 때마다 POST를 먼저 보내고, 받은 `url`로 GET합니다. POST가 파일이 없으면 다시 만듭니다.
 - 목소리는 사물 발음(WORLD-04)과 같은 `af_heart`, 속도 1.0으로 고정합니다(서버 설정값). 대화한 NPC의 목소리를 쓰지 않습니다.
 - 다른 사용자의 피드백, 없는 피드백, 고칠 표현이 없어 `betterText`가 `null`인 항목은 `404 NOT_FOUND`입니다. 클라이언트는 `betterText`가 있는 항목에만 [모범 음성 듣기]를 보여 줍니다.
 - 합성 호출은 `ai_requests`에 `kind: TTS`로 기록합니다. 워커 오류는 1.5 오류 응답으로 알립니다.

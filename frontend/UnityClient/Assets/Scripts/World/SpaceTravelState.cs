@@ -24,6 +24,17 @@ namespace A305.World
             IsLocked = false;
         }
 
+        public bool TryBegin()
+        {
+            if (IsLocked || IsTraveling)
+            {
+                return false;
+            }
+
+            IsTraveling = true;
+            return true;
+        }
+
         /// <param name="destinationScene">이동할 씬 이름</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
         /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도</param>
@@ -34,12 +45,11 @@ namespace A305.World
             float viewYawFromTravel = 0f
         )
         {
-            if (IsLocked || IsTraveling || string.IsNullOrEmpty(destinationScene))
+            if (string.IsNullOrEmpty(destinationScene) || !TryBegin())
             {
                 return false;
             }
 
-            IsTraveling = true;
             this.arrivalDoorwayId = arrivalDoorwayId;
             this.viewYawFromTravel = viewYawFromTravel;
             return true;

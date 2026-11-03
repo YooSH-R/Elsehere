@@ -5,6 +5,7 @@ import com.elsehere.conversation.entity.ConversationStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
   Optional<Conversation> findFirstByUserIdAndStatus(Long userId, ConversationStatus status);
 
   Optional<Conversation> findByIdAndUserId(Long id, Long userId);
+
+  Optional<Conversation> findByRequestId(UUID requestId);
 
   long countByUserId(Long userId);
 

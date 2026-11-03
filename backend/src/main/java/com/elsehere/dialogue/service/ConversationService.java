@@ -34,6 +34,7 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -79,6 +80,12 @@ public class ConversationService {
   private final GuestConversationLimit guestConversationLimit;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
+    // 응답을 받지 못해 같은 요청을 다시 보내면 새로 만들지 않고 처음 시작한 대화를 돌려준다(CONV-03과 같은 방식).
+    Optional<ConversationStartResponse> replayed =
+        transactionTemplate.execute(status -> replay(userId, request.requestId()));
+    if (replayed.isPresent()) {
+      return replayed.get();
+    }
     StartContext context =
         transactionTemplate.execute(status -> startContext(userId, request.npcCode()));
     NpcContext npc = context.npc();
@@ -91,14 +98,20 @@ public class ConversationService {
             ? approachOpening(npc)
             : greetingOpening(new WorkerTrace(request.requestId(), userId, null), npc, context);
 
-    ConversationStartResponse started =
+    Started started =
         transactionTemplate.execute(
             status -> {
               // AI를 기다리는 사이 같은 사용자의 다른 시작 요청이 저장됐을 수 있다. 사용자 행을 잠가 시작 요청을 한 줄로 세우고 다시 확인한다.
-              ensureCanStart(
+              User user =
                   userRepository
                       .findForUpdate(userId)
-                      .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)));
+                      .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+              // 같은 요청 ID의 재요청이 먼저 저장했으면 거절하지 않고 그 대화를 돌려준다.
+              Optional<ConversationStartResponse> saved = replay(userId, request.requestId());
+              if (saved.isPresent()) {
+                return new Started(saved.get(), false);
+              }
+              ensureCanStart(user);
               Conversation conversation =
                   conversationRepository.save(
                       Conversation.start(
@@ -107,6 +120,7 @@ public class ConversationService {
                           request.initiatedBy(),
                           context.level(),
                           clock.instant()));
+              conversation.attachStartRequest(request.requestId());
               context
                   .mission()
                   .ifPresent(
@@ -123,22 +137,47 @@ public class ConversationService {
                   turnRepository.save(
                       Turn.npc(
                           conversation, 1, opening.text(), opening.npcAudioKey(), clock.instant()));
-              return new ConversationStartResponse(
-                  conversation.getId(),
-                  conversation.getStatus(),
-                  conversation.getLevelApplied(),
-                  npc.summary(),
-                  List.of(),
-                  conversationResponses.npcTurn(openingTurn),
-                  conversationResponses.state(conversation));
+              return new Started(startResponse(conversation, npc, openingTurn), true);
             });
-    // 저장이 끝난 뒤 남긴다. 첫 대사는 대화 본문이라 남기지 않는다.
-    log.info(
-        "conversation_started conversation_id={} npc={} initiated_by={}",
-        started.conversationId(),
-        npc.summary().npcCode(),
-        request.initiatedBy());
-    return started;
+    if (started.created()) {
+      // 저장이 끝난 뒤 남긴다. 첫 대사는 대화 본문이라 남기지 않는다.
+      log.info(
+          "conversation_started conversation_id={} npc={} initiated_by={}",
+          started.response().conversationId(),
+          npc.summary().npcCode(),
+          request.initiatedBy());
+    }
+    return started.response();
+  }
+
+  // 같은 요청 ID로 이미 시작한 대화의 시작 응답. 다른 사용자의 요청 ID면 REQUEST_ID_CONFLICT다.
+  private Optional<ConversationStartResponse> replay(Long userId, UUID requestId) {
+    return conversationRepository
+        .findByRequestId(requestId)
+        .map(
+            conversation -> {
+              if (!conversation.getUserId().equals(userId)) {
+                throw new BusinessException(ErrorCode.REQUEST_ID_CONFLICT);
+              }
+              Turn openingTurn =
+                  turnRepository
+                      .findByConversationIdAndSeq(conversation.getId(), 1)
+                      .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
+              return startResponse(
+                  conversation, dialogueContexts.npcById(conversation.getNpcId()), openingTurn);
+            });
+  }
+
+  private ConversationStartResponse startResponse(
+      Conversation conversation, NpcContext npc, Turn openingTurn) {
+    return new ConversationStartResponse(
+        conversation.getId(),
+        conversation.getStatus(),
+        conversation.getLevelApplied(),
+        npc.summary(),
+        List.of(),
+        conversationResponses.npcTurn(openingTurn),
+        conversationResponses.state(conversation));
   }
 
   /** 대화를 끝내고 짧은 피드백을 만든다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않고 피드백만 만든다. 피드백 생성은 대화 종료를 확정한 뒤 트랜잭션 밖에서 한다. */
@@ -273,4 +312,9 @@ public class ConversationService {
       Optional<MissionDialogueService.Context> mission) {}
 
   private record Opening(String text, String npcAudioKey) {}
+
+  /**
+   * @param created 이번 요청이 대화를 새로 만들었는지. 같은 요청 ID로 이미 만든 대화를 돌려주면 false
+   */
+  private record Started(ConversationStartResponse response, boolean created) {}
 }

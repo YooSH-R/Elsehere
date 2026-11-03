@@ -117,7 +117,7 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1846,
+            "objectCount": 1860,
             "detailCount": 59,
             "wordKeys": [
                 "awning",
@@ -159,6 +159,7 @@
                 "mirror",
                 "mug",
                 "note",
+                "pastry_stand",
                 "pillow",
                 "plant",
                 "planter",
@@ -178,6 +179,7 @@
                 "table",
                 "takeaway_cup",
                 "trash_can",
+                "tray",
                 "tree",
                 "truck",
                 "wall",
@@ -191,6 +193,7 @@
                 "word_3f1b31e72fbacea48bed046e884e6255",
                 "word_3fc84a99d1f166d49a24ed5d59f38a89",
                 "word_44f9cc0d067b770438b25673c21c1358",
+                "word_47611d6211561694cb7aa0e9039a893a",
                 "word_49745493800188e47bee4b59a9a41f49",
                 "word_50a95568007664e448ac53663da03962",
                 "word_510320b4ce2ab1646975c5e1c03333fb",
@@ -1357,7 +1360,6 @@
             "guid": "1d34e2fbb8b2ae7439f5ca5824bbcbc3",
             "path": "Assets/Prefabs/World/NorthBlock/MapleBakery.prefab",
             "wordKeys": [
-                "book",
                 "bread",
                 "cake",
                 "cash_register",
@@ -1373,15 +1375,19 @@
                 "flowerpot",
                 "handle",
                 "mug",
+                "pastry_stand",
                 "plant",
+                "plate",
                 "railing",
                 "roof",
                 "shop",
                 "sign",
                 "stairs",
                 "table",
+                "tray",
                 "wall",
-                "window"
+                "window",
+                "word_47611d6211561694cb7aa0e9039a893a"
             ]
         },
         {

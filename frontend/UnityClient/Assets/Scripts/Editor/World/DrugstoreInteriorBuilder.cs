@@ -25,7 +25,7 @@ namespace A305.EditorTools.World
     public static class DrugstoreInteriorBuilder
     {
         private const string MenuPath = "Tools/A305/World/Apply Drugstore Interior";
-        private const string ScenePath = "Assets/Scenes/Production/ShopScene.unity";
+        internal const string ScenePath = "Assets/Scenes/Production/ShopScene.unity";
         private const string InteriorName = "DrugstoreInterior";
         private const string PrefabFolder = "Assets/Prefabs/World/Drugstore";
         private const string ArtFolder = "Assets/Art/World/Drugstore";
@@ -142,12 +142,19 @@ namespace A305.EditorTools.World
 
         // 마을로 나가는 문은 공용 출입구 프리팹의 갈색 문판이다. 처음 한 번만 정문 틀에 맞는 크기의 바깥 햇빛이 비치는
         // 유리문으로 바꾸고, 디자인에서 다시 칠했으면 그대로 둔다.
-        private static void DressEntranceDoor(Scene scene)
+        internal static void DressEntranceDoor(Scene scene)
         {
             SpaceDoorway door = BuilderTools
                 .FindAllInScene<SpaceDoorway>(scene)
                 .Single(doorway => doorway.DoorwayId == "TownDoor");
             Transform visual = door.transform.Find("Visual");
+            // 이 실내는 PUSH 표지와 밀대를 따로 제작했으므로 공용 당김 손잡이가 겹치지 않게 한다.
+            Transform sharedFrame = visual.Find("ShopEntrance");
+            if (sharedFrame != null && sharedFrame.gameObject.activeSelf)
+            {
+                sharedFrame.gameObject.SetActive(false);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(sharedFrame.gameObject);
+            }
             Renderer panel = visual.Find("DoorPanel").GetComponent<Renderer>();
             if (panel.sharedMaterial.name != "Door")
                 return;

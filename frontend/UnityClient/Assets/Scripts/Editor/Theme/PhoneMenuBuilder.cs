@@ -107,8 +107,60 @@ namespace A305.EditorTools.Theme
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
-            Transform open = root.Find("Panel/MenuBar/OpenMenuButton");
-            BuilderTools.GetOrAddComponent<CanvasGroup>(open.gameObject).alpha = 0;
+            PhoneButton(root);
+        }
+
+        // 시안 g1의 파란 휴대폰 버튼(64×64, 오른쪽·위 28). 그림은 시안을 렌더링한 것(그림자 자리 왼쪽 32·위 24)이다.
+        // 펼친 동안의 버튼은 시안 m1처럼 보이지 않지만 같은 자리를 누르면 접힌다.
+        private static void PhoneButton(Transform root)
+        {
+            Transform panel = root.Find("Panel");
+            // HUD 패널은 화면 모서리에서 24 들어가 있어, 버튼이 28에 오도록 남은 만큼 안쪽 여백을 둔다.
+            var column = panel.GetComponent<VerticalLayoutGroup>();
+            int inset = Mathf.RoundToInt(28 * Px - 24);
+            column.padding = new RectOffset(
+                column.padding.left,
+                inset,
+                inset,
+                column.padding.bottom
+            );
+            column.childAlignment = TextAnchor.UpperRight;
+            foreach (string name in new[] { "MenuButton", "OpenMenuButton" })
+            {
+                Transform button = panel.Find("MenuBar/" + name);
+                foreach (string part in new[] { "Face", "Outline", "Icon", "Label", "Art" })
+                {
+                    Transform old = button.Find(part);
+                    if (old != null)
+                        Object.DestroyImmediate(old.gameObject);
+                }
+                RemoveDecorations(button.gameObject);
+                var size = BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject);
+                size.minWidth =
+                    size.preferredWidth =
+                    size.minHeight =
+                    size.preferredHeight =
+                        64 * Px;
+                Image hit = Clear(BuilderTools.GetOrAddComponent<Image>(button.gameObject));
+                hit.raycastTarget = true;
+                var clickable = button.GetComponent<Button>();
+                clickable.targetGraphic = hit;
+                clickable.transition = Selectable.Transition.None;
+                if (name == "MenuButton")
+                    Picture(
+                        "Art",
+                        button,
+                        Art("PhoneButton", "Assets/Art/UI/Hud"),
+                        -32,
+                        -24,
+                        128,
+                        136
+                    );
+                else
+                    BuilderTools.GetOrAddComponent<CanvasGroup>(button.gameObject).alpha = 0;
+            }
+            var hud = root.GetComponent<LearningHudView>();
+            BuilderTools.SetReference(hud, "phoneButtonBar", panel.Find("MenuBar").gameObject);
         }
 
         // 앱 버튼만 남기고 예전 폰 부품을 지운다. 그림과 글자는 아래에서 시안 그대로 다시 만든다.
@@ -358,9 +410,9 @@ namespace A305.EditorTools.Theme
         }
 
         // 시안을 렌더링한 그림. 크게 그린 폰 그림이 줄지 않게 4096까지 그대로 가져온다.
-        private static Sprite Art(string name)
+        private static Sprite Art(string name, string folder = ArtFolder)
         {
-            string path = $"{ArtFolder}/{name}.png";
+            string path = $"{folder}/{name}.png";
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             if (
                 importer.textureType != TextureImporterType.Sprite

@@ -40,7 +40,6 @@ namespace A305.EditorTools.Theme
         private const string HudMenuPath = "Panel/Menu";
 
         // 오른쪽 위 메뉴(≡) 버튼과 펼친 목록의 크기
-        private const float MenuButtonSize = 78;
         private const float MenuWidth = 300;
         private const float MenuRowHeight = 64;
 
@@ -225,8 +224,6 @@ namespace A305.EditorTools.Theme
                 MenuWidth + panelLayout.padding.left + panelLayout.padding.right,
                 0
             );
-            StyleMenuButton(root, "Panel/MenuBar/MenuButton", UiTone.Accent);
-            StyleMenuButton(root, "Panel/MenuBar/OpenMenuButton", UiTone.Primary);
 
             Transform vocabulary = root.Find(HudMenuPath + "/VocabularyButton");
             StyleHistory(root);
@@ -264,14 +261,6 @@ namespace A305.EditorTools.Theme
         }
 
         // 메뉴(≡) 버튼. 평소 버튼은 기본 색, 펼친 동안 같은 자리에 보이는 버튼은 강조 색이다.
-        private static void StyleMenuButton(Transform root, string path, UiTone tone)
-        {
-            Transform button = IconButton(root, path, UiIcon.Phone, tone, caption: false);
-            if (button == null)
-                return;
-            var size = button.GetComponent<LayoutElement>();
-            size.minWidth = size.preferredWidth = size.preferredHeight = MenuButtonSize;
-        }
 
         /// <summary>피드백 목록 창을 단어장 화면처럼 칠한다. 닫기는 오른쪽 위 X, [피드백 보기]는 강조 알약 버튼이다.</summary>
         private static void StyleHistory(Transform root)

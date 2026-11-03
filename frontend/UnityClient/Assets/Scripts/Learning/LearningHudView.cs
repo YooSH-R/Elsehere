@@ -38,6 +38,10 @@ namespace A305.Learning
         private TMP_Text vocabularyCountText;
 
         [SerializeField]
+        [Tooltip("오른쪽 위 휴대폰 버튼 줄. 대화 중에는 숨긴다.")]
+        private GameObject phoneButtonBar;
+
+        [SerializeField]
         private TMP_Text messageText;
 
         [SerializeField]
@@ -82,6 +86,9 @@ namespace A305.Learning
             vocabularyButton.interactable = isAvailable;
             historyButton.interactable = isAvailable;
         }
+
+        /// <summary>시안처럼 대화 중에는 오른쪽 위 휴대폰 버튼을 숨긴다.</summary>
+        public void SetTalking(bool talking) => phoneButtonBar.SetActive(!talking);
 
         public void ShowMessage(string message)
         {

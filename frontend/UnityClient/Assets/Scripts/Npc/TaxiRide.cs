@@ -215,7 +215,9 @@ namespace A305.Npc
             }
 
             shownPrompt = null;
-            offerView.HideTalkPrompt(this);
+            // 안내가 뜬 채로 장면이 바뀌면 대화 제안 창이 택시보다 먼저 지워질 수 있다.
+            if (offerView != null)
+                offerView.HideTalkPrompt(this);
         }
 
         private void Hail()

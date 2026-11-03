@@ -66,7 +66,7 @@ namespace A305.World
             if (room != null)
             {
                 Transform arrival = destination.ArrivalPoint;
-                bool entering = room.transform.InverseTransformPoint(arrival.position).z < 0f;
+                bool entering = !LeadsOutOf(room);
                 SpaceTravel.CrossShopDoor(
                     player,
                     arrival.position,
@@ -89,6 +89,22 @@ namespace A305.World
 
                 player.SetMovementLocked(false);
             });
+        }
+
+        /// <summary>이 출입구가 건물 실내에서 문 밖으로 나가는 쪽인지. 실내는 건물의 뒤쪽(-z)에 있다.</summary>
+        internal bool LeadsOutOf(ShopInterior room) =>
+            room.transform.InverseTransformPoint(destination.ArrivalPoint.position).z >= 0f;
+
+        /// <summary>영업이 끝난 건물에서 짝 출입구(문 밖)의 도착 지점으로 내보낸다.</summary>
+        internal bool TryLeave(PlayerMover player, ShopInterior room)
+        {
+            Transform arrival = destination.ArrivalPoint;
+            return SpaceTravel.TryLeaveClosedShop(
+                player,
+                new Pose(arrival.position, arrival.rotation),
+                room,
+                arrival.eulerAngles.y
+            );
         }
     }
 }

@@ -9,6 +9,7 @@
         "A305.Player",
         "A305.Dialogue",
         "A305.EditorTools",
+        "Unity.AI.Navigation",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

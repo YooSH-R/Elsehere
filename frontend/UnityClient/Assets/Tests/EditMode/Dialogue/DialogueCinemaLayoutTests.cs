@@ -33,24 +33,19 @@ namespace A305.Dialogue.Tests
             );
         }
 
-        // 대사 칸은 이름표 안 이름 글자가 시작하는 자리만큼 들어가 시작하고, 오른쪽 끝과 이름표 자리는 그대로 둔다.
+        // 이름표는 끝이 둥글어 대사 글자와 같은 자리에서 시작하면 안쪽으로 들어가 보인다. 이름표만 살짝 앞으로 낸다.
         [Test]
-        public void LinesIndent_StartsTheLinesInsideTheColumn()
+        public void NameChip_StartsSlightlyBeforeTheLines()
         {
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 Wide,
                 linesHeight: 100,
-                nameWidth: 120,
-                linesIndent: 32
+                nameWidth: 120
             );
 
-            float left = (Wide.x - DialogueCinemaLayout.ColumnWidth) / 2f;
-            Assert.That(layout.Lines.xMin, Is.EqualTo(left + 32).Within(.01f));
-            Assert.That(
-                layout.Lines.xMax,
-                Is.EqualTo(left + DialogueCinemaLayout.ColumnWidth).Within(.01f)
-            );
-            Assert.That(layout.Name.xMin, Is.EqualTo(left).Within(.01f));
+            float outdent = layout.Lines.xMin - layout.Name.xMin;
+            Assert.That(outdent, Is.GreaterThan(0f));
+            Assert.That(outdent, Is.LessThan(DialogueCinemaLayout.NameHeight / 4f), "살짝만");
         }
 
         [Test]

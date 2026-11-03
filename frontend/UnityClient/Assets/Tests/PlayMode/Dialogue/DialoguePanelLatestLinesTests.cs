@@ -100,51 +100,19 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(mine, Is.EqualTo(jake).Within(1f));
         }
 
-        // 대사 줄 앞의 이름(나·Jake)은 위 코랄 이름표 안 이름 글자와 같은 세로줄에서 시작한다.
-        // 이름표 테두리에 맞추면 둥근 이름표보다 글자가 바깥으로 나와 보인다.
-        [UnityTest]
-        public IEnumerator Speakers_StartUnderTheNameOnTheChip()
-        {
-            yield return Show(Conversation);
-
-            TMP_Text name = Field<TMP_Text>("npcNameText");
-            TMP_Text lines = Field<TMP_Text>("linesText");
-            name.ForceMeshUpdate();
-            lines.ForceMeshUpdate();
-            float chip = GlyphLeft(name, 0);
-            float mine = GlyphLeft(lines, LineStart(lines.textInfo, "i return"));
-            float jake = GlyphLeft(lines, LineStart(lines.textInfo, "All right"));
-
-            Assert.That(mine, Is.EqualTo(chip).Within(2f), "나");
-            Assert.That(jake, Is.EqualTo(chip).Within(2f), "Jake");
-        }
-
-        private static float FirstLetterX(TMP_TextInfo info, string sentence) =>
-            info.characterInfo[IndexOf(info, sentence)].origin;
-
-        // 그 문장이 놓인 줄의 첫 글자(말한 사람 이름의 첫 글자)
-        private static int LineStart(TMP_TextInfo info, string sentence) =>
-            info.lineInfo[
-                info.characterInfo[IndexOf(info, sentence)].lineNumber
-            ].firstCharacterIndex;
-
-        private static int IndexOf(TMP_TextInfo info, string sentence)
+        private static float FirstLetterX(TMP_TextInfo info, string sentence)
         {
             string shown = new string(
-                info.characterInfo.Take(info.characterCount).Select(c => c.character).ToArray()
+                System.Linq.Enumerable.ToArray(
+                    System.Linq.Enumerable.Select(
+                        System.Linq.Enumerable.Take(info.characterInfo, info.characterCount),
+                        character => character.character
+                    )
+                )
             );
             int index = shown.IndexOf(sentence, System.StringComparison.Ordinal);
             Assert.That(index, Is.GreaterThanOrEqualTo(0), sentence);
-            return index;
-        }
-
-        // 글자 모양 왼쪽 끝의 캔버스 x
-        private static float GlyphLeft(TMP_Text text, int index)
-        {
-            Vector3 world = text.transform.TransformPoint(
-                text.textInfo.characterInfo[index].bottomLeft
-            );
-            return world.x / text.canvas.scaleFactor;
+            return info.characterInfo[index].origin;
         }
 
         [UnityTest]

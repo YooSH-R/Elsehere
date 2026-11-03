@@ -20,6 +20,9 @@ namespace A305.Dialogue
         public const float MaxLinesHeight = 300;
         public const float NameHeight = 48;
 
+        // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
+        public const float NameOutdent = 8;
+
         // 이름 줄 위로 그라데이션이 장면 속으로 옅어지는 높이
         public const float FadeHeight = 150;
 
@@ -38,13 +41,11 @@ namespace A305.Dialogue
         /// <param name="hasEarlierLines">
         /// 보이는 대사 위에 지난 대사가 있는지. 있으면 최소 높이를 두지 않고 대사 칸을 보이는 대사에 딱 맞춰, 지난 대사가 반쯤 비치지 않게 한다.
         /// </param>
-        /// <param name="linesIndent">이름표 왼쪽 끝에서 이름 글자까지의 거리. 대사 칸을 그만큼 들여 대사 앞 이름이 이름표 글자와 같은 세로줄에서 시작한다.</param>
         public static DialogueCinemaLayout Compute(
             Vector2 canvasSize,
             float linesHeight,
             float nameWidth,
-            bool hasEarlierLines = false,
-            float linesIndent = 0
+            bool hasEarlierLines = false
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -66,14 +67,19 @@ namespace A305.Dialogue
             );
             layout.Status = new Rect(left, layout.Input.yMax + 12, width, StatusHeight);
             layout.Lines = new Rect(
-                left + linesIndent,
+                left,
                 layout.Status.yMax + 10,
-                width - linesIndent,
+                width,
                 hasEarlierLines
                     ? Mathf.Min(linesHeight, MaxLinesHeight)
                     : Mathf.Clamp(linesHeight, MinLinesHeight, MaxLinesHeight)
             );
-            layout.Name = new Rect(left, layout.Lines.yMax + Gap, nameWidth, NameHeight);
+            layout.Name = new Rect(
+                left - NameOutdent,
+                layout.Lines.yMax + Gap,
+                nameWidth,
+                NameHeight
+            );
             layout.Tools = Rect.MinMaxRect(
                 layout.Name.xMax + Gap,
                 layout.Name.yMin,

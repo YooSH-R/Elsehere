@@ -19,17 +19,17 @@ namespace A305.EditorTools.Learning
         private const string MenuPath = "Tools/A305/Learning/Apply Feedback Screen";
         private const string PrefabPath = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
         private const string ArtFolder = "Assets/Art/UI/Feedback";
-        private const string DisplayFontPath = "Assets/Art/UI/Fonts/Jua-Regular SDF.asset";
-        private const string BodyFontPath = "Assets/Art/UI/Fonts/Pretendard-Regular SDF.asset";
+        internal const string DisplayFontPath = "Assets/Art/UI/Fonts/Jua-Regular SDF.asset";
+        internal const string BodyFontPath = "Assets/Art/UI/Fonts/Pretendard-Regular SDF.asset";
 
         // 시안 1px = 캔버스 1.2
-        private const float Px = 1.2f;
+        internal const float Px = 1.2f;
 
         // 렌더링한 그림은 2.4배라 캔버스 1단위 = 그림 2px
-        private const float ArtScale = 2;
+        internal const float ArtScale = 2;
 
-        private static readonly Color Ink = new Color32(47, 37, 27, 255);
-        private static readonly Color Muted = new Color32(125, 110, 91, 255);
+        internal static readonly Color Ink = new Color32(47, 37, 27, 255);
+        internal static readonly Color Muted = new Color32(125, 110, 91, 255);
         private static readonly Color MeaningInk = new Color32(74, 63, 51, 255);
         private static readonly Color Coral = new Color32(242, 99, 63, 255);
 
@@ -45,7 +45,7 @@ namespace A305.EditorTools.Learning
         private static readonly float[] TabWidths = { 69.91f, 104.17f, 104.48f, 119.5f };
 
         // 칸 그림의 둥근 모서리 자리(그림 px, 왼·아래·오른·위): 그림자 자리 + 모서리 24
-        private static readonly Vector4 TileBorder = new Vector4(96, 134, 96, 86);
+        internal static readonly Vector4 TileBorder = new Vector4(96, 134, 96, 86);
 
         [MenuItem(MenuPath)]
         public static void ApplyToPrefab()
@@ -377,7 +377,7 @@ namespace A305.EditorTools.Learning
         }
 
         // 렌더링한 그림 버튼: 버튼 칸은 시안 버튼 크기이고, 그림은 그림자 자리만큼 넓혀 깐다. 이름 글자는 그림에 들어 있다.
-        private static void ArtButton(
+        internal static void ArtButton(
             Transform button,
             string sprite,
             float width,
@@ -397,7 +397,7 @@ namespace A305.EditorTools.Learning
             ArtFace(button, sprite, padLeft, padTop, artWidth, artHeight);
         }
 
-        private static void ArtFace(
+        internal static void ArtFace(
             Transform button,
             string sprite,
             float padLeft,
@@ -430,7 +430,7 @@ namespace A305.EditorTools.Learning
         }
 
         // 테마 알약 버튼이 붙인 바탕·아이콘·배치를 지운다. 이름 글자는 남길 수 있다.
-        private static void Clear(Transform target, bool keepLabel, bool keepChildren = false)
+        internal static void Clear(Transform target, bool keepLabel, bool keepChildren = false)
         {
             if (!keepChildren)
                 foreach (
@@ -505,7 +505,7 @@ namespace A305.EditorTools.Learning
         }
 
         // 시안 글꼴·크기·색으로 쓰고 테마가 바꾸지 않게 역할을 뗀다.
-        private static void Style(TMP_Text text, string fontPath, float size, Color color)
+        internal static void Style(TMP_Text text, string fontPath, float size, Color color)
         {
             var theme = text.GetComponent<ThemedElement>();
             if (theme != null)
@@ -519,7 +519,13 @@ namespace A305.EditorTools.Learning
             text.raycastTarget = false;
         }
 
-        private static void TopLeft(RectTransform rect, float x, float y, float width, float height)
+        internal static void TopLeft(
+            RectTransform rect,
+            float x,
+            float y,
+            float width,
+            float height
+        )
         {
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
             rect.anchoredPosition = new Vector2(x, -y) * Px;
@@ -543,7 +549,7 @@ namespace A305.EditorTools.Learning
         }
 
         // 칸 바깥으로 (왼, 위, 오른, 아래) 시안 px만큼 넓힌다.
-        private static void Spread(
+        internal static void Spread(
             RectTransform rect,
             float left,
             float top,
@@ -557,14 +563,14 @@ namespace A305.EditorTools.Learning
             rect.offsetMax = new Vector2(right, top) * Px;
         }
 
-        private static void Fill(RectTransform rect)
+        internal static void Fill(RectTransform rect)
         {
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
-        private static Image Picture(GameObject target, Sprite sprite)
+        internal static Image Picture(GameObject target, Sprite sprite)
         {
             var image = BuilderTools.GetOrAddComponent<Image>(target);
             image.sprite = sprite;
@@ -575,14 +581,14 @@ namespace A305.EditorTools.Learning
             return image;
         }
 
-        private static void Sliced(Image image, Sprite sprite)
+        internal static void Sliced(Image image, Sprite sprite)
         {
             image.sprite = sprite;
             image.type = Image.Type.Sliced;
             image.pixelsPerUnitMultiplier = ArtScale;
         }
 
-        private static RectTransform Rect(string name, Transform parent)
+        internal static RectTransform Rect(string name, Transform parent)
         {
             Transform existing = parent.Find(name);
             if (existing != null)
@@ -594,11 +600,11 @@ namespace A305.EditorTools.Learning
 
         private static int Round(float px) => Mathf.RoundToInt(px * Px);
 
-        private static TMP_FontAsset Font(string path) =>
+        internal static TMP_FontAsset Font(string path) =>
             AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
 
         // 렌더링한 그림을 크기를 줄이지 않고 가져온다. 늘려 쓰는 칸·탭 그림은 둥근 모서리 자리(border, 그림 px)를 둔다.
-        private static Sprite Sprite(string name, Vector4 border = default)
+        internal static Sprite Sprite(string name, Vector4 border = default)
         {
             string path = $"{ArtFolder}/{name}.png";
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);

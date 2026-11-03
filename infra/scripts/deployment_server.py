@@ -16,6 +16,13 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
+from dev_worker_network import (
+    NETWORK_NAME,
+    WORKER_ADDRESS,
+    validate_network,
+    validate_worker_configuration,
+)
+
 
 def write_json(path, value):
     write_text(path, json.dumps(value, indent=2) + "\n")
@@ -458,6 +465,15 @@ class ComposeRuntime:
                 previous_compose_file, images_file, "config", "--format", "json"
             )
         )
+        if self.config.get("fixed_worker_network"):
+            if self.environment != "dev":
+                raise ValueError(
+                    "The fixed development worker network cannot be used in prod."
+                )
+            validate_worker_configuration(candidate)
+            validate_network(
+                json.loads(self.docker("network", "inspect", NETWORK_NAME))[0]
+            )
         services = candidate.get("services", {})
         if set(services) != {"database", "ai-worker", "backend", "web"}:
             raise ValueError(
@@ -645,6 +661,24 @@ class ComposeRuntime:
         ) from last_error
 
     def check_once(self, images):
+        if self.config.get("fixed_worker_network"):
+            network = json.loads(self.docker("network", "inspect", NETWORK_NAME))[0]
+            validate_network(network)
+            worker = json.loads(
+                self.docker(
+                    "inspect",
+                    "--format",
+                    "{{json .NetworkSettings.Networks}}",
+                    "a305-dev-ai-worker-1",
+                )
+            )
+            settings = worker.get(NETWORK_NAME, {})
+            if (
+                settings.get("IPAddress") != WORKER_ADDRESS
+                or (settings.get("IPAMConfig") or {}).get("IPv4Address")
+                != WORKER_ADDRESS
+            ):
+                raise RuntimeError("Development worker fixed IP is not applied.")
         for name, service in [
             ("backend", "backend"),
             ("ai", "ai-worker"),

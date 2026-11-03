@@ -134,6 +134,37 @@ namespace A305.Tutorial
                 }
             }
 
+            // 옆자리가 조금 모자라면 화면 끝에 붙여 밝힌 곳에 말풍선 폭의 절반까지 겹쳐 둔다(대화 노트의 결과 칸 오른쪽).
+            var pinnedRight = new Rect(canvasSize.x - margin - size.x, sideY, size.x, size.y);
+            if (
+                FitsInside(pinnedRight, canvasSize, margin)
+                && hole.xMax - pinnedRight.xMin <= size.x / 2f
+            )
+            {
+                sides.Add(
+                    new BubblePose(
+                        pinnedRight,
+                        BubbleSide.Right,
+                        SideTail(pinnedRight, pinnedRight.xMin, hole)
+                    )
+                );
+            }
+
+            var pinnedLeft = new Rect(margin, sideY, size.x, size.y);
+            if (
+                FitsInside(pinnedLeft, canvasSize, margin)
+                && pinnedLeft.xMax - hole.xMin <= size.x / 2f
+            )
+            {
+                sides.Add(
+                    new BubblePose(
+                        pinnedLeft,
+                        BubbleSide.Left,
+                        SideTail(pinnedLeft, pinnedLeft.xMax, hole)
+                    )
+                );
+            }
+
             float[] stackXs =
             {
                 hole.center.x - size.x / 2f,

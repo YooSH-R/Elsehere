@@ -14,8 +14,28 @@ namespace A305.Characters.PlayModeTests
         [UnityTest]
         public IEnumerator BusinessPrefabBlinksBothEyesWithoutResettingItsMouth()
         {
+            yield return CheckBlink("LittleMung_Business_Male");
+        }
+
+        [UnityTest]
+        public IEnumerator RemainingReviewNpcsBlinkWithoutResettingTheirMouth()
+        {
+            foreach (
+                string name in new[]
+                {
+                    "LittleMung_MiddleAge_Male",
+                    "LittleMung_MiddleAge_Female",
+                    "LittleMung_BlackYoung_Male",
+                    "LittleMung_Grandmother",
+                }
+            )
+                yield return CheckBlink(name);
+        }
+
+        private static IEnumerator CheckBlink(string name)
+        {
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Prefabs/Npc/Review/LittleMung_Business_Male.prefab"
+                "Assets/Prefabs/Npc/Review/" + name + ".prefab"
             );
             var host = new GameObject("Character review host");
             host.AddComponent<CharacterController>();

@@ -937,6 +937,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_18c339143c3bc8948a2616297703684c",
+            "languageCode": "en-US",
+            "text": "police officer",
+            "meaningKo": "경찰관",
+            "example": "The police officer asked me what happened.",
+            "exampleKo": "경찰관이 무슨 일이 있었는지 물었어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_27d3dc992bf0dee46a465b3bb93c0a08",
             "languageCode": "en-US",
             "text": "ice cream",
@@ -1036,6 +1045,15 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_57394345ad5fd5c46a1e107b2d2a7656",
+            "languageCode": "en-US",
+            "text": "police station",
+            "meaningKo": "경찰서",
+            "example": "Where is the police station?",
+            "exampleKo": "경찰서가 어디에 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_583992ed64934fe4ba5f273e34106ceb",
             "languageCode": "en-US",
             "text": "mailbox",
@@ -1051,6 +1069,15 @@
             "meaningKo": "버스 정류장",
             "example": "The bus stop is across the street.",
             "exampleKo": "버스 정류장은 길 건너편에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_5ef79e2727edae54ab972ddb33844750",
+            "languageCode": "en-US",
+            "text": "parking lot",
+            "meaningKo": "주차장",
+            "example": "The police car is in the parking lot.",
+            "exampleKo": "경찰차가 주차장에 있어요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -1096,6 +1123,15 @@
             "meaningKo": "고양이",
             "example": "The cat is sleeping in the sun.",
             "exampleKo": "고양이가 햇볕 아래에서 자고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_be12390675add1b488faf55f8e9aeb96",
+            "languageCode": "en-US",
+            "text": "police car",
+            "meaningKo": "경찰차",
+            "example": "A police car is parked next to the station.",
+            "exampleKo": "경찰서 옆에 경찰차가 서 있어요.",
             "pronunciationAudioKey": ""
         },
         {

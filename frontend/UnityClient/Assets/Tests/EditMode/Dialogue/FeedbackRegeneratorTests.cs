@@ -148,6 +148,11 @@ namespace A305.Dialogue.Tests
                 throw new NotSupportedException();
             }
 
+            public Task<Transcription> TranscribeTutorialAsync(string requestId, byte[] wav)
+            {
+                throw new NotSupportedException();
+            }
+
             public Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId)
             {
                 throw new NotSupportedException();

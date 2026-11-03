@@ -7191,6 +7191,7 @@ GameObject:
   - component: {fileID: 770922136120252385}
   - component: {fileID: 2320161003258015656}
   - component: {fileID: 6352956989729257858}
+  - component: {fileID: 1499910965677128891}
   m_Layer: 0
   m_Name: Ceiling
   m_TagString: Untagged
@@ -7286,6 +7287,27 @@ MonoBehaviour:
   word: {fileID: 11400000, guid: eae2202bc78d1b84fbb04755a869a15b, type: 2}
   parts: {fileID: 0}
   unityKey: 
+--- !u!65 &1499910965677128891
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8076488296459709787}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 7.6, y: 0.1, z: 7.6}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8314603848065512141
 GameObject:
   m_ObjectHideFlags: 0

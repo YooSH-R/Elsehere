@@ -65,14 +65,15 @@ public class PronunciationGenerator {
           created++;
         } catch (RuntimeException exception) {
           // 워커 오류·시간 초과 등으로 한 단어가 실패해도 나머지 단어는 만든다. 다시 실행하면 실패한 단어만 다시 만든다.
-          log.warn("사물 단어 발음을 만들지 못했습니다. wordKey={}", word.wordKey(), exception);
+          log.warn("pronunciation_word_failed word_key={}", word.wordKey(), exception);
           failedWordKeys.add(word.wordKey());
           continue;
         }
       }
       attach(word);
     }
-    log.info("사물 단어 발음 만들기 완료. created={}, failed={}", created, failedWordKeys.size());
+    log.info(
+        "pronunciation_generation_finished created={} failed={}", created, failedWordKeys.size());
     return new PronunciationRun(created, failedWordKeys);
   }
 

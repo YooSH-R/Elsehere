@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Player;
 
 namespace A305.Onboarding
 {
@@ -43,6 +44,7 @@ namespace A305.Onboarding
                     Message = LoadFailedMessage;
                     return;
                 }
+                PlayerNickname.Set(User.Nickname);
 
                 consents = await api.GetConsentsAsync();
             });
@@ -50,6 +52,12 @@ namespace A305.Onboarding
 
         /// <summary>이 사용자가 바꿀 수 있는 선택 동의. 읽기 전이나 읽지 못했으면 비어 있다.</summary>
         public IReadOnlyList<ConsentStatus> Consents => consents;
+
+        /// <summary>
+        /// [회원 탈퇴]를 보일지. 게스트는 지울 계정이 없고 내용도 하루 뒤 정리되므로 보이지 않는다.
+        /// 게스트인지 알기 전(읽기 전·읽지 못함)에도 보이지 않는다.
+        /// </summary>
+        public bool CanWithdraw => User != null && !User.Guest;
 
         /// <summary>음성 처리에 동의했는지. 대화의 음성 입력에 반영한다.</summary>
         public bool IsVoiceAgreed =>
@@ -104,6 +112,8 @@ namespace A305.Onboarding
             {
                 NicknameChange saved = await api.ChangeNicknameAsync(nickname);
                 User.Nickname = saved.Nickname;
+                // 폰 메뉴 날짜 줄도 바뀐 닉네임을 보인다.
+                PlayerNickname.Set(saved.Nickname);
                 Message = "닉네임을 바꿨어요.";
                 changed = true;
             });

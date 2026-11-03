@@ -5,7 +5,8 @@ namespace A305.Player
 {
     /// <summary>
     /// 플레이어를 따라가는 카메라. 탐험 중에는 3인칭·1인칭을 오가고,
-    /// 대화가 시작되면 상대를 바라보는 1인칭으로 고정했다가 대화가 끝나면 직전 시점으로 돌아간다.
+    /// 대화가 시작되면 1·3인칭과 따로 상대 얼굴 앞에서 얼굴을 비추는 대화 시점으로 고정했다가 대화가 끝나면 직전 시점으로 돌아간다.
+    /// 튜토리얼처럼 다가오는 상대를 기다리게 할 때는 플레이어 어깨 너머로 상대를 비추는 구도로 붙잡고 사용자 입력을 받지 않는다.
     /// 시점은 마우스·터치로만 돌고, 키로 걸을 때는 위치만 따라간다.
     /// </summary>
     public class PlayerCameraRig : MonoBehaviour
@@ -22,7 +23,9 @@ namespace A305.Player
         private InputActionReference lookAction;
 
         [SerializeField]
-        [Tooltip("Player/CameraRotate. 누르고 있는 동안 마우스 이동으로 카메라를 돌린다")]
+        [Tooltip(
+            "Player/CameraRotate(마우스 왼쪽 버튼). 누르고 있는 동안 마우스 이동으로 카메라를 돌린다"
+        )]
         private InputActionReference rotateHoldAction;
 
         [SerializeField]
@@ -37,6 +40,7 @@ namespace A305.Player
         private CameraCollisionDistance wallDistance;
         private PlayerCharacterDefinition character;
         private Transform dialogueLookTarget;
+        private Transform meetingLookTarget;
         private Transform vehicleView;
         private PlayerTouchControls touchControls;
         private Vector3 thirdPersonPivot;
@@ -49,7 +53,13 @@ namespace A305.Player
         /// <summary>이번 프레임에 사용자가 마우스·터치로 카메라를 직접 돌렸는지. 이동 방향 기준을 새로 잡을 때 쓴다.</summary>
         public bool TurnedByUserThisFrame { get; private set; }
 
-        /// <summary>대화 상대(보통 NPC의 머리 위치)를 바라보는 1인칭 시점으로 바꾼다.</summary>
+        /// <summary>이번 프레임에 사용자가 휠로 가까이·멀리 보기를 했는지</summary>
+        public bool ZoomedByUserThisFrame { get; private set; }
+
+        /// <summary>이번 프레임에 사용자가 1인칭·3인칭을 바꿨는지</summary>
+        public bool ToggledViewThisFrame { get; private set; }
+
+        /// <summary>대화 상대(보통 NPC의 머리 위치) 앞 정해진 거리·높이에서 상대를 비추는 대화 시점으로 바꾼다.</summary>
         public void EnterDialogueView(Transform lookTarget)
         {
             if (lookTarget == null)
@@ -70,6 +80,43 @@ namespace A305.Player
             dialogueLookTarget = null;
             // 1인칭 눈높이에서 캐릭터 표시가 먼저 복구되면 얼굴 안쪽을 보게 되므로 바로 뒤로 복귀한다.
             SnapBehindTarget();
+        }
+
+        /// <summary>다가오는 상대를 기다리는 구도인지. 그동안 사용자는 시점을 돌리거나 줌·시점 전환을 할 수 없다.</summary>
+        public bool IsInMeetingView => meetingLookTarget != null;
+
+        /// <summary>
+        /// 다가오는 상대(보통 NPC의 머리 위치)를 플레이어 오른쪽 어깨 너머로 비추는 구도로 붙잡는다(<see cref="MeetingFraming"/>).
+        /// 상대가 걸어오는 동안 따라가고, 대화가 시작되면 대화 시점이 우선한다.
+        /// </summary>
+        public void EnterMeetingView(Transform lookTarget)
+        {
+            if (lookTarget == null)
+            {
+                Debug.LogError("기다리는 구도에서 바라볼 대상이 없습니다.", this);
+                return;
+            }
+
+            meetingLookTarget = lookTarget;
+            if (orbit.ViewMode != CameraViewMode.Dialogue)
+            {
+                Pose pose = GetDesiredPose(snap: true);
+                transform.SetPositionAndRotation(pose.position, pose.rotation);
+            }
+        }
+
+        public void ExitMeetingView()
+        {
+            if (meetingLookTarget == null)
+            {
+                return;
+            }
+
+            meetingLookTarget = null;
+            if (orbit.ViewMode != CameraViewMode.Dialogue)
+            {
+                SnapBehindTarget();
+            }
         }
 
         /// <summary>카메라가 바라보는 수평 방향(마우스로 돌린 결과).</summary>
@@ -134,7 +181,15 @@ namespace A305.Player
                 transform.SetPositionAndRotation(vehicleView.position, vehicleView.rotation);
                 return;
             }
-            ApplyInput();
+
+            if (meetingLookTarget != null)
+            {
+                IgnoreInput();
+            }
+            else
+            {
+                ApplyInput();
+            }
 
             Pose desiredPose = GetDesiredPose(snap: false);
             // 프레임 속도와 관계없이 같은 빠르기로 따라가도록 지수 감쇠로 섞는다.
@@ -173,15 +228,30 @@ namespace A305.Player
 
             // 휠 한 번의 값은 브라우저·장치마다 크기가 달라 방향만 사용한다.
             float scroll = zoomAction.action.ReadValue<float>();
-            if (scroll != 0f)
+            ZoomedByUserThisFrame = scroll != 0f;
+            if (ZoomedByUserThisFrame)
             {
                 orbit.Zoom(Mathf.Sign(scroll));
             }
 
-            if (toggleViewAction.action.WasPressedThisFrame())
+            ToggledViewThisFrame = toggleViewAction.action.WasPressedThisFrame();
+            if (ToggledViewThisFrame)
             {
                 orbit.ToggleFirstPerson();
             }
+        }
+
+        // 기다리는 구도에서는 정한 구도를 지키도록 마우스·휠·키 입력을 버린다. 터치로 끈 양도 쌓이지 않게 비운다.
+        private void IgnoreInput()
+        {
+            if (touchControls != null)
+            {
+                touchControls.ConsumeLookDelta();
+            }
+
+            TurnedByUserThisFrame = false;
+            ZoomedByUserThisFrame = false;
+            ToggledViewThisFrame = false;
         }
 
         /// <param name="snap">순간 이동한 뒤처럼 벽 거리를 섞지 않고 바로 맞출지</param>
@@ -192,23 +262,57 @@ namespace A305.Player
                     ? character.CameraEyeHeightMeters
                     : cameraSettings.EyeHeightMeters;
             Vector3 eye = followTarget.position + Vector3.up * eyeHeight;
+            if (meetingLookTarget != null && orbit.ViewMode != CameraViewMode.Dialogue)
+            {
+                return GetMeetingPoseInFrontOfWalls(eye);
+            }
 
             switch (orbit.ViewMode)
             {
                 case CameraViewMode.FirstPerson:
                     return orbit.GetFirstPersonPose(eye);
                 case CameraViewMode.Dialogue:
+                    // 대화 시점은 1·3인칭과 따로 NPC 얼굴 기준으로 놓는다. 플레이어 눈은 카메라를 얼굴의 어느 쪽에 둘지만 정한다.
                     Camera camera = GetComponent<Camera>();
+                    Vector3 face = dialogueLookTarget.position;
                     return DialogueFraming.Pose(
-                        eye,
-                        dialogueLookTarget.position,
+                        DialogueFraming.CameraPosition(
+                            face,
+                            eye,
+                            cameraSettings.DialogueDistanceMeters,
+                            cameraSettings.DialogueHeightOffsetMeters
+                        ),
+                        face,
                         camera.fieldOfView,
                         camera.aspect,
-                        new Vector2(.64f, .66f)
+                        cameraSettings.DialogueFacePosition
                     );
                 default:
                     return GetThirdPersonPoseInFrontOfWalls(snap);
             }
+        }
+
+        // 숙소 문을 막 나온 자리처럼 플레이어 뒤가 벽이면 카메라를 벽 앞으로 당긴 뒤 상대를 비춘다.
+        private Pose GetMeetingPoseInFrontOfWalls(Vector3 eye)
+        {
+            Vector3 face = meetingLookTarget.position;
+            Vector3 eyeToCamera =
+                MeetingFraming.CameraPosition(
+                    eye,
+                    face,
+                    cameraSettings.MeetingBackMeters,
+                    cameraSettings.MeetingSideMeters,
+                    cameraSettings.MeetingHeightMeters
+                ) - eye;
+            Vector3 direction = eyeToCamera.normalized;
+            float clearMeters = FindClearDistance(eye, direction, eyeToCamera.magnitude);
+            Camera camera = GetComponent<Camera>();
+            return MeetingFraming.Pose(
+                eye + direction * clearMeters,
+                face,
+                camera.fieldOfView,
+                camera.aspect
+            );
         }
 
         private Pose GetThirdPersonPoseInFrontOfWalls(bool snap)

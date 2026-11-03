@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "Unity.InputSystem",
         "A305.Player",
-        "A305.Characters"
+        "A305.Characters",
+        "A305.Tutorial"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

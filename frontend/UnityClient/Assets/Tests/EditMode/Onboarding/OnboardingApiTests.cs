@@ -54,6 +54,21 @@ namespace A305.Onboarding.Tests
             Assert.That(transport.LastRequest.Url, Is.EqualTo("http://localhost:8080/api/v1/me"));
         }
 
+        [TestCase("true", true)]
+        [TestCase("false", false)]
+        public async Task Bootstrap_ReadsWhetherUserStartedAsGuest(string guest, bool expected)
+        {
+            transport.Reply(
+                "{\"authState\": \"SIGNED_IN\", \"user\": {\"userId\": 3, \"guest\": "
+                    + guest
+                    + "}}"
+            );
+
+            BootstrapResponse boot = await api.GetBootstrapAsync();
+
+            Assert.That(boot.User.Guest, Is.EqualTo(expected));
+        }
+
         [Test]
         public async Task Logout_PostsLogoutWithoutBody()
         {

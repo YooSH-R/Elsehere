@@ -7,7 +7,10 @@
         "A305.Api",
         "A305.Dialogue",
         "A305.Learning",
+        "A305.ObjectHover",
         "UnityEngine.UI",
+        "A305.Player",
+        "A305.World",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [

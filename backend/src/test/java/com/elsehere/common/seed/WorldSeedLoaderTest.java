@@ -210,7 +210,8 @@ class WorldSeedLoaderTest {
             tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null),
             tuple("HOTEL", "HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null),
             tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "드럭스토어 직원", false, null),
-            tuple("TOWN", "TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null));
+            tuple("TOWN", "TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null),
+            tuple("TOWN", "POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null));
   }
 
   @Test
@@ -238,7 +239,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(5);
+    assertThat(npcRepository.count()).isEqualTo(6);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 
@@ -291,7 +292,12 @@ class WorldSeedLoaderTest {
     Map<String, JsonNode> profiles = profilesInConfigurations();
     assertThat(profiles)
         .containsOnlyKeys(
-            "TOWN_PASSERBY", "CAFE_STAFF", "HOTEL_STAFF", "SHOP_STAFF", "TAXI_DRIVER");
+            "TOWN_PASSERBY",
+            "CAFE_STAFF",
+            "HOTEL_STAFF",
+            "SHOP_STAFF",
+            "TAXI_DRIVER",
+            "POLICE_OFFICER");
     JsonMapper jsonMapper = new JsonMapper();
     for (Npc npc : npcRepository.findAll()) {
       JsonNode expected = profiles.get(npc.getCode());
@@ -313,6 +319,21 @@ class WorldSeedLoaderTest {
                     .extracting(Npc::getName)
                     .as(npcCode)
                     .isEqualTo(profile.get("name").asString()));
+  }
+
+  @Test
+  @DisplayName("인격 카드가 있는 NPC는 음성 합성 목소리가 설정 파일의 목소리와 같다")
+  void load_npcVoiceMatchesConfigurationVoice() throws IOException {
+    worldSeedLoader.load();
+
+    voicesInConfigurations()
+        .forEach(
+            (npcCode, voiceId) ->
+                assertThat(npcRepository.findByCode(npcCode))
+                    .get()
+                    .extracting(Npc::getVoiceId)
+                    .as(npcCode)
+                    .isEqualTo(voiceId));
   }
 
   @Test
@@ -341,6 +362,16 @@ class WorldSeedLoaderTest {
         profiles.put(configuration.get("npcId").asString(), configuration.get("npcProfile"));
       }
       return profiles;
+    }
+  }
+
+  private Map<String, String> voicesInConfigurations() throws IOException {
+    try (var input = new ClassPathResource("content/npc-configurations.json").getInputStream()) {
+      Map<String, String> voices = new HashMap<>();
+      for (JsonNode configuration : new JsonMapper().readTree(input)) {
+        voices.put(configuration.get("npcId").asString(), configuration.get("voiceId").asString());
+      }
+      return voices;
     }
   }
 

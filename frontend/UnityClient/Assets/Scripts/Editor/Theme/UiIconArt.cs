@@ -236,6 +236,12 @@ namespace A305.EditorTools.Theme
                     Box(c, 11, 21.5f, 37, 26.5f, 2.5f, Ink);
                     Box(c, 11, 30, 37, 35, 2.5f, Ink);
                     break;
+                // 하늘색 휴대폰 버튼 위의 흰 휴대폰
+                case UiIcon.Phone:
+                    Box(c, 14, 5, 34, 43, 5, White);
+                    Box(c, 17, 10, 31, 35, 2, Hex("#2F6FB8"));
+                    Circle(c, 24, 39, 1.6f, Hex("#2F6FB8"));
+                    break;
                 case UiIcon.None:
                     break;
                 default:

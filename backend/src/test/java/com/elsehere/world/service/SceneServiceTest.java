@@ -92,7 +92,7 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("마을 상세는 행인 Ben과 택시 기사 Joe를 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
+  @DisplayName("마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan을 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
   void getScene_town_returnsNpcs() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -107,7 +107,8 @@ class SceneServiceTest {
                 "행인",
                 true,
                 "Hi there! Nice weather today, isn't it?"),
-            new NpcResponse("TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null));
+            new NpcResponse("TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null),
+            new NpcResponse("POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null));
   }
 
   @Test

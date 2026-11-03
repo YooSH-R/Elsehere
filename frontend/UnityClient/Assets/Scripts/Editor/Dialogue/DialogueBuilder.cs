@@ -101,7 +101,10 @@ namespace A305.EditorTools.Dialogue
                     }
                 }
                 if (existing != null)
+                {
                     ReplaceRetiredTexts(existing);
+                    FillMissingSuggestWords(existing, example);
+                }
             }
 
             fields.ApplyModifiedPropertiesWithoutUndo();
@@ -133,6 +136,40 @@ namespace A305.EditorTools.Dialogue
                 foreach ((string old, string current) in RetiredTexts)
                     if (field.stringValue == old)
                         field.stringValue = current;
+            }
+        }
+
+        // 추천 단어를 나중에 더했다. 이미 있는 대본은 같은 대사인 정해진 턴에서 비어 있는 추천 단어만 코드의 예시로 채운다.
+        private static void FillMissingSuggestWords(
+            SerializedProperty entry,
+            SerializedProperty example
+        )
+        {
+            SerializedProperty turns = entry.FindPropertyRelative("guidedTurns");
+            SerializedProperty exampleTurns = example.FindPropertyRelative("guidedTurns");
+            for (int index = 0; index < turns.arraySize; index++)
+            {
+                SerializedProperty turn = turns.GetArrayElementAtIndex(index);
+                SerializedProperty words = turn.FindPropertyRelative("suggestWords");
+                if (words.arraySize > 0)
+                    continue;
+                string line = turn.FindPropertyRelative("suggestedEnglish").stringValue;
+                for (int exampleIndex = 0; exampleIndex < exampleTurns.arraySize; exampleIndex++)
+                {
+                    SerializedProperty exampleTurn = exampleTurns.GetArrayElementAtIndex(
+                        exampleIndex
+                    );
+                    if (exampleTurn.FindPropertyRelative("suggestedEnglish").stringValue != line)
+                        continue;
+                    SerializedProperty exampleWords = exampleTurn.FindPropertyRelative(
+                        "suggestWords"
+                    );
+                    words.arraySize = exampleWords.arraySize;
+                    for (int word = 0; word < exampleWords.arraySize; word++)
+                        words.GetArrayElementAtIndex(word).stringValue = exampleWords
+                            .GetArrayElementAtIndex(word)
+                            .stringValue;
+                }
             }
         }
 
@@ -297,13 +334,13 @@ namespace A305.EditorTools.Dialogue
                 24f,
                 Color.white
             );
-            TMP_Text guide = UiBuilderTools.FindOrCreateText(
-                help != null ? help : conversation,
-                "Guide",
-                regular,
-                20f,
-                SubTextColor
-            );
+            // 도움 칸은 배경 없이 장면 위에 놓여 카드 밖 안내 글씨는 읽을 수 없으므로 두지 않는다. 튜토리얼 할 일은 코치 마크 설명이 알린다.
+            Transform oldGuide = help != null ? help.Find("Guide") : null;
+            if (oldGuide != null)
+            {
+                Object.DestroyImmediate(oldGuide.gameObject);
+            }
+
             RectTransform inputRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "InputRow");
             RectTransform toolRow = UiBuilderTools.FindOrCreateButtonRow(conversation, "ToolRow");
             // [힌트]를 바로 누를 수 있게 [...] 메뉴(MoreTools)에 넣었던 버튼을 도구 줄로 꺼낸다.
@@ -402,7 +439,6 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "standingText", standing);
             BuilderTools.SetReference(view, "endButton", endButton);
             BuilderTools.SetReference(view, "linesText", lines);
-            BuilderTools.SetReference(view, "guideText", guide);
             BuilderTools.SetReference(view, "inputField", input);
             BuilderTools.SetReference(view, "sendButton", sendButton);
             BuilderTools.SetReference(view, "exampleButton", exampleButton);
@@ -414,7 +450,7 @@ namespace A305.EditorTools.Dialogue
             BuilderTools.SetReference(view, "replayButton", replayButton);
             BuilderTools.SetReference(view, "hintButton", hintButton);
             BuilderTools.SetReference(view, "retryButton", retryButton);
-            DialogueLayoutBuilder.SetUp(root, view, lines, guide, suggest);
+            DialogueLayoutBuilder.SetUp(root, view, lines, suggest);
             DialogueWaitBuilder.SetUp(root, view);
             VoiceConsentDialogBuilder.SetUp(root, view);
             // 위 기능 구성은 카드 여백·글자 크기를 기본값으로 다시 정하므로, 마지막에 승인된 배치를 다시 적용해

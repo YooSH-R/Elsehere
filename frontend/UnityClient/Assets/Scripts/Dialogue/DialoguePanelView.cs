@@ -761,9 +761,18 @@ namespace A305.Dialogue
             helpPanel.anchoredPosition = new Vector2(-HelpMargin, -HelpTop);
             float helpRoom =
                 lastCanvasSize.y - HelpTop - layout.Name.yMax - 2 * DialogueCinemaLayout.Gap;
+            // 단어·문장 카드가 남는 높이보다 길면 아래가 잘려 보이지 않게 묶음째 줄여 넣는다(DialogueHelpFit).
+            float room = Mathf.Clamp(helpRoom, 160, 600);
+            var helpContent = (RectTransform)helpPanel.Find("Viewport/Content");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
+            float scale = DialogueHelpFit.Scale(
+                room,
+                LayoutUtility.GetPreferredHeight(helpContent)
+            );
+            helpPanel.localScale = new Vector3(scale, scale, 1f);
             helpPanel.sizeDelta = new Vector2(
                 Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * HelpMargin),
-                Mathf.Clamp(helpRoom, 160, 600)
+                room / scale
             );
             PlaceVehicleStatus(layout);
         }

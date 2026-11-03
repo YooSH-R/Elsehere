@@ -18,6 +18,8 @@ namespace A305.Npc.PlayModeTests
     /// 출동해 말한 장소 앞에 섰다가(장소가 없으면 본길을 한 바퀴 돌고) 주차 칸으로 돌아오는지 확인한다.
     /// 대화를 마치고 밖으로 나온 플레이어가 출동하는 모습을 보게 하려는 것이다.
     /// 경찰서 문은 여닫지 않고, 다른 장소처럼 문에 닿으면 화면을 덮었다가 실내(또는 문 밖)에 세우는지도 확인한다.
+    /// 순찰차는 앞의 차에 양보하므로 택시·승용차와 서로 막히는 경우가 프레임 속도에 따라 생긴다.
+    /// 출동 흐름만 보도록 다른 차를 세워 둔다.
     /// 신고 문장 판별과 출동 단계 전환은 EditMode 테스트가 맡는다.
     /// </summary>
     public class PoliceStationTests
@@ -33,9 +35,11 @@ namespace A305.Npc.PlayModeTests
             TutorialState.Clear();
         }
 
+        // 시험이 시간 제한으로 끊기면 코루틴의 finally가 돌지 않아 빨라진 시간이 다음 시험까지 남는다.
         [TearDown]
-        public void ClearTutorial()
+        public void RestoreSharedState()
         {
+            Time.timeScale = 1;
             TutorialState.Clear();
         }
 
@@ -44,6 +48,7 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
             Vector3 bay = car.transform.position;
             Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked));
             Assert.That(car.LightsOn, Is.False);
@@ -86,6 +91,7 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
             Vector3 bay = car.transform.position;
 
             TalkToOfficerAndSay("I lost my wallet.");
@@ -100,9 +106,15 @@ namespace A305.Npc.PlayModeTests
             {
                 yield return WaitForPhase(car, PolicePhase.Patrolling);
                 float farthestNorth = car.transform.position.z;
+                float deadline = Time.realtimeSinceStartup + TripTimeoutSeconds;
                 while (car.Phase == PolicePhase.Patrolling)
                 {
                     farthestNorth = Mathf.Max(farthestNorth, car.transform.position.z);
+                    Assert.That(
+                        Time.realtimeSinceStartup,
+                        Is.LessThan(deadline),
+                        $"순찰을 마치지 못했습니다. 위치 {car.transform.position}"
+                    );
                     yield return null;
                 }
                 Assert.That(
@@ -124,6 +136,7 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
             Vector3 bay = car.transform.position;
 
             TalkToOfficerAndSay("Hello, officer. Nice day today.");
@@ -258,6 +271,15 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Vector3.Angle(player.forward, arrival.forward), Is.LessThan(1f));
             Vector3 view = Vector3.ProjectOnPlane(Camera.main.transform.forward, Vector3.up);
             Assert.That(Vector3.Angle(view, arrival.forward), Is.LessThan(1f));
+        }
+
+        private static void HoldOtherTraffic(PoliceCar patrolCar)
+        {
+            foreach (
+                LoopingCar other in Object.FindObjectsByType<LoopingCar>(FindObjectsSortMode.None)
+            )
+                if (other.gameObject != patrolCar.gameObject)
+                    other.enabled = false;
         }
 
         private static IEnumerator WaitForPhase(PoliceCar car, PolicePhase phase)

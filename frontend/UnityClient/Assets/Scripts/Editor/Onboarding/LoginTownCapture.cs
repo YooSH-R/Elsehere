@@ -1,4 +1,5 @@
 using System.IO;
+using A305.Wayfinding;
 using A305.Weather;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -66,6 +67,11 @@ namespace A305.EditorTools.Onboarding
                 var daylight in Object.FindObjectsByType<DaylightView>(FindObjectsSortMode.None)
             )
                 daylight.ShowTime(DaytimeMinutes);
+            // 길 안내는 안내 중에만 보이는데 편집 상태에서는 목적지 빛기둥이 켜져 있으므로 끈다.
+            foreach (
+                var guide in Object.FindObjectsByType<DestinationGuide>(FindObjectsSortMode.None)
+            )
+                guide.gameObject.SetActive(false);
         }
 
         private static byte[] Render()

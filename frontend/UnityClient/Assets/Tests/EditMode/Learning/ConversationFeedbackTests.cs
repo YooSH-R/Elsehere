@@ -91,7 +91,11 @@ namespace A305.Learning.Tests
         {
             var situations = new List<SituationExpressionData>
             {
-                new SituationExpressionData { Expression = "I'd like to check in.", MeaningKo = "체크인하고 싶어요." },
+                new SituationExpressionData
+                {
+                    Expression = "I'd like to check in.",
+                    MeaningKo = "체크인하고 싶어요.",
+                },
             };
 
             var feedback = new ConversationFeedback("Ben", new[] { "Hello!" }, Rules, situations);

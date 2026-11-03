@@ -28,6 +28,12 @@ Prometheus도 연결되어 있으므로 앱 컨테이너만 확인하고 네트�
 
 `infra/compose/compose.dev-worker-network.yaml`을 서버의 `/home/ubuntu/apps/a305/dev/config/compose.dev-worker-network.yaml`에 설치합니다. 개발 수신기의 `overlays`에 기존 관측성 설정과 함께 등록하고 `fixed_worker_network: true`를 설정합니다. 예시는 `infra/deploy/dev-server.example.json`입니다.
 
+```bash
+install -d -m 700 "$HOME/apps/a305/dev/config"
+install -m 600 infra/compose/compose.dev-worker-network.yaml \
+  "$HOME/apps/a305/dev/config/compose.dev-worker-network.yaml"
+```
+
 수신기와 같은 폴더에 `dev_worker_network.py`도 설치합니다. 교체 전 외부 네트워크 참조, 워커 고정 IP, 실제 대역·자동 할당 범위·브리지 이름과 주소 충돌을 검사합니다. 교체 후에는 실제 워커 주소와 명시적인 IP 지정 여부를 확인합니다. 설정이 다르면 배포를 실패 처리합니다. 재기동과 배포 복구에서도 같은 서버 추가 Compose를 사용합니다.
 
 ## 방화벽

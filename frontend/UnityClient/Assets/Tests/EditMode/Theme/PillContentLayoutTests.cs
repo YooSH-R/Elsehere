@@ -83,6 +83,20 @@ namespace A305.Theme.Tests
             Assert.That(Rect("Icon").anchoredPosition.x, Is.EqualTo(0f).Within(.01f));
         }
 
+        // 단어 카드 닫기처럼 낮은 둥근 버튼도 이름이 없으면 아이콘(X)이 보여야 한다. 아이콘을 지우면 빈 조약돌만 남는다.
+        [Test]
+        public void Arrange_ShortIconOnlyButton_StillShowsItsIcon()
+        {
+            PillContentLayout layout = Create(new Vector2(44, 44), withIcon: true);
+            target.transform.Find("Label").gameObject.SetActive(false);
+
+            layout.Arrange();
+
+            Assert.That(target.transform.Find("Icon").GetComponent<Image>().enabled, Is.True);
+            Assert.That(Rect("Icon").anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(Rect("Icon").sizeDelta.x, Is.GreaterThan(0f).And.LessThanOrEqualTo(44f));
+        }
+
         private PillContentLayout Create(Vector2 size, bool withIcon)
         {
             target = new GameObject("Pill", typeof(RectTransform), typeof(Image));

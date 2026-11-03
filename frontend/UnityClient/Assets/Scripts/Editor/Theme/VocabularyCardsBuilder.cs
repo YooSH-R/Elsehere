@@ -258,6 +258,11 @@ namespace A305.EditorTools.Theme
             panel.gameObject.SetActive(false);
         }
 
+        // 단어 카드 버튼 묶음: 카드 안쪽 너비(440 - 좌우 여백 32×2), 버튼 높이, 버튼 사이
+        private const float ActionWidth = 376;
+        private const float ActionHeight = 44;
+        private const float ActionGap = 12;
+
         public static void ApplyTooltip(Transform root)
         {
             RectTransform panel = (RectTransform)root.Find("Panel");
@@ -288,39 +293,50 @@ namespace A305.EditorTools.Theme
                     376;
                 Skin(label.transform, spec.Item3);
             }
+            // 버튼은 카드 안쪽 너비를 한 덩어리로 채운다. [저장]·[발음]이 한 줄을 반씩, 그 아래 [알아요]가 같은 양 끝으로 한 줄.
             Transform row = panel.Find("WordActions");
             var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
-            rowLayout.spacing = 12;
-            rowLayout.childForceExpandWidth = false;
-            rowLayout.childAlignment = TextAnchor.MiddleLeft;
-            ConfigureButton(row.Find("SaveButton"), "저장", UiIcon.Save, UiTone.Primary, 134, 44);
+            rowLayout.spacing = ActionGap;
+            rowLayout.childControlWidth = true;
+            rowLayout.childForceExpandWidth = true;
+            rowLayout.childAlignment = TextAnchor.MiddleCenter;
+            BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject).preferredWidth =
+                ActionWidth;
+            float half = (ActionWidth - ActionGap) / 2;
+            ConfigureButton(
+                row.Find("SaveButton"),
+                "저장",
+                UiIcon.Save,
+                UiTone.Primary,
+                half,
+                ActionHeight
+            );
             ConfigureButton(
                 row.Find("PronunciationButton"),
                 "발음",
                 UiIcon.Replay,
                 UiTone.Neutral,
-                134,
-                44
+                half,
+                ActionHeight
             );
             Transform actions = panel.Find("Actions");
             var actionLayout = actions.GetComponent<HorizontalLayoutGroup>();
-            actionLayout.childForceExpandWidth = false;
+            actionLayout.childControlWidth = true;
+            actionLayout.childForceExpandWidth = true;
+            actionLayout.childAlignment = TextAnchor.MiddleCenter;
+            BuilderTools.GetOrAddComponent<LayoutElement>(actions.gameObject).preferredWidth =
+                ActionWidth;
+            Transform hide = actions.Find("HideButton");
             ConfigureButton(
-                actions.Find("HideButton"),
+                hide,
                 "알아요 · 호버에서 숨기기",
                 UiIcon.Check,
                 UiTone.Neutral,
-                366,
-                40
+                ActionWidth,
+                ActionHeight
             );
-            Transform hide = actions.Find("HideButton");
-            Skin(hide, UiThemeRole.PillButton, UiTone.Neutral, UiIcon.Check);
-            SetThemeFlag(hide, "quiet");
-            hide.GetComponent<Image>().color = Color.clear;
-            hide.Find("Outline").gameObject.SetActive(false);
-            TMP_Text hideText = hide.Find("Label").GetComponent<TMP_Text>();
-            hideText.alignment = TextAlignmentOptions.MidlineLeft;
-            hideText.margin = new Vector4(42, 0, 4, 0);
+            SetThemeFlag(hide, "quiet", false);
+            hide.Find("Outline").gameObject.SetActive(true);
             Transform closeSource = panel.Find("CloseButton");
             if (closeSource == null)
                 closeSource = actions.Find("CloseButton");
@@ -330,11 +346,11 @@ namespace A305.EditorTools.Theme
             Button close = closeSource.GetComponent<Button>();
             close.transform.SetParent(panel, false);
             BuilderTools.GetOrAddComponent<LayoutElement>(close.gameObject).ignoreLayout = true;
-            ConfigureButton(close.transform, "", UiIcon.Close, UiTone.Neutral, 36, 36);
+            ConfigureButton(close.transform, "", UiIcon.Close, UiTone.Neutral, 44, 44);
             var closeRect = (RectTransform)close.transform;
             closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = Vector2.one;
             closeRect.anchoredPosition = new Vector2(-20, -20);
-            closeRect.sizeDelta = new Vector2(36, 36);
+            closeRect.sizeDelta = new Vector2(44, 44);
             // X는 별도 배치지만 고정/호버 상태는 기존 Actions와 동일하게 제어한다.
             BuilderTools.SetReference(
                 root.GetComponent<A305.ObjectHover.WordTooltipView>(),
@@ -351,11 +367,13 @@ namespace A305.EditorTools.Theme
                 property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
-        private static void SetThemeFlag(Component target, string propertyName)
+        private static void SetThemeFlag(Component target, string propertyName, bool value = true)
         {
-            var fields = new SerializedObject(target.GetComponent<ThemedElement>());
-            fields.FindProperty(propertyName).boolValue = true;
+            var element = target.GetComponent<ThemedElement>();
+            var fields = new SerializedObject(element);
+            fields.FindProperty(propertyName).boolValue = value;
             fields.ApplyModifiedPropertiesWithoutUndo();
+            element.ApplyCurrent();
         }
 
         private static TMP_Text Text(

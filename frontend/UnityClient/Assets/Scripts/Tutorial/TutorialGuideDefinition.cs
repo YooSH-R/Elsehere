@@ -34,7 +34,7 @@ namespace A305.Tutorial
         {
             new TutorialStepGuide(
                 TutorialStep.Arrival,
-                "여행 첫날",
+                "여행 시작",
                 "숙소에서 기본 조작부터 익혀 볼까요?",
                 "",
                 "시작하기"

@@ -49,12 +49,12 @@ namespace A305.EditorTools.Onboarding
             Backdrop(panel);
 
             panel.Find("Title").gameObject.SetActive(false);
-            Art(Place(Rect("Kicker", panel), -ArtPad, -ArtPad, 286, 108), "LoginKicker");
+            Art(Place(Rect("Kicker", panel), -ArtPad, -ArtPad, 270, 108), "LoginKicker");
             Art(Place(Rect("Logo", panel), -LogoPad, 66 - LogoPad, 490, 186), "LoginLogo");
 
             TMP_Text subtitle = panel.Find("Subtitle").GetComponent<TMP_Text>();
             Body(subtitle, 21, SubtitleInk);
-            subtitle.text = "3D 마을에서 NPC와 영어로 대화하며\n여행 첫날을 보내 보세요.";
+            subtitle.text = "3D 마을에서 NPC와 영어로 대화하며\n퀘스트를 하나씩 해결해 보세요.";
             subtitle.alignment = TextAlignmentOptions.TopLeft;
             // 시안 줄 높이 1.45
             subtitle.lineSpacing = 24;

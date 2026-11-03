@@ -221,18 +221,10 @@ namespace A305.EditorTools.ObjectHover
                     new Color(0.8f, 0.82f, 0.86f)
                 )
             );
-            BuilderTools.SetReference(
-                view,
-                "pinHintLabel",
-                UiBuilderTools.FindOrCreateText(
-                    panel,
-                    "PinHint",
-                    regular,
-                    18f,
-                    new Color(0.62f, 0.65f, 0.72f),
-                    "클릭하면 카드가 고정돼요"
-                )
-            );
+            // 호버 카드는 단어와 뜻만 보이므로 예전 '클릭하면 카드가 고정돼요' 안내는 지운다.
+            Transform pinHint = panel.Find("PinHint");
+            if (pinHint != null)
+                Object.DestroyImmediate(pinHint.gameObject);
             // 고정한 카드의 안내와 버튼 줄. 패널 너비(440)에 맞춰 단어 버튼을 두 줄로 나눈다.
             TMP_Text status = UiBuilderTools.FindOrCreateText(
                 panel,

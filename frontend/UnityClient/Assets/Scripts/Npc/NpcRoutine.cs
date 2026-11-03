@@ -101,6 +101,7 @@ namespace A305.Npc
         private CharacterAnimationDriver animationDriver;
         private Transform visual;
         private NpcLife life;
+        private bool hasStarted;
 
         // 지금 고른 행동과 그 행동을 할 자리
         private NpcActionRule spotAction;
@@ -160,6 +161,33 @@ namespace A305.Npc
 
             life = new NpcLife(data, entry, GameClock.Shared.Minutes);
             UseLifeAnimator();
+        }
+
+        private void OnEnable()
+        {
+            if (hasStarted)
+                RefreshSceneObjects();
+        }
+
+        private void Start()
+        {
+            hasStarted = true;
+            RefreshSceneObjects();
+        }
+
+        private void RefreshSceneObjects()
+        {
+            if (life == null)
+                return;
+            // 매장을 다시 방문하면 의자와 카운터는 새로 로드한 실내 씬의 인스턴스다.
+            placed.Clear();
+            seats.Clear();
+            unreachableUntil.Clear();
+            spotAction = null;
+            hasRoute = false;
+            hasCounter = false;
+            lookingAround = false;
+            lookAroundTarget = null;
             CollectSceneObjects();
             FindCounter();
         }

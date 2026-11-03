@@ -10,7 +10,7 @@
 | --- | --- |
 | `SpaceTravelState` | 이동 요청을 한 번에 하나만 받고, 다음 공간에서 나타날 출입구와 카메라 각도를 한 번만 넘겨줍니다. 잠그면 풀 때까지 이동 요청을 거절하고, 잠금은 도착·취소 뒤에도 남습니다. Unity 객체 없이 테스트합니다. |
 | `SpaceTravel` | 씬을 불러와 공간을 옮깁니다. 씬이 바뀌어도 도착할 출입구와 카메라 각도가 남도록 정적으로 둡니다. 진행 흐름이 `SetLocked(true)`로 잠그면 문·[홈] 이동을 거절하고 `Refused`로 알립니다. 지금은 [Tutorial 모듈](../Tutorial/README.md)이 튜토리얼 단계마다 잠그고 풉니다. |
-| `SpaceTravelCurtain` | 공간을 옮기는 동안 화면을 검게 덮습니다(0.2초에 걸쳐 덮고 0.3초에 걸쳐 걷음). 덮는 동안 다음 씬을 미리 불러오고, 화면이 다 덮인 뒤에 씬을 바꿔 씬이 바뀌는 순간의 끊김을 가립니다. 덮여 있는 동안에는 `Application.backgroundLoadingPriority`를 `High`로 올려 불러오기에 프레임 시간을 더 쓰고, 도착하면 되돌립니다. 이전 공간을 끈 뒤 새 공간이 깨어나기까지는 공간의 카메라가 없으므로, 덮여 있는 동안 검은 화면만 그리는 카메라를 켭니다(Editor의 "No cameras rendering" 방지). 씬이 바뀌어도 남도록 처음 이동할 때 만들어 둡니다. 씬을 바꾸지 않는 `InteriorDoorway`도 같은 시간으로 덮고 걷습니다(`CoverWhile`). |
+| `SpaceTravelCurtain` | 공간을 옮기는 동안 화면을 검게 덮습니다(0.2초에 걸쳐 덮고 0.3초에 걸쳐 걷음). 덮는 동안 다음 씬을 미리 불러오고, 화면이 다 덮인 뒤에 씬을 바꿔 씬이 바뀌는 순간의 끊김을 가립니다. 덮여 있는 동안에는 `Application.backgroundLoadingPriority`를 `High`로 올려 불러오기에 프레임 시간을 더 쓰고, 도착하면 되돌립니다. 이전 공간을 끈 뒤 새 공간이 깨어나기까지는 공간의 카메라가 없으므로, 덮여 있는 동안 검은 화면만 그리는 카메라를 켭니다(Editor의 "No cameras rendering" 방지). 씬이 바뀌어도 남도록 처음 이동할 때 만들어 둡니다. 마을 매장도 같은 시간으로 덮은 동안 해당 실내를 로드하거나 해제합니다. |
 
 씬은 통째로 바꾸지 않고 새 씬을 겹쳐 불러온 뒤(`LoadSceneMode.Additive`) 이전 씬만 내립니다. 통째로 바꾸면 Unity가 이전 씬 에셋 정리와 GC를 매번 함께 돌려 마을처럼 큰 씬은 1초 넘게 더 걸리기 때문입니다. 겹쳐 불러오면서도 통째로 바꿀 때와 같게 동작하도록 다음을 지킵니다.
 
@@ -83,7 +83,7 @@
 
 ## 거리 매장
 
-`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 실내는 모두 TownScene 안에 있습니다. 북쪽 거리 6곳은 직접 걸어 들어가며 문은 접근하면 열립니다. 경찰서는 문을 닫아 두고, 다른 장소처럼 문 앞에 닿으면 화면을 덮었다가 실내에 세웁니다([경찰서와 순찰차](#경찰서와-순찰차)). 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서의 Dan은 `PoliceStationBuilder`가 둡니다.
+`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 마을에서 원래 문을 밟으면 화면을 덮고 해당 건물의 실내 씬을 추가 로드합니다. 퇴장하면 실내 씬을 해제합니다. 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서의 Dan은 `PoliceStationBuilder`가 둡니다.
 
 | 프리팹 | 간판 | 건물 앞 위치(x, z) |
 | --- | --- | --- |
@@ -106,14 +106,14 @@
 - 순찰차는 택시와 같은 본길(남쪽 끝 z=-25, 북쪽 끝 z=66)을 달리고, 택시 목적지와 같은 정차 지점을 씁니다(경찰서 자신은 빼고 10곳). 주차 칸은 (-9, -28.8)이고, 진입로는 동쪽 끝 정원수(-3.7, -27.8)를 피해 그 북쪽으로 지납니다.
 - 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
 - 새 사물 단어는 경찰차·경찰관·주차장입니다.
-- 경찰서 출입은 `InteriorDoorway` 한 쌍이 맡습니다. 문 밖 보도 쪽 `Entrance/OutsideDoorway`에 닿으면 실내 `Entrance/InsideDoorway`의 도착 지점(문 안쪽 2m, 창구를 봄)에, 실내 쪽에 닿으면 문 밖 2m(본길을 봄)에 섭니다. 문짝(`PoliceStationDoor`)은 여닫지 않고 닫힌 채 통로를 막습니다. 씬을 바꾸지 않으므로 경찰관 대화를 마치고 나오면 순찰차 출동을 그대로 봅니다. 매장 Builder가 기존 경찰서 프리팹의 여닫이 문 기능을 빼고 출입구 한 쌍을 더합니다.
+- 경찰서 출입은 `InteriorDoorway` 한 쌍이 맡습니다. 문 밖 보도 쪽 `Entrance/OutsideDoorway`에 닿으면 실내 `Entrance/InsideDoorway`의 도착 지점(문 안쪽 2m, 창구를 봄)에, 실내 쪽에 닿으면 문 밖 2m(본길을 봄)에 섭니다. 문짝(`PoliceStationDoor`)은 여닫지 않고 닫힌 채 통로를 막습니다. 마을 씬과 경찰관의 근무 자리는 로드된 채로 유지하므로 경찰관 대화를 마치고 나오면 순찰차 출동을 그대로 봅니다. 매장 Builder가 기존 경찰서 프리팹의 여닫이 문 기능을 빼고 출입구 한 쌍을 더합니다.
 - 거리 매장 천장에는 카메라를 막는 충돌이 있습니다. 위층이 없는 경찰서는 천장이 막지 않으면 내려다볼 때 카메라가 천장 위로 빠집니다(드럭스토어와 같은 문제). 매장 Builder는 충돌이 없는 기존 매장 프리팹에 충돌만 더합니다.
 
 ## 확인 방법
 
 ### 북쪽 상가
 
-북쪽 상가는 `TownScene` 안에서 직접 걷는 실내입니다. 씬 이동이나 순간 이동 없이 계단을 오르내립니다. 기존 건물의 위치·높이·주요 외관을 유지하는 Prefab Variant를 사용하며, 호텔 앞 드럭스토어 구역은 이 Builder의 대상이 아닙니다.
+북쪽 상가 3곳도 건물별 실내 씬을 사용합니다. 인도에서 Little Arcade의 열린 공용 계단실로 걸어 들어가 각 층의 기존 매장 문을 이용합니다. 계단과 바닥은 마을 씬에 남습니다.
 
 | 기존 건물 앞 좌표 | 프리팹 | 층별 용도 | 출입 방식 |
 | --- | --- | --- | --- |
@@ -121,11 +121,11 @@
 | `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 공용 계단실에서 각 층의 매장 문으로 진입 |
 | `(-7, 0.1, 39)` | `NorthBlock/HomeLiving` | 1층 생활용품점, 2층 Leaf Tea Room | 1층 독립 출입구, 전면 외부 계단으로 2층 진입 |
 
-`ShopSwingDoor`는 CharacterController가 문 앞에 접근하면 문짝을 열고, 감지 영역에서 나가면 닫습니다. 별도 키 입력은 필요하지 않습니다. 층별 문에는 씬 전환 Trigger를 사용하지 않습니다. 오락기·서점·찻집은 공간과 사물 학습을 위한 배치이며, 결제·오락기 플레이·상점 NPC 미션은 포함하지 않습니다.
+`ShopInteriorScenes`는 Play 및 빌드 시 기존 건물 프리팹에서 실내 집기를 건물별 씬으로 분리합니다. `ShopDoorway`는 캐릭터 머리가 닫힌 문에 닿기 전에 몸통을 감지해 입·퇴장을 시작합니다. 매장 직원은 방문 중에만 활동하며, 원본 프리팹에서 실내 배치를 편집할 수 있습니다. 새 매장은 **Tools → A305 → World → Register Shop Interior Scenes**로 빌드 목록에 등록합니다.
 
 **Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)을 기둥과 판에 붙여 다시 만듭니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
-계단·통로 통행과 문 개폐는 배치에 따른 결과이므로 자동 테스트 없이 TownScene을 Play해 확인합니다.
+`SpaceTravelTests`는 이동 키로 원래 매장 문 12개를 양방향 통과하며 건물의 실내 씬 로드·해제를 확인합니다. Unity에서 `TownScene`을 직접 Play할 때는 Ben 튜토리얼을 완료하거나 건너뛴 뒤 시험합니다.
 
 `Assets/Scenes/Production/HomeScene.unity`를 열고 Play합니다. 방 남쪽 문으로 나가면 마을 남동쪽 집 앞에 서고, 큰길 서쪽의 `CAFE`와 동쪽의 `HOTEL` 건물 문으로 들어갈 수 있습니다. 실내 남쪽 문으로 나오면 그 건물 앞으로 돌아갑니다. 조작 방법은 [Player 모듈](../Player/README.md)을 따릅니다.
 

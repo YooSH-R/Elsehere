@@ -75,7 +75,7 @@ body {
   opacity: 1;
 }
 
-/* 소개 그림은 화면을 가득 채우면 흐려지므로 흐린 배경 위 가운데 카드로 띄운다. */
+/* 소개 그림은 화면 비율과 상관없이 잘리지 않도록 흐린 배경 위 가운데 카드로 띄운다. */
 .intro-backdrop {
   position: absolute;
   inset: -48px;

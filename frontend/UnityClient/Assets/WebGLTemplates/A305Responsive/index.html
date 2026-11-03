@@ -33,17 +33,13 @@
       // 게임 화면에서 오른쪽 클릭으로 브라우저 메뉴가 떠 화면을 가리지 않게 한다.
       canvas.addEventListener("contextmenu", (event) => event.preventDefault());
 
-      // 게임 파일을 받는 동안 소개 그림을 한 장씩 보여 준다.
-      // 그림은 frontend/design의 소개 그림(4칸·6칸)을 칸별로 잘라 모두 762x505로 맞춘다.
+      // 게임 파일을 받는 동안 소개 그림(1536x1024)을 한 장씩 보여 준다.
       const introSlides = [
         { image: "intro/feature-hover.jpg", caption: "사물을 가리키면 영어 단어와 예문을 알려 줘요" },
-        { image: "intro/feature-discover.jpg", caption: "마음에 드는 단어는 바로 단어장에 저장해요" },
         { image: "intro/feature-talk.jpg", caption: "NPC에게 영어로 말을 걸면 대답해 줘요" },
-        { image: "intro/feature-checkin.jpg", caption: "호텔 프런트에서 말로 체크인해 봐요" },
         { image: "intro/feature-shop.jpg", caption: "가게에서 필요한 물건이 어디 있는지 물어봐요" },
         { image: "intro/feature-directions.jpg", caption: "길을 모르면 마을 사람에게 물어봐요" },
         { image: "intro/feature-vocabulary.jpg", caption: "저장한 단어는 나만의 단어장에 모여요" },
-        { image: "intro/feature-collect.jpg", caption: "오늘 만난 단어를 단어장에서 다시 봐요" },
         { image: "intro/feature-relationship.jpg", caption: "다시 찾아가면 NPC가 나를 알아보고 반겨 줘요" },
         { image: "intro/feature-greeting.jpg", caption: "다시 만나면 오늘 하루가 어땠는지 물어봐 줘요" },
       ];

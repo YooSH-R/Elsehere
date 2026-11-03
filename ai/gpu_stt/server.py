@@ -125,6 +125,12 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+class Server(ThreadingHTTPServer):
+    # 기본 접속 대기열(5)로는 여러 사람이 동시에 말할 때 넘친 연결이 끊겼다(동시 40건 중 2건 ConnectionReset).
+    # 받아 적기는 여전히 한 번에 하나라 동시 20건이면 마지막 사람은 몇 초 기다린다 (S15P31A305-511)
+    request_queue_size = 64
+
+
 if __name__ == "__main__":
     log({"event": "start", "model": MODEL_DIR, "language": LANGUAGE, "port": PORT})
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    Server(("127.0.0.1", PORT), Handler).serve_forever()

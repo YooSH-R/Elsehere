@@ -120,7 +120,9 @@ class Settings:
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
     guard_budget_s: float = 5.0  # /v1/guard 무례 판정 하나의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함)
     guard_gpu_model: str = ""  # GPU 서버 판정 모델(gpu_llm 공급자). 있으면 먼저 부르고 실패하면 구성의 guard 모델. 비면 끔
-    guard_gpu_timeout_s: float = 2.0  # GPU 서버 판정 한 번의 상한 (실측 p90 0.3초). 넘으면 바로 구성의 guard 모델로
+    # GPU 서버 판정 한 번의 상한. 평소 0.3초(10개 동시 약 1초)지만 vLLM이 처음 보는 동시 요청 수에서는 한 번 2.4~2.7초가 걸린다.
+    # 넘으면 바로 구성의 guard 모델로 (GUARD_BUDGET_S 안에서 그 판정까지 끝나야 한다)
+    guard_gpu_timeout_s: float = 3.0
     guard_breaker_failures: int = 3  # GPU 서버 판정이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
     guard_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)

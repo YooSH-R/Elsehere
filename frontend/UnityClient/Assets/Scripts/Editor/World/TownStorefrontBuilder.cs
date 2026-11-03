@@ -35,6 +35,7 @@ namespace A305.EditorTools.World
         {
             public Storefront(
                 string name,
+                string placeCode,
                 string source,
                 Vector3 position,
                 float yaw,
@@ -49,6 +50,7 @@ namespace A305.EditorTools.World
             )
             {
                 Name = name;
+                PlaceCode = placeCode;
                 Source = source;
                 Position = position;
                 Yaw = yaw;
@@ -63,6 +65,10 @@ namespace A305.EditorTools.World
             }
 
             public string Name { get; }
+
+            /// <summary>서버·택시·영업시간(Data/World/PlaceHours.json)이 함께 쓰는 장소 코드</summary>
+            public string PlaceCode { get; }
+
             public string Source { get; }
             public Vector3 Position { get; }
             public float Yaw { get; }
@@ -96,6 +102,7 @@ namespace A305.EditorTools.World
         {
             new Storefront(
                 "PostOffice",
+                "POST_OFFICE",
                 "ButterResidence2F",
                 new Vector3(-7, .1f, 30),
                 90,
@@ -110,6 +117,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "MapleDiner",
+                "DINER",
                 "BrickResidence2F",
                 new Vector3(7, .1f, 39),
                 270,
@@ -123,6 +131,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "TownBank",
+                "BANK",
                 "BrickResidence3F",
                 new Vector3(-7, .1f, 48),
                 90,
@@ -135,6 +144,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "SudsLaundromat",
+                "LAUNDROMAT",
                 "ButterResidence3F",
                 new Vector3(7, .1f, 48),
                 270,
@@ -147,6 +157,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "BloomFlowers",
+                "FLOWER_SHOP",
                 "ButterResidence2F",
                 new Vector3(-7, .1f, 57),
                 90,
@@ -159,6 +170,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "MainStreetBarber",
+                "BARBER",
                 "SageResidence2F",
                 new Vector3(7, .1f, 57),
                 270,
@@ -172,6 +184,7 @@ namespace A305.EditorTools.World
             ),
             new Storefront(
                 "PoliceStation",
+                TaxiDestinationRequest.PoliceStation,
                 "SageResidence1F",
                 new Vector3(-7, .1f, -20),
                 90,

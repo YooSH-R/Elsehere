@@ -33,49 +33,59 @@
       // 게임 화면에서 오른쪽 클릭으로 브라우저 메뉴가 떠 화면을 가리지 않게 한다.
       canvas.addEventListener("contextmenu", (event) => event.preventDefault());
 
-      // 게임 파일을 받는 동안 장소 장면과 기능 장면을 번갈아 보여 준다.
-      // 장소 장면과 게임 화면(cafe-talk·home-hover)은 Tools/A305/Web/Capture Intro Scenes로 찍고, 기능 그림(feature-*)은 소개 그림에서 잘라 쓴다.
-      const sceneSlides = [
-        { image: "intro/town-overview.jpg", caption: "영어로 하루를 보내는 작은 마을, 엘스히어" },
-        { image: "intro/town.jpg", caption: "마을을 걸으며 사람들과 영어로 이야기해요" },
-        { image: "intro/cafe.jpg", caption: "카페에서 마시고 싶은 커피를 영어로 주문해요" },
-        { image: "intro/hotel.jpg", caption: "호텔 프런트에서 체크인을 해 봐요" },
-        { image: "intro/taxi.jpg", caption: "택시를 타고 가고 싶은 곳을 영어로 말해요" },
-      ];
-      const featureSlides = [
+      // 게임 파일을 받는 동안 소개 그림을 한 장씩 보여 준다.
+      // 그림은 frontend/design의 소개 그림(4칸·6칸)을 칸별로 잘라 모두 762x505로 맞춘다.
+      const introSlides = [
         { image: "intro/feature-hover.jpg", caption: "사물을 가리키면 영어 단어와 예문을 알려 줘요" },
-        { image: "intro/home-hover.jpg", caption: "침대부터 신호등까지, 사물마다 단어가 숨어 있어요" },
+        { image: "intro/feature-discover.jpg", caption: "마음에 드는 단어는 바로 단어장에 저장해요" },
         { image: "intro/feature-talk.jpg", caption: "NPC에게 영어로 말을 걸면 대답해 줘요" },
-        { image: "intro/cafe-talk.jpg", caption: "말이 막히면 추천 단어와 힌트 문장이 도와줘요" },
+        { image: "intro/feature-checkin.jpg", caption: "호텔 프런트에서 말로 체크인해 봐요" },
+        { image: "intro/feature-shop.jpg", caption: "가게에서 필요한 물건이 어디 있는지 물어봐요" },
+        { image: "intro/feature-directions.jpg", caption: "길을 모르면 마을 사람에게 물어봐요" },
         { image: "intro/feature-vocabulary.jpg", caption: "저장한 단어는 나만의 단어장에 모여요" },
+        { image: "intro/feature-collect.jpg", caption: "오늘 만난 단어를 단어장에서 다시 봐요" },
         { image: "intro/feature-relationship.jpg", caption: "다시 찾아가면 NPC가 나를 알아보고 반겨 줘요" },
+        { image: "intro/feature-greeting.jpg", caption: "다시 만나면 오늘 하루가 어땠는지 물어봐 줘요" },
       ];
       const slideDurationMs = 5000;
-      const panOrigins = ["center", "left center", "right center", "center top", "center bottom"];
       const slidesElement = document.querySelector("#intro-slides");
       const captionElement = document.querySelector("#intro-caption");
       let introRunning = true;
       let slideTimer = 0;
 
-      // 기능 장면과 장소 장면이 섞여 보이도록 한 장씩 번갈아 놓는다.
-      function alternate(first, second) {
-        const slides = [];
-        for (let index = 0; index < Math.max(first.length, second.length); index++) {
-          if (index < first.length) {
-            slides.push(first[index]);
-          }
-          if (index < second.length) {
-            slides.push(second[index]);
-          }
+      // 접속할 때마다 순서를 섞는다. 로딩이 짧으면 첫 장면만 보일 수 있어, 지난 접속의 첫 장면은 첫 자리에 두지 않는다.
+      // 브라우저 저장소를 쓸 수 없으면 지난 접속을 모르는 채로 섞기만 한다.
+      const lastFirstSlideKey = "elsehere.intro.lastFirstSlide";
+
+      function shuffleIntro(slides) {
+        const order = slides.slice();
+        for (let index = order.length - 1; index > 0; index--) {
+          const other = Math.floor(Math.random() * (index + 1));
+          [order[index], order[other]] = [order[other], order[index]];
         }
-        return slides;
+
+        let lastFirst = null;
+        try {
+          lastFirst = localStorage.getItem(lastFirstSlideKey);
+        } catch {
+          // 저장소를 읽지 못하면 지난 첫 장면을 피하지 않는다.
+        }
+        if (order.length > 1 && order[0].image === lastFirst) {
+          const other = 1 + Math.floor(Math.random() * (order.length - 1));
+          [order[0], order[other]] = [order[other], order[0]];
+        }
+        try {
+          localStorage.setItem(lastFirstSlideKey, order[0].image);
+        } catch {
+          // 저장하지 못하면 다음 접속은 이번 첫 장면을 피하지 않는다.
+        }
+        return order;
       }
 
-      // 장면 하나는 흐린 배경과 그 위의 사진으로 그린다. 화면 가득 채울지 가운데 카드로 띄울지는 style.css가 정한다.
-      // 받지 못한 장면은 null이 되어 건너뛴다.
+      // 장면 하나는 흐린 배경과 그 위 가운데 카드로 그린다. 받지 못한 장면은 null이 되어 건너뛴다.
       function prepareSlide(slide) {
         const element = document.createElement("div");
-        element.className = sceneSlides.includes(slide) ? "intro-slide is-scene" : "intro-slide is-card";
+        element.className = "intro-slide";
         const backdrop = new Image();
         backdrop.className = "intro-backdrop";
         backdrop.alt = "";
@@ -86,7 +96,6 @@
         picture.className = "intro-picture";
         picture.alt = "";
         picture.src = slide.image;
-        picture.style.transformOrigin = panOrigins[Math.floor(Math.random() * panOrigins.length)];
         frame.appendChild(picture);
         element.append(backdrop, frame);
         return picture.decode().then(
@@ -99,33 +108,11 @@
         );
       }
 
-      // 로딩이 짧으면 한두 장만 보이므로, 지난 접속에서 본 다음 장면부터 이어 보여 접속할 때마다 다른 장면이 나오게 한다.
-      // 브라우저 저장소를 쓸 수 없으면 처음 장면부터 보여 준다.
-      const nextSlideKey = "elsehere.intro.nextSlide";
-
-      function loadNextSlide(count) {
-        try {
-          const saved = Number(localStorage.getItem(nextSlideKey));
-          return Number.isInteger(saved) && saved >= 0 && saved < count ? saved : 0;
-        } catch {
-          return 0;
-        }
-      }
-
-      function saveNextSlide(index) {
-        try {
-          localStorage.setItem(nextSlideKey, String(index));
-        } catch {
-          // 저장하지 못하면 다음 접속은 처음 장면부터 보인다.
-        }
-      }
-
       async function playIntro(slides) {
         let current = null;
         let failedInRow = 0;
-        const first = loadNextSlide(slides.length);
-        let upcoming = prepareSlide(slides[first]);
-        for (let index = first; introRunning; index = (index + 1) % slides.length) {
+        let upcoming = prepareSlide(slides[0]);
+        for (let index = 0; introRunning; index = (index + 1) % slides.length) {
           const slide = slides[index];
           const shown = await upcoming;
           // 지금 장면을 보여 주는 동안 다음 장면 이미지를 미리 받아 둔다.
@@ -147,7 +134,6 @@
           // 새 장면을 붙인 다음 프레임에 켜야 투명도 전환이 일어난다.
           requestAnimationFrame(() => shown.classList.add("is-active"));
           captionElement.textContent = slide.caption;
-          saveNextSlide((index + 1) % slides.length);
           if (current !== null) {
             const previous = current;
             previous.classList.remove("is-active");
@@ -195,8 +181,7 @@
         showBanner(message, "error");
       }
 
-      // 처음 접속하면 기능 장면부터 보여 준다.
-      playIntro(alternate(featureSlides, sceneSlides));
+      playIntro(shuffleIntro(introSlides));
 
       const buildUrl = "Build";
       const config = {

@@ -39,7 +39,17 @@ class FirstDayMissionServiceTest {
   void statusBeforeStartPointsToQuestCard() {
     when(repository.findById(8L)).thenReturn(Optional.empty());
 
-    assertThat(service.status(8L).direction()).isEqualTo("퀘스트 카드를 눌러 첫날 여정을 시작하세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("퀘스트 카드를 눌러 시작하세요.");
+    assertThat(service.status(8L).situation()).isEqualTo("마을에서 일어난 작은 소동을 해결해 볼까요?");
+  }
+
+  // 퀘스트가 여러 개가 되므로 안내 문구에 '첫날'·'여정'을 쓰지 않는다.
+  @Test
+  void stageTextsDoNotTalkAboutTheFirstDayJourney() {
+    for (FirstDayStage stage : FirstDayStage.values()) {
+      assertThat(stage.situation()).doesNotContain("첫날").doesNotContain("여정");
+      assertThat(stage.direction()).doesNotContain("첫날").doesNotContain("여정");
+    }
   }
 
   @Test

@@ -430,7 +430,7 @@ namespace A305.EditorTools.Mission
                 new Vector2(112, -24)
             );
             banner.GetComponent<Image>().color = Cream;
-            TMP_Text situation = Text(banner, "Situation", 24, "첫날의 작은 소동");
+            TMP_Text situation = Text(banner, "Situation", 24, "퀘스트를 불러오는 중이에요.");
             // 할 일 자리 문구는 QuestCardBuilder가 채운다.
             TMP_Text direction = Text(banner, "Direction", 21, "");
             Button journalButton = MapButton(content);
@@ -447,7 +447,7 @@ namespace A305.EditorTools.Mission
             column.spacing = 12;
             column.childControlWidth = column.childControlHeight = true;
             column.childForceExpandHeight = false;
-            Text(journal, "Title", 26, "첫날의 작은 소동");
+            Text(journal, "Title", 26, "퀘스트");
             TMP_Text journalGoal = Text(journal, "Goal", 20, "");
             TownMapBuilder.CreateShell(journal, UiBuilderTools.RegularFont());
             RectTransform viewport = Rect("Viewport", journal);
@@ -475,7 +475,7 @@ namespace A305.EditorTools.Mission
             scroll.viewport = viewport;
             scroll.content = scrollContent;
             TMP_Text message = Text(journal, "Message", 19, "");
-            Button start = Button(journal, "StartButton", "여정 시작", 300);
+            Button start = Button(journal, "StartButton", "퀘스트 시작", 300);
             Button rest = Button(journal, "RestButton", "카페에서 잠깐 쉬기", 300);
             Button retry = Button(journal, "RetryButton", "다시 불러오기", 300);
             Button close = Button(journal, "CloseButton", "수첩 닫기", 300);

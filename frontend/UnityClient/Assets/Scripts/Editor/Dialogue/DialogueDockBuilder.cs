@@ -130,11 +130,78 @@ namespace A305.EditorTools.Dialogue
             // 긴 대사가 오른쪽 끝에서 잘리지 않게 줄을 바꾼다. 대사 칸 높이는 DialoguePanelView가 대사 길이에 맞춘다.
             lines.textWrappingMode = TextWrappingModes.Normal;
             Theme(lines.transform, UiThemeRole.TitleOnDark);
+            LinesScrollbar(history);
 
             Transform status = conversation.Find("Status");
             Place(status, layout.Status);
             status.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.MidlineLeft;
             Theme(status, UiThemeRole.AccentOnDark);
+        }
+
+        // 대사 칸 오른쪽 끝 세로 스크롤바. 지난 대사가 있어 위로 스크롤할 수 있을 때만 보인다.
+        // 손가락으로도 잡을 수 있게 누르는 자리는 넓게 두고, 보이는 막대는 가늘게 그린다.
+        private const float ScrollbarHitWidth = 36;
+        private const float ScrollbarWidth = 10;
+
+        private static void LinesScrollbar(RectTransform history)
+        {
+            Transform old = history.Find("Scrollbar");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            RectTransform bar = NewRect("Scrollbar", history);
+            bar.anchorMin = new Vector2(1, 0);
+            bar.anchorMax = Vector2.one;
+            bar.pivot = new Vector2(1, .5f);
+            bar.anchoredPosition = Vector2.zero;
+            bar.sizeDelta = new Vector2(ScrollbarHitWidth, 0);
+            Image hitArea = bar.gameObject.AddComponent<Image>();
+            hitArea.color = Color.clear;
+            ThinBar(NewRect("Track", bar), new Color(1, 1, 1, .18f));
+            RectTransform slidingArea = NewRect("SlidingArea", bar);
+            Stretch(slidingArea);
+            RectTransform handle = NewRect("Handle", slidingArea);
+            Stretch(handle);
+            Image handleHitArea = handle.gameObject.AddComponent<Image>();
+            handleHitArea.color = Color.clear;
+            ThinBar(NewRect("Thumb", handle), new Color(1, 1, 1, .78f));
+
+            var scrollbar = bar.gameObject.AddComponent<Scrollbar>();
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.handleRect = handle;
+            scrollbar.targetGraphic = handleHitArea;
+            scrollbar.transition = Selectable.Transition.None;
+            // 키보드 이동으로 스크롤바가 골라지면 입력칸의 글자 입력을 가로챈다.
+            scrollbar.navigation = new Navigation { mode = Navigation.Mode.None };
+            var scroll = history.GetComponent<ScrollRect>();
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            // 긴 대사가 스크롤바 밑으로 들어가지 않게 대사 칸 오른쪽을 스크롤바 자리만큼 비운다.
+            var viewport = (RectTransform)history.Find("Viewport");
+            viewport.offsetMax = new Vector2(-ScrollbarHitWidth, viewport.offsetMax.y);
+        }
+
+        // 누르는 자리 가운데에 세로로 선 둥근 막대
+        private static void ThinBar(RectTransform rect, Color color)
+        {
+            rect.anchorMin = new Vector2(.5f, 0);
+            rect.anchorMax = new Vector2(.5f, 1);
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = new Vector2(ScrollbarWidth, 0);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            image.type = Image.Type.Sliced;
+            // 기본 둥근 판 그림의 모서리(10)를 막대 폭의 절반으로 줄여 양 끝을 둥글게 한다.
+            image.pixelsPerUnitMultiplier = 10f / (ScrollbarWidth / 2f);
+            image.color = color;
+            image.raycastTarget = false;
+        }
+
+        private static RectTransform NewRect(string name, Transform parent)
+        {
+            var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            return rect;
         }
 
         // 반투명 입력칸, 둥근 [보내기], 코랄 [말하기]. 세 조작은 높이를 맞춘다.

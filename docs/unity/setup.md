@@ -42,14 +42,12 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 `Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 게임 화면이 브라우저 창 전체를 채우게 합니다. 페이지에는 게임 화면만 두고 제품 이름·[전체 화면] 같은 줄을 두지 않으며, 브라우저 자체의 전체 화면(PC는 F11)을 씁니다. 캔버스 크기가 창에 따라 바뀌어도 Unity가 그 크기로 다시 그리므로 게임 화면을 자르거나 늘리지 않고, 화면 비율에 따라 보이는 범위가 달라집니다. UI는 1920×1080 기준으로 화면 크기에 맞춰 늘고 줄어듭니다(`UiBuilderTools.EnsureOverlayCanvas`). 노치·홈 표시줄의 안전 영역은 비우고, 브라우저 주소창에 따른 높이 변화도 반영합니다. 빌드 설정의 960×600은 처음 캔버스 크기일 뿐 화면 비율을 고정하지 않습니다.
 
-게임 파일을 받는 동안 템플릿의 로딩 화면은 소개 장면(`intro/*.jpg`)과 한 줄 문구를 5초마다 바꿔 보여 주고, 아래에 진행 막대를 둡니다. 로딩이 끝나면 로딩 화면이 서서히 사라지며 로그인 화면이 나옵니다. 이 화면이 Unity 시작 로고를 대신하므로 **Player Settings → Splash Image → Show Splash Screen**은 끕니다.
+게임 파일을 받는 동안 템플릿의 로딩 화면은 소개 그림(`intro/feature-*.jpg`)과 한 줄 문구를 5초마다 바꿔 보여 주고, 아래에 진행 막대를 둡니다. 로딩이 끝나면 로딩 화면이 서서히 사라지며 로그인 화면이 나옵니다. 이 화면이 Unity 시작 로고를 대신하므로 **Player Settings → Splash Image → Show Splash Screen**은 끕니다.
 
-| 묶음 | 이미지 | 보여 주는 방식 |
-| --- | --- | --- |
-| 장소 장면(`sceneSlides`) | 마을·카페·호텔·택시를 실제 씬에서 찍은 사진 | 화면을 가득 채우고 천천히 다가갑니다. 세로 화면에서는 양옆이 잘리지 않게 카드로 띄웁니다. |
-| 기능 장면(`featureSlides`) | 기능 소개 그림(`feature-*`)과, 대화창·단어 카드를 띄워 찍은 게임 화면(`cafe-talk`·`home-hover`) | 흐린 배경 위 가운데 카드로 띄워 그림이 흐려지거나 화면 UI가 아래 문구에 가리지 않게 합니다. |
-
-두 묶음은 기능 장면부터 한 장씩 번갈아 보여 줍니다. 로딩이 짧으면 한두 장만 보이므로, 지난 접속에서 본 다음 장면부터 이어 보여 접속할 때마다 다른 장면이 나오게 합니다(브라우저 저장소 `elsehere.intro.nextSlide`). 저장소를 쓸 수 없으면 처음 장면부터 보여 줍니다. 장면과 문구 목록은 `index.html`에서 관리합니다. 기능 소개 그림은 `frontend/design/소개 그림 4칸.webp`를 칸별로 잘라 씁니다. 사진과 게임 화면은 **Tools → A305 → Web → Capture Intro Scenes**로 찍습니다. 이 도구는 씬을 저장하지 않습니다. 다만 대화창·단어 카드 글자를 그리면서 `Assets/Art/UI/Fonts/Jua-Regular SDF.asset`에 글자 간격 정보가 덧붙어 저장될 수 있으니, 찍은 뒤 바뀌어 있으면 커밋하지 않고 되돌립니다. 씬 배치나 캐릭터, 대화창·단어 카드 디자인이 바뀌면 다시 찍고 이미지를 확인한 뒤 커밋합니다. 명령줄로 찍을 때는 화면을 그려야 하므로 `-nographics` 없이 `-executeMethod A305.EditorTools.Common.IntroSceneCapture.Capture`를 실행합니다.
+- 소개 그림은 `frontend/design/소개 그림 4칸.webp`·`소개 그림 6칸.webp`를 칸별로 잘라 모두 762×505로 맞춥니다. 칸 비율이 다르면 내용을 자르지 않고 가로를 채운 뒤, 남는 위아래는 같은 칸을 흐리게 키워 채웁니다.
+- 그림은 화면을 가득 채우면 흐려지므로 흐린 배경 위 가운데 카드로 띄웁니다.
+- 순서는 접속마다 섞습니다. 로딩이 짧으면 첫 장면만 보일 수 있으므로, 지난 접속의 첫 장면은 첫 자리에 두지 않습니다(브라우저 저장소 `elsehere.intro.lastFirstSlide`).
+- 그림과 문구 목록은 `index.html`의 `introSlides`에서 관리합니다.
 
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 

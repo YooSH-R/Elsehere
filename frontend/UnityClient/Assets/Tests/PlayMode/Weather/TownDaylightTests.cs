@@ -66,9 +66,10 @@ namespace A305.Weather.PlayModeTests
         private Renderer lampGlass;
         private WeatherPresenter presenter;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            yield return IsolatedScene.Open();
             saved.Read();
             designedGlow = Keep(new Material(Shader.Find("Universal Render Pipeline/Lit")));
             designedGlow.EnableKeyword("_EMISSION");

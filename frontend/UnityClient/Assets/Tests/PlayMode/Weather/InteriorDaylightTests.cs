@@ -32,9 +32,10 @@ namespace A305.Weather.PlayModeTests
         private Renderer window;
         private InteriorDaylight interior;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            yield return IsolatedScene.Open();
             saved.Read();
             designedWindow = Keep(new Material(Shader.Find("Universal Render Pipeline/Lit")));
             designedWindow.color = DesignedWindow;

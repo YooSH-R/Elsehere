@@ -3,12 +3,14 @@ using System.Collections;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace A305.World.PlayModeTests
 {
     public class GameClockDaylightTests
     {
+        private static int opened;
         private GameObject daylightObject;
         private GameObject clockObject;
 
@@ -17,6 +19,20 @@ namespace A305.World.PlayModeTests
         {
             Object.DestroyImmediate(clockObject);
             Object.DestroyImmediate(daylightObject);
+        }
+
+        // 앞선 테스트가 불러 둔 장소 씬의 게임 시계가 시각을 흘리지 않게 빈 씬만 남긴다.
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            Scene scene = SceneManager.CreateScene("GameClockDaylightTest" + ++opened);
+            SceneManager.SetActiveScene(scene);
+            for (int index = SceneManager.sceneCount - 1; index >= 0; index--)
+            {
+                Scene other = SceneManager.GetSceneAt(index);
+                if (other != scene)
+                    yield return SceneManager.UnloadSceneAsync(other);
+            }
         }
 
         [UnityTest]

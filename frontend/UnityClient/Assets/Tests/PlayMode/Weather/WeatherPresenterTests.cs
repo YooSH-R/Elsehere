@@ -51,9 +51,10 @@ namespace A305.Weather.PlayModeTests
         private Transform player;
         private WeatherPresenter presenter;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            yield return IsolatedScene.Open();
             saved.Read();
             settings = WeatherSettings.Create(
                 TransitionSeconds,
@@ -225,8 +226,9 @@ namespace A305.Weather.PlayModeTests
             );
         }
 
-        [Test]
-        public void ShowImmediately_AppliesWeatherWithoutWaitingForFrames()
+        // 빈 씬을 여는 UnitySetUp이 앞서 돌도록 UnityTest로 둔다. 프레임은 기다리지 않는다.
+        [UnityTest]
+        public IEnumerator ShowImmediately_AppliesWeatherWithoutWaitingForFrames()
         {
             presenter.ShowImmediately("RAIN");
 
@@ -234,6 +236,7 @@ namespace A305.Weather.PlayModeTests
             Assert.That(overcast.activeSelf, Is.True);
             Assert.That(sun.intensity, Is.EqualTo(RainLook.sunIntensity).Within(.001f));
             AssertColor(RenderSettings.skybox.GetColor("_Zenith"), RainLook.skyZenith);
+            yield break;
         }
 
         [UnityTest]

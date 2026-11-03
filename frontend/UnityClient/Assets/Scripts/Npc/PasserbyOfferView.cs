@@ -121,7 +121,7 @@ namespace A305.Npc
             owner = null;
             onAccept = null;
             onDecline = null;
-            panel.SetActive(false);
+            HideIfPresent(panel);
         }
 
         /// <summary>
@@ -176,7 +176,14 @@ namespace A305.Npc
         {
             talkPromptOwner = null;
             onTalk = null;
-            talkPromptPanel.SetActive(false);
+            HideIfPresent(talkPromptPanel);
+        }
+
+        // 장소를 옮기면 행인·택시가 꺼지며 안내를 닫기 전에 안내 창이 먼저 지워질 수 있다. 지워진 창은 끌 필요가 없다.
+        private static void HideIfPresent(GameObject window)
+        {
+            if (window != null)
+                window.SetActive(false);
         }
 
         // 가입 사용자처럼 보일 문구가 없으면 줄째 숨겨 빈 자리가 남지 않게 한다.

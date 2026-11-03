@@ -461,11 +461,7 @@ namespace A305.Learning
 
         private Rect FreeArea()
         {
-            var frame = (RectTransform)panel.transform;
-            return CenterWindow.Shared.FreeArea(
-                (RectTransform)frame.parent,
-                CenterWindow.ScaleFactorOf(frame)
-            );
+            return CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
         }
 
         // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.

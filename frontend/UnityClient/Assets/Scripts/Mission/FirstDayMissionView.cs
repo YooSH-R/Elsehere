@@ -517,8 +517,11 @@ namespace A305.Mission
         {
             if (hud == null || !hud.activeInHierarchy)
                 return 0f;
-            ((RectTransform)hud.transform).GetWorldCorners(hudCorners);
-            return hudCorners[2].x;
+            var rect = (RectTransform)hud.transform;
+            rect.GetWorldCorners(hudCorners);
+            return RectTransformUtility
+                .WorldToScreenPoint(CenterWindow.CameraOf(rect), hudCorners[2])
+                .x;
         }
 
         // 가운데 창이 열리면 펼친 수첩·큰 지도를 닫아 창끼리 겹치지 않게 한다. 퀘스트 카드·미니맵은 창과 함께 보인다.

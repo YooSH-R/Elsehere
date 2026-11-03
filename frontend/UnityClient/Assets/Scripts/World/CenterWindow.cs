@@ -42,12 +42,23 @@ namespace A305.World
         }
 
         /// <summary>창 판을 놓을 빈 곳. 판이 놓인 캔버스의 좌표(왼쪽 아래 기준)다.</summary>
-        public Rect FreeArea(RectTransform canvasRect, float scaleFactor)
+        public Rect FreeArea(RectTransform canvasRect)
         {
             Vector2 size = canvasRect.rect.size;
-            float leftHud = scaleFactor > 0f ? LeftHudScreenWidth / scaleFactor : 0f;
+            float left = SideMargin;
+            if (LeftHudScreenWidth > 0f)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    canvasRect,
+                    new Vector2(LeftHudScreenWidth, 0f),
+                    CameraOf(canvasRect),
+                    out Vector2 local
+                );
+                left += local.x + size.x * canvasRect.pivot.x;
+            }
+
             return Rect.MinMaxRect(
-                leftHud + SideMargin,
+                left,
                 TopBottomClearance,
                 size.x - SideMargin,
                 size.y - TopBottomClearance
@@ -60,7 +71,7 @@ namespace A305.World
         public void Place(RectTransform panel, float scale = 1f)
         {
             var canvasRect = (RectTransform)panel.parent;
-            Rect area = FreeArea(canvasRect, ScaleFactorOf(panel));
+            Rect area = FreeArea(canvasRect);
             Vector2 size = panel.rect.size;
             float fit = scale;
             if (size.x > 0f && size.y > 0f && area.width > 0f && area.height > 0f)
@@ -72,10 +83,14 @@ namespace A305.World
             panel.anchoredPosition = area.center - canvasRect.rect.size * panel.anchorMin;
         }
 
-        public static float ScaleFactorOf(RectTransform panel)
+        /// <summary>화면 좌표와 바꿀 때 쓸 카메라. 화면 위에 바로 그리는 캔버스는 카메라 없이(null) 바꾼다.</summary>
+        public static Camera CameraOf(RectTransform rect)
         {
-            Canvas canvas = panel.GetComponentInParent<Canvas>();
-            return canvas != null ? canvas.rootCanvas.scaleFactor : 1f;
+            Canvas canvas = rect.GetComponentInParent<Canvas>();
+            Canvas root = canvas != null ? canvas.rootCanvas : null;
+            return root != null && root.renderMode != RenderMode.ScreenSpaceOverlay
+                ? root.worldCamera
+                : null;
         }
     }
 }

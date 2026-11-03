@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using A305.Wayfinding;
 using A305.World;
 using NUnit.Framework;
 using TMPro;
@@ -35,6 +36,7 @@ namespace A305.Mission.Tests
         {
             Object.DestroyImmediate(instance);
             JourneyStatus.Shared.Clear();
+            GuideDestination.Shared.Clear();
         }
 
         [Test]
@@ -211,6 +213,43 @@ namespace A305.Mission.Tests
             view.SetAvailable(false);
 
             Assert.That(JourneyStatus.Shared.HasJourney, Is.False);
+        }
+
+        // 길 안내는 미션을 모른 채 공용 목적지만 보므로, 지금 단계의 장소를 알린다.
+        [Test]
+        public void Refresh_GuidesToThePlaceOfTheCurrentStep()
+        {
+            FirstDayMissionState state = Journey(current: 5);
+            state.Steps[5].Scene = "SHOP";
+
+            Refresh(state);
+
+            Assert.That(GuideDestination.Shared.PlaceCode, Is.EqualTo("SHOP"));
+        }
+
+        [Test]
+        public void Refresh_AfterTheJourneyEnds_StopsGuiding()
+        {
+            FirstDayMissionState state = Journey(current: 5);
+            state.Steps[5].Scene = "SHOP";
+            Refresh(state);
+            state.Completed = true;
+
+            view.Refresh(state, false, false);
+
+            Assert.That(GuideDestination.Shared.PlaceCode, Is.Null);
+        }
+
+        [Test]
+        public void Unavailable_StopsGuiding()
+        {
+            FirstDayMissionState state = Journey(current: 5);
+            state.Steps[5].Scene = "SHOP";
+            Refresh(state);
+
+            view.SetAvailable(false);
+
+            Assert.That(GuideDestination.Shared.PlaceCode, Is.Null);
         }
 
         // 왼쪽 위 지도 버튼을 없애고 카드 자체를 눌러 수첩을 연다. 카드는 화면 왼쪽 위 모서리에 붙는다.

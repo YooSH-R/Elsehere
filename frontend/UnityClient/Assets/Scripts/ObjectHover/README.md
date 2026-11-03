@@ -28,7 +28,7 @@
 | `ObjectWordCards`, `WordCard` | 장소의 서버 단어 카드(WORLD-02)와 사용자별 저장·숨김 상태. 저장(VOCAB-02)·숨김(WORLD-03)을 서버가 받아들인 뒤에만 반영하고, 실패하면 이유를 카드에 남깁니다. Unity 객체 없이 테스트합니다. |
 | `WordCardButtons` | 고정한 카드의 버튼 문구와 누를 수 있는지를 정합니다. 서버 단어 카드가 없으면 [닫기]만 둡니다. |
 | `IObjectWordApi`, `ObjectWordApi` | WORLD-02·03, VOCAB-02(`OBJECT`)의 경로와 본문, WORLD-04 발음 경로 |
-| `ObjectWordScenes` | Unity 씬 이름으로 서버 장소 코드를 찾습니다. 서버 시드와 `World/LastSceneRecorder`의 장소와 같아야 합니다. |
+| `ObjectWordScenes` | Unity 씬 이름으로 서버 장소 코드를 찾습니다. 서버 시드와 `World/PlaceScenes`의 장소와 같아야 합니다. |
 | `ObjectWordServerLink` | 카드 프리팹에 붙은 서버 연결. API 주소(`ApiSettings`)와 발음 재생(`AudioSource`)을 맡아 장소 씬마다 따로 배치하지 않습니다. `Use Server`를 끄면 서버 없이 Unity 단어로만 카드를 보입니다. |
 | `LocalObjectWordApi` | Editor에서 서버 단어 카드를 받지 못했을 때 쓰는 확인용 단어 카드. 장소에서 가리킬 수 있는 사물의 Unity 단어로 카드를 만들고, [저장]·[알아요]로 바꾼 상태는 같은 Play 동안만 기억합니다(장소를 옮겨도 유지). 발음 음성은 없고, 저장한 단어는 Editor 확인용 단어장(`LocalVocabularyApi`)에 보이며 빌드에서는 쓰지 않습니다. Unity 객체 없이 테스트합니다. |
 | `ObjectHoverSettings` | 표시 지연, 최대·세부 거리, 포인터 간격, 화면 여백, 가리킬 레이어를 담는 데이터 에셋입니다. |

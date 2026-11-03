@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using A305.EditorTools.Common;
 using A305.Npc;
 using A305.World;
+using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -55,12 +56,18 @@ namespace A305.EditorTools.Npc
                     continue;
                 }
 
-                ConnectWalkArea(scene, BakeWalkArea(scene));
+                RebakeWalkArea(scene);
                 BuilderTools.SaveScene(scene, scenePath);
             }
 
             AssetDatabase.SaveAssets();
             Debug.Log("NPC 생활과 걸을 바닥을 준비했습니다.");
+        }
+
+        /// <summary>열린 장면의 걸을 바닥을 다시 굽고 연결한다. 바닥 구역 표시를 바꾼 뒤에도 쓴다. 장면 저장은 부르는 쪽이 한다.</summary>
+        public static void RebakeWalkArea(Scene scene)
+        {
+            ConnectWalkArea(scene, BakeWalkArea(scene));
         }
 
         // 생활 데이터가 있는 NPC에만 붙인다. 튜토리얼 행인처럼 정해진 흐름대로 움직이는 NPC는 그대로 둔다.
@@ -97,7 +104,7 @@ namespace A305.EditorTools.Npc
                 ~0,
                 NavMeshCollectGeometry.PhysicsColliders,
                 0,
-                new List<NavMeshBuildMarkup>(),
+                AreaMarkups(scene),
                 sources
             );
             sources.RemoveAll(source => !IsStandingGround(source.component as Collider));
@@ -118,6 +125,8 @@ namespace A305.EditorTools.Npc
                 }
             }
 
+            sources.AddRange(AreaVolumes(scene));
+
             NavMeshBuildSettings settings = NavMesh.GetSettingsByID(0);
             settings.agentRadius = AgentRadiusMeters;
             settings.agentHeight = AgentHeightMeters;
@@ -132,6 +141,57 @@ namespace A305.EditorTools.Npc
                 Quaternion.identity
             );
             return SaveWalkArea(baked, $"{WalkAreaFolder}/{scene.name}WalkArea.asset");
+        }
+
+        // 바닥 구역 표시(NavMeshModifier). 마을 차도처럼 붙은 사물과 그 아래 바닥을 다른 구역으로 굽는다.
+        private static List<NavMeshBuildMarkup> AreaMarkups(Scene scene)
+        {
+            var markups = new List<NavMeshBuildMarkup>();
+            foreach (
+                NavMeshModifier modifier in BuilderTools.FindAllInScene<NavMeshModifier>(scene)
+            )
+            {
+                markups.Add(
+                    new NavMeshBuildMarkup
+                    {
+                        root = modifier.transform,
+                        overrideArea = modifier.overrideArea,
+                        area = modifier.area,
+                        ignoreFromBuild = modifier.ignoreFromBuild,
+                        applyToChildren = modifier.applyToChildren,
+                    }
+                );
+            }
+
+            return markups;
+        }
+
+        // 상자 안 바닥을 다른 구역으로 바꾸는 표시(NavMeshModifierVolume). 차도 위 횡단보도처럼 바닥 일부만 바꾼다.
+        private static IEnumerable<NavMeshBuildSource> AreaVolumes(Scene scene)
+        {
+            foreach (
+                NavMeshModifierVolume volume in BuilderTools.FindAllInScene<NavMeshModifierVolume>(
+                    scene
+                )
+            )
+            {
+                Vector3 scale = volume.transform.lossyScale;
+                yield return new NavMeshBuildSource
+                {
+                    shape = NavMeshBuildSourceShape.ModifierBox,
+                    transform = Matrix4x4.TRS(
+                        volume.transform.TransformPoint(volume.center),
+                        volume.transform.rotation,
+                        Vector3.one
+                    ),
+                    size = new Vector3(
+                        volume.size.x * Mathf.Abs(scale.x),
+                        volume.size.y * Mathf.Abs(scale.y),
+                        volume.size.z * Mathf.Abs(scale.z)
+                    ),
+                    area = volume.area,
+                };
+            }
         }
 
         // 움직이는 것(사람·차)과 통과하는 영역(사물 호버·문 트리거)은 바닥이나 장애물로 굽지 않는다.

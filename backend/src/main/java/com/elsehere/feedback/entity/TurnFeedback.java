@@ -54,9 +54,4 @@ public class TurnFeedback extends BaseEntity {
     feedback.idiomMeaningKo = idiomMeaningKo;
     return feedback;
   }
-
-  /** 만든 모범 음성(FB-04)의 파일 키. 다음 요청부터 새로 만들지 않고 다시 쓴다. */
-  public void attachModelAudio(String key) {
-    this.modelAudioKey = key;
-  }
 }

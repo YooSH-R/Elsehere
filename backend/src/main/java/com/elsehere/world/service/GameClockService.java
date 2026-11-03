@@ -2,6 +2,8 @@ package com.elsehere.world.service;
 
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.repository.ConversationRepository;
+import com.elsehere.user.entity.OnboardingStep;
+import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.dto.GameClockResponse;
 import com.elsehere.world.entity.UserGameClock;
 import com.elsehere.world.repository.UserGameClockRepository;
@@ -13,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 사용자별 게임 시계. 게임 시간은 사용자가 플레이한 동안만 흐른다. Unity가 플레이 중 30초마다 신호를 보내면 지난 신호 뒤 흐른 실제 시간을 한 번에 60초까지
- * 더하고, 진행 중인 대화가 있으면 멈춘다. 실제 10분이 게임 하루다({@link GameTime}).
+ * 더하고, 진행 중인 대화가 있거나 튜토리얼을 마치기 전이면 멈춘다. 실제 10분이 게임 하루다({@link GameTime}).
  *
  * <p>대화가 신호 사이에 시작·끝나면 그 몇 초는 신호 간격 안에서 셀 수도 빠질 수도 있다. 게임 날짜 단위로 쓰기에는 충분한 정확도다.
  */
@@ -26,6 +28,7 @@ public class GameClockService {
 
   private final UserGameClockRepository userGameClockRepository;
   private final ConversationRepository conversationRepository;
+  private final UserRepository userRepository;
   private final Clock clock;
 
   @Transactional(readOnly = true)
@@ -54,8 +57,17 @@ public class GameClockService {
   }
 
   private boolean paused(Long userId) {
-    return conversationRepository
-        .findFirstByUserIdAndStatus(userId, ConversationStatus.ACTIVE)
-        .isPresent();
+    return beforeTutorialDone(userId)
+        || conversationRepository
+            .findFirstByUserIdAndStatus(userId, ConversationStatus.ACTIVE)
+            .isPresent();
+  }
+
+  // 튜토리얼은 정해진 대본으로 연습하는 시간이라, 마치거나 건너뛰어 온보딩이 끝나기 전에는 게임 시간을 세지 않는다.
+  private boolean beforeTutorialDone(Long userId) {
+    return userRepository
+        .findById(userId)
+        .map(user -> user.getOnboardingStep() != OnboardingStep.DONE)
+        .orElse(false);
   }
 }

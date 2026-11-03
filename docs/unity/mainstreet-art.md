@@ -23,7 +23,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 - 배경 건물의 `GroundFloor8m`은 4m, `UpperFloor8m`은 3m다. 상층을 Y=4, 7…에 중첩하고 RoofCap·RoofInset을 같은 높이만큼 올린다. 완성 건물을 세로로 늘리지 않는다. 1·2·3층 프리팹 높이는 4.4·7.4·10.4m다. 원점은 전면 바닥 중앙이며 +Z가 도로 방향이다.
 - 카페는 `CafeBlenderKit/Buildings/Cafe1F~3F`를 사용한다. 집과 호텔은 기존 외관 조립을 승격한 프리팹이며, 호텔의 층수 자동 조립은 아직 제공하지 않는다.
 - 북쪽 길은 Z=70까지 이어지고 경계 정원은 Z=69에 둔다. 확장할 때 경계 프리팹을 이동하고 도로·보도·건물 부지를 함께 연장한다. 동서 경계는 폭 14m 전용 프리팹을 써 수목 비율을 유지한다.
-- 카메라·색 보정은 `Assets/Data/World/TownProduction/`의 전용 에셋으로 조정한다. 1.6m 캐릭터 외형은 기존 이동·NPC 루트의 `TownVisual`에 중첩한다. 플레이어 외형 프리팹은 기존 시점별 가림 컴포넌트를 재사용한다.
+- 카메라·색 보정은 `Assets/Data/World/TownProduction/`의 전용 에셋으로 조정한다. 1.6m 캐릭터 외형은 기존 이동·NPC 루트의 `TownVisual`에 중첩한다. 마을 행인 Ben(`TOWN_PASSERBY`)은 이 도형 외형 대신 비즈니스맨 외형을 쓴다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#builder)). 플레이어 외형 프리팹은 기존 시점별 가림 컴포넌트를 재사용한다.
 
 **Tools → A305 → World → Apply Production Town Design**은 초기 도형 씬에 디자인을 이식한다. 이미 `TownMainstreet`가 있으면 배치·외관을 덮어쓰지 않는다. 이후 편집은 Scene과 Prefab Mode에서 한다. **Verify Production Town Design**은 집 퇴장 후 튜토리얼 행인의 접근·제안·수락, Play 카메라, 보행, 대화 시점, 세 장소의 출입구 왕복을 확인하고 `artifacts/unity/production-town`에 화면과 검수 결과를 저장한다. 검수는 Play 중 튜토리얼 진행과 행인 휴식 기록을 초기화한다. 검수 중 이동·카메라 변경은 Play 종료 시 버린다.
 

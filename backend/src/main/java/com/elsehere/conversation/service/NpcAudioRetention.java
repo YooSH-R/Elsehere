@@ -1,5 +1,6 @@
 package com.elsehere.conversation.service;
 
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
@@ -59,7 +60,7 @@ public class NpcAudioRetention {
   /** 상한 안에 들어가도록 오래된 음성부터 정리한 뒤 저장한다. 저장할 수 없으면 null이며, 호출한 쪽은 자막만 보여 준다. */
   public String save(byte[] wav) {
     if (wav.length > maxBytes) {
-      log.warn("NPC 음성이 보관 상한보다 커서 저장하지 않습니다 bytes={}", wav.length);
+      log.warn("npc_audio_too_large bytes={}", wav.length);
       return null;
     }
     lock.lock();
@@ -68,12 +69,12 @@ public class NpcAudioRetention {
       deleteExpired(clock.instant(), shared);
       freeSpace(usedBytes(shared) + wav.length - maxBytes, shared);
       if (usedBytes(shared) + wav.length > maxBytes) {
-        log.warn("NPC 음성 저장 공간을 확보하지 못했습니다 bytes={}", wav.length);
+        log.warn("npc_audio_no_space bytes={}", wav.length);
         return null;
       }
       return store.save(wav);
     } catch (BusinessException exception) {
-      log.warn("NPC 음성을 저장하지 못했습니다", exception);
+      log.warn("npc_audio_save_failed", exception);
       return null;
     } finally {
       lock.unlock();
@@ -108,7 +109,7 @@ public class NpcAudioRetention {
    * 매일 정리한다. 보관 기간이 지난 음성, 파일이 없어진 키(DB 복원·이전 실패), 어떤 턴도 쓰지 않는 오래된 파일을 지우고, 상한을 넘었으면 오래된 파일부터 지운다.
    * NPC 공용 음성(말걸기)은 지우지 않는다.
    */
-  @Scheduled(cron = "${elsehere.npc-audio.cleanup-cron}", zone = "Asia/Seoul")
+  @Scheduled(cron = "${elsehere.npc-audio.cleanup-cron}", zone = ClockConfig.SERVICE_ZONE_ID)
   public void cleanUp() {
     lock.lock();
     try {
@@ -154,7 +155,8 @@ public class NpcAudioRetention {
       store.delete(turn.getNpcAudioKey());
       turn.deleteNpcAudio(now);
     } catch (BusinessException exception) {
-      log.warn("NPC 음성 파일을 지우지 못해 다음 정리에서 재시도합니다 code={}", exception.getErrorCode());
+      // 턴에 음성 키가 남아 있으므로 다음 정리에서 다시 지운다.
+      log.warn("npc_audio_delete_failed code={}", exception.getErrorCode());
     }
   }
 
@@ -220,7 +222,7 @@ public class NpcAudioRetention {
                   .findAllByNpcAudioKeyIn(keys)
                   .forEach(turn -> turn.deleteNpcAudio(now)));
     } catch (RuntimeException exception) {
-      log.warn("지운 NPC 음성의 턴을 갱신하지 못했습니다 count={}", keys.size(), exception);
+      log.warn("npc_audio_turns_update_failed count={}", keys.size(), exception);
     }
   }
 

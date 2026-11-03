@@ -45,6 +45,12 @@ namespace A305.Npc
         [Tooltip("모델 애니메이션에 이동 상태를 전달한다. 비워 두면 전달하지 않는다.")]
         private CharacterAnimationDriver animationDriver;
 
+        [SerializeField]
+        [Tooltip(
+            "말을 건네거나 대화하는 동안 손짓하는 동작을 재생한다. 끄면 그동안 자기 대기 자세로 선다."
+        )]
+        private bool talkGesture = true;
+
         private CharacterController characterController;
         private NpcIdentity identity;
         private PasserbyApproach approach;
@@ -215,7 +221,7 @@ namespace A305.Npc
                 case PasserbyPhase.Offering:
                     Stand();
                     TurnToward(toPlayer);
-                    ShowAnimation(NpcAnimation.Talk);
+                    ShowAnimation(TalkAnimation);
                     if (!offerView.IsShownBy(this))
                     {
                         ShowOffer();
@@ -225,7 +231,7 @@ namespace A305.Npc
                 case PasserbyPhase.Talking:
                     Stand();
                     TurnToward(toPlayer);
-                    ShowAnimation(NpcAnimation.Talk);
+                    ShowAnimation(TalkAnimation);
                     break;
                 default:
                     if (routine != null && routine.enabled && !IsGuidingTutorial)
@@ -437,6 +443,8 @@ namespace A305.Npc
                 CurrentSettings.TurnSpeedDegreesPerSecond * Time.deltaTime
             );
         }
+
+        private NpcAnimation TalkAnimation => talkGesture ? NpcAnimation.Talk : NpcAnimation.None;
 
         // 말을 건네거나 대화하는 동안 손짓한다. 동작 상태가 없는 모델(NPC 전용 컨트롤러가 아님)에는 아무것도 하지 않는다.
         private void ShowAnimation(NpcAnimation animation)

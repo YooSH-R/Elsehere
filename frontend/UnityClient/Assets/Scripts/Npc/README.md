@@ -16,9 +16,11 @@
 | `PasserbyOfferText` | 제안 화면 문구. 머리말은 대화 대본의 NPC 이름으로 "Emma이(가) 말을 걸었어요", 이름이 없으면 "누군가 말을 걸었어요"이고, 먼저 말 걸기 버튼은 "Emma에게 말 걸기", 이름이 없으면 "말 걸기"입니다. |
 | `PasserbyRestRecord` | 행인별로 다시 다가올 수 있는 시각을 공간이 바뀌어도 기억합니다. |
 | `PasserbyOfferRecord` | 하루에 한 번만 다가오는 행인이 마지막으로 먼저 말을 건 날짜(기기 날짜)를 기억합니다. 게임을 껐다 켜도 이어지게 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 저장합니다. |
+| `PoliceReportDesk` | 경찰서 창구. 경찰관과 대화하는 동안 서버가 받아들인 발화로 신고를 접수하고(`PoliceReportIntake`) 화면 위쪽 상태 판에 "신고 접수 · 장소"를 보입니다. 대화를 마치면 순찰차(`PoliceCar`)를 출동시킵니다. 서버 오류·무례한 발화·NPC의 대화 종료는 출동을 일으키지 않습니다(택시와 같은 기준). |
 | `TaxiRide` | 본길을 도는 택시를 인도에서 세우면 손님 옆에 세워 바로 태우고 기사와 대화하게 합니다. 버튼은 [말 걸기]와 같은 자리에 뜹니다. 태우지 못하면 선 택시 곁에 [기사에게 말 걸기]를 보입니다. `IsHailAllowed`가 false면(튜토리얼 동안) [택시 세우기]를 보이지 않습니다. |
 | `NpcLifeData`, `NpcLife` | 생활 데이터(`Data/Npc/NpcLife.json`)와 NPC 한 명의 일과 활동·욕구·할 일 고르기. AI 하루 시뮬레이션과 같은 규칙이며 Unity 객체 없이 테스트합니다. |
-| `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. |
+| `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. 구역(`stayInArea`·`area`)을 켜면 그 안의 사물·자리만 고릅니다. |
+| `NpcStayArea` | 구역을 켠 NPC가 고를 수 있는 위치인지 정합니다. Unity 장면 없이 테스트합니다. |
 | `NpcWalkArea` | Builder가 장면마다 구운 NPC 바닥(NavMesh)을 장면이 켜져 있는 동안 등록합니다. |
 | `NpcAnimation`, `NpcAnimations` | 사물을 쓰는 동안 재생할 동작(일하기·물건 집기·앉기)을 행동 이름으로 고릅니다. 값은 NPC 전용 Animator의 `Action` 번호와 같습니다. |
 | `INpcSeat` | NPC도 앉을 수 있는 자리. [Mission 모듈](../Mission/README.md#의자벤치소파-앉기)의 `RestSeat`가 구현합니다. |
@@ -61,6 +63,8 @@
 | `TOWN_PASSERBY`(Ben), 튜토리얼 중 | 마을 집 앞 큰길 | `TutorialPasserbySettings` | 8m | 15초 | 불가 | 제한 없음 |
 | `TOWN_PASSERBY`(Ben), 튜토리얼 뒤 | 집 앞에서 시작해 마을에서 생활 | `TownPasserbySettings` | 6m | 60초 | 가능 | 하루에 한 번 |
 | `CAFE_STAFF` | 카페 카운터 뒤 | `CafeStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
+| `POLICE_OFFICER`(Dan) | 마을 경찰서 창구 뒤 | `PoliceOfficerSettings` | 4m | 5초 | 가능 | 제한 없음 |
+| 거리 매장 직원 9명([아래](#거리-매장-직원)) | 마을 매장 1층 안에서 생활 | `BuildingStaffSettings` | 3.5m | 20초 | 가능 | 제한 없음 |
 
 - 마을 행인 Ben은 튜토리얼에서 길을 묻는 사람과 같은 사람입니다. 튜토리얼 진행(`TutorialDirector`)이 단계마다 `Passerby.SetTutorialScript`를 불러, 튜토리얼 중에는 튜토리얼 대본·인사말(키 `TUTORIAL_PASSERBY`)과 튜토리얼 설정으로 집 앞에서 길을 묻고 생활하지 않게 합니다. 튜토리얼을 마치면 NPC 키로 평소 대화하고 평소 설정으로 생활합니다. 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 세므로, 튜토리얼을 마친 그 게임 날에는 다시 다가오지 않습니다.
 - 카페 직원은 새 컴포넌트 없이 행인 프리팹을 쓰고, 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 카운터 앞 2m 안에 오면 카운터 뒤 자리로 돌아가([생활](#생활)) 제안 거리 2.5m에서 대화를 제안합니다. 행인과 직원이 같은 제안 화면을 쓰므로 머리말은 NPC 종류 대신 대화 대본의 이름으로 누가 말을 걸었는지 보여 줍니다.
@@ -69,17 +73,15 @@
 - 행인이 다가와도 되는지는 `Passerby.IsApproachAllowed`로 진행 흐름이 정합니다. false면 플레이어가 바쁠 때처럼 다가오지 않고 [말 걸기]도 보이지 않으며, 이미 제안 중이면 제안을 거두지 않습니다. 지금은 [Tutorial 모듈](../Tutorial/README.md)이 튜토리얼 동안 Ben만 Ben 만나기·길 안내 단계에서 다가오게 하고, 다른 NPC는 누구와 말해야 하는지 헷갈리지 않게 튜토리얼을 마친 뒤 다가오게 합니다. 하루에 한 번만 먼저 다가오는 행인도 튜토리얼에서 플레이어가 기다리며 붙잡혀 있으면(`IsPlayerWaiting`) 그날 이미 말을 걸었어도 다가옵니다.
 - 거절하거나 대화를 마친 뒤에도 [말 걸기]로 언제든 다시 대화할 수 있으므로, 쉬는 시간과 하루 한 번 제한은 NPC가 다시 먼저 다가오는 것에만 씁니다.
 
-## Ben의 뼈대와 걷기
+## Ben의 외형과 걷기
 
-Ben(`TOWN_PASSERBY`)은 `Prefabs/Npc/BenVisual.prefab`을 씁니다. 기존 도형 캐릭터의 모양·크기·재질을 유지하고 골반·몸통·머리, 양쪽 팔·팔꿈치·손, 허벅지·무릎·발 관절을 붙였습니다. 팔과 다리는 두 뼈의 영향을 섞는 스킨 메시이고, 손·신발·얼굴은 해당 관절을 따라갑니다.
+Ben(`TOWN_PASSERBY`)은 마스터 골격(Humanoid)의 비즈니스맨 외형을 씁니다([Builder](#builder)). 정지·걷기·벤치 앉기는 다른 Humanoid NPC와 같은 `NpcLife` 컨트롤러로 재생하고, 대기 자세는 비즈니스맨 전용 Idle을 씁니다. 이동 위치는 계속 `Passerby`가 맡습니다.
 
-짧은 팔다리에 맞춘 **Generic 뼈대**로, Humanoid 동작을 직접 재사용하지 않습니다. `Art/Characters/Npc/Ben/BenLocomotion.controller`가 기존 `CharacterAnimationDriver`의 `Speed`를 받아 정지·걷기를 전환하고 보행 속도에 맞춰 재생 속도를 조절합니다. 이동 위치는 계속 `Passerby`가 맡습니다. `NpcRoutine`은 이 전용 컨트롤러를 유지합니다.
-
-**Tools → A305 → Npc → Build Ben Rig**는 에셋이 없을 때만 뼈대·클립을 만들고 TownScene의 Ben에 연결합니다. 이후 디자인은 프리팹과 `BenIdle.anim`·`BenWalk.anim`에서 조절합니다. 공용 도형 모델과 다른 NPC에는 적용하지 않습니다. **Preview Ben Walk**는 `Scenes/Sandbox/BenWalkSandbox.unity`와 정면·측면 렌더를 만듭니다. Sandbox를 Play한 뒤 Ben의 자식 `LittleMungV7Visual`을 선택하고 Animator 창의 Parameters에서 `Speed`를 1.1로 바꾸면 걷고, 0이면 멈춥니다.
+`Prefabs/Npc/BenVisual.prefab`은 예전 도형 캐릭터에 짧은 팔다리용 **Generic 뼈대**와 전용 걷기 동작(`Art/Characters/Npc/Ben/`의 `BenLocomotion.controller`·`BenIdle.anim`·`BenWalk.anim`)을 붙인 외형으로, 지금은 Ben에 연결하지 않습니다. **Tools → A305 → Npc → Build Ben Rig**는 Ben의 외형이 예전 도형 외형이나 `BenVisual`이 아니면 바꾸지 않고 멈춥니다. **Preview Ben Walk**는 `Scenes/Sandbox/BenWalkSandbox.unity`와 정면·측면 렌더로 이 Generic 외형의 걷기를 보여 줍니다. Sandbox를 Play한 뒤 Ben의 자식 `LittleMungV7Visual`을 선택하고 Animator 창의 Parameters에서 `Speed`를 1.1로 바꾸면 걷고, 0이면 멈춥니다.
 
 ## 생활
 
-생활 데이터가 있는 NPC(카페 직원 `CAFE_STAFF`, 호텔리어 `HOTEL_STAFF`, 행인 `TOWN_PASSERBY`)는 다가오지 않는 동안 게임 시각의 일과와 욕구에 따라 자기 공간에서 지냅니다. 규칙과 숫자는 [NPC 생활·관계 설계](../../../../../docs/npc-life-design.md)를 따릅니다. 튜토리얼 행인·상점 직원·택시 기사는 생활 데이터가 없어 전처럼 제자리에 있습니다.
+생활 데이터가 있는 NPC(카페 직원 `CAFE_STAFF`, 호텔리어 `HOTEL_STAFF`, 행인 `TOWN_PASSERBY`, [거리 매장 직원](#거리-매장-직원) 9명)는 다가오지 않는 동안 게임 시각의 일과와 욕구에 따라 자기 공간에서 지냅니다. 규칙과 숫자는 [NPC 생활·관계 설계](../../../../../docs/npc-life-design.md)를 따릅니다. 튜토리얼 행인·상점 직원·택시 기사는 생활 데이터가 없어 전처럼 제자리에 있습니다.
 
 | 상황 | 동작 |
 | --- | --- |
@@ -87,10 +89,11 @@ Ben(`TOWN_PASSERBY`)은 `Prefabs/Npc/BenVisual.prefab`을 씁니다. 기존 도�
 | 휴식·자유(`BREAK`·`FREE`) | 배고픔·에너지·사교·재미 중 가장 급한 욕구를 채울 사물(머핀·커피 머신·의자·소파·벤치·분수 등)을 고릅니다. |
 | 급한 일이 없음 | 한곳에 서 있지 않고, 처음 놓인 자리에서 8m 안의 다른 사물(1.5m 넘게 떨어진 것)로 걸어가 2~5초 둘러본 뒤 또 옮겨 갑니다. 앉아 있었으면 일어납니다. |
 | 카운터 응대 | 카운터를 맡은 직원(자리 1.5m 안에 카페 `counter`·호텔 `reception_desk`가 있는 NPC)은 플레이어가 카운터에서 2m(`serveRadiusMeters`) 안에 오면 하던 일을 그만두고 카운터 뒤 자리로 돌아가 손님 쪽으로 돌아서고, 자리에 선 뒤에만 다가와 제안합니다. 다른 곳에서는 먼저 다가오지 않고 [말 걸기]만 받습니다. |
+| 건물 안에서만 지냄 | 구역을 켠 NPC(거리 매장 직원)는 자기 건물 1층 안의 사물·자리만 고릅니다. 마을의 벤치·분수처럼 건물 밖 사물은 고르지 않고, 할 일이 없으면 건물 안 사물 사이를 옮겨 다닙니다. 2층은 다른 가게라 고르지 않습니다. |
 | 퇴근(`OFF`) | 사라지지 않고 자기 공간에서 자유 시간처럼 쉽니다. 다시 근무가 시작되면 욕구가 시작값으로 돌아갑니다(하루 시뮬레이션과 같음). |
-| 사물 고르기 | 같은 사물이 여럿이면 걸어서 가장 가까운 것을 씁니다. 의자·벤치·소파는 빈 자리에 앉고, 그 밖의 사물은 옆에 서서 행동 시간(게임 분) 동안 씁니다. Humanoid 모델이 아니면 앉지 않고 자리 앞에 서서 쉽니다. |
+| 사물 고르기 | 같은 사물이 여럿이면 걸어서 가장 가까운 것을 씁니다. 의자·벤치·소파는 빈 자리에 앉고, 그 밖의 사물은 옆에 서서 행동 시간(게임 분) 동안 씁니다. Humanoid 모델이 아니면 앉지 않고 자리 앞에 서서 쉽니다. 앉아 있는 동안에는 리틀 멍 외형의 서 있는 자세 보정(`StandingPoseCorrections`)을 끄고, 일어서면 다시 켭니다. |
 | 갈 수 없음 | NavMesh 경로가 없거나 2.5초 동안 나아가지 못하면 그 사물은 20초 동안 고르지 않습니다. |
-| 동작 | 커피 만들기·손님 맞기는 손으로 다루기(`Interact`), 머핀·커피는 집어 들기(`PickUp_Table`), 의자·벤치·소파는 앉기(`Sitting_Idle_Loop`, 다리는 `SeatedLegs`로 앉는 면에 맞춤), 제안·대화 중에는 손짓하며 말하기(`Idle_Talking_Loop`)입니다. 서 있기·걷기·뛰기는 플레이어와 같은 리틀멍 이동 동작입니다. 동작은 [Quaternius Universal Animation Library](../../ThirdParty/CREDITS.md)(CC0)를 Humanoid로 리타겟팅했고, 먹기·마시기 전용 동작은 무료판에 없어 집어 들기로 대신합니다. |
+| 동작 | 커피 만들기·손님 맞기는 손으로 다루기(`Interact`), 머핀·커피는 집어 들기(`PickUp_Table`), 의자·벤치·소파는 앉기(`Sitting_Idle_Loop`, 다리는 `SeatedLegs`로 앉는 면에 맞춤), 제안·대화 중에는 손짓하며 말하기(`Idle_Talking_Loop`)입니다. `Passerby.talkGesture`를 끈 NPC(마을 행인 Ben)는 제안·대화 중에도 자기 대기 자세로 섭니다. 서 있기·걷기·뛰기는 플레이어와 같은 리틀멍 이동 동작입니다. 동작은 [Quaternius Universal Animation Library](../../ThirdParty/CREDITS.md)(CC0)를 Humanoid로 리타겟팅했고, 먹기·마시기 전용 동작은 무료판에 없어 집어 들기로 대신합니다. |
 | 다가와 말 걸기·대화 | 하던 일을 그만두고 앉아 있었으면 일어납니다. 대화가 끝나면 다시 고릅니다. |
 | 장면을 다시 불러옴 | 그 시각의 일과에서 욕구 시작값으로 다시 지냅니다. |
 
@@ -109,13 +112,46 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 택시가 달리는 차로 쪽 인도에 서 있고, 택시가 4~18m 앞에서 다가옴 | [택시 세우기]와 키 안내(E)를 보입니다. 길 건너편, 택시 뒤, 유턴 구간 너머에서는 보이지 않습니다. |
 | [택시 세우기] | 택시가 플레이어 옆 길가로 와서 섭니다. |
 | 선 택시 곁(3.5m 안) | [Joe에게 말 걸기]로 뒷좌석에 타서 대화합니다(`ConversationInitiator.User`). |
-| 목적지를 말함 | 카페·호텔·드럭스토어·집과 우체국·다이너·은행·빨래방·꽃집·이발소의 총 10곳으로 이동합니다. 도착 후 하차하고 기존 피드백 흐름을 이어갑니다. |
+| 목적지를 말함 | 카페·호텔·드럭스토어·집과 우체국·다이너·은행·빨래방·꽃집·이발소·경찰서의 총 11곳으로 이동합니다. 도착 후 하차하고 기존 피드백 흐름을 이어갑니다. |
 | 도착 전에 대화를 마침 | 길 바깥쪽에 내려준 뒤 택시가 다시 달립니다. |
 | 대화하지 않고 8m보다 멀어짐 | 기다리지 않고 다시 달립니다. 세우러 오는 중에는 세운 자리까지의 거리만큼 더 기다립니다. |
 
-다른 대화 중이거나 행인이 제안 중이면 택시 버튼을 보이지 않습니다. 승용차는 세울 수 없고, 택시와 마찬가지로 신호와 앞을 막은 사람에 맞춰 섭니다. 기사는 플레이어 캐릭터 모델에 앉아서 운전대를 잡은 자세를 준 것이며, 택시 기사 전용 모델은 아직 없습니다. 배치와 연결은 **Tools → A305 → World → Apply Town Street Life**가 합니다.
+다른 대화 중이거나 행인이 제안 중이면 택시 버튼을 보이지 않습니다. 승용차는 세울 수 없고, 택시와 마찬가지로 신호와 앞을 막은 사람에 맞춰 섭니다. 기사 Joe는 중년 남성 리틀 멍 외형(`Prefabs/Npc/Review/LittleMung_MiddleAge_Male.prefab`)이 운전석에 앉아 운전대를 잡은 자세입니다. 머리 꼭대기가 지붕 안감 아래(택시 기준 1.5m)에 오도록 배율을 줄여 앉힙니다. 배치와 연결은 **Tools → A305 → World → Apply Town Street Life**가, 이미 배치된 기사의 외형 교체는 **Tools → A305 → World → Replace Taxi Driver Model**(NPC 키·사물 단어·택시 대화 연결 유지)이, 운전 자세는 **Apply Taxi Cabin**이 맡습니다. 운전석에서는 서 있는 자세 보정과 함께 외형의 얼굴 제어 스크립트도 지우지만, 대화가 시작되면 공통 연결(`DialogueSpeaker`)이 기사 얼굴에 립싱크·눈 깜박임을 적용합니다. 대화 밖의 자동 깜박임은 하지 않습니다.
 
 [목적지와 구성·확장 방법](../../../../../docs/unity/taxi-ride.md)을 참고합니다.
+
+## 경찰서
+
+마을 남서쪽 끝 경찰서 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)이 서 있습니다. 카페 직원처럼 행인 프리팹을 쓰고 걷지 않습니다. 신고는 서버가 받아들인 발화에서 `PoliceReportRequest`가 고릅니다.
+
+| 대화에서 말한 내용 | 대화를 마친 뒤 순찰차 |
+| --- | --- |
+| 장소를 하나 말한 신고 (My wallet was stolen at the diner.) | 경광등을 켜고 그 장소 앞에 20초 서 있다가 돌아옵니다. |
+| 신고한 뒤에 장소를 하나 말함 (My bag was stolen. → It was the cafe.) | 마지막에 말한 장소로 출동합니다. |
+| 장소 없는 신고 (I lost my wallet.) 또는 장소를 여럿 말한 신고 | 경광등을 켜고 본길을 한 바퀴 순찰하고 돌아옵니다. |
+| 신고가 아닌 말 (Hello, officer.), 부정·가정 (Nothing was stolen.) | 출동하지 않습니다. 신고 전에 말한 장소는 기억하지 않습니다. |
+| 순찰차가 나가 있을 때 한 신고 | 출동하지 않고 "신고 접수 · 순찰차가 이미 출동해 있어요"를 보입니다. |
+
+신고는 대화 중에 접수만 하고, 대화를 마친 뒤 출발해 밖으로 나온 플레이어가 출동하는 모습을 보게 합니다. 카페는 배우는 사람이 자주 틀리는 caffe·caffee도 알아봅니다(택시 목적지와 같은 장소 이름). 배치와 연결은 **Tools → A305 → World → Apply Police Station**이 합니다([World 모듈](../World/README.md#경찰서와-순찰차)).
+
+## 거리 매장 직원
+
+마을 본길의 빈 매장 9곳 1층에 직원을 둡니다. 모두 행인 프리팹을 쓰고 걷는 속도 0이라 플레이어에게 걸어가지 않습니다. 플레이어가 2.5m 안에 오면 대화를 제안하고, 거절하거나 대화를 마친 뒤 20초 동안은 [말 걸기]로 대화합니다. 이름·인격·목소리·상황은 서버 데이터(`ai/npcs/<NPC 키>.json`, `ai/npcs/scenarios/`)입니다.
+
+| 건물 | NPC 키 | 이름 | 외형(색만 바꿈) |
+| --- | --- | --- | --- |
+| 우체국 `PostOffice` | `POST_OFFICE_STAFF` | Linda | 중년 여성, 자주색 옷·갈색 눈 |
+| 다이너 `MapleDiner` | `DINER_STAFF` | Rosa | 중년 여성, 빨간 옷·초록 눈 |
+| 은행 `TownBank` | `BANK_STAFF` | Henry | 비즈니스맨, 회색 머리·짙은 정장 |
+| 빨래방 `SudsLaundromat` | `LAUNDROMAT_STAFF` | Gus | 중년 남성, 황토·올리브색 옷 |
+| 꽃집 `BloomFlowers` | `FLOWER_SHOP_STAFF` | Lily | 할머니, 연보라 머리·초록 옷 |
+| 이발소 `MainStreetBarber` | `BARBER_STAFF` | Tony | 중년 남성, 흰 셔츠·짙은 회색 재킷 |
+| 빵집 `MapleBakery` | `BAKERY_STAFF` | Grace | 할머니, 흰 머리·빨간 옷 |
+| 오락실 `LittleArcade` | `ARCADE_STAFF` | Max | 흑인 청년, 적갈색 머리·초록 셔츠·보라 바지 |
+| 생활용품점 `HomeLiving` | `HOME_STORE_STAFF` | Nina | 중년 여성, 연두 옷 |
+
+- 외형은 서비스 NPC 외형(`Prefabs/Npc/Review/`)을 돌려 쓰고 옷·머리·눈동자 색만 바꿉니다. 중년 여성·중년 남성은 머리색이 피부와 같은 색 범위라 머리 대신 옷과 눈만 바꿉니다.
+- 2층 가게(서점·찻집)와 경찰서 Dan 외의 다른 장소에는 아직 직원이 없습니다.
 
 ## 행인 추가
 
@@ -131,19 +167,24 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 - 설정(`Data/Npc/`): 없을 때만 만들고, 있으면 값을 유지합니다.
 - 확인용 인사말(`Data/Npc/MockNpcLines.asset`): 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙입니다. 이미 있는 인사말은 바꾸지 않습니다.
 - 행인 프리팹 `Prefabs/Npc/Passerby.prefab`과 제안 화면 `Prefabs/Npc/PasserbyOffer.prefab`(제안 패널과 [말 걸기]): 컴포넌트와 연결만 맞추고 모델·디자인을 유지합니다. 없는 요소만 새로 만듭니다.
-- 마을(`TownScene`) 집 앞에 행인 Ben을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 예전처럼 집 앞 튜토리얼 행인(`TUTORIAL_PASSERBY`)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지웁니다. Ben에게는 평소 설정과 튜토리얼 설정을 함께 연결합니다.
+- 마을(`TownScene`) 집 앞에 행인 Ben을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 예전처럼 집 앞 튜토리얼 행인(`TUTORIAL_PASSERBY`)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지웁니다. Ben에게는 평소 설정과 튜토리얼 설정을 함께 연결하고, 외형을 아래처럼 연결합니다.
+- 서서 지내는 NPC의 외형: **Tools → A305 → Npc → Connect Character Visuals**(`Scripts/Editor/Npc/NpcVisualBuilder.cs`)가 NPC 키별 외형을 장면의 NPC 아래에 둡니다. `TownScene`의 Ben은 비즈니스맨 `Prefabs/Npc/Review/LittleMung_Business_Male.prefab`, `ShopScene`의 드럭스토어 직원 Alex(`SHOP_STAFF`)는 흑인 남성 `Prefabs/Npc/Review/LittleMung_BlackYoung_Male.prefab`입니다. 다른 행인·직원도 쓰는 공용 `Passerby.prefab`의 `Visual`은 바꾸지 않고 꺼 둡니다. 예전 외형(도형 `LittleMungV7NpcVisual`, Generic 뼈대 `BenVisual`)은 NPC 아래에서 지우고, 대기 자세의 발바닥을 바닥에 맞춘 뒤 `CharacterAnimationDriver`의 Animator, 캡슐 높이(외형의 키), 시선(`LookTarget`)을 눈 높이로 맞춥니다. 공용 손짓 동작은 이 체형에서 무릎을 굽히고 팔을 내민 자세가 되므로 Ben은 `Passerby.talkGesture`를 꺼, 말을 건네고 대화하는 동안 자기 Idle로 서게 합니다. Alex는 다른 직원과 같이 손짓합니다. 이미 연결한 외형은 다시 만들지 않습니다. **Npc → Build**(Ben), 드럭스토어 Builder와 **Mission → Adjust Shop Counter Sightline**(Alex)도 같은 연결을 실행합니다.
 
-**Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
+**Tools → A305 → Npc → Build Building Staff**(`Scripts/Editor/Npc/BuildingStaffBuilder.cs`)는 [거리 매장 직원](#거리-매장-직원)을 `TownScene`의 각 건물 1층에 둡니다. 정한 자리가 카운터·가구와 겹치면 1층 안의 가장 가까운 빈자리로 옮기고, 문 쪽을 보게 세웁니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 외형은 `NpcVisualBuilder`로 붙이고, 색을 바꾼 텍스처를 `Art/Characters/BuildingStaff/<NPC 키>/`에 없을 때만 만들고(몸 텍스처는 1024로 줄임, 색 바꾸기는 `NpcColorSwap`), 머티리얼 사본은 실행할 때마다 외형의 원래 머티리얼 설정(그림자 받기 등)에 맞춥니다. 확인용 인사말·설정(`Data/Npc/BuildingStaffSettings.asset`)도 연결합니다. 이어서 **Build Daily Life**를 실행해 생활을 붙이고, 직원마다 구역을 자기 건물 1층으로 정합니다. 생활 데이터에 직원이 없으면 내보내기(`npc_life_export.py`)를 먼저 하라고 알리고 멈춥니다.
+
+**Tools → A305 → Npc → Build Daily Life**(`Scripts/Editor/Npc/NpcLifeBuilder.cs`)는 카페·호텔·마을에서 생활 데이터가 있는 NPC에 `NpcRoutine`을 붙이고, NPC 몸 크기(반지름 0.3m, 키 1.8m, 턱 0.3m)로 바닥을 구워 `Data/Npc/WalkAreas/`에 저장한 뒤 `NpcWalkArea`로 연결합니다. 사람·차·트리거 콜라이더는 굽지 않습니다. 가구 배치를 바꾸면 다시 실행합니다. 같은 메뉴가 `NpcAnimationBuilder`로 동작 FBX를 Humanoid로 가져오고 NPC 전용 Animator(`Art/Characters/Npc/NpcLife.controller`)를 만들어 `NpcRoutine`에 연결합니다. 장면에 저장된 모델은 플레이어와 같은 이동 컨트롤러 그대로 두고, 생활이 켜질 때 Humanoid 모델에 바꿔 끼웁니다(장면 모델의 키·발 높이 검사가 그대로 유지됩니다). 모델이 자기 Idle처럼 캐릭터 전용 클립을 덮어쓴 컨트롤러(`AnimatorOverrideController`)를 쓰면 `NpcLifeAnimator`가 그 클립을 생활 컨트롤러에 이어받습니다. 컨트롤러는 없을 때만 만들므로 구성을 바꾸려면 지우고 다시 실행합니다.
 
 ## 테스트
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 감지·다가감·제안, 바쁠 때 끼어들지 않기, 기다리게 붙잡힌 플레이어에게는 멀리서도 다가가기, 거절·무시·대화 뒤 쉬기와 다시 다가오기, 튜토리얼 행인 거절 불가, 공간 이동 뒤 쉬는 시간 이어가기, 먼저 말을 건 날짜를 NPC·날짜별로 기억하고 다시 읽어도(게임을 다시 켜도) 남기, 플레이어가 먼저 말 걸기(쉬는·기다리는 NPC 가까이에서만, 다가오거나 제안·대화 중에는 안 됨, 대화 뒤 다시 쉬기), 제안 머리말과 [말 걸기] 문구의 NPC 이름·이름 없음, 게스트 남은 대화 수와 막힌 이유 문구. 생활: 일과(자정 넘김), NPC 배수만큼 욕구 감소, 가장 급한 욕구의 행동 고르기, 근무 중에는 일만, 다른 역할·장소의 행동과 장면에 없는 사물은 고르지 않기, 덜 급하면 쉬기, 행동 시간 뒤 채우기·그만두면 안 채우기, 퇴근 중 자유 시간처럼 지내고 근무 시작에 시작값, 시각이 거꾸로 가면 기다리기, 내보낸 생활 데이터 읽기 |
-| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 택시가 본길을 달리는지, 승용차 앞을 막으면 섰다가 비키면 다시 가는지, 인도에서 세운 택시가 옆에 서서 기사와 대화한 뒤 다시 달리는지. 집에서 나오면 튜토리얼 행인이 다가와 거절 없이 제안하는지, 수락하면 대화 시점·이동 잠금으로 들어가고 [대화 종료]로 돌아오는지(튜토리얼을 마친 평소 행인), 끝나면 플레이어와 카메라가 행인 쪽을 보는지, 일반 행인 거절·무시, 쉬는 행인 앞에서 [말 걸기]가 보이고 누르면 대화가 시작되는지, 게스트 남은 대화 수가 제안·[말 걸기]에 보이는지, 다 쓰면 다가오지 않고 막힌 [말 걸기]가 대화를 시작하지 않는지. 튜토리얼에서 길을 물은 것도 그날 말을 건 것으로 기록되는지, 그날 이미 말을 건 Ben이 다가오지 않고 [말 걸기]만 받다가 마지막 기록이 어제가 되면 다시 다가오는지. 생활: 카페 직원이 쉬는 시간에 머핀을 먹으러 가고 근무 중에는 커피 머신에서 음료를 만든 뒤 서 있지 않고 다른 사물로 옮겨 다니는지, 카운터에서 3m 떨어진 플레이어에게는 하던 일을 계속하고 2m 안에 오면 카운터 뒤로 돌아가 제안하는지, 제안하기 전에도 카운터 끝의 손님 쪽으로 돌아서는지, 호텔리어가 데스크를 돌아 로비 소파에 앉고 그 자리를 차지하는지, 벤치에서 쉬던 행인이 플레이어가 오면 그만두고 다가오는지, 일할 때·머핀을 먹을 때·소파에 앉을 때·제안할 때 모델이 그 동작을 재생하고 걸을 때는 걷기 동작으로 돌아오는지. 동작 고르기 규칙은 `A305.Npc.Tests`의 `NpcAnimationTests` |
+| `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 감지·다가감·제안, 바쁠 때 끼어들지 않기, 기다리게 붙잡힌 플레이어에게는 멀리서도 다가가기, 거절·무시·대화 뒤 쉬기와 다시 다가오기, 튜토리얼 행인 거절 불가, 공간 이동 뒤 쉬는 시간 이어가기, 먼저 말을 건 날짜를 NPC·날짜별로 기억하고 다시 읽어도(게임을 다시 켜도) 남기, 플레이어가 먼저 말 걸기(쉬는·기다리는 NPC 가까이에서만, 다가오거나 제안·대화 중에는 안 됨, 대화 뒤 다시 쉬기), 제안 머리말과 [말 걸기] 문구의 NPC 이름·이름 없음, 게스트 남은 대화 수와 막힌 이유 문구. 생활: 일과(자정 넘김), NPC 배수만큼 욕구 감소, 가장 급한 욕구의 행동 고르기, 근무 중에는 일만, 다른 역할·장소의 행동과 장면에 없는 사물은 고르지 않기, 덜 급하면 쉬기, 행동 시간 뒤 채우기·그만두면 안 채우기, 퇴근 중 자유 시간처럼 지내고 근무 시작에 시작값, 시각이 거꾸로 가면 기다리기, 내보낸 생활 데이터 읽기, 생활 컨트롤러가 캐릭터 전용 Idle을 이어받기(`NpcLifeAnimatorTests`), 구역을 켠 NPC는 구역 안의 위치만 고르기(`NpcStayAreaTests`) |
+| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 경찰관에게 다이너에서의 도난을 신고하면 대화 중에는 접수만 하고 대화를 마치면 순찰차가 출동해 다이너 앞에 섰다가 주차 칸으로 돌아오는지, 장소 없는 신고에 본길 북쪽 끝까지 순찰하고 돌아오는지, 잡담에는 출동하지 않는지. 택시가 본길을 달리는지, 승용차 앞을 막으면 섰다가 비키면 다시 가는지, 인도에서 세운 택시가 옆에 서서 기사와 대화한 뒤 다시 달리는지. 집에서 나오면 튜토리얼 행인이 다가와 거절 없이 제안하는지, 수락하면 대화 시점·이동 잠금으로 들어가고 [대화 종료]로 돌아오는지(튜토리얼을 마친 평소 행인), 끝나면 플레이어와 카메라가 행인 쪽을 보는지, 일반 행인 거절·무시, 쉬는 행인 앞에서 [말 걸기]가 보이고 누르면 대화가 시작되는지, 게스트 남은 대화 수가 제안·[말 걸기]에 보이는지, 다 쓰면 다가오지 않고 막힌 [말 걸기]가 대화를 시작하지 않는지. 튜토리얼에서 길을 물은 것도 그날 말을 건 것으로 기록되는지, 그날 이미 말을 건 Ben이 다가오지 않고 [말 걸기]만 받다가 마지막 기록이 어제가 되면 다시 다가오는지, Ben이 다가올 때 다리가 움직이고 제안할 때 멈추는지. 생활: 카페 직원이 쉬는 시간에 머핀을 먹으러 가고 근무 중에는 커피 머신에서 음료를 만든 뒤 서 있지 않고 다른 사물로 옮겨 다니는지, 카운터에서 3m 떨어진 플레이어에게는 하던 일을 계속하고 2m 안에 오면 카운터 뒤로 돌아가 제안하는지, 제안하기 전에도 카운터 끝의 손님 쪽으로 돌아서는지, 호텔리어가 데스크를 돌아 로비 소파에 앉고 그 자리를 차지하는지, 벤치에서 쉬던 행인이 플레이어가 오면 그만두고 다가오는지, 일할 때·머핀을 먹을 때·소파에 앉을 때·제안할 때 모델이 그 동작을 재생하고 걸을 때는 걷기 동작으로 돌아오는지. 동작 고르기 규칙은 `A305.Npc.Tests`의 `NpcAnimationTests` |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 
 ## 공통 표정·립싱크 연결
 
 `NpcIdentity`가 있는 NPC는 카페 전용 Builder 없이 `DialogueSpeaker`를 통해 자기 얼굴을 자동 연결합니다. 공통 얼굴 채널이 있는 모델에만 립싱크·미소·눈 깜박임을 적용하며, 부족한 모델은 누락 목록을 남기고 음성을 유지합니다. 이동·대화 제안·카메라 코드는 바꾸지 않습니다. 모델 준비 규격과 검사 메뉴는 [NPC 얼굴 재사용 기준](../../../../../docs/unity/cafe-female-face.md#다른-npc의-자동-연결)을 참고합니다.
+
+마을 행인 Ben(비즈니스맨), 드럭스토어 직원 Alex(흑인 청년 남성), 택시 기사 Joe(중년 남성)의 외형은 입 모양 9개, 좌우 미소, 좌우 눈 감기를 모두 갖춰 대화 중 같은 방식으로 립싱크·미소·눈 깜박임을 적용합니다. 서 있는 Ben·Alex의 대기 중 깜박임은 외형의 `CharacterIdleBlink`가 맡습니다([행인 눈 감기](../../../../ArtSources/Characters/ServiceNpcs/README.md#나머지-행인의-base-눈-이식)).

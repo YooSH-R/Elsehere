@@ -35,6 +35,7 @@ GitLab의 `a305-dev-release` 자원 그룹은 `process_mode=newest_ready_first`�
 
 - 환경 파일: `/home/ubuntu/apps/a305/dev/deploy.env`.
 - 모니터링 추가 Compose: `/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml`.
+- 개발 워커 네트워크 추가 Compose: `/home/ubuntu/apps/a305/dev/config/compose.dev-worker-network.yaml`. 고정 IP·자동 할당 범위·브리지와 최초 전환은 [GPU 워커 네트워크 운영](gpu-worker-network.md)을 따릅니다. `fixed_worker_network` 검사를 활성화하고 재기동·복구에서도 같은 추가 설정을 사용합니다.
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다.
 - 웹 로그 설정의 읽기 전용 마운트, 백엔드 내부 관리 주소와 비공개 포트를 유지합니다.
 - NPC 음성은 백엔드의 쓰기 가능한 `/app/data/npc-audio`에 저장하고 환경별 `npc-audio-data` 볼륨으로 유지합니다. 백엔드의 AI 내부 주소는 `AI_WORKER_BASE_URL=http://ai-worker:8020`으로 연결합니다.
@@ -64,6 +65,7 @@ git -C "$HOME/apps/a305/dev/source" worktree add --detach \
 cd "$HOME/apps/a305/dev/deploy-tools"
 sudo install -d -m 755 /usr/local/lib/a305-dev-deploy
 sudo install -m 644 infra/scripts/deployment_server.py /usr/local/lib/a305-dev-deploy/deployment_server.py
+sudo install -m 644 infra/scripts/dev_worker_network.py /usr/local/lib/a305-dev-deploy/dev_worker_network.py
 cp infra/deploy/dev-server.example.json "$HOME/apps/a305/dev/server-config.json"
 nano "$HOME/apps/a305/dev/server-config.json"
 ```

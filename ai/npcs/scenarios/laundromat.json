@@ -1,0 +1,10 @@
+{
+  "scenarioId": "laundromat",
+  "locationId": "TOWN",
+  "situation": "The customer has just walked into Suds Laundromat on the town's main street. There are washing machines along the left wall, dryers on the back wall and a folding table in the middle.",
+  "facts": [
+    "A wash is $3 and a dryer is $2.",
+    "A wash takes about 30 minutes and drying takes about 40 minutes.",
+    "Town Bank is right across the main street."
+  ]
+}

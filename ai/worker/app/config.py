@@ -120,7 +120,9 @@ class Settings:
     judge_budget_s: float = 5.0  # 판정 요청의 의도·무례·번역 각각의 상한 (재시도·대체 모델 포함). 웹 프로토타입 실측 1.2~2.9초
     guard_budget_s: float = 5.0  # /v1/guard 무례 판정 하나의 상한 (로컬 판정기 + LLM 재시도·대체 모델 포함)
     guard_gpu_model: str = ""  # GPU 서버 판정 모델(gpu_llm 공급자). 있으면 먼저 부르고 실패하면 구성의 guard 모델. 비면 끔
-    guard_gpu_timeout_s: float = 2.0  # GPU 서버 판정 한 번의 상한 (실측 p90 0.3초). 넘으면 바로 구성의 guard 모델로
+    # GPU 서버 판정 한 번의 상한. 평소 0.3초(10개 동시 약 1초)지만 vLLM이 처음 보는 동시 요청 수에서는 한 번 2.4~2.7초가 걸린다.
+    # 넘으면 바로 구성의 guard 모델로 (GUARD_BUDGET_S 안에서 그 판정까지 끝나야 한다)
+    guard_gpu_timeout_s: float = 3.0
     guard_breaker_failures: int = 3  # GPU 서버 판정이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
     guard_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
     reply_first_budget_s: float = 5.0  # NPC 대답 첫 글자까지의 상한 (재시도·대체 모델 포함)
@@ -136,7 +138,10 @@ class Settings:
     tts_chunk_budget_s: float = 2.5  # NPC 대답 한 조각의 합성이 이보다 늦으면 tts: false (턴 전체 음성에는 기다려 넣음)
     tts_gpu_base_url: str = ""  # GPU 서버 합성 서버(ai/gpu_tts) 주소. 있으면 먼저 부르고 실패하면 CPU Kokoro. 비면 끔
     tts_gpu_token: str = ""
-    tts_gpu_timeout_s: float = 2.0  # GPU 서버 합성 한 번의 상한 (실측 대사 하나 0.4~0.6초, 최대 1.2초). 넘으면 바로 CPU로
+    # GPU 서버 합성 응답을 기다리는 상한. 대사 하나 0.4~0.6초지만 여러 사람이 동시에 말하면 줄이 서고(20명분 동시 60조각 최대 약 4~6초),
+    # CPU 합성(dev 조각 하나 수 초~수십 초)으로 넘기는 편이 훨씬 늦어서 넉넉히 기다린다. 넘으면 CPU로
+    tts_gpu_timeout_s: float = 10.0
+    tts_gpu_connect_timeout_s: float = 1.0  # GPU 서버 연결 상한. 서버가 꺼졌거나 터널이 끊겼으면 바로 CPU로
     tts_breaker_failures: int = 3  # GPU 서버 합성이 이만큼 연속 실패하면 잠시 건너뜀 (0이면 끔)
     tts_breaker_skip_s: float = 60.0  # 건너뛰는 시간. 지나면 다시 시도
     audio_max_mb: float = 200.0  # 음성 조각·턴 전체 음성 보관소의 전체 크기 상한 (넘으면 오래된 것부터 버림)
@@ -224,6 +229,7 @@ class Settings:
             tts_gpu_base_url=tts_gpu_base_url,
             tts_gpu_token=e.get("TTS_GPU_TOKEN", ""),
             tts_gpu_timeout_s=float(e.get("TTS_GPU_TIMEOUT_S", cls.tts_gpu_timeout_s)),
+            tts_gpu_connect_timeout_s=float(e.get("TTS_GPU_CONNECT_TIMEOUT_S", cls.tts_gpu_connect_timeout_s)),
             tts_breaker_failures=int(e.get("TTS_BREAKER_FAILURES", cls.tts_breaker_failures)),
             tts_breaker_skip_s=float(e.get("TTS_BREAKER_SKIP_S", cls.tts_breaker_skip_s)),
             guard_local_model=guard_model,

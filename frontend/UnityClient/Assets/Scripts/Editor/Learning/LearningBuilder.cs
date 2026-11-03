@@ -350,6 +350,8 @@ namespace A305.EditorTools.Learning
             Button home = UiBuilderTools.FindOrCreateButton(menu, "HomeButton", "홈", bold, 200f);
             BuilderTools.SetReference(view, "homeButton", home);
             BuilderTools.SetReference(view, "messageText", message);
+            // 대화 중에 숨기는 휴대폰 버튼 줄
+            BuilderTools.SetReference(view, "phoneButtonBar", panel.Find("MenuBar").gameObject);
             SetUpHistory(root, view, menu, bold, regular);
             SetUpControlsGuide(root, view, menu, bold, regular);
             BuilderTools.RequireReferences(view);

@@ -92,7 +92,7 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("마을 상세는 행인 Ben과 택시 기사 Joe를 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
+  @DisplayName("마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan과 거리 매장 직원 9명을 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
   void getScene_town_returnsNpcs() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -107,7 +107,17 @@ class SceneServiceTest {
                 "행인",
                 true,
                 "Hi there! Nice weather today, isn't it?"),
-            new NpcResponse("TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null));
+            new NpcResponse("TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null),
+            new NpcResponse("POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null),
+            new NpcResponse("POST_OFFICE_STAFF", "Linda", NpcType.STAFF, "우체국 직원", false, null),
+            new NpcResponse("DINER_STAFF", "Rosa", NpcType.STAFF, "식당 종업원", false, null),
+            new NpcResponse("BANK_STAFF", "Henry", NpcType.STAFF, "은행원", false, null),
+            new NpcResponse("LAUNDROMAT_STAFF", "Gus", NpcType.STAFF, "빨래방 주인", false, null),
+            new NpcResponse("FLOWER_SHOP_STAFF", "Lily", NpcType.STAFF, "꽃집 주인", false, null),
+            new NpcResponse("BARBER_STAFF", "Tony", NpcType.STAFF, "이발사", false, null),
+            new NpcResponse("BAKERY_STAFF", "Grace", NpcType.STAFF, "제빵사", false, null),
+            new NpcResponse("ARCADE_STAFF", "Max", NpcType.STAFF, "오락실 직원", false, null),
+            new NpcResponse("HOME_STORE_STAFF", "Nina", NpcType.STAFF, "매장 직원", false, null));
   }
 
   @Test

@@ -75,14 +75,14 @@ def guard_messages(npc: Npc, history: list[Line], text: str) -> list[dict]:
 
 
 # 줄 사건: 의도 판정이 함께 고르고, 워커가 그 턴의 호감과 대화 중 기분에 쓴다(app.npc_relationship). 무례는 /v1/guard만 판정한다.
-# 정의는 이정훈 님 사건 테스트셋 가이드 v1.0. 효과(인상·기분)는 공통 규칙 world-rules.json의 conversationEvents
+# 정의는 이정훈 님 사건 테스트셋 가이드 v1.1(ai/tools/event_eval/README.md). 효과(인상·기분)는 공통 규칙 world-rules.json의 conversationEvents
 LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
-EVENTS_GUIDE = """Also list in "events" what the learner does toward the partner in this line, from the list below. Usually none: [].
-- GREETING: greets the partner.
+EVENTS_GUIDE = """Also list in "events" what the learner does toward the partner in this line, from the list below. Use [] when the line does none of them.
+- GREETING: greets the partner, formal or casual. A casual opener asking how things are is a GREETING, not a PERSONAL_QUESTION.
 - SMALL_TALK: chats about something besides the business, like the weather.
 - PERSONAL_QUESTION: asks about the partner's own life or feelings ("Do you like working here?"). Then it is not SMALL_TALK.
 - APOLOGY: apologizes for something they did ("Sorry I'm late"). Not "sorry?" asking to repeat, "excuse me", "sorry to hear that", or apologizing for their English.
-- COMPLIMENT: praises the partner, their work or their place ("You make the best latte", "I love this cafe", "커피 진짜 맛있어요"). A plain "thanks" or "thank you so much" is not a compliment.
+- COMPLIMENT: praises the partner, their work, their place or their things, or says they like them ("You make the best latte", "I love this cafe", "커피 진짜 맛있어요"). It still counts when it answers the partner's question about the drink, food, room or service. A plain "thanks" or "thank you so much", a short "great" or "good", "I'd like ..." or a drink they like while ordering is not a compliment.
 - TASK_DONE: says in words that their business is finished ("That's all", "No, thanks").
 - LEAVE: says goodbye.
 Korean words count by their meaning. English mistakes, Korean words and short answers are never a problem. Do not judge rudeness here."""

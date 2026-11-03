@@ -174,7 +174,6 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator TownPasserby_RestingAtABench_StopsWhenThePlayerTalksToHim()
         {
             // 자유 시간, 욕구가 모두 시작값이면 에너지를 채우는 벤치가 분수 구경보다 급하다(20 > 15).
-            // 마을 행인 모델은 뼈대가 없어 앉지 못하고 벤치 앞에 서서 쉰다.
             yield return LoadAt("TownScene", 10 * 60, paused: true);
             NpcRoutine ben = Routine("TOWN_PASSERBY");
             // Ben은 마을 시작 위치 가까운 집 앞에 있어 곧장 다가오므로, 플레이어를 벤치가 없는 동서 길 서쪽으로 멀리 보내 무시한 것으로 두고 쉬게 한다.

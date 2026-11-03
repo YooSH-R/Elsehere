@@ -41,6 +41,18 @@ namespace A305.Mission.PlayModeTests
             Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.False);
         }
 
+        // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
+        [UnityTest]
+        public IEnumerator MapRequestFromThePhone_OpensTheLargeTownMap()
+        {
+            yield return ShowInTown();
+
+            A305.World.JourneyStatus.Shared.RequestMap();
+
+            Assert.That(Field<GameObject>("mapOverlay").activeInHierarchy, Is.True);
+            Assert.That(Field<GameObject>("journal").activeSelf, Is.False);
+        }
+
         [UnityTest]
         public IEnumerator LargeMap_ClosesWithTheCloseButtonOrAClickOutside()
         {
@@ -86,7 +98,10 @@ namespace A305.Mission.PlayModeTests
             player.transform.position = new Vector3(5f, 0f, 5f);
             yield return null;
 
-            Assert.That(map, Is.Not.SameAs(Field<TownMapView>("miniMap")));
+            Assert.That(
+                map.gameObject,
+                Is.Not.SameAs(Field<TownMiniMapView>("miniMap").gameObject)
+            );
             Assert.That(marker.anchorMin, Is.Not.EqualTo(before));
             Assert.That(Field<TMP_Text>("largeMapLegend").text, Does.Contain("카페"));
         }

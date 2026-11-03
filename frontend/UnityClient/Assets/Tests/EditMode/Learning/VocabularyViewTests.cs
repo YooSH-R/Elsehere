@@ -199,6 +199,45 @@ namespace A305.Learning.Tests
             Assert.That(saved.UserVocabId, Is.EqualTo(2));
         }
 
+        // 대화에서 저장한 단어는 저장한 문장이 어느 NPC의 말인지 함께 보인다(API 명세 4.8 화면 18).
+        [Test]
+        public async Task WordSavedFromNpcLine_ShowsTheNpcAboveTheSentence()
+        {
+            await Open(new SampleApi());
+
+            screen
+                .transform.Find("Panel/Content/Entries/Entry1")
+                .GetComponent<Button>()
+                .onClick.Invoke();
+
+            Assert.That(
+                screen
+                    .transform.Find("Panel/Content/Details/Context/Title")
+                    .GetComponent<TMP_Text>()
+                    .text,
+                Is.EqualTo("저장한 문장 · Mia의 말")
+            );
+        }
+
+        // 화면 18 상세는 저장한 문장과 그 문장의 뜻을 함께 보인다(API 명세 4.8).
+        [Test]
+        public async Task SavedSentence_ShowsItsMeaningBelow()
+        {
+            await Open(new SampleApi());
+
+            screen
+                .transform.Find("Panel/Content/Entries/Entry1")
+                .GetComponent<Button>()
+                .onClick.Invoke();
+
+            Transform meaning = screen.transform.Find(
+                "Panel/Content/Details/Context/SentenceMeaning"
+            );
+            Assert.That(meaning, Is.Not.Null, "저장한 문장 아래에 문장 뜻 칸이 있어야 합니다.");
+            Assert.That(meaning.gameObject.activeSelf, Is.True);
+            Assert.That(meaning.GetComponent<TMP_Text>().text, Is.EqualTo("우산이 필요해요."));
+        }
+
         private sealed class SampleApi : IVocabularyApi
         {
             public int Count { get; set; } = 2;
@@ -227,7 +266,12 @@ namespace A305.Learning.Tests
                         UserVocabId = 2,
                         Vocab = new VocabWord { Text = "umbrella", MeaningKo = "우산" },
                         Memo = "비 오는 날",
-                        Context = new VocabContext { Text = "I need an umbrella." },
+                        Context = new VocabContext
+                        {
+                            Text = "I need an umbrella.",
+                            MeaningKo = "우산이 필요해요.",
+                        },
+                        Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Mia" },
                     },
                 };
                 while (items.Count < Count)
@@ -246,6 +290,9 @@ namespace A305.Learning.Tests
                     items.RemoveRange(Count, items.Count - Count);
                 return Task.FromResult(new VocabPage { Items = items });
             }
+
+            public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text) =>
+                Task.FromResult(new VocabItem());
 
             public Task<VocabItem> UpdateMemoAsync(long id, string memo) =>
                 Task.FromResult(new VocabItem { Memo = memo });

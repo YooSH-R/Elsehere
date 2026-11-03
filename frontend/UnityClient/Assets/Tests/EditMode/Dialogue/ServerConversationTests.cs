@@ -1174,6 +1174,54 @@ namespace A305.Dialogue.Tests
             Assert.That(api.MeaningRequestedFor, Is.EqualTo(new[] { OpeningTurnId }));
         }
 
+        // 대사 안의 풀이 단어를 눌러 저장하려면 단어마다 그 대사의 턴 ID가 있어야 한다(VOCAB-02 NPC_LINE).
+        [Test]
+        public async Task RequestMeaning_PutsGlossaryWordsOfThatTurnOnTheLine()
+        {
+            await conversation.StartAsync();
+            api.Meaning = new MeaningData
+            {
+                TurnId = OpeningTurnId,
+                MeaningKo = "안녕하세요! 무엇을 드릴까요?",
+                Glossary = new List<GlossaryData>
+                {
+                    new GlossaryData { Text = "get", MeaningKo = "주다" },
+                },
+            };
+
+            await conversation.RequestMeaningAsync();
+
+            IReadOnlyList<GlossaryWord> words = conversation.LastNpcLine.Glossary;
+            Assert.That(words, Has.Count.EqualTo(1));
+            Assert.That(words[0].TurnId, Is.EqualTo(OpeningTurnId));
+            Assert.That(words[0].Text, Is.EqualTo("get"));
+            Assert.That(words[0].MeaningKo, Is.EqualTo("주다"));
+        }
+
+        [Test]
+        public async Task NextNpcLine_KeepsGlossaryWordsOnTheEarlierLine()
+        {
+            await conversation.StartAsync();
+            api.Meaning = new MeaningData
+            {
+                TurnId = OpeningTurnId,
+                MeaningKo = "안녕하세요! 무엇을 드릴까요?",
+                Glossary = new List<GlossaryData>
+                {
+                    new GlossaryData { Text = "get", MeaningKo = "주다" },
+                },
+            };
+            await conversation.RequestMeaningAsync();
+            DialogueLine opening = conversation.LastNpcLine;
+            api.TurnResponse = Reply(Order, "Sure! Hot or iced?", "ACTIVE");
+
+            await conversation.SendAsync(Order);
+
+            Assert.That(conversation.Lines[0], Is.SameAs(opening));
+            Assert.That(conversation.Lines[0].Glossary[0].Text, Is.EqualTo("get"));
+            Assert.That(conversation.LastNpcLine.Glossary, Is.Null);
+        }
+
         [Test]
         public async Task RequestMeaning_AlreadyShown_DoesNotRequestAgain()
         {

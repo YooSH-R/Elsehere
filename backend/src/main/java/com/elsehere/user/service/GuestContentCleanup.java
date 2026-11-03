@@ -1,5 +1,6 @@
 package com.elsehere.user.service;
 
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.user.service.UserContentEraser.ErasedFiles;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -63,7 +64,7 @@ public class GuestContentCleanup {
   }
 
   /** 마지막 활동 뒤 보관 기간이 지난 게스트의 내용을 지운다. 게스트마다 따로 지워, 한 명이 실패해도 다음 정리에서 다시 고른다. */
-  @Scheduled(cron = "${elsehere.guest.cleanup-cron}", zone = "Asia/Seoul")
+  @Scheduled(cron = "${elsehere.guest.cleanup-cron}", zone = ClockConfig.SERVICE_ZONE_ID)
   public void cleanUp() {
     Timestamp cutoff = Timestamp.from(clock.instant().minus(retention));
     List<Long> guests = jdbcTemplate.queryForList(EXPIRED_GUESTS, Long.class, cutoff);
@@ -73,7 +74,7 @@ public class GuestContentCleanup {
       userContentEraser.deleteFiles(files);
     }
     if (!guests.isEmpty()) {
-      log.info("게스트 내용을 정리했습니다 guests={}", guests.size());
+      log.info("guest_content_cleaned guests={}", guests.size());
     }
   }
 }

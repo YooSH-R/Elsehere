@@ -1,5 +1,6 @@
 package com.elsehere.dialogue.service;
 
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Speaker;
 import com.elsehere.conversation.entity.Turn;
@@ -26,7 +27,7 @@ import tools.jackson.databind.json.JsonMapper;
 @RequiredArgsConstructor
 class ConversationResponses {
 
-  private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
+  private static final ZoneId ZONE = ClockConfig.SERVICE_ZONE;
   private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {};
 
   private final TurnRepository turnRepository;

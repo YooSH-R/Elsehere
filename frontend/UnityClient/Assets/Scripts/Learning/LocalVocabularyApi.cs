@@ -39,6 +39,16 @@ namespace A305.Learning
             return Task.FromResult(page);
         }
 
+        // 대사 단어 풀이(CONV-04)는 서버 대화에서만 받으므로, 서버 단어장을 읽지 못한 동안에는 저장하지 못했다고 알린다.
+        public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text)
+        {
+            throw new ApiException(
+                "VOCAB_UNAVAILABLE",
+                503,
+                "확인용 단어장에는 대사 단어를 저장하지 않습니다."
+            );
+        }
+
         public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)
         {
             ObjectWordDetails word = Find(userVocabId);

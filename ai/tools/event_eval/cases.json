@@ -1,5 +1,5 @@
 {
-  "guide": "1.0",
+  "guide": "1.1",
   "cases": [
     {"id": "clear-greet-weather", "group": "clear", "npc": "TOWN_PASSERBY", "state": "free_talk",
      "last_npc": "Hi there! Nice weather today, isn't it?", "text": "Hello! Yes, it's really nice.", "events": ["GREETING", "SMALL_TALK"]},

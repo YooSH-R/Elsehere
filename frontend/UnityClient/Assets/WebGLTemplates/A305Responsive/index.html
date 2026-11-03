@@ -8,6 +8,16 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
+    <section id="analytics-consent" class="analytics-consent" aria-labelledby="analytics-consent-title" hidden>
+      <h2 id="analytics-consent-title">서비스 이용 통계 수집</h2>
+      <p>서비스 개선을 위해 방문 화면, 게임 로딩 결과, 기기·브라우저, 대략적인 위치와 유입 경로를 Google 애널리틱스로 수집합니다. 동의하지 않아도 서비스를 이용할 수 있습니다.</p>
+      <p><a href="/privacy/2026-11" target="_blank" rel="noopener noreferrer">개인정보 처리방침 보기</a></p>
+      <div class="analytics-consent-actions">
+        <button id="analytics-reject" type="button">동의하지 않음</button>
+        <button id="analytics-accept" type="button">동의</button>
+      </div>
+    </section>
+    <button id="analytics-settings" class="analytics-settings" type="button" hidden>통계 수집 설정</button>
     <main id="unity-viewport">
       <div id="unity-frame">
         <canvas id="unity-canvas" width="{{{ WIDTH }}}" height="{{{ HEIGHT }}}" tabindex="-1" aria-label="Elsehere"></canvas>
@@ -25,6 +35,134 @@
         <div id="unity-warning" role="alert" hidden></div>
       </div>
     </main>
+    <script id="analytics-script">
+      (() => {
+        const measurementId = "G-209TJ3SH81";
+        const productionHosts = ["elsehere.kr", "www.elsehere.kr"];
+        if (!measurementId || !productionHosts.includes(window.location.hostname)) {
+          return;
+        }
+
+        const consentKey = "elsehere.analytics.consent";
+        const consentPanel = document.getElementById("analytics-consent");
+        const settingsButton = document.getElementById("analytics-settings");
+        let consent = null;
+        let analyticsStarted = false;
+        let pendingLoad = null;
+        try {
+          consent = window.localStorage.getItem(consentKey);
+        } catch (error) {
+          // If browser storage is unavailable, ask again on the next visit.
+        }
+
+        function startAnalytics() {
+          window["ga-disable-" + measurementId] = false;
+          if (analyticsStarted) {
+            return;
+          }
+          analyticsStarted = true;
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () {
+            window.dataLayer.push(arguments);
+          };
+          let pageReferrer = "";
+          try {
+            const referrer = new URL(document.referrer);
+            if (["http:", "https:"].includes(referrer.protocol)) {
+              pageReferrer = referrer.origin + "/";
+            }
+          } catch (error) {
+            // Direct visits have no referrer; omit malformed referrers too.
+          }
+          window.gtag("js", new Date());
+          window.gtag("config", measurementId, {
+            allow_google_signals: false,
+            allow_ad_personalization_signals: false,
+            page_location: window.location.origin + "/",
+            page_referrer: pageReferrer,
+          });
+          const script = document.createElement("script");
+          script.async = true;
+          script.src =
+            "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(measurementId);
+          document.head.appendChild(script);
+        }
+
+        function saveConsent(value) {
+          try {
+            window.localStorage.setItem(consentKey, value);
+            return true;
+          } catch (error) {
+            try {
+              window.localStorage.removeItem(consentKey);
+              return true;
+            } catch (storageError) {
+              // A temporary choice still applies to the current page.
+              return false;
+            }
+          }
+        }
+
+        function clearAnalyticsCookies() {
+          const cookieNames = ["_ga", "_ga_" + measurementId.substring(2)];
+          for (const name of cookieNames) {
+            const expired =
+              name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax; Secure";
+            document.cookie = expired;
+            document.cookie = expired + "; domain=.elsehere.kr";
+          }
+        }
+
+        window.reportUnityLoad = (status, detail) => {
+          let event;
+          if (status === "loaded" && Number.isFinite(detail) && detail >= 0) {
+            event = { name: "webgl_loaded", parameters: { duration_seconds: detail } };
+          } else if (status === "failed" && ["loader", "initialization"].includes(detail)) {
+            event = { name: "webgl_load_failed", parameters: { failure_stage: detail } };
+          } else {
+            return;
+          }
+          if (consent === "granted" && analyticsStarted) {
+            window.gtag("event", event.name, event.parameters);
+          } else if (consent !== "denied") {
+            pendingLoad = event;
+          }
+        };
+
+        settingsButton.hidden = false;
+        consentPanel.hidden = consent === "granted" || consent === "denied";
+        document.getElementById("analytics-accept").addEventListener("click", () => {
+          saveConsent("granted");
+          consent = "granted";
+          consentPanel.hidden = true;
+          startAnalytics();
+          if (pendingLoad) {
+            window.gtag("event", pendingLoad.name, pendingLoad.parameters);
+            pendingLoad = null;
+          }
+        });
+        document.getElementById("analytics-reject").addEventListener("click", () => {
+          window["ga-disable-" + measurementId] = true;
+          if (window.dataLayer) {
+            window.dataLayer.length = 0;
+          }
+          const saved = saveConsent("denied");
+          consent = "denied";
+          pendingLoad = null;
+          clearAnalyticsCookies();
+          consentPanel.hidden = true;
+          if (analyticsStarted && saved) {
+            window.location.reload();
+          }
+        });
+        settingsButton.addEventListener("click", () => {
+          consentPanel.hidden = false;
+        });
+        if (consent === "granted") {
+          startAnalytics();
+        }
+      })();
+    </script>
     <script>
       const canvas = document.querySelector("#unity-canvas");
       const loading = document.querySelector("#unity-loading");
@@ -201,13 +339,24 @@
         showBanner,
       };
 
+      const loadStartedAt = performance.now();
       const loader = document.createElement("script");
       loader.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
-      loader.onerror = () => showLoadError("화면을 불러오지 못했습니다. 연결을 확인한 뒤 새로고침해 주세요.");
+      loader.onerror = () => {
+        window.reportUnityLoad?.("failed", "loader");
+        showLoadError("화면을 불러오지 못했습니다. 연결을 확인한 뒤 새로고침해 주세요.");
+      };
       loader.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress").value = progress;
-        }).then(hideLoading).catch(showLoadError);
+        }).then(() => {
+          hideLoading();
+          const seconds = Math.round((performance.now() - loadStartedAt) / 10) / 100;
+          window.reportUnityLoad?.("loaded", seconds);
+        }).catch((error) => {
+          window.reportUnityLoad?.("failed", "initialization");
+          showLoadError(error);
+        });
       };
       document.body.appendChild(loader);
     </script>

@@ -13,7 +13,7 @@ namespace A305.Onboarding
     {
         // 로그인 전이라 약관 목록(AUTH-03)을 받지 않으므로 문서 주소를 여기 둔다. 서버 ConsentCatalog의 TERMS·PRIVACY와 같게 둔다.
         private const string TermsUrl = "/terms/2026-10";
-        private const string PrivacyUrl = "/privacy/2026-10";
+        private const string PrivacyUrl = "/privacy/2026-11";
 
         [SerializeField]
         private Button googleButton;

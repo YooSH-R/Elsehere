@@ -1,0 +1,10 @@
+{
+  "scenarioId": "barber_shop",
+  "locationId": "TOWN",
+  "situation": "The customer has just walked into Main St. Barber on the town's main street. There are two barber chairs in front of a long mirror and a sofa for waiting.",
+  "facts": [
+    "A haircut is $20. A shave is $10.",
+    "No appointment is needed. One chair is free right now.",
+    "Bloom Flowers is right across the main street."
+  ]
+}

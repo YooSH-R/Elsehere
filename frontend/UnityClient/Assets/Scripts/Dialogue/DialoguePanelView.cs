@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -8,14 +9,18 @@ using UnityEngine.UI;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 왼쪽 추천 단어·추천 문장 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[표현 저장]·[대화 종료],
+    /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 왼쪽 추천 단어·추천 문장 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[대화 종료],
     /// 서버 AI 대화와 튜토리얼 길 안내의 [말하기], 서버 AI 대화의 [다시 듣기]·[힌트]·[다시 시도]가 있다.
     /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
+    /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
         private const string TalkCaption = "말하기";
         private const string StopTalkCaption = "종료";
+
+        // 녹음을 시작했지만 마이크가 아직 열리는 중. 이때 한 말은 녹음되지 않는다. 눌러서 그만둘 수는 있다.
+        private const string PreparingTalkCaption = "준비 중";
 
         [SerializeField]
         private GameObject panel;
@@ -86,7 +91,28 @@ namespace A305.Dialogue
         private Button meaningButton;
 
         [SerializeField]
-        private Button saveButton;
+        [Tooltip("대사 칸의 밑줄 친 풀이 단어 클릭")]
+        private TextLinkClicks lineLinks;
+
+        [SerializeField]
+        [Tooltip("누른 풀이 단어 근처에 뜨는 호버 카드. 단어·뜻과 [단어장에 저장]이 있다.")]
+        private RectTransform wordCard;
+
+        [SerializeField]
+        private TMP_Text wordTitleText;
+
+        [SerializeField]
+        private TMP_Text wordMeaningText;
+
+        [SerializeField]
+        [Tooltip("저장하는 중·저장 결과·실패 이유")]
+        private TMP_Text wordNoteText;
+
+        [SerializeField]
+        private Button wordSaveButton;
+
+        [SerializeField]
+        private Button wordCloseButton;
 
         [SerializeField]
         private Button replayButton;
@@ -103,6 +129,7 @@ namespace A305.Dialogue
 
         private IDialogueContent content;
         private bool isMeaningVisible;
+        private GlossaryWordCard glossaryCard = new GlossaryWordCard();
         private ConversationStandingDisplay standingDisplay = new ConversationStandingDisplay();
         private ThemedElement sendTheme;
         private CanvasGroup talkGroup;
@@ -110,6 +137,12 @@ namespace A305.Dialogue
 
         // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
         private const float UnavailableTalkAlpha = 0.45f;
+
+        // 단어 카드와 대화창 가장자리 사이 여백
+        private const float WordCardMargin = 12;
+
+        // 대사 칸에 한 번에 보이는 최근 대사 수(바로 앞 대사와 그다음 대사)
+        private const int VisibleLineCount = 2;
 
         /// <summary>녹음 중 목소리가 들릴 때 [종료] 버튼의 불 색.</summary>
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
@@ -176,9 +209,6 @@ namespace A305.Dialogue
         /// <summary>[보내기]나 Enter로 입력한 문장을 알린다.</summary>
         public event Action<string> SendRequested;
 
-        /// <summary>[표현 저장]을 누르면 알린다. 저장할 대사는 대화 처리가 정한다.</summary>
-        public event Action SaveRequested;
-
         /// <summary>녹음 중이 아닐 때 [말하기]를 누르면 알린다.</summary>
         public event Action TalkStartRequested;
 
@@ -194,6 +224,9 @@ namespace A305.Dialogue
         /// <summary>[힌트]를 누르면 알린다.</summary>
         public event Action HintRequested;
 
+        /// <summary>대사에서 고른 풀이 단어의 [단어장에 저장]을 누르면 그 단어를 알린다. 결과는 <see cref="ShowWordSaveResult"/>로 받는다.</summary>
+        public event Action<GlossaryWord> WordSaveRequested;
+
         /// <summary>[다시 시도]를 누르면 알린다.</summary>
         public event Action RetryRequested;
 
@@ -202,13 +235,23 @@ namespace A305.Dialogue
         /// <summary>음성 처리 동의 창. 대화 처리가 [동의하고 켜기]·[문서 보기]를 받아 처리한다.</summary>
         public VoiceConsentDialogView VoiceConsentDialog => voiceConsentDialog;
 
-        /// <summary>[표현 저장]을 보여 줄지. 저장할 곳이 없으면 끈다.</summary>
-        public bool IsSaveAvailable { get; set; } = true;
+        /// <summary>풀이 단어의 [단어장에 저장]을 보여 줄지. 단어장 서버가 연결되지 않았으면 끈다.</summary>
+        public bool IsWordSaveAvailable { get; set; } = true;
+
+        /// <summary>풀이 단어를 저장한 결과를 단어 카드에 보인다.</summary>
+        /// <param name="saved">단어장에 들어갔는지. 이미 있던 단어도 true다.</param>
+        public void ShowWordSaveResult(GlossaryWord word, bool saved, string message)
+        {
+            glossaryCard.FinishSaving(word, saved, message);
+            ShowWordCard();
+        }
 
         public void Show(IDialogueContent shownContent)
         {
             content = shownContent;
             isMeaningVisible = false;
+            // 저장한 단어 표시는 이번 대화 안에서만 기억한다.
+            glossaryCard = new GlossaryWordCard { IsSaveAvailable = IsWordSaveAvailable };
             standingDisplay = new ConversationStandingDisplay();
             inputField.text = "";
             ShowVoiceInput(isRecording: false, isHearingVoice: false);
@@ -246,13 +289,17 @@ namespace A305.Dialogue
 
         /// <summary>
         /// 녹음 중인지와 지금 목소리가 들리는지를 [말하기] 버튼에 표시한다. 녹음 중이면 [종료]로 바꾸고 불을 켠다.
+        /// 녹음을 시작했지만 마이크가 아직 열리는 중이면 [준비 중]을 보이고 불을 끈다.
         /// 녹음은 시간·무음으로도 저절로 끝나므로 대화 처리가 매 프레임 부른다.
         /// </summary>
-        public void ShowVoiceInput(bool isRecording, bool isHearingVoice)
+        public void ShowVoiceInput(bool isRecording, bool isHearingVoice, bool isPreparing = false)
         {
             this.isRecording = isRecording;
-            talkCaption.text = isRecording ? StopTalkCaption : TalkCaption;
-            voiceLight.gameObject.SetActive(isRecording);
+            talkCaption.text =
+                !isRecording ? TalkCaption
+                : isPreparing ? PreparingTalkCaption
+                : StopTalkCaption;
+            voiceLight.gameObject.SetActive(isRecording && !isPreparing);
             voiceLight.color = isHearingVoice ? VoiceHeardColor : VoiceQuietColor;
         }
 
@@ -280,12 +327,10 @@ namespace A305.Dialogue
                 }
             }
 
-            linesText.text = DialogueLinesText.Format(
-                content.Lines,
-                content.NpcName,
-                isMeaningVisible,
-                content.LastNpcGlossary
-            );
+            // 밑줄은 뜻을 펼친 동안만 보이므로, 뜻을 접으면(보내기 포함) 단어 카드도 닫는다.
+            if (!isMeaningVisible)
+                glossaryCard.Close();
+            ShowLines();
             npcNameText.text = content.NpcName;
             UpdateStanding();
             statusText.text = FormatStatus();
@@ -326,8 +371,7 @@ namespace A305.Dialogue
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
             meaningButton.interactable = content.LastNpcLine != null;
-            saveButton.gameObject.SetActive(IsSaveAvailable);
-            saveButton.interactable = content.LastNpcLine != null;
+            ShowWordCard();
             TalkButtonState talk = TalkState();
             talkButton.gameObject.SetActive(talk.IsVisible);
             talkButton.interactable = talk.Action != TalkButtonAction.None;
@@ -359,7 +403,11 @@ namespace A305.Dialogue
                         DialogueHelpText.Sentence(content.HintText, content.ExampleSentence) ?? "";
             });
             meaningButton.onClick.AddListener(ToggleMeaning);
-            saveButton.onClick.AddListener(() => SaveRequested?.Invoke());
+            lineLinks.Clicked += SelectWord;
+            wordSaveButton.onClick.AddListener(RequestWordSave);
+            wordCloseButton.onClick.AddListener(CloseWordCard);
+            // 대사 칸을 스크롤하면 카드가 고른 단어를 따라간다.
+            historyScroll.onValueChanged.AddListener(_ => PlaceWordCard());
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
             retryButton.onClick.AddListener(RequestRetry);
@@ -463,6 +511,124 @@ namespace A305.Dialogue
             inputField.text = content.ExampleSentence;
         }
 
+        // 지난 대사의 단어를 눌러도 보던 자리에 머물도록 대사 칸을 맨 아래로 내리지 않고 고른 단어 표시와 카드만 바꾼다.
+        private void SelectWord(string linkId)
+        {
+            GlossaryWord word =
+                content != null && isMeaningVisible
+                    ? DialogueLinesText.FindWord(content.Lines, linkId)
+                    : null;
+            if (word == null)
+                return;
+            glossaryCard.Select(word);
+            ShowLines();
+            ShowWordCard();
+        }
+
+        private void CloseWordCard()
+        {
+            glossaryCard.Close();
+            if (content == null)
+                return;
+            ShowLines();
+            ShowWordCard();
+        }
+
+        private void RequestWordSave()
+        {
+            if (!glossaryCard.IsSaveInteractable)
+                return;
+            GlossaryWord word = glossaryCard.Word;
+            glossaryCard.StartSaving();
+            ShowWordCard();
+            WordSaveRequested?.Invoke(word);
+        }
+
+        // 대사 칸 글자. 단어 카드에 보이는 단어는 대사 안에서도 칠한다.
+        private void ShowLines()
+        {
+            linesText.text = DialogueLinesText.Format(
+                content.Lines,
+                content.NpcName,
+                isMeaningVisible,
+                content.LastNpcGlossary,
+                glossaryCard.Word
+            );
+        }
+
+        // 호버 카드는 대사 위에 겹쳐 뜨므로 대사 칸 크기는 그대로 두고 카드 내용과 자리만 맞춘다.
+        private void ShowWordCard()
+        {
+            wordCard.gameObject.SetActive(glossaryCard.IsVisible);
+            if (!glossaryCard.IsVisible)
+                return;
+            wordTitleText.richText = wordMeaningText.richText = false;
+            wordTitleText.text = glossaryCard.Word.Text;
+            wordMeaningText.text = glossaryCard.Word.MeaningKo;
+            wordNoteText.text = glossaryCard.Note ?? "";
+            wordNoteText.gameObject.SetActive(!string.IsNullOrEmpty(glossaryCard.Note));
+            wordSaveButton.gameObject.SetActive(glossaryCard.IsSaveVisible);
+            wordSaveButton.interactable = glossaryCard.IsSaveInteractable;
+            // 저장 버튼이 없으면 안내 문구가 카드 아래쪽 폭을 다 쓴다.
+            var note = (RectTransform)wordNoteText.transform;
+            float saveWidth = ((RectTransform)wordSaveButton.transform).sizeDelta.x;
+            note.offsetMax = new Vector2(
+                glossaryCard.IsSaveVisible ? -(saveWidth + 28) : -16,
+                note.offsetMax.y
+            );
+            PlaceWordCard();
+        }
+
+        // 누른 단어 바로 위(자리가 없으면 아래)에 카드를 띄운다. 대화창 안에서만 움직여 그 위의 NPC 얼굴을 가리지 않는다.
+        private void PlaceWordCard()
+        {
+            if (content == null || !glossaryCard.IsVisible || !TryFindWordArea(out Rect word))
+                return;
+            var frame = (RectTransform)panel.transform;
+            var area = new Rect(Vector2.zero, frame.rect.size);
+            area.min += Vector2.one * WordCardMargin;
+            area.max -= Vector2.one * WordCardMargin;
+            wordCard.anchoredPosition = WordCardPlacement.Place(word, wordCard.rect.size, area);
+        }
+
+        // 고른 단어의 링크 글자들이 차지한 영역을 대화창 왼쪽 아래 기준 좌표로 구한다.
+        private bool TryFindWordArea(out Rect area)
+        {
+            area = default;
+            linesText.ForceMeshUpdate();
+            TMP_TextInfo info = linesText.textInfo;
+            for (int i = 0; i < info.linkCount; i++)
+            {
+                TMP_LinkInfo link = info.linkInfo[i];
+                if (
+                    DialogueLinesText.FindWord(content.Lines, link.GetLinkID()) != glossaryCard.Word
+                )
+                    continue;
+                TMP_CharacterInfo first = info.characterInfo[link.linkTextfirstCharacterIndex];
+                TMP_CharacterInfo last = info.characterInfo[
+                    link.linkTextfirstCharacterIndex + link.linkTextLength - 1
+                ];
+                var frame = (RectTransform)panel.transform;
+                Vector2 min = PanelPoint(frame, first.bottomLeft);
+                Vector2 max = PanelPoint(frame, last.topRight);
+                area = Rect.MinMaxRect(
+                    Mathf.Min(min.x, max.x),
+                    Mathf.Min(min.y, max.y),
+                    Mathf.Max(min.x, max.x),
+                    Mathf.Max(min.y, max.y)
+                );
+                return true;
+            }
+
+            return false;
+        }
+
+        private Vector2 PanelPoint(RectTransform frame, Vector3 linesPoint)
+        {
+            Vector3 world = linesText.transform.TransformPoint(linesPoint);
+            return (Vector2)frame.InverseTransformPoint(world) - frame.rect.min;
+        }
+
         private void ToggleMeaning()
         {
             isMeaningVisible = !isMeaningVisible;
@@ -542,7 +708,7 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
             );
-            float linesHeight = linesText.GetPreferredValues(linesText.text, column, 0).y;
+            float linesHeight = VisibleLinesHeight(column, out bool hasEarlierLines);
             float nameWidth = Mathf.Max(
                 MinNameWidth,
                 npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
@@ -550,7 +716,8 @@ namespace A305.Dialogue
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
-                nameWidth
+                nameWidth,
+                hasEarlierLines
             );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);
@@ -575,7 +742,12 @@ namespace A305.Dialogue
                     layout.Name.yMax
                 )
             );
+            // 대사 칸 높이가 달라져도 보던 아래쪽(보통 가장 최근 대사와 단어 풀이)이 가려지지 않게 스크롤 위치를 지킨다.
+            float scroll = historyScroll.verticalNormalizedPosition;
             Place((RectTransform)historyScroll.transform, layout.Lines);
+            Canvas.ForceUpdateCanvases();
+            historyScroll.verticalNormalizedPosition = scroll;
+            PlaceWordCard();
             // 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
             Place(statusText.rectTransform, layout.Status);
             statusText.enableAutoSizing = true;
@@ -596,6 +768,23 @@ namespace A305.Dialogue
             PlaceVehicleStatus(layout);
         }
 
+        // 대사 칸에는 가장 최근 두 줄(바로 앞 대사와 그다음 대사)과 그 뜻만 보이는 높이를 준다. 그 전 대사는 위로 스크롤해 본다.
+        private float VisibleLinesHeight(float width, out bool hasEarlierLines)
+        {
+            IReadOnlyList<DialogueLine> lines = content?.Lines;
+            hasEarlierLines = lines != null && lines.Count > VisibleLineCount;
+            if (!hasEarlierLines)
+                return linesText.GetPreferredValues(linesText.text, width, 0).y;
+            string latest = DialogueLinesText.Format(
+                lines.Skip(lines.Count - VisibleLineCount).ToArray(),
+                content.NpcName,
+                isMeaningVisible,
+                content.LastNpcGlossary,
+                glossaryCard.Word
+            );
+            return linesText.GetPreferredValues(latest, width, 0).y;
+        }
+
         // [다시 시도]·[대화 종료]를 이름 줄 오른쪽 끝에 두고, 나머지 도구는 그 왼쪽에 오른쪽 정렬로 붙인다.
         // 대화 종류에 따라 숨는 버튼이 있어 보이는 버튼의 폭으로 자리를 정하고, 도구가 시작하는 왼쪽 끝을 돌려준다.
         private float PlaceTools(Rect row)
@@ -604,7 +793,7 @@ namespace A305.Dialogue
             LayoutRebuilder.ForceRebuildLayoutImmediate(ends);
             float endsWidth = LayoutUtility.GetPreferredWidth(ends);
             Place(ends, Rect.MinMaxRect(row.xMax - endsWidth, row.yMin, row.xMax, row.yMax));
-            var tools = (RectTransform)saveButton.transform.parent;
+            var tools = (RectTransform)meaningButton.transform.parent;
             float toolsRight = row.xMax - endsWidth - DialogueCinemaLayout.Gap;
             Place(
                 tools,

@@ -1,5 +1,6 @@
 package com.elsehere.mission.service;
 
+import com.elsehere.common.config.ClockConfig;
 import com.elsehere.mission.dto.MissionListResponse;
 import com.elsehere.mission.dto.MissionResponse;
 import com.elsehere.mission.entity.UserMission;
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MissionService {
 
   /** 일일 미션 날짜 기준. MVP는 한국 시간으로 고정하며 자정에 바뀐다. */
-  private static final ZoneId MISSION_ZONE = ZoneId.of("Asia/Seoul");
+  private static final ZoneId MISSION_ZONE = ClockConfig.SERVICE_ZONE;
 
   private final MissionRepository missionRepository;
   private final UserMissionRepository userMissionRepository;

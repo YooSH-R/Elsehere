@@ -3,6 +3,7 @@ package com.elsehere.auth.controller;
 import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.user.entity.ConsentType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,6 +28,12 @@ public class LegalDocumentController {
       throw new BusinessException(ErrorCode.NOT_FOUND);
     }
     model.addAttribute("version", version);
+    // 문서마다 버전이 다를 수 있어, 문서끼리의 링크는 보는 문서의 버전이 아니라 각 문서의 지금 주소를 쓴다.
+    model.addAttribute("termsUrl", consentCatalog.currentTerm(ConsentType.TERMS).url());
+    model.addAttribute("privacyUrl", consentCatalog.currentTerm(ConsentType.PRIVACY).url());
+    model.addAttribute("voiceUrl", consentCatalog.currentTerm(ConsentType.VOICE).url());
+    model.addAttribute(
+        "aiTrainingUrl", consentCatalog.currentTerm(ConsentType.TRAINING_TEXT).url());
     return "legal/" + document;
   }
 }

@@ -355,6 +355,7 @@ namespace A305.Onboarding
             nicknameButton.interactable = canEdit;
             closeButton.interactable = !flow.IsBusy;
             logoutButton.interactable = !flow.IsBusy;
+            withdrawButton.gameObject.SetActive(flow.CanWithdraw);
             withdrawButton.interactable = !flow.IsBusy;
             RenderConsents(canEdit);
         }

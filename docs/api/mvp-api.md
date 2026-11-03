@@ -179,6 +179,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 마이크를 쓸 수 없을 때 [텍스트로 입력] | CONV-03 |
 | | 대사 아래 추천 단어 | CONV-12(대사를 받은 뒤 따로) |
 | | [다시 듣기], [뜻 보기], [힌트] | CONV-06, CONV-04, CONV-05 |
+| | [뜻 보기]로 받은 대사의 단어 풀이(단어·숙어)를 누르면 그 단어 근처 호버 카드에 뜻과 [단어장에 저장] | CONV-04 응답, VOCAB-02(`NPC_LINE`) |
 | | [대화 종료 (Esc)] | CONV-08 |
 | | 토큰이 떨어지면 NPC 작별 대사로 대화 종료 | CONV-03 응답 |
 | 16 대화 후 짧은 피드백 | NPC·장소·발화 수, 미션 완료, 요약, 잘했어요·아쉬워요, 개선 표현 | CONV-08 응답, FB-01 |
@@ -280,7 +281,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "currentLanguage": "en-US",
     "onboardingStep": "DONE",
     "uiTheme": "JELLY",
-    "voiceConsent": true
+    "voiceConsent": true,
+    "guest": false
   },
   "lastSceneCode": "TOWN",
   "activeConversationId": null,
@@ -304,6 +306,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `aiStatus`의 형식과 판단 기준은 AI-01과 같으며 HUD의 "AI 사용 가능" 표시에 씁니다. 게스트면 남은 대화 수(`remainingConversations`)도 담습니다. 가입 대기 상태(`SIGNUP_REQUIRED`)에는 담지 않습니다.
 - `user.uiTheme`은 계정에 저장한 화면 테마(`JELLY`, `STICKER`, `CLOUD`)입니다. 고른 적 없으면 `JELLY`이며 USER-01로 바꿉니다.
 - `user.voiceConsent`는 지금 버전의 음성 처리(`VOICE`)에 동의했는지입니다. `false`면 클라이언트는 녹음을 막고 [말하기]를 회색으로 보이며, 누르면 동의 창에서 USER-03으로 동의를 켤 수 있게 합니다. AUTH-04·07 응답의 `user`에도 같은 값이 있으며, USER-03으로 바꾸면 그 결과를 따릅니다.
+- `user.guest`는 게스트로 시작한 사용자(AUTH-07)인지입니다. 클라이언트는 게스트에게 마이페이지의 [회원 탈퇴](USER-05)를 보이지 않습니다. AUTH-04 응답은 `false`, AUTH-07 응답은 `true`입니다.
 - 값이 없는 필드(`lastSceneCode` 등)는 응답에 담지 않습니다. 클라이언트는 필드가 없을 때와 `null`일 때를 같게 처리합니다.
 - 세션의 로그인 사용자가 DB에 없으면(탈퇴 등) 세션의 로그인 상태를 비우고 `401 UNAUTHENTICATED`로 응답합니다.
 
@@ -324,7 +327,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "email": "user@example.com",
   "consents": [
     { "consentType": "TERMS", "version": "2026-10", "required": true, "title": "서비스 이용약관", "url": "/terms/2026-10" },
-    { "consentType": "PRIVACY", "version": "2026-10", "required": true, "title": "개인정보 처리방침", "url": "/privacy/2026-10" },
+    { "consentType": "PRIVACY", "version": "2026-11", "required": true, "title": "개인정보 처리방침", "url": "/privacy/2026-11" },
     { "consentType": "AGE14", "version": "2026-10", "required": true, "title": "만 14세 이상입니다", "url": null },
     { "consentType": "VOICE", "version": "2026-10", "required": false, "title": "음성 처리 동의", "url": "/voice/2026-10" },
     { "consentType": "TRAINING_TEXT", "version": "2026-10", "required": false, "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10" },
@@ -336,7 +339,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 약관 버전과 문서 주소는 서버 설정값입니다.
 - `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 가입 뒤에는 USER-03으로 켜고 끕니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
-- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다.
+- 문서 주소(`url`)는 같은 출처의 웹 페이지이며 로그인하지 않아도 열립니다. 백엔드가 `templates/legal`의 문서를 그려 주고, 웹 Nginx가 이 경로를 백엔드로 넘깁니다. 지금 버전이 아닌 주소는 `404 NOT_FOUND`입니다. 문구를 바꾸면 버전을 올리고 문서 주소도 함께 바꿉니다. 문서마다 버전이 다를 수 있어(개인정보 처리방침만 2026-11), 문서끼리의 링크는 각 문서의 지금 주소를 씁니다. 버전 확인은 가입할 때만 하며, 이미 가입한 사용자에게 다시 동의를 받지는 않습니다.
 
 #### AUTH-04 `POST /api/v1/auth/signup`
 
@@ -347,13 +350,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "avatarType": "F",
   "consents": [
     { "consentType": "TERMS", "version": "2026-10" },
-    { "consentType": "PRIVACY", "version": "2026-10" },
+    { "consentType": "PRIVACY", "version": "2026-11" },
     { "consentType": "AGE14", "version": "2026-10" }
   ]
 }
 
 // 응답 201
-{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY", "voiceConsent": true } }
+{ "user": { "userId": 1, "nickname": "Sun", "avatarType": "F", "currentLanguage": null, "onboardingStep": "LANG", "uiTheme": "JELLY", "voiceConsent": true, "guest": false } }
 ```
 
 - 사용자(`users`)와 약관 동의(`user_consents`)를 한 트랜잭션으로 만들고 세션을 로그인 상태로 바꿉니다. 로그인하면서 세션 ID를 새로 발급하고 가입 대기 정보를 지웁니다.
@@ -400,7 +403,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 // 응답 201
 {
-  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY", "voiceConsent": true }
+  "user": { "userId": 3, "nickname": "guest-123456", "avatarType": "M", "currentLanguage": "en-US", "onboardingStep": "TUTORIAL", "uiTheme": "JELLY", "voiceConsent": true, "guest": true }
 }
 ```
 
@@ -597,11 +600,14 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 "npcs": [
   { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
   { "npcCode": "TAXI_DRIVER", "name": "Joe", "npcType": "STAFF", "roleLabel": "택시 기사", "canInitiate": false, "approachLine": null },
+  { "npcCode": "POLICE_OFFICER", "name": "Dan", "npcType": "STAFF", "roleLabel": "경찰관", "canInitiate": false, "approachLine": null },
+  { "npcCode": "POST_OFFICE_STAFF", "name": "Linda", "npcType": "STAFF", "roleLabel": "우체국 직원", "canInitiate": false, "approachLine": null },
   { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
 
 - `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
+- 마을(`TOWN`)에는 거리 매장 직원 9명(`POST_OFFICE_STAFF`·`DINER_STAFF`·`BANK_STAFF`·`LAUNDROMAT_STAFF`·`FLOWER_SHOP_STAFF`·`BARBER_STAFF`·`BAKERY_STAFF`·`ARCADE_STAFF`·`HOME_STORE_STAFF`)도 위 Linda처럼 `STAFF`, `canInitiate: false`로 내려옵니다.
 - `words`는 장소의 사물에 붙은 공용 단어 카드입니다. 여러 사물이 같은 단어를 쓰면 카드는 하나이며, Unity가 사물의 공용 단어 키(`wordKey`)로 카드를 찾습니다. 장소별 단어 목록은 Unity가 내보낸 `object-word-bindings.json`을 서버 시작 때 `scene_words`에 적재한 것입니다.
 - `npcs`, `words`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `wordKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 단어 카드를 한 번에 받습니다. MVP는 장소마다 단어가 20~40개라 응답이 작습니다.
@@ -1024,7 +1030,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 화면 16의 짧은 피드백을 그립니다. "Mia · 카페 · 발화 4번"은 `npc`, `sceneCode`, `userTurnCount`, "미션 완료"는 `completedMissions`, 개선 표현 상자는 `suggestion`입니다.
 - `summary`는 `conversation_feedback.summary`, `reviews`·`suggestion`·`situationExpressions`·`vocabCandidates`는 `conversation_feedback.reviews` JSON(`{ good, improve, suggestion, situationExpressions, vocabCandidates }`)에 저장합니다. 저장 형식은 응답과 따로 관리하므로 응답 필드 이름을 바꿔도 이미 저장된 피드백을 그대로 읽습니다.
 - `situationExpressions`는 이 장면에서 자주 쓰는 관용·추천 표현 0~3개입니다(표현, 뜻, 쓰는 때, 학습 예문과 번역). 사용자 발화 평가와 별개로 화면 16·17의 회화 칸에 보여 줍니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다. 예문은 학습용이며 사용자가 한 말이 아닙니다.
-- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`이고 한 단어인 것만 담으며, 숙어·문장 후보는 단어장이 단어 하나만 저장하므로(4.8) 뺍니다. 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
+- `vocabCandidates`는 단어장에 저장할 수 있는 단어(표현, 뜻, 학습 예문과 번역)입니다. 피드백의 단어장 후보(`vocab_candidates`) 중 `kind: word`이고 한 단어인 것만 담으며, 숙어·문장 후보는 뺍니다. 피드백 출처의 숙어 저장은 아직 열지 않았습니다(4.8, 7절). 화면 16·17의 [단어장에 저장]은 이 목록의 `expression`을 VOCAB-02 `FEEDBACK`으로 보냅니다. 이 필드를 넣기 전에 만든 피드백과 `DONE`이 아닌 피드백은 빈 배열입니다.
 - 피드백은 대화를 시작할 때 예약한 토큰으로 만듭니다(1.4). 토큰이 떨어져 NPC가 대화를 끝낸 경우에도 피드백을 받습니다.
 - [대화 종료 (Esc)]와 오류 화면의 [대화 종료]에서 호출합니다. 어떤 오류 상태에서도 종료할 수 있습니다.
 - NPC가 대화를 끝낸 경우(`ENDED_BY_NPC`)에도 피드백을 받으려면 호출합니다. 이때 상태는 바꾸지 않고 피드백만 만듭니다.
@@ -1129,7 +1135,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ### 4.8 단어장
 
-MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않으며 숙어는 이후 검토합니다(7절). 단어장에는 단어의 뜻과 함께, 그 단어를 저장한 **문장 전체와 문장 뜻**을 보여줍니다.
+MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단어 이상인 표현이며, NPC 대사의 단어 풀이에서만 저장합니다(VOCAB-02 `NPC_LINE`). 문장은 저장하지 않습니다(7절). 단어장에는 단어·숙어의 뜻과 함께, 그것을 저장한 **문장 전체와 문장 뜻**을 보여줍니다.
 
 예: Mia가 "Would you like an iced latte?"라고 했고 사용자가 `latte`를 저장하면, 단어장에는 `latte` = "라떼"와 함께 "Would you like an iced latte?" = "아이스 라떼 드릴까요?"가 보입니다.
 
@@ -1166,14 +1172,14 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 - "외운 표현도 보기"는 `includeMemorized`입니다. 목록은 최근 저장순입니다. `counts.all`은 현재 `includeMemorized` 조건을 적용한 개수입니다.
 - 기본값은 `includeMemorized=false`, `size=20`이고 `size`는 1~50만 받습니다. `nextCursor`는 이전 페이지 마지막 항목의 `userVocabId`이며, 클라이언트는 받은 값을 그대로 다음 요청의 `cursor`로 보냅니다. 숫자가 아니거나 내 단어장에 없는 항목을 가리키는 커서와 범위를 벗어난 `size`는 `400 VALIDATION_FAILED`입니다.
 - `savedAt`은 한국 시각(`+09:00`)으로 보냅니다. 저장한 문장이 없으면 `context`는 `null`입니다.
-- 저장하는 것이 단어뿐이라 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocabularies.type`은 숙어를 검토할 때를 위해 그대로 둡니다.
-- `vocab.meaningKo`는 단어 하나의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
+- 화면 18의 유형 필터(단어·숙어·문장)는 MVP에서 보여주지 않습니다. `vocab.type`(`vocabularies.type`)은 한 단어면 `WORD`, 숙어면 `IDIOM`입니다.
+- `vocab.meaningKo`는 단어·숙어의 뜻(`vocabularies.meaning_ko`), `context`는 저장할 때의 문장과 문장 뜻(`user_vocab.context_text`, `context_meaning_ko`)입니다. 같은 단어라도 사용자마다 저장한 문장이 다르므로 `user_vocab`에 둡니다.
 - 상세의 "Mia와의 대화" 같은 출처 표시는 `source`로 그립니다. 출처 대화는 `user_vocab.source_conversation_id`, 출처 NPC는 그 대화의 NPC입니다. 사물에서 저장한 단어는 `npcName`, `conversationId`가 `null`입니다.
 - `memo`(`user_vocab.memo`)는 사용자가 남긴 메모입니다. 뜻은 수정하지 않습니다.
 
 #### VOCAB-02 `POST /api/v1/vocab`
 
-저장 출처마다 요청 형식이 다릅니다. `text`는 저장할 단어 하나입니다.
+저장 출처마다 요청 형식이 다릅니다. `text`는 저장할 단어나 숙어 하나입니다.
 
 ```json
 // 화면 08: 사물 카드에서 저장
@@ -1191,12 +1197,12 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 출처 | 저장할 수 있는 단어 | 단어 뜻 | 문장 · 문장 뜻 |
 | --- | --- | --- | --- |
 | `OBJECT` | 사물 카드의 단어 | `vocabularies.meaning_ko` (시드) | 사물 카드 예문 `example` · `example_ko` (없으면 `null`) |
-| `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`) 중 한 단어인 것 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
+| `NPC_LINE` | 그 턴의 CONV-04 단어 풀이(`glossary`)에 있는 단어·숙어 | `glossary[].meaningKo` | NPC 대사 전문 · CONV-04 대사 뜻 |
 | `FEEDBACK` | 그 대화 피드백의 단어장 후보 중 CONV-08·FB-01 `feedback.vocabCandidates`에 있는 것 | 후보의 `meaningKo` | 후보의 `exampleEn` · `exampleKo` |
 
-- 표에 없는 단어, 두 단어 이상인 표현, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
+- 표에 없는 단어·숙어, 아직 뜻 보기(CONV-04)를 하지 않은 대사의 단어는 저장하지 않고 `422 VOCAB_SOURCE_MISMATCH`를 돌려줍니다. 클라이언트는 표의 단어에만 저장 버튼을 보여줍니다.
 - 새로 저장하면 `201`, 이미 저장한 단어면 처음 저장한 항목(문장 포함)을 그대로 `200`으로 돌려줍니다. 응답 형식은 VOCAB-01의 항목에 `created` 필드를 더한 것입니다.
-- 사전에 없는 단어는 `vocabularies`에 `type: WORD`로 새로 만듭니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
+- 사전에 없는 단어는 `vocabularies`에 새로 만듭니다. 한 단어면 `type: WORD`, 두 단어 이상인 숙어면 `type: IDIOM`입니다(`source`는 `NPC` 또는 `FEEDBACK`). 이미 있는 단어는 기존 뜻을 그대로 씁니다. 대소문자만 다른 단어(문장 첫머리의 `Latte` 등)는 같은 단어로 봅니다.
 - `NPC_LINE`은 `source_turn_id`에 `turnId`를, `source_conversation_id`에 그 턴의 대화를 기록합니다. `FEEDBACK`은 `source_conversation_id`에 요청의 `conversationId`를 기록합니다.
 - 이 규칙은 대화 쪽이 CONV-04의 단어 풀이와 피드백의 단어장 후보를 저장해 두는 것을 전제로 합니다.
 - 피드백을 만들지 못한 대화와 `vocabCandidates`를 넣기 전에 만든 피드백의 단어는 확인할 후보가 없어 `422 VOCAB_SOURCE_MISMATCH`입니다.
@@ -1338,7 +1344,7 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
   - 관리자였다면 일반 사용자로 되돌립니다.
 - 사용자·대화·AI 호출 기록·미션 진행·동의 기록 같은 뼈대는 남은 행이 가리키므로 누구 것인지 알 수 없는 채로 남깁니다.
 - 요청한 세션을 끝냅니다. 클라이언트는 입구 화면(로그인)으로 돌아갑니다. 다른 기기에서 로그인해 둔 세션은 그 기기에서 24시간 동안 요청이 없으면 끝납니다.
-- 게스트도 부를 수 있으며 같은 방식으로 지웁니다.
+- 게스트도 부를 수 있으며 같은 방식으로 지웁니다. 다만 게스트 내용은 AUTH-07 정리 규칙으로 지워지므로, 클라이언트는 게스트(`user.guest`)에게 [회원 탈퇴]를 보이지 않습니다.
 - 로그인하지 않았으면 `401 UNAUTHENTICATED`이며 아무것도 지우지 않습니다. `X-Requested-With` 헤더가 필요합니다.
 
 ## 5. ERD와의 관계
@@ -1402,7 +1408,6 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 음성 보관 동의·기간 | CONV-02, AUTH-04 | 보관 안 함 / 동의 시 기간 한정 보관 |
 | 피드백 건너뛰기 버튼 | CONV-08 | 배치 여부 |
 | 대화 중 새로고침 | CONV-11 | 이어서 진행 / 종료 처리. 현재 Unity는 대화를 시작할 때 `CONVERSATION_ALREADY_ACTIVE`를 받으면 남은 대화를 피드백 없이 끝내고(`skipFeedback: true`) 새로 시작합니다. |
-| NPC 대사 저장 버튼 | VOCAB-02 | 화면 15에 배치 여부 |
 | 미션 완료 행동 | MIS-01 | 대화만(초안) / 장소 방문·단어 저장 등 추가 |
 | 레벨 테스트 방식·문항 건너뛰기 | ONB-03~07 | 선택형 / 말하기 포함, 채점 기준, 문항 단위 건너뛰기 여부. MVP는 예시 문항·초급 고정으로 흐름만 두고 [진행하기]를 막아 둡니다. |
 | 일일 미션 보상 | MIS-01 | 보상 여부 (날짜 기준은 MVP에서 `Asia/Seoul`로 확정) |
@@ -1420,6 +1425,6 @@ MVP는 **단어 하나만** 저장합니다. 숙어·문장은 저장하지 않�
 | 상세 피드백의 내 음성 듣기 | 17 | 음성 보관 정책과 함께 이후 검토 |
 | 상세 피드백의 다시 말하기 | 17 | 이후 검토 |
 | 단어장 중요도 | 18 | 목록은 최근 저장순 |
-| 숙어·문장 저장, 단어장 유형 필터 | 15~18 | MVP는 단어 하나만 저장. 숙어 저장 방식(뜻 출처, 문장 표시)은 이후 검토 |
+| 문장 저장, 피드백 숙어 저장, 단어장 유형 필터 | 16~18 | 숙어는 NPC 대사 단어 풀이에서만 저장. 피드백 단어장 후보의 숙어와 문장 저장은 이후 검토 |
 | 회상 복습 | 18 | 요구사항명세서 REQ-17·18(정답 기록, 5회 정답 시 카드 숨김)과 다른 점으로 기록 |
 | NPC 호감도 조회, 설정, 프로필 수정 | - | 와이어프레임에 화면 없음. 대화 중인 NPC의 호감도는 CONV-01·03 응답으로 보여 줌 |

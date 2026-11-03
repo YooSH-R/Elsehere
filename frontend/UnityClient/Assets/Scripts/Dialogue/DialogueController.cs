@@ -61,8 +61,11 @@ namespace A305.Dialogue
         /// </summary>
         public event Action<DialogueRecord> ConversationEnded;
 
-        /// <summary>[표현 저장]으로 저장할 영어 문장과 한국어 뜻을 알린다.</summary>
-        public event Action<string, string> ExpressionSaveRequested;
+        /// <summary>
+        /// 대사의 풀이 단어 카드에서 [단어장에 저장]을 누르면 그 단어를 알린다. 저장은 받는 쪽(Learning 모듈)이 하고
+        /// 결과를 <see cref="ShowWordSaveResult"/>로 돌려준다.
+        /// </summary>
+        public event Action<GlossaryWord> WordSaveRequested;
 
         public bool IsTalking => session.IsActive;
 
@@ -90,10 +93,17 @@ namespace A305.Dialogue
         /// </summary>
         public ConversationAllowance Allowance { get; } = new ConversationAllowance();
 
-        /// <summary>대화 화면의 [표현 저장]을 보여 줄지. 받을 곳(단어장)이 저장할 수 없으면 끈다.</summary>
-        public void SetExpressionSaveAvailable(bool available)
+        /// <summary>풀이 단어의 [단어장에 저장]을 보여 줄지. 받을 곳(단어장)이 저장할 수 없으면 끈다.</summary>
+        public void SetWordSaveAvailable(bool available)
         {
-            panel.IsSaveAvailable = available;
+            panel.IsWordSaveAvailable = available;
+        }
+
+        /// <summary>풀이 단어를 저장한 결과를 대화 화면의 단어 카드에 보인다.</summary>
+        /// <param name="saved">단어장에 들어갔는지. 이미 있던 단어도 true다.</param>
+        public void ShowWordSaveResult(GlossaryWord word, bool saved, string message)
+        {
+            panel.ShowWordSaveResult(word, saved, message);
         }
 
         /// <summary>
@@ -176,6 +186,12 @@ namespace A305.Dialogue
                 panel.Show(conversation);
             }
 
+            // 튜토리얼은 동의와 상관없이 녹음하고, 서버 대화는 음성 처리에 동의했을 때만 녹음한다.
+            if (conversation != null || VoiceConsent.Shared.IsAgreed)
+            {
+                KeepMicrophoneOpen();
+            }
+
             Started?.Invoke(npcCode);
             return true;
         }
@@ -195,7 +211,9 @@ namespace A305.Dialogue
                 serverLink.StopSpeech();
                 isEnding = true;
                 // 대화가 끝나면 녹음도 멈춘다(기능 명세 F-23). 끝내는 중이라 녹음 결과는 전사하지 않는다.
+                // 피드백을 기다리는 동안 마이크가 켜져 있지 않게 미리 연 마이크도 닫는다.
                 StopRecording();
+                ReleaseMicrophone();
                 _ = EndServerConversationAsync();
                 return;
             }
@@ -260,7 +278,7 @@ namespace A305.Dialogue
 
             panel.EndRequested += End;
             panel.SendRequested += Send;
-            panel.SaveRequested += SaveLastNpcLine;
+            panel.WordSaveRequested += ForwardWordSave;
             panel.TalkStartRequested += StartRecording;
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
@@ -290,7 +308,7 @@ namespace A305.Dialogue
             {
                 panel.EndRequested -= End;
                 panel.SendRequested -= Send;
-                panel.SaveRequested -= SaveLastNpcLine;
+                panel.WordSaveRequested -= ForwardWordSave;
                 panel.TalkStartRequested -= StartRecording;
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
@@ -325,7 +343,11 @@ namespace A305.Dialogue
             if (saved)
             {
                 dialog.Hide();
-                serverConversation?.AllowTalk();
+                if (serverConversation != null)
+                {
+                    serverConversation.AllowTalk();
+                    KeepMicrophoneOpen();
+                }
             }
             else
             {
@@ -390,6 +412,8 @@ namespace A305.Dialogue
                 serverLink.SetSpeaker(null);
             }
 
+            ReleaseMicrophone();
+
             // 대화 시점이 보던 NPC 쪽을 그대로 보며 다시 걷도록 몸을 먼저 돌린다. 카메라는 시점을 되돌리며 몸 뒤에 선다.
             if (partnerLookTarget != null)
             {
@@ -445,13 +469,9 @@ namespace A305.Dialogue
             UserTurnAccepted?.Invoke(serverConversation.NpcCode, text);
         }
 
-        private void SaveLastNpcLine()
+        private void ForwardWordSave(GlossaryWord word)
         {
-            DialogueLine line = serverConversation?.LastNpcLine ?? conversation?.LastNpcLine;
-            if (line != null)
-            {
-                ExpressionSaveRequested?.Invoke(line.English, line.Korean ?? "");
-            }
+            WordSaveRequested?.Invoke(word);
         }
 
         private void PlayNpcSpeech(NpcTurnData turn)
@@ -537,6 +557,23 @@ namespace A305.Dialogue
         // 녹음 끝을 받는 연결은 서버를 쓸 때만 한다(Awake).
         private bool HasRecorder => conversationApi != null && serverLink.VoiceRecorder != null;
 
+        // 브라우저는 마이크를 여는 데 0.5~1초가 걸려, 누를 때마다 열면 첫 말이 녹음에서 빠진다. 대화 동안 열어 둔다.
+        private void KeepMicrophoneOpen()
+        {
+            if (HasRecorder)
+            {
+                serverLink.VoiceRecorder.KeepMicrophoneOpen();
+            }
+        }
+
+        private void ReleaseMicrophone()
+        {
+            if (HasRecorder)
+            {
+                serverLink.VoiceRecorder.ReleaseMicrophone();
+            }
+        }
+
         private void StartRecording()
         {
             if (serverConversation != null && serverConversation.CanSend)
@@ -569,7 +606,11 @@ namespace A305.Dialogue
             if (panel.IsVisible && serverLink != null && serverLink.VoiceRecorder != null)
             {
                 VoiceRecorder recorder = serverLink.VoiceRecorder;
-                panel.ShowVoiceInput(recorder.IsRecording, recorder.IsHearingVoice);
+                panel.ShowVoiceInput(
+                    recorder.IsRecording,
+                    recorder.IsHearingVoice,
+                    recorder.IsPreparing
+                );
             }
         }
 

@@ -37,6 +37,9 @@ namespace A305.Learning
         public DateTimeOffset SavedAt { get; set; }
 
         public VocabSource Source { get; set; }
+
+        /// <summary>단어 저장(VOCAB-02) 응답에만 있다. 새로 저장했으면 true, 이미 저장한 단어면 false.</summary>
+        public bool Created { get; set; }
     }
 
     public sealed class VocabWord

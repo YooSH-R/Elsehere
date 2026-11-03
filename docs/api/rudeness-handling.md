@@ -56,7 +56,7 @@
 - 퇴장 턴의 대사도 AI로 만듭니다(`/v1/npc/reply` + 퇴장 지시문). 토큰이 떨어졌을 때처럼 미리 쓴 작별 대사(`npcs.farewell_line`)를 쓰면 "급한 일이 생겼어요"가 되어 맞지 않습니다.
 - 퇴장 턴에서는 대화가 끝나므로 클라이언트가 추천 단어(CONV-12)를 요청하지 않습니다(`suggestWords: null`).
 - 호감도는 무례 턴을 저장하고 횟수를 세는 같은 트랜잭션에서 SQL 한 번으로 깎습니다. 그래서 무례 횟수와 감점이 함께 확정되고, 같은 요청 ID로 다시 보내도 한 번만 깎이며, 워커 장애나 [대화 종료] 없이 나가는 경우에도 빠지지 않습니다. `null`(판정 못 함)은 깎지 않습니다.
-- 기본값 -4는 공통 규칙(`ai/npcs/rules/world-rules.json`)의 `relationship.rudeAffinityFallback`과 같은 값입니다. 규칙 값이 바뀌면 서버 설정도 함께 바꿉니다.
+- 기본값 -6은 공통 규칙(`ai/npcs/rules/world-rules.json`)의 `relationship.rudeAffinityFallback`과 같은 값입니다. 규칙 값이 바뀌면 서버 설정도 함께 바꿉니다.
 
 ## 4. 정당방위 장면 (MVP 제외)
 

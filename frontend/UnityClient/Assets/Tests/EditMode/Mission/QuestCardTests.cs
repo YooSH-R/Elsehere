@@ -31,7 +31,11 @@ namespace A305.Mission.Tests
         private FirstDayMissionView view;
 
         [TearDown]
-        public void DestroyMission() => Object.DestroyImmediate(instance);
+        public void DestroyMission()
+        {
+            Object.DestroyImmediate(instance);
+            JourneyStatus.Shared.Clear();
+        }
 
         [Test]
         public void StepChip_ShowsTheCurrentStepOutOfAll()
@@ -66,7 +70,7 @@ namespace A305.Mission.Tests
         }
 
         [Test]
-        public void Progress_HasOneMarkPerStepColoredByItsStatus()
+        public void Progress_HasOneMarkPerStepDrawnByItsStatus()
         {
             Refresh(Journey(current: 5));
 
@@ -77,10 +81,70 @@ namespace A305.Mission.Tests
                     marks.Add(mark.GetComponent<Image>());
             }
             Assert.That(marks, Has.Count.EqualTo(7));
+            // 진행 칸은 시안 그림(끝냄 초록·지금 코랄·남음 옅은 갈색)으로 그린다.
             for (int i = 0; i < 5; i++)
-                Assert.That(marks[i].color, Is.EqualTo(FirstDayMissionView.DoneMark), $"{i}번째");
-            Assert.That(marks[5].color, Is.EqualTo(FirstDayMissionView.CurrentMark));
-            Assert.That(marks[6].color, Is.EqualTo(FirstDayMissionView.UpcomingMark));
+                Assert.That(marks[i].sprite, Is.SameAs(Field<Sprite>("doneMark")), $"{i}번째");
+            Assert.That(marks[5].sprite, Is.SameAs(Field<Sprite>("currentMark")));
+            Assert.That(marks[6].sprite, Is.SameAs(Field<Sprite>("upcomingMark")));
+        }
+
+        // 시안 문구: 첫 단계는 "호텔에 도착", 비가 내리는 단계는 "비 오는 거리"
+        [TestCase(0, "호텔에 도착")]
+        [TestCase(4, "비 오는 거리")]
+        public void Place_UsesTheMockupNames(int current, string expected)
+        {
+            Refresh(Journey(current));
+
+            Assert.That(Field<TMP_Text>("place").text, Is.EqualTo(expected));
+        }
+
+        // 시안의 시계 칩과 코인 칩은 같은 크기(174×64)다.
+        [Test]
+        public void StatusChips_ShareTheMockupSize()
+        {
+            Refresh(Journey(current: 5));
+            var clock = (RectTransform)instance.transform.Find("Content/Status/Clock");
+            var coins = (RectTransform)instance.transform.Find("Content/Status/Coins");
+            Canvas.ForceUpdateCanvases();
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)clock.parent);
+
+            Assert.That(clock.rect.size.x, Is.EqualTo(174 * 1.2f).Within(.5f));
+            Assert.That(clock.rect.size.y, Is.EqualTo(64 * 1.2f).Within(.5f));
+            Assert.That(coins.rect.size.x, Is.EqualTo(clock.rect.size.x).Within(.5f));
+            Assert.That(coins.rect.size.y, Is.EqualTo(clock.rect.size.y).Within(.5f));
+        }
+
+        // 나란히 놓인 시계 글자와 코인 숫자는 같은 크기로 읽힌다(코인 숫자만 크게 튀지 않는다).
+        [Test]
+        public void CoinAmount_IsTheSameSizeAsTheClock()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            var clock = instance
+                .transform.Find("Content/Status/Clock/Label")
+                .GetComponent<TMP_Text>();
+            var amount = instance
+                .transform.Find("Content/Status/Coins/Row/Amount")
+                .GetComponent<TMP_Text>();
+
+            Assert.That(amount.fontSize, Is.EqualTo(clock.fontSize).Within(.01f));
+        }
+
+        // 시안(g4)처럼 대화 중에는 오른쪽 위 시계·코인 칩과 미니맵을 숨긴다.
+        [Test]
+        public void WhileTalking_HidesTheClockCoinsAndMiniMap()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            view = instance.GetComponent<FirstDayMissionView>();
+            view.SetAvailable(true);
+            view.BindMap("TOWN", instance.transform);
+
+            view.Refresh(Journey(current: 5), false, talking: true);
+
+            Assert.That(instance.transform.Find("Content/Status").gameObject.activeSelf, Is.False);
+            Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.False);
+            view.Refresh(Journey(current: 5), false, talking: false);
+            Assert.That(instance.transform.Find("Content/Status").gameObject.activeSelf, Is.True);
+            Assert.That(Field<GameObject>("miniMapPanel").activeSelf, Is.True);
         }
 
         [Test]
@@ -104,6 +168,35 @@ namespace A305.Mission.Tests
             );
         }
 
+        // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보이도록 여정을 함께 알린다.
+        [Test]
+        public void Refresh_SharesTheJourneyWithThePhone()
+        {
+            FirstDayMissionState state = Journey(current: 5);
+            state.Balance = 20;
+            Refresh(state);
+
+            JourneyStatus shared = JourneyStatus.Shared;
+            Assert.That(shared.HasJourney, Is.True);
+            Assert.That(shared.StepChip, Is.EqualTo("6 / 7"));
+            Assert.That(shared.Direction, Is.EqualTo("드럭스토어 점원에게 요청하세요."));
+            Assert.That(shared.Balance, Is.EqualTo(20));
+            Assert.That(shared.Marks.Count, Is.EqualTo(7));
+            Assert.That(shared.Marks[4], Is.EqualTo(JourneyMark.Done));
+            Assert.That(shared.Marks[5], Is.EqualTo(JourneyMark.Current));
+            Assert.That(shared.Marks[6], Is.EqualTo(JourneyMark.Upcoming));
+        }
+
+        [Test]
+        public void Unavailable_ForgetsTheSharedJourney()
+        {
+            Refresh(Journey(current: 5));
+
+            view.SetAvailable(false);
+
+            Assert.That(JourneyStatus.Shared.HasJourney, Is.False);
+        }
+
         // 왼쪽 위 지도 버튼을 없애고 카드 자체를 눌러 수첩을 연다. 카드는 화면 왼쪽 위 모서리에 붙는다.
         [Test]
         public void QuestCard_OpensTheJournalAndSitsInTheTopLeftCorner()
@@ -114,7 +207,10 @@ namespace A305.Mission.Tests
             Assert.That(Field<Button>("journalButton").transform, Is.SameAs(card));
             Assert.That(instance.transform.Find("Content/MapButton"), Is.Null);
             view.UpdateLayout();
-            Assert.That(((RectTransform)card).anchoredPosition, Is.EqualTo(new Vector2(24, -24)));
+            // 시안: 왼쪽·위 28px(캔버스 1.2배)
+            Vector2 corner = ((RectTransform)card).anchoredPosition;
+            Assert.That(corner.x, Is.EqualTo(33.6f).Within(.01f));
+            Assert.That(corner.y, Is.EqualTo(-33.6f).Within(.01f));
         }
 
         private void Refresh(FirstDayMissionState state)

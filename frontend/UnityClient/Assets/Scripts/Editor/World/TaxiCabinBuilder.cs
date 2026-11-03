@@ -25,6 +25,11 @@ namespace A305.EditorTools.World
         private const float SouthEnd = -25;
         private const float NorthEnd = 66;
 
+        // 운전석 골반 자리(택시 기준)와 기사 배율. 머리 꼭대기는 지붕 안감(택시 기준 약 1.53m)보다 3cm 아래까지만 둔다.
+        private static readonly Vector3 DriverSeat = new Vector3(-.38f, .75f, .01f);
+        private const float DriverScale = 1.05f;
+        private const float HeadTopLimit = 1.5f;
+
         [MenuItem("Tools/A305/World/Apply Taxi Cabin")]
         public static void Build()
         {
@@ -142,9 +147,29 @@ namespace A305.EditorTools.World
             fields.FindProperty("passengerView").objectReferenceValue = camera;
             DialoguePanelView panel = BuilderTools.FindSingleInScene<DialoguePanelView>(scene);
             fields.FindProperty("panel").objectReferenceValue = panel;
+            FillDestinations(scene, fields.FindProperty("destinations"), true);
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            ConfigureRoute(taxi.GetComponent<LoopingCar>());
+            ConfigureStatus(panel);
+        }
+
+        /// <summary>
+        /// 마을 장소 목록(기존 공간 4곳과 거리 매장)을 정차·하차 지점과 함께 채운다. 택시와 순찰차가 같은 목록을 쓴다.
+        /// 순찰차는 경찰서 자신으로 출동하지 않으므로 includePoliceStation을 끈다.
+        /// </summary>
+        internal static void FillDestinations(
+            Scene scene,
+            SerializedProperty destinations,
+            bool includePoliceStation
+        )
+        {
             SpaceDoorway[] doors = BuilderTools.FindAllInScene<SpaceDoorway>(scene);
-            SerializedProperty destinations = fields.FindProperty("destinations");
-            destinations.arraySize = doors.Length + TownStorefrontBuilder.Storefronts.Length;
+            TownStorefrontBuilder.Storefront[] storefronts = TownStorefrontBuilder
+                .Storefronts.Where(storefront =>
+                    includePoliceStation || storefront.Name != "PoliceStation"
+                )
+                .ToArray();
+            destinations.arraySize = doors.Length + storefronts.Length;
             int destinationIndex = 0;
             foreach (SpaceDoorway door in doors)
             {
@@ -168,7 +193,7 @@ namespace A305.EditorTools.World
                     exit
                 );
             }
-            foreach (var storefront in TownStorefrontBuilder.Storefronts)
+            foreach (var storefront in storefronts)
             {
                 string code = storefront.Name switch
                 {
@@ -178,6 +203,7 @@ namespace A305.EditorTools.World
                     "SudsLaundromat" => "LAUNDROMAT",
                     "BloomFlowers" => "FLOWER_SHOP",
                     "MainStreetBarber" => "BARBER",
+                    "PoliceStation" => TaxiDestinationRequest.PoliceStation,
                     _ => throw new InvalidOperationException(
                         "택시 장소 코드가 없습니다: " + storefront.Name
                     ),
@@ -190,9 +216,6 @@ namespace A305.EditorTools.World
                     storefront.TaxiAlighting
                 );
             }
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            ConfigureRoute(taxi.GetComponent<LoopingCar>());
-            ConfigureStatus(panel);
         }
 
         private static void SetDestination(
@@ -229,18 +252,13 @@ namespace A305.EditorTools.World
         {
             Transform driver = identity.transform;
             Animator animator = driver.GetComponentInChildren<Animator>(true);
-            driver.localScale = Vector3.one * 1.05f;
             driver.localRotation = Quaternion.Euler(0, 90, 0);
-            using (var handler = new HumanPoseHandler(animator.avatar, animator.transform))
-            {
-                var pose = new HumanPose();
-                handler.GetHumanPose(ref pose);
-                Array.Clear(pose.muscles, 0, pose.muscles.Length);
-                handler.SetHumanPose(ref pose);
-            }
-            animator.enabled = false;
-            Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
-            driver.position += taxi.TransformPoint(new Vector3(-.38f, .75f, .01f)) - hips.position;
+            SeatDriver(taxi, driver, animator, DriverScale);
+            // 머리가 큰 기사는 머리 꼭대기가 지붕 안감 아래에 오도록 줄여 앉힌다. 좌석에서 머리 꼭대기까지는 배율에 비례한다.
+            float rise = HighestPoint(taxi, driver) - DriverSeat.y;
+            float allowedRise = HeadTopLimit - DriverSeat.y;
+            if (rise > allowedRise)
+                SeatDriver(taxi, driver, animator, DriverScale * allowedRise / rise);
             SolveLimb(
                 animator,
                 HumanBodyBones.LeftUpperLeg,
@@ -262,6 +280,51 @@ namespace A305.EditorTools.World
             identity.LookTarget.position = head.position;
             foreach (Transform bone in driver.GetComponentsInChildren<Transform>(true))
                 PrefabUtility.RecordPrefabInstancePropertyModifications(bone);
+        }
+
+        // 기본 자세(근육 0)로 펴고 골반을 운전석에 맞춘다.
+        private static void SeatDriver(
+            Transform taxi,
+            Transform driver,
+            Animator animator,
+            float scale
+        )
+        {
+            driver.localScale = Vector3.one * scale;
+            using (var handler = new HumanPoseHandler(animator.avatar, animator.transform))
+            {
+                var pose = new HumanPose();
+                handler.GetHumanPose(ref pose);
+                Array.Clear(pose.muscles, 0, pose.muscles.Length);
+                handler.SetHumanPose(ref pose);
+            }
+            animator.enabled = false;
+            Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+            driver.position += taxi.TransformPoint(DriverSeat) - hips.position;
+        }
+
+        // 기사 스킨 메시의 가장 높은 점(택시 기준 높이)
+        private static float HighestPoint(Transform taxi, Transform driver)
+        {
+            float highest = float.NegativeInfinity;
+            var baked = new Mesh();
+            try
+            {
+                foreach (var skin in driver.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    skin.BakeMesh(baked, true);
+                    foreach (Vector3 vertex in baked.vertices)
+                        highest = Mathf.Max(
+                            highest,
+                            taxi.InverseTransformPoint(skin.transform.TransformPoint(vertex)).y
+                        );
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(baked);
+            }
+            return highest;
         }
 
         internal static void SolveLimb(

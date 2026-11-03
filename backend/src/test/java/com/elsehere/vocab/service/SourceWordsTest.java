@@ -20,9 +20,15 @@ class SourceWordsTest {
   }
 
   @Test
-  @DisplayName("단어 하나만 저장하므로 두 단어 이상인 표현은 출처에 있어도 찾지 않는다")
-  void find_multiWordExpression_isNotSavable() {
-    assertThat(SourceWords.find(GLOSSARY, GlossaryResponse::text, "soy milk")).isEmpty();
+  @DisplayName("숙어처럼 두 단어 이상인 표현도 출처에 있으면 찾는다")
+  void find_multiWordExpression_isFound() {
+    assertThat(SourceWords.find(GLOSSARY, GlossaryResponse::text, " Soy milk ")).contains(SOY_MILK);
+  }
+
+  @Test
+  @DisplayName("빈 표현은 찾지 않는다")
+  void find_blankText_isEmpty() {
+    assertThat(SourceWords.find(GLOSSARY, GlossaryResponse::text, "  ")).isEmpty();
   }
 
   @Test

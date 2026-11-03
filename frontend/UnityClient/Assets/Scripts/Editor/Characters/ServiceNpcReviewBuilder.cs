@@ -32,17 +32,22 @@ namespace A305.EditorTools.Characters
         private static float Height(string name) =>
             name.Contains("Female") || name.Contains("Grandmother") ? 1.6f : 1.7f;
 
-        public static FaceReviewPaths Paths(string name) =>
-            new()
+        public static FaceReviewPaths Paths(string name)
+        {
+            string prefab = "Assets/Prefabs/Npc/Review/" + name + ".prefab";
+            return new()
             {
-                Source = Root + "/" + name + "/" + name + "_Prepared.prefab",
+                // 비즈니스맨은 입을 먼저 만든 뒤 비율을 맞춰, 마을 행인 Ben이 쓰는 검수 프리팹이 곧 준비본이다.
+                Source =
+                    name == Names[0] ? prefab : Root + "/" + name + "/" + name + "_Prepared.prefab",
                 Art = Root + "/" + name + "/Face",
-                Prefab = "Assets/Prefabs/Npc/Review/" + name + ".prefab",
+                Prefab = prefab,
                 Scene = "Assets/Scenes/Sandbox/NpcReview/" + name + "_Face.unity",
                 Data = Path.Combine(Output, name, "Face", "FaceShapes.json"),
                 Output = Path.Combine(Output, name),
                 Height = Height(name),
             };
+        }
 
         public static void Prepare()
         {
@@ -75,14 +80,17 @@ namespace A305.EditorTools.Characters
                         }
                         continue;
                     }
+                    // 비즈니스맨은 입을 고친 뒤 비율을 맞춘 외형이라 마스터 출력에서 같은 결과를 다시 만들 수 없다.
+                    if (name == Names[0])
+                        throw new InvalidOperationException(
+                            "Business review prefab is missing: " + paths.Prefab
+                        );
                     string source =
-                        name == Names[0]
-                            ? BusinessFacePreviewBuilder.Prefab
-                            : "Assets/Art/Characters/Tripo/NPC/"
-                                + name
-                                + "/MasterRig/"
-                                + name
-                                + "_Visual.prefab";
+                        "Assets/Art/Characters/Tripo/NPC/"
+                        + name
+                        + "/MasterRig/"
+                        + name
+                        + "_Visual.prefab";
                     var instance = Object.Instantiate(
                         AssetDatabase.LoadAssetAtPath<GameObject>(source)
                     );
@@ -109,18 +117,6 @@ namespace A305.EditorTools.Characters
                             $"Before={before:R}\nAfter={CharacterHeadProportions.Ratio(instance):R}\nReference={CharacterHeadProportions.Ratio(reference):R}\nHeadScale={scale:R}\nHeight={Height(name):R}"
                         );
                         ExportSurface(instance, paths.Output);
-                        if (name == Names[0])
-                        {
-                            BuilderTools.EnsureFolder(
-                                Path.GetDirectoryName(paths.Prefab).Replace('\\', '/')
-                            );
-                            BuilderTools.EnsureFolder(
-                                Path.GetDirectoryName(paths.Scene).Replace('\\', '/')
-                            );
-                            if (File.Exists(paths.Prefab))
-                                throw new IOException("Preserve existing review prefab.");
-                            PrefabUtility.SaveAsPrefabAsset(instance, paths.Prefab);
-                        }
                     }
                     finally
                     {

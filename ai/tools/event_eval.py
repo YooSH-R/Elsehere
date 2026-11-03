@@ -3,6 +3,8 @@
 
     ai/worker/.venv/Scripts/python ai/tools/event_eval.py --variant before   지금 의도 지시문 (미션 줄의 의도만 채점)
     ai/worker/.venv/Scripts/python ai/tools/event_eval.py --variant after    사건을 더한 지시문 (사건 + 의도)
+    ai/worker/.venv/Scripts/python ai/tools/event_eval.py --variant service  지금 서비스 지시문 그대로 (사건 + 의도)
+    ai/worker/.venv/Scripts/python ai/tools/event_eval.py --variant service --cases dev   지시문을 다듬을 때 보는 개발셋
 
 공용 키라 한 줄씩 순서대로 보내고, 재시도·대체 모델 없이 부른다. 결과는 집계만 찍고 줄마다의 기록은 --out jsonl로.
 """
@@ -24,7 +26,11 @@ from app.schemas import Line, Npc, State
 from app.services import clean_intent
 
 ROOT = Path(__file__).resolve().parents[2]
-CASES = Path(__file__).resolve().parent / "event_eval/cases.json"
+# test: 잠근 테스트셋(지시문을 다듬을 때 보지 않음), dev: 지시문을 다듬을 때 보는 개발셋
+CASE_SETS = {
+    "test": Path(__file__).resolve().parent / "event_eval/cases.json",
+    "dev": Path(__file__).resolve().parent / "event_eval/dev_cases.json",
+}
 EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
 # 협의서의 지시문 초안 그대로. 의도 지시문 끝에 붙인다
 EVENTS_PROMPT = """Also list in "events" what the learner does toward the partner in this line, from:
@@ -140,8 +146,13 @@ STAGES = {
 }
 
 
-def load_cases() -> list[dict]:
-    return json.loads(CASES.read_text(encoding="utf-8"))["cases"]
+def load_cases(which: str = "test") -> list[dict]:
+    return json.loads(CASE_SETS[which].read_text(encoding="utf-8"))["cases"]
+
+
+def scores_events(variant: str) -> bool:
+    """before는 사건을 고르기 전의 비교용이라 의도만 채점한다."""
+    return variant != "before"
 
 
 def state_of(name: str) -> State:
@@ -160,6 +171,7 @@ def messages(variant: str, case: dict) -> list[dict]:
 
 
 def schema(variant: str, state: State) -> dict:
+    """service는 워커 형식 그대로다. 지금 워커 형식은 사건 칸을 이미 담고 있다."""
     out = P.intent_schema(state)
     if variant == "after":
         out = {
@@ -237,7 +249,7 @@ async def judge(client: httpx.AsyncClient, s: config.Settings, variant: str, cas
         raw = json.loads(r.json()["choices"][0]["message"]["content"])
         if case["state"] != "free_talk":
             row["got_intents"] = clean_intent(raw, state)["ids"]
-        if variant == "after":
+        if scores_events(variant):
             row["got_events"] = clean_events(raw)
     except (httpx.HTTPError, ValueError, KeyError, IndexError) as e:
         row["error"] = f"{type(e).__name__}: {str(e)[:120]}"
@@ -246,7 +258,8 @@ async def judge(client: httpx.AsyncClient, s: config.Settings, variant: str, cas
 
 async def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", choices=["before", "after"], required=True)
+    ap.add_argument("--variant", choices=["before", "after", "service"], required=True)
+    ap.add_argument("--cases", choices=list(CASE_SETS), default="test")
     ap.add_argument("--profile", default="gms-luna")
     ap.add_argument("--only", help="묶음 고르기 (쉼표로): clear,none,boundary,mission")
     ap.add_argument("--timeout", type=float, default=30.0)
@@ -258,7 +271,7 @@ async def main():
     os.environ["LLM_PROFILE"] = a.profile
     s = config.Settings.from_env()
 
-    cases = load_cases()
+    cases = load_cases(a.cases)
     if a.only:
         cases = [c for c in cases if c["group"] in a.only.split(",")]
     if a.variant == "before":  # 지금 지시문은 사건을 고르지 않으므로 의도를 채점할 미션 줄만
@@ -269,7 +282,7 @@ async def main():
     ) as client:
         for case in cases:
             rows.append(await judge(client, s, a.variant, case, a.timeout))
-    report(score(rows), f"{a.profile} {s.models['intent']} {a.variant}")
+    report(score(rows), f"{a.profile} {s.models['intent']} {a.variant} {a.cases}")
     if a.out:
         Path(a.out).write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
 

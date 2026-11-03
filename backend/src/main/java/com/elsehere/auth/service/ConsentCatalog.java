@@ -17,7 +17,7 @@ public class ConsentCatalog {
   private static final List<ConsentTerm> CURRENT_TERMS =
       List.of(
           new ConsentTerm(ConsentType.TERMS, "2026-10", true, "서비스 이용약관", "/terms/2026-10"),
-          new ConsentTerm(ConsentType.PRIVACY, "2026-10", true, "개인정보 처리방침", "/privacy/2026-10"),
+          new ConsentTerm(ConsentType.PRIVACY, "2026-11", true, "개인정보 처리방침", "/privacy/2026-11"),
           new ConsentTerm(ConsentType.AGE14, "2026-10", true, "만 14세 이상입니다", null),
           new ConsentTerm(ConsentType.VOICE, "2026-10", false, "음성 처리 동의", "/voice/2026-10"),
           new ConsentTerm(

@@ -99,5 +99,15 @@ namespace A305.Deployment.Tests
             Assert.That(images, Is.Not.Empty);
             Assert.That(images.Where(image => !File.Exists(templateFolder + image)), Is.Empty);
         }
+
+        [Test]
+        public void WebTemplateProvidesAnExplicitAnalyticsConsentChoice()
+        {
+            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
+
+            Assert.That(page, Does.Contain("id=\"analytics-consent\""));
+            Assert.That(page, Does.Contain("id=\"analytics-accept\""));
+            Assert.That(page, Does.Contain("id=\"analytics-reject\""));
+        }
     }
 }

@@ -3,8 +3,10 @@
   "environment_file": "/home/ubuntu/apps/a305/dev/deploy.env",
   "initial_compose_file": "REPLACE_WITH_RUNNING_APP_COMPOSE_FILE",
   "overlays": [
-    "/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml"
+    "/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml",
+    "/home/ubuntu/apps/a305/dev/config/compose.dev-worker-network.yaml"
   ],
+  "fixed_worker_network": true,
   "public_health_url": "https://dev.elsehere.kr/api/health",
   "minimum_backend_commit": "REPLACE_WITH_DEPLOYED_MONITORING_COMMIT",
   "bootstrap_sources": {

@@ -33,6 +33,26 @@ namespace A305.Dialogue.Tests
             );
         }
 
+        // 대사 칸은 이름표 안 이름 글자가 시작하는 자리만큼 들어가 시작하고, 오른쪽 끝과 이름표 자리는 그대로 둔다.
+        [Test]
+        public void LinesIndent_StartsTheLinesInsideTheColumn()
+        {
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight: 100,
+                nameWidth: 120,
+                linesIndent: 32
+            );
+
+            float left = (Wide.x - DialogueCinemaLayout.ColumnWidth) / 2f;
+            Assert.That(layout.Lines.xMin, Is.EqualTo(left + 32).Within(.01f));
+            Assert.That(
+                layout.Lines.xMax,
+                Is.EqualTo(left + DialogueCinemaLayout.ColumnWidth).Within(.01f)
+            );
+            Assert.That(layout.Name.xMin, Is.EqualTo(left).Within(.01f));
+        }
+
         [Test]
         public void NarrowScreen_KeepsTheSideMargin()
         {

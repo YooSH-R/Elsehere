@@ -38,11 +38,13 @@ namespace A305.Dialogue
         /// <param name="hasEarlierLines">
         /// 보이는 대사 위에 지난 대사가 있는지. 있으면 최소 높이를 두지 않고 대사 칸을 보이는 대사에 딱 맞춰, 지난 대사가 반쯤 비치지 않게 한다.
         /// </param>
+        /// <param name="linesIndent">이름표 왼쪽 끝에서 이름 글자까지의 거리. 대사 칸을 그만큼 들여 대사 앞 이름이 이름표 글자와 같은 세로줄에서 시작한다.</param>
         public static DialogueCinemaLayout Compute(
             Vector2 canvasSize,
             float linesHeight,
             float nameWidth,
-            bool hasEarlierLines = false
+            bool hasEarlierLines = false,
+            float linesIndent = 0
         )
         {
             float width = Mathf.Min(ColumnWidth, canvasSize.x - 2 * SideMargin);
@@ -64,9 +66,9 @@ namespace A305.Dialogue
             );
             layout.Status = new Rect(left, layout.Input.yMax + 12, width, StatusHeight);
             layout.Lines = new Rect(
-                left,
+                left + linesIndent,
                 layout.Status.yMax + 10,
-                width,
+                width - linesIndent,
                 hasEarlierLines
                     ? Mathf.Min(linesHeight, MaxLinesHeight)
                     : Mathf.Clamp(linesHeight, MinLinesHeight, MaxLinesHeight)

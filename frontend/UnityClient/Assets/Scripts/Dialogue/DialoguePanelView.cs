@@ -717,16 +717,17 @@ namespace A305.Dialogue
                 DialogueCinemaLayout.ColumnWidth,
                 lastCanvasSize.x - 2 * DialogueCinemaLayout.SideMargin
             );
-            float linesHeight = VisibleLinesHeight(column, out bool hasEarlierLines);
-            float nameWidth = Mathf.Max(
-                MinNameWidth,
-                npcNameText.GetPreferredValues(npcNameText.text).x + 2 * NamePadding
-            );
+            float namePreferred = npcNameText.GetPreferredValues(npcNameText.text).x;
+            float nameWidth = Mathf.Max(MinNameWidth, namePreferred + 2 * NamePadding);
+            // 이름은 이름표 가운데에 있으므로, 짧은 이름은 이름표 끝에서 더 들어가 시작한다. 대사 칸을 그 자리까지 들인다.
+            float linesIndent = (nameWidth - namePreferred) / 2f;
+            float linesHeight = VisibleLinesHeight(column - linesIndent, out bool hasEarlierLines);
             DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
                 lastCanvasSize,
                 linesHeight,
                 nameWidth,
-                hasEarlierLines
+                hasEarlierLines,
+                linesIndent
             );
             frame.anchorMin = Vector2.zero;
             frame.anchorMax = new Vector2(1, 0);

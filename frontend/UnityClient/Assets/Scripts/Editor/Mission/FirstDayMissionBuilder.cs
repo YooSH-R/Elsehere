@@ -8,6 +8,7 @@ using A305.EditorTools.World;
 using A305.Mission;
 using A305.Player;
 using A305.Theme;
+using A305.Wayfinding;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -83,6 +84,22 @@ namespace A305.EditorTools.Mission
             Debug.Log("Live mini map added to the first-day mission prefab.");
         }
 
+        /// <summary>이미 만든 큰 지도에 도로 위 길 안내 켜기·끄기 버튼만 다시 둔다. 지도와 미니맵은 그대로 둔다.</summary>
+        public static void ApplyRouteToggle()
+        {
+            BuilderTools.ThrowIfPlaying();
+            bool updated = BuilderTools.UpdatePrefabIfExists(
+                ViewPath,
+                root =>
+                    AddRouteToggle(
+                        (RectTransform)root.transform.Find("Content/MapOverlay/Panel"),
+                        RoundedSprite(GlassSpritePath, 0f)
+                    )
+            );
+            if (!updated)
+                throw new System.InvalidOperationException("첫날 미션 프리팹이 없습니다.");
+        }
+
         private static void AddLiveMiniMap(GameObject root)
         {
             Transform content = root.transform.Find("Content");
@@ -148,6 +165,7 @@ namespace A305.EditorTools.Mission
                 new Vector2(260, 40),
                 19
             );
+            AddRouteToggle(large, glassSprite);
             overlay.gameObject.SetActive(false);
 
             // 왼쪽 아래 미니맵은 시안 지도 그림으로 따로 만든다.
@@ -211,6 +229,30 @@ namespace A305.EditorTools.Mission
             markerRim.effectColor = Color.white;
             markerRim.effectDistance = new Vector2(2, 2);
             return view;
+        }
+
+        // 범례 반대편 오른쪽 아래에 같은 흰 알약으로 도로 위 길 안내를 켜고 끄는 버튼을 둔다.
+        private static void AddRouteToggle(RectTransform panel, Sprite sprite)
+        {
+            Transform old = panel.Find("RouteToggle");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            RectTransform chip = Rect("RouteToggle", panel);
+            Anchor(chip, new Vector2(1, 0), new Vector2(-24, 18), new Vector2(200, 40));
+            Image face = chip.gameObject.AddComponent<Image>();
+            face.sprite = sprite;
+            face.type = Image.Type.Sliced;
+            face.color = new Color(1, 1, 1, .86f);
+            Button button = chip.gameObject.AddComponent<Button>();
+            TMP_Text label = Text(chip, "Label", 19, GuideRouteToggle.Label(true));
+            label.font = UiBuilderTools.BoldFont();
+            label.color = MapInk;
+            label.alignment = TextAlignmentOptions.Center;
+            label.raycastTarget = false;
+            Stretch((RectTransform)label.transform);
+            var toggle = chip.gameObject.AddComponent<GuideRouteToggle>();
+            BuilderTools.SetReference(toggle, "button", button);
+            BuilderTools.SetReference(toggle, "label", label);
         }
 
         // ▲ 내 위치 · ● 목적지 범례를 흰 알약 위에 둔다.

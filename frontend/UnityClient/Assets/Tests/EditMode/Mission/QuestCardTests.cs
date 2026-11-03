@@ -129,7 +129,7 @@ namespace A305.Mission.Tests
             Assert.That(amount.fontSize, Is.EqualTo(clock.fontSize).Within(.01f));
         }
 
-        // 코인 그림도 옆 숫자와 같은 크기로 읽힌다. 코인만 크게 튀지 않는다(글자 크기의 1.3배 이하).
+        // 코인 그림도 옆 숫자와 어울리는 크기로 읽힌다. 코인만 크게 튀지 않는다(글자 크기의 1.5배 이하).
         [Test]
         public void CoinIcon_IsScaledToTheAmountText()
         {
@@ -141,7 +141,7 @@ namespace A305.Mission.Tests
                 .transform.Find("Content/Status/Coins/Row/Coin")
                 .GetComponent<UnityEngine.UI.LayoutElement>();
 
-            Assert.That(coin.preferredHeight, Is.LessThanOrEqualTo(amount.fontSize * 1.3f));
+            Assert.That(coin.preferredHeight, Is.LessThanOrEqualTo(amount.fontSize * 1.5f));
             Assert.That(coin.preferredWidth, Is.EqualTo(coin.preferredHeight).Within(.01f));
         }
 

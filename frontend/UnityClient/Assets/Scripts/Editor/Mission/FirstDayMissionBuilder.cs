@@ -19,7 +19,7 @@ namespace A305.EditorTools.Mission
 {
     public static class FirstDayMissionBuilder
     {
-        private const string ViewPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
+        internal const string ViewPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
         private static readonly Color Ink = new Color(.16f, .24f, .2f);
         private static readonly Color Cream = new Color(.98f, .96f, .91f, .96f);
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";

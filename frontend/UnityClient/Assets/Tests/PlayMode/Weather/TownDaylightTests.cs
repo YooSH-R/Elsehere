@@ -206,6 +206,30 @@ namespace A305.Weather.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Midnight_LightsLoadedShopInteriorLikeALitRoom()
+        {
+            yield return null;
+            // 방문한 건물의 실내는 따로 불러와 마을 날씨 표시에 넘긴다.
+            Transform interior = Keep(new GameObject("PoliceStationInterior")).transform;
+            Light ceiling = Keep(new GameObject("InteriorLight")).AddComponent<Light>();
+            ceiling.type = LightType.Point;
+            ceiling.intensity = ShopLampIntensity;
+            ceiling.transform.SetParent(interior);
+            presenter.SetShopInterior(interior);
+
+            presenter.ShowTime(Midnight);
+
+            Assert.That(
+                ceiling.intensity,
+                Is.EqualTo(ShopLampIntensity * daylight.NightShopLampScale).Within(.001f)
+            );
+
+            presenter.ShowTime(Midday);
+
+            Assert.That(ceiling.intensity, Is.EqualTo(ShopLampIntensity).Within(.001f));
+        }
+
+        [UnityTest]
         public IEnumerator Midnight_LightsWindowsOfOpenShopsOnly()
         {
             yield return null;

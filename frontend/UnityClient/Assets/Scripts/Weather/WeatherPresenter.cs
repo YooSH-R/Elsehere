@@ -80,11 +80,13 @@ namespace A305.Weather
                 return;
 
             var renderers = interior.GetComponentsInChildren<Renderer>(true);
+            // 매장 실내는 마을의 어두운 밤 환경광을 그대로 받으므로 실내등을 매장 실내등 배율로 밝힌다.
             shopLights = new NightLights(
                 daylight,
-                interior.GetComponentsInChildren<Light>(true),
+                Enumerable.Empty<Light>(),
                 renderers,
-                renderers
+                renderers,
+                interior.GetComponentsInChildren<Light>(true)
             );
             if (shownMinutes.HasValue)
                 shopLights.Apply(daylight, daylight.NightAmount(shownMinutes.Value));

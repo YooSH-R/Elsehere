@@ -36,10 +36,10 @@ class FirstDayMissionServiceTest {
   }
 
   @Test
-  void statusBeforeStartPointsToMapButton() {
+  void statusBeforeStartPointsToQuestCard() {
     when(repository.findById(8L)).thenReturn(Optional.empty());
 
-    assertThat(service.status(8L).direction()).isEqualTo("왼쪽 위 지도 버튼에서 첫날 여정을 시작하세요.");
+    assertThat(service.status(8L).direction()).isEqualTo("퀘스트 카드를 눌러 첫날 여정을 시작하세요.");
   }
 
   @Test

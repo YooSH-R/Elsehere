@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.Weather"
+        "A305.Weather",
+        "A305.Theme"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

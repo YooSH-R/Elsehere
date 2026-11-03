@@ -133,6 +133,142 @@
   },
   "npcs": [
     {
+      "npcId": "ARCADE_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "BAKERY_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "BANK_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "BARBER_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "CAFE_STAFF",
       "role": "STAFF",
       "scene": "CAFE",
@@ -140,6 +276,108 @@
         "HUNGER": 1,
         "ENERGY": 1,
         "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "DINER_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "FLOWER_SHOP_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOME_STORE_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
         "FUN": 0.8,
         "WORK": 1
       },
@@ -201,7 +439,75 @@
       ]
     },
     {
+      "npcId": "LAUNDROMAT_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "POLICE_OFFICER",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POST_OFFICE_STAFF",
       "role": "STAFF",
       "scene": "TOWN",
       "needRates": {

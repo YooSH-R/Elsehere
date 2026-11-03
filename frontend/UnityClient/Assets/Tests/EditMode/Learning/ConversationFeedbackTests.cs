@@ -72,6 +72,20 @@ namespace A305.Learning.Tests
             Assert.That(feedback.Summary, Does.Contain("2"));
         }
 
+        // 서버 없이 만든 요약도 대화 노트 부제처럼 이름 끝소리에 맞춰 와·과를 고른다.
+        [TestCase("Ben", "3개의 문장으로 Ben과 이야기를 나눴어요.")]
+        [TestCase("Mia", "3개의 문장으로 Mia와 이야기를 나눴어요.")]
+        public void Summary_PicksWaOrGwaByTheLastSoundOfTheName(string npcName, string expected)
+        {
+            var feedback = new ConversationFeedback(
+                npcName,
+                new[] { "Hello!", "Thanks!", "Bye!" },
+                Rules
+            );
+
+            Assert.That(feedback.Summary, Is.EqualTo(expected));
+        }
+
         [Test]
         public void FromServer_DoneFeedback_ShowsServerSummaryAndNotes()
         {

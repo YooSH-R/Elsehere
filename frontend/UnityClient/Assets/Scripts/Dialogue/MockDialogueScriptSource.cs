@@ -288,6 +288,286 @@ namespace A305.Dialogue
                 ),
                 exampleSentence = "My wallet was stolen at the diner.",
             },
+            // 마을 거리 매장 직원(S15P31A305-505). 이름·역할은 서버 시드와 같고, 가격은 서버 상황 문장과 같다.
+            new Entry
+            {
+                npcCode = "POST_OFFICE_STAFF",
+                npcName = "Linda",
+                roleLabel = "우체국 직원",
+                opening = new LineEntry(
+                    "Hello, welcome to the post office. What can I do for you?",
+                    "안녕하세요, 우체국입니다. 무엇을 도와드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "stamp" },
+                        new LineEntry(
+                            "A stamp for a letter is one dollar.",
+                            "편지용 우표는 1달러예요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "package" },
+                        new LineEntry(
+                            "Please put it on the scale. Sending a package is five dollars.",
+                            "저울에 올려 주세요. 소포는 5달러예요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Would you like to send a letter or a package?",
+                    "편지를 보내세요, 소포를 보내세요?"
+                ),
+                exampleSentence = "I'd like to send this package.",
+            },
+            new Entry
+            {
+                npcCode = "DINER_STAFF",
+                npcName = "Rosa",
+                roleLabel = "식당 종업원",
+                opening = new LineEntry(
+                    "Hi, honey! Welcome to Maple Diner. What can I get you?",
+                    "어서 와요! 메이플 다이너예요. 뭘 드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "pancake" },
+                        new LineEntry(
+                            "Pancakes, great choice! That's seven dollars.",
+                            "팬케이크, 좋은 선택이에요! 7달러예요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "coffee" },
+                        new LineEntry(
+                            "Coffee is two dollars, and refills are free.",
+                            "커피는 2달러고 리필은 무료예요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "We have pancakes, burgers, apple pie and coffee.",
+                    "팬케이크, 버거, 애플파이, 커피가 있어요."
+                ),
+                exampleSentence = "Can I have pancakes and coffee, please?",
+            },
+            new Entry
+            {
+                npcCode = "BANK_STAFF",
+                npcName = "Henry",
+                roleLabel = "은행원",
+                opening = new LineEntry(
+                    "Hello. Welcome to Town Bank. How may I help you today?",
+                    "안녕하세요. 타운 은행입니다. 무엇을 도와드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "account" },
+                        new LineEntry(
+                            "To open an account, I'll need a photo ID, please.",
+                            "계좌를 만들려면 사진이 있는 신분증이 필요해요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "atm" },
+                        new LineEntry(
+                            "The ATM is just inside the entrance, on the left.",
+                            "ATM은 들어오시면 바로 왼쪽에 있어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "I can help you with deposits and withdrawals.",
+                    "입금과 출금을 도와드릴 수 있어요."
+                ),
+                exampleSentence = "I'd like to open an account.",
+            },
+            new Entry
+            {
+                npcCode = "LAUNDROMAT_STAFF",
+                npcName = "Gus",
+                roleLabel = "빨래방 주인",
+                opening = new LineEntry(
+                    "Hey there! Welcome to Suds. Got some laundry today?",
+                    "안녕하세요! 서즈 빨래방이에요. 오늘 빨래 있어요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "wash" },
+                        new LineEntry(
+                            "A wash is three dollars and takes about thirty minutes.",
+                            "세탁은 3달러고 30분쯤 걸려요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "dry" },
+                        new LineEntry(
+                            "The dryer is two dollars. It takes about forty minutes.",
+                            "건조기는 2달러예요. 40분쯤 걸려요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Put your clothes in, add the soap, and press start.",
+                    "옷과 세제를 넣고 시작을 누르면 돼요."
+                ),
+                exampleSentence = "How much is a wash?",
+            },
+            new Entry
+            {
+                npcCode = "FLOWER_SHOP_STAFF",
+                npcName = "Lily",
+                roleLabel = "꽃집 주인",
+                opening = new LineEntry(
+                    "Oh, hello. Welcome to Bloom Flowers. Who are the flowers for?",
+                    "아, 안녕하세요. 블룸 플라워예요. 누구에게 줄 꽃인가요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "bouquet" },
+                        new LineEntry(
+                            "A bouquet is fifteen dollars. Maybe roses or tulips?",
+                            "꽃다발은 15달러예요. 장미나 튤립은 어때요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "rose" },
+                        new LineEntry("One rose is two dollars.", "장미 한 송이는 2달러예요.")
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "We have roses, tulips, sunflowers and daisies today.",
+                    "오늘은 장미, 튤립, 해바라기, 데이지가 있어요."
+                ),
+                exampleSentence = "I'd like a bouquet for my friend.",
+            },
+            new Entry
+            {
+                npcCode = "BARBER_STAFF",
+                npcName = "Tony",
+                roleLabel = "이발사",
+                opening = new LineEntry(
+                    "Hey, come on in! Take a seat. Haircut today?",
+                    "어서 와요! 앉으세요. 오늘 머리 자르게요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "haircut" },
+                        new LineEntry(
+                            "Sure! A haircut is twenty dollars. How short do you want it?",
+                            "좋아요! 커트는 20달러예요. 얼마나 짧게 할까요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "shave" },
+                        new LineEntry("A shave is ten dollars.", "면도는 10달러예요.")
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "No appointment needed. Just tell me how you want it.",
+                    "예약은 필요 없어요. 어떻게 하고 싶은지만 말해 줘요."
+                ),
+                exampleSentence = "Just a little shorter, please.",
+            },
+            new Entry
+            {
+                npcCode = "BAKERY_STAFF",
+                npcName = "Grace",
+                roleLabel = "제빵사",
+                opening = new LineEntry(
+                    "Hello, dear! The croissants just came out of the oven.",
+                    "어서 와요! 크루아상이 방금 오븐에서 나왔어요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "croissant" },
+                        new LineEntry(
+                            "A croissant is three dollars. For here or to go?",
+                            "크루아상은 3달러예요. 먹고 가요, 가져가요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "bread" },
+                        new LineEntry("A loaf of bread is four dollars.", "빵 한 덩이는 4달러예요.")
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "We have bread, croissants and chocolate cake today.",
+                    "오늘은 빵, 크루아상, 초콜릿 케이크가 있어요."
+                ),
+                exampleSentence = "Can I have a croissant to go?",
+            },
+            new Entry
+            {
+                npcCode = "ARCADE_STAFF",
+                npcName = "Max",
+                roleLabel = "오락실 직원",
+                opening = new LineEntry(
+                    "Hey! Welcome to Little Arcade! Wanna try the claw machine?",
+                    "안녕! 리틀 아케이드예요! 인형 뽑기 해 볼래요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "play" },
+                        new LineEntry(
+                            "Move the claw with the stick, then press the button to drop it.",
+                            "막대로 집게를 움직이고 버튼을 눌러 내려요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "much" },
+                        new LineEntry(
+                            "One game is one dollar. No promises on the prize, though!",
+                            "한 판에 1달러예요. 인형이 뽑힐지는 장담 못 해요!"
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Pick a machine and give it a try!",
+                    "기계를 하나 골라서 해 봐요!"
+                ),
+                exampleSentence = "How do I play the claw machine?",
+            },
+            new Entry
+            {
+                npcCode = "HOME_STORE_STAFF",
+                npcName = "Nina",
+                roleLabel = "매장 직원",
+                opening = new LineEntry(
+                    "Hello, welcome to Home & Living. Which room are you shopping for?",
+                    "안녕하세요, 홈 앤 리빙입니다. 어느 방에 둘 물건을 찾으세요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "lamp" },
+                        new LineEntry(
+                            "This lamp is thirty dollars. It would look nice in a bedroom.",
+                            "이 램프는 30달러예요. 침실에 잘 어울려요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "chair" },
+                        new LineEntry(
+                            "The armchair is one hundred fifty dollars.",
+                            "안락의자는 150달러예요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Take your time and look around.",
+                    "천천히 둘러보세요."
+                ),
+                exampleSentence = "I'm looking for a lamp for my bedroom.",
+            },
         };
 
         [SerializeField]

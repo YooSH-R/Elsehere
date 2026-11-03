@@ -20,6 +20,9 @@ namespace A305.Dialogue
         public const float MaxLinesHeight = 300;
         public const float NameHeight = 48;
 
+        // 둥근 이름표가 대사 글자 줄보다 앞으로 나오는 폭. 같은 자리에서 시작하면 둥근 끝 때문에 이름표가 안쪽으로 들어가 보인다.
+        public const float NameOutdent = 8;
+
         // 이름 줄 위로 그라데이션이 장면 속으로 옅어지는 높이
         public const float FadeHeight = 150;
 
@@ -71,7 +74,12 @@ namespace A305.Dialogue
                     ? Mathf.Min(linesHeight, MaxLinesHeight)
                     : Mathf.Clamp(linesHeight, MinLinesHeight, MaxLinesHeight)
             );
-            layout.Name = new Rect(left, layout.Lines.yMax + Gap, nameWidth, NameHeight);
+            layout.Name = new Rect(
+                left - NameOutdent,
+                layout.Lines.yMax + Gap,
+                nameWidth,
+                NameHeight
+            );
             layout.Tools = Rect.MinMaxRect(
                 layout.Name.xMax + Gap,
                 layout.Name.yMin,

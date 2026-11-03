@@ -33,7 +33,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `STT_FALLBACK` | (구성 값, GMS 구성은 `gms:whisper-1`) | 음성 인식이 한도·오류·응답 없음일 때 한 번 더 부를 `공급자:모델`. 빈 값이면 끔. 녹음 자체 오류(400·413·415·422)는 넘기지 않음 |
 | `STT_FIRST_TIMEOUT_S` | 8 | 뒤에 다른 공급자가 있을 때 첫 음성 인식 호출의 상한 (마지막 공급자와 공급자가 하나뿐일 때는 30초) |
 | `STT_CHAIN` | (없음) | 음성 인식 공급자 순서 `공급자:모델,공급자:모델` (예: `gpu:turbo-lr1e4,gms:whisper-1,groq:whisper-large-v3-turbo`). 앞 공급자가 한도·오류·응답 없음이면 다음으로 넘김. 정하면 구성의 음성 인식과 `STT_FALLBACK` 대신 이 순서를 씀 |
-| `STT_GPU_BASE_URL` / `STT_GPU_TOKEN` | (`STT_CHAIN`에 `gpu`가 있으면 필수) | SSAFY GPU 서버에서 도는 자체 학습 STT의 주소와 토큰. 학원 방화벽 때문에 GPU 서버가 배포 서버로 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18431/v1`)를 가리킴 |
+| `STT_GPU_BASE_URL` / `STT_GPU_TOKEN` | (`STT_CHAIN`에 `gpu`가 있으면 필수) | SSAFY GPU 서버에서 도는 자체 학습 STT([`ai/gpu_stt`](../gpu_stt/README.md))의 주소와 토큰. 학원 방화벽 때문에 GPU 서버가 배포 서버로 거는 역방향 SSH 터널 입구(예: `http://172.19.0.1:18431/v1`)를 가리킴 |
 | `STT_NEXT_TIMEOUT_S` | 8 | 순서 중간 공급자(처음·마지막 아님)의 상한 |
 | `STT_BREAKER_FAILURES` / `STT_BREAKER_SKIP_S` | 3 / 60 | 같은 음성 인식 공급자가 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 다음 공급자로 바로 감. 마지막 공급자는 건너뛰지 않음. 횟수가 0이면 끔 |
 | `LLM_API_KEY`, `LLM_BASE_URL` | (구성 값) | 구성의 기본 공급자 키·주소를 덮어쓰기 |
@@ -62,7 +62,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
 | `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김 |
 | `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 예: `http://172.19.0.1:18432/v1`) |
-| `GUARD_GPU_TIMEOUT_S` | 2 | GPU 서버 판정 한 번의 상한. 넘으면 재시도 없이 구성의 `guard` 모델로 |
+| `GUARD_GPU_TIMEOUT_S` | 3 | GPU 서버 판정 한 번의 상한. vLLM이 처음 보는 동시 요청 수에서 한 번 2.4~2.7초가 걸려 그보다 길게 잡음. 넘으면 재시도 없이 구성의 `guard` 모델로 |
 | `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
 
 ## GPU 음성과 발음 시간표
@@ -254,8 +254,8 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - `tests/test_profiles.py`: `LLM_PROFILE` 하나로 주소·키·모델이 바뀌는지, GMS 구성에서 대화는 GMS·음성 인식은 Groq로 가는지, 음성 인식 대체(`STT_FALLBACK`)·순서(`STT_CHAIN`, gpu 주소·토큰 필수, 잘못된 값)·건너뛰기 설정, 음성 합성 스레드 수(`KOKORO_THREADS`), GPT-5 요청 칸
 - `tests/test_npc_chat.py`: 터미널 대화 도구(`ai/tools/npc_chat.py`)의 크레딧 계산(입력·출력 단가, 단가 모르는 모델, 같은 요청 더 보냄 표시), 첫 대사는 시스템 프롬프트만 보내고 기억, 이력을 붙인 대답과 대화 기록, 공급자 실패 때 기록 유지, GMS 키만으로 실행
 - `tests/test_npc_profile_models.py`: 커밋한 인격 모델이 지금 스키마로 다시 만든 것과 같은지, 계약 예시를 Python 이름으로 읽고 계약 JSON으로 되돌리기, 스키마가 막는 값(모르는 키·빈 글·정해진 값 밖·길이·개수) 거부
-- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC 5명의 상황, 서비스 NPC마다 성별·성격에 맞춰 따로 정한 목소리(`voiceId`), 백엔드 생성 파일이 원본과 같은지
-- `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 역할의 일과 틀에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만), 세 NPC의 최종 값이 인격 글의 성격 방향을 재현하는지, 인격 카드 자동 칸(성격 5축을 스키마 칸 순서로, 손으로 쓴 규칙 뒤 행동 조각, 다시 계산해도 중복 없음, 원본 불변, 서비스 인격 파일 동기화, 명령은 생활 파일 있는 NPC만 고침)
+- `tests/test_npc_configs.py`: 원본 스키마 검사 — 계약 예시와 서비스 NPC 파일(`ai/npcs`) 통과, 활성 NPC의 `voiceId`, 생성 모델이 놓치는 규칙(중복·`null`·형변환)을 어긴 위치로 알려 주기, 여러 오류를 한 번에. NPC 파일 합치기 — 파일 이름 순, 파일끼리 `npcId` 중복, 파일 이름을 붙인 스키마 오류, JSON이 아닌 파일, 빈 폴더(스키마의 배열 규칙), 명령줄 검사만·`--out` 저장(BOM 없음)·문제가 있으면 저장 안 함. 서비스 상황 — `npcId`로 모으기, 연결 없음·없는 NPC·없는 파일·형식 위반·장소 불일치, `--scenarios-out` 저장, 서비스 NPC마다 연결한 상황, 서비스 NPC마다 성별·성격에 맞춰 따로 정한 목소리(`voiceId`), 백엔드 생성 파일이 원본과 같은지
+- `tests/test_npc_derive.py`: 자동 계산(`ai/tools/npc_derive.py`) — MBTI 네 글자·-T/-A 꼬리를 성격 5축으로(대소문자 무관, 형식이 아니면 거부), 연결 규칙의 직선 계산, Mia의 계산값, 행동 조각 뽑기(성격 쪽만·범주당 하나·같은 씨앗 같은 결과·충돌 제외·맞는 조각이 적으면 적게), 배수 합치기(곱하기, 기억 세기 보너스는 더해 최대 2), 생활 파일에서 한 번에 계산, 역할의 일과 틀에 기본 장소를 넣은 일과(지금은 각자 기본 장소 안에서만), 서비스 NPC마다 최종 값이 인격 글의 성격 방향을 재현하는지, 인격 카드 자동 칸(성격 5축을 스키마 칸 순서로, 손으로 쓴 규칙 뒤 행동 조각, 다시 계산해도 중복 없음, 원본 불변, 서비스 인격 파일 동기화, 명령은 생활 파일 있는 NPC만 고침)
 - `tests/test_npc_persona_api.py`: 인격 카드 조합 API(`/v1/npc/persona/generate`·`/derive`) — 필수 입력(npcId·역할·장소)만으로 초안과 고른 MBTI, 같은 요청 같은 결과, 고정 입력 유지, DB 후보와 다른 NPC 이름, 만들 수 없는 요청(장소에 직업 없음·틀린 MBTI·고를 이름 없음·필요한 쪽 성격 특징 없음)은 400, 사연은 사연 칸만·모델을 어긴 사연은 502, MBTI를 바꾼 카드의 자동 칸만 다시 계산, 모델 밖 카드는 400
 - `tests/test_npc_generate.py`: 인격 카드 생성(`app/npc_persona.py`, 명령 `ai/tools/npc_generate.py`) — MBTI 없이 고르기, 고정 칸 유지·한 칸 고정이 다른 칸을 바꾸지 않음, 고정 직업의 나이대, 후보 목록은 준 목록만 바꿈, 재료 파일 검사(스키마 위치, 축 양쪽 특징 2개 이상, 없는 나이대, 특징 이름 중복), 같은 id 같은 NPC·다른 id 다른 NPC, MBTI 16 × 직원(카페·호텔)·행인 48가지가 공통 인격 스키마·생활 파일 스키마 통과, 초안 표시, 축마다 기운 쪽 특징, 반대 쪽·다른 역할 재료 없음, 직업·나이대, 쓰는 이름 제외, 말투·사회적 행동 규칙, 자동 칸, 장소에 직업이 없으면 오류, 명령이 두 파일을 씀, LLM은 사연 칸만 쓰고(가짜 공급자) 카드와 금지 사항을 받으며 스키마 밖 사연·JSON이 아닌 출력은 거절
 - `tests/test_npc_simulate.py`: 하루 시뮬레이션(`ai/tools/npc_simulate.py`) — 욕구 감소 배수, 가장 급한 욕구를 채울 행동, 근무 중에는 일만, 다른 역할의 행동 제외, 부탁 발생(하루 한 번)·자기 장소 심부름 제외·퇴근 중 제외. 서비스 데이터로 Jake의 근무 중 머핀 부탁·Mia는 부탁 없음·Ben의 오후 말 걸기, 튜토리얼을 마치기 전 안내 NPC(Ben)는 생활·부탁 없음(다른 NPC는 평소대로), 알아봄 단계에 닿는 대화 수, 기억 떠올림, 명령줄 출력

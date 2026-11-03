@@ -359,6 +359,8 @@ namespace A305.Dialogue
             useHintButton.interactable = content.CanSend && !string.IsNullOrEmpty(sentence);
 
             sendButton.interactable = content.CanSend;
+            // 정해진 대사를 따라가는 대화(튜토리얼 길 안내)는 대사를 다 마칠 때까지 끝낼 수 없다.
+            endButton.interactable = !content.IsGuided || content.IsGuidedCompleted;
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화는 이번에 말하거나 입력할 대사를 빈 입력칸에 회색 안내로 미리 보인다.
@@ -552,8 +554,17 @@ namespace A305.Dialogue
                 content.NpcName,
                 isMeaningVisible,
                 content.LastNpcGlossary,
-                glossaryCard.Word
+                glossaryCard.Word,
+                SentenceIndent()
             );
+        }
+
+        // 이름 길이와 상관없이 문장이 같은 자리에서 시작하도록, 더 긴 이름(NPC 이름·나) 뒤에 두 칸만큼 띄운 자리
+        private float SentenceIndent()
+        {
+            float npc = linesText.GetPreferredValues($"<b>{content.NpcName}</b>").x;
+            float me = linesText.GetPreferredValues("<b>나</b>").x;
+            return Mathf.Ceil(Mathf.Max(npc, me) + linesText.fontSize * .6f);
         }
 
         // 호버 카드는 대사 위에 겹쳐 뜨므로 대사 칸 크기는 그대로 두고 카드 내용과 자리만 맞춘다.
@@ -761,9 +772,18 @@ namespace A305.Dialogue
             helpPanel.anchoredPosition = new Vector2(-HelpMargin, -HelpTop);
             float helpRoom =
                 lastCanvasSize.y - HelpTop - layout.Name.yMax - 2 * DialogueCinemaLayout.Gap;
+            // 단어·문장 카드가 남는 높이보다 길면 아래가 잘려 보이지 않게 묶음째 줄여 넣는다(DialogueHelpFit).
+            float room = Mathf.Clamp(helpRoom, 160, 600);
+            var helpContent = (RectTransform)helpPanel.Find("Viewport/Content");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(helpContent);
+            float scale = DialogueHelpFit.Scale(
+                room,
+                LayoutUtility.GetPreferredHeight(helpContent)
+            );
+            helpPanel.localScale = new Vector3(scale, scale, 1f);
             helpPanel.sizeDelta = new Vector2(
                 Mathf.Min(HelpWidth, lastCanvasSize.x - 2 * HelpMargin),
-                Mathf.Clamp(helpRoom, 160, 600)
+                room / scale
             );
             PlaceVehicleStatus(layout);
         }
@@ -780,7 +800,8 @@ namespace A305.Dialogue
                 content.NpcName,
                 isMeaningVisible,
                 content.LastNpcGlossary,
-                glossaryCard.Word
+                glossaryCard.Word,
+                SentenceIndent()
             );
             return linesText.GetPreferredValues(latest, width, 0).y;
         }

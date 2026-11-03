@@ -33,6 +33,21 @@ namespace A305.Dialogue.Tests
             );
         }
 
+        // 이름표는 끝이 둥글어 대사 글자와 같은 자리에서 시작하면 안쪽으로 들어가 보인다. 이름표만 살짝 앞으로 낸다.
+        [Test]
+        public void NameChip_StartsSlightlyBeforeTheLines()
+        {
+            DialogueCinemaLayout layout = DialogueCinemaLayout.Compute(
+                Wide,
+                linesHeight: 100,
+                nameWidth: 120
+            );
+
+            float outdent = layout.Lines.xMin - layout.Name.xMin;
+            Assert.That(outdent, Is.GreaterThan(0f));
+            Assert.That(outdent, Is.LessThan(DialogueCinemaLayout.NameHeight / 4f), "살짝만");
+        }
+
         [Test]
         public void NarrowScreen_KeepsTheSideMargin()
         {

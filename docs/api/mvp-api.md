@@ -197,7 +197,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 상세: 단어 뜻·저장한 문장과 문장 뜻·저장 출처·메모 | VOCAB-01 항목 |
 | | [메모], [외웠어요] | VOCAB-03 |
 | | [단어장에서 삭제] | VOCAB-04 |
-| | 오른쪽 위 메뉴의 [피드백 목록] 창: 목록, [피드백 보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
+| | 오른쪽 위 메뉴의 [피드백 목록] 창: 목록, 대화마다 [보기]로 저장된 피드백과 대화 기록 | CONV-09, FB-01, CONV-10 |
 | 19 AI 한도·오류 상태 | AI 사용량 소진 안내와 계속 쓸 수 있는 기능 | AI-01, 1.5 오류 응답 |
 | | 응답 실패 [다시 시도] | 같은 `requestId`로 실패한 요청 다시 전송 |
 | | 마이크 사용 불가 [텍스트로 입력] | 없음(클라이언트) |
@@ -601,11 +601,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   { "npcCode": "TOWN_PASSERBY", "name": "Ben", "npcType": "PASSERBY", "roleLabel": "행인", "canInitiate": true, "approachLine": "Hi there! Nice weather today, isn't it?" },
   { "npcCode": "TAXI_DRIVER", "name": "Joe", "npcType": "STAFF", "roleLabel": "택시 기사", "canInitiate": false, "approachLine": null },
   { "npcCode": "POLICE_OFFICER", "name": "Dan", "npcType": "STAFF", "roleLabel": "경찰관", "canInitiate": false, "approachLine": null },
+  { "npcCode": "POST_OFFICE_STAFF", "name": "Linda", "npcType": "STAFF", "roleLabel": "우체국 직원", "canInitiate": false, "approachLine": null },
   { "npcCode": "CAFE_STAFF", "name": "Mia", "npcType": "STAFF", "roleLabel": "카페 직원", "canInitiate": false, "approachLine": null }
 ]
 ```
 
 - `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
+- 마을(`TOWN`)에는 거리 매장 직원 9명(`POST_OFFICE_STAFF`·`DINER_STAFF`·`BANK_STAFF`·`LAUNDROMAT_STAFF`·`FLOWER_SHOP_STAFF`·`BARBER_STAFF`·`BAKERY_STAFF`·`ARCADE_STAFF`·`HOME_STORE_STAFF`)도 위 Linda처럼 `STAFF`, `canInitiate: false`로 내려옵니다.
 - `words`는 장소의 사물에 붙은 공용 단어 카드입니다. 여러 사물이 같은 단어를 쓰면 카드는 하나이며, Unity가 사물의 공용 단어 키(`wordKey`)로 카드를 찾습니다. 장소별 단어 목록은 Unity가 내보낸 `object-word-bindings.json`을 서버 시작 때 `scene_words`에 적재한 것입니다.
 - `npcs`, `words`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `wordKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 단어 카드를 한 번에 받습니다. MVP는 장소마다 단어가 20~40개라 응답이 작습니다.
@@ -656,7 +658,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### 게임 시간
 
-게임 시간은 **사용자마다 따로, 플레이한 동안만** 흐릅니다. 실제 10분이 게임 하루이고, 새 사용자는 1일차 오전 8시에서 시작합니다. 진행 중인 대화가 있으면 멈춥니다. 서버가 사용자별 누적 플레이 시간(`user_game_clocks`)을 보관하며, NPC 관계의 "마지막 대화 뒤 지난 게임 날 수"도 이 시계로 셉니다([NPC 생활·관계 설계](../npc-life-design.md) 11절).
+게임 시간은 **사용자마다 따로, 플레이한 동안만** 흐릅니다. 실제 10분이 게임 하루이고, 새 사용자는 1일차 오전 8시에서 시작합니다. 진행 중인 대화가 있거나 튜토리얼을 마치기 전(온보딩 단계가 `DONE`이 아님)이면 멈춥니다. 서버가 사용자별 누적 플레이 시간(`user_game_clocks`)을 보관하며, NPC 관계의 "마지막 대화 뒤 지난 게임 날 수"도 이 시계로 셉니다([NPC 생활·관계 설계](../npc-life-design.md) 11절).
 
 #### WORLD-06 `GET /api/v1/me/game-clock`
 
@@ -665,7 +667,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "day": 3, "minuteOfDay": 615, "paused": false }
 ```
 
-- `day`는 1일차부터 센 게임 날짜, `minuteOfDay`는 하루 중 분(0~1439, 615면 오전 10시 15분)입니다. `paused`는 진행 중인 대화가 있어 시간이 멈췄는지입니다.
+- `day`는 1일차부터 센 게임 날짜, `minuteOfDay`는 하루 중 분(0~1439, 615면 오전 10시 15분)입니다. `paused`는 진행 중인 대화가 있거나 튜토리얼을 마치기 전이라 시간이 멈췄는지입니다.
 - 신호를 보낸 적이 없으면 `{ "day": 1, "minuteOfDay": 480, "paused": false }`입니다. 시간을 흐르게 하지 않습니다.
 
 #### WORLD-07 `POST /api/v1/me/game-clock/beats`
@@ -676,7 +678,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - 월드 장면에 있는 동안 30초마다 보내는 신호입니다. 지난 신호 뒤 흐른 실제 시간만큼 게임 시간을 더하고 지금 게임 시각을 돌려줍니다(실제 1초 = 게임 2.4분).
-- 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 진행 중인 대화가 있으면 더하지 않고 `paused: true`입니다.
+- 첫 신호는 시계를 시작만 하고 더하지 않습니다. 신호 사이가 60초보다 길면(창을 닫았거나 백그라운드) 60초까지만 더합니다. 진행 중인 대화가 있거나 튜토리얼을 마치기 전이면 더하지 않고 `paused: true`입니다. 튜토리얼을 마치거나 건너뛴(TUT-01·02) 뒤 신호부터 흐릅니다.
 - 대화가 신호 사이에 시작·끝나면 그 몇 초는 신호 간격 안에서 셀 수도 빠질 수도 있습니다. 게임 날짜 단위로 쓰기에는 충분한 정확도입니다.
 - 두 API 모두 로그인한 사용자만 호출할 수 있으며, 로그인하지 않았으면 `401 UNAUTHENTICATED`입니다. WORLD-07은 `X-Requested-With` 헤더가 필요합니다.
 
@@ -972,7 +974,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - CONV-06 `GET /api/v1/turns/{turnId}/speech`는 만들어 둔 음성 파일을 돌려줍니다. [다시 듣기]는 이 API를 쓰며 TTS를 새로 만들지 않습니다. 키나 파일이 없거나 보관 기간이 만료됐으면 `404 NOT_FOUND`입니다.
 - CONV-07 `POST /api/v1/turns/{turnId}/speech`는 TTS가 실패했을 때 `{ "requestId": "..." }`로 다시 만듭니다. 이미 유효한 음성이 있으면 새로 만들지 않고 CONV-06 주소를 돌려줍니다. 정기 정리 전이라도 만료됐거나 저장했던 파일이 없으면 `EXPIRED`로 응답하고 합성하지 않습니다. 다시 만든 음성을 보관 상한 때문에 저장하지 못하면 오류 대신 `speech.status: FAILED`로 응답합니다.
 - NPC 음성 파일 키는 `turns.npc_audio_key`에 저장합니다. 앱 Compose는 환경별 영구 볼륨을 백엔드의 `/app/data/npc-audio`에 연결하며, 저장 위치와 배포 시 보존 기준은 [NPC 음성 저장 운영 문서](../npc-audio-storage.md)를 따릅니다.
-- 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
+- 보관 정책: 음성 생성 시각(`turns.npc_audio_created_at`)부터 최대 30일, 개발·운영 각각의 NPC 턴 음성 합계 5,000,000,000바이트까지 둡니다(서버 설정값, 매일 정리에서 맞추므로 정리 사이에는 넘을 수 있음). 기존 음성의 보관 시작 시각은 턴 생성 시각으로 초기화하며 재배포·파일 이전·DB 복원으로 기한을 다시 시작하지 않습니다. 정리 순서와 공용 음성·하위 폴더 제외, 백업·복원 기준은 [NPC 음성 저장 운영](../npc-audio-storage.md#보관삭제-정책)을 따릅니다.
 - `speech.status`는 `READY`(음성 있음), `FAILED`(처음 합성에 실패했거나 저장하지 못함, CONV-07로 다시 시도), `EXPIRED`(보관 정책으로 재생 차단, `turns.npc_audio_deleted_at`)입니다. 파일 삭제 실패로 재시도 중인 경우도 `EXPIRED`이며 CONV-07을 불러도 다시 만들지 않습니다. 클라이언트는 [다시 듣기]를 숨기고 자막을 유지합니다.
 - 내가 말한 문장을 TTS로 다시 들려주는 기능은 필요성을 함께 검토합니다(6절).
 

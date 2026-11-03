@@ -58,7 +58,6 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | WARN | `npc_reply_stream_cut` | 없음 | NPC 대답 스트림이 끝 이벤트 없이 끊김 |
 | WARN | `npc_audio_download_failed` | `code` | NPC 대답 음성을 워커에서 받지 못함. 자막만 보임 |
 | WARN | `npc_audio_too_large` | `bytes` | NPC 음성이 보관 상한보다 커서 저장하지 않음 |
-| WARN | `npc_audio_no_space` | `bytes` | 오래된 음성을 지워도 저장 공간이 모자람 |
 | WARN | `npc_audio_save_failed` | (예외) | NPC 음성 파일을 저장하지 못함 |
 | WARN | `npc_audio_delete_failed` | `code` | 보관 기간이 지난 음성 파일을 지우지 못함. 다음 정리에서 다시 지움 |
 | WARN | `npc_audio_turns_update_failed` | `count`, (예외) | 지운 음성 파일을 쓰던 턴의 상태를 갱신하지 못함 |

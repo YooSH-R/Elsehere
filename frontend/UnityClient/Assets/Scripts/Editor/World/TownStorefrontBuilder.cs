@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using A305.EditorTools.Common;
 using A305.EditorTools.ObjectHover;
+using A305.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -219,6 +220,8 @@ namespace A305.EditorTools.World
                 BuilderTools.CreatePrefabIfMissing(path, () => Build(storefront));
                 // 천장 충돌을 넣기 전에 만든 매장도 디자인은 그대로 두고 충돌만 더한다.
                 BuilderTools.UpdatePrefabIfExists(path, BlockCameraAtCeiling);
+                if (storefront.Name == "PoliceStation")
+                    BuilderTools.UpdatePrefabIfExists(path, EnterThroughInteriorDoorways);
             }
             AssetDatabase.SaveAssets();
         }
@@ -228,6 +231,43 @@ namespace A305.EditorTools.World
         {
             GameObject ceiling = storefront.transform.Find("Interior/Ceiling").gameObject;
             BuilderTools.GetOrAddComponent<BoxCollider>(ceiling);
+        }
+
+        // 경찰서는 문을 여닫지 않고 다른 장소처럼 문에 닿으면 화면을 덮었다가 실내(또는 문 밖)에 세운다.
+        // 문짝은 닫힌 채 통로를 막고, 문 앞뒤 감지 영역이 서로의 도착 지점을 가리킨다.
+        private static void EnterThroughInteriorDoorways(GameObject storefront)
+        {
+            Transform entrance = storefront.transform.Find("Entrance");
+            Transform door = entrance.Find(storefront.name + "Door");
+            if (door.TryGetComponent(out ShopSwingDoor swing))
+            {
+                Object.DestroyImmediate(swing);
+                Object.DestroyImmediate(door.GetComponent<BoxCollider>());
+            }
+            InteriorDoorway outside = Doorway(entrance, "OutsideDoorway", 1);
+            InteriorDoorway inside = Doorway(entrance, "InsideDoorway", -1);
+            BuilderTools.SetReference(outside, "destination", inside);
+            BuilderTools.SetReference(inside, "destination", outside);
+        }
+
+        // side가 1이면 문 밖 보도, -1이면 실내다. 감지 영역은 문 앞 0.2~1m, 도착 지점은 문에서 2m 떨어져 문을 등진다.
+        private static InteriorDoorway Doorway(Transform entrance, string name, int side)
+        {
+            Transform doorway = entrance.Find(name);
+            if (doorway == null)
+                doorway = Group(name, entrance, new Vector3(0, 0, side * .6f));
+            var sensor = BuilderTools.GetOrAddComponent<BoxCollider>(doorway.gameObject);
+            sensor.isTrigger = true;
+            sensor.center = new Vector3(0, 1.3f, 0);
+            sensor.size = new Vector3(1.8f, 2.6f, .8f);
+            Transform arrival = doorway.Find("ArrivalPoint");
+            if (arrival == null)
+                arrival = Group("ArrivalPoint", doorway, Vector3.zero);
+            arrival.localPosition = new Vector3(0, 0, side * 1.4f);
+            arrival.localRotation = Quaternion.Euler(0, side > 0 ? 0 : 180, 0);
+            var component = BuilderTools.GetOrAddComponent<InteriorDoorway>(doorway.gameObject);
+            BuilderTools.SetReference(component, "arrivalPoint", arrival);
+            return component;
         }
 
         private static void Prepare()

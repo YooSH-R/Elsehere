@@ -621,6 +621,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5869280220629242574, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
   m_PrefabInstance: {fileID: 294949988}
   m_PrefabAsset: {fileID: 0}
+--- !u!108 &294949990 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 2198400394236596059, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
+  m_PrefabInstance: {fileID: 294949988}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &346116076
 GameObject:
   m_ObjectHideFlags: 0
@@ -758,6 +763,51 @@ Transform:
   - {fileID: 1975031423}
   m_Father: {fileID: 868288520}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &416584802
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 416584803}
+  - component: {fileID: 416584804}
+  m_Layer: 0
+  m_Name: GameClockDaylight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &416584803
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 416584802}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1657617131}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &416584804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 416584802}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a7d5ec0fd7b13e41b6fbb0354dc7fe7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.World::A305.World.GameClockDaylight
+  daylight: {fileID: 1973140049}
 --- !u!1001 &426221912
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1262,6 +1312,7 @@ Transform:
   - {fileID: 294949989}
   - {fileID: 1963306630}
   - {fileID: 1088819338}
+  - {fileID: 1973140048}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &807565646
@@ -2186,6 +2237,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5869280220629242574, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
   m_PrefabInstance: {fileID: 1081041672}
   m_PrefabAsset: {fileID: 0}
+--- !u!108 &1081041674 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 2198400394236596059, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
+  m_PrefabInstance: {fileID: 1081041672}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1088819337
 GameObject:
   m_ObjectHideFlags: 0
@@ -2611,6 +2667,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5869280220629242574, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
   m_PrefabInstance: {fileID: 1482583261}
   m_PrefabAsset: {fileID: 0}
+--- !u!108 &1482583263 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 2198400394236596059, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
+  m_PrefabInstance: {fileID: 1482583261}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1491354465
 GameObject:
   m_ObjectHideFlags: 0
@@ -2773,6 +2834,7 @@ Transform:
   - {fileID: 1056793833}
   - {fileID: 1854720054}
   - {fileID: 346116077}
+  - {fileID: 416584803}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1691948085
@@ -3424,6 +3486,65 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5869280220629242574, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
   m_PrefabInstance: {fileID: 1963306629}
   m_PrefabAsset: {fileID: 0}
+--- !u!108 &1963306631 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 2198400394236596059, guid: dfbf7d0c6a2d2ad48bea3a9da0458a8d, type: 3}
+  m_PrefabInstance: {fileID: 1963306629}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1973140047
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1973140048}
+  - component: {fileID: 1973140049}
+  m_Layer: 0
+  m_Name: InteriorDaylight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1973140048
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1973140047}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 746182735}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1973140049
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1973140047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02ea909d17b063d419758f40a6ff7d1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Weather::A305.Weather.InteriorDaylight
+  daylight: {fileID: 11400000, guid: 8cade82cc9c439745bd9c2040a5ce124, type: 2}
+  windowLights:
+  - {fileID: 1811648948}
+  fills:
+  - {fileID: 845069947}
+  lamps:
+  - {fileID: 1482583263}
+  - {fileID: 1081041674}
+  - {fileID: 294949990}
+  - {fileID: 1963306631}
 --- !u!1 &1975031422
 GameObject:
   m_ObjectHideFlags: 0

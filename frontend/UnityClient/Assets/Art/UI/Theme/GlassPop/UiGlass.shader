@@ -95,6 +95,11 @@ Shader "A305/UI/Glass"
             sampler2D _A305UiBackdrop;
             float _A305UiBackdropReady;
 
+            // 씬이 밤처럼 어두워진 정도(0~1, UiBackdropLift). 그만큼 흐린 뒤 화면의 어두운 곳을 낮 마을 뒤 화면 밝기까지
+            // 밝혀, 유리가 씬의 시각을 따라 어두워지지 않게 한다. 낮에는 0이라 디자인 그대로다.
+            float _A305UiBackdropLift;
+            static const half DaylightBackdropBrightness = 0.7;
+
             v2f vert(appdata_t v)
             {
                 v2f OUT;
@@ -116,6 +121,8 @@ Shader "A305/UI/Glass"
                 half cover = art.a;
 
                 half3 behind = tex2D(_A305UiBackdrop, IN.screenPos.xy / IN.screenPos.w).rgb;
+                half brightness = dot(behind, half3(0.299, 0.587, 0.114));
+                behind += max(0, DaylightBackdropBrightness - brightness) * saturate(_A305UiBackdropLift);
                 half strength = lerp(0.92, _TintStrength, saturate(_A305UiBackdropReady));
                 half3 surface = lerp(behind, IN.color.rgb, strength) + _Brighten + sheen * _SheenStrength;
 

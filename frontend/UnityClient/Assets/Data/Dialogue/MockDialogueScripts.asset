@@ -236,6 +236,230 @@ MonoBehaviour:
       korean: "\uBB34\uC2A8 \uC77C\uC774 \uC5B4\uB514\uC11C \uC788\uC5C8\uB294\uC9C0
         \uB9D0\uD574 \uC904\uB798\uC694?"
     exampleSentence: My wallet was stolen at the diner.
+  - npcCode: POST_OFFICE_STAFF
+    npcName: Linda
+    roleLabel: "\uC6B0\uCCB4\uAD6D \uC9C1\uC6D0"
+    opening:
+      english: Hello, welcome to the post office. What can I do for you?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uC6B0\uCCB4\uAD6D\uC785\uB2C8\uB2E4.
+        \uBB34\uC5C7\uC744 \uB3C4\uC640\uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - stamp
+      reply:
+        english: A stamp for a letter is one dollar.
+        korean: "\uD3B8\uC9C0\uC6A9 \uC6B0\uD45C\uB294 1\uB2EC\uB7EC\uC608\uC694."
+    - keywords:
+      - package
+      reply:
+        english: Please put it on the scale. Sending a package is five dollars.
+        korean: "\uC800\uC6B8\uC5D0 \uC62C\uB824 \uC8FC\uC138\uC694. \uC18C\uD3EC\uB294
+          5\uB2EC\uB7EC\uC608\uC694."
+    defaultReply:
+      english: Would you like to send a letter or a package?
+      korean: "\uD3B8\uC9C0\uB97C \uBCF4\uB0B4\uC138\uC694, \uC18C\uD3EC\uB97C \uBCF4\uB0B4\uC138\uC694?"
+    exampleSentence: I'd like to send this package.
+  - npcCode: DINER_STAFF
+    npcName: Rosa
+    roleLabel: "\uC2DD\uB2F9 \uC885\uC5C5\uC6D0"
+    opening:
+      english: Hi, honey! Welcome to Maple Diner. What can I get you?
+      korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uB2E4\uC774\uB108\uC608\uC694.
+        \uBB58 \uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - pancake
+      reply:
+        english: Pancakes, great choice! That's seven dollars.
+        korean: "\uD32C\uCF00\uC774\uD06C, \uC88B\uC740 \uC120\uD0DD\uC774\uC5D0\uC694!
+          7\uB2EC\uB7EC\uC608\uC694."
+    - keywords:
+      - coffee
+      reply:
+        english: Coffee is two dollars, and refills are free.
+        korean: "\uCEE4\uD53C\uB294 2\uB2EC\uB7EC\uACE0 \uB9AC\uD544\uC740 \uBB34\uB8CC\uC608\uC694."
+    defaultReply:
+      english: We have pancakes, burgers, apple pie and coffee.
+      korean: "\uD32C\uCF00\uC774\uD06C, \uBC84\uAC70, \uC560\uD50C\uD30C\uC774,
+        \uCEE4\uD53C\uAC00 \uC788\uC5B4\uC694."
+    exampleSentence: Can I have pancakes and coffee, please?
+  - npcCode: BANK_STAFF
+    npcName: Henry
+    roleLabel: "\uC740\uD589\uC6D0"
+    opening:
+      english: Hello. Welcome to Town Bank. How may I help you today?
+      korean: "\uC548\uB155\uD558\uC138\uC694. \uD0C0\uC6B4 \uC740\uD589\uC785\uB2C8\uB2E4.
+        \uBB34\uC5C7\uC744 \uB3C4\uC640\uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - account
+      reply:
+        english: To open an account, I'll need a photo ID, please.
+        korean: "\uACC4\uC88C\uB97C \uB9CC\uB4E4\uB824\uBA74 \uC0AC\uC9C4\uC774 \uC788\uB294
+          \uC2E0\uBD84\uC99D\uC774 \uD544\uC694\uD574\uC694."
+    - keywords:
+      - atm
+      reply:
+        english: The ATM is just inside the entrance, on the left.
+        korean: "ATM\uC740 \uB4E4\uC5B4\uC624\uC2DC\uBA74 \uBC14\uB85C \uC67C\uCABD\uC5D0
+          \uC788\uC5B4\uC694."
+    defaultReply:
+      english: I can help you with deposits and withdrawals.
+      korean: "\uC785\uAE08\uACFC \uCD9C\uAE08\uC744 \uB3C4\uC640\uB4DC\uB9B4 \uC218
+        \uC788\uC5B4\uC694."
+    exampleSentence: I'd like to open an account.
+  - npcCode: LAUNDROMAT_STAFF
+    npcName: Gus
+    roleLabel: "\uBE68\uB798\uBC29 \uC8FC\uC778"
+    opening:
+      english: Hey there! Welcome to Suds. Got some laundry today?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC11C\uC988 \uBE68\uB798\uBC29\uC774\uC5D0\uC694.
+        \uC624\uB298 \uBE68\uB798 \uC788\uC5B4\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - wash
+      reply:
+        english: A wash is three dollars and takes about thirty minutes.
+        korean: "\uC138\uD0C1\uC740 3\uB2EC\uB7EC\uACE0 30\uBD84\uCBE4 \uAC78\uB824\uC694."
+    - keywords:
+      - dry
+      reply:
+        english: The dryer is two dollars. It takes about forty minutes.
+        korean: "\uAC74\uC870\uAE30\uB294 2\uB2EC\uB7EC\uC608\uC694. 40\uBD84\uCBE4
+          \uAC78\uB824\uC694."
+    defaultReply:
+      english: Put your clothes in, add the soap, and press start.
+      korean: "\uC637\uACFC \uC138\uC81C\uB97C \uB123\uACE0 \uC2DC\uC791\uC744 \uB204\uB974\uBA74
+        \uB3FC\uC694."
+    exampleSentence: How much is a wash?
+  - npcCode: FLOWER_SHOP_STAFF
+    npcName: Lily
+    roleLabel: "\uAF43\uC9D1 \uC8FC\uC778"
+    opening:
+      english: Oh, hello. Welcome to Bloom Flowers. Who are the flowers for?
+      korean: "\uC544, \uC548\uB155\uD558\uC138\uC694. \uBE14\uB8F8 \uD50C\uB77C\uC6CC\uC608\uC694.
+        \uB204\uAD6C\uC5D0\uAC8C \uC904 \uAF43\uC778\uAC00\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - bouquet
+      reply:
+        english: A bouquet is fifteen dollars. Maybe roses or tulips?
+        korean: "\uAF43\uB2E4\uBC1C\uC740 15\uB2EC\uB7EC\uC608\uC694. \uC7A5\uBBF8\uB098
+          \uD2A4\uB9BD\uC740 \uC5B4\uB54C\uC694?"
+    - keywords:
+      - rose
+      reply:
+        english: One rose is two dollars.
+        korean: "\uC7A5\uBBF8 \uD55C \uC1A1\uC774\uB294 2\uB2EC\uB7EC\uC608\uC694."
+    defaultReply:
+      english: We have roses, tulips, sunflowers and daisies today.
+      korean: "\uC624\uB298\uC740 \uC7A5\uBBF8, \uD2A4\uB9BD, \uD574\uBC14\uB77C\uAE30,
+        \uB370\uC774\uC9C0\uAC00 \uC788\uC5B4\uC694."
+    exampleSentence: I'd like a bouquet for my friend.
+  - npcCode: BARBER_STAFF
+    npcName: Tony
+    roleLabel: "\uC774\uBC1C\uC0AC"
+    opening:
+      english: Hey, come on in! Take a seat. Haircut today?
+      korean: "\uC5B4\uC11C \uC640\uC694! \uC549\uC73C\uC138\uC694. \uC624\uB298
+        \uBA38\uB9AC \uC790\uB974\uAC8C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - haircut
+      reply:
+        english: Sure! A haircut is twenty dollars. How short do you want it?
+        korean: "\uC88B\uC544\uC694! \uCEE4\uD2B8\uB294 20\uB2EC\uB7EC\uC608\uC694.
+          \uC5BC\uB9C8\uB098 \uC9E7\uAC8C \uD560\uAE4C\uC694?"
+    - keywords:
+      - shave
+      reply:
+        english: A shave is ten dollars.
+        korean: "\uBA74\uB3C4\uB294 10\uB2EC\uB7EC\uC608\uC694."
+    defaultReply:
+      english: No appointment needed. Just tell me how you want it.
+      korean: "\uC608\uC57D\uC740 \uD544\uC694 \uC5C6\uC5B4\uC694. \uC5B4\uB5BB\uAC8C
+        \uD558\uACE0 \uC2F6\uC740\uC9C0\uB9CC \uB9D0\uD574 \uC918\uC694."
+    exampleSentence: Just a little shorter, please.
+  - npcCode: BAKERY_STAFF
+    npcName: Grace
+    roleLabel: "\uC81C\uBE75\uC0AC"
+    opening:
+      english: Hello, dear! The croissants just came out of the oven.
+      korean: "\uC5B4\uC11C \uC640\uC694! \uD06C\uB8E8\uC544\uC0C1\uC774 \uBC29\uAE08
+        \uC624\uBE10\uC5D0\uC11C \uB098\uC654\uC5B4\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - croissant
+      reply:
+        english: A croissant is three dollars. For here or to go?
+        korean: "\uD06C\uB8E8\uC544\uC0C1\uC740 3\uB2EC\uB7EC\uC608\uC694. \uBA39\uACE0
+          \uAC00\uC694, \uAC00\uC838\uAC00\uC694?"
+    - keywords:
+      - bread
+      reply:
+        english: A loaf of bread is four dollars.
+        korean: "\uBE75 \uD55C \uB369\uC774\uB294 4\uB2EC\uB7EC\uC608\uC694."
+    defaultReply:
+      english: We have bread, croissants and chocolate cake today.
+      korean: "\uC624\uB298\uC740 \uBE75, \uD06C\uB8E8\uC544\uC0C1, \uCD08\uCF5C\uB9BF
+        \uCF00\uC774\uD06C\uAC00 \uC788\uC5B4\uC694."
+    exampleSentence: Can I have a croissant to go?
+  - npcCode: ARCADE_STAFF
+    npcName: Max
+    roleLabel: "\uC624\uB77D\uC2E4 \uC9C1\uC6D0"
+    opening:
+      english: Hey! Welcome to Little Arcade! Wanna try the claw machine?
+      korean: "\uC548\uB155! \uB9AC\uD2C0 \uC544\uCF00\uC774\uB4DC\uC608\uC694! \uC778\uD615
+        \uBF51\uAE30 \uD574 \uBCFC\uB798\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - play
+      reply:
+        english: Move the claw with the stick, then press the button to drop it.
+        korean: "\uB9C9\uB300\uB85C \uC9D1\uAC8C\uB97C \uC6C0\uC9C1\uC774\uACE0 \uBC84\uD2BC\uC744
+          \uB20C\uB7EC \uB0B4\uB824\uC694."
+    - keywords:
+      - much
+      reply:
+        english: One game is one dollar. No promises on the prize, though!
+        korean: "\uD55C \uD310\uC5D0 1\uB2EC\uB7EC\uC608\uC694. \uC778\uD615\uC774
+          \uBF51\uD790\uC9C0\uB294 \uC7A5\uB2F4 \uBABB \uD574\uC694!"
+    defaultReply:
+      english: Pick a machine and give it a try!
+      korean: "\uAE30\uACC4\uB97C \uD558\uB098 \uACE8\uB77C\uC11C \uD574 \uBD10\uC694!"
+    exampleSentence: How do I play the claw machine?
+  - npcCode: HOME_STORE_STAFF
+    npcName: Nina
+    roleLabel: "\uB9E4\uC7A5 \uC9C1\uC6D0"
+    opening:
+      english: Hello, welcome to Home & Living. Which room are you shopping for?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uD648 \uC564 \uB9AC\uBE59\uC785\uB2C8\uB2E4.
+        \uC5B4\uB290 \uBC29\uC5D0 \uB458 \uBB3C\uAC74\uC744 \uCC3E\uC73C\uC138\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - lamp
+      reply:
+        english: This lamp is thirty dollars. It would look nice in a bedroom.
+        korean: "\uC774 \uB7A8\uD504\uB294 30\uB2EC\uB7EC\uC608\uC694. \uCE68\uC2E4\uC5D0
+          \uC798 \uC5B4\uC6B8\uB824\uC694."
+    - keywords:
+      - chair
+      reply:
+        english: The armchair is one hundred fifty dollars.
+        korean: "\uC548\uB77D\uC758\uC790\uB294 150\uB2EC\uB7EC\uC608\uC694."
+    defaultReply:
+      english: Take your time and look around.
+      korean: "\uCC9C\uCC9C\uD788 \uB458\uB7EC\uBCF4\uC138\uC694."
+    exampleSentence: I'm looking for a lamp for my bedroom.
   fallback:
     npcCode: 
     npcName: Neighbor

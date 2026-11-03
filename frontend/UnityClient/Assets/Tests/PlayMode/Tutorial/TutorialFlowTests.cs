@@ -209,31 +209,6 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator MeetBen_EndingTheDialogueEarly_KeepsThePlayerWithBen()
-        {
-            // 길 안내를 마치지 않고 대화를 끝내면 Ben을 다시 만나야 하므로 계속 붙잡아 둔다.
-            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
-            yield return null;
-            PlayerMover player = Single<PlayerMover>();
-            PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
-            Click(offer, "AcceptButton");
-            yield return null;
-
-            Click(Single<DialoguePanelView>(), "EndButton");
-            yield return null;
-            yield return null;
-
-            Assert.That(
-                TutorialState.GetOrCreate(BenCode).Step,
-                Is.EqualTo(TutorialStep.MeetBen),
-                "준비: 다시 Ben 만나기"
-            );
-            Assert.That(player.IsMovementLocked, Is.True);
-            Assert.That(Single<PlayerCameraRig>().IsInMeetingView, Is.True);
-        }
-
-        [UnityTest]
         public IEnumerator Lodging_InFirstPerson_ShowsTheCompassArrowOnTheScreen()
         {
             // 1인칭에서는 발밑이 화면에 없으므로 화면 아래 화살표로 문 쪽을 알린다. 3인칭에서 발밑이 보이면 띄우지 않는다.

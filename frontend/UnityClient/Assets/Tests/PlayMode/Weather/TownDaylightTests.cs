@@ -19,6 +19,7 @@ namespace A305.Weather.PlayModeTests
         private const double Sunset = 18 * 60 + 45;
         private const float LampIntensity = 4f;
         private const float FixtureIntensity = .1f;
+        private const float ShopLampIntensity = .9f;
         private const float LampCoreStrength = 1.2f;
         private const float TransitionSeconds = .2f;
 
@@ -67,6 +68,7 @@ namespace A305.Weather.PlayModeTests
         private Light sun;
         private Light lamp;
         private Light fixture;
+        private Light shopLamp;
         private Renderer glow;
         private Renderer lampGlass;
         private Transform shop;
@@ -174,6 +176,33 @@ namespace A305.Weather.PlayModeTests
                 Is.EqualTo(GlowEmission.r).Within(.002f),
                 "원본 재질은 바뀌면 안 됩니다."
             );
+        }
+
+        [UnityTest]
+        public IEnumerator Midnight_LightsShopRoomsBrighterThanShopWallLamps()
+        {
+            yield return null;
+
+            presenter.ShowTime(Midnight);
+
+            Assert.That(
+                daylight.NightShopLampScale,
+                Is.GreaterThan(daylight.NightLampScale),
+                "마을 안 매장은 밤 환경광이 어두워져도 불을 켠 방처럼 밝아야 합니다."
+            );
+            Assert.That(
+                shopLamp.intensity,
+                Is.EqualTo(ShopLampIntensity * daylight.NightShopLampScale).Within(.001f)
+            );
+            Assert.That(
+                fixture.intensity,
+                Is.EqualTo(FixtureIntensity * daylight.NightLampScale).Within(.001f),
+                "상점 벽등은 그대로 밤 불빛 배율을 씁니다."
+            );
+
+            presenter.ShowTime(Midday);
+
+            Assert.That(shopLamp.intensity, Is.EqualTo(ShopLampIntensity).Within(.001f));
         }
 
         [UnityTest]
@@ -343,8 +372,9 @@ namespace A305.Weather.PlayModeTests
             fields.FindProperty("effectFollowTarget").objectReferenceValue = player.transform;
             fields.FindProperty("daylight").objectReferenceValue = daylight;
             SerializedProperty lamps = fields.FindProperty("lamps");
-            lamps.arraySize = 1;
+            lamps.arraySize = 2;
             lamps.GetArrayElementAtIndex(0).objectReferenceValue = fixture;
+            lamps.GetArrayElementAtIndex(1).objectReferenceValue = shopLamp;
             SerializedProperty streetLamps = fields.FindProperty("streetLamps");
             streetLamps.arraySize = 1;
             streetLamps.GetArrayElementAtIndex(0).objectReferenceValue = lamp;
@@ -395,6 +425,11 @@ namespace A305.Weather.PlayModeTests
             shopWindow.transform.SetParent(shop);
             houseWindow = Shape("WindowBlue", designedWindowGlass);
             houseWindow.transform.SetParent(Keep(new GameObject("BrickResidence2F")).transform);
+            // 매장 실내(Interior)의 천장 등. 마을 밤 등 목록에 가로등과 함께 들어 있다.
+            shopLamp = Keep(new GameObject("InteriorLight")).AddComponent<Light>();
+            shopLamp.type = LightType.Point;
+            shopLamp.intensity = ShopLampIntensity;
+            shopLamp.transform.SetParent(shop);
         }
 
         private Renderer Shape(string name, Material material)

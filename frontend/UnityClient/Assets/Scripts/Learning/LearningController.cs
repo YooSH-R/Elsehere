@@ -9,7 +9,8 @@ using UnityEngine;
 namespace A305.Learning
 {
     /// <summary>
-    /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·02·03·04)과 잇는다.
+    /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·02·03·04)과 잇는다. Editor에서 서버 단어장을 읽지 못하면
+    /// 확인용 단어장(<see cref="LocalVocabularyApi"/>)으로 바꿔 같은 Play 동안 사물 카드에서 저장한 단어를 보인다.
     /// [피드백 목록] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
     /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
     /// 대화 중 누른 풀이 단어는 단어장에 저장(VOCAB-02 NPC_LINE)하고, 피드백의 [표현 저장]은 아직 숨긴다.
@@ -41,6 +42,7 @@ namespace A305.Learning
         private ApiSettings apiSettings;
 
         private VocabularyBook vocabulary;
+        private bool isLocalVocabulary;
 
         private ConversationHistory history;
 
@@ -57,6 +59,12 @@ namespace A305.Learning
 
         public bool IsShowingScreen =>
             feedbackView.IsVisible || vocabularyView.IsVisible || historyView.IsVisible;
+
+        /// <summary>단어장 화면이 열려 있는지. 튜토리얼이 단어장을 처음 열었을 때 설명을 붙인다.</summary>
+        public bool IsShowingVocabulary => vocabularyView.IsVisible;
+
+        /// <summary>단어장 창. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform VocabularyPanelRect => vocabularyView.PanelRect;
 
         private ConversationHistoryView historyView => hudView.HistoryView;
 
@@ -388,10 +396,28 @@ namespace A305.Learning
         // 다른 기기나 이전 접속에서 바뀐 내용도 보이도록 단어장을 열 때마다 서버에서 다시 읽는다.
         private async Task LoadVocabularyAsync()
         {
-            bool loaded = await vocabulary.LoadAsync();
-            if (this == null)
+            VocabularyBook book = vocabulary;
+            bool loaded = await book.LoadAsync();
+            // 먼저 끝난 다른 불러오기가 확인용 단어장으로 바꿨으면 그쪽이 화면을 그린다.
+            if (this == null || book != vocabulary)
             {
                 return;
+            }
+
+            // Editor에서는 서버 없이도 사물 카드에서 저장한 단어를 볼 수 있게 확인용 단어장으로 바꾼다. 빌드는 실패 안내를 그대로 보인다.
+            if (!loaded && Application.isEditor && !isLocalVocabulary)
+            {
+                Debug.LogWarning(
+                    "서버 단어장을 읽지 못해 Editor 확인용 단어장으로 이 Play 동안 저장한 단어를 보입니다.",
+                    this
+                );
+                vocabulary = new VocabularyBook(new LocalVocabularyApi());
+                isLocalVocabulary = true;
+                loaded = await vocabulary.LoadAsync();
+                if (vocabularyView.IsVisible)
+                {
+                    vocabularyView.Show(vocabulary);
+                }
             }
 
             hudView.SetVocabularyCount(vocabulary.Entries.Count);

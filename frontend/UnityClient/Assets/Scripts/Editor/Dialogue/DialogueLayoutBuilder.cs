@@ -14,7 +14,6 @@ namespace A305.EditorTools.Dialogue
             GameObject root,
             DialoguePanelView view,
             TMP_Text lines,
-            TMP_Text guide,
             TMP_Text words
         )
         {
@@ -107,11 +106,6 @@ namespace A305.EditorTools.Dialogue
                 ContentSizeFitter.FitMode.PreferredSize;
             helpScroll.viewport = helpViewport;
             helpScroll.content = helpContent;
-            guide.transform.SetParent(helpContent, false);
-            guide.fontSize = 22;
-            guide.enableAutoSizing = false;
-            guide.textWrappingMode = TextWrappingModes.Normal;
-            guide.overflowMode = TextOverflowModes.Overflow;
             RectTransform wordsCard = Card(helpContent, "WordsCard", "추천 단어", bold);
             words.transform.SetParent(wordsCard, false);
             words.fontSize = 28;

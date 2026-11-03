@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using A305.Theme;
 using TMPro;
 using UnityEngine;
@@ -7,17 +8,18 @@ using UnityEngine.UI;
 namespace A305.Dialogue
 {
     /// <summary>
-    /// 대화 중에 보이는 화면. 이번 대화의 대사, 안내·상태 문구, 추천 단어, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[대화 종료],
-    /// 서버 AI 대화의 [말하기]·[다시 듣기]·[힌트]·[다시 시도]가 있다. 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고,
-    /// 누르면 그 자리에서 동의할 수 있는 창을 연다. [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과
-    /// [단어장에 저장]이 있는 호버 카드를 띄운다.
+    /// 대화 중에 보이는 화면. 이번 대화의 대사, 상태 문구, 왼쪽 추천 단어·추천 문장 카드, 텍스트 입력과 [보내기]·[예시 문장]·[뜻 보기]·[대화 종료],
+    /// 서버 AI 대화와 튜토리얼 길 안내의 [말하기], 서버 AI 대화의 [다시 듣기]·[힌트]·[다시 시도]가 있다.
+    /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
+    /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
-        private const string FreeTalkGuide =
-            "정답은 없어요. 영어로 자유롭게 말하거나 입력해 보세요. 한국어를 섞어도 돼요.";
         private const string TalkCaption = "말하기";
         private const string StopTalkCaption = "종료";
+
+        // 녹음을 시작했지만 마이크가 아직 열리는 중. 이때 한 말은 녹음되지 않는다. 눌러서 그만둘 수는 있다.
+        private const string PreparingTalkCaption = "준비 중";
 
         [SerializeField]
         private GameObject panel;
@@ -34,9 +36,6 @@ namespace A305.Dialogue
 
         [SerializeField]
         private TMP_Text linesText;
-
-        [SerializeField]
-        private TMP_Text guideText;
 
         [SerializeField]
         private TMP_Text statusText;
@@ -145,6 +144,61 @@ namespace A305.Dialogue
         public static readonly Color VoiceHeardColor = new Color32(76, 217, 100, 255);
         private static readonly Color VoiceQuietColor = new Color(1f, 1f, 1f, 0.55f);
 
+        // 자유 대화의 입력칸 안내("영어로 답하기…"). 정해진 대사를 따라가는 대화에서는 그 대사로 바꿔 보인다.
+        private string freePlaceholder;
+
+        /// <summary>
+        /// 정해진 대사를 말하거나 입력하는 입력칸·[보내기]·[예시 문장]·[말하기]. 튜토리얼 코치 마크가 한 구멍으로 밝힌다.
+        /// </summary>
+        public IReadOnlyList<RectTransform> GuidedLineParts
+        {
+            get
+            {
+                var parts = new List<RectTransform>
+                {
+                    (RectTransform)inputField.transform,
+                    (RectTransform)sendButton.transform,
+                    (RectTransform)exampleButton.transform,
+                };
+                if (talkButton.gameObject.activeSelf)
+                {
+                    parts.Add((RectTransform)talkButton.transform);
+                }
+
+                return parts;
+            }
+        }
+
+        /// <summary>주고받은 대사 칸. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        public RectTransform LinesRect => (RectTransform)historyScroll.transform;
+
+        /// <summary>[뜻]·[예시 문장] 중 보이는 버튼. 튜토리얼 코치 마크가 대화 시작 티칭에서 밝힌다.</summary>
+        public IReadOnlyList<RectTransform> ToolParts
+        {
+            get
+            {
+                var parts = new List<RectTransform>();
+                foreach (Button button in new[] { meaningButton, exampleButton })
+                {
+                    if (button.gameObject.activeSelf)
+                    {
+                        parts.Add((RectTransform)button.transform);
+                    }
+                }
+
+                return parts;
+            }
+        }
+
+        /// <summary>왼쪽 도움 칸의 추천 문장 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SuggestedSentenceRect => (RectTransform)hintText.transform.parent;
+
+        /// <summary>왼쪽 도움 칸의 추천 단어 카드. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform SuggestedWordsRect => (RectTransform)suggestText.transform.parent;
+
+        /// <summary>[대화 종료]. 튜토리얼 코치 마크가 길 안내를 마친 뒤 밝힌다.</summary>
+        public RectTransform EndButtonRect => (RectTransform)endButton.transform;
+
         /// <summary>[대화 종료]를 누르면 알린다.</summary>
         public event Action EndRequested;
 
@@ -231,13 +285,17 @@ namespace A305.Dialogue
 
         /// <summary>
         /// 녹음 중인지와 지금 목소리가 들리는지를 [말하기] 버튼에 표시한다. 녹음 중이면 [종료]로 바꾸고 불을 켠다.
+        /// 녹음을 시작했지만 마이크가 아직 열리는 중이면 [준비 중]을 보이고 불을 끈다.
         /// 녹음은 시간·무음으로도 저절로 끝나므로 대화 처리가 매 프레임 부른다.
         /// </summary>
-        public void ShowVoiceInput(bool isRecording, bool isHearingVoice)
+        public void ShowVoiceInput(bool isRecording, bool isHearingVoice, bool isPreparing = false)
         {
             this.isRecording = isRecording;
-            talkCaption.text = isRecording ? StopTalkCaption : TalkCaption;
-            voiceLight.gameObject.SetActive(isRecording);
+            talkCaption.text =
+                !isRecording ? TalkCaption
+                : isPreparing ? PreparingTalkCaption
+                : StopTalkCaption;
+            voiceLight.gameObject.SetActive(isRecording && !isPreparing);
             voiceLight.color = isHearingVoice ? VoiceHeardColor : VoiceQuietColor;
         }
 
@@ -271,8 +329,6 @@ namespace A305.Dialogue
             ShowLines();
             npcNameText.text = content.NpcName;
             UpdateStanding();
-            guideText.text = FormatGuide();
-            guideText.gameObject.SetActive(content.IsGuided);
             statusText.text = FormatStatus();
             // 녹음 중·전사 뒤처럼 바쁘지 않아도 할 일을 알리는 안내가 있으면 보인다.
             // 음성 처리에 동의하지 않아 [말하기]가 회색이면, 눌러서 동의하면 말할 수 있다고 입력칸 위에 알린다.
@@ -301,6 +357,12 @@ namespace A305.Dialogue
             sendButton.interactable = content.CanSend;
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
+            // 정해진 대사를 따라가는 대화는 이번에 말하거나 입력할 대사를 빈 입력칸에 회색 안내로 미리 보인다.
+            var placeholder = (TMP_Text)inputField.placeholder;
+            freePlaceholder ??= placeholder.text;
+            placeholder.text = string.IsNullOrEmpty(content.SuggestedEnglish)
+                ? freePlaceholder
+                : content.SuggestedEnglish;
             HighlightSend();
             exampleButton.gameObject.SetActive(!string.IsNullOrEmpty(content.ExampleSentence));
             meaningButton.gameObject.SetActive(content.HasMeaning);
@@ -736,28 +798,6 @@ namespace A305.Dialogue
             status.anchorMin = status.anchorMax = new Vector2(.5f, 0);
             status.pivot = new Vector2(.5f, 0);
             status.anchoredPosition = new Vector2(0, layout.Name.yMax + VehicleStatusGap);
-        }
-
-        private string FormatGuide()
-        {
-            if (content.IsGuidedCompleted)
-            {
-                return "길 안내를 마쳤어요. [대화 종료]를 누르면 피드백을 볼 수 있어요.";
-            }
-
-            if (content.IsGuided)
-            {
-                return $"이번에 읽을 대사: <b>{content.SuggestedEnglish}</b>\n{content.SuggestedKorean}";
-            }
-
-            if (!content.UsesVoice)
-            {
-                return "정답은 없어요. 하고 싶은 말을 영어로 자유롭게 입력해 보세요.";
-            }
-
-            return content.CanTalk
-                ? FreeTalkGuide + " [말하기]를 누르고 말한 뒤 다시 누르면 문장으로 바꿔 드려요."
-                : FreeTalkGuide + " " + VoiceInputNotice.ConsentRequired;
         }
 
         private bool NeedsVoiceConsent => content.UsesVoice && !content.CanTalk;

@@ -31,7 +31,7 @@
 
 ## 튜토리얼용 기본 미션
 
-기존 `MissionBoard`·`MissionPanelView`는 튜토리얼의 미션 고르기·카페 대화 안내와 서버 없는 데모에 유지합니다. 이 경로는 키워드를 사용하며 서버 연계 여정의 완료 판정에 사용하지 않습니다. 튜토리얼이 끝나면 `MissionController.SetStoryAvailable`로 기본 창을 숨기고 새 수첩을 표시합니다. 아래는 이 기본 미션 경로의 구성입니다.
+기존 `MissionBoard`·`MissionPanelView`는 첫날 미션 화면이 없는 장면(서버 없는 데모)에 유지합니다. 튜토리얼은 이 창을 안내하지 않고 마지막에 첫날 미션의 지도 버튼을 안내합니다. 이 경로는 키워드를 사용하며 서버 연계 여정의 완료 판정에 사용하지 않습니다. 튜토리얼이 오늘의 목표 단계에 이르거나 끝나면 `MissionController.SetStoryAvailable`로 기본 창을 숨기고 새 수첩을 표시합니다. 지도 버튼으로 수첩을 열면 `FirstDayMissionView.JournalOpened`로 알립니다. 아래는 이 기본 미션 경로의 구성입니다.
 
 ## 구성
 

@@ -41,7 +41,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class SignupControllerTest {
 
   private static final UserResponse SIGNED_UP_USER =
-      new UserResponse(1L, "Sun", AvatarType.F, null, OnboardingStep.LANG, UiTheme.JELLY, false);
+      new UserResponse(
+          1L, "Sun", AvatarType.F, null, OnboardingStep.LANG, UiTheme.JELLY, false, false);
 
   @Autowired private MockMvc mockMvc;
 

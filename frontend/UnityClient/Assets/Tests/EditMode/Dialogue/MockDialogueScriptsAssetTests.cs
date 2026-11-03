@@ -65,6 +65,19 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public void PoliceOfficer_AsksWhatHappened()
+        {
+            // 경찰서 창구에서 경찰관에게 무슨 일이 있었는지 영어로 신고해 본다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            bool found = scripts.TryGetScript("POLICE_OFFICER", out DialogueScript script);
+
+            Assert.That(found, Is.True);
+            Assert.That(script.RoleLabel, Is.EqualTo("경찰관"));
+            Assert.That(script.OpeningLine.English, Does.Contain("happened"));
+        }
+
+        [Test]
         public void TutorialScript_IsSpokenByBenTheTownPasserby()
         {
             // 집 앞에서 길을 묻는 튜토리얼 대본은 마을 행인 Ben이 말한다(같은 사람).
@@ -76,6 +89,20 @@ namespace A305.Dialogue.Tests
             Assert.That(tutorial.NpcName, Is.EqualTo("Ben"));
             Assert.That(tutorial.NpcName, Is.EqualTo(town.NpcName));
             Assert.That(tutorial.GuidedTurns, Has.Count.EqualTo(3), "대본 흐름은 그대로입니다.");
+        }
+
+        [Test]
+        public void TutorialScript_SuggestsWordsForEveryLine()
+        {
+            // 대화 화면 왼쪽 [단어]에 지금 할 대사에 쓸 만한 단어를 보이고, 튜토리얼이 이를 설명한다.
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript tutorial);
+
+            foreach (GuidedTurn turn in tutorial.GuidedTurns)
+            {
+                Assert.That(turn.SuggestWords, Is.Not.Empty, turn.SuggestedEnglish);
+            }
         }
 
         [Test]

@@ -36,12 +36,16 @@ namespace A305.Dialogue
                         new LineEntry(
                             "Straight ahead? And then where should I go?",
                             "곧장이요? 그다음엔 어디로 가면 되나요?"
-                        )
+                        ),
+                        "straight · 곧장",
+                        "ahead · 앞으로"
                     ),
                     new GuidedTurnEntry(
                         "Turn left at the corner.",
                         "모퉁이에서 왼쪽으로 도세요.",
-                        new LineEntry("Got it. Is it far from here?", "알겠어요. 여기서 먼가요?")
+                        new LineEntry("Got it. Is it far from here?", "알겠어요. 여기서 먼가요?"),
+                        "turn left · 왼쪽으로 돌다",
+                        "corner · 모퉁이"
                     ),
                     new GuidedTurnEntry(
                         "No, it's just two minutes away.",
@@ -49,7 +53,9 @@ namespace A305.Dialogue
                         new LineEntry(
                             "Thank you so much. You're a lifesaver!",
                             "정말 고마워요. 덕분에 살았어요!"
-                        )
+                        ),
+                        "minute · 분",
+                        "away · 떨어져"
                     ),
                 },
                 defaultReply = new LineEntry("I see!", "그렇군요!"),
@@ -253,6 +259,35 @@ namespace A305.Dialogue
                 ),
                 exampleSentence = "Can you take me to the hotel, please?",
             },
+            new Entry
+            {
+                npcCode = "POLICE_OFFICER",
+                npcName = "Dan",
+                roleLabel = "경찰관",
+                opening = new LineEntry(
+                    "Hello, this is the Maple Town police. What happened?",
+                    "안녕하세요, 메이플 타운 경찰입니다. 무슨 일이 있었나요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "stolen", "lost", "accident" },
+                        new LineEntry(
+                            "I see. A patrol car is heading out right away.",
+                            "알겠어요. 순찰차가 바로 출동할게요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry("You're welcome. Stay safe.", "천만에요. 조심히 다니세요.")
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Can you tell me what happened and where?",
+                    "무슨 일이 어디서 있었는지 말해 줄래요?"
+                ),
+                exampleSentence = "My wallet was stolen at the diner.",
+            },
         };
 
         [SerializeField]
@@ -314,7 +349,8 @@ namespace A305.Dialogue
                         new GuidedTurn(
                             turn.suggestedEnglish,
                             turn.suggestedKorean,
-                            turn.reply.ToLine()
+                            turn.reply.ToLine(),
+                            turn.suggestWords
                         )
                     );
                 }
@@ -368,13 +404,24 @@ namespace A305.Dialogue
             [Tooltip("사용자가 말한 뒤 NPC가 이어서 하는 대사")]
             public LineEntry reply;
 
+            [Tooltip(
+                "이 대사에 쓸 만한 추천 단어. 대화 화면 왼쪽 [단어]에 보인다. 예: corner · 모퉁이"
+            )]
+            public List<string> suggestWords = new List<string>();
+
             public GuidedTurnEntry() { }
 
-            public GuidedTurnEntry(string suggestedEnglish, string suggestedKorean, LineEntry reply)
+            public GuidedTurnEntry(
+                string suggestedEnglish,
+                string suggestedKorean,
+                LineEntry reply,
+                params string[] suggestWords
+            )
             {
                 this.suggestedEnglish = suggestedEnglish;
                 this.suggestedKorean = suggestedKorean;
                 this.reply = reply;
+                this.suggestWords = new List<string>(suggestWords);
             }
         }
 

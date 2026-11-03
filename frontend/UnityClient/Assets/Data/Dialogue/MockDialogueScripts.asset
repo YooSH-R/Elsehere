@@ -27,16 +27,25 @@ MonoBehaviour:
         english: Straight ahead? And then where should I go?
         korean: "\uACE7\uC7A5\uC774\uC694? \uADF8\uB2E4\uC74C\uC5D4 \uC5B4\uB514\uB85C
           \uAC00\uBA74 \uB418\uB098\uC694?"
+      suggestWords:
+      - "straight \xB7 \uACE7\uC7A5"
+      - "ahead \xB7 \uC55E\uC73C\uB85C"
     - suggestedEnglish: Turn left at the corner.
       suggestedKorean: "\uBAA8\uD241\uC774\uC5D0\uC11C \uC67C\uCABD\uC73C\uB85C \uB3C4\uC138\uC694."
       reply:
         english: Got it. Is it far from here?
         korean: "\uC54C\uACA0\uC5B4\uC694. \uC5EC\uAE30\uC11C \uBA3C\uAC00\uC694?"
+      suggestWords:
+      - "turn left \xB7 \uC67C\uCABD\uC73C\uB85C \uB3CC\uB2E4"
+      - "corner \xB7 \uBAA8\uD241\uC774"
     - suggestedEnglish: No, it's just two minutes away.
       suggestedKorean: "\uC544\uB2C8\uC694, 2\uBD84\uC774\uBA74 \uAC00\uC694."
       reply:
         english: Thank you so much. You're a lifesaver!
         korean: "\uC815\uB9D0 \uACE0\uB9C8\uC6CC\uC694. \uB355\uBD84\uC5D0 \uC0B4\uC558\uC5B4\uC694!"
+      suggestWords:
+      - "minute \xB7 \uBD84"
+      - "away \xB7 \uB5A8\uC5B4\uC838"
     keywordReplies: []
     defaultReply:
       english: I see!
@@ -200,6 +209,33 @@ MonoBehaviour:
       english: Sure. Please fasten your seat belt.
       korean: "\uC54C\uACA0\uC5B4\uC694. \uC548\uC804\uBCA8\uD2B8\uB97C \uB9E4 \uC8FC\uC138\uC694."
     exampleSentence: Can you take me to the hotel, please?
+  - npcCode: POLICE_OFFICER
+    npcName: Dan
+    roleLabel: "\uACBD\uCC30\uAD00"
+    opening:
+      english: Hello, this is the Maple Town police. What happened?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uBA54\uC774\uD50C \uD0C0\uC6B4 \uACBD\uCC30\uC785\uB2C8\uB2E4.
+        \uBB34\uC2A8 \uC77C\uC774 \uC788\uC5C8\uB098\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - stolen
+      - lost
+      - accident
+      reply:
+        english: I see. A patrol car is heading out right away.
+        korean: "\uC54C\uACA0\uC5B4\uC694. \uC21C\uCC30\uCC28\uAC00 \uBC14\uB85C
+          \uCD9C\uB3D9\uD560\uAC8C\uC694."
+    - keywords:
+      - thank
+      reply:
+        english: You're welcome. Stay safe.
+        korean: "\uCC9C\uB9CC\uC5D0\uC694. \uC870\uC2EC\uD788 \uB2E4\uB2C8\uC138\uC694."
+    defaultReply:
+      english: Can you tell me what happened and where?
+      korean: "\uBB34\uC2A8 \uC77C\uC774 \uC5B4\uB514\uC11C \uC788\uC5C8\uB294\uC9C0
+        \uB9D0\uD574 \uC904\uB798\uC694?"
+    exampleSentence: My wallet was stolen at the diner.
   fallback:
     npcCode: 
     npcName: Neighbor

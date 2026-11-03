@@ -1,3 +1,4 @@
+using A305.World;
 using UnityEngine;
 
 namespace A305.Tutorial
@@ -12,11 +13,11 @@ namespace A305.Tutorial
         private static bool isFinishedOnServer;
 
         /// <summary>처음 쓸 때 진행을 만들고, 이후에는 같은 진행을 돌려준다.</summary>
-        public static TutorialProgress GetOrCreate(string tutorialNpcCode, string missionNpcCode)
+        public static TutorialProgress GetOrCreate(string tutorialNpcCode)
         {
             if (progress == null)
             {
-                progress = new TutorialProgress(tutorialNpcCode, missionNpcCode);
+                progress = new TutorialProgress(tutorialNpcCode);
                 if (isFinishedOnServer)
                 {
                     progress.MarkFinishedOnServer();
@@ -33,12 +34,13 @@ namespace A305.Tutorial
             progress?.MarkFinishedOnServer();
         }
 
-        // Domain Reload를 끈 Editor에서도 Play를 시작할 때마다 비운다.
+        // Domain Reload를 끈 Editor에서도 Play를 시작할 때마다 비운다. 튜토리얼이 건 장소 이동 잠금도 함께 푼다.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Clear()
         {
             progress = null;
             isFinishedOnServer = false;
+            SpaceTravel.SetLocked(false);
         }
     }
 }

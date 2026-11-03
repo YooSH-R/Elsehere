@@ -8,6 +8,7 @@
         "A305.Onboarding",
         "A305.Theme",
         "UnityEngine.UI",
+        "A305.Player",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [

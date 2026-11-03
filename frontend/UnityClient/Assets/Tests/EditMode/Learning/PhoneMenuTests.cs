@@ -1,0 +1,128 @@
+using A305.Player;
+using A305.World;
+using NUnit.Framework;
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace A305.Learning.Tests
+{
+    /// <summary>
+    /// 오른쪽 위 휴대폰 메뉴. 잠금 화면처럼 큰 게임 시계와 날짜, 여행 예산, 오늘의 여정을 보이고,
+    /// 단어장·피드백 목록·마을 지도·집으로·내 정보 앱을 둔다. 앱은 모두 메뉴 안에 있어 누르면 메뉴가 접힌다.
+    /// </summary>
+    public sealed class PhoneMenuTests
+    {
+        private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
+
+        private GameObject instance;
+        private PhoneMenuView phone;
+
+        [SetUp]
+        public void CreateHud()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath));
+            phone = instance.GetComponentInChildren<PhoneMenuView>(true);
+        }
+
+        [TearDown]
+        public void DestroyHud()
+        {
+            Object.DestroyImmediate(instance);
+            JourneyStatus.Shared.Clear();
+            PlayerNickname.Reset();
+        }
+
+        // 시안처럼 날짜 뒤에 닉네임을 붙인다. 닉네임을 모르면 날짜만 보인다.
+        [Test]
+        public void Date_EndsWithTheNickname()
+        {
+            PlayerNickname.Set("다빈");
+
+            phone.Refresh();
+
+            Assert.That(
+                Field<TMP_Text>("date").text,
+                Is.EqualTo(GameClockText.DayAndHalf(GameClock.Shared.Minutes) + " · 다빈")
+            );
+        }
+
+        [Test]
+        public void Refresh_ShowsTheGameTimeLikeALockScreen()
+        {
+            phone.Refresh();
+
+            double minutes = GameClock.Shared.Minutes;
+            Assert.That(Field<TMP_Text>("clock").text, Is.EqualTo(GameClockText.Time(minutes)));
+            Assert.That(
+                Field<TMP_Text>("date").text,
+                Is.EqualTo(GameClockText.DayAndHalf(minutes))
+            );
+        }
+
+        [Test]
+        public void Refresh_ShowsTheSharedJourneyAndBudget()
+        {
+            var marks = new[] { JourneyMark.Current, JourneyMark.Upcoming };
+            JourneyStatus.Shared.Show("1 / 2", "호텔 직원에게 요청하세요.", marks, 20);
+
+            phone.Refresh();
+
+            Assert.That(Field<GameObject>("journeyCard").activeSelf, Is.True);
+            Assert.That(Field<TMP_Text>("journeyChip").text, Is.EqualTo("1 / 2"));
+            Assert.That(
+                Field<TMP_Text>("journeyDirection").text,
+                Is.EqualTo("호텔 직원에게 요청하세요.")
+            );
+            Assert.That(Field<TMP_Text>("budget").text, Is.EqualTo("20"));
+            int shown = 0;
+            foreach (Transform mark in Field<RectTransform>("journeyProgress"))
+            {
+                if (!mark.gameObject.activeSelf)
+                    continue;
+                string state = marks[shown] == JourneyMark.Current ? "currentMark" : "upcomingMark";
+                Assert.That(mark.GetComponent<Image>().sprite, Is.SameAs(Field<Sprite>(state)));
+                shown++;
+            }
+            Assert.That(shown, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void WithoutAJourney_HidesTheJourneyWidget()
+        {
+            phone.Refresh();
+
+            Assert.That(Field<GameObject>("journeyCard").activeSelf, Is.False);
+        }
+
+        [Test]
+        public void TownMapApp_AsksTheMissionToOpenTheMap()
+        {
+            bool requested = false;
+            JourneyStatus.Shared.MapRequested += () => requested = true;
+
+            phone.OpenTownMap();
+
+            Assert.That(requested, Is.True);
+        }
+
+        // 앱은 모두 메뉴(폰) 안에 있어야 눌렀을 때 메뉴가 접힌다.
+        [TestCase("VocabularyButton")]
+        [TestCase("HistoryButton")]
+        [TestCase("MapButton")]
+        [TestCase("HomeButton")]
+        [TestCase("MyPageButton")]
+        public void EveryApp_SitsInsideThePhone(string app)
+        {
+            Transform menu = phone.transform;
+
+            Assert.That(menu.Find(app), Is.Not.Null, app);
+            Assert.That(Field<Button>("mapButton").transform.parent, Is.SameAs(menu));
+        }
+
+        private T Field<T>(string name)
+            where T : Object =>
+            (T)new SerializedObject(phone).FindProperty(name).objectReferenceValue;
+    }
+}

@@ -114,6 +114,21 @@ namespace A305.Mission.Tests
             Assert.That(coins.rect.size.y, Is.EqualTo(clock.rect.size.y).Within(.5f));
         }
 
+        // 나란히 놓인 시계 글자와 코인 숫자는 같은 크기로 읽힌다(코인 숫자만 크게 튀지 않는다).
+        [Test]
+        public void CoinAmount_IsTheSameSizeAsTheClock()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            var clock = instance
+                .transform.Find("Content/Status/Clock/Label")
+                .GetComponent<TMP_Text>();
+            var amount = instance
+                .transform.Find("Content/Status/Coins/Row/Amount")
+                .GetComponent<TMP_Text>();
+
+            Assert.That(amount.fontSize, Is.EqualTo(clock.fontSize).Within(.01f));
+        }
+
         // 시안(g4)처럼 대화 중에는 오른쪽 위 시계·코인 칩과 미니맵을 숨긴다.
         [Test]
         public void WhileTalking_HidesTheClockCoinsAndMiniMap()

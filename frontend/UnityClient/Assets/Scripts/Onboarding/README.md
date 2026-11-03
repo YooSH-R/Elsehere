@@ -20,7 +20,7 @@
 | `LogoutFlow` | 로그아웃(AUTH-05). 이미 로그인이 풀렸어도 입구 화면으로 보냅니다. Unity 객체 없이 테스트합니다. |
 | `MyPageView` | 오른쪽 위 메뉴의 [내 정보]와 마이페이지 창·로그아웃 확인 창. 단어장 HUD 프리팹(`Prefabs/Learning/LearningHud`)에 붙어 있어 장소 씬마다 배치하지 않습니다. |
 | `OnboardingScreen` | 패널 입력을 `OnboardingFlow`에 전달하고 결과 화면을 보여 줍니다. 튜토리얼·마을 단계가 되면 씬을 바꿉니다. |
-| `LoginPanelView` 외 패널 | 화면 01~05, 게스트 캐릭터 선택(`GuestPanelView`), 접속 실패 화면(`ConnectionPanelView`). 언어·난이도 카드와 약관 줄은 템플릿을 복제합니다(`TemplateClones`). 창·버튼·입력칸은 화면 디자인(글래스 팝: 반투명 유리 창과 입체 버튼)으로 칠하고, 고른 캐릭터와 카드는 `ThemedElement.SetSelected`로 테마의 강조색 쪽으로 칠합니다. 고른 캐릭터 버튼에는 체크 배지도 켭니다. 화면 뒤 배경은 테마 강조색을 엷게 깐 색입니다. |
+| `LoginPanelView` 외 패널 | 화면 01~05, 게스트 캐릭터 선택(`GuestPanelView`), 접속 실패 화면(`ConnectionPanelView`). 언어·난이도 카드와 약관 줄은 템플릿을 복제합니다(`TemplateClones`). 창·버튼·입력칸은 화면 디자인(글래스 팝: 반투명 유리 창과 입체 버튼)으로 칠하고, 고른 캐릭터와 카드는 `ThemedElement.SetSelected`로 테마의 강조색 쪽으로 칠합니다. 고른 캐릭터 버튼에는 체크 배지도 켭니다. 약관·선택 동의 줄(가입·게스트·내 정보)의 체크는 줄 높이와 상관없이 같은 크기의 동그라미 그림(`Art/UI/Onboarding/ConsentCheckOff`·`ConsentCheckOn`)으로, 꺼지면 빈 동그라미, 켜지면 코랄 동그라미에 굵고 둥근 흰 체크입니다(**Tools → A305 → UI → Apply Consent Checks**). 화면 뒤 배경은 테마 강조색을 엷게 깐 색입니다. |
 | `OnboardingSettings` | 튜토리얼·마을 씬 이름과 개발용 로그인 사용자(`Data/Onboarding/OnboardingSettings.asset`) |
 | `BrowserRedirect`, `Plugins/WebGL/BrowserRedirect.jslib` | Google 로그인을 같은 탭에서 엽니다. |
 | 나머지 | API 요청·응답 DTO |
@@ -73,4 +73,4 @@
 
 ## 테스트
 
-`Tests/EditMode/Onboarding/`(`A305.Onboarding.Tests`)에서 화면 분기, 닉네임 규칙과 안내 문구, 가입 입력 상태, API 경로, 진행 흐름(가짜 API), 게스트 대화 횟수 안내(읽기·실패 시 횟수 없이·0번), 고른 캐릭터 체크, 마이페이지(내 정보 읽기·게스트 여부·닉네임 변경 규칙·중복·요청 중 다시 보내지 않기·표시 문구·[회원 탈퇴]는 회원에게만)와 로그아웃(성공·이미 풀린 로그인·실패 이유·중복 요청)을 검증합니다. 마이페이지 창 배치는 Play·브라우저에서 확인합니다.
+`Tests/EditMode/Onboarding/`(`A305.Onboarding.Tests`)에서 화면 분기, 닉네임 규칙과 안내 문구, 가입 입력 상태, API 경로, 진행 흐름(가짜 API), 게스트 대화 횟수 안내(읽기·실패 시 횟수 없이·0번), 고른 캐릭터 체크, 약관·선택 동의 체크 모양(`ConsentCheckPrefabTests`), 마이페이지(내 정보 읽기·게스트 여부·닉네임 변경 규칙·중복·요청 중 다시 보내지 않기·표시 문구·[회원 탈퇴]는 회원에게만)와 로그아웃(성공·이미 풀린 로그인·실패 이유·중복 요청)을 검증합니다. 마이페이지 창 배치는 Play·브라우저에서 확인합니다.

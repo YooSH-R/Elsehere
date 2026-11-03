@@ -569,10 +569,11 @@ namespace A305.Tutorial
                     return new[] { dialoguePanel.SuggestedWordsRect };
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
+                // 탭·화살표를 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다.
                 case TutorialCoachTarget.FeedbackSections:
-                    return new[] { feedbackView.SectionRowRect };
+                    return new[] { feedbackView.SectionRowRect, feedbackView.PageCardRect };
                 case TutorialCoachTarget.FeedbackPages:
-                    return new[] { feedbackView.NavigationRowRect };
+                    return new[] { feedbackView.NavigationRowRect, feedbackView.PageCardRect };
                 case TutorialCoachTarget.FeedbackClose:
                     return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:

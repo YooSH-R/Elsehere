@@ -33,6 +33,7 @@ import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -64,6 +65,8 @@ class ModelSpeechServiceTest {
   @Autowired private ConversationLookup conversationLookup;
 
   @Autowired private TransactionTemplate transactionTemplate;
+
+  @Autowired private Clock clock;
 
   // 남은 파일을 세는 테스트는 테스트마다 빈 폴더에 저장하는 서비스를 쓴다.
   @TempDir private Path speechDirectory;
@@ -247,7 +250,7 @@ class ModelSpeechServiceTest {
         repository,
         conversationLookup,
         aiGateway,
-        new ModelSpeechStore(speechDirectory.toString()),
+        new ModelSpeechStore(speechDirectory.toString(), clock),
         transactionTemplate,
         "af_heart");
   }

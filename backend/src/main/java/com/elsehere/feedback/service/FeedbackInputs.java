@@ -36,7 +36,10 @@ final class FeedbackInputs {
   /** 설정 버전은 "level-N", 어휘 프로필은 모델이 피드백 길이와 표현 수준을 맞추도록 수준 설명까지 담는다. */
   static FeedbackInput.Difficulty difficulty(Integer level) {
     String version = "level-" + level;
-    String learner = level == null ? LEVEL_LEARNER.get(1) : LEVEL_LEARNER.getOrDefault(level, LEVEL_LEARNER.get(1));
+    String learner =
+        level == null
+            ? LEVEL_LEARNER.get(1)
+            : LEVEL_LEARNER.getOrDefault(level, LEVEL_LEARNER.get(1));
     return new FeedbackInput.Difficulty(version, version + ": " + learner, null, "on_request");
   }
 

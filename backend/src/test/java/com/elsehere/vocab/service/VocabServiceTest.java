@@ -608,7 +608,8 @@ class VocabServiceTest {
     entityManager.persist(feedback);
     entityManager.flush();
 
-    VocabSaveResponse idiom = vocabService.saveFeedbackWord(userId, conversation.getId(), "hang on to");
+    VocabSaveResponse idiom =
+        vocabService.saveFeedbackWord(userId, conversation.getId(), "hang on to");
     VocabSaveResponse sentence =
         vocabService.saveFeedbackWord(userId, conversation.getId(), "I'll be right back.");
 

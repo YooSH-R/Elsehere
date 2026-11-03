@@ -31,9 +31,7 @@ final class FeedbackResults {
         vocabCandidates(result));
   }
 
-  /**
-   * 단어장에 저장할 수 있는 후보. 단어장은 단어·숙어·문장을 모두 저장하므로(VOCAB-02) 종류와 상관없이 그대로 둔다.
-   */
+  /** 단어장에 저장할 수 있는 후보. 단어장은 단어·숙어·문장을 모두 저장하므로(VOCAB-02) 종류와 상관없이 그대로 둔다. */
   private static List<FeedbackReviews.VocabCandidate> vocabCandidates(
       WorkerFeedback.Result result) {
     return nonNull(result.vocabCandidates()).stream()

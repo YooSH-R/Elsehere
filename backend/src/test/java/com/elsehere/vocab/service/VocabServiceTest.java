@@ -589,6 +589,45 @@ class VocabServiceTest {
     assertThat(userVocabRepository.count()).isZero();
   }
 
+  @Test
+  @DisplayName("피드백의 '이 상황에서 자주 써요' 숙어·문장도 단어장에 저장하고, 숙어는 IDIOM·문장은 SENTENCE로 둔다")
+  void saveFeedbackWord_savesSituationIdiomsAndSentences() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "HOTEL_STAFF");
+    ConversationFeedback feedback = ConversationFeedback.of(conversation.getId());
+    feedback.complete(
+        "예약을 확인했어요.",
+        "{\"good\": [], \"improve\": [], \"suggestion\": null, \"situationExpressions\": ["
+            + "{\"expression\": \"hang on to\", \"meaningKo\": \"잠시 맡아 두다\", \"usageKo\": \"짐을 맡길 때\","
+            + " \"exampleEn\": \"Could you hang on to my bag?\", \"exampleKo\": \"가방 좀 맡아 주실래요?\"},"
+            + "{\"expression\": \"I'll be right back.\", \"meaningKo\": \"금방 올게요.\", \"usageKo\": \"잠깐 다녀올 때\","
+            + " \"exampleEn\": \"I left my bag. I'll be right back.\", \"exampleKo\": \"가방을 두고 왔어요. 금방 올게요.\"}],"
+            + " \"vocabCandidates\": []}",
+        "test-model",
+        null);
+    entityManager.persist(feedback);
+    entityManager.flush();
+
+    VocabSaveResponse idiom = vocabService.saveFeedbackWord(userId, conversation.getId(), "hang on to");
+    VocabSaveResponse sentence =
+        vocabService.saveFeedbackWord(userId, conversation.getId(), "I'll be right back.");
+
+    assertThat(idiom.created()).isTrue();
+    assertThat(idiom.item().vocab().meaningKo()).isEqualTo("잠시 맡아 두다");
+    assertThat(idiom.item().context())
+        .isEqualTo(new VocabItemResponse.Context("Could you hang on to my bag?", "가방 좀 맡아 주실래요?"));
+    assertThat(vocabularyType("hang on to")).isEqualTo(VocabularyType.IDIOM);
+    assertThat(sentence.created()).isTrue();
+    assertThat(vocabularyType("I'll be right back.")).isEqualTo(VocabularyType.SENTENCE);
+  }
+
+  private VocabularyType vocabularyType(String text) {
+    return vocabularyRepository
+        .findFirstByLanguageCodeAndTextIgnoreCaseOrderByIdAsc("en-US", text)
+        .orElseThrow()
+        .getType();
+  }
+
   /** 단어장 후보가 있는 완료된 피드백. reviews는 피드백 저장(FeedbackService)이 쓰는 JSON 형식이다. */
   private void completeFeedback(Conversation conversation, String vocabCandidatesJson) {
     ConversationFeedback feedback = ConversationFeedback.of(conversation.getId());

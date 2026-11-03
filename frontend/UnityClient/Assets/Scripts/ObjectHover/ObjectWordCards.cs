@@ -83,6 +83,8 @@ namespace A305.ObjectHover
             );
         }
 
+        public void ForgetSaved(string text) { }
+
         /// <summary>[알아요 · 다시 안 띄우기]와 [다시 띄우기](WORLD-03).</summary>
         public async Task SetHoverHiddenAsync(string wordKey, bool hoverHidden)
         {

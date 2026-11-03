@@ -648,7 +648,13 @@ namespace A305.Tutorial.PlayModeTests
                 Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
                 Assert.That(coachMark.IsDimmingOutside, Is.True);
                 Assert.That(coachMark.IsNextShowing, Is.True);
-                Assert.That(coachMark.CaptionRect.Overlaps(coachMark.Hole), Is.False);
+                // 설명은 결과 칸 위에는 조금 올라가도 되지만, 설명하는 탭·화살표 줄은 가리지 않는다.
+                Assert.That(
+                    ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
+                        .Overlaps(ScreenRectOf(targets[0])),
+                    Is.False,
+                    "설명이 설명하는 버튼 줄을 가립니다."
+                );
                 AssertCaptionClearsTheSkipCard(coachMark);
                 ClickNext(coachMark);
                 yield return null;

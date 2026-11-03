@@ -372,6 +372,79 @@ def test_home_store_clerk_nina_keeps_the_persona_direction():
     assert rates["recognitionRate"] > 1
 
 
+def test_barista_zoe_keeps_the_persona_direction():
+    """인격: 수다스럽고 손님이 어디서 왔는지 궁금해함, 한가하면 금방 지루해함."""
+    rates = derived_from_life_file("CAFE_BARISTA")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_receptionist_owen_keeps_the_persona_direction():
+    """인격: 손님 이름을 외우는 다정한 프런트 직원, 무례는 넘기지 않음."""
+    rates = derived_from_life_file("HOTEL_RECEPTIONIST")
+
+    assert rates["recognitionRate"] > 1
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["eventScale"]["RUDE"] > 1
+
+
+def test_night_manager_clara_keeps_the_persona_direction():
+    """인격: 무슨 일에도 침착함, 말이 짧고 손님과 거리를 둠."""
+    rates = derived_from_life_file("HOTEL_NIGHT_MANAGER")
+
+    assert rates["eventScale"]["RUDE"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["needRates"]["SOCIAL"] < 1
+
+
+def test_pharmacist_hannah_keeps_the_persona_direction():
+    """인격: 조용하고 세심함, 손님을 잘 기억함, 잡담은 짧게."""
+    rates = derived_from_life_file("SHOP_PHARMACIST")
+
+    assert rates["recognitionRate"] > 1
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+
+
+def test_night_clerk_samuel_keeps_the_persona_direction():
+    """인격: 말수 적은 밤 근무자, 한가하면 금방 지루해함, 엉뚱한 이야기는 좋아함, 무례는 못 참음."""
+    rates = derived_from_life_file("SHOP_NIGHT_CLERK")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+    assert rates["eventScale"]["RUDE"] > 1
+
+
+def test_retiree_ruby_keeps_the_persona_direction():
+    """인격: 사람 좋아하는 할머니, 얼굴을 잘 기억함, 예의를 따지지만 사과하면 금방 풀림."""
+    rates = derived_from_life_file("TOWN_RETIREE")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["APOLOGY"] > 1
+
+
+def test_student_ethan_keeps_the_persona_direction():
+    """인격: 호기심 많고 수다스러움, 금방 지루해함, 이름은 잘 못 외움."""
+    rates = derived_from_life_file("TOWN_STUDENT")
+
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["recognitionRate"] < 1
+
+
+def test_evening_walker_maya_keeps_the_persona_direction():
+    """인격: 퇴근 뒤 혼자 걸으며 머리를 식힘, 말수가 적고 낯선 사람과 거리를 둠."""
+    rates = derived_from_life_file("TOWN_EVENING_WALKER")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["personalTalkScale"] > 1
+
+
 # ---------------------------------------------------------------------
 # 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
 # ---------------------------------------------------------------------
@@ -381,17 +454,25 @@ SERVICE_NPCS = [
     "BAKERY_STAFF",
     "BANK_STAFF",
     "BARBER_STAFF",
+    "CAFE_BARISTA",
     "CAFE_STAFF",
     "DINER_STAFF",
     "FLOWER_SHOP_STAFF",
     "HOME_STORE_STAFF",
+    "HOTEL_NIGHT_MANAGER",
+    "HOTEL_RECEPTIONIST",
     "HOTEL_STAFF",
     "LAUNDROMAT_STAFF",
     "POLICE_OFFICER",
     "POST_OFFICE_STAFF",
+    "SHOP_NIGHT_CLERK",
+    "SHOP_PHARMACIST",
     "SHOP_STAFF",
     "TAXI_DRIVER",
+    "TOWN_EVENING_WALKER",
     "TOWN_PASSERBY",
+    "TOWN_RETIREE",
+    "TOWN_STUDENT",
 ]
 
 

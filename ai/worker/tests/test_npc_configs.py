@@ -275,17 +275,25 @@ def test_the_service_npcs_each_have_a_service_scenario():
         "BAKERY_STAFF": "bakery_counter",
         "BANK_STAFF": "bank_counter",
         "BARBER_STAFF": "barber_shop",
+        "CAFE_BARISTA": "cafe_counter",
         "CAFE_STAFF": "cafe_counter",
         "DINER_STAFF": "diner_counter",
         "FLOWER_SHOP_STAFF": "flower_shop_counter",
         "HOME_STORE_STAFF": "home_store",
+        "HOTEL_NIGHT_MANAGER": "hotel_front_desk",
+        "HOTEL_RECEPTIONIST": "hotel_front_desk",
         "HOTEL_STAFF": "hotel_front_desk",
         "LAUNDROMAT_STAFF": "laundromat",
         "POLICE_OFFICER": "police_front_desk",
         "POST_OFFICE_STAFF": "post_office_counter",
+        "SHOP_NIGHT_CLERK": "drugstore_counter",
+        "SHOP_PHARMACIST": "drugstore_counter",
         "SHOP_STAFF": "drugstore_counter",
         "TAXI_DRIVER": "taxi_ride",
+        "TOWN_EVENING_WALKER": "town_street",
         "TOWN_PASSERBY": "town_street",
+        "TOWN_RETIREE": "town_street",
+        "TOWN_STUDENT": "town_street",
     }
 
 
@@ -298,17 +306,25 @@ def test_the_service_npcs_each_have_their_own_voice():
         "BAKERY_STAFF": "bf_emma",  # Grace: 따뜻하고 부지런한 여자(영국식)
         "BANK_STAFF": "bm_george",  # Henry: 정중하고 침착한 남자(영국식)
         "BARBER_STAFF": "am_liam",  # Tony: 수다스럽고 장난기 많은 남자
+        "CAFE_BARISTA": "af_nova",  # Zoe: 밝고 수다스러운 20대 여자
         "CAFE_STAFF": "af_heart",  # Mia: 밝은 여자
         "DINER_STAFF": "af_bella",  # Rosa: 다정하고 수다스러운 여자
         "FLOWER_SHOP_STAFF": "af_nicole",  # Lily: 다정하고 수줍은 여자
         "HOME_STORE_STAFF": "af_sky",  # Nina: 차분하고 센스 있는 여자
+        "HOTEL_NIGHT_MANAGER": "bf_isabella",  # Clara: 침착한 중년 여자(영국식)
+        "HOTEL_RECEPTIONIST": "bm_lewis",  # Owen: 정중하고 다정한 30대 남자(영국식). 미국식 남자 목소리는 다른 NPC가 씀
         "HOTEL_STAFF": "am_echo",  # Jake: 또렷하고 밝은 남자
         "LAUNDROMAT_STAFF": "am_adam",  # Gus: 느긋하고 농담을 좋아하는 남자
         "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
         "POST_OFFICE_STAFF": "af_sarah",  # Linda: 꼼꼼하고 원칙을 지키는 여자
+        "SHOP_NIGHT_CLERK": "am_onyx",  # Samuel: 낮은 목소리의 중년 남자
+        "SHOP_PHARMACIST": "af_kore",  # Hannah: 차분하고 세심한 중년 여자
         "SHOP_STAFF": "am_michael",  # Alex: 차분한 남자
         "TAXI_DRIVER": "am_puck",  # Joe: 밝고 수다스러운 남자
+        "TOWN_EVENING_WALKER": "af_aoede",  # Maya: 말수 적은 중년 여자
         "TOWN_PASSERBY": "am_fenrir",  # Ben: 분명하고 단호한 남자
+        "TOWN_RETIREE": "bf_alice",  # Ruby: 다정한 할머니(영국식)
+        "TOWN_STUDENT": "bm_daniel",  # Ethan: 호기심 많은 20대 남자(영국식)
     }
 
 

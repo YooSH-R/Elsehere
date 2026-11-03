@@ -183,17 +183,25 @@ def test_every_service_npc_has_a_life_file_without_problems():
         "BAKERY_STAFF",
         "BANK_STAFF",
         "BARBER_STAFF",
+        "CAFE_BARISTA",
         "CAFE_STAFF",
         "DINER_STAFF",
         "FLOWER_SHOP_STAFF",
         "HOME_STORE_STAFF",
+        "HOTEL_NIGHT_MANAGER",
+        "HOTEL_RECEPTIONIST",
         "HOTEL_STAFF",
         "LAUNDROMAT_STAFF",
         "POLICE_OFFICER",
         "POST_OFFICE_STAFF",
+        "SHOP_NIGHT_CLERK",
+        "SHOP_PHARMACIST",
         "SHOP_STAFF",
         "TAXI_DRIVER",
+        "TOWN_EVENING_WALKER",
         "TOWN_PASSERBY",
+        "TOWN_RETIREE",
+        "TOWN_STUDENT",
     ]
     assert npc_life_rules.life_problems(NPCS, load_world_rules()) == []
 
@@ -204,8 +212,13 @@ def test_every_service_npc_works_its_own_shift():
 
     assert {npc_id: (life["workplace"], life["shift"]) for npc_id, life in lives.items()} == {
         "CAFE_STAFF": ("CAFE", "OPENING"),
+        "CAFE_BARISTA": ("CAFE", "CLOSING"),
         "HOTEL_STAFF": ("HOTEL", "DAY"),
+        "HOTEL_RECEPTIONIST": ("HOTEL", "EVENING"),
+        "HOTEL_NIGHT_MANAGER": ("HOTEL", "NIGHT"),
+        "SHOP_PHARMACIST": ("SHOP", "DAY"),
         "SHOP_STAFF": ("SHOP", "EVENING"),
+        "SHOP_NIGHT_CLERK": ("SHOP", "NIGHT"),
         "POST_OFFICE_STAFF": ("POST_OFFICE", "ALL_DAY"),
         "DINER_STAFF": ("DINER", "ALL_DAY"),
         "BANK_STAFF": ("BANK", "ALL_DAY"),
@@ -217,7 +230,10 @@ def test_every_service_npc_works_its_own_shift():
         "HOME_STORE_STAFF": ("HOME_STORE", "ALL_DAY"),
         "POLICE_OFFICER": ("POLICE_STATION", "ALL_DAY"),
         "TAXI_DRIVER": ("TAXI", "ALL_DAY"),
+        "TOWN_RETIREE": ("TOWN", "MORNING"),
         "TOWN_PASSERBY": ("TOWN", "DAY"),
+        "TOWN_STUDENT": ("TOWN", "AFTERNOON"),
+        "TOWN_EVENING_WALKER": ("TOWN", "EVENING"),
     }
 
 

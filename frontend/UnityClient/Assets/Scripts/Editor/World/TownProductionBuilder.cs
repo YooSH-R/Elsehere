@@ -311,13 +311,11 @@ namespace A305.EditorTools.World
             trigger.size = new Vector3(1.8f, 2.6f, .8f);
             door.ArrivalPoint.localPosition = new Vector3(0, 0, 2f);
             Transform visual = door.transform.Find("Visual");
-            visual.localScale = new Vector3(1.5f, 1.18f, 1);
-            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>())
-                renderer.sharedMaterial = Green;
+            ShopEntranceBuilder.FitStreetFacade(door);
+            visual.Find("DoorPanel").GetComponent<Renderer>().sharedMaterial = Green;
             PrefabUtility.RecordPrefabInstancePropertyModifications(door.transform);
             PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
             PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
         }
 
         private static void ConfigureCharacters(Scene scene)

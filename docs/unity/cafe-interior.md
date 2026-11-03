@@ -54,7 +54,7 @@ Unity 1 unit = 1m이다. 남쪽이 입구, 북쪽이 주문대와 커피 준비�
 
 ## 조명과 편집
 
-방향광 1개, 실내 보조광 1개, 펜던트 Point Light 4개를 사용한다. 천장·창 유리는 방향광 그림자를 만들지 않는 스타일 조명이며, 베이크한 전역 조명은 아니다. 창은 불투명한 청록색 유리 표현이며 실제 마을 조망은 연결하지 않았다. 이 값은 낮 기준이며, `Lighting/InteriorDaylight`가 게임 시각에 맞춰 밤에는 방향광·보조광(`CafeBounce`)·환경광을 줄이고 펜던트를 밝히며 창 유리(`DaylightGlass`)를 밤하늘 색으로 칠한다([Weather 모듈의 밤낮](../../frontend/UnityClient/Assets/Scripts/Weather/README.md#밤낮)).
+방향광 1개, 실내 보조광 1개, 펜던트 Point Light 4개를 사용한다. 천장·창 유리는 방향광 그림자를 만들지 않는 스타일 조명이며, 베이크한 전역 조명은 아니다. 창은 불투명한 청록색 유리 표현이며 실제 마을 조망은 연결하지 않았다. 이 값은 낮 기준이며, `Lighting/InteriorDaylight`가 게임 시각에 맞춰 밤에는 불을 켠 방처럼 방향광을 조금 약한 실내등 색으로 바꾸고 보조광(`CafeBounce`)·환경광을 조금 줄이며 펜던트를 밝히고 창 유리(`DaylightGlass`)를 밤하늘 색으로 칠한다([Weather 모듈의 밤낮](../../frontend/UnityClient/Assets/Scripts/Weather/README.md#밤낮)).
 
 | 대상 | 설정 |
 | --- | --- |

@@ -52,7 +52,7 @@ Sandbox의 씬 이름은 튜토리얼 시작 조건인 `HomeScene`과 다르다.
 
 낮의 방향광, 실내 보조 Point Light, 두 개의 스탠드 Point Light를 사용한다. 창 위치에 벽 개구부를 두고, 천장은 방향광 그림자를 만들지 않도록 설정한 스타일 조명이다. 물리 기반 실내 채광이나 베이크한 전역 조명은 아니다.
 
-이 값은 낮 기준이다. `Lighting/InteriorDaylight`가 게임 시각에 맞춰 밤에는 방향광을 달빛 색으로 줄이고 보조광(`RoomBounce`)·환경광을 낮추며 스탠드는 밝히고, 창 유리(`WindowDaylight`)를 밤하늘 색으로 칠한다. 값과 방식은 [Weather 모듈의 밤낮](../../frontend/UnityClient/Assets/Scripts/Weather/README.md#밤낮)을 따른다.
+이 값은 낮 기준이다. `Lighting/InteriorDaylight`가 게임 시각에 맞춰 밤에는 불을 켠 방처럼 방향광을 조금 약한 실내등 색으로 바꾸고 보조광(`RoomBounce`)·환경광을 조금 낮추며 스탠드는 밝히고, 창 유리(`WindowDaylight`)를 밤하늘 색으로 칠한다. 값과 방식은 [Weather 모듈의 밤낮](../../frontend/UnityClient/Assets/Scripts/Weather/README.md#밤낮)을 따른다.
 
 | 대상 | 설정 위치 |
 | --- | --- |

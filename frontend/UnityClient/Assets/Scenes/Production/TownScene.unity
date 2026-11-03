@@ -16294,14 +16294,6 @@ MonoBehaviour:
   - {fileID: 1088272298}
   - {fileID: 1088272297}
   - {fileID: 1088272296}
-  - {fileID: 1670891799}
-  - {fileID: 1670891798}
-  - {fileID: 1670891797}
-  - {fileID: 1670891796}
-  - {fileID: 1670891795}
-  - {fileID: 1670891794}
-  - {fileID: 1670891793}
-  - {fileID: 1670891792}
   - {fileID: 1996251868}
   - {fileID: 1996251867}
   - {fileID: 1236884652}
@@ -16315,6 +16307,20 @@ MonoBehaviour:
   - {fileID: 688488106}
   - {fileID: 216979004}
   - {fileID: 580808665}
+  - {fileID: 411377259}
+  - {fileID: 176381612}
+  - {fileID: 183756316}
+  - {fileID: 990729705}
+  - {fileID: 1804947430}
+  streetLamps:
+  - {fileID: 1670891799}
+  - {fileID: 1670891798}
+  - {fileID: 1670891797}
+  - {fileID: 1670891796}
+  - {fileID: 1670891795}
+  - {fileID: 1670891794}
+  - {fileID: 1670891793}
+  - {fileID: 1670891792}
   - {fileID: 1251398278}
   - {fileID: 1251398277}
   - {fileID: 1251398276}
@@ -16323,11 +16329,6 @@ MonoBehaviour:
   - {fileID: 1251398273}
   - {fileID: 1251398272}
   - {fileID: 1251398271}
-  - {fileID: 411377259}
-  - {fileID: 176381612}
-  - {fileID: 183756316}
-  - {fileID: 990729705}
-  - {fileID: 1804947430}
   litBuildings:
   - {fileID: 393855496}
   - {fileID: 1337579283}

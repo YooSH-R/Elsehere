@@ -181,6 +181,26 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void Bubble_NoFreeSpotAroundTheWideHole_PinsToTheRightEdgeOverlappingTheHoleALittle()
+        {
+            // 대화 노트처럼 밝힌 곳이 넓어 옆에 조금 모자라고 위는 [건너뛰기] 카드가 막으면, 화면 오른쪽 끝에 붙여 밝힌 곳에 조금 겹쳐 둔다.
+            var keepClear = new Rect(250f, 500f, 300f, 90f);
+
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(100f, 80f, 560f, 400f),
+                new Vector2(200f, 100f),
+                Canvas,
+                20f,
+                10f,
+                keepClear
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Right));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(590f, 230f, 200f, 100f)));
+            Assert.That(bubble.Rect.Overlaps(keepClear), Is.False);
+        }
+
+        [Test]
         public void Bubble_NoRoomBelow_StaysAboveButMovesBesideTheKeepClearArea()
         {
             var keepClear = new Rect(300f, 480f, 200f, 100f);

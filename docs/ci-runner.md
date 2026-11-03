@@ -16,8 +16,8 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `ci:yaml` | 생성된 모든 파이프라인 | CI YAML 문법·형식 검사 |
 | `backend:check-and-build` | 백엔드, API 명세, ERD, 앱 실행 설정 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·`app.jar`·커밋 식별자 |
 | `unity:format` | 프론트, API 명세, Unity CI·검사 스크립트·규약 또는 공통 작성 지침 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
-| `unity:editor-tests` | 같은 프로젝트의 Unity 관련 MR | Windows Runner에서 컴파일·EditMode·PlayMode 필수 검사, NUnit XML·로그. WebGL 빌드·서버 배포 없음 |
-| `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
+| `unity:editor-tests` | 같은 프로젝트의 Unity 실행 관련 MR. 규약 문서만 바뀐 MR 제외 | Windows Runner에서 컴파일과 [바뀐 영역에 맞는 범위](#unity-테스트-범위)의 EditMode·PlayMode 필수 검사, NUnit XML·로그. WebGL 빌드·서버 배포 없음 |
+| `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 실행 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
 | `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
@@ -62,7 +62,7 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | `.gitlab/ci/unity.yml` | Unity를 포함한 적용 가능한 모든 작업 |
 | 웹에서 수동 실행 | 적용 가능한 모든 작업 |
 
-`infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 규약·검사 스크립트 변경은 Unity 검사, 공통 작성 지침 변경은 백엔드·Unity·AI 검사를 선택합니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
+`infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 검사 스크립트 변경은 Unity 포맷·실행 테스트를 선택합니다. Unity 규약 문서 변경은 Unity 포맷 검사, 공통 작성 지침 변경은 백엔드·Unity 포맷·AI 검사를 선택하며, 문서는 Editor 결과를 바꾸지 않으므로 `unity:editor-tests`는 만들지 않습니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
 
 Unity 검사 스크립트 `run-unity-ci.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷·실행 테스트를 선택합니다. 실행 테스트는 Draft를 포함한 MR의 각 Push에서 대상 브랜치와 남은 차이를 기준으로 다시 실행합니다. 외부 프로젝트 MR에는 같은 변경 경로에서 `unity:editor-tests` 대신 실패하는 `unity:external-mr`을 선택하므로 필수 검사를 생략한 성공 결과로 병합하지 않습니다.
 
@@ -70,11 +70,30 @@ MR의 Unity 작업은 공통 workflow나 다른 영역의 CI 파일 변경만으
 
 작업 선택을 검증할 때는 CI 설정이 있는 버전을 대상으로 별도 Draft MR을 만듭니다. 대상과의 차이가 위 표의 한 영역에만 남도록 변경한 뒤, 파이프라인의 작업 목록과 결과를 확인합니다. 다음 사례로 바꿀 때 이전 검증용 변경을 복원합니다. 검증용 변경은 실제 CI MR이나 `dev`에 병합하지 않으며, 파이프라인·커밋별 결과는 검증 MR과 Jira에 기록합니다. 열린 MR에 Push한 커밋에서 MR 파이프라인만 생성되는지도 확인합니다. `ci:yaml` 로그의 실행 원인·커밋·대상 브랜치·MR 비교 기준을 작업 목록과 함께 확인할 수 있습니다.
 
-Unity 관련 MR은 **포맷 검사와 실제 EditMode·PlayMode 실행 테스트를 모두 통과해야 합니다.** `unity:editor-tests`는 실패를 허용하지 않으며, 실패·취소·대기 중인 최신 파이프라인은 [병합 검사 설정](gitlab-setup.md#병합-검사-설정)에 따라 병합을 차단합니다. dev 병합 후에는 병합된 커밋의 누적 통합 검사와 필요한 WebGL 빌드·배포를 별도로 수행합니다. 보호된 후보의 수동 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
+Unity 관련 MR은 **포맷 검사와 바뀐 영역에 맞는 실제 Editor 실행 테스트를 모두 통과해야 합니다.** `unity:editor-tests`는 실패를 허용하지 않으며, 실패·취소·대기 중인 최신 파이프라인은 [병합 검사 설정](gitlab-setup.md#병합-검사-설정)에 따라 병합을 차단합니다. dev 병합 후에는 병합된 커밋의 누적 통합 검사와 필요한 WebGL 빌드·배포를 별도로 수행합니다. 보호된 후보의 수동 연결 시험에는 `unity:editor-and-webgl`을 사용하며 실행 조건과 노트북 유지 방법은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. Runner Online 상태만으로 테스트·빌드 성공으로 판단하지 않습니다. AI 단위 테스트는 모의 공급자로 실행하며 실제 모델 호출·GPU·음성 모델 기동은 검증 범위에 포함하지 않습니다.
 
 일반 MR 파이프라인은 검사를 수행하며 서버 앱을 교체하지 않습니다. dev 자동 배포의 보호 조건, 자식 파이프라인, 서버 설치와 연결 시험은 [dev 자동 배포 운영](dev-auto-deployment.md)을 따릅니다. 운영 통합 테스트는 별도 릴리스 검증으로 관리합니다. 마지막 성공 배포 이후 누적 변경 판정은 배포 구현의 책임이며 CI의 `rules:changes`만으로 해결했다고 간주하지 않습니다.
 
 `infra:app-runtime`은 Runner의 rootless Docker 안에 `a305-check-*` 프로젝트를 만들고 종료 시 그 프로젝트의 컨테이너·네트워크·DB 볼륨만 정리합니다. 테스트용 네트워크의 외부 통신을 차단하고 공급자 키는 가짜 값을 사용하므로 실제 모델을 호출하지 않습니다. 웹 응답에는 작은 HTTP fixture를 사용하며 실제 Unity 게임 화면이나 외부 HTTPS 경로를 검증한 것으로 표시하지 않습니다. 실행 구성은 [서버 구성](deployment.md), Unity 실행 환경은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다.
+
+### Unity 테스트 범위
+
+`unity:editor-tests`는 MR의 merge base(`CI_MERGE_REQUEST_DIFF_BASE_SHA`)를 `run-unity-ci.ps1 -ChangedSince`로 넘깁니다. 스크립트는 merge base와 MR 커밋의 차이로 실행 범위를 정합니다.
+
+| 바뀐 파일 | 실행하는 테스트 |
+| --- | --- |
+| 모두 Web 템플릿(`frontend/UnityClient/Assets/WebGLTemplates/`), `frontend/design/` 또는 문서(`docs/`·`.md`. `docs/api/`와 Unity 프로젝트 안 문서는 제외) | EditMode 배포 검사 `A305.Deployment.Tests`. PlayMode와 Blender 테스트 입력 준비는 생략 |
+| 그 밖의 파일이 하나라도 포함 | EditMode·PlayMode 전체 |
+
+- 표에 없는 경로는 모두 전체 실행으로 처리합니다. 백엔드·AI·CI 파일이 섞여도 전체를 실행하며, 새 폴더를 추가해도 검사 범위가 줄지 않습니다. `frontend/ArtSources/`는 Tripo EditMode 테스트가 읽으므로 전체 실행 대상입니다.
+- 얕은 clone에 merge base가 없으면 해당 커밋만 가져옵니다. 가져오기나 비교에 실패하면 전체를 실행합니다.
+- 이름 바꾸기도 삭제와 추가로 나눠 비교하므로, 스크립트를 템플릿 폴더로 옮긴 변경은 전체를 실행합니다.
+- 배포 검사만 실행해도 Unity는 프로젝트 전체를 컴파일합니다. 작업 로그의 `Unity test scope:` 줄에서 선택한 범위와 전체 실행을 일으킨 파일을 확인합니다.
+- 규약 문서(`AGENTS.md`, `docs/code-conventions.md`, `docs/unity/`)만 바뀐 MR에는 `unity:editor-tests`를 만들지 않습니다. 이 문서가 Unity 변경과 함께 바뀌면 위 표를 따릅니다.
+- 실행 코드 영역 안에서는 asmdef 단위로 테스트 어셈블리를 고르지 않습니다. 기준은 [변경 영역별 CI/CD 구성 기준](ci-cd.md#1-변경-영역별-기본-검증과-배포)을 따릅니다.
+- `unity:editor-and-webgl`과 `-ChangedSince` 없이 실행한 `run-unity-ci.ps1 -Action test`는 항상 전체를 실행합니다.
+
+범위 판정 테스트 `infra/scripts/tests/test_unity_test_scope.py`는 Windows 전용이라 Linux CI에서는 건너뜁니다. 실행 명령은 [Windows Unity Runner](unity/windows-runner.md#실행-스크립트와-결과)를 따릅니다.
 
 ## 동일 서버의 실행 구조와 제한
 

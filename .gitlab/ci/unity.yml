@@ -52,12 +52,21 @@ unity:editor-tests:
   needs: ["ci:yaml", "unity:format"]
   allow_failure: false
   script:
-    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
+    # The script narrows web-template-only changes to the deployment tests.
+    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test -ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID == $CI_MERGE_REQUEST_PROJECT_ID'
       changes:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        paths: *unity_change_paths
+        # Convention documents cannot change Editor results, so they only select the format check.
+        paths: &unity_editor_change_paths
+          - frontend/**/*
+          - docs/api/**/*
+          - infra/scripts/unity-code-quality.ps1
+          - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/prepare-unity-test-inputs.ps1
+          - infra/tests/tripo/**/*
+          - .gitlab/ci/unity.yml
 
 # Fork code must not run under the notebook's licensed Windows account.
 # Keep affected fork MRs blocked rather than silently omitting their required test.
@@ -74,7 +83,7 @@ unity:external-mr:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID != $CI_MERGE_REQUEST_PROJECT_ID'
       changes:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-        paths: *unity_change_paths
+        paths: *unity_editor_change_paths
 
 unity:editor-and-webgl:
   extends: .unity-editor

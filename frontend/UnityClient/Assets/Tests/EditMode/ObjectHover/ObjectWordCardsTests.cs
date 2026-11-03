@@ -32,6 +32,23 @@ namespace A305.ObjectHover.Tests
         }
 
         [Test]
+        public async Task ForgetSaved_WordDeletedFromTheVocabulary_CanBeSavedAgain()
+        {
+            // 사물 카드는 장소에 들어올 때 받은 저장 상태를 들고 있으므로, 단어장에서 지운 단어를 알려 줘야 다시 저장할 수 있다.
+            api.AddWord("sofa", saved: true).AddWord("tv", saved: true);
+            ObjectWordCards cards = await api.LoadCardsAsync();
+
+            cards.ForgetSaved("Sofa");
+
+            cards.TryGet("sofa", out WordCard sofa);
+            cards.TryGet("tv", out WordCard tv);
+            WordCardButtons buttons = WordCardButtons.For(sofa);
+            Assert.That(buttons.CanSave, Is.True);
+            Assert.That(buttons.SaveLabel, Is.EqualTo("단어장에 저장"));
+            Assert.That(tv.Saved, Is.True, "다른 단어는 저장한 그대로입니다.");
+        }
+
+        [Test]
         public async Task Load_WhenRequestFails_HasNoCardsAndKeepsHover()
         {
             // 단어 카드를 받지 못해도 Unity 단어로 카드는 보이게 호버는 막지 않는다.

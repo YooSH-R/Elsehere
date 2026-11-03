@@ -210,5 +210,22 @@ namespace A305.Tutorial
             guide = null;
             return false;
         }
+
+        /// <returns>
+        /// 그 단계나 그보다 앞선 단계 중 가장 가까운 안내가 있으면 true. 대화처럼 안내 카드가 없는 단계에서 [건너뛰기]만 남긴 카드의 이름으로 쓴다.
+        /// </returns>
+        public bool TryGetNearestStepGuide(TutorialStep step, out TutorialStepGuide guide)
+        {
+            guide = null;
+            foreach (TutorialStepGuide candidate in stepGuides)
+            {
+                if (candidate.Step <= step && (guide == null || candidate.Step > guide.Step))
+                {
+                    guide = candidate;
+                }
+            }
+
+            return guide != null;
+        }
     }
 }

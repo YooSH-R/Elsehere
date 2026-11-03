@@ -37,7 +37,8 @@ namespace A305.Learning
             }
 
             UtteranceCount = reviews.Count;
-            Summary = $"{UtteranceCount}개의 문장으로 {NpcName}와 이야기를 나눴어요.";
+            Summary =
+                $"{UtteranceCount}개의 문장으로 {FeedbackText.NameWith(NpcName)} 이야기를 나눴어요.";
         }
 
         private ConversationFeedback(string npcName, int utteranceCount)

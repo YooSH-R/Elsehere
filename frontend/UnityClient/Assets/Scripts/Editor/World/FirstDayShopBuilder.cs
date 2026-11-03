@@ -353,22 +353,14 @@ namespace A305.EditorTools.World
             doorway.transform.SetParent(front, false);
             doorway.transform.localPosition = new Vector3(0, 0, .07f);
             doorway.transform.localRotation = Quaternion.identity;
-            var trigger = doorway.GetComponent<BoxCollider>();
-            trigger.center = new Vector3(0, 1.3f, .4f);
-            trigger.size = new Vector3(1.8f, 2.6f, .8f);
-            doorway.ArrivalPoint.localPosition = new Vector3(0, 0, 2);
+            TownProductionBuilder.FitDoorToSidewalk(doorway);
             // 상점답게 안이 비치는 유리문 색으로 칠한다.
             Transform visual = doorway.transform.Find("Visual");
-            visual.localScale = new Vector3(1.5f, 1.18f, 1);
-            foreach (Renderer panel in visual.GetComponentsInChildren<Renderer>())
-            {
-                panel.sharedMaterial = Glass;
-                PrefabUtility.RecordPrefabInstancePropertyModifications(panel);
-            }
+            ShopEntranceBuilder.FitStreetFacade(doorway);
+            Renderer panel = visual.Find("DoorPanel").GetComponent<Renderer>();
+            panel.sharedMaterial = Glass;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(panel);
             PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.transform);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.ArrivalPoint);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
         }
 
         private static GameObject KitPart(string name, Transform parent, Vector3 position) =>

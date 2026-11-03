@@ -69,6 +69,26 @@ namespace A305.Weather
         private Renderer[] cloudRenderers;
         private Quaternion designedSunRotation;
         private NightLights nightLights;
+        private NightLights shopLights;
+
+        /// <summary>방문할 때 로드한 실내도 마을과 같은 시각을 따르게 하고, 나올 때 재질 사본을 정리한다.</summary>
+        public void SetShopInterior(Transform interior)
+        {
+            shopLights?.Restore();
+            shopLights = null;
+            if (interior == null || daylight == null)
+                return;
+
+            var renderers = interior.GetComponentsInChildren<Renderer>(true);
+            shopLights = new NightLights(
+                daylight,
+                interior.GetComponentsInChildren<Light>(true),
+                renderers,
+                renderers
+            );
+            if (shownMinutes.HasValue)
+                shopLights.Apply(daylight, daylight.NightAmount(shownMinutes.Value));
+        }
 
         // 시각을 받기 전에는 씬 디자인의 낮이다.
         private double? shownMinutes;
@@ -174,6 +194,7 @@ namespace A305.Weather
             Destroy(sky);
             Destroy(cloud);
             nightLights?.Restore();
+            shopLights?.Restore();
             if (shownMinutes.HasValue)
                 UiBackdropLift.Show(0f);
         }
@@ -342,6 +363,7 @@ namespace A305.Weather
                 sun.transform.rotation = daylight.SunRotation(designedSunRotation, minutes);
                 float night = daylight.NightAmount(minutes);
                 nightLights.Apply(daylight, night);
+                shopLights?.Apply(daylight, night);
                 UiBackdropLift.Show(night);
             }
             if (sky != null && sky.HasProperty(StarsId))

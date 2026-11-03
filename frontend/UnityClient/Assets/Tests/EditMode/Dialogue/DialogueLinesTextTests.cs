@@ -15,6 +15,43 @@ namespace A305.Dialogue.Tests
             "일반 우유로 드릴까요, 두유로 드릴까요?"
         );
 
+        // 이름이 대사와 같은 흰색이면 누가 말했는지 읽기 어렵다. NPC는 이름표와 같은 밝은 코랄, 나는 밝은 하늘색으로 칠한다.
+        [Test]
+        public void Format_ColorsTheSpeakersApartFromTheLines()
+        {
+            string text = DialogueLinesText.Format(new[] { Opening, Order }, "Mia", false, null);
+
+            Assert.That(text, Does.StartWith("<color=#FFB199><b>Mia</b></color>  Hi there!"));
+            Assert.That(text, Does.Contain("\n<color=#9ED3FF><b>나</b></color>  A latte, please."));
+        }
+
+        // 이름 길이가 달라도 문장은 같은 자리에서 시작한다. 이름 뒤 문장과 그 아래 뜻을 같은 들여쓰기로 맞춘다.
+        [Test]
+        public void Format_StartsEverySentenceAtTheSameIndent()
+        {
+            string text = DialogueLinesText.Format(
+                new[] { Order, Question },
+                "Mia",
+                true,
+                null,
+                sentenceIndent: 64
+            );
+
+            Assert.That(
+                text,
+                Does.Contain("<b>나</b></color><indent=64>A latte, please.</indent>")
+            );
+            Assert.That(
+                text,
+                Does.Contain("<b>Mia</b></color><indent=64>Regular milk or soy milk?</indent>")
+            );
+            Assert.That(
+                text,
+                Does.Contain("\n<indent=64><size=80%>"),
+                "뜻도 문장과 같은 자리에서 시작합니다."
+            );
+        }
+
         // 최신 대사만 보이면 방금 무슨 말이 오갔는지 대화 중에 다시 볼 수 없다.
         [Test]
         public void Format_ShowsEveryLineOfThisConversationWithItsSpeaker()
@@ -29,9 +66,9 @@ namespace A305.Dialogue.Tests
             Assert.That(
                 text,
                 Is.EqualTo(
-                    "<b>Mia</b>  Hi there! What can I get for you?\n"
-                        + "<b>나</b>  A latte, please.\n"
-                        + "<b>Mia</b>  Regular milk or soy milk?"
+                    "<color=#FFB199><b>Mia</b></color>  Hi there! What can I get for you?\n"
+                        + "<color=#9ED3FF><b>나</b></color>  A latte, please.\n"
+                        + "<color=#FFB199><b>Mia</b></color>  Regular milk or soy milk?"
                 )
             );
         }
@@ -56,7 +93,7 @@ namespace A305.Dialogue.Tests
             Assert.That(
                 text,
                 Does.EndWith(
-                    "<b>Mia</b>  Regular milk or soy milk?\n"
+                    "<color=#FFB199><b>Mia</b></color>  Regular milk or soy milk?\n"
                         + "<size=80%><color=#E6D3BC>일반 우유로 드릴까요, 두유로 드릴까요?</color></size>\n"
                         + "<size=80%><color=#E6D3BC>단어 풀이 · soy milk 두유</color></size>"
                 )
@@ -81,7 +118,7 @@ namespace A305.Dialogue.Tests
             Assert.That(
                 text,
                 Does.StartWith(
-                    "<b>Ben</b>  Would you like an iced <link=\"0/0\"><u>latte</u></link> "
+                    "<color=#FFB199><b>Ben</b></color>  Would you like an iced <link=\"0/0\"><u>latte</u></link> "
                         + "<link=\"0/1\"><u>to go</u></link>?"
                 )
             );
@@ -102,7 +139,7 @@ namespace A305.Dialogue.Tests
             Assert.That(
                 text,
                 Does.StartWith(
-                    "<b>Ben</b>  <link=\"0/0\"><u>Latte</u></link> sounds good. "
+                    "<color=#FFB199><b>Ben</b></color>  <link=\"0/0\"><u>Latte</u></link> sounds good. "
                         + "Let's <link=\"0/1\"><u>go</u></link>!"
                 )
             );
@@ -118,7 +155,7 @@ namespace A305.Dialogue.Tests
 
             string text = DialogueLinesText.Format(new[] { line }, "Ben", false, null);
 
-            Assert.That(text, Is.EqualTo("<b>Ben</b>  An iced latte?"));
+            Assert.That(text, Is.EqualTo("<color=#FFB199><b>Ben</b></color>  An iced latte?"));
         }
 
         // 뜻을 받은 지난 대사의 단어도 이어서 눌러 볼 수 있게 밑줄을 둔다.
@@ -139,7 +176,9 @@ namespace A305.Dialogue.Tests
 
             Assert.That(
                 text,
-                Does.StartWith("<b>Ben</b>  An iced <link=\"0/0\"><u>latte</u></link>?\n")
+                Does.StartWith(
+                    "<color=#FFB199><b>Ben</b></color>  An iced <link=\"0/0\"><u>latte</u></link>?\n"
+                )
             );
         }
 
@@ -159,7 +198,7 @@ namespace A305.Dialogue.Tests
             Assert.That(
                 text,
                 Does.StartWith(
-                    "<b>Ben</b>  An iced <link=\"0/0\"><u>latte</u></link> "
+                    "<color=#FFB199><b>Ben</b></color>  An iced <link=\"0/0\"><u>latte</u></link> "
                         + "<link=\"0/1\"><mark=#F982564D><u>to go</u></mark></link>?"
                 )
             );

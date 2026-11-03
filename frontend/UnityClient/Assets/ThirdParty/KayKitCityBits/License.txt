@@ -33,4 +33,4 @@
 	http://twitter.com/KayLousberg
 
 Source: KayKit City Builder Bits 1.0 by Kay Lousberg, https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0
-car_taxi and car_sedan were converted from glTF to OBJ + MTL for Unity with their wheels in place. The texture is unchanged.
+car_taxi, car_sedan and car_police were converted from glTF to OBJ + MTL for Unity with their wheels in place. The texture is unchanged.

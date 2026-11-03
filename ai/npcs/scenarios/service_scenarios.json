@@ -1,6 +1,7 @@
 {
   "CAFE_STAFF": "cafe_counter",
   "HOTEL_STAFF": "hotel_front_desk",
+  "POLICE_OFFICER": "police_front_desk",
   "SHOP_STAFF": "drugstore_counter",
   "TAXI_DRIVER": "taxi_ride",
   "TOWN_PASSERBY": "town_street"

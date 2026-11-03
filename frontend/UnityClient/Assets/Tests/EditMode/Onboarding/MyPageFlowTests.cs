@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Player;
 using NUnit.Framework;
 
 namespace A305.Onboarding.Tests
@@ -16,6 +17,21 @@ namespace A305.Onboarding.Tests
         {
             api = new FakeMyPageApi();
             flow = new MyPageFlow(api);
+        }
+
+        [TearDown]
+        public void ForgetNickname() => PlayerNickname.Reset();
+
+        // 폰 메뉴 날짜 줄이 바뀐 닉네임을 바로 보이도록 게임에도 알린다.
+        [Test]
+        public async Task ChangeNickname_SharesTheNewNicknameWithTheGame()
+        {
+            await flow.LoadAsync();
+            Assert.That(PlayerNickname.Name, Is.EqualTo("Sun"));
+
+            await flow.ChangeNicknameAsync("선종");
+
+            Assert.That(PlayerNickname.Name, Is.EqualTo("선종"));
         }
 
         [Test]

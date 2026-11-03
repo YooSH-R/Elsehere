@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Player;
 
 namespace A305.Onboarding
 {
@@ -43,6 +44,7 @@ namespace A305.Onboarding
                     Message = LoadFailedMessage;
                     return;
                 }
+                PlayerNickname.Set(User.Nickname);
 
                 consents = await api.GetConsentsAsync();
             });
@@ -110,6 +112,8 @@ namespace A305.Onboarding
             {
                 NicknameChange saved = await api.ChangeNicknameAsync(nickname);
                 User.Nickname = saved.Nickname;
+                // 폰 메뉴 날짜 줄도 바뀐 닉네임을 보인다.
+                PlayerNickname.Set(saved.Nickname);
                 Message = "닉네임을 바꿨어요.";
                 changed = true;
             });

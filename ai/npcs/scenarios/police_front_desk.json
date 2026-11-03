@@ -1,0 +1,9 @@
+{
+  "scenarioId": "police_front_desk",
+  "locationId": "TOWN",
+  "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+  "facts": [
+    "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+    "If the visitor does not say where it happened, the patrol car drives once around the main street."
+  ]
+}

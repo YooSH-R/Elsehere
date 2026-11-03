@@ -1,0 +1,218 @@
+using System.Collections.Generic;
+using A305.Player;
+using UnityEngine;
+
+namespace A305.World
+{
+    /// <summary>
+    /// 경찰서 옆 주차 칸에 서 있다가 신고를 받으면 출동하는 순찰차. 주차 칸과 본길 사이는 진입로(<see cref="DrivePath"/>)로,
+    /// 본길은 다른 차처럼 <see cref="LoopingCar"/>로 신호를 지키며 달린다. 출동 흐름은 <see cref="PoliceDispatch"/>가 정하고,
+    /// 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켠다.
+    /// 진입로 조절점은 Builder가 마을 배치에 맞춰 넣는다. 나가는 길은 본길 북행 차로 시작점에서, 들어오는 길은 남행 차로 끝에서 이어진다.
+    /// </summary>
+    [RequireComponent(typeof(LoopingCar))]
+    public sealed class PoliceCar : MonoBehaviour
+    {
+        [SerializeField]
+        [Tooltip(
+            "주차 칸에서 본길 북행 차로 시작점까지. 시작점, 손잡이 둘, 끝점 순서의 3차 곡선을 이어 적는다(4, 7, 10…개)."
+        )]
+        private List<Vector3> exitCurve = new List<Vector3>();
+
+        [SerializeField]
+        [Tooltip("본길 남행 차로 끝에서 주차 칸까지. 적는 방법은 나가는 길과 같다.")]
+        private List<Vector3> entryCurve = new List<Vector3>();
+
+        [SerializeField]
+        [Tooltip("진입로에서 달리는 속도(m/s)")]
+        private float bayPathSpeed = 3f;
+
+        [SerializeField]
+        [Tooltip("출동할 수 있는 장소. 택시 목적지와 같은 정차 지점을 쓴다.")]
+        private List<TaxiDestination> destinations = new List<TaxiDestination>();
+
+        [SerializeField]
+        private GameObject redLights;
+
+        [SerializeField]
+        private GameObject blueLights;
+
+        [SerializeField]
+        [Tooltip("경광등 한쪽이 켜져 있는 시간(초)")]
+        private float flashSeconds = .25f;
+
+        [SerializeField]
+        private PlayerMover player;
+
+        private readonly PoliceDispatch dispatch = new PoliceDispatch();
+        private LoopingCar car;
+        private DrivePath exitPath;
+        private DrivePath entryPath;
+        private float pathDistance;
+        private float height;
+
+        public PolicePhase Phase => dispatch.Phase;
+
+        /// <summary>출동한 장소 코드. 순찰 중이거나 서 있으면 null</summary>
+        public string SceneCode => dispatch.SceneCode;
+
+        public bool LightsOn => dispatch.LightsOn;
+
+        /// <summary>장소를 정할 수 있는 장소 코드면 그 장소의 화면 이름, 아니면 null</summary>
+        public string DisplayNameOf(string sceneCode)
+        {
+            TaxiDestination destination = Find(sceneCode);
+            return destination != null ? destination.DisplayName : null;
+        }
+
+        /// <param name="sceneCode">신고한 장소 코드. null이거나 출동할 수 없는 장소면 본길을 순찰한다.</param>
+        /// <returns>서 있다가 출동했으면 true</returns>
+        public bool Dispatch(string sceneCode)
+        {
+            if (!dispatch.TryDispatch(Find(sceneCode)?.Code))
+                return false;
+            pathDistance = 0;
+            return true;
+        }
+
+        private void Awake()
+        {
+            car = GetComponent<LoopingCar>();
+            height = transform.position.y;
+            if (exitCurve.Count < 4 || entryCurve.Count < 4)
+            {
+                Debug.LogError($"{name}의 PoliceCar 진입로가 비어 있습니다.", this);
+                enabled = false;
+                return;
+            }
+            exitPath = new DrivePath(Curves(exitCurve));
+            entryPath = new DrivePath(Curves(entryCurve));
+            // 주차 칸·진입로에서는 본길을 따라 움직이지 않지만, 본길 차들은 이 차를 피한다.
+            car.IsHeld = true;
+            Place(entryPath.PoseAt(entryPath.Length));
+        }
+
+        private void Update()
+        {
+            PolicePhase before = dispatch.Phase;
+            dispatch.Tick(ReachedLegEnd(), Time.deltaTime);
+            if (dispatch.Phase != before)
+                BeginLeg();
+            if (dispatch.Phase == PolicePhase.LeavingBay)
+                Drive(exitPath);
+            else if (dispatch.Phase == PolicePhase.EnteringBay)
+                Drive(entryPath);
+            ShowLights();
+        }
+
+        private bool ReachedLegEnd()
+        {
+            switch (dispatch.Phase)
+            {
+                case PolicePhase.LeavingBay:
+                    return pathDistance >= exitPath.Length;
+                case PolicePhase.EnteringBay:
+                    return pathDistance >= entryPath.Length;
+                case PolicePhase.Responding:
+                case PolicePhase.Patrolling:
+                case PolicePhase.Returning:
+                    return car.HasPulledOver;
+                default:
+                    return false;
+            }
+        }
+
+        private void BeginLeg()
+        {
+            switch (dispatch.Phase)
+            {
+                case PolicePhase.Responding:
+                    JoinRoute();
+                    car.PullOverAt(StopDistance(Find(dispatch.SceneCode).Stop));
+                    break;
+                case PolicePhase.Patrolling:
+                    JoinRoute();
+                    car.PullOverAt(ReturnDistance);
+                    break;
+                case PolicePhase.Returning:
+                    car.PullOverAt(ReturnDistance);
+                    break;
+                case PolicePhase.EnteringBay:
+                    car.IsHeld = true;
+                    pathDistance = 0;
+                    break;
+            }
+        }
+
+        // 나가는 길 끝은 북행 차로 시작점(길 위 거리 0)이다.
+        private void JoinRoute()
+        {
+            car.StopAt(0);
+            car.IsHeld = false;
+        }
+
+        // 남행 차로를 다 내려온 곳. 들어오는 길이 여기서 시작한다.
+        private float ReturnDistance => car.Route.SouthboundDistance(SouthEndZ);
+
+        private float SouthEndZ => entryCurve[0].z;
+
+        private float StopDistance(Vector3 curb) =>
+            curb.x > 0
+                ? car.Route.NorthboundDistance(curb.z)
+                : car.Route.SouthboundDistance(curb.z);
+
+        // 진입로에서는 사람만 피한다. 본길 차는 이 차를 피하므로, 서로 기다리다 둘 다 멈추지 않도록 차는 피하지 않는다.
+        private void Drive(DrivePath path)
+        {
+            DrivePath.Pose next = path.PoseAt(pathDistance + bayPathSpeed * Time.deltaTime);
+            if (
+                player != null
+                && CarLoopRoute.ShouldYield(next.Position, next.Forward, player.transform.position)
+            )
+                return;
+            pathDistance += bayPathSpeed * Time.deltaTime;
+            Place(next);
+        }
+
+        private void Place(DrivePath.Pose pose)
+        {
+            transform.SetPositionAndRotation(
+                pose.Position + Vector3.up * height,
+                Quaternion.LookRotation(pose.Forward)
+            );
+        }
+
+        private void ShowLights()
+        {
+            bool red = false;
+            bool blue = false;
+            if (dispatch.LightsOn)
+            {
+                red = Mathf.FloorToInt(Time.time / flashSeconds) % 2 == 0;
+                blue = !red;
+            }
+            if (redLights != null && redLights.activeSelf != red)
+                redLights.SetActive(red);
+            if (blueLights != null && blueLights.activeSelf != blue)
+                blueLights.SetActive(blue);
+        }
+
+        private TaxiDestination Find(string sceneCode) =>
+            sceneCode == null
+                ? null
+                : destinations.Find(destination => destination.Code == sceneCode);
+
+        private static DrivePath.Curve[] Curves(List<Vector3> points)
+        {
+            var curves = new DrivePath.Curve[(points.Count - 1) / 3];
+            for (int index = 0; index < curves.Length; index++)
+                curves[index] = new DrivePath.Curve(
+                    points[index * 3],
+                    points[index * 3 + 1],
+                    points[index * 3 + 2],
+                    points[index * 3 + 3]
+                );
+            return curves;
+        }
+    }
+}

@@ -204,8 +204,8 @@ namespace A305.EditorTools.Theme
         }
 
         /// <summary>
-        /// 오른쪽 위에는 메뉴(≡) 버튼만 두고, 누르면 아래로 단어장·피드백 목록·내 정보·(집의) 테마·홈 목록을 펼친다.
-        /// 알림은 알림이 있을 때만 보이는 작은 카드에 담는다.
+        /// 오른쪽 위에는 휴대폰 버튼만 두고, 누르면 삼성폰 모양 메뉴(단어장·피드백 목록·마을 지도·집으로·내 정보 앱)를 펼친다.
+        /// 폰 화면은 <see cref="PhoneMenuBuilder"/>가 만든다. 알림은 알림이 있을 때만 보이는 작은 카드에 담는다.
         /// </summary>
         private static void StyleHud(Transform root)
         {
@@ -225,24 +225,10 @@ namespace A305.EditorTools.Theme
                 MenuWidth + panelLayout.padding.left + panelLayout.padding.right,
                 0
             );
-            StyleMenuButton(root, "Panel/MenuBar/MenuButton", UiTone.Neutral);
+            StyleMenuButton(root, "Panel/MenuBar/MenuButton", UiTone.Accent);
             StyleMenuButton(root, "Panel/MenuBar/OpenMenuButton", UiTone.Primary);
 
-            Transform menu = root.Find(HudMenuPath);
-            if (menu != null)
-            {
-                // 목록 칸은 레이아웃만 있어 카드 바탕을 칠할 그림을 붙인다.
-                BuilderTools.GetOrAddComponent<Image>(menu.gameObject);
-                Role(menu, UiThemeRole.Card);
-                menu.GetComponent<VerticalLayoutGroup>().spacing = 0;
-            }
-            Transform vocabulary = MenuItem(root, "VocabularyButton", UiIcon.Book, "단어장");
-            MenuItem(root, "HistoryButton", UiIcon.Talk, "피드백 목록");
-            MenuItem(root, "MyPageButton", UiIcon.Detail, "내 정보");
-            MenuItem(root, "ControlsButton", UiIcon.Hint, ControlsGuideText.MenuLabel);
-            MenuItem(root, "ThemeButton", UiIcon.Palette, "테마");
-            MenuItem(root, "HomeButton", UiIcon.Home, "홈");
-            MenuDivider(menu);
+            Transform vocabulary = root.Find(HudMenuPath + "/VocabularyButton");
             StyleHistory(root);
             StyleMyPage(root);
             StyleControlsGuide(root);
@@ -267,103 +253,24 @@ namespace A305.EditorTools.Theme
             card.gameObject.SetActive(false);
             var view = root.GetComponent<LearningHudView>();
             BuilderTools.SetReference(view, "messageBox", card.gameObject);
-            if (vocabulary == null)
-                return;
-            // 개수 배지는 [단어장] 줄 오른쪽 끝에 둔다.
-            TMP_Text count = Badge(vocabulary, "CountBadge");
-            var badge = (RectTransform)count.transform.parent;
-            Place(badge, new Vector2(1, 0.5f), new Vector2(-6, 0), new Vector2(34, 34));
-            BuilderTools.SetReference(view, "vocabularyCountText", count);
+            if (vocabulary != null)
+                BuilderTools.SetReference(
+                    view,
+                    "vocabularyCountText",
+                    Badge(vocabulary, "CountBadge")
+                );
+            // 개수 배지는 폰 화면의 [단어장] 앱 오른쪽 위에 둔다.
+            PhoneMenuBuilder.Apply(root.gameObject);
         }
 
         // 메뉴(≡) 버튼. 평소 버튼은 기본 색, 펼친 동안 같은 자리에 보이는 버튼은 강조 색이다.
         private static void StyleMenuButton(Transform root, string path, UiTone tone)
         {
-            Transform button = IconButton(root, path, UiIcon.Menu, tone, caption: false);
+            Transform button = IconButton(root, path, UiIcon.Phone, tone, caption: false);
             if (button == null)
                 return;
             var size = button.GetComponent<LayoutElement>();
             size.minWidth = size.preferredWidth = size.preferredHeight = MenuButtonSize;
-        }
-
-        /// <summary>
-        /// 메뉴 목록의 한 줄. 바탕 없이 왼쪽 아이콘과 이름만 두고, 누르거나 쓸 수 없을 때는 이름 색으로 알린다.
-        /// 예전 알약·아이콘 버튼 모양이 남아 있으면 지운다. 버튼과 기능 연결은 그대로 둔다.
-        /// </summary>
-        private static Transform MenuItem(Transform root, string name, UiIcon icon, string text)
-        {
-            Transform button = root.Find(HudMenuPath + "/" + name);
-            if (button == null)
-            {
-                Debug.LogWarning("메뉴 줄로 바꿀 버튼이 없습니다: " + name);
-                return null;
-            }
-            foreach (Shadow shadow in button.GetComponents<Shadow>())
-                Object.DestroyImmediate(shadow);
-            foreach (string oldPart in new[] { "Face", "Outline" })
-            {
-                Transform part = button.Find(oldPart);
-                if (part != null)
-                    Object.DestroyImmediate(part.gameObject);
-            }
-            var hitArea = button.GetComponent<Image>();
-            hitArea.sprite = null;
-            hitArea.color = new Color(1, 1, 1, 0);
-            hitArea.raycastTarget = true;
-            var size = BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject);
-            size.minWidth = size.preferredWidth = -1;
-            size.flexibleWidth = 1;
-            size.preferredHeight = MenuRowHeight;
-
-            RectTransform iconRect = FindOrCreateRect(button, "Icon");
-            Place(iconRect, new Vector2(0, 0.5f), new Vector2(4, 0), new Vector2(40, 40));
-            BuilderTools.GetOrAddComponent<Image>(iconRect.gameObject).raycastTarget = false;
-            var label = button.Find("Label").GetComponent<TMP_Text>();
-            label.gameObject.SetActive(true);
-            label.text = text;
-            var labelRect = (RectTransform)label.transform;
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.pivot = new Vector2(0.5f, 0.5f);
-            labelRect.offsetMin = new Vector2(60, 0);
-            labelRect.offsetMax = new Vector2(-44, 0);
-            label.fontSize = 26;
-            label.fontStyle = FontStyles.Bold;
-            label.enableAutoSizing = false;
-            label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.margin = Vector4.zero;
-            label.alignment = TextAlignmentOptions.MidlineLeft;
-            label.raycastTarget = false;
-            label.transform.SetAsLastSibling();
-
-            var clickable = button.GetComponent<Button>();
-            clickable.transition = Selectable.Transition.ColorTint;
-            clickable.targetGraphic = label;
-            ColorBlock colors = ColorBlock.defaultColorBlock;
-            colors.highlightedColor = new Color(0.85f, 0.85f, 0.85f);
-            colors.pressedColor = new Color(0.7f, 0.7f, 0.7f);
-            colors.disabledColor = new Color(1, 1, 1, 0.4f);
-            clickable.colors = colors;
-            Role(button, UiThemeRole.MenuItem, UiTone.Neutral, icon);
-            return button;
-        }
-
-        // [홈] 위의 얇은 구분선. 목록 버튼 사이에 두어 장소 이동을 다른 기능과 나눈다.
-        private static void MenuDivider(Transform menu)
-        {
-            Transform home = menu != null ? menu.Find("HomeButton") : null;
-            if (home == null)
-                return;
-            RectTransform line = FindOrCreateRect(menu, "Divider");
-            // [홈]은 목록 끝이고 구분선은 그 바로 위다.
-            line.SetAsLastSibling();
-            home.SetAsLastSibling();
-            var image = BuilderTools.GetOrAddComponent<Image>(line.gameObject);
-            image.color = new Color(0, 0, 0, 0.1f);
-            image.raycastTarget = false;
-            var size = BuilderTools.GetOrAddComponent<LayoutElement>(line.gameObject);
-            size.preferredHeight = size.minHeight = 2;
-            size.flexibleWidth = 1;
         }
 
         /// <summary>피드백 목록 창을 단어장 화면처럼 칠한다. 닫기는 오른쪽 위 X, [피드백 보기]는 강조 알약 버튼이다.</summary>

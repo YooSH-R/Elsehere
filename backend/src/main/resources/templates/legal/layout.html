@@ -58,10 +58,10 @@
 </header>
 <footer th:fragment="footer">
   <nav>
-    <a th:href="@{/terms/{v}(v=${version})}">서비스 이용약관</a>
-    <a th:href="@{/privacy/{v}(v=${version})}">개인정보 처리방침</a>
-    <a th:href="@{/voice/{v}(v=${version})}">음성 처리 동의</a>
-    <a th:href="@{/ai-training/{v}(v=${version})}">AI 개선 데이터 활용</a>
+    <a th:href="@{${termsUrl}}">서비스 이용약관</a>
+    <a th:href="@{${privacyUrl}}">개인정보 처리방침</a>
+    <a th:href="@{${voiceUrl}}">음성 처리 동의</a>
+    <a th:href="@{${aiTrainingUrl}}">AI 개선 데이터 활용</a>
   </nav>
   운영: SSAFY 15기 A305 팀
 </footer>

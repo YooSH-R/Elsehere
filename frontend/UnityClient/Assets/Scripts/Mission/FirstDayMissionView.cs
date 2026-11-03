@@ -111,10 +111,10 @@ namespace A305.Mission
         [SerializeField]
         private Button retryButton;
 
-        /// <summary>진행 막대 칸 색. 끝낸 단계는 초록, 지금 단계는 코랄, 남은 단계는 옅은 갈색이다.</summary>
-        public static readonly Color DoneMark = new Color32(76, 185, 107, 255);
-        public static readonly Color CurrentMark = new Color32(255, 119, 89, 255);
-        public static readonly Color UpcomingMark = new Color32(125, 110, 91, 70);
+        /// <summary>진행 막대 칸 색. 폰 메뉴의 오늘의 여정과 같은 색을 쓴다.</summary>
+        public static readonly Color DoneMark = JourneyStatus.MarkColor(JourneyMark.Done);
+        public static readonly Color CurrentMark = JourneyStatus.MarkColor(JourneyMark.Current);
+        public static readonly Color UpcomingMark = JourneyStatus.MarkColor(JourneyMark.Upcoming);
 
         private const float Margin = 24;
         private const float CardWidth = 520;
@@ -151,6 +151,7 @@ namespace A305.Mission
             {
                 ShowJournal(false);
                 ShowLargeMap(false);
+                JourneyStatus.Shared.Clear();
             }
             UpdateMiniMapVisibility();
         }
@@ -188,6 +189,13 @@ namespace A305.Mission
             ShowProgress(state.Steps);
             coins.text = state.Balance.ToString();
             ShowClock();
+            // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보인다.
+            JourneyStatus.Shared.Show(
+                chip,
+                direction.text,
+                state.Steps.Select(step => Mark(step.Status)).ToArray(),
+                state.Balance
+            );
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
@@ -294,10 +302,12 @@ namespace A305.Mission
             }
         }
 
-        private static Color MarkColor(string status) =>
-            status == "DONE" ? DoneMark
-            : status == "CURRENT" ? CurrentMark
-            : UpcomingMark;
+        private static Color MarkColor(string status) => JourneyStatus.MarkColor(Mark(status));
+
+        private static JourneyMark Mark(string status) =>
+            status == "DONE" ? JourneyMark.Done
+            : status == "CURRENT" ? JourneyMark.Current
+            : JourneyMark.Upcoming;
 
         // 게임 시계는 분이 바뀔 때만 다시 쓴다.
         private void ShowClock()
@@ -361,10 +371,13 @@ namespace A305.Mission
             startButton.onClick.AddListener(StartMission);
             restButton.onClick.AddListener(Rest);
             retryButton.onClick.AddListener(Retry);
+            // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
+            JourneyStatus.Shared.MapRequested += OpenLargeMap;
         }
 
         private void OnDestroy()
         {
+            JourneyStatus.Shared.MapRequested -= OpenLargeMap;
             journalButton.onClick.RemoveListener(ToggleJournal);
             if (miniMapButton != null)
                 miniMapButton.onClick.RemoveListener(OpenLargeMap);

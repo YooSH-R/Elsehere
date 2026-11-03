@@ -689,40 +689,6 @@
       },
       "schedule": [
         {
-          "from": "07:00",
-          "to": "11:00",
-          "activity": "WORK"
-        },
-        {
-          "from": "11:00",
-          "to": "11:30",
-          "activity": "BREAK"
-        },
-        {
-          "from": "11:30",
-          "to": "15:30",
-          "activity": "WORK"
-        },
-        {
-          "from": "15:30",
-          "to": "07:00",
-          "activity": "OFF"
-        }
-      ]
-    },
-    {
-      "npcId": "SHOP_STAFF",
-      "role": "STAFF",
-      "scene": "SHOP",
-      "needRates": {
-        "HUNGER": 1,
-        "ENERGY": 1,
-        "SOCIAL": 0.8,
-        "FUN": 0.8,
-        "WORK": 1
-      },
-      "schedule": [
-        {
           "from": "15:00",
           "to": "19:00",
           "activity": "WORK"
@@ -740,6 +706,40 @@
         {
           "from": "23:30",
           "to": "15:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "SHOP_STAFF",
+      "role": "STAFF",
+      "scene": "SHOP",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "07:00",
+          "to": "11:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "11:00",
+          "to": "11:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "11:30",
+          "to": "15:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "15:30",
+          "to": "07:00",
           "activity": "OFF"
         }
       ]

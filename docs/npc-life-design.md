@@ -114,7 +114,7 @@ NPC 일과는 손으로 적지 않고, 장소마다 정한 영업시간·교대�
   | --- | --- |
   | 카페 | 오픈 Mia, 마감 Zoe |
   | 호텔 | 낮 Jake, 저녁 Owen, 야간 Clara |
-  | 드럭스토어 | 낮 Hannah, 저녁 Alex, 야간 Samuel |
+  | 드럭스토어 | 낮 Alex, 저녁 Hannah, 야간 Samuel |
   | 마을(행인) | 아침 Ruby, 낮 Ben, 오후 Ethan, 저녁 Maya |
   | 거리 매장·경찰서·택시 | 장소마다 한 명이 `ALL_DAY` |
 

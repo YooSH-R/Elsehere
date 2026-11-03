@@ -216,8 +216,8 @@ def test_every_service_npc_works_its_own_shift():
         "HOTEL_STAFF": ("HOTEL", "DAY"),
         "HOTEL_RECEPTIONIST": ("HOTEL", "EVENING"),
         "HOTEL_NIGHT_MANAGER": ("HOTEL", "NIGHT"),
-        "SHOP_PHARMACIST": ("SHOP", "DAY"),
-        "SHOP_STAFF": ("SHOP", "EVENING"),
+        "SHOP_STAFF": ("SHOP", "DAY"),  # 첫날 미션 대상(Alex)은 미션이 시작하는 아침 교대
+        "SHOP_PHARMACIST": ("SHOP", "EVENING"),
         "SHOP_NIGHT_CLERK": ("SHOP", "NIGHT"),
         "POST_OFFICE_STAFF": ("POST_OFFICE", "ALL_DAY"),
         "DINER_STAFF": ("DINER", "ALL_DAY"),

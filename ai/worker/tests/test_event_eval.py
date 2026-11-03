@@ -17,8 +17,9 @@ JAVA_STAGES = (ROOT / "backend/src/main/java/com/elsehere/mission/entity/FirstDa
 SEED = (ROOT / "backend/src/main/resources/db/seed/world.sql").read_text(encoding="utf-8")
 
 
-def test_cases_follow_the_guide_labels():
-    cases = E.load_cases()
+@pytest.mark.parametrize("which", list(E.CASE_SETS))
+def test_cases_follow_the_guide_labels(which):
+    cases = E.load_cases(which)
     assert len({c["id"] for c in cases}) == len(cases)
     for c in cases:
         assert c["group"] in GROUPS, c["id"]
@@ -28,8 +29,15 @@ def test_cases_follow_the_guide_labels():
         assert c["text"].strip() and c["last_npc"].strip(), c["id"]
 
 
-def test_mission_cases_expect_only_that_stages_goals():
-    for c in E.load_cases():
+def test_dev_set_does_not_reuse_test_sentences():
+    """지시문은 개발셋을 보고 다듬으므로, 테스트셋 문장이 개발셋에 섞이면 테스트셋 결과를 믿을 수 없다."""
+    test = {c["text"].lower() for c in E.load_cases("test")}
+    assert not [c["id"] for c in E.load_cases("dev") if c["text"].lower() in test]
+
+
+@pytest.mark.parametrize("which", list(E.CASE_SETS))
+def test_mission_cases_expect_only_that_stages_goals(which):
+    for c in E.load_cases(which):
         if c["state"] == "free_talk":
             assert c["group"] != "mission" and "intents" not in c, c["id"]
             continue
@@ -79,6 +87,17 @@ def test_after_adds_events_to_the_same_call():
     out = E.schema("after", E.state_of("free_talk"))
     assert out["properties"]["events"]["items"]["enum"] == E.EVENTS
     assert "events" in out["required"] and "intents" in out["required"]
+
+
+def test_service_sends_the_worker_prompt_and_schema_as_they_are():
+    """서비스 판정(/v1/judge)과 같은 지시문·출력 형식이어야 지금 서비스의 사건 판정을 잰다."""
+    case = E.load_cases()[0]
+    state = E.state_of(case["state"])
+    assert E.messages("service", case) == P.intent_messages(
+        E.NPCS[case["npc"]], state, [P.Line(who="npc", text=case["last_npc"])], case["text"]
+    )
+    assert E.schema("service", state) == P.intent_schema(state)
+    assert E.scores_events("service") and E.scores_events("after") and not E.scores_events("before")
 
 
 def test_clean_events_drops_unknown_and_duplicates():

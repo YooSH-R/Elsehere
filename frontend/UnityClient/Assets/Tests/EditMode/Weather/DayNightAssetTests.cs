@@ -81,12 +81,25 @@ namespace A305.Weather.Tests
         }
 
         [TestCase("WindowAmberGlow")]
-        [TestCase("LanternAmberV2")]
         [TestCase("Glow")]
         [TestCase("PendantLight")]
         public void Town_GlowMaterialsShineBrighterAtNight(string material)
         {
             Assert.That(settings.GlowMaterials.Select(item => item.name), Has.Member(material));
+        }
+
+        // 가로등 전구는 낮에 끄고 밤에만 밝힌다.
+        [Test]
+        public void Town_StreetLampBulbsShineOnlyAtNight()
+        {
+            Assert.That(
+                settings.NightOnlyGlowMaterials.Select(item => item.name),
+                Has.Member("LanternAmberV2")
+            );
+            Assert.That(
+                settings.GlowMaterials.Select(item => item.name),
+                Has.No.Member("LanternAmberV2")
+            );
         }
 
         [TestCase("WindowDaylight")]

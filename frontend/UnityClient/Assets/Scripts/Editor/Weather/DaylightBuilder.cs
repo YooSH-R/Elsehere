@@ -13,7 +13,7 @@ namespace A305.EditorTools.Weather
     /// <summary>
     /// 다섯 장소 씬이 게임 시각에 맞춰 낮·밤을 보이게 연결한다. 마을은 날씨 표시(WeatherPresenter)가, 실내는
     /// InteriorDaylight가 맡고 GameClockDaylight가 게임 시각을 넘긴다. 밤낮 설정 에셋은 없을 때만 만들고,
-    /// 있으면 조정한 값을 그대로 둔다. 씬의 조명과 재질은 바꾸지 않고 참조만 맞춘다.
+    /// 있으면 조정한 값을 그대로 두고 가로등 전구만 밤에만 켜는 목록으로 옮긴다. 씬의 조명과 재질은 바꾸지 않고 참조만 맞춘다.
     /// </summary>
     public static class DaylightBuilder
     {
@@ -29,17 +29,20 @@ namespace A305.EditorTools.Weather
             "ShopScene",
         };
 
-        // 밤에 더 밝히는 발광 재질: 마을 창빛·가로등 전구·상점 조명과 실내 조명 갓.
+        // 밤에 더 밝히는 발광 재질: 마을 창빛·상점 조명과 실내 조명 갓.
         private static readonly string[] GlowMaterialPaths =
         {
             "Assets/Art/World/MainstreetArt/WindowAmberGlow.mat",
-            "Assets/Art/World/MainstreetArt/LanternAmberV2.mat",
             "Assets/Art/World/MainstreetArt/PendantLight.mat",
             "Assets/Art/World/CafeBlenderKit/Materials/Glow.mat",
             "Assets/Art/World/TownStorefronts/CeilingLightPanel.mat",
             "Assets/Art/Hotel/MapleHouse/OpalLight.mat",
             "Assets/Art/World/Drugstore/Materials/DrugstoreLightPanel.mat",
         };
+
+        // 밤에만 켜는 가로등 전구. 낮에는 끈다.
+        private const string StreetLampGlowPath =
+            "Assets/Art/World/MainstreetArt/LanternAmberV2.mat";
 
         // 실내 창밖 하늘을 그린 유리.
         private static readonly string[] WindowMaterialPaths =
@@ -72,13 +75,11 @@ namespace A305.EditorTools.Weather
         // 배경 건물 가운데 매장 실내가 있는 건물이 입점한 상점이다. 주택·빈 건물에는 실내가 없다.
         private const string ShopInteriorName = "Interior";
 
-        // 마을에서 밤에 밝히는 등. 순찰차 경광등처럼 따로 켜고 끄는 빛은 넣지 않는다.
-        private static readonly string[] TownLampNames =
-        {
-            "LanternLight",
-            "FixtureLight",
-            "InteriorLight",
-        };
+        // 마을에서 밤에 더 밝히는 상점 벽등·실내등. 순찰차 경광등처럼 따로 켜고 끄는 빛은 넣지 않는다.
+        private static readonly string[] TownLampNames = { "FixtureLight", "InteriorLight" };
+
+        // 밤에만 켜는 가로등 빛(StreetLampV2 안)
+        private const string StreetLampLightName = "LanternLight";
 
         // 실내에서 낮빛이 방에 퍼지는 것을 흉내 낸 보조광 이름에 들어가는 말.
         private const string FillLightName = "Bounce";
@@ -130,14 +131,15 @@ namespace A305.EditorTools.Weather
         public static void ConnectTown(WeatherPresenter weather, Scene scene)
         {
             BuilderTools.SetReference(weather, "daylight", Settings());
+            Light[] lights = BuilderTools
+                .FindAllInScene<Light>(scene)
+                .Where(light => light.type != LightType.Directional)
+                .ToArray();
+            SetList(weather, "lamps", lights.Where(light => TownLampNames.Contains(light.name)));
             SetList(
                 weather,
-                "lamps",
-                BuilderTools
-                    .FindAllInScene<Light>(scene)
-                    .Where(light =>
-                        light.type != LightType.Directional && TownLampNames.Contains(light.name)
-                    )
+                "streetLamps",
+                lights.Where(light => light.name == StreetLampLightName)
             );
             SetList(weather, "litBuildings", OpenBuildings(scene));
         }
@@ -196,7 +198,10 @@ namespace A305.EditorTools.Weather
         {
             var existing = AssetDatabase.LoadAssetAtPath<DaylightSettings>(SettingsPath);
             if (existing != null)
+            {
+                MoveStreetLampGlow(existing);
                 return existing;
+            }
             BuilderTools.EnsureFolder("Assets/Data/Weather");
             DaylightSettings settings = DaylightSettings.Create(
                 GlowMaterialPaths.Select(path =>
@@ -207,10 +212,26 @@ namespace A305.EditorTools.Weather
                 ),
                 LitWindowMaterialPaths.Select(path =>
                     BuilderTools.LoadRequiredAsset<Material>(path, MenuPath)
-                )
+                ),
+                new[] { BuilderTools.LoadRequiredAsset<Material>(StreetLampGlowPath, MenuPath) }
             );
             AssetDatabase.CreateAsset(settings, SettingsPath);
             return settings;
+        }
+
+        // 가로등 전구를 밤에 더 밝히는 목록에서 밤에만 켜는 목록으로 옮긴다. 다른 조정 값은 그대로 둔다.
+        private static void MoveStreetLampGlow(DaylightSettings settings)
+        {
+            var lamp = BuilderTools.LoadRequiredAsset<Material>(StreetLampGlowPath, MenuPath);
+            if (settings.NightOnlyGlowMaterials.Contains(lamp))
+                return;
+            SetList(settings, "glowMaterials", settings.GlowMaterials.Where(item => item != lamp));
+            SetList(
+                settings,
+                "nightOnlyGlowMaterials",
+                settings.NightOnlyGlowMaterials.Append(lamp)
+            );
+            EditorUtility.SetDirty(settings);
         }
 
         private static void SetList<T>(Object owner, string propertyName, IEnumerable<T> items)

@@ -101,6 +101,8 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | 그림자 | 개별 가로등 그림자 끔 |
 | 현재 Sandbox | 가로등 8개, 활성 매장 조명 15개 |
 
+가로등은 밤에만 켠다. 게임 시각이 낮이면 `LanternLight`와 전구 발광을 끄고, 노을에 서서히 켜 한밤에는 다른 등처럼 밝힌다(Weather 모듈 `NightLights`). 가로수 잎에 머리가 묻히지 않게 가로등은 같은 보도 가로수와 3m 넘게 떨어뜨리며, 묻힌 가로등은 **Tools → A305 → World → Move Streetlights Out Of Trees**로 옮긴다.
+
 `LanternLight`의 Light Inspector에서 색·강도·범위를 조절한다. **Tools → A305 → World → Apply And Verify Streetlights**는 기존 외형을 유지하면서 누락된 광원을 추가하고, 전구 발광을 활성화한 뒤 Play에서 검수한다. 이미 있는 광원의 조절값은 덮어쓰지 않는다. 일반 Sandbox Builder로 다시 만들 때도 같은 공통 프리팹을 사용한다.
 
 도로·벽·수관의 `Elsehere/SoftMasonry`는 URP Forward/Forward+의 추가 광원을 받아 거리와 표면 방향에 따라 밝아진다. 가로등마다 그림자 맵을 만들지 않으므로 사물의 가림까지 정확하게 표현하지는 않는다. Web 프레임 시간은 별도로 측정해야 한다.

@@ -229,6 +229,18 @@ namespace A305.Mission.Tests
             Assert.That(corner.y, Is.EqualTo(-33.6f).Within(.01f));
         }
 
+        // 서버 상태를 받기 전에도 예전 지도 버튼이 아니라 카드 자체를 누르라고 알린다.
+        [Test]
+        public void QuestCard_BeforeTheServerAnswers_TellsToPressTheCard()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            view = instance.GetComponent<FirstDayMissionView>();
+
+            string direction = Field<TMP_Text>("direction").text;
+            Assert.That(direction, Does.Contain("퀘스트 카드"));
+            Assert.That(direction, Does.Not.Contain("지도"));
+        }
+
         private void Refresh(FirstDayMissionState state)
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));

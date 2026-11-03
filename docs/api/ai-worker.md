@@ -306,7 +306,7 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 
 응답: `{"text": "...", "latency_s": 0.41, "audio_s": 2.9, "usage": [{"step": "stt", "model": "...", "audio_s": 2.9, "latency_s": 0.41, "fallback": false}]}`
 
-- 인식 프롬프트는 한영 혼합 예시(`I want... an iced latte... Can I get a muffin, 음, 하나? ...`) 뒤에 장면 단어를 붙인 것입니다. 메뉴 예시를 한글로 쓰면 한국식 발음 외래어(`Iced americano`)가 한글로 나오므로 영어로 씁니다. 한국어 발화는 번역되지 않고 한글로 남습니다.
+- 인식 프롬프트는 한영 혼합 예시(`음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. ...`) 뒤에 장면 단어를 붙인 것입니다. 메뉴 예시를 한글로 쓰면 한국식 발음 외래어(`Iced americano`)가 한글로 나오므로 영어로 씁니다. 메뉴가 아닌 한국어 말 예시가 없으면 짧은 한국어 문장이 영어 문장으로 번역되어 나오므로 앞뒤에 둡니다. 한국어 발화는 번역되지 않고 한글로 남습니다.
 - 무음일 때 Whisper가 프롬프트 끝부분(마지막 문장, 장면 단어 목록, 프롬프트 전체)을 되풀이한 결과는 `text: ""`로 거릅니다. 같은 끝부분을 여러 번 이어 붙인 결과(`The bus stop is over there. The bus stop is over there.`)도 거릅니다. 프롬프트 앞·중간의 예시 문장(`Can I get a muffin?`)과 장면 단어 하나(`Iced Americano.`)는 실제 발화로 보고 거르지 않습니다. 빈 결과면 다시 말하기를 안내합니다.
 - GMS 구성(기본 `gms-luna`)은 Groq Whisper(`whisper-large-v3-turbo`)로 인식하고, Groq가 한도(429)·서버 오류·키 오류·응답 없음이면 GMS `whisper-1`로 한 번 더 인식합니다. 이때 `usage`의 `model`은 `whisper-1`, `fallback: true`입니다. 녹음 자체를 공급자가 받지 않은 경우(400·413·415·422)는 넘기지 않습니다. 대체 쪽도 실패하면 429/503이고, 메시지에 두 오류가 함께 적힙니다.
 - 대체가 있으면 Groq 호출은 `STT_FIRST_TIMEOUT_S`(8초) 안에 답이 없을 때 넘깁니다. 응답의 `latency_s`는 실패한 첫 호출까지 포함한 전체 시간입니다. GMS `whisper-1`은 Groq보다 느립니다(6.5초 음성 기준 약 1.9초, Groq 약 0.4초).

@@ -53,6 +53,8 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -287,6 +289,58 @@ class ConversationServiceTest {
   }
 
   @Test
+  @DisplayName("같은 요청 ID로 대화 시작을 다시 보내면(응답 시간 초과 뒤 재시도) 새로 만들지 않고 처음 시작한 대화를 그대로 돌려준다")
+  void start_sameRequestIdAgain_returnsSameConversation() {
+    StartConversationRequest request =
+        new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC);
+    ConversationStartResponse first = conversationService.start(userId, request);
+
+    ConversationStartResponse again = conversationService.start(userId, request);
+
+    assertThat(again).usingRecursiveComparison().isEqualTo(first);
+    assertThat(conversationRepository.count()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("첫 인사를 기다리는 사이 같은 요청 ID의 재요청이 먼저 대화를 저장했으면, 처음 요청도 거절하지 않고 그 대화를 돌려준다")
+  void start_sameRequestIdSavedWhileGreeting_returnsThatConversation() {
+    StartConversationRequest request =
+        new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.NPC);
+    AtomicBoolean retrying = new AtomicBoolean();
+    AtomicReference<ConversationStartResponse> retried = new AtomicReference<>();
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willAnswer(
+            invocation -> {
+              // 처음 요청이 첫 인사를 기다리는 동안 재요청이 끝까지 실행된다.
+              if (retrying.compareAndSet(false, true)) {
+                retried.set(conversationService.start(userId, request));
+              }
+              return reply("Hi! What can I get for you?", null);
+            });
+
+    ConversationStartResponse first = conversationService.start(userId, request);
+
+    assertThat(first.conversationId()).isEqualTo(retried.get().conversationId());
+    assertThat(conversationRepository.count()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("다른 사용자가 시작한 대화의 요청 ID로 대화를 시작하면 REQUEST_ID_CONFLICT로 거절하고 그 대화를 돌려주지 않는다")
+  void start_otherUsersRequestId_throwsRequestIdConflict() {
+    StartConversationRequest request =
+        new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC);
+    conversationService.start(userId, request);
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-2", "Moon");
+
+    assertThatThrownBy(() -> conversationService.start(otherUserId, request))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.REQUEST_ID_CONFLICT));
+  }
+
+  @Test
   @DisplayName("첫 인사를 만드는 사이 다른 요청이 대화를 시작했으면 CONVERSATION_ALREADY_ACTIVE로 거절하고 진행 중인 대화는 하나만 남는다")
   void start_otherStartWhileGreeting_throwsAlreadyActive() {
     // 첫 인사(AI)를 기다리는 동안 같은 사용자의 다른 시작 요청이 먼저 저장된다.
@@ -330,6 +384,24 @@ class ConversationServiceTest {
             BusinessException.class,
             exception ->
                 assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_QUOTA_EXHAUSTED));
+    assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT);
+  }
+
+  @Test
+  @DisplayName("게스트가 마지막 횟수로 시작한 대화를 같은 요청 ID로 다시 보내면 AI_QUOTA_EXHAUSTED로 막지 않고 그 대화를 돌려준다")
+  void start_guestRetriesLastConversation_returnsSameConversation() {
+    Long guestId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    for (int i = 0; i < GUEST_CONVERSATION_LIMIT - 1; i++) {
+      startAndEndPasserby(guestId);
+    }
+    StartConversationRequest request =
+        new StartConversationRequest(UUID.randomUUID(), "TOWN_PASSERBY", InitiatedBy.NPC);
+    ConversationStartResponse last = conversationService.start(guestId, request);
+
+    ConversationStartResponse again = conversationService.start(guestId, request);
+
+    assertThat(again.conversationId()).isEqualTo(last.conversationId());
     assertThat(conversationRepository.count()).isEqualTo(GUEST_CONVERSATION_LIMIT);
   }
 

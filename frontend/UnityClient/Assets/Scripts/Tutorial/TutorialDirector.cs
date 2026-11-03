@@ -468,6 +468,8 @@ namespace A305.Tutorial
 
         private void RefreshCoachMark()
         {
+            // 대화·대화 노트 위에 남긴 [건너뛰기] 카드는 움직이지 않고, 설명 말풍선이 그 카드를 피해 놓인다.
+            coachMark.KeepClear = guideView.IsSkipOnly ? guideView.PanelRect : null;
             var screen = new TutorialScreen
             {
                 IsTalking = dialogue.IsTalking,

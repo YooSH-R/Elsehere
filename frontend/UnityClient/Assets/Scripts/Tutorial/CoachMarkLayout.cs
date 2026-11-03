@@ -79,9 +79,12 @@ namespace A305.Tutorial
         /// <summary>
         /// 설명 말풍선을 밝힌 대상 옆에 둔다. 오른쪽 → 왼쪽 → 위 → 아래 중 캔버스 안에 들어가는 첫 자리를 고르고,
         /// 옆이면 대상 높이 가운데에, 위·아래면 대상 가로 가운데에 맞춘 뒤 캔버스 안으로 민다. 어디에도 들어가지 않으면 위에 둔다.
+        /// 가리면 안 되는 곳(keepClear)이 있으면 그곳과 겹치는 자리는 건너뛰고, 옆자리는 그곳 아래·위로, 위·아래는 그곳 왼쪽·오른쪽으로 비켜서도 놓아 본다.
+        /// 모든 자리가 겹치면 가리면 안 되는 곳이 없을 때와 같은 자리에 둔다.
         /// </summary>
         /// <param name="gap">대상과 말풍선 사이 거리(꼬리가 들어갈 자리)</param>
         /// <param name="margin">캔버스 가장자리에서 띄울 거리</param>
+        /// <param name="keepClear">말풍선이 가리면 안 되는 곳(대화 위에 남긴 [건너뛰기] 카드). 넓이가 없으면 보지 않는다.</param>
         public static BubblePose Bubble(
             Rect hole,
             Vector2 size,
@@ -89,6 +92,96 @@ namespace A305.Tutorial
             float gap,
             float margin,
             Rect keepClear = default
+        )
+        {
+            BubblePose preferred = PreferredBubble(hole, size, canvasSize, gap, margin);
+            if (
+                keepClear.width <= 0f
+                || keepClear.height <= 0f
+                || !preferred.Rect.Overlaps(keepClear)
+            )
+            {
+                return preferred;
+            }
+
+            float sideY = Clamp(
+                hole.center.y - size.y / 2f,
+                margin,
+                canvasSize.y - margin - size.y
+            );
+            // 옆자리는 대상 높이 가운데, 가리면 안 되는 곳 바로 아래, 바로 위 순서로 놓아 본다.
+            float[] sideYs = { sideY, keepClear.yMin - gap - size.y, keepClear.yMax + gap };
+            var sides = new List<BubblePose>();
+            foreach (float y in sideYs)
+            {
+                var rect = new Rect(hole.xMax + gap, y, size.x, size.y);
+                if (FitsInside(rect, canvasSize, margin))
+                {
+                    sides.Add(
+                        new BubblePose(rect, BubbleSide.Right, SideTail(rect, rect.xMin, hole))
+                    );
+                }
+            }
+
+            foreach (float y in sideYs)
+            {
+                var rect = new Rect(hole.xMin - gap - size.x, y, size.x, size.y);
+                if (FitsInside(rect, canvasSize, margin))
+                {
+                    sides.Add(
+                        new BubblePose(rect, BubbleSide.Left, SideTail(rect, rect.xMax, hole))
+                    );
+                }
+            }
+
+            float[] stackXs =
+            {
+                hole.center.x - size.x / 2f,
+                keepClear.xMin - gap - size.x,
+                keepClear.xMax + gap,
+            };
+            float aboveY = hole.yMax + gap;
+            float belowY = hole.yMin - gap - size.y;
+            foreach (float x in stackXs)
+            {
+                var rect = new Rect(x, aboveY, size.x, size.y);
+                if (FitsInside(rect, canvasSize, margin))
+                {
+                    sides.Add(
+                        new BubblePose(rect, BubbleSide.Above, StackTail(rect, rect.yMin, hole))
+                    );
+                }
+            }
+
+            foreach (float x in stackXs)
+            {
+                var rect = new Rect(x, belowY, size.x, size.y);
+                if (FitsInside(rect, canvasSize, margin))
+                {
+                    sides.Add(
+                        new BubblePose(rect, BubbleSide.Below, StackTail(rect, rect.yMax, hole))
+                    );
+                }
+            }
+
+            foreach (BubblePose side in sides)
+            {
+                if (!side.Rect.Overlaps(keepClear))
+                {
+                    return side;
+                }
+            }
+
+            return preferred;
+        }
+
+        // 가리면 안 되는 곳을 보지 않을 때의 자리
+        private static BubblePose PreferredBubble(
+            Rect hole,
+            Vector2 size,
+            Vector2 canvasSize,
+            float gap,
+            float margin
         )
         {
             float sideY = Clamp(
@@ -123,6 +216,14 @@ namespace A305.Tutorial
 
             var below = new Rect(stackX, hole.yMin - gap - size.y, size.x, size.y);
             return new BubblePose(below, BubbleSide.Below, StackTail(below, below.yMax, hole));
+        }
+
+        private static bool FitsInside(Rect rect, Vector2 canvasSize, float margin)
+        {
+            return rect.xMin >= margin
+                && rect.yMin >= margin
+                && rect.xMax <= canvasSize.x - margin
+                && rect.yMax <= canvasSize.y - margin;
         }
 
         private static Vector2 SideTail(Rect bubble, float x, Rect hole)

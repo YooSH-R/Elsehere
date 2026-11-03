@@ -160,6 +160,27 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void Bubble_SideWouldCoverTheKeepClearArea_SlidesDownBelowIt()
+        {
+            // 옆자리 위쪽 끝이 가리면 안 되는 곳에 걸리면 같은 옆에서 그 아래로 내려 놓는다.
+            var keepClear = new Rect(250f, 400f, 300f, 100f);
+
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Bubble(
+                new Rect(500f, 300f, 200f, 150f),
+                new Vector2(200f, 100f),
+                Canvas,
+                20f,
+                10f,
+                keepClear
+            );
+
+            Assert.That(bubble.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Left));
+            Assert.That(bubble.Rect, Is.EqualTo(new Rect(280f, 280f, 200f, 100f)));
+            Assert.That(bubble.Tail.x, Is.EqualTo(480f));
+            Assert.That(bubble.Tail.y, Is.InRange(bubble.Rect.yMin, bubble.Rect.yMax));
+        }
+
+        [Test]
         public void Bubble_NoRoomBelow_StaysAboveButMovesBesideTheKeepClearArea()
         {
             var keepClear = new Rect(300f, 480f, 200f, 100f);

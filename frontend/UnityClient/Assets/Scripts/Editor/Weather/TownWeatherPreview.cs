@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using A305.EditorTools.Common;
 using A305.Player;
+using A305.Theme;
 using A305.Weather;
 using A305.World;
 using UnityEditor;
@@ -131,6 +132,8 @@ namespace A305.EditorTools.Weather
             }
             // 날씨·시각을 입힌 채로 남은 씬을 실수로 저장하지 않게 디스크의 TownScene을 다시 연다.
             EditorSceneManager.OpenScene(ScenePath);
+            // 마지막에 찍은 밤 시각 때문에 Editor의 유리 UI가 밝혀진 채로 남지 않게 한다.
+            UiBackdropLift.Show(0f);
         }
 
         private static void CaptureTown(string output, string code, double minutes, string file)

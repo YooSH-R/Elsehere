@@ -1,12 +1,14 @@
 #if UNITY_EDITOR
+using A305.Theme;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace A305.Weather.PlayModeTests
 {
-    /// <summary>테스트가 바꾼 활성 씬의 하늘·환경광·안개를 테스트 전 값으로 되돌린다.</summary>
+    /// <summary>테스트가 바꾼 활성 씬의 하늘·환경광·안개와 유리 UI 뒤 화면 밝히기를 테스트 전 값으로 되돌린다.</summary>
     internal sealed class SavedRenderSettings
     {
+        private float uiBackdropLift;
         private Material skybox;
         private AmbientMode ambientMode;
         private Color ambientSky;
@@ -21,6 +23,7 @@ namespace A305.Weather.PlayModeTests
 
         public void Read()
         {
+            uiBackdropLift = UiBackdropLift.Amount;
             skybox = RenderSettings.skybox;
             ambientMode = RenderSettings.ambientMode;
             ambientSky = RenderSettings.ambientSkyColor;
@@ -36,6 +39,7 @@ namespace A305.Weather.PlayModeTests
 
         public void Restore()
         {
+            UiBackdropLift.Show(uiBackdropLift);
             RenderSettings.skybox = skybox;
             RenderSettings.ambientMode = ambientMode;
             RenderSettings.ambientSkyColor = ambientSky;

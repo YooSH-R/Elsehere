@@ -124,6 +124,9 @@ namespace A305.Learning
         /// <summary>쪽 넘김 화살표 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform NavigationRowRect => navigationRow;
 
+        /// <summary>탭·화살표를 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭·화살표와 함께 밝힌다.</summary>
+        public RectTransform PageCardRect => (RectTransform)bodyText.transform.parent;
+
         /// <summary>오른쪽 위 X. 튜토리얼 코치 마크가 피드백 티칭 끝에 밝힌다.</summary>
         public RectTransform CloseButtonRect => (RectTransform)topCloseButton.transform;
 

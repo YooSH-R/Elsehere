@@ -259,7 +259,8 @@ namespace A305.Learning
                     : new ConversationFeedback(
                         record.NpcName,
                         record.UserUtterances,
-                        exampleSource.GetRules()
+                        exampleSource.GetRules(),
+                        exampleSource.GetSituationExpressions(record.NpcName)
                     ),
                 record.Lines
             );

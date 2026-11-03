@@ -17,7 +17,7 @@ MonoBehaviour:
   tutorialScriptKey: TUTORIAL_PASSERBY
   stepGuides:
   - step: 0
-    title: "\uC5EC\uD589 \uCCAB\uB0A0"
+    title: "\uC5EC\uD589 \uC2DC\uC791"
     task: "\uC219\uC18C\uC5D0\uC11C \uAE30\uBCF8 \uC870\uC791\uBD80\uD130 \uC775\uD600
       \uBCFC\uAE4C\uC694?"
     touchTask: 

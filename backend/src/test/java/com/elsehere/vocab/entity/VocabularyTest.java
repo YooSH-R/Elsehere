@@ -23,4 +23,13 @@ class VocabularyTest {
     assertThat(vocabulary.getType()).isEqualTo(VocabularyType.IDIOM);
     assertThat(vocabulary.getText()).isEqualTo("to go");
   }
+
+  @Test
+  @DisplayName("문장 부호로 끝나는 여러 단어 표현은 문장(SENTENCE)으로 만든다")
+  void newWord_sentence() {
+    Vocabulary vocabulary =
+        Vocabulary.newWord("en-US", "I'll be right back.", "금방 올게요.", VocabularySource.FEEDBACK);
+
+    assertThat(vocabulary.getType()).isEqualTo(VocabularyType.SENTENCE);
+  }
 }

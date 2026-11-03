@@ -20,15 +20,19 @@ namespace A305.Theme
         {
             ForgetDestroyed();
             if (!raised.TryGetValue(canvas, out Raised entry))
+            {
                 entry = new Raised(canvas.sortingOrder);
+                raised.Add(canvas, entry);
+            }
             entry.Windows.Add(window);
-            raised.Remove(canvas);
             int top = raised
-                .Keys.Select(other => other.sortingOrder)
+                .Keys.Where(other => other != canvas)
+                .Select(other => other.sortingOrder)
                 .DefaultIfEmpty(First - 1)
                 .Max();
-            canvas.sortingOrder = Mathf.Max(top, First - 1) + 1;
-            raised.Add(canvas, entry);
+            // 먼저 연 창 덕분에 이미 맨 위에 있으면 순서를 그대로 둬, 이번 창을 닫았을 때 연 전과 같은 순서가 된다.
+            if (canvas.sortingOrder < First || canvas.sortingOrder <= top)
+                canvas.sortingOrder = Mathf.Max(top, First - 1) + 1;
         }
 
         /// <summary>창이 놓인 가장 바깥 캔버스를 올린다.</summary>

@@ -60,6 +60,27 @@ namespace A305.Theme.Tests
             Assert.That(hud.sortingOrder, Is.GreaterThan(map.sortingOrder));
         }
 
+        // 조작법 카드처럼 먼저 떠 있던 창 덕분에 이미 맨 위인 캔버스에서 휴대폰을 열고 닫아도 순서가 그대로다.
+        [Test]
+        public void OpenAndCloseOnACanvasAlreadyOnTop_KeepsItsOrder()
+        {
+            Canvas hud = NewCanvas(95);
+            Canvas feedback = NewCanvas(130);
+            var guide = new GameObject();
+            var phone = new GameObject();
+            made.Add(guide);
+            made.Add(phone);
+            UiLayer.Open(feedback, feedback);
+            UiLayer.Open(hud, guide);
+            UiLayer.Close(feedback, feedback);
+            int before = hud.sortingOrder;
+
+            UiLayer.Open(hud, phone);
+            UiLayer.Close(hud, phone);
+
+            Assert.That(hud.sortingOrder, Is.EqualTo(before));
+        }
+
         [Test]
         public void Close_PutsTheCanvasBack()
         {

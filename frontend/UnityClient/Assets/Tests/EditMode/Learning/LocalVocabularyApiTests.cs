@@ -80,6 +80,22 @@ namespace A305.Learning.Tests
             );
         }
 
+        [Test]
+        public async Task SaveNpcLineWord_Fails_AndKeepsTheBookAsItWas()
+        {
+            ObjectWordCards cards = await LoadCardsAsync();
+            await cards.SaveAsync("sofa");
+            VocabularyBook book = await LoadBookAsync();
+
+            Assert.That(
+                await book.SaveNpcLineWordAsync(7, "check in"),
+                Is.EqualTo(VocabularySaveResult.Failed),
+                "대사 단어 풀이는 서버 대화에서만 받으므로 확인용 단어장에는 저장하지 않습니다."
+            );
+            Assert.That(book.LastFailureMessage, Is.Not.Null);
+            Assert.That((await LoadBookAsync()).Entries.Count, Is.EqualTo(1));
+        }
+
         private static async Task<ObjectWordCards> LoadCardsAsync()
         {
             var cards = new ObjectWordCards(new LocalObjectWordApi(SceneWords));

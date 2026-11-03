@@ -5,7 +5,7 @@ using A305.Api;
 namespace A305.Learning
 {
     /// <summary>
-    /// 사용자의 단어장(VOCAB-01·03·04). 서버 목록을 읽어 보여 주고, 외웠어요·메모·삭제를 서버에 저장한 뒤 반영한다.
+    /// 사용자의 단어장(VOCAB-01·02·03·04). 서버 목록을 읽어 보여 주고, 대화 중 저장한 단어와 외웠어요·메모·삭제를 서버에 저장한 뒤 반영한다.
     /// 요청이 실패하면 값을 바꾸지 않고 <see cref="LastFailureMessage"/>로 알린다.
     /// </summary>
     public sealed class VocabularyBook
@@ -92,6 +92,36 @@ namespace A305.Learning
             isLoaded = true;
             LastFailureMessage = null;
             return true;
+        }
+
+        /// <summary>대화 중 NPC 대사의 풀이 단어를 저장한다(VOCAB-02 NPC_LINE).</summary>
+        /// <param name="turnId">단어 풀이를 받은 NPC 턴</param>
+        public async Task<VocabularySaveResult> SaveNpcLineWordAsync(long turnId, string text)
+        {
+            VocabItem saved;
+            try
+            {
+                saved = await api.SaveNpcLineWordAsync(turnId, text);
+            }
+            catch (ApiException)
+            {
+                Fail("단어를 저장하지 못했어요. 다시 시도해 주세요.");
+                return VocabularySaveResult.Failed;
+            }
+
+            LastFailureMessage = null;
+            if (!saved.Created)
+            {
+                return VocabularySaveResult.AlreadySaved;
+            }
+
+            // 목록은 최근 저장순이라 맨 앞에 둔다. 받기 전이면 넣지 않고 단어장을 열 때 다시 읽는다.
+            if (isLoaded && entries.TrueForAll(entry => entry.UserVocabId != saved.UserVocabId))
+            {
+                entries.Insert(0, new VocabularyEntry(saved));
+            }
+
+            return VocabularySaveResult.Saved;
         }
 
         /// <summary>'외웠어요'를 켜거나 끈다. 서버에 저장한 뒤에 표시를 바꾼다.</summary>

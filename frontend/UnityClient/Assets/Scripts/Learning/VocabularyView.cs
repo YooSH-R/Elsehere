@@ -14,6 +14,7 @@ namespace A305.Learning
         private const int VisibleEntryCount = 4;
         private const string LoadingTitle = "단어장을 불러오는 중이에요…";
         private const string LoadFailedTitle = "단어장을 불러오지 못했어요";
+        private const string ContextTitle = "저장한 문장";
 
         [SerializeField]
         private GameObject panel;
@@ -42,6 +43,14 @@ namespace A305.Learning
 
         [SerializeField]
         private TMP_Text contextText;
+
+        [SerializeField]
+        [Tooltip("'저장한 문장' 제목. 대화에서 저장한 단어는 어느 NPC의 말인지 함께 보인다.")]
+        private TMP_Text contextTitleText;
+
+        [SerializeField]
+        [Tooltip("저장한 문장 아래의 문장 뜻. 뜻이 없으면 숨긴다.")]
+        private TMP_Text contextMeaningText;
 
         [SerializeField]
         private GameObject contextSection;
@@ -167,9 +176,19 @@ namespace A305.Learning
                 selectedMarks[row].SetActive(index == selectedIndex);
             }
             wordText.richText = meaningText.richText = contextText.richText = false;
+            contextTitleText.richText = contextMeaningText.richText = false;
             wordText.text = SelectedEntry.English;
             meaningText.text = SelectedEntry.Korean;
             contextText.text = SelectedEntry.ContextText ?? "";
+            contextMeaningText.text = SelectedEntry.ContextMeaning ?? "";
+            contextMeaningText.gameObject.SetActive(
+                !string.IsNullOrWhiteSpace(SelectedEntry.ContextMeaning)
+            );
+            PlaceMeaningUnderSentence();
+            contextTitleText.text =
+                SelectedEntry.SourceLabel == null
+                    ? ContextTitle
+                    : $"{ContextTitle} · {SelectedEntry.SourceLabel}";
             contextSection.SetActive(!string.IsNullOrWhiteSpace(SelectedEntry.ContextText));
             pageText.text = $"{selectedIndex + 1} / {count}";
             previousButton.interactable = hasEntries && selectedIndex > 0;
@@ -184,6 +203,22 @@ namespace A305.Learning
         }
 
         private VocabularyEntry SelectedEntry => book.Entries[selectedIndex];
+
+        // 문장 칸은 두 줄까지 들어가게 잡혀 있어, 한 줄 문장이면 뜻을 바로 아래로 붙여 사이가 벌어지지 않게 한다.
+        // 두 칸 모두 위쪽 기준이라 문장이 실제로 차지한 높이만큼만 내린다.
+        private void PlaceMeaningUnderSentence()
+        {
+            var sentence = (RectTransform)contextText.transform;
+            var meaning = (RectTransform)contextMeaningText.transform;
+            float sentenceHeight = Mathf.Min(
+                contextText.GetPreferredValues(contextText.text, sentence.rect.width, 0).y,
+                sentence.rect.height
+            );
+            meaning.anchoredPosition = new Vector2(
+                meaning.anchoredPosition.x,
+                sentence.anchoredPosition.y - sentenceHeight - 6
+            );
+        }
 
         private void Awake()
         {

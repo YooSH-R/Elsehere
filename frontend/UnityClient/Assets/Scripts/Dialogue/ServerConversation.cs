@@ -360,8 +360,12 @@ namespace A305.Dialogue
                 async () =>
                 {
                     MeaningData meaning = await api.GetMeaningAsync(turn.TurnId, NewRequestId());
-                    // 대사는 바뀌지 않게 두고 뜻을 붙인 줄로 바꾼다. [표현 저장]도 이 뜻을 함께 저장한다.
-                    var withMeaning = DialogueLine.FromNpc(LastNpcLine.English, meaning.MeaningKo);
+                    // 대사는 바뀌지 않게 두고 뜻과 풀이 단어를 붙인 줄로 바꾼다. 풀이 단어는 이 턴 출처로 단어장에 저장한다.
+                    var withMeaning = DialogueLine.FromNpc(
+                        LastNpcLine.English,
+                        meaning.MeaningKo,
+                        GlossaryWord.FromMeaning(turn.TurnId, meaning.Glossary)
+                    );
                     lines[lines.IndexOf(LastNpcLine)] = withMeaning;
                     LastNpcLine = withMeaning;
                     LastNpcGlossary = meaning.Glossary;

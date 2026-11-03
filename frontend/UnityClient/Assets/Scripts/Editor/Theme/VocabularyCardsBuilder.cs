@@ -92,17 +92,32 @@ namespace A305.EditorTools.Theme
             TMP_Text meaning = Text(details, "Meaning", "", 22, 0, 48, 600, 48, UiThemeRole.Accent);
             RectTransform context = Rect(details, "Context");
             Position(context, 0, 112, 600, 142);
-            Text(context, "Title", "저장한 문장", 18, 0, 0, 600, 28, UiThemeRole.Muted);
-            TMP_Text sentence = Text(
+            TMP_Text contextTitle = Text(
                 context,
-                "Sentence",
-                "",
-                21,
+                "Title",
+                "저장한 문장",
+                18,
                 0,
-                38,
+                0,
                 600,
-                100,
-                UiThemeRole.Body
+                28,
+                UiThemeRole.Muted
+            );
+            // 문장 아래에 문장 뜻을 둔다(화면 18). 긴 대사는 두 줄 안에 들도록 글자를 줄인다.
+            TMP_Text sentence = Text(context, "Sentence", "", 21, 0, 38, 600, 60, UiThemeRole.Body);
+            sentence.enableAutoSizing = true;
+            sentence.fontSizeMin = 16;
+            sentence.fontSizeMax = 21;
+            TMP_Text sentenceMeaning = Text(
+                context,
+                "SentenceMeaning",
+                "",
+                18,
+                0,
+                102,
+                600,
+                40,
+                UiThemeRole.Muted
             );
             Text(details, "MemoTitle", "메모", 18, 0, 266, 600, 28, UiThemeRole.Muted);
             TMP_InputField memo = UiBuilderTools.FindOrCreateInputField(
@@ -218,6 +233,8 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "wordText", word);
             BuilderTools.SetReference(view, "meaningText", meaning);
             BuilderTools.SetReference(view, "contextText", sentence);
+            BuilderTools.SetReference(view, "contextTitleText", contextTitle);
+            BuilderTools.SetReference(view, "contextMeaningText", sentenceMeaning);
             BuilderTools.SetReference(view, "contextSection", context.gameObject);
             BuilderTools.SetReference(view, "pageText", page);
             BuilderTools.SetReference(view, "previousButton", previous);

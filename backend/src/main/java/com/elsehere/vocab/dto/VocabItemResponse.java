@@ -10,7 +10,7 @@ import java.time.ZoneId;
 /**
  * VOCAB-01 단어장 항목.
  *
- * @param vocab 단어와 단어 하나의 뜻(공용 어휘)
+ * @param vocab 단어·숙어와 그 뜻(공용 어휘). 숙어는 type이 IDIOM이다.
  * @param context 단어를 저장한 문장과 문장 뜻. 저장한 문장이 없으면 null이다.
  * @param memorized 외웠어요로 표시했는지
  * @param source 저장한 곳. 사물에서 저장한 단어는 NPC·대화가 없다.

@@ -134,7 +134,7 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         private RectTransform ToolRow() =>
-            (RectTransform)Field<Button>("saveButton").transform.parent;
+            (RectTransform)Field<Button>("meaningButton").transform.parent;
 
         // 캔버스(대화창의 부모) 기준 자리
         private Rect InParent(RectTransform rect)

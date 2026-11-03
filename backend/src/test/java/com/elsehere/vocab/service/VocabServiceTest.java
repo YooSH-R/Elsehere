@@ -420,9 +420,30 @@ class VocabServiceTest {
     assertThat(userVocabRepository.count()).isEqualTo(1);
   }
 
+  @Test
+  @DisplayName("NPC 대사 단어 풀이의 숙어도 저장하며, 사전에 없던 숙어는 IDIOM 어휘로 만든다")
+  void saveNpcLineWord_idiom_savesAsIdiom() {
+    Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");
+    Turn line =
+        viewedNpcLine(
+            conversation,
+            "Regular milk or soy milk?",
+            "일반 우유로 드릴까요, 두유로 드릴까요?",
+            "[{\"text\": \"soy milk\", \"meaningKo\": \"두유\"}]");
+
+    VocabSaveResponse response = vocabService.saveNpcLineWord(userId, line.getId(), "Soy milk");
+
+    assertThat(response.created()).isTrue();
+    assertThat(response.item().vocab().type()).isEqualTo(VocabularyType.IDIOM);
+    assertThat(response.item().vocab().text()).isEqualTo("soy milk");
+    assertThat(response.item().vocab().meaningKo()).isEqualTo("두유");
+    assertThat(response.item().context().text()).isEqualTo("Regular milk or soy milk?");
+  }
+
   @ParameterizedTest
-  @ValueSource(strings = {"coffee", "soy milk"})
-  @DisplayName("단어 풀이에 없는 단어와 두 단어 이상인 표현은 VOCAB_SOURCE_MISMATCH로 거절하고 저장하지 않는다")
+  @ValueSource(strings = {"coffee", "regular soy"})
+  @DisplayName("단어 풀이에 없는 단어·표현은 VOCAB_SOURCE_MISMATCH로 거절하고 저장하지 않는다")
   void saveNpcLineWord_notSavableWord_throwsMismatch(String text) {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
     Conversation conversation = conversation(entityManager, userId, "CAFE_STAFF");

@@ -52,13 +52,13 @@
 | `TutorialProgress`, `TutorialStep` | 신호를 받아 단계를 넘기고, 행인이 다가와도 되는지·장소 이동 가능 여부·미션 표시 여부를 알려 줍니다. Unity 객체 없이 테스트합니다. |
 | `TutorialState` | 공간 씬이 바뀌어도 진행이 이어지도록 씬 밖에 둡니다. Play를 시작할 때마다 비우고 장소 이동 잠금도 풉니다. 서버에서 이미 튜토리얼을 끝낸 사용자는 입구 화면이 `MarkFinishedOnServer()`로 알려 `Completed`로 시작합니다. |
 | `TutorialFinishRecorder`, `ITutorialApi`, `TutorialApi` | 튜토리얼을 끝낸 방법에 맞춰 완료(TUT-01 `POST /api/v1/me/tutorial/complete`)나 건너뛰기(TUT-02 `/skip`)를 한 번 저장합니다. 네트워크 실패면 기록을 남겨 다음 장소에 들어갈 때 다시 보내고, 409(튜토리얼 이전 단계)면 다시 보내지 않습니다. Unity 객체 없이 테스트합니다. |
-| `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상(Ben 대화 시작 티칭 순서 포함)을 고르고, 구멍·둘레 판, 설명 말풍선 자리·꼬리, 화살표 자리·방향을 계산합니다. Unity 객체 없이 테스트합니다. |
+| `TutorialCoachPlan`, `TutorialCoachTarget`, `CoachMarkLayout` | 코치 마크가 밝힐 대상(Ben 대화 시작 티칭 순서 포함)을 고르고, 구멍·둘레 판, 설명 말풍선 자리·꼬리(가리면 안 되는 곳이 있으면 그곳을 피해 옆자리는 아래·위로, 위·아래 자리는 왼쪽·오른쪽으로 비킴), 화살표 자리·방향을 계산합니다. Unity 객체 없이 테스트합니다. |
 | `TutorialAction` | 걷기·둘러보기에서 해야 할 조작(걷기·달리기·시점 돌리기·확대·시점 바꾸기) |
 | `TutorialGuideText`, `TutorialAutoAdvance` | 안내 문구의 `{키}`를 `[키]` 표시로 바꾸고 해낸 할 일을 초록색으로 바꾸며 진행 점을 그리고, 해내면 끝나는 단계를 완료 표시 뒤 저절로 넘깁니다. Unity 객체 없이 테스트합니다. |
 | `TutorialGuideDefinition`, `TutorialStepGuide` | 단계별 짧은 이름과 할 일 한 줄(키보드·마우스, 터치 기기), 안내 카드가 숨는 동안의 코치 마크 설명([대화하기]·입력할 대사·추천 문장·추천 단어·다른 문장·[대화 종료]), 잠긴 문 안내, 숙소 씬 이름·길을 묻는 행인(Ben)·그동안 쓰는 대본 키(`TUTORIAL_PASSERBY`). 행인 코드와 대본 키는 `TutorialBuilder`가 코드 기본값으로 맞춥니다. 데이터 에셋 `Assets/Data/Tutorial/TutorialGuide.asset` |
 | `TutorialDirector` | 공간 씬마다 하나. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 진행에 전하고, 안내 카드·코치 마크·행인 허용·장소 이동과 택시 잠금·미션 표시를 바꾸고, 튜토리얼을 마치거나 건너뛸 때까지 게임 시각을 멈춰 둡니다(`GameClock.IsHeld`). 숙소를 나오면 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둡니다(`Passerby.IsPlayerWaiting`, `PlayerCameraRig.EnterMeetingView`). `Completed`가 되면(또는 저장하지 못한 채 다음 장소에 들어오면) 끝낸 기록을 서버에 저장합니다. `apiSettings`가 비어 있으면 저장하지 않습니다. |
 | `TutorialGuideView` | 화면 위쪽 가운데의 안내 카드(정렬 순서 115). 진행 점·단계 이름·할 일 한 줄과 건너뛰기 확인, 할 일 아래 잠깐 보이는 주의 띠. 할 일 카드를 가리는 화면 위에서는 단계 이름과 [건너뛰기]만 남긴 작은 카드(`ShowSkipOnly`, 정렬 순서 1100) |
-| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리, 밝힌 곳 옆 설명 말풍선(꼬리·[다음])과 장면 속 대상 위 화살표. 화면을 덮는 막(`IScreenBackdrop`)이라 고정한 단어 카드가 판을 피해 옮겨 가지 않습니다. |
+| `CoachMarkView` | 구멍 둘레를 덮는 판·테두리, 밝힌 곳 옆 설명 말풍선(꼬리·[다음])과 장면 속 대상 위 화살표. 화면을 덮는 막(`IScreenBackdrop`)이라 고정한 단어 카드가 판을 피해 옮겨 가지 않습니다. 대화·대화 노트 위에 남긴 [건너뛰기] 카드는 움직이지 않고, 말풍선이 그 카드(`KeepClear`)를 피해 놓입니다. |
 
 ## 의존성
 

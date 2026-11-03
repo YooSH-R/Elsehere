@@ -74,7 +74,8 @@ namespace A305.EditorTools.Dialogue
             Place(title, layout.Name);
             var name = title.GetComponent<TMP_Text>();
             name.fontSize = 26;
-            name.alignment = TextAlignmentOptions.Center;
+            // 줄 높이 기준(Center)이면 Jua 글자가 이름표 위로 떠 보여, 글자 모양 기준(Midline)으로 가운데에 둔다.
+            name.alignment = TextAlignmentOptions.Midline;
             name.textWrappingMode = TextWrappingModes.NoWrap;
             name.margin = Vector4.zero;
             Theme(title, UiThemeRole.TitleOnDark);

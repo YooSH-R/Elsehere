@@ -37,6 +37,17 @@ class ClockRuleTest {
     assertThat(filesMatching(TEST_SOURCES, Pattern.compile("\\bClockConfig\\.class"))).isEmpty();
   }
 
+  @Test
+  @DisplayName("테스트는 실제 현재 시각(Instant.now() 등)을 읽지 않고 주입받은 Clock을 쓴다")
+  void tests_doNotReadRealTime() {
+    // 고정 시계를 쓰는 코드와 실제 시각을 섞으면 실행하는 날짜·시각에 따라 결과가 바뀐다.
+    Pattern realTime =
+        Pattern.compile(
+            "\\b(Instant|LocalDate|LocalDateTime|OffsetDateTime|ZonedDateTime)\\.now\\(\\)"
+                + "|System\\.currentTimeMillis\\(\\)");
+    assertThat(filesMatching(TEST_SOURCES, realTime)).isEmpty();
+  }
+
   private static List<String> filesMatching(Path sources, Pattern pattern) {
     try (Stream<Path> files = Files.walk(sources)) {
       return files

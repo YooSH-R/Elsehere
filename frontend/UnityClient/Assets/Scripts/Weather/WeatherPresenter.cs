@@ -1,18 +1,21 @@
 using System.Collections.Generic;
 using System.Linq;
+using A305.Theme;
 using UnityEngine;
 
 namespace A305.Weather
 {
     /// <summary>
-    /// 예보한 날씨에 맞춰 실외 장소의 하늘·해·환경광·안개·구름과 날씨 효과를 바꾼다.
-    /// 날씨 종류는 <see cref="WeatherSettings"/>의 정의 에셋 목록에서 서버 값으로 찾는다.
-    /// 하늘·구름 머티리얼은 사본을 물들여 원본 에셋을 바꾸지 않는다.
+    /// 예보한 날씨와 게임 시각에 맞춰 실외 장소의 하늘·해·환경광·안개·구름과 날씨 효과, 밤 불빛과 입점 건물의 불 켠 창을 바꾼다.
+    /// 날씨 종류는 <see cref="WeatherSettings"/>의 정의 에셋 목록에서 서버 값으로 찾고, 그 낮 모습 위에
+    /// <see cref="DaylightSettings"/>의 낮·노을·밤을 입힌다. 하늘·구름·발광 머티리얼은 사본을 물들여 원본 에셋을 바꾸지 않는다.
+    /// UI는 시각을 따르지 않으므로, 밤에 어두워진 만큼 <see cref="UiBackdropLift"/>를 올려 유리 UI를 낮과 같은 밝기로 둔다.
     /// </summary>
-    public sealed class WeatherPresenter : MonoBehaviour
+    public sealed class WeatherPresenter : DaylightView
     {
         private static readonly int ZenithId = Shader.PropertyToID("_Zenith");
         private static readonly int HorizonId = Shader.PropertyToID("_Horizon");
+        private static readonly int StarsId = Shader.PropertyToID("_Stars");
 
         [SerializeField]
         private WeatherSettings settings;
@@ -32,6 +35,18 @@ namespace A305.Weather
         [Tooltip("날씨 효과가 머리 위에서 따라갈 대상. 보통 플레이어")]
         private Transform effectFollowTarget;
 
+        [SerializeField]
+        [Tooltip("게임 시각에 따른 낮·노을·밤. 비우면 늘 씬 디자인의 낮이다")]
+        private DaylightSettings daylight;
+
+        [SerializeField]
+        [Tooltip("밤에 밝히는 가로등·창 불빛")]
+        private Light[] lamps = new Light[0];
+
+        [SerializeField]
+        [Tooltip("입점한 상점·숙소 건물. 밤에는 안에서 불을 켠 것처럼 창이 빛난다")]
+        private Transform[] litBuildings = new Transform[0];
+
         private readonly Dictionary<WeatherDefinition, GameObject> effects =
             new Dictionary<WeatherDefinition, GameObject>();
         private bool prepared;
@@ -48,11 +63,45 @@ namespace A305.Weather
         private Material designedCloud;
         private Material cloud;
         private Renderer[] cloudRenderers;
+        private Quaternion designedSunRotation;
+        private NightLights nightLights;
+        private NightLights shopLights;
+
+        /// <summary>방문할 때 로드한 실내도 마을과 같은 시각을 따르게 하고, 나올 때 재질 사본을 정리한다.</summary>
+        public void SetShopInterior(Transform interior)
+        {
+            shopLights?.Restore();
+            shopLights = null;
+            if (interior == null || daylight == null)
+                return;
+
+            var renderers = interior.GetComponentsInChildren<Renderer>(true);
+            shopLights = new NightLights(
+                daylight,
+                interior.GetComponentsInChildren<Light>(true),
+                renderers,
+                renderers
+            );
+            if (shownMinutes.HasValue)
+                shopLights.Apply(daylight, daylight.NightAmount(shownMinutes.Value));
+        }
+
+        // 시각을 받기 전에는 씬 디자인의 낮이다.
+        private double? shownMinutes;
 
         /// <summary>마지막으로 보여 준 날씨. 아직 바꾸지 않았으면 null이고 씬 디자인 그대로다.</summary>
         public WeatherDefinition Current { get; private set; }
 
         public WeatherSettings Settings => settings;
+
+        public override void ShowTime(double gameMinutes)
+        {
+            if (daylight == null)
+                return;
+            Prepare();
+            shownMinutes = gameMinutes;
+            WriteScene();
+        }
 
         private void Awake()
         {
@@ -101,7 +150,7 @@ namespace A305.Weather
             Prepare();
             ChangeWeather(weather);
             blending = false;
-            Apply(weather.LookOver(designedLook));
+            ShowWeatherLook(weather.LookOver(designedLook));
             FinishChange();
         }
 
@@ -114,7 +163,7 @@ namespace A305.Weather
                 settings.TransitionSeconds > 0f
                     ? blendElapsedSeconds / settings.TransitionSeconds
                     : 1f;
-            Apply(WeatherLook.Lerp(blendFrom, blendTo, amount));
+            ShowWeatherLook(WeatherLook.Lerp(blendFrom, blendTo, amount));
             if (amount < 1f)
                 return;
             blending = false;
@@ -140,6 +189,10 @@ namespace A305.Weather
             }
             Destroy(sky);
             Destroy(cloud);
+            nightLights?.Restore();
+            shopLights?.Restore();
+            if (shownMinutes.HasValue)
+                UiBackdropLift.Show(0f);
         }
 
         private WeatherDefinition Resolve(string code, string fallbackCode)
@@ -166,6 +219,18 @@ namespace A305.Weather
             designedCloud = cloudRenderers.Length > 0 ? cloudRenderers[0].sharedMaterial : null;
             designedLook = ReadDesignedLook();
             shownLook = designedLook;
+            designedSunRotation = sun.transform.rotation;
+            if (daylight != null)
+                nightLights = new NightLights(
+                    daylight,
+                    lamps,
+                    gameObject
+                        .scene.GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren<Renderer>(true)),
+                    litBuildings
+                        .Where(building => building != null)
+                        .SelectMany(building => building.GetComponentsInChildren<Renderer>(true))
+                );
 
             if (designedSky != null)
             {
@@ -273,9 +338,31 @@ namespace A305.Weather
                 : Color.white;
         }
 
-        private void Apply(WeatherLook look)
+        private void ShowWeatherLook(WeatherLook look)
         {
             shownLook = look;
+            WriteScene();
+        }
+
+        /// <summary>날씨 모습에 지금 시각을 입혀 해·환경광·안개·하늘·구름과 밤 불빛에 쓴다.</summary>
+        private void WriteScene()
+        {
+            WeatherLook look = shownLook;
+            float stars = 0f;
+            if (daylight != null && shownMinutes.HasValue)
+            {
+                double minutes = shownMinutes.Value;
+                bool skyCovered = Current != null && Current.CoversSky;
+                look = daylight.Mix(shownLook, minutes, skyCovered);
+                stars = daylight.StarAmount(minutes, skyCovered);
+                sun.transform.rotation = daylight.SunRotation(designedSunRotation, minutes);
+                float night = daylight.NightAmount(minutes);
+                nightLights.Apply(daylight, night);
+                shopLights?.Apply(daylight, night);
+                UiBackdropLift.Show(night);
+            }
+            if (sky != null && sky.HasProperty(StarsId))
+                sky.SetFloat(StarsId, stars);
             sun.color = look.sunColor;
             sun.intensity = look.sunIntensity;
             sun.shadowStrength = look.sunShadowStrength;

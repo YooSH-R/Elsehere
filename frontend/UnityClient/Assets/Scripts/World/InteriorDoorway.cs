@@ -62,6 +62,21 @@ namespace A305.World
                     ? Mathf.DeltaAngle(arrivalPoint.eulerAngles.y + 180f, cameraRig.ViewYawDegrees)
                     : 0f;
             // 화면이 덮이는 동안 문 밖으로 걸어 나가지 않게 한다.
+            var room = GetComponentInParent<ShopInterior>();
+            if (room != null)
+            {
+                Transform arrival = destination.ArrivalPoint;
+                bool entering = room.transform.InverseTransformPoint(arrival.position).z < 0f;
+                SpaceTravel.CrossShopDoor(
+                    player,
+                    arrival.position,
+                    room,
+                    entering,
+                    arrival.rotation,
+                    arrival.eulerAngles.y + viewYawFromTravel
+                );
+                return;
+            }
             player.SetMovementLocked(true);
             SpaceTravelCurtain.CoverWhile(() =>
             {

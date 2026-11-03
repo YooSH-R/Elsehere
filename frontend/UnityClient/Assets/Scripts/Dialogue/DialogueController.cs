@@ -201,7 +201,14 @@ namespace A305.Dialogue
         /// </summary>
         public void End()
         {
-            if (!session.IsActive || isEnding)
+            // 정해진 대사를 따라가는 대화(튜토리얼 길 안내)는 대사를 다 마칠 때까지 [대화 종료]·Esc로 끝내지 않는다.
+            if (
+                !session.IsActive
+                || isEnding
+                || (
+                    conversation != null && conversation.IsGuided && !conversation.IsGuidedCompleted
+                )
+            )
             {
                 return;
             }
@@ -219,6 +226,19 @@ namespace A305.Dialogue
             }
 
             Finish(conversation.ToRecord());
+        }
+
+        /// <summary>
+        /// 튜토리얼을 건너뛰어 정해진 대사를 따라가던 대화를 마치지 않은 채 닫는다. 끝낸 대화로 치지 않아 피드백을 만들지 않는다.
+        /// </summary>
+        public void Abandon()
+        {
+            if (!session.IsActive || isEnding || conversation == null || !conversation.IsGuided)
+            {
+                return;
+            }
+
+            Ended?.Invoke(Close());
         }
 
         /// <summary>
@@ -395,6 +415,14 @@ namespace A305.Dialogue
 
         private void Finish(DialogueRecord record)
         {
+            string endedNpcCode = Close();
+            Ended?.Invoke(endedNpcCode);
+            ConversationEnded?.Invoke(record);
+        }
+
+        // 대화를 닫고 시점·이동을 되돌린다. 끝낸 NPC 코드를 돌려준다.
+        private string Close()
+        {
             string endedNpcCode = session.End();
             if (serverConversation != null)
             {
@@ -426,8 +454,7 @@ namespace A305.Dialogue
             panel.Hide();
             // 게스트는 대화를 시작할 때마다 남은 횟수가 줄고, 한도로 거절된 뒤에도 막힌 상태를 받아야 한다.
             RefreshAllowance();
-            Ended?.Invoke(endedNpcCode);
-            ConversationEnded?.Invoke(record);
+            return endedNpcCode;
         }
 
         private void RefreshAllowance()

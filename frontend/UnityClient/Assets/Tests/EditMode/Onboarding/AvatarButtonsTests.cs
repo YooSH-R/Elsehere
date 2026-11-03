@@ -54,6 +54,31 @@ namespace A305.Onboarding.Tests
             Assert.That(Check(male).activeSelf, Is.False);
         }
 
+        // 시안 그림 카드는 고른 쪽만 코랄 테두리·체크가 있는 그림으로 바꾼다.
+        [Test]
+        public void ShowSelected_ArtCards_SwapToTheChosenArt()
+        {
+            Sprite on = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 4, 4), Vector2.zero);
+            Sprite off = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 4, 4), Vector2.zero);
+            Button femaleCard = CreateCard("FemaleCard", on, off);
+            Button maleCard = CreateCard("MaleCard", on, off);
+
+            AvatarButtons.ShowSelected(femaleCard, maleCard, AvatarType.M);
+
+            Assert.That(femaleCard.GetComponent<Image>().sprite, Is.SameAs(off));
+            Assert.That(maleCard.GetComponent<Image>().sprite, Is.SameAs(on));
+            Object.DestroyImmediate(femaleCard.gameObject);
+            Object.DestroyImmediate(maleCard.gameObject);
+        }
+
+        private static Button CreateCard(string name, Sprite on, Sprite off)
+        {
+            var card = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            var art = card.AddComponent<ChoiceArt>();
+            art.Set(card.GetComponent<Image>(), on, off);
+            return card.GetComponent<Button>();
+        }
+
         private static Button CreateButton(string name)
         {
             var button = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));

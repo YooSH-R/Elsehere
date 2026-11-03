@@ -6,18 +6,31 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// [피드백 목록] 창. 지난 대화를 목록으로 보이고 [이전]·[다음]으로 고른 대화의 피드백을 [피드백 보기]로 다시 연다.
-    /// 마지막 대화에서 [다음]을 누르면 다음 페이지를 요청한다. 서버 요청은 <see cref="LearningController"/>가 맡고 이 화면은 결과만 그린다.
+    /// [피드백 목록] 창. 지난 대화를 한 쪽에 4개씩 보이고, 대화마다 [보기]로 그때 받은 피드백을 다시 연다.
+    /// 받은 대화의 마지막 쪽에서 다음 쪽으로 넘기면 다음 페이지를 요청한다. 서버 요청은 <see cref="LearningController"/>가 맡고 이 화면은 결과만 그린다.
     /// </summary>
     public class ConversationHistoryView : MonoBehaviour
     {
-        private const int VisibleCount = 6;
-
         [SerializeField]
         private GameObject panel;
 
         [SerializeField]
-        private TMP_Text listText;
+        [Tooltip("목록 뒤 장면을 어둡게 덮는 그림자. 목록과 함께 켜고 끈다.")]
+        private GameObject shade;
+
+        [SerializeField]
+        private ConversationHistoryRow[] rows;
+
+        [SerializeField]
+        [Tooltip("NPC 색 아이콘 그림. NPC 이름으로 하나를 고른다.")]
+        private Sprite[] avatarSprites;
+
+        [SerializeField]
+        private TMP_Text pageText;
+
+        [SerializeField]
+        [Tooltip("나눈 대화가 없을 때 줄 자리에 보이는 안내")]
+        private TMP_Text emptyText;
 
         [SerializeField]
         private Button previousButton;
@@ -26,26 +39,23 @@ namespace A305.Learning
         private Button nextButton;
 
         [SerializeField]
-        private Button openButton;
-
-        [SerializeField]
         private Button closeButton;
 
         [SerializeField]
         private TMP_Text statusText;
 
         private ConversationHistory history;
-        private int selectedIndex;
+        private int page;
 
-        // [다음]으로 다음 페이지를 요청했을 때 받은 뒤 고를 대화(새 페이지의 첫 대화). 요청하지 않았으면 -1.
-        private int indexAfterMore = -1;
+        // 다음 페이지를 요청했을 때 받은 뒤 보일 쪽. 요청하지 않았으면 -1.
+        private int pageAfterMore = -1;
 
         public event Action CloseRequested;
 
-        /// <summary>[피드백 보기]로 고른 대화를 알린다.</summary>
+        /// <summary>[보기]로 고른 대화를 알린다.</summary>
         public event Action<ConversationSummary> OpenRequested;
 
-        /// <summary>마지막 대화에서 [다음]을 눌러 다음 페이지가 필요하다.</summary>
+        /// <summary>받은 대화의 마지막 쪽에서 다음으로 넘겨 다음 페이지가 필요하다.</summary>
         public event Action MoreRequested;
 
         public bool IsVisible => panel.activeSelf;
@@ -53,8 +63,9 @@ namespace A305.Learning
         public void Show(ConversationHistory shownHistory)
         {
             history = shownHistory;
-            selectedIndex = 0;
-            indexAfterMore = -1;
+            page = 0;
+            pageAfterMore = -1;
+            shade.SetActive(true);
             panel.SetActive(true);
             ShowStatus("");
             Refresh();
@@ -63,6 +74,7 @@ namespace A305.Learning
         public void Hide()
         {
             history = null;
+            shade.SetActive(false);
             panel.SetActive(false);
         }
 
@@ -72,7 +84,7 @@ namespace A305.Learning
             statusText.text = message ?? "";
         }
 
-        /// <summary>목록이 바뀐 뒤 다시 그린다. 다음 페이지를 받았으면 고른 대화를 그 첫 대화로 옮긴다.</summary>
+        /// <summary>목록이 바뀐 뒤 다시 그린다. 다음 페이지를 받았으면 그 대화가 있는 쪽으로 넘어간다.</summary>
         public void Refresh()
         {
             if (history == null)
@@ -81,59 +93,70 @@ namespace A305.Learning
             }
 
             int count = history.Items.Count;
-            if (indexAfterMore >= 0 && !history.IsBusy)
+            if (pageAfterMore >= 0 && !history.IsBusy)
             {
-                if (indexAfterMore < count)
+                if (pageAfterMore * ConversationHistoryPages.PageSize < count)
                 {
-                    selectedIndex = indexAfterMore;
+                    page = pageAfterMore;
                 }
 
-                indexAfterMore = -1;
+                pageAfterMore = -1;
             }
 
-            selectedIndex = Mathf.Clamp(selectedIndex, 0, Mathf.Max(0, count - 1));
-            listText.text = ConversationHistoryText.Format(
-                history.Items,
-                selectedIndex,
-                VisibleCount,
-                history.HasMore
-            );
-
-            bool hasItems = count > 0;
+            page = Mathf.Clamp(page, 0, ConversationHistoryPages.PageCount(count) - 1);
             bool isBusy = history.IsBusy;
-            previousButton.interactable = !isBusy && hasItems && selectedIndex > 0;
-            nextButton.interactable =
-                !isBusy && hasItems && (selectedIndex < count - 1 || history.HasMore);
-            openButton.interactable = !isBusy && hasItems;
-        }
-
-        private void Awake()
-        {
-            previousButton.onClick.AddListener(() => MoveSelection(-1));
-            nextButton.onClick.AddListener(MoveNext);
-            openButton.onClick.AddListener(() =>
-                OpenRequested?.Invoke(history.Items[selectedIndex])
-            );
-            closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
-            Hide();
-        }
-
-        // 받은 목록의 끝이면 다음 페이지를 요청하고, 받은 뒤 Refresh에서 그 첫 대화를 고른다.
-        private void MoveNext()
-        {
-            if (selectedIndex == history.Items.Count - 1 && history.HasMore)
+            DateTimeOffset now = DateTimeOffset.Now;
+            for (int slot = 0; slot < rows.Length; slot++)
             {
-                indexAfterMore = history.Items.Count;
+                int index = page * ConversationHistoryPages.PageSize + slot;
+                if (index >= count)
+                {
+                    rows[slot].Hide();
+                    continue;
+                }
+
+                ConversationSummary conversation = history.Items[index];
+                Sprite avatar = avatarSprites[
+                    ConversationHistoryText.AvatarColor(conversation, avatarSprites.Length)
+                ];
+                rows[slot]
+                    .Show(conversation, avatar, now, () => OpenRequested?.Invoke(conversation));
+                rows[slot].SetInteractable(!isBusy);
+            }
+
+            emptyText.text = count == 0 && !isBusy ? ConversationHistoryText.EmptyMessage : "";
+            pageText.text = ConversationHistoryPages.Label(page, count);
+            previousButton.interactable = !isBusy && page > 0;
+            nextButton.interactable =
+                !isBusy && ConversationHistoryPages.CanGoNext(page, count, history.HasMore);
+        }
+
+        /// <summary>다음 쪽을 보인다. 받은 대화의 마지막 쪽이면 다음 페이지를 요청하고, 받은 뒤 <see cref="Refresh"/>에서 넘어간다.</summary>
+        public void ShowNextPage()
+        {
+            if (ConversationHistoryPages.NeedsMore(page, history.Items.Count, history.HasMore))
+            {
+                pageAfterMore = page + 1;
                 MoreRequested?.Invoke();
                 return;
             }
 
-            MoveSelection(1);
+            MovePage(1);
         }
 
-        private void MoveSelection(int step)
+        public void ShowPreviousPage() => MovePage(-1);
+
+        private void Awake()
         {
-            selectedIndex += step;
+            previousButton.onClick.AddListener(ShowPreviousPage);
+            nextButton.onClick.AddListener(ShowNextPage);
+            closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
+            Hide();
+        }
+
+        private void MovePage(int step)
+        {
+            page += step;
             ShowStatus("");
             Refresh();
         }

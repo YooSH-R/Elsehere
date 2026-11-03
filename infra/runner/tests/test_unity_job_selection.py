@@ -44,19 +44,37 @@ class UnityJobSelectionTests(unittest.TestCase):
             ".gitlab/ci/unity.yml",
             "frontend/UnityClient/Assets/Scripts/Player.cs",
             "frontend/UnityClient/Assets/Tests/EditMode/PlayerTests.cs",
+            "frontend/UnityClient/Assets/WebGLTemplates/A305Responsive/index.html",
             "frontend/UnityClient/Packages/manifest.json",
+            "frontend/design/logo.png",
             "docs/api/mvp-api.md",
             "infra/scripts/run-unity-ci.ps1",
             "infra/scripts/prepare-unity-test-inputs.ps1",
             "infra/scripts/unity-code-quality.ps1",
             "infra/tests/tripo/create_ci_fixtures.py",
-            "AGENTS.md",
-            "docs/code-conventions.md",
-            "docs/unity/conventions.md",
         ):
             for job_name in UNITY_MR_JOBS:
                 with self.subTest(path=path, job=job_name):
                     self.assertTrue(self.selects_job(job_name, [path]))
+
+    def test_convention_documents_select_only_the_format_check(self):
+        for path in (
+            "AGENTS.md",
+            "docs/code-conventions.md",
+            "docs/unity/conventions.md",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(self.selects_job("unity:format", [path]))
+                self.assertFalse(self.selects_job("unity:editor-tests", [path]))
+                self.assertFalse(self.selects_job("unity:external-mr", [path]))
+
+    def test_merge_request_tests_choose_their_scope_from_the_merge_base(self):
+        changed_since = '-ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"'
+        self.assertIn(changed_since, " ".join(self.jobs["unity:editor-tests"]["script"]))
+        # Merged candidates are checked in full before deployment.
+        self.assertNotIn(
+            "-ChangedSince", " ".join(self.jobs["unity:editor-and-webgl"]["script"])
+        )
 
     def test_ci_changes_do_not_hide_unity_changes_in_the_same_mr(self):
         changed_paths = [

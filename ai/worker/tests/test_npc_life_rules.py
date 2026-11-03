@@ -133,9 +133,18 @@ NPCS = npc_life_rules.ROOT / "ai/npcs"
 
 def test_every_service_npc_has_a_life_file_without_problems():
     assert sorted(path.stem for path in npc_life_rules.LIFE_FOLDER.glob("*.json")) == [
+        "ARCADE_STAFF",
+        "BAKERY_STAFF",
+        "BANK_STAFF",
+        "BARBER_STAFF",
         "CAFE_STAFF",
+        "DINER_STAFF",
+        "FLOWER_SHOP_STAFF",
+        "HOME_STORE_STAFF",
         "HOTEL_STAFF",
+        "LAUNDROMAT_STAFF",
         "POLICE_OFFICER",
+        "POST_OFFICE_STAFF",
         "SHOP_STAFF",
         "TAXI_DRIVER",
         "TOWN_PASSERBY",

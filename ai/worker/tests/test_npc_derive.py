@@ -172,7 +172,7 @@ def test_an_npc_schedule_comes_from_its_role_in_its_own_place():
 
 
 def test_service_npcs_stay_in_their_own_place_for_now():
-    for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "POLICE_OFFICER", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]:
+    for npc_id in SERVICE_NPCS:
         scenes = {block["scene"] for block in life_values(npc_id)["schedule"] if "scene" in block}
 
         assert scenes == {home_of(npc_id)}, npc_id
@@ -236,11 +236,102 @@ def test_officer_dan_keeps_the_persona_direction():
     assert rates["recognitionRate"] > 1
 
 
+def test_postal_clerk_linda_keeps_the_persona_direction():
+    """인격: 꼼꼼하고 원칙대로 처리함, 잡담보다 용건, 늘 하던 순서를 지킴."""
+    rates = derived_from_life_file("POST_OFFICE_STAFF")
+
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["needRates"]["FUN"] < 1
+
+
+def test_diner_server_rosa_keeps_the_persona_direction():
+    """인격: 다정하고 수다스러움, 단골을 반갑게 알아봄."""
+    rates = derived_from_life_file("DINER_STAFF")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+
+
+def test_bank_teller_henry_keeps_the_persona_direction():
+    """인격: 정중하고 침착함, 무례에도 크게 흔들리지 않음, 잡담은 짧게."""
+    rates = derived_from_life_file("BANK_STAFF")
+
+    assert rates["eventScale"]["RUDE"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["needRates"]["SOCIAL"] < 1
+
+
+def test_laundromat_owner_gus_keeps_the_persona_direction():
+    """인격: 느긋하고 농담을 좋아함, 사과하면 금방 풀림."""
+    rates = derived_from_life_file("LAUNDROMAT_STAFF")
+
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["APOLOGY"] > 1
+
+
+def test_florist_lily_keeps_the_persona_direction():
+    """인격: 다정하지만 수줍음, 손님을 잘 기억함."""
+    rates = derived_from_life_file("FLOWER_SHOP_STAFF")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["recognitionRate"] > 1
+
+
+def test_barber_tony_keeps_the_persona_direction():
+    """인격: 수다스럽고 장난기 많음, 먼저 말을 잘 검."""
+    rates = derived_from_life_file("BARBER_STAFF")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["initiateTalkRate"] > 1
+
+
+def test_baker_grace_keeps_the_persona_direction():
+    """인격: 따뜻하고 부지런함, 손님을 반갑게 알아봄."""
+    rates = derived_from_life_file("BAKERY_STAFF")
+
+    assert rates["recognitionRate"] > 1
+    assert rates["needRates"]["FUN"] < 1
+
+
+def test_arcade_attendant_max_keeps_the_persona_direction():
+    """인격: 활발한 게임광, 사람과 잡담을 좋아함."""
+    rates = derived_from_life_file("ARCADE_STAFF")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_home_store_clerk_nina_keeps_the_persona_direction():
+    """인격: 차분하고 센스 있음, 손님과 손님이 찾던 것을 잘 기억함."""
+    rates = derived_from_life_file("HOME_STORE_STAFF")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["recognitionRate"] > 1
+
+
 # ---------------------------------------------------------------------
 # 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
 # ---------------------------------------------------------------------
 MIA_LIFE = {"npcId": "CAFE_STAFF", "mbti": "ESFJ-T", "role": "STAFF"}
-SERVICE_NPCS = ["CAFE_STAFF", "HOTEL_STAFF", "POLICE_OFFICER", "SHOP_STAFF", "TAXI_DRIVER", "TOWN_PASSERBY"]
+SERVICE_NPCS = [
+    "ARCADE_STAFF",
+    "BAKERY_STAFF",
+    "BANK_STAFF",
+    "BARBER_STAFF",
+    "CAFE_STAFF",
+    "DINER_STAFF",
+    "FLOWER_SHOP_STAFF",
+    "HOME_STORE_STAFF",
+    "HOTEL_STAFF",
+    "LAUNDROMAT_STAFF",
+    "POLICE_OFFICER",
+    "POST_OFFICE_STAFF",
+    "SHOP_STAFF",
+    "TAXI_DRIVER",
+    "TOWN_PASSERBY",
+]
 
 
 def handwritten(rules: list[str]) -> dict:

@@ -1,4 +1,5 @@
 using System;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -218,6 +219,13 @@ namespace A305.Learning
                 meaning.anchoredPosition.x,
                 sentence.anchoredPosition.y - sentenceHeight - 6
             );
+        }
+
+        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
+        private void LateUpdate()
+        {
+            if (panel.activeSelf)
+                CenterWindow.Shared.Place(PanelRect);
         }
 
         private void Awake()

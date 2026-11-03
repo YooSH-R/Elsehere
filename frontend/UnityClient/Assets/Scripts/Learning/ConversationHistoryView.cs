@@ -1,4 +1,5 @@
 using System;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -60,7 +61,7 @@ namespace A305.Learning
 
         public bool IsVisible => panel.activeSelf;
 
-        /// <summary>목록 판. 마을 HUD가 창과 겹치지 않는지 볼 때 쓴다.</summary>
+        /// <summary>목록 판. 마을 HUD를 피해 빈 곳 가운데에 놓인다.</summary>
         public RectTransform PanelRect => (RectTransform)panel.transform;
 
         public void Show(ConversationHistory shownHistory)
@@ -155,6 +156,13 @@ namespace A305.Learning
             nextButton.onClick.AddListener(ShowNextPage);
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             Hide();
+        }
+
+        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
+        private void LateUpdate()
+        {
+            if (panel.activeSelf)
+                CenterWindow.Shared.Place(PanelRect);
         }
 
         private void MovePage(int step)

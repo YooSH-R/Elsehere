@@ -53,6 +53,9 @@ body {
   overflow: hidden;
   background: #2b1c14;
   color: #fff;
+  /* 카드는 위 이름과 아래 문구·진행 막대 사이에 둔다. */
+  --card-top: clamp(56px, 10vh, 96px);
+  --card-bottom: clamp(130px, 22vh, 200px);
 }
 
 #intro-slides {
@@ -63,30 +66,112 @@ body {
 .intro-slide {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  overflow: hidden;
   opacity: 0;
   transition: opacity 1.2s ease;
 }
 
 .intro-slide.is-active {
   opacity: 1;
-  /* 정지 화면이 영상처럼 보이도록 장면마다 천천히 다가간다. 다가가는 쪽은 장면마다 다르게 고른다. */
+}
+
+/* 장소 장면은 화면을 가득 채우고, 정지 화면이 영상처럼 보이도록 천천히 다가간다. 다가가는 쪽은 장면마다 다르게 고른다. */
+.is-scene .intro-backdrop {
+  display: none;
+}
+
+.is-scene .intro-frame {
+  position: absolute;
+  inset: 0;
+}
+
+.is-scene .intro-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.is-scene.is-active .intro-picture {
   animation: intro-pan 6.5s ease-out forwards;
 }
 
 @keyframes intro-pan {
   from {
-    transform: scale(1);
+    scale: 1;
   }
   to {
-    transform: scale(1.08);
+    scale: 1.08;
+  }
+}
+
+/* 그림과 게임 화면은 흐린 배경 위 가운데 카드로 띄워, 그림이 흐려지거나 화면 UI가 아래 문구에 가리지 않게 한다. */
+.intro-backdrop {
+  position: absolute;
+  inset: -48px;
+  width: calc(100% + 96px);
+  height: calc(100% + 96px);
+  object-fit: cover;
+  filter: blur(24px) brightness(0.55);
+}
+
+.is-card .intro-frame {
+  position: absolute;
+  inset: var(--card-top) clamp(16px, 4vw, 48px) var(--card-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+
+.is-card .intro-picture {
+  width: min(100cqw, calc(100cqh * var(--ratio, 1.78)), 1280px);
+  height: auto;
+  border-radius: clamp(12px, 1.6vw, 22px);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+.is-card.is-active .intro-picture {
+  animation: intro-lift 6.5s ease-out forwards;
+}
+
+@keyframes intro-lift {
+  from {
+    scale: 0.97;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+/* 세로 화면에서는 장소 장면도 카드로 띄워 양옆이 잘리지 않게 한다. */
+@media (orientation: portrait) {
+  .is-scene .intro-backdrop {
+    display: block;
+  }
+
+  .is-scene .intro-frame {
+    inset: var(--card-top) 16px var(--card-bottom);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+  }
+
+  .is-scene .intro-picture {
+    width: min(100cqw, calc(100cqh * var(--ratio, 1.78)));
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+  }
+
+  .is-scene.is-active .intro-picture {
+    animation: intro-lift 6.5s ease-out forwards;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .intro-slide.is-active {
+  .intro-slide.is-active .intro-picture {
     animation: none;
   }
 }

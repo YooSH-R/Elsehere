@@ -121,6 +121,16 @@ public class Conversation extends BaseEntity {
     }
   }
 
+  /** 용건이 끝났거나 학습자가 작별해 NPC가 마무리 대사로 대화를 끝냈다. 이미 끝난 대화는 상태를 바꾸지 않는다. */
+  public void endByNpc(Instant now) {
+    if (!isActive()) {
+      return;
+    }
+    status = ConversationStatus.ENDED_BY_NPC;
+    endReason = ConversationEndReason.NPC_ENDED;
+    endedAt = now;
+  }
+
   /** 사용자가 [대화 종료]를 눌렀다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않는다. */
   public void endByUser(Instant now) {
     if (!isActive()) {

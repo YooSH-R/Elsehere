@@ -67,6 +67,22 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(NpcSubtitlePreference.ShowsSubtitles, Is.True);
         }
 
+        // 켜 둔 채 대화를 열면 레이아웃이 버튼 높이를 정하기 전에 [자막 켬] 알약을 칠한다.
+        // 높이가 정해진 뒤에도 알약 위아래 모서리가 버튼 높이를 넘으면 가운데 줄이 테이프처럼 양옆으로 삐져나온다.
+        [UnityTest]
+        public IEnumerator SubtitlesOn_PillCornersFitInsideTheButtonHeight()
+        {
+            NpcSubtitlePreference.ShowsSubtitles = true;
+
+            yield return Show(new SpokenContent(speaksNpcLines: true));
+
+            var image = FindButton("SubtitleButton").GetComponent<Image>();
+            float corners =
+                (image.sprite.border.y + image.sprite.border.w)
+                / (image.pixelsPerUnit * image.pixelsPerUnitMultiplier);
+            Assert.That(corners, Is.LessThan(image.rectTransform.rect.height));
+        }
+
         // 음성 없이 글로만 진행하는 대본 대화는 가리면 대사를 알 방법이 없다.
         [UnityTest]
         public IEnumerator SilentConversation_ShowsTheLineWithoutSubtitleButton()

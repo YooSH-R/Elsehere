@@ -46,6 +46,23 @@ namespace A305.Theme.Tests
         }
 
         [Test]
+        public void SetSelected_LowGhostControl_FitsThePillCornersInsideTheHeightUntilDeselected()
+        {
+            // 높이 48인 [자막 켬]. 알약 그림의 위아래 모서리가 높이를 넘으면 Unity가 세로만 줄여 그려
+            // 가운데 줄이 테이프처럼 양옆으로 삐져나온다. 유리 버튼으로 돌아오면 Builder가 정한 배율을 되살린다.
+            ThemedElement element = Create(UiThemeRole.GhostControl, out Image image);
+            image.rectTransform.sizeDelta = new Vector2(108, 48);
+            image.pixelsPerUnitMultiplier = 1f;
+
+            element.SetSelected(true);
+            Assert.That(image.sprite, Is.EqualTo(catalog.Get(UiThemeId.Jelly).PillSprite));
+            Assert.That(CornerHeight(image), Is.LessThan(48f));
+
+            element.SetSelected(false);
+            Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(1f));
+        }
+
+        [Test]
         public void Backdrop_PaintsALightTintOfTheTheme()
         {
             // 입구 화면 배경. 어두운 빈 화면 대신 밝은 테마 색으로 칠하되, 흰 창과 구분되게 흰색은 아니다.
@@ -73,6 +90,11 @@ namespace A305.Theme.Tests
             element.ApplyCurrent();
             return element;
         }
+
+        // 9칸 그림의 위아래 모서리를 더한 높이
+        private static float CornerHeight(Image image) =>
+            (image.sprite.border.y + image.sprite.border.w)
+            / (image.pixelsPerUnit * image.pixelsPerUnitMultiplier);
 
         private static float Distance(Color a, Color b) =>
             Vector3.Distance(new Vector3(a.r, a.g, a.b), new Vector3(b.r, b.g, b.b));

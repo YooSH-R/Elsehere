@@ -918,7 +918,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(AI가 제안한 자연스러운 종료), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
+- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(용건이 끝나 NPC가 마무리), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
+
+**마무리** — 무례가 아닌 턴에서 서버가 정하면, NPC가 그 대답으로 따뜻하게 마무리하고(새 질문 없음) 대화를 `ENDED_BY_NPC`, `endReason: NPC_ENDED`로 끝냅니다(2026-11-04 결정). 줄 사건은 의도 판정이 고릅니다([AI 워커 명세](ai-worker.md) 2.2절).
+
+| 대화 | 마무리하는 턴 |
+| --- | --- |
+| 이 NPC에게 남은 미션 목표가 있음(첫날 연계 미션·마을 이야기) | 이 턴으로 그 목표가 모두 끝났을 때, 또는 학습자가 작별했을 때(`LEAVE`, 목표가 남아도 끝내고 다시 말을 걸어 이어 할 수 있음) |
+| 그 밖의 대화 | 학습자가 작별했거나(`LEAVE`) 용건을 끝냈다고 했을 때(`TASK_DONE`, 예: "That's all, thanks.") |
+
+- NPC가 끝낸 대화도 CONV-08로 피드백을 받습니다. 기억·관계 갱신도 정상 종료처럼 합니다.
 
 #### CONV-04 `POST /api/v1/turns/{turnId}/meaning`
 

@@ -13,13 +13,51 @@ import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
+import com.elsehere.world.entity.Npc;
+import com.elsehere.world.repository.NpcRepository;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class TownStoryServiceTest {
   private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
   private final TownStoryRepository stories = mock(TownStoryRepository.class);
-  private final TownStoryService service = new TownStoryService(stories, firstDay);
+  private final NpcRepository npcs = mock(NpcRepository.class);
+  private final TownStoryService service = new TownStoryService(stories, firstDay, npcs);
+
+  @BeforeEach
+  void nameTheDinerStaff() {
+    Npc rosa = mock(Npc.class);
+    when(rosa.getName()).thenReturn("Rosa");
+    when(rosa.getRoleLabel()).thenReturn("식당 종업원");
+    when(npcs.findByCode("DINER_STAFF")).thenReturn(Optional.of(rosa));
+  }
+
+  // 지금 이야기 담당이 아닌 직원에게 물으면 지금 만날 직원과 가게를 알려 준다.
+  @Test
+  void otherStaffSendTheVisitorToTheCurrentStaff() {
+    when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
+
+    FirstDayMissionService.Context bakery = service.context(8L, "BAKERY_STAFF").orElseThrow();
+
+    assertThat(bakery.instruction())
+        .contains("the diner", "talk to Rosa", "instead of saying you do not know");
+  }
+
+  // 퀘스트 카드가 지금 만날 직원의 이름을 보인다. 마을 밖에 있으면 마을로 나가 만날 사람을 알린다.
+  @Test
+  void cardNamesTheStaffToTalkTo() {
+    when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
+    FirstDayMission inTown = mock(FirstDayMission.class);
+    when(inTown.getScene()).thenReturn("TOWN");
+    FirstDayMission inHotel = mock(FirstDayMission.class);
+    when(inHotel.getScene()).thenReturn("HOTEL");
+
+    when(firstDay.findById(8L)).thenReturn(Optional.of(inTown));
+    assertThat(service.status(8L).direction()).isEqualTo("식당 종업원 Rosa에게 이야기해 보세요.");
+    when(firstDay.findById(8L)).thenReturn(Optional.of(inHotel));
+    assertThat(service.status(8L).situation()).isEqualTo("마을로 나가 식당 종업원 Rosa에게 이야기해 보세요.");
+  }
 
   @Test
   void cannotStartBeforeFirstDayIsCompleted() {

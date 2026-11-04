@@ -16187,6 +16187,7 @@ Transform:
   - {fileID: 1089331063}
   - {fileID: 1052773815}
   - {fileID: 1524708161}
+  - {fileID: 1934119479}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &821786597
@@ -37700,6 +37701,51 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1978232106715825615, guid: fc338e42bb8c127489d7ad658980434c, type: 3}
   m_PrefabInstance: {fileID: 1932301265}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1934119478
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1934119479}
+  - component: {fileID: 1934119480}
+  m_Layer: 0
+  m_Name: BenRainWaitSpot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1934119479
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1934119478}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: -0.7071068}
+  m_LocalPosition: {x: -3.8, y: 0.12, z: -10.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 818073357}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1934119480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1934119478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da1c2b34f5c18e842a1bd12379175643, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Mission::A305.Mission.QuestNpcWaitSpot
+  npc: {fileID: 286481412}
 --- !u!1 &1937261799
 GameObject:
   m_ObjectHideFlags: 0

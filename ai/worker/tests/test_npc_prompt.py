@@ -158,6 +158,15 @@ def test_six_learner_levels_share_three_sets_of_rules():
     assert len({beginner, middle, advanced}) == 3
 
 
+def test_every_learner_level_asks_for_everyday_idioms_and_slang():
+    """초급도 짧은 문장은 지키되 인물이 실제로 쓰는 일상 관용구·속어를 넣는다(2026-11-04 결정). 관용구·속어를 막지 않는다."""
+    for level in ("A1", "B1", "C1"):
+        section = level_section(level)
+
+        assert "idioms" in section and "slang" in section, level
+        assert "No idioms" not in section, level
+
+
 def test_the_opening_turn_sends_only_the_system_prompt():
     """첫 대사는 사용자 발화가 없다. 가짜 사용자 메시지를 만들지 않는다 (계약 4.1)."""
     messages = npc_messages(request_example("opening"))

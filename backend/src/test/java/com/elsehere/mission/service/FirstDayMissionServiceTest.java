@@ -12,17 +12,58 @@ import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.repository.UserRepository;
+import com.elsehere.world.entity.Npc;
+import com.elsehere.world.repository.NpcRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 class FirstDayMissionServiceTest {
+  private static final Map<String, String> NAMES =
+      Map.of(
+          "HOTEL_STAFF", "Jake", "CAFE_STAFF", "Mia", "TOWN_PASSERBY", "Ben", "SHOP_STAFF", "Alex");
+
   private final FirstDayMissionRepository repository = mock(FirstDayMissionRepository.class);
+  private final NpcRepository npcs = mock(NpcRepository.class);
   private final FirstDayMissionService service =
       new FirstDayMissionService(
-          repository, mock(ConversationRepository.class), mock(UserRepository.class));
+          repository, mock(ConversationRepository.class), mock(UserRepository.class), npcs);
+
+  @BeforeEach
+  void nameTheMissionNpcs() {
+    NAMES.forEach(
+        (code, name) -> {
+          Npc npc = mock(Npc.class);
+          when(npc.getName()).thenReturn(name);
+          when(npcs.findByCode(code)).thenReturn(Optional.of(npc));
+        });
+  }
+
+  // 지금 단계 담당이 아닌 NPC에게 물으면 모른다고 하지 않고 지금 만날 NPC와 장소를 알려 준다.
+  @Test
+  void otherNpcsSendTheLearnerToBenOnTheMainStreet() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.RAINY_STREET)));
+
+    FirstDayMissionService.Context context = service.context(8L, "CAFE_STAFF").orElseThrow();
+
+    assertThat(context.instruction())
+        .contains("the main street", "talk to Ben", "instead of saying you do not know");
+  }
+
+  // 다른 장소에 있으면 퀘스트 카드가 갈 곳과 만날 사람을 함께 알린다.
+  @Test
+  void awayFromTheStepPlaceTheCardSaysWhereAndWhoToMeet() {
+    FirstDayMission mission = missionAt(FirstDayStage.RAINY_STREET);
+    mission.visit("CAFE");
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).isEqualTo("마을 거리로 이동하세요.");
+    assertThat(service.status(8L).situation()).isEqualTo("마을 거리에서 행인 Ben에게 물어보세요.");
+  }
 
   @Test
   void statusKeepsStoredObjectivesAndRejectsRestUntilCafeOrderAndLocationAreReady() {
@@ -138,7 +179,8 @@ class FirstDayMissionServiceTest {
       assertThat(context.state()).as("%s talking to %s", stage, npc).isNull();
       assertThat(context.instruction())
           .doesNotContain(stage.instruction())
-          .contains("Stay in your own role", "help with directions if asked");
+          .contains("Stay in your own role", "help with directions if asked")
+          .contains("talk to " + NAMES.get(stage.npc()));
       assertThat(context.replyInstruction(new JudgeResult.Intent(null, stage.intentIds(), null)))
           .isEqualTo(context.instruction());
     }

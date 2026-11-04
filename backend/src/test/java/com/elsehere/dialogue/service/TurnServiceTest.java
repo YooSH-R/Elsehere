@@ -605,6 +605,40 @@ class TurnServiceTest {
   }
 
   @Test
+  @DisplayName("작별 인사를 한 턴에는 NPC가 마무리 지시문으로 대답하고 대화를 NPC 종료로 돌려준다")
+  void send_farewell_npcWrapsUpTheConversation() {
+    judgeSays("Thanks, bye!", "LEAVE");
+    guards("Thanks, bye!", false, null);
+    given(
+            aiGateway.reply(
+                any(), any(), any(), any(), eq("Thanks, bye!"), anyString(), anyInt(), any()))
+        .willReturn(reply("See you around!", null));
+
+    TurnResponse response = send("Thanks, bye!");
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiGateway)
+        .should()
+        .reply(
+            any(), any(), any(), any(), eq("Thanks, bye!"), instruction.capture(), anyInt(), any());
+    assertThat(instruction.getValue()).endsWith(WrapUp.INSTRUCTION);
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(response.conversation().endReason()).isEqualTo(ConversationEndReason.NPC_ENDED);
+  }
+
+  @Test
+  @DisplayName("작별·용건 끝냄이 없는 턴은 대화를 이어 간다")
+  void send_ordinaryLine_keepsTheConversationActive() {
+    judgeSays("Nice weather today.", "SMALL_TALK");
+    guards("Nice weather today.", false, null);
+    repliesTo("Nice weather today.", reply("It sure is!", null));
+
+    TurnResponse response = send("Nice weather today.");
+
+    assertThat(response.conversation().status()).isEqualTo(ConversationStatus.ACTIVE);
+  }
+
+  @Test
   @DisplayName("무례 판정 3번으로 NPC가 대화를 끝내도 세 번 모두 깎는다")
   void send_abusiveUntilLimit_deductsEveryTime() {
     for (int count = 1; count <= Conversation.RUDE_LIMIT; count++) {
@@ -683,6 +717,14 @@ class TurnServiceTest {
                 null,
                 List.of("COMPLIMENT"),
                 affinityDelta));
+  }
+
+  // 줄 사건만 주는 의도 판정. 무례 판정은 따로 정한다.
+  private void judgeSays(String text, String... events) {
+    given(aiGateway.judge(any(), any(), any(), any(), eq(text)))
+        .willReturn(
+            new JudgeResult(
+                text, false, null, null, List.of(usage("intent")), null, List.of(events), 0));
   }
 
   // 같은 문장에 다시 부르면 마지막 판정값으로 바뀐다.

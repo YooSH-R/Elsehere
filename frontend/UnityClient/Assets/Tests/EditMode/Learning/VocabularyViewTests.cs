@@ -117,8 +117,12 @@ namespace A305.Learning.Tests
                 "보던 단어를 그대로 고른다"
             );
             Assert.That(Text("Panel/ShowLearnedButton/Label"), Is.EqualTo("외운 표현 숨기기"));
-            Assert.That(Text("Panel/Content/Entries/Entry0/Label"), Does.EndWith("· 외웠어요"));
-            Assert.That(Text("Panel/Content/Entries/Entry1/Label"), Does.Not.Contain("외웠어요"));
+            Assert.That(Text("Panel/Content/Entries/Entry0/Label"), Is.EqualTo("counter"));
+            Assert.That(
+                Text("Panel/Content/Entries/Entry0/Meaning"),
+                Is.EqualTo("조리대 · 외웠어요")
+            );
+            Assert.That(Text("Panel/Content/Entries/Entry1/Meaning"), Is.EqualTo("우산"));
             Click("Panel/Content/Entries/Entry0");
             Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("counter"));
             Assert.That(Text("Panel/Content/LearnedButton/Label"), Is.EqualTo("다시 학습"));

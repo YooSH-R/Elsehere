@@ -108,7 +108,12 @@ namespace A305.Dialogue.Tests
                 new ApiClient("", transport)
             );
 
-            ConversationStart start = await api.StartAsync("start-1", "CAFE_STAFF", "NPC");
+            ConversationStart start = await api.StartAsync(
+                "start-1",
+                "CAFE_STAFF",
+                "NPC",
+                npcOffDuty: false
+            );
 
             Assert.That(start.DeliveredFollowUpId, Is.EqualTo(expected));
         }

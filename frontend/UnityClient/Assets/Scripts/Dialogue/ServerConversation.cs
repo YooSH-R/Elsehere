@@ -57,16 +57,16 @@ namespace A305.Dialogue
         /// <param name="npcName">서버 응답을 받기 전에 보여 줄 이름</param>
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
-        /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
         /// <param name="followUps">NPC가 준비해 건네기로 한 것을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FollowUpStore.Shared"/>)이다.</param>
+        /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
             IConversationApi api,
             bool canTalk,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
-            bool npcOffDuty = false,
-            FollowUpStore followUps = null
+            FollowUpStore followUps = null,
+            bool npcOffDuty = false
         )
         {
             NpcCode = npcCode;

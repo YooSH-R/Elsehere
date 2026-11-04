@@ -410,7 +410,7 @@ namespace A305.Dialogue
                 conversationApi,
                 VoiceConsent.Shared.IsAgreed,
                 initiatedBy,
-                npcOffDuty
+                npcOffDuty: npcOffDuty
             );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;

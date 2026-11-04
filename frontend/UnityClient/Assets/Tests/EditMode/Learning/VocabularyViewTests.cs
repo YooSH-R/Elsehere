@@ -189,23 +189,30 @@ namespace A305.Learning.Tests
             );
         }
 
-        // 머리줄 [알파벳순으로 보기]를 누르면 목록을 알파벳순으로 바꾸고 맨 왼쪽에 A~Z를 둔다. 글자를 누르면 그 글자로
-        // 시작하는 첫 단어로 가고, 단어가 없는 글자는 누를 수 없다. [최근순으로 보기]로 돌아가면 A~Z를 숨긴다.
+        // 목록 바로 위 [최근순 | 알파벳순]에서 알파벳순을 고르면 목록을 알파벳순으로 바꾸고 맨 왼쪽에 A~Z를 둔다.
+        // 고른 쪽을 칠해 지금 순서를 보인다. 글자를 누르면 그 글자로 시작하는 첫 단어로 가고, 단어가 없는 글자는 누를 수
+        // 없다. 최근순으로 돌아가면 A~Z를 숨긴다.
         [Test]
         public async Task SortButton_ListsWordsAlphabetically_AndLettersJumpToTheirGroup()
         {
+            const string recent = "Panel/Content/SortTabs/RecentButton";
+            const string alphabetical = "Panel/Content/SortTabs/AlphabetButton";
             await Open(new SampleApi { Words = new[] { "sofa", "apple", "latte", "Lemon" } });
             Assert.That(Shown("Panel/Content/Letters"), Is.False, "최근순에서는 알파벳 줄이 없다");
-            Assert.That(Text("Panel/Content/SortButton/Label"), Is.EqualTo("알파벳순으로 보기"));
+            Assert.That(Text(recent + "/Label"), Is.EqualTo("최근순"));
+            Assert.That(Text(alphabetical + "/Label"), Is.EqualTo("알파벳순"));
+            Assert.That(Shown(recent + "/Selection"), Is.True, "지금 순서를 칠한다");
+            Assert.That(Shown(alphabetical + "/Selection"), Is.False);
             Assert.That(
-                IsAbove(Rect("Panel/Content/SortButton"), Rect("Panel/Content/Entries")),
+                IsAbove(Rect("Panel/Content/SortTabs"), Rect("Panel/Content/Entries")),
                 Is.True,
                 "정렬 버튼은 목록 바로 위에 있다"
             );
 
-            Click("Panel/Content/SortButton");
+            Click(alphabetical);
 
-            Assert.That(Text("Panel/Content/SortButton/Label"), Is.EqualTo("최근순으로 보기"));
+            Assert.That(Shown(alphabetical + "/Selection"), Is.True);
+            Assert.That(Shown(recent + "/Selection"), Is.False);
             Assert.That(Shown("Panel/Content/Letters"), Is.True);
             Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Label"), Is.EqualTo("apple"));
             Assert.That(Text("Panel/Content/Entries/Rows/Entry3/Label"), Is.EqualTo("sofa"));
@@ -227,7 +234,7 @@ namespace A305.Learning.Tests
             Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("latte"));
             Assert.That(Text("Panel/Content/Page"), Is.EqualTo("2 / 4"));
 
-            Click("Panel/Content/SortButton");
+            Click(recent);
 
             Assert.That(Shown("Panel/Content/Letters"), Is.False);
             Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Label"), Is.EqualTo("sofa"));

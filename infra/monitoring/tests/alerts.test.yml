@@ -87,6 +87,101 @@ tests:
         eval_time: 18m
         exp_samples: []
 
+  - name: normal AI response and feedback do not trigger latency alerts
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",status="200"}
+        values: "0+100x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="3"}
+        values: "0+0x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="10"}
+        values: "0+100x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="+Inf"}
+        values: "0+100x20"
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",status="200"}
+        values: "0+100x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",le="3"}
+        values: "0+0x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",le="30.0"}
+        values: "0+100x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",le="+Inf"}
+        values: "0+100x20"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname=~"APILatencyHigh|APITurnLatencyHigh|APIConversationEndLatencyHigh",alertstate="firing"})
+        eval_time: 15m
+        exp_samples: []
+
+  - name: AI latency waits ten minutes and resolves after recovery
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",status="200"}
+        values: "0+100x23"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="10"}
+        values: "0+0x11 1200+100x11"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="20"}
+        values: "0+100x23"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="+Inf"}
+        values: "0+100x23"
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",status="200"}
+        values: "0+100x23"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",le="30.0"}
+        values: "0+0x11 1200+100x11"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",le="+Inf"}
+        values: "0+100x23"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname=~"APITurnLatencyHigh|APIConversationEndLatencyHigh",alertstate="firing"})
+        eval_time: 10m
+        exp_samples: []
+      - expr: count by (environment) (ALERTS{alertname=~"APITurnLatencyHigh|APIConversationEndLatencyHigh",alertstate="firing"})
+        eval_time: 11m
+        exp_samples:
+          - labels: '{environment="dev"}'
+            value: 2
+      - expr: count(ALERTS{alertname=~"APITurnLatencyHigh|APIConversationEndLatencyHigh",alertstate="firing"})
+        eval_time: 18m
+        exp_samples: []
+
+  - name: exactly five percent of conversation ends over thirty seconds stays quiet
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",status="200"}
+        values: "0+100x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",le="30.0"}
+        values: "0+95x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/end",le="+Inf"}
+        values: "0+100x20"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname="APIConversationEndLatencyHigh",alertstate="firing"})
+        eval_time: 15m
+        exp_samples: []
+
+  - name: total API traffic enables a slow AI route even when that route has few requests
+    interval: 1m
+    input_series:
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/example",status="200"}
+        values: "0+30x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="3"}
+        values: "0+30x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/example",le="+Inf"}
+        values: "0+30x20"
+      - series: http_server_requests_seconds_count{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",status="200"}
+        values: "0+1x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="10"}
+        values: "0+0x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="20"}
+        values: "0+1x20"
+      - series: http_server_requests_seconds_bucket{job="elsehere-api",environment="dev",uri="/api/v1/conversations/{conversationId}/turns",le="+Inf"}
+        values: "0+1x20"
+    promql_expr_test:
+      - expr: count(ALERTS{alertname="APITurnLatencyHigh",alertstate="firing"})
+        eval_time: 15m
+        exp_samples:
+          - labels: '{}'
+            value: 1
+      - expr: count(ALERTS{alertname="APILatencyHigh",alertstate="firing"})
+        eval_time: 15m
+        exp_samples: []
+
   - name: sparse traffic and health checks do not raise performance alerts
     interval: 1m
     input_series:

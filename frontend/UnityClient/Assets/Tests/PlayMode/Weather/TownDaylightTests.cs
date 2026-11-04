@@ -231,6 +231,43 @@ namespace A305.Weather.PlayModeTests
             Assert.That(ceiling.intensity, Is.EqualTo(ShopLampIntensity).Within(.001f));
         }
 
+        // 카페·호텔·드럭스토어 실내 씬처럼, 매장 안에 있는 동안은 밤에도 불을 켠 방의 환경광이다.
+        [UnityTest]
+        public IEnumerator Midnight_InsideLoadedShop_KeepsRoomAmbientLikeInteriorScenes()
+        {
+            yield return null;
+            Transform interior = Keep(new GameObject("PoliceStationInterior")).transform;
+            presenter.ShowTime(Midnight);
+
+            presenter.SetShopInterior(interior);
+
+            AssertColor(
+                RenderSettings.ambientSkyColor,
+                Designed.ambientSky * daylight.NightInteriorAmbientScale
+            );
+            AssertColor(
+                RenderSettings.ambientGroundColor,
+                Designed.ambientGround * daylight.NightInteriorAmbientScale
+            );
+
+            presenter.ShowTime(Midday);
+
+            AssertColor(RenderSettings.ambientSkyColor, Designed.ambientSky);
+        }
+
+        [UnityTest]
+        public IEnumerator Midnight_LeavingLoadedShop_PutsTownNightAmbientBack()
+        {
+            yield return null;
+            WeatherLook expected = daylight.Mix(Designed, Midnight, skyCovered: false);
+            presenter.ShowTime(Midnight);
+            presenter.SetShopInterior(Keep(new GameObject("PoliceStationInterior")).transform);
+
+            presenter.SetShopInterior(null);
+
+            AssertColor(RenderSettings.ambientSkyColor, expected.ambientSky);
+        }
+
         [UnityTest]
         public IEnumerator Midnight_LightsWindowsOfOpenShopsOnly()
         {

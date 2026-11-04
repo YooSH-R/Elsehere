@@ -43,6 +43,20 @@ namespace A305.Learning
             );
         }
 
+        public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text)
+        {
+            return client.PostAsync<VocabItem>(
+                SavePath,
+                new FeedbackSaveRequest
+                {
+                    RequestId = Guid.NewGuid().ToString(),
+                    SourceType = "FEEDBACK",
+                    ConversationId = conversationId,
+                    Text = text,
+                }
+            );
+        }
+
         public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)
         {
             return client.PatchAsync<VocabItem>(
@@ -76,6 +90,17 @@ namespace A305.Learning
             public string SourceType { get; set; }
 
             public long TurnId { get; set; }
+
+            public string Text { get; set; }
+        }
+
+        private sealed class FeedbackSaveRequest
+        {
+            public string RequestId { get; set; }
+
+            public string SourceType { get; set; }
+
+            public long ConversationId { get; set; }
 
             public string Text { get; set; }
         }

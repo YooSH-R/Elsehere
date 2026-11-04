@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
+using A305.Theme;
 using A305.Voice;
 using TMPro;
 using UnityEngine;
@@ -137,6 +138,7 @@ namespace A305.Onboarding
             lookSensitivitySlider.maxValue = LookSensitivity.Max;
             lookSensitivitySlider.onValueChanged.AddListener(ChangeLookSensitivity);
             overlay.SetActive(false);
+            UiLayer.Close(this);
         }
 
         private void Start()
@@ -160,6 +162,7 @@ namespace A305.Onboarding
             }
 
             overlay.SetActive(true);
+            UiLayer.Open(this);
             SetMovementLocked(true);
             nicknameInput.text = "";
             lookSensitivitySlider.SetValueWithoutNotify(LookSensitivity.Current);
@@ -177,6 +180,7 @@ namespace A305.Onboarding
             }
 
             overlay.SetActive(false);
+            UiLayer.Close(this);
             SetMovementLocked(false);
         }
 
@@ -351,8 +355,10 @@ namespace A305.Onboarding
             bool canEdit = flow.User != null && !flow.IsBusy;
             profileText.text = flow.User != null ? MyPageText.Profile(flow.User) : "";
             statusText.text = flow.Message ?? "";
-            nicknameInput.interactable = canEdit;
-            nicknameButton.interactable = canEdit;
+            // 게스트는 닉네임을 바꾸지 못해 칸과 버튼을 막고, 이유는 아래 안내 줄에 보인다.
+            bool canChangeNickname = canEdit && flow.CanChangeNickname;
+            nicknameInput.interactable = canChangeNickname;
+            nicknameButton.interactable = canChangeNickname;
             closeButton.interactable = !flow.IsBusy;
             logoutButton.interactable = !flow.IsBusy;
             withdrawButton.gameObject.SetActive(flow.CanWithdraw);

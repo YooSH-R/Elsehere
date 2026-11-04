@@ -46,6 +46,9 @@ namespace A305.EditorTools.Learning
         private const int VocabularySortingOrder = 135;
         private const int HudSortingOrder = 95;
 
+        // 로그인이 풀렸다는 안내는 대화창·단어장과 가장 위에 그리는 수첩(1000)보다도 위에 둔다.
+        private const int SessionExpiredSortingOrder = 2000;
+
         private const string FeedbackListTitle = "피드백 목록";
 
         private const float ControlsGuideWidth = 460f;
@@ -85,6 +88,10 @@ namespace A305.EditorTools.Learning
         /// <summary>오른쪽 위 메뉴(≡)와 메뉴 버튼, 피드백 목록·내 정보 창이 있는 HUD 프리팹의 기능 구성을 맞춘다.</summary>
         public static void PrepareHud() =>
             BuilderTools.UpdateOrCreatePrefab(HudPrefabPath, "LearningHud", SetUpHud);
+
+        /// <summary>HUD 프리팹 루트에 로그인 끊김 안내 창만 덧붙인다. HUD의 다른 구성은 건드리지 않는다.</summary>
+        public static void AddSessionExpired(GameObject hud) =>
+            SetUpSessionExpired(hud, UiBuilderTools.BoldFont(), UiBuilderTools.RegularFont());
 
         /// <summary>씬에 피드백·단어장 화면과 학습 처리가 없으면 붙이고 플레이어·대화 처리와 연결한다.</summary>
         public static LearningController ConnectToScene(
@@ -370,6 +377,65 @@ namespace A305.EditorTools.Learning
                 "Divider",
                 "HomeButton"
             );
+            SetUpSessionExpired(root, bold, regular);
+        }
+
+        /// <summary>
+        /// 로그인이 풀렸을 때의 안내 창. 다른 화면보다 위에 보이도록 덮개에 따로 높은 순서의 캔버스를 두고, HUD의 마지막 자식으로 둔다.
+        /// 없는 요소만 만들고 디자인은 유지한다.
+        /// </summary>
+        private static void SetUpSessionExpired(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            var view = BuilderTools.GetOrAddComponent<SessionExpiredView>(root);
+            RectTransform overlay = FindOrCreateOverlay(root.transform, "SessionExpired");
+            overlay.SetAsLastSibling();
+            var canvas = BuilderTools.GetOrAddComponent<Canvas>(overlay.gameObject);
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = SessionExpiredSortingOrder;
+            BuilderTools.GetOrAddComponent<GraphicRaycaster>(overlay.gameObject);
+
+            RectTransform window = UiBuilderTools.FindOrCreateAnchoredPanel(
+                overlay,
+                "Window",
+                new Vector2(0.5f, 0.5f),
+                560f,
+                Vector2.zero
+            );
+            UiBuilderTools.FindOrCreateText(
+                window,
+                "Title",
+                bold,
+                32f,
+                Color.white,
+                SessionExpiredView.Title
+            );
+            UiBuilderTools.FindOrCreateText(
+                window,
+                "Body",
+                regular,
+                22f,
+                Color.white,
+                SessionExpiredView.Body
+            );
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(window, "Buttons");
+            BuilderTools.SetReference(
+                view,
+                "entryButton",
+                UiBuilderTools.FindOrCreateButton(
+                    buttons,
+                    "EntryButton",
+                    SessionExpiredView.ButtonLabel,
+                    bold,
+                    240f
+                )
+            );
+            BuilderTools.SetReference(view, "overlay", overlay.gameObject);
+            BuilderTools.RequireReferences(view);
+            overlay.gameObject.SetActive(false);
         }
 
         /// <summary>

@@ -31,7 +31,7 @@ namespace A305.ObjectHover.Tests
             Assert.That(buttons.HasWordActions, Is.True);
             Assert.That(buttons.SaveLabel, Is.EqualTo("단어장에 저장"));
             Assert.That(buttons.CanSave, Is.True);
-            Assert.That(buttons.HideLabel, Is.EqualTo("알아요 · 다시 안 띄우기"));
+            Assert.That(buttons.HideLabel, Is.EqualTo("숨기기"));
             Assert.That(buttons.CanToggleHide, Is.True);
             Assert.That(buttons.HasPronunciation, Is.True);
             Assert.That(buttons.Message, Is.Null);

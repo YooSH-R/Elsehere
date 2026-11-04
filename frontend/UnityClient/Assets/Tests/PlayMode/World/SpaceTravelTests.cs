@@ -41,6 +41,44 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator Travel_WhenAnotherSceneIsUnloading_DoesNotBlockLaterSceneLoads()
+        {
+            yield return LoadSpace("HomeScene");
+            Scene temporaryScene = SceneManager.CreateScene("CI-reproduction-temporary");
+            AsyncOperation unloading = SceneManager.UnloadSceneAsync(temporaryScene);
+            Assert.That(
+                temporaryScene.IsValid(),
+                Is.True,
+                "The old scene must still exist when travel starts."
+            );
+            Assert.That(SpaceTravel.TryTravel("TownScene", "HomeDoor"), Is.True);
+
+            float deadline = Time.realtimeSinceStartup + 30f;
+            while (
+                (!unloading.isDone || SpaceTravel.IsTraveling)
+                && Time.realtimeSinceStartup < deadline
+            )
+            {
+                yield return null;
+            }
+
+            Assert.That(unloading.isDone, Is.True, "The previous scene did not unload.");
+            Assert.That(SpaceTravel.IsTraveling, Is.False, "The new scene did not finish loading.");
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("TownScene"));
+
+            AsyncOperation nextLoad = SceneManager.LoadSceneAsync(
+                "HomeScene",
+                LoadSceneMode.Single
+            );
+            deadline = Time.realtimeSinceStartup + 30f;
+            while (!nextLoad.isDone && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+            Assert.That(nextLoad.isDone, Is.True, "A later scene load must not remain blocked.");
+        }
+
+        [UnityTest]
         public IEnumerator TryTravel_HomeToTown_PlacesPlayerAtTownHomeDoor()
         {
             yield return LoadSpace("HomeScene");

@@ -44,6 +44,7 @@ namespace A305.EditorTools.Theme
                     Object.DestroyImmediate(child.gameObject);
             }
             Button close = IconButton(panel, "CloseButton", UiIcon.Close, 920, 24);
+            UiCloseButton.Corner(close.transform, UiCloseButton.WindowSize);
             RectTransform content = Rect(panel, "Content");
             Position(content, 0, 96, 1000, 476);
             RectTransform entries = Rect(content, "Entries");
@@ -88,7 +89,7 @@ namespace A305.EditorTools.Theme
             }
             RectTransform details = Rect(content, "Details");
             Position(details, 354, 0, 600, 400);
-            TMP_Text word = Text(details, "Word", "", 28, 0, 0, 600, 42, UiThemeRole.Title);
+            TMP_Text word = Text(details, "Word", "", 28, 0, 0, 380, 42, UiThemeRole.Title);
             TMP_Text meaning = Text(details, "Meaning", "", 22, 0, 48, 600, 48, UiThemeRole.Accent);
             RectTransform context = Rect(details, "Context");
             Position(context, 0, 112, 600, 142);
@@ -126,7 +127,7 @@ namespace A305.EditorTools.Theme
                 UiBuilderTools.RegularFont(),
                 "기억하고 싶은 내용을 남겨 보세요"
             );
-            Position((RectTransform)memo.transform, 0, 302, 600, 76);
+            Position((RectTransform)memo.transform, 0, 302, 492, 76);
             memo.lineType = TMP_InputField.LineType.MultiLineNewline;
             memo.textComponent.fontSize = 19;
             memo.textComponent.margin = new Vector4(12, 8, 12, 8);
@@ -137,6 +138,7 @@ namespace A305.EditorTools.Theme
             placeholder.fontStyle = FontStyles.Normal;
             placeholder.margin = memo.textComponent.margin;
             Skin(placeholder.transform, UiThemeRole.Muted);
+            // [저장]은 메모 입력칸과 같은 줄 오른쪽에 둬 무엇을 저장하는지 바로 보이게 한다.
             Button save = TextButton(
                 details,
                 "MemoSaveButton",
@@ -144,7 +146,7 @@ namespace A305.EditorTools.Theme
                 UiIcon.None,
                 UiTone.Primary,
                 508,
-                390,
+                319,
                 92,
                 42
             );
@@ -152,6 +154,7 @@ namespace A305.EditorTools.Theme
             TMP_Text page = Text(content, "Page", "", 18, 408, 434, 76, 44, UiThemeRole.Body);
             page.alignment = TextAlignmentOptions.Midline;
             Button next = IconButton(content, "NextButton", UiIcon.Next, 494, 434);
+            // [외웠어요]·[삭제]는 고른 단어에 하는 일이라 넘기기 줄이 아니라 단어 제목 줄 오른쪽에 둔다.
             Button learned = TextButton(
                 content,
                 "LearnedButton",
@@ -159,12 +162,12 @@ namespace A305.EditorTools.Theme
                 UiIcon.Check,
                 UiTone.Positive,
                 746,
-                434,
+                0,
                 152,
                 44
             );
-            Button delete = IconButton(content, "DeleteButton", UiIcon.Delete, 910, 434);
-            TMP_Text status = Text(panel, "Status", "", 18, 36, 574, 918, 30, UiThemeRole.Accent);
+            Button delete = IconButton(content, "DeleteButton", UiIcon.Delete, 910, 0);
+            TMP_Text status = Text(panel, "Status", "", 18, 36, 574, 918, 30, UiThemeRole.Muted);
             RectTransform empty = Rect(panel, "EmptyState");
             Position(empty, 100, 188, 800, 270);
             RectTransform bookIcon = Rect(empty, "Book");
@@ -331,7 +334,7 @@ namespace A305.EditorTools.Theme
             Transform hide = actions.Find("HideButton");
             ConfigureButton(
                 hide,
-                "알아요 · 호버에서 숨기기",
+                "숨기기",
                 UiIcon.Check,
                 UiTone.Neutral,
                 ActionWidth,
@@ -348,11 +351,7 @@ namespace A305.EditorTools.Theme
             Button close = closeSource.GetComponent<Button>();
             close.transform.SetParent(panel, false);
             BuilderTools.GetOrAddComponent<LayoutElement>(close.gameObject).ignoreLayout = true;
-            ConfigureButton(close.transform, "", UiIcon.Close, UiTone.Neutral, 44, 44);
-            var closeRect = (RectTransform)close.transform;
-            closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = Vector2.one;
-            closeRect.anchoredPosition = new Vector2(-20, -20);
-            closeRect.sizeDelta = new Vector2(44, 44);
+            UiCloseButton.Corner(close.transform, UiCloseButton.CardSize);
             // X는 별도 배치지만 고정/호버 상태는 기존 Actions와 동일하게 제어한다.
             BuilderTools.SetReference(
                 root.GetComponent<A305.ObjectHover.WordTooltipView>(),

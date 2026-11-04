@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using A305.Theme;
 using A305.Wayfinding;
 using A305.World;
 using TMPro;
@@ -140,15 +141,14 @@ namespace A305.Mission
         private const float CardWidth = 410 * 1.2f;
         private const float DrawerWidth = 480;
 
-        // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
-        private const int OpenJournalSortingOrder = 1000;
-
         private Canvas canvas;
         private int shownClockMinute = -1;
         private bool talking;
-        private int closedSortingOrder;
         private bool available;
         private string mapSceneCode;
+
+        // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
+        private readonly Vector3[] hudCorners = new Vector3[4];
 
         public event Action StartRequested;
 
@@ -224,13 +224,14 @@ namespace A305.Mission
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
-            townMap.ShowDestination(state.Destination);
+            string destination = state.Destination;
+            townMap.ShowDestination(destination);
             if (miniMap != null)
-                miniMap.ShowDestination(state.Destination);
+                miniMap.ShowDestination(destination);
             if (largeMap != null)
-                largeMap.ShowDestination(state.Destination);
+                largeMap.ShowDestination(destination);
             if (largeMapLegend != null)
-                largeMapLegend.text = MiniMapLegend(state.Destination);
+                largeMapLegend.text = MiniMapLegend(destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
             restButton.gameObject.SetActive(false);
@@ -251,19 +252,20 @@ namespace A305.Mission
                 );
             }
             journey.text = lines.ToString().TrimEnd();
+            int firstDayStage = state.IsTownStory ? 7 : state.Stage;
             string suitcase =
-                state.Stage >= 7 ? "캐리어 · 찾음"
-                : state.Started && state.Stage >= 1 ? "캐리어 · 호텔 보관"
+                firstDayStage >= 7 ? "캐리어 · 찾음"
+                : state.Started && firstDayStage >= 1 ? "캐리어 · 호텔 보관"
                 : "캐리어 · 소지 중";
             string bag =
-                state.Stage >= 4 ? "파란 가방 · 찾음"
-                : state.Stage >= 2 ? "파란 가방 · 카페에 두고 옴"
+                firstDayStage >= 4 ? "파란 가방 · 찾음"
+                : firstDayStage >= 2 ? "파란 가방 · 카페에 두고 옴"
                 : "파란 가방 · 빨간 열쇠고리\n여권 지갑 · 책";
             belongings.text =
                 suitcase
                 + "\n"
                 + bag
-                + (state.Stage >= 6 ? "\n우산 · 소지 중" : "")
+                + (firstDayStage >= 6 ? "\n우산 · 소지 중" : "")
                 + $"\n{state.Balance}코인";
         }
 
@@ -318,6 +320,13 @@ namespace A305.Mission
         // 진행 막대 칸을 단계 수만큼 두고 단계 상태에 따라 칠한다. 칸이 모자라면 첫 칸을 본떠 더 만든다.
         private void ShowProgress(IReadOnlyList<FirstDayMissionStep> steps)
         {
+            HorizontalLayoutGroup layout = progress.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null)
+            {
+                // 첫날보다 단계가 많으면 칸을 균등하게 줄여 카드 밖으로 나가지 않게 한다.
+                layout.childControlWidth = steps.Count > 7;
+                layout.childForceExpandWidth = steps.Count > 7;
+            }
             GameObject template = progress.GetChild(0).gameObject;
             while (progress.childCount < steps.Count)
                 Instantiate(template, progress, false);
@@ -404,11 +413,14 @@ namespace A305.Mission
             retryButton.onClick.AddListener(Retry);
             // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
             JourneyStatus.Shared.MapRequested += OpenLargeMap;
+            CenterWindow.Shared.Changed += FollowCenterWindow;
         }
 
         private void OnDestroy()
         {
             JourneyStatus.Shared.MapRequested -= OpenLargeMap;
+            CenterWindow.Shared.Changed -= FollowCenterWindow;
+            CenterWindow.Shared.SetLeftHud(0f);
             journalButton.onClick.RemoveListener(ToggleJournal);
             if (miniMapButton != null)
                 miniMapButton.onClick.RemoveListener(OpenLargeMap);
@@ -456,6 +468,7 @@ namespace A305.Mission
         private void Update()
         {
             ShowClock();
+            CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             if (
                 mapOverlay != null
                 && mapOverlay.activeSelf
@@ -471,7 +484,11 @@ namespace A305.Mission
             if (root == null)
                 return;
             bool raised = journal.activeSelf || (mapOverlay != null && mapOverlay.activeSelf);
-            root.sortingOrder = raised ? OpenJournalSortingOrder : closedSortingOrder;
+            // 수첩·큰 지도를 연 동안에는 다른 캔버스와 먼저 연 창보다 위에 그린다.
+            if (raised)
+                UiLayer.Open(root, this);
+            else
+                UiLayer.Close(root, this);
         }
 
         /// <summary>
@@ -485,6 +502,7 @@ namespace A305.Mission
                 "HOTEL" => "호텔",
                 "SHOP" => "드럭스토어",
                 "HOME" => "집",
+                not null when TownMapArt.Shops.TryGetValue(destination, out var shop) => shop.Name,
                 _ => "자유 탐험",
             };
             return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
@@ -502,6 +520,30 @@ namespace A305.Mission
                 );
         }
 
+        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀)
+        private float LeftHudScreenWidth() =>
+            Mathf.Max(RightEdgeOf(Banner.gameObject), RightEdgeOf(miniMapPanel));
+
+        private float RightEdgeOf(GameObject hud)
+        {
+            if (hud == null || !hud.activeInHierarchy)
+                return 0f;
+            var rect = (RectTransform)hud.transform;
+            rect.GetWorldCorners(hudCorners);
+            return RectTransformUtility
+                .WorldToScreenPoint(CenterWindow.CameraOf(rect), hudCorners[2])
+                .x;
+        }
+
+        // 가운데 창이 열리면 펼친 수첩·큰 지도를 닫아 창끼리 겹치지 않게 한다. 퀘스트 카드·미니맵은 창과 함께 보인다.
+        private void FollowCenterWindow()
+        {
+            if (!CenterWindow.Shared.IsOpen)
+                return;
+            ShowJournal(false);
+            ShowLargeMap(false);
+        }
+
         // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.
         private Canvas RootCanvas()
         {
@@ -511,7 +553,6 @@ namespace A305.Mission
                 if (parent == null)
                     return null;
                 canvas = parent.rootCanvas;
-                closedSortingOrder = canvas.sortingOrder;
             }
 
             return canvas;

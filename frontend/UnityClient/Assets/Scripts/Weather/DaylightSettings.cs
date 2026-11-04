@@ -80,8 +80,17 @@ namespace A305.Weather
         [Header("불빛")]
         [SerializeField]
         [Min(0f)]
-        [Tooltip("한밤중 가로등·실내등 세기 배율. 낮에는 씬 디자인 세기 그대로다")]
+        [Tooltip(
+            "한밤중 등 세기 배율. 상점 벽등·실내등은 낮에 씬 디자인 세기 그대로이고, 가로등은 낮에 끈다"
+        )]
         private float nightLampScale = 2f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip(
+            "한밤중 마을 입점 건물 안 실내등 세기 배율. 마을 안 매장은 실내 씬과 달리 밤의 어두운 환경광을 그대로 받으므로 실내등 하나로 불을 켠 방처럼 밝힌다"
+        )]
+        private float nightShopLampScale = 14f;
 
         [SerializeField]
         [Min(0f)]
@@ -89,8 +98,14 @@ namespace A305.Weather
         private float nightGlowScale = 2.2f;
 
         [SerializeField]
-        [Tooltip("밤에 더 밝히는 발광 재질. 창빛·가로등 전구·실내 조명 갓 등")]
+        [Tooltip("밤에 더 밝히는 발광 재질. 창빛·상점 조명·실내 조명 갓 등")]
         private List<Material> glowMaterials = new List<Material>();
+
+        [SerializeField]
+        [Tooltip(
+            "밤에만 켜는 발광 재질(가로등 전구). 낮에는 빛을 끄고 밤에는 다른 발광 재질처럼 밝힌다"
+        )]
+        private List<Material> nightOnlyGlowMaterials = new List<Material>();
 
         [SerializeField]
         [Tooltip("창밖 하늘을 그린 유리 재질. 밤에는 밤하늘 색으로 바꾼다")]
@@ -146,8 +161,10 @@ namespace A305.Weather
         private float nightInteriorAmbientScale = .9f;
 
         public float NightLampScale => nightLampScale;
+        public float NightShopLampScale => nightShopLampScale;
         public float NightGlowScale => nightGlowScale;
         public IReadOnlyList<Material> GlowMaterials => glowMaterials;
+        public IReadOnlyList<Material> NightOnlyGlowMaterials => nightOnlyGlowMaterials;
         public IReadOnlyList<Material> WindowMaterials => windowMaterials;
         public Color NightWindowColor => nightWindowColor;
         public float NightWindowEmissionScale => nightWindowEmissionScale;
@@ -163,7 +180,8 @@ namespace A305.Weather
         public static DaylightSettings Create(
             IEnumerable<Material> glowMaterials = null,
             IEnumerable<Material> windowMaterials = null,
-            IEnumerable<Material> litWindowMaterials = null
+            IEnumerable<Material> litWindowMaterials = null,
+            IEnumerable<Material> nightOnlyGlowMaterials = null
         )
         {
             var settings = CreateInstance<DaylightSettings>();
@@ -173,6 +191,8 @@ namespace A305.Weather
                 settings.windowMaterials = new List<Material>(windowMaterials);
             if (litWindowMaterials != null)
                 settings.litWindowMaterials = new List<Material>(litWindowMaterials);
+            if (nightOnlyGlowMaterials != null)
+                settings.nightOnlyGlowMaterials = new List<Material>(nightOnlyGlowMaterials);
             return settings;
         }
 

@@ -6,8 +6,9 @@
 
 | 파일 | 역할 |
 | --- | --- |
-| `ApiClient` | `GetAsync`·`PostAsync`·`PutAsync`. 상태를 바꾸는 요청(POST·PUT)에 `X-Requested-With` 헤더를 붙이고, 2xx가 아니면 `ApiException`을 던집니다. Unity 객체 없이 테스트합니다. |
-| `ApiException`, `ApiErrorCodes` | 서버 오류 코드(예: `NICKNAME_TAKEN`)와 HTTP 상태. 응답을 받지 못하면 `NETWORK_ERROR`, 공통 오류 형식이 아니면 `UNEXPECTED_RESPONSE`입니다. |
+| `ApiClient` | `GetAsync`·`PostAsync`·`PutAsync`. 상태를 바꾸는 요청(POST·PUT)에 `X-Requested-With` 헤더를 붙이고, 2xx가 아니면 `ApiException`을 던집니다. 로그인이 풀렸다는 응답(401 `UNAUTHENTICATED`)은 `ApiSession.Expired`로도 알립니다. Unity 객체 없이 테스트합니다. |
+| `ApiException`, `ApiErrorCodes` | 서버 오류 코드(예: `NICKNAME_TAKEN`)와 HTTP 상태. 응답을 받지 못하면 `NETWORK_ERROR`, 공통 오류 형식이 아니면(재배포 중 프록시 오류 페이지 등) `UNEXPECTED_RESPONSE`입니다. 화면이 문구를 그대로 보이므로 두 경우 모두 "서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.", "서버가 잠시 응답하지 않아요. 잠시 후 다시 시도해 주세요."처럼 사용자가 읽을 문장으로 둡니다. |
+| `ApiSession` | 서버가 로그인이 풀렸다고 알린 것을 화면에 전하는 이벤트(`Expired`). 로그인 세션은 서버 메모리에 있어 서버를 다시 배포하거나 오래 쉬면 사라집니다. 장소 화면의 안내 창([Onboarding](../Onboarding/README.md)의 `SessionExpiredView`)이 받아 처음 화면으로 돌려보냅니다. |
 | `ApiJson` | 필드명은 camelCase, enum은 문자열이며 값이 없는 필드는 보내지 않습니다. enum의 서버 값은 `[EnumMember(Value = "IN_PROGRESS")]`로 적습니다. |
 | `IApiTransport`, `UnityWebRequestTransport` | 실제 HTTP 전송. 테스트에서는 대체 구현으로 응답을 정합니다. |
 | `ApiSettings` | 서버 주소와 응답 대기 시간(`Data/Api/ApiSettings.asset`). Web 빌드는 같은 출처라 상대 경로, Editor는 `http://localhost:8080`입니다. |
@@ -31,4 +32,4 @@ BootstrapResponse boot = await client.GetAsync<BootstrapResponse>("/api/v1/boots
 
 ## 테스트
 
-`Tests/EditMode/Api/`(`A305.Api.Tests`)에서 요청 주소·헤더·본문, 응답 해석, 오류·네트워크 실패를 검증합니다.
+`Tests/EditMode/Api/`(`A305.Api.Tests`)에서 요청 주소·헤더·본문, 응답 해석, 오류·네트워크 실패와 그 문구, 로그인 끊김 알림(401 `UNAUTHENTICATED`만, 가입 대기·다른 거절은 아님)을 검증합니다.

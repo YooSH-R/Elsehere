@@ -2,6 +2,7 @@ using System.Linq;
 using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.EditorTools.UI;
 using A305.EditorTools.Weather;
 using A305.EditorTools.World;
@@ -20,7 +21,7 @@ namespace A305.EditorTools.Mission
 {
     public static class FirstDayMissionBuilder
     {
-        private const string ViewPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
+        internal const string ViewPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
         private static readonly Color Ink = new Color(.16f, .24f, .2f);
         private static readonly Color Cream = new Color(.98f, .96f, .91f, .96f);
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
@@ -138,18 +139,10 @@ namespace A305.EditorTools.Mission
                 new Vector2(320, 44)
             );
 
+            // 닫기 X는 다른 창과 같은 공용 모양으로 둔다(S15P31A305-525).
             RectTransform closeFace = Rect("CloseButton", large);
-            Anchor(closeFace, Vector2.one, new Vector2(-20, -18), new Vector2(50, 50));
-            Image closeImage = closeFace.gameObject.AddComponent<Image>();
-            closeImage.sprite = glassSprite;
-            closeImage.type = Image.Type.Sliced;
-            closeImage.color = new Color(1, 1, 1, .9f);
             Button closeButton = closeFace.gameObject.AddComponent<Button>();
-            TMP_Text closeIcon = Text(closeFace, "Icon", 30, "×");
-            closeIcon.font = UiBuilderTools.BoldFont();
-            closeIcon.color = MapInk;
-            closeIcon.alignment = TextAlignmentOptions.Center;
-            Stretch((RectTransform)closeIcon.transform);
+            UiCloseButton.Corner(closeFace, UiCloseButton.WindowSize);
 
             TownMapView largeMap = GlassMapCopy(journalMap, large, LargeMapGroundOpacity, true, 46);
             var largeRect = (RectTransform)largeMap.transform;
@@ -430,12 +423,12 @@ namespace A305.EditorTools.Mission
                 new Vector2(112, -24)
             );
             banner.GetComponent<Image>().color = Cream;
-            TMP_Text situation = Text(banner, "Situation", 24, "첫날의 작은 소동");
+            TMP_Text situation = Text(banner, "Situation", 24, "퀘스트를 불러오는 중이에요.");
             TMP_Text direction = Text(
                 banner,
                 "Direction",
                 21,
-                "지도 버튼을 눌러 여정을 확인하세요."
+                "지도 버튼을 눌러 퀘스트를 확인하세요."
             );
             Button journalButton = MapButton(content);
             RectTransform journal = Rect("Journal", content);
@@ -451,7 +444,7 @@ namespace A305.EditorTools.Mission
             column.spacing = 12;
             column.childControlWidth = column.childControlHeight = true;
             column.childForceExpandHeight = false;
-            Text(journal, "Title", 26, "첫날의 작은 소동");
+            Text(journal, "Title", 26, "퀘스트");
             TMP_Text journalGoal = Text(journal, "Goal", 20, "");
             TownMapBuilder.CreateShell(journal, UiBuilderTools.RegularFont());
             RectTransform viewport = Rect("Viewport", journal);
@@ -479,7 +472,7 @@ namespace A305.EditorTools.Mission
             scroll.viewport = viewport;
             scroll.content = scrollContent;
             TMP_Text message = Text(journal, "Message", 19, "");
-            Button start = Button(journal, "StartButton", "여정 시작", 300);
+            Button start = Button(journal, "StartButton", "퀘스트 시작", 300);
             Button rest = Button(journal, "RestButton", "카페에서 잠깐 쉬기", 300);
             Button retry = Button(journal, "RetryButton", "다시 불러오기", 300);
             Button close = Button(journal, "CloseButton", "수첩 닫기", 300);
@@ -536,14 +529,8 @@ namespace A305.EditorTools.Mission
             items.lineSpacing = 12;
             var goal = journal.Find("Goal").GetComponent<TMP_Text>();
             goal.fontSize = 22;
-            var close = (RectTransform)journal.Find("CloseButton");
-            close.GetComponent<LayoutElement>().ignoreLayout = true;
-            close.anchorMin = close.anchorMax = close.pivot = Vector2.one;
-            close.anchoredPosition = new Vector2(-24, -24);
-            close.sizeDelta = new Vector2(48, 48);
-            Transform oldOutline = close.Find("Outline");
-            if (oldOutline != null)
-                Object.DestroyImmediate(oldOutline.gameObject);
+            Transform close = journal.Find("CloseButton");
+            UiCloseButton.Corner(close, UiCloseButton.WindowSize);
             close.SetAsLastSibling();
             EnsureActionRow(journal);
             journal.Find("Actions/StartButton/Label").GetComponent<TMP_Text>().text = "시작";

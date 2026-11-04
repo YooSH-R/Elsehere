@@ -9,6 +9,7 @@ using A305.Theme;
 using A305.World;
 using TMPro;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -141,9 +142,20 @@ namespace A305.EditorTools.Mission
                     "TownScene doorways for HOME, CAFE, HOTEL and SHOP are required for the map."
                 );
 
+            foreach (var shop in TownMapArt.Shops)
+            {
+                Rect tile = shop.Value.Tile;
+                Vector3 min = TownMapArt.ToWorld(tile.min);
+                Vector3 max = TownMapArt.ToWorld(tile.max);
+                Rect footprint = Rect.MinMaxRect(min.x, min.z, max.x, max.z);
+                float streetEdge = min.x > 0 ? min.x : max.x;
+                layout.Places.Add(
+                    (shop.Key, footprint, new Vector3(streetEdge, 0, footprint.center.y))
+                );
+            }
             Rect buildings = layout.Places.Select(place => place.Box).Aggregate(Encapsulate);
             Rect crossing = layout.Roads.Skip(1).Aggregate(Encapsulate);
-            // 집 앞마당(남쪽)부터 건물 너머 첫 교차로(북쪽)까지 담는다.
+            // 집 앞마당부터 가장 북쪽 가게까지 담는다.
             layout.Area = Rect.MinMaxRect(
                 buildings.xMin - 1f,
                 buildings.yMin - 5f,
@@ -159,15 +171,55 @@ namespace A305.EditorTools.Mission
             return layout;
         }
 
-        internal static void Draw(GameObject root, Layout layout)
+        // 씬을 다시 저장하지 않고 미션 프리팹에 있는 수첩 지도와 큰 지도만 갱신한다.
+        [MenuItem("Tools/A305/Mission/Refresh Town Maps")]
+        public static void RefreshTownMaps()
         {
-            var view = root.GetComponentInChildren<TownMapView>(true);
+            BuilderTools.ThrowIfPlaying();
+            const string townPath = "Assets/Scenes/Production/TownScene.unity";
+            Scene town = SceneManager.GetSceneByPath(townPath);
+            bool openedHere = !town.isLoaded;
+            if (openedHere)
+                town = EditorSceneManager.OpenScene(townPath, OpenSceneMode.Additive);
+            try
+            {
+                Layout layout = Read(town);
+                BuilderTools.UpdatePrefabIfExists(
+                    FirstDayMissionBuilder.ViewPath,
+                    root =>
+                    {
+                        foreach (
+                            TownMapView view in root.GetComponentsInChildren<TownMapView>(true)
+                        )
+                            Draw(view, layout);
+                    }
+                );
+            }
+            finally
+            {
+                if (openedHere)
+                    EditorSceneManager.CloseScene(town, true);
+            }
+        }
+
+        internal static void Draw(GameObject root, Layout layout) =>
+            Draw(
+                root.transform.Find("Content/Journal/TownMap").GetComponent<TownMapView>(),
+                layout
+            );
+
+        private static void Draw(TownMapView view, Layout layout)
+        {
             var map = new TownMap(layout.Area);
             float shellHeight = (DrawerWidth - DrawerPadding * 2) / map.WidthPerHeight;
             view.GetComponent<LayoutElement>().preferredHeight = shellHeight;
             RectTransform area = (RectTransform)view.transform.Find("Area");
             area.GetComponent<AspectRatioFitter>().aspectRatio = map.WidthPerHeight;
             Transform previous = area.Find("Drawing");
+            // 큰 지도의 화살표에는 전용 크기와 흰 윤곽선이 있다. 그림을 다시 만들 때도 같은 화살표를 쓴다.
+            var marker = previous != null ? previous.Find("PlayerMarker") as RectTransform : null;
+            if (marker != null)
+                marker.SetParent(area, false);
             if (previous != null)
                 Object.DestroyImmediate(previous.gameObject);
             RectTransform drawing = NewRect("Drawing", area);
@@ -214,11 +266,16 @@ namespace A305.EditorTools.Mission
                 places.Add((code, block, entrance));
             }
 
-            RectTransform marker = NewRect("PlayerMarker", drawing);
-            marker.sizeDelta = new Vector2(30, 30);
-            var arrow = marker.gameObject.AddComponent<Image>();
-            arrow.sprite = SpriteIfMissing(ArrowPath, 64, PaintArrow);
-            arrow.raycastTarget = false;
+            if (marker != null)
+                marker.SetParent(drawing, false);
+            else
+            {
+                marker = NewRect("PlayerMarker", drawing);
+                marker.sizeDelta = new Vector2(30, 30);
+                var arrow = marker.gameObject.AddComponent<Image>();
+                arrow.sprite = SpriteIfMissing(ArrowPath, 64, PaintArrow);
+                arrow.raycastTarget = false;
+            }
 
             var fields = new SerializedObject(view);
             fields.FindProperty("worldArea").rectValue = layout.Area;
@@ -275,7 +332,9 @@ namespace A305.EditorTools.Mission
                 UiBuilderTools.BoldFont(),
                 14,
                 Color.white,
-                PlaceStyles[code].Label
+                TownMapArt.Shops.TryGetValue(code, out var shop)
+                    ? shop.Name
+                    : PlaceStyles[code].Label
             );
             name.alignment = TextAlignmentOptions.Center;
             name.enableAutoSizing = true;
@@ -367,9 +426,9 @@ namespace A305.EditorTools.Mission
             {
                 SerializedProperty place = places.GetArrayElementAtIndex(index);
                 RectTransform tile = tiles[index];
-                place.FindPropertyRelative("sceneCode").stringValue = tile.name;
-                place.FindPropertyRelative("icon").enumValueIndex = (int)
-                    PlaceStyles[tile.name].Icon;
+                string style = TownMapArt.Shops.ContainsKey(tile.name) ? "SHOP" : tile.name;
+                place.FindPropertyRelative("sceneCode").stringValue = style;
+                place.FindPropertyRelative("icon").enumValueIndex = (int)PlaceStyles[style].Icon;
                 place.FindPropertyRelative("tile").objectReferenceValue =
                     tile.GetComponent<Image>();
                 place.FindPropertyRelative("outline").objectReferenceValue = tile.Find("Outline")

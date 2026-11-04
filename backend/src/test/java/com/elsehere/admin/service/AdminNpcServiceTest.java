@@ -91,7 +91,9 @@ class AdminNpcServiceTest {
             tuple("POLICE_ROOKIE", "Tyler", "신입 경찰관", "마을"),
             tuple("FIRE_CAPTAIN", "Ray", "소방대장", "마을"),
             tuple("FIRE_FIGHTER", "Rachel", "소방관", "마을"),
-            tuple("FIRE_ROOKIE", "Andre", "신입 소방관", "마을"));
+            tuple("FIRE_ROOKIE", "Andre", "신입 소방관", "마을"),
+            tuple("TOWN_GRANDFATHER", "Arthur", "행인", "마을"),
+            tuple("TOWN_GRANDMOTHER", "Margaret", "행인", "마을"));
   }
 
   @Test

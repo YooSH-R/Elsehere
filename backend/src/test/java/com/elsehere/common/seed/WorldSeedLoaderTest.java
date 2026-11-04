@@ -186,7 +186,7 @@ class WorldSeedLoaderTest {
 
   @Test
   @DisplayName(
-      "NPC 34명(행인 9명·카페 직원 3명·호텔 직원 5명·드럭스토어 직원 3명·택시 기사·경찰관 4명과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+      "NPC 36명(행인 11명·카페 직원 3명·호텔 직원 5명·드럭스토어 직원 3명·택시 기사·경찰관 4명과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -240,7 +240,9 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "POLICE_ROOKIE", "Tyler", NpcType.STAFF, "신입 경찰관", false, null),
             tuple("TOWN", "FIRE_CAPTAIN", "Ray", NpcType.PASSERBY, "소방대장", false, null),
             tuple("TOWN", "FIRE_FIGHTER", "Rachel", NpcType.PASSERBY, "소방관", false, null),
-            tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.PASSERBY, "신입 소방관", false, null));
+            tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.PASSERBY, "신입 소방관", false, null),
+            tuple("TOWN", "TOWN_GRANDFATHER", "Arthur", NpcType.PASSERBY, "행인", false, null),
+            tuple("TOWN", "TOWN_GRANDMOTHER", "Margaret", NpcType.PASSERBY, "행인", false, null));
   }
 
   @Test
@@ -268,7 +270,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(34);
+    assertThat(npcRepository.count()).isEqualTo(36);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 
@@ -354,7 +356,9 @@ class WorldSeedLoaderTest {
             "POLICE_ROOKIE",
             "FIRE_CAPTAIN",
             "FIRE_FIGHTER",
-            "FIRE_ROOKIE");
+            "FIRE_ROOKIE",
+            "TOWN_GRANDFATHER",
+            "TOWN_GRANDMOTHER");
     JsonMapper jsonMapper = new JsonMapper();
     for (Npc npc : npcRepository.findAll()) {
       JsonNode expected = profiles.get(npc.getCode());

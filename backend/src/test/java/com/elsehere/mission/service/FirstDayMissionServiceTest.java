@@ -139,7 +139,9 @@ class FirstDayMissionServiceTest {
             "POLICE_ROOKIE",
             "FIRE_CAPTAIN",
             "FIRE_FIGHTER",
-            "FIRE_ROOKIE")) {
+            "FIRE_ROOKIE",
+            "TOWN_GRANDFATHER",
+            "TOWN_GRANDMOTHER")) {
       if (npc.equals(stage.npc())) {
         continue;
       }

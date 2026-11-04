@@ -29,5 +29,13 @@ namespace A305.Onboarding
 
         /// <summary>접속 상태를 확인하지 못해 [다시 시도]를 기다리는 화면</summary>
         ConnectionFailed,
+
+        /// <summary>
+        /// 게스트 세션이 남은 채 다시 접속한 게스트에게 게임으로 가기 전에 [Google로 가입하고 이어 하기]·[게스트로 계속하기]를 고르게 하는 화면
+        /// </summary>
+        GuestReturn,
+
+        /// <summary>게스트 세션에서 이미 가입한 Google 계정으로 들어와 게스트 기록을 합치지 않았다고 알리는 화면</summary>
+        ExistingAccount,
     }
 }

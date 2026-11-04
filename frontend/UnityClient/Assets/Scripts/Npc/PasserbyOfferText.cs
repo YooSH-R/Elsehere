@@ -49,5 +49,17 @@ namespace A305.Npc
         {
             return remaining == 0 ? "게스트 대화를 모두 썼어요" : "지금은 대화할 수 없어요";
         }
+
+        /// <summary>대화를 다 쓴 게스트에게 [말 걸기]·택시 버튼 자리에 보일 버튼. 누르면 가입 안내 창을 연다.</summary>
+        public const string SignupLabel = "가입하고 계속 대화하기";
+
+        /// <summary>
+        /// 새 대화를 시작할 수 없을 때 막힌 이유 대신 가입을 권할지. 게스트가 대화 횟수를 다 쓴 경우만이며, 가입하면 기록을 이어 계속 대화할 수 있다.
+        /// </summary>
+        /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
+        public static bool OffersSignup(int? remaining)
+        {
+            return remaining == 0;
+        }
     }
 }

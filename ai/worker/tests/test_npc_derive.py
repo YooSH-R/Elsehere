@@ -544,6 +544,36 @@ def test_fire_rookie_andre_keeps_the_persona_direction():
     assert rates["eventScale"]["SMALL_TALK"] > 1
 
 
+def test_grandfather_arthur_keeps_the_persona_direction():
+    """인격: 말수 적고 꼼꼼한 할아버지, 잡담은 아내에게 맡김, 무례는 못 참음."""
+    rates = derived_from_life_file("TOWN_GRANDFATHER")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["eventScale"]["RUDE"] > 1
+
+
+def test_grandmother_margaret_keeps_the_persona_direction():
+    """인격: 사람 좋아하고 수다스러운 할머니, 얼굴을 잘 기억함, 어색해지면 금방 풀어 줌."""
+    rates = derived_from_life_file("TOWN_GRANDMOTHER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["APOLOGY"] > 1
+
+
+def test_the_grandparents_are_written_as_a_couple_walking_their_dog():
+    """두 카드가 서로의 이름과 함께 산책시키는 개(Pepper)를 말하고, 같은 시간대에 마을에 나온다."""
+    arthur, margaret = (
+        json.loads((npc_life_rules.ROOT / "ai/npcs" / f"{npc_id}.json").read_text(encoding="utf-8"))["npcProfile"]
+        for npc_id in ["TOWN_GRANDFATHER", "TOWN_GRANDMOTHER"]
+    )
+
+    assert "Margaret" in arthur["background"]["summary"] and "Arthur" in margaret["background"]["summary"]
+    assert all("Pepper" in card["background"]["summary"] for card in (arthur, margaret))
+    assert load_life("TOWN_GRANDFATHER")["shift"] == load_life("TOWN_GRANDMOTHER")["shift"]
+
+
 # ---------------------------------------------------------------------
 # 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
 # ---------------------------------------------------------------------
@@ -578,6 +608,8 @@ SERVICE_NPCS = [
     "SHOP_STAFF",
     "TAXI_DRIVER",
     "TOWN_EVENING_WALKER",
+    "TOWN_GRANDFATHER",
+    "TOWN_GRANDMOTHER",
     "TOWN_HANDYMAN",
     "TOWN_PASSERBY",
     "TOWN_RETIREE",

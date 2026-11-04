@@ -65,6 +65,8 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
         "SHOP_STAFF",
         "TAXI_DRIVER",
         "TOWN_EVENING_WALKER",
+        "TOWN_GRANDFATHER",
+        "TOWN_GRANDMOTHER",
         "TOWN_HANDYMAN",
         "TOWN_PASSERBY",
         "TOWN_RETIREE",
@@ -319,6 +321,8 @@ def test_the_service_npcs_each_have_a_service_scenario():
         "SHOP_STAFF": "drugstore_counter",
         "TAXI_DRIVER": "taxi_ride",
         "TOWN_EVENING_WALKER": "town_street",
+        "TOWN_GRANDFATHER": "town_street",
+        "TOWN_GRANDMOTHER": "town_street",
         "TOWN_HANDYMAN": "town_street",
         "TOWN_PASSERBY": "town_street",
         "TOWN_RETIREE": "town_street",
@@ -373,6 +377,8 @@ def test_the_service_npcs_each_have_a_voice_that_fits_the_character():
         "SHOP_STAFF": "am_michael",  # Alex: 차분한 남자
         "TAXI_DRIVER": "am_puck",  # Joe: 밝고 수다스러운 남자
         "TOWN_EVENING_WALKER": "af_aoede",  # Maya: 말수 적은 중년 여자
+        "TOWN_GRANDFATHER": "bm_lewis",  # Arthur: 낮고 차분한 70대 남자(영국식). 호텔 Owen과 같은 목소리(다른 곳)
+        "TOWN_GRANDMOTHER": "bf_lily",  # Margaret: 다정하고 수다스러운 70대 여자(영국식)
         "TOWN_HANDYMAN": "am_santa",  # Frank: 나이 든 남자 목소리
         "TOWN_PASSERBY": "am_fenrir",  # Ben: 분명하고 단호한 남자
         "TOWN_RETIREE": "bf_alice",  # Ruby: 다정한 할머니(영국식)

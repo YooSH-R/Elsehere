@@ -75,6 +75,7 @@ namespace A305.World.Tests
                 .ToArray();
 
             ShopInterior[] shops = BuilderTools.FindAllInScene<ShopInterior>(scene);
+            // 2층에 따로 가게가 있는 건물(오락실 위 서점·생활용품점 위 찻집)은 층마다 실내가 있고 같은 영업시간을 쓴다.
             Assert.That(
                 shops.Select(shop => $"{shop.name}={shop.PlaceCode}"),
                 Is.EquivalentTo(
@@ -89,6 +90,8 @@ namespace A305.World.Tests
                         "PoliceStation=POLICE_STATION",
                         "MapleBakery=BAKERY",
                         "LittleArcade=ARCADE",
+                        "LittleArcade=ARCADE",
+                        "HomeLiving=HOME_STORE",
                         "HomeLiving=HOME_STORE",
                     }
                 )

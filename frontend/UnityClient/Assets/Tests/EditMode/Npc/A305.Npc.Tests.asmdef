@@ -4,6 +4,7 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
+        "A305.Api",
         "A305.Npc"
     ],
     "includePlatforms": [

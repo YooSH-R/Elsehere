@@ -5,6 +5,72 @@ namespace A305.Characters.Tests
 {
     public sealed class SpeakingEmotionTests
     {
+        [TestCase(CharacterFacePose.Neutral, 0f, .45f)]
+        [TestCase(CharacterFacePose.ClosedLips, 1f, 0f)]
+        [TestCase(CharacterFacePose.FV, 1f, 0f)]
+        [TestCase(CharacterFacePose.TH, 1f, 0f)]
+        [TestCase(CharacterFacePose.OpenMouth, 1f, 1f)]
+        [TestCase(CharacterFacePose.ClosedLips, .5f, .225f)]
+        public void EmotionalMouthOpeningUsesOnlyTheUnspokenPartOfTheSample(
+            CharacterFacePose pose,
+            float articulation,
+            float expectedOpening
+        )
+        {
+            var root = new GameObject("웃음 입 벌림과 발음 우선권");
+            var mesh = new Mesh
+            {
+                vertices = new[] { Vector3.zero, Vector3.up, Vector3.right },
+                triangles = new[] { 0, 1, 2 },
+            };
+            foreach (string name in new[] { "viseme_AA", "viseme_PP", "viseme_FF", "viseme_TH" })
+                mesh.AddBlendShapeFrame(
+                    name,
+                    100,
+                    new[] { Vector3.up * .01f, Vector3.zero, Vector3.zero },
+                    null,
+                    null
+                );
+            try
+            {
+                var skin = root.AddComponent<SkinnedMeshRenderer>();
+                skin.sharedMesh = mesh;
+                var face = root.AddComponent<CharacterFaceController>();
+                face.ApplySpeech(
+                    SpeechMouthSample.Pose(pose, articulation),
+                    new FaceEmotionSample { restMouthOpen = .45f },
+                    0
+                );
+                Assert.That(
+                    skin.GetBlendShapeWeight(0),
+                    Is.EqualTo(expectedOpening * 100).Within(.01)
+                );
+                if (pose == CharacterFacePose.ClosedLips)
+                    Assert.That(
+                        skin.GetBlendShapeWeight(1),
+                        Is.EqualTo(articulation * 100).Within(.01)
+                    );
+                face.ApplySpeech(SpeechMouthSample.Rest, default(FaceEmotionSample), 0);
+                Assert.That(skin.GetBlendShapeWeight(0), Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(mesh);
+            }
+        }
+
+        [Test]
+        public void RestMouthOpeningTransitionsWithTheEmotionIntensity()
+        {
+            var first = new FaceEmotionSample { restMouthOpen = .4f };
+            var second = new FaceEmotionSample { restMouthOpen = .8f };
+            Assert.That(
+                FaceEmotionSample.Lerp(first, second, .5f).restMouthOpen,
+                Is.EqualTo(.6f).Within(.001)
+            );
+        }
+
         [TestCase(0, 95, 95)]
         [TestCase(.5f, 95, 47.5f)]
         [TestCase(1, 100, 0)]

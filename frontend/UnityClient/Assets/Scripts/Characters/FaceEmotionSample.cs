@@ -27,6 +27,7 @@ namespace A305.Characters
         public Vector2 eyeWide;
         public Vector2 cheekRaise;
         public Vector2 mouthFrown;
+        public float restMouthOpen;
 
         public FaceEmotionSample(float browDown)
             : this()
@@ -49,6 +50,7 @@ namespace A305.Characters
                 eyeWide = Vector2.Lerp(from.eyeWide, to.eyeWide, progress),
                 cheekRaise = Vector2.Lerp(from.cheekRaise, to.cheekRaise, progress),
                 mouthFrown = Vector2.Lerp(from.mouthFrown, to.mouthFrown, progress),
+                restMouthOpen = Mathf.Lerp(from.restMouthOpen, to.restMouthOpen, progress),
             };
     }
 }

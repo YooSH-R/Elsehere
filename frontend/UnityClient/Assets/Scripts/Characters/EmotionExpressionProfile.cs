@@ -71,6 +71,7 @@ namespace A305.Characters
                     browInnerUp = new Vector2(.6f, .6f),
                     browOuterUp = new Vector2(.85f, .85f),
                     eyeWide = new Vector2(.7f, .7f),
+                    restMouthOpen = .35f,
                 },
             },
             new Preset
@@ -93,6 +94,7 @@ namespace A305.Characters
                     eyeSquint = new Vector2(.95f, .95f),
                     cheekRaise = new Vector2(.8f, .8f),
                     browOuterUp = new Vector2(.15f, .15f),
+                    restMouthOpen = .55f,
                 },
             },
             new Preset

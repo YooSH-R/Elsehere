@@ -212,6 +212,17 @@ namespace A305.Characters
         public void ApplySpeech(SpeechMouthSample mouth, FaceEmotionSample emotion, float blink)
         {
             ApplySpeech(mouth, 0, blink);
+            float articulation = 0;
+            for (
+                int pose = (int)CharacterFacePose.OpenMouth;
+                pose <= (int)CharacterFacePose.FlatEu;
+                pose++
+            )
+                articulation += mouth.Weight((CharacterFacePose)pose);
+            // Expressive opening occupies only the rest portion of the sample.
+            // It must not force a jaw-open pose through an active consonant.
+            float restOpening =
+                Mathf.Clamp01(emotion.restMouthOpen) * (1 - Mathf.Clamp01(articulation));
             float contact = Mathf.Clamp01(
                 mouth.Weight(CharacterFacePose.ClosedLips)
                     + mouth.Weight(CharacterFacePose.FV)
@@ -224,6 +235,7 @@ namespace A305.Characters
                 mouth.Weight(CharacterFacePose.OpenMouth)
                     + mouth.Weight(CharacterFacePose.E)
                     + mouth.Weight(CharacterFacePose.TH)
+                    + restOpening
             );
             float cornerFreedom = (1 - contact) * (1 - .75f * rounding) * (1 - .65f * opening);
             float openEyes = 1 - Mathf.Clamp01(blink);
@@ -231,6 +243,12 @@ namespace A305.Characters
             {
                 if (skin.sharedMesh == null)
                     continue;
+                int jawIndex = skin.sharedMesh.GetBlendShapeIndex("viseme_AA");
+                if (jawIndex >= 0)
+                    skin.SetBlendShapeWeight(
+                        jawIndex,
+                        (mouth.Weight(CharacterFacePose.OpenMouth) + restOpening) * 100
+                    );
                 SetPair(skin, "mouthSmile", emotion.smile * cornerFreedom);
                 SetPair(
                     skin,

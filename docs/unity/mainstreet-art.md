@@ -10,6 +10,14 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 ## Production 장소 구분과 편집
 
+### 확장 예정 지역 구름
+
+동서 교차도로 끝은 `Environment/FutureDistrictClouds`의 구름으로 가린다. 서쪽에는 `공항 개발중`, 동쪽에는 `놀이공원 개발중`만 표시하며 방위 문구는 넣지 않는다. 안내판은 화면에 고정된 UI가 아닌 길 안쪽을 향하는 공간 오브젝트다. 북쪽 거리와 기존 경계 Collider는 유지한다.
+
+`Assets/Prefabs/World/CloudBoundaries/`의 `CloudBank`는 공통 구름이고, `AirportBoundary`와 `ParkBoundary`는 구름과 공중 안내판의 조합이다. 위치는 씬 인스턴스에서, 글씨·아이콘·구름 형태는 Prefab Mode에서 조정한다. 향후 구역을 열 때는 해당 구름 조합과 기존 `CrossStreetEnd14m`·`SideBoundary` 충돌 영역을 함께 조정한다. 공용 단어는 기존 `cloud`와 `sign`을 연결하며 호버 표시 거리는 공통 설정을 따른다.
+
+**Tools → A305 → World → Apply Cloud Boundaries**는 없는 프리팹과 배치만 생성하며 기존 수동 편집을 유지한다. 안내 글리프와 양쪽 경계 충돌을 확인하고 `artifacts/unity/cloud-boundaries/`에 실제 Editor 카메라 렌더를 저장한다. 이 자료는 로컬 검수용이며 Git에 포함하지 않는다.
+
 | 구분 | 배치와 표현 | 기능 |
 | --- | --- | --- |
 | 이용 장소 | 남동쪽 집, 서쪽 카페, 동쪽 호텔. 집은 포치, 카페는 초록 CAFE 차양, 호텔은 세로 간판 | 기존 HomeDoor·CafeDoor·HotelDoor와 실내 왕복 연결 유지 |

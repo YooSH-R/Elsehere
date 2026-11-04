@@ -152,7 +152,7 @@ namespace A305.Mission
 
         public event Action StartRequested;
 
-        /// <summary>지도 버튼으로 수첩을 열면 알린다.</summary>
+        /// <summary>퀘스트 카드를 눌러 수첩을 열면 알린다.</summary>
         public event Action JournalOpened;
         public event Action RestRequested;
         public event Action RetryRequested;
@@ -161,8 +161,8 @@ namespace A305.Mission
 
         public bool IsJournalOpen => journal.activeSelf;
 
-        /// <summary>왼쪽 위 지도 버튼. 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
-        public RectTransform JournalButtonRect => (RectTransform)journalButton.transform;
+        /// <summary>왼쪽 위 퀘스트 카드. 누르면 수첩이 열리며, 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
+        public RectTransform QuestCardRect => (RectTransform)journalButton.transform;
 
         public void SetAvailable(bool available)
         {
@@ -224,13 +224,14 @@ namespace A305.Mission
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
-            townMap.ShowDestination(state.Destination);
+            string destination = state.Destination;
+            townMap.ShowDestination(destination);
             if (miniMap != null)
-                miniMap.ShowDestination(state.Destination);
+                miniMap.ShowDestination(destination);
             if (largeMap != null)
-                largeMap.ShowDestination(state.Destination);
+                largeMap.ShowDestination(destination);
             if (largeMapLegend != null)
-                largeMapLegend.text = MiniMapLegend(state.Destination);
+                largeMapLegend.text = MiniMapLegend(destination);
             startButton.gameObject.SetActive(!state.Started);
             startButton.interactable = !busy && !talking;
             restButton.gameObject.SetActive(false);
@@ -251,19 +252,20 @@ namespace A305.Mission
                 );
             }
             journey.text = lines.ToString().TrimEnd();
+            int firstDayStage = state.IsTownStory ? 7 : state.Stage;
             string suitcase =
-                state.Stage >= 7 ? "캐리어 · 찾음"
-                : state.Started && state.Stage >= 1 ? "캐리어 · 호텔 보관"
+                firstDayStage >= 7 ? "캐리어 · 찾음"
+                : state.Started && firstDayStage >= 1 ? "캐리어 · 호텔 보관"
                 : "캐리어 · 소지 중";
             string bag =
-                state.Stage >= 4 ? "파란 가방 · 찾음"
-                : state.Stage >= 2 ? "파란 가방 · 카페에 두고 옴"
+                firstDayStage >= 4 ? "파란 가방 · 찾음"
+                : firstDayStage >= 2 ? "파란 가방 · 카페에 두고 옴"
                 : "파란 가방 · 빨간 열쇠고리\n여권 지갑 · 책";
             belongings.text =
                 suitcase
                 + "\n"
                 + bag
-                + (state.Stage >= 6 ? "\n우산 · 소지 중" : "")
+                + (firstDayStage >= 6 ? "\n우산 · 소지 중" : "")
                 + $"\n{state.Balance}코인";
         }
 
@@ -318,6 +320,13 @@ namespace A305.Mission
         // 진행 막대 칸을 단계 수만큼 두고 단계 상태에 따라 칠한다. 칸이 모자라면 첫 칸을 본떠 더 만든다.
         private void ShowProgress(IReadOnlyList<FirstDayMissionStep> steps)
         {
+            HorizontalLayoutGroup layout = progress.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null)
+            {
+                // 첫날보다 단계가 많으면 칸을 균등하게 줄여 카드 밖으로 나가지 않게 한다.
+                layout.childControlWidth = steps.Count > 7;
+                layout.childForceExpandWidth = steps.Count > 7;
+            }
             GameObject template = progress.GetChild(0).gameObject;
             while (progress.childCount < steps.Count)
                 Instantiate(template, progress, false);
@@ -446,7 +455,7 @@ namespace A305.Mission
 
         private void CloseLargeMap() => ShowLargeMap(false);
 
-        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 지도 버튼으로 연다.
+        // 미니맵과 같은 지도를 화면 가운데에 크게 펼친다. 퀘스트 수첩은 왼쪽 위 퀘스트 카드를 눌러 연다.
         private void ShowLargeMap(bool open)
         {
             if (mapOverlay == null)
@@ -493,6 +502,7 @@ namespace A305.Mission
                 "HOTEL" => "호텔",
                 "SHOP" => "드럭스토어",
                 "HOME" => "집",
+                not null when TownMapArt.Shops.TryGetValue(destination, out var shop) => shop.Name,
                 _ => "자유 탐험",
             };
             return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";

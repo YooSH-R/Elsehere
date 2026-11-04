@@ -164,16 +164,23 @@ namespace A305.World
             yield return FadeTo(1f, CloseSeconds);
 
             // 새 씬이 깨어날 때 이전 공간의 플레이어·카메라·출입구를 찾지 않도록 먼저 끈다.
+            // 화면을 덮는 동안 다른 작업이 이전 씬을 이미 내렸을 수 있다.
             foreach (Scene scene in leavingScenes)
             {
-                Deactivate(scene);
+                if (scene.IsValid() && scene.isLoaded)
+                {
+                    Deactivate(scene);
+                }
             }
             SceneManager.sceneLoaded += MakeActive;
             loading.allowSceneActivation = true;
             yield return loading;
             foreach (Scene scene in leavingScenes)
             {
-                yield return SceneManager.UnloadSceneAsync(scene);
+                if (scene.IsValid() && scene.isLoaded)
+                {
+                    yield return SceneManager.UnloadSceneAsync(scene);
+                }
             }
 
             float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;

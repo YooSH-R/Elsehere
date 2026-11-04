@@ -189,7 +189,8 @@
         "StatusPlate",
         "AisleSign",
         "RainyDaySign",
-        "SectionSign"
+        "SectionSign",
+        "FloatingNotice"
       ]
     },
     {
@@ -525,7 +526,8 @@
     {
       "key": "cloud",
       "names": [
-        "Cloud"
+        "Cloud",
+        "CloudBank"
       ]
     },
     {

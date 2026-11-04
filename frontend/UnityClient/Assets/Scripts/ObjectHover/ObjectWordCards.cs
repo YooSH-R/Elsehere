@@ -109,7 +109,7 @@ namespace A305.ObjectHover
             }
         }
 
-        /// <summary>[알아요 · 다시 안 띄우기]와 [다시 띄우기](WORLD-03).</summary>
+        /// <summary>[숨기기]와 [다시 띄우기](WORLD-03).</summary>
         public async Task SetHoverHiddenAsync(string wordKey, bool hoverHidden)
         {
             if (!TryGet(wordKey, out WordCard card) || card.IsBusy)

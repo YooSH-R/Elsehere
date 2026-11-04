@@ -88,6 +88,33 @@ namespace A305.EditorTools.Theme
             Style(EntryPath, StyleEntry);
         }
 
+        /// <summary>
+        /// HUD에 로그인 끊김 안내 창만 덧붙이고 칠한다. 휴대폰 메뉴·퀘스트 카드처럼 다른 Builder가 마무리한 HUD 디자인은
+        /// 다시 만들지 않는다. HUD 전체를 다시 만드는 <see cref="ApplyHudMenu"/>도 같은 안내 창을 만든다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add Session Expired Notice")]
+        public static void ApplySessionExpired()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                {
+                    LearningBuilder.AddSessionExpired(root);
+                    StyleSessionExpired(root.transform);
+                    foreach (
+                        ThemedElement element in root
+                            .transform.Find("SessionExpired")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
+            Debug.Log("HUD에 로그인 끊김 안내 창을 덧붙였습니다.");
+        }
+
         /// <summary>대화 제안·로그인과 가입·피드백 목록·내 정보 창의 바탕과 버튼을 다른 화면과 같은 테마 규칙으로 맞춘다.</summary>
         [MenuItem("Tools/A305/UI/Apply Unified Dialogs")]
         public static void ApplyUnifiedDialogs()
@@ -233,6 +260,7 @@ namespace A305.EditorTools.Theme
             StyleHistory(root);
             StyleMyPage(root);
             StyleControlsGuide(root);
+            StyleSessionExpired(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -293,6 +321,27 @@ namespace A305.EditorTools.Theme
             Transform title = card.Find("Title");
             BuilderTools.GetOrAddComponent<LayoutElement>(title.gameObject).minHeight = 52;
             title.GetComponent<TMP_Text>().alignment = TextAlignmentOptions.MidlineLeft;
+        }
+
+        /// <summary>로그인이 풀렸을 때의 안내 창. 다른 창과 같은 창 모양에 강조 알약 버튼 [처음 화면으로] 하나만 둔다.</summary>
+        private static void StyleSessionExpired(Transform root)
+        {
+            if (root.Find("SessionExpired/Window") == null)
+                return;
+            Role(root, "SessionExpired/Window", UiThemeRole.Panel);
+            Role(root, "SessionExpired/Window/Title", UiThemeRole.Title);
+            Role(root, "SessionExpired/Window/Body", UiThemeRole.Body);
+            // 무엇이 일어났고 무엇을 하면 되는지 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
+            root.Find("SessionExpired/Window/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            ActionPill(
+                root,
+                "SessionExpired/Window/Buttons/EntryButton",
+                UiIcon.Home,
+                UiTone.Primary,
+                260
+            );
+            Roomy(root, "SessionExpired/Window");
         }
 
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
@@ -787,7 +836,7 @@ namespace A305.EditorTools.Theme
             Role(placeholder, UiThemeRole.Muted);
         }
 
-        /// <summary>닫기를 단어장·테마 고르기 창처럼 창 오른쪽 위의 X 아이콘으로 옮긴다. 다시 실행해도 같은 자리에 둔다.</summary>
+        /// <summary>닫기를 창 오른쪽 위의 공용 X(<see cref="UiCloseButton"/>)로 옮긴다. 다시 실행해도 같은 자리에 둔다.</summary>
         private static void CornerClose(Transform root, string panelPath)
         {
             Transform panel = root.Find(panelPath);
@@ -801,13 +850,12 @@ namespace A305.EditorTools.Theme
             }
             button.SetParent(panel, false);
             BuilderTools.GetOrAddComponent<LayoutElement>(button.gameObject).ignoreLayout = true;
-            IconButton(panel, "CloseButton", UiIcon.Close, UiTone.Neutral, caption: false);
-            Place((RectTransform)button, Vector2.one, new Vector2(-22, -22), new Vector2(52, 52));
+            UiCloseButton.Corner(button, UiCloseButton.WindowSize);
         }
 
         private static void StyleFeedback(Transform root)
         {
-            IconButton(root, "Panel/TopCloseButton", UiIcon.Close, UiTone.Neutral, caption: false);
+            UiCloseButton.Corner(root.Find("Panel/TopCloseButton"), UiCloseButton.WindowSize);
             Role(root, "Panel", UiThemeRole.Panel);
             Role(root, "Panel/Title", UiThemeRole.Title);
             Role(root, "Panel/Summary", UiThemeRole.Muted);
@@ -894,12 +942,9 @@ namespace A305.EditorTools.Theme
             PillButton(root, "Content/Journal/Actions/RetryButton", UiIcon.Retry, UiTone.Neutral);
             FirstDayMissionBuilder.EnsureActionRow(root.Find("Content/Journal"));
             CompactLabel(root, "Content/Journal/Actions/RetryButton/Label", "재시도");
-            IconButton(
-                root,
-                "Content/Journal/CloseButton",
-                UiIcon.Close,
-                UiTone.Neutral,
-                caption: false
+            UiCloseButton.Corner(
+                root.Find("Content/Journal/CloseButton"),
+                UiCloseButton.WindowSize
             );
         }
 

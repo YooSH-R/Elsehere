@@ -176,7 +176,7 @@ public class FirstDayMissionService {
                     : mission.current().situation();
     String direction =
         !started
-            ? "왼쪽 위 지도 버튼에서 퀘스트를 시작하세요."
+            ? "퀘스트 카드를 눌러 시작하세요."
             : complete
                 ? "다른 NPC와 자유롭게 대화해 보세요."
                 : !scene.equals(mission.current().scene())

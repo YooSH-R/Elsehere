@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace A305.Mission.PlayModeTests
 {
     /// <summary>
-    /// 대화 중에도 퀘스트 수첩을 열면 단어·문장 카드나 다른 화면에 가려지지 않고 가장 위에 보이는지 확인한다.
+    /// 대화 중에도 퀘스트 카드로 퀘스트 목록을 열면 단어·문장 카드나 다른 화면에 가려지지 않고 가장 위에 보이는지 확인한다.
     /// </summary>
     public class FirstDayJournalLayerTests
     {
@@ -22,7 +22,7 @@ namespace A305.Mission.PlayModeTests
         public void DestroyMission() => Object.Destroy(missionObject);
 
         [UnityTest]
-        public IEnumerator OpenedJournal_DrawsAboveEveryOtherScreen()
+        public IEnumerator OpenedQuestList_DrawsAboveEveryOtherScreen()
         {
             missionObject = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(MissionPrefabPath)
@@ -33,10 +33,11 @@ namespace A305.Mission.PlayModeTests
 
             Field<Button>("journalButton").onClick.Invoke();
 
-            Assert.That(Field<GameObject>("journal").activeSelf, Is.True);
+            QuestBoardView questList = Field<QuestBoardView>("questBoard");
+            Assert.That(questList.IsOpen, Is.True);
             Assert.That(canvas.sortingOrder, Is.GreaterThan(HighestOtherScreenOrder()));
 
-            Field<Button>("closeButton").onClick.Invoke();
+            questList.Close();
 
             Assert.That(canvas.sortingOrder, Is.EqualTo(closedOrder));
         }

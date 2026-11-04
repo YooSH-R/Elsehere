@@ -21,6 +21,8 @@ namespace A305.Weather
         private readonly float[] lampIntensities;
         private readonly Light[] streetLamps;
         private readonly float[] streetLampIntensities;
+        private readonly Light[] shopLamps;
+        private readonly float[] shopLampIntensities;
         private readonly List<Glow> glows = new List<Glow>();
         private readonly List<Glow> streetLampGlows = new List<Glow>();
         private readonly List<Window> windows = new List<Window>();
@@ -32,12 +34,14 @@ namespace A305.Weather
         /// <param name="renderers">발광 재질·창밖 유리를 찾을 렌더러. 보통 장소 씬 전체다.</param>
         /// <param name="litBuildingRenderers">입점한 상점·숙소 건물의 렌더러. 이 안의 창 유리만 밤에 불 켠 창이 된다.</param>
         /// <param name="streetLamps">밤에만 켜는 가로등 빛. 씬 디자인 세기는 밤에 켰을 때의 세기다.</param>
+        /// <param name="shopLamps">마을 입점 건물 안의 실내등. 밤에는 가로등보다 큰 배율로 방을 밝힌다.</param>
         public NightLights(
             DaylightSettings settings,
             IEnumerable<Light> lamps,
             IEnumerable<Renderer> renderers,
             IEnumerable<Renderer> litBuildingRenderers = null,
-            IEnumerable<Light> streetLamps = null
+            IEnumerable<Light> streetLamps = null,
+            IEnumerable<Light> shopLamps = null
         )
         {
             this.lamps = lamps.Where(lamp => lamp != null).ToArray();
@@ -46,6 +50,10 @@ namespace A305.Weather
                 .Where(lamp => lamp != null)
                 .ToArray();
             streetLampIntensities = this.streetLamps.Select(lamp => lamp.intensity).ToArray();
+            this.shopLamps = (shopLamps ?? Enumerable.Empty<Light>())
+                .Where(lamp => lamp != null)
+                .ToArray();
+            shopLampIntensities = this.shopLamps.Select(lamp => lamp.intensity).ToArray();
 
             var glowMaterials = new HashSet<Material>(
                 settings.GlowMaterials.Where(item => item != null)
@@ -107,6 +115,9 @@ namespace A305.Weather
             float lampScale = Mathf.Lerp(1f, settings.NightLampScale, night);
             for (int index = 0; index < lamps.Length; index++)
                 lamps[index].intensity = lampIntensities[index] * lampScale;
+            float shopLampScale = Mathf.Lerp(1f, settings.NightShopLampScale, night);
+            for (int index = 0; index < shopLamps.Length; index++)
+                shopLamps[index].intensity = shopLampIntensities[index] * shopLampScale;
             float glowScale = Mathf.Lerp(1f, settings.NightGlowScale, night);
             foreach (Glow glow in glows)
                 glow.Apply(glowScale);

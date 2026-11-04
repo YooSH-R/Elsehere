@@ -188,7 +188,7 @@ namespace A305.Tutorial
             }
         }
 
-        /// <summary>지도 버튼으로 수첩을 열었음을 알린다. 오늘의 목표 단계에서 열면 튜토리얼을 마친다.</summary>
+        /// <summary>퀘스트 카드를 눌러 수첩을 열었음을 알린다. 오늘의 목표 단계에서 열면 튜토리얼을 마친다.</summary>
         public void ReportJournalOpened()
         {
             if (Step == TutorialStep.TodayGoal)

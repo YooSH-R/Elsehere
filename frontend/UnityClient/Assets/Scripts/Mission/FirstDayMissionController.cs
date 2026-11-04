@@ -134,6 +134,12 @@ namespace A305.Mission
                 if (this != null)
                     view.ShowQuestBoard(board);
             }
+            // 서버에 닿지 못한 것처럼 예상한 실패는 안내만 하고, 그 밖의 오류만 로그로 남긴다.
+            catch (ApiException exception)
+            {
+                if (this != null)
+                    view.ShowMessage(exception.Message);
+            }
             catch (Exception exception)
             {
                 if (this != null)

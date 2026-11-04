@@ -1,6 +1,7 @@
 package com.elsehere.mission.service;
 
 import com.elsehere.mission.dto.QuestBoardResponse;
+import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.entity.Quest;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class QuestBoardService {
-  private static final int STARTING_BUDGET = 20;
 
   private final FirstDayMissionRepository firstDay;
   private final TownStoryRepository stories;
@@ -40,7 +40,6 @@ public class QuestBoardService {
     Map<String, String> names =
         npcs.findAll().stream().collect(Collectors.toMap(Npc::getCode, Npc::getName, (a, b) -> a));
     boolean firstDayDone = mission != null && mission.isCompleted();
-    int storyStage = story == null ? 0 : story.getStage();
 
     List<QuestBoardResponse.Quest> quests = new ArrayList<>();
     for (Quest quest : Quest.values()) {
@@ -49,8 +48,7 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    int budget = mission == null ? STARTING_BUDGET : mission.getBalance();
-    return new QuestBoardResponse(budget + Quest.earned(firstDayDone, storyStage), quests);
+    return new QuestBoardResponse(Coins.balance(mission, story), quests);
   }
 
   private static QuestBoardResponse.Quest firstDayQuest(
@@ -80,6 +78,7 @@ public class QuestBoardService {
   private static QuestBoardResponse.Quest chapter(
       Quest quest, boolean firstDayDone, TownStory story, Map<String, String> names) {
     int storyStage = story == null ? 0 : story.getStage();
+    boolean waiting = story == null || story.isPaused();
     List<QuestBoardResponse.Stop> stops = new ArrayList<>();
     for (int index = quest.firstStoryStage(); index < quest.endStoryStage(); index++) {
       TownStoryStage stage = TownStoryStage.values()[index];
@@ -93,18 +92,18 @@ public class QuestBoardService {
                   .map(TownStoryStage::goalTitle)
                   .collect(Collectors.joining(" · ")),
               story != null && index < storyStage,
-              story != null && index == storyStage));
+              !waiting && index == storyStage));
     }
     String status;
     if (!firstDayDone) {
       status = "LOCKED";
-    } else if (story == null) {
-      // 마을 이야기를 시작하면 첫 장부터 이어서 진행한다.
-      status = quest.firstStoryStage() == 0 ? "AVAILABLE" : "LOCKED";
     } else if (storyStage >= quest.endStoryStage()) {
       status = "DONE";
+    } else if (storyStage >= quest.firstStoryStage()) {
+      // 시작하지 않았거나 앞 퀘스트를 끝내고 멈춰 있으면 목록에서 시작할 수 있다.
+      status = waiting ? "AVAILABLE" : "IN_PROGRESS";
     } else {
-      status = storyStage >= quest.firstStoryStage() ? "IN_PROGRESS" : "LOCKED";
+      status = "LOCKED";
     }
     return new QuestBoardResponse.Quest(
         quest.name(), quest.title(), quest.description(), quest.reward(), status, stops);

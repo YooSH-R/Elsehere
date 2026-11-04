@@ -76,17 +76,17 @@ STAGES = {
         "and give directions to Corner Cafe, where they can wait. Do not offer any of these before the learner asks. "
         "The learner keeps a small blue shoulder bag.",
         {
-            "confirm_reservation": "Confirm or identify an existing hotel reservation.",
+            "confirm_reservation": "Confirm an existing hotel reservation by giving the name it is under. Saying only that they have a reservation, without a name, does not count.",
             "store_suitcase": "Ask to store the large suitcase until check-in.",
             "ask_cafe": "Ask for a nearby cafe or directions to it.",
         },
     ),
     "CAFE_BREAK": (
-        "Offer drinks and ask one follow-up about size, temperature or milk. The learner may choose any drink. "
+        "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. Every drink costs 4 coins. The learner may choose any drink. "
         "They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
         {
-            "order_drink": "Order a drink, any drink is valid.",
-            "set_options": "Answer about size, temperature, milk or another drink option, including no preference.",
+            "order_drink": "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count.",
+            "set_options": "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count.",
             "dine_in": "Say the learner will have the drink here, not take away.",
         },
     ),
@@ -95,7 +95,7 @@ STAGES = {
         "They need to go back for it before checking in. Do not claim the hotel has the small bag. "
         "Do not bring up the missing bag before the learner explains it.",
         {
-            "report_left_bag": "Explain the small bag is missing or was left at the cafe.",
+            "report_left_bag": "Explain which bag is missing (the small bag) AND where they think they left it (the cafe). Saying only that something is lost does not count.",
             "return_later": "Say they will return after looking for or retrieving the bag.",
         },
     ),
@@ -112,8 +112,8 @@ STAGES = {
         },
     ),
     "RAINY_STREET": (
-        "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins; "
-        "the learner has 20 quest coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. "
+        "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins. "
+        "Give directions to the store marked DRUGSTORE, not the cafe or hotel. "
         "Do not sell an umbrella yourself. Do not suggest umbrellas or the drugstore before the learner asks.",
         {
             "ask_umbrella_shop": "Ask where to buy an umbrella or for a store selling one.",
@@ -121,7 +121,7 @@ STAGES = {
         },
     ),
     "BUY_UMBRELLA": (
-        "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Balance before purchase is 20. "
+        "Sell one umbrella for exactly 8 quest coins when the learner asks for one. "
         "Do not offer an umbrella or say its price before the learner asks. "
         "Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. "
         "Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
@@ -132,7 +132,7 @@ STAGES = {
         },
     ),
     "CHECK_IN": (
-        "Check-in time has arrived. The learner recovered the small bag and passport, bought an umbrella and has 12 quest coins left. "
+        "Check-in time has arrived. The learner recovered the small bag and passport and bought an umbrella. "
         "The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. "
         "Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. "
         "Never ask them to fetch the bag again.",

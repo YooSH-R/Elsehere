@@ -151,6 +151,27 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleVoiceConsentDialog);
         }
 
+        /// <summary>대화 제안 화면의 게스트 가입 안내 창만 테마로 칠한다. 제안 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyGuestSignupDialogTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(OfferPath, StyleGuestSignupDialog);
+        }
+
+        /// <summary>입구의 게임 전 멈춤 화면(게스트 다시 접속·이미 가입한 계정)만 테마로 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyGuestReturnTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(
+                EntryPath,
+                root =>
+                {
+                    StyleGuestReturn(root);
+                    A305.EditorTools.Onboarding.EntryScreensBuilder.ApplyGuestReturn(root);
+                }
+            );
+        }
+
         /// <summary>입구 화면의 배경색·로그인 창 정렬과 약관 링크·캐릭터 체크(S15P31A305-417)만 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
         public static void ApplyEntryGuidance()
         {
@@ -261,6 +282,7 @@ namespace A305.EditorTools.Theme
             StyleMyPage(root);
             StyleControlsGuide(root);
             StyleSessionExpired(root);
+            StyleSurveyPrompt(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -342,6 +364,52 @@ namespace A305.EditorTools.Theme
                 260
             );
             Roomy(root, "SessionExpired/Window");
+        }
+
+        // 다른 창과 같은 창 바탕에 제목·안내, 강조색 [설문 하러 가기], 오른쪽 위 공용 X.
+        private static void StyleSurveyPrompt(Transform root)
+        {
+            if (root.Find("SurveyPrompt/Card") == null)
+                return;
+            Role(root, "SurveyPrompt/Card", UiThemeRole.Panel);
+            Role(root, "SurveyPrompt/Card/Title", UiThemeRole.Title);
+            Role(root, "SurveyPrompt/Card/Body", UiThemeRole.Body);
+            root.Find("SurveyPrompt/Card/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            ActionPill(
+                root,
+                "SurveyPrompt/Card/Buttons/OpenButton",
+                UiIcon.None,
+                UiTone.Primary,
+                240
+            );
+            CornerClose(root, "SurveyPrompt/Card");
+            Roomy(root, "SurveyPrompt/Card");
+        }
+
+        /// <summary>
+        /// HUD 프리팹에 화면 위 가운데의 설문 카드만 덧붙이고 칠한다. HUD의 다른 구성은 건드리지 않는다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add Survey Prompt")]
+        public static void ApplySurveyPrompt()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                {
+                    LearningBuilder.AddSurveyPrompt(root);
+                    StyleSurveyPrompt(root.transform);
+                    foreach (
+                        ThemedElement element in root
+                            .transform.Find("SurveyPrompt")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
@@ -578,6 +646,8 @@ namespace A305.EditorTools.Theme
                 // 바탕이 없는 [말 걸기] 위에서도 읽히도록 진한 글자로 둔다.
                 Role(root, "TalkPrompt/Remaining", UiThemeRole.Title);
             }
+
+            StyleGuestSignupDialog(root);
         }
 
         /// <summary>
@@ -656,6 +726,7 @@ namespace A305.EditorTools.Theme
 
             Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
+            StyleGuestReturn(root);
             StyleEntryGuidance(root);
             A305.EditorTools.Onboarding.LoginScreenBuilder.Apply(root);
             A305.EditorTools.Onboarding.EntryScreensBuilder.Apply(root);
@@ -1039,6 +1110,49 @@ namespace A305.EditorTools.Theme
             Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
             Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
             Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);
+        }
+
+        // 음성 처리 동의 창과 같은 모양. 주요 동작인 [Google로 가입하기]만 강조색으로 둔다.
+        private static void StyleGuestSignupDialog(Transform root)
+        {
+            if (root.Find("GuestSignup/Dialog") == null)
+                return;
+            Role(root, "GuestSignup/Dialog", UiThemeRole.Panel);
+            Role(root, "GuestSignup/Dialog/Title", UiThemeRole.Title);
+            Role(root, "GuestSignup/Dialog/Body", UiThemeRole.Body);
+            // 가입하면 무엇이 이어지는지 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
+            root.Find("GuestSignup/Dialog/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            ActionPill(
+                root,
+                "GuestSignup/Dialog/Buttons/CloseButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                140
+            );
+            ActionPill(
+                root,
+                "GuestSignup/Dialog/Buttons/SignupButton",
+                UiIcon.None,
+                UiTone.Primary,
+                240
+            );
+            Roomy(root, "GuestSignup/Dialog");
+        }
+
+        // 다른 입구 창처럼 기본 테마 창으로 칠하고, 주요 동작인 가입만 강조색으로 둔다. 창 그림과 자리는 EntryScreensBuilder가 시안 창으로 바꾼다.
+        private static void StyleGuestReturn(Transform root)
+        {
+            if (root.Find("GuestReturnPanel") == null)
+                return;
+            Role(root, "GuestReturnPanel", UiThemeRole.Panel);
+            Role(root, "GuestReturnPanel/Title", UiThemeRole.Title);
+            Role(root, "GuestReturnPanel/Body", UiThemeRole.Body);
+            root.Find("GuestReturnPanel/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            Role(root, "GuestReturnPanel/Notice", UiThemeRole.Muted);
+            ActionPill(root, "GuestReturnPanel/SignupButton", UiIcon.None, UiTone.Primary);
+            ActionPill(root, "GuestReturnPanel/ContinueButton", UiIcon.None, UiTone.Neutral);
         }
 
         // 내 정보의 로그아웃·탈퇴 확인 창과 같은 모양. 주요 동작인 [동의하고 켜기]만 강조색으로 둔다.

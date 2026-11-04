@@ -17,8 +17,25 @@ namespace A305.Npc
                 : $"{speaker}{SubjectParticle(speaker)} 말을 걸었어요";
         }
 
+        /// <summary>준비해 둔 것이 다 되어 NPC가 제자리에서 부를 때의 머리말. 예: "Mia이(가) 불러요"</summary>
+        /// <param name="npcName">서버가 알려 준 NPC 이름. 모르면 null.</param>
+        public static string CallHint(string npcName)
+        {
+            return string.IsNullOrEmpty(npcName)
+                ? "누군가 불러요"
+                : $"{npcName}{SubjectParticle(npcName)} 불러요";
+        }
+
+        /// <summary>부를 때 건네는 말. 음료·식사·빨래 등 무엇이든 같은 문장이다. 예: "기다리던 아이스 라테가 준비됐어요"</summary>
+        /// <param name="itemKo">준비한 것의 한국어 이름. 모르면 null.</param>
+        public static string CallLine(string itemKo)
+        {
+            string item = string.IsNullOrEmpty(itemKo) ? "것" : itemKo;
+            return $"기다리던 {item}{SubjectParticle(item)} 준비됐어요";
+        }
+
         /// <summary>한글로 끝나면 받침에 맞춰 이·가를 고르고, 영어 이름처럼 알 수 없으면 "이(가)"를 쓴다.</summary>
-        private static string SubjectParticle(string word)
+        public static string SubjectParticle(string word)
         {
             char last = word[word.Length - 1];
             if (last < '가' || last > '힣')
@@ -48,6 +65,18 @@ namespace A305.Npc
         public static string Blocked(int? remaining)
         {
             return remaining == 0 ? "게스트 대화를 모두 썼어요" : "지금은 대화할 수 없어요";
+        }
+
+        /// <summary>대화를 다 쓴 게스트에게 [말 걸기]·택시 버튼 자리에 보일 버튼. 누르면 가입 안내 창을 연다.</summary>
+        public const string SignupLabel = "가입하고 계속 대화하기";
+
+        /// <summary>
+        /// 새 대화를 시작할 수 없을 때 막힌 이유 대신 가입을 권할지. 게스트가 대화 횟수를 다 쓴 경우만이며, 가입하면 기록을 이어 계속 대화할 수 있다.
+        /// </summary>
+        /// <param name="remaining">게스트의 남은 대화 수. 가입 사용자는 null.</param>
+        public static bool OffersSignup(int? remaining)
+        {
+            return remaining == 0;
         }
     }
 }

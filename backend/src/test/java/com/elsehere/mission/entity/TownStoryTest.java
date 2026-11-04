@@ -40,6 +40,8 @@ class TownStoryTest {
     story.accept(4, "BARBER_STAFF", List.of("ask_haircut", "describe_style"));
     story.accept(5, "FLOWER_SHOP_STAFF", List.of("choose_flower", "ask_wrapping"));
     story.accept(6, "BARBER_STAFF", List.of("offer_flower", "thank_barber"));
+    // 두 번째 퀘스트를 끝내면 멈추므로 세 번째 퀘스트를 시작한다.
+    story.resume();
     story.accept(7, "BAKERY_STAFF", List.of("choose_snack"));
     story.accept(8, "LAUNDROMAT_STAFF", List.of("collect_laundry", "thank_laundromat"));
     story.accept(9, "HOME_STORE_STAFF", List.of("ask_lamp", "ask_shipping"));

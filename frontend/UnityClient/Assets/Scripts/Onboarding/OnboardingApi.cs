@@ -17,7 +17,7 @@ namespace A305.Onboarding
             this.client = client;
         }
 
-        public string GoogleLoginUrl => client.UrlFor("/api/v1/auth/login/google");
+        public string GoogleLoginUrl => client.UrlFor(AuthPaths.GoogleLogin);
 
         public Task<BootstrapResponse> GetBootstrapAsync()
         {

@@ -11,6 +11,7 @@ import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.TownStory;
+import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.world.entity.Npc;
@@ -129,6 +130,9 @@ class TownStoryServiceTest {
       "game", "parcel"
     };
     for (String situation : situations) {
+      if (story.isPaused()) {
+        story.resume();
+      }
       var current = story.current();
       assertThat(service.context(8L, current.npcCode()).orElseThrow().instruction())
           .containsIgnoringCase(situation);
@@ -136,6 +140,73 @@ class TownStoryServiceTest {
           .allSatisfy(intent -> assertThat(intent.desc()).containsIgnoringCase("learner"));
       story.accept(story.getStage(), current.npcCode(), current.goalIds());
     }
+  }
+
+  // 이야기 목표는 학습자가 먼저 말해야 한다. 담당 직원은 남은 목표를 먼저 꺼내거나 권하지 않는다.
+  @Test
+  void staffLetTheVisitorBringUpEveryObjective() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      if (story.isPaused()) {
+        story.resume();
+      }
+      FirstDayMissionService.Context context = service.context(8L, stage.npcCode()).orElseThrow();
+
+      String reply =
+          context.replyInstruction(new JudgeResult.Intent(null, java.util.List.of(), null));
+
+      assertThat(context.instruction()).as(stage.name()).contains("Never be the first to bring up");
+      assertThat(reply).as(stage.name()).doesNotContain("Ask about one of these objectives");
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
+    }
+  }
+
+  // 마을 퀘스트 카드는 지금 퀘스트의 단계만 보인다(옷에 쏟은 아침과 새 머리 7단계, 고마운 마음과 선물 소포 5단계).
+  @Test
+  void statusShowsOnlyTheStepsOfTheCurrentQuest() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var first = service.status(8L);
+    assertThat(first.quest()).isEqualTo("MORNING_AND_HAIRCUT");
+    assertThat(first.steps()).hasSize(7);
+    assertThat(first.stage()).isZero();
+
+    while (story.getStage() < 8) {
+      if (story.isPaused()) {
+        story.resume();
+      }
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+    var second = service.status(8L);
+    assertThat(second.quest()).isEqualTo("THANKS_AND_PARCEL");
+    assertThat(second.steps()).hasSize(5);
+    assertThat(second.stage()).isEqualTo(1);
+    assertThat(second.steps().getFirst().title()).contains("빵집");
+  }
+
+  // 퀘스트를 끝내면 다음 퀘스트를 시작하기 전까지 진행 중인 퀘스트가 없고, 직원도 이야기 지시를 받지 않는다. 다시 시작하면 이어진다.
+  @Test
+  void afterAQuestEndsTheStoryWaitsForTheNextQuest() {
+    FirstDayMission completed = mock(FirstDayMission.class);
+    when(completed.isCompleted()).thenReturn(true);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
+    TownStory story = TownStory.start(8L);
+    while (story.getStage() < 7) {
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var waiting = service.status(8L);
+    assertThat(waiting.started()).isFalse();
+    assertThat(waiting.quest()).isEqualTo("THANKS_AND_PARCEL");
+    assertThat(service.context(8L, "BAKERY_STAFF")).isEmpty();
+
+    service.start(8L);
+
+    assertThat(service.status(8L).started()).isTrue();
+    assertThat(service.context(8L, "BAKERY_STAFF")).isPresent();
   }
 
   @Test
@@ -158,8 +229,11 @@ class TownStoryServiceTest {
       "식당", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
     };
     for (String place : expectedPlaces) {
+      if (story.isPaused()) {
+        story.resume();
+      }
       var response = service.status(8L);
-      var step = response.steps().get(story.getStage());
+      var step = response.steps().get(response.stage());
       assertThat(step.title()).contains(place);
       assertThat(step.goals().getFirst().title()).doesNotContain("_");
       assertThat(response.situation()).doesNotContain("다음 장소");
@@ -170,18 +244,18 @@ class TownStoryServiceTest {
   @Test
   void newStoryDoesNotResetTheFirstDayTravelBudget() {
     FirstDayMission completed = mock(FirstDayMission.class);
-    when(completed.getBalance()).thenReturn(12);
+    when(completed.isCompleted()).thenReturn(true);
     when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
     when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
 
-    assertThat(service.status(8L).balance()).isEqualTo(12);
+    // 첫 퀘스트에서 12코인을 내고 보상 10코인을 받은 그대로다.
+    assertThat(service.status(8L).balance()).isEqualTo(100 - 12 + 10);
   }
 
   @Test
   void finishedQuestRewardsAddToTheBudget() {
     FirstDayMission completed = mock(FirstDayMission.class);
     when(completed.isCompleted()).thenReturn(true);
-    when(completed.getBalance()).thenReturn(12);
     when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
     TownStory story = TownStory.start(8L);
     while (story.getStage() < 4) {
@@ -189,8 +263,9 @@ class TownStoryServiceTest {
     }
     when(stories.findById(8L)).thenReturn(Optional.of(story));
 
-    // 첫 퀘스트 보상 10코인과 마을 이야기 첫 장(4단계까지) 보상 6코인을 더한다.
-    assertThat(service.status(8L).balance()).isEqualTo(12 + 10 + 6);
+    // 첫 퀘스트: −12 +10. 마을 이야기 4단계까지 아침 7·세탁 6코인을 냈다. 두 번째 퀘스트는 아직 끝나지 않았다.
+    assertThat(service.status(8L).balance()).isEqualTo(100 - 12 + 10 - 7 - 6);
+    assertThat(service.status(8L).lastPurchase()).isEqualTo("세탁");
   }
 
   @Test

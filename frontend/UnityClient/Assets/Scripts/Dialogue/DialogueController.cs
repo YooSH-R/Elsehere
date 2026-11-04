@@ -35,6 +35,7 @@ namespace A305.Dialogue
         private DialogueServerLink serverLink;
         private IConversationApi conversationApi;
         private IAiStatusApi aiStatusApi;
+        private IFollowUpApi followUpApi;
         private VoiceConsentAgreement voiceConsentAgreement;
         private DialogueConversation conversation;
         private ServerConversation serverConversation;
@@ -285,6 +286,7 @@ namespace A305.Dialogue
             {
                 conversationApi = serverLink.CreateApi();
                 aiStatusApi = serverLink.CreateAiStatusApi();
+                followUpApi = serverLink.CreateFollowUpApi();
                 voiceConsentAgreement = new VoiceConsentAgreement(
                     serverLink.CreateVoiceConsentApi(),
                     VoiceConsent.Shared
@@ -312,6 +314,11 @@ namespace A305.Dialogue
         private void Start()
         {
             RefreshAllowance();
+            // 새로고침이나 장소 이동으로 씬이 새로 열리면 NPC가 아직 건네지 않은 것을 서버에서 다시 받는다(CONV-13).
+            if (followUpApi != null)
+            {
+                _ = FollowUpStore.Shared.RefreshAsync(followUpApi);
+            }
         }
 
         private void OnDestroy()

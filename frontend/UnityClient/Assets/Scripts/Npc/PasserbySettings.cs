@@ -40,6 +40,13 @@ namespace A305.Npc
 
         [SerializeField]
         [Min(0f)]
+        [Tooltip(
+            "대화에서 준비해 주기로 한 것(음료·빨래 등)이 다 되면 플레이어가 이 거리 안에 있을 때 자리를 떠나지 않고 부른다."
+        )]
+        private float followUpCallDistanceMeters = 6f;
+
+        [SerializeField]
+        [Min(0f)]
         private float walkSpeedMetersPerSecond = 1.6f;
 
         [SerializeField]
@@ -59,7 +66,8 @@ namespace A305.Npc
                 offerDistanceMeters,
                 dismissDistanceMeters,
                 restSeconds,
-                canDecline
+                canDecline,
+                followUpCallDistanceMeters
             );
         }
     }

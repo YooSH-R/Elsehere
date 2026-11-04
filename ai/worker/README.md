@@ -220,6 +220,16 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - Whisper 영어 정규화로 숫자·축약 표기를 맞추고, 곡선 따옴표와 붙여 쓰기·띄어 쓰기 차이(haircut ↔ hair cut)는 틀린 것으로 세지 않습니다.
 - Whisper는 어색한 발음도 맞게 받아쓰기 쉽습니다. 예를 들어 읽을 글 다듬기(`app/speech_text.py`)를 넣기 전 Kokoro는 `$4`를 "dollar four"로 읽었는데, Whisper는 이를 `$4`로 받아썼습니다. 그래서 틀린 곳이 없다고 바르게 읽었다는 뜻은 아닙니다. 틀린 곳이 나온 문장은 wav를 직접 들어 확인합니다.
 
+## 대본 대사 음성 미리 만들기
+
+튜토리얼 Ben 길 안내처럼 서버를 거치지 않는 Unity 대본 대사도 NPC 목소리로 들려주려고, 워커와 같은 합성(`app.tts.Kokoro`: 읽기 규칙·발음 사전·입 모양 타이밍)으로 WAV를 미리 만듭니다. 모델은 `ai/tools/prepare_kokoro.py`로 받은 고정 파일을 씁니다. 만든 파일은 Unity 에셋(`<이름>.bytes`)으로 넣고 대본에 잇습니다([Unity Dialogue 모듈](../../frontend/UnityClient/Assets/Scripts/Dialogue/README.md)).
+
+```bash
+ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모델 폴더> --voice am_fenrir --speed 0.85 \
+  --out frontend/UnityClient/Assets/Audio/Dialogue/TutorialBen \
+  --line "Opening=Excuse me! Could you tell me how to get to the café?" --line "Reply1=Straight ahead? And then where should I go?"
+```
+
 ## 검사
 
 ```bash

@@ -18,7 +18,7 @@
 | `VocabularyListText` | 기존 문자 목록을 사용하는 호출자를 위한 포맷터입니다. 새 화면은 `VocabularyView`가 항목 선택과 상세를 따로 표시합니다. |
 | `ConversationFeedback`, `UtteranceReview`, `ReferenceExpression`, `ReferenceRule` | 요약·상세 피드백. 서버 피드백은 요약·잘했어요·아쉬워요·개선 표현과 발화별 더 나은 표현·이유·회화 표현을 담고, 대본 대화는 발화마다 키워드 규칙의 참고 표현을 찾습니다. Unity 객체 없이 테스트합니다. |
 | `FeedbackText` | 피드백 화면 본문 문구. 서버 피드백은 AI가 쓴 이유와 회화 표현을 그대로 보여 주고, "문법 오류를 매기지 않는다"는 안내는 키워드 규칙 예시에만 붙입니다. [대화 기록 보기]의 대화 기록도 만듭니다. Unity 객체 없이 테스트합니다. |
-| `FeedbackExampleSource`, `MockFeedbackExampleSource` | 참고 표현 규칙을 찾는 곳과 서버 연동 전 확인용 규칙입니다. |
+| `FeedbackExampleSource`, `MockFeedbackExampleSource` | 참고 표현 규칙을 찾는 곳과 서버 연동 전 확인용 규칙입니다. 대본 대화 상대별로 [요약]의 "이 상황에서 자주 써요" 표현도 둡니다. 튜토리얼 Ben은 카페 가는 길을 묻는 행인이라 길을 알려 줄 때 쓰는 표현 3개이고, 표현 칸 아래 대화 요약이 들어갈 자리가 남도록 세 개만 둡니다. |
 | `ConversationHistory`, `PastConversation` | [피드백 목록] 목록을 한 페이지씩 읽고(CONV-09), 고른 대화의 저장된 피드백(FB-01)과 대화 기록(CONV-10)을 피드백 화면에 보일 형식(`ServerFeedback`, 대사 목록)으로 바꿉니다. Unity 객체 없이 테스트합니다. |
 | `IConversationHistoryApi`, `ConversationHistoryApi`, `ConversationHistoryModels` | CONV-09·10, FB-01 경로와 응답 형식 |
 | `ConversationHistoryText`, `ConversationHistoryPages` | 피드백 목록 한 줄의 글자("NPC · 장소" 제목, 오늘·어제는 시각까지·그 전은 날짜만 보이는 시간, 피드백이 없을 때만 빨간 상태 글자, 색 아이콘의 글자와 색)와 쪽 나누기(한 쪽에 4개). Unity 객체 없이 테스트합니다. |

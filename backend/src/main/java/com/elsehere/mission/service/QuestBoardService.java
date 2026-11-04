@@ -115,7 +115,7 @@ public class QuestBoardService {
 
   private static final Map<String, String> TOWN_STORY_PLACES =
       Map.of(
-          "DINER_STAFF", "다이너",
+          "DINER_STAFF", "식당",
           "LAUNDROMAT_STAFF", "빨래방",
           "BANK_STAFF", "은행",
           "BARBER_STAFF", "이발소",

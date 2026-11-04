@@ -132,6 +132,10 @@ namespace A305.Mission
         [SerializeField]
         private Button retryButton;
 
+        [SerializeField]
+        [Tooltip("퀘스트 목록·도장 지도. 있으면 왼쪽 위 퀘스트 카드가 수첩 대신 이것을 연다.")]
+        private QuestBoardView questBoard;
+
         // 시안 글자색: 본문 잉크와 끝낸 목표의 옅은 갈색
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
@@ -154,9 +158,14 @@ namespace A305.Mission
         public event Action RestRequested;
         public event Action RetryRequested;
 
+        /// <summary>퀘스트 목록을 열어 서버의 퀘스트 목록이 필요하다.</summary>
+        public event Action QuestBoardRequested;
+
         private RectTransform Banner => (RectTransform)situation.transform.parent;
 
         public bool IsJournalOpen => journal.activeSelf;
+
+        public bool IsQuestBoardOpen => questBoard != null && questBoard.IsOpen;
 
         /// <summary>왼쪽 위 지도 버튼. 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
         public RectTransform JournalButtonRect => (RectTransform)journalButton.transform;
@@ -169,6 +178,8 @@ namespace A305.Mission
             {
                 ShowJournal(false);
                 ShowLargeMap(false);
+                if (IsQuestBoardOpen)
+                    questBoard.Close();
                 JourneyStatus.Shared.Clear();
                 GuideDestination.Shared.Clear();
             }
@@ -394,10 +405,39 @@ namespace A305.Mission
 
         private void OnRectTransformDimensionsChange() => UpdateLayout();
 
+        /// <summary>왼쪽 위 퀘스트 카드: 퀘스트 목록을 연다. 연결은 QuestBoardBuilder가 버튼에 넣는다.</summary>
+        public void OpenQuestBoard()
+        {
+            ShowLargeMap(false);
+            questBoard.Open();
+            UpdateBoardLayer();
+            JournalOpened?.Invoke();
+        }
+
+        /// <summary>서버에서 받은 퀘스트 목록을 보인다.</summary>
+        public void ShowQuestBoard(QuestBoardState board) => questBoard.Show(board);
+
+        private void UpdateBoardLayer()
+        {
+            UpdateMiniMapVisibility();
+            UpdateSortingOrder();
+        }
+
+        private void RequestQuestBoard() => QuestBoardRequested?.Invoke();
+
+        private void OnBoardOpenChanged(bool open) => UpdateBoardLayer();
+
         private void Awake()
         {
             journal.SetActive(false);
-            journalButton.onClick.AddListener(ToggleJournal);
+            if (questBoard == null)
+                journalButton.onClick.AddListener(ToggleJournal);
+            else
+            {
+                questBoard.Requested += RequestQuestBoard;
+                questBoard.StartRequested += StartMission;
+                questBoard.OpenChanged += OnBoardOpenChanged;
+            }
             if (miniMapButton != null)
                 miniMapButton.onClick.AddListener(OpenLargeMap);
             if (mapCloseButton != null)
@@ -416,6 +456,12 @@ namespace A305.Mission
         {
             JourneyStatus.Shared.MapRequested -= OpenLargeMap;
             journalButton.onClick.RemoveListener(ToggleJournal);
+            if (questBoard != null)
+            {
+                questBoard.Requested -= RequestQuestBoard;
+                questBoard.StartRequested -= StartMission;
+                questBoard.OpenChanged -= OnBoardOpenChanged;
+            }
             if (miniMapButton != null)
                 miniMapButton.onClick.RemoveListener(OpenLargeMap);
             if (mapCloseButton != null)
@@ -462,13 +508,12 @@ namespace A305.Mission
         private void Update()
         {
             ShowClock();
-            if (
-                mapOverlay != null
-                && mapOverlay.activeSelf
-                && Keyboard.current != null
-                && Keyboard.current.escapeKey.wasPressedThisFrame
-            )
+            bool escape =
+                Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
+            if (mapOverlay != null && mapOverlay.activeSelf && escape)
                 CloseLargeMap();
+            else if (IsQuestBoardOpen && escape)
+                questBoard.Close();
         }
 
         private void UpdateSortingOrder()
@@ -476,7 +521,10 @@ namespace A305.Mission
             Canvas root = RootCanvas();
             if (root == null)
                 return;
-            bool raised = journal.activeSelf || (mapOverlay != null && mapOverlay.activeSelf);
+            bool raised =
+                journal.activeSelf
+                || (mapOverlay != null && mapOverlay.activeSelf)
+                || IsQuestBoardOpen;
             // 수첩·큰 지도를 연 동안에는 다른 캔버스와 먼저 연 창보다 위에 그린다.
             if (raised)
                 UiLayer.Open(root, this);
@@ -509,6 +557,7 @@ namespace A305.Mission
                         && !talking
                         && mapSceneCode == "TOWN"
                         && !journal.activeSelf
+                        && !IsQuestBoardOpen
                         && (mapOverlay == null || !mapOverlay.activeSelf)
                 );
         }

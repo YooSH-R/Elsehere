@@ -117,7 +117,7 @@ class TownStoryServiceTest {
     TownStory story = TownStory.start(8L);
     when(stories.findById(8L)).thenReturn(Optional.of(story));
     String[] expectedPlaces = {
-      "다이너", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
+      "식당", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
     };
     for (String place : expectedPlaces) {
       var response = service.status(8L);

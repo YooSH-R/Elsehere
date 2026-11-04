@@ -180,6 +180,7 @@ namespace A305.Npc
                     break;
                 case TaxiPromptKind.Talk:
                 case TaxiPromptKind.Blocked:
+                case TaxiPromptKind.Signup:
                     ShowPrompt(prompt, Talk);
                     break;
                 default:
@@ -201,6 +202,10 @@ namespace A305.Npc
             {
                 offerView.ShowBlockedTalkPrompt(this, prompt.Label);
             }
+            else if (prompt.Kind == TaxiPromptKind.Signup)
+            {
+                offerView.ShowSignupPrompt(this, prompt.Label, prompt.Remaining);
+            }
             else
             {
                 offerView.ShowTalkPrompt(this, prompt.Label, prompt.Remaining, press);
@@ -215,7 +220,11 @@ namespace A305.Npc
             }
 
             shownPrompt = null;
-            offerView.HideTalkPrompt(this);
+            // 장면을 내릴 때는 제안 화면이 택시보다 먼저 지워질 수 있다. 지워진 화면은 끌 것이 없다.
+            if (offerView != null)
+            {
+                offerView.HideTalkPrompt(this);
+            }
         }
 
         private void Hail()

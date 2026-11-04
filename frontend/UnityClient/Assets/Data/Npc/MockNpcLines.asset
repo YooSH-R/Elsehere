@@ -43,3 +43,45 @@ MonoBehaviour:
     greeting: Yo! Welcome to Little Arcade. Want to try the claw machine?
   - npcCode: HOME_STORE_STAFF
     greeting: Welcome to Home and Living. Feel free to look around.
+  - npcCode: CAFE_BARISTA
+    greeting: Hi! I'm on the espresso machine today. What can I make for you?
+  - npcCode: CAFE_SERVER
+    greeting: Hey there! Grab any table you like. I'll bring you a menu.
+  - npcCode: HOTEL_RECEPTIONIST
+    greeting: Good evening! Welcome to Maple House. Checking in?
+  - npcCode: HOTEL_CONCIERGE
+    greeting: Good day. If you need a restaurant or directions, just ask me.
+  - npcCode: HOTEL_BELLHOP
+    greeting: Hi! Can I help you with your bags?
+  - npcCode: HOTEL_NIGHT_MANAGER
+    greeting: Good evening. Is everything all right with your stay?
+  - npcCode: SHOP_PHARMACIST
+    greeting: Hello. Do you need any medicine today?
+  - npcCode: SHOP_NIGHT_CLERK
+    greeting: Evening. We're open all night if you need anything.
+  - npcCode: POLICE_SERGEANT
+    greeting: Good evening. This is the night desk. What can I do for you?
+  - npcCode: POLICE_PATROL_OFFICER
+    greeting: Hi there. Did something happen around here?
+  - npcCode: POLICE_ROOKIE
+    greeting: Oh, hello! I'm new here, but I'll do my best to help.
+  - npcCode: TOWN_RETIREE
+    greeting: Good morning, dear! Lovely day for a walk, isn't it?
+  - npcCode: TOWN_STUDENT
+    greeting: Hey! Do you know a good place to study around here?
+  - npcCode: TOWN_EVENING_WALKER
+    greeting: Hi. I always take a walk after work. It helps me relax.
+  - npcCode: TOWN_SHOPPER
+    greeting: Hello! I'm just running a few errands. Busy day!
+  - npcCode: TOWN_HANDYMAN
+    greeting: Morning! If anything's broken, I'm your man.
+  - npcCode: FIRE_CAPTAIN
+    greeting: Morning. Our new fire station isn't open yet, so I'm out for a walk.
+  - npcCode: FIRE_FIGHTER
+    greeting: Hi! It's my day off. The town looks great today.
+  - npcCode: FIRE_ROOKIE
+    greeting: Hey! I'm a new firefighter here. Nice to meet you!
+  - npcCode: TOWN_GRANDFATHER
+    greeting: Good morning. Nice weather for a walk.
+  - npcCode: TOWN_GRANDMOTHER
+    greeting: Oh, good morning! We take our walk every morning. Isn't it lovely?

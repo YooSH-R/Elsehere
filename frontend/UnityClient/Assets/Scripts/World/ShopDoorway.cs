@@ -34,17 +34,45 @@ namespace A305.World
                 return;
             }
 
-            Vector3 center = transform.TransformPoint(threshold.center);
-            center.y = transform.position.y;
             Vector3 normal = transform.forward;
-            float entrySide = Mathf.Sign(Vector3.Dot(player.transform.position - center, normal));
-
-            // 캡슐 전체가 감지 영역을 벗어나야 도착 직후 같은 문에 다시 들어가지 않는다.
-            float halfDepth = threshold.size.z * Mathf.Abs(transform.lossyScale.z) / 2f;
-            float clearance = capsule.bounds.extents.x + capsule.skinWidth + 0.15f;
-            Vector3 destination = center - entrySide * normal * (halfDepth + clearance);
+            float entrySide = Mathf.Sign(
+                Vector3.Dot(player.transform.position - ThresholdCenter(), normal)
+            );
+            Vector3 destination = PointBeyondThreshold(-entrySide * normal, capsule);
             bool entering = (entrySide < 0f) == insideOnForwardSide;
             SpaceTravel.CrossShopDoor(player, destination, room, entering);
+        }
+
+        /// <summary>영업이 끝난 매장에서 문턱 바깥쪽 같은 층에 밖을 보고 세운다.</summary>
+        internal bool TryLeave(PlayerMover player, ShopInterior interior)
+        {
+            Vector3 outward = insideOnForwardSide ? -transform.forward : transform.forward;
+            var capsule = player.GetComponent<CharacterController>();
+            var outside = new Pose(
+                PointBeyondThreshold(outward, capsule),
+                Quaternion.LookRotation(outward)
+            );
+            return SpaceTravel.TryLeaveClosedShop(
+                player,
+                outside,
+                interior,
+                outside.rotation.eulerAngles.y
+            );
+        }
+
+        private Vector3 ThresholdCenter()
+        {
+            Vector3 center = transform.TransformPoint(threshold.center);
+            center.y = transform.position.y;
+            return center;
+        }
+
+        // 캡슐 전체가 감지 영역을 벗어나야 도착 직후 같은 문에 다시 들어가지 않는다.
+        private Vector3 PointBeyondThreshold(Vector3 direction, CharacterController capsule)
+        {
+            float halfDepth = threshold.size.z * Mathf.Abs(transform.lossyScale.z) / 2f;
+            float clearance = capsule.bounds.extents.x + capsule.skinWidth + 0.15f;
+            return ThresholdCenter() + direction * (halfDepth + clearance);
         }
     }
 }

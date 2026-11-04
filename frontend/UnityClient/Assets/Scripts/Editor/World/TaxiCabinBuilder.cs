@@ -195,22 +195,9 @@ namespace A305.EditorTools.World
             }
             foreach (var storefront in storefronts)
             {
-                string code = storefront.Name switch
-                {
-                    "PostOffice" => "POST_OFFICE",
-                    "MapleDiner" => "DINER",
-                    "TownBank" => "BANK",
-                    "SudsLaundromat" => "LAUNDROMAT",
-                    "BloomFlowers" => "FLOWER_SHOP",
-                    "MainStreetBarber" => "BARBER",
-                    "PoliceStation" => TaxiDestinationRequest.PoliceStation,
-                    _ => throw new InvalidOperationException(
-                        "택시 장소 코드가 없습니다: " + storefront.Name
-                    ),
-                };
                 SetDestination(
                     destinations.GetArrayElementAtIndex(destinationIndex++),
-                    code,
+                    storefront.PlaceCode,
                     storefront.KoreanName,
                     storefront.TaxiStop,
                     storefront.TaxiAlighting

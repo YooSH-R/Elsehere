@@ -68,6 +68,33 @@ namespace A305.EditorTools.Npc
             ("BAKERY_STAFF", "Good morning, dear! The bread just came out of the oven."),
             ("ARCADE_STAFF", "Yo! Welcome to Little Arcade. Want to try the claw machine?"),
             ("HOME_STORE_STAFF", "Welcome to Home and Living. Feel free to look around."),
+            ("CAFE_BARISTA", "Hi! I'm on the espresso machine today. What can I make for you?"),
+            ("CAFE_SERVER", "Hey there! Grab any table you like. I'll bring you a menu."),
+            ("HOTEL_RECEPTIONIST", "Good evening! Welcome to Maple House. Checking in?"),
+            ("HOTEL_CONCIERGE", "Good day. If you need a restaurant or directions, just ask me."),
+            ("HOTEL_BELLHOP", "Hi! Can I help you with your bags?"),
+            ("HOTEL_NIGHT_MANAGER", "Good evening. Is everything all right with your stay?"),
+            ("SHOP_PHARMACIST", "Hello. Do you need any medicine today?"),
+            ("SHOP_NIGHT_CLERK", "Evening. We're open all night if you need anything."),
+            ("POLICE_SERGEANT", "Good evening. This is the night desk. What can I do for you?"),
+            ("POLICE_PATROL_OFFICER", "Hi there. Did something happen around here?"),
+            ("POLICE_ROOKIE", "Oh, hello! I'm new here, but I'll do my best to help."),
+            ("TOWN_RETIREE", "Good morning, dear! Lovely day for a walk, isn't it?"),
+            ("TOWN_STUDENT", "Hey! Do you know a good place to study around here?"),
+            ("TOWN_EVENING_WALKER", "Hi. I always take a walk after work. It helps me relax."),
+            ("TOWN_SHOPPER", "Hello! I'm just running a few errands. Busy day!"),
+            ("TOWN_HANDYMAN", "Morning! If anything's broken, I'm your man."),
+            (
+                "FIRE_CAPTAIN",
+                "Morning. Our new fire station isn't open yet, so I'm out for a walk."
+            ),
+            ("FIRE_FIGHTER", "Hi! It's my day off. The town looks great today."),
+            ("FIRE_ROOKIE", "Hey! I'm a new firefighter here. Nice to meet you!"),
+            ("TOWN_GRANDFATHER", "Good morning. Nice weather for a walk."),
+            (
+                "TOWN_GRANDMOTHER",
+                "Oh, good morning! We take our walk every morning. Isn't it lovely?"
+            ),
         };
 
         [MenuItem(MenuPath)]
@@ -412,14 +439,12 @@ namespace A305.EditorTools.Npc
                 bold,
                 preferredWidth: 300f
             );
-            TMP_Text keyHint = UiBuilderTools.FindOrCreateText(
-                talkRow,
-                "KeyHint",
-                bold,
-                26f,
-                new Color(0.8f, 0.82f, 0.86f),
-                "E"
-            );
+            Transform keyHint = talk.transform.Find("KeyHint");
+            if (keyHint == null)
+            {
+                keyHint = new GameObject("KeyHint", typeof(RectTransform)).transform;
+                keyHint.SetParent(talk.transform, false);
+            }
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "hintLabel", hint);
@@ -430,12 +455,19 @@ namespace A305.EditorTools.Npc
             BuilderTools.SetReference(view, "declineButton", decline);
             BuilderTools.SetReference(view, "talkPromptPanel", talkPrompt.gameObject);
             BuilderTools.SetReference(view, "talkButton", talk);
+            BuilderTools.SetReference(view, "talkKeyHint", keyHint);
             BuilderTools.SetReference(
                 view,
                 "talkLabel",
                 talk.transform.Find("Label").GetComponent<TMP_Text>()
             );
-            BuilderTools.SetReference(view, "talkKeyHint", keyHint.gameObject);
+            Transform remainingBadge = talkPrompt.Find("RemainingBadge");
+            BuilderTools.SetReference(
+                view,
+                "talkRemainingBadge",
+                remainingBadge != null ? remainingBadge.gameObject : talkRemaining.gameObject
+            );
+            GuestSignupDialogBuilder.SetUp(root, view);
             BuilderTools.RequireReferences(view);
             talkPrompt.gameObject.SetActive(false);
 
@@ -452,6 +484,9 @@ namespace A305.EditorTools.Npc
             TMP_FontAsset font
         )
         {
+            Transform badge = panel.Find("RemainingBadge");
+            if (badge != null)
+                return badge.Find("Remaining").GetComponent<TMP_Text>();
             bool isNew = panel.Find("Remaining") == null;
             TMP_Text remaining = UiBuilderTools.FindOrCreateText(
                 panel,

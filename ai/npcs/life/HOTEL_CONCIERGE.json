@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "npcId": "HOTEL_CONCIERGE",
+  "mbti": "ENFJ-A",
+  "role": "STAFF",
+  "workplace": "HOTEL",
+  "shift": "MIDDAY"
+}

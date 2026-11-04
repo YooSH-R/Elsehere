@@ -8,6 +8,7 @@ using A305.EditorTools.Learning;
 using A305.EditorTools.Mission;
 using A305.EditorTools.UI;
 using A305.Learning;
+using A305.Npc;
 using A305.Theme;
 using TMPro;
 using UnityEditor;
@@ -151,6 +152,27 @@ namespace A305.EditorTools.Theme
             Style("Assets/Prefabs/Dialogue/DialoguePanel.prefab", StyleVoiceConsentDialog);
         }
 
+        /// <summary>대화 제안 화면의 게스트 가입 안내 창만 테마로 칠한다. 제안 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyGuestSignupDialogTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(OfferPath, StyleGuestSignupDialog);
+        }
+
+        /// <summary>입구의 게임 전 멈춤 화면(게스트 다시 접속·이미 가입한 계정)만 테마로 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyGuestReturnTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(
+                EntryPath,
+                root =>
+                {
+                    StyleGuestReturn(root);
+                    A305.EditorTools.Onboarding.EntryScreensBuilder.ApplyGuestReturn(root);
+                }
+            );
+        }
+
         /// <summary>입구 화면의 배경색·로그인 창 정렬과 약관 링크·캐릭터 체크(S15P31A305-417)만 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
         public static void ApplyEntryGuidance()
         {
@@ -261,6 +283,7 @@ namespace A305.EditorTools.Theme
             StyleMyPage(root);
             StyleControlsGuide(root);
             StyleSessionExpired(root);
+            StyleSurveyPrompt(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -342,6 +365,52 @@ namespace A305.EditorTools.Theme
                 260
             );
             Roomy(root, "SessionExpired/Window");
+        }
+
+        // 다른 창과 같은 창 바탕에 제목·안내, 강조색 [설문 하러 가기], 오른쪽 위 공용 X.
+        private static void StyleSurveyPrompt(Transform root)
+        {
+            if (root.Find("SurveyPrompt/Card") == null)
+                return;
+            Role(root, "SurveyPrompt/Card", UiThemeRole.Panel);
+            Role(root, "SurveyPrompt/Card/Title", UiThemeRole.Title);
+            Role(root, "SurveyPrompt/Card/Body", UiThemeRole.Body);
+            root.Find("SurveyPrompt/Card/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            ActionPill(
+                root,
+                "SurveyPrompt/Card/Buttons/OpenButton",
+                UiIcon.None,
+                UiTone.Primary,
+                240
+            );
+            CornerClose(root, "SurveyPrompt/Card");
+            Roomy(root, "SurveyPrompt/Card");
+        }
+
+        /// <summary>
+        /// HUD 프리팹에 화면 위 가운데의 설문 카드만 덧붙이고 칠한다. HUD의 다른 구성은 건드리지 않는다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add Survey Prompt")]
+        public static void ApplySurveyPrompt()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                {
+                    LearningBuilder.AddSurveyPrompt(root);
+                    StyleSurveyPrompt(root.transform);
+                    foreach (
+                        ThemedElement element in root
+                            .transform.Find("SurveyPrompt")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
@@ -571,13 +640,112 @@ namespace A305.EditorTools.Theme
             );
             lift.effectColor = new Color(0, 0, 0, .28f);
             lift.effectDistance = new Vector2(0, -4);
-            Role(root, "TalkPrompt/Buttons/KeyHint", UiThemeRole.Title);
             if (root.Find("Panel/Remaining") != null)
-            {
                 Role(root, "Panel/Remaining", UiThemeRole.Muted);
-                // 바탕이 없는 [말 걸기] 위에서도 읽히도록 진한 글자로 둔다.
-                Role(root, "TalkPrompt/Remaining", UiThemeRole.Title);
+            StyleTalkPromptHints(root);
+            StyleGuestSignupDialog(root);
+        }
+
+        [MenuItem("Tools/A305/UI/Update Talk Prompt Hints")]
+        public static void UpdateTalkPromptHints()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                OfferPath,
+                root => StyleTalkPromptHints(root.transform)
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void StyleTalkPromptHints(Transform root)
+        {
+            Transform prompt = root.Find("TalkPrompt");
+            var column = prompt.GetComponent<VerticalLayoutGroup>();
+            column.childAlignment = TextAnchor.UpperCenter;
+            column.childForceExpandWidth = false;
+            column.spacing = 12;
+
+            var view = root.GetComponent<PasserbyOfferView>();
+            var fields = new SerializedObject(view);
+            var remaining = (TMP_Text)
+                fields.FindProperty("talkRemainingLabel").objectReferenceValue;
+            RectTransform badge = FindOrCreateRect(prompt, "RemainingBadge");
+            badge.SetSiblingIndex(0);
+            remaining.transform.SetParent(badge, false);
+            StyleRemainingBadge(badge, remaining);
+            badge.gameObject.SetActive(remaining.gameObject.activeSelf);
+            BuilderTools.SetReference(view, "talkRemainingBadge", badge.gameObject);
+
+            Transform row = prompt.Find("Buttons");
+            var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
+            rowLayout.childAlignment = TextAnchor.MiddleCenter;
+            var rowSize = BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject);
+            rowSize.preferredWidth = 332;
+            // 단축키는 버튼 문구에 붙인다. 이전에 별도로 두었던 키 안내는 지운다.
+            foreach (string name in new[] { "KeyHint", "KeyHintBadge" })
+            {
+                Transform old = row.Find(name);
+                if (old != null)
+                    Object.DestroyImmediate(old.gameObject);
             }
+            var talk = (RectTransform)row.Find("TalkButton");
+            var talkSize = talk.GetComponent<LayoutElement>();
+            talkSize.minWidth = talkSize.preferredWidth = 332;
+            talk.sizeDelta = new Vector2(332, talk.sizeDelta.y);
+
+            RectTransform key = FindOrCreateRect(talk, "KeyHint");
+            key.SetAsFirstSibling();
+            key.sizeDelta = new Vector2(32, 32);
+            BuilderTools.GetOrAddComponent<LayoutElement>(key.gameObject).ignoreLayout = true;
+            var keyBorder = BuilderTools.GetOrAddComponent<Image>(key.gameObject);
+            keyBorder.sprite = TownMapBuilder.RoundedSprite();
+            keyBorder.type = Image.Type.Sliced;
+            keyBorder.color = Color.white;
+            keyBorder.raycastTarget = false;
+            // 아래 여백을 더 두어 실제 키보드 키처럼 얇은 두께가 보이게 한다.
+            RectTransform face = FindOrCreateRect(key, "Face");
+            Stretch(face);
+            face.offsetMin = new Vector2(2, 4);
+            face.offsetMax = new Vector2(-2, -2);
+            var keyFace = BuilderTools.GetOrAddComponent<Image>(face.gameObject);
+            keyFace.sprite = TownMapBuilder.RoundedSprite();
+            keyFace.type = Image.Type.Sliced;
+            keyFace.color = new Color32(190, 90, 70, 255);
+            keyFace.raycastTarget = false;
+            BuilderTools.SetReference(view, "talkKeyHint", key);
+        }
+
+        // 안내는 바닥 무늬와 테마에 관계없이 읽혀야 하므로 불투명 바탕과 고정 대비를 쓴다.
+        private static void StyleRemainingBadge(RectTransform badge, TMP_Text label)
+        {
+            var theme = label.GetComponent<ThemedElement>();
+            if (theme != null)
+                Object.DestroyImmediate(theme);
+            Color ink = new Color32(40, 56, 80, 255);
+            var background = BuilderTools.GetOrAddComponent<Image>(badge.gameObject);
+            background.sprite = TownMapBuilder.RoundedSprite();
+            background.type = Image.Type.Sliced;
+            background.color = ink;
+            background.raycastTarget = false;
+            var outline = BuilderTools.GetOrAddComponent<Outline>(badge.gameObject);
+            outline.effectColor = Color.white;
+            outline.effectDistance = new Vector2(2, -2);
+            var layout = BuilderTools.GetOrAddComponent<LayoutElement>(badge.gameObject);
+            layout.minWidth = layout.preferredWidth = 300;
+            layout.minHeight = layout.preferredHeight = 44;
+            layout.flexibleWidth = 0;
+            badge.sizeDelta = new Vector2(300, 44);
+            label.font = UiBuilderTools.BoldFont();
+            label.fontSize = 22;
+            label.fontStyle = FontStyles.Bold;
+            label.color = Color.white;
+            label.alignment = TextAlignmentOptions.Center;
+            label.enableAutoSizing = false;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.margin = Vector4.zero;
+            Stretch(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(14, 6);
+            label.rectTransform.offsetMax = new Vector2(-14, -6);
         }
 
         /// <summary>
@@ -656,6 +824,7 @@ namespace A305.EditorTools.Theme
 
             Role(root, "ConnectionPanel/Body", UiThemeRole.Body);
             ActionPill(root, "ConnectionPanel/RetryButton", UiIcon.Retry, UiTone.Primary, 220);
+            StyleGuestReturn(root);
             StyleEntryGuidance(root);
             A305.EditorTools.Onboarding.LoginScreenBuilder.Apply(root);
             A305.EditorTools.Onboarding.EntryScreensBuilder.Apply(root);
@@ -876,7 +1045,11 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "Panel/Sections/ExpressionsButton", "표현", selectedTint: true);
             CompactArrow(root, "Panel/Navigation/PreviousButton", UiIcon.Previous);
             CompactArrow(root, "Panel/Navigation/NextButton", UiIcon.Next);
-            QuietButton(root, "Panel/Buttons/SaveButton", "담기");
+            string savePath =
+                root.Find("Panel/PageCard/BodyTile/SaveButton") != null
+                    ? "Panel/PageCard/BodyTile/SaveButton"
+                    : "Panel/Buttons/SaveButton";
+            QuietButton(root, savePath, "담기");
             QuietButton(root, "Panel/Buttons/DetailButton", "자세히");
             QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");
@@ -1039,6 +1212,49 @@ namespace A305.EditorTools.Theme
             Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
             Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
             Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);
+        }
+
+        // 음성 처리 동의 창과 같은 모양. 주요 동작인 [Google로 가입하기]만 강조색으로 둔다.
+        private static void StyleGuestSignupDialog(Transform root)
+        {
+            if (root.Find("GuestSignup/Dialog") == null)
+                return;
+            Role(root, "GuestSignup/Dialog", UiThemeRole.Panel);
+            Role(root, "GuestSignup/Dialog/Title", UiThemeRole.Title);
+            Role(root, "GuestSignup/Dialog/Body", UiThemeRole.Body);
+            // 가입하면 무엇이 이어지는지 알리는 긴 문장이라 창 안에서 줄을 바꾼다.
+            root.Find("GuestSignup/Dialog/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            ActionPill(
+                root,
+                "GuestSignup/Dialog/Buttons/CloseButton",
+                UiIcon.None,
+                UiTone.Neutral,
+                140
+            );
+            ActionPill(
+                root,
+                "GuestSignup/Dialog/Buttons/SignupButton",
+                UiIcon.None,
+                UiTone.Primary,
+                240
+            );
+            Roomy(root, "GuestSignup/Dialog");
+        }
+
+        // 다른 입구 창처럼 기본 테마 창으로 칠하고, 주요 동작인 가입만 강조색으로 둔다. 창 그림과 자리는 EntryScreensBuilder가 시안 창으로 바꾼다.
+        private static void StyleGuestReturn(Transform root)
+        {
+            if (root.Find("GuestReturnPanel") == null)
+                return;
+            Role(root, "GuestReturnPanel", UiThemeRole.Panel);
+            Role(root, "GuestReturnPanel/Title", UiThemeRole.Title);
+            Role(root, "GuestReturnPanel/Body", UiThemeRole.Body);
+            root.Find("GuestReturnPanel/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            Role(root, "GuestReturnPanel/Notice", UiThemeRole.Muted);
+            ActionPill(root, "GuestReturnPanel/SignupButton", UiIcon.None, UiTone.Primary);
+            ActionPill(root, "GuestReturnPanel/ContinueButton", UiIcon.None, UiTone.Neutral);
         }
 
         // 내 정보의 로그아웃·탈퇴 확인 창과 같은 모양. 주요 동작인 [동의하고 켜기]만 강조색으로 둔다.

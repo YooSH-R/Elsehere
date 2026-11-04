@@ -80,13 +80,19 @@ final class FeedbackInputs {
                 + npc.getRoleLabel()
                 + " "
                 + npc.getName()
-                + (situation == null ? " · 자유 대화" : " · " + situation),
+                + " · "
+                + (situation != null ? situation : freeTalk(conversation)),
             "en-US",
             "ko-KR",
             conversation.getStatus() == ConversationStatus.ENDED_BY_NPC ? "npc_end" : "user_end",
             null),
         inputTurns,
         List.of());
+  }
+
+  // 퀘스트가 없는 대화의 상황. 근무 시간이 아닌 NPC와의 대화는 응대 상황으로 평가하지 않도록 일상 대화라고 알린다.
+  private static String freeTalk(Conversation conversation) {
+    return conversation.isNpcOffDuty() ? "근무가 아닐 때의 일상 대화" : "자유 대화";
   }
 
   // 이 단계에서 학습자가 할 일. 모델이 장면에 맞는 표현만 권하게 한다.

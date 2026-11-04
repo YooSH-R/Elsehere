@@ -1,6 +1,7 @@
 using System.Linq;
 using A305.EditorTools.Common;
 using A305.World;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using static A305.EditorTools.World.MainstreetArtKit;
@@ -11,6 +12,17 @@ namespace A305.EditorTools.World
     /// <summary>복층 매장, 공용 계단 상가, 외부 계단 상가의 출입 동선을 구성한다.</summary>
     internal static class NorthBlockTenantLayout
     {
+        [MenuItem("Tools/A305/World/Fit Tea Room Stair Sign")]
+        public static void FitTeaRoomStairSign()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                NorthBlockAssets.Folder + "/HomeLiving.prefab",
+                root => StairEntranceSign(root.transform.Find("TenantEntrances"))
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         internal static void Apply(GameObject root, string name)
         {
             if (root.transform.Find("TenantEntrances") != null)
@@ -376,8 +388,12 @@ namespace A305.EditorTools.World
             Transform floating = layout.Find("StairEntranceSign");
             if (floating != null)
                 Object.DestroyImmediate(floating.gameObject);
-            if (layout.Find("StairSign") != null)
+            Transform existing = layout.Find("StairSign");
+            if (existing != null)
+            {
+                FitStairEntranceText(existing);
                 return;
+            }
             Transform sign = Group("StairSign", layout, new Vector3(-4.3f, 0, 2.55f));
             Solid(
                 "StairSignPost",
@@ -397,6 +413,20 @@ namespace A305.EditorTools.World
                 false
             );
             Text("StairEntranceSign", "TEA ROOM  2F  >", sign, new Vector3(0, 1.45f, .05f), .19f);
+            FitStairEntranceText(sign);
+        }
+
+        private static void FitStairEntranceText(Transform sign)
+        {
+            var label = sign.Find("StairEntranceSign").GetComponent<TextMeshPro>();
+            label.text = "TEA ROOM 2F >";
+            // 공용 글자 영역(8×3m) 대신 안내판(1.25×0.4m) 안쪽에 여백을 둔다.
+            label.rectTransform.sizeDelta = new Vector2(1.05f, .24f);
+            label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 1;
+            label.fontSizeMax = 1.9f;
         }
 
         private static void Handrail(Transform parent, Vector3 from, Vector3 to)

@@ -3,6 +3,7 @@ package com.elsehere.dialogue.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,6 +39,7 @@ import com.elsehere.dialogue.service.ConversationService;
 import com.elsehere.dialogue.service.TurnService;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.followup.dto.FollowUpResponse;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +47,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -129,7 +133,8 @@ class ConversationControllerTest {
                 NPC,
                 List.of(),
                 npcTurn(10L, 1, "Hi!"),
-                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 12)));
+                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 12),
+                7L));
 
     mockMvc
         .perform(
@@ -147,7 +152,8 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.openingTurn.speech.url").value("/api/v1/turns/10/speech"))
         .andExpect(jsonPath("$.conversation.rudeCount").value(0))
         .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
-        .andExpect(jsonPath("$.conversation.affinity").value(12));
+        .andExpect(jsonPath("$.conversation.affinity").value(12))
+        .andExpect(jsonPath("$.deliveredFollowUpId").value(7));
   }
 
   @Test
@@ -160,6 +166,49 @@ class ConversationControllerTest {
                 "{\"requestId\": \"" + REQUEST_ID + "\", \"npcCode\": \"CAFE_STAFF\"}"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  @DisplayName("대화 시작에 npcOffDuty가 true면 근무가 아닌 NPC와의 대화로 서비스에 넘긴다")
+  void start_npcOffDuty_passesOffDuty() throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\","
+                    + " \"initiatedBy\": \"USER\", \"npcOffDuty\": true}"))
+        .andExpect(status().isCreated());
+
+    then(conversationService)
+        .should()
+        .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, true));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", ", \"npcOffDuty\": null"})
+  @DisplayName("npcOffDuty가 없거나 null이면 근무 중인 NPC와의 대화로 넘긴다")
+  void start_withoutNpcOffDuty_passesOnDuty(String npcOffDutyField) throws Exception {
+    given(conversationService.start(eq(1L), any())).willReturn(startedConversation());
+
+    mockMvc
+        .perform(
+            request(
+                post("/api/v1/conversations"),
+                "{\"requestId\": \""
+                    + REQUEST_ID
+                    + "\", \"npcCode\": \"CAFE_STAFF\","
+                    + " \"initiatedBy\": \"USER\""
+                    + npcOffDutyField
+                    + "}"))
+        .andExpect(status().isCreated());
+
+    then(conversationService)
+        .should()
+        .start(1L, new StartConversationRequest(REQUEST_ID, "CAFE_STAFF", InitiatedBy.USER, false));
   }
 
   @Test
@@ -252,7 +301,16 @@ class ConversationControllerTest {
                 2,
                 new FeedbackResponse(
                     FeedbackStatus.FAILED, null, null, null, "AI_TIMEOUT", List.of(), List.of()),
-                List.of()));
+                List.of(),
+                new FollowUpResponse(
+                    7L,
+                    NPC,
+                    "CAFE",
+                    "iced latte",
+                    "아이스 라테",
+                    OffsetDateTime.parse("2026-11-04T14:05:45+09:00"),
+                    45,
+                    false)));
 
     mockMvc
         .perform(
@@ -263,7 +321,11 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.status").value("ENDED_BY_USER"))
         .andExpect(jsonPath("$.userTurnCount").value(2))
         .andExpect(jsonPath("$.feedback.status").value("FAILED"))
-        .andExpect(jsonPath("$.feedback.errorCode").value("AI_TIMEOUT"));
+        .andExpect(jsonPath("$.feedback.errorCode").value("AI_TIMEOUT"))
+        .andExpect(jsonPath("$.followUp.followUpId").value(7))
+        .andExpect(jsonPath("$.followUp.itemKo").value("아이스 라테"))
+        .andExpect(jsonPath("$.followUp.remainingSeconds").value(45))
+        .andExpect(jsonPath("$.followUp.ready").value(false));
   }
 
   @Test
@@ -302,6 +364,18 @@ class ConversationControllerTest {
         .perform(get("/api/v1/conversations/active"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+  }
+
+  private static ConversationStartResponse startedConversation() {
+    return new ConversationStartResponse(
+        5L,
+        ConversationStatus.ACTIVE,
+        1,
+        NPC,
+        List.of(),
+        npcTurn(10L, 1, "Hi!"),
+        new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 0),
+        null);
   }
 
   private static NpcTurnResponse npcTurn(Long turnId, int seq, String text) {

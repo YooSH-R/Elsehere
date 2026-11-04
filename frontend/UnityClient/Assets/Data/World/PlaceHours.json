@@ -1,0 +1,95 @@
+{
+  "generatedBy": "ai/tools/npc_life_export.py",
+  "places": [
+    {
+      "code": "CAFE",
+      "alwaysOpen": false,
+      "from": "07:00",
+      "to": "21:00"
+    },
+    {
+      "code": "HOTEL",
+      "alwaysOpen": true,
+      "from": "",
+      "to": ""
+    },
+    {
+      "code": "SHOP",
+      "alwaysOpen": true,
+      "from": "",
+      "to": ""
+    },
+    {
+      "code": "POST_OFFICE",
+      "alwaysOpen": false,
+      "from": "09:00",
+      "to": "17:00"
+    },
+    {
+      "code": "BANK",
+      "alwaysOpen": false,
+      "from": "09:00",
+      "to": "16:00"
+    },
+    {
+      "code": "DINER",
+      "alwaysOpen": false,
+      "from": "07:00",
+      "to": "22:00"
+    },
+    {
+      "code": "BAKERY",
+      "alwaysOpen": false,
+      "from": "06:00",
+      "to": "18:00"
+    },
+    {
+      "code": "LAUNDROMAT",
+      "alwaysOpen": false,
+      "from": "07:00",
+      "to": "22:00"
+    },
+    {
+      "code": "FLOWER_SHOP",
+      "alwaysOpen": false,
+      "from": "09:00",
+      "to": "19:00"
+    },
+    {
+      "code": "BARBER",
+      "alwaysOpen": false,
+      "from": "10:00",
+      "to": "19:00"
+    },
+    {
+      "code": "ARCADE",
+      "alwaysOpen": false,
+      "from": "12:00",
+      "to": "23:00"
+    },
+    {
+      "code": "HOME_STORE",
+      "alwaysOpen": false,
+      "from": "10:00",
+      "to": "20:00"
+    },
+    {
+      "code": "POLICE_STATION",
+      "alwaysOpen": true,
+      "from": "",
+      "to": ""
+    },
+    {
+      "code": "TAXI",
+      "alwaysOpen": true,
+      "from": "",
+      "to": ""
+    },
+    {
+      "code": "TOWN",
+      "alwaysOpen": true,
+      "from": "",
+      "to": ""
+    }
+  ]
+}

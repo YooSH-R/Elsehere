@@ -122,6 +122,38 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_ByDefault_RequestsAnOnDutyConversation()
+        {
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts[0].NpcOffDuty, Is.False);
+        }
+
+        [Test]
+        public async Task Start_WithStaffOffDuty_RequestsAnOffDutyConversationEvenAfterClosingAnOldOne()
+        {
+            // 교대 밖의 직원과 말하면 서버가 응대 대신 쉬는 중에 잡담하는 일상 상황으로 대화한다(CONV-01 npcOffDuty).
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                npcOffDuty: true
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation { ConversationId = 41 };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+            Assert.That(api.Starts[0].NpcOffDuty, Is.True);
+            Assert.That(api.Starts[1].NpcOffDuty, Is.True);
+        }
+
+        [Test]
         public async Task Start_WithoutServerNpcName_KeepsGivenName()
         {
             api.StartResponse.Npc = null;
@@ -1047,6 +1079,126 @@ namespace A305.Dialogue.Tests
             Assert.That(api.Ends, Is.Empty);
         }
 
+        // 음료 주문처럼 NPC가 준비해 곧 건네기로 하면 왼쪽 카드와 NPC가 부르기에 쓰도록 기다리는 것으로 남긴다.
+        [Test]
+        public async Task End_WhenNpcPromisedSomething_RemembersItAsWaiting()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            api.EndResponse.FollowUp = IcedLatte(id: 7, remainingSeconds: 45);
+            await conversation.StartAsync();
+
+            await conversation.EndAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(7));
+            Assert.That(followUps.Items[0].RemainingSeconds(10d), Is.EqualTo(45));
+        }
+
+        [Test]
+        public async Task End_WithoutFollowUp_LeavesWaitingListAsIs()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 3, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            await conversation.StartAsync();
+
+            await conversation.EndAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(3));
+        }
+
+        // [말 걸기]로 먼저 말을 걸어도, NPC가 불러 시작해도 서버가 첫 대사로 건네면 카드에서 지운다.
+        [Test]
+        public async Task Start_WhenNpcHandsOverWithOpeningLine_ForgetsThatFollowUp()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 7, remainingSeconds: 0));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                followUps
+            );
+            api.StartResponse.DeliveredFollowUpId = 7;
+
+            await conversation.StartAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        // NPC마다 하나만 기다리므로, 건넨 ID가 기억하던 줄과 달라도(그사이 새로 부탁함) 그 NPC의 줄을 지운다.
+        [Test]
+        public async Task Start_WhenHandedOverIdDiffers_StillForgetsThatNpcsRow()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 9, remainingSeconds: 0));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            api.StartResponse.DeliveredFollowUpId = 7;
+
+            await conversation.StartAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        private static FollowUpData Breakfast(long id, int remainingSeconds)
+        {
+            return new FollowUpData
+            {
+                FollowUpId = id,
+                Npc = new NpcSummary { NpcCode = "DINER_STAFF", Name = "Rosa" },
+                SceneCode = "TOWN",
+                Item = "breakfast",
+                ItemKo = "아침 식사",
+                RemainingSeconds = remainingSeconds,
+                Ready = remainingSeconds == 0,
+            };
+        }
+
+        private static FollowUpData IcedLatte(long id, int remainingSeconds)
+        {
+            return new FollowUpData
+            {
+                FollowUpId = id,
+                Npc = new NpcSummary
+                {
+                    NpcCode = CafeStaffCode,
+                    Name = "Mia",
+                    RoleLabel = "카페 직원",
+                },
+                SceneCode = "CAFE",
+                Item = "iced latte",
+                ItemKo = "아이스 라테",
+                RemainingSeconds = remainingSeconds,
+                Ready = remainingSeconds == 0,
+            };
+        }
+
         [TestCase("READY", true)]
         [TestCase("FAILED", true)]
         [TestCase("EXPIRED", false)]
@@ -1615,16 +1767,23 @@ namespace A305.Dialogue.Tests
 
         private sealed class StartRequest
         {
-            public StartRequest(string requestId, string npcCode, string initiatedBy)
+            public StartRequest(
+                string requestId,
+                string npcCode,
+                string initiatedBy,
+                bool npcOffDuty
+            )
             {
                 RequestId = requestId;
                 NpcCode = npcCode;
                 InitiatedBy = initiatedBy;
+                NpcOffDuty = npcOffDuty;
             }
 
             public string RequestId { get; }
             public string NpcCode { get; }
             public string InitiatedBy { get; }
+            public bool NpcOffDuty { get; }
         }
 
         private sealed class TurnRequest
@@ -1731,11 +1890,12 @@ namespace A305.Dialogue.Tests
             public Task<ConversationStart> StartAsync(
                 string requestId,
                 string npcCode,
-                string initiatedBy
+                string initiatedBy,
+                bool npcOffDuty
             )
             {
                 Calls.Add("Start");
-                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy));
+                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy, npcOffDuty));
                 if (StartErrors.Count > 0)
                 {
                     return Task.FromException<ConversationStart>(StartErrors.Dequeue());

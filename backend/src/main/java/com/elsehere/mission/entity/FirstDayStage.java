@@ -12,7 +12,10 @@ public enum FirstDayStage {
       "체크인까지 시간이 남았어요. 큰 캐리어는 호텔에 맡기고 잠시 쉬러 가려 해요.",
       "호텔 직원에게 요청하세요.",
       "It is too early to check in: the room is not ready yet. Do not check the learner in, give a room number or room key, or ask for ID, a credit card or payment. If they ask to check in, tell them early check-in is not possible today. When the learner asks, you can confirm the reservation by name, store the large suitcase until the room is ready and give directions to Corner Cafe, where they can wait. Do not offer any of these before the learner asks. The learner keeps a small blue shoulder bag.",
-      goal("confirm_reservation", "예약 확인", "Confirm or identify an existing hotel reservation."),
+      goal(
+          "confirm_reservation",
+          "예약 확인(예약자 이름)",
+          "Confirm an existing hotel reservation by giving the name it is under. Saying only that they have a reservation, without a name, does not count."),
       goal("store_suitcase", "캐리어 맡기기", "Ask to store the large suitcase until check-in."),
       goal("ask_cafe", "카페 위치 묻기", "Ask for a nearby cafe or directions to it.")),
   CAFE_BREAK(
@@ -22,12 +25,15 @@ public enum FirstDayStage {
       "CLEAR",
       "호텔에서 안내받은 카페에 도착했어요. 음료를 마시며 체크인 시간을 기다려요.",
       "직원에게 주문하고, 대화를 마친 뒤 의자에 앉아 쉬어 가세요.",
-      "Offer drinks and ask one follow-up about size, temperature or milk. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
-      goal("order_drink", "음료 주문", "Order a drink, any drink is valid."),
+      "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. Every drink costs 4 coins. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
+      goal(
+          "order_drink",
+          "음료 주문(음료 이름)",
+          "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count."),
       goal(
           "set_options",
-          "음료 옵션 답하기",
-          "Answer about size, temperature, milk or another drink option, including no preference."),
+          "크기·온도 등 옵션 고르기",
+          "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count."),
       goal("dine_in", "매장 이용 말하기", "Say the learner will have the drink here, not take away.")),
   MISSING_BAG(
       "작은 가방이 없어요",
@@ -39,8 +45,8 @@ public enum FirstDayStage {
       "The large suitcase is safely stored at this hotel. The learner left their separate small shoulder bag at the cafe. They need to go back for it before checking in. Do not claim the hotel has the small bag. Do not bring up the missing bag before the learner explains it.",
       goal(
           "report_left_bag",
-          "분실 상황 설명",
-          "Explain the small bag is missing or was left at the cafe."),
+          "분실 설명(어떤 가방을 어디에)",
+          "Explain which bag is missing (the small bag) AND where they think they left it (the cafe). Saying only that something is lost does not count."),
       goal(
           "return_later",
           "다녀오겠다고 말하기",
@@ -74,7 +80,7 @@ public enum FirstDayStage {
       "RAIN",
       "가방을 찾았어요! 호텔로 돌아가는 길에 비가 내리기 시작했어요.",
       "행인 Ben에게 물어보세요.",
-      "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins; the learner has 20 quest coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. Do not sell an umbrella yourself. Do not suggest umbrellas or the drugstore before the learner asks.",
+      "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. Do not sell an umbrella yourself. Do not suggest umbrellas or the drugstore before the learner asks.",
       goal(
           "ask_umbrella_shop",
           "우산 판매처 묻기",
@@ -88,9 +94,9 @@ public enum FirstDayStage {
       "SHOP",
       "SHOP_STAFF",
       "RAIN",
-      "우산을 파는 드럭스토어예요. 여행용 예산은 20코인, 우산은 8코인이에요.",
+      "우산을 파는 드럭스토어예요. 우산은 8코인이에요.",
       "점원에게 우산을 사세요.",
-      "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Balance before purchase is 20. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
+      "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
       goal("ask_price", "가격 묻기", "Ask or confirm the umbrella price."),
       goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella."),
       goal(
@@ -104,7 +110,7 @@ public enum FirstDayStage {
       "RAIN",
       "여권이 든 가방도 찾고 우산도 샀어요. 호텔에서 체크인을 마무리해요.",
       "호텔 직원에게 요청하세요.",
-      "Check-in time has arrived. The learner recovered the small bag and passport, bought an umbrella and has 12 quest coins left. The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. Never ask them to fetch the bag again.",
+      "Check-in time has arrived. The learner recovered the small bag and passport and bought an umbrella. The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. Never ask them to fetch the bag again.",
       goal("found_bag", "가방 찾았다고 말하기", "Say they found or got back their small bag."),
       goal("request_checkin", "체크인 요청", "Ask to check in now."),
       goal(
@@ -176,6 +182,15 @@ public enum FirstDayStage {
 
   public List<Goal> goals() {
     return goals;
+  }
+
+  /** 이 단계에서 값을 치르는 목표. 값을 치르지 않는 단계는 null이다. */
+  public Payment payment() {
+    return switch (this) {
+      case CAFE_BREAK -> new Payment("order_drink", 4, "카페 음료");
+      case BUY_UMBRELLA -> new Payment("choose_payment", 8, "우산");
+      default -> null;
+    };
   }
 
   public List<String> intentIds() {

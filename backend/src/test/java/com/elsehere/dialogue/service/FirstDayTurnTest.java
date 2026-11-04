@@ -17,6 +17,8 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
 import com.elsehere.conversation.entity.Conversation;
+import com.elsehere.conversation.entity.ConversationEndReason;
+import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.entity.InitiatedBy;
 import com.elsehere.conversation.entity.InputType;
 import com.elsehere.conversation.repository.ConversationRepository;
@@ -38,6 +40,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.TransactionStatus;
@@ -52,6 +55,8 @@ class FirstDayTurnTest {
 
   private final FirstDayMission mission = FirstDayMission.start(8L);
   private final AiGateway worker = mock(AiGateway.class);
+  private final Conversation conversation =
+      Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
   private TurnService service;
 
   @BeforeEach
@@ -70,10 +75,9 @@ class FirstDayTurnTest {
     when(turns.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     ConversationLookup lookup = mock(ConversationLookup.class);
     DialogueContexts contexts = mock(DialogueContexts.class);
-    Conversation conversation = Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH);
     when(lookup.ownedConversation(8L, 10L)).thenReturn(conversation);
     WorkerNpc npc = new WorkerNpc("HOTEL_STAFF", "Emma", "clerk", "", "hotel", "alloy", 1);
-    when(contexts.npcById(1L))
+    when(contexts.npcOf(conversation))
         .thenReturn(
             new NpcContext(
                 1L,
@@ -161,6 +165,60 @@ class FirstDayTurnTest {
         .doesNotContain("Offer drinks");
     assertThat(mission.getStage()).isEqualTo(1);
     assertThat(mission.hasGoal(0)).isFalse();
+  }
+
+  @Test
+  @DisplayName("이 턴으로 그 단계의 목표를 모두 마치면 NPC가 마무리 대사로 대화를 끝낸다")
+  void turnThatCompletesTheStageWrapsUpTheConversation() {
+    guards(false);
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+        .thenReturn(SAVED_REPLY);
+
+    service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    verify(worker).reply(any(), any(), any(), any(), any(), instruction.capture(), anyInt(), any());
+    assertThat(instruction.getValue()).endsWith(WrapUp.INSTRUCTION);
+    assertThat(conversation.getStatus()).isEqualTo(ConversationStatus.ENDED_BY_NPC);
+    assertThat(conversation.getEndReason()).isEqualTo(ConversationEndReason.NPC_ENDED);
+    assertThat(mission.getStage()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("목표가 남으면 마무리하지 않고 대화를 이어 간다")
+  void turnThatLeavesGoalsOpenKeepsTheConversationGoing() {
+    when(worker.judge(any(), any(), any(), any(), any()))
+        .thenReturn(
+            new JudgeResult(
+                "My booking is under Kim.",
+                false,
+                null,
+                null,
+                List.of(),
+                new JudgeResult.Intent(
+                    "confirm_reservation", List.of("confirm_reservation"), null)));
+    guards(false);
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+        .thenReturn(SAVED_REPLY);
+
+    service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Kim", null));
+
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    verify(worker).reply(any(), any(), any(), any(), any(), instruction.capture(), anyInt(), any());
+    assertThat(instruction.getValue()).doesNotContain(WrapUp.INSTRUCTION);
+    assertThat(conversation.isActive()).isTrue();
+  }
+
+  @Test
+  @DisplayName("무례로 센 턴은 목표를 모두 말해도 마무리하지 않는다")
+  void rudeTurnDoesNotWrapUp() {
+    guards(true);
+    when(worker.reply(any(), any(), any(), any(), any(), any(), anyInt(), any()))
+        .thenReturn(SAVED_REPLY);
+
+    service.send(8L, 10L, new TurnRequest(UUID.randomUUID(), InputType.TEXT, "Hello", null));
+
+    assertThat(conversation.isActive()).isTrue();
   }
 
   private void guards(boolean abusive) {

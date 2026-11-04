@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('사용자 이용 현황')}"></head>
+<body>
+<header th:replace="~{admin/layout :: header}"></header>
+<main th:with="profile=${report.profile}, usage=${report.usage}, summary=${report.usage.summary}">
+  <p><a th:href="@{/admin/usage(days=${usage.days})}">← 이용 현황</a></p>
+  <h1 th:text="|사용자 ${profile.userId}|">사용자 1</h1>
+  <p class="hint">사용자 ID로만 보여 줍니다. 게스트의 대화 원문·단어장·피드백은 하루 뒤 지워져 활동이 적게 잡힐 수 있습니다.</p>
+
+  <dl class="panel">
+    <dt>구분</dt>
+    <dd th:text="(${profile.guest} ? '게스트' : '가입자') + (${profile.withdrawn} ? ' (탈퇴)' : '')">가입자</dd>
+    <dt>시작</dt>
+    <dd th:text="${profile.startedAt}">2030-01-07 09:00</dd>
+    <dt>가입 전환</dt>
+    <dd th:text="${profile.convertedAt} ?: '없음'">없음</dd>
+    <dt>초기 설정</dt>
+    <dd th:with="stepNames=${ {'LANG': '언어 선택', 'LEVEL': '레벨 선택', 'TUTORIAL': '튜토리얼', 'DONE': '마침'} }"
+        th:text="${stepNames[profile.onboardingStep]} ?: ${profile.onboardingStep}">마침</dd>
+    <dt>첫날 미션</dt>
+    <dd th:text="${profile.firstDayStage}">시작 전</dd>
+    <dt>마을 여정</dt>
+    <dd th:text="${profile.townStoryStage}">시작 전</dd>
+    <dt>누적 플레이 시간</dt>
+    <dd th:text="|${#numbers.formatDecimal(profile.playSeconds / 60.0, 1, 'COMMA', 1, 'POINT')}분|">0.0분</dd>
+    <dt>게임 시계 마지막 신호</dt>
+    <dd th:text="${profile.lastBeatAt} ?: '없음'">없음</dd>
+  </dl>
+
+  <p th:replace="~{admin/usage-fragments :: periods(${usage.days}, ${profile.userId})}"></p>
+
+  <h2 th:text="|최근 ${usage.days}일|">최근 7일</h2>
+  <dl class="panel">
+    <dt>활동한 날</dt>
+    <dd th:text="|${#numbers.formatInteger(summary.activeUserDays, 1, 'COMMA')}일|">0일</dd>
+    <dt>대화</dt>
+    <dd th:text="|${#numbers.formatInteger(summary.conversations, 1, 'COMMA')}번 (끝낸 대화 ${#numbers.formatInteger(summary.endedConversations, 1, 'COMMA')}번)|">0번</dd>
+    <dt>미션 완료</dt>
+    <dd th:text="|${#numbers.formatInteger(summary.missionsCompleted, 1, 'COMMA')}번|">0번</dd>
+    <dt>단어 저장</dt>
+    <dd th:text="|${#numbers.formatInteger(summary.wordsSaved, 1, 'COMMA')}개|">0개</dd>
+  </dl>
+
+  <section th:replace="~{admin/usage-fragments :: activity(${usage}, true)}"></section>
+</main>
+</body>
+</html>

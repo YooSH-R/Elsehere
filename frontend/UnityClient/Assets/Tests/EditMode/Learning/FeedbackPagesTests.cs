@@ -24,7 +24,7 @@ namespace A305.Learning.Tests
         {
             var pages = FeedbackPages.Create(Sample(), FeedbackSection.Summary);
 
-            Assert.That(pages[0].Body, Does.Contain("<color=#2F8A4B><b>잘했어요</b></color>  "));
+            Assert.That(pages[0].Body, Does.Contain("<color=#2F8A4B><b>잘했어요</b></color>\n"));
             Assert.That(pages[0].Body, Does.Not.Contain("잘했어요 · "));
         }
 
@@ -80,7 +80,7 @@ namespace A305.Learning.Tests
 
             Assert.That(pages.Count, Is.EqualTo(2));
             Assert.That(pages[0].Title, Is.EqualTo("이 상황에서 자주 써요"));
-            // 요약 탭과 같은 표현 칸(코랄 제목 아래 흰 칸)으로 보이므로 본문 글은 비우고 표현을 넘긴다.
+            // 표현 카드로 보이므로 본문 글은 비우고 표현을 넘긴다.
             Assert.That(pages[0].Body, Is.Empty);
             Assert.That(pages[0].Situations, Has.Count.EqualTo(1));
             Assert.That(pages[0].Situations[0].Expression, Is.EqualTo("Can I get that to go?"));
@@ -91,7 +91,7 @@ namespace A305.Learning.Tests
             Assert.That(pages[1].Body, Does.Contain("I'm good"));
         }
 
-        // 한 장씩 넘기지 않고 이 상황 표현과 예문을 한 화면에 모은다. 표현마다 담기는 요약 탭의 표현 줄에서 한다.
+        // 한 장씩 넘기지 않고 이 상황 표현과 예문을 한 화면에 모으며, 각 카드에서 바로 담는다.
         [Test]
         public void Conversation_PutsEverySituationExpressionOnOnePage()
         {

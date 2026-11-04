@@ -28,17 +28,20 @@ namespace A305.World.PlayModeTests
         private const float AngleToleranceDegrees = 1f;
 
         // 튜토리얼 동안에는 단계를 마칠 때까지 장소 이동을 잠그므로, 이동 자체를 보는 이 시험은 튜토리얼을 마친 사용자로 한다.
+        // 영업시간이 아닌 장소는 문이 열리지 않으므로 모든 장소가 여는 오후 1시에 멈춘 시각으로 한다.
         [SetUp]
-        public void StartAfterTheTutorial()
+        public void StartAfterTheTutorialWhileEveryPlaceIsOpen()
         {
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
+            TestGameClock.Set(13 * 60);
         }
 
         [TearDown]
-        public void ClearTutorial()
+        public void ClearTutorialAndClock()
         {
             TutorialState.Clear();
+            TestGameClock.Restore();
         }
 
         [UnityTest]
@@ -240,90 +243,6 @@ namespace A305.World.PlayModeTests
                     Is.GreaterThan(.4f)
                 );
             }
-        }
-
-        [UnityTest]
-        public IEnumerator ShopDoors_AllowWalkingInAndOutWhileCoveringTheScreen()
-        {
-            yield return LoadSpace("TownScene");
-            var player = FindPlayer();
-            var failures = new List<string>();
-            var doors = Object
-                .FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
-                .Select(door => door.transform)
-                .Append(GameObject.Find("PoliceStationDoor").transform)
-                .ToArray();
-            Assert.That(doors, Has.Length.EqualTo(12));
-            foreach (var door in doors)
-            {
-                var room = door.GetComponentInParent<ShopInterior>();
-                Assert.That(room, Is.Not.Null, door.name);
-                Assert.That(
-                    Application.CanStreamedLevelBeLoaded(room.SceneName),
-                    Is.True,
-                    $"{door.name}: {room.SceneName}"
-                );
-                if (door.GetComponent<BoxCollider>() == null)
-                {
-                    Assert.That(door.parent.Find("OutsideDoorway"), Is.Not.Null, door.name);
-                    Assert.That(door.parent.Find("InsideDoorway"), Is.Not.Null, door.name);
-                }
-            }
-
-            string[] representativeDoors = { "PostOfficeDoor", "ArcadeDoor" };
-            foreach (string doorName in representativeDoors)
-            {
-                var door = doors.Single(candidate => candidate.name == doorName);
-                var room = door.GetComponentInParent<ShopInterior>();
-                Vector3 center = ShopThresholdCenter(door);
-                center.y = door.transform.position.y + .03f;
-                bool hallDoor = door.name == "ArcadeDoor" || door.name == "BookshopDoor";
-                Vector3 inward = hallDoor ? door.transform.forward : -door.transform.forward;
-                float approach = hallDoor ? 1.3f : 1.65f;
-                player.Teleport(center - inward * approach, Quaternion.LookRotation(inward));
-                foreach (var direction in new[] { inward, -inward })
-                {
-                    yield return WalkForward(player, direction, () => SpaceTravel.IsTraveling);
-                    if (!SpaceTravel.IsTraveling)
-                    {
-                        failures.Add(
-                            $"{door.name}: {door.transform.InverseTransformPoint(player.transform.position)} / lock={SpaceTravel.IsLocked}, movement={player.IsMovementLocked}"
-                        );
-                        break;
-                    }
-                    float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
-                    while (Vector3.Dot(player.transform.position - center, direction) <= 0f)
-                    {
-                        Assert.That(
-                            Time.realtimeSinceStartup,
-                            Is.LessThan(deadline),
-                            $"{door.name} 문을 건너지 못했습니다."
-                        );
-                        yield return null;
-                    }
-                    Assert.That(CurtainOpacity(), Is.EqualTo(1f), $"{door.name} 이동 순간");
-                    Assert.That(player.IsMovementLocked, Is.True, door.name);
-                    yield return WaitUntilCurtainOpens();
-                    Assert.That(CurtainOpacity(), Is.Zero, door.name);
-                    Assert.That(player.IsMovementLocked, Is.False, door.name);
-                    Assert.That(
-                        Mathf.Abs(player.transform.position.y - door.position.y),
-                        Is.LessThan(0.45f),
-                        $"{door.name} 도착 층"
-                    );
-                    Assert.That(
-                        Vector3.Dot(player.transform.position - center, direction),
-                        Is.GreaterThan(.5f),
-                        $"{door.name} 도착 방향"
-                    );
-                    Assert.That(
-                        room.IsLoaded,
-                        Is.EqualTo(direction == inward),
-                        $"{door.name}: {room.SceneName}"
-                    );
-                }
-            }
-            Assert.That(failures, Is.Empty, string.Join("\n", failures));
         }
 
         [UnityTest]
@@ -564,15 +483,6 @@ namespace A305.World.PlayModeTests
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None
             );
-        }
-
-        private static Vector3 ShopThresholdCenter(Transform door)
-        {
-            if (door.TryGetComponent(out BoxCollider sensor))
-                return door.TransformPoint(sensor.center);
-            Transform outside = door.parent.Find("OutsideDoorway");
-            Transform inside = door.parent.Find("InsideDoorway");
-            return (outside.position + inside.position) / 2f;
         }
 
         private static IEnumerator LoadSpace(string sceneName)

@@ -3253,7 +3253,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 1.45}
-  m_SizeDelta: {x: 8, y: 3}
+  m_SizeDelta: {x: 1.05, y: 0.24}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!23 &6303285516949015934
 MeshRenderer:
@@ -3324,7 +3324,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: TEA ROOM  2F  >
+  m_text: TEA ROOM 2F >
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8ae84dc4ca3dc614c952423c298ea0ed, type: 2}
   m_sharedMaterial: {fileID: -3930909567171584976, guid: 8ae84dc4ca3dc614c952423c298ea0ed, type: 2}
@@ -3354,9 +3354,9 @@ MonoBehaviour:
   m_fontSize: 1.9
   m_fontSizeBase: 1.9
   m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_enableAutoSizing: 1
+  m_fontSizeMin: 1
+  m_fontSizeMax: 1.9
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
@@ -3368,7 +3368,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_TextWrappingMode: 1
+  m_TextWrappingMode: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}

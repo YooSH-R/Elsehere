@@ -24,7 +24,7 @@ using UnityEngine.SceneManagement;
 namespace A305.EditorTools.World
 {
     /// <summary>
-    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁·대화 처리·행인 제안 화면·피드백·단어장·미션 창·튜토리얼 안내를 붙이고 서로 연결한다.
+    /// 공간 씬에 규약 그룹과 플레이어·카메라·도착 처리·사물 호버 툴팁·대화 처리·행인 제안 화면·피드백·단어장·미션 창·튜토리얼 안내·영업시간 안내를 붙이고 서로 연결한다.
     /// 씬에 놓인 행인도 플레이어·대화 처리와 연결한다.
     /// 디자인한 씬이든 대체 공간 씬이든 같은 방식으로 적용하며, 여러 번 실행해도 기능 객체를 다시 만들지 않는다.
     /// Environment에 놓인 디자인과 이미 놓인 플레이어 위치는 건드리지 않는다.
@@ -35,7 +35,7 @@ namespace A305.EditorTools.World
 
         private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
 
-        private static readonly string[] ProductionSpaceScenes =
+        internal static readonly string[] ProductionSpaceScenes =
         {
             "HomeScene",
             "TownScene",
@@ -76,6 +76,7 @@ namespace A305.EditorTools.World
             MissionBuilder.PrepareAssets();
             FirstDayMissionBuilder.PrepareAssets();
             TutorialBuilder.PrepareAssets();
+            OpeningHoursBuilder.PrepareAssets();
             // 화면 디자인은 위 기능 화면 프리팹이 준비된 뒤에 붙인다.
             UiThemeBuilder.PrepareAssets();
             UiThemeBuilder.StyleFeaturePrefabs();
@@ -157,6 +158,7 @@ namespace A305.EditorTools.World
             // 마을 날씨 표시는 위 미션 연결이 만든 뒤에 밤낮을 맡긴다.
             DaylightBuilder.ConnectToScene(groups);
             TutorialBuilder.ConnectToScene(groups, player, dialogue, learning, mission);
+            OpeningHoursBuilder.ConnectToScene(groups, player);
             // 화면 디자인은 하나만 쓴다. 예전 테마 고르기 화면이 남아 있으면 지운다.
             if (scene.name == "HomeScene")
                 UiThemeBuilder.RemovePicker(scene);

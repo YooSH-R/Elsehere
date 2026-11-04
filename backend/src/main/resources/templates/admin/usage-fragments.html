@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- 이용 현황 전체 화면(usage.html)과 사용자별 화면(usage-user.html)이 함께 쓰는 표. 이 파일은 따로 그리지 않는다. -->
+<body>
+
+<!-- 기간 링크. userId가 있으면 사용자별 화면 주소로 만든다. -->
+<p th:fragment="periods(days, userId)" class="periods">
+  기간:
+  <a th:each="option : ${ {1, 7, 30, 90} }"
+     th:href="${userId == null} ? @{/admin/usage(days=${option})} : @{/admin/usage/user(userId=${userId}, days=${option})}"
+     th:text="|최근 ${option}일|"
+     th:classappend="${option == days} ? 'current'">최근 7일</a>
+</p>
+
+<!-- 날짜별 표와 대화·학습 기록. perUser면 사용자 수 칸을 뺀다. -->
+<section th:fragment="activity(usage, perUser)">
+  <h2>날짜별 (한국 날짜)</h2>
+  <table>
+    <thead>
+    <tr>
+      <th>날짜</th>
+      <th th:unless="${perUser}">활동 사용자</th>
+      <th th:unless="${perUser}">게스트</th>
+      <th th:unless="${perUser}">가입자</th>
+      <th th:unless="${perUser}">새 사용자</th>
+      <th th:unless="${perUser}">가입 전환</th>
+      <th>대화</th>
+      <th>미션 완료</th>
+      <th>단어 저장</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="day : ${usage.byDay}">
+      <td th:text="${day.day}">2030-01-10</td>
+      <td th:unless="${perUser}" th:text="${#numbers.formatInteger(day.activeUsers, 1, 'COMMA')}">0</td>
+      <td th:unless="${perUser}" th:text="${#numbers.formatInteger(day.activeGuests, 1, 'COMMA')}">0</td>
+      <td th:unless="${perUser}" th:text="${#numbers.formatInteger(day.activeMembers, 1, 'COMMA')}">0</td>
+      <td th:unless="${perUser}" th:text="${#numbers.formatInteger(day.newUsers, 1, 'COMMA')}">0</td>
+      <td th:unless="${perUser}" th:text="${#numbers.formatInteger(day.conversions, 1, 'COMMA')}">0</td>
+      <td th:text="${#numbers.formatInteger(day.conversations, 1, 'COMMA')}">0</td>
+      <td th:text="${#numbers.formatInteger(day.missionsCompleted, 1, 'COMMA')}">0</td>
+      <td th:text="${#numbers.formatInteger(day.wordsSaved, 1, 'COMMA')}">0</td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(usage.byDay)}">
+      <td colspan="9" class="muted">이 기간에 활동이 없습니다.</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <h2>대화가 끝난 방식</h2>
+  <p class="hint">기간 안에 시작한 대화입니다. 끝내지 않고 나간 대화는 따로 기록하지 않아 '끝내지 않음'에 진행 중인 대화와 함께 묶입니다.</p>
+  <table th:replace="~{admin/usage-fragments :: counts(${usage.conversationEnds}, '끝난 방식', ${ {'NPC_ENDED': 'NPC가 마무리', 'USER_ENDED': '[대화 종료]를 누름', 'RUDE': '무례로 끝남', 'ACTIVE': '끝내지 않음(나감·진행 중)', 'EXPIRED': '시간 초과', 'QUOTA_EXHAUSTED': 'AI 한도 소진'} })}"></table>
+
+  <h2>NPC별 대화</h2>
+  <table th:replace="~{admin/usage-fragments :: counts(${usage.conversationsByNpc}, 'NPC', null)}"></table>
+
+  <h2>대화 중 행동</h2>
+  <p class="hint">게스트가 보낸 말(음성·글)은 하루 뒤 지워져 적게 잡힙니다. 힌트·뜻 보기는 AI 호출 기록이라 남습니다.</p>
+  <table th:replace="~{admin/usage-fragments :: counts(${usage.conversationActions}, '행동', ${ {'VOICE': '음성으로 말함', 'TEXT': '글로 씀', 'HINT': '힌트·추천 단어 요청', 'MEANING': '뜻 보기 요청'} })}"></table>
+
+  <h2>단어 저장</h2>
+  <p class="hint">게스트의 단어장은 하루 뒤 지워져 적게 잡힙니다.</p>
+  <table th:replace="~{admin/usage-fragments :: counts(${usage.wordSaves}, '저장한 곳', ${ {'OBJECT': '사물 카드', 'NPC_LINE': 'NPC 대사', 'FEEDBACK': '피드백'} })}"></table>
+
+  <h2>대화 피드백</h2>
+  <p class="hint">게스트의 피드백은 하루 뒤 지워져 적게 잡힙니다.</p>
+  <table th:replace="~{admin/usage-fragments :: counts(${usage.feedbacks}, '결과', ${ {'DONE': '받음', 'FAILED': '실패', 'SKIPPED_BY_USER': '사용자가 건너뜀', 'SKIPPED': '평가할 말이 없어 건너뜀'} })}"></table>
+</section>
+
+<!-- 기준 하나로 묶은 횟수 표. names가 있으면 기준 값을 화면 이름으로 바꾼다. -->
+<table th:fragment="counts(rows, labelHeader, names)">
+  <thead>
+  <tr>
+    <th th:text="${labelHeader}">기준</th>
+    <th>횟수</th>
+    <th>사용자</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="row : ${rows}">
+    <td th:text="${names != null and names.containsKey(row.label)} ? ${names[row.label]} : ${row.label}">기준</td>
+    <td th:text="${#numbers.formatInteger(row.count, 1, 'COMMA')}">0</td>
+    <td th:text="${#numbers.formatInteger(row.users, 1, 'COMMA')}">0</td>
+  </tr>
+  <tr th:if="${#lists.isEmpty(rows)}">
+    <td colspan="3" class="muted">이 기간에 기록이 없습니다.</td>
+  </tr>
+  </tbody>
+</table>
+
+<!-- 단계별 사용자 수 표. names가 있으면 기준 값을 화면 이름으로 바꾼다. -->
+<table th:fragment="userCounts(rows, labelHeader, names)">
+  <thead>
+  <tr>
+    <th th:text="${labelHeader}">단계</th>
+    <th>사용자</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="row : ${rows}">
+    <td th:text="${names != null and names.containsKey(row.label)} ? ${names[row.label]} : ${row.label}">단계</td>
+    <td th:text="${#numbers.formatInteger(row.users, 1, 'COMMA')}">0</td>
+  </tr>
+  </tbody>
+</table>
+</body>
+</html>

@@ -13,7 +13,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 스크립트 | C# |
 | 시작 Scene | `Assets/Scenes/Production/HomeScene.unity` |
 
-Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR 리뷰를 거쳐 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다.
+Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다.
 
 ## 설치와 프로젝트 열기
 
@@ -28,7 +28,7 @@ Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Pack
 
 ## 실행과 Web 빌드
 
-Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소를 오갈 수 있습니다. 조작은 [Player 모듈](../../frontend/UnityClient/Assets/Scripts/Player/README.md), 공간과 출입구는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md)을 따릅니다. 개발 환경 확인용 샘플 `Assets/Scenes/SampleScene`(`DemoCube` 회전)은 Scene List에 넣지 않습니다.
+Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소를 오갈 수 있습니다. 영업시간이 아닌 장소는 문이 열리지 않습니다. 조작은 [Player 모듈](../../frontend/UnityClient/Assets/Scripts/Player/README.md), 공간과 출입구는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md)을 따릅니다. 개발 환경 확인용 샘플 `Assets/Scenes/SampleScene`(`DemoCube` 회전)은 Scene List에 넣지 않습니다.
 
 1. Scene과 프리팹 변경을 저장하고 Console에 컴파일 오류가 없는지 확인합니다.
 2. **File → Build Profiles → Platforms → Web**을 선택하고 **Switch Platform**으로 전환합니다. 사용자 정의 Web 프로파일에서는 **Switch Profile**을 사용합니다.

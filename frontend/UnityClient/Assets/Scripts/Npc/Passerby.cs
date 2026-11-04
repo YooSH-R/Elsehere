@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using A305.Characters;
 using A305.Dialogue;
 using A305.Player;
@@ -11,13 +12,20 @@ namespace A305.Npc
     /// 쉬는 동안에도 플레이어가 가까이 가면 [말 걸기]로 먼저 대화를 걸 수 있다.
     /// 생활(<see cref="NpcRoutine"/>)이 붙은 NPC는 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
     /// 튜토리얼에서 길을 묻는 행인(Ben)은 튜토리얼 동안 튜토리얼 대본·설정으로 말하고 생활하지 않는다(<see cref="SetTutorialScript"/>).
+    /// 대화에서 준비해 주기로 한 것(<see cref="FollowUpStore"/>)이 다 되면 부르는 거리 안의 플레이어를 자리를 떠나지 않고 부른다.
     /// 모델은 자식 Visual 아래에 두고, 이동은 루트의 CharacterController가 맡는다.
+    /// NPC끼리는 몸이 서로 막지 않는다. 한 일터의 직원들이 한 사람 폭인 카운터 뒤 통로나 하나뿐인 사물(머핀 등)로 함께 가도
+    /// 비켜 가지 못해 멈추지 않게 하기 위함이며, 플레이어와는 그대로 부딪힌다.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
     public class Passerby : MonoBehaviour
     {
         private const float GroundedDownwardSpeedMetersPerSecond = -2f;
         private const float ArrivedDistanceMeters = 0.2f;
+
+        // 켜져 있는 NPC들의 몸. 새로 켜진 NPC는 이 몸들과 충돌하지 않게 한다.
+        private static readonly List<CharacterController> NpcBodies =
+            new List<CharacterController>();
 
         [SerializeField]
         private PasserbySettings settings;
@@ -112,6 +120,9 @@ namespace A305.Npc
         // 대본·인사말·이름을 찾는 키. 튜토리얼 중이면 튜토리얼 대본, 아니면 NPC 키
         private string ScriptKey => tutorialScriptKey ?? identity.Code;
 
+        // 교대 밖이라 일하지 않는 직원인지. 생활이 없는 NPC와 행인은 근무 외로 보내지 않는다.
+        private bool IsOffDuty => routine != null && routine.enabled && routine.IsOffDuty;
+
         private PasserbySettings CurrentSettings =>
             IsGuidingTutorial && tutorialSettings != null ? tutorialSettings : settings;
 
@@ -171,10 +182,19 @@ namespace A305.Npc
             {
                 dialogue.Ended += OnDialogueEnded;
             }
+
+            // 충돌 무시는 콜라이더가 꺼지면 풀리므로 켜질 때마다 다시 정한다.
+            foreach (CharacterController other in NpcBodies)
+            {
+                Physics.IgnoreCollision(characterController, other);
+            }
+
+            NpcBodies.Add(characterController);
         }
 
         private void OnDisable()
         {
+            NpcBodies.Remove(characterController);
             if (dialogue != null)
             {
                 dialogue.Ended -= OnDialogueEnded;
@@ -198,7 +218,8 @@ namespace A305.Npc
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
-            // 카운터를 맡은 직원은 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
+            // 교대 밖의 직원은 다가오지 않고 [말 걸기]만 받는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고,
+            // 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
             bool notReadyToOffer =
                 routine != null
                 && routine.enabled
@@ -211,6 +232,16 @@ namespace A305.Npc
                 && PasserbyOfferRecord.HasOfferedOn(identity.Code, today);
 
             PasserbyPhase before = approach.Phase;
+            // 대화에서 준비해 주기로 한 것이 다 됐으면 제자리에서 부른다. 하루 한 번·카운터 자리·대화 뒤 쉬는 시간과 상관없이 부르지만,
+            // 플레이어가 바쁘거나 새 대화를 시작할 수 없으면 기다린다. 튜토리얼 대본으로 말하는 동안에는 건넬 것이 없다.
+            WaitingFollowUp readyFollowUp = IsGuidingTutorial
+                ? null
+                : FollowUpStore.Shared.FindReady(identity.Code);
+            if (readyFollowUp != null)
+            {
+                approach.TryCall(Now, toPlayer.magnitude, isPlayerBusy || cannotStartConversation);
+            }
+
             approach.Tick(
                 Now,
                 toPlayer.magnitude,
@@ -222,10 +253,10 @@ namespace A305.Npc
                     || (offeredToday && !IsPlayerWaiting && !IsWaitingForQuest),
                 IsPlayerWaiting
             );
-            // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다.
+            // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다. 준비한 것을 건네려고 부른 것은 세지 않는다.
             bool startedOffer =
                 approach.Phase == PasserbyPhase.Offering && before != PasserbyPhase.Offering;
-            if (startedOffer && settings.ApproachesOncePerDay)
+            if (startedOffer && settings.ApproachesOncePerDay && !approach.IsCalling)
             {
                 PasserbyOfferRecord.Save(identity.Code, today);
             }
@@ -257,7 +288,7 @@ namespace A305.Npc
                     ShowAnimation(TalkAnimation);
                     if (!offerView.IsShownBy(this))
                     {
-                        ShowOffer();
+                        ShowOffer(readyFollowUp);
                     }
 
                     break;
@@ -302,14 +333,7 @@ namespace A305.Npc
             ConversationAllowance allowance = dialogue.Allowance;
             if (!allowance.CanStartConversation)
             {
-                if (!offerView.IsTalkBlocked)
-                {
-                    offerView.ShowBlockedTalkPrompt(
-                        this,
-                        PasserbyOfferText.Blocked(allowance.RemainingConversations)
-                    );
-                }
-
+                ShowCannotTalkPrompt(allowance.RemainingConversations);
                 return;
             }
 
@@ -320,11 +344,38 @@ namespace A305.Npc
             if (
                 !offerView.IsTalkPromptShowing
                 || offerView.IsTalkBlocked
+                || offerView.IsSignupPromptShowing
                 || offerView.TalkRemainingText != remaining
             )
             {
                 string label = PasserbyOfferText.TalkLabel(dialogue.FindNpcName(ScriptKey));
                 offerView.ShowTalkPrompt(this, label, remaining, TalkByPlayer);
+            }
+        }
+
+        // 게스트가 대화를 다 썼으면 가입 버튼을, 다른 이유로 막혔으면 이유만 보인다.
+        private void ShowCannotTalkPrompt(int? remainingConversations)
+        {
+            if (PasserbyOfferText.OffersSignup(remainingConversations))
+            {
+                if (!offerView.IsSignupPromptShowing)
+                {
+                    offerView.ShowSignupPrompt(
+                        this,
+                        PasserbyOfferText.SignupLabel,
+                        PasserbyOfferText.Blocked(remainingConversations)
+                    );
+                }
+
+                return;
+            }
+
+            if (!offerView.IsTalkBlocked)
+            {
+                offerView.ShowBlockedTalkPrompt(
+                    this,
+                    PasserbyOfferText.Blocked(remainingConversations)
+                );
             }
         }
 
@@ -341,7 +392,8 @@ namespace A305.Npc
                     identity.Code,
                     identity.LookTarget,
                     ConversationInitiator.User,
-                    ScriptKey
+                    ScriptKey,
+                    IsOffDuty
                 )
             )
             {
@@ -358,18 +410,32 @@ namespace A305.Npc
             return toPlayer;
         }
 
-        private void ShowOffer()
+        /// <param name="readyFollowUp">이 NPC가 건넬 것 가운데 다 된 것. 불러서 제안하면 인사말 대신 무엇이 준비됐는지 알린다.</param>
+        private void ShowOffer(WaitingFollowUp readyFollowUp)
         {
-            if (!lineSource.TryGetGreeting(ScriptKey, out string greeting))
+            string hint;
+            string greeting;
+            if (approach.IsCalling && readyFollowUp != null)
             {
-                Debug.LogWarning($"행인 {ScriptKey}의 인사말이 없습니다.", this);
-                greeting = string.Empty;
+                hint = PasserbyOfferText.CallHint(
+                    readyFollowUp.NpcName ?? dialogue.FindNpcName(ScriptKey)
+                );
+                greeting = PasserbyOfferText.CallLine(readyFollowUp.ItemKo);
+            }
+            else
+            {
+                if (!lineSource.TryGetGreeting(ScriptKey, out greeting))
+                {
+                    Debug.LogWarning($"행인 {ScriptKey}의 인사말이 없습니다.", this);
+                    greeting = string.Empty;
+                }
+
+                hint = PasserbyOfferText.Hint(
+                    dialogue.FindNpcName(ScriptKey),
+                    dialogue.FindNpcRoleLabel(ScriptKey)
+                );
             }
 
-            string hint = PasserbyOfferText.Hint(
-                dialogue.FindNpcName(ScriptKey),
-                dialogue.FindNpcRoleLabel(ScriptKey)
-            );
             string remaining = PasserbyOfferText.RemainingConversations(
                 dialogue.Allowance.RemainingConversations
             );
@@ -389,7 +455,8 @@ namespace A305.Npc
                     identity.Code,
                     identity.LookTarget,
                     ConversationInitiator.Npc,
-                    ScriptKey
+                    ScriptKey,
+                    IsOffDuty
                 )
             )
             {

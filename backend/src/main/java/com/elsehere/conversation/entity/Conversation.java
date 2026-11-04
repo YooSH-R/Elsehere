@@ -82,6 +82,11 @@ public class Conversation extends BaseEntity {
   @Column(unique = true)
   private UUID requestId;
 
+  // 근무 시간이 아닌 NPC와의 대화(CONV-01 npcOffDuty). 워커에 응대 상황 대신 일상 상황을 보낸다. 이 칸을 넣기 전의 대화는 false다.
+  @ColumnDefault("false")
+  @Column(nullable = false)
+  private boolean npcOffDuty;
+
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;
   }
@@ -92,6 +97,10 @@ public class Conversation extends BaseEntity {
 
   public void attachStartRequest(UUID requestId) {
     this.requestId = requestId;
+  }
+
+  public void markNpcOffDuty() {
+    this.npcOffDuty = true;
   }
 
   public static Conversation start(
@@ -119,6 +128,16 @@ public class Conversation extends BaseEntity {
       endReason = ConversationEndReason.RUDE;
       endedAt = now;
     }
+  }
+
+  /** 용건이 끝났거나 학습자가 작별해 NPC가 마무리 대사로 대화를 끝냈다. 이미 끝난 대화는 상태를 바꾸지 않는다. */
+  public void endByNpc(Instant now) {
+    if (!isActive()) {
+      return;
+    }
+    status = ConversationStatus.ENDED_BY_NPC;
+    endReason = ConversationEndReason.NPC_ENDED;
+    endedAt = now;
   }
 
   /** 사용자가 [대화 종료]를 눌렀다. NPC가 이미 끝낸 대화는 상태를 바꾸지 않는다. */

@@ -626,7 +626,7 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.FeedbackSections:
                     return new[] { feedbackView.SectionRowRect, feedbackView.PageCardRect };
                 case TutorialCoachTarget.FeedbackPages:
-                    return new[] { feedbackView.SituationPagerRect };
+                    return new[] { feedbackView.ScrollAreaRect };
                 case TutorialCoachTarget.FeedbackClose:
                     return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:

@@ -763,7 +763,7 @@ namespace A305.Tutorial.PlayModeTests
             RectTransform[][] tour =
             {
                 new[] { feedback.SectionRowRect, feedback.PageCardRect },
-                new[] { feedback.SituationPagerRect },
+                new[] { feedback.ScrollAreaRect },
             };
             foreach (RectTransform[] targets in tour)
             {

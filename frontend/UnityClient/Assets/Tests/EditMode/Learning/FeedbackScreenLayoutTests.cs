@@ -109,7 +109,7 @@ namespace A305.Learning.Tests
         {
             Show();
             Canvas.ForceUpdateCanvases();
-            Transform tile = Panel().Find("PageCard/BodyTile");
+            Transform tile = Panel().Find("PageCard/Content/BodyTile");
 
             Assert.That(tile.gameObject.activeInHierarchy, Is.True);
             Assert.That(tile.GetComponent<Image>().sprite.name, Is.EqualTo("FeedbackSummaryTile"));

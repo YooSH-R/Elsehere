@@ -66,7 +66,7 @@ namespace A305.Voice.Tests
         }
 
         [Test]
-        public void ReleasingButton_EndsByUserWithElapsedTime()
+        public void StoppedByUser_EndsByUserWithElapsedTime()
         {
             session.Update(11f, Speaking);
 
@@ -84,6 +84,28 @@ namespace A305.Voice.Tests
 
             Assert.That(session.IsRecording, Is.False);
             Assert.That(session.EndReason, Is.EqualTo(RecordingEndReason.Interrupted));
+        }
+
+        [Test]
+        public void LoudFrame_HearsVoiceUntilNextQuietFrame()
+        {
+            Assert.That(session.IsHearingVoice, Is.False);
+
+            session.Update(10.25f, Speaking);
+            Assert.That(session.IsHearingVoice, Is.True);
+
+            session.Update(10.5f, Quiet);
+            Assert.That(session.IsHearingVoice, Is.False);
+        }
+
+        [Test]
+        public void StoppedWhileSpeaking_NoLongerHearsVoice()
+        {
+            session.Update(10.25f, Speaking);
+
+            session.Stop(10.5f);
+
+            Assert.That(session.IsHearingVoice, Is.False);
         }
 
         [Test]

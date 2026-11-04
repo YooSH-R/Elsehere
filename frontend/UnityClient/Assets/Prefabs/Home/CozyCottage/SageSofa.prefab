@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7654289773759402056}
   - component: {fileID: 9138559754603893501}
   - component: {fileID: 1927484526950893624}
+  - component: {fileID: 5395875285713649902}
   m_Layer: 0
   m_Name: DarkSage
   m_TagString: Untagged
@@ -91,6 +92,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &5395875285713649902
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 660196890295682423}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 57534ee937d94b64fb0a8261f208075e, type: 2}
 --- !u!1 &1479742628406359749
 GameObject:
   m_ObjectHideFlags: 0
@@ -168,6 +191,7 @@ GameObject:
   - component: {fileID: 7871548330349414781}
   - component: {fileID: 1283110586416655372}
   - component: {fileID: 3571002704289228647}
+  - component: {fileID: 7242962060759504144}
   m_Layer: 0
   m_Name: Ivory
   m_TagString: Untagged
@@ -248,6 +272,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &7242962060759504144
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1511349647825543563}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: e42f4f1b169f39d4ab518a129e7e4212, type: 2}
 --- !u!1 &1566066931033356811
 GameObject:
   m_ObjectHideFlags: 0
@@ -259,6 +305,7 @@ GameObject:
   - component: {fileID: 6766946389315183516}
   - component: {fileID: 3315434351095928016}
   - component: {fileID: 6980739437711076491}
+  - component: {fileID: 5029614853977431731}
   m_Layer: 0
   m_Name: Terracotta
   m_TagString: Untagged
@@ -339,6 +386,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &5029614853977431731
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1566066931033356811}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 5506f44bd9d4ec84f8ad137b6c964da3, type: 2}
 --- !u!1 &2311118356766027281
 GameObject:
   m_ObjectHideFlags: 0
@@ -621,6 +690,7 @@ GameObject:
   - component: {fileID: 8553362123596812646}
   - component: {fileID: 6463517151885315012}
   - component: {fileID: 6246675278680916544}
+  - component: {fileID: 6477410858955823936}
   m_Layer: 0
   m_Name: Oak
   m_TagString: Untagged
@@ -701,6 +771,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &6477410858955823936
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4901923815878737213}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 2985e50fb632c444894eeafe317a5f34, type: 2}
 --- !u!1 &6032714151392796009
 GameObject:
   m_ObjectHideFlags: 0
@@ -910,6 +1002,7 @@ GameObject:
   - component: {fileID: 8840768308652378377}
   - component: {fileID: 3635920117784796422}
   - component: {fileID: 3725203317060913680}
+  - component: {fileID: 3607174493667006073}
   m_Layer: 0
   m_Name: Sage
   m_TagString: Untagged
@@ -990,6 +1083,28 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &3607174493667006073
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7042540259678881981}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 36cfc9a9c1ea4d640ba37d86539b4019, type: 2}
 --- !u!1 &7386211048067366942
 GameObject:
   m_ObjectHideFlags: 0
@@ -999,7 +1114,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5240348361062734410}
-  - component: {fileID: 1017934475129753641}
   - component: {fileID: 974439650199857104}
   m_Layer: 0
   m_Name: SageSofa
@@ -1028,27 +1142,6 @@ Transform:
   - {fileID: 6766946389315183516}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1017934475129753641
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7386211048067366942}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 2.7, y: 1.2, z: 1.1}
-  m_Center: {x: 0, y: 0.6, z: 0}
 --- !u!114 &974439650199857104
 MonoBehaviour:
   m_ObjectHideFlags: 0

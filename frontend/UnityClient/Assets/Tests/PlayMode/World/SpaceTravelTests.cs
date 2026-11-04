@@ -2,9 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using A305.Player;
+using A305.Tutorial;
+using A305.Weather;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -21,6 +27,58 @@ namespace A305.World.PlayModeTests
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
 
+        // 튜토리얼 동안에는 단계를 마칠 때까지 장소 이동을 잠그므로, 이동 자체를 보는 이 시험은 튜토리얼을 마친 사용자로 한다.
+        [SetUp]
+        public void StartAfterTheTutorial()
+        {
+            TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
+        }
+
+        [TearDown]
+        public void ClearTutorial()
+        {
+            TutorialState.Clear();
+        }
+
+        [UnityTest]
+        public IEnumerator Travel_WhenAnotherSceneIsUnloading_DoesNotBlockLaterSceneLoads()
+        {
+            yield return LoadSpace("HomeScene");
+            Scene temporaryScene = SceneManager.CreateScene("CI-reproduction-temporary");
+            AsyncOperation unloading = SceneManager.UnloadSceneAsync(temporaryScene);
+            Assert.That(
+                temporaryScene.IsValid(),
+                Is.True,
+                "The old scene must still exist when travel starts."
+            );
+            Assert.That(SpaceTravel.TryTravel("TownScene", "HomeDoor"), Is.True);
+
+            float deadline = Time.realtimeSinceStartup + 30f;
+            while (
+                (!unloading.isDone || SpaceTravel.IsTraveling)
+                && Time.realtimeSinceStartup < deadline
+            )
+            {
+                yield return null;
+            }
+
+            Assert.That(unloading.isDone, Is.True, "The previous scene did not unload.");
+            Assert.That(SpaceTravel.IsTraveling, Is.False, "The new scene did not finish loading.");
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("TownScene"));
+
+            AsyncOperation nextLoad = SceneManager.LoadSceneAsync(
+                "HomeScene",
+                LoadSceneMode.Single
+            );
+            deadline = Time.realtimeSinceStartup + 30f;
+            while (!nextLoad.isDone && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+            Assert.That(nextLoad.isDone, Is.True, "A later scene load must not remain blocked.");
+        }
+
         [UnityTest]
         public IEnumerator TryTravel_HomeToTown_PlacesPlayerAtTownHomeDoor()
         {
@@ -32,16 +90,345 @@ namespace A305.World.PlayModeTests
             AssertPlayerArrivedAt("HomeDoor");
         }
 
+        // 공간 이동 한 번에 일어나는 일을 함께 본다. 씬을 불러오는 데 대부분의 시간이 들어 이동마다 시험을 나누지 않는다.
         [UnityTest]
-        public IEnumerator TryTravel_WhileTraveling_RejectsSecondRequest()
+        public IEnumerator TryTravel_TownToCafe_CoversTheSwapAndLeavesOnlyTheNewSpace()
         {
             yield return LoadSpace("TownScene");
-
-            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
-            Assert.That(SpaceTravel.TryTravel("HotelScene", "TownDoor"), Is.False);
-            yield return WaitForArrival("CafeScene");
+            ThreadPriority usualPriority = Application.backgroundLoadingPriority;
+            float opacityWhenSceneChanged = -1f;
+            int players = -1;
+            int listeners = -1;
+            UnityAction<Scene, LoadSceneMode> onSceneLoaded = (scene, mode) =>
+            {
+                opacityWhenSceneChanged = CurtainOpacity();
+                players = Object.FindObjectsByType<PlayerMover>(FindObjectsSortMode.None).Length;
+                listeners = Object
+                    .FindObjectsByType<AudioListener>(FindObjectsSortMode.None)
+                    .Length;
+            };
+            SceneManager.sceneLoaded += onSceneLoaded;
+            try
+            {
+                Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+                Assert.That(
+                    SpaceTravel.TryTravel("HotelScene", "TownDoor"),
+                    Is.False,
+                    "이동 중에는 다른 이동 요청을 받지 않습니다."
+                );
+                // 덮인 동안에는 프레임이 끊겨도 보이지 않으므로 불러오기에 프레임 시간을 더 쓴다.
+                Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(ThreadPriority.High));
+                yield return WaitForArrival("CafeScene");
+            }
+            finally
+            {
+                SceneManager.sceneLoaded -= onSceneLoaded;
+            }
 
             AssertPlayerArrivedAt("TownDoor");
+            // 씬이 바뀌는 순간의 끊김은 화면이 다 덮인 뒤에 일어나야 보이지 않는다.
+            Assert.That(opacityWhenSceneChanged, Is.EqualTo(1f));
+            // 이전 공간의 플레이어·카메라가 켜져 있으면 새 공간이 출입구와 카메라를 잘못 찾는다.
+            Assert.That(players, Is.EqualTo(1));
+            Assert.That(listeners, Is.EqualTo(1));
+
+            yield return WaitUntilCurtainOpens();
+            Assert.That(CurtainOpacity(), Is.EqualTo(0f));
+            Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(usualPriority));
+            Assert.That(LoadedSceneNames(), Is.EqualTo(new[] { "CafeScene" }));
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("CafeScene"));
+        }
+
+        [UnityTest]
+        public IEnumerator TryTravel_KeepsACameraRenderingUntilArrival()
+        {
+            yield return LoadSpace("CafeScene");
+            int framesWithoutCamera = 0;
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "CafeDoor"), Is.True);
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (
+                (SceneManager.GetActiveScene().name != "TownScene" || SpaceTravel.IsTraveling)
+                && Time.realtimeSinceStartup < deadline
+            )
+            {
+                if (Camera.allCamerasCount == 0)
+                {
+                    framesWithoutCamera++;
+                }
+
+                yield return null;
+            }
+
+            // 그리는 카메라가 없으면 Editor는 덮개 대신 "No cameras rendering"을 띄운다.
+            Assert.That(framesWithoutCamera, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingIntoTown_ShowsWeatherLikeOpeningTown()
+        {
+            // 하늘색은 게임 시각에 따라 바뀐다. 두 번 비교하는 사이 저녁으로 넘어가지 않게 시계를 멈춰 둔다.
+            PinGameClock(paused: true);
+            try
+            {
+                yield return CompareTownWeatherAfterWalkingIn();
+            }
+            finally
+            {
+                PinGameClock(paused: false);
+            }
+        }
+
+        private IEnumerator CompareTownWeatherAfterWalkingIn()
+        {
+            yield return LoadSpace("TownScene");
+            string opened = ShowEveryWeatherLook();
+            yield return LoadSpace("CafeScene");
+
+            Assert.That(SpaceTravel.TryTravel("TownScene", "CafeDoor"), Is.True);
+            yield return WaitForArrival("TownScene");
+            yield return WaitUntilCurtainOpens();
+
+            // 날씨는 어디서 들어왔든 마을 씬에 디자인한 하늘·환경광을 기준으로 바뀌어야 한다.
+            Assert.That(ShowEveryWeatherLook(), Is.EqualTo(opened));
+        }
+
+        [UnityTest]
+        public IEnumerator LittleArcade_WalkThroughOpenHallAndEnterOriginalDoor()
+        {
+            yield return LoadSpace("TownScene");
+            Transform arcade = GameObject.Find("LittleArcade").transform;
+            var player = FindPlayer();
+            Vector3 street = arcade.TransformPoint(new Vector3(2f, .05f, 2f));
+            player.Teleport(street, Quaternion.LookRotation(-arcade.forward));
+            Assert.That(
+                arcade.Find("TenantEntrances/ArcadeFrontDoor"),
+                Is.Null,
+                "오락실 외벽은 기존 창문을 유지해야 합니다."
+            );
+            Assert.That(
+                arcade.Find("TenantEntrances/StairHallDoor"),
+                Is.Null,
+                "계단실 입구는 열린 통로여야 합니다."
+            );
+            yield return WalkForward(
+                player,
+                -arcade.forward,
+                () => arcade.InverseTransformPoint(player.transform.position).z <= -.88f
+            );
+            Assert.That(
+                arcade.InverseTransformPoint(player.transform.position).z,
+                Is.LessThan(-.8f),
+                "인도에서 공용 계단실로 걸어 들어가지 못했습니다."
+            );
+            Assert.That(SpaceTravel.IsTraveling, Is.False);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                yield return WalkForward(
+                    player,
+                    side * arcade.right,
+                    () => SpaceTravel.IsTraveling
+                );
+                Assert.That(
+                    SpaceTravel.IsTraveling,
+                    Is.True,
+                    "계단실 안 원래 오락실 문에서 전환되지 않았습니다."
+                );
+                yield return WaitUntilCurtainOpens();
+                Assert.That(
+                    arcade.InverseTransformPoint(player.transform.position).x * side,
+                    Is.GreaterThan(.4f)
+                );
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator ShopDoors_AllowWalkingInAndOutWhileCoveringTheScreen()
+        {
+            yield return LoadSpace("TownScene");
+            var player = FindPlayer();
+            var failures = new List<string>();
+            var doors = Object
+                .FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
+                .Select(door => door.transform)
+                .Append(GameObject.Find("PoliceStationDoor").transform)
+                .ToArray();
+            Assert.That(doors, Has.Length.EqualTo(12));
+            foreach (var door in doors)
+            {
+                var room = door.GetComponentInParent<ShopInterior>();
+                Assert.That(room, Is.Not.Null, door.name);
+                Assert.That(
+                    Application.CanStreamedLevelBeLoaded(room.SceneName),
+                    Is.True,
+                    $"{door.name}: {room.SceneName}"
+                );
+                if (door.GetComponent<BoxCollider>() == null)
+                {
+                    Assert.That(door.parent.Find("OutsideDoorway"), Is.Not.Null, door.name);
+                    Assert.That(door.parent.Find("InsideDoorway"), Is.Not.Null, door.name);
+                }
+            }
+
+            string[] representativeDoors = { "PostOfficeDoor", "ArcadeDoor" };
+            foreach (string doorName in representativeDoors)
+            {
+                var door = doors.Single(candidate => candidate.name == doorName);
+                var room = door.GetComponentInParent<ShopInterior>();
+                Vector3 center = ShopThresholdCenter(door);
+                center.y = door.transform.position.y + .03f;
+                bool hallDoor = door.name == "ArcadeDoor" || door.name == "BookshopDoor";
+                Vector3 inward = hallDoor ? door.transform.forward : -door.transform.forward;
+                float approach = hallDoor ? 1.3f : 1.65f;
+                player.Teleport(center - inward * approach, Quaternion.LookRotation(inward));
+                foreach (var direction in new[] { inward, -inward })
+                {
+                    yield return WalkForward(player, direction, () => SpaceTravel.IsTraveling);
+                    if (!SpaceTravel.IsTraveling)
+                    {
+                        failures.Add(
+                            $"{door.name}: {door.transform.InverseTransformPoint(player.transform.position)} / lock={SpaceTravel.IsLocked}, movement={player.IsMovementLocked}"
+                        );
+                        break;
+                    }
+                    float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+                    while (Vector3.Dot(player.transform.position - center, direction) <= 0f)
+                    {
+                        Assert.That(
+                            Time.realtimeSinceStartup,
+                            Is.LessThan(deadline),
+                            $"{door.name} 문을 건너지 못했습니다."
+                        );
+                        yield return null;
+                    }
+                    Assert.That(CurtainOpacity(), Is.EqualTo(1f), $"{door.name} 이동 순간");
+                    Assert.That(player.IsMovementLocked, Is.True, door.name);
+                    yield return WaitUntilCurtainOpens();
+                    Assert.That(CurtainOpacity(), Is.Zero, door.name);
+                    Assert.That(player.IsMovementLocked, Is.False, door.name);
+                    Assert.That(
+                        Mathf.Abs(player.transform.position.y - door.position.y),
+                        Is.LessThan(0.45f),
+                        $"{door.name} 도착 층"
+                    );
+                    Assert.That(
+                        Vector3.Dot(player.transform.position - center, direction),
+                        Is.GreaterThan(.5f),
+                        $"{door.name} 도착 방향"
+                    );
+                    Assert.That(
+                        room.IsLoaded,
+                        Is.EqualTo(direction == inward),
+                        $"{door.name}: {room.SceneName}"
+                    );
+                }
+            }
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
+        [UnityTest]
+        public IEnumerator PostOffice_StreamsOnlyDuringTheVisitAfterSkippingTownTutorial()
+        {
+            TutorialState.Clear();
+            yield return LoadSpace("TownScene");
+            TutorialState.GetOrCreate("TOWN_PASSERBY").Skip();
+            yield return null;
+            yield return null;
+            Assert.That(
+                GameObject.Find("PoBoxWall"),
+                Is.Null,
+                "거리에서 우체국 실내를 로드하지 않아야 합니다."
+            );
+            Transform door = GameObject.Find("PostOfficeDoor").transform;
+            ShopInterior room = door.GetComponentInParent<ShopInterior>();
+            Assert.That(room, Is.Not.Null, "우체국 문이 실내 씬과 연결되어야 합니다.");
+            Assert.That(room.SceneName, Is.EqualTo("PostOfficeInterior"));
+            var player = FindPlayer();
+            Vector3 center = door.TransformPoint(door.GetComponent<BoxCollider>().center);
+            center.y = door.position.y + .02f;
+            player.Teleport(center + 2f * door.forward, Quaternion.LookRotation(-door.forward));
+            foreach (int side in new[] { -1, 1 })
+            {
+                yield return WalkForward(
+                    player,
+                    side * door.forward,
+                    () => SpaceTravel.IsTraveling
+                );
+                Assert.That(
+                    SpaceTravel.IsTraveling,
+                    Is.True,
+                    $"우체국 문 앞에서 전환되지 않았습니다. 거리={Vector3.Dot(player.transform.position - center, door.forward)}, 장소 잠금={SpaceTravel.IsLocked}, 이동 잠금={player.IsMovementLocked}"
+                );
+                yield return WaitUntilCurtainOpens();
+                Assert.That(
+                    Vector3.Dot(player.transform.position - center, door.forward) * side,
+                    Is.GreaterThan(.4f)
+                );
+                bool inside = side < 0;
+                Assert.That(
+                    SceneManager.GetSceneByName("PostOfficeInterior").isLoaded,
+                    Is.EqualTo(inside),
+                    $"loaded={string.Join(", ", LoadedSceneNames())}, side={side}, traveling={SpaceTravel.IsTraveling}"
+                );
+                Assert.That(GameObject.Find("PoBoxWall") != null, Is.EqualTo(inside));
+                if (inside)
+                {
+                    var lamp = SceneManager
+                        .GetSceneByName("PostOfficeInterior")
+                        .GetRootGameObjects()
+                        .SelectMany(root => root.GetComponentsInChildren<Light>())
+                        .Single(light => light.name == "InteriorLight");
+                    var weather = Object.FindFirstObjectByType<WeatherPresenter>();
+                    weather.ShowTime(12 * 60);
+                    float noonIntensity = lamp.intensity;
+                    weather.ShowTime(0);
+                    Assert.That(
+                        lamp.intensity,
+                        Is.GreaterThan(noonIntensity),
+                        "방문 중인 매장 조명도 마을의 밤 설정을 따라야 합니다."
+                    );
+                }
+            }
+        }
+
+        private static IEnumerator WalkForward(
+            PlayerMover player,
+            Vector3 direction,
+            System.Func<bool> arrived
+        )
+        {
+            var previousBackground = InputSystem.settings.backgroundBehavior;
+            var previousFocus = InputSystem.settings.editorInputBehaviorInPlayMode;
+            float previousStep = Time.captureDeltaTime;
+            Keyboard keyboard = null;
+            try
+            {
+                Time.captureDeltaTime = 1f / 60f;
+                InputSystem.settings.backgroundBehavior = InputSettings
+                    .BackgroundBehavior
+                    .IgnoreFocus;
+                InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
+                    .EditorInputBehaviorInPlayMode
+                    .AllDeviceInputAlwaysGoesToGameView;
+                keyboard = InputSystem.AddDevice<Keyboard>();
+                yield return null;
+                yield return null;
+                player.CameraRig.SnapView(Quaternion.LookRotation(direction).eulerAngles.y);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                for (int frame = 0; frame < 100 && !arrived(); frame++)
+                {
+                    yield return null;
+                }
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                Time.captureDeltaTime = previousStep;
+                InputSystem.settings.backgroundBehavior = previousBackground;
+                InputSystem.settings.editorInputBehaviorInPlayMode = previousFocus;
+            }
         }
 
         [UnityTest]
@@ -51,23 +438,77 @@ namespace A305.World.PlayModeTests
             Transform cafeDoor = FindDoorway("CafeDoor").transform;
 
             // 문 앞 감지 영역 안에 문을 보고 세우면, 다음 이동에서 문에 닿는다.
+            // 카메라도 플레이어 뒤에 두어 앞으로 걸어 문에 들어가는 경우와 같게 한다.
             FindPlayer()
                 .Teleport(
                     cafeDoor.position + cafeDoor.forward * 0.4f,
                     Quaternion.LookRotation(-cafeDoor.forward)
                 );
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
             yield return WaitForArrival("CafeScene");
 
             AssertPlayerArrivedAt("TownDoor");
         }
 
         [UnityTest]
-        public IEnumerator EverySceneInSceneList_HasOnePlayerCameraAndArrival()
+        public IEnumerator WalkingBackwardThroughCafeDoor_KeepsWalkingAwayFromTheDoorInside()
+        {
+            yield return LoadSpace("TownScene");
+            Transform outside = FindDoorway("CafeDoor").ArrivalPoint;
+            // 문을 등지고 서서 카메라를 등 뒤에 두면, 뒤로 가는 키(S)가 문 쪽으로 걷는다.
+            FindPlayer().Teleport(outside.position, outside.rotation);
+            Object.FindFirstObjectByType<PlayerCameraRig>().SnapBehindTarget();
+
+            float oldDelta = Time.captureDeltaTime;
+            var oldBackground = InputSystem.settings.backgroundBehavior;
+            var oldEditorInput = InputSystem.settings.editorInputBehaviorInPlayMode;
+            Time.captureDeltaTime = 1f / 60f;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
+                .EditorInputBehaviorInPlayMode
+                .AllDeviceInputAlwaysGoesToGameView;
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            try
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.S));
+                yield return WaitForArrival("CafeScene");
+                Transform inside = FindDoorway("TownDoor").ArrivalPoint;
+                for (int frame = 0; frame < 45; frame++)
+                    yield return null;
+
+                Assert.That(
+                    SceneManager.GetActiveScene().name == "CafeScene" && !SpaceTravel.IsTraveling,
+                    Is.True,
+                    "Holding S must not walk back out of the cafe door."
+                );
+                Assert.That(
+                    Vector3.Dot(FindPlayer().transform.position - inside.position, inside.forward),
+                    Is.GreaterThan(1f),
+                    "Holding S must keep walking away from the door."
+                );
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
+                InputSystem.settings.backgroundBehavior = oldBackground;
+                Time.captureDeltaTime = oldDelta;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator EverySceneInSceneList_HasOnePlayerCameraArrival_AndDoorwaysThatLeadBack()
         {
             // 디자인해서 추가한 공간 씬도 Scene List에 오르면 같은 기준으로 확인한다.
+            var doorways = new List<DoorwayLink>();
             foreach (string sceneName in SceneListNames())
             {
                 yield return LoadSpace(sceneName);
+                doorways.AddRange(
+                    Object
+                        .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                        .Select(doorway => new DoorwayLink(sceneName, doorway))
+                );
 
                 Assert.That(
                     FindAll<PlayerMover>(),
@@ -83,21 +524,6 @@ namespace A305.World.PlayModeTests
                     FindAll<SpaceArrival>(),
                     Has.Length.EqualTo(1),
                     $"{sceneName}의 SpaceArrival"
-                );
-            }
-        }
-
-        [UnityTest]
-        public IEnumerator EveryDoorway_LeadsToDoorwayThatLeadsBack()
-        {
-            var doorways = new List<DoorwayLink>();
-            foreach (string sceneName in SceneListNames())
-            {
-                yield return LoadSpace(sceneName);
-                doorways.AddRange(
-                    Object
-                        .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
-                        .Select(doorway => new DoorwayLink(sceneName, doorway))
                 );
             }
 
@@ -140,6 +566,15 @@ namespace A305.World.PlayModeTests
             );
         }
 
+        private static Vector3 ShopThresholdCenter(Transform door)
+        {
+            if (door.TryGetComponent(out BoxCollider sensor))
+                return door.TransformPoint(sensor.center);
+            Transform outside = door.parent.Find("OutsideDoorway");
+            Transform inside = door.parent.Find("InsideDoorway");
+            return (outside.position + inside.position) / 2f;
+        }
+
         private static IEnumerator LoadSpace(string sceneName)
         {
             yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
@@ -162,6 +597,91 @@ namespace A305.World.PlayModeTests
 
             // 도착한 뒤 한 프레임 동안 이동·카메라 갱신이 위치를 흐트러뜨리지 않는지 함께 본다.
             yield return null;
+        }
+
+        private static string[] LoadedSceneNames()
+        {
+            return Enumerable
+                .Range(0, SceneManager.sceneCount)
+                .Select(index => SceneManager.GetSceneAt(index).name)
+                .ToArray();
+        }
+
+        /// <summary>날씨마다 바로 바꿔 보고, 화면에 쓰이는 하늘·환경광·안개 값을 글로 남긴다.</summary>
+        // 서버가 보내는 것처럼 1일차 오전 8시로 시계를 맞추고, paused면 흐르지 않게 한다.
+        // 앞선 신호의 다음 간격과 겹치지 않도록 매번 더 늦은 실제 시각을 넘긴다.
+        private static double pinnedBeatAt = 1e9;
+
+        private static void PinGameClock(bool paused)
+        {
+            pinnedBeatAt += GameClock.BeatIntervalSeconds;
+            GameClock.Shared.TickAsync(new FixedGameClockApi(paused), pinnedBeatAt);
+        }
+
+        private sealed class FixedGameClockApi : IGameClockApi
+        {
+            private readonly bool paused;
+
+            public FixedGameClockApi(bool paused)
+            {
+                this.paused = paused;
+            }
+
+            public Task<GameClockTime> BeatAsync()
+            {
+                return Task.FromResult(
+                    new GameClockTime
+                    {
+                        Day = 1,
+                        MinuteOfDay = 8 * 60,
+                        Paused = paused,
+                    }
+                );
+            }
+        }
+
+        private static string ShowEveryWeatherLook()
+        {
+            var presenter = Object.FindFirstObjectByType<WeatherPresenter>();
+            var looks = new List<string>();
+            foreach (WeatherDefinition weather in presenter.Settings.Weathers)
+            {
+                presenter.ShowImmediately(weather.Code);
+                Material sky = RenderSettings.skybox;
+                looks.Add(
+                    $"{weather.Code}: {SkyColor(sky, "_Zenith")} {SkyColor(sky, "_Horizon")} "
+                        + $"{RenderSettings.ambientSkyColor} {RenderSettings.ambientEquatorColor} "
+                        + $"{RenderSettings.ambientGroundColor} {RenderSettings.fogColor} "
+                        + $"{RenderSettings.fogStartDistance:F2} {RenderSettings.fogEndDistance:F2}"
+                );
+            }
+
+            return string.Join("\n", looks);
+        }
+
+        private static string SkyColor(Material sky, string property)
+        {
+            return sky != null && sky.HasProperty(property)
+                ? sky.GetColor(property).ToString()
+                : "none";
+        }
+
+        private static float CurtainOpacity()
+        {
+            var curtain = Object.FindFirstObjectByType<SpaceTravelCurtain>();
+            return curtain != null ? curtain.Opacity : 0f;
+        }
+
+        private static IEnumerator WaitUntilCurtainOpens()
+        {
+            float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+            while (
+                (SpaceTravel.IsTraveling || CurtainOpacity() > 0f)
+                && Time.realtimeSinceStartup < deadline
+            )
+            {
+                yield return null;
+            }
         }
 
         private static void AssertPlayerArrivedAt(string doorwayId)

@@ -56,6 +56,32 @@ public class Vocabulary extends BaseEntity {
   @Column(nullable = false, length = 20)
   private VocabularySource source;
 
+  /**
+   * 대화에서 처음 저장하는 단어·숙어·문장. 사전(시드)에 없던 말이라 예문과 단어 키가 없다. 문장 부호로 끝나면 문장(SENTENCE), 두 단어 이상이면
+   * 숙어(IDIOM)로 둔다.
+   */
+  public static Vocabulary newWord(
+      String languageCode, String text, String meaningKo, VocabularySource source) {
+    Vocabulary vocabulary = new Vocabulary();
+    vocabulary.languageCode = languageCode;
+    vocabulary.type = typeOf(text);
+    vocabulary.text = text;
+    vocabulary.meaningKo = meaningKo;
+    vocabulary.source = source;
+    return vocabulary;
+  }
+
+  // 문장 부호로 끝나는 말은 문장, 두 단어 이상은 숙어, 나머지는 단어다.
+  private static VocabularyType typeOf(String text) {
+    String trimmed = text.strip();
+    if (trimmed.matches(".*\\s.*[.?!]$")) {
+      return VocabularyType.SENTENCE;
+    }
+    return trimmed.chars().anyMatch(Character::isWhitespace)
+        ? VocabularyType.IDIOM
+        : VocabularyType.WORD;
+  }
+
   /** 만든 발음 파일을 연결한다(WORLD-04). */
   public void attachPronunciation(String pronunciationAudioKey) {
     this.pronunciationAudioKey = pronunciationAudioKey;

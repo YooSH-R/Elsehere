@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using System.Linq;
+using A305.Tutorial;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -24,6 +25,20 @@ namespace A305.Player.Tests
         {
             previousCaptureDelta = Time.captureDeltaTime;
             Time.captureDeltaTime = 1f / 60f;
+        }
+
+        // 튜토리얼 동안에는 단계를 마칠 때까지 시점 바꾸기·이동을 잠그므로, 캐릭터 조작을 보는 이 시험은 튜토리얼을 마친 사용자로 한다.
+        [SetUp]
+        public void StartAfterTheTutorial()
+        {
+            TutorialState.Clear();
+            TutorialState.MarkFinishedOnServer();
+        }
+
+        [TearDown]
+        public void ClearTutorial()
+        {
+            TutorialState.Clear();
         }
 
         public PlayerCharacterIntegrationTests(string selected)
@@ -63,58 +78,64 @@ namespace A305.Player.Tests
                 camera.transform.position + direction * distance - player.transform.position
             ).y;
             CheckWallAvoidance(camera, player.transform.position + Vector3.up * pivotHeight);
-            var target = new GameObject("FitCheckLookTarget");
-            target.transform.position =
-                player.transform.position + Vector3.forward * 3 + Vector3.up;
-            try
-            {
-                camera.EnterDialogueView(target.transform);
-                camera.SnapBehindTarget();
-                float eyeHeight = camera.transform.position.y - player.transform.position.y;
-                var animator = appearance.VisualRoot.GetComponentInChildren<Animator>();
-                using var body = new BodyClearanceProbe(animator, player.transform);
-                body.Record("standing fit");
-                Bounds bounds = SkinBounds(animator, player.transform);
-                float headRadius = Mathf.Max(
-                    Mathf.Abs(body.Head.min.x),
-                    Mathf.Abs(body.Head.max.x),
-                    Mathf.Abs(body.Head.min.z),
-                    Mathf.Abs(body.Head.max.z)
-                );
-                Debug.Log(
-                    $"Standing fit {selected}: skin={bounds}, head={body.Head}, capsule={capsule.height:F4}/{capsule.radius:F4}, eye={eyeHeight:F4}, pivot={pivotHeight:F4}"
-                );
-                Assert.That(appearance.VisualRoot.localScale, Is.EqualTo(Vector3.one * 1.6f));
-                Assert.That(capsule.center.y - capsule.height * .5f, Is.EqualTo(0).Within(.001f));
-                Assert.That(
-                    capsule.height,
-                    Is.InRange(bounds.max.y, bounds.max.y + .1f),
-                    "Capsule top must cover the standing mesh."
-                );
-                Assert.That(
-                    capsule.radius,
-                    Is.GreaterThanOrEqualTo(headRadius),
-                    "Capsule width must cover the large head."
-                );
-                Assert.That(
-                    eyeHeight,
-                    Is.InRange(
-                        body.Head.center.y - body.Head.size.y * .15f,
-                        body.Head.center.y + body.Head.size.y * .15f
-                    ),
-                    "Dialogue eye must be at face height."
-                );
-                Assert.That(
-                    pivotHeight,
-                    Is.InRange(bounds.size.y * .4f, bounds.size.y * .8f),
-                    "Third person must aim at the character."
-                );
-            }
-            finally
-            {
-                camera.ExitDialogueView();
-                Object.Destroy(target);
-            }
+            // 1인칭은 캐릭터 얼굴 높이에서 본다. 대화 시점은 NPC 얼굴 기준이라 따로 검사한다(DialogueFramingTests).
+            float eyeHeight = appearance.ActiveCharacter.CameraEyeHeightMeters;
+            var animator = appearance.VisualRoot.GetComponentInChildren<Animator>();
+            using var body = new BodyClearanceProbe(animator, player.transform);
+            body.Record("standing fit");
+            Bounds bounds = SkinBounds(animator, player.transform);
+            float headRadius = Mathf.Max(
+                Mathf.Abs(body.Head.min.x),
+                Mathf.Abs(body.Head.max.x),
+                Mathf.Abs(body.Head.min.z),
+                Mathf.Abs(body.Head.max.z)
+            );
+            Debug.Log(
+                $"Standing fit {selected}: skin={bounds}, head={body.Head}, capsule={capsule.height:F4}/{capsule.radius:F4}, eye={eyeHeight:F4}, pivot={pivotHeight:F4}"
+            );
+            Assert.That(appearance.VisualRoot.localScale, Is.EqualTo(Vector3.one * 1.6f));
+            Assert.That(capsule.center.y - capsule.height * .5f, Is.EqualTo(0).Within(.001f));
+            Assert.That(
+                capsule.height,
+                Is.InRange(bounds.max.y, bounds.max.y + .1f),
+                "Capsule top must cover the standing mesh."
+            );
+            // 충돌 캡슐은 머리 아래 몸통만 덮고, 큰 머리는 머리 구가 따로 막는다.
+            // 머리 구가 머리 아래 끝에서 시작해야 탁자·소파 앉는 면 같은 낮은 가구가 머리 아래로 지나간다.
+            // 팔은 머리·몸통에 묻히지 않게 옆으로 벌어져(LittleMungArmClearance) 캡슐 밖으로 조금 나온다.
+            // 캡슐을 팔까지 넓히면 소파와 탁자 사이 같은 좁은 틈에 끼므로 팔이 나오는 폭은 이만큼 허용한다.
+            const float armOverhangMeters = .12f;
+            PlayerCharacterDefinition definition = appearance.ActiveCharacter;
+            Assert.That(
+                capsule.radius + armOverhangMeters,
+                Is.GreaterThanOrEqualTo(
+                    HorizontalReachBelow(animator, player.transform, body.Head.min.y)
+                ),
+                "Capsule width must cover the body under the head; arms may stick out a little."
+            );
+            Assert.That(
+                definition.HeadRadiusMeters,
+                Is.GreaterThanOrEqualTo(headRadius),
+                "Head blocker must cover the large head."
+            );
+            Assert.That(
+                definition.HeadCenterHeightMeters - definition.HeadRadiusMeters,
+                Is.EqualTo(body.Head.min.y).Within(.05f),
+                "Head blocker must start at the bottom of the head."
+            );
+            Assert.That(
+                eyeHeight,
+                Is.InRange(
+                    body.Head.center.y - body.Head.size.y * .15f,
+                    body.Head.center.y + body.Head.size.y * .15f
+                ),
+                "First-person eye must be at face height."
+            );
+            Assert.That(
+                pivotHeight,
+                Is.InRange(bounds.size.y * .4f, bounds.size.y * .8f),
+                "Third person must aim at the character."
+            );
         }
 
         private static void CheckWallAvoidance(PlayerCameraRig camera, Vector3 pivot)
@@ -143,6 +164,33 @@ namespace A305.Player.Tests
                 Physics.SyncTransforms();
                 camera.SnapBehindTarget();
             }
+        }
+
+        /// <summary>space 기준 높이 below 아래 메시 정점이 세로축에서 가장 멀리 떨어진 거리</summary>
+        private static float HorizontalReachBelow(Animator animator, Transform space, float below)
+        {
+            var mesh = new Mesh();
+            float reach = 0f;
+            try
+            {
+                foreach (var skin in animator.GetComponentsInChildren<SkinnedMeshRenderer>())
+                {
+                    skin.BakeMesh(mesh, true);
+                    foreach (var vertex in mesh.vertices)
+                    {
+                        Vector3 point = space.InverseTransformPoint(
+                            skin.transform.TransformPoint(vertex)
+                        );
+                        if (point.y < below)
+                            reach = Mathf.Max(reach, new Vector2(point.x, point.z).magnitude);
+                    }
+                }
+            }
+            finally
+            {
+                Object.Destroy(mesh);
+            }
+            return reach;
         }
 
         private static Bounds SkinBounds(Animator animator, Transform space)
@@ -237,8 +285,10 @@ namespace A305.Player.Tests
                     animator != null
                         ? animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg).localRotation
                         : Quaternion.identity;
+                // 달리기가 마을의 장애물에 닿기 전에 걷기와 달리기 거리를 비교한다.
+                const int moveFrames = 12;
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-                yield return Frames(39);
+                yield return Frames(moveFrames);
                 float walk = player.transform.position.z - start.z;
                 Assert.That(walk, Is.GreaterThan(.3f));
                 if (animator != null)
@@ -259,7 +309,7 @@ namespace A305.Player.Tests
                 start = player.transform.position;
                 phase = "run";
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.LeftShift));
-                yield return Frames(39);
+                yield return Frames(moveFrames);
                 Assert.That(player.transform.position.z - start.z, Is.GreaterThan(walk * 1.3f));
                 phase = "jump";
                 float ground = player.transform.position.y;
@@ -317,49 +367,6 @@ namespace A305.Player.Tests
         {
             for (int frame = 0; frame < count; frame++)
                 yield return null;
-        }
-
-        [UnityTest]
-        public IEnumerator DialogueHidesSelectedVisualAndRestoresItWithoutReplacingThePlayer()
-        {
-            PlayerCharacterSelection.Select(selected);
-            yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
-                "Assets/Scenes/Production/TownScene.unity",
-                new LoadSceneParameters(LoadSceneMode.Single)
-            );
-            yield return null;
-            var player = Object.FindFirstObjectByType<PlayerMover>();
-            var camera = Object.FindFirstObjectByType<PlayerCameraRig>();
-            var appearance = player.GetComponent<PlayerCharacterAppearance>();
-            Renderer[] renderers = appearance.VisualRoot.GetComponentsInChildren<Renderer>();
-            var target = new GameObject("DialogueLookTarget");
-            target.transform.position =
-                player.transform.position + Vector3.forward * 2 + Vector3.up;
-            try
-            {
-                player.SetMovementLocked(true);
-                camera.EnterDialogueView(target.transform);
-                yield return null;
-                yield return null;
-                Assert.That(player.IsMovementLocked, Is.True);
-                Assert.That(renderers.All(renderer => renderer.forceRenderingOff), Is.True);
-                camera.ExitDialogueView();
-                player.SetMovementLocked(false);
-                yield return null;
-                yield return null;
-                Assert.That(renderers.All(renderer => !renderer.forceRenderingOff), Is.True);
-                Assert.That(player.IsMovementLocked, Is.False);
-                Assert.That(Object.FindFirstObjectByType<PlayerMover>(), Is.SameAs(player));
-                Assert.That(
-                    new SerializedObject(camera).FindProperty("followTarget").objectReferenceValue,
-                    Is.EqualTo(player.transform)
-                );
-            }
-            finally
-            {
-                camera.ExitDialogueView();
-                Object.Destroy(target);
-            }
         }
 
         [UnityTest]

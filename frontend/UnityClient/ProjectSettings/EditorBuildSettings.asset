@@ -23,6 +23,42 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Production/ShopScene.unity
     guid: 776f1d474a97eb2428f3afcf81b3fab3
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/HomeLivingInterior.unity
+    guid: 5bf2b85e606081c4da9e9e7b4360611d
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/LittleArcadeInterior.unity
+    guid: 31ba4584322a3e342b277770188282be
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/MapleBakeryInterior.unity
+    guid: acc78e803223219479682e9bd530caaf
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/BloomFlowersInterior.unity
+    guid: e8f75a80de2a85547b143df306849379
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/MainStreetBarberInterior.unity
+    guid: e4530ca1e7502e041b7a30ead3bbe7ee
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/MapleDinerInterior.unity
+    guid: 84eb723dbe004694d81680f114c3c278
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/PoliceStationInterior.unity
+    guid: ce1e4f50226d5df488893b41db799ce1
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/PostOfficeInterior.unity
+    guid: b9f5e8484ea38dd458cc4abc410352b0
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/SudsLaundromatInterior.unity
+    guid: a82e8cdf698cfaa4eb183b93f8411ca2
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/TownBankInterior.unity
+    guid: 40b7bc6d30dd31b4887e03b59773e70c
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/HomeLivingUpperInterior.unity
+    guid: 544f3cbc53eeac042a7e852cd3916b15
+  - enabled: 1
+    path: Assets/Scenes/ShopInteriors/LittleArcadeUpperInterior.unity
+    guid: df778affe98355140ad591ac1279249a
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

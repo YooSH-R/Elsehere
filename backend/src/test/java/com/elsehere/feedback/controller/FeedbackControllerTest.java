@@ -20,6 +20,7 @@ import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.dto.IdiomResponse;
 import com.elsehere.feedback.dto.ReviewsResponse;
 import com.elsehere.feedback.dto.SuggestionResponse;
+import com.elsehere.feedback.dto.VocabCandidateResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
 import com.elsehere.feedback.service.FeedbackService;
 import java.util.List;
@@ -45,7 +46,10 @@ class FeedbackControllerTest {
           "라테를 주문했어요.",
           new ReviewsResponse(List.of("분명히 말했어요"), List.of("공손하게 말해 보세요")),
           new SuggestionResponse("I want latte", "I'd like a latte, please."),
-          null);
+          null,
+          List.of(),
+          List.of(
+              new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요.")));
   private static final DetailedFeedbackItemResponse ITEM =
       new DetailedFeedbackItemResponse(
           1L,
@@ -61,7 +65,7 @@ class FeedbackControllerTest {
   @MockitoBean private FeedbackService feedbackService;
 
   @Test
-  @DisplayName("GET /feedback은 짧은 피드백과 상세 평가를 함께 돌려준다")
+  @DisplayName("GET /feedback은 짧은 피드백(단어장 후보 포함)과 상세 평가를 함께 돌려준다")
   void feedback_respondsFeedbackAndDetails() throws Exception {
     given(feedbackService.feedback(1L, 5L))
         .willReturn(
@@ -80,6 +84,11 @@ class FeedbackControllerTest {
         .andExpect(jsonPath("$.feedback.status").value("DONE"))
         .andExpect(jsonPath("$.feedback.reviews.good[0]").value("분명히 말했어요"))
         .andExpect(jsonPath("$.feedback.suggestion.betterText").value("I'd like a latte, please."))
+        .andExpect(jsonPath("$.feedback.vocabCandidates[0].expression").value("latte"))
+        .andExpect(jsonPath("$.feedback.vocabCandidates[0].meaningKo").value("라떼"))
+        .andExpect(
+            jsonPath("$.feedback.vocabCandidates[0].exampleEn").value("I'd like an iced latte."))
+        .andExpect(jsonPath("$.feedback.vocabCandidates[0].exampleKo").value("아이스 라떼 주세요."))
         .andExpect(jsonPath("$.detailedFeedback[0].idiom.meaningKo").value("~로 주세요"));
   }
 

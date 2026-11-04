@@ -71,6 +71,9 @@ def test_every_need_has_a_drop_rate():
         (("conversationEvents", "RUDE", "mood", "ANGRY"), 2, ("conversationEvents", "RUDE", "mood")),  # 없는 감정
         (("conversationEvents", "RUDE", "memorySalience"), 4, None),  # 인상 세기는 1~3
         (("relationship", "affinityFollowRate"), 2, None),  # 비율은 0~1
+        (("relationship", "liked"), -5, None),  # 좋아하는 티는 호감이 플러스일 때
+        (("relationship", "disliked"), 5, None),  # 싫어하는 티는 호감이 마이너스일 때
+        (("mood", "showsAt"), 0, None),  # 기분 세기는 0 초과~3
         (("memory", "recallAt"), 1.5, None),
         (("derivation", 0, "target"), "speed", None),  # 계산할 수 있는 생활 값만
         (("derivation", 0, "axis"), "humor", None),
@@ -129,7 +132,23 @@ NPCS = npc_life_rules.ROOT / "ai/npcs"
 
 
 def test_every_service_npc_has_a_life_file_without_problems():
-    assert sorted(path.stem for path in npc_life_rules.LIFE_FOLDER.glob("*.json")) == ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]
+    assert sorted(path.stem for path in npc_life_rules.LIFE_FOLDER.glob("*.json")) == [
+        "ARCADE_STAFF",
+        "BAKERY_STAFF",
+        "BANK_STAFF",
+        "BARBER_STAFF",
+        "CAFE_STAFF",
+        "DINER_STAFF",
+        "FLOWER_SHOP_STAFF",
+        "HOME_STORE_STAFF",
+        "HOTEL_STAFF",
+        "LAUNDROMAT_STAFF",
+        "POLICE_OFFICER",
+        "POST_OFFICE_STAFF",
+        "SHOP_STAFF",
+        "TAXI_DRIVER",
+        "TOWN_PASSERBY",
+    ]
     assert npc_life_rules.life_problems(NPCS) == []
 
 

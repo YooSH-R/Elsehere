@@ -1,0 +1,219 @@
+using System.Collections.Generic;
+using A305.Player;
+using UnityEngine;
+
+namespace A305.World
+{
+    /// <summary>
+    /// 마을 본길을 천천히 도는 차. 본길 신호가 초록이 아니면 교차로 정지선에서 서고,
+    /// 차 앞을 사람이나 다른 차가 막고 있으면 선다. 택시처럼 손님 옆에 서야 할 때는 <see cref="PullOverAt"/>으로
+    /// 설 자리를 정하고 <see cref="Release"/>로 다시 보낸다. 길 계산은 <see cref="CarLoopRoute"/>가 맡는다.
+    /// 주차 트럭 옆과 남쪽 유턴은 두 차가 비켜 지나갈 수 없어, 다른 차가 그 구간에 있으면 구간 입구에서 기다린다.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class LoopingCar : MonoBehaviour
+    {
+        private static readonly List<LoopingCar> Driving = new List<LoopingCar>();
+
+        private const float SingleLaneClearanceMeters = 4f;
+
+        [SerializeField]
+        [Tooltip("남쪽 유턴 지점 z")]
+        private float southZ = -6f;
+
+        [SerializeField]
+        [Tooltip("북쪽 유턴 지점 z")]
+        private float northZ = 66f;
+
+        [SerializeField]
+        [Tooltip("도로 가운데에서 차로 가운데까지의 거리(m)")]
+        private float laneOffset = 1.5f;
+
+        [SerializeField]
+        private float speedMetersPerSecond = 2.5f;
+
+        [SerializeField]
+        [Tooltip("길 위 출발 거리(m). 차마다 달리해 떨어져 달리게 한다.")]
+        private float startDistance;
+
+        [SerializeField]
+        [Tooltip(
+            "남쪽 주차 트럭을 피해 중앙 쪽으로 비켜가는 거리. 남쪽까지 운행하는 택시에만 설정한다."
+        )]
+        private float parkedTruckBypassOffset;
+
+        [SerializeField]
+        private TrafficLights lights;
+
+        [SerializeField]
+        [Tooltip("본길 신호를 보고 서는 정지선. 길 위 거리(m)로 적는다.")]
+        private List<float> signalStops = new List<float>();
+
+        [SerializeField]
+        private PlayerMover player;
+
+        private readonly List<float> stops = new List<float>();
+        private float? pullOverDistance;
+        private float height;
+        private bool passengerOnBoard;
+
+        public void SetPassengerOnBoard(bool onBoard) => passengerOnBoard = onBoard;
+
+        /// <summary>
+        /// 순찰차가 주차 칸·진입로에 있을 때처럼 다른 컴포넌트가 차를 움직이는 동안 길을 따라 움직이지 않는다.
+        /// 꺼 두는 것과 달리 다른 차는 이 차를 계속 보고 피한다.
+        /// </summary>
+        public bool IsHeld { get; set; }
+
+        /// <summary><see cref="IsHeld"/>로 다른 컴포넌트가 움직이는 동안 한 대씩 구간을 쓰고 있는지. 순찰차 진입로가 정한다.</summary>
+        public bool HoldsSingleLane { get; set; }
+
+        /// <summary>
+        /// 트럭 옆·남쪽 유턴의 한 대씩 구간(<see cref="CarLaneBypass.IsInSingleLane"/>)을 쓰고 있는지.
+        /// 구간 입구에서 비켜 가기 시작하는 차는 앞모서리가 맞은편 차로로 비스듬히 들어가므로, 차 앞뒤로 한 대 길이만큼 여유를 둔다.
+        /// </summary>
+        public bool IsInSingleLane =>
+            IsHeld
+                ? HoldsSingleLane
+                : PassesParkedTruck
+                    && (
+                        CarLaneBypass.IsInSingleLane(Route, Distance - SingleLaneClearanceMeters)
+                        || CarLaneBypass.IsInSingleLane(Route, Distance + SingleLaneClearanceMeters)
+                    );
+
+        /// <summary>다른 차가 한 대씩 구간을 쓰고 있는지</summary>
+        public bool IsSingleLaneTaken
+        {
+            get
+            {
+                foreach (LoopingCar other in Driving)
+                {
+                    if (other != this && other.IsInSingleLane)
+                        return true;
+                }
+                return false;
+            }
+        }
+
+        public TrafficLights Lights => lights;
+
+        public CarLoopRoute Route { get; private set; }
+
+        /// <summary>출발점에서 잰 지금 위치(m)</summary>
+        public float Distance { get; private set; }
+
+        /// <summary>정한 자리에 세웠고 그 자리에 섰는지</summary>
+        public bool HasPulledOver =>
+            pullOverDistance.HasValue
+            && Mathf.Repeat(pullOverDistance.Value - Distance, Route.Length) < .01f;
+
+        public void PullOverAt(float distance)
+        {
+            pullOverDistance = distance;
+        }
+
+        /// <summary>다가오는 모습 없이 정한 자리로 옮겨 바로 세운다. <see cref="Release"/>로 다시 보낸다.</summary>
+        public void StopAt(float distance)
+        {
+            Distance = Mathf.Repeat(distance, Route.Length);
+            pullOverDistance = Distance;
+            Place();
+        }
+
+        public void Release()
+        {
+            pullOverDistance = null;
+        }
+
+        private void Awake()
+        {
+            Route = new CarLoopRoute(southZ, northZ, laneOffset);
+            Distance = startDistance;
+            height = transform.position.y;
+        }
+
+        private void OnEnable()
+        {
+            Driving.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            Driving.Remove(this);
+        }
+
+        private void Update()
+        {
+            if (IsHeld)
+                return;
+            CarLoopRoute.Pose pose = CarLaneBypass.PoseAt(Route, Distance, parkedTruckBypassOffset);
+            if (IsBlocked(pose))
+            {
+                return;
+            }
+
+            stops.Clear();
+            if (lights != null && lights.Main != SignalLight.Green)
+            {
+                stops.AddRange(signalStops);
+            }
+
+            if (pullOverDistance.HasValue)
+            {
+                stops.Add(pullOverDistance.Value);
+            }
+
+            // 이미 구간 안에 있으면 입구는 한 바퀴 뒤라 서지 않는다.
+            if (PassesParkedTruck && IsSingleLaneTaken)
+            {
+                stops.Add(CarLaneBypass.SingleLaneEntry(Route));
+            }
+
+            bool isPassing = Mathf.Abs(pose.Position.x - Route.PoseAt(Distance).Position.x) > .01f;
+            float speed = isPassing ? Mathf.Min(3, speedMetersPerSecond) : speedMetersPerSecond;
+            Distance = Route.Advance(Distance, speed * Time.deltaTime, stops);
+            Place();
+        }
+
+        // 남쪽 끝까지 달려 주차 트럭을 비켜 가는 차(택시·순찰차)만 한 대씩 구간을 지난다.
+        private bool PassesParkedTruck => parkedTruckBypassOffset > 0;
+
+        private bool IsBlocked(CarLoopRoute.Pose pose)
+        {
+            if (
+                !passengerOnBoard
+                && player != null
+                && CarLoopRoute.ShouldYield(pose.Position, pose.Forward, player.transform.position)
+            )
+            {
+                return true;
+            }
+
+            foreach (LoopingCar other in Driving)
+            {
+                if (
+                    other != this
+                    && CarLoopRoute.ShouldYield(
+                        pose.Position,
+                        pose.Forward,
+                        other.transform.position
+                    )
+                )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void Place()
+        {
+            CarLoopRoute.Pose pose = CarLaneBypass.PoseAt(Route, Distance, parkedTruckBypassOffset);
+            transform.SetPositionAndRotation(
+                pose.Position + Vector3.up * height,
+                Quaternion.LookRotation(pose.Forward)
+            );
+        }
+    }
+}

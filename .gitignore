@@ -10,6 +10,7 @@ CLAUDE.local.md
 __pycache__/
 *.pyc
 ai/feedback/local_results/
+ai/tools/results/
 
 # CI reports and dependency caches
 .gradle/

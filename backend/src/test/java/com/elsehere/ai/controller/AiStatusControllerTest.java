@@ -34,7 +34,7 @@ class AiStatusControllerTest {
   void loggedIn_getsStatusAndCapabilities() throws Exception {
     given(aiStatusService.status(1L))
         .willReturn(
-            new AiStatusResponse(AiStatus.AI_EXHAUSTED, new Capabilities(false, true, true)));
+            new AiStatusResponse(AiStatus.AI_EXHAUSTED, new Capabilities(false, true, true), 0));
 
     mockMvc
         .perform(get("/api/v1/ai/status").with(authentication(loggedIn(1L))))
@@ -43,7 +43,21 @@ class AiStatusControllerTest {
         .andExpect(jsonPath("$.capabilities.canStartConversation").value(false))
         .andExpect(jsonPath("$.capabilities.canUseSpeech").value(true))
         .andExpect(jsonPath("$.capabilities.canGenerateFeedback").value(true))
+        .andExpect(jsonPath("$.remainingConversations").value(0))
         .andExpect(jsonPath("$.quota").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("남은 대화 수가 없는 가입 사용자에게는 remainingConversations를 담지 않는다")
+  void member_omitsRemainingConversations() throws Exception {
+    given(aiStatusService.status(1L))
+        .willReturn(
+            new AiStatusResponse(AiStatus.AI_AVAILABLE, new Capabilities(true, true, true), null));
+
+    mockMvc
+        .perform(get("/api/v1/ai/status").with(authentication(loggedIn(1L))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.remainingConversations").doesNotExist());
   }
 
   @Test

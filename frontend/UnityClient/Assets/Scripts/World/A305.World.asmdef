@@ -3,7 +3,9 @@
     "rootNamespace": "A305.World",
     "references": [
         "A305.Api",
-        "A305.Player"
+        "A305.Player",
+        "A305.Weather",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

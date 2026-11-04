@@ -48,6 +48,8 @@
 ```
 
 - `-runTests`는 테스트가 끝나면 Editor를 종료하므로 `-quit`을 함께 쓰지 않습니다. PlayMode는 `-testPlatform PlayMode`로 실행합니다.
+- Red-Green 반복 중에는 `-testFilter`로 작성 중인 테스트와 바꾼 코드를 쓰는 묶음만 실행합니다. 여러 묶음은 `;`로 잇습니다. 예: `-testFilter "A305.World.PlayModeTests.SpaceTravelTests;A305.Npc.PlayModeTests.NpcRoutineTests"`
+- 푸시하기 전에는 저장소 최상위에서 `./infra/scripts/run-unity-ci.ps1 -Action test`로 CI와 같은 조건(Tripo 입력 포함)의 EditMode·PlayMode 전체를 한 번 실행하고, `dotnet csharpier check Assets/Scripts Assets/Tests`로 형식을 확인합니다.
 - 결과 파일은 저장소 밖에 저장합니다.
 - Editor가 프로젝트를 열고 있거나 Unity를 실행할 수 없으면, 테스트를 작성한 뒤 사용자에게 Test Runner 실행을 요청하고 결과를 받아 다음 단계로 진행합니다. 요청 횟수를 줄이려고 관련 시나리오 몇 개를 묶어 확인할 수 있지만, 구현 전에 묶은 테스트가 모두 실패하는지 먼저 확인합니다.
 - 결과를 확인하기 전에는 Red·Green을 확인했다고 보고하지 않습니다.

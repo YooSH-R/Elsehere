@@ -30,12 +30,13 @@ namespace A305.EditorTools.Npc
             "Assets/Data/Npc/TutorialPasserbySettings.asset";
         private const string TownSettingsPath = "Assets/Data/Npc/TownPasserbySettings.asset";
         private const string CafeStaffSettingsPath = "Assets/Data/Npc/CafeStaffSettings.asset";
-        private const string MockLinesPath = "Assets/Data/Npc/MockNpcLines.asset";
+        internal const string MockLinesPath = "Assets/Data/Npc/MockNpcLines.asset";
         private const string TownScenePath = "Assets/Scenes/Production/TownScene.unity";
         private const string CafeScenePath = "Assets/Scenes/Production/CafeScene.unity";
 
         // NPC 키는 ERD npcs.code 값으로 쓴다. 서버 시드 데이터와 같아야 한다.
-        private const string TutorialPasserbyCode = "TUTORIAL_PASSERBY";
+        // 튜토리얼 동안 Ben이 쓰는 길 안내 대본·인사말의 키. 예전에는 따로 둔 튜토리얼 행인의 NPC 키였다.
+        private const string TutorialScriptKey = "TUTORIAL_PASSERBY";
         private const string TownPasserbyCode = "TOWN_PASSERBY";
         private const string CafeStaffCode = "CAFE_STAFF";
 
@@ -44,13 +45,29 @@ namespace A305.EditorTools.Npc
         private const float BodyRadiusMeters = 0.3f;
 
         // 서버 연동 전 확인용 인사말. 서버 NPC·시나리오 데이터가 준비되면 서버 값을 쓴다.
+        private const string RetiredShopGreeting =
+            "Hi! Welcome to the convenience store. Can I help you find something?";
+
         private static readonly (string NpcCode, string Greeting)[] MockGreetings =
         {
-            (TutorialPasserbyCode, "Excuse me! Could you help me? I'm looking for the cafe."),
+            (TutorialScriptKey, "Excuse me! Could you help me? I'm looking for the cafe."),
             (TownPasserbyCode, "Hi there! Nice weather today, isn't it?"),
             (CafeStaffCode, "Hi there! Welcome to the corner café. Would you like to order?"),
             ("HOTEL_STAFF", "Good afternoon! Welcome to Maple House. Are you checking in?"),
-            ("SHOP_STAFF", "Hi! Welcome to the convenience store. Can I help you find something?"),
+            ("SHOP_STAFF", "Hi! Welcome to the drugstore. Can I help you find something?"),
+            ("POLICE_OFFICER", "Hello, this is the Maple Town police. How can I help you?"),
+            ("POST_OFFICE_STAFF", "Good morning. Are you sending something today?"),
+            ("DINER_STAFF", "Hi, hon! Welcome to Maple Diner. Table for one?"),
+            ("BANK_STAFF", "Good afternoon. Welcome to Town Bank. How may I help you?"),
+            ("LAUNDROMAT_STAFF", "Hey there! Need a hand with the machines?"),
+            (
+                "FLOWER_SHOP_STAFF",
+                "Oh, hello... Welcome to Bloom Flowers. Looking for anything special?"
+            ),
+            ("BARBER_STAFF", "Hey! Come on in. Just a trim today?"),
+            ("BAKERY_STAFF", "Good morning, dear! The bread just came out of the oven."),
+            ("ARCADE_STAFF", "Yo! Welcome to Little Arcade. Want to try the claw machine?"),
+            ("HOME_STORE_STAFF", "Welcome to Home and Living. Feel free to look around."),
         };
 
         [MenuItem(MenuPath)]
@@ -79,11 +96,13 @@ namespace A305.EditorTools.Npc
                 restSeconds: 15f,
                 canDecline: false
             );
+            // 마을 행인은 하루에 한 번만 먼저 다가온다. 그 뒤로는 플레이어가 먼저 말을 건다.
             CreateSettingsIfMissing(
                 TownSettingsPath,
                 detectRadiusMeters: 6f,
                 restSeconds: 60f,
-                canDecline: true
+                canDecline: true,
+                approachesOncePerDay: true
             );
             // 카페 직원은 카운터 뒤에 서 있다가, 카운터 앞까지 오면 걷지 않고 그 자리에서 대화를 제안한다.
             CreateSettingsIfMissing(
@@ -100,7 +119,9 @@ namespace A305.EditorTools.Npc
         }
 
         /// <summary>
-        /// 마을에 튜토리얼 행인(집 앞)과 일반 행인(동서 길)을 둔다. 같은 NPC 키의 행인이 이미 있으면 위치를 바꾸지 않는다.
+        /// 마을 행인 Ben을 집 앞에 둔다. Ben은 튜토리얼 동안 길을 묻고(튜토리얼 설정), 마친 뒤에는 평소 행인으로 지낸다.
+        /// 예전처럼 튜토리얼 행인(집 앞)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지운다.
+        /// Ben이 이미 있으면 위치를 바꾸지 않는다.
         /// </summary>
         public static void PlacePasserbysInTown()
         {
@@ -111,37 +132,49 @@ namespace A305.EditorTools.Npc
 
             Scene town = EditorSceneManager.OpenScene(TownScenePath, OpenSceneMode.Single);
             SceneGroups groups = BuilderTools.EnsureGroups(town);
-            string[] placedCodes = BuilderTools
-                .FindAllInScene<NpcIdentity>(town)
-                .Select(identity => identity.Code)
-                .ToArray();
-
-            if (!placedCodes.Contains(TutorialPasserbyCode))
+            NpcIdentity[] placed = BuilderTools.FindAllInScene<NpcIdentity>(town);
+            NpcIdentity ben = placed.FirstOrDefault(identity => identity.Code == TownPasserbyCode);
+            NpcIdentity retiredTutorial = placed.FirstOrDefault(identity =>
+                identity.Code == TutorialScriptKey
+            );
+            if (retiredTutorial != null)
             {
-                // 집 문 앞(-3.5, 0, -16)에서 6.7m 떨어진 큰길 위. 집을 바라본다.
-                Place(
-                    groups,
-                    TutorialPasserbyCode,
-                    "TutorialPasserby",
-                    TutorialSettingsPath,
-                    new Vector3(2.5f, 0f, -13f),
-                    -90f
-                );
+                // 집 앞에서 길을 묻던 튜토리얼 행인이 Ben이다. 그 자리와 모습을 지키고 동서 길의 Ben은 지운다.
+                if (ben != null)
+                {
+                    Object.DestroyImmediate(ben.gameObject);
+                }
+
+                BuilderTools.SetText(retiredTutorial, "code", TownPasserbyCode);
+                retiredTutorial.gameObject.name = "TownPasserby";
+                PrefabUtility.RecordPrefabInstancePropertyModifications(retiredTutorial.gameObject);
+                ben = retiredTutorial;
             }
 
-            if (!placedCodes.Contains(TownPasserbyCode))
+            if (ben == null)
             {
-                // 출입구에서 떨어진 동서 길 서쪽. 건물에서 나오자마자 붙잡지 않는다.
+                // 집 문 앞(-3.5, 0, -16)에서 6.7m 떨어진 큰길 위. 집을 바라본다.
                 Place(
                     groups,
                     TownPasserbyCode,
                     "TownPasserby",
                     TownSettingsPath,
-                    new Vector3(-14f, 0f, 10f),
-                    90f
+                    new Vector3(2.5f, 0f, -13f),
+                    -90f
                 );
+                ben = BuilderTools
+                    .FindAllInScene<NpcIdentity>(town)
+                    .Single(identity => identity.Code == TownPasserbyCode);
             }
 
+            var passerby = ben.GetComponent<Passerby>();
+            BuilderTools.SetReference(passerby, "settings", LoadSettings(TownSettingsPath));
+            BuilderTools.SetReference(
+                passerby,
+                "tutorialSettings",
+                LoadSettings(TutorialSettingsPath)
+            );
+            NpcVisualBuilder.Connect(ben);
             SpaceSceneSetup.Apply(town);
             BuilderTools.SaveScene(town, TownScenePath);
         }
@@ -207,7 +240,8 @@ namespace A305.EditorTools.Npc
                 BuilderTools.SetReference(passerby, "player", player);
                 BuilderTools.SetReference(passerby, "dialogue", dialogue);
                 BuilderTools.SetReference(passerby, "offerView", offer);
-                BuilderTools.RequireReferences(passerby);
+                // 튜토리얼 설정은 튜토리얼에서 길을 묻는 Ben에게만 있다.
+                BuilderTools.RequireReferences(passerby, "tutorialSettings");
             }
         }
 
@@ -347,6 +381,8 @@ namespace A305.EditorTools.Npc
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            // 게스트의 남은 대화 수. 버튼 바로 위 오른쪽에 두며 횟수 제한이 없으면 숨긴다.
+            TMP_Text remaining = FindOrCreateRemainingLabel(panel, buttons, regular);
             Button accept = UiBuilderTools.FindOrCreateButton(
                 buttons,
                 "AcceptButton",
@@ -368,6 +404,7 @@ namespace A305.EditorTools.Npc
                 80f
             );
             RectTransform talkRow = UiBuilderTools.FindOrCreateButtonRow(talkPrompt, "Buttons");
+            TMP_Text talkRemaining = FindOrCreateRemainingLabel(talkPrompt, talkRow, regular);
             Button talk = UiBuilderTools.FindOrCreateButton(
                 talkRow,
                 "TalkButton",
@@ -387,6 +424,8 @@ namespace A305.EditorTools.Npc
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "hintLabel", hint);
             BuilderTools.SetReference(view, "greetingLabel", greeting);
+            BuilderTools.SetReference(view, "remainingLabel", remaining);
+            BuilderTools.SetReference(view, "talkRemainingLabel", talkRemaining);
             BuilderTools.SetReference(view, "acceptButton", accept);
             BuilderTools.SetReference(view, "declineButton", decline);
             BuilderTools.SetReference(view, "talkPromptPanel", talkPrompt.gameObject);
@@ -404,13 +443,42 @@ namespace A305.EditorTools.Npc
             panel.gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// 버튼 줄 바로 위에 오른쪽 정렬로 두는 남은 대화 수. 처음 만들 때만 버튼 줄 앞으로 옮기고, 이미 있으면 디자인한 자리를 둔다.
+        /// </summary>
+        private static TMP_Text FindOrCreateRemainingLabel(
+            RectTransform panel,
+            RectTransform buttonRow,
+            TMP_FontAsset font
+        )
+        {
+            bool isNew = panel.Find("Remaining") == null;
+            TMP_Text remaining = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Remaining",
+                font,
+                20f,
+                new Color(0.8f, 0.82f, 0.86f),
+                PasserbyOfferText.RemainingConversations(3)
+            );
+            if (isNew)
+            {
+                remaining.alignment = TextAlignmentOptions.Right;
+                remaining.transform.SetSiblingIndex(buttonRow.GetSiblingIndex());
+                remaining.gameObject.SetActive(false);
+            }
+
+            return remaining;
+        }
+
         private static void CreateSettingsIfMissing(
             string path,
             float detectRadiusMeters,
             float restSeconds,
             bool canDecline,
             float offerDistanceMeters = 2f,
-            float walkSpeedMetersPerSecond = 1.6f
+            float walkSpeedMetersPerSecond = 1.6f,
+            bool approachesOncePerDay = false
         )
         {
             if (AssetDatabase.LoadAssetAtPath<PasserbySettings>(path) != null)
@@ -426,6 +494,7 @@ namespace A305.EditorTools.Npc
             fields.FindProperty("canDecline").boolValue = canDecline;
             fields.FindProperty("offerDistanceMeters").floatValue = offerDistanceMeters;
             fields.FindProperty("walkSpeedMetersPerSecond").floatValue = walkSpeedMetersPerSecond;
+            fields.FindProperty("approachesOncePerDay").boolValue = approachesOncePerDay;
             fields.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.CreateAsset(settings, path);
         }
@@ -433,7 +502,7 @@ namespace A305.EditorTools.Npc
         /// <summary>
         /// 확인용 인사말 에셋이 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙인다. 이미 있는 인사말은 바꾸지 않는다.
         /// </summary>
-        private static void PrepareMockLines()
+        internal static void PrepareMockLines()
         {
             var lines = AssetDatabase.LoadAssetAtPath<MockNpcLineSource>(MockLinesPath);
             if (lines == null)
@@ -447,8 +516,11 @@ namespace A305.EditorTools.Npc
             SerializedProperty entries = fields.FindProperty("entries");
             foreach ((string npcCode, string greeting) in MockGreetings)
             {
-                if (lines.TryGetGreeting(npcCode, out _))
+                if (lines.TryGetGreeting(npcCode, out string current))
                 {
+                    // 상점을 편의점에서 드럭스토어로 바꿨다. 예전 기본 인사 그대로인 것만 새 인사로 고친다.
+                    if (current == RetiredShopGreeting && npcCode == "SHOP_STAFF")
+                        SetGreeting(entries, npcCode, greeting);
                     continue;
                 }
 
@@ -460,6 +532,16 @@ namespace A305.EditorTools.Npc
 
             fields.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(lines);
+        }
+
+        private static void SetGreeting(SerializedProperty entries, string npcCode, string greeting)
+        {
+            for (int index = 0; index < entries.arraySize; index++)
+            {
+                SerializedProperty entry = entries.GetArrayElementAtIndex(index);
+                if (entry.FindPropertyRelative("npcCode").stringValue == npcCode)
+                    entry.FindPropertyRelative("greeting").stringValue = greeting;
+            }
         }
 
         private static PasserbySettings LoadSettings(string path)

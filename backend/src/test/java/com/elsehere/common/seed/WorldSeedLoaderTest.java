@@ -23,7 +23,9 @@ import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.assertj.core.groups.Tuple;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
@@ -69,7 +72,7 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("편의점 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
+  @DisplayName("드럭스토어 포함 장소 5개를 코드·이름·Unity 씬 이름과 함께 넣고, 모두 들어갈 수 있게 연다")
   void load_insertsScenes() {
     worldSeedLoader.load();
 
@@ -80,7 +83,7 @@ class WorldSeedLoaderTest {
             tuple("TOWN", "마을", "TownScene", true),
             tuple("CAFE", "모퉁이 카페", "CafeScene", true),
             tuple("HOTEL", "호텔", "HotelScene", true),
-            tuple("SHOP", "편의점", "ShopScene", true));
+            tuple("SHOP", "드럭스토어", "ShopScene", true));
   }
 
   @Test
@@ -182,7 +185,8 @@ class WorldSeedLoaderTest {
   }
 
   @Test
-  @DisplayName("NPC 4명(행인·카페 직원·호텔 직원·편의점 직원)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+  @DisplayName(
+      "NPC 15명(행인·카페 직원·호텔 직원·드럭스토어 직원·택시 기사·경찰관과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -205,8 +209,19 @@ class WorldSeedLoaderTest {
                 true,
                 "Hi there! Nice weather today, isn't it?"),
             tuple("CAFE", "CAFE_STAFF", "Mia", NpcType.STAFF, "카페 직원", false, null),
-            tuple("HOTEL", "HOTEL_STAFF", "Emma", NpcType.STAFF, "호텔 직원", false, null),
-            tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "편의점 직원", false, null));
+            tuple("HOTEL", "HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null),
+            tuple("SHOP", "SHOP_STAFF", "Alex", NpcType.STAFF, "드럭스토어 직원", false, null),
+            tuple("TOWN", "TAXI_DRIVER", "Joe", NpcType.STAFF, "택시 기사", false, null),
+            tuple("TOWN", "POLICE_OFFICER", "Dan", NpcType.STAFF, "경찰관", false, null),
+            tuple("TOWN", "POST_OFFICE_STAFF", "Linda", NpcType.STAFF, "우체국 직원", false, null),
+            tuple("TOWN", "DINER_STAFF", "Rosa", NpcType.STAFF, "식당 종업원", false, null),
+            tuple("TOWN", "BANK_STAFF", "Henry", NpcType.STAFF, "은행원", false, null),
+            tuple("TOWN", "LAUNDROMAT_STAFF", "Gus", NpcType.STAFF, "빨래방 주인", false, null),
+            tuple("TOWN", "FLOWER_SHOP_STAFF", "Lily", NpcType.STAFF, "꽃집 주인", false, null),
+            tuple("TOWN", "BARBER_STAFF", "Tony", NpcType.STAFF, "이발사", false, null),
+            tuple("TOWN", "BAKERY_STAFF", "Grace", NpcType.STAFF, "제빵사", false, null),
+            tuple("TOWN", "ARCADE_STAFF", "Max", NpcType.STAFF, "오락실 직원", false, null),
+            tuple("TOWN", "HOME_STORE_STAFF", "Nina", NpcType.STAFF, "매장 직원", false, null));
   }
 
   @Test
@@ -234,7 +249,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(4);
+    assertThat(npcRepository.count()).isEqualTo(15);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 
@@ -277,6 +292,106 @@ class WorldSeedLoaderTest {
         .extracting(Npc::getPersona)
         .asString()
         .contains("edited role");
+  }
+
+  @Test
+  @DisplayName("시드의 NPC마다 npc-configurations.json의 인격 카드를 넣는다")
+  void load_insertsProfilesFromNpcConfigurations() throws IOException {
+    worldSeedLoader.load();
+
+    Map<String, JsonNode> profiles = profilesInConfigurations();
+    assertThat(profiles)
+        .containsOnlyKeys(
+            "TOWN_PASSERBY",
+            "CAFE_STAFF",
+            "HOTEL_STAFF",
+            "SHOP_STAFF",
+            "TAXI_DRIVER",
+            "POLICE_OFFICER",
+            "POST_OFFICE_STAFF",
+            "DINER_STAFF",
+            "BANK_STAFF",
+            "LAUNDROMAT_STAFF",
+            "FLOWER_SHOP_STAFF",
+            "BARBER_STAFF",
+            "BAKERY_STAFF",
+            "ARCADE_STAFF",
+            "HOME_STORE_STAFF");
+    JsonMapper jsonMapper = new JsonMapper();
+    for (Npc npc : npcRepository.findAll()) {
+      JsonNode expected = profiles.get(npc.getCode());
+      JsonNode actual = npc.getProfile() == null ? null : jsonMapper.readTree(npc.getProfile());
+      assertThat(actual).as(npc.getCode()).isEqualTo(expected);
+    }
+  }
+
+  @Test
+  @DisplayName("인격 카드가 있는 NPC는 화면에 보이는 이름과 카드의 이름이 같다")
+  void load_npcNameMatchesProfileName() throws IOException {
+    worldSeedLoader.load();
+
+    profilesInConfigurations()
+        .forEach(
+            (npcCode, profile) ->
+                assertThat(npcRepository.findByCode(npcCode))
+                    .get()
+                    .extracting(Npc::getName)
+                    .as(npcCode)
+                    .isEqualTo(profile.get("name").asString()));
+  }
+
+  @Test
+  @DisplayName("인격 카드가 있는 NPC는 음성 합성 목소리가 설정 파일의 목소리와 같다")
+  void load_npcVoiceMatchesConfigurationVoice() throws IOException {
+    worldSeedLoader.load();
+
+    voicesInConfigurations()
+        .forEach(
+            (npcCode, voiceId) ->
+                assertThat(npcRepository.findByCode(npcCode))
+                    .get()
+                    .extracting(Npc::getVoiceId)
+                    .as(npcCode)
+                    .isEqualTo(voiceId));
+  }
+
+  @Test
+  @DisplayName("인격 카드는 처음 넣을 때만 쓰고, 다시 실행해도 이미 있는 카드를 바꾸지 않는다")
+  void load_keepsExistingProfile() {
+    worldSeedLoader.load();
+    entityManager
+        .createNativeQuery(
+            "update npcs set profile = '{\"name\": \"edited\"}' where code = 'CAFE_STAFF'")
+        .executeUpdate();
+
+    worldSeedLoader.load();
+    entityManager.clear();
+
+    assertThat(npcRepository.findByCode("CAFE_STAFF"))
+        .get()
+        .extracting(Npc::getProfile)
+        .asString()
+        .contains("edited");
+  }
+
+  private Map<String, JsonNode> profilesInConfigurations() throws IOException {
+    try (var input = new ClassPathResource("content/npc-configurations.json").getInputStream()) {
+      Map<String, JsonNode> profiles = new HashMap<>();
+      for (JsonNode configuration : new JsonMapper().readTree(input)) {
+        profiles.put(configuration.get("npcId").asString(), configuration.get("npcProfile"));
+      }
+      return profiles;
+    }
+  }
+
+  private Map<String, String> voicesInConfigurations() throws IOException {
+    try (var input = new ClassPathResource("content/npc-configurations.json").getInputStream()) {
+      Map<String, String> voices = new HashMap<>();
+      for (JsonNode configuration : new JsonMapper().readTree(input)) {
+        voices.put(configuration.get("npcId").asString(), configuration.get("voiceId").asString());
+      }
+      return voices;
+    }
   }
 
   private Catalog catalog() throws IOException {

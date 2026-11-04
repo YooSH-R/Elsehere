@@ -1,6 +1,6 @@
 # Characters 모듈
 
-플레이어와 NPC가 함께 쓰는 캐릭터 표현을 담당합니다. `CharacterAnimationDriver`는 이동 상태를 Animator에 전달하고, `PoseCorrectiveDriver`는 관절 자세에 맞게 모델의 보정 블렌드셰이프를 적용합니다.
+플레이어와 NPC가 함께 쓰는 캐릭터 표현을 담당합니다. `CharacterAnimationDriver`는 이동 상태와 NPC 동작 번호(`SetAction`, `Action` 파라미터가 있는 NPC 전용 컨트롤러에만 적용)를 Animator에 전달하고, `PoseCorrectiveDriver`는 관절 자세에 맞게 모델의 보정 블렌드셰이프를 적용합니다.
 
 도형으로 개발하는 동안에는 Animator가 없으므로 아무것도 하지 않습니다. 모델과 애니메이션을 붙일 때 이동 코드를 고치지 않고 Animator Controller만 준비하면 되도록 하기 위함입니다. 다른 모듈과 게임 코드를 참조하지 않습니다.
 
@@ -31,3 +31,64 @@ Controller에 없는 파라미터는 전달하지 않으며, 시작할 때 Conso
 Tripo 프리팹 Builder는 모델 옆에 `<모델 파일명>.correctives.asset`이 있으면 새 프리팹의 모델 인스턴스에 드라이버를 연결합니다. 원본 모델과 이미 존재하는 프리팹은 수정하지 않습니다. 본이나 셰이프가 없으면 설정 단계에서 오류를 내므로 모델을 교체하거나 골격을 바꾼 뒤에는 프로필을 다시 검증해야 합니다.
 
 Blender 드라이버 수식은 FBX에 자동 이식되지 않습니다. 모델별 프로필과 블렌드셰이프를 함께 배포해야 합니다. 관절 보정은 관통을 자동 탐지하는 물리 시스템이 아니며, 새 애니메이션·리타게팅·크기 설정에는 별도 외형 검수가 필요합니다.
+
+## 공통 마네킹 얼굴 검수
+
+`Assets/Scenes/Sandbox/Mannequin/LittleMung_Base_Male_Face.unity`를 열고 Play하면 중립·미소·깜박임과 발음별 입 모양을 확인할 수 있습니다. 공용 Visual을 쓰는 1.6m·1.7m 프리팹은 같은 얼굴 메시와 채널을 공유합니다. 이 검수 씬은 카페·호텔 Production 대화 연결 여부를 증명하지 않습니다.
+
+- `LeftEye`, `RightEye`는 고정된 눈 표면입니다. 깜박임으로 흰자·눈동자를 압축하지 않습니다.
+- 위·아래 눈꺼풀과 `LeftLashes`, `RightLashes`가 `eyeBlinkLeft`, `eyeBlinkRight`의 25·50·75·100 프레임을 사용합니다. 눈썹은 깜박임에 참여하지 않습니다.
+- 입술은 `SpeakingLips`의 피부 면에 만든 부드러운 굴곡입니다. 모델 좌표에서 폭 0.008m 범위에 윗입술 최대 0.0022m·아랫입술 최대 0.0028m의 볼륨을 주고 입꼬리에서는 약하게 만듭니다. 같은 피부 색상에 넓게 퍼지는 명도 차이를 더하며, 별도 색상 띠나 선명한 외곽선은 사용하지 않습니다. 입 벌림 경계와 바깥 피부는 계속 이어집니다. 이전 색상 띠 `LipRim`은 갱신할 때 제거합니다.
+- 입술과 원본 얼굴 경계 사이에는 발화 중 고정된 완충 면을 둡니다. 불규칙한 바깥 경계는 제약 삼각분할로 연결하고, 안쪽은 입술에서 일정한 거리로 배치합니다. 미소는 얇은 입꼬리의 면이 접히지 않도록 곡선 변형을 나누어 적용하며, 음영 법선은 실제 곡면의 접선으로 계산합니다. 입꼬리 공간이 좁을 때는 굴곡 폭을 줄이고 최대 볼륨은 유지합니다.
+- `CharacterFaceController.ApplySpeech`는 입모양과 미소·깜박임을 별도 채널로 합성합니다. 치아 노출이 필요한 이·E·F/V·TH에서는 해당 치아를 구강 앞쪽에 배치해 약한 발음도 보이도록 합니다. 오·우 등 치아를 드러내지 않는 발음에서는 별도 셰이프로 구강 안쪽에 숨깁니다. 윗니와 아랫니의 노출 발음은 구분하며, 입술 색·두께와 발음 시간표는 바꾸지 않습니다.
+- `SpeechVisemeTimeline.SampleArticulation`은 전달된 발음 시각을 사용합니다. `ay`는 아→이, `y` 다음 `uw`는 우 준비 동작으로 연결합니다. 메시만 교체해도 잘못된 발음 시각이 자동으로 수정되지는 않습니다.
+
+Blender 제작 소스는 `frontend/ArtSources/Characters/LittleMungMannequin/`에 있습니다. `create_mannequin_face.py`와 `build_mannequin_eyes.py`는 이 모델의 얼굴 위치를 기준으로 만든 도구입니다. 임의의 신규 NPC 얼굴에 그대로 적용하는 자동 리토폴로지 도구가 아닙니다. 원본 Tripo 폴더를 보존하고 Common 복사본의 얼굴 면·텍스처·셰이프만 교체합니다.
+
+제작한 JSON을 반영할 때는 `MannequinMasterBuilder.RefreshFaceShapes`를 사용합니다. 본·가중치·바인드포즈를 유지하며, 이미 있는 부품의 정점 수가 바뀌면 수작업 손상을 방지하기 위해 중단합니다. 기존 원본에 수작업 변경이 있다면 새로 생성하기 전에 별도 사본으로 보존해야 합니다.
+
+입 안쪽의 검은 테두리처럼 보이는 표현을 피하려고 `MouthInterior`는 따뜻한 적갈색을 사용합니다. 제작 JSON의 색을 다시 적용할 때는 `MannequinMasterBuilder.RefreshAuthoredMouthColor`를 명시적으로 실행합니다. 일반 얼굴 메시 갱신은 수작업 머티리얼 수정을 덮어쓰지 않습니다.
+
+`MannequinSpeechRenderer.Render`는 기존 WAV와 해당 음성의 발음 JSON을 받아 검수 이미지를 만듭니다. `MANNEQUIN_SPEECH_AUDIO`, `MANNEQUIN_SPEECH_TIMELINE`, `MANNEQUIN_SPEECH_OUTPUT`을 지정하고, 느린 비교가 필요하면 `MANNEQUIN_SPEECH_FPS=120`을 사용합니다. `MANNEQUIN_SPEECH_YAW`는 -60~60도 사선 검수 각도이며 생략하면 기존 정면을 사용합니다. `MANNEQUIN_SPEECH_SCENE`으로 다른 검수 씬을 지정할 수 있으며 기본값은 남자 Base 얼굴 씬입니다. 인스턴스의 피부색 PropertyBlock도 렌더에 복사합니다. 저장된 씬 카메라는 변경하지 않습니다. JSON의 `audioSha256`은 WAV 전체 파일과 일치해야 합니다. 이 도구는 음성 합성이나 외부 API 호출을 하지 않으며, 0.5초 대기 후 발화를 렌더하므로 영상에 음성을 합칠 때도 같은 지연을 적용해야 합니다.
+
+## 남자 Base와 NPC Variant
+
+검수한 마네킹은 `LittleMung_Base_Male`로 관리합니다. `Art/Characters/Tripo/LittleMung_Base_Female`은 제작 출처인 원본이므로 이름과 내용을 보존합니다. 외형·표정의 공통 편집 대상은 아래 Common Base입니다. 기존 플레이어 선택 데이터나 Production NPC를 이 마네킹으로 교체하지는 않습니다.
+
+| 용도 | Assets 기준 경로 |
+| --- | --- |
+| 공통 외형 Base | `Art/Characters/Common/LittleMungMannequin/LittleMung_Base_Male_Visual.prefab` |
+| 1.6m·1.7m 플레이어 검수 | `Prefabs/Characters/Mannequin/LittleMung_Base_Male_160.prefab`, `LittleMung_Base_Male_170.prefab` |
+| NPC 외형 Variant 예제 | `Prefabs/Characters/Mannequin/Npc/LittleMung_Npc_Male.prefab` |
+| NPC 표정·피부색 검수 | `Scenes/Sandbox/Mannequin/LittleMung_Npc_Male_Face.unity` |
+| NPC 외형의 이동 검수 | `Scenes/Sandbox/Mannequin/LittleMung_Npc_Male_Motion.unity` |
+
+새 NPC 외형은 Project 창에서 공통 외형 Base를 선택한 뒤 **Create → Prefab Variant**로 만듭니다. Variant의 Inspector에서 **Character Skin Tone → Skin Color**를 바꾸면 몸·위아래 눈꺼풀·입 주변에 함께 적용됩니다. 기본 기준색은 `#FFC799`이며, 텍스처에 이 기준색 대비 색상 비율을 적용합니다. 공유 머티리얼을 직접 변경하지 않으므로 다른 NPC의 색에는 영향을 주지 않습니다. 표정 가중치와 Animator 재생 상태도 각 인스턴스가 독립적으로 가집니다.
+
+`CharacterSkin` 셰이더의 피부 마스크는 현재 마네킹의 몸 텍스처에서 기본복·어두운 눈썹을 제외합니다. 눈꺼풀과 입 주변은 전부 피부로 처리하며, 눈·속눈썹·치아·구강 재질은 바꾸지 않습니다. 몸 텍스처를 교체하면 해당 텍스처에 맞는 마스크를 별도로 검수해야 합니다. 새 피부 부품은 Base의 `CharacterSkinTone.skinRenderers`에 등록하고 같은 셰이더와 적절한 마스크를 사용합니다.
+
+이 NPC 프리팹은 **외형용 Variant**입니다. 서비스의 NPC 이동·대화 루트에 Visual 자식으로 연결하는 대상이며, 그 자체에 AI 대화나 이동 판단은 없습니다. 상속된 발 접지·팔 보정은 부모의 `CharacterController`를 사용합니다. 이동 검수 씬은 기존 플레이어 이동 루트를 이용해 이 조건을 제공하고, 얼굴 전용 씬에서는 이동 보정 컴포넌트를 씬에서만 제거합니다.
+
+Base의 메시·골격 참조·표정 컴포넌트·애니메이션 연결 변경은 Variant와 씬 인스턴스의 **오버라이드되지 않은 항목**에 전파됩니다. NPC별 피부색·의상처럼 자식이 명시적으로 바꾼 값은 유지됩니다. Unpack하거나 메시·Controller 참조를 다른 에셋으로 교체하면 해당 연결은 상속하지 않습니다. 배포된 실행 파일에는 변경 후 빌드·배포가 필요하며, 런타임에 생성된 객체를 원격으로 갱신하는 기능은 아닙니다.
+
+`Tools → A305 → Characters → Prepare Male Base And NPC Variant`는 검수 복사본의 이름을 GUID 유지 방식으로 정리하고 색상 연결·예제 Variant·검수 씬을 준비합니다. 이미 있는 Variant와 이동 검수 씬의 사용자 수정은 덮어쓰지 않습니다. 메시·골격·표정 데이터를 새로 생성하거나 Tripo API를 호출하지 않습니다.
+
+## 부품 제작 기준: 1.7m 남자 Base
+
+머리·상의·바지·신발의 제작·장착 기준은 `LittleMung_Base_Male_170.prefab`입니다. 1.7m는 현재 Base의 발바닥부터 정수리까지이며, 추가 머리카락과 신발 굽을 포함한 전체 외곽 높이가 아닙니다. 부품 때문에 키가 커졌다고 Base를 다시 축소하거나 본 위치를 변경하지 않습니다.
+
+`frontend/ArtSources/Characters/LittleMungMannequin/MaleBase170FitSpec.json`은 저장된 기본 자세에서 측정한 제작 참고값과 행인 남자 부품 이미지 검토 내용을 담습니다. 런타임 자동 맞춤 설정은 아닙니다. 원본 프리팹·메시의 해시가 달라지면 다시 측정해야 합니다. 로컬 실측도·참조 OBJ·검사 출력은 Git에 포함하지 않는 `artifacts/male-base-170-fit/`에 보관합니다. OBJ는 정적 맞춤 참고용이며 골격·표정·립싱크가 들어 있는 교체 모델이 아닙니다.
+
+| 측정 기준 | 값 |
+| --- | --- |
+| 발바닥→정수리 | 170.0cm |
+| 좌우 어깨 관절 간격 | 22.7cm |
+| 어깨→팔꿈치→손목 경로 | 왼쪽 29.2cm / 오른쪽 29.4cm |
+| 가슴 단면 폭×깊이 | 32.1×29.1cm |
+| 허리 단면 폭×깊이 | 36.1×30.6cm |
+| 허리 측정면→발목 수직 거리 | 약 34.1cm |
+| 발목 아래 발 표면 범위, 길이×폭 | 왼쪽 28.0×18.8cm / 오른쪽 27.9×18.9cm |
+
+이 값은 관절 간격과 현재 기본복을 포함한 표면 범위입니다. 완성 의상의 봉제 길이·착용 여유·신발 안쪽 크기로 그대로 사용하지 않습니다. 머리 영역의 귀 포함 폭은 가발 안쪽 폭이 아니며, 두피·귀·이마의 실제 표면으로 맞춥니다. 상의는 목·가슴·허리와 소매를, 바지는 허리·밑위·다리 길이를 따로 맞춥니다. 정면 참고 이미지의 픽셀 크기는 미터 단위가 아니고, 숨은 면과 깊이는 이미지 한 장으로 검증할 수 없습니다.
+
+부품은 이 Base에 맞춘 뒤 동일 골격에 연결하고, 표정·발화·걷기·달리기·팔 들기·점프에서 틈과 관통을 검수합니다. 새 부품 자동 생성·체형 맞춤·합격 판정은 아직 구현된 것으로 취급하지 않습니다. 1.6m로 사용할 때는 검수된 Base와 모든 장착 부품을 같은 루트에서 `1.6 / 1.7`(약 0.941176배)로 함께 축소합니다.

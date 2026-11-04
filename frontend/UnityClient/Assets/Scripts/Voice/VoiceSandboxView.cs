@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace A305.Voice
 {
     /// <summary>
-    /// 마이크 녹음 확인용 화면(VoiceSandbox). 권한 상태, 녹음 중 음량, 끝난 이유와 WAV 크기를 보여 주고 녹음을 다시 들려준다.
+    /// 마이크 녹음 확인용 화면(VoiceSandbox). 권한 상태, 녹음 중 음량과 목소리가 들리는지, 끝난 이유와 WAV 크기를 보여 주고 녹음을 다시 들려준다.
     /// 확인용이라 배포용 프리팹에는 붙이지 않는다.
     /// </summary>
     public class VoiceSandboxView : MonoBehaviour
@@ -17,7 +17,10 @@ namespace A305.Voice
         private Button accessButton;
 
         [SerializeField]
-        private HoldButton talkButton;
+        private Button talkButton;
+
+        [SerializeField]
+        private TMP_Text talkCaption;
 
         [SerializeField]
         private Image levelFill;
@@ -36,22 +39,35 @@ namespace A305.Voice
         private void Awake()
         {
             accessButton.onClick.AddListener(recorder.RequestAccess);
-            talkButton.Pressed += recorder.StartRecording;
-            talkButton.Released += recorder.StopRecording;
+            talkButton.onClick.AddListener(ToggleRecording);
             playButton.onClick.AddListener(PlayLastVoice);
             recorder.AccessChanged += access => statusText.text = AccessMessage(access);
             recorder.RecordingFinished += ShowResult;
             playButton.interactable = false;
-            statusText.text = "[마이크 권한 요청]을 누른 뒤 [누르고 말하기]를 누른 채 말해 보세요.";
+            statusText.text = "[마이크 권한 요청]을 누른 뒤 [말하기]를 누르고 말해 보세요.";
         }
 
         private void Update()
         {
             levelFill.fillAmount = Mathf.Clamp01(recorder.CurrentLevel * 5f);
+            talkCaption.text = recorder.IsRecording ? "종료" : "말하기";
             if (recorder.IsRecording)
             {
+                string voice = recorder.IsHearingVoice ? "목소리 들림" : "조용함";
                 statusText.text =
-                    $"녹음 중 {recorder.ElapsedSeconds:0.0}초 / 최대 {recorder.MaxRecordingSeconds:0}초, 음량 {recorder.CurrentLevel:0.000}";
+                    $"녹음 중 {recorder.ElapsedSeconds:0.0}초 / 최대 {recorder.MaxRecordingSeconds:0}초, 음량 {recorder.CurrentLevel:0.000} ({voice})";
+            }
+        }
+
+        private void ToggleRecording()
+        {
+            if (recorder.IsRecording)
+            {
+                recorder.StopRecording();
+            }
+            else
+            {
+                recorder.StartRecording();
             }
         }
 
@@ -83,7 +99,7 @@ namespace A305.Voice
             switch (access)
             {
                 case MicrophoneAccess.Granted:
-                    return "마이크를 쓸 수 있어요. [누르고 말하기]를 누른 채 말해 보세요.";
+                    return "마이크를 쓸 수 있어요. [말하기]를 누르고 말한 뒤 다시 눌러 끝내 보세요.";
                 case MicrophoneAccess.Denied:
                     return "마이크 권한이 거부됐어요. 대화에서는 텍스트로 입력합니다.";
                 case MicrophoneAccess.NoDevice:
@@ -104,7 +120,7 @@ namespace A305.Voice
                 case RecordingEndReason.Interrupted:
                     return "다른 탭·창으로 이동";
                 default:
-                    return "버튼을 뗌";
+                    return "[종료]를 누름";
             }
         }
     }

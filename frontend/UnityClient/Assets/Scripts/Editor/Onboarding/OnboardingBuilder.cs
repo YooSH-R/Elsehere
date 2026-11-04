@@ -4,6 +4,7 @@ using A305.Api;
 using A305.EditorTools.Common;
 using A305.EditorTools.UI;
 using A305.Onboarding;
+using A305.Theme;
 using TMPro;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -24,6 +25,11 @@ namespace A305.EditorTools.Onboarding
         public const string MenuPath = "Tools/A305/Onboarding/Build";
         public const string EntryScenePath = "Assets/Scenes/Production/EntryScene.unity";
 
+        // 음성 동의 안내는 [말하기] 버튼 이름을 따르므로, 이미 있는 칸도 Builder가 매번 이 글자로 맞춘다.
+        private const string GuestVoiceNote =
+            "음성 처리에 동의하면 [말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있어요.";
+        private const string SignupVoiceNote =
+            "음성 처리에 동의하면 [말하기]로 말할 수 있어요. 동의하지 않아도 글자로 대화할 수 있고, 나중에 오른쪽 위 메뉴(≡) › 내 정보 › 선택 동의에서 바꿀 수 있어요.";
         private const string ScreensPrefabPath = "Assets/Prefabs/Onboarding/EntryScreens.prefab";
         private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
         private const string OnboardingSettingsPath =
@@ -160,19 +166,44 @@ namespace A305.EditorTools.Onboarding
             }
         }
 
-        // 입구 화면에는 공간이 없어 화면 UI 뒤를 채울 카메라만 둔다.
+        /// <summary>입구 씬 카메라의 배경색을 화면 배경과 맞춰 저장한다. 유리 창은 이 카메라 화면을 흐리게 비춘다.</summary>
+        public static void PaintCamera()
+        {
+            Scene scene = EditorSceneManager.OpenScene(EntryScenePath);
+            EnsureCamera(BuilderTools.EnsureGroups(scene));
+            BuilderTools.SaveScene(scene, EntryScenePath);
+        }
+
+        // 입구 화면에는 공간이 없어 화면 UI 뒤를 채울 카메라만 둔다. 유리 창이 이 화면을 비추므로 배경색을 화면 배경(테마 배경막)과 같게 칠한다.
         private static void EnsureCamera(SceneGroups groups)
         {
-            if (BuilderTools.FindSingleInScene<Camera>(groups.Scene) != null)
+            var camera = BuilderTools.FindSingleInScene<Camera>(groups.Scene);
+            if (camera == null)
             {
-                return;
+                camera = BuilderTools
+                    .CreateEmpty(
+                        "EntryCamera",
+                        groups.Environment,
+                        Vector3.zero,
+                        Quaternion.identity
+                    )
+                    .gameObject.AddComponent<Camera>();
             }
 
-            var camera = BuilderTools
-                .CreateEmpty("EntryCamera", groups.Environment, Vector3.zero, Quaternion.identity)
-                .gameObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = BackgroundColor;
+            camera.backgroundColor = BackdropColor();
+        }
+
+        // ThemedElement의 배경막(Backdrop)과 같은 색: 디자인 주 색을 흰색 쪽으로 옅게 섞는다.
+        private static Color BackdropColor()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<UiThemeCatalog>(
+                "Assets/Data/Theme/UiThemeCatalog.asset"
+            );
+            UiThemeDefinition design = catalog != null ? catalog.Get(UiThemeId.Jelly) : null;
+            return design != null
+                ? Color.Lerp(design.ToneColor(UiTone.Primary), Color.white, .8f)
+                : BackgroundColor;
         }
 
         private static void SetUpScreens(GameObject root)
@@ -250,7 +281,7 @@ namespace A305.EditorTools.Onboarding
                 regular,
                 24f,
                 SubTextColor,
-                "3D 마을에서 NPC와 영어로 대화해요."
+                "3D 마을에서 NPC와 현지 언어로 대화해요."
             );
             Button google = UiBuilderTools.FindOrCreateButton(
                 panel,
@@ -282,16 +313,32 @@ namespace A305.EditorTools.Onboarding
                 20f,
                 BadgeColor
             );
+            // 로그인하기 전에도 약관을 볼 수 있게 창 맨 아래에 링크를 둔다. 모양은 UiThemeBuilder가 차분한 글자 버튼으로 칠한다.
+            RectTransform legalLinks = UiBuilderTools.FindOrCreateButtonRow(panel, "LegalLinks");
+            Button terms = UiBuilderTools.FindOrCreateButton(
+                legalLinks,
+                "TermsButton",
+                "이용약관",
+                regular
+            );
+            Button privacy = UiBuilderTools.FindOrCreateButton(
+                legalLinks,
+                "PrivacyButton",
+                "개인정보 처리방침",
+                regular
+            );
 
             BuilderTools.SetReference(view, "googleButton", google);
             BuilderTools.SetReference(view, "guestButton", guest);
             BuilderTools.SetReference(view, "devLoginButton", devLogin);
             BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.SetReference(view, "termsButton", terms);
+            BuilderTools.SetReference(view, "privacyButton", privacy);
             BuilderTools.RequireReferences(view);
             return view;
         }
 
-        // 게스트는 닉네임과 약관 없이 캐릭터만 고른다(AUTH-07).
+        // 게스트는 닉네임과 가입 약관 없이 캐릭터와 음성 처리 동의(선택)만 고른다(AUTH-07).
         private static GuestPanelView SetUpGuestPanel(
             GameObject root,
             TMP_FontAsset bold,
@@ -321,14 +368,27 @@ namespace A305.EditorTools.Onboarding
                 "남성",
                 regular
             );
-            UiBuilderTools.FindOrCreateText(
+            TMP_Text note = UiBuilderTools.FindOrCreateText(
                 panel,
                 "Note",
                 regular,
                 20f,
                 SubTextColor,
-                "닉네임은 자동으로 정해져요. 게스트는 NPC와 대화할 수 있는 횟수가 정해져 있어요."
+                GuestPanelText.Note(null)
             );
+            ConsentRowView voiceConsent = SetUpConsentRow(panel, "VoiceConsentRow", regular);
+            TMP_Text voiceNote = UiBuilderTools.FindOrCreateText(
+                panel,
+                "VoiceConsentNote",
+                regular,
+                20f,
+                SubTextColor,
+                GuestVoiceNote
+            );
+            voiceNote.text = GuestVoiceNote;
+            // 이미 만든 패널에 새로 붙는 줄은 맨 아래에 생기므로 안내 문구 바로 뒤로 옮긴다.
+            voiceConsent.transform.SetSiblingIndex(note.transform.GetSiblingIndex() + 1);
+            voiceNote.transform.SetSiblingIndex(voiceConsent.transform.GetSiblingIndex() + 1);
             Button start = UiBuilderTools.FindOrCreateButton(
                 panel,
                 "StartButton",
@@ -346,6 +406,8 @@ namespace A305.EditorTools.Onboarding
 
             BuilderTools.SetReference(view, "femaleButton", female);
             BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "noteText", note);
+            BuilderTools.SetReference(view, "voiceConsentRow", voiceConsent);
             BuilderTools.SetReference(view, "startButton", start);
             BuilderTools.SetReference(view, "backButton", back);
             BuilderTools.RequireReferences(view);
@@ -419,6 +481,17 @@ namespace A305.EditorTools.Onboarding
             );
             RectTransform consents = UiBuilderTools.FindOrCreateColumn(panel, "Consents");
             ConsentRowView consentTemplate = SetUpConsentTemplate(consents, regular);
+            // 음성 처리는 선택 동의라, 동의해야 [말하기]를 쓸 수 있다는 것과 나중에 바꾸는 곳을 약관 바로 아래에 알린다.
+            TMP_Text voiceNote = UiBuilderTools.FindOrCreateText(
+                panel,
+                "VoiceConsentNote",
+                regular,
+                20f,
+                SubTextColor,
+                SignupVoiceNote
+            );
+            voiceNote.text = SignupVoiceNote;
+            voiceNote.transform.SetSiblingIndex(consents.GetSiblingIndex() + 1);
 
             Button submit = UiBuilderTools.FindOrCreateButton(
                 panel,
@@ -460,11 +533,18 @@ namespace A305.EditorTools.Onboarding
             TMP_FontAsset regular
         )
         {
-            bool isNew = consents.Find("ConsentRowTemplate") == null;
-            RectTransform template = UiBuilderTools.FindOrCreateButtonRow(
-                consents,
-                "ConsentRowTemplate"
-            );
+            return SetUpConsentRow(consents, "ConsentRowTemplate", regular);
+        }
+
+        /// <summary>동의 한 줄(체크·제목·[보기]). 가입·게스트 화면과 마이페이지가 함께 쓴다.</summary>
+        internal static ConsentRowView SetUpConsentRow(
+            Transform parent,
+            string rowName,
+            TMP_FontAsset regular
+        )
+        {
+            bool isNew = parent.Find(rowName) == null;
+            RectTransform template = UiBuilderTools.FindOrCreateButtonRow(parent, rowName);
             if (isNew)
             {
                 template.GetComponent<HorizontalLayoutGroup>().childAlignment =

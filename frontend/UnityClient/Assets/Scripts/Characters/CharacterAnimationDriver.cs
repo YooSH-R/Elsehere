@@ -14,6 +14,9 @@ namespace A305.Characters
         private static readonly int IsGroundedParameter = Animator.StringToHash("IsGrounded");
         private static readonly int VerticalSpeedParameter = Animator.StringToHash("VerticalSpeed");
 
+        // NPC 전용 컨트롤러에만 있는 동작 번호(일하기·말하기·앉기 등). 0이면 이동 동작을 재생한다.
+        private static readonly int ActionParameter = Animator.StringToHash("Action");
+
         [SerializeField]
         [Tooltip("모델의 Animator. 비워 두면 자식 객체에서 찾는다.")]
         private Animator animator;
@@ -34,6 +37,15 @@ namespace A305.Characters
             SetFloatIfAvailable(SpeedParameter, horizontalSpeedMetersPerSecond);
             SetBoolIfAvailable(IsGroundedParameter, isGrounded);
             SetFloatIfAvailable(VerticalSpeedParameter, verticalSpeedMetersPerSecond);
+        }
+
+        /// <summary>동작 번호를 전달한다. Action 파라미터가 없는 컨트롤러(플레이어 등)에는 아무것도 하지 않는다.</summary>
+        public void SetAction(int action)
+        {
+            if (animator != null && availableParameters.Contains(ActionParameter))
+            {
+                animator.SetInteger(ActionParameter, action);
+            }
         }
 
         private void Awake()

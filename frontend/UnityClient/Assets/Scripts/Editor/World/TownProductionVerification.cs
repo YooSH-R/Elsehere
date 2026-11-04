@@ -184,7 +184,7 @@ namespace A305.EditorTools.World
                     player.Teleport(new Vector3(7.2f, .12f, -10), Quaternion.Euler(0, 90, 0));
                     NpcIdentity dialoguePartner = BuilderTools
                         .FindAllInScene<NpcIdentity>(scene)
-                        .Single(item => item.Code == "TUTORIAL_PASSERBY");
+                        .Single(item => item.Code == "TOWN_PASSERBY");
                     rig.EnterDialogueView(dialoguePartner.LookTarget);
                     break;
                 case 7:
@@ -214,6 +214,7 @@ namespace A305.EditorTools.World
             {
                 case -6:
                     PasserbyRestRecord.Clear();
+                    PasserbyOfferRecord.Clear();
                     TutorialState.Clear();
                     SceneManager.LoadSceneAsync("HomeScene");
                     stage++;
@@ -239,7 +240,7 @@ namespace A305.EditorTools.World
             PlayerMover player = BuilderTools.FindSingleInScene<PlayerMover>(scene);
             Passerby passerby = BuilderTools
                 .FindAllInScene<Passerby>(scene)
-                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "TUTORIAL_PASSERBY");
+                .Single(npc => npc.GetComponent<NpcIdentity>().Code == "TOWN_PASSERBY");
             PasserbyOfferView offer = BuilderTools.FindSingleInScene<PasserbyOfferView>(scene);
             DialogueController dialogue = BuilderTools.FindSingleInScene<DialogueController>(scene);
             switch (stage)

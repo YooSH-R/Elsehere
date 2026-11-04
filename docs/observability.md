@@ -12,13 +12,70 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 - 내부 프록시는 이 헤더를 유지합니다. Spring은 해당 형식의 값만 수용하고, 값이 없거나 형식이 잘못되면 새 ID를 생성합니다. 백엔드 포트는 공개하지 않습니다.
 - Spring은 보안 필터보다 먼저 요청 문맥에 ID를 넣고 응답에도 반환합니다. 요청이 끝나거나 예외가 발생하면 이전 문맥을 복원합니다.
 - Spring 요청 로그에는 HTTP 메서드, 컨트롤러의 경로 패턴, 상태 코드와 처리 시간만 남깁니다. 컨트롤러에 도달하지 않은 요청은 `/unmatched`로 기록합니다.
+- Spring의 모든 로그 줄에는 `request_id`와 함께 로그인 사용자의 내부 ID(`users.id`)가 `user_id`로 붙습니다. 운영 중 한 사용자의 요청·오류를 이어서 찾기 위한 값이며, 로그인 전 요청과 요청 밖 작업(예약 작업 등)은 `user_id=none`입니다. 보안 필터가 인증을 마친 뒤 넣고 요청이 끝나면 지웁니다. 이메일·닉네임·소셜 계정 ID 같은 개인정보는 넣지 않습니다. 비동기 작업(@Async)에는 아직 전달하지 않습니다.
 - Nginx는 원본 URL 대신 `/api/**`, `/api/v1/auth/**`, `/webgl/**` 등 고정된 경로 그룹을 기록합니다. 쿼리, 토큰, 쿠키, IP·사용자 식별자와 음성·대화 본문은 요청 요약에 넣지 않습니다.
 - 요청 보호용 `rate_limit`·`connection_limit` 필드는 판정 상태만 기록합니다. 관찰과 실제 차단의 구분·설치 조건은 [Nginx 요청 보호 정책](traffic-protection.md)을 따릅니다.
 - 처리하지 못한 Spring 예외는 종류와 코드 위치만 기록합니다. 외부 응답이나 사용자 입력을 포함할 수 있는 원본 예외 메시지는 기록하지 않습니다.
+- 백엔드 애플리케이션 로그(`com.elsehere`)는 운영 INFO, 개발 서버 DEBUG입니다. 서버 `deploy.env`의 `BACKEND_LOG_LEVEL`로 정하며 없으면 INFO입니다. 라이브러리 로그는 INFO로 둡니다. 설정 방법은 [백엔드 README](../backend/README.md#요청-추적과-관리-지표)를 따릅니다.
 
 이 헤더는 전송 요청의 추적용입니다. 중복 처리를 방지하는 API 본문의 UUID `requestId`와는 용도가 다르며, 재시도 요청은 같은 본문 ID를 사용해도 새로운 HTTP 추적 ID를 받습니다.
 
 저장소의 [AiWorkerClient](../backend/src/main/java/com/elsehere/ai/client/AiWorkerClient.java)는 HTTP 요청 문맥의 추적 ID를 워커의 `X-Request-Id`로 전달합니다. HTTP 요청 문맥이 없으면 `WorkerTrace`의 UUID를 사용합니다. 실제 배포본에서도 Spring과 워커의 로그를 같은 ID로 찾을 수 있는지 확인합니다.
+
+### 백엔드 업무 흐름 로그
+
+운영 중 한 사용자에게 일어난 일을 따라갈 수 있도록 양이 적고 중요한 업무 흐름을 남깁니다. 요청 요약(`http_request …`)과 같이 `이벤트명 키=값` 형식이고 `request_id`가 함께 붙습니다. ID와 코드값만 남기며 대화 본문·음성·인증값·이메일·닉네임은 남기지 않습니다. 응답 시간·호출 수 같은 수치는 로그가 아니라 Prometheus 지표와 `ai_requests` 기록으로 봅니다. `ai_requests`에 쌓인 AI 사용량은 [어드민 AI 사용량 화면](admin.md#ai-사용량)에서 봅니다.
+
+| 레벨 | 이벤트 | 키 | 남기는 때 |
+| --- | --- | --- | --- |
+| INFO | `conversation_started` | `conversation_id`, `npc`, `initiated_by` | 대화 시작(CONV-01) 저장 뒤 |
+| INFO | `conversation_ended` | `conversation_id`, `status`, `end_reason`, (사용자 종료면) `user_turns` | 사용자가 끝냄(CONV-08), 무례 누적으로 NPC가 끝냄(CONV-03). 이미 끝난 대화를 다시 끝내면 남기지 않음 |
+| WARN | `feedback_failed` | `conversation_id`, `reason` | 짧은 피드백을 만들지 못함(AI 시간 초과 등) |
+| INFO | `feedback_skipped` | `conversation_id`, `reason` | 피드백을 건너뜀. 사용자가 건너뛰면 `USER_SKIPPED` |
+| INFO | `guest_conversation_limit_reached` | `user_id`, `limit` | 게스트 대화 한도로 대화 시작을 거절 |
+| INFO | `user_signed_up` | `user_id`, `provider` | 가입 완료(AUTH-04) |
+| INFO | `guest_started` | `user_id` | 게스트 계정 생성(AUTH-07) |
+| INFO | `user_withdrew` | `user_id` | 회원 탈퇴(USER-05) |
+| DEBUG | `ai_worker_call` | `path`, `status`, `duration_ms` | AI 워커 호출마다(개발 서버에서만 보임) |
+| DEBUG | `business_error` | `code`, `status` | 업무 오류 응답마다(개발 서버에서만 보임) |
+| DEBUG | `npc_reply_timing` | `first_token_s`, `llm_s`, `worker_total_s`, `audio_full_s`, `wait_ms` | NPC 대답(첫 인사·발화) 스트림이 끝날 때(개발 서버에서만 보임) |
+| DEBUG | `npc_audio_saved` | `bytes`, `download_ms`, `save_ms` | NPC 대답 음성을 워커에서 받아 저장했을 때(개발 서버에서만 보임) |
+
+대화 시작·NPC 대답이 오래 걸리면 같은 `request_id`의 `http_request`(요청 전체), `npc_reply_timing`, `npc_audio_saved`를 함께 봅니다.
+
+- `first_token_s`·`llm_s`·`worker_total_s`는 워커가 잰 값입니다. 각각 LLM 첫 글자까지, LLM 대답 생성 전체, 늦은 조각을 기다려 턴 전체 음성을 이어 붙이기 전까지의 시간입니다.
+- `wait_ms`는 백엔드가 워커 스트림이 끝날 때까지 기다린 시간입니다. 워커는 LLM 생성과 음성 합성이 모두 끝나야 스트림을 끝내므로, `wait_ms`에서 `llm_s`를 빼면 대략 음성 합성 쪽 시간입니다.
+- `audio_full_s`는 턴 전체 음성의 길이입니다. `download_ms`·`save_ms`는 그 음성을 워커에서 받고 보관 정책에 맞춰 저장한 시간입니다.
+
+실패 상황과 운영 작업도 같은 형식으로 남깁니다. `(예외)`는 메시지 뒤에 예외 스택이 붙는 로그입니다.
+
+| 레벨 | 이벤트 | 키 | 남기는 때 |
+| --- | --- | --- | --- |
+| WARN | `ai_worker_timeout` | `path` | AI 워커 응답 시간 초과 |
+| WARN | `ai_worker_unreachable` | `path` | AI 워커에 연결하지 못함 |
+| WARN | `ai_worker_error` | `status`, `code` | AI 워커가 오류로 응답함. `code`는 워커 오류 코드 |
+| WARN | `npc_reply_failed` | `code` | NPC 대답 스트림이 오류로 끝남 |
+| WARN | `npc_reply_stream_cut` | 없음 | NPC 대답 스트림이 끝 이벤트 없이 끊김 |
+| WARN | `npc_audio_download_failed` | `code` | NPC 대답 음성을 워커에서 받지 못함. 자막만 보임 |
+| WARN | `npc_audio_too_large` | `bytes` | NPC 음성이 보관 상한보다 커서 저장하지 않음 |
+| WARN | `npc_audio_save_failed` | (예외) | NPC 음성 파일을 저장하지 못함 |
+| WARN | `npc_audio_delete_failed` | `code` | 보관 기간이 지난 음성 파일을 지우지 못함. 다음 정리에서 다시 지움 |
+| WARN | `npc_audio_turns_update_failed` | `count`, (예외) | 지운 음성 파일을 쓰던 턴의 상태를 갱신하지 못함 |
+| WARN | `training_recording_save_failed` | (예외) | 학습용 녹음 기록을 저장하지 못함. 녹음 파일도 지움 |
+| WARN | `training_recording_file_delete_failed` | (예외) | 기록을 남기지 못한 학습용 녹음 파일을 지우지 못함 |
+| WARN | `npc_memory_update_failed` | `conversation_id`, `type` | 대화 뒤 NPC 기억 갱신이 예외로 끝남 |
+| WARN | `memory_card_update_failed` | `code` | 기억 카드를 만들지 못함. 이전 카드를 그대로 둠 |
+| WARN | `relationship_update_failed` | `code` | 관계를 갱신하지 못함. 이전 값을 그대로 둠 |
+| INFO | `guest_content_cleaned` | `guests` | 정기 게스트 내용 정리에서 내용을 지운 게스트 수 |
+| INFO | `social_login_failed` | `type` | 소셜 로그인 실패. `type`은 예외 종류 |
+| INFO | `admin_granted` | `user_id`, `by_user_id` | 관리자 지정. `by_user_id`는 지정한 관리자 |
+| INFO | `admin_revoked` | `user_id`, `by_user_id` | 관리자 해제. `by_user_id`는 해제한 관리자 |
+| INFO | `pronunciation_generation_finished` | `created`, `failed` | 사물 단어 발음 만들기가 끝남 |
+| WARN | `pronunciation_word_failed` | `word_key`, (예외) | 사물 단어 하나의 발음을 만들지 못함. 나머지 단어는 계속 만듦 |
+| ERROR | `pronunciation_generation_stopped` | (예외) | 사물 단어 발음 만들기가 중간에 멈춤 |
+| ERROR | `unhandled_exception` | `type`, `stack` | 처리하지 못한 예외. 예외 메시지는 남기지 않음 |
+
+새 로그도 이 형식(영문 소문자 snake_case 이벤트명과 키)으로 씁니다. 백엔드 테스트 `LogMessageFormatTest`가 소스의 모든 로그 메시지를 검사합니다. 운영 백엔드의 로그 파일은 JSON(ECS)으로 남기며([조회·보관·복구](#조회보관복구)), 로그를 모으는 도구는 아직 정하지 않았습니다.
 
 ## Nginx 설정 적용
 
@@ -48,8 +105,20 @@ sudo docker logs --since=10m a305-dev-backend-1 2>&1 | grep -F 'request_id=<같�
 
 서버에서 실행하는 예시입니다. 컨테이너 이름은 `sudo docker ps --format '{{.Names}}'`로 확인합니다. 로그 조회는 앱 Compose 파일의 설치 위치와 관계없이 실행할 수 있습니다.
 
+`docker logs`는 컨테이너를 새로 만들면 비워지므로, 배포 전 기록은 백엔드 로그 파일에서 찾습니다. 파일은 환경별 `backend-logs` 볼륨(`a305-dev_backend-logs`, `a305-prod_backend-logs`)에 있습니다. 개발 서버 파일은 콘솔과 같은 텍스트, 운영 파일은 요청 ID가 `"requestId"`(로그인 사용자는 `"userId"`)로 들어간 JSON입니다.
+
+```bash
+logs=$(sudo docker volume inspect --format '{{.Mountpoint}}' a305-dev_backend-logs)
+sudo grep -F 'request_id=<같은 ID>' "$logs/backend.log"
+sudo zgrep -F 'request_id=<같은 ID>' "$logs"/backend.log.*.gz
+logs=$(sudo docker volume inspect --format '{{.Mountpoint}}' a305-prod_backend-logs)
+sudo grep -F '"requestId":"<같은 ID>"' "$logs/backend.log"
+```
+
 - Nginx 로그는 `www-data:adm`, `0640` 권한과 기존 `/etc/logrotate.d/nginx`를 유지합니다. 매일 확인하고 최대 14회분을 보관하며 압축은 한 회차 지연합니다. `notifempty`이므로 정확히 14일 보관과 같지는 않습니다.
 - 백엔드·웹·DB·AI 및 모니터링 컨테이너 로그는 `json-file`, 파일당 10MiB·최대 3개를 기준으로 관리합니다. Docker 로그 파일을 호스트 logrotate로 다시 순환시키지 않습니다.
+- 백엔드 로그 파일은 Spring Boot(Logback)가 직접 나눕니다. 하루마다·10MB마다 압축하고 14일, 압축본 합계 1GB를 넘으면 오래된 것부터 지웁니다. 호스트 logrotate를 쓰지 않습니다. 설정은 [백엔드 README](../backend/README.md#요청-추적과-관리-지표)를 따릅니다.
+- `backend-logs` 볼륨은 배포·롤백에서 유지합니다. `docker compose down --volumes`나 볼륨 삭제로 지우지 않습니다. 로그는 복구용 데이터가 아니므로 DB 백업 대상에 넣지 않습니다. 개발 자동 배포 수신기는 NPC 음성 볼륨만 검사하고 이 볼륨은 검사하지 않습니다.
 - 로그 접근은 서버 관리 담당자로 제한하고, 공유 자료에는 필요한 ID와 요약만 남깁니다. 로그·대시보드에 원문을 붙이지 않습니다.
 - Nginx 반영 전 원본 사이트 설정을 백업합니다. 문제 시 사이트 설정을 복원하고 `nginx -t` 성공 후 reload합니다. 기존 TLS와 인증서 갱신 설정은 보존합니다.
 

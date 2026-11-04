@@ -12,7 +12,8 @@
       "names": [
         "Fridge",
         "RetroRefrigerator",
-        "Refrigerator"
+        "Refrigerator",
+        "DrinkCooler"
       ]
     },
     {
@@ -49,7 +50,9 @@
       "key": "counter",
       "names": [
         "Counter",
-        "ServiceCounter"
+        "ServiceCounter",
+        "PharmacyCounter",
+        "CoffeeCounter"
       ]
     },
     {
@@ -116,7 +119,8 @@
         "CafePendant",
         "GlobeSconce",
         "WallLamp",
-        "WallLampWarm"
+        "WallLampWarm",
+        "LightPanel"
       ]
     },
     {
@@ -158,7 +162,8 @@
         "RugCenter",
         "RunnerBorder",
         "Runner",
-        "RunnerStripe"
+        "RunnerStripe",
+        "DoorMat"
       ]
     },
     {
@@ -181,7 +186,11 @@
         "VerticalSign",
         "HotelLandmark",
         "StreetSign",
-        "StatusPlate"
+        "StatusPlate",
+        "AisleSign",
+        "RainyDaySign",
+        "SectionSign",
+        "FloatingNotice"
       ]
     },
     {
@@ -320,7 +329,8 @@
       "names": [
         "Monstera",
         "SnakePlant",
-        "Succulent"
+        "Succulent",
+        "PottedPlant"
       ]
     },
     {
@@ -382,7 +392,9 @@
     {
       "key": "crate",
       "names": [
-        "MarketCrateV2"
+        "MarketCrateV2",
+        "ProduceCrate",
+        "StockBox"
       ]
     },
     {
@@ -443,6 +455,12 @@
       ]
     },
     {
+      "key": "road",
+      "names": [
+        "StopLine"
+      ]
+    },
+    {
       "key": "floor",
       "names": [
         "Floor",
@@ -465,7 +483,11 @@
     {
       "key": "shelf",
       "names": [
-        "KitchenShelf"
+        "KitchenShelf",
+        "SnackShelf",
+        "PantryShelf",
+        "HealthShelf",
+        "CandyRack"
       ]
     },
     {
@@ -504,13 +526,20 @@
     {
       "key": "cloud",
       "names": [
-        "Cloud"
+        "Cloud",
+        "CloudBank"
       ]
     },
     {
       "key": "kitchen_counter",
       "names": [
         "KitchenCounter"
+      ]
+    },
+    {
+      "key": "freezer",
+      "names": [
+        "IceCreamFreezer"
       ]
     }
   ]

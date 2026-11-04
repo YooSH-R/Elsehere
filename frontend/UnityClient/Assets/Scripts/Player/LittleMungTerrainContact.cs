@@ -105,6 +105,9 @@ namespace A305.Player
             if (!controller.isGrounded)
             {
                 pelvisDrop = 0;
+                // 빠르게 단을 내려가며 잠깐 떠 있는 동안에도 신발이 아래 디딤면을 뚫지 않게 한다.
+                for (int side = 0; side < 2; side++)
+                    SolveFoot(side);
                 return;
             }
 
@@ -172,7 +175,7 @@ namespace A305.Player
                 }
             }
             hasSupport[side] = FootGround(foot, out supports[side]);
-            if (!controller.isGrounded || !hasSupport[side])
+            if (!hasSupport[side])
             {
                 foot.planted = false;
                 return;
@@ -181,7 +184,9 @@ namespace A305.Player
             targets[side] = foot.bone.position;
             rotations[side] = foot.bone.rotation;
             float gap = foot.surface.MinimumDistance(hit.point, hit.normal);
-            if (!foot.planted && !released && (idle || (velocity < -.015f && gap < .04f)))
+            if (!controller.isGrounded)
+                foot.planted = false;
+            else if (!foot.planted && !released && (idle || (velocity < -.015f && gap < .04f)))
             {
                 foot.anchorRotation =
                     Quaternion.FromToRotation(

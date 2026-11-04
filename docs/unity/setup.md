@@ -42,12 +42,33 @@ Build And Run은 로컬 웹 서버를 사용합니다. 생성된 `index.html`을
 
 `Assets/WebGLTemplates/A305Responsive`는 PC와 모바일에서 게임 화면이 브라우저 창 전체를 채우게 합니다. 페이지에는 게임 화면만 두고 제품 이름·[전체 화면] 같은 줄을 두지 않으며, 브라우저 자체의 전체 화면(PC는 F11)을 씁니다. 캔버스 크기가 창에 따라 바뀌어도 Unity가 그 크기로 다시 그리므로 게임 화면을 자르거나 늘리지 않고, 화면 비율에 따라 보이는 범위가 달라집니다. UI는 1920×1080 기준으로 화면 크기에 맞춰 늘고 줄어듭니다(`UiBuilderTools.EnsureOverlayCanvas`). 노치·홈 표시줄의 안전 영역은 비우고, 브라우저 주소창에 따른 높이 변화도 반영합니다. 빌드 설정의 960×600은 처음 캔버스 크기일 뿐 화면 비율을 고정하지 않습니다.
 
+게임 파일을 받는 동안 템플릿의 로딩 화면은 소개 그림(`intro/feature-*.jpg`)과 한 줄 문구를 3초마다 바꿔 보여 주고, 아래에 진행 막대를 둡니다. 로딩이 끝나면 로딩 화면이 서서히 사라지며 로그인 화면이 나옵니다. 이 화면이 Unity 시작 로고를 대신하므로 **Player Settings → Splash Image → Show Splash Screen**은 끕니다.
+
+- 소개 그림은 기능마다 한 장씩 만든 1536×1024(3:2) 그림을 그대로 씁니다. 새 그림도 같은 크기로 만들어 자르거나 늘리지 않고 넣습니다.
+- 왼쪽 위 로고(`logo.png`)는 `frontend/design/로고.webp`의 흰 바탕을 투명하게 바꾸고 글자 영역만 남긴 것입니다. 어두운 배경에서도 보이도록 흰 그림자를 두릅니다.
+- 그림은 화면 비율과 상관없이 잘리지 않도록 흐린 배경 위 가운데 카드로 띄웁니다.
+- 순서는 접속마다 섞습니다. 로딩이 짧으면 첫 장면만 보일 수 있으므로, 지난 접속의 첫 장면은 첫 자리에 두지 않습니다(브라우저 저장소 `elsehere.intro.lastFirstSlide`).
+- 그림과 문구 목록은 `index.html`의 `introSlides`에서 관리합니다.
+- 진행 막대는 받은 만큼 0.4초에 걸쳐 따라 찹니다. 파일을 다 받은 뒤 게임을 준비하는 동안에는 브라우저가 화면을 갱신하지 못해 막대가 잠시 멈출 수 있습니다. 그래서 로딩이 끝나면 막대가 끝까지 차는 모습을 보인 뒤 로딩 화면을 닫습니다.
+- Unity 로더는 서버가 보내는 `Content-Length`로 진행률을 계산합니다. 이 헤더가 없으면 막대는 파일을 다 받을 때까지 움직이지 않다가 한 번에 찹니다. 로컬에서 직접 띄운 서버로 확인할 때도 이 헤더를 보내야 합니다.
+
 Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브라우저의 화면 갱신 주기를 따릅니다. 실제 프레임은 기기 성능·화면 주사율·브라우저 정책에 따라 달라집니다. 144·240fps를 고정값으로 강제하지 않으며, 모바일 발열·배터리를 위한 별도 상한은 성능 검증 후 결정합니다. 동작 기준은 [Unity의 Web 프레임 제어](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/Application-targetFrameRate.html)를 따릅니다.
 
 - **Player Settings → Web → Resolution and Presentation → Web Template**에서 `A305Responsive`를 선택합니다. **Tools → A305 → Web → Configure Responsive Template**으로도 적용할 수 있습니다.
 - **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 먼저 Build Profiles에서 Web을 활성 플랫폼으로 전환합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용하며, 새 환경에서도 Web용 렌더링 설정이 포함되도록 `-buildTarget WebGL`을 명시합니다.
 - 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
+- 브라우저 확장 프로그램 스크립트(`chrome-extension://`, `moz-extension://`, `safari-web-extension://`)에서 난 오류는 Unity 로더에 넘기지 않습니다. MetaMask처럼 페이지에 스크립트를 넣는 확장 프로그램의 오류가 로딩 실패나 Unity 오류 창으로 뜨지 않게 하기 위해서이며, 오류는 브라우저 콘솔에 그대로 남습니다. 게임 빌드에서 났거나 어디서 났는지 알 수 없는 오류는 지금처럼 Unity 로더가 알립니다. 저장소 최상위에서 `node --test infra/tests/webgl_extension_errors.test.cjs`로 검증합니다.
 - 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
+
+### 웹 이용 통계
+
+웹 템플릿은 `elsehere.kr`과 `www.elsehere.kr`에서만 Google 애널리틱스 측정 ID `G-209TJ3SH81`을 사용합니다. 방문자가 통계 수집에 동의하기 전에는 Google 태그를 불러오지 않습니다. 거부해도 게임을 이용할 수 있고, 화면 오른쪽 아래의 **통계 수집 설정**에서 나중에 선택을 바꿀 수 있습니다. 동의를 철회하면 측정을 중지하고 분석 쿠키를 지운 뒤 페이지를 다시 불러옵니다. 브라우저의 사이트별 저장소를 사용하므로 두 도메인의 선택은 각각 유지됩니다.
+
+동의한 방문에는 페이지 조회와 WebGL 로딩 완료(`webgl_loaded`, `duration_seconds`) 또는 실패(`webgl_load_failed`, `failure_stage`)를 전송합니다. 실패 단계는 `loader` 또는 `initialization`만 사용하며 오류 원문과 사용자 정보는 보내지 않습니다. 페이지 주소는 도메인까지만, 유입 주소는 출처 도메인까지만 전달해 경로와 쿼리를 제외합니다. Google 신호와 광고 맞춤설정은 태그에서도 끕니다. 개발 주소와 로컬에서는 태그와 동의 화면이 실행되지 않습니다.
+
+배포 전에는 팀이 검토한 `2026-11` 개인정보 처리방침과 로그인 화면의 링크가 함께 반영되었는지 확인해야 합니다. 템플릿의 동의 화면은 `/privacy/2026-11`로 연결하므로 백엔드 문서가 먼저 준비되지 않으면 링크가 열리지 않습니다. 변경된 처리방침과 동의 안내를 확인하기 전에는 이 템플릿을 운영에 배포하지 않습니다.
+
+Unity EditMode 검사 외에 저장소 최상위에서 `node --test infra/tests/webgl_analytics.test.cjs`를 실행하면 동의·거부·철회, 운영 주소 제한과 로딩 이벤트를 네트워크 없이 검증합니다. 운영 배포 후에는 동의 전과 거부 시 요청이 없는지, 동의 후 실시간 보고서에 이벤트가 들어오는지 확인합니다.
 
 ```powershell
 & "C:\Program Files\Unity\Hub\Editor\6000.3.26f1\Editor\Unity.exe" -batchmode -buildTarget WebGL -projectPath frontend/UnityClient -executeMethod A305.EditorTools.Common.WebBuildBuilder.Build -quit -logFile <저장소 밖 경로>\WebBuild.log

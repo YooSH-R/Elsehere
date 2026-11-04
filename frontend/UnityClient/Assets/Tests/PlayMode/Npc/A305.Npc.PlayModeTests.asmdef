@@ -8,8 +8,11 @@
         "A305.Dialogue",
         "A305.Player",
         "A305.World",
+        "A305.ObjectHover",
         "A305.Tutorial",
-        "UnityEngine.UI"
+        "A305.Mission",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

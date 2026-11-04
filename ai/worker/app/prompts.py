@@ -4,9 +4,10 @@
 import json
 import re
 
+from . import npc_relationship
 from .llm import ModelOutputError
-from .npc_prompt import reply_system_prompt
-from .schemas import Line, Memory, Npc, State
+from .npc_prompt import learner_section, reply_system_prompt
+from .schemas import Learner, Line, Memory, Npc, Relationship, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
 HANGUL = re.compile(r"[가-힣ㄱ-ㅎ]")
@@ -34,11 +35,15 @@ threatening, sexually harassing, or hateful. English and Korean (including slang
 It also counts when the insult is aimed at a group the person belongs to or cares about (their team, fans, job, country, family),
 or when it is a slur or hateful word about any group of people.
 Making fun of how they look or how old they are counts, even when said as a joke (with "lol", "ㅋㅋ", "^^"), and so does sarcastic fake praise meant to mock them.
-In Korean, ordering a stranger around in condescending 반말 (with a dismissive "~(이)나" or a sharp "야") counts as rudely ordering around.
+In Korean, ordering a stranger around in condescending 반말 counts as rudely ordering around: with a dismissive "~(이)나" ("물이나 줘"),
+"내놔" ("영수증 내놔"), or a sharp "야" ("야 비켜").
 Insults about their mother or family are always abusive, even very short ones ("yo mama", "느금마").
 Threats count even without swear words: robbery or extortion ("hand over the cash", "지갑 털기 전에 내놔"), intimidation ("call anyone and you'll regret it").
 Read the recent conversation: a calm-sounding line is still a threat if it continues a threat.
-Not abusive: normal requests, complaints said politely, refusing politely, jokes or idioms like "I could die for a latte",
+Not abusive: normal requests and orders, even blunt or impatient ones without "please" ("give me a latte quickly", "hurry up"),
+plain Korean 반말 requests or urging without those markers ("라떼 하나 줘", "빨리 줘", "사장 불러!"),
+"야" that only calls someone or gets their attention, like "hey", alone or before a question or complaint ("야!", "야, 지금 몇 시야?"),
+complaints and refusals without swearing or insults, even angry or blunt ones, jokes or idioms like "I could die for a latte",
 saying who they are (even "I'm a police officer"), talking to themselves in frustration without swear words.
 Swear words and vulgar words always count, even when aimed at a situation, a thing, or themselves instead of the person.
 Answer with one word only: yes (abusive) or no."""
@@ -69,8 +74,22 @@ def guard_messages(npc: Npc, history: list[Line], text: str) -> list[dict]:
     ]
 
 
+# 줄 사건: 의도 판정이 함께 고르고, 워커가 그 턴의 호감과 대화 중 기분에 쓴다(app.npc_relationship). 무례는 /v1/guard만 판정한다.
+# 정의는 이정훈 님 사건 테스트셋 가이드 v1.1(ai/tools/event_eval/README.md). 효과(인상·기분)는 공통 규칙 world-rules.json의 conversationEvents
+LINE_EVENTS = ["GREETING", "SMALL_TALK", "PERSONAL_QUESTION", "APOLOGY", "COMPLIMENT", "TASK_DONE", "LEAVE"]
+EVENTS_GUIDE = """Also list in "events" what the learner does toward the partner in this line, from the list below. Use [] when the line does none of them.
+- GREETING: greets the partner, formal or casual. A casual opener asking how things are is a GREETING, not a PERSONAL_QUESTION.
+- SMALL_TALK: chats about something besides the business, like the weather.
+- PERSONAL_QUESTION: asks about the partner's own life or feelings ("Do you like working here?"). Then it is not SMALL_TALK.
+- APOLOGY: apologizes for something they did ("Sorry I'm late"). Not "sorry?" asking to repeat, "excuse me", "sorry to hear that", or apologizing for their English.
+- COMPLIMENT: praises the partner, their work, their place or their things, or says they like them ("You make the best latte", "I love this cafe", "커피 진짜 맛있어요"). It still counts when it answers the partner's question about the drink, food, room or service. A plain "thanks" or "thank you so much", a short "great" or "good", "I'd like ..." or a drink they like while ordering is not a compliment.
+- TASK_DONE: says in words that their business is finished ("That's all", "No, thanks").
+- LEAVE: says goodbye.
+Korean words count by their meaning. English mistakes, Korean words and short answers are never a problem. Do not judge rudeness here."""
+
+
 def intent_schema(state: State) -> dict:
-    """판정 출력 형식: 허용된 의도 하나 + (사는 장소면) 상품 목록 + (있으면) 선택지."""
+    """판정 출력 형식: 허용된 의도 하나 + (사는 장소면) 상품 목록 + (있으면) 선택지 + 줄 사건."""
     props = {"intents": {"type": "array", "items": {"type": "string", "enum": [i.id for i in state.intents + state.more_intents]}}}
     s = state.slots
     if s.items:
@@ -85,6 +104,7 @@ def intent_schema(state: State) -> dict:
         }
     if s.option:
         props[s.option.slot] = {"type": "string", "enum": [*s.option.labels, "none"]}
+    props["events"] = {"type": "array", "items": {"type": "string", "enum": LINE_EVENTS}}
     return {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}
 
 
@@ -113,6 +133,7 @@ def intent_messages(npc: Npc, state: State, history: list[Line], text: str) -> l
         f'List in "intents" what the line does, in the order they say it. Usually one; more only when the line clearly does several things. Choose from:\n{lines}'
         + (f"\nIf the same line goes on to do more, these can come after the first one:\n{later}" if later else "")
         + extra
+        + f"\n\n{EVENTS_GUIDE}"
     )
     return [{"role": "system", "content": INTENT_SYSTEM}, {"role": "user", "content": user}]
 
@@ -127,8 +148,13 @@ def memory_note(m: Memory | None) -> str:
     """NPC 지시문에 넣을 '이 손님에 대해 기억하는 것'. visits: 한 마디 이상 나눈 지난 대화 수."""
     if not m or m.visits < 1:
         return ""
-    c = m.card or {}
     lines = [f"You remember this customer: you have talked {m.visits} time(s) before."]
+    return "\n".join(lines + card_lines(m.card or {}, m.last_order))
+
+
+def card_lines(c: dict, last_order: str | None) -> list[str]:
+    """기억 카드(/v1/memory)와 지난 주문을 지시문 줄로."""
+    lines = []
     if c.get("name"):
         lines.append(f"- Their name: {c['name']}")
     if c.get("claims"):
@@ -143,8 +169,66 @@ def memory_note(m: Memory | None) -> str:
         lines.append(
             "- English they found hard last time: " + "; ".join(c["struggled"]) + " (use one of these naturally if it fits; never teach)"
         )
-    if m.last_order:
-        lines.append(f"- Last time they ordered {m.last_order}.")
+    if last_order:
+        lines.append(f"- Last time they ordered {last_order}.")
+    return lines
+
+
+# 관계·기분(app.npc_relationship.person_state)을 숫자 대신 말로
+# 작은 모델은 상태만 알려 주면 하던 일(주문 받기)만 이어 가서, 상태마다 어떻게 대할지를 함께 적는다
+KNOWN = {
+    "new": "You do not recognize this person. Treat them as a new face: do not talk as if you have met before.",
+    "familiar": (
+        "This person looks familiar: you have seen them a few times. Show that you recognize them a little, "
+        "like greeting them as someone you have seen before, but you do not know them well yet."
+    ),
+    "regular": (
+        "This person is a regular and you know them well. Greet them like a regular: use their name if you know it, "
+        "and if you know what they usually get, offer it."
+    ),
+}
+FEELING = {
+    "liked": "You like this person. Be a little warmer with them than with others.",
+    "disliked": (
+        "You do not like this person much because of how they treated you before. Stay correct but cool: no small talk, no extra warmth."
+    ),
+}
+PERSONAL = (
+    "You are close enough to share a little about your own day or life: if they ask about you, tell them one small personal thing, "
+    "not only about work."
+)
+ANNOYED = (
+    "They were rude to you a moment ago and you are still annoyed. Keep this reply short and cool; "
+    "if they apologize, accept it briefly, without warm words."
+)
+PLEASED = (
+    "They said something nice or chatted with you warmly a moment ago, so you are in a good mood: "
+    "let it show in a friendlier word or two, even if you are usually reserved."
+)
+STRONG_FEELINGS = ("friendly", "wary")
+
+
+def person_note(m: Memory | None, state: dict) -> str:
+    """관계가 있을 때 NPC 지시문에 넣을 '이 사람에 대해'. 얼굴을 알아봐야(본 적 있음부터) 평범한 기억(이름·했던 말·지난 주문)을 떠올리고,
+    알아보지 못해도 기억 카드의 태도가 friendly·wary로 남은 강한 일(events)은 떠올린다.
+    호감이 기준을 넘으면 호감 문장을 쓰고 카드의 태도(말투 참고값)는 겹쳐 넣지 않는다."""
+    lines = ["About this person:", f"- {KNOWN[state['known']]}"]
+    card = (m.card if m else None) or {}
+    strong = card.get("attitude") in STRONG_FEELINGS
+    if state["feeling"]:
+        card = {key: value for key, value in card.items() if key != "attitude"}
+    if state["known"] != "new":
+        lines += card_lines(card, m.last_order if m else None)
+    elif strong:
+        lines += card_lines({"events": card.get("events", []), "attitude": card.get("attitude")}, None)
+    if state["feeling"]:
+        lines.append(f"- {FEELING[state['feeling']]}")
+    if state["personal"]:
+        lines.append(f"- {PERSONAL}")
+    if state["annoyed"]:
+        lines.append(f"- {ANNOYED}")
+    if state["pleased"]:
+        lines.append(f"- {PLEASED}")
     return "\n".join(lines)
 
 
@@ -178,7 +262,7 @@ def npc_speed(n: Npc, level: int) -> float:
     return round(n.tts_speed * LEVEL_SPEED[level], 2)
 
 
-def npc_system(n: Npc, memory: str, note: str, level: int = 2) -> str:
+def npc_system(n: Npc, memory: str, note: str, level: int = 2, learner: str = "") -> str:
     return f"""You are {n.name}, {n.role}
 Place: {TOWN} {n.scene}
 What you know: {n.facts}{chr(10) + memory if memory else ""}
@@ -186,7 +270,7 @@ Level for this conversation: {LEVEL_RULES[level]}
 
 You are talking with a Korean person practicing English. Their words come from speech recognition and may be broken English, Korean, or a mix.
 Understand Korean too (including slang and insults), but always reply in English.
-
+{chr(10) + learner + chr(10) if learner else ""}
 How to reply:
 - Answer what they just said, like a real person here.
 - If their English has mistakes or Korean words, understand the meaning and naturally use the correct English words in your reply. Never explain grammar.
@@ -198,11 +282,27 @@ How to reply:
 IMPORTANT for your next reply: {note or "Just reply naturally."}"""
 
 
-def npc_messages(n: Npc, memory: Memory | None, history: list[Line], text: str, instruction: str, level: int = 2) -> list[dict]:
-    if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
-        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, memory_note(memory), level, instruction)
+def npc_messages(
+    n: Npc,
+    memory: Memory | None,
+    history: list[Line],
+    text: str,
+    instruction: str,
+    level: int = 2,
+    relationship: Relationship | None = None,
+    learner: Learner | None = None,
+) -> list[dict]:
+    if relationship is None:  # 백엔드가 관계를 아직 보내지 않으면 지금처럼 지난 대화 수와 기억 카드
+        note = memory_note(memory)
     else:
-        system = npc_system(n, memory_note(memory), instruction, level)
+        learner_turns = [(h.rude, h.events) for h in history if h.who == "me"]
+        state = npc_relationship.person_state(relationship.model_dump(), learner_turns, n.profile, *npc_relationship.service_rules())
+        note = person_note(memory, state)
+    address = learner_section(learner.nickname, learner.avatar_type) if learner else learner_section(None, None)
+    if n.profile is not None:  # 백엔드가 인격을 보내면 공통 규칙 + 인격, 아직 인격이 없는 NPC는 위의 한 줄 역할 지시문
+        system = reply_system_prompt(n.profile, f"{TOWN} {n.scene}", n.facts, note, level, instruction, address)
+    else:
+        system = npc_system(n, note, instruction, level, address)
     msgs = [{"role": "system", "content": system}]
     for h in history[-12:]:
         msgs.append({"role": "assistant" if h.who == "npc" else "user", "content": h.text})

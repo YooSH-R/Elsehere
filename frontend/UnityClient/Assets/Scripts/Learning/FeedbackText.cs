@@ -12,6 +12,42 @@ namespace A305.Learning
         private const string ServerNotice =
             "AI가 대화를 보고 만든 피드백이에요. 점수가 아니라 다음 대화를 위한 참고예요.";
 
+        /// <summary>대화 노트 부제. 이름 끝소리에 맞춰 와·과를 고른다(Ben과, Mia와, 지민과, 하나와).</summary>
+        public static string Partner(string npcName)
+        {
+            return $"{NameWith(npcName)} 나눈 대화";
+        }
+
+        /// <summary>이름 뒤에 끝소리에 맞는 와·과를 붙인다(Ben과, Mia와).</summary>
+        public static string NameWith(string npcName)
+        {
+            return npcName + WithParticle(npcName);
+        }
+
+        // 한글 이름은 받침으로 고른다. 영어 이름은 한국어로 읽을 때 받침이 남는 끝소리(n·m·l·ng)면 '과'이고,
+        // Jake(제이크)·Alex(알렉스)처럼 나머지는 받침 없이 읽으므로 '와'다.
+        private static string WithParticle(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return "와";
+            }
+
+            char last = name[name.Length - 1];
+            if (last >= '가' && last <= '힣')
+            {
+                return (last - '가') % 28 != 0 ? "과" : "와";
+            }
+
+            string lower = name.ToLowerInvariant();
+            bool hasFinalConsonant =
+                lower.EndsWith("n")
+                || lower.EndsWith("m")
+                || lower.EndsWith("l")
+                || lower.EndsWith("ng");
+            return hasFinalConsonant ? "과" : "와";
+        }
+
         /// <summary>
         /// [대화 기록 보기]의 본문. 피드백을 받지 못했어도 방금 나눈 대화는 볼 수 있게 대화 화면과 같은 형식으로 보여 준다.
         /// </summary>

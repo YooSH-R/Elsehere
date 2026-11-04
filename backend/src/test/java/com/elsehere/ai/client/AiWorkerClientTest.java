@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -74,8 +76,8 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("NPC 대답 스트림을 끝까지 읽어 대답 전문·턴 전체 음성 ID·추천 단어·사용량을 모은다")
-  void reply_collectsDoneEventWordsAndUsage() {
+  @DisplayName("NPC 대답 스트림을 끝까지 읽어 대답 전문·턴 전체 음성 ID·사용량을 모은다")
+  void reply_collectsDoneEventAndUsage() {
     respond(
         "/v1/npc/reply",
         200,
@@ -87,23 +89,46 @@ class AiWorkerClientTest {
         event: audio
         data: {"seq": 0, "text": "Hi! What can I get?", "audio_id": "a-0", "duration_s": 1.0}
 
-        event: words
-        data: {"words": ["latte", "iced"], "error": null}
-
         event: done
         data: {"text": "Hi! What can I get?", "audio_full_id": "full-1", "usage": [{"step": "npc", "model": "m1", "input_tokens": 120, "output_tokens": 8}]}
 
         """);
 
-    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(reply.succeeded()).isTrue();
     assertThat(reply.text()).isEqualTo("Hi! What can I get?");
     assertThat(reply.audioFullId()).isEqualTo("full-1");
-    assertThat(reply.suggestWords()).containsExactly("latte", "iced");
     assertThat(reply.usage())
         .extracting(WorkerUsage::model, WorkerUsage::inputTokens)
         .containsExactly(tuple("m1", 120));
+  }
+
+  @Test
+  @DisplayName(
+      "NPC 대답 스트림이 끝나면 첫 글자·LLM 생성·워커가 잰 시간, 음성 길이, 백엔드가 기다린 시간을 개발 서버(DEBUG)에 남긴다. 대답 글은 남기지 않는다")
+  void reply_logsTimingAtDebug() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        """
+        event: done
+        data: {"text": "Hi! What can I get?", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "full-1", "audio_full_s": 3.4, "usage": [{"step": "npc", "model": "m1", "latency_s": 1.8}]}
+
+        """);
+
+    try (LogCapture logs = LogCapture.atDebug(AiWorkerClient.class)) {
+      client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
+
+      assertThat(logs.messages(Level.DEBUG))
+          .filteredOn(message -> message.startsWith("npc_reply_timing"))
+          .singleElement()
+          .asString()
+          .matches(
+              "npc_reply_timing first_token_s=0\\.62 llm_s=1\\.8 worker_total_s=2\\.1"
+                  + " audio_full_s=3\\.4 wait_ms=\\d+");
+    }
   }
 
   @Test
@@ -118,7 +143,8 @@ class AiWorkerClientTest {
         List.of(WorkerLine.npc("Hi")),
         "Hello",
         "",
-        2);
+        2,
+        null);
 
     ReceivedRequest request = received.get("/v1/npc/reply");
     assertThat(request.token()).isEqualTo(TOKEN);
@@ -127,7 +153,6 @@ class AiWorkerClientTest {
     assertThat(request.conversationId()).isEqualTo("11");
     assertThat(request.contentType()).isEqualTo("application/json");
     assertThat(request.body())
-        .contains("\"suggest_words\":true")
         .contains("\"level\":2")
         .contains("\"tts_voice\":\"af_heart\"")
         .contains(
@@ -135,11 +160,46 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("대답 상대인 학습자의 닉네임과 캐릭터 기본형을 learner로 보낸다")
+  void reply_sendsLearnerNicknameAndAvatarType() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 2, new WorkerLearner("Sun", "F"));
+
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"learner\":{\"nickname\":\"Sun\",\"avatar_type\":\"F\"}");
+  }
+
+  @Test
+  @DisplayName("NPC의 인격 카드는 snake_case로 바꾸지 않고 카드의 칸 이름(camelCase) 그대로 보낸다")
+  void reply_sendsProfileWithCamelCaseKeys() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+    WorkerNpc npcWithProfile =
+        new WorkerNpc(
+            "CAFE_STAFF",
+            "Mia",
+            "the barista",
+            "",
+            "The counter",
+            "af_heart",
+            1.0,
+            Map.of("schemaVersion", "2.0", "speechStyle", Map.of("tone", "bright")));
+
+    client.reply(TRACE, npcWithProfile, null, List.of(), "Hello", "", 2, null);
+
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"tts_voice\":\"af_heart\"")
+        .contains("\"schemaVersion\":\"2.0\"")
+        .contains("\"speechStyle\":{\"tone\":\"bright\"}")
+        .doesNotContain("schema_version");
+  }
+
+  @Test
   @DisplayName("대화가 없는 요청에는 대화 ID 헤더를 붙이지 않는다")
   void request_withoutConversation_omitsConversationHeader() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
 
-    client.reply(new WorkerTrace(REQUEST_ID, 7L, null), NPC, null, List.of(), "Hello", "", 1);
+    client.reply(new WorkerTrace(REQUEST_ID, 7L, null), NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(received.get("/v1/npc/reply").conversationId()).isNull();
   }
@@ -153,7 +213,7 @@ class AiWorkerClientTest {
         "text/event-stream",
         "event: error\ndata: {\"code\": \"provider_limit\", \"usage\": [{\"step\": \"npc\", \"model\": \"m1\"}]}\n\n");
 
-    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(reply.succeeded()).isFalse();
     assertThat(reply.errorCode()).isEqualTo("provider_limit");
@@ -166,7 +226,7 @@ class AiWorkerClientTest {
     respond(
         "/v1/npc/reply", 200, "text/event-stream", "event: delta\ndata: {\"text\": \"Hi\"}\n\n");
 
-    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1);
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(reply.succeeded()).isFalse();
     assertThat(reply.errorCode()).isEqualTo("provider_unavailable");
@@ -178,7 +238,7 @@ class AiWorkerClientTest {
     respond(
         "/v1/npc/reply", 429, "application/json", "{\"error\": {\"code\": \"provider_limit\"}}");
 
-    assertThatThrownBy(() -> client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1))
+    assertThatThrownBy(() -> client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null))
         .isInstanceOfSatisfying(
             BusinessException.class,
             exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.AI_RATE_LIMITED));
@@ -206,6 +266,34 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("의도 판정이 줄 사건과 그 사건으로 바로 올릴 호감도(affinity_delta)를 주면 함께 읽고, 주지 않으면 null이다")
+  void judge_readsEventsAndAffinityDelta() {
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "I love this town!", "dropped": false, "notice": null, "intent": {"id": "chat"},
+         "translation": null, "events": ["COMPLIMENT"], "affinity_delta": 4, "usage": []}
+        """);
+    JudgeResult withDelta =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+    respond(
+        "/v1/judge",
+        200,
+        "application/json",
+        """
+        {"text": "Hi", "dropped": false, "usage": []}
+        """);
+    JudgeResult withoutDelta =
+        client.judge(TRACE, NPC, new WorkerState("free_talk", "", List.of()), List.of(), "Hi");
+
+    assertThat(withDelta.events()).containsExactly("COMPLIMENT");
+    assertThat(withDelta.affinityDelta()).isEqualTo(4);
+    assertThat(withoutDelta.affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("무례 판정은 앞선 대화의 무례 표시와 함께 보내고 판정값·사용량을 읽는다")
   void guard_sendsHistoryAndReadsAbusive() {
     respond(
@@ -230,6 +318,30 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("무례 판정이 호감도 변화량(affinity_delta)을 주면 함께 읽고, 주지 않으면 null이다")
+  void guard_readsAffinityDeltaWhenGiven() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "affinity_delta": -7, "usage": []}
+        """);
+    GuardResult withDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": true, "error_code": null}, "usage": []}
+        """);
+    GuardResult withoutDelta = client.guard(TRACE, NPC, List.of(), "you idiot");
+
+    assertThat(withDelta.affinityDelta()).isEqualTo(-7);
+    assertThat(withoutDelta.affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("판정하지 못한 무례 판정은 판정값 null과 이유 코드로 읽는다")
   void guard_undecided_readsNullAndErrorCode() {
     respond(
@@ -248,14 +360,37 @@ class AiWorkerClientTest {
   }
 
   @Test
-  @DisplayName("추천 단어를 끄면 NPC 대답 요청에 suggest_words false를 보낸다")
-  void reply_withoutSuggestWords_sendsFalse() {
+  @DisplayName("추천 단어는 따로 받으므로 NPC 대답 요청에는 suggest_words false를 보낸다")
+  void reply_sendsSuggestWordsFalse() {
     respond(
         "/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Bye\"}\n\n");
 
-    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, false);
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
 
     assertThat(received.get("/v1/npc/reply").body()).contains("\"suggest_words\":false");
+  }
+
+  @Test
+  @DisplayName("추천 단어는 앞선 대화·목표·난이도를 보내고 단어와 사용량을 읽는다")
+  void suggest_sendsHistoryAndReadsWords() {
+    respond(
+        "/v1/suggest",
+        200,
+        "application/json",
+        """
+        {"words": ["for here", "to go", "please"],
+         "usage": [{"step": "suggest", "model": "m1"}]}
+        """);
+
+    SuggestResult result =
+        client.suggest(TRACE, NPC, List.of(WorkerLine.npc("For here or to go?")), "", 1);
+
+    assertThat(result.words()).containsExactly("for here", "to go", "please");
+    assertThat(result.usage()).extracting(WorkerUsage::step).containsExactly("suggest");
+    assertThat(received.get("/v1/suggest").body())
+        .contains("\"goal\":\"\"")
+        .contains("\"history\":[{\"who\":\"npc\",\"text\":\"For here or to go?\"")
+        .contains("\"level\":1");
   }
 
   @Test
@@ -419,6 +554,63 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("기억에 담긴 관계는 memory 안이 아니라 요청 최상위의 relationship으로 보낸다")
+  void reply_sendsRelationshipAtTopLevel() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(
+        TRACE,
+        NPC,
+        new WorkerMemory(2, null, null, new WorkerRelationship(23, 3, 0)),
+        List.of(),
+        "Hello",
+        "",
+        2,
+        null);
+
+    assertThat(received.get("/v1/npc/reply").body())
+        .contains("\"memory\":{\"visits\":2,\"last_order\":null,\"card\":null}")
+        .contains(
+            "\"relationship\":{\"recognition\":23,\"affinity\":3,\"days_since_last_talk\":0}");
+  }
+
+  @Test
+  @DisplayName("관계 갱신은 저장된 관계와 학습자 줄의 무례·사건이 담긴 대화를 보내고 알아봄 변화량을 읽는다")
+  void relationship_sendsRelationshipAndHistoryAndReadsRecognitionDelta() {
+    respond("/v1/npc/relationship", 200, "application/json", "{\"recognition_delta\": 8}");
+
+    RelationshipChange change =
+        client.relationship(
+            TRACE,
+            NPC,
+            new WorkerRelationship(15, 2, 0),
+            List.of(
+                WorkerLine.npc("Hi! What can I get you?"),
+                WorkerLine.learner("Hi! Bye!", null, false, List.of("GREETING", "LEAVE"))));
+
+    assertThat(change).isEqualTo(new RelationshipChange(8));
+    assertThat(received.get("/v1/npc/relationship").body())
+        .contains("\"relationship\":{\"recognition\":15,\"affinity\":2,\"days_since_last_talk\":0}")
+        .contains(
+            "{\"who\":\"npc\",\"text\":\"Hi! What can I get you?\",\"english\":null,\"rude\":false,\"events\":[]}")
+        .contains("\"rude\":false,\"events\":[\"GREETING\",\"LEAVE\"]");
+  }
+
+  @Test
+  @DisplayName("관계 갱신에 실패하면 워커 오류 코드로 던진다")
+  void relationship_error_throwsMappedCode() {
+    respond("/v1/npc/relationship", 503, "text/html", "<html>Bad gateway</html>");
+
+    assertThatThrownBy(
+            () -> client.relationship(TRACE, NPC, new WorkerRelationship(0, 0, 0), List.of()))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode())
+                    .isEqualTo(ErrorCode.AI_TEMPORARILY_UNAVAILABLE));
+  }
+
+  @Test
   @DisplayName("워커에 연결하지 못하면 AI_TEMPORARILY_UNAVAILABLE이다")
   void unreachableWorker_throwsTemporarilyUnavailable() throws IOException {
     int closedPort;
@@ -455,6 +647,47 @@ class AiWorkerClientTest {
   @DisplayName("오류 코드가 없으면 일시적인 AI 오류로 본다")
   void toErrorCode_null_isTemporarilyUnavailable() {
     assertThat(AiWorkerClient.toErrorCode(null)).isEqualTo(ErrorCode.AI_TEMPORARILY_UNAVAILABLE);
+  }
+
+  @Test
+  @DisplayName("개발 서버(DEBUG)에서는 워커 호출마다 경로·상태·걸린 시간만 남기고 보낸 말은 남기지 않는다")
+  void everyCall_logsPathStatusAndDurationAtDebug() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": false, "error_code": null}, "usage": []}
+        """);
+
+    try (LogCapture logs = LogCapture.atDebug(AiWorkerClient.class)) {
+      client.guard(TRACE, NPC, List.of(), "my secret plan");
+
+      assertThat(logs.messages(Level.DEBUG))
+          .singleElement()
+          .asString()
+          .matches("ai_worker_call path=/v1/guard status=200 duration_ms=\\d+")
+          .doesNotContain("my secret plan");
+    }
+  }
+
+  @Test
+  @DisplayName("운영(INFO)에서는 성공한 워커 호출을 남기지 않는다")
+  void successfulCall_isNotLoggedAtInfo() {
+    respond(
+        "/v1/guard",
+        200,
+        "application/json",
+        """
+        {"guard": {"abusive": false, "error_code": null}, "usage": []}
+        """);
+
+    try (LogCapture logs = LogCapture.atInfo(AiWorkerClient.class)) {
+      client.guard(TRACE, NPC, List.of(), "hello");
+
+      assertThat(logs.messages(Level.DEBUG)).isEmpty();
+      assertThat(logs.messages(Level.INFO)).isEmpty();
+    }
   }
 
   private void respond(String path, int status, String contentType, String body) {

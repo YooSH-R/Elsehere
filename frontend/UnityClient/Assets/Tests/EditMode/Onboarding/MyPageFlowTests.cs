@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.Player;
 using NUnit.Framework;
 
 namespace A305.Onboarding.Tests
@@ -15,6 +17,21 @@ namespace A305.Onboarding.Tests
         {
             api = new FakeMyPageApi();
             flow = new MyPageFlow(api);
+        }
+
+        [TearDown]
+        public void ForgetNickname() => PlayerNickname.Reset();
+
+        // 폰 메뉴 날짜 줄이 바뀐 닉네임을 바로 보이도록 게임에도 알린다.
+        [Test]
+        public async Task ChangeNickname_SharesTheNewNicknameWithTheGame()
+        {
+            await flow.LoadAsync();
+            Assert.That(PlayerNickname.Name, Is.EqualTo("Sun"));
+
+            await flow.ChangeNicknameAsync("선종");
+
+            Assert.That(PlayerNickname.Name, Is.EqualTo("선종"));
         }
 
         [Test]
@@ -128,6 +145,109 @@ namespace A305.Onboarding.Tests
             Assert.That(api.Changes, Is.Empty);
         }
 
+        [Test]
+        public async Task Load_ShowsConsentsUserCanChange()
+        {
+            await flow.LoadAsync();
+
+            Assert.That(
+                flow.Consents.Select(consent => consent.ConsentType),
+                Is.EqualTo(new[] { "VOICE", "TRAINING_TEXT" })
+            );
+            Assert.That(flow.IsVoiceAgreed, Is.False);
+        }
+
+        [Test]
+        public async Task ChangeConsent_SavesAndShowsNewChoice()
+        {
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeConsentAsync("VOICE", true);
+
+            Assert.That(changed, Is.True);
+            Assert.That(api.ConsentChanges, Is.EqualTo(new[] { "VOICE:True" }));
+            Assert.That(flow.IsVoiceAgreed, Is.True);
+            Assert.That(flow.Message, Is.EqualTo("켰어요: 음성 처리 동의"));
+        }
+
+        [Test]
+        public async Task ChangeConsent_WhenServerRejects_KeepsPreviousChoiceAndTellsWhy()
+        {
+            await flow.LoadAsync();
+            api.ConsentChangeError = Failure("서버에 연결하지 못했어요.");
+
+            bool changed = await flow.ChangeConsentAsync("VOICE", true);
+
+            Assert.That(changed, Is.False);
+            Assert.That(flow.IsVoiceAgreed, Is.False);
+            Assert.That(flow.Message, Is.EqualTo("서버에 연결하지 못했어요."));
+        }
+
+        [Test]
+        public async Task CanWithdraw_SignedInMember_IsTrue()
+        {
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanWithdraw, Is.True);
+        }
+
+        [Test]
+        public async Task CanWithdraw_Guest_IsFalse()
+        {
+            api.Guest = true;
+
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanWithdraw, Is.False);
+        }
+
+        // 게스트인지 알기 전에는 보이지 않아, 게스트에게 잠깐이라도 [회원 탈퇴]가 보이지 않게 한다.
+        [Test]
+        public async Task CanWithdraw_BeforeProfileLoaded_IsFalse()
+        {
+            Assert.That(flow.CanWithdraw, Is.False);
+
+            api.BootstrapError = Failure("서버에 연결하지 못했어요.");
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanWithdraw, Is.False);
+        }
+
+        [Test]
+        public async Task Load_Member_CanChangeNickname()
+        {
+            Assert.That(flow.CanChangeNickname, Is.False);
+
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanChangeNickname, Is.True);
+        }
+
+        // 게스트 닉네임은 서버가 정하므로 바꾸지 못하게 하고, 열자마자 이유를 알린다.
+        [Test]
+        public async Task Load_Guest_CannotChangeNicknameAndTellsWhy()
+        {
+            api.Guest = true;
+
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanChangeNickname, Is.False);
+            Assert.That(flow.Message, Is.EqualTo("게스트는 닉네임을 바꿀 수 없어요."));
+        }
+
+        [Test]
+        public async Task ChangeNickname_Guest_DoesNotSend()
+        {
+            api.Guest = true;
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeNicknameAsync("선종");
+
+            Assert.That(changed, Is.False);
+            Assert.That(api.Changes, Is.Empty);
+            Assert.That(flow.Message, Is.EqualTo("게스트는 닉네임을 바꿀 수 없어요."));
+        }
+
         private static ApiException Failure(string message)
         {
             return new ApiException(ApiErrorCodes.NetworkError, 0, message);
@@ -136,6 +256,9 @@ namespace A305.Onboarding.Tests
         private sealed class FakeMyPageApi : IMyPageApi
         {
             public ApiException BootstrapError { get; set; }
+
+            /// <summary>정하면 게스트로 시작한 사용자를 돌려준다.</summary>
+            public bool Guest { get; set; }
 
             public ApiException ChangeError { get; set; }
 
@@ -162,6 +285,7 @@ namespace A305.Onboarding.Tests
                             AvatarType = AvatarType.F,
                             CurrentLanguage = "en-US",
                             OnboardingStep = OnboardingStep.Done,
+                            Guest = Guest,
                         },
                     }
                 );
@@ -181,6 +305,43 @@ namespace A305.Onboarding.Tests
                 }
 
                 return new NicknameChange { Nickname = nickname };
+            }
+
+            public ApiException ConsentChangeError { get; set; }
+
+            public List<string> ConsentChanges { get; } = new List<string>();
+
+            public Task<List<ConsentStatus>> GetConsentsAsync()
+            {
+                return Task.FromResult(
+                    new List<ConsentStatus>
+                    {
+                        Consent("VOICE", "음성 처리 동의", false),
+                        Consent("TRAINING_TEXT", "AI 개선에 내 대화 기록 활용", false),
+                    }
+                );
+            }
+
+            public Task<ConsentStatus> ChangeConsentAsync(string consentType, bool agreed)
+            {
+                ConsentChanges.Add($"{consentType}:{agreed}");
+                if (ConsentChangeError != null)
+                {
+                    throw ConsentChangeError;
+                }
+
+                return Task.FromResult(Consent(consentType, "음성 처리 동의", agreed));
+            }
+
+            private static ConsentStatus Consent(string consentType, string title, bool agreed)
+            {
+                return new ConsentStatus
+                {
+                    ConsentType = consentType,
+                    Version = "2026-10",
+                    Title = title,
+                    Agreed = agreed,
+                };
             }
         }
     }

@@ -2,11 +2,8 @@ package com.elsehere.admin.service;
 
 import com.elsehere.admin.dto.PronunciationProgress;
 import com.elsehere.admin.dto.PronunciationRun;
-import com.elsehere.ai.client.AiWorkerClient;
+import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.WorkerTrace;
-import com.elsehere.ai.entity.AiRequestKind;
-import com.elsehere.ai.entity.AiRequestStatus;
-import com.elsehere.ai.service.AiRequestRecorder;
 import com.elsehere.vocab.entity.Vocabulary;
 import com.elsehere.vocab.repository.VocabularyRepository;
 import com.elsehere.world.service.PronunciationAudioStore;
@@ -32,22 +29,19 @@ public class PronunciationGenerator {
 
   private final VocabularyRepository vocabularyRepository;
   private final PronunciationAudioStore pronunciationAudioStore;
-  private final AiWorkerClient aiWorkerClient;
-  private final AiRequestRecorder aiRequestRecorder;
+  private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
   private final String voice;
 
   public PronunciationGenerator(
       VocabularyRepository vocabularyRepository,
       PronunciationAudioStore pronunciationAudioStore,
-      AiWorkerClient aiWorkerClient,
-      AiRequestRecorder aiRequestRecorder,
+      AiGateway aiGateway,
       TransactionTemplate transactionTemplate,
       @Value("${elsehere.pronunciation.voice}") String voice) {
     this.vocabularyRepository = vocabularyRepository;
     this.pronunciationAudioStore = pronunciationAudioStore;
-    this.aiWorkerClient = aiWorkerClient;
-    this.aiRequestRecorder = aiRequestRecorder;
+    this.aiGateway = aiGateway;
     this.transactionTemplate = transactionTemplate;
     this.voice = voice;
   }
@@ -71,21 +65,21 @@ public class PronunciationGenerator {
           created++;
         } catch (RuntimeException exception) {
           // 워커 오류·시간 초과 등으로 한 단어가 실패해도 나머지 단어는 만든다. 다시 실행하면 실패한 단어만 다시 만든다.
-          log.warn("사물 단어 발음을 만들지 못했습니다. wordKey={}", word.wordKey(), exception);
+          log.warn("pronunciation_word_failed word_key={}", word.wordKey(), exception);
           failedWordKeys.add(word.wordKey());
           continue;
         }
       }
       attach(word);
     }
-    log.info("사물 단어 발음 만들기 완료. created={}, failed={}", created, failedWordKeys.size());
+    log.info(
+        "pronunciation_generation_finished created={} failed={}", created, failedWordKeys.size());
     return new PronunciationRun(created, failedWordKeys);
   }
 
   private void synthesize(ObjectWord word, Long adminUserId) {
     WorkerTrace trace = new WorkerTrace(UUID.randomUUID(), adminUserId, null);
-    byte[] wav = aiWorkerClient.synthesize(trace, word.text(), voice, SPEED);
-    aiRequestRecorder.record(trace, AiRequestKind.TTS, List.of(), AiRequestStatus.OK);
+    byte[] wav = aiGateway.synthesize(trace, word.text(), voice, SPEED);
     pronunciationAudioStore.save(word.audioKey(), wav);
   }
 

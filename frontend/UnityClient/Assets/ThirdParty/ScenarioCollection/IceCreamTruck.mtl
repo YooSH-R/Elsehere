@@ -1,0 +1,76 @@
+newmtl IceCreamTruck_Paint_Teal
+Kd 0.5064 0.8095 0.8095
+
+newmtl IceCreamTruck_Paint_Cream
+Kd 0.9547 0.8860 0.7736
+
+newmtl IceCreamTruck_Paint_Pink
+Kd 0.9309 0.5657 0.6652
+
+newmtl IceCreamTruck_Chrome
+Kd 0.9547 0.9547 0.9640
+
+newmtl IceCreamTruck_Paint_Teal_Panels
+Kd 1.0000 1.0000 1.0000
+map_Kd IceCreamTruck.png
+
+newmtl IceCreamTruck_Interior
+Kd 0.2478 0.4366 0.4236
+
+newmtl IceCreamTruck_WheelWell
+Kd 0.1517 0.1718 0.1897
+
+newmtl IceCreamTruck_Wood_Light
+Kd 0.8543 0.7354 0.5469
+
+newmtl IceCreamTruck_Chalkboard
+Kd 0.1517 0.1718 0.1718
+
+newmtl IceCreamTruck_Wood
+Kd 0.7014 0.5064 0.3133
+
+newmtl IceCreamTruck_Eye_White
+Kd 0.9640 0.9640 0.9640
+
+newmtl IceCreamTruck_Eye_Iris
+Kd 0.2478 0.5064 0.7014
+
+newmtl IceCreamTruck_Eye_Pupil
+Kd 0.0610 0.0610 0.0861
+
+newmtl IceCreamTruck_Grille_Dark
+Kd 0.6262 0.2717 0.3811
+
+newmtl IceCreamTruck_Indicator_Orange
+Kd 1.0000 0.5371 0.1517
+
+newmtl IceCreamTruck_Glass_Dark
+Kd 0.5838 0.6012 0.6343
+
+newmtl IceCreamTruck_Mouth_Dark
+Kd 0.1517 0.2478 0.2478
+
+newmtl IceCreamTruck_Machine_Red
+Kd 0.8808 0.2478 0.2717
+
+newmtl IceCreamTruck_Machine_Glass
+Kd 0.9309 0.9547 0.9777
+d 0.350
+
+newmtl IceCreamTruck_Popcorn
+Kd 0.9777 0.9063 0.7014
+
+newmtl IceCreamTruck_Bulb
+Kd 1.0000 0.9640 0.8808
+
+newmtl IceCreamTruck_Wire
+Kd 0.1897 0.1897 0.1897
+
+newmtl IceCreamTruck_Taillight_Red
+Kd 0.9063 0.1517 0.1517
+
+newmtl IceCreamTruck_Rubber
+Kd 0.1718 0.1718 0.1897
+
+newmtl IceCreamTruck_Seal_Black
+Kd 0.1517 0.1517 0.1517

@@ -41,7 +41,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class SignupControllerTest {
 
   private static final UserResponse SIGNED_UP_USER =
-      new UserResponse(1L, "Sun", AvatarType.F, null, OnboardingStep.LANG, UiTheme.JELLY);
+      new UserResponse(
+          1L, "Sun", AvatarType.F, null, OnboardingStep.LANG, UiTheme.JELLY, false, false);
 
   @Autowired private MockMvc mockMvc;
 
@@ -177,7 +178,7 @@ class SignupControllerTest {
               "avatarType": "F",
               "consents": [
                 { "consentType": "TERMS", "version": "2026-10" },
-                { "consentType": "PRIVACY", "version": "2026-10" },
+                { "consentType": "PRIVACY", "version": "2026-11" },
                 { "consentType": "AGE14", "version": "2026-10" }
               ]
             }

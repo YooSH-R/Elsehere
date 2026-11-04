@@ -37,6 +37,14 @@ services:
       STT_GPU_BASE_URL: ${STT_GPU_BASE_URL:-}
       STT_GPU_TOKEN: ${STT_GPU_TOKEN:-}
       STT_FIRST_TIMEOUT_S: ${STT_FIRST_TIMEOUT_S:-8}
+      TTS_CHUNK_BUDGET_S: ${TTS_CHUNK_BUDGET_S:-8}
+      # Optional rudeness judge on the GPU server (vLLM) first, then the profile's guard model. Empty keeps the profile's guard.
+      GUARD_GPU_MODEL: ${GUARD_GPU_MODEL:-}
+      GUARD_GPU_BASE_URL: ${GUARD_GPU_BASE_URL:-}
+      GUARD_GPU_TOKEN: ${GUARD_GPU_TOKEN:-}
+      # Optional speech synthesis on the GPU server first, then the local CPU Kokoro. Empty keeps CPU only.
+      TTS_GPU_BASE_URL: ${TTS_GPU_BASE_URL:-}
+      TTS_GPU_TOKEN: ${TTS_GPU_TOKEN:-}
       # TTS (Kokoro) synthesis threads; keep equal to the cpus limit below or synthesis slows down several times.
       KOKORO_THREADS: "2"
     healthcheck:
@@ -44,13 +52,13 @@ services:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3)"
+        - "import json, urllib.request; health = json.load(urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=3)); assert health.get('tts_phoneme_timing') is True"
       interval: 10s
       timeout: 5s
       retries: 6
-      start_period: 20s
-    cpus: 2.00
-    mem_limit: 1g
+      start_period: 90s
+    cpus: ${AI_WORKER_CPUS:-2.0}
+    mem_limit: ${AI_WORKER_MEMORY:-1g}
     security_opt:
       - no-new-privileges:true
 
@@ -68,8 +76,13 @@ services:
       AI_WORKER_TOKEN: ${AI_WORKER_TOKEN:?Set AI_WORKER_TOKEN}
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65.0
       NPC_AUDIO_DIR: /app/data/npc-audio
+      LOGGING_LEVEL_COM_ELSEHERE: ${BACKEND_LOG_LEVEL:-INFO}
+      # Log files outlive container replacement in backend-logs. An empty format keeps text lines; production uses ecs JSON.
+      LOGGING_FILE_NAME: /app/logs/backend.log
+      LOGGING_STRUCTURED_FORMAT_FILE: ${BACKEND_LOG_FILE_FORMAT:-}
     volumes:
       - npc-audio-data:/app/data/npc-audio
+      - backend-logs:/app/logs
     depends_on:
       database:
         condition: service_healthy
@@ -107,3 +120,4 @@ services:
 volumes:
   database-data:
   npc-audio-data:
+  backend-logs:

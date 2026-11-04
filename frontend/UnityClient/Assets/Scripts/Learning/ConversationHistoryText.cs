@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace A305.Learning
 {
-    /// <summary>[지난 대화] 창의 목록 글자. 고른 대화 주변의 몇 개만 보여 준다.</summary>
+    /// <summary>[피드백 목록] 한 줄의 글자. "NPC · 장소" 제목, 언제 나눈 대화인지, 피드백이 없으면 그 상태, 색 아이콘의 글자와 색을 정한다.</summary>
     public static class ConversationHistoryText
     {
         public const string EmptyMessage =
             "아직 나눈 대화가 없어요. 마을에서 NPC에게 말을 걸어 보세요.";
+
+        private const string DotColor = "#A39580";
+        private const string NoteColor = "#D24F2F";
 
         // 서버 장소 코드의 이름. 목록에 없는 장소는 코드를 그대로 보인다.
         private static readonly IReadOnlyDictionary<string, string> PlaceNames = new Dictionary<
@@ -23,63 +25,66 @@ namespace A305.Learning
             { "SHOP", "상점" },
         };
 
-        /// <param name="selectedIndex">고른 대화. 목록 범위 안의 값이어야 한다.</param>
-        /// <param name="visibleCount">한 번에 보여 줄 대화 수</param>
-        /// <param name="hasMore">서버에 더 불러올 대화가 있는지</param>
-        public static string Format(
-            IReadOnlyList<ConversationSummary> conversations,
-            int selectedIndex,
-            int visibleCount,
-            bool hasMore
-        )
+        public static string Title(ConversationSummary conversation)
         {
-            if (conversations.Count == 0)
-            {
-                return EmptyMessage;
-            }
-
-            int firstIndex = Math.Clamp(
-                selectedIndex - visibleCount / 2,
-                0,
-                Math.Max(0, conversations.Count - visibleCount)
-            );
-            int lastIndex = Math.Min(conversations.Count, firstIndex + visibleCount);
-            // 줄바꿈은 플랫폼과 상관없이 \n으로 둔다(AppendLine은 Windows에서 \r\n을 붙인다).
-            var text = new StringBuilder();
-            for (int i = firstIndex; i < lastIndex; i++)
-            {
-                string marker = i == selectedIndex ? "→ " : "    ";
-                text.Append(marker).Append(Row(conversations[i])).Append('\n');
-            }
-
-            text.Append($"\n{selectedIndex + 1} / {conversations.Count}");
-            if (hasMore)
-            {
-                text.Append(" · [다음]으로 더 불러와요");
-            }
-
-            return text.ToString();
-        }
-
-        private static string Row(ConversationSummary conversation)
-        {
-            string name = conversation.Npc?.Name ?? "NPC";
-            string role = string.IsNullOrEmpty(conversation.Npc?.RoleLabel)
-                ? ""
-                : " " + conversation.Npc.RoleLabel;
             string place = PlaceNames.TryGetValue(conversation.SceneCode ?? "", out string known)
                 ? known
                 : conversation.SceneCode;
-            string startedAt = conversation.StartedAt.ToString("M월 d일 HH:mm");
-            return $"<b>{name}</b>{role} · {place} · {startedAt} · {FeedbackState(conversation)}";
+            return $"{Name(conversation)}<color={DotColor}> · </color>{place}";
         }
 
-        private static string FeedbackState(ConversationSummary conversation)
+        /// <summary>오늘·어제는 시각까지("오늘 오후 2:05"), 그 전은 날짜만 보인다. 날은 보는 사람의 시간대(<paramref name="now"/>)로 가른다.</summary>
+        public static string When(DateTimeOffset startedAt, DateTimeOffset now)
+        {
+            DateTime started = startedAt.ToOffset(now.Offset).DateTime;
+            DateTime today = now.DateTime.Date;
+            if (started.Date == today)
+                return "오늘 " + Time(started);
+            if (started.Date == today.AddDays(-1))
+                return "어제 " + Time(started);
+            return started.Year == today.Year
+                ? $"{started.Month}월 {started.Day}일"
+                : $"{started.Year}년 {started.Month}월 {started.Day}일";
+        }
+
+        /// <summary>시간 줄. 피드백이 없는 대화만 그 상태를 빨간 글자로 붙인다.</summary>
+        public static string Subtitle(ConversationSummary conversation, DateTimeOffset now)
+        {
+            string when = When(conversation.StartedAt, now);
+            string note = Note(conversation);
+            return note == null ? when : $"{when} · <color={NoteColor}>{note}</color>";
+        }
+
+        public static string AvatarLetter(ConversationSummary conversation) =>
+            Name(conversation).Substring(0, 1).ToUpperInvariant();
+
+        /// <summary>
+        /// NPC 이름으로 정하는 아이콘 색 번호. 같은 NPC는 언제나 같은 색이다.
+        /// 글자 값 합을 3으로 나눈 몫으로 고르면 첫날 함께 만나는 Jake·Mia·Ben이 서로 다른 색이 된다.
+        /// </summary>
+        public static int AvatarColor(ConversationSummary conversation, int colorCount)
+        {
+            int sum = 0;
+            foreach (char letter in Name(conversation))
+                sum += letter;
+            return sum / 3 % colorCount;
+        }
+
+        private static string Name(ConversationSummary conversation) =>
+            string.IsNullOrEmpty(conversation.Npc?.Name) ? "NPC" : conversation.Npc.Name;
+
+        private static string Time(DateTime time)
+        {
+            int hour = time.Hour % 12 == 0 ? 12 : time.Hour % 12;
+            return $"{(time.Hour < 12 ? "오전" : "오후")} {hour}:{time.Minute:00}";
+        }
+
+        private static string Note(ConversationSummary conversation)
         {
             switch (conversation.FeedbackStatus)
             {
                 case "DONE":
-                    return "피드백 있음";
+                    return null;
                 case "FAILED":
                     return "피드백을 만들지 못함";
                 case "SKIPPED":

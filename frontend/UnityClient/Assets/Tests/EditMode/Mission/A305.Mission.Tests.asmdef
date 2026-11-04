@@ -5,7 +5,13 @@
         "A305.Api",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "A305.Mission"
+        "A305.Mission",
+        "A305.Npc",
+        "A305.Theme",
+        "A305.Wayfinding",
+        "A305.World",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

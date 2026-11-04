@@ -85,13 +85,18 @@ namespace A305.EditorTools.Player
                 foreach (var point in headPoints)
                     head.Encapsulate(point);
                 float height = Mathf.Ceil(body.size.y * 100) / 100;
-                float radius =
-                    Mathf.Ceil(
-                        headPoints.Max(point => new Vector2(point.x, point.z).magnitude) * 100
-                    ) / 100;
+                // 충돌 캡슐은 머리 아래 몸통만 덮어 가구 사이 좁은 틈에도 들어가게 하고,
+                // 큰 머리는 머리 아래 끝에서 시작하는 구로 따로 막아 낮은 가구는 머리 아래로 지나가게 한다.
+                float radius = CeilToCentimeter(
+                    HorizontalReach(bodyPoints.Where(point => point.y < head.min.y))
+                );
+                float headRadius = CeilToCentimeter(HorizontalReach(headPoints));
+                float headCenterHeight = head.min.y - body.min.y + headRadius;
                 var data = new SerializedObject(definition);
                 data.FindProperty("heightMeters").floatValue = height;
                 data.FindProperty("radiusMeters").floatValue = radius;
+                data.FindProperty("headRadiusMeters").floatValue = headRadius;
+                data.FindProperty("headCenterHeightMeters").floatValue = headCenterHeight;
                 // 얼굴 중앙을 기본 눈높이로 둔다. 최종 눈 위치는 캐릭터 정의에서 미세 조정할 수 있다.
                 data.FindProperty("cameraEyeHeightMeters").floatValue = head.center.y - body.min.y;
                 data.FindProperty("cameraPivotHeightMeters").floatValue = height * .6f;
@@ -99,13 +104,24 @@ namespace A305.EditorTools.Player
                 EditorUtility.SetDirty(definition);
                 AssetDatabase.SaveAssets();
                 Debug.Log(
-                    $"{definition.CharacterId} fit: scale={copy.transform.localScale}, body={body}, head={head}, capsule={height:F3}/{radius:F3}"
+                    $"{definition.CharacterId} fit: scale={copy.transform.localScale}, body={body}, head={head}, capsule={height:F3}/{radius:F3}, headSphere={headCenterHeight:F3}/{headRadius:F3}"
                 );
             }
             finally
             {
                 Object.DestroyImmediate(copy);
             }
+        }
+
+        /// <summary>점들이 캐릭터 세로축에서 가장 멀리 떨어진 수평 거리</summary>
+        private static float HorizontalReach(IEnumerable<Vector3> points)
+        {
+            return points.Max(point => new Vector2(point.x, point.z).magnitude);
+        }
+
+        private static float CeilToCentimeter(float meters)
+        {
+            return Mathf.Ceil(meters * 100) / 100;
         }
     }
 }

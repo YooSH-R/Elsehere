@@ -4,6 +4,7 @@ using A305.EditorTools.Npc;
 using A305.EditorTools.ObjectHover;
 using A305.Npc;
 using A305.ObjectHover;
+using A305.Player;
 using A305.World;
 using TMPro;
 using UnityEditor;
@@ -14,17 +15,22 @@ using static A305.EditorTools.World.MainstreetArtKit;
 
 namespace A305.EditorTools.World
 {
-    /// <summary>기존 마을의 빈 건물 1층을 편의점 정면으로 꾸며 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
+    /// <summary>기존 마을의 빈 건물 1층을 드럭스토어 정면으로 꾸며 출입구를 연결하고 없는 실내만 새로 만든다.</summary>
     public static class FirstDayShopBuilder
     {
         private const string ScenePath = "Assets/Scenes/Production/ShopScene.unity";
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
-        private const string StoreFrontName = "ConvenienceStoreFront";
+        private const string StoreFrontName = "DrugstoreFront";
+        private const string RetiredStoreFrontName = "ConvenienceStoreFront";
         private const string VacantGroundFloorPath =
             "TownMainstreet/BackgroundBuildings/VacantBuilding2F/ButterResidence2F/ButterGroundFloor8m";
         private const string KitPartFolder = "Assets/Prefabs/World/CafeBlenderKit/Parts/";
-        private const string TownSignText = "CONVENIENCE STORE";
-        private const string PriceSignText = "CONVENIENCE STORE\nUMBRELLAS · 8 COINS";
+        private const string TownSignText = "DRUGSTORE";
+        private const string PriceSignText = "DRUGSTORE\nUMBRELLAS · 8 COINS";
+        private const string CameraSettingsPath = "Assets/Data/Shop/ShopCameraSettings.asset";
+
+        // 문 바로 앞에 서면 3인칭 카메라가 문에 막혀 캐릭터에 붙으므로 매장 안쪽에 내려 준다.
+        private static readonly Vector3 EntryOffset = new Vector3(0, .1f, 3.6f);
 
         [MenuItem("Tools/A305/Mission/Adjust Shop Counter Sightline")]
         public static void AdjustSightline()
@@ -34,8 +40,8 @@ namespace A305.EditorTools.World
             NpcIdentity staff = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
                 .Single(npc => npc.Code == "SHOP_STAFF");
-            staff.LookTarget.localPosition = new Vector3(0, 1.12f, 0);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(staff.LookTarget);
+            // 시선은 직원 외형의 눈 높이에 맞춘다.
+            NpcVisualBuilder.Connect(staff);
             Transform counter = scene
                 .GetRootGameObjects()
                 .Single(root => root.name == "Environment")
@@ -57,6 +63,8 @@ namespace A305.EditorTools.World
                     "TownShopInterior/ShopPriceSign/PriceLabel",
                     PriceSignText
                 );
+                DrugstoreInteriorBuilder.Apply(existing);
+                ConfigureInteriorCamera(existing);
                 BuilderTools.SaveScene(existing, ScenePath);
                 return;
             }
@@ -169,21 +177,79 @@ namespace A305.EditorTools.World
             sun.intensity = 1.4f;
             sun.transform.rotation = Quaternion.Euler(55, -30, 0);
             RenderSettings.ambientLight = new Color(.65f, .65f, .6f);
+            DrugstoreInteriorBuilder.Apply(scene);
             BuilderTools.SaveScene(scene, ScenePath);
             SpaceSceneSetup.Apply(scene);
+            ConfigureInteriorCamera(scene);
+            BuilderTools.SaveScene(scene, ScenePath);
+        }
+
+        [MenuItem("Tools/A305/Mission/Apply Shop Interior Camera")]
+        public static void ApplyInteriorCamera()
+        {
+            BuilderTools.ThrowIfPlaying();
+            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            ConfigureInteriorCamera(scene);
             BuilderTools.SaveScene(scene, ScenePath);
         }
 
         /// <summary>
-        /// 마을의 빈 2층 건물 1층을 편의점 정면으로 꾸미고 출입구를 그 벽에 붙인다.
+        /// 카페·호텔처럼 좁은 실내용 카메라 거리와 시야를 쓰고, 입장 지점을 문에서 매장 안쪽으로 옮긴다.
+        /// 마을용 카메라 거리(5m)는 매장 안에서 벽에 막혀 캐릭터에 붙는다. 설정 에셋은 없을 때만 만든다.
+        /// </summary>
+        private static void ConfigureInteriorCamera(Scene scene)
+        {
+            PlayerCameraRig rig = BuilderTools.FindSingleInScene<PlayerCameraRig>(scene);
+            var settings = AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(CameraSettingsPath);
+            if (settings == null)
+            {
+                BuilderTools.EnsureFolder("Assets/Data/Shop");
+                settings = ScriptableObject.CreateInstance<PlayerCameraSettings>();
+                var data = new SerializedObject(settings);
+                data.FindProperty("startDistanceMeters").floatValue = 3.8f;
+                data.FindProperty("minDistanceMeters").floatValue = 1.5f;
+                data.FindProperty("maxDistanceMeters").floatValue = 5.2f;
+                data.FindProperty("startPitchDegrees").floatValue = 15;
+                data.FindProperty("pivotHeightMeters").floatValue = 1.5f;
+                data.FindProperty("eyeHeightMeters").floatValue = 1.074f;
+                data.ApplyModifiedPropertiesWithoutUndo();
+                AssetDatabase.CreateAsset(settings, CameraSettingsPath);
+            }
+            BuilderTools.SetReference(rig, "cameraSettings", settings);
+            Camera camera = rig.GetComponent<Camera>();
+            camera.fieldOfView = 65;
+            camera.nearClipPlane = .04f;
+            camera.farClipPlane = 90;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(camera);
+
+            SpaceDoorway door = BuilderTools
+                .FindAllInScene<SpaceDoorway>(scene)
+                .Single(doorway => doorway.DoorwayId == "TownDoor");
+            door.ArrivalPoint.localPosition = EntryOffset;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(door.ArrivalPoint);
+            Transform player = BuilderTools.FindSingleInScene<PlayerMover>(scene).transform;
+            player.position = door.ArrivalPoint.position;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(player);
+        }
+
+        /// <summary>
+        /// 마을의 빈 2층 건물 1층을 드럭스토어 정면으로 꾸미고 출입구를 그 벽에 붙인다.
         /// 옆 카페와 같은 상점 부품(출입문·진열창·차양·벽등)으로 한 건물처럼 보이게 하고, 간판은 카페처럼 차양에 적는다.
         /// 이미 꾸민 정면은 디자인을 고쳤을 수 있으므로 그대로 둔다.
         /// </summary>
         public static void ConnectTownEntrance(SceneGroups groups)
         {
             Transform existingFront = groups.Environment.Find(StoreFrontName);
+            Transform retiredFront = groups.Environment.Find(RetiredStoreFrontName);
+            if (existingFront == null && retiredFront != null)
+            {
+                // 상점을 편의점에서 드럭스토어로 바꿨다. 꾸민 정면은 그대로 두고 이름과 간판 글자만 바꾼다.
+                retiredFront.name = StoreFrontName;
+                existingFront = retiredFront;
+            }
             if (existingFront != null)
             {
+                SetSignText(groups.Environment, StoreFrontName + "/StoreSign", TownSignText);
                 HideVacantClosure(groups.Environment);
                 AttachDoor(groups, existingFront);
                 return;
@@ -272,7 +338,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        /// <summary>출입문을 편의점 정면 가운데에 붙이고, 카페처럼 문 그림을 출입문 틀에 맞춘다.</summary>
+        /// <summary>출입문을 드럭스토어 정면 가운데에 붙이고, 카페처럼 문 그림을 출입문 틀에 맞춘다.</summary>
         private static void AttachDoor(SceneGroups groups, Transform front)
         {
             if (
@@ -287,22 +353,14 @@ namespace A305.EditorTools.World
             doorway.transform.SetParent(front, false);
             doorway.transform.localPosition = new Vector3(0, 0, .07f);
             doorway.transform.localRotation = Quaternion.identity;
-            var trigger = doorway.GetComponent<BoxCollider>();
-            trigger.center = new Vector3(0, 1.3f, .4f);
-            trigger.size = new Vector3(1.8f, 2.6f, .8f);
-            doorway.ArrivalPoint.localPosition = new Vector3(0, 0, 2);
-            // 편의점답게 안이 비치는 유리문 색으로 칠한다.
+            TownProductionBuilder.FitDoorToSidewalk(doorway);
+            // 상점답게 안이 비치는 유리문 색으로 칠한다.
             Transform visual = doorway.transform.Find("Visual");
-            visual.localScale = new Vector3(1.5f, 1.18f, 1);
-            foreach (Renderer panel in visual.GetComponentsInChildren<Renderer>())
-            {
-                panel.sharedMaterial = Glass;
-                PrefabUtility.RecordPrefabInstancePropertyModifications(panel);
-            }
+            ShopEntranceBuilder.FitStreetFacade(doorway);
+            Renderer panel = visual.Find("DoorPanel").GetComponent<Renderer>();
+            panel.sharedMaterial = Glass;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(panel);
             PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.transform);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.ArrivalPoint);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
         }
 
         private static GameObject KitPart(string name, Transform parent, Vector3 position) =>
@@ -355,7 +413,7 @@ namespace A305.EditorTools.World
             var trigger = root.GetComponent<BoxCollider>();
             trigger.center = new Vector3(0, 1.3f, .45f);
             trigger.size = new Vector3(1.8f, 2.6f, 1);
-            doorway.ArrivalPoint.localPosition = new Vector3(0, .1f, 2);
+            doorway.ArrivalPoint.localPosition = EntryOffset;
             PrefabUtility.RecordPrefabInstancePropertyModifications(trigger);
             PrefabUtility.RecordPrefabInstancePropertyModifications(doorway.ArrivalPoint);
         }
@@ -393,14 +451,7 @@ namespace A305.EditorTools.World
                     MenuPath
                 )
             );
-            GameObject visual = BuilderTools.LoadRequiredAsset<GameObject>(
-                "Assets/Prefabs/World/TownProduction/LittleMungV7NpcVisual.prefab",
-                MenuPath
-            );
-            staff.transform.Find("Visual").gameObject.SetActive(false);
-            BuilderTools
-                .InstantiatePrefab(visual, staff.transform, Vector3.zero, Quaternion.identity)
-                .name = "ShopStaffVisual";
+            NpcVisualBuilder.Connect(staff.GetComponent<NpcIdentity>());
         }
 
         private static Transform Solid(

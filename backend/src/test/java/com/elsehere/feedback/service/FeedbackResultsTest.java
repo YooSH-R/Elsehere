@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.elsehere.ai.client.WorkerFeedback;
 import com.elsehere.ai.client.WorkerUsage;
-import com.elsehere.feedback.dto.FeedbackReviews;
+import com.elsehere.feedback.entity.FeedbackReviews;
 import com.elsehere.feedback.entity.TurnFeedback;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -73,6 +73,8 @@ class FeedbackResultsTest {
             List.of(new WorkerFeedback.ReviewTag("strength", "잘 말했어요")),
             List.of(),
             "missing",
+            null,
+            null,
             null);
 
     FeedbackReviews reviews = FeedbackResults.reviews(result);
@@ -86,11 +88,67 @@ class FeedbackResultsTest {
   @Test
   @DisplayName("결과의 목록 칸이 비어(null) 있어도 빈 평가로 바꾼다")
   void nullLists_becomeEmpty() {
-    WorkerFeedback.Result result = new WorkerFeedback.Result(null, null, null, null, null);
+    WorkerFeedback.Result result =
+        new WorkerFeedback.Result(null, null, null, null, null, null, null);
 
     assertThat(FeedbackResults.turnFeedbacks(result)).isEmpty();
     assertThat(FeedbackResults.reviews(result))
-        .isEqualTo(new FeedbackReviews(List.of(), List.of(), null));
+        .isEqualTo(new FeedbackReviews(List.of(), List.of(), null, List.of(), List.of()));
+  }
+
+  @Test
+  @DisplayName("단어장은 단어·숙어·문장을 모두 저장하므로 단어장 후보를 종류와 상관없이 뜻·예문과 함께 옮긴다")
+  void reviews_keepsWordIdiomAndSentenceVocabCandidates() {
+    WorkerFeedback.Result result =
+        new WorkerFeedback.Result(
+            null,
+            List.of(),
+            List.of(),
+            null,
+            List.of(),
+            List.of(),
+            List.of(
+                new WorkerFeedback.VocabCandidate(
+                    "word", "latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."),
+                new WorkerFeedback.VocabCandidate(
+                    "word", "iced latte", "아이스 라떼", "One iced latte, please.", "아이스 라떼 하나 주세요."),
+                new WorkerFeedback.VocabCandidate(
+                    "idiom", "to go", "포장해서", "Can I get it to go?", "포장해 주실 수 있나요?"),
+                new WorkerFeedback.VocabCandidate(
+                    "sentence", "I'd like a latte.", "라떼 주세요.", "I'd like a latte.", "라떼 주세요.")));
+
+    assertThat(FeedbackResults.reviews(result).vocabCandidates())
+        .extracting(FeedbackReviews.VocabCandidate::expression)
+        .containsExactly("latte", "iced latte", "to go", "I'd like a latte.");
+  }
+
+  @Test
+  @DisplayName("이 장면에서 자주 쓰는 표현을 뜻·쓰는 때·예문과 함께 화면 형식으로 옮긴다")
+  void reviews_carriesSituationExpressions() {
+    WorkerFeedback.Result result =
+        new WorkerFeedback.Result(
+            null,
+            List.of(),
+            List.of(),
+            null,
+            List.of(),
+            List.of(
+                new WorkerFeedback.SituationExpression(
+                    "Could I leave my bags here?",
+                    "짐을 여기 맡겨도 될까요?",
+                    "체크인 전에 짐을 맡기고 싶을 때 써요.",
+                    "Could I leave my bags here until check-in?",
+                    "체크인 전까지 짐을 여기 맡겨도 될까요?")),
+            List.of());
+
+    assertThat(FeedbackResults.reviews(result).situationExpressions())
+        .containsExactly(
+            new FeedbackReviews.SituationExpression(
+                "Could I leave my bags here?",
+                "짐을 여기 맡겨도 될까요?",
+                "체크인 전에 짐을 맡기고 싶을 때 써요.",
+                "Could I leave my bags here until check-in?",
+                "체크인 전까지 짐을 여기 맡겨도 될까요?"));
   }
 
   @Test
@@ -107,6 +165,7 @@ class FeedbackResultsTest {
 
   private static WorkerFeedback.Result result(
       List<WorkerFeedback.TurnReview> turnReviews, String summarySuggestionId) {
-    return new WorkerFeedback.Result(null, List.of(), turnReviews, summarySuggestionId, List.of());
+    return new WorkerFeedback.Result(
+        null, List.of(), turnReviews, summarySuggestionId, List.of(), List.of(), List.of());
   }
 }

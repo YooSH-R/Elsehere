@@ -25,7 +25,13 @@ namespace A305.Npc
         public bool CanDecline => rules.CanDecline;
 
         /// <param name="isPlayerBusy">플레이어가 다른 대화나 다른 행인의 제안 중이어서 끼어들면 안 되는지</param>
-        public void Tick(double nowSeconds, float distanceToPlayer, bool isPlayerBusy)
+        /// <param name="isPlayerWaiting">튜토리얼처럼 플레이어가 이 행인을 기다리도록 붙잡혀 있는지. 멀리 있어도 다가가고 그만두지 않는다.</param>
+        public void Tick(
+            double nowSeconds,
+            float distanceToPlayer,
+            bool isPlayerBusy,
+            bool isPlayerWaiting = false
+        )
         {
             switch (Phase)
             {
@@ -37,7 +43,10 @@ namespace A305.Npc
 
                     break;
                 case PasserbyPhase.Waiting:
-                    if (!isPlayerBusy && distanceToPlayer <= rules.DetectRadiusMeters)
+                    if (
+                        !isPlayerBusy
+                        && (isPlayerWaiting || distanceToPlayer <= rules.DetectRadiusMeters)
+                    )
                     {
                         Phase = PasserbyPhase.Approaching;
                     }
@@ -48,7 +57,7 @@ namespace A305.Npc
                     {
                         Phase = PasserbyPhase.Waiting;
                     }
-                    else if (distanceToPlayer > rules.DetectRadiusMeters)
+                    else if (!isPlayerWaiting && distanceToPlayer > rules.DetectRadiusMeters)
                     {
                         // 다가가는 사이 플레이어가 멀리 가 버리면 무시한 것으로 본다.
                         Rest(nowSeconds);

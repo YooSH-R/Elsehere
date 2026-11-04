@@ -54,7 +54,9 @@ Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런�
 
 직원 외형은 Tripo로 만들어 외관 승인 뒤 최종 등록한 호텔리어 `Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab`이다(AI 인격 이름 Jake). 마스터 골격과 공용 이동 애니메이션을 쓰며, 직원 루트의 `CharacterAnimationDriver`가 이 Animator를 움직인다. **Tools → A305 → Hotel → Connect Hotelier Character**는 `HotelScene`·`HotelInteriorSandbox`의 직원에 호텔리어를 한 번만 붙이고 이전 임시 외형을 지운다. 직원 위치·대화·시선 대상·캡슐은 바꾸지 않는다.
 
-`MockHotelLines`는 로컬 검수용 인사말이며 서버의 NPC 이름·성격이나 호텔 체크인 미션을 구현한 데이터가 아니다. 예약·결제·객실 이동·앉기·수하물 조작은 별도 기능이다. 호텔 가구에는 서버의 단어 키를 새로 부여하지 않았으므로 호버 툴팁이 나오지 않는다. 기존 출입문과 도착 지점은 유지한다.
+`MockHotelLines`는 로컬 검수용 인사말이며 서버의 NPC 이름·성격이나 호텔 체크인 미션을 구현한 데이터가 아니다. 예약·결제·객실 이동·수하물 조작은 별도 기능이다.
+
+양옆 대기 좌석의 소파에는 카페 의자와 같은 조작으로 앉는다. 소파마다 쿠션 두 개의 가운데에 자리를 두고, 가까운 자리 하나에 [잠깐 앉기]를 띄운다. 호텔 소파에서 쉰 것은 첫날 미션의 휴식으로 세지 않는다. 연결은 **Tools → A305 → Mission → Connect Bench And Sofa Sitting**이 하며 기준은 [Mission 모듈](../../frontend/UnityClient/Assets/Scripts/Mission/README.md#의자벤치소파-앉기)을 따른다. 호텔 가구에는 서버의 단어 키를 새로 부여하지 않았으므로 호버 툴팁이 나오지 않는다. 기존 출입문과 도착 지점은 유지한다.
 
 ## 조명과 화면 검수
 
@@ -67,7 +69,7 @@ Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런�
 | 좌석 탁상등 2개 | 각 intensity 1.8, range 3.6m |
 | `HotelColor.asset` | 노출 +0.2, 대비 +6, 채도 +6, Bloom 0.12 |
 
-천장은 방향광 그림자를 만들지 않는 스타일 조명이다. 창은 색면으로 표현하며 실제 마을 조망은 연결하지 않는다. 전역 조명 베이크는 사용하지 않는다.
+천장은 방향광 그림자를 만들지 않는 스타일 조명이다. 창은 색면으로 표현하며 실제 마을 조망은 연결하지 않는다. 전역 조명 베이크는 사용하지 않는다. 위 값은 낮 기준이며, `Lighting/InteriorDaylight`가 게임 시각에 맞춰 밤에는 불을 켠 방처럼 방향광을 조금 약한 실내등 색으로 바꾸고 보조광(`LobbyBounce`)·환경광을 조금 줄이며 샹들리에·벽등·스탠드를 밝히고 창 유리(`WindowDaylight`)를 밤하늘 색으로 칠한다([Weather 모듈의 밤낮](../../frontend/UnityClient/Assets/Scripts/Weather/README.md#밤낮)).
 
 **Verify Maple House Design**은 실제 Production Play에서 주요 이동 경로, 직원 대화와 시점 복원, 장식에 단어가 잘못 표시되지 않는지, 문 접촉을 통한 마을 왕복을 검수한다. 직원 대화는 기존 튜토리얼 건너뛰기로 대화 허용 조건을 충족한 상태에서 확인한다.
 

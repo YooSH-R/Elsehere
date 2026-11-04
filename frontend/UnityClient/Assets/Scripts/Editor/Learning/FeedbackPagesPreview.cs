@@ -79,6 +79,25 @@ namespace A305.EditorTools.Learning
                             UserText = "I want drink iced coffee",
                             BetterText = "I'd like an iced coffee, please.",
                         },
+                        SituationExpressions = new List<SituationExpressionData>
+                        {
+                            new SituationExpressionData
+                            {
+                                Expression = "Can I get that to go?",
+                                MeaningKo = "포장해 주실 수 있나요?",
+                                UsageKo = "음료를 가지고 나가고 싶을 때 써요.",
+                                ExampleEn = "Can I get that to go? I'm in a bit of a hurry.",
+                                ExampleKo = "포장해 주실 수 있나요? 좀 급해서요.",
+                            },
+                            new SituationExpressionData
+                            {
+                                Expression = "Could I get a little less ice?",
+                                MeaningKo = "얼음 조금만 넣어 주실 수 있나요?",
+                                UsageKo = "차가운 음료의 얼음 양을 부탁할 때 써요.",
+                                ExampleEn = "Could I get a little less ice in my iced coffee?",
+                                ExampleKo = "아이스커피에 얼음 조금만 넣어 주실 수 있나요?",
+                            },
+                        },
                     },
                     new List<DetailedFeedbackItem>
                     {

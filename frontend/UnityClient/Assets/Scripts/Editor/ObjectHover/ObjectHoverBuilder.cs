@@ -22,6 +22,9 @@ namespace A305.EditorTools.ObjectHover
 
         private const string SettingsPath = "Assets/Data/ObjectHover/ObjectHoverSettings.asset";
         private const string TooltipPrefabPath = "Assets/Prefabs/ObjectHover/WordTooltip.prefab";
+
+        // 세계 위에 뜨는 카드라 HUD(95)·퀘스트(105)·대화(120) 같은 화면보다 아래에 둔다.
+        private const int TooltipSortingOrder = 90;
         private const string ApiSettingsPath = "Assets/Data/Api/ApiSettings.asset";
         private const string HomeRoomPath = "Assets/Prefabs/Home/HomeRoom.prefab";
         private const string CafeInteriorPath = "Assets/Prefabs/Cafe/CafeInterior.prefab";
@@ -173,7 +176,9 @@ namespace A305.EditorTools.ObjectHover
         private static void SetUpTooltip(GameObject root)
         {
             // 고정한 카드의 버튼을 누를 수 있게 클릭을 받는다. 호버 중에는 패널이 클릭을 막지 않는다(WordTooltipView).
-            UiBuilderTools.EnsureOverlayCanvas(root, sortingOrder: 100, receivesClicks: true);
+            UiBuilderTools.EnsureOverlayCanvas(root, TooltipSortingOrder, receivesClicks: true);
+            // 고정한 카드가 HUD 버튼·메뉴와 겹쳐도 그 클릭을 가로채지 않도록 HUD(95)보다 아래에 그린다.
+            root.GetComponent<Canvas>().sortingOrder = TooltipSortingOrder;
 
             var view = BuilderTools.GetOrAddComponent<WordTooltipView>(root);
 
@@ -216,18 +221,10 @@ namespace A305.EditorTools.ObjectHover
                     new Color(0.8f, 0.82f, 0.86f)
                 )
             );
-            BuilderTools.SetReference(
-                view,
-                "pinHintLabel",
-                UiBuilderTools.FindOrCreateText(
-                    panel,
-                    "PinHint",
-                    regular,
-                    18f,
-                    new Color(0.62f, 0.65f, 0.72f),
-                    "클릭하면 카드가 고정돼요"
-                )
-            );
+            // 호버 카드는 단어와 뜻만 보이므로 예전 '클릭하면 카드가 고정돼요' 안내는 지운다.
+            Transform pinHint = panel.Find("PinHint");
+            if (pinHint != null)
+                Object.DestroyImmediate(pinHint.gameObject);
             // 고정한 카드의 안내와 버튼 줄. 패널 너비(440)에 맞춰 단어 버튼을 두 줄로 나눈다.
             TMP_Text status = UiBuilderTools.FindOrCreateText(
                 panel,
@@ -255,12 +252,7 @@ namespace A305.EditorTools.ObjectHover
 
             RectTransform actions = UiBuilderTools.FindOrCreateButtonRow(panel, "Actions");
             BuilderTools.SetReference(view, "actionRow", actions.gameObject);
-            Button hide = FindOrCreateCardButton(
-                actions,
-                "HideButton",
-                "알아요 · 다시 안 띄우기",
-                250f
-            );
+            Button hide = FindOrCreateCardButton(actions, "HideButton", "숨기기", 250f);
             BuilderTools.SetReference(view, "hideButton", hide);
             BuilderTools.SetReference(
                 view,

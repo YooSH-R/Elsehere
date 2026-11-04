@@ -910,12 +910,57 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_0161d483cee300c40b1861ae4d0e85a0",
+            "languageCode": "en-US",
+            "text": "washing machine",
+            "meaningKo": "세탁기",
+            "example": "This washing machine is free.",
+            "exampleKo": "이 세탁기는 비어 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_0744fa563d6a7994f9f3a91758a794f9",
+            "languageCode": "en-US",
+            "text": "package",
+            "meaningKo": "소포",
+            "example": "I want to send this package.",
+            "exampleKo": "이 소포를 보내고 싶어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_0a8bd7882c5b7b04e84b90f02a9345c1",
             "languageCode": "en-US",
             "text": "game console",
             "meaningKo": "게임기",
             "example": "Where is the game console?",
             "exampleKo": "게임기는 어디에 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_18c339143c3bc8948a2616297703684c",
+            "languageCode": "en-US",
+            "text": "police officer",
+            "meaningKo": "경찰관",
+            "example": "The police officer asked me what happened.",
+            "exampleKo": "경찰관이 무슨 일이 있었는지 물었어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_27d3dc992bf0dee46a465b3bb93c0a08",
+            "languageCode": "en-US",
+            "text": "ice cream",
+            "meaningKo": "아이스크림",
+            "example": "Can I have a vanilla ice cream?",
+            "exampleKo": "바닐라 아이스크림 하나 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_2a482726948f5bf41a0068cc69f541ca",
+            "languageCode": "en-US",
+            "text": "car",
+            "meaningKo": "자동차",
+            "example": "Is this your car?",
+            "exampleKo": "이거 당신 차예요?",
             "pronunciationAudioKey": ""
         },
         {
@@ -928,6 +973,33 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_369eb9ba5bdd95a4e82191d96b289f34",
+            "languageCode": "en-US",
+            "text": "stool",
+            "meaningKo": "스툴 의자",
+            "example": "Can I sit on this stool?",
+            "exampleKo": "이 의자에 앉아도 될까요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3f1b31e72fbacea48bed046e884e6255",
+            "languageCode": "en-US",
+            "text": "parasol",
+            "meaningKo": "파라솔",
+            "example": "Let's sit under the parasol.",
+            "exampleKo": "파라솔 아래에 앉아요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_3fc84a99d1f166d49a24ed5d59f38a89",
+            "languageCode": "en-US",
+            "text": "PO box",
+            "meaningKo": "사서함",
+            "example": "I'd like to rent a PO box.",
+            "exampleKo": "사서함을 하나 빌리고 싶어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_44f9cc0d067b770438b25673c21c1358",
             "languageCode": "en-US",
             "text": "toy",
@@ -937,12 +1009,210 @@
             "pronunciationAudioKey": ""
         },
         {
+            "key": "word_47611d6211561694cb7aa0e9039a893a",
+            "languageCode": "en-US",
+            "text": "bagel",
+            "meaningKo": "베이글",
+            "example": "I'd like a bagel, please.",
+            "exampleKo": "베이글 하나 주세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_49745493800188e47bee4b59a9a41f49",
+            "languageCode": "en-US",
+            "text": "ice cream truck",
+            "meaningKo": "아이스크림 트럭",
+            "example": "Let's get ice cream from the ice cream truck.",
+            "exampleKo": "아이스크림 트럭에서 아이스크림을 사 먹자.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_50a95568007664e448ac53663da03962",
+            "languageCode": "en-US",
+            "text": "pigeon",
+            "meaningKo": "비둘기",
+            "example": "The pigeons are looking for food.",
+            "exampleKo": "비둘기들이 먹이를 찾고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_510320b4ce2ab1646975c5e1c03333fb",
+            "languageCode": "en-US",
+            "text": "newspaper box",
+            "meaningKo": "신문 판매함",
+            "example": "You can buy a newspaper from the newspaper box.",
+            "exampleKo": "신문 판매함에서 신문을 살 수 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_513415d5ad951964c9ede7ba32b0596f",
+            "languageCode": "en-US",
+            "text": "flag",
+            "meaningKo": "깃발",
+            "example": "The flag is waving in the wind.",
+            "exampleKo": "깃발이 바람에 펄럭이고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_57394345ad5fd5c46a1e107b2d2a7656",
+            "languageCode": "en-US",
+            "text": "police station",
+            "meaningKo": "경찰서",
+            "example": "Where is the police station?",
+            "exampleKo": "경찰서가 어디에 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_583992ed64934fe4ba5f273e34106ceb",
+            "languageCode": "en-US",
+            "text": "mailbox",
+            "meaningKo": "우체통",
+            "example": "Where is the nearest mailbox?",
+            "exampleKo": "가장 가까운 우체통이 어디예요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_5ca110b3066a4e04f83c2f7776bb5070",
+            "languageCode": "en-US",
+            "text": "bus stop",
+            "meaningKo": "버스 정류장",
+            "example": "The bus stop is across the street.",
+            "exampleKo": "버스 정류장은 길 건너편에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_5ef79e2727edae54ab972ddb33844750",
+            "languageCode": "en-US",
+            "text": "parking lot",
+            "meaningKo": "주차장",
+            "example": "The police car is in the parking lot.",
+            "exampleKo": "경찰차가 주차장에 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+            "languageCode": "en-US",
+            "text": "flower",
+            "meaningKo": "꽃",
+            "example": "These flowers smell nice.",
+            "exampleKo": "이 꽃들은 향기가 좋아요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_856ac06ac71774f41bd23a7b97da2cc1",
+            "languageCode": "en-US",
+            "text": "traffic light",
+            "meaningKo": "신호등",
+            "example": "Turn right at the traffic light.",
+            "exampleKo": "신호등에서 오른쪽으로 도세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
             "key": "word_a115a59d89b32af4bbbe5aa6c17f8273",
             "languageCode": "en-US",
             "text": "umbrella",
             "meaningKo": "우산",
             "example": "Where can I buy an umbrella?",
             "exampleKo": "우산은 어디에서 살 수 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_a31ccaa6d412b78428976a47663eff21",
+            "languageCode": "en-US",
+            "text": "bike rack",
+            "meaningKo": "자전거 거치대",
+            "example": "You can park your bike at the bike rack.",
+            "exampleKo": "자전거 거치대에 자전거를 세울 수 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_b4a755c63d1d408438a71815ba75d475",
+            "languageCode": "en-US",
+            "text": "cat",
+            "meaningKo": "고양이",
+            "example": "The cat is sleeping in the sun.",
+            "exampleKo": "고양이가 햇볕 아래에서 자고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_be12390675add1b488faf55f8e9aeb96",
+            "languageCode": "en-US",
+            "text": "police car",
+            "meaningKo": "경찰차",
+            "example": "A police car is parked next to the station.",
+            "exampleKo": "경찰서 옆에 경찰차가 서 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_cfe407d309ec44540a66769b307075c8",
+            "languageCode": "en-US",
+            "text": "fox",
+            "meaningKo": "여우",
+            "example": "The fox is curled up asleep.",
+            "exampleKo": "여우가 몸을 웅크리고 자고 있어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_dc738621f28e03c49bfa7b6f67dbf4b3",
+            "languageCode": "en-US",
+            "text": "parking meter",
+            "meaningKo": "주차 요금 기계",
+            "example": "Do I need to pay at the parking meter?",
+            "exampleKo": "주차 요금 기계에 돈을 내야 하나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_e438a4ee4f2a3494eaadb31ccfda0859",
+            "languageCode": "en-US",
+            "text": "bicycle",
+            "meaningKo": "자전거",
+            "example": "I came here by bicycle.",
+            "exampleKo": "저는 자전거를 타고 왔어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_efe358bf0753d334891d16f6961a2d08",
+            "languageCode": "en-US",
+            "text": "taxi driver",
+            "meaningKo": "택시 기사",
+            "example": "The taxi driver asked me where I was going.",
+            "exampleKo": "택시 기사가 어디로 가는지 물었어요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_f1493503fe49b48488b6a1674ff150cd",
+            "languageCode": "en-US",
+            "text": "ATM",
+            "meaningKo": "현금 인출기",
+            "example": "Is there an ATM near here?",
+            "exampleKo": "이 근처에 현금 인출기가 있나요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_f7bedd45ef4077348a8fb4ff422f2399",
+            "languageCode": "en-US",
+            "text": "taxi",
+            "meaningKo": "택시",
+            "example": "Can you call a taxi for me?",
+            "exampleKo": "택시 좀 불러 주실래요?",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_f7e7d4080aa0f3240910c84584d2d799",
+            "languageCode": "en-US",
+            "text": "barber chair",
+            "meaningKo": "이발 의자",
+            "example": "Please have a seat in the barber chair.",
+            "exampleKo": "이발 의자에 앉으세요.",
+            "pronunciationAudioKey": ""
+        },
+        {
+            "key": "word_fae84acd881cae244bb14dd79ae14bf5",
+            "languageCode": "en-US",
+            "text": "dryer",
+            "meaningKo": "건조기",
+            "example": "How long does the dryer take?",
+            "exampleKo": "건조기는 얼마나 걸려요?",
             "pronunciationAudioKey": ""
         }
     ]

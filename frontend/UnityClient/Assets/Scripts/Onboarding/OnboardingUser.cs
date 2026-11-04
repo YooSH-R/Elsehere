@@ -11,5 +11,11 @@ namespace A305.Onboarding
 
         /// <summary>계정에 저장한 화면 테마 코드(JELLY·STICKER·CLOUD). 서버가 보내지 않으면 null이다.</summary>
         public string UiTheme { get; set; }
+
+        /// <summary>지금 버전의 음성 처리(VOICE)에 동의했는지. 동의하지 않았으면 음성 입력을 쓸 수 없다.</summary>
+        public bool VoiceConsent { get; set; }
+
+        /// <summary>게스트로 시작한 사용자인지(AUTH-07). 게스트에게는 회원 탈퇴를 보이지 않는다.</summary>
+        public bool Guest { get; set; }
     }
 }

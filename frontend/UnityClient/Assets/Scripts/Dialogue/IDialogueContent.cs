@@ -28,6 +28,9 @@ namespace A305.Dialogue
         /// <summary>기다림·오류·안내 문구. 없으면 null이다.</summary>
         string StatusMessage { get; }
 
+        /// <summary>대화창이 로딩으로 크게 보여 줄 기다림. 짧은 기다림이나 기다리지 않을 때는 None이다.</summary>
+        DialogueWait Waiting { get; }
+
         /// <summary>오류나 대화 종료 뒤 사용자가 할 수 있는 일. 상태 문구 아래에 보이며, 없으면 null이다.</summary>
         string RecoveryGuide { get; }
 
@@ -36,6 +39,9 @@ namespace A305.Dialogue
 
         /// <summary>NPC 대사 아래에 보여 줄 추천 단어. 없으면 null이다.</summary>
         IReadOnlyList<string> SuggestWords { get; }
+
+        /// <summary>추천 단어를 서버에서 받고 있는지. 대사를 먼저 보여 주고 단어는 따로 받는다(CONV-12).</summary>
+        bool IsSuggestingWords { get; }
 
         bool CanSend { get; }
 
@@ -51,7 +57,26 @@ namespace A305.Dialogue
         /// <summary>가장 최근 NPC 대사에 대답할 추천 문장. [힌트]를 누르기 전에는 null이다.</summary>
         string HintText { get; }
 
-        /// <summary>[누르고 말하기]·[다시 듣기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
+        /// <summary>[말하기]를 보여 줄지. 서버 대화만 음성을 쓴다.</summary>
         bool UsesVoice { get; }
+
+        /// <summary>NPC 호감도와 무례 경고 칸. 서버 대화만 쓰며, 대본 대화는 null이다.</summary>
+        ConversationStanding Standing { get; }
+
+        /// <summary>
+        /// [말하기]로 말할 수 있는지. 음성 처리에 동의하지 않았으면 false이며, 글자로만 입력한다(API 명세 CONV-02).
+        /// </summary>
+        bool CanTalk { get; }
+
+        /// <summary>저장 음성 재생이나 최초 생성 실패의 음성 재시도를 제공할지.</summary>
+        bool CanReplaySpeech { get; }
+
+        /// <summary>NPC 대사를 음성으로 들려주는지. 들려주는 대화만 [자막]으로 대사를 가려 듣고 이해하게 한다.</summary>
+        bool SpeaksNpcLines { get; }
+
+        /// <summary>
+        /// 지금 NPC 대사의 음성을 재생할 수 있는지. 음성 생성 실패·만료면 false이고, 자막을 꺼 두었어도 대사를 글자로 보인다.
+        /// </summary>
+        bool IsNpcSpeechReady { get; }
     }
 }

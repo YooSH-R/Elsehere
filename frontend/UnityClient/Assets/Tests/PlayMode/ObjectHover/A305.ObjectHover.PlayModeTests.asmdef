@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "A305.ObjectHover",
         "A305.Player",
+        "A305.Tutorial",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],

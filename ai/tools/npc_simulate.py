@@ -14,6 +14,8 @@ from pathlib import Path
 import npc_derive
 import npc_life_rules
 
+from app.npc_relationship import grow_recognition  # npc_derive가 같은 저장소 AI 워커를 경로에 넣는다
+
 DAY_MINUTES = 24 * 60
 MIN_SCORE = 1.0  # 이보다 덜 급하면 아무것도 하지 않고 기다린다
 
@@ -132,12 +134,12 @@ def service_npc(npc_id: str) -> dict:
 
 
 def conversations_to_reach(threshold: float, rate: float, rules: dict) -> int:
-    """정상 종료된 대화 몇 번째에 알아봄이 threshold에 닿는지. 한 번에 기본값 × (1 − 현재/100) × NPC 배수만큼 오른다."""
-    per_conversation = rules["relationship"]["recognitionPerConversation"]
-    recognition, conversations = 0.0, 0
+    """정상 종료된 대화 몇 번째에 알아봄이 threshold에 닿는지. 대화마다 워커와 같은 규칙(grow_recognition)으로 오르고,
+    백엔드처럼 정수로 저장한다."""
+    recognition, conversations = 0, 0
     while recognition < threshold:
         conversations += 1
-        recognition += per_conversation * (1 - recognition / 100) * rate
+        recognition = round(grow_recognition(recognition, rate, rules))
     return conversations
 
 

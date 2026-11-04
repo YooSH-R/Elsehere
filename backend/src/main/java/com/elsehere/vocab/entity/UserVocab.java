@@ -83,6 +83,46 @@ public class UserVocab extends BaseEntity {
     return userVocab;
   }
 
+  /** NPC 대사의 단어 풀이에서 저장한 단어. 문장은 NPC 대사 전문과 뜻 보기(CONV-04)의 대사 뜻이다. */
+  public static UserVocab saveFromNpcLine(
+      Long userId,
+      Vocabulary vocabulary,
+      Long turnId,
+      Long conversationId,
+      String lineText,
+      String lineMeaningKo,
+      Instant savedAt) {
+    UserVocab userVocab = new UserVocab();
+    userVocab.userId = userId;
+    userVocab.vocabulary = vocabulary;
+    userVocab.sourceType = UserVocabSourceType.NPC_LINE;
+    userVocab.sourceTurnId = turnId;
+    userVocab.sourceConversationId = conversationId;
+    userVocab.contextText = lineText;
+    userVocab.contextMeaningKo = lineMeaningKo;
+    userVocab.savedAt = savedAt;
+    return userVocab;
+  }
+
+  /** 대화 피드백의 단어장 후보에서 저장한 단어. 짧은 피드백은 턴이 없어 대화만 기록하고, 문장은 후보의 학습 예문이다. */
+  public static UserVocab saveFromFeedback(
+      Long userId,
+      Vocabulary vocabulary,
+      Long conversationId,
+      String exampleEn,
+      String exampleKo,
+      Instant savedAt) {
+    UserVocab userVocab = new UserVocab();
+    userVocab.userId = userId;
+    userVocab.vocabulary = vocabulary;
+    userVocab.sourceType = UserVocabSourceType.FEEDBACK;
+    userVocab.sourceConversationId = conversationId;
+    userVocab.contextText = exampleEn;
+    userVocab.contextMeaningKo = exampleKo;
+    userVocab.savedAt = savedAt;
+    return userVocab;
+  }
+
   /** 사용자 메모를 바꾼다(VOCAB-03). */
   public void changeMemo(String memo) {
     this.memo = memo;

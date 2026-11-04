@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.elsehere.TestcontainersConfiguration;
+import com.elsehere.common.config.AdjustableClock;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.seed.WorldSeedLoader;
 import com.elsehere.mission.dto.MissionListResponse;
@@ -14,12 +15,9 @@ import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.world.service.PronunciationAudioStore;
 import jakarta.persistence.EntityManager;
-import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -93,7 +91,7 @@ class MissionServiceTest {
                 "호텔에 체크인하기",
                 "HOTEL",
                 "HOTEL_STAFF",
-                "Emma",
+                "Jake",
                 UserMissionStatus.RUN,
                 null));
     assertThat(response.missions())
@@ -220,35 +218,6 @@ class MissionServiceTest {
     @Bean
     AdjustableClock clock() {
       return new AdjustableClock(NOW);
-    }
-  }
-
-  /** 테스트 안에서 현재 시각을 바꿀 수 있는 Clock. 날짜가 바뀌는 경우를 검증할 때 쓴다. */
-  static class AdjustableClock extends Clock {
-
-    private Instant instant;
-
-    AdjustableClock(Instant instant) {
-      this.instant = instant;
-    }
-
-    void setInstant(Instant instant) {
-      this.instant = instant;
-    }
-
-    @Override
-    public ZoneId getZone() {
-      return ZoneOffset.UTC;
-    }
-
-    @Override
-    public Clock withZone(ZoneId zone) {
-      return Clock.fixed(instant, zone);
-    }
-
-    @Override
-    public Instant instant() {
-      return instant;
     }
   }
 }

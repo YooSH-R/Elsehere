@@ -3,8 +3,14 @@
     "rootNamespace": "A305.Mission",
     "references": [
         "A305.Api",
+        "A305.Theme",
         "A305.Player",
         "A305.Dialogue",
+        "A305.Npc",
+        "A305.Weather",
+        "A305.Wayfinding",
+        "A305.World",
+        "Unity.InputSystem",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

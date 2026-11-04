@@ -34,6 +34,9 @@ namespace A305.Dialogue
         /// <summary>CONV-02 녹음 전사(16kHz 모노 WAV).</summary>
         Task<Transcription> TranscribeAsync(long conversationId, string requestId, byte[] wav);
 
+        /// <summary>CONV-02 튜토리얼 대본 대사의 녹음 전사(purpose TUTORIAL). 서버 대화 없이 부른다.</summary>
+        Task<Transcription> TranscribeTutorialAsync(string requestId, byte[] wav);
+
         /// <summary>CONV-07 NPC 음성 다시 만들기.</summary>
         Task<SpeechData> RegenerateSpeechAsync(long turnId, string requestId);
 
@@ -42,5 +45,8 @@ namespace A305.Dialogue
 
         /// <summary>CONV-05 NPC 대사에 대답할 추천 문장. 서버가 한 번 만든 문장은 다시 만들지 않는다.</summary>
         Task<HintData> GetHintAsync(long turnId, string requestId);
+
+        /// <summary>CONV-12 NPC 대사에 대답할 때 쓸 추천 단어. 서버가 한 번 만든 단어는 다시 만들지 않는다.</summary>
+        Task<SuggestWordsData> GetSuggestWordsAsync(long turnId, string requestId);
     }
 }

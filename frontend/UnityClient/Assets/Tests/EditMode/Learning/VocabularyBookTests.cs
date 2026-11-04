@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.ObjectHover;
 using NUnit.Framework;
 
 namespace A305.Learning.Tests
@@ -50,6 +52,116 @@ namespace A305.Learning.Tests
             Assert.That(loaded, Is.False);
             Assert.That(book.Entries.Select(entry => entry.English), Is.EqualTo(new[] { "sofa" }));
             Assert.That(book.LastFailureMessage, Is.Not.Empty);
+        }
+
+        // 지난번 목록이 보이는 채로 다시 읽기에 실패하면 고장처럼 알리지 않고, 보이는 목록이 무엇인지 알린다.
+        [Test]
+        public async Task LoadAsync_FailsWhileShowingPreviousWords_SaysThePreviousListIsShown()
+        {
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"));
+            await book.LoadAsync();
+            api.Failure = NetworkError();
+
+            await book.LoadAsync();
+
+            Assert.That(
+                book.LastFailureMessage,
+                Is.EqualTo("지금은 새 단어장을 받아 오지 못해 지난번 목록을 보여 드려요.")
+            );
+        }
+
+        [Test]
+        public void ListState_BeforeFirstLoad_IsLoadingNotEmpty()
+        {
+            // 서버 목록을 받기 전의 빈 목록은 '단어 없음'이 아니다.
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+        }
+
+        [Test]
+        public async Task ListState_WhileFirstLoading_IsLoading()
+        {
+            api.Pending = new TaskCompletionSource<VocabPage>();
+            Task<bool> loading = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+
+            api.Pending.SetResult(Page(null));
+            await loading;
+        }
+
+        [Test]
+        public async Task ListState_LoadedEmptyList_IsEmpty()
+        {
+            api.Pages[null] = Page(null);
+
+            await book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Empty));
+        }
+
+        [Test]
+        public async Task ListState_LoadedWords_IsEntries()
+        {
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"));
+
+            await book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+        }
+
+        [Test]
+        public async Task ListState_FirstLoadFailed_IsFailed()
+        {
+            api.Failure = NetworkError();
+
+            await book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Failed));
+        }
+
+        [Test]
+        public async Task ListState_RetryingAfterFailure_IsLoadingUntilWordsArrive()
+        {
+            api.Failure = NetworkError();
+            await book.LoadAsync();
+            api.Failure = null;
+            api.Pending = new TaskCompletionSource<VocabPage>();
+
+            Task<bool> retrying = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+            api.Pending.SetResult(Page(null, Item(31, "sofa", "소파")));
+            await retrying;
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+        }
+
+        [Test]
+        public async Task ListState_ReloadingAfterEmptyList_IsLoadingNotEmpty()
+        {
+            // 그사이 사물 카드에서 단어를 저장했을 수 있어, 다시 읽는 동안 지난번의 '단어 없음'을 보이지 않는다.
+            api.Pages[null] = Page(null);
+            await book.LoadAsync();
+            api.Pending = new TaskCompletionSource<VocabPage>();
+
+            Task<bool> reloading = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+            api.Pending.SetResult(Page(null));
+            await reloading;
+        }
+
+        [Test]
+        public async Task ListState_ReloadingWithWords_KeepsShowingWords()
+        {
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"));
+            await book.LoadAsync();
+            api.Pending = new TaskCompletionSource<VocabPage>();
+
+            Task<bool> reloading = book.LoadAsync();
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+            api.Pending.SetResult(Page(null, Item(31, "sofa", "소파")));
+            await reloading;
         }
 
         [TestCase(false, true)]
@@ -137,6 +249,20 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public async Task DeleteAsync_TellsObjectCardsTheWordIsNoLongerSaved()
+        {
+            // 장소의 사물 카드는 들어올 때 받은 저장 상태를 들고 있어, 지운 단어를 알려 줘야 [단어장에 저장]을 다시 보인다.
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"), Item(21, "bench", "벤치"));
+            await book.LoadAsync();
+
+            List<string> removed = await RecordSavedWordRemoved(() =>
+                book.DeleteAsync(book.Entries[0])
+            );
+
+            Assert.That(removed, Is.EqualTo(new[] { "sofa" }));
+        }
+
+        [Test]
         public async Task DeleteAsync_Fails_KeepsEntry()
         {
             VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
@@ -148,11 +274,147 @@ namespace A305.Learning.Tests
             Assert.That(book.Entries, Has.Count.EqualTo(1));
         }
 
+        [Test]
+        public async Task DeleteAsync_Fails_KeepsObjectCardsSaved()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+            api.Failure = NetworkError();
+
+            List<string> removed = await RecordSavedWordRemoved(() => book.DeleteAsync(entry));
+
+            Assert.That(removed, Is.Empty);
+        }
+
+        // 단어장 목록은 최근 저장순이라 방금 저장한 단어가 맨 앞이고, 단어 수도 바로 늘어난다.
+        [Test]
+        public async Task SaveNpcLineWordAsync_NewWord_PutsItFirstInTheLoadedList()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.SavedItem = Item(40, "latte", "라떼");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(api.Calls, Is.EqualTo(new[] { "save 105 latte" }));
+            Assert.That(
+                book.Entries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "latte", "sofa" })
+            );
+            Assert.That(book.LastFailureMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task SaveFeedbackWordAsync_SavesTheIdiomFromTheConversationFeedback()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.SavedItem = Item(41, "hang on to", "잠시 맡아 두다");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveFeedbackWordAsync(58, "hang on to");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(api.Calls, Is.EqualTo(new[] { "feedback 58 hang on to" }));
+            Assert.That(book.Entries.First().English, Is.EqualTo("hang on to"));
+        }
+
+        [Test]
+        public async Task SaveNpcLineWordAsync_AlreadySaved_DoesNotAddItTwice()
+        {
+            await LoadOne(Item(40, "latte", "라떼"));
+            api.SavedItem = Item(40, "latte", "라떼");
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.AlreadySaved));
+            Assert.That(book.Entries, Has.Count.EqualTo(1));
+        }
+
+        // 목록을 받기 전에 넣으면 단어 하나뿐인 목록과 틀린 개수가 보인다. 목록은 단어장을 열 때 다시 읽는다.
+        [Test]
+        public async Task SaveNpcLineWordAsync_BeforeListLoaded_DoesNotMakeAPartialList()
+        {
+            api.SavedItem = Item(40, "latte", "라떼");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(book.Entries, Is.Empty);
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Loading));
+        }
+
+        [Test]
+        public async Task SaveNpcLineWordAsync_Fails_KeepsListAndTellsReason()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.Failure = NetworkError();
+
+            VocabularySaveResult result = await book.SaveNpcLineWordAsync(105, "latte");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Failed));
+            Assert.That(book.Entries, Has.Count.EqualTo(1));
+            Assert.That(
+                book.LastFailureMessage,
+                Is.EqualTo("단어를 저장하지 못했어요. 다시 시도해 주세요.")
+            );
+        }
+
+        // 대화에서 저장한 단어는 저장한 문장이 영어 대사라, 문장 뜻(CONV-04 대사 뜻)도 함께 보여 준다.
+        [Test]
+        public async Task LoadAsync_KeepsTheMeaningOfTheSavedSentence()
+        {
+            VocabItem latte = Item(40, "latte", "라떼");
+            latte.Context = new VocabContext
+            {
+                Text = "Would you like an iced latte?",
+                MeaningKo = "아이스 라떼 드릴까요?",
+            };
+
+            VocabularyEntry entry = await LoadOne(latte);
+
+            Assert.That(entry.ContextText, Is.EqualTo("Would you like an iced latte?"));
+            Assert.That(entry.ContextMeaning, Is.EqualTo("아이스 라떼 드릴까요?"));
+        }
+
+        [Test]
+        public async Task LoadAsync_WordSavedFromNpcLine_NamesTheNpc()
+        {
+            VocabItem fromBen = Item(40, "latte", "라떼");
+            fromBen.Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Ben" };
+            VocabItem fromObject = Item(31, "sofa", "소파");
+            fromObject.Source = new VocabSource { SourceType = "OBJECT" };
+            api.Pages[null] = Page(null, fromBen, fromObject);
+
+            await book.LoadAsync();
+
+            Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("Ben의 말"));
+            Assert.That(book.Entries[1].SourceLabel, Is.Null);
+        }
+
         private async Task<VocabularyEntry> LoadOne(VocabItem item)
         {
             api.Pages[null] = Page(null, item);
             await book.LoadAsync();
             return book.Entries[0];
+        }
+
+        // 정적 알림이라 다른 테스트에 남지 않게 동작이 끝나면 바로 구독을 푼다.
+        private static async Task<List<string>> RecordSavedWordRemoved(Func<Task> action)
+        {
+            var removed = new List<string>();
+            void Record(string text) => removed.Add(text);
+            ObjectWordCards.SavedWordRemoved += Record;
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                ObjectWordCards.SavedWordRemoved -= Record;
+            }
+
+            return removed;
         }
 
         private static ApiException NetworkError()
@@ -199,6 +461,9 @@ namespace A305.Learning.Tests
 
             public ApiException Failure { get; set; }
 
+            // 정하면 서버 응답을 기다리는 중으로 두고, 테스트가 SetResult로 응답한다.
+            public TaskCompletionSource<VocabPage> Pending { get; set; }
+
             public Task<VocabPage> GetPageAsync(string cursor)
             {
                 if (Failure != null)
@@ -206,7 +471,25 @@ namespace A305.Learning.Tests
                     return Task.FromException<VocabPage>(Failure);
                 }
 
+                if (Pending != null)
+                {
+                    return Pending.Task;
+                }
+
                 return Task.FromResult(pages[cursor ?? ""]);
+            }
+
+            /// <summary>단어 저장(VOCAB-02)이 돌려줄 항목</summary>
+            public VocabItem SavedItem { get; set; }
+
+            public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text)
+            {
+                return Reply($"save {turnId} {text}", SavedItem);
+            }
+
+            public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text)
+            {
+                return Reply($"feedback {conversationId} {text}", SavedItem);
             }
 
             public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)

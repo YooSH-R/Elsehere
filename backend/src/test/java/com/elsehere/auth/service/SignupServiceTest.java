@@ -7,12 +7,14 @@ import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.mock;
 
+import ch.qos.logback.classic.Level;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.auth.dto.ConsentAgreement;
 import com.elsehere.auth.dto.SignupRequest;
 import com.elsehere.common.config.JpaAuditingConfig;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
+import com.elsehere.common.logging.LogCapture;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.dto.UserResponse;
 import com.elsehere.user.entity.AuthProvider;
@@ -84,6 +86,22 @@ class SignupServiceTest {
   }
 
   @Test
+  @DisplayName("가입하면 사용자 ID와 로그인 방식만 INFO로 남기고 이메일·닉네임은 남기지 않는다")
+  void signUp_logsUserSignedUp() {
+    try (LogCapture logs = LogCapture.atInfo(SignupService.class)) {
+      signupService.signUp(PENDING, request(requiredConsents()));
+
+      Long userId =
+          userRepository
+              .findByProviderAndProviderUid(AuthProvider.GOOGLE, "google-sub-new")
+              .orElseThrow()
+              .getId();
+      assertThat(logs.messages(Level.INFO))
+          .containsExactly("user_signed_up user_id=" + userId + " provider=GOOGLE");
+    }
+  }
+
+  @Test
   @DisplayName("가입하면 동의한 약관을 버전과 동의 시각과 함께 저장한다")
   void signUp_savesConsentsWithVersionAndTime() {
     signupService.signUp(PENDING, request(requiredConsents()));
@@ -92,7 +110,7 @@ class SignupServiceTest {
         .extracting(UserConsent::getConsentType, UserConsent::getVersion, UserConsent::getAgreedAt)
         .containsExactlyInAnyOrder(
             tuple(ConsentType.TERMS, "2026-10", NOW),
-            tuple(ConsentType.PRIVACY, "2026-10", NOW),
+            tuple(ConsentType.PRIVACY, "2026-11", NOW),
             tuple(ConsentType.AGE14, "2026-10", NOW));
   }
 
@@ -114,7 +132,7 @@ class SignupServiceTest {
     List<ConsentAgreement> withoutAge14 =
         List.of(
             new ConsentAgreement(ConsentType.TERMS, "2026-10"),
-            new ConsentAgreement(ConsentType.PRIVACY, "2026-10"));
+            new ConsentAgreement(ConsentType.PRIVACY, "2026-11"));
 
     assertThatThrownBy(() -> signupService.signUp(PENDING, request(withoutAge14)))
         .isInstanceOfSatisfying(
@@ -133,7 +151,7 @@ class SignupServiceTest {
     List<ConsentAgreement> outdatedTerms =
         List.of(
             new ConsentAgreement(ConsentType.TERMS, "2025-01"),
-            new ConsentAgreement(ConsentType.PRIVACY, "2026-10"),
+            new ConsentAgreement(ConsentType.PRIVACY, "2026-11"),
             new ConsentAgreement(ConsentType.AGE14, "2026-10"));
 
     assertThatThrownBy(() -> signupService.signUp(PENDING, request(outdatedTerms)))
@@ -163,11 +181,20 @@ class SignupServiceTest {
     List<ConsentAgreement> consents = new ArrayList<>(requiredConsents());
     consents.add(new ConsentAgreement(ConsentType.VOICE, "2026-10"));
 
-    signupService.signUp(PENDING, request(consents));
+    UserResponse response = signupService.signUp(PENDING, request(consents));
 
     assertThat(userConsentRepository.findAll())
         .extracting(UserConsent::getConsentType)
         .contains(ConsentType.VOICE);
+    assertThat(response.voiceConsent()).isTrue();
+  }
+
+  @Test
+  @DisplayName("음성 처리에 동의하지 않고 가입하면 가입 응답에 음성 입력을 쓸 수 없다고 알린다")
+  void signUp_withoutVoiceConsent_respondsNoVoiceConsent() {
+    UserResponse response = signupService.signUp(PENDING, request(requiredConsents()));
+
+    assertThat(response.voiceConsent()).isFalse();
   }
 
   @Test
@@ -219,7 +246,7 @@ class SignupServiceTest {
   private static List<ConsentAgreement> requiredConsents() {
     return List.of(
         new ConsentAgreement(ConsentType.TERMS, "2026-10"),
-        new ConsentAgreement(ConsentType.PRIVACY, "2026-10"),
+        new ConsentAgreement(ConsentType.PRIVACY, "2026-11"),
         new ConsentAgreement(ConsentType.AGE14, "2026-10"));
   }
 

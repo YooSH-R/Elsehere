@@ -51,6 +51,11 @@ public class Npc extends BaseEntity {
   @ColumnTransformer(write = "?::jsonb")
   private String persona;
 
+  // 인격 카드(AI 공통 스키마의 npcProfile) JSON. 카드가 없는 NPC는 null이고, 워커는 persona의 역할 한 줄로 대답한다.
+  @Column(columnDefinition = "jsonb")
+  @ColumnTransformer(write = "?::jsonb")
+  private String profile;
+
   @Column(nullable = false, length = 30)
   private String voiceId;
 

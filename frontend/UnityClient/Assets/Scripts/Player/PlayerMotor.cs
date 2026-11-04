@@ -40,6 +40,9 @@ namespace A305.Player
             IsMovementLocked = isLocked;
         }
 
+        /// <summary>마지막 계산에서 땅을 박차고 뛰어올랐는지. 튜토리얼이 점프를 해냈는지 셀 때 쓴다.</summary>
+        public bool JustJumped { get; private set; }
+
         public Vector3 ComputeVelocity(
             PlayerMoveInput input,
             bool isGrounded,
@@ -50,6 +53,7 @@ namespace A305.Player
                 ? Vector3.zero
                 : ComputeHorizontalVelocity(input);
             bool canJump = isGrounded && input.IsJumpPressed && !IsMovementLocked;
+            JustJumped = canJump;
 
             if (canJump)
             {

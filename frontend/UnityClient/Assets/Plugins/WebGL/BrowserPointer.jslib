@@ -3,4 +3,8 @@ mergeInto(LibraryManager.library, {
   A305Player_IsPrimaryPointerCoarse: function () {
     return window.matchMedia("(pointer: coarse)").matches;
   },
+  // 화면 배율. 창을 다른 모니터로 옮기면 바뀌므로 매번 읽는다.
+  A305Player_DevicePixelRatio: function () {
+    return window.devicePixelRatio || 1;
+  },
 });

@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,6 +34,9 @@ import org.hibernate.type.SqlTypes;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Conversation extends BaseEntity {
+
+  /** 대화 하나에서 무례로 셀 수 있는 발화 수(서버 설정값). 여기에 닿으면 NPC가 대화를 끝낸다. */
+  public static final int RUDE_LIMIT = 3;
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,9 +76,22 @@ public class Conversation extends BaseEntity {
   private Instant endedAt;
 
   private Integer firstDayStage;
+  private Integer townStoryStage;
+
+  // 대화를 시작한 요청 ID(CONV-01). 같은 ID로 다시 보내면 대화를 새로 만들지 않는다. 이 칸을 넣기 전의 대화는 null이다.
+  @Column(unique = true)
+  private UUID requestId;
 
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;
+  }
+
+  public void attachTownStoryStage(Integer stage) {
+    this.townStoryStage = stage;
+  }
+
+  public void attachStartRequest(UUID requestId) {
+    this.requestId = requestId;
   }
 
   public static Conversation start(

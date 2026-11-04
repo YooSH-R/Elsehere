@@ -6,18 +6,22 @@
 
 ## 실행 흐름
 
+일반 Linux 검사는 EC2와 노트북이 나눠 받지만 `dev:plan`·`dev:deliver`는 `a305-ec2` 태그를 추가로 요구해 EC2에서만 실행합니다. Runner 태그와 노트북 제한은 [검사 파이프라인](ci-runner.md#노트북-linux-runner)을 따릅니다.
+
 1. 보호된 `dev`의 각 병합 커밋 또는 `dev`의 수동 재실행에서 `dev:plan`이 서버의 마지막 성공 기록을 읽습니다. 이후 새 커밋이 병합돼도 기존 커밋의 검사 계획과 검사는 계속 실행합니다.
 2. `deployment_plan.py`가 마지막 성공 커밋부터 후보까지 누적 변경을 비교합니다. 첫 자동 배포는 전체 검사·빌드를 수행합니다. 이전 수동 배포의 혼합 이미지 상태를 하나의 검증 커밋으로 간주하지 않습니다.
 3. 생성한 자식 파이프라인이 필요한 백엔드·AI·Unity·인프라 검사만 실행합니다. 백엔드 또는 인프라 검사가 필요한 배포는 모니터링 구성·알림 검사도 통과해야 이미지 전달로 진행합니다. 일반 MR은 기존 변경 영역 검사를 유지하며 서버 배포 수신기를 호출하지 않습니다.
-4. Unity 검사가 필요하면 노트북 Runner에서 EditMode·PlayMode를 실행합니다. `web` 이미지 빌드가 필요한 경우에만 WebGL도 빌드합니다. API 명세 변경처럼 검사만 필요한 경우에는 WebGL 빌드를 생략합니다.
+4. Unity 검사가 필요하면 노트북 Runner에서 병합된 커밋의 EditMode·PlayMode를 실행합니다. MR에서 통과한 `unity:editor-tests`와 별개로 통합 결과를 확인합니다. `web` 이미지 빌드가 필요한 경우에만 WebGL도 빌드합니다. API 명세 변경처럼 검사만 필요한 경우에는 WebGL 빌드를 생략합니다.
 5. 검사를 통과한 후보의 `dev:deliver`만 배포 대기열에 들어갑니다. 배포 차례가 오면 서버의 현재 성공 기록을 다시 읽고 누적 변경 계획을 갱신합니다. 필요한 검사·빌드가 이번 파이프라인에서 검증한 범위에 포함되는지 확인한 뒤, 통과한 JAR·WebGL 산출물의 커밋을 확인하고 필요한 이미지만 만듭니다. 변경 없는 이미지 참조·ID·소스 커밋은 새 성공 기록에서 재사용합니다.
 6. 검증한 이미지와 Compose를 SSH로 전달합니다. 별도 컨테이너 레지스트리와 부모 산출물 다운로드용 유료 기능에 의존하지 않습니다. 부모→자식 설정에는 비밀값이 없는 계획·이미지 메타데이터만 넣습니다.
 7. 서버 수신기가 상태 토큰·검증한 기준 커밋·허용 파일을 확인하고, 앱 Compose와 설치된 모니터링 추가 Compose를 함께 사용해 해당 앱 서비스만 교체합니다. 개발 후보의 순서는 CI가 Git 조상 관계로 검증하며 자식 파이프라인 생성 번호를 커밋 순서로 간주하지 않습니다. 운영 모드와 기존 형식의 전달은 파이프라인 번호 검사도 유지합니다.
 8. 앱·DB health, 이미지 ID, WebGL 버전, 기존 HTTPS API, 인증이 필요한 관리 포트와 새로운 Prometheus 수집 결과를 확인합니다. 성공 후 이미지 변수와 성공 기록을 갱신합니다.
 
+배포 계획은 경량 Runner에서, 앱 실행 검사와 이미지 전달은 일반 Runner에서 수행합니다. 이미지 빌드는 [Docker 계층 캐시](ci-runner.md#docker-이미지와-ai-모델-계층-캐시)로 변경되지 않은 AI 모델·의존성을 재사용하며, 배포 후보의 JAR·WebGL 커밋과 이미지 식별자는 계속 검증합니다.
+
 개발 후보는 보호된 `dev` 이력에 포함되고 현재 배포 커밋보다 뒤에 있어야 합니다. 아직 검증되지 않은 새 merge가 생겼다는 이유로 검증된 후보를 제외하지 않습니다. 이미 같은 후보나 더 새 커밋이 배포됐다면 서버에 전달하지 않고 `result.json`에 `superseded`를 기록하며 종료 코드 `78`로 끝냅니다. `dev:deliver`만 이 코드를 허용하므로 완료된 검사 결과는 유지되고 파이프라인에는 배포 제외 경고가 표시됩니다. Git 조회 실패·분기된 이력·미검증 검사나 빌드가 필요한 기준 변경·서버 오류는 계속 실패합니다. 운영 후보는 기존의 최신 `main` 일치 확인을 유지합니다.
 
-개발 `resource_group: a305-dev-release`는 `dev:deliver`에만 적용합니다. `dev:child`는 잠금을 잡지 않으므로 각 merge의 검사는 Runner 자원 범위에서 독립 실행합니다. Unity Editor는 전용 자원 그룹을 유지합니다. 서버에서도 파일 잠금과 상태 토큰으로 동시 교체를 막으며 이미 시작한 배포는 새 Push 때문에 중간 취소하지 않습니다.
+개발 `resource_group: a305-dev-release`는 `dev:deliver`에만 적용합니다. `dev:child`는 잠금을 잡지 않으므로 각 merge의 검사는 Runner 자원 범위에서 독립 실행합니다. Unity Editor 검사는 별도 작업 폴더에서 최대 두 개를 실행하며, 제한과 기존 대기 작업의 전환 조건은 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다. 서버에서도 파일 잠금과 상태 토큰으로 동시 교체를 막으며 이미 시작한 배포는 새 Push 때문에 중간 취소하지 않습니다.
 
 ### 검증된 최신 후보 우선 실행
 
@@ -31,10 +35,12 @@ GitLab의 `a305-dev-release` 자원 그룹은 `process_mode=newest_ready_first`�
 
 - 환경 파일: `/home/ubuntu/apps/a305/dev/deploy.env`.
 - 모니터링 추가 Compose: `/home/ubuntu/apps/a305/monitoring/config/compose.observability.yaml`.
+- 개발 워커 네트워크 추가 Compose: `/home/ubuntu/apps/a305/dev/config/compose.dev-worker-network.yaml`. 고정 IP·자동 할당 범위·브리지와 최초 전환은 [GPU 워커 네트워크 운영](gpu-worker-network.md)을 따릅니다. `fixed_worker_network` 검사를 활성화하고 재기동·복구에서도 같은 추가 설정을 사용합니다.
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MONITORING_PASSWORD`, `OBSERVABILITY_WEB_LOG_CONFIG`, DB·AI·공급자 비밀값은 서버 파일에 유지합니다. CI에 전달하지 않습니다.
 - 웹 로그 설정의 읽기 전용 마운트, 백엔드 내부 관리 주소와 비공개 포트를 유지합니다.
 - NPC 음성은 백엔드의 쓰기 가능한 `/app/data/npc-audio`에 저장하고 환경별 `npc-audio-data` 볼륨으로 유지합니다. 백엔드의 AI 내부 주소는 `AI_WORKER_BASE_URL=http://ai-worker:8020`으로 연결합니다.
 - 수신기는 NPC 음성 경로·마운트·개발 볼륨 이름과 실행 중인 백엔드의 실제 볼륨을 대조합니다. 누락·읽기 전용·다른 볼륨으로의 변경은 앱 교체 전에 거절하며, 저장 위치 이전은 [음성 저장 운영 기준](npc-audio-storage.md)에 따라 별도로 준비합니다.
+- 백엔드 로그 파일은 `/app/logs`의 환경별 `backend-logs` 볼륨으로 유지합니다. 처음 배포할 때 Compose가 빈 볼륨을 만들며, 수신기는 이 볼륨을 검사하지 않습니다.
 - DB 컨테이너·볼륨은 자동 교체하지 않습니다. DB 실행 설정이 달라지면 별도 마이그레이션 절차를 요구합니다.
 - 호스트 Nginx·TLS·운영 확인용 서비스·모니터링 스택은 배포 대상에 포함하지 않습니다. 새 WebGL HTTPS 경로의 브라우저 검증은 HTTPS 운영 작업에서 진행합니다.
 
@@ -59,6 +65,7 @@ git -C "$HOME/apps/a305/dev/source" worktree add --detach \
 cd "$HOME/apps/a305/dev/deploy-tools"
 sudo install -d -m 755 /usr/local/lib/a305-dev-deploy
 sudo install -m 644 infra/scripts/deployment_server.py /usr/local/lib/a305-dev-deploy/deployment_server.py
+sudo install -m 644 infra/scripts/dev_worker_network.py /usr/local/lib/a305-dev-deploy/dev_worker_network.py
 cp infra/deploy/dev-server.example.json "$HOME/apps/a305/dev/server-config.json"
 nano "$HOME/apps/a305/dev/server-config.json"
 ```
@@ -123,7 +130,7 @@ GitLab Settings → CI/CD → Variables에 다음을 등록합니다. 두 항목
 ## 수동 연결 확인과 재실행
 
 1. 변경을 필수 MR 검사와 팀원 리뷰를 거쳐 `dev`에 병합합니다. 선행 모니터링 코드와 서버 수신기·전용 SSH 키·CI 변수의 설치 상태를 확인합니다.
-2. Windows 노트북 Runner를 켜고 빌드가 끝날 때까지 PC를 유지합니다. `dev`·`main` 보호와 Runner Protected를 유지합니다.
+2. Windows 노트북 Runner를 켜고 빌드가 끝날 때까지 PC를 유지합니다. `dev`·`main` 보호와 Runner의 프로젝트 잠금·태그 제한을 유지합니다. MR 검사와 Runner 실행 범위는 [Windows Unity Runner](unity/windows-runner.md)를 따릅니다.
 3. GitLab의 New pipeline에서 보호된 `dev`와 `RUN_DEV_DEPLOY=true`를 지정합니다.
 4. 부모의 계획 작업, 자식의 선택된 검사·이미지 전달·실제 서버 점검과 성공 기록을 확인합니다. 첫 자동 배포는 모든 앱을 검증·빌드하므로 노트북에서 실제 WebGL을 새로 빌드합니다.
 

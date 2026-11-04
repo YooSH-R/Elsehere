@@ -7,7 +7,12 @@ import java.util.Map;
 public record ErrorResponse(Error error) {
 
   public static ErrorResponse of(ErrorCode errorCode, Map<String, Object> details) {
-    return new ErrorResponse(new Error(errorCode.name(), errorCode.getMessage(), details));
+    return of(errorCode, errorCode.getMessage(), details);
+  }
+
+  /** 오류 코드의 기본 문구 대신 상황에 맞는 문구를 보낼 때 쓴다. */
+  public static ErrorResponse of(ErrorCode errorCode, String message, Map<String, Object> details) {
+    return new ErrorResponse(new Error(errorCode.name(), message, details));
   }
 
   /** {@link ErrorCode}에 없는 요청 오류(405, 415 등)에 쓴다. */

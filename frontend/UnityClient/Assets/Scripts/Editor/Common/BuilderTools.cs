@@ -469,7 +469,8 @@ namespace A305.EditorTools.Common
         }
 
         /// <summary>참조 필드가 하나라도 비어 있으면 실패시켜, 연결이 빠진 씬·프리팹을 만들지 않게 한다.</summary>
-        public static void RequireReferences(Object owner)
+        /// <param name="optionalFields">다른 Builder가 씬마다 따로 연결해 이 자리에서는 비어 있어도 되는 필드</param>
+        public static void RequireReferences(Object owner, params string[] optionalFields)
         {
             SerializedProperty property = new SerializedObject(owner).GetIterator();
             bool enterChildren = true;
@@ -479,7 +480,8 @@ namespace A305.EditorTools.Common
                 bool isEmptyReference =
                     property.propertyType == SerializedPropertyType.ObjectReference
                     && property.name != "m_Script"
-                    && property.objectReferenceValue == null;
+                    && property.objectReferenceValue == null
+                    && Array.IndexOf(optionalFields, property.name) < 0;
                 if (isEmptyReference)
                 {
                     throw new InvalidOperationException(

@@ -17,6 +17,9 @@ namespace A305.Dialogue
         public long ConversationId { get; set; }
         public NpcSummary Npc { get; set; }
         public NpcTurnData OpeningTurn { get; set; }
+
+        /// <summary>발화 응답과 같은 형식의 대화 상태. 이 칸을 보내지 않는 서버면 null이다.</summary>
+        public ConversationState Conversation { get; set; }
     }
 
     public sealed class NpcSummary
@@ -41,6 +44,8 @@ namespace A305.Dialogue
         public string Url { get; set; }
 
         public bool IsReady => Status == "READY" && !string.IsNullOrEmpty(Url);
+
+        public bool CanRegenerate => Status == "FAILED";
     }
 
     public sealed class TurnBody
@@ -63,6 +68,7 @@ namespace A305.Dialogue
 
     public sealed class UserTurnData
     {
+        public bool Rude { get; set; }
         public long TurnId { get; set; }
         public string Text { get; set; }
     }
@@ -73,6 +79,15 @@ namespace A305.Dialogue
         public string Status { get; set; }
 
         public string EndReason { get; set; }
+
+        /// <summary>이 대화에서 무례로 센 말 수</summary>
+        public int? RudeCount { get; set; }
+
+        /// <summary>여기에 닿으면 NPC가 대화를 끝내는 무례 횟수(3)</summary>
+        public int? RudeLimit { get; set; }
+
+        /// <summary>이 NPC의 지금 호감도(-100~100). 이 칸을 보내지 않는 서버면 null이다.</summary>
+        public int? Affinity { get; set; }
     }
 
     public sealed class EndBody
@@ -97,6 +112,22 @@ namespace A305.Dialogue
         public FeedbackReviews Reviews { get; set; }
         public FeedbackSuggestion Suggestion { get; set; }
         public string ErrorCode { get; set; }
+
+        /// <summary>이 장면에서 자주 쓰는 관용·추천 표현. 이 필드가 없던 피드백은 null이거나 비어 있다.</summary>
+        public List<SituationExpressionData> SituationExpressions { get; set; }
+    }
+
+    /// <summary>이 장면에서 자주 쓰는 표현 하나. 예문은 학습용이며 사용자가 한 말이 아니다.</summary>
+    public sealed class SituationExpressionData
+    {
+        public string Expression { get; set; }
+        public string MeaningKo { get; set; }
+
+        /// <summary>이 장면에서 언제 쓰는지</summary>
+        public string UsageKo { get; set; }
+
+        public string ExampleEn { get; set; }
+        public string ExampleKo { get; set; }
     }
 
     public sealed class FeedbackReviews
@@ -145,9 +176,27 @@ namespace A305.Dialogue
         public long DurationMs { get; set; }
     }
 
+    /// <summary>진행 중인 대화(CONV-11). 끝내지 못한 같은 NPC 대화를 이어서 할 때 지난 턴을 다시 보인다.</summary>
     public sealed class ActiveConversation
     {
         public long ConversationId { get; set; }
+        public string Status { get; set; }
+        public NpcSummary Npc { get; set; }
+        public int? RudeCount { get; set; }
+        public int? RudeLimit { get; set; }
+        public List<ActiveTurn> Turns { get; set; }
+    }
+
+    /// <summary>진행 중인 대화의 한 턴. NPC 턴만 음성이 있다.</summary>
+    public sealed class ActiveTurn
+    {
+        public long TurnId { get; set; }
+
+        /// <summary>USER · NPC</summary>
+        public string Speaker { get; set; }
+        public string Text { get; set; }
+        public List<string> SuggestWords { get; set; }
+        public SpeechData Speech { get; set; }
     }
 
     /// <summary>NPC 대사 뜻 보기(CONV-04).</summary>
@@ -175,5 +224,14 @@ namespace A305.Dialogue
 
         /// <summary>NPC 대사에 대답할 만한 영어 문장</summary>
         public string HintText { get; set; }
+    }
+
+    /// <summary>추천 단어(CONV-12).</summary>
+    public sealed class SuggestWordsData
+    {
+        public long TurnId { get; set; }
+
+        /// <summary>NPC 대사에 대답할 때 쓸 만한 단어·짧은 구</summary>
+        public List<string> SuggestWords { get; set; }
     }
 }

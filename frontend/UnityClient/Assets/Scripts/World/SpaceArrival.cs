@@ -6,7 +6,8 @@ using UnityEngine;
 namespace A305.World
 {
     /// <summary>
-    /// 공간 씬에 들어오면 플레이어를 도착 출입구 앞에 세우고 카메라를 플레이어 뒤로 맞춘다.
+    /// 공간 씬에 들어오면 플레이어를 도착 출입구 앞에 세우고, 문에 들어갈 때의 카메라 각도를 나오는 방향 기준으로 이어 맞춘다.
+    /// 앞으로 걸어 들어오면 카메라가 플레이어 뒤에, 뒤로 걸어 들어오면 문을 바라보는 쪽에 와서 누르던 키로 계속 걷는다.
     /// 이동 없이 씬을 열고 Play하면 씬에 놓인 플레이어 위치에서 시작한다.
     /// 장소 씬이면 서버에 재접속 위치로 저장한다(WORLD-05). 저장에 실패해도 플레이는 그대로 진행한다.
     /// </summary>
@@ -38,7 +39,7 @@ namespace A305.World
                 return;
             }
 
-            string doorwayId = SpaceTravel.TakeArrivalDoorwayId();
+            string doorwayId = SpaceTravel.TakeArrivalDoorwayId(out float viewYawFromTravel);
             if (string.IsNullOrEmpty(doorwayId))
             {
                 return;
@@ -56,7 +57,7 @@ namespace A305.World
 
             Transform arrivalPoint = doorway.ArrivalPoint;
             player.Teleport(arrivalPoint.position, arrivalPoint.rotation);
-            cameraRig.SnapBehindTarget();
+            cameraRig.SnapView(arrivalPoint.eulerAngles.y + viewYawFromTravel);
         }
 
         private async Task SaveLastSceneAsync()

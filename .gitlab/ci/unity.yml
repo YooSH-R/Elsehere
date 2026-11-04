@@ -1,5 +1,5 @@
 unity:format:
-  extends: .linux-job
+  extends: .linux-light-job
   stage: verify
   needs: ["ci:yaml"]
   image: mcr.microsoft.com/dotnet/sdk:10.0.401
@@ -20,27 +20,75 @@ unity:format:
           - frontend/**/*
           - docs/api/**/*
           - infra/scripts/unity-code-quality.ps1
-          - .gitlab-ci.yml
-          - .gitlab/ci/**/*
+          - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/prepare-unity-test-inputs.ps1
+          - infra/tests/tripo/**/*
+          - .gitlab/ci/unity.yml
           - AGENTS.md
           - docs/code-conventions.md
           - docs/unity/**/*
     - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
       changes: *unity_change_paths
 
-# Only protected candidates reach the laptop's licensed Windows user session.
-unity:editor-and-webgl:
+.unity-editor:
   tags:
     - a305-unity-windows
   stage: verify
   timeout: 1h
   needs: []
-  resource_group: a305-unity-editor
   variables:
     GIT_STRATEGY: fetch
     GIT_CLEAN_FLAGS: '-ffdx -e frontend/UnityClient/Library/'
     TRIPO_MASTER_RECORD: Assets/Data/Tripo/100e191da12a84145a71d737bcfd57c2.asset
     TRIPO_MASTER_SCENE: Assets/Scenes/Sandbox/Tripo/LittleMung_Cafe_Female_112b39c5_HandBinding.unity
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - dist/unity-ci/
+
+unity:editor-tests:
+  extends: .unity-editor
+  needs: ["ci:yaml", "unity:format"]
+  allow_failure: false
+  # A normal run ends within 25 minutes; a stalled PlayMode load should free the shared runner sooner.
+  timeout: 30m
+  script:
+    # The script narrows web-template-only changes to the deployment tests.
+    - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test -ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID == $CI_MERGE_REQUEST_PROJECT_ID'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        # Convention documents cannot change Editor results, so they only select the format check.
+        paths: &unity_editor_change_paths
+          - frontend/**/*
+          - docs/api/**/*
+          - infra/scripts/unity-code-quality.ps1
+          - infra/scripts/run-unity-ci.ps1
+          - infra/scripts/prepare-unity-test-inputs.ps1
+          - infra/tests/tripo/**/*
+          - .gitlab/ci/unity.yml
+
+# Fork code must not run under the notebook's licensed Windows account.
+# Keep affected fork MRs blocked rather than silently omitting their required test.
+unity:external-mr:
+  extends: .linux-light-job
+  stage: verify
+  image: alpine:3.22
+  needs: ["ci:yaml"]
+  allow_failure: false
+  script:
+    - echo "Unity tests require a branch in this project. Review and copy the fork changes into a project branch before merging."
+    - exit 1
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_PROJECT_ID != $CI_MERGE_REQUEST_PROJECT_ID'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: *unity_editor_change_paths
+
+unity:editor-and-webgl:
+  extends: .unity-editor
   script:
     - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test
     - |
@@ -49,8 +97,6 @@ unity:editor-and-webgl:
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       }
   artifacts:
-    when: always
-    expire_in: 7 days
     paths:
       - dist/unity-ci/
       - dist/webgl/

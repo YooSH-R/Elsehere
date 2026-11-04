@@ -6,8 +6,9 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// 화면 오른쪽 위의 [지난 대화]·[단어장] 버튼과 저장 알림. 알림은 잠깐 보였다 사라진다.
-    /// [지난 대화] 창도 이 HUD에 있어 장소 씬마다 배치하지 않는다.
+    /// 오른쪽 위 메뉴(≡) 안의 [단어장]·[피드백 목록]·[홈] 버튼과 저장 알림. 알림은 잠깐 보였다 사라진다.
+    /// 메뉴를 펼치고 접는 일은 <see cref="HudMenuView"/>가 맡는다.
+    /// [피드백 목록] 창도 이 HUD에 있어 장소 씬마다 배치하지 않는다.
     /// </summary>
     public class LearningHudView : MonoBehaviour
     {
@@ -18,6 +19,10 @@ namespace A305.Learning
 
         [SerializeField]
         private ConversationHistoryView historyView;
+
+        [SerializeField]
+        [Tooltip("오른쪽 아래 조작법 카드")]
+        private ControlsGuideView controlsGuide;
 
         [SerializeField]
         private Button vocabularyButton;
@@ -31,6 +36,10 @@ namespace A305.Learning
         [SerializeField]
         [Tooltip("아이콘 버튼 위 숫자 배지의 글자. 비워 두면 버튼 이름에 개수를 붙인다.")]
         private TMP_Text vocabularyCountText;
+
+        [SerializeField]
+        [Tooltip("오른쪽 위 휴대폰 버튼 줄. 대화 중에는 숨긴다.")]
+        private GameObject phoneButtonBar;
 
         [SerializeField]
         private TMP_Text messageText;
@@ -49,6 +58,11 @@ namespace A305.Learning
 
         public ConversationHistoryView HistoryView => historyView;
 
+        public ControlsGuideView ControlsGuide => controlsGuide;
+
+        /// <summary>메뉴 안의 [단어장]. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform VocabularyButtonRect => (RectTransform)vocabularyButton.transform;
+
         public void SetHomeAvailable(bool available) => homeButton.interactable = available;
 
         /// <summary>숫자 배지가 있으면 버튼 이름은 그대로 두고 배지에 개수를 보인다. 모은 표현이 없으면 배지를 숨긴다.</summary>
@@ -65,13 +79,16 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// 대화 중에는 단어장과 지난 대화를 열 수 없게 한다. 두 화면의 이동 잠금이 대화의 이동 잠금을 풀지 않게 하기 위함이다.
+        /// 대화 중에는 단어장과 피드백 목록을 열 수 없게 한다. 두 화면의 이동 잠금이 대화의 이동 잠금을 풀지 않게 하기 위함이다.
         /// </summary>
         public void SetVocabularyAvailable(bool isAvailable)
         {
             vocabularyButton.interactable = isAvailable;
             historyButton.interactable = isAvailable;
         }
+
+        /// <summary>시안처럼 대화 중에는 오른쪽 위 휴대폰 버튼을 숨긴다.</summary>
+        public void SetTalking(bool talking) => phoneButtonBar.SetActive(!talking);
 
         public void ShowMessage(string message)
         {

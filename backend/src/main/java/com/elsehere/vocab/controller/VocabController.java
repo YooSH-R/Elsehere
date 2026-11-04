@@ -8,7 +8,6 @@ import com.elsehere.vocab.dto.VocabListResponse;
 import com.elsehere.vocab.dto.VocabSaveRequest;
 import com.elsehere.vocab.dto.VocabSaveResponse;
 import com.elsehere.vocab.dto.VocabUpdateRequest;
-import com.elsehere.vocab.entity.UserVocabSourceType;
 import com.elsehere.vocab.service.VocabService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,17 +44,41 @@ public class VocabController {
   @PostMapping("/api/v1/vocab")
   public ResponseEntity<VocabSaveResponse> saveWord(
       @AuthenticationPrincipal LoginUser loginUser, @Valid @RequestBody VocabSaveRequest request) {
-    // NPC 대사·피드백 출처는 단어 풀이·단어장 후보로 단어를 확인해야 해서, 그 연동 전까지 저장하지 않는다.
-    if (request.sourceType() != UserVocabSourceType.OBJECT) {
-      throw new BusinessException(ErrorCode.VOCAB_SOURCE_MISMATCH);
-    }
-    // 단어 키는 사물 저장에서만 쓰는 값이라 어노테이션 대신 여기서 확인한다.
-    if (request.wordKey() == null || request.wordKey().isBlank()) {
-      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
-    }
-    VocabSaveResponse response = vocabService.saveObjectWord(loginUser.userId(), request.wordKey());
+    VocabSaveResponse response = save(loginUser.userId(), request);
     return ResponseEntity.status(response.created() ? HttpStatus.CREATED : HttpStatus.OK)
         .body(response);
+  }
+
+  // 출처마다 쓰는 필드가 달라 어노테이션 대신 여기서 필요한 값을 확인한다.
+  private VocabSaveResponse save(Long userId, VocabSaveRequest request) {
+    return switch (request.sourceType()) {
+      case OBJECT -> {
+        requireText(request.wordKey());
+        yield vocabService.saveObjectWord(userId, request.wordKey());
+      }
+      case NPC_LINE -> {
+        requireId(request.turnId());
+        requireText(request.text());
+        yield vocabService.saveNpcLineWord(userId, request.turnId(), request.text());
+      }
+      case FEEDBACK -> {
+        requireId(request.conversationId());
+        requireText(request.text());
+        yield vocabService.saveFeedbackWord(userId, request.conversationId(), request.text());
+      }
+    };
+  }
+
+  private static void requireId(Long value) {
+    if (value == null) {
+      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+    }
+  }
+
+  private static void requireText(String value) {
+    if (value == null || value.isBlank()) {
+      throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+    }
   }
 
   @PatchMapping("/api/v1/vocab/{userVocabId}")

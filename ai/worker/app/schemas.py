@@ -36,6 +36,7 @@ class Line(BaseModel):
     text: str = Field(max_length=1000)
     english: str | None = None  # 학습자 줄: 번역 (대화 종료 API에서 씀)
     rude: bool = False  # 학습자 줄: 무례 판정 결과
+    events: list[str] = []  # 학습자 줄: 의도 판정(/v1/judge)이 고른 대화 사건. 대화 중 기분과 이미 센 사건을 거르는 데 쓴다
 
 
 class Intent(BaseModel):
@@ -99,9 +100,25 @@ class Memory(BaseModel):
     card: dict | None = None
 
 
+class Relationship(BaseModel):
+    """사용자 × NPC 관계 (app.npc_relationship). 백엔드가 저장한 값과 마지막 대화 뒤 지난 게임 속 날 수. 처음 만나면 모두 0."""
+
+    recognition: int = Field(default=0, ge=0, le=100)  # 알아봄
+    affinity: int = Field(default=0, ge=-100, le=100)  # 호감
+    days_since_last_talk: int = Field(default=0, ge=0)
+
+
+class Learner(BaseModel):
+    """대답 상대인 학습자. 캐릭터 기본형(F·M)과 닉네임이며, NPC가 부르는 호칭을 정할 때만 쓴다."""
+
+    nickname: str | None = Field(default=None, max_length=32)
+    avatar_type: Literal["F", "M"] | None = None
+
+
 class ReplyRequest(BaseModel):
     npc: Npc
     memory: Memory | None = None
+    relationship: Relationship | None = None  # 있으면 알아봄·호감·기분을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
     instruction: str = Field(default="", max_length=1000)  # Spring 규칙이 정한 이번 대답에서 할 일
@@ -109,6 +126,7 @@ class ReplyRequest(BaseModel):
     level: Level = 2
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
     goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일
+    learner: Learner | None = None  # 있으면 캐릭터에 맞는 호칭만, 없으면 성별을 짐작한 호칭(Mr.·Ms.·sir·ma'am)을 쓰지 않는다
 
 
 class TtsRequest(BaseModel):
@@ -152,6 +170,22 @@ class MemoryRequest(BaseModel):
     outcome: str  # 대화 결과 한 줄 (예: "주문 성공")
     history: list[Line] = Field(max_length=200)
     memory_card: dict | None = None  # 이전 카드
+
+
+class RelationshipRequest(BaseModel):
+    """정상 종료된 대화 하나를 알아봄에 반영 (app.npc_relationship). 백엔드가 /v1/memory와 같은 자리에서 부른다.
+    호감은 대화 중에 발화마다 이미 바꿨으므로 여기서 계산하지 않는다."""
+
+    npc: Npc  # profile이 있으면 인격 카드의 성격으로 알아보는 속도를 정한다
+    relationship: Relationship | None = None  # 저장된 관계와 마지막 대화 뒤 지난 게임 날 수. 처음 만나면 없음
+    history: list[Line] = Field(max_length=200)  # 학습자가 말한 대화인지만 본다
+
+    @field_validator("history")
+    @classmethod
+    def learner_spoke(cls, v: list[Line]) -> list[Line]:
+        if not any(line.who == "me" for line in v):
+            raise ValueError("학습자가 말하지 않은 대화는 관계에 반영하지 않습니다")
+        return v
 
 
 # ---------- NPC 인격 카드 조합 (어드민 랜덤 생성, app.npc_persona) ----------

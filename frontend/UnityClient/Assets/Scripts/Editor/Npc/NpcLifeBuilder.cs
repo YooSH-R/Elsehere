@@ -1,0 +1,249 @@
+using System.Collections.Generic;
+using A305.EditorTools.Common;
+using A305.Npc;
+using A305.World;
+using Unity.AI.Navigation;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
+
+namespace A305.EditorTools.Npc
+{
+    /// <summary>
+    /// 생활 데이터(Data/Npc/NpcLife.json)가 있는 NPC가 놓인 장면마다 그 NPC에 생활(<see cref="NpcRoutine"/>)과 생활 동작
+    /// 컨트롤러(<see cref="NpcAnimationBuilder"/>)를 붙이고, NPC가 걸을 바닥(NavMesh)을 구워 <see cref="NpcWalkArea"/>로 연결한다.
+    /// 가구 배치를 바꾸면 다시 실행해 바닥을 새로 굽는다.
+    /// 생활 데이터는 AI 규칙 원본에서 ai/tools/npc_life_export.py로 내보낸다.
+    /// </summary>
+    public static class NpcLifeBuilder
+    {
+        public const string MenuPath = "Tools/A305/Npc/Build Daily Life";
+
+        private const string LifeDataPath = "Assets/Data/Npc/NpcLife.json";
+        private const string WalkAreaFolder = "Assets/Data/Npc/WalkAreas";
+
+        // NPC 몸(CharacterController 반지름 0.3m, 키 1.8m)과 같은 크기로 굽고, 보도 턱 정도(0.3m)는 오른다.
+        private const float AgentRadiusMeters = .3f;
+        private const float AgentHeightMeters = 1.8f;
+        private const float AgentClimbMeters = .3f;
+        private const float AgentSlopeDegrees = 45f;
+
+        private static readonly string[] ScenePaths =
+        {
+            "Assets/Scenes/Production/CafeScene.unity",
+            "Assets/Scenes/Production/HotelScene.unity",
+            "Assets/Scenes/Production/TownScene.unity",
+        };
+
+        [MenuItem(MenuPath)]
+        public static void Build()
+        {
+            if (!BuilderTools.CanBuild())
+            {
+                return;
+            }
+
+            var lifeData = BuilderTools.LoadRequiredAsset<TextAsset>(LifeDataPath, MenuPath);
+            NpcLifeData data = NpcLifeData.Parse(lifeData.text);
+            RuntimeAnimatorController animator = NpcAnimationBuilder.PrepareController();
+            foreach (string scenePath in ScenePaths)
+            {
+                Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                if (ConnectRoutines(scene, data, lifeData, animator) == 0)
+                {
+                    continue;
+                }
+
+                RebakeWalkArea(scene);
+                BuilderTools.SaveScene(scene, scenePath);
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log("NPC 생활과 걸을 바닥을 준비했습니다.");
+        }
+
+        /// <summary>열린 장면의 걸을 바닥을 다시 굽고 연결한다. 바닥 구역 표시를 바꾼 뒤에도 쓴다. 장면 저장은 부르는 쪽이 한다.</summary>
+        public static void RebakeWalkArea(Scene scene)
+        {
+            ConnectWalkArea(scene, BakeWalkArea(scene));
+        }
+
+        // 생활 데이터가 있는 NPC에만 붙인다. 튜토리얼 행인처럼 정해진 흐름대로 움직이는 NPC는 그대로 둔다.
+        private static int ConnectRoutines(
+            Scene scene,
+            NpcLifeData data,
+            TextAsset lifeData,
+            RuntimeAnimatorController animator
+        )
+        {
+            int connected = 0;
+            foreach (Passerby passerby in BuilderTools.FindAllInScene<Passerby>(scene))
+            {
+                if (data.FindNpc(passerby.GetComponent<NpcIdentity>().Code) == null)
+                {
+                    continue;
+                }
+
+                var routine = BuilderTools.GetOrAddComponent<NpcRoutine>(passerby.gameObject);
+                BuilderTools.SetReference(routine, "lifeData", lifeData);
+                NpcAnimationBuilder.Connect(routine, animator);
+                connected++;
+            }
+
+            return connected;
+        }
+
+        private static NavMeshData BakeWalkArea(Scene scene)
+        {
+            var sources = new List<NavMeshBuildSource>();
+            var everything = new Bounds(Vector3.zero, Vector3.one * 10000f);
+            NavMeshBuilder.CollectSources(
+                everything,
+                ~0,
+                NavMeshCollectGeometry.PhysicsColliders,
+                0,
+                AreaMarkups(scene),
+                sources
+            );
+            sources.RemoveAll(source => !IsStandingGround(source.component as Collider));
+
+            var bounds = new Bounds();
+            bool hasBounds = false;
+            foreach (NavMeshBuildSource source in sources)
+            {
+                Bounds sourceBounds = ((Collider)source.component).bounds;
+                if (hasBounds)
+                {
+                    bounds.Encapsulate(sourceBounds);
+                }
+                else
+                {
+                    bounds = sourceBounds;
+                    hasBounds = true;
+                }
+            }
+
+            sources.AddRange(AreaVolumes(scene));
+
+            NavMeshBuildSettings settings = NavMesh.GetSettingsByID(0);
+            settings.agentRadius = AgentRadiusMeters;
+            settings.agentHeight = AgentHeightMeters;
+            settings.agentClimb = AgentClimbMeters;
+            settings.agentSlope = AgentSlopeDegrees;
+            bounds.Expand(1f);
+            NavMeshData baked = NavMeshBuilder.BuildNavMeshData(
+                settings,
+                sources,
+                bounds,
+                Vector3.zero,
+                Quaternion.identity
+            );
+            return SaveWalkArea(baked, $"{WalkAreaFolder}/{scene.name}WalkArea.asset");
+        }
+
+        // 바닥 구역 표시(NavMeshModifier). 마을 차도처럼 붙은 사물과 그 아래 바닥을 다른 구역으로 굽는다.
+        private static List<NavMeshBuildMarkup> AreaMarkups(Scene scene)
+        {
+            var markups = new List<NavMeshBuildMarkup>();
+            foreach (
+                NavMeshModifier modifier in BuilderTools.FindAllInScene<NavMeshModifier>(scene)
+            )
+            {
+                markups.Add(
+                    new NavMeshBuildMarkup
+                    {
+                        root = modifier.transform,
+                        overrideArea = modifier.overrideArea,
+                        area = modifier.area,
+                        ignoreFromBuild = modifier.ignoreFromBuild,
+                        applyToChildren = modifier.applyToChildren,
+                    }
+                );
+            }
+
+            return markups;
+        }
+
+        // 상자 안 바닥을 다른 구역으로 바꾸는 표시(NavMeshModifierVolume). 차도 위 횡단보도처럼 바닥 일부만 바꾼다.
+        private static IEnumerable<NavMeshBuildSource> AreaVolumes(Scene scene)
+        {
+            foreach (
+                NavMeshModifierVolume volume in BuilderTools.FindAllInScene<NavMeshModifierVolume>(
+                    scene
+                )
+            )
+            {
+                Vector3 scale = volume.transform.lossyScale;
+                yield return new NavMeshBuildSource
+                {
+                    shape = NavMeshBuildSourceShape.ModifierBox,
+                    transform = Matrix4x4.TRS(
+                        volume.transform.TransformPoint(volume.center),
+                        volume.transform.rotation,
+                        Vector3.one
+                    ),
+                    size = new Vector3(
+                        volume.size.x * Mathf.Abs(scale.x),
+                        volume.size.y * Mathf.Abs(scale.y),
+                        volume.size.z * Mathf.Abs(scale.z)
+                    ),
+                    area = volume.area,
+                };
+            }
+        }
+
+        // 움직이는 것(사람·차)과 통과하는 영역(사물 호버·문 트리거)은 바닥이나 장애물로 굽지 않는다.
+        private static bool IsStandingGround(Collider collider)
+        {
+            if (collider == null || collider.isTrigger)
+            {
+                return false;
+            }
+
+            bool moves =
+                collider.GetComponentInParent<CharacterController>() != null
+                || collider.GetComponentInParent<LoopingCar>() != null
+                || (collider.attachedRigidbody != null && !collider.attachedRigidbody.isKinematic);
+            return !moves;
+        }
+
+        // 다시 구울 때 같은 에셋을 덮어써 장면 참조와 GUID가 바뀌지 않게 한다.
+        private static NavMeshData SaveWalkArea(NavMeshData baked, string path)
+        {
+            BuilderTools.EnsureFolder(WalkAreaFolder);
+            var existing = AssetDatabase.LoadAssetAtPath<NavMeshData>(path);
+            if (existing == null)
+            {
+                AssetDatabase.CreateAsset(baked, path);
+                return baked;
+            }
+
+            // 덮어쓰면 에셋 이름까지 바뀌므로 원래 이름을 지킨다.
+            string assetName = existing.name;
+            EditorUtility.CopySerialized(baked, existing);
+            existing.name = assetName;
+            EditorUtility.SetDirty(existing);
+            Object.DestroyImmediate(baked);
+            return existing;
+        }
+
+        private static void ConnectWalkArea(Scene scene, NavMeshData data)
+        {
+            var walkArea = BuilderTools.FindSingleInScene<NpcWalkArea>(scene);
+            if (walkArea == null)
+            {
+                Transform root = BuilderTools.CreateEmpty(
+                    "NpcWalkArea",
+                    null,
+                    Vector3.zero,
+                    Quaternion.identity
+                );
+                walkArea = root.gameObject.AddComponent<NpcWalkArea>();
+            }
+
+            BuilderTools.SetReference(walkArea, "data", data);
+        }
+    }
+}

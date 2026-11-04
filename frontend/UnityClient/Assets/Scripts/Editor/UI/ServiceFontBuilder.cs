@@ -11,6 +11,11 @@ namespace A305.EditorTools.UI
     public static class ServiceFontBuilder
     {
         public const string FontPath = "Assets/Art/UI/Fonts/NanumSquareRound SDF.asset";
+        private const string TmpSettingsPath = "Assets/TextMesh Pro/Resources/TMP Settings.asset";
+
+        // 글꼴 기본 줄 높이(글자 크기의 1.13배)로는 한글 여러 줄이 맞닿아 보여 1.4배로 띄운다.
+        private const float ReadableLineHeight = 1.4f;
+
         public static bool IsSaving { get; private set; }
 
         [MenuItem("Tools/A305/UI/Apply Service Font")]
@@ -64,10 +69,9 @@ namespace A305.EditorTools.UI
                     );
                     BuilderTools.SetReference(theme, "titleFont", font);
                 }
-                Object settings = AssetDatabase.LoadMainAssetAtPath(
-                    "Assets/TextMesh Pro/Resources/TMP Settings.asset"
-                );
+                Object settings = AssetDatabase.LoadMainAssetAtPath(TmpSettingsPath);
                 BuilderTools.SetReference(settings, "m_defaultFontAsset", font);
+                SetReadableSpacing(font, settings);
                 foreach (
                     string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" })
                 )
@@ -92,6 +96,39 @@ namespace A305.EditorTools.UI
             {
                 IsSaving = false;
             }
+        }
+
+        /// <summary>서비스 글꼴의 줄 간격과 한글 줄바꿈만 맞춘다. 프리팹은 다시 저장하지 않는다.</summary>
+        [MenuItem("Tools/A305/UI/Apply Readable Text Spacing")]
+        public static void ApplyReadableSpacing()
+        {
+            IsSaving = true;
+            try
+            {
+                SetReadableSpacing(
+                    BuilderTools.LoadRequiredAsset<TMP_FontAsset>(FontPath, "서비스 기본 글꼴"),
+                    AssetDatabase.LoadMainAssetAtPath(TmpSettingsPath)
+                );
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                IsSaving = false;
+            }
+        }
+
+        // 한글은 TMP 기본값이면 글자마다 줄을 바꿀 수 있어 '맡/기고'처럼 단어가 갈라진다. 영어처럼 띄어쓰기에서 바꾼다.
+        private static void SetReadableSpacing(TMP_FontAsset font, Object settings)
+        {
+            var fontFields = new SerializedObject(font);
+            fontFields.FindProperty("m_FaceInfo.m_LineHeight").floatValue =
+                font.faceInfo.pointSize * ReadableLineHeight;
+            fontFields.ApplyModifiedPropertiesWithoutUndo();
+            var settingFields = new SerializedObject(settings);
+            settingFields.FindProperty("m_UseModernHangulLineBreakingRules").boolValue = true;
+            settingFields.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(font);
+            EditorUtility.SetDirty(settings);
         }
     }
 }

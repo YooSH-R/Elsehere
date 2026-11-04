@@ -1,11 +1,17 @@
 package com.elsehere.admin.controller;
 
+import com.elsehere.admin.service.AdminAiUsageService;
 import com.elsehere.admin.service.AdminNpcService;
+import com.elsehere.admin.service.AdminUserService;
+import com.elsehere.common.auth.LoginUser;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 운영자 어드민 화면(templates/admin). 화면은 조회만 하고, 저장은 화면의 스크립트가 관리 API(/api/v1/admin/**)를 부른다. 상태를 바꾸는 요청에
@@ -15,7 +21,22 @@ import org.springframework.web.bind.annotation.PathVariable;
 @RequiredArgsConstructor
 public class AdminPageController {
 
+  /** AI 호출 종류(ai_requests.kind)의 화면 이름 */
+  private static final Map<String, String> AI_KIND_NAMES =
+      Map.of(
+          "STT", "음성 인식",
+          "GUARD", "무례 판정",
+          "JUDGE", "의도 판정",
+          "NPC", "NPC 대답",
+          "TTS", "음성 합성",
+          "HINT", "힌트·추천 단어",
+          "MEANING", "뜻 보기",
+          "FEEDBACK", "피드백",
+          "MEMORY", "기억 카드");
+
   private final AdminNpcService adminNpcService;
+  private final AdminUserService adminUserService;
+  private final AdminAiUsageService adminAiUsageService;
 
   @GetMapping({"/admin", "/admin/"})
   public String home() {
@@ -32,5 +53,21 @@ public class AdminPageController {
   public String npc(@PathVariable String npcCode, Model model) {
     model.addAttribute("npc", adminNpcService.npc(npcCode));
     return "admin/npc-persona";
+  }
+
+  /** AI 사용량. AI 호출 기록을 최근 며칠(1~90일, 기본 7일) 동안 묶어 보여 준다. */
+  @GetMapping("/admin/ai-usage")
+  public String aiUsage(@RequestParam(defaultValue = "7") int days, Model model) {
+    model.addAttribute("report", adminAiUsageService.report(days));
+    model.addAttribute("kindNames", AI_KIND_NAMES);
+    return "admin/ai-usage";
+  }
+
+  /** 관리자 목록. 자기 자신에게는 해제 버튼을 두지 않는다. */
+  @GetMapping("/admin/admins")
+  public String admins(@AuthenticationPrincipal LoginUser loginUser, Model model) {
+    model.addAttribute("admins", adminUserService.admins());
+    model.addAttribute("currentUserId", loginUser.userId());
+    return "admin/admins";
   }
 }

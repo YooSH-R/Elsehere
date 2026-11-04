@@ -21,11 +21,13 @@ MonoBehaviour:
   thirdPersonMaxPitchDegrees: 70
   firstPersonMinPitchDegrees: -70
   firstPersonMaxPitchDegrees: 70
-  rotateDegreesPerPixel: 0.2
+  rotateDegreesPerPixel: 0.15
   pivotHeightMeters: 1.5
   eyeHeightMeters: 1.6
   followSharpness: 15
+  followBehindSharpness: 0
   collisionRadiusMeters: 0.2
   collisionLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  collisionRecoverSharpness: 3

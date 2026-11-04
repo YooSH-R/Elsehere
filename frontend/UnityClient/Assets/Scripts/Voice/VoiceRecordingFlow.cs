@@ -3,7 +3,7 @@ using System;
 namespace A305.Voice
 {
     /// <summary>
-    /// 누르고 말하기 녹음의 진행. 마이크 권한 답을 알리고, 매 프레임 음량과 시각을 <see cref="RecordingSession"/>에 넘겨
+    /// [말하기] 녹음의 진행. 마이크 권한 답을 알리고, 매 프레임 음량과 시각을 <see cref="RecordingSession"/>에 넘겨
     /// 자동 종료를 판단하고, 끝나면 16kHz 모노 WAV로 만들어 <see cref="RecordingFinished"/>로 알린다.
     /// </summary>
     /// <remarks>시각은 부르는 쪽이 넘겨 Unity 객체 없이 테스트한다. 화면 연결은 <see cref="VoiceRecorder"/>가 맡는다.</remarks>
@@ -16,6 +16,9 @@ namespace A305.Voice
         private readonly RecordingSession session;
         private bool isWaitingForAccess;
 
+        // 녹음을 시작했을 때 마이크가 아직 열리지 않아, 소리가 들어오기 시작하면 무음·최대 시간을 처음부터 세야 하는지.
+        private bool isWaitingForCapture;
+
         public VoiceRecordingFlow(IMicrophone microphone, RecordingSession session)
         {
             this.microphone = microphone;
@@ -27,13 +30,28 @@ namespace A305.Voice
 
         public MicrophoneAccess? Access => microphone.Access;
         public bool IsRecording => session.IsRecording;
+        public bool IsHearingVoice => session.IsHearingVoice;
         public float CurrentLevel => IsRecording ? microphone.CurrentLevel : 0f;
         public float ElapsedSeconds => session.ElapsedSeconds;
+
+        /// <summary>녹음을 시작했지만 마이크가 아직 열리는 중인지. 이때 한 말은 녹음되지 않는다.</summary>
+        public bool IsPreparing => IsRecording && !microphone.IsCapturing;
 
         public void RequestAccess()
         {
             microphone.RequestAccess();
             isWaitingForAccess = true;
+        }
+
+        /// <summary>대화 동안 마이크를 열어 두어 녹음을 시작하자마자 소리를 받게 한다.</summary>
+        public void KeepMicrophoneOpen()
+        {
+            microphone.KeepOpen();
+        }
+
+        public void ReleaseMicrophone()
+        {
+            microphone.Release();
         }
 
         public void StartRecording(float now)
@@ -45,9 +63,10 @@ namespace A305.Voice
 
             microphone.StartRecording();
             session.Start(now);
+            isWaitingForCapture = IsPreparing;
         }
 
-        /// <summary>[누르고 말하기] 버튼을 뗐을 때 부른다.</summary>
+        /// <summary>사용자가 [종료]를 눌렀을 때 부른다.</summary>
         public void StopRecording(float now)
         {
             if (!IsRecording)
@@ -85,6 +104,18 @@ namespace A305.Voice
             {
                 isWaitingForAccess = false;
                 AccessChanged?.Invoke(microphone.Access.Value);
+            }
+
+            // 마이크가 열리는 동안은 말해도 녹음되지 않으므로 그 시간을 무음으로 세지 않는다.
+            if (IsRecording && isWaitingForCapture)
+            {
+                if (IsPreparing)
+                {
+                    return;
+                }
+
+                isWaitingForCapture = false;
+                session.Start(now);
             }
 
             if (IsRecording && session.Update(now, microphone.CurrentLevel))

@@ -10,12 +10,22 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 ## Production 장소 구분과 편집
 
+### 확장 예정 지역 구름
+
+동서 미개발 공간은 `Environment/FutureDistrictClouds/DistrictCloudCoverage`의 구름으로 덮는다. 양쪽 경계(-32~70m)를 따라 구름을 이어 배치하고 바깥쪽에 한 겹 더 쌓아 건물 사이로 빈 지면이 드러나는 것을 줄인다. 기존 북쪽 거리와 경계 Collider는 유지한다.
+
+서쪽 공중 안내판은 `공항 개발중`, 동쪽 안내판은 `놀이공원 개발중`을 표시한다. 교차로와 집 앞, 북쪽 거리에서 해당 방향의 하늘을 보면 구름 위의 안내판을 볼 수 있다. 구간마다 안내판 높이를 달리해 주변 지붕 위로 보이게 한다. 가까운 건물이 화면을 가릴 때는 카메라를 위로 돌리거나 거리를 두고 본다.
+
+`Assets/Prefabs/World/CloudBoundaries/`의 `DistrictCloudTile`은 넓은 공간에 반복 배치하는 구름 타일이고, `CloudBank`는 교차도로 끝의 구름이다. `AirportBoundary`와 `ParkBoundary`는 공중 안내판과 도로 끝 구름의 조합이다. 다른 구간의 안내판은 `DistrictSkyNotices`에서 `AirportSkyNotice`와 `ParkSkyNotice` 프리팹을 재사용한다. 위치는 씬 인스턴스에서, 글씨·아이콘·구름 형태는 Prefab Mode에서 조정한다. 구역을 개방할 때는 해당 방향의 구름, 안내, `CrossStreetEnd14m`·`SideBoundary`를 함께 조정한다. 구름과 공중 안내판은 기존 공용 단어 `cloud`와 `sign`을 사용한다.
+
+**Tools → A305 → World → Apply Cloud Boundaries**는 없는 프리팹과 배치를 생성하고, 구름 확장이 적용되지 않은 씬에는 확장 배치를 한 번 추가한다. 교차로, 집 앞, 북쪽 거리의 카메라 렌더를 `artifacts/unity/cloud-boundaries/`에 저장한다. 이 자료는 로컬 검수용이며 Git에 포함하지 않는다.
+
 | 구분 | 배치와 표현 | 기능 |
 | --- | --- | --- |
 | 이용 장소 | 남동쪽 집, 서쪽 카페, 동쪽 호텔. 집은 포치, 카페는 초록 CAFE 차양, 호텔은 세로 간판 | 기존 HomeDoor·CafeDoor·HotelDoor와 실내 왕복 연결 유지 |
 | 빈 건물 | 카페 북쪽 크림색 2층 건물. 셔터와 CLOSED 표시, 비발광 창 | 출입 Trigger·상품·영업 조명 없음 |
 | 배경 주거동 | 북쪽 거리와 남서쪽 주택. 코럴·버터·세이지 3색, 1~3층, 닫힌 주거 문 | 배경 외벽 Collider만 사용 |
-| 휴식 공간 | 집 앞 대화 마당, 북동쪽 8×8m 공원 | 기존 행인 2명의 ID와 대화 참조 유지. 벤치·분수는 장식이며 앉기·물 효과는 미구현 |
+| 휴식 공간 | 집 앞 대화 마당, 북동쪽 8×8m 공원 | 기존 행인 2명의 ID와 대화 참조 유지. 벤치에는 앉을 수 있고, 분수는 장식이며 물 효과는 미구현 |
 
 `Environment/TownMainstreet` 아래에 공통 거리 프리팹과 `BackgroundBuildings`를 둔다. 기존 이용 건물 루트는 출입구의 참조를 보존하고, 도형 외관을 비활성화한 뒤 새 외관을 중첩한다. Systems·UI의 대화·사물 호버·학습·미션·튜토리얼 연결은 유지한다. 식당·공항의 임시 영업 간판은 현재 배치에서 제거하며 새 이동 장소를 추가하지 않는다.
 
@@ -23,13 +33,13 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 - 배경 건물의 `GroundFloor8m`은 4m, `UpperFloor8m`은 3m다. 상층을 Y=4, 7…에 중첩하고 RoofCap·RoofInset을 같은 높이만큼 올린다. 완성 건물을 세로로 늘리지 않는다. 1·2·3층 프리팹 높이는 4.4·7.4·10.4m다. 원점은 전면 바닥 중앙이며 +Z가 도로 방향이다.
 - 카페는 `CafeBlenderKit/Buildings/Cafe1F~3F`를 사용한다. 집과 호텔은 기존 외관 조립을 승격한 프리팹이며, 호텔의 층수 자동 조립은 아직 제공하지 않는다.
 - 북쪽 길은 Z=70까지 이어지고 경계 정원은 Z=69에 둔다. 확장할 때 경계 프리팹을 이동하고 도로·보도·건물 부지를 함께 연장한다. 동서 경계는 폭 14m 전용 프리팹을 써 수목 비율을 유지한다.
-- 카메라·색 보정은 `Assets/Data/World/TownProduction/`의 전용 에셋으로 조정한다. 1.6m 캐릭터 외형은 기존 이동·NPC 루트의 `TownVisual`에 중첩한다. 플레이어 외형 프리팹은 기존 시점별 가림 컴포넌트를 재사용한다.
+- 카메라·색 보정은 `Assets/Data/World/TownProduction/`의 전용 에셋으로 조정한다. 1.6m 캐릭터 외형은 기존 이동·NPC 루트의 `TownVisual`에 중첩한다. 마을 행인 Ben(`TOWN_PASSERBY`)은 이 도형 외형 대신 비즈니스맨 외형을 쓴다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#builder)). 플레이어 외형 프리팹은 기존 시점별 가림 컴포넌트를 재사용한다.
 
 **Tools → A305 → World → Apply Production Town Design**은 초기 도형 씬에 디자인을 이식한다. 이미 `TownMainstreet`가 있으면 배치·외관을 덮어쓰지 않는다. 이후 편집은 Scene과 Prefab Mode에서 한다. **Verify Production Town Design**은 집 퇴장 후 튜토리얼 행인의 접근·제안·수락, Play 카메라, 보행, 대화 시점, 세 장소의 출입구 왕복을 확인하고 `artifacts/unity/production-town`에 화면과 검수 결과를 저장한다. 검수는 Play 중 튜토리얼 진행과 행인 휴식 기록을 초기화한다. 검수 중 이동·카메라 변경은 Play 종료 시 버린다.
 
 **Apply Town Follow Camera**는 TownScene의 3인칭 카메라를 캐릭터보다 키가 큰 사람이 바로 뒤에서 내려다보는 구도로 맞춘다. `Data/World/TownProduction/CameraSettings.asset`의 거리 4.2m·pitch 16도·조준 높이 1.3m를 저장하며, 캐릭터가 조준 높이를 따로 정했으면 그 값을 쓴다. Sandbox 전용 아트 검토 카메라는 바꾸지 않는다. 대화를 시작하면 기존과 같이 상대를 바라보는 1인칭으로 바뀌고 V키 1인칭 전환도 유지한다.
 
-튜토리얼 행인은 집의 `HomeDoor/ArrivalPoint`에서 약 5.4m 떨어진 보도에 둔다. **Repair Tutorial Passerby Placement**는 집 도착 지점을 기준으로 바깥쪽 2m·문 기준 오른쪽 5m에 행인의 위치와 방향만 다시 저장한다. 집·보도를 이동하면 감지 반경 8m 안에 있는지뿐 아니라 행인과 도착 지점 사이에 장애물이 없는지도 Play에서 확인한다. 기존 `PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline`를 유지해 집에서 나온 플레이어에게 실제로 다가와 제안하는지 검증한다.
+튜토리얼에서 길을 묻는 행인 Ben(`TOWN_PASSERBY`)은 집의 `HomeDoor/ArrivalPoint`에서 약 5.4m 떨어진 보도에 둔다. **Repair Tutorial Passerby Placement**는 집 도착 지점을 기준으로 바깥쪽 2m·문 기준 오른쪽 5m에 행인의 위치와 방향만 다시 저장한다. 집·보도를 이동하면 감지 반경 8m 안에 있는지뿐 아니라 행인과 도착 지점 사이에 장애물이 없는지도 Play에서 확인한다. 기존 `PasserbyTests.LeavingHome_TutorialPasserbyApproachesAndOffersWithoutDecline`를 유지해 집에서 나온 플레이어에게 실제로 다가와 제안하는지 검증한다.
 
 집 내부는 [HomeScene 실내 디자인](home-interior.md), 호텔 로비는 [HotelScene 로비 디자인](hotel-interior.md)을 적용한다. CafeScene의 실내 아트 교체와 최종 캐릭터 리깅은 별도 작업이다. Editor 검수는 Web 빌드의 FPS·메모리 성능 보증이 아니다.
 
@@ -64,7 +74,7 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | StreetLampV2 | 약 3.4m. 발광 전구와 범위 5m의 따뜻한 Point Light |
 | MarketCrateV2 / ChalkboardV2 | 상점 진열 상자 / 카페 입간판. 문 앞 비움 영역 밖에 배치 |
 | DistantShopV2 3종 | 폭 6m·깊이 5.2m, 높이 5.8~7.3m의 닫힌 배경 외관. 북쪽 확장부에 배치 |
-| ParkBench / CafeTable | 좌판 약 0.27~0.29m, 작은 몸 비율에 맞춘 가구. 앉기 동작은 미검증 |
+| ParkBench / CafeTable | 작은 몸 비율에 맞춘 가구. 벤치는 폭 1.6m를 반씩 나눈 두 자리에 앉는다. 앉는 면 치수는 [Mission 모듈](../../frontend/UnityClient/Assets/Scripts/Mission/README.md#의자벤치소파-앉기)에 있다 |
 | PicketFence2m | 주택 앞마당 가장자리에 연결 |
 | SidewalkTile2m | 2×2m 보도 반복. 교차로 끝은 길이를 절반으로 조정 |
 | FireHydrant | 빨간 소화전 한 종류 재사용 |
@@ -85,6 +95,10 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 기본 낮 조명은 Directional Light 하나(회전 48°, -35°, 0°; 강도 1.7)와 하늘·수평·지면의 환경광이며, 가로등과 매장의 Point Light를 더한다. Sandbox 전용 Volume은 exposure 0, contrast 10, saturation 8, bloom 0.15, tonemapping None이다. 선형 안개는 42~125m이며 피사계심도는 사용하지 않는다. 이 수치는 이미지에서 측정한 물성값이나 Web 성능 검증값이 아닌 Unity 아트 시작값이다.
 
+위 하늘·조명·안개는 맑은 날 기준이다. TownScene의 `Lighting/TownWeather`(`WeatherPresenter`)가 예보 날씨에 따라 해의 색·세기·그림자, 환경광, 안개, `SummerSky` 색, 구름 색을 섞어 바꾸고, 하늘을 덮는 날씨에는 `OvercastClouds`를, 비에는 `Assets/Prefabs/Weather/Rain.prefab` 빗방울을 띄운다. 날씨마다 `Assets/Data/Weather/`의 정의 에셋(`Clear`·`Cloudy`·`Rain`)이 있고 `TownWeather.asset` 목록에 모여 있으며, 맑음은 씬에 디자인한 값을 그대로 쓴다. 하늘·구름 머티리얼은 실행 중 사본을 물들이므로 원본 에셋은 바뀌지 않는다. 구성과 미리보기 방법은 [Weather 모듈](../../frontend/UnityClient/Assets/Scripts/Weather/README.md)에 있다.
+
+위 값은 한낮(게임 시각 12:30 무렵) 기준이기도 하다. 같은 날씨 표시가 사용자별 게임 시각에 맞춰 새벽(6:00)·노을(19:00)에는 보랏빛·주황빛 하늘과 지평선 가까이 낮게 깔린 햇빛으로, 밤(19:30~5:30)에는 남색 하늘·별·달과 약한 달빛, 어두운 환경광·안개·구름으로 바꾼다. 밤에는 가로등(`LanternLight`)·상점 불빛(`FixtureLight`·`InteriorLight`)을 2배, 창빛(`WindowAmberGlow`)·가로등 전구(`LanternAmberV2`) 같은 발광 재질을 2.2배로 밝힌다. 입점한 상점·숙소(내 집·카페·호텔·드럭스토어, 북쪽 거리 매장·경찰서·북쪽 상가)의 창 유리는 안에서 불을 켠 것처럼 따뜻한 빛을 내고, 같은 재질을 쓰는 주택·빈 건물 창은 그대로 둔다. 별·달은 `SummerSky` 셰이더의 `_Stars`(0이면 낮 하늘 그대로)로 그리며 흐림·비에는 숨는다. 값은 `Assets/Data/Weather/DayNight.asset`에서 조정한다.
+
 ## 가로등과 매장 조명
 
 `Assets/Prefabs/World/MainstreetArt/StreetLampV2.prefab`의 `LanternLight`가 주변을 비추며, 전구의 `LanternAmberV2` 재질이 발광한다. 같은 프리팹을 배치하면 외형과 광원을 함께 재사용한다.
@@ -96,6 +110,8 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | 색상 / 강도 / 범위 | #FFE1B3 / 4 / 5m |
 | 그림자 | 개별 가로등 그림자 끔 |
 | 현재 Sandbox | 가로등 8개, 활성 매장 조명 15개 |
+
+가로등은 밤에만 켠다. 게임 시각이 낮이면 `LanternLight`와 전구 발광을 끄고, 노을에 서서히 켜 한밤에는 다른 등처럼 밝힌다(Weather 모듈 `NightLights`). 가로수 잎에 머리가 묻히지 않게 가로등은 같은 보도 가로수와 3m 넘게 떨어뜨리며, 묻힌 가로등은 **Tools → A305 → World → Move Streetlights Out Of Trees**로 옮긴다.
 
 `LanternLight`의 Light Inspector에서 색·강도·범위를 조절한다. **Tools → A305 → World → Apply And Verify Streetlights**는 기존 외형을 유지하면서 누락된 광원을 추가하고, 전구 발광을 활성화한 뒤 Play에서 검수한다. 이미 있는 광원의 조절값은 덮어쓰지 않는다. 일반 Sandbox Builder로 다시 만들 때도 같은 공통 프리팹을 사용한다.
 
@@ -149,6 +165,16 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 **Tools → A305 → World → Build And Preview Tiny Treats Props**는 없는 재질·프리팹만 만들고 비교용 Sandbox를 재생성한다. 기존 프리팹과 조합 예시의 수동 편집은 유지한다. 유리 재질은 투명 URP/Lit, 나머지는 Metallic 0·Smoothness 0.18이다. 카운터 조합 (`artifacts/unity/free-props/CafeCounterDisplay.png`, 로컬 보관), 공원 소품 (`artifacts/unity/free-props/PrettyPark.png`, 로컬 보관)은 실제 Unity Editor 렌더이며 생성형 이미지가 아니다. 검수는 25개 모델의 URP 참조·바닥 피벗·콜라이더·실측 치수와 화면을 확인한다. WebGL 성능·기능 연결 완료를 의미하지 않는다.
 
+### 미국 소도시 거리와 생활 소품
+
+학습자가 미국 소도시에 온 상황을 연습하므로, 거리도 미국 소도시처럼 보이게 한다. 우산을 사는 상점도 미국에서 흔한 드럭스토어로 정했다. **Apply American Street Details**는 도로 전체에 이어지는 중앙선, 교차로의 횡단보도·정지선·신호등과 MAPLE AVE 이름판, 속도 제한 25·버스 정류장·보행자 횡단 표지판, 주차 미터기, 신문 판매함, 파란 우체통, 드럭스토어 앞 ICE 냉동고와 OPEN 네온, 카페 입간판을 둔다. 성조기는 호텔 외벽에 하나만 단다. 이 소품들은 Builder가 기본 도형으로 만든다.
+
+**Apply Town Street Life**는 거리가 비어 보이지 않게 집 남쪽 잔디에 아이스크림 트럭 광장을 따로 두고, 카페 앞 파라솔 테라스, 본길을 도는 택시·승용차, 자전거 거치대, 꽃과 동물을 둔다. 택시와 승용차는 교차로 신호를 지키며 본길을 돌고, 기존 픽업트럭만 길가에 세워 둔다. 택시는 인도에서 세워 운전석의 기사와 대화할 수 있다. 테이블·의자·휴지통·컵은 위 Tiny Treats 프리팹을 그대로 쓴다. 외부 모델의 출처와 라이선스는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md#마을-거리)에서 관리한다.
+
+### 매장 실내 소품
+
+거리 매장 6곳과 북쪽 상가 1·2층의 실내는 카페·호텔만큼 채우도록 공간별 묶음 프리팹(`Assets/Prefabs/World/TownInteriors/`)으로 만든다. KayKit [Furniture Bits](https://kaylousberg.itch.io/furniture-bits)·[Restaurant Bits](https://kaylousberg.itch.io/restaurant-bits)(CC0)에서 실제로 쓰는 모델만 가져와 원본의 0.7배로 줄이고, 주방 가구는 8m 매장 벽에 붙도록 앞뒤를 0.42배로 줄인다. 같은 작가의 City Builder Bits처럼 둥근 덩어리와 그라데이션 아틀라스라 Tiny Treats·마을 재질과 어울린다. 이발 의자·샴푸 세면대·빵 선반·데크 오븐·오락기처럼 무료 CC0 모델이 없는 것은 기존 둥근 도형 키트로 만든다. KayKit 큰 액자는 그림 면이 비어 보여 색면 그림 액자(풍경·식물·노을)를 따로 만든다. 공간 목록·충돌·단어·메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#매장-실내-소품), 출처는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md#마을-매장-실내)를 따른다.
+
 ### 나머지 후보의 적용 순서
 
 아래는 미도입 후보에 대한 디자인 판단이다. 건물은 미국 소도시의 벽돌 상가·크림색 몰딩·녹색 차양과 반복 층 구조를 유지하고, 필요한 소품부터 보강한다.
@@ -162,7 +188,7 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 | [Styloo Cozy Farm](https://styloo.itch.io/farm) | 농장 건물보다 우편함·상자 등 부족한 거리 소품을 선택한다. |
 | Cloudy Creates [Street Essentials](https://cloudycreates.itch.io/street-props-vol01-street-essentials), [Garden Props](https://cloudycreates.itch.io/lowpoly-garden-props), [Cafe Essentials](https://cloudycreates.itch.io/cafe-essentials-vol2) | 필요한 소품이 기존 프리팹에 없을 때 Starter에서 선택한다. 무료/상업 이용 표기와 CC0는 같지 않으므로 도입할 파일의 동봉 라이선스를 확인한다. 현재 미도입이다. |
 | Tiny Treats [Fun Playground](https://tinytreats.itch.io/fun-playground), [Pleasant Picnic](https://tinytreats.itch.io/pleasant-picnic) | 놀이터·피크닉 구역의 배치가 정해지면 같은 계열 소품으로 확장한다. |
-| KayKit [Furniture Bits](https://kaylousberg.itch.io/furniture-bits), [Restaurant Bits](https://kaylousberg.itch.io/restaurant-bits), Tiny Treats [Charming Kitchen](https://tinytreats.itch.io/charming-kitchen) | 카페 실내 좌석·주방을 구현할 때 부족한 구성만 추가한다. |
+| Tiny Treats [Charming Kitchen](https://tinytreats.itch.io/charming-kitchen) | 카페 주방을 구현할 때 부족한 구성만 추가한다. KayKit Furniture Bits·Restaurant Bits는 [매장 실내 소품](#매장-실내-소품)에 도입했다. |
 | [Cozy Cartoon Pack 2](https://assetstore.unity.com/packages/3d/props/interior/interiors-free-cozy-cartoon-pack-2-366624), [Synty Coffee Shop](https://syntystore.com/products/polygon-coffee-shop) | 현재 집기와 역할이 겹쳐 후순위다. 공식 무료 제공은 확인했으나 각각 별도 Asset Store/스토어 라이선스이며 CC0 원본으로 취급하지 않는다. |
 
 건물 전체나 규격 벽·창문을 Tripo로 반복 생성하지 않는다. 이 모듈들은 Unity에서 치수와 재질을 조절할 수 있어 이번 외관 제작에 **Tripo 생성 크레딧은 0**이다. 추가 계정 연결이나 유료 패키지 없이 현재 씬을 열 수 있다.
@@ -171,6 +197,6 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 ## 적용 범위
 
-메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 편의점 구역은 이 작업의 대상이 아니다.
+메인스트리트 Sandbox는 외관 아트와 크기·통행·카메라 검토용이다. 북쪽 기존 건물 세 동의 실내와 층별 상가는 별도의 `NorthBlockInteriorSandbox`에서 검토하고 `TownScene`에 배치한다. 복층 베이커리, 공용 계단을 쓰는 오락실·서점, 외부 계단을 쓰는 생활용품점·찻집으로 동선을 구분한다. 위치·출입 방식·Builder 메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#북쪽-상가), 무료 Fab 에셋과 사용 조건은 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md)에서 관리한다. 다른 배경 주거동과 호텔 앞 드럭스토어 구역은 이 작업의 대상이 아니다.
 
 부지 마커와 임시 경계 벽은 아트 화면에서 숨기고 경계 Collider는 유지한다. 공유 메시와 프리팹 사용만으로 Web 성능을 검증했다고 판단하지 않는다. Web 적용 전에 꽃·창문 반복 수, Renderer·재질 수와 프레임 시간을 측정해 단순화한다.

@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
+using A305.Theme;
+using A305.Voice;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,6 +13,7 @@ namespace A305.Onboarding
 {
     /// <summary>
     /// 공간 화면의 마이페이지. 오른쪽 위 [내 정보]로 열어 내 정보를 보고 닉네임을 바꾸거나 로그아웃한다.
+    /// 시점 회전 감도도 여기서 조절한다(<see cref="LookSensitivity"/>, 이 기기에만 저장).
     /// 로그아웃은 확인 창을 거쳐 서버 세션을 끝낸 뒤(AUTH-05) 입구 씬의 로그인 화면으로 돌아간다.
     /// 단어장 HUD 프리팹에 붙어 있어 장소 씬마다 따로 배치하지 않는다.
     /// </summary>
@@ -18,7 +21,9 @@ namespace A305.Onboarding
     {
         private const string LoadingMessage = "내 정보를 불러오는 중이에요…";
         private const string SavingMessage = "닉네임을 바꾸는 중이에요…";
+        private const string SavingConsentMessage = "동의를 바꾸는 중이에요…";
         private const string LoggingOutMessage = "로그아웃하는 중이에요…";
+        private const string WithdrawingMessage = "탈퇴하는 중이에요…";
         private const string UnexpectedMessage = "문제가 생겼어요. 다시 시도해 주세요.";
 
         [SerializeField]
@@ -52,6 +57,22 @@ namespace A305.Onboarding
         private TMP_Text statusText;
 
         [SerializeField]
+        [Tooltip("선택 동의(음성 처리·AI 개선) 줄을 넣을 곳")]
+        private Transform consentsParent;
+
+        [SerializeField]
+        [Tooltip("선택 동의 한 줄. 받은 동의 수만큼 복제한다.")]
+        private ConsentRowView consentTemplate;
+
+        [SerializeField]
+        [Tooltip("시점 회전 감도 배율. 이 기기에만 저장한다.")]
+        private Slider lookSensitivitySlider;
+
+        [SerializeField]
+        [Tooltip("슬라이더 옆에 지금 감도 배율을 보여 준다. 슬라이더를 움직이는 동안에도 바뀐다.")]
+        private TMP_Text lookSensitivityText;
+
+        [SerializeField]
         private Button logoutButton;
 
         [SerializeField]
@@ -68,6 +89,22 @@ namespace A305.Onboarding
 
         [SerializeField]
         private Button logoutCancelButton;
+
+        [SerializeField]
+        [Tooltip("[회원 탈퇴](USER-05). 확인 창을 거친다.")]
+        private Button withdrawButton;
+
+        [SerializeField]
+        private GameObject withdrawDialog;
+
+        [SerializeField]
+        private TMP_Text withdrawStatusText;
+
+        [SerializeField]
+        private Button withdrawConfirmButton;
+
+        [SerializeField]
+        private Button withdrawCancelButton;
 
         private MyPageFlow flow;
         private LogoutFlow logout;
@@ -93,7 +130,15 @@ namespace A305.Onboarding
             logoutButton.onClick.AddListener(AskLogout);
             logoutCancelButton.onClick.AddListener(ShowProfile);
             logoutConfirmButton.onClick.AddListener(Logout);
+            withdrawButton.onClick.AddListener(AskWithdraw);
+            withdrawCancelButton.onClick.AddListener(ShowProfile);
+            withdrawConfirmButton.onClick.AddListener(Withdraw);
+            consentTemplate.gameObject.SetActive(false);
+            lookSensitivitySlider.minValue = LookSensitivity.Min;
+            lookSensitivitySlider.maxValue = LookSensitivity.Max;
+            lookSensitivitySlider.onValueChanged.AddListener(ChangeLookSensitivity);
             overlay.SetActive(false);
+            UiLayer.Close(this);
         }
 
         private void Start()
@@ -117,10 +162,14 @@ namespace A305.Onboarding
             }
 
             overlay.SetActive(true);
+            UiLayer.Open(this);
             SetMovementLocked(true);
             nicknameInput.text = "";
+            lookSensitivitySlider.SetValueWithoutNotify(LookSensitivity.Current);
+            RenderLookSensitivity(LookSensitivity.Current);
             ShowProfile();
             await RunAsync(flow.LoadAsync(), LoadingMessage);
+            ApplyVoiceConsent();
         }
 
         private void Close()
@@ -131,6 +180,7 @@ namespace A305.Onboarding
             }
 
             overlay.SetActive(false);
+            UiLayer.Close(this);
             SetMovementLocked(false);
         }
 
@@ -149,6 +199,38 @@ namespace A305.Onboarding
             }
         }
 
+        private async void ChangeConsent(string consentType, bool agreed)
+        {
+            if (flow.IsBusy)
+            {
+                return;
+            }
+
+            await RunAsync(flow.ChangeConsentAsync(consentType, agreed), SavingConsentMessage);
+            ApplyVoiceConsent();
+        }
+
+        // 대화의 [말하기]가 바뀐 음성 처리 동의를 따르게 한다.
+        private void ApplyVoiceConsent()
+        {
+            if (this != null && flow.User != null)
+            {
+                VoiceConsent.Shared.Set(flow.IsVoiceAgreed);
+            }
+        }
+
+        // 움직이는 대로 바로 저장해 창을 닫지 않아도 다음 회전부터 적용된다.
+        private void ChangeLookSensitivity(float value)
+        {
+            LookSensitivity.Current = Mathf.Round(value * 10f) / 10f;
+            RenderLookSensitivity(LookSensitivity.Current);
+        }
+
+        private void RenderLookSensitivity(float value)
+        {
+            lookSensitivityText.text = $"{value:0.0}배";
+        }
+
         private void AskLogout()
         {
             profilePanel.SetActive(false);
@@ -160,6 +242,7 @@ namespace A305.Onboarding
         private void ShowProfile()
         {
             logoutDialog.SetActive(false);
+            withdrawDialog.SetActive(false);
             profilePanel.SetActive(true);
             Render();
         }
@@ -192,6 +275,51 @@ namespace A305.Onboarding
 
             logoutStatusText.text = logout.ErrorMessage ?? UnexpectedMessage;
             SetLogoutButtonsInteractable(true);
+        }
+
+        private void AskWithdraw()
+        {
+            profilePanel.SetActive(false);
+            withdrawDialog.SetActive(true);
+            withdrawStatusText.text = "";
+            SetWithdrawButtonsInteractable(true);
+        }
+
+        // 탈퇴하면 서버 세션도 끝나므로 로그아웃처럼 입구 씬의 로그인 화면으로 돌아간다.
+        private async void Withdraw()
+        {
+            SetWithdrawButtonsInteractable(false);
+            withdrawStatusText.text = WithdrawingMessage;
+            bool canLeave;
+            try
+            {
+                canLeave = await logout.WithdrawAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                canLeave = false;
+            }
+
+            if (this == null)
+            {
+                return;
+            }
+
+            if (canLeave)
+            {
+                SceneManager.LoadScene(entrySceneName);
+                return;
+            }
+
+            withdrawStatusText.text = logout.ErrorMessage ?? UnexpectedMessage;
+            SetWithdrawButtonsInteractable(true);
+        }
+
+        private void SetWithdrawButtonsInteractable(bool interactable)
+        {
+            withdrawConfirmButton.interactable = interactable;
+            withdrawCancelButton.interactable = interactable;
         }
 
         // 요청을 기다리는 동안 버튼을 막고 기다리는 중임을 보이고, 끝나면 결과를 다시 그린다.
@@ -227,10 +355,39 @@ namespace A305.Onboarding
             bool canEdit = flow.User != null && !flow.IsBusy;
             profileText.text = flow.User != null ? MyPageText.Profile(flow.User) : "";
             statusText.text = flow.Message ?? "";
-            nicknameInput.interactable = canEdit;
-            nicknameButton.interactable = canEdit;
+            // 게스트는 닉네임을 바꾸지 못해 칸과 버튼을 막고, 이유는 아래 안내 줄에 보인다.
+            bool canChangeNickname = canEdit && flow.CanChangeNickname;
+            nicknameInput.interactable = canChangeNickname;
+            nicknameButton.interactable = canChangeNickname;
             closeButton.interactable = !flow.IsBusy;
             logoutButton.interactable = !flow.IsBusy;
+            withdrawButton.gameObject.SetActive(flow.CanWithdraw);
+            withdrawButton.interactable = !flow.IsBusy;
+            RenderConsents(canEdit);
+        }
+
+        // 실패하면 흐름의 동의가 바뀌지 않으므로 다시 그리면 토글이 원래 상태로 돌아간다.
+        private void RenderConsents(bool canEdit)
+        {
+            TemplateClones.Clear(consentsParent, consentTemplate);
+            foreach (ConsentStatus consent in flow.Consents)
+            {
+                ConsentRowView row = TemplateClones.Add(consentTemplate, consentsParent);
+                row.Show(
+                    new ConsentTerm
+                    {
+                        ConsentType = consent.ConsentType,
+                        Title = consent.Title,
+                        Url = consent.Url,
+                    }
+                );
+                row.Toggle.SetIsOnWithoutNotify(consent.Agreed);
+                row.Toggle.interactable = canEdit;
+                row.Toggle.onValueChanged.AddListener(agreed =>
+                    ChangeConsent(consent.ConsentType, agreed)
+                );
+                row.ViewButton.onClick.AddListener(() => Application.OpenURL(consent.Url));
+            }
         }
 
         private void SetLogoutButtonsInteractable(bool interactable)

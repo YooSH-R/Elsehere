@@ -117,11 +117,12 @@
         {
             "sceneCode": "TOWN",
             "unityKey": "TownScene",
-            "objectCount": 1420,
-            "detailCount": 50,
+            "objectCount": 2144,
+            "detailCount": 86,
             "wordKeys": [
                 "awning",
                 "bed",
+                "bell",
                 "bench",
                 "book",
                 "bookshelf",
@@ -131,14 +132,18 @@
                 "cash_register",
                 "ceiling",
                 "chair",
+                "chalkboard",
+                "clock",
                 "cloud",
                 "coffee_machine",
                 "cornice",
                 "counter",
+                "crate",
                 "croissant",
                 "crosswalk",
                 "cushion",
                 "display_case",
+                "donut",
                 "door",
                 "drawer",
                 "duvet",
@@ -149,47 +154,108 @@
                 "flowerbed",
                 "flowerpot",
                 "fountain",
+                "freezer",
                 "handle",
                 "headboard",
                 "hedge",
+                "jar",
+                "kettle",
+                "kitchen_counter",
                 "lamp",
                 "mattress",
+                "menu",
+                "mirror",
+                "muffin",
                 "mug",
+                "note",
+                "pastry_stand",
+                "picture",
                 "pillow",
                 "plant",
                 "planter",
+                "plate",
                 "porch",
+                "price_card",
                 "railing",
+                "reception_desk",
+                "refrigerator",
                 "road",
                 "roof",
+                "rug",
+                "shelf",
                 "shop",
                 "sidewalk",
                 "sign",
+                "sink",
                 "sofa",
                 "stairs",
+                "stove",
                 "streetlight",
                 "table",
+                "takeaway_cup",
                 "trash_can",
+                "tray",
                 "tree",
                 "truck",
+                "vase",
                 "wall",
                 "window",
+                "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_0a8bd7882c5b7b04e84b90f02a9345c1",
+                "word_27d3dc992bf0dee46a465b3bb93c0a08",
+                "word_2a482726948f5bf41a0068cc69f541ca",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
-                "word_44f9cc0d067b770438b25673c21c1358"
+                "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_3f1b31e72fbacea48bed046e884e6255",
+                "word_3fc84a99d1f166d49a24ed5d59f38a89",
+                "word_44f9cc0d067b770438b25673c21c1358",
+                "word_47611d6211561694cb7aa0e9039a893a",
+                "word_49745493800188e47bee4b59a9a41f49",
+                "word_50a95568007664e448ac53663da03962",
+                "word_510320b4ce2ab1646975c5e1c03333fb",
+                "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_57394345ad5fd5c46a1e107b2d2a7656",
+                "word_583992ed64934fe4ba5f273e34106ceb",
+                "word_5ca110b3066a4e04f83c2f7776bb5070",
+                "word_5ef79e2727edae54ab972ddb33844750",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385",
+                "word_856ac06ac71774f41bd23a7b97da2cc1",
+                "word_a31ccaa6d412b78428976a47663eff21",
+                "word_b4a755c63d1d408438a71815ba75d475",
+                "word_be12390675add1b488faf55f8e9aeb96",
+                "word_cfe407d309ec44540a66769b307075c8",
+                "word_dc738621f28e03c49bfa7b6f67dbf4b3",
+                "word_e438a4ee4f2a3494eaadb31ccfda0859",
+                "word_efe358bf0753d334891d16f6961a2d08",
+                "word_f1493503fe49b48488b6a1674ff150cd",
+                "word_f7bedd45ef4077348a8fb4ff422f2399",
+                "word_f7e7d4080aa0f3240910c84584d2d799",
+                "word_fae84acd881cae244bb14dd79ae14bf5"
             ]
         },
         {
             "sceneCode": "SHOP",
             "unityKey": "ShopScene",
-            "objectCount": 13,
+            "objectCount": 80,
             "detailCount": 0,
             "wordKeys": [
+                "ceiling",
+                "coffee_machine",
                 "counter",
+                "crate",
                 "door",
                 "floor",
+                "freezer",
+                "lamp",
+                "plant",
+                "refrigerator",
+                "rug",
                 "shelf",
                 "sign",
+                "trash_can",
                 "wall",
+                "window",
                 "word_a115a59d89b32af4bbbe5aa6c17f8273"
             ]
         }
@@ -847,10 +913,135 @@
             ]
         },
         {
+            "guid": "fa28e285858e1494f893c372f193563e",
+            "path": "Assets/Prefabs/World/Drugstore/CoffeeCounter.prefab",
+            "wordKeys": [
+                "coffee_machine",
+                "counter"
+            ]
+        },
+        {
+            "guid": "d7cbef7f6272f1049b7b6e3f06f6ae5f",
+            "path": "Assets/Prefabs/World/Drugstore/DrinkCooler.prefab",
+            "wordKeys": [
+                "refrigerator"
+            ]
+        },
+        {
+            "guid": "54e3840e53d1aae469a55a648d511377",
+            "path": "Assets/Prefabs/World/Drugstore/DrugstoreEntrance.prefab",
+            "wordKeys": [
+                "door",
+                "sign",
+                "wall",
+                "window"
+            ]
+        },
+        {
+            "guid": "e062b17753f62de47a554ef328f0e634",
+            "path": "Assets/Prefabs/World/Drugstore/DrugstoreInterior.prefab",
+            "wordKeys": [
+                "ceiling",
+                "coffee_machine",
+                "counter",
+                "crate",
+                "door",
+                "floor",
+                "freezer",
+                "lamp",
+                "plant",
+                "refrigerator",
+                "rug",
+                "shelf",
+                "sign",
+                "trash_can",
+                "wall",
+                "window",
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "6d46bc8cde6f19a4a9b97a7d0c322555",
+            "path": "Assets/Prefabs/World/Drugstore/HealthShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "2a2c4054c5a39d64282cac6bca9e9214",
+            "path": "Assets/Prefabs/World/Drugstore/IceCreamFreezer.prefab",
+            "wordKeys": [
+                "freezer"
+            ]
+        },
+        {
+            "guid": "afc4b3a369a8ca14fabbf6922d36d383",
+            "path": "Assets/Prefabs/World/Drugstore/OpenUmbrella.prefab",
+            "wordKeys": [
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "4ca5b6c0242cbd84ca372e16fd0f1446",
+            "path": "Assets/Prefabs/World/Drugstore/PantryShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "684b748a245212e419c52d59ddc72923",
+            "path": "Assets/Prefabs/World/Drugstore/PharmacyCounter.prefab",
+            "wordKeys": [
+                "counter"
+            ]
+        },
+        {
+            "guid": "5f714b2225b69ea4bb43fdad07851073",
+            "path": "Assets/Prefabs/World/Drugstore/ProduceStand.prefab",
+            "wordKeys": [
+                "crate"
+            ]
+        },
+        {
+            "guid": "738e2496d178f7d479a269be1b058b94",
+            "path": "Assets/Prefabs/World/Drugstore/RainyDaySign.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "bd9d69d9f9e54c7489e222852eba0415",
+            "path": "Assets/Prefabs/World/Drugstore/SnackShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "53f4b91e0df38cc4eb42e2cc948cb900",
+            "path": "Assets/Prefabs/World/Drugstore/UmbrellaBin.prefab",
+            "wordKeys": [
+                "word_a115a59d89b32af4bbbe5aa6c17f8273"
+            ]
+        },
+        {
+            "guid": "617d53606f88bf146b3159c8a2592306",
+            "path": "Assets/Prefabs/World/MainstreetArt/BlueMailbox.prefab",
+            "wordKeys": [
+                "word_583992ed64934fe4ba5f273e34106ceb"
+            ]
+        },
+        {
             "guid": "9c82fda40a1a6f1448246ad72586ab8b",
             "path": "Assets/Prefabs/World/MainstreetArt/BrickAccentPanel.prefab",
             "wordKeys": [
                 "wall"
+            ]
+        },
+        {
+            "guid": "150f0e8dfdc80394693421eec44592f1",
+            "path": "Assets/Prefabs/World/MainstreetArt/BusStopSign.prefab",
+            "wordKeys": [
+                "word_5ca110b3066a4e04f83c2f7776bb5070"
             ]
         },
         {
@@ -863,6 +1054,13 @@
         {
             "guid": "aeae19d0431904b4ab77b7773b0fb859",
             "path": "Assets/Prefabs/World/MainstreetArt/ChalkboardV2.prefab",
+            "wordKeys": [
+                "chalkboard"
+            ]
+        },
+        {
+            "guid": "0f79d4fb5c1a1614aa90f0a8888d43e2",
+            "path": "Assets/Prefabs/World/MainstreetArt/CoffeeSandwichBoard.prefab",
             "wordKeys": [
                 "chalkboard"
             ]
@@ -934,6 +1132,13 @@
             ]
         },
         {
+            "guid": "2a161baded09a254d9b0a98ab15ae407",
+            "path": "Assets/Prefabs/World/MainstreetArt/IceChest.prefab",
+            "wordKeys": [
+                "freezer"
+            ]
+        },
+        {
             "guid": "cb44336a1765bc345afb5b49d334f7b4",
             "path": "Assets/Prefabs/World/MainstreetArt/KenneyDeliveryTruck.prefab",
             "wordKeys": [
@@ -948,10 +1153,52 @@
             ]
         },
         {
+            "guid": "8781dca9f7ed2bc4386118f775b08d1b",
+            "path": "Assets/Prefabs/World/MainstreetArt/NewspaperBoxBlue.prefab",
+            "wordKeys": [
+                "word_510320b4ce2ab1646975c5e1c03333fb"
+            ]
+        },
+        {
+            "guid": "5fb38bf347ee3814baf2c378f146c87d",
+            "path": "Assets/Prefabs/World/MainstreetArt/NewspaperBoxRed.prefab",
+            "wordKeys": [
+                "word_510320b4ce2ab1646975c5e1c03333fb"
+            ]
+        },
+        {
+            "guid": "6879c0795e74549488f31621c0b37283",
+            "path": "Assets/Prefabs/World/MainstreetArt/NewspaperBoxYellow.prefab",
+            "wordKeys": [
+                "word_510320b4ce2ab1646975c5e1c03333fb"
+            ]
+        },
+        {
+            "guid": "5b2852f2f0b471d4f820697ef60bf401",
+            "path": "Assets/Prefabs/World/MainstreetArt/OpenSign.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
             "guid": "3febf4f5fb3aff0418be79e06df34fd5",
             "path": "Assets/Prefabs/World/MainstreetArt/ParkBench.prefab",
             "wordKeys": [
                 "bench"
+            ]
+        },
+        {
+            "guid": "77ce941845a94b6479e72474bfde108d",
+            "path": "Assets/Prefabs/World/MainstreetArt/ParkingMeter.prefab",
+            "wordKeys": [
+                "word_dc738621f28e03c49bfa7b6f67dbf4b3"
+            ]
+        },
+        {
+            "guid": "4c4a89361c66a8e4f897682aedf4b28e",
+            "path": "Assets/Prefabs/World/MainstreetArt/PedXingSign.prefab",
+            "wordKeys": [
+                "sign"
             ]
         },
         {
@@ -980,6 +1227,13 @@
             "path": "Assets/Prefabs/World/MainstreetArt/SidewalkTile2m.prefab",
             "wordKeys": [
                 "sidewalk"
+            ]
+        },
+        {
+            "guid": "19dbd436b8b59804dadbeb5a07878d73",
+            "path": "Assets/Prefabs/World/MainstreetArt/SpeedLimitSign.prefab",
+            "wordKeys": [
+                "sign"
             ]
         },
         {
@@ -1018,10 +1272,24 @@
             ]
         },
         {
+            "guid": "63e3da9753ff1e94da1c1ab0c7555eea",
+            "path": "Assets/Prefabs/World/MainstreetArt/TrafficSignal.prefab",
+            "wordKeys": [
+                "word_856ac06ac71774f41bd23a7b97da2cc1"
+            ]
+        },
+        {
             "guid": "5ca488216aebe274499a3f64c7af3628",
             "path": "Assets/Prefabs/World/MainstreetArt/UpperWindow.prefab",
             "wordKeys": [
                 "window"
+            ]
+        },
+        {
+            "guid": "e3cdd8a71211a874dbec4499334117f0",
+            "path": "Assets/Prefabs/World/MainstreetArt/UsFlag.prefab",
+            "wordKeys": [
+                "word_513415d5ad951964c9ede7ba32b0596f"
             ]
         },
         {
@@ -1050,6 +1318,7 @@
             "path": "Assets/Prefabs/World/NorthBlock/HomeLiving.prefab",
             "wordKeys": [
                 "bed",
+                "book",
                 "cabinet",
                 "ceiling",
                 "chair",
@@ -1062,18 +1331,24 @@
                 "flowerpot",
                 "handle",
                 "headboard",
+                "jar",
+                "kettle",
                 "lamp",
                 "mattress",
                 "mug",
+                "picture",
                 "pillow",
                 "plant",
                 "railing",
                 "roof",
+                "rug",
+                "shelf",
                 "shop",
                 "sign",
                 "sofa",
                 "stairs",
                 "table",
+                "vase",
                 "wall",
                 "window",
                 "word_44f9cc0d067b770438b25673c21c1358"
@@ -1085,23 +1360,34 @@
             "wordKeys": [
                 "book",
                 "bookshelf",
+                "cabinet",
+                "cash_register",
                 "ceiling",
                 "chair",
+                "clock",
                 "cornice",
                 "door",
+                "drawer",
                 "floor",
                 "flowerpot",
                 "handle",
+                "lamp",
+                "picture",
                 "plant",
                 "railing",
                 "roof",
+                "rug",
+                "shelf",
                 "shop",
                 "sign",
                 "stairs",
                 "table",
+                "trash_can",
                 "wall",
                 "window",
+                "word_0a8bd7882c5b7b04e84b90f02a9345c1",
                 "word_2ed81ce347fb9724d8df37ac679e41d9",
+                "word_369eb9ba5bdd95a4e82191d96b289f34",
                 "word_44f9cc0d067b770438b25673c21c1358"
             ]
         },
@@ -1109,31 +1395,45 @@
             "guid": "1d34e2fbb8b2ae7439f5ca5824bbcbc3",
             "path": "Assets/Prefabs/World/NorthBlock/MapleBakery.prefab",
             "wordKeys": [
-                "book",
                 "bread",
+                "cabinet",
                 "cake",
                 "cash_register",
                 "ceiling",
                 "chair",
+                "clock",
                 "coffee_machine",
                 "cornice",
                 "counter",
+                "crate",
                 "croissant",
                 "display_case",
+                "donut",
                 "door",
                 "floor",
                 "flowerpot",
                 "handle",
+                "lamp",
+                "muffin",
                 "mug",
+                "pastry_stand",
+                "picture",
                 "plant",
+                "plate",
+                "price_card",
                 "railing",
                 "roof",
+                "rug",
+                "shelf",
                 "shop",
                 "sign",
                 "stairs",
                 "table",
+                "takeaway_cup",
+                "tray",
                 "wall",
-                "window"
+                "window",
+                "word_47611d6211561694cb7aa0e9039a893a"
             ]
         },
         {
@@ -1254,6 +1554,118 @@
             "path": "Assets/Prefabs/World/NorthBlock/Props/Toy.prefab",
             "wordKeys": [
                 "word_44f9cc0d067b770438b25673c21c1358"
+            ]
+        },
+        {
+            "guid": "06c5d69c19e2f454f9a89bf04061eb67",
+            "path": "Assets/Prefabs/World/PoliceStation/PoliceCar.prefab",
+            "wordKeys": [
+                "word_be12390675add1b488faf55f8e9aeb96"
+            ]
+        },
+        {
+            "guid": "9bc90722b040b844ab8f49df4f88a1ae",
+            "path": "Assets/Prefabs/World/StreetLife/Bicycle.prefab",
+            "wordKeys": [
+                "word_e438a4ee4f2a3494eaadb31ccfda0859"
+            ]
+        },
+        {
+            "guid": "1e24cdbc267c54041b9df9d8be287153",
+            "path": "Assets/Prefabs/World/StreetLife/BikeRack.prefab",
+            "wordKeys": [
+                "word_a31ccaa6d412b78428976a47663eff21"
+            ]
+        },
+        {
+            "guid": "5489047f1bb3f4f4498c7848d74f97ab",
+            "path": "Assets/Prefabs/World/StreetLife/Cat.prefab",
+            "wordKeys": [
+                "word_b4a755c63d1d408438a71815ba75d475"
+            ]
+        },
+        {
+            "guid": "ca0ce87581055d340bacf5cde8aad0b5",
+            "path": "Assets/Prefabs/World/StreetLife/CloverPatch.prefab",
+            "wordKeys": [
+                "flowerbed"
+            ]
+        },
+        {
+            "guid": "2ce4f88054b8f2a4195071027b6a77dd",
+            "path": "Assets/Prefabs/World/StreetLife/FlowerBush.prefab",
+            "wordKeys": [
+                "plant"
+            ]
+        },
+        {
+            "guid": "166126fade909a44483cea6004219e59",
+            "path": "Assets/Prefabs/World/StreetLife/FlowerPatch.prefab",
+            "wordKeys": [
+                "flowerbed"
+            ]
+        },
+        {
+            "guid": "a863586ba3b248344b79fe2f588ec8a9",
+            "path": "Assets/Prefabs/World/StreetLife/FlowerPatchWhite.prefab",
+            "wordKeys": [
+                "flowerbed"
+            ]
+        },
+        {
+            "guid": "5c7a7dbe5cd87004d8f88ab4927503c1",
+            "path": "Assets/Prefabs/World/StreetLife/IceCreamCone.prefab",
+            "wordKeys": [
+                "word_27d3dc992bf0dee46a465b3bb93c0a08"
+            ]
+        },
+        {
+            "guid": "ad749c845cb661d49b7bb574f11052c6",
+            "path": "Assets/Prefabs/World/StreetLife/IceCreamTruck.prefab",
+            "wordKeys": [
+                "word_49745493800188e47bee4b59a9a41f49"
+            ]
+        },
+        {
+            "guid": "fdee00091f0e4714aa72d5e3c8fb0be1",
+            "path": "Assets/Prefabs/World/StreetLife/Parasol.prefab",
+            "wordKeys": [
+                "word_3f1b31e72fbacea48bed046e884e6255"
+            ]
+        },
+        {
+            "guid": "3450d257e27192c4f8c38509c6baae8e",
+            "path": "Assets/Prefabs/World/StreetLife/Pigeon.prefab",
+            "wordKeys": [
+                "word_50a95568007664e448ac53663da03962"
+            ]
+        },
+        {
+            "guid": "580aa4d57d0fbab4d841973716d0965c",
+            "path": "Assets/Prefabs/World/StreetLife/PottedPlant.prefab",
+            "wordKeys": [
+                "plant"
+            ]
+        },
+        {
+            "guid": "320f6ca9e18177e46b93dda52f5c22b2",
+            "path": "Assets/Prefabs/World/StreetLife/Sedan.prefab",
+            "wordKeys": [
+                "word_2a482726948f5bf41a0068cc69f541ca"
+            ]
+        },
+        {
+            "guid": "5fb4d753661f5344a935bcf22f01d963",
+            "path": "Assets/Prefabs/World/StreetLife/SleepingFox.prefab",
+            "wordKeys": [
+                "word_cfe407d309ec44540a66769b307075c8"
+            ]
+        },
+        {
+            "guid": "ad5ecefae65163748bda68a6e00677f4",
+            "path": "Assets/Prefabs/World/StreetLife/Taxi.prefab",
+            "wordKeys": [
+                "word_f7bedd45ef4077348a8fb4ff422f2399"
             ]
         },
         {
@@ -1446,6 +1858,872 @@
             "path": "Assets/Prefabs/World/TinyTreats/PrettyPark/TrashCan.prefab",
             "wordKeys": [
                 "trash_can"
+            ]
+        },
+        {
+            "guid": "176ed71c05414fd468c06b8cccffdb48",
+            "path": "Assets/Prefabs/World/TownInteriors/ArcadeInterior.prefab",
+            "wordKeys": [
+                "cabinet",
+                "clock",
+                "rug",
+                "shelf",
+                "sign",
+                "trash_can",
+                "word_0a8bd7882c5b7b04e84b90f02a9345c1",
+                "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_44f9cc0d067b770438b25673c21c1358"
+            ]
+        },
+        {
+            "guid": "92405745d4aa1364eb83fa01dce34593",
+            "path": "Assets/Prefabs/World/TownInteriors/BakeryInterior.prefab",
+            "wordKeys": [
+                "bread",
+                "cake",
+                "clock",
+                "crate",
+                "croissant",
+                "donut",
+                "lamp",
+                "muffin",
+                "pastry_stand",
+                "price_card",
+                "shelf",
+                "sign",
+                "table",
+                "takeaway_cup"
+            ]
+        },
+        {
+            "guid": "4ddfb82d92150214babba303b77a5bf6",
+            "path": "Assets/Prefabs/World/TownInteriors/BakeryLoungeInterior.prefab",
+            "wordKeys": [
+                "cabinet",
+                "chair",
+                "flowerpot",
+                "lamp",
+                "picture",
+                "plant",
+                "rug"
+            ]
+        },
+        {
+            "guid": "9bbb57cd73c84644c9c19a90922423bc",
+            "path": "Assets/Prefabs/World/TownInteriors/BarberShopInterior.prefab",
+            "wordKeys": [
+                "book",
+                "cabinet",
+                "chair",
+                "clock",
+                "drawer",
+                "flowerpot",
+                "jar",
+                "lamp",
+                "picture",
+                "plant",
+                "rug",
+                "shelf",
+                "sign",
+                "sink",
+                "trash_can"
+            ]
+        },
+        {
+            "guid": "f6d8d03df2e29814b8a2f61917e45009",
+            "path": "Assets/Prefabs/World/TownInteriors/BookshopInterior.prefab",
+            "wordKeys": [
+                "book",
+                "bookshelf",
+                "cabinet",
+                "cash_register",
+                "chair",
+                "drawer",
+                "lamp",
+                "picture",
+                "plant",
+                "rug",
+                "shelf",
+                "sign"
+            ]
+        },
+        {
+            "guid": "06cd98f1448795f4ebf4c6186ecebb59",
+            "path": "Assets/Prefabs/World/TownInteriors/FlowerShopInterior.prefab",
+            "wordKeys": [
+                "clock",
+                "plant",
+                "refrigerator",
+                "shelf",
+                "table",
+                "vase",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+            ]
+        },
+        {
+            "guid": "782d78006198bc649b14a77f0cc08f8c",
+            "path": "Assets/Prefabs/World/TownInteriors/HomeGoodsInterior.prefab",
+            "wordKeys": [
+                "book",
+                "cabinet",
+                "flowerpot",
+                "lamp",
+                "picture",
+                "pillow",
+                "plant",
+                "rug",
+                "shelf",
+                "sign",
+                "table",
+                "vase"
+            ]
+        },
+        {
+            "guid": "429d8557b5f078b4fa1d6be804841451",
+            "path": "Assets/Prefabs/World/TownInteriors/LaundromatInterior.prefab",
+            "wordKeys": [
+                "clock",
+                "flowerpot",
+                "note",
+                "plant",
+                "shelf",
+                "sign",
+                "trash_can"
+            ]
+        },
+        {
+            "guid": "58dafeceda903e747a9cda5396ca5e22",
+            "path": "Assets/Prefabs/World/TownInteriors/MapleDinerInterior.prefab",
+            "wordKeys": [
+                "bell",
+                "clock",
+                "flowerpot",
+                "kitchen_counter",
+                "lamp",
+                "menu",
+                "picture",
+                "plant",
+                "plate",
+                "refrigerator",
+                "sign",
+                "stove"
+            ]
+        },
+        {
+            "guid": "87c8d4a2b3e14e34885338f0cadb4c83",
+            "path": "Assets/Prefabs/World/TownInteriors/PostOfficeInterior.prefab",
+            "wordKeys": [
+                "bell",
+                "cabinet",
+                "clock",
+                "note",
+                "picture",
+                "railing",
+                "rug",
+                "shelf",
+                "table",
+                "trash_can",
+                "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_583992ed64934fe4ba5f273e34106ceb"
+            ]
+        },
+        {
+            "guid": "d0d49e4a7745fe34c972db3b00f0492a",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ArcadeBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "798a40b9032e7fe4783b7ff5db8429c8",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ArcadeCabinet2F5DA8.prefab",
+            "wordKeys": [
+                "word_0a8bd7882c5b7b04e84b90f02a9345c1"
+            ]
+        },
+        {
+            "guid": "37a1e7a5f0c96dc4bb3739046df089a7",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ArcadeCabinet7FAD50.prefab",
+            "wordKeys": [
+                "word_0a8bd7882c5b7b04e84b90f02a9345c1"
+            ]
+        },
+        {
+            "guid": "a373e096fc3ef93499f71296abe0edef",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ArcadeCabinetC8463B.prefab",
+            "wordKeys": [
+                "word_0a8bd7882c5b7b04e84b90f02a9345c1"
+            ]
+        },
+        {
+            "guid": "2b0ca458cc2664f46acc69b8942da6f2",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Armchair.prefab",
+            "wordKeys": [
+                "chair"
+            ]
+        },
+        {
+            "guid": "6f975200936cb5f47812048fa27519ba",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BaguetteBasket.prefab",
+            "wordKeys": [
+                "bread"
+            ]
+        },
+        {
+            "guid": "745487c82e6824e4a804ba8fa7ce904d",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BakersRack.prefab",
+            "wordKeys": [
+                "bread",
+                "croissant",
+                "shelf"
+            ]
+        },
+        {
+            "guid": "3ffe6bd771b235d4ca138eef972c1803",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BankRatesBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "916abae1d6b0a0e49bff3ee3e1e14824",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BarberPriceBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "9d25cfa734cd23c41b4843721155c51e",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BarberStation.prefab",
+            "wordKeys": [
+                "drawer"
+            ]
+        },
+        {
+            "guid": "c9d4cb84ef38b99488d83ade9f90574d",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BarbicideJar.prefab",
+            "wordKeys": [
+                "jar"
+            ]
+        },
+        {
+            "guid": "5b64d0eb422df8e4582c850e6780ba80",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BlueMailbox.prefab",
+            "wordKeys": [
+                "word_583992ed64934fe4ba5f273e34106ceb"
+            ]
+        },
+        {
+            "guid": "c5f15a47f94153d4d8c2d16e41a156e8",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BookSet.prefab",
+            "wordKeys": [
+                "book"
+            ]
+        },
+        {
+            "guid": "33b400fc4abdcab44814aceb6db2c48d",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BookshopBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "502d8a9f3ccf32d418215f10183e80b7",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BotanicalPrint.prefab",
+            "wordKeys": [
+                "picture"
+            ]
+        },
+        {
+            "guid": "7d926aa046d456f42972e2317c31b669",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Bouquet.prefab",
+            "wordKeys": [
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+            ]
+        },
+        {
+            "guid": "f5280c72635c4e74fae1b63d1b78f056",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BreadBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "6894f3c38b80e2c489a1fff67a0e51f7",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BreadRack.prefab",
+            "wordKeys": [
+                "bread",
+                "croissant",
+                "donut",
+                "muffin",
+                "shelf"
+            ]
+        },
+        {
+            "guid": "235f986971ccc6b44b52ff80e6692ac1",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BrochureRack.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "d65e37fac1eda48448e382f44b2bb76c",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/BunCrate.prefab",
+            "wordKeys": [
+                "crate"
+            ]
+        },
+        {
+            "guid": "93e754b7179ef754883a193cfb2caf66",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Burger.prefab",
+            "wordKeys": [
+                "plate"
+            ]
+        },
+        {
+            "guid": "dce063e0660b21f4fba860c816d5dc5c",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/CactusMedium.prefab",
+            "wordKeys": [
+                "plant"
+            ]
+        },
+        {
+            "guid": "54f43dd4a2ef48147af2d70ffbc7f372",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/CushionChair.prefab",
+            "wordKeys": [
+                "chair"
+            ]
+        },
+        {
+            "guid": "1edea07387408ca4887b11241eb7e452",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/DecoratedCabinet.prefab",
+            "wordKeys": [
+                "cabinet"
+            ]
+        },
+        {
+            "guid": "31d9e2f311ffb274fad5d78ebe394118",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/DecoratedSmallCabinet.prefab",
+            "wordKeys": [
+                "cabinet"
+            ]
+        },
+        {
+            "guid": "d8c453b9a40102d4db7a0050eae6a808",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/DinerPlate.prefab",
+            "wordKeys": [
+                "plate"
+            ]
+        },
+        {
+            "guid": "4f7194c2a2f139041901128d149ec397",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerCooler.prefab",
+            "wordKeys": [
+                "refrigerator"
+            ]
+        },
+        {
+            "guid": "e3a93c1658cca7749990448c8f644e9c",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerPailB07CC6.prefab",
+            "wordKeys": [
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+            ]
+        },
+        {
+            "guid": "88713e7cfd0892a418fad8afcd9ead35",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerPailE85D75.prefab",
+            "wordKeys": [
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+            ]
+        },
+        {
+            "guid": "705c2e58421aa0c40a28f7745581ae7d",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/FlowerPailF4C430.prefab",
+            "wordKeys": [
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+            ]
+        },
+        {
+            "guid": "b29b35f16204d174e84a86eb2e69c310",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/FormDesk.prefab",
+            "wordKeys": [
+                "table"
+            ]
+        },
+        {
+            "guid": "46b1e606410478347b6f648c33c22a55",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/HangingPlant.prefab",
+            "wordKeys": [
+                "plant"
+            ]
+        },
+        {
+            "guid": "1588c86db56251849ab98f99c342351d",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/HomeGoodsBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "4a2c2c68c99bb404a85c2958734c5890",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/HoodDryerChair.prefab",
+            "wordKeys": [
+                "chair"
+            ]
+        },
+        {
+            "guid": "a30ac5f17f65a8c4cbd7ebefb1dc3d36",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/JarAmber.prefab",
+            "wordKeys": [
+                "jar"
+            ]
+        },
+        {
+            "guid": "304bba3558324574eaf699c6475377c5",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/JarGreen.prefab",
+            "wordKeys": [
+                "jar"
+            ]
+        },
+        {
+            "guid": "00ae3ef2d2f2f1644bda691111816c59",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/JarRed.prefab",
+            "wordKeys": [
+                "jar"
+            ]
+        },
+        {
+            "guid": "b84327fc975ca634898d1ef0297636ea",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/JarTall.prefab",
+            "wordKeys": [
+                "jar"
+            ]
+        },
+        {
+            "guid": "2d10b78dbe35f314684b96fd82393f2f",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/KitchenCounter.prefab",
+            "wordKeys": [
+                "kitchen_counter"
+            ]
+        },
+        {
+            "guid": "9e7cd6b106fa2b34ab6a7d2ffc43c725",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/KitchenCounterDecorated.prefab",
+            "wordKeys": [
+                "kitchen_counter"
+            ]
+        },
+        {
+            "guid": "b191cd4a1da7ea949846b24d0594077f",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/KitchenFridge.prefab",
+            "wordKeys": [
+                "refrigerator"
+            ]
+        },
+        {
+            "guid": "02ba19e29f5006f408ed71eb0d038e39",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/LandscapePrint.prefab",
+            "wordKeys": [
+                "picture"
+            ]
+        },
+        {
+            "guid": "9c0e00334ee76f349b5aec3ede045f40",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/LaundryRulesBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "c2925c323dcccc14f97b3fdf0ab2e820",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/LowCabinet.prefab",
+            "wordKeys": [
+                "cabinet"
+            ]
+        },
+        {
+            "guid": "cdbad05470071a24386c4f1c68c3541a",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/MagazineRack.prefab",
+            "wordKeys": [
+                "book"
+            ]
+        },
+        {
+            "guid": "76a53d1461faf3c488f5c5a91c670aee",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/NoticeBoard.prefab",
+            "wordKeys": [
+                "note"
+            ]
+        },
+        {
+            "guid": "380c5520553eb3b45be0de12fc8ea017",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ParcelStack.prefab",
+            "wordKeys": [
+                "word_0744fa563d6a7994f9f3a91758a794f9"
+            ]
+        },
+        {
+            "guid": "b06e0dece4c27c146a065d87808bff5b",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PendantLamp45.prefab",
+            "wordKeys": [
+                "lamp"
+            ]
+        },
+        {
+            "guid": "b777ca599f0fbc641a9b4b2a88a273b3",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PendantLamp55.prefab",
+            "wordKeys": [
+                "lamp"
+            ]
+        },
+        {
+            "guid": "9f57e4d0ed869bb4e8759f31225a639c",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PendantLamp90.prefab",
+            "wordKeys": [
+                "lamp"
+            ]
+        },
+        {
+            "guid": "16cbd3eebdb163848b0dcc139f81ea90",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PictureSmallA.prefab",
+            "wordKeys": [
+                "picture"
+            ]
+        },
+        {
+            "guid": "4b4de5041d13a2e43a0e76dfafbb00e4",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PictureSmallB.prefab",
+            "wordKeys": [
+                "picture"
+            ]
+        },
+        {
+            "guid": "d65e97dd7900b9e479c1f7ae72b466be",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PieBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "f0af1caf39629414d96674335e0fe693",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PillowA.prefab",
+            "wordKeys": [
+                "pillow"
+            ]
+        },
+        {
+            "guid": "41d5b1f18fa8984469930abcc872b55f",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PillowB.prefab",
+            "wordKeys": [
+                "pillow"
+            ]
+        },
+        {
+            "guid": "d2886196c2b4a0448a50a67e27307272",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PlainShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "ab41fe26ca1ccfa46b33f6df19592b60",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PlantShelf.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "47264b4cb9f32a345aba53dc97a9e4db",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/PrizeBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "d23ec4b12c46c5d40843859f96df1bb8",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/QueueLine20.prefab",
+            "wordKeys": [
+                "railing"
+            ]
+        },
+        {
+            "guid": "701d414b14c84c640be42317a939207b",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/RugBlue.prefab",
+            "wordKeys": [
+                "rug"
+            ]
+        },
+        {
+            "guid": "c668d7c8f00ac51499588d3de162e018",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/RugOvalBlue.prefab",
+            "wordKeys": [
+                "rug"
+            ]
+        },
+        {
+            "guid": "d8350b4e6d53aba40ace6a96d0512ee1",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/RugOvalYellow.prefab",
+            "wordKeys": [
+                "rug"
+            ]
+        },
+        {
+            "guid": "bfe8be9846beefb4ebf253de2d31f44a",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/RugStripesBlue.prefab",
+            "wordKeys": [
+                "rug"
+            ]
+        },
+        {
+            "guid": "8aac21a0a11fea94f9ab2b357866650e",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/RugStripesYellow.prefab",
+            "wordKeys": [
+                "rug"
+            ]
+        },
+        {
+            "guid": "12f6ba8fb0bff094389e80f5f4634198",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/RugYellow.prefab",
+            "wordKeys": [
+                "rug"
+            ]
+        },
+        {
+            "guid": "42098352ee3b73e4c8cf97484c41e050",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ServiceBell.prefab",
+            "wordKeys": [
+                "bell"
+            ]
+        },
+        {
+            "guid": "7c628bd45482bff438c85a038396fb43",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ShampooSink.prefab",
+            "wordKeys": [
+                "sink"
+            ]
+        },
+        {
+            "guid": "49f67a3a033333f4f9babf1bff007546",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/SideTable.prefab",
+            "wordKeys": [
+                "table"
+            ]
+        },
+        {
+            "guid": "c4dc9ab00cc00d947ada1741f957aa68",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/SmallCabinet.prefab",
+            "wordKeys": [
+                "cabinet"
+            ]
+        },
+        {
+            "guid": "67f9598b2fdccb44eaf918bd4fdae572",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/SortingCubbies.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "7cac482fae482c749ad6461b2c2cc141",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/SquareTable.prefab",
+            "wordKeys": [
+                "table"
+            ]
+        },
+        {
+            "guid": "8efcf25c1ef0ed24bb26d347224fc7cc",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/StandingLamp.prefab",
+            "wordKeys": [
+                "lamp"
+            ]
+        },
+        {
+            "guid": "7414120dfc9ad28479efb3c0caca55ba",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/StandingPicture.prefab",
+            "wordKeys": [
+                "picture"
+            ]
+        },
+        {
+            "guid": "a7ae7f4cc2c903145999ca5bdd1cbe3b",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Stove.prefab",
+            "wordKeys": [
+                "stove"
+            ]
+        },
+        {
+            "guid": "7eb3aaea826162943af215c62124286e",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/SunsetPrint.prefab",
+            "wordKeys": [
+                "picture"
+            ]
+        },
+        {
+            "guid": "fa4d83a6e06a6e44a9d560627773a4f1",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/TableLamp.prefab",
+            "wordKeys": [
+                "lamp"
+            ]
+        },
+        {
+            "guid": "297d9b61050cd2b41a4b29fdefceec3a",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/TableMenu.prefab",
+            "wordKeys": [
+                "menu"
+            ]
+        },
+        {
+            "guid": "4caa8218d4ef58045a4343357dbe0268",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/TeaMenuBoard.prefab",
+            "wordKeys": [
+                "sign"
+            ]
+        },
+        {
+            "guid": "a2c34afe6bea9e54fa74be028ba777ea",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Teapot2F7C86.prefab",
+            "wordKeys": [
+                "kettle"
+            ]
+        },
+        {
+            "guid": "94d0807610c3b6b428a544880c8782d6",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Teapot7FA88A.prefab",
+            "wordKeys": [
+                "kettle"
+            ]
+        },
+        {
+            "guid": "d417066ac1357f944aea98ff63886b42",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/TeapotF7F3EA.prefab",
+            "wordKeys": [
+                "kettle"
+            ]
+        },
+        {
+            "guid": "fdf5063c7ec7eb644be9cb8e19dfd86f",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/ToolTrolley.prefab",
+            "wordKeys": [
+                "drawer"
+            ]
+        },
+        {
+            "guid": "4b124c8ec0d233248b09f2539ae1948c",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/TrashBin.prefab",
+            "wordKeys": [
+                "trash_can"
+            ]
+        },
+        {
+            "guid": "779e1204e4492864d9639e717f19fea4",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/Vase2F7C86.prefab",
+            "wordKeys": [
+                "vase"
+            ]
+        },
+        {
+            "guid": "750b2113f92581a48ad85f3dd3cdd888",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/VaseE58B63.prefab",
+            "wordKeys": [
+                "vase"
+            ]
+        },
+        {
+            "guid": "4a37d0f9c96360e4cb8c82330b7870ec",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/VaseE85D75.prefab",
+            "wordKeys": [
+                "vase"
+            ]
+        },
+        {
+            "guid": "f228f0bfef759404d84d1b416eade267",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/VaultDoor.prefab",
+            "wordKeys": [
+                "door"
+            ]
+        },
+        {
+            "guid": "0172537da9bb5474f9268f318aa0989d",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WallClock.prefab",
+            "wordKeys": [
+                "clock"
+            ]
+        },
+        {
+            "guid": "c13904ef8c7523e4baabd56c7338956b",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WallShelfLongDecorated.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "8825dcddd4dca234c8a6553b32891d3b",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WallShelfShortDecorated.prefab",
+            "wordKeys": [
+                "shelf"
+            ]
+        },
+        {
+            "guid": "0601d8ddb55b9e14d946f24d917618f8",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WashChair.prefab",
+            "wordKeys": [
+                "chair"
+            ]
+        },
+        {
+            "guid": "ac6301f1a81db574480457853cefaadc",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WoodChair.prefab",
+            "wordKeys": [
+                "chair"
+            ]
+        },
+        {
+            "guid": "0ea463d1b4b2cd94a9994d285ea2dc63",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WoodCrate.prefab",
+            "wordKeys": [
+                "crate"
+            ]
+        },
+        {
+            "guid": "9f1138ee84114684dbfd699572b9b59a",
+            "path": "Assets/Prefabs/World/TownInteriors/Props/WoodStool.prefab",
+            "wordKeys": [
+                "word_369eb9ba5bdd95a4e82191d96b289f34"
+            ]
+        },
+        {
+            "guid": "eb3478615ed4c6847a740771a989b739",
+            "path": "Assets/Prefabs/World/TownInteriors/TeaRoomInterior.prefab",
+            "wordKeys": [
+                "cabinet",
+                "flowerpot",
+                "jar",
+                "kettle",
+                "lamp",
+                "mug",
+                "picture",
+                "plant",
+                "rug",
+                "shelf",
+                "sign"
+            ]
+        },
+        {
+            "guid": "36bbf3fb20fd7bd46a03d1bfe45f3373",
+            "path": "Assets/Prefabs/World/TownInteriors/TownBankInterior.prefab",
+            "wordKeys": [
+                "cabinet",
+                "chair",
+                "clock",
+                "door",
+                "flowerpot",
+                "lamp",
+                "picture",
+                "plant",
+                "rug",
+                "shelf",
+                "sign"
             ]
         },
         {
@@ -1733,6 +3011,217 @@
                 "sign",
                 "wall",
                 "window"
+            ]
+        },
+        {
+            "guid": "20ef9a4702ec10c4b8c8bd41e7ba8e20",
+            "path": "Assets/Prefabs/World/TownStorefronts/BloomFlowers.prefab",
+            "wordKeys": [
+                "cash_register",
+                "ceiling",
+                "clock",
+                "cornice",
+                "counter",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "plant",
+                "refrigerator",
+                "roof",
+                "shelf",
+                "shop",
+                "sign",
+                "table",
+                "vase",
+                "wall",
+                "window",
+                "word_6fcf1f9c3c1a4f54499c6072d2b9f385"
+            ]
+        },
+        {
+            "guid": "82607a1adf1feec4685340d49cd02a94",
+            "path": "Assets/Prefabs/World/TownStorefronts/MainStreetBarber.prefab",
+            "wordKeys": [
+                "book",
+                "cabinet",
+                "ceiling",
+                "chair",
+                "clock",
+                "cornice",
+                "cushion",
+                "door",
+                "drawer",
+                "floor",
+                "flowerpot",
+                "handle",
+                "jar",
+                "lamp",
+                "mirror",
+                "picture",
+                "plant",
+                "roof",
+                "rug",
+                "shelf",
+                "shop",
+                "sign",
+                "sink",
+                "sofa",
+                "table",
+                "trash_can",
+                "wall",
+                "window",
+                "word_f7e7d4080aa0f3240910c84584d2d799"
+            ]
+        },
+        {
+            "guid": "90897f437ef339545b7af1c24854b3f8",
+            "path": "Assets/Prefabs/World/TownStorefronts/MapleDiner.prefab",
+            "wordKeys": [
+                "bell",
+                "cake",
+                "ceiling",
+                "clock",
+                "coffee_machine",
+                "cornice",
+                "counter",
+                "display_case",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "kitchen_counter",
+                "lamp",
+                "menu",
+                "mug",
+                "picture",
+                "plant",
+                "plate",
+                "refrigerator",
+                "roof",
+                "shop",
+                "sign",
+                "sofa",
+                "stove",
+                "table",
+                "wall",
+                "window",
+                "word_369eb9ba5bdd95a4e82191d96b289f34"
+            ]
+        },
+        {
+            "guid": "6950f1ecac92ebf49bfa20dc0446ffb6",
+            "path": "Assets/Prefabs/World/TownStorefronts/PoliceStation.prefab",
+            "wordKeys": [
+                "cabinet",
+                "ceiling",
+                "chair",
+                "cornice",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "note",
+                "plant",
+                "reception_desk",
+                "roof",
+                "sign",
+                "wall",
+                "window",
+                "word_513415d5ad951964c9ede7ba32b0596f",
+                "word_57394345ad5fd5c46a1e107b2d2a7656"
+            ]
+        },
+        {
+            "guid": "6a2d59dcabf9e964bb305a8c9d49eaa9",
+            "path": "Assets/Prefabs/World/TownStorefronts/PostOffice.prefab",
+            "wordKeys": [
+                "bell",
+                "cabinet",
+                "cash_register",
+                "ceiling",
+                "clock",
+                "cornice",
+                "counter",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "note",
+                "picture",
+                "plant",
+                "railing",
+                "roof",
+                "rug",
+                "shelf",
+                "shop",
+                "sign",
+                "table",
+                "trash_can",
+                "wall",
+                "window",
+                "word_0744fa563d6a7994f9f3a91758a794f9",
+                "word_369eb9ba5bdd95a4e82191d96b289f34",
+                "word_3fc84a99d1f166d49a24ed5d59f38a89",
+                "word_583992ed64934fe4ba5f273e34106ceb"
+            ]
+        },
+        {
+            "guid": "464d33975fdcd1541a8cf232555f9598",
+            "path": "Assets/Prefabs/World/TownStorefronts/SudsLaundromat.prefab",
+            "wordKeys": [
+                "ceiling",
+                "chair",
+                "clock",
+                "cornice",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "note",
+                "plant",
+                "roof",
+                "shelf",
+                "shop",
+                "sign",
+                "table",
+                "trash_can",
+                "wall",
+                "window",
+                "word_0161d483cee300c40b1861ae4d0e85a0",
+                "word_fae84acd881cae244bb14dd79ae14bf5"
+            ]
+        },
+        {
+            "guid": "88d29ff95e6cdd94c8d91d59f47b7f08",
+            "path": "Assets/Prefabs/World/TownStorefronts/TownBank.prefab",
+            "wordKeys": [
+                "cabinet",
+                "ceiling",
+                "chair",
+                "clock",
+                "cornice",
+                "counter",
+                "door",
+                "floor",
+                "flowerpot",
+                "handle",
+                "lamp",
+                "picture",
+                "plant",
+                "railing",
+                "roof",
+                "rug",
+                "shelf",
+                "shop",
+                "sign",
+                "wall",
+                "window",
+                "word_f1493503fe49b48488b6a1674ff150cd"
             ]
         }
     ]

@@ -35,7 +35,23 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
     configs, problems = npc_configs.bundle(npc_configs.ROOT / "ai/npcs")
 
     assert problems == []
-    assert [config["npcId"] for config in configs] == ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"]
+    assert [config["npcId"] for config in configs] == [
+        "ARCADE_STAFF",
+        "BAKERY_STAFF",
+        "BANK_STAFF",
+        "BARBER_STAFF",
+        "CAFE_STAFF",
+        "DINER_STAFF",
+        "FLOWER_SHOP_STAFF",
+        "HOME_STORE_STAFF",
+        "HOTEL_STAFF",
+        "LAUNDROMAT_STAFF",
+        "POLICE_OFFICER",
+        "POST_OFFICE_STAFF",
+        "SHOP_STAFF",
+        "TAXI_DRIVER",
+        "TOWN_PASSERBY",
+    ]
 
 
 def test_an_active_npc_needs_a_voice():
@@ -255,9 +271,44 @@ def test_the_service_npcs_each_have_a_service_scenario():
     _, scenarios = service_npcs()
 
     assert {npc_id: s["scenarioId"] for npc_id, s in scenarios.items()} == {
+        "ARCADE_STAFF": "arcade",
+        "BAKERY_STAFF": "bakery_counter",
+        "BANK_STAFF": "bank_counter",
+        "BARBER_STAFF": "barber_shop",
         "CAFE_STAFF": "cafe_counter",
+        "DINER_STAFF": "diner_counter",
+        "FLOWER_SHOP_STAFF": "flower_shop_counter",
+        "HOME_STORE_STAFF": "home_store",
         "HOTEL_STAFF": "hotel_front_desk",
+        "LAUNDROMAT_STAFF": "laundromat",
+        "POLICE_OFFICER": "police_front_desk",
+        "POST_OFFICE_STAFF": "post_office_counter",
+        "SHOP_STAFF": "drugstore_counter",
+        "TAXI_DRIVER": "taxi_ride",
         "TOWN_PASSERBY": "town_street",
+    }
+
+
+def test_the_service_npcs_each_have_their_own_voice():
+    """한 목소리를 모두 쓰면 남자 인물도 여자 목소리로 말한다. 인물 성별·성격에 맞춘 Kokoro 목소리를 NPC마다 따로 둔다."""
+    configs, _ = service_npcs()
+
+    assert {config["npcId"]: config["voiceId"] for config in configs} == {
+        "ARCADE_STAFF": "bm_fable",  # Max: 활발한 게임광 남자. am_puck은 Joe가 써서 영국식 남자 목소리
+        "BAKERY_STAFF": "bf_emma",  # Grace: 따뜻하고 부지런한 여자(영국식)
+        "BANK_STAFF": "bm_george",  # Henry: 정중하고 침착한 남자(영국식)
+        "BARBER_STAFF": "am_liam",  # Tony: 수다스럽고 장난기 많은 남자
+        "CAFE_STAFF": "af_heart",  # Mia: 밝은 여자
+        "DINER_STAFF": "af_bella",  # Rosa: 다정하고 수다스러운 여자
+        "FLOWER_SHOP_STAFF": "af_nicole",  # Lily: 다정하고 수줍은 여자
+        "HOME_STORE_STAFF": "af_sky",  # Nina: 차분하고 센스 있는 여자
+        "HOTEL_STAFF": "am_echo",  # Jake: 또렷하고 밝은 남자
+        "LAUNDROMAT_STAFF": "am_adam",  # Gus: 느긋하고 농담을 좋아하는 남자
+        "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
+        "POST_OFFICE_STAFF": "af_sarah",  # Linda: 꼼꼼하고 원칙을 지키는 여자
+        "SHOP_STAFF": "am_michael",  # Alex: 차분한 남자
+        "TAXI_DRIVER": "am_puck",  # Joe: 밝고 수다스러운 남자
+        "TOWN_PASSERBY": "am_fenrir",  # Ben: 분명하고 단호한 남자
     }
 
 

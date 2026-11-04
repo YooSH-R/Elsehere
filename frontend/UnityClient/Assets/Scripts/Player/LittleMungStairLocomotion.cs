@@ -7,6 +7,18 @@ namespace A305.Player
     [RequireComponent(typeof(Animator))]
     public sealed class LittleMungStairLocomotion : MonoBehaviour
     {
+        // 발은 루트 앞 이 거리 안에만 디딘다.
+        private const float MaxLandingReachMeters = .21f;
+        private const float LandingLeadMeters = .015f;
+        private const float MinStepSeconds = .08f;
+
+        // 이보다 빠르면 다음 디딤면을 계획할 수 없어 계단 보정을 쓰지 않는다.
+        private const float MaxPlannableSpeed =
+            (MaxLandingReachMeters - LandingLeadMeters) / MinStepSeconds;
+
+        // 계단을 내려갈 때 다음 단에 닿기 전까지 잠깐 뜨는 높이. 이보다 높이 뜨면 점프·낙하로 본다.
+        private const float AirborneHeightMeters = .22f;
+
         [SerializeField]
         private StairLocomotionSettings settings;
 
@@ -143,7 +155,12 @@ namespace A305.Player
             previousRoot = playerRoot.position;
             speed = Vector3.ProjectOnPlane(displacement, Vector3.up).magnitude / dt;
             bool jumping = animator.GetFloat("VerticalSpeed") > .1f;
-            if (jumping)
+            bool hasGround = Ground(playerRoot.position, out var here);
+            // 점프 정점이나 가구에서 떨어지는 중에도 계단 보정을 놓는다. 공중의 발 위치를 디딤점으로 잡으면
+            // 착지한 뒤에도 외형이 그 높이에 남아 떠 보인다.
+            bool airborne =
+                !hasGround || playerRoot.position.y - here.point.y > AirborneHeightMeters;
+            if (jumping || airborne)
             {
                 blendWeight = 0;
                 initialized = false;
@@ -151,9 +168,9 @@ namespace A305.Player
                 swingSide = -1;
                 return;
             }
-            bool hasGround = Ground(playerRoot.position, out var here);
             bool stepAhead =
-                hasGround
+                speed <= MaxPlannableSpeed
+                && hasGround
                 && Ground(
                     playerRoot.position + playerRoot.forward * settings.LookAheadMeters,
                     out var ahead
@@ -185,8 +202,7 @@ namespace A305.Player
                 return;
             }
             // 내려가는 단의 짧은 비접지를 점프/낙하 애니메이션으로 전환하지 않는다.
-            if (hasGround && playerRoot.position.y - here.point.y < .22f)
-                animator.SetBool("IsGrounded", true);
+            animator.SetBool("IsGrounded", true);
         }
 
         private void LateUpdate()
@@ -194,7 +210,12 @@ namespace A305.Player
             if (!Active)
                 return;
             if (!initialized)
+            {
+                // 디딤점은 지금 발 위치에서 시작한다. 착지하기 전이면 공중의 발을 잡지 않도록 기다린다.
+                if (!controller.isGrounded)
+                    return;
                 InitializeContacts();
+            }
             AdvanceFootstep();
             TransferPelvis();
             for (int side = 0; side < 2; side++)
@@ -380,16 +401,26 @@ namespace A305.Player
         {
             stepDuration = Mathf.Clamp(
                 settings.StepTravelMeters / Mathf.Max(speed, .2f),
-                .08f,
+                MinStepSeconds,
                 .4f
             );
             var foot = feet[side];
             Vector3 preferred =
                 playerRoot.position
-                + playerRoot.forward * (speed * stepDuration + .015f)
+                + playerRoot.forward * (speed * stepDuration + LandingLeadMeters)
                 + playerRoot.right * foot.lane;
             if (!FindLanding(foot, preferred, out var landing))
+            {
+                // 천천히 걸을 때는 다음 프레임에 다시 찾는다. 갑자기 해제하면 몸이 튄다.
+                if (speed <= MaxPlannableSpeed)
+                    return;
+                // 너무 빨라 디딜 곳을 찾을 수 없으면 몸이 옛 발자리에 붙잡히지 않게 바로 놓아준다.
+                stairModeRequested = false;
+                blendWeight = 0;
+                initialized = false;
+                swingSide = -1;
                 return;
+            }
             foot.start = foot.anchor;
             foot.landing = landing;
             stepProgress = 0;
@@ -426,7 +457,10 @@ namespace A305.Player
         private bool Footprint(Foot foot, Vector3 center, out Vector3 landing)
         {
             landing = default;
-            if (Vector3.Dot(center - playerRoot.position, playerRoot.forward) > .21f)
+            if (
+                Vector3.Dot(center - playerRoot.position, playerRoot.forward)
+                > MaxLandingReachMeters
+            )
                 return false;
             if (
                 !Ground(center, out var middle)

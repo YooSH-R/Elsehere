@@ -25,6 +25,10 @@ namespace A305.Npc
         private TMP_Text greetingLabel;
 
         [SerializeField]
+        [Tooltip("게스트의 남은 대화 수. 횟수 제한이 없으면 숨긴다.")]
+        private TMP_Text remainingLabel;
+
+        [SerializeField]
         private Button acceptButton;
 
         [SerializeField]
@@ -41,6 +45,10 @@ namespace A305.Npc
         private TMP_Text talkLabel;
 
         [SerializeField]
+        [Tooltip("[말 걸기] 위에 붙이는 게스트의 남은 대화 수. 횟수 제한이 없으면 숨긴다.")]
+        private TMP_Text talkRemainingLabel;
+
+        [SerializeField]
         [Tooltip("키보드 단축키(E) 안내. 휴대폰·태블릿에서는 숨긴다.")]
         private GameObject talkKeyHint;
 
@@ -54,7 +62,24 @@ namespace A305.Npc
 
         public bool IsTalkPromptShowing => talkPromptOwner != null;
 
+        /// <summary>지금 보이는 버튼. 제안이면 [대화하기], 아니면 [말 걸기]. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform ShownButtonRect =>
+            (RectTransform)(panel.activeSelf ? acceptButton : talkButton).transform;
+
+        public bool IsTalkPromptShownBy(object requester) => talkPromptOwner == requester;
+
         public bool IsDeclineShown => declineButton.gameObject.activeSelf;
+
+        /// <summary>새 대화를 시작할 수 없어 [말 걸기]를 막고 이유를 보이는 중인지.</summary>
+        public bool IsTalkBlocked => IsTalkPromptShowing && !talkButton.interactable;
+
+        public string TalkLabelText => talkLabel.text;
+
+        /// <summary>제안 화면에 보이는 남은 대화 수. 숨겼으면 null이다.</summary>
+        public string RemainingText => ShownText(remainingLabel);
+
+        /// <summary>[말 걸기] 위에 보이는 남은 대화 수. 숨겼으면 null이다.</summary>
+        public string TalkRemainingText => ShownText(talkRemainingLabel);
 
         public bool IsShownBy(object candidate)
         {
@@ -63,11 +88,13 @@ namespace A305.Npc
 
         /// <param name="requester">제안하는 행인. 같은 행인만 닫을 수 있다.</param>
         /// <param name="hint">누가 말을 걸었는지 알리는 머리말(<see cref="PasserbyOfferText.Hint"/>)</param>
+        /// <param name="remaining">게스트의 남은 대화 수(<see cref="PasserbyOfferText.RemainingConversations"/>). 없으면 null.</param>
         public void Show(
             object requester,
             string hint,
             string greeting,
             bool canDecline,
+            string remaining,
             Action accept,
             Action decline
         )
@@ -79,6 +106,7 @@ namespace A305.Npc
             onDecline = decline;
             hintLabel.text = hint;
             greetingLabel.text = greeting;
+            SetOptionalText(remainingLabel, remaining);
             declineButton.gameObject.SetActive(canDecline);
             panel.SetActive(true);
         }
@@ -93,7 +121,7 @@ namespace A305.Npc
             owner = null;
             onAccept = null;
             onDecline = null;
-            panel.SetActive(false);
+            HideIfPresent(panel);
         }
 
         /// <summary>
@@ -102,12 +130,37 @@ namespace A305.Npc
         /// </summary>
         /// <param name="requester">말을 걸 NPC. 같은 NPC만 닫을 수 있다.</param>
         /// <param name="label">버튼 문구(<see cref="PasserbyOfferText.TalkLabel"/>)</param>
-        public void ShowTalkPrompt(object requester, string label, Action talk)
+        /// <param name="remaining">게스트의 남은 대화 수(<see cref="PasserbyOfferText.RemainingConversations"/>). 없으면 null.</param>
+        public void ShowTalkPrompt(object requester, string label, string remaining, Action talk)
         {
             talkPromptOwner = requester;
             onTalk = talk;
             talkLabel.text = label;
+            talkButton.interactable = true;
+            SetOptionalText(talkRemainingLabel, remaining);
             talkKeyHint.SetActive(!PlayerTouchControls.ShouldShowControls());
+            talkPromptPanel.SetActive(true);
+        }
+
+        /// <summary>남은 대화 수 없이 버튼만 보인다. 택시 세우기처럼 NPC 대화가 아닌 동작에도 같은 자리를 쓴다.</summary>
+        public void ShowTalkPrompt(object requester, string label, Action talk)
+        {
+            ShowTalkPrompt(requester, label, null, talk);
+        }
+
+        /// <summary>
+        /// 새 대화를 시작할 수 없을 때(게스트 대화 횟수를 다 씀) [말 걸기] 자리에 누를 수 없는 버튼으로 이유를 보인다.
+        /// 버튼과 E 키 모두 대화를 시작하지 않는다.
+        /// </summary>
+        /// <param name="reason">버튼 자리에 보일 이유(<see cref="PasserbyOfferText.Blocked"/>)</param>
+        public void ShowBlockedTalkPrompt(object requester, string reason)
+        {
+            talkPromptOwner = requester;
+            onTalk = null;
+            talkLabel.text = reason;
+            talkButton.interactable = false;
+            SetOptionalText(talkRemainingLabel, null);
+            talkKeyHint.SetActive(false);
             talkPromptPanel.SetActive(true);
         }
 
@@ -123,7 +176,26 @@ namespace A305.Npc
         {
             talkPromptOwner = null;
             onTalk = null;
-            talkPromptPanel.SetActive(false);
+            HideIfPresent(talkPromptPanel);
+        }
+
+        // 장소를 옮기면 행인·택시가 꺼지며 안내를 닫기 전에 안내 창이 먼저 지워질 수 있다. 지워진 창은 끌 필요가 없다.
+        private static void HideIfPresent(GameObject window)
+        {
+            if (window != null)
+                window.SetActive(false);
+        }
+
+        // 가입 사용자처럼 보일 문구가 없으면 줄째 숨겨 빈 자리가 남지 않게 한다.
+        private static void SetOptionalText(TMP_Text label, string text)
+        {
+            label.text = text ?? string.Empty;
+            label.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
+        private static string ShownText(TMP_Text label)
+        {
+            return label.gameObject.activeSelf ? label.text : null;
         }
 
         private void Awake()

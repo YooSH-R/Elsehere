@@ -4,8 +4,11 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
+        "Unity.InputSystem",
         "A305.World",
-        "A305.Player"
+        "A305.Player",
+        "A305.Weather",
+        "A305.Tutorial"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

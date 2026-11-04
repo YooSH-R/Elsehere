@@ -1,0 +1,636 @@
+{
+  "generatedBy": "ai/tools/npc_life_export.py — 직접 고치지 않고 AI 규칙 원본을 고친 뒤 다시 내보냅니다",
+  "minScore": 1.0,
+  "needs": {
+    "HUNGER": {
+      "dropPerHour": 6,
+      "start": 70
+    },
+    "ENERGY": {
+      "dropPerHour": 5,
+      "start": 70
+    },
+    "SOCIAL": {
+      "dropPerHour": 4,
+      "start": 70
+    },
+    "FUN": {
+      "dropPerHour": 5,
+      "start": 70
+    },
+    "WORK": {
+      "dropPerHour": 8,
+      "start": 70
+    }
+  },
+  "actions": [
+    {
+      "objectKey": "coffee_machine",
+      "scene": "CAFE",
+      "action": "MAKE_DRINK",
+      "fills": {
+        "WORK": 30
+      },
+      "minutes": 3,
+      "onlyRole": "STAFF"
+    },
+    {
+      "objectKey": "coffee_machine",
+      "scene": "CAFE",
+      "action": "DRINK_COFFEE",
+      "fills": {
+        "ENERGY": 25
+      },
+      "minutes": 5
+    },
+    {
+      "objectKey": "muffin",
+      "scene": "CAFE",
+      "action": "EAT",
+      "fills": {
+        "HUNGER": 40
+      },
+      "minutes": 10
+    },
+    {
+      "objectKey": "chair",
+      "scene": "CAFE",
+      "action": "REST",
+      "fills": {
+        "ENERGY": 15
+      },
+      "minutes": 15
+    },
+    {
+      "objectKey": "reception_desk",
+      "scene": "HOTEL",
+      "action": "SERVE_GUEST",
+      "fills": {
+        "WORK": 30
+      },
+      "minutes": 5,
+      "onlyRole": "STAFF"
+    },
+    {
+      "objectKey": "sofa",
+      "scene": "HOTEL",
+      "action": "REST",
+      "fills": {
+        "ENERGY": 20
+      },
+      "minutes": 15
+    },
+    {
+      "objectKey": "book",
+      "scene": "HOTEL",
+      "action": "READ",
+      "fills": {
+        "FUN": 25
+      },
+      "minutes": 20
+    },
+    {
+      "objectKey": "bench",
+      "scene": "TOWN",
+      "action": "REST",
+      "fills": {
+        "ENERGY": 20
+      },
+      "minutes": 15
+    },
+    {
+      "objectKey": "fountain",
+      "scene": "TOWN",
+      "action": "LOOK_AROUND",
+      "fills": {
+        "FUN": 15
+      },
+      "minutes": 10
+    }
+  ],
+  "activities": {
+    "WORK": {
+      "canFill": [
+        "WORK"
+      ]
+    },
+    "BREAK": {
+      "canFill": [
+        "HUNGER",
+        "ENERGY",
+        "SOCIAL",
+        "FUN"
+      ]
+    },
+    "FREE": {
+      "canFill": [
+        "HUNGER",
+        "ENERGY",
+        "SOCIAL",
+        "FUN"
+      ]
+    }
+  },
+  "npcs": [
+    {
+      "npcId": "ARCADE_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "BAKERY_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "BANK_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "BARBER_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "CAFE_STAFF",
+      "role": "STAFF",
+      "scene": "CAFE",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "DINER_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "FLOWER_SHOP_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOME_STORE_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_STAFF",
+      "role": "STAFF",
+      "scene": "HOTEL",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "LAUNDROMAT_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_OFFICER",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POST_OFFICE_STAFF",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "SHOP_STAFF",
+      "role": "STAFF",
+      "scene": "SHOP",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TAXI_DRIVER",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "12:00",
+          "to": "12:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "12:30",
+          "to": "17:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "17:00",
+          "to": "08:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_PASSERBY",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "09:00",
+          "to": "18:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "18:00",
+          "to": "09:00",
+          "activity": "OFF"
+        }
+      ]
+    }
+  ]
+}

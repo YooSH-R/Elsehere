@@ -1,0 +1,16 @@
+{
+    "name": "A305.Weather",
+    "rootNamespace": "A305.Weather",
+    "references": [
+        "A305.Theme"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

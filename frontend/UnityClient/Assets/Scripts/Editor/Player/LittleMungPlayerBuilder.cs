@@ -19,6 +19,40 @@ namespace A305.EditorTools.Player
         public const string PrefabPath = "Assets/Prefabs/Player/LittleMung/LittleMungPlayer.prefab";
         public const string ArtFolder = LittleMungAnimationBuilder.Folder;
         private const string DataFolder = "Assets/Data/Player/LittleMung";
+        private const string MovementSettingsPath = DataFolder + "/Movement.asset";
+        private const float JumpHeightMeters = 0.675f;
+        private const float CameraRotateDegreesPerPixel = 0.15f;
+
+        /// <summary>이미 만든 이동 설정·애니메이터·카메라 감도를 현재 조작값으로 갱신한다. 프리팹과 씬은 그대로 둔다.</summary>
+        [MenuItem("Tools/A305/Player/Apply Movement Tuning")]
+        public static void ApplyMovementTuning()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+            LittleMungAnimationBuilder.ApplyLocomotionSpeeds();
+            ApplyMovementSettings(
+                BuilderTools.LoadOrCreateAsset<PlayerMovementSettings>(MovementSettingsPath)
+            );
+            // 집·마을·카페·호텔은 공간마다 카메라 설정을 따로 쓰므로, 공용 설정만 바꾸면 게임 씬에는 반영되지 않는다.
+            foreach (
+                string guid in AssetDatabase.FindAssets(
+                    "t:PlayerCameraSettings",
+                    new[] { "Assets" }
+                )
+            )
+            {
+                var camera = new SerializedObject(
+                    AssetDatabase.LoadAssetAtPath<PlayerCameraSettings>(
+                        AssetDatabase.GUIDToAssetPath(guid)
+                    )
+                );
+                camera.FindProperty("rotateDegreesPerPixel").floatValue =
+                    CameraRotateDegreesPerPixel;
+                camera.ApplyModifiedPropertiesWithoutUndo();
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("이동 속도·애니메이션 재생 속도·카메라 감도를 갱신했습니다.");
+        }
 
         [MenuItem("Tools/A305/Player/Build Little Mung Sandbox")]
         public static void Build()
@@ -124,16 +158,9 @@ namespace A305.EditorTools.Player
                 var mover = root.AddComponent<PlayerMover>();
                 BuilderTools.SetReference(driver, "animator", animator);
                 var settings = BuilderTools.LoadOrCreateAsset<PlayerMovementSettings>(
-                    DataFolder + "/Movement.asset"
+                    MovementSettingsPath
                 );
-                var serialized = new SerializedObject(settings);
-                serialized.FindProperty("walkSpeedMetersPerSecond").floatValue =
-                    LittleMungAnimationBuilder.WalkSpeed;
-                serialized.FindProperty("sprintSpeedMetersPerSecond").floatValue =
-                    LittleMungAnimationBuilder.RunSpeed;
-                serialized.FindProperty("jumpHeightMeters").floatValue = 0.45f;
-                serialized.FindProperty("gravityMetersPerSecondSquared").floatValue = 9f;
-                serialized.ApplyModifiedPropertiesWithoutUndo();
+                ApplyMovementSettings(settings);
                 BuilderTools.SetReference(mover, "movementSettings", settings);
                 BuilderTools.SetReference(mover, "animationDriver", driver);
                 BuilderTools.SetReference(
@@ -164,6 +191,18 @@ namespace A305.EditorTools.Player
         {
             if (!File.Exists(target) && !AssetDatabase.CopyAsset(source, target))
                 throw new IOException("플레이어 복사본을 만들 수 없습니다: " + source);
+        }
+
+        private static void ApplyMovementSettings(PlayerMovementSettings settings)
+        {
+            var serialized = new SerializedObject(settings);
+            serialized.FindProperty("walkSpeedMetersPerSecond").floatValue =
+                LittleMungAnimationBuilder.WalkSpeed;
+            serialized.FindProperty("sprintSpeedMetersPerSecond").floatValue =
+                LittleMungAnimationBuilder.RunSpeed;
+            serialized.FindProperty("jumpHeightMeters").floatValue = JumpHeightMeters;
+            serialized.FindProperty("gravityMetersPerSecondSquared").floatValue = 9f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         public static Bounds BoundsOf(GameObject model)

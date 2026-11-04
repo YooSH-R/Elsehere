@@ -23,9 +23,13 @@ public class GlobalExceptionHandler {
 
   private static final String REQUEST_REJECTED_MESSAGE = "처리할 수 없는 요청입니다.";
 
+  // 업무 오류는 예상한 흐름이라 개발 서버(DEBUG)에서만 남긴다. 메시지에는 사용자 입력이 섞일 수 있어 코드와 상태만 쓴다.
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {
-    return respond(exception.getErrorCode(), exception.getDetails());
+    ErrorCode errorCode = exception.getErrorCode();
+    log.debug("business_error code={} status={}", errorCode, errorCode.getStatus().value());
+    return ResponseEntity.status(errorCode.getStatus())
+        .body(ErrorResponse.of(errorCode, exception.getMessage(), exception.getDetails()));
   }
 
   @ExceptionHandler({
@@ -58,7 +62,7 @@ public class GlobalExceptionHandler {
     }
     // 예외 메시지에는 외부 응답이나 사용자 입력이 섞일 수 있어 타입과 코드 위치만 기록한다.
     log.error(
-        "처리하지 못한 예외 type={} stack={}",
+        "unhandled_exception type={} stack={}",
         exception.getClass().getName(),
         Arrays.toString(exception.getStackTrace()));
     return respond(ErrorCode.INTERNAL_ERROR, null);

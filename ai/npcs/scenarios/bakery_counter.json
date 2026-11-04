@@ -1,0 +1,11 @@
+{
+  "scenarioId": "bakery_counter",
+  "locationId": "TOWN",
+  "situation": "The customer is at the counter of Maple Bakery on the town's main street. Bread, croissants and chocolate cake are in the display case.",
+  "facts": [
+    "A loaf of bread is $4, a croissant is $3 and a slice of chocolate cake is $5.",
+    "Coffee is $2.",
+    "There are tables upstairs on the second floor for eating in.",
+    "Maple Bakery is next to the post office."
+  ]
+}

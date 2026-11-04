@@ -27,9 +27,21 @@ namespace A305.Voice
 
         public float CurrentLevel => A305Voice_GetLevel();
 
+        public bool IsCapturing => A305Voice_IsCapturing() != 0;
+
         public void RequestAccess()
         {
             A305Voice_RequestAccess();
+        }
+
+        public void KeepOpen()
+        {
+            A305Voice_KeepOpen();
+        }
+
+        public void Release()
+        {
+            A305Voice_Release();
         }
 
         public void StartRecording()
@@ -59,7 +71,16 @@ namespace A305.Voice
         private static extern string A305Voice_GetErrorName();
 
         [DllImport("__Internal")]
+        private static extern void A305Voice_KeepOpen();
+
+        [DllImport("__Internal")]
+        private static extern void A305Voice_Release();
+
+        [DllImport("__Internal")]
         private static extern void A305Voice_StartRecording();
+
+        [DllImport("__Internal")]
+        private static extern int A305Voice_IsCapturing();
 
         [DllImport("__Internal")]
         private static extern float A305Voice_GetLevel();

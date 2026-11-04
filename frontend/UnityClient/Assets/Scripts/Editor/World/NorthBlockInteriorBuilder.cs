@@ -211,7 +211,7 @@ namespace A305.EditorTools.World
                 Cream,
                 "ceiling"
             );
-            Stairs(interior);
+            Stairs(interior, name == "MapleBakery");
             for (int floor = 0; floor < 2; floor++)
             {
                 float y = floor * 4;
@@ -248,7 +248,10 @@ namespace A305.EditorTools.World
                 .13f
             );
             if (name == "MapleBakery")
-                Bakery(interior);
+            {
+                BakeryCounters(interior);
+                BakerySeating(interior);
+            }
             else if (name == "LittleArcade")
                 Arcade(interior);
             else
@@ -311,7 +314,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        private static void OpenFloor(Transform floor, bool ground)
+        internal static void OpenFloor(Transform floor, bool ground)
         {
             Transform filled = floor.Find("Walls");
             Material wall = filled.GetComponent<Renderer>().sharedMaterial;
@@ -405,7 +408,7 @@ namespace A305.EditorTools.World
                 );
         }
 
-        private static void Stairs(Transform parent)
+        private static void Stairs(Transform parent, bool isBakery)
         {
             Transform stairs = Group("Stairs", parent, Vector3.zero);
             NorthBlockAssets.Bind(stairs.gameObject, "stairs");
@@ -453,7 +456,10 @@ namespace A305.EditorTools.World
                 Green,
                 "railing"
             );
-            Text("StairDirection", "UPSTAIRS", parent, new Vector3(1.05f, 2.5f, -1.3f), .16f);
+            if (isBakery)
+                BakeryStairDetails(parent, stairs);
+            else
+                Text("StairDirection", "UPSTAIRS", parent, new Vector3(1.05f, 2.5f, -1.3f), .16f);
         }
 
         private static void Rail(Transform parent, Vector3 from, Vector3 to)
@@ -481,7 +487,7 @@ namespace A305.EditorTools.World
             }
         }
 
-        private static Transform Solid(
+        internal static Transform Solid(
             string name,
             Transform parent,
             Vector3 position,
@@ -514,30 +520,107 @@ namespace A305.EditorTools.World
                 .transform;
         }
 
-        private static void Bakery(Transform interior)
+        private static void BakeryStairDetails(Transform interior, Transform stairs)
         {
-            for (int index = 0; index < 3; index++)
-            {
-                float z = -3 - index * 1.25f;
+            // 2층 바닥의 열린 가장자리만 막아 돌아 올라오는 계단 입구는 비워 둔다.
+            Rail(stairs, new Vector3(.12f, 4.9f, -1.57f), new Vector3(2f, 4.9f, -1.57f));
+            Rail(stairs, new Vector3(3.73f, 2.95f, -5.6f), new Vector3(3.73f, 4.95f, -1.6f));
+            Transform plaque = Solid(
+                "StairSign",
+                interior,
+                new Vector3(3.77f, 1.75f, -1.45f),
+                new Vector3(.06f, .38f, 1.25f),
+                Green,
+                "sign",
+                false
+            );
+            Text(
+                "StairDirection",
+                "UPSTAIRS",
+                plaque,
+                new Vector3(-.032f, 0, 0),
+                .16f
+            ).transform.localRotation = Quaternion.Euler(0, 90, 0);
+        }
+
+        private static void BakeryCounters(Transform interior)
+        {
+            // 1.8m 상판 세 개를 이어 입구부터 계산대, 유리 진열장, 케이크 진열대를 놓는다.
+            foreach (float z in new[] { -2.6f, -4.4f, -6.2f })
                 Treat("BakeryInterior", "Counter", interior, new Vector3(-3, 0, z), 90);
-                Treat("BakeryInterior", "DisplayCase", interior, new Vector3(-3, .9f, z), 90);
-                Treat(
-                    "BakedGoods",
-                    new[] { "Bread", "Croissant", "ChocolateCake" }[index],
-                    interior,
-                    new Vector3(-3, 1.05f, z)
-                );
-            }
-            Treat("BakeryInterior", "CashRegister", interior, new Vector3(-3, .9f, -2.1f), 90);
-            Treat("BakeryInterior", "CoffeeMachine", interior, new Vector3(-3, .9f, -6.5f), 90);
+            Transform register = Treat(
+                "BakeryInterior",
+                "CashRegister",
+                interior,
+                new Vector3(-2.85f, .9f, -2.12f),
+                90
+            );
+            register.localScale = Vector3.one * 1.4f;
+            Treat("BakeryInterior", "ServingTray", interior, new Vector3(-3, .9f, -2.85f));
+            Treat("BakedGoods", "Bread", interior, new Vector3(-3, .945f, -2.85f), 90).localScale =
+                Vector3.one * .65f;
+            Treat(
+                "BakeryInterior",
+                "DisplayCase",
+                interior,
+                new Vector3(-3, .9f, -4.4f),
+                90
+            ).localScale = new Vector3(2.1f, 1, 1);
+            Treat("BakedGoods", "Croissant", interior, new Vector3(-3, 1.319f, -4.4f), -12);
+            Transform stand = Treat(
+                "BakeryInterior",
+                "PastryStand",
+                interior,
+                new Vector3(-3, .9f, -5.92f)
+            );
+            if (stand.TryGetComponent(out BoxCollider standBox))
+                PropColliderShape.FitToShape(standBox);
+            Treat("BakedGoods", "ChocolateCake", interior, new Vector3(-3, 1.25f, -5.92f));
+            Treat("BakeryInterior", "CoffeeMachine", interior, new Vector3(-3, .9f, -6.73f), 90);
+        }
+
+        private static void BakerySeating(Transform interior)
+        {
             for (int index = 0; index < 2; index++)
             {
                 float z = -3 - index * 2.5f;
                 NorthBlockAssets.Place("Table", interior, new Vector3(-2, 4, z));
-                NorthBlockAssets.Place("Chair", interior, new Vector3(-3, 4, z), 90);
-                Treat("BakeryInterior", "Mug", interior, new Vector3(-2, 4.75f, z));
-                NorthBlockAssets.Place("Book", interior, new Vector3(-2.3f, 4.75f, z));
+                // 이 모델은 등받이 없는 90cm 바 의자이므로 좌판을 식탁용 높이(45cm)에 맞춘다.
+                Transform chair = NorthBlockAssets.Place(
+                    "Chair",
+                    interior,
+                    new Vector3(-2, 4, z + .65f)
+                );
+                chair.localScale = new Vector3(.75f, .5f, .75f);
+                Treat("BakeryInterior", "Mug", interior, new Vector3(-2.23f, 4.75f, z));
+                Vector3 platePosition = new Vector3(-1.86f, 4.75f, z);
+                Treat("BakeryInterior", "Plate", interior, platePosition);
+                Vector3 pastryPosition = platePosition + Vector3.up * .016f;
+                if (index == 0)
+                    Treat("BakedGoods", "Croissant", interior, pastryPosition, -20);
+                else
+                    PlaceBagel(interior, pastryPosition);
             }
+        }
+
+        private static void PlaceBagel(Transform interior, Vector3 position)
+        {
+            ObjectWordAuthoring.FindOrCreateWord(
+                "bagel",
+                "bagel",
+                "베이글",
+                "I'd like a bagel, please.",
+                "베이글 하나 주세요."
+            );
+            Mesh mesh = AssetDatabase
+                .LoadAllAssetsAtPath("Assets/Art/World/NorthBlock/SesameBagel.obj")
+                .OfType<Mesh>()
+                .Single();
+            Material palette = AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/Art/World/TinyTreats/BakedGoodsPalette.mat"
+            );
+            Transform bagel = MeshObject("Bagel", interior, position, Vector3.one, mesh, palette);
+            NorthBlockAssets.Bind(bagel.gameObject, "bagel");
         }
 
         private static void Arcade(Transform interior)

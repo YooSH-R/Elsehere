@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
@@ -9,10 +10,11 @@ using UnityEngine;
 namespace A305.Learning
 {
     /// <summary>
-    /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·03·04)과 잇는다.
-    /// [지난 대화] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
-    /// 피드백·단어장·지난 대화 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
-    /// 대화·피드백의 [표현 저장]은 서버가 그 출처의 저장을 열기 전까지 숨긴다.
+    /// 대화가 끝나면 피드백을 보이고, 단어장 화면을 서버 단어장(VOCAB-01·02·03·04)과 잇는다. Editor에서 서버 단어장을 읽지 못하면
+    /// 확인용 단어장(<see cref="LocalVocabularyApi"/>)으로 바꿔 같은 Play 동안 사물 카드에서 저장한 단어를 보인다.
+    /// [피드백 목록] 창은 지난 대화 목록(CONV-09)에서 고른 대화의 저장된 피드백을 같은 피드백 화면으로 다시 열고, 닫으면 목록으로 돌아온다.
+    /// 피드백·단어장·피드백 목록 화면이 열려 있는 동안만 이동을 잠그며, 대화 중에는 대화가 정한 잠금을 건드리지 않는다.
+    /// 대화 중 누른 풀이 단어는 단어장에 저장(VOCAB-02 NPC_LINE)하고, 피드백의 [표현 저장]은 아직 숨긴다.
     /// </summary>
     public class LearningController : MonoBehaviour
     {
@@ -41,12 +43,13 @@ namespace A305.Learning
         private ApiSettings apiSettings;
 
         private VocabularyBook vocabulary;
+        private bool isLocalVocabulary;
 
         private ConversationHistory history;
 
         private DialogueRecord feedbackRecord;
 
-        // [지난 대화]에서 다시 연 대화. 대화 직후의 피드백(feedbackRecord)과 함께 열리지 않는다.
+        // [피드백 목록]에서 다시 연 대화. 대화 직후의 피드백(feedbackRecord)과 함께 열리지 않는다.
         private PastConversation pastConversation;
 
         // 지금 피드백 화면에 보이는 서버 피드백. [다시 만들기]로 새로 받으면 바뀐다.
@@ -57,6 +60,12 @@ namespace A305.Learning
 
         public bool IsShowingScreen =>
             feedbackView.IsVisible || vocabularyView.IsVisible || historyView.IsVisible;
+
+        /// <summary>단어장 화면이 열려 있는지. 튜토리얼이 단어장을 처음 열었을 때 설명을 붙인다.</summary>
+        public bool IsShowingVocabulary => vocabularyView.IsVisible;
+
+        /// <summary>단어장 창. 튜토리얼 코치 마크가 밝힌다.</summary>
+        public RectTransform VocabularyPanelRect => vocabularyView.PanelRect;
 
         private ConversationHistoryView historyView => hudView.HistoryView;
 
@@ -85,18 +94,22 @@ namespace A305.Learning
                 );
             }
 
-            // 서버가 대화·피드백 출처의 저장(NPC_LINE·FEEDBACK)을 아직 받지 않으므로 저장 버튼을 숨긴다.
-            dialogue.SetExpressionSaveAvailable(false);
-            feedbackView.SetSaveAvailable(false);
+            // 대화 중 풀이 단어는 단어장 서버가 있을 때만 저장한다(VOCAB-02 NPC_LINE).
+            dialogue.SetWordSaveAvailable(vocabulary != null);
+            // 피드백의 [담기]는 단어장 서버가 있을 때 표현을 VOCAB-02 FEEDBACK으로 저장한다.
+            feedbackView.SetSaveAvailable(vocabulary != null);
 
             dialogue.ConversationEnded += ShowFeedback;
+            dialogue.WordSaveRequested += SaveDialogueWord;
             feedbackView.CloseRequested += CloseFeedback;
+            feedbackView.SaveRequested += SaveFeedbackExpression;
             feedbackView.VocabularyRequested += OpenVocabulary;
             feedbackView.RegenerateRequested += RegenerateFeedback;
             vocabularyView.CloseRequested += CloseVocabulary;
             vocabularyView.LearnedToggleRequested += ToggleLearned;
             vocabularyView.DeleteRequested += Delete;
             vocabularyView.MemoSaveRequested += SaveMemo;
+            vocabularyView.RetryRequested += RetryVocabulary;
             hudView.VocabularyRequested += OpenVocabulary;
             hudView.HistoryRequested += OpenHistory;
             hudView.HomeRequested += ReturnHome;
@@ -116,7 +129,10 @@ namespace A305.Learning
         private void Update()
         {
             hudView.SetVocabularyAvailable(!dialogue.IsTalking);
+            hudView.SetTalking(dialogue.IsTalking);
+            hudView.ControlsGuide.SetBlocked(dialogue.IsTalking || IsShowingScreen);
             hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
+            CenterWindow.Shared.SetOpen(IsShowingScreen);
         }
 
         private bool IsHomeBlocked =>
@@ -139,6 +155,7 @@ namespace A305.Learning
 
         private void OnDestroy()
         {
+            CenterWindow.Shared.SetOpen(false);
             if (hudView != null)
             {
                 hudView.HomeRequested -= ReturnHome;
@@ -147,7 +164,83 @@ namespace A305.Learning
             if (dialogue != null)
             {
                 dialogue.ConversationEnded -= ShowFeedback;
+                dialogue.WordSaveRequested -= SaveDialogueWord;
             }
+        }
+
+        private void SaveDialogueWord(GlossaryWord word)
+        {
+            _ = SaveDialogueWordAsync(word);
+        }
+
+        // 저장 결과는 대화창 단어 카드에 보이고, 새로 넣은 단어는 [단어장] 개수에도 바로 더한다.
+        private async Task SaveDialogueWordAsync(GlossaryWord word)
+        {
+            VocabularySaveResult result = await vocabulary.SaveNpcLineWordAsync(
+                word.TurnId,
+                word.Text
+            );
+            if (this == null)
+            {
+                return;
+            }
+
+            switch (result)
+            {
+                case VocabularySaveResult.Saved:
+                    dialogue.ShowWordSaveResult(word, true, "단어장에 저장했어요.");
+                    hudView.SetVocabularyCount(vocabulary.Entries.Count);
+                    break;
+                case VocabularySaveResult.AlreadySaved:
+                    dialogue.ShowWordSaveResult(word, true, "이미 단어장에 있는 단어예요.");
+                    break;
+                default:
+                    dialogue.ShowWordSaveResult(word, false, vocabulary.LastFailureMessage);
+                    break;
+            }
+        }
+
+        // [담기]는 서버 대화 피드백에서만 보인다. 대본·예시 피드백은 저장할 대화가 없다.
+        private void ShowFeedbackView(
+            ConversationFeedback feedback,
+            IReadOnlyList<DialogueLine> lines
+        )
+        {
+            feedbackView.SetSaveAvailable(
+                vocabulary != null && shownServerFeedback?.ConversationId != null
+            );
+            feedbackView.Show(feedback, lines);
+        }
+
+        private void SaveFeedbackExpression(string expression, string meaningKo)
+        {
+            _ = SaveFeedbackExpressionAsync(expression);
+        }
+
+        // 저장하면 [담기]를 "담음"으로 바꾸고 [단어장] 개수를 맞춘다. 서버 대화가 아닌(대본·예시) 피드백은 저장할 곳이 없다.
+        private async Task SaveFeedbackExpressionAsync(string expression)
+        {
+            long? conversationId = shownServerFeedback?.ConversationId;
+            if (vocabulary == null || conversationId == null)
+            {
+                hudView.ShowMessage("이 피드백의 표현은 단어장에 저장할 수 없어요.");
+                return;
+            }
+
+            VocabularySaveResult result = await vocabulary.SaveFeedbackWordAsync(
+                conversationId.Value,
+                expression
+            );
+            if (this == null)
+                return;
+            if (result == VocabularySaveResult.Failed)
+            {
+                hudView.ShowMessage(vocabulary.LastFailureMessage);
+                return;
+            }
+
+            feedbackView.ShowSaved(expression);
+            hudView.SetVocabularyCount(vocabulary.Entries.Count);
         }
 
         // 내 발화가 없는 대화는 피드백을 만들지 않고, 이동 잠금도 건드리지 않는다.
@@ -161,7 +254,7 @@ namespace A305.Learning
             feedbackRecord = record;
             shownServerFeedback = record.ServerFeedback;
             // 서버 AI와 나눈 대화는 서버가 만든 피드백을, 대본 대화는 키워드 규칙으로 만든 예시를 보여 준다.
-            feedbackView.Show(
+            ShowFeedbackView(
                 record.ServerFeedback != null
                     ? ConversationFeedback.FromServer(
                         record.NpcName,
@@ -171,7 +264,8 @@ namespace A305.Learning
                     : new ConversationFeedback(
                         record.NpcName,
                         record.UserUtterances,
-                        exampleSource.GetRules()
+                        exampleSource.GetRules(),
+                        exampleSource.GetSituationExpressions(record.NpcName)
                     ),
                 record.Lines
             );
@@ -206,7 +300,7 @@ namespace A305.Learning
             }
 
             shownServerFeedback = regenerated;
-            feedbackView.Show(
+            ShowFeedbackView(
                 ConversationFeedback.FromServer(
                     record.NpcName,
                     record.UserUtterances.Count,
@@ -218,7 +312,7 @@ namespace A305.Learning
 
         private void CloseFeedback()
         {
-            // [지난 대화]에서 연 피드백은 대화 결과(미션·튜토리얼)를 다시 알리지 않고 목록으로 돌아간다.
+            // [피드백 목록]에서 연 피드백은 대화 결과(미션·튜토리얼)를 다시 알리지 않고 목록으로 돌아간다.
             if (pastConversation != null)
             {
                 pastConversation = null;
@@ -245,18 +339,18 @@ namespace A305.Learning
         {
             if (history == null)
             {
-                hudView.ShowMessage("지난 대화 서버가 연결되지 않았어요.");
+                hudView.ShowMessage("피드백 목록 서버가 연결되지 않았어요.");
                 return;
             }
 
             historyView.Show(history);
             UpdateMovementLock();
-            _ = LoadHistoryAsync(history.LoadAsync(), "지난 대화를 불러오는 중이에요…");
+            _ = LoadHistoryAsync(history.LoadAsync(), "피드백 목록을 불러오는 중이에요…");
         }
 
         private void LoadMoreHistory()
         {
-            _ = LoadHistoryAsync(history.LoadMoreAsync(), "지난 대화를 더 불러오는 중이에요…");
+            _ = LoadHistoryAsync(history.LoadMoreAsync(), "피드백 목록을 더 불러오는 중이에요…");
         }
 
         // 창을 열 때마다 처음부터 다시 읽어 방금 끝낸 대화도 보인다. 실패하면 이전 목록과 이유를 보인다.
@@ -285,7 +379,7 @@ namespace A305.Learning
             _ = OpenPastFeedbackAsync(conversation);
         }
 
-        // 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면으로 연다. 지난 대화 창은 그 아래에 그대로 둔다.
+        // 저장된 피드백과 대화 기록을 받아 대화 직후와 같은 피드백 화면으로 연다. 피드백 목록 창은 그 아래에 그대로 둔다.
         private async Task OpenPastFeedbackAsync(ConversationSummary conversation)
         {
             historyView.ShowStatus("피드백을 불러오는 중이에요…");
@@ -304,7 +398,7 @@ namespace A305.Learning
             historyView.ShowStatus("");
             pastConversation = past;
             shownServerFeedback = past.Feedback;
-            feedbackView.Show(
+            ShowFeedbackView(
                 ConversationFeedback.FromServer(past.NpcName, past.UtteranceCount, past.Feedback),
                 past.Lines
             );
@@ -322,7 +416,7 @@ namespace A305.Learning
             }
 
             shownServerFeedback = regenerated;
-            feedbackView.Show(
+            ShowFeedbackView(
                 ConversationFeedback.FromServer(past.NpcName, past.UtteranceCount, regenerated),
                 past.Lines
             );
@@ -336,27 +430,62 @@ namespace A305.Learning
                 return;
             }
 
+            // 읽기를 먼저 시작해 열자마자 '불러오는 중'이나 지난번 목록이 보이게 한다. 받기 전의 빈 목록을 '단어 없음'으로 보이지 않는다.
+            Task loading = LoadVocabularyAsync();
             vocabularyView.Show(vocabulary);
-            vocabularyView.ShowStatus("단어장을 불러오는 중이에요…");
+            // 지난번 목록을 보이는 동안에만 아래에 새로 읽는 중임을 알린다. 목록이 없으면 가운데 안내가 같은 말을 한다.
+            if (!loading.IsCompleted && vocabulary.ListState == VocabularyListState.Entries)
+            {
+                vocabularyView.ShowStatus("단어장을 불러오는 중이에요…");
+            }
+
             UpdateMovementLock();
-            _ = LoadVocabularyAsync();
         }
 
         // 다른 기기나 이전 접속에서 바뀐 내용도 보이도록 단어장을 열 때마다 서버에서 다시 읽는다.
         private async Task LoadVocabularyAsync()
         {
-            bool loaded = await vocabulary.LoadAsync();
-            if (this == null)
+            VocabularyBook book = vocabulary;
+            bool loaded = await book.LoadAsync();
+            // 먼저 끝난 다른 불러오기가 확인용 단어장으로 바꿨으면 그쪽이 화면을 그린다.
+            if (this == null || book != vocabulary)
             {
                 return;
+            }
+
+            // Editor에서는 서버 없이도 사물 카드에서 저장한 단어를 볼 수 있게 확인용 단어장으로 바꾼다. 빌드는 실패 안내를 그대로 보인다.
+            if (!loaded && Application.isEditor && !isLocalVocabulary)
+            {
+                Debug.LogWarning(
+                    "서버 단어장을 읽지 못해 Editor 확인용 단어장으로 이 Play 동안 저장한 단어를 보입니다.",
+                    this
+                );
+                vocabulary = new VocabularyBook(new LocalVocabularyApi());
+                isLocalVocabulary = true;
+                loaded = await vocabulary.LoadAsync();
+                if (vocabularyView.IsVisible)
+                {
+                    vocabularyView.Show(vocabulary);
+                }
             }
 
             hudView.SetVocabularyCount(vocabulary.Entries.Count);
             if (vocabularyView.IsVisible)
             {
                 vocabularyView.Refresh();
-                vocabularyView.ShowStatus(loaded ? "" : vocabulary.LastFailureMessage);
+                // 목록이 없을 때의 실패는 가운데 [다시 시도]와 함께 보이므로 아래 안내에는 쓰지 않는다.
+                bool showsFailureInCenter = vocabulary.ListState == VocabularyListState.Failed;
+                vocabularyView.ShowStatus(
+                    loaded || showsFailureInCenter ? "" : vocabulary.LastFailureMessage
+                );
             }
+        }
+
+        // 단어장을 불러오지 못한 화면의 [다시 시도]. 다시 읽는 동안 가운데에 '불러오는 중'을 보인다.
+        private void RetryVocabulary()
+        {
+            _ = LoadVocabularyAsync();
+            vocabularyView.Refresh();
         }
 
         private void CloseVocabulary()

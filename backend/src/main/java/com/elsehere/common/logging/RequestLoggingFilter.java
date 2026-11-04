@@ -30,6 +30,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     }
     response.setHeader("X-Request-ID", requestId);
     String previousRequestId = MDC.get("requestId");
+    String previousUserId = MDC.get(UserLoggingFilter.USER_ID);
     MDC.put("requestId", requestId);
     long startedAt = System.nanoTime();
     boolean failed = false;
@@ -46,11 +47,17 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
           route == null ? "/unmatched" : route,
           failed ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : response.getStatus(),
           TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
-      if (previousRequestId == null) {
-        MDC.remove("requestId");
-      } else {
-        MDC.put("requestId", previousRequestId);
-      }
+      restore("requestId", previousRequestId);
+      // 보안 필터 안쪽(UserLoggingFilter)에서 넣은 사용자 ID도 요청 요약을 남긴 뒤 정리한다.
+      restore(UserLoggingFilter.USER_ID, previousUserId);
+    }
+  }
+
+  private static void restore(String key, String previousValue) {
+    if (previousValue == null) {
+      MDC.remove(key);
+    } else {
+      MDC.put(key, previousValue);
     }
   }
 }

@@ -5,18 +5,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.elsehere.TestcontainersConfiguration;
 import com.elsehere.ai.dto.AiStatus;
 import com.elsehere.ai.service.AiStatusService;
+import com.elsehere.ai.service.GuestConversationLimit;
+import com.elsehere.auth.service.ConsentCatalog;
 import com.elsehere.bootstrap.dto.AuthState;
 import com.elsehere.bootstrap.dto.BootstrapResponse;
-import com.elsehere.common.config.ClockConfig;
 import com.elsehere.common.config.JpaAuditingConfig;
+import com.elsehere.common.config.TestClockConfig;
 import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.InitiatedBy;
-import com.elsehere.conversation.service.GuestConversationLimit;
+import com.elsehere.conversation.service.TrainingRecordingService;
+import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.user.UserTestData;
 import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.UiTheme;
+import com.elsehere.user.service.OptionalConsentService;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
@@ -35,11 +39,15 @@ import org.springframework.context.annotation.Import;
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Import({
   TestcontainersConfiguration.class,
-  ClockConfig.class,
+  TestClockConfig.class,
   JpaAuditingConfig.class,
   BootstrapService.class,
   AiStatusService.class,
-  GuestConversationLimit.class
+  GuestConversationLimit.class,
+  OptionalConsentService.class,
+  ConsentCatalog.class,
+  TrainingRecordingService.class,
+  TrainingRecordingStore.class
 })
 class BootstrapServiceTest {
 
@@ -60,6 +68,25 @@ class BootstrapServiceTest {
     assertThat(response.user().avatarType()).isEqualTo(AvatarType.F);
     assertThat(response.user().currentLanguage()).isEqualTo("en-US");
     assertThat(response.user().onboardingStep()).isEqualTo(OnboardingStep.DONE);
+  }
+
+  @Test
+  @DisplayName("지금 버전의 음성 처리에 동의한 사용자면 음성 입력을 쓸 수 있다고 알린다")
+  void userWithVoiceConsent_returnsVoiceConsent() {
+    Long agreedUserId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
+    Long otherUserId =
+        UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid-1", "guest-000001");
+    entityManager
+        .createNativeQuery(
+            "insert into user_consents (user_id, consent_type, version, agreed_at)"
+                + " values (?, 'VOICE', '2026-10', now())")
+        .setParameter(1, agreedUserId)
+        .executeUpdate();
+
+    assertThat(bootstrapService.findSignedIn(agreedUserId).orElseThrow().user().voiceConsent())
+        .isTrue();
+    assertThat(bootstrapService.findSignedIn(otherUserId).orElseThrow().user().voiceConsent())
+        .isFalse();
   }
 
   @Test

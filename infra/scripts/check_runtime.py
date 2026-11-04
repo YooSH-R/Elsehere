@@ -9,6 +9,8 @@ import subprocess
 import uuid
 from pathlib import Path
 
+from docker_build import build_image
+
 
 def create_http_fixture(directory):
     (directory / "Build").mkdir(parents=True, exist_ok=True)
@@ -42,7 +44,8 @@ def check_backend_runtime(docker, compose, environment):
         "-ec",
         'curl --fail --silent --show-error "$AI_WORKER_BASE_URL/health" >/dev/null; '
         'probe=$(mktemp "$NPC_AUDIO_DIR/.ci-write-check.XXXXXX"); '
-        'printf audio-storage-check > "$probe"; rm "$probe"',
+        'printf audio-storage-check > "$probe"; rm "$probe"; '
+        'test -s "$LOGGING_FILE_NAME"',
         env=environment,
     )
     container_id = docker(
@@ -69,7 +72,15 @@ def check_backend_runtime(docker, compose, environment):
         for mount in mounts
     ):
         raise AssertionError("NPC audio must use a writable persistent volume.")
-    print("Backend: internal AI worker health and writable NPC audio volume passed.")
+    if not any(
+        mount["Type"] == "volume" and mount["Destination"] == "/app/logs"
+        for mount in mounts
+    ):
+        raise AssertionError("Backend log files must use a persistent volume.")
+    print(
+        "Backend: internal AI worker health, writable NPC audio volume "
+        "and log file volume passed."
+    )
 
 
 def main():
@@ -100,10 +111,18 @@ def main():
         ("ai", "ai-worker.Dockerfile"),
         ("web", "web.Dockerfile"),
     ]:
-        command = ["build", "-t", images[service], "-f", f"infra/docker/{dockerfile}"]
-        if service == "web":
-            command.extend(["--build-arg", "WEBGL_DIRECTORY=dist/runtime-webgl"])
-        docker(*command, ".")
+        build_arguments = (
+            {"WEBGL_DIRECTORY": "dist/runtime-webgl"} if service == "web" else None
+        )
+        build_image(
+            docker,
+            repository,
+            service,
+            images[service],
+            f"infra/docker/{dockerfile}",
+            build_arguments=build_arguments,
+            cache_directory=os.environ.get("A305_DOCKER_CACHE_DIR"),
+        )
 
     environment = {
         **os.environ,

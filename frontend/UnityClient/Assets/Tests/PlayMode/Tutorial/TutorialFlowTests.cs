@@ -722,6 +722,16 @@ namespace A305.Tutorial.PlayModeTests
                 Is.False,
                 "[건너뛰기] 카드가 대화 노트 창을 덮습니다."
             );
+            // 요약 탭은 이 상황에서 자주 쓰는 표현 칸 아래 따뜻한 칸에 대화 요약을 보인다.
+            // 표현 칸이 자리를 다 차지해 요약이 한 줄도 들어가지 않으면 빈 칸만 남는다.
+            TMP_Text summary = feedback
+                .PageCardRect.GetComponentsInChildren<TMP_Text>()
+                .Single(text => text.text.Contains("이야기를 나눴어요"));
+            Assert.That(
+                summary.rectTransform.rect.height,
+                Is.GreaterThanOrEqualTo(summary.GetPreferredValues("가").y),
+                "대화 요약이 들어갈 자리가 없습니다."
+            );
             RectTransform[][] tour =
             {
                 new[] { feedback.SectionRowRect, feedback.PageCardRect },

@@ -241,6 +241,89 @@ namespace A305.Learning.Tests
             Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("latte"));
         }
 
+        // 단어장에는 피드백 표현처럼 긴 문장도 담긴다. 목록 줄은 줄 안에서 말줄임하고, 상세는 문장과 뜻을 다 보이며
+        // 단어·뜻·예시 문장·메모가 서로 겹치거나 [외웠어요]·카드 밖으로 넘치지 않는다.
+        [Test]
+        public async Task LongSentence_StaysInsideTheListRowAndShowsWholeInTheDetails()
+        {
+            await Open(
+                new SampleApi
+                {
+                    Words = new[]
+                    {
+                        "Is there somewhere nearby to kill some time before check-in?",
+                    },
+                    WordMeaning = "체크인 전에 근처에서 시간을 보낼 만한 곳이 있나요?",
+                    WordContext = new VocabContext
+                    {
+                        Text =
+                            "Is there somewhere nearby to kill some time before check-in? I'm a bit early.",
+                        MeaningKo =
+                            "체크인 전에 근처에서 시간을 보낼 만한 곳이 있나요? 제가 좀 일찍 왔어요.",
+                    },
+                }
+            );
+            var row = Rect("Panel/Content/Entries/Rows/Entry0/Label").GetComponent<TMP_Text>();
+            var word = Rect("Panel/Content/Details/Word").GetComponent<TMP_Text>();
+            var meaning = Rect("Panel/Content/Details/Meaning").GetComponent<TMP_Text>();
+            foreach (TMP_Text text in new[] { row, word, meaning })
+                text.ForceMeshUpdate();
+
+            Assert.That(
+                row.textBounds.max.x,
+                Is.LessThanOrEqualTo(row.rectTransform.rect.xMax + 1),
+                "목록 줄 밖으로 넘치지 않는다"
+            );
+            Assert.That(word.isTextOverflowing, Is.False, "상세 제목은 문장을 다 보인다");
+            Assert.That(meaning.isTextOverflowing, Is.False, "뜻을 다 보인다");
+            Assert.That(
+                IsLeftOf(word.rectTransform, Rect("Panel/Content/LearnedButton")),
+                Is.True,
+                "제목이 [외웠어요]를 덮지 않는다"
+            );
+            Assert.That(IsAbove(word.rectTransform, meaning.rectTransform), Is.True);
+            Assert.That(
+                IsAbove(meaning.rectTransform, Rect("Panel/Content/Details/Context")),
+                Is.True
+            );
+            Assert.That(
+                IsAbove(
+                    Rect("Panel/Content/Details/Context"),
+                    Rect("Panel/Content/Details/MemoTitle")
+                ),
+                Is.True
+            );
+            Assert.That(
+                IsInsideVertically(
+                    Rect("Panel/Content/Details/MemoInput"),
+                    Rect("Panel/Content/DetailsCard")
+                ),
+                Is.True,
+                "메모가 카드 밖으로 넘치지 않는다"
+            );
+        }
+
+        // left의 오른쪽 끝이 right의 왼쪽 끝을 넘지 않는지
+        private static bool IsLeftOf(RectTransform left, RectTransform right)
+        {
+            var leftCorners = new Vector3[4];
+            var rightCorners = new Vector3[4];
+            left.GetWorldCorners(leftCorners);
+            right.GetWorldCorners(rightCorners);
+            return leftCorners[2].x <= rightCorners[0].x + 1;
+        }
+
+        // inner의 위아래가 outer 안에 드는지
+        private static bool IsInsideVertically(RectTransform inner, RectTransform outer)
+        {
+            var innerCorners = new Vector3[4];
+            var outerCorners = new Vector3[4];
+            inner.GetWorldCorners(innerCorners);
+            outer.GetWorldCorners(outerCorners);
+            return innerCorners[0].y >= outerCorners[0].y - 1
+                && innerCorners[1].y <= outerCorners[1].y + 1;
+        }
+
         private RectTransform Rect(string path) => (RectTransform)screen.transform.Find(path);
 
         // upper의 아래쪽이 lower의 위쪽보다 위에 있고, 둘이 가로로 겹치는지
@@ -476,6 +559,11 @@ namespace A305.Learning.Tests
             // counter를 사물 카드에서 예문과 함께 저장한 단어로 둔다.
             public bool CounterExample { get; set; }
 
+            // Words로 만든 단어의 뜻과 예시 문장
+            public string WordMeaning { get; set; }
+
+            public VocabContext WordContext { get; set; }
+
             public Task<VocabPage> GetPageAsync(string cursor)
             {
                 if (Fails)
@@ -527,7 +615,12 @@ namespace A305.Learning.Tests
                                 new VocabItem
                                 {
                                     UserVocabId = 100 + i,
-                                    Vocab = new VocabWord { Text = word, MeaningKo = "뜻" },
+                                    Vocab = new VocabWord
+                                    {
+                                        Text = word,
+                                        MeaningKo = WordMeaning ?? "뜻",
+                                    },
+                                    Context = WordContext,
                                 }
                         )
                         .ToList();

@@ -214,6 +214,7 @@ Table conversations [headercolor: #2E6B4F] {
   started_at timestamptz [not null, default: `now()`]
   ended_at timestamptz
   first_day_stage int [note: '대화 시작 시 첫날 연계 미션 단계 0~6. 피드백 상황 복원용이며 자유 대화는 NULL']
+  town_story_stage int [note: '대화 시작 시 마을 여정 단계 0~11. 피드백 상황 복원용이며 해당 여정이 아니면 NULL']
   request_id uuid [unique, note: '대화 시작(CONV-01) 요청 ID · 재전송 시 새 대화를 만들지 않고 같은 대화를 돌려줌 (V10 전에 시작한 대화는 NULL)']
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
@@ -416,6 +417,17 @@ Table first_day_missions [headercolor: #5B4B9A] {
   Note: '첫날 연계 미션. 사용자당 하나를 저장하고 자정에 초기화하지 않음. 진행 변경 시 행 잠금'
 }
 
+Table town_stories [headercolor: #5B4B9A] {
+  user_id bigint [pk, not null]
+  stage int [not null, note: '현재 단계 0~11, 12 전체 완료']
+  completed_goals int [not null, note: '현재 단계에서 확정한 목표 비트 집합']
+  version bigint [not null, note: '낙관적 잠금 버전']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: '첫날 미션 이후의 마을 여정. 첫날 완료 기록과 별도로 사용자당 하나를 저장'
+}
+
 Table ai_candidates [headercolor: #5B4B9A] {
   id bigint [pk, increment]
   turn_id bigint [not null]
@@ -509,6 +521,7 @@ TableGroup mission {
   missions
   user_missions
   first_day_missions
+  town_stories
   ai_candidates
 }
 
@@ -534,6 +547,7 @@ Ref: user_missions.mission_id > missions.id
 
 // 논리 관계(회색): 칼럼으로만 잇고 DB 외래 키 제약은 없다. 사용자 내용 삭제는 UserContentEraser가 테이블마다 지운다
 Ref: first_day_missions.user_id > users.id [color: #9AA3AE]
+Ref: town_stories.user_id > users.id [color: #9AA3AE]
 Ref: user_language_profiles.last_test_id > level_tests.id [color: #9AA3AE]
 Ref: level_tests.user_id > users.id [color: #9AA3AE]
 Ref: user_vocab.user_id > users.id [color: #9AA3AE]

@@ -94,11 +94,9 @@ namespace A305.Mission
         private void OnEnded(string npcCode) => RequestRefresh();
 
         private void StartMission() =>
-            _ = ExecuteAsync(async () =>
-            {
-                await api.StartAsync();
-                return await api.VisitAsync(sceneCode);
-            });
+            _ = ExecuteAsync(() =>
+                api.StartCurrentAsync(sceneCode, state != null && state.IsTownStory)
+            );
 
         private void Rest()
         {
@@ -113,7 +111,7 @@ namespace A305.Mission
                 refreshPending = true;
                 return;
             }
-            _ = ExecuteAsync(() => api.VisitAsync(sceneCode));
+            _ = ExecuteAsync(() => api.LoadCurrentAsync(sceneCode));
         }
 
         private async Task ExecuteAsync(Func<Task<FirstDayMissionState>> action)

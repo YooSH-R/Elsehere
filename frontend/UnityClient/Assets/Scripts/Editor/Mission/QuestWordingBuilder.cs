@@ -18,7 +18,7 @@ namespace A305.EditorTools.Mission
         private static readonly (string from, string to)[] Wording =
         {
             ("첫날의 작은 소동", "퀘스트"),
-            ("지도 버튼을 눌러 여정을 확인하세요.", "지도 버튼을 눌러 퀘스트를 확인하세요."),
+            ("지도 버튼을 눌러 여정을 확인하세요.", QuestCardBuilder.DirectionPlaceholder),
             ("여정 시작", "퀘스트 시작"),
             ("여행 첫날", "여행 시작"),
         };

@@ -50,7 +50,7 @@ com.elsehere
 | `memory` | user_npc_relations (NPC 기억 카드와 관계) |
 | `world` | scenes, npcs, scene_words, user_word_prefs, user_game_clocks (사용자별 게임 시간) |
 | `vocab` | vocabularies, user_vocab |
-| `mission` | missions, user_missions, first_day_missions |
+| `mission` | missions, user_missions, first_day_missions, town_stories |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
 | `admin` | 없음 (운영자 어드민 화면·관리 API. 다른 도메인의 테이블을 고친다. [운영자 어드민](../docs/admin.md)) |
 

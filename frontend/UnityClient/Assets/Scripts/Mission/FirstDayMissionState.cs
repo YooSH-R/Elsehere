@@ -8,6 +8,8 @@ namespace A305.Mission
         private const int BuyUmbrellaStage = 5;
 
         public bool Started { get; set; }
+        public bool IsTownStory { get; set; }
+        public bool ShouldOfferTownStory => Completed && !IsTownStory;
         public int Stage { get; set; }
         public bool Completed { get; set; }
         public string Scene { get; set; }
@@ -23,8 +25,18 @@ namespace A305.Mission
         public List<FirstDayMissionStep> Steps { get; set; } = new List<FirstDayMissionStep>();
 
         /// <summary>지금 가야 할 장소 코드. 시작 전과 모두 끝낸 뒤에는 없다. Scene은 마지막으로 들어온 장소다.</summary>
-        public string Destination =>
-            Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.Scene : null;
+        public string Destination
+        {
+            get
+            {
+                if (!Started || Completed)
+                    return null;
+                FirstDayMissionStep current = Steps.Find(step => step.Status == "CURRENT");
+                if (IsTownStory && current?.Scene == "TOWN" && current.NpcCode != null)
+                    return TownMapArt.Shops.ContainsKey(current.NpcCode) ? current.NpcCode : null;
+                return current?.Scene;
+            }
+        }
 
         /// <summary>
         /// 카페 의자에 앉을 수 있는지. 호텔로 돌아가기 전까지 원하는 만큼 앉도록 미션 단계와 상관없이 카페에서 대화·요청 중이 아니면 앉는다.

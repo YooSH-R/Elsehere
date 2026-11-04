@@ -1,0 +1,50 @@
+package com.elsehere.mission.entity;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+class TownStoryTest {
+  @Test
+  void dinerGoalsAdvanceOnlyForTheCurrentNpc() {
+    TownStory story = TownStory.start(8L);
+
+    story.accept(0, "BANK_STAFF", List.of("order_breakfast", "explain_spill"));
+    assertThat(story.getStage()).isZero();
+
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    assertThat(story.getStage()).isEqualTo(1);
+  }
+
+  @Test
+  void laundryGoalsAccumulateAndOldResultsCannotAdvanceTheStory() {
+    TownStory story = TownStory.start(8L);
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    story.accept(1, "LAUNDROMAT_STAFF", List.of("ask_laundry"));
+    assertThat(story.getStage()).isEqualTo(1);
+
+    story.accept(1, "LAUNDROMAT_STAFF", List.of("ask_cost"));
+    assertThat(story.getStage()).isEqualTo(2);
+  }
+
+  @Test
+  void travelerFollowsTheWholeConnectedStory() {
+    TownStory story = TownStory.start(8L);
+    story.accept(0, "DINER_STAFF", List.of("order_breakfast", "explain_spill"));
+    story.accept(1, "LAUNDROMAT_STAFF", List.of("ask_laundry", "ask_cost"));
+    story.accept(2, "BANK_STAFF", List.of("ask_atm", "ask_withdrawal"));
+    story.accept(3, "LAUNDROMAT_STAFF", List.of("request_wash"));
+    story.accept(4, "BARBER_STAFF", List.of("ask_haircut", "describe_style"));
+    story.accept(5, "FLOWER_SHOP_STAFF", List.of("choose_flower", "ask_wrapping"));
+    story.accept(6, "BARBER_STAFF", List.of("offer_flower", "thank_barber"));
+    story.accept(7, "BAKERY_STAFF", List.of("choose_snack"));
+    story.accept(8, "LAUNDROMAT_STAFF", List.of("collect_laundry", "thank_laundromat"));
+    story.accept(9, "HOME_STORE_STAFF", List.of("ask_lamp", "ask_shipping"));
+    story.accept(10, "ARCADE_STAFF", List.of("ask_game"));
+    story.accept(11, "POST_OFFICE_STAFF", List.of("ask_parcel", "ask_price"));
+    assertThat(story.getStage()).isEqualTo(12);
+  }
+}

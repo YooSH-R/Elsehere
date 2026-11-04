@@ -21,7 +21,7 @@ namespace A305.EditorTools.Mission
 {
     public static class FirstDayMissionBuilder
     {
-        private const string ViewPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
+        internal const string ViewPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
         private static readonly Color Ink = new Color(.16f, .24f, .2f);
         private static readonly Color Cream = new Color(.98f, .96f, .91f, .96f);
         private const string MenuPath = "Tools/A305/Mission/Build First Day Journey";
@@ -429,12 +429,8 @@ namespace A305.EditorTools.Mission
             );
             banner.GetComponent<Image>().color = Cream;
             TMP_Text situation = Text(banner, "Situation", 24, "퀘스트를 불러오는 중이에요.");
-            TMP_Text direction = Text(
-                banner,
-                "Direction",
-                21,
-                "지도 버튼을 눌러 퀘스트를 확인하세요."
-            );
+            // 할 일 자리 문구는 QuestCardBuilder가 채운다.
+            TMP_Text direction = Text(banner, "Direction", 21, "");
             Button journalButton = MapButton(content);
             RectTransform journal = Rect("Journal", content);
             Anchor(

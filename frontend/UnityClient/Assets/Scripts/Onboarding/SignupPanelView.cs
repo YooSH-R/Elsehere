@@ -13,7 +13,8 @@ namespace A305.Onboarding
     public class SignupPanelView : MonoBehaviour
     {
         private const string MemberSubtitle = "NPC가 부를 이름과 캐릭터를 정해 주세요.";
-        private const string GuestSubtitle = "닉네임만 정하면 캐릭터와 게스트 기록이 그대로 이어져요.";
+        private const string GuestSubtitle =
+            "닉네임만 정하면 캐릭터와 게스트 기록이 그대로 이어져요.";
 
         [SerializeField]
         [Tooltip("제목 아래 안내. 게스트가 가입할 때는 기록이 이어진다고 알린다.")]

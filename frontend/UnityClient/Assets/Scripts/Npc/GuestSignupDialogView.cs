@@ -6,7 +6,8 @@ namespace A305.Npc
 {
     /// <summary>
     /// 대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르면 뜨는 가입 안내 창. [Google로 가입하기]는 Google 로그인(AUTH-01)으로
-    /// 페이지를 옮기고, 가입하면 게스트 때 기록이 그대로 이어진다(AUTH-04).
+    /// 페이지를 옮기고, 가입하면 게스트 때 기록이 그대로 이어진다(AUTH-04). 버튼 아래 [설문 하러 가기]는 설문(<see cref="SurveyLink"/>)을
+    /// 새 탭에서 연다.
     /// </summary>
     public class GuestSignupDialogView : MonoBehaviour
     {
@@ -24,6 +25,10 @@ namespace A305.Npc
 
         [SerializeField]
         private Button closeButton;
+
+        [SerializeField]
+        [Tooltip("버튼 줄 아래의 [설문 하러 가기] 글자 링크")]
+        private Button surveyButton;
 
         public bool IsVisible => dialog.activeSelf;
 
@@ -44,6 +49,8 @@ namespace A305.Npc
             signupButton.onClick.AddListener(() =>
                 BrowserRedirect.GoTo(apiSettings.CreateClient().UrlFor(AuthPaths.GoogleLogin))
             );
+            // 게임을 떠나지 않도록 약관 문서처럼 새 탭에서 연다.
+            surveyButton.onClick.AddListener(() => Application.OpenURL(SurveyLink.Url));
             dialog.SetActive(false);
         }
     }

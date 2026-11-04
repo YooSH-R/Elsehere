@@ -1090,7 +1090,34 @@ namespace A305.EditorTools.Theme
                 UiTone.Primary,
                 240
             );
+            TextLink(root, "GuestSignup/Dialog/SurveyButton");
             Roomy(root, "GuestSignup/Dialog");
+        }
+
+        // 바탕·테두리 없이 밑줄 친 작은 글자 링크. 창의 주요 버튼보다 눈에 덜 띄게 둔다.
+        private static void TextLink(Transform root, string path)
+        {
+            Transform link = root.Find(path);
+            if (link == null)
+                return;
+            foreach (string part in new[] { "Face", "Outline", "Icon" })
+            {
+                Transform decoration = link.Find(part);
+                if (decoration != null)
+                    Object.DestroyImmediate(decoration.gameObject);
+            }
+            foreach (var element in link.GetComponents<ThemedElement>())
+                Object.DestroyImmediate(element);
+            Image area = link.GetComponent<Image>();
+            area.sprite = null;
+            area.material = null;
+            area.color = Color.clear;
+            area.raycastTarget = true;
+            TMP_Text label = link.Find("Label").GetComponent<TMP_Text>();
+            label.gameObject.SetActive(true);
+            Role(root, path + "/Label", UiThemeRole.Muted);
+            label.fontStyle = FontStyles.Underline;
+            label.alignment = TextAlignmentOptions.Center;
         }
 
         // 다른 입구 창처럼 기본 테마 창으로 칠하고, 주요 동작인 가입만 강조색으로 둔다. 창 그림과 자리는 EntryScreensBuilder가 시안 창으로 바꾼다.

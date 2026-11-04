@@ -27,5 +27,27 @@ namespace A305.Npc.Tests
             );
             Assert.That(window.Find("Dialog/Buttons/SignupButton"), Is.Not.Null);
         }
+
+        [Test]
+        public void GuestSignupDialog_ConnectsSurveyLinkBelowButtons()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            var dialog = new SerializedObject(prefab.GetComponent<GuestSignupDialogView>());
+            var survey = (UnityEngine.UI.Button)
+                dialog.FindProperty("surveyButton").objectReferenceValue;
+
+            Assert.That(
+                survey,
+                Is.Not.Null,
+                "가입 안내 창에 [설문 하러 가기]가 연결되지 않았습니다."
+            );
+            Transform window = prefab.transform.Find("GuestSignup/Dialog");
+            Assert.That(survey.transform.parent, Is.EqualTo(window));
+            Assert.That(
+                survey.transform.GetSiblingIndex(),
+                Is.GreaterThan(window.Find("Buttons").GetSiblingIndex()),
+                "설문 링크는 버튼 줄 아래에 둡니다."
+            );
+        }
     }
 }

@@ -26,7 +26,7 @@ namespace A305.EditorTools.Theme
         private static readonly Color Accent = new Color32(210, 79, 47, 255);
         private const string HeadingFontPath = "Assets/Art/UI/Fonts/Jua-Regular SDF.asset";
 
-        // 목록 줄의 옅은 흰 카드와, 상세에서 저장한 문장을 담는 따뜻한 색 칸
+        // 목록 줄의 옅은 흰 카드와, 상세에서 예시 문장을 담는 따뜻한 색 칸
         private static readonly Color RowCardColor = new Color(1, 1, 1, .62f);
         private static readonly Color SentenceBoxColor = new Color32(255, 244, 230, 255);
 
@@ -73,22 +73,26 @@ namespace A305.EditorTools.Theme
             );
             RectTransform content = Rect(panel, "Content");
             Position(content, 0, 96, 1000, 476);
-            // 목록을 최근 저장순과 알파벳순으로 오가고, 알파벳순일 때 목록 맨 왼쪽의 A~Z로 그 글자 묶음에 간다.
+            // 목록을 최근 저장순과 알파벳순으로 오가는 버튼은 무엇을 정렬하는지 보이게 목록 바로 위에 둔다.
+            // 알파벳순일 때는 목록 맨 왼쪽의 A~Z로 그 글자 묶음에 간다.
+            Transform headerSort = panel.Find("SortButton");
+            if (headerSort != null)
+                Object.DestroyImmediate(headerSort.gameObject);
             Button sort = TextButton(
-                panel,
+                content,
                 "SortButton",
                 "알파벳순으로 보기",
                 UiIcon.None,
                 UiTone.Neutral,
-                516,
-                24,
+                50,
+                0,
                 190,
-                44
+                36
             );
             RectTransform letters = LetterIndex(content);
             // 왼쪽 단어 목록. 단어가 많으면 마우스 휠·끌기로 스크롤한다. 고른 줄의 그림자가 잘리지 않게 보이는 곳을 줄보다 조금 넓게 둔다.
             RectTransform entries = Rect(content, "Entries");
-            Position(entries, 40, 0, 300, 360);
+            Position(entries, 40, 44, 300, 316);
             foreach (string old in new[] { "Entry0", "Entry1", "Entry2", "Entry3" })
             {
                 Transform child = entries.Find(old);
@@ -165,7 +169,7 @@ namespace A305.EditorTools.Theme
             TMP_Text page = Text(content, "Page", "", 18, 152, 372, 76, 44, UiThemeRole.Body);
             page.alignment = TextAlignmentOptions.Midline;
             Button next = IconButton(content, "NextButton", UiIcon.Next, 238, 372);
-            // 고른 단어의 상세(단어·뜻·[외웠어요]·[삭제]·저장한 문장·메모)를 한 장의 카드 위에 모아 목록과 구분한다.
+            // 고른 단어의 상세(단어·뜻·[외웠어요]·[삭제]·예시 문장·메모)를 한 장의 카드 위에 모아 목록과 구분한다.
             RectTransform detailsCard = Rect(content, "DetailsCard");
             Position(detailsCard, 344, -16, 644, 410);
             detailsCard.SetAsFirstSibling();
@@ -174,13 +178,13 @@ namespace A305.EditorTools.Theme
             Position(details, 366, 0, 600, 400);
             TMP_Text word = Text(details, "Word", "", 34, 0, 0, 380, 46, UiThemeRole.Title);
             TMP_Text meaning = Text(details, "Meaning", "", 22, 0, 52, 600, 34, UiThemeRole.Accent);
-            // 저장한 문장·메모는 피드백 화면처럼 코랄 막대 제목으로 구역을 나누고, 저장한 문장은 따뜻한 색 칸에 담는다.
+            // 예시 문장·메모는 피드백 화면처럼 코랄 막대 제목으로 구역을 나누고, 예시 문장은 따뜻한 색 칸에 담는다.
             RectTransform context = Rect(details, "Context");
             Position(context, 0, 104, 600, 166);
             TMP_Text contextTitle = Text(
                 context,
                 "Title",
-                "저장한 문장",
+                "예시 문장",
                 18,
                 0,
                 0,
@@ -561,7 +565,7 @@ namespace A305.EditorTools.Theme
         private static RectTransform LetterIndex(RectTransform parent)
         {
             RectTransform column = Rect(parent, "Letters");
-            Position(column, 8, 0, 28, 416);
+            Position(column, 8, 44, 28, 416);
             for (char letter = 'A'; letter <= 'Z'; letter++)
             {
                 string name = letter.ToString();
@@ -594,7 +598,7 @@ namespace A305.EditorTools.Theme
         private static Scrollbar ListScrollbar(RectTransform parent)
         {
             RectTransform bar = Rect(parent, "EntriesScrollbar");
-            Position(bar, 333, 6, 5, 340);
+            Position(bar, 333, 50, 5, 296);
             Image track = BuilderTools.GetOrAddComponent<Image>(bar.gameObject);
             track.color = new Color(Muted.r, Muted.g, Muted.b, .12f);
             RectTransform area = Rect(bar, "SlidingArea");

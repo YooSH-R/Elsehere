@@ -18,7 +18,7 @@ namespace A305.Learning
     {
         private const string LoadingTitle = "단어장을 불러오는 중이에요…";
         private const string LoadFailedTitle = "단어장을 불러오지 못했어요";
-        private const string ContextTitle = "저장한 문장";
+        private const string ContextTitle = "예시 문장";
         private const string EmptyTitle = "아직 저장한 단어가 없어요";
         private const string EmptyHint = "사물 카드에서 마음에 드는 단어를 저장해 보세요.";
         private const string AllLearnedTitle = "모든 단어를 외웠어요";
@@ -53,7 +53,7 @@ namespace A305.Learning
         private TMP_Text showLearnedButtonLabel;
 
         [SerializeField]
-        [Tooltip("머리줄의 정렬 바꾸기. 최근 저장순과 알파벳순을 오간다")]
+        [Tooltip("목록 바로 위의 정렬 바꾸기. 최근 저장순과 알파벳순을 오간다")]
         private Button sortButton;
 
         [SerializeField]
@@ -83,11 +83,11 @@ namespace A305.Learning
         private TMP_Text contextText;
 
         [SerializeField]
-        [Tooltip("'저장한 문장' 제목. 대화에서 저장한 단어는 어느 NPC의 말인지 함께 보인다.")]
+        [Tooltip("'예시 문장' 제목. 대화에서 저장한 단어는 어느 NPC가 한 말인지 함께 보인다.")]
         private TMP_Text contextTitleText;
 
         [SerializeField]
-        [Tooltip("저장한 문장 아래의 문장 뜻. 뜻이 없으면 숨긴다.")]
+        [Tooltip("예시 문장 아래의 문장 뜻. 뜻이 없으면 숨긴다.")]
         private TMP_Text contextMeaningText;
 
         [SerializeField]
@@ -134,14 +134,11 @@ namespace A305.Learning
         private TMP_Text statusText;
 
         [SerializeField]
-        [Tooltip("메모 제목·입력칸·[저장]. 저장한 문장이 없으면 그 자리로 올린다")]
+        [Tooltip("메모 제목·입력칸·[저장]. 예시 문장이 없으면 그 자리로 올린다")]
         private RectTransform[] memoParts;
 
-        // 메모 부분들이 저장한 문장 아래에 있을 때의 높이
+        // 메모 부분들이 예시 문장 아래에 있을 때의 높이
         private float[] memoPartTops;
-
-        // 정렬 버튼이 [외운 표현도 보기] 왼쪽에 있을 때의 자리
-        private Vector2 sortButtonHome;
 
         private VocabularyBook book;
 
@@ -215,13 +212,6 @@ namespace A305.Learning
                 book.ShowsLearned || book.Entries.Any(entry => entry.IsLearned)
             );
             showLearnedButtonLabel.text = book.ShowsLearned ? HideLearnedLabel : ShowLearnedLabel;
-            sortButton.gameObject.SetActive(hasEntries);
-            // [외운 표현도 보기]가 없으면 정렬 버튼을 그 자리(닫기 바로 왼쪽)로 붙인다.
-            ((RectTransform)sortButton.transform).anchoredPosition = showLearnedButton
-                .gameObject
-                .activeSelf
-                ? sortButtonHome
-                : ((RectTransform)showLearnedButton.transform).anchoredPosition;
             sortButtonLabel.text = book.SortsAlphabetically ? RecentOrderLabel : AlphabeticalLabel;
             // 알파벳순일 때만 A~Z를 두고, 그 글자로 시작하는 단어가 없으면 누를 수 없게 흐리게 둔다.
             letterIndex.gameObject.SetActive(book.SortsAlphabetically);
@@ -316,7 +306,7 @@ namespace A305.Learning
                 CenterWindow.Shared.Place(PanelRect);
         }
 
-        // 저장한 문장이 없는 단어(사물 카드에서 저장한 단어 등)는 뜻과 메모 사이가 비지 않게 메모를 문장 자리로 올린다.
+        // 예시 문장이 없는 단어(사물 카드에서 저장한 단어 등)는 뜻과 메모 사이가 비지 않게 메모를 문장 자리로 올린다.
         private void PlaceMemo()
         {
             float lift = contextSection.activeSelf
@@ -334,7 +324,6 @@ namespace A305.Learning
         private void Awake()
         {
             memoPartTops = memoParts.Select(part => part.anchoredPosition.y).ToArray();
-            sortButtonHome = ((RectTransform)sortButton.transform).anchoredPosition;
             memoInput.characterLimit = VocabularyBook.MaxMemoLength;
             entryTemplate.gameObject.SetActive(false);
             previousButton.onClick.AddListener(() => MoveSelection(-1));

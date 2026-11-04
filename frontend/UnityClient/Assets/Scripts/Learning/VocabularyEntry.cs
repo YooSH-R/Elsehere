@@ -1,6 +1,6 @@
 namespace A305.Learning
 {
-    /// <summary>단어장의 한 단어. 뜻·저장한 문장·메모와 '외웠어요' 표시를 가진다.</summary>
+    /// <summary>단어장의 한 단어. 뜻·예시 문장·메모와 '외웠어요' 표시를 가진다.</summary>
     public sealed class VocabularyEntry
     {
         private const string NpcLineSource = "NPC_LINE";
@@ -13,11 +13,11 @@ namespace A305.Learning
             Korean = item.Vocab?.MeaningKo;
             ContextText = item.Context?.Text;
             ContextMeaning = item.Context?.MeaningKo;
-            // NPC 대사에서 저장한 단어는 저장한 문장이 그 NPC의 대사다. 이름 뒤 조사가 받침에 따라 바뀌지 않도록 '의'를 쓴다.
+            // NPC 대사에서 저장한 단어는 예시 문장이 그 NPC의 대사다. 이름 끝소리에 맞춰 이·가를 붙인다(Ben이, Mia가).
             SourceLabel =
                 item.Source?.SourceType == NpcLineSource
                 && !string.IsNullOrEmpty(item.Source.NpcName)
-                    ? $"{item.Source.NpcName}의 말"
+                    ? $"{FeedbackText.NameAsSubject(item.Source.NpcName)} 한 말"
                     : null;
             Memo = item.Memo;
             IsLearned = item.Memorized;
@@ -26,13 +26,13 @@ namespace A305.Learning
         /// <summary>서버 단어장 항목 ID. 메모·외웠어요·삭제 요청에 쓴다.</summary>
         public long UserVocabId { get; }
 
-        /// <summary>단어를 저장한 문장. 없으면 null.</summary>
+        /// <summary>단어가 쓰인 예시 문장(사물 카드 예문, NPC 대사, 피드백 예문). 없으면 null.</summary>
         public string ContextText { get; }
 
-        /// <summary>저장한 문장의 뜻. 없으면 null.</summary>
+        /// <summary>예시 문장의 뜻. 없으면 null.</summary>
         public string ContextMeaning { get; }
 
-        /// <summary>저장한 문장이 어디서 나왔는지(예: "Mia의 말"). 사물 카드처럼 대화 출처가 아니면 null.</summary>
+        /// <summary>예시 문장을 누가 했는지(예: "Mia가 한 말"). 사물 카드처럼 대화 출처가 아니면 null.</summary>
         public string SourceLabel { get; }
 
         /// <summary>사용자가 남긴 메모. 없으면 null.</summary>

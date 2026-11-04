@@ -152,6 +152,10 @@ namespace A305.Mission
         private QuestBoardView questBoard;
 
         [SerializeField]
+        [Tooltip("퀘스트 카드 바로 아래, NPC가 준비해 건네기로 한 것을 기다리는 카드")]
+        private FollowUpCardView followUpCard;
+
+        [SerializeField]
         [Tooltip(
             "하는 퀘스트가 없을 때 카드 대신 왼쪽 위에 두는 퀘스트 아이콘. 누르면 퀘스트 목록을 연다."
         )]
@@ -245,7 +249,7 @@ namespace A305.Mission
                 JourneyStatus.Shared.Clear();
                 GuideDestination.Shared.Clear();
             }
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
         }
 
         public void BindMap(string sceneCode, Transform player)
@@ -258,7 +262,7 @@ namespace A305.Mission
                 largeMap.Bind(sceneCode, player);
             if (sceneCode != "TOWN")
                 ShowLargeMap(false);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
         }
 
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
@@ -282,7 +286,7 @@ namespace A305.Mission
                 ShowCoins(state.Balance, state.LastPurchase);
             // 대화 중에는 시계·코인 칩을 숨기지만, 코인이 바뀐 동안에는 코인 칩을 잠깐 보인다.
             statusBar.SetActive(!talking || showingCoinChange);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
             stepChip.transform.parent.gameObject.SetActive(chip != null);
@@ -611,7 +615,7 @@ namespace A305.Mission
 
         private void UpdateBoardLayer()
         {
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
         }
 
@@ -681,7 +685,7 @@ namespace A305.Mission
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open && !idle);
             questIcon.gameObject.SetActive(!open && idle);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
             if (isOpening)
                 JournalOpened?.Invoke();
@@ -697,7 +701,7 @@ namespace A305.Mission
             if (mapOverlay == null)
                 return;
             mapOverlay.SetActive(open);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
         }
 
@@ -735,38 +739,35 @@ namespace A305.Mission
         /// </summary>
         public static string MiniMapLegend(string destination)
         {
-            string place = destination switch
-            {
-                "CAFE" => "카페",
-                "HOTEL" => "호텔",
-                "SHOP" => "드럭스토어",
-                "HOME" => "집",
-                not null when TownMapArt.Shops.TryGetValue(destination, out var shop) => shop.Name,
-                _ => "자유 탐험",
-            };
+            string place = TownMapArt.PlaceName(destination) ?? "자유 탐험";
             return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
         }
 
-        private void UpdateMiniMapVisibility()
+        // 왼쪽 아래 미니맵과 퀘스트 카드 아래 기다리는 카드를 보일지 정한다. 수첩·퀘스트 목록·큰 지도·퀘스트 완료 팡파레가 왼쪽을 덮는 동안에는 숨긴다.
+        private void UpdateLeftHudVisibility()
         {
+            bool isLeftCovered =
+                journal.activeSelf
+                || IsQuestBoardOpen
+                || IsQuestCompleteOpen
+                || (mapOverlay != null && mapOverlay.activeSelf);
             if (miniMapPanel != null)
                 miniMapPanel.SetActive(
-                    available
-                        && !talking
-                        && mapSceneCode == "TOWN"
-                        && !journal.activeSelf
-                        && !IsQuestBoardOpen
-                        && !IsQuestCompleteOpen
-                        && (mapOverlay == null || !mapOverlay.activeSelf)
+                    available && !talking && mapSceneCode == "TOWN" && !isLeftCovered
                 );
+            // 기다리는 카드는 퀘스트 카드처럼 대화 중에도 보인다.
+            if (followUpCard != null)
+                followUpCard.SetAllowed(available && !isLeftCovered);
         }
 
-        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀)
+        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·기다리는 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀).
+        // 가운데 창은 왼쪽 HUD의 오른쪽에 놓이므로, 기다리는 카드 높이만큼 왼쪽 열이 길어져도 겹치지 않는다.
         private float LeftHudScreenWidth() =>
             Mathf.Max(
                 RightEdgeOf(Banner.gameObject),
                 RightEdgeOf(questIcon.gameObject),
-                RightEdgeOf(miniMapPanel)
+                RightEdgeOf(miniMapPanel),
+                RightEdgeOf(followUpCard != null ? followUpCard.Card : null)
             );
 
         private float RightEdgeOf(GameObject hud)

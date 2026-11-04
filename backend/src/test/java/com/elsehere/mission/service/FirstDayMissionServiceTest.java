@@ -11,6 +11,8 @@ import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
+import com.elsehere.user.entity.AuthProvider;
+import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
@@ -28,10 +30,10 @@ class FirstDayMissionServiceTest {
           "HOTEL_STAFF", "Jake", "CAFE_STAFF", "Mia", "TOWN_PASSERBY", "Ben", "SHOP_STAFF", "Alex");
 
   private final FirstDayMissionRepository repository = mock(FirstDayMissionRepository.class);
+  private final UserRepository users = mock(UserRepository.class);
   private final NpcRepository npcs = mock(NpcRepository.class);
   private final FirstDayMissionService service =
-      new FirstDayMissionService(
-          repository, mock(ConversationRepository.class), mock(UserRepository.class), npcs);
+      new FirstDayMissionService(repository, mock(ConversationRepository.class), users, npcs);
 
   @BeforeEach
   void nameTheMissionNpcs() {
@@ -291,6 +293,53 @@ class FirstDayMissionServiceTest {
     FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
     assertThat(context.state()).isNull();
     assertThat(context.instruction()).contains("journey is complete", "Do not restart");
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = FirstDayStage.class,
+      names = {"EARLY_ARRIVAL", "CHECK_IN"})
+  void hotelReservationIsUnderTheLearnersNickname(FirstDayStage stage) {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
+    signedIn(AuthProvider.GOOGLE, "MinjiKim");
+
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+
+    // 판정(state)과 NPC 대답(instruction) 모두 같은 이름으로 대조한다.
+    assertThat(context.state().desc())
+        .contains(
+            "The reservation is under the name \"MinjiKim\"", "A different name never counts");
+    assertThat(context.instruction())
+        .contains(
+            "The reservation is under the name \"MinjiKim\"", "A different name never counts");
+  }
+
+  @Test
+  void guestHasNoReservationNameToCheck() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.EARLY_ARRIVAL)));
+    signedIn(AuthProvider.GUEST, "guest-000123");
+
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+
+    assertThat(context.state().desc()).doesNotContain("under the name");
+    assertThat(context.instruction()).doesNotContain("under the name");
+  }
+
+  @Test
+  void hotelStagesWithoutReservationGoalDoNotMentionTheReservationName() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
+    signedIn(AuthProvider.GOOGLE, "MinjiKim");
+
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+
+    assertThat(context.instruction()).doesNotContain("under the name");
+  }
+
+  private void signedIn(AuthProvider provider, String nickname) {
+    User user = mock(User.class);
+    when(user.getProvider()).thenReturn(provider);
+    when(user.getNickname()).thenReturn(nickname);
+    when(users.findById(8L)).thenReturn(Optional.of(user));
   }
 
   private static FirstDayMission missionAt(FirstDayStage target) {

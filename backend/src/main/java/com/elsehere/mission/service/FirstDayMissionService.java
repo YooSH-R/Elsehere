@@ -12,12 +12,14 @@ import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
+import com.elsehere.user.entity.AuthProvider;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -88,6 +90,8 @@ public class FirstDayMissionService {
               }
               FirstDayStage stage = mission.current();
               boolean matches = stage.npc().equals(npcCode);
+              String stageInstruction =
+                  matches ? stage.instruction() + reservationName(userId, stage) : "";
               List<String> remaining = new ArrayList<>();
               for (int index = 0; index < stage.goals().size(); index++) {
                 if (!mission.hasGoal(index)) {
@@ -98,7 +102,7 @@ public class FirstDayMissionService {
                   matches
                       ? new WorkerState(
                           "first_day_" + mission.getStage(),
-                          stage.instruction()
+                          stageInstruction
                               + " Recognize only the learner's current utterance in context. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
                           stage.goals().stream()
                               .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
@@ -114,7 +118,7 @@ public class FirstDayMissionService {
                     "The learner has already ordered, chosen drink options and said they will stay. Acknowledge the order briefly. Do not offer another drink or repeat order questions. The learner has not rested yet; do not claim that they have.";
               } else {
                 instruction =
-                    stage.instruction()
+                    stageInstruction
                         + " Objectives pending before this turn: "
                         + String.join(",", remaining)
                         + "."
@@ -139,6 +143,33 @@ public class FirstDayMissionService {
             mission ->
                 mission.accept(
                     expectedStage, npcCode, intent.ids() == null ? List.of() : intent.ids()));
+  }
+
+  // 예약자 이름을 확인하는 호텔 목표. 아무 이름이나 대도 예약을 확인해 주지 않게 닉네임과 대조한다.
+  private static final Map<FirstDayStage, String> RESERVATION_GOALS =
+      Map.of(
+          FirstDayStage.EARLY_ARRIVAL, "confirm_reservation",
+          FirstDayStage.CHECK_IN, "show_reservation");
+
+  /** 예약자 이름 대조 지시문. 손님 계정의 닉네임(guest-000123)은 사람 이름이 아니라서 대조하지 않는다. */
+  private String reservationName(Long userId, FirstDayStage stage) {
+    String goal = RESERVATION_GOALS.get(stage);
+    if (goal == null) {
+      return "";
+    }
+    return users
+        .findById(userId)
+        .filter(user -> user.getProvider() != AuthProvider.GUEST)
+        .map(
+            user ->
+                " The reservation is under the name \""
+                    + user.getNickname()
+                    + "\". Count "
+                    + goal
+                    + " only when the learner gives this name; the same name in English letters or only the family or given name also counts. A different name never counts for "
+                    + goal
+                    + ", even in the same line as another request: say you cannot find a reservation under that name and ask them to check it.")
+        .orElse("");
   }
 
   // 시작 전과 여정 완료 뒤의 마을 날씨.

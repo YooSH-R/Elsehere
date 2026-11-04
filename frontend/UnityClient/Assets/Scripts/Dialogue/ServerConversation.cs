@@ -37,6 +37,7 @@ namespace A305.Dialogue
         private readonly IConversationApi api;
         private readonly ConversationInitiator initiatedBy;
         private readonly bool npcOffDuty;
+        private readonly FollowUpStore followUps;
 
         // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
         private bool canTalk;
@@ -57,13 +58,15 @@ namespace A305.Dialogue
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
+        /// <param name="followUps">NPC가 준비해 건네기로 한 것을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FollowUpStore.Shared"/>)이다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
             IConversationApi api,
             bool canTalk,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
-            bool npcOffDuty = false
+            bool npcOffDuty = false,
+            FollowUpStore followUps = null
         )
         {
             NpcCode = npcCode;
@@ -72,6 +75,7 @@ namespace A305.Dialogue
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
             this.npcOffDuty = npcOffDuty;
+            this.followUps = followUps ?? FollowUpStore.Shared;
         }
 
         /// <summary>화면을 다시 그려야 할 때 알린다.</summary>
@@ -427,6 +431,12 @@ namespace A305.Dialogue
             try
             {
                 EndResult end = await api.EndAsync(conversationId, NewRequestId(), false);
+                // 상세 평가를 기다리기 전에 남겨, 피드백 창이 뜰 때 왼쪽 카드에도 기다리는 것이 보이게 한다.
+                if (end?.FollowUp != null)
+                {
+                    followUps.Receive(end.FollowUp);
+                }
+
                 FeedbackData summary = end?.Feedback;
                 IReadOnlyList<DetailedFeedbackItem> details = null;
                 if (summary?.Status == FeedbackDone)
@@ -494,6 +504,13 @@ namespace A305.Dialogue
             }
 
             Standing.Apply(start.Conversation);
+            // NPC가 준비해 둔 것을 첫 대사로 건넸으면 기다리는 목록에서 지운다. NPC가 불러 시작했든 먼저 말을 걸었든 같다.
+            // NPC마다 하나만 기다리므로 ID가 기억하던 줄과 달라도 이 NPC의 줄을 지운다.
+            if (start.DeliveredFollowUpId is long delivered)
+            {
+                followUps.Remove(delivered, NpcCode);
+            }
+
             AddNpcTurn(start.OpeningTurn);
         }
 

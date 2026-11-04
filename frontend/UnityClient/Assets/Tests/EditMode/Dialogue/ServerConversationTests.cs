@@ -1079,6 +1079,126 @@ namespace A305.Dialogue.Tests
             Assert.That(api.Ends, Is.Empty);
         }
 
+        // 음료 주문처럼 NPC가 준비해 곧 건네기로 하면 왼쪽 카드와 NPC가 부르기에 쓰도록 기다리는 것으로 남긴다.
+        [Test]
+        public async Task End_WhenNpcPromisedSomething_RemembersItAsWaiting()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            api.EndResponse.FollowUp = IcedLatte(id: 7, remainingSeconds: 45);
+            await conversation.StartAsync();
+
+            await conversation.EndAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(7));
+            Assert.That(followUps.Items[0].RemainingSeconds(10d), Is.EqualTo(45));
+        }
+
+        [Test]
+        public async Task End_WithoutFollowUp_LeavesWaitingListAsIs()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 3, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            await conversation.StartAsync();
+
+            await conversation.EndAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(3));
+        }
+
+        // [말 걸기]로 먼저 말을 걸어도, NPC가 불러 시작해도 서버가 첫 대사로 건네면 카드에서 지운다.
+        [Test]
+        public async Task Start_WhenNpcHandsOverWithOpeningLine_ForgetsThatFollowUp()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 7, remainingSeconds: 0));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                followUps
+            );
+            api.StartResponse.DeliveredFollowUpId = 7;
+
+            await conversation.StartAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        // NPC마다 하나만 기다리므로, 건넨 ID가 기억하던 줄과 달라도(그사이 새로 부탁함) 그 NPC의 줄을 지운다.
+        [Test]
+        public async Task Start_WhenHandedOverIdDiffers_StillForgetsThatNpcsRow()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 9, remainingSeconds: 0));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            api.StartResponse.DeliveredFollowUpId = 7;
+
+            await conversation.StartAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        private static FollowUpData Breakfast(long id, int remainingSeconds)
+        {
+            return new FollowUpData
+            {
+                FollowUpId = id,
+                Npc = new NpcSummary { NpcCode = "DINER_STAFF", Name = "Rosa" },
+                SceneCode = "TOWN",
+                Item = "breakfast",
+                ItemKo = "아침 식사",
+                RemainingSeconds = remainingSeconds,
+                Ready = remainingSeconds == 0,
+            };
+        }
+
+        private static FollowUpData IcedLatte(long id, int remainingSeconds)
+        {
+            return new FollowUpData
+            {
+                FollowUpId = id,
+                Npc = new NpcSummary
+                {
+                    NpcCode = CafeStaffCode,
+                    Name = "Mia",
+                    RoleLabel = "카페 직원",
+                },
+                SceneCode = "CAFE",
+                Item = "iced latte",
+                ItemKo = "아이스 라테",
+                RemainingSeconds = remainingSeconds,
+                Ready = remainingSeconds == 0,
+            };
+        }
+
         [TestCase("READY", true)]
         [TestCase("FAILED", true)]
         [TestCase("EXPIRED", false)]

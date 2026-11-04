@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using A305.Player;
 using A305.Tutorial;
 using NUnit.Framework;
@@ -32,6 +33,31 @@ namespace A305.World.PlayModeTests
         {
             TestGameClock.Restore();
             TutorialState.Clear();
+        }
+
+        [UnityTest]
+        public IEnumerator ClosedCafe_TurnsOffItsLights_AndLightsAgainWhenOpen()
+        {
+            TestGameClock.Set(22 * 60);
+            yield return LoadSpace("TownScene");
+            Transform building = FindDoorway("CafeDoor").transform.parent;
+            Light[] lights = building
+                .GetComponentsInChildren<Light>(true)
+                .Where(light => light.type != LightType.Directional)
+                .ToArray();
+            Assert.That(lights, Is.Not.Empty, "카페 외관의 실제 조명을 확인합니다.");
+            yield return null;
+            Assert.That(lights.All(light => !light.enabled || light.intensity == 0), Is.True);
+
+            TestGameClock.Set(6 * 60);
+            yield return null;
+            yield return null;
+            Assert.That(lights.All(light => !light.enabled || light.intensity == 0), Is.True);
+
+            TestGameClock.Set(20 * 60);
+            yield return null;
+            yield return null;
+            Assert.That(lights.Any(light => light.enabled && light.intensity > 0), Is.True);
         }
 
         [UnityTest]

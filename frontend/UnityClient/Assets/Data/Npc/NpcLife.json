@@ -405,6 +405,78 @@
       ]
     },
     {
+      "npcId": "FIRE_CAPTAIN",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "06:00",
+          "to": "13:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "13:00",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "FIRE_FIGHTER",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "12:00",
+          "to": "20:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "20:00",
+          "to": "12:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "FIRE_ROOKIE",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "16:00",
+          "to": "23:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "23:00",
+          "to": "16:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "FLOWER_SHOP_STAFF",
       "role": "STAFF",
       "scene": "TOWN",
@@ -689,7 +761,75 @@
       },
       "schedule": [
         {
-          "from": "08:00",
+          "from": "06:00",
+          "to": "10:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "10:00",
+          "to": "10:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "10:30",
+          "to": "14:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "14:30",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_PATROL_OFFICER",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "14:00",
+          "to": "18:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "18:00",
+          "to": "18:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "18:30",
+          "to": "22:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "22:30",
+          "to": "14:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_ROOKIE",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "10:00",
           "to": "14:00",
           "activity": "WORK"
         },
@@ -700,12 +840,46 @@
         },
         {
           "from": "14:30",
-          "to": "20:00",
+          "to": "18:00",
           "activity": "WORK"
         },
         {
-          "from": "20:00",
-          "to": "08:00",
+          "from": "18:00",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "POLICE_SERGEANT",
+      "role": "STAFF",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.64,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "22:00",
+          "to": "02:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "02:00",
+          "to": "02:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "02:30",
+          "to": "06:30",
+          "activity": "WORK"
+        },
+        {
+          "from": "06:30",
+          "to": "22:00",
           "activity": "OFF"
         }
       ]

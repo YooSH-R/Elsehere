@@ -75,9 +75,9 @@
     },
     {
       "code": "POLICE_STATION",
-      "alwaysOpen": false,
-      "from": "08:00",
-      "to": "20:00"
+      "alwaysOpen": true,
+      "from": "",
+      "to": ""
     },
     {
       "code": "TAXI",

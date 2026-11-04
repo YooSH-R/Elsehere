@@ -91,6 +91,33 @@
       "Home & Living is right across the main street."
     ]
   },
+  "FIRE_CAPTAIN": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "FIRE_FIGHTER": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "FIRE_ROOKIE": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
   "FLOWER_SHOP_STAFF": {
     "scenarioId": "flower_shop_counter",
     "locationId": "TOWN",
@@ -173,6 +200,33 @@
     ]
   },
   "POLICE_OFFICER": {
+    "scenarioId": "police_front_desk",
+    "locationId": "TOWN",
+    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "facts": [
+      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+      "If the visitor does not say where it happened, the patrol car drives once around the main street."
+    ]
+  },
+  "POLICE_PATROL_OFFICER": {
+    "scenarioId": "police_front_desk",
+    "locationId": "TOWN",
+    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "facts": [
+      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+      "If the visitor does not say where it happened, the patrol car drives once around the main street."
+    ]
+  },
+  "POLICE_ROOKIE": {
+    "scenarioId": "police_front_desk",
+    "locationId": "TOWN",
+    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "facts": [
+      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+      "If the visitor does not say where it happened, the patrol car drives once around the main street."
+    ]
+  },
+  "POLICE_SERGEANT": {
     "scenarioId": "police_front_desk",
     "locationId": "TOWN",
     "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",

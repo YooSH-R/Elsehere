@@ -96,7 +96,14 @@
     "BARBER": { "hours": { "from": "10:00", "to": "19:00" }, "shifts": { "ALL_DAY": { "from": "10:00", "to": "19:00" } } },
     "ARCADE": { "hours": { "from": "12:00", "to": "23:00" }, "shifts": { "ALL_DAY": { "from": "12:00", "to": "23:00" } } },
     "HOME_STORE": { "hours": { "from": "10:00", "to": "20:00" }, "shifts": { "ALL_DAY": { "from": "10:00", "to": "20:00" } } },
-    "POLICE_STATION": { "hours": { "from": "08:00", "to": "20:00" }, "shifts": { "ALL_DAY": { "from": "08:00", "to": "20:00" } } },
+    "POLICE_STATION": {
+      "shifts": {
+        "DAY": { "from": "06:00", "to": "14:30" },
+        "MIDDAY": { "from": "10:00", "to": "18:00" },
+        "EVENING": { "from": "14:00", "to": "22:30" },
+        "NIGHT": { "from": "22:00", "to": "06:30" }
+      }
+    },
     "TAXI": { "shifts": { "ALL_DAY": { "from": "00:00", "to": "00:00" } } },
     "TOWN": {
       "shifts": {

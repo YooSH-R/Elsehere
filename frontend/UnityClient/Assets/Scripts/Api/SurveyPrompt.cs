@@ -9,8 +9,9 @@ namespace A305.Api
     /// </summary>
     public static class SurveyPrompt
     {
-        // 자리표시 주소다. 설문 주소를 받으면 이 값만 바꾼다. 운영 배포 전에 실제 주소로 바꿔야 한다.
-        public const string Url = "https://example.com/elsehere-survey";
+        // 팀 사용자 설문(Google 설문지)의 응답 페이지. 설문을 바꾸면 이 값만 바꾼다.
+        public const string Url =
+            "https://docs.google.com/forms/d/e/1FAIpQLSctxlb9ka3jrbFp24OjHd-HxR0U6Vh_s6sTdPR3kvRDyeDrVA/viewform";
 
         /// <summary>설문을 권할 때가 됐다. 설문 카드가 받는다.</summary>
         public static event Action Requested;

@@ -198,6 +198,22 @@ class FirstDayMissionServiceTest {
         .containsExactlyElementsOf(stage.intentIds());
   }
 
+  // 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 담당 NPC는 남은 목표를 먼저 꺼내거나 권하지 않고,
+  // 학습자가 요청한 뒤 그 요청을 마치는 데 필요한 질문만 한다.
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void ownerLetsTheLearnerBringUpEveryObjective(FirstDayStage stage) {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
+    FirstDayMissionService.Context context = service.context(8L, stage.npc()).orElseThrow();
+
+    String reply = context.replyInstruction(new JudgeResult.Intent(null, List.of(), null));
+
+    assertThat(context.instruction()).contains("Never be the first to bring up");
+    assertThat(reply)
+        .contains("Never be the first to bring up")
+        .doesNotContain("Ask about one of these objectives");
+  }
+
   @ParameterizedTest
   @EnumSource(FirstDayStage.class)
   void finalAnswerInEveryStageDoesNotRepeatMissionQuestions(FirstDayStage stage) {

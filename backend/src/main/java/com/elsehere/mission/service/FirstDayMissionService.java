@@ -115,7 +115,9 @@ public class FirstDayMissionService {
                 instruction =
                     stage.instruction()
                         + " Objectives pending before this turn: "
-                        + String.join(",", remaining);
+                        + String.join(",", remaining)
+                        + "."
+                        + LEARNER_LEADS;
               }
               return new Context(
                   mission.getStage(),
@@ -209,6 +211,15 @@ public class FirstDayMissionService {
     };
   }
 
+  /**
+   * 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 담당 NPC가 남은 목표·필요한 물건·겪은 일을 먼저 꺼내거나 권하지 않고, 학습자가 요청한 뒤에는 그
+   * 요청을 마치는 데 필요한 질문(크기·결제 방법·생김새 등)만 하게 한다.
+   */
+  static final String LEARNER_LEADS =
+      " Never be the first to bring up the learner's remaining tasks, the things they need or what happened to them; wait for the learner to raise them in their own words."
+          + " After the learner raises a request, you may ask only the follow-up question your role needs to complete it, such as size, payment method or a description."
+          + " If the learner seems unsure what to say, ask an open question such as \"Is there anything else I can help you with?\" without naming any task.";
+
   /** 지금 단계 담당이 아닌 NPC에게 보내는 안내. 지금 할 일을 물으면 모른다고 하지 않고 담당 NPC와 장소를 알려 주게 한다. 이름을 찾지 못하면 장소만 알린다. */
   static String sendToOwner(String place, String owner) {
     String whom = owner == null ? "" : " and talk to " + owner;
@@ -262,7 +273,8 @@ public class FirstDayMissionService {
               ? " No objectives remain for this stage. Acknowledge what was completed without asking another mission question or assuming later stages are complete."
               : " Remaining objectives after this turn: "
                   + String.join(",", pending)
-                  + ". Ask about one of these objectives. Do not repeat already answered questions.";
+                  + "."
+                  + LEARNER_LEADS;
       return instruction
           + " This turn recognized: "
           + String.join(",", recognized)

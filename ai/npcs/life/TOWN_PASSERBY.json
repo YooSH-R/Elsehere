@@ -3,5 +3,7 @@
   "npcId": "TOWN_PASSERBY",
   "mbti": "ESFJ-T",
   "role": "PASSERBY",
+  "workplace": "TOWN",
+  "shift": "DAY",
   "tutorialGuide": true
 }

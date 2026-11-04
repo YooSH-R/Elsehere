@@ -36,6 +36,7 @@ namespace A305.Dialogue
 
         private readonly IConversationApi api;
         private readonly ConversationInitiator initiatedBy;
+        private readonly bool npcOffDuty;
         private readonly FollowUpStore followUps;
 
         // 음성 처리 동의. 서버가 동의가 없다고 거절하면 끈다.
@@ -57,13 +58,15 @@ namespace A305.Dialogue
         /// <param name="canTalk">음성 처리에 동의해 [말하기]를 쓸 수 있는지</param>
         /// <param name="initiatedBy">누가 먼저 말을 걸었는지. 서버의 대화 시작(CONV-01) initiatedBy로 보낸다.</param>
         /// <param name="followUps">NPC가 준비해 건네기로 한 것을 기억할 곳. 비우면 게임 전체가 함께 쓰는 곳(<see cref="FollowUpStore.Shared"/>)이다.</param>
+        /// <param name="npcOffDuty">교대 밖이라 일하지 않는 직원과의 대화인지. 서버의 대화 시작(CONV-01) npcOffDuty로 보낸다.</param>
         public ServerConversation(
             string npcCode,
             string npcName,
             IConversationApi api,
             bool canTalk,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
-            FollowUpStore followUps = null
+            FollowUpStore followUps = null,
+            bool npcOffDuty = false
         )
         {
             NpcCode = npcCode;
@@ -71,6 +74,7 @@ namespace A305.Dialogue
             this.api = api;
             this.canTalk = canTalk;
             this.initiatedBy = initiatedBy;
+            this.npcOffDuty = npcOffDuty;
             this.followUps = followUps ?? FollowUpStore.Shared;
         }
 
@@ -144,7 +148,14 @@ namespace A305.Dialogue
                 {
                     try
                     {
-                        Begin(await api.StartAsync(startRequestId, NpcCode, InitiatedByCode));
+                        Begin(
+                            await api.StartAsync(
+                                startRequestId,
+                                NpcCode,
+                                InitiatedByCode,
+                                npcOffDuty
+                            )
+                        );
                     }
                     catch (ApiException exception) when (exception.Code == AlreadyActiveCode)
                     {
@@ -519,7 +530,7 @@ namespace A305.Dialogue
                 await api.EndAsync(stale.ConversationId, NewRequestId(), true);
             }
 
-            Begin(await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode));
+            Begin(await api.StartAsync(NewRequestId(), NpcCode, InitiatedByCode, npcOffDuty));
         }
 
         // 지난 대사를 다시 보이고 마지막 NPC 대사는 처음 시작할 때처럼 들려준다.

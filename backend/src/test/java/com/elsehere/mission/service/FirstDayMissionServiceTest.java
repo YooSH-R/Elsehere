@@ -173,7 +173,28 @@ class FirstDayMissionServiceTest {
             "BARBER_STAFF",
             "BAKERY_STAFF",
             "ARCADE_STAFF",
-            "HOME_STORE_STAFF")) {
+            "HOME_STORE_STAFF",
+            "CAFE_BARISTA",
+            "HOTEL_RECEPTIONIST",
+            "HOTEL_NIGHT_MANAGER",
+            "SHOP_PHARMACIST",
+            "SHOP_NIGHT_CLERK",
+            "TOWN_RETIREE",
+            "TOWN_STUDENT",
+            "TOWN_EVENING_WALKER",
+            "CAFE_SERVER",
+            "HOTEL_CONCIERGE",
+            "HOTEL_BELLHOP",
+            "TOWN_SHOPPER",
+            "TOWN_HANDYMAN",
+            "POLICE_SERGEANT",
+            "POLICE_PATROL_OFFICER",
+            "POLICE_ROOKIE",
+            "FIRE_CAPTAIN",
+            "FIRE_FIGHTER",
+            "FIRE_ROOKIE",
+            "TOWN_GRANDFATHER",
+            "TOWN_GRANDMOTHER")) {
       if (npc.equals(stage.npc())) {
         continue;
       }

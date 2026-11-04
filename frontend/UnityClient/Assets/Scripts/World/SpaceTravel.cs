@@ -21,6 +21,11 @@ namespace A305.World
         /// <summary>잠겨 있어 이동을 거절했을 때 알린다. 잠근 쪽이 무엇을 먼저 할지 안내한다.</summary>
         public static event Action Refused;
 
+        /// <summary>
+        /// 영업시간이 아닌 장소에 들어가려다 거절했을 때 안내 문구("카페는 지금 영업시간이 아니에요 · 07:00–21:00")와 함께 알린다.
+        /// </summary>
+        public static event Action<string> ClosedPlaceRefused;
+
         /// <summary>문·[홈]으로 다른 공간에 가지 못하게 잠그거나 푼다.</summary>
         public static void SetLocked(bool locked)
         {
@@ -36,7 +41,9 @@ namespace A305.World
 
         /// <param name="destinationScene">이동할 씬 이름. Build Profile의 Scene List에 있어야 한다.</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
-        /// <returns>이동을 시작했으면 true. 잠겨 있거나, 이미 이동 중이거나, 씬을 불러올 수 없으면 false.</returns>
+        /// <returns>
+        /// 이동을 시작했으면 true. 잠겨 있거나, 가려는 장소가 영업시간이 아니거나, 이미 이동 중이거나, 씬을 불러올 수 없으면 false.
+        /// </returns>
         public static bool TryTravel(string destinationScene, string arrivalDoorwayId)
         {
             return TryTravel(destinationScene, arrivalDoorwayId, 0f);
@@ -49,14 +56,42 @@ namespace A305.World
             float viewYawFromTravel
         )
         {
+            string placeCode = PlaceScenes.CodeOf(destinationScene);
             if (
                 RefuseIfLocked()
+                || RefuseIfClosed(placeCode, PlaceScenes.NameOf(placeCode))
                 || !state.TryBegin(destinationScene, arrivalDoorwayId, viewYawFromTravel)
             )
             {
                 return false;
             }
 
+            return LoadDestination(destinationScene);
+        }
+
+        /// <summary>
+        /// 영업이 끝난 장소에서 마을로 내보낸다. 튜토리얼 잠금과 상관없이 옮긴다. 마을은 늘 열려 있어 영업시간은 보지 않는다.
+        /// </summary>
+        /// <param name="exitToTown">이 장소에서 마을로 이어지는 출입구</param>
+        /// <returns>이동을 시작했으면 true. 이미 이동 중이거나 씬을 불러올 수 없으면 false.</returns>
+        public static bool TryLeaveClosedPlace(SpaceDoorway exitToTown)
+        {
+            if (
+                !state.TryBegin(
+                    exitToTown.DestinationScene,
+                    exitToTown.DestinationDoorwayId,
+                    evenIfLocked: true
+                )
+            )
+            {
+                return false;
+            }
+
+            return LoadDestination(exitToTown.DestinationScene);
+        }
+
+        private static bool LoadDestination(string destinationScene)
+        {
             if (!Application.CanStreamedLevelBeLoaded(destinationScene))
             {
                 Debug.LogError($"{destinationScene} 씬이 Scene List에 없어 이동하지 못했습니다.");
@@ -68,6 +103,9 @@ namespace A305.World
             return true;
         }
 
+        /// <summary>
+        /// 마을 매장 문을 지난다. 들어갈 때는 매장이 영업시간이 아니면 거절하고, 나올 때는 막지 않는다.
+        /// </summary>
         internal static void CrossShopDoor(
             PlayerMover player,
             Vector3 destination,
@@ -89,6 +127,11 @@ namespace A305.World
             if (
                 player.IsMovementLocked
                 || RefuseIfLocked()
+                || (
+                    entering
+                    && interior != null
+                    && RefuseIfClosed(interior.PlaceCode, interior.PlaceName)
+                )
                 || SpaceTravelCurtain.IsCoveringScreen
                 || !state.TryBegin()
             )
@@ -106,6 +149,37 @@ namespace A305.World
             );
         }
 
+        /// <summary>
+        /// 영업이 끝난 마을 매장에서 문 밖으로 내보낸다. 튜토리얼 잠금과 상관없이 옮긴다.
+        /// </summary>
+        /// <returns>내보내기 시작했으면 true. 대화 중처럼 플레이어가 움직일 수 없거나 이미 이동 중이면 false.</returns>
+        internal static bool TryLeaveClosedShop(
+            PlayerMover player,
+            Pose outside,
+            ShopInterior interior,
+            float arrivalViewYaw
+        )
+        {
+            if (
+                player.IsMovementLocked
+                || SpaceTravelCurtain.IsCoveringScreen
+                || !state.TryBegin(evenIfLocked: true)
+            )
+            {
+                return false;
+            }
+
+            SpaceTravelCurtain.CrossShopDoor(
+                player,
+                outside,
+                interior,
+                false,
+                arrivalViewYaw,
+                () => state.CompleteArrival()
+            );
+            return true;
+        }
+
         private static bool RefuseIfLocked()
         {
             if (!state.IsLocked)
@@ -114,6 +188,19 @@ namespace A305.World
             }
 
             Refused?.Invoke();
+            return true;
+        }
+
+        private static bool RefuseIfClosed(string placeCode, string placeName)
+        {
+            if (OpeningHours.IsOpenNow(placeCode))
+            {
+                return false;
+            }
+
+            ClosedPlaceRefused?.Invoke(
+                OpeningHoursText.ClosedNotice(placeName, OpeningHours.Current.HoursText(placeCode))
+            );
             return true;
         }
 

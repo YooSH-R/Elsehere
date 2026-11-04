@@ -8,7 +8,13 @@ namespace A305.Dialogue
     public interface IConversationApi
     {
         /// <summary>CONV-01 대화 시작.</summary>
-        Task<ConversationStart> StartAsync(string requestId, string npcCode, string initiatedBy);
+        /// <param name="npcOffDuty">맡은 교대 밖이라 일하지 않는 직원과의 대화인지. 서버가 응대 대신 일상 상황으로 대화한다.</param>
+        Task<ConversationStart> StartAsync(
+            string requestId,
+            string npcCode,
+            string initiatedBy,
+            bool npcOffDuty
+        );
 
         /// <summary>CONV-03 발화 전송.</summary>
         Task<TurnResult> SendTurnAsync(

@@ -131,11 +131,11 @@ def service_day(npc_id: str) -> dict:
 
 
 def test_staff_away_from_food_ask_the_learner_but_cafe_staff_look_after_themselves():
-    """호텔에는 먹을 것이 없어 Jake는 근무 중 배고프면 부탁한다. Mia는 쉬는 시간에 카페에서 먹고 마신다."""
+    """호텔에는 먹을 것이 없어 Jake(낮 교대 06:00~14:30)는 쉬는 시간 뒤 근무 중 배고프면 부탁한다. Mia는 쉬는 시간에 카페에서 먹고 마신다."""
     jake = service_day("HOTEL_STAFF")["requests"]
 
     assert [request["id"] for request in jake] == ["bring_muffin"]
-    assert "12:30" <= jake[0]["time"] < "17:00"
+    assert "10:30" <= jake[0]["time"] < "14:30"
     assert service_day("CAFE_STAFF")["requests"] == []
 
 
@@ -198,6 +198,6 @@ def test_the_command_line_prints_each_service_npc_day_and_the_curves(capsys):
 
     out = capsys.readouterr().out
     assert all(npc_id in out for npc_id in ["CAFE_STAFF", "HOTEL_STAFF", "TOWN_PASSERBY"])
-    assert "14:50 bring_muffin" in out
+    assert "12:50 bring_muffin" in out  # Jake는 06:00 출근이라 배고픔이 06:00부터 줄어든다
     assert "본 적 있음" in out and "단골" in out
     assert "튜토리얼 안내 NPC" in out

@@ -133,7 +133,8 @@ def generate(
     """입력과 재료로 인격 카드 뼈대를 만든다. LLM 없이 규칙으로만 고르고 npcId가 씨앗이라, 재료가 같으면 언제나 같은 NPC다.
     mbti가 없으면 npcId로 고른다. fixed의 칸(name·occupation·ageRange·values·motivations·interests)은 그대로 쓰고
     나머지만 고른다. 칸마다 씨앗을 따로 써서 한 칸을 고정해도 다른 칸은 바뀌지 않는다.
-    (인격 설정, 생활 파일). taken_names는 다른 NPC가 이미 쓰는 이름이라 고르지 않는다."""
+    (인격 설정, 생활 파일의 성격·역할 입력 노드). 근무지·교대는 정하지 않는다(생성 명령이 붙인다).
+    taken_names는 다른 NPC가 이미 쓰는 이름이라 고르지 않는다."""
     fixed = fixed or {}
 
     def rng(field: str) -> random.Random:

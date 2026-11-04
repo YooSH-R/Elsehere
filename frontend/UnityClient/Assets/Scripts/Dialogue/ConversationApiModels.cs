@@ -10,6 +10,9 @@ namespace A305.Dialogue
 
         /// <summary>USER 또는 NPC</summary>
         public string InitiatedBy { get; set; }
+
+        /// <summary>맡은 교대 밖이라 일하지 않는 직원과의 대화면 true. 서버가 응대 대신 쉬는 중의 일상 상황으로 대화한다.</summary>
+        public bool NpcOffDuty { get; set; }
     }
 
     public sealed class ConversationStart

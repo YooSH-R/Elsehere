@@ -1,5 +1,6 @@
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Npc;
 using A305.Npc;
 using NUnit.Framework;
 using UnityEditor;
@@ -16,7 +17,9 @@ namespace A305.World.Tests
     public sealed class BuildingStaffTests
     {
         private const string TownPath = "Assets/Scenes/Production/TownScene.unity";
-        private const string ColorFolder = "Assets/Art/Characters/BuildingStaff/";
+
+        // 모든 NPC의 색 사본은 외형 표가 NPC 키별 폴더에 만든다.
+        private const string ColorFolder = NpcCastDresser.ColorFolder + "/";
 
         // 모든 검사가 마을 씬을 읽기만 하므로 한 번만 연다.
         private Scene scene;

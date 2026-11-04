@@ -135,6 +135,27 @@ namespace A305.World.Tests
         }
 
         [Test]
+        public void TryBegin_EvenIfLocked_StartsTravelAndKeepsTheLock()
+        {
+            // 영업이 끝난 장소에서 내보낼 때는 튜토리얼 잠금과 상관없이 옮긴다.
+            state.Lock();
+
+            Assert.That(state.TryBegin("TownScene", "CafeDoor", evenIfLocked: true), Is.True);
+            Assert.That(state.IsTraveling, Is.True);
+            Assert.That(state.CompleteArrival(), Is.EqualTo("CafeDoor"));
+            Assert.That(state.IsLocked, Is.True);
+        }
+
+        [Test]
+        public void TryBegin_EvenIfLocked_WhileTraveling_IsRejected()
+        {
+            state.TryBegin("CafeScene", "TownDoor");
+
+            Assert.That(state.TryBegin("TownScene", "CafeDoor", evenIfLocked: true), Is.False);
+            Assert.That(state.CompleteArrival(), Is.EqualTo("TownDoor"));
+        }
+
+        [Test]
         public void Lock_StaysAfterArrivalOrCancel()
         {
             state.TryBegin("TownScene", "HomeDoor");

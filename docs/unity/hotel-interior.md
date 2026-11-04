@@ -54,6 +54,8 @@ Unity 1 unit = 1m이다. 남쪽은 마을로 통하는 입구, 북쪽은 프런�
 
 직원 외형은 Tripo로 만들어 외관 승인 뒤 최종 등록한 호텔리어 `Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab`이다(AI 인격 이름 Jake). 마스터 골격과 공용 이동 애니메이션을 쓰며, 직원 루트의 `CharacterAnimationDriver`가 이 Animator를 움직인다. **Tools → A305 → Hotel → Connect Hotelier Character**는 `HotelScene`·`HotelInteriorSandbox`의 직원에 호텔리어를 한 번만 붙이고 이전 임시 외형을 지운다. 직원 위치·대화·시선 대상·캡슐은 바꾸지 않는다.
 
+교대를 나눠 맡는 다른 직원(Owen·Clara·Walter·Diego)은 **Tools → A305 → Npc → Build Cast**가 데스크 양옆과 뒤쪽 양 끝에 둔다. Owen·Diego는 Jake와 같은 호텔리어 대화 외형에 배색만 바꾸고, Walter·Clara는 중년 외형을 쓴다. 근무 중인 직원 중 데스크에 가장 가까운 사람이 응대한다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#일터와-응대)).
+
 `MockHotelLines`는 로컬 검수용 인사말이며 서버의 NPC 이름·성격이나 호텔 체크인 미션을 구현한 데이터가 아니다. 예약·결제·객실 이동·수하물 조작은 별도 기능이다.
 
 양옆 대기 좌석의 소파에는 카페 의자와 같은 조작으로 앉는다. 소파마다 쿠션 두 개의 가운데에 자리를 두고, 가까운 자리 하나에 [잠깐 앉기]를 띄운다. 호텔 소파에서 쉰 것은 첫날 미션의 휴식으로 세지 않는다. 연결은 **Tools → A305 → Mission → Connect Bench And Sofa Sitting**이 하며 기준은 [Mission 모듈](../../frontend/UnityClient/Assets/Scripts/Mission/README.md#의자벤치소파-앉기)을 따른다. 호텔 가구에는 서버의 단어 키를 새로 부여하지 않았으므로 호버 툴팁이 나오지 않는다. 기존 출입문과 도착 지점은 유지한다.

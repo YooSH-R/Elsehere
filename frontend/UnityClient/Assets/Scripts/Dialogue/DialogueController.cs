@@ -143,12 +143,16 @@ namespace A305.Dialogue
         /// <param name="scriptKey">
         /// 대본을 찾을 키. 비우면 NPC 키로 찾는다. 튜토리얼에서 길을 묻는 Ben처럼 같은 NPC가 정해진 대본으로 말할 때 쓴다.
         /// </param>
+        /// <param name="npcOffDuty">
+        /// 교대 밖이라 일하지 않는 직원과의 대화인지. 서버 대화 시작(CONV-01)에 보내 응대 대신 일상 상황으로 대화하게 한다.
+        /// </param>
         /// <returns>대화를 시작했으면 true. 이미 대화 중이면 false.</returns>
         public bool TryStart(
             string npcCode,
             Transform lookTarget,
             ConversationInitiator initiatedBy = ConversationInitiator.Npc,
-            string scriptKey = null
+            string scriptKey = null,
+            bool npcOffDuty = false
         )
         {
             if (lookTarget == null || !session.TryStart(npcCode))
@@ -175,7 +179,12 @@ namespace A305.Dialogue
             bool isGuided = hasScript && script.GuidedTurns.Count > 0;
             if (conversationApi != null && !isGuided)
             {
-                StartServerConversation(npcCode, hasScript ? script.NpcName : npcCode, initiatedBy);
+                StartServerConversation(
+                    npcCode,
+                    hasScript ? script.NpcName : npcCode,
+                    initiatedBy,
+                    npcOffDuty
+                );
             }
             else
             {
@@ -391,7 +400,8 @@ namespace A305.Dialogue
         private void StartServerConversation(
             string npcCode,
             string npcName,
-            ConversationInitiator initiatedBy
+            ConversationInitiator initiatedBy,
+            bool npcOffDuty
         )
         {
             serverConversation = new ServerConversation(
@@ -399,7 +409,8 @@ namespace A305.Dialogue
                 npcName,
                 conversationApi,
                 VoiceConsent.Shared.IsAgreed,
-                initiatedBy
+                initiatedBy,
+                npcOffDuty: npcOffDuty
             );
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;

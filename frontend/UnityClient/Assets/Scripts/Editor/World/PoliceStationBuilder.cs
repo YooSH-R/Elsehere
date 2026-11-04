@@ -72,6 +72,16 @@ namespace A305.EditorTools.World
             new Vector3(1.5f, 0, SouthEnd),
         };
 
+        // 경찰관이 설 자리(건물 기준). 창구는 z -5.8~-5.0, x -2.2~2.2이고 앞문을 보고 선다. 근무 중인 경찰관 중 창구에 가장 가까운
+        // 사람이 응대하므로(NpcDuty) Dan이 창구 바로 뒤에 서고, 다른 경찰관은 Dan이 지나다닐 수 있게 조금 뒤나 창구 끝에 선다.
+        private static readonly (string Code, string ObjectName, Vector3 Spot)[] Officers =
+        {
+            (OfficerCode, "PoliceOfficer", new Vector3(0, 0, -6.4f)),
+            ("POLICE_SERGEANT", "PoliceSergeant", new Vector3(1.6f, 0, -7.2f)),
+            ("POLICE_PATROL_OFFICER", "PolicePatrolOfficer", new Vector3(-1.6f, 0, -7.2f)),
+            ("POLICE_ROOKIE", "PoliceRookie", new Vector3(2.8f, 0, -4.6f)),
+        };
+
         // 남행 차로 끝(-1.5, -25) → 서쪽으로 꺾어 주차장 북쪽을 지나 → 서쪽 끝에서 유턴해 → 동쪽을 보고 주차 칸
         private static readonly Vector3[] EntryCurve =
         {
@@ -136,8 +146,7 @@ namespace A305.EditorTools.World
                 carPrefab,
                 bayHeight
             );
-            NpcIdentity officer = Officer(scene, station);
-            Desk(scene, officer, car);
+            PlaceOfficers(scene, station, car);
             TaxiCabinBuilder.Configure(scene, BuilderTools.FindSingleInScene<TaxiRide>(scene));
             BuilderTools.SaveScene(scene, TownProductionBuilder.ScenePath);
             AssetDatabase.SaveAssets();
@@ -407,12 +416,57 @@ namespace A305.EditorTools.World
 
         // ---------- 경찰관 ----------
 
-        // 창구 뒤(건물 기준 z=-6.4)에 앞문을 보고 선다. 호텔리어 모델에 갈색 바지를 남색으로 바꾼 제복과 경찰 모자를 씌운다.
-        private static NpcIdentity Officer(Scene scene, Transform station)
+        /// <summary>
+        /// 경찰관 4명을 경찰서 창구 뒤에 두고, 누구에게 신고해도 순찰차가 출동하도록 경찰관마다 신고 창구를 잇는다.
+        /// 이미 있는 경찰관은 자리를 바꾸지 않는다. 순찰차가 이미 놓인 마을 장면에 쓰며, 장면 저장은 부르는 쪽이 한다.
+        /// </summary>
+        public static void PlaceOfficers(Scene scene)
+        {
+            PlaceOfficers(
+                scene,
+                TownProductionBuilder
+                    .Root(scene, "Environment")
+                    .Find("TownMainstreet/BackgroundBuildings/PoliceStation"),
+                BuilderTools.FindSingleInScene<PoliceCar>(scene)
+            );
+        }
+
+        /// <summary>
+        /// 생활이 붙은 경찰관이 거리 매장 직원처럼 경찰서 1층 안의 사물·자리만 골라 지내게 한다.
+        /// 생활(<see cref="NpcLifeBuilder"/>)을 붙인 뒤에 부르며, 장면 저장은 부르는 쪽이 한다.
+        /// </summary>
+        public static void KeepOfficersInStation(Scene scene)
+        {
+            foreach (var officer in Officers)
+            {
+                BuildingStaffBuilder.LimitToGroundFloor(scene, officer.Code, "PoliceStation");
+            }
+        }
+
+        private static void PlaceOfficers(Scene scene, Transform station, PoliceCar car)
+        {
+            foreach (var officer in Officers)
+            {
+                Desk(
+                    scene,
+                    Officer(scene, station, officer.Code, officer.ObjectName, officer.Spot),
+                    car
+                );
+            }
+        }
+
+        // 창구 뒤에 앞문을 보고 선다. 호텔리어 모델에 갈색 바지를 남색으로 바꾼 제복과 경찰 모자를 씌우고, 외형 표의 배색을 입힌다.
+        private static NpcIdentity Officer(
+            Scene scene,
+            Transform station,
+            string code,
+            string objectName,
+            Vector3 spot
+        )
         {
             NpcIdentity officer = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
-                .SingleOrDefault(npc => npc.Code == OfficerCode);
+                .SingleOrDefault(npc => npc.Code == code);
             if (officer == null)
             {
                 SceneGroups groups = BuilderTools.EnsureGroups(scene);
@@ -422,12 +476,12 @@ namespace A305.EditorTools.World
                         MenuPath
                     ),
                     groups.Characters,
-                    station.TransformPoint(new Vector3(0, 0, -6.4f)) + Vector3.up * .05f,
+                    NpcPlacement.FreeSpot(station, spot, BuildingStaffBuilder.GroundFloor),
                     station.rotation
                 );
-                staff.name = "PoliceOfficer";
+                staff.name = objectName;
                 officer = staff.GetComponent<NpcIdentity>();
-                BuilderTools.SetText(officer, "code", OfficerCode);
+                BuilderTools.SetText(officer, "code", code);
                 officer.LookTarget.localPosition = new Vector3(0, 1.12f, 0);
                 PrefabUtility.RecordPrefabInstancePropertyModifications(officer.LookTarget);
                 Transform placeholder = staff.transform.Find("Visual");
@@ -448,6 +502,7 @@ namespace A305.EditorTools.World
                 );
             }
 
+            NpcVisualBuilder.FitFooting(officer.GetComponent<CharacterController>());
             Passerby passerby = officer.GetComponent<Passerby>();
             BuilderTools.SetReference(passerby, "settings", OfficerSettings());
             BuilderTools.SetReference(
@@ -460,6 +515,7 @@ namespace A305.EditorTools.World
                 "animator",
                 officer.transform.Find("OfficerVisual").GetComponentInChildren<Animator>()
             );
+            NpcCastDresser.Dress(officer.gameObject, NpcCast.Find(code));
             NpcBuilder.ConnectToScene(
                 BuilderTools.EnsureGroups(scene),
                 BuilderTools.FindSingleInScene<PlayerMover>(scene),

@@ -112,7 +112,7 @@ public class TurnHelpService {
         turn.getGlossary(),
         conversation.getId(),
         conversation.getLevelApplied(),
-        dialogueContexts.npcById(conversation.getNpcId()).workerNpc());
+        dialogueContexts.npcOf(conversation).workerNpc());
   }
 
   private HintTarget hintTarget(Long userId, Long turnId) {
@@ -123,7 +123,7 @@ public class TurnHelpService {
         turn.getSuggestWords(),
         conversation.getId(),
         conversation.getLevelApplied(),
-        dialogueContexts.npcById(conversation.getNpcId()).workerNpc(),
+        dialogueContexts.npcOf(conversation).workerNpc(),
         dialogueContexts.historyUntil(conversation.getId(), turn.getSeq()));
   }
 

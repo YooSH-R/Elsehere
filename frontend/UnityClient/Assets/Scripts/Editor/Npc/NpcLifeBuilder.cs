@@ -34,6 +34,7 @@ namespace A305.EditorTools.Npc
         {
             "Assets/Scenes/Production/CafeScene.unity",
             "Assets/Scenes/Production/HotelScene.unity",
+            "Assets/Scenes/Production/ShopScene.unity",
             "Assets/Scenes/Production/TownScene.unity",
         };
 

@@ -122,6 +122,38 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_ByDefault_RequestsAnOnDutyConversation()
+        {
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts[0].NpcOffDuty, Is.False);
+        }
+
+        [Test]
+        public async Task Start_WithStaffOffDuty_RequestsAnOffDutyConversationEvenAfterClosingAnOldOne()
+        {
+            // 교대 밖의 직원과 말하면 서버가 응대 대신 쉬는 중에 잡담하는 일상 상황으로 대화한다(CONV-01 npcOffDuty).
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                ConversationInitiator.User,
+                npcOffDuty: true
+            );
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation { ConversationId = 41 };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Starts, Has.Count.EqualTo(2));
+            Assert.That(api.Starts[0].NpcOffDuty, Is.True);
+            Assert.That(api.Starts[1].NpcOffDuty, Is.True);
+        }
+
+        [Test]
         public async Task Start_WithoutServerNpcName_KeepsGivenName()
         {
             api.StartResponse.Npc = null;
@@ -1735,16 +1767,23 @@ namespace A305.Dialogue.Tests
 
         private sealed class StartRequest
         {
-            public StartRequest(string requestId, string npcCode, string initiatedBy)
+            public StartRequest(
+                string requestId,
+                string npcCode,
+                string initiatedBy,
+                bool npcOffDuty
+            )
             {
                 RequestId = requestId;
                 NpcCode = npcCode;
                 InitiatedBy = initiatedBy;
+                NpcOffDuty = npcOffDuty;
             }
 
             public string RequestId { get; }
             public string NpcCode { get; }
             public string InitiatedBy { get; }
+            public bool NpcOffDuty { get; }
         }
 
         private sealed class TurnRequest
@@ -1851,11 +1890,12 @@ namespace A305.Dialogue.Tests
             public Task<ConversationStart> StartAsync(
                 string requestId,
                 string npcCode,
-                string initiatedBy
+                string initiatedBy,
+                bool npcOffDuty
             )
             {
                 Calls.Add("Start");
-                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy));
+                Starts.Add(new StartRequest(requestId, npcCode, initiatedBy, npcOffDuty));
                 if (StartErrors.Count > 0)
                 {
                     return Task.FromException<ConversationStart>(StartErrors.Dequeue());

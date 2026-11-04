@@ -252,6 +252,22 @@ for part in eye_data["parts"]:
     normals = array(part["normals"])
     ob = bpy.data.objects[name]
     shapes = []
+    eye_tree = None
+    if part["frames"]:
+        center = 0.082 if part["channel"].endswith("Left") else -0.155
+        eye = next(
+            p
+            for p in eye_data["parts"]
+            if p["name"] == ("LeftEye" if center > 0 else "RightEye")
+        )
+        eye_tree = BVHTree.FromPolygons(
+            array(eye["vertices"]).tolist(),
+            np.array(eye["triangles"]).reshape(-1, 3).tolist(),
+        )
+        boundary_weight = np.ones(len(positions))
+        if name.endswith("Lid"):
+            rings = np.arange(len(positions)) // (len(positions) // 25)
+            boundary_weight = np.clip(rings / 8, 0, 1)
     blink_frames = [
         dict(frame, weight=(90 if frame["weight"] == 100 else frame["weight"]))
         for frame in part["frames"]
@@ -259,14 +275,41 @@ for part in eye_data["parts"]:
     if part["frames"]:
         blink_frames.append(part["frames"][-1])
     for frame in blink_frames:
+        closure = array(frame["vertices"])
+        horizontal = np.clip(1 - ((closure[:, 1] - center) / 0.044) ** 2, 0, 1)
+        ring = np.sqrt(
+            ((positions[:, 1] - center) / 0.066) ** 2
+            + ((positions[:, 2] - 0.573) / 0.060) ** 2
+        )
+        lift = 0.020 * horizontal * fade(ring, 0.55, 1.35) * boundary_weight
+        # Keep the lid in front of the eye over the full possible smile lift,
+        # including partial closure, rather than checking only the end pose.
+        for fraction in np.linspace(0, 1, 9):
+            for i, point in enumerate(closure):
+                hit, _, _, _ = eye_tree.ray_cast(
+                    Vector((-1, point[1], point[2] + lift[i] * fraction)),
+                    Vector((1, 0, 0)),
+                )
+                if hit is not None:
+                    point[0] = min(
+                        point[0], hit.x - (0.0016 if "Line" in name else 0.001)
+                    )
         shapes.append(
             {
                 "name": part["channel"],
                 "weight": frame["weight"],
-                "deltaVertices": vectors(array(frame["vertices"]) - positions),
+                "deltaVertices": vectors(closure - positions),
                 "deltaNormals": vectors(array(frame["normals"]) - normals),
             }
         )
+        key_name = part["channel"] + (
+            "" if frame["weight"] == 100 else "_" + str(frame["weight"])
+        )
+        key = ob.data.shape_keys.key_blocks.get(key_name)
+        if key is None:
+            key = ob.shape_key_add(name=key_name)
+        for point, value in zip(key.data, closure):
+            point.co = value
     if part["frames"]:
         # Raise the closed lid curve for smiling eyes instead of a sleepy lid.
         # The eyeball itself has no blend shape.
@@ -382,6 +425,39 @@ for part in eye_data["parts"]:
 
     if not (output / part["texture"]).exists():
         shutil.copyfile(eye_folder / part["texture"], output / part["texture"])
+for side in ("Left", "Right"):
+    texture_name = side + "LidSkin.png"
+    image = bpy.data.images.load(str(output / texture_name), check_existing=False)
+    pixels = np.array(image.pixels[:]).reshape(image.size[1], image.size[0], 4)
+    y, z = np.meshgrid(
+        np.linspace(-0.13, 0.13, image.size[0]), np.linspace(-0.13, 0.13, image.size[1])
+    )
+    radius = np.sqrt((y / 0.075) ** 2 + (z / 0.070) ** 2)
+    clean = radius < 0.65
+    coordinates = np.stack([np.ones_like(y), y, z], axis=-1)
+    skin_fit = np.linalg.lstsq(coordinates[clean], pixels[clean, :3], rcond=None)[0]
+    expected = np.clip(coordinates @ skin_fit, 0, 1)
+    # Tiny old painted eye-rim flecks outside the original bake's clean ellipse
+    # become visible when the lid moves. Keep brow/hair pixels outside this patch.
+    blend = np.clip((expected[:, :, 0] - pixels[:, :, 0] - 0.035) / 0.07, 0, 1) * fade(
+        radius, 0.95, 1.12
+    )
+    pixels[:, :, :3] = (
+        pixels[:, :, :3] * (1 - blend[..., None]) + expected * blend[..., None]
+    )
+    image.pixels.foreach_set(pixels.astype(np.float32).reshape(-1))
+    image.filepath_raw = str(output / texture_name)
+    image.file_format = "PNG"
+    image.save()
+    image.pack()
+    for ob in target_library.objects:
+        for material in ob.data.materials:
+            for node in material.node_tree.nodes:
+                if (
+                    node.type == "TEX_IMAGE"
+                    and Path(node.image.filepath).name == texture_name
+                ):
+                    node.image = image
 json_path.write_text(json.dumps(export, separators=(",", ":")), encoding="utf-8")
 bpy.ops.wm.save_as_mainfile(filepath=str(blend_path))
 print(

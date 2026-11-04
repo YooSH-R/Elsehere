@@ -108,7 +108,8 @@ namespace A305.Dialogue.Tests
             public Task<ConversationStart> StartAsync(
                 string requestId,
                 string npcCode,
-                string initiatedBy
+                string initiatedBy,
+                bool npcOffDuty
             )
             {
                 throw new NotSupportedException();

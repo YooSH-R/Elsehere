@@ -136,8 +136,21 @@ namespace A305.Learning
         [Tooltip("메모 제목·입력칸·[저장]. 예시 문장이 없으면 그 자리로 올린다")]
         private RectTransform[] memoParts;
 
-        // 메모 부분들이 예시 문장 아래에 있을 때의 높이
-        private float[] memoPartTops;
+        // 메모 제목 기준으로 입력칸·[저장]이 얼마나 아래에 있는지
+        private float[] memoPartOffsets;
+
+        // 상세 제목·뜻의 글자 크기. 문장처럼 길면 두 줄(최대 높이) 안에 들 때까지 최소 크기까지 줄인다.
+        private const float WordFontSize = 34;
+        private const float WordMinFontSize = 20;
+        private const float WordMaxHeight = 72;
+        private const float MeaningFontSize = 22;
+        private const float MeaningMinFontSize = 16;
+        private const float MeaningMaxHeight = 56;
+
+        // 제목과 뜻 사이, 뜻과 예시 문장 사이, 예시 문장과 메모 사이
+        private const float WordGap = 6;
+        private const float SectionGap = 20;
+        private const float MemoGap = 12;
 
         private VocabularyBook book;
 
@@ -268,7 +281,7 @@ namespace A305.Learning
                     ? ContextTitle
                     : $"{ContextTitle} · {SelectedEntry.SourceLabel}";
             contextSection.SetActive(!string.IsNullOrWhiteSpace(SelectedEntry.ContextText));
-            PlaceMemo();
+            StackDetails();
             pageText.text = $"{selectedIndex + 1} / {count}";
             previousButton.interactable = hasEntries && selectedIndex > 0;
             nextButton.interactable = hasEntries && selectedIndex < count - 1;
@@ -297,6 +310,8 @@ namespace A305.Learning
                 meaning.anchoredPosition.x,
                 sentence.anchoredPosition.y - sentenceHeight - 6
             );
+            // 긴 대사의 뜻도 따뜻한 색 칸 안에 들도록 두 줄 안에서 글자를 줄인다.
+            FitLines(contextMeaningText, 18, 14, 44);
         }
 
         // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
@@ -306,24 +321,51 @@ namespace A305.Learning
                 CenterWindow.Shared.Place(PanelRect);
         }
 
-        // 예시 문장이 없는 단어(사물 카드에서 저장한 단어 등)는 뜻과 메모 사이가 비지 않게 메모를 문장 자리로 올린다.
-        private void PlaceMemo()
+        // 상세는 단어 → 뜻 → 예시 문장 → 메모를 위에서부터 실제 글 높이만큼 쌓아, 문장을 담아도 서로 겹치지 않게 한다.
+        // 예시 문장이 없는 단어(사물 카드에서 저장한 단어 등)는 그 자리를 비우지 않고 메모를 올린다.
+        private void StackDetails()
         {
-            float lift = contextSection.activeSelf
-                ? 0
-                : ((RectTransform)contextSection.transform).anchoredPosition.y - memoPartTops[0];
+            float top = 0;
+            SetTop(wordText.rectTransform, top);
+            top += FitLines(wordText, WordFontSize, WordMinFontSize, WordMaxHeight) + WordGap;
+            SetTop(meaningText.rectTransform, top);
+            top +=
+                FitLines(meaningText, MeaningFontSize, MeaningMinFontSize, MeaningMaxHeight)
+                + SectionGap;
+            var context = (RectTransform)contextSection.transform;
+            SetTop(context, top);
+            if (contextSection.activeSelf)
+                top += context.rect.height + MemoGap;
             for (int i = 0; i < memoParts.Length; i++)
-            {
-                memoParts[i].anchoredPosition = new Vector2(
-                    memoParts[i].anchoredPosition.x,
-                    memoPartTops[i] + lift
-                );
-            }
+                SetTop(memoParts[i], top + memoPartOffsets[i]);
+        }
+
+        // 글이 maxHeight 안에 들 때까지 글자를 1씩 줄이고(최소 minSize), 칸 높이를 글 높이에 맞춰 돌려준다.
+        private static float FitLines(TMP_Text text, float size, float minSize, float maxHeight)
+        {
+            float width = text.rectTransform.rect.width;
+            text.fontSize = size;
+            while (
+                text.fontSize > minSize
+                && text.GetPreferredValues(text.text, width, 0).y > maxHeight
+            )
+                text.fontSize -= 1;
+            float height = Mathf.Min(text.GetPreferredValues(text.text, width, 0).y, maxHeight);
+            text.rectTransform.sizeDelta = new Vector2(text.rectTransform.sizeDelta.x, height);
+            return height;
+        }
+
+        // 위쪽 기준 칸을 상세 맨 위에서 top만큼 내린다.
+        private static void SetTop(RectTransform rect, float top)
+        {
+            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, -top);
         }
 
         private void Awake()
         {
-            memoPartTops = memoParts.Select(part => part.anchoredPosition.y).ToArray();
+            memoPartOffsets = memoParts
+                .Select(part => memoParts[0].anchoredPosition.y - part.anchoredPosition.y)
+                .ToArray();
             memoInput.characterLimit = VocabularyBook.MaxMemoLength;
             entryTemplate.gameObject.SetActive(false);
             previousButton.onClick.AddListener(() => MoveSelection(-1));

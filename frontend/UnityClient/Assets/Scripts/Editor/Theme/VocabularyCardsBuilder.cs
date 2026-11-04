@@ -170,13 +170,17 @@ namespace A305.EditorTools.Theme
             Button next = IconButton(content, "NextButton", UiIcon.Next, 238, 372);
             // 고른 단어의 상세(단어·뜻·[외웠어요]·[삭제]·예시 문장·메모)를 한 장의 카드 위에 모아 목록과 구분한다.
             RectTransform detailsCard = Rect(content, "DetailsCard");
-            Position(detailsCard, 344, -16, 644, 410);
+            Position(detailsCard, 344, -16, 644, 460);
             detailsCard.SetAsFirstSibling();
             SolidCard(detailsCard, Color.white);
             RectTransform details = Rect(content, "Details");
-            Position(details, 366, 0, 600, 400);
+            Position(details, 366, 0, 600, 440);
+            // 피드백 표현처럼 긴 문장도 담긴다. 제목·뜻은 길면 두 줄 안에 들 때까지 VocabularyView가 글자를 줄이고,
+            // 그 아래 칸들을 글 높이만큼 내린다.
             TMP_Text word = Text(details, "Word", "", 34, 0, 0, 380, 46, UiThemeRole.Title);
+            word.enableAutoSizing = false;
             TMP_Text meaning = Text(details, "Meaning", "", 22, 0, 52, 600, 34, UiThemeRole.Accent);
+            meaning.enableAutoSizing = false;
             // 예시 문장·메모는 피드백 화면처럼 코랄 막대 제목으로 구역을 나누고, 예시 문장은 따뜻한 색 칸에 담는다.
             RectTransform context = Rect(details, "Context");
             Position(context, 0, 104, 600, 166);

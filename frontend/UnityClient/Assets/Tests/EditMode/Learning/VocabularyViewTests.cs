@@ -6,6 +6,7 @@ using NUnit.Framework;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace A305.Learning.Tests
@@ -99,7 +100,7 @@ namespace A305.Learning.Tests
 
             Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("umbrella"));
             Assert.That(Text("Panel/Content/Page"), Is.EqualTo("1 / 1"));
-            Assert.That(Shown("Panel/Content/Entries/Entry1"), Is.False);
+            Assert.That(Shown("Panel/Content/Entries/Rows/Entry1"), Is.False);
         }
 
         [Test]
@@ -117,13 +118,13 @@ namespace A305.Learning.Tests
                 "보던 단어를 그대로 고른다"
             );
             Assert.That(Text("Panel/ShowLearnedButton/Label"), Is.EqualTo("외운 표현 숨기기"));
-            Assert.That(Text("Panel/Content/Entries/Entry0/Label"), Is.EqualTo("counter"));
+            Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Label"), Is.EqualTo("counter"));
             Assert.That(
-                Text("Panel/Content/Entries/Entry0/Meaning"),
+                Text("Panel/Content/Entries/Rows/Entry0/Meaning"),
                 Is.EqualTo("조리대 · 외웠어요")
             );
-            Assert.That(Text("Panel/Content/Entries/Entry1/Meaning"), Is.EqualTo("우산"));
-            Click("Panel/Content/Entries/Entry0");
+            Assert.That(Text("Panel/Content/Entries/Rows/Entry1/Meaning"), Is.EqualTo("우산"));
+            Click("Panel/Content/Entries/Rows/Entry0");
             Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("counter"));
             Assert.That(Text("Panel/Content/LearnedButton/Label"), Is.EqualTo("다시 학습"));
         }
@@ -179,7 +180,7 @@ namespace A305.Learning.Tests
                 Is.EqualTo(context.anchoredPosition.y).Within(0.01f)
             );
 
-            Click("Panel/Content/Entries/Entry1");
+            Click("Panel/Content/Entries/Rows/Entry1");
 
             Assert.That(
                 Rect("Panel/Content/Details/MemoTitle").anchoredPosition.y,
@@ -215,26 +216,59 @@ namespace A305.Learning.Tests
             Assert.That(called, Is.False);
         }
 
+        // 단어가 많으면 왼쪽 목록에 모두 두고 스크롤해 본다. 화살표로 고른 단어는 목록 안에 보이게 스크롤하고,
+        // 누른 줄은 그 단어를 고른다.
         [Test]
-        public async Task NavigationCrossesFourRowBoundaryAndKeepsClickedTarget()
+        public async Task ManyWords_AllListedInAScrollList_ArrowsKeepTheSelectedWordInView()
         {
-            await Open(new SampleApi { Count = 6 });
+            await Open(new SampleApi { Count = 8 });
+            var list = screen.transform.Find("Panel/Content/Entries").GetComponent<ScrollRect>();
+            Assert.That(list, Is.Not.Null, "목록이 스크롤 목록이어야 합니다.");
+            Assert.That(list.vertical, Is.True);
+            Assert.That(
+                Shown("Panel/Content/Entries/Rows/Entry7"),
+                Is.True,
+                "여덟 단어 모두 목록에 있다"
+            );
             Button next = screen.transform.Find("Panel/Content/NextButton").GetComponent<Button>();
-            for (int i = 0; i < 4; i++)
+
+            for (int i = 0; i < 7; i++)
                 next.onClick.Invoke();
-            Assert.That(
-                screen.transform.Find("Panel/Content/Page").GetComponent<TMP_Text>().text,
-                Is.EqualTo("5 / 6")
-            );
-            screen
-                .transform.Find("Panel/Content/Entries/Entry1")
-                .GetComponent<Button>()
-                .onClick.Invoke();
-            Assert.That(
-                screen.transform.Find("Panel/Content/Page").GetComponent<TMP_Text>().text,
-                Is.EqualTo("6 / 6")
-            );
+
+            Assert.That(Text("Panel/Content/Page"), Is.EqualTo("8 / 8"));
             Assert.That(next.interactable, Is.False);
+            Assert.That(
+                IsInside(Rect("Panel/Content/Entries/Rows/Entry7"), Rect("Panel/Content/Entries")),
+                Is.True,
+                "고른 단어가 목록 안에 보입니다."
+            );
+
+            Click("Panel/Content/Entries/Rows/Entry1");
+
+            Assert.That(Text("Panel/Content/Page"), Is.EqualTo("2 / 8"));
+        }
+
+        [Test]
+        public async Task MouseWheel_ScrollsALongList()
+        {
+            await Open(new SampleApi { Count = 8 });
+            var list = screen.transform.Find("Panel/Content/Entries").GetComponent<ScrollRect>();
+            float before = list.content.anchoredPosition.y;
+
+            list.OnScroll(new PointerEventData(null) { scrollDelta = new Vector2(0, -1) });
+
+            Assert.That(list.content.anchoredPosition.y, Is.GreaterThan(before));
+        }
+
+        // 줄의 위아래가 목록 보이는 곳 안에 있는지(그림자 여백 1px은 봐준다)
+        private static bool IsInside(RectTransform row, RectTransform viewport)
+        {
+            var rowCorners = new Vector3[4];
+            var viewCorners = new Vector3[4];
+            row.GetWorldCorners(rowCorners);
+            viewport.GetWorldCorners(viewCorners);
+            return rowCorners[0].y >= viewCorners[0].y - 1
+                && rowCorners[1].y <= viewCorners[1].y + 1;
         }
 
         [Test]
@@ -286,7 +320,7 @@ namespace A305.Learning.Tests
             Assert.That(word, Is.Not.Null, "선택한 단어를 목록과 분리해 표시해야 합니다.");
             Assert.That(word.GetComponent<TMP_Text>().text, Is.EqualTo("counter"));
             screen
-                .transform.Find("Panel/Content/Entries/Entry1")
+                .transform.Find("Panel/Content/Entries/Rows/Entry1")
                 .GetComponent<Button>()
                 .onClick.Invoke();
             Assert.That(word.GetComponent<TMP_Text>().text, Is.EqualTo("umbrella"));
@@ -317,7 +351,7 @@ namespace A305.Learning.Tests
             await Open(new SampleApi());
 
             screen
-                .transform.Find("Panel/Content/Entries/Entry1")
+                .transform.Find("Panel/Content/Entries/Rows/Entry1")
                 .GetComponent<Button>()
                 .onClick.Invoke();
 
@@ -337,7 +371,7 @@ namespace A305.Learning.Tests
             await Open(new SampleApi());
 
             screen
-                .transform.Find("Panel/Content/Entries/Entry1")
+                .transform.Find("Panel/Content/Entries/Rows/Entry1")
                 .GetComponent<Button>()
                 .onClick.Invoke();
 

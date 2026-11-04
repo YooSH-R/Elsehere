@@ -76,6 +76,7 @@ public class Conversation extends BaseEntity {
   private Instant endedAt;
 
   private Integer firstDayStage;
+  private Integer townStoryStage;
 
   // 대화를 시작한 요청 ID(CONV-01). 같은 ID로 다시 보내면 대화를 새로 만들지 않는다. 이 칸을 넣기 전의 대화는 null이다.
   @Column(unique = true)
@@ -83,6 +84,10 @@ public class Conversation extends BaseEntity {
 
   public void attachFirstDayStage(Integer stage) {
     this.firstDayStage = stage;
+  }
+
+  public void attachTownStoryStage(Integer stage) {
+    this.townStoryStage = stage;
   }
 
   public void attachStartRequest(UUID requestId) {

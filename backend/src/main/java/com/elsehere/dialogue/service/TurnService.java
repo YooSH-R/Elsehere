@@ -19,7 +19,7 @@ import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
-import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.MissionDialogueService;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +76,7 @@ public class TurnService {
   private final MemoryService memoryService;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
-  private final FirstDayMissionService firstDayMissionService;
+  private final MissionDialogueService missionDialogueService;
   private final Clock clock;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
@@ -90,15 +90,15 @@ public class TurnService {
     TurnContext context =
         transactionTemplate.execute(status -> turnContext(userId, conversationId));
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
-    Optional<FirstDayMissionService.Context> mission =
-        firstDayMissionService.context(userId, context.npc().summary().npcCode());
+    Optional<MissionDialogueService.Context> mission =
+        missionDialogueService.context(userId, context.npc().summary().npcCode());
 
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
         aiGateway.judge(
             trace,
             context.npc().workerNpc(),
-            mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
+            mission.map(value -> value.detail().state()).orElse(FREE_TALK),
             context.history(),
             request.text());
     if (judge.dropped()) {
@@ -114,7 +114,7 @@ public class TurnService {
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
-            : mission.map(value -> value.replyInstruction(judge.intent())).orElse("");
+            : mission.map(value -> value.detail().replyInstruction(judge.intent())).orElse("");
 
     NpcReply reply =
         aiGateway.reply(
@@ -176,8 +176,8 @@ public class TurnService {
           if (!rude) {
             mission.ifPresent(
                 value ->
-                    firstDayMissionService.accept(
-                        userId, value.stage(), context.npc().summary().npcCode(), judge.intent()));
+                    missionDialogueService.accept(
+                        userId, context.npc().summary().npcCode(), value, judge.intent()));
           }
           return response(conversation, userTurn, npcTurn);
         });

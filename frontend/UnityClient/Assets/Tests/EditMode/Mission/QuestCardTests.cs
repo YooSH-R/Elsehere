@@ -64,6 +64,41 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void TownStoryPreservesFirstDayBelongings()
+        {
+            FirstDayMissionState state = Journey(current: 0);
+            state.IsTownStory = true;
+            state.Balance = 12;
+            Refresh(state);
+
+            string belongings = Field<TMP_Text>("belongings").text;
+            Assert.That(belongings, Does.Contain("캐리어 · 찾음"));
+            Assert.That(belongings, Does.Contain("파란 가방 · 찾음"));
+            Assert.That(belongings, Does.Contain("우산 · 소지 중"));
+            Assert.That(belongings, Does.Contain("12코인"));
+        }
+
+        [Test]
+        public void TownStoryProgressFitsAllTwelveStepsInsideTheCard()
+        {
+            FirstDayMissionState state = Journey(current: 0);
+            state.IsTownStory = true;
+            for (int i = state.Steps.Count; i < 12; i++)
+                state.Steps.Add(new FirstDayMissionStep { Index = i, Status = "UPCOMING" });
+            Refresh(state);
+            RectTransform progress = Field<RectTransform>("progress");
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(progress);
+
+            RectTransform last = (RectTransform)progress.GetChild(11);
+            Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+                progress,
+                last
+            );
+            Assert.That(bounds.max.x, Is.LessThanOrEqualTo(progress.rect.xMax + 20));
+        }
+
+        [Test]
         public void Place_ShowsTheShortTitleOfTheCurrentStep()
         {
             Refresh(Journey(current: 5));

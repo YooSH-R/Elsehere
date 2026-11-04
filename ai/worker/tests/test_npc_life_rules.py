@@ -134,9 +134,9 @@ def test_the_service_places_are_staffed_while_open():
 
 
 def test_open_hours_without_a_shift_are_a_problem():
-    rules = rules_with(("places", "CAFE", "shifts", "CLOSING", "from"), "16:00")  # 오픈 교대는 15:00까지
+    rules = rules_with(("places", "CAFE", "shifts", "CLOSING", "from"), "19:00")  # 낮 교대는 18:00까지
 
-    assert npc_life_rules.place_problems(rules) == ["places.CAFE: 15:00~16:00에 맡은 교대가 없음"]
+    assert npc_life_rules.place_problems(rules) == ["places.CAFE: 18:00~19:00에 맡은 교대가 없음"]
 
 
 def test_a_shift_outside_the_opening_hours_is_a_problem():

@@ -82,6 +82,15 @@ def place_problems(rules: dict) -> list[str]:
     return problems
 
 
+def understaffed(lives: list[dict], rules: dict, workplace: str, span: dict, at_least: int) -> list[str]:
+    """span(from·to) 동안 그 근무지에서 맡은 교대 중인 NPC(생활 파일의 근무지·교대로 셈, 쉬는 시간 포함)가
+    at_least명보다 적은 시간. 마을(TOWN)은 나와 있는 행인 수다."""
+    shifts = rules["places"][workplace]["shifts"]
+    on_shift = _painted(shifts[life["shift"]] for life in lives if life["workplace"] == workplace)
+    short = [inside > 0 and count < at_least for inside, count in zip(_painted([span]), on_shift)]
+    return [f"{workplace}: {_clock(start)}~{_clock(end)}에 교대 중인 NPC가 {at_least}명보다 적음" for start, end in _runs(short, bool)]
+
+
 DAY_MINUTES = 24 * 60
 
 

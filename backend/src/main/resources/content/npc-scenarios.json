@@ -54,6 +54,19 @@
       "The hotel is right across the main street: cross at the crosswalk outside the cafe door, turn left, and it is a few steps up on the corner."
     ]
   },
+  "CAFE_SERVER": {
+    "scenarioId": "cafe_counter",
+    "locationId": "CAFE",
+    "situation": "The customer is at the counter of the corner cafe.",
+    "facts": [
+      "Menu: americano $4, latte $5, cappuccino $5, muffin $3.",
+      "Coffee drinks can be hot or iced at the same price.",
+      "Sizes are small or large. Large is $1 more.",
+      "Milk can be regular or soy at no extra cost.",
+      "The restroom is at the back of the cafe.",
+      "The hotel is right across the main street: cross at the crosswalk outside the cafe door, turn left, and it is a few steps up on the corner."
+    ]
+  },
   "CAFE_STAFF": {
     "scenarioId": "cafe_counter",
     "locationId": "CAFE",
@@ -97,6 +110,26 @@
       "A lamp is $30. An armchair is $150.",
       "Leaf Tea Room, a separate shop, is upstairs. Its entrance is by the outside stairs.",
       "Maple Diner is right across the main street."
+    ]
+  },
+  "HOTEL_BELLHOP": {
+    "scenarioId": "hotel_front_desk",
+    "locationId": "HOTEL",
+    "situation": "The guest is at the front desk of the hotel lobby.",
+    "facts": [
+      "Check-in is from 3 p.m. Check-out is by 11 a.m.",
+      "There is a reservation under the guest's name: a standard room for one night, already paid.",
+      "Their room is 305 on the third floor. The elevators are in the lobby."
+    ]
+  },
+  "HOTEL_CONCIERGE": {
+    "scenarioId": "hotel_front_desk",
+    "locationId": "HOTEL",
+    "situation": "The guest is at the front desk of the hotel lobby.",
+    "facts": [
+      "Check-in is from 3 p.m. Check-out is by 11 a.m.",
+      "There is a reservation under the guest's name: a standard room for one night, already paid.",
+      "Their room is 305 on the third floor. The elevators are in the lobby."
     ]
   },
   "HOTEL_NIGHT_MANAGER": {
@@ -202,6 +235,15 @@
       "The corner cafe and the hotel are on the main street, right across from each other."
     ]
   },
+  "TOWN_HANDYMAN": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
   "TOWN_PASSERBY": {
     "scenarioId": "town_street",
     "locationId": "TOWN",
@@ -212,6 +254,15 @@
     ]
   },
   "TOWN_RETIREE": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "TOWN_SHOPPER": {
     "scenarioId": "town_street",
     "locationId": "TOWN",
     "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",

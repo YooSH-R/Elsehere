@@ -66,11 +66,16 @@
   "places": {
     "CAFE": {
       "hours": { "from": "07:00", "to": "21:00" },
-      "shifts": { "OPENING": { "from": "07:00", "to": "15:00" }, "CLOSING": { "from": "13:00", "to": "21:00" } }
+      "shifts": {
+        "OPENING": { "from": "07:00", "to": "15:00" },
+        "MIDDAY": { "from": "10:00", "to": "18:00" },
+        "CLOSING": { "from": "13:00", "to": "21:00" }
+      }
     },
     "HOTEL": {
       "shifts": {
         "DAY": { "from": "06:00", "to": "14:30" },
+        "MIDDAY": { "from": "10:00", "to": "18:00" },
         "EVENING": { "from": "14:00", "to": "22:30" },
         "NIGHT": { "from": "22:00", "to": "06:30" }
       }
@@ -97,6 +102,7 @@
       "shifts": {
         "MORNING": { "from": "06:00", "to": "13:00" },
         "DAY": { "from": "09:00", "to": "18:00" },
+        "MIDDAY": { "from": "10:00", "to": "18:00" },
         "AFTERNOON": { "from": "12:00", "to": "20:00" },
         "EVENING": { "from": "16:00", "to": "23:00" }
       }

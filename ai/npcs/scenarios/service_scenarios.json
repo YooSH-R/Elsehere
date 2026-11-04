@@ -4,10 +4,13 @@
   "BANK_STAFF": "bank_counter",
   "BARBER_STAFF": "barber_shop",
   "CAFE_BARISTA": "cafe_counter",
+  "CAFE_SERVER": "cafe_counter",
   "CAFE_STAFF": "cafe_counter",
   "DINER_STAFF": "diner_counter",
   "FLOWER_SHOP_STAFF": "flower_shop_counter",
   "HOME_STORE_STAFF": "home_store",
+  "HOTEL_BELLHOP": "hotel_front_desk",
+  "HOTEL_CONCIERGE": "hotel_front_desk",
   "HOTEL_NIGHT_MANAGER": "hotel_front_desk",
   "HOTEL_RECEPTIONIST": "hotel_front_desk",
   "HOTEL_STAFF": "hotel_front_desk",
@@ -19,7 +22,9 @@
   "SHOP_STAFF": "drugstore_counter",
   "TAXI_DRIVER": "taxi_ride",
   "TOWN_EVENING_WALKER": "town_street",
+  "TOWN_HANDYMAN": "town_street",
   "TOWN_PASSERBY": "town_street",
   "TOWN_RETIREE": "town_street",
+  "TOWN_SHOPPER": "town_street",
   "TOWN_STUDENT": "town_street"
 }

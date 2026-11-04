@@ -303,6 +303,40 @@
       ]
     },
     {
+      "npcId": "CAFE_SERVER",
+      "role": "STAFF",
+      "scene": "CAFE",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.56,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "14:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "14:00",
+          "to": "14:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "14:30",
+          "to": "18:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "18:00",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "CAFE_STAFF",
       "role": "STAFF",
       "scene": "CAFE",
@@ -433,6 +467,74 @@
         },
         {
           "from": "20:00",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_BELLHOP",
+      "role": "STAFF",
+      "scene": "HOTEL",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "14:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "14:00",
+          "to": "14:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "14:30",
+          "to": "18:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "18:00",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "HOTEL_CONCIERGE",
+      "role": "STAFF",
+      "scene": "HOTEL",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "14:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "14:00",
+          "to": "14:30",
+          "activity": "BREAK"
+        },
+        {
+          "from": "14:30",
+          "to": "18:00",
+          "activity": "WORK"
+        },
+        {
+          "from": "18:00",
           "to": "10:00",
           "activity": "OFF"
         }
@@ -798,6 +900,30 @@
       ]
     },
     {
+      "npcId": "TOWN_HANDYMAN",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "18:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "18:00",
+          "to": "10:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "TOWN_PASSERBY",
       "role": "PASSERBY",
       "scene": "TOWN",
@@ -841,6 +967,30 @@
         {
           "from": "13:00",
           "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_SHOPPER",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "10:00",
+          "to": "18:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "18:00",
+          "to": "10:00",
           "activity": "OFF"
         }
       ]

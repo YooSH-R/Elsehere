@@ -285,7 +285,7 @@ def test_the_cli_refuses_a_shift_the_place_does_not_have(tmp_path, capsys):
     with pytest.raises(SystemExit):
         npc_generate.main(["GEN_001", "INTJ-T", "STAFF", "CAFE", "NIGHT", "--out", str(out)])
 
-    assert "CAFE의 교대는 OPENING, CLOSING 중 하나" in capsys.readouterr().err
+    assert "CAFE의 교대는 OPENING, MIDDAY, CLOSING 중 하나" in capsys.readouterr().err
     assert not out.exists()
 
 

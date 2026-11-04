@@ -196,11 +196,16 @@ namespace A305.Learning.Tests
         {
             await Open(new SampleApi { Words = new[] { "sofa", "apple", "latte", "Lemon" } });
             Assert.That(Shown("Panel/Content/Letters"), Is.False, "최근순에서는 알파벳 줄이 없다");
-            Assert.That(Text("Panel/SortButton/Label"), Is.EqualTo("알파벳순으로 보기"));
+            Assert.That(Text("Panel/Content/SortButton/Label"), Is.EqualTo("알파벳순으로 보기"));
+            Assert.That(
+                IsAbove(Rect("Panel/Content/SortButton"), Rect("Panel/Content/Entries")),
+                Is.True,
+                "정렬 버튼은 목록 바로 위에 있다"
+            );
 
-            Click("Panel/SortButton");
+            Click("Panel/Content/SortButton");
 
-            Assert.That(Text("Panel/SortButton/Label"), Is.EqualTo("최근순으로 보기"));
+            Assert.That(Text("Panel/Content/SortButton/Label"), Is.EqualTo("최근순으로 보기"));
             Assert.That(Shown("Panel/Content/Letters"), Is.True);
             Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Label"), Is.EqualTo("apple"));
             Assert.That(Text("Panel/Content/Entries/Rows/Entry3/Label"), Is.EqualTo("sofa"));
@@ -222,7 +227,7 @@ namespace A305.Learning.Tests
             Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("latte"));
             Assert.That(Text("Panel/Content/Page"), Is.EqualTo("2 / 4"));
 
-            Click("Panel/SortButton");
+            Click("Panel/Content/SortButton");
 
             Assert.That(Shown("Panel/Content/Letters"), Is.False);
             Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Label"), Is.EqualTo("sofa"));
@@ -230,6 +235,18 @@ namespace A305.Learning.Tests
         }
 
         private RectTransform Rect(string path) => (RectTransform)screen.transform.Find(path);
+
+        // upper의 아래쪽이 lower의 위쪽보다 위에 있고, 둘이 가로로 겹치는지
+        private static bool IsAbove(RectTransform upper, RectTransform lower)
+        {
+            var upperCorners = new Vector3[4];
+            var lowerCorners = new Vector3[4];
+            upper.GetWorldCorners(upperCorners);
+            lower.GetWorldCorners(lowerCorners);
+            return upperCorners[0].y >= lowerCorners[1].y - 1
+                && upperCorners[0].x < lowerCorners[2].x
+                && upperCorners[2].x > lowerCorners[0].x;
+        }
 
         private bool Shown(string path) => screen.transform.Find(path).gameObject.activeSelf;
 
@@ -385,7 +402,8 @@ namespace A305.Learning.Tests
             Assert.That(saved.UserVocabId, Is.EqualTo(2));
         }
 
-        // 대화에서 저장한 단어는 저장한 문장이 어느 NPC의 말인지 함께 보인다(API 명세 4.8 화면 18).
+        // 저장한 건 단어이므로 문장 칸 제목은 '예시 문장'이고, 대화에서 저장한 단어는 어느 NPC가 한 말인지 붙인다
+        // (API 명세 4.8 화면 18).
         [Test]
         public async Task WordSavedFromNpcLine_ShowsTheNpcAboveTheSentence()
         {
@@ -401,8 +419,17 @@ namespace A305.Learning.Tests
                     .transform.Find("Panel/Content/Details/Context/Title")
                     .GetComponent<TMP_Text>()
                     .text,
-                Is.EqualTo("저장한 문장 · Mia의 말")
+                Is.EqualTo("예시 문장 · Mia가 한 말")
             );
+        }
+
+        // 사물 카드·피드백에서 저장한 단어의 문장은 예시 문장이라고만 쓴다.
+        [Test]
+        public async Task WordSavedFromObjectCard_ShowsItsSentenceAsExampleSentence()
+        {
+            await Open(new SampleApi { CounterExample = true });
+
+            Assert.That(Text("Panel/Content/Details/Context/Title"), Is.EqualTo("예시 문장"));
         }
 
         // 화면 18 상세는 저장한 문장과 그 문장의 뜻을 함께 보인다(API 명세 4.8).
@@ -438,6 +465,9 @@ namespace A305.Learning.Tests
 
             // 정해 두면 기본 단어 대신 이 영어 단어들을 최근 저장순으로 돌려준다.
             public string[] Words { get; set; }
+
+            // counter를 사물 카드에서 예문과 함께 저장한 단어로 둔다.
+            public bool CounterExample { get; set; }
 
             public Task<VocabPage> GetPageAsync(string cursor)
             {
@@ -496,6 +526,15 @@ namespace A305.Learning.Tests
                         .ToList();
                 foreach (VocabItem item in items)
                     item.Memorized = LearnedIds.Contains(item.UserVocabId);
+                if (CounterExample)
+                {
+                    items[0].Context = new VocabContext
+                    {
+                        Text = "Put the cup on the counter.",
+                        MeaningKo = "컵을 조리대에 올려 두세요.",
+                    };
+                    items[0].Source = new VocabSource { SourceType = "OBJECT" };
+                }
                 return Task.FromResult(new VocabPage { Items = items });
             }
 

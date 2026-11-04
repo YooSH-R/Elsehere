@@ -510,19 +510,23 @@ namespace A305.Learning.Tests
             Assert.That(entry.ContextMeaning, Is.EqualTo("아이스 라떼 드릴까요?"));
         }
 
+        // 대화에서 저장한 단어의 문장은 그 NPC가 한 말이다. 이름 끝소리에 맞춰 이·가를 고른다(Ben이, Mia가).
         [Test]
         public async Task LoadAsync_WordSavedFromNpcLine_NamesTheNpc()
         {
             VocabItem fromBen = Item(40, "latte", "라떼");
             fromBen.Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Ben" };
+            VocabItem fromMia = Item(41, "iced", "차가운");
+            fromMia.Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Mia" };
             VocabItem fromObject = Item(31, "sofa", "소파");
             fromObject.Source = new VocabSource { SourceType = "OBJECT" };
-            api.Pages[null] = Page(null, fromBen, fromObject);
+            api.Pages[null] = Page(null, fromBen, fromMia, fromObject);
 
             await book.LoadAsync();
 
-            Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("Ben의 말"));
-            Assert.That(book.Entries[1].SourceLabel, Is.Null);
+            Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("Ben이 한 말"));
+            Assert.That(book.Entries[1].SourceLabel, Is.EqualTo("Mia가 한 말"));
+            Assert.That(book.Entries[2].SourceLabel, Is.Null);
         }
 
         private async Task<VocabularyEntry> LoadOne(VocabItem item)

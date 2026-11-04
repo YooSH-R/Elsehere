@@ -109,6 +109,16 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void VoiceLightCaption_ExplainsTheGreenAndTheDimLight()
+        {
+            // 녹음 중 [말하기]의 불은 목소리가 들리면 초록색, 조용하면 흐린 흰색이다.
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+
+            Assert.That(guide.VoiceLightCaption, Does.Contain("초록불"));
+            Assert.That(guide.VoiceLightCaption, Does.Contain("흐리면"));
+        }
+
+        [Test]
         public void Walk_TellsToJumpWithTheSpaceBar()
         {
             var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);

@@ -121,6 +121,36 @@ def normal_offsets(points, normals, family, side):
     return changed - normals
 
 
+def match_lip_boundary(points, delta, normal_delta, family, side):
+    """Keep subdivided lip-border points on the deformed original face edges."""
+    face = array(data["vertices"])
+    face_normals = array(surface["normals"])
+    triangles = np.array(data["triangles"]).reshape(-1, 3)
+    edges = np.concatenate(
+        [triangles[:, [0, 1]], triangles[:, [1, 2]], triangles[:, [2, 0]]]
+    )
+    first, direction = face[edges[:, 0]], face[edges[:, 1]] - face[edges[:, 0]]
+    length2 = np.maximum(np.sum(direction * direction, axis=1), 1e-20)
+    moved = displacement(face, family, side)
+    normals_moved = normal_offsets(face, face_normals, family, side)
+    count = len(points) // 6
+    for i, point in enumerate(points[:count]):
+        fraction = np.clip(np.sum((point - first) * direction, axis=1) / length2, 0, 1)
+        distance = np.linalg.norm(first + fraction[:, None] * direction - point, axis=1)
+        edge = int(np.argmin(distance))
+        if distance[edge] > 1e-6:
+            raise ValueError("입술 바깥 경계가 원본 면의 변에 없습니다.")
+        a, b = edges[edge]
+        t = fraction[edge]
+        expected = moved[a] * (1 - t) + moved[b] * t
+        expected_normal = normals_moved[a] * (1 - t) + normals_moved[b] * t
+        correction = expected - delta[i]
+        normal_correction = expected_normal - normal_delta[i]
+        for ring, amount in enumerate([1, 0.8, 0.55, 0.3, 0.1, 0]):
+            delta[ring * count + i] += correction * amount * amount
+            normal_delta[ring * count + i] += normal_correction * amount * amount
+
+
 eye_folder = Path(__file__).parent / "BaseEyes"
 eye_data = json.loads((eye_folder / "Blink.json").read_text(encoding="utf-8"))
 export = {
@@ -156,14 +186,16 @@ for ob in [body] + [bpy.data.objects[name] for name in parts]:
             if np.max(np.linalg.norm(delta, axis=1)) < 1e-7:
                 continue
             name = family + side
-            key = ob.shape_key_add(name=name)
-            for point, value in zip(key.data, positions + delta):
-                point.co = value
             normal_delta = (
                 normal_offsets(positions, normals, family, side)
                 if normals is not None
                 else np.zeros_like(positions)
             )
+            if ob.name == "SpeakingLips":
+                match_lip_boundary(positions, delta, normal_delta, family, side)
+            key = ob.shape_key_add(name=name)
+            for point, value in zip(key.data, positions + delta):
+                point.co = value
             shapes.append(
                 {
                     "name": name,

@@ -716,8 +716,7 @@ namespace A305.Tutorial.PlayModeTests
         [UnityTest]
         public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
         {
-            // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,
-            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 "이 상황에서 자주 써요" 제목 옆 쪽 넘김만 밝힌다.
+            // 대화 노트를 탭 → 본문 스크롤 순서로 안내하고, 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -770,12 +769,12 @@ namespace A305.Tutorial.PlayModeTests
                 Assert.That(coachMark.SpotlightTargets, Is.EqualTo(targets));
                 Assert.That(coachMark.IsDimmingOutside, Is.True);
                 Assert.That(coachMark.IsNextShowing, Is.True);
-                // 설명은 결과 칸 위에는 조금 올라가도 되지만, 설명하는 탭·화살표 줄은 가리지 않는다.
+                // 설명하는 탭·스크롤 영역은 가리지 않는다.
                 Assert.That(
                     ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))
                         .Overlaps(ScreenRectOf(targets[0])),
                     Is.False,
-                    "설명이 설명하는 버튼 줄을 가립니다."
+                    $"설명이 설명하는 영역을 가립니다. caption={ScreenRectOf((RectTransform)coachMark.transform.Find("Caption"))}, target={ScreenRectOf(targets[0])}, hole={coachMark.Hole}"
                 );
                 AssertCaptionClearsTheSkipCard(coachMark);
                 ClickNext(coachMark);

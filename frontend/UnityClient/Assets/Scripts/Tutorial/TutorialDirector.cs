@@ -622,7 +622,7 @@ namespace A305.Tutorial
                 case TutorialCoachTarget.DialogueEnd:
                     return new[] { dialoguePanel.EndButtonRect };
                 // 탭을 누르면 바뀌는 결과 칸도 함께 밝혀 무엇이 달라지는지 보이게 한다.
-                // 쪽 넘기기는 처음 보이는 요약 탭의 "이 상황에서 자주 써요" 제목 옆 쪽 넘김만 밝힌다.
+                // 스크롤 안내에서는 고정된 본문 영역을 밝힌다.
                 case TutorialCoachTarget.FeedbackSections:
                     return new[] { feedbackView.SectionRowRect, feedbackView.PageCardRect };
                 case TutorialCoachTarget.FeedbackPages:

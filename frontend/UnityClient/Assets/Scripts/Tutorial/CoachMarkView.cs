@@ -23,6 +23,7 @@ namespace A305.Tutorial
         private const float HolePadding = 10f;
         private const float BubbleGap = 28f;
         private const float BubbleMargin = 24f;
+        private const float CaptionMinWidth = 220f;
         private const float MarkerEdgeMargin = 70f;
 
         // 두 번째 말풍선 너비. 대화창 오른쪽에 남는 자리(16:9에서 약 250, 16:10에서 약 200)에 들어가게 설명 말풍선보다 좁게 두고,
@@ -96,6 +97,7 @@ namespace A305.Tutorial
         private readonly List<Rect> targetRects = new List<Rect>();
         private readonly Vector3[] corners = new Vector3[4];
         private RectTransform canvasRect;
+        private float captionMaxWidth;
         private Transform markerTarget;
         private float markerHeightMeters;
         private Action nextAction;
@@ -113,6 +115,7 @@ namespace A305.Tutorial
         private void Awake()
         {
             canvasRect = (RectTransform)canvas.transform;
+            captionMaxWidth = caption.sizeDelta.x;
             nextButton.onClick.AddListener(() => nextAction?.Invoke());
             CreateNote();
             Hide();
@@ -519,6 +522,20 @@ namespace A305.Tutorial
         // 밝힌 곳 옆에 말풍선을 두고, 꼬리를 밝힌 곳 쪽 가장자리에 붙인다. 꼬리는 마름모로 돌려 반만 밖으로 나오게 한다.
         private void PlaceCaption(Vector2 canvasSize, Rect hole)
         {
+            // 넓은 스크롤 영역 옆에도 설명이 들어가도록 남은 폭에 맞춘다.
+            float sideRoom = Mathf.Max(
+                hole.xMin - BubbleGap - BubbleMargin,
+                canvasSize.x - BubbleMargin - hole.xMax - BubbleGap
+            );
+            float width =
+                sideRoom >= CaptionMinWidth
+                    ? Mathf.Min(captionMaxWidth, sideRoom)
+                    : captionMaxWidth;
+            if (!Mathf.Approximately(caption.sizeDelta.x, width))
+            {
+                caption.sizeDelta = new Vector2(width, caption.sizeDelta.y);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(caption);
+            }
             Rect keepClear =
                 KeepClear != null && KeepClear.gameObject.activeInHierarchy
                     ? CanvasRectOf(KeepClear)

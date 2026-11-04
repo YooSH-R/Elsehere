@@ -153,10 +153,11 @@ namespace A305.ObjectHover.PlayModeTests
         [UnityTest]
         public IEnumerator PinnedCard_KeepsItsPlace_WhenItsContentGrows()
         {
-            // [숨기기]를 누르면 카드에 두 줄 안내가 붙어 길어진다. 길어져도 카드가 다른 자리로 옮겨 가지 않는다.
+            // 캐릭터를 피해 카메라를 사물 앞에 두고, 안내가 붙어도 카드가 자리를 지키는지 본다.
             HoverableObject tv = FindHoverable("tv");
             yield return StandPlayerNear(tv);
-            Vector2 pointer = ScreenPointOf(tv);
+            Vector2 pointer = ScreenCenter();
+            AimSoThatScreenPointShows(tv, pointer);
             hover.Click(pointer);
             Assert.That(tooltip.IsPinned, Is.True);
             Rect before = CardScreenRect();

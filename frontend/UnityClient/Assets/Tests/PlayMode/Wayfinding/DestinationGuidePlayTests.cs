@@ -37,8 +37,9 @@ namespace A305.Wayfinding.PlayModeTests
             GuideRoutePreference.ShowsRoute = savedShowsRoute;
         }
 
+        // 마을을 불러오는 데 대부분의 시간이 들어, 목적지를 바꿔 가며 한 번 불러온 마을에서 이어서 본다.
         [UnityTest]
-        public IEnumerator Destination_LightsTheDoorAndLaysTheRouteFromThePlayer()
+        public IEnumerator Destination_LaysTheRoute_MovesWithANewOne_AndClears()
         {
             yield return LoadTown();
 
@@ -61,108 +62,66 @@ namespace A305.Wayfinding.PlayModeTests
             );
             Assert.That(Glow().activeSelf, Is.True, "출입문 앞이 빛나지 않습니다.");
             Assert.That(Flat(Glow().transform.position, entrance.position), Is.LessThan(.01f));
-        }
-
-        [UnityTest]
-        public IEnumerator ReachingTheDoor_RemovesTheRouteAndTheGlow()
-        {
-            yield return LoadTown();
-            GuideDestination.Shared.Show("HOTEL");
-            yield return new WaitForSeconds(LaidSeconds);
-
-            Transform entrance = Entrance("HOTEL");
-            Player().Teleport(entrance.position, entrance.rotation);
-            yield return null;
-            yield return null;
-
-            Assert.That(Route().enabled, Is.False);
-            Assert.That(Glow().activeSelf, Is.False);
-        }
-
-        // 도착한 뒤 문에 들어가지 않고 돌아서도 같은 목적지를 다시 안내하지 않는다.
-        [UnityTest]
-        public IEnumerator WalkingAwayAfterArriving_StaysHidden()
-        {
-            yield return LoadTown();
-            GuideDestination.Shared.Show("HOTEL");
-            yield return null;
-            Transform entrance = Entrance("HOTEL");
-            Player().Teleport(entrance.position, entrance.rotation);
-            yield return null;
-
-            Player().Teleport(entrance.position + entrance.forward * 8f, entrance.rotation);
-            yield return new WaitForSeconds(LaidSeconds);
-
-            Assert.That(Route().enabled, Is.False);
-            Assert.That(Glow().activeSelf, Is.False);
-        }
-
-        [UnityTest]
-        public IEnumerator NewDestinationAfterArriving_GuidesAgain()
-        {
-            yield return LoadTown();
-            GuideDestination.Shared.Show("HOTEL");
-            yield return null;
-            Transform hotel = Entrance("HOTEL");
-            Player().Teleport(hotel.position, hotel.rotation);
-            yield return null;
-
-            GuideDestination.Shared.Show("CAFE");
-            yield return new WaitForSeconds(LaidSeconds);
-
-            Assert.That(Route().enabled, Is.True);
-            Assert.That(Glow().activeSelf, Is.True);
-            Assert.That(
-                Flat(Glow().transform.position, Entrance("CAFE").position),
-                Is.LessThan(.01f)
-            );
-        }
-
-        [UnityTest]
-        public IEnumerator NewDestination_MovesTheGlowAndTheRoute()
-        {
-            yield return LoadTown();
-            GuideDestination.Shared.Show("HOTEL");
-            yield return new WaitForSeconds(LaidSeconds);
 
             GuideDestination.Shared.Show("CAFE");
             yield return new WaitForSeconds(LaidSeconds);
 
             Transform cafe = Entrance("CAFE");
-            LineRenderer route = Route();
-            Assert.That(Flat(Glow().transform.position, cafe.position), Is.LessThan(.01f));
+            Assert.That(
+                Flat(Glow().transform.position, cafe.position),
+                Is.LessThan(.01f),
+                "새 목적지로 빛이 옮겨 가지 않습니다."
+            );
             Assert.That(
                 Flat(route.GetPosition(route.positionCount - 1), cafe.position),
-                Is.LessThan(.5f)
+                Is.LessThan(.5f),
+                "새 목적지로 길이 옮겨 가지 않습니다."
             );
-        }
-
-        [UnityTest]
-        public IEnumerator ClearedDestination_RemovesTheRouteAndTheGlow()
-        {
-            yield return LoadTown();
-            GuideDestination.Shared.Show("HOTEL");
-            yield return new WaitForSeconds(LaidSeconds);
-
-            GuideDestination.Shared.Clear();
-            yield return null;
-
-            Assert.That(Route().enabled, Is.False);
-            Assert.That(Glow().activeSelf, Is.False);
-        }
-
-        [UnityTest]
-        public IEnumerator RouteTurnedOff_KeepsOnlyTheGlow()
-        {
-            yield return LoadTown();
-            GuideDestination.Shared.Show("HOTEL");
-            yield return new WaitForSeconds(LaidSeconds);
 
             GuideRoutePreference.ShowsRoute = false;
             yield return null;
 
-            Assert.That(Route().enabled, Is.False);
+            Assert.That(route.enabled, Is.False, "길을 끄면 길은 거둬야 합니다.");
+            Assert.That(Glow().activeSelf, Is.True, "길을 꺼도 출입문 빛은 남아야 합니다.");
+
+            GuideDestination.Shared.Clear();
+            yield return null;
+
+            Assert.That(route.enabled, Is.False);
+            Assert.That(Glow().activeSelf, Is.False, "목적지가 사라지면 빛도 거둬야 합니다.");
+        }
+
+        // 도착한 뒤 문에 들어가지 않고 돌아서도 같은 목적지를 다시 안내하지 않고, 새 목적지가 생기면 다시 안내한다.
+        [UnityTest]
+        public IEnumerator ReachingTheDoor_HidesTheGuide_UntilANewDestination()
+        {
+            yield return LoadTown();
+            GuideDestination.Shared.Show("HOTEL");
+            yield return new WaitForSeconds(LaidSeconds);
+
+            Transform hotel = Entrance("HOTEL");
+            Player().Teleport(hotel.position, hotel.rotation);
+            yield return null;
+            yield return null;
+
+            Assert.That(Route().enabled, Is.False, "도착하면 길을 거둬야 합니다.");
+            Assert.That(Glow().activeSelf, Is.False, "도착하면 빛을 거둬야 합니다.");
+
+            Player().Teleport(hotel.position + hotel.forward * 8f, hotel.rotation);
+            yield return new WaitForSeconds(LaidSeconds);
+
+            Assert.That(Route().enabled, Is.False, "도착한 목적지를 다시 안내하면 안 됩니다.");
+            Assert.That(Glow().activeSelf, Is.False);
+
+            GuideDestination.Shared.Show("CAFE");
+            yield return new WaitForSeconds(LaidSeconds);
+
+            Assert.That(Route().enabled, Is.True, "새 목적지는 다시 안내해야 합니다.");
             Assert.That(Glow().activeSelf, Is.True);
+            Assert.That(
+                Flat(Glow().transform.position, Entrance("CAFE").position),
+                Is.LessThan(.01f)
+            );
         }
 
         private static IEnumerator LoadTown()

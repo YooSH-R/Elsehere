@@ -329,6 +329,42 @@ namespace A305.Mission.Tests
             Assert.That(corner.y, Is.EqualTo(-33.6f).Within(.01f));
         }
 
+        // 진행 중인 퀘스트가 없으면(시작 전, 끝낸 뒤) 카드를 접고 왼쪽 위에 작은 퀘스트 아이콘만 둔다. 아이콘을 누르면 퀘스트 목록이 열린다.
+        [Test]
+        public void NoQuestInProgress_ShowsOnlyTheQuestIcon()
+        {
+            FirstDayMissionState notStarted = Journey(current: 0);
+            notStarted.Started = false;
+            Refresh(notStarted);
+            Transform card = instance.transform.Find("Content/CurrentGoal");
+            Button icon = Field<Button>("questIcon");
+            Assert.That(card.gameObject.activeSelf, Is.False, "시작 전");
+            Assert.That(icon.gameObject.activeSelf, Is.True, "시작 전");
+            Assert.That(
+                view.QuestCardRect,
+                Is.SameAs(icon.transform),
+                "튜토리얼 안내도 아이콘을 가리킵니다."
+            );
+            icon.onClick.Invoke();
+            Assert.That(
+                Field<QuestBoardView>("questBoard").IsOpen,
+                Is.True,
+                "아이콘을 누르면 퀘스트 목록"
+            );
+            Field<QuestBoardView>("questBoard").Close();
+
+            FirstDayMissionState finished = Journey(current: 6);
+            finished.Completed = true;
+            view.Refresh(finished, false, false);
+            Assert.That(card.gameObject.activeSelf, Is.False, "끝낸 뒤");
+            Assert.That(icon.gameObject.activeSelf, Is.True, "끝낸 뒤");
+
+            view.Refresh(Journey(current: 2), false, false);
+            Assert.That(card.gameObject.activeSelf, Is.True, "진행 중");
+            Assert.That(icon.gameObject.activeSelf, Is.False, "진행 중");
+            Assert.That(view.QuestCardRect, Is.SameAs(card));
+        }
+
         // 서버 상태를 받기 전에도 예전 지도 버튼이 아니라 카드 자체를 누르라고 알린다.
         [Test]
         public void QuestCard_BeforeTheServerAnswers_TellsToPressTheCard()

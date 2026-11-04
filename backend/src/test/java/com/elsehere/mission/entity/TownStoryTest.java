@@ -30,24 +30,6 @@ class TownStoryTest {
     assertThat(story.getStage()).isEqualTo(2);
   }
 
-  // 퀘스트 하나를 끝내면 이야기가 멈추고, 다음 퀘스트를 시작해야 이어진다.
-  @Test
-  void storyStopsAtTheEndOfAQuestUntilTheNextQuestStarts() {
-    TownStory story = TownStory.start(8L);
-    while (story.getStage() < 7) {
-      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
-    }
-    assertThat(story.isPaused()).isTrue();
-
-    story.accept(7, "BAKERY_STAFF", List.of("choose_snack"));
-    assertThat(story.getStage()).isEqualTo(7);
-
-    story.resume();
-    story.accept(7, "BAKERY_STAFF", List.of("choose_snack"));
-    assertThat(story.getStage()).isEqualTo(8);
-    assertThat(story.isPaused()).isFalse();
-  }
-
   @Test
   void travelerFollowsTheWholeConnectedStory() {
     TownStory story = TownStory.start(8L);

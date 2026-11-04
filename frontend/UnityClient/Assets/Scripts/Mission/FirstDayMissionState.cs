@@ -8,6 +8,9 @@ namespace A305.Mission
         private const int BuyUmbrellaStage = 5;
 
         public bool Started { get; set; }
+
+        /// <summary>지금 퀘스트(하는 중이 아니면 다음에 시작할 퀘스트)의 코드. 퀘스트 목록의 퀘스트 Id와 같다.</summary>
+        public string Quest { get; set; }
         public bool IsTownStory { get; set; }
         public bool ShouldOfferTownStory => Completed && !IsTownStory;
         public int Stage { get; set; }
@@ -74,6 +77,19 @@ namespace A305.Mission
             && (
                 Raining || string.Equals(Weather, "RAIN", System.StringComparison.OrdinalIgnoreCase)
             );
+
+        /// <summary>
+        /// 앞 상태에서 하던 퀘스트를 이 상태에서 끝냈으면 그 퀘스트 코드. 퀘스트를 끝내면 다음 퀘스트를 시작하기 전(시작 전·다른 퀘스트)이거나
+        /// 모두 마친 상태가 된다. 처음 받은 상태와 하던 퀘스트를 계속하는 상태는 null이다.
+        /// </summary>
+        public string QuestFinishedSince(FirstDayMissionState before) =>
+            before != null
+            && before.Started
+            && !before.Completed
+            && before.Quest != null
+            && (Completed || !Started || Quest != before.Quest)
+                ? before.Quest
+                : null;
 
         private bool HasUmbrella => Started && (Completed || Stage > BuyUmbrellaStage);
     }

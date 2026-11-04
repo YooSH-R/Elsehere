@@ -257,6 +257,19 @@ class AiWorkerClient {
     return readJson(send(request, HttpResponse.BodyHandlers.ofString()), RelationshipChange.class);
   }
 
+  /**
+   * 끝난 대화에서 NPC가 곧 건네기로 한 것. 없으면 결과의 followUp이 null이다. 실패하면 오류로 던지며, 호출한 쪽은 건넬 것이 없는 것으로 본다.
+   *
+   * @param history 대화 전체(최대 200줄). 워커는 학습자가 말한 대화인지 확인한다
+   */
+  public FollowUpResult followUp(WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    HttpRequest request =
+        jsonRequest("/v1/npc/follow-up", trace, MEMORY_TIMEOUT, new FollowUpBody(npc, history));
+    FollowUpResult result =
+        readJson(send(request, HttpResponse.BodyHandlers.ofString()), FollowUpResult.class);
+    return new FollowUpResult(result.followUp(), usageOf(result.usage()));
+  }
+
   /** 대화 종료 피드백. 생성 실패·평가할 발화 없음도 HTTP 200 안의 상태로 온다. 요청 형식이 계약과 다르면(400) 오류로 던진다. */
   public WorkerFeedback feedback(WorkerTrace trace, FeedbackInput input) {
     HttpResponse<String> response =
@@ -497,6 +510,8 @@ class AiWorkerClient {
 
   record RelationshipBody(
       WorkerNpc npc, WorkerRelationship relationship, List<WorkerLine> history) {}
+
+  record FollowUpBody(WorkerNpc npc, List<WorkerLine> history) {}
 
   record MemoryEnvelope(List<WorkerUsage> usage) {}
 

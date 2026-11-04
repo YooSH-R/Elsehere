@@ -17,6 +17,7 @@ import com.elsehere.conversation.service.TrainingRecordingStore;
 import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.feedback.service.ModelSpeechService;
 import com.elsehere.feedback.service.ModelSpeechStore;
+import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
 import com.elsehere.mission.service.FirstDayMissionService;
@@ -88,6 +89,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
   OptionalConsentService.class,
   ConsentCatalog.class,
   MemoryService.class,
+  FollowUpService.class,
   NpcAffinityService.class,
   FirstDayMissionService.class,
   TownStoryService.class,

@@ -188,6 +188,20 @@ class RelationshipRequest(BaseModel):
         return v
 
 
+class FollowUpRequest(BaseModel):
+    """대화가 끝난 뒤 NPC가 지금 준비해 곧 건네기로 한 것 (app.prompts.FOLLOW_UP_SYSTEM). 백엔드가 /v1/memory와 같은 자리에서 부른다."""
+
+    npc: Npc
+    history: list[Line] = Field(max_length=200)
+
+    @field_validator("history")
+    @classmethod
+    def learner_spoke(cls, v: list[Line]) -> list[Line]:
+        if not any(line.who == "me" for line in v):
+            raise ValueError("학습자가 말하지 않은 대화에는 건넬 것이 없습니다")
+        return v
+
+
 # ---------- NPC 인격 카드 조합 (어드민 랜덤 생성, app.npc_persona) ----------
 Axis = Literal["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]
 Role = Literal["STAFF", "PASSERBY"]

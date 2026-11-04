@@ -23,6 +23,7 @@ namespace A305.Learning.Tests
         {
             LocalObjectWordApi.Forget();
             LocalVocabularyApi.Forget();
+            ObjectWordCards.ShareLearnedWords(new string[0]);
         }
 
         [Test]
@@ -41,7 +42,7 @@ namespace A305.Learning.Tests
             Assert.That(
                 book.Entries[1].ContextText,
                 Is.EqualTo("I sit on the sofa."),
-                "사물 단어의 예문을 저장한 문장으로 보입니다."
+                "사물 단어의 예문을 예시 문장으로 보입니다."
             );
             Assert.That(book.Entries[0].ContextText, Is.Null, "예문이 없으면 문장도 없습니다.");
         }

@@ -12,12 +12,15 @@ namespace A305.Api
     /// </summary>
     /// <remarks>
     /// 상태를 바꾸는 요청에는 요청 위조 방지 헤더를 붙인다(API 명세 1.2). 서버 오류는 공통 오류 형식을 읽어 <see cref="ApiException"/>으로 던진다.
+    /// 로그인이 풀렸다는 응답(401 UNAUTHENTICATED)은 <see cref="ApiSession.Expired"/>로도 알린다.
     /// </remarks>
     public sealed class ApiClient
     {
         public const string CsrfHeaderName = "X-Requested-With";
 
         private const string CsrfHeaderValue = "ElsehereClient";
+
+        private const string UnauthenticatedCode = "UNAUTHENTICATED";
 
         private static readonly IReadOnlyDictionary<string, string> ReadHeaders =
             new Dictionary<string, string>();
@@ -145,7 +148,7 @@ namespace A305.Api
                 throw new ApiException(
                     ApiErrorCodes.NetworkError,
                     0,
-                    "서버에 연결하지 못했습니다."
+                    "서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요."
                 );
             }
 
@@ -162,11 +165,17 @@ namespace A305.Api
             ErrorBody error = TryReadError(response.Body);
             if (error?.Error?.Code == null)
             {
+                // 재배포 중 프록시 오류 페이지처럼 잠깐 생기는 실패라 다시 시도하라고 알린다.
                 return new ApiException(
                     ApiErrorCodes.UnexpectedResponse,
                     response.StatusCode,
-                    "서버 응답을 해석하지 못했습니다."
+                    "서버가 잠시 응답하지 않아요. 잠시 후 다시 시도해 주세요."
                 );
+            }
+
+            if (response.StatusCode == 401 && error.Error.Code == UnauthenticatedCode)
+            {
+                ApiSession.NotifyExpired();
             }
 
             return new ApiException(error.Error.Code, response.StatusCode, error.Error.Message);

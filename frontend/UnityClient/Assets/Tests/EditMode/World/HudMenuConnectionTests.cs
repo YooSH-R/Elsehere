@@ -1,6 +1,7 @@
 using System.Linq;
 using A305.EditorTools.Common;
 using A305.Learning;
+using A305.Onboarding;
 using A305.Theme;
 using NUnit.Framework;
 using TMPro;
@@ -163,6 +164,26 @@ namespace A305.World.Tests
             Assert.That(card, Is.LessThan(hud.Find("MenuBackdrop").GetSiblingIndex()));
             Assert.That(card, Is.LessThan(hud.Find("History").GetSiblingIndex()));
             Assert.That(card, Is.LessThan(hud.Find("MyPage").GetSiblingIndex()));
+        }
+
+        // 로그인이 풀리면(서버 재배포·오래 쉼) 어느 창 위에서도 보이도록, 안내 창은 수첩(1000)보다 높은 순서의 캔버스에 두고 닫힌 채 시작한다.
+        [Test]
+        public void HudTellsWhenTheLoginSessionExpires()
+        {
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
+
+            var view = hud.GetComponent<SessionExpiredView>();
+
+            Assert.That(view, Is.Not.Null, "접속이 끊겼을 때 알리는 창이 없습니다.");
+            Assert.DoesNotThrow(() => BuilderTools.RequireReferences(view));
+            var overlay = (GameObject)
+                new SerializedObject(view).FindProperty("overlay").objectReferenceValue;
+            Assert.That(overlay.activeSelf, Is.False);
+            var canvas = overlay.GetComponent<Canvas>();
+            Assert.That(canvas, Is.Not.Null);
+            Assert.That(canvas.overrideSorting, Is.True);
+            Assert.That(canvas.sortingOrder, Is.GreaterThan(1000));
+            Assert.That(overlay.GetComponent<GraphicRaycaster>(), Is.Not.Null);
         }
     }
 }

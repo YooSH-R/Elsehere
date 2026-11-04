@@ -10,10 +10,24 @@ namespace A305.Onboarding
     {
         private readonly HashSet<string> agreedConsentTypes = new HashSet<string>();
 
-        public SignupForm(IReadOnlyList<ConsentTerm> terms)
+        private const string VoiceConsentType = "VOICE";
+
+        /// <param name="guest">게스트가 가입하는 중이면 게스트 때 캐릭터와 음성 처리 동의(AUTH-03). 그 값으로 채워 시작한다.</param>
+        public SignupForm(IReadOnlyList<ConsentTerm> terms, ConvertingGuest guest = null)
         {
             Terms = terms;
+            if (guest == null)
+            {
+                return;
+            }
+
+            IsGuestConversion = true;
+            Avatar = guest.AvatarType;
+            SetAgreed(VoiceConsentType, guest.VoiceConsent);
         }
+
+        /// <summary>게스트가 회원이 되는 가입인지. 캐릭터는 게스트 때 것을 그대로 쓰므로 고르지 않는다.</summary>
+        public bool IsGuestConversion { get; }
 
         /// <summary>AUTH-03으로 받은 약관. 동의를 보낼 때 이 버전을 그대로 쓴다.</summary>
         public IReadOnlyList<ConsentTerm> Terms { get; }

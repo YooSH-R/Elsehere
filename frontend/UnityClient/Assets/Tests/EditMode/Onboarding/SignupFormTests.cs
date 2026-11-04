@@ -105,6 +105,41 @@ namespace A305.Onboarding.Tests
             );
         }
 
+        [Test]
+        public void GuestForm_CanSubmitWithoutChoosingCharacterAndSendsGuestCharacter()
+        {
+            var guestForm = new SignupForm(
+                new[] { Terms, Privacy, Voice },
+                new ConvertingGuest { AvatarType = AvatarType.M, VoiceConsent = false }
+            );
+            guestForm.ChangeNickname("Sun");
+            guestForm.RecordAvailability("Sun", true);
+            guestForm.SetAgreed("TERMS", true);
+            guestForm.SetAgreed("PRIVACY", true);
+
+            Assert.That(guestForm.IsGuestConversion, Is.True);
+            Assert.That(guestForm.CanSubmit, Is.True);
+            Assert.That(guestForm.ToRequest().AvatarType, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public void GuestForm_StartsWithVoiceConsentTheGuestGave()
+        {
+            var guestForm = new SignupForm(
+                new[] { Terms, Privacy, Voice },
+                new ConvertingGuest { AvatarType = AvatarType.F, VoiceConsent = true }
+            );
+
+            Assert.That(guestForm.IsAgreed("VOICE"), Is.True);
+        }
+
+        [Test]
+        public void MemberForm_IsNotGuestConversion()
+        {
+            Assert.That(form.IsGuestConversion, Is.False);
+            Assert.That(form.Avatar, Is.Null);
+        }
+
         private void FillValidForm()
         {
             form.ChangeNickname("Sun");

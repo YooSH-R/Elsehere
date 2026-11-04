@@ -74,5 +74,14 @@ namespace A305.Npc.Tests
             // 게스트 횟수가 아닌 이유로 막혔으면 게스트라고 말하지 않는다.
             Assert.That(PasserbyOfferText.Blocked(null), Is.EqualTo("지금은 대화할 수 없어요"));
         }
+
+        [Test]
+        public void OffersSignup_OnlyWhenGuestUsedAllConversations()
+        {
+            Assert.That(PasserbyOfferText.OffersSignup(0), Is.True);
+            Assert.That(PasserbyOfferText.OffersSignup(2), Is.False);
+            // 가입 사용자가 다른 이유로 막혔으면 가입을 권하지 않는다.
+            Assert.That(PasserbyOfferText.OffersSignup(null), Is.False);
+        }
     }
 }

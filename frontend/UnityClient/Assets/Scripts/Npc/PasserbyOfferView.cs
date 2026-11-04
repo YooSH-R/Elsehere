@@ -52,11 +52,16 @@ namespace A305.Npc
         [Tooltip("키보드 단축키(E) 안내. 휴대폰·태블릿에서는 숨긴다.")]
         private GameObject talkKeyHint;
 
+        [SerializeField]
+        [Tooltip("대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르면 띄우는 가입 안내 창")]
+        private GuestSignupDialogView signupDialog;
+
         private object owner;
         private Action onAccept;
         private Action onDecline;
         private object talkPromptOwner;
         private Action onTalk;
+        private bool isSignupPrompt;
 
         public bool IsShowing => owner != null;
 
@@ -72,6 +77,9 @@ namespace A305.Npc
 
         /// <summary>새 대화를 시작할 수 없어 [말 걸기]를 막고 이유를 보이는 중인지.</summary>
         public bool IsTalkBlocked => IsTalkPromptShowing && !talkButton.interactable;
+
+        /// <summary>대화를 다 쓴 게스트에게 [말 걸기] 대신 가입 버튼을 보이는 중인지.</summary>
+        public bool IsSignupPromptShowing => IsTalkPromptShowing && isSignupPrompt;
 
         public string TalkLabelText => talkLabel.text;
 
@@ -135,6 +143,7 @@ namespace A305.Npc
         {
             talkPromptOwner = requester;
             onTalk = talk;
+            isSignupPrompt = false;
             talkLabel.text = label;
             talkButton.interactable = true;
             SetOptionalText(talkRemainingLabel, remaining);
@@ -157,10 +166,29 @@ namespace A305.Npc
         {
             talkPromptOwner = requester;
             onTalk = null;
+            isSignupPrompt = false;
             talkLabel.text = reason;
             talkButton.interactable = false;
             SetOptionalText(talkRemainingLabel, null);
             talkKeyHint.SetActive(false);
+            talkPromptPanel.SetActive(true);
+        }
+
+        /// <summary>
+        /// 게스트가 대화를 다 썼을 때 [말 걸기] 자리에 가입으로 이어지는 버튼을 보인다. 버튼이나 E 키로 가입 안내 창을 연다.
+        /// 행인·직원과 택시가 같은 자리를 쓴다.
+        /// </summary>
+        /// <param name="label">버튼 문구(<see cref="PasserbyOfferText.SignupLabel"/>)</param>
+        /// <param name="note">버튼 위에 붙일 안내(<see cref="PasserbyOfferText.Blocked"/>)</param>
+        public void ShowSignupPrompt(object requester, string label, string note)
+        {
+            talkPromptOwner = requester;
+            onTalk = signupDialog.Show;
+            isSignupPrompt = true;
+            talkLabel.text = label;
+            talkButton.interactable = true;
+            SetOptionalText(talkRemainingLabel, note);
+            talkKeyHint.SetActive(!PlayerTouchControls.ShouldShowControls());
             talkPromptPanel.SetActive(true);
         }
 
@@ -176,6 +204,7 @@ namespace A305.Npc
         {
             talkPromptOwner = null;
             onTalk = null;
+            isSignupPrompt = false;
             HideIfPresent(talkPromptPanel);
         }
 

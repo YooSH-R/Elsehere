@@ -40,10 +40,10 @@ class QuestBoardServiceTest {
 
     assertThat(board.quests())
         .extracting(QuestBoardResponse.Quest::status)
-        .containsExactly("AVAILABLE", "LOCKED", "LOCKED", "LOCKED", "LOCKED");
+        .containsExactly("AVAILABLE", "LOCKED", "LOCKED");
     assertThat(board.quests())
         .extracting(QuestBoardResponse.Quest::reward)
-        .containsExactly(10, 6, 6, 4, 6);
+        .containsExactly(10, 15, 10);
     assertThat(board.quests())
         .allSatisfy(quest -> assertThat(quest.title()).doesNotContain("첫날", "여정"));
     assertThat(board.quests().getFirst().stops()).hasSize(7);
@@ -83,15 +83,13 @@ class QuestBoardServiceTest {
 
     assertThat(board.quests())
         .extracting(QuestBoardResponse.Quest::status)
-        .containsExactly("DONE", "DONE", "IN_PROGRESS", "LOCKED", "LOCKED");
-    assertThat(board.quests().get(2).stops())
-        .extracting(QuestBoardResponse.Stop::place, QuestBoardResponse.Stop::current)
-        .containsExactly(
-            org.assertj.core.groups.Tuple.tuple("이발소", false),
-            org.assertj.core.groups.Tuple.tuple("꽃집", true),
-            org.assertj.core.groups.Tuple.tuple("이발소", false));
-    // 첫 퀘스트 −12 +10, 마을 이야기 5단계까지 아침 7·세탁 6·이발 15코인을 내고 첫 장 보상 6코인
-    assertThat(board.balance()).isEqualTo(100 - 12 + 10 - 7 - 6 - 15 + 6);
+        .containsExactly("DONE", "IN_PROGRESS", "LOCKED");
+    assertThat(board.quests().get(1).stops())
+        .extracting(QuestBoardResponse.Stop::place)
+        .containsExactly("식당", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소");
+    assertThat(board.quests().get(1).stops().get(5).current()).isTrue();
+    // 첫 퀘스트 −12 +10, 마을 이야기 5단계까지 아침 7·세탁 6·이발 15코인
+    assertThat(board.balance()).isEqualTo(100 - 12 + 10 - 7 - 6 - 15);
   }
 
   @Test
@@ -106,8 +104,29 @@ class QuestBoardServiceTest {
 
     assertThat(board.quests())
         .extracting(QuestBoardResponse.Quest::status)
-        .containsExactly("DONE", "AVAILABLE", "LOCKED", "LOCKED", "LOCKED");
+        .containsExactly("DONE", "AVAILABLE", "LOCKED");
     assertThat(board.balance()).isEqualTo(100 - 12 + 10);
+  }
+
+  // 두 번째 퀘스트를 끝내면 이야기가 멈추고 세 번째 퀘스트가 새로 열린다.
+  @Test
+  void afterTheSecondQuest_theThirdOneIsReadyToStart() {
+    FirstDayMission finished = mock(FirstDayMission.class);
+    when(finished.isCompleted()).thenReturn(true);
+    when(finished.getStage()).thenReturn(7);
+    TownStory story = TownStory.start(8L);
+    while (story.getStage() < 7) {
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+    when(firstDay.findById(8L)).thenReturn(Optional.of(finished));
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    QuestBoardResponse board = service.board(8L);
+
+    assertThat(board.quests())
+        .extracting(QuestBoardResponse.Quest::status)
+        .containsExactly("DONE", "DONE", "AVAILABLE");
+    assertThat(board.quests().get(2).stops()).noneMatch(QuestBoardResponse.Stop::current);
   }
 
   private static Npc npc(String code, String name) {

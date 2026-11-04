@@ -105,6 +105,39 @@ namespace A305.Dialogue.PlayModeTests
             Assert.That(FindButton("SubtitleButton").gameObject.activeSelf, Is.True);
         }
 
+        // 대답 로딩 카드가 대사 칸을 덮는 동안 지난 대사를 가린 막대가 로딩 위로 비치지 않고, 로딩이 끝나면 다시 덮는다.
+        [UnityTest]
+        public IEnumerator WaitingForReply_HidesWordCoversUntilTheReplyArrives()
+        {
+            var content = new SpokenContent(speaksNpcLines: true);
+            yield return Show(content);
+
+            content.Waiting = DialogueWait.NpcReply;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(ActiveCovers(), Is.Empty);
+
+            content.Waiting = DialogueWait.None;
+            view.Refresh();
+            yield return null;
+
+            Assert.That(ActiveCovers(), Has.Count.EqualTo(7));
+        }
+
+        // [자막]과 짝인 재생 버튼은 이미 나온 NPC 대사를 다시 들려준다는 뜻이 드러나게 [다시 듣기]로 적고 한 줄에 담는다.
+        [UnityTest]
+        public IEnumerator ReplayButton_ReadsListenAgainOnOneLine()
+        {
+            yield return Show(new SpokenContent(speaksNpcLines: true));
+            TMP_Text caption = FindButton("ReplayButton").GetComponentInChildren<TMP_Text>(true);
+            caption.ForceMeshUpdate();
+
+            Assert.That(caption.text, Is.EqualTo("다시 듣기"));
+            Assert.That(caption.textInfo.lineCount, Is.EqualTo(1));
+            Assert.That(caption.isTextOverflowing, Is.False);
+        }
+
         private IEnumerator Show(IDialogueContent content)
         {
             eventSystemObject = new GameObject("EventSystem", typeof(EventSystem));
@@ -197,7 +230,7 @@ namespace A305.Dialogue.PlayModeTests
             return null;
         }
 
-        /// <summary>NPC가 첫 대사를 마치고 사용자가 답할 차례인 대화.</summary>
+        /// <summary>NPC가 첫 대사를 마치고 사용자가 답할 차례인 대화. 대답을 기다리는 상태로 바꿔 볼 수 있다.</summary>
         private class SpokenContent : IDialogueContent
         {
             private static readonly DialogueLine Opening = DialogueLine.FromNpc(NpcSentence, null);
@@ -230,7 +263,7 @@ namespace A305.Dialogue.PlayModeTests
             public string HintText => null;
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
-            public DialogueWait Waiting => DialogueWait.None;
+            public DialogueWait Waiting { get; set; }
             public bool CanReplaySpeech => true;
             public bool SpeaksNpcLines { get; }
             public bool IsNpcSpeechReady { get; }

@@ -180,6 +180,7 @@ namespace A305.Npc
                     break;
                 case TaxiPromptKind.Talk:
                 case TaxiPromptKind.Blocked:
+                case TaxiPromptKind.Signup:
                     ShowPrompt(prompt, Talk);
                     break;
                 default:
@@ -200,6 +201,10 @@ namespace A305.Npc
             if (prompt.Kind == TaxiPromptKind.Blocked)
             {
                 offerView.ShowBlockedTalkPrompt(this, prompt.Label);
+            }
+            else if (prompt.Kind == TaxiPromptKind.Signup)
+            {
+                offerView.ShowSignupPrompt(this, prompt.Label, prompt.Remaining);
             }
             else
             {

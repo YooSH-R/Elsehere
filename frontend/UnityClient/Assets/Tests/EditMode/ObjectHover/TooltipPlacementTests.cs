@@ -185,6 +185,75 @@ namespace A305.ObjectHover.Tests
             AssertPosition(new Vector2(780f, 220f), bottomLeft);
         }
 
+        // 고정한 카드에 안내 문구가 붙어 길어져도 카드 왼쪽 위 모서리는 그대로 두고 아래로 늘인다.
+        [Test]
+        public void TryKeepTopLeft_GrowingCard_KeepsTopLeftCorner()
+        {
+            bool kept = TooltipPlacement.TryKeepTopLeft(
+                new Vector2(300f, 400f),
+                TooltipSize,
+                new Vector2(200f, 160f),
+                CanvasSize,
+                Margin,
+                new Rect[0],
+                out Vector2 bottomLeft
+            );
+
+            Assert.That(kept, Is.True);
+            AssertPosition(new Vector2(300f, 340f), bottomLeft);
+        }
+
+        [Test]
+        public void TryKeepTopLeft_SameSize_KeepsPosition()
+        {
+            bool kept = TooltipPlacement.TryKeepTopLeft(
+                new Vector2(300f, 400f),
+                TooltipSize,
+                TooltipSize,
+                CanvasSize,
+                Margin,
+                new Rect[0],
+                out Vector2 bottomLeft
+            );
+
+            Assert.That(kept, Is.True);
+            AssertPosition(new Vector2(300f, 400f), bottomLeft);
+        }
+
+        [Test]
+        public void TryKeepTopLeft_GrowingPastBottomMargin_DoesNotKeep()
+        {
+            // 아래 여백(20)까지 늘일 수 없으면 자리를 다시 정해야 한다.
+            bool kept = TooltipPlacement.TryKeepTopLeft(
+                new Vector2(300f, 40f),
+                TooltipSize,
+                new Vector2(200f, 160f),
+                CanvasSize,
+                Margin,
+                new Rect[0],
+                out _
+            );
+
+            Assert.That(kept, Is.False);
+        }
+
+        [Test]
+        public void TryKeepTopLeft_GrowingOntoOtherScreen_DoesNotKeep()
+        {
+            // 늘어난 카드가 나중에 열린 창을 덮으면 자리를 다시 정해야 한다.
+            bool kept = TooltipPlacement.TryKeepTopLeft(
+                new Vector2(300f, 400f),
+                TooltipSize,
+                new Vector2(200f, 160f),
+                CanvasSize,
+                Margin,
+                new[] { new Rect(250f, 300f, 300f, 60f) },
+                out _
+            );
+
+            Assert.That(kept, Is.False);
+        }
+
         [Test]
         public void PlaceAround_MovingOutOfUiMeetsMoreUi_KeepsMovingUntilClear()
         {

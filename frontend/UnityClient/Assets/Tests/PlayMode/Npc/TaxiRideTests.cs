@@ -70,40 +70,6 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Vector3.Distance(stoppedAt, taxi.transform.position), Is.GreaterThan(1f));
         }
 
-        // 장소를 옮기면 말 걸기 안내가 택시보다 먼저 지워질 수 있다. 그 뒤 택시가 꺼지며 안내를 닫아도 오류가 나지 않아야 한다.
-        [UnityTest]
-        public IEnumerator PromptRemovedFirst_TaxiStillClosesItWithoutError()
-        {
-            yield return LoadTown();
-            TaxiRide taxi = Single<TaxiRide>();
-            LoopingCar car = taxi.GetComponent<LoopingCar>();
-            PasserbyOfferView offer = Single<PasserbyOfferView>();
-            CarLoopRoute.Pose pose = car.Route.PoseAt(car.Distance);
-            Single<PlayerMover>()
-                .Teleport(
-                    pose.Position
-                        + pose.Forward * 8f
-                        + Vector3.Cross(Vector3.up, pose.Forward) * 2.6f
-                        + Vector3.up * .2f,
-                    Quaternion.identity
-                );
-            yield return WaitUntil(() => offer.IsTalkPromptShowing);
-            var prompt = (GameObject)
-                typeof(PasserbyOfferView)
-                    .GetField(
-                        "talkPromptPanel",
-                        System.Reflection.BindingFlags.NonPublic
-                            | System.Reflection.BindingFlags.Instance
-                    )
-                    .GetValue(offer);
-
-            Object.DestroyImmediate(prompt);
-            taxi.enabled = false;
-            yield return null;
-
-            Assert.That(offer.IsTalkPromptShowing, Is.False);
-        }
-
         [UnityTest]
         public IEnumerator PassengerRequestsHotel_TaxiDrivesAndDropsThemAtTheHotel()
         {

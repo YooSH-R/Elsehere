@@ -54,6 +54,22 @@ namespace A305.Learning.Tests
             Assert.That(book.LastFailureMessage, Is.Not.Empty);
         }
 
+        // 지난번 목록이 보이는 채로 다시 읽기에 실패하면 고장처럼 알리지 않고, 보이는 목록이 무엇인지 알린다.
+        [Test]
+        public async Task LoadAsync_FailsWhileShowingPreviousWords_SaysThePreviousListIsShown()
+        {
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"));
+            await book.LoadAsync();
+            api.Failure = NetworkError();
+
+            await book.LoadAsync();
+
+            Assert.That(
+                book.LastFailureMessage,
+                Is.EqualTo("지금은 새 단어장을 받아 오지 못해 지난번 목록을 보여 드려요.")
+            );
+        }
+
         [Test]
         public void ListState_BeforeFirstLoad_IsLoadingNotEmpty()
         {
@@ -289,6 +305,20 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public async Task SaveFeedbackWordAsync_SavesTheIdiomFromTheConversationFeedback()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.SavedItem = Item(41, "hang on to", "잠시 맡아 두다");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveFeedbackWordAsync(58, "hang on to");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(api.Calls, Is.EqualTo(new[] { "feedback 58 hang on to" }));
+            Assert.That(book.Entries.First().English, Is.EqualTo("hang on to"));
+        }
+
+        [Test]
         public async Task SaveNpcLineWordAsync_AlreadySaved_DoesNotAddItTwice()
         {
             await LoadOne(Item(40, "latte", "라떼"));
@@ -455,6 +485,11 @@ namespace A305.Learning.Tests
             public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text)
             {
                 return Reply($"save {turnId} {text}", SavedItem);
+            }
+
+            public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text)
+            {
+                return Reply($"feedback {conversationId} {text}", SavedItem);
             }
 
             public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)

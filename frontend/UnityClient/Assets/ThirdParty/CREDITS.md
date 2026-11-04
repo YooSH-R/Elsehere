@@ -41,3 +41,12 @@ Fab 에셋은 Unity에서 편집하고 서비스에 포함해 상업적으로 �
 | Stylized Nature MegaKit — Quaternius | `QuaterniusNature/` | [Poly Pizza 묶음](https://poly.pizza/bundle/Stylized-Nature-MegaKit-T34GZFA0fm) | CC0 1.0, 동봉 `License.txt` | 꽃덤불, 꽃·클로버 |
 
 프로젝트에 glTF 가져오기 패키지가 없어 GLB·glTF 원본을 OBJ + MTL(+PNG)로 변환해 넣었다. 형태·색·텍스처는 바꾸지 않았고 변환 사실은 각 `License.txt`에 적었다. 같은 텍스처는 한 번만 둔다. CC BY 모델은 위 작성자와 출처를 표기해야 한다. URP 재질은 `Assets/Art/World/StreetLife/Materials/`, 단어와 충돌을 붙인 조각 프리팹은 `Assets/Prefabs/World/StreetLife/`에 둔다. 택시 안의 기사가 보이도록 KayKit atlas에서 유리 칸만 투명하게 바꾼 복사본(`Assets/Art/World/StreetLife/CityCarsOpenWindows.png`)을 Builder가 만들어 차에 쓴다. 원본 atlas는 바꾸지 않는다. 신호등·표지판·주차 미터기·신문 판매함·우체통·성조기는 `AmericanStreetBuilder`가 기본 도형으로 만든다.
+
+## 마을 매장 실내
+
+| 에셋 | 위치 | 출처 | 라이선스 | 사용 |
+| --- | --- | --- | --- | --- |
+| Furniture Bits 1.0 — Kay Lousberg (KayKit) | `KayKitFurnitureBits/` | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-Furniture-Bits-1.0), [itch.io](https://kaylousberg.itch.io/furniture-bits) | CC0 1.0, 동봉 `License.txt` | Unity용 FBX 27개와 아틀라스. 의자·탁자·장식장·벽 선반·스탠드·작은 액자·깔개·베개·책·선인장 |
+| Restaurant Bits 1.0 — Kay Lousberg (KayKit) | `KayKitRestaurantBits/` | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-Restaurant-Bits-1.0), [itch.io](https://kaylousberg.itch.io/restaurant-bits) | CC0 1.0, 동봉 `License.txt` | Unity용 FBX 19개와 아틀라스. 다이너 주방(냉장고·조리대·레인지·후드), 냄비·팬·도마, 빵 상자, 단지, 접시·버거·소스·메뉴 |
+
+`fbx(unity)` 폴더의 원본을 바꾸지 않고, 실제로 배치한 모델만 가져왔다. URP 재질(팩마다 아틀라스 한 장)은 `Assets/Art/World/TownInteriors/`, 크기를 줄이고 단어와 충돌을 붙인 래퍼 프리팹은 `Assets/Prefabs/World/TownInteriors/Props/`에 둔다. 이발대·샴푸 세면대·빵 선반·데크 오븐·오락기 같은 나머지 매장 소품은 `TownShopInteriorPieces`가 기본 도형으로 만든다.

@@ -213,6 +213,41 @@ namespace A305.Onboarding.Tests
             Assert.That(flow.CanWithdraw, Is.False);
         }
 
+        [Test]
+        public async Task Load_Member_CanChangeNickname()
+        {
+            Assert.That(flow.CanChangeNickname, Is.False);
+
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanChangeNickname, Is.True);
+        }
+
+        // 게스트 닉네임은 서버가 정하므로 바꾸지 못하게 하고, 열자마자 이유를 알린다.
+        [Test]
+        public async Task Load_Guest_CannotChangeNicknameAndTellsWhy()
+        {
+            api.Guest = true;
+
+            await flow.LoadAsync();
+
+            Assert.That(flow.CanChangeNickname, Is.False);
+            Assert.That(flow.Message, Is.EqualTo("게스트는 닉네임을 바꿀 수 없어요."));
+        }
+
+        [Test]
+        public async Task ChangeNickname_Guest_DoesNotSend()
+        {
+            api.Guest = true;
+            await flow.LoadAsync();
+
+            bool changed = await flow.ChangeNicknameAsync("선종");
+
+            Assert.That(changed, Is.False);
+            Assert.That(api.Changes, Is.Empty);
+            Assert.That(flow.Message, Is.EqualTo("게스트는 닉네임을 바꿀 수 없어요."));
+        }
+
         private static ApiException Failure(string message)
         {
             return new ApiException(ApiErrorCodes.NetworkError, 0, message);

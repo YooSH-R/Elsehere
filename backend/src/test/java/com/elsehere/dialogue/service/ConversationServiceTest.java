@@ -201,8 +201,8 @@ class ConversationServiceTest {
   }
 
   @Test
-  @DisplayName("근무 중인 직원과의 대화는 워커에 시드의 응대 상황을 보내고 첫 인사에서 무엇을 도와줄지 묻게 한다")
-  void start_onDutyStaff_sendsServiceSceneAndAsksHowToHelp() {
+  @DisplayName("근무 중인 직원의 응대 상황과 성격을 살려 첫 인사를 만든다")
+  void start_onDutyStaff_sendsServiceSceneAndCharacterGreeting() {
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Hi! What can I get for you?", null));
 
@@ -222,7 +222,8 @@ class ConversationServiceTest {
             anyInt(),
             any());
     assertThat(npc.getValue().scene()).isEqualTo("The counter of the corner cafe.");
-    assertThat(instruction.getValue()).contains("ask how you can help");
+    assertThat(instruction.getValue())
+        .contains("personality", "first-meeting", "Only offer service");
   }
 
   @Test

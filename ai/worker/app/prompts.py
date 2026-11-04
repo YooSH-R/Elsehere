@@ -6,7 +6,7 @@ import re
 
 from . import npc_relationship
 from .llm import ModelOutputError
-from .npc_prompt import learner_section, reply_system_prompt
+from .npc_prompt import CONVERSATION_FLOW, learner_section, reply_system_prompt
 from .schemas import Learner, Line, Memory, Npc, Relationship, State
 
 TOWN = "Maple Town, a small, friendly town in the United States."
@@ -274,6 +274,7 @@ You are talking with a Korean person practicing English. Their words come from s
 Understand Korean too (including slang and insults), but always reply in English.
 {chr(10) + learner + chr(10) if learner else ""}
 How to reply:
+{CONVERSATION_FLOW}
 - Answer what they just said, like a real person here.
 - If their English has mistakes or Korean words, understand the meaning and naturally use the correct English words in your reply. Never explain grammar.
 - If they ask about something your facts don't cover, answer like a real person in your job would, with small realistic details. Never invent menu items, prices, discounts, or free things.

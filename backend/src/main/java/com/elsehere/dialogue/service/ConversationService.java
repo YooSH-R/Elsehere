@@ -60,8 +60,11 @@ public class ConversationService {
   // 직원의 첫 인사는 AI로 만든다(API 명세 [미정]). 학습자는 아직 말하지 않았으므로 다가온 상황만 알려 준다.
   private static final String GREETING_TEXT = "(The learner walks up to you.)";
   private static final String GREETING_INSTRUCTION =
-      "The learner just walked up to you. Greet them first and ask how you can help, "
-          + "like you would in your role. 1 short sentence.";
+      "The learner just walked up to you. Open in your own voice, following your personality, "
+          + "first-meeting behavior, familiarity and current situation. If you are a passerby, react "
+          + "as a local approached by someone, not a shop assistant: you may ask what brings them "
+          + "over, cautiously or warmly as fits your character. Only offer service if you are "
+          + "actually serving customers now. Give them an easy conversational opening. 1 or 2 short sentences.";
 
   // 미션 지시에는 학습자가 할 일과 NPC가 해 줄 수 있는 일이 담겨 있다. 첫 인사에서 이를 먼저 다 말하면 학습자가 요청할 일이 사라진다.
   private static final String MISSION_GREETING =
@@ -72,7 +75,9 @@ public class ConversationService {
   // 근무 시간이 아닌 NPC는 손님을 맞지 않으므로 무엇을 도와줄지 묻지 않고 쉬는 중에 만난 사람처럼 인사한다.
   private static final String OFF_DUTY_GREETING_INSTRUCTION =
       "The learner just walked up to you while you are off work. Greet them casually, the way"
-          + " you would in your free time. Do not offer to help or serve them. 1 short sentence.";
+          + " you would in your free time, following your personality, familiarity and first-meeting "
+          + "behavior. You may share a small observation or ask what brings them over. "
+          + "Do not offer to help or serve them. 1 or 2 short sentences.";
   // 준비된 것을 건네는 첫마디. 학습자는 아직 말하지 않았으므로 NPC가 먼저 부른다.
   private static final String HANDOVER_TEXT = "(The learner is waiting nearby for their order.)";
   private static final String HANDOVER_INSTRUCTION =

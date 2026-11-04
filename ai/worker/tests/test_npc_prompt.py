@@ -185,3 +185,13 @@ def test_a_reply_turn_sends_the_history_as_chat_roles_and_the_user_text_last(nam
     ]
     assert messages[1:] == [*history, {"role": "user", "content": request["userText"]}]
     assert messages[0]["content"].endswith("Reply to the other person's last line.")
+
+
+def test_opening_and_free_talk_follow_character_and_share_the_initiative():
+    messages = npc_messages(request_example("opening"))
+    system = messages[0]["content"]
+    assert "reserved or wary" in system
+    assert "not a service encounter" in system
+    assert "take the conversational lead" in system
+    assert "do not interrogate" in system
+    assert "First meeting:" in system

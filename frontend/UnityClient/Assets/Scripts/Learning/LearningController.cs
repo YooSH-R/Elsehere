@@ -496,7 +496,12 @@ namespace A305.Learning
 
         private void ToggleLearned(VocabularyEntry entry)
         {
-            _ = ApplyVocabularyChangeAsync(vocabulary.ToggleLearnedAsync(entry), "");
+            // 외운 단어는 목록에서 정리되어 사라지므로 어디서 다시 볼 수 있는지 알린다.
+            string doneMessage =
+                !entry.IsLearned && !vocabulary.ShowsLearned
+                    ? "외운 표현으로 정리했어요. [외운 표현도 보기]로 다시 볼 수 있어요."
+                    : "";
+            _ = ApplyVocabularyChangeAsync(vocabulary.ToggleLearnedAsync(entry), doneMessage);
         }
 
         private void Delete(VocabularyEntry entry)

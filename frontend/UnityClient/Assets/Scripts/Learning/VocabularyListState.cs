@@ -6,6 +6,8 @@ namespace A305.Learning
         Loading,
         Failed,
         Empty,
+
+        /// <summary>저장한 단어를 모두 외워 목록에서 정리했다. [외운 표현도 보기]로 다시 볼 수 있다.</summary>
         AllLearned,
         Entries,
     }

@@ -27,23 +27,32 @@ namespace A305.Learning
             this.api = api;
         }
 
+        /// <summary>외운 단어까지 모두 담은 단어장. 외웠어요는 기록을 지우지 않는다.</summary>
         public IReadOnlyList<VocabularyEntry> Entries => entries;
 
+        /// <summary>[외운 표현도 보기]를 켰는지. 끄면 외운 단어를 목록에서 정리한다(기능 명세 F-35).</summary>
         public bool ShowsLearned { get; set; }
 
-        public IReadOnlyList<VocabularyEntry> ShownEntries => entries;
+        /// <summary>단어장 화면 목록에 보일 단어</summary>
+        public IReadOnlyList<VocabularyEntry> ShownEntries =>
+            ShowsLearned ? entries : entries.FindAll(entry => !entry.IsLearned);
 
         /// <summary>
         /// 화면이 보여 줄 상태. 보여 줄 단어가 있으면 다시 읽는 중이거나 다시 읽지 못했어도 그 단어를 보인다.
-        /// 단어가 없으면 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.
+        /// 단어가 없으면 모두 외워 정리했는지, 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.
         /// </summary>
         public VocabularyListState ListState
         {
             get
             {
-                if (entries.Count > 0)
+                if (ShownEntries.Count > 0)
                 {
                     return VocabularyListState.Entries;
+                }
+
+                if (entries.Count > 0)
+                {
+                    return VocabularyListState.AllLearned;
                 }
 
                 if (isLoading)

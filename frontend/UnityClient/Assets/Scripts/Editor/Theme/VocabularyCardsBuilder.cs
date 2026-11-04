@@ -45,6 +45,18 @@ namespace A305.EditorTools.Theme
             }
             Button close = IconButton(panel, "CloseButton", UiIcon.Close, 920, 24);
             UiCloseButton.Corner(close.transform, UiCloseButton.WindowSize);
+            // 외운 단어는 목록에서 정리하고, 머리줄 닫기 왼쪽의 [외운 표현도 보기]로 다시 본다(기능 명세 F-35).
+            Button showLearned = TextButton(
+                panel,
+                "ShowLearnedButton",
+                "외운 표현도 보기",
+                UiIcon.None,
+                UiTone.Neutral,
+                718,
+                24,
+                190,
+                44
+            );
             RectTransform content = Rect(panel, "Content");
             Position(content, 0, 96, 1000, 476);
             RectTransform entries = Rect(content, "Entries");
@@ -230,6 +242,14 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "content", content.gameObject);
             BuilderTools.SetReference(view, "emptyState", empty.gameObject);
+            BuilderTools.SetReference(view, "emptyTitleText", emptyTitle);
+            BuilderTools.SetReference(view, "emptyHintText", emptyHint);
+            BuilderTools.SetReference(view, "showLearnedButton", showLearned);
+            BuilderTools.SetReference(
+                view,
+                "showLearnedButtonLabel",
+                showLearned.transform.Find("Label").GetComponent<TMP_Text>()
+            );
             BuilderTools.SetReference(view, "loadState", load.gameObject);
             BuilderTools.SetReference(view, "loadStateTitle", loadTitle);
             BuilderTools.SetReference(view, "retryButton", retry);

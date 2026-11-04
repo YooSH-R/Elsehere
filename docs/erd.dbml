@@ -419,6 +419,7 @@ Table first_day_missions [headercolor: #5B4B9A] {
 Table town_stories [headercolor: #5B4B9A] {
   user_id bigint [pk, not null]
   stage int [not null, note: '현재 단계 0~11, 12 전체 완료']
+  paused boolean [not null, default: false, note: '퀘스트 하나를 끝내 다음 퀘스트를 시작하기를 기다리는지']
   completed_goals int [not null, note: '현재 단계에서 확정한 목표 비트 집합']
   version bigint [not null, note: '낙관적 잠금 버전']
   created_at timestamptz [not null, default: `now()`]

@@ -41,7 +41,7 @@ class FirstDayMissionControllerTest {
     when(service.start(8L))
         .thenReturn(
             new FirstDayMissionResponse(
-                true, 0, false, "HOME", false, false, "CLEAR", 20, null, "호텔로 가세요", "예약 확인",
+                true, 0, null, false, "HOME", false, false, "CLEAR", 20, null, "호텔로 가세요", "예약 확인",
                 List.of()));
     mvc.perform(
             post("/api/v1/missions/first-day/start")

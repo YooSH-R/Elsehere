@@ -10,6 +10,7 @@ import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.Npc;
@@ -190,6 +191,7 @@ public class FirstDayMissionService {
     return new FirstDayMissionResponse(
         started,
         current,
+        Quest.CHECK_IN.name(),
         complete,
         scene,
         started && "CAFE".equals(scene) && mission.canRest(),

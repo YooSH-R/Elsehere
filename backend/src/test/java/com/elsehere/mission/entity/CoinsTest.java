@@ -50,11 +50,14 @@ class CoinsTest {
     assertThat(Coins.balance(null, story)).isEqualTo(100 - 7);
 
     while (!story.isCompleted()) {
+      if (story.isPaused()) {
+        story.resume();
+      }
       story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
     }
 
-    // 산 것: 첫 퀘스트 12, 마을 이야기 아침 7·세탁 6·이발 15·꽃 5·간식 4·오락실 2·소포 5. 보상: 10 + 6 + 6 + 4 + 6
-    assertThat(Coins.balance(finishedFirstDay(), story)).isEqualTo(100 - 12 - 44 + 32);
+    // 산 것: 첫 퀘스트 12, 마을 이야기 아침 7·세탁 6·이발 15·꽃 5·간식 4·오락실 2·소포 5. 보상: 10 + 15 + 10
+    assertThat(Coins.balance(finishedFirstDay(), story)).isEqualTo(100 - 12 - 44 + 35);
   }
 
   private static FirstDayMission finishedFirstDay() {

@@ -117,10 +117,10 @@ NPC 일과는 손으로 적지 않고, 장소마다 정한 영업시간·교대�
   | 호텔 | 낮 Jake, 한낮 Walter·Diego, 저녁 Owen, 야간 Clara |
   | 드럭스토어 | 낮 Alex, 저녁 Hannah, 야간 Samuel |
   | 경찰서 | 낮 Dan, 한낮 Tyler, 저녁 Kevin, 야간 Victor |
-  | 마을(행인) | 아침 Ruby·Ray, 낮 Ben, 한낮 Helen·Frank, 오후 Ethan·Rachel, 저녁 Maya·Andre |
+  | 마을(행인) | 아침 Ruby·Ray·Arthur·Margaret, 낮 Ben, 한낮 Helen·Frank, 오후 Ethan·Rachel, 저녁 Maya·Andre |
   | 거리 매장·택시 | 장소마다 한 명이 `ALL_DAY` |
 
-  소방관 Ray·Rachel·Andre는 마을에 소방서가 아직 없어, 근무가 시작되지 않은 쉬는 날을 마을에서 보내는 행인(`PASSERBY`, 근무지 `TOWN`)입니다.
+  Arthur·Margaret는 아침마다 닥스훈트 Pepper를 데리고 함께 큰길을 걷는 노부부입니다. 소방관 Ray·Rachel·Andre는 마을에 소방서가 아직 없어, 근무가 시작되지 않은 쉬는 날을 마을에서 보내는 행인(`PASSERBY`, 근무지 `TOWN`)입니다.
 
 - **근무 외 대화:** 교대 밖의 직원과 대화하면 클라이언트가 대화 시작(API CONV-01)에 `npcOffDuty: true`를 보내고, 백엔드는 그 대화의 AI 요청에 응대 상황 대신 쉬는 중에 잡담하는 일상 상황을 보냅니다. 첫 인사도 손님을 맞는 말 대신 일상 인사입니다. 사적인 화제는 근무 중과 같이 인격과 알아봄·호감을 따릅니다.
 - **Unity로 내보내기:** `ai/tools/npc_life_export.py`가 계산한 일과를 `NpcLife.json`의 NPC별 `schedule`(`from`·`to`·`activity`)로, 장소별 영업시간을 `frontend/UnityClient/Assets/Data/World/PlaceHours.json`으로 내보냅니다. 영업시간 파일은 장소마다 `code`·`alwaysOpen`·`from`·`to`이고, 24시간 여는 곳은 `alwaysOpen: true`에 시각을 비웁니다. Unity `JsonUtility`가 없는 칸을 구분하지 못해 모든 장소를 같은 모양으로 둡니다.
@@ -192,7 +192,7 @@ NPC마다 생활 값을 손으로 적지 않습니다. 사람이나 랜덤 생�
 
 성격을 만드는 일은 NPC를 만들 때 한 번 하고, 결과인 인격 카드(공통 인격 스키마 `NpcProfile`)는 저장해 두고 대화할 때마다 그대로 씁니다. 대화 중에 바뀌는 것은 사용자별 상태(알아봄·호감·기억)뿐입니다.
 
-- **손으로 쓴 인격 카드(Mia·Jake·Ben·Alex·Joe·Dan, 거리 매장 직원 Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina, 교대를 나눠 맡는 Zoe·Leo·Owen·Clara·Walter·Diego·Hannah·Samuel·Victor·Kevin·Tyler·Ruby·Ethan·Maya·Helen·Frank·Ray·Rachel·Andre):** 검수한 문장은 그대로 두고 자동 칸만 더합니다. 생활 파일의 MBTI로 계산한 성격 5축을 `personality.dimensions`에 넣고, 뽑힌 행동 조각 문장을 손으로 쓴 `behaviorRules` 뒤에 붙입니다. `ai/tools/npc_derive.py ai/npcs`가 인격 파일에 다시 쓰며, 다시 계산해도 조각이 겹치지 않고, 테스트가 인격 파일과 다시 계산한 결과가 같은지 지킵니다.
+- **손으로 쓴 인격 카드(Mia·Jake·Ben·Alex·Joe·Dan, 거리 매장 직원 Linda·Rosa·Henry·Gus·Lily·Tony·Grace·Max·Nina, 교대를 나눠 맡는 Zoe·Leo·Owen·Clara·Walter·Diego·Hannah·Samuel·Victor·Kevin·Tyler·Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret·Ray·Rachel·Andre):** 검수한 문장은 그대로 두고 자동 칸만 더합니다. 생활 파일의 MBTI로 계산한 성격 5축을 `personality.dimensions`에 넣고, 뽑힌 행동 조각 문장을 손으로 쓴 `behaviorRules` 뒤에 붙입니다. `ai/tools/npc_derive.py ai/npcs`가 인격 파일에 다시 쓰며, 다시 계산해도 조각이 겹치지 않고, 테스트가 인격 파일과 다시 계산한 결과가 같은지 지킵니다.
 - **새 NPC 생성:** 조합 규칙은 AI 워커(`ai/worker/app/npc_persona.py`) 한 곳에 있고, 저장소 명령(`ai/tools/npc_generate.py`)과 워커 API(`/v1/npc/persona/generate`, [워커 계약](api/ai-worker.md) 2.9절)가 함께 씁니다. 역할·장소를 받아 재료에서 규칙으로 뼈대를 고르고, MBTI와 이름·직업·나이대·가치관·동기·관심사는 직접 고정할 수 있어 비운 칸만 고릅니다. 저장소 명령은 그 장소에서 맡을 교대도 받아, 장소를 근무지로 생활 파일에 적습니다(공통 규칙에 없는 장소·교대면 쓰지 않음). LLM을 쓰지 않고 npcId가 씨앗이라 재료가 같을 때 같은 NPC가 나옵니다. 칸마다 씨앗을 따로 써서 한 칸을 고정해도 다른 칸은 그대로입니다. 어드민에서 후보를 고쳐 재료가 바뀌면 같은 npcId라도 다른 NPC가 나오지만, 만든 카드는 저장해 두므로 이미 만든 NPC는 바뀌지 않습니다.
 
   | 인격 카드 칸 | 고르는 방법 |
@@ -218,7 +218,7 @@ NPC마다 생활 값을 손으로 적지 않습니다. 사람이나 랜덤 생�
 - **게임 시각(2026-10-30 정함, Unity 일과 연결은 S15P31A305-420):** 일과와 욕구 감소에 필요하고, 관계 감소도 게임 속 날짜로 셉니다. 게임 하루는 실제 10분이고, 시간은 사용자마다 따로 **플레이한 동안만** 흐릅니다. 대화 중과 튜토리얼을 마치기 전에는 멈추고, 새 사용자는 1일차 오전 8시에서 시작합니다. 백엔드가 사용자별 누적 플레이 시간을 보관하고(Unity가 월드에 있는 동안 30초마다 신호, 한 번에 최대 60초 인정), 마지막 대화의 게임 날짜로 `days_since_last_talk`를 셉니다([MVP API 명세](api/mvp-api.md) WORLD-06·07). 하루가 10분이라 `graceDays` 3은 플레이 30분, 알아봄 하루 −1은 10분마다 −1이 되므로 관계 규칙의 숫자를 이 속도에 맞춰 볼지 정합니다. Unity는 이 시각으로 NPC 일과와 욕구를 돌립니다(6절).
 - **담당:** Unity 생활 실행과 백엔드 저장·퀘스트 생성은 각 담당과 별도 작업으로 나눕니다.
 - **어드민 연결(S15P31A305-290):** 문장 후보를 DB로 옮길 범위와 후보의 성격 쪽 칸, 저장 뒤 DB를 원본으로 하고 파일은 첫 시드·테스트 데이터로만 쓸지(지금 시드는 서버가 시작할 때마다 `npcs`를 덮어씀), 특기·좋아하는 것·싫어하는 것을 인격 카드 어디에 둘지(공통 인격 스키마 변경)를 정합니다.
-- **행인의 상황:** 지금 거리 상황 파일(`town_street`)은 Ben 전용 내용(일 사이에 걷는 중, 먼저 말을 검)인데, 교대를 나눠 맡는 행인 Ruby·Ethan·Maya·Helen·Frank, 소방관 Ray·Rachel·Andre와 생성한 행인도 같은 파일을 씁니다. 백엔드가 상황 파일을 읽기 전에 공통 거리 상황이나 행인마다 상황 파일로 나눕니다.
+- **행인의 상황:** 지금 거리 상황 파일(`town_street`)은 Ben 전용 내용(일 사이에 걷는 중, 먼저 말을 검)인데, 교대를 나눠 맡는 행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret, 소방관 Ray·Rachel·Andre와 생성한 행인도 같은 파일을 씁니다. 백엔드가 상황 파일을 읽기 전에 공통 거리 상황이나 행인마다 상황 파일로 나눕니다.
 - **교대와 첫날 미션:** 첫날 미션 단계는 NPC 코드(호텔 Jake, 카페 Mia, 행인 Ben, 드럭스토어 Alex)로 정해져 있습니다. 그 NPC가 퇴근한 시각에 같은 곳에서 근무하는 다른 교대 NPC는 자기 역할만 하고 미션 행동을 하지 않으므로, 미션을 그 장소의 근무 중 NPC에게 맡길지 정합니다.
 - **소방서:** 소방관 Ray·Rachel·Andre는 소방서가 없어 지금은 마을 행인으로 지냅니다. 소방서를 열면 근무지·교대·역할과 상황 파일을 소방서 직원으로 옮깁니다.
 - **같은 문장의 반복:** 선(`boundaries`)처럼 역할로 고르는 문장은 같은 역할 NPC끼리 같아서, 난이도 1의 짧은 대답에서는 사적인 질문에 거의 같은 말로 답합니다. 문장 후보를 늘릴지 정합니다.

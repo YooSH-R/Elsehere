@@ -67,7 +67,7 @@ select id, nickname, email from users where role = 'ADMIN';
 - 앞뒤 공백은 지우고, 비운 칸은 빈 문자열로 저장합니다.
 - 이름·역할 이름·장소·목소리·먼저 말 걸기 대사는 화면에 보여 주기만 합니다. 이 값은 시드(`world.sql`)가 관리합니다.
 - 인격 카드([NPC 설정 v2 인격 구조](api/npc-ai-contracts/01_npc_configuration_spec_v2.md)의 성격·가치관·말투 등)는 이 화면에서 다루지 않습니다. 카드는 시드가 `content/npc-configurations.json`에서 넣습니다([백엔드 README](../backend/README.md#시드-데이터)).
-- 인격 카드가 있는 NPC(행인 Ben·카페 Mia·호텔 Jake·드럭스토어 Alex·택시 기사 Joe·경찰관 Dan과 거리 매장 직원 9명: 우체국 Linda·식당 Rosa·은행 Henry·빨래방 Gus·꽃집 Lily·이발소 Tony·베이커리 Grace·오락실 Max·생활용품점 Nina, 교대를 나눠 맡는 카페 Zoe·Leo·호텔 Owen·Clara·Walter·Diego·드럭스토어 Hannah·Samuel·경찰서 Victor·Kevin·Tyler·행인 Ruby·Ethan·Maya·Helen·Frank, 쉬는 날 마을에서 지내는 소방관 Ray·Rachel·Andre)는 NPC 대답을 카드로 만들고, `role`은 무례·의도 판정, 번역, 힌트·추천 단어, 뜻 보기, 기억 카드처럼 NPC를 짧게 소개하는 곳에만 씁니다. `facts`·`scene`은 카드와 함께 대답에도 씁니다. 카드가 없는 NPC는 세 칸으로 대답합니다.
+- 인격 카드가 있는 NPC(행인 Ben·카페 Mia·호텔 Jake·드럭스토어 Alex·택시 기사 Joe·경찰관 Dan과 거리 매장 직원 9명: 우체국 Linda·식당 Rosa·은행 Henry·빨래방 Gus·꽃집 Lily·이발소 Tony·베이커리 Grace·오락실 Max·생활용품점 Nina, 교대를 나눠 맡는 카페 Zoe·Leo·호텔 Owen·Clara·Walter·Diego·드럭스토어 Hannah·Samuel·경찰서 Victor·Kevin·Tyler·행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret, 쉬는 날 마을에서 지내는 소방관 Ray·Rachel·Andre)는 NPC 대답을 카드로 만들고, `role`은 무례·의도 판정, 번역, 힌트·추천 단어, 뜻 보기, 기억 카드처럼 NPC를 짧게 소개하는 곳에만 씁니다. `facts`·`scene`은 카드와 함께 대답에도 씁니다. 카드가 없는 NPC는 세 칸으로 대답합니다.
 
 ### 시드와의 관계
 

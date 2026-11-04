@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "A305.Learning",
         "A305.World",
+        "A305.Tutorial",
         "Unity.TextMeshPro",
         "UnityEngine.UI"
     ],

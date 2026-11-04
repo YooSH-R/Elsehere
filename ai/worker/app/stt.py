@@ -7,7 +7,8 @@ from .llm import LLM, Usage
 
 # Whisper 프롬프트: 한영 혼합 예시를 주면 "muffin 하나"의 muffin을 한글로 바꾸지 않는다 (asr_eval 음성으로 확인).
 # 메뉴 예시는 영어로 쓴다. 한글 '아이스 라떼'는 한국식 발음 'Iced americano'를 '아이스트 아메라카노'로 끌어당겼다 (S15P31A305-397)
-STT_PROMPT = "I want... an iced latte... Can I get a muffin, 음, 하나? The bus stop is over there."
+# 한국어 예시가 '음, 하나'뿐이면 짧은 한국어 문장을 영어 문장으로 번역해 적어서, 메뉴가 아닌 한국어 말을 앞뒤에 둔다 (S15P31A305-556)
+STT_PROMPT = "음, 그러니까... I want... an iced latte... Can I get a muffin, 음, 하나? 잠깐만요. The bus stop is over there."
 STT_MAX_BYTES = 3 * 1024 * 1024
 AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "mp4", "audio/wav": "wav", "audio/x-wav": "wav", "audio/mpeg": "mp3"}
 NORM = re.compile(r"[^a-z0-9가-힣 ]")

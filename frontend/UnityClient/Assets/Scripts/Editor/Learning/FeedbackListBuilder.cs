@@ -1,4 +1,5 @@
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.Learning;
 using TMPro;
 using UnityEditor;
@@ -114,10 +115,8 @@ namespace A305.EditorTools.Learning
             Transform close = panel.Find("CloseButton") ?? panel.Find("Buttons/CloseButton");
             close = close != null ? close : NewButton(panel, "CloseButton");
             close.SetParent(panel, false);
-            F.ArtButton(close, "FeedbackClose", 52, 52, 14, 12, 80, 84);
-            var closeRect = (RectTransform)close;
-            closeRect.anchorMin = closeRect.anchorMax = closeRect.pivot = Vector2.one;
-            closeRect.anchoredPosition = new Vector2(-35, -27) * F.Px;
+            // 닫기 X는 다른 창과 같은 공용 모양으로 둔다(S15P31A305-525).
+            UiCloseButton.Corner(close, UiCloseButton.WindowSize);
             BuilderTools.SetReference(view, "closeButton", close.GetComponent<Button>());
         }
 

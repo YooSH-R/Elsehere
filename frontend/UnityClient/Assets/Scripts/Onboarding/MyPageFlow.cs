@@ -13,6 +13,7 @@ namespace A305.Onboarding
     public sealed class MyPageFlow
     {
         private const string LoadFailedMessage = "내 정보를 불러오지 못했어요.";
+        private const string GuestNicknameMessage = "게스트는 닉네임을 바꿀 수 없어요.";
         private const string VoiceConsentType = "VOICE";
 
         private readonly IMyPageApi api;
@@ -47,6 +48,11 @@ namespace A305.Onboarding
                 PlayerNickname.Set(User.Nickname);
 
                 consents = await api.GetConsentsAsync();
+                // 게스트 닉네임은 서버가 정하므로, 바꾸는 칸을 막은 이유를 열자마자 알린다.
+                if (User.Guest)
+                {
+                    Message = GuestNicknameMessage;
+                }
             });
         }
 
@@ -58,6 +64,9 @@ namespace A305.Onboarding
         /// 게스트인지 알기 전(읽기 전·읽지 못함)에도 보이지 않는다.
         /// </summary>
         public bool CanWithdraw => User != null && !User.Guest;
+
+        /// <summary>닉네임을 바꿀 수 있는지. 게스트와 내 정보를 읽기 전에는 바꾸지 못한다.</summary>
+        public bool CanChangeNickname => User != null && !User.Guest;
 
         /// <summary>음성 처리에 동의했는지. 대화의 음성 입력에 반영한다.</summary>
         public bool IsVoiceAgreed =>
@@ -91,6 +100,12 @@ namespace A305.Onboarding
         {
             if (User == null || IsBusy)
             {
+                return false;
+            }
+
+            if (User.Guest)
+            {
+                Message = GuestNicknameMessage;
                 return false;
             }
 

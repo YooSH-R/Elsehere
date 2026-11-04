@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using A305.Dialogue;
 using A305.Theme;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -113,6 +114,12 @@ namespace A305.Learning
         private const float BodyTopPadding = 0;
         private const float SummaryTitleHeight = 26 * 1.2f;
         private const float SubtitleGap = 16 * 1.2f;
+
+        // 판 안은 시안 판(1240×770)을 1.2배로 배치하고, 화면에는 시안 크기로 줄여 보인다. 폭은 시안보다 좁은 1080으로,
+        // 머리줄의 부제(○○와 나눈 대화)와 오른쪽 탭 사이가 남는 만큼만 줄였다.
+        private const float FrameWidth = 1080 * 1.2f;
+        private const float FrameHeight = 770 * 1.2f;
+        private const float FrameScale = 1 / 1.2f;
         private static readonly Color TabInk = new Color32(47, 37, 27, 255);
         private static readonly Color TabMuted = new Color32(125, 110, 91, 255);
 
@@ -132,7 +139,7 @@ namespace A305.Learning
         private int pageIndex;
         private int textPage = 1;
         private bool isRegenerating;
-        private Vector2 lastCanvasSize;
+        private Rect lastFreeArea;
         private bool isTranscriptShown;
         private bool isSaveAvailable = true;
 
@@ -466,25 +473,29 @@ namespace A305.Learning
         private ReferenceExpression CurrentExpression =>
             pages != null && pages.Count > 0 ? pages[pageIndex].Expression : null;
 
+        // 화면 크기가 바뀌거나 마을 HUD가 나타나고 사라져 빈 곳이 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
         {
-            if (
-                feedback != null
-                && ((RectTransform)panel.transform.parent).rect.size != lastCanvasSize
-            )
+            if (feedback != null && FreeArea() != lastFreeArea)
                 UpdateLayout();
         }
 
+        private Rect FreeArea()
+        {
+            return CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
+        }
+
+        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
+        // 빈 곳이 좁거나 낮으면 배치하는 판을 줄여(본문은 쪽을 더 나눈다) 빈 곳에 맞춘다.
         private void FitFrameToCanvas()
         {
             var frame = (RectTransform)panel.transform;
-            var canvas = (RectTransform)frame.parent;
-            lastCanvasSize = canvas.rect.size;
-            // 시안 판 1240×770(× 1.2). 작은 화면에서는 가장자리 24씩을 남긴다.
+            lastFreeArea = FreeArea();
             frame.sizeDelta = new Vector2(
-                Mathf.Min(1488, canvas.rect.width - 48),
-                Mathf.Min(924, canvas.rect.height - 48)
+                Mathf.Min(FrameWidth, lastFreeArea.width / FrameScale),
+                Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
             );
+            CenterWindow.Shared.Place(frame, FrameScale);
         }
 
         public void UpdateLayout()

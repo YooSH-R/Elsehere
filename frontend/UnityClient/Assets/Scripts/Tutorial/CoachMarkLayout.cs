@@ -124,6 +124,50 @@ namespace A305.Tutorial
             return new BubblePose(below, BubbleSide.Below, StackTail(below, below.yMax, hole));
         }
 
+        /// <summary>
+        /// 대상 오른쪽에 두는 두 번째 말풍선의 너비. 오른쪽에 남는 자리만큼 쓰되 <paramref name="maxWidth"/>를 넘지 않고,
+        /// 자리가 <paramref name="minWidth"/>보다 좁아 위에 둘 때는 가장 넓게 쓴다.
+        /// </summary>
+        public static float NoteWidth(
+            Rect target,
+            float canvasWidth,
+            float gap,
+            float margin,
+            float minWidth,
+            float maxWidth
+        )
+        {
+            float room = canvasWidth - margin - target.xMax - gap;
+            return room >= minWidth ? Mathf.Min(room, maxWidth) : maxWidth;
+        }
+
+        /// <summary>
+        /// 두 번째 말풍선을 대상 오른쪽에 두고, 자리가 없으면 대상 위에 둔다. 대상 왼쪽에는 함께 밝힌 버튼들이 있어 두지 않는다.
+        /// </summary>
+        public static BubblePose Note(
+            Rect target,
+            Vector2 size,
+            Vector2 canvasSize,
+            float gap,
+            float margin
+        )
+        {
+            if (target.xMax + gap + size.x <= canvasSize.x - margin)
+            {
+                float y = Clamp(
+                    target.center.y - size.y / 2f,
+                    margin,
+                    canvasSize.y - margin - size.y
+                );
+                var rect = new Rect(target.xMax + gap, y, size.x, size.y);
+                return new BubblePose(rect, BubbleSide.Right, SideTail(rect, rect.xMin, target));
+            }
+
+            float x = Clamp(target.center.x - size.x / 2f, margin, canvasSize.x - margin - size.x);
+            var above = new Rect(x, target.yMax + gap, size.x, size.y);
+            return new BubblePose(above, BubbleSide.Above, StackTail(above, above.yMin, target));
+        }
+
         private static Vector2 SideTail(Rect bubble, float x, Rect hole)
         {
             return new Vector2(

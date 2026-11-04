@@ -19,7 +19,7 @@ namespace A305.Npc.PlayModeTests
     /// 대화를 마치고 밖으로 나온 플레이어가 출동하는 모습을 보게 하려는 것이다.
     /// 경찰서 문은 여닫지 않고, 다른 장소처럼 문에 닿으면 화면을 덮었다가 실내(또는 문 밖)에 세우는지도 확인한다.
     /// 순찰차는 앞의 차에 양보하므로 택시·승용차와 서로 막히는 경우가 프레임 속도에 따라 생긴다.
-    /// 출동 흐름만 보도록 다른 차를 세워 둔다.
+    /// 출동 흐름만 보도록 다른 차를 세워 둔다. 트럭 옆을 한 대씩 지나가는지는 택시만 남겨 두고 따로 본다.
     /// 신고 문장 판별과 출동 단계 전환은 EditMode 테스트가 맡는다.
     /// </summary>
     public class PoliceStationTests
@@ -27,6 +27,9 @@ namespace A305.Npc.PlayModeTests
         private const string OfficerCode = "POLICE_OFFICER";
         private const float TripTimeoutSeconds = 30f;
         private const float DoorTimeoutSeconds = 5f;
+
+        // 신호 대기와 장소 앞 20초를 넉넉히 넣은 한 구간의 게임 시간
+        private const float TripGameSeconds = 150f;
 
         [SetUp]
         public void ResetCrossSceneRecords()
@@ -40,6 +43,7 @@ namespace A305.Npc.PlayModeTests
         public void RestoreSharedState()
         {
             Time.timeScale = 1;
+            Time.captureDeltaTime = 0;
             TutorialState.Clear();
         }
 
@@ -129,6 +133,21 @@ namespace A305.Npc.PlayModeTests
                 Time.timeScale = previousScale;
             }
             Assert.That(Vector3.Distance(car.transform.position, bay), Is.LessThan(.05f));
+        }
+
+        // 택시가 트럭 옆을 비켜 가는 동안 순찰차가 본길에 들어서면 둘이 서로를 앞차로 보고 함께 서 버렸다.
+        // 트럭 옆과 남쪽 유턴은 한 번에 한 차만 지나가므로, 택시가 들어오기 전에 출동하면 택시가 기다린다.
+        [UnityTest]
+        public IEnumerator TaxiReachingTheTruckWhileThePatrolCarLeaves_WaitsSoNeitherStopsForever()
+        {
+            yield return RespondWhileTheTaxiDrivesSouthFrom(-8f);
+        }
+
+        // 택시가 이미 트럭 옆에 들어와 있으면 순찰차가 주차 칸에서 기다렸다가 나간다.
+        [UnityTest]
+        public IEnumerator DispatchingWhileTheTaxiPassesTheTruck_PatrolCarWaitsSoNeitherStopsForever()
+        {
+            yield return RespondWhileTheTaxiDrivesSouthFrom(-13f);
         }
 
         [UnityTest]
@@ -281,6 +300,87 @@ namespace A305.Npc.PlayModeTests
                 if (other.gameObject != patrolCar.gameObject)
                     other.enabled = false;
         }
+
+        private static IEnumerator RespondWhileTheTaxiDrivesSouthFrom(float taxiZ)
+        {
+            yield return LoadTown();
+            PoliceCar patrolCar = Single<PoliceCar>();
+            LoopingCar taxi = Single<TaxiRide>().GetComponent<LoopingCar>();
+            foreach (
+                LoopingCar other in Object.FindObjectsByType<LoopingCar>(FindObjectsSortMode.None)
+            )
+                if (other.gameObject != patrolCar.gameObject && other != taxi)
+                    other.enabled = false;
+            taxi.StopAt(taxi.Route.SouthboundDistance(taxiZ));
+            taxi.Release();
+
+            Assert.That(patrolCar.Dispatch("DINER"), Is.True);
+            // 시간을 빠르게 돌리면 느린 프레임에 차가 한 번에 수 m를 건너뛰어 앞차를 지나친다.
+            // 프레임마다 같은 시간만큼 진행해 두 차가 만나는 자리가 실행할 때마다 같게 한다.
+            Time.captureDeltaTime = .2f;
+            try
+            {
+                yield return WatchBothCarsUntil(patrolCar, taxi, PolicePhase.OnScene);
+                // 돌아올 때도 남행으로 같은 구간에 들어와 주차 칸으로 들어간다.
+                yield return WatchBothCarsUntil(patrolCar, taxi, PolicePhase.Parked);
+            }
+            finally
+            {
+                Time.captureDeltaTime = 0;
+            }
+        }
+
+        private static IEnumerator WatchBothCarsUntil(
+            PoliceCar patrolCar,
+            LoopingCar taxi,
+            PolicePhase phase
+        )
+        {
+            // 프레임마다 같은 시간만큼 진행하므로 게임 시간으로 제한한다.
+            float deadline = Time.time + TripGameSeconds;
+            while (patrolCar.Phase != phase)
+            {
+                string where =
+                    $"순찰차 {patrolCar.transform.position}({patrolCar.Phase}), 택시 {taxi.transform.position}";
+                Assert.That(
+                    Overlaps(patrolCar.transform, taxi.transform),
+                    Is.False,
+                    $"두 차가 겹쳤습니다. {where}"
+                );
+                Assert.That(
+                    Time.time,
+                    Is.LessThan(deadline),
+                    $"{phase} 단계가 되지 않았습니다. {where}"
+                );
+                yield return null;
+            }
+        }
+
+        // 두 차 바닥을 차 폭·길이(1.84m×4.1m)보다 조금 작은 사각형으로 보고 분리축으로 겹침을 본다.
+        private static bool Overlaps(Transform first, Transform second)
+        {
+            Vector2 between = Flat(second.position - first.position);
+            foreach (
+                Vector3 axis in new[] { first.right, first.forward, second.right, second.forward }
+            )
+            {
+                Vector2 flatAxis = Flat(axis).normalized;
+                float reach = Reach(first, flatAxis) + Reach(second, flatAxis);
+                if (Mathf.Abs(Vector2.Dot(between, flatAxis)) > reach)
+                    return false;
+            }
+            return true;
+        }
+
+        private static float Reach(Transform car, Vector2 axis)
+        {
+            const float halfWidth = .85f;
+            const float halfLength = 1.95f;
+            return halfWidth * Mathf.Abs(Vector2.Dot(Flat(car.right).normalized, axis))
+                + halfLength * Mathf.Abs(Vector2.Dot(Flat(car.forward).normalized, axis));
+        }
+
+        private static Vector2 Flat(Vector3 vector) => new Vector2(vector.x, vector.z);
 
         private static IEnumerator WaitForPhase(PoliceCar car, PolicePhase phase)
         {

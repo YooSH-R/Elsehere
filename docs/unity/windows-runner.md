@@ -52,6 +52,8 @@ PowerShell 창과 사용자 세션을 유지하고, 빌드 중에는 절전에 �
 
 `unity:editor-tests`는 같은 프로젝트의 Unity 관련 MR에서 EditMode·PlayMode를 필수로 실행합니다. Web 템플릿·디자인 이미지·문서만 바뀌면 EditMode 배포 검사만 실행하며, 범위 판정은 [검사 파이프라인 문서](../ci-runner.md#unity-테스트-범위)를 따릅니다. YAML과 포맷 검사가 통과한 뒤 시작하며 WebGL 빌드와 서버 배포는 하지 않습니다. Draft와 후속 Push에도 같은 조건을 적용합니다. 일반 문서와 Unity 규약 문서만 바꾼 MR에는 실행하지 않습니다.
 
+`unity:editor-tests`의 제한 시간은 30분입니다. 정상 실행은 25분 안에 끝나므로, 넘기면 PlayMode가 멈춘 것으로 보고 실패시켜 Runner를 다음 작업에 넘깁니다. 테스트 뒤 WebGL까지 빌드하는 `unity:editor-and-webgl`은 1시간을 유지합니다.
+
 보호된 Runner는 일반 작업 브랜치 MR을 받을 수 없으므로, MR 검사 적용에는 위 표의 실행 범위 전환이 필요합니다. 이 전환은 해당 노트북의 실행 권한을 작업 브랜치 코드에도 주는 변경입니다. GitLab의 Runner 설정을 변경하기 전에 실행 계정 권한과 프로젝트 접근 범위를 확인하고 승인된 범위로 적용합니다. 다른 프로젝트의 Unity MR은 Linux의 `unity:external-mr`에서 실패시켜 노트북 실행과 필수 검사 생략을 함께 차단합니다.
 
 `unity:editor-and-webgl`은 보호된 ref의 수동 연결 시험 또는 dev·운영 배포 자식 파이프라인에서 사용합니다. MR 검사 뒤에도 병합 결과의 통합 검사와 필요한 WebGL 빌드를 수행합니다. 수동 Unity 연결 시험에는 `RUN_UNITY_BUILD=true`를 사용합니다. 실제 앱 전달까지 시험하는 절차는 [dev 자동 배포](../dev-auto-deployment.md)를 따릅니다.

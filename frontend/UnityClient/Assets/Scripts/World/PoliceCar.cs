@@ -98,10 +98,17 @@ namespace A305.World
             dispatch.Tick(ReachedLegEnd(), Time.deltaTime);
             if (dispatch.Phase != before)
                 BeginLeg();
-            if (dispatch.Phase == PolicePhase.LeavingBay)
+            // 진입로는 트럭 옆·남쪽 유턴의 한 대씩 구간에 이어진다. 다른 차가 지나는 중이면 주차 칸에서 기다렸다 나간다.
+            if (
+                dispatch.Phase == PolicePhase.LeavingBay
+                && (pathDistance > 0 || !car.IsSingleLaneTaken)
+            )
                 Drive(exitPath);
             else if (dispatch.Phase == PolicePhase.EnteringBay)
                 Drive(entryPath);
+            car.HoldsSingleLane =
+                (dispatch.Phase == PolicePhase.LeavingBay && pathDistance > 0)
+                || dispatch.Phase == PolicePhase.EnteringBay;
             ShowLights();
         }
 

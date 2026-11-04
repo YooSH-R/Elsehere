@@ -73,22 +73,21 @@ namespace A305.EditorTools.Theme
             );
             RectTransform content = Rect(panel, "Content");
             Position(content, 0, 96, 1000, 476);
-            // 목록을 최근 저장순과 알파벳순으로 오가는 버튼은 무엇을 정렬하는지 보이게 목록 바로 위에 둔다.
+            // 목록 순서는 목록 바로 위 [최근순 | 알파벳순] 두 칸에서 고른다. 지금 순서는 고른 줄과 같은 강조색 카드로 칠한다.
             // 알파벳순일 때는 목록 맨 왼쪽의 A~Z로 그 글자 묶음에 간다.
-            Transform headerSort = panel.Find("SortButton");
-            if (headerSort != null)
-                Object.DestroyImmediate(headerSort.gameObject);
-            Button sort = TextButton(
-                content,
-                "SortButton",
-                "알파벳순으로 보기",
-                UiIcon.None,
-                UiTone.Neutral,
-                50,
-                0,
-                190,
-                36
-            );
+            foreach (
+                Transform old in new[] { panel.Find("SortButton"), content.Find("SortButton") }
+            )
+            {
+                if (old != null)
+                    Object.DestroyImmediate(old.gameObject);
+            }
+            RectTransform sortTabs = Rect(content, "SortTabs");
+            Position(sortTabs, 50, 0, 200, 38);
+            // 카드 그림의 모서리(위아래 60px)가 낮은 칸에 들어가도록 줄여 그린다.
+            SolidCard(sortTabs, RowCardColor).pixelsPerUnitMultiplier = 1.7f;
+            Button recent = OrderChoice(sortTabs, "RecentButton", "최근순", 3);
+            Button alphabetical = OrderChoice(sortTabs, "AlphabetButton", "알파벳순", 101);
             RectTransform letters = LetterIndex(content);
             // 왼쪽 단어 목록. 단어가 많으면 마우스 휠·끌기로 스크롤한다. 고른 줄의 그림자가 잘리지 않게 보이는 곳을 줄보다 조금 넓게 둔다.
             RectTransform entries = Rect(content, "Entries");
@@ -342,12 +341,8 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "emptyTitleText", emptyTitle);
             BuilderTools.SetReference(view, "emptyHintText", emptyHint);
             BuilderTools.SetReference(view, "showLearnedButton", showLearned);
-            BuilderTools.SetReference(view, "sortButton", sort);
-            BuilderTools.SetReference(
-                view,
-                "sortButtonLabel",
-                sort.transform.Find("Label").GetComponent<TMP_Text>()
-            );
+            BuilderTools.SetReference(view, "recentOrderButton", recent);
+            BuilderTools.SetReference(view, "alphabeticalOrderButton", alphabetical);
             BuilderTools.SetReference(view, "letterIndex", letters);
             BuilderTools.SetReference(
                 view,
@@ -559,6 +554,39 @@ namespace A305.EditorTools.Theme
                 role == UiThemeRole.Muted ? Muted
                 : role == UiThemeRole.Accent ? Accent
                 : Ink;
+        }
+
+        // 정렬 두 칸 중 한 칸. 고른 칸은 Selection(목록에서 고른 줄과 같은 강조색 카드)을 켜고, VocabularyView가 고른다.
+        private static Button OrderChoice(RectTransform tabs, string name, string caption, float x)
+        {
+            Button choice = TextButton(
+                tabs,
+                name,
+                caption,
+                UiIcon.None,
+                UiTone.Neutral,
+                x,
+                3,
+                96,
+                32
+            );
+            Object.DestroyImmediate(choice.GetComponent<ThemedElement>());
+            choice.GetComponent<Image>().color = Color.clear;
+            Object.DestroyImmediate(choice.transform.Find("Outline").gameObject);
+            Object.DestroyImmediate(choice.transform.Find("Icon").gameObject);
+            RectTransform mark = Rect(choice.transform, "Selection");
+            Stretch(mark);
+            mark.SetAsFirstSibling();
+            Skin(mark, UiThemeRole.PillButton, UiTone.Primary);
+            SetThemeFlag(mark, "selection");
+            mark.GetComponent<Image>().raycastTarget = false;
+            TMP_Text label = choice.transform.Find("Label").GetComponent<TMP_Text>();
+            Stretch(label.rectTransform);
+            label.margin = Vector4.zero;
+            label.alignment = TextAlignmentOptions.Midline;
+            label.fontSize = 16;
+            Letter(label, UiThemeRole.Body, bold: true);
+            return choice;
         }
 
         // 알파벳순일 때 목록 맨 왼쪽의 A~Z. 글자마다 버튼이고, 그 글자로 시작하는 단어가 없으면 흐리게 보인다.

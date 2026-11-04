@@ -26,8 +26,6 @@ namespace A305.Learning
             "[외운 표현도 보기]를 누르면 외운 단어를 다시 볼 수 있어요.";
         private const string ShowLearnedLabel = "외운 표현도 보기";
         private const string HideLearnedLabel = "외운 표현 숨기기";
-        private const string AlphabeticalLabel = "알파벳순으로 보기";
-        private const string RecentOrderLabel = "최근순으로 보기";
 
         [SerializeField]
         private GameObject panel;
@@ -53,11 +51,12 @@ namespace A305.Learning
         private TMP_Text showLearnedButtonLabel;
 
         [SerializeField]
-        [Tooltip("목록 바로 위의 정렬 바꾸기. 최근 저장순과 알파벳순을 오간다")]
-        private Button sortButton;
+        [Tooltip("목록 바로 위 [최근순 | 알파벳순]의 [최근순]. 고른 쪽은 Selection을 켠다")]
+        private Button recentOrderButton;
 
         [SerializeField]
-        private TMP_Text sortButtonLabel;
+        [Tooltip("목록 바로 위 [최근순 | 알파벳순]의 [알파벳순]")]
+        private Button alphabeticalOrderButton;
 
         [SerializeField]
         [Tooltip("알파벳순일 때 목록 맨 왼쪽에 보이는 A~Z 버튼 묶음. 버튼 이름이 그 글자다")]
@@ -212,7 +211,8 @@ namespace A305.Learning
                 book.ShowsLearned || book.Entries.Any(entry => entry.IsLearned)
             );
             showLearnedButtonLabel.text = book.ShowsLearned ? HideLearnedLabel : ShowLearnedLabel;
-            sortButtonLabel.text = book.SortsAlphabetically ? RecentOrderLabel : AlphabeticalLabel;
+            ShowOrderChoice(recentOrderButton, !book.SortsAlphabetically);
+            ShowOrderChoice(alphabeticalOrderButton, book.SortsAlphabetically);
             // 알파벳순일 때만 A~Z를 두고, 그 글자로 시작하는 단어가 없으면 누를 수 없게 흐리게 둔다.
             letterIndex.gameObject.SetActive(book.SortsAlphabetically);
             if (book.SortsAlphabetically)
@@ -348,8 +348,11 @@ namespace A305.Learning
             showLearnedButton.onClick.AddListener(() =>
                 ChangeList(() => book.ShowsLearned = !book.ShowsLearned)
             );
-            sortButton.onClick.AddListener(() =>
-                ChangeList(() => book.SortsAlphabetically = !book.SortsAlphabetically)
+            recentOrderButton.onClick.AddListener(() =>
+                ChangeList(() => book.SortsAlphabetically = false)
+            );
+            alphabeticalOrderButton.onClick.AddListener(() =>
+                ChangeList(() => book.SortsAlphabetically = true)
             );
             foreach (Transform letter in letterIndex)
             {
@@ -357,6 +360,13 @@ namespace A305.Learning
                 letter.GetComponent<Button>().onClick.AddListener(() => JumpToLetter(first));
             }
             Hide();
+        }
+
+        // 정렬 두 칸 중 지금 순서는 고른 줄과 같은 색으로 칠하고, 다른 쪽은 글자를 흐리게 둔다.
+        private static void ShowOrderChoice(Button choice, bool chosen)
+        {
+            choice.transform.Find("Selection").gameObject.SetActive(chosen);
+            choice.transform.Find("Label").GetComponent<TMP_Text>().alpha = chosen ? 1 : .55f;
         }
 
         // 외운 단어 보이기·정렬처럼 목록을 바꾼다. 보던 단어가 새 목록에도 있으면 그 단어를 그대로 고르고 보이게 스크롤한다.

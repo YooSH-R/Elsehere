@@ -88,7 +88,12 @@ namespace A305.Learning
         private Button[] entryButtons;
 
         [SerializeField]
+        [Tooltip("목록 줄의 영어 단어")]
         private TMP_Text[] entryTexts;
+
+        [SerializeField]
+        [Tooltip("목록 줄의 영어 단어 아래 뜻")]
+        private TMP_Text[] entryMeaningTexts;
 
         [SerializeField]
         private GameObject[] selectedMarks;
@@ -119,6 +124,13 @@ namespace A305.Learning
 
         [SerializeField]
         private TMP_Text statusText;
+
+        [SerializeField]
+        [Tooltip("메모 제목·입력칸·[저장]. 저장한 문장이 없으면 그 자리로 올린다")]
+        private RectTransform[] memoParts;
+
+        // 메모 부분들이 저장한 문장 아래에 있을 때의 높이
+        private float[] memoPartTops;
 
         private VocabularyBook book;
 
@@ -213,10 +225,10 @@ namespace A305.Learning
                     continue;
                 VocabularyEntry entry = shownEntries[index];
                 // 서버 원문은 TMP 태그로 해석하지 않는다.
-                entryTexts[row].richText = false;
+                entryTexts[row].richText = entryMeaningTexts[row].richText = false;
+                entryTexts[row].text = entry.English;
                 // [외운 표현도 보기]를 켜면 외운 단어도 섞여 보이므로 뜻 뒤에 표시한다.
-                entryTexts[row].text =
-                    entry.English + "\n" + entry.Korean + (entry.IsLearned ? " · 외웠어요" : "");
+                entryMeaningTexts[row].text = entry.Korean + (entry.IsLearned ? " · 외웠어요" : "");
                 selectedMarks[row].SetActive(index == selectedIndex);
             }
             wordText.richText = meaningText.richText = contextText.richText = false;
@@ -234,6 +246,7 @@ namespace A305.Learning
                     ? ContextTitle
                     : $"{ContextTitle} · {SelectedEntry.SourceLabel}";
             contextSection.SetActive(!string.IsNullOrWhiteSpace(SelectedEntry.ContextText));
+            PlaceMemo();
             pageText.text = $"{selectedIndex + 1} / {count}";
             previousButton.interactable = hasEntries && selectedIndex > 0;
             nextButton.interactable = hasEntries && selectedIndex < count - 1;
@@ -271,8 +284,24 @@ namespace A305.Learning
                 CenterWindow.Shared.Place(PanelRect);
         }
 
+        // 저장한 문장이 없는 단어(사물 카드에서 저장한 단어 등)는 뜻과 메모 사이가 비지 않게 메모를 문장 자리로 올린다.
+        private void PlaceMemo()
+        {
+            float lift = contextSection.activeSelf
+                ? 0
+                : ((RectTransform)contextSection.transform).anchoredPosition.y - memoPartTops[0];
+            for (int i = 0; i < memoParts.Length; i++)
+            {
+                memoParts[i].anchoredPosition = new Vector2(
+                    memoParts[i].anchoredPosition.x,
+                    memoPartTops[i] + lift
+                );
+            }
+        }
+
         private void Awake()
         {
+            memoPartTops = memoParts.Select(part => part.anchoredPosition.y).ToArray();
             memoInput.characterLimit = VocabularyBook.MaxMemoLength;
             for (int row = 0; row < entryButtons.Length; row++)
             {

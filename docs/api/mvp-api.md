@@ -174,6 +174,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 건물 안 NPC 이름표 | WORLD-02 |
 | | [E 대화하기] | CONV-01(`initiatedBy: USER`) |
 | | 튜토리얼 뒤 거리 행인의 말걸기 → [대화하기] / [지금은 괜찮아요] | CONV-01(`initiatedBy: NPC`) / 없음 |
+| | 왼쪽 기다림 카드: NPC가 건네기로 한 것의 남은 시간, 준비 알림 | CONV-08 응답 `followUp`, CONV-13(새로고침·씬 이동 뒤) |
+| | 준비되면 그 NPC가 부름 → [대화하기] | CONV-01(`initiatedBy: NPC`, 응답 `deliveredFollowUpId`) |
 | 15 NPC AI 자유 대화 | 대화 기록(텍스트) | CONV-01, CONV-03 응답(새로고침 후에는 CONV-11) |
 | | 녹음 → 전사 확인 → [다시 녹음] / [보내기] | CONV-02, CONV-03 |
 | | 마이크를 쓸 수 없을 때 [텍스트로 입력] | CONV-03 |
@@ -248,6 +250,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | CONV-10 | `GET /api/v1/conversations/{conversationId}` | 대화 상세(턴 포함) | - | 16, 18 |
 | CONV-11 | `GET /api/v1/conversations/active` | 진행 중인 대화 조회 | - | 15 |
 | CONV-12 | `POST /api/v1/turns/{turnId}/suggest-words` | NPC 대사에 대답할 추천 단어 | LLM | 15 |
+| CONV-13 | `GET /api/v1/follow-ups` | NPC가 곧 건네기로 했는데 아직 받지 않은 것 | - | 14 |
 | FB-01 | `GET /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백·상세 평가 조회 | - | 16, 17 |
 | FB-02 | `POST /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백 다시 만들기 | LLM | 16 |
 | FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 조회(종료 때 만든 평가) | - | 16, 17 |
@@ -758,13 +761,15 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/100/speech" }
   },
-  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 }
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 },
+  "deliveredFollowUpId": null
 }
 ```
 
 - `conversation`은 CONV-03 응답과 같은 형식의 대화 상태입니다. 대화 화면이 처음부터 무례 경고 칸(`rudeLimit`개)과 이 NPC의 지금 호감도(`affinity`)를 보여 줍니다. 처음 만난 NPC의 호감도는 0입니다. `status`는 위쪽 `status`와 같은 값이며, 위쪽 값은 이전 클라이언트를 위해 남겨 둡니다.
 - 화면 14의 [E 대화하기]는 `initiatedBy: USER`, 튜토리얼 뒤 거리 행인의 말걸기에 응답하면 `initiatedBy: NPC`입니다. 행인 말걸기를 거절하거나 무시하면 서버를 호출하지 않습니다.
 - `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다.
+- 이 NPC가 곧 건네기로 한 것(CONV-08 `followUp`)이 준비됐으면, `initiatedBy`·`approachLine`과 관계없이 AI가 그것을 건네는 첫마디("Your iced latte is ready! Here you go—enjoy!")를 만들고 건넨 것으로 표시합니다. 응답의 `deliveredFollowUpId`가 그 `followUpId`이고, 건넨 것이 없으면 `null`입니다. 클라이언트는 이 값으로 기다림 카드를 지웁니다. 아직 준비되지 않았으면 평소처럼 시작하고 건네지 않습니다.
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
@@ -1035,7 +1040,17 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "completedMissions": [
     { "userMissionId": 12, "title": "카페에서 음료 주문하기" },
     { "userMissionId": 13, "title": "카페 직원에게 추천 메뉴 묻기" }
-  ]
+  ],
+  "followUp": {
+    "followUpId": 7,
+    "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
+    "sceneCode": "CAFE",
+    "item": "iced latte",
+    "itemKo": "아이스 라테",
+    "readyAt": "2026-10-21T14:05:45+09:00",
+    "remainingSeconds": 45,
+    "ready": false
+  }
 }
 ```
 
@@ -1052,6 +1067,12 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 응답은 피드백 생성을 기다립니다(AI 워커 상한 60초). 짧은 피드백과 발화별 상세 평가(FB-03)를 AI 워커 `/v1/feedback` 한 번으로 함께 만들어 저장합니다([피드백 연동](feedback-integration.md)).
 - 같은 대화를 다시 종료하면 피드백을 새로 만들지 않고 저장된 피드백을 돌려줍니다.
 - 사용자가 말한 대화를 끝내면 NPC 기억 카드를 따로 갱신합니다. 응답은 카드 갱신을 기다리지 않으며, 갱신에 실패하면 이전 카드를 유지합니다([기억 연동](npc-memory-integration.md)).
+- `followUp`은 이 대화에서 NPC가 주문·요청을 받아 지금 만들거나 준비하고 있어 곧 건넬 것입니다(음료·음식·빨래·포장한 꽃 등). 건넬 것이 없으면 `null`입니다. 모든 NPC·장소에 같은 규칙으로 AI 워커 `/v1/npc/follow-up`([AI 워커 명세](ai-worker.md) 2.7.3절)이 판정하고, 피드백을 만드는 동안 함께 끝냅니다. 판정에 실패하면 `null`이며 종료·피드백에는 영향이 없습니다.
+  - 학습자가 말하지 않았거나 무례로 끝난 대화는 판정하지 않습니다. NPC가 마무리한 대화(`NPC_ENDED`)와 학습자가 끝낸 대화는 같습니다.
+  - 준비 시각은 판정한 때부터 기다림 정도만큼 뒤입니다. 음료·간식 45초, 조리한 음식·포장 90초, 세탁·수선 180초(실제 시간)입니다. `remainingSeconds`는 서버 시각으로 센 남은 초(준비됐으면 0)이고, `ready`는 준비됐는지입니다. 클라이언트는 받은 때부터 `remainingSeconds`를 줄여 보이고 자기 시계로 `readyAt`을 다시 계산하지 않습니다.
+  - 사용자 × NPC마다 기다리는 것은 하나입니다. 같은 NPC에게 새로 받은 약속이 앞의 것을 바꿉니다.
+  - 같은 대화를 다시 종료하면 다시 판정하지 않고 저장한 것을 돌려줍니다.
+  - 준비된 뒤 그 NPC와 대화를 시작하면 첫마디로 건넵니다(CONV-01 `deliveredFollowUpId`). 화면 왼쪽 기다림 카드와 NPC가 부르는 동작은 Unity가 합니다.
 
 #### CONV-09·10 지난 대화
 
@@ -1086,6 +1107,29 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 진행 중인 대화가 있으면 CONV-10과 같은 형식, 없으면 `204 No Content`입니다. 대화 중 새로고침했을 때 화면 15의 대화 기록을 다시 그립니다.
 - 새로고침 뒤 이어서 진행할지 종료 처리할지는 `[미정]`입니다. 일정 시간 동안 요청이 없는 대화는 서버가 `EXPIRED`로 닫고 예약한 토큰을 풉니다. 시간 값은 서버 설정값입니다.
+
+#### CONV-13 `GET /api/v1/follow-ups`
+
+```json
+// 응답 200
+{
+  "items": [
+    {
+      "followUpId": 7,
+      "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
+      "sceneCode": "CAFE",
+      "item": "iced latte",
+      "itemKo": "아이스 라테",
+      "readyAt": "2026-10-21T14:05:45+09:00",
+      "remainingSeconds": 12,
+      "ready": false
+    }
+  ]
+}
+```
+
+- NPC가 곧 건네기로 했는데 아직 받지 않은 것입니다. 항목 형식은 CONV-08의 `followUp`과 같고 `readyAt` 순서입니다. 준비된 것도 건네기 전까지 담깁니다. 없으면 빈 배열입니다.
+- 새로고침·씬 이동 뒤 왼쪽 기다림 카드를 다시 그릴 때 씁니다. AI를 부르지 않습니다.
 
 ### 4.7 피드백
 

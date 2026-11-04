@@ -162,6 +162,33 @@ namespace A305.Learning.Tests
             Assert.That(Shown("Panel/ShowLearnedButton"), Is.False);
         }
 
+        // 저장한 문장이 없으면 그 자리를 비워 두지 않고 메모를 올린다. 문장이 있는 단어를 고르면 문장 아래로 돌아간다.
+        [Test]
+        public async Task WordWithoutSentence_MovesTheMemoUpToTheSentenceSpot()
+        {
+            await Open(new SampleApi());
+            RectTransform context = Rect("Panel/Content/Details/Context");
+
+            Assert.That(
+                Shown("Panel/Content/Details/Context"),
+                Is.False,
+                "준비: counter는 저장한 문장이 없다"
+            );
+            Assert.That(
+                Rect("Panel/Content/Details/MemoTitle").anchoredPosition.y,
+                Is.EqualTo(context.anchoredPosition.y).Within(0.01f)
+            );
+
+            Click("Panel/Content/Entries/Entry1");
+
+            Assert.That(
+                Rect("Panel/Content/Details/MemoTitle").anchoredPosition.y,
+                Is.LessThan(context.anchoredPosition.y - context.rect.height)
+            );
+        }
+
+        private RectTransform Rect(string path) => (RectTransform)screen.transform.Find(path);
+
         private bool Shown(string path) => screen.transform.Find(path).gameObject.activeSelf;
 
         private string Text(string path) =>

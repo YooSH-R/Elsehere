@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using A305.Dialogue;
 using A305.Theme;
 using A305.Wayfinding;
@@ -61,6 +62,31 @@ namespace A305.Mission.Tests
             Assert.That(
                 followUps.Find("Header").GetComponent<TMP_Text>().text,
                 Is.EqualTo(FollowUpCardText.Header)
+            );
+        }
+
+        // 하는 퀘스트가 없어 퀘스트 카드 대신 퀘스트 아이콘이 보이면, 빈 카드 자리를 띄우지 않고 아이콘 바로 아래에 붙는다.
+        [Test]
+        public void NoQuestInProgress_SitsRightUnderTheQuestIcon()
+        {
+            Transform content = instance.transform.Find("Content");
+            var questIcon = (RectTransform)content.Find("QuestIcon");
+            FollowUpStore.Shared.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 45));
+            view.SetAvailable(true);
+            content.Find("CurrentGoal").gameObject.SetActive(false);
+            questIcon.gameObject.SetActive(true);
+            card.Refresh();
+
+            typeof(FollowUpCardView)
+                .GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(card, null);
+
+            var followUps = (RectTransform)card.Card.transform;
+            Assert.That(Field<RectTransform>(card, "questIcon"), Is.SameAs(questIcon));
+            Assert.That(
+                followUps.anchoredPosition.y,
+                Is.EqualTo(questIcon.anchoredPosition.y - questIcon.rect.height - 12 * 1.2f)
+                    .Within(.5f)
             );
         }
 

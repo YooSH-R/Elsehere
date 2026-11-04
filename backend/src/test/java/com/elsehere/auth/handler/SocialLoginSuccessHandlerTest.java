@@ -49,6 +49,8 @@ class SocialLoginSuccessHandlerTest {
 
   @Autowired private SocialLoginSuccessHandler successHandler;
 
+  @Autowired private LoginSessionService loginSessionService;
+
   // 로그인 처리가 현재 스레드의 SecurityContext도 바꾸므로 다음 테스트에 남지 않게 지운다.
   @AfterEach
   void clearSecurityContext() {
@@ -103,6 +105,69 @@ class SocialLoginSuccessHandlerTest {
         request, new MockHttpServletResponse(), googleLogin("google-sub-1"));
 
     assertThat(request.getSession().getAttribute(PendingSignup.SESSION_ATTRIBUTE)).isNull();
+  }
+
+  @Test
+  @DisplayName("게스트로 로그인한 세션에서 처음 쓰는 Google 계정으로 로그인하면 가입 대기 정보에 게스트를 남겨 가입 때 회원으로 바꾸게 한다")
+  void guestSession_newAccount_keepsGuestInPendingSignup() throws Exception {
+    Long guestId = insertGuest();
+    MockHttpServletRequest request = guestLoggedInRequest(guestId);
+    signInWithGoogleProvider(request, "google-sub-new");
+
+    successHandler.onAuthenticationSuccess(
+        request, new MockHttpServletResponse(), googleLogin("google-sub-new"));
+
+    assertThat(loggedInPrincipal(request)).isNull();
+    assertThat(request.getSession().getAttribute(PendingSignup.SESSION_ATTRIBUTE))
+        .isEqualTo(
+            new PendingSignup(AuthProvider.GOOGLE, "google-sub-new", "sun@example.com", guestId));
+  }
+
+  @Test
+  @DisplayName("게스트 세션에서 이미 가입한 Google 계정으로 로그인하면 그 계정으로 로그인하고 게스트 기록을 합치지 않았다고 알린다")
+  void guestSession_signedUpAccount_logsInAndTellsExistingAccount() throws Exception {
+    Long memberId =
+        UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    MockHttpServletRequest request = guestLoggedInRequest(insertGuest());
+    signInWithGoogleProvider(request, "google-sub-1");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    successHandler.onAuthenticationSuccess(request, response, googleLogin("google-sub-1"));
+
+    assertThat(loggedInPrincipal(request)).isEqualTo(new LoginUser(memberId));
+    assertThat(response.getRedirectedUrl()).isEqualTo(CLIENT_URL + "?existingAccount=true");
+  }
+
+  @Test
+  @DisplayName("게스트 세션에서 가입한 계정으로 로그인하면 세션 유지 시간을 게스트(2시간)에서 회원(24시간)으로 늘린다")
+  void guestSession_signedUpAccount_sessionLastsLikeMember() throws Exception {
+    UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1", "Sun");
+    MockHttpServletRequest request = guestLoggedInRequest(insertGuest());
+    signInWithGoogleProvider(request, "google-sub-1");
+
+    successHandler.onAuthenticationSuccess(
+        request, new MockHttpServletResponse(), googleLogin("google-sub-1"));
+
+    assertThat(request.getSession().getMaxInactiveInterval()).isEqualTo(24 * 60 * 60);
+  }
+
+  private Long insertGuest() {
+    return UserTestData.insertUser(entityManager, AuthProvider.GUEST, "guest-uid", "guest-000001");
+  }
+
+  private MockHttpServletRequest guestLoggedInRequest(Long guestId) {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    loginSessionService.loginGuest(new LoginUser(guestId), request, new MockHttpServletResponse());
+    return request;
+  }
+
+  // Spring Security는 성공 처리기를 부르기 전에 세션의 로그인 정보를 제공자 인증 정보로 바꿔 둔다.
+  private static void signInWithGoogleProvider(MockHttpServletRequest request, String subject) {
+    request
+        .getSession()
+        .setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new SecurityContextImpl(googleLogin(subject)));
   }
 
   private static OAuth2AuthenticationToken googleLogin(String subject) {

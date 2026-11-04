@@ -15,7 +15,8 @@ namespace A305.Mission
 {
     /// <summary>
     /// 왼쪽 위에 퀘스트 카드(단계 칩·장소·할 일·상황·진행 막대·목표 체크리스트)를 두고, 카드를 누르면 마을 지도와 전체 여정이 담긴 수첩을 펼친다.
-    /// 수첩을 펼친 동안에는 같은 내용의 카드를 숨긴다. 오른쪽 위에는 게임 시계와 코인을 보인다.
+    /// 수첩을 펼친 동안에는 같은 내용의 카드를 숨긴다. 하는 퀘스트가 없으면(시작 전, 끝낸 뒤) 카드 대신 작은 퀘스트 아이콘만 둔다.
+    /// 퀘스트를 끝내면 '퀘스트 완료!' 팡파레를 띄우고 보상 코인을 그와 함께 더한다. 오른쪽 위에는 게임 시계와 코인을 보인다.
     /// </summary>
     public sealed class FirstDayMissionView : MonoBehaviour
     {
@@ -154,6 +155,16 @@ namespace A305.Mission
         [Tooltip("퀘스트 카드 바로 아래, NPC가 준비해 건네기로 한 것을 기다리는 카드")]
         private FollowUpCardView followUpCard;
 
+        [SerializeField]
+        [Tooltip(
+            "하는 퀘스트가 없을 때 카드 대신 왼쪽 위에 두는 퀘스트 아이콘. 누르면 퀘스트 목록을 연다."
+        )]
+        private Button questIcon;
+
+        [SerializeField]
+        [Tooltip("퀘스트를 끝내면 띄우는 '퀘스트 완료!' 팡파레")]
+        private QuestCompleteView questComplete;
+
         // 시안 글자색: 본문 잉크와 끝낸 목표의 옅은 갈색
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
@@ -184,6 +195,18 @@ namespace A305.Mission
         private bool available;
         private string mapSceneCode;
 
+        // 하는 퀘스트가 없어 카드 대신 퀘스트 아이콘을 두는지
+        private bool idle;
+
+        // 끝낸 퀘스트의 보상은 팡파레와 함께 더하므로 그때까지 코인 칩을 바꾸지 않는다. 그동안 받은 코인과 산 것을 기억한다.
+        private bool rewardExpected;
+        private int latestBalance;
+        private string latestPurchase;
+
+        // 팡파레의 [다음]을 누르면 목록에서 잠금을 풀 퀘스트. 없으면 -1이다.
+        private QuestBoardState finishedBoard;
+        private int unlockedQuest = -1;
+
         // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
         private readonly Vector3[] hudCorners = new Vector3[4];
 
@@ -203,8 +226,13 @@ namespace A305.Mission
 
         public bool IsQuestBoardOpen => questBoard != null && questBoard.IsOpen;
 
-        /// <summary>왼쪽 위 퀘스트 카드. 누르면 수첩이 열리며, 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.</summary>
-        public RectTransform QuestCardRect => (RectTransform)journalButton.transform;
+        public bool IsQuestCompleteOpen => questComplete != null && questComplete.IsOpen;
+
+        /// <summary>
+        /// 왼쪽 위 퀘스트 카드(하는 퀘스트가 없으면 퀘스트 아이콘). 누르면 퀘스트 목록이 열리며, 튜토리얼 코치 마크가 오늘의 목표를 볼 때 밝힌다.
+        /// </summary>
+        public RectTransform QuestCardRect =>
+            idle ? (RectTransform)questIcon.transform : (RectTransform)journalButton.transform;
 
         public void SetAvailable(bool available)
         {
@@ -216,6 +244,8 @@ namespace A305.Mission
                 ShowLargeMap(false);
                 if (IsQuestBoardOpen)
                     questBoard.Close();
+                if (IsQuestCompleteOpen)
+                    questComplete.Close();
                 JourneyStatus.Shared.Clear();
                 GuideDestination.Shared.Clear();
             }
@@ -247,7 +277,13 @@ namespace A305.Mission
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
             ShowGoals(state.CanRest || current == null ? null : current.Goals);
             this.talking = talking;
-            ShowBalance(state);
+            idle = !state.Started || state.Completed;
+            Banner.gameObject.SetActive(!idle && !journal.activeSelf);
+            questIcon.gameObject.SetActive(idle && !journal.activeSelf);
+            latestBalance = state.Balance;
+            latestPurchase = state.LastPurchase;
+            if (!rewardExpected)
+                ShowCoins(state.Balance, state.LastPurchase);
             // 대화 중에는 시계·코인 칩을 숨기지만, 코인이 바뀐 동안에는 코인 칩을 잠깐 보인다.
             statusBar.SetActive(!talking || showingCoinChange);
             UpdateLeftHudVisibility();
@@ -394,20 +430,15 @@ namespace A305.Mission
             : status == "CURRENT" ? JourneyMark.Current
             : JourneyMark.Upcoming;
 
-        // 게임 시계는 분이 바뀔 때만 다시 쓴다.
-        private void ShowBalance(FirstDayMissionState state)
+        private void ShowCoins(int balance, string purchase)
         {
-            CoinChange? change = CoinChange.Between(
-                shownBalance,
-                state.Balance,
-                state.LastPurchase
-            );
-            int from = shownBalance ?? state.Balance;
-            shownBalance = state.Balance;
+            CoinChange? change = CoinChange.Between(shownBalance, balance, purchase);
+            int from = shownBalance ?? balance;
+            shownBalance = balance;
             if (change.HasValue && coinFloat != null && coinReceipt != null)
-                ShowCoinChange(change.Value, from, state.Balance);
+                ShowCoinChange(change.Value, from, balance);
             else if (coinChange == null)
-                coins.text = state.Balance.ToString();
+                coins.text = balance.ToString();
         }
 
         // 코인이 바뀌면 칩 옆에 바뀐 만큼을, 칩 아래에 산 것·보상을 띄우고 숫자를 세며 바꾼다(시안 f1·f3).
@@ -460,6 +491,7 @@ namespace A305.Mission
             statusBar.SetActive(!talking);
         }
 
+        // 게임 시계는 분이 바뀔 때만 다시 쓴다.
         private void ShowClock()
         {
             int minute = (int)GameClock.Shared.Minutes;
@@ -514,6 +546,68 @@ namespace A305.Mission
             questBoard.Open();
             UpdateBoardLayer();
             JournalOpened?.Invoke();
+        }
+
+        /// <summary>퀘스트를 끝냈다. 그 보상은 팡파레의 코인이 코인 칩에 닿을 때 더하도록 그때까지 코인 칩을 그대로 둔다.</summary>
+        public void ExpectQuestReward() => rewardExpected = true;
+
+        /// <summary>미뤄 둔 코인을 코인 칩에 보인다. 팡파레를 띄우지 못했을 때도 부른다.</summary>
+        public void ReleaseQuestReward()
+        {
+            rewardExpected = false;
+            ShowCoins(latestBalance, latestPurchase);
+        }
+
+        /// <summary>
+        /// 끝낸 퀘스트의 '퀘스트 완료!' 팡파레를 띄운다(시안 f1). 같은 대화에서 산 것이 있으면 먼저 줄이고, 보상은 날아간 코인이 칩에 닿을 때 더한다.
+        /// [다음]을 누르면 목록에서 바로 다음 퀘스트의 잠금을 푼다(시안 f2).
+        /// </summary>
+        public void ShowQuestComplete(QuestBoardState board, string questId)
+        {
+            int index = board.Quests.FindIndex(quest => quest.Id == questId);
+            if (index < 0)
+            {
+                ReleaseQuestReward();
+                return;
+            }
+            QuestEntry finished = board.Quests[index];
+            if (rewardExpected)
+                ShowCoins(latestBalance - finished.Reward, latestPurchase);
+            finishedBoard = board;
+            bool opensNext =
+                index + 1 < board.Quests.Count
+                && board.Quests[index + 1].Status == QuestEntry.Available;
+            unlockedQuest = opensNext ? index + 1 : -1;
+            ShowLargeMap(false);
+            if (IsQuestBoardOpen)
+                questBoard.Close();
+            questComplete.Show(
+                finished,
+                questBoard.IconOf(index),
+                QuestBoardText
+                    .Route(finished)
+                    .Select(place => questBoard.StampOf(place.Place))
+                    .ToList(),
+                coinChip,
+                ReleaseQuestReward
+            );
+            UpdateBoardLayer();
+        }
+
+        /// <summary>
+        /// 팡파레의 [다음]: 팡파레를 닫고, 열린 다음 퀘스트가 있으면 퀘스트 목록에서 그 잠금을 푼다. 연결은 QuestCompleteBuilder가 넣는다.
+        /// </summary>
+        public void ShowNextQuest()
+        {
+            questComplete.Close();
+            if (unlockedQuest >= 0)
+            {
+                OpenQuestBoard();
+                questBoard.Show(finishedBoard);
+                questBoard.PlayUnlock(unlockedQuest);
+            }
+            unlockedQuest = -1;
+            UpdateBoardLayer();
         }
 
         /// <summary>서버에서 받은 퀘스트 목록을 보인다.</summary>
@@ -589,7 +683,8 @@ namespace A305.Mission
             if (open)
                 ShowLargeMap(false);
             journal.SetActive(open);
-            Banner.gameObject.SetActive(!open);
+            Banner.gameObject.SetActive(!open && !idle);
+            questIcon.gameObject.SetActive(!open && idle);
             UpdateLeftHudVisibility();
             UpdateSortingOrder();
             if (isOpening)
@@ -630,7 +725,8 @@ namespace A305.Mission
             bool raised =
                 journal.activeSelf
                 || (mapOverlay != null && mapOverlay.activeSelf)
-                || IsQuestBoardOpen;
+                || IsQuestBoardOpen
+                || IsQuestCompleteOpen;
             // 수첩·큰 지도를 연 동안에는 다른 캔버스와 먼저 연 창보다 위에 그린다.
             if (raised)
                 UiLayer.Open(root, this);
@@ -647,12 +743,13 @@ namespace A305.Mission
             return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
         }
 
-        // 왼쪽 아래 미니맵과 퀘스트 카드 아래 기다리는 카드를 보일지 정한다. 수첩·퀘스트 목록·큰 지도가 왼쪽을 덮는 동안에는 숨긴다.
+        // 왼쪽 아래 미니맵과 퀘스트 카드 아래 기다리는 카드를 보일지 정한다. 수첩·퀘스트 목록·큰 지도·퀘스트 완료 팡파레가 왼쪽을 덮는 동안에는 숨긴다.
         private void UpdateLeftHudVisibility()
         {
             bool isLeftCovered =
                 journal.activeSelf
                 || IsQuestBoardOpen
+                || IsQuestCompleteOpen
                 || (mapOverlay != null && mapOverlay.activeSelf);
             if (miniMapPanel != null)
                 miniMapPanel.SetActive(
@@ -667,7 +764,9 @@ namespace A305.Mission
         // 가운데 창은 왼쪽 HUD의 오른쪽에 놓이므로, 기다리는 카드 높이만큼 왼쪽 열이 길어져도 겹치지 않는다.
         private float LeftHudScreenWidth() =>
             Mathf.Max(
-                Mathf.Max(RightEdgeOf(Banner.gameObject), RightEdgeOf(miniMapPanel)),
+                RightEdgeOf(Banner.gameObject),
+                RightEdgeOf(questIcon.gameObject),
+                RightEdgeOf(miniMapPanel),
                 RightEdgeOf(followUpCard != null ? followUpCard.Card : null)
             );
 

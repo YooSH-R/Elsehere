@@ -5,6 +5,7 @@ import java.util.List;
 public record FirstDayMissionResponse(
     boolean started,
     int stage,
+    String quest,
     boolean completed,
     String scene,
     boolean canRest,

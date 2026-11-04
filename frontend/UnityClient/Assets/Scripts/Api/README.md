@@ -12,6 +12,8 @@
 | `ApiJson` | 필드명은 camelCase, enum은 문자열이며 값이 없는 필드는 보내지 않습니다. enum의 서버 값은 `[EnumMember(Value = "IN_PROGRESS")]`로 적습니다. |
 | `IApiTransport`, `UnityWebRequestTransport` | 실제 HTTP 전송. 테스트에서는 대체 구현으로 응답을 정합니다. |
 | `ApiSettings` | 서버 주소와 응답 대기 시간(`Data/Api/ApiSettings.asset`). Web 빌드는 같은 출처라 상대 경로, Editor는 `http://localhost:8080`입니다. |
+| `BrowserRedirect`, `AuthPaths`, `Plugins/WebGL/BrowserRedirect.jslib` | API 호출이 아니라 페이지 이동으로 여는 Google 로그인(AUTH-01)을 같은 탭에서 엽니다. 입구 화면과 장소의 게스트 가입 안내 창이 함께 씁니다. Editor는 브라우저 쿠키를 쓰지 않아 로그인 세션이 이어지지 않습니다. |
+| `SurveyLink` | 사용자 설문 주소. 게스트 가입 안내 창의 [설문 하러 가기]가 새 탭에서 열고, 첫 호텔 퀘스트(`CHECK_IN`)를 끝낸 회원에게도 같은 주소를 씁니다. 지금은 자리표시 주소(`https://example.com/elsehere-survey`)라 운영 배포 전에 실제 주소로 바꿔야 합니다. |
 
 ## 의존성
 

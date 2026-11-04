@@ -313,14 +313,7 @@ namespace A305.Npc
             ConversationAllowance allowance = dialogue.Allowance;
             if (!allowance.CanStartConversation)
             {
-                if (!offerView.IsTalkBlocked)
-                {
-                    offerView.ShowBlockedTalkPrompt(
-                        this,
-                        PasserbyOfferText.Blocked(allowance.RemainingConversations)
-                    );
-                }
-
+                ShowCannotTalkPrompt(allowance.RemainingConversations);
                 return;
             }
 
@@ -331,11 +324,38 @@ namespace A305.Npc
             if (
                 !offerView.IsTalkPromptShowing
                 || offerView.IsTalkBlocked
+                || offerView.IsSignupPromptShowing
                 || offerView.TalkRemainingText != remaining
             )
             {
                 string label = PasserbyOfferText.TalkLabel(dialogue.FindNpcName(ScriptKey));
                 offerView.ShowTalkPrompt(this, label, remaining, TalkByPlayer);
+            }
+        }
+
+        // 게스트가 대화를 다 썼으면 가입 버튼을, 다른 이유로 막혔으면 이유만 보인다.
+        private void ShowCannotTalkPrompt(int? remainingConversations)
+        {
+            if (PasserbyOfferText.OffersSignup(remainingConversations))
+            {
+                if (!offerView.IsSignupPromptShowing)
+                {
+                    offerView.ShowSignupPrompt(
+                        this,
+                        PasserbyOfferText.SignupLabel,
+                        PasserbyOfferText.Blocked(remainingConversations)
+                    );
+                }
+
+                return;
+            }
+
+            if (!offerView.IsTalkBlocked)
+            {
+                offerView.ShowBlockedTalkPrompt(
+                    this,
+                    PasserbyOfferText.Blocked(remainingConversations)
+                );
             }
         }
 

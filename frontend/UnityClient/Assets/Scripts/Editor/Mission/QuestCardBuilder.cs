@@ -23,6 +23,8 @@ namespace A305.EditorTools.Mission
             "Tools/A305/Mission/Apply Quest Card Placeholder";
         private const string CoinChangeMenuPath = "Tools/A305/Mission/Apply Coin Change Labels";
         private const string FollowUpMenuPath = "Tools/A305/Mission/Apply Follow-up Card";
+        private const string QuestIconMenuPath = "Tools/A305/Mission/Apply Quest Icon";
+        private const string QuestIconArtPath = "Assets/Art/UI/Quest/QuestHeaderIcon.png";
         private const string CoinFloatMaterialPath = "Assets/Art/UI/Hud/Jua Coin Float.mat";
         private const string WhitePanelPath = "Assets/Art/UI/Mission/GlassPanel.png";
 
@@ -65,6 +67,21 @@ namespace A305.EditorTools.Mission
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>HUD를 다시 만들지 않고 하는 퀘스트가 없을 때 카드 대신 두는 퀘스트 아이콘만 만든다.</summary>
+        [MenuItem(QuestIconMenuPath)]
+        public static void ApplyQuestIconToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                    QuestIcon(
+                        root.GetComponent<FirstDayMissionView>(),
+                        root.transform.Find("Content")
+                    )
+            );
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>카드를 다시 만들지 않고 서버 상태를 받기 전의 할 일 문구만 맞춘다.</summary>
         [MenuItem(PlaceholderMenuPath)]
         public static void ApplyPlaceholderToPrefab()
@@ -97,6 +114,7 @@ namespace A305.EditorTools.Mission
                 Object.DestroyImmediate(mapButton.gameObject);
             QuestCard(view, (RectTransform)content.Find("CurrentGoal"));
             StatusChips(view, content);
+            QuestIcon(view, content);
             // 수첩은 카드 자리에 펼친다. 펼친 동안 카드는 숨는다.
             var journal = (RectTransform)content.Find("Journal");
             journal.anchoredPosition = new Vector2(28 * Px, -28 * Px);
@@ -156,6 +174,7 @@ namespace A305.EditorTools.Mission
             var cardView = BuilderTools.GetOrAddComponent<FollowUpCardView>(root);
             BuilderTools.SetReference(cardView, "card", card);
             BuilderTools.SetReference(cardView, "questCard", questCard);
+            BuilderTools.SetReference(cardView, "questIcon", content.Find("QuestIcon"));
             BuilderTools.SetReference(cardView, "rows", rows);
             BuilderTools.SetReference(cardView, "waitingMark", Sprite("CheckEmpty"));
             BuilderTools.SetReference(cardView, "readyMark", Sprite("CheckDone"));
@@ -331,6 +350,49 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "upcomingMark", Sprite("QuestStepUpcoming"));
             BuilderTools.SetReference(view, "goalOpen", Sprite("CheckEmpty"));
             BuilderTools.SetReference(view, "goalDone", Sprite("CheckDone"));
+        }
+
+        // 하는 퀘스트가 없을 때(시작 전, 끝낸 뒤) 카드 대신 두는 퀘스트 아이콘: 카드 자리(왼쪽·위 28)에 시계·코인 칩과 같은 유리 알약(높이 64),
+        // 안에 퀘스트 목록 머리줄의 지도 앱 아이콘(44)과 '퀘스트'(Jua 21). 누르면 퀘스트 목록을 연다. 처음에는 숨겨 두고 카드가 정한다.
+        private static void QuestIcon(FirstDayMissionView view, Transform content)
+        {
+            Transform old = content.Find("QuestIcon");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+            RectTransform chip = Chip(content, "QuestIcon");
+            Object.DestroyImmediate(chip.GetComponent<LayoutElement>());
+            RectTransform row = Row(chip, "Row", 10);
+            Fill(row);
+            row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(
+                Round(10),
+                Round(22),
+                0,
+                0
+            );
+            // 머리줄 아이콘 그림(60에 그림자 자리 왼쪽·오른쪽 14, 위 8, 아래 22)을 44로 줄인다.
+            const float IconSize = 44;
+            const float IconScale = IconSize / 60f;
+            RectTransform icon = Box(row, "Icon", IconSize, IconSize);
+            RectTransform art = Rect("Art", icon);
+            art.anchorMin = art.anchorMax = art.pivot = new Vector2(0, 1);
+            art.anchoredPosition = new Vector2(-14, 8) * IconScale * Px;
+            art.sizeDelta = new Vector2(60 + 28, 60 + 30) * IconScale * Px;
+            Picture(art.gameObject, AssetDatabase.LoadAssetAtPath<Sprite>(QuestIconArtPath));
+            TMP_Text label = Text(row, "Label", DisplayFontPath, 21, Ink, "퀘스트");
+            label.margin = new Vector4(0, 2 * Px, 0, 0);
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+
+            chip.anchorMin = chip.anchorMax = chip.pivot = new Vector2(0, 1);
+            chip.anchoredPosition = new Vector2(28, -28) * Px;
+            float width = 10 + IconSize + 10 + label.GetPreferredValues("퀘스트").x / Px + 22;
+            chip.sizeDelta = new Vector2(width, 64) * Px;
+            Image glass = chip.Find("Glass").GetComponent<Image>();
+            glass.raycastTarget = true;
+            var button = chip.gameObject.AddComponent<Button>();
+            button.targetGraphic = glass;
+            QuestBoardBuilder.Listen(button, view.OpenQuestBoard);
+            BuilderTools.SetReference(view, "questIcon", button);
+            chip.gameObject.SetActive(false);
         }
 
         // 시안 .tr: 오른쪽·위 28, 칸 사이 12. 휴대폰 버튼(64) 왼쪽에 시계 칩과 코인 칩(둘 다 174×64)

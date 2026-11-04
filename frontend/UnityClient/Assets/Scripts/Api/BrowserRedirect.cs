@@ -3,7 +3,7 @@ using UnityEngine;
 using System.Runtime.InteropServices;
 #endif
 
-namespace A305.Onboarding
+namespace A305.Api
 {
     /// <summary>
     /// 페이지 이동으로 여는 주소(소셜 로그인)를 같은 탭에서 연다. 로그인을 마치면 서버가 클라이언트 주소로 되돌려 보낸다.

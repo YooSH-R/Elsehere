@@ -78,6 +78,7 @@ public class QuestBoardService {
   private static QuestBoardResponse.Quest chapter(
       Quest quest, boolean firstDayDone, TownStory story, Map<String, String> names) {
     int storyStage = story == null ? 0 : story.getStage();
+    boolean waiting = story == null || story.isPaused();
     List<QuestBoardResponse.Stop> stops = new ArrayList<>();
     for (int index = quest.firstStoryStage(); index < quest.endStoryStage(); index++) {
       TownStoryStage stage = TownStoryStage.values()[index];
@@ -91,18 +92,18 @@ public class QuestBoardService {
                   .map(TownStoryStage::goalTitle)
                   .collect(Collectors.joining(" · ")),
               story != null && index < storyStage,
-              story != null && index == storyStage));
+              !waiting && index == storyStage));
     }
     String status;
     if (!firstDayDone) {
       status = "LOCKED";
-    } else if (story == null) {
-      // 마을 이야기를 시작하면 첫 장부터 이어서 진행한다.
-      status = quest.firstStoryStage() == 0 ? "AVAILABLE" : "LOCKED";
     } else if (storyStage >= quest.endStoryStage()) {
       status = "DONE";
+    } else if (storyStage >= quest.firstStoryStage()) {
+      // 시작하지 않았거나 앞 퀘스트를 끝내고 멈춰 있으면 목록에서 시작할 수 있다.
+      status = waiting ? "AVAILABLE" : "IN_PROGRESS";
     } else {
-      status = storyStage >= quest.firstStoryStage() ? "IN_PROGRESS" : "LOCKED";
+      status = "LOCKED";
     }
     return new QuestBoardResponse.Quest(
         quest.name(), quest.title(), quest.description(), quest.reward(), status, stops);

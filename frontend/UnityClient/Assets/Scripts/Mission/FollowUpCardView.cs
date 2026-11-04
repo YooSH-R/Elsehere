@@ -23,6 +23,12 @@ namespace A305.Mission
         private RectTransform questCard;
 
         [SerializeField]
+        [Tooltip(
+            "하는 퀘스트가 없어 퀘스트 카드 대신 보이는 퀘스트 아이콘. 이때는 이 아이콘 바로 아래에 붙인다."
+        )]
+        private RectTransform questIcon;
+
+        [SerializeField]
         [Tooltip("줄들. 첫 줄을 본떠 기다리는 것 수만큼 줄을 만든다.")]
         private RectTransform rows;
 
@@ -121,6 +127,7 @@ namespace A305.Mission
         }
 
         // 퀘스트 카드 높이는 할 일 줄 수에 따라 바뀌므로 매 프레임 그 아래에 붙이고, 좁은 화면에서 줄어든 폭도 따른다.
+        // 하는 퀘스트가 없어 퀘스트 아이콘이 대신 보이면 아이콘 아래에 붙인다.
         private void LateUpdate()
         {
             if (!card.gameObject.activeInHierarchy || questCard == null)
@@ -128,8 +135,14 @@ namespace A305.Mission
                 return;
             }
 
+            RectTransform above =
+                questIcon != null
+                && questIcon.gameObject.activeInHierarchy
+                && !questCard.gameObject.activeInHierarchy
+                    ? questIcon
+                    : questCard;
             card.anchoredPosition =
-                questCard.anchoredPosition + Vector2.down * (questCard.rect.height + Gap);
+                above.anchoredPosition + Vector2.down * (above.rect.height + Gap);
             card.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, questCard.rect.width);
         }
     }

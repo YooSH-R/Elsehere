@@ -87,6 +87,7 @@ namespace A305.EditorTools.Dialogue
 
         /// <summary>
         /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고 [자막 끔]이 반투명, 켜면 대사와 강조색 [자막 켬]이 보인다.
+        /// 자막을 끈 채 대답을 기다리는 화면도 찍어, 로딩 카드 위로 지난 대사의 막대가 비치지 않는지 본다.
         /// 이 기기의 자막 설정은 찍은 뒤 되돌린다.
         /// </summary>
         public static void CaptureSubtitles()
@@ -103,34 +104,47 @@ namespace A305.EditorTools.Dialogue
                 foreach (bool showsSubtitles in new[] { false, true })
                 {
                     NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
-                    view.Show(new WordPreviewContent());
+                    var content = new WordPreviewContent();
+                    view.Show(content);
                     FillHelp(view);
-                    foreach (
-                        UiThemeId theme in new[]
-                        {
-                            UiThemeId.Jelly,
-                            UiThemeId.Sticker,
-                            UiThemeId.Cloud,
-                        }
-                    )
-                    {
-                        SelectTheme(theme);
-                        string state = showsSubtitles ? "on" : "off";
-                        Render(
-                            camera,
-                            view,
-                            eye,
-                            face,
-                            Path.Combine(output, $"subtitles-{state}-{theme}.png"),
-                            1920,
-                            1080
-                        );
-                    }
+                    string state = showsSubtitles ? "on" : "off";
+                    RenderThemes(camera, view, eye, face, output, $"subtitles-{state}");
+                    if (showsSubtitles)
+                        continue;
+                    content.Waiting = DialogueWait.NpcReply;
+                    view.Refresh();
+                    RenderThemes(camera, view, eye, face, output, "subtitles-off-waiting");
                 }
             }
             finally
             {
                 NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+            }
+        }
+
+        private static void RenderThemes(
+            Camera camera,
+            DialoguePanelView view,
+            Vector3 eye,
+            Vector3 face,
+            string output,
+            string name
+        )
+        {
+            foreach (
+                UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
+            )
+            {
+                SelectTheme(theme);
+                Render(
+                    camera,
+                    view,
+                    eye,
+                    face,
+                    Path.Combine(output, $"{name}-{theme}.png"),
+                    1920,
+                    1080
+                );
             }
         }
 
@@ -181,7 +195,7 @@ namespace A305.EditorTools.Dialogue
             return view;
         }
 
-        // 서버 대화처럼 추천 단어·문장, 상태 줄과 [말하기]·[듣기]·[힌트]를 채운다.
+        // 서버 대화처럼 추천 단어·문장, 상태 줄과 [말하기]·[다시 듣기]·[힌트]를 채운다.
         private static void FillHelp(DialoguePanelView view)
         {
             Field<TMP_Text>(view, "suggestText").text =
@@ -312,7 +326,7 @@ namespace A305.EditorTools.Dialogue
             public string ExampleSentence => null;
             public bool IsBusy => false;
             public string StatusMessage => null;
-            public DialogueWait Waiting => DialogueWait.None;
+            public DialogueWait Waiting { get; set; }
             public string RecoveryGuide => null;
             public bool CanRetry => false;
             public IReadOnlyList<string> SuggestWords => new[] { "for here", "to go", "please" };

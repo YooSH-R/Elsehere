@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using A305.Characters;
 using A305.Dialogue;
 using A305.Player;
@@ -12,12 +13,18 @@ namespace A305.Npc
     /// 생활(<see cref="NpcRoutine"/>)이 붙은 NPC는 다가오지 않는 동안 제자리로 돌아가는 대신 일과와 욕구에 따라 지낸다.
     /// 튜토리얼에서 길을 묻는 행인(Ben)은 튜토리얼 동안 튜토리얼 대본·설정으로 말하고 생활하지 않는다(<see cref="SetTutorialScript"/>).
     /// 모델은 자식 Visual 아래에 두고, 이동은 루트의 CharacterController가 맡는다.
+    /// NPC끼리는 몸이 서로 막지 않는다. 한 일터의 직원들이 한 사람 폭인 카운터 뒤 통로나 하나뿐인 사물(머핀 등)로 함께 가도
+    /// 비켜 가지 못해 멈추지 않게 하기 위함이며, 플레이어와는 그대로 부딪힌다.
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(NpcIdentity))]
     public class Passerby : MonoBehaviour
     {
         private const float GroundedDownwardSpeedMetersPerSecond = -2f;
         private const float ArrivedDistanceMeters = 0.2f;
+
+        // 켜져 있는 NPC들의 몸. 새로 켜진 NPC는 이 몸들과 충돌하지 않게 한다.
+        private static readonly List<CharacterController> NpcBodies =
+            new List<CharacterController>();
 
         [SerializeField]
         private PasserbySettings settings;
@@ -143,10 +150,19 @@ namespace A305.Npc
             {
                 dialogue.Ended += OnDialogueEnded;
             }
+
+            // 충돌 무시는 콜라이더가 꺼지면 풀리므로 켜질 때마다 다시 정한다.
+            foreach (CharacterController other in NpcBodies)
+            {
+                Physics.IgnoreCollision(characterController, other);
+            }
+
+            NpcBodies.Add(characterController);
         }
 
         private void OnDisable()
         {
+            NpcBodies.Remove(characterController);
             if (dialogue != null)
             {
                 dialogue.Ended -= OnDialogueEnded;

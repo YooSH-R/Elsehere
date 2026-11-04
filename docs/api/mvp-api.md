@@ -659,7 +659,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 #### WORLD-04 `GET /api/v1/vocab/{vocabId}/pronunciation`
 
-- 화면 08의 발음 듣기 버튼이 쓰는 음성 파일을 `200`, `Content-Type: audio/wav`로 돌려줍니다. `vocabId`는 WORLD-02 카드의 `vocab.vocabId`입니다. `hasPronunciation: false`인 단어는 버튼을 숨깁니다.
+- 화면 08의 발음 듣기 버튼이 쓰는 음성 파일을 `200`, `Content-Type: audio/wav`로 돌려줍니다. `vocabId`는 WORLD-02 카드의 `vocab.vocabId`입니다. `hasPronunciation: false`이거나 파일 재생에 실패하면 WebGL 클라이언트는 브라우저의 영어 음성 합성을 사용합니다. 파일과 브라우저 음성 합성을 모두 사용할 수 없을 때만 버튼을 숨깁니다.
 - 발음 음성은 AI 워커 TTS(`af_heart`, 속도 1.0)로 미리 만들어 서버의 음성 볼륨 하위 폴더 `pronunciation/`에 `{wordKey}.wav`로 저장합니다([NPC 음성 저장 운영](../npc-audio-storage.md)). 관리자가 발음 생성 API(`POST /api/v1/admin/pronunciations`, [운영자 어드민](../admin.md))로 발음 파일이 없는 단어만 만듭니다. 듣기 요청 때는 AI를 호출하지 않으므로 AI 워커가 꺼져 있거나 AI 사용량이 소진돼도 들을 수 있습니다.
 - DB에는 파일 이름(`vocabularies.pronunciation_audio_key`)만 저장합니다. Unity 단어 에셋에 발음 키가 있으면 그 값을, 없으면 발음을 만들 때와 서버가 시작할 때 `{wordKey}.wav` 파일이 있는 단어에 그 파일 이름을 넣습니다.
 - 없는 어휘이거나, 발음 키가 없거나, 키에 해당하는 파일이 없으면 `404 NOT_FOUND`입니다. 발음 키는 `{wordKey}.wav` 형식만 받으며 다른 형식이면 파일을 읽지 않고 `404 NOT_FOUND`입니다.

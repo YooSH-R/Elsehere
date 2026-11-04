@@ -26,6 +26,19 @@ class TownStoryServiceTest {
   private final NpcRepository npcs = mock(NpcRepository.class);
   private final TownStoryService service = new TownStoryService(stories, firstDay, npcs);
 
+  @Test
+  void everyStoryObjectiveCanUseFactsAcrossLearnerTurns() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      assertThat(service.context(8L, stage.npcCode()).orElseThrow().state().accumulateHistory())
+          .as(stage.name())
+          .isTrue();
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
+      story.resume();
+    }
+  }
+
   @BeforeEach
   void nameTheDinerStaff() {
     Npc rosa = mock(Npc.class);

@@ -46,7 +46,7 @@ public enum FirstDayStage {
       goal(
           "report_left_bag",
           "분실 설명(어떤 가방을 어디에)",
-          "Explain which bag is missing (the small bag) AND where they think they left it (the cafe). Saying only that something is lost does not count."),
+          "Explain that their bag is missing AND they think they left it at the cafe. Combine details from separate learner turns; 'my bag' or 'it' may refer to the bag already established in their conversation, without repeating its size or a fixed sentence. Losing something without a location anywhere in the learner's statements does not count."),
       goal(
           "return_later",
           "다녀오겠다고 말하기",

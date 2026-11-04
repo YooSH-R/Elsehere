@@ -103,10 +103,11 @@ public class FirstDayMissionService {
                       ? new WorkerState(
                           "first_day_" + mission.getStage(),
                           stageInstruction
-                              + " Recognize only the learner's current utterance in context. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
+                              + " Evaluate the learner's current utterance together with explicit facts they gave earlier in this conversation. The current utterance must contribute to completing an objective; details may be spread across turns. Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents.",
                           stage.goals().stream()
                               .map(goal -> new WorkerState.Intent(goal.id(), goal.description()))
-                              .toList())
+                              .toList(),
+                          true)
                       : null;
               String instruction;
               if (!matches) {

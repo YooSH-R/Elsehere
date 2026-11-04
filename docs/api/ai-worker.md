@@ -145,7 +145,9 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 학습자 한 줄을 받아 의도와 번역(한글이 있을 때만)을 **동시에** 돌립니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
 
-요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+
+`state.accumulate_history`는 기본 `false`이며 첫날 미션은 `true`로 보냅니다. 복합 목표를 여러 발언에 나눠 설명하면 같은 대화의 이전 학습자 발언과 이번 발언을 합쳐 판정합니다. 이번 발언이 목표 완성에 기여해야 하며, NPC가 대신 말한 사실·무례로 확정된 이전 발언·인용 예문·부정·가정만으로 목표를 달성시키지 않습니다. 줄 사건(`events`)은 이번 발언만 판정합니다.
 
 응답:
 

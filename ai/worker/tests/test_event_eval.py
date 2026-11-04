@@ -53,6 +53,12 @@ def test_every_event_and_group_is_covered():
     assert {c["group"] for c in cases} == GROUPS
 
 
+def test_split_fact_cases_send_the_prior_learner_statements():
+    case = next(case for case in E.load_cases() if case["id"] == "mission-missing-split-facts")
+    assert case["history"][0]["text"] in E.messages("before", case)[1]["content"]
+    assert E.state_of("MISSING_BAG").accumulate_history is True
+
+
 @pytest.mark.parametrize("stage", list(E.STAGES))
 def test_stages_match_spring_first_day_mission(stage):
     """Spring의 FirstDayStage를 바꾸면 여기도 맞춰야 실제 판정 요청과 같은 조건으로 잰다."""

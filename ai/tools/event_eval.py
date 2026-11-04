@@ -65,8 +65,9 @@ FREE_TALK = {
     "intents": [{"id": "chat", "desc": "Anything the learner says in the conversation."}],
 }
 MISSION_SUFFIX = (
-    " Recognize only the learner's current utterance in context. Do not credit NPC lines, quoted examples, negatives,"
-    " wishes without action or future hypothetical actions. One utterance may match several intents."
+    " Evaluate the learner's current utterance together with explicit facts they gave earlier in this conversation. "
+    "The current utterance must contribute to completing an objective; details may be spread across turns. "
+    "Do not credit NPC lines, quoted examples, negatives, wishes without action or future hypothetical actions. One utterance may match several intents."
 )
 STAGES = {
     "EARLY_ARRIVAL": (
@@ -95,7 +96,7 @@ STAGES = {
         "They need to go back for it before checking in. Do not claim the hotel has the small bag. "
         "Do not bring up the missing bag before the learner explains it.",
         {
-            "report_left_bag": "Explain which bag is missing (the small bag) AND where they think they left it (the cafe). Saying only that something is lost does not count.",
+            "report_left_bag": "Explain that their bag is missing AND they think they left it at the cafe. Combine details from separate learner turns; 'my bag' or 'it' may refer to the bag already established in their conversation, without repeating its size or a fixed sentence. Losing something without a location anywhere in the learner's statements does not count.",
             "return_later": "Say they will return after looking for or retrieving the bag.",
         },
     ),
@@ -159,11 +160,17 @@ def state_of(name: str) -> State:
     if name == "free_talk":
         return State.model_validate(FREE_TALK)
     instruction, goals = STAGES[name]
-    return State(id=name.lower(), desc=instruction + MISSION_SUFFIX, intents=[{"id": goal, "desc": desc} for goal, desc in goals.items()])
+    return State(
+        id=name.lower(),
+        desc=instruction + MISSION_SUFFIX,
+        intents=[{"id": goal, "desc": desc} for goal, desc in goals.items()],
+        accumulate_history=True,
+    )
 
 
 def messages(variant: str, case: dict) -> list[dict]:
-    history = [Line(who="npc", text=case["last_npc"])]
+    history = [Line.model_validate(line) for line in case.get("history", [])]
+    history.append(Line(who="npc", text=case["last_npc"]))
     msgs = P.intent_messages(NPCS[case["npc"]], state_of(case["state"]), history, case["text"])
     if variant == "after":
         msgs[-1] = {**msgs[-1], "content": msgs[-1]["content"] + "\n" + EVENTS_PROMPT}

@@ -25,6 +25,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 class FirstDayMissionServiceTest {
+  @Test
+  void missingBagJudgementAllowsFactsFromEarlierLearnerTurns() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
+    var state = service.context(8L, "HOTEL_STAFF").orElseThrow().state();
+    var json = tools.jackson.databind.json.JsonMapper.builder().build().valueToTree(state);
+
+    assertThat(json.path("accumulate_history").asBoolean()).isTrue();
+  }
+
   private static final Map<String, String> NAMES =
       Map.of(
           "HOTEL_STAFF", "Jake", "CAFE_STAFF", "Mia", "TOWN_PASSERBY", "Ben", "SHOP_STAFF", "Alex");

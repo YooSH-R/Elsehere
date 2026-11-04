@@ -91,7 +91,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.TodayGoal,
                 "오늘의 목표",
-                "{지도} 버튼으로 오늘의 목표 보기",
+                "왼쪽 위 {퀘스트 카드}를 눌러 오늘의 목표 보기",
                 "",
                 ""
             ),

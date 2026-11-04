@@ -2,7 +2,7 @@ namespace A305.Tutorial
 {
     /// <summary>
     /// 튜토리얼 단계. 마을에 막 도착한 여행자가 숙소에서 조작·사물 단어·단어장을 익히고, 밖으로 나가 Ben의 길 안내를 돕고
-    /// 오늘의 목표(지도)를 확인하면 끝난다.
+    /// 오늘의 목표(퀘스트 카드)를 확인하면 끝난다.
     /// </summary>
     public enum TutorialStep
     {
@@ -33,7 +33,7 @@ namespace A305.Tutorial
         /// <summary>길 안내 대화의 피드백을 보고 닫는다.</summary>
         BenFeedback,
 
-        /// <summary>지도 버튼으로 오늘의 목표와 마을 지도를 열면 끝난다.</summary>
+        /// <summary>왼쪽 위 퀘스트 카드를 눌러 오늘의 목표와 마을 지도가 담긴 수첩을 열면 끝난다.</summary>
         TodayGoal,
 
         Completed,

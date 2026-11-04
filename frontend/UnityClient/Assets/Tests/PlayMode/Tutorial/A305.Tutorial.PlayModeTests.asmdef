@@ -9,6 +9,7 @@
         "A305.Npc",
         "A305.Dialogue",
         "A305.Learning",
+        "A305.Mission",
         "A305.Player",
         "A305.World",
         "UnityEngine.UI",

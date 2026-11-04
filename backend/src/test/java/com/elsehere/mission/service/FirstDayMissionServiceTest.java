@@ -26,6 +26,14 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 class FirstDayMissionServiceTest {
   @Test
+  void missionContextLeavesRoomForOrdinarySmallTalkWithoutSpoilingTasks() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
+    String instruction = service.context(8L, "HOTEL_STAFF").orElseThrow().instruction();
+    assertThat(instruction).contains("ordinary small talk", "personality");
+    assertThat(instruction).doesNotContain("Is there anything else I can help you with?");
+  }
+
+  @Test
   void missingBagJudgementAllowsFactsFromEarlierLearnerTurns() {
     when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
     var state = service.context(8L, "HOTEL_STAFF").orElseThrow().state();

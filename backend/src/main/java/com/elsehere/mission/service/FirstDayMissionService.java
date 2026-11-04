@@ -248,13 +248,10 @@ public class FirstDayMissionService {
   public record Context(
       int stage, WorkerState state, String instruction, List<String> remainingGoals) {
     public String replyInstruction(JudgeResult.Intent intent) {
-      if (state == null || intent == null || intent.error() != null || intent.ids() == null) {
+      if (!judged(intent)) {
         return instruction;
       }
-      List<String> recognized =
-          intent.ids().stream()
-              .filter(id -> state.intents().stream().anyMatch(allowed -> allowed.id().equals(id)))
-              .toList();
+      List<String> recognized = recognized(intent);
       List<String> pending =
           remainingGoals.stream().filter(id -> !recognized.contains(id)).toList();
       String nextQuestion =
@@ -268,6 +265,26 @@ public class FirstDayMissionService {
           + String.join(",", recognized)
           + ". Acknowledge these requests."
           + nextQuestion;
+    }
+
+    /** 이 NPC에게 남은 목표가 있는지. 길 안내만 하는 NPC나 목표를 다 마친 단계는 없다. */
+    public boolean hasGoals() {
+      return state != null && !remainingGoals.isEmpty();
+    }
+
+    /** 이 턴에 인식한 목표로 이 NPC에게 남은 목표가 모두 끝나는지. */
+    public boolean completesWith(JudgeResult.Intent intent) {
+      return hasGoals() && judged(intent) && recognized(intent).containsAll(remainingGoals);
+    }
+
+    private boolean judged(JudgeResult.Intent intent) {
+      return state != null && intent != null && intent.error() == null && intent.ids() != null;
+    }
+
+    private List<String> recognized(JudgeResult.Intent intent) {
+      return intent.ids().stream()
+          .filter(id -> state.intents().stream().anyMatch(allowed -> allowed.id().equals(id)))
+          .toList();
     }
   }
 }

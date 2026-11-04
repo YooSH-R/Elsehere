@@ -85,6 +85,55 @@ namespace A305.EditorTools.Dialogue
             Render(camera, view, eye, face, Path.Combine(output, "words-portrait.png"), 900, 1400);
         }
 
+        /// <summary>
+        /// [자막]을 끄고 켠 NPC 대사를 세 테마로 찍는다. 끄면 NPC 대사가 단어마다 회색 막대로 가려지고 [자막 끔]이 반투명, 켜면 대사와 강조색 [자막 켬]이 보인다.
+        /// 이 기기의 자막 설정은 찍은 뒤 되돌린다.
+        /// </summary>
+        public static void CaptureSubtitles()
+        {
+            string output = OutputFolder();
+            bool savedPreference = NpcSubtitlePreference.ShowsSubtitles;
+            try
+            {
+                DialoguePanelView view = OpenCafe(
+                    out Camera camera,
+                    out Vector3 eye,
+                    out Vector3 face
+                );
+                foreach (bool showsSubtitles in new[] { false, true })
+                {
+                    NpcSubtitlePreference.ShowsSubtitles = showsSubtitles;
+                    view.Show(new WordPreviewContent());
+                    FillHelp(view);
+                    foreach (
+                        UiThemeId theme in new[]
+                        {
+                            UiThemeId.Jelly,
+                            UiThemeId.Sticker,
+                            UiThemeId.Cloud,
+                        }
+                    )
+                    {
+                        SelectTheme(theme);
+                        string state = showsSubtitles ? "on" : "off";
+                        Render(
+                            camera,
+                            view,
+                            eye,
+                            face,
+                            Path.Combine(output, $"subtitles-{state}-{theme}.png"),
+                            1920,
+                            1080
+                        );
+                    }
+                }
+            }
+            finally
+            {
+                NpcSubtitlePreference.ShowsSubtitles = savedPreference;
+            }
+        }
+
         private static string OutputFolder()
         {
             string output = System.Environment.GetEnvironmentVariable("DIALOGUE_PREVIEW_OUTPUT");
@@ -222,7 +271,10 @@ namespace A305.EditorTools.Dialogue
             Object.DestroyImmediate(pixels);
         }
 
-        /// <summary>[뜻 보기]로 뜻과 풀이를 받아 둔 카페 대화. 마지막 Mia 대사에 한 단어(latte)와 숙어(to go) 풀이가 있다.</summary>
+        /// <summary>
+        /// [뜻 보기]로 뜻과 풀이를 받아 둔 카페 서버 대화. 마지막 Mia 대사에 한 단어(latte)와 숙어(to go) 풀이가 있다.
+        /// 서버 대화처럼 NPC 대사를 음성으로 들려주므로 [자막]을 끄면 대사를 가린다.
+        /// </summary>
         private sealed class WordPreviewContent : IDialogueContent
         {
             public const string LatteLink = "2/0";
@@ -281,6 +333,8 @@ namespace A305.EditorTools.Dialogue
             public ConversationStanding Standing => null;
             public bool CanTalk => true;
             public bool CanReplaySpeech => true;
+            public bool SpeaksNpcLines => true;
+            public bool IsNpcSpeechReady => true;
         }
     }
 }

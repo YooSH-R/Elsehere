@@ -123,6 +123,10 @@ namespace A305.Dialogue
         public bool CanReplaySpeech =>
             LastNpcTurn?.Speech?.IsReady == true || LastNpcTurn?.Speech?.CanRegenerate == true;
 
+        public bool SpeaksNpcLines => true;
+
+        public bool IsNpcSpeechReady => LastNpcTurn?.Speech?.IsReady == true;
+
         public async Task StartAsync()
         {
             if (startRequestId == null)

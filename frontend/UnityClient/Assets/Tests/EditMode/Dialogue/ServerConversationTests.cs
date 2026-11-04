@@ -1124,6 +1124,22 @@ namespace A305.Dialogue.Tests
             Assert.That(api.SpeechRegeneratedFor, Is.Empty);
         }
 
+        // 음성을 들을 수 없는 대사는 자막을 꺼 두었어도 글자로 보여야 한다(기능명세: TTS 실패·만료 때 자막 유지).
+        [TestCase("READY", "/api/v1/turns/101/speech", true)]
+        [TestCase("FAILED", null, false)]
+        [TestCase("EXPIRED", null, false)]
+        public async Task IsNpcSpeechReady_FollowsTheLatestNpcSpeech(
+            string status,
+            string url,
+            bool ready
+        )
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData { Status = status, Url = url };
+
+            Assert.That(conversation.IsNpcSpeechReady, Is.EqualTo(ready));
+        }
+
         [TestCase("EXPIRED")]
         [TestCase("FAILED")]
         [TestCase(null)]

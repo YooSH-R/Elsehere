@@ -239,12 +239,14 @@ namespace A305.EditorTools.Dialogue
         }
 
         /// <summary>
-        /// 대화 보조 버튼을 [듣기]·[뜻]·[힌트]·[예시 문장] 순서로 이름 줄 오른쪽에 붙인다.
+        /// 대화 보조 버튼을 [자막]·[듣기]·[뜻]·[힌트]·[예시 문장] 순서로 이름 줄 오른쪽에 붙인다.
+        /// [자막]은 [듣기]와 짝이라 바로 앞에 둔다.
         /// 대화 종류에 따라 숨는 버튼이 있어 가로 정렬로 빈자리 없이 오른쪽에 모은다.
         /// </summary>
-        private static void ToolRow(Transform tools)
+        internal static void ToolRow(Transform tools)
         {
             Row(tools);
+            Ghost(tools.Find("SubtitleButton"), "자막 끔", UiIcon.None, 108);
             Ghost(tools.Find("ReplayButton"), "듣기", UiIcon.Replay, 92);
             Ghost(tools.Find("MeaningButton"), "뜻", UiIcon.Meaning, 80);
             Ghost(tools.Find("HintButton"), "힌트", UiIcon.Hint, 92);
@@ -252,6 +254,7 @@ namespace A305.EditorTools.Dialogue
             foreach (
                 string name in new[]
                 {
+                    "SubtitleButton",
                     "ReplayButton",
                     "MeaningButton",
                     "HintButton",

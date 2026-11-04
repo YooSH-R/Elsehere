@@ -13,6 +13,7 @@ namespace A305.Dialogue
     /// 서버 AI 대화와 튜토리얼 길 안내의 [말하기], 서버 AI 대화의 [다시 듣기]·[힌트]·[다시 시도]가 있다.
     /// 음성 처리에 동의하지 않았으면 [말하기]를 회색으로 두고, 누르면 그 자리에서 동의할 수 있는 창을 연다.
     /// [뜻 보기]를 펼친 동안 대사의 풀이 단어를 누르면 그 단어 근처에 뜻과 [단어장에 저장]이 있는 호버 카드를 띄운다.
+    /// NPC 대사를 음성으로 들려주는 대화는 [자막]으로 대사를 단어마다 회색 막대로 가려 듣고 이해하게 한다. 처음에는 자막이 꺼져 있다.
     /// </summary>
     public class DialoguePanelView : MonoBehaviour
     {
@@ -21,6 +22,10 @@ namespace A305.Dialogue
 
         // 녹음을 시작했지만 마이크가 아직 열리는 중. 이때 한 말은 녹음되지 않는다. 눌러서 그만둘 수는 있다.
         private const string PreparingTalkCaption = "준비 중";
+
+        // [자막]은 누르면 바뀔 동작이 아니라 지금 상태를 보인다.
+        private const string SubtitleOnCaption = "자막 켬";
+        private const string SubtitleOffCaption = "자막 끔";
 
         [SerializeField]
         private GameObject panel;
@@ -124,6 +129,10 @@ namespace A305.Dialogue
         private Button retryButton;
 
         [SerializeField]
+        [Tooltip("NPC 대사 자막을 켜고 끄는 버튼. 켜 두면 강조색으로 칠한다.")]
+        private Button subtitleButton;
+
+        [SerializeField]
         [Tooltip("음성 처리에 동의하지 않은 채 회색 [말하기]를 누르면 뜨는 동의 창")]
         private VoiceConsentDialogView voiceConsentDialog;
 
@@ -134,6 +143,7 @@ namespace A305.Dialogue
         private ThemedElement sendTheme;
         private CanvasGroup talkGroup;
         private bool isRecording;
+        private NpcLineCovers npcLineCovers;
 
         // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
         private const float UnavailableTalkAlpha = 0.45f;
@@ -384,6 +394,7 @@ namespace A305.Dialogue
             hintButton.interactable =
                 content.LastNpcLine != null && content.CanSend && content.HintText == null;
             retryButton.gameObject.SetActive(content.CanRetry);
+            ShowSubtitleButton();
             UpdateLayout();
             Canvas.ForceUpdateCanvases();
             // 대사가 쌓이면 가장 최근 대사와 뜻이 보이게 맨 아래로 내린다. 지난 대사는 위로 스크롤해 다시 본다.
@@ -413,6 +424,7 @@ namespace A305.Dialogue
             replayButton.onClick.AddListener(() => ReplayRequested?.Invoke());
             hintButton.onClick.AddListener(() => HintRequested?.Invoke());
             retryButton.onClick.AddListener(RequestRetry);
+            subtitleButton.onClick.AddListener(ToggleSubtitles);
             talkButton.onClick.AddListener(PressTalk);
             Hide();
         }
@@ -555,8 +567,41 @@ namespace A305.Dialogue
                 isMeaningVisible,
                 content.LastNpcGlossary,
                 glossaryCard.Word,
-                SentenceIndent()
+                SentenceIndent(),
+                HidesNpcLines
             );
+            CoverHiddenWords();
+        }
+
+        // 자막은 NPC 대사를 음성으로 들려주는 대화에서만 끌 수 있다. 음성이 없는 대본 대화나 음성 생성 실패·만료처럼
+        // 지금 대사를 들을 수 없으면 가렸을 때 대사를 알 방법이 없으므로 보인다(기능명세 F-25).
+        private bool HidesNpcLines =>
+            content.SpeaksNpcLines
+            && content.IsNpcSpeechReady
+            && !NpcSubtitlePreference.ShowsSubtitles;
+
+        private void ShowSubtitleButton()
+        {
+            subtitleButton.gameObject.SetActive(content.SpeaksNpcLines);
+            bool showsSubtitles = NpcSubtitlePreference.ShowsSubtitles;
+            subtitleButton.GetComponentInChildren<TMP_Text>(true).text = showsSubtitles
+                ? SubtitleOnCaption
+                : SubtitleOffCaption;
+            if (subtitleButton.TryGetComponent(out ThemedElement theme))
+                theme.SetSelected(showsSubtitles);
+        }
+
+        private void ToggleSubtitles()
+        {
+            NpcSubtitlePreference.ShowsSubtitles = !NpcSubtitlePreference.ShowsSubtitles;
+            Refresh();
+        }
+
+        // 가린 대사의 단어 자리는 대사 칸 폭에 따라 줄바꿈이 달라지므로, 대사나 배치가 바뀔 때마다 막대를 다시 놓는다.
+        private void CoverHiddenWords()
+        {
+            npcLineCovers ??= new NpcLineCovers(linesText);
+            npcLineCovers.Redraw();
         }
 
         // 이름 길이와 상관없이 문장이 같은 자리에서 시작하도록, 더 긴 이름(NPC 이름·나) 뒤에 두 칸만큼 띄운 자리
@@ -758,6 +803,7 @@ namespace A305.Dialogue
             Place((RectTransform)historyScroll.transform, layout.Lines);
             Canvas.ForceUpdateCanvases();
             historyScroll.verticalNormalizedPosition = scroll;
+            CoverHiddenWords();
             PlaceWordCard();
             // 음성 동의처럼 긴 안내는 글자를 줄여 한 줄에 맞춘다.
             Place(statusText.rectTransform, layout.Status);
@@ -801,7 +847,8 @@ namespace A305.Dialogue
                 isMeaningVisible,
                 content.LastNpcGlossary,
                 glossaryCard.Word,
-                SentenceIndent()
+                SentenceIndent(),
+                HidesNpcLines
             );
             return linesText.GetPreferredValues(latest, width, 0).y;
         }

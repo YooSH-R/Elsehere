@@ -94,6 +94,14 @@ namespace A305.Learning
         private TMP_Text summaryTitle;
 
         [SerializeField]
+        [Tooltip("요약 탭 '이 상황에서 자주 써요' 제목 오른쪽의 쪽 넘김. 표현을 두 개씩 넘긴다")]
+        private RectTransform situationPager;
+
+        [SerializeField]
+        [Tooltip("요약 탭 '대화 요약' 제목 오른쪽의 쪽 넘김. 요약 글이 길면 요약 칸 안에서 넘긴다")]
+        private RectTransform summaryPager;
+
+        [SerializeField]
         [Tooltip("본문 글 뒤의 칸. 글 높이에 맞춰 늘어난다")]
         private Image bodyTile;
 
@@ -166,8 +174,11 @@ namespace A305.Learning
         /// <summary>[요약]·[문장]·[회화]·[표현] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform SectionRowRect => sectionRow;
 
-        /// <summary>쪽 넘김 화살표 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        /// <summary>쪽 넘김 화살표 줄. 요약 탭이 아닌 탭에서 장을 넘긴다.</summary>
         public RectTransform NavigationRowRect => navigationRow;
+
+        /// <summary>요약 탭 "이 상황에서 자주 써요" 제목 옆 쪽 넘김. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform SituationPagerRect => situationPager;
 
         /// <summary>탭·화살표를 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
         public RectTransform PageCardRect => (RectTransform)bodyText.transform.parent;

@@ -111,7 +111,16 @@ namespace A305.Learning
             entries.AddRange(loaded);
             isLoaded = true;
             LastFailureMessage = null;
+            ShareLearnedWords();
             return true;
+        }
+
+        // 외운 단어는 장소의 사물 카드도 호버로 띄우지 않으므로, 외운 단어가 바뀔 때마다 사물 카드에 알린다.
+        private void ShareLearnedWords()
+        {
+            ObjectWordCards.ShareLearnedWords(
+                entries.FindAll(entry => entry.IsLearned).ConvertAll(entry => entry.English)
+            );
         }
 
         /// <summary>대화 중 NPC 대사의 풀이 단어를 저장한다(VOCAB-02 NPC_LINE).</summary>
@@ -169,6 +178,7 @@ namespace A305.Learning
             }
 
             LastFailureMessage = null;
+            ShareLearnedWords();
             return true;
         }
 
@@ -209,6 +219,7 @@ namespace A305.Learning
             entries.Remove(entry);
             LastFailureMessage = null;
             ObjectWordCards.NotifySavedWordRemoved(entry.English);
+            ShareLearnedWords();
             return true;
         }
 

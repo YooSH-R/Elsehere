@@ -33,9 +33,28 @@ namespace A305.ObjectHover
             SavedWordRemoved?.Invoke(text);
         }
 
-        public static void ShareLearnedWords(IEnumerable<string> texts) { }
+        // 단어장에서 '외웠어요'로 표시한 단어의 영어 표현. 장소의 카드와 단어장 중 무엇을 먼저 받을지 몰라 장소와 상관없이 둔다.
+        private static readonly HashSet<string> learnedWords = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
-        public static bool IsLearned(string text) => false;
+        /// <summary>
+        /// 단어장의 외운 단어를 알린다. 외운 단어는 숨긴 단어처럼 호버로 카드를 띄우지 않고, 사물을 클릭하면 보인다.
+        /// 단어장 항목에는 단어 키가 없어 영어 표현으로 찾는다.
+        /// </summary>
+        public static void ShareLearnedWords(IEnumerable<string> texts)
+        {
+            learnedWords.Clear();
+            foreach (string text in texts)
+            {
+                if (text != null)
+                {
+                    learnedWords.Add(text);
+                }
+            }
+        }
+
+        public static bool IsLearned(string text) => text != null && learnedWords.Contains(text);
 
         /// <summary>장소의 단어 카드를 받았는지</summary>
         public bool IsLoaded { get; private set; }
@@ -72,10 +91,11 @@ namespace A305.ObjectHover
             return cards.TryGetValue(wordKey, out card);
         }
 
-        /// <summary>호버로 카드를 띄워도 되는지. 숨긴 단어만 false이며, 숨긴 단어도 클릭하면 카드를 보인다.</summary>
+        /// <summary>호버로 카드를 띄워도 되는지. 숨긴 단어와 단어장에서 외운 단어만 false이며, 둘 다 클릭하면 카드를 보인다.</summary>
         public bool CanHover(string wordKey)
         {
-            return !TryGet(wordKey, out WordCard card) || !card.HoverHidden;
+            return !TryGet(wordKey, out WordCard card)
+                || !(card.HoverHidden || IsLearned(card.Word.Text));
         }
 
         /// <summary>[단어장에 저장](VOCAB-02 OBJECT). 실패하면 카드 안내에 이유를 남기고 다시 누를 수 있다.</summary>

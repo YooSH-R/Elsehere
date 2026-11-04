@@ -47,14 +47,13 @@ class QuestBoardServiceTest {
     assertThat(board.quests())
         .allSatisfy(quest -> assertThat(quest.title()).doesNotContain("첫날", "여정"));
     assertThat(board.quests().getFirst().stops()).hasSize(7);
-    assertThat(board.balance()).isEqualTo(20);
+    assertThat(board.balance()).isEqualTo(100);
   }
 
   @Test
   void duringTheFirstQuest_marksVisitedStopsAndWhereToGoNext() {
     FirstDayMission mission = mock(FirstDayMission.class);
     when(mission.getStage()).thenReturn(2);
-    when(mission.getBalance()).thenReturn(20);
     when(firstDay.findById(8L)).thenReturn(Optional.of(mission));
     when(stories.findById(8L)).thenReturn(Optional.empty());
 
@@ -75,7 +74,6 @@ class QuestBoardServiceTest {
     FirstDayMission finished = mock(FirstDayMission.class);
     when(finished.isCompleted()).thenReturn(true);
     when(finished.getStage()).thenReturn(7);
-    when(finished.getBalance()).thenReturn(12);
     TownStory story = mock(TownStory.class);
     when(story.getStage()).thenReturn(5);
     when(firstDay.findById(8L)).thenReturn(Optional.of(finished));
@@ -92,7 +90,8 @@ class QuestBoardServiceTest {
             org.assertj.core.groups.Tuple.tuple("이발소", false),
             org.assertj.core.groups.Tuple.tuple("꽃집", true),
             org.assertj.core.groups.Tuple.tuple("이발소", false));
-    assertThat(board.balance()).isEqualTo(12 + 10 + 6);
+    // 첫 퀘스트 −12 +10, 마을 이야기 5단계까지 아침 7·세탁 6·이발 15코인을 내고 첫 장 보상 6코인
+    assertThat(board.balance()).isEqualTo(100 - 12 + 10 - 7 - 6 - 15 + 6);
   }
 
   @Test
@@ -100,7 +99,6 @@ class QuestBoardServiceTest {
     FirstDayMission finished = mock(FirstDayMission.class);
     when(finished.isCompleted()).thenReturn(true);
     when(finished.getStage()).thenReturn(7);
-    when(finished.getBalance()).thenReturn(12);
     when(firstDay.findById(8L)).thenReturn(Optional.of(finished));
     when(stories.findById(8L)).thenReturn(Optional.empty());
 
@@ -109,7 +107,7 @@ class QuestBoardServiceTest {
     assertThat(board.quests())
         .extracting(QuestBoardResponse.Quest::status)
         .containsExactly("DONE", "AVAILABLE", "LOCKED", "LOCKED", "LOCKED");
-    assertThat(board.balance()).isEqualTo(22);
+    assertThat(board.balance()).isEqualTo(100 - 12 + 10);
   }
 
   private static Npc npc(String code, String name) {

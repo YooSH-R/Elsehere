@@ -408,7 +408,6 @@ Table first_day_missions [headercolor: #5B4B9A] {
   user_id bigint [pk, not null]
   stage int [not null, note: '0~6 현재 단계, 7 전체 완료']
   objectives int [not null, note: '현재 단계에서 확정한 목표 비트 집합']
-  balance int [not null, note: '퀘스트 전용 예산. 시작 20, 우산 구매 후 12. 서비스 결제·재화와 별개']
   scene varchar(20) [not null, note: '마지막 보고 장소 HOME/TOWN/CAFE/HOTEL/SHOP']
   version bigint [not null, note: '낙관적 잠금 버전']
   created_at timestamptz [not null, default: `now()`]

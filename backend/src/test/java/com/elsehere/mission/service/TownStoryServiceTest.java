@@ -188,18 +188,18 @@ class TownStoryServiceTest {
   @Test
   void newStoryDoesNotResetTheFirstDayTravelBudget() {
     FirstDayMission completed = mock(FirstDayMission.class);
-    when(completed.getBalance()).thenReturn(12);
+    when(completed.isCompleted()).thenReturn(true);
     when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
     when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
 
-    assertThat(service.status(8L).balance()).isEqualTo(12);
+    // 첫 퀘스트에서 12코인을 내고 보상 10코인을 받은 그대로다.
+    assertThat(service.status(8L).balance()).isEqualTo(100 - 12 + 10);
   }
 
   @Test
   void finishedQuestRewardsAddToTheBudget() {
     FirstDayMission completed = mock(FirstDayMission.class);
     when(completed.isCompleted()).thenReturn(true);
-    when(completed.getBalance()).thenReturn(12);
     when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
     TownStory story = TownStory.start(8L);
     while (story.getStage() < 4) {
@@ -207,8 +207,9 @@ class TownStoryServiceTest {
     }
     when(stories.findById(8L)).thenReturn(Optional.of(story));
 
-    // 첫 퀘스트 보상 10코인과 마을 이야기 첫 장(4단계까지) 보상 6코인을 더한다.
-    assertThat(service.status(8L).balance()).isEqualTo(12 + 10 + 6);
+    // 첫 퀘스트: −12 +10. 마을 이야기 4단계까지 아침 7·세탁 6코인을 내고 첫 장 보상 6코인을 받았다.
+    assertThat(service.status(8L).balance()).isEqualTo(100 - 12 + 10 - 7 - 6 + 6);
+    assertThat(service.status(8L).lastPurchase()).isEqualTo("세탁");
   }
 
   @Test

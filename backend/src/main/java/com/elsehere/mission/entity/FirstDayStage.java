@@ -22,7 +22,7 @@ public enum FirstDayStage {
       "CLEAR",
       "호텔에서 안내받은 카페에 도착했어요. 음료를 마시며 체크인 시간을 기다려요.",
       "직원에게 주문하고, 대화를 마친 뒤 의자에 앉아 쉬어 가세요.",
-      "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
+      "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. Every drink costs 4 coins. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
       goal("order_drink", "음료 주문", "Order a drink, any drink is valid."),
       goal(
           "set_options",
@@ -74,7 +74,7 @@ public enum FirstDayStage {
       "RAIN",
       "가방을 찾았어요! 호텔로 돌아가는 길에 비가 내리기 시작했어요.",
       "행인 Ben에게 물어보세요.",
-      "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins; the learner has 20 quest coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. Do not sell an umbrella yourself. Do not suggest umbrellas or the drugstore before the learner asks.",
+      "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. Do not sell an umbrella yourself. Do not suggest umbrellas or the drugstore before the learner asks.",
       goal(
           "ask_umbrella_shop",
           "우산 판매처 묻기",
@@ -88,9 +88,9 @@ public enum FirstDayStage {
       "SHOP",
       "SHOP_STAFF",
       "RAIN",
-      "우산을 파는 드럭스토어예요. 여행용 예산은 20코인, 우산은 8코인이에요.",
+      "우산을 파는 드럭스토어예요. 우산은 8코인이에요.",
       "점원에게 우산을 사세요.",
-      "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Balance before purchase is 20. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
+      "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Do not offer an umbrella or say its price before the learner asks. Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",
       goal("ask_price", "가격 묻기", "Ask or confirm the umbrella price."),
       goal("buy_umbrella", "구매 의사 말하기", "Explicitly decide to buy an umbrella."),
       goal(
@@ -176,6 +176,15 @@ public enum FirstDayStage {
 
   public List<Goal> goals() {
     return goals;
+  }
+
+  /** 이 단계에서 값을 치르는 목표. 값을 치르지 않는 단계는 null이다. */
+  public Payment payment() {
+    return switch (this) {
+      case CAFE_BREAK -> new Payment("order_drink", 4, "카페 음료");
+      case BUY_UMBRELLA -> new Payment("choose_payment", 8, "우산");
+      default -> null;
+    };
   }
 
   public List<String> intentIds() {

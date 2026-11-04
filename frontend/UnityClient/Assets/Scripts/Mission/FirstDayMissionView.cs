@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -77,6 +78,18 @@ namespace A305.Mission
         private TMP_Text coins;
 
         [SerializeField]
+        [Tooltip("코인이 바뀌면 코인 칩 옆에 잠깐 떠오르는 +10·−8")]
+        private TMP_Text coinFloat;
+
+        [SerializeField]
+        [Tooltip("코인 칩 아래에 잠깐 보이는 산 것·보상 안내. 부모 알약과 함께 켜고 끈다")]
+        private TMP_Text coinReceipt;
+
+        [SerializeField]
+        [Tooltip("코인이 바뀔 때 통 튀는 코인 칩")]
+        private RectTransform coinChip;
+
+        [SerializeField]
         private TMP_Text journalGoal;
 
         [SerializeField]
@@ -141,6 +154,15 @@ namespace A305.Mission
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
 
+        // 코인이 바뀔 때 연출(시안 f1·f3): 숫자를 세는 시간, 칩이 튀는 시간, 글자가 떠 있는 시간과 사라지는 시간, 떠오르는 높이
+        private const float CoinCountSeconds = .6f;
+        private const float CoinPunchSeconds = .3f;
+        private const float CoinChangeSeconds = 2.4f;
+        private const float CoinFadeSeconds = .5f;
+        private const float CoinFloatRise = 30f;
+        private static readonly Color CoinGainColor = new Color32(232, 161, 0, 255);
+        private static readonly Color CoinLossColor = new Color32(47, 37, 27, 255);
+
         // 시안: 퀘스트 카드는 왼쪽·위 28px, 폭 410px(캔버스는 1.2배)
         private const float Margin = 28 * 1.2f;
         private const float CardWidth = 410 * 1.2f;
@@ -149,6 +171,12 @@ namespace A305.Mission
         private Canvas canvas;
         private int shownClockMinute = -1;
         private bool talking;
+
+        // 지금까지 보인 코인. 처음 받은 코인은 바뀐 것으로 알리지 않는다.
+        private int? shownBalance;
+        private Coroutine coinChange;
+        private bool showingCoinChange;
+        private Vector2 coinFloatHome;
         private bool available;
         private string mapSceneCode;
 
@@ -215,14 +243,15 @@ namespace A305.Mission
             // NPC가 할 일을 먼저 말하지 않으므로, 요청 안내 아래 이번 단계 목표를 보여 주어 무엇을 요청할지 알게 한다.
             ShowGoals(state.CanRest || current == null ? null : current.Goals);
             this.talking = talking;
-            statusBar.SetActive(!talking);
+            ShowBalance(state);
+            // 대화 중에는 시계·코인 칩을 숨기지만, 코인이 바뀐 동안에는 코인 칩을 잠깐 보인다.
+            statusBar.SetActive(!talking || showingCoinChange);
             UpdateMiniMapVisibility();
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
             stepChip.transform.parent.gameObject.SetActive(chip != null);
             place.text = current != null ? CompactTitle(current.Title) : "";
             ShowProgress(state.Steps);
-            coins.text = state.Balance.ToString();
             ShowClock();
             // 폰 메뉴의 오늘의 여정 위젯이 같은 내용을 보인다.
             JourneyStatus.Shared.Show(
@@ -362,6 +391,71 @@ namespace A305.Mission
             : JourneyMark.Upcoming;
 
         // 게임 시계는 분이 바뀔 때만 다시 쓴다.
+        private void ShowBalance(FirstDayMissionState state)
+        {
+            CoinChange? change = CoinChange.Between(
+                shownBalance,
+                state.Balance,
+                state.LastPurchase
+            );
+            int from = shownBalance ?? state.Balance;
+            shownBalance = state.Balance;
+            if (change.HasValue && coinFloat != null && coinReceipt != null)
+                ShowCoinChange(change.Value, from, state.Balance);
+            else if (coinChange == null)
+                coins.text = state.Balance.ToString();
+        }
+
+        // 코인이 바뀌면 칩 옆에 바뀐 만큼을, 칩 아래에 산 것·보상을 띄우고 숫자를 세며 바꾼다(시안 f1·f3).
+        private void ShowCoinChange(CoinChange change, int from, int to)
+        {
+            showingCoinChange = true;
+            coinFloat.text = change.Float;
+            coinFloat.color = change.IsGain ? CoinGainColor : CoinLossColor;
+            coinFloat.alpha = 1f;
+            coinFloat.gameObject.SetActive(true);
+            coinReceipt.text = change.Receipt;
+            coinReceipt.transform.parent.gameObject.SetActive(true);
+            if (coinChange != null)
+                StopCoroutine(coinChange);
+            coinChange =
+                Application.isPlaying && isActiveAndEnabled
+                    ? StartCoroutine(PlayCoinChange(from, to))
+                    : null;
+            if (coinChange == null)
+                coins.text = to.ToString();
+        }
+
+        private IEnumerator PlayCoinChange(int from, int to)
+        {
+            var amount = (RectTransform)coinFloat.transform;
+            if (coinFloatHome == default)
+                coinFloatHome = amount.anchoredPosition;
+            for (float t = 0f; t < CoinChangeSeconds; t += Time.unscaledDeltaTime)
+            {
+                float count = Mathf.Clamp01(t / CoinCountSeconds);
+                coins.text = Mathf.RoundToInt(Mathf.Lerp(from, to, count)).ToString();
+                // 칩이 한 번 통 튀고, 글자는 위로 떠오르다 끝에서 사라진다.
+                float punch = Mathf.Sin(Mathf.Clamp01(t / CoinPunchSeconds) * Mathf.PI) * .12f;
+                if (coinChip != null)
+                    coinChip.localScale = Vector3.one * (1f + punch);
+                amount.anchoredPosition =
+                    coinFloatHome
+                    + Vector2.up * (CoinFloatRise * Mathf.Clamp01(t / CoinChangeSeconds));
+                coinFloat.alpha = Mathf.Clamp01((CoinChangeSeconds - t) / CoinFadeSeconds);
+                yield return null;
+            }
+            coins.text = to.ToString();
+            if (coinChip != null)
+                coinChip.localScale = Vector3.one;
+            amount.anchoredPosition = coinFloatHome;
+            coinFloat.gameObject.SetActive(false);
+            coinReceipt.transform.parent.gameObject.SetActive(false);
+            showingCoinChange = false;
+            coinChange = null;
+            statusBar.SetActive(!talking);
+        }
+
         private void ShowClock()
         {
             int minute = (int)GameClock.Shared.Minutes;

@@ -11,6 +11,7 @@ public record FirstDayMissionResponse(
     boolean raining,
     String weather,
     int balance,
+    String lastPurchase,
     String situation,
     String direction,
     List<Step> steps) {

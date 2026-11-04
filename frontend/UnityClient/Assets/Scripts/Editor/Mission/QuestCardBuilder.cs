@@ -14,6 +14,7 @@ namespace A305.EditorTools.Mission
     /// 단계 칩·진행 칸·목표 체크·코인처럼 그림인 부분은 시안 HTML을 그대로 렌더링한 그림(Art/UI/Hud)을 쓴다.
     /// 왼쪽 위 퀘스트 카드에 단계 칩·장소·할 일·상황·진행 칸·목표 줄을 두고, 카드를 누르면 여행 수첩이 열린다(예전 지도 버튼은 지운다).
     /// 오른쪽 위 휴대폰 버튼 왼쪽에는 같은 크기의 게임 시계 칩과 코인 칩을 둔다. 유리는 뒤 화면을 흐리게 비추는 테마 유리를 쓴다.
+    /// 퀘스트 카드 바로 아래에는 NPC가 준비해 건네기로 한 것을 기다리는 카드를 같은 유리·폭으로 둔다.
     /// </summary>
     public static class QuestCardBuilder
     {
@@ -21,6 +22,7 @@ namespace A305.EditorTools.Mission
         private const string PlaceholderMenuPath =
             "Tools/A305/Mission/Apply Quest Card Placeholder";
         private const string CoinChangeMenuPath = "Tools/A305/Mission/Apply Coin Change Labels";
+        private const string FollowUpMenuPath = "Tools/A305/Mission/Apply Follow-up Card";
         private const string CoinFloatMaterialPath = "Assets/Art/UI/Hud/Jua Coin Float.mat";
         private const string WhitePanelPath = "Assets/Art/UI/Mission/GlassPanel.png";
 
@@ -78,6 +80,14 @@ namespace A305.EditorTools.Mission
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>HUD를 다시 만들지 않고 퀘스트 카드 아래 기다리는 카드만 다시 만들어 연결한다.</summary>
+        [MenuItem(FollowUpMenuPath)]
+        public static void ApplyFollowUpCardToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(PrefabPath, FollowUpCard);
+            AssetDatabase.SaveAssets();
+        }
+
         public static void Apply(GameObject root)
         {
             var view = root.GetComponent<FirstDayMissionView>();
@@ -90,6 +100,124 @@ namespace A305.EditorTools.Mission
             // 수첩은 카드 자리에 펼친다. 펼친 동안 카드는 숨는다.
             var journal = (RectTransform)content.Find("Journal");
             journal.anchoredPosition = new Vector2(28 * Px, -28 * Px);
+            FollowUpCard(root);
+        }
+
+        // 퀘스트 카드 바로 아래 기다리는 카드. 퀘스트 카드와 같은 폭·테마 유리·옆 여백을 쓰고, 머리말(Jua 18, 옅은 갈색) 아래에
+        // 줄마다 목표 줄과 같은 동그라미 체크(24) + 받을 것(Jua 20)·누가 어디서(Pretendard 15) + 남은 시간(Jua 22, 강조색)을 둔다.
+        // 자리는 FollowUpCardView가 실행 중에 퀘스트 카드 높이에 맞춰 옮긴다. 기다리는 것이 없으면 숨으므로 처음에는 끈다.
+        private static void FollowUpCard(GameObject root)
+        {
+            var view = root.GetComponent<FirstDayMissionView>();
+            Transform content = root.transform.Find("Content");
+            var questCard = (RectTransform)content.Find("CurrentGoal");
+            Transform old = content.Find("FollowUpCard");
+            if (old != null)
+                Object.DestroyImmediate(old.gameObject);
+
+            RectTransform card = Rect("FollowUpCard", content);
+            card.SetSiblingIndex(questCard.GetSiblingIndex() + 1);
+            card.anchorMin = card.anchorMax = card.pivot = new Vector2(0, 1);
+            card.sizeDelta = new Vector2(questCard.sizeDelta.x, 0);
+            card.anchoredPosition =
+                questCard.anchoredPosition + Vector2.down * (questCard.rect.height + 12 * Px);
+            Image glass = BuilderTools.GetOrAddComponent<Image>(card.gameObject);
+            Theme(card, UiThemeRole.Panel);
+            // 알림만 보이는 카드라 뒤의 장면을 누르는 것을 막지 않는다.
+            glass.raycastTarget = false;
+            var column = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(card.gameObject);
+            column.padding = new RectOffset(Round(23), Round(23), Round(18), Round(20));
+            column.spacing = 10 * Px;
+            column.childAlignment = TextAnchor.UpperLeft;
+            column.childControlWidth = column.childControlHeight = true;
+            column.childForceExpandWidth = true;
+            column.childForceExpandHeight = false;
+            BuilderTools.GetOrAddComponent<ContentSizeFitter>(card.gameObject).verticalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+
+            TMP_Text header = Text(
+                card,
+                "Header",
+                DisplayFontPath,
+                18,
+                Muted,
+                FollowUpCardText.Header
+            );
+            header.alignment = TextAlignmentOptions.MidlineLeft;
+
+            RectTransform rows = Rect("Rows", card);
+            var list = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(rows.gameObject);
+            list.spacing = 8 * Px;
+            list.childControlWidth = list.childControlHeight = true;
+            list.childForceExpandWidth = true;
+            list.childForceExpandHeight = false;
+            FollowUpRowView row = FollowUpRow(rows);
+
+            var cardView = BuilderTools.GetOrAddComponent<FollowUpCardView>(root);
+            BuilderTools.SetReference(cardView, "card", card);
+            BuilderTools.SetReference(cardView, "questCard", questCard);
+            BuilderTools.SetReference(cardView, "rows", rows);
+            BuilderTools.SetReference(cardView, "waitingMark", Sprite("CheckEmpty"));
+            BuilderTools.SetReference(cardView, "readyMark", Sprite("CheckDone"));
+            BuilderTools.SetReference(view, "followUpCard", cardView);
+            row.gameObject.SetActive(true);
+            card.gameObject.SetActive(false);
+        }
+
+        // 기다리는 것 하나의 줄. 다 되면 줄 바탕(강조색, 처음에는 투명)이 두 번 반짝인다.
+        private static FollowUpRowView FollowUpRow(RectTransform rows)
+        {
+            Color accent = Design().ToneColor(UiTone.Primary);
+            RectTransform row = Row(rows, "Row", 10);
+            row.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(
+                Round(6),
+                Round(8),
+                Round(6),
+                Round(6)
+            );
+
+            RectTransform flashRect = Rect("Flash", row);
+            Fill(flashRect);
+            flashRect.SetAsFirstSibling();
+            BuilderTools.GetOrAddComponent<LayoutElement>(flashRect.gameObject).ignoreLayout = true;
+            var flash = BuilderTools.GetOrAddComponent<Image>(flashRect.gameObject);
+            // 큰 지도와 같은 흰 둥근 판 그림(모서리 44)을 모서리 16으로 줄여 쓴다.
+            flash.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhitePanelPath);
+            flash.type = UnityEngine.UI.Image.Type.Sliced;
+            flash.pixelsPerUnitMultiplier = 44f / (16 * Px);
+            flash.color = new Color(accent.r, accent.g, accent.b, 0f);
+            flash.raycastTarget = false;
+
+            RectTransform mark = Box(row, "Mark", 24, 24);
+            Art(mark, "CheckEmpty", 24 + 2 * ArtPad, 28 + 2 * ArtPad, ArtPad, ArtPad);
+
+            RectTransform text = Rect("Text", row);
+            var lines = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(text.gameObject);
+            lines.spacing = 2 * Px;
+            lines.childAlignment = TextAnchor.MiddleLeft;
+            lines.childControlWidth = lines.childControlHeight = true;
+            lines.childForceExpandWidth = true;
+            lines.childForceExpandHeight = false;
+            BuilderTools.GetOrAddComponent<LayoutElement>(text.gameObject).flexibleWidth = 1;
+            TMP_Text title = Text(text, "Title", DisplayFontPath, 20, Ink, "아이스 라테");
+            title.alignment = TextAlignmentOptions.MidlineLeft;
+            title.textWrappingMode = TextWrappingModes.Normal;
+            title.margin = new Vector4(0, 2 * Px, 0, 0);
+            TMP_Text detail = Text(text, "Detail", BodyFontPath, 15, Muted, "Mia · 카페");
+            detail.alignment = TextAlignmentOptions.MidlineLeft;
+            detail.textWrappingMode = TextWrappingModes.Normal;
+
+            TMP_Text countdown = Text(row, "Countdown", DisplayFontPath, 22, accent, "0:45");
+            countdown.alignment = TextAlignmentOptions.MidlineRight;
+            countdown.margin = new Vector4(0, 2 * Px, 0, 0);
+
+            var rowView = BuilderTools.GetOrAddComponent<FollowUpRowView>(row.gameObject);
+            BuilderTools.SetReference(rowView, "mark", mark.Find("Art").GetComponent<Image>());
+            BuilderTools.SetReference(rowView, "title", title);
+            BuilderTools.SetReference(rowView, "detail", detail);
+            BuilderTools.SetReference(rowView, "countdown", countdown);
+            BuilderTools.SetReference(rowView, "flash", flash);
+            return rowView;
         }
 
         // 시안 .quest: 왼쪽·위 28, 폭 410, 안쪽 여백 위 21·옆 23·아래 23(테두리 1 포함), 모서리 32

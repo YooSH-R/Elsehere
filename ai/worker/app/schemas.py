@@ -121,7 +121,8 @@ class ReplyRequest(BaseModel):
     relationship: Relationship | None = None  # 있으면 알아봄·호감·기분을 말로 풀어 지시문에 넣고, 알아볼 때만 평범한 기억을 떠올린다
     history: list[Line] = Field(default=[], max_length=40)
     text: str = Field(max_length=500)  # 학습자 원문 그대로 (한국어 섞인 채)
-    instruction: str = Field(default="", max_length=3000)  # Spring 규칙이 정한 이번 대답에서 할 일. 퀘스트 단계 지시와 진행 규칙을 합치면 1500자 안팎이다
+    # Spring 규칙이 정한 이번 대답에서 할 일. 퀘스트 단계 지시와 진행 규칙을 합치면 1500자 안팎이다
+    instruction: str = Field(default="", max_length=3000)
     tts: bool = True
     level: Level = 2
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)

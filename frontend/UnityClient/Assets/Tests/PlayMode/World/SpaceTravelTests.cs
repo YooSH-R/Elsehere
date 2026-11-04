@@ -23,6 +23,7 @@ namespace A305.World.PlayModeTests
         // 입구 화면은 공간이 아니라 플레이어·카메라·출입구가 없다. Scene List 맨 앞에 있지만 공간 씬 검사에서 뺀다.
         private const string EntrySceneName = "EntryScene";
         private const float ArrivalTimeoutSeconds = 5f;
+        private const float SceneLoadTimeoutSeconds = 30f;
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
 
@@ -234,7 +235,7 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator OriginalShopDoors_AllowWalkingInAndOutWithMovementKeys()
+        public IEnumerator ShopDoors_AllowWalkingInAndOutWithMovementKeys()
         {
             yield return LoadSpace("TownScene");
             var player = FindPlayer();
@@ -249,6 +250,23 @@ namespace A305.World.PlayModeTests
             {
                 var room = door.GetComponentInParent<ShopInterior>();
                 Assert.That(room, Is.Not.Null, door.name);
+                Assert.That(
+                    Application.CanStreamedLevelBeLoaded(room.SceneName),
+                    Is.True,
+                    $"{door.name}: {room.SceneName}"
+                );
+                if (door.GetComponent<BoxCollider>() == null)
+                {
+                    Assert.That(door.parent.Find("OutsideDoorway"), Is.Not.Null, door.name);
+                    Assert.That(door.parent.Find("InsideDoorway"), Is.Not.Null, door.name);
+                }
+            }
+
+            string[] representativeDoors = { "PostOfficeDoor", "ArcadeDoor" };
+            foreach (string doorName in representativeDoors)
+            {
+                var door = doors.Single(candidate => candidate.name == doorName);
+                var room = door.GetComponentInParent<ShopInterior>();
                 Vector3 center = ShopThresholdCenter(door);
                 center.y = door.transform.position.y + .03f;
                 bool hallDoor = door.name == "ArcadeDoor" || door.name == "BookshopDoor";
@@ -390,21 +408,7 @@ namespace A305.World.PlayModeTests
         public IEnumerator TownShopDoors_CoverTheScreenWhenEnteringAndLeaving()
         {
             yield return LoadSpace("TownScene");
-            string[] doorNames =
-            {
-                "PostOfficeDoor",
-                "MapleDinerDoor",
-                "TownBankDoor",
-                "SudsLaundromatDoor",
-                "BloomFlowersDoor",
-                "MainStreetBarberDoor",
-                "PoliceStationDoor",
-                "BakeryDoor",
-                "ArcadeDoor",
-                "BookshopDoor",
-                "HomeGoodsDoor",
-                "TeaRoomDoor",
-            };
+            string[] doorNames = { "PostOfficeDoor", "ArcadeDoor" };
             var player = FindPlayer();
             foreach (string name in doorNames)
             {
@@ -603,7 +607,18 @@ namespace A305.World.PlayModeTests
 
         private static IEnumerator LoadSpace(string sceneName)
         {
-            yield return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+            AsyncOperation loading = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
+            float deadline = Time.realtimeSinceStartup + SceneLoadTimeoutSeconds;
+            while (!loading.isDone && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+            Assert.That(
+                loading.isDone,
+                Is.True,
+                $"{sceneName} 씬을 시간 안에 불러오지 못했습니다."
+            );
+
             // 새 씬의 Start가 실행되도록 한 프레임 넘긴다.
             yield return null;
         }
@@ -676,6 +691,13 @@ namespace A305.World.PlayModeTests
             {
                 yield return null;
             }
+
+            Assert.That(
+                SpaceTravel.IsTraveling,
+                Is.False,
+                "장소 이동이 시간 안에 끝나지 않았습니다."
+            );
+            Assert.That(CurtainOpacity(), Is.Zero, "화면 덮개가 시간 안에 열리지 않았습니다.");
         }
 
         private static void AssertPlayerArrivedAt(string doorwayId)

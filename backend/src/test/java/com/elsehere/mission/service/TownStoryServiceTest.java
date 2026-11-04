@@ -11,6 +11,7 @@ import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.TownStory;
+import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.world.entity.Npc;
@@ -138,6 +139,23 @@ class TownStoryServiceTest {
     }
   }
 
+  // 이야기 목표는 학습자가 먼저 말해야 한다. 담당 직원은 남은 목표를 먼저 꺼내거나 권하지 않는다.
+  @Test
+  void staffLetTheVisitorBringUpEveryObjective() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      FirstDayMissionService.Context context = service.context(8L, stage.npcCode()).orElseThrow();
+
+      String reply =
+          context.replyInstruction(new JudgeResult.Intent(null, java.util.List.of(), null));
+
+      assertThat(context.instruction()).as(stage.name()).contains("Never be the first to bring up");
+      assertThat(reply).as(stage.name()).doesNotContain("Ask about one of these objectives");
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
+    }
+  }
+
   @Test
   void progressResponseExplainsTheCurrentVisitAndShowsCompletedGoals() {
     TownStory story = TownStory.start(8L);
@@ -170,18 +188,18 @@ class TownStoryServiceTest {
   @Test
   void newStoryDoesNotResetTheFirstDayTravelBudget() {
     FirstDayMission completed = mock(FirstDayMission.class);
-    when(completed.getBalance()).thenReturn(12);
+    when(completed.isCompleted()).thenReturn(true);
     when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
     when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
 
-    assertThat(service.status(8L).balance()).isEqualTo(12);
+    // 첫 퀘스트에서 12코인을 내고 보상 10코인을 받은 그대로다.
+    assertThat(service.status(8L).balance()).isEqualTo(100 - 12 + 10);
   }
 
   @Test
   void finishedQuestRewardsAddToTheBudget() {
     FirstDayMission completed = mock(FirstDayMission.class);
     when(completed.isCompleted()).thenReturn(true);
-    when(completed.getBalance()).thenReturn(12);
     when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
     TownStory story = TownStory.start(8L);
     while (story.getStage() < 4) {
@@ -189,8 +207,9 @@ class TownStoryServiceTest {
     }
     when(stories.findById(8L)).thenReturn(Optional.of(story));
 
-    // 첫 퀘스트 보상 10코인과 마을 이야기 첫 장(4단계까지) 보상 6코인을 더한다.
-    assertThat(service.status(8L).balance()).isEqualTo(12 + 10 + 6);
+    // 첫 퀘스트: −12 +10. 마을 이야기 4단계까지 아침 7·세탁 6코인을 내고 첫 장 보상 6코인을 받았다.
+    assertThat(service.status(8L).balance()).isEqualTo(100 - 12 + 10 - 7 - 6 + 6);
+    assertThat(service.status(8L).lastPurchase()).isEqualTo("세탁");
   }
 
   @Test

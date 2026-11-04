@@ -18,7 +18,7 @@ Project elsehere {
 // ===== 가입 · 초기 설정 =====
 Table users [headercolor: #3D4A5C] {
   id bigint [pk, increment]
-  provider varchar(20) [not null, note: '로그인 방식 · GOOGLE(소셜 로그인) · GUEST(게스트로 시작하기, API AUTH-07) · 게스트는 마지막 활동 24시간 뒤 내용만 지우고 이 행은 남김(backend README)']
+  provider varchar(20) [not null, note: '로그인 방식 · GOOGLE(소셜 로그인) · GUEST(게스트로 시작하기, API AUTH-07) · 게스트는 마지막 활동 24시간 뒤 내용만 지우고 이 행은 남김(backend README) · 게스트가 Google로 가입하면 같은 행을 GOOGLE로 바꿔 기록을 이음(API AUTH-04)']
   provider_uid varchar(100) [not null, note: '제공자가 주는 사용자 고유 ID · 게스트는 서버가 만든 임의 값 · 탈퇴하면 withdrawn-임의 값으로 바꿔 같은 계정으로 다시 가입할 수 있음 (API USER-05)']
   email varchar(255) [note: '제공자가 줄 때만 · 탈퇴하면 지움']
   nickname varchar(30) [not null, unique, note: 'NPC가 부르는 이름 · 중복 불가 · 한글 2, 영문·숫자 1로 세어 2자 이상 합계 16 이하 (API AUTH-04) · 탈퇴하면 withdrawn-사용자 ID로 바꿈']
@@ -408,7 +408,6 @@ Table first_day_missions [headercolor: #5B4B9A] {
   user_id bigint [pk, not null]
   stage int [not null, note: '0~6 현재 단계, 7 전체 완료']
   objectives int [not null, note: '현재 단계에서 확정한 목표 비트 집합']
-  balance int [not null, note: '퀘스트 전용 예산. 시작 20, 우산 구매 후 12. 서비스 결제·재화와 별개']
   scene varchar(20) [not null, note: '마지막 보고 장소 HOME/TOWN/CAFE/HOTEL/SHOP']
   version bigint [not null, note: '낙관적 잠금 버전']
   created_at timestamptz [not null, default: `now()`]

@@ -271,6 +271,25 @@ namespace A305.Weather.PlayModeTests
             AssertColor(RenderSettings.ambientSkyColor, daylight.ShopInteriorAmbientSky);
         }
 
+        // 마을 해가 지붕·벽 그림자로 매장 안을 뒤덮지 않도록, 안에 있는 동안만 그림자를 옅게 한다.
+        [UnityTest]
+        public IEnumerator Midday_InsideLoadedShop_SoftensSunShadows()
+        {
+            yield return null;
+            presenter.ShowTime(Midday);
+
+            presenter.SetShopInterior(Keep(new GameObject("PoliceStationInterior")).transform);
+
+            Assert.That(
+                sun.shadowStrength,
+                Is.EqualTo(daylight.ShopInteriorSunShadowStrength).Within(.001f)
+            );
+
+            presenter.SetShopInterior(null);
+
+            Assert.That(sun.shadowStrength, Is.EqualTo(Designed.sunShadowStrength).Within(.001f));
+        }
+
         [UnityTest]
         public IEnumerator Midnight_LeavingLoadedShop_PutsTownNightAmbientBack()
         {

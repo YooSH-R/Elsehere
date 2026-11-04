@@ -50,12 +50,38 @@ groups:
       - alert: APILatencyHigh
         expr: >-
           (histogram_quantile(0.95, sum by (le, environment)
-          (rate(http_server_requests_seconds_bucket{job=~"elsehere-api.*",uri!="/api/health"}[5m]))) > 3)
+          (rate(http_server_requests_seconds_bucket{job=~"elsehere-api.*",uri!="/api/health",uri!="/api/v1/conversations/{conversationId}/turns",uri!="/api/v1/conversations/{conversationId}/end"}[5m]))) > 3)
           and on (environment)
           (sum by (environment) (increase(http_server_requests_seconds_count{job=~"elsehere-api.*",uri!="/api/health"}[5m])) >= 20)
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: API p95 응답 지연
-          description: '환경 {{ $labels.environment }}의 p95 응답 시간이 10분 이상 3초를 넘었습니다. 최근 5분 요청이 20건 이상일 때만 평가합니다.'
+          summary: 일반 API p95 응답 지연
+          description: '환경 {{ $labels.environment }}의 대화 응답·종료를 제외한 API p95 응답 시간이 10분 이상 3초를 넘었습니다. 최근 5분 전체 API 요청이 20건 이상일 때만 평가합니다.'
+      - alert: APITurnLatencyHigh
+        expr: >-
+          (histogram_quantile(0.95, sum by (le, environment)
+          (rate(http_server_requests_seconds_bucket{job=~"elsehere-api.*",uri="/api/v1/conversations/{conversationId}/turns"}[5m]))) > 10)
+          and on (environment)
+          (sum by (environment) (increase(http_server_requests_seconds_count{job=~"elsehere-api.*",uri!="/api/health"}[5m])) >= 20)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 대화 응답 API p95 응답 지연
+          description: '환경 {{ $labels.environment }}의 대화 응답 API p95 응답 시간이 10분 이상 10초를 넘었습니다. 최근 5분 전체 API 요청이 20건 이상일 때만 평가합니다.'
+      - alert: APIConversationEndLatencyHigh
+        # 마지막 유한 버킷인 30초 초과 비율을 직접 계산하고, 부동소수점 오차로 정확히 5%가 발동하지 않게 반올림한다.
+        expr: >-
+          (round((sum by (environment) (rate(http_server_requests_seconds_bucket{job=~"elsehere-api.*",uri="/api/v1/conversations/{conversationId}/end",le="+Inf"}[5m]))
+          - sum by (environment) (rate(http_server_requests_seconds_bucket{job=~"elsehere-api.*",uri="/api/v1/conversations/{conversationId}/end",le="30.0"}[5m])))
+          / sum by (environment) (rate(http_server_requests_seconds_bucket{job=~"elsehere-api.*",uri="/api/v1/conversations/{conversationId}/end",le="+Inf"}[5m])), 0.000001) > 0.05)
+          and on (environment)
+          (sum by (environment) (increase(http_server_requests_seconds_count{job=~"elsehere-api.*",uri!="/api/health"}[5m])) >= 20)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 대화 종료 API p95 응답 지연
+          description: '환경 {{ $labels.environment }}의 대화 종료 요청 중 30초를 초과한 비율이 10분 이상 5%를 넘었습니다. 최근 5분 전체 API 요청이 20건 이상일 때만 평가합니다.'

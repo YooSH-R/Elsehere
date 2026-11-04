@@ -45,12 +45,12 @@ class FirstDayMissionTest {
     mission.accept(4, "TOWN_PASSERBY", List.of("ask_umbrella_shop", "ask_directions"));
     mission.accept(5, "SHOP_STAFF", List.of("ask_price", "buy_umbrella", "choose_payment"));
     assertThat(mission.getStage()).isEqualTo(6);
-    assertThat(mission.getBalance()).isEqualTo(12);
+    assertThat(Coins.balance(mission, null)).isEqualTo(100 - 4 - 8);
     mission.accept(6, "HOTEL_STAFF", List.of("found_bag", "request_checkin", "show_reservation"));
     assertThat(mission.isCompleted()).isFalse();
     mission.accept(6, "HOTEL_STAFF", List.of("collect_suitcase"));
     assertThat(mission.isCompleted()).isTrue();
     mission.accept(5, "SHOP_STAFF", List.of("buy_umbrella", "choose_payment"));
-    assertThat(mission.getBalance()).isEqualTo(12);
+    assertThat(Coins.balance(mission, null)).isEqualTo(100 - 4 - 8 + 10);
   }
 }

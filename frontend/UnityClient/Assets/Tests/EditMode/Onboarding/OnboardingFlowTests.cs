@@ -293,6 +293,100 @@ namespace A305.Onboarding.Tests
         }
 
         [Test]
+        public async Task GuestComingBack_ChoosesBetweenSignupAndContinuingFirst()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.Guest = true;
+            api.Bootstrap.LastSceneCode = "CAFE";
+
+            await flow.StartAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.GuestReturn));
+        }
+
+        [Test]
+        public async Task ContinueAsGuest_EntersThePlaceTheGuestLeft()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.User.Guest = true;
+            api.Bootstrap.LastSceneCode = "CAFE";
+            await flow.StartAsync();
+
+            flow.ContinueToGame();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.World));
+            Assert.That(flow.LastSceneName, Is.EqualTo("CafeScene"));
+        }
+
+        [Test]
+        public async Task GuestComingBackDuringTutorial_ContinuesToTutorial()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
+            api.Bootstrap.User.Guest = true;
+            await flow.StartAsync();
+
+            flow.ContinueToGame();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
+        }
+
+        [Test]
+        public async Task GuestJustStarted_GoesToTutorialWithoutAskingToSignUp()
+        {
+            flow.ChooseGuest();
+            flow.SelectGuestAvatar(AvatarType.F);
+            api.Bootstrap = SignedIn(OnboardingStep.Tutorial, currentLanguage: "en-US");
+            api.Bootstrap.User.Guest = true;
+
+            await flow.GuestLoginAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.Tutorial));
+        }
+
+        [Test]
+        public async Task SignedInToExistingAccount_IsToldBeforeEnteringTheGame()
+        {
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+
+            await flow.StartAsync(signedInToExistingAccount: true);
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.ExistingAccount));
+            flow.ContinueToGame();
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.World));
+        }
+
+        [Test]
+        public async Task GuestSignup_StartsWithTheGuestCharacter()
+        {
+            api.SignupForm.Guest = new ConvertingGuest
+            {
+                AvatarType = AvatarType.M,
+                VoiceConsent = true,
+            };
+
+            await StartAtSignup();
+
+            Assert.That(flow.SignupForm.IsGuestConversion, Is.True);
+            Assert.That(flow.SignupForm.Avatar, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public async Task GuestSignup_EntersTheGameWhereTheGuestLeft()
+        {
+            api.SignupForm.Guest = new ConvertingGuest { AvatarType = AvatarType.M };
+            await StartAtSignup();
+            // 가입하면 게스트가 회원으로 바뀌어 게스트 때 초기 설정 단계와 장소가 그대로 남는다.
+            api.SignedUpStep = OnboardingStep.Done;
+            api.Bootstrap = SignedIn(OnboardingStep.Done, currentLanguage: "en-US");
+            api.Bootstrap.LastSceneCode = "CAFE";
+
+            await flow.SubmitSignupAsync();
+
+            Assert.That(flow.Screen, Is.EqualTo(EntryScreen.World));
+            Assert.That(flow.LastSceneName, Is.EqualTo("CafeScene"));
+        }
+
+        [Test]
         public async Task CheckNickname_RecordsAvailabilityOfTypedNickname()
         {
             await StartAtSignup();
@@ -582,6 +676,9 @@ namespace A305.Onboarding.Tests
             public bool? GuestVoiceConsentSent { get; private set; }
             public string NicknameCheckedFor { get; private set; }
             public SignupRequest SignupSent { get; private set; }
+
+            /// <summary>가입 응답의 초기 설정 단계. 새 회원은 언어 선택부터, 회원이 된 게스트는 게스트 때 단계 그대로다.</summary>
+            public OnboardingStep SignedUpStep { get; set; } = OnboardingStep.Language;
             public string LanguageChosen { get; private set; }
             public string ProfileRequestedFor { get; private set; }
             public string LevelTestSkippedFor { get; private set; }
@@ -645,7 +742,7 @@ namespace A305.Onboarding.Tests
                     {
                         User = new OnboardingUser
                         {
-                            OnboardingStep = OnboardingStep.Language,
+                            OnboardingStep = SignedUpStep,
                             AvatarType = request.AvatarType,
                         },
                     }

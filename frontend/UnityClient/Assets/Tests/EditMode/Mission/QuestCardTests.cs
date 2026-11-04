@@ -210,6 +210,32 @@ namespace A305.Mission.Tests
             Assert.That(Field<TMP_Text>("coins").text, Is.EqualTo("20"));
         }
 
+        // 물건을 사면 코인 칩 옆에 줄어든 만큼과 산 것을 보인다. 대화 중에는 숨어 있던 코인 칩도 잠깐 보인다.
+        [Test]
+        public void CoinChange_ShowsTheAmountAndWhatWasBought_EvenWhileTalking()
+        {
+            FirstDayMissionState before = Journey(current: 5);
+            before.Balance = 96;
+            Refresh(before);
+            FirstDayMissionState after = Journey(current: 5);
+            after.Balance = 88;
+            after.LastPurchase = "우산";
+
+            view.Refresh(after, false, talking: true);
+
+            TMP_Text amount = Field<TMP_Text>("coinFloat");
+            TMP_Text receipt = Field<TMP_Text>("coinReceipt");
+            Assert.That(amount.gameObject.activeInHierarchy, Is.True);
+            Assert.That(amount.text, Is.EqualTo("−8"));
+            Assert.That(receipt.gameObject.activeInHierarchy, Is.True);
+            Assert.That(receipt.text, Does.Contain("우산"));
+            Assert.That(
+                Field<GameObject>("statusBar").activeSelf,
+                Is.True,
+                "대화 중에도 잠깐 보인다"
+            );
+        }
+
         [Test]
         public void Clock_ShowsTheGameTime()
         {

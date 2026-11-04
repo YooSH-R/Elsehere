@@ -638,6 +638,14 @@ namespace A305.Tutorial.PlayModeTests
 
             FeedbackView feedback = Single<FeedbackView>();
             Assert.That(feedback.IsVisible, Is.True, "준비: 피드백");
+            // 위쪽 가운데에 남긴 [건너뛰기] 카드는 대화 노트 창을 덮지 않는다. 덮으면 설명하는 탭과 부제가 가린다.
+            Canvas.ForceUpdateCanvases();
+            Assert.That(
+                ScreenRectOf(Single<TutorialGuideView>().PanelRect)
+                    .Overlaps(ScreenRectOf(feedback.PanelRect)),
+                Is.False,
+                "[건너뛰기] 카드가 대화 노트 창을 덮습니다."
+            );
             RectTransform[][] tour =
             {
                 new[] { feedback.SectionRowRect, feedback.PageCardRect },

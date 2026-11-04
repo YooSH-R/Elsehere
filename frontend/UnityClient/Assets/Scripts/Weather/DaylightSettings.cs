@@ -88,7 +88,7 @@ namespace A305.Weather
         [SerializeField]
         [Min(0f)]
         [Tooltip(
-            "한밤중 마을 입점 건물 안 실내등 세기 배율. 마을 안 매장은 실내 씬과 달리 밤의 어두운 환경광을 그대로 받으므로 실내등 하나로 불을 켠 방처럼 밝힌다"
+            "한밤중 마을 입점 건물 안 실내등 세기 배율. 마을 안 매장은 실내 씬과 달리 창으로 드는 빛·보조광이 없으므로 실내등 하나로 불을 켠 방처럼 밝힌다"
         )]
         private float nightShopLampScale = 14f;
 

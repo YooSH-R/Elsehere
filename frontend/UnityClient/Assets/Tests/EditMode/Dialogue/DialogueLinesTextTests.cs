@@ -234,6 +234,44 @@ namespace A305.Dialogue.Tests
             Assert.That(DialogueLinesText.FindWord(new[] { Order, line }, linkId), Is.Null);
         }
 
+        // 자막을 끄면 NPC 대사는 들어서 이해해야 한다. 글자는 투명하게 자리만 차지하고, 대사 칸이 그 자리를 단어마다 뿌옇게 덮는다.
+        [Test]
+        public void Format_HidingNpcLines_MakesNpcLinesInvisibleAndKeepsMyLines()
+        {
+            string text = DialogueLinesText.Format(
+                new[] { Order, Question },
+                "Mia",
+                false,
+                null,
+                hidesNpcLines: true
+            );
+
+            Assert.That(
+                text,
+                Does.Contain(
+                    $"<b>Mia</b></color>  <link=\"{DialogueLinesText.HiddenLineLink}\"><alpha=#00>Regular milk or soy milk?<alpha=#FF></link>"
+                ),
+                "누가 말했는지는 보이고 대사만 가립니다."
+            );
+            Assert.That(text, Does.Contain("<b>나</b></color>  A latte, please."));
+        }
+
+        // [뜻 보기]는 자막보다 큰 도움이다. 뜻을 펼쳤으면 영어 대사도 보여 뜻과 맞춰 보고 풀이 단어를 누를 수 있게 한다.
+        [Test]
+        public void Format_HidingNpcLinesWithMeaning_ShowsTheEnglish()
+        {
+            string text = DialogueLinesText.Format(
+                new[] { Question },
+                "Mia",
+                true,
+                null,
+                hidesNpcLines: true
+            );
+
+            Assert.That(text, Does.Contain("Regular milk or soy milk?"));
+            Assert.That(text, Does.Not.Contain(DialogueLinesText.HiddenLineLink));
+        }
+
         [Test]
         public void Format_WithoutMeaning_ShowsOnlyEnglish()
         {

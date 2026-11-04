@@ -82,7 +82,7 @@ STAGES = {
         },
     ),
     "CAFE_BREAK": (
-        "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. The learner may choose any drink. "
+        "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. Every drink costs 4 coins. The learner may choose any drink. "
         "They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
         {
             "order_drink": "Order a drink, any drink is valid.",
@@ -112,8 +112,8 @@ STAGES = {
         },
     ),
     "RAINY_STREET": (
-        "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins; "
-        "the learner has 20 quest coins. Give directions to the store marked DRUGSTORE, not the cafe or hotel. "
+        "It has started raining. The learner recovered the small bag. The drugstore sells umbrellas for 8 coins. "
+        "Give directions to the store marked DRUGSTORE, not the cafe or hotel. "
         "Do not sell an umbrella yourself. Do not suggest umbrellas or the drugstore before the learner asks.",
         {
             "ask_umbrella_shop": "Ask where to buy an umbrella or for a store selling one.",
@@ -121,7 +121,7 @@ STAGES = {
         },
     ),
     "BUY_UMBRELLA": (
-        "Sell one umbrella for exactly 8 quest coins when the learner asks for one. Balance before purchase is 20. "
+        "Sell one umbrella for exactly 8 quest coins when the learner asks for one. "
         "Do not offer an umbrella or say its price before the learner asks. "
         "Ask how they want to pay (cash/card both accepted) only after the learner decides to buy. "
         "Purchase completes only when price, purchase intent and payment choice are all covered. Never change the price or charge twice.",

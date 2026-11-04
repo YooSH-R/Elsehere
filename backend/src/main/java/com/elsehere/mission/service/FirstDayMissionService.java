@@ -7,9 +7,9 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.entity.ConversationStatus;
 import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
+import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
-import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.repository.UserRepository;
 import com.elsehere.world.entity.Npc;
@@ -195,8 +195,9 @@ public class FirstDayMissionService {
         started && "CAFE".equals(scene) && mission.canRest(),
         started && current >= 4 && current <= 6 && "TOWN".equals(scene),
         !started || complete ? CLEAR_WEATHER : mission.current().weather(),
-        // 끝내면 퀘스트 보상을 예산에 더한다.
-        started ? mission.getBalance() + Quest.earned(complete, 0) : 20,
+        // 코인은 진행에서 계산한다. 산 만큼 줄고 끝내면 보상이 더해진다.
+        Coins.balance(mission, null),
+        Coins.lastPurchase(mission, null),
         situation,
         direction,
         steps);

@@ -32,32 +32,46 @@ public enum TownStoryStage {
     return goalIds;
   }
 
+  /** 이 단계에서 값을 치르는 목표. 값을 치르지 않는 단계는 null이다. */
+  public Payment payment() {
+    return switch (this) {
+      case DINER -> new Payment("order_breakfast", 7, "아침 식사");
+      case WASH -> new Payment("request_wash", 6, "세탁");
+      case HAIRCUT -> new Payment("describe_style", 15, "이발");
+      case FLOWERS -> new Payment("choose_flower", 5, "꽃");
+      case BAKERY -> new Payment("choose_snack", 4, "간식");
+      case ARCADE -> new Payment("ask_game", 2, "인형뽑기");
+      case POST_OFFICE -> new Payment("ask_price", 5, "소포");
+      default -> null;
+    };
+  }
+
   public String instruction() {
     return switch (this) {
       case DINER ->
-          "The traveler orders breakfast and spills a drink on their clothes. Help them find the laundry when they ask.";
+          "The traveler orders breakfast and spills a drink on their clothes. Help them find the laundry when they ask. Any breakfast with a drink costs 7 coins.";
       case LAUNDRY ->
           "The traveler spilled a drink and wants to know how to wash their clothes and the laundry price. Explain only when asked.";
       case BANK ->
           "The traveler needs cash for the laundry. Explain where the ATM is and how to withdraw without asking for a PIN or password.";
       case WASH ->
-          "The traveler has returned after asking the bank about cash. Discuss starting the wash; do not claim an actual payment occurred.";
+          "The traveler has returned after asking the bank about cash. Discuss starting the wash; do not claim an actual payment occurred. A wash costs 6 coins.";
       case HAIRCUT ->
-          "While their laundry is washing, the traveler asks for a haircut. Ask what style they would like.";
+          "While their laundry is washing, the traveler asks for a haircut. Ask what style they would like. A haircut costs 15 coins.";
       case FLOWERS ->
-          "The traveler liked their haircut and wants a flower to thank the barber. Offer available flowers and paper wrapping when asked.";
+          "The traveler liked their haircut and wants a flower to thank the barber. Offer available flowers and paper wrapping when asked. A wrapped flower costs 5 coins.";
       case THANK_BARBER ->
           "The traveler returns after choosing a flower to thank you for the haircut. Respond warmly to their thanks.";
       case BAKERY ->
-          "The traveler wants a snack to thank the laundry owner. Help them choose from the bakery's listed items.";
+          "The traveler wants a snack to thank the laundry owner. Help them choose from the bakery's listed items. A snack costs 4 coins.";
       case THANK_LAUNDRY ->
           "The traveler returns for their laundry and offers thanks and a snack. Acknowledge their kindness.";
       case HOME_STORE ->
           "The traveler is considering a lamp as a travel gift and asks about shipping. Do not promise delivery; suggest asking the post office.";
       case ARCADE ->
-          "The traveler stops by the arcade on the way to the post office and asks how the claw game works. Do not promise a prize.";
+          "The traveler stops by the arcade on the way to the post office and asks how the claw game works. Do not promise a prize. One game costs 2 coins.";
       case POST_OFFICE ->
-          "The traveler asks how to send a parcel and what it costs. Explain the listed price without claiming a payment or shipment took place.";
+          "The traveler asks how to send a parcel and what it costs. Sending a parcel costs 5 coins; do not claim a shipment took place.";
     };
   }
 

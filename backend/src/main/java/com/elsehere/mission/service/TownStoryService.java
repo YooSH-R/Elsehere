@@ -5,8 +5,8 @@ import com.elsehere.ai.client.WorkerState;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
+import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
-import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
@@ -132,10 +132,6 @@ public class TownStoryService {
                 : !"TOWN".equals(scene)
                     ? "마을로 나가 " + talkTo(story.current().npcCode())
                     : story.current().situation();
-    // 첫날 예산에 끝낸 퀘스트의 보상을 더한다.
-    int balance =
-        (firstDayMission == null ? 20 : firstDayMission.getBalance())
-            + Quest.earned(firstDayMission != null && firstDayMission.isCompleted(), current);
     return new FirstDayMissionResponse(
         started,
         current,
@@ -144,7 +140,9 @@ public class TownStoryService {
         false,
         false,
         "CLEAR",
-        balance,
+        // 코인은 첫날 퀘스트와 마을 이야기 진행에서 함께 계산한다.
+        Coins.balance(firstDayMission, story),
+        Coins.lastPurchase(firstDayMission, story),
         situation,
         !started
             ? "대화 연습이에요. 실제 결제·물건 전달·외형 변경은 없어요."

@@ -354,7 +354,7 @@ namespace A305.Npc
 | `Assets/InputSystem_Actions.inputactions` | 입력 키와 액션 변경 |
 | `Assets/TextMesh Pro/Resources/TMP Settings.asset`, `Assets/Art/UI/Fonts/` | UI 기본 글꼴과 글꼴 에셋 설정 변경 |
 
-- Unity가 Editor 버전 업그레이드를 제안해도 버전을 바꾸지 않습니다. 버전 변경은 [Unity 개발 환경](setup.md)의 기준에 따라 호환성을 검증하고 MR 리뷰를 거칩니다.
+- Unity가 Editor 버전 업그레이드를 제안해도 버전을 바꾸지 않습니다. 버전 변경은 [Unity 개발 환경](setup.md)의 기준에 따라 호환성을 검증하고 변경 내용을 MR에 기록합니다.
 - 작업과 관계없이 Unity가 수정한 설정 파일은 커밋하지 않고 되돌립니다.
 
 ### UI 글자와 글꼴

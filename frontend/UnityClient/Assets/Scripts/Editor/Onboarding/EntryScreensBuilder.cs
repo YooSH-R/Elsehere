@@ -52,6 +52,8 @@ namespace A305.EditorTools.Onboarding
             Background(root.Find("Background"));
             Guest((RectTransform)root.Find("GuestPanel"));
             Signup((RectTransform)root.Find("SignupPanel"));
+            if (root.Find("GuestReturnPanel") != null)
+                GuestReturn((RectTransform)root.Find("GuestReturnPanel"));
             LevelTest((RectTransform)root.Find("LevelTestPanel"));
             Connection((RectTransform)root.Find("ConnectionPanel"));
         }
@@ -94,6 +96,8 @@ namespace A305.EditorTools.Onboarding
             sub.text = "NPC가 부를 이름과 캐릭터를 정해 주세요.";
             sub.transform.SetSiblingIndex(panel.Find("Title").GetSiblingIndex() + 1);
             F.TopLeft(sub.rectTransform, Inset, 107, 554, 28.5f);
+            // 게스트가 가입할 때는 기록이 이어진다는 안내로 바꾼다(SignupPanelView).
+            BuilderTools.SetReference(panel.GetComponent<SignupPanelView>(), "subtitleText", sub);
 
             TMP_Text label = Text(panel.Find("NicknameLabel"), F.DisplayFontPath, 19, F.Ink);
             label.alignment = TextAlignmentOptions.MidlineLeft;
@@ -156,6 +160,37 @@ namespace A305.EditorTools.Onboarding
             body.alignment = TextAlignmentOptions.Midline;
             F.TopLeft(body.rectTransform, 49, 223, 502, 28.5f);
             ArtButton(panel.Find("RetryButton"), "EntryRetry", 180, 281.5f, 240, 60);
+        }
+
+        /// <summary>
+        /// 게임 전 멈춤 화면만 시안 창으로 바꾸고, 가입 화면 안내 문구를 가입 화면에 연결한다. 다른 입구 창은 건드리지 않는다.
+        /// </summary>
+        internal static void ApplyGuestReturn(Transform root)
+        {
+            GuestReturn((RectTransform)root.Find("GuestReturnPanel"));
+            BuilderTools.SetReference(
+                root.Find("SignupPanel").GetComponent<SignupPanelView>(),
+                "subtitleText",
+                root.Find("SignupPanel/Subtitle").GetComponent<TMP_Text>()
+            );
+        }
+
+        // 게임 전 멈춤 화면(시안 없음): 접속 실패 창과 같은 유리 창에 가운데 정렬 제목·안내, 실패 안내, 같은 폭의 [가입]·[계속하기]를 쌓는다.
+        // 버튼 문구가 화면마다 바뀌므로 그림 버튼 대신 글자 버튼(테마 알약)을 둔다.
+        private static void GuestReturn(RectTransform panel)
+        {
+            Sheet(panel, 600, 452);
+            TMP_Text title = Text(panel.Find("Title"), F.DisplayFontPath, 40, F.Ink);
+            title.alignment = TextAlignmentOptions.Midline;
+            F.TopLeft(title.rectTransform, 49, 52, 502, 46);
+            TMP_Text body = Body(panel.Find("Body"), 19, F.Muted);
+            body.alignment = TextAlignmentOptions.Top;
+            F.TopLeft(body.rectTransform, 49, 112, 502, 90);
+            TMP_Text notice = Body(panel.Find("Notice"), 16, F.Muted);
+            notice.alignment = TextAlignmentOptions.Midline;
+            F.TopLeft(notice.rectTransform, 49, 210, 502, 24);
+            F.TopLeft((RectTransform)panel.Find("SignupButton"), 49, 248, 502, 60);
+            F.TopLeft((RectTransform)panel.Find("ContinueButton"), 49, 324, 502, 60);
         }
 
         // 화면 가운데의 시안 크기 창. 테마 창 바탕과 세로 줄 배치를 지우고 유리 그림(그림자 자리 왼·오른 72, 위 48, 아래 104)을 깐다.

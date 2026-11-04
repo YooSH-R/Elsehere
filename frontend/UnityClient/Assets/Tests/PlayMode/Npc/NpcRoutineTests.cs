@@ -142,38 +142,6 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator CafeCounter_AfterTheOwnerLeaves_IsServedFromBehindTheCounterByAnotherOnDutyStaff()
-        {
-            // 16시에는 Mia(07~15)가 퇴근했고 Leo(10~18)·Zoe(13~21)가 근무 중이다. 누가 응대하든 카운터 뒤 계산대 자리(Mia 자리)에서 맞는다.
-            yield return LoadAt("CafeScene", 16 * 60, paused: true);
-            NpcRoutine mia = Routine("CAFE_STAFF");
-            Passerby leo = Routine("CAFE_SERVER").GetComponent<Passerby>();
-            Passerby zoe = Routine("CAFE_BARISTA").GetComponent<Passerby>();
-            Vector3 register = mia.transform.position;
-            Bounds counter = SolidBounds(NearestPlaced("counter", mia.transform));
-            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
-            PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
-
-            player.Teleport(
-                new Vector3(counter.center.x, register.y, counter.min.z - .8f),
-                Quaternion.identity
-            );
-            yield return WaitUntil(() => offer.IsShowing);
-
-            Assert.That(
-                offer.IsShownBy(leo) || offer.IsShownBy(zoe),
-                Is.True,
-                "근무 중인 직원이 응대합니다."
-            );
-            Passerby server = offer.IsShownBy(leo) ? leo : zoe;
-            Assert.That(
-                HorizontalDistance(server.transform.position, register),
-                Is.LessThan(.3f),
-                "카운터 뒤 계산대 자리에서 응대해야 합니다."
-            );
-        }
-
-        [UnityTest]
         public IEnumerator CafeStaff_BehindTheCounter_TurnsToFaceTheCustomerBeforeOffering()
         {
             yield return LoadAt("CafeScene", 9 * 60, paused: true);

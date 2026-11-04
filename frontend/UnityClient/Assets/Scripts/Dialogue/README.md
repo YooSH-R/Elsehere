@@ -91,7 +91,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 
 | NPC 키 | 이름 | 대화 |
 | --- | --- | --- |
-| `TUTORIAL_PASSERBY`(대본 키) | Ben | 튜토리얼 동안 행인 Ben이 카페 가는 길을 묻는 정해진 3턴. `DialogueController.TryStart`의 `scriptKey`로 이 대본을 고릅니다. 튜토리얼 설명에 정해진 흐름대로 진행된다는 안내와 할 대사를 보여 주고, 대사마다 왼쪽 [단어]에 추천 단어를 보이며, 그 대사와 같게 보내야 다음 턴으로 넘어갑니다. 다르면 입력칸에 문장을 되돌리고 [예시 문장]으로 대사를 넣을 수 있다고 알립니다. 마지막 턴 뒤에는 입력을 받지 않습니다. |
+| `TUTORIAL_PASSERBY`(대본 키) | Ben | 튜토리얼 동안 행인 Ben이 카페 가는 길을 묻는 정해진 3턴. `DialogueController.TryStart`의 `scriptKey`로 이 대본을 고릅니다. 튜토리얼 설명에 정해진 흐름대로 진행된다는 안내와 할 대사를 보여 주고, 대사마다 왼쪽 [단어]에 추천 단어를 보이며, 그 대사와 같게 보내야 다음 턴으로 넘어갑니다. 다르면 입력칸에 문장을 되돌리고 [예시 문장]으로 대사를 넣을 수 있다고 알립니다. 마지막 턴 뒤에는 입력을 받지 않습니다. 첫 말과 대답 3개는 Ben 목소리로 미리 합성한 음성(`Assets/Audio/Dialogue/TutorialBen`)을 대사와 함께 들려줍니다. |
 | `CAFE_STAFF` | Mia | 키워드 응답. `soy`+`latte`, `latte`, `dessert`, `coffee`, `thank` 순서로 확인합니다. |
 | `TOWN_PASSERBY` | Ben | 키워드 응답. `weather`, `cafe`, `thank` |
 | `TAXI_DRIVER` | Joe | 어디로 가는지 묻고 키워드 응답. `hotel`, `thank` |
@@ -101,6 +101,7 @@ NPC와의 대화를 시작하고 끝냅니다. 대화가 시작되면 NPC 얼굴
 - 키워드는 대소문자를 구분하지 않고 단어 일부여도 맞습니다(`desserts`도 `dessert`에 맞음). 규칙은 위에서부터 확인해 처음 맞는 규칙으로 답합니다.
 - 필드 초기값은 에셋을 처음 만들 때 들어가는 예시이며, 이후 수정은 에셋에서 합니다. 이름·대사는 서버 데이터라 서버 연동 후에는 서버 값을 씁니다.
 - 서버 시드(`backend/src/main/resources/db/seed/world.sql`)에 있는 NPC는 대본의 이름·역할 이름을 시드와 같게 둡니다. 서버 대화로 넘어가도 이름이 바뀌지 않게 하려는 것이며, `MockDialogueScriptsAssetTests`가 시드를 읽어 확인합니다. 시드 이름이 바뀌면 필드 초기값을 고치고 **Dialogue → Build**를 실행하면 에셋의 이름도 맞춰집니다.
+- 대사의 `voice`(WAV 바이트 TextAsset)를 채우면 대본 대화에서도 그 대사가 나올 때 음성을 들려줍니다(`DialogueLine.Speech`). 서버 음성과 같은 재생·입 모양 경로(`DialogueServerLink.PlayRecordedSpeech`)를 쓰고, 음성이 없는 대사는 지난 대사의 음성을 멈춥니다. 음성은 워커와 같은 Kokoro 합성(고정 모델, 읽기 규칙·발음 사전·입 모양 타이밍)을 쓰는 `ai/tools/synthesize_script_lines.py`로 만들고, **Tools → A305 → Dialogue → Apply Tutorial Ben Voice**(`TutorialVoiceBuilder`)로 튜토리얼 Ben 대본에 잇습니다. 튜토리얼 Ben은 목소리 `am_fenrir`(`ai/npcs/TOWN_PASSERBY.json`의 `voiceId`)에 쉬움 속도 배율 0.85로 만들었습니다. 대사를 바꾸면 음성도 다시 만들고 Builder를 다시 실행합니다.
 - Web 빌드의 Unity 입력창은 한국어 입력이 되지 않습니다(S15P31A305-200 PoC 결론). 입력 UI를 HTML로 옮기는 작업 전까지 영어로 입력합니다.
 
 `DIALOGUE_PREVIEW_OUTPUT`에 출력 폴더를 지정해 `A305.EditorTools.Dialogue.DialogueLayoutPreview.CaptureWords`를 batchmode로 실행하면 카페 씬의 실제 대화창으로 풀이 단어 호버 카드(기본, 저장 뒤, 숙어, 세로 화면)를 고정 대사로 찍습니다. `Capture`는 같은 방식으로 대화 구도와 도움 카드를 찍습니다. 서버·모델을 호출하지 않고 씬도 저장하지 않습니다.

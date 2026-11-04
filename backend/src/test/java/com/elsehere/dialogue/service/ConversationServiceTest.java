@@ -17,10 +17,12 @@ import static org.mockito.Mockito.never;
 
 import ch.qos.logback.classic.Level;
 import com.elsehere.ai.client.AiGateway;
+import com.elsehere.ai.client.FollowUpResult;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.MemoryCardResult;
 import com.elsehere.ai.client.WorkerFeedback;
+import com.elsehere.ai.client.WorkerFollowUp;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerMemory;
 import com.elsehere.ai.client.WorkerTrace;
@@ -42,6 +44,10 @@ import com.elsehere.dialogue.dto.SpeechStatus;
 import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.followup.entity.FollowUpWait;
+import com.elsehere.followup.entity.NpcFollowUp;
+import com.elsehere.followup.repository.NpcFollowUpRepository;
+import com.elsehere.followup.service.FollowUpService;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
@@ -90,6 +96,10 @@ class ConversationServiceTest {
   @Autowired private EntityManager entityManager;
 
   @Autowired private Clock clock;
+
+  @Autowired private FollowUpService followUpService;
+
+  @Autowired private NpcFollowUpRepository followUpRepository;
 
   private Long userId;
 
@@ -662,6 +672,109 @@ class ConversationServiceTest {
             exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
     assertThat(conversationRepository.findById(started.conversationId()).orElseThrow().isActive())
         .isTrue();
+  }
+
+  @Test
+  @DisplayName("NPC가 곧 건네기로 한 것이 있으면 대화 종료 응답에 남은 초와 함께 담는다")
+  void end_orderBeingPrepared_returnsFollowUp() {
+    ConversationStartResponse started = startPasserby();
+    sendText(started.conversationId(), "One iced latte, please.");
+    given(aiGateway.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
+    given(aiGateway.followUp(any(), any(), any()))
+        .willReturn(
+            new FollowUpResult(
+                new WorkerFollowUp("iced latte", "아이스 라테", "QUICK"), List.of(usage("follow_up"))));
+
+    EndConversationResponse response =
+        conversationService.end(
+            userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+
+    assertThat(response.followUp()).isNotNull();
+    assertThat(response.followUp().itemKo()).isEqualTo("아이스 라테");
+    assertThat(response.followUp().remainingSeconds()).isEqualTo(45);
+    assertThat(response.followUp().ready()).isFalse();
+  }
+
+  @Test
+  @DisplayName("건넬 것이 없으면 대화 종료 응답의 followUp은 null이다")
+  void end_nothingOwed_hasNoFollowUp() {
+    ConversationStartResponse started = startPasserby();
+    sendText(started.conversationId(), "Yes, it's sunny!");
+    given(aiGateway.feedback(any(), any()))
+        .willReturn(new WorkerFeedback("failed", "AI_TIMEOUT", null, null, List.of()));
+    given(aiGateway.followUp(any(), any(), any())).willReturn(new FollowUpResult(null, List.of()));
+
+    EndConversationResponse response =
+        conversationService.end(
+            userId, started.conversationId(), new EndConversationRequest(UUID.randomUUID(), false));
+
+    assertThat(response.followUp()).isNull();
+  }
+
+  @Test
+  @DisplayName("준비된 것이 있는 NPC와 대화를 시작하면 건네는 첫마디로 열고 건넨 것을 알린다. 같은 요청 ID로 다시 보내도 같다")
+  void start_readyFollowUp_opensByHandingItOver() {
+    NpcFollowUp latte = readyLatte();
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Here's your iced latte! Enjoy.", null));
+    UUID requestId = UUID.randomUUID();
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId, new StartConversationRequest(requestId, "CAFE_STAFF", InitiatedBy.NPC));
+
+    assertThat(response.deliveredFollowUpId()).isEqualTo(latte.getId());
+    assertThat(response.openingTurn().text()).isEqualTo("Here's your iced latte! Enjoy.");
+    ArgumentCaptor<String> instruction = ArgumentCaptor.forClass(String.class);
+    then(aiGateway)
+        .should()
+        .reply(any(), any(), any(), any(), anyString(), instruction.capture(), anyInt(), any());
+    assertThat(instruction.getValue()).contains("iced latte", "is ready now");
+    assertThat(followUpService.waiting(userId)).isEmpty();
+    assertThat(
+            conversationService
+                .start(
+                    userId, new StartConversationRequest(requestId, "CAFE_STAFF", InitiatedBy.NPC))
+                .deliveredFollowUpId())
+        .isEqualTo(latte.getId());
+  }
+
+  @Test
+  @DisplayName("아직 준비되지 않았으면 평소 첫 인사로 시작하고 건네지 않는다")
+  void start_followUpNotReadyYet_greetsAsUsual() {
+    followUpRepository.saveAndFlush(
+        NpcFollowUp.promise(
+            userId,
+            npcId(entityManager, "CAFE_STAFF"),
+            999L,
+            "iced latte",
+            "아이스 라테",
+            FollowUpWait.QUICK,
+            clock.instant()));
+    given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
+        .willReturn(reply("Hi! What can I get for you?", null));
+
+    ConversationStartResponse response =
+        conversationService.start(
+            userId,
+            new StartConversationRequest(UUID.randomUUID(), "CAFE_STAFF", InitiatedBy.USER));
+
+    assertThat(response.deliveredFollowUpId()).isNull();
+    assertThat(followUpService.waiting(userId)).hasSize(1);
+  }
+
+  // 1분 전에 약속해 이미 준비된 아이스 라테(QUICK 45초)
+  private NpcFollowUp readyLatte() {
+    return followUpRepository.saveAndFlush(
+        NpcFollowUp.promise(
+            userId,
+            npcId(entityManager, "CAFE_STAFF"),
+            999L,
+            "iced latte",
+            "아이스 라테",
+            FollowUpWait.QUICK,
+            clock.instant().minusSeconds(60)));
   }
 
   private ConversationStartResponse startPasserby() {

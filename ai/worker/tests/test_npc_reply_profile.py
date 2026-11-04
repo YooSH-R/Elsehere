@@ -75,7 +75,7 @@ def test_the_profile_from_the_backend_settings_becomes_the_character(client, pro
 
 def test_the_common_rules_come_before_the_character_and_this_turn_comes_last(client, provider):
     system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("CAFE_STAFF")}))
-    headers = ["## Rules", "## Character", "## Situation", "## Learner level", "## This turn"]
+    headers = ["## Rules", "## Character", "## Town", "## Situation", "## Learner level", "## This turn"]
     assert [system.index(header) for header in headers] == sorted(system.index(header) for header in headers)
 
 
@@ -94,6 +94,23 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
     assert "Their name: Minsu" in system and "Last time they ordered a latte" in system  # 기억
     assert "each under 12 words" in system and body["max_tokens"] == 90  # 난이도 1 (출력 상한은 그대로)
     assert "Ask what size they want." in system  # 이번 대답에서 할 일
+
+
+@pytest.mark.parametrize("npc_id", SERVICE_NPCS)
+def test_with_a_profile_every_npc_knows_the_whole_town(client, provider, npc_id):
+    """택시 기사가 마을에 하나뿐인 카페를 '어느 카페요?'라고 되묻고, 호텔 직원이 우산 파는 곳·밥집을 모른다고 했다.
+    모든 NPC가 같은 마을 안내를 받아 3D 마을에 있는 곳으로 안내한다."""
+    system = system_of(reply_request(client, provider, {**NPC, "id": npc_id, "profile": profile_of(npc_id)}))
+    town = system.split("## Town")[1].split("## ")[0]
+    assert "Corner Cafe" in town and "DRUGSTORE" in town and "Maple Diner" in town and "police station" in town
+    assert "There are no other shops, restaurants or attractions" in town  # 없는 곳은 지어내지 않게
+
+
+def test_with_a_profile_the_rules_do_not_tell_the_npc_to_say_it_is_not_sure(client, provider):
+    """Facts에 없으면 '잘 모르겠다·도와줄 수 없다'고 하라던 규칙 때문에 룸서비스·와이파이·담당자 호출까지 막혔다."""
+    rules = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")})).split("## Character")[0]
+    assert "say you are not sure" not in rules
+    assert "Never end with only" in rules and "concrete next step" in rules
 
 
 @pytest.mark.parametrize("instruction", ["", "Ask what size they want."])

@@ -55,6 +55,12 @@ final class UserContentTestData {
         userId,
         npcId(entityManager, "CAFE_STAFF"));
     jdbcTemplate.update(
+        "insert into npc_follow_ups (user_id, npc_id, conversation_id, item, item_ko, ready_at)"
+            + " values (?, ?, ?, 'latte', '라테', now())",
+        userId,
+        npcId(entityManager, "CAFE_STAFF"),
+        conversation.getId());
+    jdbcTemplate.update(
         "insert into user_vocab (user_id, vocab_id, source_type) values (?, ?, 'OBJECT')",
         userId,
         vocabId);
@@ -113,6 +119,13 @@ final class UserContentTestData {
             entityManager,
             jdbcTemplate,
             "select count(*) from user_npc_relations where user_id = ?",
+            userId));
+    rows.put(
+        "npc_follow_ups",
+        rows(
+            entityManager,
+            jdbcTemplate,
+            "select count(*) from npc_follow_ups where user_id = ?",
             userId));
     rows.put(
         "user_vocab",

@@ -44,11 +44,11 @@ namespace A305.Learning.Tests
         }
 
         [Test]
-        public void SituationTitle_IsCoralAndOnlyShownOnConversationTab()
+        public void SituationTitle_IsCoralOnSummaryAndConversationTabs()
         {
             Show();
             TMP_Text summaryTitle = SituationTitle();
-            Assert.That(summaryTitle.gameObject.activeInHierarchy, Is.False);
+            Assert.That(summaryTitle.gameObject.activeInHierarchy, Is.True);
             view.SelectSection(FeedbackSection.Conversation);
             TMP_Text conversationTitle = SituationTitle();
 

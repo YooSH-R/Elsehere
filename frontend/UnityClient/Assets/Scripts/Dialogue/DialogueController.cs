@@ -185,6 +185,7 @@ namespace A305.Dialogue
                     hasRecorder: HasRecorder
                 );
                 panel.Show(conversation);
+                PlayScriptedSpeech(conversation.LastNpcLine);
             }
 
             // 튜토리얼은 동의와 상관없이 녹음하고, 서버 대화는 음성 처리에 동의했을 때만 녹음한다.
@@ -488,6 +489,7 @@ namespace A305.Dialogue
             if (conversation.Send(text))
             {
                 panel.Refresh();
+                PlayScriptedSpeech(conversation.LastNpcLine);
                 UserTurnAccepted?.Invoke(conversation.NpcCode, text);
             }
             else if (conversation.IsGuided)
@@ -721,7 +723,27 @@ namespace A305.Dialogue
             if (target.SendSpoken(transcript))
             {
                 panel.Refresh();
+                PlayScriptedSpeech(target.LastNpcLine);
                 UserTurnAccepted?.Invoke(target.NpcCode, line);
+            }
+        }
+
+        // 대본 대사는 서버 음성을 받지 않으므로 미리 합성해 둔 음성이 있으면 들려준다.
+        // 없으면 지난 대사의 음성을 멈추고 버려 새 대사에 엉뚱한 음성이 이어지지 않게 한다.
+        private void PlayScriptedSpeech(DialogueLine line)
+        {
+            if (serverLink == null)
+            {
+                return;
+            }
+
+            if (line?.Speech != null)
+            {
+                serverLink.PlayRecordedSpeech(line.Speech);
+            }
+            else
+            {
+                serverLink.ForgetSpeech();
             }
         }
 

@@ -28,6 +28,7 @@ from .npc import reply_events
 from .npc_profile_models import NpcProfile
 from .npc_respond import ContractError, load_payload, parse_request, readable_request_id, respond
 from .schemas import (
+    FollowUpRequest,
     GuardRequest,
     HintRequest,
     JudgeRequest,
@@ -314,6 +315,11 @@ def create_app(
     @app.post("/v1/memory")
     async def memory(req: MemoryRequest, request: Request):
         return await services.memory(request.app.state.llm, req)
+
+    @app.post("/v1/npc/follow-up")
+    async def follow_up(req: FollowUpRequest, request: Request):
+        """끝난 대화에서 NPC가 곧 건네기로 한 것 (음료·음식·빨래 등). 백엔드가 준비 시각을 정해 저장한다 (워커는 저장하지 않음)."""
+        return await services.follow_up(request.app.state.llm, req)
 
     @app.post("/v1/npc/relationship")
     async def relationship_after_conversation(req: RelationshipRequest):

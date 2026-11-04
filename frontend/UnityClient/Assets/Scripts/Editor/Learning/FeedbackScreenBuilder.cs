@@ -29,6 +29,10 @@ namespace A305.EditorTools.Learning
         // 렌더링한 그림은 2.4배라 캔버스 1단위 = 그림 2px
         internal const float ArtScale = 2;
 
+        // 요약 탭 제목 옆 쪽 넘김의 화살표 버튼 한 변과 쪽수 글자 폭(시안 px)
+        private const float PagerArrow = 34;
+        private const float PagerNumberWidth = 48;
+
         internal static readonly Color Ink = new Color32(47, 37, 27, 255);
         internal static readonly Color Muted = new Color32(125, 110, 91, 255);
         private static readonly Color MeaningInk = new Color32(74, 63, 51, 255);
@@ -238,6 +242,12 @@ namespace A305.EditorTools.Learning
             bodyRect.offsetMax = new Vector2(-(16 + 22) * Px, bodyRect.offsetMax.y);
 
             BuilderTools.SetReference(view, "summaryTitle", summaryTitle);
+            BuilderTools.SetReference(
+                view,
+                "situationPager",
+                SectionPager(rows.Find("Header").GetComponent<TMP_Text>())
+            );
+            BuilderTools.SetReference(view, "summaryPager", SectionPager(summaryTitle));
             BuilderTools.SetReference(view, "bodyTile", tileImage);
             BuilderTools.SetReference(
                 view,
@@ -255,6 +265,51 @@ namespace A305.EditorTools.Learning
             saveRect.anchorMin = saveRect.anchorMax = saveRect.pivot = Vector2.one;
             saveRect.sizeDelta = new Vector2(58.56f, 40) * Px;
             saveRect.anchoredPosition = -new Vector2(38, 32) * Px;
+        }
+
+        // 요약 탭 두 칸(이 상황에서 자주 써요·대화 요약)은 제목 줄 오른쪽의 작은 쪽 넘김(‹ 1 / 2 ›)으로 따로 넘긴다.
+        // 아래쪽 쪽 넘김과 같은 화살표 그림을 줄여 쓰고, 제목 글자 높이 가운데에 칸 그림의 옆 그림자 자리만큼 안쪽으로 둔다.
+        private static RectTransform SectionPager(TMP_Text heading)
+        {
+            RectTransform pager = Rect("Pager", heading.transform);
+            pager.anchorMin = pager.anchorMax = Vector2.one;
+            pager.pivot = new Vector2(1, .5f);
+            pager.anchoredPosition = new Vector2(-16, -13) * Px;
+            pager.sizeDelta = new Vector2(PagerArrow * 2 + PagerNumberWidth, PagerArrow) * Px;
+            BuilderTools.GetOrAddComponent<LayoutElement>(pager.gameObject).ignoreLayout = true;
+
+            PagerButton(pager, "PreviousButton", "FeedbackPrevious", 0);
+            TMP_Text number = Text(pager, "PageNumber", DisplayFontPath, 16, Muted, "1 / 1");
+            number.alignment = TextAlignmentOptions.Midline;
+            number.margin = Vector4.zero;
+            number.raycastTarget = false;
+            RectTransform numberRect = number.rectTransform;
+            numberRect.anchorMin = numberRect.anchorMax = numberRect.pivot = new Vector2(0, .5f);
+            numberRect.anchoredPosition = new Vector2(PagerArrow, 0) * Px;
+            numberRect.sizeDelta = new Vector2(PagerNumberWidth, PagerArrow) * Px;
+            PagerButton(pager, "NextButton", "FeedbackNext", PagerArrow + PagerNumberWidth);
+            return pager;
+        }
+
+        // 아래쪽 쪽 넘김(50 × 50, 그림 94 × 96에 그림자 자리 22·12)과 같은 비율로 줄인 화살표 버튼
+        private static void PagerButton(RectTransform pager, string name, string sprite, float x)
+        {
+            RectTransform button = Rect(name, pager);
+            BuilderTools.GetOrAddComponent<Image>(button.gameObject);
+            BuilderTools.GetOrAddComponent<Button>(button.gameObject);
+            float scale = PagerArrow / 50f;
+            ArtButton(
+                button,
+                sprite,
+                PagerArrow,
+                PagerArrow,
+                22 * scale,
+                12 * scale,
+                94 * scale,
+                96 * scale
+            );
+            button.anchorMin = button.anchorMax = button.pivot = new Vector2(0, .5f);
+            button.anchoredPosition = new Vector2(x, 0) * Px;
         }
 
         // 표현 칸: 흰 유리 칸 그림(그림자 자리 포함) 안에 영어 표현·뜻 줄, 쓰임, 예문, 오른쪽 [담기]

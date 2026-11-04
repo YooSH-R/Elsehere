@@ -50,7 +50,7 @@ namespace A305.EditorTools.Theme
             panel.anchoredPosition = Vector2.zero;
             panel.sizeDelta = new Vector2(1000, 620);
             Skin(panel, UiThemeRole.Panel);
-            Text(panel, "Title", "단어장", 28, 36, 26, 500, 44, UiThemeRole.Title);
+            Text(panel, "Title", "단어장", 28, 36, 26, 280, 44, UiThemeRole.Title);
             foreach (string old in new[] { "Hint", "List", "Buttons", "MemoRow" })
             {
                 Transform child = panel.Find(old);
@@ -73,9 +73,22 @@ namespace A305.EditorTools.Theme
             );
             RectTransform content = Rect(panel, "Content");
             Position(content, 0, 96, 1000, 476);
+            // 목록을 최근 저장순과 알파벳순으로 오가고, 알파벳순일 때 목록 맨 왼쪽의 A~Z로 그 글자 묶음에 간다.
+            Button sort = TextButton(
+                panel,
+                "SortButton",
+                "알파벳순으로 보기",
+                UiIcon.None,
+                UiTone.Neutral,
+                516,
+                24,
+                190,
+                44
+            );
+            RectTransform letters = LetterIndex(content);
             // 왼쪽 단어 목록. 단어가 많으면 마우스 휠·끌기로 스크롤한다. 고른 줄의 그림자가 잘리지 않게 보이는 곳을 줄보다 조금 넓게 둔다.
             RectTransform entries = Rect(content, "Entries");
-            Position(entries, 26, 0, 300, 360);
+            Position(entries, 40, 0, 300, 360);
             foreach (string old in new[] { "Entry0", "Entry1", "Entry2", "Entry3" })
             {
                 Transform child = entries.Find(old);
@@ -148,17 +161,17 @@ namespace A305.EditorTools.Theme
             Text(template.transform, "Meaning", "", 17, 18, 42, 244, 24, UiThemeRole.Muted);
             template.gameObject.SetActive(false);
             // 목록 넘기기는 목록에서 고른 단어를 옮기므로 목록 바로 아래 가운데에 둔다.
-            Button previous = IconButton(content, "PreviousButton", UiIcon.Previous, 84, 372);
-            TMP_Text page = Text(content, "Page", "", 18, 138, 372, 76, 44, UiThemeRole.Body);
+            Button previous = IconButton(content, "PreviousButton", UiIcon.Previous, 98, 372);
+            TMP_Text page = Text(content, "Page", "", 18, 152, 372, 76, 44, UiThemeRole.Body);
             page.alignment = TextAlignmentOptions.Midline;
-            Button next = IconButton(content, "NextButton", UiIcon.Next, 224, 372);
+            Button next = IconButton(content, "NextButton", UiIcon.Next, 238, 372);
             // 고른 단어의 상세(단어·뜻·[외웠어요]·[삭제]·저장한 문장·메모)를 한 장의 카드 위에 모아 목록과 구분한다.
             RectTransform detailsCard = Rect(content, "DetailsCard");
-            Position(detailsCard, 332, -16, 644, 410);
+            Position(detailsCard, 344, -16, 644, 410);
             detailsCard.SetAsFirstSibling();
             SolidCard(detailsCard, Color.white);
             RectTransform details = Rect(content, "Details");
-            Position(details, 354, 0, 600, 400);
+            Position(details, 366, 0, 600, 400);
             TMP_Text word = Text(details, "Word", "", 34, 0, 0, 380, 46, UiThemeRole.Title);
             TMP_Text meaning = Text(details, "Meaning", "", 22, 0, 52, 600, 34, UiThemeRole.Accent);
             // 저장한 문장·메모는 피드백 화면처럼 코랄 막대 제목으로 구역을 나누고, 저장한 문장은 따뜻한 색 칸에 담는다.
@@ -253,12 +266,12 @@ namespace A305.EditorTools.Theme
                 "외웠어요",
                 UiIcon.Check,
                 UiTone.Positive,
-                746,
+                758,
                 0,
                 152,
                 44
             );
-            Button delete = IconButton(content, "DeleteButton", UiIcon.Delete, 910, 0);
+            Button delete = IconButton(content, "DeleteButton", UiIcon.Delete, 922, 0);
             TMP_Text status = Text(panel, "Status", "", 18, 36, 574, 918, 30, UiThemeRole.Muted);
             RectTransform empty = Rect(panel, "EmptyState");
             Position(empty, 100, 188, 800, 270);
@@ -325,6 +338,13 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "emptyTitleText", emptyTitle);
             BuilderTools.SetReference(view, "emptyHintText", emptyHint);
             BuilderTools.SetReference(view, "showLearnedButton", showLearned);
+            BuilderTools.SetReference(view, "sortButton", sort);
+            BuilderTools.SetReference(
+                view,
+                "sortButtonLabel",
+                sort.transform.Find("Label").GetComponent<TMP_Text>()
+            );
+            BuilderTools.SetReference(view, "letterIndex", letters);
             BuilderTools.SetReference(
                 view,
                 "showLearnedButtonLabel",
@@ -537,11 +557,44 @@ namespace A305.EditorTools.Theme
                 : Ink;
         }
 
+        // 알파벳순일 때 목록 맨 왼쪽의 A~Z. 글자마다 버튼이고, 그 글자로 시작하는 단어가 없으면 흐리게 보인다.
+        private static RectTransform LetterIndex(RectTransform parent)
+        {
+            RectTransform column = Rect(parent, "Letters");
+            Position(column, 8, 0, 28, 416);
+            for (char letter = 'A'; letter <= 'Z'; letter++)
+            {
+                string name = letter.ToString();
+                TMP_Text text = Text(
+                    column,
+                    name,
+                    name,
+                    14,
+                    0,
+                    (letter - 'A') * 16,
+                    28,
+                    16,
+                    UiThemeRole.Muted
+                );
+                Letter(text, UiThemeRole.Muted, bold: true);
+                text.alignment = TextAlignmentOptions.Center;
+                text.overflowMode = TextOverflowModes.Overflow;
+                text.raycastTarget = true;
+                var button = BuilderTools.GetOrAddComponent<Button>(text.gameObject);
+                button.targetGraphic = text;
+                button.navigation = new Navigation { mode = Navigation.Mode.None };
+                ColorBlock colors = button.colors;
+                colors.disabledColor = new Color(1, 1, 1, .3f);
+                button.colors = colors;
+            }
+            return column;
+        }
+
         // 목록과 상세 카드 사이의 가는 스크롤 막대. 목록이 넘칠 때만 보인다(ScrollRect의 AutoHide).
         private static Scrollbar ListScrollbar(RectTransform parent)
         {
             RectTransform bar = Rect(parent, "EntriesScrollbar");
-            Position(bar, 320, 6, 5, 340);
+            Position(bar, 333, 6, 5, 340);
             Image track = BuilderTools.GetOrAddComponent<Image>(bar.gameObject);
             track.color = new Color(Muted.r, Muted.g, Muted.b, .12f);
             RectTransform area = Rect(bar, "SlidingArea");

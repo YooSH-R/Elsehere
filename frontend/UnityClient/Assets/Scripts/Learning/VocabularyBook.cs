@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.ObjectHover;
@@ -33,13 +34,39 @@ namespace A305.Learning
         /// <summary>[외운 표현도 보기]를 켰는지. 끄면 외운 단어를 목록에서 정리한다(기능 명세 F-35).</summary>
         public bool ShowsLearned { get; set; }
 
-        /// <summary>단어장 화면 목록에 보일 단어</summary>
-        public IReadOnlyList<VocabularyEntry> ShownEntries =>
-            ShowsLearned ? entries : entries.FindAll(entry => !entry.IsLearned);
+        /// <summary>단어장 화면 목록에 보일 단어. 알파벳순이 아니면 서버가 준 최근 저장순이다.</summary>
+        public IReadOnlyList<VocabularyEntry> ShownEntries
+        {
+            get
+            {
+                IEnumerable<VocabularyEntry> shown = ShowsLearned
+                    ? entries
+                    : entries.Where(entry => !entry.IsLearned);
+                if (SortsAlphabetically)
+                    shown = shown.OrderBy(entry => entry.English, StringComparer.OrdinalIgnoreCase);
+                return shown.ToList();
+            }
+        }
 
+        /// <summary>목록을 알파벳순으로 볼지. 같은 글자로 시작하는 단어가 한 묶음이 된다.</summary>
         public bool SortsAlphabetically { get; set; }
 
-        public int IndexOfFirstWordStartingWith(char letter) => -1;
+        /// <summary>목록에 보이는 단어 중 그 글자로 시작하는 첫 단어의 자리(대소문자 무관). 없으면 -1.</summary>
+        public int IndexOfFirstWordStartingWith(char letter)
+        {
+            IReadOnlyList<VocabularyEntry> shown = ShownEntries;
+            for (int i = 0; i < shown.Count; i++)
+            {
+                string english = shown[i].English;
+                if (
+                    !string.IsNullOrEmpty(english)
+                    && char.ToUpperInvariant(english[0]) == char.ToUpperInvariant(letter)
+                )
+                    return i;
+            }
+
+            return -1;
+        }
 
         /// <summary>
         /// 화면이 보여 줄 상태. 보여 줄 단어가 있으면 다시 읽는 중이거나 다시 읽지 못했어도 그 단어를 보인다.

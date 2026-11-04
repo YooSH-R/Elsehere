@@ -26,6 +26,8 @@ namespace A305.Learning
             "[외운 표현도 보기]를 누르면 외운 단어를 다시 볼 수 있어요.";
         private const string ShowLearnedLabel = "외운 표현도 보기";
         private const string HideLearnedLabel = "외운 표현 숨기기";
+        private const string AlphabeticalLabel = "알파벳순으로 보기";
+        private const string RecentOrderLabel = "최근순으로 보기";
 
         [SerializeField]
         private GameObject panel;
@@ -49,6 +51,17 @@ namespace A305.Learning
 
         [SerializeField]
         private TMP_Text showLearnedButtonLabel;
+
+        [SerializeField]
+        [Tooltip("머리줄의 정렬 바꾸기. 최근 저장순과 알파벳순을 오간다")]
+        private Button sortButton;
+
+        [SerializeField]
+        private TMP_Text sortButtonLabel;
+
+        [SerializeField]
+        [Tooltip("알파벳순일 때 목록 맨 왼쪽에 보이는 A~Z 버튼 묶음. 버튼 이름이 그 글자다")]
+        private RectTransform letterIndex;
 
         [SerializeField]
         [Tooltip("불러오는 중이거나 불러오지 못했을 때 빈 상태 대신 보이는 가운데 안내")]
@@ -127,6 +140,9 @@ namespace A305.Learning
         // 메모 부분들이 저장한 문장 아래에 있을 때의 높이
         private float[] memoPartTops;
 
+        // 정렬 버튼이 [외운 표현도 보기] 왼쪽에 있을 때의 자리
+        private Vector2 sortButtonHome;
+
         private VocabularyBook book;
 
         // 지난번에 그린 목록. 고른 단어와 누른 줄은 화면에 보이는 이 목록을 기준으로 한다.
@@ -199,6 +215,22 @@ namespace A305.Learning
                 book.ShowsLearned || book.Entries.Any(entry => entry.IsLearned)
             );
             showLearnedButtonLabel.text = book.ShowsLearned ? HideLearnedLabel : ShowLearnedLabel;
+            sortButton.gameObject.SetActive(hasEntries);
+            // [외운 표현도 보기]가 없으면 정렬 버튼을 그 자리(닫기 바로 왼쪽)로 붙인다.
+            ((RectTransform)sortButton.transform).anchoredPosition = showLearnedButton
+                .gameObject
+                .activeSelf
+                ? sortButtonHome
+                : ((RectTransform)showLearnedButton.transform).anchoredPosition;
+            sortButtonLabel.text = book.SortsAlphabetically ? RecentOrderLabel : AlphabeticalLabel;
+            // 알파벳순일 때만 A~Z를 두고, 그 글자로 시작하는 단어가 없으면 누를 수 없게 흐리게 둔다.
+            letterIndex.gameObject.SetActive(book.SortsAlphabetically);
+            if (book.SortsAlphabetically)
+            {
+                foreach (Transform letter in letterIndex)
+                    letter.GetComponent<Button>().interactable =
+                        book.IndexOfFirstWordStartingWith(letter.name[0]) >= 0;
+            }
             // 서버 목록이 빈 것을 확인했을 때만 '단어 없음'을 보이고, 받기 전이나 받지 못했으면 같은 자리에 안내를 보인다.
             // 모두 외워 정리했으면 같은 자리에서 [외운 표현도 보기]를 알린다.
             bool allLearned = state == VocabularyListState.AllLearned;
@@ -302,6 +334,7 @@ namespace A305.Learning
         private void Awake()
         {
             memoPartTops = memoParts.Select(part => part.anchoredPosition.y).ToArray();
+            sortButtonHome = ((RectTransform)sortButton.transform).anchoredPosition;
             memoInput.characterLimit = VocabularyBook.MaxMemoLength;
             entryTemplate.gameObject.SetActive(false);
             previousButton.onClick.AddListener(() => MoveSelection(-1));
@@ -323,23 +356,43 @@ namespace A305.Learning
             });
             closeButton.onClick.AddListener(() => CloseRequested?.Invoke());
             retryButton.onClick.AddListener(() => RetryRequested?.Invoke());
-            showLearnedButton.onClick.AddListener(ToggleShowLearned);
+            showLearnedButton.onClick.AddListener(() =>
+                ChangeList(() => book.ShowsLearned = !book.ShowsLearned)
+            );
+            sortButton.onClick.AddListener(() =>
+                ChangeList(() => book.SortsAlphabetically = !book.SortsAlphabetically)
+            );
+            foreach (Transform letter in letterIndex)
+            {
+                char first = letter.name[0];
+                letter.GetComponent<Button>().onClick.AddListener(() => JumpToLetter(first));
+            }
             Hide();
         }
 
-        // 외운 단어를 보이거나 다시 정리한다. 보던 단어가 새 목록에도 있으면 그 단어를 그대로 고른다.
-        private void ToggleShowLearned()
+        // 외운 단어 보이기·정렬처럼 목록을 바꾼다. 보던 단어가 새 목록에도 있으면 그 단어를 그대로 고르고 보이게 스크롤한다.
+        private void ChangeList(Action change)
         {
             if (book == null)
                 return;
             VocabularyEntry selected = HasSelection ? SelectedEntry : null;
-            book.ShowsLearned = !book.ShowsLearned;
+            change();
             int index = book.ShownEntries.ToList().IndexOf(selected);
             if (index >= 0)
                 selectedIndex = index;
             ShowStatus("");
             Refresh();
             ScrollToSelected();
+        }
+
+        // 알파벳을 누르면 그 글자로 시작하는 첫 단어를 고르고, 그 묶음이 목록 맨 위에 오게 스크롤한다.
+        private void JumpToLetter(char letter)
+        {
+            int index = book == null ? -1 : book.IndexOfFirstWordStartingWith(letter);
+            if (index < 0)
+                return;
+            Select(index);
+            ScrollToSelected(alignTop: true);
         }
 
         // index번째 단어의 줄. 처음 쓰는 자리면 원본을 복사해 만든다.
@@ -356,8 +409,8 @@ namespace A305.Learning
             return entryRows[index];
         }
 
-        // 화살표로 고른 단어가 목록 보이는 곳 밖이면 그 줄이 보일 만큼만 스크롤한다.
-        private void ScrollToSelected()
+        // 화살표로 고른 단어가 목록 보이는 곳 밖이면 그 줄이 보일 만큼만 스크롤한다. alignTop이면 그 줄을 맨 위에 둔다.
+        private void ScrollToSelected(bool alignTop = false)
         {
             if (!HasSelection)
                 return;
@@ -370,7 +423,7 @@ namespace A305.Learning
             float bottom = top + row.rect.height + margin * 2;
             float view = entryList.viewport.rect.height;
             float scroll = rows.anchoredPosition.y;
-            if (top < scroll)
+            if (alignTop || top < scroll)
                 scroll = top;
             else if (bottom > scroll + view)
                 scroll = bottom - view;

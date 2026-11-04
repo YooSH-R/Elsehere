@@ -1,6 +1,7 @@
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using A305.Dialogue;
 using A305.ObjectHover;
@@ -247,6 +248,9 @@ namespace A305.Npc.PlayModeTests
 
         private static void SetClock(int minuteOfDay, bool paused)
         {
+            typeof(GameClock)
+                .GetMethod("ResetShared", BindingFlags.NonPublic | BindingFlags.Static)
+                .Invoke(null, null);
             var time = new GameClockTime
             {
                 Day = 1,
@@ -399,7 +403,11 @@ namespace A305.Npc.PlayModeTests
                 this.time = time;
             }
 
-            public Task<GameClockTime> BeatAsync()
+            public Task<GameClockTime> BeatAsync(
+                bool interactionPaused = false,
+                bool interactionWasPaused = false,
+                long? activeSeconds = null
+            )
             {
                 return Task.FromResult(time);
             }

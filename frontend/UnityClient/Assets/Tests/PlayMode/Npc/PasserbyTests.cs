@@ -176,6 +176,10 @@ namespace A305.Npc.PlayModeTests
             DialoguePanelView panel = Single<DialoguePanelView>();
             Assert.That(offer.IsShowing, Is.False);
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
+            Assert.That(GameClock.Shared.IsTalking, Is.True);
+            double stoppedAt = GameClock.Shared.Minutes;
+            GameClock.Shared.Flow(60);
+            Assert.That(GameClock.Shared.Minutes, Is.EqualTo(stoppedAt));
             Assert.That(cameraRig.ViewMode, Is.EqualTo(CameraViewMode.Dialogue));
             Assert.That(player.IsMovementLocked, Is.True);
             Assert.That(panel.IsVisible, Is.True);

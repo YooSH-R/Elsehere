@@ -38,16 +38,59 @@ namespace A305.World
         /// <summary>튜토리얼처럼 진행 흐름이 게임 시간을 멈춰 두는 동안 true.</summary>
         public bool IsHeld { get; set; }
 
+        private bool learningOpen;
+        private bool dialogueOpen;
+        private bool attemptedPause;
+        private int pauseRevision;
+        private bool pauseSinceBeat;
+        private double activeSecondsSinceBeat;
+
+        public bool IsLearningWindowOpen
+        {
+            get => learningOpen;
+            set
+            {
+                if (learningOpen != value)
+                {
+                    learningOpen = value;
+                    PauseChanged(value);
+                }
+            }
+        }
+
+        public bool IsTalking
+        {
+            get => dialogueOpen;
+            set
+            {
+                if (dialogueOpen != value)
+                {
+                    dialogueOpen = value;
+                    PauseChanged(value);
+                }
+            }
+        }
+
+        private void PauseChanged(bool open)
+        {
+            pauseSinceBeat |= open;
+            pauseRevision++;
+            nextBeatAt = 0;
+        }
+
+        private bool InteractionPaused => learningOpen || dialogueOpen;
+
         /// <summary>
         /// 실제 시간 realSeconds만큼 게임 시각을 흘린다. 진행 흐름이 시계를 붙잡아 두었거나, 서버가 대화 중·튜토리얼 중이라 멈췄다고 알려 주면 흘리지 않는다.
         /// </summary>
         public void Flow(double realSeconds)
         {
-            if (IsHeld || (Current != null && Current.Paused))
+            if (IsHeld || InteractionPaused || (Current != null && Current.Paused))
             {
                 return;
             }
 
+            activeSecondsSinceBeat += realSeconds;
             Minutes += realSeconds * GameMinutesPerRealSecond;
         }
 
@@ -60,7 +103,7 @@ namespace A305.World
         /// <summary>지금 신호를 보낼 때인지. 앞선 신호의 응답을 기다리는 동안은 보내지 않는다.</summary>
         public bool IsDue(double now)
         {
-            return !waiting && now >= nextBeatAt;
+            return !waiting && (now >= nextBeatAt || InteractionPaused != attemptedPause);
         }
 
         /// <summary>
@@ -75,18 +118,28 @@ namespace A305.World
             }
 
             waiting = true;
+            long activeSeconds = (long)Math.Floor(activeSecondsSinceBeat);
+            // 실패 응답을 재시도할 때 이미 서버가 받은 진행 초를 중복해서 더하지 않는다.
+            activeSecondsSinceBeat -= activeSeconds;
+            int revision = pauseRevision;
+            bool paused = InteractionPaused;
+            bool wasPaused = pauseSinceBeat;
+            pauseSinceBeat = paused;
+            attemptedPause = paused;
             nextBeatAt = now + BeatIntervalSeconds;
             try
             {
-                GameClockTime time = await api.BeatAsync();
+                GameClockTime time = await api.BeatAsync(paused, wasPaused, activeSeconds);
                 LastError = null;
                 Current = time;
-                Minutes = (time.Day - 1) * MinutesPerDay + time.MinuteOfDay;
+                if (revision == pauseRevision)
+                    Minutes = (time.Day - 1) * MinutesPerDay + time.MinuteOfDay;
                 Changed?.Invoke();
                 return GameClockBeatStatus.Updated;
             }
             catch (ApiException exception)
             {
+                pauseSinceBeat |= wasPaused;
                 LastError = exception;
                 return GameClockBeatStatus.Failed;
             }

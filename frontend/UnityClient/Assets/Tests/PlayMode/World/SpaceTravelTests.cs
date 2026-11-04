@@ -537,7 +537,11 @@ namespace A305.World.PlayModeTests
                 this.paused = paused;
             }
 
-            public Task<GameClockTime> BeatAsync()
+            public Task<GameClockTime> BeatAsync(
+                bool interactionPaused = false,
+                bool interactionWasPaused = false,
+                long? activeSeconds = null
+            )
             {
                 return Task.FromResult(
                     new GameClockTime

@@ -243,6 +243,8 @@ namespace A305.Characters
                 SetPair(skin, "browInnerUp", emotion.browInnerUp);
                 SetPair(skin, "browOuterUp", emotion.browOuterUp);
                 SetPair(skin, "browDown", emotion.browDown);
+                ApplyEyeClosure(skin, "Left", emotion.eyeSquint.x, blink);
+                ApplyEyeClosure(skin, "Right", emotion.eyeSquint.y, blink);
                 SetPair(skin, "eyeSquint", emotion.eyeSquint * openEyes);
                 SetPair(
                     skin,
@@ -254,6 +256,22 @@ namespace A305.Characters
                 );
                 SetPair(skin, "cheekRaise", emotion.cheekRaise * openEyes);
             }
+        }
+
+        private static void ApplyEyeClosure(
+            SkinnedMeshRenderer skin,
+            string side,
+            float squint,
+            float blink
+        )
+        {
+            // Authored eyeSquint is a curve correction, not a second closing
+            // trajectory. Share closure with blink so the convex eye stays covered.
+            if (skin.sharedMesh.GetBlendShapeIndex("eyeSquint" + side) < 0)
+                return;
+            int index = skin.sharedMesh.GetBlendShapeIndex("eyeBlink" + side);
+            if (index >= 0)
+                skin.SetBlendShapeWeight(index, Mathf.Clamp01(Mathf.Max(squint, blink)) * 100);
         }
 
         public static string[] MissingEmotionChannels(Transform root)

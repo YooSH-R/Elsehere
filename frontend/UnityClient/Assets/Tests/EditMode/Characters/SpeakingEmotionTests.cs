@@ -5,6 +5,62 @@ namespace A305.Characters.Tests
 {
     public sealed class SpeakingEmotionTests
     {
+        [TestCase(0, 95, 95)]
+        [TestCase(.5f, 95, 47.5f)]
+        [TestCase(1, 100, 0)]
+        public void BlinkKeepsSquintClosedWhileReleasingItsSmileCurve(
+            float blink,
+            float closure,
+            float curve
+        )
+        {
+            var root = new GameObject("웃는 눈 중간 깜박임");
+            var mesh = new Mesh
+            {
+                vertices = new[] { Vector3.zero, Vector3.up, Vector3.right },
+                triangles = new[] { 0, 1, 2 },
+            };
+            mesh.AddBlendShapeFrame(
+                "eyeBlinkLeft",
+                100,
+                new[] { Vector3.up * .01f, Vector3.zero, Vector3.zero },
+                null,
+                null
+            );
+            mesh.AddBlendShapeFrame(
+                "eyeSquintLeft",
+                100,
+                new[] { Vector3.up * .001f, Vector3.zero, Vector3.zero },
+                null,
+                null
+            );
+            mesh.AddBlendShapeFrame(
+                "eyeBlinkRight",
+                100,
+                new[] { Vector3.zero, Vector3.up * .01f, Vector3.zero },
+                null,
+                null
+            );
+            try
+            {
+                var skin = root.AddComponent<SkinnedMeshRenderer>();
+                skin.sharedMesh = mesh;
+                var face = root.AddComponent<CharacterFaceController>();
+                face.ApplySpeech(
+                    SpeechMouthSample.Rest,
+                    new FaceEmotionSample { eyeSquint = Vector2.one * .95f },
+                    blink
+                );
+                Assert.That(skin.GetBlendShapeWeight(0), Is.EqualTo(closure).Within(.01));
+                Assert.That(skin.GetBlendShapeWeight(1), Is.EqualTo(curve).Within(.01));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(mesh);
+            }
+        }
+
         [Test]
         public void PlayerUsesClipEmotionsAndStopAndReplacementClearThePreviousReaction()
         {

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace A305.Learning
 {
     /// <summary>
-    /// 오른쪽 위 휴대폰 메뉴의 화면. 잠금 화면처럼 큰 게임 시계와 날짜, 여행 예산, 오늘의 여정(단계 칩·할 일·진행 막대)을 보이고,
+    /// 오른쪽 위 휴대폰 메뉴의 화면. 잠금 화면처럼 큰 게임 시계와 날짜, 코인, 퀘스트 위젯(단계 칩·할 일·진행 막대)을 보이고,
     /// [마을 지도] 앱을 누르면 미션 화면에 큰 지도를 열어 달라고 알린다. 메뉴를 펼치고 접는 일은 <see cref="HudMenuView"/>가 맡고,
     /// 다른 앱 버튼의 기능은 <see cref="LearningHudView"/>와 각 화면이 맡는다. 화면이 낮으면 폰을 줄여 화면 안에 맞춘다.
     /// </summary>
@@ -18,6 +18,13 @@ namespace A305.Learning
 
         // HUD 패널이 화면 위 모서리에서 들어간 거리. 폰은 패널 오른쪽 위를 기준으로 놓인다.
         private const float PanelInset = 24;
+
+        // 시안 m1 진행 칸: 줄 폭 312px에 칸 7개(칸 39.43, 사이 6). 칸 그림은 양옆 빛 번짐 자리 12px를 품는다. 캔버스는 시안 px × 1.2다.
+        private const float ProgressWidth = 312;
+        private const float StepWidth = 39.43f;
+        private const float StepGap = 6;
+        private const float StepGlow = 12;
+        private const float Px = 1.2f;
 
         [SerializeField]
         [Tooltip("상태 표시줄 왼쪽의 작은 시각")]
@@ -31,7 +38,7 @@ namespace A305.Learning
         private TMP_Text date;
 
         [SerializeField]
-        [Tooltip("여행 예산 위젯의 코인 숫자")]
+        [Tooltip("코인 위젯의 코인 숫자")]
         private TMP_Text budget;
 
         [SerializeField]
@@ -62,7 +69,7 @@ namespace A305.Learning
 
         private int shownMinute = -1;
 
-        /// <summary>시계·예산·오늘의 여정을 지금 상태로 다시 쓴다.</summary>
+        /// <summary>시계·코인·퀘스트 위젯을 지금 상태로 다시 쓴다.</summary>
         public void Refresh()
         {
             shownMinute = -1;
@@ -110,18 +117,26 @@ namespace A305.Learning
             statusTime.text = GameClockText.HalfAndTime(minutes);
         }
 
+        // 단계마다 칸 하나. 단계가 시안(7칸)보다 많으면 칸을 줄여 카드 안에 넣는다.
         private void ShowProgress()
         {
             var marks = JourneyStatus.Shared.Marks;
             GameObject template = journeyProgress.GetChild(0).gameObject;
             while (journeyProgress.childCount < marks.Count)
                 Instantiate(template, journeyProgress, false);
+            float width = Mathf.Min(
+                StepWidth,
+                (ProgressWidth - StepGap * (marks.Count - 1)) / Mathf.Max(1, marks.Count)
+            );
             for (int i = 0; i < journeyProgress.childCount; i++)
             {
                 GameObject mark = journeyProgress.GetChild(i).gameObject;
                 mark.SetActive(i < marks.Count);
-                if (i < marks.Count)
-                    mark.GetComponent<Image>().sprite = MarkSprite(marks[i]);
+                if (i >= marks.Count)
+                    continue;
+                mark.GetComponent<Image>().sprite = MarkSprite(marks[i]);
+                var size = mark.GetComponent<LayoutElement>();
+                size.minWidth = size.preferredWidth = (width + StepGlow * 2) * Px;
             }
         }
 

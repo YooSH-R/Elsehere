@@ -193,6 +193,54 @@ namespace A305.Learning.Tests
             Assert.That(book.LastFailureMessage, Is.Not.Empty);
         }
 
+        // 기능 명세 F-35: 외운 단어는 목록에서 정리하고, 기록은 지우지 않으며 [외운 표현도 보기]로 다시 본다.
+        [Test]
+        public async Task ShownEntries_TidyLearnedWordsAway_UntilAskedToShowThem()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파", memorized: true),
+                Item(21, "latte", "라떼")
+            );
+            await book.LoadAsync();
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "latte" })
+            );
+
+            book.ShowsLearned = true;
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "sofa", "latte" })
+            );
+        }
+
+        [Test]
+        public async Task ToggleLearnedAsync_TakesTheWordOutOfTheShownList_ButKeepsItsRecord()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+
+            await book.ToggleLearnedAsync(entry);
+
+            Assert.That(book.ShownEntries, Is.Empty);
+            Assert.That(book.Entries, Is.EqualTo(new[] { entry }));
+        }
+
+        // 모두 외워 목록이 비면 저장한 단어가 없는 것과 구분한다.
+        [Test]
+        public async Task ListState_EveryWordLearned_IsAllLearnedNotEmpty()
+        {
+            await LoadOne(Item(31, "sofa", "소파", memorized: true));
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.AllLearned));
+
+            book.ShowsLearned = true;
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+        }
+
         [TestCase(1)]
         [TestCase(VocabularyBook.MaxMemoLength)]
         public async Task SaveMemoAsync_WithinLimit_SavesMemo(int length)

@@ -6,6 +6,7 @@ namespace A305.Learning
         Loading,
         Failed,
         Empty,
+        AllLearned,
         Entries,
     }
 }

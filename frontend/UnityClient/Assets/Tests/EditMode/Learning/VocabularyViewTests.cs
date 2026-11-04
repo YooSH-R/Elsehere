@@ -88,7 +88,81 @@ namespace A305.Learning.Tests
             Assert.That(requested, Is.True);
         }
 
+        // 기능 명세 F-35: [외웠어요]를 누르면 그 단어를 목록에서 정리하고 다음 단어를 고른다.
+        [Test]
+        public async Task LearnedWord_LeavesTheList_AndTheNextWordIsSelected()
+        {
+            var (view, book) = await Open(new SampleApi());
+
+            await book.ToggleLearnedAsync(book.Entries[0]);
+            view.Refresh();
+
+            Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("umbrella"));
+            Assert.That(Text("Panel/Content/Page"), Is.EqualTo("1 / 1"));
+            Assert.That(Shown("Panel/Content/Entries/Entry1"), Is.False);
+        }
+
+        [Test]
+        public async Task ShowLearnedButton_BringsLearnedWordsBackToRelearn()
+        {
+            await Open(new SampleApi { LearnedIds = { 1 } });
+            Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("umbrella"));
+            Assert.That(Text("Panel/ShowLearnedButton/Label"), Is.EqualTo("외운 표현도 보기"));
+
+            Click("Panel/ShowLearnedButton");
+
+            Assert.That(
+                Text("Panel/Content/Page"),
+                Is.EqualTo("2 / 2"),
+                "보던 단어를 그대로 고른다"
+            );
+            Assert.That(Text("Panel/ShowLearnedButton/Label"), Is.EqualTo("외운 표현 숨기기"));
+            Click("Panel/Content/Entries/Entry0");
+            Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("counter"));
+            Assert.That(Text("Panel/Content/LearnedButton/Label"), Is.EqualTo("다시 학습"));
+        }
+
+        [Test]
+        public async Task ReopeningTheBook_TidiesLearnedWordsAgain()
+        {
+            var (view, book) = await Open(new SampleApi { LearnedIds = { 1 } });
+            Click("Panel/ShowLearnedButton");
+
+            view.Hide();
+            view.Show(book);
+
+            Assert.That(Text("Panel/Content/Page"), Is.EqualTo("1 / 1"));
+            Assert.That(Text("Panel/ShowLearnedButton/Label"), Is.EqualTo("외운 표현도 보기"));
+        }
+
+        // 모두 외웠으면 저장한 단어가 없다고 하지 않고 [외운 표현도 보기]로 다시 볼 수 있다고 알린다.
+        [Test]
+        public async Task EveryWordLearned_SaysSoInsteadOfAnEmptyBook()
+        {
+            await Open(new SampleApi { LearnedIds = { 1, 2 } });
+
+            Assert.That(Shown("Panel/Content"), Is.False);
+            Assert.That(Shown("Panel/EmptyState"), Is.True);
+            Assert.That(Text("Panel/EmptyState/Title"), Is.EqualTo("모든 단어를 외웠어요"));
+            Assert.That(Shown("Panel/ShowLearnedButton"), Is.True);
+        }
+
+        [Test]
+        public async Task EmptyBook_SaysNothingIsSavedYet_WithoutShowLearnedButton()
+        {
+            await Open(new SampleApi { Count = 0 });
+
+            Assert.That(Text("Panel/EmptyState/Title"), Is.EqualTo("아직 저장한 단어가 없어요"));
+            Assert.That(Shown("Panel/ShowLearnedButton"), Is.False);
+        }
+
         private bool Shown(string path) => screen.transform.Find(path).gameObject.activeSelf;
+
+        private string Text(string path) =>
+            screen.transform.Find(path).GetComponent<TMP_Text>().text;
+
+        private void Click(string path) =>
+            screen.transform.Find(path).GetComponent<Button>().onClick.Invoke();
 
         private string LoadStateTitle() =>
             screen.transform.Find("Panel/LoadState/Title").GetComponent<TMP_Text>().text;
@@ -247,6 +321,9 @@ namespace A305.Learning.Tests
 
             public bool Fails { get; set; }
 
+            // 이미 외웠어요로 표시한 단어
+            public HashSet<long> LearnedIds { get; } = new HashSet<long>();
+
             public Task<VocabPage> GetPageAsync(string cursor)
             {
                 if (Fails)
@@ -291,6 +368,8 @@ namespace A305.Learning.Tests
                     );
                 if (Count < items.Count)
                     items.RemoveRange(Count, items.Count - Count);
+                foreach (VocabItem item in items)
+                    item.Memorized = LearnedIds.Contains(item.UserVocabId);
                 return Task.FromResult(new VocabPage { Items = items });
             }
 

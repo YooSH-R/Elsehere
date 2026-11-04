@@ -171,7 +171,8 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator EndingDialogue_TurnsPlayerAndCameraTowardTheNpc()
         {
-            yield return LoadTownWithPlayerNearBen(afterTutorial: false);
+            // 튜토리얼 길 안내는 대사를 마치기 전에 끝낼 수 없으므로 평소 행인으로 확인한다.
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return WaitUntil(() => offer.IsShowing);
 

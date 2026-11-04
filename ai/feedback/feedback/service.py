@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from .clients import ModelClient, ProviderCallError
 from .models import INPUT, LLM_OUTPUT, usable_turns, validate_pair
 from .prompt import build_messages
+from .situation_catalog import keep_useful
 from .spoken_usage import build_spoken_notes
 
 
@@ -91,6 +92,8 @@ def generate_feedback(payload, client: ModelClient, *, ai_allowed: bool):
         if checked.outcome == "insufficient_evidence":
             return _response(request, status="insufficient_evidence", problem=checked.problem.model_dump())
         result = checked.result.model_dump()
+        user_texts = [turn.final_text for turn in request.turns if turn.speaker == "user" and turn.text_status == "final"]
+        result["situation_expressions"] = keep_useful(result["situation_expressions"], user_texts)
         result["spoken_usage_notes"] = build_spoken_notes(request, checked.result, checked.spoken_usage_selection)
         return _response(request, status="completed", result=result)
     except (ValueError, TypeError, ValidationError):

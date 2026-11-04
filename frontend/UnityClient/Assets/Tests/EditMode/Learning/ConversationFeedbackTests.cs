@@ -72,6 +72,48 @@ namespace A305.Learning.Tests
             Assert.That(feedback.Summary, Does.Contain("2"));
         }
 
+        // 서버 없이 만든 요약도 대화 노트 부제처럼 이름 끝소리에 맞춰 와·과를 고른다.
+        [TestCase("Ben", "3개의 문장으로 Ben과 이야기를 나눴어요.")]
+        [TestCase("Mia", "3개의 문장으로 Mia와 이야기를 나눴어요.")]
+        public void Summary_PicksWaOrGwaByTheLastSoundOfTheName(string npcName, string expected)
+        {
+            var feedback = new ConversationFeedback(
+                npcName,
+                new[] { "Hello!", "Thanks!", "Bye!" },
+                Rules
+            );
+
+            Assert.That(feedback.Summary, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ScriptedFeedback_ShowsTheSituationExpressionsOfTheScene()
+        {
+            var situations = new List<SituationExpressionData>
+            {
+                new SituationExpressionData
+                {
+                    Expression = "I'd like to check in.",
+                    MeaningKo = "체크인하고 싶어요.",
+                },
+            };
+
+            var feedback = new ConversationFeedback("Ben", new[] { "Hello!" }, Rules, situations);
+
+            Assert.That(feedback.SituationExpressions, Is.EqualTo(situations));
+        }
+
+        // 대본 대화도 서버 피드백처럼 잘한 점 한 줄을 보여 준다.
+        [Test]
+        public void ScriptedFeedback_PraisesFinishingTheConversationInEnglish()
+        {
+            var feedback = new ConversationFeedback("Ben", new[] { "Hello!", "Thanks!" }, Rules);
+
+            Assert.That(feedback.Notes, Has.Count.EqualTo(1));
+            Assert.That(feedback.Notes[0], Does.StartWith("잘했어요 · "));
+            Assert.That(feedback.Notes[0], Does.Contain("2"));
+        }
+
         [Test]
         public void FromServer_DoneFeedback_ShowsServerSummaryAndNotes()
         {

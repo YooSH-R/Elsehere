@@ -2,19 +2,21 @@
 
 마을 인도에서 [택시 세우기]를 누르면 택시가 손님 옆 길가에 서면서 바로 뒷좌석에 타고 기사와 대화가 시작된다. 택시가 다가와 서는 모습은 보이지 않는다. 목적지를 말하기 전에는 정차하며, 서버가 수락한 무례하지 않은 발화에서 명확한 이동 요청을 찾으면 출발한다. 신호와 다른 차량을 따르고 도착한 건물 쪽 인도에 내려준다.
 
+택시를 세우면 바로 기사와 대화하므로 게스트에게는 [택시 세우기] 위에 남은 대화 수를 보이고, 새 대화를 시작할 수 없으면(게스트 대화를 다 씀 등) 버튼 대신 이유를 보인다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#택시)).
+
 | 장소 | 예시 요청 | 실내 진입 |
 | --- | --- | --- |
 | 호텔 | Could you take me to the hotel, please? | HotelScene |
 | 카페 | The cafe, please. | CafeScene |
 | 드럭스토어 | Take me to the drugstore, please. | ShopScene |
 | 집 | I'd like to go home. | HomeScene |
-| 우체국 | Take me to the post office, please. | TownScene 안에서 문으로 진입 |
-| 메이플 다이너 | The diner, please. | TownScene 안에서 문으로 진입 |
-| 타운 은행 | Could you take me to the bank? | TownScene 안에서 문으로 진입 |
-| 빨래방 | Take me to the laundromat, please. | TownScene 안에서 문으로 진입 |
-| 꽃집 | The flower shop, please. | TownScene 안에서 문으로 진입 |
-| 이발소 | Take me to the barber shop, please. | TownScene 안에서 문으로 진입 |
-| 경찰서 | Take me to the police station, please. | TownScene 안에서 문 앞에 닿으면 화면 전환 후 실내로 |
+| 우체국 | Take me to the post office, please. | PostOfficeInterior |
+| 메이플 다이너 | The diner, please. | MapleDinerInterior |
+| 타운 은행 | Could you take me to the bank? | TownBankInterior |
+| 빨래방 | Take me to the laundromat, please. | SudsLaundromatInterior |
+| 꽃집 | The flower shop, please. | BloomFlowersInterior |
+| 이발소 | Take me to the barber shop, please. | MainStreetBarberInterior |
+| 경찰서 | Take me to the police station, please. | PoliceStationInterior |
 
 택시는 건물 앞 보도에 내려준다. 실내로 자동 이동하지 않으며, 하차 후 사용자가 문으로 걸어 들어간다. 북쪽 기존 베이커리·오락실·서점·생활용품점·찻집은 현재 택시 목적지에 포함하지 않는다.
 

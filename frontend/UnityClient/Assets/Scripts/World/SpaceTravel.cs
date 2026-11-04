@@ -1,4 +1,5 @@
 using System;
+using A305.Player;
 using UnityEngine;
 
 namespace A305.World
@@ -48,13 +49,10 @@ namespace A305.World
             float viewYawFromTravel
         )
         {
-            if (state.IsLocked)
-            {
-                Refused?.Invoke();
-                return false;
-            }
-
-            if (!state.TryBegin(destinationScene, arrivalDoorwayId, viewYawFromTravel))
+            if (
+                RefuseIfLocked()
+                || !state.TryBegin(destinationScene, arrivalDoorwayId, viewYawFromTravel)
+            )
             {
                 return false;
             }
@@ -67,6 +65,55 @@ namespace A305.World
             }
 
             SpaceTravelCurtain.Travel(destinationScene);
+            return true;
+        }
+
+        internal static void CrossShopDoor(
+            PlayerMover player,
+            Vector3 destination,
+            ShopInterior interior,
+            bool entering,
+            Quaternion? arrivalRotation = null,
+            float? arrivalViewYaw = null
+        )
+        {
+            if (
+                interior != null
+                && entering
+                && !Application.CanStreamedLevelBeLoaded(interior.SceneName)
+            )
+            {
+                Debug.LogError($"실내 씬을 불러올 수 없습니다: {interior.SceneName}", interior);
+                return;
+            }
+            if (
+                player.IsMovementLocked
+                || RefuseIfLocked()
+                || SpaceTravelCurtain.IsCoveringScreen
+                || !state.TryBegin()
+            )
+            {
+                return;
+            }
+
+            SpaceTravelCurtain.CrossShopDoor(
+                player,
+                new Pose(destination, arrivalRotation ?? player.transform.rotation),
+                interior,
+                entering,
+                arrivalViewYaw,
+                () => state.CompleteArrival()
+            );
+        }
+
+        private static bool RefuseIfLocked()
+        {
+            if (!state.IsLocked)
+            {
+                return false;
+            }
+
+            Refused?.Invoke();
             return true;
         }
 

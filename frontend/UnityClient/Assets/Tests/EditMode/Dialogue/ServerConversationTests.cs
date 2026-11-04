@@ -221,6 +221,94 @@ namespace A305.Dialogue.Tests
         }
 
         [Test]
+        public async Task Start_WhenUnfinishedConversationWithSameNpcRemains_ResumesItWithoutStartingAgain()
+        {
+            // 새로고침 등으로 끝내지 못한 같은 NPC 대화가 서버에 남아 있는 경우다. 끝내고 새로 시작하면 게스트 대화 횟수를 한 번 더 쓴다.
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            const string lastLine = "Sure. Would you like anything else?";
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 41,
+                Status = "ACTIVE",
+                Npc = new NpcSummary { NpcCode = CafeStaffCode, Name = "Mia" },
+                RudeCount = 0,
+                RudeLimit = 3,
+                Turns = new List<ActiveTurn>
+                {
+                    new ActiveTurn
+                    {
+                        TurnId = 101,
+                        Speaker = "NPC",
+                        Text = Opening,
+                    },
+                    new ActiveTurn
+                    {
+                        TurnId = 102,
+                        Speaker = "USER",
+                        Text = Order,
+                    },
+                    new ActiveTurn
+                    {
+                        TurnId = 103,
+                        Speaker = "NPC",
+                        Text = lastLine,
+                        Speech = new SpeechData
+                        {
+                            Status = "READY",
+                            Url = "/api/v1/turns/103/speech",
+                        },
+                    },
+                },
+            };
+
+            await conversation.StartAsync();
+
+            // 남은 대화를 끝내지 않고, 새 대화도 만들지 않는다. 이어 간 마지막 대사의 추천 단어는 처음 시작할 때처럼 따로 받는다.
+            Assert.That(api.Calls, Does.Not.Contain("End"));
+            Assert.That(api.Starts, Has.Count.EqualTo(1));
+            Assert.That(conversation.ConversationId, Is.EqualTo(41));
+            Assert.That(conversation.NpcName, Is.EqualTo("Mia"));
+            Assert.That(
+                conversation.Lines.Select(line => line.English),
+                Is.EqualTo(new[] { Opening, Order, lastLine })
+            );
+            Assert.That(conversation.LastNpcTurn.TurnId, Is.EqualTo(103));
+            Assert.That(conversation.LastNpcTurn.Speech.IsReady, Is.True);
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [Test]
+        public async Task Start_WhenUnfinishedConversationIsWithOtherNpc_EndsItAndStartsAgain()
+        {
+            // 다른 NPC와 끝내지 못한 대화는 지금처럼 피드백 없이 끝내고 새로 시작한다.
+            api.StartErrors.Enqueue(
+                new ApiException("CONVERSATION_ALREADY_ACTIVE", 409, "진행 중인 대화가 있습니다.")
+            );
+            api.Active = new ActiveConversation
+            {
+                ConversationId = 41,
+                Status = "ACTIVE",
+                Npc = new NpcSummary { NpcCode = "TOWN_PASSERBY", Name = "Ben" },
+                Turns = new List<ActiveTurn>
+                {
+                    new ActiveTurn
+                    {
+                        TurnId = 101,
+                        Speaker = "NPC",
+                        Text = "Hi!",
+                    },
+                },
+            };
+
+            await conversation.StartAsync();
+
+            Assert.That(api.Calls, Is.EqualTo(new[] { "Start", "GetActive", "End", "Start" }));
+            Assert.That(conversation.ConversationId, Is.EqualTo(ConversationId));
+        }
+
+        [Test]
         public async Task Start_WhenStaleConversationIsAlreadyGone_StartsAgainWithoutEnding()
         {
             api.StartErrors.Enqueue(

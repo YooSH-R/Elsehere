@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
+using A305.ObjectHover;
 using NUnit.Framework;
 
 namespace A305.Learning.Tests
@@ -50,6 +52,22 @@ namespace A305.Learning.Tests
             Assert.That(loaded, Is.False);
             Assert.That(book.Entries.Select(entry => entry.English), Is.EqualTo(new[] { "sofa" }));
             Assert.That(book.LastFailureMessage, Is.Not.Empty);
+        }
+
+        // 지난번 목록이 보이는 채로 다시 읽기에 실패하면 고장처럼 알리지 않고, 보이는 목록이 무엇인지 알린다.
+        [Test]
+        public async Task LoadAsync_FailsWhileShowingPreviousWords_SaysThePreviousListIsShown()
+        {
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"));
+            await book.LoadAsync();
+            api.Failure = NetworkError();
+
+            await book.LoadAsync();
+
+            Assert.That(
+                book.LastFailureMessage,
+                Is.EqualTo("지금은 새 단어장을 받아 오지 못해 지난번 목록을 보여 드려요.")
+            );
         }
 
         [Test]
@@ -231,6 +249,20 @@ namespace A305.Learning.Tests
         }
 
         [Test]
+        public async Task DeleteAsync_TellsObjectCardsTheWordIsNoLongerSaved()
+        {
+            // 장소의 사물 카드는 들어올 때 받은 저장 상태를 들고 있어, 지운 단어를 알려 줘야 [단어장에 저장]을 다시 보인다.
+            api.Pages[null] = Page(null, Item(31, "sofa", "소파"), Item(21, "bench", "벤치"));
+            await book.LoadAsync();
+
+            List<string> removed = await RecordSavedWordRemoved(() =>
+                book.DeleteAsync(book.Entries[0])
+            );
+
+            Assert.That(removed, Is.EqualTo(new[] { "sofa" }));
+        }
+
+        [Test]
         public async Task DeleteAsync_Fails_KeepsEntry()
         {
             VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
@@ -240,6 +272,17 @@ namespace A305.Learning.Tests
 
             Assert.That(deleted, Is.False);
             Assert.That(book.Entries, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task DeleteAsync_Fails_KeepsObjectCardsSaved()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+            api.Failure = NetworkError();
+
+            List<string> removed = await RecordSavedWordRemoved(() => book.DeleteAsync(entry));
+
+            Assert.That(removed, Is.Empty);
         }
 
         // 단어장 목록은 최근 저장순이라 방금 저장한 단어가 맨 앞이고, 단어 수도 바로 늘어난다.
@@ -259,6 +302,20 @@ namespace A305.Learning.Tests
                 Is.EqualTo(new[] { "latte", "sofa" })
             );
             Assert.That(book.LastFailureMessage, Is.Null);
+        }
+
+        [Test]
+        public async Task SaveFeedbackWordAsync_SavesTheIdiomFromTheConversationFeedback()
+        {
+            await LoadOne(Item(31, "sofa", "소파"));
+            api.SavedItem = Item(41, "hang on to", "잠시 맡아 두다");
+            api.SavedItem.Created = true;
+
+            VocabularySaveResult result = await book.SaveFeedbackWordAsync(58, "hang on to");
+
+            Assert.That(result, Is.EqualTo(VocabularySaveResult.Saved));
+            Assert.That(api.Calls, Is.EqualTo(new[] { "feedback 58 hang on to" }));
+            Assert.That(book.Entries.First().English, Is.EqualTo("hang on to"));
         }
 
         [Test]
@@ -342,6 +399,24 @@ namespace A305.Learning.Tests
             return book.Entries[0];
         }
 
+        // 정적 알림이라 다른 테스트에 남지 않게 동작이 끝나면 바로 구독을 푼다.
+        private static async Task<List<string>> RecordSavedWordRemoved(Func<Task> action)
+        {
+            var removed = new List<string>();
+            void Record(string text) => removed.Add(text);
+            ObjectWordCards.SavedWordRemoved += Record;
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                ObjectWordCards.SavedWordRemoved -= Record;
+            }
+
+            return removed;
+        }
+
         private static ApiException NetworkError()
         {
             return new ApiException(ApiErrorCodes.NetworkError, 0, "서버에 연결하지 못했습니다.");
@@ -410,6 +485,11 @@ namespace A305.Learning.Tests
             public Task<VocabItem> SaveNpcLineWordAsync(long turnId, string text)
             {
                 return Reply($"save {turnId} {text}", SavedItem);
+            }
+
+            public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text)
+            {
+                return Reply($"feedback {conversationId} {text}", SavedItem);
             }
 
             public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)

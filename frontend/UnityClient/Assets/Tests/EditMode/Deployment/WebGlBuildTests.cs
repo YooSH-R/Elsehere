@@ -101,6 +101,21 @@ namespace A305.Deployment.Tests
         }
 
         [Test]
+        public void IntroCaptionsDoNotTieTheServiceToEnglish()
+        {
+            // 여러 언어로 넓힐 서비스이므로 로딩 화면 소개 문구에 한 언어를 적지 않는다.
+            string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");
+            string[] captions = Regex
+                .Matches(page, "caption: \"([^\"]+)\"")
+                .Cast<Match>()
+                .Select(match => match.Groups[1].Value)
+                .ToArray();
+
+            Assert.That(captions, Is.Not.Empty);
+            Assert.That(captions.Where(caption => caption.Contains("영어")), Is.Empty);
+        }
+
+        [Test]
         public void WebTemplateProvidesAnExplicitAnalyticsConsentChoice()
         {
             string page = File.ReadAllText("Assets/WebGLTemplates/A305Responsive/index.html");

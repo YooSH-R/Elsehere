@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 382e01dafe33da141b955394f8a7fe10, type: 3}
+  m_Name: DayNight
+  m_EditorClassIdentifier: A305.Weather::A305.Weather.DaylightSettings
+  sunriseHour: 6
+  sunsetHour: 19
+  twilightHours: 1
+  night:
+    skyZenith: {r: 0.035, g: 0.06, b: 0.14, a: 1}
+    skyHorizon: {r: 0.1, g: 0.14, b: 0.26, a: 1}
+    sunColor: {r: 0.62, g: 0.72, b: 1, a: 1}
+    sunIntensity: 0.3
+    sunShadowStrength: 0.45
+    ambientSky: {r: 0.16, g: 0.2, b: 0.34, a: 1}
+    ambientEquator: {r: 0.12, g: 0.13, b: 0.2, a: 1}
+    ambientGround: {r: 0.06, g: 0.06, b: 0.08, a: 1}
+    fogColor: {r: 0.07, g: 0.09, b: 0.16, a: 1}
+    fogStartMeters: 42
+    fogEndMeters: 125
+    cloudColor: {r: 0.2, g: 0.23, b: 0.32, a: 1}
+  twilightHorizon: {r: 0.98, g: 0.6, b: 0.42, a: 1}
+  twilightZenith: {r: 0.42, g: 0.43, b: 0.66, a: 1}
+  twilightSunColor: {r: 1, g: 0.62, b: 0.38, a: 1}
+  twilightStrength: 0.75
+  coveredTwilightStrength: 0.25
+  nightLampScale: 2
+  nightGlowScale: 2.2
+  glowMaterials:
+  - {fileID: 2100000, guid: ea32c58bf8465b04a8612896ffb03601, type: 2}
+  - {fileID: 2100000, guid: 19e19a2a48d4a0d4d8a7c05e37934af2, type: 2}
+  - {fileID: 2100000, guid: 6c350a2b458b31146aca7604591b4175, type: 2}
+  - {fileID: 2100000, guid: 09c9f8d12bcecb54097934f77da23887, type: 2}
+  - {fileID: 2100000, guid: 1c636f100302bca408d4778c7f139ada, type: 2}
+  - {fileID: 2100000, guid: 7f7b3b08f3ca6124685b7b3df7c16b1b, type: 2}
+  nightOnlyGlowMaterials:
+  - {fileID: 2100000, guid: 2f4d30b03ce52e54190c6093ebf93a30, type: 2}
+  windowMaterials:
+  - {fileID: 2100000, guid: 7661d7912b0c3f346803af93f1abb3be, type: 2}
+  - {fileID: 2100000, guid: 69fefabe9188b6a43a46307ea61c8691, type: 2}
+  - {fileID: 2100000, guid: 5d09b421e4519bc4eb4e3bc4b3a7a9cc, type: 2}
+  nightWindowColor: {r: 0.1, g: 0.14, b: 0.24, a: 1}
+  nightWindowEmissionScale: 0.1
+  litWindowMaterials:
+  - {fileID: 2100000, guid: cbf76fe738f484c4dbe61803ad803990, type: 2}
+  - {fileID: 2100000, guid: 1d3a864cdf3fb6f48b06e435263367a5, type: 2}
+  - {fileID: 2100000, guid: ab83f91c832ed3d45899ca8bfdf92a3c, type: 2}
+  - {fileID: 2100000, guid: d2b7201baf647484697aeb06f6d3799e, type: 2}
+  litWindowColor: {r: 1, g: 0.85, b: 0.58, a: 1}
+  litWindowEmission: {r: 0.9, g: 0.62, b: 0.3, a: 1}
+  nightWindowLightScale: 0.8
+  nightRoomLightColor: {r: 1, g: 0.9, b: 0.76, a: 1}
+  nightFillScale: 0.9
+  nightInteriorAmbientScale: 0.9

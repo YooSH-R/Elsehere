@@ -175,7 +175,8 @@ public class VocabService {
   }
 
   /**
-   * 대화 피드백의 단어장 후보에서 단어를 저장한다(VOCAB-02 FEEDBACK). 뜻은 후보의 뜻, 문장은 후보의 학습 예문과 예문 뜻이다.
+   * 대화 피드백의 단어장 후보나 "이 상황에서 자주 써요" 표현에서 단어·숙어·문장을 저장한다(VOCAB-02 FEEDBACK). 뜻은 후보의 뜻, 문장은 후보의 학습 예문과
+   * 예문 뜻이다.
    *
    * <p>다른 사용자의 대화는 존재 여부를 드러내지 않도록 NOT_FOUND로 응답한다.
    */
@@ -187,7 +188,7 @@ public class VocabService {
             .findById(conversation.getId())
             .map(ConversationFeedback::getReviews)
             .map(reviews -> jsonMapper.readValue(reviews, FeedbackReviews.class))
-            .map(FeedbackReviews::vocabCandidates)
+            .map(VocabService::feedbackEntries)
             .orElse(List.of());
     FeedbackReviews.VocabCandidate word =
         SourceWords.find(candidates, FeedbackReviews.VocabCandidate::expression, text)
@@ -205,6 +206,23 @@ public class VocabService {
                 word.exampleEn(),
                 word.exampleKo(),
                 Instant.now(clock)));
+  }
+
+  // 저장할 수 있는 말: 단어장 후보와 "이 상황에서 자주 써요" 숙어·문장. 이 필드를 넣기 전의 피드백은 null이다.
+  private static List<FeedbackReviews.VocabCandidate> feedbackEntries(FeedbackReviews reviews) {
+    List<FeedbackReviews.VocabCandidate> entries = new java.util.ArrayList<>();
+    if (reviews.vocabCandidates() != null) {
+      entries.addAll(reviews.vocabCandidates());
+    }
+    if (reviews.situationExpressions() != null) {
+      reviews.situationExpressions().stream()
+          .map(
+              item ->
+                  new FeedbackReviews.VocabCandidate(
+                      item.expression(), item.meaningKo(), item.exampleEn(), item.exampleKo()))
+          .forEach(entries::add);
+    }
+    return entries;
   }
 
   /** 이미 저장한 단어면 새로 만들지 않고 처음 저장한 항목(문장 포함)을 그대로 돌려준다. */

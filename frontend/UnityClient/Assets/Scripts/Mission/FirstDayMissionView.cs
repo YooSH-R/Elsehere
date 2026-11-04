@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using A305.Theme;
+using A305.Wayfinding;
 using A305.World;
 using TMPro;
 using UnityEngine;
@@ -139,15 +141,14 @@ namespace A305.Mission
         private const float CardWidth = 410 * 1.2f;
         private const float DrawerWidth = 480;
 
-        // 사용자가 연 수첩과 크게 본 지도는 대화창의 단어·문장 카드, 피드백·단어장 화면보다 위에 그린다. 장소 이동 막(short.MaxValue)보다는 아래다.
-        private const int OpenJournalSortingOrder = 1000;
-
         private Canvas canvas;
         private int shownClockMinute = -1;
         private bool talking;
-        private int closedSortingOrder;
         private bool available;
         private string mapSceneCode;
+
+        // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
+        private readonly Vector3[] hudCorners = new Vector3[4];
 
         public event Action StartRequested;
 
@@ -172,6 +173,7 @@ namespace A305.Mission
                 ShowJournal(false);
                 ShowLargeMap(false);
                 JourneyStatus.Shared.Clear();
+                GuideDestination.Shared.Clear();
             }
             UpdateMiniMapVisibility();
         }
@@ -217,6 +219,8 @@ namespace A305.Mission
                 state.Steps.Select(step => Mark(step.Status)).ToArray(),
                 state.Balance
             );
+            // 길 안내가 지금 단계의 장소를 가리킨다. 시작 전과 모두 끝낸 뒤에는 목적지가 없어 안내하지 않는다.
+            GuideDestination.Shared.Show(state.Destination);
             journalGoal.text = state.CanRest
                 ? "의자에 앉아 잠깐 쉬기"
                 : current?.Goals.FirstOrDefault(goal => !goal.Completed)?.Title ?? "";
@@ -400,11 +404,14 @@ namespace A305.Mission
             retryButton.onClick.AddListener(Retry);
             // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
             JourneyStatus.Shared.MapRequested += OpenLargeMap;
+            CenterWindow.Shared.Changed += FollowCenterWindow;
         }
 
         private void OnDestroy()
         {
             JourneyStatus.Shared.MapRequested -= OpenLargeMap;
+            CenterWindow.Shared.Changed -= FollowCenterWindow;
+            CenterWindow.Shared.SetLeftHud(0f);
             journalButton.onClick.RemoveListener(ToggleJournal);
             if (miniMapButton != null)
                 miniMapButton.onClick.RemoveListener(OpenLargeMap);
@@ -452,6 +459,7 @@ namespace A305.Mission
         private void Update()
         {
             ShowClock();
+            CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             if (
                 mapOverlay != null
                 && mapOverlay.activeSelf
@@ -467,7 +475,11 @@ namespace A305.Mission
             if (root == null)
                 return;
             bool raised = journal.activeSelf || (mapOverlay != null && mapOverlay.activeSelf);
-            root.sortingOrder = raised ? OpenJournalSortingOrder : closedSortingOrder;
+            // 수첩·큰 지도를 연 동안에는 다른 캔버스와 먼저 연 창보다 위에 그린다.
+            if (raised)
+                UiLayer.Open(root, this);
+            else
+                UiLayer.Close(root, this);
         }
 
         /// <summary>
@@ -498,6 +510,30 @@ namespace A305.Mission
                 );
         }
 
+        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀)
+        private float LeftHudScreenWidth() =>
+            Mathf.Max(RightEdgeOf(Banner.gameObject), RightEdgeOf(miniMapPanel));
+
+        private float RightEdgeOf(GameObject hud)
+        {
+            if (hud == null || !hud.activeInHierarchy)
+                return 0f;
+            var rect = (RectTransform)hud.transform;
+            rect.GetWorldCorners(hudCorners);
+            return RectTransformUtility
+                .WorldToScreenPoint(CenterWindow.CameraOf(rect), hudCorners[2])
+                .x;
+        }
+
+        // 가운데 창이 열리면 펼친 수첩·큰 지도를 닫아 창끼리 겹치지 않게 한다. 퀘스트 카드·미니맵은 창과 함께 보인다.
+        private void FollowCenterWindow()
+        {
+            if (!CenterWindow.Shared.IsOpen)
+                return;
+            ShowJournal(false);
+            ShowLargeMap(false);
+        }
+
         // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.
         private Canvas RootCanvas()
         {
@@ -507,7 +543,6 @@ namespace A305.Mission
                 if (parent == null)
                     return null;
                 canvas = parent.rootCanvas;
-                closedSortingOrder = canvas.sortingOrder;
             }
 
             return canvas;

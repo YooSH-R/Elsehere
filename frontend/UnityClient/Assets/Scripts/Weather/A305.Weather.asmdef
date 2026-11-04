@@ -1,7 +1,9 @@
 {
     "name": "A305.Weather",
     "rootNamespace": "A305.Weather",
-    "references": [],
+    "references": [
+        "A305.Theme"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

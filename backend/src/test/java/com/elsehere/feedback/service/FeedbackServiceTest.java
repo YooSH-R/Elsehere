@@ -66,7 +66,11 @@ class FeedbackServiceTest {
        "vocabCandidates": [{"expression": "latte",
                             "meaningKo": "라떼",
                             "exampleEn": "I'd like an iced latte.",
-                            "exampleKo": "아이스 라떼 주세요."}]}
+                            "exampleKo": "아이스 라떼 주세요."},
+                           {"expression": "to go",
+                            "meaningKo": "포장해서",
+                            "exampleEn": "Can I get it to go?",
+                            "exampleKo": "포장해 주실 수 있나요?"}]}
       """;
 
   @Autowired private FeedbackService feedbackService;
@@ -134,9 +138,11 @@ class FeedbackServiceTest {
                 "음료를 가지고 나가고 싶을 때 써요.",
                 "Can I get that to go? I'm in a hurry.",
                 "포장해 주실 수 있나요? 좀 급해서요."));
+    // 단어장은 단어·숙어·문장을 모두 저장하므로(F-33·VOCAB-02) 숙어 후보도 남긴다.
     assertThat(response.vocabCandidates())
         .containsExactly(
-            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
+            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."),
+            new VocabCandidateResponse("to go", "포장해서", "Can I get it to go?", "포장해 주실 수 있나요?"));
   }
 
   @Test
@@ -153,9 +159,11 @@ class FeedbackServiceTest {
     assertThat(response.situationExpressions())
         .extracting(SituationExpressionResponse::expression, SituationExpressionResponse::usageKo)
         .containsExactly(tuple("Can I get that to go?", "음료를 가지고 나가고 싶을 때 써요."));
+    // 단어장은 단어·숙어·문장을 모두 저장하므로(F-33·VOCAB-02) 숙어 후보도 남긴다.
     assertThat(response.vocabCandidates())
         .containsExactly(
-            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
+            new VocabCandidateResponse("latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."),
+            new VocabCandidateResponse("to go", "포장해서", "Can I get it to go?", "포장해 주실 수 있나요?"));
     assertThat(response.reviews().good()).containsExactly("원하는 것을 분명히 말했어요");
     assertThat(response.reviews().improve()).containsExactly("공손한 표현을 더 써 보세요");
     assertThat(response.suggestion())

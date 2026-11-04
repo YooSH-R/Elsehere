@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using A305.Dialogue;
+using A305.Theme;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -112,6 +114,12 @@ namespace A305.Learning
         private const float BodyTopPadding = 0;
         private const float SummaryTitleHeight = 26 * 1.2f;
         private const float SubtitleGap = 16 * 1.2f;
+
+        // 판 안은 시안 판(1240×770)을 1.2배로 배치하고, 화면에는 시안 크기로 줄여 보인다. 폭은 시안보다 좁은 1080으로,
+        // 머리줄의 부제(○○와 나눈 대화)와 오른쪽 탭 사이가 남는 만큼만 줄였다.
+        private const float FrameWidth = 1080 * 1.2f;
+        private const float FrameHeight = 770 * 1.2f;
+        private const float FrameScale = 1 / 1.2f;
         private static readonly Color TabInk = new Color32(47, 37, 27, 255);
         private static readonly Color TabMuted = new Color32(125, 110, 91, 255);
 
@@ -121,12 +129,17 @@ namespace A305.Learning
         private const float TileBottom = (32 + 20) * 1.2f;
 
         private readonly List<GameObject> situationRowItems = new List<GameObject>();
+
+        // 표현마다 [담기] 버튼. 저장하면 "담음"으로 바꾼다.
+        private readonly Dictionary<string, Button> saveButtons = new Dictionary<string, Button>(
+            StringComparer.OrdinalIgnoreCase
+        );
         private IReadOnlyList<FeedbackPage> pages;
         private FeedbackSection section;
         private int pageIndex;
         private int textPage = 1;
         private bool isRegenerating;
-        private Vector2 lastCanvasSize;
+        private Rect lastFreeArea;
         private bool isTranscriptShown;
         private bool isSaveAvailable = true;
 
@@ -153,6 +166,9 @@ namespace A305.Learning
         /// <summary>쪽 넘김 화살표 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform NavigationRowRect => navigationRow;
 
+        /// <summary>탭·화살표를 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
+        public RectTransform PageCardRect => (RectTransform)bodyText.transform.parent;
+
         /// <summary>오른쪽 위 X. 튜토리얼 코치 마크가 피드백 티칭 끝에 밝힌다.</summary>
         public RectTransform CloseButtonRect => (RectTransform)topCloseButton.transform;
 
@@ -160,6 +176,17 @@ namespace A305.Learning
         public void SetSaveAvailable(bool available)
         {
             isSaveAvailable = available;
+        }
+
+        /// <summary>단어장에 넣은 표현의 [담기]를 "담음"으로 바꾸고 다시 누르지 않게 한다.</summary>
+        public void ShowSaved(string expression)
+        {
+            if (!saveButtons.TryGetValue(expression, out Button save))
+                return;
+            save.interactable = false;
+            TMP_Text label = save.GetComponentInChildren<TMP_Text>(true);
+            if (label != null)
+                label.text = "담음";
         }
 
         /// <param name="conversationLines">[대화 기록 보기]로 보여 줄 방금 나눈 대화</param>
@@ -173,6 +200,7 @@ namespace A305.Learning
             isRegenerating = false;
             isTranscriptShown = false;
             panel.SetActive(true);
+            UiLayer.Open(this);
             SelectSection(FeedbackSection.Summary);
         }
 
@@ -193,6 +221,7 @@ namespace A305.Learning
             feedback = null;
             lines = null;
             panel.SetActive(false);
+            UiLayer.Close(this);
         }
 
         private void Awake()
@@ -298,6 +327,7 @@ namespace A305.Learning
                     DestroyImmediate(row);
             }
             situationRowItems.Clear();
+            saveButtons.Clear();
 
             foreach (SituationExpressionData expression in expressions)
             {
@@ -322,6 +352,7 @@ namespace A305.Learning
                 save.onClick.AddListener(() =>
                     SaveRequested?.Invoke(expression.Expression, expression.MeaningKo)
                 );
+                saveButtons[expression.Expression] = save;
                 row.SetActive(true);
                 situationRowItems.Add(row);
             }
@@ -442,25 +473,29 @@ namespace A305.Learning
         private ReferenceExpression CurrentExpression =>
             pages != null && pages.Count > 0 ? pages[pageIndex].Expression : null;
 
+        // 화면 크기가 바뀌거나 마을 HUD가 나타나고 사라져 빈 곳이 바뀌면 판을 다시 맞춘다.
         private void LateUpdate()
         {
-            if (
-                feedback != null
-                && ((RectTransform)panel.transform.parent).rect.size != lastCanvasSize
-            )
+            if (feedback != null && FreeArea() != lastFreeArea)
                 UpdateLayout();
         }
 
+        private Rect FreeArea()
+        {
+            return CenterWindow.Shared.FreeArea((RectTransform)panel.transform.parent);
+        }
+
+        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
+        // 빈 곳이 좁거나 낮으면 배치하는 판을 줄여(본문은 쪽을 더 나눈다) 빈 곳에 맞춘다.
         private void FitFrameToCanvas()
         {
             var frame = (RectTransform)panel.transform;
-            var canvas = (RectTransform)frame.parent;
-            lastCanvasSize = canvas.rect.size;
-            // 시안 판 1240×770(× 1.2). 작은 화면에서는 가장자리 24씩을 남긴다.
+            lastFreeArea = FreeArea();
             frame.sizeDelta = new Vector2(
-                Mathf.Min(1488, canvas.rect.width - 48),
-                Mathf.Min(924, canvas.rect.height - 48)
+                Mathf.Min(FrameWidth, lastFreeArea.width / FrameScale),
+                Mathf.Min(FrameHeight, lastFreeArea.height / FrameScale)
             );
+            CenterWindow.Shared.Place(frame, FrameScale);
         }
 
         public void UpdateLayout()

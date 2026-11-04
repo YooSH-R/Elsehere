@@ -34,15 +34,15 @@
       "fallback": {"gpt-6.1-sol": "gpt-6-luna"}
     },
     "gms-luna": {
-      "_note": "기본 구성 (2026-10-21~): 무례 판정 F1 0.803(잠긴 테스트셋 v1.1)으로 SOL 0.763·qwen 0.761보다 높고, 크레딧은 SOL의 약 1/20. 다만 판정 지연 1.1초(qwen 0.3초), 정밀도 75%(qwen 92%). 모든 대화 역할을 GPT-6 Luna로 (생각 끔 none). 역할별로 섞을 때는 이 구성에 --<역할>-model(프로토타입) / MODEL_<역할>(워커)로 덮어쓴다",
+      "_note": "기본 구성 (2026-10-21~): 무례 판정 F1 0.803(잠긴 테스트셋 v1.1)으로 SOL 0.763·qwen 0.761보다 높고, 크레딧은 SOL의 약 1/20. 다만 판정 지연 1.1초(qwen 0.3초), 정밀도 75%(qwen 92%). 대화 역할을 GPT-6 Luna로 (생각 끔 none). 단 NPC 대답(npc)은 2026-11-03부터 GPT-6.1 SOL: Luna NPC는 대화 맥락을 자주 놓쳐 플레이가 안 됨. 대답 스트림 첫 글자 12번 중앙 1.46초·최대 1.92초(Luna 1.04·1.68초)로 재전송 2.5초·상한 5초 안. 역할별로 섞을 때는 이 구성에 --<역할>-model(프로토타입) / MODEL_<역할>(워커)로 덮어쓴다",
       "provider": "gms",
       "models": {
-        "npc": "gpt-6-luna", "guard": "gpt-6-luna", "intent": "gpt-6-luna", "translate": "gpt-6-luna", "hint": "gpt-6-luna",
+        "npc": "gpt-6.1-sol", "guard": "gpt-6-luna", "intent": "gpt-6-luna", "translate": "gpt-6-luna", "hint": "gpt-6-luna",
         "feedback": "gpt-6-luna", "memory": "gpt-6-luna",
         "stt": {"provider": "groq", "model": "whisper-large-v3-turbo", "fallback": {"provider": "gms", "model": "whisper-1"},
                 "_note": "배포하면 Groq 키 하나의 한도를 모든 사용자가 나눠 써서, Groq가 한도·오류·응답 없음이면 GMS whisper-1로 한 번 더. GMS 음성 인식은 whisper-1만 받음(gpt-4o-transcribe 등 400). 2026-10-23 합성 음성 6.5초: GMS 중앙 1.9초, Groq 0.4초, 인식 결과 같음 — 느려서 기본은 Groq"}
       },
-      "fallback": {"gpt-6-luna": "gpt-6.1-sol"}
+      "fallback": {"gpt-6-luna": "gpt-6.1-sol", "gpt-6.1-sol": "gpt-6-luna"}
     }
   },
   "model_params": [

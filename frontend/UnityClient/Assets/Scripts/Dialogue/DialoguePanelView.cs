@@ -365,6 +365,8 @@ namespace A305.Dialogue
             useHintButton.interactable = content.CanSend && !string.IsNullOrEmpty(sentence);
 
             sendButton.interactable = content.CanSend;
+            // 정해진 대사를 따라가는 대화(튜토리얼 길 안내)는 대사를 다 마칠 때까지 끝낼 수 없다.
+            endButton.interactable = !content.IsGuided || content.IsGuidedCompleted;
             // 시작에 실패했거나 끝난 대화에 입력할 수 있으면 [보내기]가 아무 일도 하지 않는 것처럼 보이므로 함께 막는다.
             inputField.interactable = content.CanSend;
             // 정해진 대사를 따라가는 대화는 이번에 말하거나 입력할 대사를 빈 입력칸에 회색 안내로 미리 보인다.

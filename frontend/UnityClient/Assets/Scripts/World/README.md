@@ -10,7 +10,7 @@
 | --- | --- |
 | `SpaceTravelState` | 이동 요청을 한 번에 하나만 받고, 다음 공간에서 나타날 출입구와 카메라 각도를 한 번만 넘겨줍니다. 잠그면 풀 때까지 이동 요청을 거절하고, 잠금은 도착·취소 뒤에도 남습니다. Unity 객체 없이 테스트합니다. |
 | `SpaceTravel` | 씬을 불러와 공간을 옮깁니다. 씬이 바뀌어도 도착할 출입구와 카메라 각도가 남도록 정적으로 둡니다. 진행 흐름이 `SetLocked(true)`로 잠그면 문·[홈] 이동을 거절하고 `Refused`로 알립니다. 지금은 [Tutorial 모듈](../Tutorial/README.md)이 튜토리얼 단계마다 잠그고 풉니다. |
-| `SpaceTravelCurtain` | 공간을 옮기는 동안 화면을 검게 덮습니다(0.2초에 걸쳐 덮고 0.3초에 걸쳐 걷음). 덮는 동안 다음 씬을 미리 불러오고, 화면이 다 덮인 뒤에 씬을 바꿔 씬이 바뀌는 순간의 끊김을 가립니다. 덮여 있는 동안에는 `Application.backgroundLoadingPriority`를 `High`로 올려 불러오기에 프레임 시간을 더 쓰고, 도착하면 되돌립니다. 이전 공간을 끈 뒤 새 공간이 깨어나기까지는 공간의 카메라가 없으므로, 덮여 있는 동안 검은 화면만 그리는 카메라를 켭니다(Editor의 "No cameras rendering" 방지). 씬이 바뀌어도 남도록 처음 이동할 때 만들어 둡니다. 씬을 바꾸지 않는 `InteriorDoorway`도 같은 시간으로 덮고 걷습니다(`CoverWhile`). |
+| `SpaceTravelCurtain` | 공간을 옮기는 동안 화면을 검게 덮습니다(0.2초에 걸쳐 덮고 0.3초에 걸쳐 걷음). 덮는 동안 다음 씬을 미리 불러오고, 화면이 다 덮인 뒤에 씬을 바꿔 씬이 바뀌는 순간의 끊김을 가립니다. 덮여 있는 동안에는 `Application.backgroundLoadingPriority`를 `High`로 올려 불러오기에 프레임 시간을 더 쓰고, 도착하면 되돌립니다. 이전 공간을 끈 뒤 새 공간이 깨어나기까지는 공간의 카메라가 없으므로, 덮여 있는 동안 검은 화면만 그리는 카메라를 켭니다(Editor의 "No cameras rendering" 방지). 씬이 바뀌어도 남도록 처음 이동할 때 만들어 둡니다. 마을 매장도 같은 시간으로 덮은 동안 해당 실내를 로드하거나 해제합니다. |
 
 씬은 통째로 바꾸지 않고 새 씬을 겹쳐 불러온 뒤(`LoadSceneMode.Additive`) 이전 씬만 내립니다. 통째로 바꾸면 Unity가 이전 씬 에셋 정리와 GC를 매번 함께 돌려 마을처럼 큰 씬은 1초 넘게 더 걸리기 때문입니다. 겹쳐 불러오면서도 통째로 바꿀 때와 같게 동작하도록 다음을 지킵니다.
 
@@ -30,10 +30,13 @@
 | `PoliceDispatch` | 순찰차 출동 흐름. 주차 칸 → 진입로로 나가기 → 장소로 출동(장소가 없으면 본길 한 바퀴 순찰) → 장소 앞 20초 → 돌아오기 → 주차 칸. 나가 있는 동안 새 신고는 받지 않고, 돌아올 때 경광등을 끕니다. Unity 객체 없이 테스트합니다. |
 | `DrivePath` | 주차 칸과 본길 사이처럼 `CarLoopRoute` 밖을 잇는 3차 베지어 곡선 길. 길 위 거리로 위치·방향을 구합니다. Unity 객체 없이 테스트합니다. |
 | `PoliceCar` | 경찰서 옆 주차 칸의 순찰차. 진입로는 `DrivePath`로 직접 움직이고 본길은 `LoopingCar`로 신호를 지키며 달립니다. 주차 칸·진입로에서는 `LoopingCar.IsHeld`로 붙잡아 두어 본길 차들이 계속 피하게 하고, 진입로에서는 사람만 피합니다(차끼리 서로 기다리다 멈추지 않도록). 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켭니다. |
-| `LastSceneRecorder`, `ILastSceneApi`, `LastSceneApi` | Unity 씬 이름을 서버 장소 코드(`HomeScene`→`HOME`, `TownScene`→`TOWN`, `CafeScene`→`CAFE`, `HotelScene`→`HOTEL`, `ShopScene`→`SHOP`)로 바꿔 `PUT /api/v1/me/last-scene`으로 저장합니다. 장소가 아닌 씬은 저장하지 않고, 실패해도 예외 없이 결과로 알립니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
-| `GameClock`, `IGameClockApi`, `GameClockApi`, `GameClockTime` | 사용자별 게임 시간(WORLD-06·07). 게임 시간은 서버가 사용자마다 플레이한 시간만큼 흐르게 합니다(실제 10분 = 게임 하루, 대화 중 멈춤). 처음 들어오면 바로, 그 뒤로 30초마다 `POST /api/v1/me/game-clock/beats`를 보내고 받은 게임 시각을 `GameClock.Shared.Current`에 두며 `Changed`로 알립니다. 응답을 기다리는 동안은 다시 보내지 않고, 실패하면 마지막 시각을 그대로 두고 다음 간격에 다시 보냅니다. NPC 일과가 끊기지 않게 `Minutes`(1일차 0시부터 센 분)는 신호 사이에도 실제 시간만큼 흐르다가 새 시각을 받으면 그 값으로 맞추고, 서버가 대화 중이라 멈췄다고 알려 주면 흐르지 않습니다. 서버 시각을 받기 전(게스트, 서버 없이 씬만 볼 때)에는 새 사용자처럼 1일차 오전 8시에서 시작합니다. 장면을 옮겨도 주기가 이어지도록 정적으로 둡니다. Unity 객체 없이 테스트합니다. |
+| `PlaceScenes` | 서버 장소 코드와 Unity 씬 이름(`HOME`↔`HomeScene`, `TOWN`↔`TownScene`, `CAFE`↔`CafeScene`, `HOTEL`↔`HotelScene`, `SHOP`↔`ShopScene`). 재접속 위치 저장과 [길 안내](../Wayfinding/README.md)가 함께 씁니다. 새 장소 씬을 추가하면 이 표와 서버 시드(`scenes`)에 함께 추가합니다. Unity 객체 없이 테스트합니다. |
+| `LastSceneRecorder`, `ILastSceneApi`, `LastSceneApi` | Unity 씬 이름을 `PlaceScenes`로 서버 장소 코드로 바꿔 `PUT /api/v1/me/last-scene`으로 저장합니다. 장소가 아닌 씬은 저장하지 않고, 실패해도 예외 없이 결과로 알립니다. Unity 객체 없이 테스트합니다. |
+| `GameClock`, `IGameClockApi`, `GameClockApi`, `GameClockTime` | 사용자별 게임 시간(WORLD-06·07). 게임 시간은 서버가 사용자마다 플레이한 시간만큼 흐르게 합니다(실제 10분 = 게임 하루, 대화 중·튜토리얼을 마치기 전 멈춤). 처음 들어오면 바로, 그 뒤로 30초마다 `POST /api/v1/me/game-clock/beats`를 보내고 받은 게임 시각을 `GameClock.Shared.Current`에 두며 `Changed`로 알립니다. 응답을 기다리는 동안은 다시 보내지 않고, 실패하면 마지막 시각을 그대로 두고 다음 간격에 다시 보냅니다. NPC 일과가 끊기지 않게 `Minutes`(1일차 0시부터 센 분)는 신호 사이에도 실제 시간만큼 흐르다가 새 시각을 받으면 그 값으로 맞추고, 서버가 멈췄다고 알려 주거나 진행 흐름이 시계를 붙잡아 두면(`IsHeld`, 튜토리얼 동안) 흐르지 않습니다. 서버 시각을 받기 전(게스트, 서버 없이 씬만 볼 때)에는 새 사용자처럼 1일차 오전 8시에서 시작합니다. 장면을 옮겨도 주기가 이어지도록 정적으로 둡니다. Unity 객체 없이 테스트합니다. |
 | `GameClockText` | HUD 시계 칩과 폰 화면의 시각 글자. 게임 시각(분)을 "n일차 · 오전/오후 h:mm"으로 쓰고, 폰은 큰 시각("h:mm"), 날짜("n일차 · 오전/오후"), 상태 표시줄 시각("오전/오후 h:mm")을 따로 씁니다. Unity 객체 없이 테스트합니다. |
 | `JourneyStatus` | 미션 화면과 폰 메뉴가 함께 보는 오늘의 여정. 미션 화면이 단계 칩·할 일·진행 막대 상태(`JourneyMark`)·예산을 알리고, 폰 메뉴가 같은 내용을 보입니다. 폰의 [마을 지도] 앱은 `RequestMap`으로 미션 화면에 큰 지도를 열어 달라고 알립니다. 두 화면은 서로의 모듈을 참조하지 않고 이 상태로 만납니다. Unity 객체 없이 테스트합니다. |
+| `CenterWindow` | 단어장·피드백·피드백 목록처럼 화면 가운데를 차지하는 창과 마을 HUD를 함께 보되 겹치지 않게 하는 약속입니다. 미션 화면이 보이는 퀘스트 카드·미니맵이 화면 왼쪽에서 차지하는 폭을 알리면, 가운데 창은 그 오른쪽 빈 곳(위아래 150·옆 24 여백) 가운데에 놓이고 들어가지 않으면 배율을 줄입니다(`Place`). 학습 화면(`LearningController`)이 창을 열었다고 알리면 미션 화면은 펼친 수첩·큰 지도를 닫습니다. 두 화면은 서로의 모듈을 모르므로 이 상태로 만납니다. |
+| `GameClockDaylight` | 장소 씬의 `Systems/GameClockDaylight`에 있어, 매 프레임(LateUpdate) 게임 시각(`GameClock.Shared.Minutes`)을 그 장소의 낮·밤 표시(`A305.Weather`의 `DaylightView`: 마을은 `WeatherPresenter`, 실내는 `InteriorDaylight`)에 넘깁니다. 배포용 장소 씬 5개에는 **Tools → A305 → Weather → Build Day Night**으로 연결합니다(**World → Build Spaces**도 함께 붙입니다). |
 | `GameClockDriver` | 장소 씬의 `SpaceArrival` 객체에 붙어, 그 씬에 있는 동안 `GameClock`의 신호를 보내고 매 프레임 게임 시각을 흘립니다. 입구 화면에는 없어 로그인 전·로그아웃 뒤에는 보내지 않습니다. 튜토리얼(`HomeScene`)도 플레이 시간으로 셉니다. `apiSettings`가 비어 있으면 보내지 않습니다. 배포용 장소 씬 5개에는 **Tools → A305 → World → Connect Game Clock**으로 연결합니다(새로 꾸미는 씬은 **Set Up Open Scene**이 함께 붙입니다). |
 
 ## 의존성
@@ -81,7 +84,7 @@
 
 ## 거리 매장
 
-`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 실내는 모두 TownScene 안에 있습니다. 북쪽 거리 6곳은 직접 걸어 들어가며 문은 접근하면 열립니다. 경찰서는 문을 닫아 두고, 다른 장소처럼 문 앞에 닿으면 화면을 덮었다가 실내에 세웁니다([경찰서와 순찰차](#경찰서와-순찰차)). 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서의 Dan은 `PoliceStationBuilder`가 둡니다.
+`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 마을에서 원래 문을 밟으면 화면을 덮고 해당 건물의 실내 씬을 추가 로드합니다. 퇴장하면 실내 씬을 해제합니다. 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서의 Dan은 `PoliceStationBuilder`가 둡니다.
 
 | 프리팹 | 간판 | 건물 앞 위치(x, z) |
 | --- | --- | --- |
@@ -104,14 +107,37 @@
 - 순찰차는 택시와 같은 본길(남쪽 끝 z=-25, 북쪽 끝 z=66)을 달리고, 택시 목적지와 같은 정차 지점을 씁니다(경찰서 자신은 빼고 10곳). 주차 칸은 (-9, -28.8)이고, 진입로는 동쪽 끝 정원수(-3.7, -27.8)를 피해 그 북쪽으로 지납니다.
 - 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
 - 새 사물 단어는 경찰차·경찰관·주차장입니다.
-- 경찰서 출입은 `InteriorDoorway` 한 쌍이 맡습니다. 문 밖 보도 쪽 `Entrance/OutsideDoorway`에 닿으면 실내 `Entrance/InsideDoorway`의 도착 지점(문 안쪽 2m, 창구를 봄)에, 실내 쪽에 닿으면 문 밖 2m(본길을 봄)에 섭니다. 문짝(`PoliceStationDoor`)은 여닫지 않고 닫힌 채 통로를 막습니다. 씬을 바꾸지 않으므로 경찰관 대화를 마치고 나오면 순찰차 출동을 그대로 봅니다. 매장 Builder가 기존 경찰서 프리팹의 여닫이 문 기능을 빼고 출입구 한 쌍을 더합니다.
+- 경찰서 출입은 `InteriorDoorway` 한 쌍이 맡습니다. 문 밖 보도 쪽 `Entrance/OutsideDoorway`에 닿으면 실내 `Entrance/InsideDoorway`의 도착 지점(문 안쪽 2m, 창구를 봄)에, 실내 쪽에 닿으면 문 밖 2m(본길을 봄)에 섭니다. 문짝(`PoliceStationDoor`)은 여닫지 않고 닫힌 채 통로를 막습니다. 마을 씬과 경찰관의 근무 자리는 로드된 채로 유지하므로 경찰관 대화를 마치고 나오면 순찰차 출동을 그대로 봅니다. 매장 Builder가 기존 경찰서 프리팹의 여닫이 문 기능을 빼고 출입구 한 쌍을 더합니다.
 - 거리 매장 천장에는 카메라를 막는 충돌이 있습니다. 위층이 없는 경찰서는 천장이 막지 않으면 내려다볼 때 카메라가 천장 위로 빠집니다(드럭스토어와 같은 문제). 매장 Builder는 충돌이 없는 기존 매장 프리팹에 충돌만 더합니다.
+
+## 매장 실내 소품
+
+`TownShopInteriorBuilder`는 거리 매장 6곳(경찰서 제외)과 [북쪽 상가](#북쪽-상가) 3동의 1·2층, 모두 12개 공간을 가구와 소품으로 채웁니다. 공간마다 묶음 프리팹 하나(`Prefabs/World/TownInteriors/<공간>Interior.prefab`)를 두고, 원점은 건물 앞면 바닥 가운데(문 z=0, 뒷벽 z=-7.8)입니다. 이 프리팹을 매장 건물 프리팹의 `Interior` 아래 그 층 높이(1층 0m, 2층 4m)에 끼웁니다. 매장 Builder 코드와 기존 가구(창구·이발 의자·세탁기 등)는 바꾸지 않습니다. 공간 안은 `Stations`·`Kitchen`·`Lobby`처럼 구역 묶음으로 나눕니다.
+
+| 공간 프리팹 | 건물·층 | 더한 것 |
+| --- | --- | --- |
+| `BarberShopInterior` | 이발소 1층 | 이발대 서랍장·소독액 병·도구, 바퀴 도구함, 머리 건조기 의자, 샴푸 세면대와 의자, 수건·제품 선반, 가격판, 대기 의자·잡지 꽂이·코트걸이 |
+| `BakeryInterior`, `BakeryLoungeInterior` | 빵집 1층, 2층 | 뒷벽 빵 선반, 진열대 조명·가격표, 창가 케이크 탁자, 계단참 아래 데크 오븐·쟁반 선반, 계단 아래 빵 상자·밀가루 포대 / 2층 깔개·의자·장식장·그림 |
+| `MapleDinerInterior` | 다이너 1층 | 뒷벽 주방(냉장고·조리대·레인지와 후드), 소스·냅킨·버거, 부스 위 조명, 주크박스·껌 기계, 오늘의 파이 안내판 |
+| `PostOfficeInterior` | 우체국 1층 | 우편 분류 칸, 우편 수레, 소포 더미, 줄서기 기둥, 양식 탁자, 파란 우체통, 게시판 |
+| `TownBankInterior` | 은행 1층 | 창구 의자·화면, 금고 문, 서류함, 대기 깔개, 안내 책자 꽂이, 정수기, 금리 안내판 |
+| `LaundromatInterior` | 빨래방 1층 | 빨래 바구니·세제, 벽 선반, 세제 자판기, 빨래 수레, 옷걸이, 게시판, 동전 교환기 |
+| `FlowerShopInterior` | 꽃집 1층 | 벽 화분 선반, 천장에 건 화분, 꽃 냉장고, 포장지와 꽃다발, 꽃 통, 물뿌리개 |
+| `ArcadeInterior`, `BookshopInterior` | 오락실 1층, Paper & Leaf 2층 | 오락기 3대와 의자, 경품 진열, 동전 교환기 / 책 선반·책장, 독서 의자와 스탠드, 계산 자리 |
+| `HomeGoodsInterior`, `TeaRoomInterior` | 생활용품점 1층, Leaf Tea Room 2층 | 장식장·진열 탁자·스탠드·베개·깔개 / 찻주전자·찻잎 단지 선반·조명·깔개·메뉴판 |
+
+- 소품은 `Prefabs/World/TownInteriors/Props/`에 있습니다. [KayKit 가구·주방 모델](../../ThirdParty/CREDITS.md#마을-매장-실내)을 감싼 래퍼는 원본의 0.7배(주방 가구는 벽에 붙도록 앞뒤 0.42배)로 줄였고, 받은 모델에 없는 것은 둥근 도형으로 만든 조각입니다. 조각은 재질별로 메시를 합쳐 `Art/World/TownInteriors/Meshes/`에 두고, 재질은 `Art/World/TownInteriors/`에 둡니다. Tiny Treats·북쪽 상가 소품·집 책장은 기존 프리팹을 그대로 씁니다.
+- 바닥에 놓는 큰 가구에만 이동 충돌을 둡니다. 상자 윗면이 겉모양보다 뜨면 `PropColliderShape`로 메시 모양 충돌로 바꾸고, 선반·탁자 위에 올린 재사용 프리팹(빵·케이크 받침·인형·계산기)은 이동 충돌을 뺍니다. 문 앞 통로, 직원 자리, 계단과 계단 입구는 비웁니다.
+- 호버 단어는 뜻이 맞는 기존 단어만 다시 씁니다(시계·그림·깔개·단지·레인지·냉장고·싱크대 등). 맞는 단어가 없는 소품(주크박스·오븐·빨래 바구니·옷걸이 등)은 단어를 비우므로, 기존 매장 소품처럼 가리키면 건물 단어(shop)가 뜹니다. 그 호버 영역은 마을 씬이 아니라 매장 건물 프리팹에 둡니다.
+- **Tools → A305 → World → Build Town Shop Interiors**는 없는 프리팹만 만들고 아직 끼우지 않은 건물에 끼웁니다. **Rebuild Town Shop Interiors (Overwrite)**는 코드로 바꾼 배치를 반영하려고 공간·소품 프리팹을 같은 GUID로 덮어씁니다. 프리팹에서 손으로 고친 내용은 사라집니다. **Capture Town Shop Interiors**는 공간마다 문 안쪽 시점과 천장을 걷은 내려다보기, 비교용 카페·호텔 실내와 모음 두 장을 `artifacts/unity/town-interiors/`에 저장합니다.
+- 큰 가구를 바꾼 뒤에는 **Npc → Build Building Staff**로 매장 직원이 다닐 바닥을 다시 굽고, **ObjectHover → Export Backend Data**로 장소 단어(`backend/src/main/resources/content/object-word-bindings.json`)를 다시 내보냅니다.
+- 공간 묶음은 `Interior` 아래에 있으므로 Play·빌드 때 `ShopInteriorScenes`가 다른 실내 집기와 함께 건물별 실내 씬(`Scenes/ShopInteriors/<건물>Interior.unity`)으로 옮깁니다. 마을 씬에는 바닥·천장·계단만 남습니다. 편집은 지금처럼 공간 프리팹이나 매장 건물 프리팹에서 합니다.
 
 ## 확인 방법
 
 ### 북쪽 상가
 
-북쪽 상가는 `TownScene` 안에서 직접 걷는 실내입니다. 씬 이동이나 순간 이동 없이 계단을 오르내립니다. 기존 건물의 위치·높이·주요 외관을 유지하는 Prefab Variant를 사용하며, 호텔 앞 드럭스토어 구역은 이 Builder의 대상이 아닙니다.
+북쪽 상가 3곳도 건물별 실내 씬을 사용합니다. 인도에서 Little Arcade의 열린 공용 계단실로 걸어 들어가 각 층의 기존 매장 문을 이용합니다. 계단과 바닥은 마을 씬에 남습니다.
 
 | 기존 건물 앞 좌표 | 프리팹 | 층별 용도 | 출입 방식 |
 | --- | --- | --- | --- |
@@ -119,11 +145,11 @@
 | `(7, 0.1, 30)` | `NorthBlock/LittleArcade` | 1층 오락실, 2층 Paper & Leaf 서점 | 공용 계단실에서 각 층의 매장 문으로 진입 |
 | `(-7, 0.1, 39)` | `NorthBlock/HomeLiving` | 1층 생활용품점, 2층 Leaf Tea Room | 1층 독립 출입구, 전면 외부 계단으로 2층 진입 |
 
-`ShopSwingDoor`는 CharacterController가 문 앞에 접근하면 문짝을 열고, 감지 영역에서 나가면 닫습니다. 별도 키 입력은 필요하지 않습니다. 층별 문에는 씬 전환 Trigger를 사용하지 않습니다. 오락기·서점·찻집은 공간과 사물 학습을 위한 배치이며, 결제·오락기 플레이·상점 NPC 미션은 포함하지 않습니다.
+`ShopInteriorScenes`는 Play 및 빌드 시 기존 건물 프리팹에서 실내 집기를 건물별 씬으로 분리합니다. `ShopDoorway`는 캐릭터 머리가 닫힌 문에 닿기 전에 몸통을 감지해 입·퇴장을 시작합니다. 매장 직원은 방문 중에만 활동하며, 원본 프리팹에서 실내 배치를 편집할 수 있습니다. 새 매장은 **Tools → A305 → World → Register Shop Interior Scenes**로 빌드 목록에 등록합니다.
 
 **Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)을 기둥과 판에 붙여 다시 만듭니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
-계단·통로 통행과 문 개폐는 배치에 따른 결과이므로 자동 테스트 없이 TownScene을 Play해 확인합니다.
+`SpaceTravelTests`는 이동 키로 원래 매장 문 12개를 양방향 통과하며 건물의 실내 씬 로드·해제를 확인합니다. Unity에서 `TownScene`을 직접 Play할 때는 Ben 튜토리얼을 완료하거나 건너뛴 뒤 시험합니다.
 
 `Assets/Scenes/Production/HomeScene.unity`를 열고 Play합니다. 방 남쪽 문으로 나가면 마을 남동쪽 집 앞에 서고, 큰길 서쪽의 `CAFE`와 동쪽의 `HOTEL` 건물 문으로 들어갈 수 있습니다. 실내 남쪽 문으로 나오면 그 건물 앞으로 돌아갑니다. 조작 방법은 [Player 모듈](../Player/README.md)을 따릅니다.
 
@@ -163,6 +189,8 @@
 1. 두 공간에 `Prefabs/World/SpaceDoorway.prefab`을 하나씩 배치합니다. 앞쪽(+z, `ArrivalPoint` 방향)이 플레이어가 서는 쪽입니다. 문 모델은 프리팹의 `Visual` 아래에서 바꿉니다.
 2. 각 출입구의 `Doorway Id`, 이동할 씬(`Destination Scene`), 그 씬에서 나타날 출입구(`Destination Doorway Id`)를 서로 가리키게 입력합니다.
 3. `ArrivalPoint`는 문 앞 감지 영역 밖에 둡니다. 감지 영역 안에 두면 도착하자마자 다시 이동합니다.
+
+마을 출입문(집·카페·호텔·드럭스토어)에서는 문을 등지고 문 앞 인도 1m에 섭니다. 감지 영역은 문에서 0.6m 깊이까지 둡니다. 선 자리의 몸(반지름 0.33m)은 문 앞 0.67m까지만 와서 감지 영역에 닿지 않습니다. 문 쪽으로 걸으면 몸통보다 큰 머리(가장 큰 캐릭터 반지름 0.68m, `HeadClearance`)가 문짝에 먼저 닿아 몸이 0.475m에서 멈추므로, 감지 영역은 그보다 넉넉히 깊어야 들어갑니다. **Tools → A305 → World → Apply Town Door Arrival**(`TownProductionBuilder.ApplyDoorArrival`)이 TownScene의 출입문을 이 기준으로 맞추고, EditMode 테스트 `TownDoorArrivalTests`가 같은 기준을 검사합니다.
 
 ## 테스트
 

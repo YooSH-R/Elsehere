@@ -440,6 +440,7 @@ namespace A305.EditorTools.Npc
                 "talkRemainingBadge",
                 remainingBadge != null ? remainingBadge.gameObject : talkRemaining.gameObject
             );
+            GuestSignupDialogBuilder.SetUp(root, view);
             BuilderTools.RequireReferences(view);
             talkPrompt.gameObject.SetActive(false);
 

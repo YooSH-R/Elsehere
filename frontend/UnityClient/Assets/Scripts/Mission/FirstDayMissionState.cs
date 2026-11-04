@@ -20,6 +20,9 @@ namespace A305.Mission
         public string Weather { get; set; }
 
         public int Balance { get; set; }
+
+        /// <summary>가장 최근에 산 것(예: "우산"). 아직 산 것이 없으면 비어 있다.</summary>
+        public string LastPurchase { get; set; }
         public string Situation { get; set; }
         public string Direction { get; set; }
         public List<FirstDayMissionStep> Steps { get; set; } = new List<FirstDayMissionStep>();
@@ -37,6 +40,10 @@ namespace A305.Mission
                 return current?.Scene;
             }
         }
+
+        /// <summary>지금 단계에서 이야기할 NPC 코드. 시작 전과 모두 끝낸 뒤에는 없다.</summary>
+        public string CurrentNpc =>
+            Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.NpcCode : null;
 
         /// <summary>
         /// 카페 의자에 앉을 수 있는지. 호텔로 돌아가기 전까지 원하는 만큼 앉도록 미션 단계와 상관없이 카페에서 대화·요청 중이 아니면 앉는다.

@@ -5,12 +5,14 @@ import com.elsehere.ai.client.WorkerState;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
+import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
-import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
+import com.elsehere.world.entity.Npc;
+import com.elsehere.world.repository.NpcRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,10 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class TownStoryService {
   private final TownStoryRepository stories;
   private final FirstDayMissionRepository firstDay;
+  private final NpcRepository npcs;
 
-  public TownStoryService(TownStoryRepository stories, FirstDayMissionRepository firstDay) {
+  public TownStoryService(
+      TownStoryRepository stories, FirstDayMissionRepository firstDay, NpcRepository npcs) {
     this.stories = stories;
     this.firstDay = firstDay;
+    this.npcs = npcs;
   }
 
   public TownStory start(Long userId) {
@@ -60,10 +65,12 @@ public class TownStoryService {
             story -> {
               TownStoryStage current = story.current();
               if (!current.npcCode().equals(npcCode)) {
+                String owner = npcs.findByCode(current.npcCode()).map(Npc::getName).orElse(null);
                 return new FirstDayMissionService.Context(
                     story.getStage(),
                     null,
-                    "Stay in your own role and help the visitor if asked.",
+                    FirstDayMissionService.sendToOwner(shop(current.npcCode()), owner)
+                        + " Stay in your own role and help the visitor if asked.",
                     List.of());
               }
               List<String> remaining = new ArrayList<>();
@@ -81,7 +88,14 @@ public class TownStoryService {
                           .map(id -> new WorkerState.Intent(id, TownStoryStage.goalDescription(id)))
                           .toList());
               return new FirstDayMissionService.Context(
-                  story.getStage(), state, current.instruction(), remaining);
+                  story.getStage(),
+                  state,
+                  current.instruction()
+                      + " Objectives pending before this turn: "
+                      + String.join(",", remaining)
+                      + "."
+                      + FirstDayMissionService.LEARNER_LEADS,
+                  remaining);
             });
   }
 
@@ -115,11 +129,9 @@ public class TownStoryService {
             ? "마을에서 새로운 하루를 시작해 볼까요?"
             : completed
                 ? "마을에서의 하루를 마쳤어요."
-                : !"TOWN".equals(scene) ? "마을로 나가 다음 이야기를 이어 가세요." : story.current().situation();
-    // 첫날 예산에 끝낸 퀘스트의 보상을 더한다.
-    int balance =
-        (firstDayMission == null ? 20 : firstDayMission.getBalance())
-            + Quest.earned(firstDayMission != null && firstDayMission.isCompleted(), current);
+                : !"TOWN".equals(scene)
+                    ? "마을로 나가 " + talkTo(story.current().npcCode())
+                    : story.current().situation();
     return new FirstDayMissionResponse(
         started,
         current,
@@ -128,13 +140,40 @@ public class TownStoryService {
         false,
         false,
         "CLEAR",
-        balance,
+        // 코인은 첫날 퀘스트와 마을 이야기 진행에서 함께 계산한다.
+        Coins.balance(firstDayMission, story),
+        Coins.lastPurchase(firstDayMission, story),
         situation,
         !started
             ? "대화 연습이에요. 실제 결제·물건 전달·외형 변경은 없어요."
             : completed
                 ? "마을의 이웃들과 자유롭게 대화해 보세요."
-                : !"TOWN".equals(scene) ? "마을로 나가 다음 목표를 확인하세요." : "직원에게 이야기해 보세요.",
+                : !"TOWN".equals(scene)
+                    ? "마을로 나가 다음 목표를 확인하세요."
+                    : talkTo(story.current().npcCode()),
         steps);
+  }
+
+  /** 퀘스트 카드에 보일 '지금 만날 직원' 안내. 직원 정보를 찾지 못하면 직원이라고만 쓴다. */
+  private String talkTo(String npcCode) {
+    return npcs.findByCode(npcCode)
+        .map(npc -> npc.getRoleLabel() + " " + npc.getName() + "에게 이야기해 보세요.")
+        .orElse("직원에게 이야기해 보세요.");
+  }
+
+  // 마을 이야기 직원이 있는 가게. NPC 대답은 영어라 영어 이름을 쓴다.
+  private static String shop(String npcCode) {
+    return switch (npcCode) {
+      case "DINER_STAFF" -> "the diner";
+      case "LAUNDROMAT_STAFF" -> "the laundromat";
+      case "BANK_STAFF" -> "the bank";
+      case "BARBER_STAFF" -> "the barbershop";
+      case "FLOWER_SHOP_STAFF" -> "the flower shop";
+      case "BAKERY_STAFF" -> "the bakery";
+      case "HOME_STORE_STAFF" -> "the home goods store";
+      case "ARCADE_STAFF" -> "the arcade";
+      case "POST_OFFICE_STAFF" -> "the post office";
+      default -> "the main street";
+    };
   }
 }

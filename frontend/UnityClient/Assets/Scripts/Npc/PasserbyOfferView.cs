@@ -56,11 +56,17 @@ namespace A305.Npc
         [Tooltip("말 걸기 버튼 안에서 E 글자 뒤에 놓는 키보드 키 모양")]
         private RectTransform talkKeyHint;
 
+        [SerializeField]
+        [Tooltip("대화를 다 쓴 게스트가 [가입하고 계속 대화하기]를 누르면 띄우는 가입 안내 창")]
+        private GuestSignupDialogView signupDialog;
+
         private object owner;
         private Action onAccept;
         private Action onDecline;
         private object talkPromptOwner;
         private Action onTalk;
+        private bool isSignupPrompt;
+        private string talkCaption;
 
         public bool IsShowing => owner != null;
 
@@ -77,7 +83,10 @@ namespace A305.Npc
         /// <summary>새 대화를 시작할 수 없어 [말 걸기]를 막고 이유를 보이는 중인지.</summary>
         public bool IsTalkBlocked => IsTalkPromptShowing && !talkButton.interactable;
 
-        public string TalkLabelText => talkLabel.text;
+        /// <summary>대화를 다 쓴 게스트에게 [말 걸기] 대신 가입 버튼을 보이는 중인지.</summary>
+        public bool IsSignupPromptShowing => IsTalkPromptShowing && isSignupPrompt;
+
+        public string TalkLabelText => talkCaption;
 
         /// <summary>제안 화면에 보이는 남은 대화 수. 숨겼으면 null이다.</summary>
         public string RemainingText => ShownText(remainingLabel);
@@ -139,9 +148,8 @@ namespace A305.Npc
         {
             talkPromptOwner = requester;
             onTalk = talk;
-            bool showKeyHint = !PlayerTouchControls.ShouldShowControls();
-            talkLabel.text = showKeyHint ? $"{label}<space=20><size=85%>E</size>" : label;
-            talkKeyHint.gameObject.SetActive(showKeyHint);
+            isSignupPrompt = false;
+            SetTalkLabel(label, !PlayerTouchControls.ShouldShowControls());
             talkButton.interactable = true;
             SetTalkRemaining(remaining);
             talkPromptPanel.SetActive(true);
@@ -162,10 +170,27 @@ namespace A305.Npc
         {
             talkPromptOwner = requester;
             onTalk = null;
-            talkLabel.text = reason;
-            talkKeyHint.gameObject.SetActive(false);
+            isSignupPrompt = false;
+            SetTalkLabel(reason, false);
             talkButton.interactable = false;
             SetTalkRemaining(null);
+            talkPromptPanel.SetActive(true);
+        }
+
+        /// <summary>
+        /// 게스트가 대화를 다 썼을 때 [말 걸기] 자리에 가입으로 이어지는 버튼을 보인다. 버튼이나 E 키로 가입 안내 창을 연다.
+        /// 행인·직원과 택시가 같은 자리를 쓴다.
+        /// </summary>
+        /// <param name="label">버튼 문구(<see cref="PasserbyOfferText.SignupLabel"/>)</param>
+        /// <param name="note">버튼 위에 붙일 안내(<see cref="PasserbyOfferText.Blocked"/>)</param>
+        public void ShowSignupPrompt(object requester, string label, string note)
+        {
+            talkPromptOwner = requester;
+            onTalk = signupDialog.Show;
+            isSignupPrompt = true;
+            SetTalkLabel(label, !PlayerTouchControls.ShouldShowControls());
+            talkButton.interactable = true;
+            SetTalkRemaining(note);
             talkPromptPanel.SetActive(true);
         }
 
@@ -181,6 +206,7 @@ namespace A305.Npc
         {
             talkPromptOwner = null;
             onTalk = null;
+            isSignupPrompt = false;
             HideIfPresent(talkPromptPanel);
         }
 
@@ -196,6 +222,13 @@ namespace A305.Npc
         {
             label.text = text ?? string.Empty;
             label.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
+        private void SetTalkLabel(string caption, bool showKeyHint)
+        {
+            talkCaption = caption;
+            talkLabel.text = showKeyHint ? $"{caption}<space=20><size=85%>E</size>" : caption;
+            talkKeyHint.gameObject.SetActive(showKeyHint);
         }
 
         private void SetTalkRemaining(string text)

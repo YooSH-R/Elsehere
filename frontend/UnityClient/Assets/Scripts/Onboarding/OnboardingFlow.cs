@@ -21,6 +21,9 @@ namespace A305.Onboarding
 
         private readonly IOnboardingApi api;
 
+        // 게임에 들어가기 전에 멈춘 화면(게스트 다시 접속·이미 가입한 계정 안내) 다음에 갈 튜토리얼이나 마을
+        private EntryScreen screenAfterNotice;
+
         public OnboardingFlow(IOnboardingApi api)
         {
             this.api = api;
@@ -55,39 +58,31 @@ namespace A305.Onboarding
         public string ErrorMessage { get; private set; }
 
         /// <summary>
-        /// 접속 상태를 읽어 첫 화면을 정한다. 로그인 외의 이유로 실패하면 보여 줄 화면을 정할 수 없으므로 [다시 시도] 화면으로 둔다.
+        /// 페이지를 열 때 접속 상태를 읽어 첫 화면을 정한다. 로그인 외의 이유로 실패하면 보여 줄 화면을 정할 수 없으므로 [다시 시도] 화면으로 둔다.
         /// 그 화면의 [다시 시도]도 이 메서드를 다시 부른다.
         /// </summary>
-        public async Task StartAsync()
+        /// <remarks>
+        /// 게임(튜토리얼·마을)으로 가기 전에 한 번 멈춰 알릴 것이 있으면 그 화면을 먼저 보인다. 게스트로 다시 들어왔으면 가입과 게스트로 계속하기를
+        /// 고르게 하고(<see cref="EntryScreen.GuestReturn"/>), 게스트 세션에서 이미 가입한 계정으로 들어왔으면 그 사실을 알린다
+        /// (<see cref="EntryScreen.ExistingAccount"/>).
+        /// </remarks>
+        /// <param name="signedInToExistingAccount">
+        /// 게스트 세션에서 Google 로그인했는데 이미 가입한 계정이라 그 계정으로 들어왔는지(AUTH-02의 ?existingAccount=true)
+        /// </param>
+        public Task StartAsync(bool signedInToExistingAccount = false)
         {
-            await RunAsync(async () =>
+            return RestartAsync(offersGuestSignup: true, signedInToExistingAccount);
+        }
+
+        /// <summary>
+        /// 게임에 들어가기 전에 멈춘 화면(<see cref="EntryScreen.GuestReturn"/>·<see cref="EntryScreen.ExistingAccount"/>)에서
+        /// 원래 가려던 튜토리얼이나 마을로 간다.
+        /// </summary>
+        public void ContinueToGame()
+        {
+            if (Screen == EntryScreen.GuestReturn || Screen == EntryScreen.ExistingAccount)
             {
-                BootstrapResponse boot = await api.GetBootstrapAsync();
-                LanguageCode = boot.User?.CurrentLanguage;
-                SelectedAvatar = boot.User?.AvatarType;
-                UiTheme = boot.User?.UiTheme;
-                Nickname = boot.User?.Nickname;
-                IsVoiceAgreed = boot.User?.VoiceConsent ?? false;
-
-                LevelTestStatus? lastLevelTest = null;
-                if (boot.User?.OnboardingStep == OnboardingStep.Level)
-                {
-                    LanguageProfile = await api.GetLanguageProfileAsync(LanguageCode);
-                    lastLevelTest = LanguageProfile.LevelTest?.Status;
-                }
-
-                EntryScreen screen = EntryRouter.Route(boot, lastLevelTest);
-                if (screen == EntryScreen.World && boot.LastSceneCode != null)
-                {
-                    LastSceneName = await FindOpenSceneAsync(boot.LastSceneCode);
-                }
-
-                await EnterAsync(screen);
-            });
-
-            if (ErrorMessage != null)
-            {
-                Screen = EntryScreen.ConnectionFailed;
+                Screen = screenAfterNotice;
             }
         }
 
@@ -97,7 +92,75 @@ namespace A305.Onboarding
             await RunAsync(() => api.DevLoginAsync(userId));
             if (ErrorMessage == null)
             {
-                await StartAsync();
+                await RestartAsync(offersGuestSignup: false, signedInToExistingAccount: false);
+            }
+        }
+
+        private async Task RestartAsync(bool offersGuestSignup, bool signedInToExistingAccount)
+        {
+            await RunAsync(() =>
+                EnterFromBootstrapAsync(offersGuestSignup, signedInToExistingAccount)
+            );
+            if (ErrorMessage != null)
+            {
+                Screen = EntryScreen.ConnectionFailed;
+            }
+        }
+
+        private async Task EnterFromBootstrapAsync(
+            bool offersGuestSignup,
+            bool signedInToExistingAccount
+        )
+        {
+            BootstrapResponse boot = await api.GetBootstrapAsync();
+            LanguageCode = boot.User?.CurrentLanguage;
+            SelectedAvatar = boot.User?.AvatarType;
+            UiTheme = boot.User?.UiTheme;
+            Nickname = boot.User?.Nickname;
+            IsVoiceAgreed = boot.User?.VoiceConsent ?? false;
+
+            LevelTestStatus? lastLevelTest = null;
+            if (boot.User?.OnboardingStep == OnboardingStep.Level)
+            {
+                LanguageProfile = await api.GetLanguageProfileAsync(LanguageCode);
+                lastLevelTest = LanguageProfile.LevelTest?.Status;
+            }
+
+            EntryScreen screen = EntryRouter.Route(boot, lastLevelTest);
+            if (screen == EntryScreen.World && boot.LastSceneCode != null)
+            {
+                LastSceneName = await FindOpenSceneAsync(boot.LastSceneCode);
+            }
+
+            await EnterAsync(screen);
+            PauseBeforeGame(boot.User, offersGuestSignup, signedInToExistingAccount);
+        }
+
+        private void PauseBeforeGame(
+            OnboardingUser user,
+            bool offersGuestSignup,
+            bool signedInToExistingAccount
+        )
+        {
+            if (Screen != EntryScreen.World && Screen != EntryScreen.Tutorial)
+            {
+                return;
+            }
+
+            EntryScreen? notice = null;
+            if (offersGuestSignup && user.Guest)
+            {
+                notice = EntryScreen.GuestReturn;
+            }
+            else if (signedInToExistingAccount && !user.Guest)
+            {
+                notice = EntryScreen.ExistingAccount;
+            }
+
+            if (notice != null)
+            {
+                screenAfterNotice = Screen;
+                Screen = notice.Value;
             }
         }
 
@@ -173,7 +236,8 @@ namespace A305.Onboarding
             await RunAsync(() => api.GuestLoginAsync(avatar, voiceConsent));
             if (ErrorMessage == null)
             {
-                await StartAsync();
+                // 방금 게스트로 시작했으므로 가입을 권하지 않고 바로 튜토리얼로 간다.
+                await RestartAsync(offersGuestSignup: false, signedInToExistingAccount: false);
             }
         }
 
@@ -187,13 +251,18 @@ namespace A305.Onboarding
             });
         }
 
+        /// <summary>
+        /// 가입한 뒤 새 회원은 언어 선택으로 간다. 게스트가 회원이 됐으면 게스트 때 초기 설정 단계와 장소가 그대로이므로 접속 상태를 다시 읽어
+        /// 튜토리얼이나 마지막 장소로 바로 간다.
+        /// </summary>
         public Task SubmitSignupAsync()
         {
             return RunAsync(async () =>
             {
+                SignupResponse response;
                 try
                 {
-                    SignupResponse response = await api.SignUpAsync(SignupForm.ToRequest());
+                    response = await api.SignUpAsync(SignupForm.ToRequest());
                     SelectedAvatar = response.User?.AvatarType;
                     UiTheme = response.User?.UiTheme;
                     Nickname = response.User?.Nickname;
@@ -206,7 +275,17 @@ namespace A305.Onboarding
                     throw;
                 }
 
-                await EnterAsync(EntryScreen.Language);
+                if (response.User?.OnboardingStep == OnboardingStep.Language)
+                {
+                    await EnterAsync(EntryScreen.Language);
+                }
+                else
+                {
+                    await EnterFromBootstrapAsync(
+                        offersGuestSignup: false,
+                        signedInToExistingAccount: false
+                    );
+                }
             });
         }
 
@@ -253,7 +332,7 @@ namespace A305.Onboarding
             {
                 case EntryScreen.Signup:
                     SignupFormResponse form = await api.GetSignupFormAsync();
-                    SignupForm = new SignupForm(form.Consents);
+                    SignupForm = new SignupForm(form.Consents, form.Guest);
                     break;
                 case EntryScreen.Language:
                     Languages = await api.GetLanguagesAsync();

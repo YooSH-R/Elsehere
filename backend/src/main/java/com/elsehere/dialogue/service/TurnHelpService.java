@@ -13,9 +13,13 @@ import com.elsehere.conversation.service.ConversationLookup;
 import com.elsehere.dialogue.dto.HintResponse;
 import com.elsehere.dialogue.dto.MeaningResponse;
 import com.elsehere.dialogue.dto.SuggestWordsResponse;
+import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.MissionDialogueService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,7 @@ public class TurnHelpService {
   private final TurnRepository turnRepository;
   private final ConversationLookup conversationLookup;
   private final DialogueContexts dialogueContexts;
+  private final MissionDialogueService missionDialogueService;
   private final ConversationResponses conversationResponses;
   private final AiGateway aiGateway;
   private final TransactionTemplate transactionTemplate;
@@ -75,9 +80,10 @@ public class TurnHelpService {
     }
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
-    // 장면별 목표가 아직 없어 NPC 대답처럼 목표를 비워 보낸다(워커는 마지막 NPC 대사에 자연스럽게 대답할 말을 만든다).
     String hintText =
-        aiGateway.hint(trace, target.npc(), target.history(), "", target.level()).firstSentence();
+        aiGateway
+            .hint(trace, target.npc(), target.history(), target.goal(), target.level())
+            .firstSentence();
     Instant openedAt = clock.instant();
     transactionTemplate.executeWithoutResult(
         status ->
@@ -95,7 +101,9 @@ public class TurnHelpService {
 
     WorkerTrace trace = new WorkerTrace(requestId, userId, target.conversationId());
     List<String> words =
-        aiGateway.suggest(trace, target.npc(), target.history(), "", target.level()).words();
+        aiGateway
+            .suggest(trace, target.npc(), target.history(), target.goal(), target.level())
+            .words();
     String wordsJson = conversationResponses.writeWords(words);
     transactionTemplate.executeWithoutResult(
         status ->
@@ -118,13 +126,39 @@ public class TurnHelpService {
   private HintTarget hintTarget(Long userId, Long turnId) {
     Turn turn = conversationLookup.ownedNpcTurn(userId, turnId);
     Conversation conversation = turn.getConversation();
+    NpcContext npc = dialogueContexts.npcOf(conversation);
     return new HintTarget(
         turn.getHintText(),
         turn.getSuggestWords(),
         conversation.getId(),
         conversation.getLevelApplied(),
-        dialogueContexts.npcOf(conversation).workerNpc(),
-        dialogueContexts.historyUntil(conversation.getId(), turn.getSeq()));
+        npc.workerNpc(),
+        dialogueContexts.historyUntil(conversation.getId(), turn.getSeq()),
+        learningGoal(userId, conversation, npc.summary().npcCode()));
+  }
+
+  // 지난 대화나 근무 밖의 대화에 현재 퀘스트를 섞지 않는다. NPC만 아는 사실 대신 학습자에게 남은 첫 목표만 보낸다.
+  private String learningGoal(Long userId, Conversation conversation, String npcCode) {
+    if (conversation.isNpcOffDuty()) {
+      return "";
+    }
+    Optional<MissionDialogueService.Context> active =
+        missionDialogueService.context(userId, npcCode);
+    if (active.isEmpty()) {
+      return "";
+    }
+    MissionDialogueService.Context mission = active.get();
+    Integer conversationStage =
+        mission.townStory() ? conversation.getTownStoryStage() : conversation.getFirstDayStage();
+    FirstDayMissionService.Context detail = mission.detail();
+    if (!Objects.equals(conversationStage, detail.stage()) || !detail.hasGoals()) {
+      return "";
+    }
+    return detail.state().intents().stream()
+        .filter(intent -> detail.remainingGoals().contains(intent.id()))
+        .map(intent -> intent.desc())
+        .findFirst()
+        .orElse("");
   }
 
   /** AI 호출 전에 트랜잭션 안에서 꺼내 둔 NPC 턴 정보. */
@@ -148,5 +182,6 @@ public class TurnHelpService {
       Long conversationId,
       int level,
       WorkerNpc npc,
-      List<WorkerLine> history) {}
+      List<WorkerLine> history,
+      String goal) {}
 }

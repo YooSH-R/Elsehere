@@ -178,6 +178,18 @@ public class AiGateway {
     return aiWorkerClient.relationship(trace, npc, relationship, history);
   }
 
+  /**
+   * 끝난 대화에서 NPC가 곧 건네기로 한 것(워커 문서 2.7.3). 기억 카드와 같은 자리·같은 모델이라 AI 요청 기록도 MEMORY로 남긴다.
+   *
+   * @param history 대화 전체(최대 200줄)
+   */
+  public FollowUpResult followUp(WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    FollowUpResult result =
+        send(trace, AiRequestKind.MEMORY, () -> aiWorkerClient.followUp(trace, npc, history));
+    record(trace, AiRequestKind.MEMORY, result.usage(), true);
+    return result;
+  }
+
   /** 대화 종료 피드백. 평가할 발화 부족·생성 실패는 결과의 상태로 돌려주고, completed가 아니면 FAILED로 남긴다. */
   public WorkerFeedback feedback(WorkerTrace trace, FeedbackInput input) {
     WorkerFeedback result =

@@ -6,6 +6,8 @@ using A305.Tutorial;
 using A305.World;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -30,6 +32,54 @@ namespace A305.Npc.PlayModeTests
             // 하루 한 번 기록은 이 기기에 남으므로 끝난 뒤에도 지워 Editor에서 플레이할 때 남지 않게 한다.
             // 튜토리얼 행인은 튜토리얼의 이웃 만나기 단계에서만 다가오므로, 튜토리얼도 처음부터 시작한다.
             TutorialState.Clear();
+        }
+
+        [UnityTest]
+        public IEnumerator OfferedConversation_InteractionKeyAcceptsTheVisibleOfferOnce()
+        {
+            yield return LoadTownAfterTutorial();
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            object requester = new object();
+            int accepted = 0;
+            offer.Show(
+                requester,
+                "호텔 직원이 말을 걸었어요",
+                "Are you checking in?",
+                true,
+                null,
+                () =>
+                {
+                    accepted++;
+                    offer.Hide(requester);
+                },
+                () => offer.Hide(requester)
+            );
+            InputSettings.BackgroundBehavior oldBackground = InputSystem
+                .settings
+                .backgroundBehavior;
+            InputSettings.EditorInputBehaviorInPlayMode oldEditorInput = InputSystem
+                .settings
+                .editorInputBehaviorInPlayMode;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings
+                .EditorInputBehaviorInPlayMode
+                .AllDeviceInputAlwaysGoesToGameView;
+            Keyboard keyboard = InputSystem.AddDevice<Keyboard>();
+            try
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
+                yield return null;
+                yield return null;
+
+                Assert.That(accepted, Is.EqualTo(1));
+                Assert.That(offer.IsShowing, Is.False);
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.settings.backgroundBehavior = oldBackground;
+                InputSystem.settings.editorInputBehaviorInPlayMode = oldEditorInput;
+            }
         }
 
         [UnityTest]

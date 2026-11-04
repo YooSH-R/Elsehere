@@ -260,7 +260,11 @@ namespace A305.Learning.Tests
         }
 
         [TearDown]
-        public void TearDown() => Object.DestroyImmediate(screen);
+        public void TearDown()
+        {
+            Object.DestroyImmediate(screen);
+            A305.ObjectHover.ObjectWordCards.ShareLearnedWords(new string[0]);
+        }
 
         [Test]
         public async Task SelectingAWordShowsItsOwnMeaningContextAndMemo()

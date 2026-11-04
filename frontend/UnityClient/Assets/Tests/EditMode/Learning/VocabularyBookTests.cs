@@ -20,6 +20,47 @@ namespace A305.Learning.Tests
             book = new VocabularyBook(api);
         }
 
+        [TearDown]
+        public void ForgetLearnedWords() => ObjectWordCards.ShareLearnedWords(new string[0]);
+
+        // 외운 단어는 사물 카드도 호버로 띄우지 않으므로, 단어장을 받거나 외웠어요를 바꾸거나 지우면 사물 카드에 알린다.
+        [Test]
+        public async Task LoadAsync_TellsObjectCardsWhichWordsAreLearned()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파", memorized: true),
+                Item(21, "latte", "라떼")
+            );
+
+            await book.LoadAsync();
+
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.True);
+            Assert.That(ObjectWordCards.IsLearned("latte"), Is.False);
+        }
+
+        [Test]
+        public async Task ToggleLearnedAsync_TellsObjectCardsTheWordIsLearnedOrNot()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.True);
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.False);
+        }
+
+        [Test]
+        public async Task DeleteAsync_LearnedWord_PopsUpOnObjectCardsAgain()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파", memorized: true));
+
+            await book.DeleteAsync(entry);
+
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.False);
+        }
+
         [Test]
         public async Task LoadAsync_ReadsEveryPageInServerOrder()
         {

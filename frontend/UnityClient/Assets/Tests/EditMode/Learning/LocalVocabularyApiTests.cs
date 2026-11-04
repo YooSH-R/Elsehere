@@ -23,6 +23,7 @@ namespace A305.Learning.Tests
         {
             LocalObjectWordApi.Forget();
             LocalVocabularyApi.Forget();
+            ObjectWordCards.ShareLearnedWords(new string[0]);
         }
 
         [Test]

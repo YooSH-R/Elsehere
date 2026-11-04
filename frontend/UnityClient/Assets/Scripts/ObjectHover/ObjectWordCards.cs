@@ -33,6 +33,10 @@ namespace A305.ObjectHover
             SavedWordRemoved?.Invoke(text);
         }
 
+        public static void ShareLearnedWords(IEnumerable<string> texts) { }
+
+        public static bool IsLearned(string text) => false;
+
         /// <summary>장소의 단어 카드를 받았는지</summary>
         public bool IsLoaded { get; private set; }
 

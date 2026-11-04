@@ -294,7 +294,9 @@ namespace A305.EditorTools.Learning
             first.SetAsFirstSibling();
             BuilderTools.GetOrAddComponent<LayoutElement>(first.gameObject).preferredHeight =
                 30 * Px;
-            Transform phrase = texts.Find("Phrase") ?? first.Find("Phrase");
+            Transform phrase = texts.Find("Phrase");
+            if (phrase == null)
+                phrase = first.Find("Phrase");
             phrase.SetParent(first, false);
             var phraseText = phrase.GetComponent<TMP_Text>();
             Style(phraseText, DisplayFontPath, 28, Ink);

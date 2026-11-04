@@ -17,6 +17,9 @@ namespace A305.Weather
         private static readonly int HorizonId = Shader.PropertyToID("_Horizon");
         private static readonly int StarsId = Shader.PropertyToID("_Stars");
 
+        // 매장 실내(Interior)의 천장 등 이름. 입점 건물 외벽에 붙은 상점 등(FixtureLight)은 여기에 들지 않는다.
+        private const string ShopRoomLampName = "InteriorLight";
+
         [SerializeField]
         private WeatherSettings settings;
 
@@ -80,11 +83,13 @@ namespace A305.Weather
                 return;
 
             var renderers = interior.GetComponentsInChildren<Renderer>(true);
+            // 매장 실내는 마을의 어두운 밤 환경광을 그대로 받으므로 실내등을 매장 실내등 배율로 밝힌다.
             shopLights = new NightLights(
                 daylight,
-                interior.GetComponentsInChildren<Light>(true),
+                Enumerable.Empty<Light>(),
                 renderers,
-                renderers
+                renderers,
+                shopLamps: interior.GetComponentsInChildren<Light>(true)
             );
             if (shownMinutes.HasValue)
                 shopLights.Apply(daylight, daylight.NightAmount(shownMinutes.Value));
@@ -225,17 +230,30 @@ namespace A305.Weather
             shownLook = designedLook;
             designedSunRotation = sun.transform.rotation;
             if (daylight != null)
+            {
+                // 입점 건물 안의 실내등은 마을의 어두운 밤 환경광을 그대로 받는 방을 밝히므로 따로 배율을 둔다.
+                Light[] shopLamps = lamps
+                    .Where(lamp =>
+                        lamp != null
+                        && lamp.name == ShopRoomLampName
+                        && litBuildings.Any(building =>
+                            building != null && lamp.transform.IsChildOf(building)
+                        )
+                    )
+                    .ToArray();
                 nightLights = new NightLights(
                     daylight,
-                    lamps,
+                    lamps.Except(shopLamps),
                     gameObject
                         .scene.GetRootGameObjects()
                         .SelectMany(root => root.GetComponentsInChildren<Renderer>(true)),
                     litBuildings
                         .Where(building => building != null)
                         .SelectMany(building => building.GetComponentsInChildren<Renderer>(true)),
-                    streetLamps
+                    streetLamps,
+                    shopLamps: shopLamps
                 );
+            }
 
             if (designedSky != null)
             {

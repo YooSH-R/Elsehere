@@ -1,4 +1,6 @@
 using System;
+using A305.Theme;
+using A305.World;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -120,6 +122,7 @@ namespace A305.Learning
             book = shownBook;
             selectedIndex = 0;
             panel.SetActive(true);
+            UiLayer.Open(this);
             ShowStatus("");
             Refresh();
         }
@@ -128,6 +131,7 @@ namespace A305.Learning
         {
             book = null;
             panel.SetActive(false);
+            UiLayer.Close(this);
         }
 
         /// <summary>목록 아래 안내(불러오는 중, 저장 실패 등). 빈 문자열이면 지운다.</summary>
@@ -218,6 +222,13 @@ namespace A305.Learning
                 meaning.anchoredPosition.x,
                 sentence.anchoredPosition.y - sentenceHeight - 6
             );
+        }
+
+        // 마을 HUD(퀘스트 카드·미니맵)를 함께 볼 수 있게 그 오른쪽 빈 곳 가운데에 둔다.
+        private void LateUpdate()
+        {
+            if (panel.activeSelf)
+                CenterWindow.Shared.Place(PanelRect);
         }
 
         private void Awake()

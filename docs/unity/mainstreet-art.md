@@ -10,6 +10,16 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 ## Production 장소 구분과 편집
 
+### 확장 예정 지역 구름
+
+동서 미개발 공간은 `Environment/FutureDistrictClouds/DistrictCloudCoverage`의 구름으로 덮는다. 양쪽 경계(-32~70m)를 따라 구름을 이어 배치하고 바깥쪽에 한 겹 더 쌓아 건물 사이로 빈 지면이 드러나는 것을 줄인다. 기존 북쪽 거리와 경계 Collider는 유지한다.
+
+서쪽 공중 안내판은 `공항 개발중`, 동쪽 안내판은 `놀이공원 개발중`을 표시한다. 교차로와 집 앞, 북쪽 거리에서 해당 방향의 하늘을 보면 구름 위의 안내판을 볼 수 있다. 구간마다 안내판 높이를 달리해 주변 지붕 위로 보이게 한다. 가까운 건물이 화면을 가릴 때는 카메라를 위로 돌리거나 거리를 두고 본다.
+
+`Assets/Prefabs/World/CloudBoundaries/`의 `DistrictCloudTile`은 넓은 공간에 반복 배치하는 구름 타일이고, `CloudBank`는 교차도로 끝의 구름이다. `AirportBoundary`와 `ParkBoundary`는 공중 안내판과 도로 끝 구름의 조합이다. 다른 구간의 안내판은 `DistrictSkyNotices`에서 `AirportSkyNotice`와 `ParkSkyNotice` 프리팹을 재사용한다. 위치는 씬 인스턴스에서, 글씨·아이콘·구름 형태는 Prefab Mode에서 조정한다. 구역을 개방할 때는 해당 방향의 구름, 안내, `CrossStreetEnd14m`·`SideBoundary`를 함께 조정한다. 구름과 공중 안내판은 기존 공용 단어 `cloud`와 `sign`을 사용한다.
+
+**Tools → A305 → World → Apply Cloud Boundaries**는 없는 프리팹과 배치를 생성하고, 구름 확장이 적용되지 않은 씬에는 확장 배치를 한 번 추가한다. 교차로, 집 앞, 북쪽 거리의 카메라 렌더를 `artifacts/unity/cloud-boundaries/`에 저장한다. 이 자료는 로컬 검수용이며 Git에 포함하지 않는다.
+
 | 구분 | 배치와 표현 | 기능 |
 | --- | --- | --- |
 | 이용 장소 | 남동쪽 집, 서쪽 카페, 동쪽 호텔. 집은 포치, 카페는 초록 CAFE 차양, 호텔은 세로 간판 | 기존 HomeDoor·CafeDoor·HotelDoor와 실내 왕복 연결 유지 |
@@ -101,6 +111,8 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 | 그림자 | 개별 가로등 그림자 끔 |
 | 현재 Sandbox | 가로등 8개, 활성 매장 조명 15개 |
 
+가로등은 밤에만 켠다. 게임 시각이 낮이면 `LanternLight`와 전구 발광을 끄고, 노을에 서서히 켜 한밤에는 다른 등처럼 밝힌다(Weather 모듈 `NightLights`). 가로수 잎에 머리가 묻히지 않게 가로등은 같은 보도 가로수와 3m 넘게 떨어뜨리며, 묻힌 가로등은 **Tools → A305 → World → Move Streetlights Out Of Trees**로 옮긴다.
+
 `LanternLight`의 Light Inspector에서 색·강도·범위를 조절한다. **Tools → A305 → World → Apply And Verify Streetlights**는 기존 외형을 유지하면서 누락된 광원을 추가하고, 전구 발광을 활성화한 뒤 Play에서 검수한다. 이미 있는 광원의 조절값은 덮어쓰지 않는다. 일반 Sandbox Builder로 다시 만들 때도 같은 공통 프리팹을 사용한다.
 
 도로·벽·수관의 `Elsehere/SoftMasonry`는 URP Forward/Forward+의 추가 광원을 받아 거리와 표면 방향에 따라 밝아진다. 가로등마다 그림자 맵을 만들지 않으므로 사물의 가림까지 정확하게 표현하지는 않는다. Web 프레임 시간은 별도로 측정해야 한다.
@@ -159,6 +171,10 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 
 **Apply Town Street Life**는 거리가 비어 보이지 않게 집 남쪽 잔디에 아이스크림 트럭 광장을 따로 두고, 카페 앞 파라솔 테라스, 본길을 도는 택시·승용차, 자전거 거치대, 꽃과 동물을 둔다. 택시와 승용차는 교차로 신호를 지키며 본길을 돌고, 기존 픽업트럭만 길가에 세워 둔다. 택시는 인도에서 세워 운전석의 기사와 대화할 수 있다. 테이블·의자·휴지통·컵은 위 Tiny Treats 프리팹을 그대로 쓴다. 외부 모델의 출처와 라이선스는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md#마을-거리)에서 관리한다.
 
+### 매장 실내 소품
+
+거리 매장 6곳과 북쪽 상가 1·2층의 실내는 카페·호텔만큼 채우도록 공간별 묶음 프리팹(`Assets/Prefabs/World/TownInteriors/`)으로 만든다. KayKit [Furniture Bits](https://kaylousberg.itch.io/furniture-bits)·[Restaurant Bits](https://kaylousberg.itch.io/restaurant-bits)(CC0)에서 실제로 쓰는 모델만 가져와 원본의 0.7배로 줄이고, 주방 가구는 8m 매장 벽에 붙도록 앞뒤를 0.42배로 줄인다. 같은 작가의 City Builder Bits처럼 둥근 덩어리와 그라데이션 아틀라스라 Tiny Treats·마을 재질과 어울린다. 이발 의자·샴푸 세면대·빵 선반·데크 오븐·오락기처럼 무료 CC0 모델이 없는 것은 기존 둥근 도형 키트로 만든다. KayKit 큰 액자는 그림 면이 비어 보여 색면 그림 액자(풍경·식물·노을)를 따로 만든다. 공간 목록·충돌·단어·메뉴는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md#매장-실내-소품), 출처는 [CREDITS](../../frontend/UnityClient/Assets/ThirdParty/CREDITS.md#마을-매장-실내)를 따른다.
+
 ### 나머지 후보의 적용 순서
 
 아래는 미도입 후보에 대한 디자인 판단이다. 건물은 미국 소도시의 벽돌 상가·크림색 몰딩·녹색 차양과 반복 층 구조를 유지하고, 필요한 소품부터 보강한다.
@@ -172,7 +188,7 @@ Tiny Treats의 둥근 모서리·단순한 형태·그라데이션 atlas는 현�
 | [Styloo Cozy Farm](https://styloo.itch.io/farm) | 농장 건물보다 우편함·상자 등 부족한 거리 소품을 선택한다. |
 | Cloudy Creates [Street Essentials](https://cloudycreates.itch.io/street-props-vol01-street-essentials), [Garden Props](https://cloudycreates.itch.io/lowpoly-garden-props), [Cafe Essentials](https://cloudycreates.itch.io/cafe-essentials-vol2) | 필요한 소품이 기존 프리팹에 없을 때 Starter에서 선택한다. 무료/상업 이용 표기와 CC0는 같지 않으므로 도입할 파일의 동봉 라이선스를 확인한다. 현재 미도입이다. |
 | Tiny Treats [Fun Playground](https://tinytreats.itch.io/fun-playground), [Pleasant Picnic](https://tinytreats.itch.io/pleasant-picnic) | 놀이터·피크닉 구역의 배치가 정해지면 같은 계열 소품으로 확장한다. |
-| KayKit [Furniture Bits](https://kaylousberg.itch.io/furniture-bits), [Restaurant Bits](https://kaylousberg.itch.io/restaurant-bits), Tiny Treats [Charming Kitchen](https://tinytreats.itch.io/charming-kitchen) | 카페 실내 좌석·주방을 구현할 때 부족한 구성만 추가한다. |
+| Tiny Treats [Charming Kitchen](https://tinytreats.itch.io/charming-kitchen) | 카페 주방을 구현할 때 부족한 구성만 추가한다. KayKit Furniture Bits·Restaurant Bits는 [매장 실내 소품](#매장-실내-소품)에 도입했다. |
 | [Cozy Cartoon Pack 2](https://assetstore.unity.com/packages/3d/props/interior/interiors-free-cozy-cartoon-pack-2-366624), [Synty Coffee Shop](https://syntystore.com/products/polygon-coffee-shop) | 현재 집기와 역할이 겹쳐 후순위다. 공식 무료 제공은 확인했으나 각각 별도 Asset Store/스토어 라이선스이며 CC0 원본으로 취급하지 않는다. |
 
 건물 전체나 규격 벽·창문을 Tripo로 반복 생성하지 않는다. 이 모듈들은 Unity에서 치수와 재질을 조절할 수 있어 이번 외관 제작에 **Tripo 생성 크레딧은 0**이다. 추가 계정 연결이나 유료 패키지 없이 현재 씬을 열 수 있다.

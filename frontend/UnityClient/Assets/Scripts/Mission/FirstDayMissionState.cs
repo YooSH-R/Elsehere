@@ -8,6 +8,8 @@ namespace A305.Mission
         private const int BuyUmbrellaStage = 5;
 
         public bool Started { get; set; }
+        public bool IsTownStory { get; set; }
+        public bool ShouldOfferTownStory => Completed && !IsTownStory;
         public int Stage { get; set; }
         public bool Completed { get; set; }
         public string Scene { get; set; }
@@ -23,8 +25,22 @@ namespace A305.Mission
         public List<FirstDayMissionStep> Steps { get; set; } = new List<FirstDayMissionStep>();
 
         /// <summary>지금 가야 할 장소 코드. 시작 전과 모두 끝낸 뒤에는 없다. Scene은 마지막으로 들어온 장소다.</summary>
-        public string Destination =>
-            Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.Scene : null;
+        public string Destination
+        {
+            get
+            {
+                if (!Started || Completed)
+                    return null;
+                FirstDayMissionStep current = Steps.Find(step => step.Status == "CURRENT");
+                if (IsTownStory && current?.Scene == "TOWN" && current.NpcCode != null)
+                    return TownMapArt.Shops.ContainsKey(current.NpcCode) ? current.NpcCode : null;
+                return current?.Scene;
+            }
+        }
+
+        /// <summary>지금 단계에서 이야기할 NPC 코드. 시작 전과 모두 끝낸 뒤에는 없다.</summary>
+        public string CurrentNpc =>
+            Started && !Completed ? Steps.Find(step => step.Status == "CURRENT")?.NpcCode : null;
 
         /// <summary>지금 단계에서 찾아가 말해야 할 NPC 키. 시작 전과 모두 끝낸 뒤에는 없다.</summary>
         public string CurrentNpcCode =>

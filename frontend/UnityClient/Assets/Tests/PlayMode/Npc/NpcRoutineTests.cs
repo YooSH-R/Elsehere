@@ -24,12 +24,20 @@ namespace A305.Npc.PlayModeTests
         private const float WaitTimeoutSeconds = 20f;
         private const float NearObjectMeters = 1.3f;
 
+        // NPC가 사물까지 걸어가는 시간이 시험 시간의 대부분이라 걸음과 동작만 빠르게 돌린다.
+        // 게임 시계는 실제 시간으로 흐르므로(GameClockDriver) 일과 시각과 행동 길이는 그대로다.
+        private const float WalkTimeScale = 4f;
+
         // 장면의 신호가 이 시험이 정한 시각을 덮어쓰지 않게, 시각을 맞출 때마다 다음 신호를 아주 먼 뒤로 미룬다.
         private static int clockSettings;
+
+        private float previousTimeScale;
 
         [SetUp]
         public void ResetCrossSceneRecords()
         {
+            previousTimeScale = Time.timeScale;
+            Time.timeScale = WalkTimeScale;
             PasserbyRestRecord.Clear();
             PasserbyOfferRecord.Clear();
             // 카페 직원은 튜토리얼의 미션 대화 안내부터 다가오므로, 튜토리얼을 이미 마친 사용자로 시작한다.
@@ -40,6 +48,8 @@ namespace A305.Npc.PlayModeTests
         [TearDown]
         public void RestoreFlowingClock()
         {
+            // 남기면 뒤에 도는 다른 시험의 걸음·물리가 모두 빨라진다.
+            Time.timeScale = previousTimeScale;
             // 다른 시험은 서버 없이 장면을 볼 때처럼 1일차 오전 8시부터 흐르는 시각과 처음 튜토리얼을 쓴다.
             SetClock(8 * 60, paused: false);
             TutorialState.Clear();

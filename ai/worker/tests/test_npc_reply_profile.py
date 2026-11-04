@@ -113,7 +113,7 @@ def test_with_a_profile_the_place_facts_memory_level_and_instruction_still_reach
     assert "Maple Town" in system and "The counter of the corner cafe." in system  # 장소
     assert "Menu: latte $5." in system  # 백엔드가 보낸 사실
     assert "Their name: Minsu" in system and "Last time they ordered a latte" in system  # 기억
-    assert "Use short, simple everyday words" in system and body["max_tokens"] == 90  # 난이도 1 (출력 상한은 그대로)
+    assert "each under 12 words" in system and body["max_tokens"] == 90  # 난이도 1 (출력 상한은 그대로)
     assert "Ask what size they want." in system  # 이번 대답에서 할 일
 
 
@@ -132,6 +132,17 @@ def test_with_a_profile_the_level_rule_leaves_the_tone_to_the_character(client, 
     system = system_of(reply_request(client, provider, {**NPC, "profile": profile_of("HOTEL_STAFF")}, level=level))
     level_part = system.split("## Learner level")[1].split("## This turn")[0]
     assert "warmth" not in level_part and "humor" not in level_part
+
+
+@pytest.mark.parametrize("level", [1, 2, 3])
+def test_every_level_asks_for_the_idioms_and_slang_a_local_really_uses(client, provider, level):
+    """관용구·속어를 막으면 짧은 대답에 인물다운 표현이 들어갈 자리가 없어 모든 NPC가 같은 매장 직원 말투가 된다(2026-11-04 결정).
+    초급도 문장 길이는 지키고, 모르는 표현은 학습자가 뜻 보기(CONV-04)의 풀이로 익힌다. 인격 카드가 없는 NPC도 같다."""
+    for npc in ({**NPC, "profile": profile_of("HOTEL_STAFF")}, NPC):
+        system = system_of(reply_request(client, provider, npc, level=level))
+
+        assert "idioms" in system and "slang" in system, npc["id"]
+        assert "No idioms" not in system and "No slang" not in system and "Skip the heavy slang" not in system, npc["id"]
 
 
 @pytest.mark.parametrize(("path", "value"), [("name", None), ("nickname", "Mimi")])

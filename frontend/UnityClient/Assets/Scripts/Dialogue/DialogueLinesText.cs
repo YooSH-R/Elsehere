@@ -8,6 +8,7 @@ namespace A305.Dialogue
     /// 대화창 대사 칸의 글자. 이번 대화의 대사를 말한 사람과 함께 처음부터 보이고,
     /// 뜻을 펼치면 가장 최근 NPC 대사 바로 아래에 뜻과 단어 풀이를 붙인다.
     /// 뜻을 펼친 동안 풀이를 받은 NPC 대사의 풀이 단어는 눌러 볼 수 있게 밑줄 친 링크로 둔다.
+    /// 자막을 끄면 NPC 대사 글자를 투명하게 두어 듣고 이해하게 한다.
     /// </summary>
     public static class DialogueLinesText
     {
@@ -28,19 +29,27 @@ namespace A305.Dialogue
         /// </summary>
         public const string SelectedWordMark = "#F982564D";
 
+        /// <summary>
+        /// 자막을 끈 NPC 대사를 감싸는 링크. 대사 글자는 투명하게 자리만 차지하고,
+        /// 대사 칸(<see cref="NpcLineCovers"/>)이 이 링크의 단어 자리를 회색 막대로 덮는다.
+        /// </summary>
+        public const string HiddenLineLink = "hidden-npc-line";
+
         /// <param name="showsMeaning">[뜻 보기]를 펼쳤는지. 뜻이 아직 없으면 펼쳐도 붙이지 않는다.</param>
         /// <param name="glossary">가장 최근 NPC 대사의 단어 풀이. 없으면 null이다.</param>
         /// <param name="selected">단어 카드에 보이는 단어. 없으면 null이다.</param>
         /// <param name="sentenceIndent">
         /// 이름 뒤 문장이 시작하는 자리. 0보다 크면 이름 길이와 상관없이 모든 문장과 그 아래 뜻을 이 자리에서 시작하고, 긴 문장이 줄을 바꿔도 같은 자리에 맞춘다.
         /// </param>
+        /// <param name="hidesNpcLines">자막을 껐는지. 뜻을 펼친 동안은 뜻과 맞춰 보도록 가리지 않는다.</param>
         public static string Format(
             IReadOnlyList<DialogueLine> lines,
             string npcName,
             bool showsMeaning,
             IReadOnlyList<GlossaryData> glossary,
             GlossaryWord selected = null,
-            float sentenceIndent = 0
+            float sentenceIndent = 0,
+            bool hidesNpcLines = false
         )
         {
             int latestNpcIndex = FindLatestNpcIndex(lines);
@@ -54,6 +63,8 @@ namespace A305.Dialogue
                 string english = showsMeaning
                     ? LinkGlossary(line.English, line.Glossary, i, selected)
                     : line.English;
+                if (line.IsNpc && hidesNpcLines && !showsMeaning)
+                    english = Hidden(english);
                 rows.Add(
                     sentenceIndent > 0
                         ? $"{speaker}{Indented(english, sentenceIndent)}"
@@ -82,6 +93,10 @@ namespace A305.Dialogue
             // 줄바꿈은 운영체제와 상관없이 \n으로 맞춘다.
             return string.Join("\n", rows);
         }
+
+        // 글자를 지우지 않고 투명하게 그려야 줄바꿈과 띄어쓰기가 원래 대사와 같은 자리에 남는다.
+        private static string Hidden(string english) =>
+            $"<link=\"{HiddenLineLink}\"><alpha=#00>{english}<alpha=#FF></link>";
 
         private static string Indented(string text, float indent) =>
             indent > 0 ? $"<indent={indent:0.#}>{text}</indent>" : text;

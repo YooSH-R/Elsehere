@@ -178,6 +178,8 @@ namespace A305.Dialogue.PlayModeTests
             public bool UsesVoice => true;
             public ConversationStanding Standing => null;
             public bool CanReplaySpeech => false;
+            public bool SpeaksNpcLines => false;
+            public bool IsNpcSpeechReady => false;
         }
     }
 }

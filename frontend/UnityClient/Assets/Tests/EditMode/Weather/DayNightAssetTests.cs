@@ -58,6 +58,21 @@ namespace A305.Weather.Tests
             );
         }
 
+        [Test]
+        public void ShopInteriorAmbient_IsAsBrightAsInteriorScenes()
+        {
+            // 카페·호텔·집 실내 씬의 환경광(하늘 0.8·0.85·0.88, 바닥 0.48·0.45·0.39)만큼 밝아야 한다.
+            Assert.That(settings.ShopInteriorAmbientSky.grayscale, Is.GreaterThanOrEqualTo(.8f));
+            Assert.That(
+                settings.ShopInteriorAmbientEquator.grayscale,
+                Is.GreaterThanOrEqualTo(.7f)
+            );
+            Assert.That(
+                settings.ShopInteriorAmbientGround.grayscale,
+                Is.GreaterThanOrEqualTo(.42f)
+            );
+        }
+
         [TestCase("WindowBlue")]
         [TestCase("GlassLight")]
         [TestCase("SkyGlassV2")]
@@ -81,12 +96,25 @@ namespace A305.Weather.Tests
         }
 
         [TestCase("WindowAmberGlow")]
-        [TestCase("LanternAmberV2")]
         [TestCase("Glow")]
         [TestCase("PendantLight")]
         public void Town_GlowMaterialsShineBrighterAtNight(string material)
         {
             Assert.That(settings.GlowMaterials.Select(item => item.name), Has.Member(material));
+        }
+
+        // 가로등 전구는 낮에 끄고 밤에만 밝힌다.
+        [Test]
+        public void Town_StreetLampBulbsShineOnlyAtNight()
+        {
+            Assert.That(
+                settings.NightOnlyGlowMaterials.Select(item => item.name),
+                Has.Member("LanternAmberV2")
+            );
+            Assert.That(
+                settings.GlowMaterials.Select(item => item.name),
+                Has.No.Member("LanternAmberV2")
+            );
         }
 
         [TestCase("WindowDaylight")]

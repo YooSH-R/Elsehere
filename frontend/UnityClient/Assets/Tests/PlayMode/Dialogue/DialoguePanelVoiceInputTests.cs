@@ -259,6 +259,8 @@ namespace A305.Dialogue.PlayModeTests
             public ConversationStanding Standing => null;
             public DialogueWait Waiting => DialogueWait.None;
             public bool CanReplaySpeech => false;
+            public bool SpeaksNpcLines => false;
+            public bool IsNpcSpeechReady => false;
         }
     }
 }

@@ -18,6 +18,11 @@ namespace A305.EditorTools.Mission
     public static class QuestCardBuilder
     {
         private const string MenuPath = "Tools/A305/Mission/Apply Quest Card";
+        private const string PlaceholderMenuPath =
+            "Tools/A305/Mission/Apply Quest Card Placeholder";
+
+        // 서버 상태를 받기 전 카드의 할 일. 카드 자체를 눌러 수첩을 열며, 카드가 커지지 않게 한 줄에 들어가는 길이로 쓴다.
+        internal const string DirectionPlaceholder = "카드를 눌러 퀘스트를 확인하세요.";
         private const string PrefabPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
         private const string CatalogPath = "Assets/Data/Theme/UiThemeCatalog.asset";
         private const string ArtFolder = "Assets/Art/UI/Hud";
@@ -37,6 +42,21 @@ namespace A305.EditorTools.Mission
         public static void ApplyToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(PrefabPath, Apply);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>카드를 다시 만들지 않고 서버 상태를 받기 전의 할 일 문구만 맞춘다.</summary>
+        [MenuItem(PlaceholderMenuPath)]
+        public static void ApplyPlaceholderToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                    root
+                        .transform.Find("Content/CurrentGoal/Direction")
+                        .GetComponent<TMP_Text>()
+                        .text = DirectionPlaceholder
+            );
             AssetDatabase.SaveAssets();
         }
 
@@ -99,6 +119,7 @@ namespace A305.EditorTools.Mission
             // 할 일(Jua 26, 위 12), 상황(Pretendard 16, 위 4)
             var direction = card.Find("Direction").GetComponent<TMP_Text>();
             Style(direction, DisplayFontPath, 26, Ink);
+            direction.text = DirectionPlaceholder;
             direction.margin = new Vector4(0, 12 * Px, 0, 0);
             direction.textWrappingMode = TextWrappingModes.Normal;
             direction.alignment = TextAlignmentOptions.MidlineLeft;

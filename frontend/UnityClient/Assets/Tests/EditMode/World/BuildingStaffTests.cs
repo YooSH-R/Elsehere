@@ -18,6 +18,15 @@ namespace A305.World.Tests
         private const string TownPath = "Assets/Scenes/Production/TownScene.unity";
         private const string ColorFolder = "Assets/Art/Characters/BuildingStaff/";
 
+        // 모든 검사가 마을 씬을 읽기만 하므로 한 번만 연다.
+        private Scene scene;
+
+        [OneTimeSetUp]
+        public void OpenTown()
+        {
+            scene = EditorSceneManager.OpenScene(TownPath);
+        }
+
         [TestCase("PostOffice", "POST_OFFICE_STAFF")]
         [TestCase("MapleDiner", "DINER_STAFF")]
         [TestCase("TownBank", "BANK_STAFF")]
@@ -29,7 +38,6 @@ namespace A305.World.Tests
         [TestCase("HomeLiving", "HOME_STORE_STAFF")]
         public void BuildingHasItsStaffInsideWhoStaysThere(string building, string code)
         {
-            Scene scene = EditorSceneManager.OpenScene(TownPath);
             Transform root = Building(scene, building);
             NpcIdentity npc = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
@@ -69,7 +77,6 @@ namespace A305.World.Tests
         [TestCase("HOME_STORE_STAFF")]
         public void StaffWearsTheirOwnColors(string code)
         {
-            Scene scene = EditorSceneManager.OpenScene(TownPath);
             NpcIdentity npc = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
                 .SingleOrDefault(candidate => candidate.Code == code);
@@ -100,7 +107,6 @@ namespace A305.World.Tests
         [TestCase("HOME_STORE_STAFF")]
         public void StaffColorsKeepTheLookMaterialSettings(string code)
         {
-            Scene scene = EditorSceneManager.OpenScene(TownPath);
             NpcIdentity npc = BuilderTools
                 .FindAllInScene<NpcIdentity>(scene)
                 .SingleOrDefault(candidate => candidate.Code == code);

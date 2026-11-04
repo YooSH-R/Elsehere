@@ -19,7 +19,7 @@ import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
 import com.elsehere.memory.service.NpcAffinityService;
-import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.MissionDialogueService;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +39,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>첫날 연계 미션을 시작한 사용자는 현재 단계의 의도를 판정한다. 성공한 대답과 턴을 저장할 때만 미션을 진행한다. 무례한 말은 미션에 반영하지 않고 횟수를 세며 그
  * NPC의 호감도를 깎고, 한도에 닿으면 NPC가 대화를 끝낸다(docs/api/rudeness-handling.md). 무례가 아닌 말은 의도 판정이 고른 대화
- * 사건(칭찬·인사 등)만큼 호감도를 올린다(docs/api/ai-worker.md 2.2절). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
+ * 사건(칭찬·인사 등)만큼 호감도를 올린다(docs/api/ai-worker.md 2.2절). 미션 목표를 마친 턴이나 학습자가 작별·용건 끝냄을 말한 턴에는 NPC가 마무리
+ * 대사로 대화를 끝낸다({@link WrapUp}). 사용자 AI 한도 예약·차감은 별도 연동 영역이다.
  */
 @Slf4j
 @Service
@@ -76,7 +77,7 @@ public class TurnService {
   private final MemoryService memoryService;
   private final NpcAffinityService npcAffinityService;
   private final TransactionTemplate transactionTemplate;
-  private final FirstDayMissionService firstDayMissionService;
+  private final MissionDialogueService missionDialogueService;
   private final Clock clock;
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
@@ -90,15 +91,15 @@ public class TurnService {
     TurnContext context =
         transactionTemplate.execute(status -> turnContext(userId, conversationId));
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, conversationId);
-    Optional<FirstDayMissionService.Context> mission =
-        firstDayMissionService.context(userId, context.npc().summary().npcCode());
+    Optional<MissionDialogueService.Context> mission =
+        missionDialogueService.context(userId, context.npc().summary().npcCode());
 
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
         aiGateway.judge(
             trace,
             context.npc().workerNpc(),
-            mission.map(FirstDayMissionService.Context::state).orElse(FREE_TALK),
+            mission.map(value -> value.detail().state()).orElse(FREE_TALK),
             context.history(),
             request.text());
     if (judge.dropped()) {
@@ -111,10 +112,14 @@ public class TurnService {
     GuardResult guard = guarding.join();
     boolean rude = Boolean.TRUE.equals(guard.abusive());
     boolean leaving = rude && context.rudeCount() + 1 >= Conversation.RUDE_LIMIT;
+    boolean wrapUp = WrapUp.ends(rude, mission, judge);
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
-            : mission.map(value -> value.replyInstruction(judge.intent())).orElse("");
+            : mission.map(value -> value.detail().replyInstruction(judge.intent())).orElse("");
+    if (wrapUp) {
+      instruction = WrapUp.instruction(instruction);
+    }
 
     NpcReply reply =
         aiGateway.reply(
@@ -173,11 +178,20 @@ public class TurnService {
           Turn npcTurn =
               turnRepository.save(
                   Turn.npc(conversation, lastSeq + 2, reply.text(), npcAudioKey, clock.instant()));
+          if (wrapUp) {
+            // 용건이 끝났거나 학습자가 작별해 NPC가 마무리 대사로 대화를 끝냈다.
+            conversation.endByNpc(clock.instant());
+            log.info(
+                "conversation_ended conversation_id={} status={} end_reason={}",
+                conversationId,
+                conversation.getStatus(),
+                conversation.getEndReason());
+          }
           if (!rude) {
             mission.ifPresent(
                 value ->
-                    firstDayMissionService.accept(
-                        userId, value.stage(), context.npc().summary().npcCode(), judge.intent()));
+                    missionDialogueService.accept(
+                        userId, context.npc().summary().npcCode(), value, judge.intent()));
           }
           return response(conversation, userTurn, npcTurn);
         });

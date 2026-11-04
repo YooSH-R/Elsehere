@@ -97,8 +97,8 @@ class FeedbackResultsTest {
   }
 
   @Test
-  @DisplayName("단어장 후보 중 단어장에 저장할 수 있는 한 단어 후보만 뜻·예문과 함께 옮긴다")
-  void reviews_keepsSingleWordVocabCandidates() {
+  @DisplayName("단어장은 단어·숙어·문장을 모두 저장하므로 단어장 후보를 종류와 상관없이 뜻·예문과 함께 옮긴다")
+  void reviews_keepsWordIdiomAndSentenceVocabCandidates() {
     WorkerFeedback.Result result =
         new WorkerFeedback.Result(
             null,
@@ -118,9 +118,8 @@ class FeedbackResultsTest {
                     "sentence", "I'd like a latte.", "라떼 주세요.", "I'd like a latte.", "라떼 주세요.")));
 
     assertThat(FeedbackResults.reviews(result).vocabCandidates())
-        .containsExactly(
-            new FeedbackReviews.VocabCandidate(
-                "latte", "라떼", "I'd like an iced latte.", "아이스 라떼 주세요."));
+        .extracting(FeedbackReviews.VocabCandidate::expression)
+        .containsExactly("latte", "iced latte", "to go", "I'd like a latte.");
   }
 
   @Test

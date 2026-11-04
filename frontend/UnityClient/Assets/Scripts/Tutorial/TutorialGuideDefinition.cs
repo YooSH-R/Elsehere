@@ -34,7 +34,7 @@ namespace A305.Tutorial
         {
             new TutorialStepGuide(
                 TutorialStep.Arrival,
-                "여행 첫날",
+                "여행 시작",
                 "숙소에서 기본 조작부터 익혀 볼까요?",
                 "",
                 "시작하기"
@@ -91,7 +91,7 @@ namespace A305.Tutorial
             new TutorialStepGuide(
                 TutorialStep.TodayGoal,
                 "오늘의 목표",
-                "{지도} 버튼으로 오늘의 목표 보기",
+                "왼쪽 위 {퀘스트 카드}를 눌러 오늘의 목표 보기",
                 "",
                 ""
             ),
@@ -133,6 +133,13 @@ namespace A305.Tutorial
         )]
         private string guidedLineMissCaption =
             "튜토리얼은 정해진 흐름대로 진행돼요. 이 대사와 같게 입력하거나 {예시 문장}으로 채워요";
+
+        [SerializeField]
+        [Tooltip(
+            "길 안내 대화에서 [말하기]로 녹음하는 동안 버튼의 불 옆에 보이는 설명. 할 대사 설명과 함께 보인다."
+        )]
+        private string voiceLightCaption =
+            "초록불이 켜지면 목소리가 잘 들리고 있어요. 불이 흐리면 조금 더 크게 말해 보세요.";
 
         [SerializeField]
         [Tooltip(
@@ -184,6 +191,7 @@ namespace A305.Tutorial
         public string DialogueEndCaption => dialogueEndCaption;
         public string TravelLockedMessage => travelLockedMessage;
         public string VocabularyCaption => vocabularyCaption;
+        public string VoiceLightCaption => voiceLightCaption;
 
         /// <summary>안내 카드가 있는 단계 수. 진행 점의 개수다.</summary>
         public int StepGuideCount => stepGuides.Count;

@@ -49,6 +49,15 @@ namespace A305.Learning
             );
         }
 
+        public Task<VocabItem> SaveFeedbackWordAsync(long conversationId, string text)
+        {
+            throw new ApiException(
+                "VOCAB_UNAVAILABLE",
+                503,
+                "확인용 단어장에는 피드백 표현을 저장하지 않습니다."
+            );
+        }
+
         public Task<VocabItem> UpdateMemoAsync(long userVocabId, string memo)
         {
             ObjectWordDetails word = Find(userVocabId);

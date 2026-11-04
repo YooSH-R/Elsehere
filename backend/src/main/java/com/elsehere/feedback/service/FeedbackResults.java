@@ -31,15 +31,10 @@ final class FeedbackResults {
         vocabCandidates(result));
   }
 
-  /**
-   * 단어장에 저장할 수 있는 후보. 단어장은 단어 하나만 저장하므로(VOCAB-02) 숙어·문장과 두 단어 이상인 후보는 뺀다. 저장하지 못할 후보에 저장 버튼을 보이지 않기
-   * 위해서다.
-   */
+  /** 단어장에 저장할 수 있는 후보. 단어장은 단어·숙어·문장을 모두 저장하므로(VOCAB-02) 종류와 상관없이 그대로 둔다. */
   private static List<FeedbackReviews.VocabCandidate> vocabCandidates(
       WorkerFeedback.Result result) {
     return nonNull(result.vocabCandidates()).stream()
-        .filter(item -> "word".equals(item.kind()))
-        .filter(item -> item.expression().strip().chars().noneMatch(Character::isWhitespace))
         .map(
             item ->
                 new FeedbackReviews.VocabCandidate(

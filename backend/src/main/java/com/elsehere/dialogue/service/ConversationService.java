@@ -24,7 +24,7 @@ import com.elsehere.dialogue.dto.StartConversationRequest;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.service.FeedbackService;
 import com.elsehere.memory.service.MemoryService;
-import com.elsehere.mission.service.FirstDayMissionService;
+import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.onboarding.entity.UserLanguageProfile;
 import com.elsehere.onboarding.entity.UserLanguageProfileId;
 import com.elsehere.onboarding.repository.UserLanguageProfileRepository;
@@ -81,7 +81,7 @@ public class ConversationService {
   private final MemoryService memoryService;
   private final TransactionTemplate transactionTemplate;
   private final Clock clock;
-  private final FirstDayMissionService firstDayMissionService;
+  private final MissionDialogueService missionDialogueService;
   private final GuestConversationLimit guestConversationLimit;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
@@ -139,8 +139,12 @@ public class ConversationService {
                   .mission()
                   .ifPresent(
                       value -> {
-                        if (value.state() != null) {
-                          conversation.attachFirstDayStage(value.stage());
+                        if (value.detail().state() != null) {
+                          if (value.townStory()) {
+                            conversation.attachTownStoryStage(value.detail().stage());
+                          } else {
+                            conversation.attachFirstDayStage(value.detail().stage());
+                          }
                         }
                       });
               Turn openingTurn =
@@ -264,7 +268,7 @@ public class ConversationService {
         dialogueContexts.learner(user),
         selectedLevel(user),
         memoryService.memoryFor(userId, npc.npcId()),
-        firstDayMissionService.context(userId, npcCode));
+        missionDialogueService.context(userId, npcCode));
   }
 
   // 진행 중인 대화가 없고 게스트 대화 횟수가 남아 있어야 시작할 수 있다. AI 호출 전과 저장 직전에 두 번 확인한다.
@@ -312,7 +316,7 @@ public class ConversationService {
   // (docs/npc-life-design.md 11절 "교대와 첫날 미션") 지금은 미션 지시를 따른다.
   private static String greetingInstruction(StartContext context, boolean npcOffDuty) {
     if (context.mission().isPresent()) {
-      return context.mission().get().instruction() + MISSION_GREETING;
+      return context.mission().get().detail().instruction() + MISSION_GREETING;
     }
     if (npcOffDuty) {
       return OFF_DUTY_GREETING_INSTRUCTION;
@@ -329,7 +333,7 @@ public class ConversationService {
       WorkerLearner learner,
       int level,
       WorkerMemory memory,
-      Optional<FirstDayMissionService.Context> mission) {}
+      Optional<MissionDialogueService.Context> mission) {}
 
   private record Opening(String text, String npcAudioKey) {}
 

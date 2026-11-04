@@ -36,6 +36,7 @@ namespace A305.Mission
         private bool busy;
         private bool refreshPending;
         private RestSeat[] cafeSeats;
+        private QuestNpcWaitSpot[] waitSpots;
         private UmbrellaHold umbrella;
 
         public void SetAvailable(bool available) => view.SetAvailable(available);
@@ -54,11 +55,13 @@ namespace A305.Mission
                 : Array.Empty<RestSeat>();
             foreach (RestSeat seat in cafeSeats)
                 seat.RestCompleted += Rest;
+            waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
+            view.QuestBoardRequested += LoadQuestBoard;
             dialogue.NpcResponded += RequestRefresh;
             dialogue.Ended += OnEnded;
             dialogue.Started += OnStarted;
@@ -81,6 +84,7 @@ namespace A305.Mission
                 view.StartRequested -= StartMission;
                 view.RestRequested -= Rest;
                 view.RetryRequested -= RequestRefresh;
+                view.QuestBoardRequested -= LoadQuestBoard;
             }
             if (dialogue != null)
             {
@@ -95,11 +99,9 @@ namespace A305.Mission
         private void OnEnded(string npcCode) => RequestRefresh();
 
         private void StartMission() =>
-            _ = ExecuteAsync(async () =>
-            {
-                await api.StartAsync();
-                return await api.VisitAsync(sceneCode);
-            });
+            _ = ExecuteAsync(() =>
+                api.StartCurrentAsync(sceneCode, state != null && state.IsTownStory)
+            );
 
         private void Rest()
         {
@@ -114,7 +116,41 @@ namespace A305.Mission
                 refreshPending = true;
                 return;
             }
-            _ = ExecuteAsync(() => api.VisitAsync(sceneCode));
+            _ = ExecuteAsync(() => api.LoadCurrentAsync(sceneCode));
+        }
+
+        // 수첩 대신 목록을 열 때 진행 상태도 다시 읽어, 불러오지 못했던 퀘스트를 다시 시도한다.
+        private void LoadQuestBoard()
+        {
+            _ = LoadQuestBoardAsync();
+            if (state == null)
+                RequestRefresh();
+        }
+
+        private async Task LoadQuestBoardAsync()
+        {
+            if (api == null)
+                return;
+            try
+            {
+                QuestBoardState board = await api.GetQuestBoardAsync();
+                if (this != null)
+                    view.ShowQuestBoard(board);
+            }
+            // 서버에 닿지 못한 것처럼 예상한 실패는 안내만 하고, 그 밖의 오류만 로그로 남긴다.
+            catch (ApiException exception)
+            {
+                if (this != null)
+                    view.ShowMessage(exception.Message);
+            }
+            catch (Exception exception)
+            {
+                if (this != null)
+                {
+                    Debug.LogException(exception, this);
+                    view.ShowMessage("퀘스트 목록을 불러오지 못했어요. 다시 열어 주세요.");
+                }
+            }
         }
 
         private async Task ExecuteAsync(Func<Task<FirstDayMissionState>> action)
@@ -147,7 +183,7 @@ namespace A305.Mission
                 if (this != null)
                 {
                     Debug.LogException(exception, this);
-                    view.ShowMessage("퀘스트를 불러오지 못했어요. 수첩에서 다시 시도해 주세요.");
+                    view.ShowMessage("퀘스트를 불러오지 못했어요. 퀘스트 목록을 다시 열어 주세요.");
                 }
             }
             finally
@@ -156,6 +192,9 @@ namespace A305.Mission
                 if (this != null)
                 {
                     Render();
+                    // 퀘스트를 시작하거나 진행이 바뀌면 열려 있는 목록도 새로 받는다.
+                    if (view.IsQuestBoardOpen)
+                        LoadQuestBoard();
                     if (refreshPending)
                     {
                         refreshPending = false;
@@ -168,7 +207,15 @@ namespace A305.Mission
         private void Render()
         {
             if (state != null)
+            {
                 view.Refresh(state, busy, dialogue.IsTalking);
+                // 지금 단계에서 만나야 하는 행인을 정한 자리에서 기다리게 한다.
+                foreach (QuestNpcWaitSpot spot in waitSpots)
+                {
+                    if (spot != null)
+                        spot.Apply(state);
+                }
+            }
             if (cafeSeats == null)
                 return;
             bool canSit = state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking);

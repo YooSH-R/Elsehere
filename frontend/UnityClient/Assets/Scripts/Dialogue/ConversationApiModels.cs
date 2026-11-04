@@ -179,9 +179,27 @@ namespace A305.Dialogue
         public long DurationMs { get; set; }
     }
 
+    /// <summary>진행 중인 대화(CONV-11). 끝내지 못한 같은 NPC 대화를 이어서 할 때 지난 턴을 다시 보인다.</summary>
     public sealed class ActiveConversation
     {
         public long ConversationId { get; set; }
+        public string Status { get; set; }
+        public NpcSummary Npc { get; set; }
+        public int? RudeCount { get; set; }
+        public int? RudeLimit { get; set; }
+        public List<ActiveTurn> Turns { get; set; }
+    }
+
+    /// <summary>진행 중인 대화의 한 턴. NPC 턴만 음성이 있다.</summary>
+    public sealed class ActiveTurn
+    {
+        public long TurnId { get; set; }
+
+        /// <summary>USER · NPC</summary>
+        public string Speaker { get; set; }
+        public string Text { get; set; }
+        public List<string> SuggestWords { get; set; }
+        public SpeechData Speech { get; set; }
     }
 
     /// <summary>NPC 대사 뜻 보기(CONV-04).</summary>

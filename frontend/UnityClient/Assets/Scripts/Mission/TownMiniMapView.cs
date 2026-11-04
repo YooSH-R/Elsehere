@@ -1,12 +1,19 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace A305.Mission
 {
     /// <summary>
     /// 왼쪽 아래 미니맵. 둥근 창 안에서 마을 지도 그림을 움직여 내 위치가 가운데 오게 하고,
     /// 그 위에 내 위치 화살표와 지금 가야 할 장소 테두리를 얹는다. 좌표는 <see cref="TownMapArt"/>를 따른다.
+    /// 큰 지도도 같은 화면을 쓴다. 창이 지도 그림 전체 크기라 그림은 움직이지 않고 표시만 따라간다.
+    /// 끌면 지도가 커서를 따라 움직여 주변을 둘러볼 수 있고(<see cref="MiniMapPan"/>), 끌고 놓았을 때는 큰 지도를 열지 않는다.
     /// </summary>
-    public sealed class TownMiniMapView : MonoBehaviour
+    public sealed class TownMiniMapView
+        : MonoBehaviour,
+            IBeginDragHandler,
+            IDragHandler,
+            IEndDragHandler
     {
         private const string TownSceneCode = "TOWN";
 
@@ -27,6 +34,7 @@ namespace A305.Mission
         [Tooltip("지도 그림 위의 목적지 테두리")]
         private RectTransform destination;
 
+        private readonly MiniMapPan pan = new MiniMapPan();
         private string sceneCode;
         private Transform follow;
 
@@ -73,14 +81,33 @@ namespace A305.Mission
             player.gameObject.SetActive(true);
             player.anchoredPosition = OnMap(point);
             player.localEulerAngles = new Vector3(0f, 0f, rotationDegrees);
-            float scale = map.localScale.x;
-            Vector2 window = ((RectTransform)map.parent).rect.size / scale;
-            Vector2 corner = TownMapArt.Window(point, window);
-            map.anchoredPosition = new Vector2(-corner.x, corner.y) * scale;
+            Vector2 corner = TownMapArt.Window(pan.Centre(point, Time.unscaledTime), Window);
+            map.anchoredPosition = new Vector2(-corner.x, corner.y) * map.localScale.x;
         }
+
+        // 창 크기와 지금 창에 보이는 가운데(그림 단위)
+        private Vector2 Window => ((RectTransform)map.parent).rect.size / map.localScale.x;
+
+        private Vector2 Shown =>
+            new Vector2(-map.anchoredPosition.x, map.anchoredPosition.y) / map.localScale.x
+            + Window / 2f;
 
         // 지도 그림 왼쪽 위를 기준으로 놓인 표시의 자리. 그림 좌표는 아래로 갈수록 커진다.
         private static Vector2 OnMap(Vector2 point) => new Vector2(point.x, -point.y);
+
+        // 판 전체가 큰 지도를 여는 버튼이라, 끌기 시작하면 놓을 때 누르기로 치지 않는다.
+        public void OnBeginDrag(PointerEventData eventData) => eventData.eligibleForClick = false;
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            float screenPerArt =
+                GetComponentInParent<Canvas>().rootCanvas.scaleFactor * map.localScale.x;
+            // 화면은 위로, 그림은 아래로 갈수록 y가 커진다.
+            Vector2 cursorMove = new Vector2(eventData.delta.x, -eventData.delta.y) / screenPerArt;
+            pan.Drag(Shown, cursorMove, Window);
+        }
+
+        public void OnEndDrag(PointerEventData eventData) => pan.Release(Time.unscaledTime);
 
         private void LateUpdate() => Redraw();
     }

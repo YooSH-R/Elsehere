@@ -27,6 +27,49 @@ namespace A305.ObjectHover
         }
 
         /// <summary>
+        /// 고정한 카드의 내용이 바뀌어 크기가 달라져도 왼쪽 위 모서리를 그대로 두고 아래·오른쪽으로 늘인다.
+        /// 화면 여백 안에 들고 피할 영역을 덮지 않을 때만 그 자리를 쓰며, 쓸 수 없으면 false를 돌려 자리를 다시 정하게 한다.
+        /// </summary>
+        /// <param name="position">지금 툴팁의 왼쪽 아래 위치</param>
+        /// <param name="size">지금 자리를 정할 때의 툴팁 크기</param>
+        /// <param name="newSize">바뀐 툴팁 크기</param>
+        /// <param name="kept">왼쪽 위 모서리를 지킨 툴팁의 왼쪽 아래 위치</param>
+        public static bool TryKeepTopLeft(
+            Vector2 position,
+            Vector2 size,
+            Vector2 newSize,
+            Vector2 canvasSize,
+            float margin,
+            IReadOnlyList<Rect> avoidAreas,
+            out Vector2 kept
+        )
+        {
+            kept = new Vector2(position.x, position.y + size.y - newSize.y);
+            var card = new Rect(kept, newSize);
+            // 여백에 딱 붙여 둔 카드가 소수점 오차로 밖에 있다고 보지 않게 조금 봐준다.
+            const float slack = .5f;
+            bool inside =
+                card.xMin >= margin - slack
+                && card.yMin >= margin - slack
+                && card.xMax <= canvasSize.x - margin + slack
+                && card.yMax <= canvasSize.y - margin + slack;
+            if (!inside)
+            {
+                return false;
+            }
+
+            foreach (Rect area in avoidAreas)
+            {
+                if (area.Overlaps(card))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// 가리킨 영역의 위·아래·오른쪽·왼쪽 순서로 툴팁을 놓아 보고, 가리킨 영역과 피할 영역을 덮지 않는 첫 자리를 고른다.
         /// 캐릭터 옆 바닥처럼 포인터가 피할 영역 안에 있으면 그 둘레 네 자리가 모두 덮으므로, 가리킨 영역과 그 피할 영역을 함께 감싼
         /// 바깥의 위·아래·오른쪽·왼쪽도 놓아 본다. 모든 자리가 덮으면 각 자리를 덮은 영역 밖으로 왼쪽·오른쪽·아래·위로 옮겨 보고

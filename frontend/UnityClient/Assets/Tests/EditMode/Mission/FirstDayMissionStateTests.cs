@@ -6,6 +6,23 @@ namespace A305.Mission.Tests
 {
     public class FirstDayMissionStateTests
     {
+        [TestCase(false, false, false)]
+        [TestCase(true, false, true)]
+        [TestCase(true, true, false)]
+        public void ShouldOfferTownStory_OnlyAfterFirstDayCompletes(
+            bool completed,
+            bool isTownStory,
+            bool expected
+        )
+        {
+            var state = new FirstDayMissionState
+            {
+                Completed = completed,
+                IsTownStory = isTownStory,
+            };
+            Assert.That(state.ShouldOfferTownStory, Is.EqualTo(expected));
+        }
+
         [Test]
         public void Destination_BeforeStart_IsNone()
         {

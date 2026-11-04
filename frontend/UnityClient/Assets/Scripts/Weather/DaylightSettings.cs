@@ -80,8 +80,17 @@ namespace A305.Weather
         [Header("불빛")]
         [SerializeField]
         [Min(0f)]
-        [Tooltip("한밤중 가로등·실내등 세기 배율. 낮에는 씬 디자인 세기 그대로다")]
+        [Tooltip(
+            "한밤중 등 세기 배율. 상점 벽등·실내등은 낮에 씬 디자인 세기 그대로이고, 가로등은 낮에 끈다"
+        )]
         private float nightLampScale = 2f;
+
+        [SerializeField]
+        [Min(0f)]
+        [Tooltip(
+            "한밤중 마을 입점 건물 안 실내등 세기 배율. 마을 안 매장은 실내 씬과 달리 창으로 드는 빛·보조광이 없으므로 실내등 하나로 불을 켠 방처럼 밝힌다"
+        )]
+        private float nightShopLampScale = 14f;
 
         [SerializeField]
         [Min(0f)]
@@ -89,8 +98,14 @@ namespace A305.Weather
         private float nightGlowScale = 2.2f;
 
         [SerializeField]
-        [Tooltip("밤에 더 밝히는 발광 재질. 창빛·가로등 전구·실내 조명 갓 등")]
+        [Tooltip("밤에 더 밝히는 발광 재질. 창빛·상점 조명·실내 조명 갓 등")]
         private List<Material> glowMaterials = new List<Material>();
+
+        [SerializeField]
+        [Tooltip(
+            "밤에만 켜는 발광 재질(가로등 전구). 낮에는 빛을 끄고 밤에는 다른 발광 재질처럼 밝힌다"
+        )]
+        private List<Material> nightOnlyGlowMaterials = new List<Material>();
 
         [SerializeField]
         [Tooltip("창밖 하늘을 그린 유리 재질. 밤에는 밤하늘 색으로 바꾼다")]
@@ -145,9 +160,26 @@ namespace A305.Weather
         [Tooltip("한밤중 실내 환경광 배율. 밤의 실내는 불을 켠 방이라 낮과 비슷하게 둔다")]
         private float nightInteriorAmbientScale = .9f;
 
+        [Header("마을 매장 실내")]
+        [SerializeField]
+        [Tooltip(
+            "마을에 겹쳐 불러온 매장 실내에 있는 동안의 하늘 환경광. 날씨와 상관없이 카페·호텔 실내 씬과 같은 밝은 실내 환경광을 쓰고, 밤에는 실내 환경광 배율만큼 줄인다"
+        )]
+        private Color shopInteriorAmbientSky = new Color(.8f, .85f, .88f);
+
+        [SerializeField]
+        [Tooltip("마을 매장 실내의 수평 환경광")]
+        private Color shopInteriorAmbientEquator = new Color(.77f, .75f, .69f);
+
+        [SerializeField]
+        [Tooltip("마을 매장 실내의 바닥 환경광")]
+        private Color shopInteriorAmbientGround = new Color(.48f, .45f, .39f);
+
         public float NightLampScale => nightLampScale;
+        public float NightShopLampScale => nightShopLampScale;
         public float NightGlowScale => nightGlowScale;
         public IReadOnlyList<Material> GlowMaterials => glowMaterials;
+        public IReadOnlyList<Material> NightOnlyGlowMaterials => nightOnlyGlowMaterials;
         public IReadOnlyList<Material> WindowMaterials => windowMaterials;
         public Color NightWindowColor => nightWindowColor;
         public float NightWindowEmissionScale => nightWindowEmissionScale;
@@ -158,12 +190,16 @@ namespace A305.Weather
         public Color NightRoomLightColor => nightRoomLightColor;
         public float NightFillScale => nightFillScale;
         public float NightInteriorAmbientScale => nightInteriorAmbientScale;
+        public Color ShopInteriorAmbientSky => shopInteriorAmbientSky;
+        public Color ShopInteriorAmbientEquator => shopInteriorAmbientEquator;
+        public Color ShopInteriorAmbientGround => shopInteriorAmbientGround;
 
         /// <summary>Builder와 테스트에서 새 설정을 만든다. 이미 있는 에셋의 값은 바꾸지 않는다.</summary>
         public static DaylightSettings Create(
             IEnumerable<Material> glowMaterials = null,
             IEnumerable<Material> windowMaterials = null,
-            IEnumerable<Material> litWindowMaterials = null
+            IEnumerable<Material> litWindowMaterials = null,
+            IEnumerable<Material> nightOnlyGlowMaterials = null
         )
         {
             var settings = CreateInstance<DaylightSettings>();
@@ -173,6 +209,8 @@ namespace A305.Weather
                 settings.windowMaterials = new List<Material>(windowMaterials);
             if (litWindowMaterials != null)
                 settings.litWindowMaterials = new List<Material>(litWindowMaterials);
+            if (nightOnlyGlowMaterials != null)
+                settings.nightOnlyGlowMaterials = new List<Material>(nightOnlyGlowMaterials);
             return settings;
         }
 

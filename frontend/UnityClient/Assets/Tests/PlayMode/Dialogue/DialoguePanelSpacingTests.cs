@@ -230,6 +230,8 @@ namespace A305.Dialogue.PlayModeTests
 
             // NPC 음성을 다시 들을 수 있으면 도구 버튼이 가장 많다.
             public bool CanReplaySpeech => true;
+            public bool SpeaksNpcLines => false;
+            public bool IsNpcSpeechReady => false;
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
@@ -95,12 +96,13 @@ namespace A305.Learning
 
             // 대화 중 풀이 단어는 단어장 서버가 있을 때만 저장한다(VOCAB-02 NPC_LINE).
             dialogue.SetWordSaveAvailable(vocabulary != null);
-            // 피드백의 [표현 저장]은 아직 FEEDBACK 출처 저장에 연결하지 않아 숨긴다.
-            feedbackView.SetSaveAvailable(false);
+            // 피드백의 [담기]는 단어장 서버가 있을 때 표현을 VOCAB-02 FEEDBACK으로 저장한다.
+            feedbackView.SetSaveAvailable(vocabulary != null);
 
             dialogue.ConversationEnded += ShowFeedback;
             dialogue.WordSaveRequested += SaveDialogueWord;
             feedbackView.CloseRequested += CloseFeedback;
+            feedbackView.SaveRequested += SaveFeedbackExpression;
             feedbackView.VocabularyRequested += OpenVocabulary;
             feedbackView.RegenerateRequested += RegenerateFeedback;
             vocabularyView.CloseRequested += CloseVocabulary;
@@ -130,6 +132,7 @@ namespace A305.Learning
             hudView.SetTalking(dialogue.IsTalking);
             hudView.ControlsGuide.SetBlocked(dialogue.IsTalking || IsShowingScreen);
             hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
+            CenterWindow.Shared.SetOpen(IsShowingScreen);
         }
 
         private bool IsHomeBlocked =>
@@ -152,6 +155,7 @@ namespace A305.Learning
 
         private void OnDestroy()
         {
+            CenterWindow.Shared.SetOpen(false);
             if (hudView != null)
             {
                 hudView.HomeRequested -= ReturnHome;
@@ -196,6 +200,49 @@ namespace A305.Learning
             }
         }
 
+        // [담기]는 서버 대화 피드백에서만 보인다. 대본·예시 피드백은 저장할 대화가 없다.
+        private void ShowFeedbackView(
+            ConversationFeedback feedback,
+            IReadOnlyList<DialogueLine> lines
+        )
+        {
+            feedbackView.SetSaveAvailable(
+                vocabulary != null && shownServerFeedback?.ConversationId != null
+            );
+            feedbackView.Show(feedback, lines);
+        }
+
+        private void SaveFeedbackExpression(string expression, string meaningKo)
+        {
+            _ = SaveFeedbackExpressionAsync(expression);
+        }
+
+        // 저장하면 [담기]를 "담음"으로 바꾸고 [단어장] 개수를 맞춘다. 서버 대화가 아닌(대본·예시) 피드백은 저장할 곳이 없다.
+        private async Task SaveFeedbackExpressionAsync(string expression)
+        {
+            long? conversationId = shownServerFeedback?.ConversationId;
+            if (vocabulary == null || conversationId == null)
+            {
+                hudView.ShowMessage("이 피드백의 표현은 단어장에 저장할 수 없어요.");
+                return;
+            }
+
+            VocabularySaveResult result = await vocabulary.SaveFeedbackWordAsync(
+                conversationId.Value,
+                expression
+            );
+            if (this == null)
+                return;
+            if (result == VocabularySaveResult.Failed)
+            {
+                hudView.ShowMessage(vocabulary.LastFailureMessage);
+                return;
+            }
+
+            feedbackView.ShowSaved(expression);
+            hudView.SetVocabularyCount(vocabulary.Entries.Count);
+        }
+
         // 내 발화가 없는 대화는 피드백을 만들지 않고, 이동 잠금도 건드리지 않는다.
         private void ShowFeedback(DialogueRecord record)
         {
@@ -207,7 +254,7 @@ namespace A305.Learning
             feedbackRecord = record;
             shownServerFeedback = record.ServerFeedback;
             // 서버 AI와 나눈 대화는 서버가 만든 피드백을, 대본 대화는 키워드 규칙으로 만든 예시를 보여 준다.
-            feedbackView.Show(
+            ShowFeedbackView(
                 record.ServerFeedback != null
                     ? ConversationFeedback.FromServer(
                         record.NpcName,
@@ -217,7 +264,8 @@ namespace A305.Learning
                     : new ConversationFeedback(
                         record.NpcName,
                         record.UserUtterances,
-                        exampleSource.GetRules()
+                        exampleSource.GetRules(),
+                        exampleSource.GetSituationExpressions(record.NpcName)
                     ),
                 record.Lines
             );
@@ -252,7 +300,7 @@ namespace A305.Learning
             }
 
             shownServerFeedback = regenerated;
-            feedbackView.Show(
+            ShowFeedbackView(
                 ConversationFeedback.FromServer(
                     record.NpcName,
                     record.UserUtterances.Count,
@@ -350,7 +398,7 @@ namespace A305.Learning
             historyView.ShowStatus("");
             pastConversation = past;
             shownServerFeedback = past.Feedback;
-            feedbackView.Show(
+            ShowFeedbackView(
                 ConversationFeedback.FromServer(past.NpcName, past.UtteranceCount, past.Feedback),
                 past.Lines
             );
@@ -368,7 +416,7 @@ namespace A305.Learning
             }
 
             shownServerFeedback = regenerated;
-            feedbackView.Show(
+            ShowFeedbackView(
                 ConversationFeedback.FromServer(past.NpcName, past.UtteranceCount, regenerated),
                 past.Lines
             );

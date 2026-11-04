@@ -12,6 +12,12 @@ namespace A305.World
         [SerializeField]
         private bool insideOnForwardSide;
 
+        [SerializeField]
+        [Tooltip("이 문으로 들어가면 불러오는 실내. 1층과 2층이 다른 가게면 층마다 다르다.")]
+        private ShopInterior room;
+
+        public ShopInterior Room => room;
+
         private void Awake()
         {
             threshold = GetComponent<BoxCollider>();
@@ -34,12 +40,7 @@ namespace A305.World
             );
             Vector3 destination = PointBeyondThreshold(-entrySide * normal, capsule);
             bool entering = (entrySide < 0f) == insideOnForwardSide;
-            SpaceTravel.CrossShopDoor(
-                player,
-                destination,
-                GetComponentInParent<ShopInterior>(),
-                entering
-            );
+            SpaceTravel.CrossShopDoor(player, destination, room, entering);
         }
 
         /// <summary>영업이 끝난 매장에서 문턱 바깥쪽 같은 층에 밖을 보고 세운다.</summary>

@@ -73,66 +73,80 @@ namespace A305.EditorTools.Theme
             );
             RectTransform content = Rect(panel, "Content");
             Position(content, 0, 96, 1000, 476);
+            // 왼쪽 단어 목록. 단어가 많으면 마우스 휠·끌기로 스크롤한다. 고른 줄의 그림자가 잘리지 않게 보이는 곳을 줄보다 조금 넓게 둔다.
             RectTransform entries = Rect(content, "Entries");
-            Position(entries, 36, 0, 280, 376);
-            var buttons = new Button[4];
-            var labels = new TMP_Text[4];
-            var meanings = new TMP_Text[4];
-            var marks = new GameObject[4];
-            for (int index = 0; index < buttons.Length; index++)
+            Position(entries, 26, 0, 300, 360);
+            foreach (string old in new[] { "Entry0", "Entry1", "Entry2", "Entry3" })
             {
-                Button button = TextButton(
-                    entries,
-                    "Entry" + index,
-                    "",
-                    UiIcon.None,
-                    UiTone.Neutral,
-                    0,
-                    index * 90,
-                    280,
-                    76
-                );
-                Object.DestroyImmediate(button.GetComponent<ThemedElement>());
-                button.GetComponent<Image>().color = Color.clear;
-                Object.DestroyImmediate(button.transform.Find("Outline").gameObject);
-                Object.DestroyImmediate(button.transform.Find("Icon").gameObject);
-                // 줄마다 옅은 흰 카드를 깔아 단어 사이 경계를 보이고, 고른 줄은 그 위에 강조색 카드를 덮는다.
-                RectTransform mark = Rect(button.transform, "Selection");
-                Stretch(mark);
-                mark.SetAsFirstSibling();
-                Skin(mark, UiThemeRole.PillButton, UiTone.Primary);
-                SetThemeFlag(mark, "selection");
-                mark.GetComponent<Image>().raycastTarget = false;
-                Image rowCard = SolidCard(Rect(button.transform, "Card"), RowCardColor);
-                Stretch(rowCard.rectTransform);
-                rowCard.transform.SetAsFirstSibling();
-                // 영어 단어는 굵게, 뜻은 그 아래 흐린 글자로 나눠 무엇이 단어이고 무엇이 뜻인지 보이게 한다.
-                TMP_Text label = button.transform.Find("Label").GetComponent<TMP_Text>();
-                label.gameObject.SetActive(true);
-                Position(label.rectTransform, 18, 12, 244, 28);
-                label.alignment = TextAlignmentOptions.TopLeft;
-                label.fontSize = 20;
-                label.lineSpacing = 0;
-                label.margin = Vector4.zero;
-                label.textWrappingMode = TextWrappingModes.NoWrap;
-                label.overflowMode = TextOverflowModes.Ellipsis;
-                Letter(label, UiThemeRole.Body, bold: true);
-                TMP_Text entryMeaning = Text(
-                    button.transform,
-                    "Meaning",
-                    "",
-                    17,
-                    18,
-                    42,
-                    244,
-                    24,
-                    UiThemeRole.Muted
-                );
-                buttons[index] = button;
-                labels[index] = label;
-                meanings[index] = entryMeaning;
-                marks[index] = mark.gameObject;
+                Transform child = entries.Find(old);
+                if (child != null)
+                    Object.DestroyImmediate(child.gameObject);
             }
+            // 줄 사이 빈 곳에서도 휠이 먹도록 보이지 않는 바탕을 깐다.
+            Image listArea = BuilderTools.GetOrAddComponent<Image>(entries.gameObject);
+            listArea.color = Color.clear;
+            BuilderTools.GetOrAddComponent<RectMask2D>(entries.gameObject);
+            RectTransform rows = Rect(entries, "Rows");
+            rows.anchorMin = new Vector2(0, 1);
+            rows.anchorMax = Vector2.one;
+            rows.pivot = new Vector2(.5f, 1);
+            rows.anchoredPosition = Vector2.zero;
+            rows.sizeDelta = new Vector2(0, rows.sizeDelta.y);
+            var column = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(rows.gameObject);
+            column.padding = new RectOffset(10, 10, 6, 14);
+            column.spacing = 14;
+            column.childControlWidth = column.childForceExpandWidth = true;
+            column.childControlHeight = column.childForceExpandHeight = false;
+            BuilderTools.GetOrAddComponent<ContentSizeFitter>(rows.gameObject).verticalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+            var list = BuilderTools.GetOrAddComponent<ScrollRect>(entries.gameObject);
+            list.content = rows;
+            list.viewport = entries;
+            list.horizontal = false;
+            list.vertical = true;
+            list.movementType = ScrollRect.MovementType.Clamped;
+            list.scrollSensitivity = 30;
+            list.verticalScrollbar = ListScrollbar(content);
+            list.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            // 줄 원본. 숨겨 두고 단어마다 복사해 쓴다.
+            Button template = TextButton(
+                rows,
+                "EntryTemplate",
+                "",
+                UiIcon.None,
+                UiTone.Neutral,
+                0,
+                0,
+                280,
+                76
+            );
+            Object.DestroyImmediate(template.GetComponent<ThemedElement>());
+            template.GetComponent<Image>().color = Color.clear;
+            Object.DestroyImmediate(template.transform.Find("Outline").gameObject);
+            Object.DestroyImmediate(template.transform.Find("Icon").gameObject);
+            // 줄마다 옅은 흰 카드를 깔아 단어 사이 경계를 보이고, 고른 줄은 그 위에 강조색 카드를 덮는다.
+            RectTransform mark = Rect(template.transform, "Selection");
+            Stretch(mark);
+            mark.SetAsFirstSibling();
+            Skin(mark, UiThemeRole.PillButton, UiTone.Primary);
+            SetThemeFlag(mark, "selection");
+            mark.GetComponent<Image>().raycastTarget = false;
+            Image rowCard = SolidCard(Rect(template.transform, "Card"), RowCardColor);
+            Stretch(rowCard.rectTransform);
+            rowCard.transform.SetAsFirstSibling();
+            // 영어 단어는 굵게, 뜻은 그 아래 흐린 글자로 나눠 무엇이 단어이고 무엇이 뜻인지 보이게 한다.
+            TMP_Text label = template.transform.Find("Label").GetComponent<TMP_Text>();
+            label.gameObject.SetActive(true);
+            Position(label.rectTransform, 18, 12, 244, 28);
+            label.alignment = TextAlignmentOptions.TopLeft;
+            label.fontSize = 20;
+            label.lineSpacing = 0;
+            label.margin = Vector4.zero;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Ellipsis;
+            Letter(label, UiThemeRole.Body, bold: true);
+            Text(template.transform, "Meaning", "", 17, 18, 42, 244, 24, UiThemeRole.Muted);
+            template.gameObject.SetActive(false);
             // 목록 넘기기는 목록에서 고른 단어를 옮기므로 목록 바로 아래 가운데에 둔다.
             Button previous = IconButton(content, "PreviousButton", UiIcon.Previous, 84, 372);
             TMP_Text page = Text(content, "Page", "", 18, 138, 372, 76, 44, UiThemeRole.Body);
@@ -339,10 +353,9 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "memoInput", memo);
             BuilderTools.SetReference(view, "memoSaveButton", save);
             BuilderTools.SetReference(view, "statusText", status);
+            BuilderTools.SetReference(view, "entryList", list);
+            BuilderTools.SetReference(view, "entryTemplate", template);
             var fields = new SerializedObject(view);
-            SetArray(fields.FindProperty("entryButtons"), buttons);
-            SetArray(fields.FindProperty("entryTexts"), labels);
-            SetArray(fields.FindProperty("entryMeaningTexts"), meanings);
             SetArray(
                 fields.FindProperty("memoParts"),
                 new[]
@@ -352,7 +365,6 @@ namespace A305.EditorTools.Theme
                     (RectTransform)save.transform,
                 }
             );
-            SetArray(fields.FindProperty("selectedMarks"), marks);
             fields.ApplyModifiedPropertiesWithoutUndo();
             panel.gameObject.SetActive(false);
         }
@@ -523,6 +535,26 @@ namespace A305.EditorTools.Theme
                 role == UiThemeRole.Muted ? Muted
                 : role == UiThemeRole.Accent ? Accent
                 : Ink;
+        }
+
+        // 목록과 상세 카드 사이의 가는 스크롤 막대. 목록이 넘칠 때만 보인다(ScrollRect의 AutoHide).
+        private static Scrollbar ListScrollbar(RectTransform parent)
+        {
+            RectTransform bar = Rect(parent, "EntriesScrollbar");
+            Position(bar, 320, 6, 5, 340);
+            Image track = BuilderTools.GetOrAddComponent<Image>(bar.gameObject);
+            track.color = new Color(Muted.r, Muted.g, Muted.b, .12f);
+            RectTransform area = Rect(bar, "SlidingArea");
+            Stretch(area);
+            RectTransform handle = Rect(area, "Handle");
+            Stretch(handle);
+            Image thumb = BuilderTools.GetOrAddComponent<Image>(handle.gameObject);
+            thumb.color = new Color(Muted.r, Muted.g, Muted.b, .55f);
+            var scrollbar = BuilderTools.GetOrAddComponent<Scrollbar>(bar.gameObject);
+            scrollbar.handleRect = handle;
+            scrollbar.targetGraphic = thumb;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            return scrollbar;
         }
 
         // 구역 제목: 피드백 화면처럼 왼쪽 코랄 막대와 둥근 제목 글꼴의 코랄 글자

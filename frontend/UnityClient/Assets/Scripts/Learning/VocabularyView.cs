@@ -16,7 +16,6 @@ namespace A305.Learning
     /// </summary>
     public class VocabularyView : MonoBehaviour
     {
-        private const int VisibleEntryCount = 4;
         private const string LoadingTitle = "단어장을 불러오는 중이에요…";
         private const string LoadFailedTitle = "단어장을 불러오지 못했어요";
         private const string ContextTitle = "저장한 문장";
@@ -85,18 +84,14 @@ namespace A305.Learning
         private TMP_Text pageText;
 
         [SerializeField]
-        private Button[] entryButtons;
+        [Tooltip("왼쪽 단어 목록. 단어가 많으면 마우스 휠·끌기로 스크롤한다")]
+        private ScrollRect entryList;
 
         [SerializeField]
-        [Tooltip("목록 줄의 영어 단어")]
-        private TMP_Text[] entryTexts;
-
-        [SerializeField]
-        [Tooltip("목록 줄의 영어 단어 아래 뜻")]
-        private TMP_Text[] entryMeaningTexts;
-
-        [SerializeField]
-        private GameObject[] selectedMarks;
+        [Tooltip(
+            "목록 한 줄 원본(Label 영어 단어·Meaning 뜻·Selection 고른 표시). 숨겨 두고 단어마다 복사해 쓴다"
+        )]
+        private Button entryTemplate;
 
         [SerializeField]
         private Button previousButton;
@@ -137,7 +132,7 @@ namespace A305.Learning
         // 지난번에 그린 목록. 고른 단어와 누른 줄은 화면에 보이는 이 목록을 기준으로 한다.
         private IReadOnlyList<VocabularyEntry> shownEntries = Array.Empty<VocabularyEntry>();
         private int selectedIndex;
-        private int firstVisibleIndex;
+        private readonly List<Button> entryRows = new List<Button>();
 
         public event Action CloseRequested;
 
@@ -166,6 +161,11 @@ namespace A305.Learning
             UiLayer.Open(this);
             ShowStatus("");
             Refresh();
+            entryList.StopMovement();
+            entryList.content.anchoredPosition = new Vector2(
+                entryList.content.anchoredPosition.x,
+                0
+            );
         }
 
         public void Hide()
@@ -214,23 +214,23 @@ namespace A305.Learning
             if (!hasEntries)
                 return;
 
-            // 한 화면의 네 항목을 유지하고, 경계를 넘어갈 때만 다음 묶음으로 이동한다.
-            firstVisibleIndex = selectedIndex / VisibleEntryCount * VisibleEntryCount;
-            for (int row = 0; row < entryButtons.Length; row++)
+            // 단어마다 한 줄씩 두고, 남는 줄은 숨겨 두었다가 단어가 늘면 다시 쓴다.
+            for (int index = 0; index < count; index++)
             {
-                int index = firstVisibleIndex + row;
-                bool visible = index < count;
-                entryButtons[row].gameObject.SetActive(visible);
-                if (!visible)
-                    continue;
+                Transform row = EntryRow(index).transform;
                 VocabularyEntry entry = shownEntries[index];
+                TMP_Text english = row.Find("Label").GetComponent<TMP_Text>();
+                TMP_Text korean = row.Find("Meaning").GetComponent<TMP_Text>();
                 // 서버 원문은 TMP 태그로 해석하지 않는다.
-                entryTexts[row].richText = entryMeaningTexts[row].richText = false;
-                entryTexts[row].text = entry.English;
+                english.richText = korean.richText = false;
+                english.text = entry.English;
                 // [외운 표현도 보기]를 켜면 외운 단어도 섞여 보이므로 뜻 뒤에 표시한다.
-                entryMeaningTexts[row].text = entry.Korean + (entry.IsLearned ? " · 외웠어요" : "");
-                selectedMarks[row].SetActive(index == selectedIndex);
+                korean.text = entry.Korean + (entry.IsLearned ? " · 외웠어요" : "");
+                row.Find("Selection").gameObject.SetActive(index == selectedIndex);
+                row.gameObject.SetActive(true);
             }
+            for (int index = count; index < entryRows.Count; index++)
+                entryRows[index].gameObject.SetActive(false);
             wordText.richText = meaningText.richText = contextText.richText = false;
             contextTitleText.richText = contextMeaningText.richText = false;
             wordText.text = SelectedEntry.English;
@@ -303,11 +303,7 @@ namespace A305.Learning
         {
             memoPartTops = memoParts.Select(part => part.anchoredPosition.y).ToArray();
             memoInput.characterLimit = VocabularyBook.MaxMemoLength;
-            for (int row = 0; row < entryButtons.Length; row++)
-            {
-                int clickedRow = row;
-                entryButtons[row].onClick.AddListener(() => Select(firstVisibleIndex + clickedRow));
-            }
+            entryTemplate.gameObject.SetActive(false);
             previousButton.onClick.AddListener(() => MoveSelection(-1));
             nextButton.onClick.AddListener(() => MoveSelection(1));
             learnedButton.onClick.AddListener(() =>
@@ -343,11 +339,50 @@ namespace A305.Learning
                 selectedIndex = index;
             ShowStatus("");
             Refresh();
+            ScrollToSelected();
+        }
+
+        // index번째 단어의 줄. 처음 쓰는 자리면 원본을 복사해 만든다.
+        private Button EntryRow(int index)
+        {
+            while (entryRows.Count <= index)
+            {
+                int rowIndex = entryRows.Count;
+                Button row = Instantiate(entryTemplate, entryTemplate.transform.parent);
+                row.name = "Entry" + rowIndex;
+                row.onClick.AddListener(() => Select(rowIndex));
+                entryRows.Add(row);
+            }
+            return entryRows[index];
+        }
+
+        // 화살표로 고른 단어가 목록 보이는 곳 밖이면 그 줄이 보일 만큼만 스크롤한다.
+        private void ScrollToSelected()
+        {
+            if (!HasSelection)
+                return;
+            RectTransform rows = entryList.content;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rows);
+            var row = (RectTransform)entryRows[selectedIndex].transform;
+            // 고른 줄의 그림자까지 보이도록 줄 사이 간격만큼 위아래 여유를 둔다.
+            float margin = rows.GetComponent<VerticalLayoutGroup>().spacing;
+            float top = -row.anchoredPosition.y - row.rect.height * (1 - row.pivot.y) - margin;
+            float bottom = top + row.rect.height + margin * 2;
+            float view = entryList.viewport.rect.height;
+            float scroll = rows.anchoredPosition.y;
+            if (top < scroll)
+                scroll = top;
+            else if (bottom > scroll + view)
+                scroll = bottom - view;
+            scroll = Mathf.Clamp(scroll, 0, Mathf.Max(0, rows.rect.height - view));
+            entryList.StopMovement();
+            rows.anchoredPosition = new Vector2(rows.anchoredPosition.x, scroll);
         }
 
         private void MoveSelection(int step)
         {
             Select(selectedIndex + step);
+            ScrollToSelected();
         }
 
         private bool HasSelection => book != null && shownEntries.Count > 0;

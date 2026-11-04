@@ -91,6 +91,112 @@ namespace A305.World.Tests
             Assert.That(lightValue, Is.EqualTo(1f).Within(.01f));
         }
 
+        // 머리카락과 바지처럼 같은 색이 몸 여러 곳에 있으면 몸 높이 구역으로 머리 쪽만 바꾼다.
+        [Test]
+        public void Recolor_RangeLimitedToTheHead_ChangesOnlyPixelsDrawnHighOnTheBody()
+        {
+            var hairToBlack = new NpcColorSwap(
+                new Vector2(.05f, .12f),
+                new Vector2(.3f, .8f),
+                new Vector2(.2f, .9f),
+                .07f,
+                .3f,
+                .3f,
+                new Vector2(.6f, 1f)
+            );
+            Color32 brown = Color.HSVToRGB(.08f, .5f, .5f);
+
+            Color32[] result = NpcColorSwap.Recolor(
+                new[] { brown, brown, brown },
+                new[] { hairToBlack },
+                new[] { .8f, .2f, -1f }
+            );
+
+            Assert.That(result[0], Is.Not.EqualTo(brown), "머리 높이의 픽셀은 바꿉니다.");
+            Assert.That(result[1], Is.EqualTo(brown), "다리 높이의 픽셀은 둡니다.");
+            Assert.That(result[2], Is.EqualTo(brown), "몸에 쓰이지 않는 자리는 둡니다.");
+        }
+
+        // 신발처럼 원래 색으로 둘 부분을 앞에 두면, 같은 색을 고르는 뒤의 범위(바지)가 그 픽셀을 바꾸지 않는다.
+        [Test]
+        public void Recolor_KeptRangeBeforeAnother_LeavesItsPixelsAlone()
+        {
+            var keepShoes = new NpcColorSwap(
+                new Vector2(0f, .1f),
+                new Vector2(.3f, .8f),
+                new Vector2(.1f, .9f),
+                0f,
+                0f,
+                1f,
+                new Vector2(0f, .1f),
+                keeps: true
+            );
+            var brownToNavy = new NpcColorSwap(
+                new Vector2(0f, .1f),
+                new Vector2(.3f, .8f),
+                new Vector2(.1f, .9f),
+                .62f,
+                .55f
+            );
+            Color32 brown = Color.HSVToRGB(.06f, .5f, .4f);
+
+            Color32[] result = NpcColorSwap.Recolor(
+                new[] { brown, brown },
+                new[] { keepShoes, brownToNavy },
+                new[] { .05f, .3f }
+            );
+
+            Assert.That(result[0], Is.EqualTo(brown), "신발은 원래 색입니다.");
+            Color.RGBToHSV(result[1], out float trouserHue, out _, out _);
+            Assert.That(trouserHue, Is.EqualTo(.62f).Within(.01f), "바지는 남색이 됩니다.");
+        }
+
+        // 머리카락 가닥 사이의 어두운 선처럼, 바꾼 픽셀 사이에 끼어 범위 밖이라 남은 가는 틈도 같은 색으로 메운다.
+        [Test]
+        public void FillGaps_PixelBetweenRecoloredPixels_TakesTheSameColor()
+        {
+            var sandyToWhite = new NpcColorSwap(
+                new Vector2(.08f, .14f),
+                new Vector2(.2f, .5f),
+                new Vector2(.4f, .9f),
+                .1f,
+                .05f,
+                1.25f
+            );
+            Color32 hair = Color.HSVToRGB(.1f, .35f, .7f);
+            Color32 strandLine = Color.HSVToRGB(.085f, .55f, .6f);
+            Color32[] pixels = { hair, strandLine, hair };
+            Color32[] result = NpcColorSwap.Recolor(pixels, new[] { sandyToWhite });
+
+            NpcColorSwap.FillGaps(pixels, result, 3, sandyToWhite, null, 2);
+
+            Color.RGBToHSV(result[1], out _, out float saturation, out _);
+            Assert.That(saturation, Is.EqualTo(.05f).Within(.01f));
+        }
+
+        // 머리 가장자리처럼 한쪽에만 바꾼 픽셀이 있는 곳(이마의 피부)은 메우지 않는다.
+        [Test]
+        public void FillGaps_PixelBesideRecoloredPixelsOnOneSideOnly_StaysTheSame()
+        {
+            var sandyToWhite = new NpcColorSwap(
+                new Vector2(.08f, .14f),
+                new Vector2(.2f, .5f),
+                new Vector2(.4f, .9f),
+                .1f,
+                .05f,
+                1.25f
+            );
+            Color32 hair = Color.HSVToRGB(.1f, .35f, .7f);
+            Color32 skin = Color.HSVToRGB(.08f, .55f, .95f);
+            Color32[] pixels = { hair, hair, skin, skin, skin };
+            Color32[] result = NpcColorSwap.Recolor(pixels, new[] { sandyToWhite });
+
+            NpcColorSwap.FillGaps(pixels, result, 5, sandyToWhite, null, 2);
+
+            Assert.That(result[2], Is.EqualTo(skin));
+            Assert.That(result[3], Is.EqualTo(skin));
+        }
+
         [Test]
         public void Recolor_KeepsTransparency()
         {

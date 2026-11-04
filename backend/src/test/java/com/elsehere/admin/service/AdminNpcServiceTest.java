@@ -80,7 +80,12 @@ class AdminNpcServiceTest {
             tuple("SHOP_NIGHT_CLERK", "Samuel", "드럭스토어 직원", "드럭스토어"),
             tuple("TOWN_RETIREE", "Ruby", "행인", "마을"),
             tuple("TOWN_STUDENT", "Ethan", "행인", "마을"),
-            tuple("TOWN_EVENING_WALKER", "Maya", "행인", "마을"));
+            tuple("TOWN_EVENING_WALKER", "Maya", "행인", "마을"),
+            tuple("CAFE_SERVER", "Leo", "카페 직원", "모퉁이 카페"),
+            tuple("HOTEL_CONCIERGE", "Walter", "컨시어지", "호텔"),
+            tuple("HOTEL_BELLHOP", "Diego", "벨보이", "호텔"),
+            tuple("TOWN_SHOPPER", "Helen", "행인", "마을"),
+            tuple("TOWN_HANDYMAN", "Frank", "행인", "마을"));
   }
 
   @Test

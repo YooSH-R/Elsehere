@@ -128,7 +128,12 @@ class FirstDayMissionServiceTest {
             "SHOP_NIGHT_CLERK",
             "TOWN_RETIREE",
             "TOWN_STUDENT",
-            "TOWN_EVENING_WALKER")) {
+            "TOWN_EVENING_WALKER",
+            "CAFE_SERVER",
+            "HOTEL_CONCIERGE",
+            "HOTEL_BELLHOP",
+            "TOWN_SHOPPER",
+            "TOWN_HANDYMAN")) {
       if (npc.equals(stage.npc())) {
         continue;
       }

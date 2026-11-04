@@ -93,7 +93,7 @@ class SceneServiceTest {
 
   @Test
   @DisplayName(
-      "마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan, 거리 매장 직원 9명과 행인 Ruby·Ethan·Maya를 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
+      "마을 상세는 행인 Ben·택시 기사 Joe·경찰관 Dan, 거리 매장 직원 9명과 행인 Ruby·Ethan·Maya·Helen·Frank를 역할 이름·먼저 말 걸기 여부·첫 말과 함께 돌려준다")
   void getScene_town_returnsNpcs() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -121,7 +121,9 @@ class SceneServiceTest {
             new NpcResponse("HOME_STORE_STAFF", "Nina", NpcType.STAFF, "매장 직원", false, null),
             new NpcResponse("TOWN_RETIREE", "Ruby", NpcType.PASSERBY, "행인", false, null),
             new NpcResponse("TOWN_STUDENT", "Ethan", NpcType.PASSERBY, "행인", false, null),
-            new NpcResponse("TOWN_EVENING_WALKER", "Maya", NpcType.PASSERBY, "행인", false, null));
+            new NpcResponse("TOWN_EVENING_WALKER", "Maya", NpcType.PASSERBY, "행인", false, null),
+            new NpcResponse("TOWN_SHOPPER", "Helen", NpcType.PASSERBY, "행인", false, null),
+            new NpcResponse("TOWN_HANDYMAN", "Frank", NpcType.PASSERBY, "행인", false, null));
   }
 
   @Test
@@ -208,7 +210,7 @@ class SceneServiceTest {
   }
 
   @Test
-  @DisplayName("호텔 상세는 교대를 나눠 맡는 호텔 직원 Jake·Owen·Clara를 돌려준다")
+  @DisplayName("호텔 상세는 교대를 나눠 맡는 호텔 직원 Jake·Owen·Clara·Walter·Diego를 돌려준다")
   void getScene_hotel_returnsHotelStaff() {
     Long userId = UserTestData.insertUser(entityManager, AuthProvider.GOOGLE, "google-sub-1");
 
@@ -220,7 +222,9 @@ class SceneServiceTest {
             new NpcResponse("HOTEL_STAFF", "Jake", NpcType.STAFF, "호텔 직원", false, null),
             new NpcResponse("HOTEL_RECEPTIONIST", "Owen", NpcType.STAFF, "호텔 직원", false, null),
             new NpcResponse(
-                "HOTEL_NIGHT_MANAGER", "Clara", NpcType.STAFF, "호텔 야간 매니저", false, null));
+                "HOTEL_NIGHT_MANAGER", "Clara", NpcType.STAFF, "호텔 야간 매니저", false, null),
+            new NpcResponse("HOTEL_CONCIERGE", "Walter", NpcType.STAFF, "컨시어지", false, null),
+            new NpcResponse("HOTEL_BELLHOP", "Diego", NpcType.STAFF, "벨보이", false, null));
   }
 
   @Test

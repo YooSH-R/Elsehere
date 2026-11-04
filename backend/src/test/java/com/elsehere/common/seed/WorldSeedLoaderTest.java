@@ -186,7 +186,7 @@ class WorldSeedLoaderTest {
 
   @Test
   @DisplayName(
-      "NPC 23명(행인 4명·카페 직원 2명·호텔 직원 3명·드럭스토어 직원 3명·택시 기사·경찰관과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+      "NPC 28명(행인 6명·카페 직원 3명·호텔 직원 5명·드럭스토어 직원 3명·택시 기사·경찰관과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -229,7 +229,12 @@ class WorldSeedLoaderTest {
             tuple("SHOP", "SHOP_NIGHT_CLERK", "Samuel", NpcType.STAFF, "드럭스토어 직원", false, null),
             tuple("TOWN", "TOWN_RETIREE", "Ruby", NpcType.PASSERBY, "행인", false, null),
             tuple("TOWN", "TOWN_STUDENT", "Ethan", NpcType.PASSERBY, "행인", false, null),
-            tuple("TOWN", "TOWN_EVENING_WALKER", "Maya", NpcType.PASSERBY, "행인", false, null));
+            tuple("TOWN", "TOWN_EVENING_WALKER", "Maya", NpcType.PASSERBY, "행인", false, null),
+            tuple("CAFE", "CAFE_SERVER", "Leo", NpcType.STAFF, "카페 직원", false, null),
+            tuple("HOTEL", "HOTEL_CONCIERGE", "Walter", NpcType.STAFF, "컨시어지", false, null),
+            tuple("HOTEL", "HOTEL_BELLHOP", "Diego", NpcType.STAFF, "벨보이", false, null),
+            tuple("TOWN", "TOWN_SHOPPER", "Helen", NpcType.PASSERBY, "행인", false, null),
+            tuple("TOWN", "TOWN_HANDYMAN", "Frank", NpcType.PASSERBY, "행인", false, null));
   }
 
   @Test
@@ -257,7 +262,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(23);
+    assertThat(npcRepository.count()).isEqualTo(28);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 
@@ -332,7 +337,12 @@ class WorldSeedLoaderTest {
             "SHOP_NIGHT_CLERK",
             "TOWN_RETIREE",
             "TOWN_STUDENT",
-            "TOWN_EVENING_WALKER");
+            "TOWN_EVENING_WALKER",
+            "CAFE_SERVER",
+            "HOTEL_CONCIERGE",
+            "HOTEL_BELLHOP",
+            "TOWN_SHOPPER",
+            "TOWN_HANDYMAN");
     JsonMapper jsonMapper = new JsonMapper();
     for (Npc npc : npcRepository.findAll()) {
       JsonNode expected = profiles.get(npc.getCode());

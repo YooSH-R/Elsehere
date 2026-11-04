@@ -97,6 +97,14 @@ namespace A305.EditorTools.Learning
                                 ExampleEn = "Could I get a little less ice in my iced coffee?",
                                 ExampleKo = "아이스커피에 얼음 조금만 넣어 주실 수 있나요?",
                             },
+                            new SituationExpressionData
+                            {
+                                Expression = "Have a good one!",
+                                MeaningKo = "좋은 하루 보내세요!",
+                                UsageKo = "주문을 마친 뒤 직원에게 가볍게 인사할 때 써요.",
+                                ExampleEn = "Thanks for the coffee. Have a good one!",
+                                ExampleKo = "커피 고마워요. 좋은 하루 보내세요!",
+                            },
                         },
                     },
                     new List<DetailedFeedbackItem>
@@ -124,7 +132,7 @@ namespace A305.EditorTools.Learning
                     null
                 )
             );
-            view.SetSaveAvailable(false);
+            view.SetSaveAvailable(true);
             view.Show(feedback, new DialogueLine[0]);
             foreach (
                 UiThemeId theme in new[] { UiThemeId.Jelly, UiThemeId.Sticker, UiThemeId.Cloud }
@@ -147,6 +155,14 @@ namespace A305.EditorTools.Learning
             }
             UiThemeSelection.Shared.Select(UiThemeId.Jelly);
             Render(camera, view, Path.Combine(output, "feedback-portrait.png"), 900, 1400);
+            view.SelectSection(FeedbackSection.Conversation);
+            Render(
+                camera,
+                view,
+                Path.Combine(output, "feedback-conversation-portrait.png"),
+                900,
+                1400
+            );
             var longFeedback = ConversationFeedback.FromServer(
                 "Mia",
                 1,

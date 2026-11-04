@@ -84,7 +84,7 @@ namespace A305.Learning
         private RectTransform navigationRow;
 
         [SerializeField]
-        [Tooltip("요약 탭 위쪽의 '이 상황에서 자주 써요' 표현 줄 묶음")]
+        [Tooltip("요약·회화 표현 탭의 '이 상황에서 자주 써요' 표현 줄 묶음")]
         private RectTransform situationRows;
 
         [SerializeField]
@@ -297,11 +297,16 @@ namespace A305.Learning
             }
 
             // 받지 못한 피드백은 저장할 표현이나 상세 평가가 없으므로 그 버튼 대신 다시 만들기·대화 기록을 보여 준다.
-            // 아래 줄 [담기]는 지금 장에 담을 표현이 있을 때만 둔다. 표현 칸은 칸마다 [담기]가 있다.
+            // 본문 옆 [담기]는 지금 장에 담을 표현이 있을 때만 둔다. 추천 표현 줄은 각자 버튼을 가진다.
             saveButton.gameObject.SetActive(
-                isSaveAvailable && !feedback.IsFailed && CurrentExpression != null
+                isSaveAvailable
+                    && !feedback.IsFailed
+                    && !isTranscriptShown
+                    && CurrentExpression != null
+                    && pages[pageIndex].Situations == null
             );
             saveButton.interactable = CurrentExpression != null;
+            saveButton.GetComponentInChildren<TMP_Text>(true).text = "담기";
             detailButton.gameObject.SetActive(false);
             regenerateButton.gameObject.SetActive(feedback.CanRegenerate);
             regenerateButton.interactable = true;
@@ -317,7 +322,7 @@ namespace A305.Learning
             UpdateLayout();
         }
 
-        // 요약 탭은 받은 피드백의 표현을, 회화 표현 탭은 그 장에 담긴 표현을 같은 표현 줄로 보인다.
+        // 요약 탭은 받은 추천 표현을 두 개씩, 회화 표현 탭은 현재 장에 담긴 표현을 보여 준다.
         private IReadOnlyList<SituationExpressionData> SituationsShown()
         {
             if (feedback.IsFailed || isTranscriptShown)
@@ -374,6 +379,8 @@ namespace A305.Learning
             }
             situationRowItems.Clear();
             saveButtons.Clear();
+            if (saveButton.gameObject.activeSelf && CurrentExpression != null)
+                saveButtons[CurrentExpression.English] = saveButton;
 
             foreach (SituationExpressionData expression in expressions)
             {
@@ -441,7 +448,9 @@ namespace A305.Learning
                 top += SummaryTitleHeight + GapBelowHeading - TileShadowTop;
             }
             RectTransform body = bodyText.rectTransform;
-            body.offsetMax = new Vector2(body.offsetMax.x, -(top + TileTop));
+            var saveRect = (RectTransform)saveButton.transform;
+            float saveRoom = saveButton.gameObject.activeSelf ? saveRect.sizeDelta.x + 24 : 0;
+            body.offsetMax = new Vector2(-TileSide - saveRoom, -(top + TileTop));
             PlaceBodyTile(top);
         }
 
@@ -457,19 +466,21 @@ namespace A305.Learning
                     ? summaryTileSprite
                     : tileSprite;
             RectTransform body = bodyText.rectTransform;
-            float height =
-                Mathf.Min(
-                    bodyText.GetPreferredValues(bodyText.text, body.rect.width, 0).y,
-                    body.rect.height
-                )
-                + TileTop
-                + TileBottom;
+            float contentHeight = Mathf.Min(
+                bodyText.GetPreferredValues(bodyText.text, body.rect.width, 0).y,
+                body.rect.height
+            );
+            var saveRect = (RectTransform)saveButton.transform;
+            if (saveButton.gameObject.activeSelf)
+                contentHeight = Mathf.Max(contentHeight, saveRect.sizeDelta.y);
+            float height = contentHeight + TileTop + TileBottom;
             RectTransform tile = bodyTile.rectTransform;
             tile.anchorMin = new Vector2(0, 1);
             tile.anchorMax = Vector2.one;
             tile.pivot = new Vector2(.5f, 1);
             tile.offsetMin = new Vector2(body.offsetMin.x - TileSide, -(top + height));
-            tile.offsetMax = new Vector2(body.offsetMax.x + TileSide, -top);
+            tile.offsetMax = new Vector2(0, -top);
+            saveRect.anchoredPosition = new Vector2(-TileSide, -TileTop);
         }
 
         private static void SetRowText(GameObject row, string path, string value)

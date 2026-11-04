@@ -133,6 +133,30 @@ namespace A305.Learning.Tests
             Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
         }
 
+        [Test]
+        public void ConversationTab_ShowsEverySituationExpressionAtOnce()
+        {
+            Show(Expressions);
+            view.SelectSection(FeedbackSection.Conversation);
+
+            List<GameObject> rows = Rows();
+            Assert.That(rows, Has.Count.EqualTo(Expressions.Count));
+            for (int i = 0; i < rows.Count; i++)
+                Assert.That(Texts(rows[i]), Does.Contain(Expressions[i].Expression));
+        }
+
+        [Test]
+        public void SingleSituationExpression_HasOnlyItsOwnSaveButton()
+        {
+            Show(new List<SituationExpressionData> { Expressions[0] });
+            view.SelectSection(FeedbackSection.Conversation);
+
+            var pageSave = (Button)
+                new SerializedObject(view).FindProperty("saveButton").objectReferenceValue;
+            Assert.That(pageSave.gameObject.activeInHierarchy, Is.False);
+            Assert.That(Rows().Single().GetComponentInChildren<Button>(), Is.Not.Null);
+        }
+
         private void Show(List<SituationExpressionData> expressions)
         {
             instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));

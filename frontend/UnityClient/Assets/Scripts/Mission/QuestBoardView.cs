@@ -491,10 +491,12 @@ namespace A305.Mission
         private static void Place(GameObject item, Vector2 art, float lift) =>
             Place((RectTransform)item.transform, art, lift);
 
-        /// <summary>장소의 잉크 도장. 모르는 장소는 첫 도장을 쓴다.</summary>
-        public Sprite StampOf(string place) =>
-            placeStamps.FirstOrDefault(stamp => stamp.Place == place).Sprite
-            ?? placeStamps[0].Sprite;
+        /// <summary>장소의 잉크 도장. 도장이 없거나 삭제됐으면 첫 도장을 쓴다.</summary>
+        public Sprite StampOf(string place)
+        {
+            Sprite placeStamp = placeStamps.FirstOrDefault(stamp => stamp.Place == place).Sprite;
+            return placeStamp != null ? placeStamp : placeStamps[0].Sprite;
+        }
 
         // 꺼 둔 견본을 복사해 켠다. 이름은 견본과 같게 둔다.
         private static GameObject Make(GameObject template, Transform parent)

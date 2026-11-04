@@ -383,7 +383,9 @@ namespace A305.EditorTools.Theme
 
         private static Button App(RectTransform phone, string name, string caption, Vector2 cell)
         {
-            RectTransform app = (RectTransform)phone.Find(name) ?? Rect(name, phone, 0, 0, 0, 0);
+            var app = (RectTransform)phone.Find(name);
+            if (app == null)
+                app = Rect(name, phone, 0, 0, 0, 0);
             foreach (string old in new[] { "Face", "Outline", "Icon", "Tile" })
             {
                 Transform part = app.Find(old);

@@ -120,7 +120,8 @@ namespace A305.Onboarding.Tests
         {
             Transform target = login.Find(path);
             Assert.That(target, Is.Not.Null, path);
-            return target.GetComponent<Image>().sprite?.name;
+            var sprite = target.GetComponent<Image>().sprite;
+            return sprite != null ? sprite.name : null;
         }
     }
 }

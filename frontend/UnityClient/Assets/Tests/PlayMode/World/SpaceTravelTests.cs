@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using A305.Player;
 using A305.Tutorial;
 using A305.Weather;
@@ -209,6 +210,20 @@ namespace A305.World.PlayModeTests
 
         [UnityTest]
         public IEnumerator WalkingIntoTown_ShowsWeatherLikeOpeningTown()
+        {
+            // 하늘색은 게임 시각에 따라 바뀐다. 두 번 비교하는 사이 저녁으로 넘어가지 않게 시계를 멈춰 둔다.
+            PinGameClock(paused: true);
+            try
+            {
+                yield return CompareTownWeatherAfterWalkingIn();
+            }
+            finally
+            {
+                PinGameClock(paused: false);
+            }
+        }
+
+        private IEnumerator CompareTownWeatherAfterWalkingIn()
         {
             yield return LoadSpace("TownScene");
             string opened = ShowEveryWeatherLook();
@@ -672,6 +687,38 @@ namespace A305.World.PlayModeTests
         }
 
         /// <summary>날씨마다 바로 바꿔 보고, 화면에 쓰이는 하늘·환경광·안개 값을 글로 남긴다.</summary>
+        // 서버가 보내는 것처럼 1일차 오전 8시로 시계를 맞추고, paused면 흐르지 않게 한다.
+        // 앞선 신호의 다음 간격과 겹치지 않도록 매번 더 늦은 실제 시각을 넘긴다.
+        private static double pinnedBeatAt = 1e9;
+
+        private static void PinGameClock(bool paused)
+        {
+            pinnedBeatAt += GameClock.BeatIntervalSeconds;
+            GameClock.Shared.TickAsync(new FixedGameClockApi(paused), pinnedBeatAt);
+        }
+
+        private sealed class FixedGameClockApi : IGameClockApi
+        {
+            private readonly bool paused;
+
+            public FixedGameClockApi(bool paused)
+            {
+                this.paused = paused;
+            }
+
+            public Task<GameClockTime> BeatAsync()
+            {
+                return Task.FromResult(
+                    new GameClockTime
+                    {
+                        Day = 1,
+                        MinuteOfDay = 8 * 60,
+                        Paused = paused,
+                    }
+                );
+            }
+        }
+
         private static string ShowEveryWeatherLook()
         {
             var presenter = Object.FindFirstObjectByType<WeatherPresenter>();

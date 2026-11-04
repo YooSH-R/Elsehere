@@ -24,6 +24,36 @@ namespace A305.Npc
 
         public bool CanDecline => rules.CanDecline;
 
+        /// <summary>준비해 둔 것을 건네려고 제자리에서 불러 제안하거나 그 대화를 하는 중인지(<see cref="TryCall"/>)</summary>
+        public bool IsCalling { get; private set; }
+
+        // 부른 것을 거절·무시했거나 불러서 대화한 뒤 다시 부를 수 있는 시각
+        private double callRestUntilSeconds;
+
+        /// <summary>
+        /// 준비해 둔 것이 다 되어 제자리에서 부른다. 기다리거나 쉬는 중이고 부르는 거리 안이면 다가가지 않고 바로 대화를 제안한다.
+        /// 다른 대화 뒤에 쉬는 시간은 기다리지 않지만, 부른 것을 거절·무시했거나 불러서 대화했으면 쉬는 시간이 지나야 다시 부른다.
+        /// </summary>
+        /// <param name="isPlayerBusy">다른 대화·제안 중이거나 새 대화를 시작할 수 없어 부르면 안 되는지</param>
+        /// <returns>불렀으면 true이고 제안 중이 된다.</returns>
+        public bool TryCall(double nowSeconds, float distanceToPlayer, bool isPlayerBusy)
+        {
+            bool isIdle = Phase == PasserbyPhase.Waiting || Phase == PasserbyPhase.Resting;
+            if (
+                !isIdle
+                || isPlayerBusy
+                || distanceToPlayer > rules.FollowUpCallDistanceMeters
+                || nowSeconds < callRestUntilSeconds
+            )
+            {
+                return false;
+            }
+
+            Phase = PasserbyPhase.Offering;
+            IsCalling = true;
+            return true;
+        }
+
         /// <param name="isPlayerBusy">플레이어가 다른 대화나 다른 행인의 제안 중이어서 끼어들면 안 되는지</param>
         /// <param name="isPlayerWaiting">튜토리얼처럼 플레이어가 이 행인을 기다리도록 붙잡혀 있는지. 멀리 있어도 다가가고 그만두지 않는다.</param>
         public void Tick(
@@ -69,7 +99,14 @@ namespace A305.Npc
 
                     break;
                 case PasserbyPhase.Offering:
-                    if (distanceToPlayer > rules.DismissDistanceMeters)
+                    // 부르는 중에는 부르는 거리 안에 있는 동안 닫지 않는다. 직원은 무시 거리가 부르는 거리보다 짧다.
+                    float dismissDistance = IsCalling
+                        ? System.Math.Max(
+                            rules.DismissDistanceMeters,
+                            rules.FollowUpCallDistanceMeters
+                        )
+                        : rules.DismissDistanceMeters;
+                    if (distanceToPlayer > dismissDistance)
                     {
                         Rest(nowSeconds);
                     }
@@ -136,6 +173,12 @@ namespace A305.Npc
         {
             Phase = PasserbyPhase.Resting;
             RestUntilSeconds = nowSeconds + rules.RestSeconds;
+            if (IsCalling)
+            {
+                // 건네지 못해 아직 남아 있어도 바로 다시 부르지 않는다.
+                IsCalling = false;
+                callRestUntilSeconds = RestUntilSeconds;
+            }
         }
     }
 }

@@ -17,8 +17,25 @@ namespace A305.Npc
                 : $"{speaker}{SubjectParticle(speaker)} 말을 걸었어요";
         }
 
+        /// <summary>준비해 둔 것이 다 되어 NPC가 제자리에서 부를 때의 머리말. 예: "Mia이(가) 불러요"</summary>
+        /// <param name="npcName">서버가 알려 준 NPC 이름. 모르면 null.</param>
+        public static string CallHint(string npcName)
+        {
+            return string.IsNullOrEmpty(npcName)
+                ? "누군가 불러요"
+                : $"{npcName}{SubjectParticle(npcName)} 불러요";
+        }
+
+        /// <summary>부를 때 건네는 말. 음료·식사·빨래 등 무엇이든 같은 문장이다. 예: "기다리던 아이스 라테가 준비됐어요"</summary>
+        /// <param name="itemKo">준비한 것의 한국어 이름. 모르면 null.</param>
+        public static string CallLine(string itemKo)
+        {
+            string item = string.IsNullOrEmpty(itemKo) ? "것" : itemKo;
+            return $"기다리던 {item}{SubjectParticle(item)} 준비됐어요";
+        }
+
         /// <summary>한글로 끝나면 받침에 맞춰 이·가를 고르고, 영어 이름처럼 알 수 없으면 "이(가)"를 쓴다.</summary>
-        private static string SubjectParticle(string word)
+        public static string SubjectParticle(string word)
         {
             char last = word[word.Length - 1];
             if (last < '가' || last > '힣')

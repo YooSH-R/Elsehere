@@ -639,15 +639,7 @@ namespace A305.Mission
         /// </summary>
         public static string MiniMapLegend(string destination)
         {
-            string place = destination switch
-            {
-                "CAFE" => "카페",
-                "HOTEL" => "호텔",
-                "SHOP" => "드럭스토어",
-                "HOME" => "집",
-                not null when TownMapArt.Shops.TryGetValue(destination, out var shop) => shop.Name,
-                _ => "자유 탐험",
-            };
+            string place = TownMapArt.PlaceName(destination) ?? "자유 탐험";
             return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
         }
 

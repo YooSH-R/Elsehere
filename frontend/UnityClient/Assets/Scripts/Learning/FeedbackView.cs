@@ -141,6 +141,9 @@ namespace A305.Learning
         private bool isRegenerating;
         private Rect lastFreeArea;
         private bool isTranscriptShown;
+
+        // 요약 탭에서 표현 칸 아래에 요약이 다 들어가지 않아, 첫 장에 표현 칸만 두고 요약은 다음 장에 둔 상태인지
+        private bool summaryOnNextCard;
         private bool isSaveAvailable = true;
 
         /// <summary>[닫기]를 누르면 알린다.</summary>
@@ -292,7 +295,9 @@ namespace A305.Learning
             if (feedback.IsFailed || isTranscriptShown)
                 return Array.Empty<SituationExpressionData>();
             if (section == FeedbackSection.Summary)
-                return feedback.SituationExpressions;
+                return summaryOnNextCard && pageIndex > 0
+                    ? Array.Empty<SituationExpressionData>()
+                    : feedback.SituationExpressions;
             return pages[pageIndex].Situations ?? Array.Empty<SituationExpressionData>();
         }
 
@@ -530,7 +535,30 @@ namespace A305.Learning
             section = selected;
             pageIndex = 0;
             textPage = 1;
+            summaryOnNextCard = false;
             pages = FeedbackPages.Create(feedback, section);
+            Refresh();
+            MoveCrowdedSummaryToNextCard();
+        }
+
+        // 표현 칸이 자리를 차지해 그 아래에 요약이 다 들어가지 않으면, 요약을 잘린 채 끼워 두지 않고
+        // 첫 장에는 표현 칸만, 다음 장에는 요약만 둔다.
+        private void MoveCrowdedSummaryToNextCard()
+        {
+            if (
+                section != FeedbackSection.Summary
+                || isTranscriptShown
+                || feedback.SituationExpressions.Count == 0
+            )
+                return;
+            RectTransform body = bodyText.rectTransform;
+            float needed = bodyText.GetPreferredValues(bodyText.text, body.rect.width, 0).y;
+            if (needed <= body.rect.height)
+                return;
+            summaryOnNextCard = true;
+            var split = new List<FeedbackPage> { new FeedbackPage(pages[0].Title, "") };
+            split.AddRange(pages);
+            pages = split;
             Refresh();
         }
 

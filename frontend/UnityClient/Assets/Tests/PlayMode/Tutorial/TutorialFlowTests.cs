@@ -686,6 +686,34 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator BenDialogue_SpeaksHisLinesInBensVoice()
+        {
+            // 길 안내는 정해진 대본이라 서버가 만드는 NPC 음성을 받지 않는다. 첫 말과 대답마다 미리 합성한 Ben 목소리를 들려준다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            DialogueServerLink voice = Single<DialogueServerLink>();
+            Assert.That(voice.HasSpeech, Is.False, "준비: 대화 전에는 음성이 없습니다.");
+
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            Assert.That(voice.HasSpeech, Is.True, "Ben의 첫 말을 들려줍니다.");
+
+            yield return FinishTour(Single<CoachMarkView>());
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            DialogueController dialogue = Single<DialogueController>();
+            while (!dialogue.IsGuidedCompleted)
+            {
+                Click(panel, "ExampleButton");
+                Click(panel, "SendButton");
+                yield return null;
+                Assert.That(voice.HasSpeech, Is.True, "Ben의 대답을 들려줍니다.");
+            }
+        }
+
+        [UnityTest]
         public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
         {
             // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,

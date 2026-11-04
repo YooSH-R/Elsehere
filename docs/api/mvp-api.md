@@ -698,7 +698,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 { "interactionPaused": true, "interactionWasPaused": false, "activeSeconds": 25 }
 
 // 응답 200
-{ "day": 3, "minuteOfDay": 627, "paused": false }
+{ "day": 3, "minuteOfDay": 627, "paused": true }
 ```
 
 - 월드 장면에 있는 동안 30초마다 보내는 신호입니다. 지난 신호 뒤 흐른 실제 시간만큼 게임 시간을 더하고 지금 게임 시각을 돌려줍니다(실제 1초 = 게임 2.4분).

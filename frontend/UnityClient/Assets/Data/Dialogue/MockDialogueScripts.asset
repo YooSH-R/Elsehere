@@ -460,6 +460,511 @@ MonoBehaviour:
       english: Take your time and look around.
       korean: "\uCC9C\uCC9C\uD788 \uB458\uB7EC\uBCF4\uC138\uC694."
     exampleSentence: I'm looking for a lamp for my bedroom.
+  - npcCode: CAFE_BARISTA
+    npcName: Zoe
+    roleLabel: "\uCE74\uD398 \uC9C1\uC6D0"
+    opening:
+      english: Hi! I'm Zoe. What can I make for you today?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 Zoe\uC608\uC694. \uC624\uB298
+        \uBB34\uC5C7\uC744 \uB9CC\uB4E4\uC5B4 \uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - latte
+      reply:
+        english: One latte coming up! Hot or iced?
+        korean: "\uB77C\uD14C \uD558\uB098 \uBC14\uB85C \uB9CC\uB4E4\uC5B4 \uB4DC\uB9B4\uAC8C\uC694!
+          \uB530\uB73B\uD55C \uAC78\uB85C\uC694, \uC544\uC774\uC2A4\uB85C\uC694?"
+    - keywords:
+      - much
+      reply:
+        english: A small coffee is three dollars.
+        korean: "\uC791\uC740 \uCEE4\uD53C\uB294 3\uB2EC\uB7EC\uC608\uC694."
+    defaultReply:
+      english: Sure! Anything else?
+      korean: "\uB124! \uB354 \uD544\uC694\uD55C \uAC74 \uC5C6\uC73C\uC138\uC694?"
+    exampleSentence: Can I have a latte, please?
+  - npcCode: CAFE_SERVER
+    npcName: Leo
+    roleLabel: "\uCE74\uD398 \uC9C1\uC6D0"
+    opening:
+      english: Hi, I'm Leo. Would you like a table by the window?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uC800\uB294 Leo\uC608\uC694. \uCC3D\uAC00
+        \uC790\uB9AC\uB85C \uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - menu
+      reply:
+        english: Here's the menu. The muffins are fresh today.
+        korean: "\uBA54\uB274\uD310 \uC5EC\uAE30 \uC788\uC5B4\uC694. \uC624\uB298
+          \uBA38\uD540\uC774 \uAC13 \uB098\uC654\uC5B4\uC694."
+    - keywords:
+      - table
+      reply:
+        english: Sure, take any table you like.
+        korean: "\uB124, \uC6D0\uD558\uC2DC\uB294 \uC790\uB9AC\uC5D0 \uC549\uC73C\uC138\uC694."
+    defaultReply:
+      english: Let me know when you're ready to order.
+      korean: "\uC8FC\uBB38\uD558\uC2E4 \uB54C \uB9D0\uC500\uD574 \uC8FC\uC138\uC694."
+    exampleSentence: Can I see the menu, please?
+  - npcCode: HOTEL_RECEPTIONIST
+    npcName: Owen
+    roleLabel: "\uD638\uD154 \uC9C1\uC6D0"
+    opening:
+      english: Good evening! Welcome to Maple House. Are you checking in?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uBA54\uC774\uD50C \uD558\uC6B0\uC2A4\uC5D0
+        \uC624\uC2E0 \uAC78 \uD658\uC601\uD574\uC694. \uCCB4\uD06C\uC778\uD558\uC2DC\uB098\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - check
+      reply:
+        english: Sure. Can I have your name, please?
+        korean: "\uB124. \uC131\uD568\uC744 \uC54C\uB824 \uC8FC\uC2DC\uACA0\uC5B4\uC694?"
+    - keywords:
+      - room
+      reply:
+        english: Your room is on the second floor. Here is your key.
+        korean: "\uBC29\uC740 2\uCE35\uC774\uC5D0\uC694. \uC5F4\uC1E0 \uC5EC\uAE30
+          \uC788\uC5B4\uC694."
+    defaultReply:
+      english: Let me know if you need anything.
+      korean: "\uD544\uC694\uD55C \uAC8C \uC788\uC73C\uBA74 \uB9D0\uC500\uD574 \uC8FC\uC138\uC694."
+    exampleSentence: I'd like to check in, please.
+  - npcCode: HOTEL_CONCIERGE
+    npcName: Walter
+    roleLabel: "\uCEE8\uC2DC\uC5B4\uC9C0"
+    opening:
+      english: Good afternoon. I'm Walter, the concierge. Where would you like to
+        go?
+      korean: "\uC548\uB155\uD558\uC138\uC694. \uCEE8\uC2DC\uC5B4\uC9C0 Walter\uC785\uB2C8\uB2E4.
+        \uC5B4\uB514\uC5D0 \uAC00\uACE0 \uC2F6\uC73C\uC138\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - restaurant
+      reply:
+        english: Maple Diner is a short walk up the main street.
+        korean: "\uBA54\uC774\uD50C \uB2E4\uC774\uB108\uB294 \uD070\uAE38\uC744 \uB530\uB77C
+          \uC870\uAE08\uB9CC \uAC78\uC73C\uBA74 \uC788\uC5B4\uC694."
+    - keywords:
+      - taxi
+      reply:
+        english: You can stop a yellow taxi on the main street.
+        korean: "\uD070\uAE38\uC5D0\uC11C \uB178\uB780 \uD0DD\uC2DC\uB97C \uC138\uC6B8
+          \uC218 \uC788\uC5B4\uC694."
+    defaultReply:
+      english: I'm happy to help with anything in town.
+      korean: "\uB9C8\uC744\uC5D0\uC11C \uD544\uC694\uD55C \uAC74 \uBB34\uC5C7\uC774\uB4E0
+        \uB3C4\uC640\uB4DC\uB9B4\uAC8C\uC694."
+    exampleSentence: Can you recommend a restaurant?
+  - npcCode: HOTEL_BELLHOP
+    npcName: Diego
+    roleLabel: "\uBCA8\uBCF4\uC774"
+    opening:
+      english: Hi! I'm Diego. Can I take your bags?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 Diego\uC608\uC694. \uC9D0\uC744
+        \uB4E4\uC5B4 \uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - bag
+      reply:
+        english: No problem. I'll bring them up to your room.
+        korean: "\uADF8\uB7FC\uC694. \uBC29\uAE4C\uC9C0 \uAC00\uC838\uB2E4 \uB4DC\uB9B4\uAC8C\uC694."
+    - keywords:
+      - elevator
+      reply:
+        english: The elevator is right over there.
+        korean: "\uC5D8\uB9AC\uBCA0\uC774\uD130\uB294 \uBC14\uB85C \uC800\uCABD\uC774\uC5D0\uC694."
+    defaultReply:
+      english: Just let me know if you need a hand.
+      korean: "\uB3C4\uC6C0\uC774 \uD544\uC694\uD558\uBA74 \uB9D0\uC500\uB9CC \uD558\uC138\uC694."
+    exampleSentence: Could you help me with my bags?
+  - npcCode: HOTEL_NIGHT_MANAGER
+    npcName: Clara
+    roleLabel: "\uD638\uD154 \uC57C\uAC04 \uB9E4\uB2C8\uC800"
+    opening:
+      english: Good evening. I'm Clara, the night manager. How is your stay?
+      korean: "\uC548\uB155\uD558\uC138\uC694. \uC57C\uAC04 \uB9E4\uB2C8\uC800 Clara\uC608\uC694.
+        \uC9C0\uB0B4\uC2DC\uAE30 \uAD1C\uCC2E\uC73C\uC138\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - noise
+      reply:
+        english: I'm sorry about the noise. I'll take care of it right away.
+        korean: "\uC18C\uC74C \uB54C\uBB38\uC5D0 \uBD88\uD3B8\uD558\uC168\uB2E4\uB2C8
+          \uC8C4\uC1A1\uD574\uC694. \uBC14\uB85C \uCC98\uB9AC\uD560\uAC8C\uC694."
+    - keywords:
+      - late
+      reply:
+        english: The front desk is open all night.
+        korean: "\uD504\uB7F0\uD2B8\uB294 \uBC24\uC0C8 \uC5F4\uB824 \uC788\uC5B4\uC694."
+    defaultReply:
+      english: Please call the front desk anytime.
+      korean: "\uC5B8\uC81C\uB4E0 \uD504\uB7F0\uD2B8\uB85C \uC5F0\uB77D \uC8FC\uC138\uC694."
+    exampleSentence: There is too much noise in my room.
+  - npcCode: SHOP_PHARMACIST
+    npcName: Hannah
+    roleLabel: "\uC57D\uC0AC"
+    opening:
+      english: Hello, I'm Hannah, the pharmacist. How can I help you?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uC57D\uC0AC Hannah\uC608\uC694. \uBB34\uC5C7\uC744
+        \uB3C4\uC640\uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - headache
+      reply:
+        english: This medicine is good for headaches. Take one after a meal.
+        korean: "\uC774 \uC57D\uC774 \uB450\uD1B5\uC5D0 \uC88B\uC544\uC694. \uC2DD\uD6C4\uC5D0
+          \uD55C \uC54C \uB4DC\uC138\uC694."
+    - keywords:
+      - cold
+      reply:
+        english: For a cold, get some rest and drink lots of water.
+        korean: "\uAC10\uAE30\uC5D0\uB294 \uD479 \uC26C\uACE0 \uBB3C\uC744 \uB9CE\uC774
+          \uB4DC\uC138\uC694."
+    defaultReply:
+      english: Tell me how you feel, and I'll find something for you.
+      korean: "\uC5B4\uB514\uAC00 \uBD88\uD3B8\uD55C\uC9C0 \uB9D0\uC500\uD574 \uC8FC\uC2DC\uBA74
+        \uB9DE\uB294 \uC57D\uC744 \uCC3E\uC544 \uB4DC\uB9B4\uAC8C\uC694."
+    exampleSentence: I have a headache. What should I take?
+  - npcCode: SHOP_NIGHT_CLERK
+    npcName: Samuel
+    roleLabel: "\uB4DC\uB7ED\uC2A4\uD1A0\uC5B4 \uC9C1\uC6D0"
+    opening:
+      english: Evening. I'm Samuel. We're open all night.
+      korean: "\uC548\uB155\uD558\uC138\uC694. \uC800\uB294 Samuel\uC774\uC5D0\uC694.
+        \uBC24\uC0C8 \uBB38\uC744 \uC5F4\uC5B4\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - water
+      reply:
+        english: The water is in the fridge at the back.
+        korean: "\uBB3C\uC740 \uB4A4\uCABD \uB0C9\uC7A5\uACE0\uC5D0 \uC788\uC5B4\uC694."
+    - keywords:
+      - much
+      reply:
+        english: That's two dollars.
+        korean: "2\uB2EC\uB7EC\uC608\uC694."
+    defaultReply:
+      english: Take your time. I'm right here.
+      korean: "\uCC9C\uCC9C\uD788 \uBCF4\uC138\uC694. \uC800\uB294 \uC5EC\uAE30 \uC788\uC5B4\uC694."
+    exampleSentence: Where can I find some water?
+  - npcCode: POLICE_SERGEANT
+    npcName: Victor
+    roleLabel: "\uACBD\uC0AC"
+    opening:
+      english: Good evening. I'm Sergeant Victor. What happened?
+      korean: "\uC548\uB155\uD558\uC138\uC694. \uACBD\uC0AC Victor\uC785\uB2C8\uB2E4.
+        \uBB34\uC2A8 \uC77C\uC774 \uC788\uC5C8\uB098\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - lost
+      reply:
+        english: Tell me where you saw it last.
+        korean: "\uB9C8\uC9C0\uB9C9\uC73C\uB85C \uBCF8 \uACF3\uC744 \uB9D0\uC500\uD574
+          \uC8FC\uC138\uC694."
+    - keywords:
+      - thank
+      reply:
+        english: You're welcome. Get home safely.
+        korean: "\uCC9C\uB9CC\uC5D0\uC694. \uC870\uC2EC\uD788 \uB4E4\uC5B4\uAC00\uC138\uC694."
+    defaultReply:
+      english: I see. Please tell me more.
+      korean: "\uADF8\uB807\uAD70\uC694. \uB354 \uC790\uC138\uD788 \uB9D0\uC500\uD574
+        \uC8FC\uC138\uC694."
+    exampleSentence: I lost my wallet.
+  - npcCode: POLICE_PATROL_OFFICER
+    npcName: Kevin
+    roleLabel: "\uACBD\uCC30\uAD00"
+    opening:
+      english: Hi, I'm Officer Kevin. Is everything okay?
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uACBD\uCC30\uAD00 Kevin\uC774\uC5D0\uC694.
+        \uBCC4\uC77C \uC5C6\uC73C\uC138\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - stolen
+      reply:
+        english: I'm sorry to hear that. Where did it happen?
+        korean: "\uC548\uD0C0\uAE5D\uB124\uC694. \uC5B4\uB514\uC11C \uADF8\uB7AC\uB098\uC694?"
+    - keywords:
+      - patrol
+      reply:
+        english: I patrol the main street every evening.
+        korean: "\uC800\uB294 \uB9E4\uC77C \uC800\uB141 \uD070\uAE38\uC744 \uC21C\uCC30\uD574\uC694."
+    defaultReply:
+      english: Okay. Let me write that down.
+      korean: "\uC54C\uACA0\uC5B4\uC694. \uC801\uC5B4 \uB458\uAC8C\uC694."
+    exampleSentence: My bag was stolen.
+  - npcCode: POLICE_ROOKIE
+    npcName: Tyler
+    roleLabel: "\uC2E0\uC785 \uACBD\uCC30\uAD00"
+    opening:
+      english: Hello! I'm Tyler. I just started here. How can I help?
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 Tyler\uC608\uC694. \uC5EC\uAE30
+        \uB9C9 \uC654\uC5B4\uC694. \uBB34\uC5C7\uC744 \uB3C4\uC640\uB4DC\uB9B4\uAE4C\uC694?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - lost
+      reply:
+        english: Oh no! Let me check the lost and found box.
+        korean: "\uC774\uB7F0! \uBD84\uC2E4\uBB3C \uC0C1\uC790\uB97C \uD655\uC778\uD574
+          \uBCFC\uAC8C\uC694."
+    - keywords:
+      - thank
+      reply:
+        english: Anytime! Stay safe out there.
+        korean: "\uC5B8\uC81C\uB4E0\uC9C0\uC694! \uC870\uC2EC\uD788 \uB2E4\uB2C8\uC138\uC694."
+    defaultReply:
+      english: Let me ask my sergeant about that.
+      korean: "\uADF8\uAC74 \uACBD\uC0AC\uB2D8\uAED8 \uC5EC\uCB64\uBCFC\uAC8C\uC694."
+    exampleSentence: I lost my phone.
+  - npcCode: TOWN_RETIREE
+    npcName: Ruby
+    roleLabel: "\uD589\uC778"
+    opening:
+      english: Good morning, dear! Isn't it a lovely day?
+      korean: "\uC88B\uC740 \uC544\uCE68\uC774\uC5D0\uC694! \uB0A0\uC528\uAC00 \uCC38
+        \uC88B\uC8E0?"
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - weather
+      reply:
+        english: It's sunny and warm. Perfect for a walk.
+        korean: "\uD587\uC0B4\uC774 \uB530\uB73B\uD574\uC11C \uAC77\uAE30\uC5D0 \uB531\uC774\uC5D0\uC694."
+    - keywords:
+      - teacher
+      reply:
+        english: Yes, I taught at the school here for thirty years.
+        korean: "\uB124, \uC5EC\uAE30 \uD559\uAD50\uC5D0\uC11C 30\uB144 \uB3D9\uC548
+          \uAC00\uB974\uCCE4\uC5B4\uC694."
+    defaultReply:
+      english: Oh, how nice!
+      korean: "\uC5B4\uBA38, \uC88B\uB124\uC694!"
+    exampleSentence: Yes, it's a beautiful day.
+  - npcCode: TOWN_STUDENT
+    npcName: Ethan
+    roleLabel: "\uD589\uC778"
+    opening:
+      english: Hey! I'm Ethan. I'm a student here.
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 Ethan\uC774\uC5D0\uC694.
+        \uC5EC\uAE30\uC11C \uACF5\uBD80\uD574\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - study
+      reply:
+        english: I study history. I have a big test next week.
+        korean: "\uC5ED\uC0AC\uB97C \uACF5\uBD80\uD574\uC694. \uB2E4\uC74C \uC8FC\uC5D0
+          \uD070 \uC2DC\uD5D8\uC774 \uC788\uC5B4\uC694."
+    - keywords:
+      - cafe
+      reply:
+        english: The corner cafe is my favorite place to study.
+        korean: "\uAE38\uBAA8\uD241\uC774 \uCE74\uD398\uAC00 \uACF5\uBD80\uD558\uAE30
+          \uC81C\uC77C \uC88B\uC544\uC694."
+    defaultReply:
+      english: Cool! Nice talking to you.
+      korean: "\uC88B\uB124\uC694! \uC598\uAE30\uD574\uC11C \uC990\uAC70\uC6E0\uC5B4\uC694."
+    exampleSentence: What do you study?
+  - npcCode: TOWN_EVENING_WALKER
+    npcName: Maya
+    roleLabel: "\uD589\uC778"
+    opening:
+      english: Hi, I'm Maya. I'm just walking home from work.
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uC800\uB294 Maya\uC608\uC694. \uD1F4\uADFC\uD558\uACE0
+        \uC9D1\uC5D0 \uAC78\uC5B4\uAC00\uB294 \uC911\uC774\uC5D0\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - work
+      reply:
+        english: I work at an office. It was a long day.
+        korean: "\uC0AC\uBB34\uC2E4\uC5D0\uC11C \uC77C\uD574\uC694. \uAE34 \uD558\uB8E8\uC600\uC5B4\uC694."
+    - keywords:
+      - walk
+      reply:
+        english: A walk in the evening helps me relax.
+        korean: "\uC800\uB141\uC5D0 \uAC78\uC73C\uBA74 \uB9C8\uC74C\uC774 \uD3B8\uD574\uC838\uC694."
+    defaultReply:
+      english: Have a nice evening!
+      korean: "\uC88B\uC740 \uC800\uB141 \uBCF4\uB0B4\uC138\uC694!"
+    exampleSentence: How was your day at work?
+  - npcCode: TOWN_SHOPPER
+    npcName: Helen
+    roleLabel: "\uD589\uC778"
+    opening:
+      english: Hello! I'm Helen. I'm doing my errands today.
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 Helen\uC774\uC5D0\uC694.
+        \uC624\uB298 \uBCFC\uC77C\uC744 \uBCF4\uB7EC \uB2E4\uB140\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - bakery
+      reply:
+        english: I just bought fresh bread at the bakery.
+        korean: "\uBE75\uC9D1\uC5D0\uC11C \uAC13 \uAD6C\uC6B4 \uBE75\uC744 \uC0C0\uC5B4\uC694."
+    - keywords:
+      - next
+      reply:
+        english: Next, I need to mail a letter at the post office.
+        korean: "\uB2E4\uC74C\uC5D4 \uC6B0\uCCB4\uAD6D\uC5D0\uC11C \uD3B8\uC9C0\uB97C
+          \uBD80\uCCD0\uC57C \uD574\uC694."
+    defaultReply:
+      english: Well, I'd better keep going!
+      korean: "\uADF8\uB7FC \uC800\uB294 \uACC4\uC18D \uAC00 \uBCFC\uAC8C\uC694!"
+    exampleSentence: Where are you going next?
+  - npcCode: TOWN_HANDYMAN
+    npcName: Frank
+    roleLabel: "\uD589\uC778"
+    opening:
+      english: Morning! I'm Frank. I fix things around town.
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 Frank\uC608\uC694. \uB9C8\uC744
+        \uC774\uACF3\uC800\uACF3\uC744 \uACE0\uCCD0\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - fix
+      reply:
+        english: Sure, I can fix that. What's broken?
+        korean: "\uADF8\uB7FC\uC694, \uACE0\uCCD0 \uB4DC\uB9B4 \uC218 \uC788\uC5B4\uC694.
+          \uBB50\uAC00 \uACE0\uC7A5 \uB0AC\uB098\uC694?"
+    - keywords:
+      - tool
+      reply:
+        english: I always carry my toolbox.
+        korean: "\uC800\uB294 \uB298 \uACF5\uAD6C\uD568\uC744 \uB4E4\uACE0 \uB2E4\uB140\uC694."
+    defaultReply:
+      english: Just call me if you need a hand.
+      korean: "\uB3C4\uC6C0\uC774 \uD544\uC694\uD558\uBA74 \uBD88\uB7EC\uC694."
+    exampleSentence: Can you fix my bike?
+  - npcCode: FIRE_CAPTAIN
+    npcName: Ray
+    roleLabel: "\uC18C\uBC29\uB300\uC7A5"
+    opening:
+      english: Morning. I'm Ray, the fire captain.
+      korean: "\uC548\uB155\uD558\uC138\uC694. \uC18C\uBC29\uB300\uC7A5 Ray\uC608\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - station
+      reply:
+        english: Our new fire station opens soon. We're all waiting.
+        korean: "\uC0C8 \uC18C\uBC29\uC11C\uAC00 \uACE7 \uBB38\uC744 \uC5F4\uC5B4\uC694.
+          \uB2E4\uB4E4 \uAE30\uB2E4\uB9AC\uACE0 \uC788\uC5B4\uC694."
+    - keywords:
+      - safe
+      reply:
+        english: Always check your smoke alarm.
+        korean: "\uD654\uC7AC\uACBD\uBCF4\uAE30\uB294 \uB298 \uD655\uC778\uD558\uC138\uC694."
+    defaultReply:
+      english: Stay safe out there.
+      korean: "\uB298 \uC870\uC2EC\uD558\uC138\uC694."
+    exampleSentence: When does the fire station open?
+  - npcCode: FIRE_FIGHTER
+    npcName: Rachel
+    roleLabel: "\uC18C\uBC29\uAD00"
+    opening:
+      english: Hi, I'm Rachel. I'm a firefighter.
+      korean: "\uC548\uB155\uD558\uC138\uC694, \uC800\uB294 \uC18C\uBC29\uAD00 Rachel\uC774\uC5D0\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - day
+      reply:
+        english: It's my day off, so I'm enjoying the town.
+        korean: "\uC624\uB298 \uC26C\uB294 \uB0A0\uC774\uB77C \uB9C8\uC744\uC744
+          \uC990\uAE30\uACE0 \uC788\uC5B4\uC694."
+    - keywords:
+      - station
+      reply:
+        english: The fire station isn't open yet, but it will be soon.
+        korean: "\uC18C\uBC29\uC11C\uB294 \uC544\uC9C1 \uC548 \uC5F4\uC5C8\uC9C0\uB9CC
+          \uACE7 \uC5F4 \uAC70\uC608\uC694."
+    defaultReply:
+      english: Nice to meet you!
+      korean: "\uB9CC\uB098\uC11C \uBC18\uAC00\uC6CC\uC694!"
+    exampleSentence: Is it your day off today?
+  - npcCode: FIRE_ROOKIE
+    npcName: Andre
+    roleLabel: "\uC2E0\uC785 \uC18C\uBC29\uAD00"
+    opening:
+      english: Hey! I'm Andre. I just became a firefighter.
+      korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uB294 Andre\uC608\uC694. \uC5BC\uB9C8
+        \uC804\uC5D0 \uC18C\uBC29\uAD00\uC774 \uB410\uC5B4\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - new
+      reply:
+        english: Yes, I'm new. I'm still learning a lot.
+        korean: "\uB124, \uC2E0\uC785\uC774\uC5D0\uC694. \uC544\uC9C1 \uBC30\uC6B8
+          \uAC8C \uB9CE\uC544\uC694."
+    - keywords:
+      - station
+      reply:
+        english: I can't wait for the new fire station to open.
+        korean: "\uC0C8 \uC18C\uBC29\uC11C\uAC00 \uBE68\uB9AC \uC5F4\uC5C8\uC73C\uBA74
+          \uC88B\uACA0\uC5B4\uC694."
+    defaultReply:
+      english: Cool! See you around.
+      korean: "\uC88B\uC544\uC694! \uB610 \uBD10\uC694."
+    exampleSentence: Are you new in town?
+  - npcCode: TOWN_GRANDFATHER
+    npcName: Arthur
+    roleLabel: "\uD589\uC778"
+    opening:
+      english: Good morning.
+      korean: "\uC88B\uC740 \uC544\uCE68\uC774\uC5D0\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - weather
+      reply:
+        english: Good weather for a walk.
+        korean: "\uAC77\uAE30 \uC88B\uC740 \uB0A0\uC528\uB124\uC694."
+    - keywords:
+      - train
+      reply:
+        english: I worked on the trains for forty years.
+        korean: "40\uB144 \uB3D9\uC548 \uAE30\uCC28\uC5D0\uC11C \uC77C\uD588\uC5B4\uC694."
+    defaultReply:
+      english: Hm. Is that so.
+      korean: "\uD760. \uADF8\uB807\uAD70\uC694."
+    exampleSentence: Good morning. Nice weather today.
+  - npcCode: TOWN_GRANDMOTHER
+    npcName: Margaret
+    roleLabel: "\uD589\uC778"
+    opening:
+      english: Oh, good morning! We walk down the main street every morning.
+      korean: "\uC5B4\uBA38, \uC88B\uC740 \uC544\uCE68\uC774\uC5D0\uC694! \uC800\uD76C\uB294
+        \uC544\uCE68\uB9C8\uB2E4 \uD070\uAE38\uC744 \uAC78\uC5B4\uC694."
+    guidedTurns: []
+    keywordReplies:
+    - keywords:
+      - piano
+      reply:
+        english: I taught piano for many years. I still play every day.
+        korean: "\uC624\uB7AB\uB3D9\uC548 \uD53C\uC544\uB178\uB97C \uAC00\uB974\uCCE4\uC5B4\uC694.
+          \uC9C0\uAE08\uB3C4 \uB9E4\uC77C \uCCD0\uC694."
+    - keywords:
+      - husband
+      reply:
+        english: This is my husband, Arthur. He doesn't talk much.
+        korean: "\uC81C \uB0A8\uD3B8 Arthur\uC608\uC694. \uB9D0\uC218\uAC00 \uC801\uC5B4\uC694."
+    defaultReply:
+      english: How lovely! Have a nice day, dear.
+      korean: "\uCC38 \uC88B\uB124\uC694! \uC88B\uC740 \uD558\uB8E8 \uBCF4\uB0B4\uC694."
+    exampleSentence: Good morning! Do you walk here every day?
   fallback:
     npcCode: 
     npcName: Neighbor

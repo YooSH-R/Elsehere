@@ -568,6 +568,642 @@ namespace A305.Dialogue
                 ),
                 exampleSentence = "I'm looking for a lamp for my bedroom.",
             },
+            new Entry
+            {
+                npcCode = "CAFE_BARISTA",
+                npcName = "Zoe",
+                roleLabel = "카페 직원",
+                opening = new LineEntry(
+                    "Hi! I'm Zoe. What can I make for you today?",
+                    "안녕하세요! 저는 Zoe예요. 오늘 무엇을 만들어 드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "latte" },
+                        new LineEntry(
+                            "One latte coming up! Hot or iced?",
+                            "라테 하나 바로 만들어 드릴게요! 따뜻한 걸로요, 아이스로요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "much" },
+                        new LineEntry("A small coffee is three dollars.", "작은 커피는 3달러예요.")
+                    ),
+                },
+                defaultReply = new LineEntry("Sure! Anything else?", "네! 더 필요한 건 없으세요?"),
+                exampleSentence = "Can I have a latte, please?",
+            },
+            new Entry
+            {
+                npcCode = "CAFE_SERVER",
+                npcName = "Leo",
+                roleLabel = "카페 직원",
+                opening = new LineEntry(
+                    "Hi, I'm Leo. Would you like a table by the window?",
+                    "안녕하세요, 저는 Leo예요. 창가 자리로 드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "menu" },
+                        new LineEntry(
+                            "Here's the menu. The muffins are fresh today.",
+                            "메뉴판 여기 있어요. 오늘 머핀이 갓 나왔어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "table" },
+                        new LineEntry(
+                            "Sure, take any table you like.",
+                            "네, 원하시는 자리에 앉으세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Let me know when you're ready to order.",
+                    "주문하실 때 말씀해 주세요."
+                ),
+                exampleSentence = "Can I see the menu, please?",
+            },
+            new Entry
+            {
+                npcCode = "HOTEL_RECEPTIONIST",
+                npcName = "Owen",
+                roleLabel = "호텔 직원",
+                opening = new LineEntry(
+                    "Good evening! Welcome to Maple House. Are you checking in?",
+                    "안녕하세요! 메이플 하우스에 오신 걸 환영해요. 체크인하시나요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "check" },
+                        new LineEntry(
+                            "Sure. Can I have your name, please?",
+                            "네. 성함을 알려 주시겠어요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "room" },
+                        new LineEntry(
+                            "Your room is on the second floor. Here is your key.",
+                            "방은 2층이에요. 열쇠 여기 있어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Let me know if you need anything.",
+                    "필요한 게 있으면 말씀해 주세요."
+                ),
+                exampleSentence = "I'd like to check in, please.",
+            },
+            new Entry
+            {
+                npcCode = "HOTEL_CONCIERGE",
+                npcName = "Walter",
+                roleLabel = "컨시어지",
+                opening = new LineEntry(
+                    "Good afternoon. I'm Walter, the concierge. Where would you like to go?",
+                    "안녕하세요. 컨시어지 Walter입니다. 어디에 가고 싶으세요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "restaurant" },
+                        new LineEntry(
+                            "Maple Diner is a short walk up the main street.",
+                            "메이플 다이너는 큰길을 따라 조금만 걸으면 있어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "taxi" },
+                        new LineEntry(
+                            "You can stop a yellow taxi on the main street.",
+                            "큰길에서 노란 택시를 세울 수 있어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "I'm happy to help with anything in town.",
+                    "마을에서 필요한 건 무엇이든 도와드릴게요."
+                ),
+                exampleSentence = "Can you recommend a restaurant?",
+            },
+            new Entry
+            {
+                npcCode = "HOTEL_BELLHOP",
+                npcName = "Diego",
+                roleLabel = "벨보이",
+                opening = new LineEntry(
+                    "Hi! I'm Diego. Can I take your bags?",
+                    "안녕하세요! 저는 Diego예요. 짐을 들어 드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "bag" },
+                        new LineEntry(
+                            "No problem. I'll bring them up to your room.",
+                            "그럼요. 방까지 가져다 드릴게요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "elevator" },
+                        new LineEntry(
+                            "The elevator is right over there.",
+                            "엘리베이터는 바로 저쪽이에요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Just let me know if you need a hand.",
+                    "도움이 필요하면 말씀만 하세요."
+                ),
+                exampleSentence = "Could you help me with my bags?",
+            },
+            new Entry
+            {
+                npcCode = "HOTEL_NIGHT_MANAGER",
+                npcName = "Clara",
+                roleLabel = "호텔 야간 매니저",
+                opening = new LineEntry(
+                    "Good evening. I'm Clara, the night manager. How is your stay?",
+                    "안녕하세요. 야간 매니저 Clara예요. 지내시기 괜찮으세요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "noise" },
+                        new LineEntry(
+                            "I'm sorry about the noise. I'll take care of it right away.",
+                            "소음 때문에 불편하셨다니 죄송해요. 바로 처리할게요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "late" },
+                        new LineEntry(
+                            "The front desk is open all night.",
+                            "프런트는 밤새 열려 있어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Please call the front desk anytime.",
+                    "언제든 프런트로 연락 주세요."
+                ),
+                exampleSentence = "There is too much noise in my room.",
+            },
+            new Entry
+            {
+                npcCode = "SHOP_PHARMACIST",
+                npcName = "Hannah",
+                roleLabel = "약사",
+                opening = new LineEntry(
+                    "Hello, I'm Hannah, the pharmacist. How can I help you?",
+                    "안녕하세요, 약사 Hannah예요. 무엇을 도와드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "headache" },
+                        new LineEntry(
+                            "This medicine is good for headaches. Take one after a meal.",
+                            "이 약이 두통에 좋아요. 식후에 한 알 드세요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "cold" },
+                        new LineEntry(
+                            "For a cold, get some rest and drink lots of water.",
+                            "감기에는 푹 쉬고 물을 많이 드세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Tell me how you feel, and I'll find something for you.",
+                    "어디가 불편한지 말씀해 주시면 맞는 약을 찾아 드릴게요."
+                ),
+                exampleSentence = "I have a headache. What should I take?",
+            },
+            new Entry
+            {
+                npcCode = "SHOP_NIGHT_CLERK",
+                npcName = "Samuel",
+                roleLabel = "드럭스토어 직원",
+                opening = new LineEntry(
+                    "Evening. I'm Samuel. We're open all night.",
+                    "안녕하세요. 저는 Samuel이에요. 밤새 문을 열어요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "water" },
+                        new LineEntry(
+                            "The water is in the fridge at the back.",
+                            "물은 뒤쪽 냉장고에 있어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "much" },
+                        new LineEntry("That's two dollars.", "2달러예요.")
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Take your time. I'm right here.",
+                    "천천히 보세요. 저는 여기 있어요."
+                ),
+                exampleSentence = "Where can I find some water?",
+            },
+            new Entry
+            {
+                npcCode = "POLICE_SERGEANT",
+                npcName = "Victor",
+                roleLabel = "경사",
+                opening = new LineEntry(
+                    "Good evening. I'm Sergeant Victor. What happened?",
+                    "안녕하세요. 경사 Victor입니다. 무슨 일이 있었나요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "lost" },
+                        new LineEntry(
+                            "Tell me where you saw it last.",
+                            "마지막으로 본 곳을 말씀해 주세요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry(
+                            "You're welcome. Get home safely.",
+                            "천만에요. 조심히 들어가세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "I see. Please tell me more.",
+                    "그렇군요. 더 자세히 말씀해 주세요."
+                ),
+                exampleSentence = "I lost my wallet.",
+            },
+            new Entry
+            {
+                npcCode = "POLICE_PATROL_OFFICER",
+                npcName = "Kevin",
+                roleLabel = "경찰관",
+                opening = new LineEntry(
+                    "Hi, I'm Officer Kevin. Is everything okay?",
+                    "안녕하세요, 경찰관 Kevin이에요. 별일 없으세요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "stolen" },
+                        new LineEntry(
+                            "I'm sorry to hear that. Where did it happen?",
+                            "안타깝네요. 어디서 그랬나요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "patrol" },
+                        new LineEntry(
+                            "I patrol the main street every evening.",
+                            "저는 매일 저녁 큰길을 순찰해요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Okay. Let me write that down.",
+                    "알겠어요. 적어 둘게요."
+                ),
+                exampleSentence = "My bag was stolen.",
+            },
+            new Entry
+            {
+                npcCode = "POLICE_ROOKIE",
+                npcName = "Tyler",
+                roleLabel = "신입 경찰관",
+                opening = new LineEntry(
+                    "Hello! I'm Tyler. I just started here. How can I help?",
+                    "안녕하세요! 저는 Tyler예요. 여기 막 왔어요. 무엇을 도와드릴까요?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "lost" },
+                        new LineEntry(
+                            "Oh no! Let me check the lost and found box.",
+                            "이런! 분실물 상자를 확인해 볼게요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "thank" },
+                        new LineEntry(
+                            "Anytime! Stay safe out there.",
+                            "언제든지요! 조심히 다니세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Let me ask my sergeant about that.",
+                    "그건 경사님께 여쭤볼게요."
+                ),
+                exampleSentence = "I lost my phone.",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_RETIREE",
+                npcName = "Ruby",
+                roleLabel = "행인",
+                opening = new LineEntry(
+                    "Good morning, dear! Isn't it a lovely day?",
+                    "좋은 아침이에요! 날씨가 참 좋죠?"
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "weather" },
+                        new LineEntry(
+                            "It's sunny and warm. Perfect for a walk.",
+                            "햇살이 따뜻해서 걷기에 딱이에요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "teacher" },
+                        new LineEntry(
+                            "Yes, I taught at the school here for thirty years.",
+                            "네, 여기 학교에서 30년 동안 가르쳤어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry("Oh, how nice!", "어머, 좋네요!"),
+                exampleSentence = "Yes, it's a beautiful day.",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_STUDENT",
+                npcName = "Ethan",
+                roleLabel = "행인",
+                opening = new LineEntry(
+                    "Hey! I'm Ethan. I'm a student here.",
+                    "안녕하세요! 저는 Ethan이에요. 여기서 공부해요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "study" },
+                        new LineEntry(
+                            "I study history. I have a big test next week.",
+                            "역사를 공부해요. 다음 주에 큰 시험이 있어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "cafe" },
+                        new LineEntry(
+                            "The corner cafe is my favorite place to study.",
+                            "길모퉁이 카페가 공부하기 제일 좋아요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Cool! Nice talking to you.",
+                    "좋네요! 얘기해서 즐거웠어요."
+                ),
+                exampleSentence = "What do you study?",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_EVENING_WALKER",
+                npcName = "Maya",
+                roleLabel = "행인",
+                opening = new LineEntry(
+                    "Hi, I'm Maya. I'm just walking home from work.",
+                    "안녕하세요, 저는 Maya예요. 퇴근하고 집에 걸어가는 중이에요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "work" },
+                        new LineEntry(
+                            "I work at an office. It was a long day.",
+                            "사무실에서 일해요. 긴 하루였어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "walk" },
+                        new LineEntry(
+                            "A walk in the evening helps me relax.",
+                            "저녁에 걸으면 마음이 편해져요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry("Have a nice evening!", "좋은 저녁 보내세요!"),
+                exampleSentence = "How was your day at work?",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_SHOPPER",
+                npcName = "Helen",
+                roleLabel = "행인",
+                opening = new LineEntry(
+                    "Hello! I'm Helen. I'm doing my errands today.",
+                    "안녕하세요! 저는 Helen이에요. 오늘 볼일을 보러 다녀요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "bakery" },
+                        new LineEntry(
+                            "I just bought fresh bread at the bakery.",
+                            "빵집에서 갓 구운 빵을 샀어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "next" },
+                        new LineEntry(
+                            "Next, I need to mail a letter at the post office.",
+                            "다음엔 우체국에서 편지를 부쳐야 해요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Well, I'd better keep going!",
+                    "그럼 저는 계속 가 볼게요!"
+                ),
+                exampleSentence = "Where are you going next?",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_HANDYMAN",
+                npcName = "Frank",
+                roleLabel = "행인",
+                opening = new LineEntry(
+                    "Morning! I'm Frank. I fix things around town.",
+                    "안녕하세요! 저는 Frank예요. 마을 이곳저곳을 고쳐요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "fix" },
+                        new LineEntry(
+                            "Sure, I can fix that. What's broken?",
+                            "그럼요, 고쳐 드릴 수 있어요. 뭐가 고장 났나요?"
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "tool" },
+                        new LineEntry("I always carry my toolbox.", "저는 늘 공구함을 들고 다녀요.")
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "Just call me if you need a hand.",
+                    "도움이 필요하면 불러요."
+                ),
+                exampleSentence = "Can you fix my bike?",
+            },
+            new Entry
+            {
+                npcCode = "FIRE_CAPTAIN",
+                npcName = "Ray",
+                roleLabel = "소방대장",
+                opening = new LineEntry(
+                    "Morning. I'm Ray, the fire captain.",
+                    "안녕하세요. 소방대장 Ray예요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "station" },
+                        new LineEntry(
+                            "Our new fire station opens soon. We're all waiting.",
+                            "새 소방서가 곧 문을 열어요. 다들 기다리고 있어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "safe" },
+                        new LineEntry(
+                            "Always check your smoke alarm.",
+                            "화재경보기는 늘 확인하세요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry("Stay safe out there.", "늘 조심하세요."),
+                exampleSentence = "When does the fire station open?",
+            },
+            new Entry
+            {
+                npcCode = "FIRE_FIGHTER",
+                npcName = "Rachel",
+                roleLabel = "소방관",
+                opening = new LineEntry(
+                    "Hi, I'm Rachel. I'm a firefighter.",
+                    "안녕하세요, 저는 소방관 Rachel이에요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "day" },
+                        new LineEntry(
+                            "It's my day off, so I'm enjoying the town.",
+                            "오늘 쉬는 날이라 마을을 즐기고 있어요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "station" },
+                        new LineEntry(
+                            "The fire station isn't open yet, but it will be soon.",
+                            "소방서는 아직 안 열었지만 곧 열 거예요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry("Nice to meet you!", "만나서 반가워요!"),
+                exampleSentence = "Is it your day off today?",
+            },
+            new Entry
+            {
+                npcCode = "FIRE_ROOKIE",
+                npcName = "Andre",
+                roleLabel = "신입 소방관",
+                opening = new LineEntry(
+                    "Hey! I'm Andre. I just became a firefighter.",
+                    "안녕하세요! 저는 Andre예요. 얼마 전에 소방관이 됐어요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "new" },
+                        new LineEntry(
+                            "Yes, I'm new. I'm still learning a lot.",
+                            "네, 신입이에요. 아직 배울 게 많아요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "station" },
+                        new LineEntry(
+                            "I can't wait for the new fire station to open.",
+                            "새 소방서가 빨리 열었으면 좋겠어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry("Cool! See you around.", "좋아요! 또 봐요."),
+                exampleSentence = "Are you new in town?",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_GRANDFATHER",
+                npcName = "Arthur",
+                roleLabel = "행인",
+                opening = new LineEntry("Good morning.", "좋은 아침이에요."),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "weather" },
+                        new LineEntry("Good weather for a walk.", "걷기 좋은 날씨네요.")
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "train" },
+                        new LineEntry(
+                            "I worked on the trains for forty years.",
+                            "40년 동안 기차에서 일했어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry("Hm. Is that so.", "흠. 그렇군요."),
+                exampleSentence = "Good morning. Nice weather today.",
+            },
+            new Entry
+            {
+                npcCode = "TOWN_GRANDMOTHER",
+                npcName = "Margaret",
+                roleLabel = "행인",
+                opening = new LineEntry(
+                    "Oh, good morning! We walk down the main street every morning.",
+                    "어머, 좋은 아침이에요! 저희는 아침마다 큰길을 걸어요."
+                ),
+                keywordReplies = new List<KeywordReplyEntry>
+                {
+                    new KeywordReplyEntry(
+                        new[] { "piano" },
+                        new LineEntry(
+                            "I taught piano for many years. I still play every day.",
+                            "오랫동안 피아노를 가르쳤어요. 지금도 매일 쳐요."
+                        )
+                    ),
+                    new KeywordReplyEntry(
+                        new[] { "husband" },
+                        new LineEntry(
+                            "This is my husband, Arthur. He doesn't talk much.",
+                            "제 남편 Arthur예요. 말수가 적어요."
+                        )
+                    ),
+                },
+                defaultReply = new LineEntry(
+                    "How lovely! Have a nice day, dear.",
+                    "참 좋네요! 좋은 하루 보내요."
+                ),
+                exampleSentence = "Good morning! Do you walk here every day?",
+            },
         };
 
         [SerializeField]

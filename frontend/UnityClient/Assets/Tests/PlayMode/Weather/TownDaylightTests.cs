@@ -182,6 +182,8 @@ namespace A305.Weather.PlayModeTests
         public IEnumerator Midnight_LightsShopRoomsBrighterThanShopWallLamps()
         {
             yield return null;
+            // 상점 외벽 등은 입점 건물에 붙어 있어도 방을 밝히는 실내등이 아니다.
+            fixture.transform.SetParent(shop);
 
             presenter.ShowTime(Midnight);
 

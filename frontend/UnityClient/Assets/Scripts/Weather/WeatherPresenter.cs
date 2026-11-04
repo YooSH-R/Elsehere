@@ -17,6 +17,9 @@ namespace A305.Weather
         private static readonly int HorizonId = Shader.PropertyToID("_Horizon");
         private static readonly int StarsId = Shader.PropertyToID("_Stars");
 
+        // 매장 실내(Interior)의 천장 등 이름. 입점 건물 외벽에 붙은 상점 등(FixtureLight)은 여기에 들지 않는다.
+        private const string ShopRoomLampName = "InteriorLight";
+
         [SerializeField]
         private WeatherSettings settings;
 
@@ -86,7 +89,7 @@ namespace A305.Weather
                 Enumerable.Empty<Light>(),
                 renderers,
                 renderers,
-                interior.GetComponentsInChildren<Light>(true)
+                shopLamps: interior.GetComponentsInChildren<Light>(true)
             );
             if (shownMinutes.HasValue)
                 shopLights.Apply(daylight, daylight.NightAmount(shownMinutes.Value));
@@ -232,6 +235,7 @@ namespace A305.Weather
                 Light[] shopLamps = lamps
                     .Where(lamp =>
                         lamp != null
+                        && lamp.name == ShopRoomLampName
                         && litBuildings.Any(building =>
                             building != null && lamp.transform.IsChildOf(building)
                         )
@@ -247,7 +251,7 @@ namespace A305.Weather
                         .Where(building => building != null)
                         .SelectMany(building => building.GetComponentsInChildren<Renderer>(true)),
                     streetLamps,
-                    shopLamps
+                    shopLamps: shopLamps
                 );
             }
 

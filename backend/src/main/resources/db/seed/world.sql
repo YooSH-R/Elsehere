@@ -278,7 +278,13 @@ FROM (
      'af_alloy', false, NULL),
     (34, 'TOWN', 'FIRE_ROOKIE', 'Andre', 'PASSERBY', '신입 소방관',
      '{"role": "a rookie firefighter spending days off around the town until the new fire station opens.", "facts": "", "scene": "A quiet street in the town."}',
-     'am_echo', false, NULL)
+     'am_echo', false, NULL),
+    (35, 'TOWN', 'TOWN_GRANDFATHER', 'Arthur', 'PASSERBY', '행인',
+     '{"role": "a quiet retired man walking his little dachshund Pepper with his wife Margaret.", "facts": "", "scene": "A quiet street in the town."}',
+     'bm_lewis', false, NULL),
+    (36, 'TOWN', 'TOWN_GRANDMOTHER', 'Margaret', 'PASSERBY', '행인',
+     '{"role": "a cheerful retired woman walking her little dachshund Pepper with her husband Arthur.", "facts": "", "scene": "A quiet street in the town."}',
+     'bf_lily', false, NULL)
 ) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
 -- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.

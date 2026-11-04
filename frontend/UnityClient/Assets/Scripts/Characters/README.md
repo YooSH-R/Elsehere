@@ -1,5 +1,7 @@
 # Characters 모듈
 
+말하기 중 감정 표정의 데이터 구조, 카페 검수 씬, 현재 서비스 적용 범위는 [NPC 말하기 감정 검수](../../../../../docs/unity/npc-speaking-emotions.md)를 참고합니다. `CharacterSpeechPlayer.Play(audio, timeline, reactions, profile)`에 선택적인 `SpeechEmotionTrack`과 `EmotionExpressionProfile`을 전달하면 같은 오디오 시각으로 감정과 발음을 합성합니다. 기존 두 인자 호출은 기존 미소·깜박임을 유지합니다.
+
 플레이어와 NPC가 함께 쓰는 캐릭터 표현을 담당합니다. `CharacterAnimationDriver`는 이동 상태와 NPC 동작 번호(`SetAction`, `Action` 파라미터가 있는 NPC 전용 컨트롤러에만 적용)를 Animator에 전달하고, `PoseCorrectiveDriver`는 관절 자세에 맞게 모델의 보정 블렌드셰이프를 적용합니다.
 
 도형으로 개발하는 동안에는 Animator가 없으므로 아무것도 하지 않습니다. 모델과 애니메이션을 붙일 때 이동 코드를 고치지 않고 Animator Controller만 준비하면 되도록 하기 위함입니다. 다른 모듈과 게임 코드를 참조하지 않습니다.

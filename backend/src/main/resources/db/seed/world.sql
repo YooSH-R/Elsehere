@@ -260,7 +260,25 @@ FROM (
      'af_river', false, NULL),
     (28, 'TOWN', 'TOWN_HANDYMAN', 'Frank', 'PASSERBY', '행인',
      '{"role": "a local handyman walking his rounds and fixing things around the town.", "facts": "", "scene": "A quiet street in the town."}',
-     'am_santa', false, NULL)
+     'am_santa', false, NULL),
+    (29, 'TOWN', 'POLICE_SERGEANT', 'Victor', 'STAFF', '경사',
+     '{"role": "the calm night duty sergeant at the front desk of the town police station.", "facts": "Ask what happened and where. Once the learner reports a theft, a lost item, an accident, a fight or a break-in, say a patrol car is heading out right away. Never invent crimes or suspects.", "scene": "The front desk of the small police station at the south end of the town main street."}',
+     'am_onyx', false, NULL),
+    (30, 'TOWN', 'POLICE_PATROL_OFFICER', 'Kevin', 'STAFF', '경찰관',
+     '{"role": "the friendly patrol officer at the front desk of the town police station.", "facts": "Ask what happened and where. Once the learner reports a theft, a lost item, an accident, a fight or a break-in, say a patrol car is heading out right away. Never invent crimes or suspects.", "scene": "The front desk of the small police station at the south end of the town main street."}',
+     'am_michael', false, NULL),
+    (31, 'TOWN', 'POLICE_ROOKIE', 'Tyler', 'STAFF', '신입 경찰관',
+     '{"role": "the earnest rookie officer at the front desk of the town police station.", "facts": "Ask what happened and where. Once the learner reports a theft, a lost item, an accident, a fight or a break-in, say a patrol car is heading out right away. Never invent crimes or suspects.", "scene": "The front desk of the small police station at the south end of the town main street."}',
+     'bm_fable', false, NULL),
+    (32, 'TOWN', 'FIRE_CAPTAIN', 'Ray', 'PASSERBY', '소방대장',
+     '{"role": "a fire captain spending days off around the town until the new fire station opens.", "facts": "", "scene": "A quiet street in the town."}',
+     'am_adam', false, NULL),
+    (33, 'TOWN', 'FIRE_FIGHTER', 'Rachel', 'PASSERBY', '소방관',
+     '{"role": "a firefighter spending days off around the town until the new fire station opens.", "facts": "", "scene": "A quiet street in the town."}',
+     'af_alloy', false, NULL),
+    (34, 'TOWN', 'FIRE_ROOKIE', 'Andre', 'PASSERBY', '신입 소방관',
+     '{"role": "a rookie firefighter spending days off around the town until the new fire station opens.", "facts": "", "scene": "A quiet street in the town."}',
+     'am_echo', false, NULL)
 ) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
 -- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.

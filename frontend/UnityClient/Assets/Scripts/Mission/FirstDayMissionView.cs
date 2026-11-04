@@ -96,7 +96,8 @@ namespace A305.Mission
         private GameObject mapOverlay;
 
         [SerializeField]
-        private TownMapView largeMap;
+        [Tooltip("큰 지도 안의 지도 화면. 미니맵과 같은 마을 지도 그림 전체를 보인다")]
+        private TownMiniMapView largeMap;
 
         [SerializeField]
         private TMP_Text largeMapLegend;

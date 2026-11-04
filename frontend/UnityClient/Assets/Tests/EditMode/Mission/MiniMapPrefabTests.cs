@@ -60,6 +60,30 @@ namespace A305.Mission.Tests
             Assert.That(art.GetComponent<Image>().sprite.name, Is.EqualTo("TownMap"));
         }
 
+        // 미니맵을 누르거나 메뉴에서 여는 큰 지도도 미니맵과 같은 마을 지도 그림을 쓰고, 마을 전체를 한눈에 보인다.
+        [Test]
+        public void LargeMap_ShowsTheWholeTownInTheMiniMapArt()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            var mission = prefab.GetComponent<FirstDayMissionView>();
+            var miniMap = Field<TownMiniMapView>(mission, "miniMap");
+            var largeMap = new SerializedObject(mission)
+                .FindProperty("largeMap")
+                .objectReferenceValue;
+
+            Assert.That(largeMap, Is.InstanceOf<TownMiniMapView>(), "미니맵과 같은 지도 화면");
+            var art = Field<RectTransform>(largeMap, "map");
+            Assert.That(
+                art.GetComponent<Image>().sprite,
+                Is.SameAs(Field<RectTransform>(miniMap, "map").GetComponent<Image>().sprite),
+                "미니맵과 같은 지도 그림"
+            );
+            var window = (RectTransform)art.parent;
+            Vector2 shown = art.sizeDelta * art.localScale.x;
+            Assert.That(shown.x, Is.EqualTo(window.sizeDelta.x).Within(.5f), "지도 전체 폭");
+            Assert.That(shown.y, Is.EqualTo(window.sizeDelta.y).Within(.5f), "지도 전체 높이");
+        }
+
         [Test]
         public void MiniMap_HasNoTitleOrLegend()
         {
@@ -179,9 +203,13 @@ namespace A305.Mission.Tests
             TownMiniMapView miniMap = Create();
             var mission = instance.GetComponent<FirstDayMissionView>();
             var frame = Field<RectTransform>(miniMap, "destination");
+            var largeFrame = Field<RectTransform>(
+                Field<TownMiniMapView>(mission, "largeMap"),
+                "destination"
+            );
             var legend = Field<TMP_Text>(mission, "largeMapLegend");
             var maps = instance.GetComponentsInChildren<TownMapView>(true);
-            Assert.That(maps, Has.Length.EqualTo(2), "수첩과 큰 지도");
+            Assert.That(maps, Has.Length.EqualTo(1), "수첩");
 
             var route = new[]
             {
@@ -224,6 +252,12 @@ namespace A305.Mission.Tests
                     name
                 );
                 Assert.That(legend.text, Does.Contain(name));
+                Assert.That(largeFrame.gameObject.activeSelf, Is.True, npc);
+                Assert.That(
+                    largeFrame.anchoredPosition,
+                    Is.EqualTo(frame.anchoredPosition),
+                    "큰 지도도 같은 건물"
+                );
                 foreach (TownMapView map in maps)
                 {
                     RectTransform[] marks = ActiveMarks(map);
@@ -249,6 +283,7 @@ namespace A305.Mission.Tests
             state.Completed = true;
             mission.Refresh(state, false, false);
             Assert.That(frame.gameObject.activeSelf, Is.False);
+            Assert.That(largeFrame.gameObject.activeSelf, Is.False);
             foreach (TownMapView map in maps)
                 Assert.That(ActiveMarks(map), Is.Empty);
         }

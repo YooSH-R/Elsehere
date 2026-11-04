@@ -65,10 +65,35 @@ namespace A305.EditorTools.Mission
             Picture(window.gameObject, Sprite("MapMask"));
             window.gameObject.AddComponent<Mask>().showMaskGraphic = false;
 
+            TownMiniMapView view = MapLayers(window, panel.gameObject, MapScale);
+
+            // 펼치기 버튼(40, 판 안쪽 오른쪽·위 18). 그림은 버튼 왼쪽 18·아래 26의 그림자 자리를 포함한다.
+            RectTransform expand = Rect("Expand", panel);
+            expand.anchorMin = expand.anchorMax = expand.pivot = Vector2.one;
+            expand.anchoredPosition = -Vector2.one * Px;
+            expand.sizeDelta = new Vector2(76, 84) * Px;
+            Picture(expand.gameObject, Sprite("MapExpand"));
+
+            var mission = root.GetComponent<FirstDayMissionView>();
+            BuilderTools.SetReference(mission, "miniMapPanel", panel.gameObject);
+            BuilderTools.SetReference(mission, "miniMap", view);
+            BuilderTools.SetReference(mission, "miniMapButton", open);
+        }
+
+        /// <summary>
+        /// 창 안에 마을 지도 그림을 scale 비율로 깔고 목적지 테두리와 내 위치 화살표를 얹는다. 표시를 맡는 지도 화면은 host에 단다.
+        /// 미니맵과 큰 지도가 함께 쓴다.
+        /// </summary>
+        internal static TownMiniMapView MapLayers(
+            RectTransform window,
+            GameObject host,
+            float scale
+        )
+        {
             RectTransform map = Rect("Map", window);
             map.anchorMin = map.anchorMax = map.pivot = new Vector2(0, 1);
             map.sizeDelta = TownMapArt.Size;
-            map.localScale = new Vector3(MapScale, MapScale, 1);
+            map.localScale = new Vector3(scale, scale, 1);
             Picture(map.gameObject, Sprite("TownMap", mipmaps: true));
 
             RectTransform destination = Mark(
@@ -83,21 +108,11 @@ namespace A305.EditorTools.Mission
             destination.gameObject.SetActive(false);
             RectTransform player = Mark(map, "Player", Sprite("MapPlayer"), new Vector2(100, 100));
 
-            // 펼치기 버튼(40, 판 안쪽 오른쪽·위 18). 그림은 버튼 왼쪽 18·아래 26의 그림자 자리를 포함한다.
-            RectTransform expand = Rect("Expand", panel);
-            expand.anchorMin = expand.anchorMax = expand.pivot = Vector2.one;
-            expand.anchoredPosition = -Vector2.one * Px;
-            expand.sizeDelta = new Vector2(76, 84) * Px;
-            Picture(expand.gameObject, Sprite("MapExpand"));
-
-            var view = panel.gameObject.AddComponent<TownMiniMapView>();
+            var view = host.AddComponent<TownMiniMapView>();
             BuilderTools.SetReference(view, "map", map);
             BuilderTools.SetReference(view, "player", player);
             BuilderTools.SetReference(view, "destination", destination);
-            var mission = root.GetComponent<FirstDayMissionView>();
-            BuilderTools.SetReference(mission, "miniMapPanel", panel.gameObject);
-            BuilderTools.SetReference(mission, "miniMap", view);
-            BuilderTools.SetReference(mission, "miniMapButton", open);
+            return view;
         }
 
         private static RectTransform Mark(Transform map, string name, Sprite sprite, Vector2 size)
@@ -127,7 +142,7 @@ namespace A305.EditorTools.Mission
         }
 
         // 렌더링한 그림을 크기를 줄이지 않고 가져온다. 크게 줄여 보이는 지도 그림만 밉맵을 만들어 계단 현상을 줄인다.
-        private static Sprite Sprite(string name, bool mipmaps = false)
+        internal static Sprite Sprite(string name, bool mipmaps = false)
         {
             string path = $"{ArtFolder}/{name}.png";
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);

@@ -12,6 +12,12 @@ namespace A305.World
         [SerializeField]
         private bool insideOnForwardSide;
 
+        [SerializeField]
+        [Tooltip("이 문으로 들어가면 불러오는 실내. 1층과 2층이 다른 가게면 층마다 다르다.")]
+        private ShopInterior room;
+
+        public ShopInterior Room => room;
+
         private void Awake()
         {
             threshold = GetComponent<BoxCollider>();
@@ -38,12 +44,7 @@ namespace A305.World
             float clearance = capsule.bounds.extents.x + capsule.skinWidth + 0.15f;
             Vector3 destination = center - entrySide * normal * (halfDepth + clearance);
             bool entering = (entrySide < 0f) == insideOnForwardSide;
-            SpaceTravel.CrossShopDoor(
-                player,
-                destination,
-                GetComponentInParent<ShopInterior>(),
-                entering
-            );
+            SpaceTravel.CrossShopDoor(player, destination, room, entering);
         }
     }
 }

@@ -76,7 +76,7 @@ namespace A305.Weather
 
         /// <summary>
         /// 방문할 때 로드한 실내도 마을과 같은 시각을 따르게 하고, 나올 때 재질 사본을 정리한다.
-        /// 실내에 있는 동안은 실내 씬처럼 밤에도 불을 켠 방의 환경광이고, 나오면 마을 밤 환경광으로 돌아간다.
+        /// 실내에 있는 동안은 날씨와 상관없이 실내 씬과 같은 실내 환경광(밤에도 불을 켠 방)이고, 나오면 마을 환경광으로 돌아간다.
         /// </summary>
         public void SetShopInterior(Transform interior)
         {
@@ -391,11 +391,12 @@ namespace A305.Weather
                 if (shopLights != null)
                 {
                     shopLights.Apply(daylight, night);
-                    // 매장 안에서는 InteriorDaylight처럼 날씨 모습의 환경광을 조금만 줄인다.
+                    // 매장 안에서는 날씨와 상관없이 실내 씬과 같은 실내 환경광을 쓰고,
+                    // InteriorDaylight처럼 밤에만 조금 줄인다.
                     float roomAmbient = Mathf.Lerp(1f, daylight.NightInteriorAmbientScale, night);
-                    look.ambientSky = shownLook.ambientSky * roomAmbient;
-                    look.ambientEquator = shownLook.ambientEquator * roomAmbient;
-                    look.ambientGround = shownLook.ambientGround * roomAmbient;
+                    look.ambientSky = daylight.ShopInteriorAmbientSky * roomAmbient;
+                    look.ambientEquator = daylight.ShopInteriorAmbientEquator * roomAmbient;
+                    look.ambientGround = daylight.ShopInteriorAmbientGround * roomAmbient;
                 }
             }
             if (sky != null && sky.HasProperty(StarsId))

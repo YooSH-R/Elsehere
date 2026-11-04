@@ -232,6 +232,7 @@ namespace A305.Weather.PlayModeTests
         }
 
         // 카페·호텔·드럭스토어 실내 씬처럼, 매장 안에 있는 동안은 밤에도 불을 켠 방의 환경광이다.
+        // 마을 하늘의 푸른 환경광이 아니라 실내 씬과 같은 밝은 실내 환경광을 쓴다.
         [UnityTest]
         public IEnumerator Midnight_InsideLoadedShop_KeepsRoomAmbientLikeInteriorScenes()
         {
@@ -243,16 +244,31 @@ namespace A305.Weather.PlayModeTests
 
             AssertColor(
                 RenderSettings.ambientSkyColor,
-                Designed.ambientSky * daylight.NightInteriorAmbientScale
+                daylight.ShopInteriorAmbientSky * daylight.NightInteriorAmbientScale
             );
             AssertColor(
                 RenderSettings.ambientGroundColor,
-                Designed.ambientGround * daylight.NightInteriorAmbientScale
+                daylight.ShopInteriorAmbientGround * daylight.NightInteriorAmbientScale
             );
 
             presenter.ShowTime(Midday);
 
-            AssertColor(RenderSettings.ambientSkyColor, Designed.ambientSky);
+            AssertColor(RenderSettings.ambientSkyColor, daylight.ShopInteriorAmbientSky);
+            AssertColor(RenderSettings.ambientEquatorColor, daylight.ShopInteriorAmbientEquator);
+        }
+
+        // 매장 안은 실내라 비 오는 날에도 마을의 어두운 날씨 환경광을 받지 않는다.
+        [UnityTest]
+        public IEnumerator RainyDay_InsideLoadedShop_KeepsRoomAmbient()
+        {
+            yield return null;
+            presenter.Show("RAIN", "CLEAR");
+            presenter.ShowTime(Midday);
+            yield return new WaitForSeconds(TransitionSeconds + .1f);
+
+            presenter.SetShopInterior(Keep(new GameObject("BakeryInterior")).transform);
+
+            AssertColor(RenderSettings.ambientSkyColor, daylight.ShopInteriorAmbientSky);
         }
 
         [UnityTest]

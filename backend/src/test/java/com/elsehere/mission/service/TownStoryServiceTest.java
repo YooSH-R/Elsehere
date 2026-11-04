@@ -11,6 +11,7 @@ import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.TownStory;
+import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.world.entity.Npc;
@@ -135,6 +136,23 @@ class TownStoryServiceTest {
       assertThat(service.context(8L, current.npcCode()).orElseThrow().state().intents())
           .allSatisfy(intent -> assertThat(intent.desc()).containsIgnoringCase("learner"));
       story.accept(story.getStage(), current.npcCode(), current.goalIds());
+    }
+  }
+
+  // 이야기 목표는 학습자가 먼저 말해야 한다. 담당 직원은 남은 목표를 먼저 꺼내거나 권하지 않는다.
+  @Test
+  void staffLetTheVisitorBringUpEveryObjective() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      FirstDayMissionService.Context context = service.context(8L, stage.npcCode()).orElseThrow();
+
+      String reply =
+          context.replyInstruction(new JudgeResult.Intent(null, java.util.List.of(), null));
+
+      assertThat(context.instruction()).as(stage.name()).contains("Never be the first to bring up");
+      assertThat(reply).as(stage.name()).doesNotContain("Ask about one of these objectives");
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
     }
   }
 

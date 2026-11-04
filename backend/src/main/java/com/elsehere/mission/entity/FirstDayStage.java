@@ -22,7 +22,7 @@ public enum FirstDayStage {
       "CLEAR",
       "호텔에서 안내받은 카페에 도착했어요. 음료를 마시며 체크인 시간을 기다려요.",
       "직원에게 주문하고, 대화를 마친 뒤 의자에 앉아 쉬어 가세요.",
-      "Offer drinks and ask one follow-up about size, temperature or milk. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
+      "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
       goal("order_drink", "음료 주문", "Order a drink, any drink is valid."),
       goal(
           "set_options",

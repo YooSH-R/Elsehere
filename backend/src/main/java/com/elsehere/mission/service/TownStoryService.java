@@ -88,7 +88,14 @@ public class TownStoryService {
                           .map(id -> new WorkerState.Intent(id, TownStoryStage.goalDescription(id)))
                           .toList());
               return new FirstDayMissionService.Context(
-                  story.getStage(), state, current.instruction(), remaining);
+                  story.getStage(),
+                  state,
+                  current.instruction()
+                      + " Objectives pending before this turn: "
+                      + String.join(",", remaining)
+                      + "."
+                      + FirstDayMissionService.LEARNER_LEADS,
+                  remaining);
             });
   }
 

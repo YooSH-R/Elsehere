@@ -232,16 +232,18 @@ def person_note(m: Memory | None, state: dict) -> str:
     return "\n".join(lines)
 
 
-# 난이도별 말투 (웹 프로토타입에서 다듬은 문장 그대로). 판정·무례 분류는 영향 없음
+# 난이도별 말투 (웹 프로토타입에서 다듬은 문장). 판정·무례 분류는 영향 없음.
+# 관용구·속어는 막지 않는다(2026-11-04 결정, app.npc_prompt의 학습 수준 규칙과 같음)
 LEVEL_RULES = {
     1: (
         "Speak the way you would to a nervous beginner: slowly, clearly, with simple everyday words. One sentence, two at most, "
-        "each under 14 words. No slang or idioms, except one of your own signature expressions now and then. "
+        "each under 14 words. Sound like a real local, not a textbook: work an everyday idiom or casual phrase into most replies "
+        "(slang and idioms are fine), and your own signature expressions now and then. "
         "Still sound like yourself through your warmth, humor, and what you choose to talk about."
     ),
     2: (
-        "Speak natural everyday American English: contractions, common idioms, and your own expressions. "
-        "One or two sentences, under 25 words in total. Skip the heavy slang."
+        "Speak natural everyday American English: contractions, and the common idioms, casual slang and your own expressions "
+        "in most replies. One or two sentences, under 25 words in total."
     ),
     3: (
         "Talk exactly the way you really talk, at full speed: your slang, idioms, phrasal verbs, regional expressions, running jokes. "

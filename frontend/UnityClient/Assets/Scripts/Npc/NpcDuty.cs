@@ -27,15 +27,20 @@ namespace A305.Npc
         }
 
         /// <summary>
-        /// 같은 카운터를 맡은 직원 중 응대할 한 명. 근무 중인 직원만 고르며, 미션 NPC가 먼저이고 그다음은 카운터에 가장 가까운 자리,
-        /// 거리가 같으면 NPC 키 순서다. 근무 중인 직원이 없으면 null
+        /// 같은 카운터를 맡은 직원 중 손님을 맞을 한 명. 근무 중인 직원만 고르며, 미션 NPC가 먼저다.
+        /// 그다음은 이미 응대 중인 직원(<paramref name="currentServer"/>)이라 손님이 떠날 때까지 바뀌지 않고,
+        /// 새로 고를 때는 하는 일이 없는 직원, 지금 카운터에 더 가까운 직원, NPC 키 순서다. 근무 중인 직원이 없으면 null
         /// </summary>
-        public static string PickServer(IReadOnlyList<CounterPost> posts)
+        /// <param name="currentServer">이 손님을 이미 응대하고 있는 직원 NPC 키. 새 손님이면 null</param>
+        public static string PickServer(IReadOnlyList<CounterPost> posts, string currentServer)
         {
             CounterPost? server = null;
             foreach (CounterPost post in posts)
             {
-                if (post.OnDuty && (server == null || ServesBefore(post, server.Value)))
+                if (
+                    post.OnDuty
+                    && (server == null || ServesBefore(post, server.Value, currentServer))
+                )
                 {
                     server = post;
                 }
@@ -44,13 +49,25 @@ namespace A305.Npc
             return server?.Code;
         }
 
-        private static bool ServesBefore(CounterPost post, CounterPost other)
+        private static bool ServesBefore(CounterPost post, CounterPost other, string currentServer)
         {
             bool isMissionNpc = post.Code == MissionNpcCode;
             bool otherIsMissionNpc = other.Code == MissionNpcCode;
             if (isMissionNpc != otherIsMissionNpc)
             {
                 return isMissionNpc;
+            }
+
+            bool isServing = post.Code == currentServer;
+            bool otherIsServing = other.Code == currentServer;
+            if (isServing != otherIsServing)
+            {
+                return isServing;
+            }
+
+            if (post.Busy != other.Busy)
+            {
+                return !post.Busy;
             }
 
             if (!post.MetersFromCounter.Equals(other.MetersFromCounter))
@@ -62,18 +79,23 @@ namespace A305.Npc
         }
     }
 
-    /// <summary>카운터를 맡은 직원 한 명. 카운터 뒤 자리가 카운터에서 떨어진 거리로 누가 응대할지 고른다.</summary>
+    /// <summary>카운터를 맡은 직원 한 명. 지금 하는 일이 있는지와 지금 서 있는 곳에서 카운터까지의 거리로 누가 응대할지 고른다.</summary>
     public readonly struct CounterPost
     {
-        public CounterPost(string code, bool onDuty, float metersFromCounter)
+        public CounterPost(string code, bool onDuty, bool busy, float metersFromCounter)
         {
             Code = code;
             OnDuty = onDuty;
+            Busy = busy;
             MetersFromCounter = metersFromCounter;
         }
 
         public string Code { get; }
         public bool OnDuty { get; }
+
+        /// <summary>고른 일(음료 만들기 등)을 하러 가거나 하고 있는지</summary>
+        public bool Busy { get; }
+
         public float MetersFromCounter { get; }
     }
 }

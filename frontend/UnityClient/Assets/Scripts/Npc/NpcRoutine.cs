@@ -14,7 +14,7 @@ namespace A305.Npc
     /// 고른 행동의 사물까지 NavMesh 경로(<see cref="NpcWalkArea"/>)를 따라 걸어가 이용하고, 의자·벤치·소파면 빈 자리에 앉는다.
     /// 급한 일이 없어도 한곳에 서 있지 않고 자기 공간의 다른 사물로 옮겨 다니며 둘러본다.
     /// 카운터를 맡은 직원은 손님(플레이어)이 카운터 가까이 오면 하던 일을 그만두고 카운터 뒤 자리로 돌아가 응대한다.
-    /// 근무(WORK) 중인 직원만 응대하고(<see cref="NpcDuty"/>), 같은 카운터를 맡은 직원이 여럿 근무 중이면 한 명만 응대한다.
+    /// 근무(WORK) 중인 직원만 응대하고(<see cref="NpcDuty"/>), 같은 카운터를 맡은 직원이 여럿 근무 중이면 하는 일이 없는 가까운 한 명이 응대한다.
     /// 장면을 다시 불러오면 그 시각의 시작값에서 다시 지낸다. 다가오기·대화는 <see cref="Passerby"/>가 맡고, 그동안 하던 일을 그만둔다.
     /// </summary>
     [DefaultExecutionOrder(700)]
@@ -101,6 +101,10 @@ namespace A305.Npc
         private static readonly List<NpcRoutine> Living = new List<NpcRoutine>();
         private static readonly List<CounterPost> CounterPosts = new List<CounterPost>();
 
+        // 카운터마다 지금 손님을 응대하는 직원 NPC 키. 손님이 카운터를 떠나면 지운다.
+        private static readonly Dictionary<HoverableObject, string> CounterServers =
+            new Dictionary<HoverableObject, string>();
+
         private NavMeshPath path;
         private Passerby body;
         private CharacterController characterController;
@@ -121,7 +125,7 @@ namespace A305.Npc
         private float closestRemaining;
         private float stuckSeconds;
 
-        // 맡은 카운터와 카운터 뒤 자리에서 카운터까지의 거리. 카운터가 없는 NPC(행인)는 어디서든 다가와 말을 건다.
+        // 맡은 카운터와 처음 놓인 자리에서 카운터까지의 거리. 카운터가 없는 NPC(행인)는 어디서든 다가와 말을 건다.
         private bool hasCounter;
         private HoverableObject counter;
         private Bounds counterBounds;
@@ -215,6 +219,15 @@ namespace A305.Npc
         private void OnDisable()
         {
             Living.Remove(this);
+            if (
+                hasCounter
+                && CounterServers.TryGetValue(counter, out string server)
+                && server == npcCode
+            )
+            {
+                CounterServers.Remove(counter);
+            }
+
             StandUp();
         }
 
@@ -251,8 +264,7 @@ namespace A305.Npc
                 return false;
             }
 
-            return !hasCounter
-                || (ServesCounter() && IsCustomerAtCounter(playerPosition) && IsAtPost());
+            return !hasCounter || (ServesCounter(playerPosition) && IsAtPost());
         }
 
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
@@ -273,7 +285,7 @@ namespace A305.Npc
         {
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
-            if (ServesCounter() && IsCustomerAtCounter(playerPosition))
+            if (ServesCounter(playerPosition))
             {
                 ServeAtCounter(playerPosition);
                 return;
@@ -317,7 +329,7 @@ namespace A305.Npc
 
             lookingAround = false;
             StandUp();
-            Pose post = body.HomePose;
+            Pose post = ServicePose();
             Vector3 toCustomer = Flat(customerPosition - post.position);
             Quaternion facing =
                 toCustomer.sqrMagnitude > .0001f
@@ -406,10 +418,22 @@ namespace A305.Npc
             return false;
         }
 
-        // 같은 카운터를 맡은 직원 중 지금 응대할 한 명인지. 근무 중이 아니면 카운터를 맡지 않고, 다른 직원은 하던 일을 계속한다.
-        private bool ServesCounter()
+        // 손님이 카운터 앞에 왔을 때 같은 카운터를 맡은 직원 중 응대할 한 명인지. 근무 중이고 하는 일이 없는 가까운 직원이 맡고,
+        // 맡은 직원은 손님이 떠날 때까지 바뀌지 않는다. 근무 중이 아니면 카운터를 맡지 않고, 고르지 않은 직원은 하던 일을 계속한다.
+        private bool ServesCounter(Vector3 playerPosition)
         {
-            if (!hasCounter || IsOffDuty)
+            if (!hasCounter)
+            {
+                return false;
+            }
+
+            if (!IsCustomerAtCounter(playerPosition))
+            {
+                CounterServers.Remove(counter);
+                return false;
+            }
+
+            if (IsOffDuty)
             {
                 return false;
             }
@@ -423,13 +447,26 @@ namespace A305.Npc
                         new CounterPost(
                             other.npcCode,
                             !other.IsOffDuty,
-                            other.postMetersFromCounter
+                            other.Doing != null,
+                            other.MetersFromCounter()
                         )
                     );
                 }
             }
 
-            return NpcDuty.PickServer(CounterPosts) == npcCode;
+            CounterServers.TryGetValue(counter, out string currentServer);
+            string server = NpcDuty.PickServer(CounterPosts, currentServer);
+            CounterServers[counter] = server;
+            return server == npcCode;
+        }
+
+        // 지금 서 있는 곳에서 맡은 카운터까지의 수평 거리
+        private float MetersFromCounter()
+        {
+            Vector3 closest = counterBounds.ClosestPoint(
+                new Vector3(transform.position.x, counterBounds.center.y, transform.position.z)
+            );
+            return Flat(closest - transform.position).magnitude;
         }
 
         private bool IsCustomerAtCounter(Vector3 playerPosition)
@@ -442,7 +479,33 @@ namespace A305.Npc
 
         private bool IsAtPost()
         {
-            return Flat(body.HomePose.position - transform.position).magnitude <= AtPostMeters;
+            return Flat(ServicePose().position - transform.position).magnitude <= AtPostMeters;
+        }
+
+        // 카운터에서 손님을 맞는 자리. 같은 카운터를 맡은 직원 자리 중 카운터에 가장 가까운 곳(카운터 뒤 계산대 자리)이라,
+        // 누가 응대하든 손님 바로 앞에 선다. 거리가 같으면 NPC 키 순서다.
+        private Pose ServicePose()
+        {
+            NpcRoutine register = this;
+            foreach (NpcRoutine other in Living)
+            {
+                if (
+                    other.hasCounter
+                    && other.counter == counter
+                    && (
+                        other.postMetersFromCounter < register.postMetersFromCounter
+                        || (
+                            other.postMetersFromCounter.Equals(register.postMetersFromCounter)
+                            && string.CompareOrdinal(other.npcCode, register.npcCode) < 0
+                        )
+                    )
+                )
+                {
+                    register = other;
+                }
+            }
+
+            return register.body.HomePose;
         }
 
         // 처음 놓인 자리 바로 앞의 카운터. 카운터 없이 놓인 NPC는 카운터를 맡지 않는다.

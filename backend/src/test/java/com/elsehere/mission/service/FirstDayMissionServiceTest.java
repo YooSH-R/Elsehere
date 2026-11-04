@@ -286,6 +286,15 @@ class FirstDayMissionServiceTest {
     assertThat(service.status(8L).raining()).isFalse();
   }
 
+  @Test
+  void finishingTheQuestAddsItsRewardToTheBudget() {
+    FirstDayMission mission = missionAt(FirstDayStage.values().length);
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    // 우산을 사고 남은 12코인에 퀘스트 보상 10코인을 더한다.
+    assertThat(service.status(8L).balance()).isEqualTo(12 + 10);
+  }
+
   private static FirstDayMission missionAt(int target) {
     FirstDayMission mission = FirstDayMission.start(8L);
     while (mission.getStage() < target) {

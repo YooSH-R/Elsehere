@@ -9,6 +9,7 @@ import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
+import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.repository.UserRepository;
 import java.util.ArrayList;
@@ -189,7 +190,8 @@ public class FirstDayMissionService {
         started && "CAFE".equals(scene) && mission.canRest(),
         started && current >= 4 && current <= 6 && "TOWN".equals(scene),
         !started || complete ? CLEAR_WEATHER : mission.current().weather(),
-        started ? mission.getBalance() : 20,
+        // 끝내면 퀘스트 보상을 예산에 더한다.
+        started ? mission.getBalance() + Quest.earned(complete, 0) : 20,
         situation,
         direction,
         steps);

@@ -117,7 +117,7 @@ class TownStoryServiceTest {
     TownStory story = TownStory.start(8L);
     when(stories.findById(8L)).thenReturn(Optional.of(story));
     String[] expectedPlaces = {
-      "다이너", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
+      "식당", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
     };
     for (String place : expectedPlaces) {
       var response = service.status(8L);
@@ -137,6 +137,22 @@ class TownStoryServiceTest {
     when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
 
     assertThat(service.status(8L).balance()).isEqualTo(12);
+  }
+
+  @Test
+  void finishedQuestRewardsAddToTheBudget() {
+    FirstDayMission completed = mock(FirstDayMission.class);
+    when(completed.isCompleted()).thenReturn(true);
+    when(completed.getBalance()).thenReturn(12);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
+    TownStory story = TownStory.start(8L);
+    while (story.getStage() < 4) {
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    // 첫 퀘스트 보상 10코인과 마을 이야기 첫 장(4단계까지) 보상 6코인을 더한다.
+    assertThat(service.status(8L).balance()).isEqualTo(12 + 10 + 6);
   }
 
   @Test

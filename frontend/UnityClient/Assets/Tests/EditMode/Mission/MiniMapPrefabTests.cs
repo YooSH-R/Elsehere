@@ -185,7 +185,7 @@ namespace A305.Mission.Tests
 
             var route = new[]
             {
-                ("DINER_STAFF", "다이너", 11, 39),
+                ("DINER_STAFF", "식당", 11, 39),
                 ("LAUNDROMAT_STAFF", "빨래방", 11, 48),
                 ("BANK_STAFF", "은행", -11, 48),
                 ("LAUNDROMAT_STAFF", "빨래방", 11, 48),

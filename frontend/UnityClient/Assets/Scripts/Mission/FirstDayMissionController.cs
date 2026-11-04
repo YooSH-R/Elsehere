@@ -58,6 +58,7 @@ namespace A305.Mission
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
+            view.QuestBoardRequested += LoadQuestBoard;
             dialogue.NpcResponded += RequestRefresh;
             dialogue.Ended += OnEnded;
             dialogue.Started += OnStarted;
@@ -80,6 +81,7 @@ namespace A305.Mission
                 view.StartRequested -= StartMission;
                 view.RestRequested -= Rest;
                 view.RetryRequested -= RequestRefresh;
+                view.QuestBoardRequested -= LoadQuestBoard;
             }
             if (dialogue != null)
             {
@@ -114,6 +116,40 @@ namespace A305.Mission
             _ = ExecuteAsync(() => api.LoadCurrentAsync(sceneCode));
         }
 
+        // 수첩 대신 목록을 열 때 진행 상태도 다시 읽어, 불러오지 못했던 퀘스트를 다시 시도한다.
+        private void LoadQuestBoard()
+        {
+            _ = LoadQuestBoardAsync();
+            if (state == null)
+                RequestRefresh();
+        }
+
+        private async Task LoadQuestBoardAsync()
+        {
+            if (api == null)
+                return;
+            try
+            {
+                QuestBoardState board = await api.GetQuestBoardAsync();
+                if (this != null)
+                    view.ShowQuestBoard(board);
+            }
+            // 서버에 닿지 못한 것처럼 예상한 실패는 안내만 하고, 그 밖의 오류만 로그로 남긴다.
+            catch (ApiException exception)
+            {
+                if (this != null)
+                    view.ShowMessage(exception.Message);
+            }
+            catch (Exception exception)
+            {
+                if (this != null)
+                {
+                    Debug.LogException(exception, this);
+                    view.ShowMessage("퀘스트 목록을 불러오지 못했어요. 다시 열어 주세요.");
+                }
+            }
+        }
+
         private async Task ExecuteAsync(Func<Task<FirstDayMissionState>> action)
         {
             if (busy || api == null)
@@ -142,7 +178,7 @@ namespace A305.Mission
                 if (this != null)
                 {
                     Debug.LogException(exception, this);
-                    view.ShowMessage("퀘스트를 불러오지 못했어요. 수첩에서 다시 시도해 주세요.");
+                    view.ShowMessage("퀘스트를 불러오지 못했어요. 퀘스트 목록을 다시 열어 주세요.");
                 }
             }
             finally
@@ -151,6 +187,9 @@ namespace A305.Mission
                 if (this != null)
                 {
                     Render();
+                    // 퀘스트를 시작하거나 진행이 바뀌면 열려 있는 목록도 새로 받는다.
+                    if (view.IsQuestBoardOpen)
+                        LoadQuestBoard();
                     if (refreshPending)
                     {
                         refreshPending = false;

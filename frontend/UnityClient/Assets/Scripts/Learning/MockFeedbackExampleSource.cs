@@ -60,7 +60,7 @@ namespace A305.Learning
         };
 
         // 튜토리얼 Ben은 카페 가는 길을 묻는 행인이라 길을 알려 줄 때 쓰는 표현을 둔다.
-        // 표현 칸 아래 대화 요약이 들어갈 자리가 남도록 세 개만 둔다.
+        // 요약 탭은 표현을 두 개씩 보이므로, 세 개를 두어 튜토리얼에서 밝히는 제목 옆 쪽 넘김이 실제로 넘어가게 한다.
         [SerializeField]
         [Tooltip("대본 대화 상대별로 그 장면에서 현지인이 자주 쓰는 관용·추천 표현")]
         private List<SituationEntry> situations = new List<SituationEntry>

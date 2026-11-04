@@ -19,7 +19,8 @@ namespace A305.Learning.PlayModeTests
     public class FeedbackSummaryPagingTests
     {
         private const string PrefabPath = "Assets/Prefabs/Learning/FeedbackScreen.prefab";
-        private const string Summary = "카페 가는 길을 묻는 Ben에게 곧장 가서 모퉁이에서 왼쪽으로 돌라고 알려 줬어요.";
+        private const string Summary =
+            "카페 가는 길을 묻는 Ben에게 곧장 가서 모퉁이에서 왼쪽으로 돌라고 알려 줬어요.";
 
         private GameObject instance;
         private FeedbackView view;

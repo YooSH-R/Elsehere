@@ -174,8 +174,8 @@ class ConversationServiceTest {
   }
 
   @Test
-  @DisplayName("첫날 미션 직원의 첫 인사는 무엇을 도와줄지만 묻고 학습자가 할 요청을 먼저 꺼내지 않게 지시한다")
-  void start_missionStaffGreeting_onlyAsksHowToHelp() {
+  @DisplayName("첫날 미션 직원도 성격에 맞게 인사하고 학습자가 할 요청을 먼저 꺼내지 않는다")
+  void start_missionStaffGreeting_preservesCharacterWithoutSpoilingTasks() {
     firstDayMissionRepository.saveAndFlush(FirstDayMission.start(userId));
     given(aiGateway.reply(any(), any(), any(), any(), anyString(), anyString(), anyInt(), any()))
         .willReturn(reply("Good morning! How can I help you?", null));
@@ -196,7 +196,7 @@ class ConversationServiceTest {
             anyInt(),
             any());
     assertThat(instruction.getValue())
-        .contains("ask how you can help")
+        .contains("personality", "first-meeting", "Invite their request")
         .contains("Do not mention the learner's tasks, your offers or directions yet");
   }
 

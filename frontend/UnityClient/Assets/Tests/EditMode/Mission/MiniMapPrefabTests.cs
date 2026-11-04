@@ -1,4 +1,6 @@
+using System.Linq;
 using NUnit.Framework;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -117,6 +119,93 @@ namespace A305.Mission.Tests
                 "화살표가 호텔 칸 안쪽을 가리킵니다."
             );
         }
+
+        [Test]
+        public void TownStory_FramesOnlyTheCurrentShopAcrossAllMaps()
+        {
+            TownMiniMapView miniMap = Create();
+            var mission = instance.GetComponent<FirstDayMissionView>();
+            var frame = Field<RectTransform>(miniMap, "destination");
+            var legend = Field<TMP_Text>(mission, "largeMapLegend");
+            var maps = instance.GetComponentsInChildren<TownMapView>(true);
+            Assert.That(maps, Has.Length.EqualTo(2), "수첩과 큰 지도");
+
+            var route = new[]
+            {
+                ("DINER_STAFF", "다이너", 11, 39),
+                ("LAUNDROMAT_STAFF", "빨래방", 11, 48),
+                ("BANK_STAFF", "은행", -11, 48),
+                ("LAUNDROMAT_STAFF", "빨래방", 11, 48),
+                ("BARBER_STAFF", "이발소", 11, 57),
+                ("FLOWER_SHOP_STAFF", "꽃집", -11, 57),
+                ("BARBER_STAFF", "이발소", 11, 57),
+                ("BAKERY_STAFF", "빵집", -11, 21),
+                ("LAUNDROMAT_STAFF", "빨래방", 11, 48),
+                ("HOME_STORE_STAFF", "생활용품점", -11, 39),
+                ("ARCADE_STAFF", "오락실", 11, 30),
+                ("POST_OFFICE_STAFF", "우체국", -11, 30),
+            };
+            var state = new FirstDayMissionState { Started = true, IsTownStory = true };
+            foreach (var (npc, name, _, _) in route)
+                state.Steps.Add(
+                    new FirstDayMissionStep
+                    {
+                        NpcCode = npc,
+                        Title = name,
+                        Scene = "TOWN",
+                        Status = "UPCOMING",
+                    }
+                );
+
+            foreach (var (npc, name, x, z) in route)
+            {
+                FirstDayMissionStep current = state.Steps[state.Stage];
+                current.Status = "CURRENT";
+                mission.Refresh(state, false, false);
+                var store = new Vector3(x, 0, z);
+                Vector2 art = TownMapArt.ToArt(store);
+                Assert.That(frame.gameObject.activeSelf, Is.True, npc);
+                Assert.That(
+                    frame.rect.Contains(new Vector2(art.x, -art.y) - frame.anchoredPosition),
+                    Is.True,
+                    name
+                );
+                Assert.That(legend.text, Does.Contain(name));
+                foreach (TownMapView map in maps)
+                {
+                    RectTransform[] marks = ActiveMarks(map);
+                    Assert.That(marks, Has.Length.EqualTo(1), name);
+                    var area = new SerializedObject(map).FindProperty("worldArea").rectValue;
+                    Assert.That(area.Contains(new Vector2(x, z)), Is.True, name);
+                    Vector2 point = new TownMap(area).ToMap(store);
+                    Assert.That(
+                        Rect.MinMaxRect(
+                                marks[0].anchorMin.x,
+                                marks[0].anchorMin.y,
+                                marks[0].anchorMax.x,
+                                marks[0].anchorMax.y
+                            )
+                            .Contains(point),
+                        Is.True,
+                        name
+                    );
+                }
+                current.Status = "DONE";
+                state.Stage++;
+            }
+            state.Completed = true;
+            mission.Refresh(state, false, false);
+            Assert.That(frame.gameObject.activeSelf, Is.False);
+            foreach (TownMapView map in maps)
+                Assert.That(ActiveMarks(map), Is.Empty);
+        }
+
+        private static RectTransform[] ActiveMarks(TownMapView map) =>
+            map
+                .transform.Find("Area/Drawing")
+                .Cast<RectTransform>()
+                .Where(child => child.name.EndsWith("Destination") && child.gameObject.activeSelf)
+                .ToArray();
 
         private TownMiniMapView Create(string sceneCode = "TOWN")
         {

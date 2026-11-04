@@ -39,7 +39,7 @@ namespace A305.Tutorial
         /// <summary>대화를 시작하고 [다음]으로 넘긴 티칭 수</summary>
         public int DialogueTourStep { get; set; }
 
-        /// <summary>지도 수첩이 열려 있는지</summary>
+        /// <summary>퀘스트 카드로 여는 여행 수첩이 열려 있는지</summary>
         public bool IsJournalOpen { get; set; }
 
         /// <summary>녹음 중이라 대화 화면 [말하기]의 불이 켜져 있는지([준비 중]이면 꺼져 있다)</summary>
@@ -133,7 +133,7 @@ namespace A305.Tutorial
                 case TutorialStep.TodayGoal:
                     return screen.IsJournalOpen || screen.IsLearningScreenShowing
                         ? TutorialCoachTarget.None
-                        : TutorialCoachTarget.MapButton;
+                        : TutorialCoachTarget.QuestCard;
                 default:
                     return TutorialCoachTarget.None;
             }

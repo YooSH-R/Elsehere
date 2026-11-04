@@ -64,6 +64,41 @@ namespace A305.Mission.Tests
         }
 
         [Test]
+        public void TownStoryPreservesFirstDayBelongings()
+        {
+            FirstDayMissionState state = Journey(current: 0);
+            state.IsTownStory = true;
+            state.Balance = 12;
+            Refresh(state);
+
+            string belongings = Field<TMP_Text>("belongings").text;
+            Assert.That(belongings, Does.Contain("캐리어 · 찾음"));
+            Assert.That(belongings, Does.Contain("파란 가방 · 찾음"));
+            Assert.That(belongings, Does.Contain("우산 · 소지 중"));
+            Assert.That(belongings, Does.Contain("12코인"));
+        }
+
+        [Test]
+        public void TownStoryProgressFitsAllTwelveStepsInsideTheCard()
+        {
+            FirstDayMissionState state = Journey(current: 0);
+            state.IsTownStory = true;
+            for (int i = state.Steps.Count; i < 12; i++)
+                state.Steps.Add(new FirstDayMissionStep { Index = i, Status = "UPCOMING" });
+            Refresh(state);
+            RectTransform progress = Field<RectTransform>("progress");
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(progress);
+
+            RectTransform last = (RectTransform)progress.GetChild(11);
+            Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+                progress,
+                last
+            );
+            Assert.That(bounds.max.x, Is.LessThanOrEqualTo(progress.rect.xMax + 20));
+        }
+
+        [Test]
         public void Place_ShowsTheShortTitleOfTheCurrentStep()
         {
             Refresh(Journey(current: 5));
@@ -266,6 +301,33 @@ namespace A305.Mission.Tests
             Vector2 corner = ((RectTransform)card).anchoredPosition;
             Assert.That(corner.x, Is.EqualTo(33.6f).Within(.01f));
             Assert.That(corner.y, Is.EqualTo(-33.6f).Within(.01f));
+        }
+
+        // 서버 상태를 받기 전에도 예전 지도 버튼이 아니라 카드 자체를 누르라고 알린다.
+        [Test]
+        public void QuestCard_BeforeTheServerAnswers_TellsToPressTheCard()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            view = instance.GetComponent<FirstDayMissionView>();
+
+            string direction = Field<TMP_Text>("direction").text;
+            Assert.That(direction, Does.Contain("카드를 눌러"));
+            Assert.That(direction, Does.Not.Contain("지도"));
+        }
+
+        // 서버 상태를 받기 전 할 일 문구는 한 줄에 들어가 카드를 키우지 않는다.
+        [Test]
+        public void QuestCard_BeforeTheServerAnswers_FitsTheDirectionOnOneLine()
+        {
+            instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+            view = instance.GetComponent<FirstDayMissionView>();
+            view.SetAvailable(true);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                (RectTransform)instance.transform.Find("Content/CurrentGoal")
+            );
+
+            TMP_Text direction = Field<TMP_Text>("direction");
+            Assert.That(direction.GetTextInfo(direction.text).lineCount, Is.EqualTo(1));
         }
 
         private void Refresh(FirstDayMissionState state)

@@ -111,7 +111,8 @@ class FirstDayTurnTest {
             mock(MemoryService.class),
             mock(NpcAffinityService.class),
             transactions,
-            firstDay,
+            new com.elsehere.mission.service.MissionDialogueService(
+                firstDay, mock(com.elsehere.mission.service.TownStoryService.class)),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
   }
 

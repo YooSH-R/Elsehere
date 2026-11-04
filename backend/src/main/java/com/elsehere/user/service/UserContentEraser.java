@@ -41,6 +41,7 @@ public class UserContentEraser {
           "ai_requests",
           "user_missions",
           "first_day_missions",
+          "town_stories",
           "user_consents",
           "user_language_profiles",
           "user_game_clocks");

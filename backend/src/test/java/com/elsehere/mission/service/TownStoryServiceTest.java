@@ -1,0 +1,154 @@
+package com.elsehere.mission.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.elsehere.ai.client.JudgeResult;
+import com.elsehere.common.error.BusinessException;
+import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.entity.TownStory;
+import com.elsehere.mission.repository.FirstDayMissionRepository;
+import com.elsehere.mission.repository.TownStoryRepository;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+
+class TownStoryServiceTest {
+  private final FirstDayMissionRepository firstDay = mock(FirstDayMissionRepository.class);
+  private final TownStoryRepository stories = mock(TownStoryRepository.class);
+  private final TownStoryService service = new TownStoryService(stories, firstDay);
+
+  @Test
+  void cannotStartBeforeFirstDayIsCompleted() {
+    when(firstDay.findById(8L)).thenReturn(Optional.of(FirstDayMission.start(8L)));
+
+    assertThatThrownBy(() -> service.start(8L)).isInstanceOf(BusinessException.class);
+  }
+
+  @Test
+  void restartingAfterCompletionOfFirstDayKeepsExistingTownProgress() {
+    FirstDayMission completed = mock(FirstDayMission.class);
+    when(completed.isCompleted()).thenReturn(true);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
+    TownStory existing = TownStory.start(8L);
+    existing.accept(0, "DINER_STAFF", java.util.List.of("order_breakfast", "explain_spill"));
+    when(stories.findById(8L)).thenReturn(Optional.of(existing));
+
+    assertThat(service.start(8L).getStage()).isEqualTo(1);
+  }
+
+  @Test
+  void firstStartLocksTheExistingFirstDayRecordBeforeCreatingProgress() {
+    FirstDayMission completed = mock(FirstDayMission.class);
+    when(completed.isCompleted()).thenReturn(true);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
+    when(firstDay.findForUpdate(8L)).thenReturn(Optional.of(completed));
+    when(stories.save(any())).thenAnswer(call -> call.getArgument(0));
+
+    assertThat(service.start(8L).getStage()).isZero();
+    verify(firstDay).findForUpdate(8L);
+  }
+
+  @Test
+  void failedJudgementDoesNotAdvanceButAcceptedObjectivesDo() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findForUpdate(8L)).thenReturn(Optional.of(story));
+
+    service.accept(8L, 0, "DINER_STAFF", new JudgeResult.Intent(null, null, "timeout"));
+    assertThat(story.getStage()).isZero();
+    service.accept(
+        8L,
+        0,
+        "DINER_STAFF",
+        new JudgeResult.Intent(null, java.util.List.of("order_breakfast", "explain_spill"), null));
+    assertThat(story.getStage()).isEqualTo(1);
+  }
+
+  @Test
+  void onlyTheCurrentStaffReceivesTheStoryObjectives() {
+    when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
+
+    FirstDayMissionService.Context diner = service.context(8L, "DINER_STAFF").orElseThrow();
+    FirstDayMissionService.Context bank = service.context(8L, "BANK_STAFF").orElseThrow();
+    assertThat(diner.state().intents())
+        .extracting(intent -> intent.id())
+        .containsExactly("order_breakfast", "explain_spill");
+    assertThat(diner.state().intents().get(1).desc()).containsIgnoringCase("clothes");
+    assertThat(diner.state().desc()).containsIgnoringCase("spill");
+    assertThat(diner.instruction()).containsIgnoringCase("spill");
+    assertThat(bank.state()).isNull();
+  }
+
+  @Test
+  void everyVisitCarriesItsOwnPartOfTheConnectedStory() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    String[] situations = {
+      "spill", "laundry", "ATM", "wash", "haircut", "flower", "thank", "snack", "laundry", "lamp",
+      "game", "parcel"
+    };
+    for (String situation : situations) {
+      var current = story.current();
+      assertThat(service.context(8L, current.npcCode()).orElseThrow().instruction())
+          .containsIgnoringCase(situation);
+      assertThat(service.context(8L, current.npcCode()).orElseThrow().state().intents())
+          .allSatisfy(intent -> assertThat(intent.desc()).containsIgnoringCase("learner"));
+      story.accept(story.getStage(), current.npcCode(), current.goalIds());
+    }
+  }
+
+  @Test
+  void progressResponseExplainsTheCurrentVisitAndShowsCompletedGoals() {
+    TownStory story = TownStory.start(8L);
+    story.accept(0, "DINER_STAFF", java.util.List.of("order_breakfast"));
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+
+    var response = service.status(8L);
+    assertThat(response.situation()).contains("음료");
+    assertThat(response.steps().getFirst().goals().getFirst().completed()).isTrue();
+    assertThat(response.steps().getFirst().goals().get(1).completed()).isFalse();
+  }
+
+  @Test
+  void eachVisitShowsItsOwnReadableSituationAndGoal() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    String[] expectedPlaces = {
+      "다이너", "빨래방", "은행", "빨래방", "이발소", "꽃집", "이발소", "빵집", "빨래방", "생활용품점", "오락실", "우체국"
+    };
+    for (String place : expectedPlaces) {
+      var response = service.status(8L);
+      var step = response.steps().get(story.getStage());
+      assertThat(step.title()).contains(place);
+      assertThat(step.goals().getFirst().title()).doesNotContain("_");
+      assertThat(response.situation()).doesNotContain("다음 장소");
+      story.accept(story.getStage(), story.current().npcCode(), story.current().goalIds());
+    }
+  }
+
+  @Test
+  void newStoryDoesNotResetTheFirstDayTravelBudget() {
+    FirstDayMission completed = mock(FirstDayMission.class);
+    when(completed.getBalance()).thenReturn(12);
+    when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
+    when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
+
+    assertThat(service.status(8L).balance()).isEqualTo(12);
+  }
+
+  @Test
+  void travelerInsideTheHotelIsFirstGuidedToTheTown() {
+    FirstDayMission completed = mock(FirstDayMission.class);
+    when(completed.getScene()).thenReturn("HOTEL");
+    when(firstDay.findById(8L)).thenReturn(Optional.of(completed));
+    when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
+
+    var response = service.status(8L);
+    assertThat(response.scene()).isEqualTo("HOTEL");
+    assertThat(response.situation()).contains("마을");
+    assertThat(response.stage()).isZero();
+  }
+}

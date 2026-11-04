@@ -13,7 +13,7 @@ using UnityEngine;
 namespace A305.Tutorial
 {
     /// <summary>
-    /// 공간 씬마다 하나씩 두는 튜토리얼 진행 처리. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·지도 신호를 튜토리얼 진행에 전하고,
+    /// 공간 씬마다 하나씩 두는 튜토리얼 진행 처리. 걷기·시점·단어 저장·단어장·공간 이동·대화·피드백·수첩 신호를 튜토리얼 진행에 전하고,
     /// 단계에 맞게 안내 카드와 코치 마크, 행인이 다가와도 되는지, 장소 이동·택시 잠금, 미션 표시를 바꾼다.
     /// 숙소를 나오면 Ben과 길 안내를 마칠 때까지 Ben을 바라보는 구도로 플레이어를 붙잡아 둔다.
     /// Ben과 대화를 시작하면 대사·[뜻]·추천 단어·추천 문장을 차례로 밝히는 티칭을 [다음]으로 넘기며 보인다.
@@ -65,7 +65,7 @@ namespace A305.Tutorial
 
         [SerializeField]
         [Tooltip(
-            "첫날 미션의 지도 버튼과 수첩. 비우면(첫날 미션 화면이 없는 Sandbox) 오늘의 목표 안내를 바로 마친다."
+            "첫날 미션의 퀘스트 카드와 수첩. 비우면(첫날 미션 화면이 없는 Sandbox) 오늘의 목표 안내를 바로 마친다."
         )]
         private FirstDayMissionView firstDayMission;
 
@@ -630,9 +630,9 @@ namespace A305.Tutorial
                     return new[] { feedbackView.CloseButtonRect };
                 case TutorialCoachTarget.Vocabulary:
                     return new[] { learning.VocabularyPanelRect };
-                case TutorialCoachTarget.MapButton:
+                case TutorialCoachTarget.QuestCard:
                     return firstDayMission != null
-                        ? new[] { firstDayMission.JournalButtonRect }
+                        ? new[] { firstDayMission.QuestCardRect }
                         : new RectTransform[0];
                 default:
                     return new RectTransform[0];

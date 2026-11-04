@@ -65,6 +65,17 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void TodayGoal_TellsToPressTheQuestCard()
+        {
+            // 예전 지도 버튼은 없다. 코치 마크가 밝히는 왼쪽 위 퀘스트 카드를 누르면 수첩이 열리며 튜토리얼을 마친다.
+            var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);
+            guide.TryGetStepGuide(TutorialStep.TodayGoal, out TutorialStepGuide stepGuide);
+
+            Assert.That(stepGuide.Task, Does.Contain("{퀘스트 카드}"));
+            Assert.That(stepGuide.Task, Does.Not.Contain("지도"));
+        }
+
+        [Test]
         public void VocabularyCaption_ExplainsTheBookAndTheNextStep()
         {
             var guide = AssetDatabase.LoadAssetAtPath<TutorialGuideDefinition>(GuidePath);

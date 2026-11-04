@@ -20,6 +20,7 @@ MonoBehaviour:
       english: "Excuse me! Could you tell me how to get to the caf\xE9?"
       korean: "\uC2E4\uB840\uD569\uB2C8\uB2E4! \uCE74\uD398\uC5D0 \uC5B4\uB5BB\uAC8C
         \uAC00\uB294\uC9C0 \uC54C\uB824 \uC8FC\uC2E4 \uC218 \uC788\uB098\uC694?"
+      voice: {fileID: 4900000, guid: 5b5b18e11d40c614093ef1b17439f2ef, type: 3}
     guidedTurns:
     - suggestedEnglish: Go straight ahead.
       suggestedKorean: "\uC55E\uC73C\uB85C \uACE7\uC7A5 \uAC00\uC138\uC694."
@@ -27,6 +28,7 @@ MonoBehaviour:
         english: Straight ahead? And then where should I go?
         korean: "\uACE7\uC7A5\uC774\uC694? \uADF8\uB2E4\uC74C\uC5D4 \uC5B4\uB514\uB85C
           \uAC00\uBA74 \uB418\uB098\uC694?"
+        voice: {fileID: 4900000, guid: 130a8ebdfea8d3045b9626aa976a7609, type: 3}
       suggestWords:
       - "straight \xB7 \uACE7\uC7A5"
       - "ahead \xB7 \uC55E\uC73C\uB85C"
@@ -35,6 +37,7 @@ MonoBehaviour:
       reply:
         english: Got it. Is it far from here?
         korean: "\uC54C\uACA0\uC5B4\uC694. \uC5EC\uAE30\uC11C \uBA3C\uAC00\uC694?"
+        voice: {fileID: 4900000, guid: d87e46ea997622041911f1f694256baf, type: 3}
       suggestWords:
       - "turn left \xB7 \uC67C\uCABD\uC73C\uB85C \uB3CC\uB2E4"
       - "corner \xB7 \uBAA8\uD241\uC774"
@@ -43,6 +46,7 @@ MonoBehaviour:
       reply:
         english: Thank you so much. You're a lifesaver!
         korean: "\uC815\uB9D0 \uACE0\uB9C8\uC6CC\uC694. \uB355\uBD84\uC5D0 \uC0B4\uC558\uC5B4\uC694!"
+        voice: {fileID: 4900000, guid: 77a922892b0f4a34e8a67a9728c5c371, type: 3}
       suggestWords:
       - "minute \xB7 \uBD84"
       - "away \xB7 \uB5A8\uC5B4\uC838"
@@ -50,6 +54,7 @@ MonoBehaviour:
     defaultReply:
       english: I see!
       korean: "\uADF8\uB807\uAD70\uC694!"
+      voice: {fileID: 0}
     exampleSentence: 
   - npcCode: CAFE_STAFF
     npcName: Mia
@@ -58,6 +63,7 @@ MonoBehaviour:
       english: "Hi there! Welcome to our caf\xE9. What can I get for you?"
       korean: "\uC548\uB155\uD558\uC138\uC694! \uC800\uD76C \uCE74\uD398\uC5D0 \uC624\uC2E0
         \uAC78 \uD658\uC601\uD574\uC694. \uBB34\uC5C7\uC744 \uB4DC\uB9B4\uAE4C\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -67,12 +73,14 @@ MonoBehaviour:
         english: One soy latte, coming right up! Would you like anything else?
         korean: "\uB450\uC720 \uB77C\uD14C \uD55C \uC794 \uBC14\uB85C \uC900\uBE44\uD560\uAC8C\uC694!
           \uB354 \uD544\uC694\uD55C \uAC74 \uC5C6\uC73C\uC138\uC694?"
+        voice: {fileID: 0}
     - keywords:
       - latte
       reply:
         english: Sure! Would you like regular milk or soy milk?
         korean: "\uBB3C\uB860\uC774\uC8E0! \uC77C\uBC18 \uC6B0\uC720\uB85C \uB4DC\uB9B4\uAE4C\uC694,
           \uB450\uC720\uB85C \uB4DC\uB9B4\uAE4C\uC694?"
+        voice: {fileID: 0}
     - keywords:
       - dessert
       reply:
@@ -80,21 +88,25 @@ MonoBehaviour:
           house!
         korean: "\uB124, \uCE58\uC988\uCF00\uC774\uD06C\uC640 \uCFE0\uD0A4\uAC00
           \uC788\uC5B4\uC694. \uCCAB \uBC88\uC9F8 \uCFE0\uD0A4\uB294 \uC11C\uBE44\uC2A4\uC608\uC694!"
+        voice: {fileID: 0}
     - keywords:
       - coffee
       reply:
         english: Of course. Hot or iced?
         korean: "\uBB3C\uB860\uC774\uC8E0. \uB530\uB73B\uD55C \uAC78\uB85C \uB4DC\uB9B4\uAE4C\uC694,
           \uC544\uC774\uC2A4\uB85C \uB4DC\uB9B4\uAE4C\uC694?"
+        voice: {fileID: 0}
     - keywords:
       - thank
       reply:
         english: You're welcome! Enjoy your day.
         korean: "\uCC9C\uB9CC\uC5D0\uC694! \uC88B\uC740 \uD558\uB8E8 \uBCF4\uB0B4\uC138\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: I see. Is there anything else I can help you with?
       korean: "\uADF8\uB807\uAD70\uC694. \uB354 \uB3C4\uC640\uB4DC\uB9B4 \uC77C\uC774
         \uC788\uC744\uAE4C\uC694?"
+      voice: {fileID: 0}
     exampleSentence: Could I have a soy latte, please?
   - npcCode: TOWN_PASSERBY
     npcName: Ben
@@ -103,6 +115,7 @@ MonoBehaviour:
       english: Hey! Nice to see you. How's your day going?
       korean: "\uC548\uB155\uD558\uC138\uC694! \uBC18\uAC00\uC6CC\uC694. \uC624\uB298
         \uD558\uB8E8 \uC5B4\uB54C\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -111,20 +124,24 @@ MonoBehaviour:
         english: It's a lovely day. Perfect for a walk!
         korean: "\uB0A0\uC528\uAC00 \uC815\uB9D0 \uC88B\uB124\uC694. \uC0B0\uCC45\uD558\uAE30
           \uB531\uC774\uC5D0\uC694!"
+        voice: {fileID: 0}
     - keywords:
       - cafe
       reply:
         english: "The corner caf\xE9 has great lattes. You should try one!"
         korean: "\uBAA8\uD241\uC774 \uCE74\uD398 \uB77C\uD14C\uAC00 \uC815\uB9D0
           \uB9DB\uC788\uC5B4\uC694. \uD55C\uBC88 \uB9C8\uC154 \uBD10\uC694!"
+        voice: {fileID: 0}
     - keywords:
       - thank
       reply:
         english: Anytime! See you around.
         korean: "\uC5B8\uC81C\uB4E0\uC9C0\uC694! \uB610 \uBD10\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: Oh, really? Tell me more!
       korean: "\uC544, \uC815\uB9D0\uC694? \uB354 \uC598\uAE30\uD574 \uC918\uC694!"
+      voice: {fileID: 0}
     exampleSentence: It's a nice day today, isn't it?
   - npcCode: HOTEL_STAFF
     npcName: Jake
@@ -133,6 +150,7 @@ MonoBehaviour:
       english: Good afternoon! Welcome to Maple House. Are you checking in?
       korean: "\uC548\uB155\uD558\uC138\uC694! \uBA54\uC774\uD50C \uD558\uC6B0\uC2A4\uC5D0
         \uC624\uC2E0 \uAC78 \uD658\uC601\uD574\uC694. \uCCB4\uD06C\uC778\uD558\uC2DC\uB098\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -140,21 +158,25 @@ MonoBehaviour:
       reply:
         english: Of course. May I have your name, please?
         korean: "\uBB3C\uB860\uC774\uC8E0. \uC131\uD568\uC744 \uC54C\uB824 \uC8FC\uC2DC\uACA0\uC5B4\uC694?"
+        voice: {fileID: 0}
     - keywords:
       - reservation
       reply:
         english: Let me find your reservation. One moment, please.
         korean: "\uC608\uC57D\uC744 \uCC3E\uC544\uBCFC\uAC8C\uC694. \uC7A0\uC2DC\uB9CC
           \uAE30\uB2E4\uB824 \uC8FC\uC138\uC694."
+        voice: {fileID: 0}
     - keywords:
       - thank
       reply:
         english: My pleasure. Enjoy your stay!
         korean: "\uCC9C\uB9CC\uC5D0\uC694. \uD3B8\uD788 \uC26C\uB2E4 \uAC00\uC138\uC694!"
+        voice: {fileID: 0}
     defaultReply:
       english: I see. How else can I help you?
       korean: "\uADF8\uB807\uAD70\uC694. \uB354 \uB3C4\uC640\uB4DC\uB9B4 \uC77C\uC774
         \uC788\uC744\uAE4C\uC694?"
+      voice: {fileID: 0}
     exampleSentence: I'd like to check in, please.
   - npcCode: SHOP_STAFF
     npcName: Alex
@@ -164,6 +186,7 @@ MonoBehaviour:
       korean: "\uC548\uB155\uD558\uC138\uC694! \uB4DC\uB7ED\uC2A4\uD1A0\uC5B4\uC5D0
         \uC624\uC2E0 \uAC78 \uD658\uC601\uD574\uC694. \uCC3E\uC73C\uC2DC\uB294 \uBB3C\uAC74\uC774
         \uC788\uB098\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -172,19 +195,23 @@ MonoBehaviour:
         english: Umbrellas are right by the door. They're 8 coins each.
         korean: "\uC6B0\uC0B0\uC740 \uBB38 \uBC14\uB85C \uC606\uC5D0 \uC788\uC5B4\uC694.
           \uD558\uB098\uC5D0 8\uCF54\uC778\uC774\uC5D0\uC694."
+        voice: {fileID: 0}
     - keywords:
       - card
       reply:
         english: Sure, we take cards. Please tap it here.
         korean: "\uB124, \uCE74\uB4DC \uB3FC\uC694. \uC5EC\uAE30\uC5D0 \uB300 \uC8FC\uC138\uC694."
+        voice: {fileID: 0}
     - keywords:
       - thank
       reply:
         english: You're welcome! Stay dry out there.
         korean: "\uCC9C\uB9CC\uC5D0\uC694! \uBE44 \uB9DE\uC9C0 \uC54A\uAC8C \uC870\uC2EC\uD558\uC138\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: Sure. Is there anything else you need?
       korean: "\uB124. \uB354 \uD544\uC694\uD55C \uAC74 \uC5C6\uC73C\uC138\uC694?"
+      voice: {fileID: 0}
     exampleSentence: Do you sell umbrellas?
   - npcCode: TAXI_DRIVER
     npcName: Joe
@@ -192,6 +219,7 @@ MonoBehaviour:
     opening:
       english: Hi there! Where are you headed?
       korean: "\uC548\uB155\uD558\uC138\uC694! \uC5B4\uB514\uB85C \uAC00\uC138\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -200,14 +228,17 @@ MonoBehaviour:
         english: The hotel? It's just up the street. Hop in!
         korean: "\uD638\uD154\uC774\uC694? \uC774 \uAE38 \uBC14\uB85C \uC704\uCABD\uC774\uC5D0\uC694.
           \uD0C0\uC138\uC694!"
+        voice: {fileID: 0}
     - keywords:
       - thank
       reply:
         english: You're welcome! Have a nice day.
         korean: "\uCC9C\uB9CC\uC5D0\uC694! \uC88B\uC740 \uD558\uB8E8 \uBCF4\uB0B4\uC138\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: Sure. Please fasten your seat belt.
       korean: "\uC54C\uACA0\uC5B4\uC694. \uC548\uC804\uBCA8\uD2B8\uB97C \uB9E4 \uC8FC\uC138\uC694."
+      voice: {fileID: 0}
     exampleSentence: Can you take me to the hotel, please?
   - npcCode: POLICE_OFFICER
     npcName: Dan
@@ -216,6 +247,7 @@ MonoBehaviour:
       english: Hello, this is the Maple Town police. What happened?
       korean: "\uC548\uB155\uD558\uC138\uC694, \uBA54\uC774\uD50C \uD0C0\uC6B4 \uACBD\uCC30\uC785\uB2C8\uB2E4.
         \uBB34\uC2A8 \uC77C\uC774 \uC788\uC5C8\uB098\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -226,15 +258,18 @@ MonoBehaviour:
         english: I see. A patrol car is heading out right away.
         korean: "\uC54C\uACA0\uC5B4\uC694. \uC21C\uCC30\uCC28\uAC00 \uBC14\uB85C
           \uCD9C\uB3D9\uD560\uAC8C\uC694."
+        voice: {fileID: 0}
     - keywords:
       - thank
       reply:
         english: You're welcome. Stay safe.
         korean: "\uCC9C\uB9CC\uC5D0\uC694. \uC870\uC2EC\uD788 \uB2E4\uB2C8\uC138\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: Can you tell me what happened and where?
       korean: "\uBB34\uC2A8 \uC77C\uC774 \uC5B4\uB514\uC11C \uC788\uC5C8\uB294\uC9C0
         \uB9D0\uD574 \uC904\uB798\uC694?"
+      voice: {fileID: 0}
     exampleSentence: My wallet was stolen at the diner.
   - npcCode: POST_OFFICE_STAFF
     npcName: Linda
@@ -243,6 +278,7 @@ MonoBehaviour:
       english: Hello, welcome to the post office. What can I do for you?
       korean: "\uC548\uB155\uD558\uC138\uC694, \uC6B0\uCCB4\uAD6D\uC785\uB2C8\uB2E4.
         \uBB34\uC5C7\uC744 \uB3C4\uC640\uB4DC\uB9B4\uAE4C\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -250,15 +286,18 @@ MonoBehaviour:
       reply:
         english: A stamp for a letter is one dollar.
         korean: "\uD3B8\uC9C0\uC6A9 \uC6B0\uD45C\uB294 1\uB2EC\uB7EC\uC608\uC694."
+        voice: {fileID: 0}
     - keywords:
       - package
       reply:
         english: Please put it on the scale. Sending a package is five dollars.
         korean: "\uC800\uC6B8\uC5D0 \uC62C\uB824 \uC8FC\uC138\uC694. \uC18C\uD3EC\uB294
           5\uB2EC\uB7EC\uC608\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: Would you like to send a letter or a package?
       korean: "\uD3B8\uC9C0\uB97C \uBCF4\uB0B4\uC138\uC694, \uC18C\uD3EC\uB97C \uBCF4\uB0B4\uC138\uC694?"
+      voice: {fileID: 0}
     exampleSentence: I'd like to send this package.
   - npcCode: DINER_STAFF
     npcName: Rosa
@@ -267,6 +306,7 @@ MonoBehaviour:
       english: Hi, honey! Welcome to Maple Diner. What can I get you?
       korean: "\uC5B4\uC11C \uC640\uC694! \uBA54\uC774\uD50C \uB2E4\uC774\uB108\uC608\uC694.
         \uBB58 \uB4DC\uB9B4\uAE4C\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -275,15 +315,18 @@ MonoBehaviour:
         english: Pancakes, great choice! That's seven dollars.
         korean: "\uD32C\uCF00\uC774\uD06C, \uC88B\uC740 \uC120\uD0DD\uC774\uC5D0\uC694!
           7\uB2EC\uB7EC\uC608\uC694."
+        voice: {fileID: 0}
     - keywords:
       - coffee
       reply:
         english: Coffee is two dollars, and refills are free.
         korean: "\uCEE4\uD53C\uB294 2\uB2EC\uB7EC\uACE0 \uB9AC\uD544\uC740 \uBB34\uB8CC\uC608\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: We have pancakes, burgers, apple pie and coffee.
       korean: "\uD32C\uCF00\uC774\uD06C, \uBC84\uAC70, \uC560\uD50C\uD30C\uC774,
         \uCEE4\uD53C\uAC00 \uC788\uC5B4\uC694."
+      voice: {fileID: 0}
     exampleSentence: Can I have pancakes and coffee, please?
   - npcCode: BANK_STAFF
     npcName: Henry
@@ -292,6 +335,7 @@ MonoBehaviour:
       english: Hello. Welcome to Town Bank. How may I help you today?
       korean: "\uC548\uB155\uD558\uC138\uC694. \uD0C0\uC6B4 \uC740\uD589\uC785\uB2C8\uB2E4.
         \uBB34\uC5C7\uC744 \uB3C4\uC640\uB4DC\uB9B4\uAE4C\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -300,16 +344,19 @@ MonoBehaviour:
         english: To open an account, I'll need a photo ID, please.
         korean: "\uACC4\uC88C\uB97C \uB9CC\uB4E4\uB824\uBA74 \uC0AC\uC9C4\uC774 \uC788\uB294
           \uC2E0\uBD84\uC99D\uC774 \uD544\uC694\uD574\uC694."
+        voice: {fileID: 0}
     - keywords:
       - atm
       reply:
         english: The ATM is just inside the entrance, on the left.
         korean: "ATM\uC740 \uB4E4\uC5B4\uC624\uC2DC\uBA74 \uBC14\uB85C \uC67C\uCABD\uC5D0
           \uC788\uC5B4\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: I can help you with deposits and withdrawals.
       korean: "\uC785\uAE08\uACFC \uCD9C\uAE08\uC744 \uB3C4\uC640\uB4DC\uB9B4 \uC218
         \uC788\uC5B4\uC694."
+      voice: {fileID: 0}
     exampleSentence: I'd like to open an account.
   - npcCode: LAUNDROMAT_STAFF
     npcName: Gus
@@ -318,6 +365,7 @@ MonoBehaviour:
       english: Hey there! Welcome to Suds. Got some laundry today?
       korean: "\uC548\uB155\uD558\uC138\uC694! \uC11C\uC988 \uBE68\uB798\uBC29\uC774\uC5D0\uC694.
         \uC624\uB298 \uBE68\uB798 \uC788\uC5B4\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -325,16 +373,19 @@ MonoBehaviour:
       reply:
         english: A wash is three dollars and takes about thirty minutes.
         korean: "\uC138\uD0C1\uC740 3\uB2EC\uB7EC\uACE0 30\uBD84\uCBE4 \uAC78\uB824\uC694."
+        voice: {fileID: 0}
     - keywords:
       - dry
       reply:
         english: The dryer is two dollars. It takes about forty minutes.
         korean: "\uAC74\uC870\uAE30\uB294 2\uB2EC\uB7EC\uC608\uC694. 40\uBD84\uCBE4
           \uAC78\uB824\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: Put your clothes in, add the soap, and press start.
       korean: "\uC637\uACFC \uC138\uC81C\uB97C \uB123\uACE0 \uC2DC\uC791\uC744 \uB204\uB974\uBA74
         \uB3FC\uC694."
+      voice: {fileID: 0}
     exampleSentence: How much is a wash?
   - npcCode: FLOWER_SHOP_STAFF
     npcName: Lily
@@ -343,6 +394,7 @@ MonoBehaviour:
       english: Oh, hello. Welcome to Bloom Flowers. Who are the flowers for?
       korean: "\uC544, \uC548\uB155\uD558\uC138\uC694. \uBE14\uB8F8 \uD50C\uB77C\uC6CC\uC608\uC694.
         \uB204\uAD6C\uC5D0\uAC8C \uC904 \uAF43\uC778\uAC00\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -351,15 +403,18 @@ MonoBehaviour:
         english: A bouquet is fifteen dollars. Maybe roses or tulips?
         korean: "\uAF43\uB2E4\uBC1C\uC740 15\uB2EC\uB7EC\uC608\uC694. \uC7A5\uBBF8\uB098
           \uD2A4\uB9BD\uC740 \uC5B4\uB54C\uC694?"
+        voice: {fileID: 0}
     - keywords:
       - rose
       reply:
         english: One rose is two dollars.
         korean: "\uC7A5\uBBF8 \uD55C \uC1A1\uC774\uB294 2\uB2EC\uB7EC\uC608\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: We have roses, tulips, sunflowers and daisies today.
       korean: "\uC624\uB298\uC740 \uC7A5\uBBF8, \uD2A4\uB9BD, \uD574\uBC14\uB77C\uAE30,
         \uB370\uC774\uC9C0\uAC00 \uC788\uC5B4\uC694."
+      voice: {fileID: 0}
     exampleSentence: I'd like a bouquet for my friend.
   - npcCode: BARBER_STAFF
     npcName: Tony
@@ -368,6 +423,7 @@ MonoBehaviour:
       english: Hey, come on in! Take a seat. Haircut today?
       korean: "\uC5B4\uC11C \uC640\uC694! \uC549\uC73C\uC138\uC694. \uC624\uB298
         \uBA38\uB9AC \uC790\uB974\uAC8C\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -376,15 +432,18 @@ MonoBehaviour:
         english: Sure! A haircut is twenty dollars. How short do you want it?
         korean: "\uC88B\uC544\uC694! \uCEE4\uD2B8\uB294 20\uB2EC\uB7EC\uC608\uC694.
           \uC5BC\uB9C8\uB098 \uC9E7\uAC8C \uD560\uAE4C\uC694?"
+        voice: {fileID: 0}
     - keywords:
       - shave
       reply:
         english: A shave is ten dollars.
         korean: "\uBA74\uB3C4\uB294 10\uB2EC\uB7EC\uC608\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: No appointment needed. Just tell me how you want it.
       korean: "\uC608\uC57D\uC740 \uD544\uC694 \uC5C6\uC5B4\uC694. \uC5B4\uB5BB\uAC8C
         \uD558\uACE0 \uC2F6\uC740\uC9C0\uB9CC \uB9D0\uD574 \uC918\uC694."
+      voice: {fileID: 0}
     exampleSentence: Just a little shorter, please.
   - npcCode: BAKERY_STAFF
     npcName: Grace
@@ -393,6 +452,7 @@ MonoBehaviour:
       english: Hello, dear! The croissants just came out of the oven.
       korean: "\uC5B4\uC11C \uC640\uC694! \uD06C\uB8E8\uC544\uC0C1\uC774 \uBC29\uAE08
         \uC624\uBE10\uC5D0\uC11C \uB098\uC654\uC5B4\uC694."
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -401,15 +461,18 @@ MonoBehaviour:
         english: A croissant is three dollars. For here or to go?
         korean: "\uD06C\uB8E8\uC544\uC0C1\uC740 3\uB2EC\uB7EC\uC608\uC694. \uBA39\uACE0
           \uAC00\uC694, \uAC00\uC838\uAC00\uC694?"
+        voice: {fileID: 0}
     - keywords:
       - bread
       reply:
         english: A loaf of bread is four dollars.
         korean: "\uBE75 \uD55C \uB369\uC774\uB294 4\uB2EC\uB7EC\uC608\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: We have bread, croissants and chocolate cake today.
       korean: "\uC624\uB298\uC740 \uBE75, \uD06C\uB8E8\uC544\uC0C1, \uCD08\uCF5C\uB9BF
         \uCF00\uC774\uD06C\uAC00 \uC788\uC5B4\uC694."
+      voice: {fileID: 0}
     exampleSentence: Can I have a croissant to go?
   - npcCode: ARCADE_STAFF
     npcName: Max
@@ -418,6 +481,7 @@ MonoBehaviour:
       english: Hey! Welcome to Little Arcade! Wanna try the claw machine?
       korean: "\uC548\uB155! \uB9AC\uD2C0 \uC544\uCF00\uC774\uB4DC\uC608\uC694! \uC778\uD615
         \uBF51\uAE30 \uD574 \uBCFC\uB798\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -426,15 +490,18 @@ MonoBehaviour:
         english: Move the claw with the stick, then press the button to drop it.
         korean: "\uB9C9\uB300\uB85C \uC9D1\uAC8C\uB97C \uC6C0\uC9C1\uC774\uACE0 \uBC84\uD2BC\uC744
           \uB20C\uB7EC \uB0B4\uB824\uC694."
+        voice: {fileID: 0}
     - keywords:
       - much
       reply:
         english: One game is one dollar. No promises on the prize, though!
         korean: "\uD55C \uD310\uC5D0 1\uB2EC\uB7EC\uC608\uC694. \uC778\uD615\uC774
           \uBF51\uD790\uC9C0\uB294 \uC7A5\uB2F4 \uBABB \uD574\uC694!"
+        voice: {fileID: 0}
     defaultReply:
       english: Pick a machine and give it a try!
       korean: "\uAE30\uACC4\uB97C \uD558\uB098 \uACE8\uB77C\uC11C \uD574 \uBD10\uC694!"
+      voice: {fileID: 0}
     exampleSentence: How do I play the claw machine?
   - npcCode: HOME_STORE_STAFF
     npcName: Nina
@@ -443,6 +510,7 @@ MonoBehaviour:
       english: Hello, welcome to Home & Living. Which room are you shopping for?
       korean: "\uC548\uB155\uD558\uC138\uC694, \uD648 \uC564 \uB9AC\uBE59\uC785\uB2C8\uB2E4.
         \uC5B4\uB290 \uBC29\uC5D0 \uB458 \uBB3C\uAC74\uC744 \uCC3E\uC73C\uC138\uC694?"
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies:
     - keywords:
@@ -451,14 +519,17 @@ MonoBehaviour:
         english: This lamp is thirty dollars. It would look nice in a bedroom.
         korean: "\uC774 \uB7A8\uD504\uB294 30\uB2EC\uB7EC\uC608\uC694. \uCE68\uC2E4\uC5D0
           \uC798 \uC5B4\uC6B8\uB824\uC694."
+        voice: {fileID: 0}
     - keywords:
       - chair
       reply:
         english: The armchair is one hundred fifty dollars.
         korean: "\uC548\uB77D\uC758\uC790\uB294 150\uB2EC\uB7EC\uC608\uC694."
+        voice: {fileID: 0}
     defaultReply:
       english: Take your time and look around.
       korean: "\uCC9C\uCC9C\uD788 \uB458\uB7EC\uBCF4\uC138\uC694."
+      voice: {fileID: 0}
     exampleSentence: I'm looking for a lamp for my bedroom.
   fallback:
     npcCode: 
@@ -467,9 +538,11 @@ MonoBehaviour:
     opening:
       english: Hello! Nice to meet you.
       korean: "\uC548\uB155\uD558\uC138\uC694! \uB9CC\uB098\uC11C \uBC18\uAC00\uC6CC\uC694."
+      voice: {fileID: 0}
     guidedTurns: []
     keywordReplies: []
     defaultReply:
       english: I see!
       korean: "\uADF8\uB807\uAD70\uC694!"
+      voice: {fileID: 0}
     exampleSentence: Nice to meet you, too.

@@ -52,7 +52,7 @@ com.elsehere
 | `vocab` | vocabularies, user_vocab |
 | `mission` | missions, user_missions, first_day_missions, town_stories |
 | `onboarding` | user_language_profiles (학습 언어·대화 난이도 설정), level_tests, level_test_answers (레벨 테스트와 문항 응답) |
-| `admin` | 없음 (운영자 어드민 화면·관리 API. 다른 도메인의 테이블을 고친다. [운영자 어드민](../docs/admin.md)) |
+| `admin` | 없음 (운영자 어드민 화면·관리 API. 다른 도메인의 테이블을 고친다. 이용 현황은 여러 도메인의 테이블을 `AdminUsageRepository`의 SQL로 읽어 묶는다. [운영자 어드민](../docs/admin.md)) |
 
 - 대화는 두 패키지로 나눕니다. 서로 import하는 순환이 생기지 않게 하기 위해서입니다.
   - `conversation`(대화 기록): 다른 도메인이 읽는 아래쪽입니다. `common` 말고 다른 도메인을 import하지 않습니다.
@@ -146,7 +146,7 @@ NPC가 생성한 WAV는 `NPC_AUDIO_DIR`에 저장하며 로컬 기본 경로는 
 | --- | --- | --- |
 | `GUEST_CONVERSATION_LIMIT` | `3` | 게스트 계정 하나가 시작할 수 있는 NPC 대화 수(CONV-01). 다 쓰면 `AI_QUOTA_EXHAUSTED`이며 다시 채워지지 않습니다. |
 
-- 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 문장 피드백(`turn_feedback`)과 그 모범 음성 파일, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다.
+- 게스트는 세션이 끝나면 다시 들어올 수 없는 일회용 계정입니다. `GuestContentCleanup`이 매시 30분에 마지막 활동 뒤 24시간(`elsehere.guest.content-retention`)이 지난 게스트의 **내용만** 지웁니다. 지우는 것은 발화 원문(`turns`)과 그 NPC 음성 파일(NPC 공용 말걸기 음성 제외), 대화 피드백, 문장 피드백(`turn_feedback`)과 그 모범 음성 파일, 기억 카드·관계, 저장 단어·숨김, 레벨 테스트, 학습용 녹음입니다. 사용자·대화·AI 호출 기록·미션 진행·언어 프로필·게임 시계 행은 남겨, 남은 행이 가리키는 곳이 사라지지 않고 게스트 수·대화 수·사용량을 집계할 수 있게 합니다. 집계는 [어드민 이용 현황](../docs/admin.md#이용-현황)에서 봅니다.
 - 회원 탈퇴(USER-05, `WithdrawalService`)도 같은 범위의 내용을 바로 지우고, 이메일을 비우며 소셜 계정 ID·닉네임을 `withdrawn-` 값으로 바꿔 사용자 행은 익명으로 남깁니다.
 - 지우는 범위는 `UserContentEraser`가 게스트 정리와 탈퇴에 함께 씁니다. 사용자·대화·턴을 가리키는 칸(`user_id`, `…conversation_id`, `…turn_id`)이 있는 테이블을 새로 만들면 `UserContentEraser`의 지움(`CLEARED_TABLES`)·남김(`RETAINED_TABLES`) 중 한쪽에 넣습니다. 빠뜨리면 `GuestContentCleanupTest`가 실패합니다.
 

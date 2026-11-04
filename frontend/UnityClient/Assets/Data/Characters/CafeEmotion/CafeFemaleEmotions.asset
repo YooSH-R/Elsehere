@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f7cbe8faefe7fc468d152e2ad31b044, type: 3}
+  m_Name: CafeFemaleEmotions
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.EmotionExpressionProfile
+  presets:
+  - emotion: 0
+    face:
+      smile: {x: 0, y: 0}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0, y: 0}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0, y: 0}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 0, y: 0}
+  - emotion: 1
+    face:
+      smile: {x: 0.55, y: 0.55}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0, y: 0}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0.15, y: 0.15}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0.25, y: 0.25}
+      mouthFrown: {x: 0, y: 0}
+  - emotion: 2
+    face:
+      smile: {x: 0.12, y: 0.12}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0.9, y: 0.12}
+      browDown: {x: 0, y: 0.2}
+      eyeSquint: {x: 0, y: 0}
+      eyeWide: {x: 0.2, y: 0}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 0, y: 0}
+  - emotion: 3
+    face:
+      smile: {x: 0, y: 0}
+      browInnerUp: {x: 0.6, y: 0.1}
+      browOuterUp: {x: 0.45, y: 0}
+      browDown: {x: 0, y: 0.5}
+      eyeSquint: {x: 0, y: 0.35}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 0.15, y: 0.4}
+  - emotion: 4
+    face:
+      smile: {x: 0, y: 0}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0, y: 0}
+      browDown: {x: 0.85, y: 0.85}
+      eyeSquint: {x: 0.25, y: 0.25}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 0.65, y: 0.65}
+  - emotion: 5
+    face:
+      smile: {x: 0, y: 0}
+      browInnerUp: {x: 0.6, y: 0.6}
+      browOuterUp: {x: 0.85, y: 0.85}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0, y: 0}
+      eyeWide: {x: 0.7, y: 0.7}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 0, y: 0}
+  - emotion: 6
+    face:
+      smile: {x: 0.7, y: 0.2}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0.4, y: 0}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0.2, y: 0.5}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0.25, y: 0.15}
+      mouthFrown: {x: 0, y: 0}
+  - emotion: 7
+    face:
+      smile: {x: 0.9, y: 0.9}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0.15, y: 0.15}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0.95, y: 0.95}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0.8, y: 0.8}
+      mouthFrown: {x: 0, y: 0}
+  - emotion: 8
+    face:
+      smile: {x: 0, y: 0}
+      browInnerUp: {x: 0.85, y: 0.85}
+      browOuterUp: {x: 0, y: 0}
+      browDown: {x: 0, y: 0}
+      eyeSquint: {x: 0.08, y: 0.08}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 0.3, y: 0.3}

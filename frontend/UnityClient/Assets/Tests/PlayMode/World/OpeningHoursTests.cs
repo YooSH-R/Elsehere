@@ -16,6 +16,7 @@ namespace A305.World.PlayModeTests
     public class OpeningHoursTests
     {
         private const float TimeoutSeconds = 5f;
+        private const float SceneArrivalTimeoutSeconds = 30f;
 
         // 문 감지 영역에 닿고 거절 안내가 뜨기까지 넉넉히 기다리는 물리 갱신 수
         private const int DoorTouchFixedUpdates = 10;
@@ -199,7 +200,7 @@ namespace A305.World.PlayModeTests
 
         private static IEnumerator WaitForArrival(string sceneName)
         {
-            float deadline = Time.realtimeSinceStartup + TimeoutSeconds;
+            float deadline = Time.realtimeSinceStartup + SceneArrivalTimeoutSeconds;
             while (SceneManager.GetActiveScene().name != sceneName || SpaceTravel.IsTraveling)
             {
                 Assert.That(

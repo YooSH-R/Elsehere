@@ -23,7 +23,9 @@ namespace A305.World.PlayModeTests
 
         // 입구 화면은 공간이 아니라 플레이어·카메라·출입구가 없다. Scene List 맨 앞에 있지만 공간 씬 검사에서 뺀다.
         private const string EntrySceneName = "EntryScene";
-        private const float ArrivalTimeoutSeconds = 5f;
+
+        // 씬 I/O 대기 한도. 도착 위치·방향 검증과 분리하며 다른 비동기 로드 검사와 맞춘다.
+        private const float ArrivalTimeoutSeconds = 30f;
         private const float PositionTolerance = 0.05f;
         private const float AngleToleranceDegrees = 1f;
 

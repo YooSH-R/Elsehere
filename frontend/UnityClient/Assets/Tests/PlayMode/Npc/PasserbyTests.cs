@@ -327,11 +327,7 @@ namespace A305.Npc.PlayModeTests
             Passerby passerby = FindPasserby(BenCode);
             // 제자리로 돌아갈 때까지 기다린 뒤 바로 앞에 선다.
             yield return new WaitForSeconds(3f);
-            Single<PlayerMover>()
-                .Teleport(
-                    passerby.transform.position + passerby.transform.forward * 1.5f,
-                    Quaternion.identity
-                );
+            StandNear(BenCode, 1.5f);
 
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
             Assert.That(offer.IsShowing, Is.False);

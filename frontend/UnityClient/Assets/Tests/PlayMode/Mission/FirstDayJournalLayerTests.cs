@@ -22,7 +22,7 @@ namespace A305.Mission.PlayModeTests
         public void DestroyMission() => Object.Destroy(missionObject);
 
         [UnityTest]
-        public IEnumerator OpenedJournal_DrawsAboveEveryOtherScreen()
+        public IEnumerator OpenedQuestWindow_DrawsAboveEveryOtherScreen()
         {
             missionObject = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(MissionPrefabPath)
@@ -30,14 +30,33 @@ namespace A305.Mission.PlayModeTests
             yield return null;
             Canvas canvas = missionObject.GetComponent<Canvas>();
             int closedOrder = canvas.sortingOrder;
+            var view = missionObject.GetComponentInChildren<FirstDayMissionView>(true);
+            // 퀘스트 목록이 반영되기 전에는 같은 버튼이 기존 일지를 엽니다.
+            SerializedProperty boardProperty = new SerializedObject(view).FindProperty(
+                "questBoard"
+            );
+            var questBoard = boardProperty?.objectReferenceValue as Component;
 
             Field<Button>("journalButton").onClick.Invoke();
 
-            Assert.That(Field<GameObject>("journal").activeSelf, Is.True);
+            GameObject window =
+                questBoard != null ? questBoard.gameObject : Field<GameObject>("journal");
+            Assert.That(window.activeSelf, Is.True);
             Assert.That(canvas.sortingOrder, Is.GreaterThan(HighestOtherScreenOrder()));
 
-            Field<Button>("closeButton").onClick.Invoke();
+            if (questBoard != null)
+            {
+                Button close = questBoard
+                    .GetComponentsInChildren<Button>()
+                    .Single(button => button.name == "Close");
+                close.onClick.Invoke();
+            }
+            else
+            {
+                Field<Button>("closeButton").onClick.Invoke();
+            }
 
+            Assert.That(window.activeSelf, Is.False);
             Assert.That(canvas.sortingOrder, Is.EqualTo(closedOrder));
         }
 

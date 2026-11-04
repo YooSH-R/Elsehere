@@ -352,6 +352,7 @@ class FirstDayMissionServiceTest {
     // 100코인에서 카페 음료 4코인과 우산 8코인을 내고, 퀘스트 보상 10코인을 받았다.
     assertThat(service.status(8L).balance()).isEqualTo(100 - 4 - 8 + 10);
     assertThat(service.status(8L).lastPurchase()).isEqualTo("우산");
+    assertThat(service.status(8L).quest()).isEqualTo("CHECK_IN");
   }
 
   private static FirstDayMission missionAt(int target) {

@@ -1,3 +1,4 @@
+using A305.Api;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -28,26 +29,35 @@ namespace A305.Npc.Tests
             Assert.That(window.Find("Dialog/Buttons/SignupButton"), Is.Not.Null);
         }
 
+        // 설문은 창 안이 아니라 화면 위 설문 카드(HUD)로 따로 띄운다. 창이 열릴 때 요청만 한다.
         [Test]
-        public void GuestSignupDialog_ConnectsSurveyLinkBelowButtons()
+        public void ShowingGuestSignupDialog_RequestsTheSurveyCard()
+        {
+            GameObject offer = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)
+            );
+            int requests = 0;
+            void CountRequest() => requests++;
+            SurveyPrompt.Requested += CountRequest;
+            try
+            {
+                offer.GetComponent<GuestSignupDialogView>().Show();
+
+                Assert.That(requests, Is.EqualTo(1));
+            }
+            finally
+            {
+                SurveyPrompt.Requested -= CountRequest;
+                Object.DestroyImmediate(offer);
+            }
+        }
+
+        [Test]
+        public void GuestSignupDialog_HasNoSurveyLinkInside()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            var dialog = new SerializedObject(prefab.GetComponent<GuestSignupDialogView>());
-            var survey = (UnityEngine.UI.Button)
-                dialog.FindProperty("surveyButton").objectReferenceValue;
 
-            Assert.That(
-                survey,
-                Is.Not.Null,
-                "가입 안내 창에 [설문 하러 가기]가 연결되지 않았습니다."
-            );
-            Transform window = prefab.transform.Find("GuestSignup/Dialog");
-            Assert.That(survey.transform.parent, Is.EqualTo(window));
-            Assert.That(
-                survey.transform.GetSiblingIndex(),
-                Is.GreaterThan(window.Find("Buttons").GetSiblingIndex()),
-                "설문 링크는 버튼 줄 아래에 둡니다."
-            );
+            Assert.That(prefab.transform.Find("GuestSignup/Dialog/SurveyButton"), Is.Null);
         }
     }
 }

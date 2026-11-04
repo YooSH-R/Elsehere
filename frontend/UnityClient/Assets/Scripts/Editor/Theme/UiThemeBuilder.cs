@@ -283,6 +283,7 @@ namespace A305.EditorTools.Theme
             StyleMyPage(root);
             StyleControlsGuide(root);
             StyleSessionExpired(root);
+            StyleSurveyPrompt(root);
 
             RectTransform card = FindOrCreateRect(panel, "MessageCard");
             BuilderTools.GetOrAddComponent<Image>(card.gameObject).raycastTarget = false;
@@ -364,6 +365,52 @@ namespace A305.EditorTools.Theme
                 260
             );
             Roomy(root, "SessionExpired/Window");
+        }
+
+        // 다른 창과 같은 창 바탕에 제목·안내, 강조색 [설문 하러 가기], 오른쪽 위 공용 X.
+        private static void StyleSurveyPrompt(Transform root)
+        {
+            if (root.Find("SurveyPrompt/Card") == null)
+                return;
+            Role(root, "SurveyPrompt/Card", UiThemeRole.Panel);
+            Role(root, "SurveyPrompt/Card/Title", UiThemeRole.Title);
+            Role(root, "SurveyPrompt/Card/Body", UiThemeRole.Body);
+            root.Find("SurveyPrompt/Card/Body").GetComponent<TMP_Text>().textWrappingMode =
+                TextWrappingModes.Normal;
+            ActionPill(
+                root,
+                "SurveyPrompt/Card/Buttons/OpenButton",
+                UiIcon.None,
+                UiTone.Primary,
+                240
+            );
+            CornerClose(root, "SurveyPrompt/Card");
+            Roomy(root, "SurveyPrompt/Card");
+        }
+
+        /// <summary>
+        /// HUD 프리팹에 화면 위 가운데의 설문 카드만 덧붙이고 칠한다. HUD의 다른 구성은 건드리지 않는다.
+        /// </summary>
+        [MenuItem("Tools/A305/UI/Add Survey Prompt")]
+        public static void ApplySurveyPrompt()
+        {
+            BuilderTools.ThrowIfPlaying();
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            BuilderTools.UpdatePrefabIfExists(
+                HudPath,
+                root =>
+                {
+                    LearningBuilder.AddSurveyPrompt(root);
+                    StyleSurveyPrompt(root.transform);
+                    foreach (
+                        ThemedElement element in root
+                            .transform.Find("SurveyPrompt")
+                            .GetComponentsInChildren<ThemedElement>(true)
+                    )
+                        element.ApplyCurrent();
+                }
+            );
+            AssetDatabase.SaveAssets();
         }
 
         /// <summary>마이페이지 창과 로그아웃 확인 창을 칠한다. 닫기는 오른쪽 위 X, 확인 동작은 강조 알약 버튼이다.</summary>
@@ -1192,34 +1239,7 @@ namespace A305.EditorTools.Theme
                 UiTone.Primary,
                 240
             );
-            TextLink(root, "GuestSignup/Dialog/SurveyButton");
             Roomy(root, "GuestSignup/Dialog");
-        }
-
-        // 바탕·테두리 없이 밑줄 친 작은 글자 링크. 창의 주요 버튼보다 눈에 덜 띄게 둔다.
-        private static void TextLink(Transform root, string path)
-        {
-            Transform link = root.Find(path);
-            if (link == null)
-                return;
-            foreach (string part in new[] { "Face", "Outline", "Icon" })
-            {
-                Transform decoration = link.Find(part);
-                if (decoration != null)
-                    Object.DestroyImmediate(decoration.gameObject);
-            }
-            foreach (var element in link.GetComponents<ThemedElement>())
-                Object.DestroyImmediate(element);
-            Image area = link.GetComponent<Image>();
-            area.sprite = null;
-            area.material = null;
-            area.color = Color.clear;
-            area.raycastTarget = true;
-            TMP_Text label = link.Find("Label").GetComponent<TMP_Text>();
-            label.gameObject.SetActive(true);
-            Role(root, path + "/Label", UiThemeRole.Muted);
-            label.fontStyle = FontStyles.Underline;
-            label.alignment = TextAlignmentOptions.Center;
         }
 
         // 다른 입구 창처럼 기본 테마 창으로 칠하고, 주요 동작인 가입만 강조색으로 둔다. 창 그림과 자리는 EntryScreensBuilder가 시안 창으로 바꾼다.

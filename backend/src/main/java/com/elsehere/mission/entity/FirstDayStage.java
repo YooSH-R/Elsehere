@@ -12,7 +12,10 @@ public enum FirstDayStage {
       "체크인까지 시간이 남았어요. 큰 캐리어는 호텔에 맡기고 잠시 쉬러 가려 해요.",
       "호텔 직원에게 요청하세요.",
       "It is too early to check in: the room is not ready yet. Do not check the learner in, give a room number or room key, or ask for ID, a credit card or payment. If they ask to check in, tell them early check-in is not possible today. When the learner asks, you can confirm the reservation by name, store the large suitcase until the room is ready and give directions to Corner Cafe, where they can wait. Do not offer any of these before the learner asks. The learner keeps a small blue shoulder bag.",
-      goal("confirm_reservation", "예약 확인", "Confirm or identify an existing hotel reservation."),
+      goal(
+          "confirm_reservation",
+          "예약 확인(예약자 이름)",
+          "Confirm an existing hotel reservation by giving the name it is under. Saying only that they have a reservation, without a name, does not count."),
       goal("store_suitcase", "캐리어 맡기기", "Ask to store the large suitcase until check-in."),
       goal("ask_cafe", "카페 위치 묻기", "Ask for a nearby cafe or directions to it.")),
   CAFE_BREAK(
@@ -23,11 +26,14 @@ public enum FirstDayStage {
       "호텔에서 안내받은 카페에 도착했어요. 음료를 마시며 체크인 시간을 기다려요.",
       "직원에게 주문하고, 대화를 마친 뒤 의자에 앉아 쉬어 가세요.",
       "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. Every drink costs 4 coins. The learner may choose any drink. They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
-      goal("order_drink", "음료 주문", "Order a drink, any drink is valid."),
+      goal(
+          "order_drink",
+          "음료 주문(음료 이름)",
+          "Order a specific drink by name, such as a latte or orange juice; any drink is valid. Asking for just 'a drink' or 'something' does not count."),
       goal(
           "set_options",
-          "음료 옵션 답하기",
-          "Answer about size, temperature, milk or another drink option, including no preference."),
+          "크기·온도 등 옵션 고르기",
+          "Choose a specific size, temperature, milk or another drink option. Saying only that they have no preference does not count."),
       goal("dine_in", "매장 이용 말하기", "Say the learner will have the drink here, not take away.")),
   MISSING_BAG(
       "작은 가방이 없어요",
@@ -39,8 +45,8 @@ public enum FirstDayStage {
       "The large suitcase is safely stored at this hotel. The learner left their separate small shoulder bag at the cafe. They need to go back for it before checking in. Do not claim the hotel has the small bag. Do not bring up the missing bag before the learner explains it.",
       goal(
           "report_left_bag",
-          "분실 상황 설명",
-          "Explain the small bag is missing or was left at the cafe."),
+          "분실 설명(어떤 가방을 어디에)",
+          "Explain which bag is missing (the small bag) AND where they think they left it (the cafe). Saying only that something is lost does not count."),
       goal(
           "return_later",
           "다녀오겠다고 말하기",
@@ -104,7 +110,7 @@ public enum FirstDayStage {
       "RAIN",
       "여권이 든 가방도 찾고 우산도 샀어요. 호텔에서 체크인을 마무리해요.",
       "호텔 직원에게 요청하세요.",
-      "Check-in time has arrived. The learner recovered the small bag and passport, bought an umbrella and has 12 quest coins left. The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. Never ask them to fetch the bag again.",
+      "Check-in time has arrived. The learner recovered the small bag and passport and bought an umbrella. The large suitcase is stored at this hotel. When the learner asks, confirm the reservation, check them in and return the suitcase. Do not start check-in, confirm the reservation or bring up the bag or suitcase before the learner does. Never ask them to fetch the bag again.",
       goal("found_bag", "가방 찾았다고 말하기", "Say they found or got back their small bag."),
       goal("request_checkin", "체크인 요청", "Ask to check in now."),
       goal(

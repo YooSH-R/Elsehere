@@ -56,7 +56,7 @@ namespace A305.Tutorial
         /// <summary>대화 노트를 닫는 오른쪽 위 X</summary>
         FeedbackClose,
 
-        /// <summary>왼쪽 위 지도 버튼</summary>
-        MapButton,
+        /// <summary>왼쪽 위 퀘스트 카드. 누르면 여행 수첩이 열린다.</summary>
+        QuestCard,
     }
 }

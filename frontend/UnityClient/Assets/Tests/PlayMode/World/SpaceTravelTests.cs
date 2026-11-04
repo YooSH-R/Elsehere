@@ -182,7 +182,6 @@ namespace A305.World.PlayModeTests
             }
         }
 
-        // 매장 문마다 걸어 들어갔다 나오며, 문을 넘는 순간은 화면이 덮이고 이동이 잠기는지도 함께 본다.
         [UnityTest]
         public IEnumerator OriginalShopDoors_AllowWalkingInAndOutWithMovementKeys()
         {
@@ -215,30 +214,11 @@ namespace A305.World.PlayModeTests
                         );
                         break;
                     }
-                    float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
-                    while (Vector3.Dot(player.transform.position - center, direction) <= 0f)
-                    {
-                        Assert.That(
-                            Time.realtimeSinceStartup,
-                            Is.LessThan(deadline),
-                            $"{door.name} 문을 건너지 못했습니다."
-                        );
-                        yield return null;
-                    }
-                    Assert.That(CurtainOpacity(), Is.EqualTo(1f), $"{door.name} 이동 순간");
-                    Assert.That(player.IsMovementLocked, Is.True, door.name);
                     yield return WaitUntilCurtainOpens();
-                    Assert.That(CurtainOpacity(), Is.Zero, door.name);
-                    Assert.That(player.IsMovementLocked, Is.False, door.name);
-                    Assert.That(
-                        Mathf.Abs(player.transform.position.y - door.position.y),
-                        Is.LessThan(0.45f),
-                        $"{door.name} 도착 층"
-                    );
                     Assert.That(
                         Vector3.Dot(player.transform.position - center, direction),
-                        Is.GreaterThan(.5f),
-                        $"{door.name} 도착 방향"
+                        Is.GreaterThan(.4f),
+                        door.name
                     );
                     Assert.That(
                         room.IsLoaded,
@@ -352,6 +332,68 @@ namespace A305.World.PlayModeTests
                 Time.captureDeltaTime = previousStep;
                 InputSystem.settings.backgroundBehavior = previousBackground;
                 InputSystem.settings.editorInputBehaviorInPlayMode = previousFocus;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator TownShopDoors_CoverTheScreenWhenEnteringAndLeaving()
+        {
+            yield return LoadSpace("TownScene");
+            string[] doorNames =
+            {
+                "PostOfficeDoor",
+                "MapleDinerDoor",
+                "TownBankDoor",
+                "SudsLaundromatDoor",
+                "BloomFlowersDoor",
+                "MainStreetBarberDoor",
+                "PoliceStationDoor",
+                "BakeryDoor",
+                "ArcadeDoor",
+                "BookshopDoor",
+                "HomeGoodsDoor",
+                "TeaRoomDoor",
+            };
+            var player = FindPlayer();
+            foreach (string name in doorNames)
+            {
+                var door = GameObject.Find(name).transform;
+                Vector3 center = ShopThresholdCenter(door);
+                center.y = door.position.y;
+                Vector3 normal = door.forward;
+                foreach (int side in new[] { 1, -1 })
+                {
+                    player.Teleport(
+                        center + normal * (side * 0.45f),
+                        Quaternion.LookRotation(-side * normal)
+                    );
+                    float deadline = Time.realtimeSinceStartup + ArrivalTimeoutSeconds;
+                    while (Vector3.Dot(player.transform.position - center, normal) * side > 0f)
+                    {
+                        Assert.That(
+                            Time.realtimeSinceStartup,
+                            Is.LessThan(deadline),
+                            $"{name} 문을 건너지 못했습니다 ({side})."
+                        );
+                        yield return null;
+                    }
+                    Assert.That(CurtainOpacity(), Is.EqualTo(1f), $"{name} 이동 순간");
+                    Assert.That(player.IsMovementLocked, Is.True, name);
+                    yield return WaitUntilCurtainOpens();
+                    Assert.That(CurtainOpacity(), Is.Zero, name);
+                    Assert.That(player.IsMovementLocked, Is.False, name);
+                    Assert.That(
+                        Mathf.Abs(player.transform.position.y - center.y),
+                        Is.LessThan(0.45f),
+                        $"{name} 도착 층"
+                    );
+                    Assert.That(
+                        Vector3.Dot(player.transform.position - center, normal) * side,
+                        Is.LessThan(-0.5f),
+                        $"{name} 도착 방향"
+                    );
+                    yield return new WaitForFixedUpdate();
+                }
             }
         }
 

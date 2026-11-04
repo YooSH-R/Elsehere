@@ -25,7 +25,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 | CONV-05 힌트 | `POST /v1/hint` | `hintText` ← `say_this[0].en` (`say_this[0].ko`·`keywords`는 3단계 힌트용으로 남음) |
 | CONV-06 다시 듣기 | (없음) | CONV-03에서 저장한 턴 전체 음성 |
 | CONV-07 NPC 음성 다시 만들기 | `POST /v1/tts` | `text` ← 대사 전문, `voice` ← `npc.tts_voice`, `speed` ← `npc.tts_speed` × 난이도 배율(1.1절) |
-| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)으로 알아봄을 더함 |
+| CONV-08 대화 종료 피드백 | `POST /v1/feedback` (+ `POST /v1/memory`, `POST /v1/npc/relationship`, `POST /v1/npc/follow-up`) | `ai/feedback` 계약 0.3.0. CONV-08 형식 변환 위치는 `ai/feedback` 담당과 정함. 관계 갱신(2.7.2절)으로 알아봄을 더함. 곧 건넬 것(2.7.3절)이 있으면 `followUp`(`itemKo` ← `item_ko`) |
 | FB-04 모범 음성 | `POST /v1/tts` | |
 | 어드민 NPC 랜덤 생성 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/generate` | 고정 칸·DB 후보를 실어 보내고, 받은 `npc_configuration`을 `npcs`에 저장 (2.9절) |
 | 어드민 NPC MBTI 변경 (S15P31A305-290, 백엔드 `[미정]`) | `POST /v1/npc/persona/derive` | 저장된 카드의 자동 칸을 다시 계산해 저장 (2.9.1절) |
@@ -390,6 +390,23 @@ Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아
 - 새 값이 아니라 **변화량**입니다. 백엔드는 `recognition = recognition + recognition_delta`로 원자적으로 더합니다. 종료 처리가 겹쳐도 앞 대화의 결과를 덮어쓰지 않습니다. 다음 대답 요청에는 저장한 값에 그때의 `days_since_last_talk`를 더해 보냅니다.
 - 변화량은 요청의 저장값으로 계산한 새 값(정수로 반올림)에서 저장값을 뺀 것입니다. 그래서 겹치지 않으면 더한 결과가 새 값을 그대로 저장할 때와 같습니다.
 - 알아봄은 마지막 대화 뒤 며칠 여유를 두고 하루씩 줄어든 값에서 이번 대화만큼 오릅니다(갈수록 덜 오름). 오래 안 왔으면 `recognition_delta`가 음수일 수 있습니다.
+- 학습자가 말하지 않은 대화는 400 `invalid_request`입니다.
+
+### 2.7.3 `POST /v1/npc/follow-up` — NPC가 곧 건네기로 한 것
+
+끝난 대화에서 NPC가 학습자의 주문·요청을 받아 지금 그 자리에서 만들거나 준비하고 있어 곧 건넬 것이 있는지 판정합니다. 만들고 있는 음료, 굽는 음식, 빨래, 포장하는 꽃이 그 예입니다. `/v1/memory`와 같은 자리(대화 종료 처리)에서 부릅니다. 판정 규칙은 모든 NPC·장소에 같고, NPC마다 따로 적지 않습니다. 준비 시각을 정해 저장하는 일과 준비되면 NPC가 다시 부르는 일은 백엔드와 Unity가 합니다([MVP API 명세](mvp-api.md) CONV-08·CONV-13·CONV-01). 워커는 저장하지 않습니다.
+
+요청: `npc`(`name`·`role`·`scene`), `history`(최대 200줄. 학습자 줄의 `english`·`rude` 포함).
+
+응답: `{"follow_up": {"item": "iced latte", "item_ko": "아이스 라테", "wait": "QUICK"}, "usage": [...]}`. 건넬 것이 없으면 `"follow_up": null`입니다.
+
+- `item`은 대화에 나온 영어 이름(최대 40자)이고, `item_ko`는 화면에 보일 짧은 한국어 이름(최대 20자)입니다.
+- `wait`는 준비에 걸리는 정도입니다. `QUICK`은 음료·간식처럼 바로 나오는 것, `SHORT`는 조리한 음식·포장, `LONG`은 세탁·수선입니다. 실제 기다리는 초는 백엔드가 정합니다.
+- 대화 안에서 NPC가 분명히 건넸으면(“Here you go”) 건넬 것이 없습니다. 값을 받거나 주문을 확인하거나 작별 인사를 한 것은 건넨 것이 아닙니다.
+- 짐·예약처럼 맡아 두기만 하는 것, 나중 시간대나 다른 장소에 달린 일은 넣지 않습니다.
+- `rude: true` 줄은 `/v1/memory`처럼 `[RUDE: content withheld]`로 넘깁니다.
+- 모델 역할은 `memory`와 같은 모델을 씁니다. 생성 지연만으로 같은 요청을 더 보내지 않습니다(`hedge=False`).
+- 공급자 실패는 429/503입니다. 건넬 것이 있다면서 이름이 비었거나 출력이 계약과 다르면 502 `invalid_output`입니다. 실패하면 백엔드는 건넬 것이 없는 것으로 봅니다.
 - 학습자가 말하지 않은 대화는 400 `invalid_request`입니다.
 
 ### 2.8 `POST /v1/tts` — 한 문장 합성

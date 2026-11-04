@@ -140,6 +140,80 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void NoteWidth_FillsTheRoomRightOfTheTarget_UpToTheWidest()
+        {
+            // 1920 기준 대화창 [말하기]의 불 오른쪽에는 말풍선 하나가 겨우 들어갈 자리만 남는다.
+            var light = new Rect(1595f, 63f, 26f, 26f);
+
+            Assert.That(
+                CoachMarkLayout.NoteWidth(light, 1920f, 28f, 24f, 220f, 250f),
+                Is.EqualTo(247f)
+            );
+            Assert.That(
+                CoachMarkLayout.NoteWidth(
+                    new Rect(1400f, 63f, 26f, 26f),
+                    1920f,
+                    28f,
+                    24f,
+                    220f,
+                    250f
+                ),
+                Is.EqualTo(250f),
+                "자리가 넉넉하면 가장 넓게"
+            );
+            Assert.That(
+                CoachMarkLayout.NoteWidth(
+                    new Rect(1700f, 63f, 26f, 26f),
+                    1920f,
+                    28f,
+                    24f,
+                    220f,
+                    250f
+                ),
+                Is.EqualTo(250f),
+                "너무 좁으면 위에 두므로 가장 넓게"
+            );
+        }
+
+        [Test]
+        public void Note_RoomOnTheRight_SitsRightOfTheTarget_WithItsTailOnTheLeftEdge()
+        {
+            var light = new Rect(1595f, 63f, 26f, 26f);
+            CoachMarkLayout.BubblePose note = CoachMarkLayout.Note(
+                light,
+                new Vector2(247f, 190f),
+                new Vector2(1920f, 1080f),
+                28f,
+                24f
+            );
+
+            Assert.That(note.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Right));
+            Assert.That(note.Rect.xMin, Is.EqualTo(light.xMax + 28f));
+            Assert.That(note.Rect.xMax, Is.LessThanOrEqualTo(1920f - 24f));
+            AssertNear(note.Tail, new Vector2(note.Rect.xMin, light.center.y));
+        }
+
+        [Test]
+        public void Note_NoRoomOnTheRight_SitsAboveTheTarget_NeverToItsLeft()
+        {
+            // 불 왼쪽에는 [종료]·[보내기]·입력칸이 있어 가리면 안 되므로, 오른쪽에 자리가 없으면 불 위에 둔다.
+            var light = new Rect(1700f, 63f, 26f, 26f);
+            CoachMarkLayout.BubblePose note = CoachMarkLayout.Note(
+                light,
+                new Vector2(250f, 190f),
+                new Vector2(1920f, 1080f),
+                28f,
+                24f
+            );
+
+            Assert.That(note.Side, Is.EqualTo(CoachMarkLayout.BubbleSide.Above));
+            Assert.That(note.Rect.yMin, Is.EqualTo(light.yMax + 28f));
+            Assert.That(note.Rect.xMax, Is.LessThanOrEqualTo(1920f - 24f));
+            Assert.That(note.Tail.y, Is.EqualTo(note.Rect.yMin));
+            Assert.That(note.Tail.x, Is.InRange(note.Rect.xMin, note.Rect.xMax));
+        }
+
+        [Test]
         public void Bubble_AboveWouldCoverTheKeepClearArea_SitsBelowInstead()
         {
             // 대화 위에 남긴 [건너뛰기] 카드처럼 가리면 안 되는 곳이 위에 있으면 아래로 간다.

@@ -14,6 +14,7 @@ namespace A305.Tutorial
     /// 화면 아래 가운데 화살표로 같은 방향을 알린다. 다가오는 Ben은 머리 위에서 오르내리는 화살표로 가리키되, 그 자리가
     /// 화면 밖이거나 위쪽 안내 카드에 걸리면 얼굴을 가리지 않게 띄우지 않는다. 밝히기·나침반·화살표 중 하나만 보인다.
     /// 설명은 밝힌 곳 옆에 꼬리 달린 말풍선으로 두고, 티칭처럼 읽고 넘길 설명에는 [다음]을 붙인다.
+    /// 녹음 중 불처럼 설명과 함께 알릴 곳에는 같은 모양의 두 번째 말풍선을 더 띄운다.
     /// 판은 밝힐 버튼이 있는 캔버스 바로 위에 그려, 그보다 위에 있는 안내 카드는 가리지 않는다.
     /// 판은 화면을 덮는 막이라 고정한 단어 카드가 피하지 않는다.
     /// </summary>
@@ -23,6 +24,11 @@ namespace A305.Tutorial
         private const float BubbleGap = 28f;
         private const float BubbleMargin = 24f;
         private const float MarkerEdgeMargin = 70f;
+
+        // 두 번째 말풍선 너비. 대화창 오른쪽에 남는 자리(16:9에서 약 250, 16:10에서 약 200)에 들어가게 설명 말풍선보다 좁게 두고,
+        // 이보다 좁아 글이 너무 길게 늘어지면 위에 둔다.
+        private const float NoteMinWidth = 190f;
+        private const float NoteMaxWidth = 250f;
 
         // 위쪽 안내 카드가 놓이는 높이. 여기에 걸린 머리 위 화살표는 카드에 가리므로 띄우지 않는다.
         private const float MarkerTopMargin = 260f;
@@ -99,12 +105,41 @@ namespace A305.Tutorial
         private Transform compassRing;
         private Transform compassPointer;
         private Transform compassArrow;
+        private RectTransform note;
+        private TMP_Text noteText;
+        private RectTransform noteTail;
+        private RectTransform noteTarget;
 
         private void Awake()
         {
             canvasRect = (RectTransform)canvas.transform;
             nextButton.onClick.AddListener(() => nextAction?.Invoke());
+            CreateNote();
             Hide();
+        }
+
+        // 두 번째 말풍선은 설명 말풍선과 모양이 같도록 그대로 복사해 만들고, 읽고 넘길 설명이 아니므로 [다음]은 뺀다.
+        private void CreateNote()
+        {
+            note = Instantiate(caption, caption.parent);
+            note.name = "Note";
+            noteText = CopyOf(captionText);
+            noteTail = CopyOf(captionTail);
+            Destroy(CopyOf(nextButton).gameObject);
+            note.gameObject.SetActive(false);
+        }
+
+        // 설명 말풍선 안의 부품과 같은 자리에 있는 복사본 부품
+        private T CopyOf<T>(T part)
+            where T : Component
+        {
+            var path = new List<string>();
+            for (Transform current = part.transform; current != caption; current = current.parent)
+            {
+                path.Insert(0, current.name);
+            }
+
+            return note.Find(string.Join("/", path)).GetComponent<T>();
         }
 
         /// <summary>대상 버튼들을 한 구멍으로 밝히고, 설명이 있으면 그 옆에 말풍선으로 보인다.</summary>
@@ -173,6 +208,7 @@ namespace A305.Tutorial
 
         public void Hide()
         {
+            HideNote();
             HideCompass();
             targets.Clear();
             markerTarget = null;
@@ -208,6 +244,45 @@ namespace A305.Tutorial
         /// <summary>지금 밝힌 구멍(캔버스 왼쪽 아래 기준). 밝힌 것이 없으면 크기가 0이다.</summary>
         public Rect Hole { get; private set; }
 
+        /// <summary>두 번째 말풍선의 설명. 보이지 않으면 null이다.</summary>
+        public string NoteText => note.gameObject.activeSelf ? noteText.text : null;
+
+        /// <summary>두 번째 말풍선 자리(캔버스 왼쪽 아래 기준). 보이지 않으면 크기가 0이다.</summary>
+        public Rect NoteRect { get; private set; }
+
+        /// <summary>두 번째 말풍선이 가리키는 대상 자리(캔버스 왼쪽 아래 기준)</summary>
+        public Rect NoteTargetRect { get; private set; }
+
+        /// <summary>두 번째 말풍선 꼬리의 중심(캔버스 왼쪽 아래 기준)</summary>
+        public Vector2 NoteTail { get; private set; }
+
+        /// <summary>
+        /// 밝힌 곳과 그 옆 설명은 그대로 두고, <paramref name="target"/> 옆에 같은 모양의 말풍선을 하나 더 띄운다.
+        /// 녹음 중 불처럼 할 일을 알리는 동안 잠깐 더 알릴 곳에 쓴다. 대화 처리가 매 프레임 불러도 내용이 같으면 다시 그리지 않는다.
+        /// </summary>
+        public void ShowNote(RectTransform target, string text)
+        {
+            if (note.gameObject.activeSelf && noteTarget == target && noteText.text == text)
+            {
+                return;
+            }
+
+            noteTarget = target;
+            noteText.text = text;
+            note.gameObject.SetActive(true);
+            // 말풍선 높이는 글 길이에 맞춰 바뀌므로 자리를 잡기 전에 크기를 다시 계산한다.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(note);
+            PlaceNote();
+        }
+
+        public void HideNote()
+        {
+            noteTarget = null;
+            note.gameObject.SetActive(false);
+            NoteRect = default;
+            NoteTargetRect = default;
+        }
+
         // 버튼은 레이아웃·말풍선 위치가 바뀌며 움직이므로 매 프레임 다시 맞춘다.
         private void LateUpdate()
         {
@@ -223,6 +298,53 @@ namespace A305.Tutorial
             {
                 PlaceCompass();
             }
+
+            if (noteTarget != null)
+            {
+                PlaceNote();
+            }
+        }
+
+        // 대상 옆에 두 번째 말풍선을 두고 꼬리를 대상 쪽 가장자리에 붙인다. 대상이 숨으면 말풍선도 숨긴다.
+        private void PlaceNote()
+        {
+            bool isShown = noteTarget.gameObject.activeInHierarchy;
+            note.gameObject.SetActive(isShown);
+            if (!isShown)
+            {
+                return;
+            }
+
+            // 너비는 오른쪽에 남는 자리에 맞추고, 바뀌면 글 줄 수와 높이도 바뀌므로 크기를 다시 계산한다.
+            Rect target = CanvasRectOf(noteTarget);
+            Vector2 canvasSize = canvasRect.rect.size;
+            float width = CoachMarkLayout.NoteWidth(
+                target,
+                canvasSize.x,
+                BubbleGap,
+                BubbleMargin,
+                NoteMinWidth,
+                NoteMaxWidth
+            );
+            if (!Mathf.Approximately(note.sizeDelta.x, width))
+            {
+                note.sizeDelta = new Vector2(width, note.sizeDelta.y);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(note);
+            }
+
+            CoachMarkLayout.BubblePose bubble = CoachMarkLayout.Note(
+                target,
+                note.rect.size,
+                canvasSize,
+                BubbleGap,
+                BubbleMargin
+            );
+            note.anchoredPosition = bubble.Rect.position;
+            noteTail.anchoredPosition = bubble.Tail - bubble.Rect.position;
+            noteTail.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            NoteRect = bubble.Rect;
+            NoteTargetRect = target;
+            NoteTail = bubble.Tail;
         }
 
         private void OnDestroy()

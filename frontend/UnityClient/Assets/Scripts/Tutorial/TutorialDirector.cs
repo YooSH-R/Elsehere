@@ -486,7 +486,10 @@ namespace A305.Tutorial
                 IsVocabularyShowing = learning.IsShowingVocabulary,
                 IsFeedbackShowing = feedbackView.IsVisible,
                 IsJournalOpen = firstDayMission != null && firstDayMission.IsJournalOpen,
+                // 장면을 내릴 때 대화창이 이 처리보다 먼저 지워질 수 있다.
+                IsVoiceLightOn = dialoguePanel != null && dialoguePanel.IsVoiceLightOn,
             };
+            RefreshVoiceLightNote(screen);
             TutorialCoachTarget target = TutorialCoachPlan.Choose(progress.Step, screen);
             // 화면 구성에 따라 숨은 부분(한 쪽뿐인 피드백의 쪽 넘김 등)은 [다음]을 누를 수 없으므로 건너뛴다.
             if (TutorialCoachPlan.IsTour(target) && !HasVisiblePart(SpotlightParts(target)))
@@ -533,6 +536,22 @@ namespace A305.Tutorial
                             : (System.Action)null
                     );
                     break;
+            }
+        }
+
+        // 녹음하는 동안에는 할 대사 말풍선을 그대로 두고, [말하기]의 불 옆에 불이 무슨 뜻인지 말풍선을 하나 더 띄운다.
+        private void RefreshVoiceLightNote(TutorialScreen screen)
+        {
+            if (TutorialCoachPlan.ExplainsVoiceLight(progress.Step, screen))
+            {
+                coachMark.ShowNote(
+                    dialoguePanel.VoiceLightRect,
+                    TutorialGuideText.KeyChips(guide.VoiceLightCaption)
+                );
+            }
+            else
+            {
+                coachMark.HideNote();
             }
         }
 

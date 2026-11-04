@@ -12,6 +12,8 @@ import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.user.repository.UserRepository;
+import com.elsehere.world.entity.Npc;
+import com.elsehere.world.repository.NpcRepository;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +29,7 @@ public class FirstDayMissionService {
   private final FirstDayMissionRepository repository;
   private final ConversationRepository conversations;
   private final UserRepository users;
+  private final NpcRepository npcs;
 
   @Transactional(readOnly = true)
   public FirstDayMissionResponse status(Long userId) {
@@ -103,9 +106,8 @@ public class FirstDayMissionService {
               String instruction;
               if (!matches) {
                 instruction =
-                    "The learner's next stop is "
-                        + place(stage.scene())
-                        + ". Stay in your own role and help with directions if asked. Do not offer or sell the destination NPC's goods or services, perform their mission actions, claim items found there, or restart completed incidents.";
+                    sendToOwner(place(stage.scene()), ownerName(stage.npc()))
+                        + " Stay in your own role and help with directions if asked. Do not offer or sell the destination NPC's goods or services, perform their mission actions, claim items found there, or restart completed incidents.";
               } else if (stage == FirstDayStage.CAFE_BREAK && remaining.isEmpty()) {
                 instruction =
                     "The learner has already ordered, chosen drink options and said they will stay. Acknowledge the order briefly. Do not offer another drink or repeat order questions. The learner has not rested yet; do not claim that they have.";
@@ -172,7 +174,8 @@ public class FirstDayMissionService {
             : complete
                 ? "체크인 완료! 오늘의 작은 소동을 모두 해결했어요."
                 : !scene.equals(mission.current().scene())
-                    ? destination(mission.current().scene()) + " 이동해 다음 이야기를 이어 가세요."
+                    // 다른 장소에 있으면 갈 곳에서 누구에게 무엇을 할지 알린다.
+                    ? at(mission.current().scene()) + " " + mission.current().direction()
                     : mission.current().situation();
     String direction =
         !started
@@ -203,6 +206,31 @@ public class FirstDayMissionService {
       case "CAFE" -> "카페로";
       case "SHOP" -> "DRUGSTORE 드럭스토어로";
       default -> "마을 거리로";
+    };
+  }
+
+  /** 지금 단계 담당이 아닌 NPC에게 보내는 안내. 지금 할 일을 물으면 모른다고 하지 않고 담당 NPC와 장소를 알려 주게 한다. 이름을 찾지 못하면 장소만 알린다. */
+  static String sendToOwner(String place, String owner) {
+    String whom = owner == null ? "" : " and talk to " + owner;
+    return "The learner's next stop is "
+        + place
+        + (owner == null ? "" : ", where they should talk to " + owner)
+        + ". If the learner asks about their current task, where to go or who can help, tell them to go to "
+        + place
+        + whom
+        + " instead of saying you do not know.";
+  }
+
+  private String ownerName(String npcCode) {
+    return npcs.findByCode(npcCode).map(Npc::getName).orElse(null);
+  }
+
+  private static String at(String scene) {
+    return switch (scene) {
+      case "HOTEL" -> "호텔에서";
+      case "CAFE" -> "카페에서";
+      case "SHOP" -> "DRUGSTORE 드럭스토어에서";
+      default -> "마을 거리에서";
     };
   }
 

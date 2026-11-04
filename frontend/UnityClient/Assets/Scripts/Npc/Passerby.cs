@@ -62,6 +62,9 @@ namespace A305.Npc
         // 튜토리얼 동안 쓰는 대본·인사말 키. 튜토리얼이 아니면 null이고 NPC 키로 평소 대화한다.
         private string tutorialScriptKey;
 
+        // 퀘스트가 붙잡아 둔 자리. 있으면 생활 대신 이 자리에서 기다린다.
+        private Pose? questSpot;
+
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
 
         /// <summary>
@@ -77,6 +80,34 @@ namespace A305.Npc
 
         /// <summary>튜토리얼에서 길을 묻는 중인지(튜토리얼 모드)</summary>
         public bool IsGuidingTutorial => tutorialScriptKey != null;
+
+        /// <summary>퀘스트가 이 행인을 정한 자리에 붙잡아 두었는지(<see cref="WaitAt"/>)</summary>
+        public bool IsWaitingForQuest => questSpot.HasValue;
+
+        /// <summary>
+        /// 퀘스트에서 이 행인을 만나야 하는 동안 정한 자리로 옮겨 기다리게 한다. 생활 대신 그 자리를 지키고,
+        /// 그날 이미 말을 걸었어도 다가와 대화를 제안한다. 같은 자리를 다시 정하면 옮기지 않는다.
+        /// </summary>
+        public void WaitAt(Pose spot)
+        {
+            if (questSpot.HasValue && questSpot.Value.position == spot.position)
+            {
+                return;
+            }
+
+            questSpot = spot;
+            var body = GetComponent<CharacterController>();
+            body.enabled = false;
+            transform.SetPositionAndRotation(spot.position, spot.rotation);
+            body.enabled = true;
+            if (TryGetComponent(out NpcRoutine life))
+            {
+                life.Interrupt();
+            }
+        }
+
+        /// <summary>퀘스트 자리에서 풀어 평소대로 생활하게 한다.</summary>
+        public void StopWaiting() => questSpot = null;
 
         // 대본·인사말·이름을 찾는 키. 튜토리얼 중이면 튜토리얼 대본, 아니면 NPC 키
         private string ScriptKey => tutorialScriptKey ?? identity.Code;
@@ -171,6 +202,7 @@ namespace A305.Npc
             bool notReadyToOffer =
                 routine != null
                 && routine.enabled
+                && !IsWaitingForQuest
                 && !routine.CanOfferTo(player.transform.position);
             // 하루에 한 번만 먼저 다가오는 행인은 그날(기기 날짜) 이미 말을 걸었으면 [말 걸기]만 받는다.
             System.DateTime today = System.DateTime.Today;
@@ -185,8 +217,9 @@ namespace A305.Npc
                 isPlayerBusy
                     || cannotStartConversation
                     || notReadyToOffer
-                    // 튜토리얼에서 이 행인을 기다리며 붙잡힌 플레이어에게는 그날 이미 말을 걸었어도 다가온다.
-                    || (offeredToday && !IsPlayerWaiting),
+                    // 튜토리얼에서 이 행인을 기다리며 붙잡힌 플레이어와 퀘스트로 이 행인을 만나야 하는 플레이어에게는
+                    // 그날 이미 말을 걸었어도 다가온다.
+                    || (offeredToday && !IsPlayerWaiting && !IsWaitingForQuest),
                 IsPlayerWaiting
             );
             // 튜토리얼에서 길을 물은 것도 그날 먼저 말을 건 것으로 센다.
@@ -234,7 +267,12 @@ namespace A305.Npc
                     ShowAnimation(TalkAnimation);
                     break;
                 default:
-                    if (routine != null && routine.enabled && !IsGuidingTutorial)
+                    if (
+                        routine != null
+                        && routine.enabled
+                        && !IsGuidingTutorial
+                        && !IsWaitingForQuest
+                    )
                     {
                         routine.Live(player.transform.position);
                     }
@@ -383,13 +421,15 @@ namespace A305.Npc
             PasserbyRestRecord.Save(identity.Code, approach.RestUntilSeconds);
         }
 
+        // 제자리(퀘스트가 붙잡아 둔 자리가 있으면 그 자리)로 돌아간다.
         private void ReturnHome()
         {
-            Vector3 toHome = homePose.position - transform.position;
+            Pose home = questSpot ?? homePose;
+            Vector3 toHome = home.position - transform.position;
             toHome.y = 0f;
             if (toHome.magnitude <= ArrivedDistanceMeters)
             {
-                StandFacing(homePose.rotation);
+                StandFacing(home.rotation);
                 return;
             }
 

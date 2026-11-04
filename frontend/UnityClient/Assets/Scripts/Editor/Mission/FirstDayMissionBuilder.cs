@@ -58,6 +58,7 @@ namespace A305.EditorTools.Mission
                 {
                     FirstDayShopBuilder.ConnectTownEntrance(groups);
                     townMap = TownMapBuilder.Read(scene);
+                    QuestNpcSpotBuilder.Apply(groups);
                 }
                 BuilderTools.SaveScene(scene, path);
             }

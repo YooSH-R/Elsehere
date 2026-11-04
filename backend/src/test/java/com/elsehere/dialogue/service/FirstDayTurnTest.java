@@ -30,6 +30,7 @@ import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.user.repository.UserRepository;
+import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -60,7 +61,10 @@ class FirstDayTurnTest {
     when(missions.findForUpdate(8L)).thenReturn(Optional.of(mission));
     FirstDayMissionService firstDay =
         new FirstDayMissionService(
-            missions, mock(ConversationRepository.class), mock(UserRepository.class));
+            missions,
+            mock(ConversationRepository.class),
+            mock(UserRepository.class),
+            mock(NpcRepository.class));
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
     when(turns.save(any())).thenAnswer(invocation -> invocation.getArgument(0));

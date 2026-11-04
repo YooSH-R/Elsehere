@@ -99,6 +99,12 @@ namespace A305.EditorTools.Theme
                 labels[index] = label;
                 marks[index] = mark.gameObject;
             }
+            // 고른 단어의 상세(단어·뜻·[외웠어요]·[삭제]·저장한 문장·메모)를 한 장의 카드 위에 모아 목록과 구분한다.
+            RectTransform detailsCard = Rect(content, "DetailsCard");
+            Position(detailsCard, 332, -16, 644, 410);
+            detailsCard.SetAsFirstSibling();
+            Skin(detailsCard, UiThemeRole.Card);
+            detailsCard.GetComponent<Image>().raycastTarget = false;
             RectTransform details = Rect(content, "Details");
             Position(details, 354, 0, 600, 400);
             TMP_Text word = Text(details, "Word", "", 28, 0, 0, 380, 42, UiThemeRole.Title);

@@ -82,7 +82,7 @@ STAGES = {
         },
     ),
     "CAFE_BREAK": (
-        "Offer drinks and ask one follow-up about size, temperature or milk. The learner may choose any drink. "
+        "Ask what they would like without listing or recommending drinks; after they order, ask one follow-up about size, temperature or milk. The learner may choose any drink. "
         "They need to dine in, then explicitly rest after ending the conversation. Do not mention a lost bag yet.",
         {
             "order_drink": "Order a drink, any drink is valid.",

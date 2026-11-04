@@ -30,6 +30,29 @@ unity:format:
     - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
       changes: *unity_change_paths
 
+unity:browser-tests:
+  extends: .linux-light-job
+  stage: verify
+  image: node:24-alpine
+  timeout: 5m
+  needs: ["ci:yaml"]
+  script:
+    - node --test infra/tests/webgl_*.test.cjs
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline" && $A305_CHECK_UNITY == "true"'
+    - !reference [.deployment-parent-skips, rules]
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+        paths: &browser_test_change_paths
+          - frontend/UnityClient/Assets/Plugins/WebGL/**/*
+          - frontend/UnityClient/Assets/WebGLTemplates/**/*
+          - infra/tests/webgl_*.test.cjs
+          - .gitlab/ci/unity.yml
+    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
+      changes: *browser_test_change_paths
+
 .unity-editor:
   tags:
     - a305-unity-windows

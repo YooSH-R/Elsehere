@@ -32,6 +32,12 @@ class DeploymentPlanTest(unittest.TestCase):
         self.assertEqual(plan["checks"], ["unity"])
         self.assertEqual(plan["builds"], ["web"])
 
+    def test_browser_regressions_select_unity_checks_without_an_image_rebuild(self):
+        plan = select_deployment_work(["infra/tests/webgl_pronunciation.test.cjs"])
+        self.assertEqual(plan["checks"], ["infra", "unity"])
+        self.assertEqual(plan["builds"], [])
+        self.assertFalse(plan["deploy"])
+
     def test_ai_code_changes_select_ai_without_unity_rebuild(self):
         plan = select_deployment_work(["ai/worker/app/main.py"])
 

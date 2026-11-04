@@ -31,16 +31,20 @@ namespace A305.Npc
         private double callRestUntilSeconds;
 
         /// <summary>
-        /// 준비해 둔 것이 다 되어 제자리에서 부른다. 기다리거나 쉬는 중이고 부르는 거리 안이면 다가가지 않고 바로 대화를 제안한다.
+        /// 준비해 둔 것이 다 되어 제자리에서 부른다. 기다리거나 쉬거나 다가가는 중이고 부르는 거리 안이면 더 걷지 않고 바로 대화를 제안한다.
         /// 다른 대화 뒤에 쉬는 시간은 기다리지 않지만, 부른 것을 거절·무시했거나 불러서 대화했으면 쉬는 시간이 지나야 다시 부른다.
         /// </summary>
         /// <param name="isPlayerBusy">다른 대화·제안 중이거나 새 대화를 시작할 수 없어 부르면 안 되는지</param>
         /// <returns>불렀으면 true이고 제안 중이 된다.</returns>
         public bool TryCall(double nowSeconds, float distanceToPlayer, bool isPlayerBusy)
         {
-            bool isIdle = Phase == PasserbyPhase.Waiting || Phase == PasserbyPhase.Resting;
+            // 걷는 속도가 0인 카운터 직원은 감지 거리 안, 제안 거리 밖에서 다가가는 상태로 서 있으므로 그때도 부른다.
+            bool canCall =
+                Phase == PasserbyPhase.Waiting
+                || Phase == PasserbyPhase.Resting
+                || Phase == PasserbyPhase.Approaching;
             if (
-                !isIdle
+                !canCall
                 || isPlayerBusy
                 || distanceToPlayer > rules.FollowUpCallDistanceMeters
                 || nowSeconds < callRestUntilSeconds

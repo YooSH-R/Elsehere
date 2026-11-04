@@ -72,15 +72,29 @@ namespace A305.Npc.Tests
             Assert.That(staff.Phase, Is.EqualTo(PasserbyPhase.Offering));
         }
 
+        // 걷는 속도가 0인 카운터 직원은 감지 거리(3.5m) 안, 제안 거리(2.5m) 밖에서 다가가는 상태로 서 있다. 그때도 그 자리에서 부른다.
         [Test]
-        public void TryCall_WhileApproachingOrTalking_DoesNotCall()
+        public void TryCall_WhileApproaching_StopsAndCallsFromThere()
         {
             var staff = new PasserbyApproach(CounterStaff);
             staff.Tick(0d, 3f, isPlayerBusy: false);
             Assert.That(staff.Phase, Is.EqualTo(PasserbyPhase.Approaching), "준비: 다가가는 중");
-            Assert.That(staff.TryCall(0.1d, 3f, isPlayerBusy: false), Is.False);
 
-            staff.Tick(0.2d, 2f, isPlayerBusy: false);
+            Assert.That(staff.TryCall(0.1d, 3f, isPlayerBusy: false), Is.True);
+            Assert.That(staff.Phase, Is.EqualTo(PasserbyPhase.Offering));
+            Assert.That(staff.IsCalling, Is.True);
+        }
+
+        [Test]
+        public void TryCall_WhileOfferingOrTalking_DoesNotCall()
+        {
+            var staff = new PasserbyApproach(CounterStaff);
+            staff.Tick(0d, 2f, isPlayerBusy: false);
+            staff.Tick(0.1d, 2f, isPlayerBusy: false);
+            Assert.That(staff.Phase, Is.EqualTo(PasserbyPhase.Offering), "준비: 평소 제안 중");
+            Assert.That(staff.TryCall(0.2d, 2f, isPlayerBusy: false), Is.False);
+            Assert.That(staff.IsCalling, Is.False);
+
             staff.TryAccept();
             Assert.That(staff.TryCall(0.3d, 2f, isPlayerBusy: false), Is.False);
             Assert.That(staff.Phase, Is.EqualTo(PasserbyPhase.Talking));

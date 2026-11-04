@@ -245,7 +245,22 @@ FROM (
      'bm_daniel', false, NULL),
     (23, 'TOWN', 'TOWN_EVENING_WALKER', 'Maya', 'PASSERBY', '행인',
      '{"role": "an office worker on her evening walk through the town.", "facts": "", "scene": "A quiet street in the town."}',
-     'af_aoede', false, NULL)
+     'af_aoede', false, NULL),
+    (24, 'CAFE', 'CAFE_SERVER', 'Leo', 'STAFF', '카페 직원',
+     '{"role": "the friendly part-time server who takes orders and serves the tables at the corner cafe.", "facts": "", "scene": "The tables of the corner cafe."}',
+     'am_liam', false, NULL),
+    (25, 'HOTEL', 'HOTEL_CONCIERGE', 'Walter', 'STAFF', '컨시어지',
+     '{"role": "the gracious concierge at the hotel.", "facts": "", "scene": "The hotel lobby."}',
+     'bm_george', false, NULL),
+    (26, 'HOTEL', 'HOTEL_BELLHOP', 'Diego', 'STAFF', '벨보이',
+     '{"role": "the eager bellhop who carries guests'' bags at the hotel.", "facts": "", "scene": "The hotel lobby, near the entrance."}',
+     'am_puck', false, NULL),
+    (27, 'TOWN', 'TOWN_SHOPPER', 'Helen', 'PASSERBY', '행인',
+     '{"role": "a local woman running her daily errands around the town.", "facts": "", "scene": "A quiet street in the town."}',
+     'af_river', false, NULL),
+    (28, 'TOWN', 'TOWN_HANDYMAN', 'Frank', 'PASSERBY', '행인',
+     '{"role": "a local handyman walking his rounds and fixing things around the town.", "facts": "", "scene": "A quiet street in the town."}',
+     'am_santa', false, NULL)
 ) AS seed (seed_order, scene_code, code, name, npc_type, role_label, persona, voice_id, can_initiate, approach_line)
 JOIN scenes scene ON scene.code = seed.scene_code
 -- 같은 장소의 NPC가 여럿이어도 위에 적은 순서대로 넣어 관리자 목록 순서를 유지한다.

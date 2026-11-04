@@ -58,6 +58,21 @@ namespace A305.Weather.Tests
             );
         }
 
+        [Test]
+        public void ShopInteriorAmbient_IsAsBrightAsInteriorScenes()
+        {
+            // 카페·호텔·집 실내 씬의 환경광(하늘 0.8·0.85·0.88, 바닥 0.48·0.45·0.39)만큼 밝아야 한다.
+            Assert.That(settings.ShopInteriorAmbientSky.grayscale, Is.GreaterThanOrEqualTo(.8f));
+            Assert.That(
+                settings.ShopInteriorAmbientEquator.grayscale,
+                Is.GreaterThanOrEqualTo(.7f)
+            );
+            Assert.That(
+                settings.ShopInteriorAmbientGround.grayscale,
+                Is.GreaterThanOrEqualTo(.42f)
+            );
+        }
+
         [TestCase("WindowBlue")]
         [TestCase("GlassLight")]
         [TestCase("SkyGlassV2")]

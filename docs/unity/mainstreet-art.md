@@ -12,11 +12,13 @@ Production TownScene 플레이 시작 화면 (`artifacts/unity/production-town/0
 
 ### 확장 예정 지역 구름
 
-동서 교차도로 끝은 `Environment/FutureDistrictClouds`의 구름으로 가린다. 서쪽에는 `공항 개발중`, 동쪽에는 `놀이공원 개발중`만 표시하며 방위 문구는 넣지 않는다. 안내판은 화면에 고정된 UI가 아닌 길 안쪽을 향하는 공간 오브젝트다. 북쪽 거리와 기존 경계 Collider는 유지한다.
+동서 미개발 공간은 `Environment/FutureDistrictClouds/DistrictCloudCoverage`의 구름으로 덮는다. 양쪽 경계(-32~70m)를 따라 구름을 이어 배치하고 바깥쪽에 한 겹 더 쌓아 건물 사이로 빈 지면이 드러나는 것을 줄인다. 기존 북쪽 거리와 경계 Collider는 유지한다.
 
-`Assets/Prefabs/World/CloudBoundaries/`의 `CloudBank`는 공통 구름이고, `AirportBoundary`와 `ParkBoundary`는 구름과 공중 안내판의 조합이다. 위치는 씬 인스턴스에서, 글씨·아이콘·구름 형태는 Prefab Mode에서 조정한다. 향후 구역을 열 때는 해당 구름 조합과 기존 `CrossStreetEnd14m`·`SideBoundary` 충돌 영역을 함께 조정한다. 공용 단어는 기존 `cloud`와 `sign`을 연결하며 호버 표시 거리는 공통 설정을 따른다.
+서쪽 공중 안내판은 `공항 개발중`, 동쪽 안내판은 `놀이공원 개발중`을 표시한다. 교차로와 집 앞, 북쪽 거리에서 해당 방향의 하늘을 보면 구름 위의 안내판을 볼 수 있다. 구간마다 안내판 높이를 달리해 주변 지붕 위로 보이게 한다. 가까운 건물이 화면을 가릴 때는 카메라를 위로 돌리거나 거리를 두고 본다.
 
-**Tools → A305 → World → Apply Cloud Boundaries**는 없는 프리팹과 배치만 생성하며 기존 수동 편집을 유지한다. 안내 글리프와 양쪽 경계 충돌을 확인하고 `artifacts/unity/cloud-boundaries/`에 실제 Editor 카메라 렌더를 저장한다. 이 자료는 로컬 검수용이며 Git에 포함하지 않는다.
+`Assets/Prefabs/World/CloudBoundaries/`의 `DistrictCloudTile`은 넓은 공간에 반복 배치하는 구름 타일이고, `CloudBank`는 교차도로 끝의 구름이다. `AirportBoundary`와 `ParkBoundary`는 공중 안내판과 도로 끝 구름의 조합이다. 다른 구간의 안내판은 `DistrictSkyNotices`에서 `AirportSkyNotice`와 `ParkSkyNotice` 프리팹을 재사용한다. 위치는 씬 인스턴스에서, 글씨·아이콘·구름 형태는 Prefab Mode에서 조정한다. 구역을 개방할 때는 해당 방향의 구름, 안내, `CrossStreetEnd14m`·`SideBoundary`를 함께 조정한다. 구름과 공중 안내판은 기존 공용 단어 `cloud`와 `sign`을 사용한다.
+
+**Tools → A305 → World → Apply Cloud Boundaries**는 없는 프리팹과 배치를 생성하고, 구름 확장이 적용되지 않은 씬에는 확장 배치를 한 번 추가한다. 교차로, 집 앞, 북쪽 거리의 카메라 렌더를 `artifacts/unity/cloud-boundaries/`에 저장한다. 이 자료는 로컬 검수용이며 Git에 포함하지 않는다.
 
 | 구분 | 배치와 표현 | 기능 |
 | --- | --- | --- |

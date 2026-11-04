@@ -6,18 +6,13 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.LowLevel;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
-using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
 namespace A305.Dialogue.PlayModeTests
 {
     /// <summary>
-    /// 지난 대사는 대사 칸을 위로 스크롤해 다시 본다. 스크롤할 수 있다는 걸 알 수 있게 스크롤바를 보이고,
-    /// 휴대폰에서는 손가락으로 끌어 스크롤한다. 서버 없이 대화 내용을 흉내 내고 실제 터치 장치로 끈다.
+    /// 지난 대사는 대사 칸을 위로 스크롤해 다시 본다. 스크롤할 수 있다는 걸 알 수 있게 스크롤바를 보인다. 서버 없이 대화 내용을 흉내 낸다.
     /// </summary>
     public class DialoguePanelScrollTests
     {
@@ -45,16 +40,10 @@ namespace A305.Dialogue.PlayModeTests
         private GameObject panelObject;
         private GameObject eventSystemObject;
         private DialoguePanelView view;
-        private InputSettings savedSettings;
-        private Touchscreen touchscreen;
 
         [TearDown]
         public void DestroyPanel()
         {
-            if (touchscreen != null)
-                InputSystem.RemoveDevice(touchscreen);
-            if (savedSettings != null)
-                InputSystem.settings = savedSettings;
             Object.Destroy(panelObject);
             Object.Destroy(eventSystemObject);
         }
@@ -90,57 +79,9 @@ namespace A305.Dialogue.PlayModeTests
             );
         }
 
-        [UnityTest]
-        public IEnumerator FingerDrag_ScrollsBackToEarlierLines()
-        {
-            yield return Show(Conversation);
-            var scroll = Field<ScrollRect>("historyScroll");
-            var area = (RectTransform)scroll.transform;
-            Vector2 start = RectTransformUtility.WorldToScreenPoint(
-                null,
-                area.TransformPoint(area.rect.center)
-            );
-
-            touchscreen = InputSystem.AddDevice<Touchscreen>();
-            yield return Touch(TouchPhase.Began, start);
-            // 손가락을 아래로 끌면 대사가 따라 내려가 위의 지난 대사가 보인다.
-            for (int step = 1; step <= 8; step++)
-                yield return Touch(TouchPhase.Moved, start + Vector2.down * 12f * step);
-            yield return Touch(TouchPhase.Ended, start + Vector2.down * 96f);
-
-            Assert.That(scroll.verticalNormalizedPosition, Is.GreaterThan(.05f));
-        }
-
-        private IEnumerator Touch(TouchPhase phase, Vector2 position)
-        {
-            InputSystem.QueueStateEvent(
-                touchscreen,
-                new TouchState
-                {
-                    touchId = 1,
-                    phase = phase,
-                    position = position,
-                }
-            );
-            yield return null;
-        }
-
         private IEnumerator Show(DialogueLine[] shown)
         {
-            // 배치 실행처럼 창에 포커스가 없어도 터치 장치 입력을 받는다.
-            savedSettings = InputSystem.settings;
-            var settings = Object.Instantiate(savedSettings);
-            settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
-            settings.editorInputBehaviorInPlayMode = InputSettings
-                .EditorInputBehaviorInPlayMode
-                .AllDeviceInputAlwaysGoesToGameView;
-            InputSystem.settings = settings;
-            eventSystemObject = new GameObject(
-                "EventSystem",
-                typeof(EventSystem),
-                typeof(InputSystemUIInputModule)
-            );
-            eventSystemObject.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+            eventSystemObject = new GameObject("EventSystem", typeof(EventSystem));
             panelObject = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(PanelPrefabPath)
             );

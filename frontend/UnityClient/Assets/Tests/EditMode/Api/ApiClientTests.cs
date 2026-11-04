@@ -161,6 +161,86 @@ namespace A305.Api.Tests
             Assert.That(exception.StatusCode, Is.EqualTo(0));
         }
 
+        // 화면이 오류 문구를 그대로 보이므로, 어느 화면에서나 사용자가 읽을 수 있는 문장으로 알린다.
+        [Test]
+        public void NetworkFailure_TellsToCheckTheConnection()
+        {
+            transport.FailNetwork();
+
+            ApiException exception = Assert.ThrowsAsync<ApiException>(() =>
+                client.GetAsync<Sample>("/api/v1/bootstrap")
+            );
+
+            Assert.That(
+                exception.Message,
+                Is.EqualTo("서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.")
+            );
+        }
+
+        [Test]
+        public void ErrorResponseNotInCommonFormat_TellsTheServerIsBusyForAMoment()
+        {
+            transport.Reply(502, "<html>Bad Gateway</html>");
+
+            ApiException exception = Assert.ThrowsAsync<ApiException>(() =>
+                client.GetAsync<Sample>("/api/v1/bootstrap")
+            );
+
+            Assert.That(
+                exception.Message,
+                Is.EqualTo("서버가 잠시 응답하지 않아요. 잠시 후 다시 시도해 주세요.")
+            );
+        }
+
+        [Test]
+        public void Unauthenticated_TellsTheSessionExpired()
+        {
+            int expired = 0;
+            void OnExpired() => expired++;
+            ApiSession.Expired += OnExpired;
+            transport.Reply(
+                401,
+                "{\"error\": {\"code\": \"UNAUTHENTICATED\", \"message\": \"로그인이 필요합니다.\"}}"
+            );
+            try
+            {
+                Assert.ThrowsAsync<ApiException>(() => client.GetAsync<Sample>("/api/v1/me/vocab"));
+            }
+            finally
+            {
+                ApiSession.Expired -= OnExpired;
+            }
+
+            Assert.That(expired, Is.EqualTo(1));
+        }
+
+        // 가입 대기(SIGNUP_REQUIRED)나 다른 거절은 로그인이 풀린 것이 아니다.
+        [TestCase(401, "SIGNUP_REQUIRED")]
+        [TestCase(403, "ADMIN_REQUIRED")]
+        [TestCase(409, "NICKNAME_TAKEN")]
+        public void OtherErrors_DoNotTellTheSessionExpired(int status, string code)
+        {
+            int expired = 0;
+            void OnExpired() => expired++;
+            ApiSession.Expired += OnExpired;
+            transport.Reply(
+                status,
+                "{\"error\": {\"code\": \"" + code + "\", \"message\": \"거절\"}}"
+            );
+            try
+            {
+                Assert.ThrowsAsync<ApiException>(() =>
+                    client.GetAsync<Sample>("/api/v1/bootstrap")
+                );
+            }
+            finally
+            {
+                ApiSession.Expired -= OnExpired;
+            }
+
+            Assert.That(expired, Is.EqualTo(0));
+        }
+
         [Test]
         public void PostWithoutResult_CompletesOnNoContent()
         {

@@ -252,12 +252,7 @@ namespace A305.EditorTools.ObjectHover
 
             RectTransform actions = UiBuilderTools.FindOrCreateButtonRow(panel, "Actions");
             BuilderTools.SetReference(view, "actionRow", actions.gameObject);
-            Button hide = FindOrCreateCardButton(
-                actions,
-                "HideButton",
-                "알아요 · 다시 안 띄우기",
-                250f
-            );
+            Button hide = FindOrCreateCardButton(actions, "HideButton", "숨기기", 250f);
             BuilderTools.SetReference(view, "hideButton", hide);
             BuilderTools.SetReference(
                 view,

@@ -158,6 +158,29 @@ def test_opening_hours_can_run_past_midnight():
     assert npc_life_rules.place_problems(rules) == ["places.BAR.shifts.LATE: 02:00~03:00은 영업시간 밖"]
 
 
+BUSY_HOURS = {"from": "10:00", "to": "18:00"}
+
+
+def service_lives() -> list[dict]:
+    return [json.loads(path.read_text(encoding="utf-8")) for path in sorted(npc_life_rules.LIFE_FOLDER.glob("*.json"))]
+
+
+@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3), ("TOWN", 4)])
+def test_busy_daytime_has_enough_npcs_on_shift_at_once(workplace, at_least):
+    """10:00~18:00에는 카페 2명·호텔 3명이 함께 일하고 마을에 행인 4명이 나와 있다. 맡은 교대 시간으로 센다(쉬는 시간 포함)."""
+    assert npc_life_rules.understaffed(service_lives(), load_world_rules(), workplace, BUSY_HOURS, at_least) == []
+
+
+def test_too_few_npcs_on_shift_at_once_is_reported_with_the_time():
+    """낮 교대(Leo)가 없으면 카페에는 오픈(07:00~15:00)과 마감(13:00~21:00)이 겹치는 13:00~15:00에만 둘이다."""
+    lives = [life for life in service_lives() if life["npcId"] != "CAFE_SERVER"]
+
+    assert npc_life_rules.understaffed(lives, load_world_rules(), "CAFE", BUSY_HOURS, 2) == [
+        "CAFE: 10:00~13:00에 교대 중인 NPC가 2명보다 적음",
+        "CAFE: 15:00~18:00에 교대 중인 NPC가 2명보다 적음",
+    ]
+
+
 def test_the_service_actions_use_objects_placed_in_their_scene():
     assert npc_life_rules.unplaced_actions(load_world_rules()) == []
 
@@ -184,10 +207,13 @@ def test_every_service_npc_has_a_life_file_without_problems():
         "BANK_STAFF",
         "BARBER_STAFF",
         "CAFE_BARISTA",
+        "CAFE_SERVER",
         "CAFE_STAFF",
         "DINER_STAFF",
         "FLOWER_SHOP_STAFF",
         "HOME_STORE_STAFF",
+        "HOTEL_BELLHOP",
+        "HOTEL_CONCIERGE",
         "HOTEL_NIGHT_MANAGER",
         "HOTEL_RECEPTIONIST",
         "HOTEL_STAFF",
@@ -199,8 +225,10 @@ def test_every_service_npc_has_a_life_file_without_problems():
         "SHOP_STAFF",
         "TAXI_DRIVER",
         "TOWN_EVENING_WALKER",
+        "TOWN_HANDYMAN",
         "TOWN_PASSERBY",
         "TOWN_RETIREE",
+        "TOWN_SHOPPER",
         "TOWN_STUDENT",
     ]
     assert npc_life_rules.life_problems(NPCS, load_world_rules()) == []
@@ -213,7 +241,10 @@ def test_every_service_npc_works_its_own_shift():
     assert {npc_id: (life["workplace"], life["shift"]) for npc_id, life in lives.items()} == {
         "CAFE_STAFF": ("CAFE", "OPENING"),
         "CAFE_BARISTA": ("CAFE", "CLOSING"),
+        "CAFE_SERVER": ("CAFE", "MIDDAY"),
         "HOTEL_STAFF": ("HOTEL", "DAY"),
+        "HOTEL_CONCIERGE": ("HOTEL", "MIDDAY"),
+        "HOTEL_BELLHOP": ("HOTEL", "MIDDAY"),
         "HOTEL_RECEPTIONIST": ("HOTEL", "EVENING"),
         "HOTEL_NIGHT_MANAGER": ("HOTEL", "NIGHT"),
         "SHOP_STAFF": ("SHOP", "DAY"),  # 첫날 미션 대상(Alex)은 미션이 시작하는 아침 교대
@@ -232,6 +263,8 @@ def test_every_service_npc_works_its_own_shift():
         "TAXI_DRIVER": ("TAXI", "ALL_DAY"),
         "TOWN_RETIREE": ("TOWN", "MORNING"),
         "TOWN_PASSERBY": ("TOWN", "DAY"),
+        "TOWN_SHOPPER": ("TOWN", "MIDDAY"),
+        "TOWN_HANDYMAN": ("TOWN", "MIDDAY"),
         "TOWN_STUDENT": ("TOWN", "AFTERNOON"),
         "TOWN_EVENING_WALKER": ("TOWN", "EVENING"),
     }

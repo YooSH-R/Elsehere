@@ -445,6 +445,51 @@ def test_evening_walker_maya_keeps_the_persona_direction():
     assert rates["personalTalkScale"] > 1
 
 
+def test_cafe_server_leo_keeps_the_persona_direction():
+    """인격: 손님과 어울리기 좋아하고 단골 이름을 외움, 한가하면 금방 지루해함."""
+    rates = derived_from_life_file("CAFE_SERVER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["needRates"]["FUN"] > 1
+
+
+def test_concierge_walter_keeps_the_persona_direction():
+    """인격: 손님 이름을 외우는 노련한 컨시어지, 무례에도 흔들리지 않음, 이야기 나누기를 즐김."""
+    rates = derived_from_life_file("HOTEL_CONCIERGE")
+
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["RUDE"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_bellhop_diego_keeps_the_persona_direction():
+    """인격: 붙임성 좋고 수다스러움, 손님 이름을 잘 외움."""
+    rates = derived_from_life_file("HOTEL_BELLHOP")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_shopper_helen_keeps_the_persona_direction():
+    """인격: 이웃과 인사는 잘하지만 장 볼 목록이 바빠 잡담은 짧게, 낯선 사람에게 사적인 이야기는 하지 않음."""
+    rates = derived_from_life_file("TOWN_SHOPPER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["personalTalkScale"] > 1
+
+
+def test_handyman_frank_keeps_the_persona_direction():
+    """인격: 말수 적은 수리공, 잡담보다 일, 고친 일을 오래 기억함."""
+    rates = derived_from_life_file("TOWN_HANDYMAN")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["salienceBonus"]["TASK_DONE"] >= 1
+
+
 # ---------------------------------------------------------------------
 # 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
 # ---------------------------------------------------------------------
@@ -455,10 +500,13 @@ SERVICE_NPCS = [
     "BANK_STAFF",
     "BARBER_STAFF",
     "CAFE_BARISTA",
+    "CAFE_SERVER",
     "CAFE_STAFF",
     "DINER_STAFF",
     "FLOWER_SHOP_STAFF",
     "HOME_STORE_STAFF",
+    "HOTEL_BELLHOP",
+    "HOTEL_CONCIERGE",
     "HOTEL_NIGHT_MANAGER",
     "HOTEL_RECEPTIONIST",
     "HOTEL_STAFF",
@@ -470,8 +518,10 @@ SERVICE_NPCS = [
     "SHOP_STAFF",
     "TAXI_DRIVER",
     "TOWN_EVENING_WALKER",
+    "TOWN_HANDYMAN",
     "TOWN_PASSERBY",
     "TOWN_RETIREE",
+    "TOWN_SHOPPER",
     "TOWN_STUDENT",
 ]
 

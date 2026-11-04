@@ -7,8 +7,7 @@
         "A305.Dialogue",
         "A305.Voice",
         "Unity.TextMeshPro",
-        "UnityEngine.UI",
-        "Unity.InputSystem"
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

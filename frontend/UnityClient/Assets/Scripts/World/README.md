@@ -89,7 +89,7 @@
 
 ## 거리 매장
 
-`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 마을에서 원래 문을 밟으면 화면을 덮고 해당 건물의 실내 씬을 추가 로드합니다. 퇴장하면 실내 씬을 해제합니다. 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서의 Dan은 `PoliceStationBuilder`가 둡니다.
+`TownStorefrontBuilder`는 기존 배경 건물 7곳(북쪽 거리 6곳과 남서쪽 끝 경찰서)을 간판과 실내가 있는 매장으로 구성합니다. 마을에서 원래 문을 밟으면 화면을 덮고 해당 건물의 실내 씬을 추가 로드합니다. 퇴장하면 실내 씬을 해제합니다. 결제 기능은 포함하지 않습니다. 매장 직원 NPC는 `BuildingStaffBuilder`가 따로 둡니다([Npc 모듈](../Npc/README.md#거리-매장-직원)). 경찰서의 경찰관 4명은 `PoliceStationBuilder`가 둡니다.
 
 | 프리팹 | 간판 | 건물 앞 위치(x, z) |
 | --- | --- | --- |
@@ -105,7 +105,7 @@
 
 ### 경찰서와 순찰차
 
-**Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 경찰서 매장(창구·대기 의자·게시판·서류함·국기)을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 창구 뒤에는 경찰관 Dan(`POLICE_OFFICER`)을 세우고 신고 창구(`PoliceReportDesk`)와 순찰차를 잇습니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
+**Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 경찰서 매장(창구·대기 의자·게시판·서류함·국기)을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 창구 뒤에는 경찰관 Dan(`POLICE_OFFICER`)·Victor·Kevin·Tyler를 세우고(창구에 가장 가까운 Dan이 근무 중이면 먼저 응대) 경찰관마다 신고 창구(`PoliceReportDesk`)와 순찰차를 잇습니다. 새 경찰관은 창구 뒤 자리가 가구와 겹치면 가까운 빈자리로 옮기고, 외형 표의 배색을 입힙니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
 
 - 순찰차 모델은 KayKit City Builder Bits의 `car_police`이고 프리팹은 `Prefabs/World/PoliceStation/PoliceCar.prefab`입니다. 지붕 경광등 위에 빨강·파랑 발광 조각과 불빛(`LightBar/RedLights`, `LightBar/BlueLights`)을 얹어 두었습니다.
 - 경찰관 외형은 호텔리어 모델에 갈색 바지·구두만 남색으로 바꾼 텍스처 사본(`Art/World/PoliceStation/PoliceOfficerUniform.png`)과 경찰 모자를 씌운 것입니다. 모자는 모델의 원래 자세를 기준으로 머리 뼈에 붙여 서 있기 동작에서 머리 앞을 봅니다. 경찰관 전용 모델은 아직 없습니다.

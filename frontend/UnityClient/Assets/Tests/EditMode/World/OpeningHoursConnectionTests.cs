@@ -67,9 +67,12 @@ namespace A305.World.Tests
             Scene scene = OpenProductionScene("TownScene");
             // Play·빌드에서처럼 건물마다 실내를 나누고 ShopInterior를 붙인다.
             new ShopInteriorScenes().OnProcessScene(scene, null);
-            PlaceHours hours = PlaceHours.FromJson(
-                AssetDatabase.LoadAssetAtPath<TextAsset>(PlaceHoursPath).text
-            );
+            string[] listedCodes = JsonUtility
+                .FromJson<ListedPlaces>(
+                    AssetDatabase.LoadAssetAtPath<TextAsset>(PlaceHoursPath).text
+                )
+                .places.Select(place => place.code)
+                .ToArray();
 
             ShopInterior[] shops = BuilderTools.FindAllInScene<ShopInterior>(scene);
             Assert.That(
@@ -93,8 +96,22 @@ namespace A305.World.Tests
             foreach (ShopInterior shop in shops)
             {
                 Assert.That(shop.PlaceName, Is.Not.Empty, shop.name);
-                Assert.That(hours.HoursText(shop.PlaceCode), Is.Not.Null, shop.name);
+                // 경찰서처럼 24시간 여는 곳은 안내할 영업시간 문구가 없으므로, 영업시간 파일에 그 장소가 있는지 본다.
+                Assert.That(listedCodes, Does.Contain(shop.PlaceCode), shop.name);
             }
+        }
+
+        // 영업시간 파일(PlaceHours.json)에서 장소 코드만 읽는다.
+        [System.Serializable]
+        private sealed class ListedPlaces
+        {
+            public ListedPlace[] places;
+        }
+
+        [System.Serializable]
+        private sealed class ListedPlace
+        {
+            public string code;
         }
 
         private static Scene OpenProductionScene(string name) =>

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using A305.Dialogue;
@@ -50,7 +51,7 @@ namespace A305.Npc.PlayModeTests
         public IEnumerator CafeStaff_OnBreak_WalksToTheMuffinAndEatsIt()
         {
             // 쉬는 시간, 욕구가 모두 시작값(70)이면 배고픔을 채우는 머핀이 가장 급하다(40 > 커피 25 > 의자 15).
-            yield return LoadAt("CafeScene", 12 * 60, paused: true);
+            yield return LoadAt("CafeScene", BreakStartMinute("CAFE_STAFF"), paused: true);
             NpcRoutine mia = Routine("CAFE_STAFF");
 
             yield return WaitUntil(() => mia.IsUsing);
@@ -104,7 +105,7 @@ namespace A305.Npc.PlayModeTests
             PasserbyOfferView offer = Object.FindFirstObjectByType<PasserbyOfferView>();
             yield return WaitUntil(() => mia.IsUsing);
 
-            // 손님 쪽에서 카운터와 3m 떨어져 있으면 하던 일(머핀 먹기)을 계속한다.
+            // 손님 쪽에서 카운터와 3m 떨어져 있으면 하던 일(근무 중이라 음료 만들기)을 계속한다.
             player.Teleport(
                 new Vector3(counter.center.x, post.y, counter.min.z - 3f),
                 Quaternion.identity
@@ -152,8 +153,10 @@ namespace A305.Npc.PlayModeTests
         [UnityTest]
         public IEnumerator HotelStaff_OnBreak_GoesAroundTheDeskAndSitsOnALobbySofa()
         {
-            yield return LoadAt("HotelScene", 12 * 60, paused: true);
+            yield return LoadAt("HotelScene", BreakStartMinute("HOTEL_STAFF"), paused: true);
             NpcRoutine jake = Routine("HOTEL_STAFF");
+            // 교대 밖의 다른 호텔 직원도 쉬러 소파로 가 자리를 먼저 차지할 수 있으므로, Jake만 지내게 해 Jake가 고른 자리를 본다.
+            KeepOnlyLiving(jake);
 
             yield return WaitUntil(() => jake.IsSeated);
 
@@ -245,6 +248,32 @@ namespace A305.Npc.PlayModeTests
                 Time.realtimeSinceStartupAsDouble + 1e6 * clockSettings
             );
             Assert.That(beat.Result, Is.EqualTo(GameClockBeatStatus.Updated));
+        }
+
+        // 쉬는 시간은 교대에 따라 생활 데이터(Data/Npc/NpcLife.json)가 정하므로, 시각을 시험에 적지 않고 그 NPC의 쉬는 시간이 시작하는 분을 읽는다.
+        private static int BreakStartMinute(string code)
+        {
+            NpcLifeEntry npc = NpcLifeData
+                .Parse(
+                    File.ReadAllText(Path.Combine(Application.dataPath, "Data/Npc/NpcLife.json"))
+                )
+                .FindNpc(code);
+            return Enumerable
+                .Range(0, 24 * 60)
+                .First(minute =>
+                    npc.ActivityAt(minute) == "BREAK" && npc.ActivityAt(minute - 1) != "BREAK"
+                );
+        }
+
+        // 이 NPC 말고는 생활을 꺼 제자리에 세운다.
+        private static void KeepOnlyLiving(NpcRoutine npc)
+        {
+            foreach (
+                NpcRoutine other in Object.FindObjectsByType<NpcRoutine>(FindObjectsSortMode.None)
+            )
+            {
+                other.enabled = other == npc;
+            }
         }
 
         private static NpcRoutine Routine(string code)

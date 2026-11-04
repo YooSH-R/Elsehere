@@ -431,8 +431,8 @@ class AdminUsageServiceTest {
 
   private void firstDayStage(Long userId, int stage) {
     jdbcTemplate.update(
-        "insert into first_day_missions (user_id, stage, objectives, balance, scene, version)"
-            + " values (?, ?, 0, 20, 'HOTEL', 0)",
+        "insert into first_day_missions (user_id, stage, objectives, scene, version)"
+            + " values (?, ?, 0, 'HOTEL', 0)",
         userId,
         stage);
   }

@@ -59,41 +59,35 @@ namespace A305.Learning
             ),
         };
 
+        // 튜토리얼 Ben은 카페 가는 길을 묻는 행인이라 길을 알려 줄 때 쓰는 표현을 둔다.
+        // 표현 칸 아래 대화 요약이 들어갈 자리가 남도록 세 개만 둔다.
         [SerializeField]
         [Tooltip("대본 대화 상대별로 그 장면에서 현지인이 자주 쓰는 관용·추천 표현")]
         private List<SituationEntry> situations = new List<SituationEntry>
         {
             new SituationEntry(
                 "Ben",
-                "I'd like to check in.",
-                "체크인하고 싶어요.",
-                "프런트에 도착해 가장 먼저 꺼내는 말이에요.",
-                "Hi, I'd like to check in. The name's Kim.",
-                "안녕하세요, 체크인하려고요. 김으로 예약했어요."
+                "It's on your right.",
+                "오른쪽에 있어요.",
+                "가는 길 끝에서 목적지가 어느 쪽에 있는지 알려 줄 때 써요.",
+                "Turn left at the corner. It's on your right.",
+                "모퉁이에서 왼쪽으로 도세요. 오른쪽에 있어요."
             ),
             new SituationEntry(
                 "Ben",
-                "I have a reservation under ...",
-                "…(이름)으로 예약했어요.",
-                "예약자 이름을 알려 줄 때 under 뒤에 이름을 붙여요.",
-                "I have a reservation under Lee.",
-                "이 이름으로 예약했어요."
+                "It's right across the street.",
+                "바로 길 건너편에 있어요.",
+                "목적지가 바로 길 건너에 있을 때 써요.",
+                "The café? It's right across the street.",
+                "카페요? 바로 길 건너편에 있어요."
             ),
             new SituationEntry(
                 "Ben",
-                "What time is checkout?",
-                "체크아웃은 몇 시예요?",
-                "방 열쇠를 받을 때 함께 물어보면 좋아요.",
-                "Thanks. What time is checkout?",
-                "고마워요. 체크아웃은 몇 시예요?"
-            ),
-            new SituationEntry(
-                "Ben",
-                "Could you hold my bags?",
-                "짐 좀 맡아 주시겠어요?",
-                "방에 들어가기 전이나 나간 뒤 짐을 맡길 때 써요.",
-                "Could you hold my bags until three?",
-                "세 시까지 짐 좀 맡아 주시겠어요?"
+                "You can't miss it.",
+                "금방 찾으실 거예요.",
+                "찾기 쉬운 곳이라고 안심시키며 덧붙여요.",
+                "It's next to the big tree. You can't miss it.",
+                "큰 나무 옆에 있어요. 금방 찾으실 거예요."
             ),
         };
 

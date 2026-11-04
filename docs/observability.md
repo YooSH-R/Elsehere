@@ -33,7 +33,7 @@ Nginx와 Spring Boot에서 같은 HTTP 요청 ID로 요청을 찾고, Prometheus
 | WARN | `feedback_failed` | `conversation_id`, `reason` | 짧은 피드백을 만들지 못함(AI 시간 초과 등) |
 | INFO | `feedback_skipped` | `conversation_id`, `reason` | 피드백을 건너뜀. 사용자가 건너뛰면 `USER_SKIPPED` |
 | INFO | `guest_conversation_limit_reached` | `user_id`, `limit` | 게스트 대화 한도로 대화 시작을 거절 |
-| INFO | `user_signed_up` | `user_id`, `provider` | 가입 완료(AUTH-04) |
+| INFO | `user_signed_up` | `user_id`, `provider`, `from_guest`(게스트가 회원이 됐을 때만 `true`) | 가입 완료(AUTH-04) |
 | INFO | `guest_started` | `user_id` | 게스트 계정 생성(AUTH-07) |
 | INFO | `user_withdrew` | `user_id` | 회원 탈퇴(USER-05) |
 | DEBUG | `ai_worker_call` | `path`, `status`, `duration_ms` | AI 워커 호출마다(개발 서버에서만 보임) |

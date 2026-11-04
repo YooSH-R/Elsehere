@@ -142,6 +142,26 @@ public class User extends BaseEntity {
     this.nickname = nickname;
   }
 
+  /** 게스트로 시작한 사용자(AUTH-07)인지. */
+  public boolean isGuest() {
+    return provider == AuthProvider.GUEST;
+  }
+
+  /**
+   * 게스트를 소셜 로그인 회원으로 바꾼다(AUTH-04). 같은 사용자 행이라 게스트 때 기록과 캐릭터·학습 언어·초기 설정 단계·마지막 장소가 그대로 이어진다. 닉네임
+   * 규칙과 중복은 호출하는 쪽에서 확인한다.
+   */
+  public void becomeMember(
+      AuthProvider provider, String providerUid, String email, String nickname) {
+    if (!isGuest()) {
+      throw new IllegalStateException("게스트만 회원으로 바꿀 수 있습니다.");
+    }
+    this.provider = provider;
+    this.providerUid = providerUid;
+    this.email = email;
+    this.nickname = nickname;
+  }
+
   /** 재접속할 장소를 바꾼다(WORLD-05). */
   public void moveTo(Scene scene) {
     this.lastScene = scene;

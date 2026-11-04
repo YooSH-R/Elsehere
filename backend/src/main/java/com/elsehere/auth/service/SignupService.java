@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
@@ -37,13 +38,45 @@ public class SignupService {
     rejectIfRequiredConsentMissing(request);
     rejectIfNicknameTaken(request.nickname());
 
-    User user = saveNewUser(pendingSignup, request);
-    List<ConsentTerm> agreedTerms = saveAgreedConsents(user, request);
+    Optional<User> guest = findGuest(pendingSignup);
+    User user =
+        saveRejectingTakenNickname(
+            guest
+                .map(found -> convertGuest(found, pendingSignup, request))
+                .orElseGet(() -> newUser(pendingSignup, request)));
+    List<ConsentTerm> agreedTerms = applyConsents(user, request);
     // 이메일·닉네임은 개인정보라 남기지 않는다.
-    log.info("user_signed_up user_id={} provider={}", user.getId(), pendingSignup.provider());
+    if (guest.isPresent()) {
+      log.info(
+          "user_signed_up user_id={} provider={} from_guest={}",
+          user.getId(),
+          pendingSignup.provider(),
+          true);
+    } else {
+      log.info("user_signed_up user_id={} provider={}", user.getId(), pendingSignup.provider());
+    }
     boolean voiceConsent =
         agreedTerms.stream().anyMatch(term -> term.consentType() == ConsentType.VOICE);
     return UserResponse.from(user, voiceConsent);
+  }
+
+  /** 가입하면 회원으로 바뀔 게스트. 게스트로 로그인한 세션에서 Google 로그인하지 않았으면 비어 있다. */
+  @Transactional(readOnly = true)
+  public Optional<ConvertingGuest> findConvertingGuest(PendingSignup pendingSignup) {
+    return findGuest(pendingSignup)
+        .map(
+            guest ->
+                new ConvertingGuest(
+                    guest.getAvatarType(),
+                    hasAgreed(guest, consentCatalog.currentTerm(ConsentType.VOICE))));
+  }
+
+  // 다른 탭에서 먼저 가입해 이미 회원이 된 사용자는 바꾸지 않고 새 사용자를 만든다.
+  private Optional<User> findGuest(PendingSignup pendingSignup) {
+    if (pendingSignup.guestUserId() == null) {
+      return Optional.empty();
+    }
+    return userRepository.findById(pendingSignup.guestUserId()).filter(User::isGuest);
   }
 
   private void rejectIfAlreadySignedUp(PendingSignup pendingSignup) {
@@ -74,15 +107,9 @@ public class SignupService {
    * 사전 검사(rejectIfNicknameTaken)와 저장 사이에 다른 요청이 같은 닉네임으로 먼저 가입하면 DB 제약이 저장을 막는다. 그 경우도 중복 닉네임으로
    * 응답한다.
    */
-  private User saveNewUser(PendingSignup pendingSignup, SignupRequest request) {
+  private User saveRejectingTakenNickname(User user) {
     try {
-      return userRepository.save(
-          User.signUp(
-              pendingSignup.provider(),
-              pendingSignup.providerUid(),
-              pendingSignup.email(),
-              request.nickname(),
-              request.avatarType()));
+      return userRepository.saveAndFlush(user);
     } catch (DataIntegrityViolationException exception) {
       if (violatesNicknameUnique(exception)) {
         throw new BusinessException(ErrorCode.NICKNAME_TAKEN, exception);
@@ -96,13 +123,53 @@ public class SignupService {
         && User.NICKNAME_UNIQUE_CONSTRAINT.equals(violation.getConstraintName());
   }
 
-  private List<ConsentTerm> saveAgreedConsents(User user, SignupRequest request) {
-    Instant agreedAt = Instant.now(clock);
+  private static User newUser(PendingSignup pendingSignup, SignupRequest request) {
+    return User.signUp(
+        pendingSignup.provider(),
+        pendingSignup.providerUid(),
+        pendingSignup.email(),
+        request.nickname(),
+        request.avatarType());
+  }
+
+  // 캐릭터는 게스트 때 고른 것을 그대로 쓰므로 요청의 캐릭터는 보지 않는다.
+  private static User convertGuest(User guest, PendingSignup pendingSignup, SignupRequest request) {
+    guest.becomeMember(
+        pendingSignup.provider(),
+        pendingSignup.providerUid(),
+        pendingSignup.email(),
+        request.nickname());
+    return guest;
+  }
+
+  /**
+   * 가입 화면에서 동의한 약관을 남기고 동의하지 않은 약관은 철회한다. 새 사용자에게는 동의 기록이 없고, 게스트에게는 게스트 때 한 음성 처리 동의만 있다. 이미 지금
+   * 버전에 동의해 둔 약관은 다시 남기지 않는다.
+   */
+  private List<ConsentTerm> applyConsents(User user, SignupRequest request) {
+    Instant now = Instant.now(clock);
     List<ConsentTerm> agreedTerms = consentCatalog.findAgreedTerms(request.consents());
-    agreedTerms.forEach(
-        term ->
-            userConsentRepository.save(
-                UserConsent.agree(user, term.consentType(), term.version(), agreedAt)));
+    for (ConsentTerm term : consentCatalog.currentTerms()) {
+      boolean agreed = agreedTerms.contains(term);
+      if (agreed && hasAgreed(user, term)) {
+        continue;
+      }
+      activeConsents(user, term.consentType()).forEach(consent -> consent.withdraw(now));
+      if (agreed) {
+        userConsentRepository.save(
+            UserConsent.agree(user, term.consentType(), term.version(), now));
+      }
+    }
     return agreedTerms;
+  }
+
+  private boolean hasAgreed(User user, ConsentTerm term) {
+    return activeConsents(user, term.consentType()).stream()
+        .anyMatch(consent -> consent.getVersion().equals(term.version()));
+  }
+
+  private List<UserConsent> activeConsents(User user, ConsentType consentType) {
+    return userConsentRepository.findByUserIdAndConsentTypeAndWithdrawnAtIsNull(
+        user.getId(), consentType);
   }
 }

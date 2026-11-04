@@ -24,6 +24,9 @@ namespace A305.Npc
         // 사물 둘레에서 이만큼 떨어져 선다(몸 반지름 0.3m와 여유).
         private const float StandOffMeters = .45f;
 
+        // 도착 오차와 모델 머리 폭까지 포함해 작업·응대 자리 사이를 띄운다.
+        private const float StandingSpaceMeters = 1.25f;
+
         // 선 자리 후보를 NavMesh 위로 옮길 때 찾는 거리
         private const float SpotSnapMeters = .6f;
         private const int SpotDirections = 12;
@@ -290,6 +293,9 @@ namespace A305.Npc
                 ServeAtCounter(playerPosition);
                 return;
             }
+
+            if (spotAction != null && IsReservedForAnotherServer(spot.StandPoint))
+                Interrupt();
 
             if (life.Doing == null)
             {
@@ -577,6 +583,8 @@ namespace A305.Npc
                 return;
             }
 
+            // 같은 행동을 다음 일과에서도 고르면 Doing 참조가 같아도 이전 앉기는 끝내야 한다.
+            StandUp();
             Progress progress = GoTo(spot.StandPoint, spot.Facing);
             if (progress == Progress.Stuck)
             {
@@ -770,6 +778,40 @@ namespace A305.Npc
             return TryStandBeside(bounds, hasWalkArea, out found, out float _);
         }
 
+        private bool IsReservedForAnotherServer(Vector3 point)
+        {
+            return hasCounter
+                && CounterServers.TryGetValue(counter, out string server)
+                && !string.IsNullOrEmpty(server)
+                && server != npcCode
+                && Flat(ServicePose().position - point).sqrMagnitude
+                    < StandingSpaceMeters * StandingSpaceMeters;
+        }
+
+        // 도착한 뒤뿐 아니라 이동 중에도 목적지를 예약해 같은 위치를 고르지 않는다.
+        private bool StandingPlaceTaken(Vector3 point)
+        {
+            if (IsReservedForAnotherServer(point))
+                return true;
+            float spacingSquared = StandingSpaceMeters * StandingSpaceMeters;
+            foreach (NpcRoutine other in Living)
+            {
+                if (other == this || other.gameObject.scene != gameObject.scene)
+                    continue;
+                if (
+                    other.spotAction != null
+                    && Flat(other.spot.StandPoint - point).sqrMagnitude < spacingSquared
+                )
+                    return true;
+                if (
+                    other.lookingAround
+                    && Flat(other.lookAroundSpot.StandPoint - point).sqrMagnitude < spacingSquared
+                )
+                    return true;
+            }
+            return false;
+        }
+
         // 사물 둘레 여러 방향에서 콜라이더 바깥으로 StandOffMeters 떨어진 바닥 중 걸어서 가장 가까운 곳에 사물을 보고 선다.
         private bool TryStandBeside(
             Bounds bounds,
@@ -780,9 +822,13 @@ namespace A305.Npc
         {
             found = default;
             bestLength = float.PositiveInfinity;
-            for (int i = 0; i < SpotDirections; i++)
+            // 작은 사물 바로 옆이 차 있으면 조금 물러선 자리도 찾는다.
+            for (int i = 0; i < SpotDirections * 2; i++)
             {
-                float angle = i * Mathf.PI * 2f / SpotDirections;
+                if (i == SpotDirections && bestLength < float.PositiveInfinity)
+                    break;
+                float angle = (i % SpotDirections) * Mathf.PI * 2f / SpotDirections;
+                float standOff = StandOffMeters * (1 + i / SpotDirections);
                 var direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 float toEdge = Mathf.Min(
                     Mathf.Abs(direction.x) > .0001f
@@ -794,10 +840,11 @@ namespace A305.Npc
                 );
                 Vector3 point =
                     new Vector3(bounds.center.x, transform.position.y, bounds.center.z)
-                    + direction * (toEdge + StandOffMeters);
+                    + direction * (toEdge + standOff);
                 if (
                     !TryReach(point, hasWalkArea, out Vector3 standPoint, out float length)
                     || length >= bestLength
+                    || StandingPlaceTaken(standPoint)
                 )
                 {
                     continue;

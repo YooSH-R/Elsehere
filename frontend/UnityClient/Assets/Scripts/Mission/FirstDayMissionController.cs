@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
+using A305.Npc;
 using A305.Player;
 using A305.Weather;
 using UnityEngine;
@@ -128,6 +129,8 @@ namespace A305.Mission
                 if (this == null)
                     return;
                 state = response;
+                // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
+                NpcDuty.MissionNpcCode = state.CurrentNpcCode;
                 view.ShowMessage("");
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);

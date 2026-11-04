@@ -14,6 +14,7 @@ namespace A305.Npc
     /// 고른 행동의 사물까지 NavMesh 경로(<see cref="NpcWalkArea"/>)를 따라 걸어가 이용하고, 의자·벤치·소파면 빈 자리에 앉는다.
     /// 급한 일이 없어도 한곳에 서 있지 않고 자기 공간의 다른 사물로 옮겨 다니며 둘러본다.
     /// 카운터를 맡은 직원은 손님(플레이어)이 카운터 가까이 오면 하던 일을 그만두고 카운터 뒤 자리로 돌아가 응대한다.
+    /// 근무(WORK) 중인 직원만 응대하고(<see cref="NpcDuty"/>), 같은 카운터를 맡은 직원이 여럿 근무 중이면 한 명만 응대한다.
     /// 장면을 다시 불러오면 그 시각의 시작값에서 다시 지낸다. 다가오기·대화는 <see cref="Passerby"/>가 맡고, 그동안 하던 일을 그만둔다.
     /// </summary>
     [DefaultExecutionOrder(700)]
@@ -95,12 +96,19 @@ namespace A305.Npc
         private readonly Dictionary<string, float> unreachableUntil =
             new Dictionary<string, float>();
         private readonly List<Vector3> route = new List<Vector3>();
+
+        // 켜져 있는 NPC 생활. 같은 카운터를 맡은 직원 중 누가 응대할지 고를 때 쓴다.
+        private static readonly List<NpcRoutine> Living = new List<NpcRoutine>();
+        private static readonly List<CounterPost> CounterPosts = new List<CounterPost>();
+
         private NavMeshPath path;
         private Passerby body;
         private CharacterController characterController;
         private CharacterAnimationDriver animationDriver;
         private Transform visual;
         private NpcLife life;
+        private string npcCode;
+        private string role;
         private bool hasStarted;
 
         // 지금 고른 행동과 그 행동을 할 자리
@@ -113,9 +121,11 @@ namespace A305.Npc
         private float closestRemaining;
         private float stuckSeconds;
 
-        // 맡은 카운터. 카운터가 없는 NPC(행인)는 어디서든 다가와 말을 건다.
+        // 맡은 카운터와 카운터 뒤 자리에서 카운터까지의 거리. 카운터가 없는 NPC(행인)는 어디서든 다가와 말을 건다.
         private bool hasCounter;
+        private HoverableObject counter;
         private Bounds counterBounds;
+        private float postMetersFromCounter;
 
         // 둘러보는 중인 사물과 그 앞에서 머무를 시각(Time.time). 걸어가는 중이면 음수
         private bool lookingAround;
@@ -143,6 +153,12 @@ namespace A305.Npc
 
         public bool IsSeated => seat != null;
 
+        /// <summary>
+        /// 교대 밖(쉬는 시간·퇴근)이라 일하지 않는 직원인지. 먼저 다가와 제안하지 않고, 플레이어가 먼저 말을 걸면 일상 대화로 이어진다.
+        /// 행인과 첫날 미션이 찾아가라고 한 NPC는 false다.
+        /// </summary>
+        public bool IsOffDuty => life != null && NpcDuty.IsOffDuty(npcCode, role, life.Activity);
+
         private void Awake()
         {
             body = GetComponent<Passerby>();
@@ -150,8 +166,9 @@ namespace A305.Npc
             animationDriver = GetComponent<CharacterAnimationDriver>();
             path = new NavMeshPath();
 
+            npcCode = GetComponent<NpcIdentity>().Code;
             NpcLifeData data = lifeData != null ? NpcLifeData.Parse(lifeData.text) : null;
-            NpcLifeEntry entry = data?.FindNpc(GetComponent<NpcIdentity>().Code);
+            NpcLifeEntry entry = data?.FindNpc(npcCode);
             if (entry == null)
             {
                 // 생활 데이터가 없는 NPC는 전처럼 제자리로 돌아간다.
@@ -159,12 +176,14 @@ namespace A305.Npc
                 return;
             }
 
+            role = entry.Role;
             life = new NpcLife(data, entry, GameClock.Shared.Minutes);
             UseLifeAnimator();
         }
 
         private void OnEnable()
         {
+            Living.Add(this);
             if (hasStarted)
                 RefreshSceneObjects();
         }
@@ -186,6 +205,7 @@ namespace A305.Npc
             spotAction = null;
             hasRoute = false;
             hasCounter = false;
+            counter = null;
             lookingAround = false;
             lookAroundTarget = null;
             CollectSceneObjects();
@@ -194,6 +214,7 @@ namespace A305.Npc
 
         private void OnDisable()
         {
+            Living.Remove(this);
             StandUp();
         }
 
@@ -220,12 +241,18 @@ namespace A305.Npc
         }
 
         /// <summary>
-        /// 먼저 다가와 제안해도 되는지. 카운터를 맡은 직원은 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 제안한다.
-        /// 그 밖의 곳에서는 플레이어가 먼저 [말 걸기]로 대화할 수 있다.
+        /// 먼저 다가와 제안해도 되는지. 교대 밖의 직원은 제안하지 않는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고
+        /// 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 제안한다. 그 밖에는 플레이어가 먼저 [말 걸기]로 대화할 수 있다.
         /// </summary>
         internal bool CanOfferTo(Vector3 playerPosition)
         {
-            return !hasCounter || (IsCustomerAtCounter(playerPosition) && IsAtPost());
+            if (IsOffDuty)
+            {
+                return false;
+            }
+
+            return !hasCounter
+                || (ServesCounter() && IsCustomerAtCounter(playerPosition) && IsAtPost());
         }
 
         /// <summary>다가오지 않는 동안(기다림·쉬기) <see cref="Passerby"/>가 매 프레임 부른다.</summary>
@@ -246,7 +273,7 @@ namespace A305.Npc
         {
             double now = GameClock.Shared.Minutes;
             life.Advance(now);
-            if (hasCounter && IsCustomerAtCounter(playerPosition))
+            if (ServesCounter() && IsCustomerAtCounter(playerPosition))
             {
                 ServeAtCounter(playerPosition);
                 return;
@@ -379,6 +406,32 @@ namespace A305.Npc
             return false;
         }
 
+        // 같은 카운터를 맡은 직원 중 지금 응대할 한 명인지. 근무 중이 아니면 카운터를 맡지 않고, 다른 직원은 하던 일을 계속한다.
+        private bool ServesCounter()
+        {
+            if (!hasCounter || IsOffDuty)
+            {
+                return false;
+            }
+
+            CounterPosts.Clear();
+            foreach (NpcRoutine other in Living)
+            {
+                if (other.hasCounter && other.counter == counter)
+                {
+                    CounterPosts.Add(
+                        new CounterPost(
+                            other.npcCode,
+                            !other.IsOffDuty,
+                            other.postMetersFromCounter
+                        )
+                    );
+                }
+            }
+
+            return NpcDuty.PickServer(CounterPosts) == npcCode;
+        }
+
         private bool IsCustomerAtCounter(Vector3 playerPosition)
         {
             Vector3 closest = counterBounds.ClosestPoint(
@@ -414,7 +467,9 @@ namespace A305.Npc
                     {
                         nearest = distance;
                         hasCounter = true;
+                        counter = candidate;
                         counterBounds = bounds;
+                        postMetersFromCounter = distance;
                     }
                 }
             }

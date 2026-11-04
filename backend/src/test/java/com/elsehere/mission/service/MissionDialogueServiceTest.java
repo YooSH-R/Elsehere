@@ -9,6 +9,7 @@ import com.elsehere.ai.client.WorkerState;
 import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
 import com.elsehere.mission.repository.TownStoryRepository;
+import com.elsehere.world.repository.NpcRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,9 @@ class MissionDialogueServiceTest {
     TownStoryRepository stories = mock(TownStoryRepository.class);
     when(stories.findById(8L)).thenReturn(Optional.of(story));
     when(stories.findForUpdate(8L)).thenReturn(Optional.of(story));
-    TownStoryService town = new TownStoryService(stories, mock(FirstDayMissionRepository.class));
+    TownStoryService town =
+        new TownStoryService(
+            stories, mock(FirstDayMissionRepository.class), mock(NpcRepository.class));
     MissionDialogueService missions =
         new MissionDialogueService(mock(FirstDayMissionService.class), town);
     var context = missions.context(8L, "DINER_STAFF").orElseThrow();

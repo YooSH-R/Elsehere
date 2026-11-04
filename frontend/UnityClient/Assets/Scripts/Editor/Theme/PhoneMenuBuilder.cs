@@ -18,6 +18,7 @@ namespace A305.EditorTools.Theme
     public static class PhoneMenuBuilder
     {
         private const string MenuPath = "Tools/A305/UI/Apply Phone Menu";
+        private const string JourneyTextMenuPath = "Tools/A305/UI/Apply Phone Quest Text Fit";
         private const string HudPrefabPath = "Assets/Prefabs/Learning/LearningHud.prefab";
         private const string ArtFolder = "Assets/Art/UI/Phone";
         private const string DisplayFontPath = "Assets/Art/UI/Fonts/Jua-Regular SDF.asset";
@@ -74,6 +75,20 @@ namespace A305.EditorTools.Theme
         public static void ApplyToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(HudPrefabPath, Apply);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>폰을 다시 만들지 않고 퀘스트 위젯 안내 글자만 한 줄에 맞게 바꾼다.</summary>
+        [MenuItem(JourneyTextMenuPath)]
+        public static void ApplyJourneyTextFitToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                HudPrefabPath,
+                root =>
+                    FitDirection(
+                        root.transform.Find("Panel/Menu/Journey/Direction").GetComponent<TMP_Text>()
+                    )
+            );
             AssetDatabase.SaveAssets();
         }
 
@@ -203,7 +218,7 @@ namespace A305.EditorTools.Theme
             Clear(BuilderTools.GetOrAddComponent<Image>(phone.gameObject)).raycastTarget = true;
         }
 
-        // 상태 표시줄 시각, 큰 시각, 날짜, 여행 예산 숫자
+        // 상태 표시줄 시각, 큰 시각, 날짜, 코인 숫자
         private static void LockScreen(PhoneMenuView view, RectTransform phone)
         {
             TMP_Text status = Text(
@@ -264,7 +279,7 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "budget", amount);
         }
 
-        // 오늘의 여정 카드: 시안에서 잘라 낸 카드 그림(화면 폭, 폰 기준 y 150~450) 위에 단계 칩 글자·할 일·진행 칸
+        // 퀘스트 위젯 카드: 시안에서 잘라 낸 카드 그림(화면 폭, 폰 기준 y 150~450) 위에 단계 칩 글자·할 일·진행 칸
         private static void Journey(PhoneMenuView view, RectTransform phone)
         {
             const float CardLeft = 12;
@@ -303,7 +318,7 @@ namespace A305.EditorTools.Theme
                 312,
                 27.6f
             );
-            direction.overflowMode = TextOverflowModes.Ellipsis;
+            FitDirection(direction);
             // 진행 칸 그림은 빛 번짐 자리(사방 12px)를 품고 있어, 칸 사이 6px에서 그만큼 겹쳐 놓는다.
             RectTransform steps = Rect(
                 "Steps",
@@ -329,6 +344,15 @@ namespace A305.EditorTools.Theme
             BuilderTools.SetReference(view, "upcomingMark", Art("PhoneStepUpcoming"));
             BuilderTools.SetReference(view, "currentMark", Art("PhoneStepCurrent"));
             BuilderTools.SetReference(view, "doneMark", Art("PhoneStepDone"));
+        }
+
+        // 다 끝낸 뒤의 안내처럼 길면 글자를 줄여(23 → 17) 한 줄에 넣는다. 그래도 넘치면 끝을 줄임표로 줄인다.
+        private static void FitDirection(TMP_Text direction)
+        {
+            direction.enableAutoSizing = true;
+            direction.fontSizeMin = 17 * Px;
+            direction.fontSizeMax = 23 * Px;
+            direction.overflowMode = TextOverflowModes.Ellipsis;
         }
 
         // 앱 다섯 개. 아이콘은 폰 그림에 들어 있고, 버튼은 시안의 앱 칸을 누르는 투명한 영역과 이름 글자다.

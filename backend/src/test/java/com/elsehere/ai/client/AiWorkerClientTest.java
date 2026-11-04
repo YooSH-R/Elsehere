@@ -597,6 +597,40 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("건넬 것 판정은 끝난 대화를 보내고 건넬 것과 사용량을 읽는다")
+  void followUp_sendsHistoryAndReadsItemAndUsage() {
+    respond(
+        "/v1/npc/follow-up",
+        200,
+        "application/json",
+        """
+        {"follow_up": {"item": "iced latte", "item_ko": "아이스 라테", "wait": "QUICK"},
+         "usage": [{"step": "follow_up", "model": "m1", "input_tokens": 300, "output_tokens": 20}]}
+        """);
+
+    FollowUpResult result =
+        client.followUp(
+            TRACE, NPC, List.of(WorkerLine.learner("One iced latte, please.", null, false)));
+
+    assertThat(result.followUp()).isEqualTo(new WorkerFollowUp("iced latte", "아이스 라테", "QUICK"));
+    assertThat(result.usage()).extracting(WorkerUsage::step).containsExactly("follow_up");
+    assertThat(received.get("/v1/npc/follow-up").body())
+        .contains("\"npc\":{\"id\":\"CAFE_STAFF\"")
+        .contains("\"text\":\"One iced latte, please.\"");
+  }
+
+  @Test
+  @DisplayName("건넬 것이 없으면 판정 결과의 건넬 것이 비어 있다")
+  void followUp_nothingOwed_isEmpty() {
+    respond("/v1/npc/follow-up", 200, "application/json", "{\"follow_up\": null, \"usage\": []}");
+
+    FollowUpResult result =
+        client.followUp(TRACE, NPC, List.of(WorkerLine.learner("Where is the bank?", null, false)));
+
+    assertThat(result.followUp()).isNull();
+  }
+
+  @Test
   @DisplayName("관계 갱신에 실패하면 워커 오류 코드로 던진다")
   void relationship_error_throwsMappedCode() {
     respond("/v1/npc/relationship", 503, "text/html", "<html>Bad gateway</html>");

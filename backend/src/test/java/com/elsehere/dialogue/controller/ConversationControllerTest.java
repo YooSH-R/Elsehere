@@ -39,6 +39,7 @@ import com.elsehere.dialogue.service.ConversationService;
 import com.elsehere.dialogue.service.TurnService;
 import com.elsehere.feedback.dto.FeedbackResponse;
 import com.elsehere.feedback.entity.FeedbackStatus;
+import com.elsehere.followup.dto.FollowUpResponse;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -132,7 +133,8 @@ class ConversationControllerTest {
                 NPC,
                 List.of(),
                 npcTurn(10L, 1, "Hi!"),
-                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 12)));
+                new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 12),
+                7L));
 
     mockMvc
         .perform(
@@ -150,7 +152,8 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.openingTurn.speech.url").value("/api/v1/turns/10/speech"))
         .andExpect(jsonPath("$.conversation.rudeCount").value(0))
         .andExpect(jsonPath("$.conversation.rudeLimit").value(3))
-        .andExpect(jsonPath("$.conversation.affinity").value(12));
+        .andExpect(jsonPath("$.conversation.affinity").value(12))
+        .andExpect(jsonPath("$.deliveredFollowUpId").value(7));
   }
 
   @Test
@@ -298,7 +301,16 @@ class ConversationControllerTest {
                 2,
                 new FeedbackResponse(
                     FeedbackStatus.FAILED, null, null, null, "AI_TIMEOUT", List.of(), List.of()),
-                List.of()));
+                List.of(),
+                new FollowUpResponse(
+                    7L,
+                    NPC,
+                    "CAFE",
+                    "iced latte",
+                    "아이스 라테",
+                    OffsetDateTime.parse("2026-11-04T14:05:45+09:00"),
+                    45,
+                    false)));
 
     mockMvc
         .perform(
@@ -309,7 +321,11 @@ class ConversationControllerTest {
         .andExpect(jsonPath("$.status").value("ENDED_BY_USER"))
         .andExpect(jsonPath("$.userTurnCount").value(2))
         .andExpect(jsonPath("$.feedback.status").value("FAILED"))
-        .andExpect(jsonPath("$.feedback.errorCode").value("AI_TIMEOUT"));
+        .andExpect(jsonPath("$.feedback.errorCode").value("AI_TIMEOUT"))
+        .andExpect(jsonPath("$.followUp.followUpId").value(7))
+        .andExpect(jsonPath("$.followUp.itemKo").value("아이스 라테"))
+        .andExpect(jsonPath("$.followUp.remainingSeconds").value(45))
+        .andExpect(jsonPath("$.followUp.ready").value(false));
   }
 
   @Test
@@ -358,7 +374,8 @@ class ConversationControllerTest {
         NPC,
         List.of(),
         npcTurn(10L, 1, "Hi!"),
-        new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 0));
+        new ConversationStateResponse(ConversationStatus.ACTIVE, null, 0, 3, 0),
+        null);
   }
 
   private static NpcTurnResponse npcTurn(Long turnId, int seq, String text) {

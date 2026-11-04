@@ -10,8 +10,9 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 피드백을 열자마자 보이는 요약 탭에 이 상황에서 자주 쓰는 표현을 한 번에 보여 주고, 표현마다 바로 담을 수 있는지 확인한다.
-    /// 회화 탭을 눌러 한 장씩 넘겨야 보이면 잘 와닿지 않는다.
+    /// 피드백을 열자마자 보이는 요약 탭에 이 상황에서 자주 쓰는 표현을 보여 주고, 표현마다 바로 담을 수 있는지 확인한다.
+    /// 회화 탭을 눌러 한 장씩 넘겨야 보이면 잘 와닿지 않는다. 아래 대화 요약 자리가 남도록 표현은 두 개씩 보이고
+    /// 나머지는 제목 옆 쪽 넘김으로 넘긴다(FeedbackSummaryPagingTests).
     /// </summary>
     public class FeedbackSituationRowsTests
     {
@@ -40,12 +41,12 @@ namespace A305.Learning.Tests
         public void DestroyScreen() => Object.DestroyImmediate(instance);
 
         [Test]
-        public void SummaryTab_ShowsEverySituationExpressionAtOnce()
+        public void SummaryTab_ShowsTheFirstTwoSituationExpressions()
         {
             Show(Expressions);
 
             List<GameObject> rows = Rows();
-            Assert.That(rows, Has.Count.EqualTo(3));
+            Assert.That(rows, Has.Count.EqualTo(2));
             for (int i = 0; i < rows.Count; i++)
             {
                 string text = Texts(rows[i]);

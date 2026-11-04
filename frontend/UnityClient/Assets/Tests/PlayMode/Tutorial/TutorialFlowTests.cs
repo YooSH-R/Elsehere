@@ -686,10 +686,38 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator BenDialogue_SpeaksHisLinesInBensVoice()
+        {
+            // 길 안내는 정해진 대본이라 서버가 만드는 NPC 음성을 받지 않는다. 첫 말과 대답마다 미리 합성한 Ben 목소리를 들려준다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            DialogueServerLink voice = Single<DialogueServerLink>();
+            Assert.That(voice.HasSpeech, Is.False, "준비: 대화 전에는 음성이 없습니다.");
+
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            Assert.That(voice.HasSpeech, Is.True, "Ben의 첫 말을 들려줍니다.");
+
+            yield return FinishTour(Single<CoachMarkView>());
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            DialogueController dialogue = Single<DialogueController>();
+            while (!dialogue.IsGuidedCompleted)
+            {
+                Click(panel, "ExampleButton");
+                Click(panel, "SendButton");
+                yield return null;
+                Assert.That(voice.HasSpeech, Is.True, "Ben의 대답을 들려줍니다.");
+            }
+        }
+
+        [UnityTest]
         public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
         {
             // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,
-            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 화살표 줄만 밝힌다.
+            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 "이 상황에서 자주 써요" 제목 옆 쪽 넘김만 밝힌다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -722,10 +750,20 @@ namespace A305.Tutorial.PlayModeTests
                 Is.False,
                 "[건너뛰기] 카드가 대화 노트 창을 덮습니다."
             );
+            // 요약 탭은 이 상황에서 자주 쓰는 표현 칸 아래 따뜻한 칸에 대화 요약을 보인다.
+            // 표현 칸이 자리를 다 차지해 요약이 한 줄도 들어가지 않으면 빈 칸만 남는다.
+            TMP_Text summary = feedback
+                .PageCardRect.GetComponentsInChildren<TMP_Text>()
+                .Single(text => text.text.Contains("이야기를 나눴어요"));
+            Assert.That(
+                summary.rectTransform.rect.height,
+                Is.GreaterThanOrEqualTo(summary.GetPreferredValues("가").y),
+                "대화 요약이 들어갈 자리가 없습니다."
+            );
             RectTransform[][] tour =
             {
                 new[] { feedback.SectionRowRect, feedback.PageCardRect },
-                new[] { feedback.NavigationRowRect },
+                new[] { feedback.SituationPagerRect },
             };
             foreach (RectTransform[] targets in tour)
             {

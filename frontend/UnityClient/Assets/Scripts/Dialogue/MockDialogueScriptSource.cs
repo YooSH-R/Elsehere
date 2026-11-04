@@ -1295,6 +1295,11 @@ namespace A305.Dialogue
             public string english;
             public string korean;
 
+            [Tooltip(
+                "이 대사를 NPC 목소리로 미리 합성한 음성(WAV 바이트). 있으면 대본 대화에서도 대사와 함께 들려준다. ai/tools/synthesize_script_lines.py로 만든다."
+            )]
+            public TextAsset voice;
+
             public LineEntry() { }
 
             public LineEntry(string english, string korean)
@@ -1305,7 +1310,11 @@ namespace A305.Dialogue
 
             public DialogueLine ToLine()
             {
-                return DialogueLine.FromNpc(english, korean);
+                return DialogueLine.FromNpc(
+                    english,
+                    korean,
+                    speech: voice != null ? voice.bytes : null
+                );
             }
         }
 

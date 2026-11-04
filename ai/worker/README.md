@@ -143,6 +143,19 @@ NPC가 첫 대사를 먼저 하고 이후 한 줄마다 대답합니다. 턴마�
 - 크레딧은 `llm_profiles.json`의 단가로 계산하며, 같은 요청을 하나 더 보낸 턴은 진 쪽 토큰이 빠져 실제 차감이 더 클 수 있다고 표시합니다.
 - 입력을 파이프로 넘기면 줄마다 한 턴씩 말합니다 (`Get-Content lines.txt | .venv/Scripts/python ../tools/npc_chat.py`).
 
+## NPC 막다른 거절·지어내기 평가
+
+공통 규칙이나 마을 안내, 인격 카드를 고친 뒤 NPC가 손님 요청을 "잘 모르겠다"로 막지 않는지, 마을에 없는 곳이나 가격을 지어내지 않는지 잽니다. 게임 대답 경로(`/v1/npc/reply`, 인격 카드 + 백엔드 시드의 페르소나)로 대답을 만들고 판정 모델이 채점합니다.
+
+```bash
+.venv/Scripts/python ../tools/npc_help_eval.py --runs 3 --out ../tools/results/npc_help.jsonl
+.venv/Scripts/python ../tools/npc_help_eval.py --rejudge ../tools/results/npc_help.jsonl   # 채점 기준만 고쳤을 때
+```
+
+- 테스트셋은 `ai/tools/npc_help_eval/cases.json`입니다. `help` 줄은 막다른 거절을, 모든 줄은 알 만한 걸 모름과 지어내기를 셉니다.
+- 줄마다 대답 하나에 한 글자(`X` 막다른 거절, `?` 알 만한 걸 모름, `F` 지어내기, `.` 통과)를 찍습니다. 판정 모델은 보조 채점이라 대답 원문(`--out`)도 읽어 봅니다.
+- 실제 모델을 부르므로 팀 공용 GMS 크레딧을 씁니다. 한 줄씩 순서대로 보냅니다.
+
 ## NPC 인격 모델 (자동 생성)
 
 `app/npc_profile_models.py`는 백엔드와 함께 쓰는 공통 인격 스키마([`npc_shared_schemas_v2.json`](../../docs/api/npc-ai-contracts/npc_shared_schemas_v2.json))에서 만든 Pydantic 모델입니다. 직접 고치지 말고 스키마를 고친 뒤 다시 만듭니다. 커밋한 파일이 지금 스키마로 만든 결과와 다르면 테스트가 실패합니다.
@@ -221,6 +234,16 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - Whisper 영어 정규화로 숫자·축약 표기를 맞추고, 곡선 따옴표와 붙여 쓰기·띄어 쓰기 차이(haircut ↔ hair cut)는 틀린 것으로 세지 않습니다.
 - Whisper는 어색한 발음도 맞게 받아쓰기 쉽습니다. 예를 들어 읽을 글 다듬기(`app/speech_text.py`)를 넣기 전 Kokoro는 `$4`를 "dollar four"로 읽었는데, Whisper는 이를 `$4`로 받아썼습니다. 그래서 틀린 곳이 없다고 바르게 읽었다는 뜻은 아닙니다. 틀린 곳이 나온 문장은 wav를 직접 들어 확인합니다.
 
+## 대본 대사 음성 미리 만들기
+
+튜토리얼 Ben 길 안내처럼 서버를 거치지 않는 Unity 대본 대사도 NPC 목소리로 들려주려고, 워커와 같은 합성(`app.tts.Kokoro`: 읽기 규칙·발음 사전·입 모양 타이밍)으로 WAV를 미리 만듭니다. 모델은 `ai/tools/prepare_kokoro.py`로 받은 고정 파일을 씁니다. 만든 파일은 Unity 에셋(`<이름>.bytes`)으로 넣고 대본에 잇습니다([Unity Dialogue 모듈](../../frontend/UnityClient/Assets/Scripts/Dialogue/README.md)).
+
+```bash
+ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모델 폴더> --voice am_fenrir --speed 0.85 \
+  --out frontend/UnityClient/Assets/Audio/Dialogue/TutorialBen \
+  --line "Opening=Excuse me! Could you tell me how to get to the café?" --line "Reply1=Straight ahead? And then where should I go?"
+```
+
 ## 검사
 
 ```bash
@@ -262,6 +285,7 @@ ai/worker/.venv/Scripts/python ai/tools/tts_roundtrip.py synth --model <kokoro-v
 - `tests/test_npc_life_export.py`: Unity 생활 데이터 내보내기(`ai/tools/npc_life_export.py`) — 생활 파일이 있는 NPC 모두, 역할·장소와 교대로 계산한 일과, 성격 배수(없는 욕구는 1), 공통 규칙과 할 일 기준을 그대로, 장소별 영업시간(규칙 순서, 영업시간이 없으면 `alwaysOpen`), 커밋한 `NpcLife.json`·`PlaceHours.json`이 다시 내보낸 것과 같은지
 - `tests/test_npc_simulate.py`: 하루 시뮬레이션(`ai/tools/npc_simulate.py`) — 욕구 감소 배수, 가장 급한 욕구를 채울 행동, 근무 중에는 일만, 다른 역할의 행동 제외, 부탁 발생(하루 한 번)·자기 장소 심부름 제외·퇴근 중 제외. 서비스 데이터로 Jake의 근무 중 머핀 부탁·Mia는 부탁 없음·Ben의 오후 말 걸기, 튜토리얼을 마치기 전 안내 NPC(Ben)는 생활·부탁 없음(다른 NPC는 평소대로), 알아봄 단계에 닿는 대화 수, 기억 떠올림, 명령줄 출력
 - `tests/test_npc_life_rules.py`: NPC 생활·관계 공통 규칙(`ai/npcs/rules/world-rules.json`, 설계는 [docs/npc-life-design.md](../../docs/npc-life-design.md)) — 원본 스키마 통과, 빠진 욕구·없는 욕구·감정·사건, 범위 밖 값을 어긴 위치로 알려 주기, 행동에 쓰는 사물이 그 장소에 배치된 사물 단어인지, 어느 역할이 어느 교대를 맡아도 하루를 채우는지(교대에 들어가지 않는 휴식은 역할·교대와 함께 알림)와 일과표의 빈 시간·겹침·자정 넘김, 장소별 영업시간 동안 맡은 교대가 없는 시간·영업시간 밖 교대(자정을 넘는 영업시간 포함), 10:00~18:00 카페 2명·호텔 3명·경찰서 2명·마을 행인 4명이 함께 있는지와 모자란 시간, 경찰서는 하루 내내 1명 이상. NPC별 생활 파일(`ai/npcs/life/<npcId>.json`) — 서비스 NPC가 입력 노드(MBTI·역할·근무지·교대)만 가짐, NPC마다 맡은 교대, 스키마가 막는 값(손으로 적는 생활 값, 빠진 교대 포함), 파일 이름과 `npcId`, 인격 파일과의 짝, 공통 규칙에 없는 근무지·그 근무지에 없는 교대, 스키마를 어긴 파일은 스키마 오류만, 튜토리얼 안내 NPC는 Ben 하나. 행동 조각 모음(`ai/npcs/rules/behaviors.json`) — 원본 스키마 통과, 스키마가 막는 값, id 중복, 없는 조각·자기 자신과의 충돌 표시, 성격 축 양쪽마다 고를 조각 수
+- `tests/test_npc_reply_profile.py`의 마을 안내·규칙 확인: 인격이 있는 서비스 NPC 모두 같은 마을 안내(카페·드럭스토어·다이너·경찰서, 그 밖의 곳은 없음)를 받고, 공통 규칙이 "잘 모르겠다고 하라" 대신 구체적인 다음 길을 주라고 함
 - `tests/test_npc_prompt.py`: NPC 시스템 프롬프트 — 인격 부분(프로필 칸이 스키마 순서대로 한 줄씩, 생략·빈 칸은 줄째로 빠짐, Big Five 수치는 설정됐을 때만 상대값으로, 값 안의 줄바꿈이 새 부분을 열지 못함), 다섯 부분 순서(규칙·인격·상황·학습 수준·이번 턴), 주어진 사실만, 학습 수준 6단계 → 규칙 3묶음, 첫 대사는 시스템 프롬프트만·응답 턴은 이력 역할과 사용자 발화 마지막(계약 추론 요청 예시로)
 - `tests/test_npc_reply_profile.py`: 게임 대화 경로(`/v1/npc/reply`)의 인격 — 인격이 없으면 지금 지시문 그대로, 백엔드 인격 설정(`content/npc-configurations.json`)의 3명이 대답의 Character가 됨, 다섯 부분 순서, 인격이 있어도 장소·사실·기억·난이도·백엔드 지시가 들어감, 난이도 규칙이 말투를 정하지 않음, 스키마 밖 인격은 400, 힌트 등 다른 요청도 같은 npc를 받음
 - `tests/test_npc_relationship.py`: 관계 계산(`app/npc_relationship.py`) — 알아봄은 여유 날 뒤 하루씩 줄고 대화마다 갈수록 덜 오름(NPC 배수), 인상은 사건 한 번씩·무례 제외·목록 밖 버림, 무례 한 번의 감점(인상 × 따라가는 비율 × 반응 크기)과 같은 값의 기본값, 줄마다 새 사건만큼 바로 오르는 호감(반복한 사건은 0, 반응 크기 곱함), 줄마다 더한 합이 대화 전체 인상과 같음, 대화 뒤에는 알아봄만 정수 변화량, 오래 안 오면 알아봄 변화량이 음수, 처음 만남, 인격 카드로 계산한 배수가 생활 파일로 계산한 값과 같음, 지금 상태(처음 봄·본 적 있음·단골, 오래 안 오면 다시 낯섦, 좋아함·싫어함, 사적인 이야기, 무례 뒤 짜증과 성격별 지속, 사과하면 짜증이 줄어듦, 칭찬 뒤 좋은 기분, 잡담은 이어질 때만, 무례 줄의 다른 사건 버림, 함께면 더 큰 기분만), 잡담·사적인 질문은 호감을 움직이지 않음, 정수로 저장해도 호감이 쌓이는 대화 수

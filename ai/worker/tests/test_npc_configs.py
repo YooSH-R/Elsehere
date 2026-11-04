@@ -44,6 +44,9 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
         "CAFE_SERVER",
         "CAFE_STAFF",
         "DINER_STAFF",
+        "FIRE_CAPTAIN",
+        "FIRE_FIGHTER",
+        "FIRE_ROOKIE",
         "FLOWER_SHOP_STAFF",
         "HOME_STORE_STAFF",
         "HOTEL_BELLHOP",
@@ -53,6 +56,9 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
         "HOTEL_STAFF",
         "LAUNDROMAT_STAFF",
         "POLICE_OFFICER",
+        "POLICE_PATROL_OFFICER",
+        "POLICE_ROOKIE",
+        "POLICE_SERGEANT",
         "POST_OFFICE_STAFF",
         "SHOP_NIGHT_CLERK",
         "SHOP_PHARMACIST",
@@ -292,6 +298,9 @@ def test_the_service_npcs_each_have_a_service_scenario():
         "CAFE_SERVER": "cafe_counter",
         "CAFE_STAFF": "cafe_counter",
         "DINER_STAFF": "diner_counter",
+        "FIRE_CAPTAIN": "town_street",
+        "FIRE_FIGHTER": "town_street",
+        "FIRE_ROOKIE": "town_street",
         "FLOWER_SHOP_STAFF": "flower_shop_counter",
         "HOME_STORE_STAFF": "home_store",
         "HOTEL_BELLHOP": "hotel_front_desk",
@@ -301,6 +310,9 @@ def test_the_service_npcs_each_have_a_service_scenario():
         "HOTEL_STAFF": "hotel_front_desk",
         "LAUNDROMAT_STAFF": "laundromat",
         "POLICE_OFFICER": "police_front_desk",
+        "POLICE_PATROL_OFFICER": "police_front_desk",
+        "POLICE_ROOKIE": "police_front_desk",
+        "POLICE_SERGEANT": "police_front_desk",
         "POST_OFFICE_STAFF": "post_office_counter",
         "SHOP_NIGHT_CLERK": "drugstore_counter",
         "SHOP_PHARMACIST": "drugstore_counter",
@@ -340,6 +352,9 @@ def test_the_service_npcs_each_have_a_voice_that_fits_the_character():
         "CAFE_SERVER": "am_liam",  # Leo: 붙임성 좋은 20대 남자. 이발소 Tony와 같은 목소리(다른 곳)
         "CAFE_STAFF": "af_heart",  # Mia: 밝은 여자
         "DINER_STAFF": "af_bella",  # Rosa: 다정하고 수다스러운 여자
+        "FIRE_CAPTAIN": "am_adam",  # Ray: 느긋하고 믿음직한 40대 남자. 빨래방 Gus와 같은 목소리(다른 곳)
+        "FIRE_FIGHTER": "af_alloy",  # Rachel: 시원시원한 30대 여자
+        "FIRE_ROOKIE": "am_echo",  # Andre: 밝은 20대 남자. 호텔 Jake와 같은 목소리(다른 곳)
         "FLOWER_SHOP_STAFF": "af_nicole",  # Lily: 다정하고 수줍은 여자
         "HOME_STORE_STAFF": "af_sky",  # Nina: 차분하고 센스 있는 여자
         "HOTEL_BELLHOP": "am_puck",  # Diego: 밝고 수다스러운 20대 남자. 택시 Joe와 같은 목소리(다른 곳)
@@ -349,6 +364,9 @@ def test_the_service_npcs_each_have_a_voice_that_fits_the_character():
         "HOTEL_STAFF": "am_echo",  # Jake: 또렷하고 밝은 남자
         "LAUNDROMAT_STAFF": "am_adam",  # Gus: 느긋하고 농담을 좋아하는 남자
         "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
+        "POLICE_PATROL_OFFICER": "am_michael",  # Kevin: 다정한 30대 남자. 드럭스토어 Alex와 같은 목소리(다른 곳)
+        "POLICE_ROOKIE": "bm_fable",  # Tyler: 긴장한 20대 남자(영국식). 오락실 Max와 같은 목소리(다른 곳)
+        "POLICE_SERGEANT": "am_onyx",  # Victor: 낮은 목소리의 40대 남자. 드럭스토어 Samuel과 같은 목소리(다른 곳)
         "POST_OFFICE_STAFF": "af_sarah",  # Linda: 꼼꼼하고 원칙을 지키는 여자
         "SHOP_NIGHT_CLERK": "am_onyx",  # Samuel: 낮은 목소리의 중년 남자
         "SHOP_PHARMACIST": "af_kore",  # Hannah: 차분하고 세심한 중년 여자

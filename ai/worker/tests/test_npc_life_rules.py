@@ -165,10 +165,18 @@ def service_lives() -> list[dict]:
     return [json.loads(path.read_text(encoding="utf-8")) for path in sorted(npc_life_rules.LIFE_FOLDER.glob("*.json"))]
 
 
-@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3), ("TOWN", 4)])
+@pytest.mark.parametrize(("workplace", "at_least"), [("CAFE", 2), ("HOTEL", 3), ("POLICE_STATION", 2), ("TOWN", 4)])
 def test_busy_daytime_has_enough_npcs_on_shift_at_once(workplace, at_least):
-    """10:00~18:00에는 카페 2명·호텔 3명이 함께 일하고 마을에 행인 4명이 나와 있다. 맡은 교대 시간으로 센다(쉬는 시간 포함)."""
+    """10:00~18:00에는 카페 2명·호텔 3명·경찰서 2명이 함께 일하고 마을에 행인 4명이 나와 있다. 맡은 교대 시간으로 센다(쉬는 시간 포함)."""
     assert npc_life_rules.understaffed(service_lives(), load_world_rules(), workplace, BUSY_HOURS, at_least) == []
+
+
+def test_the_police_station_always_has_an_officer_on_shift():
+    """경찰서는 24시간 연다. 낮·저녁·야간 교대가 이어져 언제나 한 명 이상 근무한다."""
+    whole_day = {"from": "00:00", "to": "00:00"}
+
+    assert "hours" not in load_world_rules()["places"]["POLICE_STATION"]
+    assert npc_life_rules.understaffed(service_lives(), load_world_rules(), "POLICE_STATION", whole_day, 1) == []
 
 
 def test_too_few_npcs_on_shift_at_once_is_reported_with_the_time():
@@ -210,6 +218,9 @@ def test_every_service_npc_has_a_life_file_without_problems():
         "CAFE_SERVER",
         "CAFE_STAFF",
         "DINER_STAFF",
+        "FIRE_CAPTAIN",
+        "FIRE_FIGHTER",
+        "FIRE_ROOKIE",
         "FLOWER_SHOP_STAFF",
         "HOME_STORE_STAFF",
         "HOTEL_BELLHOP",
@@ -219,6 +230,9 @@ def test_every_service_npc_has_a_life_file_without_problems():
         "HOTEL_STAFF",
         "LAUNDROMAT_STAFF",
         "POLICE_OFFICER",
+        "POLICE_PATROL_OFFICER",
+        "POLICE_ROOKIE",
+        "POLICE_SERGEANT",
         "POST_OFFICE_STAFF",
         "SHOP_NIGHT_CLERK",
         "SHOP_PHARMACIST",
@@ -259,9 +273,15 @@ def test_every_service_npc_works_its_own_shift():
         "BAKERY_STAFF": ("BAKERY", "ALL_DAY"),
         "ARCADE_STAFF": ("ARCADE", "ALL_DAY"),
         "HOME_STORE_STAFF": ("HOME_STORE", "ALL_DAY"),
-        "POLICE_OFFICER": ("POLICE_STATION", "ALL_DAY"),
+        "POLICE_OFFICER": ("POLICE_STATION", "DAY"),
+        "POLICE_ROOKIE": ("POLICE_STATION", "MIDDAY"),
+        "POLICE_PATROL_OFFICER": ("POLICE_STATION", "EVENING"),
+        "POLICE_SERGEANT": ("POLICE_STATION", "NIGHT"),
         "TAXI_DRIVER": ("TAXI", "ALL_DAY"),
         "TOWN_RETIREE": ("TOWN", "MORNING"),
+        "FIRE_CAPTAIN": ("TOWN", "MORNING"),
+        "FIRE_FIGHTER": ("TOWN", "AFTERNOON"),
+        "FIRE_ROOKIE": ("TOWN", "EVENING"),
         "TOWN_PASSERBY": ("TOWN", "DAY"),
         "TOWN_SHOPPER": ("TOWN", "MIDDAY"),
         "TOWN_HANDYMAN": ("TOWN", "MIDDAY"),

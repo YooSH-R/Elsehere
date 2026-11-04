@@ -490,6 +490,60 @@ def test_handyman_frank_keeps_the_persona_direction():
     assert rates["salienceBonus"]["TASK_DONE"] >= 1
 
 
+def test_sergeant_victor_keeps_the_persona_direction():
+    """인격: 야간 당직을 지키는 침착한 경사, 말이 짧고 직설적, 무례에도 흔들리지 않음."""
+    rates = derived_from_life_file("POLICE_SERGEANT")
+
+    assert rates["eventScale"]["RUDE"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["needRates"]["SOCIAL"] < 1
+
+
+def test_patrol_officer_kevin_keeps_the_persona_direction():
+    """인격: 동네 사람을 잘 아는 다정한 순찰 경찰, 사과하면 금방 풀림."""
+    rates = derived_from_life_file("POLICE_PATROL_OFFICER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["APOLOGY"] > 1
+
+
+def test_police_rookie_tyler_keeps_the_persona_direction():
+    """인격: 규칙대로 하려는 긴장한 신입, 잡담은 짧게, 맡은 일을 해내면 오래 기억함."""
+    rates = derived_from_life_file("POLICE_ROOKIE")
+
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["salienceBonus"]["TASK_DONE"] >= 1
+    assert rates["recognitionRate"] > 1
+
+
+def test_fire_captain_ray_keeps_the_persona_direction():
+    """인격: 사람 좋은 소방 대장, 잡담보다 요점, 낯선 사람에게 사적인 이야기는 하지 않음."""
+    rates = derived_from_life_file("FIRE_CAPTAIN")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["personalTalkScale"] > 1
+
+
+def test_firefighter_rachel_keeps_the_persona_direction():
+    """인격: 활동적이고 직설적인 소방관, 쉬는 날이 길어 몸이 근질근질함, 해낸 일을 오래 기억함."""
+    rates = derived_from_life_file("FIRE_FIGHTER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["salienceBonus"]["TASK_DONE"] >= 1
+
+
+def test_fire_rookie_andre_keeps_the_persona_direction():
+    """인격: 붙임성 좋고 수다스러운 신입 소방관, 기다리는 동안 금방 지루해함."""
+    rates = derived_from_life_file("FIRE_ROOKIE")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
 # ---------------------------------------------------------------------
 # 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
 # ---------------------------------------------------------------------
@@ -503,6 +557,9 @@ SERVICE_NPCS = [
     "CAFE_SERVER",
     "CAFE_STAFF",
     "DINER_STAFF",
+    "FIRE_CAPTAIN",
+    "FIRE_FIGHTER",
+    "FIRE_ROOKIE",
     "FLOWER_SHOP_STAFF",
     "HOME_STORE_STAFF",
     "HOTEL_BELLHOP",
@@ -512,6 +569,9 @@ SERVICE_NPCS = [
     "HOTEL_STAFF",
     "LAUNDROMAT_STAFF",
     "POLICE_OFFICER",
+    "POLICE_PATROL_OFFICER",
+    "POLICE_ROOKIE",
+    "POLICE_SERGEANT",
     "POST_OFFICE_STAFF",
     "SHOP_NIGHT_CLERK",
     "SHOP_PHARMACIST",

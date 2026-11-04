@@ -100,15 +100,6 @@ namespace A305.EditorTools.Npc
                 bold,
                 240f
             );
-            // 버튼 줄 아래의 글자 링크. 모양은 UiThemeBuilder가 바탕 없는 밑줄 글자로 칠한다.
-            Button survey = UiBuilderTools.FindOrCreateButton(
-                window,
-                "SurveyButton",
-                "설문 하러 가기",
-                regular
-            );
-            survey.transform.SetSiblingIndex(buttons.GetSiblingIndex() + 1);
-
             var dialogView = BuilderTools.GetOrAddComponent<GuestSignupDialogView>(root);
             BuilderTools.SetReference(
                 dialogView,
@@ -118,7 +109,6 @@ namespace A305.EditorTools.Npc
             BuilderTools.SetReference(dialogView, "dialog", overlay.gameObject);
             BuilderTools.SetReference(dialogView, "signupButton", signup);
             BuilderTools.SetReference(dialogView, "closeButton", close);
-            BuilderTools.SetReference(dialogView, "surveyButton", survey);
             BuilderTools.RequireReferences(dialogView);
             BuilderTools.SetReference(view, "signupDialog", dialogView);
         }

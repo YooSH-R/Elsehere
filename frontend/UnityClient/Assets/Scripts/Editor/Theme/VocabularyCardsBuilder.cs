@@ -15,6 +15,7 @@ namespace A305.EditorTools.Theme
     {
         private const string BookPath = "Assets/Prefabs/Learning/VocabularyScreen.prefab";
         private const string TooltipPath = "Assets/Prefabs/ObjectHover/WordTooltip.prefab";
+        private const string SolidCardPath = "Assets/Art/UI/Theme/Jelly/Card.png";
 
         [MenuItem("Tools/A305/UI/Apply Vocabulary Cards")]
         public static void Build()
@@ -100,11 +101,27 @@ namespace A305.EditorTools.Theme
                 marks[index] = mark.gameObject;
             }
             // 고른 단어의 상세(단어·뜻·[외웠어요]·[삭제]·저장한 문장·메모)를 한 장의 카드 위에 모아 목록과 구분한다.
+            // 테마의 유리 카드는 뒤 장면이 비쳐 글이 흐려 보이므로, 튜토리얼 말풍선과 같은 불투명한 흰 카드 그림을 깐다.
             RectTransform detailsCard = Rect(content, "DetailsCard");
             Position(detailsCard, 332, -16, 644, 410);
             detailsCard.SetAsFirstSibling();
-            Skin(detailsCard, UiThemeRole.Card);
-            detailsCard.GetComponent<Image>().raycastTarget = false;
+            foreach (
+                var glass in new Component[]
+                {
+                    detailsCard.GetComponent<ThemedElement>(),
+                    detailsCard.GetComponent<SurfaceBleed>(),
+                }
+            )
+            {
+                if (glass != null)
+                    Object.DestroyImmediate(glass);
+            }
+            Image detailsCardImage = BuilderTools.GetOrAddComponent<Image>(detailsCard.gameObject);
+            detailsCardImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SolidCardPath);
+            detailsCardImage.type = Image.Type.Sliced;
+            detailsCardImage.material = null;
+            detailsCardImage.color = Color.white;
+            detailsCardImage.raycastTarget = false;
             RectTransform details = Rect(content, "Details");
             Position(details, 354, 0, 600, 400);
             TMP_Text word = Text(details, "Word", "", 28, 0, 0, 380, 42, UiThemeRole.Title);

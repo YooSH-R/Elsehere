@@ -502,6 +502,7 @@ namespace A305.EditorTools.World
                 );
             }
 
+            NpcVisualBuilder.FitFooting(officer.GetComponent<CharacterController>());
             Passerby passerby = officer.GetComponent<Passerby>();
             BuilderTools.SetReference(passerby, "settings", OfficerSettings());
             BuilderTools.SetReference(

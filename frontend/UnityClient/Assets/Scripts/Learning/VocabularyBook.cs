@@ -37,6 +37,10 @@ namespace A305.Learning
         public IReadOnlyList<VocabularyEntry> ShownEntries =>
             ShowsLearned ? entries : entries.FindAll(entry => !entry.IsLearned);
 
+        public bool SortsAlphabetically { get; set; }
+
+        public int IndexOfFirstWordStartingWith(char letter) => -1;
+
         /// <summary>
         /// 화면이 보여 줄 상태. 보여 줄 단어가 있으면 다시 읽는 중이거나 다시 읽지 못했어도 그 단어를 보인다.
         /// 단어가 없으면 모두 외워 정리했는지, 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.

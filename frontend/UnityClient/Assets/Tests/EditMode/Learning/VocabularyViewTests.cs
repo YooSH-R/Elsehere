@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using A305.Api;
@@ -186,6 +187,46 @@ namespace A305.Learning.Tests
                 Rect("Panel/Content/Details/MemoTitle").anchoredPosition.y,
                 Is.LessThan(context.anchoredPosition.y - context.rect.height)
             );
+        }
+
+        // 머리줄 [알파벳순으로 보기]를 누르면 목록을 알파벳순으로 바꾸고 맨 왼쪽에 A~Z를 둔다. 글자를 누르면 그 글자로
+        // 시작하는 첫 단어로 가고, 단어가 없는 글자는 누를 수 없다. [최근순으로 보기]로 돌아가면 A~Z를 숨긴다.
+        [Test]
+        public async Task SortButton_ListsWordsAlphabetically_AndLettersJumpToTheirGroup()
+        {
+            await Open(new SampleApi { Words = new[] { "sofa", "apple", "latte", "Lemon" } });
+            Assert.That(Shown("Panel/Content/Letters"), Is.False, "최근순에서는 알파벳 줄이 없다");
+            Assert.That(Text("Panel/SortButton/Label"), Is.EqualTo("알파벳순으로 보기"));
+
+            Click("Panel/SortButton");
+
+            Assert.That(Text("Panel/SortButton/Label"), Is.EqualTo("최근순으로 보기"));
+            Assert.That(Shown("Panel/Content/Letters"), Is.True);
+            Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Label"), Is.EqualTo("apple"));
+            Assert.That(Text("Panel/Content/Entries/Rows/Entry3/Label"), Is.EqualTo("sofa"));
+            Assert.That(
+                Text("Panel/Content/Details/Word"),
+                Is.EqualTo("sofa"),
+                "보던 단어를 그대로 고른다"
+            );
+            Assert.That(
+                screen
+                    .transform.Find("Panel/Content/Letters/Z")
+                    .GetComponent<Button>()
+                    .interactable,
+                Is.False
+            );
+
+            Click("Panel/Content/Letters/L");
+
+            Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("latte"));
+            Assert.That(Text("Panel/Content/Page"), Is.EqualTo("2 / 4"));
+
+            Click("Panel/SortButton");
+
+            Assert.That(Shown("Panel/Content/Letters"), Is.False);
+            Assert.That(Text("Panel/Content/Entries/Rows/Entry0/Label"), Is.EqualTo("sofa"));
+            Assert.That(Text("Panel/Content/Details/Word"), Is.EqualTo("latte"));
         }
 
         private RectTransform Rect(string path) => (RectTransform)screen.transform.Find(path);
@@ -395,6 +436,9 @@ namespace A305.Learning.Tests
             // 이미 외웠어요로 표시한 단어
             public HashSet<long> LearnedIds { get; } = new HashSet<long>();
 
+            // 정해 두면 기본 단어 대신 이 영어 단어들을 최근 저장순으로 돌려준다.
+            public string[] Words { get; set; }
+
             public Task<VocabPage> GetPageAsync(string cursor)
             {
                 if (Fails)
@@ -439,6 +483,17 @@ namespace A305.Learning.Tests
                     );
                 if (Count < items.Count)
                     items.RemoveRange(Count, items.Count - Count);
+                if (Words != null)
+                    items = Words
+                        .Select(
+                            (word, i) =>
+                                new VocabItem
+                                {
+                                    UserVocabId = 100 + i,
+                                    Vocab = new VocabWord { Text = word, MeaningKo = "뜻" },
+                                }
+                        )
+                        .ToList();
                 foreach (VocabItem item in items)
                     item.Memorized = LearnedIds.Contains(item.UserVocabId);
                 return Task.FromResult(new VocabPage { Items = items });

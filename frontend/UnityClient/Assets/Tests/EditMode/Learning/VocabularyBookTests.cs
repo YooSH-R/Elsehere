@@ -282,6 +282,50 @@ namespace A305.Learning.Tests
             Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
         }
 
+        // 알파벳순으로 보면 같은 글자로 시작하는 단어가 한 묶음이 되고, 끄면 최근 저장순으로 돌아간다.
+        [Test]
+        public async Task ShownEntries_SortAlphabetically_WhenAsked()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파"),
+                Item(21, "latte", "라떼"),
+                Item(11, "Apple", "사과")
+            );
+            await book.LoadAsync();
+
+            book.SortsAlphabetically = true;
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "Apple", "latte", "sofa" })
+            );
+
+            book.SortsAlphabetically = false;
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "sofa", "latte", "Apple" })
+            );
+        }
+
+        [Test]
+        public async Task IndexOfFirstWordStartingWith_FindsTheLettersGroup()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파"),
+                Item(21, "Lemon", "레몬"),
+                Item(11, "latte", "라떼")
+            );
+            await book.LoadAsync();
+            book.SortsAlphabetically = true;
+
+            Assert.That(book.IndexOfFirstWordStartingWith('l'), Is.EqualTo(0));
+            Assert.That(book.IndexOfFirstWordStartingWith('S'), Is.EqualTo(2));
+            Assert.That(book.IndexOfFirstWordStartingWith('Z'), Is.EqualTo(-1));
+        }
+
         [TestCase(1)]
         [TestCase(VocabularyBook.MaxMemoLength)]
         public async Task SaveMemoAsync_WithinLimit_SavesMemo(int length)

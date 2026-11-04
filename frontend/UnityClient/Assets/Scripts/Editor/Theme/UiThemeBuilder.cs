@@ -8,6 +8,7 @@ using A305.EditorTools.Learning;
 using A305.EditorTools.Mission;
 using A305.EditorTools.UI;
 using A305.Learning;
+using A305.Npc;
 using A305.Theme;
 using TMPro;
 using UnityEditor;
@@ -571,13 +572,111 @@ namespace A305.EditorTools.Theme
             );
             lift.effectColor = new Color(0, 0, 0, .28f);
             lift.effectDistance = new Vector2(0, -4);
-            Role(root, "TalkPrompt/Buttons/KeyHint", UiThemeRole.Title);
             if (root.Find("Panel/Remaining") != null)
-            {
                 Role(root, "Panel/Remaining", UiThemeRole.Muted);
-                // 바탕이 없는 [말 걸기] 위에서도 읽히도록 진한 글자로 둔다.
-                Role(root, "TalkPrompt/Remaining", UiThemeRole.Title);
+            StyleTalkPromptHints(root);
+        }
+
+        [MenuItem("Tools/A305/UI/Update Talk Prompt Hints")]
+        public static void UpdateTalkPromptHints()
+        {
+            BuilderTools.ThrowIfPlaying();
+            BuilderTools.UpdatePrefabIfExists(
+                OfferPath,
+                root => StyleTalkPromptHints(root.transform)
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void StyleTalkPromptHints(Transform root)
+        {
+            Transform prompt = root.Find("TalkPrompt");
+            var column = prompt.GetComponent<VerticalLayoutGroup>();
+            column.childAlignment = TextAnchor.UpperCenter;
+            column.childForceExpandWidth = false;
+            column.spacing = 12;
+
+            var view = root.GetComponent<PasserbyOfferView>();
+            var fields = new SerializedObject(view);
+            var remaining = (TMP_Text)
+                fields.FindProperty("talkRemainingLabel").objectReferenceValue;
+            RectTransform badge = FindOrCreateRect(prompt, "RemainingBadge");
+            badge.SetSiblingIndex(0);
+            remaining.transform.SetParent(badge, false);
+            StyleRemainingBadge(badge, remaining);
+            badge.gameObject.SetActive(remaining.gameObject.activeSelf);
+            BuilderTools.SetReference(view, "talkRemainingBadge", badge.gameObject);
+
+            Transform row = prompt.Find("Buttons");
+            var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
+            rowLayout.childAlignment = TextAnchor.MiddleCenter;
+            var rowSize = BuilderTools.GetOrAddComponent<LayoutElement>(row.gameObject);
+            rowSize.preferredWidth = 332;
+            // 단축키는 버튼 문구에 붙인다. 이전에 별도로 두었던 키 안내는 지운다.
+            foreach (string name in new[] { "KeyHint", "KeyHintBadge" })
+            {
+                Transform old = row.Find(name);
+                if (old != null)
+                    Object.DestroyImmediate(old.gameObject);
             }
+            var talk = (RectTransform)row.Find("TalkButton");
+            var talkSize = talk.GetComponent<LayoutElement>();
+            talkSize.minWidth = talkSize.preferredWidth = 332;
+            talk.sizeDelta = new Vector2(332, talk.sizeDelta.y);
+
+            RectTransform key = FindOrCreateRect(talk, "KeyHint");
+            key.SetAsFirstSibling();
+            key.sizeDelta = new Vector2(32, 32);
+            BuilderTools.GetOrAddComponent<LayoutElement>(key.gameObject).ignoreLayout = true;
+            var keyBorder = BuilderTools.GetOrAddComponent<Image>(key.gameObject);
+            keyBorder.sprite = TownMapBuilder.RoundedSprite();
+            keyBorder.type = Image.Type.Sliced;
+            keyBorder.color = Color.white;
+            keyBorder.raycastTarget = false;
+            // 아래 여백을 더 두어 실제 키보드 키처럼 얇은 두께가 보이게 한다.
+            RectTransform face = FindOrCreateRect(key, "Face");
+            Stretch(face);
+            face.offsetMin = new Vector2(2, 4);
+            face.offsetMax = new Vector2(-2, -2);
+            var keyFace = BuilderTools.GetOrAddComponent<Image>(face.gameObject);
+            keyFace.sprite = TownMapBuilder.RoundedSprite();
+            keyFace.type = Image.Type.Sliced;
+            keyFace.color = new Color32(190, 90, 70, 255);
+            keyFace.raycastTarget = false;
+            BuilderTools.SetReference(view, "talkKeyHint", key);
+        }
+
+        // 안내는 바닥 무늬와 테마에 관계없이 읽혀야 하므로 불투명 바탕과 고정 대비를 쓴다.
+        private static void StyleRemainingBadge(RectTransform badge, TMP_Text label)
+        {
+            var theme = label.GetComponent<ThemedElement>();
+            if (theme != null)
+                Object.DestroyImmediate(theme);
+            Color ink = new Color32(40, 56, 80, 255);
+            var background = BuilderTools.GetOrAddComponent<Image>(badge.gameObject);
+            background.sprite = TownMapBuilder.RoundedSprite();
+            background.type = Image.Type.Sliced;
+            background.color = ink;
+            background.raycastTarget = false;
+            var outline = BuilderTools.GetOrAddComponent<Outline>(badge.gameObject);
+            outline.effectColor = Color.white;
+            outline.effectDistance = new Vector2(2, -2);
+            var layout = BuilderTools.GetOrAddComponent<LayoutElement>(badge.gameObject);
+            layout.minWidth = layout.preferredWidth = 300;
+            layout.minHeight = layout.preferredHeight = 44;
+            layout.flexibleWidth = 0;
+            badge.sizeDelta = new Vector2(300, 44);
+            label.font = UiBuilderTools.BoldFont();
+            label.fontSize = 22;
+            label.fontStyle = FontStyles.Bold;
+            label.color = Color.white;
+            label.alignment = TextAlignmentOptions.Center;
+            label.enableAutoSizing = false;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.margin = Vector4.zero;
+            Stretch(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(14, 6);
+            label.rectTransform.offsetMax = new Vector2(-14, -6);
         }
 
         /// <summary>
@@ -876,7 +975,11 @@ namespace A305.EditorTools.Theme
             QuietButton(root, "Panel/Sections/ExpressionsButton", "표현", selectedTint: true);
             CompactArrow(root, "Panel/Navigation/PreviousButton", UiIcon.Previous);
             CompactArrow(root, "Panel/Navigation/NextButton", UiIcon.Next);
-            QuietButton(root, "Panel/Buttons/SaveButton", "담기");
+            string savePath =
+                root.Find("Panel/PageCard/BodyTile/SaveButton") != null
+                    ? "Panel/PageCard/BodyTile/SaveButton"
+                    : "Panel/Buttons/SaveButton";
+            QuietButton(root, savePath, "담기");
             QuietButton(root, "Panel/Buttons/DetailButton", "자세히");
             QuietButton(root, "Panel/Buttons/RegenerateButton", "다시 만들기");
             QuietButton(root, "Panel/Buttons/TranscriptButton", "대화 기록");

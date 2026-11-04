@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace A305.Learning.Tests
 {
     /// <summary>
-    /// 피드백을 열자마자 보이는 요약 탭에 이 상황에서 자주 쓰는 표현을 한 번에 보여 주고, 표현마다 바로 담을 수 있는지 확인한다.
+    /// 추천 표현은 회화 표현 탭에서만 보여 주고 각자 담으며, 요약 탭에는 대화 요약만 남는지 확인한다.
     /// 회화 탭을 눌러 한 장씩 넘겨야 보이면 잘 와닿지 않는다.
     /// </summary>
     public class FeedbackSituationRowsTests
@@ -40,9 +40,10 @@ namespace A305.Learning.Tests
         public void DestroyScreen() => Object.DestroyImmediate(instance);
 
         [Test]
-        public void SummaryTab_ShowsEverySituationExpressionAtOnce()
+        public void ConversationTab_ShowsEverySituationExpressionAtOnce()
         {
             Show(Expressions);
+            view.SelectSection(FeedbackSection.Conversation);
 
             List<GameObject> rows = Rows();
             Assert.That(rows, Has.Count.EqualTo(3));
@@ -60,6 +61,7 @@ namespace A305.Learning.Tests
         public void RowSaveButton_SavesThatExpressionWithItsMeaning()
         {
             Show(Expressions);
+            view.SelectSection(FeedbackSection.Conversation);
             var saved = new List<(string English, string Korean)>();
             view.SaveRequested += (english, korean) => saved.Add((english, korean));
 
@@ -71,10 +73,11 @@ namespace A305.Learning.Tests
             );
         }
 
-        // 회화 표현 탭은 같은 표현 칸을 보인다(FeedbackScreenLayoutTests). 문장 교정·저장할 표현 탭에는 없다.
+        // 추천 표현은 회화 표현 탭에만 둔다.
+        [TestCase(FeedbackSection.Summary)]
         [TestCase(FeedbackSection.Corrections)]
         [TestCase(FeedbackSection.Expressions)]
-        public void CorrectionsAndExpressionsTabs_HideTheSituationRows(FeedbackSection section)
+        public void OtherTabs_HideTheSituationRows(FeedbackSection section)
         {
             Show(Expressions);
 
@@ -91,23 +94,25 @@ namespace A305.Learning.Tests
             Assert.That(Rows(), Is.Empty);
         }
 
-        // 요약 글은 표현 줄 아래에서 시작해 표현 줄과 겹치지 않는다.
+        // 추천 표현 때문에 대화 요약이 아래로 밀리거나 페이지가 추가되지 않는다.
         [Test]
-        public void SummaryText_StartsBelowTheSituationRows()
+        public void SummaryTab_ShowsTheConversationSummaryWithoutExpressionRows()
         {
             Show(Expressions);
             var body = (TMP_Text)
                 new SerializedObject(view).FindProperty("bodyText").objectReferenceValue;
             Canvas.ForceUpdateCanvases();
 
-            float rowsBottom = Rows().Min(row => Corners((RectTransform)row.transform)[0].y);
-            Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
+            Assert.That(Rows(), Is.Empty);
+            Assert.That(body.text, Does.Contain("예약 확인부터 캐리어 보관까지"));
+            var heading = (TMP_Text)
+                new SerializedObject(view).FindProperty("summaryTitle").objectReferenceValue;
+            Assert.That(heading.gameObject.activeInHierarchy, Is.True);
         }
 
-        // 표현이 길어 두 줄로 넘어가도 처음 열 때부터 요약 글이 표현 줄 아래에서 시작한다.
-        // 다른 탭에 다녀와야 제자리로 내려가면 처음 보는 요약 글 첫 줄이 표현 줄에 가린다.
+        // 다른 탭에서 긴 추천 표현을 본 뒤 돌아와도 요약에는 추천 표현을 반복하지 않는다.
         [Test]
-        public void SummaryText_StartsBelowWrappedSituationRows_OnFirstShow()
+        public void ReturningFromConversationTab_KeepsOnlyTheSummary()
         {
             Show(
                 new List<SituationExpressionData>
@@ -124,12 +129,27 @@ namespace A305.Learning.Tests
                     ),
                 }
             );
+            view.SelectSection(FeedbackSection.Conversation);
+            Assert.That(Rows(), Has.Count.EqualTo(2));
+            view.SelectSection(FeedbackSection.Summary);
             var body = (TMP_Text)
                 new SerializedObject(view).FindProperty("bodyText").objectReferenceValue;
             Canvas.ForceUpdateCanvases();
 
-            float rowsBottom = Rows().Min(row => Corners((RectTransform)row.transform)[0].y);
-            Assert.That(Corners(body.rectTransform)[1].y, Is.LessThanOrEqualTo(rowsBottom + 0.01f));
+            Assert.That(Rows(), Is.Empty);
+            Assert.That(body.text, Does.Contain("예약 확인부터 캐리어 보관까지"));
+        }
+
+        [Test]
+        public void SingleSituationExpression_HasOnlyItsOwnSaveButton()
+        {
+            Show(new List<SituationExpressionData> { Expressions[0] });
+            view.SelectSection(FeedbackSection.Conversation);
+
+            var pageSave = (Button)
+                new SerializedObject(view).FindProperty("saveButton").objectReferenceValue;
+            Assert.That(pageSave.gameObject.activeInHierarchy, Is.False);
+            Assert.That(Rows().Single().GetComponentInChildren<Button>(), Is.Not.Null);
         }
 
         private void Show(List<SituationExpressionData> expressions)
@@ -165,13 +185,6 @@ namespace A305.Learning.Tests
 
         private static string Texts(GameObject row) =>
             string.Join("\n", row.GetComponentsInChildren<TMP_Text>().Select(text => text.text));
-
-        private static Vector3[] Corners(RectTransform rect)
-        {
-            var corners = new Vector3[4];
-            rect.GetWorldCorners(corners);
-            return corners;
-        }
 
         private static SituationExpressionData Situation(
             string english,

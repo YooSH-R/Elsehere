@@ -49,8 +49,12 @@ namespace A305.Npc
         private TMP_Text talkRemainingLabel;
 
         [SerializeField]
-        [Tooltip("키보드 단축키(E) 안내. 휴대폰·태블릿에서는 숨긴다.")]
-        private GameObject talkKeyHint;
+        [Tooltip("남은 대화 수와 함께 숨기는 안내 배지")]
+        private GameObject talkRemainingBadge;
+
+        [SerializeField]
+        [Tooltip("말 걸기 버튼 안에서 E 글자 뒤에 놓는 키보드 키 모양")]
+        private RectTransform talkKeyHint;
 
         private object owner;
         private Action onAccept;
@@ -135,10 +139,11 @@ namespace A305.Npc
         {
             talkPromptOwner = requester;
             onTalk = talk;
-            talkLabel.text = label;
+            bool showKeyHint = !PlayerTouchControls.ShouldShowControls();
+            talkLabel.text = showKeyHint ? $"{label}<space=20><size=85%>E</size>" : label;
+            talkKeyHint.gameObject.SetActive(showKeyHint);
             talkButton.interactable = true;
-            SetOptionalText(talkRemainingLabel, remaining);
-            talkKeyHint.SetActive(!PlayerTouchControls.ShouldShowControls());
+            SetTalkRemaining(remaining);
             talkPromptPanel.SetActive(true);
         }
 
@@ -158,9 +163,9 @@ namespace A305.Npc
             talkPromptOwner = requester;
             onTalk = null;
             talkLabel.text = reason;
+            talkKeyHint.gameObject.SetActive(false);
             talkButton.interactable = false;
-            SetOptionalText(talkRemainingLabel, null);
-            talkKeyHint.SetActive(false);
+            SetTalkRemaining(null);
             talkPromptPanel.SetActive(true);
         }
 
@@ -193,6 +198,13 @@ namespace A305.Npc
             label.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
 
+        private void SetTalkRemaining(string text)
+        {
+            SetOptionalText(talkRemainingLabel, text);
+            if (talkRemainingBadge != null)
+                talkRemainingBadge.SetActive(talkRemainingLabel.gameObject.activeSelf);
+        }
+
         private static string ShownText(TMP_Text label)
         {
             return label.gameObject.activeSelf ? label.text : null;
@@ -200,11 +212,28 @@ namespace A305.Npc
 
         private void Awake()
         {
+            talkLabel.OnPreRenderText += PositionTalkKeyHint;
             acceptButton.onClick.AddListener(() => onAccept?.Invoke());
             declineButton.onClick.AddListener(() => onDecline?.Invoke());
             talkButton.onClick.AddListener(() => onTalk?.Invoke());
             panel.SetActive(false);
             talkPromptPanel.SetActive(false);
+        }
+
+        // 글자 크기 조정과 가운데 정렬이 끝난 뒤 E의 실제 위치에 맞춰 키 테두리를 놓는다.
+        private void PositionTalkKeyHint(TMP_TextInfo textInfo)
+        {
+            if (!talkKeyHint.gameObject.activeSelf || textInfo.characterCount == 0)
+                return;
+            TMP_CharacterInfo key = textInfo.characterInfo[textInfo.characterCount - 1];
+            Vector3 center = (key.bottomLeft + key.topRight) / 2;
+            talkKeyHint.position = talkLabel.transform.TransformPoint(center);
+        }
+
+        private void OnDestroy()
+        {
+            if (talkLabel != null)
+                talkLabel.OnPreRenderText -= PositionTalkKeyHint;
         }
 
         private void Update()

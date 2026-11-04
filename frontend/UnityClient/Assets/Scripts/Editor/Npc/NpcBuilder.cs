@@ -412,14 +412,12 @@ namespace A305.EditorTools.Npc
                 bold,
                 preferredWidth: 300f
             );
-            TMP_Text keyHint = UiBuilderTools.FindOrCreateText(
-                talkRow,
-                "KeyHint",
-                bold,
-                26f,
-                new Color(0.8f, 0.82f, 0.86f),
-                "E"
-            );
+            Transform keyHint = talk.transform.Find("KeyHint");
+            if (keyHint == null)
+            {
+                keyHint = new GameObject("KeyHint", typeof(RectTransform)).transform;
+                keyHint.SetParent(talk.transform, false);
+            }
 
             BuilderTools.SetReference(view, "panel", panel.gameObject);
             BuilderTools.SetReference(view, "hintLabel", hint);
@@ -430,12 +428,18 @@ namespace A305.EditorTools.Npc
             BuilderTools.SetReference(view, "declineButton", decline);
             BuilderTools.SetReference(view, "talkPromptPanel", talkPrompt.gameObject);
             BuilderTools.SetReference(view, "talkButton", talk);
+            BuilderTools.SetReference(view, "talkKeyHint", keyHint);
             BuilderTools.SetReference(
                 view,
                 "talkLabel",
                 talk.transform.Find("Label").GetComponent<TMP_Text>()
             );
-            BuilderTools.SetReference(view, "talkKeyHint", keyHint.gameObject);
+            Transform remainingBadge = talkPrompt.Find("RemainingBadge");
+            BuilderTools.SetReference(
+                view,
+                "talkRemainingBadge",
+                remainingBadge != null ? remainingBadge.gameObject : talkRemaining.gameObject
+            );
             BuilderTools.RequireReferences(view);
             talkPrompt.gameObject.SetActive(false);
 
@@ -452,6 +456,9 @@ namespace A305.EditorTools.Npc
             TMP_FontAsset font
         )
         {
+            Transform badge = panel.Find("RemainingBadge");
+            if (badge != null)
+                return badge.Find("Remaining").GetComponent<TMP_Text>();
             bool isNew = panel.Find("Remaining") == null;
             TMP_Text remaining = UiBuilderTools.FindOrCreateText(
                 panel,

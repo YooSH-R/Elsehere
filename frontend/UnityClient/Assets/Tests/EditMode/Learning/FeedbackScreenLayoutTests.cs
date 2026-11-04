@@ -11,7 +11,7 @@ namespace A305.Learning.Tests
 {
     /// <summary>
     /// 대화 피드백 화면은 확정 시안(g10·g11을 읽기 쉽게 다듬은 것)이다. 판은 뒤가 비치는 유리이고,
-    /// 글자가 놓이는 칸만 진한 흰 유리(요약은 따뜻한 색)로 띄운다. "이 상황에서 자주 써요"는 요약·회화 표현 탭 모두 같은 코랄 제목과 같은 칸이고,
+    /// 글자가 놓이는 칸만 진한 흰 유리(요약은 따뜻한 색)로 띄운다. "이 상황에서 자주 써요"는 회화 표현 탭의 코랄 제목이고,
     /// 표현마다 글자만 있는 [담기]를 둔다.
     /// </summary>
     public class FeedbackScreenLayoutTests
@@ -44,10 +44,11 @@ namespace A305.Learning.Tests
         }
 
         [Test]
-        public void SituationTitle_IsCoralOnBothTabs()
+        public void SituationTitle_IsCoralAndOnlyShownOnConversationTab()
         {
             Show();
             TMP_Text summaryTitle = SituationTitle();
+            Assert.That(summaryTitle.gameObject.activeInHierarchy, Is.False);
             view.SelectSection(FeedbackSection.Conversation);
             TMP_Text conversationTitle = SituationTitle();
 
@@ -61,6 +62,7 @@ namespace A305.Learning.Tests
         public void SituationRows_AreRaisedTilesWithATextOnlySaveButton()
         {
             Show();
+            view.SelectSection(FeedbackSection.Conversation);
             GameObject row = Rows().First();
 
             Assert.That(
@@ -69,7 +71,8 @@ namespace A305.Learning.Tests
             );
             Button save = row.GetComponentInChildren<Button>();
             Assert.That(save.GetComponentInChildren<TMP_Text>().text, Is.EqualTo("담기"));
-            Image icon = save.transform.Find("Icon")?.GetComponent<Image>();
+            Transform iconTransform = save.transform.Find("Icon");
+            Image icon = iconTransform != null ? iconTransform.GetComponent<Image>() : null;
             Assert.That(
                 icon == null || !icon.enabled || icon.sprite == null,
                 Is.True,
@@ -77,7 +80,7 @@ namespace A305.Learning.Tests
             );
         }
 
-        // 회화 표현 탭도 요약 탭과 같은 표현 칸을 보이고, 예문을 한 줄 더 둔다. 굵은 글자 본문으로 따로 쓰지 않는다.
+        // 회화 표현 탭은 표현·뜻·쓰임·예문을 같은 카드에서 보여 준다.
         [Test]
         public void ConversationTab_ShowsTheSameRowsWithExamples()
         {

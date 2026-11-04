@@ -150,7 +150,7 @@
 
 1층과 2층이 다른 가게인 건물(2층 높이에 따로 문이 있는 `LittleArcade`·`HomeLiving`)은 층마다 실내 씬을 나눕니다. 1층 문은 `<건물>Interior`, 2층 문은 `<건물>UpperInterior`를 열고, 각 씬에는 그 층 집기만 남깁니다(집기의 가장 낮은 곳이 건물 바닥에서 3.5m 이상이면 2층). 직원은 모두 1층에 있어 2층 가게를 방문할 때는 켜지지 않으므로, 바로 아래층 직원이 2층 손님에게 말을 걸지 않습니다. 매장 안 계단으로 오르는 복층(`MapleBakery`)은 한 씬입니다. 2층 문이 있는 건물을 새로 만들면 Register Shop Interior Scenes가 `UpperInterior` 씬도 만들어 등록합니다.
 
-**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)을 기둥과 판에 붙여 다시 만듭니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
+**Tools → A305 → World → Build North Block Interior Sandbox**로 `Scenes/Sandbox/NorthBlockInteriorSandbox.unity`를 준비합니다. 기존 프리팹 디자인을 유지하며 없는 프리팹만 만듭니다. **Set Up North Block Tenant Entrances**는 초안의 단일 매장 구조에 층별 출입 구조가 없을 때 한 번 적용합니다. 외부 계단이 이미 있는 건물에는 계단 앞 `TEA ROOM 2F >` 안내판(`TenantEntrances/StairSign`)이 없을 때 기둥과 판을 만들고, 기존 안내판은 글자 영역만 판 안쪽으로 맞춥니다. **Fit Tea Room Stair Sign**으로 이 안내판만 갱신할 수도 있습니다. 안내 글자는 판 안쪽에 여백을 두고 한 줄로 맞추며, 글씨가 판 밖으로 나가지 않도록 크기를 자동 조정합니다. **Apply North Block Interiors**로 검토한 프리팹을 TownScene에 배치합니다. 기존 배경 인스턴스는 비활성 상태로 보존합니다. **Capture North Block Interiors**는 검토용 이미지를 `artifacts/unity/north-block/`에 저장합니다.
 
 `SpaceTravelTests`는 이동 키로 원래 매장 문 12개를 양방향 통과하며 건물의 실내 씬 로드·해제를 확인합니다. `UpperFloorShopTests`는 2층 문(찻집·서점)이 2층 실내만 불러오고 1층 직원을 켜지 않는지, 층별 씬에 그 층 공간 묶음만 있는지 확인합니다. Unity에서 `TownScene`을 직접 Play할 때는 Ben 튜토리얼을 완료하거나 건너뛴 뒤 시험합니다.
 

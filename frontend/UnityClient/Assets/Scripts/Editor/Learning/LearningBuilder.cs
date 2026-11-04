@@ -237,8 +237,9 @@ namespace A305.EditorTools.Learning
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            Transform savedButton = panel.Find("PageCard/BodyTile/SaveButton");
             Button saveButton = UiBuilderTools.FindOrCreateButton(
-                buttons,
+                savedButton != null ? savedButton.parent : buttons,
                 "SaveButton",
                 "표현 저장",
                 bold,

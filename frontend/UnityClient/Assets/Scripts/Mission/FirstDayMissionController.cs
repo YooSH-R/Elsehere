@@ -35,6 +35,7 @@ namespace A305.Mission
         private bool busy;
         private bool refreshPending;
         private RestSeat[] cafeSeats;
+        private QuestNpcWaitSpot[] waitSpots;
         private UmbrellaHold umbrella;
 
         public void SetAvailable(bool available) => view.SetAvailable(available);
@@ -53,6 +54,7 @@ namespace A305.Mission
                 : Array.Empty<RestSeat>();
             foreach (RestSeat seat in cafeSeats)
                 seat.RestCompleted += Rest;
+            waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
             view.StartRequested += StartMission;
@@ -202,7 +204,15 @@ namespace A305.Mission
         private void Render()
         {
             if (state != null)
+            {
                 view.Refresh(state, busy, dialogue.IsTalking);
+                // 지금 단계에서 만나야 하는 행인을 정한 자리에서 기다리게 한다.
+                foreach (QuestNpcWaitSpot spot in waitSpots)
+                {
+                    if (spot != null)
+                        spot.Apply(state);
+                }
+            }
             if (cafeSeats == null)
                 return;
             bool canSit = state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking);

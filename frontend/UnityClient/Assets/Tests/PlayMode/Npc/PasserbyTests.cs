@@ -109,6 +109,28 @@ namespace A305.Npc.PlayModeTests
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Offering));
         }
 
+        // 퀘스트가 Ben을 붙잡아 두면(비 오는 거리 단계) 생활하지 않고 정한 자리에서 기다리고, 그날 이미 말을 걸었어도 다가와 제안한다.
+        [UnityTest]
+        public IEnumerator BenHeldForTheQuest_WaitsAtTheSpot_AndOffersEvenAfterOfferingToday()
+        {
+            PasserbyOfferRecord.Save(BenCode, System.DateTime.Today);
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
+            Passerby ben = FindPasserby(BenCode);
+            var spot = new Pose(new Vector3(-3.8f, .12f, -10.3f), Quaternion.Euler(0f, 270f, 0f));
+
+            ben.WaitAt(spot);
+            Vector3 offset = ben.transform.position - spot.position;
+            offset.y = 0f;
+            Assert.That(offset.magnitude, Is.LessThan(.1f), "카페 앞 자리로 옮겨 기다립니다.");
+            // 카페에서 나와 선 자리
+            Single<PlayerMover>()
+                .Teleport(new Vector3(-5.95f, .1f, -11f), Quaternion.Euler(0f, 90f, 0f));
+
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShownBy(ben));
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Offering));
+        }
+
         [UnityTest]
         public IEnumerator ApproachingBen_AnimatesLegs_AndStopsWhenOffering()
         {

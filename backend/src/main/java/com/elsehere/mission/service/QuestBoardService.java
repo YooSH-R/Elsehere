@@ -1,6 +1,7 @@
 package com.elsehere.mission.service;
 
 import com.elsehere.mission.dto.QuestBoardResponse;
+import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.entity.Quest;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class QuestBoardService {
-  private static final int STARTING_BUDGET = 20;
 
   private final FirstDayMissionRepository firstDay;
   private final TownStoryRepository stories;
@@ -40,7 +40,6 @@ public class QuestBoardService {
     Map<String, String> names =
         npcs.findAll().stream().collect(Collectors.toMap(Npc::getCode, Npc::getName, (a, b) -> a));
     boolean firstDayDone = mission != null && mission.isCompleted();
-    int storyStage = story == null ? 0 : story.getStage();
 
     List<QuestBoardResponse.Quest> quests = new ArrayList<>();
     for (Quest quest : Quest.values()) {
@@ -49,8 +48,7 @@ public class QuestBoardService {
               ? chapter(quest, firstDayDone, story, names)
               : firstDayQuest(quest, mission, names));
     }
-    int budget = mission == null ? STARTING_BUDGET : mission.getBalance();
-    return new QuestBoardResponse(budget + Quest.earned(firstDayDone, storyStage), quests);
+    return new QuestBoardResponse(Coins.balance(mission, story), quests);
   }
 
   private static QuestBoardResponse.Quest firstDayQuest(

@@ -463,6 +463,7 @@ namespace A305.EditorTools.Npc
                 talk.transform.Find("Label").GetComponent<TMP_Text>()
             );
             BuilderTools.SetReference(view, "talkKeyHint", keyHint.gameObject);
+            GuestSignupDialogBuilder.SetUp(root, view);
             BuilderTools.RequireReferences(view);
             talkPrompt.gameObject.SetActive(false);
 

@@ -32,11 +32,19 @@ namespace A305.Dialogue
             this.text = text;
         }
 
-        /// <summary>지금 대사 글자 배치에 맞춰 막대를 다시 놓는다. 대사나 대사 칸 폭이 바뀐 뒤 부른다.</summary>
+        /// <summary>
+        /// 지금 대사 글자 배치에 맞춰 막대를 다시 놓는다. 대사나 대사 칸 폭이 바뀐 뒤 부른다.
+        /// 막대는 대사 글자의 자식이라 글자를 꺼도 남으므로, 대답 로딩처럼 대사 글자를 꺼 둔 동안은 막대도 감춘다.
+        /// </summary>
         public void Redraw()
         {
-            text.ForceMeshUpdate();
-            List<Rect> words = HiddenWordAreas(text.textInfo);
+            var words = new List<Rect>();
+            if (text.enabled)
+            {
+                text.ForceMeshUpdate();
+                words = HiddenWordAreas(text.textInfo);
+            }
+
             for (int i = 0; i < words.Count; i++)
                 Place(Cover(i), words[i]);
             for (int i = words.Count; i < covers.Count; i++)

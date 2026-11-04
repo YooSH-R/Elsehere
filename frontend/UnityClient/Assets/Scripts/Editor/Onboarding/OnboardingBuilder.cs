@@ -263,7 +263,40 @@ namespace A305.EditorTools.Onboarding
                 "connectionPanel",
                 SetUpConnectionPanel(root, bold, regular)
             );
+            BuilderTools.SetReference(
+                screen,
+                "guestReturnPanel",
+                SetUpGuestReturnPanel(root, bold, regular)
+            );
             BuilderTools.RequireReferences(screen);
+        }
+
+        /// <summary>
+        /// 입구 화면 프리팹에 게임 전 멈춤 화면(게스트 다시 접속·이미 가입한 계정 안내)만 더하고 테마와 시안 창을 입힌다. 입구 전체 Builder를 다시 돌리지
+        /// 않아도 된다.
+        /// </summary>
+        [MenuItem("Tools/A305/Onboarding/Apply Guest Return Panel")]
+        public static void ApplyGuestReturnPanel()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                ScreensPrefabPath,
+                root =>
+                {
+                    var screen = root.GetComponent<OnboardingScreen>();
+                    BuilderTools.SetReference(
+                        screen,
+                        "guestReturnPanel",
+                        SetUpGuestReturnPanel(
+                            root,
+                            UiBuilderTools.BoldFont(),
+                            UiBuilderTools.RegularFont()
+                        )
+                    );
+                    BuilderTools.RequireReferences(screen);
+                }
+            );
+            A305.EditorTools.Theme.UiThemeBuilder.ApplyGuestReturnTheme();
+            AssetDatabase.SaveAssets();
         }
 
         private static LoginPanelView SetUpLoginPanel(
@@ -689,6 +722,64 @@ namespace A305.EditorTools.Onboarding
 
             BuilderTools.SetReference(view, "retryButton", retry);
             BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        // 문구는 화면이 열릴 때 GuestReturnPanelView가 화면 종류에 맞춰 바꾼다. 여기 문구는 게스트 다시 접속 화면이다.
+        private static GuestReturnPanelView SetUpGuestReturnPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "GuestReturnPanel");
+            var view = BuilderTools.GetOrAddComponent<GuestReturnPanelView>(panel.gameObject);
+            TMP_Text title = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                36f,
+                Color.white,
+                GuestReturnText.GuestTitle
+            );
+            TMP_Text body = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Body",
+                regular,
+                22f,
+                SubTextColor,
+                GuestReturnText.GuestBody
+            );
+            TMP_Text notice = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Notice",
+                regular,
+                20f,
+                BadgeColor
+            );
+            Button signup = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "SignupButton",
+                GuestReturnText.Signup,
+                bold,
+                PanelWidth
+            );
+            Button continueButton = FindOrCreateSecondaryButton(
+                panel,
+                "ContinueButton",
+                GuestReturnText.ContinueAsGuest,
+                regular,
+                PanelWidth
+            );
+
+            BuilderTools.SetReference(view, "titleText", title);
+            BuilderTools.SetReference(view, "bodyText", body);
+            BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.SetReference(view, "signupButton", signup);
+            BuilderTools.SetReference(view, "continueButton", continueButton);
+            BuilderTools.RequireReferences(view);
+            // 게임에 들어가기 전에만 보이므로, Play 전 프리팹 화면에서 다른 창과 겹쳐 보이지 않게 숨겨 둔다.
+            panel.gameObject.SetActive(false);
             return view;
         }
 

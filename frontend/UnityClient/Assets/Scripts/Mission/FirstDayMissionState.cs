@@ -20,6 +20,9 @@ namespace A305.Mission
         public string Weather { get; set; }
 
         public int Balance { get; set; }
+
+        /// <summary>가장 최근에 산 것(예: "우산"). 아직 산 것이 없으면 비어 있다.</summary>
+        public string LastPurchase { get; set; }
         public string Situation { get; set; }
         public string Direction { get; set; }
         public List<FirstDayMissionStep> Steps { get; set; } = new List<FirstDayMissionStep>();

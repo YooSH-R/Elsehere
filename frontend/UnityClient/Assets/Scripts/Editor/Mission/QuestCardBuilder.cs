@@ -20,6 +20,9 @@ namespace A305.EditorTools.Mission
         private const string MenuPath = "Tools/A305/Mission/Apply Quest Card";
         private const string PlaceholderMenuPath =
             "Tools/A305/Mission/Apply Quest Card Placeholder";
+        private const string CoinChangeMenuPath = "Tools/A305/Mission/Apply Coin Change Labels";
+        private const string CoinFloatMaterialPath = "Assets/Art/UI/Hud/Jua Coin Float.mat";
+        private const string WhitePanelPath = "Assets/Art/UI/Mission/GlassPanel.png";
 
         // 서버 상태를 받기 전 카드의 할 일. 카드 자체를 눌러 수첩을 열며, 카드가 커지지 않게 한 줄에 들어가는 길이로 쓴다.
         internal const string DirectionPlaceholder = "카드를 눌러 퀘스트를 확인하세요.";
@@ -42,6 +45,21 @@ namespace A305.EditorTools.Mission
         public static void ApplyToPrefab()
         {
             BuilderTools.UpdatePrefabIfExists(PrefabPath, Apply);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>HUD를 다시 만들지 않고 코인 칩에 코인이 바뀔 때 보이는 글자(+10·−8)와 산 것 알약만 더한다.</summary>
+        [MenuItem(CoinChangeMenuPath)]
+        public static void ApplyCoinChangeToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root =>
+                    CoinChangeLabels(
+                        root.GetComponent<FirstDayMissionView>(),
+                        (RectTransform)root.transform.Find("Content/Status/Coins")
+                    )
+            );
             AssetDatabase.SaveAssets();
         }
 
@@ -243,6 +261,91 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "clock", clock);
             BuilderTools.SetReference(view, "coins", amount);
             BuilderTools.SetReference(view, "statusBar", status.gameObject);
+            CoinChangeLabels(view, coinChip);
+        }
+
+        // 코인이 바뀌면 칩 아래 흰 알약에 산 것·보상 안내를, 알약 왼쪽에 떠오르는 +10·−8(Jua 40, 흰 테두리)을 보인다(시안 f1·f3, 높이 46).
+        // 처음에는 숨겨 두고 FirstDayMissionView가 코인이 바뀔 때 잠깐 켠다.
+        private static void CoinChangeLabels(FirstDayMissionView view, RectTransform coinChip)
+        {
+            foreach (string old in new[] { "Float", "Receipt" })
+            {
+                Transform part = coinChip.Find(old);
+                if (part != null)
+                    Object.DestroyImmediate(part.gameObject);
+            }
+
+            RectTransform receipt = Rect("Receipt", coinChip);
+            receipt.anchorMin = receipt.anchorMax = new Vector2(1, 0);
+            receipt.pivot = Vector2.one;
+            receipt.anchoredPosition = new Vector2(0, -10) * Px;
+            receipt.sizeDelta = new Vector2(0, 46 * Px);
+            BuilderTools.GetOrAddComponent<LayoutElement>(receipt.gameObject).ignoreLayout = true;
+            var pill = BuilderTools.GetOrAddComponent<Image>(receipt.gameObject);
+            // 큰 지도와 같은 흰 둥근 판 그림(모서리 44)을 알약 높이의 절반 모서리로 줄여 쓴다.
+            pill.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WhitePanelPath);
+            pill.type = UnityEngine.UI.Image.Type.Sliced;
+            pill.pixelsPerUnitMultiplier = 44f / (23 * Px);
+            pill.color = new Color(1, 1, 1, .92f);
+            pill.raycastTarget = false;
+            var row = BuilderTools.GetOrAddComponent<HorizontalLayoutGroup>(receipt.gameObject);
+            row.padding = new RectOffset(Round(16), Round(18), 0, 0);
+            row.spacing = 8 * Px;
+            row.childAlignment = TextAnchor.MiddleCenter;
+            row.childControlWidth = row.childControlHeight = true;
+            row.childForceExpandWidth = row.childForceExpandHeight = false;
+            BuilderTools.GetOrAddComponent<ContentSizeFitter>(receipt.gameObject).horizontalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+            const float CoinSize = 24;
+            const float CoinScale = CoinSize / 42f;
+            RectTransform coin = Box(receipt, "Coin", CoinSize, CoinSize);
+            Art(
+                coin,
+                "Coin",
+                (42 + 2 * ArtPad) * CoinScale,
+                (48 + 2 * ArtPad) * CoinScale,
+                ArtPad * CoinScale,
+                ArtPad * CoinScale
+            );
+            TMP_Text label = Text(receipt, "Label", DisplayFontPath, 19, Ink, "우산 −8코인");
+            label.richText = true;
+            label.margin = new Vector4(0, 2 * Px, 0, 0);
+
+            // 떠오르는 글자는 알약 왼쪽에 붙여, 알약이 글자 길이만큼 넓어져도 겹치지 않게 한다.
+            TMP_Text amount = Text(receipt, "Float", DisplayFontPath, 40, Ink, "+10");
+            amount.fontSharedMaterial = CoinFloatMaterial();
+            amount.alignment = TextAlignmentOptions.MidlineRight;
+            RectTransform floatRect = amount.rectTransform;
+            floatRect.anchorMin = floatRect.anchorMax = new Vector2(0, .5f);
+            floatRect.pivot = new Vector2(1, .5f);
+            floatRect.anchoredPosition = new Vector2(-8, 0) * Px;
+            floatRect.sizeDelta = new Vector2(100, 46) * Px;
+            BuilderTools.GetOrAddComponent<LayoutElement>(amount.gameObject).ignoreLayout = true;
+            amount.gameObject.SetActive(false);
+            receipt.gameObject.SetActive(false);
+
+            BuilderTools.SetReference(view, "coinFloat", amount);
+            BuilderTools.SetReference(view, "coinReceipt", label);
+            BuilderTools.SetReference(view, "coinChip", coinChip);
+        }
+
+        // 떠오르는 +10·−8은 장면 위에서도 읽히게 흰 테두리를 두른 Jua 재질로 그린다.
+        private static Material CoinFloatMaterial()
+        {
+            TMP_FontAsset font = Font(DisplayFontPath);
+            var material = AssetDatabase.LoadAssetAtPath<Material>(CoinFloatMaterialPath);
+            if (material == null)
+            {
+                material = new Material(font.material) { name = "Jua Coin Float" };
+                AssetDatabase.CreateAsset(material, CoinFloatMaterialPath);
+            }
+            material.CopyPropertiesFromMaterial(font.material);
+            material.EnableKeyword(ShaderUtilities.Keyword_Outline);
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, .28f);
+            material.SetColor(ShaderUtilities.ID_OutlineColor, Color.white);
+            material.SetFloat(ShaderUtilities.ID_FaceDilate, .15f);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         // 양 끝이 둥근 유리 알약(174×64). 유리 그림의 그림자 여백만큼 바탕을 넓혀, 9칸 나누기 모서리가 줄지 않고 완전한 반원이 되게 한다.

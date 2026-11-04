@@ -133,7 +133,13 @@ class FirstDayMissionServiceTest {
             "HOTEL_CONCIERGE",
             "HOTEL_BELLHOP",
             "TOWN_SHOPPER",
-            "TOWN_HANDYMAN")) {
+            "TOWN_HANDYMAN",
+            "POLICE_SERGEANT",
+            "POLICE_PATROL_OFFICER",
+            "POLICE_ROOKIE",
+            "FIRE_CAPTAIN",
+            "FIRE_FIGHTER",
+            "FIRE_ROOKIE")) {
       if (npc.equals(stage.npc())) {
         continue;
       }

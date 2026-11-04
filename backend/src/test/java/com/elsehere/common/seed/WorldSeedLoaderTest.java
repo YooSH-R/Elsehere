@@ -186,7 +186,7 @@ class WorldSeedLoaderTest {
 
   @Test
   @DisplayName(
-      "NPC 28명(행인 6명·카페 직원 3명·호텔 직원 5명·드럭스토어 직원 3명·택시 기사·경찰관과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
+      "NPC 34명(행인 9명·카페 직원 3명·호텔 직원 5명·드럭스토어 직원 3명·택시 기사·경찰관 4명과 거리 매장 직원 9명)을 장소·이름·유형·역할 이름·먼저 말 걸기 여부·첫 말과 함께 넣는다")
   void load_insertsNpcs() {
     worldSeedLoader.load();
 
@@ -234,7 +234,13 @@ class WorldSeedLoaderTest {
             tuple("HOTEL", "HOTEL_CONCIERGE", "Walter", NpcType.STAFF, "컨시어지", false, null),
             tuple("HOTEL", "HOTEL_BELLHOP", "Diego", NpcType.STAFF, "벨보이", false, null),
             tuple("TOWN", "TOWN_SHOPPER", "Helen", NpcType.PASSERBY, "행인", false, null),
-            tuple("TOWN", "TOWN_HANDYMAN", "Frank", NpcType.PASSERBY, "행인", false, null));
+            tuple("TOWN", "TOWN_HANDYMAN", "Frank", NpcType.PASSERBY, "행인", false, null),
+            tuple("TOWN", "POLICE_SERGEANT", "Victor", NpcType.STAFF, "경사", false, null),
+            tuple("TOWN", "POLICE_PATROL_OFFICER", "Kevin", NpcType.STAFF, "경찰관", false, null),
+            tuple("TOWN", "POLICE_ROOKIE", "Tyler", NpcType.STAFF, "신입 경찰관", false, null),
+            tuple("TOWN", "FIRE_CAPTAIN", "Ray", NpcType.PASSERBY, "소방대장", false, null),
+            tuple("TOWN", "FIRE_FIGHTER", "Rachel", NpcType.PASSERBY, "소방관", false, null),
+            tuple("TOWN", "FIRE_ROOKIE", "Andre", NpcType.PASSERBY, "신입 소방관", false, null));
   }
 
   @Test
@@ -262,7 +268,7 @@ class WorldSeedLoaderTest {
     assertThat(sceneRepository.count()).isEqualTo(5);
     assertThat(vocabularyRepository.count()).isEqualTo(catalog().words().size());
     assertThat(sceneWordRepository.count()).isEqualTo(expectedSceneWords().size());
-    assertThat(npcRepository.count()).isEqualTo(28);
+    assertThat(npcRepository.count()).isEqualTo(34);
     assertThat(missionRepository.count()).isEqualTo(2);
   }
 
@@ -342,7 +348,13 @@ class WorldSeedLoaderTest {
             "HOTEL_CONCIERGE",
             "HOTEL_BELLHOP",
             "TOWN_SHOPPER",
-            "TOWN_HANDYMAN");
+            "TOWN_HANDYMAN",
+            "POLICE_SERGEANT",
+            "POLICE_PATROL_OFFICER",
+            "POLICE_ROOKIE",
+            "FIRE_CAPTAIN",
+            "FIRE_FIGHTER",
+            "FIRE_ROOKIE");
     JsonMapper jsonMapper = new JsonMapper();
     for (Npc npc : npcRepository.findAll()) {
       JsonNode expected = profiles.get(npc.getCode());

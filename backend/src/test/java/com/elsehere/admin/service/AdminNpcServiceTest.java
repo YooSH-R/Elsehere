@@ -85,7 +85,13 @@ class AdminNpcServiceTest {
             tuple("HOTEL_CONCIERGE", "Walter", "컨시어지", "호텔"),
             tuple("HOTEL_BELLHOP", "Diego", "벨보이", "호텔"),
             tuple("TOWN_SHOPPER", "Helen", "행인", "마을"),
-            tuple("TOWN_HANDYMAN", "Frank", "행인", "마을"));
+            tuple("TOWN_HANDYMAN", "Frank", "행인", "마을"),
+            tuple("POLICE_SERGEANT", "Victor", "경사", "마을"),
+            tuple("POLICE_PATROL_OFFICER", "Kevin", "경찰관", "마을"),
+            tuple("POLICE_ROOKIE", "Tyler", "신입 경찰관", "마을"),
+            tuple("FIRE_CAPTAIN", "Ray", "소방대장", "마을"),
+            tuple("FIRE_FIGHTER", "Rachel", "소방관", "마을"),
+            tuple("FIRE_ROOKIE", "Andre", "신입 소방관", "마을"));
   }
 
   @Test

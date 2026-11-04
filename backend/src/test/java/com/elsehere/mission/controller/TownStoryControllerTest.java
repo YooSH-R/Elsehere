@@ -31,7 +31,8 @@ class TownStoryControllerTest {
     when(service.status(8L))
         .thenReturn(
             new FirstDayMissionResponse(
-                true, 1, false, "TOWN", false, false, "CLEAR", 0, null, "빨래방", "세탁 문의", List.of()));
+                true, 1, null, false, "TOWN", false, false, "CLEAR", 0, null, "빨래방", "세탁 문의",
+                List.of()));
     mvc.perform(get("/api/v1/missions/town-story").with(authentication(auth)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.stage").value(1));
@@ -47,7 +48,8 @@ class TownStoryControllerTest {
     when(service.status(8L))
         .thenReturn(
             new FirstDayMissionResponse(
-                true, 0, false, "TOWN", false, false, "CLEAR", 0, null, "다이너", "주문", List.of()));
+                true, 0, null, false, "TOWN", false, false, "CLEAR", 0, null, "다이너", "주문",
+                List.of()));
     mvc.perform(
             post("/api/v1/missions/town-story/start")
                 .with(authentication(auth))

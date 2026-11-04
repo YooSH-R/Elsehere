@@ -86,6 +86,7 @@ namespace A305.Npc
         /// <summary>대화를 다 쓴 게스트에게 [말 걸기] 대신 가입 버튼을 보이는 중인지.</summary>
         public bool IsSignupPromptShowing => IsTalkPromptShowing && isSignupPrompt;
 
+        /// <summary>키 안내 서식을 제외한 버튼 문구.</summary>
         public string TalkLabelText => talkCaption;
 
         /// <summary>제안 화면에 보이는 남은 대화 수. 숨겼으면 null이다.</summary>
@@ -162,7 +163,7 @@ namespace A305.Npc
         }
 
         /// <summary>
-        /// 새 대화를 시작할 수 없을 때(게스트 대화 횟수를 다 씀) [말 걸기] 자리에 누를 수 없는 버튼으로 이유를 보인다.
+        /// 새 대화를 시작할 수 없을 때 [말 걸기] 자리에 누를 수 없는 버튼으로 이유를 보인다. 게스트 소진은 가입 안내로 연결한다.
         /// 버튼과 E 키 모두 대화를 시작하지 않는다.
         /// </summary>
         /// <param name="reason">버튼 자리에 보일 이유(<see cref="PasserbyOfferText.Blocked"/>)</param>

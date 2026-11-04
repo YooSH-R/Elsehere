@@ -1074,6 +1074,54 @@
       ]
     },
     {
+      "npcId": "TOWN_GRANDFATHER",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 0.8,
+        "FUN": 0.8,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "06:00",
+          "to": "13:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "13:00",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
+      "npcId": "TOWN_GRANDMOTHER",
+      "role": "PASSERBY",
+      "scene": "TOWN",
+      "needRates": {
+        "HUNGER": 1,
+        "ENERGY": 1,
+        "SOCIAL": 1.2,
+        "FUN": 1.2,
+        "WORK": 1
+      },
+      "schedule": [
+        {
+          "from": "06:00",
+          "to": "13:00",
+          "activity": "FREE"
+        },
+        {
+          "from": "13:00",
+          "to": "06:00",
+          "activity": "OFF"
+        }
+      ]
+    },
+    {
       "npcId": "TOWN_HANDYMAN",
       "role": "PASSERBY",
       "scene": "TOWN",

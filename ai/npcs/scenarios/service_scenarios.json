@@ -28,6 +28,8 @@
   "SHOP_STAFF": "drugstore_counter",
   "TAXI_DRIVER": "taxi_ride",
   "TOWN_EVENING_WALKER": "town_street",
+  "TOWN_GRANDFATHER": "town_street",
+  "TOWN_GRANDMOTHER": "town_street",
   "TOWN_HANDYMAN": "town_street",
   "TOWN_PASSERBY": "town_street",
   "TOWN_RETIREE": "town_street",

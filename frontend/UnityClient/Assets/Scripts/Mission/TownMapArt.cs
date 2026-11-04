@@ -29,7 +29,7 @@ namespace A305.Mission
                 ["BANK_STAFF"] = ("은행", new Rect(1524, 106, 152, 150)),
                 ["FLOWER_SHOP_STAFF"] = ("꽃집", new Rect(1704, 106, 152, 150)),
                 ["ARCADE_STAFF"] = ("오락실", new Rect(1164, 544, 152, 150)),
-                ["DINER_STAFF"] = ("다이너", new Rect(1344, 544, 152, 150)),
+                ["DINER_STAFF"] = ("식당", new Rect(1344, 544, 152, 150)),
                 ["LAUNDROMAT_STAFF"] = ("빨래방", new Rect(1524, 544, 152, 150)),
                 ["BARBER_STAFF"] = ("이발소", new Rect(1704, 544, 152, 150)),
             };

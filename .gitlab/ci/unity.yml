@@ -51,6 +51,8 @@ unity:editor-tests:
   extends: .unity-editor
   needs: ["ci:yaml", "unity:format"]
   allow_failure: false
+  # A normal run ends within 25 minutes; a stalled PlayMode load should free the shared runner sooner.
+  timeout: 30m
   script:
     # The script narrows web-template-only changes to the deployment tests.
     - powershell.exe -NoProfile -NonInteractive -File ./infra/scripts/run-unity-ci.ps1 -Action test -ChangedSince "$env:CI_MERGE_REQUEST_DIFF_BASE_SHA"

@@ -90,29 +90,34 @@ namespace A305.World.PlayModeTests
             AssertPlayerArrivedAt("HomeDoor");
         }
 
+        // 공간 이동 한 번에 일어나는 일을 함께 본다. 씬을 불러오는 데 대부분의 시간이 들어 이동마다 시험을 나누지 않는다.
         [UnityTest]
-        public IEnumerator TryTravel_WhileTraveling_RejectsSecondRequest()
+        public IEnumerator TryTravel_TownToCafe_CoversTheSwapAndLeavesOnlyTheNewSpace()
         {
             yield return LoadSpace("TownScene");
-
-            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
-            Assert.That(SpaceTravel.TryTravel("HotelScene", "TownDoor"), Is.False);
-            yield return WaitForArrival("CafeScene");
-
-            AssertPlayerArrivedAt("TownDoor");
-        }
-
-        [UnityTest]
-        public IEnumerator TryTravel_CoversTheScreenWhileTheSceneChanges()
-        {
-            yield return LoadSpace("TownScene");
+            ThreadPriority usualPriority = Application.backgroundLoadingPriority;
             float opacityWhenSceneChanged = -1f;
+            int players = -1;
+            int listeners = -1;
             UnityAction<Scene, LoadSceneMode> onSceneLoaded = (scene, mode) =>
+            {
                 opacityWhenSceneChanged = CurtainOpacity();
+                players = Object.FindObjectsByType<PlayerMover>(FindObjectsSortMode.None).Length;
+                listeners = Object
+                    .FindObjectsByType<AudioListener>(FindObjectsSortMode.None)
+                    .Length;
+            };
             SceneManager.sceneLoaded += onSceneLoaded;
             try
             {
                 Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
+                Assert.That(
+                    SpaceTravel.TryTravel("HotelScene", "TownDoor"),
+                    Is.False,
+                    "이동 중에는 다른 이동 요청을 받지 않습니다."
+                );
+                // 덮인 동안에는 프레임이 끊겨도 보이지 않으므로 불러오기에 프레임 시간을 더 쓴다.
+                Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(ThreadPriority.High));
                 yield return WaitForArrival("CafeScene");
             }
             finally
@@ -120,25 +125,18 @@ namespace A305.World.PlayModeTests
                 SceneManager.sceneLoaded -= onSceneLoaded;
             }
 
+            AssertPlayerArrivedAt("TownDoor");
             // 씬이 바뀌는 순간의 끊김은 화면이 다 덮인 뒤에 일어나야 보이지 않는다.
             Assert.That(opacityWhenSceneChanged, Is.EqualTo(1f));
+            // 이전 공간의 플레이어·카메라가 켜져 있으면 새 공간이 출입구와 카메라를 잘못 찾는다.
+            Assert.That(players, Is.EqualTo(1));
+            Assert.That(listeners, Is.EqualTo(1));
+
             yield return WaitUntilCurtainOpens();
             Assert.That(CurtainOpacity(), Is.EqualTo(0f));
-        }
-
-        [UnityTest]
-        public IEnumerator TryTravel_LoadsFasterOnlyWhileTheScreenIsCovered()
-        {
-            yield return LoadSpace("TownScene");
-            ThreadPriority usualPriority = Application.backgroundLoadingPriority;
-
-            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
-            // 덮인 동안에는 프레임이 끊겨도 보이지 않으므로 불러오기에 프레임 시간을 더 쓴다.
-            Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(ThreadPriority.High));
-            yield return WaitForArrival("CafeScene");
-            yield return WaitUntilCurtainOpens();
-
             Assert.That(Application.backgroundLoadingPriority, Is.EqualTo(usualPriority));
+            Assert.That(LoadedSceneNames(), Is.EqualTo(new[] { "CafeScene" }));
+            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("CafeScene"));
         }
 
         [UnityTest]
@@ -164,48 +162,6 @@ namespace A305.World.PlayModeTests
 
             // 그리는 카메라가 없으면 Editor는 덮개 대신 "No cameras rendering"을 띄운다.
             Assert.That(framesWithoutCamera, Is.Zero);
-        }
-
-        [UnityTest]
-        public IEnumerator TryTravel_LeavesOnlyTheDestinationSceneLoaded()
-        {
-            yield return LoadSpace("TownScene");
-
-            Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
-            yield return WaitForArrival("CafeScene");
-            yield return WaitUntilCurtainOpens();
-
-            Assert.That(LoadedSceneNames(), Is.EqualTo(new[] { "CafeScene" }));
-            Assert.That(SceneManager.GetActiveScene().name, Is.EqualTo("CafeScene"));
-        }
-
-        [UnityTest]
-        public IEnumerator TryTravel_NewSceneWakesUpWithoutThePreviousSpace()
-        {
-            yield return LoadSpace("TownScene");
-            int players = -1;
-            int listeners = -1;
-            UnityAction<Scene, LoadSceneMode> onSceneLoaded = (scene, mode) =>
-            {
-                players = Object.FindObjectsByType<PlayerMover>(FindObjectsSortMode.None).Length;
-                listeners = Object
-                    .FindObjectsByType<AudioListener>(FindObjectsSortMode.None)
-                    .Length;
-            };
-            SceneManager.sceneLoaded += onSceneLoaded;
-            try
-            {
-                Assert.That(SpaceTravel.TryTravel("CafeScene", "TownDoor"), Is.True);
-                yield return WaitForArrival("CafeScene");
-            }
-            finally
-            {
-                SceneManager.sceneLoaded -= onSceneLoaded;
-            }
-
-            // 이전 공간의 플레이어·카메라가 켜져 있으면 새 공간이 출입구와 카메라를 잘못 찾는다.
-            Assert.That(players, Is.EqualTo(1));
-            Assert.That(listeners, Is.EqualTo(1));
         }
 
         [UnityTest]
@@ -541,12 +497,18 @@ namespace A305.World.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator EverySceneInSceneList_HasOnePlayerCameraAndArrival()
+        public IEnumerator EverySceneInSceneList_HasOnePlayerCameraArrival_AndDoorwaysThatLeadBack()
         {
             // 디자인해서 추가한 공간 씬도 Scene List에 오르면 같은 기준으로 확인한다.
+            var doorways = new List<DoorwayLink>();
             foreach (string sceneName in SceneListNames())
             {
                 yield return LoadSpace(sceneName);
+                doorways.AddRange(
+                    Object
+                        .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
+                        .Select(doorway => new DoorwayLink(sceneName, doorway))
+                );
 
                 Assert.That(
                     FindAll<PlayerMover>(),
@@ -562,21 +524,6 @@ namespace A305.World.PlayModeTests
                     FindAll<SpaceArrival>(),
                     Has.Length.EqualTo(1),
                     $"{sceneName}의 SpaceArrival"
-                );
-            }
-        }
-
-        [UnityTest]
-        public IEnumerator EveryDoorway_LeadsToDoorwayThatLeadsBack()
-        {
-            var doorways = new List<DoorwayLink>();
-            foreach (string sceneName in SceneListNames())
-            {
-                yield return LoadSpace(sceneName);
-                doorways.AddRange(
-                    Object
-                        .FindObjectsByType<SpaceDoorway>(FindObjectsSortMode.None)
-                        .Select(doorway => new DoorwayLink(sceneName, doorway))
                 );
             }
 

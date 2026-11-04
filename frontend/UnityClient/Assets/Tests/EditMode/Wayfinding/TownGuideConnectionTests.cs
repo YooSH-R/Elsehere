@@ -18,11 +18,18 @@ namespace A305.Wayfinding.Tests
         private const string TownScenePath = "Assets/Scenes/Production/TownScene.unity";
         private const string SettingsPath = "Assets/Data/Wayfinding/DestinationGuideSettings.asset";
 
+        // 모든 검사가 마을 씬을 읽기만 하므로 한 번만 연다.
+        private Scene scene;
+
+        [OneTimeSetUp]
+        public void OpenTown()
+        {
+            scene = EditorSceneManager.OpenScene(TownScenePath);
+        }
+
         [Test]
         public void TownHasOneGuideConnectedToThePlayerAndDialogue()
         {
-            Scene scene = EditorSceneManager.OpenScene(TownScenePath);
-
             var guide = BuilderTools.FindSingleInScene<DestinationGuide>(scene);
             Assert.That(guide, Is.Not.Null, "마을에 길 안내가 없습니다.");
             var fields = new SerializedObject(guide);
@@ -45,8 +52,6 @@ namespace A305.Wayfinding.Tests
         [Test]
         public void GuideAndCrossingBoxesCarryNoObjectWord()
         {
-            Scene scene = EditorSceneManager.OpenScene(TownScenePath);
-
             var guide = BuilderTools.FindSingleInScene<DestinationGuide>(scene);
             Assert.That(guide, Is.Not.Null, "마을에 길 안내가 없습니다.");
             Assert.That(guide.GetComponentsInChildren<HoverableObject>(true), Is.Empty);
@@ -68,7 +73,6 @@ namespace A305.Wayfinding.Tests
         [TestCase("SHOP", "ShopDoor")]
         public void EveryTownPlace_HasItsDoorFrontAsTheEntrance(string placeCode, string doorwayId)
         {
-            Scene scene = EditorSceneManager.OpenScene(TownScenePath);
             SpaceDoorway door = System.Array.Find(
                 BuilderTools.FindAllInScene<SpaceDoorway>(scene),
                 doorway => doorway.DoorwayId == doorwayId
@@ -85,8 +89,6 @@ namespace A305.Wayfinding.Tests
         [TestCase(null)]
         public void PlaceWithoutATownDoor_HasNoEntrance(string placeCode)
         {
-            Scene scene = EditorSceneManager.OpenScene(TownScenePath);
-
             Assert.That(DestinationGuide.FindEntrance(scene, placeCode), Is.Null);
         }
     }

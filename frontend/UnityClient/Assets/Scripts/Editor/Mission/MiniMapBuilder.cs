@@ -1,6 +1,5 @@
 using A305.EditorTools.Common;
 using A305.Mission;
-using A305.Theme;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,16 +7,16 @@ using UnityEngine.UI;
 namespace A305.EditorTools.Mission
 {
     /// <summary>
-    /// 왼쪽 아래 미니맵을 확정 시안 g1(.mini)대로 만든다. 크기·여백은 시안 px에 1.2를 곱한 캔버스 단위다.
+    /// 왼쪽 아래 미니맵을 확정 시안 g1(.mini)의 크기대로 만든다. 크기·여백은 시안 px에 1.2를 곱한 캔버스 단위다.
+    /// 판은 큰 지도와 같은 맑은 하늘색 유리라 뒤 거리가 흐려지지 않고 비친다.
     /// 유리 판(340×236, 모서리 40) 안의 둥근 창(318×214, 모서리 31)에 마을 지도 그림을 깔고,
     /// 그 위에 목적지 테두리와 내 위치 화살표를, 오른쪽 위에 펼치기 버튼 그림을 둔다. 범례 글자는 두지 않는다.
-    /// 판 전체가 버튼이라 어디를 눌러도 큰 지도를 연다.
+    /// 판 전체가 버튼이라 어디를 눌러도 큰 지도를 연다. 끌면 지도를 둘러보고(<see cref="TownMiniMapView"/>) 큰 지도는 열지 않는다.
     /// </summary>
     public static class MiniMapBuilder
     {
         private const string MenuPath = "Tools/A305/Mission/Apply Mini Map";
         private const string PrefabPath = "Assets/Prefabs/Mission/FirstDayMission.prefab";
-        private const string CatalogPath = "Assets/Data/Theme/UiThemeCatalog.asset";
         private const string ArtFolder = "Assets/Art/UI/Map";
 
         // 시안 1px = 캔버스 1.2
@@ -26,8 +25,8 @@ namespace A305.EditorTools.Mission
         // 시안 미니맵 창은 지도 860단위를 318px에 담는다.
         private const float MapScale = 318f / 860f * Px;
 
-        // 판 테마 그림의 모서리(시안 32)를 미니맵 모서리 40으로 키운다.
-        private const float PanelCornerScale = 32f / 40f;
+        // 유리 판 그림의 모서리(44)를 미니맵 모서리(시안 40 = 48)로 키운다.
+        private const float PanelCornerScale = 44f / (40f * Px);
 
         // 목적지 테두리 그림(2px = 1단위)의 둥근 모서리 자리: 여백 8 + 모서리 40 + 선 반 굵기
         private const int FrameBorderPixels = 104;
@@ -52,15 +51,7 @@ namespace A305.EditorTools.Mission
             panel.anchorMin = panel.anchorMax = panel.pivot = Vector2.zero;
             panel.anchoredPosition = new Vector2(28, 28) * Px;
             panel.sizeDelta = new Vector2(340, 236) * Px;
-            var glass = panel.gameObject.AddComponent<Image>();
-            glass.pixelsPerUnitMultiplier = PanelCornerScale;
-            var role = panel.gameObject.AddComponent<ThemedElement>();
-            var roleFields = new SerializedObject(role);
-            roleFields.FindProperty("catalog").objectReferenceValue =
-                AssetDatabase.LoadAssetAtPath<UiThemeCatalog>(CatalogPath);
-            roleFields.FindProperty("role").enumValueIndex = (int)UiThemeRole.Panel;
-            roleFields.ApplyModifiedPropertiesWithoutUndo();
-            role.ApplyCurrent();
+            Image glass = FirstDayMissionBuilder.Glass(panel, PanelCornerScale);
             var open = panel.gameObject.AddComponent<Button>();
             open.transition = Selectable.Transition.None;
             open.targetGraphic = glass;

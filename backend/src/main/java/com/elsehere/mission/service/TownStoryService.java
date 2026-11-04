@@ -6,6 +6,7 @@ import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
@@ -115,7 +116,10 @@ public class TownStoryService {
             : completed
                 ? "마을에서의 하루를 마쳤어요."
                 : !"TOWN".equals(scene) ? "마을로 나가 다음 이야기를 이어 가세요." : story.current().situation();
-    int balance = firstDayMission == null ? 20 : firstDayMission.getBalance();
+    // 첫날 예산에 끝낸 퀘스트의 보상을 더한다.
+    int balance =
+        (firstDayMission == null ? 20 : firstDayMission.getBalance())
+            + Quest.earned(firstDayMission != null && firstDayMission.isCompleted(), current);
     return new FirstDayMissionResponse(
         started,
         current,

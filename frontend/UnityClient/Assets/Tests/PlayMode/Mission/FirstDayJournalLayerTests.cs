@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace A305.Mission.PlayModeTests
 {
     /// <summary>
-    /// 대화 중에도 퀘스트 수첩을 열면 단어·문장 카드나 다른 화면에 가려지지 않고 가장 위에 보이는지 확인한다.
+    /// 대화 중에도 퀘스트 카드로 퀘스트 목록을 열면 단어·문장 카드나 다른 화면에 가려지지 않고 가장 위에 보이는지 확인한다.
     /// </summary>
     public class FirstDayJournalLayerTests
     {
@@ -22,7 +22,7 @@ namespace A305.Mission.PlayModeTests
         public void DestroyMission() => Object.Destroy(missionObject);
 
         [UnityTest]
-        public IEnumerator OpenedQuestWindow_DrawsAboveEveryOtherScreen()
+        public IEnumerator OpenedQuestList_DrawsAboveEveryOtherScreen()
         {
             missionObject = Object.Instantiate(
                 AssetDatabase.LoadAssetAtPath<GameObject>(MissionPrefabPath)
@@ -30,33 +30,15 @@ namespace A305.Mission.PlayModeTests
             yield return null;
             Canvas canvas = missionObject.GetComponent<Canvas>();
             int closedOrder = canvas.sortingOrder;
-            var view = missionObject.GetComponentInChildren<FirstDayMissionView>(true);
-            // 퀘스트 목록이 반영되기 전에는 같은 버튼이 기존 일지를 엽니다.
-            SerializedProperty boardProperty = new SerializedObject(view).FindProperty(
-                "questBoard"
-            );
-            var questBoard = boardProperty?.objectReferenceValue as Component;
 
             Field<Button>("journalButton").onClick.Invoke();
 
-            GameObject window =
-                questBoard != null ? questBoard.gameObject : Field<GameObject>("journal");
-            Assert.That(window.activeSelf, Is.True);
+            QuestBoardView questList = Field<QuestBoardView>("questBoard");
+            Assert.That(questList.IsOpen, Is.True);
             Assert.That(canvas.sortingOrder, Is.GreaterThan(HighestOtherScreenOrder()));
 
-            if (questBoard != null)
-            {
-                Button close = questBoard
-                    .GetComponentsInChildren<Button>()
-                    .Single(button => button.name == "Close");
-                close.onClick.Invoke();
-            }
-            else
-            {
-                Field<Button>("closeButton").onClick.Invoke();
-            }
+            questList.Close();
 
-            Assert.That(window.activeSelf, Is.False);
             Assert.That(canvas.sortingOrder, Is.EqualTo(closedOrder));
         }
 

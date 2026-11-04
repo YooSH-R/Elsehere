@@ -16,6 +16,14 @@ namespace A305.EditorTools.Theme
         private const string BookPath = "Assets/Prefabs/Learning/VocabularyScreen.prefab";
         private const string TooltipPath = "Assets/Prefabs/ObjectHover/WordTooltip.prefab";
         private const string SolidCardPath = "Assets/Art/UI/Theme/Jelly/Card.png";
+        private const string BodyFontPath = "Assets/Art/UI/Fonts/Pretendard-Regular SDF.asset";
+        private const string BoldFontPath = "Assets/Art/UI/Fonts/Pretendard-Bold SDF.asset";
+
+        // 단어장 글은 피드백 화면처럼 Pretendard로 쓴다. 테마 본문 글꼴(나눔스퀘어라운드)은 영어 글자 사이가 넓고 획이 가늘어 흐려 보인다.
+        // 흐린 글자는 유리 판 위에서도 대비가 4.5:1을 넘도록 테마의 흐린 색보다 조금 진하게 둔다.
+        private static readonly Color Ink = new Color32(47, 37, 27, 255);
+        private static readonly Color Muted = new Color32(107, 93, 77, 255);
+        private static readonly Color Accent = new Color32(210, 79, 47, 255);
 
         [MenuItem("Tools/A305/UI/Apply Vocabulary Cards")]
         public static void Build()
@@ -93,9 +101,10 @@ namespace A305.EditorTools.Theme
                 label.gameObject.SetActive(true);
                 label.alignment = TextAlignmentOptions.MidlineLeft;
                 label.fontSize = 20;
-                label.lineSpacing = 6;
+                // Pretendard는 줄 높이가 낮아 영어 단어와 뜻 사이를 조금 띄운다.
+                label.lineSpacing = 30;
                 label.margin = new Vector4(18, 4, 18, 4);
-                Skin(label.transform, UiThemeRole.Body);
+                Letter(label, UiThemeRole.Body);
                 buttons[index] = button;
                 labels[index] = label;
                 marks[index] = mark.gameObject;
@@ -167,12 +176,12 @@ namespace A305.EditorTools.Theme
             memo.textComponent.fontSize = 19;
             memo.textComponent.margin = new Vector4(12, 8, 12, 8);
             Skin(memo.transform, UiThemeRole.Input);
-            Skin(memo.textComponent.transform, UiThemeRole.Body);
+            Letter(memo.textComponent, UiThemeRole.Body);
             var placeholder = (TMP_Text)memo.placeholder;
             placeholder.fontSize = 19;
             placeholder.fontStyle = FontStyles.Normal;
             placeholder.margin = memo.textComponent.margin;
-            Skin(placeholder.transform, UiThemeRole.Muted);
+            Letter(placeholder, UiThemeRole.Muted);
             // [저장]은 메모 입력칸과 같은 줄 오른쪽에 둬 무엇을 저장하는지 바로 보이게 한다.
             Button save = TextButton(
                 details,
@@ -449,8 +458,29 @@ namespace A305.EditorTools.Theme
             label.alignment = TextAlignmentOptions.TopLeft;
             label.margin = Vector4.zero;
             label.raycastTarget = false;
-            Skin(label.transform, role);
+            Letter(label, role);
             return label;
+        }
+
+        // 제목은 테마의 둥근 제목 글꼴을 그대로 쓰고, 나머지 글은 Pretendard와 정한 색으로 고정한다. 뜻(강조)은 굵게 쓴다.
+        private static void Letter(TMP_Text label, UiThemeRole role)
+        {
+            if (role == UiThemeRole.Title)
+            {
+                Skin(label.transform, role);
+                return;
+            }
+            var themed = label.GetComponent<ThemedElement>();
+            if (themed != null)
+                Object.DestroyImmediate(themed);
+            label.font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
+                role == UiThemeRole.Accent ? BoldFontPath : BodyFontPath
+            );
+            label.fontStyle = FontStyles.Normal;
+            label.color =
+                role == UiThemeRole.Muted ? Muted
+                : role == UiThemeRole.Accent ? Accent
+                : Ink;
         }
 
         private static Button TextButton(

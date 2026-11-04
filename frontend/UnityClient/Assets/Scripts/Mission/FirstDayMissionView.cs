@@ -147,6 +147,9 @@ namespace A305.Mission
         private bool available;
         private string mapSceneCode;
 
+        // 퀘스트 카드·미니맵의 화면 자리를 구하는 데 매 프레임 다시 쓴다.
+        private readonly Vector3[] hudCorners = new Vector3[4];
+
         public event Action StartRequested;
 
         /// <summary>지도 버튼으로 수첩을 열면 알린다.</summary>
@@ -401,11 +404,14 @@ namespace A305.Mission
             retryButton.onClick.AddListener(Retry);
             // 폰 메뉴의 [마을 지도] 앱도 같은 큰 지도를 연다.
             JourneyStatus.Shared.MapRequested += OpenLargeMap;
+            CenterWindow.Shared.Changed += FollowCenterWindow;
         }
 
         private void OnDestroy()
         {
             JourneyStatus.Shared.MapRequested -= OpenLargeMap;
+            CenterWindow.Shared.Changed -= FollowCenterWindow;
+            CenterWindow.Shared.SetLeftHud(0f);
             journalButton.onClick.RemoveListener(ToggleJournal);
             if (miniMapButton != null)
                 miniMapButton.onClick.RemoveListener(OpenLargeMap);
@@ -453,6 +459,7 @@ namespace A305.Mission
         private void Update()
         {
             ShowClock();
+            CenterWindow.Shared.SetLeftHud(LeftHudScreenWidth());
             if (
                 mapOverlay != null
                 && mapOverlay.activeSelf
@@ -501,6 +508,30 @@ namespace A305.Mission
                         && !journal.activeSelf
                         && (mapOverlay == null || !mapOverlay.activeSelf)
                 );
+        }
+
+        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀)
+        private float LeftHudScreenWidth() =>
+            Mathf.Max(RightEdgeOf(Banner.gameObject), RightEdgeOf(miniMapPanel));
+
+        private float RightEdgeOf(GameObject hud)
+        {
+            if (hud == null || !hud.activeInHierarchy)
+                return 0f;
+            var rect = (RectTransform)hud.transform;
+            rect.GetWorldCorners(hudCorners);
+            return RectTransformUtility
+                .WorldToScreenPoint(CenterWindow.CameraOf(rect), hudCorners[2])
+                .x;
+        }
+
+        // 가운데 창이 열리면 펼친 수첩·큰 지도를 닫아 창끼리 겹치지 않게 한다. 퀘스트 카드·미니맵은 창과 함께 보인다.
+        private void FollowCenterWindow()
+        {
+            if (!CenterWindow.Shared.IsOpen)
+                return;
+            ShowJournal(false);
+            ShowLargeMap(false);
         }
 
         // Builder가 Awake 전에 SetAvailable을 불러도 되도록 처음 쓸 때 캔버스와 닫혀 있을 때의 순서를 기억한다.

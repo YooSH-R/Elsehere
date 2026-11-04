@@ -2,6 +2,7 @@ using System.Linq;
 using A305.Api;
 using A305.Dialogue;
 using A305.EditorTools.Common;
+using A305.EditorTools.Theme;
 using A305.EditorTools.UI;
 using A305.EditorTools.Weather;
 using A305.EditorTools.World;
@@ -138,18 +139,10 @@ namespace A305.EditorTools.Mission
                 new Vector2(320, 44)
             );
 
+            // 닫기 X는 다른 창과 같은 공용 모양으로 둔다(S15P31A305-525).
             RectTransform closeFace = Rect("CloseButton", large);
-            Anchor(closeFace, Vector2.one, new Vector2(-20, -18), new Vector2(50, 50));
-            Image closeImage = closeFace.gameObject.AddComponent<Image>();
-            closeImage.sprite = glassSprite;
-            closeImage.type = Image.Type.Sliced;
-            closeImage.color = new Color(1, 1, 1, .9f);
             Button closeButton = closeFace.gameObject.AddComponent<Button>();
-            TMP_Text closeIcon = Text(closeFace, "Icon", 30, "×");
-            closeIcon.font = UiBuilderTools.BoldFont();
-            closeIcon.color = MapInk;
-            closeIcon.alignment = TextAlignmentOptions.Center;
-            Stretch((RectTransform)closeIcon.transform);
+            UiCloseButton.Corner(closeFace, UiCloseButton.WindowSize);
 
             TownMapView largeMap = GlassMapCopy(journalMap, large, LargeMapGroundOpacity, true, 46);
             var largeRect = (RectTransform)largeMap.transform;
@@ -536,14 +529,8 @@ namespace A305.EditorTools.Mission
             items.lineSpacing = 12;
             var goal = journal.Find("Goal").GetComponent<TMP_Text>();
             goal.fontSize = 22;
-            var close = (RectTransform)journal.Find("CloseButton");
-            close.GetComponent<LayoutElement>().ignoreLayout = true;
-            close.anchorMin = close.anchorMax = close.pivot = Vector2.one;
-            close.anchoredPosition = new Vector2(-24, -24);
-            close.sizeDelta = new Vector2(48, 48);
-            Transform oldOutline = close.Find("Outline");
-            if (oldOutline != null)
-                Object.DestroyImmediate(oldOutline.gameObject);
+            Transform close = journal.Find("CloseButton");
+            UiCloseButton.Corner(close, UiCloseButton.WindowSize);
             close.SetAsLastSibling();
             EnsureActionRow(journal);
             journal.Find("Actions/StartButton/Label").GetComponent<TMP_Text>().text = "시작";

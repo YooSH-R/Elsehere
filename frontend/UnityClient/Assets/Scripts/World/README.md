@@ -109,6 +109,29 @@
 - 경찰서 출입은 `InteriorDoorway` 한 쌍이 맡습니다. 문 밖 보도 쪽 `Entrance/OutsideDoorway`에 닿으면 실내 `Entrance/InsideDoorway`의 도착 지점(문 안쪽 2m, 창구를 봄)에, 실내 쪽에 닿으면 문 밖 2m(본길을 봄)에 섭니다. 문짝(`PoliceStationDoor`)은 여닫지 않고 닫힌 채 통로를 막습니다. 마을 씬과 경찰관의 근무 자리는 로드된 채로 유지하므로 경찰관 대화를 마치고 나오면 순찰차 출동을 그대로 봅니다. 매장 Builder가 기존 경찰서 프리팹의 여닫이 문 기능을 빼고 출입구 한 쌍을 더합니다.
 - 거리 매장 천장에는 카메라를 막는 충돌이 있습니다. 위층이 없는 경찰서는 천장이 막지 않으면 내려다볼 때 카메라가 천장 위로 빠집니다(드럭스토어와 같은 문제). 매장 Builder는 충돌이 없는 기존 매장 프리팹에 충돌만 더합니다.
 
+## 매장 실내 소품
+
+`TownShopInteriorBuilder`는 거리 매장 6곳(경찰서 제외)과 [북쪽 상가](#북쪽-상가) 3동의 1·2층, 모두 12개 공간을 가구와 소품으로 채웁니다. 공간마다 묶음 프리팹 하나(`Prefabs/World/TownInteriors/<공간>Interior.prefab`)를 두고, 원점은 건물 앞면 바닥 가운데(문 z=0, 뒷벽 z=-7.8)입니다. 이 프리팹을 매장 건물 프리팹의 `Interior` 아래 그 층 높이(1층 0m, 2층 4m)에 끼웁니다. 매장 Builder 코드와 기존 가구(창구·이발 의자·세탁기 등)는 바꾸지 않습니다. 공간 안은 `Stations`·`Kitchen`·`Lobby`처럼 구역 묶음으로 나눕니다.
+
+| 공간 프리팹 | 건물·층 | 더한 것 |
+| --- | --- | --- |
+| `BarberShopInterior` | 이발소 1층 | 이발대 서랍장·소독액 병·도구, 바퀴 도구함, 머리 건조기 의자, 샴푸 세면대와 의자, 수건·제품 선반, 가격판, 대기 의자·잡지 꽂이·코트걸이 |
+| `BakeryInterior`, `BakeryLoungeInterior` | 빵집 1층, 2층 | 뒷벽 빵 선반, 진열대 조명·가격표, 창가 케이크 탁자, 계단참 아래 데크 오븐·쟁반 선반, 계단 아래 빵 상자·밀가루 포대 / 2층 깔개·의자·장식장·그림 |
+| `MapleDinerInterior` | 다이너 1층 | 뒷벽 주방(냉장고·조리대·레인지와 후드), 소스·냅킨·버거, 부스 위 조명, 주크박스·껌 기계, 오늘의 파이 안내판 |
+| `PostOfficeInterior` | 우체국 1층 | 우편 분류 칸, 우편 수레, 소포 더미, 줄서기 기둥, 양식 탁자, 파란 우체통, 게시판 |
+| `TownBankInterior` | 은행 1층 | 창구 의자·화면, 금고 문, 서류함, 대기 깔개, 안내 책자 꽂이, 정수기, 금리 안내판 |
+| `LaundromatInterior` | 빨래방 1층 | 빨래 바구니·세제, 벽 선반, 세제 자판기, 빨래 수레, 옷걸이, 게시판, 동전 교환기 |
+| `FlowerShopInterior` | 꽃집 1층 | 벽 화분 선반, 천장에 건 화분, 꽃 냉장고, 포장지와 꽃다발, 꽃 통, 물뿌리개 |
+| `ArcadeInterior`, `BookshopInterior` | 오락실 1층, Paper & Leaf 2층 | 오락기 3대와 의자, 경품 진열, 동전 교환기 / 책 선반·책장, 독서 의자와 스탠드, 계산 자리 |
+| `HomeGoodsInterior`, `TeaRoomInterior` | 생활용품점 1층, Leaf Tea Room 2층 | 장식장·진열 탁자·스탠드·베개·깔개 / 찻주전자·찻잎 단지 선반·조명·깔개·메뉴판 |
+
+- 소품은 `Prefabs/World/TownInteriors/Props/`에 있습니다. [KayKit 가구·주방 모델](../../ThirdParty/CREDITS.md#마을-매장-실내)을 감싼 래퍼는 원본의 0.7배(주방 가구는 벽에 붙도록 앞뒤 0.42배)로 줄였고, 받은 모델에 없는 것은 둥근 도형으로 만든 조각입니다. 조각은 재질별로 메시를 합쳐 `Art/World/TownInteriors/Meshes/`에 두고, 재질은 `Art/World/TownInteriors/`에 둡니다. Tiny Treats·북쪽 상가 소품·집 책장은 기존 프리팹을 그대로 씁니다.
+- 바닥에 놓는 큰 가구에만 이동 충돌을 둡니다. 상자 윗면이 겉모양보다 뜨면 `PropColliderShape`로 메시 모양 충돌로 바꾸고, 선반·탁자 위에 올린 재사용 프리팹(빵·케이크 받침·인형·계산기)은 이동 충돌을 뺍니다. 문 앞 통로, 직원 자리, 계단과 계단 입구는 비웁니다.
+- 호버 단어는 뜻이 맞는 기존 단어만 다시 씁니다(시계·그림·깔개·단지·레인지·냉장고·싱크대 등). 맞는 단어가 없는 소품(주크박스·오븐·빨래 바구니·옷걸이 등)은 단어를 비우므로, 기존 매장 소품처럼 가리키면 건물 단어(shop)가 뜹니다. 그 호버 영역은 마을 씬이 아니라 매장 건물 프리팹에 둡니다.
+- **Tools → A305 → World → Build Town Shop Interiors**는 없는 프리팹만 만들고 아직 끼우지 않은 건물에 끼웁니다. **Rebuild Town Shop Interiors (Overwrite)**는 코드로 바꾼 배치를 반영하려고 공간·소품 프리팹을 같은 GUID로 덮어씁니다. 프리팹에서 손으로 고친 내용은 사라집니다. **Capture Town Shop Interiors**는 공간마다 문 안쪽 시점과 천장을 걷은 내려다보기, 비교용 카페·호텔 실내와 모음 두 장을 `artifacts/unity/town-interiors/`에 저장합니다.
+- 큰 가구를 바꾼 뒤에는 **Npc → Build Building Staff**로 매장 직원이 다닐 바닥을 다시 굽고, **ObjectHover → Export Backend Data**로 장소 단어(`backend/src/main/resources/content/object-word-bindings.json`)를 다시 내보냅니다.
+- 공간 묶음은 `Interior` 아래에 있으므로 Play·빌드 때 `ShopInteriorScenes`가 다른 실내 집기와 함께 건물별 실내 씬(`Scenes/ShopInteriors/<건물>Interior.unity`)으로 옮깁니다. 마을 씬에는 바닥·천장·계단만 남습니다. 편집은 지금처럼 공간 프리팹이나 매장 건물 프리팹에서 합니다.
+
 ## 확인 방법
 
 ### 북쪽 상가

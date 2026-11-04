@@ -150,6 +150,10 @@ namespace A305.Mission
         [Tooltip("퀘스트 목록·도장 지도. 있으면 왼쪽 위 퀘스트 카드가 수첩 대신 이것을 연다.")]
         private QuestBoardView questBoard;
 
+        [SerializeField]
+        [Tooltip("퀘스트 카드 바로 아래, NPC가 준비해 건네기로 한 것을 기다리는 카드")]
+        private FollowUpCardView followUpCard;
+
         // 시안 글자색: 본문 잉크와 끝낸 목표의 옅은 갈색
         private static readonly Color Ink = new Color32(47, 37, 27, 255);
         private static readonly Color Muted = new Color32(125, 110, 91, 255);
@@ -215,7 +219,7 @@ namespace A305.Mission
                 JourneyStatus.Shared.Clear();
                 GuideDestination.Shared.Clear();
             }
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
         }
 
         public void BindMap(string sceneCode, Transform player)
@@ -228,7 +232,7 @@ namespace A305.Mission
                 largeMap.Bind(sceneCode, player);
             if (sceneCode != "TOWN")
                 ShowLargeMap(false);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
         }
 
         public void Refresh(FirstDayMissionState state, bool busy, bool talking)
@@ -246,7 +250,7 @@ namespace A305.Mission
             ShowBalance(state);
             // 대화 중에는 시계·코인 칩을 숨기지만, 코인이 바뀐 동안에는 코인 칩을 잠깐 보인다.
             statusBar.SetActive(!talking || showingCoinChange);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             string chip = StepChip(state.Steps);
             stepChip.text = chip ?? "";
             stepChip.transform.parent.gameObject.SetActive(chip != null);
@@ -517,7 +521,7 @@ namespace A305.Mission
 
         private void UpdateBoardLayer()
         {
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
         }
 
@@ -586,7 +590,7 @@ namespace A305.Mission
                 ShowLargeMap(false);
             journal.SetActive(open);
             Banner.gameObject.SetActive(!open);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
             if (isOpening)
                 JournalOpened?.Invoke();
@@ -602,7 +606,7 @@ namespace A305.Mission
             if (mapOverlay == null)
                 return;
             mapOverlay.SetActive(open);
-            UpdateMiniMapVisibility();
+            UpdateLeftHudVisibility();
             UpdateSortingOrder();
         }
 
@@ -643,22 +647,29 @@ namespace A305.Mission
             return $"<color=#3C78D8>▲</color> 내 위치    <color=#E0524A>●</color> {place}";
         }
 
-        private void UpdateMiniMapVisibility()
+        // 왼쪽 아래 미니맵과 퀘스트 카드 아래 기다리는 카드를 보일지 정한다. 수첩·퀘스트 목록·큰 지도가 왼쪽을 덮는 동안에는 숨긴다.
+        private void UpdateLeftHudVisibility()
         {
+            bool isLeftCovered =
+                journal.activeSelf
+                || IsQuestBoardOpen
+                || (mapOverlay != null && mapOverlay.activeSelf);
             if (miniMapPanel != null)
                 miniMapPanel.SetActive(
-                    available
-                        && !talking
-                        && mapSceneCode == "TOWN"
-                        && !journal.activeSelf
-                        && !IsQuestBoardOpen
-                        && (mapOverlay == null || !mapOverlay.activeSelf)
+                    available && !talking && mapSceneCode == "TOWN" && !isLeftCovered
                 );
+            // 기다리는 카드는 퀘스트 카드처럼 대화 중에도 보인다.
+            if (followUpCard != null)
+                followUpCard.SetAllowed(available && !isLeftCovered);
         }
 
-        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀)
+        // 단어장·피드백 같은 가운데 창이 그 오른쪽에 놓이도록, 보이는 퀘스트 카드·기다리는 카드·미니맵이 화면 왼쪽에서 차지하는 폭(화면 픽셀).
+        // 가운데 창은 왼쪽 HUD의 오른쪽에 놓이므로, 기다리는 카드 높이만큼 왼쪽 열이 길어져도 겹치지 않는다.
         private float LeftHudScreenWidth() =>
-            Mathf.Max(RightEdgeOf(Banner.gameObject), RightEdgeOf(miniMapPanel));
+            Mathf.Max(
+                Mathf.Max(RightEdgeOf(Banner.gameObject), RightEdgeOf(miniMapPanel)),
+                RightEdgeOf(followUpCard != null ? followUpCard.Card : null)
+            );
 
         private float RightEdgeOf(GameObject hud)
         {

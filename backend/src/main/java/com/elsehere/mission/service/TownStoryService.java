@@ -7,6 +7,7 @@ import com.elsehere.common.error.ErrorCode;
 import com.elsehere.mission.dto.FirstDayMissionResponse;
 import com.elsehere.mission.entity.Coins;
 import com.elsehere.mission.entity.FirstDayMission;
+import com.elsehere.mission.entity.Quest;
 import com.elsehere.mission.entity.TownStory;
 import com.elsehere.mission.entity.TownStoryStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
@@ -39,6 +40,12 @@ public class TownStoryService {
     }
     return stories
         .findById(userId)
+        .map(
+            story -> {
+              // 퀘스트 하나를 끝내고 멈춰 있으면 다음 퀘스트를 시작한다.
+              story.resume();
+              return story;
+            })
         .orElseGet(
             () -> {
               firstDay
@@ -60,7 +67,7 @@ public class TownStoryService {
   public Optional<FirstDayMissionService.Context> context(Long userId, String npcCode) {
     return stories
         .findById(userId)
-        .filter(story -> !story.isCompleted())
+        .filter(story -> !story.isCompleted() && !story.isPaused())
         .map(
             story -> {
               TownStoryStage current = story.current();
@@ -99,13 +106,19 @@ public class TownStoryService {
             });
   }
 
+  /**
+   * 마을 이야기 상태. 지금 하는 퀘스트(하는 중이 아니면 다음에 시작할 퀘스트)의 단계만 보인다. 단계 번호(stage, index)는 그 퀘스트 안의 순서다. 퀘스트
+   * 하나를 끝내고 멈춰 있으면 시작하지 않은 것으로 보인다.
+   */
   public FirstDayMissionResponse status(Long userId) {
     TownStory story = stories.findById(userId).orElse(null);
-    boolean started = story != null;
-    int current = started ? story.getStage() : 0;
+    boolean started = story != null && !story.isPaused();
+    int current = story == null ? 0 : story.getStage();
+    Quest quest = Quest.townQuestAt(current);
+    int first = quest.firstStoryStage();
     List<FirstDayMissionResponse.Step> steps = new ArrayList<>();
-    for (TownStoryStage stage : TownStoryStage.values()) {
-      int index = stage.ordinal();
+    for (int index = first; index < quest.endStoryStage(); index++) {
+      TownStoryStage stage = TownStoryStage.values()[index];
       List<FirstDayMissionResponse.Goal> goals = new ArrayList<>();
       for (int goal = 0; goal < stage.goalIds().size(); goal++) {
         String id = stage.goalIds().get(goal);
@@ -116,7 +129,7 @@ public class TownStoryService {
           !started || index > current ? "UPCOMING" : index < current ? "DONE" : "CURRENT";
       steps.add(
           new FirstDayMissionResponse.Step(
-              index, stage.title(), "TOWN", stage.npcCode(), stepStatus, goals));
+              index - first, stage.title(), "TOWN", stage.npcCode(), stepStatus, goals));
     }
     boolean completed = started && story.isCompleted();
     FirstDayMission firstDayMission = firstDay.findById(userId).orElse(null);
@@ -125,16 +138,19 @@ public class TownStoryService {
             ? "TOWN"
             : firstDayMission.getScene();
     String situation =
-        !started
+        story == null
             ? "마을에서 새로운 하루를 시작해 볼까요?"
-            : completed
-                ? "마을에서의 하루를 마쳤어요."
-                : !"TOWN".equals(scene)
-                    ? "마을로 나가 " + talkTo(story.current().npcCode())
-                    : story.current().situation();
+            : !started
+                ? "새 퀘스트가 열렸어요. 퀘스트 목록에서 시작해 보세요."
+                : completed
+                    ? "마을에서의 하루를 마쳤어요."
+                    : !"TOWN".equals(scene)
+                        ? "마을로 나가 " + talkTo(story.current().npcCode())
+                        : story.current().situation();
     return new FirstDayMissionResponse(
         started,
-        current,
+        started ? current - first : 0,
+        quest.name(),
         completed,
         scene,
         false,
@@ -145,7 +161,7 @@ public class TownStoryService {
         Coins.lastPurchase(firstDayMission, story),
         situation,
         !started
-            ? "대화 연습이에요. 실제 결제·물건 전달·외형 변경은 없어요."
+            ? "퀘스트 목록에서 퀘스트를 시작하세요."
             : completed
                 ? "마을의 이웃들과 자유롭게 대화해 보세요."
                 : !"TOWN".equals(scene)

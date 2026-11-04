@@ -44,6 +44,7 @@ namespace A305.Player
         private Transform vehicleView;
         private PlayerTouchControls touchControls;
         private Vector3 thirdPersonPivot;
+        private bool rotateHeldByUi;
 
         public CameraViewMode ViewMode => orbit.ViewMode;
 
@@ -209,10 +210,19 @@ namespace A305.Player
                 turn += touchControls.ConsumeLookDelta();
             }
 
+            // 스크롤 목록·미니맵처럼 끌기를 받는 UI 위에서 누른 끌기는 그 UI가 쓰므로 시점을 돌리지 않는다.
+            if (rotateHoldAction.action.WasPressedThisFrame())
+            {
+                rotateHeldByUi =
+                    Pointer.current != null
+                    && UiDragTarget.IsAt(Pointer.current.position.ReadValue());
+            }
+
             // 터치가 마우스 입력으로도 전달되는 브라우저에서 회전을 중복 적용하지 않는다.
             if (
                 (touchControls == null || !touchControls.IsInteracting)
                 && rotateHoldAction.action.IsPressed()
+                && !rotateHeldByUi
             )
             {
                 turn += PointerDeltaScale.ToLogicalPixels(

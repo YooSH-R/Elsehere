@@ -81,6 +81,9 @@ namespace A305.Npc
         // 대본·인사말·이름을 찾는 키. 튜토리얼 중이면 튜토리얼 대본, 아니면 NPC 키
         private string ScriptKey => tutorialScriptKey ?? identity.Code;
 
+        // 교대 밖이라 일하지 않는 직원인지. 생활이 없는 NPC와 행인은 근무 외로 보내지 않는다.
+        private bool IsOffDuty => routine != null && routine.enabled && routine.IsOffDuty;
+
         private PasserbySettings CurrentSettings =>
             IsGuidingTutorial && tutorialSettings != null ? tutorialSettings : settings;
 
@@ -167,7 +170,8 @@ namespace A305.Npc
                 || (offerView.IsShowing && !offerView.IsShownBy(this));
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
-            // 카운터를 맡은 직원은 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
+            // 교대 밖의 직원은 다가오지 않고 [말 걸기]만 받는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고,
+            // 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
             bool notReadyToOffer =
                 routine != null
                 && routine.enabled
@@ -303,7 +307,8 @@ namespace A305.Npc
                     identity.Code,
                     identity.LookTarget,
                     ConversationInitiator.User,
-                    ScriptKey
+                    ScriptKey,
+                    IsOffDuty
                 )
             )
             {
@@ -351,7 +356,8 @@ namespace A305.Npc
                     identity.Code,
                     identity.LookTarget,
                     ConversationInitiator.Npc,
-                    ScriptKey
+                    ScriptKey,
+                    IsOffDuty
                 )
             )
             {

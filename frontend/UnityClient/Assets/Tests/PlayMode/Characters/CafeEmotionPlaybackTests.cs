@@ -11,6 +11,73 @@ namespace A305.Characters.PlayModeTests
 {
     public sealed class CafeEmotionPlaybackTests
     {
+        [Test]
+        public void EmotionCopyPreservesEverySourceVisemeFrame()
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Npc/CafeFemaleExpressiveSpeechPreview.prefab"
+            );
+            var copy = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Npc/Review/LittleMung_Cafe_Female_Emotions.prefab"
+            );
+            var copies = copy.GetComponentsInChildren<SkinnedMeshRenderer>();
+            int checkedFrames = 0;
+            foreach (var skin in source.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                var oldMesh = skin.sharedMesh;
+                for (int shape = 0; shape < oldMesh.blendShapeCount; shape++)
+                {
+                    string channel = oldMesh.GetBlendShapeName(shape);
+                    if (!channel.StartsWith("viseme_", System.StringComparison.Ordinal))
+                        continue;
+                    var newMesh = copies.Single(s => s.sharedMesh.name == oldMesh.name).sharedMesh;
+                    int newShape = newMesh.GetBlendShapeIndex(channel);
+                    Assert.That(newShape, Is.GreaterThanOrEqualTo(0), oldMesh.name + "/" + channel);
+                    Assert.That(
+                        newMesh.GetBlendShapeFrameCount(newShape),
+                        Is.EqualTo(oldMesh.GetBlendShapeFrameCount(shape))
+                    );
+                    for (int frame = 0; frame < oldMesh.GetBlendShapeFrameCount(shape); frame++)
+                    {
+                        var oldVertices = new Vector3[oldMesh.vertexCount];
+                        var oldNormals = new Vector3[oldMesh.vertexCount];
+                        var newVertices = new Vector3[newMesh.vertexCount];
+                        var newNormals = new Vector3[newMesh.vertexCount];
+                        oldMesh.GetBlendShapeFrameVertices(
+                            shape,
+                            frame,
+                            oldVertices,
+                            oldNormals,
+                            null
+                        );
+                        newMesh.GetBlendShapeFrameVertices(
+                            newShape,
+                            frame,
+                            newVertices,
+                            newNormals,
+                            null
+                        );
+                        Assert.That(
+                            newMesh.GetBlendShapeFrameWeight(newShape, frame),
+                            Is.EqualTo(oldMesh.GetBlendShapeFrameWeight(shape, frame))
+                        );
+                        Assert.That(
+                            newVertices,
+                            Is.EqualTo(oldVertices),
+                            oldMesh.name + "/" + channel + " 정점"
+                        );
+                        Assert.That(
+                            newNormals,
+                            Is.EqualTo(oldNormals),
+                            oldMesh.name + "/" + channel + " 법선"
+                        );
+                        checkedFrames++;
+                    }
+                }
+            }
+            Assert.That(checkedFrames, Is.GreaterThanOrEqualTo(9));
+        }
+
         [UnityTest]
         public IEnumerator PreviewCanScrubBeforePlayAndResumeFromThatTime()
         {

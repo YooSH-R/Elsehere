@@ -10,8 +10,8 @@ import json
 import sys
 from pathlib import Path
 
-import bpy
 import bmesh
+import bpy
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
@@ -41,6 +41,7 @@ families = (
     "eyeWide",
     "cheekRaise",
     "mouthFrown",
+    "mouthSmile",
 )
 
 
@@ -62,19 +63,31 @@ def displacement(points, family, side):
     direction = 1 if side == "Left" else -1
     eye_y = 0.082 if side == "Left" else -0.155
     dy = y - eye_y
-    front = fade(x, -0.21, -0.13)
+    front = fade(x, -0.12, 0.01)
     result = np.zeros_like(points)
     if family.startswith("brow"):
-        r = np.sqrt((dy / 0.075) ** 2 + ((z - 0.681) / 0.055) ** 2)
+        r = np.sqrt((dy / 0.080) ** 2 + ((z - 0.681) / 0.080) ** 2)
         influence = fade(r, 0.75, 1.55) * front
+        # Brows may rotate strongly, but the lid rim and eyeball must not be
+        # dragged down with the forehead. Keep the shared eye boundary fixed.
+        influence *= 1 - fade(z, 0.600, 0.700)
+        influence *= fade(z, 0.710, 0.755)
         outward = np.clip(0.5 + direction * dy / 0.07, 0, 1)
         if family == "browInnerUp":
-            result[:, 2] = 0.018 * (1 - outward) * influence
+            result[:, 2] = 0.044 * (1 - outward) * influence
         elif family == "browOuterUp":
-            result[:, 2] = 0.022 * (0.25 + 0.75 * outward) * influence
+            result[:, 2] = 0.045 * (0.15 + 0.85 * outward) * influence
         else:
-            result[:, 2] = -0.016 * (0.25 + 0.75 * (1 - outward)) * influence
-            result[:, 1] = -direction * 0.006 * influence
+            result[:, 2] = -0.030 * (0.1 + 0.9 * (1 - outward)) * influence
+            result[:, 1] = -direction * 0.009 * influence
+        if family != "browDown":
+            # Ease raised brows below the fixed hairline instead of pulling
+            # the hair and upper forehead into a fold.
+            limit = 0.65 * np.maximum(0.735 - z, 0)
+            ratio = np.divide(
+                result[:, 2], limit, out=np.zeros_like(z), where=limit > 0
+            )
+            result[:, 2] = limit * (1 - np.exp(-ratio))
         # Follow the rounded forehead while moving vertically.
         result[:, 0] = (z - 0.59) * 0.9 * result[:, 2]
     elif family in ("eyeSquint", "eyeWide"):
@@ -95,11 +108,17 @@ def displacement(points, family, side):
         result[:, 0] = -0.0015 * influence
     else:
         dy_mouth = y + 0.043
-        r = np.sqrt((dy_mouth / 0.043) ** 2 + ((z - 0.479) / 0.024) ** 2)
+        r = np.sqrt((dy_mouth / 0.065) ** 2 + ((z - 0.479) / 0.040) ** 2)
         influence = fade(r, 0.5, 1.5) * front
         half = np.clip(0.5 + direction * dy_mouth / 0.025, 0, 1)
-        corner = np.clip(abs(dy_mouth) / 0.024, 0, 1)
-        result[:, 2] = -0.011 * corner * influence * half
+        # A quadratic arc has a horizontal tangent at the centre. An absolute
+        # distance produces a sharp V in the closed lip crease.
+        corner = np.clip((dy_mouth / 0.026) ** 2, 0, 1)
+        if family == "mouthSmile":
+            result[:, 2] = 0.015 * corner * influence * half
+            result[:, 1] = direction * 0.005 * corner * influence * half
+        else:
+            result[:, 2] = -0.016 * corner * influence * half
     return result
 
 
@@ -193,7 +212,9 @@ for ob in [body] + [bpy.data.objects[name] for name in parts]:
             )
             if ob.name == "SpeakingLips":
                 match_lip_boundary(positions, delta, normal_delta, family, side)
-            key = ob.shape_key_add(name=name)
+            key = ob.data.shape_keys.key_blocks.get(name)
+            if key is None:
+                key = ob.shape_key_add(name=name)
             for point, value in zip(key.data, positions + delta):
                 point.co = value
             shapes.append(
@@ -391,7 +412,14 @@ for part in eye_data["parts"]:
             point.co = value
     # Move shared skin boundary points with the same local brow/cheek field.
     if not name.endswith("Eye"):
-        for family in ["browInnerUp", "browOuterUp", "browDown", "cheekRaise"]:
+        for family in [
+            "browInnerUp",
+            "browOuterUp",
+            "browDown",
+            "cheekRaise",
+            "mouthSmile",
+            "mouthFrown",
+        ]:
             for side in ["Left", "Right"]:
                 delta = displacement(positions, family, side)
                 if np.max(np.linalg.norm(delta, axis=1)) < 1e-7:

@@ -113,15 +113,7 @@ namespace A305.EditorTools.Characters
                         mesh.triangles = authored.bodyTriangles;
                         RemoveOldBlink(mesh);
                     }
-                    foreach (var shape in data.shapes)
-                        if (!shape.name.StartsWith("eyeWide", StringComparison.Ordinal))
-                            mesh.AddBlendShapeFrame(
-                                shape.name,
-                                shape.weight,
-                                shape.deltaVertices,
-                                shape.deltaNormals,
-                                null
-                            );
+                    ApplyAuthoredShapes(mesh, data.shapes);
                     AssetDatabase.CreateAsset(mesh, ArtFolder + "/" + data.name + ".asset");
                     skin.sharedMesh = mesh;
                 }
@@ -348,47 +340,52 @@ namespace A305.EditorTools.Characters
                 );
                 if (mesh == null)
                     continue;
-                var old = Object.Instantiate(mesh);
-                mesh.ClearBlendShapes();
-                try
-                {
-                    for (int i = 0; i < old.blendShapeCount; i++)
-                    {
-                        string channel = old.GetBlendShapeName(i);
-                        if (data.shapes.Any(s => s.name == channel))
-                            continue;
-                        for (int f = 0; f < old.GetBlendShapeFrameCount(i); f++)
-                        {
-                            var v = new Vector3[mesh.vertexCount];
-                            var n = new Vector3[mesh.vertexCount];
-                            var t = new Vector3[mesh.vertexCount];
-                            old.GetBlendShapeFrameVertices(i, f, v, n, t);
-                            mesh.AddBlendShapeFrame(
-                                channel,
-                                old.GetBlendShapeFrameWeight(i, f),
-                                v,
-                                n,
-                                t
-                            );
-                        }
-                    }
-                    foreach (var shape in data.shapes)
-                        if (!shape.name.StartsWith("eyeWide", StringComparison.Ordinal))
-                            mesh.AddBlendShapeFrame(
-                                shape.name,
-                                shape.weight,
-                                shape.deltaVertices,
-                                shape.deltaNormals,
-                                null
-                            );
-                    EditorUtility.SetDirty(mesh);
-                }
-                finally
-                {
-                    Object.DestroyImmediate(old);
-                }
+                ApplyAuthoredShapes(mesh, data.shapes);
+                EditorUtility.SetDirty(mesh);
             }
             AssetDatabase.SaveAssets();
+        }
+
+        private static void ApplyAuthoredShapes(Mesh mesh, Shape[] authoredShapes)
+        {
+            var old = Object.Instantiate(mesh);
+            mesh.ClearBlendShapes();
+            try
+            {
+                for (int i = 0; i < old.blendShapeCount; i++)
+                {
+                    string channel = old.GetBlendShapeName(i);
+                    if (authoredShapes.Any(s => s.name == channel))
+                        continue;
+                    for (int f = 0; f < old.GetBlendShapeFrameCount(i); f++)
+                    {
+                        var v = new Vector3[mesh.vertexCount];
+                        var n = new Vector3[mesh.vertexCount];
+                        var t = new Vector3[mesh.vertexCount];
+                        old.GetBlendShapeFrameVertices(i, f, v, n, t);
+                        mesh.AddBlendShapeFrame(
+                            channel,
+                            old.GetBlendShapeFrameWeight(i, f),
+                            v,
+                            n,
+                            t
+                        );
+                    }
+                }
+                foreach (var shape in authoredShapes)
+                    if (!shape.name.StartsWith("eyeWide", StringComparison.Ordinal))
+                        mesh.AddBlendShapeFrame(
+                            shape.name,
+                            shape.weight,
+                            shape.deltaVertices,
+                            shape.deltaNormals,
+                            null
+                        );
+            }
+            finally
+            {
+                Object.DestroyImmediate(old);
+            }
         }
 
         private static void RemoveOldBlink(Mesh mesh)
@@ -421,6 +418,27 @@ namespace A305.EditorTools.Characters
             finally
             {
                 Object.DestroyImmediate(copy);
+            }
+        }
+
+        public static void ResetReviewProfile()
+        {
+            var profile = AssetDatabase.LoadAssetAtPath<EmotionExpressionProfile>(
+                DataFolder + "/CafeFemaleEmotions.asset"
+            );
+            if (profile == null)
+                throw new InvalidOperationException("카페 검수 감정 프로필을 먼저 생성하세요.");
+            var defaults = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            defaults.name = profile.name;
+            try
+            {
+                EditorUtility.CopySerialized(defaults, profile);
+                EditorUtility.SetDirty(profile);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                Object.DestroyImmediate(defaults);
             }
         }
 

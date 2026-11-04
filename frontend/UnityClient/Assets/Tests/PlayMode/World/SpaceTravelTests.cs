@@ -671,7 +671,12 @@ namespace A305.World.PlayModeTests
             public Task<GameClockTime> BeatAsync()
             {
                 return Task.FromResult(
-                    new GameClockTime { Day = 1, MinuteOfDay = 8 * 60, Paused = paused }
+                    new GameClockTime
+                    {
+                        Day = 1,
+                        MinuteOfDay = 8 * 60,
+                        Paused = paused,
+                    }
                 );
             }
         }

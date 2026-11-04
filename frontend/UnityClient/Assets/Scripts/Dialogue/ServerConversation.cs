@@ -494,9 +494,10 @@ namespace A305.Dialogue
 
             Standing.Apply(start.Conversation);
             // NPC가 준비해 둔 것을 첫 대사로 건넸으면 기다리는 목록에서 지운다. NPC가 불러 시작했든 먼저 말을 걸었든 같다.
+            // NPC마다 하나만 기다리므로 ID가 기억하던 줄과 달라도 이 NPC의 줄을 지운다.
             if (start.DeliveredFollowUpId is long delivered)
             {
-                followUps.Remove(delivered);
+                followUps.Remove(delivered, NpcCode);
             }
 
             AddNpcTurn(start.OpeningTurn);

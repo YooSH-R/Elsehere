@@ -1095,7 +1095,7 @@ namespace A305.Dialogue.Tests
         {
             var followUps = new FollowUpStore(() => 10d);
             followUps.Receive(IcedLatte(id: 7, remainingSeconds: 0));
-            followUps.Receive(IcedLatte(id: 8, remainingSeconds: 90));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
             conversation = new ServerConversation(
                 CafeStaffCode,
                 CafeStaffCode,
@@ -1110,6 +1110,42 @@ namespace A305.Dialogue.Tests
 
             Assert.That(followUps.Items, Has.Count.EqualTo(1));
             Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        // NPC마다 하나만 기다리므로, 건넨 ID가 기억하던 줄과 달라도(그사이 새로 부탁함) 그 NPC의 줄을 지운다.
+        [Test]
+        public async Task Start_WhenHandedOverIdDiffers_StillForgetsThatNpcsRow()
+        {
+            var followUps = new FollowUpStore(() => 10d);
+            followUps.Receive(IcedLatte(id: 9, remainingSeconds: 0));
+            followUps.Receive(Breakfast(id: 8, remainingSeconds: 90));
+            conversation = new ServerConversation(
+                CafeStaffCode,
+                CafeStaffCode,
+                api,
+                true,
+                followUps: followUps
+            );
+            api.StartResponse.DeliveredFollowUpId = 7;
+
+            await conversation.StartAsync();
+
+            Assert.That(followUps.Items, Has.Count.EqualTo(1));
+            Assert.That(followUps.Items[0].FollowUpId, Is.EqualTo(8));
+        }
+
+        private static FollowUpData Breakfast(long id, int remainingSeconds)
+        {
+            return new FollowUpData
+            {
+                FollowUpId = id,
+                Npc = new NpcSummary { NpcCode = "DINER_STAFF", Name = "Rosa" },
+                SceneCode = "TOWN",
+                Item = "breakfast",
+                ItemKo = "아침 식사",
+                RemainingSeconds = remainingSeconds,
+                Ready = remainingSeconds == 0,
+            };
         }
 
         private static FollowUpData IcedLatte(long id, int remainingSeconds)

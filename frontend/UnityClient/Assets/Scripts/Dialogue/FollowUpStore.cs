@@ -8,7 +8,8 @@ namespace A305.Dialogue
 {
     /// <summary>
     /// 대화를 마친 NPC가 준비해 곧 건네기로 한 것들(CONV-08 followUp). 아이스 라테·아침 식사·빨래처럼 NPC마다 다르며 NPC별 데이터 없이 서버 응답만 쓴다.
-    /// 공간 씬이 바뀌어도 남도록 씬 밖에 두고, 씬에 들어올 때 서버 목록(CONV-13)으로 다시 맞추며, NPC가 첫 대사로 건네면(CONV-01) 지운다.
+    /// 서버처럼 NPC마다 하나만 기다린다. 공간 씬이 바뀌어도 남도록 씬 밖에 두고, 씬에 들어올 때 서버 목록(CONV-13)으로 다시 맞추며,
+    /// NPC가 첫 대사로 건네면(CONV-01) 지운다.
     /// 왼쪽 기다리는 카드와 NPC가 부르기가 이 목록을 함께 본다.
     /// </summary>
     /// <remarks>
@@ -42,25 +43,35 @@ namespace A305.Dialogue
 
         public bool IsEmpty => items.Count == 0;
 
-        /// <summary>대화 종료(CONV-08)에서 받은 것을 더한다. 같은 것을 다시 받으면 새 남은 시간으로 바꾼다.</summary>
+        /// <summary>
+        /// 대화 종료(CONV-08)에서 받은 것을 더한다. 서버는 NPC마다 기다리는 것을 하나만 두므로, 같은 NPC의 줄이 있으면 새것으로 바꾼다.
+        /// 같은 것을 다시 받으면 새 남은 시간으로 바꾸고, 다 됐다고 이미 알렸으면 다시 알리지 않는다.
+        /// </summary>
         public void Receive(FollowUpData followUp)
         {
             WaitingFollowUp received = WaitingFollowUp.From(followUp, Now);
-            int index = items.FindIndex(item => item.FollowUpId == received.FollowUpId);
-            if (index >= 0)
+            WaitingFollowUp same = items.Find(item => item.FollowUpId == received.FollowUpId);
+            if (same != null)
             {
-                received.IsReadyAnnounced = items[index].IsReadyAnnounced;
-                items.RemoveAt(index);
+                received.IsReadyAnnounced = same.IsReadyAnnounced;
             }
 
+            items.RemoveAll(item =>
+                item.FollowUpId == received.FollowUpId || IsSameNpc(item, received.NpcCode)
+            );
             items.Add(received);
             SortAndNotify();
         }
 
-        /// <summary>NPC가 건넨 것(CONV-01 deliveredFollowUpId)을 지운다.</summary>
-        public void Remove(long followUpId)
+        /// <summary>
+        /// NPC가 건넨 것(CONV-01 deliveredFollowUpId)을 지운다. 건넨 NPC를 주면 ID가 달라도 그 NPC의 줄을 함께 지운다(NPC마다 하나만 기다림).
+        /// </summary>
+        public void Remove(long followUpId, string npcCode = null)
         {
-            if (items.RemoveAll(item => item.FollowUpId == followUpId) > 0)
+            int removed = items.RemoveAll(item =>
+                item.FollowUpId == followUpId || IsSameNpc(item, npcCode)
+            );
+            if (removed > 0)
             {
                 Changed?.Invoke();
             }
@@ -157,6 +168,9 @@ namespace A305.Dialogue
         {
             Shared.Clear();
         }
+
+        private static bool IsSameNpc(WaitingFollowUp item, string npcCode) =>
+            !string.IsNullOrEmpty(npcCode) && item.NpcCode == npcCode;
 
         private void SortAndNotify()
         {

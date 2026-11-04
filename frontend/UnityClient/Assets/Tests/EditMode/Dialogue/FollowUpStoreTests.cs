@@ -86,6 +86,39 @@ namespace A305.Dialogue.Tests
             Assert.That(store.Items[0].RemainingSeconds(now), Is.EqualTo(10));
         }
 
+        // 서버는 NPC마다 기다리는 것을 하나만 둔다. 같은 NPC에게 새로 부탁하면 다른 ID로 오므로 그 NPC의 줄을 바꾼다.
+        [Test]
+        public void Receive_NewFollowUpFromAnNpcAlreadyWaiting_ReplacesThatNpcsRow()
+        {
+            store.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 45));
+            store.Receive(Item(8, "DINER_STAFF", "Rosa", "TOWN", "아침 식사", 90));
+            now += 5d;
+
+            store.Receive(Item(9, "CAFE_STAFF", "Mia", "CAFE", "아이스 아메리카노", 60));
+
+            Assert.That(
+                store.Items.Select(item => item.FollowUpId),
+                Is.EqualTo(new long[] { 9, 8 })
+            );
+            Assert.That(store.Items[0].ItemKo, Is.EqualTo("아이스 아메리카노"));
+            Assert.That(store.Items[0].RemainingSeconds(now), Is.EqualTo(60));
+        }
+
+        // 바뀐 줄은 새로 부탁한 것이라, 앞의 것이 다 됐다고 이미 알렸어도 새것이 다 되면 다시 알린다.
+        [Test]
+        public void Receive_ReplacingAnAnnouncedRow_AnnouncesTheNewOneWhenReady()
+        {
+            store.Receive(Item(7, "CAFE_STAFF", "Mia", "CAFE", "아이스 라테", 0));
+            Assert.That(store.TakeNewlyReady(), Has.Count.EqualTo(1), "준비: 앞의 것을 알림");
+
+            store.Receive(Item(9, "CAFE_STAFF", "Mia", "CAFE", "아이스 아메리카노", 0));
+
+            Assert.That(
+                store.TakeNewlyReady().Select(item => item.FollowUpId),
+                Is.EqualTo(new long[] { 9 })
+            );
+        }
+
         [Test]
         public void Items_SoonestReadyFirst()
         {
@@ -107,6 +140,18 @@ namespace A305.Dialogue.Tests
             store.Receive(Item(8, "DINER_STAFF", "Rosa", "TOWN", "아침 식사", 90));
 
             store.Remove(7);
+
+            Assert.That(store.Items.Select(item => item.FollowUpId), Is.EqualTo(new long[] { 8 }));
+        }
+
+        // 건넨 것(CONV-01 deliveredFollowUpId)을 지울 때 그 NPC의 줄도 지운다. NPC마다 하나만 기다리기 때문이다.
+        [Test]
+        public void Remove_WithTheHandingNpc_AlsoForgetsThatNpcsRow()
+        {
+            store.Receive(Item(9, "CAFE_STAFF", "Mia", "CAFE", "아이스 아메리카노", 0));
+            store.Receive(Item(8, "DINER_STAFF", "Rosa", "TOWN", "아침 식사", 90));
+
+            store.Remove(7, "CAFE_STAFF");
 
             Assert.That(store.Items.Select(item => item.FollowUpId), Is.EqualTo(new long[] { 8 }));
         }

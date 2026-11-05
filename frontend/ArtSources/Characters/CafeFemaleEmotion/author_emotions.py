@@ -346,7 +346,9 @@ for part in eye_data["parts"]:
             ((positions[:, 1] - center) / 0.066) ** 2
             + ((positions[:, 2] - 0.573) / 0.060) ** 2
         )
-        lift = 0.020 * horizontal * fade(ring, 0.55, 1.35) * boundary_weight
+        side = "Left" if center > 0 else "Right"
+        smile_lift = settings.get("eyeSmileLift" + side, 0.020)
+        lift = smile_lift * horizontal * fade(ring, 0.55, 1.35) * boundary_weight
         # Keep the lid in front of the eye over the full possible smile lift,
         # including partial closure, rather than checking only the end pose.
         for fraction in np.linspace(0, 1, 9):
@@ -413,7 +415,11 @@ for part in eye_data["parts"]:
                 rings = np.arange(len(positions)) // (len(positions) // 25)
                 boundary_weight = np.clip(rings / 8, 0, 1)
             target[:, 2] += (
-                0.020 * amount * horizontal * fade(ring, 0.55, 1.35) * boundary_weight
+                smile_lift
+                * amount
+                * horizontal
+                * fade(ring, 0.55, 1.35)
+                * boundary_weight
             )
             for point in target:
                 hit, _, _, _ = eye_tree.ray_cast(
@@ -603,6 +609,10 @@ for mesh_data in export["meshes"] + export["parts"]:
         target = visible.copy()
         target[:, 1] = -0.043 + (visible[:, 1] + 0.043) * 1.5
         target[:, 2] += 0.001 if name == "UpperTeeth" else -0.010
+        if name == "Tongue":
+            # Retargeted tongues vary in height. Keep the whole visible tongue
+            # above the laugh opening instead of letting it exit below the lip.
+            target[:, 2] += max(0, rim[:, 2].min() + 0.004 - target[:, 2].min())
         target[:, 0] = (
             mouth_depth(target[:, 1] + 0.043, target[:, 2] - 0.477)
             + 0.004

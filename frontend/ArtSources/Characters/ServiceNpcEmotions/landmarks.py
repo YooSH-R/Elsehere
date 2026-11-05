@@ -53,8 +53,8 @@ def measure(face, eye_tops):
     result = {}
     for side, center in [("Left", 0.082), ("Right", -0.155)]:
         ys = np.linspace(center - 0.075, center + 0.075, 100)
-        # A dark upper eyelash is not an eyebrow. Start above the actual eye
-        # surface before adapting the contrast for light blond/grey eyebrows.
+        # Exclude the whole eye cutout, including its skin join. Rays through
+        # that opening hit the dark back of the head, not an eyebrow.
         zs = np.linspace(max(0.615, eye_tops[side] + 0.008), 0.760, 100)
         colors = np.ones((len(zs), len(ys)))
         for row, z in enumerate(zs):
@@ -77,7 +77,20 @@ def measure(face, eye_tops):
             if regions:
                 break
         if not regions:
-            raise ValueError("눈썹 기준점을 자동 측정하지 못했습니다: " + side)
+            # A side fringe may touch the brow in the texture, making one tall
+            # connected region. Measure its lower edge above the eye opening.
+            mask = colors < np.quantile(colors, 0.75) * 0.55
+            edges = [
+                zs[np.flatnonzero(mask[:, col])[0]]
+                for col in np.flatnonzero(abs(ys - center) < 0.045)
+                if mask[:, col].any()
+            ]
+            if len(edges) < 12:
+                raise ValueError("눈썹 기준점을 자동 측정하지 못했습니다: " + side)
+            lower = float(np.quantile(edges, 0.30))
+            if lower <= zs[0] + 0.005 or lower >= zs[-1] - 0.015:
+                raise ValueError("눈썹과 머리카락 경계를 확인하세요: " + side)
+            regions = [(lower + 0.004, center)]
         result["brow" + side] = min(
             regions, key=lambda p: abs(p[0] - 0.665) + abs(p[1] - center) * 0.3
         )[0]

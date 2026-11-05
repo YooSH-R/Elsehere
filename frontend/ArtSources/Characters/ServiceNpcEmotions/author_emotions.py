@@ -222,15 +222,23 @@ from landmarks import measure
 
 eye_tops = {
     side: float(
-        points(
-            next(p for p in eye_export["parts"] if p["name"] == side + "Eye")[
-                "vertices"
-            ]
-        )[:, 2].max()
+        max(
+            points(part["vertices"])[:, 2].max()
+            for part in eye_export["parts"]
+            if part["name"] in (side + "Eye", side + "EyeJoin")
+        )
     )
     for side in ("Left", "Right")
 }
 settings = measure(face, eye_tops)
+for side in ("Left", "Right"):
+    line = next(p for p in eye_export["parts"] if p["name"] == side + "LidLine")
+    closed = points(line["frames"][-1]["vertices"])
+    center = (closed[:, 1].min() + closed[:, 1].max()) / 2
+    radius = np.ptp(closed[:, 1]) / 2
+    distance = abs(closed[:, 1] - center) / radius
+    curvature = closed[distance < 0.15, 2].mean() - closed[distance > 0.85, 2].mean()
+    settings["eyeSmileLift" + side] = float(np.clip(0.012 - curvature, 0.020, 0.040))
 (input_folder / "Settings.json").write_text(json.dumps(settings, indent=2))
 print("표정 기준점", source["name"], settings, flush=True)
 bpy.ops.wm.save_as_mainfile(filepath=str(input_folder / "CafeFemaleFacePreview.blend"))
@@ -251,6 +259,9 @@ runpy.run_path(
     str(characters / "CafeFemaleEmotion/author_emotions.py"), run_name="__main__"
 )
 authored = json.loads((work / "Canonical/CafeFemaleEmotions.json").read_text())
+from lid_visibility import keep_lid_lines_visible
+
+keep_lid_lines_visible(authored)
 originals = dict(parts, CafeFemaleFace=body)
 for mesh in authored["meshes"] + authored["parts"]:
     original = originals[mesh["name"]]
@@ -306,14 +317,19 @@ for ob in bpy.data.objects:
             for vertex, position in zip(key.data, values):
                 vertex.co = position
 for mesh in authored["parts"]:
-    if not mesh["name"].endswith("EyeJoin"):
-        continue
     ob = bpy.data.objects[mesh["name"]]
-    shape = next(s for s in mesh["shapes"] if s["name"] == "mouthLaughOpen")
-    key = ob.data.shape_keys.key_blocks["mouthLaughOpen"]
-    for vertex, position in zip(
-        key.data, points(mesh["vertices"]) + points(shape["deltaVertices"])
-    ):
-        vertex.co = position
+    for shape in mesh["shapes"]:
+        if shape["name"] == "mouthLaughOpen" and mesh["name"].endswith("EyeJoin"):
+            key_name = shape["name"]
+        elif shape["name"].startswith("eyeSquint") and mesh["name"].endswith("LidLine"):
+            weight = shape.get("weight", 100)
+            key_name = shape["name"] + ("" if weight == 100 else str(weight))
+        else:
+            continue
+        key = ob.data.shape_keys.key_blocks[key_name]
+        for vertex, position in zip(
+            key.data, points(mesh["vertices"]) + points(shape["deltaVertices"])
+        ):
+            vertex.co = position
 bpy.ops.wm.save_as_mainfile(filepath=str(output / (source["name"] + "_Emotions.blend")))
 print(source["name"], "감정 제작 완료", flush=True)

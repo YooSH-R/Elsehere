@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "A305.Api",
         "A305.Npc",
+        "A305.ObjectHover",
         "A305.Player",
         "A305.EditorTools",
         "Unity.TextMeshPro"

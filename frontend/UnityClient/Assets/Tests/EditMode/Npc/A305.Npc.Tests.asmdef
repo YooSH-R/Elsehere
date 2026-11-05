@@ -7,7 +7,8 @@
         "A305.Api",
         "A305.Npc",
         "A305.Player",
-        "A305.EditorTools"
+        "A305.EditorTools",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

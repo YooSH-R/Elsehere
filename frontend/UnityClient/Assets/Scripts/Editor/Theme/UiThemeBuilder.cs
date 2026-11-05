@@ -159,6 +159,13 @@ namespace A305.EditorTools.Theme
             Style(OfferPath, StyleGuestSignupDialog);
         }
 
+        /// <summary>대화 제안 화면의 NPC 머리 위 이름표만 테마로 칠한다. 제안 화면의 다른 요소는 건드리지 않는다.</summary>
+        public static void ApplyNpcNameTagTheme()
+        {
+            catalog = BuilderTools.LoadRequiredAsset<UiThemeCatalog>(CatalogPath, MenuPath);
+            Style(OfferPath, StyleNpcNameTags);
+        }
+
         /// <summary>입구의 게임 전 멈춤 화면(게스트 다시 접속·이미 가입한 계정)만 테마로 칠한다. 입구 화면의 다른 요소는 건드리지 않는다.</summary>
         public static void ApplyGuestReturnTheme()
         {
@@ -644,6 +651,7 @@ namespace A305.EditorTools.Theme
                 Role(root, "Panel/Remaining", UiThemeRole.Muted);
             StyleTalkPromptHints(root);
             StyleGuestSignupDialog(root);
+            StyleNpcNameTags(root);
         }
 
         [MenuItem("Tools/A305/UI/Update Talk Prompt Hints")]
@@ -1212,6 +1220,15 @@ namespace A305.EditorTools.Theme
             Role(root, "FeedbackWait/Card", UiThemeRole.Panel);
             Role(root, "FeedbackWait/Card/Title", UiThemeRole.Title);
             Role(root, "FeedbackWait/Card/Body", UiThemeRole.Muted);
+        }
+
+        // HUD의 시계·코인과 같은 둥근 유리 칩에 이름을 제목 글꼴로 쓴다. 직원 역할 칩은 Builder가 정한 옅은 파랑 그대로 둔다.
+        private static void StyleNpcNameTags(Transform root)
+        {
+            if (root.Find("NameTags/TagTemplate") == null)
+                return;
+            Role(root, "NameTags/TagTemplate", UiThemeRole.Chip);
+            Role(root, "NameTags/TagTemplate/Name", UiThemeRole.Title);
         }
 
         // 음성 처리 동의 창과 같은 모양. 주요 동작인 [Google로 가입하기]만 강조색으로 둔다.

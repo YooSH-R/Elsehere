@@ -134,9 +134,8 @@ namespace A305.Tutorial
         private void MatchServiceTheme()
         {
             TutorialGuideView guide = FindFirstObjectByType<TutorialGuideView>();
-            UiThemeCatalog catalog = guide != null
-                ? guide.PanelRect.GetComponent<ThemedElement>()?.Catalog
-                : null;
+            UiThemeCatalog catalog =
+                guide != null ? guide.PanelRect.GetComponent<ThemedElement>()?.Catalog : null;
             if (catalog == null)
             {
                 return;
@@ -166,8 +165,13 @@ namespace A305.Tutorial
 
         private Image CreateFrameImage(string name)
         {
-            var image = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image))
-                .GetComponent<Image>();
+            var root = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image)
+            );
+            var image = root.GetComponent<Image>();
             image.transform.SetParent(frame.transform, false);
             RectTransform rect = image.rectTransform;
             rect.anchorMin = Vector2.zero;

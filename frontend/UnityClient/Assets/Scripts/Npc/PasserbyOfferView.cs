@@ -272,14 +272,12 @@ namespace A305.Npc
 
         private void Update()
         {
-            if (
-                talkPromptOwner != null
-                && Keyboard.current != null
-                && Keyboard.current.eKey.wasPressedThisFrame
-            )
-            {
+            if (Keyboard.current == null || !Keyboard.current.eKey.wasPressedThisFrame)
+                return;
+            if (owner != null && panel.activeInHierarchy && acceptButton.interactable)
+                onAccept?.Invoke();
+            else if (talkPromptOwner != null && talkButton.interactable)
                 onTalk?.Invoke();
-            }
         }
     }
 }

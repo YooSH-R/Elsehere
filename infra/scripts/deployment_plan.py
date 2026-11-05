@@ -42,8 +42,10 @@ def select_deployment_work(changed_paths):
             runtime_configuration_changed = True
         elif path == "infra/scripts/docker_build.py":
             checks.update({"backend", "infra"})
-        elif path == "infra/scripts/prepare-unity-test-inputs.ps1" or path.startswith(
-            "infra/tests/tripo/"
+        elif (
+            path == "infra/scripts/prepare-unity-test-inputs.ps1"
+            or path.startswith("infra/tests/tripo/")
+            or (path.startswith("infra/tests/webgl_") and path.endswith(".test.cjs"))
         ):
             checks.update({"infra", "unity"})
         elif path.startswith("infra/"):

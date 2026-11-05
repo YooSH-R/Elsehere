@@ -34,9 +34,15 @@ public class UserGameClock extends BaseEntity {
    * {@code maxStep}까지만 더한다.
    */
   public void beat(Instant now, boolean paused, Duration maxStep) {
+    beat(now, paused, maxStep, null);
+  }
+
+  /** 보고된 실제 진행 시간도 서버 신호 간격과 상한 안에서만 반영한다. */
+  public void beat(Instant now, boolean paused, Duration maxStep, Long activeSeconds) {
     if (lastBeatAt != null && !paused) {
       long elapsed = Duration.between(lastBeatAt, now).getSeconds();
-      playSeconds += Math.clamp(elapsed, 0, maxStep.getSeconds());
+      long allowed = Math.clamp(elapsed, 0, maxStep.getSeconds());
+      playSeconds += activeSeconds == null ? allowed : Math.clamp(activeSeconds, 0, allowed);
     }
     lastBeatAt = now;
   }

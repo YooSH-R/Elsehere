@@ -96,6 +96,25 @@ def test_no_whole_turn_audio_without_tts(provider):
     assert done["audio_full_id"] is None
 
 
+def test_slow_full_turn_audio_does_not_hold_the_completed_text(provider):
+    class SlowTts(FakeTts):
+        completed = False
+
+        async def asynth(self, *args):
+            result = await super().asynth(*args)
+            self.completed = True
+            return result
+
+    tts = SlowTts(delay=0.5, wav=True)
+    provider.answers["npc"] = lambda body: stream(["Sure! One latte."])
+    with make_client(provider, tts, tts_chunk_budget_s=0.01, tts_full_budget_s=0.02) as client:
+        done = events(client.post("/v1/npc/reply", json={"npc": NPC, "history": HISTORY, "text": "one latte"}))[-1]
+
+        assert done[0] == "done" and done[1]["text"] == "Sure! One latte."
+        assert tts.completed is False
+        assert done[1]["audio_full_id"] is None
+
+
 # ---------------------------------------------------------------------
 # 스트림 안의 추천 단어
 # ---------------------------------------------------------------------

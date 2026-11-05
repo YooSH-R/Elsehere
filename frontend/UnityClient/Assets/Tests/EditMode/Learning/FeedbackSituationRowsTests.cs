@@ -12,7 +12,7 @@ namespace A305.Learning.Tests
     /// <summary>
     /// 피드백을 열자마자 보이는 요약 탭에 이 상황에서 자주 쓰는 표현을 보여 주고, 표현마다 바로 담을 수 있는지 확인한다.
     /// 회화 탭을 눌러 한 장씩 넘겨야 보이면 잘 와닿지 않는다. 아래 대화 요약 자리가 남도록 표현은 두 개씩 보이고
-    /// 나머지는 제목 옆 쪽 넘김으로 넘긴다(FeedbackSummaryPagingTests).
+    /// 고정 영역을 넘는 내용은 세로 스크롤로 본다.
     /// </summary>
     public class FeedbackSituationRowsTests
     {
@@ -41,12 +41,12 @@ namespace A305.Learning.Tests
         public void DestroyScreen() => Object.DestroyImmediate(instance);
 
         [Test]
-        public void SummaryTab_ShowsTheFirstTwoSituationExpressions()
+        public void SummaryTab_ShowsAllSituationExpressions()
         {
             Show(Expressions);
 
             List<GameObject> rows = Rows();
-            Assert.That(rows, Has.Count.EqualTo(2));
+            Assert.That(rows, Has.Count.EqualTo(3));
             for (int i = 0; i < rows.Count; i++)
             {
                 string text = Texts(rows[i]);

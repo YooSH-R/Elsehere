@@ -144,6 +144,25 @@ def test_gpu_guard_model_answers_first(provider):
     assert [(u["model"], u["fallback"]) for u in body["usage"]] == [(GPU_MODEL, False)]
 
 
+@pytest.mark.parametrize("text", ["음... 맛있군 좀 살 것 같ㅊ아", "ㄱㅅ", "ㅅㅂ 맛없네"])
+def test_line_with_loose_korean_letters_skips_gpu_guard(provider, text):
+    """GPU LoRA는 오타 낱자모("같ㅊ아")·"ㄱㅅ"를 욕 줄임말로 읽어 무례로 본다(프롬프트로 안 고쳐짐, S15P31A305-604).
+    낱자모가 섞인 줄은 구성의 guard 모델이 판정한다."""
+    profile_guard = profile_models("groq")[0]["guard"]
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: ok("yes"), profile_guard: lambda b: ok("no")})
+    with make_client(provider, **GPU) as c:
+        body = c.post("/v1/guard", json=guard_body(text)).json()
+    assert provider.calls == [("guard", profile_guard)]
+    assert [(u["model"], u["fallback"]) for u in body["usage"]] == [(profile_guard, False)]
+
+
+def test_line_with_full_korean_syllables_still_uses_gpu_guard(provider):
+    provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: ok("no")})
+    with make_client(provider, **GPU) as c:
+        c.post("/v1/guard", json=guard_body("음... 맛있군 좀 살 것 같아"))
+    assert provider.calls == [("guard", GPU_MODEL)]
+
+
 def test_gpu_guard_request_turns_thinking_off(provider):
     seen = {}
     provider.answers["guard"] = guard_by_model({GPU_MODEL: lambda b: seen.update(b) or ok("no")})

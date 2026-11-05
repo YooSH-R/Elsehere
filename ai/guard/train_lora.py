@@ -3,7 +3,8 @@
     CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=5 python ai/guard/train_lora.py \\
         --model <Qwen3.8-27B 폴더> --train train.jsonl --dev dev_own_v1_1.jsonl --out runs/lora-r16
 
-학습·개발셋 jsonl 한 줄: text, prev(바로 앞 NPC 대사, 없으면 ""), rude(0/1), npc{id, name, role, facts, scene}, weight(학습셋만, 기본 1).
+학습·개발셋 jsonl 한 줄: text, prev(바로 앞 NPC 대사, 없으면 ""), rude(0/1), npc{id, name, role, facts, scene}, weight(학습셋만, 기본 1),
+선택 history([{who: me|npc, text}], 있으면 prev 대신 서비스처럼 앞 대화 여러 줄).
 손실은 답 토큰에만 건다. 에폭마다 개발셋을 첫 답 토큰의 yes·no 점수로 판정해 F1을 찍고, 어댑터를 out/epoch-N에 저장한다.
 vLLM에서는 기본 모델에 이 어댑터를 얹어 서비스한다(--enable-lora). 모델 고르기는 개발셋에서만 하고, 잠긴 테스트셋은 최종 평가에 한 번만 쓴다.
 """
@@ -35,9 +36,16 @@ def read_jsonl(path: str) -> list[dict]:
     return [json.loads(line) for line in Path(path).expanduser().read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def history_of(item: dict) -> list[Line]:
+    """앞 대화. history(서비스처럼 학습자·NPC 여러 줄)가 있으면 그것, 없으면 바로 앞 NPC 대사(prev) 한 줄.
+    ai/tools/guard_eval.py의 history_of와 같게 둔다(테스트는 그쪽)."""
+    if item.get("history"):
+        return [Line(**h) for h in item["history"]]
+    return [Line(who="npc", text=item["prev"])] if item["prev"] else []
+
+
 def prompt_ids(tok, item: dict) -> list[int]:
-    history = [Line(who="npc", text=item["prev"])] if item["prev"] else []
-    messages = P.guard_messages(Npc.model_validate(item["npc"]), history, item["text"])
+    messages = P.guard_messages(Npc.model_validate(item["npc"]), history_of(item), item["text"])
     # 서비스(vLLM)에서도 생각을 끄고 부른다
     return tok.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=False, tokenize=True, return_dict=False)
 

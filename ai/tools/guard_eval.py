@@ -7,7 +7,8 @@
 --base-url을 주면 그 주소(GPU 서버의 vLLM 같은 OpenAI 호환 서버)로 보내고, 키는 --key-env가 가리키는 환경 변수(.env 포함)에서 읽는다.
 재시도·대체 모델 없이 그 모델 자신의 답만 잰다. 판정하지 못한 답(빈 답·거절·오류)은 따로 센다.
 
-입력 jsonl 한 줄: text, prev(바로 앞 NPC 대사, 없으면 ""), rude(0/1), npc{id, name, role, facts, scene}.
+입력 jsonl 한 줄: text, prev(바로 앞 NPC 대사, 없으면 ""), rude(0/1), npc{id, name, role, facts, scene},
+선택 history([{who: me|npc, text}], 있으면 prev 대신 서비스처럼 앞 대화 여러 줄).
 화면에는 집계만 찍고, 문장별 결과는 --out jsonl에 문장 없이(id·rude·pred·raw·latency) 남긴다.
 모델 고르기는 개발셋에서만 한다. 잠긴 테스트셋은 최종 평가에 한 번만 쓴다.
 """
@@ -32,9 +33,16 @@ from app.llm import model_body
 from app.schemas import Line, Npc
 
 
+def history_of(item: dict) -> list[Line]:
+    """앞 대화. history(서비스처럼 학습자·NPC 여러 줄)가 있으면 그것, 없으면 바로 앞 NPC 대사(prev) 한 줄.
+    ai/guard/train_lora.py의 history_of와 같게 둔다(그쪽은 torch가 필요해 테스트는 이쪽에서 한다)."""
+    if item.get("history"):
+        return [Line(**h) for h in item["history"]]
+    return [Line(who="npc", text=item["prev"])] if item["prev"] else []
+
+
 def messages(item: dict) -> list[dict]:
-    history = [Line(who="npc", text=item["prev"])] if item["prev"] else []
-    return P.guard_messages(Npc.model_validate(item["npc"]), history, item["text"])
+    return P.guard_messages(Npc.model_validate(item["npc"]), history_of(item), item["text"])
 
 
 async def judge(client: httpx.AsyncClient, body: dict, item: dict, timeout: float) -> dict:

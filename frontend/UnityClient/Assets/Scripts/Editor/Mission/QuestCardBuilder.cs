@@ -22,6 +22,7 @@ namespace A305.EditorTools.Mission
         private const string PlaceholderMenuPath =
             "Tools/A305/Mission/Apply Quest Card Placeholder";
         private const string CoinChangeMenuPath = "Tools/A305/Mission/Apply Coin Change Labels";
+        private const string GoalHintMenuPath = "Tools/A305/Mission/Apply Quest Goal Hints";
         private const string FollowUpMenuPath = "Tools/A305/Mission/Apply Follow-up Card";
         private const string QuestIconMenuPath = "Tools/A305/Mission/Apply Quest Icon";
         private const string QuestIconArtPath = "Assets/Art/UI/Quest/QuestHeaderIcon.png";
@@ -79,6 +80,17 @@ namespace A305.EditorTools.Mission
                         root.GetComponent<FirstDayMissionView>(),
                         root.transform.Find("Content")
                     )
+            );
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>카드를 다시 만들지 않고 목표 줄만 '이름 + 말해야 할 정보' 두 줄로 다시 만든다.</summary>
+        [MenuItem(GoalHintMenuPath)]
+        public static void ApplyGoalHintsToPrefab()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                PrefabPath,
+                root => GoalRow((RectTransform)root.transform.Find("Content/CurrentGoal/Goals"))
             );
             AssetDatabase.SaveAssets();
         }
@@ -349,13 +361,7 @@ namespace A305.EditorTools.Mission
             list.childControlWidth = list.childControlHeight = true;
             list.childForceExpandWidth = true;
             list.childForceExpandHeight = false;
-            RectTransform goal = Row(goals, "Goal", 10);
-            Height(goal, 24);
-            RectTransform check = Box(goal, "Check", 24, 24);
-            Art(check, "CheckEmpty", 24 + 2 * ArtPad, 28 + 2 * ArtPad, ArtPad, ArtPad);
-            TMP_Text goalLabel = Text(goal, "Label", BodyFontPath, 17, Ink, "예약 확인");
-            goalLabel.alignment = TextAlignmentOptions.MidlineLeft;
-            BuilderTools.GetOrAddComponent<LayoutElement>(goalLabel.gameObject).flexibleWidth = 1;
+            GoalRow(goals);
 
             string[] order = { "Header", "Direction", "Situation", "Progress", "Goals" };
             for (int i = 0; i < order.Length; i++)
@@ -412,6 +418,35 @@ namespace A305.EditorTools.Mission
             QuestBoardBuilder.Listen(button, view.OpenQuestBoard);
             BuilderTools.SetReference(view, "questIcon", button);
             chip.gameObject.SetActive(false);
+        }
+
+        // 목표 줄 견본: 동그라미 체크(24) + 이름(Pretendard 17)과 그 아래 말해야 할 정보(Pretendard 14, 옅은 글자). 정보가 길면 줄을 바꾼다.
+        // 체크는 이름 줄에 맞춰 위에 둔다. 이미 있는 줄은 지우고 견본 하나만 다시 만든다.
+        private static void GoalRow(RectTransform goals)
+        {
+            for (int i = goals.childCount - 1; i >= 0; i--)
+                Object.DestroyImmediate(goals.GetChild(i).gameObject);
+            RectTransform goal = Row(goals, "Goal", 10);
+            goal.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.UpperLeft;
+            BuilderTools.GetOrAddComponent<LayoutElement>(goal.gameObject).minHeight = 24 * Px;
+            RectTransform check = Box(goal, "Check", 24, 24);
+            Art(check, "CheckEmpty", 24 + 2 * ArtPad, 28 + 2 * ArtPad, ArtPad, ArtPad);
+            RectTransform text = Rect("Text", goal);
+            var lines = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(text.gameObject);
+            lines.spacing = 2 * Px;
+            lines.childAlignment = TextAnchor.UpperLeft;
+            lines.childControlWidth = lines.childControlHeight = true;
+            lines.childForceExpandWidth = true;
+            lines.childForceExpandHeight = false;
+            BuilderTools.GetOrAddComponent<LayoutElement>(text.gameObject).flexibleWidth = 1;
+            TMP_Text label = Text(text, "Label", BodyFontPath, 17, Ink, "예약 확인");
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+            label.textWrappingMode = TextWrappingModes.Normal;
+            BuilderTools.GetOrAddComponent<LayoutElement>(label.gameObject).minHeight = 24 * Px;
+            TMP_Text hint = Text(text, "Hint", BodyFontPath, 14, Muted, "예약자 이름: 내 이름");
+            hint.alignment = TextAlignmentOptions.TopLeft;
+            hint.textWrappingMode = TextWrappingModes.Normal;
+            hint.gameObject.SetActive(false);
         }
 
         // 시안 .tr: 오른쪽·위 28, 칸 사이 12. 휴대폰 버튼(64) 왼쪽에 시계 칩과 코인 칩(둘 다 174×64)

@@ -131,9 +131,11 @@ namespace A305.EditorTools.Characters
                         .Where(s => !string.IsNullOrEmpty(s.path))
                 )
                 {
-                    var skin = root
-                        .transform.Find(surface.path)
-                        ?.GetComponent<SkinnedMeshRenderer>();
+                    Transform surfaceTransform = root.transform.Find(surface.path);
+                    var skin =
+                        surfaceTransform != null
+                            ? surfaceTransform.GetComponent<SkinnedMeshRenderer>()
+                            : null;
                     if (skin == null || !skin.sharedMesh.vertices.SequenceEqual(surface.vertices))
                         throw new InvalidOperationException(
                             "제작 기준 표면이 변경되었습니다: " + name + "/" + surface.path

@@ -879,6 +879,21 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - AI가 미션 완료나 대화 종료를 제안하면 서버가 검증해 확정합니다(`ai_candidates`). 확정된 결과만 `missionUpdates`와 `conversation.status`에 반영합니다. 한 턴에서 여러 미션이 함께 완료될 수 있습니다.
 - 서버는 한 턴에서 무례 판정과 의도·번역 판정을 같은 문장으로 동시에 요청하고 둘 다 기다린 뒤 NPC 대답을 만듭니다.
 
+**스트리밍** — 요청 헤더에 `Accept: text/event-stream, application/json`을 붙이면 NPC 대사 글자와 문장 조각 음성을 만들어지는 대로 SSE(`text/event-stream`)로 받습니다. 요청 본문, 판정 → 대답 순서, 턴 저장, 같은 `requestId` 처리는 위와 같습니다. Accept에 `text/event-stream`이 없으면 지금처럼 JSON 한 번으로 응답합니다. 전송→첫 글자·첫 음성이 대답 전체를 기다리는 것보다 짧습니다.
+
+| 이벤트 | data | 뜻 |
+| --- | --- | --- |
+| `delta` | `{ "text": "Great!" }` | NPC 대사 글자 조각. 받는 대로 대사에 이어 붙입니다. |
+| `audio` | `{ "seq": 0, "text": "Great!", "wav": "<base64>" }` | 문장 조각 음성. PCM16 WAV(립싱크 음소 청크 포함)를 base64로 담습니다. `seq` 순서대로 이어 재생합니다. 합성이 늦거나 실패한 조각은 `wav: null`이며 그 조각은 자막만 보입니다. |
+| `turn` | 위 응답 200과 같은 본문 | 마지막 이벤트. 저장된 턴 ID, [다시 듣기] 주소(`npcTurn.speech`), 대화 상태, 미션 변화. |
+| `error` | `{ "status": 503, "error": { "code", "message", "details" } }` | 대사를 보내기 시작한 뒤 난 오류. `status`는 JSON으로 응답했다면 보냈을 HTTP 상태이고 `error`는 1.5의 공통 오류 본문입니다. 턴은 저장하지 않으며 같은 `requestId`로 다시 보낼 수 있습니다. |
+
+- 의도·무례 판정까지 난 오류(`CONVERSATION_NOT_ACTIVE`, 행동 묘사만 있는 말의 `VALIDATION_FAILED`, `REQUEST_ID_CONFLICT`, 판정 AI 오류 등)는 스트림을 시작하기 전이라 지금과 같은 HTTP 상태와 JSON 오류 본문입니다. 그래서 Accept에 `application/json`도 함께 넣습니다.
+- 같은 `requestId`로 다시 보내 저장된 결과를 돌려줄 때는 `turn` 하나만 옵니다.
+- 사용자가 화면을 닫거나 연결이 끊겨도 서버는 대답을 끝까지 받아 턴을 저장합니다. 클라이언트는 `turn`이나 `error` 없이 스트림이 끝나면 같은 `requestId`로 다시 보내 저장된 결과를 받습니다(JSON이든 스트림이든 같습니다).
+- 조각 음성을 재생한 턴은 `turn`을 받은 뒤 턴 전체 음성을 다시 자동 재생하지 않습니다. [다시 듣기]는 `npcTurn.speech`의 턴 전체 음성(CONV-06)을 씁니다.
+- 대화 시작(CONV-01)은 아직 JSON 응답만 있습니다.
+
 **학습자 말 번역** — `userTurn.translation`은 학습자 말의 영어 번역 `{ "english": "Medium size, please." }`입니다. 번역이 있고 무례가 아니라고 확정된 턴에만 담고, 무례하거나 판정하지 못한 턴을 포함한 그 밖에는 `null`입니다. 한국어나 한영 혼용으로 말했을 때 "영어로는 이렇게 말해요" 카드에 씁니다. 표시 위치는 Unity와 정합니다.
 
 **무례 판정** — 학습자 말이 무례한지(욕설·위협·모욕·조롱·하대) 턴마다 판정하고, 대화 하나 안에서 셉니다.

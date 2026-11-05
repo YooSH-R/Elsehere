@@ -74,7 +74,9 @@ class AiGatewayTest {
         call(
             "NPC 대답",
             AiRequestKind.NPC,
-            (client, trace) -> client.reply(trace, null, null, List.of(), "hi", "", 1, null),
+            (client, trace) ->
+                client.reply(
+                    trace, null, null, List.of(), "hi", "", 1, null, NpcReplyListener.NONE),
             (gateway, trace) -> gateway.reply(trace, null, null, List.of(), "hi", "", 1, null),
             new NpcReply("Hello!", "audio-1", null, USAGE)),
         call(
@@ -180,7 +182,9 @@ class AiGatewayTest {
   @Test
   @DisplayName("NPC 대답 스트림이 오류로 끝나면 그때까지 쓴 사용량으로 FAILED를 남기고 워커 오류 코드를 API 오류 코드로 바꿔 던진다")
   void reply_streamError_recordsFailedWithUsageAndThrowsMappedCode() {
-    given(aiWorkerClient.reply(trace, null, null, List.of(), "hi", "", 1, null))
+    given(
+            aiWorkerClient.reply(
+                trace, null, null, List.of(), "hi", "", 1, null, NpcReplyListener.NONE))
         .willReturn(new NpcReply(null, null, "provider_limit", USAGE));
 
     assertThatThrownBy(() -> aiGateway.reply(trace, null, null, List.of(), "hi", "", 1, null))

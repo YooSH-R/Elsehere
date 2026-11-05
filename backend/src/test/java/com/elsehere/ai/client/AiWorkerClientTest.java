@@ -169,6 +169,52 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("받는 쪽을 넘기면 조각 스트림을 요청하고 글자·조각 음성을 온 순서대로 넘긴다")
+  void reply_withListener_forwardsDeltaAndChunksInOrder() {
+    respond(
+        "/v1/npc/reply",
+        200,
+        "text/event-stream",
+        """
+        event: delta
+        data: {"text": "Hi!"}
+
+        event: delta
+        data: {"text": " Sure."}
+
+        event: audio
+        data: {"seq": 0, "text": "Hi!", "audio_id": "a-0", "duration_s": 0.6, "tts": true}
+
+        event: audio
+        data: {"seq": 1, "text": "Sure.", "audio_id": null, "duration_s": null, "tts": false}
+
+        event: done
+        data: {"text": "Hi! Sure.", "audio_full_id": "full-1"}
+
+        """);
+    List<String> events = new java.util.ArrayList<>();
+    NpcReplyListener listener =
+        new NpcReplyListener() {
+          @Override
+          public void onDelta(String text) {
+            events.add("delta:" + text);
+          }
+
+          @Override
+          public void onChunk(NpcReplyChunk chunk) {
+            events.add("chunk:" + chunk.seq() + ":" + chunk.text() + ":" + chunk.audioId());
+          }
+        };
+
+    NpcReply reply = client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null, listener);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"stream_chunks\":true");
+    assertThat(events)
+        .containsExactly("delta:Hi!", "delta: Sure.", "chunk:0:Hi!:a-0", "chunk:1:Sure.:null");
+    assertThat(reply.text()).isEqualTo("Hi! Sure.");
+  }
+
+  @Test
   @DisplayName("대답 상대인 학습자의 닉네임과 캐릭터 기본형을 learner로 보낸다")
   void reply_sendsLearnerNicknameAndAvatarType() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");

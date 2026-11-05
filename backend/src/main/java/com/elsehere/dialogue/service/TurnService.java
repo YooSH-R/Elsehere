@@ -4,6 +4,8 @@ import com.elsehere.ai.client.AiGateway;
 import com.elsehere.ai.client.GuardResult;
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.NpcReply;
+import com.elsehere.ai.client.NpcReplyChunk;
+import com.elsehere.ai.client.NpcReplyListener;
 import com.elsehere.ai.client.WorkerLearner;
 import com.elsehere.ai.client.WorkerLine;
 import com.elsehere.ai.client.WorkerMemory;
@@ -83,10 +85,22 @@ public class TurnService {
 
   public TurnResponse send(Long userId, Long conversationId, TurnRequest request) {
     return requestLocks.execute(
-        userId, request.requestId(), () -> sendOnce(userId, conversationId, request));
+        userId, request.requestId(), () -> sendOnce(userId, conversationId, request, null));
   }
 
-  private TurnResponse sendOnce(Long userId, Long conversationId, TurnRequest request) {
+  /**
+   * 발화 전송을 스트리밍으로 받는다. NPC 대답의 글자 조각과 문장 조각 음성을 만들어지는 대로 {@code events}에 넘기고, 처리 순서·저장·결과는 {@link
+   * #send(Long, Long, TurnRequest)}와 같다. 같은 요청 ID로 다시 보내 저장된 결과를 돌려줄 때는 조각을 넘기지 않는다.
+   */
+  public TurnResponse send(
+      Long userId, Long conversationId, TurnRequest request, TurnEvents events) {
+    return requestLocks.execute(
+        userId, request.requestId(), () -> sendOnce(userId, conversationId, request, events));
+  }
+
+  // events가 null이면 대답을 끝까지 모아 한 번에 응답한다.
+  private TurnResponse sendOnce(
+      Long userId, Long conversationId, TurnRequest request, TurnEvents events) {
     // 같은 요청 ID로 다시 보내면 턴을 새로 만들지 않고 저장된 결과를 돌려준다.
     Optional<TurnResponse> replayed =
         transactionTemplate.execute(status -> replay(userId, conversationId, request));
@@ -127,16 +141,7 @@ public class TurnService {
       instruction = WrapUp.instruction(instruction);
     }
 
-    NpcReply reply =
-        aiGateway.reply(
-            trace,
-            context.npc().workerNpc(),
-            context.memory(),
-            context.history(),
-            judge.text(),
-            instruction,
-            context.level(),
-            context.learner());
+    NpcReply reply = reply(trace, context, judge.text(), instruction, events);
     String npcAudioKey = npcAudioReceiver.save(trace, reply.audioFullId());
 
     return transactionTemplate.execute(
@@ -201,6 +206,58 @@ public class TurnService {
           }
           return response(conversation, userTurn, npcTurn);
         });
+  }
+
+  private NpcReply reply(
+      WorkerTrace trace, TurnContext context, String text, String instruction, TurnEvents events) {
+    if (events == null) {
+      return aiGateway.reply(
+          trace,
+          context.npc().workerNpc(),
+          context.memory(),
+          context.history(),
+          text,
+          instruction,
+          context.level(),
+          context.learner());
+    }
+    return aiGateway.reply(
+        trace,
+        context.npc().workerNpc(),
+        context.memory(),
+        context.history(),
+        text,
+        instruction,
+        context.level(),
+        context.learner(),
+        relayTo(trace, events));
+  }
+
+  // 조각 음성은 워커 메모리에서 바로 받아 넘긴다(같은 서버라 조각마다 수 ms). 받지 못한 조각은 자막만 보여 주도록 음성 없이 넘긴다.
+  private NpcReplyListener relayTo(WorkerTrace trace, TurnEvents events) {
+    return new NpcReplyListener() {
+      @Override
+      public void onDelta(String text) {
+        events.delta(text);
+      }
+
+      @Override
+      public void onChunk(NpcReplyChunk chunk) {
+        events.audio(chunk.seq(), chunk.text(), chunkAudio(trace, chunk.audioId()));
+      }
+    };
+  }
+
+  private byte[] chunkAudio(WorkerTrace trace, String audioId) {
+    if (audioId == null) {
+      return null;
+    }
+    try {
+      return aiGateway.audio(trace, audioId);
+    } catch (BusinessException exception) {
+      log.warn("npc_chunk_audio_download_failed code={}", exception.getErrorCode());
+      return null;
+    }
   }
 
   // 의도 판정과 같은 문장으로 동시에 부른다. 워커에 닿지 못해도 턴을 막지 않고 판정하지 못한 것으로 둔다.

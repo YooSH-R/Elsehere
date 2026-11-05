@@ -24,8 +24,39 @@ namespace A305.Npc.PlayModeTests
         private const float WaitTimeoutSeconds = 15f;
 
         [SetUp]
+        public void SetUp()
+        {
+            ResetCrossSceneRecords();
+            SceneManager.sceneLoaded += IsolateTownInteractions;
+        }
+
         [TearDown]
-        public void ResetCrossSceneRecords()
+        public void TearDown()
+        {
+            SceneManager.sceneLoaded -= IsolateTownInteractions;
+            ResetCrossSceneRecords();
+        }
+
+        // 자동 제안과 버튼 응답을 검증하므로 다른 행인의 접근·생활과 실제 포인터의 NPC 클릭은 따로 격리한다.
+        // sceneLoaded에서 멈춰 첫 Update가 실행되기 전에 준비한다. 클릭·생활 동작은 각각의 테스트가 검증한다.
+        private static void IsolateTownInteractions(Scene scene, LoadSceneMode mode)
+        {
+            if (scene.name != "TownScene")
+                return;
+
+            Single<NpcClickTalk>().enabled = false;
+            foreach (
+                Passerby passerby in Object.FindObjectsByType<Passerby>(FindObjectsSortMode.None)
+            )
+            {
+                if (passerby.TryGetComponent(out NpcRoutine routine))
+                    routine.enabled = false;
+                if (passerby.GetComponent<NpcIdentity>().Code != BenCode)
+                    passerby.enabled = false;
+            }
+        }
+
+        private static void ResetCrossSceneRecords()
         {
             // 장면 교체 중 이전 행인이 제안 기록을 다시 남기지 않게 먼저 멈춘다.
             foreach (
@@ -291,7 +322,16 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
+            Passerby ben = FindPasserby(BenCode);
+            yield return WaitUntil(
+                () => offer.IsShowing,
+                () =>
+                    $"Ben 상태={ben.Phase}, 거리={HorizontalDistance(ben.transform, Single<PlayerMover>().transform)}, "
+                    + $"이동 잠금={Single<PlayerMover>().IsMovementLocked}, 대화={Single<DialogueController>().IsTalking}, "
+                    + $"새 대화 가능={Single<DialogueController>().Allowance.CanStartConversation}, "
+                    + $"접근 허용={ben.IsApproachAllowed}, 오늘 제안 기록={PasserbyOfferRecord.HasOfferedOn(BenCode, System.DateTime.Today)}, "
+                    + $"행인 위치={ben.transform.position}, 플레이어 위치={Single<PlayerMover>().transform.position}"
+            );
             Assert.That(offer.IsDeclineShown, Is.True);
 
             Click(offer, "DeclineButton");
@@ -456,7 +496,6 @@ namespace A305.Npc.PlayModeTests
         {
             TutorialState.MarkFinishedOnServer();
             yield return LoadTown();
-            FindPasserby(BenCode).GetComponent<NpcRoutine>().enabled = false;
         }
 
         /// <summary>마을을 불러온 뒤 플레이어를 Ben 앞에 세운다. 튜토리얼 중이면 Ben은 길을 묻는 튜토리얼 모드다.</summary>

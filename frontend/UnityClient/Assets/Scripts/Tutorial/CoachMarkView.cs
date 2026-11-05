@@ -628,6 +628,13 @@ namespace A305.Tutorial
         // 밝힌 곳 옆에 말풍선을 두고, 꼬리를 밝힌 곳 쪽 가장자리에 붙인다. 꼬리는 마름모로 돌려 반만 밖으로 나오게 한다.
         private void PlaceCaption(Vector2 canvasSize, Rect hole)
         {
+            Color cardColor = caption.GetComponent<Image>().color;
+            captionTail.GetComponent<Image>().color = cardColor;
+            if (noteTail != null)
+            {
+                noteTail.GetComponent<Image>().color = cardColor;
+            }
+
             // 넓은 스크롤 영역 옆에도 설명이 들어가도록 남은 폭에 맞춘다.
             float sideRoom = Mathf.Max(
                 hole.xMin - BubbleGap - BubbleMargin,

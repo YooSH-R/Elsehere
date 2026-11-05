@@ -285,7 +285,7 @@ namespace A305.Npc.PlayModeTests
                     ben.transform.rotation
                 )
             );
-            yield return LetCameraSettle();
+            yield return OverlapNameTags(ben, BenName, ruby, RubyName);
 
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, RubyName));
             yield return null;
@@ -308,7 +308,7 @@ namespace A305.Npc.PlayModeTests
                     ben.transform.rotation
                 )
             );
-            yield return LetCameraSettle();
+            yield return OverlapNameTags(ruby, RubyName, ben, BenName);
 
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(RubyName, BenName));
             yield return null;
@@ -435,6 +435,66 @@ namespace A305.Npc.PlayModeTests
                 $"준비: {shownName}의 이름표 자리는 몸 밖이어야 합니다."
             );
             return center;
+        }
+
+        // 외형마다 시선 높이가 달라도 앞뒤 거리는 유지한 채 실제 이름표 영역을 겹친다.
+        // 이 검사는 카메라 추적이 아니라 겹친 이름표의 클릭 우선순위를 검증한다.
+        private static IEnumerator OverlapNameTags(
+            Passerby near,
+            string nearName,
+            Passerby far,
+            string farName
+        )
+        {
+            var rig = Single<PlayerCameraRig>();
+            bool wasEnabled = rig.enabled;
+            bool nearWasEnabled = near.enabled;
+            bool farWasEnabled = far.enabled;
+            rig.enabled = false;
+            near.enabled = false;
+            far.enabled = false;
+            try
+            {
+                Camera camera = Camera.main;
+                Vector3 target = near.GetComponent<NpcIdentity>().LookTarget.position + Vector3.up;
+                Vector3 towardFar = Vector3
+                    .ProjectOnPlane(far.transform.position - near.transform.position, Vector3.up)
+                    .normalized;
+                PlaceAt(
+                    far,
+                    new Pose(near.transform.position + towardFar * 1.5f, far.transform.rotation)
+                );
+                camera.transform.SetPositionAndRotation(
+                    target - towardFar * 5f,
+                    Quaternion.LookRotation(towardFar)
+                );
+                yield return LetCameraSettle();
+
+                Vector2 nearCenter = ShownNameTagRect(nearName).center;
+                Vector2 farCenter = ShownNameTagRect(farName).center;
+                float depth = camera
+                    .WorldToScreenPoint(far.GetComponent<NpcIdentity>().LookTarget.position)
+                    .z;
+                Vector3 shift =
+                    camera.ScreenToWorldPoint(new Vector3(nearCenter.x, nearCenter.y, depth))
+                    - camera.ScreenToWorldPoint(new Vector3(farCenter.x, farCenter.y, depth));
+                PlaceAt(far, new Pose(far.transform.position + shift, far.transform.rotation));
+                yield return null;
+                Assert.That(
+                    Vector3.Dot(
+                        far.transform.position - near.transform.position,
+                        camera.transform.forward
+                    ),
+                    Is.GreaterThan(1f),
+                    "준비: 이름표를 겹쳐도 앞뒤 NPC 거리는 유지해야 합니다."
+                );
+            }
+            finally
+            {
+                rig.enabled = wasEnabled;
+                near.enabled = nearWasEnabled;
+                far.enabled = farWasEnabled;
+            }
         }
 
         // 두 NPC 이름표가 겹친 곳의 가운데 화면 좌표

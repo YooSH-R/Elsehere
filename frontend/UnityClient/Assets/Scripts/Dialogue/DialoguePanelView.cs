@@ -26,7 +26,6 @@ namespace A305.Dialogue
         // [자막]은 누르면 바뀔 동작이 아니라 지금 상태를 보인다.
         private const string SubtitleOnCaption = "자막 켬";
         private const string SubtitleOffCaption = "자막 끔";
-        private const string StandingTipKey = "A305.Tutorial.RelationshipExplained";
 
         [SerializeField]
         private GameObject panel;
@@ -145,7 +144,6 @@ namespace A305.Dialogue
         private CanvasGroup talkGroup;
         private bool isRecording;
         private NpcLineCovers npcLineCovers;
-        private bool showStandingTip;
 
         // 음성 처리에 동의하지 않아 쓸 수 없는 [말하기]의 투명도. 누를 수는 있어 동의 창을 연다.
         private const float UnavailableTalkAlpha = 0.45f;
@@ -261,7 +259,6 @@ namespace A305.Dialogue
         public void Show(IDialogueContent shownContent)
         {
             content = shownContent;
-            showStandingTip = shownContent is ServerConversation && PlayerPrefs.GetInt(StandingTipKey) == 0;
             isMeaningVisible = false;
             // 저장한 단어 표시는 이번 대화 안에서만 기억한다.
             glossaryCard = new GlossaryWordCard { IsSaveAvailable = IsWordSaveAvailable };
@@ -504,17 +501,6 @@ namespace A305.Dialogue
 
         private string FormatStatus()
         {
-            if (
-                showStandingTip
-                && content.Standing?.IsKnown == true
-                && string.IsNullOrEmpty(content.StatusMessage)
-                && string.IsNullOrEmpty(content.RecoveryGuide)
-            )
-            {
-                return $"♥ 이름 옆은 호감도예요. 인사·칭찬으로 오를 수 있어요. "
-                    + $"무례한 말은 호감도를 낮추고 경고가 쌓여요. {content.Standing.RudeLimit}번이면 대화가 끝나요.";
-            }
-
             if (string.IsNullOrEmpty(content.RecoveryGuide))
             {
                 // 녹음·오류 같은 지금 상황 안내가 먼저이고, 없을 때만 음성 동의 안내를 보인다.
@@ -536,11 +522,6 @@ namespace A305.Dialogue
             }
 
             string text = inputField.text;
-            if (showStandingTip && content.Standing?.IsKnown == true)
-            {
-                PlayerPrefs.SetInt(StandingTipKey, 1);
-                showStandingTip = false;
-            }
             inputField.text = "";
             isMeaningVisible = false;
             SendRequested?.Invoke(text);

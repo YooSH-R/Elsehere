@@ -27,6 +27,7 @@ namespace A305.EditorTools.Mission
         private const string QuestIconArtPath = "Assets/Art/UI/Quest/QuestHeaderIcon.png";
         private const string CoinFloatMaterialPath = "Assets/Art/UI/Hud/Jua Coin Float.mat";
         private const string WhitePanelPath = "Assets/Art/UI/Mission/GlassPanel.png";
+        private const string ClosePath = "Assets/Art/UI/Feedback/FeedbackClose.png";
 
         // 서버 상태를 받기 전 카드의 할 일. 카드 자체를 눌러 수첩을 열며, 카드가 커지지 않게 한 줄에 들어가는 길이로 쓴다.
         internal const string DirectionPlaceholder = "카드를 눌러 퀘스트를 확인하세요.";
@@ -230,7 +231,25 @@ namespace A305.EditorTools.Mission
             countdown.alignment = TextAlignmentOptions.MidlineRight;
             countdown.margin = new Vector4(0, 2 * Px, 0, 0);
 
+            // 줄 끝 닫기 X(28). 다른 창과 같은 닫기 그림(52에 그림자 자리 왼쪽·오른쪽 14, 위 12, 아래 20)을 줄여 쓴다.
+            const float CloseSize = 28;
+            const float CloseScale = CloseSize / 52f;
+            RectTransform close = Box(row, "Close", CloseSize, CloseSize);
+            RectTransform closeArt = Rect("Art", close);
+            closeArt.anchorMin = Vector2.zero;
+            closeArt.anchorMax = Vector2.one;
+            closeArt.offsetMin = new Vector2(-14, -20) * CloseScale * Px;
+            closeArt.offsetMax = new Vector2(14, 12) * CloseScale * Px;
+            var closeImage = BuilderTools.GetOrAddComponent<Image>(closeArt.gameObject);
+            closeImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ClosePath);
+            closeImage.raycastTarget = false;
+            var hit = BuilderTools.GetOrAddComponent<Image>(close.gameObject);
+            hit.color = Color.clear;
+            var closeButton = BuilderTools.GetOrAddComponent<Button>(close.gameObject);
+            closeButton.targetGraphic = closeImage;
+
             var rowView = BuilderTools.GetOrAddComponent<FollowUpRowView>(row.gameObject);
+            QuestBoardBuilder.Listen(closeButton, rowView.Close);
             BuilderTools.SetReference(rowView, "mark", mark.Find("Art").GetComponent<Image>());
             BuilderTools.SetReference(rowView, "title", title);
             BuilderTools.SetReference(rowView, "detail", detail);

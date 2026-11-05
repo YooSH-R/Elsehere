@@ -26,6 +26,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * NPC가 대화에서 곧 건네기로 한 것(음료·음식·빨래 등). 대화가 끝나면 AI 워커로 판정해 준비 시각과 함께 저장하고, 준비된 뒤 그 NPC와 대화를 시작하면 첫마디로
  * 건넨다(CONV-08·13·01).
  *
- * <p>사용자 × NPC마다 기다리는 것은 하나다. 같은 NPC에게 새로 약속받으면 앞의 것을 바꾼다.
+ * <p>사용자 × NPC마다 기다리는 것은 하나다. 같은 NPC에게 새로 약속받으면 앞의 것을 바꾼다. 진열된 물건을 그 자리에서 건네는 가게 직원은 기다릴 것이 없으므로
+ * 판정하지 않는다. 학습자는 기다리는 카드를 닫을 수 있다.
  */
 @Slf4j
 @Service
@@ -46,6 +48,18 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class FollowUpService {
 
   private static final int HISTORY_LIMIT = 200;
+
+  // 산 것을 그 자리에서 건네는 직원(우산·간식·꽃·램프·인형뽑기·소포·현금·이발). 기다리는 카드를 만들지 않는다.
+  private static final Set<String> HANDS_OVER_ON_THE_SPOT =
+      Set.of(
+          "SHOP_STAFF",
+          "BAKERY_STAFF",
+          "FLOWER_SHOP_STAFF",
+          "HOME_STORE_STAFF",
+          "ARCADE_STAFF",
+          "POST_OFFICE_STAFF",
+          "BANK_STAFF",
+          "BARBER_STAFF");
 
   private final NpcFollowUpRepository followUpRepository;
   private final ConversationRepository conversationRepository;
@@ -84,6 +98,16 @@ public class FollowUpService {
             followUpRepository.findAllByUserIdAndDeliveredAtIsNullOrderByReadyAtAsc(userId).stream()
                 .map(this::response)
                 .toList());
+  }
+
+  /** 학습자가 기다리는 카드를 닫는다. 건넨 것처럼 목록에서 빼고 그 NPC가 다시 부르지 않는다. 다른 사용자의 것이나 이미 건넨 것은 그대로 둔다. */
+  public void dismiss(Long userId, Long followUpId) {
+    transactionTemplate.executeWithoutResult(
+        status ->
+            followUpRepository
+                .findById(followUpId)
+                .filter(followUp -> followUp.getUserId().equals(userId) && !followUp.isDelivered())
+                .ifPresent(followUp -> followUp.dismiss(clock.instant())));
   }
 
   /** 이 NPC가 지금 건넬 수 있는 것. 대화 시작(CONV-01)의 첫마디를 정할 때 쓴다. */
@@ -155,7 +179,7 @@ public class FollowUpService {
     return response(followUp);
   }
 
-  // 판정할 재료. 끝나지 않았거나, 학습자가 말하지 않았거나, 무례로 끝난 대화는 판정하지 않는다(null).
+  // 판정할 재료. 끝나지 않았거나, 학습자가 말하지 않았거나, 무례로 끝난 대화와 그 자리에서 건네는 직원과의 대화는 판정하지 않는다(null).
   private Job prepare(Long userId, Long conversationId) {
     Conversation conversation =
         conversationRepository.findByIdAndUserId(conversationId, userId).orElse(null);
@@ -170,6 +194,7 @@ public class FollowUpService {
     }
     return npcRepository
         .findById(conversation.getNpcId())
+        .filter(npc -> !HANDS_OVER_ON_THE_SPOT.contains(npc.getCode()))
         .map(
             npc ->
                 new Job(npc.getId(), workerNpcs.of(npc), workerLines.recent(turns, HISTORY_LIMIT)))

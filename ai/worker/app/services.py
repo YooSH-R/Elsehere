@@ -190,7 +190,8 @@ async def suggest(llm: LLM, req: SuggestRequest) -> dict:
 
 
 async def memory(llm: LLM, req: MemoryRequest) -> dict:
-    """NPC 기억 카드 갱신. 실패하면 HTTP 오류이고 Spring은 이전 카드를 그대로 둔다."""
+    """NPC 기억 카드 갱신과 이번 대화의 인상. 실패하면 HTTP 오류이고 Spring은 이전 카드·호감을 그대로 둔다.
+    affinity_delta는 좋은 대화로 올릴 호감이다(app.npc_relationship.good_conversation_affinity_delta). Spring이 카드를 저장하면서 더한다."""
     usage = Usage()
     out = await llm.chat(
         "memory",
@@ -202,7 +203,15 @@ async def memory(llm: LLM, req: MemoryRequest) -> dict:
         P.MEMORY_SCHEMA,
         hedge=False,
     )
-    return {"memory_card": P.parse_memory_card(out), "usage": usage.items}
+    card, impression = P.parse_memory_output(out)
+    rules, _ = npc_relationship.service_rules()
+    learner_turns = [(line.rude, line.events) for line in req.history if line.who == "me"]
+    return {
+        "memory_card": card,
+        "impression": impression,
+        "affinity_delta": npc_relationship.good_conversation_affinity_delta(impression, learner_turns, rules),
+        "usage": usage.items,
+    }
 
 
 async def follow_up(llm: LLM, req: FollowUpRequest) -> dict:

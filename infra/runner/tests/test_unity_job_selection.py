@@ -49,6 +49,7 @@ class UnityJobSelectionTests(unittest.TestCase):
             "frontend/design/logo.png",
             "docs/api/mvp-api.md",
             "infra/scripts/run-unity-ci.ps1",
+            "infra/scripts/unity-test-scope.ps1",
             "infra/scripts/prepare-unity-test-inputs.ps1",
             "infra/scripts/unity-code-quality.ps1",
             "infra/tests/tripo/create_ci_fixtures.py",

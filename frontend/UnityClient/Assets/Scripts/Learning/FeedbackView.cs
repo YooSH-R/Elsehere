@@ -643,13 +643,7 @@ namespace A305.Learning
             summaryTitle.gameObject.SetActive(summaryHeading);
             if (summaryHeading)
             {
-                Pin(
-                    summaryTitle.rectTransform,
-                    TileSide,
-                    top,
-                    width - TileSide * 2,
-                    SummaryTitleHeight
-                );
+                Pin(summaryTitle.rectTransform, 0, top, width, SummaryTitleHeight);
                 top += SummaryTitleHeight + GapBelowHeading;
             }
             top = LayoutBody(bodyText, bodyTile, saveButton, top, width);

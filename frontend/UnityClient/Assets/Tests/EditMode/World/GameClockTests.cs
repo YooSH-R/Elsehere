@@ -7,6 +7,52 @@ namespace A305.World.Tests
     public class GameClockTests
     {
         [Test]
+        public async Task TutorialHoldReleased_RequestsTheServerTimeImmediately()
+        {
+            var clock = new GameClock { IsHeld = true };
+            var api = new FakeGameClockApi
+            {
+                Reply = new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 480,
+                    Paused = true,
+                },
+            };
+            await clock.TickAsync(api, 5);
+
+            clock.IsHeld = false;
+
+            Assert.That(clock.IsDue(6), Is.True, "튜토리얼 종료 후 30초를 기다리지 않는다");
+        }
+
+        [Test]
+        public async Task ClosedInteraction_IgnoresThePausedStateFromAnOlderRequest()
+        {
+            var clock = new GameClock { IsTalking = true };
+            var api = new FakeGameClockApi { Gate = new TaskCompletionSource<GameClockTime>() };
+            Task<GameClockBeatStatus> pending = clock.TickAsync(api, 5);
+            clock.IsTalking = false;
+            api.Gate.SetResult(
+                new GameClockTime
+                {
+                    Day = 1,
+                    MinuteOfDay = 480,
+                    Paused = true,
+                }
+            );
+            await pending;
+
+            clock.Flow(1);
+
+            Assert.That(
+                clock.Minutes,
+                Is.GreaterThan(480),
+                "지난 정지 응답으로 다시 멈추지 않는다"
+            );
+        }
+
+        [Test]
         public async Task TickAsync_FirstTick_SendsBeatAndKeepsServerTime()
         {
             var api = new FakeGameClockApi { Reply = Time(1, 480) };

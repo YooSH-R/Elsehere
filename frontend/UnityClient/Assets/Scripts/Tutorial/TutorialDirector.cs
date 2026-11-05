@@ -372,6 +372,10 @@ namespace A305.Tutorial
         private async Task SaveFinishAsync()
         {
             TutorialFinishSaveStatus status = await finishRecorder.SaveAsync(progress);
+            if (status == TutorialFinishSaveStatus.Saved)
+            {
+                GameClock.Shared.RequestSynchronization();
+            }
             if (
                 status == TutorialFinishSaveStatus.Failed
                 || status == TutorialFinishSaveStatus.Rejected

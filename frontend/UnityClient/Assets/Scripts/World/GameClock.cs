@@ -36,12 +36,25 @@ namespace A305.World
         public double Minutes { get; private set; } = StartMinutes;
 
         /// <summary>튜토리얼처럼 진행 흐름이 게임 시간을 멈춰 두는 동안 true.</summary>
-        public bool IsHeld { get; set; }
+        public bool IsHeld
+        {
+            get => held;
+            set
+            {
+                if (held != value)
+                {
+                    held = value;
+                    PauseChanged(value);
+                }
+            }
+        }
 
+        private bool held;
         private bool learningOpen;
         private bool dialogueOpen;
         private bool attemptedPause;
         private int pauseRevision;
+        private int serverTimeRevision;
         private bool pauseSinceBeat;
         private double activeSecondsSinceBeat;
 
@@ -74,18 +87,27 @@ namespace A305.World
         private void PauseChanged(bool open)
         {
             pauseSinceBeat |= open;
+            RequestSynchronization();
+        }
+
+        /// <summary>서버 상태가 바뀌면 이전 정지 상태를 버리고 다음 프레임에 시각을 확인한다.</summary>
+        public void RequestSynchronization()
+        {
             pauseRevision++;
             nextBeatAt = 0;
         }
 
-        private bool InteractionPaused => learningOpen || dialogueOpen;
+        private bool InteractionPaused => held || learningOpen || dialogueOpen;
 
         /// <summary>
         /// 실제 시간 realSeconds만큼 게임 시각을 흘린다. 진행 흐름이 시계를 붙잡아 두었거나, 서버가 대화 중·튜토리얼 중이라 멈췄다고 알려 주면 흘리지 않는다.
         /// </summary>
         public void Flow(double realSeconds)
         {
-            if (IsHeld || InteractionPaused || (Current != null && Current.Paused))
+            if (
+                InteractionPaused
+                || (Current != null && Current.Paused && serverTimeRevision == pauseRevision)
+            )
             {
                 return;
             }
@@ -131,9 +153,12 @@ namespace A305.World
             {
                 GameClockTime time = await api.BeatAsync(paused, wasPaused, activeSeconds);
                 LastError = null;
-                Current = time;
                 if (revision == pauseRevision)
+                {
+                    Current = time;
+                    serverTimeRevision = revision;
                     Minutes = (time.Day - 1) * MinutesPerDay + time.MinuteOfDay;
+                }
                 Changed?.Invoke();
                 return GameClockBeatStatus.Updated;
             }

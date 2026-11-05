@@ -1,7 +1,9 @@
 """Measure existing review eyes and iris color without changing model assets."""
 
-import json, sys
+import json
+import sys
 from pathlib import Path
+
 import bpy
 import numpy as np
 from mathutils import Vector, geometry

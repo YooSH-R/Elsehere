@@ -16,6 +16,9 @@ import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
+sys.path.insert(0, str(Path(__file__).parent))
+from laugh_geometry import bind_surface, round_boundary
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--input", type=Path)
@@ -512,9 +515,6 @@ lip_aa = lip_basis + array(
     next(s for s in lips["shapes"] if s["name"] == "viseme_AA")["deltaVertices"]
 )
 count = len(lip_basis) // 6
-sys.path.insert(0, str(Path(__file__).parent))
-from laugh_geometry import bind_surface, round_boundary
-
 body_triangles = np.array(export["bodyTriangles"]).reshape(-1, 3)
 body_laugh_delta, body_laugh_normals, angle = round_boundary(
     face_points, array(surface["normals"]), body_triangles, lip_aa, mouth_depth

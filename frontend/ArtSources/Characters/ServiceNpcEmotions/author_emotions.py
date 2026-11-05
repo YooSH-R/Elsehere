@@ -18,6 +18,10 @@ from pathlib import Path
 import bpy
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).parent))
+from landmarks import measure
+from lid_visibility import keep_lid_lines_visible
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--source", type=Path, required=True)
 parser.add_argument("--work", type=Path, required=True)
@@ -217,9 +221,6 @@ for part in face["parts"]:
     build_object(part["name"], part, part["texture"])
 (input_folder / "CafeFemaleFaceShapes.json").write_text(json.dumps(face))
 (input_folder / "CafeFemaleSourceSurface.json").write_text(json.dumps(face))
-sys.path.insert(0, str(Path(__file__).parent))
-from landmarks import measure
-
 eye_tops = {
     side: float(
         max(
@@ -259,8 +260,6 @@ runpy.run_path(
     str(characters / "CafeFemaleEmotion/author_emotions.py"), run_name="__main__"
 )
 authored = json.loads((work / "Canonical/CafeFemaleEmotions.json").read_text())
-from lid_visibility import keep_lid_lines_visible
-
 keep_lid_lines_visible(authored)
 originals = dict(parts, CafeFemaleFace=body)
 for mesh in authored["meshes"] + authored["parts"]:

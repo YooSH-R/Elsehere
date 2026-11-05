@@ -168,10 +168,8 @@ for side, sign in [("Left", 1), ("Right", -1)]:
         rx, rz = eye_fit["radii"]
         sx, sz = rx / 0.0445, rz / 0.0395
         compact = "Grandmother" in eye_settings["name"]
-        patch_rx, patch_rz = (
-            rx * (1.35 if compact else 1.65),
-            rz * (1.35 if compact else 1.65),
-        )
+        patch_scale = eye_settings.get("patchScale", 1.35 if compact else 1.65)
+        patch_rx, patch_rz = rx * patch_scale, rz * patch_scale
         hole_rx, hole_rz = patch_rx * 1.12, patch_rz * 1.12
     selected = set()
 
@@ -279,6 +277,27 @@ for side, sign in [("Left", 1), ("Right", -1)]:
     start = min(range(len(boundary)), key=lambda i: angle(vertices[boundary[i]]))
     boundary = boundary[start:] + boundary[:start]
     outer = [vertices[i] for i in boundary]
+    def patch_edge(theta):
+        # Keep the new eyelid ring inside the actual cut, including concave corners
+        # next to the preserved mouth. A fixed ellipse could cross that boundary.
+        direction = Vector((patch_rx * math.cos(theta), patch_rz * math.sin(theta)))
+        origin = Vector((center, cz))
+        hits = []
+        def cross(a, b):
+            return a.x * b.y - a.y * b.x
+        for first, second in zip(outer, outer[1:] + outer[:1]):
+            start = Vector((first.y, first.z)) - origin
+            edge = Vector((second.y - first.y, second.z - first.z))
+            denominator = cross(direction, edge)
+            if abs(denominator) < 1e-10:
+                continue
+            distance = cross(start, edge) / denominator
+            fraction = cross(start, direction) / denominator
+            if distance > 0 and 0 <= fraction <= 1:
+                hits.append(distance)
+        if not hits:
+            raise ValueError(side + " eyelid ray has no surrounding skin boundary")
+        return origin + direction * min(1, min(hits) * 0.88)
     # Face curvature and skin are fitted outside the old painted eye rim.
     samples = []
     depth = []
@@ -344,8 +363,7 @@ for side, sign in [("Left", 1), ("Right", -1)]:
                 (old_inner[j].z - old_cz) / 0.0395,
                 (old_inner[j].y - old_center) / 0.0445,
             )
-            target_y = center + patch_rx * math.cos(theta)
-            target_z = cz + patch_rz * math.sin(theta)
+            target_y, target_z = patch_edge(theta)
             y += (target_y - (center + (edge.y - old_center) * sx)) * blend
             z += (target_z - (cz + (edge.z - old_cz) * sz)) * blend
         residual = p.x - float(base_fit @ [1, a, b, a * a, a * b, b * b])
@@ -355,6 +373,14 @@ for side, sign in [("Left", 1), ("Right", -1)]:
     size = 256
     rgba = []
     extent = 0.130
+    clean_rx, clean_rz = eye_fit["radii"] if eye_fit else (0.061, 0.054)
+    fade_end = min(
+        math.sqrt(((p.y - center) / clean_rx) ** 2 + ((p.z - cz) / clean_rz) ** 2)
+        for p in outer
+    ) * 0.98
+    # Uneven source topology can place a boundary corner inside the fitted ellipse.
+    # Always reach the original texture before that corner instead of leaving a color seam.
+    fade_start = min(1.04, fade_end * 0.8)
     for row in range(size):
         z = cz - extent + 2 * extent * row / (size - 1)
         for column in range(size):
@@ -362,8 +388,9 @@ for side, sign in [("Left", 1), ("Right", -1)]:
             clean = np.append(
                 np.clip(np.array([1, y - center, z - cz]) @ skin_fit, 0, 1), 1
             )
-            radius = math.sqrt(((y - center) / 0.061) ** 2 + ((z - cz) / 0.054) ** 2)
-            blend = np.clip((radius - 1.0) / 0.30, 0, 1)
+            radius = math.sqrt(((y - center) / clean_rx) ** 2 + ((z - cz) / clean_rz) ** 2)
+            # 모든 피부 경계에 도달하기 전에 원래 텍스처로 돌아가 색이 다른 다각형을 남기지 않는다.
+            blend = np.clip((radius - fade_start) / (fade_end - fade_start), 0, 1)
             blend = blend * blend * (3 - 2 * blend)
             # Texture chart corners can lie outside the face silhouette; no mesh uses them.
             try:

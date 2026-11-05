@@ -165,6 +165,27 @@ namespace A305.Npc
             return true;
         }
 
+        /// <summary>
+        /// 플레이어가 NPC를 클릭·탭해 말을 걸 수 있는지(기능 명세 F-22). [말 걸기]보다 먼 클릭 거리 안이면 되고,
+        /// 다가오거나 제안하는 중에도 걸 수 있다. 이미 대화 중이면 걸 수 없다.
+        /// </summary>
+        public bool CanTalkByClick(float distanceToPlayer, float reachMeters)
+        {
+            return Phase != PasserbyPhase.Talking && distanceToPlayer <= reachMeters;
+        }
+
+        /// <returns>말을 걸 수 있었으면 true이고 대화를 시작한다. 대화가 끝나면 다시 쉰다.</returns>
+        public bool TryTalkByClick(float distanceToPlayer, float reachMeters)
+        {
+            if (!CanTalkByClick(distanceToPlayer, reachMeters))
+            {
+                return false;
+            }
+
+            Phase = PasserbyPhase.Talking;
+            return true;
+        }
+
         public void EndTalk(double nowSeconds)
         {
             if (Phase == PasserbyPhase.Talking)

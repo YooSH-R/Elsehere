@@ -156,3 +156,16 @@ MonoBehaviour:
       restMouthOpen: 1
       restLaughOpen: 1
       eyeClosure: {x: 0, y: 0}
+  - emotion: 11
+    face:
+      smile: {x: 0, y: 0}
+      browInnerUp: {x: 0, y: 0}
+      browOuterUp: {x: 0, y: 0}
+      browDown: {x: 0.08, y: 0.08}
+      eyeSquint: {x: 0, y: 0}
+      eyeWide: {x: 0, y: 0}
+      cheekRaise: {x: 0, y: 0}
+      mouthFrown: {x: 0.25, y: 0.25}
+      restMouthOpen: 0
+      restLaughOpen: 0
+      eyeClosure: {x: 0.55, y: 0.55}

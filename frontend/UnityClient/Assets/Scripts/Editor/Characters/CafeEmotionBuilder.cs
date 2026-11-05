@@ -421,6 +421,18 @@ namespace A305.EditorTools.Characters
             }
         }
 
+        public static void AddMissingReviewPresets()
+        {
+            var profile = AssetDatabase.LoadAssetAtPath<EmotionExpressionProfile>(
+                DataFolder + "/CafeFemaleEmotions.asset"
+            );
+            if (profile == null)
+                throw new InvalidOperationException("카페 검수 감정 프로필을 먼저 생성하세요.");
+            profile.AddMissingDefaults();
+            EditorUtility.SetDirty(profile);
+            AssetDatabase.SaveAssets();
+        }
+
         public static void ResetReviewProfile()
         {
             var profile = AssetDatabase.LoadAssetAtPath<EmotionExpressionProfile>(
@@ -500,7 +512,10 @@ namespace A305.EditorTools.Characters
                 }
                 if (Environment.GetEnvironmentVariable("NPC_EMOTION_STILLS_ONLY") == "1")
                     return;
-                if (Environment.GetEnvironmentVariable("NPC_EMOTION_REACTION_REVIEW") == "1")
+                if (
+                    Environment.GetEnvironmentVariable("NPC_EMOTION_REACTION_REVIEW") == "1"
+                    || Environment.GetEnvironmentVariable("NPC_EMOTION_INDIFFERENT_REVIEW") == "1"
+                )
                 {
                     RenderReactions(player, profile, camera, target, image, output);
                     return;
@@ -592,15 +607,22 @@ namespace A305.EditorTools.Characters
             );
             var timeline = SpeechVisemeTimeline.Parse(clip.Timeline.text, clip.Audio.length);
             player.GetComponent<AudioSource>().mute = true;
-            foreach (
-                var emotion in new[]
-                {
-                    CharacterEmotion.BigLaugh,
-                    CharacterEmotion.Sad,
-                    CharacterEmotion.Confused,
-                    CharacterEmotion.Playful,
-                }
-            )
+            var emotions =
+                Environment.GetEnvironmentVariable("NPC_EMOTION_INDIFFERENT_REVIEW") == "1"
+                    ? new[]
+                    {
+                        CharacterEmotion.WarmSmile,
+                        CharacterEmotion.Indifferent,
+                        CharacterEmotion.Sad,
+                    }
+                    : new[]
+                    {
+                        CharacterEmotion.BigLaugh,
+                        CharacterEmotion.Sad,
+                        CharacterEmotion.Confused,
+                        CharacterEmotion.Playful,
+                    };
+            foreach (var emotion in emotions)
             {
                 string folder = Path.Combine(output, emotion.ToString());
                 Directory.CreateDirectory(Path.Combine(folder, "Reaction"));

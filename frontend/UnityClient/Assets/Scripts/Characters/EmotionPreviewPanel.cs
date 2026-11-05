@@ -17,6 +17,7 @@ namespace A305.Characters
             "걱정·공감",
             "슬픔",
             "폭소",
+            "무신경·시큰둥",
         };
 
         [SerializeField]

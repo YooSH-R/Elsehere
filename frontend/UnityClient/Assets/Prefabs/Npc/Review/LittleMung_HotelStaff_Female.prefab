@@ -1291,6 +1291,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Player::A305.Player.LittleMungArmClearance
   handPadding: 0.016
+  refineSurfaceContact: 0
 --- !u!114 &1454816680781329938
 MonoBehaviour:
   m_ObjectHideFlags: 0

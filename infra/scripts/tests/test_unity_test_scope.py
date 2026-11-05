@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -23,6 +24,8 @@ class UnityTestScopeTests(unittest.TestCase):
         scripts = self.repository / "infra/scripts"
         scripts.mkdir(parents=True)
         shutil.copyfile(SCRIPT, scripts / SCRIPT.name)
+        scope_script = SCRIPT.with_name("unity-test-scope.ps1")
+        shutil.copyfile(scope_script, scripts / scope_script.name)
         # The real preparation downloads Blender; the stub records that it ran.
         (scripts / "prepare-unity-test-inputs.ps1").write_text(
             "param($ProjectPath, $OutputPath)\n"
@@ -109,6 +112,143 @@ class UnityTestScopeTests(unittest.TestCase):
         self.assertTrue(all("-assemblyNames" not in run for run in runs), runs)
         self.assertTrue(prepared)
 
+    def create_assemblies(self):
+        definitions = {
+            "Scripts/Api": ("A305.Api", []),
+            "Scripts/Player": ("A305.Player", ["A305.Api"]),
+            "Scripts/Dialogue": ("A305.Dialogue", ["A305.Player"]),
+            "Scripts/Learning": ("A305.Learning", []),
+            "Tests/EditMode/Player": ("A305.Player.Tests", ["A305.Player"]),
+            "Tests/PlayMode/Player": ("A305.Player.PlayModeTests", ["A305.Player"]),
+            "Tests/EditMode/Dialogue": ("A305.Dialogue.Tests", ["A305.Dialogue"]),
+            "Tests/EditMode/Learning": ("A305.Learning.Tests", ["A305.Learning"]),
+        }
+        files = {}
+        for directory, (name, references) in definitions.items():
+            files[f"frontend/UnityClient/Assets/{directory}/{name}.asmdef"] = (
+                json.dumps({"name": name, "references": references})
+            )
+        files["frontend/UnityClient/Assets/Tests/EditMode/Player/PlayerTests.cs"] = (
+            "base\n"
+        )
+        self.base = self.commit(files)
+
+    def test_changing_only_an_editmode_test_does_not_run_other_modules_or_playmode(
+        self,
+    ):
+        self.create_assemblies()
+        self.commit(
+            {
+                "frontend/UnityClient/Assets/Tests/EditMode/Player/PlayerTests.cs": "changed\n"
+            }
+        )
+
+        runs, prepared = self.run_tests("-ChangedSince", self.base)
+
+        self.assertEqual(len(runs), 1, runs)
+        self.assertIn("-testPlatform EditMode", runs[0])
+        self.assertIn("-assemblyNames A305.Player.Tests", runs[0])
+        self.assertFalse(prepared)
+
+    def test_runtime_change_selects_tests_of_transitive_dependents_only(self):
+        self.create_assemblies()
+        self.commit({"frontend/UnityClient/Assets/Scripts/Api/Client.cs": "changed\n"})
+
+        runs, prepared = self.run_tests("-ChangedSince", self.base)
+
+        self.assertEqual(len(runs), 2, runs)
+        self.assertIn("-assemblyNames A305.Dialogue.Tests;A305.Player.Tests", runs[0])
+        self.assertIn("-assemblyNames A305.Player.PlayModeTests", runs[1])
+        self.assertTrue(all("A305.Learning.Tests" not in run for run in runs))
+        self.assertFalse(prepared)
+
+    def test_unrelated_backend_change_does_not_widen_a_mapped_unity_change(self):
+        self.create_assemblies()
+        self.commit({PLAYER_SCRIPT: "changed\n", "backend/Example.java": "changed\n"})
+        runs, prepared = self.run_tests("-ChangedSince", self.base)
+        self.assertIn("-assemblyNames A305.Dialogue.Tests;A305.Player.Tests", runs[0])
+        self.assertIn("-assemblyNames A305.Player.PlayModeTests", runs[1])
+        self.assertFalse(prepared)
+
+    def test_deleted_test_still_selects_its_existing_test_assembly(self):
+        self.create_assemblies()
+        self.commit(
+            {"frontend/UnityClient/Assets/Tests/EditMode/Player/PlayerTests.cs": None}
+        )
+        runs, prepared = self.run_tests("-ChangedSince", self.base)
+        self.assertEqual(len(runs), 1)
+        self.assertIn("-assemblyNames A305.Player.Tests", runs[0])
+        self.assertFalse(prepared)
+
+    def test_guid_references_are_included_in_the_dependency_graph(self):
+        self.create_assemblies()
+        self.base = self.commit(
+            {
+                "frontend/UnityClient/Assets/Scripts/Player/A305.Player.asmdef.meta": "guid: "
+                + "1" * 32
+                + "\n",
+                "frontend/UnityClient/Assets/Tests/EditMode/Player/A305.Player.Tests.asmdef": json.dumps(
+                    {"name": "A305.Player.Tests", "references": ["GUID:" + "1" * 32]}
+                ),
+            }
+        )
+        self.commit({PLAYER_SCRIPT: "changed\n"})
+        runs, _ = self.run_tests("-ChangedSince", self.base)
+        self.assertIn("-assemblyNames A305.Dialogue.Tests;A305.Player.Tests", runs[0])
+
+    def test_playmode_test_change_runs_only_its_playmode_assembly(self):
+        self.create_assemblies()
+        self.commit(
+            {
+                "frontend/UnityClient/Assets/Tests/PlayMode/Player/CameraTests.cs": "changed\n"
+            }
+        )
+        runs, prepared = self.run_tests("-ChangedSince", self.base)
+        self.assertEqual(len(runs), 1)
+        self.assertIn("-testPlatform PlayMode", runs[0])
+        self.assertIn("-assemblyNames A305.Player.PlayModeTests", runs[0])
+        self.assertFalse(prepared)
+
+    def test_template_changes_also_run_deployment_tests_when_code_changes(self):
+        self.create_assemblies()
+        self.commit({PLAYER_SCRIPT: "changed\n", TEMPLATE: "changed\n"})
+        runs, prepared = self.run_tests("-ChangedSince", self.base)
+        self.assertIn(
+            "-assemblyNames A305.Deployment.Tests;A305.Dialogue.Tests;A305.Player.Tests",
+            runs[0],
+        )
+        self.assertIn("-assemblyNames A305.Player.PlayModeTests", runs[1])
+        self.assertFalse(prepared)
+
+    def test_tripo_test_change_prepares_inputs_for_the_selected_assembly(self):
+        self.create_assemblies()
+        assembly = (
+            "frontend/UnityClient/Assets/Tests/EditMode/Tripo/A305.Tripo.Tests.asmdef"
+        )
+        self.base = self.commit(
+            {assembly: json.dumps({"name": "A305.Tripo.Tests", "references": []})}
+        )
+        self.commit(
+            {
+                "frontend/UnityClient/Assets/Tests/EditMode/Tripo/ModelTests.cs": "changed\n"
+            }
+        )
+        runs, prepared = self.run_tests("-ChangedSince", self.base)
+        self.assertEqual(len(runs), 1)
+        self.assertIn("-assemblyNames A305.Tripo.Tests", runs[0])
+        self.assertTrue(prepared)
+
+    def test_scene_and_assembly_configuration_changes_run_every_test(self):
+        for path in (
+            "frontend/UnityClient/Assets/Scenes/TownScene.unity",
+            "frontend/UnityClient/Assets/Scripts/Player/A305.Player.asmdef",
+        ):
+            with self.subTest(path=path):
+                self.create_repository()
+                self.create_assemblies()
+                self.commit({path: "changed\n"})
+                self.assert_full_run(*self.run_tests("-ChangedSince", self.base))
+
     def test_template_design_and_document_changes_run_only_deployment_tests(self):
         self.commit(
             {
@@ -125,7 +265,7 @@ class UnityTestScopeTests(unittest.TestCase):
         self.assertIn("-assemblyNames A305.Deployment.Tests", runs[0])
         self.assertFalse(prepared)
 
-    def test_any_play_affecting_change_runs_every_test(self):
+    def test_shared_or_unmapped_inputs_run_every_test(self):
         for path in (
             PLAYER_SCRIPT,
             "docs/api/mvp-api.md",

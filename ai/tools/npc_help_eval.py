@@ -5,6 +5,7 @@
 
 - help 줄: 실제 직원이면 처리하거나 어디로 가면 되는지 알려 줄 요청이다. 그 둘 다 없이 거절하면 막다른 거절로 센다.
 - 모든 줄: 마을에 없는 장소·시설, 사실에 없는 가격, 지시문이 막은 결과(체크인·객실 키)를 말하면 지어내기로 센다.
+- 모든 줄: 장소가 어디 있는지 말했는데 마을 배치와 다르면 길 틀림으로 센다.
 지금 코드의 공통 규칙(app.npc_prompt.RULES)을 그대로 쓰므로, 규칙을 바꾼 뒤 다시 돌려 전후를 비교한다.
 공용 키라 한 줄씩 순서대로 보내고, 결과는 집계만 찍고 줄마다의 기록은 --out jsonl로.
 """
@@ -47,6 +48,8 @@ PERSONAS = {
         "Help with deposits and withdrawals. Opening an account needs a photo ID. The ATM is just inside the entrance on the left. Never ask for a PIN or password, and never invent fees or interest rates.",
         "The teller window of Town Bank on the town main street.",
     ),
+    # 행인 Ben(TOWN_PASSERBY)은 출장 와서 길을 모르는 인물이라 길 묻기는 동네 사는 행인으로 잰다
+    "TOWN_STUDENT": ("a college student walking around the town after class.", "", "A quiet street in the town."),
     "TAXI_DRIVER": (
         "the friendly driver of a yellow taxi in town.",
         "The learner waved the taxi down on the main street. Ask where they want to go. Never invent fares.",
@@ -75,11 +78,16 @@ STAGES = {
     ),
 }
 
-# 채점 기준이 되는 게임 세계. 3D 마을에 실제로 있는 곳 (Unity TownScene·HotelScene, 첫날 미션 순찰차 목적지)
-WORLD = """Maple Town main street has only these places: Corner Cafe, the hotel (Maple House), the DRUGSTORE, the post office,
-Maple Diner, Town Bank, Suds Laundromat, Bloom Flowers (flower shop), Main St. Barber, Maple Bakery, Little Arcade,
-Home & Living (furniture store) with Leaf Tea Room upstairs, the police station at the south end, and the player's home.
-A yellow taxi drives on the main street. The hotel has only a lobby with a front desk, two sofa seating areas, luggage space,
+# 채점 기준이 되는 게임 세계. 3D 마을에 실제로 있는 곳과 자리 (Unity TownScene·HotelScene)
+WORLD = """Maple Town main street runs north and south, with a crossroads with traffic lights in the middle. It has only these places:
+- South of the crossroads: the police station at the south end (patrol car beside it); across the street from it a little
+  plaza with a parked ice cream truck and tables; Corner Cafe north of the police station on the same side; the DRUGSTORE
+  right next to the cafe on its north side; the hotel (Maple House) across the street from the drugstore; the player's home.
+- North of the crossroads, pairs facing each other: Maple Bakery across from a small park with a fountain, benches and
+  planters (just past the crossroads); the post office across from Little Arcade with Paper & Leaf Books (bookshop) upstairs;
+  Home & Living (furniture store) with Leaf Tea Room upstairs across from Maple Diner; Town Bank across from Suds Laundromat;
+  Bloom Flowers (flower shop) across from Main St. Barber at the north end.
+- Houses line the rest of the street. A yellow taxi drives on the main street. The hotel has only a lobby with a front desk, two sofa seating areas, luggage space,
 elevators and guest rooms upstairs, and room service (meals and drinks sent up, charged to the room). There is no restaurant,
 cafe, bar, breakfast room, pool, gym or shop inside the hotel."""
 
@@ -102,6 +110,9 @@ Ordinary off-screen details a real worker would know (a Wi-Fi password, opening 
 call back, that something will be sent up or charged to the room) and ordinary rooms every such place has (a restroom,
 a back room) are NOT fabricated.
 
+"wrong_way": true if the reply says where a place is (its side, end, neighbor or what it is across from) and that
+contradicts the World layout. Vague but correct directions ("up the main street") are not wrong.
+
 "reason": one short sentence."""
 JUDGE_SCHEMA = {
     "type": "object",
@@ -109,9 +120,10 @@ JUDGE_SCHEMA = {
         "dead_end": {"type": "boolean"},
         "not_sure": {"type": "boolean"},
         "fabricated": {"type": "boolean"},
+        "wrong_way": {"type": "boolean"},
         "reason": {"type": "string"},
     },
-    "required": ["dead_end", "not_sure", "fabricated", "reason"],
+    "required": ["dead_end", "not_sure", "fabricated", "wrong_way", "reason"],
     "additionalProperties": False,
 }
 LEVEL = 2
@@ -165,24 +177,35 @@ async def run_case(client: httpx.AsyncClient, s: config.Settings, case: dict, re
     return row
 
 
+def mark(row: dict) -> str:
+    """대답 하나의 표시 글자. 여럿에 걸리면 앞의 것: F 지어내기, X 막다른 거절, ? 알 만한 걸 모름, W 길 틀림, . 통과"""
+    if row["fabricated"]:
+        return "F"
+    if row["kind"] == "help" and row["dead_end"]:
+        return "X"
+    if row["not_sure"]:
+        return "?"
+    return "W" if row["wrong_way"] else "."
+
+
 def report(rows: list[dict]):
     done = [r for r in rows if not r.get("error")]
     help_rows = [r for r in done if r["kind"] == "help"]
     dead = sum(r["dead_end"] for r in help_rows)
     unsure = sum(r["not_sure"] for r in done)
     fab = sum(r["fabricated"] for r in done)
+    wrong = sum(r["wrong_way"] for r in done)
     print(f"대답 {len(rows)}개, 호출 실패 {len(rows) - len(done)}")
     print(f"  막다른 거절 {dead}/{len(help_rows)} (help 줄)")
     print(f"  알 만한 걸 모름 {unsure}/{len(done)} (모든 줄)")
     print(f"  지어내기 {fab}/{len(done)} (모든 줄)")
+    print(f"  길 틀림 {wrong}/{len(done)} (모든 줄)")
     by_case: dict[str, list[dict]] = {}
     for r in done:
         by_case.setdefault(r["id"], []).append(r)
-    # 줄마다 대답 하나에 한 글자: X 막다른 거절, ? 알 만한 걸 모름, F 지어내기, . 통과
+    # 줄마다 대답 하나에 한 글자 (mark)
     for case_id, rs in by_case.items():
-        marks = "".join(
-            "F" if r["fabricated"] else "X" if (r["kind"] == "help" and r["dead_end"]) else "?" if r["not_sure"] else "." for r in rs
-        )
+        marks = "".join(mark(r) for r in rs)
         print(f"  {case_id:<28} {marks}")
 
 

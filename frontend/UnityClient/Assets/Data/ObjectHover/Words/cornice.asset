@@ -16,9 +16,9 @@ MonoBehaviour:
     key: cornice
     languageCode: en-US
     text: cornice
-    meaningKo: "\uCC98\uB9C8 \uC7A5\uC2DD"
+    meaningKo: "\uBCBD \uC0C1\uB2E8 \uC7A5\uC2DD"
     example: The cornice runs along the top of the wall.
-    exampleKo: "\uCC98\uB9C8 \uC7A5\uC2DD\uC774 \uBCBD\uC758 \uC717\uBD80\uBD84\uC744
+    exampleKo: "\uBCBD \uC0C1\uB2E8 \uC7A5\uC2DD\uC774 \uBCBD\uC758 \uC717\uBD80\uBD84\uC744
       \uB530\uB77C \uC774\uC5B4\uC838\uC694."
     pronunciationAudioKey: 
   assetGuid: 501789e65a3a66e428b3c444f0e3e926

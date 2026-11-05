@@ -15,7 +15,9 @@ namespace A305.EditorTools.Characters
     {
         public static void Render()
         {
-            string output = Environment.GetEnvironmentVariable("NPC_REVIEW_OUTPUT");
+            string output =
+                Environment.GetEnvironmentVariable("NPC_RENDER_OUTPUT")
+                ?? Environment.GetEnvironmentVariable("NPC_REVIEW_OUTPUT");
             foreach (string name in ServiceNpcReviewBuilder.Names)
             {
                 string before =
@@ -28,11 +30,24 @@ namespace A305.EditorTools.Characters
             }
         }
 
-        private static void RenderModel(string path, string output)
+        public static void RenderModel(
+            string path,
+            string output,
+            bool? refineSurfaceContact = null
+        )
         {
             Directory.CreateDirectory(output);
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+            if (refineSurfaceContact.HasValue)
+            {
+                var correction =
+                    instance.GetComponentInChildren<A305.Player.LittleMungArmClearance>();
+                var settings = new SerializedObject(correction);
+                settings.FindProperty("refineSurfaceContact").boolValue =
+                    refineSurfaceContact.Value;
+                settings.ApplyModifiedPropertiesWithoutUndo();
+            }
             instance.transform.position = Vector3.zero;
             var skins = instance.GetComponentsInChildren<SkinnedMeshRenderer>();
             var meshes = skins.Select(_ => new Mesh()).ToArray();
@@ -116,11 +131,18 @@ namespace A305.EditorTools.Characters
                         TripoReviewMotion.Idle,
                         TripoReviewMotion.Walk,
                         TripoReviewMotion.Run,
+                        TripoReviewMotion.Rise,
                         TripoReviewMotion.Fall,
+                        TripoReviewMotion.Land,
                     }
                 )
                 {
                     preview.Apply(motion, 0);
+                    // Humanoid 재생은 휴식 자세의 루트 방향을 바꿀 수 있다.
+                    front = TripoModelPreview.GetViewDirection(instance, 0);
+                    camera.transform.position = focus + front * 5;
+                    camera.transform.LookAt(focus);
+                    light.transform.rotation = Quaternion.LookRotation(-front + Vector3.down * .6f);
                     int count = Math.Max(2, Mathf.CeilToInt(preview.Duration * 24));
                     for (int frame = 0; frame < count; frame++)
                     {

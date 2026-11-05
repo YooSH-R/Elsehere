@@ -14,14 +14,24 @@ namespace A305.EditorTools.Characters
 {
     public static class ServiceNpcReviewBuilder
     {
-        public static readonly string[] Names =
-        {
-            "LittleMung_Business_Male",
-            "LittleMung_MiddleAge_Male",
-            "LittleMung_MiddleAge_Female",
-            "LittleMung_BlackYoung_Male",
-            "LittleMung_Grandmother",
-        };
+        private const string Business = "LittleMung_Business_Male";
+        private const string Generated = "Assets/Art/Characters/Tripo/NPC";
+
+        // 비즈니스맨의 기존 준비본을 맨 앞에 유지하고, 마스터 적용을 마친 새 NPC도 찾는다.
+        public static string[] Names =>
+            new[] { Business }
+                .Concat(
+                    Directory
+                        .EnumerateDirectories(Generated)
+                        .Select(Path.GetFileName)
+                        .Where(name => name != Business && File.Exists(SourceVisual(name)))
+                        .OrderBy(name => name, StringComparer.Ordinal)
+                )
+                .ToArray();
+
+        public static string SourceVisual(string name) =>
+            $"{Generated}/{name}/MasterRig/{name}_Visual.prefab";
+
         public const string Root = "Assets/Art/Characters/ReviewCorrections/ServiceNpcs";
         private static string Output =>
             Environment.GetEnvironmentVariable("NPC_REVIEW_OUTPUT")
@@ -85,12 +95,7 @@ namespace A305.EditorTools.Characters
                         throw new InvalidOperationException(
                             "Business review prefab is missing: " + paths.Prefab
                         );
-                    string source =
-                        "Assets/Art/Characters/Tripo/NPC/"
-                        + name
-                        + "/MasterRig/"
-                        + name
-                        + "_Visual.prefab";
+                    string source = SourceVisual(name);
                     var instance = Object.Instantiate(
                         AssetDatabase.LoadAssetAtPath<GameObject>(source)
                     );
@@ -156,7 +161,7 @@ namespace A305.EditorTools.Characters
             var texture = skin.sharedMaterial.GetTexture("_BaseMap");
             File.WriteAllText(
                 Path.Combine(folder, "TexturePath.txt"),
-                Path.GetFullPath(AssetDatabase.GetAssetPath(texture))
+                "frontend/UnityClient/" + AssetDatabase.GetAssetPath(texture)
             );
         }
 
@@ -195,6 +200,7 @@ namespace A305.EditorTools.Characters
             foreach (string name in Names)
             {
                 var paths = Paths(name);
+                Directory.CreateDirectory(paths.Output);
                 var report = TripoMasterMotionAudit.Inspect(
                     AssetDatabase.LoadAssetAtPath<GameObject>(paths.Source)
                 );
@@ -213,7 +219,8 @@ namespace A305.EditorTools.Characters
         public static void BuildFaces()
         {
             foreach (string name in Names.Skip(1))
-                new CharacterFaceReviewBuilder(Paths(name)).Build();
+                if (!File.Exists(Paths(name).Prefab))
+                    new CharacterFaceReviewBuilder(Paths(name)).Build();
             ValidateAndScenes();
         }
 
@@ -222,6 +229,7 @@ namespace A305.EditorTools.Characters
             foreach (string name in Names)
             {
                 var paths = Paths(name);
+                Directory.CreateDirectory(paths.Output);
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(paths.Prefab);
                 var report = TripoMasterMotionAudit.Inspect(prefab);
                 var rig = TripoMasterRig.Inspect(prefab, TripoMasterWorkflow.RequireMaster());

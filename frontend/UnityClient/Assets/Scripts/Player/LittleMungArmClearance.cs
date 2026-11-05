@@ -11,6 +11,12 @@ namespace A305.Player
     {
         [SerializeField, Min(0)]
         private float handPadding = .008f;
+
+        [SerializeField]
+        [Tooltip(
+            "중심점 보정 후 소매 표면이 남는 외형에만 추가 보정합니다. 기존 플레이어 자세에는 적용하지 않습니다."
+        )]
+        private bool refineSurfaceContact;
         private Transform space;
         private SkinnedVertexSamples head;
         private SkinnedVertexSamples torso;
@@ -47,8 +53,11 @@ namespace A305.Player
             }
             head = new SkinnedVertexSamples(animator, headNames.Contains);
             torso = new SkinnedVertexSamples(animator, torsoNames.Contains);
-            contactHead = new SkinnedVertexSamples(animator, headNames.Contains, .75f);
-            contactTorso = new SkinnedVertexSamples(animator, torsoNames.Contains, .75f);
+            if (refineSurfaceContact)
+            {
+                contactHead = new SkinnedVertexSamples(animator, headNames.Contains, .75f);
+                contactTorso = new SkinnedVertexSamples(animator, torsoNames.Contains, .75f);
+            }
             upper[0] = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
             upper[1] = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
             lower[0] = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
@@ -66,11 +75,12 @@ namespace A305.Player
                     animator,
                     name => name == lowerName
                 );
-                contactArms[side] = new SkinnedVertexSamples(
-                    animator,
-                    name => handNames.Contains(name) || name == lowerName,
-                    .75f
-                );
+                if (refineSurfaceContact)
+                    contactArms[side] = new SkinnedVertexSamples(
+                        animator,
+                        name => handNames.Contains(name) || name == lowerName,
+                        .75f
+                    );
             }
         }
 
@@ -120,7 +130,8 @@ namespace A305.Player
                     upper[side].rotation =
                         Quaternion.FromToRotation(reach, target) * upper[side].rotation;
                 }
-                RefineContact(side);
+                if (refineSurfaceContact)
+                    RefineContact(side);
             }
         }
 

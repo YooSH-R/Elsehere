@@ -16,7 +16,7 @@
 | 빨래방 | Take me to the laundromat, please. | SudsLaundromatInterior |
 | 꽃집 | The flower shop, please. | BloomFlowersInterior |
 | 이발소 | Take me to the barber shop, please. | MainStreetBarberInterior |
-| 경찰서 | Take me to the police station, please. | PoliceStationInterior |
+| 경찰서 | Take me to the police station, please. | PoliceStationScene |
 
 택시는 건물 앞 보도에 내려준다. 실내로 자동 이동하지 않으며, 하차 후 사용자가 문으로 걸어 들어간다. 택시는 영업시간과 상관없이 데려다주고, 영업시간이 아닌 장소는 문 앞에서 들어가지 못한다([World 모듈의 영업시간](../../frontend/UnityClient/Assets/Scripts/World/README.md#영업시간)). 북쪽 기존 베이커리·오락실·서점·생활용품점·찻집은 현재 택시 목적지에 포함하지 않는다.
 

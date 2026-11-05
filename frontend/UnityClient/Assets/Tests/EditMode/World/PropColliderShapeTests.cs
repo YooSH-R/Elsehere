@@ -1,6 +1,7 @@
 using System.Linq;
 using A305.EditorTools.World;
 using NUnit.Framework;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace A305.World.Tests
@@ -80,6 +81,24 @@ namespace A305.World.Tests
 
             Assert.That(mug.GetComponent<BoxCollider>(), Is.Not.Null);
             Assert.That(mug.GetComponentInChildren<MeshCollider>(), Is.Null);
+        }
+
+        [TestCase("PoliceStationScene")]
+        public void ProductionScene_HasNoPropColliderFloatingAboveItsShape(string name)
+        {
+            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Production/" + name + ".unity");
+
+            string[] floating = PropColliderShape
+                .FindFloatingBoxes(scene.GetRootGameObjects())
+                .Select(PropColliderShape.Describe)
+                .ToArray();
+
+            Assert.That(
+                floating,
+                Is.Empty,
+                "Tools/A305/World/Fit Prop Colliders To Shape를 실행하세요.\n"
+                    + string.Join("\n", floating)
+            );
         }
 
         /// <summary>meshHeight 높이의 상자 메시 위에 boxHeight 높이의 이동 콜라이더를 둔 사물</summary>

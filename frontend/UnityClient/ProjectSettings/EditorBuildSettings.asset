@@ -42,9 +42,6 @@ EditorBuildSettings:
     path: Assets/Scenes/ShopInteriors/MapleDinerInterior.unity
     guid: 84eb723dbe004694d81680f114c3c278
   - enabled: 1
-    path: Assets/Scenes/ShopInteriors/PoliceStationInterior.unity
-    guid: ce1e4f50226d5df488893b41db799ce1
-  - enabled: 1
     path: Assets/Scenes/ShopInteriors/PostOfficeInterior.unity
     guid: b9f5e8484ea38dd458cc4abc410352b0
   - enabled: 1
@@ -59,6 +56,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ShopInteriors/LittleArcadeUpperInterior.unity
     guid: df778affe98355140ad591ac1279249a
+  - enabled: 1
+    path: Assets/Scenes/Production/PoliceStationScene.unity
+    guid: 91fa5f681a4bcb647bc9fbb210e7b846
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

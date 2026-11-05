@@ -15,9 +15,9 @@ MonoBehaviour:
   details:
     key: word_0a8bd7882c5b7b04e84b90f02a9345c1
     languageCode: en-US
-    text: game console
-    meaningKo: "\uAC8C\uC784\uAE30"
-    example: Where is the game console?
-    exampleKo: "\uAC8C\uC784\uAE30\uB294 \uC5B4\uB514\uC5D0 \uC788\uB098\uC694?"
-    pronunciationAudioKey: 
+    text: arcade game
+    meaningKo: "\uC624\uB77D\uC2E4 \uAC8C\uC784\uAE30"
+    example: Let's play an arcade game.
+    exampleKo: "\uC624\uB77D\uC2E4 \uAC8C\uC784\uC744 \uD574 \uBD10\uC694."
+    pronunciationAudioKey: arcade_game.wav
   assetGuid: 0a8bd7882c5b7b04e84b90f02a9345c1

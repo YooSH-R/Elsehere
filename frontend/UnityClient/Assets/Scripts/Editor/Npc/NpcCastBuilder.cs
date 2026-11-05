@@ -227,52 +227,66 @@ namespace A305.EditorTools.Npc
             Debug.Log("외형 표의 NPC를 장면에 두고 배색과 생활을 입혔습니다.");
         }
 
-        // 배치·일과·대사·NavMesh를 다시 만들지 않고 이미 있는 역할의 외형만 갱신한다.
+        // 기존 메뉴 호출과 자동화 스크립트를 유지한다.
         [MenuItem("Tools/A305/Npc/Connect Reviewed Staff Visuals")]
-        public static void ConnectReviewedStaffVisuals()
+        public static void ConnectReviewedStaffVisuals() => RefreshSceneVisuals();
+
+        // 배치·일과·대사·NavMesh를 다시 만들지 않고 모든 기존 NPC에 외형 표를 적용한다.
+        [MenuItem("Tools/A305/Npc/Refresh Scene Visuals")]
+        public static void RefreshSceneVisuals()
         {
             BuilderTools.ThrowIfPlaying();
-            var reviewed = new[]
-            {
-                NpcLooks.CafeMale,
-                NpcLooks.HotelierFemale,
-                NpcLooks.Grandfather,
-                NpcLooks.PoliceOfficer,
-            };
-            foreach (var look in reviewed)
+            foreach (var look in NpcCast.Members.Select(member => member.Look).Distinct())
             {
                 var prefab = BuilderTools.LoadRequiredAsset<GameObject>(look.PrefabPath, MenuPath);
-                var rig = Tripo.TripoMasterRig.Inspect(
-                    prefab,
-                    Tripo.TripoMasterWorkflow.RequireMaster()
-                );
-                var motion = Tripo.TripoMasterMotionAudit.Inspect(prefab);
+                if (look.PrefabPath.StartsWith("Assets/Prefabs/Npc/Review/"))
+                {
+                    var rig = Tripo.TripoMasterRig.Inspect(
+                        prefab,
+                        Tripo.TripoMasterWorkflow.RequireMaster()
+                    );
+                    var motion = Tripo.TripoMasterMotionAudit.Inspect(prefab);
+                    if (!rig.Passed || !motion.Passed)
+                        throw new InvalidOperationException(
+                            "마스터 골격·동작 검사를 통과하지 못했습니다: " + look.Name
+                        );
+                }
+                var animator = prefab.GetComponentInChildren<Animator>();
                 if (
-                    !rig.Passed
-                    || !motion.Passed
+                    animator == null
+                    || animator.avatar == null
+                    || !animator.avatar.isValid
+                    || !animator.avatar.isHuman
                     || A305.Characters.CharacterFaceController.MissingChannels(
                         prefab.transform,
                         true
                     ).Length != 0
                 )
                     throw new InvalidOperationException(
-                        "검사를 통과한 외형만 연결할 수 있습니다: " + look.Name
+                        "몸 Avatar와 공통 표정이 준비되지 않은 외형입니다: " + look.Name
                     );
             }
-            foreach (string path in new[] { CafeScenePath, HotelScenePath, TownScenePath })
+            var connected = new HashSet<string>();
+            foreach (
+                string path in new[] { CafeScenePath, HotelScenePath, ShopScenePath, TownScenePath }
+            )
             {
                 var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
                 foreach (var npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))
                 {
-                    var member = NpcCast.Find(npc.Code);
-                    if (member == null || !reviewed.Contains(member.Look))
-                        continue;
+                    var member =
+                        NpcCast.Find(npc.Code)
+                        ?? throw new InvalidOperationException(
+                            "외형 표에 없는 NPC입니다: " + npc.Code
+                        );
                     var position = npc.transform.position;
                     var rotation = npc.transform.rotation;
                     var routine = npc.GetComponent<NpcRoutine>();
                     string routineBefore =
                         routine != null ? EditorJsonUtility.ToJson(routine) : null;
-                    NpcVisualBuilder.Connect(npc, member.Look.PrefabPath, true);
+                    // 운전석에 맞춘 Joe의 좌석 자세와 시선은 유지한다.
+                    if (npc.Code != "TAXI_DRIVER")
+                        ConnectLook(npc, member.Look);
                     NpcCastDresser.Dress(npc.gameObject, member);
                     if (
                         npc.transform.position != position
@@ -280,12 +294,19 @@ namespace A305.EditorTools.Npc
                         || (routine != null && EditorJsonUtility.ToJson(routine) != routineBefore)
                     )
                         throw new InvalidOperationException(
-                            "외형 이외의 NPC 배치 또는 생활 설정이 바뀌었습니다: " + npc.Code
+                            "NPC 배치 또는 생활 설정이 바뀌었습니다: " + npc.Code
                         );
-                    Debug.Log($"NPC 검수 외형 연결: {npc.Code} → {member.Look.PrefabPath}");
+                    if (!connected.Add(npc.Code))
+                        throw new InvalidOperationException("중복 배치된 NPC입니다: " + npc.Code);
+                    Debug.Log($"NPC 외형 연결: {npc.Code} → {member.Look.PrefabPath}");
                 }
                 BuilderTools.SaveScene(scene, path);
             }
+            var missing = NpcCast
+                .Members.Where(member => !connected.Contains(member.Code))
+                .Select(member => member.Code);
+            if (missing.Any())
+                throw new InvalidOperationException("씬에 없는 NPC: " + string.Join(", ", missing));
             AssetDatabase.SaveAssets();
         }
 
@@ -318,7 +339,7 @@ namespace A305.EditorTools.Npc
                     .ToArray();
                 if (members.Length > 0)
                 {
-                    RenderLineup(look, members, folder);
+                    RenderLineup(look.Name, members, folder);
                 }
             }
 
@@ -343,7 +364,7 @@ namespace A305.EditorTools.Npc
                 }
             )
                 RenderLineup(
-                    look,
+                    look.Name,
                     NpcCast.Members.Where(member => member.Look == look).ToArray(),
                     folder
                 );
@@ -351,6 +372,59 @@ namespace A305.EditorTools.Npc
         }
 
         // ---------- 장면 ----------
+
+        public static void RefreshAndRenderSceneVisuals()
+        {
+            RefreshSceneVisuals();
+            RenderWorkplaceLineups();
+        }
+
+        [MenuItem("Tools/A305/Npc/Render Workplace Lineups")]
+        public static void RenderWorkplaceLineups()
+        {
+            BuilderTools.ThrowIfPlaying();
+            string folder =
+                Environment.GetEnvironmentVariable(LineupOutputVariable)
+                ?? throw new InvalidOperationException("NPC_CAST_LINEUP_OUTPUT을 지정하세요.");
+            Directory.CreateDirectory(folder);
+            var sceneScales = new Dictionary<string, Vector3>();
+            foreach (
+                string path in new[] { CafeScenePath, HotelScenePath, ShopScenePath, TownScenePath }
+            )
+            {
+                var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                foreach (var npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))
+                {
+                    Transform visual = npc.GetComponentInChildren<Animator>().transform;
+                    while (visual.parent != npc.transform)
+                        visual = visual.parent;
+                    sceneScales.Add(npc.Code, visual.localScale);
+                }
+            }
+            foreach (
+                string prefix in new[] { "CAFE_", "HOTEL_", "SHOP_", "POLICE_", "TOWN_", "FIRE_" }
+            )
+                RenderLineup(
+                    prefix.TrimEnd('_'),
+                    NpcCast.Members.Where(member => member.Code.StartsWith(prefix)).ToArray(),
+                    folder,
+                    sceneScales
+                );
+            RenderLineup(
+                "STORES",
+                NpcCast
+                    .Members.Where(member =>
+                        member.Code.EndsWith("_STAFF")
+                        && !member.Code.StartsWith("CAFE_")
+                        && !member.Code.StartsWith("HOTEL_")
+                        && !member.Code.StartsWith("SHOP_")
+                    )
+                    .ToArray(),
+                folder,
+                sceneScales
+            );
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        }
 
         private static void BuildScene(string scenePath, Action<Scene> placeOthers = null)
         {
@@ -422,61 +496,34 @@ namespace A305.EditorTools.Npc
                     MenuPath
                 )
             );
-            ConnectLook(npc, NpcCast.Find(newcomer.Code).Look, colleague);
+            ConnectLook(npc, NpcCast.Find(newcomer.Code).Look);
         }
 
-        // 카페·호텔 유니폼은 원래 직원(Mia·Jake)과 같은 대화 얼굴 외형을 붙여 립싱크하고, 캡슐·시선 높이도 그 직원과 맞춘다.
-        // 서비스 NPC 외형은 외형의 키와 눈 높이를 재어 맞춘다.
-        private static void ConnectLook(NpcIdentity npc, NpcLook look, NpcIdentity colleague)
+        private static void ConnectLook(NpcIdentity npc, NpcLook look)
         {
-            if (look == NpcLooks.Barista)
+            // 각 외형의 실제 키·눈 위치와 자기 Avatar를 사용한다. 동료의 몸 설정을 복사하지 않는다.
+            NpcVisualBuilder.Connect(
+                npc,
+                look.PrefabPath,
+                look != NpcLooks.BusinessMale,
+                look.InitialScale
+            );
+            // 기존 카페·호텔 Builder가 찾는 자식 이름은 유지한다.
+            string childName =
+                look == NpcLooks.Barista ? "Barista"
+                : look == NpcLooks.Hotelier ? "Hotelier"
+                : null;
+            if (childName != null)
             {
-                HidePlaceholder(npc);
-                CafeInteriorBuilder.ConnectBarista(npc);
-                CopyBody(colleague, npc);
+                var visual = npc
+                    .transform.Cast<Transform>()
+                    .Single(child =>
+                        PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(child)
+                        == look.PrefabPath
+                    );
+                visual.name = childName;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(visual.gameObject);
             }
-            else if (look == NpcLooks.Hotelier)
-            {
-                HidePlaceholder(npc);
-                HotelInteriorBuilder.ConnectHotelier(npc);
-                CopyBody(colleague, npc);
-            }
-            else
-            {
-                // 비즈니스맨 체형은 공용 손짓 동작이 엉거주춤해 보여, Ben처럼 말하는 동안 자기 Idle로 선다.
-                NpcVisualBuilder.Connect(npc, look.PrefabPath, look != NpcLooks.BusinessMale);
-            }
-        }
-
-        private static void HidePlaceholder(NpcIdentity npc)
-        {
-            Transform placeholder = npc.transform.Find("Visual");
-            if (placeholder != null && placeholder.gameObject.activeSelf)
-            {
-                placeholder.gameObject.SetActive(false);
-                PrefabUtility.RecordPrefabInstancePropertyModifications(placeholder.gameObject);
-            }
-        }
-
-        private static void CopyBody(NpcIdentity from, NpcIdentity to)
-        {
-            if (NpcCast.Find(from.Code).Look != NpcCast.Find(to.Code).Look)
-            {
-                throw new InvalidOperationException(
-                    $"{to.Code}는 외형이 다른 {from.Code}의 캡슐을 따를 수 없습니다."
-                );
-            }
-
-            var source = from.GetComponent<CharacterController>();
-            var target = to.GetComponent<CharacterController>();
-            target.height = source.height;
-            target.center = source.center;
-            target.radius = source.radius;
-            target.stepOffset = source.stepOffset;
-            target.skinWidth = source.skinWidth;
-            PrefabUtility.RecordPrefabInstancePropertyModifications(target);
-            to.LookTarget.localPosition = from.LookTarget.localPosition;
-            PrefabUtility.RecordPrefabInstancePropertyModifications(to.LookTarget);
         }
 
         private static NpcIdentity Find(Scene scene, string code)
@@ -489,9 +536,10 @@ namespace A305.EditorTools.Npc
         // ---------- 줄 세운 그림 ----------
 
         private static void RenderLineup(
-            NpcLook look,
+            string name,
             IReadOnlyList<NpcCastMember> members,
-            string folder
+            string folder,
+            IReadOnlyDictionary<string, Vector3> sceneScales = null
         )
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -504,15 +552,19 @@ namespace A305.EditorTools.Npc
             // NPC는 +z를 보고 서고 카메라는 그 앞에서 찍으므로, 빛도 앞 위쪽에서 비춘다.
             light.transform.rotation = Quaternion.Euler(30f, 200f, 0f);
 
-            GameObject prefab = BuilderTools.LoadRequiredAsset<GameObject>(
-                look.PrefabPath,
-                LineupMenuPath
-            );
             var copies = new List<GameObject>();
             foreach (NpcCastMember member in members)
             {
+                GameObject prefab = BuilderTools.LoadRequiredAsset<GameObject>(
+                    member.Look.PrefabPath,
+                    LineupMenuPath
+                );
                 var copy = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 copy.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                if (sceneScales != null && sceneScales.TryGetValue(member.Code, out var scale))
+                    copy.transform.localScale = scale;
+                else
+                    copy.transform.localScale *= member.Look.InitialScale;
                 Animator animator = copy.GetComponentInChildren<Animator>();
                 if (animator != null)
                 {
@@ -520,12 +572,21 @@ namespace A305.EditorTools.Npc
                     animator.Update(0);
                 }
 
+                var controller = BuilderTools.GetOrAddComponent<CharacterController>(copy);
+                foreach (var clearance in copy.GetComponentsInChildren<LittleMungArmClearance>())
+                {
+                    if (!clearance.enabled)
+                        continue;
+                    clearance.Initialize(controller);
+                    clearance.CorrectPose();
+                }
+
                 NpcCastDresser.Dress(copy, member);
                 copies.Add(copy);
             }
 
             // 외형의 키에 맞춰 위 줄이 몸 전체를 담고, 한 칸에 한 명씩 서게 간격을 정한다.
-            float top = TopOf(copies[0]);
+            float top = copies.Max(TopOf);
             float bodyMeters = top + .15f;
             float spacing = bodyMeters * LineupCellPixels / LineupBodyPixels;
             // 카메라가 -z를 보므로 화면 왼쪽이 +x다. 외형 표 순서가 왼쪽부터 오게 +x부터 세운다.
@@ -568,9 +629,9 @@ namespace A305.EditorTools.Npc
             RenderTexture.active = target;
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
             image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-            File.WriteAllBytes(Path.Combine(folder, look.Name + ".png"), image.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(folder, name + ".png"), image.EncodeToPNG());
             File.WriteAllLines(
-                Path.Combine(folder, look.Name + ".txt"),
+                Path.Combine(folder, name + ".txt"),
                 members.Select((member, index) => $"{index + 1}. {member}")
             );
             RenderTexture.active = null;
@@ -660,7 +721,7 @@ namespace A305.EditorTools.Npc
             public Vector3 Stand { get; }
             public float YawDegrees { get; }
 
-            /// <summary>설정(다가오는 거리 등)과, 외형이 같으면 캡슐·시선 높이도 따르는 같은 일터의 원래 NPC</summary>
+            /// <summary>다가오는 거리 등 행동 설정을 따르는 같은 일터의 원래 NPC</summary>
             public string ColleagueCode { get; }
         }
     }

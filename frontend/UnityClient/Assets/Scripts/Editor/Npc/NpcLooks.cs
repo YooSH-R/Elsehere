@@ -10,8 +10,6 @@ namespace A305.EditorTools.Npc
     {
         private const string ReviewFolder = "Assets/Prefabs/Npc/Review/LittleMung_";
         private const string TripoNpcFolder = "Assets/Art/Characters/Tripo/NPC/LittleMung_";
-        private const string HotelierPrefab =
-            "Assets/Prefabs/Characters/Tripo/LittleMung_HotelStaff_male.prefab";
         private const string HotelierTexture =
             "Assets/Art/Characters/Tripo/LittleMung_HotelStaff_male/Textures/Material_0_color.png";
 
@@ -40,9 +38,10 @@ namespace A305.EditorTools.Npc
 
         public static readonly NpcLook Barista = new NpcLook(
             "Barista",
-            "Assets/Prefabs/Npc/Barista.prefab",
+            Characters.CafeDialogueBuilder.PrefabPath,
             "Assets/Art/Npc/Barista/BaristaColor.png",
-            onlyForCodePrefix: "CAFE_"
+            onlyForCodePrefix: "CAFE_",
+            initialScale: 1.6f
         )
             .Originally("blond", "sage", "brown", "green", secondClothes: "rust")
             .WithHair(new NpcColorRange((.085f, .16f), (.35f, .85f), (.55f, 1f), HeadAndBraids))
@@ -53,7 +52,7 @@ namespace A305.EditorTools.Npc
 
         public static readonly NpcLook Hotelier = new NpcLook(
             "HotelStaff",
-            HotelierPrefab,
+            Characters.HotelierFaceBuilder.PrefabPath,
             HotelierTexture,
             onlyForCodePrefix: "HOTEL_"
         )
@@ -81,6 +80,9 @@ namespace A305.EditorTools.Npc
             .WithEyes(false, SeparateIris);
         public static readonly NpcLook Grandfather = Review("Grandfather")
             .Originally("white", "olive", "brown", "brown")
+            .WithHair(new NpcColorRange((0f, 1f), (0f, .22f), (.35f, 1f), HeadAndNape))
+            .WithClothes(new NpcColorRange((.15f, .45f), (.08f, 1f), (.05f, 1f)))
+            .WithShoes(new NpcColorRange((.02f, .12f), (.2f, .8f), (.06f, .45f), Feet))
             .WithEyes(false, SeparateIris);
         public static readonly NpcLook PoliceFemale = Review("Police_Female", "POLICE_")
             .Originally("brown", "navy", "black", "brown")
@@ -112,7 +114,7 @@ namespace A305.EditorTools.Npc
 
         public static readonly NpcLook MiddleAgeFemale = Review("MiddleAge_Female")
             .Originally("caramel", "blue", "cream", "dark blue")
-            .WithHair(new NpcColorRange((.085f, .14f), (.4f, .85f), (.45f, .9f), HeadAndNape))
+            // 피부와 머리카락의 색 범위가 겹쳐 부분 배색하면 얼굴에 얼룩이 생긴다. 원래 금발을 유지한다.
             .WithClothes(new NpcColorRange((.55f, .72f), (.2f, 1f), (.15f, 1f)))
             .WithShoes(new NpcColorRange((0f, 1f), (0f, .3f), (.6f, 1f), Feet))
             .WithEyes(false, SeparateIris);

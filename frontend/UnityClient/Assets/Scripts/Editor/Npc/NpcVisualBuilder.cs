@@ -85,7 +85,12 @@ namespace A305.EditorTools.Npc
         }
 
         /// <summary>위 표에 없는 NPC(건물 직원 등)에 외형을 붙인다. 외형 고르기는 부르는 Builder가 맡는다.</summary>
-        public static void Connect(NpcIdentity npc, string prefabPath, bool talkGesture)
+        public static void Connect(
+            NpcIdentity npc,
+            string prefabPath,
+            bool talkGesture,
+            float initialScale = 1f
+        )
         {
             var entry = (Prefab: prefabPath, TalkGesture: talkGesture);
             GameObject prefab = BuilderTools.LoadRequiredAsset<GameObject>(entry.Prefab, MenuPath);
@@ -129,11 +134,13 @@ namespace A305.EditorTools.Npc
                     .InstantiatePrefab(
                         prefab,
                         npc.transform,
-                        Vector3.up * -sole,
+                        Vector3.up * (-sole * initialScale),
                         Quaternion.identity
                     )
                     .transform;
                 visual.name = prefab.name;
+                visual.localScale *= initialScale;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(visual);
             }
 
             BuilderTools.SetReference(

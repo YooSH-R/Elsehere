@@ -13,6 +13,35 @@ namespace A305.Npc.Tests
         private const string Review = "Assets/Prefabs/Npc/Review/";
 
         [Test]
+        public void NewCafeVisualUsesPlacementScaleWithoutChangingExistingScale()
+        {
+            var root = (GameObject)
+                PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(NpcBuilder.PasserbyPrefabPath)
+                );
+            try
+            {
+                var npc = root.GetComponent<NpcIdentity>();
+                string path = "Assets/Prefabs/Npc/CafeFemaleDialogue.prefab";
+                NpcVisualBuilder.Connect(npc, path, true, 1.6f);
+                var visual = root
+                    .transform.Cast<Transform>()
+                    .Single(child =>
+                        PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(child) == path
+                    );
+                Assert.That(visual.localScale, Is.EqualTo(Vector3.one * 1.6f));
+                Assert.That(root.GetComponent<CharacterController>().height, Is.GreaterThan(1.5f));
+                visual.localScale = Vector3.one * 1.7f;
+                NpcVisualBuilder.Connect(npc, path, true, 1.6f);
+                Assert.That(visual.localScale, Is.EqualTo(Vector3.one * 1.7f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void ReconnectingScaledVisualMeasuresItsExistingSceneScale()
         {
             var root = (GameObject)

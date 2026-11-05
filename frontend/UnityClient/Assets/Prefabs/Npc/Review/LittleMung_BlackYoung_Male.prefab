@@ -658,8 +658,8 @@ GameObject:
   - component: {fileID: 1247846866335939385}
   - component: {fileID: 3406044181078484666}
   - component: {fileID: 2464733697615328668}
-  - component: {fileID: 1716143666433861862}
-  - component: {fileID: 7124505627219381372}
+  - component: {fileID: 5533996589689917312}
+  - component: {fileID: 5177887015591277194}
   m_Layer: 0
   m_Name: LittleMung_BlackYoung_Male
   m_TagString: Untagged
@@ -707,7 +707,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98fef14844693b34095c3d3b89ba3577, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterIdleBlink
---- !u!114 &1716143666433861862
+--- !u!114 &5533996589689917312
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -720,13 +720,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterSpeechPlayer
   face: {fileID: 3406044181078484666}
-  speechSource: {fileID: 7124505627219381372}
+  speechSource: {fileID: 5177887015591277194}
   speech: {fileID: 0}
   expressions: {fileID: 11400000, guid: d971682af4970ba40801242aadc35ea0, type: 2}
   emotionProfile: {fileID: 11400000, guid: 6c28dde4cfe379e4a899fb9cd031990d, type: 2}
   speakingMood: 1
   moodIntensity: 1
---- !u!82 &7124505627219381372
+--- !u!82 &5177887015591277194
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

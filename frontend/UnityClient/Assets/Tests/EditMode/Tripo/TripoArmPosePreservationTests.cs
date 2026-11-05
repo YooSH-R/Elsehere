@@ -10,6 +10,15 @@ namespace A305.Tripo.Tests
     public sealed class TripoArmPosePreservationTests
     {
         [Test]
+        public void GrandmotherHandsAndForearmsClearTheBodyInSharedMotions()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefabs/Npc/Review/LittleMung_Grandmother.prefab"
+            );
+            Assert.That(TripoMasterMotionAudit.Inspect(prefab).Errors, Is.Empty);
+        }
+
+        [Test]
         public void ClearancePreservesAuthoredElbowBendAndWristPoseDuringRunning()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(

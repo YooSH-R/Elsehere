@@ -227,6 +227,68 @@ namespace A305.EditorTools.Npc
             Debug.Log("외형 표의 NPC를 장면에 두고 배색과 생활을 입혔습니다.");
         }
 
+        // 배치·일과·대사·NavMesh를 다시 만들지 않고 이미 있는 역할의 외형만 갱신한다.
+        [MenuItem("Tools/A305/Npc/Connect Reviewed Staff Visuals")]
+        public static void ConnectReviewedStaffVisuals()
+        {
+            BuilderTools.ThrowIfPlaying();
+            var reviewed = new[]
+            {
+                NpcLooks.CafeMale,
+                NpcLooks.HotelierFemale,
+                NpcLooks.Grandfather,
+                NpcLooks.PoliceOfficer,
+            };
+            foreach (var look in reviewed)
+            {
+                var prefab = BuilderTools.LoadRequiredAsset<GameObject>(look.PrefabPath, MenuPath);
+                var rig = Tripo.TripoMasterRig.Inspect(
+                    prefab,
+                    Tripo.TripoMasterWorkflow.RequireMaster()
+                );
+                var motion = Tripo.TripoMasterMotionAudit.Inspect(prefab);
+                if (
+                    !rig.Passed
+                    || !motion.Passed
+                    || A305.Characters.CharacterFaceController.MissingChannels(
+                        prefab.transform,
+                        true
+                    ).Length != 0
+                )
+                    throw new InvalidOperationException(
+                        "검사를 통과한 외형만 연결할 수 있습니다: " + look.Name
+                    );
+            }
+            foreach (string path in new[] { CafeScenePath, HotelScenePath, TownScenePath })
+            {
+                var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                foreach (var npc in BuilderTools.FindAllInScene<NpcIdentity>(scene))
+                {
+                    var member = NpcCast.Find(npc.Code);
+                    if (member == null || !reviewed.Contains(member.Look))
+                        continue;
+                    var position = npc.transform.position;
+                    var rotation = npc.transform.rotation;
+                    var routine = npc.GetComponent<NpcRoutine>();
+                    string routineBefore =
+                        routine != null ? EditorJsonUtility.ToJson(routine) : null;
+                    NpcVisualBuilder.Connect(npc, member.Look.PrefabPath, true);
+                    NpcCastDresser.Dress(npc.gameObject, member);
+                    if (
+                        npc.transform.position != position
+                        || npc.transform.rotation != rotation
+                        || (routine != null && EditorJsonUtility.ToJson(routine) != routineBefore)
+                    )
+                        throw new InvalidOperationException(
+                            "외형 이외의 NPC 배치 또는 생활 설정이 바뀌었습니다: " + npc.Code
+                        );
+                    Debug.Log($"NPC 검수 외형 연결: {npc.Code} → {member.Look.PrefabPath}");
+                }
+                BuilderTools.SaveScene(scene, path);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
         /// <summary>
         /// 같은 외형을 쓰는 NPC를 외형 표 순서대로 왼쪽부터 세워, 위에는 몸 전체를, 가운데에는 얼굴을, 아래에는 뒤통수를 찍은 그림을 외형마다 하나씩 저장한다.
         /// 서로 다른 사람으로 보이는지 눈으로 확인하는 용도이며, NPC 순서는 같은 이름의 .txt에 적는다. 경찰 모자는 찍지 않는다.
@@ -263,6 +325,29 @@ namespace A305.EditorTools.Npc
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             AssetDatabase.SaveAssets();
             Debug.Log("NPC 외형 줄 세운 그림을 저장했습니다: " + Path.GetFullPath(folder));
+        }
+
+        public static void RenderReviewedStaffLineups()
+        {
+            string folder =
+                Environment.GetEnvironmentVariable(LineupOutputVariable)
+                ?? throw new InvalidOperationException("Set NPC_CAST_LINEUP_OUTPUT.");
+            Directory.CreateDirectory(folder);
+            foreach (
+                var look in new[]
+                {
+                    NpcLooks.CafeMale,
+                    NpcLooks.HotelierFemale,
+                    NpcLooks.Grandfather,
+                    NpcLooks.PoliceOfficer,
+                }
+            )
+                RenderLineup(
+                    look,
+                    NpcCast.Members.Where(member => member.Look == look).ToArray(),
+                    folder
+                );
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         }
 
         // ---------- 장면 ----------

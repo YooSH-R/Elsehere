@@ -1,0 +1,1 @@
+frontend/UnityClient/Assets/Art/Characters/Tripo/NPC/LittleMung_Cafe_Male/Textures/Material_0_color.png

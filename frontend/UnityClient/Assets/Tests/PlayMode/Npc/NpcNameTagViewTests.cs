@@ -14,8 +14,9 @@ using UnityEngine.TestTools;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 가까운 NPC 머리 위에 이름표가 뜬다. 직원은 역할 칩(예: 경찰서의 경찰관)을 함께 달고, 마을 행인은 이름만 보인다.
+    /// 가까운 NPC 머리 위에 이름표가 뜬다. 근무 중인 직원은 역할 칩(예: 경찰서의 경찰관)을 함께 달고, 마을 행인과 쉬는 직원은 이름만 보인다.
     /// 멀리 있는 NPC와 플레이어가 대화·창으로 움직이지 못하는 동안에는 이름표를 띄우지 않는다.
+    /// 마을 시계는 08:00에 시작하므로 경찰관 Dan(06:00~10:00 근무, 10:00~10:30 쉬는 시간)은 근무 중이다.
     /// </summary>
     public class NpcNameTagViewTests
     {
@@ -24,6 +25,9 @@ namespace A305.Npc.PlayModeTests
         private const string StaffRole = "경찰관";
         private const string PasserbyCode = "TOWN_RETIREE";
         private const string PasserbyName = "Ruby";
+
+        // 경찰관 Dan의 쉬는 시간(10:00~10:30) 한가운데
+        private const double StaffBreakMinutes = 10 * 60 + 15;
 
         // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
         private const int SettleFrames = 10;
@@ -69,6 +73,26 @@ namespace A305.Npc.PlayModeTests
             Assert.That(tag.Role, Is.EqualTo(StaffRole));
             float headY = Camera.main.WorldToScreenPoint(staff.LookTarget.position).y;
             Assert.That(tag.Rect.position.y, Is.GreaterThan(headY), "이름표는 머리 위에 뜹니다.");
+        }
+
+        [UnityTest]
+        public IEnumerator NearbyStaffOnBreak_ShowsNameOnly()
+        {
+            // 경찰관은 경찰서 장면에서 일한다.
+            yield return SceneManager.LoadSceneAsync("PoliceStationScene", LoadSceneMode.Single);
+            yield return null;
+            // 시계를 쉬는 시간으로 흘리고, Dan의 생활이 그 시각을 읽은 뒤에 세워 둔다.
+            GameClock.Shared.Flow(
+                (StaffBreakMinutes - GameClock.Shared.Minutes) / GameClock.GameMinutesPerRealSecond
+            );
+            yield return null;
+            NpcIdentity staff = HoldStill(StaffCode);
+            Assert.That(staff.GetComponent<NpcRoutine>().IsOffDuty, Is.True, "준비: Dan이 쉬는 중");
+            yield return StandFacing(staff, 3f);
+
+            TagView tag = ShownTags().SingleOrDefault(shown => shown.Name == StaffName);
+            Assert.That(tag, Is.Not.Null, "쉬는 직원도 이름표는 보입니다.");
+            Assert.That(tag.Role, Is.Null, "쉬는 직원에게는 역할 칩을 달지 않습니다.");
         }
 
         [UnityTest]

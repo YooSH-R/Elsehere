@@ -5,6 +5,65 @@ namespace A305.Characters.Tests
 {
     public sealed class SpeakingEmotionTests
     {
+        [Test]
+        public void AddingNewPresetsPreservesTheAuthoredSmileAndIsIdempotent()
+        {
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                JsonUtility.FromJsonOverwrite(
+                    "{\"presets\":[{\"emotion\":1,\"face\":{\"smile\":{\"x\":0.31,\"y\":0.44}}}]}",
+                    profile
+                );
+                profile.AddMissingDefaults();
+                Assert.That(
+                    profile.Sample(CharacterEmotion.WarmSmile).smile,
+                    Is.EqualTo(new Vector2(.31f, .44f))
+                );
+                Assert.That(
+                    profile.Sample(CharacterEmotion.Indifferent).eyeClosure.x,
+                    Is.GreaterThan(0)
+                );
+                string once = JsonUtility.ToJson(profile);
+                profile.AddMissingDefaults();
+                Assert.That(JsonUtility.ToJson(profile), Is.EqualTo(once));
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
+            }
+        }
+
+        [Test]
+        public void IndifferentKeepsRelaxedLidsWithoutSadOrSmilingEyeShapes()
+        {
+            var profile = ScriptableObject.CreateInstance<EmotionExpressionProfile>();
+            try
+            {
+                var face = profile.Sample(CharacterEmotion.Indifferent);
+                Assert.That(face.eyeClosure.x, Is.InRange(.3f, .7f));
+                Assert.That(face.eyeClosure.y, Is.EqualTo(face.eyeClosure.x));
+                Assert.That(face.eyeSquint, Is.EqualTo(Vector2.zero));
+                Assert.That(face.browInnerUp, Is.EqualTo(Vector2.zero));
+                Assert.That(face.browOuterUp, Is.EqualTo(Vector2.zero));
+                Assert.That(face.smile, Is.EqualTo(Vector2.zero));
+                Assert.That(face.restMouthOpen, Is.Zero);
+                Assert.That(face.restLaughOpen, Is.Zero);
+                Assert.That(
+                    face.mouthFrown.x,
+                    Is.LessThan(profile.Sample(CharacterEmotion.Sad).mouthFrown.x)
+                );
+                Assert.That(
+                    profile.Sample(CharacterEmotion.Indifferent, 0).eyeClosure,
+                    Is.EqualTo(Vector2.zero)
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(profile);
+            }
+        }
+
         [TestCase(CharacterFacePose.Neutral, 0f, 100f)]
         [TestCase(CharacterFacePose.ClosedLips, 1f, 0f)]
         [TestCase(CharacterFacePose.FV, 1f, 0f)]

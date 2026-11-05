@@ -16,6 +16,7 @@ namespace A305.Characters
         Concerned,
         Sad,
         BigLaugh,
+        Indifferent,
     }
 
     [Serializable]

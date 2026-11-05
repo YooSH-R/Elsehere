@@ -9,9 +9,14 @@ namespace A305.Characters
         private CharacterFaceController face;
         private SpeechExpressionProfile timing;
         private float startedAt;
+        private float previousSeconds = float.NaN;
         public bool Suspended { get; set; }
 
-        private void OnEnable() => startedAt = Time.time;
+        private void OnEnable()
+        {
+            startedAt = Time.time;
+            previousSeconds = float.NaN;
+        }
 
         public void ApplyAtTime(float seconds)
         {
@@ -27,7 +32,17 @@ namespace A305.Characters
                 return;
             if (timing == null)
                 timing = ScriptableObject.CreateInstance<SpeechExpressionProfile>();
-            face.ApplyBlink(timing.Sample(Mathf.Max(0, seconds) % 14f, 15f).Blink);
+            float current = Mathf.Max(0, seconds);
+            float blink = timing.Sample(current % 14f, 15f).Blink;
+            float elapsed = current - previousSeconds;
+            if (elapsed > 0 && elapsed <= .25f)
+            {
+                // 낮은 프레임률에서 30ms의 완전 닫힘 구간을 건너뛰어도 한 프레임은 닫는다.
+                for (float sample = previousSeconds; sample < current; sample += .01f)
+                    blink = Mathf.Max(blink, timing.Sample(sample % 14f, 15f).Blink);
+            }
+            previousSeconds = current;
+            face.ApplyBlink(blink);
         }
 
         private void LateUpdate() => ApplyAtTime(Time.time - startedAt);

@@ -100,8 +100,13 @@ public class ConversationService {
   private final Clock clock;
   private final MissionDialogueService missionDialogueService;
   private final GuestConversationLimit guestConversationLimit;
+  private final DialogueRequestLocks requestLocks;
 
   public ConversationStartResponse start(Long userId, StartConversationRequest request) {
+    return requestLocks.execute(userId, request.requestId(), () -> startOnce(userId, request));
+  }
+
+  private ConversationStartResponse startOnce(Long userId, StartConversationRequest request) {
     // 응답을 받지 못해 같은 요청을 다시 보내면 새로 만들지 않고 처음 시작한 대화를 돌려준다(CONV-03과 같은 방식).
     Optional<ConversationStartResponse> replayed =
         transactionTemplate.execute(status -> replay(userId, request.requestId()));

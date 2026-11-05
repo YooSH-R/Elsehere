@@ -111,8 +111,19 @@ def create_app(
                 ensure_ascii=False,
             )
         )
-        yield
-        await app.state.llm.aclose()
+
+        async def expire_audio():
+            while True:
+                await asyncio.sleep(min(30.0, max(0.01, s.audio_ttl_s)))
+                app.state.audio.expire()
+
+        cleanup = asyncio.create_task(expire_audio())
+        try:
+            yield
+        finally:
+            cleanup.cancel()
+            await asyncio.gather(cleanup, return_exceptions=True)
+            await app.state.llm.aclose()
 
     app = FastAPI(title="AI 워커", version="0.1.0", lifespan=lifespan)
 
@@ -128,6 +139,8 @@ def create_app(
         else:
             resp = await call_next(request)
         resp.headers["X-Request-Id"] = rid
+        if request.url.path == "/health" and resp.status_code == 200:
+            return resp
         log.info(
             json.dumps(
                 {
@@ -330,4 +343,5 @@ def create_app(
 
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 app = create_app()

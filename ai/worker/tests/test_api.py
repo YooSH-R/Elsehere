@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 
 import httpx
 
@@ -51,6 +52,18 @@ def test_token_required_and_health_open(provider):
         r = c.post("/v1/judge", json=judge_body("hi"), headers={"X-Internal-Token": "wrong"})
         assert r.status_code == 401 and r.json()["error"]["code"] == "unauthorized"
         assert c.get("/health", headers={"X-Internal-Token": ""}).json()["ok"] is True
+
+
+def test_successful_health_is_quiet_but_other_requests_are_logged(client, caplog):
+    caplog.set_level(logging.INFO, logger="ai_worker")
+    caplog.clear()
+    assert client.get("/health").status_code == 200
+    assert not [record for record in caplog.records if record.name == "ai_worker"]
+
+    assert client.get("/missing").status_code == 404
+    request_logs = [json.loads(record.message) for record in caplog.records if record.name == "ai_worker"]
+    assert len(request_logs) == 1
+    assert request_logs[0]["path"] == "/missing" and request_logs[0]["status"] == 404
 
 
 def test_request_id_echoed_and_bad_request_format(client):

@@ -160,6 +160,15 @@ class AiWorkerClientTest {
   }
 
   @Test
+  void reply_requestsWholeAudioWithoutChunkStream() {
+    respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");
+
+    client.reply(TRACE, NPC, null, List.of(), "Hello", "", 1, null);
+
+    assertThat(received.get("/v1/npc/reply").body()).contains("\"stream_chunks\":false");
+  }
+
+  @Test
   @DisplayName("대답 상대인 학습자의 닉네임과 캐릭터 기본형을 learner로 보낸다")
   void reply_sendsLearnerNicknameAndAvatarType() {
     respond("/v1/npc/reply", 200, "text/event-stream", "event: done\ndata: {\"text\": \"Hi\"}\n\n");

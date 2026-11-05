@@ -9,56 +9,27 @@ namespace A305.Tripo.Tests
 {
     public sealed class TripoHandTransferTests
     {
-        [Test]
-        public void ReviewedPoliceHandKeepsOriginalSurfaceFaces()
+        [TestCase("BodySurface.asset")]
+        [TestCase("Face/FaceSurface.asset")]
+        [TestCase("Face/Blink/FaceWithBaseEyes.asset")]
+        public void ReviewedPoliceHandUsesMasterSurfaceAndClosedWrists(string relativePath)
         {
-            var source = AssetDatabase.LoadAssetAtPath<GameObject>(
-                "Assets/Art/Characters/Tripo/NPC/LittleMung_Police_Male/LittleMung_Police_Male.fbx"
-            );
-            var original = source.GetComponentInChildren<SkinnedMeshRenderer>();
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 "Assets/Prefabs/Npc/Review/LittleMung_Police_Male.prefab"
             );
-            var candidate = prefab
+            var skin = prefab
                 .GetComponentsInChildren<SkinnedMeshRenderer>()
-                .Single(skin => skin.sharedMesh.vertexCount == original.sharedMesh.vertexCount);
-            var animator = source.GetComponentInChildren<Animator>();
-            var left = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
-            var right = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
-            var weights = original.sharedMesh.boneWeights;
-            bool[] arm = original
-                .bones.Select(b => b.IsChildOf(left) || b.IsChildOf(right))
-                .ToArray();
-            bool Selected(int i)
-            {
-                var w = weights[i];
-                return (arm[w.boneIndex0] ? w.weight0 : 0)
-                        + (arm[w.boneIndex1] ? w.weight1 : 0)
-                        + (arm[w.boneIndex2] ? w.weight2 : 0)
-                        + (arm[w.boneIndex3] ? w.weight3 : 0)
-                    > .5f;
-            }
-            string Key(int[] faces, int i) =>
-                string.Join(",", new[] { faces[i], faces[i + 1], faces[i + 2] }.OrderBy(v => v));
-            var actual = candidate.sharedMesh.triangles;
-            var existing = Enumerable
-                .Range(0, actual.Length / 3)
-                .Select(i => Key(actual, i * 3))
-                .ToHashSet();
-            var expected = original.sharedMesh.triangles;
-            int missing = Enumerable
-                .Range(0, expected.Length / 3)
-                .Count(i =>
-                    Selected(expected[i * 3])
-                    && Selected(expected[i * 3 + 1])
-                    && Selected(expected[i * 3 + 2])
-                    && !existing.Contains(Key(expected, i * 3))
-                );
-            Assert.That(
-                missing,
-                Is.Zero,
-                "Restoring hand positions must also restore faces removed while the old binding was collapsed."
+                .OrderByDescending(s => s.sharedMesh.vertexCount)
+                .First();
+            var report = TripoHandTemplateAudit.Inspect(
+                AssetDatabase.LoadAssetAtPath<GameObject>(TripoMasterRig.MasterPath),
+                skin,
+                AssetDatabase.LoadAssetAtPath<Mesh>(
+                    "Assets/Art/Characters/ReviewCorrections/ServiceNpcs/LittleMung_Police_Male/"
+                        + relativePath
+                )
             );
+            Assert.That(report.Errors, Is.Empty);
         }
 
         [Test]

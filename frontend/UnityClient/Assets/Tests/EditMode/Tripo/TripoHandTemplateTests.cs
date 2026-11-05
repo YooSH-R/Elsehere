@@ -11,6 +11,65 @@ namespace A305.Tripo.Tests
     public sealed class TripoHandTemplateTests
     {
         [Test]
+        public void CurlingFingersDoesNotDeformThePoliceForearms()
+        {
+            var instance = Object.Instantiate(
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/Prefabs/Npc/Review/LittleMung_Police_Male.prefab"
+                )
+            );
+            try
+            {
+                var skin = instance
+                    .GetComponentsInChildren<SkinnedMeshRenderer>()
+                    .OrderByDescending(s => s.sharedMesh.vertexCount)
+                    .First();
+                var points = skin.sharedMesh.vertices;
+                var weights = skin.sharedMesh.boneWeights;
+                var before = SkinTestGeometry.WorldVertices(skin);
+                var forearm = new System.Collections.Generic.HashSet<int>();
+                foreach (string side in new[] { "Left", "Right" })
+                {
+                    int lower = Array.FindIndex(skin.bones, b => b.name == side + "_LowerArm");
+                    int hand = Array.FindIndex(skin.bones, b => b.name == side + "_Hand");
+                    var elbow = skin
+                        .sharedMesh.bindposes[lower]
+                        .inverse.MultiplyPoint3x4(Vector3.zero);
+                    var axis =
+                        skin.sharedMesh.bindposes[hand].inverse.MultiplyPoint3x4(Vector3.zero)
+                        - elbow;
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        float along = Vector3.Dot(points[i] - elbow, axis) / axis.sqrMagnitude;
+                        if (
+                            along > .4f
+                            && along < .95f
+                            && skin.bones[weights[i].boneIndex0].IsChildOf(skin.bones[lower])
+                        )
+                            forearm.Add(i);
+                    }
+                    foreach (
+                        var bone in skin.bones.Where(b =>
+                            b != skin.bones[hand] && b.IsChildOf(skin.bones[hand])
+                        )
+                    )
+                        bone.localRotation *= Quaternion.Euler(25, 10, 0);
+                }
+                Assert.That(forearm.Count, Is.GreaterThan(10));
+                var after = SkinTestGeometry.WorldVertices(skin);
+                Assert.That(
+                    forearm.Max(i => Vector3.Distance(before[i], after[i])),
+                    Is.LessThan(.00001f),
+                    "손가락만 굽혔는데 전완 표면이 움직입니다."
+                );
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance);
+            }
+        }
+
+        [Test]
         public void GeneratedPoliceNeedsMasterHandSurfaceBeforeApproval()
         {
             const string folder = "Assets/__PoliceHandTemplateTest";
@@ -19,10 +78,35 @@ namespace A305.Tripo.Tests
                 "Assets/Art/Characters/Tripo/NPC/LittleMung_Police_Male/LittleMung_Police_Male.fbx"
             );
             Mesh copy = null;
+            Mesh authored = null;
+            GameObject prepared = null;
             try
             {
-                var prepared = TripoMasterRig.Build(source, master, folder);
+                prepared = Object.Instantiate(TripoMasterRig.Build(source, master, folder));
                 var skin = prepared.GetComponentInChildren<SkinnedMeshRenderer>();
+                authored = Object.Instantiate(skin.sharedMesh);
+                skin.sharedMesh = authored;
+                // 몸 메시에도 표정을 저작한 경우, 손 정점 정리로 변형값이 유실되지 않아야 한다.
+                int head = Array.FindIndex(skin.bones, b => b.name == "Head");
+                var weights = authored.boneWeights;
+                var delta = new Vector3[authored.vertexCount];
+                var normals = new Vector3[authored.vertexCount];
+                var tangents = new Vector3[authored.vertexCount];
+                foreach (int i in authored.triangles.Distinct())
+                    if (weights[i].boneIndex0 == head)
+                    {
+                        delta[i] = Vector3.up * .001f;
+                        normals[i] = Vector3.forward * .002f;
+                        tangents[i] = Vector3.right * .001f;
+                    }
+                authored.AddBlendShapeFrame("FacePreservation", 50, delta, normals, tangents);
+                authored.AddBlendShapeFrame(
+                    "FacePreservation",
+                    100,
+                    delta.Select(v => v * 2).ToArray(),
+                    normals,
+                    tangents
+                );
                 copy = Object.Instantiate(skin.sharedMesh);
                 Assert.That(
                     TripoHandTemplateAudit.Inspect(master, skin, copy).Errors,
@@ -30,11 +114,20 @@ namespace A305.Tripo.Tests
                 );
                 TripoHandTemplate.Apply(master, skin, copy);
                 Assert.That(TripoHandTemplateAudit.Inspect(master, skin, copy).Errors, Is.Empty);
+                Assert.That(copy.blendShapeCount, Is.EqualTo(1));
+                Assert.That(copy.GetBlendShapeFrameCount(0), Is.EqualTo(2));
+                Assert.That(copy.GetBlendShapeFrameWeight(0, 0), Is.EqualTo(50));
+                Assert.That(copy.GetBlendShapeFrameWeight(0, 1), Is.EqualTo(100));
+                AssertFaceFrames(skin, copy);
             }
             finally
             {
                 if (copy != null)
                     Object.DestroyImmediate(copy);
+                if (prepared != null)
+                    Object.DestroyImmediate(prepared);
+                if (authored != null)
+                    Object.DestroyImmediate(authored);
                 AssetDatabase.DeleteAsset(folder);
             }
         }

@@ -19,7 +19,8 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `unity:browser-tests` | WebGL 플러그인·Web 템플릿·`infra/tests/webgl_*.test.cjs`·Unity CI 설정 변경, Unity 검사를 선택한 배포 자식 | Node 24에서 브라우저 연동 회귀 검사. Linux Runner를 사용하며 Windows Editor 검사와 별도로 실패를 막습니다. |
 | `unity:editor-tests` | 같은 프로젝트의 Unity 실행 관련 MR. 규약 문서만 바뀐 MR 제외 | Windows Runner에서 컴파일과 [바뀐 영역에 맞는 범위](#unity-테스트-범위)의 EditMode·PlayMode 필수 검사, NUnit XML·로그. WebGL 빌드·서버 배포 없음 |
 | `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 실행 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
-| `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
+| `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드와 프로젝트 내부 임시 패키지 게시, NUnit XML·로그·패키지 식별 파일 |
+| `unity:package-cleanup` | `unity:editor-and-webgl`과 같은 실행 조건, 전달 작업 이후 성공·실패에 관계없이 실행 | 해당 빌드 작업의 임시 WebGL 패키지만 정리 |
 | `ai:check-and-test` | AI, API 명세 또는 공통 CI·작성 지침 변경 | Python 3.12·Ruff 검사, 피드백·워커 테스트, 구문 컴파일, JUnit·소스 아카이브·커밋 식별자 |
 | `ai:panel-tests` | AI 피드백, API 명세 또는 공통 CI·작성 지침 변경 | Node.js 22의 피드백 패널 테스트 |
 | `infra:compose-and-nginx` | 확인용 Compose가 존재하고 관련 설정·공통 CI 변경 | 개발·운영 Compose 해석, 호스트 프록시와 두 환경 응답 템플릿의 Nginx 문법 검사 |

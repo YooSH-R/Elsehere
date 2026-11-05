@@ -16,6 +16,9 @@ namespace A305.Dialogue
         /// <summary>게스트가 더 시작할 수 있는 대화 수. 가입 사용자이거나 아직 모르면 null이다.</summary>
         public int? RemainingConversations { get; private set; }
 
+        /// <summary>게스트가 대화를 모두 썼는지. 가입 사용자이거나 아직 모르면 false다.</summary>
+        public bool IsGuestOutOfConversations => RemainingConversations == 0;
+
         public void Apply(AiStatusData status)
         {
             CanStartConversation = status.Capabilities?.CanStartConversation ?? true;

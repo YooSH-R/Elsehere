@@ -6,6 +6,11 @@ using UnityEngine.SceneManagement;
 
 namespace A305.World
 {
+    public interface IShopStaffPresence
+    {
+        bool ShouldBeAtWork { get; }
+    }
+
     /// <summary>방문한 건물의 실내만 마을에 겹쳐 불러온다. 플레이어·순찰차·시간은 마을에 남는다.</summary>
     public sealed class ShopInterior : MonoBehaviour
     {
@@ -95,7 +100,8 @@ namespace A305.World
                     townParents[i] = npc.transform.parent;
                     npc.transform.SetParent(null, true);
                     SceneManager.MoveGameObjectToScene(npc, room);
-                    npc.SetActive(true);
+                    IShopStaffPresence presence = npc.GetComponent<IShopStaffPresence>();
+                    npc.SetActive(presence == null || presence.ShouldBeAtWork);
                 }
                 current = this;
             }

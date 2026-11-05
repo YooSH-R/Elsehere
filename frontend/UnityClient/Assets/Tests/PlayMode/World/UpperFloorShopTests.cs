@@ -18,6 +18,7 @@ namespace A305.World.PlayModeTests
         [UnitySetUp]
         public IEnumerator LoadTown()
         {
+            TestGameClock.Set(12 * 60 + 15);
             TutorialState.Clear();
             yield return SceneManager.LoadSceneAsync("TownScene");
             TutorialState.GetOrCreate("TOWN_PASSERBY").Skip();
@@ -37,6 +38,7 @@ namespace A305.World.PlayModeTests
                     yield return SetOccupied(room, false);
             }
             TutorialState.Clear();
+            TestGameClock.Restore();
         }
 
         [UnityTest]

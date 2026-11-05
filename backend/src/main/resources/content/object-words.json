@@ -211,9 +211,9 @@
             "key": "cornice",
             "languageCode": "en-US",
             "text": "cornice",
-            "meaningKo": "처마 장식",
+            "meaningKo": "벽 상단 장식",
             "example": "The cornice runs along the top of the wall.",
-            "exampleKo": "처마 장식이 벽의 윗부분을 따라 이어져요.",
+            "exampleKo": "벽 상단 장식이 벽의 윗부분을 따라 이어져요.",
             "pronunciationAudioKey": ""
         },
         {
@@ -228,11 +228,11 @@
         {
             "key": "crate",
             "languageCode": "en-US",
-            "text": "crate",
-            "meaningKo": "나무 상자",
-            "example": "The apples are in a crate.",
-            "exampleKo": "사과가 나무 상자 안에 있어요.",
-            "pronunciationAudioKey": ""
+            "text": "box",
+            "meaningKo": "상자",
+            "example": "The apples are in a box.",
+            "exampleKo": "사과가 상자 안에 있어요.",
+            "pronunciationAudioKey": "box.wav"
         },
         {
             "key": "croissant",
@@ -318,11 +318,11 @@
         {
             "key": "duvet",
             "languageCode": "en-US",
-            "text": "duvet",
+            "text": "comforter",
             "meaningKo": "이불",
-            "example": "Pull the duvet over you.",
-            "exampleKo": "이불을 덮으세요.",
-            "pronunciationAudioKey": ""
+            "example": "This comforter is warm.",
+            "exampleKo": "이 이불은 따뜻해요.",
+            "pronunciationAudioKey": "comforter.wav"
         },
         {
             "key": "elevator",
@@ -480,11 +480,11 @@
         {
             "key": "kettle",
             "languageCode": "en-US",
-            "text": "kettle",
-            "meaningKo": "주전자",
-            "example": "Fill the kettle with water.",
-            "exampleKo": "주전자에 물을 채우세요.",
-            "pronunciationAudioKey": ""
+            "text": "teapot",
+            "meaningKo": "찻주전자",
+            "example": "Pour the tea from the teapot.",
+            "exampleKo": "찻주전자에서 차를 따라 주세요.",
+            "pronunciationAudioKey": "teapot.wav"
         },
         {
             "key": "key",
@@ -597,11 +597,11 @@
         {
             "key": "pastry_stand",
             "languageCode": "en-US",
-            "text": "pastry stand",
-            "meaningKo": "제과 진열대",
-            "example": "The muffins are on the pastry stand.",
-            "exampleKo": "머핀은 제과 진열대에 있어요.",
-            "pronunciationAudioKey": ""
+            "text": "cake stand",
+            "meaningKo": "케이크 받침대",
+            "example": "The cake is on the cake stand.",
+            "exampleKo": "케이크가 케이크 받침대 위에 있어요.",
+            "pronunciationAudioKey": "cake_stand.wav"
         },
         {
             "key": "picture",
@@ -678,11 +678,11 @@
         {
             "key": "reception_desk",
             "languageCode": "en-US",
-            "text": "reception desk",
-            "meaningKo": "안내 데스크",
-            "example": "Please check in at the reception desk.",
-            "exampleKo": "안내 데스크에서 체크인해 주세요.",
-            "pronunciationAudioKey": ""
+            "text": "front desk",
+            "meaningKo": "프런트 데스크",
+            "example": "Please check in at the front desk.",
+            "exampleKo": "프런트 데스크에서 체크인해 주세요.",
+            "pronunciationAudioKey": "front_desk.wav"
         },
         {
             "key": "refrigerator",
@@ -732,11 +732,11 @@
         {
             "key": "shop",
             "languageCode": "en-US",
-            "text": "shop",
+            "text": "store",
             "meaningKo": "가게",
-            "example": "The shop opens at nine.",
+            "example": "The store opens at nine.",
             "exampleKo": "그 가게는 아홉 시에 문을 열어요.",
-            "pronunciationAudioKey": ""
+            "pronunciationAudioKey": "store.wav"
         },
         {
             "key": "shutter",
@@ -831,11 +831,11 @@
         {
             "key": "takeaway_cup",
             "languageCode": "en-US",
-            "text": "takeaway cup",
-            "meaningKo": "포장용 컵",
-            "example": "Could I have a takeaway cup?",
-            "exampleKo": "포장용 컵을 받을 수 있을까요?",
-            "pronunciationAudioKey": ""
+            "text": "to-go cup",
+            "meaningKo": "테이크아웃 컵",
+            "example": "Can I get a to-go cup?",
+            "exampleKo": "테이크아웃 컵을 받을 수 있을까요?",
+            "pronunciationAudioKey": "to_go_cup.wav"
         },
         {
             "key": "trash_can",
@@ -930,11 +930,11 @@
         {
             "key": "word_0a8bd7882c5b7b04e84b90f02a9345c1",
             "languageCode": "en-US",
-            "text": "game console",
-            "meaningKo": "게임기",
-            "example": "Where is the game console?",
-            "exampleKo": "게임기는 어디에 있나요?",
-            "pronunciationAudioKey": ""
+            "text": "arcade game",
+            "meaningKo": "오락실 게임기",
+            "example": "Let's play an arcade game.",
+            "exampleKo": "오락실 게임을 해 봐요.",
+            "pronunciationAudioKey": "arcade_game.wav"
         },
         {
             "key": "word_18c339143c3bc8948a2616297703684c",
@@ -984,11 +984,11 @@
         {
             "key": "word_3f1b31e72fbacea48bed046e884e6255",
             "languageCode": "en-US",
-            "text": "parasol",
-            "meaningKo": "파라솔",
-            "example": "Let's sit under the parasol.",
-            "exampleKo": "파라솔 아래에 앉아요.",
-            "pronunciationAudioKey": ""
+            "text": "patio umbrella",
+            "meaningKo": "야외 파라솔",
+            "example": "Let's sit under the patio umbrella.",
+            "exampleKo": "야외 파라솔 아래에 앉아요.",
+            "pronunciationAudioKey": "patio_umbrella.wav"
         },
         {
             "key": "word_3fc84a99d1f166d49a24ed5d59f38a89",

@@ -23,6 +23,9 @@ namespace A305.Npc.PlayModeTests
         private const string BenCode = "TOWN_PASSERBY";
         private const float WaitTimeoutSeconds = 15f;
 
+        [TearDown]
+        public void RestoreClock() => NpcTestClock.Restore();
+
         [SetUp]
         public void SetUp()
         {
@@ -250,12 +253,36 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator OfferAppears_WhenGameRunsSlowly()
+        {
+            float previousTimeScale = Time.timeScale;
+            try
+            {
+                Time.timeScale = .05f;
+                var approach = new PasserbyApproach(new PasserbyRules(6f, 2f, 6f, 60f, true));
+                float distance = 3.5f;
+                yield return WaitUntil(() =>
+                {
+                    distance -= 1.6f * Time.deltaTime;
+                    approach.Tick(Time.realtimeSinceStartupAsDouble, distance, false);
+                    return approach.Phase == PasserbyPhase.Offering;
+                });
+
+                Assert.That(approach.Phase, Is.EqualTo(PasserbyPhase.Offering));
+            }
+            finally
+            {
+                Time.timeScale = previousTimeScale;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator AcceptingOffer_EntersDialogueView_AndEndingRestoresControl()
         {
             // 튜토리얼 중에는 길 안내를 마칠 때까지 Ben 앞에 붙잡아 두므로, 평소 행인으로 확인한다.
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
+            yield return WaitUntil(() => offer.IsShowing, DescribeBenOfferWait);
 
             Click(offer, "AcceptButton");
             yield return null;
@@ -347,7 +374,7 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTownWithPlayerNearBen(afterTutorial: true);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
-            yield return WaitUntil(() => offer.IsShowing);
+            yield return WaitUntil(() => offer.IsShowing, DescribeBenOfferWait);
             Passerby passerby = FindPasserby(BenCode);
 
             PlayerMover player = Single<PlayerMover>();
@@ -494,6 +521,7 @@ namespace A305.Npc.PlayModeTests
         /// </summary>
         private static IEnumerator LoadTownAfterTutorial()
         {
+            NpcTestClock.SetDaytime();
             TutorialState.MarkFinishedOnServer();
             yield return LoadTown();
         }
@@ -519,15 +547,34 @@ namespace A305.Npc.PlayModeTests
             yield return null;
         }
 
+        private static string DescribeBenOfferWait()
+        {
+            Passerby ben = Object
+                .FindObjectsByType<Passerby>(FindObjectsSortMode.None)
+                .FirstOrDefault(npc => npc.GetComponent<NpcIdentity>().Code == BenCode);
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            if (ben == null || player == null)
+            {
+                return $"씬={SceneManager.GetActiveScene().name}, Ben 또는 플레이어가 없습니다.";
+            }
+
+            return $"씬={SceneManager.GetActiveScene().name}, Ben 상태={ben.Phase}, "
+                + $"거리={HorizontalDistance(ben.transform, player.transform)}, "
+                + $"이동 잠금={player.IsMovementLocked}, 접근 허용={ben.IsApproachAllowed}, "
+                + $"오늘 제안 기록={PasserbyOfferRecord.HasOfferedOn(BenCode, System.DateTime.Today)}";
+        }
+
         private static IEnumerator WaitUntil(
             System.Func<bool> condition,
             System.Func<string> diagnostics = null
         )
         {
-            float deadline = Time.realtimeSinceStartup + WaitTimeoutSeconds;
+            float gameDeadline = Time.time + WaitTimeoutSeconds;
+            // 느린 프레임에서는 NPC 이동 시간이 덜 흐른다. 게임이 멈춘 경우도 끝나도록 실제 시간 상한을 둔다.
+            float realDeadline = Time.realtimeSinceStartup + WaitTimeoutSeconds * 6f;
             while (!condition())
             {
-                if (Time.realtimeSinceStartup > deadline)
+                if (Time.time > gameDeadline || Time.realtimeSinceStartup > realDeadline)
                 {
                     Assert.Fail($"기다리는 상태가 되지 않았습니다. {diagnostics?.Invoke()}");
                 }

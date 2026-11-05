@@ -15,9 +15,9 @@ MonoBehaviour:
   details:
     key: crate
     languageCode: en-US
-    text: crate
-    meaningKo: "\uB098\uBB34 \uC0C1\uC790"
-    example: The apples are in a crate.
-    exampleKo: "\uC0AC\uACFC\uAC00 \uB098\uBB34 \uC0C1\uC790 \uC548\uC5D0 \uC788\uC5B4\uC694."
-    pronunciationAudioKey: 
+    text: box
+    meaningKo: "\uC0C1\uC790"
+    example: The apples are in a box.
+    exampleKo: "\uC0AC\uACFC\uAC00 \uC0C1\uC790 \uC548\uC5D0 \uC788\uC5B4\uC694."
+    pronunciationAudioKey: box.wav
   assetGuid: 737d2a04bf2e29c48bd02fae5451a0f6

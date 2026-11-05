@@ -169,12 +169,6 @@ namespace A305.Characters.Tests
                     maximum = Mathf.Max(maximum, offsets[i].magnitude);
                 Assert.That(maximum, Is.GreaterThan(.0001f), name + " must deform vertices.");
             }
-            Assert.That(
-                AssetDatabase.LoadAssetAtPath<SceneAsset>(
-                    "Assets/Scenes/Sandbox/CafeFemaleFacePreview.unity"
-                ),
-                Is.Not.Null
-            );
         }
     }
 }

@@ -77,6 +77,61 @@ namespace A305.EditorTools.World
             Debug.Log("Maple House saved with HOTEL_STAFF and original town doorway.");
         }
 
+        [MenuItem("Tools/A305/Hotel/Widen Lounge Aisles")]
+        public static void WidenLoungeAisles()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+
+            string loungePath = HotelInteriorKit.Folder + "/LoungeSet.prefab";
+            if (
+                !BuilderTools.UpdatePrefabIfExists(
+                    loungePath,
+                    lounge => MoveLoungeTable(lounge.transform)
+                )
+            )
+                throw new InvalidOperationException(
+                    "호텔 대기 좌석 프리팹이 없습니다: " + loungePath
+                );
+
+            foreach (string path in new[] { ScenePath, SandboxPath })
+            {
+                Scene scene = EditorSceneManager.OpenScene(path);
+                foreach (
+                    Transform lounge in BuilderTools
+                        .FindAllInScene<Transform>(scene)
+                        .Where(item => item.name == "LoungeSet")
+                )
+                {
+                    // 씬에서 탁자 위치를 따로 조절했더라도 통로가 좁아지지 않게 한다.
+                    MoveLoungeTable(lounge);
+                }
+
+                if (BuilderTools.FindAllInScene<NpcWalkArea>(scene).Length > 0)
+                    NpcLifeBuilder.RebakeWalkArea(scene);
+                BuilderTools.SaveScene(scene, path);
+            }
+
+            AssetDatabase.SaveAssets();
+            Unity.CodeEditor.CodeEditor.CurrentEditor.SyncAll();
+            Debug.Log("호텔 소파 앞 통로를 넓히고 NPC 이동 경로를 갱신했습니다.");
+        }
+
+        private static void MoveLoungeTable(Transform lounge)
+        {
+            Transform table = lounge.Find("CoffeeTable");
+            if (table == null)
+                throw new InvalidOperationException("호텔 대기 좌석에 CoffeeTable이 없습니다.");
+
+            Vector3 position = table.localPosition;
+            if (position.z >= LoungeTableForwardMeters)
+                return;
+
+            position.z = LoungeTableForwardMeters;
+            table.localPosition = position;
+            PrefabUtility.RecordPrefabInstancePropertyModifications(table);
+        }
+
         private static void PlaceStaff(Scene scene)
         {
             if (BuilderTools.FindAllInScene<NpcIdentity>(scene).Any(npc => npc.Code == StaffCode))

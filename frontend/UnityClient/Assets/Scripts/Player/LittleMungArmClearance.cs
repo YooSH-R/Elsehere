@@ -19,6 +19,9 @@ namespace A305.Player
         private readonly Transform[] hands = new Transform[2];
         private SkinnedVertexSamples[] handSurface;
         private SkinnedVertexSamples[] forearmSurface;
+        private SkinnedVertexSamples contactHead,
+            contactTorso;
+        private readonly SkinnedVertexSamples[] contactArms = new SkinnedVertexSamples[2];
 
         private void Awake() => Initialize(GetComponentInParent<CharacterController>());
 
@@ -44,6 +47,8 @@ namespace A305.Player
             }
             head = new SkinnedVertexSamples(animator, headNames.Contains);
             torso = new SkinnedVertexSamples(animator, torsoNames.Contains);
+            contactHead = new SkinnedVertexSamples(animator, headNames.Contains, .75f);
+            contactTorso = new SkinnedVertexSamples(animator, torsoNames.Contains, .75f);
             upper[0] = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
             upper[1] = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
             lower[0] = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
@@ -60,6 +65,11 @@ namespace A305.Player
                 forearmSurface[side] = new SkinnedVertexSamples(
                     animator,
                     name => name == lowerName
+                );
+                contactArms[side] = new SkinnedVertexSamples(
+                    animator,
+                    name => handNames.Contains(name) || name == lowerName,
+                    .75f
                 );
             }
         }
@@ -110,6 +120,53 @@ namespace A305.Player
                     upper[side].rotation =
                         Quaternion.FromToRotation(reach, target) * upper[side].rotation;
                 }
+                RefineContact(side);
+            }
+        }
+
+        private void RefineContact(int side)
+        {
+            float Clearance() =>
+                contactArms[side]
+                    .ClearanceFrom(
+                        contactHead.BoundsIn(space),
+                        contactTorso.BoundsIn(space),
+                        space
+                    );
+            float clearance = Clearance();
+            // 중심점 보정 뒤 소매 끝·팔꿈치가 남은 경우에만 실제 표면을 확인한다.
+            for (int iteration = 0; iteration < 12 && clearance < .93f; iteration++)
+            {
+                Transform bestJoint = null;
+                Quaternion bestRotation = default;
+                float best = clearance;
+                for (int jointIndex = 0; jointIndex < 2; jointIndex++)
+                {
+                    Transform joint = jointIndex == 0 ? upper[side] : lower[side];
+                    Quaternion original = joint.rotation;
+                    for (int axis = 0; axis < 3; axis++)
+                    for (int direction = -1; direction <= 1; direction += 2)
+                    {
+                        var worldAxis = space.TransformDirection(
+                            axis == 0 ? Vector3.right
+                            : axis == 1 ? Vector3.up
+                            : Vector3.forward
+                        );
+                        joint.rotation = Quaternion.AngleAxis(direction * 3f, worldAxis) * original;
+                        float candidate = Clearance();
+                        if (candidate > best + .0001f)
+                        {
+                            best = candidate;
+                            bestJoint = joint;
+                            bestRotation = joint.rotation;
+                        }
+                    }
+                    joint.rotation = original;
+                }
+                if (bestJoint == null)
+                    break;
+                bestJoint.rotation = bestRotation;
+                clearance = best;
             }
         }
 

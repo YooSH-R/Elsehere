@@ -544,6 +544,22 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("기억 카드 응답의 좋은 대화 호감 변화량을 읽고, 칸이 없으면(이전 워커) null이다")
+  void memoryCard_readsAffinityDelta() {
+    respond(
+        "/v1/memory",
+        200,
+        "application/json",
+        "{\"memory_card\": {\"name\": \"Sun\"}, \"impression\": \"good\", \"affinity_delta\": 3,"
+            + " \"usage\": []}");
+    assertThat(client.memoryCard(TRACE, NPC, "outcome", List.of(), null).affinityDelta())
+        .isEqualTo(3);
+
+    respond("/v1/memory", 200, "application/json", "{\"memory_card\": {}, \"usage\": []}");
+    assertThat(client.memoryCard(TRACE, NPC, "outcome", List.of(), null).affinityDelta()).isNull();
+  }
+
+  @Test
   @DisplayName("기억 카드가 객체가 아니면 AI_RESPONSE_INVALID, 워커 오류면 오류 코드로 던진다")
   void memoryCard_invalidOrError_throws() {
     respond("/v1/memory", 200, "application/json", "{\"memory_card\": null, \"usage\": []}");

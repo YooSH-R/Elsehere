@@ -52,6 +52,8 @@ Unity 1 unit = 1m이다. 남쪽이 입구, 북쪽이 주문대와 커피 준비�
 
 **Tools → A305 → Cafe → Connect Barista Character**는 `CafeScene`과 `CafeInteriorSandbox`의 직원에 바리스타 캐릭터를 연결한다. 이전 도형 외형이 있으면 지우고, 직원 위치·대화·미션 연결·시선 대상·충돌 캡슐은 유지한다. 바리스타는 플레이어와 같은 이동 Animator와 접지·팔 관통 보정을 쓰며, 원본 FBX·메시·머티리얼·텍스처는 `Art/Npc/Barista/`에 둔다.
 
+교대를 나눠 맡는 다른 직원(Zoe·Leo)은 **Tools → A305 → Npc → Build Cast**가 주문대 양 끝의 손님 쪽 모서리에 둔다. Zoe는 Mia와 같은 바리스타 대화 외형에 배색만 바꾸고, Leo는 청년 외형을 쓴다. 근무 중인 직원 중 주문대에 가장 가까운 사람이 응대한다([Npc 모듈](../../frontend/UnityClient/Assets/Scripts/Npc/README.md#일터와-응대)).
+
 ## 조명과 편집
 
 방향광 1개, 실내 보조광 1개, 펜던트 Point Light 4개를 사용한다. 천장·창 유리는 방향광 그림자를 만들지 않는 스타일 조명이며, 베이크한 전역 조명은 아니다. 창은 불투명한 청록색 유리 표현이며 실제 마을 조망은 연결하지 않았다. 이 값은 낮 기준이며, `Lighting/InteriorDaylight`가 게임 시각에 맞춰 밤에는 불을 켠 방처럼 방향광을 조금 약한 실내등 색으로 바꾸고 보조광(`CafeBounce`)·환경광을 조금 줄이며 펜던트를 밝히고 창 유리(`DaylightGlass`)를 밤하늘 색으로 칠한다([Weather 모듈의 밤낮](../../frontend/UnityClient/Assets/Scripts/Weather/README.md#밤낮)).

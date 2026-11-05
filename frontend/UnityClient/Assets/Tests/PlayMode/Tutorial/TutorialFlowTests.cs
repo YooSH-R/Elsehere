@@ -529,6 +529,81 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator BenDialogue_WhileRecording_ExplainsTheVoiceLightInASecondBubbleBesideIt()
+        {
+            // 할 대사를 알리는 동안 [말하기]로 녹음해 불이 켜지면, 할 대사 말풍선은 그대로 두고
+            // 같은 모양의 말풍선을 불 옆에 하나 더 띄워 불이 무슨 뜻인지 알린다. 녹음이 끝나면 사라진다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            CoachMarkView coachMark = Single<CoachMarkView>();
+            yield return FinishTour(coachMark);
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"), "준비: 할 대사 안내");
+            Assert.That(coachMark.NoteText, Is.Null, "녹음 전에는 불 설명이 없습니다.");
+
+            // 마이크 없이 녹음 표시만 켜려고, 매 프레임 실제 녹음 상태로 버튼을 다시 그리는 대화 처리를 멈춘다.
+            Single<DialogueController>().enabled = false;
+            panel.ShowVoiceInput(isRecording: true, isHearingVoice: true);
+            yield return null;
+            yield return null;
+
+            Assert.That(coachMark.NoteText, Is.Not.Null, "녹음하면 불 설명이 뜹니다.");
+            Assert.That(coachMark.NoteText, Does.Contain("초록불"));
+            Assert.That(
+                coachMark.CaptionText,
+                Does.Contain("정해진 흐름"),
+                "할 대사 말풍선은 그대로"
+            );
+            Rect note = coachMark.NoteRect;
+            Rect light = coachMark.NoteTargetRect;
+            Assert.That(note.Overlaps(light), Is.False, "불을 가리지 않고 옆에 둡니다.");
+            Assert.That(
+                note.xMin >= light.xMax || note.yMin >= light.yMax,
+                Is.True,
+                "불 왼쪽의 [종료]·[보내기]·입력칸을 가리지 않게 오른쪽이나 위에 둡니다."
+            );
+            Assert.That(
+                note.Overlaps(coachMark.CaptionRect),
+                Is.False,
+                "두 말풍선이 겹치지 않습니다."
+            );
+            Assert.That(
+                IsOnEdge(coachMark.NoteTail, note),
+                Is.True,
+                "꼬리는 말풍선 가장자리에 붙습니다."
+            );
+            Assert.That(
+                Vector2.Distance(coachMark.NoteTail, light.center),
+                Is.LessThan(Vector2.Distance(note.center, light.center)),
+                "꼬리는 불을 향한 쪽에 있습니다."
+            );
+            Image noteImage = coachMark
+                .GetComponentsInChildren<Image>()
+                .Single(image => image.name == "Note");
+            Image captionImage = coachMark
+                .GetComponentsInChildren<Image>()
+                .Single(image => image.name == "Caption");
+            Assert.That(noteImage.sprite, Is.EqualTo(captionImage.sprite), "같은 모양의 말풍선");
+            Assert.That(noteImage.color, Is.EqualTo(captionImage.color));
+            Assert.That(
+                noteImage.GetComponentsInChildren<Button>().Any(),
+                Is.False,
+                "불 설명에는 [다음]이 없습니다."
+            );
+
+            panel.ShowVoiceInput(isRecording: false, isHearingVoice: false);
+            yield return null;
+            yield return null;
+            Assert.That(coachMark.NoteText, Is.Null, "녹음이 끝나면 사라집니다.");
+            Assert.That(coachMark.CaptionText, Does.Contain("정해진 흐름"));
+        }
+
+        [UnityTest]
         public IEnumerator BenDialogue_TheEndButtonStaysLocked_UntilTheGuideIsDone()
         {
             // 튜토리얼 길 안내는 정해진 흐름이라 대사를 다 마치기 전에는 [대화 종료]·Esc로 끝낼 수 없다.
@@ -611,10 +686,38 @@ namespace A305.Tutorial.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator BenDialogue_SpeaksHisLinesInBensVoice()
+        {
+            // 길 안내는 정해진 대본이라 서버가 만드는 NPC 음성을 받지 않는다. 첫 말과 대답마다 미리 합성한 Ben 목소리를 들려준다.
+            yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
+            yield return null;
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShowing);
+            DialogueServerLink voice = Single<DialogueServerLink>();
+            Assert.That(voice.HasSpeech, Is.False, "준비: 대화 전에는 음성이 없습니다.");
+
+            Click(offer, "AcceptButton");
+            yield return null;
+            yield return null;
+            Assert.That(voice.HasSpeech, Is.True, "Ben의 첫 말을 들려줍니다.");
+
+            yield return FinishTour(Single<CoachMarkView>());
+            DialoguePanelView panel = Single<DialoguePanelView>();
+            DialogueController dialogue = Single<DialogueController>();
+            while (!dialogue.IsGuidedCompleted)
+            {
+                Click(panel, "ExampleButton");
+                Click(panel, "SendButton");
+                yield return null;
+                Assert.That(voice.HasSpeech, Is.True, "Ben의 대답을 들려줍니다.");
+            }
+        }
+
+        [UnityTest]
         public IEnumerator BenFeedback_TeachesTheNoteStepByStep_ThenHighlightsTheCloseButton()
         {
             // 길 안내를 마치고 [대화 종료]를 누르면 대화 노트도 탭 → 쪽 넘기기를 하나씩 밝혀 [다음]으로 넘기고,
-            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 화살표 줄만 밝힌다.
+            // 마지막에 오른쪽 위 X를 밝혀 닫으면 오늘의 목표로 넘어간다. 탭을 밝힐 때는 눌러서 바뀌는 결과 칸도 함께 밝히고, 쪽 넘기기는 "이 상황에서 자주 써요" 제목 옆 쪽 넘김만 밝힌다.
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -647,10 +750,20 @@ namespace A305.Tutorial.PlayModeTests
                 Is.False,
                 "[건너뛰기] 카드가 대화 노트 창을 덮습니다."
             );
+            // 요약 탭은 이 상황에서 자주 쓰는 표현 칸 아래 따뜻한 칸에 대화 요약을 보인다.
+            // 표현 칸이 자리를 다 차지해 요약이 한 줄도 들어가지 않으면 빈 칸만 남는다.
+            TMP_Text summary = feedback
+                .PageCardRect.GetComponentsInChildren<TMP_Text>()
+                .Single(text => text.text.Contains("이야기를 나눴어요"));
+            Assert.That(
+                summary.rectTransform.rect.height,
+                Is.GreaterThanOrEqualTo(summary.GetPreferredValues("가").y),
+                "대화 요약이 들어갈 자리가 없습니다."
+            );
             RectTransform[][] tour =
             {
                 new[] { feedback.SectionRowRect, feedback.PageCardRect },
-                new[] { feedback.NavigationRowRect },
+                new[] { feedback.SituationPagerRect },
             };
             foreach (RectTransform[] targets in tour)
             {
@@ -724,6 +837,21 @@ namespace A305.Tutorial.PlayModeTests
                 .GetComponentsInChildren<Button>()
                 .Single(button => button.name == "NextButton")
                 .onClick.Invoke();
+        }
+
+        // 꼬리 중심이 말풍선 네 변 중 하나 위에 있는지
+        private static bool IsOnEdge(Vector2 point, Rect rect)
+        {
+            const float tolerance = 1f;
+            bool withinX = point.x >= rect.xMin - tolerance && point.x <= rect.xMax + tolerance;
+            bool withinY = point.y >= rect.yMin - tolerance && point.y <= rect.yMax + tolerance;
+            bool onSide =
+                Mathf.Abs(point.x - rect.xMin) <= tolerance
+                || Mathf.Abs(point.x - rect.xMax) <= tolerance;
+            bool onTopOrBottom =
+                Mathf.Abs(point.y - rect.yMin) <= tolerance
+                || Mathf.Abs(point.y - rect.yMax) <= tolerance;
+            return (onSide && withinY) || (onTopOrBottom && withinX);
         }
 
         private static Passerby FindBen()

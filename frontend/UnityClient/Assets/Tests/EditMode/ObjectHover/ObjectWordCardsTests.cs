@@ -13,6 +13,26 @@ namespace A305.ObjectHover.Tests
             api = new FakeObjectWordApi();
         }
 
+        [TearDown]
+        public void ForgetLearnedWords() => ObjectWordCards.ShareLearnedWords(new string[0]);
+
+        // 단어장에서 외웠어요로 표시한 단어는 숨긴 단어처럼 호버로 카드를 띄우지 않는다. [다시 학습]하면 다시 띄운다.
+        [Test]
+        public async Task LearnedWord_DoesNotPopUpOnHover_UntilRelearned()
+        {
+            api.AddWord("sofa").AddWord("tv");
+            ObjectWordCards cards = await api.LoadCardsAsync();
+
+            ObjectWordCards.ShareLearnedWords(new[] { "Sofa" });
+
+            Assert.That(cards.CanHover("sofa"), Is.False);
+            Assert.That(cards.CanHover("tv"), Is.True);
+
+            ObjectWordCards.ShareLearnedWords(new string[0]);
+
+            Assert.That(cards.CanHover("sofa"), Is.True);
+        }
+
         [Test]
         public async Task Load_KeepsEachWordStateByWordKey()
         {

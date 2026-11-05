@@ -20,7 +20,7 @@ MVP 와이어프레임(화면 01~19)의 화면 요소와 사용자 동작을 서
 
 - 소셜 로그인 또는 게스트로 시작하기(AUTH-07)로 사용자를 식별합니다(`users.provider`, `users.provider_uid`). 소셜 로그인 제공자는 Google 하나이며, 경로의 `{provider}`는 `google`입니다. 게스트는 `provider`가 `GUEST`입니다.
 - 로그인 상태는 서버 세션에 두고 HttpOnly 세션 쿠키로 유지합니다. nginx로 Unity Web 빌드와 API를 같은 출처에서 제공하며, 세션 쿠키는 `SameSite=Lax`입니다.
-- 세션은 요청이 24시간 없으면 끝나고, 쿠키도 24시간 유지돼 브라우저를 닫았다 열어도 이어집니다. 게스트(AUTH-07)는 2시간입니다. 서버를 다시 시작(배포)하면 로그인이 풀립니다. 끝난 뒤의 요청은 `401 UNAUTHENTICATED`입니다.
+- 세션은 요청이 24시간 없으면 끝나고, 쿠키도 24시간 유지돼 브라우저를 닫았다 열어도 이어집니다. 게스트(AUTH-07)는 2시간이며, 가입해 회원이 되면(AUTH-04) 24시간입니다. 서버를 다시 시작(배포)하면 로그인이 풀립니다. 끝난 뒤의 요청은 `401 UNAUTHENTICATED`입니다.
 - 요청 위조를 막기 위해 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)에는 `X-Requested-With` 헤더를 붙입니다. 값은 자유이며, 헤더가 없으면 `403 CSRF_HEADER_REQUIRED`입니다.
 - 개발 환경(local 프로필)에서는 소셜 로그인 없이 `POST /api/v1/dev/login`에 `{ "userId": 1 }`을 보내 그 사용자로 로그인할 수 있습니다. 다른 환경에는 이 API가 없습니다.
 - 처음 로그인한 사용자는 가입 정보(닉네임, 캐릭터, 약관)를 제출해야 사용자 계정이 만들어집니다. 그 전까지는 가입 관련 API와 BOOT-01만 호출할 수 있고, 나머지는 `403 SIGNUP_REQUIRED`입니다.
@@ -129,10 +129,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | 01 사이트 접속 | 접속 직후 로그인·가입·초기 설정 상태로 다음 화면 결정 | BOOT-01 |
 | | [시작하기], [로그인] | AUTH-01 |
 | | [게스트로 시작하기] → 캐릭터 기본형(F/M) 선택 → [시작하기]. 02~05를 거치지 않고 튜토리얼로 갑니다. 선택 화면에 대화할 수 있는 횟수를 보여 줍니다. | AUTH-08, AUTH-07 |
+| | 게스트 세션이 남은 채 다시 접속(`user.guest: true`)하면 마지막 장소로 가기 전에 [Google로 가입하고 이어 하기]·[게스트로 계속하기]를 고르게 합니다. | BOOT-01, AUTH-01 |
+| | 게스트 세션에서 이미 가입한 Google 계정으로 로그인해 돌아오면(`?existingAccount=true`) 게스트 기록을 합치지 않고 그 계정으로 들어왔다고 알립니다. | AUTH-02 |
 | 02 회원가입·로그인 | [Google로 계속하기] | AUTH-01, AUTH-02 |
-| | 처음 가입: 약관 목록·버전 | AUTH-03 |
-| | 닉네임 [중복 확인] | AUTH-06 |
-| | 닉네임, 캐릭터 기본형(F/M), 약관 동의 → [계속하기] | AUTH-04 |
+| | 처음 가입 1단계(약관 동의): 약관 목록·버전, [전체 동의], 필수 약관에 모두 동의하면 [다음]. 화면 안에서만 다음 단계로 넘어가고 서버를 부르지 않습니다. | AUTH-03 |
+| | 처음 가입 2단계(가입 정보): 닉네임 [중복 확인] | AUTH-06 |
+| | 2단계: 닉네임, 캐릭터 기본형(F/M) → [가입하기]. 1단계에서 고른 동의를 함께 보냅니다. [뒤로]는 동의를 유지한 채 1단계로 돌아갑니다. | AUTH-04 |
+| | 게스트가 가입: 캐릭터는 게스트 때 것을 쓰므로 고르지 않고 닉네임·약관만 받은 뒤, 03~05 없이 게스트 때 단계(튜토리얼·마지막 장소)로 갑니다. | AUTH-03, AUTH-04 |
 | 03 배울 언어 선택 | 언어 카드(선택 가능·준비 중) | ONB-01 |
 | | [다음] | ONB-02 |
 | 04 레벨 테스트 | 첫 화면 [레벨 테스트 진행하기] (MVP는 클라이언트에서 비활성) | ONB-03 |
@@ -174,6 +177,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | | 건물 안 NPC 이름표 | WORLD-02 |
 | | [E 대화하기] | CONV-01(`initiatedBy: USER`) |
 | | 튜토리얼 뒤 거리 행인의 말걸기 → [대화하기] / [지금은 괜찮아요] | CONV-01(`initiatedBy: NPC`) / 없음 |
+| | 왼쪽 기다림 카드: NPC가 건네기로 한 것의 남은 시간, 준비 알림, X로 닫기 | CONV-08 응답 `followUp`, CONV-13(새로고침·씬 이동 뒤), CONV-14(닫기) |
+| | 준비되면 그 NPC가 부름 → [대화하기] | CONV-01(`initiatedBy: NPC`, 응답 `deliveredFollowUpId`) |
 | 15 NPC AI 자유 대화 | 대화 기록(텍스트) | CONV-01, CONV-03 응답(새로고침 후에는 CONV-11) |
 | | 녹음 → 전사 확인 → [다시 녹음] / [보내기] | CONV-02, CONV-03 |
 | | 마이크를 쓸 수 없을 때 [텍스트로 입력] | CONV-03 |
@@ -248,6 +253,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 | CONV-10 | `GET /api/v1/conversations/{conversationId}` | 대화 상세(턴 포함) | - | 16, 18 |
 | CONV-11 | `GET /api/v1/conversations/active` | 진행 중인 대화 조회 | - | 15 |
 | CONV-12 | `POST /api/v1/turns/{turnId}/suggest-words` | NPC 대사에 대답할 추천 단어 | LLM | 15 |
+| CONV-13 | `GET /api/v1/follow-ups` | NPC가 곧 건네기로 했는데 아직 받지 않은 것 | - | 14 |
+| CONV-14 | `POST /api/v1/follow-ups/{followUpId}/dismiss` | 기다림 카드 닫기 | - | 14 |
 | FB-01 | `GET /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백·상세 평가 조회 | - | 16, 17 |
 | FB-02 | `POST /api/v1/conversations/{conversationId}/feedback` | 짧은 피드백 다시 만들기 | LLM | 16 |
 | FB-03 | `POST /api/v1/conversations/{conversationId}/detailed-feedback` | 상세 평가 조회(종료 때 만든 평가) | - | 16, 17 |
@@ -316,6 +323,10 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - AUTH-02 `GET /api/v1/auth/callback/google`은 Google이 인증을 마치고 돌려보내는 주소입니다. Google 콘솔의 승인된 리디렉션 URI에 환경마다 이 주소를 등록합니다. `(provider, providerUid)`로 사용자를 찾으며, `providerUid`는 Google 계정 고유 ID(OIDC `sub`)입니다.
   - 가입한 사용자: 로그인 처리 후 클라이언트로 리다이렉트합니다.
   - 처음 로그인한 사용자: 사용자를 만들지 않고 제공자 정보(`provider`, `providerUid`, 이메일)를 가입 대기 상태로 세션에 보관한 뒤 클라이언트로 리다이렉트합니다. `users.nickname`, `users.avatar_type`이 필수라 가입 정보를 받기 전에는 사용자를 만들 수 없습니다. 가입 대기 상태는 로그인 상태가 아닙니다.
+- 게스트(AUTH-07)로 로그인한 세션에서 Google 로그인하면:
+  - 처음 쓰는 Google 계정: 가입 대기 정보에 그 게스트를 함께 남깁니다. 가입(AUTH-04)하면 새 사용자를 만들지 않고 게스트를 회원으로 바꿉니다.
+  - 이미 가입한 Google 계정: 그 계정으로 로그인하고 게스트 기록은 합치지 않습니다. 클라이언트 주소에 `?existingAccount=true`를 붙여 보내 화면이 이를 알리게 합니다. 남은 게스트 기록은 게스트 정리 규칙(AUTH-07)을 따릅니다.
+  - 로그인이 실패하거나 취소되면 게스트 로그인은 그대로 남습니다.
 - 리다이렉트할 클라이언트 주소는 서버 설정값(`CLIENT_URL`, 기본값 `/`)입니다. 로그인이 실패하거나 사용자가 Google 동의를 취소하면 같은 주소에 `?loginError=true`를 붙여 보냅니다. 클라이언트는 그 뒤 BOOT-01로 다음 화면을 정합니다.
 
 #### AUTH-03 `GET /api/v1/auth/signup`
@@ -332,10 +343,12 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     { "consentType": "VOICE", "version": "2026-10", "required": false, "title": "음성 처리 동의", "url": "/voice/2026-10" },
     { "consentType": "TRAINING_TEXT", "version": "2026-10", "required": false, "title": "AI 개선에 내 대화 기록 활용", "url": "/ai-training/2026-10" },
     { "consentType": "TRAINING_VOICE", "version": "2026-10", "required": false, "title": "AI 개선에 내 녹음 음성 활용", "url": "/ai-training/2026-10" }
-  ]
+  ],
+  "guest": { "avatarType": "M", "voiceConsent": true }
 }
 ```
 
+- `guest`는 게스트 세션에서 Google 로그인해 가입하는 중일 때만 담습니다(AUTH-02). 게스트 때 고른 캐릭터와 지금 버전의 음성 처리 동의 여부이며, 화면은 캐릭터 고르기를 숨기고 음성 처리 동의를 이 값으로 채웁니다.
 - 약관 버전과 문서 주소는 서버 설정값입니다.
 - `VOICE`(음성 처리)는 선택 동의입니다. 동의하지 않으면 음성 입력을 쓸 수 없고 글자로 대화하며, 게스트는 시작할 때 고릅니다. 녹음은 인식에만 쓰고 저장하지 않습니다(`TRAINING_VOICE` 동의 제외). 가입 뒤에는 USER-03으로 켜고 끕니다.
 - `TRAINING_TEXT`(대화 기록)·`TRAINING_VOICE`(녹음 음성)는 AI 개선(학습·평가)에 쓰는 선택 동의입니다. 가입 뒤에도 USER-03으로 켜고 끕니다. 동의 범위와 문구는 [AI 개선 데이터 활용 기준](../ai-training-data.md)을 따릅니다.
@@ -372,6 +385,13 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 필수 약관이 빠졌거나 버전이 현재 버전과 다르면 `VALIDATION_FAILED`이며 `details.missingConsents`에 빠진 약관을 담습니다(예: `["AGE14"]`).
 - 가입 대기 상태가 아니면 `401 UNAUTHENTICATED`, 이미 로그인한 사용자이거나 같은 Google 계정으로 이미 가입했으면 `409 ALREADY_SIGNED_UP`입니다.
 - `users.current_language`는 필수 컬럼이라 언어를 고르기 전에는 기본값 `en-US`로 저장합니다. 응답의 `currentLanguage`는 ONB-02 전까지 `null`로 보여줍니다. `[제안]`
+- 게스트 세션에서 시작한 가입(AUTH-02)이면 새 사용자를 만들지 않고 그 게스트를 회원으로 바꿉니다.
+  - 같은 `userId`라 게스트 때 대화·피드백·저장 단어·NPC 기억·호감도·게임 시간·튜토리얼 기록·마지막 장소가 그대로 이어집니다.
+  - `provider`·`providerUid`·이메일은 Google 계정 것으로, 닉네임은 요청 값으로 바꿉니다. 캐릭터는 게스트 때 것을 그대로 쓰며 요청의 `avatarType`은 쓰지 않습니다.
+  - 학습 언어와 초기 설정 단계도 게스트 때 그대로라 응답의 `onboardingStep`은 `TUTORIAL`이나 `DONE`입니다. 클라이언트는 03~05를 거치지 않고 BOOT-01로 다음 화면을 정합니다.
+  - 동의한 약관을 남기고, 게스트 때 동의했지만 이번에 동의하지 않은 선택 약관(음성 처리)은 철회합니다. 이미 지금 버전에 동의한 약관은 다시 남기지 않습니다.
+  - 회원이 됐으므로 게스트 대화 횟수 제한과 게스트 정리는 더 적용하지 않고, 세션 유지 시간은 24시간이 됩니다.
+  - 가입 대기 정보의 사용자가 이미 게스트가 아니면(다른 탭에서 먼저 가입 등) 새 사용자를 만듭니다.
 
 #### AUTH-05 `POST /api/v1/auth/logout`
 
@@ -411,7 +431,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - `avatarType`은 `F`, `M`이며 필수입니다. 없으면 `VALIDATION_FAILED`입니다.
 - 부를 때마다 새 사용자를 만듭니다. `provider`는 `GUEST`, `providerUid`는 서버가 만든 임의 값이며 이메일은 없습니다. 로그아웃하거나 세션이 끝나면 같은 게스트로 다시 로그인할 수 없습니다.
 - 게스트 세션은 요청이 2시간 없으면 끝납니다(가입자는 24시간).
-- 마지막 활동 뒤 24시간이 지나면 게스트가 남긴 내용(대화 원문·NPC 음성·피드백·NPC 기억·저장 단어·숨김)을 지웁니다. 사용자·대화·AI 사용량 기록은 내용 없이 남깁니다.
+- 게스트 세션에서 Google로 가입하면 이 게스트가 그대로 회원이 되어 기록이 이어집니다(AUTH-02·04). 화면은 대화 횟수를 다 썼을 때와 게스트 세션이 남은 채 다시 접속했을 때 가입을 권합니다.
+- 마지막 활동 뒤 24시간이 지나면 게스트가 남긴 내용(대화 원문·NPC 음성·피드백·NPC 기억·NPC가 건네기로 한 것·저장 단어·숨김)을 지웁니다. 사용자·대화·AI 사용량 기록은 내용 없이 남깁니다.
 - 닉네임은 서버가 `guest-` 뒤에 겹치지 않는 여섯 자리 숫자를 붙여 정합니다. 회원 닉네임 규칙(AUTH-04)은 `-`를 허용하지 않으므로 회원 닉네임과 겹치지 않습니다.
 - 학습 언어와 대화 난이도는 MVP에서 고를 수 있는 값(`en-US`, 초급 1)으로 정하고 초기 설정은 튜토리얼(`TUTORIAL`)부터 시작합니다. 화면 03~05를 거치지 않으며 레벨 테스트 기록은 만들지 않습니다.
 - 가입 화면을 거치지 않으므로 가입 약관 동의 기록(`user_consents`)을 남기지 않습니다. `voiceConsent`가 `true`면 지금 버전의 음성 처리(`VOICE`) 동의만 남깁니다. 없거나 `false`면 동의하지 않은 것으로 보며, 나중에 마이페이지(USER-03)에서 켤 수 있습니다.
@@ -607,7 +628,8 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 ```
 
 - `npcCode`는 Unity 씬의 NPC에 넣은 코드와 같습니다. 튜토리얼 행인은 Unity 대본 콘텐츠라 서버 NPC가 아닙니다.
-- 마을(`TOWN`)에는 거리 매장 직원 9명(`POST_OFFICE_STAFF`·`DINER_STAFF`·`BANK_STAFF`·`LAUNDROMAT_STAFF`·`FLOWER_SHOP_STAFF`·`BARBER_STAFF`·`BAKERY_STAFF`·`ARCADE_STAFF`·`HOME_STORE_STAFF`)도 위 Linda처럼 `STAFF`, `canInitiate: false`로 내려옵니다.
+- 마을(`TOWN`)에는 거리 매장 직원 9명(`POST_OFFICE_STAFF`·`DINER_STAFF`·`BANK_STAFF`·`LAUNDROMAT_STAFF`·`FLOWER_SHOP_STAFF`·`BARBER_STAFF`·`BAKERY_STAFF`·`ARCADE_STAFF`·`HOME_STORE_STAFF`)도 위 Linda처럼 `STAFF`, `canInitiate: false`로 내려옵니다. 마을 행인 Ruby·Ethan·Maya·Helen·Frank·Arthur·Margaret(`TOWN_RETIREE`·`TOWN_STUDENT`·`TOWN_EVENING_WALKER`·`TOWN_SHOPPER`·`TOWN_HANDYMAN`·`TOWN_GRANDFATHER`·`TOWN_GRANDMOTHER`)는 `PASSERBY`이지만 먼저 말을 걸지 않습니다(`canInitiate: false`). 소방서가 아직 없어 마을에서 지내는 소방관 Ray·Rachel·Andre(`FIRE_CAPTAIN`·`FIRE_FIGHTER`·`FIRE_ROOKIE`)도 같은 `PASSERBY`이고 역할 이름(`roleLabel`)만 소방대장·소방관·신입 소방관입니다.
+- 한 장소를 교대로 나눠 맡는 NPC도 그 장소의 `npcs`에 함께 내려옵니다. 카페는 Mia·Leo·Zoe(`CAFE_STAFF`·`CAFE_SERVER`·`CAFE_BARISTA`), 호텔은 Jake·Walter·Diego·Owen·Clara(`HOTEL_STAFF`·`HOTEL_CONCIERGE`·`HOTEL_BELLHOP`·`HOTEL_RECEPTIONIST`·`HOTEL_NIGHT_MANAGER`), 드럭스토어는 Alex·Hannah·Samuel(`SHOP_STAFF`·`SHOP_PHARMACIST`·`SHOP_NIGHT_CLERK`), 마을의 경찰서는 Dan·Victor·Kevin·Tyler(`POLICE_OFFICER`·`POLICE_SERGEANT`·`POLICE_PATROL_OFFICER`·`POLICE_ROOKIE`)입니다. 누가 언제 나오는지는 서버가 아니라 AI 규칙에서 내보낸 일과([NPC 생활·관계 설계](../npc-life-design.md) 6절)로 Unity가 정합니다.
 - `words`는 장소의 사물에 붙은 공용 단어 카드입니다. 여러 사물이 같은 단어를 쓰면 카드는 하나이며, Unity가 사물의 공용 단어 키(`wordKey`)로 카드를 찾습니다. 장소별 단어 목록은 Unity가 내보낸 `object-word-bindings.json`을 서버 시작 때 `scene_words`에 적재한 것입니다.
 - `npcs`, `words`의 순서에는 의미가 없습니다. 클라이언트는 `npcCode`, `wordKey`로 찾습니다.
 - 장소에 들어갈 때 그 장소의 단어 카드를 한 번에 받습니다. MVP는 장소마다 단어가 20~40개라 응답이 작습니다.
@@ -741,7 +763,7 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 ```json
 // 요청
-{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER" }
+{ "requestId": "6f1c2a7e-4b8d-4b7a-9a52-1f0f3d2c9e11", "npcCode": "CAFE_STAFF", "initiatedBy": "USER", "npcOffDuty": false }
 
 // 응답 201
 {
@@ -758,13 +780,20 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
     "suggestWords": null,
     "speech": { "status": "READY", "url": "/api/v1/turns/100/speech" }
   },
-  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 }
+  "conversation": { "status": "ACTIVE", "endReason": null, "rudeCount": 0, "rudeLimit": 3, "affinity": 12 },
+  "deliveredFollowUpId": null
 }
 ```
 
 - `conversation`은 CONV-03 응답과 같은 형식의 대화 상태입니다. 대화 화면이 처음부터 무례 경고 칸(`rudeLimit`개)과 이 NPC의 지금 호감도(`affinity`)를 보여 줍니다. 처음 만난 NPC의 호감도는 0입니다. `status`는 위쪽 `status`와 같은 값이며, 위쪽 값은 이전 클라이언트를 위해 남겨 둡니다.
 - 화면 14의 [E 대화하기]는 `initiatedBy: USER`, 튜토리얼 뒤 거리 행인의 말걸기에 응답하면 `initiatedBy: NPC`입니다. 행인 말걸기를 거절하거나 무시하면 서버를 호출하지 않습니다.
-- `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다.
+- `initiatedBy: NPC`면 이미 보여준 `approachLine`을 첫 NPC 턴으로 저장하며 AI를 호출하지 않습니다. 근무 시간이 아닌 NPC(`npcOffDuty: true`)는 예외입니다.
+- 이 NPC가 곧 건네기로 한 것(CONV-08 `followUp`)이 준비됐으면, `initiatedBy`·`approachLine`과 관계없이 AI가 그것을 건네는 첫마디("Your iced latte is ready! Here you go—enjoy!")를 만들고 건넨 것으로 표시합니다. 응답의 `deliveredFollowUpId`가 그 `followUpId`이고, 건넨 것이 없으면 `null`입니다. 클라이언트는 이 값으로 기다림 카드를 지웁니다. 아직 준비되지 않았으면 평소처럼 시작하고 건네지 않습니다.
+- `npcOffDuty`(선택, boolean)는 NPC가 맡은 교대 밖이라 일하지 않는 중이면 `true`입니다. 없거나 `null`이면 `false`(근무 중)로 보아, 이 칸을 보내지 않는 클라이언트는 지금처럼 응대 상황으로 대화합니다. 교대는 [NPC 생활·관계 설계](../npc-life-design.md) 6절 "일과와 교대"를 따릅니다.
+  - `true`로 시작한 대화는 그대로 저장되어(`conversations.npc_off_duty`) 그 대화의 첫 인사·대답·의도와 무례 판정·힌트·추천 단어·뜻 보기 요청에 응대 상황 대신 쉬는 중에 잡담하는 일상 상황을 보냅니다(워커 요청의 `npc.scene`). NPC는 주문을 받거나 손님을 응대하지 않습니다.
+  - 첫 대사는 저장된 말걸기 대사가 아니라 AI가 만든 일상 인사이며, 무엇을 도와줄지 묻지 않습니다. 대화 종료 피드백은 일상 대화로 평가합니다.
+  - 사적인 화제를 얼마나 여는지는 근무 중과 같이 인격 카드와 이 NPC와의 알아봄·호감(워커 관계 규칙)을 따릅니다. 근무가 아니라고 처음 만난 학습자에게 사적인 이야기를 더 하지 않습니다.
+  - 첫날 미션 단계의 NPC는 근무 시간이 아니어도 미션 지시대로 인사합니다. 미션 NPC가 퇴근한 뒤의 미션 처리는 아직 정하지 않았습니다([NPC 생활·관계 설계](../npc-life-design.md) 11절 "교대와 첫날 미션").
 - 직원처럼 `approachLine`이 없는 NPC는 `initiatedBy`와 관계없이 AI가 첫 인사를 만들고 음성을 합성합니다. 이 NPC와 끝낸 대화가 있으면 기억 카드를 함께 넘겨 다시 만난 인사를 합니다. 미리 작성한 인사로 바꿀지는 `[미정]`입니다(6절).
 - 첫 대사의 추천 단어는 응답을 기다리게 하지 않도록 따로 만들므로 `suggestWords`는 `null`입니다. 클라이언트가 대사를 보여 준 뒤 CONV-12로 받습니다.
 - 첫 인사를 만들지 못하면 대화를 만들지 않고 AI 오류 코드(`AI_TEMPORARILY_UNAVAILABLE` 등)를 돌려줍니다.
@@ -918,7 +947,16 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 }
 ```
 
-- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(AI가 제안한 자연스러운 종료), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
+- `endReason`(`conversations.end_reason`)은 `NPC_ENDED`(용건이 끝나 NPC가 마무리), `QUOTA_EXHAUSTED`, `RUDE`(무례 누적)입니다. 대화가 `ACTIVE`가 아니면 `CONVERSATION_NOT_ACTIVE`입니다.
+
+**마무리** — 무례가 아닌 턴에서 서버가 정하면, NPC가 그 대답으로 따뜻하게 마무리하고(새 질문 없음) 대화를 `ENDED_BY_NPC`, `endReason: NPC_ENDED`로 끝냅니다(2026-11-04 결정). 줄 사건은 의도 판정이 고릅니다([AI 워커 명세](ai-worker.md) 2.2절).
+
+| 대화 | 마무리하는 턴 |
+| --- | --- |
+| 이 NPC에게 남은 미션 목표가 있음(첫날 연계 미션·마을 이야기) | 이 턴으로 그 목표가 모두 끝났을 때, 또는 학습자가 작별했을 때(`LEAVE`, 목표가 남아도 끝내고 다시 말을 걸어 이어 할 수 있음) |
+| 그 밖의 대화 | 학습자가 작별했거나(`LEAVE`) 용건을 끝냈다고 했을 때(`TASK_DONE`, 예: "That's all, thanks.") |
+
+- NPC가 끝낸 대화도 CONV-08로 피드백을 받습니다. 기억·관계 갱신도 정상 종료처럼 합니다.
 
 #### CONV-04 `POST /api/v1/turns/{turnId}/meaning`
 
@@ -1026,7 +1064,17 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
   "completedMissions": [
     { "userMissionId": 12, "title": "카페에서 음료 주문하기" },
     { "userMissionId": 13, "title": "카페 직원에게 추천 메뉴 묻기" }
-  ]
+  ],
+  "followUp": {
+    "followUpId": 7,
+    "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
+    "sceneCode": "CAFE",
+    "item": "iced latte",
+    "itemKo": "아이스 라테",
+    "readyAt": "2026-10-21T14:05:45+09:00",
+    "remainingSeconds": 45,
+    "ready": false
+  }
 }
 ```
 
@@ -1043,6 +1091,12 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 - 응답은 피드백 생성을 기다립니다(AI 워커 상한 60초). 짧은 피드백과 발화별 상세 평가(FB-03)를 AI 워커 `/v1/feedback` 한 번으로 함께 만들어 저장합니다([피드백 연동](feedback-integration.md)).
 - 같은 대화를 다시 종료하면 피드백을 새로 만들지 않고 저장된 피드백을 돌려줍니다.
 - 사용자가 말한 대화를 끝내면 NPC 기억 카드를 따로 갱신합니다. 응답은 카드 갱신을 기다리지 않으며, 갱신에 실패하면 이전 카드를 유지합니다([기억 연동](npc-memory-integration.md)).
+- `followUp`은 이 대화에서 NPC가 주문·요청을 받아 지금 만들거나 준비하고 있어 곧 건넬 것입니다(음료·음식·빨래 등). 진열된 물건을 그 자리에서 건네는 가게 직원과의 대화는 판정하지 않습니다(CONV-13). 건넬 것이 없으면 `null`입니다. 모든 NPC·장소에 같은 규칙으로 AI 워커 `/v1/npc/follow-up`([AI 워커 명세](ai-worker.md) 2.7.3절)이 판정하고, 피드백을 만드는 동안 함께 끝냅니다. 판정에 실패하면 `null`이며 종료·피드백에는 영향이 없습니다.
+  - 학습자가 말하지 않았거나 무례로 끝난 대화는 판정하지 않습니다. NPC가 마무리한 대화(`NPC_ENDED`)와 학습자가 끝낸 대화는 같습니다.
+  - 준비 시각은 판정한 때부터 기다림 정도만큼 뒤입니다. 음료·간식 45초, 조리한 음식·포장 90초, 세탁·수선 180초(실제 시간)입니다. `remainingSeconds`는 서버 시각으로 센 남은 초(준비됐으면 0)이고, `ready`는 준비됐는지입니다. 클라이언트는 받은 때부터 `remainingSeconds`를 줄여 보이고 자기 시계로 `readyAt`을 다시 계산하지 않습니다.
+  - 사용자 × NPC마다 기다리는 것은 하나입니다. 같은 NPC에게 새로 받은 약속이 앞의 것을 바꿉니다.
+  - 같은 대화를 다시 종료하면 다시 판정하지 않고 저장한 것을 돌려줍니다.
+  - 준비된 뒤 그 NPC와 대화를 시작하면 첫마디로 건넵니다(CONV-01 `deliveredFollowUpId`). 화면 왼쪽 기다림 카드와 NPC가 부르는 동작은 Unity가 합니다.
 
 #### CONV-09·10 지난 대화
 
@@ -1077,6 +1131,35 @@ AI 제한 오류는 화면 19의 "계속 쓸 수 있어요" 목록에 쓸 기능
 
 - 진행 중인 대화가 있으면 CONV-10과 같은 형식, 없으면 `204 No Content`입니다. 대화 중 새로고침했을 때 화면 15의 대화 기록을 다시 그립니다.
 - 새로고침 뒤 이어서 진행할지 종료 처리할지는 `[미정]`입니다. 일정 시간 동안 요청이 없는 대화는 서버가 `EXPIRED`로 닫고 예약한 토큰을 풉니다. 시간 값은 서버 설정값입니다.
+
+#### CONV-13 `GET /api/v1/follow-ups`
+
+```json
+// 응답 200
+{
+  "items": [
+    {
+      "followUpId": 7,
+      "npc": { "npcCode": "CAFE_STAFF", "name": "Mia", "roleLabel": "카페 직원" },
+      "sceneCode": "CAFE",
+      "item": "iced latte",
+      "itemKo": "아이스 라테",
+      "readyAt": "2026-10-21T14:05:45+09:00",
+      "remainingSeconds": 12,
+      "ready": false
+    }
+  ]
+}
+```
+
+- NPC가 곧 건네기로 했는데 아직 받지 않은 것입니다. 항목 형식은 CONV-08의 `followUp`과 같고 `readyAt` 순서입니다. 준비된 것도 건네기 전까지 담깁니다. 없으면 빈 배열입니다.
+- 새로고침·씬 이동 뒤 왼쪽 기다림 카드를 다시 그릴 때 씁니다. AI를 부르지 않습니다.
+- 진열된 물건을 그 자리에서 건네는 가게 직원(드럭스토어·빵집·꽃집·생활용품점·오락실·우체국·은행·이발소)과의 대화는 기다릴 것이 없어 판정하지 않습니다.
+
+#### CONV-14 `POST /api/v1/follow-ups/{followUpId}/dismiss`
+
+- 학습자가 기다림 카드의 X로 닫은 것입니다. 응답은 204이고 본문이 없습니다.
+- 건넨 것처럼 기다리는 목록에서 빠지고, 그 NPC가 다시 부르지 않습니다. 다른 사용자의 것이나 이미 건넨 것이면 아무것도 바꾸지 않습니다.
 
 ### 4.7 피드백
 
@@ -1258,7 +1341,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 | 대화 횟수가 남은 게스트 | `AI_AVAILABLE` | `true` | `true` | `true` | 1 이상 |
 | 대화 횟수를 다 쓴 게스트 | `AI_EXHAUSTED` | `false` | `true` | `true` | `0` |
 
-- `remainingConversations`는 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 이미 시작한 대화 수를 뺀 값). 화면은 [E 대화하기]와 행인 제안의 [대화하기]에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 [E 대화하기]를 이유와 함께 비활성화합니다. 가입 사용자는 횟수 제한이 없어 담지 않습니다.
+- `remainingConversations`는 게스트가 더 시작할 수 있는 NPC 대화 수입니다(CONV-01의 `GUEST_CONVERSATION_LIMIT`에서 이미 시작한 대화 수를 뺀 값). 화면은 [E 대화하기]와 행인 제안의 [대화하기]에 남은 횟수를 붙이고, `0`이면 행인 말걸기를 멈추고 [E 대화하기]·택시 버튼 자리에 "게스트 대화를 모두 썼어요"와 [가입하고 계속 대화하기]를 보여, 누르면 가입 안내 창을 띄웁니다. 가입 사용자는 횟수 제한이 없어 담지 않습니다.
 - 게스트 한도는 새 대화 시작만 막습니다. 마지막으로 시작한 대화도 횟수에 들어가 그 대화 중에도 `AI_EXHAUSTED`이지만, 음성 입력과 피드백은 그대로 쓸 수 있으므로 클라이언트는 `status`가 아니라 기능별 값으로 버튼을 켜고 끕니다.
 - 외부 AI 장애(`AI_TEMPORARILY_UNAVAILABLE`)와 운영 제한(`AI_RESTRICTED`)은 아직 판단하지 않습니다. 장애는 각 AI 요청의 오류 응답(1.5)으로 알립니다.
 
@@ -1342,7 +1425,7 @@ MVP는 **단어와 숙어**를 저장합니다. 숙어는 `to go`처럼 두 단�
 
 마이페이지의 [회원 탈퇴]입니다. 확인 창을 거친 뒤 부릅니다. 응답은 본문 없이 `204`입니다.
 
-- 사용자가 남긴 내용을 바로 지웁니다. 범위는 게스트 내용 정리(AUTH-07)와 같습니다: 대화 원문(턴)·NPC 음성·대화 피드백·문장 피드백과 모범 음성·NPC 기억과 관계·저장 단어·숨김·레벨 테스트 답·학습용 녹음.
+- 사용자가 남긴 내용을 바로 지웁니다. 범위는 게스트 내용 정리(AUTH-07)와 같습니다: 대화 원문(턴)·NPC 음성·대화 피드백·문장 피드백과 모범 음성·NPC 기억과 관계·NPC가 건네기로 한 것·저장 단어·숨김·레벨 테스트 답·학습용 녹음.
 - 개인정보도 지웁니다.
   - 이메일을 비웁니다.
   - 소셜 계정 ID(`provider_uid`)는 `withdrawn-`으로 시작하는 임의 값으로, 닉네임은 `withdrawn-{사용자 ID}`로 바꿉니다. 같은 Google 계정과 같은 닉네임으로 다시 가입할 수 있습니다.

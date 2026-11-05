@@ -286,6 +286,7 @@ namespace A305.Dialogue
             waitPanel.SetActive(inLines);
             // 로딩 카드는 대사 칸과 같은 크기라 둥근 모서리 틈으로 대사가 비치지 않게 그동안 대사를 감춘다.
             linesText.enabled = !inLines;
+            CoverHiddenWords();
             if (inLines)
             {
                 waitText.text =
@@ -296,6 +297,12 @@ namespace A305.Dialogue
 
             feedbackWait.SetActive(wait == DialogueWait.Feedback);
         }
+
+        /// <summary>녹음 중 [말하기]에 켜는 불. 튜토리얼 코치 마크가 옆에 불의 뜻을 알린다.</summary>
+        public RectTransform VoiceLightRect => voiceLight.rectTransform;
+
+        /// <summary>녹음 중이라 [말하기]의 불이 켜져 있는지. 마이크가 열리는 중([준비 중])이면 꺼져 있다.</summary>
+        public bool IsVoiceLightOn => voiceLight.gameObject.activeInHierarchy;
 
         /// <summary>
         /// 녹음 중인지와 지금 목소리가 들리는지를 [말하기] 버튼에 표시한다. 녹음 중이면 [종료]로 바꾸고 불을 켠다.

@@ -105,6 +105,83 @@ namespace A305.Onboarding.Tests
             );
         }
 
+        // S15P31A305-596: 약관 동의 단계의 [전체 동의]와 [다음]
+        [Test]
+        public void AgreeAll_TurnsEveryTermOnAndOff()
+        {
+            form.AgreeAll(true);
+
+            Assert.That(
+                form.IsAgreed("TERMS") && form.IsAgreed("PRIVACY") && form.IsAgreed("VOICE")
+            );
+            Assert.That(form.IsAllAgreed, Is.True);
+
+            form.AgreeAll(false);
+
+            Assert.That(
+                form.IsAgreed("TERMS") || form.IsAgreed("PRIVACY") || form.IsAgreed("VOICE"),
+                Is.False
+            );
+            Assert.That(form.IsAllAgreed, Is.False);
+        }
+
+        [Test]
+        public void TurningOneTermOff_ClearsAllAgreed()
+        {
+            form.AgreeAll(true);
+
+            form.SetAgreed("VOICE", false);
+
+            Assert.That(form.IsAllAgreed, Is.False);
+        }
+
+        [Test]
+        public void CanContinueFromTerms_NeedsOnlyTheRequiredTerms()
+        {
+            Assert.That(form.CanContinueFromTerms, Is.False);
+
+            form.SetAgreed("TERMS", true);
+            Assert.That(form.CanContinueFromTerms, Is.False);
+
+            form.SetAgreed("PRIVACY", true);
+            Assert.That(form.CanContinueFromTerms, Is.True, "선택 약관은 없어도 넘어갑니다.");
+        }
+
+        [Test]
+        public void GuestForm_CanSubmitWithoutChoosingCharacterAndSendsGuestCharacter()
+        {
+            var guestForm = new SignupForm(
+                new[] { Terms, Privacy, Voice },
+                new ConvertingGuest { AvatarType = AvatarType.M, VoiceConsent = false }
+            );
+            guestForm.ChangeNickname("Sun");
+            guestForm.RecordAvailability("Sun", true);
+            guestForm.SetAgreed("TERMS", true);
+            guestForm.SetAgreed("PRIVACY", true);
+
+            Assert.That(guestForm.IsGuestConversion, Is.True);
+            Assert.That(guestForm.CanSubmit, Is.True);
+            Assert.That(guestForm.ToRequest().AvatarType, Is.EqualTo(AvatarType.M));
+        }
+
+        [Test]
+        public void GuestForm_StartsWithVoiceConsentTheGuestGave()
+        {
+            var guestForm = new SignupForm(
+                new[] { Terms, Privacy, Voice },
+                new ConvertingGuest { AvatarType = AvatarType.F, VoiceConsent = true }
+            );
+
+            Assert.That(guestForm.IsAgreed("VOICE"), Is.True);
+        }
+
+        [Test]
+        public void MemberForm_IsNotGuestConversion()
+        {
+            Assert.That(form.IsGuestConversion, Is.False);
+            Assert.That(form.Avatar, Is.Null);
+        }
+
         private void FillValidForm()
         {
             form.ChangeNickname("Sun");

@@ -21,9 +21,10 @@ namespace A305.Onboarding.Tests
 
         [TestCase(
             "Assets/Prefabs/Onboarding/EntryScreens.prefab",
-            "SignupPanel/Consents/ConsentRowTemplate"
+            "TermsPanel/Consents/ConsentRowTemplate"
         )]
         [TestCase("Assets/Prefabs/Onboarding/EntryScreens.prefab", "GuestPanel/VoiceConsentRow")]
+        [TestCase("Assets/Prefabs/Onboarding/EntryScreens.prefab", "TermsPanel/AllAgreeRow")]
         [TestCase(
             "Assets/Prefabs/Learning/LearningHud.prefab",
             "MyPage/Window/Consents/ConsentRowTemplate"
@@ -40,9 +41,10 @@ namespace A305.Onboarding.Tests
 
         [TestCase(
             "Assets/Prefabs/Onboarding/EntryScreens.prefab",
-            "SignupPanel/Consents/ConsentRowTemplate"
+            "TermsPanel/Consents/ConsentRowTemplate"
         )]
         [TestCase("Assets/Prefabs/Onboarding/EntryScreens.prefab", "GuestPanel/VoiceConsentRow")]
+        [TestCase("Assets/Prefabs/Onboarding/EntryScreens.prefab", "TermsPanel/AllAgreeRow")]
         [TestCase(
             "Assets/Prefabs/Learning/LearningHud.prefab",
             "MyPage/Window/Consents/ConsentRowTemplate"

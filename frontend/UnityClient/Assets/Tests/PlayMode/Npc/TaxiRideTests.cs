@@ -148,6 +148,32 @@ namespace A305.Npc.PlayModeTests
             yield return null;
         }
 
+        [UnityTest]
+        public IEnumerator SceneUnloadingWhileHailPromptIsShown_DoesNotTouchTheRemovedPrompt()
+        {
+            // [택시 세우기]가 떠 있는 채로 장면이 바뀌면 제안 화면이 택시보다 먼저 지워질 수 있다.
+            // 그때 택시가 꺼지면서 지워진 제안 화면의 버튼 판을 끄려다 오류가 났다.
+            yield return LoadTown();
+            TaxiRide taxi = Single<TaxiRide>();
+            CarLoopRoute.Pose pose = taxi.GetComponent<LoopingCar>()
+                .Route.PoseAt(taxi.GetComponent<LoopingCar>().Distance);
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            Single<PlayerMover>()
+                .Teleport(
+                    pose.Position
+                        + pose.Forward * 8
+                        + Vector3.Cross(Vector3.up, pose.Forward) * 2.6f
+                        + Vector3.up * .2f,
+                    Quaternion.identity
+                );
+            yield return WaitUntil(() => offer.IsTalkPromptShowing);
+
+            // 장면을 내릴 때처럼 제안 화면을 택시보다 먼저 지운다.
+            Object.DestroyImmediate(offer.gameObject);
+            taxi.enabled = false;
+            yield return null;
+        }
+
         // 호텔로 가는 단계의 목표 카드(제목·안내·목표 세 개)를 띄운다.
         private static void ShowHotelGoal(FirstDayMissionView mission)
         {

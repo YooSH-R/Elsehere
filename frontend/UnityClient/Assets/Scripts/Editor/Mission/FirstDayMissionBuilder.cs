@@ -16,6 +16,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Ui = A305.EditorTools.Learning.FeedbackScreenBuilder;
 
 namespace A305.EditorTools.Mission
 {
@@ -57,6 +58,7 @@ namespace A305.EditorTools.Mission
                 {
                     FirstDayShopBuilder.ConnectTownEntrance(groups);
                     townMap = TownMapBuilder.Read(scene);
+                    QuestNpcSpotBuilder.Apply(groups);
                 }
                 BuilderTools.SaveScene(scene, path);
             }
@@ -104,9 +106,8 @@ namespace A305.EditorTools.Mission
         private static void AddLiveMiniMap(GameObject root)
         {
             Transform content = root.transform.Find("Content");
-            Transform journalMap = content != null ? content.Find("Journal/TownMap") : null;
-            if (journalMap == null)
-                throw new System.InvalidOperationException("수첩의 마을 지도부터 생성해야 합니다.");
+            if (content == null)
+                throw new System.InvalidOperationException("첫날 미션 화면(Content)이 없습니다.");
 
             foreach (string name in new[] { "MiniMap", "MapOverlay" })
             {
@@ -116,7 +117,7 @@ namespace A305.EditorTools.Mission
             }
             Sprite glassSprite = RoundedSprite(GlassSpritePath, 0f);
 
-            // 미니맵을 누르면 화면 가운데에 크게 펼치는 같은 유리 스타일의 지도
+            // 미니맵을 누르거나 폰 메뉴의 [마을 지도]로 화면 가운데에 펼치는 큰 지도(시안 g7). 미니맵과 같은 유리 판과 마을 지도 그림을 쓴다.
             RectTransform overlay = Rect("MapOverlay", content);
             Stretch(overlay);
             RectTransform outside = Rect("Outside", overlay);
@@ -126,37 +127,44 @@ namespace A305.EditorTools.Mission
             Button close = outside.gameObject.AddComponent<Button>();
             close.transition = Selectable.Transition.None;
 
+            // 판(시안 1420 폭, 모서리 52). 지도 그림 전체(2.5:1)가 들어가도록 높이는 시안보다 줄였다. 자리·크기는 시안 px다.
             RectTransform large = Rect("Panel", overlay);
-            Anchor(large, new Vector2(.5f, .5f), new Vector2(0, -10), new Vector2(880, 820));
-            Glass(large);
-            TMP_Text title = Text(large, "Title", 28, "마을 지도");
-            title.font = UiBuilderTools.BoldFont();
-            title.color = MapInk;
             Anchor(
-                (RectTransform)title.transform,
-                new Vector2(0, 1),
-                new Vector2(34, -20),
-                new Vector2(320, 44)
+                large,
+                new Vector2(.5f, .5f),
+                Vector2.zero,
+                new Vector2(LargeMapWidth, LargeMapHeight) * Ui.Px
             );
+            Glass(large, 44f / (52 * Ui.Px));
+
+            // 머리줄: 하늘색 지도 앱 아이콘(60), 제목(Jua 36), 범례(17). 그림은 아이콘 그림자 자리를 포함한다.
+            RectTransform icon = Ui.Rect("Icon", large);
+            Ui.TopLeft(icon, 29 - 14, 25 - 8, 60 + 28, 60 + 30);
+            Ui.Picture(icon.gameObject, MiniMapBuilder.Sprite("MapHeaderIcon"));
+            TMP_Text title = HeaderText(large, "Title", 105, 35.5f, 240, 39, 36);
+            title.text = "마을 지도";
+            title.margin = new Vector4(0, 3 * Ui.Px, 0, 0);
+            TMP_Text largeLegend = HeaderText(large, "Legend", 274.7f, 25, 560, 60, 17);
+            largeLegend.text = FirstDayMissionView.MiniMapLegend(null);
 
             // 닫기 X는 다른 창과 같은 공용 모양으로 둔다(S15P31A305-525).
             RectTransform closeFace = Rect("CloseButton", large);
             Button closeButton = closeFace.gameObject.AddComponent<Button>();
             UiCloseButton.Corner(closeFace, UiCloseButton.WindowSize);
 
-            TownMapView largeMap = GlassMapCopy(journalMap, large, LargeMapGroundOpacity, true, 46);
-            var largeRect = (RectTransform)largeMap.transform;
-            largeRect.anchorMin = Vector2.zero;
-            largeRect.anchorMax = Vector2.one;
-            largeRect.pivot = new Vector2(.5f, .5f);
-            largeRect.offsetMin = new Vector2(24, 70);
-            largeRect.offsetMax = new Vector2(-24, -80);
-            TMP_Text largeLegend = Legend(
-                large,
-                glassSprite,
-                new Vector2(24, 18),
-                new Vector2(260, 40),
-                19
+            // 지도 창(시안 .tile, 모서리 36): 미니맵과 같은 마을 지도 그림 전체를 창 폭에 맞춰 보인다.
+            RectTransform window = Ui.Rect("TownMap", large);
+            Ui.TopLeft(window, LargeMapInset, LargeMapTop, LargeMapArtWidth, LargeMapArtHeight);
+            Image windowShape = window.gameObject.AddComponent<Image>();
+            windowShape.sprite = glassSprite;
+            windowShape.type = Image.Type.Sliced;
+            windowShape.pixelsPerUnitMultiplier = 44f / (36 * Ui.Px);
+            windowShape.raycastTarget = false;
+            window.gameObject.AddComponent<Mask>().showMaskGraphic = false;
+            TownMiniMapView largeMap = MiniMapBuilder.MapLayers(
+                window,
+                window.gameObject,
+                LargeMapArtWidth * Ui.Px / TownMapArt.Size.x
             );
             AddRouteToggle(large, glassSprite);
             overlay.gameObject.SetActive(false);
@@ -173,9 +181,35 @@ namespace A305.EditorTools.Mission
             BuilderTools.SetReference(view, "mapOutsideButton", close);
         }
 
-        // 크게 본 지도는 뒤 화면이 어지럽지 않게 바탕을 조금 칠한다.
-        private const float LargeMapGroundOpacity = .43f;
+        // 큰 지도 판과 지도 창(시안 px). 창은 시안 .tile 자리(왼쪽 29, 위 103, 아래 27)에 지도 그림 비율로 둔다.
+        private const float LargeMapWidth = 1420;
+        private const float LargeMapInset = 29;
+        private const float LargeMapTop = 103;
+        private const float LargeMapArtWidth = LargeMapWidth - LargeMapInset * 2;
+        private static readonly float LargeMapArtHeight =
+            LargeMapArtWidth * TownMapArt.Size.y / TownMapArt.Size.x;
+        private static readonly float LargeMapHeight = LargeMapTop + LargeMapArtHeight + 27;
         private static readonly Color MapInk = new Color32(40, 56, 80, 255);
+
+        // 시안 자리(판 왼쪽 위 기준 px)에 Jua 글자를 둔다.
+        private static TMP_Text HeaderText(
+            RectTransform panel,
+            string name,
+            float x,
+            float y,
+            float width,
+            float height,
+            float size
+        )
+        {
+            RectTransform rect = Ui.Rect(name, panel);
+            TMP_Text text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+            Ui.Style(text, Ui.DisplayFontPath, size, Ui.Ink);
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            Ui.TopLeft(rect, x, y, width, height);
+            return text;
+        }
 
         // 뒤 거리가 흐려지지 않고 비치는 하늘색 유리 판과 흰 테두리. 큰 지도와 미니맵이 함께 쓴다.
         // Outline 효과는 판 전체를 흰색으로 겹쳐 그려 반투명이 사라지므로 테두리는 링 그림으로 따로 그린다.
@@ -198,45 +232,20 @@ namespace A305.EditorTools.Mission
             return glass;
         }
 
-        // 수첩 지도를 복사해 유리 지도로 칠한다. 내 위치 화살표는 키우고 흰 테두리를 둘러 잘 보이게 한다.
-        private static TownMapView GlassMapCopy(
-            Transform journalMap,
-            Transform parent,
-            float groundOpacity,
-            bool showsLabels,
-            float markerSize
-        )
-        {
-            GameObject map = Object.Instantiate(journalMap.gameObject, parent);
-            map.name = "TownMap";
-            foreach (TMP_Text label in map.GetComponentsInChildren<TMP_Text>(true))
-                label.gameObject.SetActive(showsLabels);
-            CanvasGroup group = map.AddComponent<CanvasGroup>();
-            group.blocksRaycasts = false;
-            var themed = map.GetComponent<ThemedTownMap>();
-            var fields = new SerializedObject(themed);
-            fields.FindProperty("glass").boolValue = true;
-            fields.FindProperty("glassGroundOpacity").floatValue = groundOpacity;
-            fields.ApplyModifiedPropertiesWithoutUndo();
-            themed.ApplyCurrent();
-            var view = map.GetComponent<TownMapView>();
-            var marker = (RectTransform)
-                new SerializedObject(view).FindProperty("playerMarker").objectReferenceValue;
-            marker.sizeDelta = new Vector2(markerSize, markerSize);
-            var markerRim = marker.gameObject.AddComponent<Outline>();
-            markerRim.effectColor = Color.white;
-            markerRim.effectDistance = new Vector2(2, 2);
-            return view;
-        }
-
-        // 범례 반대편 오른쪽 아래에 같은 흰 알약으로 도로 위 길 안내를 켜고 끄는 버튼을 둔다.
+        // 머리줄 오른쪽, 닫기 X 왼쪽에 흰 알약으로 도로 위 길 안내를 켜고 끄는 버튼을 둔다. 세로 가운데는 제목 줄(시안 위 55)에 맞춘다.
         private static void AddRouteToggle(RectTransform panel, Sprite sprite)
         {
             Transform old = panel.Find("RouteToggle");
             if (old != null)
                 Object.DestroyImmediate(old.gameObject);
             RectTransform chip = Rect("RouteToggle", panel);
-            Anchor(chip, new Vector2(1, 0), new Vector2(-24, 18), new Vector2(200, 40));
+            chip.anchorMin = chip.anchorMax = Vector2.one;
+            chip.pivot = new Vector2(1, .5f);
+            chip.anchoredPosition = new Vector2(
+                -(UiCloseButton.Inset + UiCloseButton.WindowSize + 16),
+                -55 * Ui.Px
+            );
+            chip.sizeDelta = new Vector2(200, 40);
             Image face = chip.gameObject.AddComponent<Image>();
             face.sprite = sprite;
             face.type = Image.Type.Sliced;
@@ -251,36 +260,6 @@ namespace A305.EditorTools.Mission
             var toggle = chip.gameObject.AddComponent<GuideRouteToggle>();
             BuilderTools.SetReference(toggle, "button", button);
             BuilderTools.SetReference(toggle, "label", label);
-        }
-
-        // ▲ 내 위치 · ● 목적지 범례를 흰 알약 위에 둔다.
-        private static TMP_Text Legend(
-            RectTransform parent,
-            Sprite sprite,
-            Vector2 offset,
-            Vector2 size,
-            int fontSize
-        )
-        {
-            // 글자는 알약과 같은 자리에 겹쳐 둔다. 범례 글자 경로(…/Destination)는 이전 미니맵과 같게 유지한다.
-            RectTransform chip = Rect("LegendChip", parent);
-            Anchor(chip, Vector2.zero, offset, size);
-            Image face = chip.gameObject.AddComponent<Image>();
-            face.sprite = sprite;
-            face.type = Image.Type.Sliced;
-            face.color = new Color(1, 1, 1, .86f);
-            face.raycastTarget = false;
-            TMP_Text text = Text(
-                parent,
-                "Destination",
-                fontSize,
-                FirstDayMissionView.MiniMapLegend(null)
-            );
-            text.font = UiBuilderTools.BoldFont();
-            text.color = MapInk;
-            text.alignment = TextAlignmentOptions.Center;
-            Anchor((RectTransform)text.transform, Vector2.zero, offset, size);
-            return text;
         }
 
         /// <summary>

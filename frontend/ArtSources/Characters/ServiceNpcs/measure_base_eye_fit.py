@@ -9,7 +9,8 @@ from mathutils.bvhtree import BVHTree
 
 root = Path(__file__).resolve().parents[4]
 folder = Path(sys.argv[-1])
-for output in sorted(folder.iterdir()):
+outputs = [folder] if (folder / "Surface.json").exists() else sorted(folder.iterdir())
+for output in outputs:
     if not (output / "Surface.json").exists():
         continue
     d = json.loads((output / "Surface.json").read_text(encoding="utf-8-sig"))

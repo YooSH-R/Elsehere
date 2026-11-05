@@ -18,4 +18,29 @@ public record NpcContext(
     WorkerNpc workerNpc,
     String voiceId,
     String approachLine,
-    String approachAudioKey) {}
+    String approachAudioKey) {
+
+  /**
+   * 근무 시간이 아닌 NPC. 워커에 보내는 상황(npc.scene)만 응대 상황에서 일상 상황으로 바꾼다.
+   *
+   * <p>역할·사실·인격 카드는 그대로 보낸다. 사적인 이야기를 얼마나 할지는 워커가 인격 카드와 알아봄·호감으로 정하므로, 이 상황이 친한 사이라고 말하지 않는다.
+   */
+  NpcContext offDuty() {
+    return new NpcContext(
+        npcId,
+        summary,
+        sceneCode,
+        sceneOpen,
+        workerNpc.withScene(offDutyScene(workerNpc.name())),
+        voiceId,
+        approachLine,
+        approachAudioKey);
+  }
+
+  private static String offDutyScene(String name) {
+    return name
+        + " is off work right now and is spending free time, not working. "
+        + name
+        + " does not take orders or serve anyone now and just makes casual small talk.";
+  }
+}

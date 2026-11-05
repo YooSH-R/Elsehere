@@ -54,6 +54,18 @@ namespace A305.Mission
         public static float Pointing(Vector2 from, Vector2 to) =>
             Mathf.Atan2(from.y - to.y, to.x - from.x) * Mathf.Rad2Deg - 90f;
 
+        /// <summary>장소(씬 코드나 가게를 맡은 NPC 키)의 한국어 이름. 지도 범례와 기다리는 카드가 쓴다. 모르는 장소면 null이다.</summary>
+        public static string PlaceName(string place) =>
+            place switch
+            {
+                "CAFE" => "카페",
+                "HOTEL" => "호텔",
+                "SHOP" => "드럭스토어",
+                "HOME" => "집",
+                not null when Shops.TryGetValue(place, out var shop) => shop.Name,
+                _ => null,
+            };
+
         /// <summary>미션 장소 칸(그림에 그린 건물 칸). 마을 거리처럼 칸이 없으면 null이다.</summary>
         public static Rect? Tile(string destination) =>
             destination switch

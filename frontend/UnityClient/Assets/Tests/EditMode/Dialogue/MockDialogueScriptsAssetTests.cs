@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using A305.Characters;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -37,6 +39,25 @@ namespace A305.Dialogue.Tests
 
             Assert.That(seedNpcs, Is.Not.Empty);
             Assert.That(mismatches, Is.Empty);
+        }
+
+        // 튜토리얼 Ben 길 안내는 서버 대화가 아닌 정해진 대본이라 서버가 만드는 NPC 음성을 받지 않는다.
+        // 그래서 첫 말과 대답마다 Ben 목소리로 미리 합성한 음성을 싣고, 입 모양 타이밍까지 읽혀야 한다.
+        [Test]
+        public void TutorialBen_EveryLineCarriesBensRecordedVoiceWithLipSync()
+        {
+            var scripts = AssetDatabase.LoadAssetAtPath<MockDialogueScriptSource>(ScriptsPath);
+            scripts.TryGetScript("TUTORIAL_PASSERBY", out DialogueScript script);
+
+            var lines = new List<DialogueLine> { script.OpeningLine };
+            lines.AddRange(script.GuidedTurns.Select(turn => turn.Reply));
+
+            foreach (DialogueLine line in lines)
+            {
+                Assert.That(line.Speech, Is.Not.Null, $"음성이 없습니다: {line.English}");
+                DialogueSpeechWav wav = DialogueSpeechWav.Read(line.Speech);
+                Assert.That(wav.TimingError, Is.Null, $"입 모양 타이밍이 없습니다: {line.English}");
+            }
         }
 
         [Test]

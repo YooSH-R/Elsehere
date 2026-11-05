@@ -119,8 +119,7 @@ def test_every_generated_npc_passes_the_shared_profile_schema(mbti, role, place)
     config, life = generate(f"GEN_{mbti}", f"{mbti}-A", role, place)
 
     assert npc_configs.schema_errors(config) == []
-    assert npc_life_rules.life_errors(life) == []
-    assert life == {"schemaVersion": "1.0", "npcId": f"GEN_{mbti}", "mbti": f"{mbti}-A", "role": role}
+    assert life == {"schemaVersion": "1.0", "npcId": f"GEN_{mbti}", "mbti": f"{mbti}-A", "role": role}  # 근무지·교대는 명령이 붙인다
 
 
 def test_a_generated_npc_is_inactive_until_someone_approves_it():
@@ -268,12 +267,26 @@ def test_the_cli_writes_the_npc_and_life_files_and_skips_names_already_in_use(tm
         json.loads(path.read_text(encoding="utf-8"))["npcProfile"]["name"] for path in (npc_life_rules.ROOT / "ai/npcs").glob("*.json")
     }
 
-    assert npc_generate.main(["GEN_001", "INTJ-T", "STAFF", "CAFE", "--out", str(out)]) == 0
+    assert npc_generate.main(["GEN_001", "INTJ-T", "STAFF", "CAFE", "CLOSING", "--out", str(out)]) == 0
 
     config = json.loads((out / "GEN_001.json").read_text(encoding="utf-8"))
     life = json.loads((out / "life/GEN_001.json").read_text(encoding="utf-8"))
-    assert (config, life) == generate(taken=service_names)
+    generated_config, generated_life = generate(taken=service_names)
+    assert config == generated_config
+    assert life == {**generated_life, "workplace": "CAFE", "shift": "CLOSING"}  # 장소에서 맡을 교대
+    assert npc_life_rules.life_errors(life) == []
     assert config["npcProfile"]["name"] not in service_names
+
+
+def test_the_cli_refuses_a_shift_the_place_does_not_have(tmp_path, capsys):
+    """일과는 그 장소의 교대에서 계산하므로, 장소에 없는 교대로는 초안을 쓰지 않는다."""
+    out = tmp_path / "drafts"
+
+    with pytest.raises(SystemExit):
+        npc_generate.main(["GEN_001", "INTJ-T", "STAFF", "CAFE", "NIGHT", "--out", str(out)])
+
+    assert "CAFE의 교대는 OPENING, MIDDAY, CLOSING 중 하나" in capsys.readouterr().err
+    assert not out.exists()
 
 
 # ---------------------------------------------------------------------

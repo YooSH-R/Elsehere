@@ -24,28 +24,37 @@ namespace A305.Learning
             return npcName + WithParticle(npcName);
         }
 
-        // 한글 이름은 받침으로 고른다. 영어 이름은 한국어로 읽을 때 받침이 남는 끝소리(n·m·l·ng)면 '과'이고,
-        // Jake(제이크)·Alex(알렉스)처럼 나머지는 받침 없이 읽으므로 '와'다.
+        /// <summary>이름 뒤에 끝소리에 맞는 이·가를 붙인다(Ben이, Mia가).</summary>
+        public static string NameAsSubject(string npcName)
+        {
+            return npcName + (EndsWithFinalSound(npcName) ? "이" : "가");
+        }
+
         private static string WithParticle(string name)
+        {
+            return EndsWithFinalSound(name) ? "과" : "와";
+        }
+
+        // 한글 이름은 받침으로 고른다. 영어 이름은 한국어로 읽을 때 받침이 남는 끝소리(n·m·l·ng)면 받침이 있고,
+        // Jake(제이크)·Alex(알렉스)처럼 나머지는 받침 없이 읽는다.
+        private static bool EndsWithFinalSound(string name)
         {
             if (string.IsNullOrEmpty(name))
             {
-                return "와";
+                return false;
             }
 
             char last = name[name.Length - 1];
             if (last >= '가' && last <= '힣')
             {
-                return (last - '가') % 28 != 0 ? "과" : "와";
+                return (last - '가') % 28 != 0;
             }
 
             string lower = name.ToLowerInvariant();
-            bool hasFinalConsonant =
-                lower.EndsWith("n")
+            return lower.EndsWith("n")
                 || lower.EndsWith("m")
                 || lower.EndsWith("l")
                 || lower.EndsWith("ng");
-            return hasFinalConsonant ? "과" : "와";
         }
 
         /// <summary>

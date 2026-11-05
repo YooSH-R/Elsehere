@@ -108,6 +108,7 @@ frontend/UnityClient/Assets/
 | 게임 전용 기능 | 튜토리얼, 미션, 대화 화면, 서버 연동 | 재사용 모듈과 다른 게임 전용 기능을 참조할 수 있습니다. |
 
 - 기능끼리 참조가 필요하면 Assembly Definition의 References에 명시하고 README의 의존성에 적습니다. 서로 참조하는 순환 구조를 만들지 않습니다.
+- README의 테스트 절에는 테스트 어셈블리·위치와 검사하는 범위만 짧게 적습니다. 개별 시나리오는 테스트 이름이 설명하므로 나열하지 않습니다. 테스트를 더할 때마다 여러 MR이 같은 줄을 고쳐 충돌하기 때문입니다.
 - `Scripts/Editor/`는 Editor 전용 `A305.EditorTools` 어셈블리로 둡니다. 기능 어셈블리는 이 어셈블리를 참조하지 않습니다.
 - 기능 폴더에 속하지 않는 스크립트는 `Scripts/` 바로 아래에 둡니다. 현재는 개발 환경 확인용 샘플만 있습니다.
 - 프리팹·데이터 에셋·씬은 코드 폴더에 넣지 않고 `Prefabs/<기능>/`, `Data/<기능>/`, `Scenes/`에 둡니다.
@@ -162,7 +163,7 @@ Unity 씬 파일은 두 사람이 동시에 수정하면 충돌을 안전하게 
 
 - Builder는 `Scripts/Editor/<기능>/<대상>Builder.cs`에 두고, `public static` 메서드에 `[MenuItem("Tools/A305/<기능>/<동작>")]`을 붙입니다. 예: `Tools/A305/Player/Build Sandbox`
 - 씬은 `EditorSceneManager`, 프리팹은 `PrefabUtility.SaveAsPrefabAsset`, 데이터 에셋·머티리얼은 `AssetDatabase.CreateAsset`으로 만들고 저장합니다. 생성 결과와 `.meta`를 함께 커밋합니다.
-- 처음 만들 때는 앞의 Builder가 만든 에셋을 뒤에서 쓰므로 **Player → Build Sandbox**, **UI → Set Up Fonts**, **World → Build Spaces** 순서로 실행합니다. **World → Build Spaces**는 공간 씬에 붙이는 기능(사물 호버·대화·행인·피드백·단어장·미션·튜토리얼)의 에셋을 `SpaceSceneSetup.PrepareFeatureAssets`로 함께 준비하고 화면 테마를 붙인 뒤, 마을에 행인을, 카페에 카페 직원을, 집에 테마 고르기 화면을 둡니다. 새 기능을 공간 씬에 붙일 때는 그 기능의 `PrepareAssets`를 이 메서드에, 연결을 `SpaceSceneSetup.Apply`에 함께 추가합니다. 입구 화면은 **UI → Set Up Fonts** 다음에 **Onboarding → Build**로 만들며, `EntryScene`을 Scene List 맨 앞에 둡니다. **World → Build Spaces**를 다시 실행해도 `EntryScene`이 있으면 맨 앞에 남깁니다. 각 기능만 다시 만들 때는 **ObjectHover → Build**, **Dialogue → Build**, **Npc → Build**, **Npc → Build Daily Life**(NPC 생활과 걸을 바닥, 가구 배치를 바꾼 뒤에도), **Learning → Build**, **Mission → Build**, **Tutorial → Build**, **Weather → Build Town Weather**, **Weather → Build Day Night**, **UI → Build Themes**, **Wayfinding → Build**(마을 길 안내와 차도·횡단보도 바닥 구역, 차도나 횡단보도를 옮긴 뒤에도)를 실행합니다.
+- 처음 만들 때는 앞의 Builder가 만든 에셋을 뒤에서 쓰므로 **Player → Build Sandbox**, **UI → Set Up Fonts**, **World → Build Spaces** 순서로 실행합니다. **World → Build Spaces**는 공간 씬에 붙이는 기능(사물 호버·대화·행인·피드백·단어장·미션·튜토리얼·영업시간 안내)의 에셋을 `SpaceSceneSetup.PrepareFeatureAssets`로 함께 준비하고 화면 테마를 붙인 뒤, 마을에 행인을, 카페에 카페 직원을, 집에 테마 고르기 화면을 둡니다. 새 기능을 공간 씬에 붙일 때는 그 기능의 `PrepareAssets`를 이 메서드에, 연결을 `SpaceSceneSetup.Apply`에 함께 추가합니다. 입구 화면은 **UI → Set Up Fonts** 다음에 **Onboarding → Build**로 만들며, `EntryScene`을 Scene List 맨 앞에 둡니다. **World → Build Spaces**를 다시 실행해도 `EntryScene`이 있으면 맨 앞에 남깁니다. 각 기능만 다시 만들 때는 **ObjectHover → Build**, **Dialogue → Build**, **Npc → Build**, **Npc → Build Daily Life**(NPC 생활과 걸을 바닥, 가구 배치를 바꾼 뒤에도), **Npc → Build Cast**(외형 표의 NPC를 일터에 두고 모든 NPC에 배색·생활을 입힘, 외형 표를 바꾼 뒤에도), **Learning → Build**, **Mission → Build**, **Tutorial → Build**, **Weather → Build Town Weather**, **Weather → Build Day Night**, **UI → Build Themes**, **Wayfinding → Build**(마을 길 안내와 차도·횡단보도 바닥 구역, 차도나 횡단보도를 옮긴 뒤에도), **World → Connect Opening Hours**(장소 영업시간 처리와 화면 위 안내판)를 실행합니다.
 - Editor가 프로젝트를 열고 있지 않으면 명령줄로도 실행할 수 있습니다. 저장소 최상위에서 실행합니다. **UI → Set Up Fonts**는 TMP 기본 리소스를 가져오는 동안 기다렸다가 스스로 종료하므로 `-quit` 없이 실행합니다.
 
 ```powershell
@@ -354,7 +355,7 @@ namespace A305.Npc
 | `Assets/InputSystem_Actions.inputactions` | 입력 키와 액션 변경 |
 | `Assets/TextMesh Pro/Resources/TMP Settings.asset`, `Assets/Art/UI/Fonts/` | UI 기본 글꼴과 글꼴 에셋 설정 변경 |
 
-- Unity가 Editor 버전 업그레이드를 제안해도 버전을 바꾸지 않습니다. 버전 변경은 [Unity 개발 환경](setup.md)의 기준에 따라 호환성을 검증하고 MR 리뷰를 거칩니다.
+- Unity가 Editor 버전 업그레이드를 제안해도 버전을 바꾸지 않습니다. 버전 변경은 [Unity 개발 환경](setup.md)의 기준에 따라 호환성을 검증하고 변경 내용을 MR에 기록합니다.
 - 작업과 관계없이 Unity가 수정한 설정 파일은 커밋하지 않고 되돌립니다.
 
 ### UI 글자와 글꼴

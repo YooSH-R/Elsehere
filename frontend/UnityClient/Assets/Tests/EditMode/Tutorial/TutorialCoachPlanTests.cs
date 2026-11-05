@@ -141,6 +141,64 @@ namespace A305.Tutorial.Tests
         }
 
         [Test]
+        public void BenDialogue_WhileTheVoiceLightIsOn_ExplainsTheLightBesideIt()
+        {
+            // 할 대사를 알리는 동안 [말하기]로 녹음해 불이 켜지면, 불 옆에 무슨 뜻인지 한 번 더 알린다.
+            var screen = new TutorialScreen
+            {
+                IsTalking = true,
+                GuidedTurnIndex = 1,
+                IsVoiceLightOn = true,
+            };
+            Assert.That(
+                TutorialCoachPlan.ExplainsVoiceLight(TutorialStep.BenDialogue, screen),
+                Is.True
+            );
+
+            screen.IsVoiceLightOn = false;
+            Assert.That(
+                TutorialCoachPlan.ExplainsVoiceLight(TutorialStep.BenDialogue, screen),
+                Is.False,
+                "녹음하지 않거나 [준비 중]이면 불이 꺼져 있어 알리지 않는다."
+            );
+        }
+
+        [Test]
+        public void VoiceLight_IsExplainedOnlyWhileGuidingTheLine()
+        {
+            // 티칭 중, 길 안내를 마친 뒤, 다른 단계에서는 불이 켜져 있어도 불 설명을 띄우지 않는다.
+            var touring = new TutorialScreen { IsTalking = true, IsVoiceLightOn = true };
+            var finished = new TutorialScreen
+            {
+                IsTalking = true,
+                IsGuidedCompleted = true,
+                IsVoiceLightOn = true,
+            };
+            var talkingAfterTheTour = new TutorialScreen
+            {
+                IsTalking = true,
+                GuidedTurnIndex = 1,
+                IsVoiceLightOn = true,
+            };
+
+            Assert.That(
+                TutorialCoachPlan.ExplainsVoiceLight(TutorialStep.BenDialogue, touring),
+                Is.False,
+                "티칭 중"
+            );
+            Assert.That(
+                TutorialCoachPlan.ExplainsVoiceLight(TutorialStep.BenDialogue, finished),
+                Is.False,
+                "길 안내를 마친 뒤"
+            );
+            Assert.That(
+                TutorialCoachPlan.ExplainsVoiceLight(TutorialStep.Completed, talkingAfterTheTour),
+                Is.False,
+                "튜토리얼을 마친 뒤"
+            );
+        }
+
+        [Test]
         public void BenFeedback_TeachesTheTabsThenThePages_ThenHighlightsTheCloseButton()
         {
             // 피드백(대화 노트)도 볼 곳을 하나씩 밝혀 [다음]으로 넘기고, 마지막에 닫는 버튼을 밝힌다.

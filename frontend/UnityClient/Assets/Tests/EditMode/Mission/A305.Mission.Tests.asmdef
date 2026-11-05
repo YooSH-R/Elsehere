@@ -3,9 +3,11 @@
     "rootNamespace": "A305.Mission.Tests",
     "references": [
         "A305.Api",
+        "A305.Dialogue",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Mission",
+        "A305.Npc",
         "A305.Theme",
         "A305.Wayfinding",
         "A305.World",

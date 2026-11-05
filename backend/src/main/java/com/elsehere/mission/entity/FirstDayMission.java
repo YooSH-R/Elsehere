@@ -24,9 +24,6 @@ public class FirstDayMission extends BaseEntity {
   @Column(nullable = false)
   private int objectives;
 
-  @Column(nullable = false)
-  private int balance = 20;
-
   @Version private long version;
 
   @Column(nullable = false, length = 20)
@@ -48,10 +45,6 @@ public class FirstDayMission extends BaseEntity {
     }
     advance();
     return true;
-  }
-
-  public int getBalance() {
-    return balance;
   }
 
   public boolean isCompleted() {
@@ -84,9 +77,6 @@ public class FirstDayMission extends BaseEntity {
       }
     }
     if (stage != 1 && goalsCompleted()) {
-      if (stage == 5) {
-        balance -= 8;
-      }
       advance();
     }
   }

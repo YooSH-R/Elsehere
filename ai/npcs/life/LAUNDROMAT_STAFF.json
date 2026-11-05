@@ -2,5 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "LAUNDROMAT_STAFF",
   "mbti": "ISFP-T",
-  "role": "STAFF"
+  "role": "STAFF",
+  "workplace": "LAUNDROMAT",
+  "shift": "ALL_DAY"
 }

@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -119,6 +120,61 @@ class TurnHelpServiceTest {
 
     assertThat(again).isEqualTo(first);
     then(aiGateway).should(times(1)).meaning(any(), any(), anyString(), anyInt());
+  }
+
+  @Test
+  @DisplayName("근무 중인 NPC와의 대화에서 힌트를 만들면 워커에 시드의 응대 상황을 보낸다")
+  void hint_onDutyConversation_sendsServiceScene() {
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
+
+    turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID());
+
+    then(aiGateway)
+        .should()
+        .hint(
+            any(),
+            argThat(npc -> "The counter of the corner cafe.".equals(npc.scene())),
+            anyList(),
+            anyString(),
+            anyInt());
+  }
+
+  @Test
+  @DisplayName("근무가 아닌 NPC와의 대화에서 힌트를 만들면 워커에 응대 상황 대신 일상 상황을 보낸다")
+  void hint_offDutyConversation_sendsOffDutyScene() {
+    conversation.markNpcOffDuty();
+    entityManager.flush();
+    given(aiGateway.hint(any(), any(), anyList(), anyString(), anyInt())).willReturn(HINT);
+
+    turnHelpService.hint(userId, npcTurn.getId(), UUID.randomUUID());
+
+    then(aiGateway)
+        .should()
+        .hint(
+            any(),
+            argThat(npc -> npc.scene().contains("Mia is off work right now")),
+            anyList(),
+            anyString(),
+            anyInt());
+  }
+
+  @Test
+  @DisplayName("근무가 아닌 NPC와의 대화에서 추천 단어를 만들면 워커에 응대 상황 대신 일상 상황을 보낸다")
+  void suggestWords_offDutyConversation_sendsOffDutyScene() {
+    conversation.markNpcOffDuty();
+    entityManager.flush();
+    given(aiGateway.suggest(any(), any(), anyList(), anyString(), anyInt())).willReturn(SUGGEST);
+
+    turnHelpService.suggestWords(userId, npcTurn.getId(), UUID.randomUUID());
+
+    then(aiGateway)
+        .should()
+        .suggest(
+            any(),
+            argThat(npc -> npc.scene().contains("Mia is off work right now")),
+            anyList(),
+            anyString(),
+            anyInt());
   }
 
   @Test

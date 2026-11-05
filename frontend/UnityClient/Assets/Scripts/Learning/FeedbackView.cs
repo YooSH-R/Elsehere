@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using A305.Dialogue;
 using A305.Theme;
 using A305.World;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace A305.Learning
@@ -82,7 +84,7 @@ namespace A305.Learning
         private RectTransform navigationRow;
 
         [SerializeField]
-        [Tooltip("요약 탭 위쪽의 '이 상황에서 자주 써요' 표현 줄 묶음")]
+        [Tooltip("요약·회화 표현 탭의 '이 상황에서 자주 써요' 표현 줄 묶음")]
         private RectTransform situationRows;
 
         [SerializeField]
@@ -90,8 +92,16 @@ namespace A305.Learning
         private GameObject situationRowTemplate;
 
         [SerializeField]
-        [Tooltip("표현 줄 아래 '대화 요약' 제목. 요약 탭에서 표현 줄이 있을 때만 보인다")]
+        [Tooltip("표현 줄 아래 '대화 요약' 제목. 요약 탭에서 요약 글이 있을 때 보인다")]
         private TMP_Text summaryTitle;
+
+        [SerializeField]
+        [Tooltip("요약 탭 '이 상황에서 자주 써요' 제목 오른쪽의 쪽 넘김. 표현을 두 개씩 넘긴다")]
+        private RectTransform situationPager;
+
+        [SerializeField]
+        [Tooltip("요약 탭 '대화 요약' 제목 오른쪽의 쪽 넘김. 요약 글이 길면 요약 칸 안에서 넘긴다")]
+        private RectTransform summaryPager;
 
         [SerializeField]
         [Tooltip("본문 글 뒤의 칸. 글 높이에 맞춰 늘어난다")]
@@ -141,6 +151,14 @@ namespace A305.Learning
         private bool isRegenerating;
         private Rect lastFreeArea;
         private bool isTranscriptShown;
+
+        // 요약 탭 위 칸("이 상황에서 자주 써요")에 한 장에 보이는 표현 수와, 지금 보이는 표현 장(0부터)
+        private const int SituationsPerPage = 2;
+        private int situationPage;
+
+        // 요약 탭 두 칸의 제목 옆 쪽 넘김. 프리팹에 없으면(예전 프리팹) null이다.
+        private SectionPaging situationPaging;
+        private SectionPaging summaryPaging;
         private bool isSaveAvailable = true;
 
         /// <summary>[닫기]를 누르면 알린다.</summary>
@@ -163,8 +181,8 @@ namespace A305.Learning
         /// <summary>[요약]·[문장]·[회화]·[표현] 탭 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
         public RectTransform SectionRowRect => sectionRow;
 
-        /// <summary>쪽 넘김 화살표 줄. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
-        public RectTransform NavigationRowRect => navigationRow;
+        /// <summary>요약 탭 "이 상황에서 자주 써요" 제목 옆 쪽 넘김. 튜토리얼 코치 마크가 피드백 티칭에서 밝힌다.</summary>
+        public RectTransform SituationPagerRect => situationPager;
 
         /// <summary>탭·화살표를 누르면 바뀌는 결과 칸. 튜토리얼 코치 마크가 피드백 티칭에서 탭과 함께 밝힌다.</summary>
         public RectTransform PageCardRect => (RectTransform)bodyText.transform.parent;
@@ -235,6 +253,18 @@ namespace A305.Learning
             transcriptButton.onClick.AddListener(ToggleTranscript);
             previousButton.onClick.AddListener(PreviousPage);
             nextButton.onClick.AddListener(NextPage);
+            if (situationPager != null)
+                situationPaging = new SectionPaging(
+                    situationPager,
+                    () => MoveSituationPage(-1),
+                    () => MoveSituationPage(1)
+                );
+            if (summaryPager != null)
+                summaryPaging = new SectionPaging(
+                    summaryPager,
+                    () => MoveSummaryPage(-1),
+                    () => MoveSummaryPage(1)
+                );
             for (int i = 0; i < sectionButtons.Length; i++)
             {
                 FeedbackSection selected = (FeedbackSection)i;
@@ -267,18 +297,24 @@ namespace A305.Learning
             }
 
             // 받지 못한 피드백은 저장할 표현이나 상세 평가가 없으므로 그 버튼 대신 다시 만들기·대화 기록을 보여 준다.
-            // 아래 줄 [담기]는 지금 장에 담을 표현이 있을 때만 둔다. 표현 칸은 칸마다 [담기]가 있다.
+            // 본문 옆 [담기]는 지금 장에 담을 표현이 있을 때만 둔다. 추천 표현 줄은 각자 버튼을 가진다.
             saveButton.gameObject.SetActive(
-                isSaveAvailable && !feedback.IsFailed && CurrentExpression != null
+                isSaveAvailable
+                    && !feedback.IsFailed
+                    && !isTranscriptShown
+                    && CurrentExpression != null
+                    && pages[pageIndex].Situations == null
             );
             saveButton.interactable = CurrentExpression != null;
+            saveButton.GetComponentInChildren<TMP_Text>(true).text = "담기";
             detailButton.gameObject.SetActive(false);
             regenerateButton.gameObject.SetActive(feedback.CanRegenerate);
             regenerateButton.interactable = true;
             transcriptButton.gameObject.SetActive(feedback.IsFailed);
             transcriptButton.interactable = true;
+            // 요약 탭은 두 칸을 제목 옆 쪽 넘김으로 따로 넘기므로 아래쪽 줄을 숨긴다.
             navigationRow.gameObject.SetActive(
-                !isRegenerating && (!feedback.IsFailed || isTranscriptShown)
+                !isRegenerating && (!feedback.IsFailed || isTranscriptShown) && !IsSummarySplit
             );
             // 표현 줄 높이는 패널 너비에 따라 달라지므로 화면에 맞춘 패널 크기부터 정한다.
             FitFrameToCanvas();
@@ -286,15 +322,30 @@ namespace A305.Learning
             UpdateLayout();
         }
 
-        // 요약 탭은 받은 피드백의 표현을, 회화 표현 탭은 그 장에 담긴 표현을 같은 표현 줄로 보인다.
+        // 요약 탭은 받은 추천 표현을 두 개씩, 회화 표현 탭은 현재 장에 담긴 표현을 보여 준다.
         private IReadOnlyList<SituationExpressionData> SituationsShown()
         {
             if (feedback.IsFailed || isTranscriptShown)
                 return Array.Empty<SituationExpressionData>();
             if (section == FeedbackSection.Summary)
-                return feedback.SituationExpressions;
+                return SummarySituations
+                    .Skip(situationPage * SituationsPerPage)
+                    .Take(SituationsPerPage)
+                    .ToList();
             return pages[pageIndex].Situations ?? Array.Empty<SituationExpressionData>();
         }
+
+        // 요약 탭이 위 표현 칸과 아래 요약 칸으로 나뉘어 따로 넘기는 상태인지
+        private bool IsSummarySplit =>
+            section == FeedbackSection.Summary && !feedback.IsFailed && !isTranscriptShown;
+
+        private IEnumerable<SituationExpressionData> SummarySituations =>
+            feedback.SituationExpressions.Where(expression =>
+                !string.IsNullOrWhiteSpace(expression.Expression)
+            );
+
+        private int SituationPageCount =>
+            Mathf.Max(1, Mathf.CeilToInt(SummarySituations.Count() / (float)SituationsPerPage));
 
         // 부제(○○와 나눈 대화)는 제목 글자 바로 뒤에 둔다. 제목은 피드백을 받지 못하면 길어진다.
         private void PlaceSubtitle()
@@ -310,7 +361,7 @@ namespace A305.Learning
         }
 
         /// <summary>
-        /// 피드백을 열자마자 보이도록 요약 탭 위쪽에 이 상황에서 자주 쓰는 표현을 한 칸씩 모두 보이고, 칸마다 [담기]로 그 표현과 뜻을 담게 한다.
+        /// 피드백을 열자마자 보이도록 요약 탭 위쪽에 이 상황에서 자주 쓰는 표현을 두 칸씩 보이고, 칸마다 [담기]로 그 표현과 뜻을 담게 한다.
         /// 회화 표현 탭도 같은 칸을 쓰고 예문을 한 줄 더 둔다. 요약 글은 표현 칸 아래 '대화 요약' 제목 밑의 따뜻한 색 칸에서 시작한다.
         /// </summary>
         private void ShowSituationRows(
@@ -328,6 +379,8 @@ namespace A305.Learning
             }
             situationRowItems.Clear();
             saveButtons.Clear();
+            if (saveButton.gameObject.activeSelf && CurrentExpression != null)
+                saveButtons[CurrentExpression.English] = saveButton;
 
             foreach (SituationExpressionData expression in expressions)
             {
@@ -374,14 +427,12 @@ namespace A305.Learning
                     - RowShadowBottom
                     + GapBelowRows;
             }
-            bool summaryBelowRows =
-                visible
-                && section == FeedbackSection.Summary
-                && !string.IsNullOrEmpty(bodyText.text);
-            summaryTitle.gameObject.SetActive(summaryBelowRows);
+            // '대화 요약' 제목 옆에 요약 칸의 쪽 넘김이 있으므로, 표현 칸이 없어도 요약 글이 있으면 제목을 둔다.
+            bool summaryHeading = IsSummarySplit && !string.IsNullOrEmpty(bodyText.text);
+            summaryTitle.gameObject.SetActive(summaryHeading);
             // 받지 못한 피드백·대화 기록의 장 제목도 같은 자리(본문 칸 위)에 둔다.
             TMP_Text heading =
-                summaryBelowRows ? summaryTitle
+                summaryHeading ? summaryTitle
                 : pageTitleText.gameObject.activeSelf ? pageTitleText
                 : null;
             if (heading != null)
@@ -397,7 +448,9 @@ namespace A305.Learning
                 top += SummaryTitleHeight + GapBelowHeading - TileShadowTop;
             }
             RectTransform body = bodyText.rectTransform;
-            body.offsetMax = new Vector2(body.offsetMax.x, -(top + TileTop));
+            var saveRect = (RectTransform)saveButton.transform;
+            float saveRoom = saveButton.gameObject.activeSelf ? saveRect.sizeDelta.x + 24 : 0;
+            body.offsetMax = new Vector2(-TileSide - saveRoom, -(top + TileTop));
             PlaceBodyTile(top);
         }
 
@@ -413,19 +466,21 @@ namespace A305.Learning
                     ? summaryTileSprite
                     : tileSprite;
             RectTransform body = bodyText.rectTransform;
-            float height =
-                Mathf.Min(
-                    bodyText.GetPreferredValues(bodyText.text, body.rect.width, 0).y,
-                    body.rect.height
-                )
-                + TileTop
-                + TileBottom;
+            float contentHeight = Mathf.Min(
+                bodyText.GetPreferredValues(bodyText.text, body.rect.width, 0).y,
+                body.rect.height
+            );
+            var saveRect = (RectTransform)saveButton.transform;
+            if (saveButton.gameObject.activeSelf)
+                contentHeight = Mathf.Max(contentHeight, saveRect.sizeDelta.y);
+            float height = contentHeight + TileTop + TileBottom;
             RectTransform tile = bodyTile.rectTransform;
             tile.anchorMin = new Vector2(0, 1);
             tile.anchorMax = Vector2.one;
             tile.pivot = new Vector2(.5f, 1);
             tile.offsetMin = new Vector2(body.offsetMin.x - TileSide, -(top + height));
-            tile.offsetMax = new Vector2(body.offsetMax.x + TileSide, -top);
+            tile.offsetMax = new Vector2(0, -top);
+            saveRect.anchoredPosition = new Vector2(-TileSide, -TileTop);
         }
 
         private static void SetRowText(GameObject row, string path, string value)
@@ -523,6 +578,22 @@ namespace A305.Learning
             pageNumberText.text = FeedbackPageNumber.Format(pagesPerCard, current, textPage);
             previousButton.interactable = pageIndex > 0 || textPage > 1;
             nextButton.interactable = pageIndex + 1 < count || textPage < textPages;
+            ShowSectionPaging(textPages);
+        }
+
+        // 요약 탭은 두 칸을 제목 옆 쪽 넘김으로 따로 넘기고, 다른 탭에서는 숨긴다.
+        private void ShowSectionPaging(int summaryPages)
+        {
+            if (IsSummarySplit)
+            {
+                situationPaging?.Show(situationPage + 1, SituationPageCount);
+                summaryPaging?.Show(textPage, summaryPages);
+            }
+            else
+            {
+                situationPaging?.Hide();
+                summaryPaging?.Hide();
+            }
         }
 
         public void SelectSection(FeedbackSection selected)
@@ -530,7 +601,22 @@ namespace A305.Learning
             section = selected;
             pageIndex = 0;
             textPage = 1;
+            situationPage = 0;
             pages = FeedbackPages.Create(feedback, section);
+            Refresh();
+        }
+
+        // 요약 탭 위 칸의 표현을 두 개씩 넘긴다. 아래 요약 칸은 지금 장을 그대로 둔다.
+        private void MoveSituationPage(int step)
+        {
+            situationPage = Mathf.Clamp(situationPage + step, 0, SituationPageCount - 1);
+            Refresh();
+        }
+
+        // 요약 탭 아래 칸의 요약 글을 칸 안에서 넘긴다.
+        private void MoveSummaryPage(int step)
+        {
+            textPage = Mathf.Clamp(textPage + step, 1, Mathf.Max(1, bodyText.textInfo.pageCount));
             Refresh();
         }
 
@@ -578,6 +664,35 @@ namespace A305.Learning
             isTranscriptShown = !isTranscriptShown;
             textPage = 1;
             Refresh();
+        }
+
+        // 제목 옆 쪽 넘김(‹ 1 / 2 ›) 하나. 장이 하나뿐이어도 숫자는 보이고 화살표만 누를 수 없다.
+        private sealed class SectionPaging
+        {
+            private readonly GameObject root;
+            private readonly Button previous;
+            private readonly Button next;
+            private readonly TMP_Text number;
+
+            public SectionPaging(RectTransform pager, UnityAction back, UnityAction forward)
+            {
+                root = pager.gameObject;
+                previous = pager.Find("PreviousButton").GetComponent<Button>();
+                next = pager.Find("NextButton").GetComponent<Button>();
+                number = pager.Find("PageNumber").GetComponent<TMP_Text>();
+                previous.onClick.AddListener(back);
+                next.onClick.AddListener(forward);
+            }
+
+            public void Show(int page, int count)
+            {
+                root.SetActive(true);
+                number.text = $"{page} / {count}";
+                previous.interactable = page > 1;
+                next.interactable = page < count;
+            }
+
+            public void Hide() => root.SetActive(false);
         }
     }
 }

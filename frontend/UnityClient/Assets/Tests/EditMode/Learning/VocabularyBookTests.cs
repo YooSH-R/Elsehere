@@ -20,6 +20,47 @@ namespace A305.Learning.Tests
             book = new VocabularyBook(api);
         }
 
+        [TearDown]
+        public void ForgetLearnedWords() => ObjectWordCards.ShareLearnedWords(new string[0]);
+
+        // 외운 단어는 사물 카드도 호버로 띄우지 않으므로, 단어장을 받거나 외웠어요를 바꾸거나 지우면 사물 카드에 알린다.
+        [Test]
+        public async Task LoadAsync_TellsObjectCardsWhichWordsAreLearned()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파", memorized: true),
+                Item(21, "latte", "라떼")
+            );
+
+            await book.LoadAsync();
+
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.True);
+            Assert.That(ObjectWordCards.IsLearned("latte"), Is.False);
+        }
+
+        [Test]
+        public async Task ToggleLearnedAsync_TellsObjectCardsTheWordIsLearnedOrNot()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.True);
+
+            await book.ToggleLearnedAsync(entry);
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.False);
+        }
+
+        [Test]
+        public async Task DeleteAsync_LearnedWord_PopsUpOnObjectCardsAgain()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파", memorized: true));
+
+            await book.DeleteAsync(entry);
+
+            Assert.That(ObjectWordCards.IsLearned("sofa"), Is.False);
+        }
+
         [Test]
         public async Task LoadAsync_ReadsEveryPageInServerOrder()
         {
@@ -191,6 +232,98 @@ namespace A305.Learning.Tests
             Assert.That(saved, Is.False);
             Assert.That(entry.IsLearned, Is.False);
             Assert.That(book.LastFailureMessage, Is.Not.Empty);
+        }
+
+        // 기능 명세 F-35: 외운 단어는 목록에서 정리하고, 기록은 지우지 않으며 [외운 표현도 보기]로 다시 본다.
+        [Test]
+        public async Task ShownEntries_TidyLearnedWordsAway_UntilAskedToShowThem()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파", memorized: true),
+                Item(21, "latte", "라떼")
+            );
+            await book.LoadAsync();
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "latte" })
+            );
+
+            book.ShowsLearned = true;
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "sofa", "latte" })
+            );
+        }
+
+        [Test]
+        public async Task ToggleLearnedAsync_TakesTheWordOutOfTheShownList_ButKeepsItsRecord()
+        {
+            VocabularyEntry entry = await LoadOne(Item(31, "sofa", "소파"));
+
+            await book.ToggleLearnedAsync(entry);
+
+            Assert.That(book.ShownEntries, Is.Empty);
+            Assert.That(book.Entries, Is.EqualTo(new[] { entry }));
+        }
+
+        // 모두 외워 목록이 비면 저장한 단어가 없는 것과 구분한다.
+        [Test]
+        public async Task ListState_EveryWordLearned_IsAllLearnedNotEmpty()
+        {
+            await LoadOne(Item(31, "sofa", "소파", memorized: true));
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.AllLearned));
+
+            book.ShowsLearned = true;
+
+            Assert.That(book.ListState, Is.EqualTo(VocabularyListState.Entries));
+        }
+
+        // 알파벳순으로 보면 같은 글자로 시작하는 단어가 한 묶음이 되고, 끄면 최근 저장순으로 돌아간다.
+        [Test]
+        public async Task ShownEntries_SortAlphabetically_WhenAsked()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파"),
+                Item(21, "latte", "라떼"),
+                Item(11, "Apple", "사과")
+            );
+            await book.LoadAsync();
+
+            book.SortsAlphabetically = true;
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "Apple", "latte", "sofa" })
+            );
+
+            book.SortsAlphabetically = false;
+
+            Assert.That(
+                book.ShownEntries.Select(entry => entry.English),
+                Is.EqualTo(new[] { "sofa", "latte", "Apple" })
+            );
+        }
+
+        [Test]
+        public async Task IndexOfFirstWordStartingWith_FindsTheLettersGroup()
+        {
+            api.Pages[null] = Page(
+                null,
+                Item(31, "sofa", "소파"),
+                Item(21, "Lemon", "레몬"),
+                Item(11, "latte", "라떼")
+            );
+            await book.LoadAsync();
+            book.SortsAlphabetically = true;
+
+            Assert.That(book.IndexOfFirstWordStartingWith('l'), Is.EqualTo(0));
+            Assert.That(book.IndexOfFirstWordStartingWith('S'), Is.EqualTo(2));
+            Assert.That(book.IndexOfFirstWordStartingWith('Z'), Is.EqualTo(-1));
         }
 
         [TestCase(1)]
@@ -377,19 +510,23 @@ namespace A305.Learning.Tests
             Assert.That(entry.ContextMeaning, Is.EqualTo("아이스 라떼 드릴까요?"));
         }
 
+        // 대화에서 저장한 단어의 문장은 그 NPC가 한 말이다. 이름 끝소리에 맞춰 이·가를 고른다(Ben이, Mia가).
         [Test]
         public async Task LoadAsync_WordSavedFromNpcLine_NamesTheNpc()
         {
             VocabItem fromBen = Item(40, "latte", "라떼");
             fromBen.Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Ben" };
+            VocabItem fromMia = Item(41, "iced", "차가운");
+            fromMia.Source = new VocabSource { SourceType = "NPC_LINE", NpcName = "Mia" };
             VocabItem fromObject = Item(31, "sofa", "소파");
             fromObject.Source = new VocabSource { SourceType = "OBJECT" };
-            api.Pages[null] = Page(null, fromBen, fromObject);
+            api.Pages[null] = Page(null, fromBen, fromMia, fromObject);
 
             await book.LoadAsync();
 
-            Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("Ben의 말"));
-            Assert.That(book.Entries[1].SourceLabel, Is.Null);
+            Assert.That(book.Entries[0].SourceLabel, Is.EqualTo("Ben이 한 말"));
+            Assert.That(book.Entries[1].SourceLabel, Is.EqualTo("Mia가 한 말"));
+            Assert.That(book.Entries[2].SourceLabel, Is.Null);
         }
 
         private async Task<VocabularyEntry> LoadOne(VocabItem item)

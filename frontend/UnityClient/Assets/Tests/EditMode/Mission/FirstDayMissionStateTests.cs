@@ -56,6 +56,23 @@ namespace A305.Mission.Tests
             Assert.That(state.Destination, Is.Null);
         }
 
+        [Test]
+        public void CurrentNpcCode_InProgress_IsTheNpcOfTheCurrentStep()
+        {
+            FirstDayMissionState state = State(started: true, completed: false);
+
+            Assert.That(state.CurrentNpcCode, Is.EqualTo("SHOP_STAFF"));
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        public void CurrentNpcCode_BeforeStartOrAfterCompletion_IsNone(bool started, bool completed)
+        {
+            FirstDayMissionState state = State(started, completed);
+
+            Assert.That(state.CurrentNpcCode, Is.Null);
+        }
+
         [TestCase(true, "RAIN")]
         [TestCase(false, "CLEAR")]
         public void FallbackWeather_FollowsRaining(bool raining, string expected)
@@ -137,6 +154,47 @@ namespace A305.Mission.Tests
             Assert.That(state.CountsAsCafeRest, Is.EqualTo(expected));
         }
 
+        // 하던 퀘스트를 끝내면(다음 퀘스트를 기다리거나 모두 마침) 그 퀘스트를 알린다. 처음 받은 상태, 계속하는 퀘스트, 시작 전은 끝낸 것이 아니다.
+        [Test]
+        public void QuestFinishedSince_NamesTheQuestThatWasInProgress()
+        {
+            FirstDayMissionState doing = Quest("MORNING_AND_HAIRCUT", started: true);
+
+            Assert.That(doing.QuestFinishedSince(null), Is.Null, "처음 받은 상태");
+            Assert.That(
+                Quest("MORNING_AND_HAIRCUT", started: true).QuestFinishedSince(doing),
+                Is.Null,
+                "계속하는 중"
+            );
+            Assert.That(
+                Quest("THANKS_AND_PARCEL", started: false).QuestFinishedSince(doing),
+                Is.EqualTo("MORNING_AND_HAIRCUT"),
+                "다음 퀘스트를 기다림"
+            );
+            Assert.That(
+                Quest("MORNING_AND_HAIRCUT", started: false)
+                    .QuestFinishedSince(Quest("CHECK_IN", started: true)),
+                Is.EqualTo("CHECK_IN"),
+                "첫날 퀘스트를 끝내고 마을 퀘스트 시작 전"
+            );
+            FirstDayMissionState everything = Quest("THANKS_AND_PARCEL", started: true);
+            everything.Completed = true;
+            Assert.That(
+                everything.QuestFinishedSince(Quest("THANKS_AND_PARCEL", started: true)),
+                Is.EqualTo("THANKS_AND_PARCEL"),
+                "모두 마침"
+            );
+            Assert.That(
+                Quest("CHECK_IN", started: false)
+                    .QuestFinishedSince(Quest("CHECK_IN", started: false)),
+                Is.Null,
+                "시작 전"
+            );
+        }
+
+        private static FirstDayMissionState Quest(string quest, bool started) =>
+            new FirstDayMissionState { Quest = quest, Started = started };
+
         private static FirstDayMissionState State(bool started, bool completed) =>
             new FirstDayMissionState
             {
@@ -145,9 +203,24 @@ namespace A305.Mission.Tests
                 Scene = "HOTEL",
                 Steps = new List<FirstDayMissionStep>
                 {
-                    new FirstDayMissionStep { Scene = "TOWN", Status = "DONE" },
-                    new FirstDayMissionStep { Scene = "SHOP", Status = "CURRENT" },
-                    new FirstDayMissionStep { Scene = "HOTEL", Status = "UPCOMING" },
+                    new FirstDayMissionStep
+                    {
+                        Scene = "TOWN",
+                        NpcCode = "TOWN_PASSERBY",
+                        Status = "DONE",
+                    },
+                    new FirstDayMissionStep
+                    {
+                        Scene = "SHOP",
+                        NpcCode = "SHOP_STAFF",
+                        Status = "CURRENT",
+                    },
+                    new FirstDayMissionStep
+                    {
+                        Scene = "HOTEL",
+                        NpcCode = "HOTEL_STAFF",
+                        Status = "UPCOMING",
+                    },
                 },
             };
     }

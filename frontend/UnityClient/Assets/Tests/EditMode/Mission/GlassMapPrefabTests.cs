@@ -17,20 +17,6 @@ namespace A305.Mission.Tests
         [TearDown]
         public void DestroyMission() => Object.DestroyImmediate(instance);
 
-        // 지금은 지도 바탕이 크림색으로 꽉 차 반투명해 보이지 않았다. 미니맵은 시안(g1)대로 불투명한 마을 지도 그림을 쓴다.
-        [TestCase("Content/MapOverlay/Panel/TownMap", 0.6f)]
-        public void MapGround_LetsTheTownShowThrough(string mapPath, float maxOpacity)
-        {
-            Transform map = Instantiate().transform.Find(mapPath);
-            Assert.That(map, Is.Not.Null, mapPath);
-            var themed = map.GetComponent<A305.Theme.ThemedTownMap>();
-            themed.ApplyCurrent();
-            var ground = (Image)
-                new SerializedObject(themed).FindProperty("ground").objectReferenceValue;
-
-            Assert.That(ground.color.a, Is.LessThanOrEqualTo(maxOpacity));
-        }
-
         // 각진 상자 대신 둥근 유리 판을 쓴다. 미니맵 판은 시안 유리(MiniMapPrefabTests)로 확인한다.
         [TestCase("Content/MapOverlay/Panel")]
         public void MapPanel_IsRoundedTranslucentGlass(string panelPath)

@@ -72,7 +72,28 @@ class AdminNpcServiceTest {
             tuple("BARBER_STAFF", "Tony", "이발사", "마을"),
             tuple("BAKERY_STAFF", "Grace", "제빵사", "마을"),
             tuple("ARCADE_STAFF", "Max", "오락실 직원", "마을"),
-            tuple("HOME_STORE_STAFF", "Nina", "매장 직원", "마을"));
+            tuple("HOME_STORE_STAFF", "Nina", "매장 직원", "마을"),
+            tuple("CAFE_BARISTA", "Zoe", "카페 직원", "모퉁이 카페"),
+            tuple("HOTEL_RECEPTIONIST", "Owen", "호텔 직원", "호텔"),
+            tuple("HOTEL_NIGHT_MANAGER", "Clara", "호텔 야간 매니저", "호텔"),
+            tuple("SHOP_PHARMACIST", "Hannah", "약사", "드럭스토어"),
+            tuple("SHOP_NIGHT_CLERK", "Samuel", "드럭스토어 직원", "드럭스토어"),
+            tuple("TOWN_RETIREE", "Ruby", "행인", "마을"),
+            tuple("TOWN_STUDENT", "Ethan", "행인", "마을"),
+            tuple("TOWN_EVENING_WALKER", "Maya", "행인", "마을"),
+            tuple("CAFE_SERVER", "Leo", "카페 직원", "모퉁이 카페"),
+            tuple("HOTEL_CONCIERGE", "Walter", "컨시어지", "호텔"),
+            tuple("HOTEL_BELLHOP", "Diego", "벨보이", "호텔"),
+            tuple("TOWN_SHOPPER", "Helen", "행인", "마을"),
+            tuple("TOWN_HANDYMAN", "Frank", "행인", "마을"),
+            tuple("POLICE_SERGEANT", "Victor", "경사", "마을"),
+            tuple("POLICE_PATROL_OFFICER", "Kevin", "경찰관", "마을"),
+            tuple("POLICE_ROOKIE", "Tyler", "신입 경찰관", "마을"),
+            tuple("FIRE_CAPTAIN", "Ray", "소방대장", "마을"),
+            tuple("FIRE_FIGHTER", "Rachel", "소방관", "마을"),
+            tuple("FIRE_ROOKIE", "Andre", "신입 소방관", "마을"),
+            tuple("TOWN_GRANDFATHER", "Arthur", "행인", "마을"),
+            tuple("TOWN_GRANDMOTHER", "Margaret", "행인", "마을"));
   }
 
   @Test

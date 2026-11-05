@@ -30,7 +30,7 @@ Maintainer도 `main`·`dev`에 직접 Push하지 않습니다. 브랜치 생성�
 
 Unity 관련 MR은 `unity:format`과 `unity:editor-tests`가 [바뀐 영역에 맞춰 실행하는 EditMode·PlayMode](ci-runner.md#unity-테스트-범위)까지 필수입니다. 실행 작업의 실패를 허용하거나 수동 선택으로 바꾸지 않습니다. Runner가 작업을 받지 못해 대기 중인 경우에도 병합을 허용하지 않으며 [Windows Runner 연결 조건](unity/windows-runner.md)을 먼저 해결합니다. MR의 성공 결과로 dev 병합 후 통합 검사·빌드·배포를 생략하지 않습니다.
 
-병합 방식·리뷰·논의 해결·squash·브랜치 삭제는 [협업 규칙의 병합 조건과 방식](development.md#병합-조건과-방식)에서 관리합니다. GitLab Free에서 필수 승인을 강제하지 못하더라도 팀의 리뷰 기준은 유지합니다.
+병합 방식·리뷰·논의 해결·squash·브랜치 삭제는 [협업 규칙의 병합 조건과 방식](development.md#병합-조건과-방식)에서 관리합니다. Reviewer 지정과 리뷰는 선택 사항이며, 필수 리뷰 인원은 두지 않습니다.
 
 ## 작업 추적
 

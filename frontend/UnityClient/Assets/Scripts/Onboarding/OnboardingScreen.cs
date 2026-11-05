@@ -18,6 +18,7 @@ namespace A305.Onboarding
     public class OnboardingScreen : MonoBehaviour
     {
         private const string LoginErrorQuery = "loginError=true";
+        private const string ExistingAccountQuery = "existingAccount=true";
         private const string CheckingMessage = "접속 상태를 확인하고 있어요.";
         private const string WaitingMessage = "잠시만 기다려 주세요...";
 
@@ -41,6 +42,10 @@ namespace A305.Onboarding
         private GuestPanelView guestPanel;
 
         [SerializeField]
+        [Tooltip("가입의 첫 단계: 약관 동의")]
+        private TermsPanelView termsPanel;
+
+        [SerializeField]
         private SignupPanelView signupPanel;
 
         [SerializeField]
@@ -54,6 +59,12 @@ namespace A305.Onboarding
 
         [SerializeField]
         private ConnectionPanelView connectionPanel;
+
+        [SerializeField]
+        [Tooltip(
+            "게스트로 다시 접속했거나 이미 가입한 계정으로 들어왔을 때 게임에 들어가기 전에 보이는 화면"
+        )]
+        private GuestReturnPanelView guestReturnPanel;
 
         private IOnboardingApi api;
         private OnboardingFlow flow;
@@ -70,13 +81,19 @@ namespace A305.Onboarding
 
         private void Start()
         {
-            Run(flow.StartAsync, CheckingMessage);
+            Run(() => flow.StartAsync(CameFromExistingAccount()), CheckingMessage);
         }
 
         private void ConnectPanels()
         {
-            connectionPanel.RetryRequested += () => Run(flow.StartAsync, CheckingMessage);
+            connectionPanel.RetryRequested += () => Run(() => flow.StartAsync(), CheckingMessage);
             loginPanel.GoogleLoginRequested += () => BrowserRedirect.GoTo(api.GoogleLoginUrl);
+            guestReturnPanel.SignupRequested += () => BrowserRedirect.GoTo(api.GoogleLoginUrl);
+            guestReturnPanel.ContinueRequested += () =>
+            {
+                flow.ContinueToGame();
+                Render();
+            };
             loginPanel.GuestLoginRequested += () =>
             {
                 flow.ChooseGuest();
@@ -101,12 +118,24 @@ namespace A305.Onboarding
                 Render();
             };
 
+            termsPanel.AllAgreeChanged += agreed => EditTerms(form => form.AgreeAll(agreed));
+            termsPanel.ConsentChanged += (consentType, agreed) =>
+                EditTerms(form => form.SetAgreed(consentType, agreed));
+            termsPanel.DocumentRequested += Application.OpenURL;
+            termsPanel.NextRequested += () =>
+            {
+                flow.ContinueToProfile();
+                Render();
+            };
+
             signupPanel.NicknameChanged += nickname =>
                 EditSignup(form => form.ChangeNickname(nickname));
             signupPanel.AvatarSelected += avatar => EditSignup(form => form.SelectAvatar(avatar));
-            signupPanel.ConsentChanged += (consentType, agreed) =>
-                EditSignup(form => form.SetAgreed(consentType, agreed));
-            signupPanel.ConsentDocumentRequested += Application.OpenURL;
+            signupPanel.BackRequested += () =>
+            {
+                flow.BackToTerms();
+                Render();
+            };
             signupPanel.CheckNicknameRequested += () => Run(flow.CheckNicknameAsync);
             signupPanel.SubmitRequested += () => Run(flow.SubmitSignupAsync);
 
@@ -137,6 +166,12 @@ namespace A305.Onboarding
         {
             edit(flow.SignupForm);
             signupPanel.Show(flow.SignupForm);
+        }
+
+        private void EditTerms(Action<SignupForm> edit)
+        {
+            edit(flow.SignupForm);
+            termsPanel.Show(flow.SignupForm);
         }
 
         // 버튼 이벤트에서 부르므로 async void로 두고, 서버 오류가 아닌 예외는 로그로 남긴다.
@@ -198,6 +233,10 @@ namespace A305.Onboarding
                     ShowOnly(guestPanel.gameObject);
                     ShowGuestPanel();
                     break;
+                case EntryScreen.Terms:
+                    ShowOnly(termsPanel.gameObject);
+                    termsPanel.Show(flow.SignupForm);
+                    break;
                 case EntryScreen.Signup:
                     ShowOnly(signupPanel.gameObject);
                     signupPanel.Show(flow.SignupForm);
@@ -216,14 +255,24 @@ namespace A305.Onboarding
                 case EntryScreen.ConnectionFailed:
                     ShowOnly(connectionPanel.gameObject);
                     break;
+                case EntryScreen.GuestReturn:
+                    ShowOnly(guestReturnPanel.gameObject);
+                    guestReturnPanel.ShowGuestReturn(LoginNotice());
+                    break;
+                case EntryScreen.ExistingAccount:
+                    ShowOnly(guestReturnPanel.gameObject);
+                    guestReturnPanel.ShowExistingAccount();
+                    break;
             }
         }
 
         private void ShowOnly(GameObject panel)
         {
             connectionPanel.gameObject.SetActive(connectionPanel.gameObject == panel);
+            guestReturnPanel.gameObject.SetActive(guestReturnPanel.gameObject == panel);
             loginPanel.gameObject.SetActive(loginPanel.gameObject == panel);
             guestPanel.gameObject.SetActive(guestPanel.gameObject == panel);
+            termsPanel.gameObject.SetActive(termsPanel.gameObject == panel);
             signupPanel.gameObject.SetActive(signupPanel.gameObject == panel);
             languagePanel.gameObject.SetActive(languagePanel.gameObject == panel);
             levelTestPanel.gameObject.SetActive(levelTestPanel.gameObject == panel);
@@ -236,6 +285,12 @@ namespace A305.Onboarding
             return Application.absoluteURL.Contains(LoginErrorQuery)
                 ? "로그인하지 못했어요. 다시 시도해 주세요."
                 : "";
+        }
+
+        // 게스트 세션에서 이미 가입한 Google 계정으로 로그인하면 서버가 ?existingAccount=true를 붙여 돌려보낸다(AUTH-02).
+        private static bool CameFromExistingAccount()
+        {
+            return Application.absoluteURL.Contains(ExistingAccountQuery);
         }
     }
 }

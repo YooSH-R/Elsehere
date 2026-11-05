@@ -4,7 +4,9 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
+        "A305.Api",
         "A305.Learning",
+        "A305.Dialogue",
         "A305.World",
         "A305.Tutorial",
         "Unity.TextMeshPro",

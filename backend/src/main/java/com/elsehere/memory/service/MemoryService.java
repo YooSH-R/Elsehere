@@ -200,6 +200,9 @@ public class MemoryService {
     if (conversation.getEndReason() == ConversationEndReason.RUDE) {
       return "The NPC ended the conversation because the learner kept being rude.";
     }
+    if (conversation.getEndReason() == ConversationEndReason.NPC_ENDED) {
+      return "The NPC wrapped up the conversation after the business was done or the learner said goodbye.";
+    }
     return "The NPC ended the conversation.";
   }
 

@@ -109,6 +109,28 @@ namespace A305.Npc.PlayModeTests
             Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Offering));
         }
 
+        // 퀘스트가 Ben을 붙잡아 두면(비 오는 거리 단계) 생활하지 않고 정한 자리에서 기다리고, 그날 이미 말을 걸었어도 다가와 제안한다.
+        [UnityTest]
+        public IEnumerator BenHeldForTheQuest_WaitsAtTheSpot_AndOffersEvenAfterOfferingToday()
+        {
+            PasserbyOfferRecord.Save(BenCode, System.DateTime.Today);
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
+            Passerby ben = FindPasserby(BenCode);
+            var spot = new Pose(new Vector3(-3.8f, .12f, -10.3f), Quaternion.Euler(0f, 270f, 0f));
+
+            ben.WaitAt(spot);
+            Vector3 offset = ben.transform.position - spot.position;
+            offset.y = 0f;
+            Assert.That(offset.magnitude, Is.LessThan(.1f), "카페 앞 자리로 옮겨 기다립니다.");
+            // 카페에서 나와 선 자리
+            Single<PlayerMover>()
+                .Teleport(new Vector3(-5.95f, .1f, -11f), Quaternion.Euler(0f, 90f, 0f));
+
+            PasserbyOfferView offer = Single<PasserbyOfferView>();
+            yield return WaitUntil(() => offer.IsShownBy(ben));
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Offering));
+        }
+
         [UnityTest]
         public IEnumerator ApproachingBen_AnimatesLegs_AndStopsWhenOffering()
         {
@@ -282,9 +304,10 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator GuestUsedAllConversations_PasserbyDoesNotApproach_AndTalkButtonSaysWhy()
+        public IEnumerator GuestUsedAllConversations_PasserbyDoesNotApproach_AndTalkButtonOffersSignup()
         {
-            // 새 대화를 시작할 수 없으면 행인은 먼저 다가오지 않고(기능 명세 F-39), [말 걸기] 자리에 이유를 보인다.
+            // 새 대화를 시작할 수 없으면 행인은 먼저 다가오지 않고(기능 명세 F-39), [말 걸기] 자리에 이유와 가입 버튼을 보인다.
+            // 누르면 대화 대신 가입 안내 창을 연다(S15P31A305-578).
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 0));
             Passerby passerby = FindPasserby(BenCode);
@@ -298,14 +321,15 @@ namespace A305.Npc.PlayModeTests
             StandNear(BenCode, 1.5f);
             yield return WaitUntil(() => offer.IsTalkPromptShowing);
 
-            Assert.That(offer.IsTalkBlocked, Is.True);
-            Assert.That(offer.TalkLabelText, Is.EqualTo("게스트 대화를 모두 썼어요"));
+            Assert.That(offer.IsSignupPromptShowing, Is.True);
+            Assert.That(offer.TalkLabelText, Is.EqualTo("가입하고 계속 대화하기"));
+            Assert.That(offer.TalkRemainingText, Is.EqualTo("게스트 대화를 모두 썼어요"));
             Button talk = offer
                 .GetComponentsInChildren<Button>(true)
                 .Single(candidate => candidate.name == "TalkButton");
-            Assert.That(talk.interactable, Is.False);
             talk.onClick.Invoke();
             yield return null;
+            Assert.That(Single<GuestSignupDialogView>().IsVisible, Is.True);
             Assert.That(Single<DialogueController>().IsTalking, Is.False);
         }
 

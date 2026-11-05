@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.elsehere.auth.service.ConsentCatalog;
+import com.elsehere.auth.service.ConvertingGuest;
 import com.elsehere.auth.service.PendingSignup;
 import com.elsehere.auth.service.SignupService;
 import com.elsehere.common.auth.CsrfHeaderFilter;
@@ -23,6 +24,7 @@ import com.elsehere.user.entity.AvatarType;
 import com.elsehere.user.entity.OnboardingStep;
 import com.elsehere.user.entity.UiTheme;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -164,6 +166,40 @@ class SignupControllerTest {
         .perform(signUpRequest(new MockHttpSession()))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
+  }
+
+  @Test
+  @DisplayName("게스트가 가입하는 중이면 가입 화면에 게스트 때 고른 캐릭터와 음성 처리 동의를 담는다")
+  void convertingGuest_signupFormIncludesGuest() throws Exception {
+    given(signupService.findConvertingGuest(any()))
+        .willReturn(Optional.of(new ConvertingGuest(AvatarType.M, true)));
+
+    mockMvc
+        .perform(get("/api/v1/auth/signup").session(pendingSession()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.guest.avatarType").value("M"))
+        .andExpect(jsonPath("$.guest.voiceConsent").value(true));
+  }
+
+  @Test
+  @DisplayName("게스트가 아니면 가입 화면에 게스트 정보를 담지 않는다")
+  void notConvertingGuest_signupFormHasNoGuest() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/auth/signup").session(pendingSession()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.guest").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("게스트 세션(2시간)에서 가입하면 세션 유지 시간을 회원 기준(24시간)으로 늘린다")
+  void signUp_fromGuestSession_lastsLikeMember() throws Exception {
+    given(signupService.signUp(any(), any())).willReturn(SIGNED_UP_USER);
+    MockHttpSession session = pendingSession();
+    session.setMaxInactiveInterval(2 * 60 * 60);
+
+    mockMvc.perform(signUpRequest(session)).andExpect(status().isCreated());
+
+    assertThat(session.getMaxInactiveInterval()).isEqualTo(24 * 60 * 60);
   }
 
   private static MockHttpServletRequestBuilder signUpRequest(MockHttpSession session) {

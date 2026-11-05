@@ -6,6 +6,7 @@ namespace A305.Mission
     /// <summary>
     /// 왼쪽 아래 미니맵. 둥근 창 안에서 마을 지도 그림을 움직여 내 위치가 가운데 오게 하고,
     /// 그 위에 내 위치 화살표와 지금 가야 할 장소 테두리를 얹는다. 좌표는 <see cref="TownMapArt"/>를 따른다.
+    /// 큰 지도도 같은 화면을 쓴다. 창이 지도 그림 전체 크기라 그림은 움직이지 않고 표시만 따라간다.
     /// 끌면 지도가 커서를 따라 움직여 주변을 둘러볼 수 있고(<see cref="MiniMapPan"/>), 끌고 놓았을 때는 큰 지도를 열지 않는다.
     /// </summary>
     public sealed class TownMiniMapView

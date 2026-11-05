@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.ObjectHover;
@@ -27,19 +28,62 @@ namespace A305.Learning
             this.api = api;
         }
 
+        /// <summary>외운 단어까지 모두 담은 단어장. 외웠어요는 기록을 지우지 않는다.</summary>
         public IReadOnlyList<VocabularyEntry> Entries => entries;
+
+        /// <summary>[외운 표현도 보기]를 켰는지. 끄면 외운 단어를 목록에서 정리한다(기능 명세 F-35).</summary>
+        public bool ShowsLearned { get; set; }
+
+        /// <summary>단어장 화면 목록에 보일 단어. 알파벳순이 아니면 서버가 준 최근 저장순이다.</summary>
+        public IReadOnlyList<VocabularyEntry> ShownEntries
+        {
+            get
+            {
+                IEnumerable<VocabularyEntry> shown = ShowsLearned
+                    ? entries
+                    : entries.Where(entry => !entry.IsLearned);
+                if (SortsAlphabetically)
+                    shown = shown.OrderBy(entry => entry.English, StringComparer.OrdinalIgnoreCase);
+                return shown.ToList();
+            }
+        }
+
+        /// <summary>목록을 알파벳순으로 볼지. 같은 글자로 시작하는 단어가 한 묶음이 된다.</summary>
+        public bool SortsAlphabetically { get; set; }
+
+        /// <summary>목록에 보이는 단어 중 그 글자로 시작하는 첫 단어의 자리(대소문자 무관). 없으면 -1.</summary>
+        public int IndexOfFirstWordStartingWith(char letter)
+        {
+            IReadOnlyList<VocabularyEntry> shown = ShownEntries;
+            for (int i = 0; i < shown.Count; i++)
+            {
+                string english = shown[i].English;
+                if (
+                    !string.IsNullOrEmpty(english)
+                    && char.ToUpperInvariant(english[0]) == char.ToUpperInvariant(letter)
+                )
+                    return i;
+            }
+
+            return -1;
+        }
 
         /// <summary>
         /// 화면이 보여 줄 상태. 보여 줄 단어가 있으면 다시 읽는 중이거나 다시 읽지 못했어도 그 단어를 보인다.
-        /// 단어가 없으면 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.
+        /// 단어가 없으면 모두 외워 정리했는지, 읽는 중, 처음 읽기 실패, 빈 목록을 구분한다.
         /// </summary>
         public VocabularyListState ListState
         {
             get
             {
-                if (entries.Count > 0)
+                if (ShownEntries.Count > 0)
                 {
                     return VocabularyListState.Entries;
+                }
+
+                if (entries.Count > 0)
+                {
+                    return VocabularyListState.AllLearned;
                 }
 
                 if (isLoading)
@@ -98,7 +142,16 @@ namespace A305.Learning
             entries.AddRange(loaded);
             isLoaded = true;
             LastFailureMessage = null;
+            ShareLearnedWords();
             return true;
+        }
+
+        // 외운 단어는 장소의 사물 카드도 호버로 띄우지 않으므로, 외운 단어가 바뀔 때마다 사물 카드에 알린다.
+        private void ShareLearnedWords()
+        {
+            ObjectWordCards.ShareLearnedWords(
+                entries.FindAll(entry => entry.IsLearned).ConvertAll(entry => entry.English)
+            );
         }
 
         /// <summary>대화 중 NPC 대사의 풀이 단어를 저장한다(VOCAB-02 NPC_LINE).</summary>
@@ -156,6 +209,7 @@ namespace A305.Learning
             }
 
             LastFailureMessage = null;
+            ShareLearnedWords();
             return true;
         }
 
@@ -196,6 +250,7 @@ namespace A305.Learning
             entries.Remove(entry);
             LastFailureMessage = null;
             ObjectWordCards.NotifySavedWordRemoved(entry.English);
+            ShareLearnedWords();
             return true;
         }
 

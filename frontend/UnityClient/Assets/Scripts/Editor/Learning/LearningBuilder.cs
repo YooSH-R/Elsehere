@@ -49,6 +49,12 @@ namespace A305.EditorTools.Learning
         // 로그인이 풀렸다는 안내는 대화창·단어장과 가장 위에 그리는 수첩(1000)보다도 위에 둔다.
         private const int SessionExpiredSortingOrder = 2000;
 
+        // 설문 카드는 가입 안내 창 같은 덮개(대화 제안 화면 110)와 수첩(1000) 위, 로그인 끊김 안내 아래에 둔다.
+        private const int SurveyPromptSortingOrder = 1500;
+
+        // 화면 위 가장자리에서 카드까지의 여백
+        private const float SurveyPromptTopMargin = 24f;
+
         private const string FeedbackListTitle = "피드백 목록";
 
         private const float ControlsGuideWidth = 460f;
@@ -237,8 +243,9 @@ namespace A305.EditorTools.Learning
                 Color.white
             );
             RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(panel, "Buttons");
+            Transform savedButton = panel.Find("PageCard/BodyTile/SaveButton");
             Button saveButton = UiBuilderTools.FindOrCreateButton(
-                buttons,
+                savedButton != null ? savedButton.parent : buttons,
                 "SaveButton",
                 "표현 저장",
                 bold,
@@ -378,6 +385,84 @@ namespace A305.EditorTools.Learning
                 "HomeButton"
             );
             SetUpSessionExpired(root, bold, regular);
+            SetUpSurveyPrompt(root, bold, regular);
+        }
+
+        /// <summary>HUD 프리팹 루트에 설문 카드만 덧붙인다. HUD의 다른 구성은 건드리지 않는다.</summary>
+        public static void AddSurveyPrompt(GameObject hud) =>
+            SetUpSurveyPrompt(hud, UiBuilderTools.BoldFont(), UiBuilderTools.RegularFont());
+
+        /// <summary>
+        /// 설문을 권할 때 화면 위 가운데에서 내려오는 설문 카드. 화면을 덮지 않는 층(바탕 없음)에 따로 높은 순서의 캔버스를 두어 다른 창의 덮개 위에서도
+        /// 누를 수 있게 한다. 없는 요소만 만들고 디자인은 유지한다.
+        /// </summary>
+        private static void SetUpSurveyPrompt(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            Transform existing = root.transform.Find("SurveyPrompt");
+            RectTransform layer;
+            if (existing != null)
+            {
+                layer = (RectTransform)existing;
+            }
+            else
+            {
+                layer = (RectTransform)
+                    new GameObject("SurveyPrompt", typeof(RectTransform)).transform;
+                layer.SetParent(root.transform, false);
+                layer.anchorMin = Vector2.zero;
+                layer.anchorMax = Vector2.one;
+                layer.offsetMin = Vector2.zero;
+                layer.offsetMax = Vector2.zero;
+            }
+            layer.SetAsLastSibling();
+            var canvas = BuilderTools.GetOrAddComponent<Canvas>(layer.gameObject);
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = SurveyPromptSortingOrder;
+            BuilderTools.GetOrAddComponent<GraphicRaycaster>(layer.gameObject);
+            var view = BuilderTools.GetOrAddComponent<SurveyPromptView>(layer.gameObject);
+
+            RectTransform card = UiBuilderTools.FindOrCreateAnchoredPanel(
+                layer,
+                "Card",
+                new Vector2(0.5f, 1f),
+                600f,
+                new Vector2(0f, -SurveyPromptTopMargin)
+            );
+            UiBuilderTools.FindOrCreateText(
+                card,
+                "Title",
+                bold,
+                26f,
+                Color.white,
+                SurveyPromptView.Title
+            );
+            UiBuilderTools.FindOrCreateText(
+                card,
+                "Body",
+                regular,
+                20f,
+                SubTextColor,
+                SurveyPromptView.Body
+            );
+            RectTransform buttons = UiBuilderTools.FindOrCreateButtonRow(card, "Buttons");
+            Button open = UiBuilderTools.FindOrCreateButton(
+                buttons,
+                "OpenButton",
+                SurveyPromptView.OpenLabel,
+                bold,
+                240f
+            );
+            Button close = UiBuilderTools.FindOrCreateButton(buttons, "CloseButton", "닫기", bold);
+
+            BuilderTools.SetReference(view, "card", card);
+            BuilderTools.SetReference(view, "openButton", open);
+            BuilderTools.SetReference(view, "closeButton", close);
+            BuilderTools.RequireReferences(view);
+            card.gameObject.SetActive(false);
         }
 
         /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
+using A305.Npc;
 using A305.Player;
 using A305.Weather;
 using UnityEngine;
@@ -35,7 +36,12 @@ namespace A305.Mission
         private bool busy;
         private bool refreshPending;
         private RestSeat[] cafeSeats;
+        private QuestNpcWaitSpot[] waitSpots;
         private UmbrellaHold umbrella;
+
+        // 끝낸 퀘스트의 팡파레. 대화가 끝나면 띄운다.
+        private QuestBoardState finishedBoard;
+        private string finishedQuest;
 
         public void SetAvailable(bool available) => view.SetAvailable(available);
 
@@ -53,8 +59,13 @@ namespace A305.Mission
                 : Array.Empty<RestSeat>();
             foreach (RestSeat seat in cafeSeats)
                 seat.RestCompleted += Rest;
+            waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
+            // 기다리는 카드의 X로 닫은 것을 서버에 알린다.
+            var followUps = view.GetComponent<FollowUpCardView>();
+            if (followUps != null)
+                followUps.Bind(new FollowUpApi(apiSettings.CreateClient()));
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
@@ -93,7 +104,11 @@ namespace A305.Mission
 
         private void OnStarted(string npcCode) => Render();
 
-        private void OnEnded(string npcCode) => RequestRefresh();
+        private void OnEnded(string npcCode)
+        {
+            RequestRefresh();
+            ShowFinishedQuest();
+        }
 
         private void StartMission() =>
             _ = ExecuteAsync(() =>
@@ -150,6 +165,39 @@ namespace A305.Mission
             }
         }
 
+        // 퀘스트 목록에서 끝낸 퀘스트와 열린 다음 퀘스트를 읽어 팡파레를 준비한다. 대화 중이면 대화가 끝난 뒤 띄운다.
+        private async Task CelebrateAsync(string quest)
+        {
+            try
+            {
+                QuestBoardState board = await api.GetQuestBoardAsync();
+                if (this == null)
+                    return;
+                finishedBoard = board;
+                finishedQuest = quest;
+                if (!dialogue.IsTalking)
+                    ShowFinishedQuest();
+            }
+            // 목록을 읽지 못하면 팡파레 없이 코인만 보인다.
+            catch (Exception exception)
+            {
+                if (this == null)
+                    return;
+                if (!(exception is ApiException))
+                    Debug.LogException(exception, this);
+                view.ReleaseQuestReward();
+            }
+        }
+
+        private void ShowFinishedQuest()
+        {
+            if (finishedQuest == null)
+                return;
+            view.ShowQuestComplete(finishedBoard, finishedQuest);
+            finishedQuest = null;
+            finishedBoard = null;
+        }
+
         private async Task ExecuteAsync(Func<Task<FirstDayMissionState>> action)
         {
             if (busy || api == null)
@@ -161,7 +209,16 @@ namespace A305.Mission
                 FirstDayMissionState response = await action();
                 if (this == null)
                     return;
+                string finished = response.QuestFinishedSince(state);
                 state = response;
+                // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
+                NpcDuty.MissionNpcCode = state.CurrentNpcCode;
+                if (finished != null)
+                {
+                    // 보상은 팡파레와 함께 더한다.
+                    view.ExpectQuestReward();
+                    _ = CelebrateAsync(finished);
+                }
                 view.ShowMessage("");
                 if (weather != null)
                     weather.Show(state.Weather, state.FallbackWeather);
@@ -202,7 +259,15 @@ namespace A305.Mission
         private void Render()
         {
             if (state != null)
+            {
                 view.Refresh(state, busy, dialogue.IsTalking);
+                // 지금 단계에서 만나야 하는 행인을 정한 자리에서 기다리게 한다.
+                foreach (QuestNpcWaitSpot spot in waitSpots)
+                {
+                    if (spot != null)
+                        spot.Apply(state);
+                }
+            }
             if (cafeSeats == null)
                 return;
             bool canSit = state != null && state.CanSitInCafe(sceneCode, busy, dialogue.IsTalking);

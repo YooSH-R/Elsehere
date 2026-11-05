@@ -13,7 +13,7 @@ Unity 클라이언트는 `frontend/UnityClient`에서 관리하며 WebGL 기반 
 | 스크립트 | C# |
 | 시작 Scene | `Assets/Scenes/Production/HomeScene.unity` |
 
-Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR 리뷰를 거쳐 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다.
+Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Packages/manifest.json`과 `Packages/packages-lock.json`을 기준으로 맞춥니다. 버전 변경은 호환성을 검증하고 MR에 변경 내용을 기록해 공유합니다. 모바일 화면은 아래 반응형 Web 템플릿으로 대응하며, 모바일 터치 조작과 대상 브라우저의 기능 지원 범위는 별도로 검증합니다.
 
 ## 설치와 프로젝트 열기
 
@@ -28,7 +28,7 @@ Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Pack
 
 ## 실행과 Web 빌드
 
-Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소를 오갈 수 있습니다. 조작은 [Player 모듈](../../frontend/UnityClient/Assets/Scripts/Player/README.md), 공간과 출입구는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md)을 따릅니다. 개발 환경 확인용 샘플 `Assets/Scenes/SampleScene`(`DemoCube` 회전)은 Scene List에 넣지 않습니다.
+Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소를 오갈 수 있습니다. 영업시간이 아닌 장소는 문이 열리지 않습니다. 조작은 [Player 모듈](../../frontend/UnityClient/Assets/Scripts/Player/README.md), 공간과 출입구는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md)을 따릅니다. 개발 환경 확인용 샘플 `Assets/Scenes/SampleScene`(`DemoCube` 회전)은 Scene List에 넣지 않습니다.
 
 1. Scene과 프리팹 변경을 저장하고 Console에 컴파일 오류가 없는지 확인합니다.
 2. **File → Build Profiles → Platforms → Web**을 선택하고 **Switch Platform**으로 전환합니다. 사용자 정의 Web 프로파일에서는 **Switch Profile**을 사용합니다.
@@ -57,6 +57,7 @@ Web 실행은 `Application.targetFrameRate`의 기본값 `-1`을 유지해 브�
 - **Player Settings → Web → Resolution and Presentation → Web Template**에서 `A305Responsive`를 선택합니다. **Tools → A305 → Web → Configure Responsive Template**으로도 적용할 수 있습니다.
 - **Tools → A305 → Web → Build**는 이 템플릿을 적용하고 현재 Scene List의 활성 씬을 `Builds/Web`으로 빌드합니다. 먼저 Build Profiles에서 Web을 활성 플랫폼으로 전환합니다. 같은 프로젝트가 Editor에 열려 있지 않으면 아래 명령을 사용하며, 새 환경에서도 Web용 렌더링 설정이 포함되도록 `-buildTarget WebGL`을 명시합니다.
 - 템플릿을 수정한 뒤에는 다시 빌드합니다. `Builds/Web`의 HTML·CSS는 생성 결과이므로 직접 수정하지 않습니다.
+- 브라우저 확장 프로그램 스크립트(`chrome-extension://`, `moz-extension://`, `safari-web-extension://`)에서 난 오류는 Unity 로더에 넘기지 않습니다. MetaMask처럼 페이지에 스크립트를 넣는 확장 프로그램의 오류가 로딩 실패나 Unity 오류 창으로 뜨지 않게 하기 위해서이며, 오류는 브라우저 콘솔에 그대로 남습니다. 게임 빌드에서 났거나 어디서 났는지 알 수 없는 오류는 지금처럼 Unity 로더가 알립니다. 저장소 최상위에서 `node --test infra/tests/webgl_extension_errors.test.cjs`로 검증합니다.
 - 모바일의 세로·가로 전환, 주소창 표시·숨김, 노치 영역, 로딩·오류 메시지와 게임 UI 가장자리의 잘림을 실제 기기에서 확인합니다. 모바일에서는 왼쪽 아래 조이스틱으로 이동하고 오른쪽 빈 영역을 드래그해 시점을 돌립니다. 두 손가락 동시 조작과 앱 전환·화면 회전 후 입력이 멈추는지도 확인합니다. PC의 키보드·마우스 조작은 그대로 사용할 수 있습니다.
 
 ### 웹 이용 통계

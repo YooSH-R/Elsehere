@@ -29,6 +29,7 @@ import com.elsehere.mission.repository.TownStoryRepository;
 import com.elsehere.mission.service.FirstDayMissionService;
 import com.elsehere.mission.service.MissionDialogueService;
 import com.elsehere.mission.service.TownStoryService;
+import com.elsehere.world.repository.NpcRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -48,7 +49,9 @@ class TownStoryTurnTest {
     when(stories.findById(8L)).thenReturn(Optional.of(story));
     when(stories.findForUpdate(8L)).thenReturn(Optional.of(story));
     var firstDay = mock(FirstDayMissionService.class);
-    var town = new TownStoryService(stories, mock(FirstDayMissionRepository.class));
+    var town =
+        new TownStoryService(
+            stories, mock(FirstDayMissionRepository.class), mock(NpcRepository.class));
     var missions = new MissionDialogueService(firstDay, town);
     TurnRepository turns = mock(TurnRepository.class);
     when(turns.findByRequestId(any())).thenReturn(Optional.empty());
@@ -58,7 +61,7 @@ class TownStoryTurnTest {
         .thenReturn(Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH));
     DialogueContexts contexts = mock(DialogueContexts.class);
     WorkerNpc npc = new WorkerNpc("DINER_STAFF", "Rosa", "server", "", "diner", "voice", 1);
-    when(contexts.npcById(1L))
+    when(contexts.npcOf(any()))
         .thenReturn(
             new NpcContext(
                 1L,

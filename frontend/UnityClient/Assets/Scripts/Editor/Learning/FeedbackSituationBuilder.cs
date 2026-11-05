@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace A305.EditorTools.Learning
 {
     /// <summary>
-    /// 피드백 요약 탭 위쪽에 '이 상황에서 자주 써요' 표현 줄 묶음과 복사해 쓸 표현 줄 원본을 만든다.
+    /// 피드백 회화 표현 탭에 '이 상황에서 자주 써요' 표현 줄 묶음과 복사해 쓸 표현 줄 원본을 만든다.
     /// 표현 줄은 영어 표현·뜻, 쓰는 상황, [+ 담기]로 이루어진다. 없는 요소만 만들고 디자인은 유지한다.
     /// </summary>
     public static class FeedbackSituationBuilder

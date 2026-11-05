@@ -11,18 +11,61 @@ import com.elsehere.conversation.repository.ConversationRepository;
 import com.elsehere.mission.entity.FirstDayMission;
 import com.elsehere.mission.entity.FirstDayStage;
 import com.elsehere.mission.repository.FirstDayMissionRepository;
+import com.elsehere.user.entity.AuthProvider;
+import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
+import com.elsehere.world.entity.Npc;
+import com.elsehere.world.repository.NpcRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 class FirstDayMissionServiceTest {
+  private static final Map<String, String> NAMES =
+      Map.of(
+          "HOTEL_STAFF", "Jake", "CAFE_STAFF", "Mia", "TOWN_PASSERBY", "Ben", "SHOP_STAFF", "Alex");
+
   private final FirstDayMissionRepository repository = mock(FirstDayMissionRepository.class);
+  private final UserRepository users = mock(UserRepository.class);
+  private final NpcRepository npcs = mock(NpcRepository.class);
   private final FirstDayMissionService service =
-      new FirstDayMissionService(
-          repository, mock(ConversationRepository.class), mock(UserRepository.class));
+      new FirstDayMissionService(repository, mock(ConversationRepository.class), users, npcs);
+
+  @BeforeEach
+  void nameTheMissionNpcs() {
+    NAMES.forEach(
+        (code, name) -> {
+          Npc npc = mock(Npc.class);
+          when(npc.getName()).thenReturn(name);
+          when(npcs.findByCode(code)).thenReturn(Optional.of(npc));
+        });
+  }
+
+  // 지금 단계 담당이 아닌 NPC에게 물으면 모른다고 하지 않고 지금 만날 NPC와 장소를 알려 준다.
+  @Test
+  void otherNpcsSendTheLearnerToBenOnTheMainStreet() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.RAINY_STREET)));
+
+    FirstDayMissionService.Context context = service.context(8L, "CAFE_STAFF").orElseThrow();
+
+    assertThat(context.instruction())
+        .contains("the main street", "talk to Ben", "instead of saying you do not know");
+  }
+
+  // 다른 장소에 있으면 퀘스트 카드가 갈 곳과 만날 사람을 함께 알린다.
+  @Test
+  void awayFromTheStepPlaceTheCardSaysWhereAndWhoToMeet() {
+    FirstDayMission mission = missionAt(FirstDayStage.RAINY_STREET);
+    mission.visit("CAFE");
+    when(repository.findById(8L)).thenReturn(Optional.of(mission));
+
+    assertThat(service.status(8L).direction()).isEqualTo("마을 거리로 이동하세요.");
+    assertThat(service.status(8L).situation()).isEqualTo("마을 거리에서 행인 Ben에게 물어보세요.");
+  }
 
   @Test
   void statusKeepsStoredObjectivesAndRejectsRestUntilCafeOrderAndLocationAreReady() {
@@ -130,7 +173,28 @@ class FirstDayMissionServiceTest {
             "BARBER_STAFF",
             "BAKERY_STAFF",
             "ARCADE_STAFF",
-            "HOME_STORE_STAFF")) {
+            "HOME_STORE_STAFF",
+            "CAFE_BARISTA",
+            "HOTEL_RECEPTIONIST",
+            "HOTEL_NIGHT_MANAGER",
+            "SHOP_PHARMACIST",
+            "SHOP_NIGHT_CLERK",
+            "TOWN_RETIREE",
+            "TOWN_STUDENT",
+            "TOWN_EVENING_WALKER",
+            "CAFE_SERVER",
+            "HOTEL_CONCIERGE",
+            "HOTEL_BELLHOP",
+            "TOWN_SHOPPER",
+            "TOWN_HANDYMAN",
+            "POLICE_SERGEANT",
+            "POLICE_PATROL_OFFICER",
+            "POLICE_ROOKIE",
+            "FIRE_CAPTAIN",
+            "FIRE_FIGHTER",
+            "FIRE_ROOKIE",
+            "TOWN_GRANDFATHER",
+            "TOWN_GRANDMOTHER")) {
       if (npc.equals(stage.npc())) {
         continue;
       }
@@ -138,7 +202,8 @@ class FirstDayMissionServiceTest {
       assertThat(context.state()).as("%s talking to %s", stage, npc).isNull();
       assertThat(context.instruction())
           .doesNotContain(stage.instruction())
-          .contains("Stay in your own role", "help with directions if asked");
+          .contains("Stay in your own role", "help with directions if asked")
+          .contains("talk to " + NAMES.get(stage.npc()));
       assertThat(context.replyInstruction(new JudgeResult.Intent(null, stage.intentIds(), null)))
           .isEqualTo(context.instruction());
     }
@@ -154,6 +219,26 @@ class FirstDayMissionServiceTest {
     assertThat(context.state().intents())
         .extracting("id")
         .containsExactlyElementsOf(stage.intentIds());
+  }
+
+  // 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 담당 NPC는 남은 목표를 먼저 꺼내거나 권하지 않고,
+  // 학습자가 요청한 뒤 그 요청을 마치는 데 필요한 질문만 한다. 지시문은 AI 워커가 받는 길이 안이어야 한다.
+  @ParameterizedTest
+  @EnumSource(FirstDayStage.class)
+  void ownerLetsTheLearnerBringUpEveryObjective(FirstDayStage stage) {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
+    FirstDayMissionService.Context context = service.context(8L, stage.npc()).orElseThrow();
+
+    String reply = context.replyInstruction(new JudgeResult.Intent(null, List.of(), null));
+
+    assertThat(context.instruction()).contains("Never be the first to bring up");
+    assertThat(reply)
+        .contains("Never be the first to bring up")
+        .doesNotContain("Ask about one of these objectives");
+    // AI 워커는 대답 지시문을 3000자까지 받는다(ai/worker/app/schemas.py ReplyRequest). 넘으면 요청이 거절돼 대화가 '일시적 오류'로
+    // 끊긴다.
+    assertThat(context.instruction().length()).as(stage.name()).isLessThanOrEqualTo(3000);
+    assertThat(reply.length()).as(stage.name()).isLessThanOrEqualTo(3000);
   }
 
   @ParameterizedTest
@@ -212,6 +297,53 @@ class FirstDayMissionServiceTest {
     FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
     assertThat(context.state()).isNull();
     assertThat(context.instruction()).contains("journey is complete", "Do not restart");
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = FirstDayStage.class,
+      names = {"EARLY_ARRIVAL", "CHECK_IN"})
+  void hotelReservationIsUnderTheLearnersNickname(FirstDayStage stage) {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(stage)));
+    signedIn(AuthProvider.GOOGLE, "MinjiKim");
+
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+
+    // 판정(state)과 NPC 대답(instruction) 모두 같은 이름으로 대조한다.
+    assertThat(context.state().desc())
+        .contains(
+            "The reservation is under the name \"MinjiKim\"", "A different name never counts");
+    assertThat(context.instruction())
+        .contains(
+            "The reservation is under the name \"MinjiKim\"", "A different name never counts");
+  }
+
+  @Test
+  void guestHasNoReservationNameToCheck() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.EARLY_ARRIVAL)));
+    signedIn(AuthProvider.GUEST, "guest-000123");
+
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+
+    assertThat(context.state().desc()).doesNotContain("under the name");
+    assertThat(context.instruction()).doesNotContain("under the name");
+  }
+
+  @Test
+  void hotelStagesWithoutReservationGoalDoNotMentionTheReservationName() {
+    when(repository.findById(8L)).thenReturn(Optional.of(missionAt(FirstDayStage.MISSING_BAG)));
+    signedIn(AuthProvider.GOOGLE, "MinjiKim");
+
+    FirstDayMissionService.Context context = service.context(8L, "HOTEL_STAFF").orElseThrow();
+
+    assertThat(context.instruction()).doesNotContain("under the name");
+  }
+
+  private void signedIn(AuthProvider provider, String nickname) {
+    User user = mock(User.class);
+    when(user.getProvider()).thenReturn(provider);
+    when(user.getNickname()).thenReturn(nickname);
+    when(users.findById(8L)).thenReturn(Optional.of(user));
   }
 
   private static FirstDayMission missionAt(FirstDayStage target) {
@@ -291,8 +423,10 @@ class FirstDayMissionServiceTest {
     FirstDayMission mission = missionAt(FirstDayStage.values().length);
     when(repository.findById(8L)).thenReturn(Optional.of(mission));
 
-    // 우산을 사고 남은 12코인에 퀘스트 보상 10코인을 더한다.
-    assertThat(service.status(8L).balance()).isEqualTo(12 + 10);
+    // 100코인에서 카페 음료 4코인과 우산 8코인을 내고, 퀘스트 보상 10코인을 받았다.
+    assertThat(service.status(8L).balance()).isEqualTo(100 - 4 - 8 + 10);
+    assertThat(service.status(8L).lastPurchase()).isEqualTo("우산");
+    assertThat(service.status(8L).quest()).isEqualTo("CHECK_IN");
   }
 
   private static FirstDayMission missionAt(int target) {

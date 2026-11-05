@@ -63,6 +63,45 @@ namespace A305.Mission.Tests
             Assert.That(Text(board, "PinNumber"), Is.EqualTo("3"));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void MissingOrDestroyedStamp_UsesTheDefaultSprite(bool destroySprite)
+        {
+            FirstDayMissionView mission = Create();
+            QuestBoardView board = Field<QuestBoardView>(mission, "questBoard");
+            var fields = new SerializedObject(board);
+            SerializedProperty stamps = fields.FindProperty("placeStamps");
+            var fallback = (Sprite)
+                stamps
+                    .GetArrayElementAtIndex(0)
+                    .FindPropertyRelative("Sprite")
+                    .objectReferenceValue;
+            Sprite cafeStamp = destroySprite
+                ? Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 1, 1), Vector2.zero)
+                : null;
+            stamps.arraySize = 2;
+            SerializedProperty hotel = stamps.GetArrayElementAtIndex(0);
+            hotel.FindPropertyRelative("Place").stringValue = "호텔";
+            hotel.FindPropertyRelative("Sprite").objectReferenceValue = fallback;
+            SerializedProperty cafe = stamps.GetArrayElementAtIndex(1);
+            cafe.FindPropertyRelative("Place").stringValue = "카페";
+            cafe.FindPropertyRelative("Sprite").objectReferenceValue = cafeStamp;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            if (destroySprite)
+                Object.DestroyImmediate(cafeStamp);
+
+            board.Open();
+            board.Show(Board());
+            board.ShowMap(0);
+
+            Image[] shownStamps = Field<RectTransform>(board, "map")
+                .GetComponentsInChildren<Image>()
+                .Where(image => image.name == "Stamp")
+                .ToArray();
+            Assert.That(shownStamps, Has.Length.EqualTo(2));
+            Assert.That(shownStamps.Select(image => image.sprite), Is.All.EqualTo(fallback));
+        }
+
         private static QuestBoardState Board()
         {
             (string place, string scene)[] stops =

@@ -1,9 +1,10 @@
-"""입력(npcId·MBTI·역할·장소)과 재료 파일(ai/npcs/rules/persona-ingredients.json)로 NPC 인격 카드를 만드는 명령.
+"""입력(npcId·MBTI·역할·장소·교대)과 재료 파일(ai/npcs/rules/persona-ingredients.json)로 NPC 인격 카드를 만드는 명령.
 조합 규칙은 AI 워커의 app.npc_persona에 있고(워커 API와 함께 쓴다), 여기서는 파일을 읽고 쓴다. 설계는 docs/npc-life-design.md.
 
-    ai/.venv/Scripts/python ai/tools/npc_generate.py <npcId> <MBTI> <역할> <장소> --out <폴더> [--narrate]
+    ai/.venv/Scripts/python ai/tools/npc_generate.py <npcId> <MBTI> <역할> <장소> <교대> --out <폴더> [--narrate]
 
 <폴더>/<npcId>.json(인격 설정)과 <폴더>/life/<npcId>.json(생활 파일)을 쓴다. 생성 결과는 초안이라 isActive false다.
+생활 파일의 근무지는 장소이고 교대는 공통 규칙(ai/npcs/rules/world-rules.json)의 그 장소 교대 가운데 하나다.
 --narrate를 주면 LLM이 뼈대를 읽고 사연(배경 이야기·겪은 일)만 쓴다(ai/worker/.env의 구성, NPC 대답 모델).
 나머지 칸은 규칙으로 고른 그대로다. 서비스 NPC로 쓰려면 사람이 보고 ai/npcs로 옮긴 뒤 목소리를 정해 켠다.
 """
@@ -46,10 +47,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("npc_id", help="새 NPC의 id. 씨앗으로도 쓴다 (예: GEN_CAFE_01)")
     parser.add_argument("mbti", help="예: INTJ-T")
     parser.add_argument("role", choices=["STAFF", "PASSERBY"])
-    parser.add_argument("place", help="기본 장소 (예: CAFE, HOTEL, TOWN)")
+    parser.add_argument("place", help="기본 장소이자 근무지 (예: CAFE, HOTEL, TOWN)")
+    parser.add_argument("shift", help="근무지에서 맡을 교대. 공통 규칙 places의 그 장소 교대 이름 (예: OPENING)")
     parser.add_argument("--out", type=Path, required=True, help="저장할 폴더. <npcId>.json과 life/<npcId>.json을 쓴다")
     parser.add_argument("--narrate", action="store_true", help="LLM이 사연(배경 이야기·겪은 일)을 쓴다. 없으면 사연은 비워 둔다")
     args = parser.parse_args(argv)
+    # 일과는 근무지의 교대에서 계산하므로, 공통 규칙에 없는 장소나 교대로는 생활 파일을 쓰지 않는다
+    places = json.loads((NPCS / "rules/world-rules.json").read_text(encoding="utf-8"))["places"]
+    if args.place not in places:
+        parser.error(f"공통 규칙 places에 없는 장소 '{args.place}'")
+    if args.shift not in places[args.place]["shifts"]:
+        parser.error(f"{args.place}의 교대는 {', '.join(places[args.place]['shifts'])} 중 하나")
 
     taken = {json.loads(path.read_text(encoding="utf-8"))["npcProfile"]["name"] for path in NPCS.glob("*.json")}
     config, life = generate(args.npc_id, args.role, args.place, load_ingredients(), load_behaviors(), mbti=args.mbti, taken_names=taken)
@@ -57,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         config = asyncio.run(_narrate_with_settings(config))
     (args.out / "life").mkdir(parents=True, exist_ok=True)
     _write_json(args.out / f"{args.npc_id}.json", config)
-    _write_json(args.out / "life" / f"{args.npc_id}.json", life)
+    _write_json(args.out / "life" / f"{args.npc_id}.json", {**life, "workplace": args.place, "shift": args.shift})
     return 0
 
 

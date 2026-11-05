@@ -2,5 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "FLOWER_SHOP_STAFF",
   "mbti": "INFP-T",
-  "role": "STAFF"
+  "role": "STAFF",
+  "workplace": "FLOWER_SHOP",
+  "shift": "ALL_DAY"
 }

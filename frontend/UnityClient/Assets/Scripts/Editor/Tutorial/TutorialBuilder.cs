@@ -117,6 +117,7 @@ namespace A305.EditorTools.Tutorial
                     "suggestedSentenceCaption",
                     "suggestedWordsCaption",
                     "guidedLineMissCaption",
+                    "voiceLightCaption",
                     "dialogueEndCaption",
                     "feedbackSectionsCaption",
                     "feedbackPagesCaption",

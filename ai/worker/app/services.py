@@ -7,7 +7,16 @@ import logging
 from . import npc_relationship
 from . import prompts as P
 from .llm import LLM, ModelOutputError, ProviderError, Usage, within
-from .schemas import HintRequest, JudgeRequest, MeaningRequest, MemoryRequest, RelationshipRequest, State, SuggestRequest
+from .schemas import (
+    FollowUpRequest,
+    HintRequest,
+    JudgeRequest,
+    MeaningRequest,
+    MemoryRequest,
+    RelationshipRequest,
+    State,
+    SuggestRequest,
+)
 
 log = logging.getLogger("ai_worker")
 
@@ -194,6 +203,15 @@ async def memory(llm: LLM, req: MemoryRequest) -> dict:
         hedge=False,
     )
     return {"memory_card": P.parse_memory_card(out), "usage": usage.items}
+
+
+async def follow_up(llm: LLM, req: FollowUpRequest) -> dict:
+    """대화가 끝난 뒤 NPC가 지금 준비해 곧 건네기로 한 것. 없으면 follow_up이 null이다. 실패하면 HTTP 오류이고 Spring은 다시 부르지 않는다."""
+    usage = Usage()
+    out = await llm.chat(
+        "follow_up", "memory", P.follow_up_messages(req.npc, req.history), usage, 0.0, 120, P.FOLLOW_UP_SCHEMA, hedge=False
+    )
+    return {"follow_up": P.parse_follow_up(load_object(out, "건넬 것")), "usage": usage.items}
 
 
 def relationship(req: RelationshipRequest) -> dict:

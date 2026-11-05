@@ -242,6 +242,8 @@ namespace A305.EditorTools.Onboarding
             BuilderTools.SetReference(screen, "messageText", message);
             BuilderTools.SetReference(screen, "loginPanel", SetUpLoginPanel(root, bold, regular));
             BuilderTools.SetReference(screen, "guestPanel", SetUpGuestPanel(root, bold, regular));
+            // 약관 단계가 가입 정보 화면에 있던 약관 줄·음성 안내를 옮겨 가므로 가입 정보 화면보다 먼저 맞춘다.
+            BuilderTools.SetReference(screen, "termsPanel", SetUpTermsPanel(root, bold, regular));
             BuilderTools.SetReference(screen, "signupPanel", SetUpSignupPanel(root, bold, regular));
             BuilderTools.SetReference(
                 screen,
@@ -263,7 +265,40 @@ namespace A305.EditorTools.Onboarding
                 "connectionPanel",
                 SetUpConnectionPanel(root, bold, regular)
             );
+            BuilderTools.SetReference(
+                screen,
+                "guestReturnPanel",
+                SetUpGuestReturnPanel(root, bold, regular)
+            );
             BuilderTools.RequireReferences(screen);
+        }
+
+        /// <summary>
+        /// 입구 화면 프리팹에 게임 전 멈춤 화면(게스트 다시 접속·이미 가입한 계정 안내)만 더하고 테마와 시안 창을 입힌다. 입구 전체 Builder를 다시 돌리지
+        /// 않아도 된다.
+        /// </summary>
+        [MenuItem("Tools/A305/Onboarding/Apply Guest Return Panel")]
+        public static void ApplyGuestReturnPanel()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                ScreensPrefabPath,
+                root =>
+                {
+                    var screen = root.GetComponent<OnboardingScreen>();
+                    BuilderTools.SetReference(
+                        screen,
+                        "guestReturnPanel",
+                        SetUpGuestReturnPanel(
+                            root,
+                            UiBuilderTools.BoldFont(),
+                            UiBuilderTools.RegularFont()
+                        )
+                    );
+                    BuilderTools.RequireReferences(screen);
+                }
+            );
+            A305.EditorTools.Theme.UiThemeBuilder.ApplyGuestReturnTheme();
+            AssetDatabase.SaveAssets();
         }
 
         private static LoginPanelView SetUpLoginPanel(
@@ -471,14 +506,63 @@ namespace A305.EditorTools.Onboarding
                 regular
             );
 
-            UiBuilderTools.FindOrCreateText(
+            // 약관은 앞 단계(TermsPanel)에서 받는다. 예전에 이 화면에 두었던 약관 제목은 지운다.
+            Transform consentsLabel = panel.Find("ConsentsLabel");
+            if (consentsLabel != null)
+                Object.DestroyImmediate(consentsLabel.gameObject);
+
+            Button back = FindOrCreateSecondaryButton(
                 panel,
-                "ConsentsLabel",
-                bold,
-                22f,
-                Color.white,
-                "약관 동의"
+                "BackButton",
+                "뒤로",
+                regular,
+                PanelWidth
             );
+            Button submit = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "SubmitButton",
+                "가입하기",
+                bold,
+                PanelWidth
+            );
+            back.transform.SetSiblingIndex(submit.transform.GetSiblingIndex());
+
+            BuilderTools.SetReference(view, "nicknameInput", nickname);
+            BuilderTools.SetReference(view, "checkNicknameButton", checkNickname);
+            BuilderTools.SetReference(view, "nicknameHintText", hint);
+            BuilderTools.SetReference(view, "femaleButton", female);
+            BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "backButton", back);
+            BuilderTools.SetReference(view, "submitButton", submit);
+            BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        /// <summary>
+        /// 가입의 첫 단계인 약관 동의 화면. [전체 동의], 약관 줄 템플릿, 음성 처리 안내, [다음]을 둔다. 예전에 가입 정보 화면에 있던 약관 줄과
+        /// 음성 안내가 있으면 디자인을 유지한 채 이 화면으로 옮긴다. 없는 요소만 만든다.
+        /// </summary>
+        private static TermsPanelView SetUpTermsPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "TermsPanel");
+            var view = BuilderTools.GetOrAddComponent<TermsPanelView>(panel.gameObject);
+            UiBuilderTools.FindOrCreateText(panel, "Title", bold, 36f, Color.white, "약관 동의");
+            ConsentRowView allAgree = SetUpConsentRow(panel, "AllAgreeRow", bold);
+            // 실행 중에는 TermsPanelView가 같은 문구로 맞추지만, 프리팹에서도 [전체 동의] 줄로 보이게 둔다.
+            allAgree.transform.Find("Label").GetComponent<TMP_Text>().text =
+                TermsPanelView.AllAgreeLabel;
+            allAgree.ViewButton.gameObject.SetActive(false);
+            foreach (string moved in new[] { "Consents", "VoiceConsentNote" })
+            {
+                Transform old = root.transform.Find("SignupPanel/" + moved);
+                if (old != null && panel.Find(moved) == null)
+                    old.SetParent(panel, false);
+            }
+
             RectTransform consents = UiBuilderTools.FindOrCreateColumn(panel, "Consents");
             ConsentRowView consentTemplate = SetUpConsentTemplate(consents, regular);
             // 음성 처리는 선택 동의라, 동의해야 [말하기]를 쓸 수 있다는 것과 나중에 바꾸는 곳을 약관 바로 아래에 알린다.
@@ -492,25 +576,52 @@ namespace A305.EditorTools.Onboarding
             );
             voiceNote.text = SignupVoiceNote;
             voiceNote.transform.SetSiblingIndex(consents.GetSiblingIndex() + 1);
-
-            Button submit = UiBuilderTools.FindOrCreateButton(
+            Button next = UiBuilderTools.FindOrCreateButton(
                 panel,
-                "SubmitButton",
-                "가입하기",
+                "NextButton",
+                "다음",
                 bold,
                 PanelWidth
             );
+            next.transform.SetAsLastSibling();
 
-            BuilderTools.SetReference(view, "nicknameInput", nickname);
-            BuilderTools.SetReference(view, "checkNicknameButton", checkNickname);
-            BuilderTools.SetReference(view, "nicknameHintText", hint);
-            BuilderTools.SetReference(view, "femaleButton", female);
-            BuilderTools.SetReference(view, "maleButton", male);
+            BuilderTools.SetReference(view, "allAgreeRow", allAgree);
             BuilderTools.SetReference(view, "consentsParent", consents);
             BuilderTools.SetReference(view, "consentTemplate", consentTemplate);
-            BuilderTools.SetReference(view, "submitButton", submit);
+            BuilderTools.SetReference(view, "nextButton", next);
             BuilderTools.RequireReferences(view);
             return view;
+        }
+
+        /// <summary>
+        /// 입구 화면 프리팹에서 가입을 약관 동의 → 가입 정보 두 단계로 나누고(S15P31A305-596) 테마·시안 배치를 다시 입힌다.
+        /// 입구 전체 Builder를 다시 돌리지 않아도 된다.
+        /// </summary>
+        [MenuItem("Tools/A305/Onboarding/Apply Terms Step")]
+        public static void ApplyTermsStep()
+        {
+            BuilderTools.UpdatePrefabIfExists(
+                ScreensPrefabPath,
+                root =>
+                {
+                    TMP_FontAsset bold = UiBuilderTools.BoldFont();
+                    TMP_FontAsset regular = UiBuilderTools.RegularFont();
+                    var screen = root.GetComponent<OnboardingScreen>();
+                    BuilderTools.SetReference(
+                        screen,
+                        "termsPanel",
+                        SetUpTermsPanel(root, bold, regular)
+                    );
+                    BuilderTools.SetReference(
+                        screen,
+                        "signupPanel",
+                        SetUpSignupPanel(root, bold, regular)
+                    );
+                    BuilderTools.RequireReferences(screen);
+                }
+            );
+            A305.EditorTools.Theme.UiThemeBuilder.ApplyTermsStepTheme();
+            AssetDatabase.SaveAssets();
         }
 
         private static TMP_InputField CreateNicknameInput(Transform parent, TMP_FontAsset regular)
@@ -689,6 +800,64 @@ namespace A305.EditorTools.Onboarding
 
             BuilderTools.SetReference(view, "retryButton", retry);
             BuilderTools.RequireReferences(view);
+            return view;
+        }
+
+        // 문구는 화면이 열릴 때 GuestReturnPanelView가 화면 종류에 맞춰 바꾼다. 여기 문구는 게스트 다시 접속 화면이다.
+        private static GuestReturnPanelView SetUpGuestReturnPanel(
+            GameObject root,
+            TMP_FontAsset bold,
+            TMP_FontAsset regular
+        )
+        {
+            RectTransform panel = CenterPanel(root.transform, "GuestReturnPanel");
+            var view = BuilderTools.GetOrAddComponent<GuestReturnPanelView>(panel.gameObject);
+            TMP_Text title = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Title",
+                bold,
+                36f,
+                Color.white,
+                GuestReturnText.GuestTitle
+            );
+            TMP_Text body = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Body",
+                regular,
+                22f,
+                SubTextColor,
+                GuestReturnText.GuestBody
+            );
+            TMP_Text notice = UiBuilderTools.FindOrCreateText(
+                panel,
+                "Notice",
+                regular,
+                20f,
+                BadgeColor
+            );
+            Button signup = UiBuilderTools.FindOrCreateButton(
+                panel,
+                "SignupButton",
+                GuestReturnText.Signup,
+                bold,
+                PanelWidth
+            );
+            Button continueButton = FindOrCreateSecondaryButton(
+                panel,
+                "ContinueButton",
+                GuestReturnText.ContinueAsGuest,
+                regular,
+                PanelWidth
+            );
+
+            BuilderTools.SetReference(view, "titleText", title);
+            BuilderTools.SetReference(view, "bodyText", body);
+            BuilderTools.SetReference(view, "noticeText", notice);
+            BuilderTools.SetReference(view, "signupButton", signup);
+            BuilderTools.SetReference(view, "continueButton", continueButton);
+            BuilderTools.RequireReferences(view);
+            // 게임에 들어가기 전에만 보이므로, Play 전 프리팹 화면에서 다른 창과 겹쳐 보이지 않게 숨겨 둔다.
+            panel.gameObject.SetActive(false);
             return view;
         }
 

@@ -2,6 +2,7 @@ package com.elsehere.admin.controller;
 
 import com.elsehere.admin.service.AdminAiUsageService;
 import com.elsehere.admin.service.AdminNpcService;
+import com.elsehere.admin.service.AdminUsageService;
 import com.elsehere.admin.service.AdminUserService;
 import com.elsehere.common.auth.LoginUser;
 import java.util.Map;
@@ -37,6 +38,7 @@ public class AdminPageController {
   private final AdminNpcService adminNpcService;
   private final AdminUserService adminUserService;
   private final AdminAiUsageService adminAiUsageService;
+  private final AdminUsageService adminUsageService;
 
   @GetMapping({"/admin", "/admin/"})
   public String home() {
@@ -61,6 +63,21 @@ public class AdminPageController {
     model.addAttribute("report", adminAiUsageService.report(days));
     model.addAttribute("kindNames", AI_KIND_NAMES);
     return "admin/ai-usage";
+  }
+
+  /** 이용 현황. DB에 남은 활동 흔적을 최근 며칠(1~90일, 기본 7일) 동안 묶고 활동한 사용자 목록을 보여 준다. 사용자는 ID만 보여 준다. */
+  @GetMapping("/admin/usage")
+  public String usage(@RequestParam(defaultValue = "7") int days, Model model) {
+    model.addAttribute("report", adminUsageService.report(days));
+    return "admin/usage";
+  }
+
+  /** 사용자 한 명의 이용 현황. 전체 화면의 사용자 목록이나 사용자 ID 입력칸에서 들어온다. */
+  @GetMapping("/admin/usage/user")
+  public String userUsage(
+      @RequestParam long userId, @RequestParam(defaultValue = "7") int days, Model model) {
+    model.addAttribute("report", adminUsageService.userReport(userId, days));
+    return "admin/usage-user";
   }
 
   /** 관리자 목록. 자기 자신에게는 해제 버튼을 두지 않는다. */

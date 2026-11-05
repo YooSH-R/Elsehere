@@ -7,6 +7,7 @@ import com.elsehere.ai.service.WorkerNpcs;
 import com.elsehere.common.error.BusinessException;
 import com.elsehere.common.error.ErrorCode;
 import com.elsehere.conversation.dto.NpcSummaryResponse;
+import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.user.entity.User;
 import com.elsehere.user.repository.UserRepository;
@@ -43,13 +44,23 @@ class DialogueContexts {
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)));
   }
 
-  NpcContext npcByCode(String npcCode) {
-    return npcRepository
-        .findByCode(npcCode)
-        .map(this::toContext)
-        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  /** 대화를 시작할 NPC. 근무 시간이 아니면 워커에 일상 상황을 보낸다. */
+  NpcContext npcByCode(String npcCode, boolean npcOffDuty) {
+    NpcContext npc =
+        npcRepository
+            .findByCode(npcCode)
+            .map(this::toContext)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    return npcOffDuty ? npc.offDuty() : npc;
   }
 
+  /** 대화 상대인 NPC. 워커를 부를 때는 대화를 시작할 때 정한 근무 여부를 따르도록 이 메서드로 읽는다. */
+  NpcContext npcOf(Conversation conversation) {
+    NpcContext npc = npcById(conversation.getNpcId());
+    return conversation.isNpcOffDuty() ? npc.offDuty() : npc;
+  }
+
+  /** 근무 여부와 관계없는 NPC 정보(이름·장소·목소리). 대화의 워커 호출에는 {@link #npcOf}를 쓴다. */
   NpcContext npcById(Long npcId) {
     return npcRepository
         .findById(npcId)

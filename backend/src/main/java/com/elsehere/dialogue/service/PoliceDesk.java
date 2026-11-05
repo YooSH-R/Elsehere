@@ -2,12 +2,12 @@ package com.elsehere.dialogue.service;
 
 import com.elsehere.ai.client.JudgeResult;
 import com.elsehere.ai.client.WorkerState;
+import com.elsehere.world.service.PoliceOfficers;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * 경찰서 창구의 신고 접수(2026-11-05 결정). 정해진 단어가 아니라 의도 판정이 문맥으로 출동할 일과 장소를 고르고, 출동할 일이면 그 경찰관이 직접 순찰차로 간다고
@@ -22,9 +22,6 @@ import java.util.Set;
  * <p>상태 문구는 평가 도구(ai/tools/police_report_eval.py)와 같게 둔다. 한쪽을 고치면 같이 고친다.
  */
 final class PoliceDesk {
-
-  private static final Set<String> OFFICERS =
-      Set.of("POLICE_OFFICER", "POLICE_SERGEANT", "POLICE_PATROL_OFFICER", "POLICE_ROOKIE");
 
   private static final String REPORT = "report_incident";
   private static final String NO_PLACE = "no_place";
@@ -82,7 +79,7 @@ final class PoliceDesk {
 
   /** 이 NPC가 경찰서 창구에서 신고를 받는 경찰관인지 */
   static boolean serves(String npcCode) {
-    return OFFICERS.contains(npcCode);
+    return PoliceOfficers.includes(npcCode);
   }
 
   /** 이 턴의 판정으로 출동할지. 출동하면 장소 코드를, 본길 순찰이면 장소 코드 null을 담는다. */

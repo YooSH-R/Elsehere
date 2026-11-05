@@ -47,6 +47,18 @@ namespace A305.Mission.Tests
             Assert.That(row.IsReady, Is.True);
         }
 
+        // 경찰관이 출동해 다녀온 결과는 받을 물건이 아니라 들을 이야기라, 경찰서에서 들으러 가라고 알린다.
+        [Test]
+        public void Row_PoliceCallResult_IsHeardAtThePoliceStation()
+        {
+            WaitingFollowUp result = Waiting("POLICE_OFFICER", "Dan", "TOWN", "지갑 수색 결과", 90);
+
+            Assert.That(FollowUpCardText.Row(result, Received).Detail, Is.EqualTo("Dan · 경찰서"));
+            FollowUpCardRow ready = FollowUpCardText.Row(result, Received + 90d);
+            Assert.That(ready.Title, Is.EqualTo("지갑 수색 결과가 준비됐어요"));
+            Assert.That(ready.Detail, Is.EqualTo("경찰서 Dan에게 들으러 가세요"));
+        }
+
         // 마을 매장 직원은 씬이 모두 마을이라, 씬 이름 대신 그 직원의 가게 이름으로 어디인지 알린다.
         [Test]
         public void Row_TownShopStaff_NamesTheShop()

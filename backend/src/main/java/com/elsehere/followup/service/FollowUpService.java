@@ -22,6 +22,7 @@ import com.elsehere.followup.entity.NpcFollowUp;
 import com.elsehere.followup.repository.NpcFollowUpRepository;
 import com.elsehere.world.entity.Npc;
 import com.elsehere.world.repository.NpcRepository;
+import com.elsehere.world.service.PoliceOfficers;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -143,12 +144,13 @@ public class FollowUpService {
     if (job == null) {
       return Optional.empty();
     }
+    WorkerTrace trace = new WorkerTrace(requestId, userId, conversationId);
     WorkerFollowUp owed;
     try {
       owed =
-          aiGateway
-              .followUp(
-                  new WorkerTrace(requestId, userId, conversationId), job.npc(), job.history())
+          (job.policeCall()
+                  ? aiGateway.policeCallOutcome(trace, job.npc(), job.history())
+                  : aiGateway.followUp(trace, job.npc(), job.history()))
               .followUp();
     } catch (BusinessException exception) {
       log.warn("follow_up_judge_failed code={}", exception.getErrorCode());
@@ -197,7 +199,11 @@ public class FollowUpService {
         .filter(npc -> !HANDS_OVER_ON_THE_SPOT.contains(npc.getCode()))
         .map(
             npc ->
-                new Job(npc.getId(), workerNpcs.of(npc), workerLines.recent(turns, HISTORY_LIMIT)))
+                new Job(
+                    npc.getId(),
+                    workerNpcs.of(npc),
+                    workerLines.recent(turns, HISTORY_LIMIT),
+                    PoliceOfficers.includes(npc.getCode())))
         .orElse(null);
   }
 
@@ -222,5 +228,8 @@ public class FollowUpService {
    */
   public record ReadyFollowUp(Long followUpId, String item) {}
 
-  private record Job(Long npcId, WorkerNpc npc, List<WorkerLine> history) {}
+  /**
+   * @param policeCall 경찰관과의 대화. 신고를 받아 출동했으면 건넬 것 대신 순찰을 다녀와 알릴 해결 결과를 판정한다
+   */
+  private record Job(Long npcId, WorkerNpc npc, List<WorkerLine> history, boolean policeCall) {}
 }

@@ -629,6 +629,19 @@ class AiWorkerClientTest {
   }
 
   @Test
+  @DisplayName("경찰 출동 결과 판정은 같은 엔드포인트에 kind police_call을 보내고, 다른 건넬 것 판정은 handover를 보낸다")
+  void policeCallOutcome_sendsThePoliceCallKind() {
+    respond("/v1/npc/follow-up", 200, "application/json", "{\"follow_up\": null, \"usage\": []}");
+
+    client.policeCallOutcome(
+        TRACE, NPC, List.of(WorkerLine.learner("Someone took my wallet.", null, false)));
+    assertThat(received.get("/v1/npc/follow-up").body()).contains("\"kind\":\"police_call\"");
+
+    client.followUp(TRACE, NPC, List.of(WorkerLine.learner("One latte.", null, false)));
+    assertThat(received.get("/v1/npc/follow-up").body()).contains("\"kind\":\"handover\"");
+  }
+
+  @Test
   @DisplayName("건넬 것이 없으면 판정 결과의 건넬 것이 비어 있다")
   void followUp_nothingOwed_isEmpty() {
     respond("/v1/npc/follow-up", 200, "application/json", "{\"follow_up\": null, \"usage\": []}");

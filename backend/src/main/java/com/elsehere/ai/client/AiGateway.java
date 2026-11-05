@@ -190,6 +190,18 @@ public class AiGateway {
     return result;
   }
 
+  /** 경찰관이 신고를 받아 출동한 대화의 해결 결과. 건넬 것 판정과 같은 자리·같은 모델이라 AI 요청 기록도 MEMORY로 남긴다. */
+  public FollowUpResult policeCallOutcome(
+      WorkerTrace trace, WorkerNpc npc, List<WorkerLine> history) {
+    FollowUpResult result =
+        send(
+            trace,
+            AiRequestKind.MEMORY,
+            () -> aiWorkerClient.policeCallOutcome(trace, npc, history));
+    record(trace, AiRequestKind.MEMORY, result.usage(), true);
+    return result;
+  }
+
   /** 대화 종료 피드백. 평가할 발화 부족·생성 실패는 결과의 상태로 돌려주고, completed가 아니면 FAILED로 남긴다. */
   public WorkerFeedback feedback(WorkerTrace trace, FeedbackInput input) {
     WorkerFeedback result =

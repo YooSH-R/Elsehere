@@ -59,3 +59,47 @@ def test_the_model_sees_who_where_and_the_conversation_but_not_rude_wording(clie
     assert "Customer: One iced latte, please." in seen["user"]
     assert "Mia: Sure, coming right up." in seen["user"]
     assert "idiot" not in seen["user"] and "[RUDE: content withheld]" in seen["user"]
+
+
+OFFICER = {
+    "id": "POLICE_OFFICER",
+    "name": "Dan",
+    "role": "the calm police officer at the front desk of the town police station.",
+    "scene": "The front desk of the small police station.",
+}
+REPORT = [
+    {"who": "npc", "text": "Hello. What happened?"},
+    {"who": "me", "text": "Someone took my wallet at the diner."},
+    {"who": "npc", "text": "I'm driving out to Maple Diner in the patrol car right now. Goodbye!"},
+]
+
+
+def test_a_police_call_comes_back_as_the_result_the_officer_will_report(client, provider):
+    """경찰관이 신고를 받고 출동한 대화면 해결 결과를 정해, 돌아와서 첫마디로 알리게 한다(백엔드가 kind로 알린다)."""
+    seen = {}
+
+    def answer(body):
+        seen["system"] = body["messages"][0]["content"]
+        seen["wait"] = body["response_format"]["json_schema"]["schema"]["properties"]["wait"]["enum"]
+        return ok(json.dumps({"owes": True, "item": "your wallet, found at Maple Diner", "item_ko": "지갑 수색 결과", "wait": "SHORT"}))
+
+    provider.answers["follow_up"] = answer
+    r = client.post("/v1/npc/follow-up", json={"npc": OFFICER, "history": REPORT, "kind": "police_call"})
+
+    assert r.status_code == 200
+    assert r.json()["follow_up"] == {"item": "your wallet, found at Maple Diner", "item_ko": "지갑 수색 결과", "wait": "SHORT"}
+    assert "drove out in the patrol car" in seen["system"]
+    assert seen["wait"] == ["SHORT"]  # 순찰을 마치고 돌아오는 시간에 맞춘다
+
+
+def test_other_conversations_keep_judging_what_will_be_handed_over(client, provider):
+    seen = {}
+
+    def answer(body):
+        seen["system"] = body["messages"][0]["content"]
+        return ok(json.dumps({"owes": False, "item": "", "item_ko": "", "wait": "QUICK"}))
+
+    provider.answers["follow_up"] = answer
+    client.post("/v1/npc/follow-up", json={"npc": NPC, "history": ORDER})
+
+    assert "something to hand over" in seen["system"]

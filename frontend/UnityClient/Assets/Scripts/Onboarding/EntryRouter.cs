@@ -8,9 +8,10 @@ namespace A305.Onboarding
         /// <param name="lastLevelTest">ONB-08의 마지막 레벨 테스트 상태. 레벨 테스트 단계에서만 쓰며, 기록이 없으면 null이다.</param>
         public static EntryScreen Route(BootstrapResponse boot, LevelTestStatus? lastLevelTest)
         {
+            // 가입은 약관 동의부터 받고, 동의하면 가입 정보(닉네임·캐릭터)로 넘어간다.
             if (boot.AuthState == AuthState.SignupRequired)
             {
-                return EntryScreen.Signup;
+                return EntryScreen.Terms;
             }
 
             switch (boot.User.OnboardingStep)

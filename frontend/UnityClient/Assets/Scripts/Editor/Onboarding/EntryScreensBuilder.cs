@@ -51,6 +51,8 @@ namespace A305.EditorTools.Onboarding
         {
             Background(root.Find("Background"));
             Guest((RectTransform)root.Find("GuestPanel"));
+            if (root.Find("TermsPanel") != null)
+                Terms((RectTransform)root.Find("TermsPanel"));
             Signup((RectTransform)root.Find("SignupPanel"));
             if (root.Find("GuestReturnPanel") != null)
                 GuestReturn((RectTransform)root.Find("GuestReturnPanel"));
@@ -86,11 +88,39 @@ namespace A305.EditorTools.Onboarding
             ArtButton(panel.Find("StartButton"), "EntryStart", 191.92f, 534.5f, 375.08f, 60);
         }
 
-        // e3: 제목·안내, 닉네임 칸과 [중복 확인]·결과, 캐릭터 카드, 약관 동의 줄, 음성 동의 안내, [가입하기].
-        // 음성 동의 안내는 시안에 없지만 동의 줄 바로 아래에 두고, 그만큼(50) 창을 늘린다.
+        // e3를 두 단계로 나눈 첫 단계(S15P31A305-596, 시안 없음): 제목·안내, [전체 동의], 가는 선, 약관 줄 6개 자리, 음성 동의 안내, [다음].
+        // e3와 같은 폭·여백·줄 모양을 쓰고, 가로로 눕힌 휴대폰(높이 약 980)에도 들어가게 창 높이를 705로 둔다.
+        private static void Terms(RectTransform panel)
+        {
+            Sheet(panel, 660, 705);
+            Title(panel.Find("Title"), 51, 554);
+            TMP_Text sub = Body(F.Rect("Subtitle", panel), 19, F.Muted, create: true);
+            sub.text = "서비스를 쓰려면 필수 약관에 동의해 주세요.";
+            sub.transform.SetSiblingIndex(panel.Find("Title").GetSiblingIndex() + 1);
+            F.TopLeft(sub.rectTransform, Inset, 107, 554, 28.5f);
+
+            Transform all = panel.Find("AllAgreeRow");
+            ConsentRow(all);
+            F.TopLeft((RectTransform)all, Inset, 152, 554, 48);
+            TMP_Text allLabel = Text(all.Find("Label"), F.DisplayFontPath, 20, F.Ink);
+            allLabel.alignment = TextAlignmentOptions.MidlineLeft;
+            RectTransform divider = F.Rect("Divider", panel);
+            divider.SetSiblingIndex(all.GetSiblingIndex() + 1);
+            F.Picture(divider.gameObject, null).color = new Color(F.Ink.r, F.Ink.g, F.Ink.b, .12f);
+            F.TopLeft(divider, Inset, 208, 554, 1.5f);
+
+            // 약관 6줄(줄 40 + 간격 10)이 들어가는 자리
+            Consents((RectTransform)panel.Find("Consents"), 222, 290);
+            TMP_Text voice = Body(panel.Find("VoiceConsentNote"), 15, F.Muted);
+            F.TopLeft(voice.rectTransform, Inset, 524, 554, 45);
+            ArtButton(panel.Find("NextButton"), "EntryNext", Inset, 594, 554, 60);
+        }
+
+        // e3의 두 번째 단계: 제목·안내, 닉네임 칸과 [중복 확인]·결과, 캐릭터 카드, 게스트 화면처럼 한 줄에 [뒤로]·[가입하기].
+        // 약관은 앞 단계로 옮겨 창이 그만큼 낮다.
         private static void Signup(RectTransform panel)
         {
-            Sheet(panel, 660, 711 + 50);
+            Sheet(panel, 660, 611);
             Title(panel.Find("Title"), 51, 554);
             TMP_Text sub = Body(F.Rect("Subtitle", panel), 19, F.Muted, create: true);
             sub.text = "NPC가 부를 이름과 캐릭터를 정해 주세요.";
@@ -109,11 +139,8 @@ namespace A305.EditorTools.Onboarding
 
             panel.Find("AvatarLabel").gameObject.SetActive(false);
             Cards(panel.Find("AvatarRow"), "SignupCard", 296, 269, 174, 285);
-            panel.Find("ConsentsLabel").gameObject.SetActive(false);
-            Consents((RectTransform)panel.Find("Consents"));
-            TMP_Text voice = Body(panel.Find("VoiceConsentNote"), 15, F.Muted);
-            F.TopLeft(voice.rectTransform, Inset, 584, 554, 45);
-            ArtButton(panel.Find("SubmitButton"), "EntrySignup", Inset, 650, 554, 60);
+            ArtButton(panel.Find("BackButton"), "EntryBack", Inset, 500, 126.92f, 60);
+            ArtButton(panel.Find("SubmitButton"), "EntrySignupShort", 191.92f, 500, 415.08f, 60);
         }
 
         // e4: 제목·안내, 준비 중인 레벨 테스트 칸, 흐린 [레벨 테스트 진행하기], [건너뛰기]
@@ -160,6 +187,13 @@ namespace A305.EditorTools.Onboarding
             body.alignment = TextAlignmentOptions.Midline;
             F.TopLeft(body.rectTransform, 49, 223, 502, 28.5f);
             ArtButton(panel.Find("RetryButton"), "EntryRetry", 180, 281.5f, 240, 60);
+        }
+
+        /// <summary>가입 두 단계(약관 동의·가입 정보)만 시안 창으로 배치한다. 다른 입구 창은 건드리지 않는다.</summary>
+        internal static void ApplyTermsStep(Transform root)
+        {
+            Terms((RectTransform)root.Find("TermsPanel"));
+            Signup((RectTransform)root.Find("SignupPanel"));
         }
 
         /// <summary>
@@ -321,10 +355,10 @@ namespace A305.EditorTools.Onboarding
             ArtButton(row.Find("CheckNicknameButton"), "EntryCheckName", 441.88f, 5, 112.13f, 50);
         }
 
-        // 서버 약관마다 복제하는 동의 줄을 세로로 쌓는다(줄 높이 40, 사이 10).
-        private static void Consents(RectTransform consents)
+        // 서버 약관마다 복제하는 동의 줄을 세로로 쌓는다(줄 높이 40, 사이 10). 자리 높이는 들어갈 줄 수만큼 준다.
+        private static void Consents(RectTransform consents, float top, float height)
         {
-            F.TopLeft(consents, Inset, 488, 554, 90);
+            F.TopLeft(consents, Inset, top, 554, height);
             var column = BuilderTools.GetOrAddComponent<VerticalLayoutGroup>(consents.gameObject);
             column.spacing = 10 * F.Px;
             column.padding = new RectOffset(0, 0, 0, 0);

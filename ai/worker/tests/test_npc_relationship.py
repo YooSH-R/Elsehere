@@ -245,6 +245,21 @@ def test_personal_talk_needs_both_knowing_and_liking_them():
     assert state({"recognition": 100, "affinity": personal["affinity"] - 1})["personal"] is False
 
 
+def test_an_npc_who_keeps_strangers_at_arms_length_opens_up_later():
+    """행동 조각 keeps_distance("Keeps strangers at arm's length until they earn trust.")의 personalTalkScale만큼
+    사적인 이야기 기준(알아봄·호감)이 높아진다. 같은 관계라도 기본 NPC는 자기 이야기를 하고, 거리를 두는 NPC는 아직 안 한다."""
+    personal = RULES["relationship"]["personalTalk"]
+    rates = rel.npc_rates(NpcProfile.model_validate(card("BANK_STAFF")["npcProfile"]), RULES, npc_persona.load_behaviors())
+    scale = rates["personalTalkScale"]
+    at_base = {"recognition": personal["recognition"], "affinity": personal["affinity"]}
+    at_scaled = {"recognition": personal["recognition"] * scale, "affinity": personal["affinity"] * scale}
+
+    assert scale > 1
+    assert state(at_base)["personal"] is True
+    assert state(at_base, npc_id="BANK_STAFF")["personal"] is False
+    assert state(at_scaled, npc_id="BANK_STAFF")["personal"] is True
+
+
 def test_rudeness_leaves_the_npc_annoyed_for_a_few_turns():
     """Spring이 확정한 무례 줄(history의 rude)로 계산한다. 무례 뒤 학습자가 말할 때마다 decayPerTurn씩 가라앉는다."""
     assert state({}, [PLAIN, RUDE])["annoyed"] is True  # 무례 바로 다음 말

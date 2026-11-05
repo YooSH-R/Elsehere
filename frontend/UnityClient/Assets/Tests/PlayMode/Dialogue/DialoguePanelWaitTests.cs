@@ -31,6 +31,15 @@ namespace A305.Dialogue.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator PreparingSpeech_KeepsTheNpcSentenceBehindTheWaitCard()
+        {
+            yield return Show(new Content(DialogueWait.NpcSpeech, null));
+            Assert.That(Field<GameObject>("waitPanel").activeInHierarchy, Is.True);
+            Assert.That(Field<TMP_Text>("linesText").enabled, Is.False);
+            Assert.That(Field<TMP_Text>("waitText").text, Does.Contain("음성"));
+        }
+
+        [UnityTest]
         public IEnumerator WaitingForTheNpcReply_ShowsLoadingInPlaceOfTheLines()
         {
             yield return Show(
@@ -155,6 +164,7 @@ namespace A305.Dialogue.PlayModeTests
             }
 
             public DialogueWait Waiting { get; }
+            public string UserTranslation { get; set; }
             public string NpcName => "Jake";
             public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
             public DialogueLine LastNpcLine => Opening;

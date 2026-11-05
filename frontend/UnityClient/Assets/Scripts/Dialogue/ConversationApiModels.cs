@@ -77,6 +77,13 @@ namespace A305.Dialogue
         public bool Rude { get; set; }
         public long TurnId { get; set; }
         public string Text { get; set; }
+        public UserTranslationData Translation { get; set; }
+    }
+
+    /// <summary>CONV-03에서 무례하지 않은 한국어·혼합 발화에만 보내는 학습자 말의 영어 표현.</summary>
+    public sealed class UserTranslationData
+    {
+        public string English { get; set; }
     }
 
     public sealed class ConversationState

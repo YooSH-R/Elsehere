@@ -317,7 +317,7 @@ public class ConversationService {
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     ensureCanStart(user);
-    NpcContext npc = dialogueContexts.npcByCode(npcCode, npcOffDuty);
+    NpcContext npc = dialogueContexts.npcByCode(userId, npcCode, npcOffDuty);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }

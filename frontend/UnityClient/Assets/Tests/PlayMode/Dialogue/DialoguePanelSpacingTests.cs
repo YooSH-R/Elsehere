@@ -203,6 +203,7 @@ namespace A305.Dialogue.PlayModeTests
                 SuggestWords = words;
             }
 
+            public string UserTranslation { get; set; }
             public string NpcName => "Jake";
             public IReadOnlyList<DialogueLine> Lines => new[] { Opening };
             public DialogueLine LastNpcLine => Opening;

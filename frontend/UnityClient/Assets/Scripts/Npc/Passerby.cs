@@ -66,6 +66,7 @@ namespace A305.Npc
 
         // 퀘스트가 붙잡아 둔 자리. 있으면 생활 대신 이 자리에서 기다린다.
         private Pose? questSpot;
+        private float? playerTalkReach;
 
         public PasserbyPhase Phase => approach != null ? approach.Phase : PasserbyPhase.Waiting;
 
@@ -195,16 +196,32 @@ namespace A305.Npc
         private void Update()
         {
             Vector3 toPlayer = HorizontalOffsetToPlayer();
+            if (playerTalkReach.HasValue)
+            {
+                if (
+                    IsPlayerOccupied
+                    || toPlayer.magnitude > playerTalkReach.Value
+                    || !offerView.IsShownBy(this)
+                )
+                    CancelPlayerTalk();
+                else
+                {
+                    Stand();
+                    TurnToward(toPlayer);
+                    return;
+                }
+            }
             bool isPlayerBusy = IsPlayerOccupied || IsOtherOfferShowing;
             // 새 대화를 시작할 수 없으면(게스트 대화 횟수를 다 씀) 먼저 다가오지 않는다(기능 명세 F-39). [말 걸기] 자리에는 이유를 보인다.
             bool cannotStartConversation = !dialogue.Allowance.CanStartConversation;
             // 교대 밖의 직원은 다가오지 않고 [말 걸기]만 받는다. 카운터를 맡은 직원은 그 카운터를 응대하는 한 명이고,
             // 손님이 카운터 가까이 와서 카운터 뒤 자리로 돌아갔을 때만 다가와 제안한다.
             bool notReadyToOffer =
-                routine != null
-                && routine.enabled
-                && !IsWaitingForQuest
-                && !routine.CanOfferTo(player.transform.position);
+                (!IsGuidingTutorial && !IsWaitingForQuest)
+                || routine != null
+                    && routine.enabled
+                    && !IsWaitingForQuest
+                    && !routine.CanOfferTo(player.transform.position);
             // 하루에 한 번만 먼저 다가오는 행인은 그날(기기 날짜) 이미 말을 걸었으면 [말 걸기]만 받는다.
             System.DateTime today = System.DateTime.Today;
             bool offeredToday =
@@ -398,10 +415,10 @@ namespace A305.Npc
         }
 
         /// <summary>
-        /// 플레이어가 이 NPC를 클릭·탭했다(<see cref="CanTalkByClick"/>). 제안 중이면 [대화하기]를 누른 것과 같고, 아니면 플레이어가 먼저 말을 건다.
+        /// 플레이어가 이 NPC를 클릭·탭했다(<see cref="CanTalkByClick"/>). 제안 중이면 그 창을 유지하고, 아니면 플레이어가 먼저 말을 걸지 확인한다.
         /// 다른 NPC의 제안은 [지금은 안 할래요]를 누른 것처럼 닫는다. 대화를 다 쓴 게스트에게는 가입 안내 창을 연다.
         /// </summary>
-        /// <returns>대화를 시작했거나 가입 안내 창을 열었으면 true</returns>
+        /// <returns>확인 창이나 기존 제안·가입 안내 창을 표시했으면 true</returns>
         public bool TalkByClick(float reachMeters)
         {
             if (!CanTalkByClick(reachMeters))
@@ -417,15 +434,42 @@ namespace A305.Npc
 
             if (approach.Phase == PasserbyPhase.Offering)
             {
-                Accept();
+                // 이미 표시 중인 NPC의 제안도 버튼이나 E로 선택한다.
                 return true;
             }
-
-            approach.TryTalkByClick(HorizontalOffsetToPlayer().magnitude, reachMeters);
+            if (playerTalkReach.HasValue)
+                return true;
             offerView.DeclineShownOffer();
-            offerView.HideTalkPrompt(this);
-            StartConversation(ConversationInitiator.User);
+            playerTalkReach = reachMeters;
+            string name = dialogue.FindNpcName(ScriptKey) ?? "이 NPC";
+            offerView.Show(
+                this,
+                "대화 시작",
+                $"{name}에게 말을 걸까요?",
+                true,
+                PasserbyOfferText.RemainingConversations(dialogue.Allowance.RemainingConversations),
+                ConfirmPlayerTalk,
+                CancelPlayerTalk
+            );
             return true;
+        }
+
+        private void ConfirmPlayerTalk()
+        {
+            float reach = playerTalkReach ?? 0;
+            CancelPlayerTalk();
+            if (
+                !IsPlayerOccupied
+                && dialogue.Allowance.CanStartConversation
+                && approach.TryTalkByClick(HorizontalOffsetToPlayer().magnitude, reach)
+            )
+                StartConversation(ConversationInitiator.User);
+        }
+
+        private void CancelPlayerTalk()
+        {
+            playerTalkReach = null;
+            offerView.Hide(this);
         }
 
         // 다른 대화 중이거나 창이 열려 이동이 잠겼거나, 진행 흐름(튜토리얼)이 다가오기를 막았는지.

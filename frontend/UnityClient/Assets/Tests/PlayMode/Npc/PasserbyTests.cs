@@ -176,11 +176,11 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator TownPasserbyWhoOfferedToday_WaitsUntilTomorrow_ButPlayerCanStillTalk()
+        public IEnumerator OrdinaryTownPasserby_DoesNotOfferEvenAfterTheDailyRecordIsCleared()
         {
             // Ben은 현실 하루에 한 번만 먼저 다가온다. 그날 이미 말을 걸었으면 플레이어가 먼저 말을 거는 것만 받는다.
             PasserbyOfferRecord.Save(BenCode, System.DateTime.Today);
-            yield return LoadTownWithPlayerNearBen(afterTutorial: true);
+            yield return LoadTownWithPlayerNearBen(afterTutorial: true, withEvent: false);
             Passerby passerby = FindPasserby(BenCode);
             PasserbyOfferView offer = Single<PasserbyOfferView>();
 
@@ -194,8 +194,9 @@ namespace A305.Npc.PlayModeTests
             // 마지막으로 말을 건 날이 어제가 되면(하루가 지나면) 다시 다가온다.
             StandNear(BenCode, 4f);
             PasserbyOfferRecord.Save(BenCode, System.DateTime.Today.AddDays(-1));
-            yield return WaitUntil(() => offer.IsShowing);
-            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Offering));
+            yield return new WaitForSeconds(2f);
+            Assert.That(offer.IsShowing, Is.False);
+            Assert.That(passerby.Phase, Is.EqualTo(PasserbyPhase.Waiting));
         }
 
         // 퀘스트가 Ben을 붙잡아 두면(비 오는 거리 단계) 생활하지 않고 정한 자리에서 기다리고, 그날 이미 말을 걸었어도 다가와 제안한다.
@@ -407,6 +408,8 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTownAfterTutorial();
             Single<DialogueController>().Allowance.Apply(GuestStatus(remaining: 2));
+            Passerby ben = FindPasserby(BenCode);
+            ben.WaitAt(new Pose(ben.transform.position, ben.transform.rotation));
             StandNear(BenCode, 4f);
 
             PasserbyOfferView offer = Single<PasserbyOfferView>();
@@ -499,7 +502,10 @@ namespace A305.Npc.PlayModeTests
         }
 
         /// <summary>마을을 불러온 뒤 플레이어를 Ben 앞에 세운다. 튜토리얼 중이면 Ben은 길을 묻는 튜토리얼 모드다.</summary>
-        private static IEnumerator LoadTownWithPlayerNearBen(bool afterTutorial)
+        private static IEnumerator LoadTownWithPlayerNearBen(
+            bool afterTutorial,
+            bool withEvent = true
+        )
         {
             if (afterTutorial)
             {
@@ -511,6 +517,8 @@ namespace A305.Npc.PlayModeTests
             }
 
             Passerby passerby = FindPasserby(BenCode);
+            if (afterTutorial && withEvent)
+                passerby.WaitAt(new Pose(passerby.transform.position, passerby.transform.rotation));
             PlayerMover player = Single<PlayerMover>();
             player.Teleport(
                 passerby.transform.position + passerby.transform.forward * 4f,

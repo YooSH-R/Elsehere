@@ -77,6 +77,11 @@ public class GameClockService {
     return timeOf(userId).day();
   }
 
+  /** 지금 게임 시각. 호출하는 쪽의 트랜잭션 안에서 읽는다. */
+  public GameTime currentTime(Long userId) {
+    return timeOf(userId);
+  }
+
   private GameTime timeOf(Long userId) {
     return GameTime.ofPlaySeconds(
         userGameClockRepository.findById(userId).map(UserGameClock::getPlaySeconds).orElse(0L));

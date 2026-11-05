@@ -44,11 +44,128 @@ namespace A305.Dialogue.Tests
         private FakeConversationApi api;
         private ServerConversation conversation;
 
+        [Test]
+        public async Task RegeneratingSpeech_KeepsTheSentenceBehindTheWaitCard()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData { Status = "FAILED" };
+            api.PendingSpeech = new TaskCompletionSource<SpeechData>();
+            Task<SpeechData> regeneration = conversation.RegenerateSpeechAsync();
+            try
+            {
+                Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.NpcSpeech));
+            }
+            finally
+            {
+                api.PendingSpeech.TrySetResult(
+                    new SpeechData { Status = "READY", Url = "/speech" }
+                );
+                await regeneration;
+            }
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+        }
+
+        [Test]
+        public async Task DelayedSpeech_KeepsTheReplyWaitingUntilPlaybackCanBegin()
+        {
+            await conversation.StartAsync();
+            conversation.LastNpcTurn.Speech = new SpeechData { Status = "READY", Url = "/speech" };
+            var downloaded = new TaskCompletionSource<bool>();
+            Task<bool> playback = conversation.PlaySpeechAsync(_ => downloaded.Task);
+            try
+            {
+                Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.NpcSpeech));
+                Assert.That(
+                    conversation.CanSend,
+                    Is.True,
+                    "음성을 기다려도 다음 입력을 막지 않습니다."
+                );
+            }
+            finally
+            {
+                downloaded.TrySetResult(true);
+                await playback;
+            }
+            Assert.That(conversation.Waiting, Is.EqualTo(DialogueWait.None));
+            Assert.That(conversation.CanSend, Is.True);
+        }
+
+        [TestCase("카페 어디야?", "Where is the cafe?")]
+        [TestCase("Where is 카페?", "Where is the cafe?")]
+        public async Task AcceptedTurn_ShowsItsEnglishExpressionWithoutChangingTheOriginal(
+            string utterance,
+            string expression
+        )
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply(utterance, "It is on your right.", "ACTIVE");
+            api.TurnResponse.UserTurn.Translation = new UserTranslationData
+            {
+                English = expression,
+            };
+
+            await conversation.SendAsync(utterance);
+
+            Assert.That(conversation.UserTranslation, Is.EqualTo(expression));
+            Assert.That(conversation.Lines[1].English, Is.EqualTo(utterance));
+            Assert.That(api.Turns, Has.Count.EqualTo(1), "교정 문장을 다시 전송하지 않습니다.");
+        }
+
         [SetUp]
         public void CreateConversation()
         {
             api = new FakeConversationApi();
             conversation = new ServerConversation(CafeStaffCode, CafeStaffCode, api, true);
+        }
+
+        [Test]
+        public async Task RudeTurn_DoesNotShowItsTranslation()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("무례한 발화", "Please be polite.", "ACTIVE");
+            api.TurnResponse.UserTurn.Rude = true;
+            api.TurnResponse.UserTurn.Translation = new UserTranslationData
+            {
+                English = "Rude phrase.",
+            };
+
+            await conversation.SendAsync("무례한 발화");
+
+            Assert.That(conversation.UserTranslation, Is.Null);
+        }
+
+        [Test]
+        public async Task NextTurn_ClearsThePreviousExpressionWhileWaitingForTheReply()
+        {
+            await conversation.StartAsync();
+            api.TurnResponse = Reply("카페 어디야?", "On your right.", "ACTIVE");
+            api.TurnResponse.UserTurn.Translation = new UserTranslationData
+            {
+                English = "Where is the cafe?",
+            };
+            await conversation.SendAsync("카페 어디야?");
+            api.PendingTurn = new TaskCompletionSource<TurnResult>();
+
+            Task sending = conversation.SendAsync("Thank you.");
+            try
+            {
+                Assert.That(
+                    conversation.UserTranslation,
+                    Is.Null,
+                    "다음 발화를 기다리는 동안 지난 표현을 보여 주지 않습니다."
+                );
+            }
+            finally
+            {
+                api.PendingTurn.SetResult(Reply("Thank you.", "You are welcome.", "ACTIVE"));
+                await sending;
+            }
+
+            Assert.That(
+                conversation.UserTranslation,
+                Is.Null,
+                "영어 표현이 없는 턴에는 이전 표현이 남지 않습니다."
+            );
         }
 
         [Test]
@@ -1856,6 +1973,7 @@ namespace A305.Dialogue.Tests
 
             public ActiveConversation Active { get; set; }
             public TurnResult TurnResponse { get; set; } = Reply("Yes.", "Great!", "ACTIVE");
+            public TaskCompletionSource<TurnResult> PendingTurn { get; set; }
             public ApiException TurnError { get; set; }
             public EndResult EndResponse { get; set; } = Ended("DONE");
             public Exception EndError { get; set; }
@@ -1864,6 +1982,7 @@ namespace A305.Dialogue.Tests
             public Transcription TranscriptionResponse { get; set; } = new Transcription();
             public ApiException TranscriptionError { get; set; }
             public SpeechData RegeneratedSpeech { get; set; }
+            public TaskCompletionSource<SpeechData> PendingSpeech { get; set; }
             public ApiException SpeechError { get; set; }
             public MeaningData Meaning { get; set; } = new MeaningData();
             public ApiException MeaningError { get; set; }
@@ -1914,6 +2033,8 @@ namespace A305.Dialogue.Tests
             {
                 Calls.Add("SendTurn");
                 Turns.Add(new TurnRequest(conversationId, requestId, inputType, text, sttRawText));
+                if (PendingTurn != null)
+                    return PendingTurn.Task;
                 return TurnError != null
                     ? Task.FromException<TurnResult>(TurnError)
                     : Task.FromResult(TurnResponse);
@@ -1978,6 +2099,8 @@ namespace A305.Dialogue.Tests
             {
                 Calls.Add("RegenerateSpeech");
                 SpeechRegeneratedFor.Add(turnId);
+                if (PendingSpeech != null)
+                    return PendingSpeech.Task;
                 return SpeechError != null
                     ? Task.FromException<SpeechData>(SpeechError)
                     : Task.FromResult(RegeneratedSpeech);

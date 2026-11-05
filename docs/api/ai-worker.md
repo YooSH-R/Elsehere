@@ -102,7 +102,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 | `name` | 문자열 (필수) | 이름 (프롬프트에 씀) |
 | `role` | 문자열 (필수) | 역할 한 줄 (예: "the barista at Maple Cafe.") |
 | `facts` | 문자열 | 메뉴·가격·성격 등 NPC가 아는 사실 |
-| `scene` | 문자열 | 장면 설명 (요청의 `scene`이 비면 이것). 근무 시간이 아닌 NPC와의 대화(API CONV-01 `npcOffDuty`)면 백엔드가 응대 장면 대신 쉬는 중에 잡담하는 일상 상황을 넣음 |
+| `scene` | 문자열 | 장면 설명 (요청의 `scene`이 비면 이것). 대화 시작·후속 발화·힌트에는 서버가 읽은 사용자별 게임 날짜와 24시간제 시각(`Current game time`)을 포함함. 인사와 시간 언급은 프로필의 평소 일과·이전 대사보다 이 시각을 우선하고, 시각이 없으면 시간 중립 인사를 사용함. 근무 시간이 아닌 NPC와의 대화(API CONV-01 `npcOffDuty`)면 백엔드가 응대 장면 대신 쉬는 중에 잡담하는 일상 상황을 넣음 |
 | `tts_voice` | 문자열 (기본 `af_heart`) | Kokoro 목소리 이름 |
 | `tts_speed` | 수 0.5~2.0 (기본 1.0) | 이 NPC의 타고난 말 속도. 실제 속도는 여기에 난이도 배율을 곱함 |
 | `profile` | 객체 또는 `null` (기본 `null`) | 인격. 백엔드 인격 설정(`content/npc-configurations.json`)에서 이 NPC의 `npcProfile`을 칸 이름(camelCase)까지 그대로 넣음. 형식은 [공통 인격 스키마](npc-ai-contracts/01_npc_configuration_spec_v2.md)이고 맞지 않으면 400 `invalid_request`. 있으면 NPC 대답을 공통 규칙과 인격으로 만듦(2.3절). 인격이 없는 NPC는 `null` |

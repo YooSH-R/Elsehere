@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using A305.Dialogue;
 using A305.Player;
 using A305.Tutorial;
+using A305.World;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
@@ -29,11 +31,39 @@ namespace A305.Npc.PlayModeTests
 
         // 카메라가 플레이어를 따라와 자리 잡을 때까지 기다리는 프레임 수
         private const int SettleFrames = 10;
+        private static Vector3 standDirection;
         private static readonly Vector3 OutOfTown = new Vector3(0f, -200f, 0f);
 
         [SetUp]
+        public void SetUp()
+        {
+            ResetCrossSceneRecords();
+            SceneManager.sceneLoaded += IsolateDoorways;
+        }
+
         [TearDown]
-        public void ResetCrossSceneRecords()
+        public void TearDown()
+        {
+            SceneManager.sceneLoaded -= IsolateDoorways;
+            ResetCrossSceneRecords();
+        }
+
+        // NPC 앞 거리만 바꾸는 검사에서 숙소 출입구를 밟아 씬이 바뀌지 않게 한다. 공간 이동은 World 테스트가 검증한다.
+        private static void IsolateDoorways(Scene scene, LoadSceneMode mode)
+        {
+            foreach (
+                SpaceDoorway door in Object.FindObjectsByType<SpaceDoorway>(
+                    FindObjectsSortMode.None
+                )
+            )
+                door.enabled = false;
+            foreach (
+                ShopDoorway door in Object.FindObjectsByType<ShopDoorway>(FindObjectsSortMode.None)
+            )
+                door.enabled = false;
+        }
+
+        private static void ResetCrossSceneRecords()
         {
             PasserbyRestRecord.Clear();
             PasserbyOfferRecord.Clear();
@@ -41,7 +71,45 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ClickingBenSixMetersAway_StartsConversation()
+        public IEnumerator OrdinaryNpc_DoesNotInterruptWithAnUnsolicitedOffer()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            yield return FaceFrom(ben, 1.5f);
+            yield return new WaitForSeconds(2f);
+            Assert.That(Single<PasserbyOfferView>().IsShowing, Is.False);
+            Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Waiting));
+            Assert.That(ben.CanTalkByClick(8f), Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingNpc_AsksBeforeStarting_AndCancelKeepsTheConversationClosed()
+        {
+            yield return LoadTownAfterTutorial();
+            Passerby ben = FindPasserby(BenCode);
+            KeepFromApproaching(ben);
+            yield return FaceFrom(ben, 6f);
+            Assert.That(ben.TalkByClick(8f), Is.True);
+            yield return null;
+            var offer = Single<PasserbyOfferView>();
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Assert.That(offer.IsShownBy(ben), Is.True);
+            Assert.That(
+                offer
+                    .GetComponentsInChildren<TMP_Text>()
+                    .Any(text => text.text == "Ben에게 말을 걸까요?"),
+                Is.True
+            );
+            offer
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "DeclineButton")
+                .onClick.Invoke();
+            Assert.That(offer.IsShowing, Is.False);
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator ClickingBenSixMetersAway_ConfirmingStartsConversation()
         {
             yield return LoadTownAfterTutorial();
             Passerby ben = FindPasserby(BenCode);
@@ -49,6 +117,12 @@ namespace A305.Npc.PlayModeTests
             yield return FaceFrom(ben, 6f);
 
             Single<NpcClickTalk>().Click(AimAt(ben));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
             yield return null;
 
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
@@ -75,11 +149,18 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTownAfterTutorial();
             Passerby ben = FindPasserby(BenCode);
+            ben.WaitAt(new Pose(ben.transform.position, ben.transform.rotation));
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return FaceFrom(ben, 4f);
             yield return WaitUntil(() => offer.IsShownBy(ben));
 
             Single<NpcClickTalk>().Click(AimAt(ben));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
             yield return null;
 
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
@@ -93,6 +174,7 @@ namespace A305.Npc.PlayModeTests
             // 다가와 제안하는 NPC가 있어도 원하는 NPC를 눌러 말을 걸 수 있다. 제안한 NPC는 거절한 것처럼 쉰다.
             yield return LoadTownAfterTutorial();
             Passerby ben = FindPasserby(BenCode);
+            ben.WaitAt(new Pose(ben.transform.position, ben.transform.rotation));
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return FaceFrom(ben, 4f);
             yield return WaitUntil(() => offer.IsShownBy(ben));
@@ -100,6 +182,12 @@ namespace A305.Npc.PlayModeTests
             yield return null;
 
             Single<NpcClickTalk>().Click(AimAt(neighbor));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
             yield return null;
 
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Resting));
@@ -159,6 +247,12 @@ namespace A305.Npc.PlayModeTests
             var clickTalk = Single<NpcClickTalk>();
             clickTalk.Click(AimAt(ben));
             yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
+            yield return null;
 
             clickTalk.RefreshHighlight(AimAt(ben));
 
@@ -167,7 +261,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ClickingBensNameTag_StartsConversation()
+        public IEnumerator ClickingBensNameTag_ConfirmingStartsConversation()
         {
             // 머리 위 이름표를 눌러도 몸을 누른 것과 같다.
             yield return LoadTownAfterTutorial();
@@ -177,6 +271,12 @@ namespace A305.Npc.PlayModeTests
             yield return LetCameraSettle();
 
             Single<NpcClickTalk>().Click(NameTagOf(ben, BenName));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
             yield return null;
 
             Assert.That(Single<DialogueController>().IsTalking, Is.True);
@@ -188,6 +288,7 @@ namespace A305.Npc.PlayModeTests
         {
             yield return LoadTownAfterTutorial();
             Passerby ben = FindPasserby(BenCode);
+            ben.WaitAt(new Pose(ben.transform.position, ben.transform.rotation));
             PasserbyOfferView offer = Single<PasserbyOfferView>();
             yield return FaceFrom(ben, 4f);
             yield return WaitUntil(() => offer.IsShownBy(ben));
@@ -201,6 +302,12 @@ namespace A305.Npc.PlayModeTests
             yield return LetCameraSettle();
 
             Single<NpcClickTalk>().Click(NameTagOf(ruby, RubyName));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
             yield return null;
 
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Resting));
@@ -281,13 +388,19 @@ namespace A305.Npc.PlayModeTests
             Passerby ruby = BringNpc(
                 RubyCode,
                 new Pose(
-                    ben.transform.position - ben.transform.forward * 1.5f,
+                    ben.transform.position - DirectionToCamera(ben) * 1.5f,
                     ben.transform.rotation
                 )
             );
             yield return LetCameraSettle();
 
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(BenName, RubyName));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
             yield return null;
 
             Assert.That(ben.Phase, Is.EqualTo(PasserbyPhase.Talking));
@@ -304,13 +417,19 @@ namespace A305.Npc.PlayModeTests
             Passerby ruby = BringNpc(
                 RubyCode,
                 new Pose(
-                    ben.transform.position + ben.transform.forward * 1.5f,
+                    ben.transform.position + DirectionToCamera(ben) * 1.5f,
                     ben.transform.rotation
                 )
             );
             yield return LetCameraSettle();
 
             Single<NpcClickTalk>().Click(WhereNameTagsOverlap(RubyName, BenName));
+            yield return null;
+            Assert.That(Single<DialogueController>().IsTalking, Is.False);
+            Single<PasserbyOfferView>()
+                .GetComponentsInChildren<Button>()
+                .Single(button => button.name == "AcceptButton")
+                .onClick.Invoke();
             yield return null;
 
             Assert.That(ruby.Phase, Is.EqualTo(PasserbyPhase.Talking));
@@ -353,11 +472,36 @@ namespace A305.Npc.PlayModeTests
         private static IEnumerator FaceFrom(Passerby passerby, float distanceMeters)
         {
             Vector3 npcPosition = passerby.transform.position;
-            Vector3 standAt = npcPosition + passerby.transform.forward * distanceMeters;
+            // 집을 바라보는 NPC의 정면은 건물 안일 수 있다. 벽과 출입구 밖에서 두 거리를 모두 볼 수 있는 방향을 고른다.
+            Physics.SyncTransforms();
+            standDirection = new[]
+            {
+                Vector3.forward,
+                Vector3.right,
+                Vector3.back,
+                Vector3.left,
+            }.First(direction =>
+                new[] { 6f, 10f }.All(distance =>
+                {
+                    Vector3 eye = npcPosition + direction * distance + Vector3.up * 1.5f;
+                    Vector3 chest = npcPosition + Vector3.up * 1.1f;
+                    return new NpcPointerRaycast().Find(new Ray(eye, chest - eye), 30f) == passerby;
+                })
+            );
+            Vector3 standAt = npcPosition + standDirection * distanceMeters;
             Vector3 towardNpc = npcPosition - standAt;
             towardNpc.y = 0f;
-            Single<PlayerMover>().Teleport(standAt, Quaternion.LookRotation(towardNpc));
+            Quaternion facing = Quaternion.LookRotation(towardNpc);
+            Single<PlayerMover>().Teleport(standAt, facing);
+            Single<PlayerCameraRig>().SnapView(facing.eulerAngles.y);
             yield return null;
+        }
+
+        private static Vector3 DirectionToCamera(Passerby npc)
+        {
+            Vector3 direction = Camera.main.transform.position - npc.transform.position;
+            direction.y = 0;
+            return direction.normalized;
         }
 
         // 마을 밖으로 옮겨 둔 다른 행인 하나를 Ben 옆 1.5m에 세운다. 생활은 끈 채로 두고 먼저 다가오지 않게 한다.
@@ -393,6 +537,10 @@ namespace A305.Npc.PlayModeTests
             var body = npc.GetComponent<CharacterController>();
             body.enabled = false;
             npc.transform.SetPositionAndRotation(pose.position, pose.rotation);
+            // 시험에서 옮겨 세운 NPC가 이전 배치 지점으로 돌아가지 않게 기준 자리도 함께 옮긴다.
+            typeof(Passerby)
+                .GetField("homePose", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(npc, pose);
             body.enabled = true;
         }
 

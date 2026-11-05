@@ -226,6 +226,7 @@ namespace A305.Dialogue
                 return;
             }
 
+            TextPronunciation.Stop();
             if (serverConversation != null)
             {
                 serverLink.StopSpeech();
@@ -316,6 +317,7 @@ namespace A305.Dialogue
             panel.TalkStartRequested += StartRecording;
             panel.TalkStopRequested += StopRecording;
             panel.ReplayRequested += ReplaySpeech;
+            panel.UserTranslationListenRequested += ReadUserTranslation;
             panel.MeaningRequested += RequestMeaning;
             panel.HintRequested += RequestHint;
             panel.RetryRequested += Retry;
@@ -335,6 +337,7 @@ namespace A305.Dialogue
 
         private void OnDestroy()
         {
+            TextPronunciation.Stop();
             if (session.IsActive)
                 GameClock.Shared.IsTalking = false;
             if (serverLink != null)
@@ -353,6 +356,7 @@ namespace A305.Dialogue
                 panel.TalkStartRequested -= StartRecording;
                 panel.TalkStopRequested -= StopRecording;
                 panel.ReplayRequested -= ReplaySpeech;
+                panel.UserTranslationListenRequested -= ReadUserTranslation;
                 panel.MeaningRequested -= RequestMeaning;
                 panel.HintRequested -= RequestHint;
                 panel.RetryRequested -= Retry;
@@ -491,6 +495,7 @@ namespace A305.Dialogue
 
         private void Send(string text)
         {
+            TextPronunciation.Stop();
             if (serverConversation != null)
             {
                 _ = serverConversation.SendAsync(text);
@@ -526,8 +531,28 @@ namespace A305.Dialogue
             WordSaveRequested?.Invoke(word);
         }
 
+        private async void ReadUserTranslation(string text)
+        {
+            if (
+                serverConversation == null
+                || serverConversation.IsBusy
+                || text != serverConversation.UserTranslation
+            )
+                return;
+            serverLink.StopSpeech();
+            bool played = await TextPronunciation.SpeakAsync(text);
+            if (
+                !played
+                && this != null
+                && session.IsActive
+                && text == serverConversation?.UserTranslation
+            )
+                panel.ShowPronunciationFailure();
+        }
+
         private void PlayNpcSpeech(NpcTurnData turn)
         {
+            TextPronunciation.Stop();
             NpcResponded?.Invoke();
             if (!isEnding && turn.Speech != null && turn.Speech.IsReady)
             {
@@ -566,6 +591,7 @@ namespace A305.Dialogue
         // 음성을 받아 둔 턴은 다시 재생하고, 합성에 실패한 턴은 음성을 다시 만든 뒤 재생한다(CONV-06·07).
         private void ReplaySpeech()
         {
+            TextPronunciation.Stop();
             if (
                 serverConversation == null
                 || !serverConversation.CanReplaySpeech
@@ -628,6 +654,7 @@ namespace A305.Dialogue
 
         private void StartRecording()
         {
+            TextPronunciation.Stop();
             if (serverConversation != null && serverConversation.CanSend)
             {
                 serverLink.StopSpeech();

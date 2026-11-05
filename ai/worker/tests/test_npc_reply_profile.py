@@ -85,6 +85,18 @@ def test_without_a_profile_the_reply_keeps_the_current_prompt(client, provider):
     assert system.startswith("You are Mia, the barista at the corner cafe.") and "## Character" not in system
 
 
+@pytest.mark.parametrize("with_profile", [False, True])
+def test_current_game_time_takes_precedence_over_rubys_morning_routine(client, provider, with_profile):
+    npc = {**NPC, "name": "Ruby", "scene": "Town street. Current game time: day 2, 23:00 (24-hour clock)."}
+    if with_profile:
+        npc["profile"] = profile_of("TOWN_RETIREE")
+    system = system_of(reply_request(client, provider, npc))
+    assert "Current game time: day 2, 23:00" in system
+    assert "Use the current game time" in system
+    assert "takes precedence over routines, profile greetings and earlier dialogue" in system
+    assert "Never infer the current time from a character's usual morning or evening activity" in system
+
+
 @pytest.mark.parametrize("npc_id", SERVICE_NPCS)
 def test_the_profile_from_the_backend_settings_becomes_the_character(client, provider, npc_id):
     profile = profile_of(npc_id)

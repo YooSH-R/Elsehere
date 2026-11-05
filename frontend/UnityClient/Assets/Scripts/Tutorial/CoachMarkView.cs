@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using A305.ObjectHover;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -124,11 +125,27 @@ namespace A305.Tutorial
             captionMaxWidth = caption.sizeDelta.x;
             nextButton.onClick.AddListener(() => nextAction?.Invoke());
             CreateRoundedFrame();
+            MatchServiceTheme();
             CreateNote();
             Hide();
         }
 
         // 두 번째 말풍선은 설명 말풍선과 모양이 같도록 그대로 복사해 만들고, 읽고 넘길 설명이 아니므로 [다음]은 뺀다.
+        private void MatchServiceTheme()
+        {
+            TutorialGuideView guide = FindFirstObjectByType<TutorialGuideView>();
+            UiThemeCatalog catalog = guide != null
+                ? guide.PanelRect.GetComponent<ThemedElement>()?.Catalog
+                : null;
+            if (catalog == null)
+            {
+                return;
+            }
+
+            caption.gameObject.AddComponent<ThemedElement>().Use(catalog, UiThemeRole.Card);
+            captionText.gameObject.AddComponent<ThemedElement>().Use(catalog, UiThemeRole.Body);
+        }
+
         private void CreateRoundedFrame()
         {
             foreach (Transform bar in frame.transform)

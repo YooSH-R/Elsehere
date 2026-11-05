@@ -2435,8 +2435,8 @@ GameObject:
   - component: {fileID: 7626426350032936863}
   - component: {fileID: 7013097067027527303}
   - component: {fileID: 2784395215089019754}
-  - component: {fileID: 2151168651836836663}
-  - component: {fileID: 5510843193240214943}
+  - component: {fileID: 8393445133332609368}
+  - component: {fileID: 117934944793604160}
   m_Layer: 0
   m_Name: LittleMung_Grandmother
   m_TagString: Untagged
@@ -2484,7 +2484,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 98fef14844693b34095c3d3b89ba3577, type: 3}
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterIdleBlink
---- !u!114 &2151168651836836663
+--- !u!114 &8393445133332609368
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2497,13 +2497,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterSpeechPlayer
   face: {fileID: 7013097067027527303}
-  speechSource: {fileID: 5510843193240214943}
+  speechSource: {fileID: 117934944793604160}
   speech: {fileID: 0}
   expressions: {fileID: 11400000, guid: d971682af4970ba40801242aadc35ea0, type: 2}
   emotionProfile: {fileID: 11400000, guid: 6c28dde4cfe379e4a899fb9cd031990d, type: 2}
   speakingMood: 1
   moodIntensity: 1
---- !u!82 &5510843193240214943
+--- !u!82 &117934944793604160
 AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

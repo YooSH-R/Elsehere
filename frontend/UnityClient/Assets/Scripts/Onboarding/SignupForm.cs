@@ -42,7 +42,23 @@ namespace A305.Onboarding
             NicknameProblem == NicknameProblem.None
             && NicknameStatus == NicknameStatus.Available
             && Avatar != null
-            && Terms.Where(term => term.Required).All(term => IsAgreed(term.ConsentType));
+            && CanContinueFromTerms;
+
+        /// <summary>약관 동의 단계에서 [다음]을 누를 수 있는지. 필수 약관에 모두 동의해야 하고 선택 약관은 없어도 된다.</summary>
+        public bool CanContinueFromTerms =>
+            Terms.Where(term => term.Required).All(term => IsAgreed(term.ConsentType));
+
+        /// <summary>필수·선택 약관에 모두 동의했는지. [전체 동의] 체크에 보인다.</summary>
+        public bool IsAllAgreed => Terms.All(term => IsAgreed(term.ConsentType));
+
+        /// <summary>[전체 동의]. 필수·선택 약관을 모두 켜거나 모두 끈다.</summary>
+        public void AgreeAll(bool agreed)
+        {
+            foreach (ConsentTerm term in Terms)
+            {
+                SetAgreed(term.ConsentType, agreed);
+            }
+        }
 
         /// <summary>닉네임을 바꾸면 이전 중복 확인 결과는 쓸 수 없다.</summary>
         public void ChangeNickname(string nickname)

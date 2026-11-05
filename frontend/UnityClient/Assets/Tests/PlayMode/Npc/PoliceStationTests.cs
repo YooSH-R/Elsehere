@@ -37,6 +37,7 @@ namespace A305.Npc.PlayModeTests
         [SetUp]
         public void ResetCrossSceneRecords()
         {
+            NpcTestClock.SetDaytime();
             PasserbyRestRecord.Clear();
             TutorialState.Clear();
             PoliceDispatchOrder.Clear();
@@ -46,6 +47,7 @@ namespace A305.Npc.PlayModeTests
         [TearDown]
         public void RestoreSharedState()
         {
+            NpcTestClock.Restore();
             Time.timeScale = 1;
             Time.captureDeltaTime = 0;
             TutorialState.Clear();

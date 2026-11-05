@@ -23,6 +23,9 @@ namespace A305.Npc.PlayModeTests
         private const string BenCode = "TOWN_PASSERBY";
         private const float WaitTimeoutSeconds = 15f;
 
+        [TearDown]
+        public void RestoreClock() => NpcTestClock.Restore();
+
         [SetUp]
         [TearDown]
         public void ResetCrossSceneRecords()
@@ -478,6 +481,7 @@ namespace A305.Npc.PlayModeTests
         /// </summary>
         private static IEnumerator LoadTownAfterTutorial()
         {
+            NpcTestClock.SetDaytime();
             TutorialState.MarkFinishedOnServer();
             yield return LoadTown();
             FindPasserby(BenCode).GetComponent<NpcRoutine>().enabled = false;

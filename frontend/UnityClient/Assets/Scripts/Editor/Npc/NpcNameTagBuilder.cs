@@ -12,7 +12,7 @@ namespace A305.EditorTools.Npc
 {
     /// <summary>
     /// NPC 머리 위 이름표 층(NameTags)을 대화 제안 화면 프리팹에 더한다. 행인·직원이 있는 장면에는 이 프리팹이 있으므로
-    /// 장면을 따로 고치지 않아도 이름표가 나온다. 단어 카드(90)·HUD(95)보다 아래에 그리고 클릭은 받지 않는다.
+    /// 장면을 따로 고치지 않아도 이름표가 나온다. 이름표 바탕 전체가 클릭·탭을 받아 그 NPC에게 말을 건다(<see cref="NpcClickTalk"/>).
     /// 없는 요소만 만들고, 이미 있는 이름표의 디자인은 유지한다.
     /// </summary>
     public static class NpcNameTagBuilder
@@ -22,7 +22,10 @@ namespace A305.EditorTools.Npc
         private const string NamesPath = "Assets/Data/Dialogue/MockDialogueScripts.asset";
         private const string LifeDataPath = "Assets/Data/Npc/NpcLife.json";
         private const string LayerName = "NameTags";
-        private const int SortingOrder = 80;
+
+        // 휴대폰 터치 조작판(-10)보다 아래에 그린다. 이름표가 클릭을 받아도 그 위에서 시작한 끌기는 조작판이 받아 시점·이동이 그대로 된다.
+        // 그래서 단어 카드(90)·HUD(95)를 비롯한 다른 화면 UI는 모두 이름표 위에 그려지고, 그 UI를 누르면 이름표 클릭이 되지 않는다.
+        private const int SortingOrder = -20;
 
         // 이름표 칩의 직원 색. 흰 유리 칩 위에서 멀리서도 직원이 보이게 진한 파랑에 흰 굵은 글자를 쓴다.
         private static readonly Color StaffChipColor = new Color(0.13f, 0.47f, 0.78f);
@@ -43,6 +46,8 @@ namespace A305.EditorTools.Npc
             RectTransform layer = FindOrCreateLayer(offerRoot.transform);
             var view = BuilderTools.GetOrAddComponent<NpcNameTagView>(layer.gameObject);
             RectTransform template = FindOrCreateTemplate(layer);
+            // 이미 있는 이름표도 바탕 전체(이름·역할 칩 포함)로 클릭을 받게 한다. 글자와 칩은 받지 않아 바탕이 대신 받는다.
+            template.GetComponent<Image>().raycastTarget = true;
 
             BuilderTools.SetReference(
                 view,
@@ -75,10 +80,12 @@ namespace A305.EditorTools.Npc
                 layer.offsetMax = Vector2.zero;
             }
 
-            // 제안 화면(110)과 같은 프리팹에 있지만 단어 카드·HUD 아래에 그리도록 따로 순서를 정한다.
+            // 제안 화면(110)과 같은 프리팹에 있지만 다른 화면 UI 아래에 그리도록 따로 순서를 정한다.
+            // 따로 정렬하는 캔버스는 바깥 캔버스의 클릭 판정에 들어가지 않으므로 자기 판정기를 둔다.
             var canvas = BuilderTools.GetOrAddComponent<Canvas>(layer.gameObject);
             canvas.overrideSorting = true;
             canvas.sortingOrder = SortingOrder;
+            BuilderTools.GetOrAddComponent<GraphicRaycaster>(layer.gameObject);
             return layer;
         }
 
@@ -101,7 +108,6 @@ namespace A305.EditorTools.Npc
             template.SetParent(layer, false);
             template.anchorMin = template.anchorMax = Vector2.zero;
             template.pivot = new Vector2(.5f, 0f);
-            template.GetComponent<Image>().raycastTarget = false;
             var column = template.GetComponent<VerticalLayoutGroup>();
             column.padding = new RectOffset(16, 16, 6, 8);
             column.spacing = 2f;

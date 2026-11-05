@@ -110,7 +110,7 @@
 **Tools → A305 → World → Apply Police Station**(`PoliceStationBuilder`)이 경찰서를 한 번에 적용합니다. 경찰서 매장(창구·대기 의자·게시판·서류함·국기)을 놓고, 경찰서 남쪽 잔디에 주차장(`TownMainstreet/PoliceParking`)과 본길 끝으로 이어지는 진입 포장을 깔아 순찰차를 세웁니다. 창구 뒤에는 경찰관 Dan(`POLICE_OFFICER`)·Victor·Kevin·Tyler를 세우고(창구에 가장 가까운 Dan이 근무 중이면 먼저 응대) 경찰관마다 신고 창구(`PoliceReportDesk`)와 순찰차를 잇습니다. 새 경찰관은 창구 뒤 자리가 가구와 겹치면 가까운 빈자리로 옮기고, 외형 표의 배색을 입힙니다. 마지막으로 **Apply Taxi Cabin**과 같은 구성으로 택시 목적지에 경찰서를 더합니다.
 
 - 순찰차 모델은 KayKit City Builder Bits의 `car_police`이고 프리팹은 `Prefabs/World/PoliceStation/PoliceCar.prefab`입니다. 지붕 경광등 위에 빨강·파랑 발광 조각과 불빛(`LightBar/RedLights`, `LightBar/BlueLights`)을 얹어 두었습니다.
-- 경찰관 외형은 호텔리어 모델에 갈색 바지·구두만 남색으로 바꾼 텍스처 사본(`Art/World/PoliceStation/PoliceOfficerUniform.png`)과 경찰 모자를 씌운 것입니다. 모자는 모델의 원래 자세를 기준으로 머리 뼈에 붙여 서 있기 동작에서 머리 앞을 봅니다. 경찰관 전용 모델은 아직 없습니다.
+- 경찰관 외형은 모자·제복을 포함한 `Prefabs/Npc/Review/LittleMung_Police_Male.prefab`입니다. 공통 마스터 골격과 입·미소·눈 감기 채널을 사용하며, `NpcVisualBuilder`가 실제 몸·눈 높이에 캡슐과 시선을 맞춥니다. 별도의 모자를 중복해서 붙이지 않습니다. 경찰 여자 검수 사본도 준비되어 있지만 기존 네 경찰의 역할에는 배정하지 않습니다.
 - 순찰차는 택시와 같은 본길(남쪽 끝 z=-25, 북쪽 끝 z=66)을 달리고, 택시 목적지와 같은 정차 지점을 씁니다(경찰서 자신은 빼고 10곳). 주차 칸은 (-9, -28.8)이고, 진입로는 동쪽 끝 정원수(-3.7, -27.8)를 피해 그 북쪽으로 지납니다.
 - 주차장·순찰차 프리팹·경찰관 외형은 없을 때만 만들고, 이미 있으면 배치를 두고 연결(본길 설정·진입로 조절점·목적지·경광등·창구)만 맞춥니다. **Capture Police Station**은 검토용 화면을 `artifacts/unity/police-station/`에 저장합니다.
 - 새 사물 단어는 경찰차·경찰관·주차장입니다.

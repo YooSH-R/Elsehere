@@ -59,12 +59,6 @@ async def first_within(gen, budget_s: float, t0: float):
         yield piece
 
 
-def _quiet(task: asyncio.Task):
-    """상한을 넘겨 버린 합성 작업의 오류를 조용히 (저장본은 캐시에 남아 다음에 바로 씀)."""
-    if not task.cancelled():
-        task.exception()
-
-
 async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Settings, req: ReplyRequest):
     usage, out, chunks = Usage(), asyncio.Queue(), asyncio.Queue()
     t0 = time.perf_counter()
@@ -74,6 +68,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
     synthesis_tasks: list[asyncio.Task] = []
     last_audio_requested_at = t0
     use_tts = req.tts and tts is not None
+    closing = False
 
     def schedule(text: str):
         nonlocal last_audio_requested_at
@@ -81,7 +76,6 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
         last_audio_requested_at = time.perf_counter()
         if use_tts:
             task = asyncio.create_task(tts.asynth(text, req.npc.tts_voice, P.npc_speed(req.npc, req.level)))
-            task.add_done_callback(_quiet)
             synthesis_tasks.append(task)
         chunks.put_nowait((st["seq"], text, task, time.perf_counter()))
         st["seq"] += 1
@@ -94,7 +88,7 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
 
         def finish():
             nonlocal finished
-            if finished:
+            if finished or closing:
                 return
             finished = True
             for c in sp.flush():  # 오류로 끊겨도 이미 보낸 글자는 읽어 준다
@@ -116,7 +110,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                         if st["first"] is None:
                             st["first"] = round(time.perf_counter() - t0, 2)
                         st["full"] += piece
-                        await out.put(("delta", {"text": piece}))
+                        if req.stream_chunks:
+                            await out.put(("delta", {"text": piece}))
                         for c in sp.feed(piece):
                             schedule(c)
                     if stopped and st["full"].strip():
@@ -127,7 +122,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 await gen.aclose()
             if not st["error"] and not st["full"].strip():
                 st["full"] = FALLBACK_REPLY
-                await out.put(("delta", {"text": FALLBACK_REPLY}))
+                if req.stream_chunks:
+                    await out.put(("delta", {"text": FALLBACK_REPLY}))
                 schedule(FALLBACK_REPLY)
         finally:
             finish()
@@ -158,7 +154,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 left = min(left, last_audio_requested_at + s.tts_full_budget_s - time.perf_counter())
                 try:
                     wav, dur, _ = await asyncio.wait_for(asyncio.shield(task), max(left, 0.01))
-                    ev.update(audio_id=store.put(wav), duration_s=round(dur, 2), tts=True)
+                    if req.stream_chunks:
+                        ev.update(audio_id=store.put(wav), duration_s=round(dur, 2), tts=True)
                     wavs[seq] = wav
                 except TimeoutError:  # 늦은 조각은 바로 재생 없이 자막만 (tts: false)
                     log.info(json.dumps({"event": "tts_chunk_late", "seq": seq}))
@@ -166,7 +163,8 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 except Exception:  # 합성 실패도 그 조각만 자막으로 (대답 스트림은 이어 감)
                     log.warning(json.dumps({"event": "tts_chunk_failed", "seq": seq}), exc_info=True)
             prev_done = time.perf_counter()
-            await out.put(("audio", ev))
+            if req.stream_chunks:
+                await out.put(("audio", ev))
         await out.put(("_end", None))
 
     async def whole_turn_audio() -> dict:
@@ -217,7 +215,10 @@ async def reply_events(llm: LLM, tts: Kokoro | None, store: AudioStore, s: Setti
                 },
             )
     finally:
-        tasks = [task for task in [*workers, st["words"], *synthesis_tasks] if task is not None]
+        closing = True
+        tasks = [*workers, *synthesis_tasks]
+        if st["words"]:
+            tasks.append(st["words"])
         for task in tasks:  # 연결 종료·음성 상한 뒤에 남은 작업이 다음 대화를 붙잡지 않게 한다.
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)

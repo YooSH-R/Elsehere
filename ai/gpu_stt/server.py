@@ -10,6 +10,7 @@
 import hmac
 import io
 import json
+import logging
 import os
 import queue
 import threading
@@ -26,6 +27,9 @@ from faster_whisper import WhisperModel
 from faster_whisper.audio import pad_or_trim
 from faster_whisper.tokenizer import Tokenizer
 from faster_whisper.transcribe import get_suppressed_tokens
+
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
+logging.getLogger("gpu_stt").setLevel(os.environ.get("GPU_LOG_LEVEL", "INFO").upper())
 
 MODEL_DIR = os.environ.get("STT_MODEL_DIR", str(Path.home() / "stt/stt_finetune/checkpoints/turbo-lr1e4/ct2"))
 LANGUAGE = os.environ.get("STT_LANGUAGE", "ko") or None  # 게임 녹음 평가에서 가장 좋았던 설정: ko 고정 + 혼합 프롬프트
@@ -48,8 +52,10 @@ SUPPRESS_TOKENS = get_suppressed_tokens(PROMPT_TOKENIZER, [-1])
 NO_SPEECH_THRESHOLD, LOG_PROB_THRESHOLD = 0.6, -1.0
 
 
-def log(event: dict) -> None:
-    print(json.dumps({"t": time.strftime("%H:%M:%S"), **event}, ensure_ascii=False), flush=True)
+def log(event: dict, level: int = logging.INFO) -> None:
+    logger = logging.getLogger("gpu_stt")
+    if logger.isEnabledFor(level):
+        logger.log(level, json.dumps({"t": time.strftime("%H:%M:%S"), **event}, ensure_ascii=False))
 
 
 def load_audio(data: bytes) -> np.ndarray:
@@ -186,7 +192,10 @@ def batch_loop() -> None:
         except Exception as e:  # 묶음이 통째로 실패하면 묶인 요청 모두 500으로 돌려준다
             for job in batch:
                 job.error = e
-        log({"event": "batch", "size": len(batch), "infer_s": round(time.perf_counter() - started, 3), "waiting": jobs.qsize()})
+        log(
+            {"event": "batch", "size": len(batch), "infer_s": round(time.perf_counter() - started, 3), "waiting": jobs.qsize()},
+            logging.DEBUG,
+        )
         for job in batch:
             job.done.set()
 
@@ -231,13 +240,13 @@ class Handler(BaseHTTPRequestHandler):
             form = parse_form(self.headers.get("Content-Type", ""), self.rfile.read(size))
             audio = load_audio(form["file"])
         except (KeyError, ValueError, av.error.FFmpegError) as e:
-            log({"event": "rejected", "why": type(e).__name__, "bytes": size})
+            log({"event": "rejected", "why": type(e).__name__, "bytes": size}, logging.WARNING)
             return self.reply(400, {"error": {"message": f"녹음을 읽을 수 없음: {type(e).__name__}"}})
         decoded = time.perf_counter()
         try:
             result = transcribe(audio, form.get("prompt", b"").decode("utf-8", "replace"))
         except Exception as e:
-            log({"event": "failed", "why": type(e).__name__})
+            log({"event": "failed", "why": type(e).__name__}, logging.ERROR)
             return self.reply(500, {"error": {"message": f"받아 적기 실패: {type(e).__name__}"}})
         done = time.perf_counter()
         log(
@@ -247,7 +256,8 @@ class Handler(BaseHTTPRequestHandler):
                 "decode_s": round(decoded - started, 3),
                 "wait_infer_s": round(done - decoded, 3),
                 "words": len(result["text"].split()),
-            }
+            },
+            logging.DEBUG,
         )
         self.reply(200, result)
 

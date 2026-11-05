@@ -16,6 +16,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 import hmac
 import io
 import json
+import logging
 import threading
 import time
 import wave
@@ -26,6 +27,9 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 from kokoro_onnx import Kokoro
+
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
+logging.getLogger("gpu_tts").setLevel(os.environ.get("GPU_LOG_LEVEL", "INFO").upper())
 
 MODEL_DIR = Path(os.environ.get("TTS_MODEL_DIR", str(Path.home() / "tts/models")))
 PORT = int(os.environ.get("TTS_PORT", "18433"))
@@ -105,8 +109,10 @@ def read_request(body: bytes) -> tuple[str, str, float]:
     return phonemes, voice, float(speed)
 
 
-def log(event: dict) -> None:
-    print(json.dumps({"t": time.strftime("%H:%M:%S"), **event}, ensure_ascii=False), flush=True)
+def log(event: dict, level: int = logging.INFO) -> None:
+    logger = logging.getLogger("gpu_tts")
+    if logger.isEnabledFor(level):
+        logger.log(level, json.dumps({"t": time.strftime("%H:%M:%S"), **event}, ensure_ascii=False))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -141,7 +147,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply_json(400, {"error": {"message": str(e)}})
         started = time.perf_counter()
         wav, seconds = synth(phonemes, voice, speed)
-        log({"event": "synth", "audio_s": round(seconds, 2), "synth_s": round(time.perf_counter() - started, 3), "phonemes": len(phonemes)})
+        log(
+            {"event": "synth", "audio_s": round(seconds, 2), "synth_s": round(time.perf_counter() - started, 3), "phonemes": len(phonemes)},
+            logging.DEBUG,
+        )
         self.send_response(200)
         self.send_header("Content-Type", "audio/wav")
         self.send_header("Content-Length", str(len(wav)))

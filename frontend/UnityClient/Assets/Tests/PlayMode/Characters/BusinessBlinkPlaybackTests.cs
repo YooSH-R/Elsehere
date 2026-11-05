@@ -32,6 +32,22 @@ namespace A305.Characters.PlayModeTests
                 yield return CheckBlink(name);
         }
 
+        [UnityTest]
+        public IEnumerator NewlyGeneratedNpcsBlinkWithoutResettingTheirMouth()
+        {
+            foreach (
+                string name in new[]
+                {
+                    "LittleMung_Cafe_Male",
+                    "LittleMung_Grandfather",
+                    "LittleMung_HotelStaff_Female",
+                    "LittleMung_Police_Female",
+                    "LittleMung_Police_Male",
+                }
+            )
+                yield return CheckBlink(name);
+        }
+
         private static IEnumerator CheckBlink(string name)
         {
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(

@@ -2,6 +2,8 @@
 
 Tripo 카페 여자 `Assets/Prefabs/Npc/Barista.prefab`을 보존한 표정 복사본이다. 개별 표정 검수 씬과 실제 카페 NPC 대화 연결을 함께 제공한다. 원본 메시·텍스처·프리팹은 변경하지 않는다.
 
+말하는 동안 의문·찡그림·웃음 등 9종 감정을 합성하는 별도 카페 복사본은 [NPC 말하기 감정 검수](npc-speaking-emotions.md)에서 확인한다. 현재 Production의 고정 미소를 자동 감정 판정으로 교체한 기능은 아니다.
+
 ## Unity에서 확인
 
 1. `Assets/Scenes/Sandbox/CafeFemaleFacePreview.unity`를 연다.

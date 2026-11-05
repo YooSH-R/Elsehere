@@ -40,13 +40,20 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
       failed = true;
       throw exception;
     } finally {
-      Object route = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
-      log.info(
-          "http_request method={} route={} status={} duration_ms={}",
-          request.getMethod(),
-          route == null ? "/unmatched" : route,
-          failed ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : response.getStatus(),
-          TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+      boolean successfulHealthCheck =
+          !failed
+              && response.getStatus() == HttpServletResponse.SC_OK
+              && "GET".equals(request.getMethod())
+              && (request.getContextPath() + "/api/health").equals(request.getRequestURI());
+      if (!successfulHealthCheck) {
+        Object route = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+        log.info(
+            "http_request method={} route={} status={} duration_ms={}",
+            request.getMethod(),
+            route == null ? "/unmatched" : route,
+            failed ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : response.getStatus(),
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+      }
       restore("requestId", previousRequestId);
       // 보안 필터 안쪽(UserLoggingFilter)에서 넣은 사용자 ID도 요청 요약을 남긴 뒤 정리한다.
       restore(UserLoggingFilter.USER_ID, previousUserId);

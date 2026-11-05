@@ -26,6 +26,19 @@ class TownStoryServiceTest {
   private final NpcRepository npcs = mock(NpcRepository.class);
   private final TownStoryService service = new TownStoryService(stories, firstDay, npcs);
 
+  @Test
+  void everyStoryObjectiveCanUseFactsAcrossLearnerTurns() {
+    TownStory story = TownStory.start(8L);
+    when(stories.findById(8L)).thenReturn(Optional.of(story));
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      assertThat(service.context(8L, stage.npcCode()).orElseThrow().state().accumulateHistory())
+          .as(stage.name())
+          .isTrue();
+      story.accept(story.getStage(), stage.npcCode(), stage.goalIds());
+      story.resume();
+    }
+  }
+
   @BeforeEach
   void nameTheDinerStaff() {
     Npc rosa = mock(Npc.class);
@@ -65,6 +78,21 @@ class TownStoryServiceTest {
     when(firstDay.findById(8L)).thenReturn(Optional.of(FirstDayMission.start(8L)));
 
     assertThatThrownBy(() -> service.start(8L)).isInstanceOf(BusinessException.class);
+  }
+
+  // 마을 퀘스트 목표마다 무엇을 말해야 하는지 카드에 보인다(예: 아침은 음식과 음료를 함께).
+  @Test
+  void everyTownGoalTellsTheLearnerWhatToSay() {
+    when(stories.findById(8L)).thenReturn(Optional.of(TownStory.start(8L)));
+
+    for (TownStoryStage stage : TownStoryStage.values()) {
+      for (String id : stage.goalIds()) {
+        assertThat(TownStoryStage.goalHint(id)).as(id).isNotBlank();
+      }
+    }
+    var order = service.status(8L).steps().getFirst().goals().getFirst();
+    assertThat(order.id()).isEqualTo("order_breakfast");
+    assertThat(order.hint()).contains("음식과 음료");
   }
 
   @Test

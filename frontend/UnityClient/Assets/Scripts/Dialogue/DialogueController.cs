@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using A305.Api;
 using A305.Player;
 using A305.Voice;
+using A305.World;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -160,6 +161,7 @@ namespace A305.Dialogue
                 return false;
             }
 
+            GameClock.Shared.IsTalking = true;
             if (serverLink != null)
             {
                 var speaker = lookTarget.GetComponentInParent<DialogueSpeaker>();
@@ -333,6 +335,8 @@ namespace A305.Dialogue
 
         private void OnDestroy()
         {
+            if (session.IsActive)
+                GameClock.Shared.IsTalking = false;
             if (serverLink != null)
                 serverLink.SetSpeaker(null);
             if (serverLink != null && serverLink.VoiceRecorder != null)
@@ -434,6 +438,7 @@ namespace A305.Dialogue
 
         private void Finish(DialogueRecord record)
         {
+            GameClock.Shared.IsTalking = false;
             string endedNpcCode = Close();
             Ended?.Invoke(endedNpcCode);
             ConversationEnded?.Invoke(record);

@@ -133,6 +133,7 @@ namespace A305.Learning
             hudView.ControlsGuide.SetBlocked(dialogue.IsTalking || IsShowingScreen);
             hudView.SetHomeAvailable(gameObject.scene.name != "HomeScene" && !IsHomeBlocked);
             CenterWindow.Shared.SetOpen(IsShowingScreen);
+            GameClock.Shared.IsLearningWindowOpen = IsShowingScreen;
         }
 
         private bool IsHomeBlocked =>
@@ -156,6 +157,7 @@ namespace A305.Learning
         private void OnDestroy()
         {
             CenterWindow.Shared.SetOpen(false);
+            GameClock.Shared.IsLearningWindowOpen = false;
             if (hudView != null)
             {
                 hudView.HomeRequested -= ReturnHome;
@@ -534,6 +536,7 @@ namespace A305.Learning
 
         private void UpdateMovementLock()
         {
+            GameClock.Shared.IsLearningWindowOpen = IsShowingScreen;
             if (dialogue.IsTalking)
             {
                 return;

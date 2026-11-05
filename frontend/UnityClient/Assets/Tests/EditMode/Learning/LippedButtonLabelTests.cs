@@ -29,7 +29,9 @@ namespace A305.Learning.Tests
         [Test]
         public void SaveButton_LabelSitsHalfTheLipLower()
         {
-            var label = Find("Panel/PageCard/Situations/SituationRowTemplate/SaveButton/Label");
+            var label = Find(
+                "Panel/PageCard/Content/Situations/SituationRowTemplate/SaveButton/Label"
+            );
 
             AssertLowered(label, 2.5f * Px);
         }

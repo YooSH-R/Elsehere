@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a1f2ec153247d74c913e9e758116fde, type: 3}
+  m_Name: CuriousPlayfulLaugh
+  m_EditorClassIdentifier: A305.Characters::A305.Characters.CharacterSpeechClip
+  audioClip: {fileID: 8300000, guid: e3caf4ec16a181647969bb2695245fe9, type: 3}
+  visemeTimeline: {fileID: 4900000, guid: ac339c2a8780c48429bf6b241a503eb9, type: 3}
+  emotionProfile: {fileID: 11400000, guid: 6c28dde4cfe379e4a899fb9cd031990d, type: 2}
+  emotionCues:
+  - start: 0.1
+    end: 3.08
+    emotion: 2
+    intensity: 1
+  - start: 3.08
+    end: 5
+    emotion: 6
+    intensity: 1
+  - start: 5
+    end: 6.87
+    emotion: 7
+    intensity: 1

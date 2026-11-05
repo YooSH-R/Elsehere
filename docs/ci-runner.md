@@ -16,6 +16,7 @@ MR 파이프라인은 `.pre` 단계의 `ci:merge-conflicts`에서 실제 대상 
 | `ci:yaml` | 생성된 모든 파이프라인 | CI YAML 문법·형식 검사 |
 | `backend:check-and-build` | 백엔드, API 명세, ERD, 앱 실행 설정 또는 공통 CI·작성 지침 변경 | Java 21·Gradle Wrapper의 `check bootJar`, Testcontainers PostgreSQL 테스트, JUnit 결과·`app.jar`·커밋 식별자 |
 | `unity:format` | 프론트, API 명세, Unity CI·검사 스크립트·규약 또는 공통 작성 지침 변경 | 고정된 .NET SDK와 CSharpier로 직접 작성한 C# 포맷 검사 |
+| `unity:browser-tests` | WebGL 플러그인·Web 템플릿·`infra/tests/webgl_*.test.cjs`·Unity CI 설정 변경, Unity 검사를 선택한 배포 자식 | Node 24에서 브라우저 연동 회귀 검사. Linux Runner를 사용하며 Windows Editor 검사와 별도로 실패를 막습니다. |
 | `unity:editor-tests` | 같은 프로젝트의 Unity 실행 관련 MR. 규약 문서만 바뀐 MR 제외 | Windows Runner에서 컴파일과 [바뀐 영역에 맞는 범위](#unity-테스트-범위)의 EditMode·PlayMode 필수 검사, NUnit XML·로그. WebGL 빌드·서버 배포 없음 |
 | `unity:external-mr` | 다른 프로젝트에서 보낸 Unity 실행 관련 MR | 노트북에서 외부 코드를 실행하지 않고 필수 검사 실패로 병합 차단. 검토한 변경을 프로젝트 작업 브랜치로 옮겨 검사 |
 | `unity:editor-and-webgl` | Unity 검사를 선택한 보호된 dev 배포 자식, 모든 운영 배포 자식 또는 보호된 ref의 웹 실행에서 `RUN_UNITY_BUILD=true` | Windows 전용 Runner의 EditMode·PlayMode 테스트, 필요한 경우 WebGL 빌드, NUnit XML·로그·커밋 식별자가 포함된 정적 산출물 |
@@ -63,6 +64,8 @@ MR의 `rules:changes:compare_to`에 실제 대상 브랜치를 명시하여 대�
 | 웹에서 수동 실행 | 적용 가능한 모든 작업 |
 
 `infra:compose-and-nginx`만 확인용 Compose의 존재를 전제로 합니다. `infra:observability`는 해당 파일 없이 독립 실행합니다. ERD 변경은 백엔드 검사, Unity 검사 스크립트 변경은 Unity 포맷·실행 테스트를 선택합니다. Unity 규약 문서 변경은 Unity 포맷 검사, 공통 작성 지침 변경은 백엔드·Unity 포맷·AI 검사를 선택하며, 문서는 Editor 결과를 바꾸지 않으므로 `unity:editor-tests`는 만들지 않습니다. 여러 영역을 함께 바꾸면 해당 작업을 모두 실행합니다. AI 공통 설정·의존성 변경도 Python 검사를 실행하며 로컬 명령은 [AI 검사 문서](../ai/README.md)를 따릅니다.
+
+`infra/tests/webgl_*.test.cjs` 변경은 Linux의 `unity:browser-tests`를 실행합니다. 배포 자식 파이프라인에서는 인프라·Unity 검사를 선택하고 테스트 변경만으로 이미지를 재빌드하지 않습니다.
 
 Unity 검사 스크립트 `run-unity-ci.ps1`·`prepare-unity-test-inputs.ps1`와 `infra/tests/tripo/` 변경도 MR의 포맷·실행 테스트를 선택합니다. 실행 테스트는 Draft를 포함한 MR의 각 Push에서 대상 브랜치와 남은 차이를 기준으로 다시 실행합니다. 외부 프로젝트 MR에는 같은 변경 경로에서 `unity:editor-tests` 대신 실패하는 `unity:external-mr`을 선택하므로 필수 검사를 생략한 성공 결과로 병합하지 않습니다.
 

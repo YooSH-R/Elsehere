@@ -70,6 +70,7 @@ class State(BaseModel):
     id: str
     desc: str
     intents: list[Intent] = Field(min_length=1)
+    accumulate_history: bool = False  # 복합 미션 목표는 같은 대화의 학습자 발언에 나눠 말한 사실을 합쳐 판정한다.
     slots: Slots = Slots()
     current: dict = {}  # 지금 값 (예: {"order": "a latte"})
     more_intents: list[Intent] = []  # 같은 줄에서 이어서 할 수 있는 다음 단계 의도 (예: 포장 고르기 중의 '결제').
@@ -124,6 +125,7 @@ class ReplyRequest(BaseModel):
     # Spring 규칙이 정한 이번 대답에서 할 일. 퀘스트 단계 지시와 진행 규칙을 합치면 1500자 안팎이다
     instruction: str = Field(default="", max_length=3000)
     tts: bool = True
+    stream_chunks: bool = True  # false면 조각 이벤트·보관을 생략하고 done의 전체 음성만 만든다
     level: Level = 2
     suggest_words: bool = False  # true면 대답이 끝난 뒤 추천 단어를 만들어 스트림의 words 이벤트로 (음성 합성과 동시에)
     goal: str = Field(default="", max_length=300)  # 추천 단어용: 지금 상태에서 학습자가 할 일

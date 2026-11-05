@@ -125,6 +125,24 @@ namespace A305.Npc
             panel.SetActive(true);
         }
 
+        /// <summary>
+        /// 다른 NPC를 클릭해 말을 걸 때, 떠 있는 제안을 [지금은 안 할래요]를 누른 것처럼 닫는다.
+        /// 제안이 없거나 거절할 수 없는 제안(<see cref="IsDeclineShown"/>이 false)이면 그대로 둔다.
+        /// </summary>
+        public void DeclineShownOffer()
+        {
+            if (IsShowing && IsDeclineShown)
+            {
+                onDecline?.Invoke();
+            }
+        }
+
+        /// <summary>대화를 다 쓴 게스트가 NPC를 클릭했을 때 [가입하고 계속 대화하기]를 누른 것처럼 가입 안내 창을 연다.</summary>
+        public void ShowSignupDialog()
+        {
+            signupDialog.Show();
+        }
+
         public void Hide(object requester)
         {
             if (owner != requester)
@@ -272,14 +290,12 @@ namespace A305.Npc
 
         private void Update()
         {
-            if (
-                talkPromptOwner != null
-                && Keyboard.current != null
-                && Keyboard.current.eKey.wasPressedThisFrame
-            )
-            {
+            if (Keyboard.current == null || !Keyboard.current.eKey.wasPressedThisFrame)
+                return;
+            if (owner != null && panel.activeInHierarchy && acceptButton.interactable)
+                onAccept?.Invoke();
+            else if (talkPromptOwner != null && talkButton.interactable)
                 onTalk?.Invoke();
-            }
         }
     }
 }

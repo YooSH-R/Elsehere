@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using A305.ObjectHover;
+using A305.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -23,6 +24,7 @@ namespace A305.Tutorial
         private const float HolePadding = 10f;
         private const float BubbleGap = 28f;
         private const float BubbleMargin = 24f;
+        private const float CaptionMinWidth = 220f;
         private const float MarkerEdgeMargin = 70f;
 
         // 두 번째 말풍선 너비. 대화창 오른쪽에 남는 자리(16:9에서 약 250, 16:10에서 약 200)에 들어가게 설명 말풍선보다 좁게 두고,
@@ -48,6 +50,8 @@ namespace A305.Tutorial
         private const float MarkerBobPixels = 12f;
         private const float MarkerBobSpeed = 4f;
         private const float FramePulseSpeed = 3f;
+        private const int FrameSpriteSize = 96;
+        private const float FrameRadius = 26f;
 
         [SerializeField]
         private Canvas canvas;
@@ -96,6 +100,7 @@ namespace A305.Tutorial
         private readonly List<Rect> targetRects = new List<Rect>();
         private readonly Vector3[] corners = new Vector3[4];
         private RectTransform canvasRect;
+        private float captionMaxWidth;
         private Transform markerTarget;
         private float markerHeightMeters;
         private Action nextAction;
@@ -109,16 +114,119 @@ namespace A305.Tutorial
         private TMP_Text noteText;
         private RectTransform noteTail;
         private RectTransform noteTarget;
+        private Sprite roundedBorderSprite;
+        private Sprite roundedCornerShadeSprite;
+        private Texture2D roundedBorderTexture;
+        private Texture2D roundedCornerShadeTexture;
 
         private void Awake()
         {
             canvasRect = (RectTransform)canvas.transform;
+            captionMaxWidth = caption.sizeDelta.x;
             nextButton.onClick.AddListener(() => nextAction?.Invoke());
+            CreateRoundedFrame();
+            MatchServiceTheme();
             CreateNote();
             Hide();
         }
 
         // 두 번째 말풍선은 설명 말풍선과 모양이 같도록 그대로 복사해 만들고, 읽고 넘길 설명이 아니므로 [다음]은 뺀다.
+        private void MatchServiceTheme()
+        {
+            TutorialGuideView guide = FindFirstObjectByType<TutorialGuideView>();
+            UiThemeCatalog catalog =
+                guide != null ? guide.PanelRect.GetComponent<ThemedElement>()?.Catalog : null;
+            if (catalog == null)
+            {
+                return;
+            }
+
+            caption.gameObject.AddComponent<ThemedElement>().Use(catalog, UiThemeRole.Card);
+            captionText.gameObject.AddComponent<ThemedElement>().Use(catalog, UiThemeRole.Body);
+        }
+
+        private void CreateRoundedFrame()
+        {
+            foreach (Transform bar in frame.transform)
+            {
+                bar.gameObject.SetActive(false);
+            }
+
+            Image corners = CreateFrameImage("RoundedCorners");
+            roundedCornerShadeSprite = CreateFrameSprite(true, out roundedCornerShadeTexture);
+            corners.sprite = roundedCornerShadeSprite;
+            corners.color = shades[0].GetComponent<Image>().color;
+
+            Image border = CreateFrameImage("RoundedBorder");
+            roundedBorderSprite = CreateFrameSprite(false, out roundedBorderTexture);
+            border.sprite = roundedBorderSprite;
+            border.color = marker.GetComponent<Image>().color;
+        }
+
+        private Image CreateFrameImage(string name)
+        {
+            var root = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image)
+            );
+            var image = root.GetComponent<Image>();
+            image.transform.SetParent(frame.transform, false);
+            RectTransform rect = image.rectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            image.type = Image.Type.Sliced;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static Sprite CreateFrameSprite(bool shadeCorners, out Texture2D texture)
+        {
+            texture = new Texture2D(FrameSpriteSize, FrameSpriteSize, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+            var pixels = new Color[FrameSpriteSize * FrameSpriteSize];
+            float half = FrameSpriteSize / 2f;
+            float extent = half - 8f;
+            for (int y = 0; y < FrameSpriteSize; y++)
+            {
+                for (int x = 0; x < FrameSpriteSize; x++)
+                {
+                    float dx = Mathf.Abs(x + 0.5f - half) - (extent - FrameRadius);
+                    float dy = Mathf.Abs(y + 0.5f - half) - (extent - FrameRadius);
+                    float distance =
+                        Mathf.Min(Mathf.Max(dx, dy), 0f)
+                        + new Vector2(Mathf.Max(dx, 0f), Mathf.Max(dy, 0f)).magnitude
+                        - FrameRadius;
+                    float edge = Mathf.Abs(distance);
+                    float alpha = shadeCorners
+                        ? Mathf.Clamp01(distance + 0.5f)
+                        : Mathf.Max(
+                            Mathf.Clamp01(3f - edge),
+                            0.22f * Mathf.Clamp01((11f - edge) / 7f)
+                        );
+                    pixels[y * FrameSpriteSize + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            texture.SetPixels(pixels);
+            texture.Apply(false, true);
+            return Sprite.Create(
+                texture,
+                new Rect(0f, 0f, FrameSpriteSize, FrameSpriteSize),
+                new Vector2(0.5f, 0.5f),
+                100f,
+                0,
+                SpriteMeshType.FullRect,
+                new Vector4(34f, 34f, 34f, 34f)
+            );
+        }
+
         private void CreateNote()
         {
             note = Instantiate(caption, caption.parent);
@@ -353,6 +461,11 @@ namespace A305.Tutorial
             {
                 Destroy(compassRoot.gameObject);
             }
+
+            Destroy(roundedBorderSprite);
+            Destroy(roundedCornerShadeSprite);
+            Destroy(roundedBorderTexture);
+            Destroy(roundedCornerShadeTexture);
         }
 
         // 원은 발밑에, 점과 화살표는 원 가장자리에서 대상 쪽으로 오가며 가리킨다.
@@ -519,6 +632,27 @@ namespace A305.Tutorial
         // 밝힌 곳 옆에 말풍선을 두고, 꼬리를 밝힌 곳 쪽 가장자리에 붙인다. 꼬리는 마름모로 돌려 반만 밖으로 나오게 한다.
         private void PlaceCaption(Vector2 canvasSize, Rect hole)
         {
+            Color cardColor = caption.GetComponent<Image>().color;
+            captionTail.GetComponent<Image>().color = cardColor;
+            if (noteTail != null)
+            {
+                noteTail.GetComponent<Image>().color = cardColor;
+            }
+
+            // 넓은 스크롤 영역 옆에도 설명이 들어가도록 남은 폭에 맞춘다.
+            float sideRoom = Mathf.Max(
+                hole.xMin - BubbleGap - BubbleMargin,
+                canvasSize.x - BubbleMargin - hole.xMax - BubbleGap
+            );
+            float width =
+                sideRoom >= CaptionMinWidth
+                    ? Mathf.Min(captionMaxWidth, sideRoom)
+                    : captionMaxWidth;
+            if (!Mathf.Approximately(caption.sizeDelta.x, width))
+            {
+                caption.sizeDelta = new Vector2(width, caption.sizeDelta.y);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(caption);
+            }
             Rect keepClear =
                 KeepClear != null && KeepClear.gameObject.activeInHierarchy
                     ? CanvasRectOf(KeepClear)

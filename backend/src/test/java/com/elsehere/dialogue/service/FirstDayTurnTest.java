@@ -121,7 +121,8 @@ class FirstDayTurnTest {
             transactions,
             new com.elsehere.mission.service.MissionDialogueService(
                 firstDay, mock(com.elsehere.mission.service.TownStoryService.class)),
-            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+            new DialogueRequestLocks());
   }
 
   @Test

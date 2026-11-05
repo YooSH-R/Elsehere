@@ -2,7 +2,7 @@
     "name": "A305.Dialogue",
     "rootNamespace": "A305.Dialogue",
     "references": [
-        "A305.Api", "A305.Characters",
+        "A305.World", "A305.Api", "A305.Characters",
         "A305.Player",
         "A305.Theme",
         "A305.Voice",

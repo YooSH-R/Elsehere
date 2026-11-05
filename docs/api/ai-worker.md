@@ -38,7 +38,7 @@ AI API의 칸 이름은 snake_case이고, 백엔드 API의 camelCase로 바꾸�
 - **행동 묘사**: `*...*`는 지우고 말만 판정합니다. 행동 묘사만 있으면 `dropped: true`이고 턴으로 세지 않습니다.
 - **난이도**: 1.1절 `level` 표. 판정에는 영향이 없습니다.
 - **한 턴 구조**: NPC 한 턴은 `turnId` 하나, 대답 한 줄(난이도에 따라 1~3문장)입니다. 문장으로 쪼개 저장하지 않습니다(뜻 보기·힌트·추천 단어가 턴 단위).
-  - 음성은 두 가지입니다. 문장 조각(`audio` 이벤트)은 바로 재생용이고, 다시 듣기용은 `done`의 턴 전체 음성(`audio_full_id`) 하나입니다.
+  - 음성은 두 가지입니다. 문장 조각(`audio` 이벤트)은 바로 재생용이고, 다시 듣기용은 `done`의 턴 전체 음성(`audio_full_id`) 하나입니다. Spring은 `stream_chunks: false`로 조각 이벤트·보관을 생략하고 전체 음성만 받습니다. 이 옵션의 기본값은 `true`여서 기존 스트리밍 사용처는 유지됩니다.
   - 추천 단어는 `suggest_words: true`면 대답이 끝난 뒤 남은 음성 합성과 동시에 만들어 `words` 이벤트로 옵니다. 다만 `done`이 추천 단어를 최대 `WORDS_BUDGET_S`까지 기다리므로, Spring은 `suggest_words: false`로 부르고 추천 단어는 CONV-12에서 `/v1/suggest`로 따로 받습니다.
   - 전송: Spring이 `done`까지 받은 뒤 한 번에 응답(REST)해도 되고, `delta`·`audio`·`words`를 Unity로 바로 중계(스트리밍)해도 됩니다. 워커 계약은 같습니다. 첫 음성까지의 시간은 스트리밍이 짧습니다.
 
@@ -145,7 +145,9 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 학습자 한 줄을 받아 의도와 번역(한글이 있을 때만)을 **동시에** 돌립니다. 무례 판정은 하지 않습니다. 같은 줄로 `/v1/guard`(2.2.1절)를 동시에 불러 주세요.
 
-요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+요청: `npc`, `scene`(비면 `npc.scene`), `state`(지금 상태: `id`, `desc`, `intents`, `slots`, `current`, `more_intents`, `accumulate_history`), `history`(최대 40줄), `text`(최대 500자, 공백만이면 400 `invalid_request`).
+
+`state.accumulate_history`는 기본 `false`이며 첫날 미션은 `true`로 보냅니다. 복합 목표를 여러 발언에 나눠 설명하면 같은 대화의 이전 학습자 발언과 이번 발언을 합쳐 판정합니다. 이번 발언이 목표 완성에 기여해야 하며, NPC가 대신 말한 사실·무례로 확정된 이전 발언·인용 예문·부정·가정만으로 목표를 달성시키지 않습니다. 줄 사건(`events`)은 이번 발언만 판정합니다.
 
 응답:
 
@@ -244,7 +246,7 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 
 **GPU 서버 판정 모델을 켰을 때 (기본 꺼짐)**
 
-워커에 `GUARD_GPU_MODEL`을 주면 판정용 LLM 호출이 SSAFY GPU 서버의 vLLM에 올린 자체 학습 모델(Qwen3.8-27B + LoRA)을 먼저 한 번 부릅니다. 오류·시간 초과(`GUARD_GPU_TIMEOUT_S`)면 재시도 없이 구성의 판정 모델(기본 GPT-6 Luna)로 넘기고, 연속으로 `GUARD_BREAKER_FAILURES`(3)번 실패하면 `GUARD_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 응답 형식은 같고, `usage`의 `guard` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 프롬프트·yes/no 해석·`abusive: null` 규칙은 위와 같습니다.
+워커에 `GUARD_GPU_MODEL`을 주면 판정용 LLM 호출이 SSAFY GPU 서버의 vLLM에 올린 자체 학습 모델(Qwen3.8-27B + LoRA)을 먼저 한 번 부릅니다. 오류·시간 초과(`GUARD_GPU_TIMEOUT_S`)면 재시도 없이 구성의 판정 모델(기본 GPT-6 Luna)로 넘기고, 연속으로 `GUARD_BREAKER_FAILURES`(3)번 실패하면 `GUARD_BREAKER_SKIP_S`(60초) 동안 GPU를 건너뜁니다. 한글 낱자모(ㄱ~ㅎ, ㅏ~ㅣ)가 섞인 말은 GPU 모델이 오타("같ㅊ아")나 "ㄱㅅ"를 욕 줄임말로 읽어 무례로 보므로, 처음부터 구성의 판정 모델이 판정합니다(이때 `fallback`은 `false`). 응답 형식은 같고, `usage`의 `guard` 단계 `model`에 실제로 판정한 모델이, 넘겼으면 `fallback: true`가 남습니다. 프롬프트·yes/no 해석·`abusive: null` 규칙은 위와 같습니다.
 
 이진 판정이라 위협·성희롱 같은 **세부 유형은 구분하지 않습니다.** NPC가 먼저 잘못한 장면에서의 맞대응(정당방위)처럼 장면에 따라 봐줘야 하는 경우는, 유형을 돌려주는 계약이 생기기 전까지 Spring 규칙에서 자동 제재를 빼 주세요.
 
@@ -268,14 +270,14 @@ Spring 쪽의 턴 전체 제한(STT + 판정 + 대답)은 Spring이 정합니다
 delta*  →  audio*  →  words?  →  done | error
 ```
 
-`delta`와 `audio`는 섞여서 옵니다. `words`는 `suggest_words: true`이고 대답이 성공했을 때만 `done` 바로 앞에 한 번 옵니다. 마지막은 항상 `done` 또는 `error` 중 하나입니다.
+`stream_chunks`는 선택 boolean이며 기본값은 `true`입니다. `true`이면 `delta`와 `audio`는 섞여서 옵니다. `false`이면 두 이벤트의 전송과 조각 음성 보관만 생략하고 `done`의 전체 음성·사용량은 유지합니다. `words`는 `suggest_words: true`이고 대답이 성공했을 때만 `done` 바로 앞에 한 번 옵니다. 마지막은 항상 `done` 또는 `error` 중 하나입니다.
 
 | 이벤트 | data | 뜻 |
 |---|---|---|
 | `delta` | `{"text": "Got"}` | 글자 조각. 받는 대로 자막에 붙임 |
 | `audio` | `{"seq": 0, "text": "Got it, one latte for you.", "audio_id": "9f3a...", "duration_s": 1.8, "tts": true}` | 읽을 조각. `seq` 순서대로 재생. **WAV가 아니라 `audio_id`** — `GET /v1/audio/{audio_id}`로 받음. `tts: false`면 `audio_id: null`(합성 실패·늦음) → 그 조각은 자막만 |
 | `words` | `{"words": ["for here", "to go", "please"], "error": null}` | 추천 단어 (`/v1/suggest`와 같은 규칙). 실패하면 `words: null`, `error`에 `provider_unavailable`·`provider_limit`·`timeout`(`WORDS_BUDGET_S` 초과)·`invalid_output`·`internal_error`. 대답은 그대로 성공. **대답이 `error`로 끝나면 `words`는 오지 않음** |
-| `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성에 실패했거나 요청이 `tts: false`면 `null` → `/v1/tts`로 다시 만듦(상한을 넘긴 조각은 기다려 넣음). `usage`에 추천 단어(`suggest`)도 포함 |
+| `done` | `{"text": "...", "first_token_s": 0.62, "total_s": 2.1, "audio_full_id": "7c1e...", "audio_full_s": 3.4, "usage": [...]}` | **생성 완료**. 클라이언트 재생 완료가 아님. `text`가 대답 전문. `audio_full_id`는 모든 조각을 순서대로 이어 붙인 **턴 전체 음성**(다시 듣기용, `GET /v1/audio/{id}`). 조각 하나라도 합성에 실패했거나 요청이 `tts: false`면 `null` → `/v1/tts`로 다시 만듦(늦은 조각은 마지막 합성 요청부터 TTS_FULL_BUDGET_S 안에서만 기다림). `usage`에 추천 단어(`suggest`)도 포함 |
 | `error` | `{"code": "provider_unavailable", "message": "...", "usage": [...]}` | 생성 실패. 이미 보낸 `delta`·`audio`는 유효. `code`는 `provider_unavailable`·`provider_limit`·`timeout` |
 
 - `npc.profile`이 있으면 대답 지시문을 공통 규칙 → 인격 → 마을 안내 → 상황(장소·`facts`·기억) → 학습 수준 → 이번 턴(`instruction`) 순서로 만듭니다(`app/npc_prompt.py`의 공통 시스템 프롬프트). 마을 안내(`TOWN_GUIDE`)는 모든 NPC가 같이 받는 3D 마을의 장소 목록이며, 마을에 장소가 생기면 이 목록도 고칩니다. 공통 규칙은 가격·결제·예약·`facts`의 물건과 마을에 없는 장소만 지어내지 못하게 하고, 그 밖에는 그 직업의 실제 사람처럼 처리하게 합니다(담당자 호출, 길 안내, 방으로 올려 보내기 등). 못 하는 일이어도 갈 곳이나 물을 사람을 알려 주며, "잘 모르겠다"로만 끝내지 않습니다. 평가는 `ai/tools/npc_help_eval.py`(막다른 거절·알 만한 걸 모름·지어내기)입니다. 학습 수준은 말투를 정하지 않는 규칙을 써서 인격의 말투를 덮지 않고, 출력 상한과 말 속도는 `profile`이 없을 때와 같습니다. 무례 여부는 NPC가 스스로 판단하지 않습니다. 이번 턴에는 "`instruction`이 무례라고 하지 않으면 퉁명하거나 재촉해도 무례가 아니다"를 늘 붙여, 무례를 못 참는 인격도 백엔드가 무례 경고·퇴장 지시문을 보낼 때만 무례에 반응합니다(사적인 질문처럼 인격이 정한 반응은 그대로). `profile`이 없으면 `name`·`role` 한 줄로 만든 지금 지시문을 씁니다.
@@ -296,6 +298,8 @@ delta*  →  audio*  →  words?  →  done | error
 ### 2.4 `GET /v1/audio/{audio_id}`
 
 `audio/wav`를 돌려줍니다. 보관 시간은 600초(설정 `audio_ttl_s`, 환경 변수로는 아직 못 바꿈)이며 **워커 프로세스 메모리**에 있습니다. 전체 크기가 `AUDIO_MAX_MB`(기본 200MB)를 넘으면 오래된 것부터 버립니다. 워커를 여러 대 띄우면 같은 대답의 음성은 그 대답을 만든 워커에서 받아야 합니다. 없으면 404 `not_found`입니다.
+
+만료 항목은 조회·저장 시 제거하고, 요청이 없어도 최대 30초 간격으로 메모리에서 정리합니다. 연결 종료 시 대기 중인 합성도 취소하지만, 이미 실행 중인 동기 GPU 요청·CPU 추론의 즉시 중단은 보장하지 않습니다.
 
 Unity가 음성을 받을 때도 Spring이 인증한 뒤 이 주소에서 받아 중계합니다.
 

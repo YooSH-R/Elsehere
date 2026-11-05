@@ -1,6 +1,6 @@
 # Npc 모듈
 
-플레이어에게 먼저 다가와 대화를 제안하는 행인과, 다가오지 않는 동안 NPC가 게임 시각의 일과와 욕구에 따라 지내는 [생활](#생활)을 담당합니다. 튜토리얼에서는 집 밖으로 나오면 행인이 다가와 카페 위치를 묻고, 일반 행인은 마을을 걷다 가까이 가면 말을 겁니다. 수락하면 [Dialogue 모듈](../Dialogue/README.md)로 대화를 시작합니다. NPC가 다가오지 않는 동안(대화를 마치고 쉬는 중 등)에는 플레이어가 가까이 가서 [말 걸기]로 먼저 대화를 걸 수 있습니다(기능 명세 F-22).
+플레이어에게 먼저 다가와 대화를 제안하는 행인과, 다가오지 않는 동안 NPC가 게임 시각의 일과와 욕구에 따라 지내는 [생활](#생활)을 담당합니다. 튜토리얼에서는 집 밖으로 나오면 행인이 다가와 카페 위치를 묻고, 일반 행인은 마을을 걷다 가까이 가면 말을 겁니다. 수락하면 [Dialogue 모듈](../Dialogue/README.md)로 대화를 시작합니다. NPC가 다가오지 않는 동안(대화를 마치고 쉬는 중 등)에는 플레이어가 가까이 가서 [말 걸기]로 먼저 대화를 걸 수 있습니다(기능 명세 F-22). NPC가 많아 [말 걸기]만으로 원하는 NPC를 고르기 어려우므로, 8m 안의 NPC는 몸이나 머리 위 이름표를 클릭·탭해도 말을 걸 수 있고 PC에서는 커서를 올린 NPC에 테두리를 그립니다([클릭·탭으로 말 걸기](#클릭탭으로-말-걸기)).
 
 이 서비스의 진행 흐름을 다루는 게임 전용 기능입니다. 플레이어 위치·이동 잠금은 `A305.Player`, 대화 시작·종료는 `A305.Dialogue`의 공개 API로 요청합니다.
 
@@ -8,11 +8,14 @@
 
 | 파일 | 역할 |
 | --- | --- |
-| `PasserbyApproach` | 기다림 → 다가감 → 제안 → 대화 → 쉼으로 상태를 바꾸고, 플레이어가 먼저 말을 걸 수 있는지 정합니다. 준비해 둔 것이 다 되면 다가가지 않고 제자리에서 부르는 제안(`TryCall`)도 맡습니다. Unity 객체 없이 테스트합니다. |
+| `PasserbyApproach` | 기다림 → 다가감 → 제안 → 대화 → 쉼으로 상태를 바꾸고, 플레이어가 [말 걸기]나 클릭으로 먼저 말을 걸 수 있는지 정합니다. 준비해 둔 것이 다 되면 다가가지 않고 제자리에서 부르는 제안(`TryCall`)도 맡습니다. Unity 객체 없이 테스트합니다. |
 | `PasserbyRules`, `PasserbySettings` | 감지·제안·무시 거리, 쉬는 시간, 거절 가능 여부, 하루에 한 번만 다가오기, 준비해 둔 것을 건네려고 부르는 거리(기본 6m), 걷는 속도. 설정은 데이터 에셋입니다. |
 | `Passerby` | 행인을 걷게 하고 제안 화면·대화와 연결합니다. 다가오지 않는 동안 `NpcRoutine`이 있으면 생활을 맡깁니다. 모델은 `Visual` 아래, 이동은 루트의 `CharacterController`가 맡습니다. |
 | `NpcIdentity` | NPC 키(ERD `npcs.code`)와 머리 위치(`LookTarget`). 실행 시 해당 NPC의 공통 음성·표정 연결을 준비합니다. |
-| `PasserbyOfferView` | 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요] 버튼. 한 번에 한 행인만 제안합니다. 같은 자리에 플레이어가 먼저 말을 거는 [말 걸기]와 키 안내(E)를 두며, 둘은 함께 뜨지 않습니다. 제안 창은 다른 창과 같은 테마 바탕을 쓰고, [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼만 보입니다. 대화를 다 쓴 게스트에게는 같은 자리에 [가입하고 계속 대화하기]를 보이고, 누르거나 E를 누르면 가입 안내 창을 엽니다. |
+| `PasserbyOfferView` | 누가 말을 걸었는지, 건넨 말과 [대화하기]·[지금은 안 할래요] 버튼. 한 번에 한 행인만 제안합니다. 같은 자리에 플레이어가 먼저 말을 거는 [말 걸기]와 키 안내(E)를 두며, 둘은 함께 뜨지 않습니다. 보이는 [대화하기] 제안도 E로 수락할 수 있습니다. 제안 창은 다른 창과 같은 테마 바탕을 쓰고, [말 걸기]·[택시 세우기]는 바탕 상자 없이 버튼만 보입니다. 대화를 다 쓴 게스트에게는 같은 자리에 [가입하고 계속 대화하기]를 보이고, 누르거나 E를 누르면 가입 안내 창을 엽니다. |
+| `NpcClickTalk` | NPC 몸이나 머리 위 이름표를 클릭·탭하면 말을 겁니다. 8m(`ReachMeters`) 안에서 말을 걸 수 있는 NPC만 받고, PC에서는 커서를 올린 그 NPC에 테두리를 그립니다. 누른 자리의 맨 위 UI가 이름표면 그 이름표의 NPC를(`NpcNameTagView.NpcOf`), 다른 UI면 막고, UI가 없으면 맨 앞에 보이는 NPC 몸을 고릅니다. 제안 화면 프리팹(`PasserbyOffer`)에 붙어 있어 장소 씬을 고치지 않고도 NPC가 있는 모든 장소에서 동작합니다(`NpcBuilder.PrepareAssets`). |
+| `NpcPointerRaycast` | 클릭·탭한 방향에서 맨 앞에 보이는 것이 NPC 몸일 때만 그 NPC를 찾습니다. 플레이어 몸과 보이지 않는 감지 영역은 지나치고, 사물 카드가 뜨는 영역(`ObjectHoverHitArea`)이 앞에 있으면 사물을 누른 것으로 봅니다. |
+| `RendererOutline` | 대상 아래 모든 몸 그림에 테두리 재질(`Art/Npc/NpcHoverOutline.mat`, 셰이더 `A305/NpcHoverOutline`)을 하나 더 붙였다가 원래 재질 목록으로 되돌립니다. 재질 에셋은 바꾸지 않습니다. 테두리 색·두께는 재질에서 조정합니다. |
 | `GuestSignupDialogView` | 대화를 다 쓴 게스트의 가입 안내 창. 가입하면 대화·단어·NPC와의 사이가 그대로 이어진다고 알리고, [Google로 가입하기]는 같은 탭에서 Google 로그인(AUTH-01, `A305.Api`의 `BrowserRedirect`)으로 갑니다. 창이 열릴 때 설문을 권해(`A305.Api`의 `SurveyPrompt.Request`) 화면 위 가운데에 설문 카드가 따로 내려옵니다(창 안에는 설문 링크를 두지 않음). 제안 화면 프리팹(`PasserbyOffer`)에 있어 장소 씬마다 배치하지 않습니다(**Tools → A305 → Npc → Apply Guest Signup Dialog**). |
 | `PasserbyOfferText` | 제안 화면 문구. 머리말은 대화 대본의 NPC 이름으로 "Emma이(가) 말을 걸었어요", 이름이 없으면 "누군가 말을 걸었어요"이고, 먼저 말 걸기 버튼은 "Emma에게 말 걸기", 이름이 없으면 "말 걸기"입니다. 준비해 둔 것을 건네려고 부를 때는 "Mia이(가) 불러요"와 "기다리던 아이스 라테가 준비됐어요"이고, 조사는 받침에 맞춥니다(`SubjectParticle`). |
 | `PasserbyRestRecord` | 행인별로 다시 다가올 수 있는 시각을 공간이 바뀌어도 기억합니다. |
@@ -23,6 +26,7 @@
 | `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. 구역(`stayInArea`·`area`)을 켜면 그 안의 사물·자리만 고릅니다. |
 | `NpcDuty` | 직원이 지금 근무 중인지(교대 밖이면 근무 외)와 같은 카운터를 맡은 직원 중 누가 응대할지 정합니다([일터와 응대](#일터와-응대)). Unity 객체 없이 테스트합니다. |
 | `NpcDetailDistance` | 카메라가 12m 안에 있을 때만 NPC의 팔 관통 보정(`LittleMungArmClearance`)을 켭니다. 이 보정은 매 프레임 피부 정점을 계산해 캐릭터 하나에 수 ms가 들어, 마을을 걷는 NPC 모두에게 돌리면 마을이 느려집니다(마을 NPC 16명 기준 한 프레임 약 125ms). 공용 `Passerby.prefab`에 붙어 있어 이 프리팹으로 놓는 NPC가 모두 받습니다. 앉아 있는 동안에는 `StandingPoseCorrections`가 보정을 꺼 두므로 건드리지 않고, 일어선 뒤 거리에 맞춥니다. |
+| `NpcNameTags`, `NpcNameTagView` | 플레이어에서 8m 안의 NPC 머리 위 이름표. 직원(생활 데이터 역할 `STAFF`)은 이름 위 파란 칩에 역할(예: 벨보이·경찰관)을 함께 보이고, 행인은 이름만 보입니다. 근무 시간과 상관없이 직원은 직원으로 보입니다. 이름·역할은 대화 대본(`Data/Dialogue/MockDialogueScripts.asset`)에서 읽고, 이름이 없는 NPC는 띄우지 않습니다. 대화나 창 때문에 플레이어가 움직이지 못하는 동안에는 숨깁니다. NPC마다 3D 글자판을 두지 않고 제안 화면 프리팹(`PasserbyOffer`)의 `NameTags` 층 한 장에서 그립니다. 이 층은 다른 화면 UI와 휴대폰 터치 조작판(-10)보다 아래(-20)에 놓이고, 이름표 바탕 전체가 클릭을 받아 그 NPC에게 말을 겁니다([클릭·탭으로 말 걸기](#클릭탭으로-말-걸기), **Tools → A305 → Npc → Apply Name Tags**). 나란히 선 NPC의 이름표는 서로 겹칠 수 있으며, 카메라에서 가까운 NPC 이름표를 위에 그립니다. 매 프레임 NPC를 훑을 때 장면 전체를 찾지 않도록 `NpcIdentity.Active`(지금 켜진 NPC 목록)를 씁니다. 판단은 EditMode `NpcNameTagsTests`가 Unity 객체 없이, 제안 화면 프리팹의 이름표 층 연결·그리는 순서·클릭 받기는 `NpcNameTagPrefabTests`가, 실제 마을 장면은 PlayMode `NpcNameTagViewTests`가 확인합니다(가까운 경찰관의 역할 칩, 행인은 이름만, 먼 NPC·움직이지 못할 때는 없음). 이름표 클릭과 겹친 이름표는 `NpcClickTalkTests`가 확인합니다. |
 | `NpcStayArea` | 구역을 켠 NPC가 고를 수 있는 위치인지 정합니다. Unity 장면 없이 테스트합니다. |
 | `NpcWalkArea` | Builder가 장면마다 구운 NPC 바닥(NavMesh)을 장면이 켜져 있는 동안 등록합니다. |
 | `NpcAnimation`, `NpcAnimations` | 사물을 쓰는 동안 재생할 동작(일하기·물건 집기·앉기)을 행동 이름으로 고릅니다. 값은 NPC 전용 Animator의 `Action` 번호와 같습니다. |
@@ -38,10 +42,10 @@
 | `A305.Dialogue` | `DialogueController.TryStart`(먼저 말을 걸면 `ConversationInitiator.User`), `IsTalking`, `Ended`, 제안 머리말에 쓸 `FindNpcName`, 건넬 것이 다 됐는지 보는 `FollowUpStore.FindReady` |
 | `A305.Characters` | 모델 Animator에 이동 상태 전달. 연결하지 않아도 동작합니다. |
 | `A305.World` | 택시의 주행(`LoopingCar`)과 세우기 흐름(`TaxiFare`), 생활에 쓰는 게임 시각(`GameClock.Shared.Minutes`) |
-| `A305.ObjectHover` | 생활 행동의 사물을 사물 단어 키(`HoverableObject.UnityKey`)로 찾기 |
+| `A305.ObjectHover` | 생활 행동의 사물을 사물 단어 키(`HoverableObject.UnityKey`)로 찾기. NPC 클릭은 사물 카드와 같은 클릭 판정(`PointerClick`)·UI 위 클릭 막기(`WorldClickBlocker`)를 쓰고, 사물 카드 영역(`ObjectHoverHitArea`)이 앞에 있으면 NPC를 고르지 않습니다. |
 | Unity AI(NavMesh) | 생활 중 사물까지 걷는 경로. 바닥은 Builder가 굽습니다. |
 | uGUI, TextMeshPro | 제안 화면과 한국어 버튼 |
-| Input System | [말 걸기]의 E 키 |
+| Input System | [말 걸기]의 E 키, NPC 클릭·탭의 포인터 |
 
 ## 동작 규칙
 
@@ -86,6 +90,28 @@
 - 행인이 다가와도 되는지는 `Passerby.IsApproachAllowed`로 진행 흐름이 정합니다. false면 플레이어가 바쁠 때처럼 다가오지 않고 [말 걸기]도 보이지 않으며, 이미 제안 중이면 제안을 거두지 않습니다. 지금은 [Tutorial 모듈](../Tutorial/README.md)이 튜토리얼 동안 Ben만 Ben 만나기·길 안내 단계에서 다가오게 하고, 다른 NPC는 누구와 말해야 하는지 헷갈리지 않게 튜토리얼을 마친 뒤 다가오게 합니다. 하루에 한 번만 먼저 다가오는 행인도 튜토리얼에서 플레이어가 기다리며 붙잡혀 있으면(`IsPlayerWaiting`) 그날 이미 말을 걸었어도 다가옵니다.
 - 거절하거나 대화를 마친 뒤에도 [말 걸기]로 언제든 다시 대화할 수 있으므로, 쉬는 시간과 하루 한 번 제한은 NPC가 다시 먼저 다가오는 것에만 씁니다. 준비해 둔 것을 건네려고 부르는 것은 이 제한을 받지 않고, 부른 것을 거절·무시했을 때만 쉬는 시간을 기다립니다.
 
+### 클릭·탭으로 말 걸기
+
+마을에 NPC가 많아 가까이 가서 뜨는 [말 걸기]만으로는 원하는 NPC를 고르기 어렵습니다. 그래서 NPC 몸이나 머리 위 이름표를 클릭(휴대폰·태블릿은 탭)해도 말을 걸 수 있습니다(`NpcClickTalk`). 이름표를 누르면 그 이름표의 NPC 몸을 누른 것과 같아, 아래 표의 동작이 모두 같습니다.
+
+| 상황 | 동작 |
+| --- | --- |
+| PC에서 8m 안의 말을 걸 수 있는 NPC나 그 이름표에 커서를 올림 | 그 NPC의 몸·옷·머리 둘레에 옅은 노란 테두리를 그립니다. 커서가 떠나거나, 8m 밖이거나, 말을 걸 수 없는 상태가 되면 지웁니다. 휴대폰·태블릿에는 커서가 없어 테두리를 그리지 않습니다. |
+| 8m 안의 기다리거나 쉬는 NPC, 다가오는 NPC를 클릭·탭 | 그 자리에서 바로 사용자가 먼저 건 대화(CONV-01 `initiatedBy: USER`)로 시작합니다. 대화 화면은 NPC 얼굴 기준이라 떨어져 있어도 구도가 같습니다. 끝나면 [말 걸기]로 건 대화처럼 다시 쉽니다. |
+| 다가와 제안하는 NPC를 클릭·탭 | [대화하기]를 누른 것과 같습니다(`ConversationInitiator.Npc`). |
+| 다른 NPC가 제안하는 중에 다른 NPC를 클릭·탭 | 제안한 NPC는 [지금은 안 할래요]를 누른 것처럼 쉬고, 누른 NPC와 대화합니다. 거절할 수 없는 제안(튜토리얼 Ben)이 떠 있으면 반응하지 않습니다. |
+| 대화를 다 쓴 게스트가 클릭·탭 | 대화 대신 [가입하고 계속 대화하기]를 누른 것처럼 가입 안내 창을 엽니다. |
+| 8m보다 멀거나, 다른 대화 중이거나, 창이 열려 이동이 잠겼거나, 진행 흐름이 막은 NPC(`IsApproachAllowed` false) | 반응하지 않고 테두리도 그리지 않습니다. [말 걸기]를 보이지 않는 때와 같은 기준입니다. |
+| 화면을 끌어 시점을 돌림, UI 위를 누름 | 사물 카드와 같은 기준으로 클릭으로 보지 않습니다. 화면을 덮는 터치 조작판 위의 탭은 받습니다. |
+| NPC 앞을 벽이나 사물 카드가 뜨는 사물이 가림 | NPC를 고르지 않습니다. 사물이면 사물 카드가 뜹니다. 플레이어 몸과 문턱 같은 보이지 않는 감지 영역은 지나칩니다. |
+| 이름표 위에 커서를 올리거나 이름표를 누름 | 이름표 바탕 전체(이름·역할 칩 포함)가 클릭을 받습니다. 이름표가 사물 앞에 떠 있어도 사물 카드는 뜨지 않고 그 이름표의 NPC만 고릅니다. |
+| 나란히 선 NPC의 이름표가 겹친 곳을 누름 | 카메라에서 가까운 NPC 이름표가 위에 그려지고, 그 NPC에게 말을 겁니다. |
+| 메뉴·창·HUD 버튼이 이름표를 덮음 | 이름표는 다른 화면 UI보다 아래에 그려지므로 덮은 UI를 누른 것으로 보고 말을 걸지 않습니다. |
+
+이름표 층(`NameTags`)은 휴대폰 터치 조작판(정렬 -10)보다 아래(-20)에 그립니다. 이름표가 클릭을 받아도 이름표 위에서 시작한 끌기는 조작판이 받아 시점·이동이 그대로 되고, 탭만 이름표 클릭으로 봅니다. PC의 시점 끌기는 끌기를 받는 UI(스크롤 목록 등)만 막으므로 이름표 위에서도 됩니다(`UiDragTarget`).
+
+거리는 [말 걸기]와 같이 수평 거리로 재고, 8m는 사물 카드를 띄우는 최대 거리와 같습니다. 택시 기사는 지금처럼 [택시 세우기]·[기사에게 말 걸기]로만 부릅니다(`Passerby`가 아닌 NPC는 클릭 대상이 아닙니다).
+
 ## Ben의 외형과 걷기
 
 Ben(`TOWN_PASSERBY`)은 마스터 골격(Humanoid)의 비즈니스맨 외형을 씁니다([Builder](#builder)). 정지·걷기·벤치 앉기는 다른 Humanoid NPC와 같은 `NpcLife` 컨트롤러로 재생하고, 대기 자세는 비즈니스맨 전용 Idle을 씁니다. 이동 위치는 계속 `Passerby`가 맡습니다.
@@ -104,9 +130,9 @@ Ben(`TOWN_PASSERBY`)은 마스터 골격(Humanoid)의 비즈니스맨 외형을 
 | 카운터 응대 | 카운터를 맡은 직원(자리 1.5m 안에 카페·드럭스토어 `counter`·호텔과 경찰서 `reception_desk`가 있는 NPC) 중 [응대할 한 명](#일터와-응대)은 플레이어가 카운터에서 2m(`serveRadiusMeters`) 안에 오면 하던 일을 그만두고 카운터 뒤 자리로 돌아가 손님 쪽으로 돌아서고, 자리에 선 뒤에만 다가와 제안합니다. 다른 곳에서는 먼저 다가오지 않고 [말 걸기]만 받습니다. |
 | 건물 안에서만 지냄 | 구역을 켠 NPC(거리 매장 직원, 경찰관)는 자기 건물 1층 안의 사물·자리만 고릅니다. 마을의 벤치·분수처럼 건물 밖 사물은 고르지 않고, 할 일이 없으면 건물 안 사물 사이를 옮겨 다닙니다. 2층은 다른 가게라 고르지 않습니다. |
 | 퇴근(`OFF`) | 사라지지 않고 자기 공간에서 자유 시간처럼 쉽니다. 다시 근무가 시작되면 욕구가 시작값으로 돌아갑니다(하루 시뮬레이션과 같음). |
-| 사물 고르기 | 같은 사물이 여럿이면 걸어서 가장 가까운 것을 씁니다. 의자·벤치·소파는 빈 자리에 앉고, 그 밖의 사물은 옆에 서서 행동 시간(게임 분) 동안 씁니다. Humanoid 모델이 아니면 앉지 않고 자리 앞에 서서 쉽니다. 앉아 있는 동안에는 리틀 멍 외형의 서 있는 자세 보정(`StandingPoseCorrections`)을 끄고, 일어서면 다시 켭니다. |
+| 사물 고르기 | 같은 사물이 여럿이면 걸어서 가장 가까운 것을 씁니다. 의자·벤치·소파는 빈 자리에 앉고, 그 밖의 사물은 다른 NPC의 예약한 목적지와 1.25m 이상 떨어진 옆자리를 골라 행동 시간(게임 분) 동안 씁니다. 응대 직원의 자리와 가까운 작업 자리는 비우고 다시 고릅니다. Humanoid 모델이 아니면 앉지 않고 자리 앞에 서서 쉽니다. 앉아 있는 동안에는 리틀 멍 외형의 서 있는 자세 보정(`StandingPoseCorrections`)을 끄고, 일어서면 다시 켭니다. |
 | 갈 수 없음 | NavMesh 경로가 없거나 2.5초 동안 나아가지 못하면 그 사물은 20초 동안 고르지 않습니다. |
-| 다른 NPC와 겹침 | NPC끼리는 몸이 서로 막지 않고 지나갑니다(`Passerby`가 켜질 때 다른 NPC의 `CharacterController`와 충돌을 무시). 한 사람 폭인 카운터 뒤 통로나 하나뿐인 사물(카페 머핀)에 직원 여럿이 함께 가도 멈추지 않게 하기 위함이며, 잠깐 몸이 겹쳐 보일 수 있습니다. 플레이어와는 그대로 부딪힙니다. |
+| 다른 NPC와 충돌 | NPC끼리도 `CharacterController` 충돌을 적용해 몸을 관통하지 못합니다. 작업·구경 목적지는 서로 예약해 한 자리에 모이지 않고, 응대 자리 주변은 다른 직원이 비웁니다. 작은 사물 바로 옆이 차 있으면 조금 물러선 자리도 고릅니다. 길이 막혀 2.5초 동안 나아가지 못하면 기존 경로 실패 처리로 다른 행동을 고릅니다. |
 | 동작 | 커피 만들기·손님 맞기는 손으로 다루기(`Interact`), 머핀·커피는 집어 들기(`PickUp_Table`), 의자·벤치·소파는 앉기(`Sitting_Idle_Loop`, 다리는 `SeatedLegs`로 앉는 면에 맞춤), 제안·대화 중에는 손짓하며 말하기(`Idle_Talking_Loop`)입니다. `Passerby.talkGesture`를 끈 NPC(마을 행인 Ben)는 제안·대화 중에도 자기 대기 자세로 섭니다. 서 있기·걷기·뛰기는 플레이어와 같은 리틀멍 이동 동작입니다. 동작은 [Quaternius Universal Animation Library](../../ThirdParty/CREDITS.md)(CC0)를 Humanoid로 리타겟팅했고, 먹기·마시기 전용 동작은 무료판에 없어 집어 들기로 대신합니다. |
 | 다가와 말 걸기·대화 | 하던 일을 그만두고 앉아 있었으면 일어납니다. 대화가 끝나면 다시 고릅니다. |
 | 장면을 다시 불러옴 | 그 시각의 일과에서 욕구 시작값으로 다시 지냅니다. |
@@ -225,7 +251,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 - 설정(`Data/Npc/`): 없을 때만 만들고, 있으면 값을 유지합니다.
 - 확인용 인사말(`Data/Npc/MockNpcLines.asset`): 없으면 만들고, 있으면 아직 없는 NPC 키의 인사말만 덧붙입니다. 이미 있는 인사말은 바꾸지 않습니다.
-- 행인 프리팹 `Prefabs/Npc/Passerby.prefab`과 제안 화면 `Prefabs/Npc/PasserbyOffer.prefab`(제안 패널과 [말 걸기]): 컴포넌트와 연결만 맞추고 모델·디자인을 유지합니다. 없는 요소만 새로 만듭니다. 행인 프리팹에는 카메라에서 먼 동안 팔 관통 보정을 끄는 `NpcDetailDistance`도 붙입니다.
+- 행인 프리팹 `Prefabs/Npc/Passerby.prefab`과 제안 화면 `Prefabs/Npc/PasserbyOffer.prefab`(제안 패널과 [말 걸기], NPC 클릭·탭 `NpcClickTalk`과 테두리 재질 `Art/Npc/NpcHoverOutline.mat`): 컴포넌트와 연결만 맞추고 모델·디자인을 유지합니다. 없는 요소만 새로 만듭니다. 행인 프리팹에는 카메라에서 먼 동안 팔 관통 보정을 끄는 `NpcDetailDistance`도 붙입니다. 제안 화면에는 머리 위 이름표 층(`NameTags`)도 더합니다(`NpcNameTagBuilder`).
 - 마을(`TownScene`) 집 앞에 행인 Ben을, 카페(`CafeScene`) 카운터 뒤에 카페 직원을 둡니다. 같은 NPC 키가 이미 있으면 위치를 바꾸지 않습니다. 예전처럼 집 앞 튜토리얼 행인(`TUTORIAL_PASSERBY`)과 동서 길 행인이 따로 있으면, 집 앞 행인을 Ben으로 바꾸고 동서 길 행인은 지웁니다. Ben에게는 평소 설정과 튜토리얼 설정을 함께 연결하고, 외형을 아래처럼 연결합니다.
 - 서서 지내는 NPC의 외형: **Tools → A305 → Npc → Connect Character Visuals**(`Scripts/Editor/Npc/NpcVisualBuilder.cs`)가 NPC 키별 외형을 장면의 NPC 아래에 둡니다. `TownScene`의 Ben은 비즈니스맨 `Prefabs/Npc/Review/LittleMung_Business_Male.prefab`, `ShopScene`의 드럭스토어 직원 Alex(`SHOP_STAFF`)는 흑인 남성 `Prefabs/Npc/Review/LittleMung_BlackYoung_Male.prefab`입니다. 다른 행인·직원도 쓰는 공용 `Passerby.prefab`의 `Visual`은 바꾸지 않고 꺼 둡니다. 예전 외형(도형 `LittleMungV7NpcVisual`, Generic 뼈대 `BenVisual`)은 NPC 아래에서 지우고, 대기 자세의 발바닥을 바닥에 맞춘 뒤 `CharacterAnimationDriver`의 Animator, 캡슐 높이(외형의 키), 시선(`LookTarget`)을 눈 높이로 맞춥니다. 공용 손짓 동작은 이 체형에서 무릎을 굽히고 팔을 내민 자세가 되므로 Ben은 `Passerby.talkGesture`를 꺼, 말을 건네고 대화하는 동안 자기 Idle로 서게 합니다. Alex는 다른 직원과 같이 손짓합니다. 이미 연결한 외형은 다시 만들지 않습니다. **Npc → Build**(Ben), 드럭스토어 Builder와 **Mission → Adjust Shop Counter Sightline**(Alex)도 같은 연결을 실행합니다.
 
@@ -239,8 +265,8 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
-| `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 행인의 다가감·제안·부르기·[말 걸기]와 게스트 안내, 택시 버튼, 생활 일과·욕구·행동 고르기, 근무와 카운터 응대(`NpcDutyTests`), 외형 표(`NpcCastTests`), 동작 고르기, 카메라에서 먼 NPC의 팔 관통 보정 끄기, 앉아 있는 동안 다시 켜지 않기와 네 장면의 보정 쓰는 NPC가 모두 거리 끄기를 가졌는지(`NpcDetailDistanceTests`·`NpcDetailDistanceSceneTests`) |
-| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 실제 장면의 행인·튜토리얼 행인 대화 흐름, 택시 주행과 세우기, 경찰 신고와 순찰차 출동, 직원의 생활·카운터 응대와 동작 재생 |
+| `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 행인의 다가감·제안·부르기·[말 걸기]·클릭으로 말 걸기와 게스트 안내, 클릭한 NPC 고르기(`NpcPointerRaycastTests`)·테두리(`RendererOutlineTests`), 택시 버튼, 생활 일과·욕구·행동 고르기, 근무와 카운터 응대(`NpcDutyTests`), 외형 표(`NpcCastTests`), 동작 고르기, 카메라에서 먼 NPC의 팔 관통 보정 끄기, 앉아 있는 동안 다시 켜지 않기와 네 장면의 보정 쓰는 NPC가 모두 거리 끄기를 가졌는지(`NpcDetailDistanceTests`·`NpcDetailDistanceSceneTests`) |
+| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 실제 장면의 행인·튜토리얼 행인 대화 흐름, NPC 몸·이름표 클릭·탭으로 말 걸기와 커서 테두리, 겹친 이름표(`NpcClickTalkTests`), 택시 주행과 세우기, 경찰 신고와 순찰차 출동, 직원의 생활·카운터 응대와 동작 재생 |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 

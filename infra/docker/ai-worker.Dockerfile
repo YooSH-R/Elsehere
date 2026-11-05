@@ -37,4 +37,4 @@ USER app
 WORKDIR /app/ai/worker
 RUN python -c "import os; from app.tts import Kokoro; voice = Kokoro.load(os.environ['KOKORO_MODEL'], os.environ['KOKORO_VOICES']); assert voice and voice.phoneme_timing_ready, 'Kokoro phoneme timing warmup failed'"
 EXPOSE 8020
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8020"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8020", "--no-access-log"]

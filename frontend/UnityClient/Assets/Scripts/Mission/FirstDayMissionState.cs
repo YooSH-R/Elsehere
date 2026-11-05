@@ -113,5 +113,8 @@ namespace A305.Mission
         public string Id { get; set; }
         public string Title { get; set; }
         public bool Completed { get; set; }
+
+        /// <summary>이 목표를 이루려면 말해야 할 정보(예: 예약자 이름, 가방 모양). 없으면 비어 있다.</summary>
+        public string Hint { get; set; }
     }
 }

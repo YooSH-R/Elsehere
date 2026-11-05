@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using A305.Api;
 using UnityEngine;
@@ -24,6 +25,35 @@ namespace A305.ObjectHover
         // 같은 단어를 다시 들을 때 내려받지 않도록 장소에 있는 동안 받은 음성을 둔다.
         private readonly Dictionary<long, AudioClip> pronunciations =
             new Dictionary<long, AudioClip>();
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern int A305Word_CanPronounce();
+
+        [DllImport("__Internal")]
+        private static extern int A305Word_Pronounce(string text);
+#endif
+
+        public bool BrowserPronunciationAvailable
+        {
+            get
+            {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                return A305Word_CanPronounce() != 0;
+#else
+                return false;
+#endif
+            }
+        }
+
+        public bool PronounceInBrowser(string text)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            return A305Word_Pronounce(text) != 0;
+#else
+            return false;
+#endif
+        }
 
         public bool IsAvailable => useServer && apiSettings != null;
 

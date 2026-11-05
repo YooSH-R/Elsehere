@@ -361,7 +361,7 @@ namespace A305.Dialogue
                         || content.CanRetry
                         || content.IsGuidedCompleted
                         || NeedsVoiceConsent
-                        || !string.IsNullOrEmpty(content.StatusMessage)
+                        || !string.IsNullOrEmpty(statusText.text)
                     )
             );
             ShowWait(content.Waiting);

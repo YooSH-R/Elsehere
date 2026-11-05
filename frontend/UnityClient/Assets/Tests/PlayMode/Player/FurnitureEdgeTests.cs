@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -34,6 +35,66 @@ namespace A305.Player.PlayModeTests
 
             boxes.Clear();
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Hotel_PlayerWalksBetweenSofasAndCoffeeTables()
+        {
+            yield return SceneManager.LoadSceneAsync("HotelScene", LoadSceneMode.Single);
+            yield return null;
+            PlayerMover player = Object.FindFirstObjectByType<PlayerMover>();
+            Transform[] sofas = Object
+                .FindObjectsByType<Transform>(FindObjectsSortMode.None)
+                .Where(item => item.name == "SageSofa")
+                .ToArray();
+            Assert.That(sofas, Has.Length.EqualTo(2));
+
+            float previousDelta = Time.captureDeltaTime;
+            Time.captureDeltaTime = 1f / 60f;
+            try
+            {
+                foreach (Transform sofa in sofas)
+                {
+                    Transform table = sofa.parent.Find("CoffeeTable");
+                    Bounds sofaBounds = SolidBounds(sofa);
+                    Bounds tableBounds = SolidBounds(table);
+                    Vector3 forwardAxis = new Vector3(
+                        Mathf.Abs(sofa.forward.x),
+                        0f,
+                        Mathf.Abs(sofa.forward.z)
+                    );
+                    Vector3 sofaFront =
+                        sofaBounds.center
+                        + sofa.forward * Vector3.Dot(sofaBounds.extents, forwardAxis);
+                    Vector3 tableBack =
+                        tableBounds.center
+                        - sofa.forward * Vector3.Dot(tableBounds.extents, forwardAxis);
+                    float gap = Vector3.Dot(tableBack - sofaFront, sofa.forward);
+                    Assert.That(gap, Is.GreaterThanOrEqualTo(1f), "소파 앞에 1m 통로를 둡니다.");
+
+                    Vector3 aisleCenter = (sofaFront + tableBack) * .5f;
+                    aisleCenter.y = .05f;
+                    Vector3 start = aisleCenter - sofa.right * 1.8f;
+                    yield return WalkForward(player, start, sofa.right, 1.5f);
+                    // 키를 뗀 프레임을 처리해야 반대편 소파에서는 새 카메라 방향으로 걷는다.
+                    yield return null;
+
+                    TestContext.WriteLine(
+                        $"Hotel aisle: gap={gap:F3}m, start={start}, end={player.transform.position}"
+                    );
+
+                    Assert.That(
+                        Vector3.Dot(player.transform.position - aisleCenter, sofa.right),
+                        Is.GreaterThan(.9f),
+                        "책상과 소파 사이를 걸어서 반대편까지 지나가야 합니다."
+                    );
+                    Assert.That(player.transform.position.y, Is.LessThan(.15f));
+                }
+            }
+            finally
+            {
+                Time.captureDeltaTime = previousDelta;
+            }
         }
 
         [UnityTest]
@@ -216,6 +277,19 @@ namespace A305.Player.PlayModeTests
 
             float deepest = FarthestSkinAlong(player, Vector3.back);
             Assert.That(deepest - 2.3f, Is.LessThan(.05f), "머리가 벽 안으로 들어가면 안 됩니다.");
+        }
+
+        private static Bounds SolidBounds(Transform furniture)
+        {
+            Collider[] colliders = furniture
+                .GetComponentsInChildren<Collider>()
+                .Where(collider => collider.enabled && !collider.isTrigger)
+                .ToArray();
+            Assert.That(colliders, Is.Not.Empty, furniture.name);
+            Bounds bounds = colliders[0].bounds;
+            foreach (Collider collider in colliders)
+                bounds.Encapsulate(collider.bounds);
+            return bounds;
         }
 
         private static IEnumerator LoadHome()

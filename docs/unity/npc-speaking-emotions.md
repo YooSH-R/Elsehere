@@ -1,12 +1,12 @@
 # 말하기 중 NPC 감정 표정 검수
 
-카페 여성·호텔리어 남성·비즈니스맨·중년 남녀·흑인 청년 남성·할머니 외형에 공통 감정 표정과 립싱크를 연결합니다. 기존 서비스 프리팹의 경로와 골격은 유지하고, 원본 모델을 보존한 감정 메시를 참조합니다. Production 씬에서 이 프리팹을 사용하는 NPC에도 적용됩니다. 경찰처럼 얼굴 메시가 없는 대체 외형에는 상세 표정이 생기지 않습니다.
+카페 남녀·호텔리어 남녀·비즈니스맨·중년 남녀·흑인 청년 남성·할머니·할아버지·경찰 남녀의 12종 외형에 공통 감정 표정과 립싱크를 연결합니다. 기존 서비스 프리팹의 경로와 골격은 유지하고, 원본 모델을 보존한 감정 메시를 참조합니다. Production 씬에서 이 프리팹을 사용하는 NPC에도 적용됩니다. 얼굴 메시가 없는 대체 외형에는 상세 표정이 생기지 않습니다.
 
 현재 연결은 NPC에 설정한 기분을 새 음성 대사에 적용하는 범위입니다. 대사 내용에서 LLM이 감정을 추론하거나 서버 감정을 자동 매핑하는 기능은 포함하지 않습니다. 검수 예문의 감정 전환 구간은 별도로 작성한 데이터입니다.
 
 ## Unity에서 확인
 
-1. `Assets/Scenes/Sandbox/NpcEmotionSandbox.unity`를 열고 Play를 누릅니다. 오른쪽에서 일곱 캐릭터 중 하나를 고릅니다. 카페만 확인하는 기존 `CafeFemaleEmotionSandbox.unity`도 유지합니다.
+1. `Assets/Scenes/Sandbox/NpcEmotionSandbox.unity`를 열고 Play를 누릅니다. 오른쪽 목록에서 12종 캐릭터 중 하나를 고릅니다. 창이 작으면 목록을 스크롤합니다. 카페만 확인하는 기존 `CafeFemaleEmotionSandbox.unity`도 유지합니다.
 2. 화면의 12가지 표정 버튼으로 평온·따뜻한 미소·의문·당황·찡그림·놀람·장난기·웃음·걱정/공감·슬픔·폭소·무신경을 확인합니다.
 3. **의문 → 장난기 → 웃음 재생** 또는 **찡그림 → 공감 → 평온 재생**으로 음성과 표정 전환을 함께 확인합니다.
 4. 일시 정지 후 음성 시각 슬라이더를 움직여 입술 접촉과 눈꺼풀을 확인합니다. 정면·양쪽 사선 버튼으로 경계와 관통도 확인합니다.
@@ -33,8 +33,14 @@
 | 중년 남성·여성 | `Review/LittleMung_MiddleAge_Male.prefab`, `Review/LittleMung_MiddleAge_Female.prefab` |
 | 흑인 청년 남성 | `Review/LittleMung_BlackYoung_Male.prefab` |
 | 할머니 | `Review/LittleMung_Grandmother.prefab` |
+| 카페 남성 | `Review/LittleMung_Cafe_Male.prefab` |
+| 할아버지 | `Review/LittleMung_Grandfather.prefab` |
+| 호텔리어 여성 | `Review/LittleMung_HotelStaff_Female.prefab` |
+| 경찰 남성·여성 | `Review/LittleMung_Police_Male.prefab`, `Review/LittleMung_Police_Female.prefab` |
 
-여섯 외형의 추가 감정 메시는 `Assets/Art/Npc/Emotions/<캐릭터 이름>/`에 있습니다. 카페 서비스 프리팹은 승인된 `CafeFemaleEmotion` 메시를 공유합니다. 눈색·피부색과 기존 발음 채널을 유지하고, 호텔리어의 구형 닫힌 눈을 Base 눈꺼풀로 교체합니다.
+11종 외형의 추가 감정 메시는 `Assets/Art/Npc/Emotions/<캐릭터 이름>/`에 있습니다. 카페 여성 서비스 프리팹은 승인된 `CafeFemaleEmotion` 메시를 공유합니다. 눈색·피부색과 기존 발음 채널을 유지하고, 호텔리어 남성의 구형 닫힌 눈을 Base 눈꺼풀로 교체합니다.
+
+카페 남성은 Leo, 호텔리어 여성은 Clara, 할아버지는 Arthur, 경찰 남성은 기존 경찰 역할의 외형 연결을 사용합니다. 경찰 여성은 역할 배정 없이 검수 프리팹으로 준비되어 있습니다. 감정 Builder는 역할이나 Production 씬 배치를 바꾸지 않습니다.
 
 ## 실제 대화의 기분 설정
 
@@ -80,18 +86,20 @@ Blender 제작 원본은 `frontend/ArtSources/Characters/CafeFemaleEmotion/`에 
 
 새 감정만 추가할 때는 `CafeEmotionBuilder.AddMissingReviewPresets`를 실행합니다. `EmotionExpressionProfile.AddMissingDefaults`로 누락된 프리셋만 추가하므로 기존 미소 등 직접 조정한 값은 유지되고, 반복 실행해도 중복되지 않습니다.
 
-다른 NPC의 제작 어댑터는 `frontend/ArtSources/Characters/ServiceNpcEmotions/author_emotions.py`입니다. 두 눈과 입 기준점으로 좌표계를 정규화하고, 텍스처에서 눈썹을 측정한 뒤 카페의 검수된 변형을 각 얼굴 좌표로 되돌립니다. 밝은 눈썹을 찾을 때 속눈썹을 잘못 선택하지 않도록 실제 눈 위쪽만 탐색합니다. 입 접합 경계와 눈꺼풀의 고정 경계를 유지합니다. 얼굴 형태가 다른 새 모델은 결과를 정면·양사선·발화 중에 검수해야 합니다.
+다른 NPC의 제작 어댑터는 `frontend/ArtSources/Characters/ServiceNpcEmotions/author_emotions.py`입니다. 두 눈과 입 기준점으로 좌표계를 정규화하고, 텍스처에서 눈썹을 측정한 뒤 카페의 검수된 변형을 각 얼굴 좌표로 되돌립니다. 눈 구멍을 통해 보이는 머리 뒷면이나 속눈썹을 눈썹으로 오인하지 않도록 눈 접합부 전체보다 위쪽을 탐색합니다. 앞머리와 눈썹이 붙어 있으면 아래쪽 경계로 높이를 측정하며, 경계가 불명확하면 중단합니다. 입 접합 경계와 눈꺼풀의 고정 경계를 유지합니다. 얼굴 형태가 다른 새 모델은 결과를 정면·양사선·발화 중에 검수해야 합니다.
 
 `NpcEmotionBuilder.Export`는 `NPC_EMOTION_BATCH_OUTPUT` 아래에 기존 프리팹의 읽기용 `Source.json`을 내보냅니다. 출력이 이미 있으면 중단합니다. Blender 어댑터는 `--source <Source.json> --work <새 작업 폴더> --output <새 결과 폴더>`로 실행하며, 새 눈이 필요한 모델에는 검수한 `Blink.json` 폴더를 `--new-eyes`로 전달합니다. 기존 출력 폴더를 덮어쓰지 않습니다.
 
 캐릭터별 제작 결과는 `ServiceNpcEmotions/<캐릭터 이름>/`의 `.blend`, `Landmarks.json`, 압축된 `Emotions.json.gz`로 보관합니다. **Tools → A305 → Characters → Apply Reviewed NPC Emotions**는 이 데이터를 기존 프리팹에 연결합니다. 기준 정점이 달라지거나 발음 채널을 덮어쓰는 입력이면 거부합니다. 감정 제작 결과를 다시 적용하는 명령이므로 직접 수정한 감정 메시가 있다면 먼저 보존해야 합니다. `NPC_EMOTION_CHARACTER`로 한 캐릭터만 지정할 수 있습니다.
+
+웃는 눈은 기존 닫힌 눈의 곡률에 맞춰 들어 올리고, 눈꺼풀 선이 얇아져 끊겨 보이지 않도록 감정 변형에서 두께와 눈꺼풀 앞쪽 위치를 유지합니다. 폭소의 혀는 해당 입 벌림 윤곽 안에 둡니다. 이 보정은 감정 채널에만 적용하며 중립·기존 발음 채널은 보존합니다.
 
 **Build NPC Emotion Sandbox**는 비교 씬을 다시 만듭니다. Production 씬은 변경하지 않습니다. `NpcEmotionBuilder.Audit`는 내보낸 원본 경로와 현재 프리팹의 중립 정점·UV·노멀·가중치·bind pose·텍스처·발음 프레임을 비교해 `Preservation.json`으로 기록합니다.
 
 ## 검증 범위와 남은 연결
 
 - 코드 검사: 감정 전환·립싱크 우선권·깜박임 충돌·잘못된 구간·기존 모델 호환·정지 및 재생 상태를 확인합니다.
-- PlayMode 검사: 일곱 서비스 프리팹의 `DialogueSpeaker`와 `DialogueServerLink`에 저장된 실제 응답을 전달해 표정·립싱크·중단을 확인합니다. 네트워크 호출은 하지 않습니다. 카페의 실제 AudioSource 재생과 몸 애니메이터 동시 실행 검사도 유지합니다.
+- PlayMode 검사: 12종 프리팹의 `DialogueSpeaker`와 `DialogueServerLink`에 저장된 실제 응답을 전달해 표정·립싱크·중단을 확인합니다. 네트워크 호출은 하지 않습니다. 카페의 실제 AudioSource 재생과 몸 애니메이터 동시 실행 검사도 유지합니다.
 - 외형 검사: 정면·양쪽 사선과 음성 포함 비교 영상으로 눈꺼풀·입 경계와 표정의 인상을 확인합니다. 가중치 검사만으로 외관을 합격 처리하지 않습니다.
 - 서비스 적용: 외형 확정 후 서버의 감정 의도/강도를 Unity의 감정 종류로 매핑하고, 실제 음성에 해당하는 구간을 전달하는 연결이 필요합니다. 검수 예문의 시각이나 글자 수를 다른 대사의 감정 시각으로 재사용하지 않습니다.
 - NPC 확장: 새 채널을 가진 외형에만 상세 감정을 적용하고, 미지원 얼굴은 기존 표정으로 동작시킵니다. `NpcSpeechAudit.ExportProductionReport`로 Production 씬의 발음·감정 채널 누락을 읽기 전용으로 확인합니다. 실제 서버 응답과 WebGL 음성 재생 검증은 별도 단계입니다.
@@ -106,4 +114,4 @@ Editor를 닫고 `NPC_EMOTION_REVIEW_OUTPUT`에 저장소 밖 출력 폴더를 �
 
 기본 출력은 30fps이며 두 예문 각각 `Before`(기존 고정 미소·깜박임)와 `After`(감정 구간 포함) 프레임을 만듭니다. 양쪽은 같은 복사본 메시와 같은 발음 시간표를 사용합니다. 음성 시작 앞에 0.3초 여백이 있으므로 WAV를 합칠 때도 0.3초 지연을 적용합니다. `Samples.csv`에는 음성 시각별 실제 채널 가중치가 기록됩니다. 렌더는 씬·프리팹을 저장하지 않습니다.
 
-일곱 캐릭터 비교는 `NPC_EMOTION_BATCH_OUTPUT`을 지정하고 `NpcEmotionBuilder.Render`를 실행합니다. 기본값은 12종의 정면·양사선이며 `NPC_EMOTION_BATCH_SPEECH=1`이면 같은 예문의 30fps 발화 프레임도 만듭니다. `NPC_EMOTION_PHASE`는 출력 하위 폴더 이름, `NPC_EMOTION_CHARACTER`는 캐릭터 필터입니다. 프레임의 음성 앞 여백은 동일하게 0.3초입니다.
+12종 캐릭터 비교는 `NPC_EMOTION_BATCH_OUTPUT`을 지정하고 `NpcEmotionBuilder.Render`를 실행합니다. 기본값은 각 캐릭터의 12가지 표정 정면·양사선이며 `NPC_EMOTION_BATCH_SPEECH=1`이면 같은 예문의 30fps 발화 프레임도 만듭니다. `NPC_EMOTION_PHASE`는 출력 하위 폴더 이름, `NPC_EMOTION_CHARACTER`는 캐릭터 필터입니다. 프레임의 음성 앞 여백은 동일하게 0.3초입니다.

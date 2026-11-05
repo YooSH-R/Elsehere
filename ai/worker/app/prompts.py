@@ -45,8 +45,10 @@ plain Korean 반말 requests or urging without those markers ("라떼 하나 줘
 "야" that only calls someone or gets their attention, like "hey", alone or before a question or complaint ("야!", "야, 지금 몇 시야?"),
 everyday personal questions, like where they live, how old they are, or what they do on weekends, even in 반말 or after "야" ("야 니 어디 살아?", "몇 살이야?"),
 complaints and refusals without swearing or insults, even angry or blunt ones, jokes or idioms like "I could die for a latte",
-saying who they are (even "I'm a police officer"), talking to themselves in frustration without swear words.
-Swear words and vulgar words always count, even when aimed at a situation, a thing, or themselves instead of the person.
+saying who they are (even "I'm a police officer"), talking to themselves in frustration without swear words,
+typos with stray Korean letters ("좋ㅇ아요", "고맙ㅅ습니다") and harmless shorthand ("ㄳ", "ㅇㅇ", "ㅎㅎ").
+Swear words and vulgar words always count, even when aimed at a situation, a thing, or themselves instead of the person,
+and so do their Korean consonant shorthands ("ㅆㅂ", "ㅈㄹ").
 Answer with one word only: yes (abusive) or no."""
 
 INTENT_SYSTEM = """You label one line said by a Korean learner of English (CEFR A2-B1) in a role-play game.

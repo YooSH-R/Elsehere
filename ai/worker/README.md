@@ -60,7 +60,7 @@ AI_WORKER_TOKEN=<Spring과 같은 값> .venv/Scripts/python -m uvicorn app.main:
 | `TTS_BREAKER_FAILURES` / `TTS_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 합성이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 CPU로 바로 감. 횟수가 0이면 끔 |
 | `GUARD_LOCAL_MODEL` | (없음, 꺼짐) | 로컬 무례 판정기 폴더 (KcELECTRA 학습 결과 `best/`). 주면 한글 입력의 확신 구간은 판정용 LLM 없이 판정. `requirements-guard.txt` 필요, 없거나 못 읽으면 경고만 남기고 전부 LLM |
 | `GUARD_LOCAL_T_LO`, `GUARD_LOCAL_T_HI` | (모델을 주면 필수) | 로컬 점수 ≤ T_LO → 아님, ≥ T_HI → 무례, 그 사이는 LLM. 학습에 쓰지 않은 보정용 데이터에서 고른 값 |
-| `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김 |
+| `GUARD_GPU_MODEL` | (없음, 꺼짐) | SSAFY GPU 서버 vLLM에 올린 자체 학습 무례 판정 모델 이름(예: `guard-qwen3.8-27b-r16`). 주면 이 모델을 먼저 한 번 부르고, 실패·시간 초과면 구성의 `guard` 모델로 넘김. 한글 낱자모가 섞인 말(오타 "같ㅊ아", "ㄱㅅ")은 이 모델이 욕 줄임말로 잘못 읽어 처음부터 구성의 `guard` 모델로 |
 | `GUARD_GPU_BASE_URL` / `GUARD_GPU_TOKEN` | (`GUARD_GPU_MODEL`을 주면 필수) | GPU 서버 vLLM의 주소와 키. STT처럼 GPU 서버가 거는 역방향 SSH 터널 입구(STT와 다른 포트, 개발 예: `http://172.19.0.1:18432/v1`, 운영은 `172.30.0.1`) |
 | `GUARD_GPU_TIMEOUT_S` | 3 | GPU 서버 판정 한 번의 상한. vLLM이 처음 보는 동시 요청 수에서 한 번 2.4~2.7초가 걸려 그보다 길게 잡음. 넘으면 재시도 없이 구성의 `guard` 모델로 |
 | `GUARD_BREAKER_FAILURES` / `GUARD_BREAKER_SKIP_S` | 3 / 60 | GPU 서버 판정이 연속으로 이만큼 실패하면 이 시간(초) 동안 건너뛰고 구성의 `guard` 모델로 바로 감. 횟수가 0이면 끔 |
@@ -261,7 +261,7 @@ ai/worker/.venv/Scripts/python ai/tools/synthesize_script_lines.py --models <모
 가짜 공급자(`tests/conftest.py`)가 시스템 프롬프트로 단계를 알아보고 정해 둔 답을 돌려줍니다.
 
 - `tests/test_api.py`: 시간 상한·재시도·대체 모델·하루 한도 건너뛰기·형식 강제 실패 재시도, 판정 값 정리, SSE 순서·느린 음성 대체, 기억 카드 정리
-- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기, 무례일 때만 호감 감점(`affinity_delta`)과 성격(신경성)에 따른 크기
+- `tests/test_guard.py`: 무례 판정 `/v1/guard` — yes/no 해석, 행동 묘사만 있는 말, 빈 입력, 시간 상한(`GUARD_BUDGET_S`), 공급자 실패, 로컬 판정기 연결, GPU 서버 판정 모델 → 구성 모델 대체·건너뛰기, 낱자모가 섞인 말은 처음부터 구성 모델, 무례일 때만 호감 감점(`affinity_delta`)과 성격(신경성)에 따른 크기
 - `tests/test_stt.py`: 음성 인식 — 프롬프트 끝부분 되풀이만 거르기(여러 번 이어 붙인 것 포함, 예시 문장·장면 단어 하나·메아리 뒤 진짜 발화는 통과)·영어 메뉴 예시·장면 단어, 녹음 크기(413)·형식(415)·코덱 매개변수, Groq 실패(429·5xx·키 오류·응답 없음) 시 GMS whisper-1 대체·녹음 자체 오류는 안 넘김·첫 호출 짧은 상한, `STT_CHAIN` 순서(GPU 서버 → GMS → Groq, 자리별 상한, 모두 실패 시 공급자별 오류), 연속 실패한 공급자 잠시 건너뛰기·성공하면 초기화·마지막 공급자는 안 건너뜀
 - `tests/test_guard_local.py`: 무례 판정 단계적 구조. 가짜 판정기로 확신 구간·중간 구간·영어·로컬 실패·LLM 실패, 기준값 설정 검사 (torch 없이 돎)
 - `tests/test_hedge.py`: 늦은 호출에 같은 요청 하나 더 보내기, 오류 응답 뒤 남은 요청 기다리기, 판정 시간 상한, NPC 스트림 제외

@@ -82,12 +82,13 @@ namespace A305.Dialogue.Tests
             await conversation.StartAsync();
             changed = 0;
 
-            bool shouldEnd = conversation.Tick(
-                DateTimeOffset.Parse("2026-11-05T14:04:30+09:00")
-            );
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30+09:00"));
 
             Assert.That(shouldEnd, Is.False);
-            Assert.That(conversation.CountdownMessage, Is.EqualTo("남은 시간 0:30 · 대화를 마무리해 주세요"));
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("남은 시간 0:30 · 대화를 마무리해 주세요")
+            );
             Assert.That(changed, Is.EqualTo(1));
 
             conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:04:30.500+09:00"));
@@ -101,14 +102,15 @@ namespace A305.Dialogue.Tests
             api.StartResponse.Conversation = TimedState();
             await conversation.StartAsync();
 
-            bool shouldEnd = conversation.Tick(
-                DateTimeOffset.Parse("2026-11-05T14:05:00+09:00")
-            );
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:00+09:00"));
 
             Assert.That(shouldEnd, Is.False);
             Assert.That(conversation.IsClosing, Is.True);
             Assert.That(conversation.CanSend, Is.True);
-            Assert.That(conversation.CountdownMessage, Is.EqualTo("마지막 말을 마무리해 주세요 · 0:30"));
+            Assert.That(
+                conversation.CountdownMessage,
+                Is.EqualTo("마지막 말을 마무리해 주세요 · 0:30")
+            );
         }
 
         [Test]
@@ -117,9 +119,7 @@ namespace A305.Dialogue.Tests
             api.StartResponse.Conversation = TimedState();
             await conversation.StartAsync();
 
-            bool shouldEnd = conversation.Tick(
-                DateTimeOffset.Parse("2026-11-05T14:05:30+09:00")
-            );
+            bool shouldEnd = conversation.Tick(DateTimeOffset.Parse("2026-11-05T14:05:30+09:00"));
 
             Assert.That(shouldEnd, Is.True);
             Assert.That(conversation.CanSend, Is.False);

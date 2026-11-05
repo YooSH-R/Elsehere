@@ -94,28 +94,7 @@ def displacement(points, family, side):
     front = fade(x, -0.12, 0.01)
     result = np.zeros_like(points)
     if family == "mouthLaughOpen":
-        # This is an additive correction on the existing AA pose, not a
-        # replacement viseme. Expand the oral region and let the cheeks follow.
-        u, v = y + 0.043, z - 0.477
-        influence = (
-            fade(abs(u), 0.055, 0.155)
-            * fade(-v, 0.040, 0.120)
-            * fade(v, 0.006, 0.030)
-            * front
-        )
-        # Saturate the displacement before fading it. Multiplying v by a large
-        # scale inside a narrow radial falloff folds the surrounding face.
-        result[:, 1] = 0.040 * np.tanh(u / 0.024) * influence
-        # Open mainly through the lower lip and chin. Leave the nose and all
-        # moving eyelid vertices above this region completely untouched.
-        result[:, 2] = (
-            0.018 * np.tanh(v / 0.010) - 0.018 + 0.008 * np.tanh(u / 0.026) ** 2
-        ) * influence
-        # Keep the expanded lips and oral parts on the measured rounded cheek
-        # and chin surface instead of extruding a flat rectangular mouth patch.
-        result[:, 0] = mouth_depth(u + result[:, 1], v + result[:, 2]) - mouth_depth(
-            u, v
-        )
+        return result
     elif family.startswith("brow"):
         r = np.sqrt((dy / 0.080) ** 2 + ((z - 0.681) / 0.080) ** 2)
         influence = fade(r, 0.75, 1.55) * front
@@ -511,10 +490,44 @@ for part in eye_data["parts"]:
     if not (output / part["texture"]).exists():
         shutil.copyfile(eye_folder / part["texture"], output / part["texture"])
 
-# The laugh aperture, teeth and tongue use the same correction and head binding.
-# Original AA/PP/FV/TH and the other articulation keys remain byte-for-byte intact.
-face_laugh_delta = None
-face_laugh_normal_delta = None
+# Author a rounded laugh aperture and fair its existing skin boundary.
+# Keep this correction separate from every neutral, smile and speech key.
+lips = parts["SpeakingLips"]
+lip_basis = array(lips["vertices"])
+lip_aa = lip_basis + array(
+    next(s for s in lips["shapes"] if s["name"] == "viseme_AA")["deltaVertices"]
+)
+count = len(lip_basis) // 6
+sys.path.insert(0, str(Path(__file__).parent))
+from laugh_geometry import bind_surface, round_boundary
+
+body_triangles = np.array(export["bodyTriangles"]).reshape(-1, 3)
+body_laugh_delta, body_laugh_normals, angle = round_boundary(
+    face_points, array(surface["normals"]), body_triangles, lip_aa, mouth_depth
+)
+follow_body = bind_surface(
+    face_points, body_triangles, body_laugh_delta, body_laugh_normals
+)
+cosine, sine = np.cos(angle), np.sin(angle)
+rim = np.zeros((count, 3))
+rim[:, 1] = -0.043 + 0.041 * cosine
+rim[:, 2] = 0.480 + 0.004 * cosine**2 + np.where(sine >= 0, 0.006, 0.030) * sine
+rim[:, 0] = mouth_depth(rim[:, 1] + 0.043, rim[:, 2] - 0.477)
+
+
+def skin_normals(points):
+    u, v = points[:, 1] + 0.043, points[:, 2] - 0.477
+    c = mouth_surface
+    normals = np.column_stack(
+        [
+            -np.ones(len(points)),
+            c[1] + 2 * c[3] * u + c[4] * v,
+            c[2] + c[4] * u + 2 * c[5] * v,
+        ]
+    )
+    return normals / np.linalg.norm(normals, axis=1, keepdims=True)
+
+
 for mesh_data in export["meshes"] + export["parts"]:
     name = mesh_data["name"]
     if name.endswith("Eye") or name in ("ClosedLeftLid", "ClosedRightLid"):
@@ -535,19 +548,60 @@ for mesh_data in export["meshes"] + export["parts"]:
         if aa and len(aa["deltaNormals"]) == len(positions)
         else 0
     )
-    delta = displacement(aa_positions, "mouthLaughOpen", "")
-    normal_delta = normal_offsets(aa_positions, aa_normals, "mouthLaughOpen", "")
-    if name == "UpperTeeth":
-        teeth = original_shapes["viseme_E"]
-        visible = positions + array(teeth["deltaVertices"])
-        target = visible + displacement(visible, "mouthLaughOpen", "")
-        tooth_u, tooth_v = target[:, 1] + 0.043, target[:, 2] - 0.477
-        target[:, 0] += mouth_depth(tooth_u, tooth_v + 0.010) - mouth_depth(
-            tooth_u, tooth_v
+    delta, normal_delta = np.zeros_like(positions), np.zeros_like(positions)
+    if name == "CafeFemaleFace":
+        delta, normal_delta = body_laugh_delta, body_laugh_normals
+    elif name.endswith("EyeJoin") or name == "SpeakingLips":
+        delta, normal_delta = follow_body(aa_positions)
+    target, target_normals = aa_positions + delta, aa_normals + normal_delta
+    if name == "SpeakingLips":
+        outer = target[:count].copy()
+        outer_normals = target_normals[:count].copy()
+        for ring_index, weight in enumerate([1, 0.8, 0.55, 0.3, 0.1, 0]):
+            region = slice(ring_index * count, (ring_index + 1) * count)
+            points = rim * (1 - weight) + outer * weight
+            boundary_depth = outer[:, 0] - mouth_depth(
+                outer[:, 1] + 0.043, outer[:, 2] - 0.477
+            )
+            smooth_weight = weight * weight * (3 - 2 * weight)
+            points[:, 0] = (
+                mouth_depth(points[:, 1] + 0.043, points[:, 2] - 0.477)
+                + boundary_depth * smooth_weight
+            )
+            target[region] = points
+            shading = (
+                skin_normals(points) * (1 - smooth_weight)
+                + outer_normals * smooth_weight
+            )
+            target_normals[region] = shading / np.linalg.norm(
+                shading, axis=1, keepdims=True
+            )
+        # The shared edge must match exactly, including its custom normals.
+        target[:count], target_normals[:count] = outer, outer_normals
+    elif name == "MouthInterior":
+        for ring_index, weight in enumerate([1, 0.8, 0.5, 0.2, 0]):
+            region = slice(ring_index * count, (ring_index + 1) * count)
+            points = rim.copy()
+            points[:, 1] = -0.043 + (rim[:, 1] + 0.043) * weight
+            points[:, 2] = 0.473 + (rim[:, 2] - 0.473) * weight
+            points[:, 0] = mouth_depth(
+                points[:, 1] + 0.043, points[:, 2] - 0.477
+            ) + 0.024 * (1 - weight)
+            target[region] = points
+            target_normals[region] = skin_normals(points)
+    elif name in ("UpperTeeth", "Tongue"):
+        channel = "viseme_E" if name == "UpperTeeth" else "viseme_AA"
+        visible = positions + array(original_shapes[channel]["deltaVertices"])
+        target = visible.copy()
+        target[:, 1] = -0.043 + (visible[:, 1] + 0.043) * 1.5
+        target[:, 2] += 0.001 if name == "UpperTeeth" else -0.010
+        target[:, 0] = (
+            mouth_depth(target[:, 1] + 0.043, target[:, 2] - 0.477)
+            + 0.004
+            + (visible[:, 0] - visible[:, 0].mean()) * 0.2
         )
-        target[:, 2] += 0.010
-        delta = target - aa_positions
-        normal_delta = normal_offsets(visible, normals, "mouthLaughOpen", "")
+        target_normals = aa_normals
+    delta, normal_delta = target - aa_positions, target_normals - aa_normals
     if name == "CafeFemaleFace":
         face_laugh_delta, face_laugh_normal_delta = delta, normal_delta
     if name == "SpeakingLips":
@@ -560,8 +614,7 @@ for mesh_data in export["meshes"] + export["parts"]:
             face_laugh_delta,
             face_laugh_normal_delta,
         )
-    if np.max(np.linalg.norm(delta, axis=1)) < 1e-7:
-        continue
+    # Keep zero frames too, so Refresh replaces old corrective offsets.
     mesh_data["shapes"].append(
         {
             "name": "mouthLaughOpen",

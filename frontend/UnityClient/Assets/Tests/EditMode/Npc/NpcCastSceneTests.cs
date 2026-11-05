@@ -13,6 +13,36 @@ namespace A305.Npc.Tests
 {
     public class NpcCastSceneTests
     {
+        [Test]
+        public void CommutersUseTheirCastVisualAndKeepOneDialogueFace()
+        {
+            var failures = new List<string>();
+            foreach (var member in NpcCast.Members.Where(member => member.Code != "TAXI_DRIVER"))
+            {
+                string path = "Assets/Prefabs/Npc/Commuters/" + member.Code + ".prefab";
+                var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Assert.That(root, Is.Not.Null, path);
+                Assert.That(root.activeSelf, Is.False, member.Code);
+                Assert.That(root.GetComponent<NpcTownWalker>(), Is.Not.Null, member.Code);
+                var animators = root.GetComponentsInChildren<Animator>(true);
+                var faces = root.GetComponentsInChildren<CharacterFaceController>(true);
+                Assert.That(animators, Has.Length.EqualTo(1), member.Code);
+                Assert.That(faces, Has.Length.EqualTo(1), member.Code);
+                Transform visual = animators[0].transform;
+                while (visual.parent != null && visual.parent != root.transform)
+                    visual = visual.parent;
+                string actual = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(visual);
+                if (actual != member.Look.PrefabPath)
+                    failures.Add($"{member.Code}: {actual} → {member.Look.PrefabPath}");
+                Assert.That(
+                    CharacterFaceController.MissingChannels(faces[0].transform, true),
+                    Is.Empty,
+                    member.Code
+                );
+            }
+            Assert.That(failures, Is.Empty, string.Join("\n", failures));
+        }
+
         [TestCase("TownScene")]
         [TestCase("CafeScene")]
         [TestCase("HotelScene")]

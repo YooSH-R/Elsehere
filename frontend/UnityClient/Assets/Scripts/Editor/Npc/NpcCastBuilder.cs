@@ -307,7 +307,40 @@ namespace A305.EditorTools.Npc
                 .Select(member => member.Code);
             if (missing.Any())
                 throw new InvalidOperationException("씬에 없는 NPC: " + string.Join(", ", missing));
+            RefreshCommuterVisuals();
             AssetDatabase.SaveAssets();
+        }
+
+        // 출퇴근 프리팹도 같은 검수 외형을 참조한다. 출현·경로 설정과 프리팹 GUID는 유지한다.
+        internal static void RefreshCommuterVisuals()
+        {
+            const string folder = "Assets/Prefabs/Npc/Commuters";
+            if (!AssetDatabase.IsValidFolder(folder))
+                return;
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { folder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                GameObject root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    var npc = root.GetComponent<NpcIdentity>();
+                    var member = npc != null ? NpcCast.Find(npc.Code) : null;
+                    if (member == null || root.GetComponent<NpcTownWalker>() == null)
+                        throw new InvalidOperationException(
+                            "출퇴근 NPC 연결을 확인하세요: " + path
+                        );
+                    bool active = root.activeSelf;
+                    root.SetActive(true);
+                    ConnectLook(npc, member.Look);
+                    NpcCastDresser.Dress(root, member);
+                    root.SetActive(active);
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+            }
         }
 
         /// <summary>

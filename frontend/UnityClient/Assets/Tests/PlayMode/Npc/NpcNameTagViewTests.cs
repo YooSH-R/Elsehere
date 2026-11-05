@@ -31,10 +31,12 @@ namespace A305.Npc.PlayModeTests
         [UnitySetUp]
         public IEnumerator LoadTownAfterTutorial()
         {
+            NpcTestClock.SetDaytime();
             TutorialState.Clear();
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;
+            yield return NpcTestClock.OpenPoliceStation();
         }
 
         [UnityTearDown]

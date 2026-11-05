@@ -23,6 +23,9 @@ namespace A305.Npc.PlayModeTests
         private const float WaitTimeoutSeconds = 15f;
         private static readonly Vector3 OutOfTown = new Vector3(0f, -200f, 0f);
 
+        [TearDown]
+        public void RestoreClock() => NpcTestClock.Restore();
+
         [SetUp]
         [TearDown]
         public void ResetCrossSceneRecords()
@@ -162,6 +165,7 @@ namespace A305.Npc.PlayModeTests
         // 길을 지나는 다른 NPC가 누른 자리를 가리지 않도록, 다른 NPC는 멈춰 마을 밖으로 옮긴다.
         private static IEnumerator LoadTownAfterTutorial()
         {
+            NpcTestClock.SetDaytime();
             TutorialState.MarkFinishedOnServer();
             yield return SceneManager.LoadSceneAsync("TownScene", LoadSceneMode.Single);
             yield return null;

@@ -1,8 +1,10 @@
 package com.elsehere.followup.controller;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,6 +60,19 @@ class FollowUpControllerTest {
         .andExpect(jsonPath("$.items[0].readyAt").value("2026-11-04T14:05:45+09:00"))
         .andExpect(jsonPath("$.items[0].remainingSeconds").value(45))
         .andExpect(jsonPath("$.items[0].ready").value(false));
+  }
+
+  @Test
+  @DisplayName("POST dismiss는 로그인한 사용자의 카드를 닫고 204로 응답한다")
+  void dismiss_closesTheCard() throws Exception {
+    mockMvc
+        .perform(
+            post(PATH + "/7/dismiss")
+                .with(authentication(loggedIn(1L)))
+                .header("X-Requested-With", "ElsehereClient"))
+        .andExpect(status().isNoContent());
+
+    then(followUpService).should().dismiss(1L, 7L);
   }
 
   @Test

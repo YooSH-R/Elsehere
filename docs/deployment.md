@@ -4,9 +4,9 @@
 
 ## 적용 범위
 
-현재 개발 환경은 PostgreSQL·백엔드·AI 워커·Unity WebGL 웹 컨테이너를 실행하며, 운영 환경은 환경 확인용 서비스를 유지합니다. 호스트 Nginx가 도메인에 따라 각 환경으로 전달하고 기존 SSAFY 경로도 호환 제공합니다. 운영 확인용 응답은 실제 애플리케이션의 기동이나 통합 동작을 보장하지 않습니다.
+개발과 운영은 각각 PostgreSQL·백엔드·AI 워커·Unity WebGL 웹 컨테이너를 실행합니다. 호스트 Nginx가 도메인에 따라 각 환경으로 전달하고 기존 SSAFY 경로도 호환 제공합니다. 환경 확인용 서비스는 실제 앱 전환 전의 초기 설치에 사용하며, 그 응답으로 앱의 통합 동작을 판단하지 않습니다.
 
-백엔드·AI 워커·웹 이미지와 앱용 Compose는 저장소에서 관리합니다. Unity 테스트·WebGL 빌드는 [Windows 노트북 전용 Runner](unity/windows-runner.md)에서 실행합니다. 개발은 [dev 자동 배포](dev-auto-deployment.md)의 변경 영역 검사·이미지 전달·배포 후 점검을 사용합니다. 운영 최초 전환·전용 수신기·main 자동 배포와 복구는 [main 운영 배포](prod-deployment.md)를 따릅니다. GPU 서버 연결은 제공 조건과 AI 실행 방식이 정해진 뒤 반영합니다.
+백엔드·AI 워커·웹 이미지와 앱용 Compose는 저장소에서 관리합니다. Unity 테스트·WebGL 빌드는 [Windows 노트북 전용 Runner](unity/windows-runner.md)에서 실행합니다. 개발은 [dev 자동 배포](dev-auto-deployment.md)의 변경 영역 검사·이미지 전달·배포 후 점검을 사용합니다. 운영 최초 전환·전용 수신기·main 자동 배포와 복구는 [main 운영 배포](prod-deployment.md)를 따릅니다. GPU 서버 연결은 환경별 고정 IP·외부 네트워크와 역방향 SSH 터널을 사용하며, 주소·방화벽·검증 기준은 [GPU 워커 네트워크 운영](gpu-worker-network.md)에서 관리합니다.
 
 ## 서버와 환경 구분
 
@@ -40,7 +40,7 @@
 ```text
 클라이언트 → 호스트 Nginx (TLS 종료)
               ├─ dev.elsehere.kr /     → 127.0.0.1:8081 → 개발 웹·API
-              └─ elsehere.kr /, www / → 127.0.0.1:8080 → 운영 확인용 서비스
+              └─ elsehere.kr /, www / → 127.0.0.1:8080 → 운영 웹·API
 ```
 
 신규 개발 주소에는 `/dev/`를 붙이지 않습니다. 기존 SSAFY 주소의 개발 경로에서만 `/dev`를 제거해 내부로 전달합니다. 두 환경은 호스트의 루프백 주소에만 포트를 게시합니다. Nginx를 컨테이너로 옮기면 `127.0.0.1`의 대상이 달라지므로 연결 방식도 함께 바꿔야 합니다.
@@ -101,6 +101,7 @@ NPC 음성은 `npc-audio-data` 볼륨을 백엔드의 `/app/data/npc-audio`에 �
 | `infra/docker/web.Dockerfile` | WebGL 산출물과 내부 API 프록시 제공 |
 | `infra/nginx/web.conf` | WebAssembly MIME·gzip 헤더, 백엔드 교체 후 DNS 재조회, `/api/`·`/admin`([운영자 어드민](admin.md))·약관 문서([AUTH-03](api/mvp-api.md#auth-03-get-apiv1authsignup)) 백엔드 프록시 |
 | `infra/compose/deploy.*.env.example` | 환경별 DB·Google OAuth·AI·포트·이미지 변수 예제 |
+| `infra/compose/compose.dev-worker-network.yaml`·`compose.prod-worker-network.yaml` | 환경별 외부 네트워크 참조와 AI 워커 고정 IP. 설치·방화벽 기준은 [GPU 워커 네트워크 운영](gpu-worker-network.md) 참고 |
 | `infra/nginx/a305.dev-webgl.locations.conf` | 기존 HTTPS 서버에 수동으로 추가할 개발 WebGL 경로 예제 |
 
 실제 `deploy.env`에는 DB 비밀번호, `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET`, 내부 토큰, GMS·Groq 키와 검증한 이미지 참조가 필요합니다. 예제의 빈 값은 사용자가 서버에서 채우며 저장소에 넣지 않습니다. 공통 앱 Compose는 Google 두 값을 백엔드의 `environment`에 명시적으로 전달하며 값이 없거나 비어 있으면 실행 전에 실패합니다. `--env-file`로 치환할 값을 읽는 것과 컨테이너에 전달하는 것은 별개입니다. 운영 앱을 활성화할 때도 운영용 Google 값을 운영 `deploy.env`에 준비합니다. DB 스키마는 백엔드가 시작할 때 Flyway 마이그레이션이 만들고 바꾸며, 모든 환경에서 `JPA_DDL_AUTO=validate`로 엔티티와 맞는지 검사합니다. 새 운영 DB도 첫 시작 때 마이그레이션으로 만들어집니다. 앱을 이전 이미지로 되돌려도 적용된 마이그레이션은 되돌아가지 않습니다. 작성 기준은 [백엔드 README](../backend/README.md#스키마-관리)를 따릅니다.

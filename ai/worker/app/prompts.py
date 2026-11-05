@@ -525,9 +525,10 @@ def clean_card(card: object) -> dict:
 FOLLOW_UP_SYSTEM = """You decide whether a character in a role-play game still owes the customer (a Korean learner of English) something to hand over, right after their conversation ended.
 owes = true only when, in this conversation, the character took the customer's order or request and is now making, preparing or processing it in this place, to hand it to the customer soon: a drink being made, food being cooked, clothes being washed, flowers being wrapped, a parcel being packed.
 An accepted order is still being prepared unless the character clearly gave it in the conversation ("Here you go", "Here's your latte"). Taking payment, confirming the order, thanking or saying goodbye is not handing it over.
+Goods that are already made and sold from a shelf or display (an umbrella, a packaged snack, a lamp, a ticket) are handed over at the sale, even if nobody says "Here you go".
 owes = false when:
 - nothing was ordered or requested, or the customer only asked questions, directions or prices;
-- the character clearly handed it over in the conversation;
+- the character clearly handed it over in the conversation, or sold ready-made goods from a shelf or display;
 - the order was cancelled or refused, or the customer left before ordering;
 - the character only keeps or stores something for them (luggage, a reservation), or it depends on a later time of day or another place.
 item: what will be handed over, a short English noun phrase as said in the conversation (max 5 words). Empty when owes is false.

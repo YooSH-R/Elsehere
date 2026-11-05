@@ -103,6 +103,19 @@ namespace A305.Dialogue
             SortAndNotify();
         }
 
+        /// <summary>
+        /// 학습자가 카드를 닫은 것을 바로 지우고 서버에도 알린다(CONV-14). 알리지 못해도 이 기기에서는 닫힌 채 두고, 다음 서버 목록이 맞춘다.
+        /// </summary>
+        public async Task DismissAsync(IFollowUpApi api, long followUpId)
+        {
+            Remove(followUpId);
+            try
+            {
+                await api.DismissAsync(followUpId);
+            }
+            catch (ApiException) { }
+        }
+
         /// <summary>서버 목록(CONV-13)으로 다시 맞춘다. 받지 못하면 지금 기억하는 것을 그대로 둔다.</summary>
         public async Task RefreshAsync(IFollowUpApi api)
         {

@@ -9,6 +9,7 @@ namespace A305.Mission
     /// 왼쪽 퀘스트 카드 바로 아래의 기다리는 카드. 대화를 마친 NPC가 준비해 곧 건네기로 한 것(<see cref="FollowUpStore"/>)마다
     /// 먼저 되는 것부터 한 줄씩 받을 것·누가 어디서·남은 시간을 보이고, 다 되면 받으러 가라는 알림으로 바꿔 한 번 반짝인다.
     /// 기다리는 것이 없거나 미션 화면이 왼쪽을 쓸 수 없을 때(튜토리얼, 수첩·퀘스트 목록·큰 지도를 연 동안)는 숨긴다.
+    /// 줄 끝의 X를 누르면 그 줄을 닫는다.
     /// </summary>
     public sealed class FollowUpCardView : MonoBehaviour
     {
@@ -42,12 +43,27 @@ namespace A305.Mission
         private bool allowed;
         private long shownSecond = -1;
 
+        // 닫은 것을 서버에 알릴 API. 서버 없이 띄운 화면에서는 이 기기에서만 지운다.
+        private IFollowUpApi api;
+
         // 줄 순서대로 보이고 있는 것. 다 된 것을 반짝일 줄을 찾는다.
         private readonly List<long> shownFollowUpIds = new List<long>();
 
         private static FollowUpStore Store => FollowUpStore.Shared;
 
         public GameObject Card => card.gameObject;
+
+        /// <summary>X로 닫은 것을 알릴 서버 API를 정한다.</summary>
+        public void Bind(IFollowUpApi api) => this.api = api;
+
+        /// <summary>줄 끝 X: 그 줄을 닫는다.</summary>
+        public void Dismiss(long followUpId)
+        {
+            if (api != null)
+                _ = Store.DismissAsync(api, followUpId);
+            else
+                Store.Remove(followUpId);
+        }
 
         /// <summary>미션 화면이 왼쪽 위를 쓸 수 있는지. 기다리는 것이 있어도 false면 숨긴다.</summary>
         public void SetAllowed(bool allowed)
@@ -84,6 +100,7 @@ namespace A305.Mission
                 }
 
                 WaitingFollowUp followUp = items[i];
+                row.FollowUpId = followUp.FollowUpId;
                 row.Show(
                     FollowUpCardText.Row(followUp, now),
                     followUp.IsReady(now) ? readyMark : waitingMark

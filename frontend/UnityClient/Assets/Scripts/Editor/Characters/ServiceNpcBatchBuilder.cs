@@ -102,6 +102,31 @@ namespace A305.EditorTools.Characters
             AuditFaces();
         }
 
+        public static void RenderCompleteReview()
+        {
+            RenderAfter();
+            string output = Environment.GetEnvironmentVariable("NPC_RENDER_OUTPUT");
+            string previousName = Environment.GetEnvironmentVariable("NPC_BASE_EYE_NAME");
+            string previousOutput = Environment.GetEnvironmentVariable("BUSINESS_BLINK_OUTPUT");
+            try
+            {
+                foreach (string name in ServiceNpcReviewBuilder.Names)
+                {
+                    Environment.SetEnvironmentVariable("NPC_BASE_EYE_NAME", name);
+                    Environment.SetEnvironmentVariable(
+                        "BUSINESS_BLINK_OUTPUT",
+                        Path.Combine(output, "Faces", name)
+                    );
+                    BusinessBlinkBuilder.Render();
+                }
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("NPC_BASE_EYE_NAME", previousName);
+                Environment.SetEnvironmentVariable("BUSINESS_BLINK_OUTPUT", previousOutput);
+            }
+        }
+
         public static void ConfigureSurfaceContact()
         {
             foreach (string name in ServiceNpcReviewBuilder.Names)

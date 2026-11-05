@@ -327,6 +327,29 @@ namespace A305.EditorTools.Npc
             Debug.Log("NPC 외형 줄 세운 그림을 저장했습니다: " + Path.GetFullPath(folder));
         }
 
+        public static void RenderReviewedStaffLineups()
+        {
+            string folder =
+                Environment.GetEnvironmentVariable(LineupOutputVariable)
+                ?? throw new InvalidOperationException("Set NPC_CAST_LINEUP_OUTPUT.");
+            Directory.CreateDirectory(folder);
+            foreach (
+                var look in new[]
+                {
+                    NpcLooks.CafeMale,
+                    NpcLooks.HotelierFemale,
+                    NpcLooks.Grandfather,
+                    NpcLooks.PoliceOfficer,
+                }
+            )
+                RenderLineup(
+                    look,
+                    NpcCast.Members.Where(member => member.Look == look).ToArray(),
+                    folder
+                );
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        }
+
         // ---------- 장면 ----------
 
         private static void BuildScene(string scenePath, Action<Scene> placeOthers = null)

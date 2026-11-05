@@ -42,16 +42,29 @@ namespace A305.EditorTools.Characters
                     .GetComponentsInChildren<SkinnedMeshRenderer>()
                     .OrderByDescending(s => s.sharedMesh.vertexCount)
                     .First();
-                foreach (
-                    string guid in AssetDatabase.FindAssets(
-                        "t:Mesh",
-                        new[] { ServiceNpcReviewBuilder.Root + "/" + name }
+                string reviewRoot = ServiceNpcReviewBuilder.Root + "/" + name + "/";
+                string activeBodyPath = AssetDatabase.GetAssetPath(fresh.sharedMesh);
+                if (
+                    !activeBodyPath.EndsWith(".asset", StringComparison.Ordinal)
+                    || !(
+                        activeBodyPath.StartsWith(reviewRoot, StringComparison.Ordinal)
+                        || activeBodyPath.StartsWith(
+                            "Assets/Art/Npc/Emotions/" + name + "/",
+                            StringComparison.Ordinal
+                        )
                     )
                 )
-                {
-                    var original = AssetDatabase.LoadAssetAtPath<Mesh>(
-                        AssetDatabase.GUIDToAssetPath(guid)
+                    throw new InvalidOperationException(
+                        "원본이 아닌 검수·감정 저작 사본에만 손을 적용할 수 있습니다."
                     );
+                var reviewMeshes = AssetDatabase
+                    .FindAssets("t:Mesh", new[] { reviewRoot.TrimEnd('/') })
+                    .Select(guid =>
+                        AssetDatabase.LoadAssetAtPath<Mesh>(AssetDatabase.GUIDToAssetPath(guid))
+                    );
+                // 감정 저작 이후에는 프리팹이 별도 메시 사본을 참조하므로 실제 연결도 갱신한다.
+                foreach (var original in reviewMeshes.Append(fresh.sharedMesh).Distinct())
+                {
                     if (!HasHeadAndBothHands(original, fresh))
                         continue;
                     var repaired = Object.Instantiate(original);

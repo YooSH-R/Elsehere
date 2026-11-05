@@ -24,13 +24,21 @@ var ApiStream = {
   A305ApiStream_Start: function (urlPointer, methodPointer, bodyPointer, headersPointer) {
     var id = apiStreams.create();
     var item = apiStreams.items[id];
-    var headers = JSON.parse(UTF8ToString(headersPointer));
-    var body = bodyPointer ? UTF8ToString(bodyPointer) : null;
-    if (body !== null) headers["Content-Type"] = "application/json";
-    item.controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    // 여기서 난 예외가 Unity 런타임을 멈추지 않게, 시작하지 못하면 응답을 받지 못한 것으로 둔다(C#은 JSON 요청으로 다시 묻는다).
+    try {
+      var url = UTF8ToString(urlPointer);
+      var method = UTF8ToString(methodPointer);
+      var headers = JSON.parse(UTF8ToString(headersPointer));
+      var body = bodyPointer ? UTF8ToString(bodyPointer) : null;
+      if (body !== null) headers["Content-Type"] = "application/json";
+      item.controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    } catch (error) {
+      item.state = 2;
+      return id;
+    }
 
-    fetch(UTF8ToString(urlPointer), {
-      method: UTF8ToString(methodPointer),
+    fetch(url, {
+      method: method,
       headers: headers,
       body: body,
       credentials: "same-origin",

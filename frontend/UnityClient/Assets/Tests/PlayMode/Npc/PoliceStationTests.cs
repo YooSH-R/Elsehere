@@ -14,13 +14,13 @@ using UnityEngine.UI;
 namespace A305.Npc.PlayModeTests
 {
     /// <summary>
-    /// 마을(TownScene)을 실제로 불러와 경찰서 창구의 경찰관에게 신고하면 접수만 하고, 대화를 마치면 옆 주차 칸의 순찰차가
-    /// 출동해 말한 장소 앞에 섰다가(장소가 없으면 본길을 한 바퀴 돌고) 주차 칸으로 돌아오는지 확인한다.
-    /// 대화를 마치고 밖으로 나온 플레이어가 출동하는 모습을 보게 하려는 것이다.
+    /// 마을(TownScene)을 실제로 불러와 경찰서 창구의 경찰관이 신고를 받으면(서버 턴 응답의 출동 장소) 접수만 하고, 대화를 마치면
+    /// 옆 주차 칸의 순찰차가 출동해 그 장소 앞에 섰다가(장소가 없으면 본길을 한 바퀴 돌고) 주차 칸으로 돌아오는지 확인한다.
+    /// 신고인지와 장소는 서버의 의도 판정이 문맥으로 고르므로, 여기서는 창구가 받은 출동 장소부터 본다.
     /// 경찰서 문은 여닫지 않고, 다른 장소처럼 문에 닿으면 화면을 덮었다가 실내(또는 문 밖)에 세우는지도 확인한다.
     /// 순찰차는 앞의 차에 양보하므로 택시·승용차와 서로 막히는 경우가 프레임 속도에 따라 생긴다.
     /// 출동 흐름만 보도록 다른 차를 세워 둔다. 트럭 옆을 한 대씩 지나가는지는 택시만 남겨 두고 따로 본다.
-    /// 신고 문장 판별과 출동 단계 전환은 EditMode 테스트가 맡는다.
+    /// 턴 응답에서 출동 장소를 꺼내는 것과 출동 단계 전환은 EditMode 테스트가 맡는다.
     /// </summary>
     public class PoliceStationTests
     {
@@ -48,7 +48,7 @@ namespace A305.Npc.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator ReportingATheftAtTheDiner_PatrolCarRespondsThereAndComesBack()
+        public IEnumerator ReportAtTheFountainPark_PatrolCarRespondsThereAndComesBack()
         {
             yield return LoadTown();
             PoliceCar car = Single<PoliceCar>();
@@ -57,10 +57,10 @@ namespace A305.Npc.PlayModeTests
             Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked));
             Assert.That(car.LightsOn, Is.False);
 
-            TalkToOfficerAndSay("My wallet was stolen at the diner.");
+            TalkToOfficerAndReport("PARK");
 
             Assert.That(car.Phase, Is.EqualTo(PolicePhase.Parked), "대화 중에는 접수만 합니다.");
-            Assert.That(VehicleStatus(), Does.Contain("신고 접수").And.Contain("메이플 다이너"));
+            Assert.That(VehicleStatus(), Does.Contain("신고 접수").And.Contain("분수대 공원"));
 
             yield return EndTalk();
 
@@ -69,7 +69,7 @@ namespace A305.Npc.PlayModeTests
                 Is.EqualTo(PolicePhase.LeavingBay),
                 "대화를 마치면 출동해야 합니다."
             );
-            Assert.That(car.SceneCode, Is.EqualTo("DINER"));
+            Assert.That(car.SceneCode, Is.EqualTo("PARK"));
             Assert.That(car.LightsOn, Is.True);
 
             float previousScale = Time.timeScale;
@@ -77,9 +77,9 @@ namespace A305.Npc.PlayModeTests
             try
             {
                 yield return WaitForPhase(car, PolicePhase.OnScene);
-                // 다이너는 동쪽 건물이라 북행 차로(x=1.5) 다이너 앞(z=39)에 선다.
+                // 분수대 공원은 본길 동쪽이라 북행 차로(x=1.5) 공원 앞(z=21)에 선다.
                 Assert.That(car.transform.position.x, Is.EqualTo(1.5f).Within(.3f));
-                Assert.That(car.transform.position.z, Is.EqualTo(39f).Within(.5f));
+                Assert.That(car.transform.position.z, Is.EqualTo(21f).Within(.5f));
                 yield return WaitForPhase(car, PolicePhase.Parked);
             }
             finally
@@ -90,6 +90,51 @@ namespace A305.Npc.PlayModeTests
             Assert.That(car.LightsOn, Is.False);
         }
 
+        // 신고를 받은 경찰관이 창구를 떠나 직접 순찰차를 몰고, 돌아와 주차하면 다시 창구에 선다.
+        [UnityTest]
+        public IEnumerator ReportingOfficer_DrivesThePatrolCarAndComesBackToTheDesk()
+        {
+            yield return LoadTown();
+            PoliceCar car = Single<PoliceCar>();
+            HoldOtherTraffic(car);
+            GameObject officer = Officer().gameObject;
+            GameObject atTheWheel = car.transform.Find("Drivers/" + OfficerCode).gameObject;
+            Assert.That(
+                atTheWheel.activeSelf,
+                Is.False,
+                "주차해 있을 때는 운전석이 비어 있습니다."
+            );
+
+            TalkToOfficerAndReport("ICE_CREAM_PLAZA");
+            yield return EndTalk();
+
+            Assert.That(officer.activeSelf, Is.False, "출동한 경찰관은 창구를 떠납니다.");
+            Assert.That(atTheWheel.activeSelf, Is.True, "출동한 경찰관이 운전석에 앉습니다.");
+            Assert.That(
+                car.transform.Find("Drivers")
+                    .Cast<Transform>()
+                    .Count(driver => driver.gameObject.activeSelf),
+                Is.EqualTo(1),
+                "운전석에는 신고를 받은 경찰관 한 명만 앉습니다."
+            );
+
+            float previousScale = Time.timeScale;
+            Time.timeScale = 12;
+            try
+            {
+                yield return WaitForPhase(car, PolicePhase.OnScene);
+                Assert.That(car.transform.position.z, Is.EqualTo(-23f).Within(.5f));
+                Assert.That(atTheWheel.activeSelf, Is.True);
+                yield return WaitForPhase(car, PolicePhase.Parked);
+            }
+            finally
+            {
+                Time.timeScale = previousScale;
+            }
+            Assert.That(officer.activeSelf, Is.True, "돌아오면 창구에 다시 섭니다.");
+            Assert.That(atTheWheel.activeSelf, Is.False);
+        }
+
         [UnityTest]
         public IEnumerator ReportingWithoutAPlace_PatrolsTheMainStreetAndComesBack()
         {
@@ -98,7 +143,7 @@ namespace A305.Npc.PlayModeTests
             HoldOtherTraffic(car);
             Vector3 bay = car.transform.position;
 
-            TalkToOfficerAndSay("I lost my wallet.");
+            TalkToOfficerAndReport(null);
             Assert.That(VehicleStatus(), Does.Contain("신고 접수"));
             yield return EndTalk();
 
@@ -150,6 +195,34 @@ namespace A305.Npc.PlayModeTests
             yield return RespondWhileTheTaxiDrivesSouthFrom(-13f);
         }
 
+        // 서버(PoliceDesk)가 보내는 마을 장소 코드 전체. 신고한 곳이 어디든 그 앞으로 출동해야 한다.
+        [UnityTest]
+        public IEnumerator EveryTownPlace_IsAPatrolCarDestination()
+        {
+            yield return LoadTown();
+            PoliceCar car = Single<PoliceCar>();
+
+            string[] places =
+            {
+                "HOME",
+                "HOTEL",
+                "CAFE",
+                "SHOP",
+                "POST_OFFICE",
+                "DINER",
+                "BANK",
+                "LAUNDROMAT",
+                "FLOWER_SHOP",
+                "BARBER",
+                "BAKERY",
+                "PARK",
+                "ARCADE",
+                "HOME_STORE",
+                "ICE_CREAM_PLAZA",
+            };
+            Assert.That(places.Where(place => car.DisplayNameOf(place) == null), Is.Empty);
+        }
+
         [UnityTest]
         public IEnumerator SmallTalkWithTheOfficer_DoesNotDispatch()
         {
@@ -158,7 +231,7 @@ namespace A305.Npc.PlayModeTests
             HoldOtherTraffic(car);
             Vector3 bay = car.transform.position;
 
-            TalkToOfficerAndSay("Hello, officer. Nice day today.");
+            TalkToOfficer();
             yield return EndTalk();
             yield return new WaitForSeconds(1);
 
@@ -196,19 +269,29 @@ namespace A305.Npc.PlayModeTests
             Assert.That(Single<PlayerMover>().IsMovementLocked, Is.False);
         }
 
-        private static void TalkToOfficerAndSay(string text)
-        {
-            NpcIdentity officer = Object
+        private static NpcIdentity Officer() =>
+            Object
                 .FindObjectsByType<NpcIdentity>(FindObjectsSortMode.None)
                 .Single(npc => npc.Code == OfficerCode);
-            var dialogue = Single<DialogueController>();
+
+        private static void TalkToOfficer()
+        {
+            NpcIdentity officer = Officer();
             Assert.That(
-                dialogue.TryStart(officer.Code, officer.LookTarget, ConversationInitiator.User),
+                Single<DialogueController>()
+                    .TryStart(officer.Code, officer.LookTarget, ConversationInitiator.User),
                 Is.True
             );
-            var panel = Single<DialoguePanelView>();
-            panel.GetComponentInChildren<TMP_InputField>(true).text = text;
-            Click(panel, "SendButton");
+        }
+
+        // 서버가 신고를 받아 턴 응답에 출동 장소를 실은 것처럼 창구에 전한다. placeCode가 null이면 본길 순찰이다.
+        private static void TalkToOfficerAndReport(string placeCode)
+        {
+            TalkToOfficer();
+            Object
+                .FindObjectsByType<PoliceReportDesk>(FindObjectsSortMode.None)
+                .Single(desk => desk.OfficerCode == OfficerCode)
+                .TakeReport(OfficerCode, placeCode);
         }
 
         private static IEnumerator EndTalk()

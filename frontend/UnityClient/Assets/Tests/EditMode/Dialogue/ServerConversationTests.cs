@@ -33,6 +33,40 @@ namespace A305.Dialogue.Tests
             Assert.That(accepted, Has.Count.EqualTo(expected));
         }
 
+        // 경찰관은 신고를 받으면 직접 순찰차로 가려고 그 턴에 대화를 마친다. 끝난 턴이어도 출동할 곳은 전해야 한다.
+        [TestCase("BAKERY")]
+        [TestCase(null)]
+        public async Task TurnWithAPoliceDispatch_NotifiesThePlaceEvenWhenTheOfficerEndsTheTalk(
+            string placeCode
+        )
+        {
+            var dispatched = new List<string>();
+            conversation.PoliceDispatchRequested += dispatched.Add;
+            api.TurnResponse = Reply(
+                "A man is yelling at the bakery.",
+                "On my way!",
+                "ENDED_BY_NPC"
+            );
+            api.TurnResponse.PoliceDispatch = new PoliceDispatchData { PlaceCode = placeCode };
+            await conversation.StartAsync();
+
+            await conversation.SendAsync("A man is yelling at the bakery.");
+
+            Assert.That(dispatched, Is.EqualTo(new[] { placeCode }));
+        }
+
+        [Test]
+        public async Task TurnWithoutAPoliceDispatch_DoesNotNotify()
+        {
+            var dispatched = new List<string>();
+            conversation.PoliceDispatchRequested += dispatched.Add;
+            await conversation.StartAsync();
+
+            await conversation.SendAsync("Hello.");
+
+            Assert.That(dispatched, Is.Empty);
+        }
+
         private const string CafeStaffCode = "CAFE_STAFF";
         private const long ConversationId = 58;
         private const long OpeningTurnId = 101;

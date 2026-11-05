@@ -57,6 +57,9 @@ namespace A305.Dialogue
         /// <summary>서버가 수락한 무례하지 않은 발화. 월드 상호작용은 이 시점에만 반영한다.</summary>
         public event Action<string, string> UserTurnAccepted;
 
+        /// <summary>경찰관이 신고를 받아 순찰차를 출동시킨 턴. NPC 코드와 출동할 장소 코드(null이면 본길 순찰)를 넘긴다.</summary>
+        public event Action<string, string> PoliceDispatchRequested;
+
         /// <summary>
         /// 대화가 끝나면 대화 기록을 알린다. 시점과 이동을 되돌린 뒤 가장 마지막에 알리므로,
         /// 받는 쪽이 피드백 화면을 열며 이동을 다시 잠가도 풀리지 않는다.
@@ -419,6 +422,7 @@ namespace A305.Dialogue
             serverConversation.Changed += panel.Refresh;
             serverConversation.NpcSpoke += PlayNpcSpeech;
             serverConversation.UserTurnAccepted += ForwardAcceptedTurn;
+            serverConversation.PoliceDispatchRequested += ForwardPoliceDispatch;
             panel.Show(serverConversation);
             _ = serverConversation.StartAsync();
         }
@@ -453,6 +457,7 @@ namespace A305.Dialogue
                 serverConversation.Changed -= panel.Refresh;
                 serverConversation.NpcSpoke -= PlayNpcSpeech;
                 serverConversation.UserTurnAccepted -= ForwardAcceptedTurn;
+                serverConversation.PoliceDispatchRequested -= ForwardPoliceDispatch;
             }
 
             conversation = null;
@@ -514,6 +519,11 @@ namespace A305.Dialogue
                 panel.SetInputText(text);
                 panel.Refresh();
             }
+        }
+
+        private void ForwardPoliceDispatch(string placeCode)
+        {
+            PoliceDispatchRequested?.Invoke(serverConversation.NpcCode, placeCode);
         }
 
         private void ForwardAcceptedTurn(string text)

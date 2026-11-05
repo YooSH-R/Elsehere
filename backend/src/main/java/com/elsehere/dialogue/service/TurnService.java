@@ -15,6 +15,7 @@ import com.elsehere.conversation.entity.Conversation;
 import com.elsehere.conversation.entity.Turn;
 import com.elsehere.conversation.repository.TurnRepository;
 import com.elsehere.conversation.service.ConversationLookup;
+import com.elsehere.dialogue.dto.PoliceDispatchResponse;
 import com.elsehere.dialogue.dto.TurnRequest;
 import com.elsehere.dialogue.dto.TurnResponse;
 import com.elsehere.memory.service.MemoryService;
@@ -100,12 +101,17 @@ public class TurnService {
     Optional<MissionDialogueService.Context> mission =
         missionDialogueService.context(userId, context.npc().summary().npcCode());
 
+    Optional<WorkerState> missionState = mission.map(value -> value.detail().state());
+    // 경찰관은 미션 목표를 맡지 않은 동안 창구에서 신고를 받는다.
+    boolean policeDesk =
+        missionState.isEmpty() && PoliceDesk.serves(context.npc().summary().npcCode());
+
     CompletableFuture<GuardResult> guarding = guardAsync(trace, context, request.text());
     JudgeResult judge =
         aiGateway.judge(
             trace,
             context.npc().workerNpc(),
-            mission.map(value -> value.detail().state()).orElse(FREE_TALK),
+            missionState.orElse(policeDesk ? PoliceDesk.STATE : FREE_TALK),
             context.history(),
             request.text());
     if (judge.dropped()) {
@@ -118,11 +124,17 @@ public class TurnService {
     GuardResult guard = guarding.join();
     boolean rude = Boolean.TRUE.equals(guard.abusive());
     boolean leaving = rude && context.rudeCount() + 1 >= Conversation.RUDE_LIMIT;
-    boolean wrapUp = WrapUp.ends(rude, mission, judge);
+    Optional<PoliceDesk.Dispatch> dispatch =
+        policeDesk && !rude ? PoliceDesk.dispatch(judge) : Optional.empty();
+    // 출동하는 경찰관은 직접 순찰차로 가야 하므로 이 턴에 대화를 마친다.
+    boolean wrapUp = dispatch.isPresent() || WrapUp.ends(rude, mission, judge);
     String instruction =
         rude
             ? (leaving ? RUDE_LEAVE : RUDE_WARNING)
             : mission.map(value -> value.detail().replyInstruction(judge.intent())).orElse("");
+    if (policeDesk && !rude) {
+      instruction = join(instruction, PoliceDesk.instruction(judge, dispatch));
+    }
     if (wrapUp) {
       instruction = WrapUp.instruction(instruction);
     }
@@ -199,8 +211,12 @@ public class TurnService {
                     missionDialogueService.accept(
                         userId, context.npc().summary().npcCode(), value, judge.intent()));
           }
-          return response(conversation, userTurn, npcTurn);
+          return response(conversation, userTurn, npcTurn, dispatch);
         });
+  }
+
+  private static String join(String first, String second) {
+    return first.isEmpty() ? second : first + " " + second;
   }
 
   // 의도 판정과 같은 문장으로 동시에 부른다. 워커에 닿지 못해도 턴을 막지 않고 판정하지 못한 것으로 둔다.
@@ -238,7 +254,8 @@ public class TurnService {
                   turnRepository
                       .findByConversationIdAndSeq(conversationId, userTurn.getSeq() + 1)
                       .orElseThrow(() -> new BusinessException(ErrorCode.INTERNAL_ERROR));
-              return response(conversation, userTurn, npcTurn);
+              // 출동은 처음 보낸 응답에서 이미 알렸으므로 다시 보내지 않는다.
+              return response(conversation, userTurn, npcTurn, Optional.empty());
             });
   }
 
@@ -256,12 +273,17 @@ public class TurnService {
         conversation.getRudeCount());
   }
 
-  private TurnResponse response(Conversation conversation, Turn userTurn, Turn npcTurn) {
+  private TurnResponse response(
+      Conversation conversation,
+      Turn userTurn,
+      Turn npcTurn,
+      Optional<PoliceDesk.Dispatch> dispatch) {
     return new TurnResponse(
         conversationResponses.userTurn(userTurn),
         conversationResponses.npcTurn(npcTurn),
         conversationResponses.state(conversation),
-        List.of());
+        List.of(),
+        dispatch.map(value -> new PoliceDispatchResponse(value.placeCode())).orElse(null));
   }
 
   /**

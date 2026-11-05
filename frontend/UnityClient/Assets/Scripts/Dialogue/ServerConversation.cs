@@ -82,6 +82,12 @@ namespace A305.Dialogue
         public event Action Changed;
         public event Action<string> UserTurnAccepted;
 
+        /// <summary>
+        /// 경찰관이 신고를 받아 순찰차를 출동시키는 턴. 출동할 장소 코드를 넘기며 null이면 본길 순찰이다.
+        /// 경찰관이 직접 가려고 그 턴에 대화를 마쳐도 알린다.
+        /// </summary>
+        public event Action<string> PoliceDispatchRequested;
+
         /// <summary>NPC가 새로 말했다. 음성 재생에 쓴다.</summary>
         public event Action<NpcTurnData> NpcSpoke;
 
@@ -218,6 +224,8 @@ namespace A305.Dialogue
                     endReason = result.Conversation?.EndReason;
                     if (!IsEnded && result.UserTurn != null && !result.UserTurn.Rude)
                         UserTurnAccepted?.Invoke(sent);
+                    if (result.PoliceDispatch != null)
+                        PoliceDispatchRequested?.Invoke(result.PoliceDispatch.PlaceCode);
                 },
                 () => SendAsync(utterance),
                 DialogueWait.NpcReply

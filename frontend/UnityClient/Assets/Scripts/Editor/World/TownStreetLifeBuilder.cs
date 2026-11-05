@@ -607,7 +607,7 @@ namespace A305.EditorTools.World
         }
 
         // 도시 차 atlas의 왼쪽 아래 칸(256×256)이 유리다. 원본은 두고 그 칸만 투명한 복사본을 만들어 잘라 낸다.
-        private static void OpenWindows(Material material)
+        internal static void OpenWindows(Material material)
         {
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(OpenWindowsTexturePath);
             if (texture == null)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using A305.Player;
 using UnityEngine;
@@ -9,6 +10,8 @@ namespace A305.World
     /// 본길은 다른 차처럼 <see cref="LoopingCar"/>로 신호를 지키며 달린다. 출동 흐름은 <see cref="PoliceDispatch"/>가 정하고,
     /// 경광등은 출동해서 돌아오기 전까지 빨강·파랑을 번갈아 켠다.
     /// 진입로 조절점은 Builder가 마을 배치에 맞춰 넣는다. 나가는 길은 본길 북행 차로 시작점에서, 들어오는 길은 남행 차로 끝에서 이어진다.
+    /// 신고를 받은 경찰관이 직접 운전한다. 출동하는 동안 창구의 그 경찰관을 끄고 운전석에 앉힌 같은 경찰관 모습을 켰다가,
+    /// 주차 칸에 다시 서면 되돌린다. 운전석 모습은 Builder가 경찰관마다 미리 앉혀 둔다.
     /// </summary>
     [RequireComponent(typeof(LoopingCar))]
     public sealed class PoliceCar : MonoBehaviour
@@ -32,6 +35,10 @@ namespace A305.World
         private List<TaxiDestination> destinations = new List<TaxiDestination>();
 
         [SerializeField]
+        [Tooltip("경찰관마다 운전석에 앉힌 모습. 출동한 경찰관의 모습만 켠다.")]
+        private List<PatrolDriver> drivers = new List<PatrolDriver>();
+
+        [SerializeField]
         private GameObject redLights;
 
         [SerializeField]
@@ -51,6 +58,9 @@ namespace A305.World
         private float pathDistance;
         private float height;
 
+        // 운전하러 나가 잠시 끈 창구의 경찰관. 주차 칸에 다시 서면 켠다.
+        private GameObject officerAwayFromDesk;
+
         public PolicePhase Phase => dispatch.Phase;
 
         /// <summary>출동한 장소 코드. 순찰 중이거나 서 있으면 null</summary>
@@ -66,12 +76,25 @@ namespace A305.World
         }
 
         /// <param name="sceneCode">신고한 장소 코드. null이거나 출동할 수 없는 장소면 본길을 순찰한다.</param>
+        /// <param name="officerCode">신고를 받아 직접 운전할 경찰관의 NPC 코드. 운전석 모습이 없으면 경찰관 없이 나간다.</param>
+        /// <param name="officerAtDesk">출동하는 동안 끌 창구의 그 경찰관</param>
         /// <returns>서 있다가 출동했으면 true</returns>
-        public bool Dispatch(string sceneCode)
+        public bool Dispatch(
+            string sceneCode,
+            string officerCode = null,
+            GameObject officerAtDesk = null
+        )
         {
-            if (!dispatch.TryDispatch(Find(sceneCode)?.Code))
+            string driverCode = SeatOf(officerCode) != null ? officerCode : null;
+            if (!dispatch.TryDispatch(Find(sceneCode)?.Code, driverCode))
                 return false;
             pathDistance = 0;
+            if (driverCode != null && officerAtDesk != null)
+            {
+                officerAwayFromDesk = officerAtDesk;
+                officerAtDesk.SetActive(false);
+            }
+            ShowDriver();
             return true;
         }
 
@@ -87,6 +110,7 @@ namespace A305.World
             }
             exitPath = new DrivePath(Curves(exitCurve));
             entryPath = new DrivePath(Curves(entryCurve));
+            ShowDriver();
             // 주차 칸·진입로에서는 본길을 따라 움직이지 않지만, 본길 차들은 이 차를 피한다.
             car.IsHeld = true;
             Place(entryPath.PoseAt(entryPath.Length));
@@ -97,7 +121,11 @@ namespace A305.World
             PolicePhase before = dispatch.Phase;
             dispatch.Tick(ReachedLegEnd(), Time.deltaTime);
             if (dispatch.Phase != before)
+            {
                 BeginLeg();
+                if (dispatch.Phase == PolicePhase.Parked)
+                    BackToTheDesk();
+            }
             // 진입로는 트럭 옆·남쪽 유턴의 한 대씩 구간에 이어진다. 다른 차가 지나는 중이면 주차 칸에서 기다렸다 나간다.
             if (
                 dispatch.Phase == PolicePhase.LeavingBay
@@ -204,6 +232,26 @@ namespace A305.World
                 blueLights.SetActive(blue);
         }
 
+        private GameObject SeatOf(string officerCode) =>
+            officerCode == null
+                ? null
+                : drivers.Find(driver => driver.OfficerCode == officerCode)?.Seat;
+
+        private void ShowDriver()
+        {
+            foreach (PatrolDriver driver in drivers)
+                if (driver.Seat != null)
+                    driver.Seat.SetActive(driver.OfficerCode == dispatch.DriverCode);
+        }
+
+        private void BackToTheDesk()
+        {
+            ShowDriver();
+            if (officerAwayFromDesk != null)
+                officerAwayFromDesk.SetActive(true);
+            officerAwayFromDesk = null;
+        }
+
         private TaxiDestination Find(string sceneCode) =>
             sceneCode == null
                 ? null
@@ -221,5 +269,26 @@ namespace A305.World
                 );
             return curves;
         }
+    }
+
+    /// <summary>순찰차 운전석에 앉힌 경찰관 한 명의 모습</summary>
+    [Serializable]
+    public sealed class PatrolDriver
+    {
+        [SerializeField]
+        private string officerCode;
+
+        [SerializeField]
+        private GameObject seat;
+
+        public PatrolDriver(string officerCode, GameObject seat)
+        {
+            this.officerCode = officerCode;
+            this.seat = seat;
+        }
+
+        public string OfficerCode => officerCode;
+
+        public GameObject Seat => seat;
     }
 }

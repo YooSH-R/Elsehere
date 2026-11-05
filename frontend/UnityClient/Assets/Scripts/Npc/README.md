@@ -20,7 +20,7 @@
 | `PasserbyOfferText` | 제안 화면 문구. 머리말은 대화 대본의 NPC 이름으로 "Emma이(가) 말을 걸었어요", 이름이 없으면 "누군가 말을 걸었어요"이고, 먼저 말 걸기 버튼은 "Emma에게 말 걸기", 이름이 없으면 "말 걸기"입니다. 준비해 둔 것을 건네려고 부를 때는 "Mia이(가) 불러요"와 "기다리던 아이스 라테가 준비됐어요"이고, 조사는 받침에 맞춥니다(`SubjectParticle`). |
 | `PasserbyRestRecord` | 행인별로 다시 다가올 수 있는 시각을 공간이 바뀌어도 기억합니다. |
 | `PasserbyOfferRecord` | 하루에 한 번만 다가오는 행인이 마지막으로 먼저 말을 건 날짜(기기 날짜)를 기억합니다. 게임을 껐다 켜도 이어지게 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 저장합니다. |
-| `PoliceReportDesk` | 경찰서 창구. 경찰관과 대화하는 동안 서버가 받아들인 발화로 신고를 접수하고(`PoliceReportIntake`) 화면 위쪽 상태 판에 "신고 접수 · 장소"를 보입니다. 대화를 마치면 순찰차(`PoliceCar`)를 출동시킵니다. 서버 오류·무례한 발화·NPC의 대화 종료는 출동을 일으키지 않습니다(택시와 같은 기준). |
+| `PoliceReportDesk` | 경찰서 창구. 신고인지와 장소는 서버 의도 판정이 정해진 단어가 아니라 문맥으로 고르고, 신고를 받은 턴 응답의 `policeDispatch`가 `DialogueController.PoliceDispatchRequested`로 옵니다. 창구는 화면 위쪽 상태 판에 "신고 접수 · 장소"를 보이고, 경찰관이 대화를 마치면(신고를 받은 경찰관이 직접 가려고 그 턴에 대화를 마침) 그 경찰관이 창구를 떠나 순찰차(`PoliceCar`)를 직접 몰고 그 장소로, 장소가 없으면 본길 순찰로 출동합니다. 돌아와 주차하면 창구에 다시 섭니다. 신고가 아닌 말·무례한 말에는 서버가 출동 장소를 보내지 않습니다. |
 | `TaxiRide` | 본길을 도는 택시를 인도에서 세우면 손님 옆에 세워 바로 태우고 기사와 대화하게 합니다. 버튼은 [말 걸기]와 같은 자리에 뜹니다. 태우지 못하면 선 택시 곁에 [기사에게 말 걸기]를 보입니다. `IsHailAllowed`가 false면(튜토리얼 동안) [택시 세우기]를 보이지 않습니다. 어떤 버튼을 보일지는 `TaxiPrompt`가 고릅니다. |
 | `NpcLifeData`, `NpcLife` | 생활 데이터(`Data/Npc/NpcLife.json`)와 NPC 한 명의 일과 활동·욕구·할 일 고르기. AI 하루 시뮬레이션과 같은 규칙이며 Unity 객체 없이 테스트합니다. |
 | `NpcRoutine` | 다가오지 않는 동안 `NpcLife`가 고른 사물까지 걸어가 쓰고, 의자·벤치·소파면 앉습니다. 걷기·애니메이션은 `Passerby`의 것을 씁니다. 구역(`stayInArea`·`area`)을 켜면 그 안의 사물·자리만 고릅니다. |
@@ -185,7 +185,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 
 ## 경찰서
 
-마을 남서쪽 끝 경찰서 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)·Tyler(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고는 서버가 받아들인 발화에서 `PoliceReportRequest`가 고릅니다.
+마을 남서쪽 끝 경찰서 창구 뒤에 경찰관 Dan(`POLICE_OFFICER`)·Victor(`POLICE_SERGEANT`)·Kevin(`POLICE_PATROL_OFFICER`)·Tyler(`POLICE_ROOKIE`)가 24시간 교대로 있습니다([일터와 응대](#일터와-응대)). 카페 직원처럼 행인 프리팹을 쓰고 플레이어에게 걸어가지 않으며, 경찰서 1층 안에서만 지냅니다. 경찰관마다 신고 창구(`PoliceReportDesk`)가 있어 누구에게 신고해도 순찰차가 출동합니다. 신고와 장소는 서버의 의도 판정(백엔드 `PoliceDesk`)이 문맥으로 고릅니다([MVP API 명세의 경찰 신고](../../../../../docs/api/mvp-api.md)).
 
 | 대화에서 말한 내용 | 대화를 마친 뒤 순찰차 |
 | --- | --- |

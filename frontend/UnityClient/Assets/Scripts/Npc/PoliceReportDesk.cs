@@ -5,10 +5,11 @@ using UnityEngine;
 namespace A305.Npc
 {
     /// <summary>
-    /// 경찰서 창구. 경찰관과 대화하는 동안 서버가 받아들인 발화로 신고를 접수하고(<see cref="PoliceReportIntake"/>),
-    /// 화면 위쪽 상태 판에 접수 내용을 보여 준다. 대화를 마치면 경찰서 옆 순찰차를 출동시켜, 밖으로 나온 플레이어가
-    /// 출동하는 모습을 보게 한다. 장소를 하나만 말했으면 그곳으로, 아니면 본길을 순찰한다.
-    /// 서버 오류·무례한 발화·NPC의 대화 종료로 끝난 발화는 접수하지 않는다(택시와 같은 기준).
+    /// 경찰서 창구. 신고인지와 장소는 서버의 의도 판정이 문맥으로 고르고, 신고를 받은 턴 응답에 출동할 장소가 온다
+    /// (<see cref="DialogueController.PoliceDispatchRequested"/>). 창구는 화면 위쪽 상태 판에 접수 내용을 보여 주고,
+    /// 경찰관이 대화를 마치면 그 경찰관이 창구를 떠나 직접 경찰서 옆 순찰차를 몰고 그 장소로(장소가 없으면 본길 순찰로) 출동한다.
+    /// 순찰차가 돌아와 주차하면 창구에 다시 선다(<see cref="PoliceCar"/>).
+    /// 무례로 센 말이나 신고가 아닌 말에는 서버가 출동 장소를 보내지 않는다.
     /// </summary>
     public sealed class PoliceReportDesk : MonoBehaviour
     {
@@ -25,8 +26,12 @@ namespace A305.Npc
         [SerializeField]
         private DialoguePanelView panel;
 
-        private readonly PoliceReportIntake intake = new PoliceReportIntake();
+        private bool hasReport;
+        private string reportedPlace;
         private bool showingStatus;
+
+        /// <summary>이 창구에서 신고를 받는 경찰관의 NPC 코드</summary>
+        public string OfficerCode => officer != null ? officer.Code : null;
 
         private void Awake()
         {
@@ -41,7 +46,7 @@ namespace A305.Npc
         {
             if (dialogue == null)
                 return;
-            dialogue.UserTurnAccepted += OnUserTurnAccepted;
+            dialogue.PoliceDispatchRequested += TakeReport;
             dialogue.Ended += OnDialogueEnded;
         }
 
@@ -49,27 +54,28 @@ namespace A305.Npc
         {
             if (dialogue == null)
                 return;
-            dialogue.UserTurnAccepted -= OnUserTurnAccepted;
+            dialogue.PoliceDispatchRequested -= TakeReport;
             dialogue.Ended -= OnDialogueEnded;
         }
 
-        private void OnUserTurnAccepted(string npcCode, string text)
+        /// <summary>서버가 받은 신고를 접수한다. 대화를 마치면 출동한다.</summary>
+        /// <param name="placeCode">출동할 마을 장소 코드. null이면 본길을 순찰한다.</param>
+        public void TakeReport(string npcCode, string placeCode)
         {
             if (npcCode != officer.Code)
                 return;
-            intake.Hear(text);
-            if (!intake.HasReport)
-                return;
+            hasReport = true;
+            reportedPlace = placeCode;
             if (patrolCar.Phase != PolicePhase.Parked)
             {
                 Show("신고 접수 · 순찰차가 이미 출동해 있어요");
                 return;
             }
-            string placeName = patrolCar.DisplayNameOf(intake.Place);
+            string placeName = patrolCar.DisplayNameOf(placeCode);
             Show(
                 placeName != null
-                    ? $"신고 접수 · {placeName} · 대화를 마치면 순찰차가 출동해요"
-                    : "신고 접수 · 대화를 마치면 순찰차가 본길을 순찰해요"
+                    ? $"신고 접수 · {placeName} · 대화를 마치면 경찰관이 순찰차로 출동해요"
+                    : "신고 접수 · 대화를 마치면 경찰관이 순찰차로 본길을 순찰해요"
             );
         }
 
@@ -77,13 +83,18 @@ namespace A305.Npc
         {
             if (npcCode != officer.Code)
                 return;
-            if (intake.TryTakeDispatch(out string place))
-                patrolCar.Dispatch(place);
+            bool dispatching = hasReport;
+            string place = reportedPlace;
+            hasReport = false;
+            reportedPlace = null;
             if (showingStatus)
             {
                 showingStatus = false;
                 panel.SetVehicleStatus(null);
             }
+            // 경찰관이 운전하러 나가면 이 창구(같은 오브젝트)도 꺼지므로 정리를 마친 뒤 출동시킨다.
+            if (dispatching)
+                patrolCar.Dispatch(place, officer.Code, officer.gameObject);
         }
 
         private void Show(string message)

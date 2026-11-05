@@ -15,9 +15,9 @@ MonoBehaviour:
   details:
     key: takeaway_cup
     languageCode: en-US
-    text: takeaway cup
-    meaningKo: "\uD3EC\uC7A5\uC6A9 \uCEF5"
-    example: Could I have a takeaway cup?
-    exampleKo: "\uD3EC\uC7A5\uC6A9 \uCEF5\uC744 \uBC1B\uC744 \uC218 \uC788\uC744\uAE4C\uC694?"
-    pronunciationAudioKey: 
+    text: to-go cup
+    meaningKo: "\uD14C\uC774\uD06C\uC544\uC6C3 \uCEF5"
+    example: Can I get a to-go cup?
+    exampleKo: "\uD14C\uC774\uD06C\uC544\uC6C3 \uCEF5\uC744 \uBC1B\uC744 \uC218 \uC788\uC744\uAE4C\uC694?"
+    pronunciationAudioKey: to_go_cup.wav
   assetGuid: 77fe90b429a37004ab534301ad59ab57

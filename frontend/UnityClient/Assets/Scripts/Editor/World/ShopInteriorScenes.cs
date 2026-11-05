@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
 using A305.EditorTools.Common;
+using A305.EditorTools.Weather;
 using A305.Npc;
+using A305.Weather;
 using A305.World;
 using UnityEditor;
 using UnityEditor.Build;
@@ -13,7 +15,7 @@ using Object = UnityEngine.Object;
 
 namespace A305.EditorTools.World
 {
-    /// <summary>같은 건물 프리팹을 편집 원본으로 두고 Play·빌드 시 거리와 실내에 필요한 부분만 남긴다.</summary>
+    /// <summary>건물 프리팹을 편집 원본으로 두고 마을의 집기를 정리하며 Play·빌드 시 실내와 출입구를 구성한다.</summary>
     public sealed class ShopInteriorScenes : IProcessSceneWithReport
     {
         private const string Folder = "Assets/Scenes/ShopInteriors";
@@ -24,6 +26,40 @@ namespace A305.EditorTools.World
         private const float UpperFloorBottom = 3.5f;
 
         public int callbackOrder => 0;
+
+        [MenuItem("Tools/A305/World/Remove Town Interior Furnishings")]
+        public static void RemoveTownFurnishings()
+        {
+            if (!BuilderTools.CanBuild())
+                return;
+
+            Scene scene = EditorSceneManager.OpenScene(TownProductionBuilder.ScenePath);
+            Transform buildings = scene
+                .GetRootGameObjects()
+                .Single(root => root.name == "Environment")
+                .transform.Find(BuildingsPath);
+            int removedObjects = 0;
+            foreach (Transform building in buildings)
+            {
+                // 별도 실내 씬이 있는 건물만 정리하고, 원본 프리팹과 실내 씬은 그대로 둔다.
+                string interiorPath = $"{Folder}/{building.name}Interior.unity";
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(interiorPath) == null)
+                    continue;
+
+                int before = building.GetComponentsInChildren<Transform>(true).Length;
+                PartitionInterior(building, keepStructure: true);
+                removedObjects += before - building.GetComponentsInChildren<Transform>(true).Length;
+            }
+
+            // 실내 조명이 빠진 뒤에는 남은 거리 조명만 밤낮 제어 목록에 연결한다.
+            DaylightBuilder.ConnectTown(
+                BuilderTools.FindSingleInScene<WeatherPresenter>(scene),
+                scene
+            );
+            if (!EditorSceneManager.SaveScene(scene))
+                throw new InvalidOperationException("마을 실내 집기 정리를 저장하지 못했습니다.");
+            Debug.Log($"Removed {removedObjects} interior objects from the saved TownScene.");
+        }
 
         [MenuItem("Tools/A305/World/Register Shop Interior Scenes")]
         public static void Register()

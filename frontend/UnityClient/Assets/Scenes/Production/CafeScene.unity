@@ -1192,7 +1192,7 @@ PrefabInstance:
       objectReference: {fileID: 9224386}
     - target: {fileID: 1438772547961331226, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.9166652
+      value: 0.924288
       objectReference: {fileID: 0}
     - target: {fileID: 2154798696233940017, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_IsActive
@@ -1283,6 +1283,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 662858917}
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 662858918}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &662858913 stripped
 Transform:
@@ -1339,6 +1342,80 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+--- !u!114 &662858918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 662858915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
+  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
+--- !u!1 &678326470
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 678326471}
+  - component: {fileID: 678326472}
+  m_Layer: 0
+  m_Name: NpcPopulation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &678326471
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 678326470}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1657617131}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &678326472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 678326470}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 988188196ba48e8458c13415376feaac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcPopulation
+  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
+  residents:
+  - Worker: {fileID: 662858915}
+    TownPrefab: {fileID: 0}
+    WorkplaceDoor: {x: 0, y: 0, z: 0}
+    InteriorScene: 
+  - Worker: {fileID: 2027095324}
+    TownPrefab: {fileID: 0}
+    WorkplaceDoor: {x: 0, y: 0, z: 0}
+    InteriorScene: 
+  - Worker: {fileID: 1251703201}
+    TownPrefab: {fileID: 0}
+    WorkplaceDoor: {x: 0, y: 0, z: 0}
+    InteriorScene: 
+  dormDoor: {x: -18, y: 0.1, z: 21}
+  park: {x: 11, y: 0.1, z: 21}
+  townCharacters: {fileID: 1725526042}
 --- !u!1001 &739269363
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2687,6 +2764,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1251703202}
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1251703203}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &1251703200 stripped
 Transform:
@@ -2718,6 +2798,19 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+--- !u!114 &1251703203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1251703201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
+  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1 &1255791207
 GameObject:
   m_ObjectHideFlags: 0
@@ -3315,6 +3408,7 @@ Transform:
   - {fileID: 346116077}
   - {fileID: 416584803}
   - {fileID: 1487524782}
+  - {fileID: 678326471}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1691948085
@@ -4215,7 +4309,7 @@ PrefabInstance:
       objectReference: {fileID: 9224386}
     - target: {fileID: 1438772547961331226, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.9166652
+      value: 0.924288
       objectReference: {fileID: 0}
     - target: {fileID: 2154798696233940017, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       propertyPath: m_IsActive
@@ -4306,6 +4400,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2027095326}
+    - targetCorrespondingSourceObject: {fileID: 7889363713850615736, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2027095327}
   m_SourcePrefab: {fileID: 100100000, guid: 90735dadadfd0c74ca1d03e17fb75f4d, type: 3}
 --- !u!4 &2027095323 stripped
 Transform:
@@ -4351,6 +4448,19 @@ MonoBehaviour:
   area:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
+--- !u!114 &2027095327
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2027095324}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf96d54cb71f3d94abb41a1750c9647e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: A305.Npc::A305.Npc.NpcWorkPresence
+  lifeData: {fileID: 4900000, guid: 5542bfc31cc7b4e409dd51d3ea90349f, type: 3}
 --- !u!1001 &2097214834
 PrefabInstance:
   m_ObjectHideFlags: 0

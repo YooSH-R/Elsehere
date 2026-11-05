@@ -1,6 +1,6 @@
 # 리틀 멍 행인 검수 사본
 
-Tripo 생성 원본과 마스터 연결 결과를 보존하고, 서비스의 대두 비율과 Base 입 메시를 적용한 검수용 사본입니다. 운영 NPC 등록이나 TTS 연결을 수행하지 않습니다.
+Tripo 생성 원본과 마스터 연결 결과를 보존하고, 서비스의 대두 비율과 Base 입·눈을 적용한 검수용 사본입니다. 사본 저작과 운영 씬 연결은 별도 단계이며, 운영 NPC 연결은 아래의 기존 외형 Builder를 사용합니다.
 
 ## Unity에서 확인
 
@@ -13,7 +13,9 @@ Tripo 생성 원본과 마스터 연결 결과를 보존하고, 서비스의 대
 
 대상은 `Tripo/NPC/<이름>/MasterRig/<이름>_Visual.prefab`이 있는 캐릭터를 자동으로 찾습니다. 기존 행인 5종과 `LittleMung_Cafe_Male`, `LittleMung_Grandfather`, `LittleMung_HotelStaff_Female`, `LittleMung_Police_Female`, `LittleMung_Police_Male`의 검수본이 있습니다. 얼굴 씬을 실행하면 기존 `FacePosePreviewPanel`에서 표정과 입 모양을 선택할 수 있습니다. 이동 씬은 공통 Player 이동 검수 구성을 사용합니다.
 
-검수 사본은 외관 승인 전까지 운영 씬에 연결하지 않습니다. 운영 씬에 연결한 사본은 비즈니스맨(마을 행인 Ben, `TownScene`), 흑인 남성(드럭스토어 직원 Alex, `ShopScene`), 중년 남성(택시 기사 Joe, `TownScene` 택시 운전석)입니다([Npc 모듈](../../../UnityClient/Assets/Scripts/Npc/README.md#builder)). 세 사본 모두 입 모양·미소·눈 감기 채널을 갖춰 대화 중 립싱크·눈 깜박임을 씁니다. 자동 검사 결과가 실패한 사본도 문제를 살펴볼 수 있도록 검수 씬만 제공합니다. 씬이 존재한다는 사실은 합격을 뜻하지 않습니다.
+외관을 확인한 사본은 기존 역할의 외형 표 `NpcCast`에 연결합니다([Npc 모듈](../../../UnityClient/Assets/Scripts/Npc/README.md#builder)). 비즈니스맨 Ben, 흑인 남성 Alex, 중년 남성 Joe에 더해 카페 남자 Leo(`CAFE_SERVER`), 호텔 여자 Clara(`HOTEL_NIGHT_MANAGER`), 할아버지 Arthur(`TOWN_GRANDFATHER`), 남성 경찰 직원들은 검수 사본을 사용합니다. 경찰 여자 사본은 준비되어 있으나 현재 NPC 역할에 배정하지 않았습니다. 모두 공통 입 모양·미소·눈 감기 채널을 갖춥니다. 검사 실패 사본도 문제를 살펴볼 검수 씬은 제공하므로, 씬이 존재한다는 사실은 합격을 뜻하지 않습니다.
+
+기존 역할의 새 외형 연결은 **Tools → A305 → Npc → Connect Reviewed Staff Visuals**로 수행합니다. 골격·동작·얼굴 채널 검사를 먼저 실행하고, 카페·호텔·마을 씬의 기존 NPC 외형만 교체합니다. NPC 코드·배치·생활 일정·대사·NavMesh를 다시 만들지 않습니다. 연결된 이전 외형은 제거하여 얼굴이 중복되지 않게 하고, 캡슐과 대화 시선 높이는 실제 사본의 몸과 눈 표면을 측정합니다. 서버의 음성·발음 시간표를 받으면 기존 `DialogueSpeaker`가 해당 NPC의 얼굴에 연결합니다.
 
 ## 비율과 골격
 
@@ -22,6 +24,10 @@ Tripo 생성 원본과 마스터 연결 결과를 보존하고, 서비스의 대
 본의 계층·위치·회전, Avatar, 스킨 가중치와 bind pose는 유지합니다. 기존 블렌드셰이프의 위치 변화량도 머리 확대와 함께 조정합니다. 새 메시만 저장하므로 생성 원본의 정점이나 텍스처는 바뀌지 않습니다. 공통 서비스 크기에 따라 남성 사본은 1.7m, 여성·할머니 사본은 1.6m로 정규화합니다.
 
 이 기능은 검수 사본 제작 단계에 연결되어 있습니다. 기본 Tripo 생성 버튼에서 새 캐릭터에 자동 적용되는 단계는 아닙니다.
+
+공통 비율은 머리 전체의 비율로 맞추며, 캐릭터 얼굴의 가로·세로 비율과 눈·입 배치는 유지합니다. 모자·머리카락까지 포함한 폭 수치만으로 얼굴을 가로로 늘리지 않습니다. `CharacterHeadProportions.MatchWidth`는 명시적인 별도 형태 저작용 도구이며 일반 일괄 저작에서는 호출하지 않습니다. 얼굴 인상을 바꾸므로 사용할 때는 먼저 외관 변경을 확인해야 합니다.
+
+기존 사본을 재저작할 때는 먼저 ArtSources 데이터를 보관하고 `NPC_REBUILD_NAME`으로 하나를 지정합니다. `ServiceNpcReviewBuilder.RefitSelectedWidth` → `fit_npc_mouth.py` → `RebuildSelectedMouthAndExportEyes` → 눈 측정·이식 스크립트 → `RefreshSelectedEyes` 순서입니다. 입 단계 이후에는 `BUSINESS_BLINK_OUTPUT`도 해당 캐릭터의 BaseEyes 폴더로 지정합니다. 준비본·입·눈을 모두 새 표면에서 다시 만들며 같은 프리팹과 메시 GUID를 유지합니다. 비즈니스맨처럼 준비본과 최종 사본이 같은 대상은 이 재제작 경로에서 거부합니다.
 
 ## 입 메시와 재편집
 
@@ -49,6 +55,7 @@ blender --background --python frontend/ArtSources/Characters/ServiceNpcs/fit_npc
 - `CharacterHeadProportionTests`: 작은 머리 사본의 비율을 맞추면서 몸 정점·본·가중치를 보존하는지 확인합니다.
 - `TripoMasterRig`: 마스터 골격과 Avatar 연결을 검사합니다.
 - `TripoMasterMotionAudit`: 공통 Idle·Walk·Run·Rise·Fall·Land의 각 25포즈를 샘플링합니다. 손·전완과 머리·몸통의 근사 영역 거리는 기존 0.9 기준을 유지합니다.
+- `NpcAutomaticSpeechTests`: 검수 프리팹 각각을 NPC 캡슐 아래에 연결하고, 기록된 음성·발음 시간표로 실제 `viseme_` 가중치의 변화와 중단을 검사합니다. 운영 서버의 음성 합성 요청을 실행하는 검사는 아닙니다.
 - 정면·사선 외관, 입 경계·피부색, 손 모양·옷 주름과 전체 메시의 교차, 지형 접지는 사람이 추가 확인합니다. 거리 검사 통과만으로 자연스러운 움직임이나 모든 관통 해소를 보장하지 않습니다.
 
 `LittleMungArmClearance`의 추가 표면 보정은 기본적으로 꺼져 있습니다. `ConfigureSurfaceContact`는 기존 보정으로 검사에 실패한 NPC 검수 사본에서만 추가 보정을 시험하고, 같은 0.9 기준에 통과했을 때 해당 프리팹에 설정을 저장합니다. 기존 플레이어 프리팹에는 적용하지 않습니다. 소매·전완의 실제 표면이 머리·몸통에 남으면 상완과 전완을 작은 각도로 추가 보정하며 손목의 로컬 회전과 본 위치는 유지합니다. 이 검사는 전체 옷의 삼각형 교차나 지형 접지를 보장하지 않습니다. 운영 등록은 외관 검수 후 별도로 수행합니다.
@@ -63,7 +70,11 @@ blender --background --python frontend/ArtSources/Characters/ServiceNpcs/fit_npc
 4. `ApplyEyes`로 아직 눈 감기가 없는 프리팹을 갱신합니다. 명시적 재저작은 `NPC_BASE_EYE_NAMES`에 세미콜론으로 이름을 지정하고 `RefreshSelectedEyes`를 사용합니다. 같은 프리팹·메시 GUID를 갱신하며 새 후보 프리팹을 늘리지 않습니다.
 5. `AuditFaces`에서 골격·13개 채널·실제 이동 클립을 확인합니다. `NPC_RENDER_OUTPUT`을 저장소 밖 경로로 지정하면 `RenderBefore`·`RenderAfter`가 동일 클립 비교 이미지와 리틀 멍 기준 모델을 저장합니다. 동작 비교 기준은 골격 원본 FBX가 아니라 기존 팔 보정·컨트롤러가 연결된 `Assets/Prefabs/Player/Characters/Female.prefab`입니다. 전신 비교 렌더는 비율 비교를 위해 화면상 키를 동일하게 정규화하며 실제 프리팹 키를 바꾸지 않습니다.
 
+`RenderCompleteReview`는 같은 동작 렌더에 정면·양쪽 사선의 눈 깜박임과 입 벌림 프레임을 더합니다. 얼굴 프레임은 출력 폴더의 `Faces/<이름>/After`에 저장합니다. 운영 배색까지 확인하려면 `NpcCastBuilder.RenderReviewedStaffLineups`를 사용하고 `NPC_CAST_LINEUP_OUTPUT`을 저장소 밖 경로로 지정합니다.
+
 눈 접합부는 고정된 타원 대신 원래 얼굴 경계 안에 눈꺼풀 테두리를 맞춥니다. 입 접합 면을 보존하고 눈 경계에서 원래 피부 텍스처로 전환합니다. 연결되지 않은 경계는 저장 전에 실패 처리합니다. 정면·양쪽 사선에서 눈썹, 피부 이음새, 깜박임을 추가로 확인해야 합니다.
+
+눈꺼풀 피부에는 원래 홍채와 속눈썹 색을 남기지 않습니다. 텍스처 전환 범위는 가장 가까운 경계점 하나로 줄이지 않고 방향별 실제 경계까지의 거리로 정합니다. 입 연결면 때문에 생긴 오목한 경계에도 옛 눈 색을 다시 복사하지 않습니다. 열린 눈만 확인하면 잔상을 놓칠 수 있으므로 완전히 감은 눈과 반쯤 감은 눈도 확인합니다. `RenderCompleteReview`는 모든 검수 사본의 같은 이동 클립과 정면·양사선 깜박임을 `NPC_RENDER_OUTPUT` 아래에 저장합니다.
 
 `ServiceNpcReviewTests`는 검색된 모든 검수 프리팹의 머리 비율·마스터 골격·표정 채널·공통 동작을 검사합니다. `BusinessBlinkPlaybackTests`는 실제 프레임 진행 중 눈을 깜박여도 입 가중치가 유지되는지 검사합니다. 미리보기 씬은 기존 로컬 음성·발음 시간표와 `MannequinSpeechRenderer`로 검수할 수 있으며 새 음성 API 호출이 필요하지 않습니다.
 
@@ -111,7 +122,11 @@ Base 눈 이식의 입력 사본은 중년 남성·중년 여성·흑인 남성�
 
 기존 입 메시의 접합부에 닿는 얼굴 면은 잘라내지 않는다. 할머니의 안경처럼 눈 주변에 있는 분리된 표면도 보존한다. 이식 경계의 미연결 모서리, 현재 몸 메시와 저작 원본 불일치는 적용 실패로 처리한다. 자동 측정은 현재 네 검수본에 맞춰 확인하는 저작 보조 기능이며, 새로 생성하는 모든 캐릭터의 외관을 보장하지 않는다.
 
-각 `Assets/Scenes/Sandbox/NpcReview/<캐릭터 이름>_Face.unity`에서 `Automatic blink`와 입 모양 버튼으로 확인한다. 서비스 씬에서는 흑인 청년 남성이 드럭스토어 직원 Alex(`ShopScene`), 중년 남성이 택시 기사 Joe(`TownScene` 택시 운전석)로 연결되어 대화 중 립싱크·눈 깜박임을 쓴다. 중년 여성과 할머니는 서비스 씬에 연결하지 않았다.
+각 `Assets/Scenes/Sandbox/NpcReview/<캐릭터 이름>_Face.unity`에서 `Automatic blink`와 입 모양 버튼으로 확인한다. 서비스 씬에서는 흑인 청년 남성이 드럭스토어 직원 Alex(`ShopScene`), 중년 남성이 택시 기사 Joe(`TownScene` 택시 운전석)로 연결되어 대화 중 립싱크·눈 깜박임을 쓴다. 같은 외형을 쓰는 다른 NPC와 배색은 `NpcCast`를 기준으로 한다.
+
+눈을 감을 때 원래 홍채나 속눈썹이 피부에 남지 않도록, 이식 경계의 방향별 거리로 눈꺼풀 피부 텍스처를 전환한다. 눈 패치를 무조건 넓히면 코와 입 주변의 곡면이 꺼질 수 있으므로, 경계 크기는 유지하고 옛 눈 영역의 색만 정리한다. 눈색은 각 캐릭터의 `EyeFit.json`에 보관한다.
+
+눈꺼풀 바깥쪽으로 갈수록 원래 피부 경계의 법선으로 부드럽게 맞춰, 좁은 접합 삼각형에 음영 변화가 몰리지 않게 한다. 피부 텍스처는 홍채·속눈썹 색만 지우고 경계의 정상 피부색은 보존한다. 접합 음영 수정은 골격·가중치·눈 위치·입 모양을 바꾸지 않는다.
 
 ## 눈 접합부의 그림자 검수
 

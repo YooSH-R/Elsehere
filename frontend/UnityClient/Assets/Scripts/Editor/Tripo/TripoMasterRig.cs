@@ -76,7 +76,8 @@ namespace A305.EditorTools.Tripo
                         bodyScale,
                         sourceFrames,
                         targetFrames,
-                        TripoTorsoWeights.Prepare(skin, sourceAnimator)
+                        TripoTorsoWeights.Prepare(skin, sourceAnimator),
+                        sourceAnimator
                     );
                     created.Add(mesh);
                     mesh.bindposes = replacement
@@ -174,17 +175,10 @@ namespace A305.EditorTools.Tripo
                         "손 표면 정렬에 필요한 손목·검지·새끼·엄지 본이 없습니다."
                     );
                 var rotation = HandRotation(animator, left);
-                // 손가락 bone roll 대신 실제 손바닥의 해부학적 방향을 사용한다.
-                // 생성기의 엄지 시작점은 손바닥 안/밖으로 달라지므로 엄지 밑동은 손목과 함께 옮긴다.
+                // 관절 간격 차이를 정점마다 강제로 적용하면 손바닥까지 접힌다.
+                // 휴식 표면은 손목 기준으로 함께 옮기고, 손가락의 기존 가중치는 유지한다.
                 foreach (var bone in wrist.GetComponentsInChildren<Transform>())
-                    frames.Add(
-                        bone,
-                        Matrix4x4.TRS(
-                            bone == thumb ? wrist.position : bone.position,
-                            rotation,
-                            Vector3.one
-                        )
-                    );
+                    frames.Add(bone, Matrix4x4.TRS(wrist.position, rotation, Vector3.one));
             }
             // Head/Hips spacing controls scale, not facial pitch. Generated neck
             // placement must not tilt a neutral face when binding the same master.
@@ -208,19 +202,11 @@ namespace A305.EditorTools.Tripo
             var wrist = animator.GetBoneTransform(
                 left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand
             );
-            var index = animator.GetBoneTransform(
-                left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal
-            );
-            var little = animator.GetBoneTransform(
-                left ? HumanBodyBones.LeftLittleProximal : HumanBodyBones.RightLittleProximal
-            );
-            if (wrist == null || index == null || little == null)
-                throw new InvalidOperationException("손바닥 방향에 필요한 관절이 없습니다.");
-            Vector3 along = (index.position + little.position) * .5f - wrist.position;
-            Vector3 normal = Vector3.Cross(index.position - little.position, along);
-            if (along.sqrMagnitude < 1e-10f || normal.sqrMagnitude < 1e-12f)
-                throw new InvalidOperationException("손바닥 방향을 계산할 수 없습니다.");
-            return Quaternion.LookRotation(normal, along);
+            if (wrist == null)
+                throw new InvalidOperationException("손목 기준 관절이 없습니다.");
+            // 자동 생성한 검지·새끼 위치의 순서가 반대여도 정상 원본 손을 뒤집지 않는다.
+            // 본에 선언된 손목 기준 회전을 사용하고 손가락별 축 차이는 표면에 적용하지 않는다.
+            return wrist.rotation;
         }
 
         private static Mesh CopySurface(
@@ -229,7 +215,8 @@ namespace A305.EditorTools.Tripo
             float bodyScale,
             Dictionary<Transform, Matrix4x4> sourceFrames,
             Dictionary<Transform, Matrix4x4> targetFrames,
-            BoneWeight[] weights
+            BoneWeight[] weights,
+            Animator sourceAnimator
         )
         {
             var original = source.sharedMesh;
@@ -257,15 +244,30 @@ namespace A305.EditorTools.Tripo
                     * original.bindposes[i];
                 normalTransforms[i] = transforms[i].inverse.transpose;
             }
+            var handMatrices = TripoHandTransfer.Prepare(
+                source,
+                sourceAnimator,
+                transforms,
+                weights
+            );
+            var handNormals = handMatrices.Select(m => m?.inverse.transpose).ToArray();
             var mesh = Object.Instantiate(original);
             mesh.name = original.name + "_MasterBound";
             mesh.boneWeights = weights;
             mesh.vertices = original
-                .vertices.Select((v, i) => TransformPoint(v, weights[i], transforms))
+                .vertices.Select(
+                    (v, i) =>
+                        handMatrices[i]?.MultiplyPoint3x4(v)
+                        ?? TransformPoint(v, weights[i], transforms)
+                )
                 .ToArray();
             mesh.normals = original
                 .normals.Select(
-                    (v, i) => TransformVector(v, weights[i], normalTransforms).normalized
+                    (v, i) =>
+                        (
+                            handNormals[i]?.MultiplyVector(v)
+                            ?? TransformVector(v, weights[i], normalTransforms)
+                        ).normalized
                 )
                 .ToArray();
             mesh.ClearBlendShapes();
@@ -278,9 +280,15 @@ namespace A305.EditorTools.Tripo
                 original.GetBlendShapeFrameVertices(shape, frame, vertices, normals, tangents);
                 for (int i = 0; i < vertices.Length; i++)
                 {
-                    vertices[i] = TransformVector(vertices[i], weights[i], transforms);
-                    normals[i] = TransformVector(normals[i], weights[i], normalTransforms);
-                    tangents[i] = TransformVector(tangents[i], weights[i], transforms);
+                    vertices[i] =
+                        handMatrices[i]?.MultiplyVector(vertices[i])
+                        ?? TransformVector(vertices[i], weights[i], transforms);
+                    normals[i] =
+                        handNormals[i]?.MultiplyVector(normals[i])
+                        ?? TransformVector(normals[i], weights[i], normalTransforms);
+                    tangents[i] =
+                        handMatrices[i]?.MultiplyVector(tangents[i])
+                        ?? TransformVector(tangents[i], weights[i], transforms);
                 }
                 mesh.AddBlendShapeFrame(
                     original.GetBlendShapeName(shape),
@@ -291,6 +299,7 @@ namespace A305.EditorTools.Tripo
                 );
             }
             mesh.RecalculateBounds();
+            TripoHandTransfer.RefreshNormals(mesh, handMatrices);
             mesh.RecalculateTangents();
             return mesh;
         }

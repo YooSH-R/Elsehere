@@ -15,9 +15,10 @@ MonoBehaviour:
   details:
     key: pastry_stand
     languageCode: en-US
-    text: pastry stand
-    meaningKo: "\uC81C\uACFC \uC9C4\uC5F4\uB300"
-    example: The muffins are on the pastry stand.
-    exampleKo: "\uBA38\uD540\uC740 \uC81C\uACFC \uC9C4\uC5F4\uB300\uC5D0 \uC788\uC5B4\uC694."
-    pronunciationAudioKey: 
+    text: cake stand
+    meaningKo: "\uCF00\uC774\uD06C \uBC1B\uCE68\uB300"
+    example: The cake is on the cake stand.
+    exampleKo: "\uCF00\uC774\uD06C\uAC00 \uCF00\uC774\uD06C \uBC1B\uCE68\uB300 \uC704\uC5D0
+      \uC788\uC5B4\uC694."
+    pronunciationAudioKey: cake_stand.wav
   assetGuid: 0db0b19598296c342b61917cc88d7752

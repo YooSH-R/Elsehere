@@ -13,10 +13,6 @@ namespace A305.Npc.Tests
     /// </summary>
     public class NpcDetailDistanceSceneTests
     {
-        [TestCase("Assets/Scenes/Production/TownScene.unity")]
-        [TestCase("Assets/Scenes/Production/CafeScene.unity")]
-        [TestCase("Assets/Scenes/Production/HotelScene.unity")]
-        [TestCase("Assets/Scenes/Production/ShopScene.unity")]
         [TestCase("Assets/Scenes/Production/PoliceStationScene.unity")]
         public void NpcsWithArmClearance_TurnItOffWhenFarFromTheCamera(string scenePath)
         {

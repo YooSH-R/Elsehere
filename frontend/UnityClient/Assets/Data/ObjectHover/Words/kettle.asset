@@ -15,9 +15,9 @@ MonoBehaviour:
   details:
     key: kettle
     languageCode: en-US
-    text: kettle
-    meaningKo: "\uC8FC\uC804\uC790"
-    example: Fill the kettle with water.
-    exampleKo: "\uC8FC\uC804\uC790\uC5D0 \uBB3C\uC744 \uCC44\uC6B0\uC138\uC694."
-    pronunciationAudioKey: 
+    text: teapot
+    meaningKo: "\uCC3B\uC8FC\uC804\uC790"
+    example: Pour the tea from the teapot.
+    exampleKo: "\uCC3B\uC8FC\uC804\uC790\uC5D0\uC11C \uCC28\uB97C \uB530\uB77C \uC8FC\uC138\uC694."
+    pronunciationAudioKey: teapot.wav
   assetGuid: 1bf3220f73b2ad64d91aff12a7121b87

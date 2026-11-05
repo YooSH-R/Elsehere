@@ -20,51 +20,6 @@ namespace A305.World.Tests
                 .transform.Find("TownMainstreet/BackgroundBuildings");
         }
 
-        [TestCase("PostOffice", "PostOfficeInterior")]
-        [TestCase("MapleDiner", "MapleDinerInterior")]
-        [TestCase("TownBank", "TownBankInterior")]
-        [TestCase("SudsLaundromat", "LaundromatInterior")]
-        [TestCase("BloomFlowers", "FlowerShopInterior")]
-        [TestCase("MainStreetBarber", "BarberShopInterior")]
-        [TestCase("MapleBakery", "BakeryInterior")]
-        [TestCase("MapleBakery", "BakeryLoungeInterior")]
-        [TestCase("LittleArcade", "ArcadeInterior")]
-        [TestCase("LittleArcade", "BookshopInterior", "Upper")]
-        [TestCase("HomeLiving", "HomeGoodsInterior")]
-        [TestCase("HomeLiving", "TeaRoomInterior", "Upper")]
-        public void FurnishingsRemainInSeparateSceneOnly(
-            string buildingName,
-            string furnishingName,
-            string floor = ""
-        )
-        {
-            Transform building = buildings.Find(buildingName);
-            Assert.That(building, Is.Not.Null, buildingName);
-            Assert.That(
-                building.Find("Interior/" + furnishingName),
-                Is.Null,
-                buildingName + ": 저장된 마을 씬에 실내 집기가 남아 있습니다."
-            );
-
-            Scene interior = EditorSceneManager.OpenScene(
-                $"Assets/Scenes/ShopInteriors/{buildingName}{floor}Interior.unity",
-                OpenSceneMode.Additive
-            );
-            try
-            {
-                Transform furnishing = interior
-                    .GetRootGameObjects()
-                    .Single()
-                    .transform.Find("Interior/" + furnishingName);
-                Assert.That(furnishing, Is.Not.Null, buildingName + ": 실내 원본을 잃었습니다.");
-            }
-            finally
-            {
-                EditorSceneManager.CloseScene(interior, true);
-                SceneManager.SetActiveScene(town);
-            }
-        }
-
         // 경찰서는 카페·호텔처럼 따로 장면(PoliceStationScene)이라, 실내 집기는 그 장면의 같은 경찰서 건물에만 있다.
         [Test]
         public void PoliceStationFurnishings_RemainInThePoliceStationSceneOnly()

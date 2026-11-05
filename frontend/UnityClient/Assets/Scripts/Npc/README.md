@@ -16,7 +16,7 @@
 | `NpcClickTalk` | NPC 몸이나 머리 위 이름표를 클릭·탭하면 말을 겁니다. 8m(`ReachMeters`) 안에서 말을 걸 수 있는 NPC만 받고, PC에서는 커서를 올린 그 NPC에 테두리를 그립니다. 누른 자리의 맨 위 UI가 이름표면 그 이름표의 NPC를(`NpcNameTagView.NpcOf`), 다른 UI면 막고, UI가 없으면 맨 앞에 보이는 NPC 몸을 고릅니다. 제안 화면 프리팹(`PasserbyOffer`)에 붙어 있어 장소 씬을 고치지 않고도 NPC가 있는 모든 장소에서 동작합니다(`NpcBuilder.PrepareAssets`). |
 | `NpcPointerRaycast` | 클릭·탭한 방향에서 맨 앞에 보이는 것이 NPC 몸일 때만 그 NPC를 찾습니다. 플레이어 몸과 보이지 않는 감지 영역은 지나치고, 사물 카드가 뜨는 영역(`ObjectHoverHitArea`)이 앞에 있으면 사물을 누른 것으로 봅니다. |
 | `RendererOutline` | 대상 아래 모든 몸 그림에 테두리 재질(`Art/Npc/NpcHoverOutline.mat`, 셰이더 `A305/NpcHoverOutline`)을 하나 더 붙였다가 원래 재질 목록으로 되돌립니다. 재질 에셋은 바꾸지 않습니다. 테두리 색·두께는 재질에서 조정합니다. |
-| `GuestSignupDialogView` | 대화를 다 쓴 게스트의 가입 안내 창. 가입하면 대화·단어·NPC와의 사이가 그대로 이어진다고 알리고, [Google로 가입하기]는 같은 탭에서 Google 로그인(AUTH-01, `A305.Api`의 `BrowserRedirect`)으로 갑니다. 창이 열릴 때 설문을 권해(`A305.Api`의 `SurveyPrompt.Request`) 화면 위 가운데에 설문 카드가 따로 내려옵니다(창 안에는 설문 링크를 두지 않음). 제안 화면 프리팹(`PasserbyOffer`)에 있어 장소 씬마다 배치하지 않습니다(**Tools → A305 → Npc → Apply Guest Signup Dialog**). |
+| `GuestSignupDialogView` | 대화를 다 쓴 게스트의 가입 안내 창. [가입하고 계속 대화하기]를 누를 때와, 마지막 대화의 피드백을 닫아 가입을 권할 때(`A305.Api`의 `GuestSignupPrompt`) 열립니다. 가입하면 대화·단어·NPC와의 사이가 그대로 이어진다고 알리고, [Google로 가입하기]는 같은 탭에서 Google 로그인(AUTH-01, `A305.Api`의 `BrowserRedirect`)으로 갑니다. 창이 열릴 때 설문을 권해(`A305.Api`의 `SurveyPrompt.Request`) 화면 위 가운데에 설문 카드가 따로 내려옵니다(창 안에는 설문 링크를 두지 않음). 제안 화면 프리팹(`PasserbyOffer`)에 있어 장소 씬마다 배치하지 않습니다(**Tools → A305 → Npc → Apply Guest Signup Dialog**). |
 | `PasserbyOfferText` | 제안 화면 문구. 머리말은 대화 대본의 NPC 이름으로 "Emma이(가) 말을 걸었어요", 이름이 없으면 "누군가 말을 걸었어요"이고, 먼저 말 걸기 버튼은 "Emma에게 말 걸기", 이름이 없으면 "말 걸기"입니다. 준비해 둔 것을 건네려고 부를 때는 "Mia이(가) 불러요"와 "기다리던 아이스 라테가 준비됐어요"이고, 조사는 받침에 맞춥니다(`SubjectParticle`). |
 | `PasserbyRestRecord` | 행인별로 다시 다가올 수 있는 시각을 공간이 바뀌어도 기억합니다. |
 | `PasserbyOfferRecord` | 하루에 한 번만 다가오는 행인이 마지막으로 먼저 말을 건 날짜(기기 날짜)를 기억합니다. 게임을 껐다 켜도 이어지게 이 기기(Web 빌드는 브라우저)의 `PlayerPrefs`에 저장합니다. |
@@ -37,7 +37,7 @@
 
 | 대상 | 용도 |
 | --- | --- |
-| `A305.Api` | 게스트 가입 안내 창의 Google 로그인 주소(`ApiSettings`, `AuthPaths`)와 같은 탭에서 열기(`BrowserRedirect`) |
+| `A305.Api` | 게스트 가입 안내 창의 Google 로그인 주소(`ApiSettings`, `AuthPaths`)와 같은 탭에서 열기(`BrowserRedirect`), 피드백을 닫아 가입을 권하는 신호(`GuestSignupPrompt`) |
 | `A305.Player` | 플레이어 위치, `IsMovementLocked`, 키 안내를 숨길 휴대폰·태블릿 판단(`PlayerTouchControls.ShouldShowControls`) |
 | `A305.Dialogue` | `DialogueController.TryStart`(먼저 말을 걸면 `ConversationInitiator.User`), `IsTalking`, `Ended`, 제안 머리말에 쓸 `FindNpcName`, 건넬 것이 다 됐는지 보는 `FollowUpStore.FindReady` |
 | `A305.Characters` | 모델 Animator에 이동 상태 전달. 연결하지 않아도 동작합니다. |
@@ -270,7 +270,7 @@ ai/.venv/Scripts/python ai/tools/npc_life_export.py
 | 어셈블리 | 위치 | 검증 |
 | --- | --- | --- |
 | `A305.Npc.Tests` | `Assets/Tests/EditMode/Npc/` | 행인의 다가감·제안·부르기·[말 걸기]·클릭으로 말 걸기와 게스트 안내, 클릭한 NPC 고르기(`NpcPointerRaycastTests`)·테두리(`RendererOutlineTests`), 택시 버튼, 생활 일과·욕구·행동 고르기, 근무와 카운터 응대(`NpcDutyTests`), 외형 표(`NpcCastTests`), 동작 고르기, 카메라에서 먼 NPC의 팔 관통 보정 끄기, 앉아 있는 동안 다시 켜지 않기와 네 장면의 보정 쓰는 NPC가 모두 거리 끄기를 가졌는지(`NpcDetailDistanceTests`·`NpcDetailDistanceSceneTests`) |
-| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 실제 장면의 행인·튜토리얼 행인 대화 흐름, NPC 몸·이름표 클릭·탭으로 말 걸기와 커서 테두리, 겹친 이름표(`NpcClickTalkTests`), 택시 주행과 세우기, 경찰 신고와 순찰차 출동, 직원의 생활·카운터 응대와 동작 재생 |
+| `A305.Npc.PlayModeTests` | `Assets/Tests/PlayMode/Npc/` | 실제 장면의 행인·튜토리얼 행인 대화 흐름, NPC 몸·이름표 클릭·탭으로 말 걸기와 커서 테두리, 겹친 이름표(`NpcClickTalkTests`), 택시 주행과 세우기, 경찰 신고와 순찰차 출동, 직원의 생활·카운터 응대와 동작 재생. 대화를 다 쓴 게스트가 피드백을 닫으면 가입 안내 창과 설문 카드가 뜨는지(`GuestSignupAfterFeedbackTests`, 서버 없이 피드백까지 가는 튜토리얼 길 안내로 확인) |
 
 실행 방법은 [프론트엔드 개발 지침](../../../../AGENTS.md)을 따릅니다.
 

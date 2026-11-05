@@ -41,6 +41,32 @@
       "Bloom Flowers is right across the main street."
     ]
   },
+  "CAFE_BARISTA": {
+    "scenarioId": "cafe_counter",
+    "locationId": "CAFE",
+    "situation": "The customer is at the counter of the corner cafe.",
+    "facts": [
+      "Menu: americano $4, latte $5, cappuccino $5, muffin $3.",
+      "Coffee drinks can be hot or iced at the same price.",
+      "Sizes are small or large. Large is $1 more.",
+      "Milk can be regular or soy at no extra cost.",
+      "The restroom is at the back of the cafe.",
+      "The hotel is right across the main street: cross at the crosswalk outside the cafe door, turn left, and it is a few steps up on the corner."
+    ]
+  },
+  "CAFE_SERVER": {
+    "scenarioId": "cafe_counter",
+    "locationId": "CAFE",
+    "situation": "The customer is at the counter of the corner cafe.",
+    "facts": [
+      "Menu: americano $4, latte $5, cappuccino $5, muffin $3.",
+      "Coffee drinks can be hot or iced at the same price.",
+      "Sizes are small or large. Large is $1 more.",
+      "Milk can be regular or soy at no extra cost.",
+      "The restroom is at the back of the cafe.",
+      "The hotel is right across the main street: cross at the crosswalk outside the cafe door, turn left, and it is a few steps up on the corner."
+    ]
+  },
   "CAFE_STAFF": {
     "scenarioId": "cafe_counter",
     "locationId": "CAFE",
@@ -65,6 +91,33 @@
       "Home & Living is right across the main street."
     ]
   },
+  "FIRE_CAPTAIN": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "FIRE_FIGHTER": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "FIRE_ROOKIE": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
   "FLOWER_SHOP_STAFF": {
     "scenarioId": "flower_shop_counter",
     "locationId": "TOWN",
@@ -84,6 +137,46 @@
       "A lamp is $30. An armchair is $150.",
       "Leaf Tea Room, a separate shop, is upstairs. Its entrance is by the outside stairs.",
       "Maple Diner is right across the main street."
+    ]
+  },
+  "HOTEL_BELLHOP": {
+    "scenarioId": "hotel_front_desk",
+    "locationId": "HOTEL",
+    "situation": "The guest is at the front desk of the hotel lobby.",
+    "facts": [
+      "Check-in is from 3 p.m. Check-out is by 11 a.m.",
+      "There is a reservation under the guest's name: a standard room for one night, already paid.",
+      "Their room is 305 on the third floor. The elevators are in the lobby."
+    ]
+  },
+  "HOTEL_CONCIERGE": {
+    "scenarioId": "hotel_front_desk",
+    "locationId": "HOTEL",
+    "situation": "The guest is at the front desk of the hotel lobby.",
+    "facts": [
+      "Check-in is from 3 p.m. Check-out is by 11 a.m.",
+      "There is a reservation under the guest's name: a standard room for one night, already paid.",
+      "Their room is 305 on the third floor. The elevators are in the lobby."
+    ]
+  },
+  "HOTEL_NIGHT_MANAGER": {
+    "scenarioId": "hotel_front_desk",
+    "locationId": "HOTEL",
+    "situation": "The guest is at the front desk of the hotel lobby.",
+    "facts": [
+      "Check-in is from 3 p.m. Check-out is by 11 a.m.",
+      "There is a reservation under the guest's name: a standard room for one night, already paid.",
+      "Their room is 305 on the third floor. The elevators are in the lobby."
+    ]
+  },
+  "HOTEL_RECEPTIONIST": {
+    "scenarioId": "hotel_front_desk",
+    "locationId": "HOTEL",
+    "situation": "The guest is at the front desk of the hotel lobby.",
+    "facts": [
+      "Check-in is from 3 p.m. Check-out is by 11 a.m.",
+      "There is a reservation under the guest's name: a standard room for one night, already paid.",
+      "Their room is 305 on the third floor. The elevators are in the lobby."
     ]
   },
   "HOTEL_STAFF": {
@@ -115,6 +208,33 @@
       "If the visitor does not say where it happened, the patrol car drives once around the main street."
     ]
   },
+  "POLICE_PATROL_OFFICER": {
+    "scenarioId": "police_front_desk",
+    "locationId": "TOWN",
+    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "facts": [
+      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+      "If the visitor does not say where it happened, the patrol car drives once around the main street."
+    ]
+  },
+  "POLICE_ROOKIE": {
+    "scenarioId": "police_front_desk",
+    "locationId": "TOWN",
+    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "facts": [
+      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+      "If the visitor does not say where it happened, the patrol car drives once around the main street."
+    ]
+  },
+  "POLICE_SERGEANT": {
+    "scenarioId": "police_front_desk",
+    "locationId": "TOWN",
+    "situation": "The visitor is at the front desk of the small police station at the south end of the town's main street. A patrol car is parked right next to the station.",
+    "facts": [
+      "The patrol car can drive to any building on the main street: the cafe, the hotel, the drugstore, the post office, the diner, the bank, the laundromat, the flower shop, the barber shop and the visitor's home.",
+      "If the visitor does not say where it happened, the patrol car drives once around the main street."
+    ]
+  },
   "POST_OFFICE_STAFF": {
     "scenarioId": "post_office_counter",
     "locationId": "TOWN",
@@ -123,6 +243,24 @@
       "A stamp for a letter is $1. Sending a package is $5.",
       "Linda weighs every package on the scale before sending it.",
       "The post office is between Maple Bakery and Home & Living. Little Arcade is right across the main street."
+    ]
+  },
+  "SHOP_NIGHT_CLERK": {
+    "scenarioId": "drugstore_counter",
+    "locationId": "SHOP",
+    "situation": "The customer is at the counter of the small drugstore on the town's main street.",
+    "facts": [
+      "Umbrellas are 8 quest coins each.",
+      "Cash and cards are both accepted."
+    ]
+  },
+  "SHOP_PHARMACIST": {
+    "scenarioId": "drugstore_counter",
+    "locationId": "SHOP",
+    "situation": "The customer is at the counter of the small drugstore on the town's main street.",
+    "facts": [
+      "Umbrellas are 8 quest coins each.",
+      "Cash and cards are both accepted."
     ]
   },
   "SHOP_STAFF": {
@@ -142,7 +280,70 @@
       "The corner cafe and the hotel are on the main street, right across from each other."
     ]
   },
+  "TOWN_EVENING_WALKER": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "TOWN_GRANDFATHER": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "TOWN_GRANDMOTHER": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "TOWN_HANDYMAN": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
   "TOWN_PASSERBY": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "TOWN_RETIREE": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "TOWN_SHOPPER": {
+    "scenarioId": "town_street",
+    "locationId": "TOWN",
+    "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",
+    "facts": [
+      "The other person lives in this town.",
+      "The corner cafe and the hotel are on the main street, right across from each other."
+    ]
+  },
+  "TOWN_STUDENT": {
     "scenarioId": "town_street",
     "locationId": "TOWN",
     "situation": "On the sidewalk of the town's main street on a sunny day. Ben is walking around the town between work meetings. He has just stopped the other person with a friendly remark about the nice weather. They have not met before.",

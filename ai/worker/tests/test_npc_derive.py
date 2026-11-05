@@ -161,14 +161,75 @@ def test_an_npc_life_comes_from_its_mbti_and_npc_id():
     )
 
 
-def test_an_npc_schedule_comes_from_its_role_in_its_own_place():
-    """역할의 일과 틀에 NPC의 기본 장소를 넣는다. NPC가 적은 지금은 자리를 비우지 않아(canLeave false)
-    스스로 채우지 못하는 욕구는 모두 부탁이 된다. 퇴근(OFF)에는 장소가 없다."""
-    staff_day = service_rules()["roles"]["STAFF"]["schedule"]
-
+def test_an_npc_schedule_comes_from_its_shift_in_its_own_place():
+    """맡은 교대(카페 오픈 07:00~15:00)를 역할 규칙으로 하루 일과로 바꾸고 NPC의 기본 장소를 넣는다.
+    NPC가 적은 지금은 자리를 비우지 않아(canLeave false) 스스로 채우지 못하는 욕구는 모두 부탁이 된다. 퇴근(OFF)에는 장소가 없다."""
     assert life_values("CAFE_STAFF")["schedule"] == [
-        dict(block) if block["activity"] == "OFF" else {**block, "scene": "CAFE", "canLeave": False} for block in staff_day
+        {"from": "07:00", "to": "11:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
+        {"from": "11:00", "to": "11:30", "activity": "BREAK", "scene": "CAFE", "canLeave": False},
+        {"from": "11:30", "to": "15:00", "activity": "WORK", "scene": "CAFE", "canLeave": False},
+        {"from": "15:00", "to": "07:00", "activity": "OFF"},
     ]
+
+
+def staff_day(start: str, end: str) -> list[dict]:
+    return npc_derive.shift_day({"from": start, "to": end}, service_rules()["roles"]["STAFF"])
+
+
+def day(*blocks: tuple[str, str, str]) -> list[dict]:
+    return [{"from": start, "to": end, "activity": activity} for start, end, activity in blocks]
+
+
+def test_a_long_storefront_shift_gets_one_break_in_the_middle():
+    """빵집 06:00~18:00. 6시간보다 긴 교대는 가운데에 30분 쉬고, 교대 밖은 퇴근."""
+    assert staff_day("06:00", "18:00") == day(
+        ("06:00", "12:00", "WORK"), ("12:00", "12:30", "BREAK"), ("12:30", "18:00", "WORK"), ("18:00", "06:00", "OFF")
+    )
+
+
+def test_a_night_shift_runs_past_midnight():
+    """호텔 야간 22:00~06:30. 가운데(02:15)에서 가장 가까운 30분 단위 시각 중 이른 쪽(02:00)에 쉰다."""
+    assert staff_day("22:00", "06:30") == day(
+        ("22:00", "02:00", "WORK"), ("02:00", "02:30", "BREAK"), ("02:30", "06:30", "WORK"), ("06:30", "22:00", "OFF")
+    )
+
+
+def test_the_break_starts_at_the_half_hour_nearest_the_middle_of_the_shift():
+    assert staff_day("07:00", "15:20")[1]["from"] == "11:00"  # 가운데 11:10
+    assert staff_day("07:00", "15:40")[1]["from"] == "11:30"  # 가운데 11:20
+
+
+def test_a_shift_of_six_hours_or_less_has_no_break():
+    assert staff_day("09:00", "15:00") == day(("09:00", "15:00", "WORK"), ("15:00", "09:00", "OFF"))
+
+
+def test_a_whole_day_shift_has_no_time_off():
+    """택시처럼 하루 전체(from == to)를 맡으면 퇴근이 없고, 가운데(12:00)에 쉰다."""
+    assert staff_day("00:00", "00:00") == day(("00:00", "12:00", "WORK"), ("12:00", "12:30", "BREAK"), ("12:30", "00:00", "WORK"))
+
+
+def test_a_passerby_is_free_while_out_in_town_and_takes_no_break():
+    """행인의 교대는 마을에 나와 있는 시간대(마을 낮 09:00~18:00)다. 쉬는 시간 없이 자유 시간이고, 나머지는 집에 있다."""
+    passerby = service_rules()["roles"]["PASSERBY"]
+
+    assert npc_derive.shift_day({"from": "09:00", "to": "18:00"}, passerby) == day(("09:00", "18:00", "FREE"), ("18:00", "09:00", "OFF"))
+    assert life_values("TOWN_PASSERBY")["schedule"] == [
+        {"from": "09:00", "to": "18:00", "activity": "FREE", "scene": "TOWN", "canLeave": False},
+        {"from": "18:00", "to": "09:00", "activity": "OFF"},
+    ]
+
+
+def test_a_storefront_clerk_keeps_its_home_place_while_working_its_storefront_hours():
+    """거리 매장 직원의 기본 장소는 마을(TOWN)이고, 일과 시각은 자기 매장(빵집 06:00~18:00)의 교대에서 온다."""
+    schedule = life_values("BAKERY_STAFF")["schedule"]
+
+    assert [(block["from"], block["to"], block["activity"]) for block in schedule] == [
+        ("06:00", "12:00", "WORK"),
+        ("12:00", "12:30", "BREAK"),
+        ("12:30", "18:00", "WORK"),
+        ("18:00", "06:00", "OFF"),
+    ]
+    assert {block.get("scene") for block in schedule} == {"TOWN", None}
 
 
 def test_service_npcs_stay_in_their_own_place_for_now():
@@ -311,6 +372,208 @@ def test_home_store_clerk_nina_keeps_the_persona_direction():
     assert rates["recognitionRate"] > 1
 
 
+def test_barista_zoe_keeps_the_persona_direction():
+    """인격: 수다스럽고 손님이 어디서 왔는지 궁금해함, 한가하면 금방 지루해함."""
+    rates = derived_from_life_file("CAFE_BARISTA")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_receptionist_owen_keeps_the_persona_direction():
+    """인격: 손님 이름을 외우는 다정한 프런트 직원, 무례는 넘기지 않음."""
+    rates = derived_from_life_file("HOTEL_RECEPTIONIST")
+
+    assert rates["recognitionRate"] > 1
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["eventScale"]["RUDE"] > 1
+
+
+def test_night_manager_clara_keeps_the_persona_direction():
+    """인격: 무슨 일에도 침착함, 말이 짧고 손님과 거리를 둠."""
+    rates = derived_from_life_file("HOTEL_NIGHT_MANAGER")
+
+    assert rates["eventScale"]["RUDE"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["needRates"]["SOCIAL"] < 1
+
+
+def test_pharmacist_hannah_keeps_the_persona_direction():
+    """인격: 조용하고 세심함, 손님을 잘 기억함, 잡담은 짧게."""
+    rates = derived_from_life_file("SHOP_PHARMACIST")
+
+    assert rates["recognitionRate"] > 1
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+
+
+def test_night_clerk_samuel_keeps_the_persona_direction():
+    """인격: 말수 적은 밤 근무자, 한가하면 금방 지루해함, 엉뚱한 이야기는 좋아함, 무례는 못 참음."""
+    rates = derived_from_life_file("SHOP_NIGHT_CLERK")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+    assert rates["eventScale"]["RUDE"] > 1
+
+
+def test_retiree_ruby_keeps_the_persona_direction():
+    """인격: 사람 좋아하는 할머니, 얼굴을 잘 기억함, 예의를 따지지만 사과하면 금방 풀림."""
+    rates = derived_from_life_file("TOWN_RETIREE")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["APOLOGY"] > 1
+
+
+def test_student_ethan_keeps_the_persona_direction():
+    """인격: 호기심 많고 수다스러움, 금방 지루해함, 이름은 잘 못 외움."""
+    rates = derived_from_life_file("TOWN_STUDENT")
+
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["recognitionRate"] < 1
+
+
+def test_evening_walker_maya_keeps_the_persona_direction():
+    """인격: 퇴근 뒤 혼자 걸으며 머리를 식힘, 말수가 적고 낯선 사람과 거리를 둠."""
+    rates = derived_from_life_file("TOWN_EVENING_WALKER")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["personalTalkScale"] > 1
+
+
+def test_cafe_server_leo_keeps_the_persona_direction():
+    """인격: 손님과 어울리기 좋아하고 단골 이름을 외움, 한가하면 금방 지루해함."""
+    rates = derived_from_life_file("CAFE_SERVER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["needRates"]["FUN"] > 1
+
+
+def test_concierge_walter_keeps_the_persona_direction():
+    """인격: 손님 이름을 외우는 노련한 컨시어지, 무례에도 흔들리지 않음, 이야기 나누기를 즐김."""
+    rates = derived_from_life_file("HOTEL_CONCIERGE")
+
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["RUDE"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_bellhop_diego_keeps_the_persona_direction():
+    """인격: 붙임성 좋고 수다스러움, 손님 이름을 잘 외움."""
+    rates = derived_from_life_file("HOTEL_BELLHOP")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_shopper_helen_keeps_the_persona_direction():
+    """인격: 이웃과 인사는 잘하지만 장 볼 목록이 바빠 잡담은 짧게, 낯선 사람에게 사적인 이야기는 하지 않음."""
+    rates = derived_from_life_file("TOWN_SHOPPER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["personalTalkScale"] > 1
+
+
+def test_handyman_frank_keeps_the_persona_direction():
+    """인격: 말수 적은 수리공, 잡담보다 일, 고친 일을 오래 기억함."""
+    rates = derived_from_life_file("TOWN_HANDYMAN")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["salienceBonus"]["TASK_DONE"] >= 1
+
+
+def test_sergeant_victor_keeps_the_persona_direction():
+    """인격: 야간 당직을 지키는 침착한 경사, 말이 짧고 직설적, 무례에도 흔들리지 않음."""
+    rates = derived_from_life_file("POLICE_SERGEANT")
+
+    assert rates["eventScale"]["RUDE"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["needRates"]["SOCIAL"] < 1
+
+
+def test_patrol_officer_kevin_keeps_the_persona_direction():
+    """인격: 동네 사람을 잘 아는 다정한 순찰 경찰, 사과하면 금방 풀림."""
+    rates = derived_from_life_file("POLICE_PATROL_OFFICER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["APOLOGY"] > 1
+
+
+def test_police_rookie_tyler_keeps_the_persona_direction():
+    """인격: 규칙대로 하려는 긴장한 신입, 잡담은 짧게, 맡은 일을 해내면 오래 기억함."""
+    rates = derived_from_life_file("POLICE_ROOKIE")
+
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["salienceBonus"]["TASK_DONE"] >= 1
+    assert rates["recognitionRate"] > 1
+
+
+def test_fire_captain_ray_keeps_the_persona_direction():
+    """인격: 사람 좋은 소방 대장, 잡담보다 요점, 낯선 사람에게 사적인 이야기는 하지 않음."""
+    rates = derived_from_life_file("FIRE_CAPTAIN")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["personalTalkScale"] > 1
+
+
+def test_firefighter_rachel_keeps_the_persona_direction():
+    """인격: 활동적이고 직설적인 소방관, 쉬는 날이 길어 몸이 근질근질함, 해낸 일을 오래 기억함."""
+    rates = derived_from_life_file("FIRE_FIGHTER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["salienceBonus"]["TASK_DONE"] >= 1
+
+
+def test_fire_rookie_andre_keeps_the_persona_direction():
+    """인격: 붙임성 좋고 수다스러운 신입 소방관, 기다리는 동안 금방 지루해함."""
+    rates = derived_from_life_file("FIRE_ROOKIE")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["needRates"]["FUN"] > 1
+    assert rates["eventScale"]["SMALL_TALK"] > 1
+
+
+def test_grandfather_arthur_keeps_the_persona_direction():
+    """인격: 말수 적고 꼼꼼한 할아버지, 잡담은 아내에게 맡김, 무례는 못 참음."""
+    rates = derived_from_life_file("TOWN_GRANDFATHER")
+
+    assert rates["needRates"]["SOCIAL"] < 1
+    assert rates["eventScale"]["SMALL_TALK"] < 1
+    assert rates["eventScale"]["RUDE"] > 1
+
+
+def test_grandmother_margaret_keeps_the_persona_direction():
+    """인격: 사람 좋아하고 수다스러운 할머니, 얼굴을 잘 기억함, 어색해지면 금방 풀어 줌."""
+    rates = derived_from_life_file("TOWN_GRANDMOTHER")
+
+    assert rates["needRates"]["SOCIAL"] > 1
+    assert rates["recognitionRate"] > 1
+    assert rates["eventScale"]["APOLOGY"] > 1
+
+
+def test_the_grandparents_are_written_as_a_couple_walking_their_dog():
+    """두 카드가 서로의 이름과 함께 산책시키는 개(Pepper)를 말하고, 같은 시간대에 마을에 나온다."""
+    arthur, margaret = (
+        json.loads((npc_life_rules.ROOT / "ai/npcs" / f"{npc_id}.json").read_text(encoding="utf-8"))["npcProfile"]
+        for npc_id in ["TOWN_GRANDFATHER", "TOWN_GRANDMOTHER"]
+    )
+
+    assert "Margaret" in arthur["background"]["summary"] and "Arthur" in margaret["background"]["summary"]
+    assert all("Pepper" in card["background"]["summary"] for card in (arthur, margaret))
+    assert load_life("TOWN_GRANDFATHER")["shift"] == load_life("TOWN_GRANDMOTHER")["shift"]
+
+
 # ---------------------------------------------------------------------
 # 인격 카드에 자동 칸 더하기: 손으로 쓴 글은 그대로 두고 성격 5축과 뽑힌 행동 조각만 더한다
 # ---------------------------------------------------------------------
@@ -320,17 +583,38 @@ SERVICE_NPCS = [
     "BAKERY_STAFF",
     "BANK_STAFF",
     "BARBER_STAFF",
+    "CAFE_BARISTA",
+    "CAFE_SERVER",
     "CAFE_STAFF",
     "DINER_STAFF",
+    "FIRE_CAPTAIN",
+    "FIRE_FIGHTER",
+    "FIRE_ROOKIE",
     "FLOWER_SHOP_STAFF",
     "HOME_STORE_STAFF",
+    "HOTEL_BELLHOP",
+    "HOTEL_CONCIERGE",
+    "HOTEL_NIGHT_MANAGER",
+    "HOTEL_RECEPTIONIST",
     "HOTEL_STAFF",
     "LAUNDROMAT_STAFF",
     "POLICE_OFFICER",
+    "POLICE_PATROL_OFFICER",
+    "POLICE_ROOKIE",
+    "POLICE_SERGEANT",
     "POST_OFFICE_STAFF",
+    "SHOP_NIGHT_CLERK",
+    "SHOP_PHARMACIST",
     "SHOP_STAFF",
     "TAXI_DRIVER",
+    "TOWN_EVENING_WALKER",
+    "TOWN_GRANDFATHER",
+    "TOWN_GRANDMOTHER",
+    "TOWN_HANDYMAN",
     "TOWN_PASSERBY",
+    "TOWN_RETIREE",
+    "TOWN_SHOPPER",
+    "TOWN_STUDENT",
 ]
 
 

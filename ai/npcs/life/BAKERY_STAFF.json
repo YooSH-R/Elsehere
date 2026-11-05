@@ -2,5 +2,7 @@
   "schemaVersion": "1.0",
   "npcId": "BAKERY_STAFF",
   "mbti": "ESFJ-T",
-  "role": "STAFF"
+  "role": "STAFF",
+  "workplace": "BAKERY",
+  "shift": "ALL_DAY"
 }

@@ -27,8 +27,8 @@ def test_every_npc_with_a_life_file_is_exported():
     assert exported_ids == {path.stem for path in npc_life_rules.LIFE_FOLDER.glob("*.json")}
 
 
-def test_an_npc_gets_its_role_place_and_the_schedule_derived_from_its_role():
-    """NPC마다 일과를 적지 않는다. 역할의 일과 틀에서 계산한 일과를 시각과 활동만 옮긴다(장소는 NPC의 scene 하나)."""
+def test_an_npc_gets_its_role_place_and_the_schedule_derived_from_its_shift():
+    """NPC마다 일과를 적지 않는다. 맡은 교대와 역할 규칙으로 계산한 일과를 시각과 활동만 옮긴다(장소는 NPC의 scene 하나)."""
     mia, derived = exported("CAFE_STAFF"), npc_simulate.service_npc("CAFE_STAFF")
 
     assert (mia["role"], mia["scene"]) == ("STAFF", "CAFE")
@@ -56,3 +56,28 @@ def test_the_unity_copy_matches_a_fresh_export():
     committed = json.loads(npc_life_export.UNITY_FILE.read_text(encoding="utf-8"))
 
     assert committed == npc_life_export.unity_life_data()
+
+
+# 장소별 영업시간 (Unity가 가게 문을 열고 닫는 데 쓴다)
+
+
+def test_place_hours_list_every_place_in_the_rules_order():
+    places = npc_life_export.unity_place_hours()["places"]
+
+    assert [place["code"] for place in places] == list(service_rules()["places"])
+
+
+def test_a_place_with_hours_gives_them_and_a_place_without_is_always_open():
+    """Unity JsonUtility는 없는 칸을 구분하기 어려워, 24시간 여는 곳도 같은 모양으로 두고 시각을 비운다."""
+    places = {place["code"]: place for place in npc_life_export.unity_place_hours()["places"]}
+
+    assert places["CAFE"] == {"code": "CAFE", "alwaysOpen": False, "from": "07:00", "to": "21:00"}
+    assert places["HOTEL"] == {"code": "HOTEL", "alwaysOpen": True, "from": "", "to": ""}
+
+
+def test_the_unity_place_hours_match_a_fresh_export():
+    """공통 규칙의 영업시간을 바꾸고 다시 내보내지 않으면 여기서 드러난다: ai/.venv/Scripts/python ai/tools/npc_life_export.py"""
+    committed = json.loads(npc_life_export.PLACE_HOURS_FILE.read_text(encoding="utf-8"))
+
+    assert committed == npc_life_export.unity_place_hours()
+    assert committed["generatedBy"] == "ai/tools/npc_life_export.py"

@@ -5,7 +5,9 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "A305.Api",
-        "A305.Npc"
+        "A305.Npc",
+        "A305.Player",
+        "A305.EditorTools"
     ],
     "includePlatforms": [
         "Editor"

@@ -40,17 +40,38 @@ def test_the_service_npc_files_pass_the_schema_and_merge():
         "BAKERY_STAFF",
         "BANK_STAFF",
         "BARBER_STAFF",
+        "CAFE_BARISTA",
+        "CAFE_SERVER",
         "CAFE_STAFF",
         "DINER_STAFF",
+        "FIRE_CAPTAIN",
+        "FIRE_FIGHTER",
+        "FIRE_ROOKIE",
         "FLOWER_SHOP_STAFF",
         "HOME_STORE_STAFF",
+        "HOTEL_BELLHOP",
+        "HOTEL_CONCIERGE",
+        "HOTEL_NIGHT_MANAGER",
+        "HOTEL_RECEPTIONIST",
         "HOTEL_STAFF",
         "LAUNDROMAT_STAFF",
         "POLICE_OFFICER",
+        "POLICE_PATROL_OFFICER",
+        "POLICE_ROOKIE",
+        "POLICE_SERGEANT",
         "POST_OFFICE_STAFF",
+        "SHOP_NIGHT_CLERK",
+        "SHOP_PHARMACIST",
         "SHOP_STAFF",
         "TAXI_DRIVER",
+        "TOWN_EVENING_WALKER",
+        "TOWN_GRANDFATHER",
+        "TOWN_GRANDMOTHER",
+        "TOWN_HANDYMAN",
         "TOWN_PASSERBY",
+        "TOWN_RETIREE",
+        "TOWN_SHOPPER",
+        "TOWN_STUDENT",
     ]
 
 
@@ -275,22 +296,55 @@ def test_the_service_npcs_each_have_a_service_scenario():
         "BAKERY_STAFF": "bakery_counter",
         "BANK_STAFF": "bank_counter",
         "BARBER_STAFF": "barber_shop",
+        "CAFE_BARISTA": "cafe_counter",
+        "CAFE_SERVER": "cafe_counter",
         "CAFE_STAFF": "cafe_counter",
         "DINER_STAFF": "diner_counter",
+        "FIRE_CAPTAIN": "town_street",
+        "FIRE_FIGHTER": "town_street",
+        "FIRE_ROOKIE": "town_street",
         "FLOWER_SHOP_STAFF": "flower_shop_counter",
         "HOME_STORE_STAFF": "home_store",
+        "HOTEL_BELLHOP": "hotel_front_desk",
+        "HOTEL_CONCIERGE": "hotel_front_desk",
+        "HOTEL_NIGHT_MANAGER": "hotel_front_desk",
+        "HOTEL_RECEPTIONIST": "hotel_front_desk",
         "HOTEL_STAFF": "hotel_front_desk",
         "LAUNDROMAT_STAFF": "laundromat",
         "POLICE_OFFICER": "police_front_desk",
+        "POLICE_PATROL_OFFICER": "police_front_desk",
+        "POLICE_ROOKIE": "police_front_desk",
+        "POLICE_SERGEANT": "police_front_desk",
         "POST_OFFICE_STAFF": "post_office_counter",
+        "SHOP_NIGHT_CLERK": "drugstore_counter",
+        "SHOP_PHARMACIST": "drugstore_counter",
         "SHOP_STAFF": "drugstore_counter",
         "TAXI_DRIVER": "taxi_ride",
+        "TOWN_EVENING_WALKER": "town_street",
+        "TOWN_GRANDFATHER": "town_street",
+        "TOWN_GRANDMOTHER": "town_street",
+        "TOWN_HANDYMAN": "town_street",
         "TOWN_PASSERBY": "town_street",
+        "TOWN_RETIREE": "town_street",
+        "TOWN_SHOPPER": "town_street",
+        "TOWN_STUDENT": "town_street",
     }
 
 
-def test_the_service_npcs_each_have_their_own_voice():
-    """한 목소리를 모두 쓰면 남자 인물도 여자 목소리로 말한다. 인물 성별·성격에 맞춘 Kokoro 목소리를 NPC마다 따로 둔다."""
+def test_npcs_working_at_the_same_place_have_different_voices():
+    """같은 곳(생활 파일의 같은 근무지, 마을 행인은 모두 한 무리)에서 함께 지내는 NPC끼리는 목소리가 겹치지 않는다.
+    다른 곳의 NPC와는 같은 목소리를 다시 쓸 수 있다."""
+    configs, _ = service_npcs()
+    voices_at: dict[str, list[str]] = {}
+    for config in configs:
+        life = json.loads((npc_configs.ROOT / "ai/npcs/life" / f"{config['npcId']}.json").read_text(encoding="utf-8"))
+        voices_at.setdefault(life["workplace"], []).append(config["voiceId"])
+
+    assert {place: voices for place, voices in voices_at.items() if len(set(voices)) < len(voices)} == {}
+
+
+def test_the_service_npcs_each_have_a_voice_that_fits_the_character():
+    """한 목소리를 모두 쓰면 남자 인물도 여자 목소리로 말한다. 인물 성별·나이·성격에 맞춘 Kokoro 목소리를 둔다."""
     configs, _ = service_npcs()
 
     assert {config["npcId"]: config["voiceId"] for config in configs} == {
@@ -298,17 +352,38 @@ def test_the_service_npcs_each_have_their_own_voice():
         "BAKERY_STAFF": "bf_emma",  # Grace: 따뜻하고 부지런한 여자(영국식)
         "BANK_STAFF": "bm_george",  # Henry: 정중하고 침착한 남자(영국식)
         "BARBER_STAFF": "am_liam",  # Tony: 수다스럽고 장난기 많은 남자
+        "CAFE_BARISTA": "af_nova",  # Zoe: 밝고 수다스러운 20대 여자
+        "CAFE_SERVER": "am_liam",  # Leo: 붙임성 좋은 20대 남자. 이발소 Tony와 같은 목소리(다른 곳)
         "CAFE_STAFF": "af_heart",  # Mia: 밝은 여자
         "DINER_STAFF": "af_bella",  # Rosa: 다정하고 수다스러운 여자
+        "FIRE_CAPTAIN": "am_adam",  # Ray: 느긋하고 믿음직한 40대 남자. 빨래방 Gus와 같은 목소리(다른 곳)
+        "FIRE_FIGHTER": "af_alloy",  # Rachel: 시원시원한 30대 여자
+        "FIRE_ROOKIE": "am_echo",  # Andre: 밝은 20대 남자. 호텔 Jake와 같은 목소리(다른 곳)
         "FLOWER_SHOP_STAFF": "af_nicole",  # Lily: 다정하고 수줍은 여자
         "HOME_STORE_STAFF": "af_sky",  # Nina: 차분하고 센스 있는 여자
+        "HOTEL_BELLHOP": "am_puck",  # Diego: 밝고 수다스러운 20대 남자. 택시 Joe와 같은 목소리(다른 곳)
+        "HOTEL_CONCIERGE": "bm_george",  # Walter: 정중하고 노련한 50대 남자(영국식). 은행 Henry와 같은 목소리(다른 곳)
+        "HOTEL_NIGHT_MANAGER": "bf_isabella",  # Clara: 침착한 중년 여자(영국식)
+        "HOTEL_RECEPTIONIST": "bm_lewis",  # Owen: 정중하고 다정한 30대 남자(영국식). 미국식 남자 목소리는 다른 NPC가 씀
         "HOTEL_STAFF": "am_echo",  # Jake: 또렷하고 밝은 남자
         "LAUNDROMAT_STAFF": "am_adam",  # Gus: 느긋하고 농담을 좋아하는 남자
         "POLICE_OFFICER": "am_eric",  # Dan: 차분하고 믿음직한 남자
+        "POLICE_PATROL_OFFICER": "am_michael",  # Kevin: 다정한 30대 남자. 드럭스토어 Alex와 같은 목소리(다른 곳)
+        "POLICE_ROOKIE": "bm_fable",  # Tyler: 긴장한 20대 남자(영국식). 오락실 Max와 같은 목소리(다른 곳)
+        "POLICE_SERGEANT": "am_onyx",  # Victor: 낮은 목소리의 40대 남자. 드럭스토어 Samuel과 같은 목소리(다른 곳)
         "POST_OFFICE_STAFF": "af_sarah",  # Linda: 꼼꼼하고 원칙을 지키는 여자
+        "SHOP_NIGHT_CLERK": "am_onyx",  # Samuel: 낮은 목소리의 중년 남자
+        "SHOP_PHARMACIST": "af_kore",  # Hannah: 차분하고 세심한 중년 여자
         "SHOP_STAFF": "am_michael",  # Alex: 차분한 남자
         "TAXI_DRIVER": "am_puck",  # Joe: 밝고 수다스러운 남자
+        "TOWN_EVENING_WALKER": "af_aoede",  # Maya: 말수 적은 중년 여자
+        "TOWN_GRANDFATHER": "bm_lewis",  # Arthur: 낮고 차분한 70대 남자(영국식). 호텔 Owen과 같은 목소리(다른 곳)
+        "TOWN_GRANDMOTHER": "bf_lily",  # Margaret: 다정하고 수다스러운 70대 여자(영국식)
+        "TOWN_HANDYMAN": "am_santa",  # Frank: 나이 든 남자 목소리
         "TOWN_PASSERBY": "am_fenrir",  # Ben: 분명하고 단호한 남자
+        "TOWN_RETIREE": "bf_alice",  # Ruby: 다정한 할머니(영국식)
+        "TOWN_SHOPPER": "af_river",  # Helen: 차분하고 바쁜 50대 여자
+        "TOWN_STUDENT": "bm_daniel",  # Ethan: 호기심 많은 20대 남자(영국식)
     }
 
 

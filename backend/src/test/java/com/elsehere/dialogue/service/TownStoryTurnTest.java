@@ -61,7 +61,7 @@ class TownStoryTurnTest {
         .thenReturn(Conversation.start(8L, 1L, InitiatedBy.USER, 1, Instant.EPOCH));
     DialogueContexts contexts = mock(DialogueContexts.class);
     WorkerNpc npc = new WorkerNpc("DINER_STAFF", "Rosa", "server", "", "diner", "voice", 1);
-    when(contexts.npcById(1L))
+    when(contexts.npcOf(any()))
         .thenReturn(
             new NpcContext(
                 1L,

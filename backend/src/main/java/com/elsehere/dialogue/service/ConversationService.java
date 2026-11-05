@@ -69,6 +69,10 @@ public class ConversationService {
           + " Do not mention the learner's tasks, your offers or directions yet; wait for the learner to ask."
           + " Do not assume their task is complete.";
 
+  // 근무 시간이 아닌 NPC는 손님을 맞지 않으므로 무엇을 도와줄지 묻지 않고 쉬는 중에 만난 사람처럼 인사한다.
+  private static final String OFF_DUTY_GREETING_INSTRUCTION =
+      "The learner just walked up to you while you are off work. Greet them casually, the way"
+          + " you would in your free time. Do not offer to help or serve them. 1 short sentence.";
   // 준비된 것을 건네는 첫마디. 학습자는 아직 말하지 않았으므로 NPC가 먼저 부른다.
   private static final String HANDOVER_TEXT = "(The learner is waiting nearby for their order.)";
   private static final String HANDOVER_INSTRUCTION =
@@ -105,11 +109,12 @@ public class ConversationService {
       return replayed.get();
     }
     StartContext context =
-        transactionTemplate.execute(status -> startContext(userId, request.npcCode()));
+        transactionTemplate.execute(
+            status -> startContext(userId, request.npcCode(), request.npcOffDuty()));
     NpcContext npc = context.npc();
 
     // 이 NPC가 건넬 것이 준비됐으면 건네는 말로 시작한다. 말걸기 대사가 있는 NPC가 먼저 말을 걸었으면 그 대사로 시작한다.
-    // 직원처럼 말걸기 대사가 없으면 AI로 첫 인사를 만든다.
+    // 직원처럼 말걸기 대사가 없거나 근무 시간이 아니면 AI로 첫 인사를 만든다.
     WorkerTrace trace = new WorkerTrace(request.requestId(), userId, null);
     Opening opening =
         context
@@ -125,11 +130,16 @@ public class ConversationService {
             .orElseGet(
                 () ->
                     context.mission().isEmpty()
+                            && !request.npcOffDuty()
                             && request.initiatedBy() == InitiatedBy.NPC
                             && npc.approachLine() != null
                         ? approachOpening(npc)
                         : greetingOpening(
-                            trace, npc, context, GREETING_TEXT, greetingInstruction(context)));
+                            trace,
+                            npc,
+                            context,
+                            GREETING_TEXT,
+                            greetingInstruction(context, request.npcOffDuty())));
 
     Started started =
         transactionTemplate.execute(
@@ -154,6 +164,9 @@ public class ConversationService {
                           context.level(),
                           clock.instant()));
               conversation.attachStartRequest(request.requestId());
+              if (request.npcOffDuty()) {
+                conversation.markNpcOffDuty();
+              }
               context
                   .mission()
                   .ifPresent(
@@ -293,13 +306,13 @@ public class ConversationService {
                 .map(conversationResponses::detail));
   }
 
-  private StartContext startContext(Long userId, String npcCode) {
+  private StartContext startContext(Long userId, String npcCode, boolean npcOffDuty) {
     User user =
         userRepository
             .findById(userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     ensureCanStart(user);
-    NpcContext npc = dialogueContexts.npcByCode(npcCode);
+    NpcContext npc = dialogueContexts.npcByCode(npcCode, npcOffDuty);
     if (!npc.sceneOpen()) {
       throw new BusinessException(ErrorCode.SCENE_CLOSED);
     }
@@ -353,11 +366,13 @@ public class ConversationService {
     return new Opening(reply.text(), npcAudioReceiver.save(trace, reply.audioFullId()));
   }
 
-  private static String greetingInstruction(StartContext context) {
+  // 첫날 미션 단계의 NPC는 미션 지시대로 인사한다. 미션 NPC가 근무 시간이 아닐 때 미션을 어떻게 할지는 아직 정하지 않아
+  // (docs/npc-life-design.md 11절 "교대와 첫날 미션") 지금은 미션 지시를 따른다.
+  private static String greetingInstruction(StartContext context, boolean npcOffDuty) {
     return context
         .mission()
         .map(value -> value.detail().instruction() + MISSION_GREETING)
-        .orElse(GREETING_INSTRUCTION);
+        .orElse(npcOffDuty ? OFF_DUTY_GREETING_INSTRUCTION : GREETING_INSTRUCTION);
   }
 
   /**

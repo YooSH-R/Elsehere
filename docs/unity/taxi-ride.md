@@ -18,7 +18,7 @@
 | 이발소 | Take me to the barber shop, please. | MainStreetBarberInterior |
 | 경찰서 | Take me to the police station, please. | PoliceStationInterior |
 
-택시는 건물 앞 보도에 내려준다. 실내로 자동 이동하지 않으며, 하차 후 사용자가 문으로 걸어 들어간다. 북쪽 기존 베이커리·오락실·서점·생활용품점·찻집은 현재 택시 목적지에 포함하지 않는다.
+택시는 건물 앞 보도에 내려준다. 실내로 자동 이동하지 않으며, 하차 후 사용자가 문으로 걸어 들어간다. 택시는 영업시간과 상관없이 데려다주고, 영업시간이 아닌 장소는 문 앞에서 들어가지 못한다([World 모듈의 영업시간](../../frontend/UnityClient/Assets/Scripts/World/README.md#영업시간)). 북쪽 기존 베이커리·오락실·서점·생활용품점·찻집은 현재 택시 목적지에 포함하지 않는다.
 
 한국어 장소·이동 요청도 일부 지원한다. 목적지는 `TaxiDestinationRequest`의 보수적인 규칙으로 찾으므로 모든 자연어를 이해하는 의도 모델은 아니다. 정보 질문, 부정, 여러 장소 중 선택하지 않은 문장, 지원하지 않는 장소로는 출발하지 않는다. 목적지 처리에 별도 LLM 호출을 추가하지 않는다.
 
@@ -43,7 +43,7 @@
 - `TaxiDestinationRequest`: 지원 장소 이름과 이동 요청 구분.
 - `TaxiDestination`: 장소 코드·화면 이름·차로 정차 위치·보도 하차 위치. `TaxiRide.destinations`에 저장한다.
 
-새 건물은 명칭·영문 별칭, 실제 출입구, 안전한 하차 지점과 운행 경로를 함께 확인한다. 현재는 본길의 동쪽·서쪽 건물만 지원한다. 옆길 건물은 이름만 추가하지 말고 접근 경로를 먼저 구성한다. `TaxiCabinBuilder`의 목적지 구성과 `TaxiDestinationRequest`의 별칭을 함께 갱신한다. 기존 공간 4곳은 `SpaceDoorway`에서 위치를 구하고 거리 매장 7곳은 `TownStorefrontBuilder.Storefronts`의 정차·하차 메타데이터를 사용한다. 우체국은 가로수를 피해 문보다 북쪽 1.5m에, 경찰서는 문 앞 주차 트럭을 피해 남쪽 3m에 정차한다. 경찰서 순찰차도 같은 목록(`TaxiCabinBuilder.FillDestinations`)에서 경찰서만 빼고 출동 장소로 쓴다.
+새 건물은 명칭·영문 별칭, 실제 출입구, 안전한 하차 지점과 운행 경로를 함께 확인한다. 현재는 본길의 동쪽·서쪽 건물만 지원한다. 옆길 건물은 이름만 추가하지 말고 접근 경로를 먼저 구성한다. `TaxiCabinBuilder`의 목적지 구성과 `TaxiDestinationRequest`의 별칭을 함께 갱신한다. 기존 공간 4곳은 `SpaceDoorway`에서 위치를 구하고 거리 매장 7곳은 `TownStorefrontBuilder.Storefronts`의 장소 코드·정차·하차 메타데이터를 사용한다. 우체국은 가로수를 피해 문보다 북쪽 1.5m에, 경찰서는 문 앞 주차 트럭을 피해 남쪽 3m에 정차한다. 경찰서 순찰차도 같은 목록(`TaxiCabinBuilder.FillDestinations`)에서 경찰서만 빼고 출동 장소로 쓴다.
 
 ## 검증
 

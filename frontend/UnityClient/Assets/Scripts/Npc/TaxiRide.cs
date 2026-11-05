@@ -220,7 +220,11 @@ namespace A305.Npc
             }
 
             shownPrompt = null;
-            offerView.HideTalkPrompt(this);
+            // 장면을 내릴 때는 제안 화면이 택시보다 먼저 지워질 수 있다. 지워진 화면은 끌 것이 없다.
+            if (offerView != null)
+            {
+                offerView.HideTalkPrompt(this);
+            }
         }
 
         private void Hail()

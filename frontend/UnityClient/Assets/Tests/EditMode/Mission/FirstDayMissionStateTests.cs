@@ -56,6 +56,23 @@ namespace A305.Mission.Tests
             Assert.That(state.Destination, Is.Null);
         }
 
+        [Test]
+        public void CurrentNpcCode_InProgress_IsTheNpcOfTheCurrentStep()
+        {
+            FirstDayMissionState state = State(started: true, completed: false);
+
+            Assert.That(state.CurrentNpcCode, Is.EqualTo("SHOP_STAFF"));
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, true)]
+        public void CurrentNpcCode_BeforeStartOrAfterCompletion_IsNone(bool started, bool completed)
+        {
+            FirstDayMissionState state = State(started, completed);
+
+            Assert.That(state.CurrentNpcCode, Is.Null);
+        }
+
         [TestCase(true, "RAIN")]
         [TestCase(false, "CLEAR")]
         public void FallbackWeather_FollowsRaining(bool raining, string expected)
@@ -186,9 +203,24 @@ namespace A305.Mission.Tests
                 Scene = "HOTEL",
                 Steps = new List<FirstDayMissionStep>
                 {
-                    new FirstDayMissionStep { Scene = "TOWN", Status = "DONE" },
-                    new FirstDayMissionStep { Scene = "SHOP", Status = "CURRENT" },
-                    new FirstDayMissionStep { Scene = "HOTEL", Status = "UPCOMING" },
+                    new FirstDayMissionStep
+                    {
+                        Scene = "TOWN",
+                        NpcCode = "TOWN_PASSERBY",
+                        Status = "DONE",
+                    },
+                    new FirstDayMissionStep
+                    {
+                        Scene = "SHOP",
+                        NpcCode = "SHOP_STAFF",
+                        Status = "CURRENT",
+                    },
+                    new FirstDayMissionStep
+                    {
+                        Scene = "HOTEL",
+                        NpcCode = "HOTEL_STAFF",
+                        Status = "UPCOMING",
+                    },
                 },
             };
     }

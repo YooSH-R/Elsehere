@@ -26,7 +26,13 @@ namespace A305.World
 
         public bool TryBegin()
         {
-            if (IsLocked || IsTraveling)
+            return TryBegin(evenIfLocked: false);
+        }
+
+        /// <param name="evenIfLocked">영업이 끝난 장소에서 내보낼 때처럼 잠금과 상관없이 시작한다. 잠금은 그대로 남는다.</param>
+        public bool TryBegin(bool evenIfLocked)
+        {
+            if ((IsLocked && !evenIfLocked) || IsTraveling)
             {
                 return false;
             }
@@ -38,14 +44,16 @@ namespace A305.World
         /// <param name="destinationScene">이동할 씬 이름</param>
         /// <param name="arrivalDoorwayId">도착할 출입구. 비우면 씬에 놓인 플레이어 위치에서 시작한다.</param>
         /// <param name="viewYawFromTravel">문으로 들어가는 방향에서 카메라가 돌아가 있던 각도</param>
+        /// <param name="evenIfLocked">잠겨 있어도 시작한다. 영업이 끝난 장소에서 내보낼 때 쓴다.</param>
         /// <returns>이동을 시작했으면 true. 잠겨 있거나, 이미 이동 중이거나, 씬 이름이 없으면 false.</returns>
         public bool TryBegin(
             string destinationScene,
             string arrivalDoorwayId,
-            float viewYawFromTravel = 0f
+            float viewYawFromTravel = 0f,
+            bool evenIfLocked = false
         )
         {
-            if (string.IsNullOrEmpty(destinationScene) || !TryBegin())
+            if (string.IsNullOrEmpty(destinationScene) || !TryBegin(evenIfLocked))
             {
                 return false;
             }

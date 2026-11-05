@@ -173,7 +173,28 @@ class FirstDayMissionServiceTest {
             "BARBER_STAFF",
             "BAKERY_STAFF",
             "ARCADE_STAFF",
-            "HOME_STORE_STAFF")) {
+            "HOME_STORE_STAFF",
+            "CAFE_BARISTA",
+            "HOTEL_RECEPTIONIST",
+            "HOTEL_NIGHT_MANAGER",
+            "SHOP_PHARMACIST",
+            "SHOP_NIGHT_CLERK",
+            "TOWN_RETIREE",
+            "TOWN_STUDENT",
+            "TOWN_EVENING_WALKER",
+            "CAFE_SERVER",
+            "HOTEL_CONCIERGE",
+            "HOTEL_BELLHOP",
+            "TOWN_SHOPPER",
+            "TOWN_HANDYMAN",
+            "POLICE_SERGEANT",
+            "POLICE_PATROL_OFFICER",
+            "POLICE_ROOKIE",
+            "FIRE_CAPTAIN",
+            "FIRE_FIGHTER",
+            "FIRE_ROOKIE",
+            "TOWN_GRANDFATHER",
+            "TOWN_GRANDMOTHER")) {
       if (npc.equals(stage.npc())) {
         continue;
       }
@@ -201,7 +222,7 @@ class FirstDayMissionServiceTest {
   }
 
   // 퀘스트 목표는 학습자가 먼저 말해야 영어로 말할 거리가 생긴다. 담당 NPC는 남은 목표를 먼저 꺼내거나 권하지 않고,
-  // 학습자가 요청한 뒤 그 요청을 마치는 데 필요한 질문만 한다.
+  // 학습자가 요청한 뒤 그 요청을 마치는 데 필요한 질문만 한다. 지시문은 AI 워커가 받는 길이 안이어야 한다.
   @ParameterizedTest
   @EnumSource(FirstDayStage.class)
   void ownerLetsTheLearnerBringUpEveryObjective(FirstDayStage stage) {
@@ -214,6 +235,10 @@ class FirstDayMissionServiceTest {
     assertThat(reply)
         .contains("Never be the first to bring up")
         .doesNotContain("Ask about one of these objectives");
+    // AI 워커는 대답 지시문을 3000자까지 받는다(ai/worker/app/schemas.py ReplyRequest). 넘으면 요청이 거절돼 대화가 '일시적 오류'로
+    // 끊긴다.
+    assertThat(context.instruction().length()).as(stage.name()).isLessThanOrEqualTo(3000);
+    assertThat(reply.length()).as(stage.name()).isLessThanOrEqualTo(3000);
   }
 
   @ParameterizedTest

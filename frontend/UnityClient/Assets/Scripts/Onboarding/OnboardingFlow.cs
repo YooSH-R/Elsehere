@@ -74,6 +74,25 @@ namespace A305.Onboarding
             return RestartAsync(offersGuestSignup: true, signedInToExistingAccount);
         }
 
+        /// <summary>약관 동의 단계의 [다음]. 필수 약관에 모두 동의했을 때만 가입 정보(닉네임·캐릭터) 단계로 넘어간다.</summary>
+        public void ContinueToProfile()
+        {
+            if (Screen == EntryScreen.Terms && SignupForm.CanContinueFromTerms)
+            {
+                Screen = EntryScreen.Signup;
+            }
+        }
+
+        /// <summary>가입 정보 단계의 [뒤로]. 고른 동의는 그대로 둔 채 약관 동의 단계로 돌아간다.</summary>
+        public void BackToTerms()
+        {
+            if (Screen == EntryScreen.Signup)
+            {
+                ErrorMessage = null;
+                Screen = EntryScreen.Terms;
+            }
+        }
+
         /// <summary>
         /// 게임에 들어가기 전에 멈춘 화면(<see cref="EntryScreen.GuestReturn"/>·<see cref="EntryScreen.ExistingAccount"/>)에서
         /// 원래 가려던 튜토리얼이나 마을로 간다.
@@ -330,7 +349,8 @@ namespace A305.Onboarding
         {
             switch (screen)
             {
-                case EntryScreen.Signup:
+                // 가입은 약관 단계부터 시작하므로 이때 약관 목록(AUTH-03)을 받아 두 단계가 같은 입력 상태를 쓴다.
+                case EntryScreen.Terms:
                     SignupFormResponse form = await api.GetSignupFormAsync();
                     SignupForm = new SignupForm(form.Consents, form.Guest);
                     break;

@@ -28,7 +28,7 @@ Editor 버전은 `ProjectSettings/ProjectVersion.txt`, 패키지 버전은 `Pack
 
 ## 실행과 Web 빌드
 
-Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소를 오갈 수 있습니다. 조작은 [Player 모듈](../../frontend/UnityClient/Assets/Scripts/Player/README.md), 공간과 출입구는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md)을 따릅니다. 개발 환경 확인용 샘플 `Assets/Scenes/SampleScene`(`DemoCube` 회전)은 Scene List에 넣지 않습니다.
+Play를 실행하면 방에서 시작하고, 문으로 마을과 카페·숙소를 오갈 수 있습니다. 영업시간이 아닌 장소는 문이 열리지 않습니다. 조작은 [Player 모듈](../../frontend/UnityClient/Assets/Scripts/Player/README.md), 공간과 출입구는 [World 모듈](../../frontend/UnityClient/Assets/Scripts/World/README.md)을 따릅니다. 개발 환경 확인용 샘플 `Assets/Scenes/SampleScene`(`DemoCube` 회전)은 Scene List에 넣지 않습니다.
 
 1. Scene과 프리팹 변경을 저장하고 Console에 컴파일 오류가 없는지 확인합니다.
 2. **File → Build Profiles → Platforms → Web**을 선택하고 **Switch Platform**으로 전환합니다. 사용자 정의 Web 프로파일에서는 **Switch Profile**을 사용합니다.

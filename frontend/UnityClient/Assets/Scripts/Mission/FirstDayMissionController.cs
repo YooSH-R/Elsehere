@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using A305.Api;
 using A305.Dialogue;
+using A305.Npc;
 using A305.Player;
 using A305.Weather;
 using UnityEngine;
@@ -61,6 +62,10 @@ namespace A305.Mission
             waitSpots = FindObjectsByType<QuestNpcWaitSpot>(FindObjectsSortMode.None);
             view.BindMap(sceneCode, player.transform);
             umbrella = player.GetComponent<UmbrellaHold>();
+            // 기다리는 카드의 X로 닫은 것을 서버에 알린다.
+            var followUps = view.GetComponent<FollowUpCardView>();
+            if (followUps != null)
+                followUps.Bind(new FollowUpApi(apiSettings.CreateClient()));
             view.StartRequested += StartMission;
             view.RestRequested += Rest;
             view.RetryRequested += RequestRefresh;
@@ -206,6 +211,8 @@ namespace A305.Mission
                     return;
                 string finished = response.QuestFinishedSince(state);
                 state = response;
+                // 미션이 찾아가라고 한 직원은 교대 밖이어도 자리를 지키고 응대한다. 장면을 옮겨도 남는다.
+                NpcDuty.MissionNpcCode = state.CurrentNpcCode;
                 if (finished != null)
                 {
                     // 보상은 팡파레와 함께 더한다.

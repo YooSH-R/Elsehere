@@ -156,6 +156,33 @@ namespace A305.EditorTools.World
             }
         }
 
+        /// <summary>
+        /// 건물의 장소 코드와 영업시간 안내에 쓰는 이름. 거리 매장은 <see cref="TownStorefrontBuilder.Storefronts"/>를,
+        /// 북쪽 상가는 1층 매장을 따른다(2층 서점·찻집은 같은 건물의 영업시간을 쓴다).
+        /// </summary>
+        private static (string Code, string Name) PlaceOf(string buildingName)
+        {
+            TownStorefrontBuilder.Storefront storefront =
+                TownStorefrontBuilder.Storefronts.FirstOrDefault(shop => shop.Name == buildingName);
+            if (storefront != null)
+                return (storefront.PlaceCode, storefront.KoreanName);
+            switch (buildingName)
+            {
+                case "MapleBakery":
+                    return ("BAKERY", "베이커리");
+                case "LittleArcade":
+                    return ("ARCADE", "오락실");
+                case "HomeLiving":
+                    return ("HOME_STORE", "생활용품점");
+                default:
+                    // 코드가 없는 장소는 늘 열려 있다. Play는 막지 않고 알린다.
+                    Debug.LogError(
+                        $"{buildingName}의 장소 코드가 없어 늘 열어 둡니다. 영업시간을 찾을 수 있게 ShopInteriorScenes에 더합니다."
+                    );
+                    return (null, buildingName);
+            }
+        }
+
         // 먼저 붙인 실내가 건물의 기본 실내다(GetComponentInParent로 찾는 곳).
         private static ShopInterior AddRoom(
             Transform building,
@@ -166,6 +193,9 @@ namespace A305.EditorTools.World
             ShopInterior room = building.gameObject.AddComponent<ShopInterior>();
             var fields = new SerializedObject(room);
             fields.FindProperty("sceneName").stringValue = sceneName;
+            (string placeCode, string placeName) = PlaceOf(building.name);
+            fields.FindProperty("placeCode").stringValue = placeCode;
+            fields.FindProperty("placeName").stringValue = placeName;
             var list = fields.FindProperty("staff");
             list.arraySize = staff.Length;
             for (int index = 0; index < staff.Length; index++)

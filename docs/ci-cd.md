@@ -25,15 +25,15 @@ AI 워커는 Python + FastAPI의 별도 프로세스로 실행하며 Spring만 �
 | --- | --- | --- |
 | `backend/` 실행 코드·의존성 | 백엔드 코드 검사, 단위 테스트 묶음, 빌드. DB·외부 호출을 수정하면 관련 연동 테스트 추가 | 백엔드 이미지·컨테이너 |
 | `ai/` 실행 코드·의존성·모델 설정 | AI 단위 테스트, 요청·응답 계약, 오류·시간 상한 처리. 일반 CI에서는 외부 모델 공급자를 가짜 응답으로 대체 | 변경된 AI 서비스의 이미지·컨테이너 |
-| `frontend/` Unity 코드·에셋·패키지·프로젝트 설정 | 코드 검사, EditMode·PlayMode 전체 테스트. 씬·리소스·패키지 변경도 실행 영향으로 분류 | 변경된 WebGL 정적 산출물. 실제 배포 경로·압축 응답은 앱 배포에서 검증 |
-| Unity Web 템플릿(`Assets/WebGLTemplates/`)·`frontend/design/` 이미지 | 코드 검사, EditMode 배포 검사 묶음(`A305.Deployment.Tests`). 실행 코드와 섞이면 위 행의 전체 테스트 | 변경된 WebGL 정적 산출물 |
+| `frontend/` Unity 코드·에셋·패키지·프로젝트 설정 | 코드 검사. MR의 C# 변경은 소유 어셈블리와 이를 직접·간접 참조하는 모듈의 EditMode·PlayMode 테스트. 씬·리소스·패키지 등 공유 입력 변경은 전체 테스트 | 변경된 WebGL 정적 산출물. 실제 배포 경로·압축 응답은 앱 배포에서 검증 |
+| Unity Web 템플릿(`Assets/WebGLTemplates/`)·`frontend/design/` 이미지 | 코드 검사, EditMode 배포 검사 묶음(`A305.Deployment.Tests`). 실행 코드와 섞이면 연관 테스트도 함께 실행 | 변경된 WebGL 정적 산출물 |
 | `infra/compose/`·Dockerfile·배포 스크립트 | 설정 검사, 관련 이미지 빌드·기동 확인. Compose는 개발·운영 변수 조합을 모두 검사 | 해당 환경에서 영향받는 서비스 |
 | `infra/nginx/` | Nginx 문법, 개발·운영 경로 전달, HTTPS·스트리밍 영향 확인 | 공유 Nginx 설정은 별도 수동 반영 |
 | `.gitlab-ci.yml`·`.gitlab/ci/` | CI 설정 검사와 변경된 작업의 실행 조건 검증. 공통 규칙이면 관련 작업 전체 | 앱 입력이 바뀌지 않으면 앱 배포 생략 |
 | 일반 설명 문서·MR 템플릿 | 링크·형식 등 문서 검사 | 앱 빌드·배포 생략 |
 | `docs/api/`·API 스키마·공유 메시지 정의 | 3절에 따라 제공자·호출자의 계약 및 연동 검증 | 실제 코드·실행 설정을 바꾼 서비스. 호환성에 따라 적용 순서 결정 |
 
-Unity Web 템플릿은 게임 실행 코드와 분리된 배포 산출물 영역으로 보고, 이 영역의 테스트 묶음인 배포 검사를 실행합니다. 실행 코드 영역 안에서는 바뀐 스크립트의 asmdef에 맞는 테스트 어셈블리만 고르지 않고 EditMode·PlayMode 전체를 실행합니다. 씬·프리팹은 asmdef 참조가 아닌 GUID로 스크립트를 연결하므로 어셈블리 단위 선택으로는 영향을 다 찾을 수 없습니다. 이 범위 구분은 MR 검사에 적용하며, dev·운영 배포 자식 파이프라인에서 Unity 검사를 선택하면 전체를 실행합니다. 판정 방법은 [검사 파이프라인 문서](ci-runner.md#unity-테스트-범위)를 따릅니다.
+Unity MR의 C# 변경은 asmdef의 이름·GUID 참조로 의존 관계를 읽어 연관 테스트 어셈블리를 선택합니다. 테스트 코드만 바꾸면 해당 테스트 어셈블리를 실행하고, 실행 코드 변경은 이를 직접·간접 참조하는 모듈의 테스트까지 실행합니다. Web 템플릿·디자인 변경에는 배포 검사를 합칩니다. 씬·프리팹의 직렬화 연결은 asmdef로 영향을 모두 찾을 수 없으므로 공유 입력 변경이나 범위 판정 실패 시 전체를 실행합니다. dev·운영 배포 자식 파이프라인에서 Unity 검사를 선택하면 전체를 실행합니다. 판정 방법은 [검사 파이프라인 문서](ci-runner.md#unity-테스트-범위)를 따릅니다.
 
 `docs/api/`는 일반 문서 생략 규칙보다 우선합니다. README 수정도 실행 옵션·환경 변수·API 동작의 변경을 함께 설명하는 것이라면 해당 코드와 같은 영향 범위로 분류합니다. 의존성 파일과 잠금 파일은 사용하는 영역의 검증을 실행합니다.
 
@@ -84,7 +84,7 @@ python infra/scripts/deployment_plan.py \
 
 일반 문서는 앱 빌드·배포를 생략합니다. `ai/feedback/prompts/`의 Markdown은 AI 실행 자산이므로 AI 검사와 이미지 빌드를 선택합니다. 테스트만 바꾸면 해당 영역 검사만 선택하고, API 명세·공통 CI 변경은 관련 전체 검사를 선택합니다. Compose 변경은 기존 이미지를 유지하며 전체 검사와 실행 구성 반영을 선택합니다. Dockerfile·Web 응답 설정 변경은 해당 이미지의 빌드를 선택합니다. 공유 호스트 Nginx는 검사 대상으로만 처리하며 자동으로 덮어쓰지 않습니다.
 
-`infra/scripts/prepare-unity-test-inputs.ps1`과 `infra/tests/tripo/`는 Unity 테스트의 실행 입력이므로 인프라와 Unity 검사를 함께 선택합니다. `infra/tests/webgl_*.test.cjs`도 두 검사를 선택하며 Linux의 `unity:browser-tests`에서 실행합니다. 테스트 입력만 바뀌면 앱 이미지는 재빌드하지 않습니다. Blender·생성 FBX의 준비와 미실행 판정은 [Windows Unity Runner](unity/windows-runner.md#blender와-fbx-테스트-입력)를 따릅니다.
+`infra/scripts/unity-test-scope.ps1`·`infra/scripts/prepare-unity-test-inputs.ps1`과 `infra/tests/tripo/`는 Unity 테스트의 범위·실행 입력이므로 인프라와 Unity 검사를 함께 선택합니다. `infra/tests/webgl_*.test.cjs`도 두 검사를 선택하며 Linux의 `unity:browser-tests`에서 실행합니다. 테스트 입력만 바뀌면 앱 이미지는 재빌드하지 않습니다. Blender·생성 FBX의 준비와 미실행 판정은 [Windows Unity Runner](unity/windows-runner.md#blender와-fbx-테스트-입력)를 따릅니다.
 
 판정 도구는 `infra:deployment-plan-tests` 작업에서 임시 Git 저장소를 사용해 검증합니다. 로컬에서도 다음 명령으로 실행할 수 있습니다.
 
